@@ -1,0 +1,8 @@
+These programs assumes that the input file is document-term matrix, 
+which is created by the ../wikipedia2matrix. 
+* shrink_mat: remove the rows or columns that have limited number of non-zeros
+  i.e. remove too rare word, or too short document
+* tfidf: calculate tfidf
+* show_matrix: show the contents of the matrix using word for debugging purpose
+* normalize_row: normalize the length of the row vector for k-means, etc.
+

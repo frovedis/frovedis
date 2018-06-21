@@ -1,0 +1,365 @@
+.TH "frovedis::jds_matrix_local<T,I,O,P>" "" "" "" ""
+.SH NAME
+.PP
+\f[C]frovedis::jds_matrix_local<T,I,O,P>\f[] \- A two\-dimensional
+non\-distributed sparse matrix with jagged diagonal storage.
+.SH SYNOPSIS
+.PP
+\f[C]#include\ <frovedis/matrix/jds_matrix.hpp>\f[]
+.SS Constructors
+.PP
+jds_matrix_local ();
+.PD 0
+.P
+.PD
+jds_matrix_local (const \f[C]jds_matrix_local<T,I,O,P>\f[]& m);
+.PD 0
+.P
+.PD
+jds_matrix_local (\f[C]jds_matrix_local<T,I,O,P>\f[]&& m);
+.PD 0
+.P
+.PD
+jds_matrix_local (const \f[C]crs_matrix_local<T,I,O>\f[]& m);
+.SS Overloaded Operators
+.PP
+\f[C]jds_matrix_local<T,I,O,P>\f[]& operator= (const
+\f[C]jds_matrix_local<T,I,O,P>\f[]& m);
+.PD 0
+.P
+.PD
+\f[C]jds_matrix_local<T,I,O,P>\f[]& operator=
+(\f[C]jds_matrix_local<T,I,O,P>\f[]&& m);
+.SS Public Member Functions
+.PP
+void savebinary (const std::string& dir);
+.PD 0
+.P
+.PD
+void debug_print ();
+.SS Public Data Members
+.PP
+\f[C]std::vector<T>\f[] val;
+.PD 0
+.P
+.PD
+\f[C]std::vector<I>\f[] idx;
+.PD 0
+.P
+.PD
+\f[C]std::vector<O>\f[] off;
+.PD 0
+.P
+.PD
+\f[C]std::vector<P>\f[] perm;
+.PD 0
+.P
+.PD
+size_t local_num_row;
+.PD 0
+.P
+.PD
+size_t local_num_col;
+.SH DESCRIPTION
+.PP
+In the CRS format, the rows of the matrix can be reordered decreasingly
+according to the number of non\-zeros per row.
+Then the compressed and permuted diagonals can be stored in a linear
+array.
+The new data structure is called jagged diagonals.
+The number of jagged diagonals is equal to the number of non\-zeros in
+the first row, i.e., the largest number of non\-zeros in any row of the
+sparse matrix.
+.PP
+A JDS (Jagged Diagonal Storage) matrix is one of the popular sparse
+matrices with such jagged diagonals (the elements stored in
+column\-major order).
+It has four major components while storing the non\-zero elements, as
+explained below along with the number of rows and the number of columns
+in the sparse matrix.
+.IP
+.nf
+\f[C]
+val:\ a\ vector\ containing\ the\ non\-zero\ elements\ of\ the\ jagged\ diagonals\ 
+of\ the\ matrix\ (in\ column\-major\ order).\ \ \ 
+idx:\ a\ vector\ containing\ the\ column\ indices\ for\ each\ non\-zero\ elements
+in\ the\ jagged\ diagonals.\ \ \ \ 
+off:\ a\ vector\ containing\ the\ jagged\ diagonal\ offsets.\ \ \ \ \ 
+perm:\ a\ vector\ containing\ the\ indices\ of\ the\ permuted\ rows.
+\f[]
+.fi
+.PP
+For example, if we consider the below sparse matrix:
+.IP
+.nf
+\f[C]
+1\ 0\ 0\ 0\ 1\ 0
+0\ 5\ 9\ 0\ 2\ 0
+0\ 1\ 0\ 4\ 0\ 0
+0\ 0\ 0\ 1\ 0\ 5\ \ \ 
+\f[]
+.fi
+.PP
+then its JDS image can be thought of as:
+.IP
+.nf
+\f[C]
+5\ 9\ 2\ \ \ 
+1\ 5\ \ \ 
+1\ 4\ \ \ 
+1\ 1\ \ \ 
+\f[]
+.fi
+.PP
+Note that 2nd row of the matrix is having maximum non\-zero elements.
+So this
+.PD 0
+.P
+.PD
+matrix will have 3 jagged diagonals.
+Rest three rows are having 2 non\-zero elements each which can be
+permuted in any order (in this case row: 4th \-> 3rd \-> 1st).
+.PP
+Now when storing the diagonals, its JDS representation would be:
+.IP
+.nf
+\f[C]
+val:\ \ {5,\ 1,\ 1,\ 1,\ 9,\ 5,\ 4,\ 1,\ 2}\ \ \ \ 
+idx:\ \ {1,\ 3,\ 1,\ 0,\ 2,\ 5,\ 3,\ 4,\ 4}\ \ \ \ 
+off:\ \ {0,\ 4,\ 8,\ 9}\ \ \ 
+perm:\ {1,\ 3,\ 2,\ 0}
+\f[]
+.fi
+.PP
+Jagged diagonal offset starts with 0 and it has n+1 number of elements,
+where n is the number of jagged diagonals in the sparse matrix.
+The difference between i+1th element and ith element in offset indicates
+number of non\-zero elements present in ith jagged diagonal.
+.PP
+\f[C]jds_matrix_local<T,I,O,P>\f[] is a two\-dimensional template based
+non\-distributed sparse data storage supported by frovedis.
+The structure of this class is as follows:
+.IP
+.nf
+\f[C]
+template\ <class\ T,\ class\ I=size_t,\ class\ O=size_t,\ class\ P=size_t>
+struct\ jds_matrix_local\ {
+\ \ std::vector<T>\ val;\ \ \ \ \ //\ to\ contain\ non\-zero\ elements\ of\ type\ "T"\ \ \ 
+\ \ std::vector<I>\ idx;\ \ \ \ \ //\ to\ contain\ column\ indices\ of\ type\ "I"\ (default:\ size_t)\ \ \ 
+\ \ std::vector<O>\ off;\ \ \ \ \ //\ to\ contain\ offsets\ of\ type\ "O"\ (default:\ size_t)\ \ 
+\ \ std::vector<P>\ perm\ \ \ \ \ //\ to\ contain\ permuted\ row\ indices\ of\ type\ "P"\ (default:\ size_t)\ \ 
+\ \ size_t\ local_num_row;\ \ \ //\ number\ of\ rows\ in\ the\ sparse\ matrix\ \ 
+\ \ size_t\ local_num_col;\ \ \ //\ number\ of\ columns\ in\ the\ sparse\ matrix\ \ \ 
+};
+\f[]
+.fi
+.SS Constructor Documentation
+.SS jds_matrix_local ()
+.PP
+This is the default constructor which creates an empty jds matrix with
+local_num_row = local_num_col = 0.
+.SS jds_matrix_local (const \f[C]jds_matrix_local<T,I,O,P>\f[]& m)
+.PP
+This is the copy constructor which creates a new jds matrix by
+deep\-copying the contents of the input jds matrix.
+.SS jds_matrix_local (\f[C]jds_matrix_local<T,I,O,P>\f[]&& m)
+.PP
+This is the move constructor.
+Instead of copying the input matrix, it moves the contents of the input
+rvalue matrix to the newly constructed matrix.
+Thus it is faster and recommended to use when input matrix will no
+longer be used in a user program.
+.SS jds_matrix_local (const \f[C]crs_matrix_local<T,I,O>\f[]& m)
+.PP
+This is the implicit conversion constructor which creates a new jds
+matrix by converting the input crs matrix.
+.SS Overloaded Operator Documentation
+.SS \f[C]jds_matrix_local<T,I,O,P>\f[]& operator= (const
+\f[C]jds_matrix_local<T,I,O,P>\f[]& m)
+.PP
+It deep\-copies the input jds matrix into the left\-hand side matrix of
+the assignment operator "=".
+.SS \f[C]jds_matrix_local<T,I,O,P>\f[]& operator=
+(\f[C]jds_matrix_local<T,I,O,P>\f[]&& m)
+.PP
+Instead of copying, it moves the contents of the input rvalue jds matrix
+into the left\-hand side matrix of the assignment operator "=".
+Thus it is faster and recommended to use when input matrix will no
+longer be used in a user program.
+.SS Public Member Function Documentation
+.SS void debug_print ()
+.PP
+It prints the information related to the compressed jagged diagonal
+storage (val, idx, off, perm, number of rows and number of columns) on
+the user terminal.
+It is mainly useful for debugging purpose.
+.SS void savebinary (const std::string& dir)
+.PP
+It writes the elements of a jds matrix to the specified directory as
+little\-endian binary data.
+.PP
+The output directory will contain four files, named "nums", "val",
+"idx",
+.PD 0
+.P
+.PD
+"off" and "perm".
+"nums" is a text file containing the number of rows and number of
+columns information in first two lines of the file.
+And rest four files contain the binary data related to compressed jagged
+diagonal storage.
+.SS Public Data Member Documentation
+.SS val
+.PP
+An instance of \f[C]std::vector<T>\f[] type to contain the non\-zero
+elements of the (jagged diagonals elements) of the sparse matrix.
+.SS idx
+.PP
+An instance of \f[C]std::vector<I>\f[] type to contain the column
+indices of the jagged diagonal elements of the sparse matrix.
+.SS off
+.PP
+An instance of \f[C]std::vector<O>\f[] type to contain the jagged
+diagonal offsets.
+.SS perm
+.PP
+An instance of \f[C]std::vector<P>\f[] type to contain the permuted row
+indices.
+.SS local_num_row
+.PP
+A size_t attribute to contain the number of rows in the 2D matrix view.
+.SS local_num_col
+.PP
+A size_t attribute to contain the number of columns in the 2D matrix
+view.
+.SS Public Global Function Documentation
+.SS \f[C]jds_matrix_local<T,I,O,P>\f[]
+make_jds_matrix_local_loadbinary(dirname)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]dirname\f[]: A string object containing the name of the directory
+having the data to be loaded.
+It expects five files to be presented inside the specified directory, as
+follows:
+.IP \[bu] 2
+"nums" (containing number of rows and number of columns separated with
+new\-line),
+.PD 0
+.P
+.PD
+.IP \[bu] 2
+"val" (containing binary data for non\-zero elements),
+.PD 0
+.P
+.PD
+.IP \[bu] 2
+"idx" (containing binary column indices),
+.PD 0
+.P
+.PD
+.IP \[bu] 2
+"off" (containing binary offset values) and
+.PD 0
+.P
+.PD
+.IP \[bu] 2
+"perm" (containing binary permuted row indices)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+This function loads the little\-endian binary data from the specified
+directory and creates a \f[C]jds_matrix_local<T,I,O,P>\f[] object
+filling the data loaded.
+The desired value type, "T" (e.g., int, float, double etc.) must be
+specified
+.PD 0
+.P
+.PD
+explicitly when loading the matrix data.
+If not specified, the other three types "I", "O" and "P" would be size_t
+as default types.
+.PP
+For example, considering "./bin" is a directory having the binary data
+to be loaded,
+.IP
+.nf
+\f[C]
+auto\ m1\ =\ make_jds_matrix_local_loadbinary<int>("./bin");
+auto\ m2\ =\ make_jds_matrix_local_loadbinary<float>("./bin");
+\f[]
+.fi
+.PP
+"m1" will be a \f[C]jds_matrix_local<int,size_t,size_t,size_t>\f[],
+whereas
+.PD 0
+.P
+.PD
+"m2" will be a \f[C]jds_matrix_local<float,size_t,size_t,size_t>\f[].
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+On success, it returns the created matrix of the type
+\f[C]jds_matrix_local<T,I,O,P>\f[].
+Otherwise, it throws an exception.
+.SS \f[C]jds_matrix_local<T,I,O,P>\f[] crs2jds(m)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]m\f[]: An object of the type \f[C]crs_matrix_local<T,I,O>\f[].
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+This function converts an input crs storage into an equivalent jds
+storage of the same "val", "num" and "off" type.
+The input matrix would remain unchanged.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+On success, it will return the converted
+\f[C]jds_matrix_local<T,I,O,P>\f[].
+Otherwise, it throws an exception.
+.SS \f[C]std::vector<T>\f[] operator*(m,v)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]m\f[]: A const& object of the type
+\f[C]jds_matrix_local<T,I,O,P>\f[].
+.PD 0
+.P
+.PD
+\f[I]v\f[]: A const& object of the type \f[C]std::vector<T>\f[].
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+This function performs matrix\-vector multiplication between a sparse
+jds matrix object with a std::vector of same value (T) type.
+It expects the size of the input vector should be greater than or equal
+to the number of columns in the input jds matrix.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+On success, it returns the resultant vector of the type
+\f[C]std::vector<T>\f[].
+Otherwise, it throws an exception.
+.SH SEE ALSO
+.PP
+crs_matrix_local, ell_matrix_local, jds_matrix

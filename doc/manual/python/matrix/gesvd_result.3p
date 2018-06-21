@@ -1,0 +1,308 @@
+.TH "gesvd_result" "" "" "" ""
+.SH NAME
+.PP
+gesvd_result \- a structure to model the output of frovedis singular
+value decomposition methods.
+.SH SYNOPSIS
+.PP
+import frovedis.matrix.results.GesvdResult
+.SS Public Member Functions
+.PP
+to_numpy_results()
+.PD 0
+.P
+.PD
+save(svec, umat=None, vmat=None)
+.PD 0
+.P
+.PD
+save_binary(svec, umat=None, vmat=None)
+.PD 0
+.P
+.PD
+load (svec, umat=None, vmat=None, mtype=\[aq]B\[aq])
+.PD 0
+.P
+.PD
+load_binary (svec, umat=None, vmat=None, mtype=\[aq]B\[aq])
+.PD 0
+.P
+.PD
+debug_print()
+.PD 0
+.P
+.PD
+release()
+.PD 0
+.P
+.PD
+stat()
+.PD 0
+.P
+.PD
+getK()
+.SH DESCRIPTION
+.PP
+GesvdResult is a python side pseudo result structure containing the
+proxies of the in\-memory SVD results created at frovedis server side.
+It can be used to convert the frovedis side SVD result to python
+equivalent data structures.
+.SS Public Member Function Documentation
+.SS to_numpy_results()
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+This function can be used to convert the frovedis side SVD results to
+python numpy result structures.
+.PP
+If U and V both are computed, it returns: (numpy matrix, numpy array,
+numpy matrix)
+.PD 0
+.P
+.PD
+indicating (umatrix, singular vector, vmatrix).
+.PP
+When U is calculated, but not V, it returns: (numpy matrix, numpy array,
+None)
+.PD 0
+.P
+.PD
+When V is calculated, but not U, it returns: (None, numpy array, numpy
+matrix)
+.PD 0
+.P
+.PD
+When neither U nor V is calculated, it returns: (None, numpy array,
+None)
+.PP
+\f[B]Return Type\f[]
+.PD 0
+.P
+.PD
+It returns a tuple as explained above.
+.SS save(svec, umat=None, vmat=None)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]svec\f[]: A string object containing name of the file to save
+singular vectors as text data.
+(mandatory)
+.PD 0
+.P
+.PD
+\f[I]umat\f[]: A string object containing name of the file to save
+umatrix as text data.
+(optional)
+.PD 0
+.P
+.PD
+\f[I]vmat\f[]: A string object containing name of the file to save
+vmatrix as text data.
+(ptional)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+This function can be used to save the result values in different text
+files at server side.
+If saving of U and V components are not required, "umat" and "vmat" can
+be None, but "svec" should have a valid filename.
+.PP
+\f[B]Return Type\f[]
+.PD 0
+.P
+.PD
+It returns nothing.
+.SS save_binary (svec, umat=None, vmat=None)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]svec\f[]: A string object containing name of the file to save
+singular vectors as binary data.
+(mandatory)
+.PD 0
+.P
+.PD
+\f[I]umat\f[]: A string object containing name of the file to save
+umatrix as binary data.
+(optional)
+.PD 0
+.P
+.PD
+\f[I]vmat\f[]: A string object containing name of the file to save
+vmatrix as binary data.
+(optional)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+This function can be used to save the result values in different files
+as little\-endian binary data at server side.
+If saving of U and V components are not required, "umat" and "vmat" can
+be None, but "svec" should have a valid filename.
+.PP
+\f[B]Return Type\f[]
+.PD 0
+.P
+.PD
+It returns nothing.
+.SS load(svec, umat=None, vmat=None, mtype=\[aq]B\[aq])
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]svec\f[]: A string object containing name of the file from which to
+load singular vectors as text data for the target result.
+(mandatory)
+.PD 0
+.P
+.PD
+\f[I]umat\f[]: A string object containing name of the file from which to
+load umatrix as text data for the target result.
+(optional)
+.PD 0
+.P
+.PD
+\f[I]vmat\f[]: A string object containing name of the file from which to
+load vmatrix as text data for the target result.
+(optional)
+.PD 0
+.P
+.PD
+\f[I]mtype\f[]: A character value, can be either \[aq]B\[aq] or
+\[aq]C\[aq].
+(optional)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+This function can be used to load the result values in different text
+files at server side.
+If loading of U and V components are not required, "umat" and "vmat" can
+be None, but "svec" should have a valid filename.
+.PP
+If mtype = \[aq]B\[aq] and umat/vmat is to be loaded, then they will be
+loaded as blockcyclic matrices at server side.
+.PP
+If mtype = \[aq]C\[aq] and umat/vmat is to be loaded, then they will be
+loaded as colmajor matrices at server side.
+.PP
+\f[B]Return Type\f[]
+.PD 0
+.P
+.PD
+It returns nothing.
+.SS load_binary(svec, umat=None, vmat=None, mtype=\[aq]B\[aq])
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]svec\f[]: A string object containing name of the file from which to
+load singular vectors as binary data for the target result.
+(mandatory)
+.PD 0
+.P
+.PD
+\f[I]umat\f[]: A string object containing name of the file from which to
+load umatrix as binary data for the target result.
+(optional)
+.PD 0
+.P
+.PD
+\f[I]vmat\f[]: A string object containing name of the file from which to
+load vmatrix as binary data for the target result.
+(optional)
+.PD 0
+.P
+.PD
+\f[I]mtype\f[]: A character value, can be either \[aq]B\[aq] or
+\[aq]C\[aq].
+(optional)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+This function can be used to load the result values in different
+little\-endian binary files at server side.
+If loading of U and V components are not required, "umat" and "vmat" can
+be None, but "svec" should have a valid filename.
+.PP
+If mtype = \[aq]B\[aq] and umat/vmat is to be loaded, then they will be
+loaded as blockcyclic matrices at server side.
+.PP
+If mtype = \[aq]C\[aq] and umat/vmat is to be loaded, then they will be
+loaded as colmajor matrices at server side.
+.PP
+\f[B]Return Type\f[]
+.PD 0
+.P
+.PD
+It returns nothing.
+.SS debug_print()
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+This function can be used to print the result components at server side
+user terminal.
+This is useful in debugging purpose.
+.PP
+\f[B]Return Type\f[]
+.PD 0
+.P
+.PD
+It returns nothing.
+.SS release()
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+This function can be used to release the in\-memory result components at
+frovedis server.
+.PP
+\f[B]Return Type\f[]
+.PD 0
+.P
+.PD
+It returns nothing.
+.SS stat()
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+This function returns the exit status of the scalapack native gesvd
+routine on calling of which the target result object was obtained.
+.PP
+\f[B]Return Type\f[]
+.PD 0
+.P
+.PD
+An integer value.
+.SS getK()
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+This function returns the number of singular values computed.
+.PP
+\f[B]Return Type\f[]
+.PD 0
+.P
+.PD
+An integer value.

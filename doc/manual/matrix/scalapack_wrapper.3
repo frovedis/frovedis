@@ -1,0 +1,694 @@
+.TH "scalapack_wrapper" "" "" "" ""
+.SH NAME
+.PP
+scalapack_wrapper \- a frovedis module provides user\-friendly
+interfaces for commonly used scalapack routines in scientific
+applications like machine learning algorithms.
+.SH SYNOPSIS
+.PP
+\f[C]#include\ <frovedis/matrix/scalapack_wrapper.hpp>\f[]
+.SH WRAPPER FUNCTIONS
+.PP
+int getrf (const \f[C]sliced_blockcyclic_matrix<T>\f[]& m,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \ \f[C]lvec<int>\f[]& ipiv)
+.PD 0
+.P
+.PD
+int getri (const \f[C]sliced_blockcyclic_matrix<T>\f[]& m,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \ const \f[C]lvec<int>\f[]& ipiv)
+.PD 0
+.P
+.PD
+int getrs (const \f[C]sliced_blockcyclic_matrix<T>\f[]& m1,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \ const \f[C]sliced_blockcyclic_matrix<T>\f[]& m2,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \ const \f[C]lvec<int>\f[]& ipiv,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \ char trans = \[aq]N\[aq])
+.PD 0
+.P
+.PD
+void lacpy (const \f[C]sliced_blockcyclic_matrix<T>\f[]& m1,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \ const \f[C]sliced_blockcyclic_matrix<T>\f[]& m2,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \ char uplo = \[aq]A\[aq])
+.PD 0
+.P
+.PD
+int gesv (const \f[C]sliced_blockcyclic_matrix<T>\f[]& m1,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \ const \f[C]sliced_blockcyclic_matrix<T>\f[]& m2)
+.PD 0
+.P
+.PD
+int gesv (const \f[C]sliced_blockcyclic_matrix<T>\f[]& m1,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \ const \f[C]sliced_blockcyclic_matrix<T>\f[]& m2,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \ \f[C]lvec<int>\f[]& ipiv)
+.PD 0
+.P
+.PD
+int gels (const \f[C]sliced_blockcyclic_matrix<T>\f[]& m1,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \ const \f[C]sliced_blockcyclic_matrix<T>\f[]& m2,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \ char trans = \[aq]N\[aq])
+.PD 0
+.P
+.PD
+int gesvd (const \f[C]sliced_blockcyclic_matrix<T>\f[]& m,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \ \f[C]std::vector<T>\f[]& sval)
+.PD 0
+.P
+.PD
+int gesvd (const \f[C]sliced_blockcyclic_matrix<T>\f[]& m,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \ \f[C]std::vector<T>\f[]& sval,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \ const \f[C]sliced_blockcyclic_matrix<T>\f[]& svec,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \ char vtype = \[aq]L\[aq])
+.PD 0
+.P
+.PD
+int gesvd (const \f[C]sliced_blockcyclic_matrix<T>\f[]& m,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \ \f[C]std::vector<T>\f[]& sval,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \ const \f[C]sliced_blockcyclic_matrix<T>\f[]& lsvec,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \ const \f[C]sliced_blockcyclic_matrix<T>\f[]& rsvec)
+.SH SPECIAL FUNCTIONS
+.PP
+\f[C]blockcyclic_matrix<T>\f[] inv (const
+\f[C]sliced_blockcyclic_matrix<T>\f[]& m)
+.SH DESCRIPTION
+.PP
+ScaLAPACK is a high\-performance external library written in Fortran
+language.
+It provides rich set of linear algebra functionalities whose computation
+loads are parallelized over the available processes in a system and the
+user interfaces of this library is very detailed and complex in nature.
+It requires a strong understanding on each of the input parameters,
+along with some distribution concepts.
+.PP
+Frovedis provides a wrapper module for some commonly used ScaLAPACK
+subroutines in scientific applications like machine learning algorithms.
+These wrapper interfaces are very simple and user needs not to consider
+all the detailed distribution parameters.
+Only specifying the target vectors or matrices with some other
+parameters (depending upon need) are fine.
+At the same time, all the use cases of a ScaLAPACK routine can also be
+performed using Frovedis ScaLAPACK wrapper of that routine.
+.PP
+These wrapper routines are global functions in nature.
+Thus they can be called easily from within the "frovedis" namespace.
+As a distributed input matrix, they accept
+"\f[C]blockcyclic_matrix<T>\f[]" or
+"\f[C]sliced_blockcyclic_matrix<T>\f[]".
+"T" is a template type which can be either "float" or "double".
+The individual detailed descriptions can be found in the subsequent
+sections.
+Please note that the term "inout", used in the below section indicates a
+function argument as both "input" and "output".
+.SS Detailed Description
+.SS getrf (m, ipiv)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]m\f[]: A \f[C]blockcyclic_matrix<T>\f[] or a
+\f[C]sliced_blockcyclic_matrix<T>\f[] (inout)
+.PD 0
+.P
+.PD
+\f[I]ipiv\f[]: An empty object of the type \f[C]frovedis::lvec<int>\f[]
+(output)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It computes an LU factorization of a general M\-by\-N distributed
+matrix, "m" using partial pivoting with row interchanges.
+.PP
+On successful factorization, matrix "m" is overwritten with the computed
+L and U factors.
+Along with the input matrix, this function expects user to pass an empty
+object of the type "\f[C]frovedis::lvec<int>\f[]" as a second argument,
+named as "ipiv" which would be updated with the pivoting information
+associated with input matrix "m" by this function while computing
+factors.
+This "ipiv" information will be useful in computation of some other
+functions (like getri, getrs etc.)
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+On success, it returns the exit status of the scalapack routine itself.
+If any error occurs, it throws an exception explaining cause of the
+error.
+.SS getri (m, ipiv)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]m\f[]: A \f[C]blockcyclic_matrix<T>\f[] or a
+\f[C]sliced_blockcyclic_matrix<T>\f[] (inout)
+.PD 0
+.P
+.PD
+\f[I]ipiv\f[]: An object of the type \f[C]frovedis::lvec<int>\f[]
+(input)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It computes the inverse of a distributed square matrix using the LU
+factorization computed by getrf().
+So in order to compute inverse of a matrix, first compute it\[aq]s LU
+factor (and ipiv information) using getrf() and then pass the factored
+matrix, "m" along with the "ipiv" information to this function.
+.PP
+On success, factored matrix "m" is overwritten with the inverse (of the
+matrix which was passed to getrf()) matrix.
+"ipiv" will be internally used by this function and will remain
+unchanged.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+On success, it returns the exit status of the scalapack routine itself.
+If any error occurs, it throws an exception explaining cause of the
+error.
+.SS getrs (m1, m2, ipiv, trans=\[aq]N\[aq])
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]m1\f[]: A \f[C]blockcyclic_matrix<T>\f[] or a
+\f[C]sliced_blockcyclic_matrix<T>\f[] (input)
+.PD 0
+.P
+.PD
+\f[I]m2\f[]: A \f[C]blockcyclic_matrix<T>\f[] or a
+\f[C]sliced_blockcyclic_matrix<T>\f[] (inout)
+.PD 0
+.P
+.PD
+\f[I]ipiv\f[]: An object of the type \f[C]frovedis::lvec<int>\f[]
+(input)
+.PD 0
+.P
+.PD
+\f[I]trans\f[]: A character containing either \[aq]N\[aq] or \[aq]T\[aq]
+[Default: \[aq]N\[aq]] (input/optional)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It solves a real system of distributed linear equations, AX=B with a
+general distributed square matrix (A) using the LU factorization
+computed by getrf().
+Thus before calling this function, it is required to obtain the factored
+matrix "m1" (along with "ipiv" information) by calling getrf().
+.PP
+If trans=\[aq]N\[aq], the linear equation AX=B is solved.
+.PD 0
+.P
+.PD
+If trans=\[aq]T\[aq] the linear equation transpose(A)X=B (A\[aq]X=B) is
+solved.
+.PP
+The matrix "m2" should have number of rows >= the number of rows in "m1"
+and at least 1 column in it.
+.PP
+On entry, "m2" contains the distributed right\-hand\-side (B) of the
+equation and on successful exit it is overwritten with the distributed
+solution matrix (X).
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+On success, it returns the exit status of the scalapack routine itself.
+If any error occurs, it throws an exception explaining cause of the
+error.
+.SS lacpy (m1, m2, uplo=\[aq]A\[aq])
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]m1\f[]: A \f[C]blockcyclic_matrix<T>\f[] or a
+\f[C]sliced_blockcyclic_matrix<T>\f[] (input)
+.PD 0
+.P
+.PD
+\f[I]m2\f[]: A \f[C]blockcyclic_matrix<T>\f[] or a
+\f[C]sliced_blockcyclic_matrix<T>\f[] (output)
+.PD 0
+.P
+.PD
+\f[I]uplo\f[]: A character containing either \[aq]U\[aq], \[aq]L\[aq] or
+\[aq]A\[aq] [Default: \[aq]A\[aq]] (input/optional)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It copies a distributed M\-by\-N matrix, "m1" in another distributed
+M\-by\-N matrix, \[aq]m2\[aq] (m2=m1).
+No communication is performed during this copy.
+Only local versions are copied in each other.
+.PP
+If uplo=\[aq]U\[aq], only upper\-triangular part of "m1" will be copied
+in upper\-triangular part of "m2".
+.PD 0
+.P
+.PD
+If uplo=\[aq]L\[aq], only lower\-triangular part of "m1" will be copied
+in lower\-triangular part of "m2".
+.PD 0
+.P
+.PD
+And if uplo=\[aq]A\[aq], all part of "m2" will be copied in "m2".
+.PP
+This function expects a valid M\-by\-N distributed matrix "m2" to be
+passed as second argument which will be updated with the copy of "m2" on
+successful exit.
+Thus a user is needed to allocate the memory for "m2" and pass to this
+function before calling it.
+If dimension of "m2" is not matched with dimension of "m1" or "m2" is
+not allocated beforehand, this function will throw an exception.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+On success, it returns void.
+If any error occurs, it throws an exception explaining cause of the
+error.
+.SS gesv (m1, m2)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]m1\f[]: A \f[C]blockcyclic_matrix<T>\f[] or a
+\f[C]sliced_blockcyclic_matrix<T>\f[] (inout)
+.PD 0
+.P
+.PD
+\f[I]m2\f[]: A \f[C]blockcyclic_matrix<T>\f[] or a
+\f[C]sliced_blockcyclic_matrix<T>\f[] (inout)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It solves a real system of distributed linear equations, AX=B with a
+general distributed square matrix, "m1" by computing it\[aq]s LU factors
+internally.
+This function internally computes the LU factors and ipiv information
+using getrf() and then solves the equation using getrs().
+.PP
+The matrix "m2" should have number of rows >= the number of rows in "m1"
+and at least 1 column in it.
+.PP
+On entry, "m1" contains the distributed left\-hand\-side square matrix
+(A), "m2" contains the distributed right\-hand\-side matrix (B) and on
+successful exit "m1" is overwritten with it\[aq]s LU factors, "m2" is
+overwritten with the distributed solution matrix (X).
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+On success, it returns the exit status of the scalapack routine itself.
+If any error occurs, it throws an exception explaining cause of the
+error.
+.SS gesv (m1, m2, ipiv)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]m1\f[]: A \f[C]blockcyclic_matrix<T>\f[] or a
+\f[C]sliced_blockcyclic_matrix<T>\f[] (inout)
+.PD 0
+.P
+.PD
+\f[I]m2\f[]: A \f[C]blockcyclic_matrix<T>\f[] or a
+\f[C]sliced_blockcyclic_matrix<T>\f[] (inout)
+.PD 0
+.P
+.PD
+\f[I]ipiv\f[]: An empty object of the type \f[C]frovedis::lvec<int>\f[]
+(output)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+The function serves the same purpose as explained in above version of
+gesv (with two parameters).
+Only difference is that this version accepts an extra parameter "ipiv"
+of the type \f[C]lvec<int>\f[] which would be allocated and updated with
+the pivoting information computed during factorization of "m1".
+Along with the factored matrix, it might also be needed to know the
+associated pivot values.
+In that case, this version of gesv (with three parameters) can be used.
+.PP
+On entry, "m1" contains the distributed left\-hand\-side square matrix
+(A), "m2" contains the distributed right\-hand\-side matrix (B), and
+"ipiv" is an empty object.
+On successful exit "m1" is overwritten with it\[aq]s LU factors, "m2" is
+overwritten with the distributed solution matrix (X), and "ipiv" is
+updated with the pivot values associated with factored matrix, "m1".
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+On success, it returns the exit status of the scalapack routine itself.
+If any error occurs, it throws an exception explaining cause of the
+error.
+.SS gels (m1, m2, trans=\[aq]N\[aq])
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]m1\f[]: A \f[C]blockcyclic_matrix<T>\f[] or a
+\f[C]sliced_blockcyclic_matrix<T>\f[] (input)
+.PD 0
+.P
+.PD
+\f[I]m2\f[]: A \f[C]blockcyclic_matrix<T>\f[] or a
+\f[C]sliced_blockcyclic_matrix<T>\f[] (inout)
+.PD 0
+.P
+.PD
+\f[I]trans\f[]: A character containing either \[aq]N\[aq] or \[aq]T\[aq]
+[Default: \[aq]N\[aq]] (input/optional)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It solves overdetermined or underdetermined real linear systems
+involving an M\-by\-N distributed matrix (A) or its transpose, using a
+QR or LQ factorization of (A).
+It is assumed that distributed matrix (A) has full rank.
+.PP
+If trans=\[aq]N\[aq] and M >= N: it finds the least squares solution of
+an overdetermined system.
+.PD 0
+.P
+.PD
+If trans=\[aq]N\[aq] and M < N: it finds the minimum norm solution of an
+underdetermined system.
+.PD 0
+.P
+.PD
+If trans=\[aq]T\[aq] and M >= N: it finds the minimum norm solution of
+an underdetermined system.
+.PD 0
+.P
+.PD
+If trans=\[aq]T\[aq] and M < N: it finds the least squares solution of
+an overdetermined system.
+.PP
+The matrix "m2" should have number of rows >= max(M,N) and at least 1
+column.
+.PP
+On entry, "m1" contains the distributed left\-hand\-side matrix (A) and
+"m2" contains the distributed right\-hand\-side matrix (B).
+On successful exit, "m1" is overwritten with the QR or LQ factors and
+"m2" is overwritten with the distributed solution matrix (X).
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+On success, it returns the exit status of the scalapack routine itself.
+If any error occurs, it throws an exception explaining cause of the
+error.
+.SS gesvd (m, sval)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]m\f[]: A \f[C]blockcyclic_matrix<T>\f[] or a
+\f[C]sliced_blockcyclic_matrix<T>\f[] (inout)
+.PD 0
+.P
+.PD
+\f[I]sval\f[]: An empty vector of the type \f[C]std::vector<T>\f[]
+(output)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It computes the singular value decomposition (SVD) of an M\-by\-N
+distributed matrix.
+.PP
+On entry "m" contains the distributed matrix whose singular values are
+to be computed, "sval" is an empty object of the type
+\f[C]std::vector<T>\f[].
+And on successful exit, the contents of "m" is destroyed (internally
+used as workspace) and "sval" is updated with the singular values in
+sorted oder, so that sval(i) >= sval(i+1).
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+On success, it returns the exit status of the scalapack routine itself.
+If any error occurs, it throws an exception explaining cause of the
+error.
+.SS gesvd (m, sval, svec, vtype)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]m\f[]: A \f[C]blockcyclic_matrix<T>\f[] or a
+\f[C]sliced_blockcyclic_matrix<T>\f[] (inout)
+.PD 0
+.P
+.PD
+\f[I]sval\f[]: An empty vector of the type \f[C]std::vector<T>\f[]
+(output)
+.PD 0
+.P
+.PD
+\f[I]svec\f[]: A \f[C]blockcyclic_matrix<T>\f[] or a
+\f[C]sliced_blockcyclic_matrix<T>\f[] (output)
+.PD 0
+.P
+.PD
+\f[I]vtype\f[]: A character value containing either \[aq]L\[aq] or
+\[aq]R\[aq] [Default: \[aq]L\[aq]] (input/optional)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It computes the singular value decomposition (SVD) of an M\-by\-N
+distributed matrix.
+Additionally, it also computes \f[I]left \f[B]or\f[] right singular
+vectors\f[].
+.PP
+If vtype=\[aq]L\[aq], "svec" will be updated with first min(M,N) columns
+of left singular vectors (stored columnwise).
+In that case "svec" should have at least M number of rows and min(M,N)
+number of columns.
+.PD 0
+.P
+.PD
+If vtype=\[aq]R\[aq], "svec" will be updated with first min(M,N) rows of
+right singular vectors (stored rowwise in transposed form).
+In that case "svec" should have at least min(M,N) number of rows and N
+number of columns.
+.PP
+This function expects that required memory would be allocated for the
+output matrix "svec" beforehand.
+If it is not allocated, an exception will be thrown.
+.PP
+On entry "m" contains the distributed matrix whose singular values are
+to be computed, "sval" is an empty object of the type
+\f[C]std::vector<T>\f[], "svec" is a valid sized (as explained above)
+distributed matrix.
+.PD 0
+.P
+.PD
+And on successful exit, the contents of "m" is destroyed (internally
+used as workspace), "sval" is updated with the singular values in sorted
+oder, so that sval(i) >= sval(i+1) and "svec" is updated with the
+desired singular vectors (as explained above).
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+On success, it returns the exit status of the scalapack routine itself.
+If any error occurs, it throws an exception explaining cause of the
+error.
+.SS gesvd (m, sval, lsvec, rsvec)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]m\f[]: A \f[C]blockcyclic_matrix<T>\f[] or a
+\f[C]sliced_blockcyclic_matrix<T>\f[] (inout)
+.PD 0
+.P
+.PD
+\f[I]sval\f[]: An empty vector of the type \f[C]std::vector<T>\f[]
+(output)
+.PD 0
+.P
+.PD
+\f[I]lsvec\f[]: A \f[C]blockcyclic_matrix<T>\f[] or a
+\f[C]sliced_blockcyclic_matrix<T>\f[] (output)
+.PD 0
+.P
+.PD
+\f[I]rsvec\f[]: A \f[C]blockcyclic_matrix<T>\f[] or a
+\f[C]sliced_blockcyclic_matrix<T>\f[] (output)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It computes the singular value decomposition (SVD) of an M\-by\-N
+distributed matrix.
+Additionally, it also computes \f[I]left \f[B]and\f[] right singular
+vectors\f[].
+.PP
+This function expects that required memory would be allocated for the
+output matrices "lsvec" and "rsvec" beforehand, to store the left and
+right singular vectors respectively.
+If they are not allocated, an exception will be thrown.
+.PP
+Output matrix "lsvec" will be updated with first min(M,N) columns of
+left singular vectors (stored columnwise).
+Thus, "lsvec" should have at least M number of rowsand min(M,N) number
+of columns.
+.PD 0
+.P
+.PD
+Output matrix "rsvec" will be updated with first min(M,N) rows of right
+singular vectors (stored rowwise in transposed form).
+Thus, "rsvec" should have at least min(M,N) number of rows and N number
+of columns.
+.PP
+On entry "m" contains the distributed matrix whose singular values are
+to be computed, "sval" is an empty object of the type
+\f[C]std::vector<T>\f[], "lsvec" and "rsvec" are valid sized (as
+explained above) distributed matrices.
+And on successful exit, the contents of "m" is destroyed (internally
+used as workspace), "sval" is updated with the singular values in sorted
+oder, so that sval(i) >= sval(i+1), "lsvec" and "rsvec" are updated with
+the left and right singular vectors respectively (as explained above).
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+On success, it returns the exit status of the scalapack routine itself.
+If any error occurs, it throws an exception explaining cause of the
+error.
+.SS inv (m)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]m\f[]: A \f[C]blockcyclic_matrix<T>\f[] or a
+\f[C]sliced_blockcyclic_matrix<T>\f[] (input)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It computes the inverse of a distributed square matrix "m" by using
+getrf() and getri() internally.
+Thus it is a kind of short\-cut function to obtain the inverse of a
+distributed matrix.
+.PP
+On successful exit, it returns the resultant inversed matrix.
+The input matrix "m" remains unchanged.
+Since it returns the resultant matrix, it can be used in any numerical
+expressions, along with other operators.
+E.g., if a and b are two blockcyclic matrices, then the expresion like,
+"a*(~b)*inv(a)" can easily be performed.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+On success, it returns the resultant matrix of the type
+\f[C]blockcyclic_matrix<T>\f[].
+If any error occurs, it throws an exception explaining cause of the
+error.
+.SH SEE ALSO
+.PP
+sliced_blockcyclic_matrix_local, sliced_blockcyclic_vector_local,
+lapack_wrapper

@@ -1,0 +1,161 @@
+TARGETS := libparpack.a
+FFLAGS := -O4
+
+OBJS = \
+arpack-ng/SRC/cgetv0.o \
+arpack-ng/SRC/cnaitr.o \
+arpack-ng/SRC/cnapps.o \
+arpack-ng/SRC/cnaup2.o \
+arpack-ng/SRC/cnaupd.o \
+arpack-ng/SRC/cneigh.o \
+arpack-ng/SRC/cneupd.o \
+arpack-ng/SRC/cngets.o \
+arpack-ng/SRC/csortc.o \
+arpack-ng/SRC/cstatn.o \
+arpack-ng/SRC/dgetv0.o \
+arpack-ng/SRC/dnaitr.o \
+arpack-ng/SRC/dnapps.o \
+arpack-ng/SRC/dnaup2.o \
+arpack-ng/SRC/dnaupd.o \
+arpack-ng/SRC/dnconv.o \
+arpack-ng/SRC/dneigh.o \
+arpack-ng/SRC/dneupd.o \
+arpack-ng/SRC/dngets.o \
+arpack-ng/SRC/dsaitr.o \
+arpack-ng/SRC/dsapps.o \
+arpack-ng/SRC/dsaup2.o \
+arpack-ng/SRC/dsaupd.o \
+arpack-ng/SRC/dsconv.o \
+arpack-ng/SRC/dseigt.o \
+arpack-ng/SRC/dsesrt.o \
+arpack-ng/SRC/dseupd.o \
+arpack-ng/SRC/dsgets.o \
+arpack-ng/SRC/dsortc.o \
+arpack-ng/SRC/dsortr.o \
+arpack-ng/SRC/dstatn.o \
+arpack-ng/SRC/dstats.o \
+arpack-ng/SRC/dstqrb.o \
+arpack-ng/SRC/sgetv0.o \
+arpack-ng/SRC/snaitr.o \
+arpack-ng/SRC/snapps.o \
+arpack-ng/SRC/snaup2.o \
+arpack-ng/SRC/snaupd.o \
+arpack-ng/SRC/snconv.o \
+arpack-ng/SRC/sneigh.o \
+arpack-ng/SRC/sneupd.o \
+arpack-ng/SRC/sngets.o \
+arpack-ng/SRC/ssaitr.o \
+arpack-ng/SRC/ssapps.o \
+arpack-ng/SRC/ssaup2.o \
+arpack-ng/SRC/ssaupd.o \
+arpack-ng/SRC/ssconv.o \
+arpack-ng/SRC/sseigt.o \
+arpack-ng/SRC/ssesrt.o \
+arpack-ng/SRC/sseupd.o \
+arpack-ng/SRC/ssgets.o \
+arpack-ng/SRC/ssortc.o \
+arpack-ng/SRC/ssortr.o \
+arpack-ng/SRC/sstatn.o \
+arpack-ng/SRC/sstats.o \
+arpack-ng/SRC/sstqrb.o \
+arpack-ng/SRC/zgetv0.o \
+arpack-ng/SRC/znaitr.o \
+arpack-ng/SRC/znapps.o \
+arpack-ng/SRC/znaup2.o \
+arpack-ng/SRC/znaupd.o \
+arpack-ng/SRC/zneigh.o \
+arpack-ng/SRC/zneupd.o \
+arpack-ng/SRC/zngets.o \
+arpack-ng/SRC/zsortc.o \
+arpack-ng/SRC/zstatn.o \
+arpack-ng/UTIL/cmout.o \
+arpack-ng/UTIL/cvout.o \
+arpack-ng/UTIL/dmout.o \
+arpack-ng/UTIL/dvout.o \
+arpack-ng/UTIL/icnteq.o \
+arpack-ng/UTIL/icopy.o \
+arpack-ng/UTIL/iset.o \
+arpack-ng/UTIL/iswap.o \
+arpack-ng/UTIL/ivout.o \
+arpack-ng/UTIL/smout.o \
+arpack-ng/UTIL/svout.o \
+arpack-ng/UTIL/zmout.o \
+arpack-ng/UTIL/zvout.o \
+arpack-ng/PARPACK/SRC/MPI/pcgetv0.o \
+arpack-ng/PARPACK/SRC/MPI/pclarnv.o \
+arpack-ng/PARPACK/SRC/MPI/pcnaitr.o \
+arpack-ng/PARPACK/SRC/MPI/pcnapps.o \
+arpack-ng/PARPACK/SRC/MPI/pcnaup2.o \
+arpack-ng/PARPACK/SRC/MPI/pcnaupd.o \
+arpack-ng/PARPACK/SRC/MPI/pcneigh.o \
+arpack-ng/PARPACK/SRC/MPI/pcneupd.o \
+arpack-ng/PARPACK/SRC/MPI/pcngets.o \
+arpack-ng/PARPACK/SRC/MPI/pcontext.o \
+arpack-ng/PARPACK/SRC/MPI/pdgetv0.o \
+arpack-ng/PARPACK/SRC/MPI/pdlamch10.o \
+arpack-ng/PARPACK/SRC/MPI/pdlarnv.o \
+arpack-ng/PARPACK/SRC/MPI/pdnaitr.o \
+arpack-ng/PARPACK/SRC/MPI/pdnapps.o \
+arpack-ng/PARPACK/SRC/MPI/pdnaup2.o \
+arpack-ng/PARPACK/SRC/MPI/pdnaupd.o \
+arpack-ng/PARPACK/SRC/MPI/pdneigh.o \
+arpack-ng/PARPACK/SRC/MPI/pdneupd.o \
+arpack-ng/PARPACK/SRC/MPI/pdngets.o \
+arpack-ng/PARPACK/SRC/MPI/pdnorm2.o \
+arpack-ng/PARPACK/SRC/MPI/pdsaitr.o \
+arpack-ng/PARPACK/SRC/MPI/pdsapps.o \
+arpack-ng/PARPACK/SRC/MPI/pdsaup2.o \
+arpack-ng/PARPACK/SRC/MPI/pdsaupd.o \
+arpack-ng/PARPACK/SRC/MPI/pdseigt.o \
+arpack-ng/PARPACK/SRC/MPI/pdseupd.o \
+arpack-ng/PARPACK/SRC/MPI/pdsgets.o \
+arpack-ng/PARPACK/SRC/MPI/pdznorm2.o \
+arpack-ng/PARPACK/SRC/MPI/pscnorm2.o \
+arpack-ng/PARPACK/SRC/MPI/psgetv0.o \
+arpack-ng/PARPACK/SRC/MPI/pslamch.o \
+arpack-ng/PARPACK/SRC/MPI/pslarnv.o \
+arpack-ng/PARPACK/SRC/MPI/psnaitr.o \
+arpack-ng/PARPACK/SRC/MPI/psnapps.o \
+arpack-ng/PARPACK/SRC/MPI/psnaup2.o \
+arpack-ng/PARPACK/SRC/MPI/psnaupd.o \
+arpack-ng/PARPACK/SRC/MPI/psneigh.o \
+arpack-ng/PARPACK/SRC/MPI/psneupd.o \
+arpack-ng/PARPACK/SRC/MPI/psngets.o \
+arpack-ng/PARPACK/SRC/MPI/psnorm2.o \
+arpack-ng/PARPACK/SRC/MPI/pssaitr.o \
+arpack-ng/PARPACK/SRC/MPI/pssapps.o \
+arpack-ng/PARPACK/SRC/MPI/pssaup2.o \
+arpack-ng/PARPACK/SRC/MPI/pssaupd.o \
+arpack-ng/PARPACK/SRC/MPI/psseigt.o \
+arpack-ng/PARPACK/SRC/MPI/psseupd.o \
+arpack-ng/PARPACK/SRC/MPI/pssgets.o \
+arpack-ng/PARPACK/SRC/MPI/pzgetv0.o \
+arpack-ng/PARPACK/SRC/MPI/pzlarnv.o \
+arpack-ng/PARPACK/SRC/MPI/pznaitr.o \
+arpack-ng/PARPACK/SRC/MPI/pznapps.o \
+arpack-ng/PARPACK/SRC/MPI/pznaup2.o \
+arpack-ng/PARPACK/SRC/MPI/pznaupd.o \
+arpack-ng/PARPACK/SRC/MPI/pzneigh.o \
+arpack-ng/PARPACK/SRC/MPI/pzneupd.o \
+arpack-ng/PARPACK/SRC/MPI/pzngets.o \
+arpack-ng/PARPACK/UTIL/MPI/pcmout.o \
+arpack-ng/PARPACK/UTIL/MPI/pcvout.o \
+arpack-ng/PARPACK/UTIL/MPI/pdmout.o \
+arpack-ng/PARPACK/UTIL/MPI/pdvout.o \
+arpack-ng/PARPACK/UTIL/MPI/pivout.o \
+arpack-ng/PARPACK/UTIL/MPI/psmout.o \
+arpack-ng/PARPACK/UTIL/MPI/psvout.o \
+arpack-ng/PARPACK/UTIL/MPI/pzmout.o \
+arpack-ng/PARPACK/UTIL/MPI/pzvout.o \
+arpack-ng/UTIL/second_NONE.o 
+#arpack-ng/UTIL/second.o \
+
+FC := mpinfort
+
+all:${TARGETS}
+
+libparpack.a:${OBJS}
+	${AR} r libparpack.a ${OBJS}
+
+clean:
+	${RM} *~ ${OBJS} ${TARGETS}

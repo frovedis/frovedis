@@ -1,0 +1,291 @@
+.TH "frovedis::ell_matrix_local<T,I>" "" "" "" ""
+.SH NAME
+.PP
+\f[C]frovedis::ell_matrix_local<T,I>\f[] \- A two\-dimensional
+non\-distributed ELL sparse matrix.
+.SH SYNOPSIS
+.PP
+\f[C]#include\ <frovedis/matrix/ell_matrix.hpp>\f[]
+.SS Constructors
+.PP
+ell_matrix_local ();
+.PD 0
+.P
+.PD
+ell_matrix_local (const \f[C]ell_matrix_local<T,I>\f[]& m);
+.PD 0
+.P
+.PD
+ell_matrix_local (\f[C]ell_matrix_local<T,I>\f[]&& m);
+.PD 0
+.P
+.PD
+ell_matrix_local (const \f[C]crs_matrix_local<T,I,O>\f[]& m);
+.SS Overloaded Operators
+.PP
+\f[C]ell_matrix_local<T,I>\f[]& operator= (const
+\f[C]ell_matrix_local<T,I>\f[]& m);
+.PD 0
+.P
+.PD
+\f[C]ell_matrix_local<T,I>\f[]& operator=
+(\f[C]ell_matrix_local<T,I>\f[]&& m);
+.SS Public Member Functions
+.PP
+void debug_print ();
+.PD 0
+.P
+.PD
+\f[C]crs_matrix_local<T,I,O>\f[] to_crs();
+.SS Public Data Members
+.PP
+\f[C]std::vector<T>\f[] val;
+.PD 0
+.P
+.PD
+\f[C]std::vector<I>\f[] idx;
+.PD 0
+.P
+.PD
+size_t local_num_row;
+.PD 0
+.P
+.PD
+size_t local_num_col;
+.SH DESCRIPTION
+.PP
+A ELL matrix is one of the most popular sparse matrices with elements
+stored in column\-major order.
+In this matrix representation, all the non\-zero elements of a row are
+shifted (packed) at left side and all the rows are padded with zeros on
+the right to give them equal length.
+.PP
+It has two major components while storing the non\-zero elements, as
+explained below along with the number of rows and the number of columns
+in the sparse matrix.
+.IP
+.nf
+\f[C]
+val:\ a\ vector\ containing\ the\ left\-shifted\ (zero\-padded)\ non\-zero\ elements\ of\ 
+the\ sparse\ matrix\ stored\ in\ column\-major\ order.\ \ \ 
+idx:\ a\ vector\ containing\ the\ corresponding\ column\ indices\ of\ the\ non\-zero\ elements.\ \ \ \ 
+\f[]
+.fi
+.PP
+For example, if we consider the below sparse matrix:
+.IP
+.nf
+\f[C]
+1\ 0\ 0\ 0\ 2\ 0\ 0\ 4
+0\ 0\ 0\ 1\ 2\ 0\ 0\ 3
+1\ 0\ 0\ 0\ 2\ 0\ 0\ 4
+0\ 0\ 0\ 1\ 2\ 0\ 0\ 3
+\f[]
+.fi
+.PP
+Then its ELL image can be thought of as:
+.IP
+.nf
+\f[C]
+values\ \ \ \ \ \ \ \ indices
+1\ 2\ 4\ \ \ \ \ \ \ \ \ \ 0\ 4\ 7
+1\ 2\ 3\ \ \ =>\ \ \ \ \ 3\ 4\ 7
+1\ 2\ 4\ \ \ \ \ \ \ \ \ \ 0\ 4\ 7
+1\ 2\ 3\ \ \ \ \ \ \ \ \ \ 3\ 4\ 7
+\f[]
+.fi
+.PP
+And its column\-major memory representation would be:
+.IP
+.nf
+\f[C]
+val:\ {1,\ 1,\ 1,\ 1,\ 2,\ 2,\ 2,\ 2,\ 4,\ 3,\ 4,\ 3}\ \ \ \ 
+idx:\ {0,\ 3,\ 0,\ 3,\ 4,\ 4,\ 4,\ 4,\ 7,\ 7,\ 7,\ 7}\ \ \ \ 
+\f[]
+.fi
+.PP
+\f[C]ell_matrix_local<T,I,O>\f[] is a two\-dimensional template based
+non\-distributed sparse data storage supported by frovedis.
+The structure of this class is as follows:
+.IP
+.nf
+\f[C]
+template\ <class\ T,\ class\ I=size_t>
+struct\ ell_matrix_local\ {
+\ \ std::vector<T>\ val;\ \ \ \ \ //\ to\ contain\ non\-zero\ elements\ of\ type\ "T"
+\ \ std::vector<I>\ idx;\ \ \ \ \ //\ to\ contain\ column\ indices\ of\ type\ "I"\ (default:\ size_t)
+\ \ size_t\ local_num_row;\ \ \ //\ number\ of\ rows\ in\ the\ sparse\ matrix
+\ \ size_t\ local_num_col;\ \ \ //\ number\ of\ columns\ in\ the\ sparse\ matrix
+};
+\f[]
+.fi
+.PP
+This matrix can be loaded from a local crs matrix and also the matrix
+can be converted back to the local crs matrix.
+Thus loading/saving interfaces are not provided for local ell matrix.
+.SS Constructor Documentation
+.SS ell_matrix_local ()
+.PP
+This is the default constructor which creates an empty ell matrix with
+local_num_row = local_num_col = 0.
+.SS ell_matrix_local (const \f[C]ell_matrix_local<T,I>\f[]& m)
+.PP
+This is the copy constructor which creates a new ell matrix by
+deep\-copying the contents of the input ell matrix.
+.SS ell_matrix_local (\f[C]ell_matrix_local<T,I>\f[]&& m)
+.PP
+This is the move constructor.
+Instead of copying the input matrix, it moves the contents of the input
+rvalue matrix to the newly constructed matrix.
+Thus it is faster and recommended to use when input matrix will no
+longer be used in a user program.
+.SS ell_matrix_local (const \f[C]crs_matrix_local<T,I,O>\f[]& m)
+.PP
+This is the implicit conversion constructor to construct a local ell
+matrix from the input local crs matrix of same "val" and "idx" type.
+.SS Overloaded Operator Documentation
+.SS \f[C]ell_matrix_local<T,I>\f[]& operator= (const
+\f[C]ell_matrix_local<T,I>\f[]& m)
+.PP
+It deep\-copies the input ell matrix into the left\-hand side matrix of
+the assignment operator "=".
+.SS \f[C]ell_matrix_local<T,I>\f[]& operator=
+(\f[C]ell_matrix_local<T,I>\f[]&& m)
+.PP
+Instead of copying, it moves the contents of the input rvalue ell matrix
+into the left\-hand side matrix of the assignment operator "=".
+Thus it is faster and recommended to use when input matrix will no
+longer be used in a user program.
+.SS Public Member Function Documentation
+.SS \f[C]crs_matrix_local<T,I,O>\f[] to_crs()
+.PP
+This method can be used to convert the target ell matrix into a local
+crs matrix of the same "val" and "idx" type.
+.SS void debug_print ()
+.PP
+It prints the information related to the ELL storage (val, idx, number
+of rows and number of columns) on the user terminal.
+It is mainly useful for debugging purpose.
+.SS Public Data Member Documentation
+.SS val
+.PP
+An instance of \f[C]std::vector<T>\f[] type to contain the non\-zero
+elements of the ELL sparse matrix in column major order.
+.SS idx
+.PP
+An instance of \f[C]std::vector<I>\f[] type to contain the column
+indices of the non\-zero elements of the sparse matrix.
+.SS local_num_row
+.PP
+A size_t attribute to contain the number of rows in the 2D matrix view.
+.SS local_num_col
+.PP
+A size_t attribute to contain the number of columns in the 2D matrix
+view.
+.SS Public Global Function Documentation
+.SS \f[C]ell_matrix_local<T,I>\f[] crs2ell(m)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]m\f[]: An object of the type \f[C]crs_matrix_local<T,I,O>\f[]
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+This function can be used to get a \f[C]ell_matrix_local<T,I>\f[] from a
+\f[C]crs_matrix_local<T,I,O>\f[].
+Input matrix would remain unchanged.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+On success, it returns the created matrix of the type
+\f[C]ell_matrix_local<T,I>\f[].
+Otherwise, it throws an exception.
+.SS \f[C]crs_matrix_local<T,I,O>\f[] ell2crs(m)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]m\f[]: An object of the type \f[C]ell_matrix_local<T,I>\f[]
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+This function can be used to get a \f[C]crs_matrix_local<T,I,O>\f[] from
+a \f[C]ell_matrix_local<T,I>\f[].
+Input matrix would remain unchanged.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+On success, it returns the created matrix of the type
+\f[C]crs_matrix_local<T,I,O>\f[].
+Otherwise, it throws an exception.
+.SS \f[C]std::vector<T>\f[] operator*(m,v)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]m\f[]: A const& object of the type \f[C]ell_matrix_local<T,I>\f[]
+.PD 0
+.P
+.PD
+\f[I]v\f[]: A const& object of the type \f[C]std::vector<T>\f[]
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+This function performs matrix\-vector multiplication between a sparse
+ell matrix object with a std::vector of same value (T) type.
+It expects the size of the input vector should be greater than or equal
+to the number of columns in the input ell matrix.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+On success, it returns the resultant vector of the type
+\f[C]std::vector<T>\f[].
+Otherwise, it throws an exception.
+.SS \f[C]std::vector<T>\f[] trans_mv(m,v)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]m\f[]: A const& object of the type \f[C]ell_matrix_local<T,I>\f[]
+.PD 0
+.P
+.PD
+\f[I]v\f[]: A const& object of the type \f[C]std::vector<T>\f[]
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+This function performs transposed matrix\-vector multiplication (mT*v)
+between a sparse ell matrix object with a std::vector of same value (T)
+type.
+It expects the size of the input vector should be greater than or equal
+to the number of rows in the input ell matrix.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+On success, it returns the resultant vector of the type
+\f[C]std::vector<T>\f[].
+Otherwise, it throws an exception.
+.SH SEE ALSO
+.PP
+crs_matrix_local, jds_matrix_local, ell_matrix

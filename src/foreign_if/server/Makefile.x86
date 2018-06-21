@@ -1,0 +1,8 @@
+include ../../../Makefile.in.x86
+include Makefile.common
+
+frovedis_server: frovedis_server.o model_tracker.o
+	${MPICXX} ${CXXFLAGS} -o frovedis_server frovedis_server.o model_tracker.o ${LIBS}	
+
+libfrovedis_server.a: ${OBJS}
+	${AR} r libfrovedis_server.a ${OBJS}

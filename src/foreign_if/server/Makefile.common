@@ -1,0 +1,22 @@
+HEADERS := dummy_model.hpp dummy_matrix.hpp exrpc_builder.hpp exrpc_pblas.hpp exrpc_scalapack.hpp scalapack_result.hpp frovedis_mem_pair.hpp short_hand_type.hpp model_tracker.hpp
+OBJS := model_tracker.o
+
+INCLUDES := -I../.. -I../../../third_party/cereal-1.2.2/include/
+CXXFLAGS := ${CXXFLAGS_COMMON} ${INCLUDES}
+LIBS := -L../../../third_party/lib -L../../frovedis/core -L../../frovedis/matrix -L../../frovedis/ml -L../exrpc -lfrovedis_exrpc -lfrovedis_ml -lfrovedis_matrix -lfrovedis_core ${LIBS_COMMON}
+
+TARGETS := frovedis_server libfrovedis_server.a
+
+targets: ${TARGETS}
+
+install:
+	install -d ${INSTALLPATH}/lib/
+	cp libfrovedis_server.a ${INSTALLPATH}/lib/libfrovedis_server.a
+	install -d ${INSTALLPATH}/bin/
+	cp frovedis_server ${INSTALLPATH}/bin/frovedis_server
+
+frovedis_server.o: frovedis_server.cc ${HEADERS}
+model_tracker.o: model_tracker.cc ${HEADERS}
+
+clean:
+	${RM} ${TO_CLEAN} ${TARGETS} 

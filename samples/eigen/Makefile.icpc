@@ -1,0 +1,10 @@
+TARGETS := eigen
+include ../Makefile.in.icpc
+include ../Makefile.common
+
+TO_INSTALL := eigen.cc
+DIR := eigen
+ARCH := icpc
+
+eigen: eigen.o
+	${LINK} -o eigen eigen.o ${LIBS}

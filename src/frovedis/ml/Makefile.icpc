@@ -1,0 +1,5 @@
+include ../../../Makefile.in.icpc
+include Makefile.common
+
+libfrovedis_ml.a: ${OBJS}
+	${AR} r libfrovedis_ml.a ${OBJS}

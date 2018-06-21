@@ -1,0 +1,36 @@
+HEADERS := dfcolumn.hpp dfcolumn_impl.hpp dftable.hpp dfoperator.hpp set_operations.hpp hashtable.hpp join.hpp dfaggregator.hpp time_extract.hpp make_dftable_dvector.hpp make_dftable_string.hpp dftable_to_string.hpp dftable_to_dvector.hpp set_operations.incl1 set_operations.incl2
+
+OBJS := dfcolumn.o typed_dfcolumn_string.o typed_dfcolumn_uint.o typed_dfcolumn_int.o typed_dfcolumn_double.o typed_dfcolumn_float.o typed_dfcolumn_ulong.o typed_dfcolumn_long.o dfoperator.o dftable.o dfaggregator.o join.o dftable_to_string.o make_dftable_string.o 
+
+TARGETS := libfrovedis_dataframe.a
+
+INCLUDES := -I../../../third_party/cereal-1.2.2/include/
+
+CXXFLAGS := ${CXXFLAGS_COMMON} ${INCLUDES}
+
+targets: ${TARGETS}
+
+install: ${TARGETS}
+	install -d ${INSTALLPATH}/lib/
+	cp libfrovedis_dataframe.a ${INSTALLPATH}/lib/libfrovedis_dataframe.a
+	install -d ${INSTALLPATH}/include/frovedis/dataframe/
+	cp ${HEADERS} ${INSTALLPATH}/include/frovedis/dataframe/
+	cp ../dataframe.hpp ${INSTALLPATH}/include/frovedis/
+
+dfcolumn.o: dfcolumn.cc dfcolumn.hpp dfcolumn_impl.hpp hashtable.hpp join.hpp set_operations.hpp
+typed_dfcolumn_string.o : dfcolumn_impl.hpp hashtable.hpp join.hpp set_operations.hpp
+typed_dfcolumn_uint.o : dfcolumn_impl.hpp hashtable.hpp join.hpp set_operations.hpp
+typed_dfcolumn_int.o : dfcolumn_impl.hpp hashtable.hpp join.hpp set_operations.hpp
+typed_dfcolumn_double.o : dfcolumn_impl.hpp hashtable.hpp join.hpp set_operations.hpp
+typed_dfcolumn_float.o : dfcolumn_impl.hpp hashtable.hpp join.hpp set_operations.hpp
+typed_dfcolumn_ulong.o : dfcolumn_impl.hpp hashtable.hpp join.hpp set_operations.hpp
+typed_dfcolumn_long.o : dfcolumn_impl.hpp hashtable.hpp join.hpp set_operations.hpp
+dftable.o: dftable.cc dftable.hpp dfoperator.hpp dfcolumn.hpp dfcolumn_impl.hpp hashtable.hpp join.hpp set_operations.hpp dftable_to_string.hpp dfaggregator.hpp
+make_dftable_string.o: make_dftable_string.cc make_dftable_string.hpp dftable.hpp dfoperator.hpp dfcolumn.hpp dfcolumn_impl.hpp hashtable.hpp join.hpp set_operations.hpp dftable_to_string.hpp dfaggregator.hpp
+dftable_to_string.o: dftable_to_string.cc dftable_to_string.hpp dftable.hpp dfoperator.hpp dfcolumn.hpp dfcolumn_impl.hpp hashtable.hpp join.hpp set_operations.hpp dftable_to_string.hpp dfaggregator.hpp
+dfoperator.o: dfoperator.cc dfoperator.hpp dftable.hpp dfoperator.hpp dfcolumn.hpp dfcolumn_impl.hpp hashtable.hpp join.hpp set_operations.hpp dftable_to_string.hpp dfaggregator.hpp
+dfaggregator.o: dfaggregator.cc dfaggregator.hpp dftable.hpp dfoperator.hpp dfcolumn.hpp dfcolumn_impl.hpp hashtable.hpp join.hpp set_operations.hpp dftable_to_string.hpp
+join.o: join.cc join.hpp hashtable.hpp set_operations.hpp
+
+clean:
+	${RM} ${TO_CLEAN} ${TARGETS} 

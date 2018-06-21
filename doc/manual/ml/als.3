@@ -1,0 +1,103 @@
+.TH "Matrix Factorization using ALS" "" "" "" ""
+.SH NAME
+.PP
+Matrix Factorization using ALS \- A matrix factorization algorithm
+commonly used for recommender systems.
+.SH SYNOPSIS
+.PP
+\f[C]#include\ <frovedis/ml/recommendation/als.hpp>\f[]
+.PP
+\f[C]matrix_factorization_model<T>\f[]
+.PD 0
+.P
+.PD
+matrix_factorization_using_als::train (\f[C]crs_matrix<T>\f[]& data,
+.PD 0
+.P
+.PD
+\  \  \  \ size_t factor,
+.PD 0
+.P
+.PD
+\  \  \  \ int numIter = 100,
+.PD 0
+.P
+.PD
+\  \  \  \ T alpha = 0.01,
+.PD 0
+.P
+.PD
+\  \  \  \ T regParam = 0.01,
+.PD 0
+.P
+.PD
+\  \  \  \ size_t seed = 0)
+.SH DESCRIPTION
+.PP
+Collaborative filtering is commonly used for recommender systems.
+These techniques aim to fill in the missing entries of a user\-item
+association matrix.
+Frovedis currently supports model\-based collaborative filtering, in
+which users and products are described by a small set of latent factors
+that can be used to predict missing entries.
+Frovedis uses the alternating least squares (ALS) algorithm to learn
+these latent factors.
+The algorithm is based on a paper “Collaborative Filtering for Implicit
+Feedback Datasets” by Hu, et al.
+.SS Detailed Description
+.SS matrix_factorization_using_als::train()
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]data\f[]: A \f[C]crs_matrix<T>\f[] containing the sparse rating
+matrix
+.PD 0
+.P
+.PD
+\f[I]factor\f[]: A size_t parameter containing the number of latent
+factors (also known as rank)
+.PD 0
+.P
+.PD
+\f[I]numIter\f[]: A size_t parameter containing the maximum number of
+iteration count (Default: 100)
+.PD 0
+.P
+.PD
+\f[I]alpha\f[]: A parameter of T type containing the learning rate
+(Default: 0.01)
+.PD 0
+.P
+.PD
+\f[I]regParam\f[]: A parameter of T type containing the regularization
+parameter (also known as lambda) (Default: 0.01)
+.PD 0
+.P
+.PD
+\f[I]seed\f[]: A size_t parameter containing the seed value to
+initialize the model structures with random values (Default: 0)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It trains a matrix factorization model with alternating least squares
+(ALS) algorithm.
+It starts with initializing the model structures of the size MxF and NxF
+(where MxN is the dimension of the input rating matrix and F is the
+latent factors count) with random values and keeps updating them until
+maximum iteration count is reached.
+After the training, it returns the trained output model.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+After the successful training, it returns a trained model of the type
+\f[C]matrix_factorization_model<T>\f[] which can be used for predicting
+user choices or making recommendation.
+.SH SEE ALSO
+.PP
+matrix_factorization_model

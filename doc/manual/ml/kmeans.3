@@ -1,0 +1,119 @@
+.TH "kmeans" "" "" "" ""
+.SH NAME
+.PP
+kmeans \- A clustering algorithm commonly used in EDA (exploratory data
+analysis).
+.SH SYNOPSIS
+.PP
+\f[C]#include\ <frovedis/ml/clustering/kmeans.hpp>\f[]
+.PP
+\f[C]rowmajor_matrix_local<T>\f[]
+.PD 0
+.P
+.PD
+frovedis::kmeans (\f[C]crs_matrix<T,I,O>\f[]& samples,
+.PD 0
+.P
+.PD
+\  \  \  \ int k,
+.PD 0
+.P
+.PD
+\  \  \  \ int iter,
+.PD 0
+.P
+.PD
+\  \  \  \ T eps,
+.PD 0
+.P
+.PD
+\  \  \  \ long seed = 0)
+.PP
+\f[C]std::vector<int>\f[]
+.PD 0
+.P
+.PD
+frovedis::kmeans_assign_cluster (\f[C]crs_matrix_local<T,I,O>\f[]& mat,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \  \  \ \f[C]rowmajor_matrix_local<T>\f[]& centroid)
+.SH DESCRIPTION
+.PP
+Clustering is an unsupervised learning problem whereby we aim to group
+subsets of entities with one another based on some notion of similarity.
+K\-means is one of the most commonly used clustering algorithms that
+clusters the data points into a predefined number of clusters (K).
+.SS Detailed Description
+.SS frovedis::kmeans()
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]samples\f[]: A \f[C]crs_matrix<T,I,O>\f[] containing the sparse
+data points
+.PD 0
+.P
+.PD
+\f[I]k\f[]: An integer parameter containing the number of clusters
+.PD 0
+.P
+.PD
+\f[I]iter\f[]: An integer parameter containing the maximum number of
+iteration count
+.PD 0
+.P
+.PD
+\f[I]eps\f[]: A parameter of T type containing the epsilon value
+.PD 0
+.P
+.PD
+\f[I]seed\f[]: A parameter of long type containing the seed value to
+generate the random rows from the given data samples (Default: 0)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It clusters the given data points into a predefined number (k) of
+clusters.
+.PD 0
+.P
+.PD
+After the successful clustering, it returns the k centroids of the
+cluster.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+After the successful ustering it returns the centroids of the type
+\f[C]rowmajor_matrix_local<T>\f[], where each column shows each centroid
+vector.
+.SS frovedis::kmeans_assign_cluster()
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]mat\f[]: A \f[C]crs_matrix_local<T,I,O>\f[] containing the new
+sparse data points to be assigned to the cluster
+.PD 0
+.P
+.PD
+\f[I]centroid\f[]: A \f[C]rowmajor_matrix_local<T>\f[] contaning the
+centroids
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+After getting the centroids from kmeans(), they can be used to assign
+data to the closest centroid using kmeans_assign_cluster().
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns a \f[C]std::vector<int>\f[] containing the assigned values.

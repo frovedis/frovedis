@@ -1,0 +1,348 @@
+.TH "scalapack_wrapper" "" "" "" ""
+.SH NAME
+.PP
+scalapack_wrapper \- a frovedis module provides user\-friendly
+interfaces for commonly used scalapack routines in scientific
+applications like machine learning algorithms.
+.SH SYNOPSIS
+.PP
+import frovedis.matrix.wrapper.SCALAPACK
+.SH WRAPPER FUNCTIONS
+.PP
+SCALAPACK.getrf (m)
+.PD 0
+.P
+.PD
+SCALAPACK.getri (m, ipivPtr)
+.PD 0
+.P
+.PD
+SCALAPACK.getrs (m1, m2, ipivPtr, trans=False)
+.PD 0
+.P
+.PD
+SCALAPACK.gesv (m1, m2)
+.PD 0
+.P
+.PD
+SCALAPACK.gels (m1, m2, trans=False)
+.PD 0
+.P
+.PD
+SCALAPACK.gesvd (m, wantU=False, wantV=False)
+.SH DESCRIPTION
+.PP
+ScaLAPACK is a high\-performance scientific library written in Fortran
+language.
+It provides rich set of linear algebra functionalities whose computation
+loads are parallelized over the available processes in a system and the
+user interfaces of this library is very detailed and complex in nature.
+It requires a strong understanding on each of the input parameters,
+along with some distribution concepts.
+.PP
+Frovedis provides a wrapper module for some commonly used ScaLAPACK
+subroutines in scientific applications like machine learning algorithms.
+These wrapper interfaces are very simple and user needs not to consider
+all the detailed distribution parameters.
+Only specifying the target vectors or matrices with some other
+parameters (depending upon need) are fine.
+At the same time, all the use cases of a ScaLAPACK routine can also be
+performed using Frovedis ScaLAPACK wrapper of that routine.
+.PP
+This python module implements a client\-server application, where the
+python client can send the python matrix data to frovedis server side in
+order to create blockcyclic matrix at frovedis server and then python
+client can request frovedis server for any of the supported ScaLAPACK
+operation on that matrix.
+When required, python client can request frovedis server to send back
+the resultant matrix and it can then create equivalent python data (see
+manuals for FrovedisBlockcyclicMatrix to python data conversion).
+.PP
+The individual detailed descriptions can be found in the subsequent
+sections.
+Please note that the term "inout", used in the below section indicates a
+function argument as both "input" and "output".
+.SS Detailed Description
+.SS getrf (m)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]m\f[]: A FrovedisBlockcyclicMatrix (inout)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It computes an LU factorization of a general M\-by\-N distributed
+matrix, "m" using partial pivoting with row interchanges.
+.PP
+On successful factorization, matrix "m" is overwritten with the computed
+L and U factors.
+Along with the return status of native scalapack routine, it also
+returns the proxy address of the node local vector "ipiv" containing the
+pivoting information associated with input matrix "m" in the form of
+GetrfResult.
+The "ipiv" information will be useful in computation of some other
+routines (like getri, getrs etc.)
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+On success, it returns the object of the type GetrfResult as explained
+above.
+If any error occurs, it throws an exception explaining cause of the
+error.
+.SS getri (m, ipivPtr)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]m\f[]: A FrovedisBlockcyclicMatrix (inout)
+.PD 0
+.P
+.PD
+\f[I]ipiv\f[]: A long object containing the proxy of the ipiv vector
+(from GetrfResult) (input)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It computes the inverse of a distributed square matrix using the LU
+factorization computed by getrf().
+So in order to compute inverse of a matrix, first compute it\[aq]s LU
+factor (and ipiv information) using getrf() and then pass the factored
+matrix, "m" along with the "ipiv" information to this function.
+.PP
+On success, factored matrix "m" is overwritten with the inverse (of the
+matrix which was passed to getrf()) matrix.
+"ipiv" will be internally used by this function and will remain
+unchanged.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+res\ =\ SCALAPACK.getrf(m)\ \ \ \ \ \ //\ getting\ LU\ factorization\ of\ "m"
+SCALAPACK.getri(m,res.ipiv())\ //\ "m"\ will\ have\ inverse\ of\ the\ initial\ value
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+On success, it returns the exit status of the scalapack routine itself.
+If any error occurs, it throws an exception explaining cause of the
+error.
+.SS getrs (m1, m2, ipiv, trans=False)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]m1\f[]: A FrovedisBlockcyclicMatrix (input)
+.PD 0
+.P
+.PD
+\f[I]m2\f[]: A FrovedisBlockcyclicMatrix (inout)
+.PD 0
+.P
+.PD
+\f[I]ipiv\f[]: A long object containing the proxy of the ipiv vector
+(from GetrfResult) (input)
+.PD 0
+.P
+.PD
+\f[I]trans\f[]: A boolean value to specify whether to transpose "m1"
+[Default: False] (input/optional)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It solves a real system of distributed linear equations, AX=B with a
+general distributed square matrix (A) using the LU factorization
+computed by getrf().
+Thus before calling this function, it is required to obtain the factored
+matrix "m1" (along with "ipiv" information) by calling getrf().
+.PP
+For example,
+.IP
+.nf
+\f[C]
+res\ =\ SCALAPACK.getrf(m1)\ //\ getting\ LU\ factorization\ of\ "m1"
+SCALAPACK.getrs(m1,m2,res.ipiv())\ 
+\f[]
+.fi
+.PP
+If trans=False, the linear equation AX=B is solved.
+.PD 0
+.P
+.PD
+If trans=True, the linear equation transpose(A)X=B (A\[aq]X=B) is
+solved.
+.PP
+The matrix "m2" should have number of rows >= the number of rows in "m1"
+and at least 1 column in it.
+.PP
+On entry, "m2" contains the distributed right\-hand\-side (B) of the
+equation and on successful exit it is overwritten with the distributed
+solution matrix (X).
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+On success, it returns the exit status of the scalapack routine itself.
+If any error occurs, it throws an exception explaining cause of the
+error.
+.SS gesv (m1, m2)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]m1\f[]: A FrovedisBlockcyclicMatrix (inout)
+.PD 0
+.P
+.PD
+\f[I]m2\f[]: A FrovedisBlockcyclicMatrix (inout)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It solves a real system of distributed linear equations, AX=B with a
+general distributed square matrix, "m1" by computing it\[aq]s LU factors
+internally.
+This function internally computes the LU factors and ipiv information
+using getrf() and then solves the equation using getrs().
+.PP
+The matrix "m2" should have number of rows >= the number of rows in "m1"
+and at least 1 column in it.
+.PP
+On entry, "m1" contains the distributed left\-hand\-side square matrix
+(A), "m2" contains the distributed right\-hand\-side matrix (B) and on
+successful exit "m1" is overwritten with it\[aq]s LU factors, "m2" is
+overwritten with the distributed solution matrix (X).
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+On success, it returns the exit status of the scalapack routine itself.
+If any error occurs, it throws an exception explaining cause of the
+error.
+.SS gels (m1, m2, trans=False)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]m1\f[]: A FrovedisBlockcyclicMatrix (input)
+.PD 0
+.P
+.PD
+\f[I]m2\f[]: A FrovedisBlockcyclicMatrix (inout)
+.PD 0
+.P
+.PD
+\f[I]trans\f[]: A boolean value to specify whether to transpose "m1"
+[Default: False] (input/optional)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It solves overdetermined or underdetermined real linear systems
+involving an M\-by\-N distributed matrix (A) or its transpose, using a
+QR or LQ factorization of (A).
+It is assumed that distributed matrix (A) has full rank.
+.PP
+If trans=False and M >= N: it finds the least squares solution of an
+overdetermined system.
+.PD 0
+.P
+.PD
+If trans=False and M < N: it finds the minimum norm solution of an
+underdetermined system.
+.PD 0
+.P
+.PD
+If trans=True and M >= N: it finds the minimum norm solution of an
+underdetermined system.
+.PD 0
+.P
+.PD
+If trans=True and M < N: it finds the least squares solution of an
+overdetermined system.
+.PP
+The matrix "m2" should have number of rows >= max(M,N) and at least 1
+column.
+.PP
+On entry, "m1" contains the distributed left\-hand\-side matrix (A) and
+"m2" contains the distributed right\-hand\-side matrix (B).
+On successful exit, "m1" is overwritten with the QR or LQ factors and
+"m2" is overwritten with the distributed solution matrix (X).
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+On success, it returns the exit status of the scalapack routine itself.
+If any error occurs, it throws an exception explaining cause of the
+error.
+.SS gesvd (m, wantU=False, wantV=False)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]m\f[]: A FrovedisBlockcyclicMatrix (inout)
+.PD 0
+.P
+.PD
+\f[I]wantU\f[]: A boolean value to specify whether to compute U matrix
+[Default: False] (input)
+.PD 0
+.P
+.PD
+\f[I]wantV\f[]: A boolean value to specify whether to compute V matrix
+[Default: False] (input)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It computes the singular value decomposition (SVD) of an M\-by\-N
+distributed matrix.
+.PP
+On entry "m" contains the distributed matrix whose singular values are
+to be computed.
+.PP
+If wantU = wantV = False, then it computes only the singular values in
+sorted oder, so that sval(i) >= sval(i+1).
+Otherwise it also computes U and/or V (left and right singular vectors
+respectively) matrices.
+.PP
+On successful exit, the contents of "m" is destroyed (internally used as
+workspace).
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+On success, it returns the object of the type GesvdResult containing the
+singular values and U and V components (based on the requirement) along
+with the exit status of the native scalapack routine.
+If any error occurs, it throws an exception explaining cause of the
+error.
+.SH SEE ALSO
+.PP
+blockcyclic_matrix, pblas_wrapper, arpack_wrapper, getrf_result,
+gesvd_result

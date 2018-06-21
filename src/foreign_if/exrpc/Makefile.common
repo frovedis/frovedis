@@ -1,0 +1,21 @@
+HEADERS := exrpc.hpp exrpc_async.hpp exrpc_expose.hpp exrpc_oneway.hpp exrpc_oneway_noexcept.hpp exrpc_result.hpp portable_archive_exception.hpp portable_iarchive.hpp portable_oarchive.hpp
+OBJS := exrpc.o exrpc_expose.o exrpc_oneway.o exrpc_oneway_noexcept.o inst_archive.o
+
+INCLUDES := -I../.. -I../../../third_party/cereal-1.2.2/include/
+CXXFLAGS := ${CXXFLAGS_COMMON} ${INCLUDES}
+
+TARGETS := libfrovedis_exrpc.a
+
+targets: ${TARGETS}
+
+exrpc.o: exrpc.cc ${HEADERS}
+exrpc_expose.o: exrpc_expose.cc ${HEADERS}
+exrpc_oneway.o: exrpc_oneway.cc ${HEADERS}
+inst_archive.o: inst_archive.cc portable_iarchive.hpp portable_oarchive.hpp
+
+install:
+	install -d ${INSTALLPATH}/lib
+	cp libfrovedis_exrpc.a ${INSTALLPATH}/lib/libfrovedis_exrpc.a
+
+clean:
+	${RM} ${TO_CLEAN} ${TARGETS} 

@@ -1,0 +1,16 @@
+TARGETS := svd shrink_svd show_topic
+include ../Makefile.in.x86
+include ../Makefile.common
+
+TO_INSTALL := svd.cc shrink_svd.cc show_topic.cc
+DIR := svd
+ARCH := x86
+
+svd: svd.o
+	${MPICXX} ${CXXFLAGS} -o svd svd.o ${LIBS}
+
+shrink_svd: shrink_svd.o
+	${MPICXX} ${CXXFLAGS} -o shrink_svd shrink_svd.o ${LIBS}
+
+show_topic: show_topic.o
+	${MPICXX} ${CXXFLAGS} -o show_topic show_topic.o ${LIBS}

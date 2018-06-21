@@ -1,0 +1,496 @@
+.TH "Lasso Regression" "" "" "" ""
+.SH NAME
+.PP
+Lasso Regression \- A regression algorithm supported by Frovedis to
+predict the continuous output with L1 regularization.
+.SH SYNOPSIS
+.PP
+\f[C]#include\ <frovedis/ml/glm/lasso_with_sgd.hpp>\f[]
+.PP
+\f[C]linear_regression_model<T>\f[]
+.PD 0
+.P
+.PD
+lasso_with_sgd::train (\f[C]crs_matrix<T>\f[]& data,
+.PD 0
+.P
+.PD
+\  \  \  \ \f[C]dvector<T>\f[]& label,
+.PD 0
+.P
+.PD
+\  \  \  \ size_t numIteration = 1000,
+.PD 0
+.P
+.PD
+\  \  \  \ T alpha = 0.01,
+.PD 0
+.P
+.PD
+\  \  \  \ T miniBatchFraction = 1.0,
+.PD 0
+.P
+.PD
+\  \  \  \ T regParam = 0.01,
+.PD 0
+.P
+.PD
+\  \  \  \ bool isIntercept = false,
+.PD 0
+.P
+.PD
+\  \  \  \ T convergenceTol = 0.001,
+.PD 0
+.P
+.PD
+\  \  \  \ MatType mType = HYBRID)
+.PP
+\f[C]linear_regression_model<T>\f[]
+.PD 0
+.P
+.PD
+lasso_with_sgd::train (\f[C]crs_matrix<T>\f[]& data,
+.PD 0
+.P
+.PD
+\  \  \  \ \f[C]dvector<T>\f[]& label,
+.PD 0
+.P
+.PD
+\  \  \  \ \f[C]linear_regression_model<T>\f[]& initModel,
+.PD 0
+.P
+.PD
+\  \  \  \ size_t numIteration = 1000,
+.PD 0
+.P
+.PD
+\  \  \  \ T alpha = 0.01,
+.PD 0
+.P
+.PD
+\  \  \  \ T miniBatchFraction = 1.0,
+.PD 0
+.P
+.PD
+\  \  \  \ T regParam = 0.01,
+.PD 0
+.P
+.PD
+\  \  \  \ bool isIntercept = false,
+.PD 0
+.P
+.PD
+\  \  \  \ T convergenceTol = 0.001,
+.PD 0
+.P
+.PD
+\  \  \  \ MatType mType = HYBRID)
+.PP
+\f[C]#include\ <frovedis/ml/glm/lasso_with_lbfgs.hpp>\f[]
+.PP
+\f[C]linear_regression_model<T>\f[]
+.PD 0
+.P
+.PD
+lasso_with_lbfgs::train (\f[C]crs_matrix<T>\f[]& data,
+.PD 0
+.P
+.PD
+\  \  \  \ \f[C]dvector<T>\f[]& label,
+.PD 0
+.P
+.PD
+\  \  \  \ size_t numIteration = 1000,
+.PD 0
+.P
+.PD
+\  \  \  \ T alpha = 0.01,
+.PD 0
+.P
+.PD
+\  \  \  \ size_t hist_size = 10,
+.PD 0
+.P
+.PD
+\  \  \  \ T regParam = 0.01,
+.PD 0
+.P
+.PD
+\  \  \  \ bool isIntercept = false,
+.PD 0
+.P
+.PD
+\  \  \  \ T convergenceTol = 0.001,
+.PD 0
+.P
+.PD
+\  \  \  \ MatType mType = HYBRID)
+.PP
+\f[C]linear_regression_model<T>\f[]
+.PD 0
+.P
+.PD
+lasso_with_lbfgs::train (\f[C]crs_matrix<T>\f[]& data,
+.PD 0
+.P
+.PD
+\  \  \  \ \f[C]dvector<T>\f[]& label,
+.PD 0
+.P
+.PD
+\  \  \  \ \f[C]linear_regression_model<T>\f[]& initModel,
+.PD 0
+.P
+.PD
+\  \  \  \ size_t numIteration = 1000,
+.PD 0
+.P
+.PD
+\  \  \  \ T alpha = 0.01,
+.PD 0
+.P
+.PD
+\  \  \  \ size_t hist_size = 10,
+.PD 0
+.P
+.PD
+\  \  \  \ T regParam = 0.01,
+.PD 0
+.P
+.PD
+\  \  \  \ bool isIntercept = false,
+.PD 0
+.P
+.PD
+\  \  \  \ T convergenceTol = 0.001,
+.PD 0
+.P
+.PD
+\  \  \  \ MatType mType = HYBRID)
+.SH DESCRIPTION
+.PP
+Linear least squares is the most common formulation for regression
+problems.
+It is a linear method with the loss function given by the \f[B]squared
+loss\f[]:
+.IP
+.nf
+\f[C]
+L(w;x,y)\ :=\ 1/2(wTx\-y)^2
+\f[]
+.fi
+.PP
+Where the vectors x are the training data examples and y are their
+corresponding labels which we want to predict.
+w is the linear model (also known as weight) which uses a single
+weighted sum of features to make a prediction.
+The method is called linear since it can be expressed as a function of
+wTx and y.
+Lasso regression uses L1 regularization to address the overfit problem.
+.PP
+The gradient of the squared loss is: (wTx\-y).x
+.PD 0
+.P
+.PD
+The gradient of the regularizer is: sign(w)
+.PP
+Frovedis provides implementation of lasso regression with two different
+optimizers: (1) stochastic gradient descent with minibatch and (2) LBFGS
+optimizer.
+.PP
+The simplest method to solve optimization problems of the form \f[B]min
+f(w)\f[] is gradient descent.
+Such first\-order optimization methods well\-suited for large\-scale and
+distributed computation.
+Whereas, L\-BFGS is an optimization algorithm in the family of
+quasi\-Newton methods to solve the optimization problems of the similar
+form.
+.PP
+Like the original BFGS, L\-BFGS (Limited Memory BFGS) uses an estimation
+to the inverse Hessian matrix to steer its search through feature space,
+but where BFGS stores a dense nxn approximation to the inverse Hessian
+(n being the number of features in the problem), L\-BFGS stores only a
+few vectors that represent the approximation implicitly.
+L\-BFGS often achieves rapider convergence compared with other
+first\-order optimization.
+.SS Detailed Description
+.SS lasso_with_sgd::train()
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]data\f[]: A \f[C]crs_matrix<T>\f[] containing the sparse feature
+matrix
+.PD 0
+.P
+.PD
+\f[I]label\f[]: A \f[C]dvector<T>\f[] containing the output labels
+.PD 0
+.P
+.PD
+\f[I]numIteration\f[]: A size_t parameter containing the maximum number
+of iteration count (Default: 1000)
+.PD 0
+.P
+.PD
+\f[I]alpha\f[]: A parameter of T type containing the learning rate
+(Default: 0.01)
+.PD 0
+.P
+.PD
+\f[I]minibatchFraction\f[]: A parameter of T type containing the
+minibatch fraction (Default: 1.0)
+.PD 0
+.P
+.PD
+\f[I]regParam\f[]: A parameter of T type containing the regularization
+parameter (also known as lambda) (Default: 0.01)
+.PD 0
+.P
+.PD
+\f[I]isIntercept\f[]: A boolean parameter to specify whether to include
+intercept term (bias term) or not (Default: false)
+.PD 0
+.P
+.PD
+\f[I]convergenceTol\f[]: A parameter of T type containing the threshold
+value to determine the convergence (Default: 0.001)
+.PD 0
+.P
+.PD
+\f[I]mType\f[]: frovedis::MatType parameter specifying the matrix type
+to be used for internal calculation (Default: HYBRID for SX
+architecture, CRS for other architectures)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It trains a linear regression model with stochastic gradient descent
+with minibatch optimizer and with L1 regularization.
+It starts with an initial guess of zeros for the model vector and keeps
+updating the model to minimize the cost function until convergence is
+achieved or maximum iteration count is reached.
+After the training, it returns the trained output model.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+After the successful training, it returns a trained model of the type
+\f[C]linear_regression_model<T>\f[].
+.SS lasso_with_sgd::train()
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]data\f[]: A \f[C]crs_matrix<T>\f[] containing the sparse feature
+matrix
+.PD 0
+.P
+.PD
+\f[I]label\f[]: A \f[C]dvector<T>\f[] containing the output labels
+.PD 0
+.P
+.PD
+\f[I]initModel\f[]: A \f[C]linear_regression_model<T>\f[] containing the
+user provided initial model values
+.PD 0
+.P
+.PD
+\f[I]numIteration\f[]: A size_t parameter containing the maximum number
+of iteration count (Default: 1000)
+.PD 0
+.P
+.PD
+\f[I]alpha\f[]: A parameter of T type containing the learning rate
+(Default: 0.01)
+.PD 0
+.P
+.PD
+\f[I]minibatchFraction\f[]: A parameter of T type containing the
+minibatch fraction (Default: 1.0)
+.PD 0
+.P
+.PD
+\f[I]regParam\f[]: A parameter of T type containing the regularization
+parameter (also known as lambda) (Default: 0.01)
+.PD 0
+.P
+.PD
+\f[I]isIntercept\f[]: A boolean parameter to specify whether to include
+intercept term (bias term) or not (Default: false)
+.PD 0
+.P
+.PD
+\f[I]convergenceTol\f[]: A parameter of T type containing the threshold
+value to determine the convergence (Default: 0.001)
+.PD 0
+.P
+.PD
+\f[I]mType\f[]: frovedis::MatType parameter specifying the matrix type
+to be used for internal calculation (Default: HYBRID for SX
+architecture, CRS for other architectures)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It trains a linear regression model with stochastic gradient descent
+with minibatch optimizer and with L1 regularization.
+Instead of an initial guess of zeors, it starts with user provided
+initial model values and keeps updating the model to minimize the cost
+function until convergence is achieved or maximum iteration count is
+reached.
+After the training, it returns the trained output model.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+After the successful training, it returns a trained model of the type
+\f[C]linear_regression_model<T>\f[].
+.SS lasso_with_lbfgs::train()
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]data\f[]: A \f[C]crs_matrix<T>\f[] containing the sparse feature
+matrix
+.PD 0
+.P
+.PD
+\f[I]label\f[]: A \f[C]dvector<T>\f[] containing the output labels
+.PD 0
+.P
+.PD
+\f[I]numIteration\f[]: A size_t parameter containing the maximum number
+of iteration count (Default: 1000)
+.PD 0
+.P
+.PD
+\f[I]alpha\f[]: A parameter of T type containing the learning rate
+(Default: 0.01)
+.PD 0
+.P
+.PD
+\f[I]hist_size\f[]: A parameter of size_t type containing the number of
+gradient history to be stored (Default: 10)
+.PD 0
+.P
+.PD
+\f[I]regParam\f[]: A parameter of T type containing the regularization
+parameter (also known as lambda) (Default: 0.01)
+.PD 0
+.P
+.PD
+\f[I]isIntercept\f[]: A boolean parameter to specify whether to include
+intercept term (bias term) or not (Default: false)
+.PD 0
+.P
+.PD
+\f[I]convergenceTol\f[]: A parameter of T type containing the threshold
+value to determine the convergence (Default: 0.001)
+.PD 0
+.P
+.PD
+\f[I]mType\f[]: frovedis::MatType parameter specifying the matrix type
+to be used for internal calculation (Default: HYBRID for SX
+architecture, CRS for other architectures)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It trains a linear regression model with LBFGS optimizer and with L1
+regularization.
+It starts with an initial guess of zeros for the model vector and keeps
+updating the model to minimize the cost function until convergence is
+achieved or maximum iteration count is reached.
+After the training, it returns the trained output model.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+After the successful training, it returns a trained model of the type
+\f[C]linear_regression_model<T>\f[].
+.SS lasso_with_lbfgs::train()
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]data\f[]: A \f[C]crs_matrix<T>\f[] containing the sparse feature
+matrix
+.PD 0
+.P
+.PD
+\f[I]label\f[]: A \f[C]dvector<T>\f[] containing the output labels
+.PD 0
+.P
+.PD
+\f[I]initModel\f[]: A \f[C]linear_regression_model<T>\f[] containing the
+user provided initial model values
+.PD 0
+.P
+.PD
+\f[I]numIteration\f[]: A size_t parameter containing the maximum number
+of iteration count (Default: 1000)
+.PD 0
+.P
+.PD
+\f[I]alpha\f[]: A parameter of T type containing the learning rate
+(Default: 0.01)
+.PD 0
+.P
+.PD
+\f[I]hist_size\f[]: A parameter of size_t type containing the number of
+gradient history to be stored (Default: 10)
+.PD 0
+.P
+.PD
+\f[I]regParam\f[]: A parameter of T type containing the regularization
+parameter (also known as lambda) (Default: 0.01)
+.PD 0
+.P
+.PD
+\f[I]isIntercept\f[]: A boolean parameter to specify whether to include
+intercept term (bias term) or not (Default: false)
+.PD 0
+.P
+.PD
+\f[I]convergenceTol\f[]: A parameter of T type containing the threshold
+value to determine the convergence (Default: 0.001)
+.PD 0
+.P
+.PD
+\f[I]mType\f[]: frovedis::MatType parameter specifying the matrix type
+to be used for internal calculation (Default: HYBRID for SX
+architecture, CRS for other architectures)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It trains a linear regression model with LBFGS optimizer and with L1
+regularizer.
+Instead of an initial guess of zeors, it starts with user provided
+initial model values and keeps updating the model to minimize the cost
+function until convergence is achieved or maximum iteration count is
+reached.
+After the training, it returns the trained output model.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+After the successful training, it returns a trained model of the type
+\f[C]linear_regression_model<T>\f[].
+.SH SEE ALSO
+.PP
+linear_regression_model, linear_regression, ridge_regression

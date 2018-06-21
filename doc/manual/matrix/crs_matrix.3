@@ -1,0 +1,518 @@
+.TH "frovedis::crs_matrix<T,I,O>" "" "" "" ""
+.SH NAME
+.PP
+\f[C]frovedis::crs_matrix<T,I,O>\f[] \- A two\-dimensional row\-wise
+distributed sparse matrix with compressed row storage.
+.SH SYNOPSIS
+.PP
+\f[C]#include\ <frovedis/matrix/crs_matrix.hpp>\f[]
+.SS Constructors
+.PP
+crs_matrix ();
+.PD 0
+.P
+.PD
+crs_matrix (\f[C]frovedis::node_local<crs_matrix_local<T,I,O>>\f[]&& d);
+.SS Public Member Functions
+.PP
+void save (const std::string& file);
+.PD 0
+.P
+.PD
+void savebinary (const std::string& dir);
+.PD 0
+.P
+.PD
+void debug_print ();
+.PD 0
+.P
+.PD
+void debug_pretty_print ();
+.PD 0
+.P
+.PD
+\f[C]crs_matrix<T,I,O>\f[] transpose ();
+.PD 0
+.P
+.PD
+\f[C]sparse_vector<T,I>\f[] get_row(size_t r);
+.PD 0
+.P
+.PD
+void clear();
+.SS Public Data Members
+.PP
+\f[C]frovedis::node_local<crs_matrix_local<T,I,O>>\f[] data;
+.PD 0
+.P
+.PD
+size_t num_row;
+.PD 0
+.P
+.PD
+size_t num_col;
+.SH DESCRIPTION
+.PP
+A CRS (Compressed Row Storage) matrix is one of the most popular sparse
+matrices.
+It has three major components while storing the non\-zero elements, as
+explained below along with the number of rows and the number of columns
+in the sparse matrix.
+.IP
+.nf
+\f[C]
+val:\ a\ vector\ containing\ the\ non\-zero\ elements\ of\ the\ matrix\ (in\ row\-major\ order).\ \ \ \ \ \ 
+idx:\ a\ vector\ containing\ the\ column\ indices\ for\ each\ non\-zero\ elements.\ \ \ \ 
+off:\ a\ vector\ containing\ the\ row\-offsets.\ \ \ \ \ 
+\f[]
+.fi
+.PP
+For example, if we consider the below sparse matrix:
+.IP
+.nf
+\f[C]
+1\ 0\ 0\ 0\ 2\ 0\ 0\ 4
+0\ 0\ 0\ 1\ 2\ 0\ 0\ 3
+1\ 0\ 0\ 0\ 2\ 0\ 0\ 4
+0\ 0\ 0\ 1\ 2\ 0\ 0\ 3
+\f[]
+.fi
+.PP
+then its CRS representation would be:
+.IP
+.nf
+\f[C]
+val:\ {1,\ 2,\ 4,\ 1,\ 2,\ 3,\ 1,\ 2,\ 4,\ 1,\ 2,\ 3}\ \ \ \ 
+idx:\ {0,\ 4,\ 7,\ 3,\ 4,\ 7,\ 0,\ 4,\ 7,\ 3,\ 4,\ 7}\ \ \ \ 
+off:\ {0,\ 3,\ 6,\ 9,\ 12}
+\f[]
+.fi
+.PP
+row\-offset starts with 0 and it has n+1 number of elements, where n is
+the number of rows in the sparse matrix.
+The difference between i+1th element and ith element in row\-offset
+indicates number of non\-zero elements present in ith row.
+.PP
+\f[C]crs_matrix<T,I,O>\f[] is a two\-dimensional template based
+distributed sparse data storage supported by frovedis.
+It contains public member "data" of the type
+\f[C]node_local<crs_matrix_local<T,I,O>>\f[].
+The actual distributed matrices are contained in all the worker nodes
+locally, thus named as \f[C]crs_matrix_local<T,I,O>\f[] (see manual of
+crs_matrix_local) and "data" is the reference to these local matrices at
+worker nodes.
+It also contains dimension information related to the global matrix
+i.e., number of rows and number of columns in the original sparse
+matrix.
+The structure of this class is as follows:
+.IP
+.nf
+\f[C]
+template\ <class\ T,\ class\ I=size_t,\ class\ O=size_t>
+struct\ crs_matrix\ {
+\ \ frovedis::node_local<crs_matrix_local<T,I,O>>\ data;\ \ \ \ \ //\ local\ matrix\ information
+\ \ size_t\ num_row;\ \ \ //\ number\ of\ rows\ in\ the\ global\ sparse\ matrix
+\ \ size_t\ num_col;\ \ \ //\ number\ of\ columns\ in\ the\ global\ sparse\ matrix
+};
+\f[]
+.fi
+.PP
+For example, if the above sparse matrix with 4 rows and 8 columns is
+distributed row\-wise over two worker nodes, then the distribution can
+be shown as:
+.IP
+.nf
+\f[C]
+master\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ worker0\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ worker1
+\-\-\-\-\-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \-\-\-\-\-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \-\-\-\-\-
+crs_matrix<int,size_t,size_t>\ \ \->\ crs_matrix_local<int,\ \ \ \ \->\ crs_matrix_local<int,
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ size_t,size_t>\ \ \ \ \ \ \ \ \ \ \ \ \ \ size_t,size_t>
+\ \ \ *data:\ node_local<\ \ \ \ \ \ \ \ \ \ val:\ vector<int>\ \ \ \ \ \ \ \ \ \ \ \ \ val:\ vector<int>
+\ \ \ \ \ \ \ \ \ crs_matrix\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ({1,2,4,1,2,3})\ \ \ \ \ \ \ \ \ \ \ \ \ \ ({1,2,4,1,2,3})
+\ \ \ \ \ \ \ \ \ \ \ \ _local<int,\ \ \ \ \ \ \ \ idx:\ vector<size_t>\ \ \ \ \ \ \ \ \ \ idx:\ vector<size_t>
+\ \ \ \ \ \ \ \ \ \ size_t,size_t>>\ \ \ \ \ \ \ \ \ \ \ \ \ ({0,4,7,3,4,7})\ \ \ \ \ \ \ \ \ \ \ \ \ \ ({0,4,7,3,4,7})
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ off:\ vector<size_t>\ \ \ \ \ \ \ \ \ \ off:\ vector<size_t>
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ({0,3,6})\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ({0,3,6})
+\ \ \ \ num_row:\ size_t\ (4)\ \ \ \ \ \ \ \ local_num_row:\ size_t\ (2)\ \ \ \ local_num_row:\ size_t\ (2)
+\ \ \ \ num_col:\ size_t\ (8)\ \ \ \ \ \ \ \ local_num_col:\ size_t\ (8)\ \ \ \ local_num_col:\ size_t\ (8)
+\f[]
+.fi
+.PP
+The \f[C]node_local<crs_matrix_local<int,size_t,size_t>>\f[] object
+"data" is simply a (*)handle of the (\->)local matrices at worker nodes.
+.SS Constructor Documentation
+.SS crs_matrix ()
+.PP
+This is the default constructor which creates an empty distributed crs
+matrix without any memory allocation at worker nodes.
+.SS crs_matrix (\f[C]frovedis::node_local<crs_matrix_local<T,I,O>>\f[]&&
+data)
+.PP
+This is the parameterized constructor which accepts an rvalue of the
+type
+.PD 0
+.P
+.PD
+\f[C]node_local<crs_matrix_local<T,I,O>>\f[] and \f[I]moves\f[] the
+contents to the created distributed crs matrix.
+.PP
+In general, this constructor is used internally by some other functions.
+But user may need this constructor while constructing their own
+distributed crs matrix using the return value of some function
+(returning a \f[C]crs_matrix_local<T,I,O>\f[]) called using
+"frovedis::node_local::map".
+.PD 0
+.P
+.PD
+(thus returned value would be an object of type
+\f[C]node_local<crs_matrix_local<T,I,O>\f[])
+.SS Public Member Function Documentation
+.SS \f[C]sparse_vector<T,I>\f[] get_row(size_t r)
+.PP
+It returns the requested row of the target sparse matrix in the form of
+\f[C]sparse_vector<T,I>\f[] which contains a vector of type "T" for the
+non\-zero elements in the requested row and a vector of type "I" for
+their corresponding column indices.
+If r > local_num_row, then it will throw an exception.
+.SS void debug_print ()
+.PP
+It prints the information related to the distributed compressed row
+storage (val, idx, off, number of rows and number of columns) on the
+user terminal node\-by\-node.
+It is mainly useful for debugging purpose.
+.SS void debug_pretty_print ()
+.PP
+Unlike debug_print(), it prints the distributed compressed row storage
+as a view of a two dimensional dense storage on the user terminal
+node\-by\-node.
+It is mainly useful for debugging purpose.
+.SS \f[C]crs_matrix<T,I,O>\f[] transpose ()
+.PP
+It returns the transposed crs_matrix of the source matrix object.
+.SS void save (const std::string& file)
+.PP
+It writes the elements of a distributed crs matrix to the specified file
+as text data with the format "index:value" for each non\-zero elements.
+.SS void savebinary (const std::string& dir)
+.PP
+It writes the elements of a distributed crs matrix to the specified
+directory as little\-endian binary data.
+.PP
+The output directory will contain four files, named "nums", "val", "idx"
+and "off".
+"nums" is a text file containing the number of rows and number of
+columns information in first two lines of the file.
+And rest three files contain the binary data related to compressed row
+storage.
+.SS void clear()
+.PP
+It clears the memory space for the allocated
+\f[C]crs_matrix_local<T,I,O>\f[] per worker.
+.SS \f[C]crs_matrix<TT,II,OO>\f[] change_datatype()
+.PP
+This function can be used in order to change the triplet type of the
+target crs_matrix from \f[C]<T,\ I,\ O>\f[] to \f[C]<TT,\ II,\ OO>\f[],
+where these two type triplets must be compatible.
+.SS Public Data Member Documentation
+.SS data
+.PP
+An instance of \f[C]node_local<crs_matrix_local<T,I,O>>\f[] type to
+contain the reference information related to local matrices at worker
+nodes.
+.SS num_row
+.PP
+A size_t attribute to contain the total number of rows in the 2D matrix
+view.
+.SS num_col
+.PP
+A size_t attribute to contain the total number of columns in the 2D
+matrix view.
+.SS Public Global Function Documentation
+.SS \f[C]crs_matrix<T,I,O>\f[] make_crs_matrix_load(filename)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]filename\f[]: A string object containing the name of the text file
+having the data to be loaded.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+This function loads the text data from the specified file and creates a
+\f[C]crs_matrix<T,I,O>\f[] object filling the data loaded.
+.PP
+The input file for the sparse data should be in the below format:
+.IP
+.nf
+\f[C]
+1:2\ 3:2\ \ \ \ 
+2:5\ \ \ \ 
+1:3\ 3:4\ 6:3\ \ \ \ 
+3:2\ 4:5\ \ \ 
+\f[]
+.fi
+.PP
+Where each sparse row is represented as "column_index:value"
+(column_index starts at 0).
+Note that there can be empty rows in the given file indicating no
+non\-zero elements in that row.
+The desired type triplet of the matrix \f[C]<T,I,O>\f[] needs to be
+explicitly specified when loading the matrix data from reading a file.
+.PP
+Default types for "I" and "O" is "size_t".
+But "T" type must be mandatorily specified.
+While loading the matrix data, it will consider number of columns as the
+maximum value of the column index read.
+.PP
+For example, considering "./data" is a text file having the sparse data
+to be loaded, then
+.IP
+.nf
+\f[C]
+auto\ m1\ =\ make_crs_matrix_load<int>("./data");
+auto\ m2\ =\ make_crs_matrix_load<float>("./data");
+\f[]
+.fi
+.PP
+"m1" will be a \f[C]crs_matrix<int,size_t,size_t>\f[], whereas "m2" will
+be a \f[C]crs_matrix<float,size_t,size_t>\f[].
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+On success, it returns the created matrix of the type
+\f[C]crs_matrix<T,I,O>\f[].
+Otherwise, it throws an exception.
+.SS \f[C]crs_matrix<T,I,O>\f[] make_crs_matrix_load(filename, num_col)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]filename\f[]: A string object containing the name of the text file
+having the data to be loaded.
+.PD 0
+.P
+.PD
+\f[I]num_col\f[]: A size_t attribute specifying the number of columns in
+the sparse matrix to be loaded.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+This function serves the same purpose as explained in above data loading
+function.
+But since it also accepts the number of columns information, it sets the
+loaded matrix column number with the given value (without computing the
+maximum column index as in previous case).
+Thus it expects, user will pass a valid column number for the loaded
+sparse matrix.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+On success, it returns the created matrix of the type
+\f[C]crs_matrix<T,I,O>\f[].
+Otherwise, it throws an exception.
+.SS \f[C]crs_matrix<T,I,O>\f[] make_crs_matrix_loadbinary(dirname)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]dirname\f[]: A string object containing the name of the directory
+having the data to be loaded.
+It expects four files to be presented inside the specified directory, as
+follows:
+.IP \[bu] 2
+"nums" (containing number of rows and number of columns separated with
+new\-line),
+.PD 0
+.P
+.PD
+.IP \[bu] 2
+"val" (containing binary data for non\-zero elements),
+.PD 0
+.P
+.PD
+.IP \[bu] 2
+"idx" (containing binary column indices) and
+.PD 0
+.P
+.PD
+.IP \[bu] 2
+"off" (containing binary offset values)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+This function loads the little\-endian binary data from the specified
+directory and creates a \f[C]crs_matrix<T,I,O>\f[] object filling the
+data loaded.
+The desired value type, "T" (e.g., int, float, double etc.) must be
+specified
+.PD 0
+.P
+.PD
+explicitly when loading the matrix data.
+If not specified, the other two types "I" and "O" would be size_t as
+default types.
+.PP
+For example, considering "./bin" is a directory having the binary data
+to be loaded,
+.IP
+.nf
+\f[C]
+auto\ m1\ =\ make_crs_matrix_loadbinary<int>("./bin");
+auto\ m2\ =\ make_crs_matrix_loadbinary<float>("./bin");
+\f[]
+.fi
+.PP
+"m1" will be a \f[C]crs_matrix<int,size_t,size_t>\f[], whereas "m2" will
+be a \f[C]crs_matrix<float,size_t,size_t>\f[].
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+On success, it returns the created matrix of the type
+\f[C]crs_matrix<T,I,O>\f[].
+Otherwise, it throws an exception.
+.SS \f[C]crs_matrix<T,I,O>\f[] make_crs_matrix_loadcoo(file,zero_origin)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]file\f[]: A string object containing the name of the file having
+the COO data to be loaded.
+.PD 0
+.P
+.PD
+\f[I]zero_origin\f[]: A boolean attribute to indicate whether to
+consider 0\-based indices while loading the COO data from file.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+This function loads the text data from the specified file and creates a
+\f[C]crs_matrix<T,I,O>\f[] object filling the data loaded.
+.PP
+The input file for the sparse data should be in the below COO format:
+.IP
+.nf
+\f[C]
+1\ 1\ 2.0\ \ \ 
+1\ 3\ 2.0\ \ \ 
+2\ 2\ 5.0\ \ \ 
+3\ 1\ 3.0\ \ \ \ \ \ 
+3\ 3\ 4.0\ \ \ \ 
+3\ 6\ 3.0\ \ \ \ \ \ \ 
+4\ 3\ 2.0\ \ \ \ \ \ 
+4\ 4\ 5.0\ \ \ \ \ \ 
+\f[]
+.fi
+.PP
+Where each row in the given file represents a triplet like
+\f[C]<row\-index\ col\-index\ value>\f[].
+The indices are 1\-based by default.
+This file can be loaded as 0\-based index, if "zero_origin" parameter is
+passed as "true" while loading the file.
+The desired triplet type of the matrix \f[C]<T,I,O>\f[] needs to be
+explicitly specified when loading the matrix data from reading a file.
+.PP
+Default types for "I" and "O" is "size_t".
+But "T" type must be mandatorily specified.
+While loading the matrix data, it will consider number of columns as the
+maximum value of the column index read.
+.PP
+For example, considering "./data" is a text file having the COO data to
+be loaded, then
+.IP
+.nf
+\f[C]
+auto\ m1\ =\ make_crs_matrix_loadcoo<int>("./data");
+auto\ m2\ =\ make_crs_matrix_loadcoo<float>("./data");
+\f[]
+.fi
+.PP
+"m1" will be a \f[C]crs_matrix<int,size_t,size_t>\f[], whereas "m2" will
+be a \f[C]crs_matrix<float,size_t,size_t>\f[].
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+On success, it returns the created matrix of the type
+\f[C]crs_matrix<T,I,O>\f[].
+Otherwise, it throws an exception.
+.SS std::ostream& \f[C]operator<<\f[](str, mat)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]str\f[]: A std::ostream& object representing the output stream
+buffer.
+.PD 0
+.P
+.PD
+\f[I]mat\f[]: An object of the type \f[C]crs_matrix<T,I,O>\f[]
+containing the matrix to be handled.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+This function writes the contents of the sparse matrix in "index:value"
+format
+.PD 0
+.P
+.PD
+in the given output stream.
+Thus a crs matrix can simply be printed on the user terminal as
+"std::cout << mat", where "mat" is the input matrix.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+On success, it returns a reference to the output stream.
+.SS \f[C]crs_matrix<T,I,O>\f[] make_crs_matrix_scatter (mat)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]mat\f[]: An object of the type \f[C]crs_matrix_local<T,I,O>\f[] to
+be scattered among worker nodes.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+This function accepts a \f[C]crs_matrix_local<T,I,O>\f[] object and
+scatters the same among participating worker nodes in order to create a
+\f[C]crs_matrix<T,I,O>\f[].
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+On success, it returns the created matrix of the type
+\f[C]crs_matrix<T,I,O>\f[].
+.PD 0
+.P
+.PD
+Otherwise, it throws an exception.
+.SH SEE ALSO
+.PP
+crs_matrix_local

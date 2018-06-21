@@ -1,0 +1,308 @@
+.TH "frovedis::ccs_matrix_local<T,I,O>" "" "" "" ""
+.SH NAME
+.PP
+\f[C]frovedis::ccs_matrix_local<T,I,O>\f[] \- A two\-dimensional
+non\-distributed sparse matrix with compressed column storage.
+.SH SYNOPSIS
+.PP
+\f[C]#include\ <frovedis/matrix/ccs_matrix.hpp>\f[]
+.SS Constructors
+.PP
+ccs_matrix_local ();
+.PD 0
+.P
+.PD
+ccs_matrix_local (const \f[C]ccs_matrix_local<T,I,O>\f[]& m);
+.PD 0
+.P
+.PD
+ccs_matrix_local (\f[C]ccs_matrix_local<T,I,O>\f[]&& m);
+.PD 0
+.P
+.PD
+ccs_matrix_local (const \f[C]crs_matrix_local<T,I,O>\f[]& m);
+.SS Overloaded Operators
+.PP
+\f[C]ccs_matrix_local<T,I,O>\f[]& operator= (const
+\f[C]ccs_matrix_local<T,I,O>\f[]& m);
+.PD 0
+.P
+.PD
+\f[C]ccs_matrix_local<T,I,O>\f[]& operator=
+(\f[C]ccs_matrix_local<T,I,O>\f[]&& m);
+.SS Public Member Functions
+.PP
+void set_local_num (size_t nrow);
+.PD 0
+.P
+.PD
+void debug_print ();
+.PD 0
+.P
+.PD
+\f[C]ccs_matrix_local<T,I,O>\f[] transpose ();
+.PD 0
+.P
+.PD
+\f[C]crs_matrix_local<T,I,O>\f[] to_crs();
+.SS Public Data Members
+.PP
+\f[C]std::vector<T>\f[] val;
+.PD 0
+.P
+.PD
+\f[C]std::vector<I>\f[] idx;
+.PD 0
+.P
+.PD
+\f[C]std::vector<O>\f[] off;
+.PD 0
+.P
+.PD
+size_t local_num_row;
+.PD 0
+.P
+.PD
+size_t local_num_col;
+.SH DESCRIPTION
+.PP
+A CCS (Compressed Column Storage) matrix is one of the popular sparse
+matrices with compressed column.
+It has three major components while storing the non\-zero elements, as
+explained below along with the number of rows and the number of columns
+in the sparse matrix.
+.IP
+.nf
+\f[C]
+val:\ a\ vector\ containing\ the\ non\-zero\ elements\ of\ the\ compressed\ columns
+(in\ column\-major\ order)\ of\ the\ matrix.\ \ \ 
+idx:\ a\ vector\ containing\ the\ row\ indices\ for\ each\ non\-zero\ elements\ in\ "val".\ \ \ \ \ \ \ 
+off:\ a\ vector\ containing\ the\ column\ offsets.\ \ \ \ \ 
+\f[]
+.fi
+.PP
+For example, if we consider the below sparse matrix:
+.IP
+.nf
+\f[C]
+1\ 0\ 0\ 0\ 2\ 0\ 0\ 4
+0\ 0\ 0\ 1\ 2\ 0\ 0\ 3
+1\ 0\ 0\ 0\ 2\ 0\ 0\ 4
+0\ 0\ 0\ 1\ 2\ 0\ 0\ 3
+\f[]
+.fi
+.PP
+then its CCS representation would be:
+.IP
+.nf
+\f[C]
+val:\ {1,\ 1,\ 1,\ 1,\ 2,\ 2,\ 2,\ 2,\ 4,\ 3,\ 4,\ 3}\ \ \ \ 
+idx:\ {0,\ 1,\ 2,\ 3,\ 0,\ 1,\ 2,\ 3,\ 0,\ 1,\ 2,\ 3}\ \ \ \ 
+off:\ {0,\ 2,\ 2,\ 2,\ 4,\ 8,\ 8,\ 8,\ 12}
+\f[]
+.fi
+.PP
+column offset starts with 0 and it has n+1 number of elements, where n
+is the number of columns in the sparse matrix.
+The difference between i+1th element and ith element in column offset
+indicates number of non\-zero elements present in ith column.
+.PP
+\f[C]ccs_matrix_local<T,I,O>\f[] is a two\-dimensional template based
+non\-distributed sparse data storage supported by frovedis.
+The structure of this class is as follows:
+.IP
+.nf
+\f[C]
+template\ <class\ T,\ class\ I=size_t,\ class\ O=size_t>
+struct\ ccs_matrix_local\ {
+\ \ std::vector<T>\ val;\ \ \ \ \ //\ to\ contain\ non\-zero\ elements\ of\ type\ "T"
+\ \ std::vector<I>\ idx;\ \ \ \ \ //\ to\ contain\ row\ indices\ of\ type\ "I"\ (default:\ size_t)
+\ \ std::vector<O>\ off;\ \ \ \ \ //\ to\ contain\ column\ offsets\ of\ type\ "O"\ (default:\ size_t)
+\ \ size_t\ local_num_row;\ \ \ //\ number\ of\ rows\ in\ the\ sparse\ matrix
+\ \ size_t\ local_num_col;\ \ \ //\ number\ of\ columns\ in\ the\ sparse\ matrix
+};
+\f[]
+.fi
+.PP
+This matrix can be loaded from a local crs matrix and also the matrix
+can be converted back to the local crs matrix.
+Thus loading/saving interfaces are not provided for local ccs matrix.
+.SS Constructor Documentation
+.SS ccs_matrix_local ()
+.PP
+This is the default constructor which creates an empty ccs matrix with
+local_num_row = local_num_col = 0.
+.SS ccs_matrix_local (const \f[C]ccs_matrix_local<T,I,O>\f[]& m)
+.PP
+This is the copy constructor which creates a new ccs matrix by
+deep\-copying the contents of the input ccs matrix.
+.SS ccs_matrix_local (\f[C]ccs_matrix_local<T,I,O>\f[]&& m)
+.PP
+This is the move constructor.
+Instead of copying the input matrix, it moves the contents of the input
+rvalue matrix to the newly constructed matrix.
+Thus it is faster and recommended to use when input matrix will no
+longer be used in a user program.
+.SS ccs_matrix_local (const \f[C]crs_matrix_local<T,I,O>\f[]& m)
+.PP
+This is the implicit conversion constructor which creates a new ccs
+matrix by converting the input crs matrix of the same types.
+.SS Overloaded Operator Documentation
+.SS \f[C]ccs_matrix_local<T,I,O>\f[]& operator= (const
+\f[C]ccs_matrix_local<T,I,O>\f[]& m)
+.PP
+It deep\-copies the input ccs matrix into the left\-hand side matrix of
+the assignment operator "=".
+.SS \f[C]ccs_matrix_local<T,I,O>\f[]& operator=
+(\f[C]ccs_matrix_local<T,I,O>\f[]&& m)
+.PP
+Instead of copying, it moves the contents of the input rvalue crs matrix
+into the left\-hand side matrix of the assignment operator "=".
+Thus it is faster and recommended to use when input matrix will no
+longer be used in a user program.
+.SS Public Member Function Documentation
+.SS void set_local_num (size_t nrow)
+.PP
+It sets the matrix information related to number of rows and number of
+columns as specified by the user.
+It assumes the user will provide the valid information related to the
+number of rows.
+Number of columns value is set as off.size()\-1.
+.SS void debug_print ()
+.PP
+It prints the information related to the compressed column storage (val,
+idx, off, number of rows and number of columns) on the user terminal.
+It is mainly useful for debugging purpose.
+.SS \f[C]ccs_matrix_local<T,I,O>\f[] transpose ()
+.PP
+It returns the transposed ccs_matrix_local of the source matrix object.
+.SS \f[C]crs_matrix_local<T,I,O>\f[] to_crs ()
+.PP
+It creates an equivalent crs matrix of the target ccs matrix of the same
+"val", "idx" and "off" types.
+Target ccs matrix would remain unchanged.
+.SS Public Data Member Documentation
+.SS val
+.PP
+An instance of \f[C]std::vector<T>\f[] type to contain the non\-zero
+elements of the compressed columns of the sparse matrix.
+.SS idx
+.PP
+An instance of \f[C]std::vector<I>\f[] type to contain the row indices
+of the non\-zero elements of the compressed columns of the sparse
+matrix.
+.SS off
+.PP
+An instance of \f[C]std::vector<O>\f[] type to contain the column
+offsets.
+.SS local_num_row
+.PP
+A size_t attribute to contain the number of rows in the 2D matrix view.
+.SS local_num_col
+.PP
+A size_t attribute to contain the number of columns in the 2D matrix
+view.
+.SS Public Global Function Documentation
+.SS \f[C]ccs_matrix_local<T,I,O>\f[] crs2ccs(m)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]m\f[]: An object of the type \f[C]crs_matrix_local<T,I,O>\f[]
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+This function can be used to get a \f[C]ccs_matrix_local<T,I>\f[] from a
+\f[C]crs_matrix_local<T,I,O>\f[].
+Input matrix would remain unchanged.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+On success, it returns the created matrix of the type
+\f[C]ccs_matrix_local<T,I>\f[].
+Otherwise, it throws an exception.
+.SS \f[C]crs_matrix_local<T,I,O>\f[] ccs2crs(m)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]m\f[]: An object of the type \f[C]ccs_matrix_local<T,I,O>\f[]
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+This function can be used to get a \f[C]crs_matrix_local<T,I,O>\f[] from
+a \f[C]ccs_matrix_local<T,I,O>\f[].
+Input matrix would remain unchanged.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+On success, it returns the created matrix of the type
+\f[C]crs_matrix_local<T,I,O>\f[].
+Otherwise, it throws an exception.
+.SS \f[C]std::vector<T>\f[] operator*(m,v)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]m\f[]: An object of the type \f[C]ccs_matrix_local<T,I,O>\f[].
+.PD 0
+.P
+.PD
+\f[I]v\f[]: An object of the type \f[C]std::vector<T>\f[].
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+This function performs matrix\-vector multiplication between a sparse
+ccs matrix object with a std::vector of same value (T) type.
+It expects the size of the input vector should be greater than or equal
+to the number of columns in the input ccs matrix.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+On success, it returns the resultant vector of the type
+\f[C]std::vector<T>\f[].
+Otherwise, it throws an exception.
+.SS \f[C]rowmajor_matrix_local<T>\f[] operator*(m1,m2)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]m1\f[]: An object of the type \f[C]ccs_matrix_local<T,I,O>\f[].
+.PD 0
+.P
+.PD
+\f[I]m2\f[]: An object of the type \f[C]rowmajor_matrix_local<T>\f[].
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It performs matrix\-matrix multiplication in between a sparse ccs matrix
+and a dense rowmajor matrix of the same value (T) type.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+On success, it returns the resultant rowmajor matrix of the type
+\f[C]rowmajor_matrix_local<T>\f[].
+Otherwise, it throws an exception.
+.SH SEE ALSO
+.PP
+crs_matrix_local, rowmajor_matrix_local, ccs_matrix

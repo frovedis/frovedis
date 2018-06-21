@@ -1,0 +1,19 @@
+include ../Makefile.in.icpc
+
+TARGETS := tut
+
+#LIBS := -L${INSTALLPATH}/lib -lfrovedis_ml -lfrovedis_matrix -lfrovedis_core ${LIBS_COMMON}
+#INCLUDES := -I${INSTALLPATH}/include
+
+LIBS := -L../../../../third_party/lib -L../../../../src/frovedis/core -L../../../../src/frovedis/matrix -L../../../../src/frovedis/ml -L../../../../src/frovedis/dataframe -lfrovedis_dataframe -lfrovedis_ml -lfrovedis_matrix -lfrovedis_core ${LIBS_COMMON}
+INCLUDES := -I../../../../src/ -I../../../../third_party/cereal-1.2.2/include/
+
+CXXFLAGS := ${CXXFLAGS_COMMON} ${INCLUDES} -fopenmp
+
+all: ${TARGETS}
+
+tut: tut.o
+	${MPICXX} ${CXXFLAGS} -o tut tut.o ${LIBS}
+
+clean:
+	${RM} -r *.o *~ ${TARGETS} result result_binary transposed model indexed-train vectors.bin vocab-count vocab.bin

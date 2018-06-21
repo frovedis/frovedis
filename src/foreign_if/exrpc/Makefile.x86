@@ -1,0 +1,5 @@
+include ../../../Makefile.in.x86
+include Makefile.common
+
+libfrovedis_exrpc.a: ${OBJS}
+	${AR} r libfrovedis_exrpc.a ${OBJS}

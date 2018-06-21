@@ -1,0 +1,603 @@
+.TH "pblas_wrapper" "" "" "" ""
+.SH NAME
+.PP
+pblas_wrapper \- a frovedis module provides user\-friendly interfaces
+for commonly used pblas routines in scientific applications like machine
+learning algorithms.
+.SH SYNOPSIS
+.PP
+import com.nec.frovedis.matrix.PBLAS
+.SS Public Member Functions
+.PP
+Unit PBLAS.swap (FrovedisBlockcyclicMatrix v1, FrovedisBlockcyclicMatrix
+v2)
+.PD 0
+.P
+.PD
+Unit PBLAS.copy (FrovedisBlockcyclicMatrix v1, FrovedisBlockcyclicMatrix
+v2)
+.PD 0
+.P
+.PD
+Unit PBLAS.scal (FrovedisBlockcyclicMatrix v, Double al)
+.PD 0
+.P
+.PD
+Unit PBLAS.axpy (FrovedisBlockcyclicMatrix v1,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \ FrovedisBlockcyclicMatrix v2, Double al = 1.0)
+.PD 0
+.P
+.PD
+Double PBLAS.dot (FrovedisBlockcyclicMatrix v1,
+FrovedisBlockcyclicMatrix v2)
+.PD 0
+.P
+.PD
+Double PBLAS.nrm2 (FrovedisBlockcyclicMatrix v)
+.PD 0
+.P
+.PD
+Unit PBLAS.gemv (FrovedisBlockcyclicMatrix m, FrovedisBlockcyclicMatrix
+v1,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \ FrovedisBlockcyclicMatrix v2, Boolean trans = false,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \ Double al = 1.0, Double be = 0.0)
+.PD 0
+.P
+.PD
+Unit PBLAS.ger (FrovedisBlockcyclicMatrix v1, FrovedisBlockcyclicMatrix
+v2,
+.PD 0
+.P
+.PD
+\  \  \  \  \ FrovedisBlockcyclicMatrix m, Double al = 1.0)
+.PD 0
+.P
+.PD
+Unit PBLAS.gemm (FrovedisBlockcyclicMatrix m1, FrovedisBlockcyclicMatrix
+m2,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \ FrovedisBlockcyclicMatrix m3, Boolean trans_m1 = false,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \ Boolean trans_m2 = false, Double al = 1.0, Double be =
+0.0)
+.PD 0
+.P
+.PD
+Unit PBLAS.geadd (FrovedisBlockcyclicMatrix m1,
+FrovedisBlockcyclicMatrix m2,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \ Boolean trans = false, Double al = 1.0, Double be =
+1.0)
+.SH DESCRIPTION
+.PP
+PBLAS is a high\-performance scientific library written in Fortran
+language.
+It provides rich set of functionalities on vectors and matrices.
+The computation loads of these functionalities are parallelized over the
+available processes in a system and the user interfaces of this library
+is very detailed and complex in nature.
+It requires a strong understanding on each of the input parameters,
+along with some distribution concepts.
+.PP
+Frovedis provides a wrapper module for some commonly used PBLAS
+subroutines in scientific applications like machine learning algorithms.
+These wrapper interfaces are very simple and user needs not to consider
+all the detailed distribution parameters.
+Only specifying the target vectors or matrices with some other
+parameters (depending upon need) are fine.
+At the same time, all the use cases of a PBLAS routine can also be
+performed using Frovedis PBLAS wrapper of that routine.
+.PP
+This scala module implements a client\-server application, where the
+spark client can send the spark matrix data to frovedis server side in
+order to create blockcyclic matrix at frovedis server and then spark
+client can request frovedis server for any of the supported PBLAS
+operation on that matrix.
+When required, spark client can request frovedis server to send back the
+resultant matrix and it can then create equivalent spark data (Vector,
+Matrix, RowMatrix etc., see manuals for FrovedisBlockcyclicMatrix to
+spark data conversion).
+.PP
+The individual detailed descriptions can be found in the subsequent
+sections.
+Please note that the term "inout", used in the below section indicates a
+function argument as both "input" and "output".
+.SS Detailed Description
+.SS swap (v1, v2)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]v1\f[]: A FrovedisBlockcyclicMatrix with single column (inout)
+.PD 0
+.P
+.PD
+\f[I]v2\f[]: A FrovedisBlockcyclicMatrix with single column (inout)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It will swap the contents of v1 and v2, if they are semantically valid
+and are of same length.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+On success, it returns nothing.
+If any error occurs, it throws an exception.
+.SS copy (v1, v2)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]v1\f[]: A FrovedisBlockcyclicMatrix with single column (input)
+.PD 0
+.P
+.PD
+\f[I]v2\f[]: A FrovedisBlockcyclicMatrix with single column (output)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It will copy the contents of v1 in v2 (v2 = v1), if they are
+semantically valid and are of same length.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+On success, it returns nothing.
+If any error occurs, it throws an exception.
+.SS scal (v, al)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]v\f[]: A FrovedisBlockcyclicMatrix with single column (inout)
+.PD 0
+.P
+.PD
+\f[I]al\f[]: A double parameter to specify the value to which the input
+vector needs to be scaled.
+(input)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It will scale the input vector with the provided "al" value, if it is
+semantically valid.
+On success, input vector "v" would be updated (in\-place scaling).
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+On success, it returns nothing.
+If any error occurs, it throws an exception.
+.SS axpy (v1, v2, al=1.0)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]v1\f[]: A FrovedisBlockcyclicMatrix with single column (input)
+.PD 0
+.P
+.PD
+\f[I]v2\f[]: A FrovedisBlockcyclicMatrix with single column (inout)
+.PD 0
+.P
+.PD
+\f[I]al\f[]: A double parameter to specify the value to which "v1" needs
+to be scaled (not in\-place scaling) [Default: 1.0] (input/optional)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It will solve the expression v2 = al*v1 + v2, if the input vectors are
+semantically valid and are of same length.
+On success, "v2" will be updated with desired result, but "v1" would
+remain unchanged.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+On success, it returns nothing.
+If any error occurs, it throws an exception.
+.SS dot (v1, v2)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]v1\f[]: A FrovedisBlockcyclicMatrix with single column (input)
+.PD 0
+.P
+.PD
+\f[I]v2\f[]: A FrovedisBlockcyclicMatrix with single column (input)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It will perform dot product of the input vectors, if they are
+semantically valid and are of same length.
+Input vectors would not get modified during the operation.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+On success, it returns the dot product result of the type double.
+If any error occurs, it throws an exception.
+.SS nrm2 (v)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]v\f[]: A FrovedisBlockcyclicMatrix with single column (input)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It will calculate the norm of the input vector, if it is semantically
+valid.
+Input vector would not get modified during the operation.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+On success, it returns the norm value of the type double.
+If any error occurs, it throws an exception.
+.SS gemv (m, v1, v2, trans=false, al=1.0, be=0.0)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]m\f[]: A FrovedisBlockcyclicMatrix (input)
+.PD 0
+.P
+.PD
+\f[I]v1\f[]: A FrovedisBlockcyclicMatrix with single column (input)
+.PD 0
+.P
+.PD
+\f[I]v2\f[]: A FrovedisBlockcyclicMatrix with single column (inout)
+.PD 0
+.P
+.PD
+\f[I]trans\f[]: A boolean value to specify whether to transpose "m" or
+not [Default: false] (input/optional)
+.PD 0
+.P
+.PD
+\f[I]al\f[]: A double type value [Default: 1.0] (input/optional)
+.PD 0
+.P
+.PD
+\f[I]be\f[]: A double type value [Default: 0.0] (input/optional)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+The primary aim of this routine is to perform simple matrix\-vector
+multiplication.
+.PD 0
+.P
+.PD
+But it can also be used to perform any of the below operations:
+.IP
+.nf
+\f[C]
+(1)\ v2\ =\ al*m*v1\ +\ be*v2\ \ \ 
+(2)\ v2\ =\ al*transpose(m)*v1\ +\ be*v2
+\f[]
+.fi
+.PP
+If trans=false, then expression (1) is solved.
+In that case, the size of "v1" must be at least the number of columns in
+"m" and the size of "v2" must be at least the number of rows in "m".
+.PD 0
+.P
+.PD
+If trans=true, then expression (2) is solved.
+In that case, the size of "v1" must be at least the number of rows in
+"m" and the size of "v2" must be at least the number of columns in "m".
+.PP
+Since "v2" is used as input\-output both, memory must be allocated for
+this vector before calling this routine, even if simple matrix\-vector
+multiplication is required.
+Otherwise, this routine will throw an exception.
+.PP
+For simple matrix\-vector multiplication, no need to specify values for
+the input parameters "trans", "al" and "be" (leave them at their default
+values).
+.PP
+On success, "v2" will be overwritten with the desired output.
+But "m" and "v1" would remain unchanged.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+On success, it returns nothing.
+If any error occurs, it throws an exception.
+.SS ger (v1, v2, m, al=1.0)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]v1\f[]: A FrovedisBlockcyclicMatrix with single column (input)
+.PD 0
+.P
+.PD
+\f[I]v2\f[]: A FrovedisBlockcyclicMatrix with single column (input)
+.PD 0
+.P
+.PD
+\f[I]m\f[]: A FrovedisBlockcyclicMatrix (inout)
+.PD 0
+.P
+.PD
+\f[I]al\f[]: A double type value [Default: 1.0] (input/optional)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+The primary aim of this routine is to perform simple vector\-vector
+multiplication of the sizes "a" and "b" respectively to form an axb
+matrix.
+But it can also be used to perform the below operations:
+.IP
+.nf
+\f[C]
+m\ =\ al*v1*v2\[aq]\ +\ m
+\f[]
+.fi
+.PP
+This operation can only be performed if the inputs are semantically
+valid and the size of "v1" is at least the number of rows in matrix "m"
+and the size of "v2" is at least the number of columns in matrix "m".
+.PP
+Since "m" is used as input\-output both, memory must be allocated for
+this matrix before calling this routine, even if simple vector\-vector
+multiplication is required.
+Otherwise it will throw an exception.
+.PP
+For simple vector\-vector multiplication, no need to specify the value
+for the input parameter "al" (leave it at its default value).
+.PP
+On success, "m" will be overwritten with the desired output.
+But "v1" and "v2" will remain unchanged.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+On success, it returns nothing.
+If any error occurs, it throws an exception.
+.SS gemm (m1, m2, m3, trans_m1=false, trans_m2=false, al=1.0, be=0.0)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]m1\f[]: A FrovedisBlockcyclicMatrix (input)
+.PD 0
+.P
+.PD
+\f[I]m2\f[]: A FrovedisBlockcyclicMatrix (input)
+.PD 0
+.P
+.PD
+\f[I]m3\f[]: A FrovedisBlockcyclicMatrix (inout)
+.PD 0
+.P
+.PD
+\f[I]trans_m1\f[]: A boolean value to specify whether to transpose "m1"
+or not [Default: false] (input/optional)
+.PD 0
+.P
+.PD
+\f[I]trans_m2\f[]: A boolean value to specify whether to transpose "m2"
+or not [Default: false] (input/optional)
+.PD 0
+.P
+.PD
+\f[I]al\f[]: A double type value [Default: 1.0] (input/optional)
+.PD 0
+.P
+.PD
+\f[I]be\f[]: A double type value [Default: 0.0] (input/optional)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+The primary aim of this routine is to perform simple matrix\-matrix
+multiplication.
+.PD 0
+.P
+.PD
+But it can also be used to perform any of the below operations:
+.IP
+.nf
+\f[C]
+(1)\ m3\ =\ al*m1*m2\ +\ be*m3
+(2)\ m3\ =\ al*transpose(m1)*m2\ +\ be*m3
+(3)\ m3\ =\ al*m1*transpose(m2)\ +\ be*m3
+(4)\ m3\ =\ al*transpose(m1)*transpose(m2)\ +\ be*m3\ \ 
+\f[]
+.fi
+.IP "(1)" 4
+will be performed, if both "trans_m1" and "trans_m2" are false.
+.PD 0
+.P
+.PD
+.IP "(2)" 4
+will be performed, if trans_m1=true and trans_m2 = false.
+.PD 0
+.P
+.PD
+.IP "(3)" 4
+will be performed, if trans_m1=false and trans_m2 = true.
+.PD 0
+.P
+.PD
+.IP "(4)" 4
+will be performed, if both "trans_m1" and "trans_m2" are true.
+.PP
+If we have four variables nrowa, nrowb, ncola, ncolb defined as follows:
+.IP
+.nf
+\f[C]
+if(trans_m1)\ {
+\ \ nrowa\ =\ number\ of\ columns\ in\ m1
+\ \ ncola\ =\ number\ of\ rows\ in\ m1
+}
+else\ {
+\ \ nrowa\ =\ number\ of\ rows\ in\ m1
+\ \ ncola\ =\ number\ of\ columns\ in\ m1
+}
+
+if(trans_m2)\ {
+\ \ nrowb\ =\ number\ of\ columns\ in\ m2
+\ \ ncolb\ =\ number\ of\ rows\ in\ m2
+}
+else\ {
+\ \ nrowb\ =\ number\ of\ rows\ in\ m2
+\ \ ncolb\ =\ number\ of\ columns\ in\ m2
+}
+\f[]
+.fi
+.PP
+Then this function can be executed successfully, if the below conditions
+are all true:
+.IP
+.nf
+\f[C]
+(a)\ "ncola"\ is\ equal\ to\ "nrowb"
+(b)\ number\ of\ rows\ in\ "m3"\ is\ equal\ to\ or\ greater\ than\ "nrowa"
+(b)\ number\ of\ columns\ in\ "m3"\ is\ equal\ to\ or\ greater\ than\ "ncolb"
+\f[]
+.fi
+.PP
+Since "m3" is used as input\-output both, memory must be allocated for
+this matrix before calling this routine, even if simple matrix\-matrix
+multiplication is required.
+Otherwise it will throw an exception.
+.PP
+For simple matrix\-matrix multiplication, no need to specify the value
+for the input parameters "trans_m1", "trans_m2", "al", "be" (leave them
+at their default values).
+.PP
+On success, "m3" will be overwritten with the desired output.
+But "m1" and "m2" will remain unchanged.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+On success, it returns nothing.
+If any error occurs, it throws an exception.
+.SS geadd (m1, m2, trans=false, al=1.0, be=1.0)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]m1\f[]: A FrovedisBlockcyclicMatrix (input)
+.PD 0
+.P
+.PD
+\f[I]m2\f[]: A FrovedisBlockcyclicMatrix (inout)
+.PD 0
+.P
+.PD
+\f[I]trans\f[]: A boolean value to specify whether to transpose "m1" or
+not [Default: false] (input/optional)
+.PD 0
+.P
+.PD
+\f[I]al\f[]: A double type value [Default: 1.0] (input/optional)
+.PD 0
+.P
+.PD
+\f[I]be\f[]: A double type value [Default: 1.0] (input/optional)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+The primary aim of this routine is to perform simple matrix\-matrix
+addition.
+But it can also be used to perform any of the below operations:
+.IP
+.nf
+\f[C]
+(1)\ m2\ =\ al*m1\ +\ be*m2
+(2)\ m2\ =\ al*transpose(m1)\ +\ be*m2
+\f[]
+.fi
+.PP
+If trans=false, then expression (1) is solved.
+In that case, the number of rows and the number of columns in "m1"
+should be equal to the number of rows and the number of columns in "m2"
+respectively.
+.PD 0
+.P
+.PD
+If trans=true, then expression (2) is solved.
+In that case, the number of columns and the number of rows in "m1"
+should be equal to the number of rows and the number of columns in "m2"
+respectively.
+.PP
+If it is needed to scale the input matrices before the addition,
+corresponding "al" and "be" values can be provided.
+But for simple matrix\-matrix addition, no need to specify values for
+the input parameters "trans", "al" and "be" (leave them at their default
+values).
+.PP
+On success, "m2" will be overwritten with the desired output.
+But "m1" would remain unchanged.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+On success, it returns nothing.
+If any error occurs, it throws an exception.
+.SH SEE ALSO
+.PP
+scalapack_wrapper

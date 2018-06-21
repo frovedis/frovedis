@@ -1,0 +1,1595 @@
+.TH "lapack_wrapper" "" "" "" ""
+.SH NAME
+.PP
+lapack_wrapper \- a frovedis module provides user\-friendly interfaces
+for commonly used lapack routines in scientific applications like
+machine learning algorithms.
+.SH SYNOPSIS
+.PP
+\f[C]#include\ <frovedis/matrix/lapack_wrapper.hpp>\f[]
+.SH WRAPPER FUNCTIONS
+.PP
+int getrf (const \f[C]sliced_colmajor_matrix_local<T>\f[]& m,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \ \f[C]std::vector<int>\f[]& ipiv)
+.PD 0
+.P
+.PD
+int getri (const \f[C]sliced_colmajor_matrix_local<T>\f[]& m,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \ const \f[C]std::vector<int>\f[]& ipiv)
+.PD 0
+.P
+.PD
+int getrs (const \f[C]sliced_colmajor_matrix_local<T>\f[]& m1,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \ const \f[C]sliced_colmajor_matrix_local<T>\f[]& m2,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \ const \f[C]std::vector<int>\f[]& ipiv,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \ char trans = \[aq]N\[aq])
+.PD 0
+.P
+.PD
+int gesv (const \f[C]sliced_colmajor_matrix_local<T>\f[]& m1,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \ const \f[C]sliced_colmajor_matrix_local<T>\f[]& m2)
+.PD 0
+.P
+.PD
+int gesv (const \f[C]sliced_colmajor_matrix_local<T>\f[]& m1,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \ const \f[C]sliced_colmajor_matrix_local<T>\f[]& m2,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \ \f[C]std::vector<int>\f[]& ipiv)
+.PD 0
+.P
+.PD
+int gels (const \f[C]sliced_colmajor_matrix_local<T>\f[]& m1,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \ const \f[C]sliced_colmajor_matrix_local<T>\f[]& m2,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \ char trans = \[aq]N\[aq])
+.PD 0
+.P
+.PD
+int gesvd (const \f[C]sliced_colmajor_matrix_local<T>\f[]& m,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \ \f[C]std::vector<T>\f[]& sval,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \ char option = \[aq]N\[aq])
+.PD 0
+.P
+.PD
+int gesvd (const \f[C]sliced_colmajor_matrix_local<T>\f[]& m,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \ \f[C]std::vector<T>\f[]& sval,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \ const \f[C]sliced_colmajor_matrix_local<T>\f[]& svec,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \ char vtype = \[aq]L\[aq],
+.PD 0
+.P
+.PD
+\  \  \  \  \  \ char part = \[aq]A\[aq],
+.PD 0
+.P
+.PD
+\  \  \  \  \  \ char opt_a = \[aq]N\[aq])
+.PD 0
+.P
+.PD
+int gesvd (const \f[C]sliced_colmajor_matrix_local<T>\f[]& m,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \ \f[C]std::vector<T>\f[]& sval,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \ const \f[C]sliced_colmajor_matrix_local<T>\f[]& lsvec,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \ const \f[C]sliced_colmajor_matrix_local<T>\f[]& rsvec,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \ char part_l = \[aq]A\[aq],
+.PD 0
+.P
+.PD
+\  \  \  \  \  \ char part_r = \[aq]A\[aq])
+.PD 0
+.P
+.PD
+int gesdd (const \f[C]sliced_colmajor_matrix_local<T>\f[]& m,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \ \f[C]std::vector<T>\f[]& sval)
+.PD 0
+.P
+.PD
+int gesdd (const \f[C]sliced_colmajor_matrix_local<T>\f[]& m,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \ \f[C]std::vector<T>\f[]& sval,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \ const \f[C]sliced_colmajor_matrix_local<T>\f[]& svec)
+.PD 0
+.P
+.PD
+int gesdd (const \f[C]sliced_colmajor_matrix_local<T>\f[]& m,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \ \f[C]std::vector<T>\f[]& sval,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \ const \f[C]sliced_colmajor_matrix_local<T>\f[]& lsvec,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \ const \f[C]sliced_colmajor_matrix_local<T>\f[]& rsvec,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \ char part_lr = \[aq]A\[aq])
+.PD 0
+.P
+.PD
+int gelsy (const \f[C]sliced_colmajor_matrix_local<T>\f[]& m1,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \ const \f[C]sliced_colmajor_matrix_local<T>\f[]& m2,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \ T rcond = \-1)
+.PD 0
+.P
+.PD
+int gelsy (const \f[C]sliced_colmajor_matrix_local<T>\f[]& m1,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \ const \f[C]sliced_colmajor_matrix_local<T>\f[]& m2,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \ int& rank,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \ T rcond = \-1)
+.PD 0
+.P
+.PD
+int gelss (const \f[C]sliced_colmajor_matrix_local<T>\f[]& m1,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \ const \f[C]sliced_colmajor_matrix_local<T>\f[]& m2,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \ T rcond = \-1)
+.PD 0
+.P
+.PD
+int gelss (const \f[C]sliced_colmajor_matrix_local<T>\f[]& m1,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \ const \f[C]sliced_colmajor_matrix_local<T>\f[]& m2,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \ \f[C]std::vector<T>\f[]& sval,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \ int& rank,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \ T rcond = \-1)
+.PD 0
+.P
+.PD
+int gelsd (const \f[C]sliced_colmajor_matrix_local<T>\f[]& m1,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \ const \f[C]sliced_colmajor_matrix_local<T>\f[]& m2,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \ T rcond = \-1)
+.PD 0
+.P
+.PD
+int gelsd (const \f[C]sliced_colmajor_matrix_local<T>\f[]& m1,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \ const \f[C]sliced_colmajor_matrix_local<T>\f[]& m2,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \ \f[C]std::vector<T>\f[]& sval,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \ int& rank,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \ T rcond = \-1)
+.PD 0
+.P
+.PD
+int geev (const \f[C]sliced_colmajor_matrix_local<T>\f[]& m,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \ \f[C]std::vector<T>\f[]& eval)
+.PD 0
+.P
+.PD
+int geev (const \f[C]sliced_colmajor_matrix_local<T>\f[]& m,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \ \f[C]std::vector<T>\f[]& eval,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \ const \f[C]sliced_colmajor_matrix_local<T>\f[]& evec,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \ char vtype = \[aq]L\[aq])
+.PD 0
+.P
+.PD
+int geev (const \f[C]sliced_colmajor_matrix_local<T>\f[]& m,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \ \f[C]std::vector<T>\f[]& eval,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \ const \f[C]sliced_colmajor_matrix_local<T>\f[]& levec,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \ const \f[C]sliced_colmajor_matrix_local<T>\f[]& revec)
+.SH SPECIAL FUNCTIONS
+.PP
+\f[C]colmajor_matrix_local<T>\f[] inv (const
+\f[C]sliced_colmajor_matrix_local<T>\f[]& m)
+.SH DESCRIPTION
+.PP
+LAPACK is a high\-performance external library written in Fortran
+language.
+It provides rich set of linear algebra functionalities.
+Like ScaLAPACK, computation loads of these functionalities \f[B]are not
+parallelized\f[] over the available processes in a system, thus they
+operate on \f[I]non\-distributed\f[] data.
+But like ScaLAPACK, the user interfaces of this library are also very
+detailed and a bit complex in nature.
+It requires a strong understanding on each of the input parameters
+before using these functionalities correctly.
+.PP
+Frovedis provides a wrapper module for some commonly used LAPACK
+subroutines in scientific applications like machine learning algorithms.
+These wrapper interfaces are very simple and user needs not to consider
+all the detailed input parameters.
+Only specifying the target vectors or matrices with some other
+parameters (depending upon need) are fine.
+At the same time, all the use cases of a LAPACK routine can also be
+performed using Frovedis LAPACK wrapper of that routine.
+.PP
+These wrapper routines are global functions in nature.
+Thus they can be called easily from within the "frovedis" namespace.
+As an input matrix, they accept "\f[C]colmajor_matrix_local<T>\f[]" or
+"\f[C]sliced_colmajor_matrix_local<T>\f[]".
+"T" is a template type which can be either "float" or "double".
+The individual detailed descriptions can be found in the subsequent
+sections.
+Please note that the term "inout", used in the below section indicates a
+function argument as both "input" and "output".
+.SS Detailed Description
+.SS getrf (m, ipiv)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]m\f[]: A \f[C]colmajor_matrix_local<T>\f[] or a
+\f[C]sliced_colmajor_matrix_local<T>\f[] (inout)
+.PD 0
+.P
+.PD
+\f[I]ipiv\f[]: An empty object of the type \f[C]std::vector<int>\f[]
+(output)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It computes an LU factorization of a general M\-by\-N matrix, "m" using
+partial pivoting with row interchanges.
+.PP
+On successful factorization, matrix "m" is overwritten with the computed
+L and U factors.
+Along with the input matrix, this function expects user to pass an empty
+object of the type "\f[C]std::vector<int>\f[]" as a second argument,
+named as "ipiv" which would be updated with the pivoting information
+associated with input matrix "m" by this function while computing
+factors.
+This "ipiv" information will be useful in computation of some other
+functions (like getri, getrs etc.)
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+On success, it returns the exit status of the lapack routine itself.
+If any error occurs, it throws an exception explaining cause of the
+error.
+.SS getri (m, ipiv)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]m\f[]: A \f[C]colmajor_matrix_local<T>\f[] or a
+\f[C]sliced_colmajor_matrix_local<T>\f[] (inout)
+.PD 0
+.P
+.PD
+\f[I]ipiv\f[]: An object of the type \f[C]std::vector<int>\f[] (input)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It computes the inverse of a square matrix using the LU factorization
+computed by getrf().
+So in order to compute inverse of a matrix, first compute it\[aq]s LU
+factor (and ipiv information) using getrf() and then pass the factored
+matrix, "m" along with the "ipiv" information to this function.
+.PP
+On success, factored matrix "m" is overwritten with the inverse (of the
+matrix which was passed to getrf()) matrix.
+"ipiv" will be internally used by this function and will remain
+unchanged.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+On success, it returns the exit status of the lapack routine itself.
+If any error occurs, it throws an exception explaining cause of the
+error.
+.SS getrs (m1, m2, ipiv, trans=\[aq]N\[aq])
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]m1\f[]: A \f[C]colmajor_matrix_local<T>\f[] or a
+\f[C]sliced_colmajor_matrix_local<T>\f[] (input)
+.PD 0
+.P
+.PD
+\f[I]m2\f[]: A \f[C]colmajor_matrix_local<T>\f[] or a
+\f[C]sliced_colmajor_matrix_local<T>\f[] (inout)
+.PD 0
+.P
+.PD
+\f[I]ipiv\f[]: An object of the type \f[C]std::vector<int>\f[] (input)
+.PD 0
+.P
+.PD
+\f[I]trans\f[]: A character containing either \[aq]N\[aq] or \[aq]T\[aq]
+[Default: \[aq]N\[aq]] (input/optional)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It solves a real system of linear equations, AX=B with a general square
+matrix (A) using the LU factorization computed by getrf().
+Thus before calling this function, it is required to obtain the factored
+matrix "m1" (along with "ipiv" information) by calling getrf().
+.PP
+If trans=\[aq]N\[aq], the linear equation AX=B is solved.
+.PD 0
+.P
+.PD
+If trans=\[aq]T\[aq] the linear equation transpose(A)X=B (A\[aq]X=B) is
+solved.
+.PP
+The matrix "m2" should have number of rows >= the number of rows in "m1"
+and at least 1 column in it.
+.PP
+On entry, "m2" contains the right\-hand\-side (B) of the equation and on
+successful exit it is overwritten with the solution matrix (X).
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+On success, it returns the exit status of the lapack routine itself.
+If any error occurs, it throws an exception explaining cause of the
+error.
+.SS gesv (m1, m2)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]m1\f[]: A \f[C]colmajor_matrix_local<T>\f[] or a
+\f[C]sliced_colmajor_matrix_local<T>\f[] (inout)
+.PD 0
+.P
+.PD
+\f[I]m2\f[]: A \f[C]colmajor_matrix_local<T>\f[] or a
+\f[C]sliced_colmajor_matrix_local<T>\f[] (inout)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It solves a real system of linear equations, AX=B with a general square
+matrix, "m1" by computing it\[aq]s LU factors internally.
+This function internally computes the LU factors and ipiv information
+using getrf() and then solves the equation using getrs().
+.PP
+The matrix "m2" should have number of rows >= the number of rows in "m1"
+and at least 1 column in it.
+.PP
+On entry, "m1" contains the left\-hand\-side square matrix (A), "m2"
+contains the right\-hand\-side matrix (B) and on successful exit "m1" is
+overwritten with it\[aq]s LU factors, "m2" is overwritten with the
+solution matrix (X).
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+On success, it returns the exit status of the lapack routine itself.
+If any error occurs, it throws an exception explaining cause of the
+error.
+.SS gesv (m1, m2, ipiv)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]m1\f[]: A \f[C]colmajor_matrix_local<T>\f[] or a
+\f[C]sliced_colmajor_matrix_local<T>\f[] (inout)
+.PD 0
+.P
+.PD
+\f[I]m2\f[]: A \f[C]colmajor_matrix_local<T>\f[] or a
+\f[C]sliced_colmajor_matrix_local<T>\f[] (inout)
+.PD 0
+.P
+.PD
+\f[I]ipiv\f[]: An empty object of the type \f[C]std::vector<int>\f[]
+(output)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+The function serves the same purpose as explained in above version of
+gesv (with two parameters).
+Only difference is that this version accepts an extra parameter "ipiv"
+of the type \f[C]std::vector<int>\f[] which would be allocated and
+updated with the pivoting information computed during factorization of
+"m1".
+Along with the factored matrix, it might also be needed to know the
+associated pivot values.
+In that case, this version of gesv (with three parameters) can be used.
+.PP
+On entry, "m1" contains the left\-hand\-side square matrix (A), "m2"
+contains the right\-hand\-side matrix (B), and "ipiv" is an empty
+object.
+On successful exit "m1" is overwritten with it\[aq]s LU factors, "m2" is
+overwritten with the solution matrix (X), and "ipiv" is updated with the
+pivot values associated with factored matrix, "m1".
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+On success, it returns the exit status of the lapack routine itself.
+If any error occurs, it throws an exception explaining cause of the
+error.
+.SS gels (m1, m2, trans=\[aq]N\[aq])
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]m1\f[]: A \f[C]colmajor_matrix_local<T>\f[] or a
+\f[C]sliced_colmajor_matrix_local<T>\f[] (input)
+.PD 0
+.P
+.PD
+\f[I]m2\f[]: A \f[C]colmajor_matrix_local<T>\f[] or a
+\f[C]sliced_colmajor_matrix_local<T>\f[] (inout)
+.PD 0
+.P
+.PD
+\f[I]trans\f[]: A character containing either \[aq]N\[aq] or \[aq]T\[aq]
+[Default: \[aq]N\[aq]] (input/optional)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It solves overdetermined or underdetermined real linear systems
+involving an M\-by\-N matrix (A) or its transpose, using a QR or LQ
+factorization of (A).
+It is assumed that matrix (A) has full rank.
+.PP
+If trans=\[aq]N\[aq] and M >= N: it finds the least squares solution of
+an overdetermined system.
+.PD 0
+.P
+.PD
+If trans=\[aq]N\[aq] and M < N: it finds the minimum norm solution of an
+underdetermined system.
+.PD 0
+.P
+.PD
+If trans=\[aq]T\[aq] and M >= N: it finds the minimum norm solution of
+an underdetermined system.
+.PD 0
+.P
+.PD
+If trans=\[aq]T\[aq] and M < N: it finds the least squares solution of
+an overdetermined system.
+.PP
+The matrix "m2" should have number of rows >= max(M,N) and at least 1
+column.
+.PP
+On entry, "m1" contains the left\-hand\-side matrix (A) and "m2"
+contains the right\-hand\-side matrix (B).
+On successful exit, "m1" is overwritten with the QR or LQ factors and
+"m2" is overwritten with the solution matrix (X).
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+On success, it returns the exit status of the lapack routine itself.
+If any error occurs, it throws an exception explaining cause of the
+error.
+.SS gesvd (m, sval, option=\[aq]N\[aq])
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]m\f[]: A \f[C]colmajor_matrix_local<T>\f[] or a
+\f[C]sliced_colmajor_matrix_local<T>\f[] (inout)
+.PD 0
+.P
+.PD
+\f[I]sval\f[]: An empty vector of the type \f[C]std::vector<T>\f[]
+(output)
+.PD 0
+.P
+.PD
+\f[I]option\f[]: A character containing either \[aq]L\[aq], \[aq]R\[aq]
+or \[aq]N\[aq] [Default: \[aq]N\[aq]] (input/optional)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It computes the singular value decomposition (SVD) of an M\-by\-N
+matrix.
+Optionally, it can also compute part of left or right singular vectors.
+.PP
+On entry "m" contains the matrix whose singular values are to be
+computed, "sval" is an empty object of the type \f[C]std::vector<T>\f[].
+And on exit, if option=\[aq]L\[aq], then "m" is overwritten with the
+first min(M,N) columns of left singular vectors (stored columnwise).
+.PD 0
+.P
+.PD
+If option=\[aq]R\[aq], then "m" is overwritten with the first min(M,N)
+rows of right singular vectors (stored rowwise in transposed form).
+.PD 0
+.P
+.PD
+And if option=\[aq]N\[aq], neither right nor left singular vectors are
+computed and the contents of "m" is destroyed (used as workspace
+internally by this function).
+.PD 0
+.P
+.PD
+"sval" is updated with the singular values in sorted oder, so that
+sval(i) >= sval(i+1).
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+On success, it returns the exit status of the lapack routine itself.
+If any error occurs, it throws an exception explaining cause of the
+error.
+.SS gesvd (m, sval, svec, vtype=\[aq]L\[aq], part=\[aq]A\[aq],
+opt_a=\[aq]N\[aq])
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]m\f[]: A \f[C]colmajor_matrix_local<T>\f[] or a
+\f[C]sliced_colmajor_matrix_local<T>\f[] (inout)
+.PD 0
+.P
+.PD
+\f[I]sval\f[]: An empty vector of the type \f[C]std::vector<T>\f[]
+(output)
+.PD 0
+.P
+.PD
+\f[I]svec\f[]: A \f[C]colmajor_matrix_local<T>\f[] or a
+\f[C]sliced_colmajor_matrix_local<T>\f[] (output)
+.PD 0
+.P
+.PD
+\f[I]vtype\f[]: A character value containing either \[aq]L\[aq] or
+\[aq]R\[aq] [Default: \[aq]L\[aq]] (input/optional)
+.PD 0
+.P
+.PD
+\f[I]part\f[]: A character value containing either \[aq]A\[aq] or
+\[aq]S\[aq] [Default: \[aq]A\[aq]] (input/optional)
+.PD 0
+.P
+.PD
+\f[I]opt_a\f[]: A character value containing either \[aq]O\[aq] or
+\[aq]N\[aq] [Default: \[aq]N\[aq]] (input/optional)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It computes the singular value decomposition (SVD) of an M\-by\-N
+matrix.
+Additionally, it also computes \f[I]left and/or right singular
+vectors\f[].
+.PP
+If vtype=\[aq]L\[aq] and part=\[aq]A\[aq], "svec" will be updated with
+all the M columns of left singular vectors.
+In that case, "svec" should have at least M number of rows and M number
+of columns.
+.PD 0
+.P
+.PD
+If vtype=\[aq]L\[aq] and part=\[aq]S\[aq], "svec" will be updated with
+first min(M,N) columns of left singular vectors (stored columnwise).
+In that case, "svec" should have at least M number of rows and min(M,N)
+number of columns.
+.PD 0
+.P
+.PD
+If vtype=\[aq]R\[aq] and part=\[aq]A\[aq], "svec" will be updated with
+all the N rows of right singular vectors (in transposed form).
+In that case, "svec" should have at least N number of rows and N number
+of columns.
+.PD 0
+.P
+.PD
+If vtype=\[aq]R\[aq] and part=\[aq]S\[aq], "svec" will be updated with
+first min(M,N) rows of right singular vectors (stored rowwise in
+transposed form).
+In that case, "svec" should have at least min(M,N) number of rows and N
+number of columns.
+.PP
+This function expects that required memory would be allocated for the
+output matrix "svec" beforehand.
+If it is not allocated, an exception will be thrown.
+.PP
+On entry "m" contains the matrix whose singular values are to be
+computed, "sval" is an empty object of the type \f[C]std::vector<T>\f[],
+"svec" is a valid sized (as explained above) matrix.
+.PD 0
+.P
+.PD
+And on exit, If opt_a=\[aq]N\[aq], then the contents of "m" will be
+destroyed (internally used as workspace).
+.PD 0
+.P
+.PD
+If opt_a=\[aq]O\[aq] and vtype=\[aq]L\[aq], then "m" will be overwritten
+with first min(M,N) rows of right singular vectors (stored rowwise in
+transposed form).
+.PD 0
+.P
+.PD
+And If opt_a=\[aq]O\[aq] and vtype=\[aq]R\[aq], then "m" will be
+overwritten with first min(M,N) columns of left singular vectors (stored
+columnwise).
+.PD 0
+.P
+.PD
+"sval" is updated with the singular values in sorted oder, so that
+sval(i) >= sval(i+1) and "svec" will be updated with the desired
+singular vectors (as explained above).
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+On success, it returns the exit status of the lapack routine itself.
+If any error occurs, it throws an exception explaining cause of the
+error.
+.SS gesvd (m, sval, lsvec, rsvec, part_l=\[aq]A\[aq],
+part_r=\[aq]A\[aq])
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]m\f[]: A \f[C]colmajor_matrix_local<T>\f[] or a
+\f[C]sliced_colmajor_matrix_local<T>\f[] (inout)
+.PD 0
+.P
+.PD
+\f[I]sval\f[]: An empty vector of the type \f[C]std::vector<T>\f[]
+(output)
+.PD 0
+.P
+.PD
+\f[I]lsvec\f[]: A \f[C]colmajor_matrix_local<T>\f[] or a
+\f[C]sliced_colmajor_matrix_local<T>\f[] (output)
+.PD 0
+.P
+.PD
+\f[I]rsvec\f[]: A \f[C]colmajor_matrix_local<T>\f[] or a
+\f[C]sliced_colmajor_matrix_local<T>\f[] (output)
+.PD 0
+.P
+.PD
+\f[I]part_l\f[]: A character containing either \[aq]A\[aq] or
+\[aq]S\[aq] [Default: \[aq]A\[aq]] (input/optional)
+.PD 0
+.P
+.PD
+\f[I]part_r\f[]: A character containing either \[aq]A\[aq] or
+\[aq]S\[aq] [Default: \[aq]A\[aq]] (input/optional)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It computes the singular value decomposition (SVD) of an M\-by\-N
+matrix.
+Additionally, it also computes \f[I]left and right singular vectors\f[].
+.PP
+This function expects that required memory would be allocated for the
+output matrices "lsvec" and "rsvec" beforehand, to store the left and
+right singular vectors respectively.
+If they are not allocated, an exception will be thrown.
+.PP
+If part_l=\[aq]A\[aq], "lsvec" will be updated with all the M columns of
+left singular vectors.
+Thus, "lsvec" should have at least M number of rows and M number of
+columns.
+.PD 0
+.P
+.PD
+If part_l=\[aq]S\[aq], "lsvec" will be updated with first min(M,N)
+columns of left singular vectors (stored columnwise).
+Thus, "lsvec" should have at least M number of rows and min(M,N) number
+of columns.
+.PD 0
+.P
+.PD
+If part_r=\[aq]A\[aq], "rsvec" will be updated with all the N rows of
+right singular vectors (in transposed form).
+Thus, "rsvec" should have at least N number of rows and N number of
+columns.
+.PD 0
+.P
+.PD
+If part_r=\[aq]S\[aq], "rsvec" will be updated with first min(M,N) rows
+of right singular vectors (stored rowwise in transposed form).
+Thus, "rsvec" should have at least min(M,N) number of rows and N number
+of columns.
+.PP
+On entry "m" contains the matrix whose singular values are to be
+computed, "sval" is an empty object of the type \f[C]std::vector<T>\f[],
+"lsvec" and "rsvec" are valid sized (as explained above) matrices.
+.PD 0
+.P
+.PD
+And on exit, the contents of "m" is destroyed (internally used as
+workspace), "sval" is updated with the singular values in sorted oder,
+so that sval(i) >= sval(i+1), and "lsvec" and "rvec" are updated with
+the left and right singular vectors respectively (as explained above).
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+On success, it returns the exit status of the lapack routine itself.
+If any error occurs, it throws an exception explaining cause of the
+error.
+.SS gesdd (m, sval)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]m\f[]: A \f[C]colmajor_matrix_local<T>\f[] or a
+\f[C]sliced_colmajor_matrix_local<T>\f[] (inout)
+.PD 0
+.P
+.PD
+\f[I]sval\f[]: An empty vector of the type \f[C]std::vector<T>\f[]
+(output)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It computes the singular value decomposition (SVD) of an M\-by\-N
+matrix.
+But neither left nor right singular vectors are computed.
+Please refer to \f[I]lapack guide\f[] to know the algorithmic
+differences between gesvd() and gesdd().
+.PP
+On entry "m" contains the matrix whose singular values are to be
+computed, "sval" is an empty object of the type \f[C]std::vector<T>\f[].
+And on successful exit, the contents of "m" is destroyed (used as
+workspace internally by this function) and "sval" is updated with the
+singular values in sorted oder, so that sval(i) >= sval(i+1).
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+On success, it returns the exit status of the lapack routine itself.
+If any error occurs, it throws an exception explaining cause of the
+error.
+.SS gesdd (m, sval, svec)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]m\f[]: A \f[C]colmajor_matrix_local<T>\f[] or a
+\f[C]sliced_colmajor_matrix_local<T>\f[] (inout)
+.PD 0
+.P
+.PD
+\f[I]sval\f[]: An empty vector of the type \f[C]std::vector<T>\f[]
+(output)
+.PD 0
+.P
+.PD
+\f[I]svec\f[]: A \f[C]colmajor_matrix_local<T>\f[] or a
+\f[C]sliced_colmajor_matrix_local<T>\f[] (output)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It computes the singular value decomposition (SVD) of an M\-by\-N
+matrix.
+Additionally, it also computes \f[I]full or some part of left and right
+singular vectors\f[] using divide\-and\-conquer algorithm.
+Please refer to \f[I]lapack documentation\f[] to know the algorithmic
+differences between gesvd() and gesdd().
+.PP
+If M >= N, matrix "m" will be overwritten with the first N columns of
+the left singular vectors and "svec" will be updated with all the N rows
+of right singular vectors (in transposed form).
+In that case, "svec" should have at least N number of rows and N number
+of columns.
+.PD 0
+.P
+.PD
+Otherwise, matrix "m" will be overwritten with first M rows of the right
+singular vectors (in transposed form) and "svec" will be updated with
+all the M columns of the left singular vectors.
+In that case, "svec" should have at least M number of rows and M number
+of columns.
+.PP
+This function expects that required memory would be allocated for the
+output matrix "svec" beforehand.
+If it is not allocated, an exception will be thrown.
+.PP
+On entry "m" contains the matrix whose singular values are to be
+computed, "sval" is an empty object of the type \f[C]std::vector<T>\f[],
+"svec" is a valid sized (as explained above) matrix.
+And on successful exit, "m" and "svec" will be updated with the values
+(as explained above) and "sval" will be updated with singular values in
+sorted oder, so that sval(i) >= sval(i+1).
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+On success, it returns the exit status of the lapack routine itself.
+If any error occurs, it throws an exception explaining cause of the
+error.
+.SS gesdd (m, sval, lsvec, rsvec, part_lr=\[aq]A\[aq])
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]m\f[]: A \f[C]colmajor_matrix_local<T>\f[] or a
+\f[C]sliced_colmajor_matrix_local<T>\f[] (inout)
+.PD 0
+.P
+.PD
+\f[I]sval\f[]: An empty vector of the type \f[C]std::vector<T>\f[]
+(output)
+.PD 0
+.P
+.PD
+\f[I]lsvec\f[]: A \f[C]colmajor_matrix_local<T>\f[] or a
+\f[C]sliced_colmajor_matrix_local<T>\f[] (output)
+.PD 0
+.P
+.PD
+\f[I]rsvec\f[]: A \f[C]colmajor_matrix_local<T>\f[] or a
+\f[C]sliced_colmajor_matrix_local<T>\f[] (output)
+.PD 0
+.P
+.PD
+\f[I]part_lr\f[]: A character containing either \[aq]A\[aq] or
+\[aq]S\[aq] [Default: \[aq]A\[aq]] (input/optional)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It computes the singular value decomposition (SVD) of an M\-by\-N
+matrix.
+Additionally, it also computes \f[I]full or some part of left and right
+singular vectors\f[] using divide\-and\-conquer algorithm.
+But like the previous version of gesdd (with three parameters), it does
+not overwrite the results on matrix "m" (since it accepts memory
+locations for both the left and right singular vectors separately).
+Please refer to \f[I]lapack guide\f[] to know the algorithmic
+differences between gesvd() and gesdd().
+.PP
+If part_lr=\[aq]A\[aq], all the M columns of left singular vectors and
+all the N rows of right singular vectors (in transposed form) are stored
+in output matrix "lsvec" and "rsvec" respectively.
+In that case "lsvec" should have at least M number of rows and M number
+of columns and "rsvec" should have at least N number of rows and N
+number of columns.
+.PD 0
+.P
+.PD
+If part_lr=\[aq]S\[aq], the first min(M,N) columns of left singular
+vectors are stored in "lsvec" and the first min(M,N) rows of right
+singular vectors are stored in "rsvec" (in transposed form).
+In that case "lsvec" should have at least M number of rows and min(M,N)
+number of columns and "rsvec" should have at least min(M,N) number of
+rows and N number of columns.
+.PP
+This function expects that required memory would be allocated for the
+output matrices "lsvec" and "rsvec" beforehand.
+If they are not allocated, an exception will be thrown.
+.PP
+On entry "m" contains the matrix whose singular values are to be
+computed, "sval" is an empty object of the type \f[C]std::vector<T>\f[],
+"lsvec" and "rsvec" are valid sized (as explained above) matrices.
+And on successful exit, the contents of "m" will be destroyed (used
+internally as workspace), "lsvec" and "rsvec" will be updated with the
+values (as explained above) and "sval" will be updated with singular
+values in sorted oder, so that sval(i) >= sval(i+1).
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+On success, it returns the exit status of the lapack routine itself.
+If any error occurs, it throws an exception explaining cause of the
+error.
+.SS gelsy (m1, m2, rcond=\-1)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]m1\f[]: A \f[C]colmajor_matrix_local<T>\f[] or a
+\f[C]sliced_colmajor_matrix_local<T>\f[] (inout)
+.PD 0
+.P
+.PD
+\f[I]m2\f[]: A \f[C]colmajor_matrix_local<T>\f[] or a
+\f[C]sliced_colmajor_matrix_local<T>\f[] (inout)
+.PD 0
+.P
+.PD
+\f[I]rcond\f[]: A T type object (float or double) [Default: \-1]
+(input/optional)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It computes the minimum\-norm solution to a real linear least squares
+problem:
+.IP
+.nf
+\f[C]
+minimize\ ||\ A\ *\ X\ \-\ B\ ||
+\f[]
+.fi
+.PP
+using a complete orthogonal factorization of A.
+A is an M\-by\-N matrix which may be rank\-deficient.
+.PP
+The input parameter "rcond" is used to determine the effective rank of
+matrix "m1".
+If "rcond" is less than zero, machine precision is used instead.
+The matrix "m2" should have number of rows >= max(M,N) and at least 1
+column.
+.PP
+On entry, "m1" contains the left\-hand\-side matrix (A) and "m2"
+contains the right\-hand\-side matrix (B).
+On successful exit, "m1" is overwritten with its complete orthogonal
+factorization and "m2" is overwritten with the solution matrix (X).
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+On success, it returns the exit status of the lapack routine itself.
+If any error occurs, it throws an exception explaining cause of the
+error.
+.SS gelsy (m1, m2, rank, rcond=\-1)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]m1\f[]: A \f[C]colmajor_matrix_local<T>\f[] or a
+\f[C]sliced_colmajor_matrix_local<T>\f[] (inout)
+.PD 0
+.P
+.PD
+\f[I]m2\f[]: A \f[C]colmajor_matrix_local<T>\f[] or a
+\f[C]sliced_colmajor_matrix_local<T>\f[] (inout)
+.PD 0
+.P
+.PD
+\f[I]rank\f[]: An empty integer object passed by reference (output)
+.PD 0
+.P
+.PD
+\f[I]rcond\f[]: A T type object (float or double) [Default: \-1]
+(input/optional)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+The native lapack routine can also determine the rank of the matrix "m1"
+while finding the minimum\-norm solution.
+If it is required to know the rank determined by this function, it is
+recommended to use this version of gelsy().
+.PP
+The input parameter "rcond" is used to determine the effective rank of
+matrix "m1".
+If "rcond" is less than zero, machine precision is used instead.
+The matrix "m2" should have number of rows >= max(M,N) and at least 1
+column.
+.PP
+On entry, "m1" contains the left\-hand\-side matrix (A) and "m2"
+contains the right\-hand\-side matrix (B), "rank" is just an empty
+integer passed by reference to this routine.
+On successful exit, "m1" is overwritten with its complete orthogonal
+factorization, "m2" is overwritten with the solution matrix (X) and
+"rank" is overwritten with the determined effective rank of matrix "m1".
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+On success, it returns the exit status of the lapack routine itself.
+If any error occurs, it throws an exception explaining cause of the
+error.
+.SS gelss (m1, m2, rcond=\-1)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]m1\f[]: A \f[C]colmajor_matrix_local<T>\f[] or a
+\f[C]sliced_colmajor_matrix_local<T>\f[] (inout)
+.PD 0
+.P
+.PD
+\f[I]m2\f[]: A \f[C]colmajor_matrix_local<T>\f[] or a
+\f[C]sliced_colmajor_matrix_local<T>\f[] (inout)
+.PD 0
+.P
+.PD
+\f[I]rcond\f[]: A T type object (float or double) [Default: \-1]
+(input/optional)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It solves overdetermined or underdetermined systems for general
+matrices.
+It computes the minimum\-norm solution to a real linear least squares
+problem:
+.IP
+.nf
+\f[C]
+minimize\ 2\-norm\ (|\ B\ \-\ AX\ |)
+\f[]
+.fi
+.PP
+using the singular value decomposition (SVD) of A.
+A is an M\-by\-N general matrix which may be rank\-deficient.
+.PP
+The input parameter "rcond" is used to determine the effective rank of
+matrix "m1".
+If "rcond" is less than zero, machine precision is used instead.
+The matrix "m2" should have number of rows >= max(M,N) and at least 1
+column.
+.PP
+On entry, "m1" contains the left\-hand\-side matrix (A) and "m2"
+contains the right\-hand\-side matrix (B).
+On successful exit, first min(M,N) rows of "m1" is overwritten with its
+right singular vectors (stored rowwise) and "m2" is overwritten with the
+solution matrix (X).
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+On success, it returns the exit status of the lapack routine itself.
+If any error occurs, it throws an exception explaining cause of the
+error.
+.SS gelss (m1, m2, sval, rank, rcond=\-1)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]m1\f[]: A \f[C]colmajor_matrix_local<T>\f[] or a
+\f[C]sliced_colmajor_matrix_local<T>\f[] (inout)
+.PD 0
+.P
+.PD
+\f[I]m2\f[]: A \f[C]colmajor_matrix_local<T>\f[] or a
+\f[C]sliced_colmajor_matrix_local<T>\f[] (inout)
+.PD 0
+.P
+.PD
+\f[I]sval\f[]: An empty object of the type \f[C]std::vector<T>\f[]
+(output)
+.PD 0
+.P
+.PD
+\f[I]rank\f[]: An empty integer object passed by reference (output)
+.PD 0
+.P
+.PD
+\f[I]rcond\f[]: A T type object (float or double) [Default: \-1]
+(input/optional)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It solves overdetermined or underdetermined systems for general
+matrices.
+It computes the minimum\-norm solution to a real linear least squares
+problem:
+.IP
+.nf
+\f[C]
+minimize\ 2\-norm\ (|\ B\ \-\ AX\ |)
+\f[]
+.fi
+.PP
+using the singular value decomposition of A.
+A is an M\-by\-N general matrix which may be rank\-deficient.
+.PP
+It might also be needed to obtain the computed singular values and
+effective rank of the matrix A.
+In that case, this version of gelss(with five arguments) is recommended
+to use.
+It accepts an empty vector (3rd argument) and an empty integer (4th
+argument) which are passed by reference to this function.
+.PP
+The input parameter "rcond" is used to determine the effective rank of
+matrix "m1".
+If "rcond" is less than zero, machine precision is used instead.
+The matrix "m2" should have number of rows >= max(M,N) and at least 1
+column.
+.PP
+On entry, "m1" contains the left\-hand\-side matrix (A) and "m2"
+contains the right\-hand\-side matrix (B).
+On successful exit, first min(M,N) rows of "m1" is overwritten with its
+right singular vectors (stored rowwise), "m2" is overwritten with the
+solution matrix (X), computed singular values of of "m1" are stored in
+"sval" in decreasing order and "rank" is updated with the computed
+effective rank of "m1".
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+On success, it returns the exit status of the lapack routine itself.
+If any error occurs, it throws an exception explaining cause of the
+error.
+.SS gelsd (m1, m2, rcond=\-1)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]m1\f[]: A \f[C]colmajor_matrix_local<T>\f[] or a
+\f[C]sliced_colmajor_matrix_local<T>\f[] (inout)
+.PD 0
+.P
+.PD
+\f[I]m2\f[]: A \f[C]colmajor_matrix_local<T>\f[] or a
+\f[C]sliced_colmajor_matrix_local<T>\f[] (inout)
+.PD 0
+.P
+.PD
+\f[I]rcond\f[]: A T type object (float or double) [Default: \-1]
+(input/optional)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It solves overdetermined or underdetermined systems for general
+matrices.
+It computes the minimum\-norm solution to a real linear least squares
+problem:
+.IP
+.nf
+\f[C]
+minimize\ 2\-norm\ (|\ B\ \-\ AX\ |)
+\f[]
+.fi
+.PP
+using the singular value decomposition (SVD) of A.
+A is an M\-by\-N general matrix which may be rank\-deficient.
+Please refer to \f[I]lapack guide\f[] to know the algorithmic
+differences between gelsd() and gelss().
+.PP
+The input parameter "rcond" is used to determine the effective rank of
+matrix "m1".
+If "rcond" is less than zero, machine precision is used instead.
+The matrix "m2" should have number of rows >= max(M,N) and at least 1
+column.
+.PP
+On entry, "m1" contains the left\-hand\-side matrix (A) and "m2"
+contains the right\-hand\-side matrix (B).
+On successful exit, first min(M,N) rows of "m1" is overwritten with its
+right singular vectors (stored rowwise) and "m2" is overwritten with the
+solution matrix (X).
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+On success, it returns the exit status of the lapack routine itself.
+If any error occurs, it throws an exception explaining cause of the
+error.
+.SS gelsd (m1, m2, sval, rank, rcond=\-1)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]m1\f[]: A \f[C]colmajor_matrix_local<T>\f[] or a
+\f[C]sliced_colmajor_matrix_local<T>\f[] (inout)
+.PD 0
+.P
+.PD
+\f[I]m2\f[]: A \f[C]colmajor_matrix_local<T>\f[] or a
+\f[C]sliced_colmajor_matrix_local<T>\f[] (inout)
+.PD 0
+.P
+.PD
+\f[I]sval\f[]: An empty object of the type \f[C]std::vector<T>\f[]
+(output)
+.PD 0
+.P
+.PD
+\f[I]rank\f[]: An empty integer object passed by reference (output)
+.PD 0
+.P
+.PD
+\f[I]rcond\f[]: A T type object (float or double) [Default: \-1]
+(input/optional)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It solves overdetermined or underdetermined systems for general
+matrices.
+It computes the minimum\-norm solution to a real linear least squares
+problem:
+.IP
+.nf
+\f[C]
+minimize\ 2\-norm\ (|\ B\ \-\ AX\ |)
+\f[]
+.fi
+.PP
+using the singular value decomposition of A.
+A is an M\-by\-N general matrix which may be rank\-deficient.
+Please refer to \f[I]lapack guide\f[] to know the algorithmic
+differences between gelsd() and gelss().
+.PP
+It might also be needed to obtain the computed singular values and
+effective rank of the matrix A.
+In that case, this version of gelsd(with five arguments) is recommended
+to use.
+It accepts an empty vector (3rd argument) and an empty integer (4th
+argument) which are passed by reference to this function.
+.PP
+The input parameter "rcond" is used to determine the effective rank of
+matrix "m1".
+If "rcond" is less than zero, machine precision is used instead.
+The matrix "m2" should have number of rows >= max(M,N) and at least 1
+column.
+.PP
+On entry, "m1" contains the left\-hand\-side matrix (A) and "m2"
+contains the right\-hand\-side matrix (B).
+On successful exit, first min(M,N) rows of "m1" is overwritten with its
+right singular vectors (stored rowwise), "m2" is overwritten with the
+solution matrix (X), computed singular values of of "m1" are stored in
+"sval" in decreasing order and "rank" is updated with the computed
+effective rank of "m1".
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+On success, it returns the exit status of the lapack routine itself.
+If any error occurs, it throws an exception explaining cause of the
+error.
+.SS geev (m, eval)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]m\f[]: A \f[C]colmajor_matrix_local<T>\f[] or a
+\f[C]sliced_colmajor_matrix_local<T>\f[] (inout)
+.PD 0
+.P
+.PD
+\f[I]eval\f[]: An empty object of the type \f[C]std::vector<T>\f[]
+(output)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It computes eigenvalues for an N\-by\-N real nonsymmetric matrix.
+.PP
+The input matrix, "m" must be a square matrix.
+Else it will throw an exception.
+.PP
+On entry, "m" is the square matrix whose eigenvalues are to be computed
+and "eval" is an empty vector.
+On successful exit, the contents of "m" is destroyed, and the computed
+eigenvalues are stored in "eval".
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+On success, it returns the exit status of the lapack routine itself.
+If any error occurs, it throws an exception explaining cause of the
+error.
+.SS geev (m, eval, evec, vtype=\[aq]L\[aq])
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]m\f[]: A \f[C]colmajor_matrix_local<T>\f[] or a
+\f[C]sliced_colmajor_matrix_local<T>\f[] (inout)
+.PD 0
+.P
+.PD
+\f[I]eval\f[]: An empty object of the type \f[C]std::vector<T>\f[]
+(output)
+.PD 0
+.P
+.PD
+\f[I]evec\f[]: A \f[C]colmajor_matrix_local<T>\f[] or a
+\f[C]sliced_colmajor_matrix_local<T>\f[] (output)
+.PD 0
+.P
+.PD
+\f[I]vtype\f[]: A character value containing either \[aq]L\[aq] or
+\[aq]R\[aq] [Default: \[aq]L\[aq]] (input/optional)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It computes eigenvalues for an N\-by\-N real nonsymmetric matrix.
+Additionally, it also computes the left or right eigenvectors.
+.PP
+The input matrix, "m" must be a square matrix.
+Else it will throw an exception.
+If vtype=\[aq]L\[aq], then left\-eigenvectors will be computed.
+.PD 0
+.P
+.PD
+If vtype=\[aq]R\[aq], then right\-eigenvectors will be computed.
+The output matrix "evec" must have at least N number of rows and N
+number of columns.
+This function expects that "evec" is already allocated before its call.
+Thus if it is not allocated, an exception will be thrown.
+.PP
+On entry, "m" is the square matrix whose eigenvalues are to be computed,
+"eval" is an empty vector, "evec" is an empty matrix with valid size (as
+mentioned above).
+On successful exit, the contents of "m" is destroyed, the computed
+eigenvalues are stored in "eval" and "evec" is updated with the desired
+(left/right) eigenvectors.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+On success, it returns the exit status of the lapack routine itself.
+If any error occurs, it throws an exception explaining cause of the
+error.
+.SS geev (m, eval, levec, revec)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]m\f[]: A \f[C]colmajor_matrix_local<T>\f[] or a
+\f[C]sliced_colmajor_matrix_local<T>\f[] (inout)
+.PD 0
+.P
+.PD
+\f[I]eval\f[]: An empty object of the type \f[C]std::vector<T>\f[]
+(output)
+.PD 0
+.P
+.PD
+\f[I]levec\f[]: A \f[C]colmajor_matrix_local<T>\f[] or a
+\f[C]sliced_colmajor_matrix_local<T>\f[] (output)
+.PD 0
+.P
+.PD
+\f[I]revec\f[]: A \f[C]colmajor_matrix_local<T>\f[] or a
+\f[C]sliced_colmajor_matrix_local<T>\f[] (output)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It computes eigenvalues for an N\-by\-N real nonsymmetric matrix.
+Additionally, it also computes the left and right eigenvectors.
+.PP
+The input matrix, "m" must be a square matrix.
+Else it will throw an exception.
+The output matrices "levec" and "revec" must have at least N number of
+rows and N number of columns.
+This function expects that these output matrices are already allocated
+before its call.
+Thus if they are not allocated, an exception will be thrown.
+.PP
+On entry, "m" is the square matrix whose eigenvalues are to be computed,
+"eval" is an empty vector, "levec" and "revec" are an empty matrices
+with valid size (as mentioned above).
+On successful exit, the contents of "m" is destroyed, the computed
+eigenvalues are stored in "eval", "levec" is updated with the left
+eigenvectors and "revec" is updated with right eigenvectors.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+On success, it returns the exit status of the lapack routine itself.
+If any error occurs, it throws an exception explaining cause of the
+error.
+.SS inv (m)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]m\f[]: A \f[C]colmajor_matrix_local<T>\f[] or a
+\f[C]sliced_colmajor_matrix_local<T>\f[] (input)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It computes the inverse of a square matrix "m" by using getrf() and
+getri() internally.
+Thus it is a kind of short\-cut function to obtain the inverse of a
+non\-distributed matrix.
+.PP
+On successful exit, it returns the resultant inversed matrix.
+The input matrix "m" remains unchanged.
+Since it returns the resultant matrix, it can be used in any numerical
+expressions, along with other operators.
+E.g., if a and b are two colmajor matrices, then the expresion like,
+"a*(~b)*inv(a)" can easily be performed.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+On success, it returns the resultant matrix of the type
+\f[C]colmajor_matrix_local<T>\f[].
+If any error occurs, it throws an exception explaining cause of the
+error.
+.SH SEE ALSO
+.PP
+sliced_colmajor_matrix_local, sliced_colmajor_vector_local,
+scalapack_wrapper

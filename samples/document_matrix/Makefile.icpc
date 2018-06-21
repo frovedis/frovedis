@@ -1,0 +1,19 @@
+TARGETS := tfidf shrink_mat show_matrix normalize_row
+include ../Makefile.in.icpc
+include ../Makefile.common
+
+TO_INSTALL := README normalize_row.cc show_matrix.cc shrink_mat.cc tfidf.cc
+DIR := document_matrix
+ARCH := icpc
+
+tfidf: tfidf.o
+	${LINK} -o tfidf tfidf.o ${LIBS}
+
+shrink_mat: shrink_mat.o
+	${LINK} -o shrink_mat shrink_mat.o ${LIBS}
+
+show_matrix: show_matrix.o
+	${LINK} -o show_matrix show_matrix.o ${LIBS}
+
+normalize_row: normalize_row.o
+	${LINK} -o normalize_row normalize_row.o ${LIBS}

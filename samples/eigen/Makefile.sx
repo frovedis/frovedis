@@ -1,0 +1,11 @@
+TARGETS := eigen
+include ../Makefile.in.sx
+include ../Makefile.common
+
+TO_INSTALL := eigen.cc
+DIR := eigen
+ARCH := sx
+
+eigen: eigen.o
+	${CXX} -prelink ${CXXFLAGS} eigen.o ${LIBS}
+	${MPICXX} ${CXXFLAGS} -o eigen eigen.o ${LIBS}

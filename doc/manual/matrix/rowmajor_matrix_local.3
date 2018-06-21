@@ -1,0 +1,505 @@
+.TH "frovedis::rowmajor_matrix_local<T>" "" "" "" ""
+.SH NAME
+.PP
+\f[C]frovedis::rowmajor_matrix_local<T>\f[] \- A two\-dimensional dense
+matrix with elements stored in row\-wise order supported by frovedis
+.SH SYNOPSIS
+.PP
+\f[C]#include\ <frovedis/matrix/rowmajor_matrix.hpp>\f[]
+.SS Constructors
+.PP
+rowmajor_matrix_local ();
+.PD 0
+.P
+.PD
+rowmajor_matrix_local (size_t nrow, size_t ncol);
+.PD 0
+.P
+.PD
+rowmajor_matrix_local (const \f[C]rowmajor_matrix_local<T>\f[]& m);
+.PD 0
+.P
+.PD
+rowmajor_matrix_local (\f[C]rowmajor_matrix_local<T>\f[]&& m);
+.PD 0
+.P
+.PD
+rowmajor_matrix_local (const \f[C]std::vector<T>\f[]& v);
+.PD 0
+.P
+.PD
+rowmajor_matrix_local (\f[C]std::vector<T>\f[]&& v);
+.SS Overloaded Operators
+.PP
+\f[C]rowmajor_matrix_local<T>\f[]& operator= (const
+\f[C]rowmajor_matrix_local<T>\f[]& m);
+.PD 0
+.P
+.PD
+\f[C]rowmajor_matrix_local<T>\f[]& operator=
+(\f[C]rowmajor_matrix_local<T>\f[]&& m);
+.SS Public Member Functions
+.PP
+void set_local_num (size_t nrow, size_t ncol);
+.PD 0
+.P
+.PD
+void save (const std::string& file);
+.PD 0
+.P
+.PD
+void savebinary (const std::string& dir);
+.PD 0
+.P
+.PD
+void debug_print ();
+.PD 0
+.P
+.PD
+\f[C]rowmajor_matrix_local<T>\f[] transpose () const;
+.PD 0
+.P
+.PD
+\f[C]node_local<rowmajor_matrix_local<T>>\f[] broadcast();
+.SS Public Data Members
+.PP
+\f[C]std::vector<T>\f[] val;
+.PD 0
+.P
+.PD
+size_t local_num_row;
+.PD 0
+.P
+.PD
+size_t local_num_col;
+.SH DESCRIPTION
+.PP
+\f[C]rowmajor_matrix_local<T>\f[] is a template based non\-distributed
+row\-major data storage supported by frovedis.
+.PP
+Although it provides a 2D row\-major storage view to the user,
+internally the matrix elements are stored in 1D vector form with
+additional row and column number information stored separately.
+The structure of this class is as follows:
+.IP
+.nf
+\f[C]
+template\ <class\ T>
+struct\ rowmajor_matrix_local\ {
+\ \ std::vector<T>\ val;\ \ \ \ \ //\ to\ contain\ matrix\ elements\ in\ 1D\ rowmajor\ form
+\ \ size_t\ local_num_row;\ \ \ //\ number\ of\ rows\ in\ 2D\ matrix\ view
+\ \ size_t\ local_num_col;\ \ \ //\ number\ of\ columns\ in\ 2D\ matrix\ view
+};
+\f[]
+.fi
+.SS Constructor Documentation
+.SS rowmajor_matrix_local ()
+.PP
+This is the default constructor which creates an empty rowmajor matrix
+with local_num_row = local_num_col = 0.
+.SS rowmajor_matrix_local (size_t nrow, size_t ncol)
+.PP
+This is the parameterized constructor which creates an empty rowmajor
+matrix of the given dimension (memory allocation takes place).
+.SS rowmajor_matrix_local (const \f[C]rowmajor_matrix_local<T>\f[]& m)
+.PP
+This is the copy constructor which creates a new rowmajor matrix by
+deep\-copying the contents of the input rowmajor matrix.
+.SS rowmajor_matrix_local (\f[C]rowmajor_matrix_local<T>\f[]&& m)
+.PP
+This is the move constructor.
+Instead of copying the input matrix, it moves the contents of the input
+rvalue matrix to the newly constructed matrix.
+Thus it is faster and recommended to use when input matrix will no
+longer be used in a user program.
+.SS rowmajor_matrix_local (const \f[C]std::vector<T>\f[]& v)
+.PP
+This is a special constructor for implicit conversion.
+It converts an input lvalue \f[C]std::vector<T>\f[] to
+\f[C]rowmajor_matrix_local<T>\f[] with dimensions Nx1, where N = size of
+the input vector.
+It attempts to copy the input vector during the conversion.
+Thus input vector remains unchanged.
+.SS rowmajor_matrix_local (\f[C]std::vector<T>\f[]&& v)
+.PP
+This is a special constructor for implicit conversion.
+It converts an input rvalue \f[C]std::vector<T>\f[] to
+\f[C]rowmajor_matrix_local<T>\f[] with dimensions Nx1, where N = size of
+the input vector.
+It attempts to move the elements from the input vector during the
+conversion.
+Thus input vector will contain unknown values after the conversion.
+.SS Overloaded Operator Documentation
+.SS \f[C]rowmajor_matrix_local<T>\f[]& operator= (const
+\f[C]rowmajor_matrix_local<T>\f[]& m)
+.PP
+It deep\-copies the input rowmajor matrix into the left\-hand side
+matrix of the assignment operator "=".
+.SS \f[C]rowmajor_matrix_local<T>\f[]& operator=
+(\f[C]rowmajor_matrix_local<T>\f[]&& m)
+.PP
+Instead of copying, it moves the contents of the input rvalue rowmajor
+matrix into the left\-hand side matrix of the assignment operator "=".
+Thus it is faster and recommended to use when input matrix will no
+longer be used in a user program.
+.SS Public Member Function Documentation
+.SS void set_local_num (size_t nrow, size_t ncol)
+.PP
+It sets the matrix information related to number of rows and number of
+columns as specified by the user.
+It assumes the user will provide the valid matrix dimension according to
+the number of elements in it.
+Thus no validity check is performed on the provided dimension values.
+.SS void debug_print ()
+.PP
+It prints the contents and other information related to the matrix on
+the user terminal.
+It is mainly useful for debugging purpose.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+std::vector<int>\ v\ =\ {1,2,3,4};
+rowmajor_matrix_local<int>\ m;
+m.val.swap(v);
+m.set_local_num(2,2);\ //\ nrow:\ 2,\ ncol:2\ \ \ \ 
+m.debug_print();\ 
+\f[]
+.fi
+.PP
+The above program will output:
+.IP
+.nf
+\f[C]
+node\ =\ 0,\ local_num_row\ =\ 2,\ local_num_col\ =\ 2,\ val\ =\ 1\ 2\ 3\ 4\ 
+\f[]
+.fi
+.SS \f[C]rowmajor_matrix_local<T>\f[] transpose ()
+.PP
+It returns the transposed rowmajor_matrix_local of the source matrix
+object.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+std::vector<int>\ v\ =\ {1,2,3,4};
+rowmajor_matrix_local<int>\ m;
+m.val.swap(v);
+m.set_local_num(2,2);\ //\ nrow:\ 2,\ ncol:2\ \ \ \ 
+std::cout\ <<\ m.transpose();\ //\ a\ rowmajor\ matrix\ can\ be\ printed\ on\ user\ terminal
+\f[]
+.fi
+.PP
+It will output like:
+.IP
+.nf
+\f[C]
+1\ 3
+2\ 4
+\f[]
+.fi
+.SS void save (const std::string& file)
+.PP
+It writes the elements of a rowmajor matrix to the specified file in
+rowmajor format with text data.
+.SS void savebinary (const std::string& dir)
+.PP
+It writes the elements of a rowmajor matrix to the specified directory
+in rowmajor format with binary data.
+.PP
+The output directory will contain two files, named "nums" and "val"
+respectively.
+"nums" is a text file containing the number of rows and number of
+columns information in first two lines of the file.
+And "val" is a binary file containing the matrix elements stored in
+little\-endian form.
+.SS \f[C]node_local<rowmajor_matrix_local<T>>\f[] broadcast();
+.PP
+It broadcasts the source \f[C]rowmajor_matrix_local<T>\f[] to all the
+participating worker nodes.
+After successful broadcasting, it returns a
+\f[C]node_local<rowmajor_matrix_local<T>>\f[] object representing the
+broadcasted matrices at each worker nodes.
+.PP
+It is equivalent to broadcasting the matrix using frovedis global
+function "frovedis::broadcast()" (explained in node_local manual).
+But from performance point of view this is efficient as it avoids the
+internal serialization overhead of the vector elements.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+std::vector<int>\ v\ =\ {1,2,3,4};
+rowmajor_matrix_local<int>\ m;
+m.val.swap(v);
+m.set_local_num(2,2);\ //\ nrow:\ 2,\ ncol:2\ \ \ \ \ 
+auto\ bm1\ =\ m.broadcast();\ //\ faster
+auto\ bm2\ =\ frovedis::broadcast(m);\ //\ slower\ (serialization\ overhead)
+
+master\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ worker0\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ worker1
+\-\-\-\-\-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \-\-\-\-\-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \-\-\-\-\-
+m:\ rowmajor_matrix_local<int>
+\ \ \ 1\ 2
+\ \ \ 3\ 4\ 
+
+bm1:\ node_local<
+\ \ \ \ \ rowmajor_matrix_local<int>>\ \ rowmajor_matrix_local<int>\ \ rowmajor_matrix_local<int>
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 1\ 2\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 1\ 2
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 3\ 4\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 3\ 4
+bm2:\ node_local<
+\ \ \ \ \ rowmajor_matrix_local<int>>\ \ rowmajor_matrix_local<int>\ \ rowmajor_matrix_local<int>
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 1\ 2\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 1\ 2
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 3\ 4\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 3\ 4
+\f[]
+.fi
+.SS Public Data Member Documentation
+.SS val
+.PP
+An instance of \f[C]std::vector<T>\f[] type to contain the elements of
+the matrix in 1D row\-major form.
+.SS local_num_row
+.PP
+A size_t attribute to contain the number of rows in the 2D matrix view.
+.SS local_num_col
+.PP
+A size_t attribute to contain the number of columns in the 2D matrix
+view.
+.SS Public Global Function Documentation
+.SS \f[C]rowmajor_matrix_local<T>\f[]
+make_rowmajor_matrix_local_load(filename)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]filename\f[]: A string object containing the name of the text file
+having the data to be loaded.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+This function loads the text data from the specified file and creates a
+\f[C]rowmajor_matrix_local<T>\f[] object filling the data loaded.
+.PD 0
+.P
+.PD
+It assumes that there is no empty lines in the input file.
+The desired type of the matrix (e.g., int, float, double etc.) is to be
+explicitly specified when loading the matrix data from reading a file.
+.PP
+For example, considering "./data" is a text file having the data to be
+loaded,
+.IP
+.nf
+\f[C]
+auto\ m1\ =\ make_rowmajor_matrix_local_load<int>("./data");
+auto\ m2\ =\ make_rowmajor_matrix_local_load<float>("./data");
+\f[]
+.fi
+.PP
+"m1" will be a \f[C]rowmajor_matrix_local<int>\f[], whereas "m2" will be
+a \f[C]rowmajor_matrix_local<float>\f[].
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+On success, it returns the created matrix of the type
+\f[C]rowmajor_matrix_local<T>\f[].
+Otherwise, it throws an exception.
+.SS \f[C]rowmajor_matrix_local<T>\f[]
+make_rowmajor_matrix_local_loadbinary(dirname)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]dirname\f[]: A string object containing the name of the directory
+having the data to be loaded.
+It expects two files "nums" and "val" to be presented in the input
+directory, where "nums" is the text file containing number of rows and
+number of columns information (new line separated) and "val" is the
+little\-endian binary data to be loaded.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+This function loads the binary data from the specified directory and
+creates a \f[C]rowmajor_matrix_local<T>\f[] object filling the data
+loaded.
+The desired type of the matrix (e.g., int, float, double etc.) is to be
+explicitly specified when loading the matrix data from reading a file.
+.PP
+For example, considering "./bin" is a binary file having the data to be
+loaded,
+.IP
+.nf
+\f[C]
+auto\ m1\ =\ make_rowmajor_matrix_local_loadbinary<int>("./bin");
+auto\ m2\ =\ make_rowmajor_matrix_local_loadbinary<float>("./bin");
+\f[]
+.fi
+.PP
+"m1" will be a \f[C]rowmajor_matrix_local<int>\f[], whereas "m2" will be
+a \f[C]rowmajor_matrix_local<float>\f[].
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+On success, it returns the created matrix of the type
+\f[C]rowmajor_matrix_local<T>\f[].
+Otherwise, it throws an exception.
+.SS std::ostream& \f[C]operator<<\f[](str, mat)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]str\f[]: A std::ostream& object representing the output stream
+buffer.
+.PD 0
+.P
+.PD
+\f[I]mat\f[]: A const& object of the type
+\f[C]rowmajor_matrix_local<T>\f[] containing the matrix to be handled.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+This function writes the contents of the matrix in 2D row\-major matrix
+form in the given output stream.
+Thus a rowmajor matrix can simply be printed on the user terminal as
+"std::cout << mat", where "mat" is the input matrix.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+On success, it returns a reference to the output stream.
+.SS std::istream& \f[C]operator>>\f[](str, mat)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]str\f[]: A std::istream& object representing the input stream
+buffer.
+.PD 0
+.P
+.PD
+\f[I]mat\f[]: A const& object of the type
+\f[C]rowmajor_matrix_local<T>\f[] to be filled.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+This function reads the data from the input stream and writes the same
+in the given matrix.
+Each new\-line character in the given stream is considered as a new row.
+The number of columns is automatically calculated based on the read
+elements count in each line of the input stream (it assumes that all the
+lines contain same number of elements).
+.PP
+Here the matrix "mat" is overwritten with the data read from the input
+stream.
+Thus any prior data in the matrix "mat" would be lost.
+Thus a rowmajor matrix can simply be read from standard input terminal
+as "std::cin >> mat", where "mat" is the matrix to be filled with data
+read from "std::cin".
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+On success, it returns a reference to the input stream.
+.SS \f[C]rowmajor_matrix_local<T>\f[] operator*(m1,m2)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]m1\f[]: A const& object of the type
+\f[C]rowmajor_matrix_local<T>\f[].
+.PD 0
+.P
+.PD
+\f[I]m2\f[]: Another const& object of the type
+\f[C]rowmajor_matrix_local<T>\f[].
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+This function performs matrix multiplication between two input
+rowmajor_matrix_local objects of the same type.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+If the input matrix conforms matrix multiplication rule (number of
+columns in m1 matches with the number of rows in m2), then it returns
+the resultant rowmajor matrix of the type
+\f[C]rowmajor_matrix_local<T>\f[].
+Otherwise, it throws an exception.
+.SS \f[C]rowmajor_matrix_local<T>\f[] operator*(m1,m2)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]m1\f[]: A const& object of the type
+\f[C]rowmajor_matrix_local<T>\f[].
+.PD 0
+.P
+.PD
+\f[I]m2\f[]: A const& object of the type \f[C]diag_matrix_local<T>\f[].
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+When multiplying a rowmajor matrix with a diagonal matrix (e.g., unit
+matrix etc.), actually every column of the input rowmajor matrix is
+multiplied by every diagnonal element of the input diagonal matrix, as
+depicted below.
+.IP
+.nf
+\f[C]
+\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 2\ \ 1\ \ 5\ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ *\ \ *\ \ *
+1\ 2\ 3\ \ \ \ \ \ \ 2\ 0\ 0\ \ \ \ \ \ 1\ \ 2\ \ 3\ \ \ \ \ \ \ 2\ \ 2\ \ 15
+4\ 5\ 6\ \ \ *\ \ \ 0\ 1\ 0\ =>\ \ \ 4\ \ 5\ \ 6\ \ =>\ \ \ 8\ \ 5\ \ 30
+7\ 8\ 9\ \ \ \ \ \ \ 0\ 0\ 5\ \ \ \ \ \ 7\ \ 8\ \ 9\ \ \ \ \ \ 14\ \ 8\ \ 45
+\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-
+\f[]
+.fi
+.PP
+Thus frovedis provides an efficient overloaded operator*() to handle
+such situation.
+In case of diagnonal matrix, it only stores the diagonal elements (e.g.,
+2, 3, 5) in a data structure called \f[C]diag_matrix_local<T>\f[] (see
+diag_matrix_local manual) and the overloaded operator*() simply
+multiplies each column of the input rowmajor matrix with each diagonal
+element.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+If number of columns in the input rowmajor matrix equals to the number
+of diagonal elements in the input diagonal matrix, it returns the
+resultant rowmajor matrix of the type \f[C]rowmajor_matrix_local<T>\f[].
+Otherwise, it throws an exception.
+.SH SEE ALSO
+.PP
+diag_matrix_local, colmajor_matrix_local, rowmajor_matrix

@@ -1,0 +1,509 @@
+.TH "FrovedisBlockcyclicMatrix" "" "" "" ""
+.SH NAME
+.PP
+FrovedisBlockcyclicMatrix \- A data structure used in modeling the
+in\-memory blockcyclic matrix data of frovedis server side at client
+python side.
+.SH SYNOPSIS
+.PP
+class frovedis.matrix.dense.FrovedisBlockcyclicMatrix(mat=None)
+.SS Overloaded Operators
+.PP
+operator= (mat)
+.PD 0
+.P
+.PD
+operator+ (mat)
+.PD 0
+.P
+.PD
+operator\- (mat)
+.PD 0
+.P
+.PD
+operator* (mat)
+.PD 0
+.P
+.PD
+operator~ (mat)
+.SS Public Member Functions
+.PP
+load (mat)
+.PD 0
+.P
+.PD
+load_numpy_matrix (mat)
+.PD 0
+.P
+.PD
+load_text (filename)
+.PD 0
+.P
+.PD
+load_binary (dirname)
+.PD 0
+.P
+.PD
+save_text (filename)
+.PD 0
+.P
+.PD
+save_binary (dirname)
+.PD 0
+.P
+.PD
+transpose()
+.PD 0
+.P
+.PD
+to_numpy_matrix ()
+.PD 0
+.P
+.PD
+debug_print()
+.PD 0
+.P
+.PD
+release()
+.SH DESCRIPTION
+.PP
+FrovedisBlockcyclicMatrix is a pseudo matrix structure at client python
+side which aims to model the frovedis server side
+\f[C]blockcyclic_matrix<double>\f[] (see manual of frovedis
+blockcyclic_matrix for details).
+.PP
+Note that the actual matrix data is created at frovedis server side
+only.
+Python side FrovedisBlockcyclicMatrix contains a proxy handle of the
+in\-memory matrix data created at frovedis server, along with number of
+rows and number of columns information.
+.SS Constructor Documentation
+.SS FrovedisBlockcyclicMatrix (mat=None)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]mat\f[]: It can be a string containing filename having text data to
+be loaded, or another FrovedisBlockcyclicMatrix instance for copy or any
+python array\-like object or None.
+In case of None (Default), it does not make any request to server.
+.PP
+\f[B]Purpose\f[]
+.PP
+This constructor can be used to construct a FrovedisBlockcyclicMatrix
+instance, as follows:
+.IP
+.nf
+\f[C]
+mat1\ =\ FrovedisBlockcyclicMatrix()\ #\ empty\ matrix,\ no\ server\ request\ is\ made\ \ \ 
+mat2\ =\ FrovedisBlockcyclicMatrix("./data")\ #\ will\ load\ data\ from\ given\ text\ file\ \ \ 
+mat3\ =\ FrovedisBlockcyclicMatrix(mat2)\ #\ copy\ constructor\ \ \ 
+mat4\ =\ FrovedisBlockcyclicMatrix([1,2,3,4])\ #\ will\ load\ data\ from\ the\ given\ list\ \ \ 
+\f[]
+.fi
+.PP
+\f[B]Return Type\f[]
+.PP
+It simply returns "self" reference.
+.SS Overloaded Operators Documentation
+.SS operator= (mat)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]mat\f[]: An existing FrovedisBlockcyclicMatrix instance to be
+copied.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It can be used to copy the input matrix in the target matrix.
+It returns a self reference to support operator chaining.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+m1\ =\ FrovedisBlockcyclicMatrix([1,2,3,4])\ \ \ \ 
+m2\ =\ m1\ (copy\ operatror)
+m3\ =\ m2\ =\ m1\ \ \ 
+\f[]
+.fi
+.PP
+\f[B]Return Type\f[]
+.PD 0
+.P
+.PD
+It returns "self" reference.
+.SS operator+ (mat)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]mat\f[]: An instance of FrovedisBlockcyclicMatrix or an array\-like
+structure.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It can be used to perform addition between two blockcyclic matrices.
+If the input data is not a FrovedisBlockcyclicMatrix instance,
+internally it will get converted into a FrovedisBlockcyclicMatrix
+instance first and then that will be added with the source matrix.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+m1\ =\ FrovedisBlockcyclicMatrix([1,2,3,4])\ \ \ \ 
+m2\ =\ FrovedisBlockcyclicMatrix([1,2,3,4])\ 
+m3\ =\ m2\ +\ m1\ 
+\f[]
+.fi
+.PP
+\f[B]Return Type\f[]
+.PD 0
+.P
+.PD
+It returns the resultant matrix of the type FrovedisBlockcyclicMatrix.
+.SS operator\- (mat)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]mat\f[]: An instance of FrovedisBlockcyclicMatrix or an array\-like
+structure.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It can be used to perform subtraction between two blockcyclic matrices.
+If the input data is not a FrovedisBlockcyclicMatrix instance,
+internally it will get converted into a FrovedisBlockcyclicMatrix
+instance first and then that will be subtracted from the source matrix.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+m1\ =\ FrovedisBlockcyclicMatrix([1,2,3,4])\ \ \ \ 
+m2\ =\ FrovedisBlockcyclicMatrix([1,2,3,4])\ 
+m3\ =\ m2\ \-\ m1\ 
+\f[]
+.fi
+.PP
+\f[B]Return Type\f[]
+.PD 0
+.P
+.PD
+It returns the resultant matrix of the type FrovedisBlockcyclicMatrix.
+.SS operator* (mat)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]mat\f[]: An instance of FrovedisBlockcyclicMatrix or an array\-like
+structure.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It can be used to perform multiplication between two blockcyclic
+matrices.
+If the input data is not a FrovedisBlockcyclicMatrix instance,
+internally it will get converted into a FrovedisBlockcyclicMatrix
+instance first and then that will be multiplied with the source matrix.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+m1\ =\ FrovedisBlockcyclicMatrix([1,2,3,4])\ \ \ \ 
+m2\ =\ FrovedisBlockcyclicMatrix([1,2,3,4])\ 
+m3\ =\ m2\ *\ m1\ 
+\f[]
+.fi
+.PP
+\f[B]Return Type\f[]
+.PD 0
+.P
+.PD
+It returns the resultant matrix of the type FrovedisBlockcyclicMatrix.
+.SS operator~ ()
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It can be used to obtain transpose of the target matrix.
+If the input data is not a FrovedisBlockcyclicMatrix instance,
+internally it will get converted into a FrovedisBlockcyclicMatrix
+instance first and then the transpose will get computed.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+m1\ =\ FrovedisBlockcyclicMatrix([1,2,3,4])\ \ \ \ 
+m2\ =\ ~m1\ 
+\f[]
+.fi
+.PP
+\f[B]Return Type\f[]
+.PD 0
+.P
+.PD
+It returns the resultant matrix of the type FrovedisBlockcyclicMatrix.
+.SS Pubic Member Function Documentation
+.SS load (mat)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]mat\f[]: It can be a string containing filename having text data to
+be loaded, or another FrovedisBlockcyclicMatrix instance for copy or any
+python array\-like object (but it can not be None).
+.PP
+\f[B]Purpose\f[]
+.PP
+This function works similar to the constructor.
+It can be used to load a FrovedisBlockcyclicMatrix instance, as follows:
+.IP
+.nf
+\f[C]
+mat1\ =\ FrovedisBlockcyclicMatrix().load("./data")\ \ #\ will\ load\ data\ from\ given\ text\ file\ \ \ 
+mat2\ =\ FrovedisBlockcyclicMatrix().load(mat1)\ \ \ \ \ \ #\ copy\ operation\ \ \ 
+mat3\ =\ FrovedisBlockcyclicMatrix().load([1,2,3,4])\ #\ will\ load\ data\ from\ the\ given\ list\ \ \ 
+\f[]
+.fi
+.PP
+\f[B]Return Type\f[]
+.PP
+It simply returns "self" reference.
+.SS load_numpy_matrix (mat)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]mat\f[]: A numpy matrix with values to be loaded in.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+This function can be used to load a python side dense data matrix into a
+frovedis server side blockcyclic matrix.
+It accepts a numpy matrix object and converts it into the frovedis
+server side blockcyclic matrix whose proxy along with number of rows and
+number of columns information are stored in the target
+FrovedisBlockcyclicMatrix object.
+.PP
+\f[B]Return Type\f[]
+.PD 0
+.P
+.PD
+It simply returns "self" reference.
+.SS load_text (filename)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]filename\f[]: A string object containing the text file name to be
+loaded.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+This function can be used to load the data from a text file into the
+target matrix.
+Note that the file must be placed at server side at the given path.
+.PP
+\f[B]Return Type\f[]
+.PD 0
+.P
+.PD
+It simply returns "self" reference.
+.SS load_binary (dirname)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]dirname\f[]: A string object containing the directory name having
+the binary data to be loaded.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+This function can be used to load the data from the specified directory
+with binary data file into the target matrix.
+Note that the file must be placed at server side at the given path.
+.PP
+\f[B]Return Type\f[]
+.PD 0
+.P
+.PD
+It simply returns "self" reference.
+.SS save_text (filename)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]filename\f[]: A string object containing the text file name in
+which the data is to be saved.
+.PP
+\f[B]Purpose\f[]
+.PP
+This function is used to save the target matrix as text file with the
+filename at the given path.
+Note that the file will be saved at server side at the given path.
+.PP
+\f[B]Return Type\f[]
+.PD 0
+.P
+.PD
+It returns nothing.
+.SS save_binary (dirname)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]dirname\f[]: A string object containing the directory name in which
+the data is to be saved as little\-endian binary form.
+.PP
+\f[B]Purpose\f[]
+.PP
+This function is used to save the target matrix as little\-endian binary
+file with the filename at the given path.
+Note that the file will be saved at server side at the given path.
+.PP
+\f[B]Return Type\f[]
+.PD 0
+.P
+.PD
+It returns nothing.
+.SS transpose ()
+.PP
+\f[B]Purpose\f[]
+.PP
+This function will compute the transpose of the given matrix.
+.PP
+\f[B]Return Type\f[]
+.PD 0
+.P
+.PD
+It returns the transposed blockcyclic matrix of the type
+FrovedisBlockcyclicMatrix.
+.SS to_numpy_matrix ()
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+This function is used to convert the target blockcyclic matrix into
+numpy matrix.
+.PD 0
+.P
+.PD
+Note that this function will request frovedis server to gather the
+distributed data, and send back that data in the rowmajor array form and
+the python client will then convert the received numpy array from
+frovedis server to python numpy matrix.
+.PP
+\f[B]Return Type\f[]
+.PD 0
+.P
+.PD
+It returns a two\-dimensional dense numpy matrix
+.SS numRows()
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It returns the number of rows in the matrix
+.PP
+\f[B]Return Type\f[]
+.PD 0
+.P
+.PD
+An integer value containing rows count in the target matrix.
+.SS numCols()
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It returns the number of columns in the matrix
+.PP
+\f[B]Return Type\f[]
+.PD 0
+.P
+.PD
+An integer value containing columns count in the target matrix.
+.SS debug_print()
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It prints the contents of the server side distributed matrix data on the
+server side user terminal.
+It is mainly useful for debugging purpose.
+.PP
+\f[B]Return Type\f[]
+.PD 0
+.P
+.PD
+It returns nothing.
+.SS release()
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+This function can be used to release the existing in\-memory data at
+frovedis server side.
+.PP
+\f[B]Return Type\f[]
+.PD 0
+.P
+.PD
+It returns nothing.
+.SS FrovedisBlockcyclicMatrix.asBCM(mat)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]mat\f[]: An instance of FrovedisBlockcyclicMatrix or any python
+array\-like structure.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+This static function is used in order to convert a given matrix to a
+blockcyclic matrix.
+If the input is already an instance of FrovedisBlockcyclicMatrix, then
+the same will be returned.
+.PP
+\f[B]Return Type\f[]
+.PP
+An instance of FrovedisBlockcyclicMatrix.

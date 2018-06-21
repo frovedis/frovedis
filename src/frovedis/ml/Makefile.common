@@ -1,0 +1,42 @@
+RECM_OBJS := optimizer.o
+TREE_OBJS := tree_config.o tree_random.o tree_utility.o
+W2V_OBJS := word2vec.o
+OBJS := ${RECM_OBJS} ${TREE_OBJS} ${W2V_OBJS}
+
+TARGETS := libfrovedis_ml.a
+
+INCLUDES := -I../../../third_party/cereal-1.2.2/include/ -I../../../third_party/include
+CXXFLAGS := ${CXXFLAGS_COMMON} ${INCLUDES}
+LIBS := -L../matrix -lfrovedis_matrix -L../core -lfrovedis_core ${LIBS_COMMON}
+VPATH := glm recommendation tree w2v
+
+targets: ${TARGETS}
+
+install: ${TARGETS}
+	install -d ${INSTALLPATH}/lib/
+	cp libfrovedis_ml.a ${INSTALLPATH}/lib/libfrovedis_ml.a
+	install -d ${INSTALLPATH}/include/frovedis/ml/glm
+	cp glm/*.hpp ${INSTALLPATH}/include/frovedis/ml/glm
+	install -d ${INSTALLPATH}/include/frovedis/ml/recommendation
+	cp recommendation/*.hpp ${INSTALLPATH}/include/frovedis/ml/recommendation
+	install -d ${INSTALLPATH}/include/frovedis/ml/clustering
+	cp clustering/*.hpp ${INSTALLPATH}/include/frovedis/ml/clustering
+	install -d ${INSTALLPATH}/include/frovedis/ml/utility
+	cp utility/*.hpp ${INSTALLPATH}/include/frovedis/ml/utility
+	install -d ${INSTALLPATH}/include/frovedis/ml/fm
+	cp fm/*.hpp ${INSTALLPATH}/include/frovedis/ml/fm
+	install -d ${INSTALLPATH}/include/frovedis/ml/tree
+	cp tree/*.hpp ${INSTALLPATH}/include/frovedis/ml/tree
+	install -d ${INSTALLPATH}/include/frovedis/ml/w2v
+	cp w2v/*.hpp ${INSTALLPATH}/include/frovedis/ml/w2v
+	install -d ${INSTALLPATH}/licenses/third_party
+	cp w2v/LICENSE ${INSTALLPATH}/licenses/third_party/LICENSE.word2vec
+
+optimizer.o: optimizer.cc
+
+tree_config.o: tree_config.hpp
+tree_random.o: tree_random.hpp
+tree_utility.o: tree_utility.hpp
+
+clean:
+	${RM} ${TO_CLEAN} glm/*~ recommendation/*~ fm/*~ ${TARGETS} 

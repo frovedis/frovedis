@@ -1,0 +1,34 @@
+sudo: false
+
+language: c
+
+compiler:
+  - gcc
+
+addons:
+  apt:
+    packages:
+      - gfortran
+      - libblas-dev
+      - liblapack-dev
+      - libopenmpi-dev
+      - openmpi-bin
+
+env:
+  - BUILD=cmake
+  - BUILD=configure
+
+before_script:
+  - if [ "$BUILD" == "cmake" ]; then mkdir build ; fi
+  - if [ "$BUILD" == "cmake" ]; then cd build ; fi
+  - if [ "$BUILD" == "cmake" ]; then cmake -D EXAMPLES=ON -D MPI=ON .. ; fi
+
+script:
+  # CMAKE
+  - if [ "$BUILD" == "cmake"  ]; then make all check ; fi
+  # CONFIGURE
+  - if [ "$BUILD" == "configure" ]; then ./bootstrap ; fi
+  - if [ "$BUILD" == "configure" ]; then ./configure --enable-mpi ; fi
+  - if [ "$BUILD" == "configure" ]; then make all ; fi
+  - if [ "$BUILD" == "configure" ]; then make check ; fi
+  - if [ "$BUILD" == "configure" ]; then make distcheck ; fi

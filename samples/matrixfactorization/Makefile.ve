@@ -1,0 +1,10 @@
+TARGETS := mf
+include ../Makefile.in.ve
+include ../Makefile.common
+
+TO_INSTALL := mf.cc
+DIR := matrixfactorization
+ARCH := ve
+
+mf: mf.o
+	${LINK} ${CXXFLAGS} -o mf mf.o ${LIBS}

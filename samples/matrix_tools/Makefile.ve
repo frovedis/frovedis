@@ -1,0 +1,34 @@
+TARGETS := to_binary_rowmajor_matrix to_text_rowmajor_matrix to_binary_crs_matrix to_text_crs_matrix to_text_vector to_binary_vector transpose_crs_matrix coo_to_crs_matrix convert_endian
+include ../Makefile.in.ve
+include ../Makefile.common
+
+TO_INSTALL := coo_to_crs_matrix.cc to_binary_crs_matrix.cc to_binary_rowmajor_matrix.cc to_binary_vector.cc to_text_crs_matrix.cc to_text_rowmajor_matrix.cc to_text_vector.cc transpose_crs_matrix.cc convert_endian.cc
+DIR := matrix_tools
+ARCH := ve
+
+to_binary_rowmajor_matrix: to_binary_rowmajor_matrix.o
+	${LINK} ${CXXFLAGS} -o to_binary_rowmajor_matrix to_binary_rowmajor_matrix.o ${LIBS}
+
+to_text_rowmajor_matrix: to_text_rowmajor_matrix.o
+	${LINK} ${CXXFLAGS} -o to_text_rowmajor_matrix to_text_rowmajor_matrix.o ${LIBS}
+
+to_binary_crs_matrix: to_binary_crs_matrix.o
+	${LINK} ${CXXFLAGS} -o to_binary_crs_matrix to_binary_crs_matrix.o ${LIBS}
+
+to_text_crs_matrix: to_text_crs_matrix.o
+	${LINK} ${CXXFLAGS} -o to_text_crs_matrix to_text_crs_matrix.o ${LIBS}
+
+to_text_vector: to_text_vector.o
+	${LINK} ${CXXFLAGS} -o to_text_vector to_text_vector.o ${LIBS}
+
+to_binary_vector: to_binary_vector.o
+	${LINK} ${CXXFLAGS} -o to_binary_vector to_binary_vector.o ${LIBS}
+
+transpose_crs_matrix: transpose_crs_matrix.o
+	${LINK} ${CXXFLAGS} -o transpose_crs_matrix transpose_crs_matrix.o ${LIBS}
+
+coo_to_crs_matrix: coo_to_crs_matrix.o
+	${LINK} ${CXXFLAGS} -o coo_to_crs_matrix coo_to_crs_matrix.o ${LIBS}
+
+convert_endian: convert_endian.o
+	${LINK} ${CXXFLAGS} -o convert_endian convert_endian.o ${LIBS}

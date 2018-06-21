@@ -1,0 +1,5 @@
+include ../../../Makefile.in.ve
+include Makefile.common
+
+libfrovedis_dataframe.a: ${OBJS}
+	${AR} r libfrovedis_dataframe.a ${OBJS}

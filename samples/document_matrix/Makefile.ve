@@ -1,0 +1,19 @@
+TARGETS := tfidf shrink_mat show_matrix normalize_row
+include ../Makefile.in.ve
+include ../Makefile.common
+
+TO_INSTALL := README normalize_row.cc show_matrix.cc shrink_mat.cc tfidf.cc
+DIR := document_matrix
+ARCH := ve
+
+tfidf: tfidf.o
+	${MPICXX} ${CXXFLAGS} -o tfidf tfidf.o ${LIBS}
+
+shrink_mat: shrink_mat.o
+	${MPICXX} ${CXXFLAGS} -o shrink_mat shrink_mat.o ${LIBS}
+
+show_matrix: show_matrix.o
+	${MPICXX} ${CXXFLAGS} -o show_matrix show_matrix.o ${LIBS}
+
+normalize_row: normalize_row.o
+	${MPICXX} ${CXXFLAGS} -o normalize_row normalize_row.o ${LIBS}

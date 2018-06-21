@@ -1,0 +1,285 @@
+.TH "frovedis::sliced_colmajor_matrix_local<T>" "" "" "" ""
+.SH NAME
+.PP
+\f[C]frovedis::sliced_colmajor_matrix_local<T>\f[] \- a data structure
+containing the slicing information of a two\-dimensional
+\f[C]frovedis::colmajor_matrix_local<T>\f[]
+.SH SYNOPSIS
+.PP
+\f[C]#include\ <frovedis/matrix/sliced_matrix.hpp>\f[]
+.SS Constructors
+.PP
+sliced_colmajor_matrix_local ()
+.PD 0
+.P
+.PD
+sliced_colmajor_matrix_local (const \f[C]colmajor_matrix_local<T>\f[]&
+m)
+.PD 0
+.P
+.PD
+sliced_colmajor_matrix_local (const \f[C]std::vector<T>\f[]& v)
+.SS Public Member Functions
+.PP
+bool is_valid () const
+.PD 0
+.P
+.PD
+void debug_print () const
+.SS Public Data Members
+.PP
+T* data
+.PD 0
+.P
+.PD
+size_t ldm
+.PD 0
+.P
+.PD
+size_t sliced_num_row
+.PD 0
+.P
+.PD
+size_t sliced_num_col
+.SH DESCRIPTION
+.PP
+In order to perform matrix operations on sub\-matrices instead of entire
+physical matrix, frovedis provides some sliced data structures.
+\f[C]sliced_colmajor_matrix_local<T>\f[] is one of them.
+It is actually not a real matrix, rather it only contains some slicing
+information of a physical \f[C]colmajor_matrix_local<T>\f[].
+Thus any changes performed on the sliced matrix, would actually make
+changes on the physical matrix from which slice was made.
+.PP
+Like \f[C]colmajor_matrix_local<T>\f[], a
+\f[C]sliced_colmajor_matrix_local<T>\f[] is also a template based
+structure with type \f[B]"T"\f[].
+This has the below structure:
+.IP
+.nf
+\f[C]
+template\ <class\ T>
+struct\ sliced_colmajor_matrix_local\ {
+\ \ T*\ data;\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ //\ pointer\ pointing\ to\ the\ begining\ of\ the\ slice
+\ \ size_t\ ldm;\ \ \ \ \ \ \ \ \ \ \ \ //\ leading\ dimension\ of\ the\ physical\ matrix
+\ \ size_t\ sliced_num_row;\ //\ number\ of\ rows\ in\ the\ sliced\ matrix
+\ \ size_t\ sliced_num_col;\ //\ number\ of\ columns\ in\ the\ sliced\ matrix
+};
+\f[]
+.fi
+.PP
+E.g., if a physical \f[C]colmajor_matrix_local<T>\f[] M has dimensions
+4x4 and slice is needed from 2nd row and 2nd column ([1,1]) till 3rd row
+and 3rd column ([2,2]), then "data" will hold the address of M[1][1]
+(data \-> &M[1][1]),
+.PD 0
+.P
+.PD
+"ldm" would be 4 (leading dimension of the matrix M, i.e., number of
+rows),
+.PD 0
+.P
+.PD
+From 2nd row till 3rd row, number of rows to be sliced is 2, thus
+"sliced_num_row" would be 2.
+.PD 0
+.P
+.PD
+From 2nd column till 3rd column, number of columns to be sliced is 2,
+thus "sliced_num_col" would be 2.
+.PP
+Such matrices are very useful in operations of external libraries like
+blas, lapack etc.
+.SS Constructor Documentation
+.SS sliced_colmajor_matrix_local ()
+.PP
+This is the default constructor which creates an empty sliced matrix
+with num_row = num_col = 0 and "data" points to NULL.
+In general of no use, unless it is needed to manipulate the slice
+information explicitly.
+.SS sliced_colmajor_matrix_local (const
+\f[C]colmajor_matrix_local<T>\f[]& m)
+.PP
+This is a special constructor for implicit conversion.
+This constructor treats an entire physical matrix as a sliced matrix.
+Thus the created \f[C]sliced_colmajor_matrix_local<T>\f[] would have the
+same dimensions as with the input \f[C]colmajor_matrix_local<T>\f[] and
+"data" pointing to the base address of the input
+\f[C]colmajor_matrix_local<T>\f[].
+.SS sliced_colmajor_matrix_local (const \f[C]std::vector<T>\f[]& v)
+.PP
+This is a special constructor for implicit conversion.
+This constructor treats an entire physical vector as a sliced matrix.
+Thus the created \f[C]sliced_colmajor_matrix_local<T>\f[] would have
+"sliced_num_row" equals to the length of the input
+\f[C]std::vector<T>\f[], "sliced_num_col" equals to 1 and "data"
+pointing to the base address of the input vector.
+.SS Public Member Function Documentation
+.SS bool is_valid () const
+.PP
+This function returns true, if the caller object is a valid sliced
+matrix, else it returns false.
+.PD 0
+.P
+.PD
+Kindly note that an empty sliced matrix is also an invalid sliced
+matrix, since no valid operation can be performed on its data pointing
+to NULL.
+.SS void debug_print () const
+.PP
+It prints the contents of the sliced part of the original (physical)
+\f[C]colmajor_matrix_local<T>\f[] on the user standard output terminal.
+.SS Public Data Member Documentation
+.SS data
+.PP
+A pointer of type "T" pointing to the starting location of a physical
+\f[C]colmajor_matrix_local<T>\f[] from which slice has been made.
+.SS ldm
+.PP
+A size_t attribute to contain the leading dimension of the physical
+matrix from which slice has been made (number of rows in the physical
+matrix).
+.SS sliced_num_row
+.PP
+A size_t attribute to contain the number of rows in the sliced matrix.
+.SS sliced_num_col
+.PP
+A size_t attribute to contain the number of columns in the sliced
+matrix.
+.SS Public Global Function Documentation
+.SS make_sliced_colmajor_matrix_local (mat, start_ridx, start_cidx,
+num_row, num_col)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]mat\f[]: An object of either \f[C]colmajor_matrix_local<T>\f[] or
+\f[C]sliced_colmajor_matrix_local<T>\f[] type.
+.PD 0
+.P
+.PD
+\f[I]start_ridx\f[]: A size_t attribute to indicate the start row index
+for the slice.
+.PD 0
+.P
+.PD
+\f[I]start_cidx\f[]: A size_t attribute to indicate the start column
+index for the slice.
+.PD 0
+.P
+.PD
+\f[I]num_row\f[]: A size_t attribute to indicate the number of rows to
+be sliced from the starting row index.
+.PD 0
+.P
+.PD
+\f[I]num_col\f[]: A size_t attribute to indicate the number of columns
+to be sliced from the starting column index.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+This function accepts a valid \f[C]colmajor_matrix_local<T>\f[] or
+\f[C]sliced_colmajor_matrix_local<T>\f[] with some slicing information
+like row and column index from which slicing is to be started, and the
+size of the output sliced matrix, i.e., number of rows and columns to be
+sliced from the starting location.
+On receiving the valid inputs, it outputs a
+\f[C]sliced_colmajor_matrix_local<T>\f[] object containing the slicing
+information, else it throws an exception.
+.PP
+\f[B]Example\f[]:
+.PD 0
+.P
+.PD
+If a physical \f[C]colmajor_matrix_local<T>\f[] "mat" has the dimensions
+4x4 and slicing is required from its 2nd row and 2nd column ([1,1]) till
+4th row and 4th column ([3,3]), then this function should be called
+like:
+.IP
+.nf
+\f[C]
+auto\ smat\ =\ make_sliced_colmajor_matrix_local(mat,1,1,3,3);
+\f[]
+.fi
+.PP
+Index of the 2nd row is 1, thus start_row_index = 1.
+.PD 0
+.P
+.PD
+Index of the 2nd column is 1, thus start_col_index = 1.
+.PD 0
+.P
+.PD
+From 2nd row till 4th row, number of rows to be sliced is 3, thus
+num_row = 3.
+.PD 0
+.P
+.PD
+From 2nd column till 4th column, number of columns to be sliced is 3,
+thus num_col = 3.
+.IP
+.nf
+\f[C]
+Input\ (mat):\ \ \ \ \ \ \ \ Output\ (smat):
+\-\-\-\-\-\-\-\-\-\-\-\-\ \ \ \ \ \ \ \ \-\-\-\-\-\-\-\-\-\-\-\-\-\-
+1\ 2\ 3\ 4\ \ \ \ \ \ \ \ \ \ \ \ \ 6\ 7\ 8
+5\ 6\ 7\ 8\ \ \ \ \ \ \ =>\ \ \ \ 7\ 6\ 5
+8\ 7\ 6\ 5\ \ \ \ \ \ \ \ \ \ \ \ \ 3\ 2\ 1
+4\ 3\ 2\ 1
+\f[]
+.fi
+.PP
+Now if we need to slice further this sliced matrix, "smat" from its 2nd
+row and 2nd column ([1,1]) till 3rd row and 3rd column ([2,2]), then we
+would call this function like below:
+.IP
+.nf
+\f[C]
+auto\ ssmat\ =\ make_sliced_colmajor_matrix_local(smat,1,1,2,2);
+\f[]
+.fi
+.PP
+Index of the 2nd row of smat is 1, thus start_row_index = 1.
+.PD 0
+.P
+.PD
+Index of the 2nd column of smat is 1, thus start_col_index = 1.
+.PD 0
+.P
+.PD
+From 2nd row till 3rd row of smat, number of rows to be sliced is 2,
+thus num_row = 2.
+.PD 0
+.P
+.PD
+From 2nd column till 3rd column of smat, number of columns to be sliced
+is 2, thus num_col = 2.
+.PP
+Kindly note that 2nd row of "smat" is actually the 3rd row of the
+physical matrix "mat", but this function takes care of it internally.
+Thus you just need to take care of the index of the input sliced matrix,
+not the actual physical matrix.
+.IP
+.nf
+\f[C]
+Input\ (smat):\ \ \ \ \ \ \ Output\ (ssmat):
+\-\-\-\-\-\-\-\-\-\-\-\-\-\ \ \ \ \ \ \ \-\-\-\-\-\-\-\-\-\-\-\-\-\-\-
+6\ 7\ 8\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 6\ 5
+7\ 6\ 5\ \ \ \ \ \ \ \ \ =>\ \ \ \ 2\ 1
+3\ 2\ 1\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+On success, it returns an object of the type
+\f[C]sliced_colmajor_matrix_local<T>\f[].
+Otherwise it throws an exception.
+.SH SEE ALSO
+.PP
+colmajor_matrix, sliced_colmajor_vector_local

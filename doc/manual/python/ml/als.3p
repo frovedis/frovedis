@@ -1,0 +1,339 @@
+.TH "Matrix Factorization using ALS" "" "" "" ""
+.SH NAME
+.PP
+Matrix Factorization using ALS \- A matrix factorization algorithm
+commonly used for recommender systems.
+.SH SYNOPSIS
+.PP
+class frovedis.mllib.recommendation.ALS (max_iter=100, alpha=0.01,
+regParam=0.01,
+.PD 0
+.P
+.PD
+\  \ \  \  \  \ seed=0, verbose=0)
+.SS Public Member Functions
+.PP
+fit(X, rank)
+.PD 0
+.P
+.PD
+predict(id)
+.PD 0
+.P
+.PD
+recommend_users (pid, k)
+.PD 0
+.P
+.PD
+recommend_products (uid, k)
+.PD 0
+.P
+.PD
+save(filename)
+.PD 0
+.P
+.PD
+load(filename)
+.PD 0
+.P
+.PD
+debug_print()
+.PD 0
+.P
+.PD
+release()
+.SH DESCRIPTION
+.PP
+Collaborative filtering is commonly used for recommender systems.
+These techniques aim to fill in the missing entries of a user\-item
+association matrix.
+Frovedis currently supports model\-based collaborative filtering, in
+which users and products are described by a small set of latent factors
+that can be used to predict missing entries.
+.PP
+Frovedis uses the alternating least squares (ALS) algorithm to learn
+these latent factors.
+The algorithm is based on a paper “Collaborative Filtering for Implicit
+Feedback Datasets” by Hu, et al.
+.PP
+This module provides a client\-server implementation, where the client
+application is a normal python scikit\-learn program.
+Scikit\-learn does not have any collaborative filtering recommender
+algorithms like ALS.
+In this implementation, scikit\-learn side recommender interfaces are
+provided, where a scikit\-learn client can interact with a frovedis
+server sending the required python data for training at frovedis side.
+Python data is converted into frovedis compatible data internally and
+the scikit\-learn ALS call is linked with the frovedis ALS call to get
+the job done at frovedis server.
+.PP
+Scikit\-learn side call for ALS quickly returns, right after submitting
+the training request to the frovedis server with a unique model ID for
+the submitted training request.
+.PP
+When operations like recommendation will be required on the trained
+model, scikit\-learn client sends the same request to frovedis server on
+the same model (containing the unique ID) and the request is served at
+frovedis server and output is sent back to the scikit\-learn client.
+.SS Detailed Description
+.SS ALS ()
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]max_iter\f[]: An integer parameter specifying maximum iteration
+count.
+(Default: 100)
+.PD 0
+.P
+.PD
+\f[I]alpha\f[]: A double parameter containing the learning rate
+(Default: 0.01)
+.PD 0
+.P
+.PD
+\f[I]regParam\f[]: A double parameter containing the regularization
+parameter (Default: 0.01)
+.PD 0
+.P
+.PD
+\f[I]seed\f[]: A long parameter containing the seed value to initialize
+the model structures with random values.
+(Default: 0)
+.PD 0
+.P
+.PD
+\f[I]verbose\f[]: An integer parameter specifying the log level to use.
+(Default: 0)
+.PP
+\f[B]Purpose\f[]
+.PP
+It initialized an ALS object with the given parameters.
+.PP
+"verbose" value is set at 0 by default.
+But it can be set to 1 (for DEBUG mode) or 2 (for TRACE mode) for
+getting training time logs from frovedis server.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It simply returns "self" reference.
+.SS fit(X, rank)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]X\f[]: A scipy sparse matrix or any python array\-like object or an
+instance of FrovedisCRSMatrix.
+.PD 0
+.P
+.PD
+\f[I]rank\f[]: An integer parameter containing the user given rank for
+the input matrix.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It accepts the training matrix (X) and trains a matrix factorization
+model on that at frovedis server.
+.PP
+It starts with initializing the model structures of the size MxF and NxF
+(where M is the number of users and N is the products in the given
+rating matrix and F is the given rank) with random values and keeps
+updating them until maximum iteration count is reached.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ loading\ sample\ CRS\ data\ file
+mat\ =\ FrovedisCRSMatrix().load("./sample")
+
+#\ fitting\ input\ matrix\ on\ ALS\ object
+als\ =\ ALS().fit(mat,rank=4)
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It simply returns "self" reference.
+.PD 0
+.P
+.PD
+Note that the call will return quickly, right after submitting the fit
+request at frovedis server side with a unique model ID for the fit
+request.
+It may be possible that the training is not completed at the frovedis
+server side even though the client scikit\-learn side fit() returns.
+.SS predict(ids)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]ids\f[]: A python tuple or list object containing the pairs of user
+id and product id to predict.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It accepts a list of pair of user ids and product ids (0\-based ID) in
+order to make prediction for their ratings from the trained model at
+frovedis server.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ this\ will\ print\ the\ predicted\ ratings\ for\ the\ given\ list\ of\ id\ pairs
+print\ als.predict([(1,1),\ (0,1),\ (2,3),\ (3,1)])\ \ \ 
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns a numpy array of double (float64) type containing the
+predicted ratings.
+.SS recommend_users(pid, k)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]pid\f[]: An integer parameter specifying the product ID (0\-based)
+for which to recommend users.
+.PD 0
+.P
+.PD
+\f[I]k\f[]: An integer parameter specifying the number of users to be
+recommended.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It recommends the best "k" users with highest rating confidence in
+sorted order for the given product.
+.PP
+If k > number of rows (number of users in the given matrix when training
+the model), then it resets the k as "number of rows in the given matrix"
+in order to recommend all the users with rating confidence values in
+sorted order.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns a python list containing the pairs of recommended users and
+their corresponding rating confidence values in sorted order.
+.SS recommend_products(uid, k)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]uid\f[]: An integer parameter specifying the user ID (0\-based) for
+which to recommend products.
+.PD 0
+.P
+.PD
+\f[I]k\f[]: An integer parameter specifying the number of products to be
+recommended.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It recommends the best "k" products with highest rating confidence in
+sorted order for the given user.
+.PP
+If k > number of columns (number of products in the given matrix when
+training the model), then it resets the k as "number of columns in the
+given matrix" in order to recommend all the products with rating
+confidence values in sorted order.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns a python list containing the pairs of recommended products
+and their corresponding rating confidence values in sorted order.
+.SS save(filename)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]filename\f[]: A string object containing the name of the file on
+which the target model is to be saved.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+On success, it writes the model information (user\-product features
+etc.) in the specified file as little\-endian binary data.
+Otherwise, it throws an exception.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns nothing.
+.SS load(filename)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]filename\f[]: A string object containing the name of the file
+having model information to be loaded.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It loads the model from the specified file (having little\-endian binary
+data).
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It simply returns "self" instance.
+.SS debug_print()
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It shows the target model information on the server side user terminal.
+It is mainly used for debugging purpose.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns nothing.
+.SS release()
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It can be used to release the in\-memory model at frovedis server.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns nothing.

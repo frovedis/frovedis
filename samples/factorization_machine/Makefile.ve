@@ -1,0 +1,13 @@
+TARGETS := train_fm test_fm
+include ../Makefile.in.ve
+include ../Makefile.common
+
+TO_INSTALL := train_fm.cc test_fm.cc
+DIR := factorization_machine
+ARCH := ve
+
+train_fm: train_fm.o
+	${LINK} ${CXXFLAGS} -o train_fm train_fm.o ${LIBS}
+
+test_fm: test_fm.o
+	${LINK} ${CXXFLAGS} -o test_fm test_fm.o ${LIBS}

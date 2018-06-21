@@ -1,0 +1,191 @@
+.TH "frovedis::jds_matrix<T,I,O,P>" "" "" "" ""
+.SH NAME
+.PP
+\f[C]frovedis::jds_matrix<T,I,O,P>\f[] \- A two\-dimensional row\-wise
+distributed sparse matrix with jagged diagonal storage.
+.SH SYNOPSIS
+.PP
+\f[C]#include\ <frovedis/matrix/jds_matrix.hpp>\f[]
+.SS Constructors
+.PP
+jds_matrix ();
+.PD 0
+.P
+.PD
+jds_matrix (const \f[C]crs_matrix<T,I,O>\f[]& m);
+.SS Public Member Functions
+.PP
+void debug_print ();
+.SS Public Data Members
+.PP
+\f[C]frovedis::node_local<jds_matrix_local<T,I,O,P>>\f[] data;
+.PD 0
+.P
+.PD
+size_t num_row;
+.PD 0
+.P
+.PD
+size_t num_col;
+.SH DESCRIPTION
+.PP
+In the CRS format, the rows of the matrix can be reordered decreasingly
+according to the number of non\-zeros per row.
+Then the compressed and permuted diagonals can be stored in a linear
+array.
+The new data structure is called jagged diagonals.
+The number of jagged diagonals is equal to the number of non\-zeros in
+the first row, i.e., the largest number of non\-zeros in any row of the
+sparse matrix.
+.PP
+A JDS (Jagged Diagonal Storage) matrix is one of the popular sparse
+matrices with such jagged diagonals (the elements stored in
+column\-major order).
+It has four major components while storing the non\-zero elements, as
+explained below along with the number of rows and the number of columns
+in the sparse matrix.
+.IP
+.nf
+\f[C]
+val:\ a\ vector\ containing\ the\ non\-zero\ elements\ of\ the\ jagged\ diagonals\ 
+of\ the\ matrix\ (in\ column\-major\ order).\ \ \ 
+idx:\ a\ vector\ containing\ the\ column\ indices\ for\ each\ non\-zero\ elements
+in\ the\ jagged\ diagonals.\ \ \ \ 
+off:\ a\ vector\ containing\ the\ jagged\ diagonal\ offsets.\ \ \ \ \ 
+perm:\ a\ vector\ containing\ the\ indices\ of\ the\ permuted\ rows.
+\f[]
+.fi
+.PP
+For example, if we consider the below sparse matrix:
+.IP
+.nf
+\f[C]
+1\ 0\ 0\ 0\ 1\ 0
+0\ 5\ 9\ 0\ 2\ 0
+0\ 1\ 0\ 4\ 0\ 0
+0\ 0\ 0\ 1\ 0\ 5\ \ \ 
+\f[]
+.fi
+.PP
+then its JDS image can be thought of as:
+.IP
+.nf
+\f[C]
+5\ 9\ 2\ \ \ 
+1\ 5\ \ \ 
+1\ 4\ \ \ 
+1\ 1\ \ \ 
+\f[]
+.fi
+.PP
+Note that 2nd row of the matrix is having maximum non\-zero elements.
+So this
+.PD 0
+.P
+.PD
+matrix will have 3 jagged diagonals.
+Rest three rows are having 2 non\-zero elements each which can be
+permuted in any order (in this case row: 4th \-> 3rd \-> 1st).
+.PP
+Now when storing the diagonals, its JDS representation would be:
+.IP
+.nf
+\f[C]
+val:\ \ {5,\ 1,\ 1,\ 1,\ 9,\ 5,\ 4,\ 1,\ 2}\ \ \ \ 
+idx:\ \ {1,\ 3,\ 1,\ 0,\ 2,\ 5,\ 3,\ 4,\ 4}\ \ \ \ 
+off:\ \ {0,\ 4,\ 8,\ 9}\ \ \ 
+perm:\ {1,\ 3,\ 2,\ 0}
+\f[]
+.fi
+.PP
+Jagged diagonal offset starts with 0 and it has n+1 number of elements,
+where n is the number of jagged diagonals in the sparse matrix.
+The difference between i+1th element and ith element in offset indicates
+number of non\-zero elements present in ith jagged diagonal.
+.PP
+\f[C]jds_matrix<T,I,O,P>\f[] is a two\-dimensional template based
+distributed sparse data storage supported by frovedis.
+It contains public member "data" of the type
+\f[C]node_local<jds_matrix_local<T,I,O,P>>\f[].
+The actual distributed matrices are contained in all the worker nodes
+locally, thus named as \f[C]jds_matrix_local<T,I,O,P>\f[] (see manual of
+ell_matrix_local) and "data" is the reference to these local matrices at
+worker nodes.
+It also contains dimension information related to the global matrix
+i.e., number of rows and number of columns in the original sparse
+matrix.
+.PP
+The structure of this class is as follows:
+.PD 0
+.P
+.PD
+template struct jds_matrix { frovedis::node_local> data; // local matrix
+information size_t local_num_row; // number of rows in the sparse matrix
+.PD 0
+.P
+.PD
+size_t local_num_col; // number of columns in the sparse matrix
+.PD 0
+.P
+.PD
+};
+.PP
+For example, if the above sparse matrix with 4 rows and 6 columns is
+distributed row\-wise over two worker nodes, then the distribution can
+be shown as:
+.IP
+.nf
+\f[C]
+master\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ worker0\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ Worker1
+\-\-\-\-\-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \-\-\-\-\-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \-\-\-\-\-
+jds_matrix<int,size_t,\ \ \ \ \ \ \ \ \->\ jds_matrix_local<int,\ \ \ \ \->\ jds_matrix_local<int,
+\ \ \ \ \ \ \ \ \ \ \ size_t,size_t>\ \ \ \ \ \ \ \ size_t,size_t,size_t>\ \ \ \ \ \ \ size_t,size_t,size_t>
+\ \ \ *data:\ node_local<\ \ \ \ \ \ \ \ \ \ val:\ vector<int>\ \ \ \ \ \ \ \ \ \ \ \ \ val:\ vector<int>
+\ \ \ \ \ \ \ \ \ jds_matrix\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ({5,1,9,1,2})\ \ \ \ \ \ \ \ \ \ \ \ \ \ ({1,1,5,4})
+\ \ \ \ \ \ \ \ \ \ \ \ _local<int,\ \ \ \ \ \ \ idx:\ vector<size_t>\ \ \ \ \ \ \ \ \ \ idx:\ vector<size_t>
+\ \ \ \ \ \ \ \ \ size_t,size_t,\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ({1,0,2,4,4})\ \ \ \ \ \ \ \ \ \ \ \ \ \ ({3,1,5,3})
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ size_t>>\ \ \ \ \ \ off:\ vector<size_t>\ \ \ \ \ \ \ \ \ \ off:\ vector<size_t>
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ({0,2,4,5})\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ({0,2,4})
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ perm:\ vector<size_t>\ \ \ \ \ \ \ \ \ perm:\ vector<size_t>
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ({1,0})\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ({1,0})
+\ \ \ \ num_row:\ size_t\ (4)\ \ \ \ \ \ \ \ local_num_row:\ size_t\ (2)\ \ \ \ local_num_row:\ size_t\ (2)
+\ \ \ \ num_col:\ size_t\ (6)\ \ \ \ \ \ \ \ local_num_col:\ size_t\ (6)\ \ \ \ local_num_col:\ size_t\ (6)
+\f[]
+.fi
+.PP
+The \f[C]node_local<jds_matrix_local<int,size_t,size_t,size_t>>\f[]
+object "data" is simply a (*)handle of the (\->)local matrices at worker
+nodes.
+.SS Constructor Documentation
+.SS jds_matrix ()
+.PP
+This is the default constructor which creates an empty distributed jds
+matrix without any memory allocation at worker nodes.
+.SS jds_matrix (const \f[C]crs_matrix<T,I,O>\f[]& m)
+.PP
+This is the implicit conversion constructor which creates a new jds
+matrix by converting the input crs matrix.
+.SS Public Member Function Documentation
+.SS void debug_print ()
+.PP
+It prints the information related to the compressed jagged diagonal
+storage (val, idx, off, perm, number of rows and number of columns)
+node\-by\-node on the user terminal.
+It is mainly useful for debugging purpose.
+.SS Public Data Member Documentation
+.SS data
+.PP
+An instance of \f[C]node_local<jds_matrix_local<T,I,O,P>>\f[] type to
+contain the reference information related to local matrices at worker
+nodes.
+.SS num_row
+.PP
+A size_t attribute to contain the total number of rows in the 2D matrix
+view.
+.SS num_col
+.PP
+A size_t attribute to contain the total number of columns in the 2D
+matrix view.
+.SH SEE ALSO
+.PP
+jds_matrix_local, crs_matrix, ell_matrix

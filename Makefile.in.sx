@@ -1,0 +1,21 @@
+# site definitions: modify these lines if necessary
+#BOOST_INC := /opt/nec/nosupport/frovedis/sx/opt/boost/include
+#BOOST_LIB := /opt/nec/nosupport/frovedis/sx/opt/boost/lib
+BOOST_INC := /home/4gi/takuya/work/1004677/boost-sx/
+BOOST_LIB := /home/4gi/takuya/work/1004677/boost-sx/lib
+
+INSTALLPATH := /opt/nec/nosupport/frovedis/sx
+
+CXX := sxc++
+MPICXX := sxmpic++
+AR := sxar
+CXXFLAGS_COMMON := -C aopt -K rtti -K exceptions -K signed_char -size_t64 -w off=2463:177:940:4038 -I${BOOST_INC}
+
+# used also for prelink
+LIBS_COMMON := -lparpack -larpack -lscalapack -lblacsF90init -lblacs -lblacsF90init -llapack -lblas -lmpi -L${BOOST_LIB} -lboost_sx -lpthread -f90lib
+
+TO_CLEAN := *.o *~ *.ir *.ti
+
+.cc.o:
+	${RM} $(@:.o=.ir) $(@:.o=.ti) $@
+	${MPICXX} -c ${CXXFLAGS} $< -o $@

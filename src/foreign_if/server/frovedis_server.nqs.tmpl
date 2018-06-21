@@ -1,0 +1,17 @@
+#!/bin/sh
+#PBS -q hwq@ps6s0siox
+#PBS -T mpisx
+#PBS -b 1
+#PBS -l elapstim_req=300
+#PBS -l cpunum_job=4
+#PBS -N FROVEDIS_SERV
+#PBS -j o
+#PBS -v C_PROGINF=DETAIL
+#PBS -v MPIEXPORT="C_PROGINF"
+
+# please copy frovedis_server into ~/bin/
+BASEDIR=bin/
+
+cd $BASEDIR || exit 1
+
+mpirun -np 2 ./frovedis_server ARGS

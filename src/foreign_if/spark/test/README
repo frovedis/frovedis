@@ -1,0 +1,33 @@
+========
+This directory contains the evaluation code for Spark and Frovedis ML calls. 
+
+A user can evaluate below Spark calls with corresponding Frovedis calls:
+
+    1. LogisticRegressionWithSGD
+    2. SVMWithSGD
+    3. LinearRegressionWithSGD
+    4. LassoWithSGD
+    5. RidgeRegressionWithSGD
+    6. ALS
+    7. KMeans
+
+========
+
+# Build: Using the Makefile, the test codes can be built.
+         $ make
+
+         "make" will attempt to build all the source codes.
+         In case a particular target is to be built, the same can be provided during make:
+         e.g., make ALS    ->  this will build the recommendation/ALS module
+
+# Run: Once built, the jar files can be executed as follows:
+       $ make test
+
+       There is a "run.sh" file placed inside every modules (e.g., LogisticRegression, ALS etc.)
+       This file contains the required parameter configurations to evaluate the code.
+
+       These run.sh can simply be modified in order to 
+           - perform parameter tuning
+           - specify spark and frovedis side parallel process count
+           - specify the target input train data
+========

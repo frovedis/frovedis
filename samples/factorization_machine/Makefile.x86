@@ -1,0 +1,14 @@
+TARGETS := train_fm test_fm
+include ../Makefile.in.x86
+include ../Makefile.common
+
+TO_INSTALL := train_fm.cc test_fm.cc
+DIR := factorization_machine
+ARCH := x86
+
+train_fm: train_fm.o
+	${MPICXX} ${CXXFLAGS} -o train_fm train_fm.o ${LIBS}
+
+test_fm: test_fm.o
+	${MPICXX} ${CXXFLAGS} -o test_fm test_fm.o ${LIBS}
+

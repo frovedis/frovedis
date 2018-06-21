@@ -1,0 +1,339 @@
+converting spark RDD[LabeledPoint] => FrovedisSparseGLMData
+converting spark RDD[Vector] => FrovedisSparseData
+matrix:
+num_row = 8, num_col = 7
+node 0
+local_num_row = 5, local_num_col = 7
+val : 2 9 1 4 8 2 3 8.9 2 9 
+idx : 0 4 0 2 3 0 1 6 0 4 
+off : 0 2 3 5 8 10 
+node 1
+local_num_row = 3, local_num_col = 7
+val : 1 4 8 2 3 8.9 
+idx : 0 2 3 0 1 6 
+off : 0 1 3 6 
+dvector(size: 8):
+ 1 -1 1 1 1 -1 1 1
+matrix:
+num_row = 8, num_col = 7
+node 0
+local_num_row = 5, local_num_col = 7
+val : 2 9 1 4 8 2 3 8.9 2 9 
+idx : 0 4 0 2 3 0 1 6 0 4 
+off : 0 2 3 5 8 10 
+node 1
+local_num_row = 3, local_num_col = 7
+val : 1 4 8 2 3 8.9 
+idx : 0 2 3 0 1 6 
+off : 0 1 3 6 
+single-input prediction made on model:
+intercept: 0.0, numFeatures: 7, numClasses: 2, threshold: 0.5
+-------- Weight Vector:: --------
+ 0.0161516 0.100001 0.144824 0.289648 0.316435 0 0.296669
+Intercept:: 0
+Threshold:: 0.5
+predicted val: 1.0
+multi-input prediction made on model:
+-------- Weight Vector:: --------
+ 0.0161516 0.100001 0.144824 0.289648 0.316435 0 0.296669
+Intercept:: 0
+Threshold:: 0.5
+1.0
+1.0
+1.0
+1.0
+1.0
+1.0
+1.0
+1.0
+Accuracy = 0.75
+multi-input prediction made on model:
+-------- Weight Vector:: --------
+ 0.0423111 0.0730785 0.105183 0.210367 0.228996 0 0.2168
+Intercept:: 0
+Threshold:: 0.5
+1.0
+1.0
+1.0
+1.0
+multi-input prediction made on model:
+-------- Weight Vector:: --------
+ 0.00129464 0.075645 0.107806 0.215612 0.319122 0 0.224413
+Intercept:: 0
+Threshold:: 0.5
+1.0
+1.0
+1.0
+1.0
+1.0
+1.0
+multi-input prediction made on model:
+-------- Weight Vector:: --------
+ 0.000529005 0 0 0 0.214552
+Intercept:: 0
+Threshold:: 0.5
+1.0
+1.0
+trained model: 
+intercept: 0.0, numFeatures: 7, numClasses: 2, threshold: 0.5
+[predict]: multi-input prediction:
+-------- Weight Vector:: --------
+ 0.0161516 0.100001 0.144824 0.289648 0.316435 0 0.296669
+Intercept:: 0
+Threshold:: 0.5
+1.0
+1.0
+1.0
+1.0
+1.0
+1.0
+1.0
+1.0
+current-threshold: 0.5........clearing threshold
+[predict-probability]: multi-input prediction:
+0.9468599935003907
+0.5040378002678606
+0.9476721142392004
+0.9513234897186387
+0.9468599935003907
+0.5040378002678606
+0.9476721142392004
+0.9513234897186387
+setting back the older threshold: 0.5
+saving model to ./out/MyLRModel:
+loading same model from ./out/MyLRModel:
+prediction made on loaded model:
+Accuracy = 0.75
+-------- Weight Vector:: --------
+ 0.0161516 0.100001 0.144824 0.289648 0.316435 0 0.296669
+Intercept:: 0
+Threshold:: 0.5
+single-input prediction made on model:
+========== Matrix::X ==========
+ -0.465378 0.608969 1.2542 0.031049
+ -0.465378 0.608969 1.2542 0.031049
+ -0.465378 0.608969 1.2542 0.031049
+ -0.465378 0.608969 1.2542 0.031049
+========== Matrix::Y ==========
+ -0.21507 0.28143 0.57962 0.014349
+ -0.21507 0.28143 0.57962 0.014349
+ -0.21507 0.28143 0.57962 0.014349
+ -0.21507 0.28143 0.57962 0.014349
+predicted val: 0.9988782967166082
+multi-input prediction made on model:
+========== Matrix::X ==========
+ -0.465378 0.608969 1.2542 0.031049
+ -0.465378 0.608969 1.2542 0.031049
+ -0.465378 0.608969 1.2542 0.031049
+ -0.465378 0.608969 1.2542 0.031049
+========== Matrix::Y ==========
+ -0.21507 0.28143 0.57962 0.014349
+ -0.21507 0.28143 0.57962 0.014349
+ -0.21507 0.28143 0.57962 0.014349
+ -0.21507 0.28143 0.57962 0.014349
+model is saved in: ./out/MyMFModel
+loaded model: ./out/MyMFModel:
+recommending top 2 users for 2nd product:
+========== Matrix::X ==========
+ -0.465378 0.608969 1.2542 0.031049
+ -0.465378 0.608969 1.2542 0.031049
+ -0.465378 0.608969 1.2542 0.031049
+ -0.465378 0.608969 1.2542 0.031049
+========== Matrix::Y ==========
+ -0.21507 0.28143 0.57962 0.014349
+ -0.21507 0.28143 0.57962 0.014349
+ -0.21507 0.28143 0.57962 0.014349
+ -0.21507 0.28143 0.57962 0.014349
+Rating(1,2,0.9988782967166082)
+Rating(2,2,0.9988782967166082)
+recommending top 2 products for 2nd user:
+Rating(2,1,0.9988782967166082)
+Rating(2,2,0.9988782967166082)
+single-input prediction made on model:
+node = 0, local_num_row = 3, local_num_col = 2, val = 0.1 9.1 0.1 9.1 0.1 9.1 
+predicted val: 0
+multi-input prediction made on model:
+node = 0, local_num_row = 3, local_num_col = 2, val = 0.1 9.1 0.1 9.1 0.1 9.1 
+0
+1
+1
+0
+1
+model is saved in: ./out/MyKMeansModel
+loaded model: ./out/MyKMeansModel:
+node = 0, local_num_row = 3, local_num_col = 2, val = 0.1 9.1 0.1 9.1 0.1 9.1 
+
+printing loaded rowmajor matrix: 
+matrix:
+node = 0, local_num_row = 2, local_num_col = 4, val = 1 0 0 0 1 0 0 1 
+node = 1, local_num_row = 2, local_num_col = 4, val = 1 0 6 1 4 0 0 1 
+
+printing transposed rowmajor matrix: 
+matrix:
+node = 0, local_num_row = 2, local_num_col = 4, val = 1 1 1 4 0 0 0 0 
+node = 1, local_num_row = 2, local_num_col = 4, val = 0 0 6 0 0 1 1 1 
+
+printing loaded colmajor matrix: 
+matrix:
+node = 0, local_num_row = 2, local_num_col = 4, val = 1 1 0 0 0 0 0 1 
+node = 1, local_num_row = 2, local_num_col = 4, val = 1 4 0 0 6 0 1 1 
+
+printing loaded blockcyclic matrix: 
+matrix:
+node = 0, local_num_row = 4, local_num_col = 2, type = 2, descriptor = 1 1 4 4 2 2 0 0 4 4 2 
+val = 1 1 1 4 0 0 0 0 
+node = 1, local_num_row = 4, local_num_col = 2, type = 2, descriptor = 1 1 4 4 2 2 0 0 4 4 2 
+val = 0 0 6 0 0 1 1 1 
+
+printing transposed blockcyclic matrix: 
+matrix:
+node = 0, local_num_row = 4, local_num_col = 2, type = 2, descriptor = 1 1 4 4 2 2 0 0 4 4 2 
+val = 1 0 0 0 1 0 0 1 
+node = 1, local_num_row = 4, local_num_col = 2, type = 2, descriptor = 1 1 4 4 2 2 0 0 4 4 2 
+val = 1 0 6 1 4 0 0 1 
+
+calling gemm for input matrices: 
+mat1: 
+mat2: 
+matrix:
+node = 0, local_num_row = 2, local_num_col = 4, val = 1 0 0 0 1 0 0 1 
+node = 1, local_num_row = 2, local_num_col = 4, val = 1 0 6 1 4 0 0 1 
+matrix:
+node = 0, local_num_row = 2, local_num_col = 4, val = 1 0 0 0 1 0 0 1 
+node = 1, local_num_row = 2, local_num_col = 4, val = 1 0 6 1 4 0 0 1 
+saving result to text file: ./out/mm_4x4
+matrix:
+node = 0, local_num_row = 2, local_num_col = 4, val = 1 0 0 0 5 0 0 1 
+node = 1, local_num_row = 2, local_num_col = 4, val = 11 0 36 7 8 0 0 1 
+
+calling dot for input vectors: 
+vec1: 
+1.0
+1.0
+1.0
+4.0
+vec2: 
+1.0
+1.0
+1.0
+4.0
+dot: 19.0
+
+before scaling: 
+after scaling with 2 (rowmajor view): 
+matrix:
+node = 0, local_num_row = 2, local_num_col = 1, val = 1 1 
+node = 1, local_num_row = 2, local_num_col = 1, val = 1 4 
+after scaling with 2 (spark vector view): 
+matrix:
+node = 0, local_num_row = 2, local_num_col = 1, val = 2 2 
+node = 1, local_num_row = 2, local_num_col = 1, val = 2 8 
+2.0
+2.0
+2.0
+8.0
+
+nrm2 input vector: 
+matrix:
+node = 0, local_num_row = 2, local_num_col = 1, val = 1 1 
+node = 1, local_num_row = 2, local_num_col = 1, val = 1 4 
+norm: 4.358898943540674
+
+loading blockcyclic matrix from file: ./input/mat_3x3
+printing loaded blockcyclic matrix:
+printing loaded blockcyclic matrix in rowmajor order:
+matrix:
+node = 0, local_num_row = 3, local_num_col = 2, type = 2, descriptor = 1 1 3 3 2 2 0 0 3 3 2 
+val = 1 -1 0 0 5 3 
+node = 1, local_num_row = 3, local_num_col = 1, type = 2, descriptor = 1 1 3 3 2 2 0 0 3 3 1 
+val = 2 0 -9 
+matrix:
+node = 0, local_num_row = 2, local_num_col = 3, val = 1 0 2 -1 5 0 
+node = 1, local_num_row = 1, local_num_col = 3, val = 0 3 -9 
+
+getrf info: 0
+getri info: 0
+saving result to text file: ./out/inv_mat_3x3
+
+loading blockcyclic matrix from file: ./input/svd_input_4x4
+printing loaded blockcyclic matrix in rowmajor order:
+matrix:
+node = 0, local_num_row = 2, local_num_col = 4, val = 16 2 3 13 5 11 10 8 
+node = 1, local_num_row = 2, local_num_col = 4, val = 9 7 6 12 4 14 15 1 
+
+gesvd info: 0
+saving svd results: 
+
+releasing frovedis side svd input and result data
+
+loading the same svd results from saved files as blockcyclic matrix (umat/mat): 
+printing the loaded svd results: 
+svec: 
+34.0
+17.8885
+4.47214
+2.71232E-15
+umat: 
+vmat: 
+matrix:
+node = 0, local_num_row = 2, local_num_col = 4, val = -0.5 0.67082 0.5 -0.223607 -0.5 -0.223607 -0.5 -0.67082 
+node = 1, local_num_row = 2, local_num_col = 4, val = -0.5 0.223607 -0.5 0.67082 -0.5 -0.67082 0.5 0.223607 
+
+converting to spark result: 
+matrix:
+node = 0, local_num_row = 2, local_num_col = 4, val = -0.5 0.5 0.67082 0.223607 -0.5 -0.5 -0.223607 0.67082 
+node = 1, local_num_row = 2, local_num_col = 4, val = -0.5 -0.5 0.223607 -0.67082 -0.5 0.5 -0.67082 -0.223607 
+printing converted spark results: 
+svec: 
+34.0
+17.8885
+4.47214
+2.71232E-15
+umat: 
+[-0.5,0.67082,0.5,-0.223607]
+[-0.5,-0.223607,-0.5,-0.67082]
+[-0.5,0.223607,-0.5,0.67082]
+[-0.5,-0.67082,0.5,0.223607]
+vmat: 
+-0.5
+-0.5
+-0.5
+-0.5
+0.5
+-0.5
+-0.5
+0.5
+0.67082
+-0.223607
+0.223607
+-0.67082
+0.223607
+0.67082
+-0.67082
+-0.223607
+svec: 
+[14.79840557635892,5.536606082270316,3.058297808807471]
+umat: 
+[-0.32296480641769726,-0.9389676698145217,-0.11846285856194158]
+[-0.4797630626169735,0.22413840147440323,-0.4686036499355085]
+[-0.4797630626169735,0.22413840147440323,-0.4686036499355085]
+[-0.659809473493934,0.13365503736143092,0.7394510055950776]
+vmat: 
+-0.3080257613513232   0.25849297097843743   0.3542458878655529    
+-0.02182429754011117  -0.16959264499985804  -0.03873489959701942  
+-0.19451949474208846  0.2428979755581538    -0.9193420900724496   
+-0.6796485563884599   -0.7184430666786297   -0.04622282873829084  
+-0.6363048297358607   0.573811686991342     0.16025925872849145   
+svec: 
+[3.0582978088074717,5.536606082270311,14.79840557635892]
+umat: 
+[-0.11846285856194172,0.9389676698145221,0.32296480641769687]
+[-0.4686036499355086,-0.22413840147440323,0.479763062616974]
+[-0.46860364993550896,-0.22413840147440361,0.47976306261697366]
+[0.7394510055950777,-0.13365503736143125,0.6598094734939343]
+vmat: 
+0.35424588786555244   -0.2584929709784371   0.3080257613513238    
+-0.03873489959701938  0.16959264499985763   0.021824297540111136  
+-0.9193420900724499   -0.24289797555815376  0.19451949474208857   
+-0.04622282873829041  0.7184430666786299    0.6796485563884599    
+0.16025925872849156   -0.5738116869913418   0.636304829735861     

@@ -1,0 +1,526 @@
+.TH "frovedis::blockcyclic_matrix<T>" "" "" "" ""
+.SH NAME
+.PP
+\f[C]frovedis::blockcyclic_matrix<T>\f[] \- two\-dimensional blockcyclic
+distribution of a dense matrix over a MxN process grid (MxN = number of
+parallel processes)
+.SH SYNOPSIS
+.PP
+\f[C]#include\ <frovedis/matrix/blockcyclic_matrix.hpp>\f[]
+.SS Constructors
+.PP
+blockcyclic_matrix ()
+.PD 0
+.P
+.PD
+blockcyclic_matrix (size_t nrow, size_t ncol, size_t type)
+.PD 0
+.P
+.PD
+blockcyclic_matrix
+(\f[C]frovedis::node_local<blockcyclic_matrix_local<T>>\f[]&& data)
+.PD 0
+.P
+.PD
+blockcyclic_matrix (const \f[C]blockcyclic_matrix<T>\f[]& m)
+.PD 0
+.P
+.PD
+blockcyclic_matrix (\f[C]blockcyclic_matrix<T>\f[]&& m)
+.PD 0
+.P
+.PD
+blockcyclic_matrix (const \f[C]colmajor_matrix<T>\f[]& m, size_t type=2)
+.PD 0
+.P
+.PD
+blockcyclic_matrix (\f[C]colmajor_matrix<T>\f[]&& m, size_t type=2)
+.PD 0
+.P
+.PD
+blockcyclic_matrix (const \f[C]std::vector<T>\f[]& v, size_t type=1)
+.PD 0
+.P
+.PD
+blockcyclic_matrix (\f[C]std::vector<T>\f[]&& v, size_t type=1)
+.SS Overloaded Operators
+.PP
+\f[C]blockcyclic_matrix<T>\f[]& operator= (const
+\f[C]blockcyclic_matrix<T>\f[]& m)
+.PD 0
+.P
+.PD
+\f[C]blockcyclic_matrix<T>\f[]& operator=
+(\f[C]blockcyclic_matrix<T>\f[]&& m)
+.SS Public Member Functions
+.PP
+\f[C]std::vector<T>\f[] to_vector ()
+.PD 0
+.P
+.PD
+\f[C]std::vector<T>\f[] moveto_vector ()
+.PD 0
+.P
+.PD
+\f[C]colmajor_matrix<T>\f[] to_colmajor ()
+.PD 0
+.P
+.PD
+\f[C]colmajor_matrix<T>\f[] moveto_colmajor ()
+.PD 0
+.P
+.PD
+\f[C]rowmajor_matrix<T>\f[] to_rowmajor ()
+.PD 0
+.P
+.PD
+\f[C]blockcyclic_matrix<T>\f[] transpose ()
+.PD 0
+.P
+.PD
+void set_num (size_t nrow, size_t ncol, size_t type=2)
+.PD 0
+.P
+.PD
+void save (const std::string& file)
+.PD 0
+.P
+.PD
+void savebinary (const std::string& dir)
+.PD 0
+.P
+.PD
+void debug_print ()
+.PD 0
+.P
+.PD
+size_t get_nrows ()
+.PD 0
+.P
+.PD
+size_t get_ncols ()
+.SS Public Data Members
+.PP
+\f[C]frovedis::node_local<blockcyclic_matrix_local<T>>\f[] data
+.PD 0
+.P
+.PD
+size_t num_row
+.PD 0
+.P
+.PD
+size_t num_col
+.PD 0
+.P
+.PD
+size_t type
+.SH DESCRIPTION
+.PP
+\f[C]frovedis::blockcyclic_matrix<T>\f[] is a special type of
+\f[C]frovedis::colmajor_matrix<T>\f[] distributed in two\-dimensional
+blockcyclic manner over a MxN process grid (MxN = number of parallel
+processes).
+This is a template based dense matrix with type \f[B]"T"\f[] which can
+be either \f[B]"float"\f[] or \f[B]"double"\f[] (at this moment).
+Specifying other types as template argument may lead to invalid results.
+Currently frovedis only supports creation of two types of blockcyclic
+matrices.
+.PP
+\f[I]type\-1 blockcyclic\-matrix:\f[]
+.PD 0
+.P
+.PD
+In case of type\-1 blockcyclic\-matrix, the global matrix is distributed
+over a Nx1 process grid, where N is the number of parallel processes.
+This type of distribution is prefered while distributing a
+column\-vector (a matrix with many rows and 1 column), in order to
+achieve a better load balance.
+.PP
+\f[I]type\-2 blockcyclic\-matrix:\f[]
+.PD 0
+.P
+.PD
+In case of type\-2 blockcyclic\-matrix, the global matrix is distributed
+over a MxN process grid, where M = sqrt(number of parallel processes)
+and N = (number of parallel processes / M).
+.PP
+The specifications of the block size (MBxNB, where MB is the number of
+rows in a block and NB is the number of columns in a block) are decided
+by the algorithm depending upon the global matrix dimensions and number
+of parallel processes.
+Some constructors also support user defined block size.
+.PP
+A \f[C]blockcyclic_matrix<T>\f[] contains public member "data" of the
+type
+.PD 0
+.P
+.PD
+\f[C]node_local<blockcyclic_matrix_local<T>>\f[].
+The actual distributed matrices are contained in all the worker nodes
+locally, thus named as \f[C]blockcyclic_matrix_local<T>\f[].
+Each of these local matrices have the below structure:
+.IP
+.nf
+\f[C]
+template\ <class\ T>
+struct\ blockcyclic_matrix_local\ {
+\ \ std::vector<T>\ val;\ \ \ \ \ //\ the\ actual\ local\ distributed\ matrix
+\ \ std::vector<int>\ descA;\ //\ the\ distributed\ information\ mapping\ array
+\ \ size_t\ local_num_row;\ \ \ //\ number\ of\ rows\ in\ local\ matrix
+\ \ size_t\ local_num_col;\ \ \ //\ number\ of\ columns\ in\ local\ matrix
+\ \ size_t\ type;\ \ \ \ \ \ \ \ \ \ \ \ //\ type\ of\ the\ local\ matrix\ (Nx1\ or\ MxN)
+};
+\f[]
+.fi
+.PP
+The global version of the matrix at master node contains only three
+information,
+.PD 0
+.P
+.PD
+the reference to these local matrices at worker nodes, the dimensions of
+the global matrix, i.e., number of its rows and columns and the type of
+the distributed matrix.
+.IP
+.nf
+\f[C]
+template\ <class\ T>
+struct\ blockcyclic_matrix\ {
+\ \ frovedis::node_local<blockcyclic_matrix_local<T>>\ data;\ //\ local\ matrix\ information
+\ \ size_t\ num_row;\ \ //\ number\ of\ rows\ in\ global\ matrix
+\ \ size_t\ num_col;\ \ //\ number\ of\ columns\ in\ global\ matrix
+\ \ size_t\ type;\ \ \ \ \ //\ type\ of\ the\ blockcyclic\-matrix\ (Nx1\ or\ MxN)
+};
+\f[]
+.fi
+.SS Constructor Documentation
+.SS blockcyclic_matrix ()
+.PP
+This is the default constructor which creates an empty blockcyclic
+matrix with num_row = num_col = 0 and type = 2.
+.SS blockcyclic_matrix (size_t nrow, size_t ncol, size_t t=2)
+.PP
+This is the parameterized constructor which creates an empty blockcyclic
+matrix of the given dimension and type (default type=2).
+.SS blockcyclic_matrix
+(\f[C]frovedis::node_local<blockcyclic_matrix_local<T>>\f[]&& data)
+.PP
+This is the parameterized constructor which accepts an rvalue of the
+type
+.PD 0
+.P
+.PD
+\f[C]node_local<blockcyclic_matrix_local<T>>\f[] and \f[I]moves\f[] the
+contents to the created blockcyclic matrix.
+In general, this constructor is used internally by some other functions.
+But user may need this constructor while constructing their own
+blockcyclic matrix using the return value of some function (returning a
+\f[C]blockcyclic_matrix_local<T>\f[]) called using
+"frovedis::node_local::map" (thus returned value would be an object of
+type \f[C]node_local<blockcyclic_matrix_local<T>\f[]).
+.SS blockcyclic_matrix (const \f[C]blockcyclic_matrix<T>\f[]& m)
+.PP
+This is the copy constructor which creates a new blockcyclic matrix by
+deep\-copying the contents of the input blockcyclic matrix.
+.SS blockcyclic_matrix (\f[C]blockcyclic_matrix<T>\f[]&& m)
+.PP
+This is the move constructor.
+Instead of copying the input matrix, it moves the contents of the input
+rvalue matrix to the newly constructed matrix.
+Thus it is faster and recommended to use when input matrix will no
+longer be used in a user program.
+.SS blockcyclic_matrix (const \f[C]colmajor_matrix<T>\f[]& m, size_t
+type=2)
+.PP
+This is a special constructor for implicit conversion.
+It converts an input colmajor matrix to a blockcyclic matrix of the same
+global dimensions.
+The input matrix is unchanged after the conversion.
+Default type of the created blockcyclic matrix is 2 (desired type can be
+specified in second argument).
+.SS blockcyclic_matrix (\f[C]colmajor_matrix<T>\f[]&& m, size_t type=2)
+.PP
+This is a special constructor for implicit conversion.
+It converts an input colmajor matrix to a blockcyclic matrix of the same
+global dimensions.
+But during the conversion the memory buffer of input rvalue matrix is
+reused, thus the input colmajor matrix becomes invalid after this
+conversion.
+Default type of the created blockcyclic matrix is 2 (desired type can be
+specified in second argument).
+.SS blockcyclic_matrix (const \f[C]std::vector<T>\f[]& v, size_t type=1)
+.PP
+This is a special constructor for implicit conversion.
+It converts an input lvalue \f[C]std::vector<T>\f[] to
+\f[C]blockcyclic_matrix<T>\f[] with global dimensions Nx1, where N =
+size of the input vector.
+The input vector is unchanged after the conversion.
+Default type of the created blockcyclic matrix is 1 to support load
+balancing (desired type can be specified in second argument).
+.SS blockcyclic_matrix (\f[C]std::vector<T>\f[]&& v, size_t type=1)
+.PP
+This is a special constructor for implicit conversion.
+It converts an input rvalue \f[C]std::vector<T>\f[] to
+\f[C]blockcyclic_matrix<T>\f[] with global dimensions Nx1, where N =
+size of the input vector.
+But during the conversion, the memory buffer of the input rvalue vector
+is reused, thus it becomes invalid after this conversion.
+Default type of the created blockcyclic matrix is 1 to support load
+balancing (desired type can be specified in second argument).
+.SS Overloaded Operator Documentation
+.SS \f[C]blockcyclic_matrix<T>\f[]& operator= (const
+\f[C]blockcyclic_matrix<T>\f[]& m)
+.PP
+It deep\-copies the input blockcyclic matrix into the left\-hand side
+matrix of the assignment operator "=".
+.SS \f[C]blockcyclic_matrix<T>\f[]& operator=
+(\f[C]blockcyclic_matrix<T>\f[]&& m)
+.PP
+Instead of copying, it moves the contents of the input rvalue
+blockcyclic matrix into the left\-hand side matrix of the assignment
+operator "=".
+Thus it is faster and recommended to use when input matrix will no
+longer be used in a user program.
+.SS Public Member Function Documentation
+.SS \f[C]std::vector<T>\f[] to_vector ()
+.PP
+If num_col = 1, it converts the blockcyclic matrix to
+\f[C]std::vector<T>\f[] and returns the same, else it throws an
+exception.
+The blockcyclic matrix is unchanged.
+.SS \f[C]std::vector<T>\f[] moveto_vector ()
+.PP
+If num_col = 1 and type = 1, it converts the blockcyclic matrix to
+\f[C]std::vector<T>\f[] and returns the same, else it throws an
+exception.
+Due to move operation, input matrix becomes invalid after the
+conversion.
+.SS \f[C]colmajor_matrix<T>\f[] to_colmajor ()
+.PP
+It converts the blockcyclic matrix to colmajor matrix and returns the
+same.
+Input matrix is unchanged.
+.SS \f[C]colmajor_matrix<T>\f[] moveto_colmajor ()
+.PP
+Only when type = 1, it converts the blockcyclic matrix to colmajor
+matrix and returns the same, else it throws an exception.
+During the conversion it reuses the memory buffer of the blockcyclic
+matrix, thus it would become invalid.
+.SS \f[C]rowmajor_matrix<T>\f[] to_rowmajor ()
+.PP
+It converts the blockcyclic matrix to rowmajor matrix and retuns the
+same.
+The blockcyclic matrix is unchanged.
+.SS \f[C]blockcyclic_matrix<T>\f[] transpose ()
+.PP
+It returns the transposed blockcyclic matrix of the source matrix
+object.
+.SS void set_num (size_t nrow, size_t ncol, size_t type=2)
+.PP
+It sets the global matrix information as specified.
+Default type is considered as 2, if \f[I]type\f[] value is not provided.
+.SS void save (const std::string& file)
+.PP
+It writes the blockcyclic matrix to the specified file in rowmajor
+format with text data.
+.SS void savebinary (const std::string& dir)
+.PP
+It writes the blockcyclic matrix to the specified directory in rowmajor
+format with binary data (in little\-endian form).
+.SS void debug_print ()
+.PP
+It prints the contents and other information of the local matrices
+node\-by\-node on the user terminal.
+It is mainly useful for debugging purpose.
+.SS size_t get_nrows ()
+.PP
+It returns the global number of rows in the source blockcyclic matrix
+object.
+.SS size_t get_ncols ()
+.PP
+It returns theglobal number of columns in the source blockcyclic matrix
+object.
+.SS Public Data Member Documentation
+.SS data
+.PP
+An instance of \f[C]node_local<blockcyclic_matrix_local<T>>\f[] which
+contains the references to the local matrices in the worker nodes.
+.SS num_row
+.PP
+A size_t attribute to contain the number of rows in the global
+blockcyclic matrix.
+.SS num_col
+.PP
+A size_t attribute to contain the number of columns in the global
+blockcyclic matrix.
+.SS Public Global Function Documentation
+.SS make_blockcyclic_matrix_loadbinary(dirname, type, MB, NB)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]dirname\f[]: A string object containing the name of the directory
+having binary data to be loaded.
+.PD 0
+.P
+.PD
+\f[I]type\f[]: A size_t attribute containing the desired type of the
+matrix to be created (optional, default=2).
+.PD 0
+.P
+.PD
+\f[I]MB\f[]: A size_t attribute containing the desired number of rows in
+a block (optional, default=0).
+.PD 0
+.P
+.PD
+\f[I]NB\f[]: A size_t attribute containing the desired number of columns
+in a block (optional, default=0).
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+This function loads the (little\-endian) binary data from the specified
+directory and creates a blockcyclic matrix of default type = 2 and
+algorithm decided block size (if not defined by the user, i.e.,
+MB=NB=0).
+The required type and block size can be specified.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+On success, it returns the created blockcyclic matrix of the type
+\f[C]blockcyclic_matrix<T>\f[].
+Otherwise, it throws an exception.
+.SS make_blockcyclic_matrix_load(fname, type, MB, NB)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]fname\f[]: A string object containing the name of the data file.
+.PD 0
+.P
+.PD
+\f[I]type\f[]: A size_t attribute containing the desired type of the
+matrix to be created (optional, default=2).
+.PD 0
+.P
+.PD
+\f[I]MB\f[]: A size_t attribute containing the desired number of rows in
+a block (optional, default=0).
+.PD 0
+.P
+.PD
+\f[I]NB\f[]: A size_t attribute containing the desired number of columns
+in a block (optional, default=0).
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+This function loads the data from the specified text file and creates a
+blockcyclic matrix of default type = 2 and algorithm decided block size
+(if not defined by the user, i.e., MB=NB=0).
+The required type and block size can be specified.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+On success, it returns the created blockcyclic matrix of the type
+\f[C]blockcyclic_matrix<T>\f[].
+Otherwise, it throws an exception.
+.SS make_blockcyclic_matrix_scatter(rmat, type, MB, NB)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]rmat\f[]: An object of the type \f[C]rowmajor_matrix_local<T>\f[]
+containing the data to be scattered.
+.PD 0
+.P
+.PD
+\f[I]type\f[]: A size_t attribute containing the desired type of the
+matrix to be created (optional, default=2).
+.PD 0
+.P
+.PD
+\f[I]MB\f[]: A size_t attribute containing the desired number of rows in
+a block (optional, default=0).
+.PD 0
+.P
+.PD
+\f[I]NB\f[]: A size_t attribute containing the desired number of columns
+in a block (optional, default=0).
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+This function scatters an input
+\f[C]frovedis::rowmajor_matrix_local<T>\f[] as per the active number of
+parallel processes and from the scattered data it creates a blockcyclic
+matrix of default type = 2 and algorithm decided block size (if not
+defined by the user, i.e., MB=NB=0).
+The required type and block size can be specified.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+On success, it returns the created blockcyclic matrix of the type
+\f[C]blockcyclic_matrix<T>\f[].
+Otherwise, it throws an exception.
+.SS vec_to_bcm(vec, type, MB, NB)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]vec\f[]: An object of the type \f[C]std::vector<T>\f[] containing
+the data values.
+.PD 0
+.P
+.PD
+\f[I]type\f[]: A size_t attribute containing the desired type of the
+matrix to be created (optional, default=1).
+.PD 0
+.P
+.PD
+\f[I]MB\f[]: A size_t attribute containing the desired number of rows in
+a block (optional, default=0).
+.PD 0
+.P
+.PD
+\f[I]NB\f[]: A size_t attribute containing the desired number of columns
+in a block (optional, default=0).
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+This function scatters the input vector as per the active number of
+parallel processes and from the scattered data it creates a blockcyclic
+matrix of default type = 1 (for a better load balancing) and algorithm
+decided block size (if not defined by the user, i.e., MB=NB=0).
+The required type and block size can be specified.
+If the input vector is an \f[I]lvalue\f[], it copies the data before
+scattering.
+But if the vector is an \f[I]rvalue\f[], it ignores copying the data.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+On success, it returns the created blockcyclic matrix of the type
+\f[C]blockcyclic_matrix<T>\f[].
+Otherwise, it throws an exception.
+.SH SEE ALSO
+.PP
+colmajor_matrix, rowmajor_matrix, sliced_blockcyclic_matrix,
+sliced_blockcyclic_vector

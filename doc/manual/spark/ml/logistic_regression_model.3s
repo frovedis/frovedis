@@ -1,0 +1,111 @@
+.TH "LogisticRegressionModel" "" "" "" ""
+.SH NAME
+.PP
+LogisticRegressionModel \- A data structure used in modeling the output
+of the frovedis server side logistic regression algorithm at client
+spark side.
+.SH SYNOPSIS
+.PP
+import com.nec.frovedis.mllib.classification.LogisticRegressionModel
+.SS Public Member Functions
+.PP
+Double predict (Vector data)
+.PD 0
+.P
+.PD
+\f[C]RDD[Double]\f[] predict (\f[C]RDD[Vector]\f[] data)
+.PD 0
+.P
+.PD
+Unit save(String path)
+.PD 0
+.P
+.PD
+Unit save(SparkContext sc, String path)
+.PD 0
+.P
+.PD
+LogisticRegressionModel LogisticRegressionModel.load(String path)
+.PD 0
+.P
+.PD
+LogisticRegressionModel LogisticRegressionModel.load(SparkContext sc,
+String path)
+.PD 0
+.P
+.PD
+Unit debug_print()
+.PD 0
+.P
+.PD
+Unit release()
+.SH DESCRIPTION
+.PP
+LogisticRegressionModel models the output of the frovedis logistic
+regression algorithm, the trainer interface of which aims to optimize an
+initial model and outputs the same after optimization.
+.PP
+Note that the actual model with weight parameter etc.
+is created at frovedis server side only.
+Spark side LogisticRegressionModel contains a unique ID associated with
+the frovedis server side model, along with some generic information like
+number of features etc.
+It simply works like a pointer to the in\-memory model at frovedis
+server.
+.PP
+Any operations, like prediction etc.
+on a LogisticRegressionModel makes a request to the frovedis server
+along with the unique model ID and the actual job is served by the
+frovedis server.
+For functions which returns some output, the result is sent back from
+frovedis server to the spark client.
+.SS Pubic Member Function Documentation
+.SS Double predict (Vector data)
+.PP
+This function can be used when prediction is to be made on the trained
+model for a single sample.
+It returns with the predicted value from the frovedis server.
+.SS \f[C]RDD[Double]\f[] predict (\f[C]RDD[Vector]\f[] data)
+.PP
+This function can be used when prediction is to be made on the trained
+model for more than one samples distributed among spark workers.
+.PP
+It is performed by all the worker nodes in parallel and on success the
+function returns a \f[C]RDD[Double]\f[] object containing the
+distributed predicted values at worker nodes.
+.SS LogisticRegressionModel LogisticRegressionModel.load(String path)
+.PP
+This static function is used to load the target model with data in given
+filename stored at frovedis server side at specified location (filename
+with relative/absolute path) as little\-endian binary data.
+On success, it returns the loaded model.
+.SS LogisticRegressionModel LogisticRegressionModel.load(SparkContext
+sc, String path)
+.PP
+This is Spark like static API provided for compatibility with spark
+code.
+But the "sc" parameter is simply ignored in this case and internally it
+calls the above load() method as "LogisticRegressionModel.load(path)".
+.SS Unit save(String path)
+.PP
+This function is used to save the target model with given filename.
+Note that the target model is saved at frovedis server side at specified
+location (filename with relative/absolute path) as little\-endian binary
+data.
+.SS Unit save(SparkContext sc, String path)
+.PP
+This is Spark like API provided for compatibility with spark code.
+But the "sc" parameter is simply ignored in this case and internally it
+calls the above save() method as "save(path)".
+.SS Unit debug_print()
+.PP
+It prints the contents of the server side model on the server side user
+terminal.
+It is mainly useful for debugging purpose.
+.SS Unit release()
+.PP
+This function can be used to release the existing in\-memory model at
+frovedis server side.
+.SH SEE ALSO
+.PP
+linear_regression_model, svm_model

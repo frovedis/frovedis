@@ -1,0 +1,294 @@
+.TH "FrovedisCRSMatrix" "" "" "" ""
+.SH NAME
+.PP
+FrovedisCRSMatrix \- A data structure used in modeling the in\-memory
+crs matrix data of frovedis server side at client python side.
+.SH SYNOPSIS
+.PP
+class frovedis.matrix.sparse.FrovedisCRSMatrix(mat=None)
+.SS Public Member Functions
+.PP
+load (mat)
+.PD 0
+.P
+.PD
+load_scipy_matrix (mat)
+.PD 0
+.P
+.PD
+load_text (filename)
+.PD 0
+.P
+.PD
+load_binary (dirname)
+.PD 0
+.P
+.PD
+save_text (filename)
+.PD 0
+.P
+.PD
+save_binary (dirname)
+.PD 0
+.P
+.PD
+debug_print()
+.PD 0
+.P
+.PD
+release()
+.SH DESCRIPTION
+.PP
+FrovedisCRSMatrix is a pseudo matrix structure at client python side
+which aims to model the frovedis server side \f[C]crs_matrix<double>\f[]
+(see manual of frovedis crs_matrix for details).
+.PP
+Note that the actual matrix data is created at frovedis server side
+only.
+Python side FrovedisCRSMatrix contains a proxy handle of the in\-memory
+matrix data created at frovedis server, along with number of rows and
+number of columns information.
+.SS Constructor Documentation
+.SS FrovedisCRSMatrix (mat=None)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]mat\f[]: It can be a string containing filename having text data to
+be loaded, or any scipy sparse matrix or any python array\-like object
+or None.
+In case of None (Default), it does not make any request to server.
+.PP
+\f[B]Purpose\f[]
+.PP
+This constructor can be used to construct a FrovedisCRSMatrix instance,
+as follows:
+.IP
+.nf
+\f[C]
+mat1\ =\ FrovedisCRSMatrix()\ #\ empty\ matrix,\ no\ server\ request\ is\ made\ \ \ 
+mat2\ =\ FrovedisCRSMatrix("./data")\ #\ will\ load\ data\ from\ given\ text\ file\ \ \ 
+mat3\ =\ FrovedisCRSMatrix([1,2,3,4])\ #\ will\ load\ data\ from\ the\ given\ list\ \ \ 
+\f[]
+.fi
+.PP
+\f[B]Return Type\f[]
+.PP
+It simply returns "self" reference.
+.SS Pubic Member Function Documentation
+.SS load (mat)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]mat\f[]: It can be a string containing filename having text data to
+be loaded, or any scipy sparse matrix or any python array\-like object
+(but it can not be None).
+.PP
+\f[B]Purpose\f[]
+.PP
+This works similar to the constructor.
+.PD 0
+.P
+.PD
+It can be used to load a FrovedisCRSMatrix instance, as follows:
+.IP
+.nf
+\f[C]
+mat1\ =\ FrovedisCRSMatrix().load("./data")\ \ #\ will\ load\ data\ from\ given\ text\ file\ \ \ 
+mat2\ =\ FrovedisCRSMatrix().load([1,2,3,4])\ #\ will\ load\ data\ from\ the\ given\ list\ \ \ 
+\f[]
+.fi
+.PP
+\f[B]Return Type\f[]
+.PP
+It simply returns "self" reference.
+.SS load_scipy_matrix (mat)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]mat\f[]: Any scipy matrix with values to be loaded in.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+This function can be used to load a python side scipy sparse data matrix
+into frovedis server side crs matrix.
+It accepts a scipy sparse matrix object and converts it into the
+frovedis server side crs matrix whose proxy along with number of rows
+and number of columns information are stored in the target
+FrovedisCRSMatrix object.
+.PP
+\f[B]Return Type\f[]
+.PD 0
+.P
+.PD
+It simply returns "self" reference.
+.SS load_text (filename)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]filename\f[]: A string object containing the text file name to be
+loaded.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+This function can be used to load the data from a text file into the
+target matrix.
+Note that the file must be placed at server side at the given path and
+it should have contents stored in libSVM format, i.e.,
+"column_index:value" at each row (see frovedis manual of
+make_crs_matrix_load() for more details).
+.PP
+\f[B]Return Type\f[]
+.PD 0
+.P
+.PD
+It simply returns "self" reference.
+.SS load_binary (dirname)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]dirname\f[]: A string object containing the directory name having
+the binary data to be loaded.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+This function can be used to load the data from the specified directory
+with binary data file into the target matrix.
+Note that the file must be placed at server side at the given path.
+.PP
+\f[B]Return Type\f[]
+.PD 0
+.P
+.PD
+It simply returns "self" reference.
+.SS save_text (filename)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]filename\f[]: A string object containing the text file name in
+which the data is to be saveed.
+.PP
+\f[B]Purpose\f[]
+.PP
+This function is used to save the target matrix as text file with the
+filename at the given path.
+Note that the file will be saved at server side at the given path.
+.PP
+\f[B]Return Type\f[]
+.PD 0
+.P
+.PD
+It returns nothing.
+.SS save_binary (dirname)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]dirname\f[]: A string object containing the directory name in which
+the data is to be saveed as little\-endian binary form.
+.PP
+\f[B]Purpose\f[]
+.PP
+This function is used to save the target matrix as little\-endian binary
+file with the filename at the given path.
+Note that the file will be saved at server side at the given path.
+.PP
+\f[B]Return Type\f[]
+.PD 0
+.P
+.PD
+It returns nothing.
+.SS numRows()
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It returns the number of rows in the matrix
+.PP
+\f[B]Return Type\f[]
+.PD 0
+.P
+.PD
+An integer value containing rows count in the target matrix.
+.SS numCols()
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It returns the number of columns in the matrix
+.PP
+\f[B]Return Type\f[]
+.PD 0
+.P
+.PD
+An integer value containing columns count in the target matrix.
+.SS debug_print()
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It prints the contents of the server side distributed matrix data on the
+server side user terminal.
+It is mainly useful for debugging purpose.
+.PP
+\f[B]Return Type\f[]
+.PD 0
+.P
+.PD
+It returns nothing.
+.SS release()
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+This function can be used to release the existing in\-memory data at
+frovedis server side.
+.PP
+\f[B]Return Type\f[]
+.PD 0
+.P
+.PD
+It returns nothing.
+.SS FrovedisCRSMatrix.asCRS(mat)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]mat\f[]: A scipy matrix, an instance of FrovedisCRSMatrix or any
+python array\-like data.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+This static function is used in order to convert a given matrix to a crs
+matrix.
+If the input is already an instance of FrovedisCRSMatrix, then the same
+will be returned.
+.PP
+\f[B]Return Type\f[]
+.PP
+An instance of FrovedisCRSMatrix.

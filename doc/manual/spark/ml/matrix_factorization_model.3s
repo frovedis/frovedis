@@ -1,0 +1,146 @@
+.TH "MatrixFactorizationModel" "" "" "" ""
+.SH NAME
+.PP
+MatrixFactorizationModel \- A data structure used in modeling the output
+of the frovedis server side matrix factorization using ALS algorithm, at
+client spark side.
+.SH SYNOPSIS
+.PP
+import com.nec.frovedis.mllib.recommendation.MatrixFactorizationModel
+.SS Public Member Functions
+.PP
+Double predict (Int uid, Int pid)
+.PD 0
+.P
+.PD
+\f[C]RDD[Rating]\f[] predict (\f[C]RDD[(Int,\ Int)]\f[] usersProducts)
+.PD 0
+.P
+.PD
+\f[C]Array[Rating]\f[] recommendProducts(Int uid, Int num)
+.PD 0
+.P
+.PD
+\f[C]Array[Rating]\f[] recommendUsers(Int pid, Int num)
+.PD 0
+.P
+.PD
+Unit save(String path)
+.PD 0
+.P
+.PD
+Unit save(SparkContext sc, String path)
+.PD 0
+.P
+.PD
+MatrixFactorizationModel MatrixFactorizationModel.load(String path)
+.PD 0
+.P
+.PD
+MatrixFactorizationModel MatrixFactorizationModel.load(SparkContext sc,
+String path)
+.PD 0
+.P
+.PD
+Unit debug_print()
+.PD 0
+.P
+.PD
+Unit release()
+.SH DESCRIPTION
+.PP
+MatrixFactorizationModel models the output of the frovedis matrix
+factorization using ALS (alternating least square) algorithm, the
+trainer interface of which aims to optimize an initial model and outputs
+the same after optimization.
+.PP
+Note that the actual model with user/product features etc.
+is created at frovedis server side only.
+Spark side MatrixFactorizationModel contains a unique ID associated with
+the frovedis server side model, along with some generic information like
+rank value etc.
+It simply works like a pointer to the in\-memory model at frovedis
+server.
+.PP
+Any operations, like prediction etc.
+on a MatrixFactorizationModel makes a request to the frovedis server
+along with the unique model ID and the actual job is served by the
+frovedis server.
+For functions which returns some output, the result is sent back from
+frovedis server to the spark client.
+.SS Pubic Member Function Documentation
+.SS Double predict (Int uid, Int pid)
+.PP
+This method can be used on a trained model in order to predict the
+rating confidence value for the given product id, by the given user id.
+.PP
+"uid" should be in between 1 to M, where M is the number of users in the
+given data.
+And "pid" should be in between 0 to N, where N is the number of products
+in the given data.
+.SS \f[C]RDD[Rating]\f[] predict (\f[C]RDD[(Int,\ Int)]\f[]
+usersProducts)
+.PP
+This method can be used to predict the rating confidence values for a
+given list of pair of some user ids and product ids.
+.PP
+In the list of pairs, "uid" should be in between 1 to M and "pid" should
+be in between 1 to N, where M is the number of users and N is the number
+of products in the given data.
+.PP
+It is performed by all the worker nodes in parallel and on success the
+function returns a \f[C]RDD[Rating]\f[] object containing the
+distributed predicted ratings at worker nodes.
+.SS \f[C]Array[Rating]\f[] recommendProducts(Int uid, Int num)
+.PP
+This method can be used to recommend given "num" number of products for
+the user with given user id in sorted order (highest scored products to
+lowest scored products).
+.PP
+"uid" should be in between 1 to M, where M is the number of users in the
+given data.
+On success, it returns an array containing ratings for the recommended
+products by the given user.
+.SS \f[C]Array[Rating]\f[] recommendUsers(Int pid, Int num)
+.PP
+This method can be used to recommend given "num" number of users for the
+product with given product id in sorted order (user with highest scores
+to user with lowest scores).
+.PP
+"pid" should be in between 1 to N, where N is the number of products in
+the given data.
+On success, it returns an array containing ratings for the recommended
+users the given product.
+.SS MatrixFactorizationModel MatrixFactorizationModel.load(String path)
+.PP
+This static function is used to load the target model with data in given
+filename stored at frovedis server side at specified location (filename
+with relative/aboslute path) as little\-endian binary data.
+On success, it returns the loaded model.
+.SS MatrixFactorizationModel MatrixFactorizationModel.load(SparkContext
+sc, String path)
+.PP
+This is Spark like static API provided for compatibility with spark
+code.
+But the "sc" parameter is simply ignored in this case and internally it
+calls the above load() method as "MatrixFactorizationModel.load(path)".
+.SS Unit save(String path)
+.PP
+This function is used to save the target model with given filename.
+Note that the target model is saved at frovedis server side at specified
+location (filename with relative/aboslute path) as little\-endian binary
+data.
+.SS Unit save(SparkContext sc, String path)
+.PP
+This is Spark like API provided for compatibility with spark code.
+But the "sc" parameter is simply ignored in this case and internally it
+calls the above save() method as "save(path)".
+.SS Unit debug_print()
+.PP
+It prints the contents of the server side model on the server side user
+terminal.
+It is mainly useful for debugging purpose.
+.SS Unit release()
+.PP
+This function can be used to release the existing in\-memory model at
+frovedis server side.

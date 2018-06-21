@@ -1,0 +1,7 @@
+include ../../Makefile.in.ve
+include Makefile.common
+
+install:
+	install -d ${INSTALLPATH}/doc/tutorial/src
+	cp tutorial.md tutorial.pdf ${INSTALLPATH}/doc/tutorial/
+	cd src; cat Makefile.each.ve | sed -e /^LIB/d | sed -e /^INCLUDES/d |sed -e s/^\#LIB/LIB/ |  sed -e s/^\#INCLUDES/INCLUDES/g > tmp; cat Makefile.each.omp.ve | sed -e /^LIB/d | sed -e /^INCLUDES/d |sed -e s/^\#LIB/LIB/ |  sed -e s/^\#INCLUDES/INCLUDES/g > tmp.omp; cp tmp ${INSTALLPATH}/doc/tutorial/src/Makefile.each; cp tmp.omp ${INSTALLPATH}/doc/tutorial/src/Makefile.each.omp; rm tmp tmp.omp; cat Makefile.in.ve | sed -e /^BOOST_INC/d | sed -e /^BOOST_LIB/d | sed -e s/^\#BOOST_INC/BOOST_INC/g | sed -e s/^\#BOOST_LIB/BOOST_LIB/g > tmp; cp tmp ${INSTALLPATH}/doc/tutorial/src/Makefile.in.ve; rm tmp; cp exec_ve.sh make.sh make_clean.sh ${INSTALLPATH}/doc/tutorial/src/; tar cf - --exclude=.svn ./tut* | (cd ${INSTALLPATH}/doc/tutorial/src && tar xvf - --no-same-owner)

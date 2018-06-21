@@ -1,0 +1,167 @@
+.TH "FrovedisDvector" "" "" "" ""
+.SH NAME
+.PP
+FrovedisDvector \- A data structure used in modeling the in\-memory
+dvector data of frovedis server side at client python side.
+.SH SYNOPSIS
+.PP
+class frovedis.matrix.dvector.FrovedisDvector(vec=None)
+.SS Public Member Functions
+.PP
+load (vec)
+.PD 0
+.P
+.PD
+load_numpy_array (vec)
+.PD 0
+.P
+.PD
+debug_print()
+.PD 0
+.P
+.PD
+release()
+.SH DESCRIPTION
+.PP
+FrovedisDvector is a pseudo data structure at client python side which
+aims to model the frovedis server side \f[C]dvector<double>\f[] (see
+manual of frovedis dvector for details).
+.PP
+Note that the actual vector data is created at frovedis server side
+only.
+Python side FrovedisDvector contains a proxy handle of the in\-memory
+vector data created at frovedis server, along with its size.
+.SS Constructor Documentation
+.SS FrovedisDvector (vec=None)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]vec\f[]: It can be any python array\-like object or None.
+In case of None (Default), it does not make any request to server.
+.PP
+\f[B]Purpose\f[]
+.PP
+This constructor can be used to construct a FrovedisDvector instance, as
+follows:
+.IP
+.nf
+\f[C]
+v1\ =\ FrovedisDvector()\ \ \ \ \ \ \ \ \ \ #\ empty\ dvector,\ no\ server\ request\ is\ made\ \ \ 
+v2\ =\ FrovedisDvector([1,2,3,4])\ #\ will\ load\ data\ from\ the\ given\ list\ \ \ 
+\f[]
+.fi
+.PP
+\f[B]Return Type\f[]
+.PP
+It simply returns "self" reference.
+.SS Pubic Member Function Documentation
+.SS load (vec)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]vec\f[]: It can be any python array\-like object (but not None).
+.PP
+\f[B]Purpose\f[]
+.PP
+This function works similar to the constructor.
+It can be used to load a FrovedisDvector instance, as follows:
+.IP
+.nf
+\f[C]
+v\ =\ FrovedisDvector().load([1,2,3,4])\ #\ will\ load\ data\ from\ the\ given\ list\ \ \ 
+\f[]
+.fi
+.PP
+\f[B]Return Type\f[]
+.PP
+It simply returns "self" reference.
+.SS load_numpy_array (vec)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]vec\f[]: Any numpy array with values to be loaded in.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+This function can be used to load a python side numpy array data into
+frovedis server side dvector.
+It accepts a python numpy array object and converts it into the frovedis
+server side dvector whose proxy along size information are stored in the
+target FrovedisDvector object.
+.PP
+\f[B]Return Type\f[]
+.PD 0
+.P
+.PD
+It simply returns "self" reference.
+.SS size()
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It returns the size of the dvector
+.PP
+\f[B]Return Type\f[]
+.PD 0
+.P
+.PD
+An integer value containing size of the target dvector.
+.SS debug_print()
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It prints the contents of the server side distributed vector data on the
+server side user terminal.
+It is mainly useful for debugging purpose.
+.PP
+\f[B]Return Type\f[]
+.PD 0
+.P
+.PD
+It returns nothing.
+.SS release()
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+This function can be used to release the existing in\-memory data at
+frovedis server side.
+.PP
+\f[B]Return Type\f[]
+.PD 0
+.P
+.PD
+It returns nothing.
+.SS FrovedisDvector.asDvec(vec)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]vec\f[]: A numpy array or python array like object or an instance
+of FrovedisDvector.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+This static function is used in order to convert a given array to a
+dvector.
+If the input is already an instance of FrovedisDvector, then the same
+will be returned.
+.PP
+\f[B]Return Type\f[]
+.PP
+An instance of FrovedisDvector.

@@ -1,0 +1,344 @@
+.TH "Ridge Regression" "" "" "" ""
+.SH NAME
+.PP
+Ridge Regression \- A regression algorithm to predict the continuous
+output with L2 regularization.
+.SH SYNOPSIS
+.PP
+class frovedis.mllib.linear_model.Ridge (alpha=0.01, fit_intercept=True,
+normalize=False,
+.PD 0
+.P
+.PD
+\  \ \  \  \  \ copy_X=True, max_iter=1000,
+.PD 0
+.P
+.PD
+\  \ \  \  \  \ tol=1e\-3, solver=\[aq]sag\[aq],
+.PD 0
+.P
+.PD
+\  \ \  \  \  \ random_state=None, verbose=0)
+.SS Public Member Functions
+.PP
+fit(X, y, sample_weight=None)
+.PD 0
+.P
+.PD
+predict(X)
+.PD 0
+.P
+.PD
+save(filename)
+.PD 0
+.P
+.PD
+load(filename)
+.PD 0
+.P
+.PD
+debug_print()
+.PD 0
+.P
+.PD
+release()
+.SH DESCRIPTION
+.PP
+Linear least squares is the most common formulation for regression
+problems.
+It is a linear method with the loss function given by the \f[B]squared
+loss\f[]:
+.IP
+.nf
+\f[C]
+L(w;x,y)\ :=\ 1/2(wTx\-y)^2
+\f[]
+.fi
+.PP
+Where the vectors x are the training data examples and y are their
+corresponding labels which we want to predict.
+w is the linear model (also known as weight) which uses a single
+weighted sum of features to make a prediction.
+The method is called linear since it can be expressed as a function of
+wTx and y.
+Ridge regression uses L2 regularization to address the overfit problem.
+.PP
+The gradient of the squared loss is: (wTx\-y).x
+.PD 0
+.P
+.PD
+The gradient of the regularizer is: w
+.PP
+Frovedis provides implementation of ridge regression with two different
+optimizers: (1) stochastic gradient descent with minibatch and (2) LBFGS
+optimizer.
+.PP
+The simplest method to solve optimization problems of the form \f[B]min
+f(w)\f[] is gradient descent.
+Such first\-order optimization methods well\-suited for large\-scale and
+distributed computation.
+Whereas, L\-BFGS is an optimization algorithm in the family of
+quasi\-Newton methods to solve the optimization problems of the similar
+form.
+.PP
+Like the original BFGS, L\-BFGS (Limited Memory BFGS) uses an estimation
+to the inverse Hessian matrix to steer its search through feature space,
+but where BFGS stores a dense nxn approximation to the inverse Hessian
+(n being the number of features in the problem), L\-BFGS stores only a
+few vectors that represent the approximation implicitly.
+L\-BFGS often achieves rapider convergence compared with other
+first\-order optimization.
+.PP
+This module provides a client\-server implementation, where the client
+application is a normal python scikit\-learn program.
+Scikit\-learn has its own linear_model providing the Ridge Regression
+support.
+But that algorithm is non\-distributed in nature.
+Hence it is slower when comparing with the equivalent Frovedis algorithm
+(see frovedis manual for ml/ridge_regression) with big dataset.
+Thus in this implementation, a scikit\-learn client can interact with a
+frovedis server sending the required python data for training at
+frovedis side.
+Python data is converted into frovedis compatible data internally and
+the scikit\-learn ML call is linked with the respective frovedis ML call
+to get the job done at frovedis server.
+.PP
+Scikit\-learn side call for Ridge Regression quickly returns, right
+after submitting the training request to the frovedis server with a
+unique model ID for the submitted training request.
+.PP
+When operations like prediction will be required on the trained model,
+scikit\-learn client sends the same request to frovedis server on the
+same model (containing the unique ID) and the request is served at
+frovedis server and output is sent back to the scikit\-learn client.
+.SS Detailed Description
+.SS Ridge()
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]alpha\f[]: A double parameter containing the learning rate.
+(Default: 0.01)
+.PD 0
+.P
+.PD
+\f[I]fit_intercept\f[]: A boolean parameter specifying whether a
+constant (intercept) should be added to the decision function.
+(Default: True)
+.PD 0
+.P
+.PD
+\f[I]normalize\f[]: A boolean parameter (unused)
+.PD 0
+.P
+.PD
+\f[I]copy_X\f[]: A boolean parameter (unsed)
+.PD 0
+.P
+.PD
+\f[I]max_iter\f[]: An integer parameter specifying maximum iteration
+count.
+(Default: 1000)
+.PD 0
+.P
+.PD
+\f[I]tol\f[]: A double parameter specifying the convergence tolerance
+value, (Default: 1e\-3)
+.PD 0
+.P
+.PD
+\f[I]solver\f[]: A string object specifying the solver to use.
+(Default: \[aq]sag\[aq])
+.PD 0
+.P
+.PD
+\f[I]random_state\f[]: An integer, None or RandomState instance.
+(unused)
+.PD 0
+.P
+.PD
+\f[I]verbose\f[]: An integer object specifying the log level to use.
+(Default: 0)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It initialized a Ridge object with the given parameters.
+.PP
+The parameters: "normalize", "copy_X" and "random_state" are not yet
+supported at frovedis side.
+Thus they don\[aq]t have any significance in this call.
+They are simply provided for the compatibility with scikit\-learn
+application.
+.PP
+"solver" can be either \[aq]sag\[aq] for frovedis side stochastic
+gradient descent or \[aq]lbfgs\[aq] for frovedis side LBFGS optimizer
+when optimizing the linear regression model.
+.PP
+"verbose" value is set at 0 by default.
+But it can be set to 1 (for DEBUG mode) or 2 (for TRACE mode) for
+getting training time logs from frovedis server.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It simply returns "self" reference.
+.SS fit(X, y, sample_weight=None)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]X\f[]: A scipy sparse matrix or any python array\-like object or an
+instance of FrovedisCRSMatrix.
+.PD 0
+.P
+.PD
+\f[I]y\f[]: Any python array\-like object or an instance of
+FrovedisDvector.
+.PD 0
+.P
+.PD
+\f[I]sample_weight\f[]: Python array\-like optional parameter.
+(unused)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It accepts the training feature matrix (X) and corresponding output
+labels (y) as inputs from the user and trains a linear regression model
+with L2 regularization with those data at frovedis server.
+.PP
+It doesn\[aq]t support any initial weight to be passed as input at this
+moment.
+Thus the "sample_weight" parameter will simply be ignored.
+It starts with an initial guess of zeros for the model vector and keeps
+updating the model to minimize the cost function until convergence is
+achieved or maximum iteration count is reached.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ loading\ sample\ CRS\ data\ file
+mat\ =\ FrovedisCRSMatrix().load("./sample")
+lbl\ =\ FrovedisDvector([1.1,0.2,1.3,1.4,1.5,0.6,1.7,1.8])
+
+#\ fitting\ input\ matrix\ and\ label\ on\ ridge\ regression\ object
+lr\ =\ Ridge(solver=\[aq]sgd\[aq],\ verbose=2).fit(mat,lbl)
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It simply returns "self" reference.
+.PD 0
+.P
+.PD
+Note that the call will return quickly, right after submitting the fit
+request at frovedis server side with a unique model ID for the fit
+request.
+It may be possible that the training is not completed at the frovedis
+server side even though the client scikit\-learn side fit() returns.
+.SS predict(X)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]X\f[]: A scipy sparse matrix or any python array\-like object or an
+instance of FrovedisCRSMatrix.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It accepts the test feature matrix (X) in order to make prediction on
+the trained model at frovedis server.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns a numpy array of double (float64) type containing the
+predicted outputs.
+.SS save(filename)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]filename\f[]: A string object containing the name of the file on
+which the target model is to be saved.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+On success, it writes the model information (weight values etc.) in the
+specified file as little\-endian binary data.
+Otherwise, it throws an exception.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns nothing.
+.SS load(filename)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]filename\f[]: A string object containing the name of the file
+having model information to be loaded.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It loads the model from the specified file (having little\-endian binary
+data).
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It simply returns "self" instance.
+.SS debug_print()
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It shows the target model information (weight values etc.) on the server
+side user terminal.
+It is mainly used for debugging purpose.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns nothing.
+.SS release()
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It can be used to release the in\-memory model at frovedis server.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns nothing.
+.SH SEE ALSO
+.PP
+linear_regression, lasso_regression, dvector, crs_matrix

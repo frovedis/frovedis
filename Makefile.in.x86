@@ -1,0 +1,20 @@
+# site definitions: modify these lines if necessary
+INSTALLPATH := /opt/nec/nosupport/frovedis/x86
+MPICXX := mpic++
+CXXFLAGS_COMMON := -fPIC -g -Wall -O3 -std=c++11 -Wno-unknown-pragmas -Wno-sign-compare 
+
+# check the library name of your distribution
+LIBS_COMMON := -lparpack -lscalapack -llapack -lcblas -lblas -lboost_program_options -lboost_serialization -lboost_system -lpthread -lgfortran `mpif90 -showme:link`
+
+TO_CLEAN := *.o *~
+
+.cc.o: 
+	${MPICXX} -c ${CXXFLAGS} $< -o $@
+
+# If BUILD_FOREIGN_IF is true, and the compiling platform is x86 (or icpc), 
+# modify following variables according to your system
+JAVA_HOME := /usr/lib/jvm/java-1.8.0-openjdk
+SCALA_HOME := ${INSTALLPATH}/opt/scala-2.11.12
+SPARK_HOME := ${INSTALLPATH}/opt/spark-2.2.1-bin-hadoop2.7
+HDPATH := # ${shell hadoop classpath}
+PYTHON_INC := /usr/include/python2.7

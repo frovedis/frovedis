@@ -1,0 +1,6 @@
+tutorial.pdf: tutorial.md
+	pandoc tutorial.md -o tutorial.pdf -V geometry:margin=1in
+
+clean:
+	rm -f *~
+

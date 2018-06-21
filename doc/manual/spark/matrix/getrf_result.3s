@@ -1,0 +1,39 @@
+.TH "getrf_result" "" "" "" ""
+.SH NAME
+.PP
+getrf_result \- a structure to model the output of frovedis wrapper of
+scalapack getrf routine.
+.SH SYNOPSIS
+.PP
+import com.nec.frovedis.matrix.GetrfResult
+.SS Public Member Functions
+.PP
+Unit release()
+.PD 0
+.P
+.PD
+Long ipiv()
+.PD 0
+.P
+.PD
+Int stat()
+.SH DESCRIPTION
+.PP
+GetrfResult is a client spark side pseudo result structure containing
+the proxy of the in\-memory scalapack getrf result (node local ipiv
+vector) created at frovedis server side.
+.SS Public Member Function Documentation
+.SS Unit release()
+.PP
+This function can be used to release the in\-memory result component
+(ipiv vector) at frovedis server.
+.SS Long ipiv()
+.PP
+This function returns the proxy of the node_local "ipiv" vector computed
+during getrf calculation.
+This value will be required in other scalapack routine calculation, like
+getri, getrs etc.
+.SS Int stat()
+.PP
+This function returns the exit status of the scalapack native getrf
+routine on calling of which the target result object was obtained.

@@ -1,0 +1,18 @@
+TARGETS := kmeans shrink_kmeans
+include ../Makefile.in.x86
+include ../Makefile.common
+
+TO_INSTALL := kmeans.cc shrink_kmeans.cc
+DIR := kmeans
+ARCH := x86
+
+kmeans: kmeans.o
+	${MPICXX} ${CXXFLAGS} -o kmeans kmeans.o ${LIBS}
+
+shrink_kmeans: shrink_kmeans.o
+	${MPICXX} ${CXXFLAGS} -o shrink_kmeans shrink_kmeans.o ${LIBS}
+
+kmeans_jds: kmeans.cc
+	${MPICXX} -c ${CXXFLAGS} -DKMEANS_JDS kmeans.cc -o kmeans_jds.o
+	${MPICXX} ${CXXFLAGS} -o kmeans_jds kmeans_jds.o ${LIBS}
+

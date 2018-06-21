@@ -1,0 +1,165 @@
+.TH "FrovedisBlockcyclicMatrix" "" "" "" ""
+.SH NAME
+.PP
+FrovedisBlockcyclicMatrix \- A data structure used in modeling the
+in\-memory
+.PD 0
+.P
+.PD
+blockcyclic matrix data of frovedis server side at client spark side.
+.SH SYNOPSIS
+.PP
+import com.nec.frovedis.matrix.FrovedisBlockcyclicMatrix
+.SS Constructors
+.PP
+FrovedisBlockcyclicMatrix (\f[C]RDD[Vector]\f[] data)
+.SS Public Member Functions
+.PP
+Unit load (\f[C]RDD[Vector]\f[] data)
+.PD 0
+.P
+.PD
+Unit load (String path)
+.PD 0
+.P
+.PD
+Unit loadbinary (String path)
+.PD 0
+.P
+.PD
+Unit save (String path)
+.PD 0
+.P
+.PD
+Unit savebinary (String path)
+.PD 0
+.P
+.PD
+RowMatrix to_spark_RowMatrix (SparkContext sc)
+.PD 0
+.P
+.PD
+Vector to_spark_Vector ()
+.PD 0
+.P
+.PD
+Matrix to_spark_Matrix ()
+.PD 0
+.P
+.PD
+Unit debug_print()
+.PD 0
+.P
+.PD
+Unit release()
+.SH DESCRIPTION
+.PP
+FrovedisBlockcyclicMatrix is a pseudo matrix structure at client spark
+side which aims to model the frovedis server side
+\f[C]blockcyclic_matrix<double>\f[] (see manual of frovedis
+blockcyclic_matrix for details).
+.PP
+Note that the actual matrix data is created at frovedis server side
+only.
+Spark side FrovedisBlockcyclicMatrix contains a proxy handle of the
+in\-memory matrix data created at frovedis server, along with number of
+rows and number of columns information.
+.SS Constructor Documentation
+.SS FrovedisBlockcyclicMatrix (\f[C]RDD[Vector]\f[] data)
+.PP
+It accepts a spark\-side \f[C]RDD[Vector]\f[] and converts it into the
+frovedis server side blockcyclic matrix data whose proxy along with
+number of rows and number of columns information are stored in the
+constructed FrovedisBlockcyclicMatrix object.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+//\ sample\ input\ matrix\ file\ with\ elements\ in\ a\ row\ separated\ by\ whitespace
+val\ data\ =\ sc.textFile(input)
+//\ parsedData:\ RDD[Vector]
+val\ parsedData\ =\ data.map(s\ =>\ Vectors.dense(s.split(\[aq]\ \[aq]).map(_.toDouble)))
+//\ conversion\ of\ spark\ data\ to\ frovedis\ blockcyclic\ matrix
+val\ fdata\ =\ new\ FrovedisBlockcyclicMatrix(parsedData)
+\f[]
+.fi
+.SS Pubic Member Function Documentation
+.SS Unit load (\f[C]RDD[Vector]\f[] data)
+.PP
+This function can be used to load a spark side dense data to a frovedis
+server side blockcyclic matrix.
+It accepts a spark \f[C]RDD[Vector]\f[] object and converts it into the
+frovedis server side blockcyclic matrix whose proxy along with number of
+rows and number of columns information are stored in the target
+FrovedisBlockcyclicMatrix object.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+//\ sample\ input\ matrix\ file\ with\ elements\ in\ a\ row\ separated\ by\ whitespace
+val\ data\ =\ sc.textFile(input)
+//\ parsedData:\ RDD[Vector]
+val\ parsedData\ =\ data.map(s\ =>\ Vectors.dense(s.split(\[aq]\ \[aq]).map(_.toDouble)))
+
+val\ fdata\ =\ new\ FrovedisBlockcyclicMatrix()\ //\ an\ empty\ object
+//\ conversion\ of\ spark\ data\ to\ frovedis\ blockcyclic\ matrix
+fdata.load(parsedData)
+\f[]
+.fi
+.SS Unit load (String path)
+.PP
+This function is used to load the text data from the given file in the
+target server side matrix instance.
+Note that the file must be placed at server side at the given path.
+.SS Unit loadbinary (String path)
+.PP
+This function is used to load the little\-endian binary data from the
+given file in the target server side matrix instance.
+Note that the file must be placed at server side at the given path.
+.SS Unit save (String path)
+.PP
+This function is used to save the target matrix as text file with the
+filename at the given path.
+Note that the file will be saved at server side at the given path.
+.SS Unit savebinary (String path)
+.PP
+This function is used to save the target matrix as little\-endian binary
+file with the filename at the given path.
+Note that the file will be saved at server side at the given path.
+.SS RowMatrix to_spark_RowMatrix (SparkContext sc)
+.PP
+This function is used to convert the target matrix into spark RowMatrix.
+Note that this function will request frovedis server to send back the
+distributed data at server side blockcyclic matrix in the rowmajor\-form
+and the spark client will then convert the distributed chunks received
+from frovedis server to spark distributed RowMatrix.
+.PP
+The SparkContext object "sc" will be required while converting the
+frovedis data to spark distributed RowMatrix.
+.SS Vector to_spark_Vector ()
+.PP
+This function is used to convert the target matrix into spark Vector
+form.
+Note that this function will request frovedis server to send back the
+distributed data at server side blockcyclic matrix in the rowmajor\-form
+and the spark client will then convert the received rowmajor data from
+frovedis server into spark non\-distributed Vector object.
+.SS Matrix to_spark_Matrix ()
+.PP
+This function is used to convert the target matrix into spark Matrix
+form.
+Note that this function will request frovedis server to send back the
+distributed data at server side blockcyclic matrix in the column\-major
+form and the spark client will then convert the received column\-major
+data from frovedis server into spark Matrix object.
+.SS Unit debug_print()
+.PP
+It prints the contents of the server side distributed matrix data on the
+server side user terminal.
+It is mainly useful for debugging purpose.
+.SS Unit release()
+.PP
+This function can be used to release the existing in\-memory data at
+frovedis server side.

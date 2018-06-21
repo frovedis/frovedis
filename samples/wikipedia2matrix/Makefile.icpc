@@ -1,0 +1,10 @@
+TARGETS := wikipedia2matrix
+include ../Makefile.in.icpc
+include ../Makefile.common
+
+TO_INSTALL := README sample.txt wikipedia2matrix.cc
+DIR := wikipedia2matrix
+ARCH := icpc
+
+wikipedia2matrix: wikipedia2matrix.o
+	${LINK} -o wikipedia2matrix wikipedia2matrix.o ${LIBS}

@@ -1,0 +1,668 @@
+.TH "blas_wrapper" "" "" "" ""
+.SH NAME
+.PP
+blas_wrapper \- a frovedis module provides user\-friendly interfaces for
+commonly used blas routines in scientific applications like machine
+learning algorithms.
+.SH SYNOPSIS
+.PP
+\f[C]#include\ <frovedis/matrix/blas_wrapper.hpp>\f[]
+.SH WRAPPER FUNCTION
+.PP
+void swap (const \f[C]sliced_colmajor_vector_local<T>\f[]& v1,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \ const \f[C]sliced_colmajor_vector_local<T>\f[]& v2)
+.PD 0
+.P
+.PD
+void copy (const \f[C]sliced_colmajor_vector_local<T>\f[]& v1,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \ const \f[C]sliced_colmajor_vector_local<T>\f[]& v2)
+.PD 0
+.P
+.PD
+void scal (const \f[C]sliced_colmajor_vector_local<T>\f[]& v,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \ T al)
+.PD 0
+.P
+.PD
+void axpy (const \f[C]sliced_colmajor_vector_local<T>\f[]& v1,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \ const \f[C]sliced_colmajor_vector_local<T>\f[]& v2,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \ T al = 1.0)
+.PD 0
+.P
+.PD
+T dot (const \f[C]sliced_colmajor_vector_local<T>\f[]& v1,
+.PD 0
+.P
+.PD
+\  \  \  \ const \f[C]sliced_colmajor_vector_local<T>\f[]& v2)
+.PD 0
+.P
+.PD
+T nrm2 (const \f[C]sliced_colmajor_vector_local<T>\f[]& v)
+.PD 0
+.P
+.PD
+void gemv (const \f[C]sliced_colmajor_matrix_local<T>\f[]& m,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \ const \f[C]sliced_colmajor_vector_local<T>\f[]& v1,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \ const \f[C]sliced_colmajor_vector_local<T>\f[]& v2,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \ char trans = \[aq]N\[aq],
+.PD 0
+.P
+.PD
+\  \  \  \  \  \ T al = 1.0,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \ T be = 0.0)
+.PD 0
+.P
+.PD
+void ger (const \f[C]sliced_colmajor_vector_local<T>\f[]& v1,
+.PD 0
+.P
+.PD
+\  \  \  \  \ const \f[C]sliced_colmajor_vector_local<T>\f[]& v2,
+.PD 0
+.P
+.PD
+\  \  \  \  \ const \f[C]sliced_colmajor_matrix_local<T>\f[]& m,
+.PD 0
+.P
+.PD
+\  \  \  \  \ T al = 1.0)
+.PD 0
+.P
+.PD
+void gemm (const \f[C]sliced_colmajor_matrix_local<T>\f[]& m1,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \ const \f[C]sliced_colmajor_matrix_local<T>\f[]& m2,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \ const \f[C]sliced_colmajor_matrix_local<T>\f[]& m3,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \ char trans_m1 = \[aq]N\[aq],
+.PD 0
+.P
+.PD
+\  \  \  \  \  \ char trans_m2 = \[aq]N\[aq],
+.PD 0
+.P
+.PD
+\  \  \  \  \  \ T al = 1.0,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \ T be = 0.0)
+.SH OVERLOADED OPERATORS
+.PP
+\f[C]colmajor_matrix_local<T>\f[]
+.PD 0
+.P
+.PD
+operator* (const \f[C]sliced_colmajor_matrix_local<T>\f[]& m1,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \ const \f[C]sliced_colmajor_matrix_local<T>\f[]& m2)
+.PD 0
+.P
+.PD
+\f[C]colmajor_matrix_local<T>\f[]
+.PD 0
+.P
+.PD
+operator~ (const \f[C]sliced_colmajor_matrix_local<T>\f[]& m1)
+.SH DESCRIPTION
+.PP
+BLAS is a high\-performance external library written in Fortran
+language.
+It provides rich set of functionalities on vectors and matrices.
+Like PBLAS, computation loads of these functionalities \f[B]are not
+parallelized\f[] over the available processes in a system, thus they
+operate on \f[I]non\-distributed\f[] data.
+But like PBLAS, the user interfaces of this library are also very
+detailed and a bit complex in nature.
+It requires a strong understanding on each of the input parameters
+before using these functionalities correctly.
+.PP
+Frovedis provides a wrapper module for some commonly used BLAS
+subroutines in scientific applications like machine learning algorithms.
+These wrapper interfaces are very simple and user needs not to consider
+all the detailed input parameters.
+Only specifying the target vectors or matrices with some other
+parameters (depending upon need) are fine.
+At the same time, all the use cases of a BLAS routine can also be
+performed using Frovedis BLAS wrapper of that routine.
+.PP
+These wrapper routines are global functions in nature.
+Thus they can be called easily from within the "frovedis" namespace.
+As an input vector, they accept "\f[C]colmajor_matrix_local<T>\f[] with
+single column" or "\f[C]sliced_colmajor_vector_local<T>\f[]".
+And as an input matrix, they accept "\f[C]colmajor_matrix_local<T>\f[]"
+or "\f[C]sliced_colmajor_matrix_local<T>\f[]".
+"T" is a template type which can be either "float" or "double".
+The individual detailed descriptions can be found in the subsequent
+sections.
+Please note that the term "inout", used in the below section indicates a
+function argument as both "input" and "output".
+.SS Detailed Description
+.SS swap (v1, v2)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]v1\f[]: A \f[C]colmajor_matrix_local<T>\f[] with single column or a
+\f[C]sliced_colmajor_vector_local<T>\f[] (inout)
+.PD 0
+.P
+.PD
+\f[I]v2\f[]: A \f[C]colmajor_matrix_local<T>\f[] with single column or a
+\f[C]sliced_colmajor_vector_local<T>\f[] (inout)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It will swap the contents of v1 and v2, if they are semantically valid
+and are of same length.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+On success, it returns void.
+If any error occurs, it throws an exception.
+.SS copy (v1, v2)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]v1\f[]: A \f[C]colmajor_matrix_local<T>\f[] with single column or a
+\f[C]sliced_colmajor_vector_local<T>\f[] (input)
+.PD 0
+.P
+.PD
+\f[I]v2\f[]: A \f[C]colmajor_matrix_local<T>\f[] with single column or a
+\f[C]sliced_colmajor_vector_local<T>\f[] (output)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It will copy the contents of v1 in v2 (v2 = v1), if they are
+semantically valid and are of same length.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+On success, it returns void.
+If any error occurs, it throws an exception.
+.SS scal (v, al)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]v\f[]: A \f[C]colmajor_matrix_local<T>\f[] with single column or a
+\f[C]sliced_colmajor_vector_local<T>\f[] (inout)
+.PD 0
+.P
+.PD
+\f[I]al\f[]: A "T" typed argument (float or double) to specify the value
+to which the input vector needs to be scaled.
+(input)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It will scale the input vector with the provided "al" value, if it is
+semantically valid.
+On success, input vector "v" would be updated (in\-place scaling).
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+On success, it returns void.
+If any error occurs, it throws an exception.
+.SS axpy (v1, v2, al=1.0)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]v1\f[]: A \f[C]colmajor_matrix_local<T>\f[] with single column or a
+\f[C]sliced_colmajor_vector_local<T>\f[] (input)
+.PD 0
+.P
+.PD
+\f[I]v2\f[]: A \f[C]colmajor_matrix_local<T>\f[] with single column or a
+\f[C]sliced_colmajor_vector_local<T>\f[] (inout)
+.PD 0
+.P
+.PD
+\f[I]al\f[]: A "T" typed argument (float or double) to specify the value
+to which "v1" needs to be scaled (not in\-place scaling) [Default: 1.0]
+(input/optional)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It will solve the expression v2 = al*v1 + v2, if the input vectors are
+semantically valid and are of same length.
+On success, "v2" will be updated with desired result, but "v1" would
+remain unchanged.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+On success, it returns void.
+If any error occurs, it throws an exception.
+.SS dot (v1, v2)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]v1\f[]: A \f[C]colmajor_matrix_local<T>\f[] with single column or a
+\f[C]sliced_colmajor_vector_local<T>\f[] (input)
+.PD 0
+.P
+.PD
+\f[I]v2\f[]: A \f[C]colmajor_matrix_local<T>\f[] with single column or a
+\f[C]sliced_colmajor_vector_local<T>\f[] (input)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It will perform dot product of the input vectors, if they are
+semantically valid and are of same length.
+Input vectors would not get modified during the operation.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+On success, it returns the dot product result of the type "float" or
+"double".
+If any error occurs, it throws an exception.
+.SS nrm2 (v)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]v\f[]: A \f[C]colmajor_matrix_local<T>\f[] with single column or a
+\f[C]sliced_colmajor_vector_local<T>\f[] (input)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It will calculate the norm of the input vector, if it is semantically
+valid.
+Input vector would not get modified during the operation.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+On success, it returns the norm value of the type "float" or "double".
+If any error occurs, it throws an exception.
+.SS gemv (m, v1, v2, trans=\[aq]N\[aq], al=1.0, be=0.0)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]m\f[]: A \f[C]colmajor_matrix_local<T>\f[] or a
+\f[C]sliced_colmajor_matrix_local<T>\f[] (input)
+.PD 0
+.P
+.PD
+\f[I]v1\f[]: A \f[C]colmajor_matrix_local<T>\f[] with single column or a
+\f[C]sliced_colmajor_vector_local<T>\f[] (input)
+.PD 0
+.P
+.PD
+\f[I]v2\f[]: A \f[C]colmajor_matrix_local<T>\f[] with single column or a
+\f[C]sliced_colmajor_vector_local<T>\f[] (inout)
+.PD 0
+.P
+.PD
+\f[I]trans\f[]: A character value can be either \[aq]N\[aq] or
+\[aq]T\[aq] [Default: \[aq]N\[aq]] (input/optional)
+.PD 0
+.P
+.PD
+\f[I]al\f[]: A "T" typed (float or double) scalar value [Default: 1.0]
+(input/optional)
+.PD 0
+.P
+.PD
+\f[I]be\f[]: A "T" typed (float or double) scalar value [Default: 0.0]
+(input/optional)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+The primary aim of this routine is to perform simple matrix\-vector
+multiplication.
+.PD 0
+.P
+.PD
+But it can also be used to perform any of the below operations:
+.IP
+.nf
+\f[C]
+(1)\ v2\ =\ al*m*v1\ +\ be*v2\ \ \ 
+(2)\ v2\ =\ al*transpose(m)*v1\ +\ be*v2
+\f[]
+.fi
+.PP
+If trans=\[aq]N\[aq], then expression (1) is solved.
+In that case, the size of "v1" must be at least the number of columns in
+"m" and the size of "v2" must be at least the number of rows in "m".
+.PD 0
+.P
+.PD
+If trans=\[aq]T\[aq], then expression (2) is solved.
+In that case, the size of "v1" must be at least the number of rows in
+"m" and the size of "v2" must be at least the number of columns in "m".
+.PP
+Since "v2" is used as input\-output both, memory must be allocated for
+this vector before calling this routine, even if simple matrix\-vector
+multiplication is required.
+Otherwise, this routine will throw an exception.
+.PP
+For simple matrix\-vector multiplication, no need to specify values for
+the input parameters "trans", "al" and "be" (leave them at their default
+values).
+.PP
+On success, "v2" will be overwritten with the desired output.
+But "m" and "v1" would remain unchanged.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+On success, it returns void.
+If any error occurs, it throws an exception.
+.SS ger (v1, v2, m, al=1.0)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]v1\f[]: A \f[C]colmajor_matrix_local<T>\f[] with single column or a
+\f[C]sliced_colmajor_vector_local<T>\f[] (input)
+.PD 0
+.P
+.PD
+\f[I]v2\f[]: A \f[C]colmajor_matrix_local<T>\f[] with single column or a
+\f[C]sliced_colmajor_vector_local<T>\f[] (input)
+.PD 0
+.P
+.PD
+\f[I]m\f[]: A \f[C]colmajor_matrix_local<T>\f[] or a
+\f[C]sliced_colmajor_matrix_local<T>\f[] (inout)
+.PD 0
+.P
+.PD
+\f[I]al\f[]: A "T" typed (float or double) scalar value [Default: 1.0]
+(input/optional)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+The primary aim of this routine is to perform simple vector\-vector
+multiplication of the sizes "a" and "b" respectively to form an axb
+matrix.
+But it can also be used to perform the below operations:
+.IP
+.nf
+\f[C]
+m\ =\ al*v1*v2\[aq]\ +\ m
+\f[]
+.fi
+.PP
+This operation can only be performed if the inputs are semantically
+valid and the size of "v1" is at least the number of rows in matrix "m"
+and the size of "v2" is at least the number of columns in matrix "m".
+.PP
+Since "m" is used as input\-output both, memory must be allocated for
+this matrix before calling this routine, even if simple vector\-vector
+multiplication is required.
+Otherwise it will throw an exception.
+.PP
+For simple vector\-vector multiplication, no need to specify the value
+for the input parameter "al" (leave it at its default value).
+.PP
+On success, "m" will be overwritten with the desired output.
+But "v1" and "v2" will remain unchanged.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+On success, it returns void.
+If any error occurs, it throws an exception.
+.SS gemm (m1, m2, m3, trans_m1=\[aq]N\[aq], trans_m2=\[aq]N\[aq],
+al=1.0, be=0.0)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]m1\f[]: A \f[C]colmajor_matrix_local<T>\f[] or a
+\f[C]sliced_colmajor_matrix_local<T>\f[] (input)
+.PD 0
+.P
+.PD
+\f[I]m2\f[]: A \f[C]colmajor_matrix_local<T>\f[] or a
+\f[C]sliced_colmajor_matrix_local<T>\f[] (input)
+.PD 0
+.P
+.PD
+\f[I]m3\f[]: A \f[C]colmajor_matrix_local<T>\f[] or a
+\f[C]sliced_colmajor_matrix_local<T>\f[] (inout)
+.PD 0
+.P
+.PD
+\f[I]trans_m1\f[]: A character value can be either \[aq]N\[aq] or
+\[aq]T\[aq] [Default: \[aq]N\[aq]] (input/optional)
+.PD 0
+.P
+.PD
+\f[I]trans_m2\f[]: A character value can be either \[aq]N\[aq] or
+\[aq]T\[aq] [Default: \[aq]N\[aq]] (input/optional)
+.PD 0
+.P
+.PD
+\f[I]al\f[]: A "T" typed (float or double) scalar value [Default: 1.0]
+(input/optional)
+.PD 0
+.P
+.PD
+\f[I]be\f[]: A "T" typed (float or double) scalar value [Default: 0.0]
+(input/optional)
+.PP
+\f[B]Purpose\f[] The primary aim of this routine is to perform simple
+matrix\-matrix multiplication.
+.PD 0
+.P
+.PD
+But it can also be used to perform any of the below operations:
+.IP
+.nf
+\f[C]
+(1)\ m3\ =\ al*m1*m2\ +\ be*m3
+(2)\ m3\ =\ al*transpose(m1)*m2\ +\ be*m3
+(3)\ m3\ =\ al*m1*transpose(m2)\ +\ be*m3
+(4)\ m3\ =\ al*transpose(m1)*transpose(m2)\ +\ b2*m3\ \ 
+\f[]
+.fi
+.IP "(1)" 4
+will be performed, if both "trans_m1" and "trans_m2" are \[aq]N\[aq].
+.PD 0
+.P
+.PD
+.IP "(2)" 4
+will be performed, if trans_m1=\[aq]T\[aq] and trans_m2 = \[aq]N\[aq].
+.PD 0
+.P
+.PD
+.IP "(3)" 4
+will be performed, if trans_m1=\[aq]N\[aq] and trans_m2 = \[aq]T\[aq].
+.PD 0
+.P
+.PD
+.IP "(4)" 4
+will be performed, if both "trans_m1" and "trans_m2" are \[aq]T\[aq].
+.PP
+If we have four variables nrowa, nrowb, ncola, ncolb defined as follows:
+.IP
+.nf
+\f[C]
+if(trans_m1\ ==\ \[aq]N\[aq])\ {
+\ \ nrowa\ =\ number\ of\ rows\ in\ m1
+\ \ ncola\ =\ number\ of\ columns\ in\ m1
+}
+else\ if(trans_m1\ ==\ \[aq]T\[aq])\ {
+\ \ nrowa\ =\ number\ of\ columns\ in\ m1
+\ \ ncola\ =\ number\ of\ rows\ in\ m1
+}
+
+if(trans_m2\ ==\ \[aq]N\[aq])\ {
+\ \ nrowb\ =\ number\ of\ rows\ in\ m2
+\ \ ncolb\ =\ number\ of\ columns\ in\ m2
+}
+else\ if(trans_m2\ ==\ \[aq]T\[aq])\ {
+\ \ nrowb\ =\ number\ of\ columns\ in\ m2
+\ \ ncolb\ =\ number\ of\ rows\ in\ m2
+}
+\f[]
+.fi
+.PP
+Then this function can be executed successfully, if the below conditions
+are all true:
+.IP
+.nf
+\f[C]
+(a)\ "ncola"\ is\ equal\ to\ "nrowb"
+(b)\ number\ of\ rows\ in\ "m3"\ is\ equal\ to\ or\ greater\ than\ "nrowa"
+(b)\ number\ of\ columns\ in\ "m3"\ is\ equal\ to\ or\ greater\ than\ "ncolb"
+\f[]
+.fi
+.PP
+Since "m3" is used as input\-output both, memory must be allocated for
+this matrix before calling this routine, even if simple matrix\-matrix
+multiplication is required.
+Otherwise it will throw an exception.
+.PP
+For simple matrix\-matrix multiplication, no need to specify the value
+for the input parameters "trans_m1", "trans_m2", "al", "be" (leave them
+at their default values).
+.PP
+On success, "m3" will be overwritten with the desired output.
+But "m1" and "m2" will remain unchanged.
+.PP
+\f[B]Return Value\f[] On success, it returns void.
+If any error occurs, it throws an exception.
+.SS operator* (m1, m2)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]m1\f[]: A \f[C]colmajor_matrix_local<T>\f[] or a
+\f[C]sliced_colmajor_matrix_local<T>\f[] (input)
+.PD 0
+.P
+.PD
+\f[I]m2\f[]: A \f[C]colmajor_matrix_local<T>\f[] or a
+\f[C]sliced_colmajor_matrix_local<T>\f[] (input)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+This operator operates on two input matrices and returns the resultant
+matrix after successful multiplication.
+Both the input matrices remain unchanged.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+On success, it returns the resultant matrix of the type
+\f[C]colmajor_matrix_local<T>\f[].
+If any error occurs, it throws an exception.
+.SS operator~ (m1)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]m1\f[]: A \f[C]colmajor_matrix_local<T>\f[] or a
+\f[C]sliced_colmajor_matrix_local<T>\f[] (input)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+This operator operates on single input matrix and returns its transposed
+matrix.
+E.g., if "m" is a matrix of type \f[C]colmajor_matrix_local<T>\f[], then
+"~m" will return transposed of matrix "m" of the type
+\f[C]colmajor_matrix_local<T>\f[].
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+On success, it returns the resultant matrix of the type
+\f[C]colmajor_matrix_local<T>\f[].
+If any error occurs, it throws an exception.
+.SH SEE ALSO
+.PP
+sliced_colmajor_matrix_local, sliced_colmajor_vector_local,
+pblas_wrapper

@@ -1,0 +1,125 @@
+.TH "gesvd_result" "" "" "" ""
+.SH NAME
+.PP
+gesvd_result \- a structure to model the output of frovedis singular
+value decomposition methods.
+.SH SYNOPSIS
+.PP
+import com.nec.frovedis.matrix.GesvdResult
+.SS Public Member Functions
+.PP
+\f[C]SingularValueDecomposition[RowMatrix,Matrix]\f[]
+to_spark_result(SparkContext sc)
+.PD 0
+.P
+.PD
+Unit save(String svec, String umat, String vmat)
+.PD 0
+.P
+.PD
+Unit savebinary(String svec, String umat, String vmat)
+.PD 0
+.P
+.PD
+Unit load_as_colmajor(String svec, String umat, String vmat)
+.PD 0
+.P
+.PD
+Unit load_as_blockcyclic(String svec, String umat, String vmat)
+.PD 0
+.P
+.PD
+Unit loadbinary_as_colmajor(String svec, String umat, String vmat)
+.PD 0
+.P
+.PD
+Unit loadbinary_as_blockcyclic(String svec, String umat, String vmat)
+.PD 0
+.P
+.PD
+Unit debug_print()
+.PD 0
+.P
+.PD
+Unit release()
+.PD 0
+.P
+.PD
+Int stat()
+.SH DESCRIPTION
+.PP
+GesvdResult is a client spark side pseudo result structure containing
+the proxies of the in\-memory SVD results created at frovedis server
+side.
+It can be used to convert the frovedis side SVD result to spark
+equivalent data structures.
+.SS Public Member Function Documentation
+.SS \f[C]SingularValueDecomposition[RowMatrix,Matrix]\f[]
+to_spark_result(SparkContext sc)
+.PP
+This function can be used to convert the frovedis side SVD results to
+spark equivalent result structure
+(\f[C]SingularValueDecomposition[RowMatrix,Matrix]\f[]).
+Internally it uses the SparkContext object while performing this
+conversion.
+.SS save(String svec, String umat, String vmat)
+.PP
+This function can be used to save the result values in different text
+files at server side.
+If saving of U and V components are not required, "umat" and "vmat" can
+be null, but "svec" should have a valid filename.
+.SS savebinary(String svec, String umat, String vmat)
+.PP
+This function can be used to save the result values in different
+little\-endian binary files at server side.
+If saving of U and V components are not required, "umat" and "vmat" can
+be null, but "svec" should have a valid filename.
+.SS load_as_colmajor(String svec, String umat, String vmat)
+.PP
+This function can be used to load the target result object with the
+values in given text files.
+If loading of U and V components are not required, "umat" and "vmat" can
+be null, but "svec" should have a valid filename.
+.PP
+If "umat" and/or "vmat" filenames are given, they will be loaded as
+frovedis distributed column major matrix.
+.SS load_as_blockcyclic(String svec, String umat, String vmat)
+.PP
+This function can be used to load the target result object with the
+values in given text files.
+If loading of U and V components are not required, "umat" and "vmat" can
+be null, but "svec" should have a valid filename.
+.PP
+If "umat" and/or "vmat" filenames are given, they will be loaded as
+frovedis distributed blockcyclic matrix.
+.SS loadbinary_as_colmajor(String svec, String umat, String vmat)
+.PP
+This function can be used to load the target result object with the
+values in given little\-endian binary files.
+If loading of U and V components are not required, "umat" and "vmat" can
+be null, but "svec" should have a valid filename.
+.PP
+If "umat" and/or "vmat" filenames are given, they will be loaded as
+frovedis distributed column major matrix.
+.SS loadbinary_as_blockcyclic(String svec, String umat, String vmat)
+.PP
+This function can be used to load the target result object with the
+values in given little\-endian binary files.
+If loading of U and V components are not required, "umat" and "vmat" can
+be null, but "svec" should have a valid filename.
+.PP
+If "umat" and/or "vmat" filenames are given, they will be loaded as
+frovedis distributed blockcyclic matrix.
+.SS Unit debug_print()
+.PP
+This function can be used to print the result components at server side
+user terminal.
+This is useful in debugging purpose.
+.SS Unit release()
+.PP
+This function can be used to release the in\-memory result components at
+frovedis server.
+.SS Int stat()
+.PP
+This function returns the exit status of the scalapack native gesvd
+routine on calling of which the target result object was obtained.

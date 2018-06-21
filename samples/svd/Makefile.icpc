@@ -1,0 +1,16 @@
+TARGETS := svd shrink_svd show_topic
+include ../Makefile.in.icpc
+include ../Makefile.common
+
+TO_INSTALL := svd.cc shrink_svd.cc show_topic.cc
+DIR := svd
+ARCH := icpc
+
+svd: svd.o
+	${LINK} -o svd svd.o ${LIBS}
+
+shrink_svd: shrink_svd.o
+	${LINK} -o shrink_svd shrink_svd.o ${LIBS}
+
+show_topic: show_topic.o
+	${LINK} -o show_topic show_topic.o ${LIBS}

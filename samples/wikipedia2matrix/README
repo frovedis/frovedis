@@ -1,0 +1,8 @@
+This program assumes that the input files are created by WikiExtractor.py.
+Files are recursively searched from the input directory.
+The output file is alphabetically sorted dictionary, alphabetically sorted article name,
+and sparse matrix.
+Word ID is the row number of the dictionary (start from zero).
+The format of the matrix is like pos:count pos:count ....
+The n-th row corresponds to document whose article name is in n-th row of the article name.
+The "pos" above corresponds to the word ID.

@@ -1,0 +1,10 @@
+TARGETS := wikipedia2matrix
+include ../Makefile.in.ve
+include ../Makefile.common
+
+TO_INSTALL := README sample.txt wikipedia2matrix.cc
+DIR := wikipedia2matrix
+ARCH := ve
+
+wikipedia2matrix: wikipedia2matrix.o
+	${LINK} ${CXXFLAGS} -o wikipedia2matrix wikipedia2matrix.o ${LIBS}

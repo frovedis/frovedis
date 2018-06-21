@@ -1,0 +1,10 @@
+TARGETS := mf
+include ../Makefile.in.x86
+include ../Makefile.common
+
+TO_INSTALL := mf.cc
+DIR := matrixfactorization
+ARCH := x86
+
+mf: mf.o
+	${MPICXX} ${CXXFLAGS} -o mf mf.o ${LIBS}

@@ -1,0 +1,7 @@
+include ../../Makefile.in.icpc
+include Makefile.common
+
+install:
+	install -d ${INSTALLPATH}/doc/tutorial/src
+	cp tutorial.md tutorial.pdf ${INSTALLPATH}/doc/tutorial/
+	cd src; cat Makefile.each.icpc | sed -e /^LIB/d | sed -e /^INCLUDES/d |sed -e s/^\#LIB/LIB/ |  sed -e s/^#INCLUDES/INCLUDES/g > tmp; cp tmp ${INSTALLPATH}/doc/tutorial/src/Makefile.each; rm tmp; cp Makefile.in.icpc exec.sh make.sh make_clean.sh ${INSTALLPATH}/doc/tutorial/src/;  tar cf - --exclude=.svn ./tut* | (cd ${INSTALLPATH}/doc/tutorial/src && tar xvf - --no-same-owner)

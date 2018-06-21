@@ -1,0 +1,6 @@
+include ../../../Makefile.in.sx
+include Makefile.common
+
+libfrovedis_dataframe.a: ${OBJS}
+	${CXX} -prelink ${OBJS} -L../ml -L../matrix -L../core -lfrovedis_ml -lfrovedis_matrix -lfrovedis_core ${LIBS_COMMON}
+	${AR} r libfrovedis_dataframe.a ${OBJS}

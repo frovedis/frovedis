@@ -1,0 +1,13 @@
+TARGETS := train_classifier train_regressor dump prune predict
+DEPENDS := ${TARGETS:%=%.d}
+
+include ../Makefile.in.ve
+include ../Makefile.common
+-include ${DEPENDS}
+
+TO_INSTALL := ${TARGETS:%=%.cc}
+DIR := tree
+ARCH := ve
+
+${TARGETS}: %: %.o
+	${LINK} ${CXXFLAGS} -o $@ $^ ${LIBS}

@@ -1,0 +1,224 @@
+#ifndef _GRADIENT_DESCENT_HPP_
+#define _GRADIENT_DESCENT_HPP_
+
+#include <iostream>
+#include <cmath>
+
+namespace frovedis {
+
+template <class T>
+class gradient_descent {
+public:
+  gradient_descent (T al = 1.0, bool intercept = false) {
+    checkAssumption(al > 0.0);
+    alpha = al;
+    isIntercept = intercept;
+  }
+
+  void debug_print() {
+    std::cout << "alpha: " << alpha
+              << ", isIntercept: " << isIntercept << "\n";
+  } 
+
+  template <class DATA_MATRIX, class TRANS_MATRIX, class MODEL, class GRADIENT>
+  void optimize(
+    std::vector<DATA_MATRIX>& data, 
+    std::vector<TRANS_MATRIX>& trans,
+    std::vector<std::vector<T>>& target,
+    MODEL& model,
+    GRADIENT& gradient,
+    size_t iterCount);
+
+  template <class DATA_MATRIX, class MODEL, class GRADIENT>
+  void optimize(
+    std::vector<DATA_MATRIX>& data, 
+    std::vector<std::vector<T>>& target,
+    MODEL& model,
+    GRADIENT& gradient,
+    size_t iterCount);
+
+  template <class DATA_MATRIX, class MODEL, class GRADIENT>
+  std::vector<T>
+  compute_gradient(
+    DATA_MATRIX& data,
+    MODEL& model,    
+    std::vector<T>& target,
+    GRADIENT& gradient,
+    T& bias);
+
+  template <class DATA_MATRIX, class MODEL, class GRADIENT>
+  std::vector<T>
+  compute_gradient(
+    DATA_MATRIX& data,
+    MODEL& model,    
+    std::vector<T>& target,
+    GRADIENT& gradient) {
+    T bias;
+    auto v = compute_gradient(data, model, target, gradient, bias);
+    v.push_back(bias);
+    return v;
+  }
+
+  template <class DATA_MATRIX, class TRANS_MATRIX, class MODEL, class GRADIENT>
+  std::vector<T>
+  compute_gradient(
+    DATA_MATRIX& data,
+    TRANS_MATRIX& trans,
+    MODEL& model,    
+    std::vector<T>& target,
+    GRADIENT& gradient,
+    T& bias);
+
+  template <class DATA_MATRIX, class TRANS_MATRIX, class MODEL, class GRADIENT>
+  std::vector<T>
+  compute_gradient(
+    DATA_MATRIX& data,
+    TRANS_MATRIX& trans,
+    MODEL& model,    
+    std::vector<T>& target,
+    GRADIENT& gradient) {
+    T bias;
+    auto v = compute_gradient(data, trans, model, target, gradient, bias);
+    v.push_back(bias);
+    return v;
+  }
+
+private:
+  template <class DATA_MATRIX, class MODEL>
+  std::vector<T>
+  compute_wtx (DATA_MATRIX& data,
+               MODEL& model);
+
+  template <class MODEL>
+  void update_model (MODEL& model,
+                     const std::vector<T>& grad_vector,
+                     size_t iterCount, T bias);
+  
+  T alpha;
+  bool isIntercept;
+  SERIALIZE(alpha, isIntercept)
+};
+
+template <class T>
+template <class DATA_MATRIX, class TRANS_MATRIX, class MODEL, class GRADIENT>
+void gradient_descent<T>::optimize(
+  std::vector<DATA_MATRIX>& data, 
+  std::vector<TRANS_MATRIX>& trans,
+  std::vector<std::vector<T>>& target,
+  MODEL& model,
+  GRADIENT& gradient,
+  size_t iterCount) {
+
+  for(size_t i = 0; i < data.size(); i++) {
+    T bias;
+    auto grad_vector = compute_gradient(data[i], trans[i], 
+                                        model, target[i], gradient, bias);
+    update_model(model, grad_vector, iterCount, bias);
+#ifdef _DEBUG_
+    std::cout <<"updatedModel: \n"; model.debug_print(); std::cout << "\n";
+#endif
+  }
+}
+
+template <class T>
+template <class DATA_MATRIX, class MODEL, class GRADIENT>
+void gradient_descent<T>::optimize(
+  std::vector<DATA_MATRIX>& data, 
+  std::vector<std::vector<T>>& target,
+  MODEL& model,
+  GRADIENT& gradient,
+  size_t iterCount) {
+
+  for(size_t i = 0; i < data.size(); i++) {
+    T bias;
+    auto grad_vector = compute_gradient(data[i], model, target[i], gradient,
+                                        bias);
+    update_model(model, grad_vector, iterCount, bias);
+#ifdef _DEBUG_
+    std::cout <<"updatedModel: \n"; model.debug_print(); std::cout << "\n";
+#endif
+  }
+}
+
+template <class T>
+template <class DATA_MATRIX, class MODEL, class GRADIENT>
+std::vector<T> 
+gradient_descent<T>::compute_gradient(
+  DATA_MATRIX& data,
+  MODEL& model,    
+  std::vector<T>& target,
+  GRADIENT& gradient, 
+  T& sum) {
+
+  sum = 0.0;
+  auto wtx = compute_wtx(data, model);
+  auto scalar_grad = gradient.compute(target, wtx);
+
+  if(isIntercept) {
+    T* sgradp = &scalar_grad[0];
+    for(size_t i = 0; i < scalar_grad.size(); i++) sum += sgradp[i];
+  }
+
+  auto grad_vector = trans_mv(data, scalar_grad);
+  return grad_vector;
+}
+
+template <class T>
+template <class DATA_MATRIX, class TRANS_MATRIX, class MODEL, class GRADIENT>
+std::vector<T> 
+gradient_descent<T>::compute_gradient(
+  DATA_MATRIX& data,
+  TRANS_MATRIX& trans,
+  MODEL& model,    
+  std::vector<T>& target,
+  GRADIENT& gradient,
+  T& sum) {
+
+  sum = 0.0;
+  auto wtx = compute_wtx(data, model);
+  auto scalar_grad = gradient.compute(target, wtx);
+
+  if(isIntercept) {
+    T* sgradp = &scalar_grad[0];
+    for(size_t i = 0; i < scalar_grad.size(); i++) sum += sgradp[i];
+  }
+
+  auto grad_vector = trans * scalar_grad;
+  return grad_vector;
+}
+
+template <class T>
+template <class DATA_MATRIX, class MODEL>
+inline std::vector<T>
+gradient_descent<T>::compute_wtx (DATA_MATRIX& data,
+                                 MODEL& model) {
+  auto wtx = data * model.weight;
+  T* wtxp = &wtx[0];
+  if(isIntercept) {
+    for(size_t i = 0; i < wtx.size(); i++) {
+      wtxp[i] += model.intercept;
+    }
+  }
+  return wtx;
+}
+
+template <class T>
+template <class MODEL>
+inline void gradient_descent<T>::update_model(MODEL& model,
+                                             const std::vector<T>& grad_vector,
+                                             size_t iterCount,
+                                             T bias) {
+  T reducedAlpha = alpha/sqrt(iterCount);
+  size_t n = model.weight.size();
+
+  T* weightp = &model.weight[0];
+  const T* gradp = &grad_vector[0];
+  for(size_t i = 0; i < n; i++) {
+    weightp[i] -= reducedAlpha * gradp[i];
+  }
+
+  if(isIntercept)  model.intercept -= reducedAlpha * bias;
+}
+
+}
+#endif

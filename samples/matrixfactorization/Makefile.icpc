@@ -1,0 +1,10 @@
+TARGETS := mf
+include ../Makefile.in.icpc
+include ../Makefile.common
+
+TO_INSTALL := mf.cc
+DIR := matrixfactorization
+ARCH := icpc
+
+mf: mf.o
+	icpc `${MPICXX} -showme:link` ${CXXFLAGS} -static-intel -mkl=sequential -o mf mf.o ${LIBS}

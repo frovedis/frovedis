@@ -1,0 +1,10 @@
+TARGETS := eigen
+include ../Makefile.in.x86
+include ../Makefile.common
+
+TO_INSTALL := eigen.cc
+DIR := eigen
+ARCH := x86
+
+eigen: eigen.o
+	${MPICXX} ${CXXFLAGS} -o eigen eigen.o ${LIBS}
