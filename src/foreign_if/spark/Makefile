@@ -1,6 +1,8 @@
 include ../../../Makefile.in.x86
 
 all:
+	install -d ./bin
+	install -d ./lib
 	make -f Makefile.js
 	cd main/cpp; make
 
