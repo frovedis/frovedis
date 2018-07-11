@@ -10,6 +10,7 @@ TARGETS := libfrovedis_client_python.so
 
 libfrovedis_client_python.so: client.o ${LIBS}
 	${MPICXX} -fopenmp -shared -o libfrovedis_client_python.so -Wl,-whole-archive client.o ${LIBS} -Wl,-no-whole-archive -L../../../../../third_party/lib ${LIBS_COMMON}
+	install -d ../../lib
 	cp libfrovedis_client_python.so ../../lib
 
 client.o: client.cc 
