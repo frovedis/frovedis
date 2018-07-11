@@ -7,6 +7,7 @@ all:
 ifeq (${TARGET},x86)
 	cd spark; make
 	cd spark/examples; make
+	install -d python/examples/out
 	cd python/main/cpp; make
 endif
 
