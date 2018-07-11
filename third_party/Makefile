@@ -2,6 +2,7 @@ include ../Makefile.conf
 include ../Makefile.in.${TARGET}
 
 all: 
+	install -d ./lib
 ifeq (${BUILD_BLAS},true)
 	cd lapack-3.7.1; rm -f make.inc; ln -s make.inc.${TARGET} make.inc; make blaslib; cp BLAS/SRC/libblas.a ../lib; make cblaslib; cp CBLAS/src/libcblas.a ../lib; cp CBLAS/include/cblas.h CBLAS/include/cblas_mangling.h ../include
 endif
