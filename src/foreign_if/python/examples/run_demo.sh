@@ -5,6 +5,9 @@ export LD_LIBRARY_PATH=../lib
 COMMAND="mpirun -np 2 ../../server/frovedis_server"
 #COMMAND="mpirun -np 1 $FROVEDIS_SERVER" 
 
+if [ ! -d out ]; then
+	mkdir out
+fi
 ./crs_matrix_demo.py "$COMMAND"
 ./lr_demo.py "$COMMAND"
 ./lnr_demo.py "$COMMAND"
