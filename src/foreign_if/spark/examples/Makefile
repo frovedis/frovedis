@@ -6,7 +6,7 @@ CLIENT_JAR := ../lib/frovedis_client.jar
 
 all: 
 	install -d ./lib
-	instlal -d ./bin
+	install -d ./bin
 	install -d ./out
 	${SCALA_HOME}/bin/scalac -cp "${SPARK_HOME}/jars/*:${HDPATH}:${CLIENT_JAR}" -sourcepath . -d bin scala/DataTransferDemo.scala
 	${SCALA_HOME}/bin/scalac -cp "${SPARK_HOME}/jars/*:${HDPATH}:${CLIENT_JAR}" -sourcepath . -d bin scala/LRSGDDemo.scala
