@@ -35,7 +35,7 @@ without noticing the hardware details.
 
 # 2. Installation
 
-If you want prebuild binary, please check "release", which includes
+If you want prebuilt binary, please check "release", which includes
 rpm file. If your environment is supported, using rpm is the easiest
 way to install.
 
