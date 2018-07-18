@@ -35,6 +35,10 @@ without noticing the hardware details.
 
 # 2. Installation
 
+If you want prebuild binary, please check "release", which includes
+rpm file. If your environment is supported, using rpm is the easiest
+way to install.
+
 If you want to build the framework on SX-Aurora TSUBASA, we recommend
 to utilize our build tools (https://github.com/frovedis/packaging)
 together with VE version of boost (https://github.com/frovedis/boost-ve).
