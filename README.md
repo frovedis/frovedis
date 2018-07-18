@@ -35,6 +35,13 @@ without noticing the hardware details.
 
 # 2. Installation
 
+If you want to build the framework on SX-Aurora TSUBASA, we recommend
+to utilize our build tools (https://github.com/frovedis/packaging)
+together with VE version of boost (https://github.com/frovedis/boost-ve).
+Please follow the instructions in README.md of the build tools.
+
+On other platforms, please follow the instructions below.
+
 ## 2.1. Environment
 
 The system depends on 
