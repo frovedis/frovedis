@@ -39,6 +39,15 @@ extern MPI_Comm frovedis_comm_rpc;
 extern int frovedis_self_rank;
 extern int frovedis_comm_size;
 
+// for shared memory between MPI processes
+extern bool frovedis_shm_init;
+extern MPI_Comm frovedis_shm_comm;
+extern int frovedis_shm_self_rank;
+extern int frovedis_shm_comm_size;
+extern MPI_Comm frovedis_shmroot_comm;
+extern int frovedis_shmroot_self_rank;
+extern int frovedis_shmroot_comm_size;
+
 #ifdef USE_THREAD
 extern pthread_mutex_t mpi_tag_lock;
 #endif
@@ -52,6 +61,10 @@ const int bcast_tag = system_tag_fence + 1;
 
 inline NID get_selfid(){return frovedis_self_rank;}
 inline int get_nodesize(){return frovedis_comm_size;}
+
+inline int get_shm_id(){return frovedis_shm_self_rank;}
+inline int get_shm_size(){return frovedis_shm_self_rank;}
+inline bool is_shm_root(){return frovedis_shm_self_rank == 0 ? true : false;}
 
 enum rpc_type {
   rpc_async_type,

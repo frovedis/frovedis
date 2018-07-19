@@ -13,6 +13,10 @@
 
 #include "rowmajor_matrix.hpp"
 
+#if MPI_VERSION >= 3
+#include "../core/shared_vector.hpp"
+#endif
+
 #define CRS_VLEN 4096
 
 namespace frovedis {
@@ -958,10 +962,7 @@ crs_matrix<T,I,O> crs_matrix<T,I,O>::transpose() {
 }
 
 template <class T, class I, class O>
-std::vector<T> operator*(const crs_matrix_local<T,I,O>& mat, const std::vector<T>& v) {
-  std::vector<T> ret(mat.local_num_row, 0); // for ve compiler...
-  T* retp = &ret[0];
-  const T* vp = &v[0];
+void crs_matrix_spmv_impl(const crs_matrix_local<T,I,O>& mat, T* retp, const T* vp) {
   const T* valp = &mat.val[0];
   const I* idxp = &mat.idx[0];
   const O* offp = &mat.off[0];
@@ -971,6 +972,14 @@ std::vector<T> operator*(const crs_matrix_local<T,I,O>& mat, const std::vector<T
       retp[r] = retp[r] + valp[c] * vp[idxp[c]];
     }
   }
+}
+
+template <class T, class I, class O>
+std::vector<T> operator*(const crs_matrix_local<T,I,O>& mat, const std::vector<T>& v) {
+  std::vector<T> ret(mat.local_num_row);
+  if(mat.local_num_col != v.size())
+    throw std::runtime_error("operator*: size of vector does not match");
+  crs_matrix_spmv_impl(mat, ret.data(), v.data());
   return ret;
 }
 
@@ -1392,6 +1401,25 @@ dvector<T> operator*(crs_matrix<T,I,O>& mat, dvector<T>& dv) {
 #endif
   return mat.data.map(call_crs_mv<T,I,O>, bdv).template moveto_dvector<T>();
 }
+
+#if MPI_VERSION >= 3
+
+template <class T, class I, class O>
+std::vector<T> call_crs_mv_shared(const crs_matrix_local<T,I,O>& mat,
+                                  shared_vector_local<T>& sv) {
+  std::vector<T> ret(mat.local_num_row);
+  crs_matrix_spmv_impl(mat, ret.data(), sv.data());
+  return ret;
+}
+
+template <class T, class I, class O>
+dvector<T> operator*(crs_matrix<T,I,O>& mat, shared_vector<T>& sdv) {
+  if(mat.num_col != sdv.size)
+    throw std::runtime_error("operator*: size of dvector does not match");
+  return mat.data.map(call_crs_mv_shared<T,I,O>, sdv.data).template moveto_dvector<T>();
+}
+
+#endif
 
 }
 #endif

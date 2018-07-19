@@ -13,6 +13,14 @@ MPI_Comm frovedis_comm_rpc;
 int frovedis_self_rank;
 int frovedis_comm_size;
 
+bool frovedis_shm_init = false;
+MPI_Comm frovedis_shm_comm;
+int frovedis_shm_self_rank;
+int frovedis_shm_comm_size;
+MPI_Comm frovedis_shmroot_comm;
+int frovedis_shmroot_self_rank;
+int frovedis_shmroot_comm_size;
+
 #ifdef USE_THREAD
 pthread_mutex_t mpi_tag_lock = PTHREAD_MUTEX_INITIALIZER;
 #endif

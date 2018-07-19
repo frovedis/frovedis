@@ -190,19 +190,28 @@ void jds_crs_hybrid<T,I,O,P>::clear() {
 }
 
 template <class T, class I, class O, class P>
-std::vector<T> operator*(const jds_crs_hybrid_local<T,I,O,P>& mat,
-                         const std::vector<T>& v) {
-  auto jdspart = mat.jds * v;
-  auto crspart = mat.crs * v;
+void jds_crs_hybrid_spmv_impl(const jds_crs_hybrid_local<T,I,O,P>& mat,
+                              T* retp, const T* vp) {
+  std::vector<T> crspart(mat.crs.local_num_row);
+  T* crspartp = crspart.data();
+  jds_matrix_spmv_impl(mat.jds, retp, vp);
+  crs_matrix_spmv_impl(mat.crs, crspartp, vp);
   const P* permp = &mat.jds.perm[0];
-  T* jdspartp = &jdspart[0];
-  T* crspartp = &crspart[0];
 #pragma cdir nodep
 #pragma _NEC ivdep
   for(size_t i = 0; i < crspart.size(); i++) {
-    jdspartp[permp[i]] += crspartp[i];
+    retp[permp[i]] += crspartp[i];
   }
-  return jdspart;
+}
+
+template <class T, class I, class O, class P>
+std::vector<T> operator*(const jds_crs_hybrid_local<T,I,O,P>& mat,
+                         const std::vector<T>& v) {
+  std::vector<T> ret(mat.local_num_row);
+  if(mat.local_num_col != v.size())
+    throw std::runtime_error("operator*: size of vector does not match");
+  jds_crs_hybrid_spmv_impl(mat, ret.data(), v.data());
+  return ret;
 }
 
 template <class T, class I, class O, class P>
@@ -252,6 +261,26 @@ dvector<T> operator*(jds_crs_hybrid<T,I,O>& mat, dvector<T>& dv) {
 #endif
   return mat.data.map(call_hyb_mv<T,I,O>, bdv).template moveto_dvector<T>();
 }
+
+#if MPI_VERSION >= 3
+
+template <class T, class I, class O>
+std::vector<T> call_jds_crs_mv_shared(const jds_crs_hybrid_local<T,I,O>& mat,
+                                      shared_vector_local<T>& sv) {
+  std::vector<T> ret(mat.local_num_row);
+  jds_crs_hybrid_spmv_impl(mat, ret.data(), sv.data());
+  return ret;
+}
+
+template <class T, class I, class O>
+dvector<T> operator*(jds_crs_hybrid<T,I,O>& mat, shared_vector<T>& sdv) {
+  if(mat.num_col != sdv.size)
+    throw std::runtime_error("operator*: size of dvector does not match");
+  return mat.data.map(call_jds_crs_mv_shared<T,I,O>, sdv.data).
+    template moveto_dvector<T>();
+}
+
+#endif
 
 }
 
