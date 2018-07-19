@@ -1,13 +1,57 @@
 #include <Python.h>
-#include "exrpc_builder.hpp"
-#include "exrpc_pblas.hpp"
-#include "exrpc_scalapack.hpp"
+#include <typeinfo>
+#include "exrpc_request_headers.hpp"
 
 using namespace frovedis;
 
 extern "C" {
 
-// --- Frovedis server Initialization, Finalization, Query ---
+  // std::vector<std::string> => python List of strings
+  PyObject* to_python_string_list (std::vector<std::string>& val) {
+    PyObject *PList = PyList_New(0);
+    for(auto& each: val) PyList_Append(PList,Py_BuildValue("s",each.c_str()));
+    return Py_BuildValue("O",PList);
+  }
+
+  // std::vector<std::string> => python List of doubles
+  PyObject* to_python_double_list_from_str_vector (std::vector<std::string>& val) {
+    PyObject *PList = PyList_New(0);
+    for(auto& each: val) {
+      auto val = std::stod(each);
+      PyList_Append(PList,Py_BuildValue("d",val));
+    }
+    return Py_BuildValue("O",PList);
+  }
+
+  // std::vector<int> => python List of integers
+  PyObject* to_python_int_list (std::vector<int>& val) {
+    PyObject *PList = PyList_New(0);
+    for(auto& each: val) PyList_Append(PList,Py_BuildValue("i",each));
+    return Py_BuildValue("O",PList);
+  }
+
+  // std::vector<long> => python List of long integers
+  PyObject* to_python_long_list (std::vector<long>& val) {
+    PyObject *PList = PyList_New(0);
+    for(auto& each: val) PyList_Append(PList,Py_BuildValue("l",each));
+    return Py_BuildValue("O",PList);
+  }
+
+  // std::vector<float> => python List of floats
+  PyObject* to_python_float_list (std::vector<float>& val) {
+    PyObject *PList = PyList_New(0);
+    for(auto& each: val) PyList_Append(PList,Py_BuildValue("f",each));
+    return Py_BuildValue("O",PList);
+  }
+
+  // std::vector<double> => python List of doubles
+  PyObject* to_python_double_list (std::vector<double>& val) {
+    PyObject *PList = PyList_New(0);
+    for(auto& each: val) PyList_Append(PList,Py_BuildValue("d",each));
+    return Py_BuildValue("O",PList);
+  }
+
+  // --- Frovedis server Initialization, Finalization, Query ---
   PyObject* initialize_server(const char *cmd) {
     if(!cmd) REPORT_ERROR(USER_ERROR,"Invalid server command!!");
     auto n = invoke_frovedis_server(cmd);
@@ -41,7 +85,7 @@ extern "C" {
     finalize_frovedis_server(fm_node);
   }
 
-// --- Frovedis Data structure to Python Data structure ---
+  // --- Frovedis Data structure to Python Data structure ---
   PyObject* to_py_dummy_matrix(dummy_matrix& m) {
     return Py_BuildValue("{s:l, s:i, s:i}", 
                          "dptr", (long)m.mptr, "nrow", m.nrow, "ncol", m.ncol);
@@ -52,8 +96,8 @@ extern "C" {
                          "rank", m.rank, "nrow", m.nrow, "ncol", m.ncol);
   }
 
-  PyObject* to_py_dummy_vector(exrpc_ptr_t& ptr, int size) {
-    return Py_BuildValue("{s:l, s:i}", "dptr", (long)ptr, "size", size);
+  PyObject* to_py_dummy_vector(exrpc_ptr_t& ptr, int size, int vtype) {
+    return Py_BuildValue("{s:l, s:i, s:i}", "dptr", (long)ptr, "size", size, "vtype", vtype);
 
   }
 
@@ -77,7 +121,7 @@ extern "C" {
                          "mtype", mt, "dptr", dptr, "info", obj.info);
   }
 
-// --- Frovedis sparse matrices load/save/view/release ---
+  // --- Frovedis sparse matrices load/save/view/release ---
   std::vector<exrpc_ptr_t>
   get_each_crs_matrix_local_pointers(const char* host, int port,
                                      int nrow, int ncol, 
@@ -92,10 +136,6 @@ extern "C" {
     crs_matrix_local<double> mloc(nrow, ncol);
     mloc.copy_from_jarray(oo,ii,vv,nelem);
     auto mdist = get_scattered_crs_matrices(mloc,wsize);
-    // DEBUG
-    //mloc.debug_print();
-    //for(auto& m: mdist) m.debug_print();
-    // transfering each scattered pieces to frovedis worker sides
     std::vector<exrpc_ptr_t> eps(wsize);
     for(size_t i=0; i<wsize; ++i) { 
       eps[i] = exrpc_async(nodes[i],load_local_data<S_LMAT1>,mdist[i]).get();
@@ -175,10 +215,149 @@ extern "C" {
     }
   }
   
-// --- Frovedis Dvector load/save/view/release ---
+  void show_frovedis_dvector(const char* host, int port, long dptr, int vtype) {
+    ASSERT_PTR(host); 
+    exrpc_node fm_node(host,port);
+    auto f_dptr = (exrpc_ptr_t) dptr;
+    switch(vtype) {
+      case INT: 
+          exrpc_oneway(fm_node,show_dvector<int>,f_dptr);
+          break;
+      case LONG:
+          exrpc_oneway(fm_node,show_dvector<long>,f_dptr);
+          break;
+      case FLOAT:
+          exrpc_oneway(fm_node,show_dvector<float>,f_dptr);
+          break;
+      case DOUBLE: 
+          exrpc_oneway(fm_node,show_dvector<double>,f_dptr);
+          break;
+      case STRING: 
+          exrpc_oneway(fm_node,show_dvector<std::string>,f_dptr);
+          break;
+      default:  REPORT_ERROR(USER_ERROR,
+                "Unknown type for frovedis dvector: " + std::to_string(vtype));
+    }
+  }
+  
+  void release_frovedis_dvector(const char* host, int port, long dptr, int vtype) {
+    ASSERT_PTR(host); 
+    exrpc_node fm_node(host,port);
+    auto f_dptr = (exrpc_ptr_t) dptr;
+    switch(vtype) {
+      case INT:
+          exrpc_oneway(fm_node,release_dvector<int>,f_dptr);
+          break;
+      case LONG:
+          exrpc_oneway(fm_node,release_dvector<long>,f_dptr);
+          break;
+      case FLOAT:
+          exrpc_oneway(fm_node,release_dvector<float>,f_dptr);
+          break;
+      case DOUBLE:
+          exrpc_oneway(fm_node,release_dvector<double>,f_dptr);
+          break;
+      case STRING:
+          exrpc_oneway(fm_node,release_dvector<std::string>,f_dptr);
+          break;
+      default:  REPORT_ERROR(USER_ERROR,
+                "Unknown type for frovedis dvector: " + std::to_string(vtype));
+    }
+  }
 
   std::vector<exrpc_ptr_t>
-  get_each_dist_vec_pointers(const char* host, int port,
+  get_each_dist_vec_int_pointers(const char* host, int port,
+                             int* vv, int size) {
+    ASSERT_PTR(vv);
+    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
+    exrpc_node fm_node(host,port);
+    auto nodes = get_worker_nodes(fm_node);
+    auto wsize = nodes.size();
+    // scattering vector locally at client side
+    std::vector<int> vec(size);
+    for(size_t i=0; i<size; ++i) vec[i] = vv[i];
+    auto evs = get_scattered_vectors<int>(vec,size,1,wsize);
+    // sending the scattered pices to Frovedis server
+    std::vector<exrpc_ptr_t> eps(wsize);
+    for(size_t i=0; i<wsize; ++i) {
+      eps[i] = exrpc_async(nodes[i],(load_local_data<std::vector<int>>),evs[i]).get();
+    }
+    return eps;
+  }
+
+  PyObject* create_frovedis_int_dvector(const char* host, int port,
+                                  int* vv, int size) {
+    ASSERT_PTR(host); 
+    exrpc_node fm_node(host,port);
+    auto eps = get_each_dist_vec_int_pointers(host,port,vv,size);
+    auto dptr = exrpc_async(fm_node,create_and_set_dvector<int>,eps).get();
+    return to_py_dummy_vector(dptr,size,INT);
+  }
+  
+  std::vector<exrpc_ptr_t>
+  get_each_dist_vec_long_pointers(const char* host, int port,
+                             long* vv, int size) {
+    ASSERT_PTR(vv);
+    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
+    // getting Frovedis server information
+    exrpc_node fm_node(host,port);
+    auto nodes = get_worker_nodes(fm_node);
+    auto wsize = nodes.size();
+    // scattering vector locally at client side
+    std::vector<long> vec(size);
+    for(size_t i=0; i<size; ++i) vec[i] = vv[i];
+    auto evs = get_scattered_vectors<long>(vec,size,1,wsize);
+    // sending the scattered pices to Frovedis server
+    std::vector<exrpc_ptr_t> eps(wsize);
+    for(size_t i=0; i<wsize; ++i) {
+      eps[i] = exrpc_async(nodes[i],(load_local_data<std::vector<long>>),evs[i]).get();
+    }
+    return eps;
+  }
+
+  PyObject* create_frovedis_long_dvector(const char* host, int port,
+                                  long* vv, int size) {
+    ASSERT_PTR(host); 
+    exrpc_node fm_node(host,port);
+    auto eps = get_each_dist_vec_long_pointers(host,port,vv,size);
+    auto dptr = exrpc_async(fm_node,create_and_set_dvector<long>,eps).get();
+    return to_py_dummy_vector(dptr,size,LONG);
+  }
+
+  //For Float Support
+  std::vector<exrpc_ptr_t>
+  get_each_dist_vec_float_pointers(const char* host, int port,
+                             float* vv, int size) {
+    ASSERT_PTR(vv);
+    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
+    // getting Frovedis server information
+    exrpc_node fm_node(host,port);
+    auto nodes = get_worker_nodes(fm_node);
+    auto wsize = nodes.size();
+    // scattering vector locally at client side
+    std::vector<float> vec(size);
+    for(size_t i=0; i<size; ++i) vec[i] = vv[i];
+    auto evs = get_scattered_vectors<float>(vec,size,1,wsize);
+    // sending the scattered pices to Frovedis server
+    std::vector<exrpc_ptr_t> eps(wsize);
+    for(size_t i=0; i<wsize; ++i) {
+      eps[i] = exrpc_async(nodes[i],(load_local_data<std::vector<float>>),evs[i]).get();
+    }
+    return eps;
+  }
+
+  PyObject* create_frovedis_float_dvector(const char* host, int port,
+                                  float* vv, int size) {
+    ASSERT_PTR(host); 
+    exrpc_node fm_node(host,port);
+    auto eps = get_each_dist_vec_float_pointers(host,port,vv,size);
+    auto dptr = exrpc_async(fm_node,create_and_set_dvector<float>,eps).get();
+    return to_py_dummy_vector(dptr,size,FLOAT);
+  }
+
+  //For Double Support
+  std::vector<exrpc_ptr_t>
+  get_each_dist_vec_double_pointers(const char* host, int port,
                              double* vv, int size) {
     ASSERT_PTR(vv);
     if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
@@ -189,36 +368,347 @@ extern "C" {
     // scattering vector locally at client side
     std::vector<double> vec(size);
     for(size_t i=0; i<size; ++i) vec[i] = vv[i];
-    auto evs = get_scattered_vectors(vec,size,1,wsize);
+    auto evs = get_scattered_vectors<double>(vec,size,1,wsize);
     // sending the scattered pices to Frovedis server
     std::vector<exrpc_ptr_t> eps(wsize);
     for(size_t i=0; i<wsize; ++i) {
-      eps[i] = exrpc_async(nodes[i],(load_local_data<std::vector<DT1>>),evs[i]).get();
+      eps[i] = exrpc_async(nodes[i],(load_local_data<std::vector<double>>),evs[i]).get();
     }
     return eps;
   }
 
-  PyObject* create_frovedis_dvector(const char* host, int port,
+  PyObject* create_frovedis_double_dvector(const char* host, int port,
                                   double* vv, int size) {
+    ASSERT_PTR(host); 
     exrpc_node fm_node(host,port);
-    auto eps = get_each_dist_vec_pointers(host,port,vv,size);
-    auto dptr = exrpc_async(fm_node,create_and_set_dvector<DT1>,eps).get();
-    return to_py_dummy_vector(dptr,size);
+    auto eps = get_each_dist_vec_double_pointers(host,port,vv,size);
+    auto dptr = exrpc_async(fm_node,create_and_set_dvector<double>,eps).get();
+    return to_py_dummy_vector(dptr,size,DOUBLE);
   }
 
-  void show_frovedis_dvector(const char* host, int port, long dptr) {
+  //For String Support
+  std::vector<exrpc_ptr_t>
+  get_each_dist_vec_string_pointers(const char* host, int port,
+                                    const char** vv, int size) {
+    ASSERT_PTR(vv);
+    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
+    // getting Frovedis server information
     exrpc_node fm_node(host,port);
-    auto f_dptr = (exrpc_ptr_t) dptr;
-    exrpc_oneway(fm_node,show_dvector<DT1>,f_dptr);
+    auto nodes = get_worker_nodes(fm_node);
+    auto wsize = nodes.size();
+    
+    // scattering vector locally at client side
+    std::vector<std::string> vec(size);
+    for(size_t i=0; i<size; ++i) vec[i] = std::string(vv[i]);
+    //for(size_t i =0; i<size; i++) cout << vv[i] << " "; cout << endl;
+    auto evs = get_scattered_vectors<std::string>(vec,size,1,wsize);
+    // sending the scattered pices to Frovedis server
+    std::vector<exrpc_ptr_t> eps(wsize);
+    for(size_t i=0; i<wsize; ++i) {
+      eps[i] = exrpc_async(nodes[i],(load_local_data<std::vector<std::string>>),evs[i]).get();
+    }
+    return eps;
+  }
+
+  PyObject* create_frovedis_string_dvector(const char* host, int port,
+                                         const char** vv, int size) {
+    ASSERT_PTR(host); 
+    exrpc_node fm_node(host,port);
+    auto eps = get_each_dist_vec_string_pointers(host,port,vv,size);
+    auto dptr = exrpc_async(fm_node,create_and_set_dvector<std::string>,eps).get();
+    return to_py_dummy_vector(dptr,size,STRING);
+  }
+
+  // To create dataframe from dvector proxies
+  long create_frovedis_dataframe(const char* host, int port, short* types,
+                                 const char** col_name, long* dvec, int size){
+    ASSERT_PTR(host); 
+    std::vector<short> col_types(size);
+    std::vector<exrpc_ptr_t> dvec_arr(size);
+    for(int i = 0 ; i < size ; ++i) 
+      col_types[i] = types[i];
+    for(int i = 0; i < size; ++i) {
+      dvec_arr[i] = static_cast<exrpc_ptr_t>(dvec[i]);
+    }
+    std::vector<std::string> col_names(size);
+    for(int i = 0 ; i < size ; ++i) col_names[i] = col_name[i];
+    exrpc_node fm_node(host,port);
+    auto df_proxy = exrpc_async(fm_node,create_dataframe,col_types,col_names,dvec_arr).get();
+    return (static_cast<long>(df_proxy));
+  }
+
+  // To Print data frame
+  void show_frovedis_dataframe(const char* host, int port, long proxy){
+    ASSERT_PTR(host); 
+    exrpc_node fm_node(host,port);
+    auto df_proxy = static_cast<exrpc_ptr_t> (proxy);
+    exrpc_oneway(fm_node,show_dataframe,df_proxy);
+  }
+
+  // To support df operator
+  long get_frovedis_dfoperator(const char* host, int port, const char* op1,
+                             const char* op2, short dtype, short opt, 
+                             bool isImmed){
+    ASSERT_PTR(host); 
+    exrpc_node fm_node(host, port);
+    std::string opd1(op1);
+    std::string opd2(op2);
+    exrpc_ptr_t ret_proxy = -1;
+    switch(dtype) {
+      case INT:
+        ret_proxy = exrpc_async(fm_node,get_dfoperator<int>,opd1,opd2,opt,isImmed).get();
+        break;
+      case LONG:
+        ret_proxy = exrpc_async(fm_node,get_dfoperator<long>,opd1,opd2,opt,isImmed).get();
+        break;
+      case FLOAT:
+        ret_proxy = exrpc_async(fm_node, get_dfoperator<float>,opd1,opd2,opt,isImmed).get();
+        break;
+      case DOUBLE:
+        ret_proxy = exrpc_async(fm_node, get_dfoperator<double>,opd1,opd2,opt,isImmed).get();
+        break;
+      case STRING:
+        ret_proxy = exrpc_async(fm_node, get_str_dfoperator, opd1,opd2,opt,isImmed).get();
+        break;
+      default: 
+        REPORT_ERROR(USER_ERROR,"Unknown type is encountered!\n");  
+        break;
+    }
+    return (static_cast<long>(ret_proxy));
+  }                  
+
+  //To support dfAND operator
+  long get_frovedis_dfANDoperator(const char* host,int port,long op1,long op2){
+    ASSERT_PTR(host); 
+    exrpc_node fm_node(host, port);
+    auto lopt_proxy = static_cast<exrpc_ptr_t> (op1); 
+    auto ropt_proxy = static_cast<exrpc_ptr_t> (op2);
+    auto ret_proxy = exrpc_async(fm_node, get_dfANDoperator,lopt_proxy,ropt_proxy).get();
+    return (static_cast<long>(ret_proxy));
   }
   
-  void release_frovedis_dvector(const char* host, int port, long dptr) {
+  //To support dfOR operator
+  long get_frovedis_dfORoperator(const char* host,int port,long op1,long op2){
+    ASSERT_PTR(host); 
+    exrpc_node fm_node(host, port);
+    auto lopt_proxy = static_cast<exrpc_ptr_t> (op1);
+    auto ropt_proxy = static_cast<exrpc_ptr_t> (op2);
+    auto ret_proxy = exrpc_async(fm_node, get_dfORoperator,lopt_proxy,ropt_proxy).get();
+    return (static_cast<long>(ret_proxy));
+  }
+  
+  //To release data frame
+  void release_frovedis_dataframe(const char* host,int port,long proxy){
+    ASSERT_PTR(host); 
     exrpc_node fm_node(host,port);
-    auto f_dptr = (exrpc_ptr_t) dptr;
-    exrpc_oneway(fm_node,release_dvector<DT1>,f_dptr);
+    auto df_proxy = static_cast<exrpc_ptr_t> (proxy);
+    exrpc_oneway(fm_node,release_data<dftable>,df_proxy);
+  }
+  
+  //To release dfoperator
+  void release_dfoperator(const char* host,int port,
+                          long proxy){
+    ASSERT_PTR(host); 
+    exrpc_node fm_node(host,port);
+    auto df_proxy = static_cast<exrpc_ptr_t> (proxy);
+    exrpc_oneway(fm_node,(release_data<std::shared_ptr<dfoperator>>),df_proxy);
+  }
+  
+  // To filter rows from the given dataframe based on the given condition
+  long filter_frovedis_dataframe(const char* host, int port, long proxy1, 
+                                 long proxy2){
+    ASSERT_PTR(host); 
+    exrpc_node fm_node(host, port);
+    auto pro1 = static_cast<exrpc_ptr_t> (proxy1);
+    auto pro2 = static_cast<exrpc_ptr_t> (proxy2); 
+    auto proxy = exrpc_async(fm_node, filter_df,pro1, pro2).get();
+    return (static_cast<long>(proxy));
+  } 
+ 
+  // To select requested columns from given dataframe
+  long select_frovedis_dataframe(const char* host, int port, long proxy, 
+                               const char **cols, int size){
+    ASSERT_PTR(host); 
+    exrpc_node fm_node(host, port);
+    auto df_proxy = static_cast<exrpc_ptr_t> (proxy);
+    std::vector<std::string> targets(size);
+    for(size_t i=0; i<size; ++i) targets[i] = std::string(cols[i]); 
+    auto ret_proxy = exrpc_async(fm_node,select_df,df_proxy,targets).get();
+    return (static_cast<long>(ret_proxy));
+  }
+   
+  // To sort dataframe entries based on given column and requested order
+  long sort_frovedis_dataframe(const char* host, int port, long proxy, 
+                               const char** cols, int size, bool asc){
+    ASSERT_PTR(host); 
+    exrpc_node fm_node(host, port);
+    auto df_proxy = static_cast<exrpc_ptr_t> (proxy);
+    std::vector<std::string> targets(size);
+    for(size_t i=0; i<size; ++i) targets[i] = std::string(cols[i]);
+    auto isdesc = asc ? false : true;
+    auto ret_proxy = exrpc_async(fm_node,sort_df,df_proxy,targets,isdesc).get();
+    return (static_cast<long>(ret_proxy));
   }
 
-// --- Frovedis Dense matrices load/save/transpose/view/release ---
+  // To perform groupBy based on given columns 
+  long group_frovedis_dataframe(const char* host, int port, long proxy, 
+                               const char** cols, int size){
+    ASSERT_PTR(host); 
+    exrpc_node fm_node(host, port);
+    auto df_proxy = static_cast<exrpc_ptr_t> (proxy);
+    std::vector<std::string> targets(size);
+    for(size_t i=0; i<size; ++i) targets[i] = std::string(cols[i]);
+    auto ret_proxy = exrpc_async(fm_node,group_by_df,df_proxy,targets).get();
+    return (static_cast<long>(ret_proxy));
+  }
+   
+  // To perform join operation 
+  long join_frovedis_dataframe(const char* host, int port,  
+                               long proxy1, long proxy2, long proxy3,
+                               const char* kind, const char* type){
+    ASSERT_PTR(host); 
+    exrpc_node fm_node(host, port);
+    auto left = static_cast<exrpc_ptr_t> (proxy1);
+    auto right = static_cast<exrpc_ptr_t> (proxy2); 
+    auto opt = static_cast<exrpc_ptr_t> (proxy3); 
+    std::string k(kind), t(type);
+    auto ret_proxy = exrpc_async(fm_node, join_df, left, right, opt, k, t).get();
+    return (static_cast<long>(ret_proxy));
+  } 
+
+  // To rename dataframe columns (returns new dataframe) 
+  long rename_frovedis_dataframe(const char* host, int port, long proxy,
+                                 const char** cols, const char ** new_cols, 
+                                 int size){
+    ASSERT_PTR(host);
+    exrpc_node fm_node(host, port);
+    auto df_proxy = static_cast<exrpc_ptr_t> (proxy);
+    std::vector<std::string> targets(size), new_targets(size);
+    for(size_t i=0; i<size; ++i) { 
+       targets[i] = std::string(cols[i]);
+       new_targets[i] = std::string(new_cols[i]);
+    }
+    auto ret_proxy = exrpc_async(fm_node,frovedis_df_rename,df_proxy,targets,new_targets).get();
+    return (static_cast<long>(ret_proxy));
+  }
+
+  PyObject* min_frovedis_dataframe(const char* host, int port, long proxy,
+                                   const char** cols, short* types,
+                                   int size){
+    ASSERT_PTR(host);
+    exrpc_node fm_node(host, port);
+    auto df_proxy = static_cast<exrpc_ptr_t> (proxy);
+    std::vector<std::string> cc(size);
+    std::vector<short> tt(size);
+    for(size_t i=0; i<size; ++i) {
+       cc[i] = std::string(cols[i]);
+       tt[i] = types[i];
+    }
+    auto ret = exrpc_async(fm_node,frovedis_df_min,df_proxy,cc,tt).get();
+    return to_python_double_list_from_str_vector(ret);
+  }
+
+  PyObject* max_frovedis_dataframe(const char* host, int port, long proxy,
+                                   const char** cols, short* types,
+                                   int size){
+    ASSERT_PTR(host);
+    exrpc_node fm_node(host, port);
+    auto df_proxy = static_cast<exrpc_ptr_t> (proxy);
+    std::vector<std::string> cc(size);
+    std::vector<short> tt(size);
+    for(size_t i=0; i<size; ++i) {
+       cc[i] = std::string(cols[i]);
+       tt[i] = types[i];
+    }
+    auto ret = exrpc_async(fm_node,frovedis_df_max,df_proxy,cc,tt).get();
+    return to_python_double_list_from_str_vector(ret);
+  }
+
+  PyObject* sum_frovedis_dataframe(const char* host, int port, long proxy,
+                                   const char** cols, short* types,
+                                   int size){
+    ASSERT_PTR(host);
+    exrpc_node fm_node(host, port);
+    auto df_proxy = static_cast<exrpc_ptr_t> (proxy);
+    std::vector<std::string> cc(size);
+    std::vector<short> tt(size);
+    for(size_t i=0; i<size; ++i) {
+       cc[i] = std::string(cols[i]);
+       tt[i] = types[i];
+    }
+    auto ret = exrpc_async(fm_node,frovedis_df_sum,df_proxy,cc,tt).get();
+    return to_python_double_list_from_str_vector(ret);
+  }
+
+  PyObject* avg_frovedis_dataframe(const char* host, int port, long proxy,
+                                   const char** cols, int size){
+    ASSERT_PTR(host);
+    exrpc_node fm_node(host, port);
+    auto df_proxy = static_cast<exrpc_ptr_t> (proxy);
+    std::vector<std::string> cc(size);
+    for(size_t i=0; i<size; ++i) {
+       cc[i] = std::string(cols[i]);
+    }
+    auto ret = exrpc_async(fm_node,frovedis_df_avg,df_proxy,cc).get();
+    return to_python_double_list_from_str_vector(ret);
+  }
+
+  PyObject* cnt_frovedis_dataframe(const char* host, int port, long proxy,
+                                   const char** cols, int size){
+    ASSERT_PTR(host);
+    exrpc_node fm_node(host, port);
+    auto df_proxy = static_cast<exrpc_ptr_t> (proxy);
+    std::vector<std::string> cc(size);
+    for(size_t i=0; i<size; ++i) {
+       cc[i] = std::string(cols[i]);
+    }
+    auto ret = exrpc_async(fm_node,frovedis_df_cnt,df_proxy,cc).get();
+    return to_python_double_list_from_str_vector(ret);
+  }
+
+  PyObject* std_frovedis_dataframe(const char* host, int port, long proxy,
+                                   const char** cols, short* types,
+                                   int size){
+    ASSERT_PTR(host);
+    exrpc_node fm_node(host, port);
+    auto df_proxy = static_cast<exrpc_ptr_t> (proxy);
+    std::vector<std::string> cc(size);
+    std::vector<short> tt(size);
+    for(size_t i=0; i<size; ++i) {
+       cc[i] = std::string(cols[i]);
+       tt[i] = types[i];
+    }
+    auto ret = exrpc_async(fm_node,frovedis_df_std,df_proxy,cc,tt).get();
+    return to_python_double_list_from_str_vector(ret);
+  }
+
+  PyObject* get_frovedis_col(const char* host, int port, long proxy,
+                             const char* col_name, short tid){
+    ASSERT_PTR(host);
+    exrpc_node fm_node(host, port);
+    auto f_dptr = static_cast<exrpc_ptr_t> (proxy);
+    auto cname = std::string(col_name);
+    switch (tid) {
+      case INT: { 
+          auto ret = exrpc_async(fm_node,get_df_int_col,f_dptr,cname).get();
+          return to_python_int_list(ret); }
+      case LONG: {
+          auto ret = exrpc_async(fm_node,get_df_long_col,f_dptr,cname).get();
+          return to_python_long_list(ret); }
+      case FLOAT: {
+          auto ret = exrpc_async(fm_node,get_df_float_col,f_dptr,cname).get();
+          return to_python_float_list(ret); }
+      case DOUBLE: {
+          auto ret = exrpc_async(fm_node,get_df_double_col,f_dptr,cname).get();
+          return to_python_double_list(ret); }
+      case STRING: {
+          auto ret = exrpc_async(fm_node,get_df_string_col,f_dptr,cname).get();
+          return to_python_string_list(ret); }
+      default:  REPORT_ERROR(USER_ERROR,"Unknown type for frovedis dataframe!");
+    }
+  }
+
+  // --- Frovedis Dense matrices load/save/transpose/view/release ---
   std::vector<exrpc_ptr_t>
   get_each_rml_pointers_from_numpy_matrix(const char* host, int port,
                                           int nrow, int ncol, double* vv) {
@@ -231,10 +721,6 @@ extern "C" {
     // scattering numpy matrix in (python) client side
     rowmajor_matrix_local<double> mloc(nrow,ncol,vv);
     auto mdist = get_scattered_rowmajor_matrices(mloc,wsize);
-    // DEBUG
-    //mloc.debug_print();
-    //for(auto& m: mdist) m.debug_print();
-    // transfering each scattered pieces to frovedis worker sides
     std::vector<exrpc_ptr_t> eps(wsize);
     for(size_t i=0; i<wsize; ++i) { 
       eps[i] = exrpc_async(nodes[i],load_local_data<R_LMAT1>,mdist[i]).get();
@@ -303,9 +789,7 @@ extern "C" {
     auto f_dptr = (exrpc_ptr_t) dptr;
     dummy_matrix ret;
     switch(mtype) {
-      //case 'R': ret = exrpc_async(fm_node,copy_matrix<R_MAT1>,f_dptr).get(); break;
       case 'R': REPORT_ERROR(USER_ERROR,"Frovedis doesn't support this deepcopy currently!\n"); 
-      //case 'C': ret = exrpc_async(fm_node,copy_matrix<C_MAT1>,f_dptr).get(); break;
       case 'C': REPORT_ERROR(USER_ERROR,"Frovedis doesn't support this deepcopy currently!\n"); 
       case 'B': ret = exrpc_async(fm_node,copy_matrix<B_MAT1>,f_dptr).get(); break;
       default:  REPORT_ERROR(USER_ERROR,"Unknown dense matrix kind is encountered!\n");
@@ -321,7 +805,6 @@ extern "C" {
     dummy_matrix ret;
     switch(mtype) {
       case 'R': ret = exrpc_async(fm_node,transpose_matrix<R_MAT1>,f_dptr).get(); break;
-      //case 'C': ret = exrpc_async(fm_node,transpose_matrix<C_MAT1>,f_dptr).get(); break;
       case 'C': REPORT_ERROR(USER_ERROR,"Frovedis doesn't support this transpose currently!\n");
       case 'B': ret = exrpc_async(fm_node,transpose_matrix<B_MAT1>,f_dptr).get(); break;
       default:  REPORT_ERROR(USER_ERROR,"Unknown dense matrix kind is encountered!\n");

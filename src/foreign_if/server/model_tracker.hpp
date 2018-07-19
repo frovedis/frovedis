@@ -1,18 +1,15 @@
 #ifndef MODEL_TRACKER_HPP
 #define MODEL_TRACKER_HPP
 
-#include "../exrpc/exrpc.hpp"
 #include <set>
-
 #include <boost/lexical_cast.hpp>
 
-namespace frovedis {
+#include "../exrpc/exrpc.hpp"
+#include "frovedis/ml/glm/linear_model.hpp"
+#include "frovedis/ml/recommendation/matrix_factorization_model.hpp"
+#include "frovedis/ml/clustering/kmeans.hpp"
 
-template <class T> class LogisticRegressionModel; 
-template <class T> class SVMModel; 
-template <class T> class LinearRegressionModel; 
-template <class T> class MatrixFactorizationModel; 
-template <class T> class rowmajor_matrix_local;
+namespace frovedis {
 
 enum { NONE = 0xDEAD }; 
 
@@ -42,6 +39,26 @@ enum SMAT_KIND {
   HYBRID = 4
 };
 */
+
+enum DTYPE {
+  INT = 1,
+  LONG = 2,
+  FLOAT = 3,
+  DOUBLE = 4,
+  STRING = 5,
+  BOOL = 6
+};
+
+enum OPTYPE {
+  EQ = 1,
+  NE = 2,
+  GT = 3,
+  GE = 4,
+  LT = 5,
+  LE = 6,
+  AND = 11,
+  OR = 12
+};
 
 // [MODEL_ID] => [MODEL_KIND, MODEL_PTR]
 extern std::map<int,std::pair<MODEL_KIND,exrpc_ptr_t>> model_table;

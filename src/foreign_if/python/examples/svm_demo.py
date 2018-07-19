@@ -2,7 +2,7 @@
 
 from frovedis.exrpc.server import FrovedisServer
 from frovedis.matrix.sparse import FrovedisCRSMatrix
-from frovedis.matrix.dvector import FrovedisDvector
+from frovedis.matrix.dvector import FrovedisDoubleDvector
 from frovedis.mllib.svm import LinearSVC
 import sys
 
@@ -15,7 +15,7 @@ if (argc < 2):
 FrovedisServer.initialize(argvs[1])
 
 mat = FrovedisCRSMatrix().load("./input/libSVMFile.txt")
-lbl = FrovedisDvector([1,0,1,1,1,0,1,1])
+lbl = FrovedisDoubleDvector([1,0,1,1,1,0,1,1])
 
 # fitting input matrix and label on linear svm object
 svm = LinearSVC(solver='lbfgs',verbose=0).fit(mat,lbl)

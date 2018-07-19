@@ -7,7 +7,6 @@
 #include "../exrpc/exrpc_expose.hpp"
 
 using namespace frovedis;
-using namespace std;
 
 // Based on MATRIX type, LAPACK/SCALAPACK calls will be linked
 // MATRIX: colmajor_matrix_local<T> => LAPACK version would be called

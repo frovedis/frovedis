@@ -1,8 +1,8 @@
 include ../../../Makefile.in.icpc
 include Makefile.common
 
-frovedis_server: frovedis_server.o model_tracker.o
-	${LINK} -o frovedis_server frovedis_server.o model_tracker.o ${LIBS}	
+frovedis_server: frovedis_server.o ${OBJS}
+	${LINK} -o frovedis_server frovedis_server.o ${OBJS} ${LIBS}	
 
 libfrovedis_server.a: ${OBJS}
 	${AR} r libfrovedis_server.a ${OBJS}

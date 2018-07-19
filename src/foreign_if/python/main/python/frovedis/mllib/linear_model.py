@@ -4,7 +4,7 @@ from model_util import *
 from ..exrpc.rpclib import *
 from ..exrpc.server import *
 from ..matrix.sparse import FrovedisCRSMatrix
-from ..matrix.dvector import FrovedisDvector
+from ..matrix.dvector import FrovedisDoubleDvector
 
 class LogisticRegression:
    "A python wrapper of Frovedis Logistic Regression"
@@ -39,7 +39,7 @@ class LogisticRegression:
       cls.release()
       cls.__mid = ModelID.get()
       X = FrovedisCRSMatrix.asCRS(X)
-      y = FrovedisDvector.asDvec(y)
+      y = FrovedisDoubleDvector.asDvec(y)
 
       regTyp = 0
       if cls.penalty == 'l1': regTyp = 1
@@ -119,7 +119,7 @@ class LinearRegression:
       cls.release()
       cls.__mid = ModelID.get()
       X = FrovedisCRSMatrix.asCRS(X)
-      y = FrovedisDvector.asDvec(y)
+      y = FrovedisDoubleDvector.asDvec(y)
 
       (host,port) = FrovedisServer.getServerInstance()
       if cls.solver == 'sag':
@@ -191,7 +191,7 @@ class Lasso:
       cls.release()
       cls.__mid = ModelID.get()
       X = FrovedisCRSMatrix.asCRS(X)
-      y = FrovedisDvector.asDvec(y)
+      y = FrovedisDoubleDvector.asDvec(y)
 
       (host,port) = FrovedisServer.getServerInstance()
       if cls.solver == 'sag':
@@ -257,7 +257,7 @@ class Ridge:
       cls.release()
       cls.__mid = ModelID.get()
       X = FrovedisCRSMatrix.asCRS(X)
-      y = FrovedisDvector.asDvec(y)
+      y = FrovedisDoubleDvector.asDvec(y)
 
       sv = ['svd', 'cholesky', 'lsqr', 'sparse_cg']
       if cls.solver in sv: 

@@ -1,4 +1,3 @@
-#include "../exrpc/exrpc.hpp"
 #include "model_tracker.hpp"
 
 namespace frovedis {
@@ -43,10 +42,10 @@ bool is_deleted(int mid) {
 void finalize_model_table() {
   for(auto m: model_table) {
     switch(m.second.first) {
-      case LRM:    delete reinterpret_cast<LogisticRegressionModel<double>*>(m.second.second); break;
-      case SVM:    delete reinterpret_cast<SVMModel<double>*>(m.second.second); break;
-      case LNRM:   delete reinterpret_cast<LinearRegressionModel<double>*>(m.second.second); break;
-      case MFM:    delete reinterpret_cast<MatrixFactorizationModel<double>*>(m.second.second); break;
+      case LRM:    delete reinterpret_cast<logistic_regression_model<double>*>(m.second.second); break;
+      case SVM:    delete reinterpret_cast<svm_model<double>*>(m.second.second); break;
+      case LNRM:   delete reinterpret_cast<linear_regression_model<double>*>(m.second.second); break;
+      case MFM:    delete reinterpret_cast<matrix_factorization_model<double>*>(m.second.second); break;
       case KMEANS: delete reinterpret_cast<rowmajor_matrix_local<double>*>(m.second.second); break;
       default: REPORT_ERROR(INTERNAL_ERROR,"Unknown Model Kind is encountered!\n");
     }

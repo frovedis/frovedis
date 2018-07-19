@@ -1,7 +1,7 @@
 include ../../../../../Makefile.in.x86
 #include ../Makefile.in.x86
 
-all: dtransfer.mf als.mf kmeans.mf lrm.mf lrsgd.mf fel_mat.mf pblas_scalapack.mf arpack.mf
+all: dtransfer.mf als.mf kmeans.mf lrm.mf lrsgd.mf frov_mat.mf frov_df.mf pblas_scalapack.mf arpack.mf
 
 append:
 	echo ${SPARK_HOME}/jars/*:${HDPATH} > tmp
@@ -28,9 +28,13 @@ lrsgd.mf: lrsgd.mf.tmpl append
 	cp lrsgd.mf.tmpl lrsgd.mf
 	cat append >> lrsgd.mf
 
-fel_mat.mf: fel_mat.mf.tmpl append
-	cp fel_mat.mf.tmpl fel_mat.mf
-	cat append >> fel_mat.mf
+frov_mat.mf: frov_mat.mf.tmpl append
+	cp frov_mat.mf.tmpl frov_mat.mf
+	cat append >> frov_mat.mf
+
+frov_df.mf: frov_df.mf.tmpl append
+	cp frov_df.mf.tmpl frov_df.mf
+	cat append >> frov_df.mf
 
 pblas_scalapack.mf: pblas_scalapack.mf.tmpl append
 	cp pblas_scalapack.mf.tmpl pblas_scalapack.mf

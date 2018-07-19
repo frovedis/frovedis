@@ -9,8 +9,9 @@ all:
 	 ${SCALA_HOME}/bin/scalac -cp "./bin:${SPARK_HOME}/jars/*:${HDPATH}" -sourcepath . -d bin ./main/com/nec/frovedis/matrix/repartition.scala
 	 ${SCALA_HOME}/bin/scalac -cp "./bin:${SPARK_HOME}/jars/*:${HDPATH}" -sourcepath . -d bin ./main/com/nec/frovedis/matrix/ScalaCRS.scala
 	 ${SCALA_HOME}/bin/scalac -cp "./bin:${SPARK_HOME}/jars/*:${HDPATH}" -sourcepath . -d bin ./main/com/nec/frovedis/matrix/MAT_KIND.scala
+	 ${SCALA_HOME}/bin/scalac -cp "./bin:${SPARK_HOME}/jars/*:${HDPATH}" -sourcepath . -d bin ./main/com/nec/frovedis/matrix/TypedDvector.scala
 	 ${SCALA_HOME}/bin/scalac -cp "./bin:${SPARK_HOME}/jars/*:${HDPATH}" -sourcepath . -d bin ./main/com/nec/frovedis/matrix/FrovedisDenseMatrix.scala
-	 ${SCALA_HOME}/bin/scalac -cp "./bin:${SPARK_HOME}/jars/*:${HDPATH}" -sourcepath . -d bin ./main/com/nec/frovedis/exrpc/FrovedisSparseGLMData.scala
+	 ${SCALA_HOME}/bin/scalac -cp "./bin:${SPARK_HOME}/jars/*:${HDPATH}" -sourcepath . -d bin ./main/com/nec/frovedis/exrpc/FrovedisLabeledPoint.scala
 	 ${SCALA_HOME}/bin/scalac -cp "./bin:${SPARK_HOME}/jars/*:${HDPATH}" -sourcepath . -d bin ./main/com/nec/frovedis/exrpc/FrovedisSparseData.scala
 	 ${SCALA_HOME}/bin/scalac -cp "./bin:${SPARK_HOME}/jars/*:${HDPATH}" -sourcepath . -d bin ./main/com/nec/frovedis/matrix/blas_wrapper.scala
 	 ${SCALA_HOME}/bin/scalac -cp "./bin:${SPARK_HOME}/jars/*:${HDPATH}" -sourcepath . -d bin ./main/com/nec/frovedis/matrix/pblas_wrapper.scala
@@ -29,7 +30,12 @@ all:
 	 ${SCALA_HOME}/bin/scalac -cp "./bin:${SPARK_HOME}/jars/*:${HDPATH}" -sourcepath . -d bin ./main/com/nec/frovedis/mllib/recommendation/ALS.scala
 	 ${SCALA_HOME}/bin/scalac -cp "./bin:${SPARK_HOME}/jars/*:${HDPATH}" -sourcepath . -d bin ./main/com/nec/frovedis/mllib/clustering/KMeansModel.scala
 	 ${SCALA_HOME}/bin/scalac -cp "./bin:${SPARK_HOME}/jars/*:${HDPATH}" -sourcepath . -d bin ./main/com/nec/frovedis/mllib/clustering/KMeans.scala
+	 ${SCALA_HOME}/bin/scalac -cp "./bin:${SPARK_HOME}/jars/*:${HDPATH}" -sourcepath . -d bin ./main/com/nec/frovedis/sql/Expr.scala
+	 ${SCALA_HOME}/bin/scalac -cp "./bin:${SPARK_HOME}/jars/*:${HDPATH}" -sourcepath . -d bin ./main/com/nec/frovedis/sql/DFOperator.scala
+	 ${SCALA_HOME}/bin/scalac -cp "./bin:${SPARK_HOME}/jars/*:${HDPATH}" -sourcepath . -d bin ./main/com/nec/frovedis/sql/FrovedisTypedColumn.scala
+	 ${SCALA_HOME}/bin/scalac -cp "./bin:${SPARK_HOME}/jars/*:${HDPATH}" -sourcepath . -d bin ./main/com/nec/frovedis/sql/FrovedisColumn.scala
+	 ${SCALA_HOME}/bin/scalac -cp "./bin:${SPARK_HOME}/jars/*:${HDPATH}" -sourcepath . -d bin ./main/com/nec/frovedis/sql/FrovedisDataframe.scala
 	 cd bin; ${JAVA_HOME}/bin/jar -cf ../lib/frovedis_client.jar com 
 
 clean:
-	rm -fr bin/com lib/frovedis_client.jar main/cpp/JNISupport.hpp main/com/nec/frovedis/Jmatrix/*~ main/com/nec/frovedis/Jexrpc/*~ main/com/nec/frovedis/Jmllib/*~ main/com/nec/frovedis/matrix/*~ main/com/nec/frovedis/exrpc/*~ main/com/nec/frovedis/mllib/*~ main/com/nec/frovedis/mllib/regression/*~ main/com/nec/frovedis/mllib/classification/*~ main/com/nec/frovedis/mllib/recommendation/*~ main/com/nec/frovedis/clustering/*~
+	rm -fr bin/com lib/frovedis_client.jar main/cpp/JNISupport.hpp main/com/nec/frovedis/Jmatrix/*~ main/com/nec/frovedis/Jexrpc/*~ main/com/nec/frovedis/Jmllib/*~ main/com/nec/frovedis/matrix/*~ main/com/nec/frovedis/exrpc/*~ main/com/nec/frovedis/mllib/*~ main/com/nec/frovedis/mllib/regression/*~ main/com/nec/frovedis/mllib/classification/*~ main/com/nec/frovedis/mllib/recommendation/*~ main/com/nec/frovedis/clustering/*~ main/com/nec/frovedis/sql/*~

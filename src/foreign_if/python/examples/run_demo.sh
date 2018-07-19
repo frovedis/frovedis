@@ -18,3 +18,4 @@ fi
 ./dense_matrix_demo.py "$COMMAND"
 ./pblas_demo.py "$COMMAND"
 ./scalapack_demo.py "$COMMAND"
+./df_demo.py "$COMMAND"

@@ -4,7 +4,7 @@ from model_util import *
 from ..exrpc.rpclib import *
 from ..exrpc.server import *
 from ..matrix.sparse import FrovedisCRSMatrix
-from ..matrix.dvector import FrovedisDvector
+from ..matrix.dvector import FrovedisDoubleDvector
 
 class LinearSVC:
    "A python wrapper of Frovedis Linear SVM"
@@ -37,7 +37,7 @@ class LinearSVC:
       cls.release()
       cls.__mid = ModelID.get()
       X = FrovedisCRSMatrix.asCRS(X)
-      y = FrovedisDvector.asDvec(y)
+      y = FrovedisDoubleDvector.asDvec(y)
 
       regTyp = 0
       if cls.penalty == 'l1': regTyp = 1

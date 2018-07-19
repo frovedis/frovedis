@@ -5,13 +5,20 @@ import com.nec.frovedis.Jmatrix.DummyGetrfResult;
 import com.nec.frovedis.Jmatrix.DummyGesvdResult;
 import com.nec.frovedis.Jmllib.DummyGLM;
 import com.nec.frovedis.Jmllib.IntDoublePair;
-//import org.apache.spark.mllib.linalg.SparseVector;
 
 public class JNISupport {
  
   static {
     // Load native library libfrovedis_client.so at runtime
     System.loadLibrary("frovedis_client_spark");
+
+    // to ensure server will be shut_down,
+    // even if user program aborts abnormally
+    Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
+        public void run() {
+            FrovedisServer.shut_down();
+        }
+    }, "Shutdown-thread"));
   }
  
   // ---
@@ -21,13 +28,13 @@ public class JNISupport {
                                                        int off[], 
                                                        int idx[], 
                                                        double val[]);
-  public static native MemPair createFrovedisSparseGLMData(Node master_node,
-                                                         MemPair eps[],
-                                                         long nrows, long ncols);
-  public static native void releaseFrovedisSparseGLMData(Node master_node, 
-                                                       MemPair fdata);
-  public static native void showFrovedisSparseGLMData(Node master_node, 
-                                                    MemPair fdata);
+  public static native MemPair createFrovedisLabeledPoint(Node master_node,
+                                                          MemPair eps[],
+                                                          long nrows, long ncols);
+  public static native void releaseFrovedisLabeledPoint(Node master_node, 
+                                                        MemPair fdata);
+  public static native void showFrovedisLabeledPoint(Node master_node, 
+                                                     MemPair fdata);
   // ---
   public static native long loadFrovedisWorkerVectorStringData(Node t_node, 
                                                              String val[], 
@@ -312,5 +319,100 @@ public class JNISupport {
                                 boolean isTrans);
   public static native DummyGesvdResult gesvd(Node master_node, short mtype,
                                               long mptr, 
-                                              boolean wantU, boolean wantV); 
+                                              boolean wantU, boolean wantV);
+  // Dvector and DataFrame
+  public static native long loadFrovedisWorkerIntVector(Node t_node, long size,
+                                                      int data[]);
+  public static native long loadFrovedisWorkerLongVector(Node t_node, long size,
+                                                       long data[]);
+  public static native long loadFrovedisWorkerFloatVector(Node t_node, long size,
+                                                        float data[]);
+  public static native long loadFrovedisWorkerDoubleVector(Node t_node, long size,
+                                                         double data[]);
+  public static native long loadFrovedisWorkerStringVector(Node t_node, long size,
+                                                         String data[]);
+  public static native long loadFrovedisWorkerBoolVector(Node t_node, long size,
+                                                       boolean data[]);
+  public static native long createFrovedisDvector(Node master_node, long proxies[],
+                                                long sizes[], long size, short dtype);
+
+
+  // frovedis dataframe column extraction
+  public static native long[] getLocalIntColumnPointers(Node master_node,
+                                                       long proxy, String cname);
+  public static native int[] getLocalIntVector(Node wnode, long dptr);
+
+  public static native long[] getLocalLongColumnPointers(Node master_node,
+                                                        long proxy, String cname);
+  public static native long[] getLocalLongVector(Node wnode, long dptr);
+
+  public static native long[] getLocalFloatColumnPointers(Node master_node,
+                                                         long proxy, String cname);
+  public static native float[] getLocalFloatVector(Node wnode, long dptr);
+
+  public static native long[] getLocalDoubleColumnPointers(Node master_node,
+                                                          long proxy, String cname);
+  public static native double[] getLocalDoubleVector(Node wnode, long dptr);
+
+  public static native long[] getLocalStringColumnPointers(Node master_node,
+                                                           long proxy, String cname);
+  public static native String[] getLocalStringVector(Node wnode, long dptr);
+
+
+  public static native long createFrovedisDataframe(Node master_node,
+                                                  short dtypes[],
+                                                  String cols_names[],
+                                                  long dvecs[], long size);
+  public static native void releaseFrovedisDataframe(Node master_node, long data);
+  public static native void showFrovedisDataframe(Node master_node, long data);
+
+  public static native long getDFOperator(Node master_node, String op1, String op2,
+                                          short tid, short optid, boolean isImmed);
+  public static native long getDFAndOperator(Node master_node,
+                                             long proxy1, long proxy2);
+  public static native long getDFOrOperator(Node master_node,
+                                            long proxy1, long proxy2);
+  public static native void releaseFrovedisDFOperator(Node master_node, long proxy);
+  public static native long filterFrovedisDataframe(Node master_node,
+                                                  long data_proxy, long opt_proxy);
+  public static native long joinFrovedisDataframes(Node master_node,
+                                                 long dproxy1, long dproxy2,
+                                                 long opt_proxy, String type,
+                                                 String algo);
+  public static native long sortFrovedisDataframe(Node master_node,
+                                                long dproxy, String targets[],
+                                                long size, boolean isDesc);
+  public static native long selectFrovedisDataframe(Node master_node,
+                                                  long dproxy,
+                                                  String targets[], long size);
+  public static native long groupFrovedisDataframe(Node master_node,
+                                                 long dproxy, String targets[],
+                                                 long size);
+  public static native long renameFrovedisDataframe(Node master_node,
+                                                    long dproxy,
+                                                    String[] name, String[] new_name,
+                                                    int size);
+  public static native long getFrovedisDFSize(Node master_node, long dproxy);
+  public static native String[] getFrovedisDFCounts(Node master_node, 
+                                                    long dproxy, String[] cname, 
+                                                    int size);
+  public static native String[] getFrovedisDFMeans(Node master_node, 
+                                                   long dproxy, String[] cname,
+                                                   int size);
+  public static native String[] getFrovedisDFTotals(Node master_node, 
+                                                    long dproxy, String[] cname,
+                                                    short[] tids,
+                                                    int size);
+  public static native String[] getFrovedisDFMins(Node master_node, 
+                                                  long dproxy, String[] cname,
+                                                  short[] tids,
+                                                  int size);
+  public static native String[] getFrovedisDFMaxs(Node master_node, 
+                                                  long dproxy, String[] cname,
+                                                  short[] tids,
+                                                  int size);
+  public static native String[] getFrovedisDFStds(Node master_node,
+                                                  long dproxy, String[] cname,
+                                                  short[] tids,
+                                                  int size);
 }

@@ -7,7 +7,6 @@
 #include "dummy_matrix.hpp"
 
 using namespace frovedis;
-using namespace std;
 
 // Based on MATRIX type, BLAS/PBLAS calls will be linked
 // MATRIX: colmajor_matrix_local<T> => BLAS version would be called

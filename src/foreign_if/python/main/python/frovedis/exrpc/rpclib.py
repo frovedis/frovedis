@@ -33,17 +33,128 @@ finalize_server.argtypes = [c_char_p, c_int]
 
 # --- Frovedis dvector ---
 # create from numpy array
-create_frovedis_dvector = lib.create_frovedis_dvector
-create_frovedis_dvector.argtypes = [c_char_p, c_int,
+create_frovedis_int_dvector = lib.create_frovedis_int_dvector
+create_frovedis_int_dvector.argtypes = [c_char_p, c_int,
+                                  ndpointer(c_int,ndim=1,flags="C_CONTIGUOUS"),
+                                  c_int]
+create_frovedis_int_dvector.restype = py_object
+
+create_frovedis_long_dvector = lib.create_frovedis_long_dvector
+create_frovedis_long_dvector.argtypes = [c_char_p, c_int,
+                                  ndpointer(c_long,ndim=1,flags="C_CONTIGUOUS"),
+                                  c_int]
+create_frovedis_long_dvector.restype = py_object
+
+create_frovedis_float_dvector = lib.create_frovedis_float_dvector
+create_frovedis_float_dvector.argtypes = [c_char_p, c_int,
+                                  ndpointer(c_float,ndim=1,flags="C_CONTIGUOUS"),
+                                  c_int]
+create_frovedis_float_dvector.restype = py_object
+
+create_frovedis_double_dvector = lib.create_frovedis_double_dvector
+create_frovedis_double_dvector.argtypes = [c_char_p, c_int,
                                   ndpointer(c_double,ndim=1,flags="C_CONTIGUOUS"),
                                   c_int]
-create_frovedis_dvector.restype = py_object
+create_frovedis_double_dvector.restype = py_object
 
-release_frovedis_dvector = lib.release_frovedis_dvector
-release_frovedis_dvector.argtypes = [c_char_p, c_int, c_long]
+create_frovedis_string_dvector = lib.create_frovedis_string_dvector
+create_frovedis_string_dvector.argtypes = [c_char_p, c_int, POINTER(c_char_p), c_int]
+create_frovedis_string_dvector.restype = py_object
+
+#To Print Created dvector
 
 show_frovedis_dvector = lib.show_frovedis_dvector
-show_frovedis_dvector.argtypes = [c_char_p, c_int, c_long]
+show_frovedis_dvector.argtypes = [c_char_p, c_int, c_long, c_int]
+
+release_frovedis_dvector = lib.release_frovedis_dvector
+release_frovedis_dvector.argtypes = [c_char_p, c_int, c_long, c_int]
+
+#----Frovedis Dataframe from Python--------------------
+create_frovedis_dataframe = lib.create_frovedis_dataframe
+create_frovedis_dataframe.argtypes = [c_char_p, c_int, POINTER(c_short),
+                                      POINTER(c_char_p), POINTER(c_long), c_int]
+create_frovedis_dataframe.restype = c_long
+
+show_frovedis_dataframe = lib.show_frovedis_dataframe
+show_frovedis_dataframe.argtypes = [c_char_p, c_int, c_long]
+
+release_frovedis_dataframe = lib.release_frovedis_dataframe
+release_frovedis_dataframe.argtypes = [c_char_p, c_int, c_long]
+
+release_dfoperator = lib.release_dfoperator
+release_dfoperator.argtypes = [c_char_p, c_int, c_long]
+
+get_frovedis_dfoperator = lib.get_frovedis_dfoperator
+get_frovedis_dfoperator.argtypes = [c_char_p, c_int, c_char_p, c_char_p, c_short, c_short, c_bool]
+get_frovedis_dfoperator.restype = c_long
+
+get_dfANDoperator = lib.get_frovedis_dfANDoperator
+get_dfANDoperator.argtypes = [c_char_p, c_int, c_long, c_long]
+get_dfANDoperator.restype = c_long
+
+get_dfORoperator = lib.get_frovedis_dfORoperator
+get_dfORoperator.argtypes = [c_char_p, c_int, c_long, c_long]
+get_dfORoperator.restype = c_long
+
+filter_frovedis_dataframe = lib.filter_frovedis_dataframe
+filter_frovedis_dataframe.argtypes = [c_char_p, c_int, c_long, c_long]
+filter_frovedis_dataframe.restype = c_long
+
+select_frovedis_dataframe = lib.select_frovedis_dataframe
+select_frovedis_dataframe.argtypes = [c_char_p, c_int, c_long, POINTER(c_char_p), c_int]
+select_frovedis_dataframe.restype = c_long
+
+sort_frovedis_dataframe = lib.sort_frovedis_dataframe
+sort_frovedis_dataframe.argtypes = [c_char_p, c_int, c_long, POINTER(c_char_p), c_int, c_bool]
+sort_frovedis_dataframe.restype = c_long
+
+group_frovedis_dataframe = lib.group_frovedis_dataframe
+group_frovedis_dataframe.argtypes = [c_char_p, c_int, c_long, POINTER(c_char_p), c_int]
+group_frovedis_dataframe.restype = c_long
+
+merge_frovedis_dataframe = lib.join_frovedis_dataframe
+merge_frovedis_dataframe.argtypes = [c_char_p, c_int, c_long, c_long, c_long,
+                                    c_char_p, c_char_p]
+merge_frovedis_dataframe.restype = c_long
+
+rename_frovedis_dataframe = lib.rename_frovedis_dataframe
+rename_frovedis_dataframe.argtypes = [c_char_p, c_int, c_long, 
+                                      POINTER(c_char_p), POINTER(c_char_p), c_int]
+rename_frovedis_dataframe.restype = c_long
+
+get_min_frovedis_dataframe = lib.min_frovedis_dataframe
+get_min_frovedis_dataframe.argtypes = [c_char_p, c_int, c_long, 
+                                       POINTER(c_char_p), POINTER(c_short), c_int]
+get_min_frovedis_dataframe.restype = py_object 
+
+get_max_frovedis_dataframe = lib.max_frovedis_dataframe
+get_max_frovedis_dataframe.argtypes = [c_char_p, c_int, c_long, 
+                                       POINTER(c_char_p), POINTER(c_short), c_int]
+get_max_frovedis_dataframe.restype = py_object
+
+get_sum_frovedis_dataframe = lib.sum_frovedis_dataframe
+get_sum_frovedis_dataframe.argtypes = [c_char_p, c_int, c_long, 
+                                       POINTER(c_char_p), POINTER(c_short), c_int]
+get_sum_frovedis_dataframe.restype = py_object
+
+get_avg_frovedis_dataframe = lib.avg_frovedis_dataframe
+get_avg_frovedis_dataframe.argtypes = [c_char_p, c_int, c_long, 
+                                       POINTER(c_char_p), c_int]
+get_avg_frovedis_dataframe.restype = py_object
+
+get_cnt_frovedis_dataframe = lib.cnt_frovedis_dataframe
+get_cnt_frovedis_dataframe.argtypes = [c_char_p, c_int, c_long, 
+                                       POINTER(c_char_p), c_int]
+get_cnt_frovedis_dataframe.restype = py_object
+
+get_std_frovedis_dataframe = lib.std_frovedis_dataframe
+get_std_frovedis_dataframe.argtypes = [c_char_p, c_int, c_long, 
+                                       POINTER(c_char_p), POINTER(c_short), c_int]
+get_std_frovedis_dataframe.restype = py_object
+
+get_frovedis_col = lib.get_frovedis_col
+get_frovedis_col.argtypes = [c_char_p, c_int, c_long, c_char_p, c_short] 
+get_frovedis_col.restype = py_object
 
 # --- Frovedis sparse matrices ---
 # create from scipy matrix

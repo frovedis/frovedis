@@ -14,18 +14,13 @@
 // explicitly specifying "D_MAT1/D_LMAT1" (instead of S_MAT1/S_LMAT1)
 // ----------------------------------------------------------------------------
 
-#include <iostream>
-#include <string>
-#include <vector>
-
-#include "exrpc_builder.hpp"
-#include "exrpc_pblas.hpp"
-#include "exrpc_scalapack.hpp"
+#include "exrpc_request_headers.hpp"
 #include "jre_config.hpp"
 #include "JNISupport.hpp"
 
 using namespace frovedis;
-using namespace std;
+
+extern "C" {
 
 // converting jstring to std::string
 inline std::string to_cstring(JNIEnv *env, jstring s) {
@@ -189,6 +184,19 @@ jintArray to_jintArray(JNIEnv *env, std::vector<int>& pd) {
   if(ret == NULL) REPORT_ERROR(INTERNAL_ERROR, "New jintArray allocation failed.\n");
   env->SetIntArrayRegion(ret, 0, sz, arr);
   return ret;
+}
+  
+jobjectArray to_jStringArray(JNIEnv *env, std::vector<std::string>& data) {
+  auto size = data.size();
+  jclass str_cls = env->FindClass(JRE_PATH_STRING);
+  if(str_cls == NULL) REPORT_ERROR(INTERNAL_ERROR, "String class not found in JRE.\n");
+  jobjectArray sarray = env->NewObjectArray(size, str_cls, NULL);
+  if(sarray == NULL) REPORT_ERROR(INTERNAL_ERROR, "New java string array allocation failed.\n");
+  for (int i=0; i<size; i++) {
+    jstring js = env->NewStringUTF(data[i].c_str());
+    env->SetObjectArrayElement(sarray, i, js);
+  }
+  return sarray;
 }
   
 // conversion jobjectArray(string type) => std::vector<std::string>
@@ -454,7 +462,7 @@ JNIEXPORT jdoubleArray JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getDouble
 
 // creates the global Frovedis data at master node and returns 
 // a pair of created crs_matrix and dvector heads
-JNIEXPORT jobject JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_createFrovedisSparseGLMData
+JNIEXPORT jobject JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_createFrovedisLabeledPoint
   (JNIEnv *env, jclass thisCls, jobject master_node, 
    jobjectArray eps, jlong nrows, jlong ncols) {
 
@@ -538,7 +546,7 @@ JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_createFrovedisDe
   return (jlong) g_dptr;
 }
 // releases the dynamically allocated frovedis glm data from Frovedis nodes
-JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_releaseFrovedisSparseGLMData
+JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_releaseFrovedisLabeledPoint
   (JNIEnv *env, jclass thisCls, jobject master_node, jobject fdata) {
   
   auto fm_node = java_node_to_frovedis_node(env, master_node);
@@ -585,7 +593,7 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_releaseFrovedisDe
 }
 
 // prints the created frovedis glm data for debugging purpose
-JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_showFrovedisSparseGLMData
+JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_showFrovedisLabeledPoint
   (JNIEnv *env, jclass thisCls, jobject master_node, jobject fdata) {
   
   auto fm_node = java_node_to_frovedis_node(env, master_node);
@@ -1646,3 +1654,407 @@ JNIEXPORT jobject JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_gesvd
   return to_jDummyGesvdResult(env,ret,mtype,isU,isV); 
 }
 
+// Typed Dvectors
+
+// conversion jfloatArray => std::vector<float>
+std::vector<float> to_float_vector(JNIEnv *env, jfloatArray& data, size_t size) {
+  jsize d_len = env->GetArrayLength(data);
+  if(d_len != size) REPORT_ERROR(INTERNAL_ERROR, "Error in data extraction from JRE");
+  jfloat *datap = env->GetFloatArrayElements(data, 0);  float* datap_ = datap;
+  std::vector<float> data_vec(d_len);
+  for(size_t i=0; i<d_len; ++i) data_vec[i] = datap_[i];
+  env->ReleaseFloatArrayElements(data,datap,JNI_ABORT);
+  return data_vec;
+}
+
+// conversion jdoubleArray => std::vector<double>
+std::vector<double> to_double_vector(JNIEnv *env, jdoubleArray& data, size_t size) {
+  jsize d_len = env->GetArrayLength(data);
+  if(d_len != size) REPORT_ERROR(INTERNAL_ERROR, "Error in data extraction from JRE");
+  jdouble *datap = env->GetDoubleArrayElements(data, 0);  double* datap_ = datap;
+  std::vector<double> data_vec(d_len);
+  for(size_t i=0; i<d_len; ++i) data_vec[i] = datap_[i];
+  env->ReleaseDoubleArrayElements(data,datap,JNI_ABORT);
+  return data_vec;
+}
+
+// conversion jintArray => std::vector<int>
+std::vector<int> to_int_vector(JNIEnv *env, jintArray& data, size_t size) {
+  jsize d_len = env->GetArrayLength(data);
+  if(d_len != size) REPORT_ERROR(INTERNAL_ERROR, "Error in data extraction from JRE");
+  jint *datap = env->GetIntArrayElements(data, 0);  int* datap_ = datap;
+  std::vector<int> data_vec(d_len);
+  for(size_t i=0; i<d_len; ++i) data_vec[i] = datap_[i];
+  env->ReleaseIntArrayElements(data,datap,JNI_ABORT);
+  return data_vec;
+}
+
+// conversion jshortArray => std::vector<short>
+std::vector<short> to_short_vector(JNIEnv *env, jshortArray& data, size_t size) {
+  jsize d_len = env->GetArrayLength(data);
+  if(d_len != size) REPORT_ERROR(INTERNAL_ERROR, "Error in data extraction from JRE");
+  jshort *datap = env->GetShortArrayElements(data, 0);  short* datap_ = datap;
+  std::vector<short> data_vec(d_len);
+  for(size_t i=0; i<d_len; ++i) data_vec[i] = datap_[i];
+  env->ReleaseShortArrayElements(data,datap,JNI_ABORT);
+  return data_vec;
+}
+
+// conversion jlongArray => std::vector<long>
+std::vector<long> to_long_vector(JNIEnv *env, jlongArray& data, size_t size) {
+  jsize d_len = env->GetArrayLength(data);
+  if(d_len != size) REPORT_ERROR(INTERNAL_ERROR, "Error in data extraction from JRE");
+  jlong *datap = env->GetLongArrayElements(data, 0);  long* datap_ = datap;
+  std::vector<long> data_vec(d_len);
+  for(size_t i=0; i<d_len; ++i) data_vec[i] = datap_[i];
+  env->ReleaseLongArrayElements(data,datap,JNI_ABORT);
+  return data_vec;
+}
+
+// conversion jlongArray => std::vector<size_t>
+std::vector<size_t>
+to_sizet_vector(JNIEnv *env, jlongArray& data, size_t size) {
+  jsize d_len = env->GetArrayLength(data);
+  if(d_len != size) REPORT_ERROR(INTERNAL_ERROR, "Error in data extraction from JRE");
+  jlong *datap = env->GetLongArrayElements(data, 0);  long* datap_ = datap;
+  std::vector<size_t> data_vec(d_len);
+  for(size_t i=0; i<d_len; ++i) data_vec[i] = static_cast<size_t>(datap_[i]);
+  env->ReleaseLongArrayElements(data,datap,JNI_ABORT);
+  return data_vec;
+}
+
+// conversion jlongArray => std::vector<exrpc_ptr_t>
+std::vector<exrpc_ptr_t>
+to_exrpc_vector(JNIEnv *env, jlongArray& data, size_t size) {
+  jsize d_len = env->GetArrayLength(data);
+  if(d_len != size) REPORT_ERROR(INTERNAL_ERROR, "Error in data extraction from JRE");
+  jlong *datap = env->GetLongArrayElements(data, 0);  long* datap_ = datap;
+  std::vector<exrpc_ptr_t> data_vec(d_len);
+  for(size_t i=0; i<d_len; ++i) data_vec[i] = static_cast<exrpc_ptr_t>(datap_[i]);
+  env->ReleaseLongArrayElements(data,datap,JNI_ABORT);
+  return data_vec;
+}
+
+// conversion jbooleanArray => std::vector<int>
+// bool (true/false) will be stored as integer (1/0)
+// since C++ std::vector<bool> handles "bool" objects differently
+std::vector<int> to_bool_vector(JNIEnv *env, jbooleanArray& data, size_t size) {
+  jsize d_len = env->GetArrayLength(data);
+  if(d_len != size) REPORT_ERROR(INTERNAL_ERROR, "Error in data extraction from JRE");
+  jboolean *datap = env->GetBooleanArrayElements(data, 0);  // bool* datap_ = datap;
+  std::vector<int> data_vec(d_len);
+  for(size_t i=0; i<d_len; ++i) data_vec[i] = datap[i] ? 1 : 0;
+  env->ReleaseBooleanArrayElements(data,datap,JNI_ABORT);
+  return data_vec;
+}
+
+JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_loadFrovedisWorkerIntVector
+  (JNIEnv *env, jclass thisCls, jobject master_node, jlong size,
+   jintArray data) {
+
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto data_vec = to_int_vector(env,data,size);
+  auto proxy = exrpc_async(fm_node, (load_local_data<std::vector<int>>), data_vec).get();
+  return (jlong) proxy;
+}
+
+JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_loadFrovedisWorkerLongVector
+  (JNIEnv *env, jclass thisCls, jobject master_node, jlong size,
+   jlongArray data) {
+
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto data_vec = to_long_vector(env,data,size);
+  auto proxy = exrpc_async(fm_node, (load_local_data<std::vector<long>>), data_vec).get();
+  return (jlong) proxy;
+}
+
+JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_loadFrovedisWorkerFloatVector
+  (JNIEnv *env, jclass thisCls, jobject master_node, jlong size,
+   jfloatArray data) {
+
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto data_vec = to_float_vector(env,data,size);
+  auto proxy = exrpc_async(fm_node, (load_local_data<std::vector<float>>), data_vec).get();
+  return (jlong) proxy;
+}
+
+JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_loadFrovedisWorkerDoubleVector
+  (JNIEnv *env, jclass thisCls, jobject master_node, jlong size,
+   jdoubleArray data) {
+
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto data_vec = to_double_vector(env,data,size);
+  auto proxy = exrpc_async(fm_node, (load_local_data<std::vector<double>>), data_vec).get();
+  return (jlong) proxy;
+}
+
+JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_loadFrovedisWorkerBooleanVector
+  (JNIEnv *env, jclass thisCls, jobject master_node, jlong size,
+   jbooleanArray data) {
+
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto data_vec = to_bool_vector(env,data,size); // actually std::vector<int>
+  auto proxy = exrpc_async(fm_node, (load_local_data<std::vector<int>>), data_vec).get();
+  return (jlong) proxy;
+}
+
+JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_loadFrovedisWorkerStringVector
+  (JNIEnv *env, jclass thisCls, jobject master_node, jlong size,
+   jobjectArray data) {
+
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto data_vec = to_string_vector(env,data,size);
+  auto proxy = exrpc_async(fm_node, (load_local_data<std::vector<std::string>>), data_vec).get();
+  return (jlong) proxy;
+}
+
+JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_createFrovedisDvector
+  (JNIEnv *env, jclass thisCls, jobject master_node,
+   jlongArray proxies, jlongArray sizes, jlong size, jshort dtype) {
+
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto p_vec = to_exrpc_vector(env, proxies, size);
+  auto s_vec = to_sizet_vector(env, sizes, size); // no need
+  exrpc_ptr_t dvecp = -1;
+  //std::cout << "[createFrovedisDvector] dtype: " << dtype << std::endl;
+  switch(dtype) {
+     case INT:    dvecp = exrpc_async(fm_node,create_and_set_dvector<int>,p_vec).get(); break;
+     case LONG:   dvecp = exrpc_async(fm_node,create_and_set_dvector<long>,p_vec).get(); break;
+     case FLOAT:  dvecp = exrpc_async(fm_node,create_and_set_dvector<float>,p_vec).get(); break;
+     case DOUBLE: dvecp = exrpc_async(fm_node,create_and_set_dvector<double>,p_vec).get(); break;
+     case STRING: dvecp = exrpc_async(fm_node,create_and_set_dvector<std::string>,p_vec).get(); break;
+     case BOOL:   dvecp = exrpc_async(fm_node,create_and_set_dvector<int>,p_vec).get(); break;
+     default:     REPORT_ERROR(USER_ERROR,
+                  "Unsupported datatype is encountered in dvector creation!\n");
+  }
+  return (jlong) dvecp;
+}
+
+JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_createFrovedisDataframe
+  (JNIEnv *env, jclass thisCls, jobject master_node, jshortArray dtps,
+   jobjectArray cols, jlongArray dvec_proxies, jlong size) {
+
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto dtypes = to_short_vector(env, dtps, size);
+  auto col_names = to_string_vector(env, cols, size);
+  auto dvecps = to_exrpc_vector(env, dvec_proxies, size);
+  auto df_proxy = exrpc_async(fm_node,create_dataframe,dtypes,col_names,dvecps).get();
+  return (jlong) df_proxy;
+}
+
+JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getDFOperator
+  (JNIEnv *env, jclass thisCls, jobject master_node,
+   jstring col1, jstring col2, jshort tid, jshort optid, jboolean isImmed) {
+
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto t1 = to_cstring(env, col1);
+  auto t2 = to_cstring(env, col2);
+  auto immed = (bool) isImmed;
+  exrpc_ptr_t opt_proxy = -1;
+  switch(tid) {
+     case INT:    opt_proxy = exrpc_async(fm_node,get_dfoperator<int>,t1,t2,optid,immed).get(); break;
+     case LONG:   opt_proxy = exrpc_async(fm_node,get_dfoperator<long>,t1,t2,optid,immed).get(); break;
+     case FLOAT:  opt_proxy = exrpc_async(fm_node,get_dfoperator<float>,t1,t2,optid,immed).get(); break;
+     case DOUBLE: opt_proxy = exrpc_async(fm_node,get_dfoperator<double>,t1,t2,optid,immed).get(); break;
+     case STRING: opt_proxy = exrpc_async(fm_node,get_str_dfoperator,t1,t2,optid,immed).get(); break;
+     case BOOL:   opt_proxy = exrpc_async(fm_node,get_dfoperator<int>,t1,t2,optid,immed).get(); break;
+     default:     REPORT_ERROR(USER_ERROR,
+                  "Unsupported datatype is encountered in dfoperator creation!\n");
+  }
+  return (jlong) opt_proxy;
+}
+
+JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getDFAndOperator
+  (JNIEnv *env, jclass thisCls, jobject master_node, jlong op1, jlong op2) {
+
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto oproxy1 = static_cast<exrpc_ptr_t> (op1);
+  auto oproxy2 = static_cast<exrpc_ptr_t> (op2);
+  auto ret_proxy = exrpc_async(fm_node,get_dfANDoperator,oproxy1,oproxy2).get();
+  return (jlong) ret_proxy;
+}
+
+JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getDFOrOperator
+  (JNIEnv *env, jclass thisCls, jobject master_node, jlong op1, jlong op2) {
+
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto oproxy1 = static_cast<exrpc_ptr_t> (op1);
+  auto oproxy2 = static_cast<exrpc_ptr_t> (op2);
+  auto ret_proxy = exrpc_async(fm_node,get_dfORoperator,oproxy1,oproxy2).get();
+  return (jlong) ret_proxy;
+}
+
+JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_releaseFrovedisDFOperator
+  (JNIEnv *env, jclass thisCls, jobject master_node, jlong proxy) {
+
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto opt_proxy = static_cast<exrpc_ptr_t> (proxy);
+  exrpc_oneway(fm_node,(release_data<std::shared_ptr<dfoperator>>),opt_proxy);
+}
+
+JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_releaseFrovedisDataframe
+  (JNIEnv *env, jclass thisCls, jobject master_node, jlong proxy) {
+
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto df_proxy = static_cast<exrpc_ptr_t> (proxy);
+  exrpc_oneway(fm_node,release_data<dftable>,df_proxy);
+}
+
+JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_showFrovedisDataframe
+  (JNIEnv *env, jclass thisCls, jobject master_node, jlong proxy) {
+
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto df_proxy = static_cast<exrpc_ptr_t> (proxy);
+  exrpc_oneway(fm_node,show_dataframe,df_proxy);
+}
+
+JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_filterFrovedisDataframe
+  (JNIEnv *env, jclass thisCls, jobject master_node, jlong dftbl, jlong opt) {
+
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto df_proxy = static_cast<exrpc_ptr_t> (dftbl);
+  auto opt_proxy = static_cast<exrpc_ptr_t> (opt);
+  auto ret_proxy = exrpc_async(fm_node,filter_df,df_proxy,opt_proxy).get();
+  return (jlong) ret_proxy;
+}
+
+JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_joinFrovedisDataframes
+  (JNIEnv *env, jclass thisCls, jobject master_node, jlong dftbl1, jlong dftbl2,
+   jlong opt, jstring type, jstring algo) {
+
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto df_proxy1 = static_cast<exrpc_ptr_t> (dftbl1);
+  auto df_proxy2 = static_cast<exrpc_ptr_t> (dftbl2);
+  auto opt_proxy = static_cast<exrpc_ptr_t> (opt);
+  auto jtype = to_cstring(env, type);
+  auto jalgo = to_cstring(env, algo);
+  auto ret_proxy = exrpc_async(fm_node,join_df,df_proxy1,df_proxy2,opt_proxy,jtype,jalgo).get();
+  return (jlong) ret_proxy;
+}
+
+JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_selectFrovedisDataframe
+  (JNIEnv *env, jclass thisCls, jobject master_node, jlong dftbl,
+   jobjectArray target, jlong size) {
+
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto df_proxy = static_cast<exrpc_ptr_t> (dftbl);
+  auto cols = to_string_vector(env,target,size);
+  auto ret_proxy = exrpc_async(fm_node,select_df,df_proxy,cols).get();
+  return (jlong) ret_proxy;
+}
+
+JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_groupFrovedisDataframe
+  (JNIEnv *env, jclass thisCls, jobject master_node, jlong dftbl,
+   jobjectArray target, jlong size) {
+
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto df_proxy = static_cast<exrpc_ptr_t> (dftbl);
+  auto cols = to_string_vector(env,target,size);
+  auto ret_proxy = exrpc_async(fm_node,group_by_df,df_proxy,cols).get();
+  return (jlong) ret_proxy;
+}
+
+JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_sortFrovedisDataframe
+  (JNIEnv *env, jclass thisCls, jobject master_node, jlong dftbl,
+   jobjectArray target, jlong size, jboolean isDesc) {
+
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto df_proxy = static_cast<exrpc_ptr_t> (dftbl);
+  auto cols = to_string_vector(env,target,size);
+  auto desc = (bool) isDesc;
+  auto ret_proxy = exrpc_async(fm_node,sort_df,df_proxy,cols,desc).get();
+  return (jlong) ret_proxy;
+}
+
+JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getFrovedisDFSize
+  (JNIEnv *env, jclass thisCls, jobject master_node, jlong dftbl) {
+
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto df_proxy = static_cast<exrpc_ptr_t> (dftbl);
+  auto ret = exrpc_async(fm_node,frovedis_df_size,df_proxy).get();
+  return (jlong) ret;
+}
+
+JNIEXPORT jobjectArray JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getFrovedisDFCounts
+  (JNIEnv *env, jclass thisCls, jobject master_node, jlong dftbl, 
+   jobjectArray target, jint size) {
+
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto df_proxy = static_cast<exrpc_ptr_t> (dftbl);
+  auto cols = to_string_vector(env,target,size);
+  auto ret = exrpc_async(fm_node,frovedis_df_cnt,df_proxy,cols).get();
+  return to_jStringArray(env,ret);
+}
+
+JNIEXPORT jobjectArray JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getFrovedisDFMeans
+  (JNIEnv *env, jclass thisCls, jobject master_node, jlong dftbl, 
+   jobjectArray target, jint size) {
+
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto df_proxy = static_cast<exrpc_ptr_t> (dftbl);
+  auto cols = to_string_vector(env,target,size);
+  auto ret = exrpc_async(fm_node,frovedis_df_avg,df_proxy,cols).get();
+  return to_jStringArray(env,ret);
+}
+
+JNIEXPORT jobjectArray JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getFrovedisDFTotals
+  (JNIEnv *env, jclass thisCls, jobject master_node, jlong dftbl, 
+   jobjectArray target, jshortArray tid, jint size) {
+
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto df_proxy = static_cast<exrpc_ptr_t> (dftbl);
+  auto cols = to_string_vector(env,target,size);
+  auto tids = to_short_vector(env,tid,size);
+  auto ret = exrpc_async(fm_node,frovedis_df_sum,df_proxy,cols,tids).get();
+  return to_jStringArray(env,ret);
+}
+
+JNIEXPORT jobjectArray JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getFrovedisDFMins
+  (JNIEnv *env, jclass thisCls, jobject master_node, jlong dftbl, 
+   jobjectArray target, jshortArray tid, jint size) {
+
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto df_proxy = static_cast<exrpc_ptr_t> (dftbl);
+  auto cols = to_string_vector(env,target,size);
+  auto tids = to_short_vector(env,tid,size);
+  auto ret = exrpc_async(fm_node,frovedis_df_min,df_proxy,cols,tids).get();
+  return to_jStringArray(env,ret);
+}
+
+JNIEXPORT jobjectArray JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getFrovedisDFMaxs
+  (JNIEnv *env, jclass thisCls, jobject master_node, jlong dftbl, 
+   jobjectArray target, jshortArray tid, jint size) {
+
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto df_proxy = static_cast<exrpc_ptr_t> (dftbl);
+  auto cols = to_string_vector(env,target,size);
+  auto tids = to_short_vector(env,tid,size);
+  auto ret = exrpc_async(fm_node,frovedis_df_max,df_proxy,cols,tids).get();
+  return to_jStringArray(env,ret);
+}
+
+JNIEXPORT jobjectArray JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getFrovedisDFStds
+  (JNIEnv *env, jclass thisCls, jobject master_node, jlong dftbl,
+   jobjectArray target, jshortArray tid, jint size) {
+
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto df_proxy = static_cast<exrpc_ptr_t> (dftbl);
+  auto cols = to_string_vector(env,target,size);
+  auto tids = to_short_vector(env,tid,size);
+  auto ret = exrpc_async(fm_node,frovedis_df_std,df_proxy,cols,tids).get();
+  return to_jStringArray(env,ret);
+}
+
+JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_renameFrovedisDataframe
+  (JNIEnv *env, jclass thisCls, jobject master_node, jlong dftbl, 
+   jobjectArray names, jobjectArray new_names, jint size) {
+
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto df_proxy = static_cast<exrpc_ptr_t> (dftbl);
+  auto cols = to_string_vector(env,names,size);
+  auto new_cols = to_string_vector(env,new_names,size);
+  auto ret = exrpc_async(fm_node,frovedis_df_rename,df_proxy,cols,new_cols).get();
+  return (jlong) ret;
+}
+
+}

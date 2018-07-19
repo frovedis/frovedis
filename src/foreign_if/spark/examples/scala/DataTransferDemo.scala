@@ -2,7 +2,7 @@ package test.scala;
 
 import com.nec.frovedis.Jexrpc.FrovedisServer
 import com.nec.frovedis.exrpc.FrovedisSparseData
-import com.nec.frovedis.exrpc.FrovedisSparseGLMData
+import com.nec.frovedis.exrpc.FrovedisLabeledPoint
 import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.mllib.util.MLUtils
 
@@ -20,8 +20,8 @@ object DataTransferDemo {
     val s_data = MLUtils.loadLibSVMFile(sc, "./input/libSVMFile.txt")
 
     // returns MemPair java object containing crs_matrix and dvector heads
-    println("converting spark RDD[LabeledPoint] => FrovedisSparseGLMData")
-    val fd = new FrovedisSparseGLMData(s_data)
+    println("converting spark RDD[LabeledPoint] => FrovedisLabeledPoint")
+    val fd = new FrovedisLabeledPoint(s_data)
     fd.debug_print() 
     fd.release()
     

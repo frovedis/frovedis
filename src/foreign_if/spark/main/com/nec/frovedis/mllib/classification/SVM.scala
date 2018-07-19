@@ -2,7 +2,7 @@ package com.nec.frovedis.mllib.classification;
 
 import com.nec.frovedis.Jexrpc.{FrovedisServer,JNISupport}
 import com.nec.frovedis.Jmllib.DummyGLM
-import com.nec.frovedis.exrpc.FrovedisSparseGLMData
+import com.nec.frovedis.exrpc.FrovedisLabeledPoint
 import com.nec.frovedis.mllib.{M_KIND,ModelID}
 import com.nec.frovedis.mllib.regression.GeneralizedLinearModel
 import org.apache.spark.SparkContext
@@ -53,7 +53,7 @@ object SVMWithSGD {
             stepSize: Double,
             regParam: Double,
             miniBatchFraction: Double) : SVMModel = { 
-     val fdata = new FrovedisSparseGLMData(data) // Spark Data => Frovedis Data 
+     val fdata = new FrovedisLabeledPoint(data) // Spark Data => Frovedis Data 
      return train(fdata, numIter, stepSize, regParam, miniBatchFraction, true)
   }
 
@@ -82,7 +82,7 @@ object SVMWithSGD {
   // User needs to convert the Spark data into Frovedis Data by himself before 
   // calling this interface. In this case, user has to explicitly free the 
   // Frovedis Data when it will no longer be needed to avoid memory leak at Frovedis server.
-  def train(data: FrovedisSparseGLMData,
+  def train(data: FrovedisLabeledPoint,
             numIter: Int,
             stepSize: Double,
             regParam: Double,
@@ -99,7 +99,7 @@ object SVMWithSGD {
      return new SVMModel(mid,M_KIND.SVM,numFeatures,numClasses,intercept,threshold)
   }
 
-  def train(data: FrovedisSparseGLMData,
+  def train(data: FrovedisLabeledPoint,
             numIter: Int,
             stepSize: Double,
             regParam: Double,
@@ -107,25 +107,25 @@ object SVMWithSGD {
      return train(data, numIter, stepSize, regParam, miniBatchFraction, false)
   }
 
-  def train(data: FrovedisSparseGLMData,
+  def train(data: FrovedisLabeledPoint,
             numIter: Int,
             stepSize: Double,
             regParam: Double) : SVMModel = {
      return train(data, numIter, stepSize, regParam, 1.0, false)
   }
 
-  def train(data: FrovedisSparseGLMData,
+  def train(data: FrovedisLabeledPoint,
             numIter: Int,
             stepSize: Double) : SVMModel = {
      return train(data, numIter, stepSize, 0.01, 1.0, false)
   }
 
-  def train(data: FrovedisSparseGLMData,
+  def train(data: FrovedisLabeledPoint,
             numIter: Int) : SVMModel = {
      return train(data, numIter, 0.01, 0.01, 1.0, false)
   }
 
-  def train(data: FrovedisSparseGLMData) : SVMModel = {
+  def train(data: FrovedisLabeledPoint) : SVMModel = {
      return train(data, 1000, 0.01, 0.01, 1.0, false)
   }
 }
@@ -139,7 +139,7 @@ object SVMWithLBFGS {
             stepSize: Double,
             regParam: Double,
             histSize: Int) : SVMModel = {
-     val fdata = new FrovedisSparseGLMData(data) // Spark Data => Frovedis Data 
+     val fdata = new FrovedisLabeledPoint(data) // Spark Data => Frovedis Data 
      return train(fdata, numIter, stepSize, regParam, histSize, true)
   }
 
@@ -168,7 +168,7 @@ object SVMWithLBFGS {
   // User needs to convert the Spark data into Frovedis Data by himself before 
   // calling this interface. In this case, user has to explicitly free the 
   // Frovedis Data when it will no longer be needed to avoid memory leak at Frovedis server.
-  def train(data: FrovedisSparseGLMData,
+  def train(data: FrovedisLabeledPoint,
             numIter: Int,
             stepSize: Double,
             regParam: Double,
@@ -185,7 +185,7 @@ object SVMWithLBFGS {
      return new SVMModel(mid,M_KIND.SVM,numFeatures,numClasses,intercept,threshold)
   }
 
-  def train(data: FrovedisSparseGLMData,
+  def train(data: FrovedisLabeledPoint,
             numIter: Int,
             stepSize: Double,
             regParam: Double,
@@ -193,25 +193,25 @@ object SVMWithLBFGS {
      return train(data, numIter, stepSize, regParam, histSize, false)
   }
 
-  def train(data: FrovedisSparseGLMData,
+  def train(data: FrovedisLabeledPoint,
             numIter: Int,
             stepSize: Double,
             regParam: Double) : SVMModel = {
      return train(data, numIter, stepSize, regParam, 10, false)
   }
 
-  def train(data: FrovedisSparseGLMData,
+  def train(data: FrovedisLabeledPoint,
             numIter: Int,
             stepSize: Double) : SVMModel = {
      return train(data, numIter, stepSize, 0.01, 10, false)
   }
 
-  def train(data: FrovedisSparseGLMData,
+  def train(data: FrovedisLabeledPoint,
             numIter: Int) : SVMModel = {
      return train(data, numIter, 0.01, 0.01, 10, false)
   }
 
-  def train(data: FrovedisSparseGLMData) : SVMModel = {
+  def train(data: FrovedisLabeledPoint) : SVMModel = {
      return train(data, 1000, 0.01, 0.01, 10, false)
   }
 }

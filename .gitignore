@@ -1,0 +1,16 @@
+# Subversion directory
+.svn/
+
+# Compiled Object files
+*.o
+*.class
+*.jar
+
+# Compiled Dynamic libraries
+*.so
+
+# Compiled Static libraries
+*.a
+
+# Backup file
+*~

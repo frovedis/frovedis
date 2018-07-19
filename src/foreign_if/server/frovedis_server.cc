@@ -9,23 +9,40 @@
 // just exposing the dense wrapper routines with template args "D_MAT1/D_LMAT1"
 // ------------------------------------------------------------------------------
 
-#include "exrpc_builder.hpp"
-#include "exrpc_pblas.hpp"
-#include "exrpc_scalapack.hpp"
-#include "model_tracker.hpp"
+#include "exrpc_request_headers.hpp"
 
 using namespace frovedis;
-using namespace std;
 
 int main(int argc, char* argv[]) {
   frovedis::use_frovedis use(argc, argv);
   expose(get_nodesize);
   expose(cleanup_frovedis_server);
-  // --- frovedis dvector ---
+  // --- frovedis dvector for labels ---
   expose((load_local_data<std::vector<DT1>>));
   expose(create_and_set_dvector<DT1>);
   expose(show_dvector<DT1>);
   expose(release_dvector<DT1>);
+  // --- frovedis typed dvector for dataframes ---
+  expose((load_local_data<std::vector<int>>));
+  expose((load_local_data<std::vector<long>>));
+  expose((load_local_data<std::vector<float>>));
+  expose((load_local_data<std::vector<double>>));
+  expose((load_local_data<std::vector<std::string>>));
+  expose(create_and_set_dvector<int>);
+  expose(create_and_set_dvector<long>);
+  expose(create_and_set_dvector<float>);
+  expose(create_and_set_dvector<double>);
+  expose(create_and_set_dvector<std::string>);
+  expose(show_dvector<int>);
+  expose(show_dvector<long>);
+  expose(show_dvector<float>);
+  expose(show_dvector<double>);
+  expose(show_dvector<std::string>);
+  expose(release_dvector<int>);
+  expose(release_dvector<long>);
+  expose(release_dvector<float>);
+  expose(release_dvector<double>);
+  expose(release_dvector<std::string>);
   // --- frovedis glm data ---
   expose((load_local_glm_data<DT1,S_LMAT1>));
   expose((create_and_set_glm_data<DT1,S_MAT1,S_LMAT1>));
@@ -186,6 +203,36 @@ int main(int argc, char* argv[]) {
   expose((frovedis_gels<DT1,B_MAT1>));
   expose((frovedis_gesvd<DT1,C_LMAT1>));
   expose((frovedis_gesvd<DT1,B_MAT1>));
+  // --- frovedis dataframe ---
+  expose(create_dataframe);
+  expose(release_data<dftable>);
+  expose(show_dataframe);
+  expose(get_dfoperator<int>);
+  expose(get_dfoperator<long>);
+  expose(get_dfoperator<float>);
+  expose(get_dfoperator<double>);
+  expose(get_str_dfoperator);
+  expose(get_dfANDoperator);
+  expose(get_dfORoperator);
+  expose((release_data<std::shared_ptr<dfoperator>>));
+  expose(filter_df);
+  expose(select_df);
+  expose(sort_df);
+  expose(join_df);
+  expose(group_by_df);
+  expose(frovedis_df_size);
+  expose(frovedis_df_cnt);
+  expose(frovedis_df_sum);
+  expose(frovedis_df_avg);
+  expose(frovedis_df_min);
+  expose(frovedis_df_max);
+  expose(frovedis_df_std);
+  expose(frovedis_df_rename);
+  expose(get_df_int_col);
+  expose(get_df_long_col);
+  expose(get_df_float_col);
+  expose(get_df_double_col);
+  expose(get_df_string_col);
 
   frovedis::init_frovedis_server(argc, argv);
   return 0;

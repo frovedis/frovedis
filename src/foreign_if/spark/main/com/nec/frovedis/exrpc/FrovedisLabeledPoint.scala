@@ -7,7 +7,7 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.SparkContext
 import org.apache.spark.mllib.regression.LabeledPoint
 
-class FrovedisSparseGLMData extends java.io.Serializable {
+class FrovedisLabeledPoint extends java.io.Serializable {
   protected var fdata : MemPair = null
   protected var num_row: Long = 0
   protected var num_col: Long = 0
@@ -52,13 +52,13 @@ class FrovedisSparseGLMData extends java.io.Serializable {
                  (i,x) => convert_and_send_local_data(x,fw_nodes(i))).collect
 
     /** getting frovedis distributed data from frovedis local data */ 
-    fdata = JNISupport.createFrovedisSparseGLMData(fs.master_node, 
+    fdata = JNISupport.createFrovedisLabeledPoint(fs.master_node, 
                                                  ep_all, num_row, num_col)
   }
   def release() : Unit = {
     if (fdata != null) {
       val fs = FrovedisServer.getServerInstance() 
-      JNISupport.releaseFrovedisSparseGLMData(fs.master_node,fdata)
+      JNISupport.releaseFrovedisLabeledPoint(fs.master_node,fdata)
       fdata = null
       num_row = 0 
       num_col = 0
@@ -67,7 +67,7 @@ class FrovedisSparseGLMData extends java.io.Serializable {
   def debug_print() : Unit = {
     if (fdata != null) {
       val fs = FrovedisServer.getServerInstance() 
-      JNISupport.showFrovedisSparseGLMData(fs.master_node,fdata)
+      JNISupport.showFrovedisLabeledPoint(fs.master_node,fdata)
     }
   }
   def get() = fdata

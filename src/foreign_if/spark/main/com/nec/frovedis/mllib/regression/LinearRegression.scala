@@ -2,7 +2,7 @@ package com.nec.frovedis.mllib.regression;
 
 import com.nec.frovedis.Jexrpc.{FrovedisServer,JNISupport}
 import com.nec.frovedis.Jmllib.DummyGLM
-import com.nec.frovedis.exrpc.FrovedisSparseGLMData
+import com.nec.frovedis.exrpc.FrovedisLabeledPoint
 import com.nec.frovedis.mllib.{M_KIND,ModelID}
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
@@ -54,7 +54,7 @@ object LinearRegressionWithSGD {
             numIter: Int,
             stepSize: Double,
             miniBatchFraction: Double) : LinearRegressionModel = { 
-     val fdata = new FrovedisSparseGLMData(data) // Spark Data => Frovedis Data 
+     val fdata = new FrovedisLabeledPoint(data) // Spark Data => Frovedis Data 
      return train(fdata, numIter, stepSize, miniBatchFraction, true)
   }
 
@@ -76,7 +76,7 @@ object LinearRegressionWithSGD {
   // User needs to convert the Spark data into Frovedis Data by himself before 
   // calling this interface. In this case, user has to explicitly free the 
   // Frovedis Data when it will no longer be needed to avoid memory leak at Frovedis server.
-  def train(data: FrovedisSparseGLMData,
+  def train(data: FrovedisLabeledPoint,
             numIter: Int,
             stepSize: Double,
             miniBatchFraction: Double,
@@ -90,25 +90,25 @@ object LinearRegressionWithSGD {
      return new LinearRegressionModel(mid,M_KIND.LNRM,numFeatures,intercept)
   }
 
-  def train(data: FrovedisSparseGLMData,
+  def train(data: FrovedisLabeledPoint,
             numIter: Int,
             stepSize: Double,
             miniBatchFraction: Double) : LinearRegressionModel = {
      return train(data, numIter, stepSize, miniBatchFraction, false)
   }
 
-  def train(data: FrovedisSparseGLMData,
+  def train(data: FrovedisLabeledPoint,
             numIter: Int,
             stepSize: Double) : LinearRegressionModel = {
      return train(data, numIter, stepSize, 1.0, false)
   }
 
-  def train(data: FrovedisSparseGLMData,
+  def train(data: FrovedisLabeledPoint,
             numIter: Int) : LinearRegressionModel = {
      return train(data, numIter, 0.01, 1.0, false)
   }
 
-  def train(data: FrovedisSparseGLMData) : LinearRegressionModel = {
+  def train(data: FrovedisLabeledPoint) : LinearRegressionModel = {
      return train(data, 1000, 0.01, 1.0, false)
   }
 }
@@ -121,7 +121,7 @@ object LinearRegressionWithLBFGS {
             numIter: Int,
             stepSize: Double,
             histSize: Int) : LinearRegressionModel = {
-     val fdata = new FrovedisSparseGLMData(data) // Spark Data => Frovedis Data 
+     val fdata = new FrovedisLabeledPoint(data) // Spark Data => Frovedis Data 
      return train(fdata, numIter, stepSize, histSize, true)
   }
 
@@ -143,7 +143,7 @@ object LinearRegressionWithLBFGS {
   // User needs to convert the Spark data into Frovedis Data by himself before 
   // calling this interface. In this case, user has to explicitly free the 
   // Frovedis Data when it will no longer be needed to avoid memory leak at Frovedis server.
-  def train(data: FrovedisSparseGLMData,
+  def train(data: FrovedisLabeledPoint,
             numIter: Int,
             stepSize: Double,
             histSize: Int,
@@ -157,25 +157,25 @@ object LinearRegressionWithLBFGS {
      return new LinearRegressionModel(mid,M_KIND.LNRM,numFeatures,intercept)
   }
 
-  def train(data: FrovedisSparseGLMData,
+  def train(data: FrovedisLabeledPoint,
             numIter: Int,
             stepSize: Double,
             histSize: Int) : LinearRegressionModel = {
      return train(data, numIter, stepSize, histSize, false)
   }
 
-  def train(data: FrovedisSparseGLMData,
+  def train(data: FrovedisLabeledPoint,
             numIter: Int,
             stepSize: Double) : LinearRegressionModel = {
      return train(data, numIter, stepSize, 10, false)
   }
 
-  def train(data: FrovedisSparseGLMData,
+  def train(data: FrovedisLabeledPoint,
             numIter: Int) : LinearRegressionModel = {
      return train(data, numIter, 0.01, 10, false)
   }
 
-  def train(data: FrovedisSparseGLMData) : LinearRegressionModel = {
+  def train(data: FrovedisLabeledPoint) : LinearRegressionModel = {
      return train(data, 1000, 0.01, 10, false)
   }
 }

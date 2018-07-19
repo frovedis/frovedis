@@ -2,7 +2,7 @@ package com.nec.frovedis.mllib.classification;
 
 import com.nec.frovedis.Jexrpc.{FrovedisServer,JNISupport}
 import com.nec.frovedis.Jmllib.DummyGLM
-import com.nec.frovedis.exrpc.FrovedisSparseGLMData
+import com.nec.frovedis.exrpc.FrovedisLabeledPoint
 import com.nec.frovedis.mllib.{M_KIND,ModelID}
 import com.nec.frovedis.mllib.regression.GeneralizedLinearModel
 import org.apache.spark.SparkContext
@@ -53,7 +53,7 @@ object LogisticRegressionWithSGD {
             stepSize: Double,
             miniBatchFraction: Double,
             regParam: Double) : LogisticRegressionModel = {
-     val fdata = new FrovedisSparseGLMData(data) // Spark Data => Frovedis Data 
+     val fdata = new FrovedisLabeledPoint(data) // Spark Data => Frovedis Data 
      return train(fdata, numIter, stepSize, miniBatchFraction, regParam, true)
   }
 
@@ -82,7 +82,7 @@ object LogisticRegressionWithSGD {
   // User needs to convert the Spark data into Frovedis Data by himself before 
   // calling this interface. In this case, user has to explicitly free the 
   // Frovedis Data when it will no longer be needed to avoid memory leak at Frovedis server.
-  def train(data: FrovedisSparseGLMData,
+  def train(data: FrovedisLabeledPoint,
             numIter: Int,
             stepSize: Double,
             miniBatchFraction: Double,
@@ -99,7 +99,7 @@ object LogisticRegressionWithSGD {
      return new LogisticRegressionModel(mid,M_KIND.LRM,numFeatures,numClasses,intercept,threshold)
   }
 
-  def train(data: FrovedisSparseGLMData,
+  def train(data: FrovedisLabeledPoint,
             numIter: Int,
             stepSize: Double,
             miniBatchFraction: Double,
@@ -107,25 +107,25 @@ object LogisticRegressionWithSGD {
      return train(data, numIter, stepSize, miniBatchFraction, regParam, false)
   }
 
-  def train(data: FrovedisSparseGLMData,
+  def train(data: FrovedisLabeledPoint,
             numIter: Int,
             stepSize: Double,
             miniBatchFraction: Double) : LogisticRegressionModel = {
      return train(data, numIter, stepSize, miniBatchFraction, 0.01, false)
   }
 
-  def train(data: FrovedisSparseGLMData,
+  def train(data: FrovedisLabeledPoint,
             numIter: Int,
             stepSize: Double) : LogisticRegressionModel = {
      return train(data, numIter, stepSize, 1.0, 0.01, false)
   }
 
-  def train(data: FrovedisSparseGLMData,
+  def train(data: FrovedisLabeledPoint,
             numIter: Int) : LogisticRegressionModel = {
      return train(data, numIter, 0.01, 1.0, 0.01, false)
   }
 
-  def train(data: FrovedisSparseGLMData) : LogisticRegressionModel = {
+  def train(data: FrovedisLabeledPoint) : LogisticRegressionModel = {
      return train(data, 1000, 0.01, 1.0, 0.01, false)
   }
 }
@@ -139,7 +139,7 @@ object LogisticRegressionWithLBFGS {
             stepSize: Double,
             histSize: Int,
             regParam: Double) : LogisticRegressionModel = {
-     val fdata = new FrovedisSparseGLMData(data) // Spark Data => Frovedis Data 
+     val fdata = new FrovedisLabeledPoint(data) // Spark Data => Frovedis Data 
      return train(fdata, numIter, stepSize, histSize, regParam, true)
   }
 
@@ -168,7 +168,7 @@ object LogisticRegressionWithLBFGS {
   // User needs to convert the Spark data into Frovedis Data by himself before 
   // calling this interface. In this case, user has to explicitly free the 
   // Frovedis Data when it will no longer be needed to avoid memory leak at Frovedis server.
-  def train(data: FrovedisSparseGLMData,
+  def train(data: FrovedisLabeledPoint,
             numIter: Int,
             stepSize: Double,
             histSize: Int,
@@ -185,7 +185,7 @@ object LogisticRegressionWithLBFGS {
      return new LogisticRegressionModel(mid,M_KIND.LRM,numFeatures,numClasses,intercept,threshold)
   }
 
-  def train(data: FrovedisSparseGLMData,
+  def train(data: FrovedisLabeledPoint,
             numIter: Int,
             stepSize: Double,
             histSize: Int,
@@ -193,25 +193,25 @@ object LogisticRegressionWithLBFGS {
      return train(data, numIter, stepSize, histSize, regParam, false)
   }
 
-  def train(data: FrovedisSparseGLMData,
+  def train(data: FrovedisLabeledPoint,
             numIter: Int,
             stepSize: Double,
             histSize: Int) : LogisticRegressionModel = {
      return train(data, numIter, stepSize, histSize, 0.01, false)
   }
 
-  def train(data: FrovedisSparseGLMData,
+  def train(data: FrovedisLabeledPoint,
             numIter: Int,
             stepSize: Double) : LogisticRegressionModel = {
      return train(data, numIter, stepSize, 10, 0.01, false)
   }
 
-  def train(data: FrovedisSparseGLMData,
+  def train(data: FrovedisLabeledPoint,
             numIter: Int) : LogisticRegressionModel = {
      return train(data, numIter, 0.01, 10, 0.01, false)
   }
 
-  def train(data: FrovedisSparseGLMData) : LogisticRegressionModel = {
+  def train(data: FrovedisLabeledPoint) : LogisticRegressionModel = {
      return train(data, 1000, 0.01, 10, 0.01, false)
   }
 }

@@ -1,7 +1,7 @@
 package test.scala;
 
 import com.nec.frovedis.Jexrpc.FrovedisServer
-import com.nec.frovedis.exrpc.FrovedisSparseGLMData
+import com.nec.frovedis.exrpc.FrovedisLabeledPoint
 import com.nec.frovedis.mllib.classification.{LogisticRegressionWithSGD,LogisticRegressionModel}
 import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.mllib.util.MLUtils
@@ -29,7 +29,7 @@ object LRModelDemo {
     /*   
     // User will create Frovedis side data by himself and post the training, 
     // he has to release the same to avoid memory leak at Frovedis side.
-    val fdata = new FrovedisSparseGLMData(s_data)
+    val fdata = new FrovedisLabeledPoint(s_data)
     println("Frovedis Data: ")
     fdata.debug_print()
     val m1 = LogisticRegressionWithSGD.train(fdata)
