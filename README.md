@@ -148,7 +148,7 @@ detail than the tutorial. Manuals for `man` command is in
 directory into your MANPATH.
 
 
-# 4. Spark/Python interafce
+# 4. Spark/Python interface
 
 You can utilize the predefined functionalities from Spark/Python,
 which includes machine learning algorithms and matrix operations.
