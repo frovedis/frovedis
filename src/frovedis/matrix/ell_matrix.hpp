@@ -4,7 +4,7 @@
 #include "crs_matrix.hpp"
 #include <algorithm>
 
-#define ELL_VLEN 1024 // use 4 vregs for better cache hit of v
+#define ELL_VLEN 256
 
 namespace frovedis {
 
