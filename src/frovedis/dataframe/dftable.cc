@@ -1243,4 +1243,48 @@ void grouped_dftable::debug_print() {
   std::cout << std::endl;
 }
 
+colmajor_matrix<float>
+dftable::to_colmajor_matrix_float(const std::vector<std::string>& cols) {
+  auto materialized = select(cols); // cause exception if not applicable
+  colmajor_matrix<float> ret;
+  ret.data = make_node_local_allocate<colmajor_matrix_local<float>>();
+  ret.num_col = cols.size();
+  ret.num_row = row_size;
+  auto bcols = broadcast(cols.size());
+  for(size_t i = 0; i < cols.size(); i++) {
+    auto nl = materialized.column(cols[i])->as_dvector_float().
+      moveto_node_local();
+    ret.data.mapv(append_column_to_colmajor_matrix<float>, broadcast(i),
+                  bcols, nl);
+  }
+  return ret;
+}
+
+colmajor_matrix<double>
+dftable::to_colmajor_matrix_double(const std::vector<std::string>& cols) {
+  auto materialized = select(cols); // cause exception if not applicable
+  colmajor_matrix<double> ret;
+  ret.data = make_node_local_allocate<colmajor_matrix_local<double>>();
+  ret.num_col = cols.size();
+  ret.num_row = row_size;
+  auto bcols = broadcast(cols.size());
+  for(size_t i = 0; i < cols.size(); i++) {
+    auto nl = materialized.column(cols[i])->as_dvector_double().
+      moveto_node_local();
+    ret.data.mapv(append_column_to_colmajor_matrix<double>, broadcast(i),
+                  bcols, nl);
+  }
+  return ret;
+}
+
+rowmajor_matrix<float>
+dftable::to_rowmajor_matrix_float(const std::vector<std::string>& cols) {
+  return to_colmajor_matrix_float(cols).to_rowmajor();
+}
+
+rowmajor_matrix<double>
+dftable::to_rowmajor_matrix_double(const std::vector<std::string>& cols) {
+  return to_colmajor_matrix_double(cols).to_rowmajor();
+}
+
 }

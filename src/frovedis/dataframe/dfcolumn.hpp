@@ -126,6 +126,9 @@ public:
   template <class T> T max();
   template <class T> T min();
   template <class T> dvector<T> as_dvector();
+  // cast to float/double; throw exception when string 
+  virtual dvector<float> as_dvector_float() = 0; 
+  virtual dvector<double> as_dvector_double() = 0;
   virtual std::shared_ptr<dfcolumn> head(size_t limit) = 0;
   virtual bool is_string() {return false;}
   virtual std::string dtype() const = 0;
@@ -274,6 +277,8 @@ public:
   virtual double avg();
   T max();
   T min();
+  virtual dvector<float> as_dvector_float(); 
+  virtual dvector<double> as_dvector_double();
   virtual void debug_print();
   virtual std::string dtype() const;
   virtual void save(const std::string& file);
@@ -429,6 +434,12 @@ public:
   }
   std::string min() {
     throw std::runtime_error("min of string is not defined");
+  }
+  virtual dvector<float> as_dvector_float() {
+    throw std::runtime_error("as_dvector_float of string is not defined");
+  } 
+  virtual dvector<double> as_dvector_double() {
+    throw std::runtime_error("as_dvector_double of string is not defined");
   }
   virtual std::string dtype() const {return std::string("string");}
   virtual void save(const std::string& file);

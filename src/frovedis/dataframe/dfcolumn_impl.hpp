@@ -2154,5 +2154,31 @@ std::string typed_dfcolumn<T>::dtype() const {
   return get_type_name<T>();
 }
 
+template <class T, class U>
+std::vector<U> do_static_cast(const std::vector<T>& v) {
+  const T* vp = v.data();
+  size_t size = v.size();
+  std::vector<U> ret(size);
+  U* retp = ret.data();
+  for(size_t i = 0; i < size; i++) {
+    retp[i] = static_cast<U>(vp[i]);
+  }
+  return ret;
+}
+
+template <class T>
+dvector<float> typed_dfcolumn<T>::as_dvector_float() {
+  auto dv = as_dvector<T>();
+  return dv.moveto_node_local().map(do_static_cast<T,float>).
+    template moveto_dvector<float>();
+}
+
+template <class T>
+dvector<double> typed_dfcolumn<T>::as_dvector_double() {
+  auto dv = as_dvector<T>();
+  return dv.moveto_node_local().map(do_static_cast<T,double>).
+    template moveto_dvector<double>();
+}
+
 }
 #endif

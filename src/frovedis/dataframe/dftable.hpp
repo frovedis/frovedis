@@ -9,6 +9,7 @@
 #include "dfcolumn.hpp"
 #include "dfaggregator.hpp"
 #include "dftable_to_string.hpp"
+#include "../matrix/colmajor_matrix.hpp"
 
 namespace frovedis {
 
@@ -114,6 +115,14 @@ public:
     savetext(const std::string& file);
   virtual std::vector<std::pair<std::string, std::string>>
     savetext(const std::string& file, const std::string& separator);
+  colmajor_matrix<float>
+  to_colmajor_matrix_float(const std::vector<std::string>&);
+  colmajor_matrix<double>
+  to_colmajor_matrix_double(const std::vector<std::string>&);
+  rowmajor_matrix<float>
+  to_rowmajor_matrix_float(const std::vector<std::string>&);
+  rowmajor_matrix<double>
+  to_rowmajor_matrix_double(const std::vector<std::string>&);
   // internally used methods, though they are public...
   // dfcolumn is only for implementation/debug, not for user's usage
   virtual void load(const std::string& input);
@@ -785,6 +794,26 @@ private:
   node_local<std::vector<std::vector<size_t>>> exchanged_idx;
   std::vector<std::string> grouped_cols;
 };
+
+// for to_colmajor_matrix
+template <class T>
+void append_column_to_colmajor_matrix(colmajor_matrix_local<T>& mat,
+                                      size_t i, size_t num_col,
+                                      std::vector<T>& v) {
+  if(i == 0) {
+    mat.local_num_row = v.size();
+    mat.local_num_col = num_col;
+    mat.val.resize(mat.local_num_row * mat.local_num_col);
+  }
+  T* valp = mat.val.data();
+  T* vp = v.data();
+  size_t size = v.size();
+  if(mat.local_num_row != size)
+    throw std::runtime_error("internal error in to_colmajor_matrix: column sizes are not the same?");
+  for(size_t j = 0; j < v.size(); j++) {
+    valp[size * i + j] = vp[j];
+  }
+}
 
 }
 #endif
