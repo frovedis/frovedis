@@ -15,6 +15,35 @@ dftable& dftable::append_column(const std::string& name,
   return *this;
 }
 
+struct append_rowid_helper {
+  append_rowid_helper(){}
+  append_rowid_helper(std::vector<size_t> sizes, size_t offset) :
+    sizes(sizes), offset(offset) {}
+  void operator()(std::vector<size_t>& v) {
+    int self = get_selfid();
+    size_t size = sizes[self];
+    v.resize(size);
+    size_t* vp = v.data();
+    size_t start = 0;
+    for(size_t i = 0; i < self; i++) start += sizes[i];
+    start += offset;
+    for(size_t i = 0; i < size; i++) vp[i] = start + i;
+  }
+  std::vector<size_t> sizes;
+  size_t offset;
+  SERIALIZE(sizes, offset)
+};
+
+dftable& dftable::append_rowid(const std::string& name, size_t offset) {
+  if(col.size() == 0)
+    throw std::runtime_error
+      ("append_rowid: there is no column to append rowid");
+  auto sizes = column(col_order[0])->sizes();
+  auto nl = make_node_local_allocate<std::vector<size_t>>();
+  nl.mapv(append_rowid_helper(sizes, offset));
+  return append_column(name, nl.template moveto_dvector<size_t>());
+}
+
 std::vector<std::string> dftable::columns() const {
   return col_order;
 }

@@ -108,6 +108,7 @@ public:
                  const std::string& c2, const std::string& c3,
                  const std::string& c4, const std::string& c5,
                  const std::string& c6);
+  dftable& append_rowid(const std::string& name, size_t offset = 0);
   template <class T>
   dvector<T> as_dvector(const std::string name);
   void virtual show();
