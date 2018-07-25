@@ -28,6 +28,8 @@ public:
   dftable& append_column(const std::string& name, dvector<T>& d);
   template <class T>
   dftable& append_column(const std::string& name, dvector<T>&& d);
+  // do not align dfcolumn, since it is used in other place
+  // do not use this if you are not sure of the alignment!
   dftable& append_column(const std::string& name,
                          const std::shared_ptr<dfcolumn>& c);
   virtual size_t num_row() {return row_size;} 
@@ -151,10 +153,18 @@ dftable& dftable::append_column(const std::string& name, dvector<T>& d) {
   check_appendable();
   if(col.find(name) != col.end())
     throw std::runtime_error("append_column: same column name already exists");
-  if(col.size() == 0) row_size = d.size();
-  else if(d.size() != row_size)
-    throw std::runtime_error("different size of columns");
-  std::shared_ptr<dfcolumn> c = std::make_shared<typed_dfcolumn<T>>(d);
+  std::shared_ptr<dfcolumn> c;
+  if(col.size() == 0) {
+    row_size = d.size();
+    d.align_block();
+    c = std::make_shared<typed_dfcolumn<T>>(d);
+  } else {
+    if(d.size() != row_size)
+      throw std::runtime_error("different size of columns");
+    auto sizes = column(col_order[0])->sizes();
+    d.align_as(sizes);
+    c = std::make_shared<typed_dfcolumn<T>>(d);
+  }
   col.insert(std::make_pair(name, c));
   col_order.push_back(name);
   return *this;
@@ -165,11 +175,18 @@ dftable& dftable::append_column(const std::string& name, dvector<T>&& d) {
   check_appendable();
   if(col.find(name) != col.end())
     throw std::runtime_error("append_column: same column name already exists");
-  if(col.size() == 0) row_size = d.size();
-  else if(d.size() != row_size)
-    throw std::runtime_error("different size of columns");
-  std::shared_ptr<dfcolumn> c =
-    std::make_shared<typed_dfcolumn<T>>(std::move(d));
+  std::shared_ptr<dfcolumn> c;
+  if(col.size() == 0) {
+    row_size = d.size();
+    d.align_block();
+    c = std::make_shared<typed_dfcolumn<T>>(std::move(d));
+  } else {
+    if(d.size() != row_size)
+      throw std::runtime_error("different size of columns");
+    auto sizes = column(col_order[0])->sizes();
+    d.align_as(sizes);
+    c = std::make_shared<typed_dfcolumn<T>>(std::move(d));
+  }
   col.insert(std::make_pair(name, c));
   col_order.push_back(name);
   return *this;

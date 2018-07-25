@@ -1073,6 +1073,11 @@ size_t typed_dfcolumn<T>::size() {
 }
 
 template <class T>
+std::vector<size_t> typed_dfcolumn<T>::sizes() {
+  return val.template viewas_dvector<T>().sizes();
+}
+
+template <class T>
 dvector<std::string> typed_dfcolumn<T>::as_string() {
   return val.map(as_string_helper<T>).template moveto_dvector<std::string>();
 }

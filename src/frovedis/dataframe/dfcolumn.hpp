@@ -17,6 +17,7 @@ class dfcolumn {
 public:
   virtual ~dfcolumn(){}
   virtual size_t size() = 0;
+  virtual std::vector<size_t> sizes() = 0;
   virtual void debug_print() = 0;
   virtual dvector<std::string> as_string() = 0;
   virtual node_local<std::vector<size_t>>
@@ -142,12 +143,10 @@ public:
   typed_dfcolumn() : contain_nulls(false) {}
   typed_dfcolumn(const dvector<T>& dv) : contain_nulls(false) {
     auto dv2 = dv;
-    dv2.align_block();
     val = dv2.moveto_node_local();
     nulls = make_node_local_allocate<std::vector<size_t>>();
   }
   typed_dfcolumn(dvector<T>&& dv) : contain_nulls(false) {
-    dv.align_block();
     val = dv.moveto_node_local();
     nulls = make_node_local_allocate<std::vector<size_t>>();
   }
@@ -162,6 +161,7 @@ public:
     contain_nulls_check();
   }
   virtual size_t size();
+  virtual std::vector<size_t> sizes();
   virtual dvector<std::string> as_string();
   virtual node_local<std::vector<size_t>>
   filter_eq(std::shared_ptr<dfcolumn>& right);
@@ -296,10 +296,11 @@ class typed_dfcolumn<std::string> : public dfcolumn {
 public:
   typed_dfcolumn() : contain_nulls(false) {}
   typed_dfcolumn(dvector<std::string>& dv) : contain_nulls(false)
-    {dv.align_block(); init(dv);}
+    {init(dv);}
   typed_dfcolumn(dvector<std::string>&& dv) : contain_nulls(false)
-    {dv.align_block(); init(dv);}
+    {init(dv);}
   virtual size_t size();
+  virtual std::vector<size_t> sizes();
   virtual node_local<std::vector<size_t>>
   filter_eq(std::shared_ptr<dfcolumn>& right);
   node_local<std::vector<size_t>>

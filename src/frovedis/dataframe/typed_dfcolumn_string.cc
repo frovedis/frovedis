@@ -629,6 +629,10 @@ size_t typed_dfcolumn<string>::size() {
   return val.viewas_dvector<size_t>().size();
 }
 
+std::vector<size_t> typed_dfcolumn<string>::sizes() {
+  return val.template viewas_dvector<size_t>().sizes();
+}
+
 node_local<std::vector<size_t>>
 typed_dfcolumn<string>::filter_eq_immed(const std::string& right) {
   bool found;
