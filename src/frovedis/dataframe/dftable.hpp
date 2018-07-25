@@ -10,6 +10,7 @@
 #include "dfaggregator.hpp"
 #include "dftable_to_string.hpp"
 #include "../matrix/colmajor_matrix.hpp"
+#include "../matrix/ell_matrix.hpp"
 
 namespace frovedis {
 
@@ -20,6 +21,8 @@ class bcast_joined_dftable;
 class star_joined_dftable;
 class grouped_dftable;
 class dfoperator;
+
+struct dftable_to_sparse_info;
 
 class dftable {
 public:
@@ -36,8 +39,8 @@ public:
   virtual size_t num_col() const {return col.size();}
   virtual std::vector<std::string> columns() const;
   virtual std::vector<std::pair<std::string, std::string>> dtypes();
-  virtual void drop(const std::string& name);
-  virtual void rename(const std::string& name, const std::string& name2);
+  virtual dftable& drop(const std::string& name);
+  virtual dftable& rename(const std::string& name, const std::string& name2);
   virtual dftable select(const std::vector<std::string>& cols);
   virtual dftable
   select(const std::vector<std::string>& cols,
@@ -126,6 +129,30 @@ public:
   to_rowmajor_matrix_float(const std::vector<std::string>&);
   rowmajor_matrix<double>
   to_rowmajor_matrix_double(const std::vector<std::string>&);
+  // info is output; create matrix according to the table data
+  ell_matrix<float>
+  to_ell_matrix_float(const std::vector<std::string>& cols,
+                      const std::vector<std::string>& cat,
+                      dftable_to_sparse_info& info); 
+  // info is input; create matrix based on mapping craeted before
+  ell_matrix<float> to_ell_matrix_float(dftable_to_sparse_info& info);
+  ell_matrix<double>
+  to_ell_matrix_double(const std::vector<std::string>& cols,
+                       const std::vector<std::string>& cat,
+                       dftable_to_sparse_info& info); 
+  ell_matrix<double> to_ell_matrix_double(dftable_to_sparse_info& info);
+
+  crs_matrix<float>
+  to_crs_matrix_float(const std::vector<std::string>& cols,
+                      const std::vector<std::string>& cat,
+                      dftable_to_sparse_info& info); 
+  crs_matrix<float> to_crs_matrix_float(dftable_to_sparse_info& info);
+  crs_matrix<double>
+  to_crs_matrix_double(const std::vector<std::string>& cols,
+                       const std::vector<std::string>& cat,
+                       dftable_to_sparse_info& info); 
+  crs_matrix<double> to_crs_matrix_double(dftable_to_sparse_info& info);
+
   // internally used methods, though they are public...
   // dfcolumn is only for implementation/debug, not for user's usage
   virtual void load(const std::string& input);
@@ -145,6 +172,16 @@ private:
   friend bcast_joined_dftable;
   friend star_joined_dftable;
   friend grouped_dftable;
+};
+
+struct dftable_to_sparse_info {
+  std::vector<std::string> columns;
+  std::vector<std::string> categories;
+  std::vector<dftable> mapping_tables;
+  size_t num_row;
+  size_t num_col;
+  void save(const std::string& dir);
+  void load(const std::string& dir);
 };
 
 dftable make_dftable_load(const std::string& input);
@@ -472,8 +509,8 @@ public:
     exchanged_idx = exchange_partitioned_index(partitioned_idx);
     is_cachable = !table.raw_column(column_name)->is_string();
   }
-  virtual void drop(const std::string& name);
-  virtual void rename(const std::string& name, const std::string& name2);
+  virtual dftable& drop(const std::string& name);
+  virtual dftable& rename(const std::string& name, const std::string& name2);
   virtual dftable select(const std::vector<std::string>& cols);
   virtual dftable
   select(const std::vector<std::string>& cols,
@@ -830,6 +867,49 @@ void append_column_to_colmajor_matrix(colmajor_matrix_local<T>& mat,
     throw std::runtime_error("internal error in to_colmajor_matrix: column sizes are not the same?");
   for(size_t j = 0; j < v.size(); j++) {
     valp[size * i + j] = vp[j];
+  }
+}
+
+// for to_ell_matrix
+template <class T>
+void to_ell_matrix_init(ell_matrix_local<T>& mat, size_t physical_col_size,
+                        std::vector<size_t>& row_sizes, size_t num_col) {
+  mat.local_num_row = row_sizes[get_selfid()];
+  mat.local_num_col = num_col;
+  mat.val.resize(mat.local_num_row * physical_col_size);
+  mat.idx.resize(mat.local_num_row * physical_col_size);
+}
+
+template <class T>
+void to_ell_matrix_addcategory(ell_matrix_local<T>& mat,
+                               std::vector<size_t> col,
+                               size_t physical_col) {
+  size_t* colp = col.data();
+  T* valp = mat.val.data();
+  size_t* idxp = mat.idx.data();
+  size_t num_row = mat.local_num_row;
+  for(size_t i = 0; i < num_row; i++) {
+    valp[num_row * physical_col + i] = 1; // one-hot encoding
+  }
+  for(size_t i = 0; i < num_row; i++) {
+    idxp[num_row * physical_col + i] = colp[i];
+  }
+}
+
+template <class T>
+void to_ell_matrix_addvalue(ell_matrix_local<T>& mat,
+                            std::vector<T>& v,
+                            size_t logical_col,
+                            size_t physical_col) {
+  T* vp = v.data();
+  T* valp = mat.val.data();
+  size_t* idxp = mat.idx.data();
+  size_t num_row = mat.local_num_row;
+  for(size_t i = 0; i < num_row; i++) {
+    valp[num_row * physical_col + i] = vp[i];
+  }
+  for(size_t i = 0; i < num_row; i++) {
+    idxp[num_row * physical_col + i] = logical_col;
   }
 }
 

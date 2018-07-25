@@ -53,6 +53,10 @@ struct ell_matrix_local {
   }
   template <class O = size_t>
   crs_matrix_local<T,I,O> to_crs();
+  // skip zero check; faster, but may include 0 as non-zero element
+  // if you are sure that there is no padding for ELL, this is better
+  template <class O = size_t>
+  crs_matrix_local<T,I,O> to_crs_allow_zero(); 
   std::vector<T> val;
   std::vector<I> idx;
   size_t local_num_row, local_num_col;
@@ -112,6 +116,31 @@ crs_matrix_local<T,I,O> ell_matrix_local<T,I>::to_crs() {
   return ret;
 }
 
+template <class T, class I>
+template <class O>
+crs_matrix_local<T,I,O> ell_matrix_local<T,I>::to_crs_allow_zero() {
+  crs_matrix_local<T,I,O> ret;
+  ret.local_num_row = local_num_row;
+  ret.local_num_col = local_num_col;
+  size_t physical_num_col = val.size() / local_num_row;
+  ret.val.resize(val.size());
+  ret.idx.resize(idx.size());
+  T* crsvalp = ret.val.data();
+  I* crsidxp = ret.idx.data();
+  T* valp = val.data();
+  I* idxp = idx.data();
+  for(size_t r = 0; r < local_num_row; r++) {
+    for(size_t c = 0; c < physical_num_col; c++) {
+      crsvalp[physical_num_col * r + c] = valp[local_num_row * c + r];
+      crsidxp[physical_num_col * r + c] = idxp[local_num_row * c + r];
+    }
+  }
+  ret.off.resize(local_num_row+1);
+  O* offp = ret.off.data();
+  for(size_t i = 0; i < local_num_row + 1; i++) offp[i] = i * physical_num_col;
+  return ret;
+}
+
 template <class T, class I, class O>
 ell_matrix_local<T,I> crs2ell(crs_matrix_local<T,I,O>& crs) {
   return ell_matrix_local<T,I>(crs);
@@ -120,6 +149,11 @@ ell_matrix_local<T,I> crs2ell(crs_matrix_local<T,I,O>& crs) {
 template <class T, class I, class O = size_t>
 crs_matrix_local<T,I,O> ell2crs(ell_matrix_local<T,I>& ell) {
   return ell.template to_crs<O>();
+}
+
+template <class T, class I, class O = size_t>
+crs_matrix_local<T,I,O> ell2crs_allow_zero(ell_matrix_local<T,I>& ell) {
+  return ell.template to_crs_allow_zero<O>();
 }
 
 template <class T, class I = size_t>
@@ -133,6 +167,12 @@ struct ell_matrix {
   template <class O = size_t>
   crs_matrix<T,I,O> to_crs() {
     crs_matrix<T,I,O> ret(data.map(ell2crs<T,I,O>));
+    ret.set_num(num_row, num_col);
+    return ret;
+  }
+  template <class O = size_t>
+  crs_matrix<T,I,O> to_crs_allow_zero() {
+    crs_matrix<T,I,O> ret(data.map(ell2crs_allow_zero<T,I,O>));
     ret.set_num(num_row, num_col);
     return ret;
   }

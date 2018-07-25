@@ -59,14 +59,14 @@ dftable::dtypes() {
   return ret;
 }
 
-void dftable::drop(const std::string& name) {
+dftable& dftable::drop(const std::string& name) {
   col.erase(name);
   col_order.erase(std::remove(col_order.begin(), col_order.end(), name),
                   col_order.end());
-
+  return *this;
 }
 
-void dftable::rename(const std::string& name, const std::string& name2) {
+dftable& dftable::rename(const std::string& name, const std::string& name2) {
   auto tmp = column(name);
   if(col.find(name2) != col.end())
     throw std::runtime_error("column already exists: " + name2);
@@ -78,6 +78,7 @@ void dftable::rename(const std::string& name, const std::string& name2) {
       break;
     }
   }
+  return *this;
 }
 
 dftable dftable::select(const std::vector<std::string>& cols) {
@@ -615,17 +616,20 @@ dftable::group_by(const std::string& col) {
 }
 */
 
-void sorted_dftable::drop(const std::string& name) {
+dftable& sorted_dftable::drop(const std::string& name) {
   if(name == column_name) {
     column_name = "";
     sorted_column = std::shared_ptr<dfcolumn>();
   }
   dftable::drop(name);
+  return *this;
 }
 
-void sorted_dftable::rename(const std::string& name, const std::string& name2) {
+dftable& sorted_dftable::rename(const std::string& name,
+                                const std::string& name2) {
   dftable::rename(name, name2); // cause exception if name2 already exists
   if(name == column_name) column_name = name2;
+  return *this;
 }
 
 dftable sorted_dftable::select(const std::vector<std::string>& cols) {
@@ -1314,6 +1318,293 @@ dftable::to_rowmajor_matrix_float(const std::vector<std::string>& cols) {
 rowmajor_matrix<double>
 dftable::to_rowmajor_matrix_double(const std::vector<std::string>& cols) {
   return to_colmajor_matrix_double(cols).to_rowmajor();
+}
+
+void dftable_to_sparse_info::save(const std::string& dir) {
+  struct stat sb;
+  if(stat(dir.c_str(), &sb) != 0) { // no file/directory
+    mode_t mode = S_IRWXU | S_IRWXG | S_IRWXO; // man 2 stat
+    if(mkdir(dir.c_str(), mode) != 0) {
+      perror("mkdir failed:");
+      throw std::runtime_error("mkdir failed");
+    }
+  } else if(!S_ISDIR(sb.st_mode)) {
+    throw std::runtime_error(dir + " is not a directory");
+  }
+  std::string colfile = dir + "/columns";
+  std::string catfile = dir + "/categories";
+  std::string numsfile = dir + "/nums";
+  std::ofstream colstr;
+  std::ofstream catstr;
+  std::ofstream numstr;
+  colstr.exceptions(std::ofstream::failbit | std::ofstream::badbit);
+  catstr.exceptions(std::ofstream::failbit | std::ofstream::badbit);
+  numstr.exceptions(std::ofstream::failbit | std::ofstream::badbit);
+  colstr.open(colfile.c_str());
+  catstr.open(catfile.c_str());
+  numstr.open(numsfile.c_str());
+  for(size_t i = 0; i < columns.size(); i++) {
+    colstr << columns[i] << std::endl;
+  }
+  for(size_t i = 0; i < categories.size(); i++) {
+    catstr << categories[i] << std::endl;
+  }
+  numstr << num_row << "\n" << num_col << std::endl;
+  for(size_t i = 0; i < mapping_tables.size(); i++) {
+    mapping_tables[i].save(dir + "/" + categories[i]);
+  }
+}
+
+void dftable_to_sparse_info::load(const std::string& input) {
+  std::string colfile = input + "/columns";
+  std::string catfile = input + "/categories";
+  std::string numsfile = input + "/nums";
+  std::ifstream colstr;
+  std::ifstream catstr;
+  std::ifstream numstr;
+  colstr.open(colfile.c_str());
+  catstr.open(catfile.c_str());
+  numstr.open(numsfile.c_str());
+  std::string tmp;
+  columns.clear();
+  categories.clear();
+  while(std::getline(colstr, tmp)) {
+    columns.push_back(tmp);
+  }
+  while(std::getline(catstr, tmp)) {
+    categories.push_back(tmp);
+  }
+  numstr >> num_row >> num_col;
+  mapping_tables.clear();
+  size_t cat_size = categories.size();
+  mapping_tables.resize(cat_size);
+  for(size_t i = 0; i < cat_size; i++) {
+    mapping_tables[i].load(input + "/" + categories[i]);
+  }
+}
+
+ell_matrix<float>
+dftable::to_ell_matrix_float(dftable_to_sparse_info& info) {
+  auto& cols = info.columns;
+  auto& cats = info.categories;
+  if(cols.size() == 0)
+    throw std::runtime_error("to_ell_matrix: no colums to convert");
+  auto materialized = select(cols); // cause exception if not applicable
+  std::unordered_set<std::string> cats_set(cats.begin(), cats.end());
+  auto first_column = materialized.column(cols[0]);
+
+  ell_matrix<float> ret;
+  ret.data = make_node_local_allocate<ell_matrix_local<float>>();
+  ret.num_row = info.num_row;
+  ret.num_col = info.num_col;
+  auto sizes = first_column->sizes();
+  ret.data.mapv(to_ell_matrix_init<float>, broadcast(cols.size()),
+                broadcast(sizes), broadcast(ret.num_col));
+  size_t current_category = 0;
+  size_t current_logical_col = 0;
+  for(size_t i = 0; i < cols.size(); i++) {
+    auto col = cols[i];
+    if(cats_set.find(col) != cats_set.end()) {
+      auto tmp1 = materialized.select({col});
+      auto tmp2 = info.mapping_tables[current_category++];
+      auto col_idx = tmp1.bcast_join(tmp2, frovedis::eq(col, "key")).
+        column("col_idx")->as_dvector<size_t>().moveto_node_local();
+      ret.data.mapv(to_ell_matrix_addcategory<float>,
+                    col_idx, broadcast(i));
+      current_logical_col += tmp2.num_row();
+    } else {
+      auto val = materialized.column(col)->as_dvector_float().
+        moveto_node_local();
+      ret.data.mapv(to_ell_matrix_addvalue<float>,
+                    val, broadcast(current_logical_col), broadcast(i));
+      current_logical_col++;
+    }
+  }
+  return ret;
+}
+
+ell_matrix<float>
+dftable::to_ell_matrix_float(const std::vector<std::string>& cols,
+                             const std::vector<std::string>& cats,
+                             dftable_to_sparse_info& info) {
+  if(cols.size() == 0)
+    throw std::runtime_error("to_ell_matrix: no colums to convert");
+  auto materialized = select(cols); // cause exception if not applicable
+  info.columns = cols;
+  info.categories = cats;
+  info.mapping_tables.clear();
+  size_t current_logical_col = 0;
+  std::unordered_set<std::string> cats_set(cats.begin(), cats.end());
+  // first collect information like size
+  for(size_t i = 0; i < cols.size(); i++) {
+    if(cats_set.find(cols[i]) != cats_set.end()) {
+      auto col = cols[i];
+      auto tmp1 = materialized.select({col});
+      auto tmp2 = tmp1.group_by({col}).select({col}).sort(col).
+        materialize().rename(col, "key").
+        append_rowid("col_idx", current_logical_col);
+      info.mapping_tables.push_back(tmp2);
+      current_logical_col += tmp2.num_row();
+    } else {
+      current_logical_col++;
+    }
+  }
+  auto first_column = materialized.column(cols[0]);
+  info.num_row = first_column->size();
+  info.num_col = current_logical_col;
+  // next, actually copies the data
+  ell_matrix<float> ret;
+  ret.data = make_node_local_allocate<ell_matrix_local<float>>();
+  ret.num_row = info.num_row;
+  ret.num_col = info.num_col;
+  auto sizes = first_column->sizes();
+  ret.data.mapv(to_ell_matrix_init<float>, broadcast(cols.size()),
+                broadcast(sizes), broadcast(ret.num_col));
+  size_t current_category = 0;
+  current_logical_col = 0;
+  for(size_t i = 0; i < cols.size(); i++) {
+    auto col = cols[i];
+    if(cats_set.find(col) != cats_set.end()) {
+      auto tmp1 = materialized.select({col});
+      auto tmp2 = info.mapping_tables[current_category++];
+      auto col_idx = tmp1.bcast_join(tmp2, frovedis::eq(col, "key")).
+        column("col_idx")->as_dvector<size_t>().moveto_node_local();
+      ret.data.mapv(to_ell_matrix_addcategory<float>,
+                    col_idx, broadcast(i));
+      current_logical_col += tmp2.num_row();
+    } else {
+      auto val = materialized.column(col)->as_dvector_float().
+        moveto_node_local();
+      ret.data.mapv(to_ell_matrix_addvalue<float>,
+                    val, broadcast(current_logical_col), broadcast(i));
+      current_logical_col++;
+    }
+  }
+  return ret;
+}
+
+ell_matrix<double>
+dftable::to_ell_matrix_double(dftable_to_sparse_info& info) {
+  auto& cols = info.columns;
+  auto& cats = info.categories;
+  if(cols.size() == 0)
+    throw std::runtime_error("to_ell_matrix: no colums to convert");
+  auto materialized = select(cols); // cause exception if not applicable
+  std::unordered_set<std::string> cats_set(cats.begin(), cats.end());
+  auto first_column = materialized.column(cols[0]);
+
+  ell_matrix<double> ret;
+  ret.data = make_node_local_allocate<ell_matrix_local<double>>();
+  ret.num_row = info.num_row;
+  ret.num_col = info.num_col;
+  auto sizes = first_column->sizes();
+  ret.data.mapv(to_ell_matrix_init<double>, broadcast(cols.size()),
+                broadcast(sizes), broadcast(ret.num_col));
+  size_t current_category = 0;
+  size_t current_logical_col = 0;
+  for(size_t i = 0; i < cols.size(); i++) {
+    auto col = cols[i];
+    if(cats_set.find(col) != cats_set.end()) {
+      auto tmp1 = materialized.select({col});
+      auto tmp2 = info.mapping_tables[current_category++];
+      auto col_idx = tmp1.bcast_join(tmp2, frovedis::eq(col, "key")).
+        column("col_idx")->as_dvector<size_t>().moveto_node_local();
+      ret.data.mapv(to_ell_matrix_addcategory<double>,
+                    col_idx, broadcast(i));
+      current_logical_col += tmp2.num_row();
+    } else {
+      auto val = materialized.column(col)->as_dvector_double().
+        moveto_node_local();
+      ret.data.mapv(to_ell_matrix_addvalue<double>,
+                    val, broadcast(current_logical_col), broadcast(i));
+      current_logical_col++;
+    }
+  }
+  return ret;
+}
+
+ell_matrix<double>
+dftable::to_ell_matrix_double(const std::vector<std::string>& cols,
+                             const std::vector<std::string>& cats,
+                             dftable_to_sparse_info& info) {
+  if(cols.size() == 0)
+    throw std::runtime_error("to_ell_matrix: no colums to convert");
+  auto materialized = select(cols); // cause exception if not applicable
+  info.columns = cols;
+  info.categories = cats;
+  info.mapping_tables.clear();
+  size_t current_logical_col = 0;
+  std::unordered_set<std::string> cats_set(cats.begin(), cats.end());
+  // first collect information like size
+  for(size_t i = 0; i < cols.size(); i++) {
+    if(cats_set.find(cols[i]) != cats_set.end()) {
+      auto col = cols[i];
+      auto tmp1 = materialized.select({col});
+      auto tmp2 = tmp1.group_by({col}).select({col}).sort(col).
+        materialize().rename(col, "key").
+        append_rowid("col_idx", current_logical_col);
+      info.mapping_tables.push_back(tmp2);
+      current_logical_col += tmp2.num_row();
+    } else {
+      current_logical_col++;
+    }
+  }
+  auto first_column = materialized.column(cols[0]);
+  info.num_row = first_column->size();
+  info.num_col = current_logical_col;
+  // next, actually copies the data
+  ell_matrix<double> ret;
+  ret.data = make_node_local_allocate<ell_matrix_local<double>>();
+  ret.num_row = info.num_row;
+  ret.num_col = info.num_col;
+  auto sizes = first_column->sizes();
+  ret.data.mapv(to_ell_matrix_init<double>, broadcast(cols.size()),
+                broadcast(sizes), broadcast(ret.num_col));
+  size_t current_category = 0;
+  current_logical_col = 0;
+  for(size_t i = 0; i < cols.size(); i++) {
+    auto col = cols[i];
+    if(cats_set.find(col) != cats_set.end()) {
+      auto tmp1 = materialized.select({col});
+      auto tmp2 = info.mapping_tables[current_category++];
+      auto col_idx = tmp1.bcast_join(tmp2, frovedis::eq(col, "key")).
+        column("col_idx")->as_dvector<size_t>().moveto_node_local();
+      ret.data.mapv(to_ell_matrix_addcategory<double>,
+                    col_idx, broadcast(i));
+      current_logical_col += tmp2.num_row();
+    } else {
+      auto val = materialized.column(col)->as_dvector_double().
+        moveto_node_local();
+      ret.data.mapv(to_ell_matrix_addvalue<double>,
+                    val, broadcast(current_logical_col), broadcast(i));
+      current_logical_col++;
+    }
+  }
+  return ret;
+}
+
+crs_matrix<float>
+dftable::to_crs_matrix_float(const std::vector<std::string>& cols,
+                             const std::vector<std::string>& cat,
+                             dftable_to_sparse_info& info) {
+  return to_ell_matrix_float(cols, cat, info).to_crs_allow_zero();
+}
+
+crs_matrix<float>
+dftable::to_crs_matrix_float(dftable_to_sparse_info& info) {
+  return to_ell_matrix_float(info).to_crs_allow_zero();
+}
+
+crs_matrix<double>
+dftable::to_crs_matrix_double(const std::vector<std::string>& cols,
+                              const std::vector<std::string>& cat,
+                              dftable_to_sparse_info& info) {
+  return to_ell_matrix_double(cols, cat, info).to_crs_allow_zero();
+}
+
+crs_matrix<double>
+dftable::to_crs_matrix_double(dftable_to_sparse_info& info) {
+  return to_ell_matrix_double(info).to_crs_allow_zero();
 }
 
 }
