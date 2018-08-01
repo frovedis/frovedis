@@ -12,6 +12,12 @@
 
 namespace frovedis {
 
+template <class T, class I, class O>
+struct crs_matrix_local;
+
+template <class T, class I, class O>
+struct crs_matrix;
+
 template <class T>
 struct rowmajor_matrix_local {
   rowmajor_matrix_local(){}
@@ -66,6 +72,8 @@ struct rowmajor_matrix_local {
   void set_local_num(size_t r, size_t c) {
     local_num_row = r; local_num_col = c;
   }
+  template <class I = size_t, class O = size_t>
+  crs_matrix_local<T,I,O> to_crs();
   void debug_print();
   void save(const std::string& file) {
     std::ofstream str(file.c_str());
@@ -409,6 +417,8 @@ struct rowmajor_matrix {
   template <class U>
   rowmajor_matrix<T>& align_to(rowmajor_matrix<U>&);
   rowmajor_matrix<T>& align_block();
+  template <class I = size_t, class O = size_t>
+  crs_matrix<T,I,O> to_crs();
 
   void debug_print() {data.mapv(call_debug_print<rowmajor_matrix_local<T>>);}
   void save(const std::string& file) {

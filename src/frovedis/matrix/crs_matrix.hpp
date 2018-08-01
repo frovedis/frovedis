@@ -111,7 +111,7 @@ struct crs_matrix_local {
     local_num_col = c;
     local_num_row = off.size() - 1;
   }
-  
+  rowmajor_matrix_local<T> to_rowmajor();
   void debug_pretty_print() const {
     for(size_t row = 0; row < local_num_row; row++) {
       std::vector<T> tmp(local_num_col);
@@ -235,6 +235,21 @@ crs_matrix_local<T,I,O> crs_matrix_local<T,I,O>::pow_val(T exponent) {
   auto valsize = ret.val.size();
   for (size_t j = 0; j < valsize; j++) {
     valp[j] = std::pow(valp[j], exponent);
+  }
+  return ret;
+}
+
+template <class T, class I, class O>
+rowmajor_matrix_local<T> crs_matrix_local<T,I,O>::to_rowmajor() {
+  rowmajor_matrix_local<T> ret(local_num_row, local_num_col);
+  T* retvalp = ret.val.data();
+  T* valp = val.data();
+  I* idxp = idx.data();
+  O* offp = off.data();
+  for(size_t row = 0; row < local_num_row; row++) {
+    for(O pos = offp[row]; pos < offp[row+1]; pos++) {
+      retvalp[local_num_col * row + idxp[pos]] = valp[pos];
+    }
   }
   return ret;
 }
@@ -552,6 +567,7 @@ struct crs_matrix {
       g[i].debug_print();
     }
   }
+  rowmajor_matrix<T> to_rowmajor();
   // for similar API as dvector
   void save(const std::string& file) {
     std::ofstream str(file.c_str());
@@ -565,6 +581,15 @@ struct crs_matrix {
   size_t num_row;
   size_t num_col;
 };
+
+template <class T, class I, class O>
+rowmajor_matrix<T> crs_matrix<T,I,O>::to_rowmajor() {
+  rowmajor_matrix<T> ret;
+  ret.set_num(num_row, num_col);
+  ret.data =
+    data.map(+[](crs_matrix_local<T,I,O>& m){return m.to_rowmajor();});
+  return ret;
+}
 
 template <class T, class I, class O>
 void crs_clear_helper(crs_matrix_local<T,I,O>& mat) {mat.clear();}
@@ -1136,23 +1161,6 @@ void crs_matrix<T,I,O>::savebinary(const std::string& dir) {
   make_dvector_scatter(off).savebinary(offfile);
 }
 
-// usually not useful; just for debugging
-template <class T, class I = size_t, class O = size_t>
-crs_matrix_local<T,I,O>
-make_crs_matrix_local_convert(rowmajor_matrix_local<T>& m) {
-  crs_matrix_local<T,I,O> ret;
-  ret.local_num_row = m.local_num_row;
-  ret.local_num_col = m.local_num_col;
-  for(size_t i = 0; i < m.local_num_row; i++) {
-    for(size_t j = 0; j < m.local_num_col; j++) {
-      ret.val.push_back(m.val[i * m.local_num_col + j]);
-      ret.idx.push_back(j);
-    }
-    ret.off.push_back(ret.val.size());
-  }
-  return ret;
-}
-
 template <class T, class I, class O>
 std::vector<crs_matrix_local<T,I,O>> 
 get_scattered_crs_matrices(crs_matrix_local<T,I,O>& data,
@@ -1420,6 +1428,48 @@ dvector<T> operator*(crs_matrix<T,I,O>& mat, shared_vector<T>& sdv) {
 }
 
 #endif
+
+template <class T>
+template <class I, class O>
+crs_matrix_local<T,I,O> rowmajor_matrix_local<T>::to_crs() {
+  crs_matrix_local<T,I,O> ret;
+  ret.local_num_row = local_num_row;
+  ret.local_num_col = local_num_col;
+  size_t nnz = 0;
+  T* valp = val.data();
+  size_t valsize = val.size();
+  for(size_t i = 0; i < valsize; i++) {
+    if(valp[i] != 0) nnz++;
+  }
+  ret.val.resize(nnz);
+  ret.idx.resize(nnz);
+  ret.off.resize(local_num_row + 1);
+  size_t current = 0;
+  T* retvalp = ret.val.data();
+  I* retidxp = ret.idx.data();
+  O* retoffp = ret.off.data();
+  for(size_t i = 0; i < local_num_row; i++) {
+    for(size_t j = 0; j < local_num_col; j++) {
+      T v = valp[i * local_num_col + j];
+      if(v != 0) {
+        retvalp[current] = v;
+        retidxp[current] = j;
+        current++;
+      }
+    }
+    retoffp[i+1] = current;
+  }
+  return ret;
+}
+
+template <class T>
+template <class I, class O>
+crs_matrix<T,I,O> rowmajor_matrix<T>::to_crs() {
+  crs_matrix<T,I,O> ret;
+  ret.set_num(num_row, num_col);
+  ret.data = data.map(+[](rowmajor_matrix_local<T>& m){return m.to_crs();});
+  return ret;
+}
 
 }
 #endif
