@@ -5,8 +5,8 @@
 #include <climits>
 
 #include "../../matrix/jds_crs_hybrid.hpp"
-#include "../../matrix/ccs_matrix.hpp"
 #include "../../matrix/rowmajor_matrix.hpp"
+#include "../../matrix/blas_wrapper.hpp" // for operator*
 #include "../../core/utility.hpp"
 
 #if !defined(KMEANS_JDS) && !defined(KMEANS_CRS) && !defined(KMEANS_HYBRID)
@@ -31,6 +31,23 @@ rowmajor_matrix_local<T> get_random_rows(crs_matrix<T,I,O>& mat, int k,
 #pragma _NEC ivdep
     for(size_t j = 0; j < sv.val.size(); j++) {
       ret.val[k * sv.idx[j] + i] = sv.val[j];
+    }
+  }
+  return ret;
+}
+
+template <class T>
+rowmajor_matrix_local<T> get_random_rows(rowmajor_matrix<T>& mat, int k,
+                                         long seed) {
+  size_t num_col = mat.num_col;
+  size_t num_row = mat.num_row;
+  rowmajor_matrix_local<T> ret(num_col, k); // transposed
+  srand48(seed);
+  for(int i = 0; i < k; i++) {
+    int pos = static_cast<int>(drand48() * (num_row - 1));
+    auto v = mat.get_row(pos);
+    for(size_t j = 0; j < num_col; j++) {
+      ret.val[k * j + i] = v[j];
     }
   }
   return ret;
@@ -270,6 +287,61 @@ void kmeans_calc_sum(crs_matrix_local<T,I,O>& mat,
 #endif
 
 template <class T>
+void kmeans_calc_sum_rowmajor(rowmajor_matrix_local<T>& mat,
+                              rowmajor_matrix_local<T>& centroid,
+                              std::vector<T>& norm,
+                              std::vector<size_t>& occurrence,
+                              std::vector<T>& sum) {
+  time_spent t(TRACE);
+  auto prod = mat * centroid;
+  t.show(" gemm (rowmajor): ");
+  size_t num_centroids = prod.local_num_col;
+  size_t num_samples = prod.local_num_row;
+  std::vector<int> minloc(num_samples);
+  T* prodvalp = &prod.val[0];
+  T* normp = &norm[0];
+  int* minlocp = &minloc[0];
+  for(size_t c = 0; c < num_centroids; c++) {
+#pragma cdir nodep
+#pragma _NEC ivdep
+    for(size_t r = 0; r < num_samples; r++) {
+      prodvalp[num_centroids * r + c] =
+        normp[c] - prodvalp[num_centroids * r + c];
+    }
+  }
+  t.show(" norm minus product: ");
+  occurrence.clear();
+  occurrence.resize(num_centroids);
+  size_t* occurrencep = &occurrence[0];
+  for(size_t r = 0; r < num_samples; r++) {
+    T min = DBL_MAX;
+    int pos = INT_MAX;
+    for(size_t c = 0; c < num_centroids; c++) {
+      if(prodvalp[num_centroids * r + c] < min) {
+        min = prodvalp[num_centroids * r + c];
+        pos = c;
+      }
+    }
+    minlocp[r] = pos;
+    occurrencep[pos]++;
+  }
+  t.show(" calc minloc: ");
+  size_t dim = mat.local_num_col;
+  sum.clear();
+  sum.resize(dim * num_centroids); // rowmajor dim x k
+  T* sump = &sum[0];
+  T* valp = &mat.val[0];
+  for(size_t r = 0; r < num_samples; r++) {
+#pragma cdir nodep
+#pragma _NEC ivdep
+    for(size_t c = 0; c < dim; c++) {
+      sump[num_centroids * c + minlocp[r]] += valp[dim * r + c];
+    }
+  }
+  t.show(" calc sum: ");
+}
+
+template <class T>
 rowmajor_matrix_local<T>
 calc_new_centroid(std::vector<T>& sum, std::vector<size_t>& occurrence,
                   size_t dim) {
@@ -390,6 +462,62 @@ rowmajor_matrix_local<T> kmeans_impl(crs_matrix<T,I,O>& samples, int k,
   return centroid;
 }
 
+// TODO: mostly the same as the sparse version; use same code
+template <class T>
+rowmajor_matrix_local<T> kmeans_impl(rowmajor_matrix<T>& mat, int k,
+                                     int iter, double eps, long seed = 0) {
+  time_spent t(TRACE);
+  auto centroid = get_random_rows(mat, k, seed);
+  size_t dim = mat.num_col;
+  t.show("create initial centroid: ");
+  time_spent t2(TRACE);
+  time_spent bcasttime(DEBUG), normtime(DEBUG), disttime(DEBUG), vecsumtime(DEBUG),
+    nextcentroidtime(DEBUG);
+  auto dsum = make_node_local_allocate<std::vector<T>>();
+  auto doccurrence = make_node_local_allocate<std::vector<size_t>>();
+  auto norm_tmp = make_node_local_allocate<std::vector<T>>();
+  for(int i = 0; i < iter; i++) {
+    RLOG(TRACE) << "num centroids: " << centroid.local_num_col << std::endl;
+    bcasttime.lap_start();
+    auto bcentroid = centroid.broadcast();
+    bcasttime.lap_stop();
+    t.show("broadcast: ");
+    normtime.lap_start();
+    auto bnorm = broadcast(calc_norm<T>(bcentroid, norm_tmp));
+    normtime.lap_stop();
+    t.show("calc norm: ");
+    disttime.lap_start();
+    mat.data.mapv(kmeans_calc_sum_rowmajor<T>, bcentroid, bnorm, doccurrence,
+                  dsum);
+    disttime.lap_stop();
+    t.show("calc_sum map: ");
+    vecsumtime.lap_start();
+    auto sum = dsum.vector_sum();
+    auto occurrence = doccurrence.vector_sum();
+    vecsumtime.lap_stop();
+    t.show("calc_sum vector_sum: ");
+    nextcentroidtime.lap_start();
+    auto next_centroid = calc_new_centroid(sum, occurrence, dim);
+    nextcentroidtime.lap_stop();
+    t.show("calc next centroid: ");
+    if(is_diff_centroid(next_centroid, centroid, eps))
+      centroid = next_centroid;
+    else {
+      RLOG(DEBUG) << "converged. total num iteration: " << i << std::endl;
+      return next_centroid;
+    }
+    t.show("diff centroid: ");
+    t2.show("one iteration: ");
+  }
+  RLOG(DEBUG) << "total num iteration: " << iter << std::endl;
+  bcasttime.show_lap("broadcast centroid time: ");
+  normtime.show_lap("normalize centroid time: ");
+  disttime.show_lap("distributed computation time: ");
+  vecsumtime.show_lap("vector sum time: ");
+  nextcentroidtime.show_lap("calculate next centroid time: ");
+  return centroid;
+}
+
 template <class T, class I, class O>
 rowmajor_matrix_local<T> kmeans(crs_matrix<T,I,O>& samples, int k, int iter,
                                 double eps, long seed = 0) {
@@ -402,6 +530,12 @@ rowmajor_matrix_local<T> kmeans(crs_matrix<T,I,O>&& samples, int k, int iter,
   return kmeans_impl(samples, k, iter, eps, seed, true);
 }
 
+template <class T>
+rowmajor_matrix_local<T> kmeans(rowmajor_matrix<T>& samples, int k, int iter,
+                                double eps, long seed = 0) {
+  return kmeans_impl(samples, k, iter, eps, seed);
+}
+
 // mostly same as calc_sum
 // used for assigning data to cluster
 template <class T, class I, class O>
@@ -410,6 +544,44 @@ std::vector<int> kmeans_assign_cluster(crs_matrix_local<T,I,O>& mat,
   time_spent t(DEBUG);
   auto prod = mat * centroid;
   t.show(" spmm: ");
+  size_t num_centroids = prod.local_num_col;
+  size_t num_samples = prod.local_num_row;
+  std::vector<T> norm;
+  calc_norm_helper(centroid, norm);
+  T* normp = &norm[0];
+  std::vector<int> minloc(num_samples);
+  T* prodvalp = &prod.val[0];
+  int* minlocp = &minloc[0];
+  for(size_t c = 0; c < num_centroids; c++) {
+#pragma cdir nodep
+#pragma _NEC ivdep
+    for(size_t r = 0; r < num_samples; r++) {
+      prodvalp[num_centroids * r + c] =
+        normp[c] - prodvalp[num_centroids * r + c];
+    }
+  }
+  t.show(" norm minus product: ");
+  for(size_t r = 0; r < num_samples; r++) {
+    T min = DBL_MAX;
+    int pos = INT_MAX;
+    for(size_t c = 0; c < num_centroids; c++) {
+      if(prodvalp[num_centroids * r + c] < min) {
+        min = prodvalp[num_centroids * r + c];
+        pos = c;
+      }
+    }
+    minlocp[r] = pos;
+  }
+  t.show(" calc minloc: ");
+  return minloc;
+}
+
+template <class T>
+std::vector<int> kmeans_assign_cluster(rowmajor_matrix_local<T>& mat,
+                                       rowmajor_matrix_local<T>& centroid) {
+  time_spent t(DEBUG);
+  auto prod = mat * centroid;
+  t.show(" gemm: ");
   size_t num_centroids = prod.local_num_col;
   size_t num_samples = prod.local_num_row;
   std::vector<T> norm;
