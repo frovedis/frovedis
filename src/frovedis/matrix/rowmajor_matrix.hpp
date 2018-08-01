@@ -432,12 +432,12 @@ struct rowmajor_matrix {
 };
 
 template <class T>
-size_t get_local_num_row(const rowmajor_matrix_local<T>& mat) {
+size_t rowmajor_get_local_num_row(const rowmajor_matrix_local<T>& mat) {
   return mat.local_num_row;
 }
 
 template <class T>
-size_t get_local_num_col(const rowmajor_matrix_local<T>& mat) {
+size_t rowmajor_get_local_num_col(const rowmajor_matrix_local<T>& mat) {
   return mat.local_num_col;
 }
 
@@ -447,8 +447,8 @@ rowmajor_matrix<T> make_rowmajor_matrix_load(const std::string& input) {
   dvec.align_block();
   rowmajor_matrix<T>
     ret(dvec.moveto_node_local().map(make_rowmajor_matrix_local_vectorstring<T>));
-  ret.num_row = ret.data.map(get_local_num_row<T>).reduce(add<size_t>);
-  ret.num_col = ret.data.map(get_local_num_col<T>).gather()[0];
+  ret.num_row = ret.data.map(rowmajor_get_local_num_row<T>).reduce(add<size_t>);
+  ret.num_col = ret.data.map(rowmajor_get_local_num_col<T>).gather()[0];
   return ret;
 }
 
@@ -726,7 +726,7 @@ rowmajor_matrix<T> rowmajor_matrix<T>::transpose() const {
   // transpose is semantically const, but map cannot be made const
   auto* x = const_cast<rowmajor_matrix<T>*>(this);
   auto local_num_rows =
-    make_node_local_broadcast(x->data.map(get_local_num_row<T>).gather());
+    make_node_local_broadcast(x->data.map(rowmajor_get_local_num_row<T>).gather());
   auto shuffled = x->data.map(rowmajor_matrix_call_transpose<T>).template 
     map<rowmajor_matrix_local<T>>(rowmajor_matrix_divide_and_exchange<T>
                                   (num_col, num_row), local_num_rows);
@@ -757,7 +757,7 @@ rowmajor_matrix<T>::align_as(const std::vector<size_t>& dst) {
   if(dst.size() != get_nodesize()) 
     throw std::runtime_error
       ("align_as: size of dst is not equal to node size");
-  auto mysizes = data.map(get_local_num_row<T>).gather();
+  auto mysizes = data.map(rowmajor_get_local_num_row<T>).gather();
   size_t dsttotal = 0;
   size_t selftotal = 0;
   for(size_t i = 0; i < dst.size(); i++) dsttotal += dst[i];
@@ -798,7 +798,7 @@ template <class T>
 template <class U>
 rowmajor_matrix<T>&
 rowmajor_matrix<T>::align_to(rowmajor_matrix<U>& m) {
-  auto sizes = m.data.map(get_local_num_row<U>).gather();
+  auto sizes = m.data.map(rowmajor_get_local_num_row<U>).gather();
   return align_as(sizes);
 }
 

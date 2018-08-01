@@ -438,7 +438,7 @@ shrink_rowmajor_matrix_sum_local(rowmajor_matrix_local<T>& m,
 }
 
 template <class T>
-std::pair<size_t, size_t> get_local_num_row_col(rowmajor_matrix_local<T>& lm) {
+std::pair<size_t, size_t> rowmajor_get_local_num_row_col(rowmajor_matrix_local<T>& lm) {
   return std::make_pair(lm.local_num_row, lm.local_num_col);
 }
 
@@ -448,7 +448,7 @@ shrink_rowmajor_matrix_sum(node_local<rowmajor_matrix_local<T>>& m,
                            node_local<shrink_vector_info<I>>& vm) {
   rowmajor_matrix<T> ret;
   ret.data = m.map(shrink_rowmajor_matrix_sum_local<T,I>, vm);
-  auto rows_cols = ret.data.map(get_local_num_row_col<T>).gather();
+  auto rows_cols = ret.data.map(rowmajor_get_local_num_row_col<T>).gather();
   ret.num_col = rows_cols[0].second;
   size_t total = 0;
   for(size_t i = 0; i < rows_cols.size(); i++) total += rows_cols[i].first;
@@ -551,7 +551,7 @@ shrink_rowmajor_matrix_merge(node_local<rowmajor_matrix_local<T>>& m,
                              node_local<shrink_vector_info<I>>& vm) {
   rowmajor_matrix<T> ret;
   ret.data = m.map(shrink_rowmajor_matrix_merge_local<T,I>, vm);
-  auto rows_cols = ret.data.map(get_local_num_row_col<T>).gather();
+  auto rows_cols = ret.data.map(rowmajor_get_local_num_row_col<T>).gather();
   ret.num_col = rows_cols[0].second;
   size_t total = 0;
   for(size_t i = 0; i < rows_cols.size(); i++) total += rows_cols[i].first;
