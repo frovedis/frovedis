@@ -128,7 +128,7 @@ class LinearRegression:
       elif cls.solver == 'lbfgs':
          rpclib.lnr_lbfgs(host,port,X.get(),y.get(),cls.fit_intercept,
                           cls.verbose,cls.__mid)
-      else: raise ValueError, "Unknown solver %s for Ridge Regression." % cls.solver
+      else: raise ValueError, "Unknown solver %s for Linear Regression." % cls.solver
 
       return cls
 
@@ -200,7 +200,7 @@ class Lasso:
       elif cls.solver == 'lbfgs':
          rpclib.lasso_lbfgs(host,port,X.get(),y.get(),cls.max_iter,cls.alpha,
                             cls.fit_intercept,cls.tol,cls.verbose,cls.__mid)
-      else: raise ValueError, "Unknown solver %s for Ridge Regression." % cls.solver
+      else: raise ValueError, "Unknown solver %s for Lasso Regression." % cls.solver
 
       return cls
 
@@ -238,7 +238,7 @@ class Ridge:
    # defaults are as per Frovedis
    # alpha: Frovedis: 0.01, Sklearn: 1.0
    def __init__(cls, alpha=0.01, fit_intercept=True, normalize=False,
-                copy_X=True, max_iter=None, tol=1e-3, solver='sag',
+                copy_X=True, max_iter=1000, tol=1e-3, solver='sag',
                 random_state=None, verbose=0):
       cls.alpha = alpha
       cls.fit_intercept = fit_intercept
@@ -251,7 +251,7 @@ class Ridge:
       # extra
       cls.verbose = verbose
       cls.__mid = None
-      cls.__mkind = LNRM
+      cls.__mkind = M_KIND.LNRM
 
    def fit(cls, X, y, sample_weight=None):
       cls.release()

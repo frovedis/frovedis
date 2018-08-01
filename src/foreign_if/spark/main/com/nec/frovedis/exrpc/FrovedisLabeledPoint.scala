@@ -19,8 +19,7 @@ class FrovedisLabeledPoint extends java.io.Serializable {
   private def convert_and_send_local_data(data: Iterator[LabeledPoint],
                                           t_node: Node) : Iterator[MemPair] = {
     val darr = data.toArray
-    // Note: For Frovedis training data, output labels are either 1.0 or -1.0
-    val lbls = darr.map(_.label).map(l => if (l == 0.0) -1.0 else l)
+    val lbls = darr.map(_.label)
     val points = darr.map(_.features).map(p => p.toSparse)
     val scalaCRS = new ScalaCRS(points)
     val ret = JNISupport.loadFrovedisWorkerGLMData(t_node, 
