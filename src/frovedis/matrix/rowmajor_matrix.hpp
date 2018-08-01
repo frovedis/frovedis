@@ -75,6 +75,7 @@ struct rowmajor_matrix_local {
   template <class I = size_t, class O = size_t>
   crs_matrix_local<T,I,O> to_crs();
   void debug_print();
+  std::vector<T> get_row(size_t r) const;
   void save(const std::string& file) {
     std::ofstream str(file.c_str());
     str << *this;
@@ -89,6 +90,16 @@ struct rowmajor_matrix_local {
 
   SERIALIZE(val, local_num_row, local_num_col)
 };
+
+template <class T>
+std::vector<T> rowmajor_matrix_local<T>::get_row(size_t k) const {
+  std::vector<T> r(local_num_col);
+  if(k > local_num_row) throw std::runtime_error("get_row: invalid position");
+  const T* valp_off = val.data() + local_num_col * k;
+  T* rp = r.data();
+  for(size_t i = 0; i < local_num_col; i++) rp[i] = valp_off[i];
+  return r;
+}
 
 template <class T>
 struct rowmajor_matrix_broadcast_helper {
@@ -419,6 +430,7 @@ struct rowmajor_matrix {
   rowmajor_matrix<T>& align_block();
   template <class I = size_t, class O = size_t>
   crs_matrix<T,I,O> to_crs();
+  std::vector<T> get_row(size_t r);
 
   void debug_print() {data.mapv(call_debug_print<rowmajor_matrix_local<T>>);}
   void save(const std::string& file) {
@@ -439,6 +451,37 @@ size_t rowmajor_get_local_num_row(const rowmajor_matrix_local<T>& mat) {
 template <class T>
 size_t rowmajor_get_local_num_col(const rowmajor_matrix_local<T>& mat) {
   return mat.local_num_col;
+}
+
+template <class T>
+void rowmajor_get_row_helper(size_t& i, DVID<rowmajor_matrix_local<T>>& dvid,
+                             size_t& pos, intptr_t& retp) {
+  if(i == get_selfid()) {
+    auto v = dvid.get_selfdata()->get_row(pos);
+    send_data_helper(0, v);
+  } else if(get_selfid() == 0) {
+    std::vector<T>* ret = reinterpret_cast<std::vector<T>*>(retp);
+    receive_data_helper(i, *ret);
+  }
+}
+
+template <class T>
+std::vector<T> rowmajor_matrix<T>::get_row(size_t pos) {
+  auto sizes = data.map(rowmajor_get_local_num_row<T>).gather();
+  if(pos < sizes[0]) return data.get_dvid().get_selfdata()->get_row(pos);
+  else {
+    pos -= sizes[0];
+    for(size_t i = 1; i < sizes.size(); i++) {
+      if(pos < sizes[i]) {
+        std::vector<T> ret;
+        intptr_t retp = reinterpret_cast<intptr_t>(&ret);
+        bcast_rpc_oneway(rowmajor_get_row_helper<T>, i, data.get_dvid(),
+                         pos, retp);
+        return ret;
+      } else pos -= sizes[i];
+    }
+  }
+  throw std::runtime_error("get_row: invalid position");  
 }
 
 template <class T>
