@@ -607,10 +607,13 @@ size_t crs_get_local_num_row(crs_matrix_local<T,I,O>& mat) {
 
 template <class T, class I, class O>
 void crs_get_row_helper(size_t& i, DVID<crs_matrix_local<T,I,O>>& dvid,
-                        size_t& pos) {
+                        size_t& pos, intptr_t& retp) {
   if(i == get_selfid()) {
     auto v = dvid.get_selfdata()->get_row(pos);
     send_data_helper(0, v);
+  } else if(get_selfid() == 0) {
+    sparse_vector<T,I>* ret = reinterpret_cast<sparse_vector<T,I>*>(retp);
+    receive_data_helper(i, *ret);
   }
 }
 
@@ -622,9 +625,10 @@ sparse_vector<T,I> crs_matrix<T,I,O>::get_row(size_t pos) {
     pos -= sizes[0];
     for(size_t i = 1; i < sizes.size(); i++) {
       if(pos < sizes[i]) {
-        bcast_rpc_oneway(crs_get_row_helper<T,I,O>, i, data.get_dvid(), pos);
         sparse_vector<T,I> ret;
-        receive_data_helper(i, ret);
+        intptr_t retp = reinterpret_cast<intptr_t>(&ret);
+        bcast_rpc_oneway(crs_get_row_helper<T,I,O>, i, data.get_dvid(), pos,
+                         retp);
         return ret;
       } else pos -= sizes[i];
     }
