@@ -3,7 +3,7 @@
 #BOOST_LIB := /opt/nec/nosupport/frovedis/ve/opt/boost/lib
 BOOST_INC := /opt/nec/nosupport/frovedis/ve/opt/boost/include
 BOOST_LIB := /opt/nec/nosupport/frovedis/ve/opt/boost/lib
-NLC_VERSION := 1.0.0
+NLC_VERSION := $(shell ls /opt/nec/ve/nlc | sort -V -r | head -1)
 NLC_INC := /opt/nec/ve/nlc/${NLC_VERSION}/include
 NLC_LIB := /opt/nec/ve/nlc/${NLC_VERSION}/lib
 
@@ -15,7 +15,7 @@ MPICXX := mpinc++
 AR := nar
 CXXFLAGS_COMMON := -O4 -D_MPIPP_INCLUDE -I${BOOST_INC} -I${NLC_INC}
 
-LINK :=	nfort -cxxlib
+LINK :=	nfort -cxxlib -static
 MPI_LINK = $(shell mpinc++ -show | cut -d" " -f 2-)
 
 LIBS_COMMON := -L${NLC_LIB} -lparpack -lscalapack -llapack -lcblas -lblas_sequential -L${BOOST_LIB} -lboost_program_options -lboost_serialization -lboost_system  ${MPI_LINK} 
