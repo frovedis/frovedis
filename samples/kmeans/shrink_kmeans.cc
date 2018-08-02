@@ -7,47 +7,89 @@ using namespace boost;
 using namespace frovedis;
 using namespace std;
 
-void do_kmeans(const string& input, const string& output, int k,
+void do_kmeans(const string& input, bool dense, const string& output, int k,
                int num_iteration, double eps, bool binary) {
   if(binary) {
-    time_spent t(DEBUG);
-    auto mat = make_crs_matrix_loadbinary<double>(input);
-    t.show("load matrix: ");
-    auto r = kmeans(mat, k, num_iteration, eps);
-    t.show("kmeans time: ");
-    r.transpose().savebinary(output);
-    t.show("save centroid time: ");
+    if(dense) {
+      time_spent t(DEBUG);
+      auto mat = make_rowmajor_matrix_loadbinary<double>(input);
+      t.show("load matrix: ");
+      auto r = kmeans(mat, k, num_iteration, eps);
+      t.show("kmeans time: ");
+      r.transpose().savebinary(output);
+      t.show("save centroid time: ");
+    } else {
+      time_spent t(DEBUG);
+      auto mat = make_crs_matrix_loadbinary<double>(input);
+      t.show("load matrix: ");
+      auto r = kmeans(std::move(mat), k, num_iteration, eps);
+      t.show("kmeans time: ");
+      r.transpose().savebinary(output);
+      t.show("save centroid time: ");
+    }
   } else {
-    time_spent t(DEBUG);
-    auto mat = make_crs_matrix_load<double>(input);
-    t.show("load matrix: ");
-    auto r = kmeans(mat, k, num_iteration, eps);
-    t.show("kmeans time: ");
-    r.transpose().save(output);
-    t.show("save model time: ");
+    if(dense) {
+      time_spent t(DEBUG);
+      auto mat = make_rowmajor_matrix_load<double>(input);
+      t.show("load matrix: ");
+      auto r = kmeans(mat, k, num_iteration, eps);
+      t.show("kmeans time: ");
+      r.transpose().save(output);
+      t.show("save model time: ");
+    } else {
+      time_spent t(DEBUG);
+      auto mat = make_crs_matrix_load<double>(input);
+      t.show("load matrix: ");
+      auto r = kmeans(std::move(mat), k, num_iteration, eps);
+      t.show("kmeans time: ");
+      r.transpose().save(output);
+      t.show("save model time: ");
+    }
   }
 }
 
-void do_assign(const string& input, const string& input_centroid,
+void do_assign(const string& input, bool dense, const string& input_centroid,
                const string& output, bool binary) {
   if(binary) {
-    time_spent t(DEBUG);
-    auto mat = make_crs_matrix_local_loadbinary<double>(input);
-    t.show("load matrix: ");
-    auto c = make_rowmajor_matrix_local_loadbinary<double>(input_centroid);
-    t.show("load centroid: ");
-    auto ct = c.transpose();
-    auto r = kmeans_assign_cluster(mat, ct);
-    make_dvector_scatter(r).savebinary(output);    
+    if(dense) {
+      time_spent t(DEBUG);
+      auto mat = make_rowmajor_matrix_local_loadbinary<double>(input);
+      t.show("load matrix: ");
+      auto c = make_rowmajor_matrix_local_loadbinary<double>(input_centroid);
+      t.show("load centroid: ");
+      auto ct = c.transpose();
+      auto r = kmeans_assign_cluster(mat, ct);
+      make_dvector_scatter(r).savebinary(output);    
+    } else {
+      time_spent t(DEBUG);
+      auto mat = make_crs_matrix_local_loadbinary<double>(input);
+      t.show("load matrix: ");
+      auto c = make_rowmajor_matrix_local_loadbinary<double>(input_centroid);
+      t.show("load centroid: ");
+      auto ct = c.transpose();
+      auto r = kmeans_assign_cluster(mat, ct);
+      make_dvector_scatter(r).savebinary(output);    
+    }
   } else {
-    time_spent t(DEBUG);
-    auto mat = make_crs_matrix_local_load<double>(input);
-    t.show("load matrix: ");
-    auto c = make_rowmajor_matrix_local_load<double>(input_centroid);
-    t.show("load centroid: ");
-    auto ct = c.transpose();
-    auto r = kmeans_assign_cluster(mat, ct);
-    make_dvector_scatter(r).saveline(output);    
+    if(dense) {
+      time_spent t(DEBUG);
+      auto mat = make_rowmajor_matrix_local_load<double>(input);
+      t.show("load matrix: ");
+      auto c = make_rowmajor_matrix_local_load<double>(input_centroid);
+      t.show("load centroid: ");
+      auto ct = c.transpose();
+      auto r = kmeans_assign_cluster(mat, ct);
+      make_dvector_scatter(r).saveline(output);    
+    } else {
+      time_spent t(DEBUG);
+      auto mat = make_crs_matrix_local_load<double>(input);
+      t.show("load matrix: ");
+      auto c = make_rowmajor_matrix_local_load<double>(input_centroid);
+      t.show("load centroid: ");
+      auto ct = c.transpose();
+      auto r = kmeans_assign_cluster(mat, ct);
+      make_dvector_scatter(r).saveline(output);    
+    }
   }
 }
 
@@ -67,7 +109,7 @@ int main(int argc, char* argv[]) {
     ("num-iteration,n", value<int>(), "number of max iteration")
     ("eps,e", value<double>(), "epsilon to stop the iteration")
     ("sparse,s", "use sparse matrix [default]")
-    ("dense,d", "use dense matrix [not supported yet]")
+    ("dense,d", "use dense matrix")
     ("verbose", "set loglevel to DEBUG")
     ("verbose2", "set loglevel to TRACE")
     ("binary,b", "use binary input/output");
@@ -158,11 +200,6 @@ int main(int argc, char* argv[]) {
     set_loglevel(TRACE);
   }
 
-  if(dense) {
-    cerr << "currently dense matrix is not supported" << endl;
-    exit(1);
-  } else {
-    if(assign) do_assign(input, input_centroid, output, binary);
-    else do_kmeans(input, output, k, num_iteration, eps, binary);
-  }
+  if(assign) do_assign(input, dense, input_centroid, output, binary);
+  else do_kmeans(input, dense, output, k, num_iteration, eps, binary);
 }
