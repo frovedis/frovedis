@@ -38,6 +38,6 @@ ifeq (${TARGET},x86)
 	cd spark; make clean
 	cd spark/examples; make clean
 	cd python/main/cpp; make clean
-	cd python/examples/out; rm -rf ./*
+	rm -fr python/examples/out
 endif
 
