@@ -16,24 +16,6 @@ double get_dtime(){
 */
 }
 
-// heap tree
-int tree_left(int n, int size) {
-  int r = n * 2 + 1;
-  if(r > size - 1) return -1; else return r;
-}
-
-int tree_right(int n, int size) {
-  int r = n * 2 + 2;
-  if(r > size - 1) return -1; else return r;
-}
-
-int tree_up(int n, int size) {
-  if(n == 0) return -1;
-  else {
-    return (n - 1) / 2;
-  }
-}
-
 void make_directory(const std::string& path) {
   struct stat sb;
   if (stat(path.c_str(), &sb) != 0) {

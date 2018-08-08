@@ -38,10 +38,6 @@ private:
   log_level loglevel;
 };
 
-int tree_left(int n, int size);
-int tree_right(int n, int size);
-int tree_up(int n, int size);
-
 void make_directory(const std::string&);
 bool directory_exists(const std::string&);
 

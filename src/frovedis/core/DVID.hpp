@@ -439,37 +439,26 @@ template <class T, class F>
 void dvid_reduce_helper(dvid_t& dvid, intptr_t& ret, F& f) {
   int self = get_selfid();
   int node_size = get_nodesize();
-  int left = tree_left(self, node_size);
-  int right = tree_right(self, node_size);
-  int up = tree_up(self, node_size);
-  T* self_data = get_data<T>(dvid);
-  T* retp = reinterpret_cast<T*>(ret);
-  if(right != -1 && left != -1) {
-    T data;
-    receive_data_helper(right, data);
-    T work = f(data, *self_data);
-    receive_data_helper(left, data);
-    if(up != -1) {
-      T tosend = f(data, work);
-      send_data_helper(up, tosend);
+  T self_data = *get_data<T>(dvid);
+  for(int i = 0; node_size > 1; i++) {
+    if(self % 2 != 0) { // sender
+      int receiver = (self - 1) << i;
+      send_data_helper(receiver, self_data);
+      break;
     } else {
-      *retp = f(data, work);
+      if(self + 1 < node_size) {
+        int sender = (self + 1) << i;
+        T data;
+        receive_data_helper(sender, data);
+        self_data = f(self_data, data);
+      }
+      node_size = ceil_div(node_size, 2);
+      self /= 2;
     }
-  } else if(left != -1) {
-    T data;
-    receive_data_helper(left, data);
-    if(up != -1) {
-      T tosend = f(data, *self_data);
-      send_data_helper(up, tosend);
-    } else {
-      *retp = f(data, *self_data);
-    }
-  } else {
-    if(up != -1) {
-      send_data_helper(up, *self_data);
-    } else {
-      *retp = *self_data;
-    }
+  }
+  if(self == 0) {
+    T* retp = reinterpret_cast<T*>(ret);
+    *retp = self_data;
   }
 }
 
