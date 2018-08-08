@@ -13,7 +13,6 @@ namespace frovedis {
 
 template <typename T>
 class matrix_factorization_model {
-  friend class MatrixFactorizationUsingALS;
 
 public:
   std::vector<T> X;
