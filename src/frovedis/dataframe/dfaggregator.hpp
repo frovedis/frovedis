@@ -5,14 +5,14 @@
 
 namespace frovedis {
 
-class dftable;
+class dftable_base;
 
 struct dfaggregator {
   dfaggregator(const std::string& col, const std::string& as) :
     has_as(true), col(col), as(as) {}
   dfaggregator(const std::string& col) : has_as(false), col(col) {}
   virtual std::shared_ptr<dfcolumn>
-  aggregate(dftable& table,
+  aggregate(dftable_base& table,
             node_local<std::vector<size_t>>& grouped_idx,
             node_local<std::vector<size_t>>& idx_split,
             node_local<std::vector<std::vector<size_t>>>& partitioned_idx,
@@ -27,7 +27,7 @@ struct dfaggregator_sum : public dfaggregator {
     dfaggregator(col,as) {}
   dfaggregator_sum(const std::string& col) : dfaggregator(col) {}
   virtual std::shared_ptr<dfcolumn>
-  aggregate(dftable& table,
+  aggregate(dftable_base& table,
             node_local<std::vector<size_t>>& grouped_idx,
             node_local<std::vector<size_t>>& idx_split,
             node_local<std::vector<std::vector<size_t>>>& partitioned_idx,
@@ -39,7 +39,7 @@ struct dfaggregator_count : public dfaggregator {
     dfaggregator(col,as) {}
   dfaggregator_count(const std::string& col) : dfaggregator(col) {}
   virtual std::shared_ptr<dfcolumn>
-  aggregate(dftable& table,
+  aggregate(dftable_base& table,
             node_local<std::vector<size_t>>& grouped_idx,
             node_local<std::vector<size_t>>& idx_split,
             node_local<std::vector<std::vector<size_t>>>& partitioned_idx,
@@ -51,7 +51,7 @@ struct dfaggregator_avg : public dfaggregator {
     dfaggregator(col,as) {}
   dfaggregator_avg(const std::string& col) : dfaggregator(col) {}
   virtual std::shared_ptr<dfcolumn>
-  aggregate(dftable& table,
+  aggregate(dftable_base& table,
             node_local<std::vector<size_t>>& grouped_idx,
             node_local<std::vector<size_t>>& idx_split,
             node_local<std::vector<std::vector<size_t>>>& partitioned_idx,
@@ -63,7 +63,7 @@ struct dfaggregator_max : public dfaggregator {
     dfaggregator(col,as) {}
   dfaggregator_max(const std::string& col) : dfaggregator(col) {}
   virtual std::shared_ptr<dfcolumn>
-  aggregate(dftable& table,
+  aggregate(dftable_base& table,
             node_local<std::vector<size_t>>& grouped_idx,
             node_local<std::vector<size_t>>& idx_split,
             node_local<std::vector<std::vector<size_t>>>& partitioned_idx,
@@ -75,7 +75,7 @@ struct dfaggregator_min : public dfaggregator {
     dfaggregator(col,as) {}
   dfaggregator_min(const std::string& col) : dfaggregator(col) {}
   virtual std::shared_ptr<dfcolumn>
-  aggregate(dftable& table,
+  aggregate(dftable_base& table,
             node_local<std::vector<size_t>>& grouped_idx,
             node_local<std::vector<size_t>>& idx_split,
             node_local<std::vector<std::vector<size_t>>>& partitioned_idx,

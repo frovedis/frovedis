@@ -5,7 +5,7 @@ namespace frovedis {
 
 std::shared_ptr<dfcolumn> 
 dfaggregator_sum::
-aggregate(dftable& table,
+aggregate(dftable_base& table,
           node_local<std::vector<size_t>>& grouped_idx,
           node_local<std::vector<size_t>>& idx_split,
           node_local<std::vector<std::vector<size_t>>>& partitioned_idx,
@@ -16,7 +16,7 @@ aggregate(dftable& table,
 
 std::shared_ptr<dfcolumn> 
 dfaggregator_count::
-aggregate(dftable& table,
+aggregate(dftable_base& table,
           node_local<std::vector<size_t>>& grouped_idx,
           node_local<std::vector<size_t>>& idx_split,
           node_local<std::vector<std::vector<size_t>>>& partitioned_idx,
@@ -27,7 +27,7 @@ aggregate(dftable& table,
 
 std::shared_ptr<dfcolumn> 
 dfaggregator_avg::
-aggregate(dftable& table,
+aggregate(dftable_base& table,
           node_local<std::vector<size_t>>& grouped_idx,
           node_local<std::vector<size_t>>& idx_split,
           node_local<std::vector<std::vector<size_t>>>& partitioned_idx,
@@ -38,7 +38,7 @@ aggregate(dftable& table,
 
 std::shared_ptr<dfcolumn> 
 dfaggregator_max::
-aggregate(dftable& table,
+aggregate(dftable_base& table,
           node_local<std::vector<size_t>>& grouped_idx,
           node_local<std::vector<size_t>>& idx_split,
           node_local<std::vector<std::vector<size_t>>>& partitioned_idx,
@@ -49,7 +49,7 @@ aggregate(dftable& table,
 
 std::shared_ptr<dfcolumn> 
 dfaggregator_min::
-aggregate(dftable& table,
+aggregate(dftable_base& table,
           node_local<std::vector<size_t>>& grouped_idx,
           node_local<std::vector<size_t>>& idx_split,
           node_local<std::vector<std::vector<size_t>>>& partitioned_idx,

@@ -8,10 +8,10 @@
 namespace frovedis {
 
 struct dfoperator {
-  virtual node_local<std::vector<size_t>> filter(dftable& t) const = 0;
+  virtual node_local<std::vector<size_t>> filter(dftable_base& t) const = 0;
   virtual std::pair<node_local<std::vector<size_t>>,
                     node_local<std::vector<size_t>>>
-  hash_join(dftable& left, dftable& right,
+  hash_join(dftable_base& left, dftable_base& right,
             node_local<std::vector<size_t>>& left_idx,
             node_local<std::vector<size_t>>& right_idx) const {
     throw std::runtime_error("hash_join on this operator is not implemented");
@@ -19,7 +19,7 @@ struct dfoperator {
   virtual std::tuple<node_local<std::vector<size_t>>,
                      node_local<std::vector<size_t>>,
                      node_local<std::vector<size_t>>>
-  outer_hash_join(dftable& left, dftable& right,
+  outer_hash_join(dftable_base& left, dftable_base& right,
             node_local<std::vector<size_t>>& left_idx,
             node_local<std::vector<size_t>>& right_idx) const {
     throw std::runtime_error
@@ -27,7 +27,7 @@ struct dfoperator {
   }
   virtual std::pair<node_local<std::vector<size_t>>,
                     node_local<std::vector<size_t>>>
-  bcast_join(dftable& left, dftable& right,
+  bcast_join(dftable_base& left, dftable_base& right,
              node_local<std::vector<size_t>>& left_idx,
              node_local<std::vector<size_t>>& right_idx) const {
     throw std::runtime_error("bcast_join on this operator is not implemented");
@@ -35,7 +35,7 @@ struct dfoperator {
   virtual std::tuple<node_local<std::vector<size_t>>,
                      node_local<std::vector<size_t>>,
                      node_local<std::vector<size_t>>>
-  outer_bcast_join(dftable& left, dftable& right,
+  outer_bcast_join(dftable_base& left, dftable_base& right,
                    node_local<std::vector<size_t>>& left_idx,
                    node_local<std::vector<size_t>>& right_idx) const {
     throw std::runtime_error
@@ -43,7 +43,7 @@ struct dfoperator {
   }
   virtual std::pair<node_local<std::vector<size_t>>,
                     node_local<std::vector<size_t>>>
-  star_join(dftable& left, dftable& right,
+  star_join(dftable_base& left, dftable_base& right,
             node_local<std::vector<size_t>>& left_idx,
             node_local<std::vector<size_t>>& right_idx) const {
     throw std::runtime_error("bcast_join on this operator is not implemented");
@@ -53,14 +53,14 @@ struct dfoperator {
 struct dfoperator_eq : public dfoperator {
   dfoperator_eq(const std::string& left, const std::string& right) :
     left(left), right(right) {}
-  virtual node_local<std::vector<size_t>> filter(dftable& t) const {
+  virtual node_local<std::vector<size_t>> filter(dftable_base& t) const {
     auto left_column = t.column(left);
     auto right_column = t.column(right);
     return left_column->filter_eq(right_column);
   }
   virtual std::pair<node_local<std::vector<size_t>>,
                     node_local<std::vector<size_t>>>
-    hash_join(dftable& left_t, dftable& right_t,
+    hash_join(dftable_base& left_t, dftable_base& right_t,
               node_local<std::vector<size_t>>& left_idx,
               node_local<std::vector<size_t>>& right_idx) const {
     auto left_column = left_t.raw_column(left);
@@ -70,7 +70,7 @@ struct dfoperator_eq : public dfoperator {
   virtual std::tuple<node_local<std::vector<size_t>>,
                      node_local<std::vector<size_t>>,
                      node_local<std::vector<size_t>>>
-    outer_hash_join(dftable& left_t, dftable& right_t,
+    outer_hash_join(dftable_base& left_t, dftable_base& right_t,
                     node_local<std::vector<size_t>>& left_idx,
                     node_local<std::vector<size_t>>& right_idx) const {
     auto left_column = left_t.raw_column(left);
@@ -79,7 +79,7 @@ struct dfoperator_eq : public dfoperator {
   }
   virtual std::pair<node_local<std::vector<size_t>>,
                     node_local<std::vector<size_t>>>
-    bcast_join(dftable& left_t, dftable& right_t,
+    bcast_join(dftable_base& left_t, dftable_base& right_t,
                node_local<std::vector<size_t>>& left_idx,
                node_local<std::vector<size_t>>& right_idx) const {
     auto left_column = left_t.raw_column(left);
@@ -89,7 +89,7 @@ struct dfoperator_eq : public dfoperator {
   virtual std::tuple<node_local<std::vector<size_t>>,
                      node_local<std::vector<size_t>>,
                      node_local<std::vector<size_t>>>
-    outer_bcast_join(dftable& left_t, dftable& right_t,
+    outer_bcast_join(dftable_base& left_t, dftable_base& right_t,
                      node_local<std::vector<size_t>>& left_idx,
                      node_local<std::vector<size_t>>& right_idx) const {
     auto left_column = left_t.raw_column(left);
@@ -98,7 +98,7 @@ struct dfoperator_eq : public dfoperator {
   }
   virtual std::pair<node_local<std::vector<size_t>>,
                     node_local<std::vector<size_t>>>
-    star_join(dftable& left_t, dftable& right_t,
+    star_join(dftable_base& left_t, dftable_base& right_t,
               node_local<std::vector<size_t>>& left_idx,
               node_local<std::vector<size_t>>& right_idx) const {
     auto left_column = left_t.raw_column(left);
@@ -113,7 +113,7 @@ template <class T>
 struct dfoperator_eq_immed : public dfoperator {
   dfoperator_eq_immed(const std::string& left, const T& right) :
     left(left), right(right) {}
-  virtual node_local<std::vector<size_t>> filter(dftable& t) const {
+  virtual node_local<std::vector<size_t>> filter(dftable_base& t) const {
     auto left_column =
       std::dynamic_pointer_cast<typed_dfcolumn<T>>(t.column(left));
     if(!left_column)
@@ -127,7 +127,7 @@ struct dfoperator_eq_immed : public dfoperator {
 struct dfoperator_neq : public dfoperator {
   dfoperator_neq(const std::string& left, const std::string& right) :
     left(left), right(right) {}
-  virtual node_local<std::vector<size_t>> filter(dftable& t) const {
+  virtual node_local<std::vector<size_t>> filter(dftable_base& t) const {
     auto left_column = t.column(left);
     auto right_column = t.column(right);
     return left_column->filter_neq(right_column);
@@ -139,7 +139,7 @@ template <class T>
 struct dfoperator_neq_immed : public dfoperator {
   dfoperator_neq_immed(const std::string& left, const T& right) :
     left(left), right(right) {}
-  virtual node_local<std::vector<size_t>> filter(dftable& t) const {
+  virtual node_local<std::vector<size_t>> filter(dftable_base& t) const {
     auto left_column =
       std::dynamic_pointer_cast<typed_dfcolumn<T>>(t.column(left));
     if(!left_column)
@@ -154,7 +154,7 @@ struct dfoperator_neq_immed : public dfoperator {
 struct dfoperator_lt : public dfoperator {
   dfoperator_lt(const std::string& left, const std::string& right) :
     left(left), right(right) {}
-  virtual node_local<std::vector<size_t>> filter(dftable& t) const {
+  virtual node_local<std::vector<size_t>> filter(dftable_base& t) const {
     auto left_column = t.column(left);
     auto right_column = t.column(right);
     return left_column->filter_lt(right_column);
@@ -166,7 +166,7 @@ template <class T>
 struct dfoperator_lt_immed : public dfoperator {
   dfoperator_lt_immed(const std::string& left, const T& right) :
     left(left), right(right) {}
-  virtual node_local<std::vector<size_t>> filter(dftable& t) const {
+  virtual node_local<std::vector<size_t>> filter(dftable_base& t) const {
     auto left_column =
       std::dynamic_pointer_cast<typed_dfcolumn<T>>(t.column(left));
     if(!left_column)
@@ -180,7 +180,7 @@ struct dfoperator_lt_immed : public dfoperator {
 struct dfoperator_le : public dfoperator {
   dfoperator_le(const std::string& left, const std::string& right) :
     left(left), right(right) {}
-  virtual node_local<std::vector<size_t>> filter(dftable& t) const {
+  virtual node_local<std::vector<size_t>> filter(dftable_base& t) const {
     auto left_column = t.column(left);
     auto right_column = t.column(right);
     return left_column->filter_le(right_column);
@@ -192,7 +192,7 @@ template <class T>
 struct dfoperator_le_immed : public dfoperator {
   dfoperator_le_immed(const std::string& left, const T& right) :
     left(left), right(right) {}
-  virtual node_local<std::vector<size_t>> filter(dftable& t) const {
+  virtual node_local<std::vector<size_t>> filter(dftable_base& t) const {
     auto left_column =
       std::dynamic_pointer_cast<typed_dfcolumn<T>>(t.column(left));
     if(!left_column)
@@ -206,7 +206,7 @@ struct dfoperator_le_immed : public dfoperator {
 struct dfoperator_gt : public dfoperator {
   dfoperator_gt(const std::string& left, const std::string& right) :
     left(left), right(right) {}
-  virtual node_local<std::vector<size_t>> filter(dftable& t) const {
+  virtual node_local<std::vector<size_t>> filter(dftable_base& t) const {
     auto left_column = t.column(left);
     auto right_column = t.column(right);
     return left_column->filter_gt(right_column);
@@ -218,7 +218,7 @@ template <class T>
 struct dfoperator_gt_immed : public dfoperator {
   dfoperator_gt_immed(const std::string& left, const T& right) :
     left(left), right(right) {}
-  virtual node_local<std::vector<size_t>> filter(dftable& t) const {
+  virtual node_local<std::vector<size_t>> filter(dftable_base& t) const {
     auto left_column =
       std::dynamic_pointer_cast<typed_dfcolumn<T>>(t.column(left));
     if(!left_column)
@@ -232,7 +232,7 @@ struct dfoperator_gt_immed : public dfoperator {
 struct dfoperator_ge : public dfoperator {
   dfoperator_ge(const std::string& left, const std::string& right) :
     left(left), right(right) {}
-  virtual node_local<std::vector<size_t>> filter(dftable& t) const {
+  virtual node_local<std::vector<size_t>> filter(dftable_base& t) const {
     auto left_column = t.column(left);
     auto right_column = t.column(right);
     return left_column->filter_ge(right_column);
@@ -244,7 +244,7 @@ template <class T>
 struct dfoperator_ge_immed : public dfoperator {
   dfoperator_ge_immed(const std::string& left, const T& right) :
     left(left), right(right) {}
-  virtual node_local<std::vector<size_t>> filter(dftable& t) const {
+  virtual node_local<std::vector<size_t>> filter(dftable_base& t) const {
     auto left_column =
       std::dynamic_pointer_cast<typed_dfcolumn<T>>(t.column(left));
     if(!left_column)
@@ -257,7 +257,7 @@ struct dfoperator_ge_immed : public dfoperator {
 
 struct dfoperator_is_null : public dfoperator {
   dfoperator_is_null(const std::string& col) : col(col) {}
-  virtual node_local<std::vector<size_t>> filter(dftable& t) const {
+  virtual node_local<std::vector<size_t>> filter(dftable_base& t) const {
     return t.column(col)->filter_is_null();
   }
   std::string col;
@@ -265,7 +265,7 @@ struct dfoperator_is_null : public dfoperator {
 
 struct dfoperator_is_not_null : public dfoperator {
   dfoperator_is_not_null(const std::string& col) : col(col) {}
-  virtual node_local<std::vector<size_t>> filter(dftable& t) const {
+  virtual node_local<std::vector<size_t>> filter(dftable_base& t) const {
     return t.column(col)->filter_is_not_null();
   }
   std::string col;
@@ -334,7 +334,7 @@ is_not_null(const std::string& col);
 struct dfoperator_regex : public dfoperator {
   dfoperator_regex(const std::string& left, const std::string& pattern) :
     left(left), pattern(pattern) {}
-  virtual node_local<std::vector<size_t>> filter(dftable& t) const {
+  virtual node_local<std::vector<size_t>> filter(dftable_base& t) const {
     auto left_column =
       std::dynamic_pointer_cast<typed_dfcolumn<std::string>>(t.column(left));
     if(!left_column)
@@ -348,7 +348,7 @@ struct dfoperator_regex : public dfoperator {
 struct dfoperator_not_regex : public dfoperator {
   dfoperator_not_regex(const std::string& left, const std::string& pattern) :
     left(left), pattern(pattern) {}
-  virtual node_local<std::vector<size_t>> filter(dftable& t) const {
+  virtual node_local<std::vector<size_t>> filter(dftable_base& t) const {
     auto left_column =
       std::dynamic_pointer_cast<typed_dfcolumn<std::string>>(t.column(left));
     if(!left_column)
@@ -371,33 +371,25 @@ convert_filtered_idx(std::vector<size_t>& org_idx,
 
 // need to be here because filtered_dftable depends on operators, 
 // and dfoperator_and depends on the definition of filtered_dftable
-class filtered_dftable : public dftable {
+class filtered_dftable : public dftable_base {
 public:
-  filtered_dftable(dftable& table,
+  filtered_dftable(dftable_base& table,
                    node_local<std::vector<size_t>>&& filtered_idx) :
-    dftable(table), filtered_idx(std::move(filtered_idx)) {}
-  filtered_dftable(dftable& table,
+    dftable_base(table), filtered_idx(std::move(filtered_idx)) {}
+  filtered_dftable(dftable_base& table,
                    const node_local<std::vector<size_t>>& filtered_idx) :
-    dftable(table), filtered_idx(filtered_idx) {}
+    dftable_base(table), filtered_idx(filtered_idx) {}
   virtual size_t num_row();
   virtual dftable select(const std::vector<std::string>& cols);
-  virtual dftable
-  select(const std::vector<std::string>& cols,
-         const std::vector<std::shared_ptr<dfaggregator>>& aggs) {
-    throw std::runtime_error("defined only for grouped_dftable");
-  }
   virtual filtered_dftable filter(const std::shared_ptr<dfoperator>& op);
   virtual sorted_dftable sort(const std::string& name);
   virtual sorted_dftable sort_desc(const std::string& name);
-  // it is OK to call dftable's join and group_by, which calls get_local_index
+  // it is OK to call dftable_base's join and group_by, 
+  // which calls get_local_index
   virtual node_local<std::vector<size_t>> get_local_index() {
     return filtered_idx;
   }
   virtual std::shared_ptr<dfcolumn> column(const std::string& name);
-  virtual std::shared_ptr<dfcolumn> raw_column(const std::string& name);
-  virtual void check_appendable() {
-    throw std::runtime_error("filtered_dftable is not appendable");
-  }
   virtual void debug_print();
 private:
   node_local<std::vector<size_t>> filtered_idx;
@@ -407,10 +399,10 @@ struct dfoperator_and : public dfoperator {
   dfoperator_and(const std::shared_ptr<dfoperator>& left,
                  const std::shared_ptr<dfoperator>& right) :
     left(left), right(right) {}
-  virtual node_local<std::vector<size_t>> filter(dftable& t) const {
+  virtual node_local<std::vector<size_t>> filter(dftable_base& t) const {
     auto filtered_idx = left->filter(t);
     auto left_filtered = filtered_dftable(t, filtered_idx);
-    dftable& left_filtered_ = left_filtered;
+    dftable_base& left_filtered_ = left_filtered;
     auto new_filtered_idx = right->filter(left_filtered_);
     return filtered_idx.map(convert_filtered_idx, new_filtered_idx);
   }
@@ -426,7 +418,7 @@ struct dfoperator_or : public dfoperator {
   dfoperator_or(const std::shared_ptr<dfoperator>& left,
                 const std::shared_ptr<dfoperator>& right) :
     left(left), right(right) {}
-  virtual node_local<std::vector<size_t>> filter(dftable& t) const {
+  virtual node_local<std::vector<size_t>> filter(dftable_base& t) const {
     auto left_filtered_idx = left->filter(t);
     auto right_filtered_idx = right->filter(t);
     return left_filtered_idx.map(set_union<size_t>, right_filtered_idx);

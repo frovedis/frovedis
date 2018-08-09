@@ -1,4 +1,3 @@
-#include "dftable.hpp"
 #include "dftable_to_string.hpp"
 
 namespace frovedis {
@@ -23,7 +22,7 @@ struct put_ith {
   SERIALIZE(i, num_col)
 };
 
-dvector<vector<string>> dftable_to_string(dftable& table) {
+dvector<vector<string>> dftable_to_string(dftable_base& table) {
   auto ret = make_node_local_allocate<vector<vector<string>>>();
   auto cols = table.columns();
   auto num_col = table.num_col();

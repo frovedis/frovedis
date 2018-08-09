@@ -8,12 +8,12 @@
 
 #include "dfcolumn.hpp"
 #include "dfaggregator.hpp"
-#include "dftable_to_string.hpp"
 #include "../matrix/colmajor_matrix.hpp"
 #include "../matrix/ell_matrix.hpp"
 
 namespace frovedis {
 
+class dftable;
 class filtered_dftable; // defined in dfoperator.hpp
 class sorted_dftable;
 class hash_joined_dftable;
@@ -24,102 +24,44 @@ class dfoperator;
 
 struct dftable_to_sparse_info;
 
-class dftable {
+// same as dftable w/o its specific member functions
+class dftable_base {
 public:
-  virtual ~dftable(){}
-  template <class T>
-  dftable& append_column(const std::string& name, dvector<T>& d);
-  template <class T>
-  dftable& append_column(const std::string& name, dvector<T>&& d);
-  // do not align dfcolumn, since it is used in other place
-  // do not use this if you are not sure of the alignment!
-  dftable& append_column(const std::string& name,
-                         const std::shared_ptr<dfcolumn>& c);
+  virtual ~dftable_base(){}
   virtual size_t num_row() {return row_size;} 
   virtual size_t num_col() const {return col.size();}
   virtual std::vector<std::string> columns() const;
   virtual std::vector<std::pair<std::string, std::string>> dtypes();
-  virtual dftable& drop(const std::string& name);
-  virtual dftable& rename(const std::string& name, const std::string& name2);
   virtual dftable select(const std::vector<std::string>& cols);
-  virtual dftable
-  select(const std::vector<std::string>& cols,
-         const std::vector<std::shared_ptr<dfaggregator>>& aggs) {
-    throw std::runtime_error("defined only for grouped_dftable");
-  }
-  /* // removed them because of initlializer list ambiguity
-  virtual dftable select(const std::string& col); 
-  virtual dftable
-  select(const std::string& col,
-         const std::vector<std::shared_ptr<dfaggregator>>& aggs) {
-    throw std::runtime_error("defined only for grouped_dftable");
-  }
-  virtual dftable
-  select(const std::vector<std::string>& cols,
-         const std::shared_ptr<dfaggregator>& agg) {
-    throw std::runtime_error("defined only for grouped_dftable");
-  }
-  virtual dftable
-  select(const std::string& col,
-         const std::shared_ptr<dfaggregator>& agg) {
-    throw std::runtime_error("defined only for grouped_dftable");
-  }
-  */
   virtual dftable materialize();
   virtual filtered_dftable filter(const std::shared_ptr<dfoperator>& op);
   virtual sorted_dftable sort(const std::string& name);
   virtual sorted_dftable sort_desc(const std::string& name);
   virtual hash_joined_dftable
-  hash_join(dftable& dftable, const std::shared_ptr<dfoperator>& op);
+  hash_join(dftable_base& dftable, const std::shared_ptr<dfoperator>& op);
   virtual hash_joined_dftable
-  outer_hash_join(dftable& dftable, const std::shared_ptr<dfoperator>& op);
+  outer_hash_join(dftable_base& dftable, const std::shared_ptr<dfoperator>& op);
   virtual bcast_joined_dftable
-  bcast_join(dftable& dftable, const std::shared_ptr<dfoperator>& op);
+  bcast_join(dftable_base& dftable, const std::shared_ptr<dfoperator>& op);
   virtual bcast_joined_dftable
-  outer_bcast_join(dftable& dftable, const std::shared_ptr<dfoperator>& op);
+  outer_bcast_join(dftable_base& dftable, const std::shared_ptr<dfoperator>& op);
   // TODO: support outer_star_join
   virtual star_joined_dftable
-  star_join(const std::vector<dftable*>& dftables, 
+  star_join(const std::vector<dftable_base*>& dftables, 
             const std::vector<std::shared_ptr<dfoperator>>& op);
   virtual grouped_dftable group_by(const std::vector<std::string>& cols);
-  // removed this because of initlializer list ambiguity
-  // virtual grouped_dftable group_by(const std::string& col);
   size_t count(const std::string& name);
   template <class T> T sum(const std::string& name);
   double avg(const std::string& name);
   template <class T> T max(const std::string& name);
   template <class T> T min(const std::string& name);
-  template <class R, class T1, class F>
-  dftable& calc(const std::string& r, F f, const std::string& c1);
-  template <class R, class T1, class T2, class F>
-  dftable&  calc(const std::string& r, F f, const std::string& c1,
-                 const std::string& c2);
-  template <class R, class T1, class T2, class T3, class F>
-  dftable&  calc(const std::string& r, F f, const std::string& c1,
-                 const std::string& c2, const std::string& c3);
-  template <class R, class T1, class T2, class T3, class T4, class F>
-  dftable&  calc(const std::string& r, F f, const std::string& c1,
-                 const std::string& c2, const std::string& c3,
-                 const std::string& c4);
-  template <class R, class T1, class T2, class T3, class T4, class T5, class F>
-  dftable&  calc(const std::string& r, F f, const std::string& c1,
-                 const std::string& c2, const std::string& c3,
-                 const std::string& c4, const std::string& c5);
-  template <class R, class T1, class T2, class T3, class T4, class T5,
-            class T6, class F>
-  dftable&  calc(const std::string& r, F f, const std::string& c1,
-                 const std::string& c2, const std::string& c3,
-                 const std::string& c4, const std::string& c5,
-                 const std::string& c6);
-  dftable& append_rowid(const std::string& name, size_t offset = 0);
-  template <class T>
-  dvector<T> as_dvector(const std::string name);
-  void virtual show();
-  void virtual show(size_t limit);
+  template <class T> dvector<T> as_dvector(const std::string name);
+  virtual void show();
+  virtual void show(size_t limit);
   virtual void save(const std::string& dir);
-  virtual std::vector<std::pair<std::string, std::string>>
+  std::vector<std::pair<std::string, std::string>>
     savetext(const std::string& file);
-  virtual std::vector<std::pair<std::string, std::string>>
+  std::vector<std::pair<std::string, std::string>>
     savetext(const std::string& file, const std::string& separator);
   colmajor_matrix<float>
   to_colmajor_matrix_float(const std::vector<std::string>&);
@@ -155,23 +97,93 @@ public:
 
   // internally used methods, though they are public...
   // dfcolumn is only for implementation/debug, not for user's usage
-  virtual void load(const std::string& input);
   virtual std::shared_ptr<dfcolumn> column(const std::string& name);
   virtual std::shared_ptr<dfcolumn> raw_column(const std::string& name);
   virtual node_local<std::vector<size_t>> get_local_index();
-  virtual void check_appendable(){}
   virtual bool is_right_joinable() {return true;}
   virtual void debug_print();
-private:
+protected:
   std::map<std::string, std::shared_ptr<dfcolumn>> col;
   std::vector<std::string> col_order; // order of cols, though redundant...
   size_t row_size;
+
   friend filtered_dftable;
   friend sorted_dftable;
   friend hash_joined_dftable;
   friend bcast_joined_dftable;
   friend star_joined_dftable;
   friend grouped_dftable;
+};
+
+template <class T> T dftable_base::sum(const std::string& name) {
+    return column(name)->sum<T>();
+}
+
+template <class T> T dftable_base::max(const std::string& name) {
+  return column(name)->max<T>();
+}
+
+template <class T> T dftable_base::min(const std::string& name) {
+  return column(name)->min<T>();
+}
+
+template <class T>
+dvector<T> dftable_base::as_dvector(const std::string name) {
+  return column(name)->as_dvector<T>();
+}
+
+class dftable : public dftable_base {
+public:
+  virtual ~dftable(){}
+  dftable(){}
+  dftable(dftable_base& b) : dftable_base(b) {}
+  dftable(dftable_base&& b) : dftable_base(std::move(b)) {}
+  /*
+    dfcolumn specific member functions
+    As for other classes, return types are different
+  */
+  dftable& drop(const std::string& name);
+  dftable& rename(const std::string& name, const std::string& name2);
+  template <class T>
+  dftable& append_column(const std::string& name, dvector<T>& d);
+  template <class T>
+  dftable& append_column(const std::string& name, dvector<T>&& d);
+  // do not align dfcolumn, since it is used in other place
+  // do not use this if you are not sure of the alignment!
+  dftable& append_column(const std::string& name,
+                         const std::shared_ptr<dfcolumn>& c);
+  template <class R, class T1, class F>
+  dftable& calc(const std::string& r, F f, const std::string& c1);
+  template <class R, class T1, class T2, class F>
+  dftable&  calc(const std::string& r, F f, const std::string& c1,
+                 const std::string& c2);
+  template <class R, class T1, class T2, class T3, class F>
+  dftable&  calc(const std::string& r, F f, const std::string& c1,
+                 const std::string& c2, const std::string& c3);
+  template <class R, class T1, class T2, class T3, class T4, class F>
+  dftable&  calc(const std::string& r, F f, const std::string& c1,
+                 const std::string& c2, const std::string& c3,
+                 const std::string& c4);
+  template <class R, class T1, class T2, class T3, class T4, class T5, class F>
+  dftable&  calc(const std::string& r, F f, const std::string& c1,
+                 const std::string& c2, const std::string& c3,
+                 const std::string& c4, const std::string& c5);
+  template <class R, class T1, class T2, class T3, class T4, class T5,
+            class T6, class F>
+  dftable&  calc(const std::string& r, F f, const std::string& c1,
+                 const std::string& c2, const std::string& c3,
+                 const std::string& c4, const std::string& c5,
+                 const std::string& c6);
+  dftable& append_rowid(const std::string& name, size_t offset = 0);
+
+  void load(const std::string& input);
+  virtual bool is_right_joinable() {return true;}
+
+  friend filtered_dftable;
+  friend sorted_dftable;
+  friend hash_joined_dftable;
+  friend bcast_joined_dftable;
+  friend star_joined_dftable;
 };
 
 struct dftable_to_sparse_info {
@@ -188,7 +200,6 @@ dftable make_dftable_load(const std::string& input);
 
 template <class T>
 dftable& dftable::append_column(const std::string& name, dvector<T>& d) {
-  check_appendable();
   if(col.find(name) != col.end())
     throw std::runtime_error("append_column: same column name already exists");
   std::shared_ptr<dfcolumn> c;
@@ -210,7 +221,6 @@ dftable& dftable::append_column(const std::string& name, dvector<T>& d) {
 
 template <class T>
 dftable& dftable::append_column(const std::string& name, dvector<T>&& d) {
-  check_appendable();
   if(col.find(name) != col.end())
     throw std::runtime_error("append_column: same column name already exists");
   std::shared_ptr<dfcolumn> c;
@@ -228,23 +238,6 @@ dftable& dftable::append_column(const std::string& name, dvector<T>&& d) {
   col.insert(std::make_pair(name, c));
   col_order.push_back(name);
   return *this;
-}
-
-template <class T> T dftable::sum(const std::string& name) {
-    return column(name)->sum<T>();
-}
-
-template <class T> T dftable::max(const std::string& name) {
-  return column(name)->max<T>();
-}
-
-template <class T> T dftable::min(const std::string& name) {
-  return column(name)->min<T>();
-}
-
-template <class T>
-dvector<T> dftable::as_dvector(const std::string name) {
-  return column(name)->as_dvector<T>();
 }
 
 template <class R, class T1, class F>
@@ -497,52 +490,42 @@ dftable& dftable::calc(const std::string& name, F f,
   return append_column(name, r.template moveto_dvector<R>());
 }
 
-class sorted_dftable : public dftable {
+class sorted_dftable : public dftable_base {
 public:
-  sorted_dftable(dftable& table,
+  sorted_dftable(dftable_base& table,
                  node_local<std::vector<size_t>>&& global_idx_,
                  const std::string& column_name,
                  std::shared_ptr<dfcolumn>&& sorted_column) :
-    dftable(table), global_idx(std::move(global_idx_)),
+    dftable_base(table), global_idx(std::move(global_idx_)),
     column_name(column_name), sorted_column(std::move(sorted_column)) {
     partitioned_idx = partition_global_index_bynode(global_idx);
     exchanged_idx = exchange_partitioned_index(partitioned_idx);
     is_cachable = !table.raw_column(column_name)->is_string();
   }
-  virtual dftable& drop(const std::string& name);
-  virtual dftable& rename(const std::string& name, const std::string& name2);
   virtual dftable select(const std::vector<std::string>& cols);
-  virtual dftable
-  select(const std::vector<std::string>& cols,
-         const std::vector<std::shared_ptr<dfaggregator>>& aggs) {
-    throw std::runtime_error("defined only for grouped_dftable");
-  }
-  // defined in dfoperator.cc, since it requires definition of filtered_dftable
   virtual filtered_dftable filter(const std::shared_ptr<dfoperator>& op);
   virtual sorted_dftable sort(const std::string& name);
   virtual sorted_dftable sort_desc(const std::string& name);
   virtual hash_joined_dftable
-  hash_join(dftable& right, const std::shared_ptr<dfoperator>& op);
+  hash_join(dftable_base& right, const std::shared_ptr<dfoperator>& op);
   virtual hash_joined_dftable
-  outer_hash_join(dftable& right, const std::shared_ptr<dfoperator>& op);
+  outer_hash_join(dftable_base& right, const std::shared_ptr<dfoperator>& op);
   virtual bcast_joined_dftable
-  bcast_join(dftable& dftable, const std::shared_ptr<dfoperator>& op);
+  bcast_join(dftable_base& dftable, const std::shared_ptr<dfoperator>& op);
   virtual bcast_joined_dftable
-  outer_bcast_join(dftable& dftable, const std::shared_ptr<dfoperator>& op);
+  outer_bcast_join(dftable_base& dftable, const std::shared_ptr<dfoperator>& op);
   virtual star_joined_dftable
-  star_join(const std::vector<dftable*>& dftables, 
+  star_join(const std::vector<dftable_base*>& dftables, 
             const std::vector<std::shared_ptr<dfoperator>>& op);
   virtual grouped_dftable group_by(const std::vector<std::string>& cols);
   virtual std::shared_ptr<dfcolumn> column(const std::string& name);
-  virtual std::shared_ptr<dfcolumn> raw_column(const std::string& name);
   virtual node_local<std::vector<size_t>> get_local_index() {
     throw std::runtime_error("get_local_index on sorted_dftable");
   }
-  virtual void check_appendable() {
-    throw std::runtime_error("sorted_dftable is not appendable");
-  }
   virtual bool is_right_joinable() {return false;}
   virtual void debug_print();
+
+  dftable append_rowid(const std::string& name, size_t offset = 0);
 private:
   node_local<std::vector<size_t>> global_idx;
   std::string column_name;
@@ -554,12 +537,12 @@ private:
 
 std::vector<size_t> concat_idx(std::vector<size_t>& a, std::vector<size_t>& b);
 
-class hash_joined_dftable : public dftable {
+class hash_joined_dftable : public dftable_base {
 public:
-  hash_joined_dftable(dftable& left, dftable& right,
+  hash_joined_dftable(dftable_base& left, dftable_base& right,
                       node_local<std::vector<size_t>>&& left_idx_,
                       node_local<std::vector<size_t>>&& right_idx_) :
-    dftable(left), is_outer(false), right(right),
+    dftable_base(left), is_outer(false), right(right),
     left_idx(std::move(left_idx_)), right_idx(std::move(right_idx_)) {
     time_spent t(DEBUG);
     auto unique_left_idx = left_idx.map(get_unique_idx);
@@ -570,11 +553,11 @@ public:
     right_exchanged_idx = exchange_partitioned_index(right_partitioned_idx);
     t.show("init hash_joined_dftable: ");
   }
-  hash_joined_dftable(dftable& left, dftable& right,
+  hash_joined_dftable(dftable_base& left, dftable_base& right,
                       node_local<std::vector<size_t>>&& left_idx_,
                       node_local<std::vector<size_t>>&& right_idx_,
                       node_local<std::vector<size_t>>&& right_nulls_) :
-    dftable(left), right(right),
+    dftable_base(left), right(right),
     right_idx(std::move(right_idx_)), right_nulls(std::move(right_nulls_)) {
     if(right_nulls.template viewas_dvector<size_t>().size() == 0) {
       is_outer = false;
@@ -592,38 +575,32 @@ public:
   }
   virtual size_t num_col() const;
   virtual size_t num_row();
+  virtual std::vector<std::string> columns() const;
   dftable select(const std::vector<std::string>& cols);
-  virtual dftable
-  select(const std::vector<std::string>& cols,
-         const std::vector<std::shared_ptr<dfaggregator>>& aggs) {
-    throw std::runtime_error("defined only for grouped_dftable");
-  }
   virtual filtered_dftable filter(const std::shared_ptr<dfoperator>& op);
   virtual sorted_dftable sort(const std::string& name);
   virtual sorted_dftable sort_desc(const std::string& name);
-  virtual hash_joined_dftable hash_join(dftable& dftable,
+  virtual hash_joined_dftable hash_join(dftable_base& dftable,
                                         const std::shared_ptr<dfoperator>& op);
   virtual hash_joined_dftable
-  outer_hash_join(dftable& dftable, const std::shared_ptr<dfoperator>& op);
+  outer_hash_join(dftable_base& dftable, const std::shared_ptr<dfoperator>& op);
   virtual bcast_joined_dftable
-  bcast_join(dftable& dftable, const std::shared_ptr<dfoperator>& op);
+  bcast_join(dftable_base& dftable, const std::shared_ptr<dfoperator>& op);
   virtual bcast_joined_dftable
-  outer_bcast_join(dftable& dftable, const std::shared_ptr<dfoperator>& op);
+  outer_bcast_join(dftable_base& dftable, const std::shared_ptr<dfoperator>& op);
   virtual star_joined_dftable
-  star_join(const std::vector<dftable*>& dftables, 
+  star_join(const std::vector<dftable_base*>& dftables, 
             const std::vector<std::shared_ptr<dfoperator>>& op);
   virtual grouped_dftable group_by(const std::vector<std::string>& cols);
-  virtual std::vector<std::string> columns() const;
   std::shared_ptr<dfcolumn> column(const std::string& name);
-  virtual void check_appendable() {
-    throw std::runtime_error("hash_joined_dftable is not appendable");
-  }
   virtual bool is_right_joinable() {return false;}
   void debug_print();
+
+  dftable append_rowid(const std::string& name, size_t offset = 0);
 private:
   // left table is base class; if the input is filtered_dftable, sliced
   bool is_outer;
-  dftable right; // if the input is filtered_dftable, sliced
+  dftable_base right; // if the input is filtered_dftable, sliced
   node_local<std::vector<size_t>> left_idx;
   node_local<std::vector<size_t>> right_idx;
   node_local<std::vector<size_t>> right_nulls;
@@ -633,22 +610,22 @@ private:
   node_local<std::vector<std::vector<size_t>>> right_exchanged_idx;
 };
 
-class bcast_joined_dftable : public dftable {
+class bcast_joined_dftable : public dftable_base {
 public:
-  bcast_joined_dftable(dftable& left, dftable& right,
+  bcast_joined_dftable(dftable_base& left, dftable_base& right,
                        node_local<std::vector<size_t>>&& left_idx_,
                        node_local<std::vector<size_t>>&& right_idx_) :
-    dftable(left), is_outer(false), right(right),
+    dftable_base(left), is_outer(false), right(right),
     left_idx(std::move(left_idx_)), right_idx(std::move(right_idx_)) {
     auto unique_right_idx = right_idx.map(get_unique_idx);
     right_partitioned_idx = partition_global_index_bynode(unique_right_idx);
     right_exchanged_idx = exchange_partitioned_index(right_partitioned_idx);
   }
-  bcast_joined_dftable(dftable& left, dftable& right,
+  bcast_joined_dftable(dftable_base& left, dftable_base& right,
                        node_local<std::vector<size_t>>&& left_idx_,
                        node_local<std::vector<size_t>>&& right_idx_,
                        node_local<std::vector<size_t>>&& right_nulls_) :
-    dftable(left), right(right),
+    dftable_base(left), right(right),
     right_idx(std::move(right_idx_)), right_nulls(std::move(right_nulls_)) {
     if(right_nulls.template viewas_dvector<size_t>().size() == 0) {
       is_outer = false;
@@ -663,38 +640,32 @@ public:
   }
   virtual size_t num_col() const;
   virtual size_t num_row();
+  virtual std::vector<std::string> columns() const;
   dftable select(const std::vector<std::string>& cols);
-  virtual dftable
-  select(const std::vector<std::string>& cols,
-         const std::vector<std::shared_ptr<dfaggregator>>& aggs) {
-    throw std::runtime_error("defined only for grouped_dftable");
-  }
   virtual filtered_dftable filter(const std::shared_ptr<dfoperator>& op);
   virtual sorted_dftable sort(const std::string& name);
   virtual sorted_dftable sort_desc(const std::string& name);
-  virtual hash_joined_dftable hash_join(dftable& dftable,
+  virtual hash_joined_dftable hash_join(dftable_base& dftable,
                                         const std::shared_ptr<dfoperator>& op);
   virtual hash_joined_dftable
-  outer_hash_join(dftable& dftable, const std::shared_ptr<dfoperator>& op);
+  outer_hash_join(dftable_base& dftable, const std::shared_ptr<dfoperator>& op);
   virtual bcast_joined_dftable
-  bcast_join(dftable& dftable, const std::shared_ptr<dfoperator>& op);
+  bcast_join(dftable_base& dftable, const std::shared_ptr<dfoperator>& op);
   virtual bcast_joined_dftable
-  outer_bcast_join(dftable& dftable, const std::shared_ptr<dfoperator>& op);
+  outer_bcast_join(dftable_base& dftable, const std::shared_ptr<dfoperator>& op);
   virtual star_joined_dftable
-  star_join(const std::vector<dftable*>& dftables, 
+  star_join(const std::vector<dftable_base*>& dftables, 
             const std::vector<std::shared_ptr<dfoperator>>& op);
   virtual grouped_dftable group_by(const std::vector<std::string>& cols);
-  virtual std::vector<std::string> columns() const;
   std::shared_ptr<dfcolumn> column(const std::string& name);
-  virtual void check_appendable() {
-    throw std::runtime_error("bcast_joined_dftable is not appendable");
-  }
   virtual bool is_right_joinable() {return false;}
   void debug_print();
+
+  dftable append_rowid(const std::string& name, size_t offset = 0);
 private:
   // left table is base class; if the input is filtered_dftable, sliced
   bool is_outer;
-  dftable right; // if the input is filtered_dftable, sliced
+  dftable_base right; // if the input is filtered_dftable, sliced
   node_local<std::vector<size_t>> left_idx; // local index
   node_local<std::vector<size_t>> right_idx;
   node_local<std::vector<size_t>> right_nulls;
@@ -703,13 +674,13 @@ private:
 };
 
 // TODO: support outer_star_join
-class star_joined_dftable : public dftable {
+class star_joined_dftable : public dftable_base {
 public:
-  star_joined_dftable(dftable& left, std::vector<dftable>&& rights_,
+  star_joined_dftable(dftable_base& left, std::vector<dftable_base>&& rights_,
                       node_local<std::vector<size_t>>&& left_idx_,
                       std::vector<node_local<std::vector<size_t>>>&& 
                       right_idxs_) :
-    dftable(left), rights(std::move(rights_)),
+    dftable_base(left), rights(std::move(rights_)),
     left_idx(std::move(left_idx_)), right_idxs(std::move(right_idxs_)) {
     size_t rightssize = rights.size();
     right_partitioned_idxs.resize(rightssize);
@@ -724,37 +695,31 @@ public:
   }
   virtual size_t num_col() const;
   virtual size_t num_row();
+  virtual std::vector<std::string> columns() const;
   dftable select(const std::vector<std::string>& cols);
-  virtual dftable
-  select(const std::vector<std::string>& cols,
-         const std::vector<std::shared_ptr<dfaggregator>>& aggs) {
-    throw std::runtime_error("defined only for grouped_dftable");
-  }
   virtual filtered_dftable filter(const std::shared_ptr<dfoperator>& op);
   virtual sorted_dftable sort(const std::string& name);
   virtual sorted_dftable sort_desc(const std::string& name);
-  virtual hash_joined_dftable hash_join(dftable& dftable,
+  virtual hash_joined_dftable hash_join(dftable_base& dftable,
                                         const std::shared_ptr<dfoperator>& op);
   virtual hash_joined_dftable
-  outer_hash_join(dftable& dftable, const std::shared_ptr<dfoperator>& op);
+  outer_hash_join(dftable_base& dftable, const std::shared_ptr<dfoperator>& op);
   virtual bcast_joined_dftable
-  bcast_join(dftable& dftable, const std::shared_ptr<dfoperator>& op);
+  bcast_join(dftable_base& dftable, const std::shared_ptr<dfoperator>& op);
   virtual bcast_joined_dftable
-  outer_bcast_join(dftable& dftable, const std::shared_ptr<dfoperator>& op);
+  outer_bcast_join(dftable_base& dftable, const std::shared_ptr<dfoperator>& op);
   virtual star_joined_dftable
-  star_join(const std::vector<dftable*>& dftables, 
+  star_join(const std::vector<dftable_base*>& dftables, 
             const std::vector<std::shared_ptr<dfoperator>>& op);
   virtual grouped_dftable group_by(const std::vector<std::string>& cols);
-  virtual std::vector<std::string> columns() const;
   std::shared_ptr<dfcolumn> column(const std::string& name);
-  virtual void check_appendable() {
-    throw std::runtime_error("bcast_joined_dftable is not appendable");
-  }
   virtual bool is_right_joinable() {return false;}
   void debug_print();
+
+  dftable append_rowid(const std::string& name, size_t offset = 0);
 private:
   // left table is base class; if the input is filtered_dftable, sliced
-  std::vector<dftable> rights; // if the input is filtered_dftable, sliced
+  std::vector<dftable_base> rights; // if the input is filtered_dftable, sliced
   node_local<std::vector<size_t>> left_idx; // local index
   std::vector<node_local<std::vector<size_t>>> right_idxs;
   std::vector<node_local<std::vector<std::vector<size_t>>>> 
@@ -763,85 +728,29 @@ private:
   right_exchanged_idxs;
 };
 
-class grouped_dftable : public dftable {
+// not derived from dftable_base, since I/F is different
+class grouped_dftable {
 public:
-  grouped_dftable(const dftable& table, 
+  grouped_dftable(const dftable_base& table, 
                   node_local<std::vector<size_t>>&& grouped_idx_,
                   node_local<std::vector<size_t>>&& idx_split,
                   const std::vector<std::string>& grouped_cols) :
-    dftable(table), grouped_idx(std::move(grouped_idx_)),
+
+    org_table(table), grouped_idx(std::move(grouped_idx_)),
     idx_split(std::move(idx_split)), grouped_cols(grouped_cols) {
     partitioned_idx = partition_global_index_bynode(grouped_idx);
     exchanged_idx = exchange_partitioned_index(partitioned_idx);
   }
-  virtual size_t num_row();
-  virtual dftable select(const std::vector<std::string>& cols);
-  virtual dftable
+  size_t num_row();
+  size_t num_col();
+  dftable select(const std::vector<std::string>& cols);
+  dftable
   select(const std::vector<std::string>& cols,
          const std::vector<std::shared_ptr<dfaggregator>>& aggs);
-  /* // removed them because of initlializer list ambiguity
-  virtual dftable
-  select(const std::vector<std::string>& cols,
-         const std::shared_ptr<dfaggregator>& agg);
-  virtual dftable
-  select(const std::string& col,
-         const std::vector<std::shared_ptr<dfaggregator>>& aggs);
-  virtual dftable
-  select(const std::string& col,
-         const std::shared_ptr<dfaggregator>& agg);
-  */
-  virtual dftable materialize() {
-    throw std::runtime_error
-      ("grouped_dftable cannot be materialized. use select");
-  }
-  virtual filtered_dftable filter(const std::shared_ptr<dfoperator>& op);
-  virtual sorted_dftable sort(const std::string& name) {
-    throw std::runtime_error("grouped_dftable cannot be sorted");
-  }
-  virtual sorted_dftable sort_desc(const std::string& name) {
-    throw std::runtime_error("grouped_dftable cannot be sorted");
-  }
-  virtual hash_joined_dftable
-  hash_join(dftable& dftable, const std::shared_ptr<dfoperator>& op) {
-    throw std::runtime_error("grouped_dftable cannot be joined");
-  }
-  virtual hash_joined_dftable
-  outer_hash_join(dftable& dftable, const std::shared_ptr<dfoperator>& op) {
-    throw std::runtime_error("grouped_dftable cannot be joined");
-  }
-  virtual bcast_joined_dftable
-  bcast_join(dftable& dftable, const std::shared_ptr<dfoperator>& op) {
-    throw std::runtime_error("grouped_dftable cannot be joined");
-  }
-  virtual bcast_joined_dftable
-  outer_bcast_join(dftable& dftable, const std::shared_ptr<dfoperator>& op) {
-    throw std::runtime_error("grouped_dftable cannot be joined");
-  }
-  virtual star_joined_dftable
-  star_join(const std::vector<dftable*>& dftables, 
-            const std::vector<std::shared_ptr<dfoperator>>& op) {
-    throw std::runtime_error("grouped_dftable cannot be joined");
-  }
-  virtual grouped_dftable group_by(const std::vector<std::string>& cols) {
-    throw std::runtime_error("grouped_dftable cannot be grouped by");
-  }
-  void virtual show() {
-    throw std::runtime_error("grouped_dftable cannot be shown");
-  }
-  void virtual show(size_t limit) {
-    throw std::runtime_error("grouped_dftable cannot be shown");
-  }
-  virtual void save(const std::string& dir) {
-    throw std::runtime_error("grouped_dftable cannot be saved");
-  }
-  virtual void check_appendable() {
-    throw std::runtime_error("grouped_dftable is not appendable");
-  }
-  virtual bool is_right_joinable() {
-    throw std::runtime_error("grouped_dftable cannot be joined");
-  }
   void debug_print();
 private:
+  dftable_base org_table;
+
   node_local<std::vector<size_t>> grouped_idx;
   node_local<std::vector<size_t>> idx_split;
   // to save communication
@@ -849,6 +758,7 @@ private:
   node_local<std::vector<std::vector<size_t>>> exchanged_idx;
   std::vector<std::string> grouped_cols;
 };
+
 
 // for to_colmajor_matrix
 template <class T>

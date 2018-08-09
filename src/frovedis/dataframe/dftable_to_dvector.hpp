@@ -7,7 +7,7 @@
 namespace frovedis {
 
 template <class T0>
-dvector<T0> dftable_to_dvector(dftable& table) {
+dvector<T0> dftable_to_dvector(dftable_base& table) {
   auto cols = table.columns();
   if(cols.size() != 1) throw std::runtime_error("size of column is not 1");
   auto col0 = table.column(cols[0]);
@@ -32,7 +32,7 @@ void dftable_to_dvector_helper2(std::vector<std::tuple<T0,T1>>& v,
 }
 
 template <class T0, class T1>
-dvector<std::tuple<T0,T1>> dftable_to_dvector(dftable& table) {
+dvector<std::tuple<T0,T1>> dftable_to_dvector(dftable_base& table) {
   auto ret = make_node_local_allocate<std::vector<std::tuple<T0,T1>>>();
   auto cols = table.columns();
   if(cols.size() != 2) throw std::runtime_error("size of column is not 2");
@@ -63,7 +63,7 @@ void dftable_to_dvector_helper3(std::vector<std::tuple<T0,T1,T2>>& v,
 }
 
 template <class T0, class T1, class T2>
-dvector<std::tuple<T0,T1,T2>> dftable_to_dvector(dftable& table) {
+dvector<std::tuple<T0,T1,T2>> dftable_to_dvector(dftable_base& table) {
   auto ret = make_node_local_allocate<std::vector<std::tuple<T0,T1,T2>>>();
   auto cols = table.columns();
   if(cols.size() != 3) throw std::runtime_error("size of column is not 3");
@@ -99,7 +99,7 @@ void dftable_to_dvector_helper4(std::vector<std::tuple<T0,T1,T2,T3>>& v,
 }
 
 template <class T0, class T1, class T2, class T3>
-dvector<std::tuple<T0,T1,T2,T3>> dftable_to_dvector(dftable& table) {
+dvector<std::tuple<T0,T1,T2,T3>> dftable_to_dvector(dftable_base& table) {
   auto ret = make_node_local_allocate<std::vector<std::tuple<T0,T1,T2,T3>>>();
   auto cols = table.columns();
   if(cols.size() != 4) throw std::runtime_error("size of column is not 4");
@@ -140,7 +140,7 @@ void dftable_to_dvector_helper5(std::vector<std::tuple<T0,T1,T2,T3,T4>>& v,
 }
 
 template <class T0, class T1, class T2, class T3, class T4>
-dvector<std::tuple<T0,T1,T2,T3,T4>> dftable_to_dvector(dftable& table) {
+dvector<std::tuple<T0,T1,T2,T3,T4>> dftable_to_dvector(dftable_base& table) {
   auto ret =
     make_node_local_allocate<std::vector<std::tuple<T0,T1,T2,T3,T4>>>();
   auto cols = table.columns();
@@ -195,7 +195,8 @@ void dftable_to_dvector_helper62(std::vector<std::tuple<T0,T1,T2,T3,T4,T5>>& v,
 }
 
 template <class T0, class T1, class T2, class T3, class T4, class T5>
-dvector<std::tuple<T0,T1,T2,T3,T4,T5>> dftable_to_dvector(dftable& table) {
+dvector<std::tuple<T0,T1,T2,T3,T4,T5>>
+  dftable_to_dvector(dftable_base& table) {
   auto ret =
     make_node_local_allocate<std::vector<std::tuple<T0,T1,T2,T3,T4,T5>>>();
   auto cols = table.columns();
@@ -258,7 +259,8 @@ void dftable_to_dvector_helper72(std::vector
 }
 
 template <class T0, class T1, class T2, class T3, class T4, class T5, class T6>
-dvector<std::tuple<T0,T1,T2,T3,T4,T5,T6>> dftable_to_dvector(dftable& table) {
+dvector<std::tuple<T0,T1,T2,T3,T4,T5,T6>>
+  dftable_to_dvector(dftable_base& table) {
   auto ret =
     make_node_local_allocate<std::vector<std::tuple<T0,T1,T2,T3,T4,T5,T6>>>();
   auto cols = table.columns();

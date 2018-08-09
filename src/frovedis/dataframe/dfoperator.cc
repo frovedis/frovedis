@@ -66,7 +66,9 @@ or_op(const std::shared_ptr<dfoperator>& left,
   return std::make_shared<dfoperator_or>(left,right);
 }
 
-filtered_dftable dftable::filter(const std::shared_ptr<dfoperator>& op) {
+// ---------- filter of all kinds of tables ----------
+
+filtered_dftable dftable_base::filter(const std::shared_ptr<dfoperator>& op) {
   return filtered_dftable(*this, op->filter(*this));
 }
 
@@ -83,11 +85,6 @@ hash_joined_dftable::filter(const std::shared_ptr<dfoperator>& op) {
 }
 
 filtered_dftable
-grouped_dftable::filter(const std::shared_ptr<dfoperator>& op) {
-  throw std::runtime_error("grouped_dftable cannot be filtered");
-}
-
-filtered_dftable
 bcast_joined_dftable::filter(const std::shared_ptr<dfoperator>& op) {
   RLOG(DEBUG) << "calling filter after bcast_join" << std::endl;
   return materialize().filter(op);
@@ -99,6 +96,7 @@ star_joined_dftable::filter(const std::shared_ptr<dfoperator>& op) {
   return materialize().filter(op);
 }
 
+// ---------- for filtered_dftable ----------
 
 std::vector<size_t>
 convert_filtered_idx(std::vector<size_t>& org_idx,
@@ -160,12 +158,8 @@ std::shared_ptr<dfcolumn> filtered_dftable::column(const std::string& name) {
   else return (*ret).second->extract(filtered_idx);
 }
 
-std::shared_ptr<dfcolumn> filtered_dftable::raw_column(const std::string& name) {
-  return dftable::column(name);
-}
-
 void filtered_dftable::debug_print() {
-  dftable::debug_print();
+  dftable_base::debug_print();
   std::cout << "filtered_idx: " << std::endl;
   for(auto& i: filtered_idx.gather()) {
     for(auto j: i) {

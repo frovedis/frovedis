@@ -36,7 +36,7 @@ exrpc_ptr_t create_dataframe (std::vector<short>& types,
 }
 
 void show_dataframe(exrpc_ptr_t& df_proxy) {
-  auto dftblp = reinterpret_cast<dftable*>(df_proxy);
+  auto dftblp = reinterpret_cast<dftable_base*>(df_proxy);
   dftblp->show();
 }
 
@@ -85,7 +85,7 @@ exrpc_ptr_t get_dfORoperator(exrpc_ptr_t& lopt_proxy,
 
 exrpc_ptr_t filter_df(exrpc_ptr_t& df_proxy,
                       exrpc_ptr_t& opt_proxy) {
-  auto& dftbl = *reinterpret_cast<dftable*>(df_proxy);
+  auto& dftbl = *reinterpret_cast<dftable_base*>(df_proxy);
   auto& dfopt = *reinterpret_cast<std::shared_ptr<dfoperator>*>(opt_proxy);
   auto f_df_ptr = new filtered_dftable(dftbl.filter(dfopt));
   if (!f_df_ptr) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed.\n");
@@ -94,7 +94,7 @@ exrpc_ptr_t filter_df(exrpc_ptr_t& df_proxy,
 
 exrpc_ptr_t select_df(exrpc_ptr_t& df_proxy,
                       std::vector<std::string>& cols) {
-  auto& dftbl = *reinterpret_cast<dftable*>(df_proxy);
+  auto& dftbl = *reinterpret_cast<dftable_base*>(df_proxy);
   auto s_df_ptr = new dftable(dftbl.select(cols));
   if (!s_df_ptr) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed.\n");
   return reinterpret_cast<exrpc_ptr_t> (s_df_ptr);
@@ -104,7 +104,7 @@ exrpc_ptr_t sort_df(exrpc_ptr_t& df_proxy,
                     std::vector<std::string>& cols,
                     bool& isDesc) {
   checkAssumption(cols.size() >= 1);
-  auto& dftbl = *reinterpret_cast<dftable*>(df_proxy);
+  auto& dftbl = *reinterpret_cast<dftable_base*>(df_proxy);
   sorted_dftable *s_df_ptr = NULL;
   auto tsize = cols.size();
   if(isDesc) {
@@ -125,10 +125,10 @@ exrpc_ptr_t sort_df(exrpc_ptr_t& df_proxy,
 exrpc_ptr_t join_df(exrpc_ptr_t& left_proxy, exrpc_ptr_t& right_proxy,
                     exrpc_ptr_t& opt_proxy, 
                     std::string& how, std::string& join_type) {
-  auto& left = *reinterpret_cast<dftable*>(left_proxy);
-  auto& right = *reinterpret_cast<dftable*>(right_proxy);
+  auto& left = *reinterpret_cast<dftable_base*>(left_proxy);
+  auto& right = *reinterpret_cast<dftable_base*>(right_proxy);
   auto& dfopt = *reinterpret_cast<std::shared_ptr<dfoperator>*>(opt_proxy);
-  dftable *bptr = NULL;
+  dftable_base *bptr = NULL;
   if (join_type == "bcast") {
     if (how == "inner") 
        bptr = new bcast_joined_dftable(left.bcast_join(right,dfopt));
@@ -150,14 +150,14 @@ exrpc_ptr_t join_df(exrpc_ptr_t& left_proxy, exrpc_ptr_t& right_proxy,
 }
 
 exrpc_ptr_t group_by_df(exrpc_ptr_t& df_proxy, std::vector<std::string>& cols) {
-  auto& df = *reinterpret_cast<dftable*>(df_proxy);
+  auto& df = *reinterpret_cast<dftable_base*>(df_proxy);
   grouped_dftable *g_df_ptr = new grouped_dftable(df.group_by(cols));
   if (!g_df_ptr) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed.\n");
   return reinterpret_cast<exrpc_ptr_t> (g_df_ptr);
 }
 
 long frovedis_df_size(exrpc_ptr_t& df_proxy) {
-  auto& df = *reinterpret_cast<dftable*>(df_proxy);
+  auto& df = *reinterpret_cast<dftable_base*>(df_proxy);
   return static_cast<long> (df.num_row());
 }
 
@@ -165,7 +165,7 @@ std::vector<std::string>
 frovedis_df_sum(exrpc_ptr_t& df_proxy, 
                 std::vector<std::string>& cols,
                 std::vector<short>& types) {
-  auto& df = *reinterpret_cast<dftable*>(df_proxy);
+  auto& df = *reinterpret_cast<dftable_base*>(df_proxy);
   std::vector<std::string> ret(cols.size());
   for (size_t i=0; i<cols.size(); ++i) { 
     switch(types[i]) {
@@ -183,7 +183,7 @@ std::vector<std::string>
 frovedis_df_min(exrpc_ptr_t& df_proxy, 
                 std::vector<std::string>& cols,
                 std::vector<short>& types) {
-  auto& df = *reinterpret_cast<dftable*>(df_proxy);
+  auto& df = *reinterpret_cast<dftable_base*>(df_proxy);
   std::vector<std::string> ret(cols.size());
   for (size_t i=0; i<cols.size(); ++i) { 
     switch(types[i]) {
@@ -201,7 +201,7 @@ std::vector<std::string>
 frovedis_df_max(exrpc_ptr_t& df_proxy, 
                  std::vector<std::string>& cols,
                  std::vector<short>& types) {
-  auto& df = *reinterpret_cast<dftable*>(df_proxy);
+  auto& df = *reinterpret_cast<dftable_base*>(df_proxy);
   std::vector<std::string> ret(cols.size());
   for (size_t i=0; i<cols.size(); ++i) { 
     switch(types[i]) {
@@ -218,7 +218,7 @@ frovedis_df_max(exrpc_ptr_t& df_proxy,
 std::vector<std::string> 
 frovedis_df_avg(exrpc_ptr_t& df_proxy, 
                 std::vector<std::string>& cols) {
-  auto& df = *reinterpret_cast<dftable*>(df_proxy);
+  auto& df = *reinterpret_cast<dftable_base*>(df_proxy);
   std::vector<std::string> ret(cols.size());
   for (size_t i=0; i<cols.size(); ++i) { 
     ret[i] = std::to_string(df.avg(cols[i]));
@@ -241,7 +241,7 @@ double calc_part_std(std::vector<T>& data, double mean) {
 double sum(double a, double b) { return a + b; }
 
 template <class T>
-double get_std(dftable& df, const std::string& name) {
+double get_std(dftable_base& df, const std::string& name) {
   auto tc1 = std::dynamic_pointer_cast<typed_dfcolumn<T>>(df.column(name));
   if(!tc1)
     throw std::runtime_error
@@ -258,7 +258,7 @@ std::vector<std::string>
 frovedis_df_std(exrpc_ptr_t& df_proxy,
                  std::vector<std::string>& cols,
                  std::vector<short>& types) {
-  auto& df = *reinterpret_cast<dftable*>(df_proxy);
+  auto& df = *reinterpret_cast<dftable_base*>(df_proxy);
   std::vector<std::string> ret(cols.size());
   for (size_t i=0; i<cols.size(); ++i) {
     switch(types[i]) {
@@ -275,7 +275,7 @@ frovedis_df_std(exrpc_ptr_t& df_proxy,
 std::vector<std::string> 
 frovedis_df_cnt(exrpc_ptr_t& df_proxy, 
                 std::vector<std::string>& cols) {
-  auto& df = *reinterpret_cast<dftable*>(df_proxy);
+  auto& df = *reinterpret_cast<dftable_base*>(df_proxy);
   std::vector<std::string> ret(cols.size());
   for (size_t i=0; i<cols.size(); ++i) { 
     ret[i] = std::to_string(df.count(cols[i]));
@@ -287,7 +287,7 @@ exrpc_ptr_t frovedis_df_rename(exrpc_ptr_t& df_proxy,
                                std::vector<std::string>& cols,
                                std::vector<std::string>& new_cols) {
   checkAssumption(cols.size() == new_cols.size());
-  auto& df = *reinterpret_cast<dftable*>(df_proxy);
+  auto& df = *reinterpret_cast<dftable_base*>(df_proxy);
   auto ret = new dftable(df); // copying dataframe
   if (!ret) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed.\n");
   for(size_t i=0; i<cols.size(); ++i) {
@@ -298,31 +298,31 @@ exrpc_ptr_t frovedis_df_rename(exrpc_ptr_t& df_proxy,
 
 std::vector<int> get_df_int_col(exrpc_ptr_t& df_proxy, 
                                 std::string& cname) {
-  auto& df = *reinterpret_cast<dftable*>(df_proxy);
+  auto& df = *reinterpret_cast<dftable_base*>(df_proxy);
   return df.as_dvector<int>(cname).gather();
 }
 
 std::vector<long> get_df_long_col(exrpc_ptr_t& df_proxy, 
                                   std::string& cname) {
-  auto& df = *reinterpret_cast<dftable*>(df_proxy);
+  auto& df = *reinterpret_cast<dftable_base*>(df_proxy);
   return df.as_dvector<long>(cname).gather();
 }
 
 std::vector<float> get_df_float_col(exrpc_ptr_t& df_proxy, 
                                     std::string& cname) {
-  auto& df = *reinterpret_cast<dftable*>(df_proxy);
+  auto& df = *reinterpret_cast<dftable_base*>(df_proxy);
   return df.as_dvector<float>(cname).gather();
 }
 
 std::vector<double> get_df_double_col(exrpc_ptr_t& df_proxy, 
                                       std::string& cname) {
-  auto& df = *reinterpret_cast<dftable*>(df_proxy);
+  auto& df = *reinterpret_cast<dftable_base*>(df_proxy);
   return df.as_dvector<double>(cname).gather();
 }
 
 std::vector<std::string> 
 get_df_string_col(exrpc_ptr_t& df_proxy, std::string& cname) {
-  auto& df = *reinterpret_cast<dftable*>(df_proxy);
+  auto& df = *reinterpret_cast<dftable_base*>(df_proxy);
   return df.as_dvector<std::string>(cname).gather();
 }
 
