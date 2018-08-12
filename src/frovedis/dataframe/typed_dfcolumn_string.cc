@@ -77,7 +77,7 @@ void set_idx(vector<size_t>& val,
 }
 
 node_local<vector<string>> typed_dfcolumn<string>::get_val() {
-  auto bcast_dic_idx = broadcast(dic_idx.gather()); // TODO: expensive!
+  auto bcast_dic_idx = broadcast(dic_idx->gather()); // TODO: expensive!
   return val.map(convert_val, bcast_dic_idx);
 }
 
@@ -88,12 +88,14 @@ void typed_dfcolumn<string>::init(dvector<string>& dv) {
   auto withidxdv = withidx.viewas_dvector<pair<string,size_t>>();
   auto group = withidxdv.group_by_key<string,size_t>();
   auto groupnl = group.viewas_node_local();
-  dic = make_dunordered_map_allocate<string,size_t>();
-  dic_idx = make_node_local_allocate<vector<string>>();
-  auto dicnl = dic.viewas_node_local();
+  dic = make_shared<dunordered_map<string,size_t>>
+    (make_dunordered_map_allocate<string,size_t>());
+  dic_idx = make_shared<node_local<vector<string>>>
+    (make_node_local_allocate<vector<string>>());
+  auto dicnl = dic->viewas_node_local();
   auto local_idx = make_node_local_allocate<vector<vector<size_t>>>();
   auto global_idx = make_node_local_allocate<vector<vector<size_t>>>();
-  groupnl.mapv(convert_idx, dicnl, dic_idx, local_idx, global_idx);
+  groupnl.mapv(convert_idx, dicnl, *dic_idx, local_idx, global_idx);
   auto exchanged_local_idx = alltoall_exchange(local_idx);
   auto exchanged_global_idx = alltoall_exchange(global_idx);
   val = make_node_local_allocate<vector<size_t>>();
@@ -103,7 +105,7 @@ void typed_dfcolumn<string>::init(dvector<string>& dv) {
 void typed_dfcolumn<string>::debug_print() {
   size_t nodemask = (size_t(1) << DFNODESHIFT) - 1;
   std::cout << "dic: " << std::endl;
-  for(auto& i: dic.viewas_node_local().gather()) {
+  for(auto& i: dic->viewas_node_local().gather()) {
     for(auto j: i) {
       cout << j.first << "|" 
            << (j.second >> DFNODESHIFT) << "-"
@@ -113,7 +115,7 @@ void typed_dfcolumn<string>::debug_print() {
   }
   cout << endl;
   std::cout << "dic_idx: " << std::endl;
-  for(auto& i: dic_idx.gather()) {
+  for(auto& i: dic_idx->gather()) {
     for(auto j: i) {
       cout << j << " ";
     }
@@ -150,7 +152,7 @@ vector<size_t> convert_sorted_idx(vector<size_t>& val,
 typed_dfcolumn<size_t>
 typed_dfcolumn<string>::sort_prepare() {
   typed_dfcolumn<size_t> rescol;
-  auto with_idx = dic_idx.map(append_idx);
+  auto with_idx = dic_idx->map(append_idx);
   auto with_idx_dv = with_idx.moveto_dvector<pair<string,size_t>>();
   auto with_idx_sorted = with_idx_dv.sort().moveto_node_local();
   auto idx_dic = broadcast(with_idx_sorted.map(extract_idx).
@@ -222,12 +224,12 @@ vector<size_t> equal_prepare_helper(vector<size_t>& val,
 node_local<vector<size_t>>
 typed_dfcolumn<string>::
 equal_prepare(shared_ptr<typed_dfcolumn<string>>& right) {
-  auto& rightdic = right->dic;
+  auto& rightdic = *(right->dic);
   auto rightdicnl = rightdic.viewas_node_local();
   auto nlfrom = make_node_local_allocate<std::vector<size_t>>();
   auto nlto = make_node_local_allocate<std::vector<size_t>>();
-  dic.viewas_node_local().mapv(create_string_trans_table, rightdicnl,
-                               nlfrom, nlto);
+  dic->viewas_node_local().mapv(create_string_trans_table, rightdicnl,
+                                nlfrom, nlto);
   auto bcastfrom = broadcast(nlfrom.moveto_dvector<size_t>().gather());
   auto bcastto = broadcast(nlto.moveto_dvector<size_t>().gather());
   return right->val.map(equal_prepare_helper, bcastfrom, bcastto);
@@ -584,7 +586,7 @@ std::vector<size_t> filter_regex_join(std::vector<size_t>& left,
 node_local<std::vector<size_t>>
 typed_dfcolumn<string>::
 filter_regex(const std::string& pattern) {
-  auto right_non_null_val = dic_idx.map(filter_regex_helper, broadcast(pattern));
+  auto right_non_null_val = dic_idx->map(filter_regex_helper, broadcast(pattern));
   auto left_full_local_idx = get_local_index();
   node_local<std::vector<size_t>> left_non_null_idx;
   node_local<std::vector<size_t>> left_non_null_val;
@@ -606,7 +608,7 @@ filter_regex(const std::string& pattern) {
 node_local<std::vector<size_t>>
 typed_dfcolumn<string>::
 filter_not_regex(const std::string& pattern) {
-  auto right_non_null_val = dic_idx.map(filter_not_regex_helper, broadcast(pattern));
+  auto right_non_null_val = dic_idx->map(filter_not_regex_helper, broadcast(pattern));
   auto left_full_local_idx = get_local_index();
   node_local<std::vector<size_t>> left_non_null_idx;
   node_local<std::vector<size_t>> left_non_null_val;
@@ -636,7 +638,7 @@ std::vector<size_t> typed_dfcolumn<string>::sizes() {
 node_local<std::vector<size_t>>
 typed_dfcolumn<string>::filter_eq_immed(const std::string& right) {
   bool found;
-  size_t right_val = dic.get(right, found);
+  size_t right_val = dic->get(right, found);
   if(found) {
     auto filtered_idx = val.map(filter_eq_immed_helper<size_t>,
                                 broadcast(right_val));
@@ -651,7 +653,7 @@ typed_dfcolumn<string>::filter_eq_immed(const std::string& right) {
 node_local<std::vector<size_t>>
 typed_dfcolumn<string>::filter_neq_immed(const std::string& right) {
   bool found;
-  size_t right_val = dic.get(right, found);
+  size_t right_val = dic->get(right, found);
   if(found) {
     auto filtered_idx = val.map(filter_neq_immed_helper<size_t>,
                                 broadcast(right_val));
@@ -686,7 +688,6 @@ typed_dfcolumn<string>::extract(node_local<std::vector<size_t>>& idx) {
     ret->val = val.map(extract_helper2<size_t>, idx);
     ret->nulls = std::move(retnulls);
   }
-  // TODO: if val.size() < dic.size(), recreate dictionary
   ret->dic = dic;
   ret->dic_idx = dic_idx;
   return ret;

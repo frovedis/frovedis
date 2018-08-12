@@ -451,8 +451,10 @@ public:
   (std::shared_ptr<typed_dfcolumn<std::string>>&);
   virtual void contain_nulls_check();
   virtual std::shared_ptr<dfcolumn> head(size_t limit);
-  dunordered_map<std::string, size_t> dic; // string -> idx
-  node_local<std::vector<std::string>> dic_idx; // idx -> string
+  // string -> idx; shared between columns
+  std::shared_ptr<dunordered_map<std::string, size_t>> dic;
+  // idx -> string; shared between columns
+  std::shared_ptr<node_local<std::vector<std::string>>> dic_idx; 
   node_local<std::vector<size_t>> val;
   node_local<std::vector<size_t>> nulls;
   bool contain_nulls;
