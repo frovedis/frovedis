@@ -795,9 +795,47 @@ size_t typed_dfcolumn<string>::count() {
   } else return size;
 }
 
+vector<size_t> to_contiguous_idx(vector<size_t>& idx, vector<size_t>& sizes) {
+  size_t nodemask = (size_t(1) << DFNODESHIFT) - 1;
+  int nodesize = get_nodesize();
+  vector<size_t> toadd(nodesize);
+  size_t* toaddp = toadd.data();
+  size_t* sizesp = sizes.data();
+  for(size_t i = 1; i < nodesize; i++) {
+    toaddp[i] = toaddp[i-1] + sizesp[i-1];
+  }
+  size_t size = idx.size();
+  vector<size_t> ret(size);
+  size_t* idxp = idx.data();
+  size_t* retp = ret.data();
+  size_t max = std::numeric_limits<size_t>::max();
+#pragma cdir nodep
+#pragma _NEC ivdep
+  for(size_t i = 0; i < size; i++) {
+    if(idxp[i] != max) {
+      int node = idxp[i] >> DFNODESHIFT;
+      retp[i] = (idxp[i] & nodemask) + toaddp[node];
+    }
+    else retp[i] = idxp[i];
+  }
+  return ret;
+}
+
 void typed_dfcolumn<string>::save(const std::string& file) {
-  get_val().viewas_dvector<std::string>().saveline(file);
-  nulls.viewas_dvector<size_t>().savebinary(file+"_nulls");
+  auto dicsizes = dic_idx->viewas_dvector<string>().sizes();
+  val.map(to_contiguous_idx, broadcast(dicsizes)).
+    moveto_dvector<size_t>().savebinary(file + "_idx");
+  dic_idx->viewas_dvector<string>().saveline(file + "_dic");
+
+  auto dv_nulls = nulls.template viewas_dvector<size_t>();
+  auto sizes = val.template viewas_dvector<size_t>().sizes();
+  std::vector<size_t> pxsizes(sizes.size());
+  for(size_t i = 1; i < pxsizes.size(); i++) {
+    pxsizes[i] += pxsizes[i-1] + sizes[i-1];
+  }
+  auto nl_sizes = make_node_local_scatter(pxsizes);
+  dv_nulls.map<size_t>(shift_local_index(), nl_sizes).
+    savebinary(file+"_nulls");
 }
 
 void typed_dfcolumn<string>::contain_nulls_check() {

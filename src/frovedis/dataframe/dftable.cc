@@ -831,6 +831,57 @@ dftable& dftable::append_rowid(const std::string& name, size_t offset) {
   return append_column(name, nl.template moveto_dvector<size_t>());
 }
 
+std::vector<std::pair<std::string, size_t>>
+add_contiguous_idx(std::vector<std::string>& vs, std::vector<size_t>& sizes) {
+  int self = get_selfid();
+  size_t toadd = 0;
+  size_t* sizesp = sizes.data();
+  for(size_t i = 0; i < self; i++) toadd += sizesp[i];
+  size_t size = vs.size();
+  std::vector<std::pair<std::string, size_t>> ret(size);
+  std::pair<std::string, size_t>* retp = ret.data();
+  std::string* vsp = vs.data();
+  for(size_t i = 0; i < size; i++) {
+    retp[i].first = vsp[i];
+    retp[i].second = i + toadd;
+  }
+  return ret;
+}
+
+void prepare_string_load(my_map<std::string, std::vector<size_t>>& group,
+                         my_map<std::string, size_t>& dic,
+                         std::vector<std::string>& dic_idx,
+                         std::vector<size_t>& cont_idx,
+                         std::vector<size_t>& global_idx) {
+  size_t selfid = static_cast<size_t>(get_selfid());
+  size_t nodeinfo = selfid << DFNODESHIFT;
+  auto size = group.size();
+  dic_idx.resize(size);
+  if(selfid == 0) {
+    cont_idx.resize(size+1);
+    global_idx.resize(size+1);
+  } else {
+    cont_idx.resize(size);
+    global_idx.resize(size);
+  }
+  size_t i = 0;
+  for(auto it = group.begin(); it != group.end(); ++it, ++i) {
+    auto str = it->first;
+    dic.insert(std::make_pair(str, i + nodeinfo));
+    dic_idx[i] = str;
+    cont_idx[i] = (it->second)[0];
+  }
+  size_t* global_idxp = global_idx.data();
+  for(i = 0; i < size; i++) {
+    global_idxp[i] = i + nodeinfo;
+  }
+  if(selfid == 0) {
+    // for null
+    cont_idx[size] = std::numeric_limits<size_t>::max();
+    global_idx[size] = std::numeric_limits<size_t>::max();
+  }
+}
+                          
 void dftable::load(const std::string& input) {
   std::string colfile = input + "/columns";
   std::string typefile = input + "/types";
@@ -931,19 +982,48 @@ void dftable::load(const std::string& input) {
         map<size_t>(shiftback_local_index(), nl_sizes).moveto_node_local();
       column(cols[i])->contain_nulls_check();
     } else if(types[i] == "string") {
-      auto vec = make_dvector_loadline(valfile);
-      auto sizes = vec.sizes();
+      auto toappend = std::make_shared<typed_dfcolumn<std::string>>();
+      auto loaddic = make_dvector_loadline<std::string>(valfile + "_dic");
+      auto dicsizes = loaddic.sizes();
+      auto withcontidx = loaddic.map_partitions(add_contiguous_idx,
+                                                broadcast(dicsizes));
+      auto group = withcontidx.group_by_key<std::string,size_t>();
+      auto groupnl = group.viewas_node_local();
+      toappend->dic = std::make_shared<dunordered_map<std::string,size_t>>
+        (make_dunordered_map_allocate<std::string,size_t>());
+      toappend->dic_idx = std::make_shared<node_local<std::vector<std::string>>>
+        (make_node_local_allocate<std::vector<std::string>>());
+      auto retdicnl = toappend->dic->viewas_node_local();
+      auto cont_idx = make_node_local_allocate<std::vector<size_t>>();
+      auto global_idx = make_node_local_allocate<std::vector<size_t>>();
+      groupnl.mapv(prepare_string_load, retdicnl, *toappend->dic_idx, cont_idx,
+                   global_idx);
+
+      auto vec = make_dvector_loadbinary<size_t>(valfile + "_idx");
+      std::vector<size_t> sizes;
+      if(i != 0) {
+        sizes = column(col_order[0])->sizes();
+        vec.align_as(sizes);
+      } else {
+        sizes = vec.sizes();
+      }
       std::vector<size_t> pxsizes(sizes.size());
       for(size_t i = 1; i < pxsizes.size(); i++) {
         pxsizes[i] += pxsizes[i-1] + sizes[i-1];
       }
       auto nl_sizes = make_node_local_scatter(pxsizes);
-      append_column(cols[i], std::move(vec));
-      std::dynamic_pointer_cast<typed_dfcolumn<std::string>>
-        (column(cols[i]))->
-        nulls = make_dvector_loadbinary<size_t>(nullsfile).
+      toappend->nulls = make_dvector_loadbinary<size_t>(nullsfile).
         map<size_t>(shiftback_local_index(), nl_sizes).moveto_node_local();
-      column(cols[i])->contain_nulls_check();
+      toappend->contain_nulls_check();
+      dftable t1, t2;
+      t1.append_column("original", std::move(vec));
+      t2.append_column("contiguous", cont_idx.moveto_dvector<size_t>());
+      t2.append_column("global_idx", global_idx.moveto_dvector<size_t>());
+      
+      auto conved = t1.bcast_join(t2, frovedis::eq("original", "contiguous"))
+        .as_dvector<size_t>("global_idx");
+      toappend->val = conved.moveto_node_local();
+      append_column(cols[i], std::move(toappend));
     }
   }
 }
