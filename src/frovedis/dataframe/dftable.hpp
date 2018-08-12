@@ -56,9 +56,10 @@ public:
   template <class T> T max(const std::string& name);
   template <class T> T min(const std::string& name);
   template <class T> dvector<T> as_dvector(const std::string name);
-  virtual void show();
-  virtual void show(size_t limit);
-  virtual void save(const std::string& dir);
+  dftable head(size_t limit);
+  void show();
+  void show(size_t limit);
+  void save(const std::string& dir);
   std::vector<std::pair<std::string, std::string>>
     savetext(const std::string& file);
   std::vector<std::pair<std::string, std::string>>

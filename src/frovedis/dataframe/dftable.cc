@@ -305,6 +305,16 @@ dftable_base::group_by(const std::vector<std::string>& cols) {
   }
 }
 
+dftable dftable_base::head(size_t limit) {
+  dftable limit_table;
+  auto cols = columns();
+  for(size_t i = 0; i < cols.size(); i++) {
+    limit_table.append_column(cols[i],
+                              this->column(cols[i])->head(limit));
+  }
+  return limit_table;
+}
+
 void dftable_base::show() {
   auto table_string = dftable_to_string(*this).gather();
   auto cols = columns();
@@ -321,13 +331,7 @@ void dftable_base::show() {
 }
 
 void dftable_base::show(size_t limit) {
-  auto cols = columns();
-  dftable limit_table;
-  for(size_t i = 0; i < cols.size(); i++) {
-    limit_table.append_column(cols[i],
-                              this->column(cols[i])->head(limit));
-  }
-  limit_table.show();
+  this->head(limit).show();
 }
 
 size_t dftable_base::count(const std::string& name) {
