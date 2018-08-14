@@ -323,7 +323,7 @@ std::vector<T> extract_helper(std::vector<T>& val,
         rettmpp[current++] = i;
       }
     }
-    std::vector<size_t> retnulls(current);
+    retnulls.resize(current);
     size_t* retnullsp = &retnulls[0];
     for(size_t i = 0; i < current; i++) {
       retnullsp[i] = rettmpp[i];
