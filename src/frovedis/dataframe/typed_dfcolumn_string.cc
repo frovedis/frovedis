@@ -130,6 +130,13 @@ void typed_dfcolumn<string>::debug_print() {
     std::cout << ": ";
   }
   std::cout << std::endl;
+  std::cout << "nulls: ";
+  for(auto& i: nulls.gather()) {
+    for(auto j: i) std::cout << j << " ";
+    std::cout << ": ";
+  }
+  std::cout << std::endl;
+  std::cout << "contain_nulls: " << contain_nulls << std::endl;
 }
 
 vector<size_t> extract_idx(vector<pair<string,size_t>>& v) {
@@ -735,6 +742,7 @@ node_local<std::vector<size_t>> typed_dfcolumn<string>::get_local_index() {
 void typed_dfcolumn<string>::append_nulls
 (node_local<std::vector<size_t>>& to_append) {
   val.mapv(append_nulls_helper<size_t>, to_append, nulls);
+  contain_nulls = true;
 }
 
 node_local<std::vector<size_t>> typed_dfcolumn<string>::calc_hash_base() {
@@ -821,12 +829,122 @@ vector<size_t> to_contiguous_idx(vector<size_t>& idx, vector<size_t>& sizes) {
   return ret;
 }
 
-void typed_dfcolumn<string>::save(const std::string& file) {
-  auto dicsizes = dic_idx->viewas_dvector<string>().sizes();
-  val.map(to_contiguous_idx, broadcast(dicsizes)).
-    moveto_dvector<size_t>().savebinary(file + "_idx");
-  dic_idx->viewas_dvector<string>().saveline(file + "_dic");
+vector<vector<size_t>> split_by_node(vector<size_t>& idx) {
+  size_t nodemask = (size_t(1) << DFNODESHIFT) - 1;
+  int nodesize = get_nodesize();
+  size_t max = std::numeric_limits<size_t>::max();
+  vector<vector<size_t>> split(nodesize);
+  vector<size_t> each_size(nodesize);
+  size_t* each_sizep = each_size.data();
+  size_t size = idx.size();
+  size_t* idxp = idx.data();
+#pragma cdir nodep
+#pragma _NEC ivdep
+  for(size_t i = 0; i < size; i++) {
+    if(idxp[i] != max) {
+      int node = idxp[i] >> DFNODESHIFT;
+      each_sizep[node]++;
+    }
+  }
+  for(size_t i = 0; i < nodesize; i++) {
+    split[i].resize(each_size[i]);
+  }
+  vector<size_t*> each_split(nodesize);
+  size_t** each_splitp = each_split.data();
+  vector<size_t> each_split_current(nodesize);
+  size_t* each_split_currentp = each_split_current.data();
+  for(size_t i = 0; i < nodesize; i++) each_splitp[i] = split[i].data();
+#pragma cdir nodep
+#pragma _NEC ivdep
+  for(size_t i = 0; i < size; i++) {
+    if(idxp[i] != max) {
+      int node = idxp[i] >> DFNODESHIFT;
+      each_splitp[node][each_split_currentp[node]] = idxp[i] & nodemask;
+      each_split_currentp[node]++;
+    }
+  }
+  return split;
+}
 
+void sort_idx(vector<size_t>& idx) {
+#if defined(_SX) || defined(__ve__)
+  std::vector<size_t> dummy(idx.size());
+  radix_sort(idx, dummy);
+#else
+  std::sort(idx.begin(), idx.end());
+#endif
+}
+
+vector<size_t> create_exist_map(vector<size_t>& exist_idx,
+                                vector<size_t>& table_val) {
+  size_t selfid = static_cast<size_t>(get_selfid());
+  size_t nodeinfo = selfid << DFNODESHIFT;
+  size_t* exist_idxp = exist_idx.data();
+  size_t size = exist_idx.size();
+  size_t tbsize;
+  if(selfid == 0) tbsize = size + 1;
+  else tbsize = size;
+  vector<size_t> table_key(tbsize);
+  size_t* table_keyp = table_key.data();
+  table_val.resize(tbsize);
+  size_t* table_valp = table_val.data();
+  for(size_t i = 0; i < size; i++) {
+    table_keyp[i] = exist_idxp[i] + nodeinfo;
+    table_valp[i] = i + nodeinfo;
+  }
+  if(selfid == 0) {
+    size_t max = std::numeric_limits<size_t>::max();
+    table_keyp[size] = max;
+    table_valp[size] = max;
+  }
+  return table_key;
+}
+
+vector<size_t> shrink_string_idx(vector<size_t>& val,
+                                 vector<size_t>& table_key,
+                                 vector<size_t>& table_val) {
+  unique_hashtable<size_t, size_t> ht(table_key, table_val);
+  return ht.lookup(val);
+}
+
+
+vector<string> shrink_string_dic(vector<string>& dic_idx,
+                                 vector<size_t>& exist_idx) {
+  size_t size = exist_idx.size();
+  vector<string> ret(size);
+  for(size_t i = 0; i < size; i++) {
+    ret[i] = dic_idx[exist_idx[i]];
+  }
+  return ret;
+}
+
+void typed_dfcolumn<string>::save(const std::string& file) {
+  auto split = val.map(split_by_node);
+  auto exchanged = alltoall_exchange(split);
+  auto exist_idx = exchanged.map(flatten<size_t>).map(get_unique_idx);
+  if(exist_idx.viewas_dvector<size_t>().size() !=
+     dic_idx->viewas_dvector<string>().size()) {
+    exist_idx.mapv(sort_idx);
+    auto table_val = make_node_local_allocate<vector<size_t>>();
+    auto table_key = exist_idx.map(create_exist_map, table_val);
+    auto bcast_table_key =
+      broadcast(table_key.viewas_dvector<size_t>().gather());
+    auto bcast_table_val =
+      broadcast(table_val.viewas_dvector<size_t>().gather());
+    auto new_val = val.map(shrink_string_idx, bcast_table_key,
+                           bcast_table_val);
+    auto new_dic_idx = dic_idx->map(shrink_string_dic,
+                                    exist_idx);
+    auto dicsizes = new_dic_idx.viewas_dvector<string>().sizes();
+    new_val.map(to_contiguous_idx, broadcast(dicsizes)).
+      moveto_dvector<size_t>().savebinary(file + "_idx");
+    new_dic_idx.viewas_dvector<string>().saveline(file + "_dic");
+  } else {
+    auto dicsizes = dic_idx->viewas_dvector<string>().sizes();
+    val.map(to_contiguous_idx, broadcast(dicsizes)).
+      moveto_dvector<size_t>().savebinary(file + "_idx");
+    dic_idx->viewas_dvector<string>().saveline(file + "_dic");
+  }
   auto dv_nulls = nulls.template viewas_dvector<size_t>();
   auto sizes = val.template viewas_dvector<size_t>().sizes();
   std::vector<size_t> pxsizes(sizes.size());
