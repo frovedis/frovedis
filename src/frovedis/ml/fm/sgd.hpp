@@ -36,7 +36,8 @@ void update_managed_fm_parameter(chain_schedule<I>& schedule, size_t batch_id,
                                 scaled_learn_rate, config.regular_w, 0, 1);
 
   update_managed_parameter<T,I>(schedule, batch_id, managed_parameter.v.val, grad_accumulator.v.val, 
-                                scaled_learn_rate, config.regular_v, 0, config.factor_size);                                   
+				scaled_learn_rate, config.regular_v, 0, config.factor_size);              
+                       
 }
 
 template <class T, class I>
@@ -74,9 +75,8 @@ std::vector<T> compute_forward_prop(Matrix& data, Matrix& sq_data, fm_parameter<
   auto sq_xv = xv.pow_val(2);
   auto sq_v = parameter.v.pow_val(2);
   auto sq_x_sq_v = sq_data * sq_v;
-  auto yv = (sq_xv + sq_x_sq_v) * ones;
+  auto yv = (sq_xv - sq_x_sq_v) * ones;
   
-  // auto yv = ((data * parameter.v).pow_val(2) + sq_data * parameter.v.pow_val(2)) * ones;
   auto* ptr_yv = yv.data();
   for (size_t ix = 0; ix < local_batch_size; ix++) {
     ptr_y[ix] += ptr_yv[ix];
@@ -208,8 +208,7 @@ void optimize_sgd_parallel(std::vector<crs_matrix_local<T,I,I>>& crs_data_batche
   for (size_t epoch = 0; epoch < config.iteration; epoch++) {
     LOG(DEBUG) << "epoch: " << epoch << std::endl;
 
-    // NOTE: no need to discount learning rate
-    config.learn_rate = config.init_learn_rate / std::pow(epoch + 1, 0.5);
+    //config.learn_rate = config.init_learn_rate / std::pow(epoch + 1, 0.5);
     
     for (size_t batch_id = 0; batch_id < batch_count; batch_id++) {
       // broadcast

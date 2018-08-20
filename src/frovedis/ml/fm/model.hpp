@@ -135,27 +135,22 @@ fm_parameter<T> concatenate_fm_parameter(node_local<fm_parameter<T>>& nl_paramet
 
 
 template <class T>
-void init_fm_parameter_with_stdev(fm_parameter<T>& parameter, T stdev) {
+void init_fm_parameter_with_stdev(fm_parameter<T>& parameter, T stdev, int random_seed) {
   // initialize (ONLY) v with normal distribution
   auto* ptr_v = parameter.v.val.data();
   auto v_size = parameter.v.val.size();
-
+  
 #ifdef USE_STD_RANDOM
   std::random_device seed_gen;
-  // std::default_random_engine engine(seed_gen());
-  std::default_random_engine engine(1);
+  std::default_random_engine engine(random_seed);
   std::normal_distribution<> dist(0, stdev);
   for (size_t i = 0; i < v_size; i++) {
     ptr_v[i] = dist(engine);
   }
 #else
-  auto rand_uniform = [](){ return (rand() + 1.0) / (RAND_MAX + 2.0);};
-  auto rand_normal = [&rand_uniform](T mu, T sigma){
-    T z = std::sqrt(-2.0 * std::log(rand_uniform())) * std::cos(2.0 * M_PI * rand_uniform());
-    return mu + sigma * z;
-  };
+  srand48(random_seed);
   for (size_t i = 0; i < v_size; i++) {
-    ptr_v[i] = rand_normal(0, stdev);
+    ptr_v[i] = std::sqrt(-2.0 * std::log(drand48())) * std::cos(2.0 * M_PI * drand48());
   }
 #endif  // USE_STD_RANDOM
 }  
@@ -180,6 +175,8 @@ struct fm_model {
   // void savebinary(const std::string& file);
 
   template <class I = size_t>
+  std::vector<T> predict_value(crs_matrix_local<T,I,I>& input);
+  template <class I = size_t>
   std::vector<T> predict(crs_matrix_local<T,I,I>& input);
       
   fm_config<T> config;
@@ -188,10 +185,10 @@ struct fm_model {
   SERIALIZE(config, parameter);
 };
 
-// template <class T, class I>
+
 template <class T> template <class I>
 std::vector<T> 
-fm_model<T>::predict(crs_matrix_local<T,I,I>& input) {
+fm_model<T>::predict_value(crs_matrix_local<T,I,I>& input) {
   auto& comp_parameter = parameter;
   if (input.local_num_col > parameter.feature_size()) {
     fm_parameter<T> extended = parameter;
@@ -213,7 +210,7 @@ fm_model<T>::predict(crs_matrix_local<T,I,I>& input) {
   }
   // v
   std::vector<T> ones(comp_parameter.factor_size(), 0.5);
-  auto yv = ((input * comp_parameter.v).pow_val(2) + input.pow_val(2) * comp_parameter.v.pow_val(2)) * ones;
+  auto yv = ((input * comp_parameter.v).pow_val(2) - input.pow_val(2) * comp_parameter.v.pow_val(2)) * ones;
   auto* ptr_yv = yv.data();
   for (size_t ix = 0; ix < input.local_num_row; ix++) {
     ptr_y[ix] += ptr_yv[ix];
@@ -221,6 +218,31 @@ fm_model<T>::predict(crs_matrix_local<T,I,I>& input) {
   
   return y;
 }
+
+
+template <class T> template <class I>
+std::vector<T> 
+fm_model<T>::predict(crs_matrix_local<T,I,I>& input) {
+  if (config.is_regression) {
+    return predict_value<I>(input);
+  } else {
+    auto proba = predict_value(input);
+    auto* ptr_proba = proba.data();
+
+    std::vector<T> y(proba.size());
+    auto* ptr_y = y.data();
+    size_t y_size = y.size();
+    for (size_t i = 0; i < y_size ; i++) {
+      if (ptr_proba[i] > 0) {
+	ptr_y[i] = 1.0;
+      } else {
+       	ptr_y[i] = - 1.0;
+      }
+    }
+    return y;
+  }
+}
+
 
 template <class T>
 fm_model<T> load_fm_model(const std::string& input) {
