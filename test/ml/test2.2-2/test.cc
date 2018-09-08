@@ -22,7 +22,7 @@ BOOST_AUTO_TEST_CASE( frovedis_test )
     auto label = make_dvector_loadline("./label").map(to_double);
 
     size_t num_iteration = 200;
-    double alpha = 0.1;
+    double alpha = 1.0;
     size_t hist_size = 10;
     bool intercept = true;
     RegType rt = L2;
@@ -40,7 +40,7 @@ BOOST_AUTO_TEST_CASE( frovedis_test )
 
     double tol = 0.01;
     std::vector<double> expected_out_p = {1.0, -1.0, 1.0, 1.0};
-    std::vector<double> expected_out_pb = {1.44541, -1.19601, 2.76177, 1.74094};
+    std::vector<double> expected_out_pb = {9.74163, -1.08086, 9.88525, 10.7174};
     BOOST_CHECK (calc_rms_err<double> (out_p,expected_out_p) < tol);
     BOOST_CHECK (calc_rms_err<double> (out_pb,expected_out_pb) < tol);
 }

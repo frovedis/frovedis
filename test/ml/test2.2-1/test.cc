@@ -35,12 +35,13 @@ BOOST_AUTO_TEST_CASE( frovedis_test )
     auto mat = make_crs_matrix_local_load<double>("./data");    
     auto out_p = model.predict(mat);
     auto out_pb = model.predict_probability(mat);
-    //for(auto i: out_p) cout << i << " "; cout << endl;
-    //for(auto i: out_pb) cout << i << " "; cout << endl;
+    for(auto i: out_p) cout << i << " "; cout << endl;
+    for(auto i: out_pb) cout << i << " "; cout << endl;
 
     double tol = 0.01;
     std::vector<double> expected_out_p = {1.0, -1.0, 1.0, 1.0};
-    std::vector<double> expected_out_pb = {1.3061, -1.00032, 1.50311, 1.08075};
+    //std::vector<double> expected_out_pb = {1.3061, -1.00032, 1.50311, 1.08075};
+    std::vector<double> expected_out_pb = {0.971784, -0.655046, 0.977281, 0.97405};
     BOOST_CHECK (calc_rms_err<double> (out_p,expected_out_p) < tol);
     BOOST_CHECK (calc_rms_err<double> (out_pb,expected_out_pb) < tol);
 }

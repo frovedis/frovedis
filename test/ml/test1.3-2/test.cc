@@ -33,11 +33,11 @@ BOOST_AUTO_TEST_CASE( frovedis_test )
 
     auto mat = make_crs_matrix_local_load<double>("./data");    
     auto out = model.predict(mat);
-    for(auto i: out) cout << i << " "; cout << endl;
+    //for(auto i: out) cout << i << " "; cout << endl;
 
     double tol= 0.01;
-    std::vector<double> expected_out = {2.5664, 4.13253, 1.78322, 
-                                        3.34957, 1.62663, 4.91528};
+    std::vector<double> expected_out = {2.80754, 4.61481, 1.90378, 
+                                        3.7113, 1.72307, 5.51807}; 
     BOOST_CHECK (calc_rms_err<double> (out, expected_out) < tol);
 }
 

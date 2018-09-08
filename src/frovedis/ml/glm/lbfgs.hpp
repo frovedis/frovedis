@@ -99,7 +99,7 @@ lbfgs<T>::compute_hkgk(const std::vector<T>& grad_vector) {
   blockcyclic_matrix<T> dist_q(grad_vector); // (lvalue) vec -> bcm
   // This scaling won't be required, since model update formula
   // takes care of this negative move (Wn+1 := Wn - HKGKn)
-  //scal<T>(dist_q,-1.0); // q := -grad_vector
+  // scal<T>(dist_q,-1.0); // q := -grad_vector
 
   // buggy: as 'size_t' will cause an infinite loop
   //for(size_t i = n_elem-1; i>=0; i--) {
@@ -162,15 +162,23 @@ void lbfgs<T>::update_history(const MODEL& cur_model,
                               size_t iterCount) {
   auto cur_model_vec = cur_model.weight;
   cur_model_vec.push_back(cur_model.intercept);
-  if(iterCount != 1) { // if not the first iteration
+  if (iterCount != 1) { //no history in first iteration
     auto model_diff = cur_model_vec - old_model;
     auto grad_diff  = cur_gradient - old_gradient;
-    auto dist_model_diff = vec_to_bcm<T>(std::move(model_diff));   // Si
-    auto dist_grad_diff  = vec_to_bcm<T>(std::move(grad_diff));    // Yi
-    T val = 1 / dot<T>(dist_model_diff,dist_grad_diff); // Pi := 1/Si.Yi
-    one_by_dot.push_back(val);
-    model_hist.push_back(std::move(dist_model_diff));
-    grad_hist.push_back(std::move(dist_grad_diff));
+    static std::vector<T> ZERO(grad_diff.size(),0);
+    if (grad_diff == ZERO) 
+      REPORT_INFO("No change in gradient, hence skipping history update!\n");
+    else { 
+      auto dist_model_diff = vec_to_bcm<T>(model_diff);   // Si
+      auto dist_grad_diff  = vec_to_bcm<T>(grad_diff);    // Yi
+      T dotval = dot<T>(dist_model_diff,dist_grad_diff);  // Si.Yi
+      if(dotval > 0.0) {      // mandatory condition for history update
+        T val = 1 / dotval;   // Pi := 1/Si.Yi
+        one_by_dot.push_back(val);
+        model_hist.push_back(std::move(dist_model_diff));
+        grad_hist.push_back(std::move(dist_grad_diff));
+      }
+    }
   }
   old_model.swap(cur_model_vec);
   old_gradient.swap(cur_gradient);

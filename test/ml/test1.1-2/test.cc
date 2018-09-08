@@ -35,8 +35,8 @@ BOOST_AUTO_TEST_CASE( frovedis_test )
     //for(auto i: out) cout << i << " "; cout << endl;
 
     double tol= 0.01;
-    std::vector<double> expected_out = {2.56852, 4.13679, 1.78428, 
-                                        3.35276, 1.62748, 4.9206};
+    std::vector<double> expected_out = {2.80866, 4.61706, 1.90434, 
+                                        3.71299, 1.72352, 5.52088}; 
     BOOST_CHECK (calc_rms_err<double> (out, expected_out) < tol);
 }
 

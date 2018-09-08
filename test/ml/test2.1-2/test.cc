@@ -22,7 +22,7 @@ BOOST_AUTO_TEST_CASE( frovedis_test )
     auto label = make_dvector_loadline("./label").map(to_double);
 
     size_t num_iteration = 200;
-    double alpha = 0.1;
+    double alpha = 1.0;
     size_t hist_size = 10;
     bool intercept = true;
     RegType rt = L2;
@@ -35,12 +35,12 @@ BOOST_AUTO_TEST_CASE( frovedis_test )
     auto mat = make_crs_matrix_local_load<double>("./data");    
     auto out_p = model.predict(mat);
     auto out_pb = model.predict_probability(mat);
-    //for(auto i: out_p) cout << i << " "; cout << endl;
-    //for(auto i: out_pb) cout << i << " "; cout << endl;
+    for(auto i: out_p) cout << i << " "; cout << endl;
+    for(auto i: out_pb) cout << i << " "; cout << endl;
 
     double tol = 0.01;
     std::vector<double> expected_out_p = {1.0, -1.0, 1.0, 1.0};
-    std::vector<double> expected_out_pb = {1.0, 0.0179413, 1.0, 1.0};
+    std::vector<double> expected_out_pb = {1.0, 0.0, 1.0, 1.0};
     BOOST_CHECK (calc_rms_err<double> (out_p,expected_out_p) < tol);
     BOOST_CHECK (calc_rms_err<double> (out_pb,expected_out_pb) < tol);
 }
