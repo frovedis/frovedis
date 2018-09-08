@@ -376,8 +376,20 @@ void dftable_base::save(const std::string& dir) {
 struct dftable_concat_string {
   dftable_concat_string(){}
   dftable_concat_string(std::string sep) : sep(sep) {}
+  void myreplace(std::string& s, const std::string& from, const std::string& to) {
+    size_t pos = 0;
+    while((pos = s.find(from, pos)) != std::string::npos) {
+      s.replace(pos, from.size(), to);
+      pos += to.size();
+    }
+  }
   std::string operator()(std::vector<std::string>& vs) {
     std::string ret;
+    for(size_t i = 0; i < vs.size(); i++) {
+      myreplace(vs[i], "\\", "\\\\");
+      myreplace(vs[i], sep, "\\" + sep);
+      myreplace(vs[i], "\"", "\\\"");
+    }
     for(size_t i = 0; i < vs.size() - 1; i++) {
       ret.append(vs[i]);
       ret.append(sep);
