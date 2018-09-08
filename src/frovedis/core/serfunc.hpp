@@ -410,7 +410,8 @@ private:
   SERIALIZE(funcaddr)
 };
 
-template <class T1, class T2, class T3, class T4, class T5, class T6, class T7, class T8>
+template <class T1, class T2, class T3, class T4, class T5, class T6, class T7,
+          class T8>
 class serfuncv8 {
 public:
   typedef void(*functype)(T1,T2,T3,T4,T5,T6,T7,T8);
@@ -430,6 +431,67 @@ public:
   void operator()(T1 a1, T2 a2, T3 a3, T4 a4, T5 a5, T6 a6, T7 a7, T8 a8){
     if(func == 0) func = reinterpret_cast<functype>(funcaddr);
     func(a1,a2,a3,a4,a5,a6,a7,a8);
+  }
+private:
+  intptr_t funcaddr;
+  functype func;
+
+  SERIALIZE(funcaddr)
+};
+
+template <class R, class T1, class T2, class T3, class T4, class T5, class T6,
+          class T7, class T8, class T9>
+class serfunc9 {
+public:
+  typedef R(*functype)(T1,T2,T3,T4,T5,T6,T7,T8,T9);
+  typedef T1 first_argument_type;
+  typedef T2 second_argument_type;
+  typedef T3 third_argument_type;
+  typedef T4 fourth_argument_type;
+  typedef T5 fifth_argument_type;
+  typedef T6 sixth_argument_type;
+  typedef T7 seventh_argument_type;
+  typedef T8 eighth_argument_type;
+  typedef T9 ninth_argument_type;
+  typedef R result_type;
+  serfunc9() : func(0) {}
+  serfunc9(R(*f)(T1,T2,T3,T4,T5,T6,T7,T8,T9)) : func(f) {
+    funcaddr = reinterpret_cast<intptr_t>(func);
+  }
+  R operator()(T1 a1, T2 a2, T3 a3, T4 a4, T5 a5, T6 a6, T7 a7, T8 a8, T9 a9){
+    if(func == 0) func = reinterpret_cast<functype>(funcaddr);
+    return func(a1,a2,a3,a4,a5,a6,a7,a8,a9);
+  }
+private:
+  intptr_t funcaddr;
+  functype func;
+
+  SERIALIZE(funcaddr)
+};
+
+template <class T1, class T2, class T3, class T4, class T5, class T6, class T7,
+          class T8, class T9>
+class serfuncv9 {
+public:
+  typedef void(*functype)(T1,T2,T3,T4,T5,T6,T7,T8,T9);
+  typedef T1 argument_type;
+  typedef T2 second_argument_type;
+  typedef T3 third_argument_type;
+  typedef T4 fourth_argument_type;
+  typedef T5 fifth_argument_type;
+  typedef T6 sixth_argument_type;
+  typedef T7 seventh_argument_type;
+  typedef T8 eighth_argument_type;
+  typedef T9 ninth_argument_type;
+  typedef void result_type;
+  serfuncv9() : func(0) {}
+  serfuncv9(void(*f)(T1,T2,T3,T4,T5,T6,T7,T8,T9)) : func(f) {
+    funcaddr = reinterpret_cast<intptr_t>(func);
+  }
+  void operator()(T1 a1, T2 a2, T3 a3, T4 a4, T5 a5, T6 a6, T7 a7, T8 a8,
+                  T9 a9){
+    if(func == 0) func = reinterpret_cast<functype>(funcaddr);
+    func(a1,a2,a3,a4,a5,a6,a7,a8,a9);
   }
 private:
   intptr_t funcaddr;
@@ -509,13 +571,30 @@ serfuncv7<T1,T2,T3,T4,T5,T6,T7> make_serfunc(void(*f)(T1,T2,T3,T4,T5,T6,T7)){
 
 template <class R, class T1, class T2, class T3, class T4, class T5, class T6,
           class T7, class T8>
-serfunc8<R,T1,T2,T3,T4,T5,T6,T7,T8> make_serfunc(R(*f)(T1,T2,T3,T4,T5,T6,T7,T8)){
+serfunc8<R,T1,T2,T3,T4,T5,T6,T7,T8> 
+make_serfunc(R(*f)(T1,T2,T3,T4,T5,T6,T7,T8)){
   return serfunc8<R,T1,T2,T3,T4,T5,T6,T7,T8>(f);
 }
 
-template <class T1, class T2, class T3, class T4, class T5, class T6, class T7, class T8>
-serfuncv8<T1,T2,T3,T4,T5,T6,T7,T8> make_serfunc(void(*f)(T1,T2,T3,T4,T5,T6,T7,T8)){
+template <class T1, class T2, class T3, class T4, class T5, class T6, class T7,
+          class T8>
+serfuncv8<T1,T2,T3,T4,T5,T6,T7,T8>
+make_serfunc(void(*f)(T1,T2,T3,T4,T5,T6,T7,T8)){
   return serfuncv8<T1,T2,T3,T4,T5,T6,T7,T8>(f);
+}
+
+template <class R, class T1, class T2, class T3, class T4, class T5, class T6,
+          class T7, class T8, class T9>
+serfunc9<R,T1,T2,T3,T4,T5,T6,T7,T8,T9>
+make_serfunc(R(*f)(T1,T2,T3,T4,T5,T6,T7,T8,T9)){
+  return serfunc9<R,T1,T2,T3,T4,T5,T6,T7,T8,T9>(f);
+}
+
+template <class T1, class T2, class T3, class T4, class T5, class T6, class T7,
+          class T8, class T9>
+serfuncv9<T1,T2,T3,T4,T5,T6,T7,T8,T9>
+make_serfunc(void(*f)(T1,T2,T3,T4,T5,T6,T7,T8,T9)){
+  return serfuncv9<T1,T2,T3,T4,T5,T6,T7,T8,T9>(f);
 }
 
 }
