@@ -513,7 +513,6 @@ void equi_join(std::vector<T>& left,
   if(is_unique_ok) {
     std::vector<size_t> missed;
     auto looked_up = ht.lookup(left, missed);
-    size_t missedsize = missed.size();
     left_idx_out = shrink_missed(left_idx, missed);
     right_idx_out = shrink_missed(looked_up, missed);
   } else {
@@ -557,7 +556,26 @@ std::vector<size_t> outer_equi_join(std::vector<T>& left,
     radix_sort(left, left_idx);
     multi_equi_join(sep, left, left_idx, right, right_idx,
                     left_idx_out, right_idx_out);
-    return set_difference(left_idx, left_idx_out);
+    size_t left_idx_out_size = left_idx_out.size();
+    size_t left_idx_size = left_idx.size();
+    std::vector<int> dummy(left_idx_out_size);
+    auto idxhash = unique_hashtable<size_t, int>(left_idx_out, dummy);
+    auto idx_exist = idxhash.check_existence(left_idx);
+
+    std::vector<size_t> onlylefttmp(left_idx_size);
+    size_t* onlylefttmpp = onlylefttmp.data();
+    int* idx_existp = idx_exist.data();
+    size_t* left_idxp = left_idx.data();
+    size_t current = 0;
+    for(size_t i = 0; i < left_idx_size; i++) {
+      if(idx_existp[i] == 0) {
+        onlylefttmpp[current++] = left_idxp[i];
+      }
+    }
+    std::vector<size_t> onlyleft(current);
+    size_t* onlyleftp = onlyleft.data();
+    for(size_t i = 0; i < current; i++) onlyleftp[i] = onlylefttmpp[i];
+    return onlyleft;
   }
 }
 
