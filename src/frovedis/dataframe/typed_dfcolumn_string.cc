@@ -221,8 +221,9 @@ vector<size_t> equal_prepare_helper(vector<size_t>& val,
   size_t* retp = &ret[0];
   size_t* missedp = &missed[0];
   size_t missedsize = missed.size();
+  size_t misseddummy = numeric_limits<size_t>::max() - 1;
   for(size_t i = 0; i < missedsize; i++) {
-    retp[missedp[i]] = numeric_limits<size_t>::max() - 1;
+    retp[missedp[i]] = misseddummy - i;
   }
   return ret;
 }
