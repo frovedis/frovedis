@@ -25,7 +25,7 @@ template <class T, class I = size_t>
 fm_model<T> train(bool dim_0, bool dim_1, size_t dim_2, 
 		  T init_stdev, size_t iteration, T init_learn_rate, FmOptimizer optimizer,
 		  T regular_0, T regular_1, T regular_2, bool is_regression,
-		  crs_matrix<T,I,I>& nl_data, node_local<std::vector<T>>& nl_label, size_t batch_size_pernode) {
+		  crs_matrix<T,I,I>& nl_data, node_local<std::vector<T>>& nl_label, size_t batch_size_pernode, int random_seed) {
                                               
   fm_config<T> conf(dim_0, dim_1, dim_2, init_stdev, iteration, init_learn_rate, 
                     regular_0, regular_1, regular_2, is_regression, batch_size_pernode);
@@ -60,7 +60,7 @@ fm_model<T> train(bool dim_0, bool dim_1, size_t dim_2,
   set_loglevel(present_level);
   
   auto nl_managed_parameter = make_local_fm_parameter<T>(local_feature_sizes, factor_size);
-  nl_managed_parameter.mapv(init_fm_parameter_with_stdev<T>, broadcast(init_stdev));
+  nl_managed_parameter.mapv(init_fm_parameter_with_stdev<T>, broadcast(init_stdev), broadcast(random_seed));
   
   auto nl_conf = broadcast(conf);
   switch (optimizer) {
@@ -89,7 +89,7 @@ T test(fm_model<T>& trained_model, crs_matrix_local<T,I,I>& test_data, std::vect
   if (test_data.local_num_row != label.size()) {
     throw std::runtime_error("inconsistent the size of test data and label.");
   }
-  size_t datasize = test_data.local_num_col;
+  size_t datasize = test_data.local_num_row;
   
   auto pred = trained_model.predict(test_data);
   bool is_regression = trained_model.config.is_regression;
@@ -99,7 +99,7 @@ T test(fm_model<T>& trained_model, crs_matrix_local<T,I,I>& test_data, std::vect
   if (is_regression) {
     T rmse = 0;
     for (size_t ix = 0; ix < datasize; ix++) {
-      rmse += std::pow(ptr_pred[ix] - ptr_label[ix], 2);
+      rmse += std::pow(ptr_pred[ix] - ptr_label[ix], 2.0);
     }
     return std::pow(rmse / datasize, 0.5);
   } else {
