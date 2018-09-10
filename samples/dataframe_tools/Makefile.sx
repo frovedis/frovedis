@@ -1,0 +1,15 @@
+TARGETS := to_binary_df to_csv
+include ../Makefile.in.sx
+include ../Makefile.common
+
+TO_INSTALL := to_binary_df.cc to_csv.cc
+DIR := dataframe_tools
+ARCH := sx
+
+to_csv: to_csv.o
+	${CXX} -prelink ${CXXFLAGS} to_csv.o ${LIBS}
+	${MPICXX} ${CXXFLAGS} -o to_csv to_csv.o ${LIBS}
+
+to_binary_df: to_binary_df.o
+	${CXX} -prelink ${CXXFLAGS} to_binary_df.o ${LIBS}
+	${MPICXX} ${CXXFLAGS} -o to_binary_df to_binary_df.o ${LIBS}

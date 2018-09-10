@@ -1,7 +1,7 @@
-LIBS := -L../../third_party/lib -L../../src/frovedis/core -L../../src/frovedis/matrix -L../../src/frovedis/ml -lfrovedis_ml -lfrovedis_matrix -lfrovedis_core ${LIBS_COMMON}
+LIBS := -L../../third_party/lib -L../../src/frovedis/core -L../../src/frovedis/dataframe -L../../src/frovedis/matrix -L../../src/frovedis/ml -lfrovedis_dataframe -lfrovedis_ml -lfrovedis_matrix -lfrovedis_core ${LIBS_COMMON}
 INCLUDES := -I../../src -I../../third_party/cereal-1.2.2/include/
 
-#LIBS := -L${INSTALLPATH}/lib -lfrovedis_ml -lfrovedis_matrix -lfrovedis_core ${LIBS_COMMON}
+#LIBS := -L${INSTALLPATH}/lib -lfrovedis_dataframe -lfrovedis_ml -lfrovedis_matrix -lfrovedis_core ${LIBS_COMMON}
 #INCLUDES := -I${INSTALLPATH}/include
 
 CXXFLAGS := ${CXXFLAGS_COMMON} ${INCLUDES}

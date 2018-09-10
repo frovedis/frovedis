@@ -1,0 +1,13 @@
+TARGETS := to_binary_df to_csv
+include ../Makefile.in.icpc
+include ../Makefile.common
+
+TO_INSTALL := to_binary_df.cc to_csv.cc
+DIR := dataframe_tools
+ARCH := icpc
+
+to_csv: to_csv.o
+	${LINK} ${CXXFLAGS} -o to_csv to_csv.o ${LIBS}
+
+to_binary_df: to_binary_df.o
+	${LINK} ${CXXFLAGS} -o to_binary_df to_binary_df.o ${LIBS}

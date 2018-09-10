@@ -1,0 +1,13 @@
+TARGETS := to_binary_df to_csv
+include ../Makefile.in.x86
+include ../Makefile.common
+
+TO_INSTALL := to_binary_df.cc to_csv.cc
+DIR := dataframe_tools
+ARCH := x86
+
+to_csv: to_csv.o
+	${MPICXX} ${CXXFLAGS} -o to_csv to_csv.o ${LIBS}
+
+to_binary_df: to_binary_df.o
+	${MPICXX} ${CXXFLAGS} -o to_binary_df to_binary_df.o ${LIBS}
