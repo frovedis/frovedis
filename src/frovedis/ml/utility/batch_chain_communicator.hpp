@@ -109,12 +109,12 @@ std::ostream& operator<<(std::ostream& str, chain_schedule<I>& sched) {
 }
 
 
-template <class T, class I>
+template <class T, class I, class O>
 void assume_equal_count_of_batches(
-  node_local<std::vector<crs_matrix_local<T,I,I>>>& nl_batches
+  node_local<std::vector<crs_matrix_local<T,I,O>>>& nl_batches
 ) {
   std::vector<size_t> counts = nl_batches.map(
-    +[](std::vector<crs_matrix_local<T,I,I>>& v){
+    +[](std::vector<crs_matrix_local<T,I,O>>& v){
       return v.size();
     }  
   ).gather();
@@ -127,12 +127,12 @@ void assume_equal_count_of_batches(
   }
 }
 
-template <class T, class I> 
+template <class T, class I, class O> 
 node_local<std::vector<std::vector<I>>> 
 extract_unique_index_in_each(
-  node_local<std::vector<crs_matrix_local<T,I,I>>>& nl_batches
+  node_local<std::vector<crs_matrix_local<T,I,O>>>& nl_batches
 ){    
-  auto func = +[](std::vector<crs_matrix_local<T,I,I>>& batches) {
+  auto func = +[](std::vector<crs_matrix_local<T,I,O>>& batches) {
     std::vector<std::vector<I>> ret(batches.size());
     for (size_t i = 0; i < batches.size(); i++) {
       auto &mat = batches[i];
@@ -280,9 +280,9 @@ initialize_chain_schedule(node_local<std::vector<std::vector<I>>>& nl_unique_ind
 }
 
 
-template <class T, class I = size_t>
+template <class T, class I = size_t, class O = size_t>
 node_local<chain_schedule<I>>
-create_schedule_from_batches(node_local<std::vector<crs_matrix_local<T,I,I>>>& nl_batches, 
+create_schedule_from_batches(node_local<std::vector<crs_matrix_local<T,I,O>>>& nl_batches, 
                              size_t block = 1) {
   LOG(DEBUG) << "To create chain schedule from batches." << std::endl;
   
@@ -290,7 +290,7 @@ create_schedule_from_batches(node_local<std::vector<crs_matrix_local<T,I,I>>>& n
   LOG(DEBUG) << "Assume all workers have same number of batches" << std::endl;
   
   size_t dim = nl_batches.map(
-    +[](std::vector<crs_matrix_local<T,I,I>>& v){return v[0].local_num_col; }
+    +[](std::vector<crs_matrix_local<T,I,O>>& v){return v[0].local_num_col; }
   ).get(0);
   LOG(DEBUG) << "Fetched data dimension." << std::endl;
 

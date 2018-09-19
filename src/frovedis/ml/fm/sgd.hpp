@@ -151,12 +151,12 @@ fm_parameter<T> compute_gradient(Matrix& data, Matrix& sq_data, Matrix& trans_da
   }
 }
 
-template <class T, class I, class Matrix>
+template <class T, class I, class O, class Matrix>
 std::tuple< std::vector<Matrix>, std::vector<Matrix>, std::vector<Matrix>, std::vector<Matrix> >
-prepare_data_to_multiply(std::vector<crs_matrix_local<T,I,I>>& crs_data_batches) {
+prepare_data_to_multiply(std::vector<crs_matrix_local<T,I,O>>& crs_data_batches) {
 
-  auto pow_vec = +[](std::vector<crs_matrix_local<T,I,I>>& batches, T exponent) {
-    std::vector<crs_matrix_local<T,I,I>> powed(batches.size());
+  auto pow_vec = +[](std::vector<crs_matrix_local<T,I,O>>& batches, T exponent) {
+    std::vector<crs_matrix_local<T,I,O>> powed(batches.size());
     for (size_t i = 0; i < batches.size(); i++) {
       powed[i] = batches[i].pow_val(exponent);
     }
@@ -166,10 +166,10 @@ prepare_data_to_multiply(std::vector<crs_matrix_local<T,I,I>>& crs_data_batches)
 #if defined(_SX) || defined(__ve__)
   auto sq_crs_data_batches = pow_vec(crs_data_batches, 2);  
 
-  auto data_batches = to_jds_crs_vec<T,I,I,I>(crs_data_batches);
-  auto sq_data_batches = to_jds_crs_vec<T,I,I,I>(sq_crs_data_batches);
-  auto trans_data_batches = to_trans_jds_crs_vec<T,I,I,I>(crs_data_batches);
-  auto trans_sq_data_batches = to_trans_jds_crs_vec<T,I,I,I>(sq_crs_data_batches);
+  auto data_batches = to_jds_crs_vec<T,I,O>(crs_data_batches);
+  auto sq_data_batches = to_jds_crs_vec<T,I,O>(sq_crs_data_batches);
+  auto trans_data_batches = to_trans_jds_crs_vec<T,I,O>(crs_data_batches);
+  auto trans_sq_data_batches = to_trans_jds_crs_vec<T,I,O>(sq_crs_data_batches);
 #else
   auto data_batches = crs_data_batches;
   auto sq_data_batches = pow_vec(crs_data_batches, 2);
@@ -181,19 +181,19 @@ prepare_data_to_multiply(std::vector<crs_matrix_local<T,I,I>>& crs_data_batches)
                          std::move(trans_data_batches), std::move(trans_sq_data_batches));                         
 }
 
-template <class T, class I>
-void optimize_sgd_parallel(std::vector<crs_matrix_local<T,I,I>>& crs_data_batches, std::vector<std::vector<T>>& label_batches, 
+template <class T, class I, class O>
+void optimize_sgd_parallel(std::vector<crs_matrix_local<T,I,O>>& crs_data_batches, std::vector<std::vector<T>>& label_batches, 
                            chain_schedule<I>& schedule, fm_parameter<T>& managed_parameter, fm_config<T>& config) {    
 
   extern time_spent time_agg, time_update, time_comp, time_bcast;
 
 #if defined(_SX) || defined(__ve__)
-  auto batches_tuple = prepare_data_to_multiply<T,I,jds_crs_hybrid_local<T,I,I,I>>(crs_data_batches);
+  auto batches_tuple = prepare_data_to_multiply<T,I,O,jds_crs_hybrid_local<T,I,O>>(crs_data_batches);
 #else  
-  auto batches_tuple = prepare_data_to_multiply<T,I,crs_matrix_local<T,I,I>>(crs_data_batches);
+  auto batches_tuple = prepare_data_to_multiply<T,I,O,crs_matrix_local<T,I,O>>(crs_data_batches);
 #endif
   {  // release memory
-    std::vector<crs_matrix_local<T,I,I>> tmp;
+    std::vector<crs_matrix_local<T,I,O>> tmp;
     tmp.swap(crs_data_batches);
   }
   auto& data_batches = std::get<0>(batches_tuple);

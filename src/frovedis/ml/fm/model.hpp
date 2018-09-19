@@ -174,10 +174,10 @@ struct fm_model {
   }
   // void savebinary(const std::string& file);
 
-  template <class I = size_t>
-  std::vector<T> predict_value(crs_matrix_local<T,I,I>& input);
-  template <class I = size_t>
-  std::vector<T> predict(crs_matrix_local<T,I,I>& input);
+  template <class I = size_t, class O = size_t>
+  std::vector<T> predict_value(crs_matrix_local<T,I,O>& input);
+  template <class I = size_t, class O = size_t>
+  std::vector<T> predict(crs_matrix_local<T,I,O>& input);
       
   fm_config<T> config;
   fm_parameter<T> parameter;
@@ -186,9 +186,9 @@ struct fm_model {
 };
 
 
-template <class T> template <class I>
+template <class T> template <class I, class O>
 std::vector<T> 
-fm_model<T>::predict_value(crs_matrix_local<T,I,I>& input) {
+fm_model<T>::predict_value(crs_matrix_local<T,I,O>& input) {
   auto& comp_parameter = parameter;
   if (input.local_num_col > parameter.feature_size()) {
     fm_parameter<T> extended = parameter;
@@ -220,9 +220,9 @@ fm_model<T>::predict_value(crs_matrix_local<T,I,I>& input) {
 }
 
 
-template <class T> template <class I>
+template <class T> template <class I, class O>
 std::vector<T> 
-fm_model<T>::predict(crs_matrix_local<T,I,I>& input) {
+fm_model<T>::predict(crs_matrix_local<T,I,O>& input) {
   if (config.is_regression) {
     return predict_value<I>(input);
   } else {

@@ -21,11 +21,11 @@ enum struct FmOptimizer {
   MCMC
 };
 
-template <class T, class I = size_t>
+template <class T, class I = size_t, class O = size_t>
 fm_model<T> train(bool dim_0, bool dim_1, size_t dim_2, 
 		  T init_stdev, size_t iteration, T init_learn_rate, FmOptimizer optimizer,
 		  T regular_0, T regular_1, T regular_2, bool is_regression,
-		  crs_matrix<T,I,I>& nl_data, node_local<std::vector<T>>& nl_label, size_t batch_size_pernode, int random_seed) {
+		  crs_matrix<T,I,O>& nl_data, node_local<std::vector<T>>& nl_label, size_t batch_size_pernode, int random_seed) {
                                               
   fm_config<T> conf(dim_0, dim_1, dim_2, init_stdev, iteration, init_learn_rate, 
                     regular_0, regular_1, regular_2, is_regression, batch_size_pernode);
@@ -34,9 +34,9 @@ fm_model<T> train(bool dim_0, bool dim_1, size_t dim_2,
   size_t factor_size = conf.factor_size;
   
   // divide data, label
-  auto nl_data_batches = broadcast(std::vector<crs_matrix_local<T,I,I>>());
+  auto nl_data_batches = broadcast(std::vector<crs_matrix_local<T,I,O>>());
   auto nl_label_batches = broadcast(std::vector<std::vector<T>>());
-  nl_data.data.mapv(divide_to_minibatch_with_size<T,I,I>, nl_label,
+  nl_data.data.mapv(divide_to_minibatch_with_size<T,I,O>, nl_label,
                     nl_data_batches, nl_label_batches,
                     broadcast(batch_size_pernode));
 
@@ -50,7 +50,7 @@ fm_model<T> train(bool dim_0, bool dim_1, size_t dim_2,
   auto present_level = get_loglevel();
   set_loglevel(INFO);
   
-  nl_data_batches.mapv(+[](std::vector<crs_matrix_local<T,I,I>>& data_batches){
+  nl_data_batches.mapv(+[](std::vector<crs_matrix_local<T,I,O>>& data_batches){
     auto count = data_batches.size();
     for (size_t i = 0; i < count; i++) {
       shrink_column_local(data_batches[i]);
@@ -65,7 +65,7 @@ fm_model<T> train(bool dim_0, bool dim_1, size_t dim_2,
   auto nl_conf = broadcast(conf);
   switch (optimizer) {
     case FmOptimizer::SGD :
-      nl_data_batches.mapv(optimize_sgd_parallel<T,I>, nl_label_batches, 
+      nl_data_batches.mapv(optimize_sgd_parallel<T,I,O>, nl_label_batches, 
                            nl_schedule, nl_managed_parameter, nl_conf);  
       break;
       
@@ -84,8 +84,8 @@ fm_model<T> train(bool dim_0, bool dim_1, size_t dim_2,
   return fm_model<T>(conf, opt_parameter);
 }
 
-template <class T, class I = size_t>
-T test(fm_model<T>& trained_model, crs_matrix_local<T,I,I>& test_data, std::vector<T>& label) {
+template <class T, class I = size_t, class O = size_t>
+T test(fm_model<T>& trained_model, crs_matrix_local<T,I,O>& test_data, std::vector<T>& label) {
   if (test_data.local_num_row != label.size()) {
     throw std::runtime_error("inconsistent the size of test data and label.");
   }
