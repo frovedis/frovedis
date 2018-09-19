@@ -74,9 +74,7 @@ public:
   real sample;
   int negative;
   int iter;
-  int min_count;
   real alpha;
-  int batch_size;
   real model_sync_period;
   int min_sync_words;
   int full_sync_times;
@@ -84,8 +82,8 @@ public:
   int num_threads;
 
   SERIALIZE(hidden_size, window,
-  sample, negative, iter, min_count,
-  alpha, batch_size, model_sync_period, min_sync_words,
+  sample, negative, iter,
+  alpha, model_sync_period, min_sync_words,
   full_sync_times, message_size, num_threads);
 };
 
@@ -858,9 +856,9 @@ rowmajor_matrix_local<real> w2v_train_local(
   sample = _config.sample;
   negative = _config.negative;
   iter = _config.iter;
-  min_count = _config.min_count;
+  //min_count = _config.min_count;
   alpha = _config.alpha;
-  batch_size = _config.batch_size;
+  batch_size = 2 * _config.window + 1;
   model_sync_period = _config.model_sync_period;
   min_sync_words = _config.min_sync_words;
   full_sync_times = _config.full_sync_times;
@@ -907,20 +905,25 @@ rowmajor_matrix_local<real> w2v_train_local(
 
 rowmajor_matrix_local<real> w2v_train(
     node_local<std::vector<int>>& _nl_proc_train_data, std::vector<int>& _vocab_count,
-    int _hidden_size = 100, int _window = 5, real _sample = 1e-3f, int _negative = 5, int _iter = 5, int _min_count = 5,
-    real _alpha = 0.1, int _batch_size = 11, real _model_sync_period = 0.1, int _min_sync_words = 1024,
+    int _hidden_size = 100, int _window = 5, real _sample = 1e-3f, int _negative = 5, int _iter = 5,
+    real _alpha = 0.1, real _model_sync_period = 0.1, int _min_sync_words = 1024,
     int _full_sync_times = 0, int _message_size = 1024, int _num_threads = 12) {
       
   train_config _config = {_hidden_size, _window,
-    _sample, _negative, _iter, _min_count,
-    _alpha, _batch_size, _model_sync_period, _min_sync_words,
+    _sample, _negative, _iter,
+    _alpha, _model_sync_period, _min_sync_words,
     _full_sync_times, _message_size, _num_threads};
 
   return _nl_proc_train_data.map(w2v_train_local, broadcast(_vocab_count), broadcast(_config)).get(0);
 }
 
+                            
 void w2v_build_vocab_and_dump(const std::string& _train_file_str, const std::string& _stream_file_str,
-                              const std::string& _vocab_file_str, const std::string& _vocab_count_file_str) {
+                              const std::string& _vocab_file_str, const std::string& _vocab_count_file_str, 
+			      int _min_count) 
+{
+
+  min_count = _min_count;
                             
   vocab = (struct vocab_word *) calloc(vocab_max_size, sizeof(struct vocab_word));
   vocab_hash = (int *) malloc(vocab_hash_size * sizeof(int));
