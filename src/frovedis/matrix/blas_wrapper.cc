@@ -455,7 +455,7 @@ void gemv(const sliced_colmajor_matrix_local<double>& inMat,
       REPORT_ERROR(USER_ERROR, "Invalid input vector!!\n");
 #endif
 
-    size_t nrowa, ncola;
+    size_t nrowa = 0, ncola = 0;
     if(TRANS == 'N') {
       nrowa = inMat.sliced_num_row;
       ncola = inMat.sliced_num_col;
