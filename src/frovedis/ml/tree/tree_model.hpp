@@ -482,7 +482,7 @@ template <typename T, typename I>
 T get_feature(const sparse_vector<T, I>& spv, const size_t i) {
 #if defined(_SX) || defined(__ve__)
   size_t j;
-  const size_t* indices = spv.idx.data();
+  const I* indices = spv.idx.data();
   for (j = 0; j < spv.idx.size(); j++) {
     if (i <= indices[j]) { break; }
   }
