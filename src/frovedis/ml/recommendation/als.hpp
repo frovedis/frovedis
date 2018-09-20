@@ -12,9 +12,9 @@ namespace frovedis {
 
 class matrix_factorization_using_als {
 public:
-  template <typename T>
+  template <class T, class I, class O>
   static matrix_factorization_model<T> 
-  train (crs_matrix<T>& data, 
+  train (crs_matrix<T,I,O>& data, 
          size_t factor, 
          int numIter = 100, 
          double alpha = 0.01, 
@@ -22,18 +22,18 @@ public:
          size_t seed = 0);
 			
 private:
-  template <typename T>
+  template <class T, class I, class O>
   static std::vector<T>
-  dtrain(crs_matrix_local<T>& data, std::vector<T>& modelMat,
+  dtrain(crs_matrix_local<T,I,O>& data, std::vector<T>& modelMat,
          optimizer& alsOPT) {
     auto optimizedModelMat = alsOPT.optimize(data, modelMat);
     return optimizedModelMat;
   }
 };
 
-template <typename T>
+template <class T, class I, class O>
 matrix_factorization_model<T>
-matrix_factorization_using_als::train(crs_matrix<T>& data,
+matrix_factorization_using_als::train(crs_matrix<T,I,O>& data,
                                       size_t factor,  
                                       int numIter,
                                       double alpha,
@@ -57,12 +57,10 @@ matrix_factorization_using_als::train(crs_matrix<T>& data,
   frovedis::time_spent t(DEBUG), t2(DEBUG);
   for (int i = 1; i <= numIter; i++) {
     auto distModelY = frovedis::make_node_local_broadcast(initModel.Y);
-    auto locModelX = data.data.map(dtrain<T>, distModelY, distOPT);
+    auto locModelX = data.data.map(dtrain<T,I,O>, distModelY, distOPT);
     initModel.X = locModelX.template moveto_dvector<T>().gather();
-
     auto distModelX = frovedis::make_node_local_broadcast(initModel.X);
-    auto locModelY = transData.data.map(dtrain<T>, distModelX,
-                                        distOPT);
+    auto locModelY = transData.data.map(dtrain<T,I,O>, distModelX, distOPT);
     initModel.Y = locModelY.template moveto_dvector<T>().gather(); 
     t.show("one iteration: ");
   }

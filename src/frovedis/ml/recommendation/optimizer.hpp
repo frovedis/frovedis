@@ -19,14 +19,15 @@ public:
   optimizer(size_t f, double al = 0.01, double regPrm = 0.01) :
     factor(f), alpha(al), regParam(regPrm) {}
 
-  template <typename T>
+  template <class T, class I, class O>
   std::vector<T> 
-  optimize (crs_matrix_local<T> &data, std::vector<T> &inMat);
-  template <typename T>
+  optimize (crs_matrix_local<T,I,O> &data, std::vector<T> &inMat);
+
+  template <class T, class I, class O>
   void compute_model_row (const T *inMat, 
                           const T *regMtM, 
                           T *outVec, 
-                          crs_matrix_local<T>& data,
+                          crs_matrix_local<T,I,O>& data,
                           size_t current_row,
                           size_t inRows);
 
@@ -124,7 +125,7 @@ void solve_matrix_equation (T *A, int orderA, T *B) {
 #else
   int nColsB = 1;
   als_typed_gesv<T>(&orderA, &nColsB, transA, &LDA, IPIV, B, &LDB,
-                            &INFO);
+                    &INFO);
   if(INFO) REPORT_ERROR(INTERNAL_ERROR,"Lapack Driver Routine Failed\n");
 #endif
     
@@ -135,9 +136,9 @@ void solve_matrix_equation (T *A, int orderA, T *B) {
 //-------------------------------------------------------------------
 // Function to optimize the target model 
 //-------------------------------------------------------------------
-template <typename T>
+template <class T, class I, class O>
 std::vector<T> 
-optimizer::optimize(crs_matrix_local<T>& data,
+optimizer::optimize(crs_matrix_local<T,I,O>& data,
                     std::vector<T>& inMat) {
   // Calculating number of rows in inMat
   size_t inRows = inMat.size() / factor;
@@ -150,15 +151,15 @@ optimizer::optimize(crs_matrix_local<T>& data,
   T *regularizedMtM = new T[inRows*factor];
   char transN = 'N';
   char transT = 'T';
-  double gemm_alpha = 1.0; 
-  double beta = 0.0;
+  T gemm_alpha = 1.0; 
+  T beta = 0.0;
   int ifactor = factor;
   int iinRows = inRows;
   // currently, matrix is row major, but gemm assumes column major
   // utilizes the fact that At * Bt = (B * A)t
   als_typed_gemm<T>(&transN, &transT, &ifactor, &ifactor, &iinRows,
-                            &gemm_alpha, &inMat[0], &ifactor,&inMat[0],
-                            &ifactor, &beta, regularizedMtM, &ifactor);
+                    &gemm_alpha, &inMat[0], &ifactor,&inMat[0],
+                    &ifactor, &beta, regularizedMtM, &ifactor);
   for (size_t i = 0; i < factor; i++) {	
     regularizedMtM[i*factor+i] += regParam;    // (MtM + (regParam*I))
   }    
@@ -174,18 +175,18 @@ optimizer::optimize(crs_matrix_local<T>& data,
   return outMat;
 }
 
-template <typename T>
+template <class T, class I, class O>
 void optimizer::compute_model_row(const T *Mp,
                                   const T *regMtMp,
                                   T *outVec,
-                                  crs_matrix_local<T>& data,
+                                  crs_matrix_local<T,I,O>& data,
                                   size_t current_row,
                                   size_t inRows) {
   ASSERT_PTR(Mp && regMtMp && outVec);
 
   size_t width = data.off[current_row+1] - data.off[current_row];
   const T* valBaseAddr = &data.val[data.off[current_row]];
-  const size_t* posBaseAddr = &data.idx[data.off[current_row]];
+  const I* posBaseAddr = &data.idx[data.off[current_row]];
 
   std::vector<T> transM_CminusI(factor*width);
   T* transM_CminusIp = &transM_CminusI[0];
@@ -264,8 +265,8 @@ void optimizer::compute_model_row(const T *Mp,
   }
 #else
   char transN = 'N';
-  double gemm_alpha = 1.0;
-  double beta = 1.0;
+  T gemm_alpha = 1.0;
+  T beta = 1.0;
   int ifactor = factor;
   int iwidth = width;
   if(width > 0)
