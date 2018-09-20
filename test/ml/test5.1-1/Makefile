@@ -1,0 +1,19 @@
+include ../../../Makefile.in.x86
+
+TARGETS := test
+
+#LIBS := -L${INSTALLPATH}/lib -lfrovedis_ml -lfrovedis_matrix -lfrovedis_core ${LIBS_COMMON}
+#INCLUDES := -I${INSTALLPATH}/include
+
+LIBS := -L../../../third_party/lib -L../../../src/frovedis/core -L../../../src/frovedis/matrix -L../../../src/frovedis/ml -lfrovedis_ml -lfrovedis_matrix -lfrovedis_core ${LIBS_COMMON}
+INCLUDES := -I../../../src -I../../../third_party/cereal-1.2.2/include/
+
+CXXFLAGS := ${CXXFLAGS_COMMON} ${INCLUDES} -Wno-unused-result
+
+all: ${TARGETS}
+
+test: test.o
+	${MPICXX} ${CXXFLAGS} -o test test.o ${LIBS} -Wl,-Bstatic -lboost_unit_test_framework -Wl,-Bdynamic
+
+clean:
+	${RM} -r *.o *~ ${TARGETS} result result_binary transposed model
