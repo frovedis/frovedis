@@ -2,9 +2,12 @@
 #define _COMMON_HPP_
 
 #include "../../core/exceptions.hpp"
+#include "../../matrix/blas_wrapper.hpp"
 #include "linear_model.hpp"
 #include "gradient_descent.hpp"
 #include "gradient.hpp"
+#include "multinomial_logistic_regression_model.hpp"
+#include "softmax_gradient_descent.hpp"
 #include "regularizer.hpp"
 #include "rms.hpp"
 #include "../utility/matrix_conversion.hpp"
@@ -25,18 +28,41 @@ enum MatType {
 };
 
 template <class T>
-std::vector<crs_matrix_local<T>>
-divide_data_to_minibatch(crs_matrix_local<T>& data,
-                         double miniBatchFraction) {
+std::vector<sliced_colmajor_matrix_local<T>>
+divide_data_to_minibatch_colmajor(colmajor_matrix_local<T>& data,
+                                  double miniBatchFraction) {
   size_t numSamples = data.local_num_row;
   size_t tmp = static_cast<size_t>(ceil(numSamples * miniBatchFraction));
   size_t tmp2 = ceil_div<size_t>(tmp, LR_VLEN) * LR_VLEN;
   size_t miniBatchSize = tmp2 < numSamples ? tmp2 : numSamples;
   size_t numBatches = ceil_div(numSamples, miniBatchSize);
-  std::vector<crs_matrix_local<T>> ret(numBatches);
+  std::vector<sliced_colmajor_matrix_local<T>> ret(numBatches);
+  for(size_t i = 0; i < numBatches; i++) {
+    size_t start_row = i * miniBatchSize;
+    size_t end_row =  (i + 1) * miniBatchSize;
+    if(end_row > data.local_num_row) end_row = data.local_num_row;
+    size_t nrow = end_row - start_row;
+    size_t ncol = data.local_num_col;
+    // the minibatch data would be needed for only gemv() calculation
+    // thus simply slicing the input matrix to minibatches, instead of copying
+    ret[i] = make_sliced_colmajor_matrix_local<T>(data,start_row,0,nrow,ncol);
+  }  
+  return ret;
+}
+
+template <class T, class I, class O>
+std::vector<crs_matrix_local<T,I,O>>
+divide_data_to_minibatch_crs(crs_matrix_local<T,I,O>& data,
+                             double miniBatchFraction) {
+  size_t numSamples = data.local_num_row;
+  size_t tmp = static_cast<size_t>(ceil(numSamples * miniBatchFraction));
+  size_t tmp2 = ceil_div<size_t>(tmp, LR_VLEN) * LR_VLEN;
+  size_t miniBatchSize = tmp2 < numSamples ? tmp2 : numSamples;
+  size_t numBatches = ceil_div(numSamples, miniBatchSize);
+  std::vector<crs_matrix_local<T,I,O>> ret(numBatches);
   T* datavalp = &data.val[0];
-  size_t* dataidxp = &data.idx[0];
-  size_t* dataoffp = &data.off[0];
+  I* dataidxp = &data.idx[0];
+  O* dataoffp = &data.off[0];
   for(size_t i = 0; i < numBatches; i++) {
     ret[i].local_num_col = data.local_num_col;
     size_t start_row = i * miniBatchSize;
@@ -50,8 +76,8 @@ divide_data_to_minibatch(crs_matrix_local<T>& data,
     ret[i].idx.resize(off_size);
     ret[i].off.resize(end_row - start_row + 1); // off[0] == 0 by ctor
     T* valp = &ret[i].val[0];
-    size_t* idxp = &ret[i].idx[0];
-    size_t* offp = &ret[i].off[0];
+    I* idxp = &ret[i].idx[0];
+    O* offp = &ret[i].off[0];
     for(size_t j = 0; j < off_size; j++) {
       valp[j] = datavalp[j + start_off];
       idxp[j] = dataidxp[j + start_off];
@@ -95,19 +121,19 @@ inline void release_memory_vector(std::vector<T>& vec) {
   tmp.swap(vec);
 }
 
-template <class T>
-inline void clear_data(crs_matrix_local<T>& data) {
+template <class T, class I, class O>
+inline void clear_data(crs_matrix_local<T,I,O>& data) {
   release_memory_vector<T>(data.val);
-  release_memory_vector<size_t>(data.idx);
-  release_memory_vector<size_t>(data.off);
+  release_memory_vector<I>(data.idx);
+  release_memory_vector<O>(data.off);
 }
 
-template <class T>
-inline void clear_data_vector(std::vector<crs_matrix_local<T>>& data) {
+template <class T, class I, class O>
+inline void clear_data_vector(std::vector<crs_matrix_local<T,I,O>>& data) {
   for(size_t i = 0; i < data.size(); i++) {
     clear_data(data[i]);
   }
-  release_memory_vector<crs_matrix_local<T>>(data);
+  release_memory_vector<crs_matrix_local<T,I,O>>(data);
 }
 
 template <class MODEL>
@@ -122,7 +148,7 @@ void calc_diff_inplace (MODEL& left_m, MODEL& right_m) {
   left_m -= right_m;
 }
 
-template <class MODEL, class T>
+template <class T, class MODEL>
 void get_weight(MODEL& m, std::vector<T>& v) {
   v.swap(m.weight);
 }
@@ -132,7 +158,7 @@ T get_intercept(MODEL& m) {
   return m.intercept;
 }
 
-template <class MODEL, class T>
+template <class T, class MODEL>
 void get_weight_intercept(MODEL& m, std::vector<T>& v) {
   size_t size = m.weight.size();
   v.resize(size + 1);

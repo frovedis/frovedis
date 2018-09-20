@@ -8,7 +8,7 @@ namespace frovedis {
 
 template <class T>
 struct lbfgs {
-  explicit lbfgs(T al=0.01, size_t size=10, bool intercpt=false): 
+  explicit lbfgs(double al=0.01, size_t size=10, bool intercpt=false): 
     alpha(al), isIntercept(intercpt), 
     one_by_dot(size), model_hist(size), grad_hist(size)
       { old_model.resize(1); old_gradient.resize(1); checkAssumption(al>0.0 && size>0); }
@@ -74,12 +74,11 @@ struct lbfgs {
                 size_t iterCount,
                 REGULARIZER& rType);
 
-  T alpha;
+  double alpha;
   bool isIntercept;
   std::vector<T> old_model, old_gradient;
   cir_array_list<T> one_by_dot;
   cir_array_list<blockcyclic_matrix<T>> model_hist, grad_hist;
-  // [Query] Do we need to serialize the lbfgs object??
   SERIALIZE(alpha,isIntercept,old_model,old_gradient,
             one_by_dot,model_hist,grad_hist)
 };
