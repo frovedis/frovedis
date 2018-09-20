@@ -238,6 +238,17 @@ namespace frovedis {
   }
 
   // This routine can be used to perform the below operation:
+  //   (*) colmajor_matrix_local * rowmajor_matrix_local
+  //       output would be of rowmajor_matrix_local type
+  template <class T>
+  rowmajor_matrix_local<T> 
+  operator* (const colmajor_matrix_local<T>& inMat1,
+             const rowmajor_matrix_local<T>& inMat2){
+    auto& mat = const_cast<colmajor_matrix_local<T>&>(inMat1);
+    return mat.to_rowmajor() * inMat2;
+  }
+
+  // This routine can be used to perform the below operation:
   //   (*) colmajor_matrix_local * colmajor_matrix_local
   template <class T>
   colmajor_matrix_local<T> 
@@ -288,8 +299,37 @@ namespace frovedis {
    colmajor_matrix_local<T> res_mat(inMat1.sliced_num_row,
                                     inMat2.sliced_num_col);
    gemm<T>(inMat1,inMat2,res_mat);
-
    return res_mat;
+  }
+
+  template <class T>
+  std::vector<T> trans_mv(const colmajor_matrix_local<T>& mat,
+                          const std::vector<T>& v) {
+    sliced_colmajor_matrix_local<T> sm(mat);
+    return trans_mv<T>(sm,v);
+  }
+
+  template <class T>
+  std::vector<T> trans_mv(const sliced_colmajor_matrix_local<T>& mat,
+                          const std::vector<T>& v) {
+    std::vector<T> ret(mat.sliced_num_col);
+    gemv<T>(mat,v,ret,'T');
+    return ret;
+  }
+
+  template <class T>
+  std::vector<T> operator*(const colmajor_matrix_local<T>& mat,
+                           const std::vector<T>& v) {
+    sliced_colmajor_matrix_local<T> sm(mat);
+    return sm * v;
+  }
+
+  template <class T>
+  std::vector<T> operator*(const sliced_colmajor_matrix_local<T>& mat,
+                           const std::vector<T>& v) {
+    std::vector<T> ret(mat.sliced_num_row);
+    gemv<T>(mat,v,ret,'N');
+    return ret;
   }
 
   template <class T>
