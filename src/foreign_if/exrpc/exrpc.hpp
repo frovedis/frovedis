@@ -5,7 +5,7 @@
 
 /* tentative: at client side do not throw exception; just print error.
    later make it throw in client language like python and scala */
-#define CLIENT_DONOT_THROW_EXCEPTION_AND_PRINT
+//#define CLIENT_DONOT_THROW_EXCEPTION_AND_PRINT
 
 #include "frovedis.hpp"
 #include "frovedis/core/exceptions.hpp"
