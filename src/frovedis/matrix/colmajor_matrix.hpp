@@ -75,6 +75,12 @@ struct colmajor_matrix_local {
     ret.local_num_col = local_num_col;
     return ret;
   }
+
+  void clear() {
+    std::vector<T> tmpval; tmpval.swap(val);
+    local_num_row = 0;
+    local_num_col = 0;
+  }
   void debug_print();
   size_t get_nrows() { return local_num_row; }
   size_t get_ncols() { return local_num_col; }
@@ -213,6 +219,14 @@ move_row_to_colmajor(rowmajor_matrix_local<T>& m) {
 }
 
 template <class T>
+void colmajor_clear_helper(colmajor_matrix_local<T>& mat) {mat.clear();}
+
+template <class T>
+size_t cmm_get_local_num_row(colmajor_matrix_local<T>& m) {
+  return m.local_num_row;
+}
+
+template <class T>
 struct colmajor_matrix {
   colmajor_matrix(){}
   colmajor_matrix(frovedis::node_local<colmajor_matrix_local<T>>&& d) :
@@ -248,10 +262,19 @@ struct colmajor_matrix {
   void set_num(size_t r, size_t c) {
     num_row = r; num_col = c;
   }
+  void clear() {
+    data.mapv(colmajor_clear_helper<T>);
+    num_row = 0;
+    num_col = 0;
+  }
+  std::vector<size_t> get_local_num_rows() {
+    return data.map(cmm_get_local_num_row<T>).gather();
+  }
   frovedis::node_local<colmajor_matrix_local<T>> data;
   size_t num_row;
   size_t num_col;
 };
+
 
 }
 #endif
