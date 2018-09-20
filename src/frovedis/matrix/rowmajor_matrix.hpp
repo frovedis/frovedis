@@ -10,6 +10,8 @@
 #include "../core/mpihelper.hpp"
 #include "diag_matrix.hpp"
 
+#define MAT_VLEN 256
+
 namespace frovedis {
 
 template <class T, class I, class O>
@@ -79,6 +81,11 @@ struct rowmajor_matrix_local {
   void save(const std::string& file) {
     std::ofstream str(file.c_str());
     str << *this;
+  }
+  void clear() {
+    std::vector<T> tmpval; tmpval.swap(val);
+    local_num_row = 0;
+    local_num_col = 0;
   }
   void savebinary(const std::string&);
   rowmajor_matrix_local<T> transpose() const;
@@ -248,15 +255,35 @@ rowmajor_matrix_local<T> operator*(const rowmajor_matrix_local<T>& a,
   const T* ap = &a.val[0];
   const T* bp = &b.val[0];
   T* cp = &c.val[0];
-  for(size_t j = 0; j < jmax; j++) {
-    for(size_t i = 0; i < imax; i++) {
-        cp[i * jmax + j] = ap[i * jmax + j] * bp[j];
+#if defined(_SX) || defined(__ve__)
+  if(imax > jmax) {
+    for(size_t i = 0; i<imax; i += MAT_VLEN) {
+      auto range = (i + MAT_VLEN <= imax) ? (i + MAT_VLEN) : imax;
+      for(size_t j = 0; j<jmax; ++j) {
+        for (size_t k = i; k<range; ++k) {
+          cp[k * jmax + j] = ap[k * jmax + j] * bp[j];
+        }
+      }
     }
   }
+  else {
+    for (size_t i = 0; i<imax; ++i) {
+      for(size_t j = 0; j<jmax; ++j) {
+        cp[i * jmax + j] = ap[i * jmax + j] * bp[j];
+      }
+    }
+  }
+#else
+  for (size_t i = 0; i<imax; ++i) {
+    for(size_t j = 0; j<jmax; ++j) {
+      cp[i * jmax + j] = ap[i * jmax + j] * bp[j];
+    }
+  }
+#endif
   return c;
 }
 
- template <class T>
+template <class T>
 rowmajor_matrix_local<T> operator*(const diag_matrix_local<T>& a,
                                    const rowmajor_matrix_local<T>& b) {
   if(a.local_num() != b.local_num_row)
@@ -267,11 +294,31 @@ rowmajor_matrix_local<T> operator*(const diag_matrix_local<T>& a,
   const T* ap = a.val.data();
   const T* bp = b.val.data();
   T* cp = c.val.data();
-  for(size_t i = 0; i < imax; i++) {
-    for(size_t j = 0; j < jmax; j++) {
-        cp[i * jmax + j] = ap[i] * bp[i * jmax + j];
+#if defined(_SX) || defined(__ve__)
+  if (imax > jmax) {
+    for(size_t i = 0; i<imax; i += MAT_VLEN) {
+      auto range = (i + MAT_VLEN <= imax) ? (i + MAT_VLEN) : imax;
+      for(size_t j = 0; j<jmax; ++j) {
+        for (size_t k = i; k<range; ++k) {
+          cp[k * jmax + j] = ap[k] * bp[k * jmax + j];
+        }
+      }
     }
   }
+  else {
+    for (size_t i = 0; i<imax; ++i) {
+      for(size_t j = 0; j<jmax; ++j) {
+        cp[i * jmax + j] = ap[i] * bp[i * jmax + j];
+      }
+    }
+  }
+#else
+  for (size_t i = 0; i<imax; ++i) {
+    for(size_t j = 0; j<jmax; ++j) {
+      cp[i * jmax + j] = ap[i] * bp[i * jmax + j];
+    }
+  }
+#endif
   return c;
 }
 
@@ -292,6 +339,76 @@ std::vector<T> operator*(const rowmajor_matrix_local<T>& a,
     }
   }
   return c;
+}
+
+template <class T>
+std::vector<T> sum_of_cols(const rowmajor_matrix_local<T>& m) {
+  auto nrow = m.local_num_row;
+  auto ncol = m.local_num_col;
+  std::vector<T> ret(nrow,0);
+  T* retp = &ret[0];
+  const T* matp = &m.val[0];
+#if defined(_SX) || defined(__ve__)
+  if (nrow > ncol) {
+    for(size_t i = 0; i<nrow; i += MAT_VLEN) {
+      auto range = (i + MAT_VLEN <= nrow) ? (i + MAT_VLEN) : nrow;
+      for(size_t j = 0; j<ncol; ++j) {
+        for (size_t k=i; k<range; ++k) {
+          retp[k] += matp[k * ncol + j];
+        }
+      }
+    }
+  }
+  else {
+    for (size_t i=0; i<nrow; ++i) {
+      for(size_t j = 0; j<ncol; ++j) {
+        retp[i] += matp[i * ncol + j];
+      }
+    }
+  }
+#else
+  for (size_t i=0; i<nrow; ++i) {
+    for(size_t j = 0; j<ncol; ++j) {
+      retp[i] += matp[i * ncol + j];
+    }
+  }
+#endif
+  return ret;
+}
+
+template <class T>
+std::vector<T> sum_of_rows(const rowmajor_matrix_local<T>& m) {
+  auto nrow = m.local_num_row;
+  auto ncol = m.local_num_col;
+  std::vector<T> ret(ncol,0);
+  T* retp = &ret[0];
+  const T* matp = &m.val[0];
+#if defined(_SX) || defined(__ve__)
+  if (nrow > ncol) {
+    for(size_t i = 0; i<nrow; i += MAT_VLEN) {
+      auto range = (i + MAT_VLEN <= nrow) ? (i + MAT_VLEN) : nrow;
+      for(size_t j =0; j<ncol; ++j) {
+        for (size_t k=i; k<range; ++k) {
+          retp[j] += matp[k * ncol + j];
+        }
+      }
+    }
+  }
+  else {
+    for (size_t i=0; i<nrow; ++i) {
+      for(size_t j =0; j<ncol; ++j) {
+        retp[j] += matp[i * ncol + j];
+      }
+    }
+  }
+#else
+  for (size_t i=0; i<nrow; ++i) {
+    for(size_t j =0; j<ncol; ++j) {
+      retp[j] += matp[i * ncol + j];
+    }
+  }
+#endif
+  return ret;
 }
 
 template <class T>
@@ -415,6 +532,9 @@ void call_debug_print(T& m) {
 }
 
 template <class T>
+void rowmajor_clear_helper(rowmajor_matrix_local<T>& mat) {mat.clear();}
+
+template <class T>
 struct rowmajor_matrix {
   rowmajor_matrix(){}
   rowmajor_matrix(frovedis::node_local<rowmajor_matrix_local<T>>&& d) :
@@ -436,6 +556,11 @@ struct rowmajor_matrix {
   void save(const std::string& file) {
     std::ofstream str(file.c_str());
     str << *this;
+  }
+  void clear() {
+    data.mapv(rowmajor_clear_helper<T>);
+    num_row = 0;
+    num_col = 0;
   }
   void savebinary(const std::string&);
   frovedis::node_local<rowmajor_matrix_local<T>> data;
