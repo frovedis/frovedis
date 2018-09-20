@@ -334,7 +334,7 @@ void sparse_svd(crs_matrix<T,I,O>& mat,
     // call_tranpose is defined in crs_matrix.hpp
     auto local_trans = mat.data.map(call_transpose<T,I,O>);
     t.show("local transpose: ");
-    mat.data.mapv(calc_svd<T,crs_matrix_local<T>>(k), u.data, stmp, v.data,
+    mat.data.mapv(calc_svd<T,crs_matrix_local<T,I,O>>(k), u.data, stmp, v.data,
                   local_trans);
   } else {
     frovedis::time_spent t(DEBUG);  
@@ -342,7 +342,7 @@ void sparse_svd(crs_matrix<T,I,O>& mat,
     t.show("transpose: ");
     auto local_trans = trans_mat.data.map(call_transpose<T,I,O>);
     t.show("local transpose: ");
-    trans_mat.data.mapv(calc_svd<T,crs_matrix_local<T>>(k),
+    trans_mat.data.mapv(calc_svd<T,crs_matrix_local<T,I,O>>(k),
                         v.data, stmp, u.data, local_trans);
   }
   s = *stmp.get_dvid().get_selfdata();
