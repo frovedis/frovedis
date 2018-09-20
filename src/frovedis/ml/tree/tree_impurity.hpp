@@ -2,7 +2,7 @@
 #define _TREE_IMPURITY_HPP_
 
 #include <cmath>
-#include <type_traits>
+#include <string>
 
 #include "../../../frovedis.hpp"
 
@@ -13,8 +13,14 @@ enum class impurity_type {
   Default,
   Gini,
   Entropy,
+  MisclassRate,
   Variance,
+  FriedmanVariance,
+  DefVariance,
+  MeanAbsError,
 };
+
+impurity_type get_impurity_type(const std::string&);
 
 template <typename T>
 struct gini_functor {
@@ -39,58 +45,42 @@ struct entropy_functor {
 };
 
 template <typename T>
+struct misclassrate_functor {
+  void operator()(const T) const = delete;
+  SERIALIZE_NONE
+};
+
+template <typename T>
 inline T square(const T value) { return value * value; }
 
 template <typename T>
 struct variance_functor {
-  variance_functor() : mean(0), num_data(0) {}
-
-#if defined(_SX) || defined(__ve__)
-  variance_functor(const T mean, const T num_data) :
-    mean(mean), num_data(1 / num_data)
-  {}
-
-  T operator()(const T value) const {
-    return square(value - mean) * num_data;
-  }
-#else
-  variance_functor(const T mean, const T num_data) :
-    mean(mean), num_data(num_data)
-  {}
-
-  T operator()(const T value) const {
-    return square(value - mean) / num_data;
-  }
-#endif
-
-  T mean, num_data;
-  SERIALIZE(mean, num_data)
+  T operator()(const T, const T) const = delete;
+  SERIALIZE_NONE
 };
-
-// for specializing variance_functor
-template <typename T, typename F>
-struct is_variance {
-  static constexpr bool value = std::is_same<
-    variance_functor<T>, typename std::remove_cv<F>::type
-  >::value;
-};
-
-template <typename T, typename F>
-using enable_if_variance = enable_if_t<is_variance<T, F>::value>;
-template <typename T, typename F>
-using enable_if_not_variance = enable_if_t<!is_variance<T, F>::value>;
 
 template <typename T>
-struct sumsqdev_functor {
-  sumsqdev_functor() : mean(0) {}
-  sumsqdev_functor(const T mean) : mean(mean) {}
+struct friedmanvar_functor {
+  T operator()(const T, const T) const = delete;
+  SERIALIZE_NONE
+};
 
-  T operator()(const T value) const {
+template <typename T>
+struct defvariance_functor {
+  T operator()(const T value, const T mean) const {
     return square(value - mean);
   }
 
-  T mean;
-  SERIALIZE(mean)
+  SERIALIZE_NONE
+};
+
+template <typename T>
+struct meanabserror_functor {
+  T operator()(const T value, const T mean) const {
+    return std::abs(value - mean);
+  }
+
+  SERIALIZE_NONE
 };
 
 } // end namespace tree

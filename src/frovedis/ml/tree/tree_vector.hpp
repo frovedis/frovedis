@@ -16,6 +16,7 @@
 #include "../../../frovedis.hpp"
 #include "../../core/type_utility.hpp"
 
+#include "pragmas.hpp"
 #include "tree_assert.hpp"
 #include "tree_config.hpp"
 #include "tree_model.hpp"
@@ -244,6 +245,7 @@ public:
     if (s.is_categorical()) {
       const std::vector<T>& categories = s.categories;
       const size_t num_categories = categories.size();
+_Pragma(__novector__)
       for (size_t k = 0; k < num_categories; k++) {
         fvalues.push_back(categories[k]);
       }
@@ -293,10 +295,7 @@ public:
 
     const T* src = fvalues.data() + head;
     T* dst = ret.data();
-
-    for (size_t k = 0; k < num_categories; k++) {
-      dst[k] = src[k];
-    }
+    for (size_t k = 0; k < num_categories; k++) { dst[k] = src[k]; }
 
     return ret;
 #else
@@ -321,7 +320,7 @@ public:
     return get_feature_continuity(j) == continuity::Continuous;
   }
 
-  inline node_local<splitvector<T>> broadcast() const;
+  node_local<splitvector<T>> broadcast() const;
 
 private:
   void ASSERT_SIZE() const {
@@ -409,8 +408,8 @@ public:
     };
   }
 
-  inline decision_tree_model<T> unzip() const;
-  inline node_local<modelvector<T>> broadcast() const;
+  decision_tree_model<T> unzip() const;
+  node_local<modelvector<T>> broadcast() const;
 
   void save(const std::string&) const;
   void load(const std::string&);

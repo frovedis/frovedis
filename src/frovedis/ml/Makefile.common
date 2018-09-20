@@ -1,5 +1,5 @@
 RECM_OBJS := optimizer.o
-TREE_OBJS := tree_config.o tree_random.o tree_utility.o
+TREE_OBJS := tree_config.o tree_impurity.o tree_utility.o
 W2V_OBJS := word2vec.o
 OBJS := ${RECM_OBJS} ${TREE_OBJS} ${W2V_OBJS}
 
@@ -34,9 +34,9 @@ install: ${TARGETS}
 
 optimizer.o: optimizer.cc
 
-tree_config.o: tree_config.hpp
-tree_random.o: tree_random.hpp
-tree_utility.o: tree_utility.hpp
+tree_config.o: tree_config.cc tree_config.hpp
+tree_impurity.o: tree_impurity.cc tree_impurity.hpp
+tree_utility.o: tree_utility.cc tree_utility.hpp
 
 clean:
 	${RM} ${TO_CLEAN} glm/*~ recommendation/*~ fm/*~ ${TARGETS} 

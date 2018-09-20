@@ -17,6 +17,7 @@
 #include "../../matrix/rowmajor_matrix.hpp"
 #include "../../matrix/crs_matrix.hpp"
 
+#include "pragmas.hpp"
 #include "bitcount.hpp"
 #include "tree_assert.hpp"
 #include "tree_config.hpp"
@@ -339,8 +340,7 @@ public:
 
     const T* valp = x.val.data();
     std::vector<T> ret(num_records, 0);
-#pragma cdir novector
-#pragma _NEC novector
+_Pragma(__novector__)
     for (size_t i = 0; i < num_records; i++) {
       ret[i] = predict_impl<const T*>(
         valp + i * num_feats, num_feats
@@ -358,7 +358,7 @@ public:
 
     std::vector<T> ret(num_records, 0);
     for (size_t i = 0; i < num_records; i++) {
-      ret[i] = predict(spx.get_row(i), num_feats).get_predict();
+      ret[i] = predict(spx.get_row(i), num_feats);
     }
 
     return ret;
@@ -386,8 +386,7 @@ public:
 
     const T* valp = x.val.data();
     std::vector<predict_pair<T>> ret(num_records, predict_pair<T>());
-#pragma cdir novector
-#pragma _NEC novector
+_Pragma(__novector__)
     for (size_t i = 0; i < num_records; i++) {
       ret[i] = predict_impl<const T*>(
         valp + i * num_feats, num_feats
@@ -406,7 +405,7 @@ public:
 
     std::vector<predict_pair<T>> ret(num_records, predict_pair<T>());
     for (size_t i = 0; i < num_records; i++) {
-      ret[i] = predict(spx.get_row(i), num_feats);
+      ret[i] = predict_with_probability(spx.get_row(i), num_feats);
     }
 
     return ret;
@@ -453,8 +452,7 @@ std::shared_ptr<node<T>> node<T>::search_node(
 
   // trace down from this node to the target node
   auto node_ptr = this->shared_from_this();
-#pragma cdir novector
-#pragma _NEC novector
+_Pragma(__novector__)
   for (auto left = lefts.crbegin(); left != lefts.crend(); left++) {
     if (node_ptr->is_leaf()) {
       throw std::runtime_error(
@@ -692,7 +690,7 @@ public:
     *this = decision_tree_model<T>(vtree.unzip());
   }
 
-  inline node_local<decision_tree_model<T>> broadcast() const;
+  node_local<decision_tree_model<T>> broadcast() const;
 
   // string output
   std::string to_string() const;

@@ -7,6 +7,7 @@
 #include <iostream>
 #include <memory>
 #include <numeric>
+#include <random>
 #include <sstream>
 #include <string>
 #include <unordered_map>
@@ -14,12 +15,10 @@
 #include <vector>
 
 #include "../../../frovedis.hpp"
-#include "../../core/invoke_result.hpp"
-#include "../../core/make_unique.hpp"
-#include "../../core/type_utility.hpp"
 #include "../../matrix/rowmajor_matrix.hpp"
 #include "../../matrix/colmajor_matrix.hpp"
 
+#include "pragmas.hpp"
 #include "tree_assert.hpp"
 #include "tree_ftrace.hpp"
 #include "tree_impurity.hpp"
@@ -54,7 +53,7 @@ public:
 
   // disable rvalue overloads
   void get_impurity_functor() && = delete;
-  void bcas_impurity_ifunctor() && = delete;
+  void bcas_impurity_functor() && = delete;
   void broadcast() && = delete;
 };
 
@@ -83,7 +82,10 @@ struct classification_policy {
     return ret;
   }
 
-  static current_total_t calc_current_total(colmajor_matrix<T>& labels) {
+  template <typename F>
+  static current_total_t calc_current_total(
+    colmajor_matrix<T>& labels, const F&
+  ) {
     return labels.data.map(colmajor_total<T>).vector_sum();
   }
 
@@ -133,68 +135,83 @@ struct classification_policy {
   template <typename F>
   static T calc_current_impurity(
     const T current_size, const current_total_t& current_counter,
-    const colmajor_matrix<T>&, const F& ifunctor, const T probability
+    const colmajor_matrix<T>&, const T probability,
+    const strategy_helper<T, F>* pstr
   ) {
     if (probability == 1) { return 0; }
-
-    const size_t num_classes = current_counter.size();
-    const T* src = current_counter.data();
-
-    T impurity = 0;
-    const T _current_size = 1 / current_size;
-    for (size_t k = 0; k < num_classes; k++) {
-      impurity += ifunctor(src[k] * _current_size);
-    }
-
-    return impurity;
+    return _CalcCurrentImpurity<F>::calc(
+      current_size, current_counter.size(), current_counter.data(),
+      pstr->get_impurity_functor()
+    );
   }
 
-  template <typename F>
+  template <typename F, typename R>
   static bestgain_stats<T> find_bestgain(
     const T current_size,
     const T current_impurity,
     const current_total_t& current_counter,
+    const colmajor_matrix<T>& dataset,
+    const colmajor_matrix<T>& labels,
     colmajor_matrix<T>& splits,
-    colmajor_matrix<T>& labels,
-    const strategy_helper<T, F>* pstr
+    const size_t num_criteria,
+    const node_local<splitvector<T>>& bcas_criteria,
+    const strategy_helper<T, F>* pstr,
+    R& rand_engine
   ) {
-    // get group/label-wise counters
-    rowmajor_matrix_local<T> temp_counter(
-      splits.num_col, labels.num_col,
-      splits.data.map(
-        bimm_txy<T>, labels.data, pstr->broadcast()
-      ).vector_sum().data()
-    );
+    colmajor_matrix_local<T> left_counter(0, 0);
+    left_counter.val = splits.data.map(
+      left_counter_calcr<T>,
+      dataset.data, labels.data,
+      bcas_criteria, pstr->broadcast()
+    ).vector_sum();
+    left_counter.local_num_row = num_criteria;
+    left_counter.local_num_col = labels.num_col;
+    tree_assert(num_criteria * labels.num_col == left_counter.val.size());
 
-    // re-distribute (group-parallel)
-    colmajor_matrix<T> left_counter(
-      make_rowmajor_matrix_scatter(temp_counter)
-    );
-    tree_assert(splits.num_col == left_counter.num_row);
-    tree_assert(labels.num_col == left_counter.num_col);
-
-#ifdef _TREE_DEBUG_
-    RLOG(INFO) << "split dists: {" << string_join(
-      left_counter.data.map(get_num_rows<colmajor_matrix_local<T>>), ", "
-    ) << "}" << std::endl;
-#endif
-
-    return bestgain_stats<T>(
-      left_counter.data.map(
-        bestgain_finder<T>(current_size, current_impurity),
-        make_node_local_broadcast(current_counter),
-        pstr->broadcast(), pstr->bcas_impurity_functor()
-      ).reduce(
-        bestgain_reducer<T>
-      )
+    return bestgain_finder<T>(current_size, current_impurity)(
+      left_counter, current_counter,
+      *pstr, pstr->get_impurity_functor(), rand_engine
     );
   }
+
+private:
+  template <typename F, typename Void = void>
+  struct _CalcCurrentImpurity {
+    static T calc(
+      const T current_size, const size_t num_classes, const T* src,
+      const F& ifunc
+    ) {
+      T impurity = 0;
+      const T _current_size = 1 / current_size;
+      for (size_t k = 0; k < num_classes; k++) {
+        impurity += ifunc(src[k] * _current_size);
+      }
+
+      return impurity;
+    }
+  };
+
+  template </* if F is misclassrate_functor */ typename Void>
+  struct _CalcCurrentImpurity<misclassrate_functor<T>, Void> {
+    static T calc(
+      const T current_size, const size_t num_classes, const T* src,
+      const misclassrate_functor<T>&
+    ) {
+      T max_count = 0;
+      for (size_t k = 0; k < num_classes; k++) {
+        if (max_count < src[k]) { max_count = src[k]; }
+      }
+
+      tree_assert(max_count > 0);
+      return 1 - max_count / current_size;
+    }
+  };
 };
 
 template <typename T>
 struct regression_policy {
   using unique_labels_t = std::nullptr_t;
-  using current_total_t = T;
+  using current_total_t = std::pair<T, T>;
 
   static unique_labels_t make_unique_labels(const size_t) {
     return unique_labels_t();
@@ -210,121 +227,130 @@ struct regression_policy {
     return ret;
   }
 
-  static current_total_t calc_current_total(colmajor_matrix<T>& labels) {
-    return labels.data.map(all_total<T>).reduce(add<T>);
+  template <typename F>
+  static current_total_t calc_current_total(
+    colmajor_matrix<T>& labels, const F&
+  ) {
+    return _CalcCurrentTotal<F>::calc(labels);
   }
 
   static predict_pair<T> calc_current_predict(
     const T current_size,
-    const current_total_t current_total,
+    const current_total_t& current_total,
     const unique_labels_t
   ) {
-    return predict_pair<T>(current_total / current_size);
-  }
-
-  template <typename F, enable_if_variance<T, F> = nullptr>
-  static T calc_current_impurity(
-    const T current_size, const current_total_t current_total,
-    colmajor_matrix<T>& labels, const F&, const T
-  ) {
-    tree_assert(labels.num_col == 1);
-    return labels.data.map(
-      regression_impurity_calcr<T, sumsqdev_functor<T>>(
-        sumsqdev_functor<T>(current_total / current_size)
-      )
-    ).reduce(add<T>) / current_size;
-  }
-
-  template <typename F, enable_if_not_variance<T, F> = nullptr>
-  static T calc_current_impurity(
-    const T current_size, const current_total_t current_total,
-    colmajor_matrix<T>& labels, const F&, const T
-  ) {
-    tree_assert(labels.num_col == 1);
-    return labels.data.map(
-      regression_impurity_calcr<T, F>(
-        F(current_total / current_size, current_size)
-      )
-    ).reduce(add<T>);
+    return predict_pair<T>(current_total.first / current_size);
   }
 
   template <typename F>
+  static T calc_current_impurity(
+    const T current_size, const current_total_t& current_total,
+    colmajor_matrix<T>& labels, const T,
+    const strategy_helper<T, F>* pstr
+  ) {
+    tree_assert(labels.num_col == 1);
+    return _CalcCurrentImpurity<F>::calc(
+      current_size, current_total, labels, pstr
+    );
+  }
+
+  template <typename F, typename R>
   static bestgain_stats<T> find_bestgain(
     const T current_size,
     const T current_impurity,
-    const current_total_t current_total,
+    const current_total_t& current_total,
+    const colmajor_matrix<T>& dataset,
+    const colmajor_matrix<T>& labels,
     colmajor_matrix<T>& splits,
-    colmajor_matrix<T>& labels,
-    const strategy_helper<T, F>* pstr
+    const size_t num_criteria,
+    const node_local<splitvector<T>>& bcas_criteria,
+    const strategy_helper<T, F>* pstr,
+    R& rand_engine
   ) {
-    const size_t num_criteria = splits.num_col;
     tree_assert(labels.num_col == 1);
 
-    rowmajor_matrix_local<T> label_stats(4, num_criteria);
-    T* lsiz = label_stats.val.data();
-    T* rsiz = lsiz + num_criteria;
-    T* lavg = rsiz + num_criteria;
-    T* ravg = lavg + num_criteria;
-    tree_assert(ravg + num_criteria == lsiz + label_stats.val.size());
-
-    std::vector<T> temp_sizes = splits.data.map(
-      colmajor_total<T>
-    ).vector_sum();
-    tree_assert(temp_sizes.size() == num_criteria);
-
-    std::vector<T> temp_totals = splits.data.map(
-      gemv_txv<T>, labels.data
-    ).vector_sum();
-    tree_assert(temp_totals.size() == num_criteria);
-
-    const T* tsiz = temp_sizes.data();
-    const T* tsum = temp_totals.data();
-
-    for (size_t j = 0; j < num_criteria; j++) {
-      lsiz[j] = tsiz[j];
-      rsiz[j] = current_size - tsiz[j];
-      lavg[j] = tsum[j] / lsiz[j];
-      ravg[j] = (current_total - tsum[j]) / rsiz[j];
-    }
-
-    std::vector<T> impurities = splits.data.map(
-      regression_impurities_calcr<T, F>,
-      labels.data, label_stats.broadcast()
-    ).vector_sum();
-    tree_assert(impurities.size() == num_criteria * 2);
-
-    const size_t num_impurities = impurities.size();
-    const T* isrc = impurities.data();
-    T* idst = lavg;
-    tree_assert(num_impurities == num_criteria * 2);
-
-    for (size_t j = 0; j < num_impurities; j++) {
-      idst[j] = isrc[j];
-    }
-
-    // re-distribute (group-parallel)
-    rowmajor_matrix_local<T> transposed = label_stats.transpose();
-    colmajor_matrix<T> dimpurities(
-      make_rowmajor_matrix_scatter(transposed)
+    impurity_stats<T> impurities;
+    splits.data.mapv(
+      regression_impurities_calcr<T>(
+        impurities.get_id(), current_size,
+        current_total.first, current_total.second
+      ),
+      dataset.data, labels.data,
+      bcas_criteria, pstr->bcas_impurity_functor()
     );
-    tree_assert(dimpurities.num_row == label_stats.local_num_col);
-    tree_assert(dimpurities.num_col == label_stats.local_num_row);
+    tree_assert(num_criteria == impurities.num_criteria());
 
-#ifdef _TREE_DEBUG_
-    RLOG(INFO) << "impurity dists: {" << string_join(
-      dimpurities.data.map(get_num_rows<colmajor_matrix_local<T>>), ", "
-    ) << "}" << std::endl;
-#endif
-
-    return bestgain_stats<T>(
-      dimpurities.data.map(
-        bestgain_finder<T>(current_size, current_impurity),
-        pstr->broadcast()
-      ).reduce(
-        bestgain_reducer<T>
-      )
+    return bestgain_finder<T>(current_size, current_impurity)(
+      impurities, *pstr, pstr->get_impurity_functor(), rand_engine
     );
   }
+
+private:
+  template <typename F, typename Void = void>
+  struct _CalcCurrentTotal {
+    static current_total_t calc(colmajor_matrix<T>& labels) {
+      const T total = labels.data.map(all_total<T>).reduce(add<T>);
+      return std::make_pair(total, 0);
+    }
+  };
+
+  template </* if F is variance_functor */ typename Void>
+  struct _CalcCurrentTotal<variance_functor<T>, Void> {
+    static current_total_t calc(colmajor_matrix<T>& labels) {
+      return labels.data.map(sumsquare_calcr<T>).reduce(add_pair<T, T>);
+    }
+  };
+
+  template </* if F is friedmanvar_functor */ typename Void>
+  struct _CalcCurrentTotal<friedmanvar_functor<T>, Void> {
+    static current_total_t calc(colmajor_matrix<T>& labels) {
+      return _CalcCurrentTotal<variance_functor<T>>::calc(labels);
+    }
+  };
+
+  template <typename F, typename Void = void>
+  struct _CalcCurrentImpurity {
+    static T calc(
+      const T current_size, const current_total_t& current_total,
+      colmajor_matrix<T>& labels, const strategy_helper<T, F>* pstr
+    ) {
+      const T mean = current_total.first / current_size;
+      return labels.data.map(
+        regression_impurity_calcr<T, F>(mean),
+        pstr->bcas_impurity_functor()
+      ).reduce(add<T>) / current_size;
+    }
+  };
+
+  static T calc_variance(
+    const T current_size, const current_total_t& current_total
+  ) {
+    const T mean = current_total.first / current_size;
+    const T sq_mean = current_total.second / current_size;
+    return sq_mean - square(mean);
+  }
+
+  template </* if F is variance_functor */ typename Void>
+  struct _CalcCurrentImpurity<variance_functor<T>, Void> {
+    static T calc(
+      const T current_size, const current_total_t& current_total,
+      const colmajor_matrix<T>&,
+      const strategy_helper<T, variance_functor<T>>*
+    ) {
+      return calc_variance(current_size, current_total);
+    }
+  };
+
+  template </* if F is friedmanvar_functor */ typename Void>
+  struct _CalcCurrentImpurity<friedmanvar_functor<T>, Void> {
+    static T calc(
+      const T current_size, const current_total_t& current_total,
+      const colmajor_matrix<T>&,
+      const strategy_helper<T, friedmanvar_functor<T>>*
+    ) {
+      return calc_variance(current_size, current_total);
+    }
+  };
 };
 
 // ---------------------------------------------------------------------
@@ -359,20 +385,17 @@ class builder_impl {
   typename AP::unique_labels_t unique_labels;
   colmajor_matrix<T> full_dataset, full_labels;
   colmajor_matrix<T> work_dataset, work_labels, work_splits;
+  std::mt19937_64 rand_engine;
 
 public:
   builder_impl(const strategy_helper<T, F>* strategy_ptr) :
     pstr(strategy_ptr),
     unique_labels(AP::make_unique_labels(pstr->get_num_classes())),
     full_dataset(), full_labels(),
-    work_dataset(), work_labels(), work_splits()
+    work_dataset(), work_labels(), work_splits(),
+    rand_engine(pstr->get_seed())
   {
     RLOG(TRACE) << get_typename(*this) << std::endl;
-#if defined(_SX) || defined(__ve__)
-    const_cast<node_local<strategy<T>>&>(
-      pstr->broadcast()
-    ).mapv(random_initializer<T>);
-#endif
   }
 
   decision_tree_model<T> build(const colmajor_matrix<T>&, dvector<T>&);
@@ -405,41 +428,22 @@ decision_tree_model<T> builder_impl<T, F, AP>::build(
 
   // set the number of columns even for empty local matrices
   work_dataset.data.mapv(
-    +[] (colmajor_matrix_local<T>& x, const size_t num_cols) {
-      tree_assert(x.val.size() == x.local_num_row * num_cols);
-      x.local_num_col = num_cols;
-    },
+    set_num_cols<local_matrix_t>,
     make_node_local_broadcast(dataset.num_col)
   );
 
   dvector<size_t> initial_indices = full_dataset.data.map(
-    +[] (const colmajor_matrix_local<T>& x) -> std::vector<size_t> {
-      const size_t num_records = x.local_num_row;
-      std::vector<size_t> ret(num_records, 0);
-      size_t* dst = ret.data();
-      for (size_t i = 0; i < num_records; i++) { dst[i] = i; }
-      return ret;
-    }
+    initial_indices_gtor<local_matrix_t>
   ).template moveto_dvector<size_t>();
 
-  const auto& cats_info = pstr->get_categorical_features_info();
-  const size_t num_categorical = cats_info.size();
-  const size_t num_continuous = full_dataset.num_col - num_categorical;
-  size_t max_criteria = num_continuous * pstr->get_max_bins();
-  for (const auto kv: cats_info) {
-    const size_t cardinality = kv.second;
-    max_criteria += (cardinality == 2) ? 1 : cardinality;
+  size_t bytes = pstr->get_max_working_matrix_bytes();
+  if (!pstr->working_matrix_is_per_process()) {
+    // use given memory size with all processes
+    bytes /= get_nodesize();
   }
-
-  work_splits = full_dataset.data.map(
-    +[] (
-      const colmajor_matrix_local<T>& x, const size_t max_criteria
-    ) -> colmajor_matrix_local<T> {
-      return colmajor_matrix_local<T>(x.local_num_row, max_criteria);
-    },
-    make_node_local_broadcast(max_criteria)
+  work_splits = make_node_local_broadcast(bytes).map(
+    initial_workbench_gtor<local_matrix_t>
   );
-  work_splits.set_num(full_dataset.num_row, max_criteria);
 
   __ftr_prepare.end();
 
@@ -487,7 +491,9 @@ std::shared_ptr<node<T>> builder_impl<T, F, AP>::_build(
   tree_assert(num_records == work_labels.num_row);
 
   const ftrace_region __ftr_total("# calc current total");
-  const auto current_total = AP::calc_current_total(work_labels);
+  const auto current_total = AP::calc_current_total(
+    work_labels, pstr->get_impurity_functor()
+  );
   __ftr_total.end();
 
   const ftrace_region __ftr_predict("# calc current predict");
@@ -499,7 +505,7 @@ std::shared_ptr<node<T>> builder_impl<T, F, AP>::_build(
   const ftrace_region __ftr_impurity("# calc current impurity");
   const T current_impurity = AP::calc_current_impurity(
     current_size, current_total, work_labels,
-    pstr->get_impurity_functor(), current_predict.get_probability()
+    current_predict.get_probability(), pstr
   );
   __ftr_impurity.end();
 
@@ -533,8 +539,7 @@ std::shared_ptr<node<T>> builder_impl<T, F, AP>::_build(
 
   const ftrace_region __ftr_criteria("# make criteria");
   size_t num_bins = pstr->get_max_bins();
-#pragma cdir novector
-#pragma _NEC novector
+_Pragma(__novector__)
   while (num_bins > num_records) { num_bins >>= 1; }
 
   // construct candidates of criteria
@@ -545,11 +550,13 @@ std::shared_ptr<node<T>> builder_impl<T, F, AP>::_build(
     if (cats_info.count(j)) {
       const size_t temp_cats = cats_info.at(j);
       const size_t num_categories = (temp_cats == 2) ? 1 : temp_cats;
+_Pragma(__novector__)
       for (size_t k = 0; k < num_categories; k++) {
         criteria.emplace_back(j, std::vector<T>(1, k));
       }
     } else {
       const T width = (maxs[j] - mins[j]) / num_bins;
+_Pragma(__novector__)
       for (size_t k = 1; k < num_bins; k++) {
         criteria.emplace_back(j, mins[j] + k * width);
       }
@@ -566,17 +573,11 @@ std::shared_ptr<node<T>> builder_impl<T, F, AP>::_build(
   auto bcas_criteria = criteria.broadcast();
   __ftr_bcas_criteria.end();
 
-  const ftrace_region __ftr_split_matrix("# make split matrix");
-  work_splits.data.mapv(
-    split_matrix_gtor<T>, work_dataset.data, bcas_criteria
-  );
-  work_splits.set_num(num_records, num_criteria);
-  __ftr_split_matrix.end();
-
   const ftrace_region __ftr_bestgain("# find best gain");
   const auto best = AP::find_bestgain(
     current_size, current_impurity, current_total,
-    work_splits, work_labels, pstr
+    work_dataset, work_labels, work_splits,
+    num_criteria, bcas_criteria, pstr, rand_engine
   );
   __ftr_bestgain.end();
 
@@ -593,24 +594,7 @@ std::shared_ptr<node<T>> builder_impl<T, F, AP>::_build(
   }
 
   const ftrace_region __ftr_split_prepare("# prepare to split");
-  const std::vector<size_t> block_sizes(get_block_sizes(num_criteria));
-  tree_assert(best.rank < block_sizes.size());
-  tree_assert(block_sizes.size() == get_nodesize());
-
-#if defined(_SX) || defined(__ve__)
-  size_t best_index = best.local_index;
-  const size_t rank = best.rank;
-  const size_t* bs = block_sizes.data();
-  for (size_t r = 0; r < rank; r++) {
-    best_index += bs[r];
-  }
-#else
-  const auto bs_head = block_sizes.cbegin();
-  const auto bs_tail = std::next(bs_head, best.rank);
-  const size_t best_index = std::accumulate(
-    bs_head, bs_tail, best.local_index
-  );
-#endif
+  const size_t best_index = best.local_index;
   tree_assert(best_index < num_criteria);
   tree_assert(best.left_size + best.right_size == num_records);
   const auto criterion = criteria.get(best_index);
@@ -623,12 +607,10 @@ std::shared_ptr<node<T>> builder_impl<T, F, AP>::_build(
   sout << "feature[" << criterion->get_feature_index() << "] ";
   if (criterion->is_categorical()) {
     const auto& categories = criterion->get_categories();
-    sout << "in {";
-    if (!categories.empty()) {
-      sout << categories.front();
-      for (size_t k = 1; k < categories.size(); k++) {
-        sout << ", " << categories[k];
-      }
+    tree_assert(!categories.empty());
+    sout << "in {" << categories[0];
+    for (size_t k = 1; k < categories.size(); k++) {
+      sout << ", " << categories[k];
     }
     sout << "}";
   } else if (criterion->is_continuous()) {
@@ -732,7 +714,7 @@ public:
 };
 
 template <typename T>
-using builder_t = std::function<
+using build_f = std::function<
   decision_tree_model<T>(const colmajor_matrix<T>&, dvector<T>&)
 >;
 
@@ -743,17 +725,16 @@ using builder_t = std::function<
 // a decision tree builder interface
 template <typename T>
 class decision_tree_builder {
-  tree::builder_t<T> build_functor;
+  tree::build_f<T> func;
 
 public:
-  decision_tree_builder(tree::builder_t<T> build_functor) :
-    build_functor(std::move(build_functor))
-  {}
+  decision_tree_builder(const tree::build_f<T>& func) : func(func) {}
+  decision_tree_builder(tree::build_f<T>&& func) : func(std::move(func)) {}
 
   decision_tree_model<T> run(
     const colmajor_matrix<T>& dataset, dvector<T>& labels
   ) const {
-    return build_functor(dataset, labels);
+    return func(dataset, labels);
   }
 };
 
@@ -761,34 +742,42 @@ template <typename T>
 decision_tree_builder<T> make_decision_tree_builder(
   const tree::strategy<T>& strategy
 ) {
+  using builder_t = decision_tree_builder<T>;
+  using namespace tree;
+  using GIN = gini_functor<T>;
+  using ENT = entropy_functor<T>;
+  using MCR = misclassrate_functor<T>;
+  using VAR = variance_functor<T>;
+  using FRM = friedmanvar_functor<T>;
+  using MSE = defvariance_functor<T>;
+  using MAE = meanabserror_functor<T>;
+  using C = classification_policy<T>;
+  using R = regression_policy<T>;
+
   switch (strategy.algo) {
-  case tree::algorithm::Classification:
+  case algorithm::Classification:
     switch (strategy.impurity) {
-    case tree::impurity_type::Default:
-    case tree::impurity_type::Gini:
-      return decision_tree_builder<T>(
-        tree::build_wrapper<
-          T, tree::gini_functor<T>, tree::classification_policy<T>
-        >(strategy)
-      );
-    case tree::impurity_type::Entropy:
-      return decision_tree_builder<T>(
-        tree::build_wrapper<
-          T, tree::entropy_functor<T>, tree::classification_policy<T>
-        >(strategy)
-      );
+    case impurity_type::Default:
+    case impurity_type::Gini:
+      return builder_t(build_wrapper<T, GIN, C>(strategy));
+    case impurity_type::Entropy:
+      return builder_t(build_wrapper<T, ENT, C>(strategy));
+    case impurity_type::MisclassRate:
+      return builder_t(build_wrapper<T, MCR, C>(strategy));
     default:
       throw std::logic_error("invalid impurity type");
     }
-  case tree::algorithm::Regression:
+  case algorithm::Regression:
     switch (strategy.impurity) {
-    case tree::impurity_type::Default:
-    case tree::impurity_type::Variance:
-      return decision_tree_builder<T>(
-        tree::build_wrapper<
-          T, tree::variance_functor<T>, tree::regression_policy<T>
-        >(strategy)
-      );
+    case impurity_type::Default:
+    case impurity_type::Variance:
+      return builder_t(build_wrapper<T, VAR, R>(strategy));
+    case impurity_type::FriedmanVariance:
+      return builder_t(build_wrapper<T, FRM, R>(strategy));
+    case impurity_type::DefVariance:
+      return builder_t(build_wrapper<T, MSE, R>(strategy));
+    case impurity_type::MeanAbsError:
+      return builder_t(build_wrapper<T, MAE, R>(strategy));
     default:
       throw std::logic_error("invalid impurity type");
     }

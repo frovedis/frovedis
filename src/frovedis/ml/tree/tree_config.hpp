@@ -54,6 +54,8 @@ struct strategy {
     categorical_features_info = std::unordered_map<size_t, size_t>(),
     const size_t min_instances_per_node = 1,
     const T min_info_gain = 0.0,
+    const size_t max_working_matrix_megabytes = 512,
+    const bool working_matrix_per_process = false,
     const size_t matmul_threshold = 256,
     const size_t seed = NORANDOM
   ) :
@@ -67,6 +69,8 @@ struct strategy {
     max_bins(max_bins),
     min_instances_per_node(min_instances_per_node),
     min_info_gain(min_info_gain),
+    max_working_matrix_megabytes(max_working_matrix_megabytes),
+    working_matrix_per_process(working_matrix_per_process),
     matmul_threshold(matmul_threshold),
     seed(seed)
   {}
@@ -78,6 +82,11 @@ struct strategy {
 
   strategy<T>& set_impurity_type(const impurity_type impurity) {
     this->impurity = impurity;
+    return *this;
+  }
+
+  strategy<T>& set_impurity_type(const std::string& str) {
+    this->impurity = get_impurity_type(str);
     return *this;
   }
 
@@ -129,6 +138,20 @@ struct strategy {
     return *this;
   }
 
+  strategy<T>& set_max_working_matrix_megabytes(
+    const size_t max_working_matrix_megabytes
+  ) {
+    this->max_working_matrix_megabytes = max_working_matrix_megabytes;
+    return *this;
+  }
+
+  strategy<T>& set_working_matrix_per_process(
+    const bool working_matrix_per_process
+  ) {
+    this->working_matrix_per_process = working_matrix_per_process;
+    return *this;
+  }
+
   strategy<T>& set_matmul_threshold(const size_t matmul_threshold) {
     this->matmul_threshold = matmul_threshold;
     return *this;
@@ -168,6 +191,19 @@ struct strategy {
 
   T get_min_info_gain() const { return min_info_gain; }
 
+  size_t get_max_working_matrix_megabytes() const {
+    return max_working_matrix_megabytes;
+  }
+
+  size_t get_max_working_matrix_bytes() const {
+    constexpr size_t mega = 1ull << 20;
+    return max_working_matrix_megabytes * mega;
+  }
+
+  bool working_matrix_is_per_process() const {
+    return working_matrix_per_process;
+  }
+
   size_t get_matmul_threshold() const { return matmul_threshold; }
   size_t get_seed() const { return seed; }
   bool random_enabled() const { return seed != NORANDOM; }
@@ -179,6 +215,8 @@ struct strategy {
   std::unordered_map<size_t, size_t> categorical_features_info;
   size_t max_depth, num_classes, max_bins, min_instances_per_node;
   T min_info_gain;
+  size_t max_working_matrix_megabytes;
+  bool working_matrix_per_process;
   size_t matmul_threshold, seed;
 
   SERIALIZE(
@@ -186,6 +224,7 @@ struct strategy {
     categorical_features_info,
     max_depth, num_classes, max_bins,
     min_instances_per_node, min_info_gain,
+    max_working_matrix_megabytes, working_matrix_per_process,
     matmul_threshold, seed
   )
 };
