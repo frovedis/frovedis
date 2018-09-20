@@ -22,16 +22,16 @@ enum struct FmOptimizer {
 };
 
 template <class T, class I = size_t, class O = size_t>
-fm_model<T> train(bool dim_0, bool dim_1, size_t dim_2, 
-		  T init_stdev, size_t iteration, T init_learn_rate, FmOptimizer optimizer,
-		  T regular_0, T regular_1, T regular_2, bool is_regression,
-		  crs_matrix<T,I,O>& nl_data, node_local<std::vector<T>>& nl_label, size_t batch_size_pernode, int random_seed) {
-                                              
-  fm_config<T> conf(dim_0, dim_1, dim_2, init_stdev, iteration, init_learn_rate, 
-                    regular_0, regular_1, regular_2, is_regression, batch_size_pernode);
+fm_model<T> train(crs_matrix<T,I,O>& nl_data,
+                  node_local<std::vector<T>>& nl_label,
+                  FmOptimizer optimizer,
+                  fm_config<T>& conf,
+                  int random_seed = 1) {
   conf.feature_size = nl_data.num_col;
   size_t feature_size = conf.feature_size;
   size_t factor_size = conf.factor_size;
+  size_t batch_size_pernode = conf.batch_size_pernode;
+  T init_stdev = conf.init_stdev;
   
   // divide data, label
   auto nl_data_batches = broadcast(std::vector<crs_matrix_local<T,I,O>>());
@@ -82,6 +82,17 @@ fm_model<T> train(bool dim_0, bool dim_1, size_t dim_2,
   auto opt_parameter = concatenate_fm_parameter<T>(nl_managed_parameter);
   assert(feature_size == opt_parameter.feature_size());
   return fm_model<T>(conf, opt_parameter);
+}
+
+template <class T, class I = size_t, class O = size_t>
+fm_model<T> train(bool dim_0, bool dim_1, size_t dim_2, 
+		  T init_stdev, size_t iteration, T init_learn_rate, FmOptimizer optimizer,
+		  T regular_0, T regular_1, T regular_2, bool is_regression,
+		  crs_matrix<T,I,O>& nl_data, node_local<std::vector<T>>& nl_label, size_t batch_size_pernode, int random_seed) {
+                                              
+  fm_config<T> conf(dim_0, dim_1, dim_2, init_stdev, iteration, init_learn_rate, 
+                    regular_0, regular_1, regular_2, is_regression, batch_size_pernode);
+  return train(nl_data, nl_label, optimizer, conf, random_seed);
 }
 
 template <class T, class I = size_t, class O = size_t>
