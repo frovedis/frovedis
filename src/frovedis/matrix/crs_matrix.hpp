@@ -576,6 +576,7 @@ struct crs_matrix {
   void savebinary(const std::string& file);
   crs_matrix<T,I,O> transpose();
   sparse_vector<T,I> get_row(size_t r);
+  std::vector<size_t> get_local_num_rows();
   void clear();
   frovedis::node_local<crs_matrix_local<T,I,O>> data;
   size_t num_row;
@@ -593,6 +594,7 @@ rowmajor_matrix<T> crs_matrix<T,I,O>::to_rowmajor() {
 
 template <class T, class I, class O>
 void crs_clear_helper(crs_matrix_local<T,I,O>& mat) {mat.clear();}
+
 template <class T, class I, class O>
 void crs_matrix<T,I,O>::clear() {
   data.mapv(crs_clear_helper<T,I,O>);
@@ -603,6 +605,11 @@ void crs_matrix<T,I,O>::clear() {
 template <class T, class I = size_t, class O = size_t>
 size_t crs_get_local_num_row(crs_matrix_local<T,I,O>& mat) {
   return mat.local_num_row;
+}
+
+template <class T, class I, class O>
+std::vector<size_t> crs_matrix<T,I,O>::get_local_num_rows() {
+  return data.map(crs_get_local_num_row<T,I,O>).gather();
 }
 
 template <class T, class I, class O>
