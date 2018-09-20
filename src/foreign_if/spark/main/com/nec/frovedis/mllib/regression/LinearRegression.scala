@@ -32,6 +32,8 @@ object LinearRegressionModel {  // companion object (for static members)
     // load a LinearRegressionModel from the 'path' 
     // and register it with 'model_id' at Frovedis server
     val ret = JNISupport.loadFrovedisGLM(fs.master_node,model_id,M_KIND.LNRM,path)
+    val info = JNISupport.checkServerException();
+    if (info != "") throw new java.rmi.ServerException(info);
     return new LinearRegressionModel(ret)
   }
 }
@@ -84,7 +86,9 @@ object LinearRegressionWithSGD {
      val mid = ModelID.get()
      val fs = FrovedisServer.getServerInstance()
      JNISupport.callFrovedisLNRSGD(fs.master_node,data.get(),numIter,stepSize,
-                                 miniBatchFraction,mid,isMovableInput)
+                                 miniBatchFraction,mid,isMovableInput,data.is_dense())
+     val info = JNISupport.checkServerException();
+     if (info != "") throw new java.rmi.ServerException(info);
      val numFeatures = data.numCols()
      val intercept = 0.0 // assumed (To-Do: Support isIntercept, as in Frovedis)
      return new LinearRegressionModel(mid,M_KIND.LNRM,numFeatures,intercept)
@@ -151,7 +155,9 @@ object LinearRegressionWithLBFGS {
      val mid = ModelID.get()
      val fs = FrovedisServer.getServerInstance()
      JNISupport.callFrovedisLNRLBFGS(fs.master_node,data.get(),numIter,stepSize,
-                                   histSize,mid,isMovableInput)
+                                   histSize,mid,isMovableInput, data.is_dense())
+     val info = JNISupport.checkServerException();
+     if (info != "") throw new java.rmi.ServerException(info);
      val numFeatures = data.numCols()
      val intercept = 0.0 // assumed (To-Do: Support isIntercept, as in Frovedis)
      return new LinearRegressionModel(mid,M_KIND.LNRM,numFeatures,intercept)

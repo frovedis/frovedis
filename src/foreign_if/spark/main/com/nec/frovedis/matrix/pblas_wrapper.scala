@@ -12,18 +12,24 @@ object PBLAS {
            vec2: FrovedisBlockcyclicMatrix): Unit = {
     val fs = FrovedisServer.getServerInstance()
     JNISupport.swap(fs.master_node,DMAT_KIND.BCLC,vec1.get(),vec2.get())
+    val info = JNISupport.checkServerException();
+    if (info != "") throw new java.rmi.ServerException(info);
   }
 
   def copy(vec1: FrovedisBlockcyclicMatrix,
            vec2: FrovedisBlockcyclicMatrix): Unit = {
     val fs = FrovedisServer.getServerInstance()
     JNISupport.copy(fs.master_node,DMAT_KIND.BCLC,vec1.get(),vec2.get())
+    val info = JNISupport.checkServerException();
+    if (info != "") throw new java.rmi.ServerException(info);
   }
 
   def scal(vec: FrovedisBlockcyclicMatrix,
            alpha: Double): Unit = {
     val fs = FrovedisServer.getServerInstance()
     JNISupport.scal(fs.master_node,DMAT_KIND.BCLC,vec.get(),alpha)
+    val info = JNISupport.checkServerException();
+    if (info != "") throw new java.rmi.ServerException(info);
   }
 
   def axpy(invec: FrovedisBlockcyclicMatrix,
@@ -37,17 +43,25 @@ object PBLAS {
     val fs = FrovedisServer.getServerInstance()
     JNISupport.axpy(fs.master_node,DMAT_KIND.BCLC,
                     invec.get(),outvec.get(),alpha)
+    val info = JNISupport.checkServerException();
+    if (info != "") throw new java.rmi.ServerException(info);
   }
 
   def dot(vec1: FrovedisBlockcyclicMatrix,
           vec2: FrovedisBlockcyclicMatrix): Double = {
     val fs = FrovedisServer.getServerInstance()
-    return JNISupport.dot(fs.master_node,DMAT_KIND.BCLC,vec1.get(),vec2.get())
-  }
+    val ret = JNISupport.dot(fs.master_node,DMAT_KIND.BCLC,vec1.get(),vec2.get())
+    val info = JNISupport.checkServerException();
+    if (info != "") throw new java.rmi.ServerException(info);
+    else return ret;
+   }
 
   def nrm2(vec: FrovedisBlockcyclicMatrix): Double = {
     val fs = FrovedisServer.getServerInstance()
-    return JNISupport.nrm2(fs.master_node,DMAT_KIND.BCLC,vec.get())
+    val ret = JNISupport.nrm2(fs.master_node,DMAT_KIND.BCLC,vec.get())
+    val info = JNISupport.checkServerException();
+    if (info != "") throw new java.rmi.ServerException(info);
+    else return ret;
   }
 
   def gemv(inmat: FrovedisBlockcyclicMatrix,
@@ -77,6 +91,8 @@ object PBLAS {
     val dmat = JNISupport.gemv(fs.master_node,DMAT_KIND.BCLC,
                                inmat.get(),invec.get(),
                                isTrans,alpha,beta)
+    val info = JNISupport.checkServerException();
+    if (info != "") throw new java.rmi.ServerException(info);
     return new FrovedisBlockcyclicMatrix(dmat)    
   }  
 
@@ -91,6 +107,8 @@ object PBLAS {
     val fs = FrovedisServer.getServerInstance()
     val dmat = JNISupport.ger(fs.master_node,DMAT_KIND.BCLC,
                               vec1.get(),vec2.get(),alpha)
+    val info = JNISupport.checkServerException();
+    if (info != "") throw new java.rmi.ServerException(info);
     return new FrovedisBlockcyclicMatrix(dmat)
   }
 
@@ -130,6 +148,8 @@ object PBLAS {
     val dmat = JNISupport.gemm(fs.master_node,DMAT_KIND.BCLC,
                                mat1.get(),mat2.get(),
                                isTransM1,isTransM2,alpha,beta)
+    val info = JNISupport.checkServerException();
+    if (info != "") throw new java.rmi.ServerException(info);
     return new FrovedisBlockcyclicMatrix(dmat)
   }
 
@@ -160,5 +180,7 @@ object PBLAS {
     JNISupport.geadd(fs.master_node,DMAT_KIND.BCLC,
                      mat1.get(),mat2.get(),
                      isTrans,alpha,beta)
+    val info = JNISupport.checkServerException();
+    if (info != "") throw new java.rmi.ServerException(info);
   }
 }

@@ -8,6 +8,9 @@
 #include "frovedis/ml/glm/linear_model.hpp"
 #include "frovedis/ml/recommendation/matrix_factorization_model.hpp"
 #include "frovedis/ml/clustering/kmeans.hpp"
+#include "frovedis/ml/tree/tree_model.hpp"
+#include "frovedis/ml/fm/model.hpp"
+#include "frovedis/ml/nb/nb_model.hpp"
 
 namespace frovedis {
 
@@ -19,7 +22,11 @@ enum MODEL_KIND {
   SVM,
   LNRM,
   MFM,
-  KMEANS
+  KMEANS,
+  DTM,
+  NBM,
+  FMM,
+  FPM
 };
 
 enum DMAT_KIND {

@@ -140,13 +140,14 @@ create_and_set_glm_data(std::vector<exrpc_ptr_t>& mat_eps,
   return mp;
 }
 
-// input arr[exrpc::crs_matrix_local<T>] <= loaded from spark worker data
-// returns exrpc::crs_matrix<T> from array of exrpc::crs_matrix_local<T>
-template <class T>
+// input arr[exrpc::crs_matrix_local<T,I,O>] <= loaded from spark worker data
+// returns exrpc::crs_matrix<T,I,O> from array of exrpc::crs_matrix_local<T,I,O>
+template <class T, class I=size_t, class O=size_t>
 exrpc_ptr_t
 create_crs_data(std::vector<exrpc_ptr_t>& mat_eps,
                 size_t& nrows, size_t& ncols) {
-  return create_and_set_data<crs_matrix<T>,crs_matrix_local<T>>(mat_eps,nrows,ncols);
+  return create_and_set_data<crs_matrix<T,I,O>,
+         crs_matrix_local<T,I,O>>(mat_eps,nrows,ncols);
 }
 
 // input arr[exrpc::rowmajor_matrix_local<T>] <= loaded from spark worker data
@@ -228,7 +229,7 @@ dummy_matrix to_dummy_matrix(MATRIX* mptr) {
 }
 
 // creates crs_matrix from node local coo vector strings
-template <class T>
+template <class T, class I=size_t, class O=size_t>
 dummy_matrix 
 create_crs_from_local_coo_string_vectors(std::vector<exrpc_ptr_t>& vec_eps) {
   auto lvs = make_node_local_allocate<std::vector<std::string>>();
@@ -237,21 +238,21 @@ create_crs_from_local_coo_string_vectors(std::vector<exrpc_ptr_t>& vec_eps) {
   auto is_to_be_moved = broadcast(true); 
   lvs.mapv(set_vector_data<std::string>,vec_ep_bcast,is_to_be_moved);
   bool zero_origin = false; // spark user_id starts with 1
-  auto matp = new crs_matrix<T>(make_crs_matrix_loadcoo<T>(lvs,zero_origin));
+  auto matp = new crs_matrix<T,I,O>(make_crs_matrix_loadcoo<T,I,O>(lvs,zero_origin));
   if(!matp) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed!\n");
-  return to_dummy_matrix<crs_matrix<T>>(matp);
+  return to_dummy_matrix<crs_matrix<T,I,O>>(matp);
 }
 
-// loads data from specified file/dir and creates a exrpc::crs_matrix<T>
-template <class T>
+// loads data from specified file/dir and creates a exrpc::crs_matrix<T,I,O>
+template <class T, class I=size_t, class O=size_t>
 dummy_matrix load_crs_matrix(std::string& path, bool& isbinary) {
-  crs_matrix<T> *matp = NULL;
+  crs_matrix<T,I,O> *matp = NULL;
   if(isbinary)
-    matp = new crs_matrix<T>(make_crs_matrix_loadbinary<T>(path)); //rvalue
+    matp = new crs_matrix<T,I,O>(make_crs_matrix_loadbinary<T,I,O>(path)); //rvalue
   else
-    matp = new crs_matrix<T>(make_crs_matrix_load<T>(path)); //rvalue
+    matp = new crs_matrix<T,I,O>(make_crs_matrix_load<T,I,O>(path)); //rvalue
   if(!matp) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed!\n");
-  return to_dummy_matrix<crs_matrix<T>>(matp);
+  return to_dummy_matrix<crs_matrix<T,I,O>>(matp);
 }
  
 // loads data from specified file/dir and creates a exrpc::rowmajor_matrix<T>

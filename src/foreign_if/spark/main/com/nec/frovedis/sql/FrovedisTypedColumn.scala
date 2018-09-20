@@ -41,36 +41,48 @@ class FrovedisTypedColumn extends java.io.Serializable {
     val fs = FrovedisServer.getServerInstance()
     val proxy = JNISupport.getDFOperator(fs.master_node,toString(),
                                          arg.toString(),dtype(),GT,isImmed(arg))
+    val info = JNISupport.checkServerException();
+    if (info != "") throw new java.rmi.ServerException(info);
     return new DFOperator(proxy)
   }
   def >=(arg: Any): DFOperator = {
     val fs = FrovedisServer.getServerInstance()
     val proxy = JNISupport.getDFOperator(fs.master_node,toString(),
                                          arg.toString(),dtype(),GE,isImmed(arg))
+    val info = JNISupport.checkServerException();
+    if (info != "") throw new java.rmi.ServerException(info);
     return new DFOperator(proxy)
   }
   def <(arg: Any): DFOperator = {
     val fs = FrovedisServer.getServerInstance()
     val proxy = JNISupport.getDFOperator(fs.master_node,toString(),
                                          arg.toString(),dtype(),LT,isImmed(arg))
+    val info = JNISupport.checkServerException();
+    if (info != "") throw new java.rmi.ServerException(info);
     return new DFOperator(proxy)
   }
   def <=(arg: Any): DFOperator = {
     val fs = FrovedisServer.getServerInstance()
     val proxy = JNISupport.getDFOperator(fs.master_node,toString(),
                                          arg.toString(),dtype(),LE,isImmed(arg))
+    val info = JNISupport.checkServerException();
+    if (info != "") throw new java.rmi.ServerException(info);
     return new DFOperator(proxy)
   }
   def ===(arg: Any): DFOperator = {
     val fs = FrovedisServer.getServerInstance()
     val proxy = JNISupport.getDFOperator(fs.master_node,toString(),
                                          arg.toString(),dtype(),EQ,isImmed(arg))
+    val info = JNISupport.checkServerException();
+    if (info != "") throw new java.rmi.ServerException(info);
     return new DFOperator(proxy)
   }
   def !==(arg: Any): DFOperator = {
     val fs = FrovedisServer.getServerInstance()
     val proxy = JNISupport.getDFOperator(fs.master_node,toString(),
                                          arg.toString(),dtype(),NE,isImmed(arg))
+    val info = JNISupport.checkServerException();
+    if (info != "") throw new java.rmi.ServerException(info);
     return new DFOperator(proxy)
   }
   override def toString() = col_name

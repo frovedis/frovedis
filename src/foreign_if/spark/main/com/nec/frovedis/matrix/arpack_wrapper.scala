@@ -18,6 +18,8 @@ object ARPACK {
                              inputMovable: Boolean): GesvdResult = {
     val fs = FrovedisServer.getServerInstance()
     val res = JNISupport.computeSVD(fs.master_node,data.get(),k,inputMovable)
+    val info = JNISupport.checkServerException();
+    if (info != "") throw new java.rmi.ServerException(info); 
     return new GesvdResult(res)
   }
 } 

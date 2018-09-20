@@ -27,6 +27,8 @@ class GetrfResult extends java.io.Serializable {
     if(ipiv_ptr != -1) {
       val fs = FrovedisServer.getServerInstance()
       JNISupport.releaseIPIV(fs.master_node,mtype,ipiv_ptr)
+      val info1 = JNISupport.checkServerException();
+      if (info1 != "") throw new java.rmi.ServerException(info1);
       ipiv_ptr = -1
       info = -1
       mtype = -1
@@ -59,6 +61,8 @@ class GesvdResult extends java.io.Serializable {
     if(svec_ptr != -1) {
       val fs = FrovedisServer.getServerInstance()
       val svec = JNISupport.getDoubleArray(fs.master_node,svec_ptr)
+      val info = JNISupport.checkServerException();
+      if (info != "") throw new java.rmi.ServerException(info);
       println("svec: ")
       svec.foreach(println)
       if(umat != null) {
@@ -76,6 +80,8 @@ class GesvdResult extends java.io.Serializable {
     if(svec_ptr == -1) return null // quick return
     val fs = FrovedisServer.getServerInstance()
     val svec = JNISupport.getDoubleArray(fs.master_node,svec_ptr)
+    val info = JNISupport.checkServerException();
+    if (info != "") throw new java.rmi.ServerException(info);
     val spark_s = Vectors.dense(svec)
     val spark_u = if(umat != null) umat.to_spark_RowMatrix(ctxt) else null
     val spark_v = if(vmat != null) vmat.to_spark_Matrix() else null
@@ -91,6 +97,8 @@ class GesvdResult extends java.io.Serializable {
       val fs = FrovedisServer.getServerInstance()
       JNISupport.saveAsFrovedisDiagMatrixLocal(fs.master_node,
                                              svec_ptr,sfl,isbinary)
+      val info = JNISupport.checkServerException();
+      if (info != "") throw new java.rmi.ServerException(info);
       if(wantU && ufl != null) {
         if(isbinary) umat.savebinary(ufl)
         else umat.save(ufl)
@@ -123,6 +131,8 @@ class GesvdResult extends java.io.Serializable {
     val fs = FrovedisServer.getServerInstance()
     val ret = JNISupport.getSVDResultFromFiles(fs.master_node,mtype,
                                                sfl,ufl,vfl,wantU,wantV,isbinary)
+    val info = JNISupport.checkServerException();
+    if (info != "") throw new java.rmi.ServerException(info);
     release() // releasing old data
     load_dummy(ret) 
   }
@@ -159,6 +169,8 @@ class GesvdResult extends java.io.Serializable {
       info = -1
       val fs = FrovedisServer.getServerInstance()
       JNISupport.releaseDoubleArray(fs.master_node,svec_ptr)
+      val info1 = JNISupport.checkServerException();
+      if (info1 != "") throw new java.rmi.ServerException(info1);
       svec_ptr = -1
       if(umat != null) {
         umat.release()

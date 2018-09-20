@@ -20,6 +20,8 @@ public class JNISupport {
         }
     }, "Shutdown-thread"));
   }
+
+  public static native String checkServerException();
  
   // ---
   public static native MemPair loadFrovedisWorkerGLMData(Node t_node, 
@@ -32,9 +34,11 @@ public class JNISupport {
                                                           MemPair eps[],
                                                           long nrows, long ncols);
   public static native void releaseFrovedisLabeledPoint(Node master_node, 
-                                                        MemPair fdata);
+                                                        MemPair fdata, 
+                                                        boolean isDense);
   public static native void showFrovedisLabeledPoint(Node master_node, 
-                                                     MemPair fdata);
+                                                     MemPair fdata, 
+                                                     boolean isDense);
   // ---
   public static native long loadFrovedisWorkerVectorStringData(Node t_node, 
                                                              String val[], 
@@ -102,7 +106,8 @@ public class JNISupport {
                                             double stepSize,
                                             double miniBatchFraction,
                                             double regParam, 
-                                            int mid, boolean movable);
+                                            int mid, boolean movable,
+                                            boolean isDense);
 
   public static native void callFrovedisLRLBFGS(Node master_node,
                                               MemPair fdata,
@@ -110,7 +115,8 @@ public class JNISupport {
                                               double stepSize,
                                               int histSize,
                                               double regParam,
-                                              int mid, boolean movable);
+                                              int mid, boolean movable,
+                                              boolean isDense);
 
   // -------- Linear SVM Regression --------
   public static native void callFrovedisSVMSGD(Node master_node,
@@ -119,7 +125,8 @@ public class JNISupport {
                                              double stepSize,
                                              double miniBatchFraction,
                                              double regParam,
-                                             int mid, boolean movable);
+                                             int mid, boolean movable,
+                                             boolean isDense);
 
   public static native void callFrovedisSVMLBFGS(Node master_node,
                                                MemPair fdata,
@@ -127,7 +134,8 @@ public class JNISupport {
                                                double stepSize,
                                                int histSize,
                                                double regParam,
-                                               int mid, boolean movable);
+                                               int mid, boolean movable,
+                                               boolean isDense);
 
   // -------- Linear Regression --------
   public static native void callFrovedisLNRSGD(Node master_node,
@@ -135,14 +143,18 @@ public class JNISupport {
                                              int numIter,
                                              double stepSize,
                                              double miniBatchFraction,
-                                             int mid, boolean movable);
+                                             int mid, 
+                                             boolean movable,
+                                             boolean isDense);
 
   public static native void callFrovedisLNRLBFGS(Node master_node,
                                                MemPair fdata,
                                                int numIter,
                                                double stepSize,
                                                int histSize,
-                                               int mid, boolean movable);
+                                               int mid, 
+                                               boolean movable,
+                                               boolean isDense);
 
   // -------- Lasso Regression --------
   public static native void callFrovedisLassoSGD(Node master_node,
@@ -151,7 +163,9 @@ public class JNISupport {
                                                double stepSize,
                                                double miniBatchFraction,
                                                double regParam,
-                                               int mid, boolean movable);
+                                               int mid, 
+                                               boolean movable,
+                                               boolean isDense);
 
   public static native void callFrovedisLassoLBFGS(Node master_node,
                                                  MemPair fdata,
@@ -159,7 +173,9 @@ public class JNISupport {
                                                  double stepSize,
                                                  int histSize,
                                                  double regParam,
-                                                 int mid, boolean movable);
+                                                 int mid, 
+                                                 boolean movable,
+                                                 boolean isDense);
   
   // -------- Ridge Regression --------
   public static native void callFrovedisRidgeSGD(Node master_node,
@@ -168,7 +184,9 @@ public class JNISupport {
                                                double stepSize,
                                                double miniBatchFraction,
                                                double regParam,
-                                               int mid, boolean movable);
+                                               int mid, 
+                                               boolean movable,
+                                               boolean isDense);
 
   public static native void callFrovedisRidgeLBFGS(Node master_node,
                                                  MemPair fdata,
@@ -176,7 +194,9 @@ public class JNISupport {
                                                  double stepSize,
                                                  int histSize,
                                                  double regParam,
-                                                 int mid, boolean movable);
+                                                 int mid, 
+                                                 boolean movable,
+                                                 boolean isDense);
 
   // -------- Matrix Factorization Using ALS --------
   public static native void callFrovedisMFUsingALS(Node master_node,
@@ -195,7 +215,9 @@ public class JNISupport {
                                              int numIter,
                                              long seed,
                                              double epsilon,
-                                             int mid, boolean movable);
+                                             int mid, 
+                                             boolean movable,
+                                             boolean isDense);
 
   // -------- Compute SVD --------
   public static native DummyGesvdResult computeSVD(Node master_node,
@@ -262,6 +284,53 @@ public class JNISupport {
                                          int mid, short mkind, String path);
   public static native void saveFrovedisModel(Node master_node, int mid, 
                                             short mkind, String path);
+
+  public static native void loadFrovedisModel(Node master_node,
+                                          int model_Id, 
+                                          short mkind,  
+                                          String path);
+
+  public static native void callFrovedisFM(Node master_node,
+                                         MemPair fdata, double init_stdev,
+					 double learning_rate,
+					 int iteration,
+					 String optimizer,
+					 boolean is_regression,
+					 int batch_size,
+					 boolean global_bias,
+					 boolean one_way_interaction,
+					 int num_factor,
+					 double intercept,
+					 double reg1way,
+					 double reg_pairWise,
+					 int model_id,
+                                         boolean movable);
+
+  public static native void callFrovedisNBM(Node master_node, MemPair fdata,
+                                            double lambda, int model_id,
+                                            String modelType, boolean movable,
+                                            boolean isDense);
+
+  public static native String loadFrovedisNBM(Node master_node,
+                                              int model_id,
+                                              short mkind,String path);
+
+
+  public static native void callFrovedisDT(Node master_node,
+					MemPair fdata,
+					String Algo ,
+					int maxDepth,
+					int num_classes,
+					int max_bins,
+					String quantile_strategy,
+					double min_info_gain,
+                                        int min_instance_per_node,
+                                        String impurityType,
+                                 	int keys[],
+					int values[], int size,
+                                        int model_id,
+                                        boolean movable,
+                                        boolean isDense);  
 
   // [p]blas level 1 routines   
   public static native void swap(Node master_node, short mtype, 
@@ -336,7 +405,6 @@ public class JNISupport {
   public static native long createFrovedisDvector(Node master_node, long proxies[],
                                                 long sizes[], long size, short dtype);
 
-
   // frovedis dataframe column extraction
   public static native long[] getLocalIntColumnPointers(Node master_node,
                                                        long proxy, String cname);
@@ -358,12 +426,12 @@ public class JNISupport {
                                                            long proxy, String cname);
   public static native String[] getLocalStringVector(Node wnode, long dptr);
 
-
   public static native long createFrovedisDataframe(Node master_node,
                                                   short dtypes[],
                                                   String cols_names[],
                                                   long dvecs[], long size);
   public static native void releaseFrovedisDataframe(Node master_node, long data);
+
   public static native void showFrovedisDataframe(Node master_node, long data);
 
   public static native long getDFOperator(Node master_node, String op1, String op2,
@@ -393,21 +461,21 @@ public class JNISupport {
                                                     String[] name, String[] new_name,
                                                     int size);
   public static native long getFrovedisDFSize(Node master_node, long dproxy);
-  public static native String[] getFrovedisDFCounts(Node master_node, 
-                                                    long dproxy, String[] cname, 
+  public static native String[] getFrovedisDFCounts(Node master_node,
+                                                    long dproxy, String[] cname,
                                                     int size);
-  public static native String[] getFrovedisDFMeans(Node master_node, 
+  public static native String[] getFrovedisDFMeans(Node master_node,
                                                    long dproxy, String[] cname,
                                                    int size);
-  public static native String[] getFrovedisDFTotals(Node master_node, 
+  public static native String[] getFrovedisDFTotals(Node master_node,
                                                     long dproxy, String[] cname,
                                                     short[] tids,
                                                     int size);
-  public static native String[] getFrovedisDFMins(Node master_node, 
+  public static native String[] getFrovedisDFMins(Node master_node,
                                                   long dproxy, String[] cname,
                                                   short[] tids,
                                                   int size);
-  public static native String[] getFrovedisDFMaxs(Node master_node, 
+  public static native String[] getFrovedisDFMaxs(Node master_node,
                                                   long dproxy, String[] cname,
                                                   short[] tids,
                                                   int size);

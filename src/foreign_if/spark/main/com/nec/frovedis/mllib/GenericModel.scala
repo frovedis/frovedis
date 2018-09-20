@@ -1,7 +1,11 @@
 package com.nec.frovedis.mllib;
 
-import com.nec.frovedis.Jexrpc.{FrovedisServer,JNISupport}
+import com.nec.frovedis.Jexrpc.{Node,FrovedisServer,JNISupport}
+import com.nec.frovedis.matrix.Utils._
+import com.nec.frovedis.matrix.ScalaCRS
 import org.apache.spark.SparkContext
+import org.apache.spark.rdd.RDD
+import org.apache.spark.mllib.linalg.Vector
 
 object M_KIND {
   val GLM:    Short = 0
@@ -10,6 +14,10 @@ object M_KIND {
   val LNRM:   Short = 3
   val MFM:    Short = 4
   val KMEANS: Short = 5
+  val DTM:    Short = 6
+  val NBM:    Short = 7
+  val FMM:    Short = 8
+  val FPM:    Short = 9
 }
 
 object ModelID {
@@ -32,11 +40,15 @@ class GenericModel(modelId: Int,
   def debug_print() : Unit = {
     val fs = FrovedisServer.getServerInstance() 
     JNISupport.showFrovedisModel(fs.master_node,mid,mkind)
+    val info = JNISupport.checkServerException();
+    if (info != "") throw new java.rmi.ServerException(info);
   }
   def save(sc: SparkContext, path: String) : Unit = save(path) 
   def save(path: String) : Unit = {
     val fs = FrovedisServer.getServerInstance()
     JNISupport.saveFrovedisModel(fs.master_node,mid,mkind,path) 
+    val info = JNISupport.checkServerException();
+    if (info != "") throw new java.rmi.ServerException(info);
   }
   def release() : Unit = {
     val fs = FrovedisServer.getServerInstance() 
@@ -45,7 +57,58 @@ class GenericModel(modelId: Int,
     // [What is the Spark way of getting selfid()?]
     // Currently, the same is taken care using a deleted-model tracker at Frovedis side.
     JNISupport.releaseFrovedisModel(fs.master_node,mid,mkind)
+    val info = JNISupport.checkServerException();
+    if (info != "") throw new java.rmi.ServerException(info);
     //println("[scala] model[" + mid + "] is finalized.")
   }
   //override def finalize() = release()
+}
+
+class GenericModelWithPredict(modelId: Int,
+                              modelKind: Short) 
+  extends GenericModel(modelId,modelKind) {
+  private[mllib] def parallel_predict(data: Iterator[Vector],
+                       mptr: Long,
+                       t_node: Node) : Iterator[Double] = {
+    val darr = data.map(x => x.toSparse).toArray
+    val scalaCRS = new ScalaCRS(darr)
+    val ret = JNISupport.doParallelGLMPredict(t_node, mptr, mkind,
+                                              scalaCRS.nrows, 
+                                              scalaCRS.ncols,
+                                              scalaCRS.off.toArray,
+                                              scalaCRS.idx.toArray,
+                                              scalaCRS.data.toArray)
+    val info = JNISupport.checkServerException();
+    if (info != "") throw new java.rmi.ServerException(info);
+    return ret.toIterator
+  }
+  // prediction on single input
+  def predict(data: Vector) : Double = {
+    val fs = FrovedisServer.getServerInstance()
+    val darr = Array(data.toSparse) // an array of one SparseVector
+    val scalaCRS = new ScalaCRS(darr)
+    val ret = JNISupport.doSingleGLMPredict(fs.master_node, mid, mkind,
+                                            scalaCRS.nrows, 
+                                            scalaCRS.ncols,
+                                            scalaCRS.off.toArray,
+                                            scalaCRS.idx.toArray,
+                                            scalaCRS.data.toArray);
+    val info = JNISupport.checkServerException();
+    if (info != "") throw new java.rmi.ServerException(info);
+    return ret;
+  }
+  // prediction on multiple inputs
+  def predict(data: RDD[Vector]) : RDD[Double] = {
+    val fs = FrovedisServer.getServerInstance()
+    val each_model = JNISupport.broadcast2AllWorkers(fs.master_node,mid,mkind)
+    val info = JNISupport.checkServerException();
+    if (info != "") throw new java.rmi.ServerException(info);
+    //println("[scala] Getting worker info for prediction on model[" + mid + "].")
+    val fw_nodes = JNISupport.getWorkerInfo(fs.master_node)
+    val info1 = JNISupport.checkServerException();
+    if (info1 != "") throw new java.rmi.ServerException(info1);
+    val wdata = data.repartition2(fs.worker_size)
+    return wdata.mapPartitionsWithIndex((i,x) => 
+                parallel_predict(x,each_model(i),fw_nodes(i)))
+  }
 }

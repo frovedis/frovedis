@@ -2,6 +2,7 @@ package com.nec.frovedis.mllib.clustering;
 
 import com.nec.frovedis.Jexrpc.{FrovedisServer,JNISupport}
 import com.nec.frovedis.exrpc.FrovedisSparseData
+import com.nec.frovedis.matrix.FrovedisRowmajorMatrix
 import com.nec.frovedis.mllib.{M_KIND,ModelID,GenericModel}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.mllib.linalg.Vector
@@ -23,8 +24,15 @@ object KMeans {
             iterations: Int,
             seed: Long,
             epsilon: Double): KMeansModel = {
-    val fdata = new FrovedisSparseData(data) // Spark Data => Frovedis Data
-    return train(fdata, k, iterations, seed, epsilon, true)
+    val isDense = data.first.getClass.toString() matches ".*DenseVector*."
+    if (isDense) {
+      val fdata = new FrovedisRowmajorMatrix(data)
+      return train(fdata, k, iterations, seed, epsilon, true)
+    }
+    else {
+      val fdata = new FrovedisSparseData(data)
+      return train(fdata, k, iterations, seed, epsilon, true)
+    }
   }
 
   def train(data: RDD[Vector],
@@ -58,7 +66,9 @@ object KMeans {
     val fs = FrovedisServer.getServerInstance()
     JNISupport.callFrovedisKMeans(fs.master_node,data.get(),k,
                                 iterations,seed,epsilon,
-                                mid,isMovableInput)
+                                mid,isMovableInput,false)
+    val info = JNISupport.checkServerException();
+    if (info != "") throw new java.rmi.ServerException(info);
     return new KMeansModel(mid,M_KIND.KMEANS,k)
   }
 
@@ -87,4 +97,47 @@ object KMeans {
             k: Int): KMeansModel = {
     return train(data, k, 100, 0, 0.01, false)
   }
+  
+  //added for dense matrix support 
+  def train(data: FrovedisRowmajorMatrix,
+            k: Int,
+            iterations: Int,
+            seed: Long,
+            epsilon: Double,
+            isMovableInput: Boolean): KMeansModel = {
+    val mid = ModelID.get()
+    val fs = FrovedisServer.getServerInstance()
+    JNISupport.callFrovedisKMeans(fs.master_node,data.get(),k,
+                                iterations,seed,epsilon,
+                                mid,isMovableInput,true)
+    val info = JNISupport.checkServerException();
+    if (info != "") throw new java.rmi.ServerException(info);
+    return new KMeansModel(mid,M_KIND.KMEANS,k)
+  } 
+  def train(data: FrovedisRowmajorMatrix,
+            k: Int,
+            iterations: Int,
+            seed: Long,
+            epsilon: Double): KMeansModel = {
+    return train(data, k, iterations, seed, epsilon, false)
+  }
+
+  def train(data: FrovedisRowmajorMatrix,
+            k: Int,
+            iterations: Int,
+            seed: Long): KMeansModel = {
+    return train(data, k, iterations, seed, 0.01, false)
+  }
+
+  def train(data: FrovedisRowmajorMatrix,
+            k: Int,
+            iterations: Int): KMeansModel = {
+    return train(data, k, iterations, 0, 0.01, false)
+  }
+
+  def train(data: FrovedisRowmajorMatrix,
+            k: Int): KMeansModel = {
+    return train(data, k, 100, 0, 0.01, false)
+  }
+   
 }

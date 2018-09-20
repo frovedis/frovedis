@@ -3,7 +3,8 @@ include ../../../../../Makefile.in.x86
 LIBS := ../../../exrpc/libfrovedis_exrpc.a ../../../../frovedis/core/libfrovedis_core.a ../../../../frovedis/matrix/libfrovedis_matrix.a ../../../../frovedis/ml/libfrovedis_ml.a ../../../../frovedis/dataframe/libfrovedis_dataframe.a ../../../server/libfrovedis_server.a
 INCLUDES := -I../../../../../third_party/cereal-1.2.2/include/ -I../../../.. -I../../../exrpc -I../../../server -I${JAVA_HOME}/include -I${JAVA_HOME}/include/linux
 
-CXXFLAGS := ${CXXFLAGS_COMMON} ${INCLUDES}
+DFLAGS := -DUSE_DF
+CXXFLAGS := ${CXXFLAGS_COMMON} ${INCLUDES} ${DFLAGS}
 
 TARGETS := libfrovedis_client_spark.so
 

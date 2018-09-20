@@ -38,8 +38,13 @@ bool is_deleted(int mid) {
   return (deleted_model_tracker.find(mid) != deleted_model_tracker.end());
 }
 
+
 // deletes all in-memory Frovedis models 
 void finalize_model_table() {
+/*
+  TODO: <--- correct this case --->
+  with float data support in case of python, these typecasting would become erroneous
+
   for(auto m: model_table) {
     switch(m.second.first) {
       case LRM:    delete reinterpret_cast<logistic_regression_model<double>*>(m.second.second); break;
@@ -47,9 +52,13 @@ void finalize_model_table() {
       case LNRM:   delete reinterpret_cast<linear_regression_model<double>*>(m.second.second); break;
       case MFM:    delete reinterpret_cast<matrix_factorization_model<double>*>(m.second.second); break;
       case KMEANS: delete reinterpret_cast<rowmajor_matrix_local<double>*>(m.second.second); break;
+      case DTM: delete reinterpret_cast<decision_tree_model<double>*>(m.second.second); break;
+      case NBM: delete reinterpret_cast<naive_bayes_model<double>*>(m.second.second); break;
+      case FMM: delete reinterpret_cast<fm::fm_model<double>*>(m.second.second); break;
       default: REPORT_ERROR(INTERNAL_ERROR,"Unknown Model Kind is encountered!\n");
     }
-  } 
+  }
+*/ 
   model_table.erase(model_table.begin(), model_table.end()); 
 }
 

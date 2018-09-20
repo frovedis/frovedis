@@ -13,6 +13,9 @@
 #include "frovedis/ml/glm/linear_model.hpp"
 #include "frovedis/ml/recommendation/matrix_factorization_model.hpp"
 #include "frovedis/ml/clustering/kmeans.hpp"
+#include "frovedis/ml/tree/tree_model.hpp"
+#include "frovedis/ml/fm/model.hpp"
+#include "frovedis/ml/nb/nb_model.hpp"
 #include "../exrpc/exrpc_expose.hpp"
 #include "dummy_model.hpp"
 #include "model_tracker.hpp"
@@ -73,7 +76,7 @@ void print_each_model(exrpc_ptr_t& mp) {
 
 // broadcasts the registered model from master node to all worker nodes
 // and returns the vector containing all model heads at worker nodes
-template <class T, class MODEL>
+template <class T, class MODEL> // TODO: T not required, delete it
 std::vector<exrpc_ptr_t> 
 bcast_model_to_workers(int& mid) {
   auto mptr = get_model_ptr<MODEL>(mid);
@@ -88,6 +91,18 @@ bcast_model_to_workers(int& mid) {
 #ifdef _EXRPC_DEBUG_
   ret.mapv(print_each_model<MODEL>);
 #endif
+  return ret.gather();
+}
+
+// broadcasts the fm_model from master node to all worker nodes
+// and returns the vector containing all model heads at worker nodes
+template <class T>
+std::vector<exrpc_ptr_t>
+bcast_fmm_to_workers(int& mid) {
+  auto& model = *get_model_ptr<fm::fm_model<T>>(mid);
+  auto bcast_model = frovedis::broadcast(model);
+  //auto bcast_model = model.broadcast(); // TODO: support as a member function, for performance
+  auto ret = bcast_model.map(get_each_model<fm::fm_model<T>>);
   return ret.gather();
 }
 
@@ -385,11 +400,161 @@ size_t load_kmm(int& mid, MODEL_KIND& mkind, std::string& path) {
   return k;
 }
 
+// generic model loading for decision_tree_model, fp_growth_model.
+template <class MODEL>
+void load_model(int& mid, MODEL_KIND& mkind, std::string& path) {
+  auto mptr = new MODEL();
+  if(!mptr) REPORT_ERROR(INTERNAL_ERROR,"memory allocation failed!\n");
+  mptr->loadbinary(path); // for faster loading
+  auto mptr_ = reinterpret_cast<exrpc_ptr_t>(mptr);
+  register_model(mid,mkind,mptr_);
+}
+
+// load for naive_bayes_model returns a string
+template <class T>
+std::string load_nbm(int& mid, MODEL_KIND& mkind, std::string& path) {
+  auto mptr = new naive_bayes_model<T>();
+  if(!mptr) REPORT_ERROR(INTERNAL_ERROR,"memory allocation failed!\n");
+  mptr->loadbinary(path); // for faster loading
+  auto mtype = mptr->model_type;
+  auto mptr_ = reinterpret_cast<exrpc_ptr_t>(mptr);
+  register_model(mid,mkind,mptr_);
+  return mtype;
+}
+
 // saves the frovedis model to the specified file
 template <class MODEL>
 void save_model(int& mid, std::string& path) {
   auto mptr = get_model_ptr<MODEL>(mid);
   mptr->savebinary(path); // for faster saving
+}
+
+// saves the frovedis fm_model to the specified file
+template <class T>
+void save_fmm(int& mid, std::string& path) {
+  auto mptr = get_model_ptr<fm::fm_model<T>>(mid);
+  mptr->save(path); // savebinary not implemented for factorization machine model
+}
+
+template <class T, class MATRIX>
+T single_nbm_predict(MATRIX& data, int& mid) {
+  auto mptr = get_model_ptr<naive_bayes_model<T>>(mid);
+  return mptr->predict(data)[0]; // TODO: support: direct vector data from client side
+}
+
+// only for spark
+// it should be executed by each worker.
+// model should have broadcasted beforehand.
+template <class T, class MATRIX>
+std::vector<T> parallel_nbm_predict(MATRIX& data, exrpc_ptr_t& mp) {
+  auto mptr = reinterpret_cast<naive_bayes_model<T>*>(mp);
+  std::vector<T> ret = mptr->predict(data);
+  // after prediction broadcasted models will be freed from worker nodes.
+  delete mptr;
+  return ret;
+}
+
+template <class T, class MATRIX>
+std::vector<T> 
+nbm_predict_at_worker(MATRIX& data, 
+                      naive_bayes_model<T>& model, bool& prob) {
+  //return (prob ? model.predict(data): model.predict_proba(data));
+  return model.predict(data);
+}
+
+// the below call is for scikit-learn. 
+// in that case model would be broadcasted first at master, 
+// and then predict call would be mapped on each worker with probability value
+template <class T, class MATRIX, class L_MATRIX>
+std::vector<T> 
+parallel_nbm_predict_with_broadcast(exrpc_ptr_t& mat_ptr, int& mid, bool& prob) { 
+  MATRIX& mat = *reinterpret_cast<MATRIX*> (mat_ptr);
+  auto& model = *get_model_ptr<naive_bayes_model<T>>(mid);
+  auto bmodel = model.broadcast(); // for performance
+  return mat.data.map(nbm_predict_at_worker<T,L_MATRIX>,bmodel,broadcast(prob))
+                 .template moveto_dvector<T>().gather();
+}
+
+template <class T, class MATRIX>
+T single_dtm_predict(MATRIX& data, int& mid) {
+  auto mptr = get_model_ptr<decision_tree_model<T>>(mid);
+  return mptr->predict(data)[0]; // TODO: support: direct vector data from client side
+}
+
+// only for spark
+// it should be executed by each worker.
+// model should have broadcasted beforehand.
+template <class T, class MATRIX>
+std::vector<T> parallel_dtm_predict(MATRIX& data, exrpc_ptr_t& mp) {
+  auto mptr = reinterpret_cast<decision_tree_model<T>*>(mp);
+  std::vector<T> ret = mptr->predict(data);
+  // after prediction broadcasted models will be freed from worker nodes.
+  delete mptr;
+  return ret;
+}
+
+template <class T, class MATRIX>
+std::vector<T> 
+dtm_predict_at_worker(MATRIX& data, 
+                      decision_tree_model<T>& model, bool& prob) {
+  if(!prob) return model.predict(data);
+  else {
+    auto tmp = model.predict_with_probability(data);
+    std::vector<T> ret(tmp.size());
+    for(size_t i=0; i<tmp.size(); ++i) ret[i] = tmp[i].get_probability();
+    return ret;
+  }
+}
+
+// the below call is for scikit-learn. 
+// in that case model would be broadcasted first at master, 
+// and then predict call would be mapped on each worker with probability value
+template <class T, class MATRIX, class L_MATRIX>
+std::vector<T> 
+parallel_dtm_predict_with_broadcast(exrpc_ptr_t& mat_ptr, int& mid, bool& prob) { 
+  MATRIX& mat = *reinterpret_cast<MATRIX*> (mat_ptr);
+  auto& model = *get_model_ptr<decision_tree_model<T>>(mid);
+  auto bmodel = model.broadcast(); // for performance
+  return mat.data.map(dtm_predict_at_worker<T,L_MATRIX>,bmodel,broadcast(prob))
+                 .template moveto_dvector<T>().gather();
+}
+
+template <class T, class MATRIX>
+T single_fmm_predict(MATRIX& data, int& mid) {
+  auto mptr = get_model_ptr<fm::fm_model<T>>(mid);
+  return mptr->predict(data)[0]; // TODO: support: direct vector data from client side
+}
+
+// only for spark
+// it should be executed by each worker.
+// model should have broadcasted beforehand.
+template <class T, class MATRIX>
+std::vector<T> parallel_fmm_predict(MATRIX& data, exrpc_ptr_t& mp) {
+  auto mptr = reinterpret_cast<fm::fm_model<T>*>(mp);
+  std::vector<T> ret = mptr->predict(data);
+  // after prediction broadcasted models will be freed from worker nodes.
+  delete mptr;
+  return ret;
+}
+
+template <class T, class MATRIX>
+std::vector<T> 
+fmm_predict_at_worker(MATRIX& data, fm::fm_model<T>& model) {
+  return model.predict(data);
+}
+
+// the below call is for scikit-learn. 
+// in that case model would be broadcasted first at master, 
+// and then predict call would be mapped on each worker with probability value
+template <class T, class MATRIX, class L_MATRIX>
+std::vector<T> 
+parallel_fmm_predict_with_broadcast(exrpc_ptr_t& mat_ptr, int& mid) { 
+  MATRIX& mat = *reinterpret_cast<MATRIX*> (mat_ptr);
+  auto& model = *get_model_ptr<fm::fm_model<T>>(mid);
+  auto bmodel = frovedis::broadcast(model); 
+  //auto bmodel = model.broadcast(); // support as a member function, for performance
+  return mat.data.map(fmm_predict_at_worker<T,L_MATRIX>,bmodel)
+                 .template moveto_dvector<T>().gather();
 }
 
 #endif 

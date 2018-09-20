@@ -8,6 +8,7 @@ import org.apache.spark.rdd.RDD
 case class info(proxy: Long, size: Long)
 
 object DTYPE {
+  val NONE:   Short = 0
   val INT:    Short = 1
   val LONG:   Short = 2
   val FLOAT:  Short = 3
@@ -23,6 +24,8 @@ object IntDvector {
     val size = darr.size
     //println("index: " + index + ", size: " + size)
     val proxy = JNISupport.loadFrovedisWorkerIntVector(t_node,size,darr)
+    val info1 = JNISupport.checkServerException();
+    if (info1 != "") throw new java.rmi.ServerException(info1);
     //mapPartitionsWithIndex needs to return an Iterator object
     return Array(info(proxy,size)).toIterator
   }
@@ -31,13 +34,18 @@ object IntDvector {
     //data.collect.foreach(println)
     val fs = FrovedisServer.getServerInstance()
     val fw_nodes = JNISupport.getWorkerInfo(fs.master_node) // native call
+    val info = JNISupport.checkServerException();
+    if (info != "") throw new java.rmi.ServerException(info);
     val wdata = data.repartition2(fs.worker_size)
     val ret = wdata.mapPartitionsWithIndex(
               (i,x) => copy_local_data(i,x,fw_nodes(i))).collect
     val proxies = ret.map(_.proxy)
     val sizes = ret.map(_.size)
-    return JNISupport.createFrovedisDvector(fs.master_node,proxies,sizes,
+    val ret_p = JNISupport.createFrovedisDvector(fs.master_node,proxies,sizes,
                                           ret.size,DTYPE.INT)
+    val info1 = JNISupport.checkServerException();
+    if (info1 != "") throw new java.rmi.ServerException(info1);
+    else return ret_p;
   }
 }
 
@@ -48,6 +56,8 @@ object LongDvector {
     val size = darr.size
     //println("index: " + index + ", size: " + size)
     val proxy = JNISupport.loadFrovedisWorkerLongVector(t_node,size,darr)
+    val info1 = JNISupport.checkServerException();
+    if (info1 != "") throw new java.rmi.ServerException(info1);
     //mapPartitionsWithIndex needs to return an Iterator object
     return Array(info(proxy,size)).toIterator
   }
@@ -56,14 +66,20 @@ object LongDvector {
     //data.collect.foreach(println)
     val fs = FrovedisServer.getServerInstance()
     val fw_nodes = JNISupport.getWorkerInfo(fs.master_node) // native call
+    val info = JNISupport.checkServerException();
+    if (info != "") throw new java.rmi.ServerException(info);
     val wdata = data.repartition2(fs.worker_size)
     val ret = wdata.mapPartitionsWithIndex(
               (i,x) => copy_local_data(i,x,fw_nodes(i))).collect
     val proxies = ret.map(_.proxy)
     val sizes = ret.map(_.size)
-    return JNISupport.createFrovedisDvector(fs.master_node,proxies,sizes,
+    val ret_p = JNISupport.createFrovedisDvector(fs.master_node,proxies,sizes,
                                           ret.size,DTYPE.LONG)
-  }
+    val info1 = JNISupport.checkServerException();
+    if (info1 != "") throw new java.rmi.ServerException(info1); 
+    else return ret_p;
+ }
+
 }
 
 object FloatDvector {
@@ -73,6 +89,8 @@ object FloatDvector {
     val size = darr.size
     //println("index: " + index + ", size: " + size)
     val proxy = JNISupport.loadFrovedisWorkerFloatVector(t_node,size,darr)
+    val info1 = JNISupport.checkServerException();
+    if (info1 != "") throw new java.rmi.ServerException(info1);
     //mapPartitionsWithIndex needs to return an Iterator object
     return Array(info(proxy,size)).toIterator
   }
@@ -81,13 +99,18 @@ object FloatDvector {
     //data.collect.foreach(println)
     val fs = FrovedisServer.getServerInstance()
     val fw_nodes = JNISupport.getWorkerInfo(fs.master_node) // native call
+    val info = JNISupport.checkServerException();
+    if (info != "") throw new java.rmi.ServerException(info);
     val wdata = data.repartition2(fs.worker_size)
     val ret = wdata.mapPartitionsWithIndex(
               (i,x) => copy_local_data(i,x,fw_nodes(i))).collect
     val proxies = ret.map(_.proxy)
     val sizes = ret.map(_.size)
-    return JNISupport.createFrovedisDvector(fs.master_node,proxies,sizes,
+    val ret_p =  JNISupport.createFrovedisDvector(fs.master_node,proxies,sizes,
                                           ret.size,DTYPE.FLOAT)
+    val info1 = JNISupport.checkServerException();
+    if (info1 != "") throw new java.rmi.ServerException(info1);
+    else return ret_p;
   }
 }
 
@@ -98,6 +121,8 @@ object DoubleDvector {
     val size = darr.size
     //println("index: " + index + ", size: " + size)
     val proxy = JNISupport.loadFrovedisWorkerDoubleVector(t_node,size,darr)
+    val info1 = JNISupport.checkServerException();
+    if (info1 != "") throw new java.rmi.ServerException(info1);
     //mapPartitionsWithIndex needs to return an Iterator object
     return Array(info(proxy,size)).toIterator
   }
@@ -106,14 +131,19 @@ object DoubleDvector {
     //data.collect.foreach(println)
     val fs = FrovedisServer.getServerInstance()
     val fw_nodes = JNISupport.getWorkerInfo(fs.master_node) // native call
+    val info = JNISupport.checkServerException();
+    if (info != "") throw new java.rmi.ServerException(info);
     val wdata = data.repartition2(fs.worker_size)
     val ret = wdata.mapPartitionsWithIndex(
               (i,x) => copy_local_data(i,x,fw_nodes(i))).collect
     val proxies = ret.map(_.proxy)
     val sizes = ret.map(_.size)
-    return JNISupport.createFrovedisDvector(fs.master_node,proxies,sizes,
+    val ret_p = JNISupport.createFrovedisDvector(fs.master_node,proxies,sizes,
                                           ret.size,DTYPE.DOUBLE)
-  }
+    val info1 = JNISupport.checkServerException();
+    if (info1 != "") throw new java.rmi.ServerException(info1); 
+    else return ret_p;
+ }
 }
 
 object StringDvector {
@@ -123,6 +153,8 @@ object StringDvector {
     val size = darr.size
     //println("index: " + index + ", size: " + size)
     val proxy = JNISupport.loadFrovedisWorkerStringVector(t_node,size,darr)
+    val info1 = JNISupport.checkServerException();
+    if (info1 != "") throw new java.rmi.ServerException(info1);
     //mapPartitionsWithIndex needs to return an Iterator object
     return Array(info(proxy,size)).toIterator
   }
@@ -131,13 +163,18 @@ object StringDvector {
     //data.collect.foreach(println)
     val fs = FrovedisServer.getServerInstance()
     val fw_nodes = JNISupport.getWorkerInfo(fs.master_node) // native call
+    val info = JNISupport.checkServerException();
+    if (info != "") throw new java.rmi.ServerException(info);
     val wdata = data.repartition2(fs.worker_size)
     val ret = wdata.mapPartitionsWithIndex(
               (i,x) => copy_local_data(i,x,fw_nodes(i))).collect
     val proxies = ret.map(_.proxy)
     val sizes = ret.map(_.size)
-    return JNISupport.createFrovedisDvector(fs.master_node,proxies,sizes,
+    val ret_p = JNISupport.createFrovedisDvector(fs.master_node,proxies,sizes,
                                           ret.size,DTYPE.STRING)
+    val info1 = JNISupport.checkServerException();
+    if (info1 != "") throw new java.rmi.ServerException(info1);
+    else return ret_p;
   }
 }
 
@@ -148,6 +185,8 @@ object BoolDvector {
     val size = darr.size
     //println("index: " + index + ", size: " + size)
     val proxy = JNISupport.loadFrovedisWorkerBoolVector(t_node,size,darr)
+    val info1 = JNISupport.checkServerException();
+    if (info1 != "") throw new java.rmi.ServerException(info1);
     //mapPartitionsWithIndex needs to return an Iterator object
     return Array(info(proxy,size)).toIterator
   }
@@ -156,13 +195,18 @@ object BoolDvector {
     //data.collect.foreach(println)
     val fs = FrovedisServer.getServerInstance()
     val fw_nodes = JNISupport.getWorkerInfo(fs.master_node) // native call
+    val info = JNISupport.checkServerException();
+    if (info != "") throw new java.rmi.ServerException(info);
     val wdata = data.repartition2(fs.worker_size)
     val ret = wdata.mapPartitionsWithIndex(
               (i,x) => copy_local_data(i,x,fw_nodes(i))).collect
     val proxies = ret.map(_.proxy)
     val sizes = ret.map(_.size)
-    return JNISupport.createFrovedisDvector(fs.master_node,proxies,sizes,
+    val ret_p = JNISupport.createFrovedisDvector(fs.master_node,proxies,sizes,
                                           ret.size,DTYPE.BOOL)
+    val info1 = JNISupport.checkServerException();
+    if (info1 != "") throw new java.rmi.ServerException(info1);
+    else return ret_p;
   }
 }
 

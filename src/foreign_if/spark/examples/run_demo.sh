@@ -10,15 +10,39 @@ COMMAND="mpirun -np 2 ../../server/frovedis_server"
 # by default, Spark runs as local mode
 # if you use distributed mode, put the input files to HDFS
 # hadoop fs -put input
-if [ ! -d out ]; then
-    mkdir out
-fi
+
+echo "\n --- executing data transfer demo ---"
 spark-submit --driver-java-options "-Djava.library.path=$LIBRARY_PATH" --jars $JARS --conf spark.driver.memory=8g lib/spark2frovedis_data_transfer.jar "$COMMAND"
-spark-submit --driver-java-options "-Djava.library.path=$LIBRARY_PATH" --jars $JARS --conf spark.driver.memory=8g lib/spark2frovedis_lrsgd.jar "$COMMAND"
-spark-submit --driver-java-options "-Djava.library.path=$LIBRARY_PATH" --jars $JARS --conf spark.driver.memory=8g lib/spark2frovedis_lrm.jar  "$COMMAND"
-spark-submit --driver-java-options "-Djava.library.path=$LIBRARY_PATH" --jars $JARS --conf spark.driver.memory=8g lib/spark2frovedis_als.jar "$COMMAND"
-spark-submit --driver-java-options "-Djava.library.path=$LIBRARY_PATH" --jars $JARS --conf spark.driver.memory=8g lib/spark2frovedis_kmeans.jar "$COMMAND"
+
+echo "\n --- executing frovedis matrix demo ---"
 spark-submit --driver-java-options "-Djava.library.path=$LIBRARY_PATH" --jars $JARS --conf spark.driver.memory=8g lib/spark2frovedis_mat.jar "$COMMAND"
+
+echo "\n --- executing frovedis dataframe demo ---"
 spark-submit --driver-java-options "-Djava.library.path=$LIBRARY_PATH" --jars $JARS --conf spark.driver.memory=8g lib/spark2frovedis_df.jar "$COMMAND"
+
+echo "\n --- executing frovedis wrapper demo ---"
 spark-submit --driver-java-options "-Djava.library.path=$LIBRARY_PATH" --jars $JARS --conf spark.driver.memory=8g lib/spark2frovedis_pblas_scalapack.jar "$COMMAND"
+
+echo "\n --- executing frovedis sparse svd demo ---"
 spark-submit --driver-java-options "-Djava.library.path=$LIBRARY_PATH" --jars $JARS --conf spark.driver.memory=8g lib/spark2frovedis_arpack.jar "$COMMAND"
+
+echo "\n --- executing frovedis logistic regression with sgd demo ---"
+spark-submit --driver-java-options "-Djava.library.path=$LIBRARY_PATH" --jars $JARS --conf spark.driver.memory=8g lib/spark2frovedis_lrsgd.jar "$COMMAND"
+
+echo "\n --- executing frovedis logistic regression model operations demo ---"
+spark-submit --driver-java-options "-Djava.library.path=$LIBRARY_PATH" --jars $JARS --conf spark.driver.memory=8g lib/spark2frovedis_lrm.jar  "$COMMAND"
+
+echo "\n --- executing frovedis naive bayes demo ---"
+spark-submit --driver-java-options "-Djava.library.path=$LIBRARY_PATH" --jars $JARS --conf spark.driver.memory=8g lib/spark2frovedis_nb.jar "$COMMAND"
+
+echo "\n --- executing frovedis decision tree demo ---"
+spark-submit --driver-java-options "-Djava.library.path=$LIBRARY_PATH" --jars $JARS --conf spark.driver.memory=8g lib/spark2frovedis_dt.jar "$COMMAND"
+
+echo "\n --- executing frovedis factorization machine demo ---"
+spark-submit --driver-java-options "-Djava.library.path=$LIBRARY_PATH" --jars $JARS --conf spark.driver.memory=8g lib/spark2frovedis_fm.jar "$COMMAND"
+
+echo "\n --- executing frovedis recommendation demo ---"
+spark-submit --driver-java-options "-Djava.library.path=$LIBRARY_PATH" --jars $JARS --conf spark.driver.memory=8g lib/spark2frovedis_als.jar "$COMMAND"
+
+echo "\n --- executing frovedis kmeans demo ---"
+spark-submit --driver-java-options "-Djava.library.path=$LIBRARY_PATH" --jars $JARS --conf spark.driver.memory=8g lib/spark2frovedis_kmeans.jar "$COMMAND"

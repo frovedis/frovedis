@@ -17,7 +17,7 @@
 
 using namespace frovedis;
 
-template <class T, class MATRIX>
+template <class MATRIX, class T, class I = size_t>
 gesvd_result frovedis_sparse_svd(exrpc_ptr_t& data_ptr, int& k, 
                                  bool& isMovableInput=false) {
   MATRIX& mat = *reinterpret_cast<MATRIX*>(data_ptr);      
@@ -27,12 +27,12 @@ gesvd_result frovedis_sparse_svd(exrpc_ptr_t& data_ptr, int& k,
   colmajor_matrix<T> u, v;
   diag_matrix_local<T> s;
 #if defined(_SX) || defined(__ve__)
-  frovedis::sparse_svd<jds_crs_hybrid<T>,jds_crs_hybrid_local<T>>(mat,u,s,v,k);
+  frovedis::sparse_svd<jds_crs_hybrid<T,I>,jds_crs_hybrid_local<T,I>>(mat,u,s,v,k);
 #else
-  frovedis::sparse_svd<T>(mat,u,s,v,k);
+  frovedis::sparse_svd(mat,u,s,v,k);
 #endif
   // if input is movable, destroying Frovedis side data after computation is done.
-  if (isMovableInput)  mat.data.mapv(clear_mat_data<T>); 
+  if (isMovableInput)  mat.clear(); 
   auto svecp = reinterpret_cast<exrpc_ptr_t>(new std::vector<T>(std::move(s.val)));
   auto umatp = reinterpret_cast<exrpc_ptr_t>(new colmajor_matrix<T>(std::move(u)));
   auto vmatp = reinterpret_cast<exrpc_ptr_t>(new colmajor_matrix<T>(std::move(v)));

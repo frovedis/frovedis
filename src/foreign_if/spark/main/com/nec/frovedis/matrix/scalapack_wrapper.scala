@@ -13,8 +13,11 @@ object ScaLAPACK {
   def getri(mat: FrovedisBlockcyclicMatrix,
             ipiv_ptr: Long) : Int = {
     val fs = FrovedisServer.getServerInstance()
-    return JNISupport.getri(fs.master_node,DMAT_KIND.BCLC,
+    val ret = JNISupport.getri(fs.master_node,DMAT_KIND.BCLC,
                             mat.get(),ipiv_ptr)
+    val info = JNISupport.checkServerException();
+    if (info != "") throw new java.rmi.ServerException(info);
+    else return ret;
   }
 
   def getrs(matA: FrovedisBlockcyclicMatrix,
@@ -28,16 +31,22 @@ object ScaLAPACK {
             ipiv_ptr: Long,
             isTrans: Boolean) : Int = {
     val fs = FrovedisServer.getServerInstance()
-    return JNISupport.getrs(fs.master_node,DMAT_KIND.BCLC,
+    val ret = JNISupport.getrs(fs.master_node,DMAT_KIND.BCLC,
                             matA.get(),matB.get(),
                             ipiv_ptr,isTrans)
+    val info = JNISupport.checkServerException();
+    if (info != "") throw new java.rmi.ServerException(info);
+    else return ret;
   }
 
   def gesv(matA: FrovedisBlockcyclicMatrix,
            matB: FrovedisBlockcyclicMatrix): Int = {
     val fs = FrovedisServer.getServerInstance()
-    return JNISupport.gesv(fs.master_node,DMAT_KIND.BCLC,
+    val ret = JNISupport.gesv(fs.master_node,DMAT_KIND.BCLC,
                            matA.get(),matB.get())
+    val info = JNISupport.checkServerException();
+    if (info != "") throw new java.rmi.ServerException(info);
+    else return ret;
   }
 
   def gels(matA: FrovedisBlockcyclicMatrix,
@@ -49,8 +58,11 @@ object ScaLAPACK {
            matB: FrovedisBlockcyclicMatrix,
            isTrans: Boolean): Int = {
     val fs = FrovedisServer.getServerInstance()
-    return JNISupport.gels(fs.master_node,DMAT_KIND.BCLC,
+    val ret = JNISupport.gels(fs.master_node,DMAT_KIND.BCLC,
                            matA.get(),matB.get(),isTrans)
+    val info = JNISupport.checkServerException();
+    if (info != "") throw new java.rmi.ServerException(info);
+    else return ret;
   }
 
   // want both U and V
@@ -64,6 +76,8 @@ object ScaLAPACK {
     val fs = FrovedisServer.getServerInstance()
     val ret = JNISupport.gesvd(fs.master_node,DMAT_KIND.BCLC,
                                mat.get(),wantU,wantV)
+    val info = JNISupport.checkServerException();
+    if (info != "") throw new java.rmi.ServerException(info);
     return new GesvdResult(ret) // outputs V (not VT as in scalapack)
   }
 }

@@ -16,7 +16,7 @@ void show_dataframe(exrpc_ptr_t& df_proxy);
 // convert a numeric string to number
 template <class T>
 T cast (std::string& data) {
-  T c_data;
+  T c_data = 0;
   try {
     c_data = boost::lexical_cast<T>(data);
   }

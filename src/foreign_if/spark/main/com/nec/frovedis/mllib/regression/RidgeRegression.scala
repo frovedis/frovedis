@@ -63,7 +63,10 @@ object RidgeRegressionWithSGD {
      val mid = ModelID.get()
      val fs = FrovedisServer.getServerInstance()
      JNISupport.callFrovedisRidgeSGD(fs.master_node,data.get(),numIter,stepSize,
-                                   miniBatchFraction,regParam,mid,isMovableInput)
+                                     miniBatchFraction,regParam,mid,isMovableInput,
+                                     data.is_dense())
+     val info = JNISupport.checkServerException();
+     if (info != "") throw new java.rmi.ServerException(info);
      val numFeatures = data.numCols()
      val intercept = 0.0 // assumed (To-Do: Support isIntercept, as in Frovedis)
      return new LinearRegressionModel(mid,M_KIND.LNRM,numFeatures,intercept)
@@ -147,7 +150,10 @@ object RidgeRegressionWithLBFGS {
      val mid = ModelID.get()
      val fs = FrovedisServer.getServerInstance()
      JNISupport.callFrovedisRidgeLBFGS(fs.master_node,data.get(),numIter,stepSize,
-                                     histSize,regParam,mid,isMovableInput)
+                                     histSize,regParam,mid,isMovableInput,
+                                     data.is_dense())
+     val info = JNISupport.checkServerException();
+     if (info != "") throw new java.rmi.ServerException(info);
      val numFeatures = data.numCols()
      val intercept = 0.0 // assumed (To-Do: Support isIntercept, as in Frovedis)
      return new LinearRegressionModel(mid,M_KIND.LNRM,numFeatures,intercept)

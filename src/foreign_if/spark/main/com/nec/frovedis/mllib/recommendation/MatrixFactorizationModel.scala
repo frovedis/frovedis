@@ -21,32 +21,48 @@ class MatrixFactorizationModel(modelId: Int,
     val uids = uparr.map { case (u,p) => (u-1) }
     val pids = uparr.map { case (u,p) => (p-1) }
     val pred = JNISupport.doParallelALSPredict(t_node,mptr,mkind,uids,pids)
+    val info = JNISupport.checkServerException();
+    if (info != "") throw new java.rmi.ServerException(info);
     return uparr.zip(pred).map { case((u,p),r) => Rating(u,p,r) }.toIterator
   }
   def getRank() : Int = rank
   def predict(uid: Int, pid: Int) : Double = {
     val fs = FrovedisServer.getServerInstance()
-    return JNISupport.doSingleALSPredict(fs.master_node,mid,mkind,uid-1,pid-1)
+    val ret = JNISupport.doSingleALSPredict(fs.master_node,mid,mkind,uid-1,pid-1)
+    val info = JNISupport.checkServerException();
+    if (info != "") throw new java.rmi.ServerException(info);
+    else return ret;
   }
   def predict(usersProducts: RDD[(Int, Int)]): RDD[Rating] = {
     val fs = FrovedisServer.getServerInstance()
     val each_model = JNISupport.broadcast2AllWorkers(fs.master_node,mid,mkind)
+    val info = JNISupport.checkServerException();
+    if (info != "") throw new java.rmi.ServerException(info);
     //println("[scala] Getting worker info for prediction on model[" + mid + "].")
     val fw_nodes = JNISupport.getWorkerInfo(fs.master_node)
+    val info1 = JNISupport.checkServerException();
+    if (info1 != "") throw new java.rmi.ServerException(info1);
     val wdata = usersProducts.repartition2(fs.worker_size)
     return wdata.mapPartitionsWithIndex((i,x) => 
                  parallel_predict(x,each_model(i),fw_nodes(i)))
   }
   def recommendProducts(user: Int, num: Int): Array[Rating] = {
     val fs = FrovedisServer.getServerInstance()
-    return JNISupport.recommendProducts(fs.master_node,mid,mkind,user-1,num)
+    val ret = JNISupport.recommendProducts(fs.master_node,mid,mkind,user-1,num)
                      .map(x => Rating(user,x.getKey+1,x.getValue))
+    val info = JNISupport.checkServerException();
+    if (info != "") throw new java.rmi.ServerException(info);
+    else return ret;
   }
   def recommendUsers(product: Int, num: Int): Array[Rating] = {
     val fs = FrovedisServer.getServerInstance()
-    return JNISupport.recommendUsers(fs.master_node,mid,mkind,product-1,num)
+    val ret = JNISupport.recommendUsers(fs.master_node,mid,mkind,product-1,num)
                      .map(x => Rating(x.getKey+1,product,x.getValue))
+    val info = JNISupport.checkServerException();
+    if (info != "") throw new java.rmi.ServerException(info);
+    else return ret;
   }
+
 }
 
 object MatrixFactorizationModel {
@@ -57,6 +73,8 @@ object MatrixFactorizationModel {
     // load a MatrixFactorizationModel from the 'path'
     // and register it with 'model_id' at Frovedis server
     val rank = JNISupport.loadFrovedisMFM(fs.master_node,mid,M_KIND.MFM,path)
+    val info = JNISupport.checkServerException();
+    if (info != "") throw new java.rmi.ServerException(info);
     return new MatrixFactorizationModel(mid,M_KIND.MFM,rank)
   } 
 }

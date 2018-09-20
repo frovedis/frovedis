@@ -25,6 +25,8 @@ class FrovedisDenseMatrix(mt: Short) extends java.io.Serializable {
     //println("index: " + index + ", nrow: " + nrow + ", ncol: " + ncol)
     val rmjr_arr = darr.map(_.toArray).flatten
     val ret = JNISupport.loadFrovedisWorkerRmajorData(t_node,nrow,ncol,rmjr_arr)
+    val info = JNISupport.checkServerException();
+    if (info != "") throw new java.rmi.ServerException(info);
     //mapPartitionsWithIndex needs to return an Iterator object
     return Array(ret).toIterator
   }
@@ -50,11 +52,15 @@ class FrovedisDenseMatrix(mt: Short) extends java.io.Serializable {
   def load(path: String) : Unit = { // loads from text file data
     val fs = FrovedisServer.getServerInstance()
     val dmat = JNISupport.loadFrovedisDenseData(fs.master_node,mtype,path,false)
+    val info = JNISupport.checkServerException();
+    if (info != "") throw new java.rmi.ServerException(info);  
     load_dummy(dmat)
   }
   def loadbinary(path: String) : Unit = {  // loads from binary file data
     val fs = FrovedisServer.getServerInstance()
     val dmat = JNISupport.loadFrovedisDenseData(fs.master_node,mtype,path,true)
+    val info = JNISupport.checkServerException();
+    if (info != "") throw new java.rmi.ServerException(info);
     load_dummy(dmat)
   }
   def load(data: RDD[Vector]) : Unit  = { // loads from spark worker data
@@ -63,7 +69,7 @@ class FrovedisDenseMatrix(mt: Short) extends java.io.Serializable {
 
     /** Getting the global nrows and ncols information from the RDD */
     num_row = data.count
-    num_col = data.map(_.size).first()
+    num_col = data.first.size
 
     /** This will instantiate the frovedis server instance (if not already instantiated) */
     val fs = FrovedisServer.getServerInstance()
@@ -72,17 +78,23 @@ class FrovedisDenseMatrix(mt: Short) extends java.io.Serializable {
     /** converting spark worker data to frovedis worker data */
     val work_data = data.repartition2(fs_size)
     val fw_nodes = JNISupport.getWorkerInfo(fs.master_node) // native call
+    val info = JNISupport.checkServerException();
+    if (info != "") throw new java.rmi.ServerException(info);
     val ep_all = work_data.mapPartitionsWithIndex(
                  (i,x) => copy_local_matrix(i,x,fw_nodes(i))).collect
 
     /** getting frovedis distributed data from frovedis local data */ 
     fdata = JNISupport.createFrovedisDenseData(fs.master_node, ep_all,
                                              num_row, num_col, mtype)
+    val info1 = JNISupport.checkServerException();
+    if (info1 != "") throw new java.rmi.ServerException(info1);
   }
   def release(): Unit = {
     if (fdata != -1) {
       val fs = FrovedisServer.getServerInstance() 
       JNISupport.releaseFrovedisDenseData(fs.master_node,fdata,mtype)
+      val info = JNISupport.checkServerException();
+      if (info != "") throw new java.rmi.ServerException(info);
       fdata = -1
       num_row = 0 
       num_col = 0
@@ -98,6 +110,8 @@ class FrovedisDenseMatrix(mt: Short) extends java.io.Serializable {
     var rmat = new DummyMatrix(fdata,num_row,num_col,mtype) // make ME a dummy
     if(mtype != DMAT_KIND.RMJR) // converts to rowmajor matrix (new'ed)
       rmat = JNISupport.getFrovedisRowmajorMatrix(fs.master_node,fdata,mtype)
+      val info = JNISupport.checkServerException();
+      if (info != "") throw new java.rmi.ServerException(info);
     // TODO: mtype:RMJR => self destruction risk on having destructor
     return new FrovedisDenseMatrix(rmat) // outputs FrovedisRowmajorMatrix actually
   }
@@ -105,12 +119,16 @@ class FrovedisDenseMatrix(mt: Short) extends java.io.Serializable {
     if(fdata == -1) return null // quick return
     val fs = FrovedisServer.getServerInstance()
     val tmat = JNISupport.transposeFrovedisDenseData(fs.master_node,fdata,mtype)
+    val info = JNISupport.checkServerException();
+    if (info != "") throw new java.rmi.ServerException(info);
     return new FrovedisDenseMatrix(tmat) // outputs this "mtype" matrix actually
   }
   private def setEachPartitionsData(index: Int, t_node: Node,
                                     t_dptr: Long): Iterator[Vector] = {
     //println("[setEachPartitionsData] index: " + index)
     val loc_arr = JNISupport.getLocalArray(t_node,t_dptr,DMAT_KIND.RMJR_L)
+    val info = JNISupport.checkServerException();
+    if (info != "") throw new java.rmi.ServerException(info);
     val l_num_col = num_col.intValue
     val l_num_row = loc_arr.size/l_num_col
     //println("nrow: " + l_num_row + ", ncol: " + l_num_col)
@@ -129,7 +147,11 @@ class FrovedisDenseMatrix(mt: Short) extends java.io.Serializable {
     val fs = FrovedisServer.getServerInstance()
     val eps = JNISupport.getAllLocalPointers(fs.master_node,
                                              rmat.fdata,rmat.mtype)
+    val info = JNISupport.checkServerException();
+    if (info != "") throw new java.rmi.ServerException(info);
     val fw_nodes = JNISupport.getWorkerInfo(fs.master_node)
+    val info1 = JNISupport.checkServerException();
+    if (info1 != "") throw new java.rmi.ServerException(info1);
     val dummy = new Array[Boolean](eps.size)
     val dist_dummy =  ctxt.parallelize(dummy,eps.size)
     val rows = dist_dummy.mapPartitionsWithIndex((i,x) => 
@@ -142,32 +164,42 @@ class FrovedisDenseMatrix(mt: Short) extends java.io.Serializable {
     if(fdata == -1) return null // quick return
     val fs = FrovedisServer.getServerInstance()
     val arr = JNISupport.getColmajorArray(fs.master_node,fdata,mtype)
+    val info = JNISupport.checkServerException();
+    if (info != "") throw new java.rmi.ServerException(info);
     return Matrices.dense(num_row.intValue,num_col.intValue,arr) 
   }
   def to_spark_Vector(): Vector = {
     if(fdata == -1) return null // quick return
     val fs = FrovedisServer.getServerInstance()
     val arr = JNISupport.getRowmajorArray(fs.master_node,fdata,mtype)
+    val info = JNISupport.checkServerException();
+    if (info != "") throw new java.rmi.ServerException(info);
     return Vectors.dense(arr)
   }
   def save(path: String) : Unit = { // saves to text file
     if(fdata != -1) {
       val fs = FrovedisServer.getServerInstance()
       JNISupport.saveFrovedisDenseData(fs.master_node,fdata,mtype,path,false)
+      val info = JNISupport.checkServerException();
+      if (info != "") throw new java.rmi.ServerException(info);
     }
   }
   def savebinary(path: String) : Unit = { // saves to binary file
     if(fdata != -1) {
       val fs = FrovedisServer.getServerInstance()
       JNISupport.saveFrovedisDenseData(fs.master_node,fdata,mtype,path,true)
-    }
+      val info = JNISupport.checkServerException();
+      if (info != "") throw new java.rmi.ServerException(info);  
+  }
   }
   def debug_print() : Unit = {
     if (fdata != -1) {
       val fs = FrovedisServer.getServerInstance() 
       JNISupport.showFrovedisDenseData(fs.master_node,fdata,mtype)
+      val info = JNISupport.checkServerException();
+      if (info != "") throw new java.rmi.ServerException(info); 
     }
-  }
+   }
   def get_rowmajor_view() : Unit = {
     if (fdata != -1) {
       val rmat = to_frovedis_RowMatrix()

@@ -29,6 +29,8 @@ object SVMModel {  // companion object (for static members)
     // load an SVMModel from the 'path' 
     // and register it with 'model_id' at Frovedis server
     val ret = JNISupport.loadFrovedisGLM(fs.master_node,model_id,M_KIND.SVM,path)
+    val info = JNISupport.checkServerException();
+    if (info != "") throw new java.rmi.ServerException(info);
     return new SVMModel(ret)
   }
 }
@@ -91,7 +93,10 @@ object SVMWithSGD {
      val mid = ModelID.get()
      val fs = FrovedisServer.getServerInstance()
      JNISupport.callFrovedisSVMSGD(fs.master_node,data.get(),numIter,stepSize,
-                                 miniBatchFraction,regParam,mid,isMovableInput)
+                                   miniBatchFraction,regParam,mid,isMovableInput,
+                                   data.is_dense())
+     val info = JNISupport.checkServerException();
+     if (info != "") throw new java.rmi.ServerException(info);
      val numFeatures = data.numCols()
      val intercept = 0.0 // assumed (To-Do: Support isIntercept, as in Frovedis)
      val numClasses = 2  // Currently Frovedis supports binary classification only
@@ -177,7 +182,10 @@ object SVMWithLBFGS {
      val mid = ModelID.get()
      val fs = FrovedisServer.getServerInstance()
      JNISupport.callFrovedisSVMLBFGS(fs.master_node,data.get(),numIter,stepSize,
-                                   histSize,regParam,mid,isMovableInput)
+                                   histSize,regParam,mid,isMovableInput,
+                                   data.is_dense())
+     val info = JNISupport.checkServerException();
+     if (info != "") throw new java.rmi.ServerException(info);
      val numFeatures = data.numCols()
      val intercept = 0.0 // assumed (To-Do: Support isIntercept, as in Frovedis)
      val numClasses = 2  // Currently Frovedis supports binary classification only

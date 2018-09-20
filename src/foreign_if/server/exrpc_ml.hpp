@@ -22,6 +22,11 @@
 #include "frovedis/ml/glm/ridge_regression_with_lbfgs.hpp"
 #include "frovedis/ml/recommendation/als.hpp"
 #include "frovedis/ml/clustering/kmeans.hpp"
+#include "frovedis/ml/tree/tree.hpp"
+#include "frovedis/ml/fm/main.hpp"
+#include "frovedis/ml/w2v/word2vec.hpp"
+#include "frovedis/ml/nb/naive_bayes.hpp"
+
 #include "../exrpc/exrpc_expose.hpp"
 #include "frovedis_mem_pair.hpp"
 #include "model_tracker.hpp"
@@ -29,13 +34,6 @@
 using namespace frovedis;
 
 // --- Handling of Training input/output ---
-template <class T>
-inline void clear_mat_data(crs_matrix_local<T>& data) {
-  std::vector<T> tmp1;      tmp1.swap(data.val);
-  std::vector<size_t> tmp2; tmp2.swap(data.idx);
-  std::vector<size_t> tmp3; tmp3.swap(data.off);
-}
-
 template <class T>
 inline void clear_lbl_data(std::vector<T>& data) {
   std::vector<T> tmp; tmp.swap(data);
@@ -54,7 +52,7 @@ inline void handle_trained_model(int mid, MODEL_KIND mkind, MODEL& model) {
 }
 
 // --- Frovedis ML Trainer Calls ---
-// For logistic regression, svm:
+// For logistic regression, svm: 
 // Frovedis expects -1 as NEGATIVE RESPONSE
 // whereas scikit-learn, spark etc. expects 0 as NEGATIVE RESPONSE
 // thus this function is used to convert 0 response as -1 response
@@ -66,10 +64,10 @@ void transform_output_label(std::vector<T>& val) {
 }
 
 template <class T, class MATRIX>
-void frovedis_lr_sgd(frovedis_mem_pair& mp, int& numIter, T& stepSize, 
-                   T& mbf, int& regType, T& regParam, 
-                   bool& isIntercept, double& tol, int& verbose, int& mid, 
-                   bool& isMovableInput=false) {
+void frovedis_lr_sgd(frovedis_mem_pair& mp, int& numIter, double& stepSize, 
+                     double& mbf, int& regType, double& regParam, 
+                     bool& isIntercept, double& tol, int& verbose, int& mid, 
+                     bool& isMovableInput=false) {
   register_for_train(mid);  // mark model 'mid' as "under training"
   // extracting input data
   MATRIX& mat = *reinterpret_cast<MATRIX*>(mp.first());
@@ -97,10 +95,10 @@ void frovedis_lr_sgd(frovedis_mem_pair& mp, int& numIter, T& stepSize,
 }
 
 template <class T, class MATRIX>
-void frovedis_lr_lbfgs(frovedis_mem_pair& mp, int& numIter, T& stepSize, 
-                     int& histSize, int& regType, T& regParam, 
-                     bool& isIntercept, double& tol, int& verbose, int& mid,
-                     bool& isMovableInput=false) {
+void frovedis_lr_lbfgs(frovedis_mem_pair& mp, int& numIter, double& stepSize, 
+                       int& histSize, int& regType, double& regParam, 
+                       bool& isIntercept, double& tol, int& verbose, int& mid,
+                       bool& isMovableInput=false) {
   register_for_train(mid);  // mark model 'mid' as "under training"
   // extracting input data
   MATRIX& mat = *reinterpret_cast<MATRIX*>(mp.first());
@@ -120,7 +118,7 @@ void frovedis_lr_lbfgs(frovedis_mem_pair& mp, int& numIter, T& stepSize,
     m = logistic_regression_with_lbfgs::train(std::move(mat),lbl,numIter,stepSize,
                                            histSize,regParam,rtype,
                                            isIntercept,tol);
-    mat.data.mapv(clear_mat_data<T>); // is a no-operation, if already freed.
+    mat.clear();
     lbl.mapv_partitions(clear_lbl_data<T>);
   }
   else m = logistic_regression_with_lbfgs::train(mat,lbl,numIter,stepSize,
@@ -131,10 +129,10 @@ void frovedis_lr_lbfgs(frovedis_mem_pair& mp, int& numIter, T& stepSize,
 }
 
 template <class T, class MATRIX>
-void frovedis_svm_sgd(frovedis_mem_pair& mp, int& numIter, T& stepSize, 
-                    T& mbf, int& regType, T& regParam, 
-                    bool& isIntercept, double& tol, int& verbose, int& mid,
-                    bool& isMovableInput=false) {
+void frovedis_svm_sgd(frovedis_mem_pair& mp, int& numIter, double& stepSize, 
+                      double& mbf, int& regType, double& regParam, 
+                      bool& isIntercept, double& tol, int& verbose, int& mid,
+                      bool& isMovableInput=false) {
   register_for_train(mid);  // mark model 'mid' as "under training"
   // extracting input data
   MATRIX& mat = *reinterpret_cast<MATRIX*>(mp.first());
@@ -162,10 +160,10 @@ void frovedis_svm_sgd(frovedis_mem_pair& mp, int& numIter, T& stepSize,
 }
 
 template <class T, class MATRIX>
-void frovedis_svm_lbfgs(frovedis_mem_pair& mp, int& numIter, T& stepSize, 
-                      int& histSize, int& regType, T& regParam, 
-                      bool& isIntercept, double& tol, int& verbose, int& mid,
-                      bool& isMovableInput=false) {
+void frovedis_svm_lbfgs(frovedis_mem_pair& mp, int& numIter, double& stepSize, 
+                        int& histSize, int& regType, double& regParam, 
+                        bool& isIntercept, double& tol, int& verbose, int& mid,
+                        bool& isMovableInput=false) {
   register_for_train(mid);  // mark model 'mid' as "under training"
   // extracting input data
   MATRIX& mat = *reinterpret_cast<MATRIX*>(mp.first());
@@ -184,7 +182,7 @@ void frovedis_svm_lbfgs(frovedis_mem_pair& mp, int& numIter, T& stepSize,
   if (isMovableInput) {
     m = svm_with_lbfgs::train(std::move(mat),lbl,numIter,stepSize,
                               histSize,regParam,rtype,isIntercept,tol);
-    mat.data.mapv(clear_mat_data<T>); // is a no-operation, if already freed.
+    mat.clear();
     lbl.mapv_partitions(clear_lbl_data<T>);
   }
   else m = svm_with_lbfgs::train(mat,lbl,numIter,stepSize,
@@ -194,10 +192,10 @@ void frovedis_svm_lbfgs(frovedis_mem_pair& mp, int& numIter, T& stepSize,
 }
 
 template <class T, class MATRIX>
-void frovedis_lnr_sgd(frovedis_mem_pair& mp, int& numIter, T& stepSize, 
-                    T& mbf,
-                    bool& isIntercept, int& verbose, int& mid, 
-                    bool& isMovableInput=false) {
+void frovedis_lnr_sgd(frovedis_mem_pair& mp, int& numIter, double& stepSize, 
+                      double& mbf,
+                      bool& isIntercept, int& verbose, int& mid, 
+                      bool& isMovableInput=false) {
   register_for_train(mid);  // mark model 'mid' as "under training"
   // extracting input data
   MATRIX& mat = *reinterpret_cast<MATRIX*>(mp.first());
@@ -220,10 +218,10 @@ void frovedis_lnr_sgd(frovedis_mem_pair& mp, int& numIter, T& stepSize,
 }
 
 template <class T, class MATRIX>
-void frovedis_lnr_lbfgs(frovedis_mem_pair& mp, int& numIter, T& stepSize, 
-                      int& histSize,
-                      bool& isIntercept, int& verbose, int& mid, 
-                      bool& isMovableInput=false) {
+void frovedis_lnr_lbfgs(frovedis_mem_pair& mp, int& numIter, double& stepSize, 
+                        int& histSize,
+                        bool& isIntercept, int& verbose, int& mid, 
+                        bool& isMovableInput=false) {
   register_for_train(mid);  // mark model 'mid' as "under training"
   // extracting input data
   MATRIX& mat = *reinterpret_cast<MATRIX*>(mp.first());
@@ -237,7 +235,7 @@ void frovedis_lnr_lbfgs(frovedis_mem_pair& mp, int& numIter, T& stepSize,
   if (isMovableInput) {
     m = linear_regression_with_lbfgs::train(std::move(mat),lbl,numIter,stepSize,
                                             histSize,isIntercept);
-    mat.data.mapv(clear_mat_data<T>); // is a no-operation, if already freed.
+    mat.clear();
     lbl.mapv_partitions(clear_lbl_data<T>);
   }
   else m = linear_regression_with_lbfgs::train(mat,lbl,numIter,stepSize,
@@ -247,10 +245,10 @@ void frovedis_lnr_lbfgs(frovedis_mem_pair& mp, int& numIter, T& stepSize,
 }
 
 template <class T, class MATRIX>
-void frovedis_lasso_sgd(frovedis_mem_pair& mp, int& numIter, T& stepSize, 
-                      T& mbf, T& regParam,
-                      bool& isIntercept, double& tol, int& verbose, int& mid, 
-                      bool& isMovableInput=false) {
+void frovedis_lasso_sgd(frovedis_mem_pair& mp, int& numIter, double& stepSize, 
+                        double& mbf, double& regParam,
+                        bool& isIntercept, double& tol, int& verbose, int& mid, 
+                        bool& isMovableInput=false) {
   register_for_train(mid);  // mark model 'mid' as "under training"
   // extracting input data
   MATRIX& mat = *reinterpret_cast<MATRIX*>(mp.first());
@@ -273,10 +271,10 @@ void frovedis_lasso_sgd(frovedis_mem_pair& mp, int& numIter, T& stepSize,
 }
 
 template <class T, class MATRIX>
-void frovedis_lasso_lbfgs(frovedis_mem_pair& mp, int& numIter, T& stepSize, 
-                        int& histSize, T& regParam,
-                        bool& isIntercept, double& tol, int& verbose, int& mid, 
-                        bool& isMovableInput=false) {
+void frovedis_lasso_lbfgs(frovedis_mem_pair& mp, int& numIter, double& stepSize, 
+                          int& histSize, double& regParam,
+                          bool& isIntercept, double& tol, int& verbose, int& mid, 
+                          bool& isMovableInput=false) {
   register_for_train(mid);  // mark model 'mid' as "under training"
   // extracting input data
   MATRIX& mat = *reinterpret_cast<MATRIX*>(mp.first());
@@ -290,7 +288,7 @@ void frovedis_lasso_lbfgs(frovedis_mem_pair& mp, int& numIter, T& stepSize,
   if (isMovableInput) {
     m = lasso_with_lbfgs::train(std::move(mat),lbl,numIter,stepSize,
                                 histSize,regParam,isIntercept,tol);
-    mat.data.mapv(clear_mat_data<T>); // is a no-operation, if already freed.
+    mat.clear();
     lbl.mapv_partitions(clear_lbl_data<T>);
   }
   else m = lasso_with_lbfgs::train(mat,lbl,numIter,stepSize,
@@ -300,10 +298,10 @@ void frovedis_lasso_lbfgs(frovedis_mem_pair& mp, int& numIter, T& stepSize,
 }
 
 template <class T, class MATRIX>
-void frovedis_ridge_sgd(frovedis_mem_pair& mp, int& numIter, T& stepSize, 
-                      T& mbf, T& regParam, 
-                      bool& isIntercept, double& tol, int& verbose, int& mid,
-                      bool& isMovableInput=false) {
+void frovedis_ridge_sgd(frovedis_mem_pair& mp, int& numIter, double& stepSize, 
+                        double& mbf, double& regParam, 
+                        bool& isIntercept, double& tol, int& verbose, int& mid,
+                        bool& isMovableInput=false) {
   register_for_train(mid);  // mark model 'mid' as "under training"
   // extracting input data
   MATRIX& mat = *reinterpret_cast<MATRIX*>(mp.first());
@@ -326,10 +324,10 @@ void frovedis_ridge_sgd(frovedis_mem_pair& mp, int& numIter, T& stepSize,
 }
 
 template <class T, class MATRIX>
-void frovedis_ridge_lbfgs(frovedis_mem_pair& mp, int& numIter, T& stepSize, 
-                        int& histSize, T& regParam,
-                        bool& isIntercept, double& tol, int& verbose, int& mid,
-                        bool& isMovableInput=false) {
+void frovedis_ridge_lbfgs(frovedis_mem_pair& mp, int& numIter, double& stepSize, 
+                          int& histSize, double& regParam,
+                          bool& isIntercept, double& tol, int& verbose, int& mid,
+                          bool& isMovableInput=false) {
   register_for_train(mid);  // mark model 'mid' as "under training"
   // extracting input data
   MATRIX& mat = *reinterpret_cast<MATRIX*>(mp.first());
@@ -343,7 +341,7 @@ void frovedis_ridge_lbfgs(frovedis_mem_pair& mp, int& numIter, T& stepSize,
   if (isMovableInput) {
     m = ridge_regression_with_lbfgs::train(std::move(mat),lbl,numIter,stepSize,
                                            histSize,regParam,isIntercept,tol);
-    mat.data.mapv(clear_mat_data<T>); // is a no-operation, if already freed.
+    mat.clear();
     lbl.mapv_partitions(clear_lbl_data<T>);
   }
   else m = ridge_regression_with_lbfgs::train(mat,lbl,numIter,stepSize,
@@ -353,9 +351,10 @@ void frovedis_ridge_lbfgs(frovedis_mem_pair& mp, int& numIter, T& stepSize,
 }
 
 template <class T, class MATRIX>
-void frovedis_mf_als(exrpc_ptr_t& data_ptr, int& rank, int& numIter, T& alpha,
-                   T& regParam, long& seed, int& verbose, int& mid, 
-                   bool& isMovableInput=false) {
+void frovedis_mf_als(exrpc_ptr_t& data_ptr, int& rank, int& numIter, 
+                     double& alpha, double& regParam, 
+                     long& seed, int& verbose, int& mid, 
+                     bool& isMovableInput=false) {
   register_for_train(mid);   // mark model 'mid' as "under training"
   MATRIX& mat = *reinterpret_cast<MATRIX*>(data_ptr);   // training input data holder
   auto old_level = frovedis::get_loglevel();
@@ -365,15 +364,15 @@ void frovedis_mf_als(exrpc_ptr_t& data_ptr, int& rank, int& numIter, T& alpha,
   auto m = matrix_factorization_using_als::train(mat,rank,numIter,
                                                  alpha,regParam,seed);
   // if input is movable, destroying Frovedis side data after training is done.
-  if (isMovableInput)  mat.data.mapv(clear_mat_data<T>); 
+  if (isMovableInput)  mat.clear(); 
   frovedis::set_loglevel(old_level);
   handle_trained_model<matrix_factorization_model<T>>(mid, MFM, m);
 }
 
 template <class T, class MATRIX>
 void frovedis_kmeans(exrpc_ptr_t& data_ptr, int& k, int& numIter, long& seed,
-                   T& epsilon, int& verbose, int& mid, 
-                   bool& isMovableInput=false) {
+                     double& epsilon, int& verbose, int& mid, 
+                     bool& isMovableInput=false) {
   register_for_train(mid);   // mark model 'mid' as "under training"
   MATRIX& mat = *reinterpret_cast<MATRIX*>(data_ptr);  // training input data holder
   auto old_level = frovedis::get_loglevel();
@@ -382,9 +381,101 @@ void frovedis_kmeans(exrpc_ptr_t& data_ptr, int& k, int& numIter, long& seed,
 
   auto m = frovedis::kmeans(mat,k,numIter,epsilon,seed);
   // if input is movable, destroying Frovedis side data after training is done.
-  if (isMovableInput)  mat.data.mapv(clear_mat_data<T>); 
+  if (isMovableInput)  mat.clear(); 
   frovedis::set_loglevel(old_level);
   handle_trained_model<rowmajor_matrix_local<T>>(mid, KMEANS, m);
+}
+
+template <class T, class MATRIX>
+void frovedis_dt(frovedis_mem_pair& mp, tree::strategy<T>& str,
+                 int& verbose, int& mid,
+                 bool& isMovableInput=false) {
+  register_for_train(mid);  // mark model 'mid' as "under training"
+  // extracting input data
+  MATRIX& mat = *reinterpret_cast<MATRIX*>(mp.first());
+  dvector<T> lbl = *reinterpret_cast<dvector<T>*>(mp.second()); // copying
+
+  auto old_level = frovedis::get_loglevel();
+  if (verbose == 1) frovedis::set_loglevel(frovedis::DEBUG);
+  else if (verbose == 2) frovedis::set_loglevel(frovedis::TRACE);
+
+  auto builder = make_decision_tree_builder<T>(std::move(str));
+  auto model = builder.run(mat, lbl);
+
+  frovedis::set_loglevel(old_level);
+  handle_trained_model<decision_tree_model<T>>(mid, DTM, model);
+
+  if (isMovableInput) {
+    mat.clear(); 
+    lbl.mapv_partitions(clear_lbl_data<T>);
+  }
+}
+
+template <class T, class MATRIX>
+void frovedis_fm(frovedis_mem_pair& mp, std::string& optimizer_name, 
+                 fm::fm_config<T>& conf,
+                 int& verbose, int& mid,
+                 bool& isMovableInput=false) {
+  register_for_train(mid);  // mark model 'mid' as "under training"
+  // extracting input data
+  MATRIX& mat = *reinterpret_cast<MATRIX*>(mp.first());
+  dvector<T> lbl = *reinterpret_cast<dvector<T>*>(mp.second()); // copying
+
+  auto isReg = conf.is_regression;
+  if(!isReg) { // for classification case, transform label vector
+    lbl.mapv_partitions(transform_output_label<T>);
+  }
+
+  auto old_level = frovedis::get_loglevel();
+  if (verbose == 1) frovedis::set_loglevel(frovedis::DEBUG);
+  else if (verbose == 2) frovedis::set_loglevel(frovedis::TRACE);
+
+  fm::FmOptimizer optimizer;
+  if (optimizer_name == "SGD") optimizer = fm::FmOptimizer::SGD;
+  else if (optimizer_name == "SGDA") optimizer = fm::FmOptimizer::SGDA;
+  else if (optimizer_name == "ALS")  optimizer = fm::FmOptimizer::ALS;
+  else if (optimizer_name == "MCMC") optimizer = fm::FmOptimizer::MCMC;
+  else throw std::runtime_error("Specified optimizer is not supported!\n");
+  
+  auto nloc = lbl.viewas_node_local();
+  auto model = fm::train(mat,nloc,optimizer,conf);
+
+  frovedis::set_loglevel(old_level);
+  handle_trained_model<fm::fm_model<T>>(mid, FMM, model);
+
+  if (isMovableInput) {
+    mat.clear();
+    lbl.mapv_partitions(clear_lbl_data<T>);
+  }
+}
+
+template <class T, class MATRIX, class LOC_MATRIX>
+void frovedis_nb(frovedis_mem_pair& mp, std::string& model_type,
+                 double& lambda,
+                 int& verbose, int& mid,
+                 bool& isMovableInput=false) {
+  register_for_train(mid);  // mark model 'mid' as "under training"
+  // extracting input data
+  MATRIX& mat = *reinterpret_cast<MATRIX*>(mp.first());
+  dvector<T> lbl = *reinterpret_cast<dvector<T>*>(mp.second()); // copying
+
+  auto old_level = frovedis::get_loglevel();
+  if (verbose == 1) frovedis::set_loglevel(frovedis::DEBUG);
+  else if (verbose == 2) frovedis::set_loglevel(frovedis::TRACE);
+
+  naive_bayes_model<T> model;
+  if (model_type == "multinomial") 
+    model = multinomial_nb<T,MATRIX,LOC_MATRIX>(mat,lbl,lambda);
+  else if (model_type == "bernoulli") 
+    model = bernoulli_nb<T,MATRIX,LOC_MATRIX>(mat,lbl,lambda);
+  else throw std::runtime_error("Unsupported naive bayes algorithm!\n");
+  handle_trained_model<naive_bayes_model<T>>(mid, NBM, model);
+
+  frovedis::set_loglevel(old_level);
+  if (isMovableInput) {
+    mat.clear();
+    lbl.mapv_partitions(clear_lbl_data<T>);
+  }
 }
 
 #endif
