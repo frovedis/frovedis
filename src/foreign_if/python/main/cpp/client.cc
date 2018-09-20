@@ -1342,7 +1342,7 @@ extern "C" {
     bool wantV = true;
     bool mvbl = false;
     char mtype = 'C';
-    auto ret = exrpc_async(fm_node,(frovedis_sparse_svd<DT1,S_MAT1>),m,k,mvbl).get();
+    auto ret = exrpc_async(fm_node,(frovedis_sparse_svd<S_MAT1,DT1>),m,k,mvbl).get();
     return to_py_gesvd_result(ret,mtype,wantU,wantV);
   }
 
