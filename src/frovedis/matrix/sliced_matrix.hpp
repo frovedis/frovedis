@@ -57,6 +57,17 @@ struct sliced_colmajor_matrix_local {
     }
   }
 
+  colmajor_matrix_local<T> get_copy() {
+    colmajor_matrix_local<T> ret(sliced_num_row,sliced_num_col);
+    T* retp = &ret.val[0];
+    auto ret_ldm = sliced_num_row;
+    for(size_t i=0; i<sliced_num_row; i++){
+      for(size_t j=0; j<sliced_num_col; j++)
+        retp[j*ret_ldm+i] = data[j*ldm+i];
+    }
+    return ret;
+  }
+
   T*  data;      // Pointer to the input (colmajor_matrix_local<T>) matrix
   size_t ldm;       // Leading dimension of the input matrix to be sliced
   size_t sliced_num_row; // No. of rows in the sliced matrix
