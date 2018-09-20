@@ -400,11 +400,9 @@ struct dfoperator_and : public dfoperator {
                  const std::shared_ptr<dfoperator>& right) :
     left(left), right(right) {}
   virtual node_local<std::vector<size_t>> filter(dftable_base& t) const {
-    auto filtered_idx = left->filter(t);
-    auto left_filtered = filtered_dftable(t, filtered_idx);
-    dftable_base& left_filtered_ = left_filtered;
-    auto new_filtered_idx = right->filter(left_filtered_);
-    return filtered_idx.map(convert_filtered_idx, new_filtered_idx);
+    auto left_filtered_idx = left->filter(t);
+    auto right_filtered_idx = right->filter(t);
+    return left_filtered_idx.map(set_intersection<size_t>, right_filtered_idx);
   }
   std::shared_ptr<dfoperator> left;
   std::shared_ptr<dfoperator> right;

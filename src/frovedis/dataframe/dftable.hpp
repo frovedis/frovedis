@@ -594,6 +594,9 @@ public:
             const std::vector<std::shared_ptr<dfoperator>>& op);
   virtual grouped_dftable group_by(const std::vector<std::string>& cols);
   std::shared_ptr<dfcolumn> column(const std::string& name);
+  virtual node_local<std::vector<size_t>> get_local_index() {
+    throw std::runtime_error("get_local_index on hash_joined_dftable");
+  }
   virtual bool is_right_joinable() {return false;}
   void debug_print();
 
@@ -659,6 +662,9 @@ public:
             const std::vector<std::shared_ptr<dfoperator>>& op);
   virtual grouped_dftable group_by(const std::vector<std::string>& cols);
   std::shared_ptr<dfcolumn> column(const std::string& name);
+  virtual node_local<std::vector<size_t>> get_local_index() {
+    throw std::runtime_error("get_local_index on bcast_joined_dftable");
+  }
   virtual bool is_right_joinable() {return false;}
   void debug_print();
 
@@ -714,6 +720,9 @@ public:
             const std::vector<std::shared_ptr<dfoperator>>& op);
   virtual grouped_dftable group_by(const std::vector<std::string>& cols);
   std::shared_ptr<dfcolumn> column(const std::string& name);
+  virtual node_local<std::vector<size_t>> get_local_index() {
+    throw std::runtime_error("get_local_index on star_joined_dftable");
+  }
   virtual bool is_right_joinable() {return false;}
   void debug_print();
 
