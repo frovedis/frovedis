@@ -3,6 +3,7 @@
 
 #include <fstream>
 #include <dirent.h>
+#include <cmath>
 #include <sys/stat.h>
 #include <sys/types.h>
 
