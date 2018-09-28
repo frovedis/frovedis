@@ -126,7 +126,7 @@ po::variables_map parse(int argc, char** argv) {
   optarg_desc.add_options()(
     "help,h", "show this help message and exit"
   )(
-    "category,c", po::value<std::string>(),
+    "category,c", po::value<std::string>()->default_value(""),
     "categorical features information (index: cardinality, ...)"
   )(
     "default-cardinality", po::value<size_t>()->default_value(2),
