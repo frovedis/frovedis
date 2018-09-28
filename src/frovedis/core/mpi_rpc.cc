@@ -2,6 +2,7 @@
 #include <cstdint>
 #include <sstream>
 #include <stdexcept>
+#include <algorithm>
 #include "mpi_rpc.hpp"
 #include "mpihelper.hpp"
 

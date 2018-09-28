@@ -10,8 +10,7 @@
 //#define USE_BOOST_HASH
 //#endif
 
-// zipped_unordered_map does not work
-//#define USE_CEREAL_FOR_RPC
+#define USE_CEREAL_FOR_RPC
 #define USE_CEREAL_FOR_EXRPC
 
 #if defined(USE_CEREAL_FOR_RPC) || defined(USE_CEREAL_FOR_EXRPC)

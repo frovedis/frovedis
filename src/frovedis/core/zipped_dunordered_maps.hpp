@@ -1,10 +1,14 @@
 #ifndef ZIPPEDDUNORDERED_MAP_HPP
 #define ZIPPEDDUNORDERED_MAP_HPP
 
-// TODO: CEREAL does not support optional!
-// need workaround
 #include "dunordered_map.hpp"
+#ifdef USE_CEREAL_FOR_RPC
+// copied from https://github.com/USCiLab/cereal/blob/de79ac166b33057b85ec54207930fc67ea7d6cc6/include/cereal/types/boost_optional.hpp
+// replaced _CEREAL_NVP to CEREAL_NVP_ to support current version
+#include "boost_optional.hpp"
+#else
 #include <boost/serialization/optional.hpp>
+#endif
 
 namespace frovedis {
 

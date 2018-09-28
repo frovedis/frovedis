@@ -2,6 +2,7 @@
 #define DVECTOR_HPP
 
 #include <algorithm>
+#include <iterator>
 #ifdef USE_STD_RANDOM
 #include <random>
 #else

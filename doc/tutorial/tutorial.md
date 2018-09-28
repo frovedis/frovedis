@@ -280,20 +280,20 @@ It has int n as the internal state, and operator() returns the
 argument * n. 
 
 The special thing of this function object is that it should be
-possible to serialize it with boost::serialization.
+possible to serialize it with cereal (or boost::serialization).
 Since it is tedious to write additional code for serialization,
 we provide macro for this purpose: in this case, with SERIALIZE(n).
 This macro can be used for multiple arguments, like SERIALIZE(n,
 other_variable), etc. If there is nothing to serialize, use
 SERIALIZE_NONE.
-Since boost::serialization requires default constructor, it is also
+Since serialization libraries require default constructor, it is also
 added to the structure.
 
 You can always use a function object where a function is used, like
 flat_map, filter and so on, which will be explained later.
 
 Actually, all variables that is used in this framework should be able
-to be serialized with boost::serialization. STL containers and PODs
+to be serialized with the serialization libraries. STL containers and PODs
 like int, double can be serialized by default. But if you define a
 data structure by yourself, please do not forget to add SERIALIZE or
 SERIALIZE_NONE. 

@@ -2,6 +2,7 @@
 #include "mpihelper.hpp"
 #include <stdexcept>
 #include <string.h>
+#include <algorithm>
 
 namespace frovedis {
 
