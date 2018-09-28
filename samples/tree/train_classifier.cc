@@ -141,7 +141,7 @@ po::variables_map parse(int argc, char** argv) {
     "classes,n", po::value<size_t>()->default_value(2),
     "number of classes"
   )(
-    "category,c", po::value<std::string>(),
+    "category,c", po::value<std::string>()->default_value(""),
     "categorical features information (index: cardinality, ...)"
   )(
     "default-cardinality", po::value<size_t>()->default_value(2),
