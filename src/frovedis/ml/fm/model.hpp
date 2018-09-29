@@ -1,9 +1,6 @@
 #ifndef _FM_MODEL_HPP_
 #define _FM_MODEL_HPP_
 
-#include <boost/archive/text_oarchive.hpp>
-#include <boost/archive/text_iarchive.hpp>
-
 #include <frovedis/matrix/rowmajor_matrix.hpp>
 
 namespace frovedis {
@@ -167,9 +164,8 @@ struct fm_model {
   }
   
   void save(const std::string& file) {
-    using namespace boost::archive;
     std::ofstream str(file.c_str());
-    text_oarchive ar(str);
+    cereal::BinaryOutputArchive ar(str);
     ar << *this;
   }
   // void savebinary(const std::string& file);
@@ -246,10 +242,9 @@ fm_model<T>::predict(crs_matrix_local<T,I,O>& input) {
 
 template <class T>
 fm_model<T> load_fm_model(const std::string& input) {
-  using namespace boost::archive;
   fm_model<T> model;
   std::ifstream str(input.c_str());
-  text_iarchive ar(str);
+  cereal::BinaryInputArchive ar(str);
   ar >> model;
   return model;
 }
