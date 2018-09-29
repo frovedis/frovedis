@@ -1,10 +1,12 @@
 include ../../../Makefile.in.x86
 
+JOBS := $(shell /usr/bin/nproc)
+
 all:
 	install -d ./bin
 	install -d ./lib
 	make -f Makefile.js
-	cd main/cpp; make
+	cd main/cpp; make -j ${JOBS}
 
 install:
 	install -D lib/libfrovedis_client_spark.so ${INSTALLPATH}/lib/libfrovedis_client_spark.so

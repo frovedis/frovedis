@@ -1,14 +1,16 @@
 include ../../Makefile.conf
 include ../../Makefile.in.${TARGET}
 
+JOBS := $(shell /usr/bin/nproc)
+
 all:
-	cd exrpc; make -f Makefile.${TARGET}
-	cd server; make -f Makefile.${TARGET}
+	cd exrpc; make -f Makefile.${TARGET} -j ${JOBS}
+	cd server; make -f Makefile.${TARGET} -j ${JOBS}
 ifeq (${TARGET},x86)
 	cd spark; make
 	cd spark/examples; make
 	install -d python/examples/out
-	cd python/main/cpp; make
+	cd python/main/cpp; make -j ${JOBS}
 endif
 
 install:
