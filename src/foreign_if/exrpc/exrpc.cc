@@ -12,7 +12,9 @@
 #include <errno.h>
 #include <algorithm>
 
+#ifndef NO_PROGRAM_OPTION
 #include <boost/program_options.hpp>
+#endif
 #include <boost/lexical_cast.hpp>
 
 namespace frovedis {
@@ -326,7 +328,21 @@ void init_frovedis_server(int argc, char* argv[]) {
   expose(get_parallel_exrpc_nodes_server);
   expose(wait_parallel_exrpc_server);
   flush_exposed(); // send expose information to workers
-
+#ifdef NO_PROGRAM_OPTION
+  std::string client_hostname;
+  int client_port = 0;
+  for(int i = 0; i < argc; i++) {
+    if(std::string(argv[i]) == std::string("-h")) {
+      client_hostname = std::string(argv[i+1]);
+      i++;
+    } else if(std::string(argv[i]) == std::string("-p")) {
+      client_port = boost::lexical_cast<int>(std::string(argv[i+1]));
+      i++;
+    }
+  }
+  if(client_hostname == "" || client_port == 0)
+    throw std::runtime_error("server: error in parsing arguments");
+#else
   using namespace boost::program_options;
 
   options_description opt("option");
@@ -357,6 +373,7 @@ void init_frovedis_server(int argc, char* argv[]) {
     std::cerr << opt << std::endl;
     exit(1);
   }
+#endif
 
   exrpc_node client(client_hostname, client_port);
   int port = 0;

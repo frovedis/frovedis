@@ -2,6 +2,7 @@
 #define EXRPC_HPP
 
 #define USE_IP_EXRPC
+#define NO_PROGRAM_OPTION // sometimes VE compiler does not like it
 
 /* tentative: at client side do not throw exception; just print error.
    later make it throw in client language like python and scala */
