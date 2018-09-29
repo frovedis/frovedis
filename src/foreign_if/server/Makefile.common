@@ -1,9 +1,11 @@
 HEADERS := dummy_model.hpp dummy_matrix.hpp exrpc_data_storage.hpp exrpc_model.hpp exrpc_ml.hpp exrpc_svd.hpp exrpc_pblas.hpp exrpc_scalapack.hpp exrpc_dataframe.hpp scalapack_result.hpp frovedis_mem_pair.hpp short_hand_type.hpp model_tracker.hpp
-OBJS := model_tracker.o exrpc_dataframe.o
+
+OBJS := model_tracker.o exrpc_dataframe.o expose_dvector.o expose_dense.o expose_sparse.o expose_mldata.o expose_dataframe.o expose_wrapper.o expose_model.o expose_ml.o
 
 INCLUDES := -I../.. -I../../../third_party/cereal-1.2.2/include/
-CXXFLAGS := ${CXXFLAGS_COMMON} ${INCLUDES}
-LIBS := -L../../../third_party/lib -L../../frovedis/core -L../../frovedis/matrix -L../../frovedis/ml -L../../frovedis/dataframe -L../exrpc -lfrovedis_exrpc -lfrovedis_dataframe -lfrovedis_ml -lfrovedis_matrix -lfrovedis_core ${LIBS_COMMON}
+DFLAGS := -DUSE_DF
+CXXFLAGS := ${CXXFLAGS_COMMON} ${INCLUDES} ${DFLAGS}
+LIBS := -L../../../third_party/lib -L../../frovedis/core -L../../frovedis/matrix -L../../frovedis/ml -L../../frovedis/dataframe -L../exrpc -lfrovedis_exrpc -lfrovedis_ml -lfrovedis_dataframe -lfrovedis_matrix -lfrovedis_core ${LIBS_COMMON}
 
 TARGETS := frovedis_server libfrovedis_server.a
 
@@ -18,6 +20,14 @@ install:
 frovedis_server.o: frovedis_server.cc ${HEADERS}
 model_tracker.o: model_tracker.cc ${HEADERS}
 exrpc_dataframe.o: exrpc_dataframe.cc ${HEADERS}
+expose_dvector.o: expose_dvector.cc ${HEADERS}
+expose_dense.o: expose_dense.cc ${HEADERS}
+expose_sparse.o: expose_sparse.cc ${HEADERS}
+expose_mldata.o: expose_mldata.cc ${HEADERS}
+expose_dataframe.o: expose_dataframe.cc ${HEADERS}
+expose_wrapper.o: expose_wrapper.cc ${HEADERS}
+expose_model.o: expose_model.cc ${HEADERS}
+expose_ml.o: expose_ml.cc ${HEADERS}
 
 clean:
 	${RM} ${TO_CLEAN} ${TARGETS} 

@@ -10,6 +10,7 @@
 #define _EXRPC_MODEL_HPP_
 
 #include "frovedis.hpp"
+#include "frovedis/core/exceptions.hpp"
 #include "frovedis/ml/glm/linear_model.hpp"
 #include "frovedis/ml/recommendation/matrix_factorization_model.hpp"
 #include "frovedis/ml/clustering/kmeans.hpp"
@@ -22,11 +23,6 @@
 
 using namespace frovedis;
    
-void cleanup_frovedis_server() {
-  frovedis::finalize_model_table();
-  frovedis::finalize_trackers();
-}
-
 // --- Frovedis Models Handling (print, delete, set threshold) ---
 // prints registered Frovedis Model
 template <class MODEL>

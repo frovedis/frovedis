@@ -30,11 +30,11 @@ namespace frovedis {
   typedef crs_matrix_local<DT3,DT5> S_LMAT35;
   typedef crs_matrix_local<DT4,DT4> S_LMAT44;
   typedef crs_matrix_local<DT4,DT5> S_LMAT45;
+  // --- All DENSE Types ---
   typedef colmajor_matrix<DT1> D_MAT1;
   typedef colmajor_matrix<DT2> D_MAT2;
   typedef colmajor_matrix_local<DT1> D_LMAT1;
   typedef colmajor_matrix_local<DT2> D_LMAT2;
-  // --- All DENSE Types ---
   typedef rowmajor_matrix<DT1> R_MAT1;
   typedef rowmajor_matrix<DT2> R_MAT2;
   typedef rowmajor_matrix<DT3> R_MAT3;

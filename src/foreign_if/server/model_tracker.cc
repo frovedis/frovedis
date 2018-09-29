@@ -55,6 +55,7 @@ void finalize_model_table() {
       case DTM: delete reinterpret_cast<decision_tree_model<double>*>(m.second.second); break;
       case NBM: delete reinterpret_cast<naive_bayes_model<double>*>(m.second.second); break;
       case FMM: delete reinterpret_cast<fm::fm_model<double>*>(m.second.second); break;
+      case FPM: delete reinterpret_cast<fp_growth_model*>(m.second.second); break;
       default: REPORT_ERROR(INTERNAL_ERROR,"Unknown Model Kind is encountered!\n");
     }
   }
@@ -68,4 +69,10 @@ void finalize_trackers() {
   tmp = std::move(deleted_model_tracker);
   tmp = std::move(under_training_model_tracker);
 }
+
+void cleanup_frovedis_server() {
+  finalize_model_table();
+  finalize_trackers();
+}
+
 }

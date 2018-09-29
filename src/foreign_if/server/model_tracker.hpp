@@ -80,6 +80,7 @@ bool is_under_training(int mid);
 
 void finalize_model_table();
 void finalize_trackers();
+void cleanup_frovedis_server();
 
 // retuns the model head for the requested registered model id
 template <class M>
