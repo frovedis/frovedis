@@ -12,7 +12,7 @@ namespace frovedis {
 
 namespace fm {
 
-time_spent time_agg(TRACE), time_update(TRACE), time_comp(TRACE), time_bcast(TRACE);
+extern time_spent time_agg, time_update, time_comp, time_bcast;
 
 enum struct FmOptimizer {
   SGD = 0,

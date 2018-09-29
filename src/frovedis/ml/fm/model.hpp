@@ -1,6 +1,7 @@
 #ifndef _FM_MODEL_HPP_
 #define _FM_MODEL_HPP_
 
+#include <assert.h>
 #include <frovedis/matrix/rowmajor_matrix.hpp>
 
 namespace frovedis {

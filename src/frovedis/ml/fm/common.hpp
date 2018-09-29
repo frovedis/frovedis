@@ -1,6 +1,7 @@
 #ifndef _FM_COMMON_HPP_
 #define _FM_COMMON_HPP_
 
+#include <assert.h>
 #include <frovedis/core/exceptions.hpp>
 #include <frovedis/ml/utility/matrix_conversion.hpp>
 

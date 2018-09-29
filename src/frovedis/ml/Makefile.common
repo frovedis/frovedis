@@ -1,14 +1,17 @@
 RECM_OBJS := optimizer.o
 TREE_OBJS := tree_config.o tree_impurity.o tree_utility.o
 W2V_OBJS := word2vec.o
-OBJS := ${RECM_OBJS} ${TREE_OBJS} ${W2V_OBJS}
+FM_OBJS := main.o
+UTIL_OBJS := batch_chain_communicator.o
+
+OBJS := ${RECM_OBJS} ${TREE_OBJS} ${W2V_OBJS} ${FM_OBJS} ${UTIL_OBJS}
 
 TARGETS := libfrovedis_ml.a
 
-INCLUDES := -I../../../third_party/cereal-1.2.2/include/ -I../../../third_party/include
+INCLUDES := -I../../../third_party/cereal-1.2.2/include/ -I../../../third_party/include -I../..
 CXXFLAGS := ${CXXFLAGS_COMMON} ${INCLUDES}
 LIBS := -L../matrix -lfrovedis_matrix -L../core -lfrovedis_core ${LIBS_COMMON}
-VPATH := glm recommendation tree w2v
+VPATH := glm recommendation tree w2v fm utility
 
 targets: ${TARGETS}
 
@@ -31,12 +34,22 @@ install: ${TARGETS}
 	cp w2v/*.hpp ${INSTALLPATH}/include/frovedis/ml/w2v
 	install -d ${INSTALLPATH}/licenses/third_party
 	cp w2v/LICENSE ${INSTALLPATH}/licenses/third_party/LICENSE.word2vec
+	install -d ${INSTALLPATH}/include/frovedis/ml/dnn
+	cp -r dnn/tiny-dnn ${INSTALLPATH}/include/frovedis/ml/dnn
+	cp dnn/*.hpp ${INSTALLPATH}/include/frovedis/ml/dnn
+	cp dnn/LICENSE.tiny-dnn ${INSTALLPATH}/licenses/third_party/
 
 optimizer.o: optimizer.cc
 
 tree_config.o: tree_config.cc tree_config.hpp
 tree_impurity.o: tree_impurity.cc tree_impurity.hpp
 tree_utility.o: tree_utility.cc tree_utility.hpp
+
+word2vec.o: word2vec.cc word2vec.hpp
+
+main.o: main.cc main.hpp
+
+batch_chain_communicator.o: batch_chain_communicator.cc batch_chain_communicator.hpp
 
 clean:
 	${RM} ${TO_CLEAN} glm/*~ recommendation/*~ fm/*~ ${TARGETS} 
