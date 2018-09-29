@@ -35,9 +35,6 @@ install: ${TARGETS}
 	install -d ${INSTALLPATH}/licenses/third_party
 	cp w2v/LICENSE ${INSTALLPATH}/licenses/third_party/LICENSE.word2vec
 	install -d ${INSTALLPATH}/include/frovedis/ml/dnn
-	cp -r dnn/tiny-dnn ${INSTALLPATH}/include/frovedis/ml/dnn
-	cp dnn/*.hpp ${INSTALLPATH}/include/frovedis/ml/dnn
-	cp dnn/LICENSE.tiny-dnn ${INSTALLPATH}/licenses/third_party/
 
 optimizer.o: optimizer.cc
 
