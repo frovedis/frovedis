@@ -14,18 +14,24 @@ class dfoperator:
     if cls.__proxy is not None:
       (host, port) = FrovedisServer.getServerInstance()
       rpclib.release_dfoperator(host,port,cls.get())
+      excpt = rpclib.check_server_exception()
+      if excpt["status"]: raise RuntimeError(excpt["info"]) 
       cls.__proxy = None
 
   def __and__(cls, opt):
     if cls.__proxy is not None:
       (host, port) = FrovedisServer.getServerInstance()
       proxy = rpclib.get_dfANDoperator(host,port,cls.get(),opt.get());
+      excpt = rpclib.check_server_exception()
+      if excpt["status"]: raise RuntimeError(excpt["info"]) 
       return dfoperator(proxy)
   
   def __or__(cls, opt):
     if cls.__proxy is not None:
       (host, port) = FrovedisServer.getServerInstance()
       proxy = rpclib.get_dfORoperator(host,port,cls.get(),opt.get());
+      excpt = rpclib.check_server_exception()
+      if excpt["status"]: raise RuntimeError(excpt["info"]) 
       return dfoperator(proxy)
 
   def get(cls):

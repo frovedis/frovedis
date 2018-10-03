@@ -4,17 +4,18 @@ from frovedis.exrpc.server import *
 from frovedis.matrix.dense import FrovedisBlockcyclicMatrix
 from frovedis.matrix.wrapper import SCALAPACK
 import sys
+import numpy as np
 
 # initializing the Frovedis server
 argvs = sys.argv
 argc = len(argvs)
 if (argc < 2):
-    print 'Please give frovedis_server calling command as the first argument \n(e.g. "mpirun -np 2 -x /opt/nec/nosupport/frovedis/ve/bin/frovedis_server")'
+    print ('Please give frovedis_server calling command as the first argument \n(e.g. "mpirun -np 2 -x /opt/nec/nosupport/frovedis/ve/bin/frovedis_server")')
     quit()
 FrovedisServer.initialize(argvs[1])
 
 # Loading Frovedis server side blockcyclic matrix from text file
-bcm1 = FrovedisBlockcyclicMatrix()
+bcm1 = FrovedisBlockcyclicMatrix(dtype=np.float64)
 print("loading blockcyclic matrix from text file: ./input/mat_3x3")
 bcm1.load("./input/mat_3x3")
 bcm1.get_rowmajor_view()
@@ -52,9 +53,9 @@ svd.save("./out/svd_output_sfile","./out/svd_output_ufile","./out/svd_output_vfi
 # getting the result back at pythob side
 print("printing the results (umat, svec, vmat) at python client:")
 (umat,svec,vmat) = svd.to_numpy_results()
-print umat
-print svec
-print vmat
+print (umat)
+print (svec)
+print (vmat)
 
 # Releasing input matrix and resultant matrices
 print("releasing frovedis side svd input and result data")

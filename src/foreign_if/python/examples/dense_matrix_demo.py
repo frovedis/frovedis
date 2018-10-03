@@ -13,7 +13,7 @@ import sys
 argvs = sys.argv
 argc = len(argvs)
 if (argc < 2):
-    print 'Please give frovedis_server calling command as the first argument \n(e.g. "mpirun -np 2 -x /opt/nec/nosupport/frovedis/ve/bin/frovedis_server")'
+    print ('Please give frovedis_server calling command as the first argument \n(e.g. "mpirun -np 2 -x /opt/nec/nosupport/frovedis/ve/bin/frovedis_server")')
     quit()
 FrovedisServer.initialize(argvs[1])
 
@@ -40,8 +40,7 @@ fmat.get_rowmajor_view()
 
 # getting back the numpy matrix
 mat2 = fmat.to_numpy_matrix()
-print ("Frovedis Blockcyclic Matrix => Numpy 2D Matrix")
-print mat2
+print("Frovedis Blockcyclic Matrix => Numpy 2D Matrix", mat2)
 
 # Deepcopying matrix
 cmat = FrovedisBlockcyclicMatrix(fmat) # copy constructor

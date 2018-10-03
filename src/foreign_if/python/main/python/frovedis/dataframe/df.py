@@ -24,12 +24,16 @@ class FrovedisDataframe :
    if cls.__fdata is not None:
       (host, port) = FrovedisServer.getServerInstance()
       rpclib.show_frovedis_dataframe(host,port,cls.__fdata)
-      print
+      excpt = rpclib.check_server_exception()
+      if excpt["status"]: raise RuntimeError(excpt["info"]) 
+      print("\n")
 
   def release(cls):
     if cls.__fdata is not None:
        (host, port) = FrovedisServer.getServerInstance()
        rpclib.release_frovedis_dataframe(host,port,cls.__fdata)
+       excpt = rpclib.check_server_exception()
+       if excpt["status"]: raise RuntimeError(excpt["info"]) 
        for cname in cls.__cols: del cls.__dict__[cname]
        cls.__fdata = None 
        cls.__cols  = None
@@ -84,6 +88,8 @@ class FrovedisDataframe :
 
     (host, port) = FrovedisServer.getServerInstance()
     cls.__fdata = rpclib.create_frovedis_dataframe(host,port,tptr,col_names,dptr,size)
+    excpt = rpclib.check_server_exception()
+    if excpt["status"]: raise RuntimeError(excpt["info"]) 
   
   def __getitem__(cls,target):
     if cls.__fdata is not None:
@@ -104,6 +110,8 @@ class FrovedisDataframe :
     for item in ret.__cols: ret.__dict__[item] = cls.__dict__[item]
     (host, port) = FrovedisServer.getServerInstance()
     ret.__fdata = rpclib.filter_frovedis_dataframe(host,port,cls.get(),opt.get())
+    excpt = rpclib.check_server_exception()
+    if excpt["status"]: raise RuntimeError(excpt["info"]) 
     return ret
   
   def select_frovedis_dataframe(cls,targets):
@@ -129,6 +137,8 @@ class FrovedisDataframe :
     #print("making exrpc request to select requested columns")
     (host, port) = FrovedisServer.getServerInstance()
     ret.__fdata = rpclib.select_frovedis_dataframe(host,port,cls.get(),ptr_arr,sz)
+    excpt = rpclib.check_server_exception()
+    if excpt["status"]: raise RuntimeError(excpt["info"]) 
     return ret
     
   # TODO: support list of ascending 
@@ -159,6 +169,8 @@ class FrovedisDataframe :
     (host, port) = FrovedisServer.getServerInstance()
     ret.__fdata = rpclib.sort_frovedis_dataframe(host,port,cls.get(),
                                                  ptr_arr,sz,ascending)
+    excpt = rpclib.check_server_exception()
+    if excpt["status"]: raise RuntimeError(excpt["info"]) 
     return ret
 
   def sort(cls,columns=None,axis=0,ascending=True,
@@ -196,6 +208,8 @@ class FrovedisDataframe :
 
     (host, port) = FrovedisServer.getServerInstance()
     ret.__fdata = rpclib.group_frovedis_dataframe(host,port,cls.get(),ptr_arr,sz)
+    excpt = rpclib.check_server_exception()
+    if excpt["status"]: raise RuntimeError(excpt["info"]) 
     return ret
 
   # method to evaluate join keys
@@ -262,6 +276,8 @@ class FrovedisDataframe :
     (host, port) = FrovedisServer.getServerInstance()
     ret.__fdata = rpclib.merge_frovedis_dataframe(host,port,cls.get(),df.get(),
                                                   dfopt.get(),how,join_type)
+    excpt = rpclib.check_server_exception()
+    if excpt["status"]: raise RuntimeError(excpt["info"]) 
     return ret                                                        
 
   # exception at frovedis server: same key is not currently supported by frovedis
@@ -309,6 +325,8 @@ class FrovedisDataframe :
     (host, port) = FrovedisServer.getServerInstance()
     ret.__fdata = rpclib.rename_frovedis_dataframe(host,port,cls.get(),
                                                    name_ptr,new_name_ptr,sz)
+    excpt = rpclib.check_server_exception()
+    if excpt["status"]: raise RuntimeError(excpt["info"]) 
     return ret                                                        
 
   def get(cls): return cls.__fdata
@@ -418,20 +436,24 @@ class FrovedisDataframe :
       tptr = type_arr.ctypes.data_as(POINTER(c_short))
     if (name == 'min'): 
       if not types: raise ValueError("type of target columns is missing for min calculation")
-      return rpclib.get_min_frovedis_dataframe(host,port,cls.get(),cols_ptr,tptr,sz)
+      ret = rpclib.get_min_frovedis_dataframe(host,port,cls.get(),cols_ptr,tptr,sz)
     elif (name == 'max'): 
       if not types: raise ValueError("type of target columns is missing for max calculation")
-      return rpclib.get_max_frovedis_dataframe(host,port,cls.get(),cols_ptr,tptr,sz)
+      ret = rpclib.get_max_frovedis_dataframe(host,port,cls.get(),cols_ptr,tptr,sz)
     elif (name == 'sum'): 
       if not types: raise ValueError("type of target columns is missing for sum calculation")
-      return rpclib.get_sum_frovedis_dataframe(host,port,cls.get(),cols_ptr,tptr,sz)
+      ret = rpclib.get_sum_frovedis_dataframe(host,port,cls.get(),cols_ptr,tptr,sz)
     elif (name == 'std'): 
       if not types: raise ValueError("type of target columns is missing for std calculation")
-      return rpclib.get_std_frovedis_dataframe(host,port,cls.get(),cols_ptr,tptr,sz)
+      ret = rpclib.get_std_frovedis_dataframe(host,port,cls.get(),cols_ptr,tptr,sz)
     elif (name == 'avg'): 
-      return rpclib.get_avg_frovedis_dataframe(host,port,cls.get(),cols_ptr,sz)
+      ret = rpclib.get_avg_frovedis_dataframe(host,port,cls.get(),cols_ptr,sz)
     elif (name == 'count'): 
-      return rpclib.get_cnt_frovedis_dataframe(host,port,cls.get(),cols_ptr,sz)
+      ret = rpclib.get_cnt_frovedis_dataframe(host,port,cls.get(),cols_ptr,sz)
+    else: raise ValueError("Unknown statistics request is encountered!")
+    excpt = rpclib.check_server_exception()
+    if excpt["status"]: raise RuntimeError(excpt["info"])
+    return ret
 
   def __get_numeric_columns(cls):
     cols = []
@@ -473,6 +495,8 @@ class FrovedisDataframe :
     (host, port) = FrovedisServer.getServerInstance()
     for i in range(0,sz):
       col_val = rpclib.get_frovedis_col(host,port,cls.get(),cols[i],types[i]) 
+      excpt = rpclib.check_server_exception()
+      if excpt["status"]: raise RuntimeError(excpt["info"]) 
       data[cols[i]] = col_val
     #print(data)
     return pd.DataFrame(data)

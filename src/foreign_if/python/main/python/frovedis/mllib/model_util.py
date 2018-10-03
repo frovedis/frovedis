@@ -3,7 +3,8 @@
 import numpy as np
 from ..exrpc.server import *
 from ..exrpc.rpclib import *
-from ..matrix.sparse import FrovedisCRSMatrix
+from ..matrix.ml_data import FrovedisFeatureData
+from ..matrix.dtype import DTYPE,TypeUtil
 
 class M_KIND:
   "A python enumerator for wrapping model kinds"
@@ -14,6 +15,10 @@ class M_KIND:
   LNRM = 3
   MFM = 4
   KMEANS = 5
+  DTM = 6
+  NBM = 7 
+  FMM = 8
+  FPM = 9
 
 class ModelID:
   "A python container for generating model IDs for ML"
@@ -38,32 +43,61 @@ class GLM:
    "A python util for common operations on Generic Model"
 
    @staticmethod
-   def predict(X,mid,mkind,prob):
-      X = FrovedisCRSMatrix.asCRS(X)
+   def predict(X,mid,mkind,mdtype,prob):
+      if mdtype is None: raise ValueError("model for predict is typeless!")
+      inp_data = FrovedisFeatureData(X,dense_kind='rowmajor')
+      X = inp_data.get()
+      dtype = inp_data.get_dtype()
+      itype = inp_data.get_itype()
+      dense = inp_data.is_dense()
+      if (dtype != mdtype):
+        raise TypeError("Input CRS matrix dtype is different than model dtype!")
       (host,port) = FrovedisServer.getServerInstance()
       len = X.numRows()
-      ret = np.zeros(len,dtype=np.float64)
-      rpclib.parallel_glm_predict(host,port,mid,mkind,X.get(),ret,len,prob)
+      if(mdtype == DTYPE.FLOAT):
+        ret = np.zeros(len,dtype=np.float32) 
+        rpclib.parallel_float_glm_predict(host,port,mid,mkind,X.get(),ret,len,prob,itype,dense)
+      elif(mdtype == DTYPE.DOUBLE):
+        ret = np.zeros(len,dtype=np.float64) 
+        rpclib.parallel_double_glm_predict(host,port,mid,mkind,X.get(),ret,len,prob,itype,dense)
+      else: raise TypeError("model type should be either float or double!")
+      excpt = rpclib.check_server_exception()
+      if excpt["status"]: raise RuntimeError(excpt["info"]) 
       return ret
 
    @staticmethod
-   def release(mid,mkind):
+   def release(mid,mkind,mdtype):
+      if mdtype is None: raise ValueError("model for release is typeless!")
       (host,port) = FrovedisServer.getServerInstance()
-      rpclib.release_frovedis_model(host,port,mid,mkind)
+      rpclib.release_frovedis_model(host,port,mid,mkind,mdtype)
+      excpt = rpclib.check_server_exception()
+      if excpt["status"]: raise RuntimeError(excpt["info"]) 
 
    @staticmethod
-   def load(mid,mkind,fname):
+   def load(mid,mkind,mdtype,fname):
+      if mdtype is None: raise ValueError("model for load is typeless!")
+      if isinstance(fname, str) == False: 
+        raise TypeError("Expected: String, Got: " + str(type(fname)))
       (host,port) = FrovedisServer.getServerInstance()
-      rpclib.load_frovedis_model(host,port,mid,mkind,fname)
+      rpclib.load_frovedis_model(host,port,mid,mkind,mdtype,fname)
+      excpt = rpclib.check_server_exception()
+      if excpt["status"]: raise RuntimeError(excpt["info"]) 
 
    @staticmethod
-   def save(mid,mkind,fname):
+   def save(mid,mkind,mdtype,fname):
+      if mdtype is None: raise ValueError("model for save is typeless!")
+      if isinstance(fname, str) == False: 
+        raise TypeError("Expected: String, Got: " + str(type(fname)))
       (host,port) = FrovedisServer.getServerInstance()
-      rpclib.save_frovedis_model(host,port,mid,mkind,fname)
+      rpclib.save_frovedis_model(host,port,mid,mkind,mdtype,fname)
+      excpt = rpclib.check_server_exception()
+      if excpt["status"]: raise RuntimeError(excpt["info"]) 
 
    @staticmethod
-   def debug_print(mid,mkind):
-      #print("model: " + str(mid) + " information is being displayed: ")
+   def debug_print(mid,mkind,mdtype):
+      if mdtype is None: raise ValueError("model for print is typeless!")
       (host,port) = FrovedisServer.getServerInstance()
-      rpclib.show_frovedis_model(host,port,mid,mkind)
+      rpclib.show_frovedis_model(host,port,mid,mkind,mdtype)
+      excpt = rpclib.check_server_exception()
+      if excpt["status"]: raise RuntimeError(excpt["info"]) 
 

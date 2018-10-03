@@ -12,10 +12,14 @@ class FrovedisServer(object):
       if FrovedisServer.__instance is None:
          FrovedisServer.__instance = object.__new__(cls)
          n = rpclib.initialize_server(FrovedisServer.__cmd)
+         excpt = rpclib.check_server_exception()
+         if excpt["status"]: raise RuntimeError(excpt["info"])
          host = n['hostname']
          port = n['rpcport']
          FrovedisServer.__instance.mnode = node.exrpc_node(host,port)
          FrovedisServer.__instance.wsize = rpclib.get_worker_size(host,port)
+         excpt = rpclib.check_server_exception()
+         if excpt["status"]: raise RuntimeError(excpt["info"]) 
       return FrovedisServer.__instance
 
    @classmethod
@@ -36,7 +40,11 @@ class FrovedisServer(object):
       if FrovedisServer.__instance is not None:
          (host,port) = cls.getServerInstance()
          rpclib.clean_server(host,port)
+         excpt = rpclib.check_server_exception()
+         if excpt["status"]: raise RuntimeError(excpt["info"]) 
          rpclib.finalize_server(host,port)
+         excpt = rpclib.check_server_exception()
+         if excpt["status"]: raise RuntimeError(excpt["info"]) 
          FrovedisServer.__instance = None
       #else:
       #   print("No server to finalize!")

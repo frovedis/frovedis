@@ -4,17 +4,29 @@ LIBS := ../../../exrpc/libfrovedis_exrpc.a ../../../../frovedis/core/libfrovedis
 
 INCLUDES := -I../../../../../third_party/cereal-1.2.2/include/ -I../../../.. -I../../../exrpc -I../../../server -I${PYTHON_INC}
 
-CXXFLAGS := ${CXXFLAGS_COMMON} ${INCLUDES}
+HEADERS := python_client_headers.hpp
+OBJS := utility.o exception_handling.o server_info.o dvector.o data_storage.o wrapper.o dataframe.o model.o ml.o
+
+DFLAGS := -DUSE_DF
+CXXFLAGS := ${CXXFLAGS_COMMON} ${INCLUDES} ${DFLAGS}
 
 TARGETS := libfrovedis_client_python.so
 
-libfrovedis_client_python.so: client.o ${LIBS}
-	${MPICXX} -fopenmp -shared -o libfrovedis_client_python.so -Wl,-whole-archive client.o ${LIBS} -Wl,-no-whole-archive -L../../../../../third_party/lib ${LIBS_COMMON}
+libfrovedis_client_python.so: ${OBJS} ${LIBS}
+	${MPICXX} -fopenmp -shared -o libfrovedis_client_python.so -Wl,-whole-archive ${OBJS} ${LIBS} -Wl,-no-whole-archive -L../../../../../third_party/lib ${LIBS_COMMON}
 	install -d ../../lib
 	cp libfrovedis_client_python.so ../../lib
 
-client.o: client.cc 
+utility.o: utility.cc ${HEADERS}
+exception_handling.o: exception_handling.cc ${HEADERS}
+server_info.o: server_info.cc ${HEADERS}
+dvector.o: dvector.cc ${HEADERS}
+data_storage.o: data_storage.cc ${HEADERS}
+wrapper.o: wrapper.cc ${HEADERS}
+dataframe.o: dataframe.cc ${HEADERS}
+model.o: model.cc ${HEADERS}
+ml.o: ml.cc ${HEADERS}
 
 clean:
-	${RM} ${TO_CLEAN} ${TARGETS}
+	${RM} ${TO_CLEAN} ${TARGETS} ${OBJS}
 

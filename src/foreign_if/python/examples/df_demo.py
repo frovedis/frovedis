@@ -9,7 +9,7 @@ import pandas as pd
 argvs = sys.argv
 argc = len(argvs)
 if (argc < 2):
-    print 'Please give frovedis_server calling command as the first argument \n(e.g. "mpirun -np 2 -x /opt/nec/nosupport/frovedis/ve/bin/frovedis_server")'
+    print ('Please give frovedis_server calling command as the first argument \n(e.g. "mpirun -np 2 -x /opt/nec/nosupport/frovedis/ve/bin/frovedis_server")')
     quit()
 FrovedisServer.initialize(argvs[1])
 
@@ -77,19 +77,19 @@ joined = fdf1.merge(pdf2, left_on="Country", right_on="Cname")
 joined.show()
 
 # conversion demo
-print(fdf1.to_panda_dataframe()); print
-print(joined.to_panda_dataframe()); print
+print(fdf1.to_panda_dataframe()); print("\n")
+print(joined.to_panda_dataframe()); print("\n")
 joined.release()
 
 # miscellaneous
-print "all count: ", fdf1.count(); print # all column counts
-print "min(age): ", fdf1.min("Age"); print
-print "max(age): ", fdf1.max("Age"); print
-print "sum(age): ", fdf1.sum("Age"); print
-print "avg(age): ", fdf1.avg("Age"); print
-print "std(age): ", fdf1.std("Age"); print
-print "count(age): ", fdf1.count("Age"); print
-print(fdf1.describe()); print
+print ("all count: ", fdf1.count()); print # all column counts
+print ("min(age): ", fdf1.min("Age")); print("\n")
+print ("max(age): ", fdf1.max("Age")); print("\n")
+print ("sum(age): ", fdf1.sum("Age")); print("\n")
+print ("avg(age): ", fdf1.avg("Age")); print("\n")
+print ("std(age): ", fdf1.std("Age")); print("\n")
+print ("count(age): ", fdf1.count("Age")); print("\n")
+print(fdf1.describe()); print("\n")
 
 # describe demo
 data = {'one': [10, 12, 13, 15],
@@ -98,11 +98,12 @@ data = {'one': [10, 12, 13, 15],
         'four': [1, 2, 3, 4]
        }
 pdf = pd.DataFrame(data)
-print(pdf.describe()); print
+print(pdf.describe()); print("\n")
 df = FrovedisDataframe(pdf)
-print(df.describe()); print # prints count, mean, std, sum, min, max
+print(df.describe()); print("\n") # prints count, mean, std, sum, min, max
 df.release()
 
 fdf1.release()
 fdf2.release()
+
 FrovedisServer.shut_down()

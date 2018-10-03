@@ -3,7 +3,7 @@
 import numpy as np
 from scipy.sparse import csr_matrix
 from frovedis.exrpc.server import *
-from frovedis.matrix.sparse import FrovedisCRSMatrix 
+from frovedis.matrix.crs import FrovedisCRSMatrix 
 from frovedis.matrix.wrapper import ARPACK
 #from python.matrix.results import GesvdResult
 import sys
@@ -12,7 +12,7 @@ import sys
 argvs = sys.argv
 argc = len(argvs)
 if (argc < 2):
-    print 'Please give frovedis_server calling command as the first argument \n(e.g. "mpirun -np 2 -x /opt/nec/nosupport/frovedis/ve/bin/frovedis_server")'
+    print ('Please give frovedis_server calling command as the first argument \n(e.g. "mpirun -np 2 -x /opt/nec/nosupport/frovedis/ve/bin/frovedis_server")')
     quit()
 FrovedisServer.initialize(argvs[1])
 

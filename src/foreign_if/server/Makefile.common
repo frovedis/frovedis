@@ -1,4 +1,4 @@
-HEADERS := dummy_model.hpp dummy_matrix.hpp exrpc_data_storage.hpp exrpc_model.hpp exrpc_ml.hpp exrpc_svd.hpp exrpc_pblas.hpp exrpc_scalapack.hpp exrpc_dataframe.hpp scalapack_result.hpp frovedis_mem_pair.hpp short_hand_type.hpp model_tracker.hpp
+HEADERS := dummy_model.hpp dummy_matrix.hpp exrpc_data_storage.hpp exrpc_model.hpp exrpc_ml.hpp exrpc_svd.hpp exrpc_pblas.hpp exrpc_scalapack.hpp exrpc_dataframe.hpp scalapack_result.hpp frovedis_mem_pair.hpp short_hand_dtype.hpp short_hand_model_type.hpp short_hand_sparse_type.hpp short_hand_dense_type.hpp model_tracker.hpp
 
 OBJS := model_tracker.o exrpc_dataframe.o expose_dvector.o expose_dense.o expose_sparse.o expose_mldata.o expose_dataframe.o expose_wrapper.o expose_model.o expose_ml.o
 

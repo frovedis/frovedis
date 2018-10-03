@@ -10,7 +10,7 @@ import sys
 argvs = sys.argv
 argc = len(argvs)
 if (argc < 2):
-    print 'Please give frovedis_server calling command as the first argument \n(e.g. "mpirun -np 2 -x /opt/nec/nosupport/frovedis/ve/bin/frovedis_server")'
+    print ('Please give frovedis_server calling command as the first argument \n(e.g. "mpirun -np 2 -x /opt/nec/nosupport/frovedis/ve/bin/frovedis_server")')
     quit()
 FrovedisServer.initialize(argvs[1])
 
@@ -57,16 +57,12 @@ print ("x.y = " + str(r1))
 # short-cut version (blockcyclic matrix creation and deletion will happen automatically)
 r2 = PBLAS.dot(m1,m2) # dot product on original numpy data
 print ("x.y = " + str(r2))
-r3 = PBLAS.dot([1,2], (3,4)) # direct list/tuple can also be passed, as inputs
-print ("x.y = " + str(r3))
 
 # --- nrm2 demo ---
 r = PBLAS.nrm2(bcm1)
 print ("norm(x) = " + str(r))
 r = PBLAS.nrm2(bcm2)
 print ("norm(y) = " + str(r))
-r = PBLAS.nrm2((1,2,3)) # tuple can also be passed
-print ("norm((1,2,3)) = " + str(r))
 
 # --- gemv (matrix-vector multiplication) demo ---
 print ("m*x: ")

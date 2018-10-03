@@ -14,7 +14,7 @@ except OSError:
   try: 
     lib = CDLL("../lib/libfrovedis_client_python.so")
   except OSError:
-    raise OSError, "libfrovedis_client_python.so: No such dll found (set LD_LIBRARY_PATH)"
+    raise OSError("libfrovedis_client_python.so: No such dll found (set LD_LIBRARY_PATH)")
 
 # --- Frovedis Server ---
 initialize_server = lib.initialize_server
@@ -30,6 +30,9 @@ clean_server.argtypes = [c_char_p, c_int]
 
 finalize_server = lib.finalize_server
 finalize_server.argtypes = [c_char_p, c_int]
+
+check_server_exception = lib.check_server_exception
+check_server_exception.restype = py_object
 
 # --- Frovedis dvector ---
 # create from numpy array
@@ -158,165 +161,337 @@ get_frovedis_col.restype = py_object
 
 # --- Frovedis sparse matrices ---
 # create from scipy matrix
-create_frovedis_sparse_matrix = lib.create_frovedis_sparse_matrix
-create_frovedis_sparse_matrix.argtypes = [c_char_p, c_int,
-                                        c_int, c_int,
-                                        ndpointer(c_double,ndim=1,flags="C_CONTIGUOUS"),
-                                        ndpointer(c_int,ndim=1,flags="C_CONTIGUOUS"),
-                                        ndpointer(c_int,ndim=1,flags="C_CONTIGUOUS"),
-                                        c_int, c_char]
-create_frovedis_sparse_matrix.restype = py_object
+create_frovedis_crs_II_matrix = lib.create_frovedis_crs_II_matrix
+create_frovedis_crs_II_matrix.argtypes = [c_char_p, c_int,
+                                          c_ulong, c_ulong,
+                                          ndpointer(c_int,ndim=1,flags="C_CONTIGUOUS"),
+                                          ndpointer(c_int,ndim=1,flags="C_CONTIGUOUS"),
+                                          ndpointer(c_long,ndim=1,flags="C_CONTIGUOUS"),
+                                          c_ulong]
+create_frovedis_crs_II_matrix.restype = py_object
+
+create_frovedis_crs_IL_matrix = lib.create_frovedis_crs_IL_matrix
+create_frovedis_crs_IL_matrix.argtypes = [c_char_p, c_int,
+                                          c_ulong, c_ulong,
+                                          ndpointer(c_int,ndim=1,flags="C_CONTIGUOUS"),
+                                          ndpointer(c_long,ndim=1,flags="C_CONTIGUOUS"),
+                                          ndpointer(c_long,ndim=1,flags="C_CONTIGUOUS"),
+                                          c_ulong]
+create_frovedis_crs_IL_matrix.restype = py_object
+
+create_frovedis_crs_LI_matrix = lib.create_frovedis_crs_LI_matrix
+create_frovedis_crs_LI_matrix.argtypes = [c_char_p, c_int,
+                                          c_ulong, c_ulong,
+                                          ndpointer(c_long,ndim=1,flags="C_CONTIGUOUS"),
+                                          ndpointer(c_int,ndim=1,flags="C_CONTIGUOUS"),
+                                          ndpointer(c_long,ndim=1,flags="C_CONTIGUOUS"),
+                                          c_ulong]
+create_frovedis_crs_LI_matrix.restype = py_object
+
+create_frovedis_crs_LL_matrix = lib.create_frovedis_crs_LL_matrix
+create_frovedis_crs_LL_matrix.argtypes = [c_char_p, c_int,
+                                          c_ulong, c_ulong,
+                                          ndpointer(c_long,ndim=1,flags="C_CONTIGUOUS"),
+                                          ndpointer(c_long,ndim=1,flags="C_CONTIGUOUS"),
+                                          ndpointer(c_long,ndim=1,flags="C_CONTIGUOUS"),
+                                          c_ulong]
+create_frovedis_crs_LL_matrix.restype = py_object
+
+create_frovedis_crs_FI_matrix = lib.create_frovedis_crs_FI_matrix
+create_frovedis_crs_FI_matrix.argtypes = [c_char_p, c_int,
+                                          c_ulong, c_ulong,
+                                          ndpointer(c_float,ndim=1,flags="C_CONTIGUOUS"),
+                                          ndpointer(c_int,ndim=1,flags="C_CONTIGUOUS"),
+                                          ndpointer(c_long,ndim=1,flags="C_CONTIGUOUS"),
+                                          c_ulong]
+create_frovedis_crs_FI_matrix.restype = py_object
+
+create_frovedis_crs_FL_matrix = lib.create_frovedis_crs_FL_matrix
+create_frovedis_crs_FL_matrix.argtypes = [c_char_p, c_int,
+                                          c_ulong, c_ulong,
+                                          ndpointer(c_float,ndim=1,flags="C_CONTIGUOUS"),
+                                          ndpointer(c_long,ndim=1,flags="C_CONTIGUOUS"),
+                                          ndpointer(c_long,ndim=1,flags="C_CONTIGUOUS"),
+                                          c_ulong]
+create_frovedis_crs_FL_matrix.restype = py_object
+
+create_frovedis_crs_DI_matrix = lib.create_frovedis_crs_DI_matrix
+create_frovedis_crs_DI_matrix.argtypes = [c_char_p, c_int,
+                                          c_ulong, c_ulong,
+                                          ndpointer(c_double,ndim=1,flags="C_CONTIGUOUS"),
+                                          ndpointer(c_int,ndim=1,flags="C_CONTIGUOUS"),
+                                          ndpointer(c_long,ndim=1,flags="C_CONTIGUOUS"),
+                                          c_ulong]
+create_frovedis_crs_DI_matrix.restype = py_object
+
+create_frovedis_crs_DL_matrix = lib.create_frovedis_crs_DL_matrix
+create_frovedis_crs_DL_matrix.argtypes = [c_char_p, c_int,
+                                          c_ulong, c_ulong,
+                                          ndpointer(c_double,ndim=1,flags="C_CONTIGUOUS"),
+                                          ndpointer(c_long,ndim=1,flags="C_CONTIGUOUS"),
+                                          ndpointer(c_long,ndim=1,flags="C_CONTIGUOUS"),
+                                          c_ulong]
+create_frovedis_crs_DL_matrix.restype = py_object
 
 # load from text/bin file
-load_frovedis_sparse_matrix = lib.load_frovedis_sparse_matrix
-load_frovedis_sparse_matrix.argtypes = [c_char_p, c_int, 
-                                      c_char_p, c_bool, c_char]
-load_frovedis_sparse_matrix.restype = py_object
+load_frovedis_crs_matrix = lib.load_frovedis_crs_matrix
+load_frovedis_crs_matrix.argtypes = [c_char_p, c_int, 
+                                     c_char_p, c_bool, 
+                                     c_short, c_short]
+load_frovedis_crs_matrix.restype = py_object
 
-save_frovedis_sparse_matrix = lib.save_frovedis_sparse_matrix
-save_frovedis_sparse_matrix.argtypes = [c_char_p, c_int, 
-                                      c_long, c_char_p, c_bool, c_char]
+save_frovedis_crs_matrix = lib.save_frovedis_crs_matrix
+save_frovedis_crs_matrix.argtypes = [c_char_p, c_int, 
+                                     c_long, c_char_p, c_bool, 
+                                     c_short, c_short]
 
-release_frovedis_sparse_matrix = lib.release_frovedis_sparse_matrix
-release_frovedis_sparse_matrix.argtypes = [c_char_p, c_int, c_long, c_char]
+release_frovedis_crs_matrix = lib.release_frovedis_crs_matrix
+release_frovedis_crs_matrix.argtypes = [c_char_p, c_int, c_long, 
+                                        c_short, c_short]
 
-show_frovedis_sparse_matrix = lib.show_frovedis_sparse_matrix
-show_frovedis_sparse_matrix.argtypes = [c_char_p, c_int, c_long, c_char]
+show_frovedis_crs_matrix = lib.show_frovedis_crs_matrix
+show_frovedis_crs_matrix.argtypes = [c_char_p, c_int, c_long, 
+                                     c_short, c_short]
 
 # --- Frovedis Dense matrices ---
 # create from numpy matrix
-create_frovedis_dense_matrix = lib.create_frovedis_dense_matrix
-create_frovedis_dense_matrix.argtypes = [c_char_p, c_int,
-                                       c_int, c_int,
+create_frovedis_double_dense_matrix = lib.create_frovedis_double_dense_matrix
+create_frovedis_double_dense_matrix.argtypes = [c_char_p, c_int,
+                                       c_ulong, c_ulong,
                                        ndpointer(c_double,ndim=1,flags="C_CONTIGUOUS"),
                                        c_char]
-create_frovedis_dense_matrix.restype = py_object
+create_frovedis_double_dense_matrix.restype = py_object
+
+create_frovedis_float_dense_matrix = lib.create_frovedis_float_dense_matrix
+create_frovedis_float_dense_matrix.argtypes = [c_char_p, c_int,
+                                       c_ulong, c_ulong,
+                                       ndpointer(c_float,ndim=1,flags="C_CONTIGUOUS"),
+                                       c_char]
+create_frovedis_float_dense_matrix.restype = py_object
+
+
+
+create_frovedis_long_dense_matrix = lib.create_frovedis_long_dense_matrix
+create_frovedis_long_dense_matrix.argtypes = [c_char_p, c_int,
+                                       c_ulong, c_ulong,
+                                       ndpointer(c_long,ndim=1,flags="C_CONTIGUOUS"),
+                                       c_char]
+create_frovedis_long_dense_matrix.restype = py_object
+
+
+
+create_frovedis_int_dense_matrix = lib.create_frovedis_int_dense_matrix
+create_frovedis_int_dense_matrix.argtypes = [c_char_p, c_int,
+                                       c_ulong, c_ulong,
+                                       ndpointer(c_int,ndim=1,flags="C_CONTIGUOUS"),
+                                       c_char]
+create_frovedis_int_dense_matrix.restype = py_object
+
 
 # load from text/bin file
 load_frovedis_dense_matrix = lib.load_frovedis_dense_matrix
 load_frovedis_dense_matrix.argtypes = [c_char_p, c_int, 
-                                     c_char_p, c_bool, c_char]
+                                       c_char_p, c_bool, c_char, c_short]
 load_frovedis_dense_matrix.restype = py_object
 
 save_frovedis_dense_matrix = lib.save_frovedis_dense_matrix
 save_frovedis_dense_matrix.argtypes = [c_char_p, c_int, 
-                                     c_long, c_char_p, c_bool, c_char]
+                                       c_long, c_char_p, 
+                                       c_bool, c_char, c_short]
 
 transpose_frovedis_dense_matrix = lib.transpose_frovedis_dense_matrix
 transpose_frovedis_dense_matrix.argtypes = [c_char_p, c_int, 
-                                          c_long, c_char]
+                                            c_long, c_char, c_short]
 transpose_frovedis_dense_matrix.restype = py_object
 
 copy_frovedis_dense_matrix = lib.copy_frovedis_dense_matrix
-copy_frovedis_dense_matrix.argtypes = [c_char_p, c_int, c_long, c_char]
+copy_frovedis_dense_matrix.argtypes = [c_char_p, c_int, c_long, c_char, c_short]
 copy_frovedis_dense_matrix.restype = py_object
 
 release_frovedis_dense_matrix = lib.release_frovedis_dense_matrix
-release_frovedis_dense_matrix.argtypes = [c_char_p, c_int, c_long, c_char]
+release_frovedis_dense_matrix.argtypes = [c_char_p, c_int, c_long, c_char, c_short]
 
 show_frovedis_dense_matrix = lib.show_frovedis_dense_matrix
-show_frovedis_dense_matrix.argtypes = [c_char_p, c_int, c_long, c_char]
+show_frovedis_dense_matrix.argtypes = [c_char_p, c_int, c_long, c_char, c_short]
 
 get_frovedis_rowmatrix = lib.get_frovedis_rowmatrix
 get_frovedis_rowmatrix.argtypes = [c_char_p, c_int, c_long, 
-                                 c_int, c_int, c_char]
+                                   c_ulong, c_ulong, 
+                                   c_char, c_short]
 get_frovedis_rowmatrix.restype = py_object
 
-get_rowmajor_array = lib.get_rowmajor_array
-get_rowmajor_array.argtypes = [c_char_p, c_int, c_long, c_char,
+get_double_rowmajor_array = lib.get_double_rowmajor_array
+get_double_rowmajor_array.argtypes = [c_char_p, c_int, c_long, c_char,
                                ndpointer(c_double,ndim=1,flags="C_CONTIGUOUS"),
-                               c_int]
+                               c_ulong]
+
+get_float_rowmajor_array = lib.get_float_rowmajor_array
+get_float_rowmajor_array.argtypes = [c_char_p, c_int, c_long, c_char,
+                               ndpointer(c_float,ndim=1,flags="C_CONTIGUOUS"),
+                               c_ulong]
+
+get_long_rowmajor_array = lib.get_long_rowmajor_array
+get_long_rowmajor_array.argtypes = [c_char_p, c_int, c_long, c_char,
+                               ndpointer(c_long,ndim=1,flags="C_CONTIGUOUS"),
+                               c_ulong]
+
+get_int_rowmajor_array = lib.get_int_rowmajor_array
+get_int_rowmajor_array.argtypes = [c_char_p, c_int, c_long, c_char,
+                               ndpointer(c_int,ndim=1,flags="C_CONTIGUOUS"),
+                               c_ulong]
 
 # --- Frovedis ML Models ---
 
-parallel_glm_predict = lib.parallel_glm_predict
-parallel_glm_predict.argtypes = [c_char_p, c_int, c_int, c_int, c_long,
+parallel_float_glm_predict = lib.parallel_float_glm_predict
+parallel_float_glm_predict.argtypes = [c_char_p, c_int, c_int, c_short, c_long,
+                                 ndpointer(c_float,ndim=1,flags="C_CONTIGUOUS"),
+                                 c_ulong, c_bool, c_short, c_bool]
+
+parallel_double_glm_predict = lib.parallel_double_glm_predict
+parallel_double_glm_predict.argtypes = [c_char_p, c_int, c_int, c_short, c_long,
                                  ndpointer(c_double,ndim=1,flags="C_CONTIGUOUS"),
-                                 c_int, c_bool]
+                                 c_ulong, c_bool, c_short, c_bool]
 
+# kmeans predict returns int always:
 parallel_kmeans_predict = lib.parallel_kmeans_predict
-parallel_kmeans_predict.argtypes = [c_char_p, c_int, c_int, c_int, c_long,
+parallel_kmeans_predict.argtypes = [c_char_p, c_int, c_int, 
+                                    c_short, c_long,
                                     ndpointer(c_int,ndim=1,flags="C_CONTIGUOUS"),
-                                    c_int]
+                                    c_ulong, c_short, c_bool]
 
-als_predict = lib.als_predict
-als_predict.argtypes = [c_char_p, c_int, c_int, 
+als_float_predict = lib.als_float_predict
+als_float_predict.argtypes = [c_char_p, c_int, c_int, 
+                        ndpointer(c_int,ndim=1,flags="C_CONTIGUOUS"),
+                        ndpointer(c_float,ndim=1,flags="C_CONTIGUOUS"),
+                        c_ulong]
+
+als_double_predict = lib.als_double_predict
+als_double_predict.argtypes = [c_char_p, c_int, c_int, 
                         ndpointer(c_int,ndim=1,flags="C_CONTIGUOUS"),
                         ndpointer(c_double,ndim=1,flags="C_CONTIGUOUS"),
-                        c_int]
+                        c_ulong]
 
-als_rec_users = lib.als_rec_users
-als_rec_users.argtypes = [c_char_p, c_int, c_int, c_int, c_int,
+als_float_rec_users = lib.als_float_rec_users
+als_float_rec_users.argtypes = [c_char_p, c_int, c_int, c_int, c_int,
+                          ndpointer(c_int,ndim=1,flags="C_CONTIGUOUS"),
+                          ndpointer(c_float,ndim=1,flags="C_CONTIGUOUS")]
+
+als_double_rec_users = lib.als_double_rec_users
+als_double_rec_users.argtypes = [c_char_p, c_int, c_int, c_int, c_int,
                           ndpointer(c_int,ndim=1,flags="C_CONTIGUOUS"),
                           ndpointer(c_double,ndim=1,flags="C_CONTIGUOUS")]
 
-als_rec_prods = lib.als_rec_prods
-als_rec_prods.argtypes = [c_char_p, c_int, c_int, c_int, c_int,
+als_float_rec_prods = lib.als_float_rec_prods
+als_float_rec_prods.argtypes = [c_char_p, c_int, c_int, c_int, c_int,
+                          ndpointer(c_int,ndim=1,flags="C_CONTIGUOUS"),
+                          ndpointer(c_float,ndim=1,flags="C_CONTIGUOUS")]
+
+als_double_rec_prods = lib.als_double_rec_prods
+als_double_rec_prods.argtypes = [c_char_p, c_int, c_int, c_int, c_int,
                           ndpointer(c_int,ndim=1,flags="C_CONTIGUOUS"),
                           ndpointer(c_double,ndim=1,flags="C_CONTIGUOUS")]
 
 release_frovedis_model = lib.release_frovedis_model
-release_frovedis_model.argtypes = [c_char_p, c_int, c_int, c_int]
+release_frovedis_model.argtypes = [c_char_p,c_int,c_int,c_short,c_short]
 
 show_frovedis_model = lib.show_frovedis_model
-show_frovedis_model.argtypes = [c_char_p, c_int, c_int, c_int]
+show_frovedis_model.argtypes = [c_char_p,c_int,c_int,c_short,c_short]
 
 load_frovedis_model = lib.load_frovedis_model
-load_frovedis_model.argtypes = [c_char_p, c_int, c_int, c_int, c_char_p]
+load_frovedis_model.argtypes = [c_char_p,c_int,c_int,c_short,c_short,c_char_p]
+
+load_frovedis_nbm = lib.load_frovedis_nbm
+load_frovedis_nbm.argtypes = [c_char_p,c_int,c_int,c_short,c_char_p]
+load_frovedis_nbm.restype = py_object
 
 load_frovedis_mfm = lib.load_frovedis_mfm
-load_frovedis_mfm.argtypes = [c_char_p, c_int, c_int, c_int, c_char_p]
+load_frovedis_mfm.argtypes = [c_char_p,c_int,c_int,c_short,c_char_p]
 load_frovedis_mfm.restype = py_object
 
 save_frovedis_model = lib.save_frovedis_model
-save_frovedis_model.argtypes = [c_char_p, c_int, c_int, c_int, c_char_p]
+save_frovedis_model.argtypes = [c_char_p,c_int,c_int,c_short,c_short,c_char_p]
 
 # --- Frovedis ML Trainers ---
 lr_sgd = lib.lr_sgd
 lr_sgd.argtypes = [c_char_p, c_int, c_long, c_long, c_int, c_double,
-                   c_int, c_bool, c_double, c_int, c_int]
+                   c_int, c_bool, c_double, c_int, c_int,
+                   c_short, c_short, c_bool]
 
 lr_lbfgs = lib.lr_lbfgs
 lr_lbfgs.argtypes = [c_char_p, c_int, c_long, c_long, c_int, c_double,
-                     c_int, c_bool, c_double, c_int, c_int]
+                     c_int, c_bool, c_double, c_int, c_int,
+                     c_short, c_short, c_bool]
 
 svm_sgd = lib.svm_sgd
 svm_sgd.argtypes = [c_char_p, c_int, c_long, c_long, c_int, c_double,
-                    c_int, c_bool, c_double, c_int, c_int]
+                    c_int, c_bool, c_double, c_int, c_int,
+                    c_short, c_short, c_bool]
 
 svm_lbfgs = lib.svm_lbfgs
 svm_lbfgs.argtypes = [c_char_p, c_int, c_long, c_long, c_int, c_double,
-                      c_int, c_bool, c_double, c_int, c_int]
+                      c_int, c_bool, c_double, c_int, c_int,
+                      c_short, c_short, c_bool]
+
+dt_train = lib.dt_trainer
+dt_train.argtypes = [c_char_p, c_int, c_long,
+                     c_long, c_char_p, c_char_p,
+                     c_int, c_int, c_int, c_int,
+                     c_float, c_int, c_int,
+                     c_short, c_short, c_bool]
+
+nb_train = lib.nb_trainer
+nb_train.argtypes = [c_char_p, c_int, c_long,
+                     c_long, c_double, c_int, c_char_p, c_int,
+		     c_short, c_short, c_bool]
 
 lnr_sgd = lib.lnr_sgd
-lnr_sgd.argtypes = [c_char_p, c_int, c_long, c_long, c_bool, c_int, c_int]
+lnr_sgd.argtypes = [c_char_p, c_int, c_long, c_long, c_bool, c_int, c_int,
+                    c_short, c_short, c_bool]
 
 lnr_lbfgs = lib.lnr_lbfgs
-lnr_lbfgs.argtypes = [c_char_p, c_int, c_long, c_long, c_bool, c_int, c_int]
+lnr_lbfgs.argtypes = [c_char_p, c_int, c_long, c_long, c_bool, c_int, c_int,
+                      c_short, c_short, c_bool]
 
 lasso_sgd = lib.lasso_sgd
 lasso_sgd.argtypes = [c_char_p, c_int, c_long, c_long, c_int, c_double,
-                      c_bool, c_double, c_int, c_int]
+                      c_bool, c_double, c_int, c_int,
+                      c_short, c_short, c_bool]
 
 lasso_lbfgs = lib.lasso_lbfgs
 lasso_lbfgs.argtypes = [c_char_p, c_int, c_long, c_long, c_int, c_double,
-                        c_bool, c_double, c_int, c_int]
+                        c_bool, c_double, c_int, c_int,
+                        c_short, c_short, c_bool]
 
 ridge_sgd = lib.ridge_sgd
 ridge_sgd.argtypes = [c_char_p, c_int, c_long, c_long, c_int, c_double,
-                      c_bool, c_double, c_int, c_int]
+                      c_bool, c_double, c_int, c_int,
+                      c_short, c_short, c_bool]
 
 ridge_lbfgs = lib.ridge_lbfgs
 ridge_lbfgs.argtypes = [c_char_p, c_int, c_long, c_long, c_int, c_double,
-                        c_bool, c_double, c_int, c_int]
+                        c_bool, c_double, c_int, c_int,
+                        c_short, c_short, c_bool]
 
 kmeans_train = lib.kmeans_train
 kmeans_train.argtypes= [c_char_p, c_int, c_long, c_int, 
-                        c_int, c_long, c_double, c_int, c_int]
+                        c_int, c_long, c_double, c_int, c_int,
+                        c_short, c_short, c_bool]
 
+# als will always be trained with sparse data
 als_train = lib.als_train
 als_train.argtypes = [c_char_p, c_int, c_long, c_int, c_int,
-                      c_double, c_double, c_long, c_int, c_int]
+                      c_double, c_double, c_long, c_int, c_int,
+                      c_short, c_short]
+
+fm_train = lib.fm_trainer
+fm_train.argtypes = [c_char_p, c_int, 
+                     c_long, c_long, 
+                     c_double, c_int,
+                     c_double, c_char_p, 
+                     c_bool, c_bool, c_int, 
+                     c_double, c_double, c_double, 
+                     c_int, c_int, c_bool, c_int,
+                     c_short, c_short]
 
 # --- Frovedis PBLAS Wrappers ---
 pswap = lib.pswap
@@ -384,7 +559,8 @@ pgesvd.restype = py_object
 
 # --- Frovedis ARPACK Wrappers ---
 compute_sparse_svd = lib.compute_sparse_svd
-compute_sparse_svd.argtypes = [c_char_p, c_int, c_long, c_int]
+compute_sparse_svd.argtypes = [c_char_p, c_int, c_long, c_int,
+                               c_short, c_short]
 compute_sparse_svd.restype = py_object
 
 # --- Scalapack Results ---
