@@ -35,6 +35,7 @@ class strategy_helper : public strategy<T> {
   F ifunc;
   node_local<F> bfunc;
   node_local<strategy<T>> bstr;
+  node_local<criteria_vectors<T>> cat_criteria;
 
 public:
   strategy_helper(
@@ -44,17 +45,22 @@ public:
     strategy<T>(tree_strategy),
     ifunc(impurity_functor),
     bfunc(make_node_local_broadcast(ifunc)),
-    bstr(make_node_local_broadcast(tree_strategy))
+    bstr(make_node_local_broadcast(tree_strategy)),
+    cat_criteria(bstr.map(make_categorical_criteria<T>))
   {}
 
   F get_impurity_functor() const& { return ifunc; }
   const node_local<F>& bcas_impurity_functor() const& { return bfunc; }
   const node_local<strategy<T>>& broadcast() const& { return bstr; }
 
+  const node_local<criteria_vectors<T>>&
+  bcas_categorical_criteria() const& { return cat_criteria; }
+
   // disable rvalue overloads
   void get_impurity_functor() && = delete;
   void bcas_impurity_functor() && = delete;
   void broadcast() && = delete;
+  void bcas_categorical_criteria() && = delete;
 };
 
 // ---------------------------------------------------------------------
@@ -154,7 +160,7 @@ struct classification_policy {
     const colmajor_matrix<T>& labels,
     colmajor_matrix<T>& splits,
     const size_t num_criteria,
-    const node_local<splitvector<T>>& bcas_criteria,
+    const node_local<criteria_vectors<T>>& bcas_criteria,
     const strategy_helper<T, F>* pstr,
     R& rand_engine
   ) {
@@ -263,7 +269,7 @@ struct regression_policy {
     const colmajor_matrix<T>& labels,
     colmajor_matrix<T>& splits,
     const size_t num_criteria,
-    const node_local<splitvector<T>>& bcas_criteria,
+    const node_local<criteria_vectors<T>>& bcas_criteria,
     const strategy_helper<T, F>* pstr,
     R& rand_engine
   ) {
@@ -459,7 +465,6 @@ std::shared_ptr<node<T>> builder_impl<T, F, AP>::_build(
   const nodeid_helper id(node_index);
 
   const size_t num_records = work_dataset.num_row;
-  const size_t num_features = work_dataset.num_col;
   const T current_size = static_cast<T>(num_records);
   tree_assert(num_records == current_indices.size());
 
@@ -522,19 +527,12 @@ std::shared_ptr<node<T>> builder_impl<T, F, AP>::_build(
 
   // find min/max values of each feature
   const ftrace_region __ftr_minmax("# get minmax matrix");
-  rowmajor_matrix_local<T> minmax_matrix(
-    work_dataset.data.map(
-      minmax_finder<T>, pstr->broadcast()
-    ).reduce(
-      minmax_reducer<T>
-    )
-  );
-  tree_assert(minmax_matrix.local_num_row == 2);
-  tree_assert(minmax_matrix.local_num_col == num_features);
-  tree_assert(num_features * 2 == minmax_matrix.val.size());
-
-  const T* mins = minmax_matrix.val.data();
-  const T* maxs = mins + minmax_matrix.local_num_col;
+  auto bcas_minmax = work_dataset.data.map(
+    minmax_finder<T>, pstr->broadcast()
+  ).allreduce(minmax_reducer<T>);
+  tree_assert(bcas_minmax.get(0).local_num_row == 2);
+  tree_assert(bcas_minmax.get(0).local_num_col == work_dataset.num_col);
+  tree_assert(bcas_minmax.get(0).val.size() == work_dataset.num_col * 2);
   __ftr_minmax.end();
 
   const ftrace_region __ftr_criteria("# make criteria");
@@ -543,35 +541,19 @@ _Pragma(__novector__)
   while (num_bins > num_records) { num_bins >>= 1; }
 
   // construct candidates of criteria
-  splitvector<T> criteria;
-  criteria.reserve(num_features * num_bins);
-  const auto& cats_info = pstr->get_categorical_features_info();
-  for (size_t j = 0; j < num_features; j++) {
-    if (cats_info.count(j)) {
-      const size_t temp_cats = cats_info.at(j);
-      const size_t num_categories = (temp_cats == 2) ? 1 : temp_cats;
-_Pragma(__novector__)
-      for (size_t k = 0; k < num_categories; k++) {
-        criteria.emplace_back(j, std::vector<T>(1, k));
-      }
-    } else {
-      const T width = (maxs[j] - mins[j]) / num_bins;
-_Pragma(__novector__)
-      for (size_t k = 1; k < num_bins; k++) {
-        criteria.emplace_back(j, mins[j] + k * width);
-      }
-    }
-  }
-  const size_t num_criteria = criteria.size();
+  auto bcas_criteria = bcas_minmax.map(
+    make_criteria<T>,
+    pstr->bcas_categorical_criteria(),
+    make_node_local_broadcast(num_bins)
+  );
+
+  const auto criteria_ptr = bcas_criteria.get_dvid().get_selfdata();
+  const size_t num_criteria = criteria_ptr->size();
   __ftr_criteria.end();
 
 #ifdef _TREE_DEBUG_
   RLOG(INFO) << "number of criteria: " << num_criteria << std::endl;
 #endif
-
-  const ftrace_region __ftr_bcas_criteria("# broadcast criteria");
-  auto bcas_criteria = criteria.broadcast();
-  __ftr_bcas_criteria.end();
 
   const ftrace_region __ftr_bestgain("# find best gain");
   const auto best = AP::find_bestgain(
@@ -597,7 +579,7 @@ _Pragma(__novector__)
   const size_t best_index = best.local_index;
   tree_assert(best_index < num_criteria);
   tree_assert(best.left_size + best.right_size == num_records);
-  const auto criterion = criteria.get(best_index);
+  const auto criterion = criteria_ptr->get_criterion(best_index);
   __ftr_split_prepare.end();
 
 #ifdef _TREE_DEBUG_

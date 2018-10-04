@@ -4,6 +4,8 @@
 #include <algorithm>
 #include <cstring>
 #include <iterator>
+#include <map>
+#include <memory>
 #include <numeric>
 #include <random>
 #include <stdexcept>
@@ -24,6 +26,7 @@
 #include "pragmas.hpp"
 #include "tree_assert.hpp"
 #include "tree_config.hpp"
+#include "tree_model.hpp"
 #include "tree_vector.hpp"
 
 namespace frovedis {
@@ -246,54 +249,6 @@ MAT initial_workbench_gtor(const size_t bytes) {
 // ---------------------------------------------------------------------
 
 template <typename T>
-inline void make_split_matrix(
-  colmajor_matrix_local<T>& splits,
-  const colmajor_matrix_local<T>& dataset,
-  const splitvector<T>& criteria,
-  const size_t slice_start, const size_t slice_width
-) {
-  const size_t num_records = dataset.local_num_row;
-  const size_t num_criteria = criteria.size();
-  tree_assert(num_records > 0);
-  tree_assert(slice_start < num_records);
-  tree_assert(slice_width > 0);
-  tree_assert(slice_start <= num_records - slice_width);
-  tree_assert(slice_width * num_criteria <= splits.val.size());
-
-  splits.local_num_row = slice_width;
-  splits.local_num_col = num_criteria;
-
-  const T* dataset_origin = dataset.val.data();
-  T* splits_origin = splits.val.data();
-  std::memset(splits_origin, 0, sizeof(T) * slice_width * num_criteria);
-
-  for (size_t j = 0; j < num_criteria; j++) {
-    const size_t findex = criteria.get_feature_index(j);
-    tree_assert(findex < dataset.local_num_col);
-
-    const T* src = dataset_origin + findex * num_records + slice_start;
-    T* dst = splits_origin + j * slice_width;
-
-    if (criteria.is_categorical(j)) {
-      for (const T category: criteria.get_categories(j)) {
-        for (size_t i = 0; i < slice_width; i++) {
-          if (src[i] == category) { dst[i] = 1; }
-        }
-      }
-    } else if (criteria.is_continuous(j)) {
-      const T threshold = criteria.get_threshold(j);
-      for (size_t i = 0; i < slice_width; i++) {
-        if (src[i] < threshold) { dst[i] = 1; }
-      }
-    } else {
-      throw std::logic_error("no such feature continuity");
-    }
-  }
-}
-
-// ---------------------------------------------------------------------
-
-template <typename T>
 rowmajor_matrix_local<T> minmax_finder(
   const colmajor_matrix_local<T>& x,
   const strategy<T>& str
@@ -357,6 +312,222 @@ rowmajor_matrix_local<T> minmax_reducer(
   }
 
   return std::move(x);
+}
+
+// ---------------------------------------------------------------------
+
+// note: combinations of categories are not considered
+template <typename T>
+class criteria_vectors {
+  size_t num_cats, num_thresh;
+  std::vector<size_t> indices;
+  std::vector<T> values;
+  SERIALIZE(num_cats, num_thresh, indices, values)
+
+public:
+  criteria_vectors() : num_cats(0), num_thresh(0) {}
+
+  criteria_vectors(const size_t num_categorical_criteria) :
+    num_cats(num_categorical_criteria),
+    num_thresh(0),
+    indices(num_categorical_criteria, 0),
+    values(num_categorical_criteria, 0)
+  {}
+
+  criteria_vectors(
+    const criteria_vectors<T>& categorical_criteria,
+    const size_t num_thresholds,
+    const size_t num_continuous_criteria
+  ) :
+    num_cats(categorical_criteria.num_cats),
+    num_thresh(num_thresholds),
+    indices(num_cats + num_continuous_criteria, 0),
+    values(num_cats + num_continuous_criteria, 0)
+  {
+    const auto& cc = categorical_criteria;
+    std::memcpy(index_ptr(), cc.index_ptr(), sizeof(size_t) * num_cats);
+    std::memcpy(value_ptr(), cc.value_ptr(), sizeof(T) * num_cats);
+  }
+
+  size_t size() const { return indices.size(); }
+  size_t get_num_categorical_criteria() const { return num_cats; }
+  size_t get_num_thresholds() const { return num_thresh; }
+
+  size_t get_num_continuous_criteria() const {
+    return size() - get_num_categorical_criteria();
+  }
+
+  size_t* index_ptr() & { return indices.data(); }
+  T* value_ptr() & { return values.data(); }
+  const size_t* index_ptr() const& { return indices.data(); }
+  const T* value_ptr() const& { return values.data(); }
+  void index_ptr() && = delete;
+  void value_ptr() && = delete;
+
+  // construct a single split
+  std::shared_ptr<split<T>> get_criterion(const size_t j) const {
+    tree_assert(j < size());
+    if (j < num_cats) {
+      // categorical feature
+      return make_split<T>(indices[j], std::vector<T>(1, values[j]));
+    } else {
+      // continuous feature
+      return make_split<T>(indices[j], values[j]);
+    }
+  }
+};
+
+template <typename T>
+criteria_vectors<T> make_categorical_criteria(const strategy<T>& str) {
+  size_t total_cardinality = 0;
+  std::map<size_t, size_t> ordered_cf;
+  auto& cf_info = str.get_categorical_features_info();
+_Pragma(__novector__)
+  for (const auto item: cf_info) {
+    const size_t cardinality = (item.second == 2) ? 1 : item.second;
+    ordered_cf.emplace(item.first, cardinality);
+    total_cardinality += cardinality;
+  }
+
+  criteria_vectors<T> ret(total_cardinality);
+  size_t offset = 0;
+_Pragma(__novector__)
+  for (const auto item: ordered_cf) {
+    const size_t j = item.first;
+    const size_t cardinality = item.second;
+
+    size_t* idx = ret.index_ptr() + offset;
+    T* val = ret.value_ptr() + offset;
+    for (size_t k = 0; k < cardinality; k++) {
+      idx[k] = j;
+      val[k] = k;
+    }
+
+    offset += cardinality;
+  }
+
+  tree_assert(offset == total_cardinality);
+  return ret;
+}
+
+template <typename T>
+criteria_vectors<T> make_criteria(
+  const rowmajor_matrix_local<T>& minmax_matrix,
+  const criteria_vectors<T>& cat_criteria,
+  const size_t num_bins
+) {
+  const size_t num_features = minmax_matrix.local_num_col;
+  const T* mins = minmax_matrix.val.data();
+  const T* maxs = mins + num_features;
+  tree_assert(minmax_matrix.local_num_row == 2);
+  tree_assert(minmax_matrix.val.size() == num_features * 2);
+
+  std::vector<size_t> cont_features(num_features, 0);
+  size_t* feats = cont_features.data();
+  size_t k = 0;
+  for (size_t j = 0; j < num_features; j++) {
+    if (mins[j] < maxs[j]) { feats[k++] = j; }
+  }
+
+  const size_t num_thresholds = num_bins - 1;
+  const size_t num_contfeats = k;
+  const size_t num_contcriteria = k * num_thresholds;
+  criteria_vectors<T> ret(cat_criteria, num_thresholds, num_contcriteria);
+
+  const T _num_bins = static_cast<T>(1) / num_bins;
+  const size_t offset = cat_criteria.get_num_categorical_criteria();
+  size_t* idx = ret.index_ptr() + offset;
+  T* val = ret.value_ptr() + offset;
+
+  // TODO: consider max_vlen
+  if (num_contfeats <= num_thresholds) {
+    // note: this novector pragma suppresses partial vectorization
+_Pragma(__novector__)
+    for (k = 0; k < num_contfeats; k++) {
+      const size_t j = feats[k];
+      const T width = (maxs[j] - mins[j]) * _num_bins;
+      for (size_t t = 0; t < num_thresholds; t++) {
+        idx[k * num_thresholds + t] = j;
+        val[k * num_thresholds + t] = mins[j] + (t + 1) * width;
+      }
+    }
+  } else {
+    std::vector<T> gathered(num_contfeats * 2, 0);
+    T* g_mins = gathered.data();
+    T* widths = gathered.data() + num_contfeats;
+    for (k = 0; k < num_contfeats; k++) {
+      const size_t j = feats[k];
+      g_mins[k] = mins[j];
+      widths[k] = (maxs[j] - mins[j]) * _num_bins;
+    }
+
+#pragma _NEC notransform
+    for (size_t t = 0; t < num_thresholds; t++) {
+      for (k = 0; k < num_contfeats; k++) {
+        idx[k * num_thresholds + t] = feats[k];
+        val[k * num_thresholds + t] = g_mins[k] + (t + 1) * widths[k];
+      }
+    }
+  }
+
+  return ret;
+}
+
+// ---------------------------------------------------------------------
+
+template <typename T>
+inline void make_split_matrix(
+  colmajor_matrix_local<T>& splits,
+  const colmajor_matrix_local<T>& dataset,
+  const criteria_vectors<T>& criteria,
+  const size_t slice_start, const size_t slice_width
+) {
+  const size_t num_records = dataset.local_num_row;
+  const size_t num_criteria = criteria.size();
+  const size_t num_categorical = criteria.get_num_categorical_criteria();
+  const size_t num_thresh = criteria.get_num_thresholds();
+  tree_assert(num_records > 0);
+  tree_assert(slice_start < num_records);
+  tree_assert(slice_width > 0);
+  tree_assert(slice_start <= num_records - slice_width);
+  tree_assert(slice_width * num_criteria <= splits.val.size());
+  tree_assert(num_categorical <= num_criteria);
+
+  splits.local_num_row = slice_width;
+  splits.local_num_col = num_criteria;
+
+  const T* dataset_origin = dataset.val.data() + slice_start;
+  T* splits_origin = splits.val.data();
+  std::memset(splits_origin, 0, sizeof(T) * slice_width * num_criteria);
+
+  const size_t* idx = criteria.index_ptr();
+  const T* val = criteria.value_ptr();
+
+  // categorical criteria
+_Pragma(__novector__)
+  for (size_t j = 0; j < num_categorical; j++) {
+    tree_assert(idx[j] < dataset.local_num_col);
+    const T category = val[j];
+    const T* src = dataset_origin + idx[j] * num_records;
+    T* dst = splits_origin + j * slice_width;
+    for (size_t i = 0; i < slice_width; i++) {
+      if (src[i] == category) { dst[i] = 1; }
+    }
+  }
+
+  // continuous criteria
+_Pragma(__novector__)
+  for (size_t j = num_categorical; j < num_criteria; j += num_thresh) {
+    const T* thresh = val + j;
+    const T* src = dataset_origin + idx[j] * num_records;
+    T* dst = splits_origin + j * slice_width;
+    for (size_t t = 0; t < num_thresh; t++) {
+      tree_assert(idx[j] == idx[j + t]);
+      for (size_t i = 0; i < slice_width; i++) {
+        if (src[i] < thresh[t]) { dst[t * slice_width + i] = 1; }
+      }
+    }
+  }
 }
 
 // ---------------------------------------------------------------------
@@ -477,7 +648,7 @@ std::vector<T> left_counter_calcr(
   colmajor_matrix_local<T>& workbench,
   const colmajor_matrix_local<T>& dataset,
   const colmajor_matrix_local<T>& labels,
-  const splitvector<T>& criteria,
+  const criteria_vectors<T>& criteria,
   const strategy<T>& str
 ) {
   const size_t num_records = dataset.local_num_row;
@@ -778,7 +949,7 @@ public:
     colmajor_matrix_local<T>& workbench,
     const colmajor_matrix_local<T>& dataset,
     const colmajor_matrix_local<T>& labels,
-    const splitvector<T>& criteria, const F& ifunc
+    const criteria_vectors<T>& criteria, const F& ifunc
   ) const {
     tree_assert(criteria.size() > 0);
     tree_assert(dataset.local_num_row == labels.local_num_row);
@@ -801,7 +972,7 @@ private:
       colmajor_matrix_local<T>&,
       const colmajor_matrix_local<T>&,
       const colmajor_matrix_local<T>&,
-      const splitvector<T>&, const F&
+      const criteria_vectors<T>&, const F&
     );
   };
 
@@ -812,7 +983,7 @@ private:
       colmajor_matrix_local<T>&,
       const colmajor_matrix_local<T>&,
       const colmajor_matrix_local<T>&,
-      const splitvector<T>&,
+      const criteria_vectors<T>&,
       const variance_functor<T>&
     );
   };
@@ -824,7 +995,7 @@ private:
       colmajor_matrix_local<T>&,
       const colmajor_matrix_local<T>&,
       const colmajor_matrix_local<T>&,
-      const splitvector<T>&,
+      const criteria_vectors<T>&,
       const friedmanvar_functor<T>&
     );
   };
@@ -838,7 +1009,7 @@ inline void regression_impurities_calcr<T>::_OperatorParen<F, Void>::calc(
   colmajor_matrix_local<T>& workbench,
   const colmajor_matrix_local<T>& dataset,
   const colmajor_matrix_local<T>& labels,
-  const splitvector<T>& criteria, const F& ifunc
+  const criteria_vectors<T>& criteria, const F& ifunc
 ) {
   constexpr size_t num_stats = 2;
   constexpr size_t num_branches = 2;
@@ -947,7 +1118,7 @@ inline void regression_impurities_calcr<T>::_OperatorParen<
   colmajor_matrix_local<T>& workbench,
   const colmajor_matrix_local<T>& dataset,
   const colmajor_matrix_local<T>& labels,
-  const splitvector<T>& criteria,
+  const criteria_vectors<T>& criteria,
   const variance_functor<T>&
 ) {
   constexpr size_t num_stats = 3;
@@ -1020,7 +1191,7 @@ inline void regression_impurities_calcr<T>::_OperatorParen<
   colmajor_matrix_local<T>& workbench,
   const colmajor_matrix_local<T>& dataset,
   const colmajor_matrix_local<T>& labels,
-  const splitvector<T>& criteria,
+  const criteria_vectors<T>& criteria,
   const friedmanvar_functor<T>&
 ) {
   constexpr size_t num_stats = 2;
@@ -1412,7 +1583,7 @@ public:
   void operator()(
     const colmajor_matrix_local<T>&, const std::vector<size_t>&,
     std::vector<size_t>&, std::vector<size_t>&,
-    const splitvector<T>&
+    const criteria_vectors<T>&
   ) const;
 };
 
@@ -1422,7 +1593,7 @@ void listvector_gtor<T>::operator()(
   const std::vector<size_t>& current_indices,
   std::vector<size_t>& left_indices,
   std::vector<size_t>& right_indices,
-  const splitvector<T>& criteria
+  const criteria_vectors<T>& criteria
 ) const {
   const size_t num_records = data.local_num_row;
   tree_assert(num_records == current_indices.size());
@@ -1437,7 +1608,7 @@ void listvector_gtor<T>::operator()(
   right_indices.resize(num_records, 0);
 #endif
 
-  const auto criterion = criteria.get(criterion_index);
+  const auto criterion = criteria.get_criterion(criterion_index);
   const size_t findex = criterion->get_feature_index();
   tree_assert(findex < data.local_num_col);
 
