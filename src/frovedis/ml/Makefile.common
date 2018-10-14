@@ -34,7 +34,8 @@ install: ${TARGETS}
 	cp w2v/*.hpp ${INSTALLPATH}/include/frovedis/ml/w2v
 	install -d ${INSTALLPATH}/licenses/third_party
 	cp w2v/LICENSE ${INSTALLPATH}/licenses/third_party/LICENSE.word2vec
-	install -d ${INSTALLPATH}/include/frovedis/ml/dnn
+	install -d ${INSTALLPATH}/include/frovedis/ml/nb
+	cp nb/*.hpp ${INSTALLPATH}/include/frovedis/ml/nb
 
 optimizer.o: optimizer.cc
 
