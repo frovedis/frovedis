@@ -580,6 +580,12 @@ size_t rowmajor_get_local_num_col(const rowmajor_matrix_local<T>& mat) {
 }
 
 template <class T>
+void rowmajor_set_local_num_col(rowmajor_matrix_local<T>& mat,
+                                size_t num_col) {
+  mat.local_num_col = num_col;
+}
+
+template <class T>
 void rowmajor_get_row_helper(size_t& i, DVID<rowmajor_matrix_local<T>>& dvid,
                              size_t& pos, intptr_t& retp) {
   if(i == get_selfid()) {
@@ -618,6 +624,8 @@ rowmajor_matrix<T> make_rowmajor_matrix_load(const std::string& input) {
     ret(dvec.moveto_node_local().map(make_rowmajor_matrix_local_vectorstring<T>));
   ret.num_row = ret.data.map(rowmajor_get_local_num_row<T>).reduce(add<size_t>);
   ret.num_col = ret.data.map(rowmajor_get_local_num_col<T>).gather()[0];
+  // if number of row is zero, num_col is not set properly
+  ret.data.mapv(rowmajor_set_local_num_col<T>, broadcast(ret.num_col));
   return ret;
 }
 
@@ -990,6 +998,138 @@ rowmajor_matrix<T>& rowmajor_matrix<T>::align_block() {
   */
   auto block_size = get_block_sizes(num_row);
   return align_as(block_size);
+}
+
+template <class T>
+void sub_vector_row(rowmajor_matrix_local<T>& m, std::vector<T>& v) {
+  T* valp = m.val.data();
+  size_t num_col = m.local_num_col;
+  size_t num_row = m.local_num_row;
+  if(num_col != v.size())
+    throw std::runtime_error("sub_vector_row: size mismatch");
+  T* vp = v.data();
+  for(size_t i = 0; i < num_row; i++) {
+    for(size_t j = 0; j < num_col; j++) {
+      valp[num_col * i + j] -= vp[j];
+    }
+  }
+}
+
+template <class T>
+std::vector<T> stddev_of_cols_helper(const rowmajor_matrix_local<T>& m) {
+  auto nrow = m.local_num_row;
+  auto ncol = m.local_num_col;
+  std::vector<T> ret(ncol,0);
+  T* retp = &ret[0];
+  const T* matp = &m.val[0];
+  for (size_t i = 0; i < nrow; ++i) {
+    for(size_t j = 0; j < ncol; ++j) {
+      retp[j] += matp[i * ncol + j] * matp[i * ncol + j];
+    }
+  }
+  return ret;
+}
+
+template <class T>
+void mul_vector_row(rowmajor_matrix_local<T>& m, std::vector<T>& v) {
+  T* valp = m.val.data();
+  size_t num_col = m.local_num_col;
+  size_t num_row = m.local_num_row;
+  if(num_col != v.size())
+    throw std::runtime_error("mul_vector_row: size mismatch");
+  T* vp = v.data();
+  for(size_t i = 0; i < num_row; i++) {
+    for(size_t j = 0; j < num_col; j++) {
+      valp[num_col * i + j] *= vp[j];
+    }
+  }
+}
+
+// destructively standardize in column direction; used in pca.hpp
+template <class T>
+void standardize(rowmajor_matrix<T>& mat, bool sample_stddev = true) {
+  if(mat.num_row < 2)
+    throw std::runtime_error("cannot standardize if number of row is 0 or 1");
+  auto tmp = mat.data.map(+[](rowmajor_matrix_local<T>& m)
+                          {return sum_of_rows(m);}).vector_sum();
+  T* tmpp = tmp.data();
+  T to_mul = static_cast<T>(1)/static_cast<T>(mat.num_row);
+  size_t num_col = mat.num_col;
+  for(size_t i = 0; i < num_col; i++) {
+    tmpp[i] *= to_mul; // average
+  }
+  mat.data.mapv(sub_vector_row<T>, broadcast(tmp));
+  tmp = mat.data.map(+[](rowmajor_matrix_local<T>& m)
+                     {return stddev_of_cols_helper(m);}).vector_sum();
+  tmpp = tmp.data();
+  T to_div;
+  if(sample_stddev) to_div = static_cast<T>(mat.num_row - 1);
+  else to_div = static_cast<T>(mat.num_row);
+  for(size_t i = 0; i < num_col; ++i) {
+    if(tmpp[i] == 0) tmpp[i] = 1.0; // data is zero so can be anything
+    tmpp[i] = sqrt(to_div / tmpp[i]);
+  }
+  mat.data.mapv(mul_vector_row<T>, broadcast(tmp));
+}
+
+// destructively centerize in column direction; used in pca.hpp
+template <class T>
+void centerize(rowmajor_matrix<T>& mat) {
+  if(mat.num_row < 2)
+    throw std::runtime_error("cannot centerize if number of row is 0 or 1");
+  auto tmp = mat.data.map(+[](rowmajor_matrix_local<T>& m)
+                          {return sum_of_rows(m);}).vector_sum();
+  T* tmpp = tmp.data();
+  T to_mul = static_cast<T>(1)/static_cast<T>(mat.num_row);
+  size_t num_col = mat.num_col;
+  for(size_t i = 0; i < num_col; i++) {
+    tmpp[i] *= to_mul; // average
+  }
+  mat.data.mapv(sub_vector_row<T>, broadcast(tmp));
+}
+
+template <class T>
+std::vector<T> variance_of_cols_helper(const rowmajor_matrix_local<T>& m,
+                                       const std::vector<T>& avg) {
+  auto nrow = m.local_num_row;
+  auto ncol = m.local_num_col;
+  std::vector<T> ret(ncol,0);
+  T* retp = &ret[0];
+  const T* matp = &m.val[0];
+  const T* avgp = avg.data();
+  for (size_t i = 0; i < nrow; ++i) {
+    for(size_t j = 0; j < ncol; ++j) {
+      auto tmp = matp[i * ncol + j] - avgp[j];
+      retp[j] += tmp * tmp;
+    }
+  }
+  return ret;
+}
+
+template <class T>
+std::vector<T> variance(rowmajor_matrix<T>& mat, bool sample_variance = true) {
+  if(mat.num_row < 2)
+    throw std::runtime_error
+      ("cannot call variance if number of row is 0 or 1");
+  auto tmp = mat.data.map(+[](rowmajor_matrix_local<T>& m)
+                          {return sum_of_rows(m);}).vector_sum();
+  T* tmpp = tmp.data();
+  T to_mul = static_cast<T>(1)/static_cast<T>(mat.num_row);
+  size_t num_col = mat.num_col;
+  for(size_t i = 0; i < num_col; i++) {
+    tmpp[i] *= to_mul; // average
+  }
+  auto sq = mat.data.
+    map(variance_of_cols_helper<T>, broadcast(tmp)).vector_sum();
+  T* sqp = sq.data();
+  T to_mul2;
+  if(sample_variance)
+    to_mul2 = static_cast<T>(1)/static_cast<T>(mat.num_row - 1);
+  else
+    to_mul2 = static_cast<T>(1)/static_cast<T>(mat.num_row);
+  size_t size = sq.size();
+  for(size_t i = 0; i < size; i++) sqp[i] *= to_mul2;
+  return sq;
 }
 
 }

@@ -275,6 +275,20 @@ struct colmajor_matrix {
   size_t num_col;
 };
 
+template <class T>
+colmajor_matrix<T> operator*(const colmajor_matrix<T>& aa,
+                             const diag_matrix_local<T>& b) {
+  colmajor_matrix<T>& a = const_cast<colmajor_matrix<T>&>(aa);
+  if(a.num_col != b.local_num())
+    throw std::runtime_error("invalid size for matrix multiplication");
+  auto bb = broadcast(b);
+  auto retdata = a.data.map(+[](colmajor_matrix_local<T>& al,
+                                diag_matrix_local<T>& b){return al * b;}, bb);
+  colmajor_matrix<T> ret(std::move(retdata));
+  ret.num_row = a.num_row;
+  ret.num_col = a.num_col;
+  return ret;
+}
 
 }
 #endif

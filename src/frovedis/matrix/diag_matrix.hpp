@@ -16,7 +16,7 @@ struct diag_matrix_local {
   diag_matrix_local(diag_matrix_local<T>& m) {
     val = m.val;
   }
-  diag_matrix_local<T>& operator=(diag_matrix_local<T>& m) {
+  diag_matrix_local<T>& operator=(const diag_matrix_local<T>& m) {
     val = m.val;
     return *this;
   }
