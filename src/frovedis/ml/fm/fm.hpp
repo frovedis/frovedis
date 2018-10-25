@@ -14,12 +14,11 @@ fm::fm_model<T> fm_train(bool dim_0, bool dim_1, size_t dim_2,
                          crs_matrix<T,I,O>& nl_data, dvector<T>& dv_label, size_t batch_size_pernode, int random_seed = 1) {
    
   //auto nl_label = dv_label.moveto_node_local();
-  auto nl_label = dv_label.viewas_node_local();
 
   return fm::train(
     dim_0, dim_1, dim_2, init_stdev, iteration, 
     init_learn_rate, optimizer, regular_0, regular_1, regular_2, 
-    is_regression, nl_data, nl_label, batch_size_pernode, random_seed
+    is_regression, nl_data, dv_label, batch_size_pernode, random_seed
   );                        
 }
 

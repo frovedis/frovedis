@@ -23,7 +23,8 @@ enum struct FmOptimizer {
 
 template <class T, class I = size_t, class O = size_t>
 fm_model<T> train(crs_matrix<T,I,O>& nl_data,
-                  node_local<std::vector<T>>& nl_label,
+                  //node_local<std::vector<T>>& nl_label,
+                  dvector<T>& dv_label,
                   FmOptimizer optimizer,
                   fm_config<T>& conf,
                   int random_seed = 1) {
@@ -32,7 +33,11 @@ fm_model<T> train(crs_matrix<T,I,O>& nl_data,
   size_t factor_size = conf.factor_size;
   size_t batch_size_pernode = conf.batch_size_pernode;
   T init_stdev = conf.init_stdev;
-  
+
+  // align label to data sizes
+  dv_label.align_as(nl_data.get_local_num_rows());
+  auto nl_label = dv_label.viewas_node_local();
+
   // divide data, label
   auto nl_data_batches = broadcast(std::vector<crs_matrix_local<T,I,O>>());
   auto nl_label_batches = broadcast(std::vector<std::vector<T>>());
@@ -88,11 +93,11 @@ template <class T, class I = size_t, class O = size_t>
 fm_model<T> train(bool dim_0, bool dim_1, size_t dim_2, 
 		  T init_stdev, size_t iteration, T init_learn_rate, FmOptimizer optimizer,
 		  T regular_0, T regular_1, T regular_2, bool is_regression,
-		  crs_matrix<T,I,O>& nl_data, node_local<std::vector<T>>& nl_label, size_t batch_size_pernode, int random_seed) {
+		  crs_matrix<T,I,O>& nl_data, dvector<T>& dv_label, size_t batch_size_pernode, int random_seed) {
                                               
   fm_config<T> conf(dim_0, dim_1, dim_2, init_stdev, iteration, init_learn_rate, 
                     regular_0, regular_1, regular_2, is_regression, batch_size_pernode);
-  return train(nl_data, nl_label, optimizer, conf, random_seed);
+  return train(nl_data, dv_label, optimizer, conf, random_seed);
 }
 
 template <class T, class I = size_t, class O = size_t>

@@ -148,7 +148,7 @@ void init_fm_parameter_with_stdev(fm_parameter<T>& parameter, T stdev, int rando
 #else
   srand48(random_seed);
   for (size_t i = 0; i < v_size; i++) {
-    ptr_v[i] = std::sqrt(-2.0 * std::log(drand48())) * std::cos(2.0 * M_PI * drand48());
+    ptr_v[i] = stdev * std::sqrt(-2.0 * std::log(drand48())) * std::cos(2.0 * M_PI * drand48());
   }
 #endif  // USE_STD_RANDOM
 }  
