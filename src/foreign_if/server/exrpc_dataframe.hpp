@@ -2,6 +2,7 @@
 #define _EXRPC_DF_HPP_
 
 #include <frovedis/dataframe.hpp>
+#include <frovedis/dataframe/dfaggregator.hpp>
 #include "../exrpc/exrpc_expose.hpp"
 #include "model_tracker.hpp" // for OPTYPE
 
@@ -121,5 +122,11 @@ std::vector<float> get_df_float_col(exrpc_ptr_t& df_proxy,
 
 std::vector<std::string> 
 get_df_string_col(exrpc_ptr_t& df_proxy, std::string& cname);
+
+exrpc_ptr_t frovedis_gdf_aggr(exrpc_ptr_t& df_proxy, 
+                              std::vector<std::string>& groupedCols,
+                              std::vector<std::string>& aggFuncs,
+                              std::vector<std::string>& aggCols,
+                              std::vector<std::string>& aggAsCols);
 
 #endif

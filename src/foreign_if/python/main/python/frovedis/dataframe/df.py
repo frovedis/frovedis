@@ -10,6 +10,7 @@ from ..exrpc.server import *
 from ..matrix.dvector import *
 from ..matrix.dtype import *
 from frovedisColumn import *
+import grouped_df
 
 class FrovedisDataframe :
 
@@ -19,7 +20,17 @@ class FrovedisDataframe :
     cls.__cols  = None
     cls.__types = None
     if df is not None: cls.load(df)
-      
+
+  def load_dummy(cls,fdata,cols,types):
+    cls.__fdata = fdata
+    cls.__cols = copy.deepcopy(cols)
+    cls.__types = copy.deepcopy(types)
+    for i in range(0,len(cols)): 
+      cname = cols[i]
+      dt = types[i]
+      cls.__dict__[cname] = FrovedisColumn(cname, dt)
+    return cls
+
   def show(cls):
    if cls.__fdata is not None:
       (host, port) = FrovedisServer.getServerInstance()
@@ -148,7 +159,7 @@ class FrovedisDataframe :
       raise ValueError("Operation on invalid frovedis dataframe!")
     if(type(by).__name__ == 'str'):     sort_by = [by]
     elif (type(by).__name__ == 'list'): sort_by = by
-    else: raise TypeError("Expected: string|list; Receieved: ", type(by).__name__)
+    else: raise TypeError("Expected: string|list; Received: ", type(by).__name__)
   
     for item in sort_by:
       if not item in cls.__cols:
@@ -161,8 +172,8 @@ class FrovedisDataframe :
     ptr_arr[:] = vv
       
     ret = FrovedisDataframe()
-    ret.__cols = cls.__cols
-    ret.__types = cls.__types
+    ret.__cols = copy.deepcopy(cls.__cols)
+    ret.__types = copy.deepcopy(cls.__types)
     for item in ret.__cols: ret.__dict__[item] = cls.__dict__[item]
     
     #Making exrpc request for sorting.
@@ -180,25 +191,19 @@ class FrovedisDataframe :
                            inplace=inplace,kind=kind,na_position=na_position)
 
   def groupby(cls, by=None, axis=0, level=None, 
-              as_index=True, sort=True, group_keys=True, squeeze=False ):
+              as_index=True, sort=True, group_keys=True, squeeze=False):
     if cls.__fdata is None: 
       raise ValueError("Operation on invalid frovedis dataframe!")
-    if(type(by).__name__ == 'str'):     g_by = [by]
-    elif (type(by).__name__ == 'list'): g_by = by
-    else: raise TypeError("Expected: string|list; Receieved: ", type(by).__name__)
+    if(isinstance(by, str)):    g_by = [by]
+    elif(isinstance(by, list)): g_by = by
+    else: raise TypeError("Expected: string|list; Received: ", type(by).__name__)
 
-    ret = FrovedisDataframe()
-    ret.__cols = g_by
-    ret.__types = [0]*len(g_by)
-    i = 0
-  
+    types = []
     for item in g_by: 
       if not item in cls.__cols:
         raise ValueError("No column named: ", item)
       else:
-        ret.__types[i] = cls.__dict__[item].dtype
-        ret.__dict__[item] = cls.__dict__[item]
-        i = i + 1
+        types.append(cls.__dict__[item].dtype)
 
     vec = np.asarray(g_by)
     vv = vec.T
@@ -207,10 +212,11 @@ class FrovedisDataframe :
     ptr_arr[:] = vv
 
     (host, port) = FrovedisServer.getServerInstance()
-    ret.__fdata = rpclib.group_frovedis_dataframe(host,port,cls.get(),ptr_arr,sz)
+    fdata = rpclib.group_frovedis_dataframe(host,port,cls.get(),ptr_arr,sz)
     excpt = rpclib.check_server_exception()
     if excpt["status"]: raise RuntimeError(excpt["info"]) 
-    return ret
+    return grouped_df.FrovedisGroupedDataframe().load_dummy(fdata,g_by,types,
+                                                 cls.__cols,cls.__types)
 
   # method to evaluate join keys
   def __evaluate(cls, df, left_on, right_on):
@@ -343,7 +349,7 @@ class FrovedisDataframe :
     vtype = type(columns).__name__
     if(vtype == 'str'): by = [columns]
     elif(vtype == 'list'): by = columns 
-    else: raise TypeError("Expected: string|list; Receieved: ", vtype)
+    else: raise TypeError("Expected: string|list; Received: ", vtype)
     types = cls.__get_column_types(by)
     if DTYPE.STRING in types: 
       raise ValueError("Non-numeric column given in min calculation!") 
@@ -355,7 +361,7 @@ class FrovedisDataframe :
     vtype = type(columns).__name__
     if(vtype == 'str'): by = [columns]
     elif(vtype == 'list'): by = columns 
-    else: raise TypeError("Expected: string|list; Receieved: ", vtype)
+    else: raise TypeError("Expected: string|list; Received: ", vtype)
     types = cls.__get_column_types(by)
     if DTYPE.STRING in types: 
       raise ValueError("Non-numeric column given in max calculation!") 
@@ -367,7 +373,7 @@ class FrovedisDataframe :
     vtype = type(columns).__name__
     if(vtype == 'str'): by = [columns]
     elif(vtype == 'list'): by = columns 
-    else: raise TypeError("Expected: string|list; Receieved: ", vtype)
+    else: raise TypeError("Expected: string|list; Received: ", vtype)
     types = cls.__get_column_types(by)
     if DTYPE.STRING in types: 
       raise ValueError("Non-numeric column given in sum calculation!") 
@@ -379,7 +385,7 @@ class FrovedisDataframe :
     vtype = type(columns).__name__
     if(vtype == 'str'): by = [columns]
     elif(vtype == 'list'): by = columns
-    else: raise TypeError("Expected: string|list; Receieved: ", vtype)
+    else: raise TypeError("Expected: string|list; Received: ", vtype)
     types = cls.__get_column_types(by)
     if DTYPE.STRING in types:
       raise ValueError("Non-numeric column given in std calculation!")
@@ -391,7 +397,7 @@ class FrovedisDataframe :
     vtype = type(columns).__name__
     if(vtype == 'str'): by = [columns]
     elif(vtype == 'list'): by = columns 
-    else: raise TypeError("Expected: string|list; Receieved: ", vtype)
+    else: raise TypeError("Expected: string|list; Received: ", vtype)
     types = cls.__get_column_types(by)
     if DTYPE.STRING in types: 
       raise ValueError("Non-numeric column given in avg calculation!") 
@@ -404,12 +410,12 @@ class FrovedisDataframe :
     vtype = type(columns).__name__
     if(vtype == 'str'): by = [columns]
     elif(vtype == 'list'): by = columns 
-    else: raise TypeError("Expected: None|string|list; Receieved: ", vtype)
+    else: raise TypeError("Expected: None|string|list; Received: ", vtype)
     return cls.__get_stat('count',by)
 
   def __get_column_types(cls, columns):
     if (type(columns).__name__ != 'list'):
-      raise TypeError("Expected: list; Receieved: ", type(columns).__name__)
+      raise TypeError("Expected: list; Received: ", type(columns).__name__)
     sz = len(columns)
     types = [0]*sz
     for i in range(0, sz):
@@ -425,7 +431,7 @@ class FrovedisDataframe :
     if(type(types).__name__ == 'list' and len(columns) != len(types)): 
       raise ValueError("Size of inputs doesn't match!")
     if(type(name).__name__ != 'str'): 
-      raise TypeError("Expected: string; Receieved: ", type(name).__name__)
+      raise TypeError("Expected: string; Received: ", type(name).__name__)
     (host, port) = FrovedisServer.getServerInstance()
     sz = len(columns)
     cols = np.asarray(columns)

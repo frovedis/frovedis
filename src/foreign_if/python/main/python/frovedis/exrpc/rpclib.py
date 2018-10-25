@@ -115,6 +115,13 @@ group_frovedis_dataframe = lib.group_frovedis_dataframe
 group_frovedis_dataframe.argtypes = [c_char_p, c_int, c_long, POINTER(c_char_p), c_int]
 group_frovedis_dataframe.restype = c_long
 
+agg_grouped_dataframe = lib.agg_grouped_dataframe
+agg_grouped_dataframe.argtypes = [c_char_p, c_int, c_long, 
+                                  POINTER(c_char_p), c_ulong,
+                                  POINTER(c_char_p), POINTER(c_char_p), 
+                                  POINTER(c_char_p), c_ulong]
+agg_grouped_dataframe.restype = c_long
+
 merge_frovedis_dataframe = lib.join_frovedis_dataframe
 merge_frovedis_dataframe.argtypes = [c_char_p, c_int, c_long, c_long, c_long,
                                     c_char_p, c_char_p]

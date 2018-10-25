@@ -190,7 +190,7 @@ extern "C" {
 
   // To perform groupBy based on given columns 
   long group_frovedis_dataframe(const char* host, int port, long proxy, 
-                               const char** cols, int size){
+                                const char** cols, int size){
     ASSERT_PTR(host); 
     exrpc_node fm_node(host, port);
     auto df_proxy = static_cast<exrpc_ptr_t> (proxy);
@@ -206,6 +206,30 @@ extern "C" {
     return (static_cast<long>(ret_proxy));
   }
    
+  // To perform aggregation on grouped dftable 
+  long agg_grouped_dataframe(const char* host, int port, long proxy, 
+                             const char** cols, ulong sz1,
+                             const char** agg_func, const char** agg_col,
+                             const char** agg_col_as, ulong sz2) {
+    ASSERT_PTR(host); 
+    exrpc_node fm_node(host, port);
+    auto df_proxy = static_cast<exrpc_ptr_t> (proxy);
+    std::vector<std::string> grp_cols(sz1);
+    std::vector<std::string> s_agg_func(sz2), s_agg_col(sz2), s_agg_col_as(sz2);
+    for(size_t i=0; i<sz1; ++i) grp_cols[i] = std::string(cols[i]);
+    for(size_t i=0; i<sz2; ++i) s_agg_func[i] = std::string(agg_func[i]);
+    for(size_t i=0; i<sz2; ++i) s_agg_col[i] = std::string(agg_col[i]);
+    for(size_t i=0; i<sz2; ++i) s_agg_col_as[i] = std::string(agg_col_as[i]);
+    exrpc_ptr_t ret_proxy = 0;
+    try {
+      ret_proxy = exrpc_async(fm_node,frovedis_gdf_aggr,df_proxy,grp_cols,s_agg_func,s_agg_col,s_agg_col_as).get();
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return (static_cast<long>(ret_proxy));
+  }
+
   // To perform join operation 
   long join_frovedis_dataframe(const char* host, int port,  
                                long proxy1, long proxy2, long proxy3,

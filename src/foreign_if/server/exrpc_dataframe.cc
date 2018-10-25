@@ -156,6 +156,38 @@ exrpc_ptr_t group_by_df(exrpc_ptr_t& df_proxy, std::vector<std::string>& cols) {
   return reinterpret_cast<exrpc_ptr_t> (g_df_ptr);
 }
 
+std::shared_ptr<dfaggregator> get_aggr(std::string& funcname, 
+                                       std::string& col, 
+                                       std::string& as_col) {
+  std::shared_ptr<dfaggregator> ret;
+  if (funcname == "sum")        ret = sum_as(col,as_col);
+  else if (funcname == "avg" || 
+           funcname == "mean")  ret = avg_as(col,as_col);
+  else if (funcname == "min")   ret = min_as(col,as_col);
+  else if (funcname == "max")   ret = max_as(col,as_col);
+  else if (funcname == "count") ret = count_as(col,as_col);
+  else REPORT_ERROR(USER_ERROR,"Unsupported aggregation function is requesred!\n");
+  return ret;
+}
+
+exrpc_ptr_t frovedis_gdf_aggr(exrpc_ptr_t& df_proxy, 
+                              std::vector<std::string>& groupedCols,
+                              std::vector<std::string>& aggFuncs,
+                              std::vector<std::string>& aggCols,
+                              std::vector<std::string>& aggAsCols) {
+
+  auto& df = *reinterpret_cast<grouped_dftable*>(df_proxy);
+  auto size = aggFuncs.size();
+  std::vector<std::shared_ptr<dfaggregator>> agg(size);
+  for(size_t i=0; i<size; ++i) {
+    agg[i] = get_aggr(aggFuncs[i],aggCols[i],aggAsCols[i]);
+  }
+  auto retp = new dftable(df.select(groupedCols,agg));
+  if (!retp) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed.\n");
+  return reinterpret_cast<exrpc_ptr_t> (retp);
+}
+
+
 long frovedis_df_size(exrpc_ptr_t& df_proxy) {
   auto& df = *reinterpret_cast<dftable_base*>(df_proxy);
   return static_cast<long> (df.num_row());

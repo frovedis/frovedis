@@ -46,7 +46,8 @@ fdf1.sort("Age",ascending=False).show() # single column
 fdf1.sort(["Age", "Country"]).show()    # multiple column
 
 # groupby demo
-fdf1.groupby('Country')['Country'].show()
+fdf1.groupby('Country').agg({'Age': ['max','min','mean'], 
+                             'Ename': ['count']}).show()
 
 # merge demo
 #currently joining on same key is not supported at frovedis server

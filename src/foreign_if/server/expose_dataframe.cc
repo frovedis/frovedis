@@ -35,4 +35,5 @@ void expose_frovedis_dataframe_functions() {
   expose(get_df_float_col);
   expose(get_df_double_col);
   expose(get_df_string_col);
+  expose(frovedis_gdf_aggr);
 }

@@ -437,8 +437,8 @@ void frovedis_fm(frovedis_mem_pair& mp, std::string& optimizer_name,
   else if (optimizer_name == "MCMC") optimizer = fm::FmOptimizer::MCMC;
   else throw std::runtime_error("Specified optimizer is not supported!\n");
   
-  auto nloc = lbl.viewas_node_local();
-  auto model = fm::train(mat,nloc,optimizer,conf);
+  //auto nloc = lbl.viewas_node_local();
+  auto model = fm::train(mat,lbl,optimizer,conf);
 
   frovedis::set_loglevel(old_level);
   handle_trained_model<fm::fm_model<T>>(mid, FMM, model);
