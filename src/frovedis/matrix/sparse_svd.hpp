@@ -292,7 +292,9 @@ void sparse_svd(crs_matrix<T,I,O>&& mat,
   auto stmp = make_node_local_allocate<diag_matrix_local<T>>();
   u.data = make_node_local_allocate<colmajor_matrix_local<T>>();
   v.data = make_node_local_allocate<colmajor_matrix_local<T>>();
-  if(mat.num_col <= mat.num_row || allow_transpose == false) {
+  auto mat_num_row = mat.num_row;
+  auto mat_num_col = mat.num_col;
+  if(mat_num_col <= mat_num_row || allow_transpose == false) {
     frovedis::time_spent t(DEBUG);  
     auto local_trans = mat.data.map(trans_and_convert
                                     <SPARSE_MATRIX_LOCAL, T, I ,O>);
@@ -315,8 +317,8 @@ void sparse_svd(crs_matrix<T,I,O>&& mat,
                             v.data, stmp, u.data, local_trans);
   }
   s = *stmp.get_dvid().get_selfdata();
-  u.set_num(mat.num_row, k);
-  v.set_num(mat.num_col, k);
+  u.set_num(mat_num_row, k);
+  v.set_num(mat_num_col, k);
 }
 
 template <class T, class I, class O>

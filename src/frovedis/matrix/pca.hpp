@@ -22,6 +22,7 @@ void pca_helper(rowmajor_matrix<T>& mat_work, // destructed
   T var_sum = std::numeric_limits<T>::epsilon();
   auto total_var = variance(mat_work); // calculate before clear
   for(size_t i = 0; i < total_var.size(); i++) var_sum += total_var[i];
+  size_t mat_num_row = mat_work.num_row;
 
   colmajor_matrix<T> u;
   diag_matrix_local<T> s;
@@ -34,7 +35,7 @@ void pca_helper(rowmajor_matrix<T>& mat_work, // destructed
   eigen_values = s.val;
   T* valp = eigen_values.data();
   size_t size = eigen_values.size();
-  T to_div = static_cast<T>(mat_work.num_row - 1);
+  T to_div = static_cast<T>(mat_num_row - 1);
   for(size_t i = 0; i < size; i++) {
     valp[i] = (valp[i] * valp[i]) / to_div;
   }
