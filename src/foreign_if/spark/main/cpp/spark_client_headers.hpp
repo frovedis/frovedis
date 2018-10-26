@@ -25,6 +25,7 @@ extern "C" {
   jobject to_jDummyMatrix(JNIEnv *, dummy_matrix&, short );
   jobject to_jDummyGetrfResult(JNIEnv *, getrf_result&, short);
   jobject to_jDummyGesvdResult(JNIEnv *, gesvd_result&, short, bool, bool);
+  jobject to_jDummyPCAResult(JNIEnv *, pca_result&, short);
   frovedis_mem_pair java_mempair_to_frovedis_mempair(JNIEnv *, jobject&);
   jobject frovedis_mempair_to_java_mempair(JNIEnv *, frovedis_mem_pair& );
   jobject make_jIntDoublePair (JNIEnv *, int, double);

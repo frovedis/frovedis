@@ -12,7 +12,8 @@ all:
 	${SCALA_HOME}/bin/scalac -cp "${SPARK_HOME}/jars/*:${HDPATH}:${CLIENT_JAR}" -sourcepath . -d bin scala/FrovedisMatrixDemo.scala
 	${SCALA_HOME}/bin/scalac -cp "${SPARK_HOME}/jars/*:${HDPATH}:${CLIENT_JAR}" -sourcepath . -d bin scala/FrovedisDataframeDemo.scala
 	${SCALA_HOME}/bin/scalac -cp "${SPARK_HOME}/jars/*:${HDPATH}:${CLIENT_JAR}" -sourcepath . -d bin scala/PblasScalapackDemo.scala
-	${SCALA_HOME}/bin/scalac -cp "${SPARK_HOME}/jars/*:${HDPATH}:${CLIENT_JAR}" -sourcepath . -d bin scala/ArpackDemo.scala
+	${SCALA_HOME}/bin/scalac -cp "${SPARK_HOME}/jars/*:${HDPATH}:${CLIENT_JAR}" -sourcepath . -d bin scala/SVDDemo.scala
+	${SCALA_HOME}/bin/scalac -cp "${SPARK_HOME}/jars/*:${HDPATH}:${CLIENT_JAR}" -sourcepath . -d bin scala/PCADemo.scala
 	${SCALA_HOME}/bin/scalac -cp "${SPARK_HOME}/jars/*:${HDPATH}:${CLIENT_JAR}" -sourcepath . -d bin scala/LRSGDDemo.scala
 	${SCALA_HOME}/bin/scalac -cp "${SPARK_HOME}/jars/*:${HDPATH}:${CLIENT_JAR}" -sourcepath . -d bin scala/LRModelDemo.scala
 	${SCALA_HOME}/bin/scalac -cp "${SPARK_HOME}/jars/*:${HDPATH}:${CLIENT_JAR}" -sourcepath . -d bin scala/ALSDemo.scala
@@ -25,7 +26,8 @@ all:
 	cd bin; ${JAVA_HOME}/bin/jar -cfm ../lib/spark2frovedis_mat.jar ../MANIFEST/frov_mat.mf test/scala/FrovedisMatrixDemo*
 	cd bin; ${JAVA_HOME}/bin/jar -cfm ../lib/spark2frovedis_df.jar ../MANIFEST/frov_df.mf test/scala/FrovedisDataframeDemo*
 	cd bin; ${JAVA_HOME}/bin/jar -cfm ../lib/spark2frovedis_pblas_scalapack.jar ../MANIFEST/pblas_scalapack.mf test/scala/PblasScalapackDemo*
-	cd bin; ${JAVA_HOME}/bin/jar -cfm ../lib/spark2frovedis_arpack.jar ../MANIFEST/arpack.mf test/scala/ArpackDemo*
+	cd bin; ${JAVA_HOME}/bin/jar -cfm ../lib/spark2frovedis_svd.jar ../MANIFEST/svd.mf test/scala/SVDDemo*
+	cd bin; ${JAVA_HOME}/bin/jar -cfm ../lib/spark2frovedis_pca.jar ../MANIFEST/pca.mf test/scala/PCADemo*
 	cd bin; ${JAVA_HOME}/bin/jar -cfm ../lib/spark2frovedis_lrsgd.jar ../MANIFEST/lrsgd.mf test/scala/LRSGD*
 	cd bin; ${JAVA_HOME}/bin/jar -cfm ../lib/spark2frovedis_lrm.jar ../MANIFEST/lrm.mf test/scala/LRModel*
 	cd bin; ${JAVA_HOME}/bin/jar -cfm ../lib/spark2frovedis_als.jar ../MANIFEST/als.mf test/scala/ALSDemo*

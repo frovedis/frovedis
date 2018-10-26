@@ -1,7 +1,7 @@
 package test.scala;
 
 import com.nec.frovedis.Jexrpc.FrovedisServer
-import com.nec.frovedis.matrix._
+import com.nec.frovedis.matrix.RowMatrixUtils._
 import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.mllib.linalg.{Vector, Vectors}
@@ -9,11 +9,11 @@ import org.apache.spark.mllib.linalg.SingularValueDecomposition
 import org.apache.spark.mllib.linalg.Matrix
 import org.apache.spark.mllib.linalg.distributed.RowMatrix
 
-object ArpackDemo {
+object SVDDemo {
   def main(args: Array[String]): Unit = {
 
     // -------- configurations --------
-    val conf = new SparkConf().setAppName("ArpackDemo").setMaster("local[2]")
+    val conf = new SparkConf().setAppName("SVDDemo").setMaster("local[2]")
     val sc = new SparkContext(conf)
 
     // initializing Frovedis server with "personalized command", if provided in command line
@@ -40,7 +40,11 @@ object ArpackDemo {
     println(V1.toString)
 
     // (FROVEDIS WAY) Compute the top 3 singular values and corresponding singular vectors.
-    val res = ARPACK.computeSVD(mat,3)
+    // API as a member method of Spark RowMatrix
+    val res = mat.computeSVDUsingFrovedis(3) // always compute U
+    // can also be called as a method of RowMatrixUtils
+    // import com.nec.frovedis.matrix.RowMatrixUtils
+    // val res = RowMatrixUtils.computeSVD(mat,3) // always compute U
     val svd2 = res.to_spark_result(sc)
     val U2: RowMatrix = svd2.U  // The U factor is a RowMatrix.
     val s2: Vector = svd2.s     // The singular values are stored in a local dense vector.

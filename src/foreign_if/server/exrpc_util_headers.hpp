@@ -5,6 +5,7 @@
 #include "frovedis_mem_pair.hpp"
 #include "dummy_matrix.hpp"
 #include "dummy_model.hpp"
+#include "pca_result.hpp"
 #include "scalapack_result.hpp"
 #include "model_tracker.hpp"
 

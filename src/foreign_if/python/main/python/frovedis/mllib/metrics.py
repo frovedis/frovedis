@@ -4,7 +4,7 @@
 # without scikit-learn installed support
 
 def r2_score(y_true, y_pred,
-             sample_weight=None,
+             sample_weight=None, 
              multioutput="uniform_average"):
   if(len(y_true) == 0): return 0.
   if(len(y_true) != len(y_pred)): 

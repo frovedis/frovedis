@@ -1,4 +1,5 @@
 #include "exrpc_svd.hpp"
+#include "exrpc_pca.hpp"
 #include "exrpc_pblas.hpp"
 #include "exrpc_scalapack.hpp"
 #include "short_hand_dense_type.hpp"
@@ -29,6 +30,28 @@ JNIEXPORT jobject JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_computeSVD
   catch(std::exception& e) { set_status(true,e.what()); }
   return to_jDummyGesvdResult(env,res,CMJR,true,true);
 }
+
+// to compute PCA of a given dense matrix (rowmajor)
+JNIEXPORT jobject JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_computePCA
+  (JNIEnv *env, jclass thisCls, jobject master_node,
+   jlong fdata, jint k, jboolean movable) {
+
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto f_dptr = (exrpc_ptr_t) fdata;
+  bool mvbl = (bool) movable;
+#ifdef _EXRPC_DEBUG_
+  std::cout << "Connecting to master node ("
+            << fm_node.hostname << "," << fm_node.rpcport
+            << ") to compute PCA.\n";
+#endif
+  pca_result res;
+  try{
+    res = exrpc_async(fm_node,(frovedis_pca<R_MAT1,DT1>),f_dptr,k,mvbl).get();
+  }
+  catch(std::exception& e) { set_status(true,e.what()); }
+  return to_jDummyPCAResult(env,res,CMJR);
+}
+
 
 JNIEXPORT jobject JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getSVDResultFromFiles
   (JNIEnv *env, jclass thisCls, jobject master_node, jshort mtype,

@@ -1,11 +1,3 @@
-// ---------------------------------------------------------------------
-// NOTE: This file contains completely template-based routines.
-// Based on the input argumnet type, e.g., float/double (DT1/DT2)
-// sparse/dense (S_MAT1/D_MAT1) the template call will be deduced.
-// thus during the support of float type or dense type data, no major
-// changes need to be performed in this file.
-// ---------------------------------------------------------------------
-
 #ifndef _EXRPC_SVD_HPP_
 #define _EXRPC_SVD_HPP_
 

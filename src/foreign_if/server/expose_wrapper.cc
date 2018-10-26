@@ -1,3 +1,4 @@
+#include "exrpc_pca.hpp"
 #include "exrpc_svd.hpp"
 #include "exrpc_pblas.hpp"
 #include "exrpc_scalapack.hpp"
@@ -7,6 +8,8 @@
 using namespace frovedis;
 
 void expose_frovedis_wrapper_functions() {
+  // --- frovedis pca ---
+  expose((frovedis_pca<R_MAT1,DT1>));              // for spark
   // --- frovedis sparse svd ---
   expose((frovedis_sparse_svd<S_MAT1,DT1>));       // for spark
   expose((frovedis_sparse_svd<S_MAT14,DT1,DT4>));  // for python

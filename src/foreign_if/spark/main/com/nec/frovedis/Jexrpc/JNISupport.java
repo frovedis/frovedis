@@ -3,6 +3,7 @@ package com.nec.frovedis.Jexrpc;
 import com.nec.frovedis.Jmatrix.DummyMatrix;
 import com.nec.frovedis.Jmatrix.DummyGetrfResult;
 import com.nec.frovedis.Jmatrix.DummyGesvdResult;
+import com.nec.frovedis.Jmatrix.DummyPCAResult;
 import com.nec.frovedis.Jmllib.DummyGLM;
 import com.nec.frovedis.Jmllib.IntDoublePair;
 
@@ -218,6 +219,11 @@ public class JNISupport {
                                              int mid, 
                                              boolean movable,
                                              boolean isDense);
+  // -------- Compute PCA --------
+  public static native DummyPCAResult computePCA(Node master_node,
+                                                 long fdata,
+                                                 int k,
+                                                 boolean movable);
 
   // -------- Compute SVD --------
   public static native DummyGesvdResult computeSVD(Node master_node,
@@ -233,6 +239,7 @@ public class JNISupport {
                                                               boolean wantV,
                                                               boolean isbinary);
 
+  // -------- Frovedis Model Operations --------
   public static native void showFrovedisModel(Node master_node, int mid, short mkind);
   public static native void releaseFrovedisModel(Node master_node, int mid, short mkind);
   public static native long[] broadcast2AllWorkers(Node master_node, int mid, short mkind);

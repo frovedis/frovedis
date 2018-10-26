@@ -94,6 +94,20 @@ jobject to_jDummyGesvdResult(JNIEnv *env, gesvd_result& obj, short mtype,
   return newSVD;
 }
 
+jobject to_jDummyPCAResult(JNIEnv *env, pca_result& obj, short mtype) {
+  jclass pcaCls = env->FindClass(JRE_PATH_DummyPCAResult);
+  if (pcaCls == NULL) REPORT_ERROR(INTERNAL_ERROR, "DummyPCAResult class not found in JRE\n");
+  jmethodID pcaConst = env->GetMethodID(pcaCls, "<init>", "(JIISJI)V");
+  if (pcaConst == NULL) REPORT_ERROR(INTERNAL_ERROR, "DummyPCAResult(JIISJI) not found in JRE\n");
+  long pcmatp = static_cast<long>(obj.pc_ptr);
+  long varp = static_cast<long>(obj.var_ptr);
+  auto newPCA = env->NewObject(pcaCls, pcaConst, 
+                               pcmatp, obj.nrows, obj.ncols, mtype,
+                               varp, obj.k);
+  if (newPCA == NULL) REPORT_ERROR(INTERNAL_ERROR, "DummyPCAResult object creation failed\n");
+  return newPCA;
+}
+
 frovedis_mem_pair java_mempair_to_frovedis_mempair(JNIEnv *env, jobject& mp) {
   jclass mpCls = env->FindClass(JRE_PATH_MemPair);
   if (mpCls == NULL) REPORT_ERROR(INTERNAL_ERROR, "MemPair class not found in JRE\n");
