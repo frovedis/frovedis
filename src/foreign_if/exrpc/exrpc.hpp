@@ -1,7 +1,8 @@
 #ifndef EXRPC_HPP
 #define EXRPC_HPP
 
-#define USE_IP_EXRPC
+// using hostname is more robust and flexible for routing
+//#define USE_IP_EXRPC 
 #define NO_PROGRAM_OPTION // sometimes VE compiler does not like it
 
 /* tentative: at client side do not throw exception; just print error.
