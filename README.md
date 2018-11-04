@@ -158,11 +158,9 @@ procedure call) to provide the above functionalities from Spark or
 Python. The server can run on both x86 and VE.
 
 To run the server, the network should be configured properly.
-Please check if
-
-    $ hostname -i
-
-returns the correct IP address.
+*Plaese make sure if your hostname (which can be obtained by hostname
+command) is in /etc/hosts or registered in DNS.*
+(myhostname in /etc/nsswitch.conf does not work for VE.)
 
 Even if you want to use VE, you need to build x86 version, because it
 builds dynamic link libraries for Spark/Python interface.
