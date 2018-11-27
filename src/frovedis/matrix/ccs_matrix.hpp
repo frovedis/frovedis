@@ -142,9 +142,11 @@ std::vector<T> operator*(const ccs_matrix_local<T,I,O>& mat,
   const I* idxp = &mat.idx[0];
   const O* offp = &mat.off[0];
   for(size_t c = 0; c < mat.local_num_col; c++) {
+#pragma cdir on_adb(retp)
 #pragma cdir nodep
 #pragma _NEC ivdep
-#pragma cdir on_adb(retp)
+#pragma _NEC vovertake
+#pragma _NEC vob
     for(O r = offp[c]; r < offp[c+1]; r++) {
       retp[idxp[r]] = retp[idxp[r]] + valp[r] * vp[c];
     }

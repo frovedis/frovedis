@@ -10,6 +10,7 @@
 #include "../core/dvector.hpp"
 #include "../core/dunordered_map.hpp"
 #include "../core/mpihelper.hpp"
+#include "../core/prefix_sum.hpp"
 
 #include "rowmajor_matrix.hpp"
 
@@ -18,28 +19,33 @@
 #endif
 
 #define CRS_VLEN 4096
+#define SPARSE_VECTOR_VLEN 256
 
 namespace frovedis {
 
 template <class T, class I = size_t>
 struct sparse_vector {
-  sparse_vector(){}
+  sparse_vector() : size(0) {}
   sparse_vector(const sparse_vector<T,I>& s) {
     val = s.val;
     idx = s.idx;
+    size = s.size;
   }
   sparse_vector<T,I>& operator=(const sparse_vector<T,I>& s) {
     val = s.val;
     idx = s.idx;
+    size = s.size;
     return *this;
   }
   sparse_vector(sparse_vector<T,I>&& s) {
     val.swap(s.val);
     idx.swap(s.idx);
+    size = s.size;
   }
   sparse_vector<T,I>& operator=(sparse_vector<T,I>&& s) {
     val.swap(s.val);
     idx.swap(s.idx);
+    size = s.size;
     return *this;
   }
   void debug_print() const {
@@ -49,12 +55,173 @@ struct sparse_vector {
     std::cout << "idx : ";
     for(auto i: idx) std::cout << i << " ";
     std::cout << std::endl;
+    std::cout << "size : " << size << std::endl;
   }
+  std::vector<T> to_vector();
+  
   std::vector<T> val;
   std::vector<I> idx;
+  size_t size; // logical length; might not be the same as the last value of idx
 
   SERIALIZE(val, idx)
 };
+
+template <class T, class I>
+void sparse_to_dense(sparse_vector<T,I>& sv, T* retp) {
+  size_t valsize = sv.val.size();
+  T* valp = sv.val.data();
+  I* idxp = sv.idx.data();
+#pragma cdir nodep
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+  for(size_t i = 0; i < valsize; i++) {
+    retp[idxp[i]] = valp[i];
+  }
+}
+
+template <class T, class I>
+std::vector<T> sparse_vector<T,I>::to_vector() {
+  std::vector<T> ret(size);
+  sparse_to_dense(*this, ret.data());
+  return ret;
+}
+
+#if defined(_SX) || defined(__ve__)
+// loop raking version
+template <class T, class I = size_t>
+sparse_vector<T,I> make_sparse_vector(const T* vp, size_t size) {
+  if(size == 0) {
+    return sparse_vector<T,I>();
+  }
+  std::vector<T> valtmp(size);
+  std::vector<I> idxtmp(size);
+  T* valtmpp = valtmp.data();
+  I* idxtmpp = idxtmp.data();
+  size_t each = size / SPARSE_VECTOR_VLEN; // maybe 0
+  if(each % 2 == 0 && each > 1) each--;
+  size_t rest = size - each * SPARSE_VECTOR_VLEN;
+  size_t out_ridx[SPARSE_VECTOR_VLEN];
+// never remove this vreg! this is needed folowing vovertake
+// though this prevents ftrace...
+#pragma _NEC vreg(out_ridx)
+  for(size_t i = 0; i < SPARSE_VECTOR_VLEN; i++) {
+    out_ridx[i] = each * i;
+  }
+  if(each == 0) {
+    size_t current = 0;
+    for(size_t i = 0; i < size; i++) {
+      if(vp[i] != 0) {
+        valtmpp[current] = vp[i];
+        idxtmpp[current] = i;
+        current++;
+      }
+    }
+    sparse_vector<T,I> ret;
+    ret.size = size;
+    ret.val.resize(current);
+    ret.idx.resize(current);
+    T* retvalp = ret.val.data();
+    I* retidxp = ret.idx.data();
+    for(size_t i = 0; i < current; i++) {
+      retvalp[i] = valtmpp[i];
+      retidxp[i] = idxtmpp[i];
+    }
+    return ret;
+  } else {
+#pragma _NEC vob
+    for(size_t j = 0; j < each; j++) {
+#pragma cdir nodep
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+      for(size_t i = 0; i < SPARSE_VECTOR_VLEN; i++) {
+        auto loaded_v = vp[j + each * i];
+        if(loaded_v != 0) {
+          valtmpp[out_ridx[i]] = loaded_v;
+          idxtmpp[out_ridx[i]] = j + each * i;
+          out_ridx[i]++;
+        }
+      }
+    }
+    size_t rest_idx_start = each * SPARSE_VECTOR_VLEN;
+    size_t rest_idx = rest_idx_start;
+    if(rest != 0) {
+      for(size_t j = 0; j < rest; j++) {
+        auto loaded_v = vp[j + rest_idx_start]; 
+        if(loaded_v != 0) {
+          valtmpp[rest_idx] = loaded_v;
+          idxtmpp[rest_idx] = j + rest_idx_start;
+          rest_idx++;
+        }
+      }
+    }
+    sparse_vector<T,I> ret;
+    ret.size = size;
+    size_t sizes[SPARSE_VECTOR_VLEN];
+    for(size_t i = 0; i < SPARSE_VECTOR_VLEN; i++) {
+      sizes[i] = out_ridx[i] - each * i;
+    }
+    size_t total = 0;
+    for(size_t i = 0; i < SPARSE_VECTOR_VLEN; i++) {
+      total += sizes[i];
+    }
+    size_t rest_size = rest_idx - each * SPARSE_VECTOR_VLEN;
+    total += rest_size;
+    ret.val.resize(total);
+    ret.idx.resize(total);
+    T* retvalp = ret.val.data();
+    I* retidxp = ret.idx.data();
+    size_t current = 0;
+    for(size_t i = 0; i < SPARSE_VECTOR_VLEN; i++) {
+      for(size_t j = 0; j < sizes[i]; j++) {
+        retvalp[current + j] = valtmpp[each * i + j];
+        retidxp[current + j] = idxtmpp[each * i + j];
+      }
+      current += sizes[i];
+    }
+    for(size_t j = 0; j < rest_size; j++) {
+      retvalp[current + j] = valtmpp[rest_idx_start + j];
+      retidxp[current + j] = idxtmpp[rest_idx_start + j];
+    }
+    return ret;
+  }
+}
+#else
+// original version
+template <class T, class I = size_t>
+sparse_vector<T,I> make_sparse_vector(const T* vp, size_t size) {
+  if(size == 0) {
+    return sparse_vector<T,I>();
+  }
+  std::vector<T> valtmp(size);
+  std::vector<I> idxtmp(size);
+  T* valtmpp = valtmp.data();
+  I* idxtmpp = idxtmp.data();
+  size_t current = 0;
+  for(size_t i = 0; i < size; i++) {
+    if(vp[i] != 0) {
+      valtmpp[current] = vp[i];
+      idxtmpp[current] = i;
+      current++;
+    }
+  }
+  sparse_vector<T,I> ret;
+  ret.size = size;
+  ret.val.resize(current);
+  ret.idx.resize(current);
+  T* retvalp = ret.val.data();
+  I* retidxp = ret.idx.data();
+  for(size_t i = 0; i < current; i++) {
+    retvalp[i] = valtmpp[i];
+    retidxp[i] = idxtmpp[i];
+  }
+  return ret;
+}
+#endif
+template <class T, class I = size_t>
+sparse_vector<T,I> make_sparse_vector(const std::vector<T>& v) {
+  return make_sparse_vector(v.data(), v.size());
+}
 
 template <class T, class I = size_t, class O = size_t>
 struct crs_matrix_local {
@@ -160,6 +327,7 @@ sparse_vector<T,I> crs_matrix_local<T,I,O>::get_row(size_t k) const {
   r.idx.resize(size);
   for(size_t i = 0; i < size; i++) r.val[i] = val[off[k]+i];
   for(size_t i = 0; i < size; i++) r.idx[i] = idx[off[k]+i];
+  r.size = local_num_col;
   return r;
 }
 
@@ -200,9 +368,7 @@ void transpose_compressed_matrix(std::vector<T>& val,
       num_itemp[idxp[src_pos]]++;
     }
   }
-  for(size_t ret_row = 0; ret_row < local_num_col; ret_row++) {
-    ret_offp[ret_row + 1] = ret_offp[ret_row] + num_itemp[ret_row];
-  }
+  prefix_sum(num_itemp, ret_offp+1, local_num_col);
   for(size_t src_row = 0; src_row < local_num_row; src_row++) {
 #pragma cdir nodep
 #pragma _NEC ivdep
