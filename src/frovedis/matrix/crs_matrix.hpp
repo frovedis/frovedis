@@ -63,7 +63,7 @@ struct sparse_vector {
   std::vector<I> idx;
   size_t size; // logical length; might not be the same as the last value of idx
 
-  SERIALIZE(val, idx)
+  SERIALIZE(val, idx, size)
 };
 
 template <class T, class I>
