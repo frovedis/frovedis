@@ -350,5 +350,12 @@ void spmspv(ccs_matrix_local<T,I,O>& mat, sparse_vector<T,I>& sv,
   }
 }
 
+template <class T, class I, class O>
+void spmspv(ccs_matrix_local<T,I,O>& mat, sparse_vector<T,I>& sv,
+            std::vector<T>& ret) {
+  ret.resize(mat.local_num_row);
+  spmspv(mat, sv, ret.data());
+}
+
 }
 #endif
