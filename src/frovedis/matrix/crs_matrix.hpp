@@ -48,6 +48,14 @@ struct sparse_vector {
     size = s.size;
     return *this;
   }
+  sparse_vector(I vsize){
+    val.resize(vsize);
+    idx.resize(vsize);
+  }
+  sparse_vector(I vsize, T initv){
+    val.assign(vsize, initv);
+    idx.assign(vsize, initv);
+  }   
   void debug_print() const {
     std::cout << "val : ";
     for(auto i: val) std::cout << i << " ";
