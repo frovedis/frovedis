@@ -1,0 +1,19 @@
+TARGETS := cc_BFS sssp pagerank
+include ../../Makefile.in.sx
+include ../Makefile.common
+
+TO_INSTALL := cc_BFS.cc sssp.cc pagerank.cc
+DIR := graph
+ARCH := sx
+
+cc_BFS: cc_BFS.o
+	${CXX} -prelink ${CXXFLAGS} cc_BFS.o ${LIBS}
+	${MPICXX} ${CXXFLAGS} -o cc_BFS cc_BFS.o ${LIBS}
+
+sssp: sssp.o
+	${CXX} -prelink ${CXXFLAGS} sssp.o ${LIBS}
+	${MPICXX} ${CXXFLAGS} -o sssp sssp.o ${LIBS}
+
+pagerank: pagerank.o
+	${CXX} -prelink ${CXXFLAGS} pagerank.o ${LIBS}
+	${MPICXX} ${CXXFLAGS} -o pagerank pagerank.o ${LIBS}
