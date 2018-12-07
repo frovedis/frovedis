@@ -3,15 +3,16 @@ TREE_OBJS := tree_config.o tree_impurity.o tree_utility.o
 W2V_OBJS := word2vec.o
 FM_OBJS := main.o
 UTIL_OBJS := batch_chain_communicator.o
+GRAPH_OBJS := graph.o
 
-OBJS := ${RECM_OBJS} ${TREE_OBJS} ${W2V_OBJS} ${FM_OBJS} ${UTIL_OBJS}
+OBJS := ${RECM_OBJS} ${TREE_OBJS} ${W2V_OBJS} ${FM_OBJS} ${UTIL_OBJS} ${GRAPH_OBJS}
 
 TARGETS := libfrovedis_ml.a
 
 INCLUDES := -I../../../third_party/cereal-1.2.2/include/ -I../../../third_party/include -I../..
 CXXFLAGS := ${CXXFLAGS_COMMON} ${INCLUDES}
 LIBS := -L../matrix -lfrovedis_matrix -L../core -lfrovedis_core ${LIBS_COMMON}
-VPATH := glm recommendation tree w2v fm utility
+VPATH := glm recommendation tree w2v fm utility graph
 
 targets: ${TARGETS}
 
@@ -36,6 +37,8 @@ install: ${TARGETS}
 	cp w2v/LICENSE ${INSTALLPATH}/licenses/third_party/LICENSE.word2vec
 	install -d ${INSTALLPATH}/include/frovedis/ml/nb
 	cp nb/*.hpp ${INSTALLPATH}/include/frovedis/ml/nb
+	install -d ${INSTALLPATH}/include/frovedis/ml/graph
+	cp graph/*.hpp ${INSTALLPATH}/include/frovedis/ml/graph
 
 optimizer.o: optimizer.cc
 
