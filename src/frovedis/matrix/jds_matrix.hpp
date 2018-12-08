@@ -407,7 +407,7 @@ void jds_matrix_spmv_impl(const jds_matrix_local<T,I,O,P>& mat,
   if(c < physical_col_size) {
     jds_spmv_helper1<T,I,O,P>(valp, idxp, offp, vp, tmpp, c, 0);
   }
-  const size_t* permp = &mat.perm[0];
+  const P* permp = &mat.perm[0];
 #pragma cdir nodep
 #pragma _NEC ivdep
 #pragma cdir on_adb(tmpp)
@@ -773,7 +773,7 @@ rowmajor_matrix_local<T> operator*(const jds_matrix_local<T,I,O,P>& mat,
                               v.local_num_col, c, 0);
   }
   T* retvalp = &ret.val[0];
-  const size_t* permp = &mat.perm[0];
+  const P* permp = &mat.perm[0];
   O block_num = mat.local_num_row / JDS_VLEN;
   for(O b = 0; b < block_num; b++) {
     for(size_t mc = 0; mc < v.local_num_col; mc++) {
@@ -821,7 +821,7 @@ std::vector<T> operator*(const jds_matrix_local<T,I,O,P>& mat, const std::vector
     }
   }
   T* retp = &ret[0];
-  const size_t* permp = &mat.perm[0];
+  const P* permp = &mat.perm[0];
 #pragma cdir nodep
 #pragma _NEC ivdep
 #pragma cdir on_adb(tmpp)
