@@ -89,10 +89,9 @@ void groupby_sum(const std::vector<K>& key, const std::vector<V>& val,
         }
       }
     }
-    size_t rest_idx = 0;
+    size_t rest_idx = each * SPMSPV_VLEN;
     if(rest != 0) {
-      size_t rest_idx_start = each * SPMSPV_VLEN;
-      rest_idx = rest_idx_start;
+      size_t rest_idx_start = rest_idx;
       auto current_key_rest = keyp[rest_idx_start];
       auto current_val_rest = valp[rest_idx_start];
       // no vector loop
