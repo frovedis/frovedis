@@ -13,6 +13,7 @@ namespace frovedis {
 // supported K is int type, and only 0 or positive data
 template <class K, class V>
 void radix_sort(K* key_array, V* val_array, size_t size) {
+  if(size < 2) return; // quick return;
   size_t key_size = sizeof(K);
   size_t bucket_ldim = RADIX_SORT_VLEN + 1;
   size_t num_bucket = 1 << 8; // 8bit == 256
@@ -130,6 +131,7 @@ void radix_sort(K* key_array, V* val_array, size_t size) {
 
 template <class K, class V>
 void radix_sort_desc(K* key_array, V* val_array, size_t size) {
+  if(size < 2) return; // quick return;
   size_t key_size = sizeof(K);
   size_t bucket_ldim = RADIX_SORT_VLEN + 1;
   size_t num_bucket = 1 << 8; // 8bit == 256
