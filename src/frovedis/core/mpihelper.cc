@@ -14,7 +14,8 @@ void large_alltoallv(size_t element_size,
                      const std::vector<size_t>& recvcounts_arg,
                      const std::vector<size_t>& rdispls_arg,
                      MPI_Comm comm) {
-  int nodesize = get_nodesize();
+  int nodesize;
+  MPI_Comm_size(comm, &nodesize);
   std::vector<size_t> sendcounts(nodesize);
   std::vector<size_t> recvcounts(nodesize);
   std::vector<size_t> sdispls(nodesize);
@@ -90,8 +91,10 @@ void large_gatherv(size_t element_size,
                    const std::vector<size_t>& displs_arg,
                    int root,
                    MPI_Comm comm) {
-  int nodesize = get_nodesize();
-  int self = get_selfid();
+  // to make it portable with shared vector communicator
+  int nodesize, self;
+  MPI_Comm_size(comm, &nodesize);
+  MPI_Comm_rank(comm, &self);
   size_t sendcount = sendcount_arg * element_size;
   std::vector<size_t> recvcounts(nodesize);
   std::vector<size_t> displs(nodesize);
@@ -156,8 +159,9 @@ void large_scatterv(size_t element_size,
                     size_t recvcount_arg,
                     int root,
                     MPI_Comm comm) {
-  int nodesize = get_nodesize();
-  int self = get_selfid();
+  int nodesize, self;
+  MPI_Comm_size(comm, &nodesize);
+  MPI_Comm_rank(comm, &self);
   std::vector<size_t> sendcounts(nodesize);
   size_t recvcount;
   std::vector<size_t> displs(nodesize);

@@ -112,11 +112,12 @@ void free_shared_vector(shared_vector_local<T>& sv) {
   }
 }
 
+// Think this as shared version of node_local<T>
 template <class T>
 struct shared_vector {
-  shared_vector() : allocated(false), size(0) {}
-  shared_vector(node_local<shared_vector_local<T>>&& svl, size_t size)
-    : allocated(true), size(size), data(std::move(svl)) {}
+  shared_vector() : allocated(false)  {}
+  shared_vector(node_local<shared_vector_local<T>>&& svl)
+    : allocated(true), data(std::move(svl)) {}
   shared_vector(const shared_vector<T>& sv);
   shared_vector(shared_vector<T>&& sv);
   ~shared_vector();
@@ -125,7 +126,6 @@ struct shared_vector {
   std::vector<T> sum();
   void allsum();
   bool allocated;
-  size_t size;
   node_local<shared_vector_local<T>> data;
 };
 
@@ -134,7 +134,7 @@ shared_vector<T> make_shared_vector(size_t size) {
   auto sv = make_node_local_allocate<shared_vector_local<T>>();
   auto bcast_size = broadcast(size);
   sv.mapv(init_shared_vector<T>, bcast_size);
-  return shared_vector<T>(std::move(sv), size);
+  return shared_vector<T>(std::move(sv));
 }
 
 template <class T>
@@ -164,13 +164,13 @@ template <class T>
 shared_vector<T>::shared_vector(const shared_vector<T>& sv) {
   if(sv.allocated) {
     allocated = true;
-    size = sv.size;
     data = make_node_local_allocate<shared_vector_local<T>>();
-    auto bcast_size = broadcast(sv.size);
-    data.mapv(init_shared_vector<T>, bcast_size);
+    auto sizes = sv.data.map(+[](const shared_vector_local<T>& sv)
+                             {return sv.size;});
+    auto nl_sizes = make_node_local_scatter(sizes);
+    data.mapv(init_shared_vector<T>, nl_sizes);
     data.mapv(copy_shared_vector<T>, sv.data);
   } else {
-    size = sv.size;
     allocated = sv.allocated;
   }
 }
@@ -178,7 +178,6 @@ shared_vector<T>::shared_vector(const shared_vector<T>& sv) {
 template <class T>
 shared_vector<T>::shared_vector(shared_vector<T>&& sv) {
   allocated = sv.allocated;
-  size = sv.size;
   if(sv.allocated) {
     data = std::move(sv.data);
     sv.allocated = false;
@@ -189,11 +188,12 @@ template <class T>
 shared_vector<T>& shared_vector<T>::operator=(const shared_vector<T>& sv) {
   if(allocated) data.mapv(free_shared_vector<T>);
   allocated = sv.allocated;
-  size = sv.size;
   if(sv.allocated) {
     data = make_node_local_allocate<shared_vector_local<T>>();
-    auto bcast_size = broadcast(sv.size);
-    data.mapv(init_shared_vector<T>, bcast_size);
+    auto sizes = sv.data.map(+[](const shared_vector_local<T>& sv)
+                             {return sv.size;});
+    auto nl_sizes = make_node_local_scatter(sizes);
+    data.mapv(init_shared_vector<T>, nl_sizes);
     data.mapv(copy_shared_vector<T>, sv.data);
   } 
   return *this;
@@ -203,7 +203,6 @@ template <class T>
 shared_vector<T>& shared_vector<T>::operator=(shared_vector<T>&& sv) {
   if(allocated) data.mapv(free_shared_vector<T>);
   allocated = sv.allocated;
-  size = sv.size;
   if(sv.allocated) {
     data = std::move(sv.data);
     sv.allocated = false;
@@ -242,10 +241,40 @@ shared_vector<T> make_shared_vector_broadcast(std::vector<T>& v) {
 
 template <class T>
 void broadcast_to_shared_vector(std::vector<T>& v, shared_vector<T>& sv) {
-  if(v.size() != sv.size)
-    throw std::runtime_error("broadcast_to_shared_vector: size mismatch");
+  // TODO: check each shared_vector_local's size
   intptr_t vptr = reinterpret_cast<intptr_t>(&v);
   sv.data.mapv(make_shared_vector_broadcast_helper<T>, broadcast(vptr));
+}
+
+template <class T>
+void allgather_to_shared_vector_helper(shared_vector_local<T>& from,
+                                       shared_vector_local<T>& to) {
+  if(is_shm_root()) {
+    int self = frovedis_shmroot_self_rank;
+    int nodes = frovedis_shmroot_comm_size;
+    std::vector<size_t> recvcounts(nodes);
+    size_t vsize = from.size;
+    MPI_Allgather(&vsize, sizeof(size_t), MPI_CHAR, 
+               reinterpret_cast<char*>(recvcounts.data()),
+               sizeof(size_t), MPI_CHAR, frovedis_shmroot_comm);
+    size_t total = 0;
+    for(size_t i = 0; i < nodes; i++) total += recvcounts[i];
+    std::vector<size_t> displs(nodes);
+    if(self == 0) {
+      for(size_t i = 1; i < nodes; i++) 
+        displs[i] = displs[i-1] + recvcounts[i-1];
+    }
+    large_gatherv(sizeof(T), reinterpret_cast<char*>(from.data()), vsize, 
+                  reinterpret_cast<char*>(to.data()), recvcounts,
+                  displs, 0, frovedis_shmroot_comm);
+    large_bcast(sizeof(T), reinterpret_cast<char*>(to.data()), total, 0,
+                frovedis_shmroot_comm);
+  }
+}
+
+template <class T>
+void allgather_to_shared_vector(shared_vector<T>& from, shared_vector<T>& to) {
+  from.data.mapv(allgather_to_shared_vector_helper<T>, to.data);
 }
 
 template <class T>
@@ -271,6 +300,8 @@ void shared_vector_sum_helper(shared_vector_local<double>&, intptr_t);
 
 template <class T>
 std::vector<T> shared_vector<T>::sum() {
+  // awkward though...
+  auto size = data.get_dvid().get_selfdata()->size;
   std::vector<T> ret(size);
   intptr_t retptr = reinterpret_cast<intptr_t>(ret.data());
   data.mapv(shared_vector_sum_helper<T>, broadcast(retptr));
