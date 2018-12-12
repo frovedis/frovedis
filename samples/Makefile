@@ -10,6 +10,7 @@ all:
 	cd factorization_machine; make -f Makefile.${TARGET} all
 	cd eigen; make -f Makefile.${TARGET} all
 	cd tree; make -f Makefile.${TARGET} all
+	cd graph; make -f Makefile.${TARGET} all
 ifeq (${TARGET},x86)
 	cd matrix_tools; make -f Makefile.${TARGET}
 	cd wikipedia2matrix; make -f Makefile.${TARGET}
@@ -28,6 +29,7 @@ install:
 	cd factorization_machine; make -f Makefile.${TARGET} install
 	cd eigen; make -f Makefile.${TARGET} install
 	cd tree; make -f Makefile.${TARGET} install
+	cd graph; make -f Makefile.${TARGET} install
 ifeq (${TARGET},x86)
 	cd matrix_tools; make -f Makefile.${TARGET} install
 	cd wikipedia2matrix; make -f Makefile.${TARGET} install
@@ -43,6 +45,7 @@ clean:
 	cd factorization_machine; make -f Makefile.${TARGET} clean
 	cd eigen; make -f Makefile.${TARGET} clean
 	cd tree; make -f Makefile.${TARGET} clean
+	cd graph; make -f Makefile.${TARGET} clean
 ifeq (${TARGET},x86)
 	cd matrix_tools; make -f Makefile.${TARGET} clean
 	cd wikipedia2matrix; make -f Makefile.${TARGET} clean
