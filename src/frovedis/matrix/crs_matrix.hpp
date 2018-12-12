@@ -18,7 +18,8 @@
 #include "../core/shared_vector.hpp"
 #endif
 
-#define CRS_VLEN 4096
+#define CRS_SPMM_THR 32
+#define CRS_SPMM_VLEN 256
 #define SPARSE_VECTOR_VLEN 256
 
 namespace frovedis {
@@ -228,7 +229,7 @@ sparse_vector<T,I> make_sparse_vector(const T* vp, size_t size) {
 #endif
 template <class T, class I = size_t>
 sparse_vector<T,I> make_sparse_vector(const std::vector<T>& v) {
-  return make_sparse_vector(v.data(), v.size());
+  return make_sparse_vector<T,I>(v.data(), v.size());
 }
 
 template <class T, class I = size_t, class O = size_t>
@@ -1408,130 +1409,167 @@ crs_matrix<T,I,O> make_crs_matrix_scatter(crs_matrix_local<T,I,O>& data) {
 
 // TODO: write gather
 
-// TODO: create a version of local_num_col > 256
 #if defined(_SX) || defined(__ve__)
+/*
+  This version vectorize column dimension of rowmajor matrix
+ */
 template <class T, class I, class O>
-rowmajor_matrix_local<T> operator*(const crs_matrix_local<T,I,O>& mat,
-                                   const rowmajor_matrix_local<T>& v) {
-  rowmajor_matrix_local<T> ret(mat.local_num_row, v.local_num_col);
-  T* retvalp = &ret.val[0];
-  const T* vvalp = &v.val[0];
+void crs_matrix_spmm_impl2(const crs_matrix_local<T,I,O>& mat,
+                           T* retvalp, const T* vvalp, size_t num_col) {
   const T* valp = &mat.val[0];
   const I* idxp = &mat.idx[0];
   const O* offp = &mat.off[0];
-  size_t num_col = v.local_num_col;
+  T current_sum[CRS_SPMM_VLEN];
+#pragma _NEC vreg(current_sum)
+  for(size_t i = 0; i < CRS_SPMM_VLEN; i++) {
+    current_sum[i] = 0;
+  }
+  size_t each = num_col / CRS_SPMM_VLEN;
+  size_t rest = num_col % CRS_SPMM_VLEN;
   for(size_t r = 0; r < mat.local_num_row; r++) {
-    size_t mc = 0;
-    for(; mc + 15 < num_col; mc += 16) {
+    for(size_t e = 0; e < each; e++) {
       for(O c = offp[r]; c < offp[r+1]; c++) {
-        retvalp[r * num_col + mc] += 
-          valp[c] * vvalp[idxp[c] * num_col + mc];
-        retvalp[r * num_col + mc + 1] +=
-          valp[c] * vvalp[idxp[c] * num_col + mc + 1];
-        retvalp[r * num_col + mc + 2] +=
-          valp[c] * vvalp[idxp[c] * num_col + mc + 2];
-        retvalp[r * num_col + mc + 3] +=
-          valp[c] * vvalp[idxp[c] * num_col + mc + 3];
-        retvalp[r * num_col + mc + 4] +=
-          valp[c] * vvalp[idxp[c] * num_col + mc + 4];
-        retvalp[r * num_col + mc + 5] +=
-          valp[c] * vvalp[idxp[c] * num_col + mc + 5];
-        retvalp[r * num_col + mc + 6] +=
-          valp[c] * vvalp[idxp[c] * num_col + mc + 6];
-        retvalp[r * num_col + mc + 7] +=
-          valp[c] * vvalp[idxp[c] * num_col + mc + 7];
-        retvalp[r * num_col + mc + 8] += 
-          valp[c] * vvalp[idxp[c] * num_col + mc + 8];
-        retvalp[r * num_col + mc + 9] +=
-          valp[c] * vvalp[idxp[c] * num_col + mc + 9];
-        retvalp[r * num_col + mc + 10] +=
-          valp[c] * vvalp[idxp[c] * num_col + mc + 10];
-        retvalp[r * num_col + mc + 11] +=
-          valp[c] * vvalp[idxp[c] * num_col + mc + 11];
-        retvalp[r * num_col + mc + 12] +=
-          valp[c] * vvalp[idxp[c] * num_col + mc + 12];
-        retvalp[r * num_col + mc + 13] +=
-          valp[c] * vvalp[idxp[c] * num_col + mc + 13];
-        retvalp[r * num_col + mc + 14] +=
-          valp[c] * vvalp[idxp[c] * num_col + mc + 14];
-        retvalp[r * num_col + mc + 15] +=
-          valp[c] * vvalp[idxp[c] * num_col + mc + 15];
+        for(size_t mc = 0; mc < CRS_SPMM_VLEN; mc++) {
+          current_sum[mc] +=
+            valp[c] * vvalp[idxp[c] * num_col + CRS_SPMM_VLEN * e + mc];
+        }
+      }
+      for(size_t mc = 0; mc < CRS_SPMM_VLEN; mc++) {
+        retvalp[r * num_col + CRS_SPMM_VLEN * e + mc] += current_sum[mc];
+      }
+      for(size_t i = 0; i < CRS_SPMM_VLEN; i++) {
+        current_sum[i] = 0;
       }
     }
-    for(; mc + 7 < num_col; mc += 8) {
-      for(O c = offp[r]; c < offp[r+1]; c++) {
-        retvalp[r * num_col + mc] += 
-          valp[c] * vvalp[idxp[c] * num_col + mc];
-        retvalp[r * num_col + mc + 1] +=
-          valp[c] * vvalp[idxp[c] * num_col + mc + 1];
-        retvalp[r * num_col + mc + 2] +=
-          valp[c] * vvalp[idxp[c] * num_col + mc + 2];
-        retvalp[r * num_col + mc + 3] +=
-          valp[c] * vvalp[idxp[c] * num_col + mc + 3];
-        retvalp[r * num_col + mc + 4] +=
-          valp[c] * vvalp[idxp[c] * num_col + mc + 4];
-        retvalp[r * num_col + mc + 5] +=
-          valp[c] * vvalp[idxp[c] * num_col + mc + 5];
-        retvalp[r * num_col + mc + 6] +=
-          valp[c] * vvalp[idxp[c] * num_col + mc + 6];
-        retvalp[r * num_col + mc + 7] +=
-          valp[c] * vvalp[idxp[c] * num_col + mc + 7];
+    for(O c = offp[r]; c < offp[r+1]; c++) {
+      for(size_t mc = 0; mc < rest; mc++) {
+        current_sum[mc] +=
+          valp[c] * vvalp[idxp[c] * num_col + CRS_SPMM_VLEN * each + mc];
       }
     }
-    for(; mc + 3 < num_col; mc += 4) {
-      for(O c = offp[r]; c < offp[r+1]; c++) {
-        retvalp[r * num_col + mc] += 
-          valp[c] * vvalp[idxp[c] * num_col + mc];
-        retvalp[r * num_col + mc + 1] +=
-          valp[c] * vvalp[idxp[c] * num_col + mc + 1];
-        retvalp[r * num_col + mc + 2] +=
-          valp[c] * vvalp[idxp[c] * num_col + mc + 2];
-        retvalp[r * num_col + mc + 3] +=
-          valp[c] * vvalp[idxp[c] * num_col + mc + 3];
-      }
-    }
-    for(; mc < num_col; mc++) {
-      for(O c = offp[r]; c < offp[r+1]; c++) {
-        retvalp[r * num_col + mc] +=
-          valp[c] * vvalp[idxp[c] * num_col + mc];
-      }
+    for(size_t mc = 0; mc < rest; mc++) {
+      retvalp[r * num_col + CRS_SPMM_VLEN * each + mc] += current_sum[mc];
     }
   }
-  /*
-  for(size_t r = 0; r < mat.local_num_row; r++) {
-    O c = offp[r];
-    for(; c + CRS_VLEN < offp[r+1]; c += CRS_VLEN) {
-      for(size_t mc = 0; mc < num_col; mc++) {
-#pragma cdir on_adb(vvalp)
-        for(O i = 0; i < CRS_VLEN; i++) {
+}
+
+template <class T, class I, class O>
+void crs_matrix_spmm_impl(const crs_matrix_local<T,I,O>& mat,
+                          T* retvalp, const T* vvalp, size_t num_col) {
+  if(num_col < CRS_SPMM_THR) {
+    const T* valp = &mat.val[0];
+    const I* idxp = &mat.idx[0];
+    const O* offp = &mat.off[0];
+    for(size_t r = 0; r < mat.local_num_row; r++) {
+      size_t mc = 0;
+      for(; mc + 15 < num_col; mc += 16) {
+        for(O c = offp[r]; c < offp[r+1]; c++) {
+          retvalp[r * num_col + mc] += 
+            valp[c] * vvalp[idxp[c] * num_col + mc];
+          retvalp[r * num_col + mc + 1] +=
+            valp[c] * vvalp[idxp[c] * num_col + mc + 1];
+          retvalp[r * num_col + mc + 2] +=
+            valp[c] * vvalp[idxp[c] * num_col + mc + 2];
+          retvalp[r * num_col + mc + 3] +=
+            valp[c] * vvalp[idxp[c] * num_col + mc + 3];
+          retvalp[r * num_col + mc + 4] +=
+            valp[c] * vvalp[idxp[c] * num_col + mc + 4];
+          retvalp[r * num_col + mc + 5] +=
+            valp[c] * vvalp[idxp[c] * num_col + mc + 5];
+          retvalp[r * num_col + mc + 6] +=
+            valp[c] * vvalp[idxp[c] * num_col + mc + 6];
+          retvalp[r * num_col + mc + 7] +=
+            valp[c] * vvalp[idxp[c] * num_col + mc + 7];
+          retvalp[r * num_col + mc + 8] += 
+            valp[c] * vvalp[idxp[c] * num_col + mc + 8];
+          retvalp[r * num_col + mc + 9] +=
+            valp[c] * vvalp[idxp[c] * num_col + mc + 9];
+          retvalp[r * num_col + mc + 10] +=
+            valp[c] * vvalp[idxp[c] * num_col + mc + 10];
+          retvalp[r * num_col + mc + 11] +=
+            valp[c] * vvalp[idxp[c] * num_col + mc + 11];
+          retvalp[r * num_col + mc + 12] +=
+            valp[c] * vvalp[idxp[c] * num_col + mc + 12];
+          retvalp[r * num_col + mc + 13] +=
+            valp[c] * vvalp[idxp[c] * num_col + mc + 13];
+          retvalp[r * num_col + mc + 14] +=
+            valp[c] * vvalp[idxp[c] * num_col + mc + 14];
+          retvalp[r * num_col + mc + 15] +=
+            valp[c] * vvalp[idxp[c] * num_col + mc + 15];
+        }
+      }
+      for(; mc + 7 < num_col; mc += 8) {
+        for(O c = offp[r]; c < offp[r+1]; c++) {
+          retvalp[r * num_col + mc] += 
+            valp[c] * vvalp[idxp[c] * num_col + mc];
+          retvalp[r * num_col + mc + 1] +=
+            valp[c] * vvalp[idxp[c] * num_col + mc + 1];
+          retvalp[r * num_col + mc + 2] +=
+            valp[c] * vvalp[idxp[c] * num_col + mc + 2];
+          retvalp[r * num_col + mc + 3] +=
+            valp[c] * vvalp[idxp[c] * num_col + mc + 3];
+          retvalp[r * num_col + mc + 4] +=
+            valp[c] * vvalp[idxp[c] * num_col + mc + 4];
+          retvalp[r * num_col + mc + 5] +=
+            valp[c] * vvalp[idxp[c] * num_col + mc + 5];
+          retvalp[r * num_col + mc + 6] +=
+            valp[c] * vvalp[idxp[c] * num_col + mc + 6];
+          retvalp[r * num_col + mc + 7] +=
+            valp[c] * vvalp[idxp[c] * num_col + mc + 7];
+        }
+      }
+      for(; mc + 3 < num_col; mc += 4) {
+        for(O c = offp[r]; c < offp[r+1]; c++) {
+          retvalp[r * num_col + mc] += 
+            valp[c] * vvalp[idxp[c] * num_col + mc];
+          retvalp[r * num_col + mc + 1] +=
+            valp[c] * vvalp[idxp[c] * num_col + mc + 1];
+          retvalp[r * num_col + mc + 2] +=
+            valp[c] * vvalp[idxp[c] * num_col + mc + 2];
+          retvalp[r * num_col + mc + 3] +=
+            valp[c] * vvalp[idxp[c] * num_col + mc + 3];
+        }
+      }
+      for(; mc < num_col; mc++) {
+        for(O c = offp[r]; c < offp[r+1]; c++) {
           retvalp[r * num_col + mc] +=
-            valp[c+i] * vvalp[idxp[c+i] * num_col + mc];
+            valp[c] * vvalp[idxp[c] * num_col + mc];
         }
       }
     }
-    for(size_t mc = 0; mc < num_col; mc++) {
-#pragma cdir on_adb(vvalp)
-      for(O i = 0; c + i < offp[r+1]; i++) {
-        retvalp[r * num_col + mc] +=
-          valp[c+i] * vvalp[idxp[c+i] * num_col + mc];
+    /*
+      for(size_t r = 0; r < mat.local_num_row; r++) {
+      O c = offp[r];
+      for(; c + CRS_VLEN < offp[r+1]; c += CRS_VLEN) {
+      for(size_t mc = 0; mc < num_col; mc++) {
+      #pragma cdir on_adb(vvalp)
+      for(O i = 0; i < CRS_VLEN; i++) {
+      retvalp[r * num_col + mc] +=
+      valp[c+i] * vvalp[idxp[c+i] * num_col + mc];
       }
-    }
-    c = offp[r+1];
+      }
+      }
+      for(size_t mc = 0; mc < num_col; mc++) {
+      #pragma cdir on_adb(vvalp)
+      for(O i = 0; c + i < offp[r+1]; i++) {
+      retvalp[r * num_col + mc] +=
+      valp[c+i] * vvalp[idxp[c+i] * num_col + mc];
+      }
+      }
+      c = offp[r+1];
+      }
+    */
+  } else {
+    crs_matrix_spmm_impl2(mat, retvalp, vvalp, num_col);
   }
-  */
-  return ret;
 }
 #else
 template <class T, class I, class O>
-rowmajor_matrix_local<T> operator*(const crs_matrix_local<T,I,O>& mat,
-                                   const rowmajor_matrix_local<T>& v) {
-  rowmajor_matrix_local<T> ret(mat.local_num_row, v.local_num_col);
-  T* retvalp = &ret.val[0];
-  const T* vvalp = &v.val[0];
+void crs_matrix_spmm_impl(const crs_matrix_local<T,I,O>& mat,
+                          T* retvalp, const T* vvalp, size_t num_col) {
   const T* valp = &mat.val[0];
   const I* idxp = &mat.idx[0];
   const O* offp = &mat.off[0];
-  size_t num_col = v.local_num_col;
   for(size_t r = 0; r < mat.local_num_row; r++) {
     for(O c = offp[r]; c < offp[r+1]; c++) {
       for(size_t mc = 0; mc < num_col; mc++) {
@@ -1543,6 +1581,16 @@ rowmajor_matrix_local<T> operator*(const crs_matrix_local<T,I,O>& mat,
   return ret;
 }
 #endif
+
+template <class T, class I, class O>
+rowmajor_matrix_local<T> operator*(const crs_matrix_local<T,I,O>& mat,
+                                   const rowmajor_matrix_local<T>& v) {
+  rowmajor_matrix_local<T> ret(mat.local_num_row, v.local_num_col);
+  T* retvalp = &ret.val[0];
+  const T* vvalp = &v.val[0];
+  crs_matrix_spmm_impl(mat, retvalp, vvalp, v.local_num_col);
+  return ret;
+}
 
 template <class T, class I, class O>
 std::vector<T> call_crs_mv(const crs_matrix_local<T,I,O>& mat,
