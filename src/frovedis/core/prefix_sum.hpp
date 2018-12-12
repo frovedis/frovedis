@@ -8,6 +8,7 @@
 
 namespace frovedis {
 
+#if defined(_SX) || defined(__ve__)
 template <class T>
 void prefix_sum(const T* valp, T* outp, size_t size) {
   if(size == 0) return;
@@ -59,6 +60,18 @@ void prefix_sum(const T* valp, T* outp, size_t size) {
   }
   return;
 }
+#else
+template <class T>
+void prefix_sum(const T* valp, T* outp, size_t size) {
+  T current_val = 0;
+  for(size_t j = 0; j < size; j++) {
+    auto loaded_v = valp[j];
+    auto next_val = loaded_v + current_val;
+    outp[j] = next_val;
+    current_val = next_val;
+  }
+}
+#endif
 
 template <class T>
 std::vector<T> prefix_sum(const std::vector<T>& val) {
