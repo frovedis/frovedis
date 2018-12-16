@@ -7,13 +7,56 @@
 #include "prefix_sum.hpp"
 
 #define RADIX_SORT_VLEN 256
+// if size is less than this, use insertion sort instead
+#define SWITCH_INSERTION_THR 512
 
 namespace frovedis {
+
+template <class K, class V>
+void insertion_sort(K* data, V* val, size_t size) {
+  int i, j;
+  for (i = 1; i < size; i++) {
+    auto tmp = data[i];
+    if (data[i - 1] > tmp) {
+      auto vtmp = val[i];
+      j = i;
+      do {
+        data[j] = data[j - 1];
+        val[j] = val[j - 1];
+        j--;
+      } while (j > 0 && data[j - 1] > tmp);
+      data[j] = tmp;
+      val[j] = vtmp;
+    }
+  }
+}
+
+template <class K, class V>
+void insertion_sort_desc(K* data, V* val, size_t size) {
+  int i, j;
+  for (i = 1; i < size; i++) {
+    auto tmp = data[i];
+    if (data[i - 1] < tmp) {
+      auto vtmp = val[i];
+      j = i;
+      do {
+        data[j] = data[j - 1];
+        val[j] = val[j - 1];
+        j--;
+      } while (j > 0 && data[j - 1] < tmp);
+      data[j] = tmp;
+      val[j] = vtmp;
+    }
+  }
+}
 
 // supported K is int type, and only 0 or positive data
 template <class K, class V>
 void radix_sort(K* key_array, V* val_array, size_t size) {
-  if(size < 2) return; // quick return;
+  if(size < SWITCH_INSERTION_THR) {
+    insertion_sort(key_array, val_array, size);
+    return;
+  }
   size_t key_size = sizeof(K);
   size_t bucket_ldim = RADIX_SORT_VLEN + 1;
   size_t num_bucket = 1 << 8; // 8bit == 256
@@ -131,7 +174,10 @@ void radix_sort(K* key_array, V* val_array, size_t size) {
 
 template <class K, class V>
 void radix_sort_desc(K* key_array, V* val_array, size_t size) {
-  if(size < 2) return; // quick return;
+  if(size < SWITCH_INSERTION_THR) {
+    insertion_sort_desc(key_array, val_array, size);
+    return;
+  }
   size_t key_size = sizeof(K);
   size_t bucket_ldim = RADIX_SORT_VLEN + 1;
   size_t num_bucket = 1 << 8; // 8bit == 256
