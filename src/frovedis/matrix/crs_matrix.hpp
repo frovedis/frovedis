@@ -1450,6 +1450,9 @@ void crs_matrix_spmm_impl2(const crs_matrix_local<T,I,O>& mat,
     for(size_t mc = 0; mc < rest; mc++) {
       retvalp[r * num_col + CRS_SPMM_VLEN * each + mc] += current_sum[mc];
     }
+    for(size_t i = 0; i < rest; i++) {
+      current_sum[i] = 0;
+    }
   }
 }
 
