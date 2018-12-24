@@ -265,19 +265,13 @@ dvector<T> operator*(jds_crs_hybrid<T,I,O>& mat, dvector<T>& dv) {
 #if MPI_VERSION >= 3
 
 template <class T, class I, class O>
-std::vector<T> call_jds_crs_mv_shared(const jds_crs_hybrid_local<T,I,O>& mat,
-                                      shared_vector_local<T>& sv) {
-  std::vector<T> ret(mat.local_num_row);
-  jds_crs_hybrid_spmv_impl(mat, ret.data(), sv.data());
-  return ret;
-}
-
-template <class T, class I, class O>
-dvector<T> operator*(jds_crs_hybrid<T,I,O>& mat, shared_vector<T>& sdv) {
-  if(mat.num_col != sdv.size)
-    throw std::runtime_error("operator*: size of dvector does not match");
-  return mat.data.map(call_jds_crs_mv_shared<T,I,O>, sdv.data).
-    template moveto_dvector<T>();
+void spmv(jds_crs_hybrid<T,I,O>& hyb, shared_vector<T>& input, ptr_t<T>& output) {
+  // omit zero clear because output is overwritten
+  hyb.data.mapv
+    (+[](jds_crs_hybrid_local<T,I,O>& jds, shared_vector_local<T>& input,
+         ptr_t_local<T>& ptr) {
+      jds_crs_hybrid_spmv_impl(jds, ptr.data(), input.data());
+    }, input.data, output.data);
 }
 
 #endif
