@@ -21,6 +21,7 @@
 #define CRS_SPMM_THR 32
 #define CRS_SPMM_VLEN 256
 #define SPARSE_VECTOR_VLEN 256
+#define TO_SKIP_REBALANCE 256
 
 namespace frovedis {
 
@@ -752,6 +753,7 @@ struct crs_matrix {
   crs_matrix<T,I,O> transpose();
   sparse_vector<T,I> get_row(size_t r);
   std::vector<size_t> get_local_num_rows();
+  crs_matrix<T,I,O>& align_as(const std::vector<size_t>& size);
   void clear();
   frovedis::node_local<crs_matrix_local<T,I,O>> data;
   size_t num_row;
@@ -1581,7 +1583,6 @@ void crs_matrix_spmm_impl(const crs_matrix_local<T,I,O>& mat,
       }
     }
   }
-  return ret;
 }
 #endif
 
@@ -1646,25 +1647,6 @@ dvector<T> operator*(crs_matrix<T,I,O>& mat, dvector<T>& dv) {
   return mat.data.map(call_crs_mv<T,I,O>, bdv).template moveto_dvector<T>();
 }
 
-#if MPI_VERSION >= 3
-
-template <class T, class I, class O>
-std::vector<T> call_crs_mv_shared(const crs_matrix_local<T,I,O>& mat,
-                                  shared_vector_local<T>& sv) {
-  std::vector<T> ret(mat.local_num_row);
-  crs_matrix_spmv_impl(mat, ret.data(), sv.data());
-  return ret;
-}
-
-template <class T, class I, class O>
-dvector<T> operator*(crs_matrix<T,I,O>& mat, shared_vector<T>& sdv) {
-  if(mat.num_col != sdv.size)
-    throw std::runtime_error("operator*: size of dvector does not match");
-  return mat.data.map(call_crs_mv_shared<T,I,O>, sdv.data).template moveto_dvector<T>();
-}
-
-#endif
-
 template <class T>
 template <class I, class O>
 crs_matrix_local<T,I,O> rowmajor_matrix_local<T>::to_crs() {
@@ -1707,5 +1689,257 @@ crs_matrix<T,I,O> rowmajor_matrix<T>::to_crs() {
   return ret;
 }
 
+template <class T, class I, class O>
+crs_matrix<T,I,O>&
+crs_matrix<T,I,O>::align_as(const std::vector<size_t>& sizes) {
+  auto off_tmp = make_node_local_allocate<std::vector<O>>();
+  data.mapv(+[](crs_matrix_local<T,I,O>& m, std::vector<O>& o) {
+      o.resize(m.off.size() - 1);
+      auto op = o.data();
+      auto offp = m.off.data();
+      for(size_t i = 0; i < m.off.size()-1; i++) {
+        op[i] = offp[i+1] - offp[i];
+      }
+    }, off_tmp);
+  auto off_tmp2 = off_tmp.template moveto_dvector<O>().align_as(sizes).
+    moveto_node_local();
+  data.mapv(+[](crs_matrix_local<T,I,O>& m, std::vector<O>& o) {
+      m.off.resize(o.size() + 1);
+      auto op = o.data();
+      auto offp = m.off.data();
+      offp[0] = 0;
+      prefix_sum(op, offp+1, o.size());
+    }, off_tmp2);
+  auto val_sizes = data.map(+[](crs_matrix_local<T,I,O>& m) {
+      return static_cast<size_t>(m.off[m.off.size() - 1]);}).gather();
+  auto val_tmp = make_node_local_allocate<std::vector<T>>();
+  data.mapv(+[](crs_matrix_local<T,I,O>& m, std::vector<T>& v) 
+            {m.val.swap(v);}, val_tmp);
+  auto val_tmp2 = val_tmp.template moveto_dvector<T>().align_as(val_sizes).
+    moveto_node_local();
+  data.mapv(+[](crs_matrix_local<T,I,O>& m, std::vector<T>& v)
+            {m.val.swap(v);}, val_tmp2);
+
+  auto idx_tmp = make_node_local_allocate<std::vector<I>>();
+  data.mapv(+[](crs_matrix_local<T,I,O>& m, std::vector<I>& i) 
+            {m.idx.swap(i);}, idx_tmp);
+  auto idx_tmp2 = idx_tmp.template moveto_dvector<I>().align_as(val_sizes).
+    moveto_node_local();
+  data.mapv(+[](crs_matrix_local<T,I,O>& m, std::vector<I>& i)
+            {m.idx.swap(i);}, idx_tmp2);
+
+  data.mapv(+[](crs_matrix_local<T,I,O>& m)
+            {m.local_num_row = m.off.size() - 1;});
+  return *this;
+}
+
+#if MPI_VERSION >= 3
+
+template <class T, class I, class O>
+shared_vector<T> make_shared_vector_as_spmv_output(crs_matrix<T,I,O>& crs) {
+  auto sizes = crs.data.map(+[](crs_matrix_local<T,I,O>& m) {
+      // type of size_t depends on architecture, so cast to long long
+      long long size = static_cast<long long>(m.local_num_row);
+      long long total_in_shm = 0;
+      MPI_Allreduce(&size, &total_in_shm, 1, MPI_LONG_LONG, MPI_SUM,
+                    frovedis_shm_comm);
+      return static_cast<size_t>(total_in_shm);
+    });
+  return make_shared_vector<T>(sizes);
+}
+
+template <class T, class I, class O>
+shared_vector<T> make_shared_vector_as_spmm_output(crs_matrix<T,I,O>& crs,
+                                                   size_t rm_num_col) {
+  auto bc_rm_num_col = broadcast(rm_num_col);
+  auto sizes = crs.data.map
+    (+[](crs_matrix_local<T,I,O>& m, size_t rm_num_col) {
+      long long size = static_cast<long long>(m.local_num_row);
+      long long total_in_shm = 0;
+      MPI_Allreduce(&size, &total_in_shm, 1, MPI_LONG_LONG, MPI_SUM,
+                    frovedis_shm_comm);
+      return static_cast<size_t>(total_in_shm * rm_num_col);
+    }, bc_rm_num_col);
+  return make_shared_vector<T>(sizes);
+}
+
+/*
+  Assign working area in the shared vector
+  Please make sure that the shared vector is not destructed
+  while using ptr_t!
+ */
+template <class T, class I, class O>
+ptr_t<T> assign_working_area_for_spmv(shared_vector<T>& sv,
+                                      crs_matrix<T,I,O>& crs) {
+  ptr_t<T> ret;
+  ret.data = crs.data.map
+    (+[](crs_matrix_local<T,I,O>& m, shared_vector_local<T>& s) {
+      long long size = static_cast<long long>(m.local_num_row);
+      std::vector<long long> sizes(frovedis_shm_comm_size);
+      MPI_Allgather(&size, 1, MPI_LONG_LONG, sizes.data(), 1, MPI_LONG_LONG,
+                    frovedis_shm_comm);
+      long long my_offset = 0;
+      for(size_t i = 0; i < frovedis_shm_self_rank; i++) my_offset += sizes[i];
+      ptr_t_local<T> local_ret;
+      local_ret.intptr = reinterpret_cast<intptr_t>(s.data() + my_offset);
+      local_ret.size = size;
+      return local_ret;
+    }, sv.data);
+  return ret;
+}
+
+template <class T, class I, class O>
+ptr_t<T> assign_working_area_for_spmm(shared_vector<T>& sv,
+                                      crs_matrix<T,I,O>& crs,
+                                      size_t rm_num_col) {
+  ptr_t<T> ret;
+  auto bc_rm_num_col = broadcast(rm_num_col);
+  ret.data = crs.data.map
+    (+[](crs_matrix_local<T,I,O>& m, shared_vector_local<T>& s, size_t rc) {
+      long long size = static_cast<long long>(m.local_num_row);
+      std::vector<long long> sizes(frovedis_shm_comm_size);
+      MPI_Allgather(&size, 1, MPI_LONG_LONG, sizes.data(), 1, MPI_LONG_LONG,
+                    frovedis_shm_comm);
+      long long my_offset = 0;
+      for(size_t i = 0; i < frovedis_shm_self_rank; i++) my_offset += sizes[i];
+      ptr_t_local<T> local_ret;
+      // cast to long long is needed to make VE compiler happy
+      local_ret.intptr = reinterpret_cast<intptr_t>
+      (s.data() + my_offset * static_cast<long long>(rc));
+      local_ret.size = size * rc;
+      return local_ret;
+    }, sv.data, bc_rm_num_col);
+  return ret;
+}
+
+template <class T, class I, class O>
+void spmv(crs_matrix<T,I,O>& crs, shared_vector<T>& input, ptr_t<T>& output) {
+  output.data.mapv(+[](ptr_t_local<T>& ptr) {
+      T* p = ptr.data();
+      for(size_t i = 0; i < ptr.size; i++) p[i] = 0;
+    });
+  crs.data.mapv
+    (+[](crs_matrix_local<T,I,O>& crs, shared_vector_local<T>& input,
+         ptr_t_local<T>& ptr) {
+      crs_matrix_spmv_impl(crs, ptr.data(), input.data());
+    }, input.data, output.data);
+}
+
+template <class T, class I, class O>
+void spmm(crs_matrix<T,I,O>& crs, shared_vector<T>& input, size_t num_col,
+          ptr_t<T>& output) {
+  // zero clear output
+  output.data.mapv(+[](ptr_t_local<T>& ptr) {
+      T* p = ptr.data();
+      for(size_t i = 0; i < ptr.size; i++) p[i] = 0;
+    });
+  auto bcast_num_col = broadcast(num_col);
+  crs.data.mapv
+    (+[](crs_matrix_local<T,I,O>& crs, shared_vector_local<T>& input,
+         size_t num_col, ptr_t_local<T>& ptr) {
+      crs_matrix_spmm_impl(crs, ptr.data(), input.data(), num_col);
+    }, input.data, bcast_num_col, output.data);
+}
+
+/*
+  Just for measuring; use same routine for both x86 and VE
+ */
+template <class T, class I, class O>
+std::vector<double>
+crs_matrix_spmm_measure(const crs_matrix_local<T,I,O>& mat,
+                        T* retvalp, const T* vvalp, size_t num_col) {
+  std::vector<double> measure(mat.local_num_row);
+  if(mat.local_num_row == 0) return measure;
+  double* measurep = measure.data();
+  const T* valp = &mat.val[0];
+  const I* idxp = &mat.idx[0];
+  const O* offp = &mat.off[0];
+  T current_sum[CRS_SPMM_VLEN];
+#pragma _NEC vreg(current_sum)
+  for(size_t i = 0; i < CRS_SPMM_VLEN; i++) {
+    current_sum[i] = 0;
+  }
+  size_t each = num_col / CRS_SPMM_VLEN;
+  size_t rest = num_col % CRS_SPMM_VLEN;
+  double end = get_dtime();
+  for(size_t r = 0; r < mat.local_num_row; r++) {
+    double start = end;
+    for(size_t e = 0; e < each; e++) {
+      for(O c = offp[r]; c < offp[r+1]; c++) {
+        for(size_t mc = 0; mc < CRS_SPMM_VLEN; mc++) {
+          current_sum[mc] +=
+            valp[c] * vvalp[idxp[c] * num_col + CRS_SPMM_VLEN * e + mc];
+        }
+      }
+      for(size_t mc = 0; mc < CRS_SPMM_VLEN; mc++) {
+        retvalp[r * num_col + CRS_SPMM_VLEN * e + mc] += current_sum[mc];
+      }
+      for(size_t i = 0; i < CRS_SPMM_VLEN; i++) {
+        current_sum[i] = 0;
+      }
+    }
+    for(O c = offp[r]; c < offp[r+1]; c++) {
+      for(size_t mc = 0; mc < rest; mc++) {
+        current_sum[mc] +=
+          valp[c] * vvalp[idxp[c] * num_col + CRS_SPMM_VLEN * each + mc];
+      }
+    }
+    for(size_t mc = 0; mc < rest; mc++) {
+      retvalp[r * num_col + CRS_SPMM_VLEN * each + mc] += current_sum[mc];
+    }
+    for(size_t i = 0; i < rest; i++) {
+      current_sum[i] = 0;
+    }
+    if(r % TO_SKIP_REBALANCE == 0) end = get_dtime();
+    measurep[r] = end - start;
+  }
+  return measure;
+}
+
+template <class T, class I, class O>
+void rebalance_for_spmm(crs_matrix<T,I,O>& crs, shared_vector<T>& input,
+                        size_t rm_num_col, ptr_t<T>& output) {
+  // zero clear input/output
+  input.data.mapv(+[](shared_vector_local<T>& in) {
+      T* p = in.data();
+      for(size_t i = 0; i < in.size; i++) p[i] = 0;
+    });
+  output.data.mapv(+[](ptr_t_local<T>& ptr) {
+      T* p = ptr.data();
+      for(size_t i = 0; i < ptr.size; i++) p[i] = 0;
+    });
+  auto bcast_rm_num_col = broadcast(rm_num_col);
+  auto measure = crs.data.map
+    (+[](crs_matrix_local<T,I,O>& crs, shared_vector_local<T>& input,
+         size_t rm_num_col, ptr_t_local<T>& ptr) {
+      return crs_matrix_spmm_measure(crs, ptr.data(), input.data(), rm_num_col);
+    }, input.data, bcast_rm_num_col, output.data)
+    .template moveto_dvector<double>().gather();
+  auto pxmeasure = prefix_sum(measure);
+  size_t nodesize = get_nodesize();
+  auto each  = pxmeasure[pxmeasure.size() - 1] / static_cast<double>(nodesize);
+  std::vector<size_t> sizes(nodesize);
+  auto start = pxmeasure.begin();
+  std::vector<double>::iterator end;
+  for(size_t i = 0; i < nodesize; i++) {
+    if(i == nodesize - 1)
+      end = pxmeasure.end();
+    else
+      end = std::lower_bound(start, pxmeasure.end(), each * (i+1));
+    sizes[i] = end - start;
+    if(end == pxmeasure.end()) {
+      for(size_t j = i+1; j < nodesize; j++) sizes[j] = 0;
+      break;
+    } else
+      start = end;
+  }
+  output.data.mapv(+[](ptr_t_local<T>& ptr) {
+      T* p = ptr.data();
+      for(size_t i = 0; i < ptr.size; i++) p[i] = 0;
+    });
+  crs.align_as(sizes);
+}
+
+#endif
 }
 #endif
