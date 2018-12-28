@@ -1,0 +1,11 @@
+#if defined(__ve__)
+
+#define W2V_USE_MPI
+#define W2V_USE_BUNCH_ITER
+#define W2V_USE_INTRINSIC 
+#define USE_COMBINED_GEMM_ALL
+//#define W2V_TIMER
+//#define W2V_TIMER_DETAIL
+//#define W2V_USE_FTRACE
+
+#endif

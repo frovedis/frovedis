@@ -1,8 +1,13 @@
 include ../../../Makefile.in.ve
 include Makefile.common
 
-word2vec.o: word2vec.cc
+w2v_core.o: w2v_core.cc
 	${MPICXX} -c ${CXXFLAGS} -fopenmp $< -o $@
+w2vgemm_kernel_N6_HU512_2X_WX.o: w2vgemm_kernel_N6_HU512_2X_WX.s 
+	${AS} -o $@ $<
+OBJS += w2vgemm_kernel_N6_HU512_2X_WX.o
+CC := ncc
+AS := nas
 
 libfrovedis_ml.a: ${OBJS}
 	${AR} r libfrovedis_ml.a ${OBJS}

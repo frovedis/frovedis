@@ -1,6 +1,6 @@
 RECM_OBJS := optimizer.o
 TREE_OBJS := tree_config.o tree_impurity.o tree_utility.o
-W2V_OBJS := word2vec.o
+W2V_OBJS := w2v_core.o w2v_corpus.o w2vgemm0.o w2vgemm0_associated.o w2vgemm1.o w2vgemm2.o
 FM_OBJS := main.o
 UTIL_OBJS := batch_chain_communicator.o
 GRAPH_OBJS := graph.o
@@ -46,7 +46,14 @@ tree_config.o: tree_config.cc tree_config.hpp
 tree_impurity.o: tree_impurity.cc tree_impurity.hpp
 tree_utility.o: tree_utility.cc tree_utility.hpp
 
-word2vec.o: word2vec.cc word2vec.hpp
+w2vgemm0.o: w2vgemm0.c
+	${CC} -std=gnu11 -c $< -o $@
+w2vgemm0_associated.o: w2vgemm0_associated.c
+	${CC} -std=gnu11 -c $< -o $@
+w2vgemm1.o: w2vgemm1.c
+	${CC} -std=gnu11 -c $< -o $@
+w2vgemm2.o: w2vgemm2.c
+	${CC} -std=gnu11 -c $< -o $@
 
 main.o: main.cc main.hpp
 

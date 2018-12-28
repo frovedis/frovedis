@@ -1,8 +1,10 @@
 include ../../../Makefile.in.x86
 include Makefile.common
 
-word2vec.o: word2vec.cc
+w2v_core.o: w2v_core.cc 
 	${MPICXX} -c ${CXXFLAGS} -fopenmp $< -o $@	
+CC := gcc
+
 
 libfrovedis_ml.a: ${OBJS}
 	${AR} r libfrovedis_ml.a ${OBJS}
