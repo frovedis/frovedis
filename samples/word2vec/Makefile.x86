@@ -1,0 +1,14 @@
+TARGETS := build_vocab make_word_vector
+include ../Makefile.in.x86
+include ../Makefile.common
+
+TO_INSTALL := build_vocab.cc make_word_vector.cc
+DIR := word2vec
+ARCH := x86
+
+build_vocab: build_vocab.o 
+	${MPICXX} ${CXXFLAGS} -o build_vocab build_vocab.o ${LIBS}
+
+make_word_vector: make_word_vector.o
+	${MPICXX} ${CXXFLAGS} -o make_word_vector make_word_vector.o ${LIBS}
+

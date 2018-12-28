@@ -1,0 +1,11 @@
+TARGETS := ve_train_word
+include ../Makefile.in.ve
+include ../Makefile.common
+
+TO_INSTALL := ve_train_word.cc
+DIR := word2vec
+ARCH := ve
+
+ve_train_word: ve_train_word.o
+	${LINK} ${CXXFLAGS} -fopenmp -o ve_train_word ve_train_word.o ${LIBS}
+

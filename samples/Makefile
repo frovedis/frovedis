@@ -15,6 +15,7 @@ ifeq (${TARGET},x86)
 	cd matrix_tools; make -f Makefile.${TARGET}
 	cd wikipedia2matrix; make -f Makefile.${TARGET}
 	cd dataframe_tools; make -f Makefile.${TARGET}
+	cd word2vec; make -f Makefile.${TARGET}
 endif
 
 install:
@@ -34,6 +35,7 @@ ifeq (${TARGET},x86)
 	cd matrix_tools; make -f Makefile.${TARGET} install
 	cd wikipedia2matrix; make -f Makefile.${TARGET} install
 	cd dataframe_tools; make -f Makefile.${TARGET} install
+	cd word2vec; make -f Makefile.${TARGET} install
 endif
 
 clean:
@@ -50,5 +52,6 @@ ifeq (${TARGET},x86)
 	cd matrix_tools; make -f Makefile.${TARGET} clean
 	cd wikipedia2matrix; make -f Makefile.${TARGET} clean
 	cd dataframe_tools; make -f Makefile.${TARGET} clean
+	cd word2vec; make -f Makefile.${TARGET} clean
 endif
 	${RM} *~
