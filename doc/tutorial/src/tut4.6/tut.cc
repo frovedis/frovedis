@@ -26,11 +26,11 @@ int main(int argc, char* argv[]){
   int message_size = 1024;
   int num_threads = 2;  // Carefully choose this
   
-  auto weight = w2v_train(
+  auto weight = frovedis::w2v_train(
     nl_train_data, vocab_count, hidden_size, window, sample, negative, iter,
     alpha, model_sync_period, min_sync_words, full_sync_times, message_size, num_threads);
 
-  w2v_save_model(weight, "./vocab.bin", "./vectors.bin");
+  frovedis::w2v_save_model(weight, "./vocab.bin", "./vectors.bin", false);
   if (frovedis::get_selfid() == 0) {
     std::cout << "weight is saved to 'vectors.bin'." << std::endl;
   }
