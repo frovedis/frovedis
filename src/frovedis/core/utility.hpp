@@ -23,7 +23,9 @@ public:
   void show(const std::string& mes) {
     t1 = get_dtime();
     RLOG(loglevel) << mes << t1 - t0 << " sec" << std::endl;
-    t0 = t1;
+    /* Since printing itself takes some time on VE, changed to exclude it. */
+    // t0 = t1; 
+    t0 = get_dtime();
   }
   void reset(){t0 = get_dtime(); lap_sum = 0;}
   void lap_start(){t0 = get_dtime();}
