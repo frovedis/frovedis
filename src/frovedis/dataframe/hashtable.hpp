@@ -7,10 +7,14 @@
 #include "set_operations.hpp"
 #include "../core/radix_sort.hpp"
 
+#if defined(_SX) || defined(__ve__) // might be used in x86
 #define UNIQUE_HASH_VLEN 256
-#define HASH_TABLE_SIZE_MULT 3
-
 #define VECTOR_BINARY_SEARCH_VLEN 256
+#else
+#define UNIQUE_HASH_VLEN 1
+#define VECTOR_BINARY_SEARCH_VLEN 1
+#endif
+#define HASH_TABLE_SIZE_MULT 3
 
 namespace frovedis {
 
@@ -230,53 +234,57 @@ unique_hashtable<K,V>::unique_hashtable(const std::vector<K>& k,
   size_t missed_idx = 0;
   for(size_t i = 0; i < table_size; i++) is_filled[i] = false;
   int* is_filledp = &is_filled[0];
+  size_t hash[UNIQUE_HASH_VLEN];
+#pragma _NEC vreg(hash)
 
   size_t block_size = size / UNIQUE_HASH_VLEN;
   size_t remain_size = size % UNIQUE_HASH_VLEN;
   for(size_t b = 0; b < block_size; b++) {
     size_t offset = b * UNIQUE_HASH_VLEN;
+    auto keyoff = keyp + offset;
+    auto valoff = valp + offset;
+    for(size_t i = 0; i < UNIQUE_HASH_VLEN; i++) {
+      hash[i] = myhash(keyoff[i], table_size);
+    }    
 #pragma cdir nodep
 #pragma _NEC ivdep
-    for(size_t ii = 0; ii < UNIQUE_HASH_VLEN; ii++) {
-      size_t i = offset + ii;
-      size_t hash = myhash(keyp[i], table_size);
-      if(is_filledp[hash] == false) {
-        table_keyp[hash] = keyp[i];
-        is_filledp[hash] = true;
+    for(size_t i = 0; i < UNIQUE_HASH_VLEN; i++) {
+      if(is_filledp[hash[i]] == false) {
+        table_keyp[hash[i]] = keyoff[i];
+        is_filledp[hash[i]] = true;
       }
     }
 #pragma cdir nodep
 #pragma _NEC ivdep
-    for(size_t ii = 0; ii < UNIQUE_HASH_VLEN; ii++) {
-      size_t i = offset + ii;
-      size_t hash = myhash(keyp[i], table_size);
-      if(table_keyp[hash] == keyp[i]) {
-        table_valp[hash] = valp[i];
+    for(size_t i = 0; i < UNIQUE_HASH_VLEN; i++) {
+      if(table_keyp[hash[i]] == keyoff[i]) {
+        table_valp[hash[i]] = valoff[i];
       } else {
-        missedp[missed_idx++] = i;      
+        missedp[missed_idx++] = i + offset;
       }
     }
   }
   size_t offset = block_size * UNIQUE_HASH_VLEN;
+  auto keyoff = keyp + offset;
+  auto valoff = valp + offset;
 #pragma cdir nodep
 #pragma _NEC ivdep
-  for(size_t ii = 0; ii < remain_size; ii++) {
-    size_t i =  offset + ii;
-    size_t hash = myhash(keyp[i], table_size);
-    if(is_filledp[hash] == false) {
-      table_keyp[hash] = keyp[i];
-      is_filledp[hash] = true;
+  for(size_t i = 0; i < remain_size; i++) {
+    hash[i] = myhash(keyoff[i], table_size);
+  }    
+  for(size_t i = 0; i < remain_size; i++) {
+    if(is_filledp[hash[i]] == false) {
+      table_keyp[hash[i]] = keyoff[i];
+      is_filledp[hash[i]] = true;
     }
   }
 #pragma cdir nodep
 #pragma _NEC ivdep
-  for(size_t ii = 0; ii < remain_size; ii++) {
-    size_t i = offset + ii;
-    size_t hash = myhash(keyp[i], table_size);
-    if(table_keyp[hash] == keyp[i]) {
-      table_valp[hash] = valp[i];
+  for(size_t i = 0; i < remain_size; i++) {
+    if(table_keyp[hash[i]] == keyoff[i]) {
+      table_valp[hash[i]] = valoff[i];
     } else {
-      missedp[missed_idx++] = i;      
+      missedp[missed_idx++] = i + offset;      
     }
   }
   if(missed_idx > 0) {
@@ -358,6 +366,8 @@ unique_hashtable<K,V>::unique_hashtable(const std::vector<K>& k,
   size_t missed_idx = 0;
   for(size_t i = 0; i < table_size; i++) is_filled[i] = false;
   int* is_filledp = &is_filled[0];
+  size_t hash[UNIQUE_HASH_VLEN];
+#pragma _NEC vreg(hash)
   is_unique_ok = true;
   std::vector<size_t> unique_checker(table_size,
                                      std::numeric_limits<size_t>::max());
@@ -367,27 +377,28 @@ unique_hashtable<K,V>::unique_hashtable(const std::vector<K>& k,
   size_t remain_size = size % UNIQUE_HASH_VLEN;
   for(size_t b = 0; b < block_size; b++) {
     size_t offset = b * UNIQUE_HASH_VLEN;
+    auto keyoff = keyp + offset;
+    auto valoff = valp + offset;
+    for(size_t i = 0; i < UNIQUE_HASH_VLEN; i++) {
+      hash[i] = myhash(keyoff[i], table_size);
+    }    
 #pragma cdir nodep
 #pragma _NEC ivdep
-    for(size_t ii = 0; ii < UNIQUE_HASH_VLEN; ii++) {
-      size_t i = offset + ii;
-      size_t hash = myhash(keyp[i], table_size);
-      if(is_filledp[hash] == false) {
-        table_keyp[hash] = keyp[i];
-        is_filledp[hash] = true;
-        unique_checkerp[hash] = ii;
-      } else if(table_keyp[hash] == keyp[i]) {
+    for(size_t i = 0; i < UNIQUE_HASH_VLEN; i++) {
+      if(is_filledp[hash[i]] == false) {
+        table_keyp[hash[i]] = keyoff[i];
+        is_filledp[hash[i]] = true;
+        unique_checkerp[hash[i]] = i;
+      } else if(table_keyp[hash[i]] == keyoff[i]) {
         is_unique_ok = false;
       }
     }
 #pragma cdir nodep
 #pragma _NEC ivdep
-    for(size_t ii = 0; ii < UNIQUE_HASH_VLEN; ii++) {
-      size_t i = offset + ii;
-      size_t hash = myhash(keyp[i], table_size);
-      if(unique_checkerp[hash] == ii) {
-        table_valp[hash] = valp[i];
-      } else if(table_keyp[hash] != keyp[i]) {
+    for(size_t i = 0; i < UNIQUE_HASH_VLEN; i++) {
+      if(unique_checkerp[hash[i]] == i) {
+        table_valp[hash[i]] = valoff[i];
+      } else if(table_keyp[hash[i]] != keyoff[i]) {
         missedp[missed_idx++] = i;      
       } else {
         is_unique_ok = false;
@@ -396,27 +407,28 @@ unique_hashtable<K,V>::unique_hashtable(const std::vector<K>& k,
     if(is_unique_ok == false) return;
   }
   size_t offset = block_size * UNIQUE_HASH_VLEN;
+  auto keyoff = keyp + offset;
+  auto valoff = valp + offset;
+  for(size_t i = 0; i < remain_size; i++) {
+    hash[i] = myhash(keyoff[i], table_size);
+  }    
 #pragma cdir nodep
 #pragma _NEC ivdep
-  for(size_t ii = 0; ii < remain_size; ii++) {
-    size_t i =  offset + ii;
-    size_t hash = myhash(keyp[i], table_size);
-    if(is_filledp[hash] == false) {
-      table_keyp[hash] = keyp[i];
-      is_filledp[hash] = true;
-      unique_checkerp[hash] = ii;
-    } else if(table_keyp[hash] == keyp[i]) {
+  for(size_t i = 0; i < remain_size; i++) {
+    if(is_filledp[hash[i]] == false) {
+      table_keyp[hash[i]] = keyoff[i];
+      is_filledp[hash[i]] = true;
+      unique_checkerp[hash[i]] = i;
+    } else if(table_keyp[hash[i]] == keyoff[i]) {
       is_unique_ok = false;
     }
   }
 #pragma cdir nodep
 #pragma _NEC ivdep
-  for(size_t ii = 0; ii < remain_size; ii++) {
-    size_t i = offset + ii;
-    size_t hash = myhash(keyp[i], table_size);
-    if(unique_checkerp[hash] == ii) {
-      table_valp[hash] = valp[i];
-    } else if(table_keyp[hash] != keyp[i]) {
+  for(size_t i = 0; i < remain_size; i++) {
+    if(unique_checkerp[hash[i]] == i) {
+      table_valp[hash[i]] = valoff[i];
+    } else if(table_keyp[hash[i]] != keyoff[i]) {
       missedp[missed_idx++] = i;      
     } else {
       is_unique_ok = false;
@@ -492,51 +504,53 @@ unique_hashtable<K,V>::unique_hashtable(const std::vector<K>& k) {
   size_t missed_idx = 0;
   for(size_t i = 0; i < table_size; i++) is_filled[i] = false;
   int* is_filledp = &is_filled[0];
+  size_t hash[UNIQUE_HASH_VLEN];
+#pragma _NEC vreg(hash)
 
   size_t block_size = size / UNIQUE_HASH_VLEN;
   size_t remain_size = size % UNIQUE_HASH_VLEN;
   for(size_t b = 0; b < block_size; b++) {
     size_t offset = b * UNIQUE_HASH_VLEN;
+    auto keyoff = keyp + offset;
+    for(size_t i = 0; i < UNIQUE_HASH_VLEN; i++) {
+      hash[i] = myhash(keyoff[i], table_size);
+    }    
 #pragma cdir nodep
 #pragma _NEC ivdep
-    for(size_t ii = 0; ii < UNIQUE_HASH_VLEN; ii++) {
-      size_t i = offset + ii;
-      size_t hash = myhash(keyp[i], table_size);
-      if(is_filledp[hash] == false) {
-        table_keyp[hash] = keyp[i];
-        is_filledp[hash] = true;
+    for(size_t i = 0; i < UNIQUE_HASH_VLEN; i++) {
+      if(is_filledp[hash[i]] == false) {
+        table_keyp[hash[i]] = keyoff[i];
+        is_filledp[hash[i]] = true;
       }
     }
 #pragma cdir nodep
 #pragma _NEC ivdep
-    for(size_t ii = 0; ii < UNIQUE_HASH_VLEN; ii++) {
-      size_t i = offset + ii;
-      size_t hash = myhash(keyp[i], table_size);
-      if(table_keyp[hash] == keyp[i]) {
+    for(size_t i = 0; i < UNIQUE_HASH_VLEN; i++) {
+      if(table_keyp[hash[i]] == keyoff[i]) {
         ;
       } else {
-        missedp[missed_idx++] = i;      
+        missedp[missed_idx++] = i + offset;
       }
     }
   }
   size_t offset = block_size * UNIQUE_HASH_VLEN;
+  auto keyoff = keyp + offset;
 #pragma cdir nodep
 #pragma _NEC ivdep
-  for(size_t ii = 0; ii < remain_size; ii++) {
-    size_t i =  offset + ii;
-    size_t hash = myhash(keyp[i], table_size);
-    if(is_filledp[hash] == false) {
-      table_keyp[hash] = keyp[i];
-      is_filledp[hash] = true;
+  for(size_t i = 0; i < remain_size; i++) {
+    hash[i] = myhash(keyoff[i], table_size);
+  }    
+  for(size_t i = 0; i < remain_size; i++) {
+    if(is_filledp[hash[i]] == false) {
+      table_keyp[hash[i]] = keyoff[i];
+      is_filledp[hash[i]] = true;
     }
   }
 #pragma cdir nodep
 #pragma _NEC ivdep
-  for(size_t ii = 0; ii < remain_size; ii++) {
-    size_t i = offset + ii;
-    size_t hash = myhash(keyp[i], table_size);
-    if(table_keyp[hash] != keyp[i]) {
-      missedp[missed_idx++] = i;      
+  for(size_t i = 0; i < remain_size; i++) {
+    if(table_keyp[hash[i]] != keyoff[i]) {
+      missedp[missed_idx++] = i + offset;      
     }
   }
   if(missed_idx > 0) {
@@ -717,22 +731,97 @@ unique_hashtable<K,V>::check_existence(const std::vector<K>& k) {
 template <class K, class V> 
 std::vector<K>
 unique_hashtable<K,V>::all_keys() {
-  int* is_filledp = &is_filled[0];
-  size_t total = 0;
+  int* is_filledp = is_filled.data();
   size_t size = key.size();
-  for(size_t i = 0; i < size; i++) if(is_filledp[i]) total++;
-  size_t conflict_key_size = conflict_key.size();
-  total += conflict_key_size;
-  std::vector<K> ret(total);
-  K* retp = &ret[0];
-  size_t current = 0;
-  K* keyp = &key[0];
-  for(size_t i = 0; i < size; i++) if(is_filledp[i]) retp[current++] = keyp[i];
-  K* conflict_keyp = &conflict_key[0];
-  for(size_t i = 0; i < conflict_key_size; i++) {
-    retp[current + i] = conflict_keyp[i];
+  if(size == 0) {
+    return std::vector<K>();
   }
-  return ret;
+  std::vector<K> keytmp(size);
+  K* keytmpp = keytmp.data();
+  K* keyp = key.data();
+  
+  size_t each = size / UNIQUE_HASH_VLEN; // maybe 0
+  if(each % 2 == 0 && each > 1) each--;
+  size_t rest = size - each * UNIQUE_HASH_VLEN;
+  size_t out_ridx[UNIQUE_HASH_VLEN];
+// never remove this vreg! this is needed folowing vovertake
+// though this prevents ftrace...
+#pragma _NEC vreg(out_ridx)
+  for(size_t i = 0; i < UNIQUE_HASH_VLEN; i++) {
+    out_ridx[i] = each * i;
+  }
+  if(each == 0) {
+    size_t current = 0;
+    for(size_t i = 0; i < size; i++) {
+      if(is_filledp[i]) {
+        keytmpp[current] = keyp[i];
+        current++;
+      }
+    }
+    std::vector<K> ret(current);
+    K* retp = ret.data();
+    for(size_t i = 0; i < current; i++) {
+      retp[i] = keytmpp[i];
+    }
+    return ret;
+  } else {
+#pragma _NEC vob
+    for(size_t j = 0; j < each; j++) {
+#pragma cdir nodep
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+      for(size_t i = 0; i < UNIQUE_HASH_VLEN; i++) {
+        auto loaded_is_filled = is_filledp[j + each * i];
+        if(loaded_is_filled) {
+          keytmpp[out_ridx[i]] = keyp[j + each * i];
+          out_ridx[i]++;
+        }
+      }
+    }
+    size_t rest_idx_start = each * UNIQUE_HASH_VLEN;
+    size_t rest_idx = rest_idx_start;
+    if(rest != 0) {
+      for(size_t j = 0; j < rest; j++) {
+        auto loaded_is_filled = is_filledp[j + rest_idx_start]; 
+        if(loaded_is_filled != 0) {
+          keytmpp[rest_idx] = keyp[j + rest_idx_start];
+          rest_idx++;
+        }
+      }
+    }
+    size_t sizes[UNIQUE_HASH_VLEN];
+    for(size_t i = 0; i < UNIQUE_HASH_VLEN; i++) {
+      sizes[i] = out_ridx[i] - each * i;
+    }
+    size_t total = 0;
+    for(size_t i = 0; i < UNIQUE_HASH_VLEN; i++) {
+      total += sizes[i];
+    }
+    size_t rest_size = rest_idx - each * UNIQUE_HASH_VLEN;
+    total += rest_size;
+    size_t conflict_key_size = conflict_key.size();
+    total += conflict_key_size;
+
+    std::vector<K> ret(total);
+    K* retp = ret.data();
+    size_t current = 0;
+    for(size_t i = 0; i < UNIQUE_HASH_VLEN; i++) {
+      for(size_t j = 0; j < sizes[i]; j++) {
+        retp[current + j] = keytmpp[each * i + j];
+      }
+      current += sizes[i];
+    }
+    for(size_t j = 0; j < rest_size; j++) {
+      retp[current + j] = keytmpp[rest_idx_start + j];
+    }
+    K* conflict_keyp = &conflict_key[0];
+    for(size_t i = 0; i < conflict_key_size; i++) {
+      retp[current + i] = conflict_keyp[i];
+    }
+
+    return ret;
+  }
 }
+
 }
 #endif
