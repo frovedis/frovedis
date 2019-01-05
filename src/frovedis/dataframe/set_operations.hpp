@@ -1757,8 +1757,13 @@ std::vector<size_t> set_separate(const std::vector<T>& key) {
   }
   key_idx_stop[SET_VLEN-1] = size;
   // idx 0 is manually advanced; need to be checked
-  if(key_idx[0] == key_idx_stop[0]) valid[0] = false; 
-  while(1) {
+  if(key_idx[0] == key_idx_stop[0]) valid[0] = false;
+  size_t max_size = 0;
+  for(int i = 0; i < SET_VLEN; i++) {
+    auto current = key_idx_stop[i] - key_idx[i];
+    if(max_size < current) max_size = current;
+  }
+  for(size_t j = 0; j < max_size; j++) {
 #pragma cdir nodep
 #pragma _NEC ivdep
     for(int i = 0; i < SET_VLEN; i++) {
@@ -1772,9 +1777,6 @@ std::vector<size_t> set_separate(const std::vector<T>& key) {
         if(key_idx[i] == key_idx_stop[i]) {valid[i] = false;}
       }
     }
-    int any_valid = false;
-    for(int i = 0; i < SET_VLEN; i++) if(valid[i]) any_valid = true;
-    if(any_valid == false) break;
   }
   size_t total = 0;
   for(size_t i = 0; i < SET_VLEN; i++) {
@@ -1842,7 +1844,12 @@ std::vector<T> set_unique(const std::vector<T>& key) {
   key_idx_stop[SET_VLEN-1] = size;
   // idx 0 is manually advanced; need to be checked
   if(key_idx[0] == key_idx_stop[0]) valid[0] = false; 
-  while(1) {
+  size_t max_size = 0;
+  for(int i = 0; i < SET_VLEN; i++) {
+    auto current = key_idx_stop[i] - key_idx[i];
+    if(max_size < current) max_size = current;
+  }
+  for(size_t j = 0; j < max_size; j++) {
 #pragma cdir nodep
 #pragma _NEC ivdep
     for(int i = 0; i < SET_VLEN; i++) {
@@ -1856,9 +1863,6 @@ std::vector<T> set_unique(const std::vector<T>& key) {
         if(key_idx[i] == key_idx_stop[i]) {valid[i] = false;}
       }
     }
-    int any_valid = false;
-    for(int i = 0; i < SET_VLEN; i++) if(valid[i]) any_valid = true;
-    if(any_valid == false) break;
   }
   size_t total = 0;
   for(size_t i = 0; i < SET_VLEN; i++) {
@@ -1918,8 +1922,13 @@ int set_is_unique(const std::vector<T>& key) {
   key_idx_stop[SET_VLEN-1] = size;
   // idx 0 is manually advanced; need to be checked
   if(key_idx[0] == key_idx_stop[0]) valid[0] = false; 
+  size_t max_size = 0;
+  for(int i = 0; i < SET_VLEN; i++) {
+    auto current = key_idx_stop[i] - key_idx[i];
+    if(max_size < current) max_size = current;
+  }
   int any_unique = true;
-  while(1) {
+  for(size_t j = 0; j < max_size; j++) {
 #pragma cdir nodep
 #pragma _NEC ivdep
     for(int i = 0; i < SET_VLEN; i++) {
@@ -1932,9 +1941,7 @@ int set_is_unique(const std::vector<T>& key) {
       }
     }
     for(int i = 0; i < SET_VLEN; i++) if(!is_unique[i]) any_unique = false;
-    int any_valid = false;
-    for(int i = 0; i < SET_VLEN; i++) if(valid[i]) any_valid = true;
-    if(any_valid == false || any_unique == false) break;
+    if(any_unique == false) break;
   }
   return any_unique;
 }
