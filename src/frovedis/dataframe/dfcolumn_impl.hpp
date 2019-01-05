@@ -75,7 +75,15 @@ void sort_pair_desc(std::vector<K>& key_array, std::vector<V>& val_array) {
 #endif
 
 template <class T>
-std::vector<std::string> as_string_helper(const std::vector<T>& val) {
+std::vector<std::string> as_string_helper(std::vector<T>& val,
+                                          const std::vector<size_t>& nulls) {
+  size_t nullssize = nulls.size();
+  const size_t* nullsp = nulls.data();
+  T* valp = val.data();
+  // value of NULL position might be changed by max/min/sum etc.
+  for(size_t i = 0; i < nullssize; i++) {
+    valp[nullsp[i]] = std::numeric_limits<T>::max();
+  }
   std::vector<std::string> ret(val.size());
   for(size_t i = 0; i < val.size(); i++) {
     if(val[i] ==  std::numeric_limits<T>::max()) ret[i] = "NULL";
@@ -598,7 +606,6 @@ group_by_helper(std::vector<std::vector<T>>& split_val,
   auto idx = flatten(split_idx);
   sort_pair(val, idx);
   global_idx.swap(idx);
-  auto r =  set_separate(val);
   return set_separate(val);
 }
 
@@ -679,18 +686,20 @@ std::vector<T> sum_helper(std::vector<T>& val,
         idx_splitp_stop[j] = idx_splitp[i * GROUPBY_VLEN + j + 1];
         valid[j] = true;
       }
-      while(1) {
+      size_t max_size = 0;
+      for(int k = 0; k < len; k++) {
+        auto current = idx_splitp_stop[k] - current_idx_splitp[k];
+        if(max_size < current) max_size = current;
+      }
+      for(size_t k = 0; k < max_size; k++) {
 #pragma cdir nodep
 #pragma _NEC ivdep
         for(size_t j = 0; j < len; j++) {
-          if(valid[j]) current_retp[j] += valp[current_idx_splitp[j]++];
-          if(current_idx_splitp[j] == idx_splitp_stop[j]) valid[j] = false;
+          if(valid[j]) {
+            current_retp[j] += valp[current_idx_splitp[j]++];
+            if(current_idx_splitp[j] == idx_splitp_stop[j]) valid[j] = false;
+          }
         }
-        int any_valid = false;
-        for(size_t j = 0; j < len; j++) {
-          if(valid[j] == true) any_valid = true;
-        }
-        if(any_valid == false) break;
       }
     }
   }
@@ -773,23 +782,23 @@ std::vector<double> avg_helper(std::vector<T>& val,
         valid[j] = true;
         current_work[j] = 0;
       }
-      while(1) {
+      size_t max_size = 0;
+      for(int k = 0; k < len; k++) {
+        auto current = idx_splitp_stop[k] - current_idx_splitp[k];
+        if(max_size < current) max_size = current;
+      }
+      for(size_t k = 0; k < max_size; k++) {
 #pragma cdir nodep
 #pragma _NEC ivdep
         for(size_t j = 0; j < len; j++) {
-          if(valid[j]) current_work[j] += valp[current_idx_splitp[j]++];
-          if(current_idx_splitp[j] == idx_splitp_stop[j]) valid[j] = false;
-        }
-        int any_valid = false;
-        for(size_t j = 0; j < len; j++) {
-          if(valid[j] == true) any_valid = true;
-        }
-        if(any_valid == false) {
-          for(size_t j = 0; j < len; j++) {
-            current_retp[j] = static_cast<double>(current_work[j]);
+          if(valid[j]) {
+            current_work[j] += valp[current_idx_splitp[j]++];
+            if(current_idx_splitp[j] == idx_splitp_stop[j]) valid[j] = false;
           }
-          break;
         }
+      }
+      for(size_t j = 0; j < len; j++) {
+        current_retp[j] = static_cast<double>(current_work[j]);
       }
     }
   }
@@ -875,21 +884,21 @@ std::vector<T> max_helper(std::vector<T>& val,
         current_retp[j] = std::numeric_limits<T>::min();
         valid[j] = true;
       }
-      while(1) {
+      size_t max_size = 0;
+      for(int k = 0; k < len; k++) {
+        auto current = idx_splitp_stop[k] - current_idx_splitp[k];
+        if(max_size < current) max_size = current;
+      }
+      for(size_t k = 0; k < max_size; k++) {
 #pragma cdir nodep
 #pragma _NEC ivdep
         for(size_t j = 0; j < len; j++) {
           if(valid[j]) {
             T valtmp = valp[current_idx_splitp[j]++];
             if(current_retp[j] < valtmp) current_retp[j] = valtmp;
+            if(current_idx_splitp[j] == idx_splitp_stop[j]) valid[j] = false;
           }
-          if(current_idx_splitp[j] == idx_splitp_stop[j]) valid[j] = false;
         }
-        int any_valid = false;
-        for(size_t j = 0; j < len; j++) {
-          if(valid[j] == true) any_valid = true;
-        }
-        if(any_valid == false) break;
       }
     }
   }
@@ -969,21 +978,21 @@ std::vector<T> min_helper(std::vector<T>& val,
         current_retp[j] = std::numeric_limits<T>::max();
         valid[j] = true;
       }
-      while(1) {
+      size_t max_size = 0;
+      for(int k = 0; k < len; k++) {
+        auto current = idx_splitp_stop[k] - current_idx_splitp[k];
+        if(max_size < current) max_size = current;
+      }
+      for(size_t k = 0; k < max_size; k++) {
 #pragma cdir nodep
 #pragma _NEC ivdep
         for(size_t j = 0; j < len; j++) {
           if(valid[j]) {
             T valtmp = valp[current_idx_splitp[j]++];
             if(current_retp[j] > valtmp) current_retp[j] = valtmp;
+            if(current_idx_splitp[j] == idx_splitp_stop[j]) valid[j] = false;
           }
-          if(current_idx_splitp[j] == idx_splitp_stop[j]) valid[j] = false;
         }
-        int any_valid = false;
-        for(size_t j = 0; j < len; j++) {
-          if(valid[j] == true) any_valid = true;
-        }
-        if(any_valid == false) break;
       }
     }
   }
@@ -1079,7 +1088,8 @@ std::vector<size_t> typed_dfcolumn<T>::sizes() {
 
 template <class T>
 dvector<std::string> typed_dfcolumn<T>::as_string() {
-  return val.map(as_string_helper<T>).template moveto_dvector<std::string>();
+  return val.map(as_string_helper<T>, nulls).
+    template moveto_dvector<std::string>();
 }
 
 template <class T>
