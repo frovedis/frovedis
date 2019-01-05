@@ -238,19 +238,22 @@ std::vector<std::vector<size_t>> separate_to_bucket(std::vector<int>& key,
                                                     size_t num_bucket) {
   std::vector<std::vector<size_t>> ret(num_bucket);
   size_t size = key.size();
+  std::vector<size_t> rettmp(size);
+  size_t* rettmpp = rettmp.data();
 
   size_t bucket_ldim = SEPARATE_TO_BUCKET_VLEN + 1;
   // bucket_table is columnar (VLEN + 1) by num_bucket matrix
   // "1" is to avoid bank conflict, but reused for "rest" of the data
   std::vector<size_t> bucket_table(num_bucket * bucket_ldim);
+  // +1 for bucket_sum
+  std::vector<size_t> px_bucket_table(num_bucket * bucket_ldim + 1);
   size_t* bucket_tablep = &bucket_table[0];
+  size_t* px_bucket_tablep = &px_bucket_table[0];
+  std::vector<size_t> bucket_sum(num_bucket);
+  size_t* bucket_sump = &bucket_sum[0];
 
   std::vector<size_t> pos(size);
   size_t* posp = &pos[0];
-  std::vector<size_t> bucket_sum(num_bucket);
-  size_t* bucket_sump = &bucket_sum[0];
-  std::vector<size_t> pxoffset(num_bucket * bucket_ldim); // 1st row == 0
-  size_t* pxoffsetp = &pxoffset[0]; 
   size_t block_size = size / SEPARATE_TO_BUCKET_VLEN;
   if(block_size % 2 == 0 && block_size != 0) block_size -= 1;
   size_t rest = size - SEPARATE_TO_BUCKET_VLEN * block_size;
@@ -264,6 +267,11 @@ std::vector<std::vector<size_t>> separate_to_bucket(std::vector<int>& key,
     for(int v = 0; v < SEPARATE_TO_BUCKET_VLEN; v++) { // vector loop, raking
       int bucket = keyp[block_size * v + b];
       posp[block_size * v + b] = bucket_tablep[bucket_ldim * bucket + v];
+    }
+#pragma cdir nodep
+#pragma _NEC ivdep
+    for(int v = 0; v < SEPARATE_TO_BUCKET_VLEN; v++) { // vector loop, raking
+      int bucket = keyp[block_size * v + b];
       bucket_tablep[bucket_ldim * bucket + v]++;
     }
   }
@@ -274,36 +282,18 @@ std::vector<std::vector<size_t>> separate_to_bucket(std::vector<int>& key,
     bucket_tablep[bucket_ldim * bucket + v]++;
   }
   // preparing for the copy
-  for(size_t i = 0; i < bucket_ldim; i++) {
-    for(size_t j = 0; j < num_bucket; j++) {
-      bucket_sump[j] += bucket_tablep[bucket_ldim * j + i];
-    }
-  }
-  for(size_t i = 0; i < num_bucket; i++) {
-    pxoffsetp[bucket_ldim * i] = 0;
-  }
-  for(size_t i = 1; i < bucket_ldim; i++) {
-    for(size_t j = 0; j < num_bucket; j++) {
-      pxoffsetp[bucket_ldim * j + i] =
-        pxoffsetp[bucket_ldim * j + i - 1] +
-        bucket_tablep[bucket_ldim * j + i - 1];
-    }
-  }
-  std::vector<size_t*> each_ret(num_bucket);
-  size_t** each_retp = &each_ret[0];
-  for(size_t i = 0; i < num_bucket; i++) {
-    ret[i].resize(bucket_sump[i]);
-    each_retp[i] = &ret[i][0];
-  }
+  prefix_sum(bucket_tablep, px_bucket_tablep + 1, num_bucket * bucket_ldim);
   // now copy the data to the bucket
+#pragma _NEC vob
   for(size_t b = 0; b < block_size; b++) { // b: block
 #pragma cdir nodep
 #pragma _NEC ivdep
+#pragma _NEC vovertake
     for(int v = 0; v < SEPARATE_TO_BUCKET_VLEN; v++) { // vector loop, raking
       int bucket = keyp[block_size * v + b];
-      each_retp[bucket]
-        [pxoffsetp[bucket_ldim * bucket + v] + posp[block_size * v + b]] =
-        idxp[block_size * v + b];
+      size_t to = px_bucket_tablep[bucket_ldim * bucket + v] +
+        posp[block_size * v + b];
+      rettmpp[to] = idxp[block_size * v + b];
     }
   }
   v = SEPARATE_TO_BUCKET_VLEN;
@@ -311,9 +301,25 @@ std::vector<std::vector<size_t>> separate_to_bucket(std::vector<int>& key,
 #pragma _NEC ivdep
   for(size_t b = 0; b < rest; b++) {
     int bucket = keyp[block_size * v + b];
-    each_retp[bucket]
-      [pxoffsetp[bucket_ldim * bucket + v] + posp[block_size * v + b]] =
-      idxp[block_size * v + b];
+    size_t to = px_bucket_tablep[bucket_ldim * bucket + v] +
+      posp[block_size * v + b];
+    rettmpp[to] = idxp[block_size * v + b];
+  }
+
+  for(size_t i = 0; i < num_bucket; i++) {
+    bucket_sump[i] +=
+      px_bucket_tablep[bucket_ldim * (i + 1)] -
+      px_bucket_tablep[bucket_ldim * i];
+  }
+  size_t current = 0;
+  for(size_t i = 0; i < num_bucket; i++) {
+    ret[i].resize(bucket_sump[i]);
+    auto retp = ret[i].data();
+    auto rettmp2 = rettmpp + current;
+    for(size_t j = 0; j < bucket_sump[i]; j++) {
+      retp[j] = rettmp2[j];
+    }
+    current += bucket_sump[i];
   }
   return ret;
 }
