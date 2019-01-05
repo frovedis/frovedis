@@ -6,9 +6,14 @@
 
 #include "prefix_sum.hpp"
 
+#if defined(_SX) || defined(__ve__) // might be used in x86
 #define RADIX_SORT_VLEN 256
 // if size is less than this, use insertion sort instead
 #define SWITCH_INSERTION_THR 512
+#else
+#define RADIX_SORT_VLEN 1
+#define SWITCH_INSERTION_THR 64
+#endif
 
 namespace frovedis {
 
