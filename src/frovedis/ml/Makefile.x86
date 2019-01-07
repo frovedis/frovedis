@@ -4,7 +4,7 @@ include Makefile.common
 w2v_core.o: w2v_core.cc 
 	${MPICXX} -c ${CXXFLAGS} -fopenmp $< -o $@	
 CC := gcc
-
+CFLAGS := -fPIC -g -Wall -O3 -std=gnu11 -Wno-unknown-pragmas -Wno-sign-compare
 
 libfrovedis_ml.a: ${OBJS}
 	${AR} r libfrovedis_ml.a ${OBJS}

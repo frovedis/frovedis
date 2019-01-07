@@ -47,13 +47,13 @@ tree_impurity.o: tree_impurity.cc tree_impurity.hpp
 tree_utility.o: tree_utility.cc tree_utility.hpp
 
 w2vgemm0.o: w2vgemm0.c
-	${CC} -std=gnu11 -fPIC -c $< -o $@
+	${CC} ${CFLAGS} -c $< -o $@
 w2vgemm0_associated.o: w2vgemm0_associated.c
-	${CC} -std=gnu11 -fPIC -c $< -o $@
+	${CC} ${CFLAGS} -c $< -o $@
 w2vgemm1.o: w2vgemm1.c
-	${CC} -std=gnu11 -fPIC -c $< -o $@
+	${CC} ${CFLAGS} -c $< -o $@
 w2vgemm2.o: w2vgemm2.c
-	${CC} -std=gnu11 -fPIC -c $< -o $@
+	${CC} ${CFLAGS} -c $< -o $@
 
 main.o: main.cc main.hpp
 

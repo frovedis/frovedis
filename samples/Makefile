@@ -11,11 +11,11 @@ all:
 	cd eigen; make -f Makefile.${TARGET} all
 	cd tree; make -f Makefile.${TARGET} all
 	cd graph; make -f Makefile.${TARGET} all
+	cd word2vec; make -f Makefile.${TARGET}
 ifeq (${TARGET},x86)
 	cd matrix_tools; make -f Makefile.${TARGET}
 	cd wikipedia2matrix; make -f Makefile.${TARGET}
 	cd dataframe_tools; make -f Makefile.${TARGET}
-	cd word2vec; make -f Makefile.${TARGET}
 endif
 
 install:
@@ -31,11 +31,11 @@ install:
 	cd eigen; make -f Makefile.${TARGET} install
 	cd tree; make -f Makefile.${TARGET} install
 	cd graph; make -f Makefile.${TARGET} install
+	cd word2vec; make -f Makefile.${TARGET} install
 ifeq (${TARGET},x86)
 	cd matrix_tools; make -f Makefile.${TARGET} install
 	cd wikipedia2matrix; make -f Makefile.${TARGET} install
 	cd dataframe_tools; make -f Makefile.${TARGET} install
-	cd word2vec; make -f Makefile.${TARGET} install
 endif
 
 clean:
@@ -48,10 +48,10 @@ clean:
 	cd eigen; make -f Makefile.${TARGET} clean
 	cd tree; make -f Makefile.${TARGET} clean
 	cd graph; make -f Makefile.${TARGET} clean
+	cd word2vec; make -f Makefile.${TARGET} clean
 ifeq (${TARGET},x86)
 	cd matrix_tools; make -f Makefile.${TARGET} clean
 	cd wikipedia2matrix; make -f Makefile.${TARGET} clean
 	cd dataframe_tools; make -f Makefile.${TARGET} clean
-	cd word2vec; make -f Makefile.${TARGET} clean
 endif
 	${RM} *~

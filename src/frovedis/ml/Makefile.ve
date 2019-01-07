@@ -7,6 +7,7 @@ w2vgemm_kernel_N6_HU512_2X_WX.o: w2vgemm_kernel_N6_HU512_2X_WX.s
 	${AS} -o $@ $<
 OBJS += w2vgemm_kernel_N6_HU512_2X_WX.o
 CC := ncc
+CFLAGS := -O4
 AS := nas
 
 libfrovedis_ml.a: ${OBJS}
