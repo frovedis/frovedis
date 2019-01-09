@@ -399,7 +399,7 @@ unique_hashtable<K,V>::unique_hashtable(const std::vector<K>& k,
       if(unique_checkerp[hash[i]] == i) {
         table_valp[hash[i]] = valoff[i];
       } else if(table_keyp[hash[i]] != keyoff[i]) {
-        missedp[missed_idx++] = i;      
+        missedp[missed_idx++] = i + offset;
       } else {
         is_unique_ok = false;
       }
@@ -429,7 +429,7 @@ unique_hashtable<K,V>::unique_hashtable(const std::vector<K>& k,
     if(unique_checkerp[hash[i]] == i) {
       table_valp[hash[i]] = valoff[i];
     } else if(table_keyp[hash[i]] != keyoff[i]) {
-      missedp[missed_idx++] = i;      
+      missedp[missed_idx++] = i + offset;
     } else {
       is_unique_ok = false;
     }
