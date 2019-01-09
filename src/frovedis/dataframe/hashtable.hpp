@@ -814,6 +814,7 @@ unique_hashtable<K,V>::all_keys() {
     for(size_t j = 0; j < rest_size; j++) {
       retp[current + j] = keytmpp[rest_idx_start + j];
     }
+    current += rest_size;
     K* conflict_keyp = &conflict_key[0];
     for(size_t i = 0; i < conflict_key_size; i++) {
       retp[current + i] = conflict_keyp[i];
