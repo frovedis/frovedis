@@ -758,10 +758,15 @@ unique_hashtable<K,V>::all_keys() {
         current++;
       }
     }
-    std::vector<K> ret(current);
+    size_t conflict_key_size = conflict_key.size();
+    std::vector<K> ret(current+conflict_key_size);
     K* retp = ret.data();
     for(size_t i = 0; i < current; i++) {
       retp[i] = keytmpp[i];
+    }
+    K* conflict_keyp = &conflict_key[0];
+    for(size_t i = 0; i < conflict_key_size; i++) {
+      retp[current + i] = conflict_keyp[i];
     }
     return ret;
   } else {
