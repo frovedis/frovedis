@@ -1788,11 +1788,44 @@ void typed_dfcolumn<T>::debug_print() {
   std::cout << "contain_nulls: " << contain_nulls << std::endl;
 }
 
+node_local<std::vector<size_t>>
+limit_nulls_head(node_local<std::vector<size_t>>& nulls, 
+                 const std::vector<size_t>& sizes,
+                 size_t limit);
+
+node_local<std::vector<size_t>>
+limit_nulls_tail(node_local<std::vector<size_t>>& nulls, 
+                 const std::vector<size_t>& sizes,
+                 const std::vector<size_t>& new_sizes,
+                 size_t limit);
+
 template <class T>
 std::shared_ptr<dfcolumn>
 typed_dfcolumn<T>::head(size_t limit) {
-  return std::make_shared<typed_dfcolumn<T>>
-    (this->as_dvector<T>().head(limit));
+  auto ret = std::make_shared<typed_dfcolumn<T>>();
+  ret->val = val.template viewas_dvector<T>().head(limit).moveto_node_local();
+  if(contain_nulls) {
+    ret->nulls = limit_nulls_head(nulls, sizes(), limit);
+    ret->contain_nulls = true;
+  } else {
+    ret->nulls = make_node_local_allocate<std::vector<size_t>>();    
+  }
+  return ret;
+}
+
+template <class T>
+std::shared_ptr<dfcolumn>
+typed_dfcolumn<T>::tail(size_t limit) {
+  auto ret = std::make_shared<typed_dfcolumn<T>>();
+  ret->val = val.template viewas_dvector<T>().tail(limit).moveto_node_local();
+  auto new_sizes = ret->val.template viewas_dvector<T>().sizes();
+  if(contain_nulls) {
+    ret->nulls = limit_nulls_tail(nulls, sizes(), new_sizes, limit);
+    ret->contain_nulls = true;
+  } else {
+    ret->nulls = make_node_local_allocate<std::vector<size_t>>();    
+  }
+  return ret;
 }
 
 template <class T>

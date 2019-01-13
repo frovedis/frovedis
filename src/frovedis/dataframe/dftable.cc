@@ -315,14 +315,26 @@ dftable dftable_base::head(size_t limit) {
   return limit_table;
 }
 
-void dftable_base::show() {
+dftable dftable_base::tail(size_t limit) {
+  dftable limit_table;
+  auto cols = columns();
+  for(size_t i = 0; i < cols.size(); i++) {
+    limit_table.append_column(cols[i],
+                              this->column(cols[i])->tail(limit));
+  }
+  return limit_table;
+}
+
+void dftable_base::show_all(bool with_index) {
   auto table_string = dftable_to_string(*this).gather();
   auto cols = columns();
+  if(with_index) std::cout << "\t";
   for(size_t i = 0; i < cols.size()-1; i++) {
     std::cout << cols[i] << "\t";
   }
   std::cout << cols[cols.size()-1] << std::endl;
   for(size_t i = 0; i < table_string.size(); i++) {
+    if(with_index) std::cout << i << "\t";
     for(size_t j = 0; j < table_string[i].size()-1; j++) {
       std::cout << table_string[i][j] << "\t";
     }
@@ -331,7 +343,30 @@ void dftable_base::show() {
 }
 
 void dftable_base::show(size_t limit) {
-  this->head(limit).show();
+  head(limit).show_all();
+}
+
+void dftable_base::show() {
+  show(20);
+  if(num_row() > 20) std::cout << "..." << std::endl;
+}
+
+void dftable_base::print() {
+  auto nr = num_row();
+  if(nr < 61) show_all(true);
+  else {
+    head(30).show_all(true);
+    std::cout << "..." << std::endl;
+    auto t = tail(30);
+    auto table_string = dftable_to_string(t).gather();
+    for(size_t i = 0; i < table_string.size(); i++) {
+      std::cout << nr - 30 + i << "\t";
+      for(size_t j = 0; j < table_string[i].size()-1; j++) {
+        std::cout << table_string[i][j] << "\t";
+      }
+      std::cout << table_string[i][table_string[i].size()-1] << std::endl;
+    }
+  }
 }
 
 size_t dftable_base::count(const std::string& name) {

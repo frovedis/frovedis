@@ -965,8 +965,34 @@ void typed_dfcolumn<string>::contain_nulls_check() {
 
 std::shared_ptr<dfcolumn>
 typed_dfcolumn<string>::head(size_t limit) {
-  return std::make_shared<typed_dfcolumn<string>>
-    (this->as_dvector<string>().head(limit));
+  auto ret = std::make_shared<typed_dfcolumn<std::string>>();
+  ret->val = val.viewas_dvector<size_t>().head(limit).moveto_node_local();
+  if(contain_nulls) {
+    ret->nulls = limit_nulls_head(nulls, sizes(), limit);
+    ret->contain_nulls = true;
+  } else {
+    ret->nulls = make_node_local_allocate<std::vector<size_t>>();    
+  }
+  ret->dic = dic;
+  ret->dic_idx = dic_idx;
+  return ret;
+}
+
+std::shared_ptr<dfcolumn>
+typed_dfcolumn<string>::tail(size_t limit) {
+  auto ret = std::make_shared<typed_dfcolumn<std::string>>();
+  ret->val = val.viewas_dvector<size_t>().tail(limit).moveto_node_local();
+  auto new_sizes = ret->val.template viewas_dvector<size_t>().sizes();
+  if(contain_nulls) {
+    ret->nulls = limit_nulls_tail(nulls, sizes(), new_sizes, limit);
+    ret->contain_nulls = true;
+  } else {
+    ret->nulls = make_node_local_allocate<std::vector<size_t>>();    
+    ret->contain_nulls = true;
+  }
+  ret->dic = dic;
+  ret->dic_idx = dic_idx;
+  return ret;
 }
 
 }

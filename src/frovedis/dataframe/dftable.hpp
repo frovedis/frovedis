@@ -57,8 +57,12 @@ public:
   template <class T> T min(const std::string& name);
   template <class T> dvector<T> as_dvector(const std::string name);
   dftable head(size_t limit);
-  void show();
+  dftable tail(size_t limit);
   void show(size_t limit);
+  void show(); // == like Spark, show(20) + "..."
+  void show_all(bool with_index = false);
+  // like Pandas print, head(30), "...", and tail(30) is printed together with row_id
+  void print(); 
   void save(const std::string& dir);
   std::vector<std::pair<std::string, std::string>>
     savetext(const std::string& file);
@@ -153,6 +157,7 @@ public:
   // do not use this if you are not sure of the alignment!
   dftable& append_column(const std::string& name,
                          const std::shared_ptr<dfcolumn>& c);
+  // do not support NULL items
   template <class R, class T1, class F>
   dftable& calc(const std::string& r, F f, const std::string& c1);
   template <class R, class T1, class T2, class F>

@@ -131,6 +131,7 @@ public:
   virtual dvector<float> as_dvector_float() = 0; 
   virtual dvector<double> as_dvector_double() = 0;
   virtual std::shared_ptr<dfcolumn> head(size_t limit) = 0;
+  virtual std::shared_ptr<dfcolumn> tail(size_t limit) = 0;
   virtual bool is_string() {return false;}
   virtual std::string dtype() const = 0;
   virtual void save(const std::string& file) = 0;
@@ -283,6 +284,7 @@ public:
   virtual std::string dtype() const;
   virtual void save(const std::string& file);
   virtual std::shared_ptr<dfcolumn> head(size_t limit);
+  virtual std::shared_ptr<dfcolumn> tail(size_t limit);
   virtual void contain_nulls_check();
   node_local<std::vector<T>>& get_val(){return val;}
   node_local<std::vector<size_t>>& get_nulls(){return nulls;}
@@ -451,6 +453,7 @@ public:
   (std::shared_ptr<typed_dfcolumn<std::string>>&);
   virtual void contain_nulls_check();
   virtual std::shared_ptr<dfcolumn> head(size_t limit);
+  virtual std::shared_ptr<dfcolumn> tail(size_t limit);
   // string -> idx; shared between columns
   std::shared_ptr<dunordered_map<std::string, size_t>> dic;
   // idx -> string; shared between columns

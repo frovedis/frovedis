@@ -382,4 +382,66 @@ std::string get_type_name<float>(){return std::string("float");}
 template<>
 std::string get_type_name<double>(){return std::string("double");}
 
+node_local<std::vector<size_t>>
+limit_nulls_head(node_local<std::vector<size_t>>& nulls, 
+                 const std::vector<size_t>& sizes,
+                 size_t limit) {
+  int nodesize = get_nodesize();
+  std::vector<size_t> limits(nodesize);
+  std::vector<size_t> pxsizes(nodesize);
+  for(size_t i = 1; i < nodesize; i++) {
+    pxsizes[i] = pxsizes[i-1] + sizes[i-1];
+  }
+  for(size_t i = 0; i < nodesize; i++) {
+    if(pxsizes[i] > limit) limits[i] = 0;
+    else limits[i] = limit - pxsizes[i];
+  }
+  auto slimits = make_node_local_scatter(limits);
+  return nulls.map(+[](std::vector<size_t>& nulls, size_t limit) {
+      size_t end =
+        std::lower_bound(nulls.begin(), nulls.end(), limit) - nulls.begin();
+      std::vector<size_t> ret(end);
+      for(size_t i = 0; i < end; i++) {
+        ret[i] = nulls[i];
+      }
+      return ret;
+    }, slimits);
+}
+
+node_local<std::vector<size_t>>
+limit_nulls_tail(node_local<std::vector<size_t>>& nulls, 
+                 const std::vector<size_t>& sizes,
+                 const std::vector<size_t>& new_sizes,
+                 size_t limit) {
+  int nodesize = get_nodesize();
+  std::vector<size_t> limits(nodesize);
+  std::vector<size_t> pxsizes(nodesize);
+  for(size_t i = 1; i < nodesize; i++) {
+    pxsizes[i] = pxsizes[i-1] + sizes[i-1];
+  }
+  auto total = pxsizes[nodesize-1] + sizes[nodesize-1];
+  auto limit_start = total - limit;
+  for(size_t i = 0; i < nodesize; i++) {
+    if(pxsizes[i] > limit_start) limits[i] = 0;
+    else limits[i] = limit_start - pxsizes[i];
+  }
+  auto slimits = make_node_local_scatter(limits);
+  std::vector<size_t> sizediff(nodesize);
+  for(size_t i = 0; i < nodesize; i++) {
+    sizediff[i] = sizes[i] - new_sizes[i];
+  }
+  auto nlsizediff = make_node_local_scatter(sizediff);
+  return nulls.map(+[](std::vector<size_t>& nulls, size_t limit,
+                       size_t sizediff) {
+      size_t start =
+        std::lower_bound(nulls.begin(), nulls.end(), limit) - nulls.begin();
+      size_t retsize = nulls.size() - start;
+      std::vector<size_t> ret(retsize);
+      for(size_t i = start; i < retsize; i++) {
+        ret[i] = nulls[i] - sizediff;
+      }
+      return ret;
+    }, slimits, nlsizediff);
+}
+
 }
