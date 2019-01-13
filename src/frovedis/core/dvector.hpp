@@ -594,6 +594,7 @@ public:
   dvector<T>& sort(F f, double rate = 1.1);
 
   dvector<T> head(size_t size);
+  dvector<T> tail(size_t size);
 
   DVID<std::vector<T>> get_dvid() const {return dvid;}
 private:
@@ -2381,6 +2382,37 @@ dvector<T> dvector<T>::head(size_t to_trunc_size) {
     map(head_helper<T>, dtrunc_sizes).
     template moveto_dvector<T>();
 }
+
+
+template <class T>
+std::vector<T> tail_helper(std::vector<T>& v, size_t to_trunc) {
+  if(v.size() > to_trunc) {
+    std::vector<T> tmp(to_trunc);
+    T* tmpp = &tmp[0];
+    T* vp = &v[0] + (v.size() - to_trunc);
+    for(size_t i = 0; i < to_trunc; i++) tmpp[i] = vp[i];
+    return tmp;
+  } else return v;
+}
+
+template <class T>
+dvector<T> dvector<T>::tail(size_t to_trunc_size) {
+  auto all_sizes = sizes();
+  size_t node_size = get_nodesize();
+  std::vector<size_t> trunc_sizes(node_size);
+  for(size_t i = 0; i < node_size; i++) {
+    auto current_node = node_size - i - 1;
+    trunc_sizes[current_node] = std::min(to_trunc_size, all_sizes[current_node]);
+    if(to_trunc_size > all_sizes[current_node]) {
+      to_trunc_size -= all_sizes[current_node];
+    } else to_trunc_size = 0;
+  }
+  auto dtrunc_sizes = make_node_local_scatter(trunc_sizes);
+  return this->viewas_node_local().
+    map(tail_helper<T>, dtrunc_sizes).
+    template moveto_dvector<T>();
+}
+
 
 // utility functions
 template <class T>
