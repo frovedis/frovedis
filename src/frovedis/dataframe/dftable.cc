@@ -2,6 +2,8 @@
 #include "dfoperator.hpp"
 #include "dftable_to_string.hpp"
 
+#define GROUPED_DFTABLE_VLEN 256
+
 namespace frovedis {
 
 std::vector<std::string> dftable_base::columns() const {
@@ -217,19 +219,10 @@ void merge_split(std::vector<size_t>& split, std::vector<size_t>& to_merge) {
   split.swap(ret);
 }
 
-std::vector<size_t> group_by_convert_idx(std::vector<size_t> global_idx,
-                                         std::vector<size_t> exchange) {
-  size_t size = global_idx.size();
-  size_t* global_idxp = &global_idx[0];
-  size_t* exchangep = &exchange[0];
-  std::vector<size_t> ret(size);
-  size_t* retp = &ret[0];
-  for(size_t i = 0; i < size; i++) {
-    retp[i] = global_idxp[exchangep[i]];
-  }
-  return ret;
-}
-                                         
+void create_merge_map(std::vector<size_t>& nodeid,
+                      std::vector<size_t>& split,
+                      std::vector<std::vector<size_t>>& merge_map);
+                                   
 grouped_dftable
 dftable_base::group_by(const std::vector<std::string>& cols) {
   size_t size = cols.size();
@@ -237,71 +230,129 @@ dftable_base::group_by(const std::vector<std::string>& cols) {
     throw std::runtime_error("column is not specified for group by");
   } else if (size == 1) {
     auto local_idx = get_local_index(); // might be filtered
-    auto global_idx = local_to_global_idx(local_idx);
-    auto split_idx = column(cols[0])->group_by(global_idx);
-    return grouped_dftable(*this, std::move(global_idx),
-                           std::move(split_idx), cols);
+    auto split_idx = make_node_local_allocate<std::vector<size_t>>();
+    auto hash_divide =
+      make_node_local_allocate<std::vector<std::vector<size_t>>>();
+    auto merge_map =
+      make_node_local_allocate<std::vector<std::vector<size_t>>>();
+    auto grouped_column = column(cols[0])->group_by
+      (local_idx, split_idx, hash_divide, merge_map);
+    return grouped_dftable(*this, std::move(local_idx), std::move(split_idx),
+                           std::move(hash_divide), std::move(merge_map),
+                           {grouped_column}, cols);
   } else {
-    time_spent t(DEBUG);
     std::vector<std::shared_ptr<dfcolumn>> pcols(size);
-    // in the case of filtered_dftable, shrunk column is created
     for(size_t i = 0; i < size; i++) pcols[i] = column(cols[i]);
-    auto hash_base = pcols[0]->calc_hash_base();
+    auto local_idx = get_local_index(); // might be filtered
+    // sort reverse order to show intuitive result
+    for(size_t i = 0; i < size-1; i++) {
+      pcols[size - i - 1]->multi_group_by_sort(local_idx);
+    }
+    auto split_idx = pcols[0]->multi_group_by_sort_split(local_idx);
+    for(size_t i = 1; i < size; i++) {
+      auto tmp = pcols[i]->multi_group_by_split(local_idx);
+      split_idx.mapv(merge_split, tmp);
+    }
+    std::vector<std::shared_ptr<dfcolumn>> pcols2(size);
+    for(size_t i = 0; i < size; i++) {
+      pcols2[i] = pcols[i]->multi_group_by_extract(local_idx, split_idx,
+                                                   false);
+    }
+    auto hash_base = pcols2[0]->calc_hash_base();
     // 52 is fraction of double, size_t might be 32bit...
     int bit_len = std::min(sizeof(size_t) * 8, size_t(52));
     int shift = bit_len / size;
     // from memory access point of view, not efficient though...
-    for(size_t i = 0; i < size; i++) {
-      pcols[i]->calc_hash_base(hash_base, shift);
-    }
-    t.show("calc_hash_base: ");
-    auto local_idx = get_local_index(); // might be filtered
-    auto global_idx = local_to_global_idx(local_idx);
-    auto split_val =
-      make_node_local_allocate<std::vector<std::vector<size_t>>>();
-    auto split_idx =
-      make_node_local_allocate<std::vector<std::vector<size_t>>>();
-    hash_base.mapv(split_by_hash<size_t>, split_val, global_idx, split_idx);
-    t.show("split_by_hash: ");
-    auto exchanged_split_idx = alltoall_exchange(split_idx);
-    t.show("alltoall_exchange: ");
-    auto flattened_idx = exchanged_split_idx.map(flatten<size_t>);
-    t.show("flatten: ");
-    auto partitioned_idx = partition_global_index_bynode(flattened_idx);
-    t.show("partition_global_index_bynode: ");
-    auto exchanged_idx = exchange_partitioned_index(partitioned_idx);
-    t.show("exchanged_idx: ");
-    std::vector<std::shared_ptr<dfcolumn>> ex_pcols(size);
-    for(size_t i = 0; i < size; i++) {
-      ex_pcols[i] = pcols[i]->global_extract(flattened_idx, partitioned_idx,
-                                             exchanged_idx);
-    }
-    t.show("global_extract: ");
-    auto ex_local_idx = ex_pcols[0]->get_local_index();
-    for(size_t i = 0; i < size; i++) {
-      ex_pcols[i]->multi_group_by_sort(ex_local_idx);
-    }
-    t.show("multi_group_by_sort: ");
-    std::vector<node_local<std::vector<size_t>>> splits(size);
-    for(size_t i = 0; i < size; i++) {
-      splits[i] = ex_pcols[i]->multi_group_by_split(ex_local_idx);
-    }
-    t.show("multi_group_by_split: ");
-    auto& ret_split = splits[0];
     for(size_t i = 1; i < size; i++) {
-      ret_split.mapv(merge_split, splits[i]);
+      pcols2[i]->calc_hash_base(hash_base, shift);
     }
-    t.show("merge_split: ");
-    auto ret_idx = flattened_idx.map(group_by_convert_idx, ex_local_idx);
-    t.show("group_by_convert_idx: ");
-    /*
-    return grouped_dftable(*this, std::move(ret_idx),
-                           std::move(ret_split), cols);
-    */
-    auto ret = grouped_dftable(*this, std::move(ret_idx),
-                               std::move(ret_split), cols);
-    t.show("create ret: ");
-    return ret;
+    auto hash_divide =
+      make_node_local_allocate<std::vector<std::vector<size_t>>>();
+    hash_base.mapv
+      (+[](std::vector<size_t>& hash_base,
+           std::vector<std::vector<size_t>>& hash_divide) {
+        auto size = hash_base.size();
+        std::vector<size_t> iota(size);
+        for(size_t i = 0; i < size; i++) iota[i] = i;
+        split_by_hash_no_outval(hash_base, iota, hash_divide);
+      }, hash_divide);
+    std::vector<std::shared_ptr<dfcolumn>> pcols3(size);
+    for(size_t i = 0; i < size; i++) {
+      pcols3[i] = pcols2[i]->multi_group_by_exchange(hash_divide);
+    }
+    auto sizes_tmp = hash_divide.map
+      (+[](std::vector<std::vector<size_t>>& hash_divide) {
+        std::vector<size_t> ret(hash_divide.size());
+        for(size_t i = 0; i < hash_divide.size(); i++) {
+          ret[i] = hash_divide[i].size();
+        }
+        return ret;
+      });
+    auto sizes = alltoall_exchange(sizes_tmp);
+    auto nodeid = sizes.map
+      (+[](std::vector<size_t>& sizes) {
+        size_t total = 0;
+        for(size_t i = 0; i < sizes.size(); i++) total += sizes[i];
+        std::vector<size_t> ret(total);
+        auto retp = ret.data();
+        for(size_t i = 0; i < sizes.size(); i++) {
+          auto size = sizes[i];
+          for(size_t j = 0; j < size; j++) {
+            retp[j] = i;
+          }
+          retp += size;
+        }
+        return ret;
+      });
+    auto local_idx2 = nodeid.map
+      (+[](std::vector<size_t>& nodeid) {
+        size_t size = nodeid.size();
+        std::vector<size_t> ret(size);
+        for(size_t i = 0; i < size; i++) ret[i] = i;
+        return ret;
+      });
+    for(size_t i = 0; i < size-1; i++) {
+      pcols3[size - i - 1]->multi_group_by_sort(local_idx2);
+    }
+    auto split_idx2 = pcols3[0]->multi_group_by_sort_split(local_idx2);
+    for(size_t i = 1; i < size; i++) {
+      auto tmp = pcols3[i]->multi_group_by_split(local_idx2);
+      split_idx2.mapv(merge_split, tmp);
+    }
+    auto nodeid2 = nodeid.map
+      (+[](std::vector<size_t>& nodeid, std::vector<size_t>& local_idx) {
+        auto size = nodeid.size();
+        auto nodeidp = nodeid.data();
+        auto local_idxp = local_idx.data();
+        std::vector<size_t> ret(size);
+        auto retp = ret.data();
+        for(size_t i = 0; i < size; i++) {
+          retp[i] = nodeidp[local_idxp[i]];
+        }
+        return ret;
+      }, local_idx2);
+    auto merge_map =
+      make_node_local_allocate<std::vector<std::vector<size_t>>>();
+    merge_map.mapv
+      (+[](std::vector<std::vector<size_t>>& merge_map,
+           std::vector<size_t> sizes) {
+        merge_map.resize(sizes.size());
+        for(size_t i = 0; i < sizes.size(); i++) {
+          auto size = sizes[i];
+          for(size_t j = 0; j < size; j++) {
+            merge_map[i].resize(size);
+          }
+        }
+      }, sizes);
+    nodeid2.mapv(create_merge_map, split_idx2, merge_map);
+    std::vector<std::shared_ptr<dfcolumn>> pcols4(size);    
+    for(size_t i = 0; i < size; i++) {
+      pcols4[i] = pcols3[i]->
+        multi_group_by_extract(local_idx2, split_idx2, true);
+    }
+    return grouped_dftable(*this, std::move(local_idx), std::move(split_idx),
+                           std::move(hash_divide), std::move(merge_map),
+                           std::move(pcols4), cols);
   }
 }
 
@@ -1613,50 +1664,19 @@ dftable star_joined_dftable::append_rowid(const std::string& name,
 
 // ---------- grouped_dftable ----------
 
-std::vector<size_t> get_first_grouped_idx(std::vector<size_t>& grouped_idx,
-                                          std::vector<size_t>& idx_split) {
-  size_t splitsize = idx_split.size();
-  size_t* grouped_idxp = &grouped_idx[0];
-  size_t* idx_splitp = &idx_split[0];
-  std::vector<size_t> ret(splitsize-1);
-  size_t* retp = &ret[0];
-  for(size_t i = 0; i < splitsize-1; i++) {
-    retp[i] = grouped_idxp[idx_splitp[i]];
-  }
-  return ret;
-}
-
-size_t grouped_dftable::num_row() {
-  // each split of node has one extra item
-  return idx_split.viewas_dvector<size_t>().size() - get_nodesize();
-} 
-
-size_t grouped_dftable::num_col() {
-  return org_table.num_col();
-} 
-
 dftable grouped_dftable::select(const std::vector<std::string>& cols) {
   dftable ret_table;
   size_t colssize = cols.size();
-  auto cols_global_idx = grouped_idx.map(get_first_grouped_idx,
-                                         idx_split);
-  auto cols_partitioned_idx =
-    partition_global_index_bynode(cols_global_idx);
-  auto cols_exchanged_idx =
-    exchange_partitioned_index(cols_partitioned_idx);
   for(size_t i = 0; i < colssize; i++) {
     bool in_grouped_cols = false;
-    for(size_t j = 0; j < grouped_cols.size(); j++) {
-      if(cols[i] == grouped_cols[j]) {
+    for(size_t j = 0; j < grouped_col_names.size(); j++) {
+      if(cols[i] == grouped_col_names[j]) {
         in_grouped_cols = true; break;
       }
     }
     if(!in_grouped_cols)
       throw std::runtime_error("select not grouped column");
-    auto newcol = org_table.column(cols[i])->
-      global_extract(cols_global_idx, cols_partitioned_idx,
-                     cols_exchanged_idx);
-    ret_table.col[cols[i]] = newcol;
+    ret_table.col[cols[i]] = grouped_cols[i];
   }
   ret_table.row_size = num_row();
   ret_table.col_order = cols;
@@ -1666,47 +1686,32 @@ dftable grouped_dftable::select(const std::vector<std::string>& cols) {
 dftable
 grouped_dftable::select(const std::vector<std::string>& cols,
                         const std::vector<std::shared_ptr<dfaggregator>>& aggs) {
-  time_spent t(DEBUG);
   dftable ret_table;
   size_t colssize = cols.size();
   if(colssize != 0) {
-    auto cols_global_idx = grouped_idx.map(get_first_grouped_idx,
-                                           idx_split);
-    auto cols_partitioned_idx =
-      partition_global_index_bynode(cols_global_idx);
-    auto cols_exchanged_idx =
-      exchange_partitioned_index(cols_partitioned_idx);
     for(size_t i = 0; i < colssize; i++) {
       bool in_grouped_cols = false;
-      for(size_t j = 0; j < grouped_cols.size(); j++) {
-        if(cols[i] == grouped_cols[j]) {
+      for(size_t j = 0; j < grouped_col_names.size(); j++) {
+        if(cols[i] == grouped_col_names[j]) {
           in_grouped_cols = true; break;
         }
       }
       if(!in_grouped_cols)
         throw std::runtime_error("select not grouped column");
-      auto newcol = org_table.column(cols[i])->
-        global_extract(cols_global_idx, cols_partitioned_idx,
-                       cols_exchanged_idx);
-      ret_table.col[cols[i]] = newcol;
+      ret_table.col[cols[i]] = grouped_cols[i];
     }
   }
   ret_table.col_order = cols;
-  t.show("grouped_dftable select global_extract: ");
   size_t aggssize = aggs.size();
+  auto row_sizes = grouped_cols[0]->sizes();
+  auto nl_row_sizes = make_node_local_scatter(row_sizes);
   for(size_t i = 0; i < aggssize; i++) {
-    /* // modified to allow aggregation of grouped column
-    bool in_grouped_cols = false;
-    for(size_t j = 0; j < grouped_cols.size(); j++) {
-      if(aggs[i]->col == grouped_cols[j]) {
-        in_grouped_cols = true; break;
-      }
-    }
-    if(in_grouped_cols)
-      throw std::runtime_error("aggregate of grouped column");
-    */
-    auto newcol = aggs[i]->aggregate(org_table, grouped_idx, idx_split,
-                                     partitioned_idx, exchanged_idx);
+    auto newcol = aggs[i]->aggregate(org_table,
+                                     local_grouped_idx,
+                                     local_idx_split,
+                                     hash_divide,
+                                     merge_map,
+                                     nl_row_sizes);
     if(aggs[i]->has_as) {
       if(ret_table.col.find(aggs[i]->as) != ret_table.col.end())
         throw std::runtime_error
@@ -1721,7 +1726,6 @@ grouped_dftable::select(const std::vector<std::string>& cols,
       ret_table.col_order.push_back(aggs[i]->col);
     }
   }
-  t.show("grouped_dftable select aggregate: ");
   ret_table.row_size = num_row();
   return ret_table;
 }
@@ -1729,23 +1733,48 @@ grouped_dftable::select(const std::vector<std::string>& cols,
 void grouped_dftable::debug_print() {
   std::cout << "table: " << std::endl;
   org_table.debug_print();
-  std::cout << "grouped_idx: " << std::endl;
-  size_t nodemask = (size_t(1) << DFNODESHIFT) - 1;
-  for(auto& i: grouped_idx.gather()) {
+  std::cout << "local_grouped_idx: " << std::endl;
+  for(auto& i: local_grouped_idx.gather()) {
     for(auto j: i) {
-      std::cout << (j >> DFNODESHIFT) << "-" << (j & nodemask) << " ";
+      std::cout << j << " ";
     }
     std::cout << ": ";
   }
   std::cout << std::endl;
-  std::cout << "idx_split: " << std::endl;
-  for(auto& i: idx_split.gather()) {
-    for(auto j: i) std::cout << j << " "; 
+  std::cout << "local_idx_split: " << std::endl;
+  for(auto& i: local_idx_split.gather()) {
+    for(auto j: i) {
+        std::cout << j << " "; 
+    }
     std::cout << ": ";
   }
   std::cout << std::endl;
+  std::cout << "hash_divide: " << std::endl;
+  for(auto& i: hash_divide.gather()) {
+    for(auto& j: i) {
+      for(auto k: j) {
+        std::cout << k << " "; 
+      }
+      std::cout << ": ";
+    }
+    std::cout << "| ";
+  }
+  std::cout << std::endl;
+  std::cout << "merge_map: " << std::endl;
+  for(auto& i: merge_map.gather()) {
+    for(auto& j: i) {
+      for(auto k: j) {
+        std::cout << k << " "; 
+      }
+      std::cout << ": ";
+    }
+    std::cout << "| ";
+  }
+  std::cout << std::endl;
   std::cout << "grouped_cols: " << std::endl;
-  for(auto& i: grouped_cols) std::cout << i << " ";
+  for(auto& i: grouped_cols) i->debug_print();
+  std::cout << "grouped_col_names: " << std::endl;
+  for(auto& i: grouped_col_names) std::cout << i << " ";
   std::cout << std::endl;
 }
 

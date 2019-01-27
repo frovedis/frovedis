@@ -13,10 +13,11 @@ struct dfaggregator {
   dfaggregator(const std::string& col) : has_as(false), col(col) {}
   virtual std::shared_ptr<dfcolumn>
   aggregate(dftable_base& table,
-            node_local<std::vector<size_t>>& grouped_idx,
-            node_local<std::vector<size_t>>& idx_split,
-            node_local<std::vector<std::vector<size_t>>>& partitioned_idx,
-            node_local<std::vector<std::vector<size_t>>>& exchanged_idx) = 0;
+            node_local<std::vector<size_t>>& local_grouped_idx,
+            node_local<std::vector<size_t>>& local_idx_split,
+            node_local<std::vector<std::vector<size_t>>>& hash_divide,
+            node_local<std::vector<std::vector<size_t>>>& merge_map,
+            node_local<size_t>& row_sizes) = 0;
   bool has_as;
   std::string col;
   std::string as;
@@ -28,10 +29,11 @@ struct dfaggregator_sum : public dfaggregator {
   dfaggregator_sum(const std::string& col) : dfaggregator(col) {}
   virtual std::shared_ptr<dfcolumn>
   aggregate(dftable_base& table,
-            node_local<std::vector<size_t>>& grouped_idx,
-            node_local<std::vector<size_t>>& idx_split,
-            node_local<std::vector<std::vector<size_t>>>& partitioned_idx,
-            node_local<std::vector<std::vector<size_t>>>& exchanged_idx);
+            node_local<std::vector<size_t>>& local_grouped_idx,
+            node_local<std::vector<size_t>>& local_idx_split,
+            node_local<std::vector<std::vector<size_t>>>& hash_divide,
+            node_local<std::vector<std::vector<size_t>>>& merge_map,
+            node_local<size_t>& row_sizes);
 };
 
 struct dfaggregator_count : public dfaggregator {
@@ -40,10 +42,11 @@ struct dfaggregator_count : public dfaggregator {
   dfaggregator_count(const std::string& col) : dfaggregator(col) {}
   virtual std::shared_ptr<dfcolumn>
   aggregate(dftable_base& table,
-            node_local<std::vector<size_t>>& grouped_idx,
-            node_local<std::vector<size_t>>& idx_split,
-            node_local<std::vector<std::vector<size_t>>>& partitioned_idx,
-            node_local<std::vector<std::vector<size_t>>>& exchanged_idx);
+            node_local<std::vector<size_t>>& local_grouped_idx,
+            node_local<std::vector<size_t>>& local_idx_split,
+            node_local<std::vector<std::vector<size_t>>>& hash_divide,
+            node_local<std::vector<std::vector<size_t>>>& merge_map,
+            node_local<size_t>& row_sizes);
 };
 
 struct dfaggregator_avg : public dfaggregator {
@@ -52,10 +55,11 @@ struct dfaggregator_avg : public dfaggregator {
   dfaggregator_avg(const std::string& col) : dfaggregator(col) {}
   virtual std::shared_ptr<dfcolumn>
   aggregate(dftable_base& table,
-            node_local<std::vector<size_t>>& grouped_idx,
-            node_local<std::vector<size_t>>& idx_split,
-            node_local<std::vector<std::vector<size_t>>>& partitioned_idx,
-            node_local<std::vector<std::vector<size_t>>>& exchanged_idx);
+            node_local<std::vector<size_t>>& local_grouped_idx,
+            node_local<std::vector<size_t>>& local_idx_split,
+            node_local<std::vector<std::vector<size_t>>>& hash_divide,
+            node_local<std::vector<std::vector<size_t>>>& merge_map,
+            node_local<size_t>& row_sizes);
 };
 
 struct dfaggregator_max : public dfaggregator {
@@ -64,10 +68,11 @@ struct dfaggregator_max : public dfaggregator {
   dfaggregator_max(const std::string& col) : dfaggregator(col) {}
   virtual std::shared_ptr<dfcolumn>
   aggregate(dftable_base& table,
-            node_local<std::vector<size_t>>& grouped_idx,
-            node_local<std::vector<size_t>>& idx_split,
-            node_local<std::vector<std::vector<size_t>>>& partitioned_idx,
-            node_local<std::vector<std::vector<size_t>>>& exchanged_idx);
+            node_local<std::vector<size_t>>& local_grouped_idx,
+            node_local<std::vector<size_t>>& local_idx_split,
+            node_local<std::vector<std::vector<size_t>>>& hash_divide,
+            node_local<std::vector<std::vector<size_t>>>& merge_map,
+            node_local<size_t>& row_sizes);
 };
 
 struct dfaggregator_min : public dfaggregator {
@@ -76,10 +81,11 @@ struct dfaggregator_min : public dfaggregator {
   dfaggregator_min(const std::string& col) : dfaggregator(col) {}
   virtual std::shared_ptr<dfcolumn>
   aggregate(dftable_base& table,
-            node_local<std::vector<size_t>>& grouped_idx,
-            node_local<std::vector<size_t>>& idx_split,
-            node_local<std::vector<std::vector<size_t>>>& partitioned_idx,
-            node_local<std::vector<std::vector<size_t>>>& exchanged_idx);
+            node_local<std::vector<size_t>>& local_grouped_idx,
+            node_local<std::vector<size_t>>& local_idx_split,
+            node_local<std::vector<std::vector<size_t>>>& hash_divide,
+            node_local<std::vector<std::vector<size_t>>>& merge_map,
+            node_local<size_t>& row_sizes);
 };
 
 std::shared_ptr<dfaggregator>

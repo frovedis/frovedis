@@ -747,31 +747,35 @@ private:
 class grouped_dftable {
 public:
   grouped_dftable(const dftable_base& table, 
-                  node_local<std::vector<size_t>>&& grouped_idx_,
-                  node_local<std::vector<size_t>>&& idx_split,
-                  const std::vector<std::string>& grouped_cols) :
+                  node_local<std::vector<size_t>>&& local_grouped_idx_,
+                  node_local<std::vector<size_t>>&& local_idx_split_,
+                  node_local<std::vector<std::vector<size_t>>>&& hash_divide_,
+                  node_local<std::vector<std::vector<size_t>>>&& merge_map_,
+                  std::vector<std::shared_ptr<dfcolumn>>&& grouped_cols_,
+                  const std::vector<std::string>& grouped_col_names_) :
+    org_table(table),
+    local_grouped_idx(local_grouped_idx_),
+    local_idx_split(local_idx_split_),
+    hash_divide(hash_divide_),
+    merge_map(merge_map_),
+    grouped_cols(grouped_cols_),
+    grouped_col_names(grouped_col_names_) {}
 
-    org_table(table), grouped_idx(std::move(grouped_idx_)),
-    idx_split(std::move(idx_split)), grouped_cols(grouped_cols) {
-    partitioned_idx = partition_global_index_bynode(grouped_idx);
-    exchanged_idx = exchange_partitioned_index(partitioned_idx);
-  }
-  size_t num_row();
-  size_t num_col();
-  dftable select(const std::vector<std::string>& cols);
   dftable
   select(const std::vector<std::string>& cols,
          const std::vector<std::shared_ptr<dfaggregator>>& aggs);
+  size_t num_row(){return grouped_cols[0]->size();}
+  // size_t num_col(){return org_table.num_col();}
+  dftable select(const std::vector<std::string>& cols);
   void debug_print();
 private:
   dftable_base org_table;
-
-  node_local<std::vector<size_t>> grouped_idx;
-  node_local<std::vector<size_t>> idx_split;
-  // to save communication
-  node_local<std::vector<std::vector<size_t>>> partitioned_idx; 
-  node_local<std::vector<std::vector<size_t>>> exchanged_idx;
-  std::vector<std::string> grouped_cols;
+  node_local<std::vector<size_t>> local_grouped_idx;
+  node_local<std::vector<size_t>> local_idx_split;
+  node_local<std::vector<std::vector<size_t>>> hash_divide;
+  node_local<std::vector<std::vector<size_t>>> merge_map;
+  std::vector<std::shared_ptr<dfcolumn>> grouped_cols;
+  std::vector<std::string> grouped_col_names;
 };
 
 

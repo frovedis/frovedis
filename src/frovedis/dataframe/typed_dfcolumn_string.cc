@@ -746,13 +746,20 @@ void typed_dfcolumn<string>::append_nulls
   contain_nulls = true;
 }
 
-node_local<std::vector<size_t>> typed_dfcolumn<string>::calc_hash_base() {
-  return val.map(calc_hash_base_helper<size_t>);
-}
-
-void typed_dfcolumn<string>::calc_hash_base
-(node_local<std::vector<size_t>>& hash_base, int shift) {
-  val.mapv(calc_hash_base_helper2<size_t>(shift), hash_base);
+std::shared_ptr<dfcolumn>
+typed_dfcolumn<string>::group_by
+(node_local<std::vector<size_t>>& local_idx,
+ node_local<std::vector<size_t>>& split_idx,
+ node_local<std::vector<std::vector<size_t>>>& hash_divide,
+ node_local<std::vector<std::vector<size_t>>>& merge_map) {
+  auto ret = std::make_shared<typed_dfcolumn<string>>();
+  ret->nulls = make_node_local_allocate<std::vector<size_t>>();
+  group_by_impl(val, nulls, local_idx, split_idx, hash_divide, merge_map,
+                ret->val, ret->nulls);
+  ret->dic = dic;
+  ret->dic_idx = dic_idx;
+  ret->contain_nulls_check();
+  return ret;
 }
 
 void typed_dfcolumn<string>::multi_group_by_sort
@@ -761,39 +768,68 @@ void typed_dfcolumn<string>::multi_group_by_sort
 }
 
 node_local<std::vector<size_t>>
+typed_dfcolumn<string>::multi_group_by_sort_split
+(node_local<std::vector<size_t>>& local_idx) {
+  return val.map(multi_group_by_sort_split_helper<size_t>, local_idx);
+}
+
+node_local<std::vector<size_t>>
 typed_dfcolumn<string>::multi_group_by_split
 (node_local<std::vector<size_t>>& local_idx) {
   return val.map(multi_group_by_split_helper<size_t>, local_idx);
 }
 
+std::shared_ptr<dfcolumn>
+typed_dfcolumn<string>::multi_group_by_extract
+(node_local<std::vector<size_t>>& local_idx,
+ node_local<std::vector<size_t>>& split_idx,
+ bool check_nulls) {
+  auto ret = std::make_shared<typed_dfcolumn<string>>();
+  ret->val = val.map(multi_group_by_extract_helper<size_t>, local_idx, split_idx);
+  ret->contain_nulls = contain_nulls;
+  if(contain_nulls && check_nulls) {
+    ret->nulls = ret->val.map(+[](std::vector<size_t>& val) {
+        return find_value(val, std::numeric_limits<size_t>::max());        
+      });
+  } else {
+    ret->nulls = make_node_local_allocate<std::vector<size_t>>();
+  }
+  ret->dic = dic;
+  ret->dic_idx = dic_idx;
+  return ret;
+}
+
 node_local<std::vector<size_t>>
-typed_dfcolumn<string>::group_by(node_local<std::vector<size_t>>& global_idx) {
-  auto split_val =
-    make_node_local_allocate<std::vector<std::vector<size_t>>>();
-  auto split_idx =
-    make_node_local_allocate<std::vector<std::vector<size_t>>>();
-  val.mapv(split_by_hash<size_t>, split_val, global_idx, split_idx);
-  auto exchanged_idx = alltoall_exchange(split_idx);
-  auto exchanged_val = alltoall_exchange(split_val);
-  return exchanged_val.map(group_by_helper<size_t>, exchanged_idx,
-                           global_idx);
+typed_dfcolumn<string>::calc_hash_base() {
+  return val.map(calc_hash_base_helper<size_t>);
+}
+
+void typed_dfcolumn<string>::calc_hash_base
+(node_local<std::vector<size_t>>& hash_base, int shift) {
+  val.mapv(calc_hash_base_helper2<size_t>(shift), hash_base);
+}
+
+std::shared_ptr<dfcolumn> 
+typed_dfcolumn<string>::multi_group_by_exchange
+(node_local<std::vector<std::vector<size_t>>>& hash_divide) {
+  auto ret = std::make_shared<typed_dfcolumn<string>>();
+  ret->val = multi_group_by_exchange_helper(val, hash_divide);
+  ret->nulls = make_node_local_allocate<std::vector<size_t>>();
+  ret->contain_nulls = contain_nulls;
+  ret->dic = dic;
+  ret->dic_idx = dic_idx;
+  return ret;
 }
 
 std::shared_ptr<dfcolumn>
 typed_dfcolumn<string>::count
-(node_local<std::vector<size_t>>& grouped_idx,
- node_local<std::vector<size_t>>& idx_split,
- node_local<std::vector<std::vector<size_t>>>& partitioned_idx,
- node_local<std::vector<std::vector<size_t>>>& exchanged_idx) {
-  auto newcol = std::dynamic_pointer_cast<typed_dfcolumn<std::string>>
-    (global_extract(grouped_idx, partitioned_idx, exchanged_idx));
-  if(!newcol)
-    throw std::runtime_error("count: internal error (dynamic_pointer_cast)");
-  auto retval = idx_split.map(count_helper, newcol->get_nulls());
-  auto retnulls = make_node_local_allocate<std::vector<size_t>>();
-  auto ret = std::make_shared<typed_dfcolumn<size_t>>
-    (std::move(retval), std::move(retnulls));
-  return ret;
+(node_local<std::vector<size_t>>& local_grouped_idx,
+ node_local<std::vector<size_t>>& local_idx_split,
+ node_local<std::vector<std::vector<size_t>>>& hash_divide,
+ node_local<std::vector<std::vector<size_t>>>& merge_map,
+ node_local<size_t>& row_sizes) {
+  return count_impl(nulls, local_grouped_idx, local_idx_split,
+                    hash_divide, merge_map, row_sizes);
 }
 
 size_t typed_dfcolumn<string>::count() {

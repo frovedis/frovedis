@@ -10,6 +10,8 @@
 #define UNIQ_IDX_MAX_BUCKET_SIZE 65536
 #define UNIQ_IDX_TARGET_BUCKET_LEN 16384
 
+#define CREATE_MERGE_MAP_VLEN 256
+
 namespace frovedis {
 
 using namespace std;
@@ -344,22 +346,37 @@ local_to_global_idx(node_local<std::vector<size_t>>& local_idx) {
   return local_idx.map(local_to_global_idx_helper);
 }
 
-std::vector<size_t> count_helper(std::vector<size_t>& idx_split,
-                                 std::vector<size_t>& nulls) {
-  size_t splitsize = idx_split.size();
+std::vector<std::vector<size_t>>
+count_helper(std::vector<size_t>& grouped_idx,
+             std::vector<size_t>& idx_split,
+             std::vector<std::vector<size_t>>& hash_divide,
+             std::vector<size_t>& nulls) {
   size_t nullssize = nulls.size();
-  std::vector<size_t> ret(splitsize-1);
-  size_t* idx_splitp = &idx_split[0];
-  size_t* retp = &ret[0];
-  for(size_t i = 0; i < splitsize-1; i++) {
-    retp[i] = idx_splitp[i+1] - idx_splitp[i];
+  if(nullssize == 0) {
+    size_t splitsize = idx_split.size();
+    std::vector<size_t> ret(splitsize-1);
+    size_t* idx_splitp = &idx_split[0];
+    size_t* retp = &ret[0];
+    for(size_t i = 0; i < splitsize-1; i++) {
+      retp[i] = idx_splitp[i+1] - idx_splitp[i];
+    }
+    auto nodesize = hash_divide.size();
+    std::vector<std::vector<size_t>> hashed_ret(nodesize);
+    for(size_t i = 0; i < nodesize; i++) {
+      auto each_size = hash_divide[i].size();
+      hashed_ret[i].resize(each_size);
+      auto hash_dividep = hash_divide[i].data();
+      auto hashed_retp = hashed_ret[i].data();
+      for(size_t j = 0; j < each_size; j++) {
+        hashed_retp[j] = retp[hash_dividep[j]];
+      }
+    }
+    return hashed_ret;
+  } else { // slow: takes same time as sum
+    auto size = grouped_idx.size();
+    std::vector<size_t> tmp(size, 1);
+    return sum_helper(tmp, grouped_idx, idx_split, hash_divide, nulls);
   }
-  // slow if # of nulls is large...
-  for(size_t i = 0; i < nullssize; i++) {
-    auto it = std::upper_bound(idx_split.begin(), idx_split.end(), nulls[i]);
-    ret[it - idx_split.begin() - 1]--; 
-  }
-  return ret;
 }
 
 template<>
@@ -442,6 +459,158 @@ limit_nulls_tail(node_local<std::vector<size_t>>& nulls,
       }
       return ret;
     }, slimits, nlsizediff);
+}
+
+#if defined(_SX) || defined(__ve__)
+void create_merge_map(std::vector<size_t>& nodeid,
+                      std::vector<size_t>& split,
+                      std::vector<std::vector<size_t>>& merge_map) {
+  auto nodeidsize = nodeid.size();
+  auto split_size = split.size();
+  auto merge_map_size = merge_map.size();
+  std::vector<size_t*> merge_mapp(merge_map_size);
+  auto merge_mappp = merge_mapp.data();
+  for(size_t i = 0; i < merge_map_size; i++) {
+    merge_mappp[i] = merge_map[i].data();
+  }
+  auto splitp = split.data();
+  auto nodeidp = nodeid.data();
+  int valid[CREATE_MERGE_MAP_VLEN];
+  size_t start_idx[CREATE_MERGE_MAP_VLEN];
+  size_t current_idx[CREATE_MERGE_MAP_VLEN];
+  size_t stop_idx[CREATE_MERGE_MAP_VLEN];
+  auto each = ceil_div(nodeidsize, size_t(CREATE_MERGE_MAP_VLEN));
+  if(each % 2 == 0) each++;
+  start_idx[0] = 0;
+  size_t current_split[CREATE_MERGE_MAP_VLEN];
+  current_split[0] = 0;
+  auto split_start = split.begin();
+  for(size_t i = 1; i < CREATE_MERGE_MAP_VLEN; i++) {
+    split_start = std::lower_bound(split_start, split.end()-1, each * i);
+    if(split_start == split.end()-1) {
+      for(size_t j = i; j < CREATE_MERGE_MAP_VLEN; j++) {
+        start_idx[j] = nodeidsize;
+        current_split[j] = split_size-1;
+      }
+      break;
+    } else {
+      auto tmp = split_start - split.begin();
+      current_split[i] = tmp;
+      start_idx[i] = splitp[tmp];
+    }
+  }
+  for(size_t i = 0; i < CREATE_MERGE_MAP_VLEN; i++) {
+    current_idx[i] = start_idx[i];
+  }
+  for(size_t i = 0; i < CREATE_MERGE_MAP_VLEN-1; i++) {
+    stop_idx[i] = start_idx[i+1];
+  }
+  stop_idx[CREATE_MERGE_MAP_VLEN-1] = nodeidsize;
+  for(size_t i = 0; i < CREATE_MERGE_MAP_VLEN; i++) {
+    if(stop_idx[i] == start_idx[i]) valid[i] = false;
+    else valid[i] = true;
+  }
+  size_t max = 0;
+  for(size_t i = 0; i < CREATE_MERGE_MAP_VLEN; i++) {
+    if(stop_idx[i] - start_idx[i] > max) max = stop_idx[i] - start_idx[i];
+  }
+  // count to find starting point
+  std::vector<size_t> counter(CREATE_MERGE_MAP_VLEN * merge_map_size);
+  auto counterp = counter.data();
+  for(size_t i = 0; i < max; i++) {
+#pragma cdir nodep
+#pragma _NEC ivdep
+    for(size_t j = 0; j < CREATE_MERGE_MAP_VLEN; j++) {
+      if(valid[j]) {
+        auto to = nodeidp[current_idx[j]++];
+        counterp[j * merge_map_size + to]++;
+        if(current_idx[j] == stop_idx[j]) valid[j] = false;
+      }
+    }
+  }
+  std::vector<size_t> store_idx(CREATE_MERGE_MAP_VLEN * merge_map_size);
+  auto store_idxp = store_idx.data();
+  for(size_t i = 1; i < CREATE_MERGE_MAP_VLEN; i++) {
+    for(size_t j = 0; j < merge_map_size; j++) {
+      store_idxp[i * merge_map_size + j] =
+        store_idxp[(i - 1) * merge_map_size + j] +
+        counterp[(i - 1) * merge_map_size + j];
+    }
+  }
+  for(size_t i = 0; i < CREATE_MERGE_MAP_VLEN; i++) {
+    current_idx[i] = start_idx[i];
+  }
+  for(size_t i = 0; i < CREATE_MERGE_MAP_VLEN; i++) {
+    if(stop_idx[i] == start_idx[i]) valid[i] = false;
+    else valid[i] = true;
+  }
+  for(size_t i = 0; i < max; i++) {
+#pragma cdir nodep
+#pragma _NEC ivdep
+    for(size_t j = 0; j < CREATE_MERGE_MAP_VLEN; j++) {
+      if(valid[j]) {
+        auto to = nodeidp[current_idx[j]++];
+        merge_mappp[to][store_idxp[j * merge_map_size + to]++] =
+          current_split[j];
+        if(current_idx[j] == splitp[current_split[j]+1]) {
+          current_split[j]++;
+        }
+        if(current_idx[j] == stop_idx[j]) valid[j] = false;
+      }
+    }
+  }
+}
+#else
+void create_merge_map(std::vector<size_t>& nodeid,
+                      std::vector<size_t>& split,
+                      std::vector<std::vector<size_t>>& merge_map) {
+  auto split_size = split.size();
+  auto merge_map_size = merge_map.size();
+  std::vector<size_t> current_idx(merge_map_size);
+  size_t current = 0;
+  for(size_t i = 0; i < split_size-1; i++) {
+    for(size_t j = 0; j < split[i+1] - split[i]; j++) {
+      auto to = nodeid[current++];
+      merge_map[to][current_idx[to]++] = i;
+    }
+  }
+}
+#endif
+
+std::shared_ptr<dfcolumn>
+count_impl(node_local<std::vector<size_t>>& nulls,
+           node_local<std::vector<size_t>>& local_grouped_idx,
+           node_local<std::vector<size_t>>& local_idx_split,
+           node_local<std::vector<std::vector<size_t>>>& hash_divide,
+           node_local<std::vector<std::vector<size_t>>>& merge_map,
+           node_local<size_t>& row_sizes) {
+  auto ret = std::make_shared<typed_dfcolumn<size_t>>();
+  ret->nulls = make_node_local_allocate<std::vector<size_t>>();
+  auto local_agg = local_grouped_idx.map(count_helper, local_idx_split,
+                                         hash_divide, nulls);
+  auto exchanged = alltoall_exchange(local_agg);
+  auto newval = exchanged.map
+    (+[](std::vector<std::vector<size_t>>& exchanged,
+         std::vector<std::vector<size_t>>& merge_map,
+         size_t row_size) {
+      std::vector<size_t> newval(row_size);
+      auto newvalp = newval.data();
+      for(size_t i = 0; i < exchanged.size(); i++) {
+        auto currentp = exchanged[i].data();
+        auto current_size = exchanged[i].size();
+        auto merge_mapp = merge_map[i].data();
+#pragma cdir nodep
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+        for(size_t j = 0; j < current_size; j++) {
+          newvalp[merge_mapp[j]] += currentp[j];
+        }
+      }
+      return newval;
+    }, merge_map, row_sizes);
+  ret->val = std::move(newval);
+  return ret;
 }
 
 }

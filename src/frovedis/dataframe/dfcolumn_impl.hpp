@@ -12,6 +12,7 @@
 #include <boost/lexical_cast.hpp>
 
 #define GROUPBY_VLEN 256
+#define FIND_VALUE_VLEN 256
 
 namespace frovedis {
 
@@ -77,13 +78,7 @@ void sort_pair_desc(std::vector<K>& key_array, std::vector<V>& val_array) {
 template <class T>
 std::vector<std::string> as_string_helper(std::vector<T>& val,
                                           const std::vector<size_t>& nulls) {
-  size_t nullssize = nulls.size();
-  const size_t* nullsp = nulls.data();
-  T* valp = val.data();
-  // value of NULL position might be changed by max/min/sum etc.
-  for(size_t i = 0; i < nullssize; i++) {
-    valp[nullsp[i]] = std::numeric_limits<T>::max();
-  }
+  // value of NULL position should always be max
   std::vector<std::string> ret(val.size());
   for(size_t i = 0; i < val.size(); i++) {
     if(val[i] ==  std::numeric_limits<T>::max()) ret[i] = "NULL";
@@ -569,96 +564,112 @@ void append_nulls_helper(std::vector<T>& val, std::vector<size_t>& to_append,
 }
 
 template <class T>
-std::vector<size_t> calc_hash_base_helper(std::vector<T>& val) {
+void group_by_vector_sum_helper
+(const std::vector<T>& val,
+ const std::vector<size_t>& split_idx,
+ std::vector<T>& ret) {
+  auto valp = val.data();
+  auto split_idxp = split_idx.data();
   size_t size = val.size();
-  std::vector<size_t> ret(size);
-  T* valp = &val[0];
-  size_t* retp = &ret[0];
-  for(size_t i = 0; i < size; i++) {
-    retp[i] = static_cast<size_t>(valp[i]);
-  }
-  return ret;
-}
+  if(size == 0) return;
+  int valid[GROUPBY_VLEN];
+  for(int i = 0; i < GROUPBY_VLEN; i++) valid[i] = true;
+  size_t val_idx[GROUPBY_VLEN];
+  size_t val_idx_stop[GROUPBY_VLEN];
+  size_t out_idx[GROUPBY_VLEN];
+  size_t next_group_idx[GROUPBY_VLEN];
+  T current_val[GROUPBY_VLEN];
+  size_t group_size = split_idx.size() - 1;
+  auto retp = ret.data();
 
-template <class T>
-struct calc_hash_base_helper2 {
-  calc_hash_base_helper2(){}
-  calc_hash_base_helper2(int shift) : shift(shift) {}
-  void operator()(std::vector<T>& val, std::vector<size_t>& hash_base) {
-    size_t size = val.size();
-    std::vector<size_t> ret(size);
-    T* valp = &val[0];
-    size_t* hash_basep = &hash_base[0];
-    for(size_t i = 0; i < size; i++) {
-      hash_basep[i] = (hash_basep[i] << shift) + static_cast<size_t>(valp[i]);
+  size_t each = ceil_div(size, size_t(GROUPBY_VLEN));
+  if(each % 2 == 0) each++;
+  auto start_it = split_idx.begin();
+  for(size_t i = 0; i < GROUPBY_VLEN; i++) {
+    start_it = std::lower_bound(start_it, split_idx.end()-1, each * i);
+    if(start_it == split_idx.end()-1) {
+      val_idx[i] = size;
+      out_idx[i] = group_size;
+      next_group_idx[i] = size;
+    } else {
+      val_idx[i] = *start_it;
+      out_idx[i] = start_it - split_idx.begin();
+      next_group_idx[i] = split_idxp[out_idx[i]+1];
     }
   }
-  int shift;
-  SERIALIZE(shift)
-};
-
-template <class T>
-std::vector<size_t>
-group_by_helper(std::vector<std::vector<T>>& split_val,
-                std::vector<std::vector<size_t>>& split_idx,
-                std::vector<size_t>& global_idx) {
-  auto val = flatten(split_val);
-  auto idx = flatten(split_idx);
-  sort_pair(val, idx);
-  global_idx.swap(idx);
-  return set_separate(val);
-}
-
-template <class T>
-void multi_group_by_sort_helper(std::vector<T>& val,
-                                std::vector<size_t>& local_idx) {
-  size_t size = val.size();
-  std::vector<T> val2(size);
-  T* valp = &val[0];
-  T* val2p = &val2[0];
-  size_t* local_idxp = &local_idx[0];
-  for(size_t i = 0; i < size; i++) {
-    val2p[i] = valp[local_idxp[i]];
+  for(int i = 0; i < GROUPBY_VLEN - 1; i++) {
+    val_idx_stop[i] = val_idx[i + 1];
   }
-  sort_pair(val2, local_idx);
-}
-
-template <class T>
-std::vector<size_t> 
-multi_group_by_split_helper(std::vector<T>& val,
-                            std::vector<size_t>& local_idx) {
-  size_t size = val.size();
-  std::vector<T> val2(size);
-  T* valp = &val[0];
-  T* val2p = &val2[0];
-  size_t* local_idxp = &local_idx[0];
-  for(size_t i = 0; i < size; i++) {
-    val2p[i] = valp[local_idxp[i]];
+  val_idx_stop[GROUPBY_VLEN-1] = size;
+  for(size_t i = 0; i < GROUPBY_VLEN; i++) {
+    if(val_idx[i]  == val_idx_stop[i]) {
+      valid[i] = false;
+      out_idx[i] = group_size;
+    }
+    else valid[i] = true;
   }
-  return set_separate(val2);
+  size_t max_size = 0;
+  for(int i = 0; i < GROUPBY_VLEN; i++) {
+    auto current = val_idx_stop[i] - val_idx[i];
+    if(max_size < current) max_size = current;
+  }
+  for(size_t i = 0; i < GROUPBY_VLEN; i++) current_val[i] = 0; // sum
+
+  auto shift_split_idxp = split_idxp + 1;
+  for(size_t j = 0; j < max_size; j++) {
+#pragma cdir nodep
+#pragma _NEC ivdep
+    for(int i = 0; i < GROUPBY_VLEN; i++) {
+      if(valid[i]) {
+        if(val_idx[i] == next_group_idx[i]) {
+          retp[out_idx[i]++] = current_val[i];
+          current_val[i] = 0; // sum
+          next_group_idx[i] = shift_split_idxp[out_idx[i]];
+        }
+        current_val[i] += valp[val_idx[i]]; // sum
+        val_idx[i]++;
+        if(val_idx[i] == val_idx_stop[i]) {valid[i] = false;}
+      }
+    }
+  }
+#pragma cdir nodep
+#pragma _NEC ivdep
+  for(int i = 0; i < GROUPBY_VLEN; i++) {
+    if(out_idx[i] != group_size) {
+      retp[out_idx[i]] = current_val[i];
+    }
+  }
 }
 
-
-std::vector<size_t> count_helper(std::vector<size_t>& idx_split,
-                                 std::vector<size_t>& nulls);
-
 template <class T>
-std::vector<T> sum_helper(std::vector<T>& val,
-                          std::vector<size_t>& idx_split,
-                          std::vector<size_t>& nulls,
-                          std::vector<size_t>& newnulls) {
-  size_t splitsize = idx_split.size();
+std::vector<std::vector<T>>
+sum_helper(std::vector<T>& org_val,
+           std::vector<size_t>& grouped_idx,
+           std::vector<size_t>& idx_split,
+           std::vector<std::vector<size_t>>& hash_divide,
+           std::vector<size_t>& nulls) {
+  T* org_valp = org_val.data();
+  size_t* nullsp = nulls.data();
   size_t nullssize = nulls.size();
-  std::vector<T> ret(splitsize-1);
-  T* valp = &val[0];
-  size_t* idx_splitp = &idx_split[0];
-  size_t* nullsp = &nulls[0];
-  T* retp = &ret[0];
+#pragma cdir nodep
+#pragma _NEC ivdep
   for(size_t i = 0; i < nullssize; i++) {
-    valp[nullsp[i]] = 0;
+    org_valp[nullsp[i]] = 0;
   }
+  size_t valsize = org_val.size();
+  std::vector<T> val(valsize);
+  auto valp = val.data();
+  auto grouped_idxp = grouped_idx.data();
+#pragma cdir nodep
+#pragma _NEC ivdep
+  for(size_t i = 0; i < valsize; i++) {
+    valp[i] = org_valp[grouped_idxp[i]];
+  }
+  size_t splitsize = idx_split.size();
+  std::vector<T> ret(splitsize-1);
+  auto retp = ret.data();
+  size_t* idx_splitp = idx_split.data();
 #if defined(_SX) || defined(__ve__)
-  size_t valsize = val.size();
   if(valsize / splitsize > GROUPBY_VLEN * 2) {
     size_t end = 0;
     size_t start = 0;
@@ -672,36 +683,7 @@ std::vector<T> sum_helper(std::vector<T>& val,
       retp[i] = total;
     }
   } else { // for improving vectorization
-    size_t blocksize = (splitsize - 1) / GROUPBY_VLEN;
-    size_t remain = (splitsize - 1) % GROUPBY_VLEN;
-    size_t current_idx_splitp[GROUPBY_VLEN];
-    size_t idx_splitp_stop[GROUPBY_VLEN];
-    T* current_retp;
-    int valid[GROUPBY_VLEN];
-    for(size_t i = 0; i < blocksize + 1; i++) {
-      current_retp = retp + i * GROUPBY_VLEN;
-      size_t len = i < blocksize ? GROUPBY_VLEN : remain;
-      for(size_t j = 0; j < len; j++) {
-        current_idx_splitp[j] = idx_splitp[i * GROUPBY_VLEN + j];
-        idx_splitp_stop[j] = idx_splitp[i * GROUPBY_VLEN + j + 1];
-        valid[j] = true;
-      }
-      size_t max_size = 0;
-      for(int k = 0; k < len; k++) {
-        auto current = idx_splitp_stop[k] - current_idx_splitp[k];
-        if(max_size < current) max_size = current;
-      }
-      for(size_t k = 0; k < max_size; k++) {
-#pragma cdir nodep
-#pragma _NEC ivdep
-        for(size_t j = 0; j < len; j++) {
-          if(valid[j]) {
-            current_retp[j] += valp[current_idx_splitp[j]++];
-            if(current_idx_splitp[j] == idx_splitp_stop[j]) valid[j] = false;
-          }
-        }
-      }
-    }
+    group_by_vector_sum_helper(val, idx_split, ret);
   }
 #else  
   size_t end = 0;
@@ -716,191 +698,151 @@ std::vector<T> sum_helper(std::vector<T>& val,
     retp[i] = total;
   }
 #endif
-  if(nullssize != 0) {
-    auto count = count_helper(idx_split, nulls);
-    size_t zeros = 0;
-    size_t countsize = count.size();
-    size_t* countp = &count[0];
-    for(size_t i = 0; i < countsize; i++) {
-      if(countp[i] == 0) zeros++;
-    }
-    newnulls.resize(zeros);
-    size_t* newnullsp = &newnulls[0];
-    size_t current = 0;
-    for(size_t i = 0; i < countsize; i++) {
-      if(countp[i] == 0) newnullsp[current++] = i;
-    }
-    for(size_t i = 0; i < zeros; i++) {
-      retp[newnullsp[i]] = std::numeric_limits<T>::max();
+  auto nodesize = hash_divide.size();
+  std::vector<std::vector<T>> hashed_ret(nodesize);
+  for(size_t i = 0; i < nodesize; i++) {
+    auto each_size = hash_divide[i].size();
+    hashed_ret[i].resize(each_size);
+    auto hash_dividep = hash_divide[i].data();
+    auto hashed_retp = hashed_ret[i].data();
+    for(size_t j = 0; j < each_size; j++) {
+      hashed_retp[j] = retp[hash_dividep[j]];
     }
   }
-  return ret;
-}
-
-template <class T>
-std::vector<double> avg_helper(std::vector<T>& val,
-                               std::vector<size_t>& idx_split,
-                               std::vector<size_t>& nulls,
-                               std::vector<size_t>& newnulls) {
-  size_t splitsize = idx_split.size();
-  size_t nullssize = nulls.size();
-  std::vector<double> ret(splitsize-1);
-  T* valp = &val[0];
-  size_t* idx_splitp = &idx_split[0];
-  size_t* nullsp = &nulls[0];
-  double* retp = &ret[0];
+  // restore the null value
+  auto max = std::numeric_limits<T>::max();
+#pragma cdir nodep
+#pragma _NEC ivdep
   for(size_t i = 0; i < nullssize; i++) {
-    valp[nullsp[i]] = 0;
+    org_valp[nullsp[i]] = max;
   }
-#if defined(_SX) || defined(__ve__)
-  size_t valsize = val.size();
-  if(valsize / splitsize > GROUPBY_VLEN * 2) {
-    size_t end = 0;
-    size_t start = 0;
-    for(size_t i = 0; i < splitsize-1; i++) {
-      start = end;
-      end = idx_splitp[i+1];
-      T total = 0;
-      for(size_t j = start; j < end; j++) {
-        total += valp[j];
-      }
-      retp[i] = total;
-    }
-  } else { // for improving vectorization
-    size_t blocksize = (splitsize - 1) / GROUPBY_VLEN;
-    size_t remain = (splitsize - 1) % GROUPBY_VLEN;
-    size_t current_idx_splitp[GROUPBY_VLEN];
-    size_t idx_splitp_stop[GROUPBY_VLEN];
-    int valid[GROUPBY_VLEN];
-    for(size_t i = 0; i < blocksize + 1; i++) {
-      double* current_retp = retp + i * GROUPBY_VLEN;
-      size_t len = i < blocksize ? GROUPBY_VLEN : remain;
-      T current_work[len];
-      for(size_t j = 0; j < len; j++) {
-        current_idx_splitp[j] = idx_splitp[i * GROUPBY_VLEN + j];
-        idx_splitp_stop[j] = idx_splitp[i * GROUPBY_VLEN + j + 1];
-        valid[j] = true;
-        current_work[j] = 0;
-      }
-      size_t max_size = 0;
-      for(int k = 0; k < len; k++) {
-        auto current = idx_splitp_stop[k] - current_idx_splitp[k];
-        if(max_size < current) max_size = current;
-      }
-      for(size_t k = 0; k < max_size; k++) {
-#pragma cdir nodep
-#pragma _NEC ivdep
-        for(size_t j = 0; j < len; j++) {
-          if(valid[j]) {
-            current_work[j] += valp[current_idx_splitp[j]++];
-            if(current_idx_splitp[j] == idx_splitp_stop[j]) valid[j] = false;
-          }
-        }
-      }
-      for(size_t j = 0; j < len; j++) {
-        current_retp[j] = static_cast<double>(current_work[j]);
-      }
-    }
-  }
-#else  
-  size_t end = 0;
-  size_t start = 0;
-  for(size_t i = 0; i < splitsize-1; i++) {
-    start = end;
-    end = idx_splitp[i+1];
-    T total = 0;
-    for(size_t j = start; j < end; j++) {
-      total += valp[j];
-    }
-    retp[i] = static_cast<double>(total);
-  }
-#endif
-
-  auto count = count_helper(idx_split, nulls);
-  size_t zeros = 0;
-  size_t countsize = count.size();
-  size_t* countp = &count[0];
-  for(size_t i = 0; i < splitsize - 1; i++) {
-    if(countp[i] == 0) zeros++;
-    else {
-      retp[i] /= countp[i];
-    }
-  }
-  newnulls.resize(zeros);
-  size_t* newnullsp = &newnulls[0];
-  size_t current = 0;
-  for(size_t i = 0; i < countsize; i++) {
-    if(countp[i] == 0) newnullsp[current++] = i;
-  }
-  for(size_t i = 0; i < zeros; i++) {
-    retp[newnullsp[i]] = std::numeric_limits<T>::max();
-  }
-
-  return ret;
+  return hashed_ret;
 }
 
 template <class T>
-std::vector<T> max_helper(std::vector<T>& val,
-                          std::vector<size_t>& idx_split,
-                          std::vector<size_t>& nulls,
-                          std::vector<size_t>& newnulls) {
-  size_t splitsize = idx_split.size();
+void group_by_vector_max_helper
+(const std::vector<T>& val,
+ const std::vector<size_t>& split_idx,
+ std::vector<T>& ret) {
+  auto valp = val.data();
+  auto split_idxp = split_idx.data();
+  size_t size = val.size();
+  if(size == 0) return;
+  int valid[GROUPBY_VLEN];
+  for(int i = 0; i < GROUPBY_VLEN; i++) valid[i] = true;
+  size_t val_idx[GROUPBY_VLEN];
+  size_t val_idx_stop[GROUPBY_VLEN];
+  size_t out_idx[GROUPBY_VLEN];
+  size_t next_group_idx[GROUPBY_VLEN];
+  T current_val[GROUPBY_VLEN];
+  size_t group_size = split_idx.size() - 1;
+  auto retp = ret.data();
+
+  size_t each = ceil_div(size, size_t(GROUPBY_VLEN));
+  if(each % 2 == 0) each++;
+  auto start_it = split_idx.begin();
+  for(size_t i = 0; i < GROUPBY_VLEN; i++) {
+    start_it = std::lower_bound(start_it, split_idx.end()-1, each * i);
+    if(start_it == split_idx.end()-1) {
+      val_idx[i] = size;
+      out_idx[i] = group_size;
+      next_group_idx[i] = size;
+    } else {
+      val_idx[i] = *start_it;
+      out_idx[i] = start_it - split_idx.begin();
+      next_group_idx[i] = split_idxp[out_idx[i]+1];
+    }
+  }
+  for(int i = 0; i < GROUPBY_VLEN - 1; i++) {
+    val_idx_stop[i] = val_idx[i + 1];
+  }
+  val_idx_stop[GROUPBY_VLEN-1] = size;
+  for(size_t i = 0; i < GROUPBY_VLEN; i++) {
+    if(val_idx[i]  == val_idx_stop[i]) {
+      valid[i] = false;
+      out_idx[i] = group_size;
+    }
+    else valid[i] = true;
+  }
+  size_t max_size = 0;
+  for(int i = 0; i < GROUPBY_VLEN; i++) {
+    auto current = val_idx_stop[i] - val_idx[i];
+    if(max_size < current) max_size = current;
+  }
+  auto min = std::numeric_limits<T>::min();
+  for(size_t i = 0; i < GROUPBY_VLEN; i++) current_val[i] = min; // max
+
+  auto shift_split_idxp = split_idxp + 1;
+  for(size_t j = 0; j < max_size; j++) {
+#pragma cdir nodep
+#pragma _NEC ivdep
+    for(int i = 0; i < GROUPBY_VLEN; i++) {
+      if(valid[i]) {
+        if(val_idx[i] == next_group_idx[i]) {
+          retp[out_idx[i]++] = current_val[i];
+          current_val[i] = min; // max
+          next_group_idx[i] = shift_split_idxp[out_idx[i]];
+        }
+        if(current_val[i] < valp[val_idx[i]])
+          current_val[i] = valp[val_idx[i]]; // max
+        val_idx[i]++;
+        if(val_idx[i] == val_idx_stop[i]) {valid[i] = false;}
+      }
+    }
+  }
+#pragma cdir nodep
+#pragma _NEC ivdep
+  for(int i = 0; i < GROUPBY_VLEN; i++) {
+    if(out_idx[i] != group_size) {
+      retp[out_idx[i]] = current_val[i];
+    }
+  }
+}
+
+template <class T>
+std::vector<std::vector<T>>
+max_helper(std::vector<T>& org_val,
+           std::vector<size_t>& grouped_idx,
+           std::vector<size_t>& idx_split,
+           std::vector<std::vector<size_t>>& hash_divide,
+           std::vector<size_t>& nulls) {
+  T* org_valp = org_val.data();
+  size_t* nullsp = nulls.data();
   size_t nullssize = nulls.size();
-  std::vector<T> ret(splitsize-1);
-  T* valp = &val[0];
-  size_t* idx_splitp = &idx_split[0];
-  size_t* nullsp = &nulls[0];
-  T* retp = &ret[0];
+  auto min = std::numeric_limits<T>::min();
+#pragma cdir nodep
+#pragma _NEC ivdep
   for(size_t i = 0; i < nullssize; i++) {
-    valp[nullsp[i]] = std::numeric_limits<T>::min();
+    org_valp[nullsp[i]] = min;
   }
+  size_t valsize = org_val.size();
+  std::vector<T> val(valsize);
+  auto valp = val.data();
+  auto grouped_idxp = grouped_idx.data();
+#pragma cdir nodep
+#pragma _NEC ivdep
+  for(size_t i = 0; i < valsize; i++) {
+    valp[i] = org_valp[grouped_idxp[i]];
+  }
+  size_t splitsize = idx_split.size();
+  std::vector<T> ret(splitsize-1);
+  auto retp = ret.data();
+  size_t* idx_splitp = idx_split.data();
 #if defined(_SX) || defined(__ve__)
-  size_t valsize = val.size();
   if(valsize / splitsize > GROUPBY_VLEN * 2) {
     size_t end = 0;
     size_t start = 0;
     for(size_t i = 0; i < splitsize-1; i++) {
       start = end;
       end = idx_splitp[i+1];
-      T total = 0;
+      T max = std::numeric_limits<T>::min();
       for(size_t j = start; j < end; j++) {
-        total += valp[j];
+        if(max < valp[j]) max = valp[j];
       }
-      retp[i] = total;
+      retp[i] = max;
     }
-  } else { // for improving vectorization
-    size_t blocksize = (splitsize - 1) / GROUPBY_VLEN;
-    size_t remain = (splitsize - 1) % GROUPBY_VLEN;
-    size_t current_idx_splitp[GROUPBY_VLEN];
-    size_t idx_splitp_stop[GROUPBY_VLEN];
-    T* current_retp;
-    int valid[GROUPBY_VLEN];
-    for(size_t i = 0; i < blocksize + 1; i++) {
-      current_retp = retp + i * GROUPBY_VLEN;
-      size_t len = i < blocksize ? GROUPBY_VLEN : remain;
-      for(size_t j = 0; j < len; j++) {
-        current_idx_splitp[j] = idx_splitp[i * GROUPBY_VLEN + j];
-        idx_splitp_stop[j] = idx_splitp[i * GROUPBY_VLEN + j + 1];
-        current_retp[j] = std::numeric_limits<T>::min();
-        valid[j] = true;
-      }
-      size_t max_size = 0;
-      for(int k = 0; k < len; k++) {
-        auto current = idx_splitp_stop[k] - current_idx_splitp[k];
-        if(max_size < current) max_size = current;
-      }
-      for(size_t k = 0; k < max_size; k++) {
-#pragma cdir nodep
-#pragma _NEC ivdep
-        for(size_t j = 0; j < len; j++) {
-          if(valid[j]) {
-            T valtmp = valp[current_idx_splitp[j]++];
-            if(current_retp[j] < valtmp) current_retp[j] = valtmp;
-            if(current_idx_splitp[j] == idx_splitp_stop[j]) valid[j] = false;
-          }
-        }
-      }
-    }
+  } else {
+    group_by_vector_max_helper(val, idx_split, ret);
   }
 #else  
   size_t end = 0;
@@ -908,93 +850,150 @@ std::vector<T> max_helper(std::vector<T>& val,
   for(size_t i = 0; i < splitsize-1; i++) {
     start = end;
     end = idx_splitp[i+1];
-    T current_max = std::numeric_limits<T>::min();
+    T max = std::numeric_limits<T>::min();
     for(size_t j = start; j < end; j++) {
-      if(current_max < valp[j]) current_max = valp[j];
+      if(max < valp[j]) max = valp[j];
     }
-    retp[i] = current_max;
+    retp[i] = max;
   }
 #endif
-  if(nullssize != 0) {
-    auto count = count_helper(idx_split, nulls);
-    size_t zeros = 0;
-    size_t countsize = count.size();
-    size_t* countp = &count[0];
-    for(size_t i = 0; i < countsize; i++) {
-      if(countp[i] == 0) zeros++;
-    }
-    newnulls.resize(zeros);
-    size_t* newnullsp = &newnulls[0];
-    size_t current = 0;
-    for(size_t i = 0; i < countsize; i++) {
-      if(countp[i] == 0) newnullsp[current++] = i;
-    }
-    for(size_t i = 0; i < zeros; i++) {
-      retp[newnullsp[i]] = std::numeric_limits<T>::max();
+  auto nodesize = hash_divide.size();
+  std::vector<std::vector<T>> hashed_ret(nodesize);
+  for(size_t i = 0; i < nodesize; i++) {
+    auto each_size = hash_divide[i].size();
+    hashed_ret[i].resize(each_size);
+    auto hash_dividep = hash_divide[i].data();
+    auto hashed_retp = hashed_ret[i].data();
+    for(size_t j = 0; j < each_size; j++) {
+      hashed_retp[j] = retp[hash_dividep[j]];
     }
   }
-  return ret;
+  // restore the null value
+  auto max = std::numeric_limits<T>::max();
+#pragma cdir nodep
+#pragma _NEC ivdep
+  for(size_t i = 0; i < nullssize; i++) {
+    org_valp[nullsp[i]] = max;
+  }
+  return hashed_ret;
 }
 
 template <class T>
-std::vector<T> min_helper(std::vector<T>& val,
-                          std::vector<size_t>& idx_split,
-                          std::vector<size_t>& nulls,
-                          std::vector<size_t>& newnulls) {
+void group_by_vector_min_helper
+(const std::vector<T>& val,
+ const std::vector<size_t>& split_idx,
+ std::vector<T>& ret) {
+  auto valp = val.data();
+  auto split_idxp = split_idx.data();
+  size_t size = val.size();
+  if(size == 0) return;
+  int valid[GROUPBY_VLEN];
+  for(int i = 0; i < GROUPBY_VLEN; i++) valid[i] = true;
+  size_t val_idx[GROUPBY_VLEN];
+  size_t val_idx_stop[GROUPBY_VLEN];
+  size_t out_idx[GROUPBY_VLEN];
+  size_t next_group_idx[GROUPBY_VLEN];
+  T current_val[GROUPBY_VLEN];
+  size_t group_size = split_idx.size() - 1;
+  auto retp = ret.data();
+
+  size_t each = ceil_div(size, size_t(GROUPBY_VLEN));
+  if(each % 2 == 0) each++;
+  auto start_it = split_idx.begin();
+  for(size_t i = 0; i < GROUPBY_VLEN; i++) {
+    start_it = std::lower_bound(start_it, split_idx.end()-1, each * i);
+    if(start_it == split_idx.end()-1) {
+      val_idx[i] = size;
+      out_idx[i] = group_size;
+      next_group_idx[i] = size;
+    } else {
+      val_idx[i] = *start_it;
+      out_idx[i] = start_it - split_idx.begin();
+      next_group_idx[i] = split_idxp[out_idx[i]+1];
+    }
+  }
+  for(int i = 0; i < GROUPBY_VLEN - 1; i++) {
+    val_idx_stop[i] = val_idx[i + 1];
+  }
+  val_idx_stop[GROUPBY_VLEN-1] = size;
+  for(size_t i = 0; i < GROUPBY_VLEN; i++) {
+    if(val_idx[i]  == val_idx_stop[i]) {
+      valid[i] = false;
+      out_idx[i] = group_size;
+    }
+    else valid[i] = true;
+  }
+  size_t max_size = 0;
+  for(int i = 0; i < GROUPBY_VLEN; i++) {
+    auto current = val_idx_stop[i] - val_idx[i];
+    if(max_size < current) max_size = current;
+  }
+  auto max = std::numeric_limits<T>::max();
+  for(size_t i = 0; i < GROUPBY_VLEN; i++) current_val[i] = max; // min
+
+  auto shift_split_idxp = split_idxp + 1;
+  for(size_t j = 0; j < max_size; j++) {
+#pragma cdir nodep
+#pragma _NEC ivdep
+    for(int i = 0; i < GROUPBY_VLEN; i++) {
+      if(valid[i]) {
+        if(val_idx[i] == next_group_idx[i]) {
+          retp[out_idx[i]++] = current_val[i];
+          current_val[i] = max; // min
+          next_group_idx[i] = shift_split_idxp[out_idx[i]];
+        }
+        if(current_val[i] > valp[val_idx[i]])
+          current_val[i] = valp[val_idx[i]]; // min
+        val_idx[i]++;
+        if(val_idx[i] == val_idx_stop[i]) {valid[i] = false;}
+      }
+    }
+  }
+#pragma cdir nodep
+#pragma _NEC ivdep
+  for(int i = 0; i < GROUPBY_VLEN; i++) {
+    if(out_idx[i] != group_size) {
+      retp[out_idx[i]] = current_val[i];
+    }
+  }
+}
+
+template <class T>
+std::vector<std::vector<T>>
+min_helper(std::vector<T>& org_val,
+           std::vector<size_t>& grouped_idx,
+           std::vector<size_t>& idx_split,
+           std::vector<std::vector<size_t>>& hash_divide,
+           std::vector<size_t>& nulls) {
+  T* org_valp = org_val.data();
+  size_t valsize = org_val.size();
+  std::vector<T> val(valsize);
+  auto valp = val.data();
+  auto grouped_idxp = grouped_idx.data();
+#pragma cdir nodep
+#pragma _NEC ivdep
+  for(size_t i = 0; i < valsize; i++) {
+    valp[i] = org_valp[grouped_idxp[i]];
+  }
   size_t splitsize = idx_split.size();
-  size_t nullssize = nulls.size();
   std::vector<T> ret(splitsize-1);
-  T* valp = &val[0];
-  size_t* idx_splitp = &idx_split[0];
-  T* retp = &ret[0];
-  // null part of val is already max; do nothing
+  auto retp = ret.data();
+  size_t* idx_splitp = idx_split.data();
 #if defined(_SX) || defined(__ve__)
-  size_t valsize = val.size();
   if(valsize / splitsize > GROUPBY_VLEN * 2) {
     size_t end = 0;
     size_t start = 0;
     for(size_t i = 0; i < splitsize-1; i++) {
       start = end;
       end = idx_splitp[i+1];
-      T total = 0;
+      T min = std::numeric_limits<T>::max();
       for(size_t j = start; j < end; j++) {
-        total += valp[j];
+        if(min > valp[j]) min = valp[j];
       }
-      retp[i] = total;
+      retp[i] = min;
     }
-  } else { // for improving vectorization
-    size_t blocksize = (splitsize - 1) / GROUPBY_VLEN;
-    size_t remain = (splitsize - 1) % GROUPBY_VLEN;
-    size_t current_idx_splitp[GROUPBY_VLEN];
-    size_t idx_splitp_stop[GROUPBY_VLEN];
-    T* current_retp;
-    int valid[GROUPBY_VLEN];
-    for(size_t i = 0; i < blocksize + 1; i++) {
-      current_retp = retp + i * GROUPBY_VLEN;
-      size_t len = i < blocksize ? GROUPBY_VLEN : remain;
-      for(size_t j = 0; j < len; j++) {
-        current_idx_splitp[j] = idx_splitp[i * GROUPBY_VLEN + j];
-        idx_splitp_stop[j] = idx_splitp[i * GROUPBY_VLEN + j + 1];
-        current_retp[j] = std::numeric_limits<T>::max();
-        valid[j] = true;
-      }
-      size_t max_size = 0;
-      for(int k = 0; k < len; k++) {
-        auto current = idx_splitp_stop[k] - current_idx_splitp[k];
-        if(max_size < current) max_size = current;
-      }
-      for(size_t k = 0; k < max_size; k++) {
-#pragma cdir nodep
-#pragma _NEC ivdep
-        for(size_t j = 0; j < len; j++) {
-          if(valid[j]) {
-            T valtmp = valp[current_idx_splitp[j]++];
-            if(current_retp[j] > valtmp) current_retp[j] = valtmp;
-            if(current_idx_splitp[j] == idx_splitp_stop[j]) valid[j] = false;
-          }
-        }
-      }
-    }
+  } else {
+    group_by_vector_min_helper(val, idx_split, ret);
   }
 #else  
   size_t end = 0;
@@ -1002,32 +1001,25 @@ std::vector<T> min_helper(std::vector<T>& val,
   for(size_t i = 0; i < splitsize-1; i++) {
     start = end;
     end = idx_splitp[i+1];
-    T current_min = std::numeric_limits<T>::max();
+    T min = std::numeric_limits<T>::max();
     for(size_t j = start; j < end; j++) {
-      if(current_min > valp[j]) current_min = valp[j];
+      if(min > valp[j]) min = valp[j];
     }
-    retp[i] = current_min;
+    retp[i] = min;
   }
 #endif
-  if(nullssize != 0) {
-    auto count = count_helper(idx_split, nulls);
-    size_t zeros = 0;
-    size_t countsize = count.size();
-    size_t* countp = &count[0];
-    for(size_t i = 0; i < countsize; i++) {
-      if(countp[i] == 0) zeros++;
-    }
-    newnulls.resize(zeros);
-    size_t* newnullsp = &newnulls[0];
-    size_t current = 0;
-    for(size_t i = 0; i < countsize; i++) {
-      if(countp[i] == 0) newnullsp[current++] = i;
-    }
-    for(size_t i = 0; i < zeros; i++) {
-      retp[newnullsp[i]] = std::numeric_limits<T>::max();
+  auto nodesize = hash_divide.size();
+  std::vector<std::vector<T>> hashed_ret(nodesize);
+  for(size_t i = 0; i < nodesize; i++) {
+    auto each_size = hash_divide[i].size();
+    hashed_ret[i].resize(each_size);
+    auto hash_dividep = hash_divide[i].data();
+    auto hashed_retp = hashed_ret[i].data();
+    for(size_t j = 0; j < each_size; j++) {
+      hashed_retp[j] = retp[hash_dividep[j]];
     }
   }
-  return ret;
+  return hashed_ret;
 }
 
 template <class T>
@@ -1037,12 +1029,20 @@ T sum_helper2(std::vector<T>& val,
   size_t nullssize = nulls.size();
   T* valp = &val[0];
   size_t* nullsp = &nulls[0];
+#pragma cdir nodep
+#pragma _NEC ivdep
   for(size_t i = 0; i < nullssize; i++) {
     valp[nullsp[i]] = 0;
   }
   T total = 0;
   for(size_t i = 0; i < valsize; i++) {
     total += valp[i];
+  }
+  T max = std::numeric_limits<T>::max();
+#pragma cdir nodep
+#pragma _NEC ivdep
+  for(size_t i = 0; i < nullssize; i++) {
+    valp[nullsp[i]] = max;
   }
   return total;
 }
@@ -1054,12 +1054,21 @@ T max_helper2(std::vector<T>& val,
   size_t nullssize = nulls.size();
   T* valp = &val[0];
   size_t* nullsp = &nulls[0];
+  T min = std::numeric_limits<T>::min();
+#pragma cdir nodep
+#pragma _NEC ivdep
   for(size_t i = 0; i < nullssize; i++) {
-    valp[nullsp[i]] = std::numeric_limits<T>::min();
+    valp[nullsp[i]] = min;
   }
   T current_max = std::numeric_limits<T>::min();
   for(size_t i = 0; i < valsize; i++) {
     if(current_max < valp[i]) current_max = valp[i];
+  }
+  T max = std::numeric_limits<T>::max();
+#pragma cdir nodep
+#pragma _NEC ivdep
+  for(size_t i = 0; i < nullssize; i++) {
+    valp[nullsp[i]] = max;
   }
   return current_max;
 }
@@ -1583,29 +1592,225 @@ typed_dfcolumn<T>::append_nulls(node_local<std::vector<size_t>>& to_append) {
   contain_nulls = true;
 }
 
+void create_merge_map(std::vector<size_t>& nodeid,
+                      std::vector<size_t>& split,
+                      std::vector<std::vector<size_t>>& merge_map);
+
+#if defined(_SX) || defined(__ve__)
+// loop raking version
 template <class T>
-node_local<std::vector<size_t>> 
-typed_dfcolumn<T>::calc_hash_base() {
-  return val.map(calc_hash_base_helper<T>);
+std::vector<size_t> find_value(std::vector<T>& val, T tofind) {
+  auto size = val.size();
+  if(size == 0) return std::vector<size_t>();
+  auto vp = val.data();
+  std::vector<size_t> idxtmp(size);
+  auto idxtmpp = idxtmp.data();
+  size_t each = size / FIND_VALUE_VLEN; // maybe 0
+  if(each % 2 == 0 && each > 1) each--;
+  size_t rest = size - each * FIND_VALUE_VLEN;
+  size_t out_ridx[FIND_VALUE_VLEN];
+// never remove this vreg! this is needed folowing vovertake
+// though this prevents ftrace...
+#pragma _NEC vreg(out_ridx)
+  for(size_t i = 0; i < FIND_VALUE_VLEN; i++) {
+    out_ridx[i] = each * i;
+  }
+  if(each == 0) {
+    size_t current = 0;
+    for(size_t i = 0; i < size; i++) {
+      if(vp[i] == tofind) {
+        idxtmpp[current] = i;
+        current++;
+      }
+    }
+    std::vector<size_t> found(current);
+    auto foundp = found.data();
+    for(size_t i = 0; i < current; i++) {
+      foundp[i] = idxtmpp[i];
+    }
+    return found;
+  } else {
+#pragma _NEC vob
+    for(size_t j = 0; j < each; j++) {
+#pragma cdir nodep
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+      for(size_t i = 0; i < FIND_VALUE_VLEN; i++) {
+        auto loaded_v = vp[j + each * i];
+        if(loaded_v == tofind) {
+          idxtmpp[out_ridx[i]] = j + each * i;
+          out_ridx[i]++;
+        }
+      }
+    }
+    size_t rest_idx_start = each * FIND_VALUE_VLEN;
+    size_t rest_idx = rest_idx_start;
+    if(rest != 0) {
+      for(size_t j = 0; j < rest; j++) {
+        auto loaded_v = vp[j + rest_idx_start]; 
+        if(loaded_v == tofind) {
+          idxtmpp[rest_idx] = j + rest_idx_start;
+          rest_idx++;
+        }
+      }
+    }
+    size_t sizes[FIND_VALUE_VLEN];
+    for(size_t i = 0; i < FIND_VALUE_VLEN; i++) {
+      sizes[i] = out_ridx[i] - each * i;
+    }
+    size_t total = 0;
+    for(size_t i = 0; i < FIND_VALUE_VLEN; i++) {
+      total += sizes[i];
+    }
+    size_t rest_size = rest_idx - each * FIND_VALUE_VLEN;
+    total += rest_size;
+    std::vector<size_t> found(total);
+    auto foundp = found.data();
+    size_t current = 0;
+    for(size_t i = 0; i < FIND_VALUE_VLEN; i++) {
+      for(size_t j = 0; j < sizes[i]; j++) {
+        foundp[current + j] = idxtmpp[each * i + j];
+      }
+      current += sizes[i];
+    }
+    for(size_t j = 0; j < rest_size; j++) {
+      foundp[current + j] = idxtmpp[rest_idx_start + j];
+    }
+    return found;
+  }
+}
+#else
+template <class T>
+std::vector<size_t> find_value(std::vector<T>& val, T tofind) {
+  auto size = val.size();
+  auto vp = val.data();
+  if(size == 0) return std::vector<size_t>();
+  std::vector<size_t> idxtmp(size);
+  auto idxtmpp = idxtmp.data();
+  size_t current = 0;
+  for(size_t i = 0; i < size; i++) {
+    if(vp[i] == tofind) {
+      idxtmpp[current] = i;
+      current++;
+    }
+  }
+  std::vector<size_t> found(current);
+  auto foundp = found.data();
+  for(size_t i = 0; i < current; i++) {
+    foundp[i] = idxtmpp[i];
+  }
+  return found;
+}
+#endif
+
+template <class T>
+void group_by_impl(node_local<std::vector<T>>& val,
+                   node_local<std::vector<size_t>>& nulls,
+                   node_local<std::vector<size_t>>& local_idx,
+                   node_local<std::vector<size_t>>& split_idx,
+                   node_local<std::vector<std::vector<size_t>>>& hash_divide,
+                   node_local<std::vector<std::vector<size_t>>>& merge_map,
+                   node_local<std::vector<T>>& retval,
+                   node_local<std::vector<size_t>>& retnulls) {
+  auto hashsplit_group = val.map
+    (+[](std::vector<T>& val,
+         std::vector<size_t>& idx,
+         std::vector<size_t>& split,
+         std::vector<std::vector<size_t>>& hash_divide) {
+      // null is also used, so extract is not used
+      auto valp = val.data();
+      auto idxp = idx.data();
+      auto size = idx.size();
+      std::vector<T> newval(size);
+      auto newvalp = newval.data();
+      for(size_t i = 0; i < size; i++) {newvalp[i] = valp[idxp[i]];}
+      radix_sort(newvalp, idxp, size); 
+      split = set_separate(newval);
+      auto split_size = split.size();
+      std::vector<T> group(split_size-1);
+      auto groupp = group.data();
+      auto splitp = split.data();
+      for(size_t i = 0; i < split_size-1; i++) {
+        groupp[i] = newvalp[splitp[i]];
+      }
+      std::vector<size_t> iota(split_size-1);
+      for(size_t i = 0; i < split_size-1; i++) iota[i] = i;
+      std::vector<std::vector<T>> hashsplit_group;
+      split_by_hash(group, hashsplit_group, iota, hash_divide);
+      return hashsplit_group;
+    }, local_idx, split_idx, hash_divide);
+  auto exchanged_group = alltoall_exchange(hashsplit_group);
+  retval = exchanged_group.map
+    (+[](std::vector<std::vector<T>>& exchanged_group,
+         std::vector<std::vector<size_t>>& merge_map,
+         std::vector<size_t>& nulls) {
+      size_t nodesize = exchanged_group.size();
+      size_t total = 0;
+      for(size_t i = 0; i < nodesize; i++) {
+        total += exchanged_group[i].size();
+      }
+      std::vector<size_t> nodeid(total);
+      auto nodeidp = nodeid.data();
+      size_t current = 0;
+      for(size_t i = 0; i < nodesize; i++) {
+        auto current_size = exchanged_group[i].size();
+        for(size_t j = 0; j < current_size; j++) {
+          nodeidp[current + j] = i;
+        }
+        current += current_size;
+      }
+      auto flat_exchanged_group = flatten(exchanged_group);
+      auto flat_exchanged_groupp = flat_exchanged_group.data();
+      radix_sort(flat_exchanged_groupp, nodeidp, total);
+      auto sep = set_separate(flat_exchanged_group);
+      merge_map.resize(nodesize);
+      for(size_t i = 0; i < nodesize; i++) {
+        merge_map[i].resize(exchanged_group[i].size());
+      }
+      create_merge_map(nodeid, sep, merge_map);
+      auto sepsize = sep.size();
+      std::vector<T> retval(sepsize-1);
+      auto retvalp = retval.data();
+      auto sepp = sep.data();
+      for(size_t i = 0; i < sepsize-1; i++) {
+        retvalp[i] = flat_exchanged_groupp[sepp[i]];
+      }
+      if(sepsize > 1 && // there is data and at least one group
+         retvalp[sepp[sepsize-2]] == std::numeric_limits<T>::max()) {
+        nulls.resize(1);
+        nulls[0] = sepsize-2;
+      }
+      return retval;
+    }, merge_map, retnulls);
 }
 
 template <class T>
-void 
-typed_dfcolumn<T>::calc_hash_base(node_local<std::vector<size_t>>& hash_base,
-                                  int shift) {
-    val.mapv(calc_hash_base_helper2<T>(shift), hash_base);
+std::shared_ptr<dfcolumn>
+typed_dfcolumn<T>::group_by
+(node_local<std::vector<size_t>>& local_idx,
+ node_local<std::vector<size_t>>& split_idx,
+ node_local<std::vector<std::vector<size_t>>>& hash_divide,
+ node_local<std::vector<std::vector<size_t>>>& merge_map) {
+  auto ret = std::make_shared<typed_dfcolumn<T>>();
+  ret->nulls = make_node_local_allocate<std::vector<size_t>>();
+  group_by_impl(val, nulls, local_idx, split_idx, hash_divide, merge_map,
+                ret->val, ret->nulls);
+  ret->contain_nulls_check();
+  return ret;
 }
 
 template <class T>
-node_local<std::vector<size_t>>
-typed_dfcolumn<T>::group_by(node_local<std::vector<size_t>>& global_idx) {
-  auto split_val = make_node_local_allocate<std::vector<std::vector<T>>>();
-  auto split_idx =
-    make_node_local_allocate<std::vector<std::vector<size_t>>>();
-  val.mapv(split_by_hash<T>, split_val, global_idx, split_idx);
-  auto exchanged_idx = alltoall_exchange(split_idx);
-  auto exchanged_val = alltoall_exchange(split_val);
-  return exchanged_val.map(group_by_helper<T>, exchanged_idx, global_idx);
+void multi_group_by_sort_helper(std::vector<T>& val,
+                                std::vector<size_t>& local_idx) {
+  size_t size = local_idx.size();
+  std::vector<T> val2(size);
+  T* valp = &val[0];
+  T* val2p = &val2[0];
+  size_t* local_idxp = &local_idx[0];
+  for(size_t i = 0; i < size; i++) {
+    val2p[i] = valp[local_idxp[i]];
+  }
+  radix_sort(val2p, local_idxp, size);
 }
 
 template <class T>
@@ -1616,109 +1821,425 @@ typed_dfcolumn<T>::multi_group_by_sort
 }
 
 template <class T>
+std::vector<size_t> 
+multi_group_by_sort_split_helper(std::vector<T>& val,
+                                 std::vector<size_t>& local_idx) {
+  size_t size = local_idx.size();
+  std::vector<T> val2(size);
+  T* valp = &val[0];
+  T* val2p = &val2[0];
+  size_t* local_idxp = &local_idx[0];
+  for(size_t i = 0; i < size; i++) {
+    val2p[i] = valp[local_idxp[i]];
+  }
+  radix_sort(val2p, local_idxp, size);
+  return set_separate(val2);
+}
+
+template <class T>
+node_local<std::vector<size_t>>
+typed_dfcolumn<T>::multi_group_by_sort_split
+(node_local<std::vector<size_t>>& local_idx) {
+  return val.map(multi_group_by_sort_split_helper<T>, local_idx);
+}
+
+template <class T>
+std::vector<size_t>
+multi_group_by_split_helper(std::vector<T>& val,
+                            std::vector<size_t>& local_idx) {
+  size_t size = local_idx.size();
+  std::vector<T> val2(size);
+  T* valp = &val[0];
+  T* val2p = &val2[0];
+  size_t* local_idxp = &local_idx[0];
+  for(size_t i = 0; i < size; i++) {
+    val2p[i] = valp[local_idxp[i]];
+  }
+  return set_separate(val2);
+}
+
+template <class T>
 node_local<std::vector<size_t>>
 typed_dfcolumn<T>::multi_group_by_split
 (node_local<std::vector<size_t>>& local_idx) {
-    return val.map(multi_group_by_split_helper<T>, local_idx);
+  return val.map(multi_group_by_split_helper<T>, local_idx);
 }
+
+template <class T>
+std::vector<T>
+multi_group_by_extract_helper(std::vector<T>& val,
+                              std::vector<size_t>& local_idx,
+                              std::vector<size_t>& split_idx) {
+  auto valp = val.data();
+  auto local_idxp = local_idx.data();
+  auto split_idxp = split_idx.data();
+  auto size = split_idx.size();
+  std::vector<T> ret(size-1);
+  auto retp = ret.data();
+  for(size_t i = 0; i < size-1; i++) {
+    retp[i] = valp[local_idxp[split_idxp[i]]];
+  }
+  return ret;
+}
+
+template <class T>
+std::shared_ptr<dfcolumn>
+typed_dfcolumn<T>::multi_group_by_extract
+(node_local<std::vector<size_t>>& local_idx,
+ node_local<std::vector<size_t>>& split_idx,
+ bool check_nulls) {
+  auto ret = std::make_shared<typed_dfcolumn<T>>();
+  ret->val = val.map(multi_group_by_extract_helper<T>, local_idx, split_idx);
+  ret->contain_nulls = contain_nulls;
+  if(contain_nulls && check_nulls) {
+    ret->nulls = ret->val.map(+[](std::vector<T>& val) {
+        return find_value(val, std::numeric_limits<T>::max());
+      });
+  } else {
+    ret->nulls = make_node_local_allocate<std::vector<size_t>>();
+  }
+  return ret;
+}
+
+template <class T>
+std::vector<size_t> calc_hash_base_helper(std::vector<T>& val) {
+  size_t size = val.size();
+  std::vector<size_t> ret(size);
+  T* valp = &val[0];
+  size_t* retp = &ret[0];
+  for(size_t i = 0; i < size; i++) {
+    retp[i] = static_cast<size_t>(valp[i]);
+  }
+  return ret;
+}
+
+template <class T>
+node_local<std::vector<size_t>> 
+typed_dfcolumn<T>::calc_hash_base() {
+  return val.map(calc_hash_base_helper<T>);
+}
+
+template <class T>
+struct calc_hash_base_helper2 {
+  calc_hash_base_helper2(){}
+  calc_hash_base_helper2(int shift) : shift(shift) {}
+  void operator()(std::vector<T>& val, std::vector<size_t>& hash_base) {
+    size_t size = val.size();
+    std::vector<size_t> ret(size);
+    T* valp = &val[0];
+    size_t* hash_basep = &hash_base[0];
+    for(size_t i = 0; i < size; i++) {
+      hash_basep[i] = (hash_basep[i] << shift) + static_cast<size_t>(valp[i]);
+    }
+  }
+  int shift;
+  SERIALIZE(shift)
+};
+
+template <class T>
+void 
+typed_dfcolumn<T>::calc_hash_base(node_local<std::vector<size_t>>& hash_base,
+                                  int shift) {
+  val.mapv(calc_hash_base_helper2<T>(shift), hash_base);
+}
+
+template <class T>
+node_local<std::vector<T>>
+multi_group_by_exchange_helper
+(node_local<std::vector<T>>& val,
+ node_local<std::vector<std::vector<size_t>>>& hash_divide) {
+  auto tmp = val.map
+    (+[](std::vector<T>& val,
+         std::vector<std::vector<size_t>>& hash_divide) {
+      auto valp = val.data();
+      std::vector<std::vector<T>> ret(hash_divide.size());
+      for(size_t i = 0; i < hash_divide.size(); i++) {
+        auto size = hash_divide[i].size();
+        ret[i].resize(size);
+        auto retp = ret[i].data();
+        auto hash_dividep = hash_divide[i].data();
+        for(size_t j = 0; j < size; j++) {
+          retp[j] = valp[hash_dividep[j]];
+        }
+      }
+      return ret;
+    }, hash_divide);
+  auto exchanged = alltoall_exchange(tmp);
+  return exchanged.map(flatten<T>);
+}
+
+template <class T>
+std::shared_ptr<dfcolumn> 
+typed_dfcolumn<T>::multi_group_by_exchange
+(node_local<std::vector<std::vector<size_t>>>& hash_divide) {
+  auto ret = std::make_shared<typed_dfcolumn<T>>();
+  ret->val = multi_group_by_exchange_helper(val, hash_divide);
+  ret->nulls = make_node_local_allocate<std::vector<size_t>>();
+  ret->contain_nulls = contain_nulls;
+  return ret;
+}
+
+std::vector<std::vector<size_t>>
+count_helper(std::vector<size_t>& grouped_idx,
+             std::vector<size_t>& idx_split,
+             std::vector<std::vector<size_t>>& hash_divide,
+             std::vector<size_t>& nulls);
 
 template <class T>
 std::shared_ptr<dfcolumn>
 typed_dfcolumn<T>::sum
-(node_local<std::vector<size_t>>& grouped_idx,
- node_local<std::vector<size_t>>& idx_split,
- node_local<std::vector<std::vector<size_t>>>& partitioned_idx,
- node_local<std::vector<std::vector<size_t>>>& exchanged_idx) {
+(node_local<std::vector<size_t>>& local_grouped_idx,
+ node_local<std::vector<size_t>>& local_idx_split,
+ node_local<std::vector<std::vector<size_t>>>& hash_divide,
+ node_local<std::vector<std::vector<size_t>>>& merge_map,
+ node_local<size_t>& row_sizes) {
   auto ret = std::make_shared<typed_dfcolumn<T>>();
-  auto newcol = std::dynamic_pointer_cast<typed_dfcolumn<T>>
-    (global_extract(grouped_idx, partitioned_idx, exchanged_idx));
-  if(!newcol)
-    throw std::runtime_error("sum: internal error (dynamic_pointer_cast)");
   ret->nulls = make_node_local_allocate<std::vector<size_t>>();
-  ret->val = newcol->val.map(sum_helper<T>, idx_split, newcol->nulls,
-                             ret->nulls);
-  if(contain_nulls) ret->contain_nulls_check();
+  auto local_agg = val.map(sum_helper<T>, local_grouped_idx, local_idx_split,
+                           hash_divide, nulls);
+  auto exchanged = alltoall_exchange(local_agg);
+  auto newval = exchanged.map
+    (+[](std::vector<std::vector<T>>& exchanged,
+         std::vector<std::vector<size_t>>& merge_map,
+         size_t row_size) {
+      std::vector<T> newval(row_size);
+      auto newvalp = newval.data();
+      for(size_t i = 0; i < exchanged.size(); i++) {
+        auto currentp = exchanged[i].data();
+        auto current_size = exchanged[i].size();
+        auto merge_mapp = merge_map[i].data();
+#pragma cdir nodep
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+        for(size_t j = 0; j < current_size; j++) {
+          newvalp[merge_mapp[j]] += currentp[j];
+        }
+      }
+      return newval;
+    }, merge_map, row_sizes);
+  ret->val = std::move(newval);
+  if(contain_nulls) {
+    // in the case of sum, default value (= 0) cannot be used to check null
+    auto local_agg = local_grouped_idx.map(count_helper, local_idx_split,
+                                           hash_divide, nulls);
+    auto exchanged = alltoall_exchange(local_agg);
+    ret->nulls = exchanged.map
+      (+[](std::vector<std::vector<size_t>>& exchanged,
+           std::vector<std::vector<size_t>>& merge_map,
+           size_t row_size,
+           std::vector<T>& val) {
+        std::vector<size_t> newval(row_size);
+        auto newvalp = newval.data();
+        for(size_t i = 0; i < exchanged.size(); i++) {
+          auto currentp = exchanged[i].data();
+          auto current_size = exchanged[i].size();
+          auto merge_mapp = merge_map[i].data();
+#pragma cdir nodep
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+          for(size_t j = 0; j < current_size; j++) {
+            newvalp[merge_mapp[j]] += currentp[j];
+          }
+        }
+        auto retnulls = find_value(newval, size_t(0));
+        auto retnullsp = retnulls.data();
+        auto retnullssize = retnulls.size();
+        auto valp = val.data();
+        auto max = std::numeric_limits<T>::max();
+#pragma cdir nodep
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+        for(size_t i = 0; i < retnullssize; i++) {
+          valp[retnullsp[i]] = max;
+        }
+        return retnulls;
+      }, merge_map, row_sizes, ret->val);
+    ret->contain_nulls_check();
+  }
   return ret;
 }
+
+std::shared_ptr<dfcolumn>
+count_impl(node_local<std::vector<size_t>>& nulls,
+           node_local<std::vector<size_t>>& local_grouped_idx,
+           node_local<std::vector<size_t>>& local_idx_split,
+           node_local<std::vector<std::vector<size_t>>>& hash_divide,
+           node_local<std::vector<std::vector<size_t>>>& merge_map,
+           node_local<size_t>& row_sizes);
 
 template <class T>
 std::shared_ptr<dfcolumn>
 typed_dfcolumn<T>::count
-(node_local<std::vector<size_t>>& grouped_idx,
- node_local<std::vector<size_t>>& idx_split,
- node_local<std::vector<std::vector<size_t>>>& partitioned_idx,
- node_local<std::vector<std::vector<size_t>>>& exchanged_idx) {
-  auto newcol = std::dynamic_pointer_cast<typed_dfcolumn<T>>
-    (global_extract(grouped_idx, partitioned_idx, exchanged_idx));
-  if(!newcol)
-    throw std::runtime_error("count: internal error (dynamic_pointer_cast)");
-  auto retval = idx_split.map(count_helper, newcol->get_nulls());
-  auto retnulls = make_node_local_allocate<std::vector<size_t>>();
-  auto ret = std::make_shared<typed_dfcolumn<size_t>>();
-  ret->val = std::move(retval);
-  ret->nulls = std::move(retnulls);
-  return ret;
+(node_local<std::vector<size_t>>& local_grouped_idx,
+ node_local<std::vector<size_t>>& local_idx_split,
+ node_local<std::vector<std::vector<size_t>>>& hash_divide,
+ node_local<std::vector<std::vector<size_t>>>& merge_map,
+ node_local<size_t>& row_sizes) {
+  return count_impl(nulls, local_grouped_idx, local_idx_split,
+                    hash_divide, merge_map, row_sizes);
 }
 
 template <class T>
 std::shared_ptr<dfcolumn>
 typed_dfcolumn<T>::avg
-(node_local<std::vector<size_t>>& grouped_idx,
- node_local<std::vector<size_t>>& idx_split,
- node_local<std::vector<std::vector<size_t>>>& partitioned_idx,
- node_local<std::vector<std::vector<size_t>>>& exchanged_idx) {
-  auto newcol = std::dynamic_pointer_cast<typed_dfcolumn<T>>
-    (global_extract(grouped_idx, partitioned_idx, exchanged_idx));
-  if(!newcol)
-    throw std::runtime_error("avg: internal error (dynamic_pointer_cast)");
-  auto retnulls = make_node_local_allocate<std::vector<size_t>>();
-  auto retval = newcol->val.map(avg_helper<T>, idx_split, newcol->nulls,
-                                retnulls);
+(node_local<std::vector<size_t>>& local_grouped_idx,
+ node_local<std::vector<size_t>>& local_idx_split,
+ node_local<std::vector<std::vector<size_t>>>& hash_divide,
+ node_local<std::vector<std::vector<size_t>>>& merge_map,
+ node_local<size_t>& row_sizes) {
   auto ret = std::make_shared<typed_dfcolumn<double>>();
-  ret->val = std::move(retval);
-  ret->nulls = std::move(retnulls);
-  if(contain_nulls) ret->contain_nulls_check();
+  auto sum_column = std::dynamic_pointer_cast<typed_dfcolumn<T>>
+    (sum(local_grouped_idx, local_idx_split, hash_divide, merge_map,
+         row_sizes));
+  auto count_column = std::dynamic_pointer_cast<typed_dfcolumn<size_t>>
+    (count(local_grouped_idx, local_idx_split, hash_divide,
+           merge_map, row_sizes));
+  ret->val = sum_column->val.map
+    (+[](std::vector<T>& val, std::vector<size_t>& count) {
+      auto size = val.size();
+      auto valp = val.data();
+      auto countp = count.data();
+      std::vector<double> ret(size);
+      auto retp = ret.data();
+      for(size_t i = 0; i < size; i++) {
+        retp[i] =
+          static_cast<double>(valp[i]) / static_cast<double>(countp[i]);
+      }
+      return ret;
+    }, count_column->val);
+  if(sum_column->contain_nulls){
+    ret->nulls = sum_column->nulls;
+    ret->val.mapv
+      (+[](std::vector<double>& val, std::vector<size_t>& nulls) {
+        auto valp = val.data();
+        auto nullsp = nulls.data();
+        auto size = nulls.size();
+        auto max = std::numeric_limits<T>::max();
+#pragma cdir nodep
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+        for(size_t i = 0; i < size; i++) {
+          valp[nullsp[i]] = max;
+        }
+      }, ret->nulls);
+    ret->contain_nulls = true;
+  } else {
+    ret->nulls = make_node_local_allocate<std::vector<size_t>>();
+    ret->contain_nulls = false;
+  }
   return ret;
 }
 
 template <class T>
 std::shared_ptr<dfcolumn>
 typed_dfcolumn<T>::max
-(node_local<std::vector<size_t>>& grouped_idx,
- node_local<std::vector<size_t>>& idx_split,
- node_local<std::vector<std::vector<size_t>>>& partitioned_idx,
- node_local<std::vector<std::vector<size_t>>>& exchanged_idx) {
+(node_local<std::vector<size_t>>& local_grouped_idx,
+ node_local<std::vector<size_t>>& local_idx_split,
+ node_local<std::vector<std::vector<size_t>>>& hash_divide,
+ node_local<std::vector<std::vector<size_t>>>& merge_map,
+ node_local<size_t>& row_sizes) {
   auto ret = std::make_shared<typed_dfcolumn<T>>();
-  auto newcol = std::dynamic_pointer_cast<typed_dfcolumn<T>>
-    (global_extract(grouped_idx, partitioned_idx, exchanged_idx));
-  if(!newcol)
-    throw std::runtime_error("max: internal error (dynamic_pointer_cast)");
   ret->nulls = make_node_local_allocate<std::vector<size_t>>();
-  ret->val = newcol->val.map(max_helper<T>, idx_split, newcol->nulls,
-                             ret->nulls);
-  if(contain_nulls) ret->contain_nulls_check();
+  auto local_agg = val.map(max_helper<T>, local_grouped_idx, local_idx_split,
+                           hash_divide, nulls);
+  auto exchanged = alltoall_exchange(local_agg);
+  auto newval = exchanged.map
+    (+[](std::vector<std::vector<T>>& exchanged,
+         std::vector<std::vector<size_t>>& merge_map,
+         size_t row_size) {
+      std::vector<T> newval(row_size);
+      auto newvalp = newval.data();
+      auto min = std::numeric_limits<T>::min();
+      for(size_t i = 0; i < row_size; i++) {
+        newvalp[i] = min;
+      }
+      for(size_t i = 0; i < exchanged.size(); i++) {
+        auto currentp = exchanged[i].data();
+        auto current_size = exchanged[i].size();
+        auto merge_mapp = merge_map[i].data();
+#pragma cdir nodep
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+        for(size_t j = 0; j < current_size; j++) {
+          if(newvalp[merge_mapp[j]] < currentp[j])
+            newvalp[merge_mapp[j]] = currentp[j];
+        }
+      }
+      return newval;
+    }, merge_map, row_sizes);
+  ret->val = std::move(newval);
+  if(contain_nulls) {
+    ret->nulls = ret->val.map(+[](std::vector<T>& val) {
+        auto nulls = find_value(val, std::numeric_limits<T>::min());
+        auto valp = val.data();
+        auto nullsp = nulls.data();
+        auto size = nulls.size();
+#pragma cdir nodep
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+        for(size_t i = 0; i < size; i++)
+          valp[nullsp[i]] = std::numeric_limits<T>::max();
+        return nulls;
+      });
+    ret->contain_nulls_check();
+  }
   return ret;
 }
 
 template <class T>
 std::shared_ptr<dfcolumn>
 typed_dfcolumn<T>::min
-(node_local<std::vector<size_t>>& grouped_idx,
- node_local<std::vector<size_t>>& idx_split,
- node_local<std::vector<std::vector<size_t>>>& partitioned_idx,
- node_local<std::vector<std::vector<size_t>>>& exchanged_idx) {
+(node_local<std::vector<size_t>>& local_grouped_idx,
+ node_local<std::vector<size_t>>& local_idx_split,
+ node_local<std::vector<std::vector<size_t>>>& hash_divide,
+ node_local<std::vector<std::vector<size_t>>>& merge_map,
+ node_local<size_t>& row_sizes) {
   auto ret = std::make_shared<typed_dfcolumn<T>>();
-  auto newcol = std::dynamic_pointer_cast<typed_dfcolumn<T>>
-    (global_extract(grouped_idx, partitioned_idx, exchanged_idx));
-  if(!newcol)
-    throw std::runtime_error("min: internal error (dynamic_pointer_cast)");
   ret->nulls = make_node_local_allocate<std::vector<size_t>>();
-  ret->val = newcol->val.map(min_helper<T>, idx_split, newcol->nulls,
-                             ret->nulls);
-  if(contain_nulls) ret->contain_nulls_check();
+  auto local_agg = val.map(min_helper<T>, local_grouped_idx, local_idx_split,
+                           hash_divide, nulls);
+  auto exchanged = alltoall_exchange(local_agg);
+  auto newval = exchanged.map
+    (+[](std::vector<std::vector<T>>& exchanged,
+         std::vector<std::vector<size_t>>& merge_map,
+         size_t row_size) {
+      std::vector<T> newval(row_size);
+      auto newvalp = newval.data();
+      auto max = std::numeric_limits<T>::max();
+      for(size_t i = 0; i < row_size; i++) {
+        newvalp[i] = max;
+      }
+      for(size_t i = 0; i < exchanged.size(); i++) {
+        auto currentp = exchanged[i].data();
+        auto current_size = exchanged[i].size();
+        auto merge_mapp = merge_map[i].data();
+#pragma cdir nodep
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+        for(size_t j = 0; j < current_size; j++) {
+          if(newvalp[merge_mapp[j]] > currentp[j])
+            newvalp[merge_mapp[j]] = currentp[j];
+        }
+      }
+      return newval;
+    }, merge_map, row_sizes);
+  ret->val = std::move(newval);
+  if(contain_nulls) {
+    ret->nulls = ret->val.map(+[](std::vector<T>& val) {
+        return find_value(val, std::numeric_limits<T>::max());
+      });
+    ret->contain_nulls_check();
+  }
   return ret;
 }
- 
+
 template <class T>
 size_t typed_dfcolumn<T>::count() {
   size_t size = val.template viewas_dvector<T>().size();

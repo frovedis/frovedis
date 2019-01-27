@@ -6,56 +6,66 @@ namespace frovedis {
 std::shared_ptr<dfcolumn> 
 dfaggregator_sum::
 aggregate(dftable_base& table,
-          node_local<std::vector<size_t>>& grouped_idx,
-          node_local<std::vector<size_t>>& idx_split,
-          node_local<std::vector<std::vector<size_t>>>& partitioned_idx,
-          node_local<std::vector<std::vector<size_t>>>& exchanged_idx) {
+          node_local<std::vector<size_t>>& local_grouped_idx,
+          node_local<std::vector<size_t>>& local_idx_split,
+          node_local<std::vector<std::vector<size_t>>>& hash_divide,
+          node_local<std::vector<std::vector<size_t>>>& merge_map,
+          node_local<size_t>& row_sizes) {
   auto colp = table.column(col);
-  return colp->sum(grouped_idx, idx_split, partitioned_idx, exchanged_idx);
+  return colp->sum(local_grouped_idx, local_idx_split, hash_divide,
+                   merge_map, row_sizes);
 }
 
 std::shared_ptr<dfcolumn> 
 dfaggregator_count::
 aggregate(dftable_base& table,
-          node_local<std::vector<size_t>>& grouped_idx,
-          node_local<std::vector<size_t>>& idx_split,
-          node_local<std::vector<std::vector<size_t>>>& partitioned_idx,
-          node_local<std::vector<std::vector<size_t>>>& exchanged_idx) {
+          node_local<std::vector<size_t>>& local_grouped_idx,
+          node_local<std::vector<size_t>>& local_idx_split,
+          node_local<std::vector<std::vector<size_t>>>& hash_divide,
+          node_local<std::vector<std::vector<size_t>>>& merge_map,
+          node_local<size_t>& row_sizes) {
   auto colp = table.column(col);
-  return colp->count(grouped_idx, idx_split, partitioned_idx, exchanged_idx);
+  return colp->count(local_grouped_idx, local_idx_split, hash_divide,
+                     merge_map, row_sizes);
 }
 
 std::shared_ptr<dfcolumn> 
 dfaggregator_avg::
 aggregate(dftable_base& table,
-          node_local<std::vector<size_t>>& grouped_idx,
-          node_local<std::vector<size_t>>& idx_split,
-          node_local<std::vector<std::vector<size_t>>>& partitioned_idx,
-          node_local<std::vector<std::vector<size_t>>>& exchanged_idx) {
+          node_local<std::vector<size_t>>& local_grouped_idx,
+          node_local<std::vector<size_t>>& local_idx_split,
+          node_local<std::vector<std::vector<size_t>>>& hash_divide,
+          node_local<std::vector<std::vector<size_t>>>& merge_map,
+          node_local<size_t>& row_sizes) {
   auto colp = table.column(col);
-  return colp->avg(grouped_idx, idx_split, partitioned_idx, exchanged_idx);
+  return colp->avg(local_grouped_idx, local_idx_split, hash_divide,
+                   merge_map, row_sizes);
 }
 
 std::shared_ptr<dfcolumn> 
 dfaggregator_max::
 aggregate(dftable_base& table,
-          node_local<std::vector<size_t>>& grouped_idx,
-          node_local<std::vector<size_t>>& idx_split,
-          node_local<std::vector<std::vector<size_t>>>& partitioned_idx,
-          node_local<std::vector<std::vector<size_t>>>& exchanged_idx) {
+          node_local<std::vector<size_t>>& local_grouped_idx,
+          node_local<std::vector<size_t>>& local_idx_split,
+          node_local<std::vector<std::vector<size_t>>>& hash_divide,
+          node_local<std::vector<std::vector<size_t>>>& merge_map,
+          node_local<size_t>& row_sizes) {
   auto colp = table.column(col);
-  return colp->max(grouped_idx, idx_split, partitioned_idx, exchanged_idx);
+  return colp->max(local_grouped_idx, local_idx_split, hash_divide,
+                   merge_map, row_sizes);
 }
 
 std::shared_ptr<dfcolumn> 
 dfaggregator_min::
 aggregate(dftable_base& table,
-          node_local<std::vector<size_t>>& grouped_idx,
-          node_local<std::vector<size_t>>& idx_split,
-          node_local<std::vector<std::vector<size_t>>>& partitioned_idx,
-          node_local<std::vector<std::vector<size_t>>>& exchanged_idx) {
+          node_local<std::vector<size_t>>& local_grouped_idx,
+          node_local<std::vector<size_t>>& local_idx_split,
+          node_local<std::vector<std::vector<size_t>>>& hash_divide,
+          node_local<std::vector<std::vector<size_t>>>& merge_map,
+          node_local<size_t>& row_sizes) {
   auto colp = table.column(col);
-  return colp->min(grouped_idx, idx_split, partitioned_idx, exchanged_idx);
+  return colp->min(local_grouped_idx, local_idx_split, hash_divide,
+                   merge_map, row_sizes);
 }
 
 std::shared_ptr<dfaggregator> sum(const std::string& col) {

@@ -84,42 +84,60 @@ public:
   virtual node_local<std::vector<size_t>> get_local_index() = 0;
   // append nulls created by outer join
   virtual void append_nulls(node_local<std::vector<size_t>>& to_append) = 0;
-  virtual node_local<std::vector<size_t>>
-  group_by(node_local<std::vector<size_t>>& global_idx) = 0;
+  virtual std::shared_ptr<dfcolumn> group_by
+  (node_local<std::vector<size_t>>& local_idx,
+   node_local<std::vector<size_t>>& split_idx,
+   node_local<std::vector<std::vector<size_t>>>& hash_divide,
+   node_local<std::vector<std::vector<size_t>>>& merge_map) = 0;
   // for group by of multiple columns
-  virtual node_local<std::vector<size_t>> calc_hash_base() = 0;
-  virtual void
-  calc_hash_base(node_local<std::vector<size_t>>& hash, int shift) = 0;
   virtual void
   multi_group_by_sort(node_local<std::vector<size_t>>& local_idx) = 0;
   virtual node_local<std::vector<size_t>>
+  multi_group_by_sort_split(node_local<std::vector<size_t>>& local_idx) = 0;
+  virtual node_local<std::vector<size_t>>
   multi_group_by_split(node_local<std::vector<size_t>>& local_idx) = 0;
+  virtual std::shared_ptr<dfcolumn> multi_group_by_extract
+  (node_local<std::vector<size_t>>& local_idx,
+   node_local<std::vector<size_t>>& split_idx,
+   bool check_nulls) = 0;
+  virtual node_local<std::vector<size_t>>
+  calc_hash_base() = 0;
+  virtual void
+  calc_hash_base(node_local<std::vector<size_t>>& hash, int shift) = 0;
+  virtual std::shared_ptr<dfcolumn> 
+  multi_group_by_exchange(node_local<std::vector<std::vector<size_t>>>&
+                          hash_divide) = 0;
   // for grouped_dftable
   virtual std::shared_ptr<dfcolumn>
-  sum(node_local<std::vector<size_t>>& grouped_idx,
-      node_local<std::vector<size_t>>& idx_split,
-      node_local<std::vector<std::vector<size_t>>>& partitioned_idx,
-      node_local<std::vector<std::vector<size_t>>>& exchanged_idx) = 0;
+  sum(node_local<std::vector<size_t>>& local_grouped_idx,
+      node_local<std::vector<size_t>>& local_idx_split,
+      node_local<std::vector<std::vector<size_t>>>& hash_divide,
+      node_local<std::vector<std::vector<size_t>>>& merge_map,
+      node_local<size_t>& row_sizes) = 0;
   virtual std::shared_ptr<dfcolumn>
-  count(node_local<std::vector<size_t>>& grouped_idx,
-        node_local<std::vector<size_t>>& idx_split,
-        node_local<std::vector<std::vector<size_t>>>& partitioned_idx,
-        node_local<std::vector<std::vector<size_t>>>& exchanged_idx) = 0;
+  count(node_local<std::vector<size_t>>& local_grouped_idx,
+        node_local<std::vector<size_t>>& local_idx_split,
+        node_local<std::vector<std::vector<size_t>>>& hash_divide,
+        node_local<std::vector<std::vector<size_t>>>& merge_map,
+        node_local<size_t>& row_sizes) = 0;
   virtual std::shared_ptr<dfcolumn>
-  avg(node_local<std::vector<size_t>>& grouped_idx,
-      node_local<std::vector<size_t>>& idx_split,
-      node_local<std::vector<std::vector<size_t>>>& partitioned_idx,
-      node_local<std::vector<std::vector<size_t>>>& exchanged_idx) = 0;
+  avg(node_local<std::vector<size_t>>& local_grouped_idx,
+      node_local<std::vector<size_t>>& local_idx_split,
+      node_local<std::vector<std::vector<size_t>>>& hash_divide,
+      node_local<std::vector<std::vector<size_t>>>& merge_map,
+      node_local<size_t>& row_sizes) = 0;
   virtual std::shared_ptr<dfcolumn>
-  max(node_local<std::vector<size_t>>& grouped_idx,
-      node_local<std::vector<size_t>>& idx_split,
-      node_local<std::vector<std::vector<size_t>>>& partitioned_idx,
-      node_local<std::vector<std::vector<size_t>>>& exchanged_idx) = 0;
+  max(node_local<std::vector<size_t>>& local_grouped_idx,
+      node_local<std::vector<size_t>>& local_idx_split,
+      node_local<std::vector<std::vector<size_t>>>& hash_divide,
+      node_local<std::vector<std::vector<size_t>>>& merge_map,
+      node_local<size_t>& row_sizes) = 0;
   virtual std::shared_ptr<dfcolumn>
-  min(node_local<std::vector<size_t>>& grouped_idx,
-      node_local<std::vector<size_t>>& idx_split,
-      node_local<std::vector<std::vector<size_t>>>& partitioned_idx,
-      node_local<std::vector<std::vector<size_t>>>& exchanged_idx) = 0;
+  min(node_local<std::vector<size_t>>& local_grouped_idx,
+      node_local<std::vector<size_t>>& local_idx_split,
+      node_local<std::vector<std::vector<size_t>>>& hash_divide,
+      node_local<std::vector<std::vector<size_t>>>& merge_map,
+      node_local<size_t>& row_sizes) = 0;
   // for whole column
   virtual size_t count() = 0; // exclude null
   template <class T> T sum();
@@ -240,39 +258,58 @@ public:
                  node_local<std::vector<size_t>>& left_full_local_idx, 
                  node_local<std::vector<size_t>>& right_full_local_idx);
   virtual void append_nulls(node_local<std::vector<size_t>>& to_append);
-  virtual node_local<std::vector<size_t>> calc_hash_base();
-  void calc_hash_base(node_local<std::vector<size_t>>& hash_base, int shift);
-  virtual node_local<std::vector<size_t>>
-  group_by(node_local<std::vector<size_t>>& global_idx);
+  virtual std::shared_ptr<dfcolumn> group_by
+  (node_local<std::vector<size_t>>& local_idx,
+   node_local<std::vector<size_t>>& split_idx,
+   node_local<std::vector<std::vector<size_t>>>& hash_divide,
+   node_local<std::vector<std::vector<size_t>>>& merge_map);
   virtual void
   multi_group_by_sort(node_local<std::vector<size_t>>& local_idx);
   virtual node_local<std::vector<size_t>>
+  multi_group_by_sort_split(node_local<std::vector<size_t>>& local_idx);
+  virtual node_local<std::vector<size_t>>
   multi_group_by_split(node_local<std::vector<size_t>>& local_idx);
+  virtual std::shared_ptr<dfcolumn> multi_group_by_extract
+  (node_local<std::vector<size_t>>& local_idx,
+   node_local<std::vector<size_t>>& split_idx,
+   bool check_nulls);
+  virtual node_local<std::vector<size_t>>
+  calc_hash_base();
+  virtual void
+  calc_hash_base(node_local<std::vector<size_t>>& hash, int shift);
+  virtual std::shared_ptr<dfcolumn> 
+  multi_group_by_exchange(node_local<std::vector<std::vector<size_t>>>&
+                          hash_divide);
   virtual std::shared_ptr<dfcolumn>
-  sum(node_local<std::vector<size_t>>& grouped_idx,
-      node_local<std::vector<size_t>>& idx_split,
-      node_local<std::vector<std::vector<size_t>>>& partitioned_idx,
-      node_local<std::vector<std::vector<size_t>>>& exchanged_idx);
+  sum(node_local<std::vector<size_t>>& local_grouped_idx,
+      node_local<std::vector<size_t>>& local_idx_split,
+      node_local<std::vector<std::vector<size_t>>>& hash_divide,
+      node_local<std::vector<std::vector<size_t>>>& merge_map,
+      node_local<size_t>& row_sizes);
   virtual std::shared_ptr<dfcolumn>
-  count(node_local<std::vector<size_t>>& grouped_idx,
-        node_local<std::vector<size_t>>& idx_split,
-        node_local<std::vector<std::vector<size_t>>>& partitioned_idx,
-        node_local<std::vector<std::vector<size_t>>>& exchanged_idx);
+  count(node_local<std::vector<size_t>>& local_grouped_idx,
+        node_local<std::vector<size_t>>& local_idx_split,
+        node_local<std::vector<std::vector<size_t>>>& hash_divide,
+        node_local<std::vector<std::vector<size_t>>>& merge_map,
+        node_local<size_t>& row_sizes);
   virtual std::shared_ptr<dfcolumn>
-  avg(node_local<std::vector<size_t>>& grouped_idx,
-      node_local<std::vector<size_t>>& idx_split,
-      node_local<std::vector<std::vector<size_t>>>& partitioned_idx,
-      node_local<std::vector<std::vector<size_t>>>& exchanged_idx);
+  avg(node_local<std::vector<size_t>>& local_grouped_idx,
+      node_local<std::vector<size_t>>& local_idx_split,
+      node_local<std::vector<std::vector<size_t>>>& hash_divide,
+      node_local<std::vector<std::vector<size_t>>>& merge_map,
+      node_local<size_t>& row_sizes);
   virtual std::shared_ptr<dfcolumn>
-  max(node_local<std::vector<size_t>>& grouped_idx,
-      node_local<std::vector<size_t>>& idx_split,
-      node_local<std::vector<std::vector<size_t>>>& partitioned_idx,
-      node_local<std::vector<std::vector<size_t>>>& exchanged_idx);
+  max(node_local<std::vector<size_t>>& local_grouped_idx,
+      node_local<std::vector<size_t>>& local_idx_split,
+      node_local<std::vector<std::vector<size_t>>>& hash_divide,
+      node_local<std::vector<std::vector<size_t>>>& merge_map,
+      node_local<size_t>& row_sizes);
   virtual std::shared_ptr<dfcolumn>
-  min(node_local<std::vector<size_t>>& grouped_idx,
-      node_local<std::vector<size_t>>& idx_split,
-      node_local<std::vector<std::vector<size_t>>>& partitioned_idx,
-      node_local<std::vector<std::vector<size_t>>>& exchanged_idx);
+  min(node_local<std::vector<size_t>>& local_grouped_idx,
+      node_local<std::vector<size_t>>& local_idx_split,
+      node_local<std::vector<std::vector<size_t>>>& hash_divide,
+      node_local<std::vector<std::vector<size_t>>>& merge_map,
+      node_local<size_t>& row_sizes);
   virtual size_t count();
   T sum();
   virtual double avg();
@@ -384,45 +421,64 @@ public:
                node_local<std::vector<size_t>>& left_full_local_idx, 
                node_local<std::vector<size_t>>& right_full_local_idx);
   virtual void append_nulls(node_local<std::vector<size_t>>& to_append);
-  virtual node_local<std::vector<size_t>> calc_hash_base();
-  void calc_hash_base(node_local<std::vector<size_t>>& hash_base, int shift);
+  virtual std::shared_ptr<dfcolumn> group_by
+  (node_local<std::vector<size_t>>& local_idx,
+   node_local<std::vector<size_t>>& split_idx,
+   node_local<std::vector<std::vector<size_t>>>& hash_divide,
+   node_local<std::vector<std::vector<size_t>>>& merge_map);
   virtual void
   multi_group_by_sort(node_local<std::vector<size_t>>& local_idx);
   virtual node_local<std::vector<size_t>>
-  multi_group_by_split(node_local<std::vector<size_t>>& local_idx);
+  multi_group_by_sort_split(node_local<std::vector<size_t>>& local_idx);
   virtual node_local<std::vector<size_t>>
-  group_by(node_local<std::vector<size_t>>& global_idx);
+  multi_group_by_split(node_local<std::vector<size_t>>& local_idx);
+  virtual std::shared_ptr<dfcolumn> multi_group_by_extract
+  (node_local<std::vector<size_t>>& local_idx,
+   node_local<std::vector<size_t>>& split_idx,
+   bool check_nulls);
+  virtual node_local<std::vector<size_t>>
+  calc_hash_base();
+  virtual void
+  calc_hash_base(node_local<std::vector<size_t>>& hash, int shift);
+  virtual std::shared_ptr<dfcolumn> 
+  multi_group_by_exchange(node_local<std::vector<std::vector<size_t>>>&
+                          hash_divide);
   virtual std::shared_ptr<dfcolumn>
-  sum(node_local<std::vector<size_t>>& grouped_idx,
-      node_local<std::vector<size_t>>& idx_split,
-      node_local<std::vector<std::vector<size_t>>>& partitioned_idx,
-      node_local<std::vector<std::vector<size_t>>>& exchanged_idx) {
+  sum(node_local<std::vector<size_t>>& local_grouped_idx,
+      node_local<std::vector<size_t>>& local_idx_split,
+      node_local<std::vector<std::vector<size_t>>>& hash_divide,
+      node_local<std::vector<std::vector<size_t>>>& merge_map,
+      node_local<size_t>& row_sizes) {
     throw std::runtime_error("sum of string is not defined");
   }
   virtual std::shared_ptr<dfcolumn>
-  count(node_local<std::vector<size_t>>& grouped_idx,
-      node_local<std::vector<size_t>>& idx_split,
-      node_local<std::vector<std::vector<size_t>>>& partitioned_idx,
-      node_local<std::vector<std::vector<size_t>>>& exchanged_idx);
+  count(node_local<std::vector<size_t>>& local_grouped_idx,
+        node_local<std::vector<size_t>>& local_idx_split,
+        node_local<std::vector<std::vector<size_t>>>& hash_divide,
+        node_local<std::vector<std::vector<size_t>>>& merge_map,
+        node_local<size_t>& row_sizes);
   virtual std::shared_ptr<dfcolumn>
-  avg(node_local<std::vector<size_t>>& grouped_idx,
-      node_local<std::vector<size_t>>& idx_split,
-      node_local<std::vector<std::vector<size_t>>>& partitioned_idx,
-      node_local<std::vector<std::vector<size_t>>>& exchanged_idx) {
+  avg(node_local<std::vector<size_t>>& local_grouped_idx,
+      node_local<std::vector<size_t>>& local_idx_split,
+      node_local<std::vector<std::vector<size_t>>>& hash_divide,
+      node_local<std::vector<std::vector<size_t>>>& merge_map,
+      node_local<size_t>& row_sizes) {
     throw std::runtime_error("avg of string is not defined");
   }
   virtual std::shared_ptr<dfcolumn>
-  max(node_local<std::vector<size_t>>& grouped_idx,
-      node_local<std::vector<size_t>>& idx_split,
-      node_local<std::vector<std::vector<size_t>>>& partitioned_idx,
-      node_local<std::vector<std::vector<size_t>>>& exchanged_idx) {
+  max(node_local<std::vector<size_t>>& local_grouped_idx,
+      node_local<std::vector<size_t>>& local_idx_split,
+      node_local<std::vector<std::vector<size_t>>>& hash_divide,
+      node_local<std::vector<std::vector<size_t>>>& merge_map,
+      node_local<size_t>& row_sizes) {
     throw std::runtime_error("max of string is not defined");
   }
   virtual std::shared_ptr<dfcolumn>
-  min(node_local<std::vector<size_t>>& grouped_idx,
-      node_local<std::vector<size_t>>& idx_split,
-      node_local<std::vector<std::vector<size_t>>>& partitioned_idx,
-      node_local<std::vector<std::vector<size_t>>>& exchanged_idx) {
+  min(node_local<std::vector<size_t>>& local_grouped_idx,
+      node_local<std::vector<size_t>>& local_idx_split,
+      node_local<std::vector<std::vector<size_t>>>& hash_divide,
+      node_local<std::vector<std::vector<size_t>>>& merge_map,
+      node_local<size_t>& row_sizes) {
     throw std::runtime_error("min of string is not defined");
   }
   virtual size_t count();
@@ -589,6 +645,59 @@ void split_by_hash(std::vector<T>& val,
                    std::vector<std::vector<size_t>>& split_idx) {
   split_by_hash_with_size<T>(val, split_val, global_idx, split_idx, 
                              static_cast<size_t>(get_nodesize()));
+}
+
+template <class T>
+void split_by_hash_no_outval_with_size
+(std::vector<T>& val,
+ std::vector<size_t>& global_idx,
+ std::vector<std::vector<size_t>>& split_idx,
+ size_t split_size) {
+  if(split_size == 0) 
+    throw std::runtime_error("split_by_hash_with_size: split_size is zero");
+  else if(split_size == 1) { // skip hash
+    size_t* global_idxp = &global_idx[0];
+    split_idx.resize(1);
+    size_t sepsize = val.size();
+    split_idx[0].resize(sepsize);
+    size_t* split_idxp = &split_idx[0][0];
+    for(size_t j = 0; j < sepsize; j++) {
+      split_idxp[j] = global_idxp[j];
+    }
+    
+  } else {
+    size_t size = val.size();
+    std::vector<int> hash(size);
+    int* hashp = &hash[0];
+    T* valp = &val[0];
+    size_t* global_idxp = &global_idx[0];
+    for(size_t i = 0; i < size; i++) {
+      hashp[i] = static_cast<int>(myhash(valp[i], split_size));
+    }
+    std::vector<size_t> local_idx(size);
+    for(size_t i = 0; i < size; i++) local_idx[i] = i;
+    auto sep = separate_to_bucket(hash, local_idx, split_size);
+    split_idx.resize(split_size);
+    for(size_t i = 0; i < split_size; i++) {
+      size_t sepsize = sep[i].size();
+      split_idx[i].resize(sepsize);
+      size_t* split_idxp = &split_idx[i][0];
+      size_t* sepp = &sep[i][0];
+#pragma cdir nodep
+#pragma _NEC ivdep
+      for(size_t j = 0; j < sepsize; j++) {
+        split_idxp[j] = global_idxp[sepp[j]];
+      }
+    }
+  }
+}
+
+template <class T>
+void split_by_hash_no_outval(std::vector<T>& val,
+                             std::vector<size_t>& global_idx,
+                             std::vector<std::vector<size_t>>& split_idx) {
+  split_by_hash_no_outval_with_size<T>(val, global_idx, split_idx, 
+                                       static_cast<size_t>(get_nodesize()));
 }
 
 template <class T>
