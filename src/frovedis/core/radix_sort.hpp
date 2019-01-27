@@ -297,6 +297,26 @@ void radix_sort_desc(K* key_array, V* val_array, size_t size) {
   }
 }
 
+template <class V>
+void radix_sort(float* key_array, V* val_array, size_t size) {
+  radix_sort((uint32_t*) key_array, val_array, size);
+}
+
+template <class V>
+void radix_sort(double* key_array, V* val_array, size_t size) {
+  radix_sort((uint64_t*) key_array, val_array, size);
+}
+
+template <class V>
+void radix_sort_desc(float* key_array, V* val_array, size_t size) {
+  radix_sort_desc((uint32_t*) key_array, val_array, size);
+}
+
+template <class V>
+void radix_sort_desc(double* key_array, V* val_array, size_t size) {
+  radix_sort_desc((uint64_t*) key_array, val_array, size);
+}
+
 template <class K, class V>
 void radix_sort(std::vector<K>& key_array, std::vector<V>& val_array) {
   size_t size = key_array.size();
