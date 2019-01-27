@@ -57,28 +57,6 @@ object LRSGDDemo {
     val accuracy = metrics.accuracy
     println(s"Accuracy = $accuracy")
 
-    // -------- more training and prediction for testing --------
-    s_data = MLUtils.loadLibSVMFile(sc, "./input/libSVMFile2.txt")
-    val m2 = LogisticRegressionWithSGD.train(s_data)
-    println("multi-input prediction made on model:")
-    m2.debug_print()
-    t_vec2 = s_data.map(_.features)
-    m2.predict(t_vec2).collect.foreach(println)
-
-    s_data = MLUtils.loadLibSVMFile(sc, "./input/libSVMFile3.txt")
-    val m3 = LogisticRegressionWithSGD.train(s_data)
-    println("multi-input prediction made on model:")
-    m3.debug_print()
-    t_vec2 = s_data.map(_.features)
-    m3.predict(t_vec2).collect.foreach(println)
-
-    s_data = MLUtils.loadLibSVMFile(sc, "./input/libSVMFile4.txt")
-    val m4 = LogisticRegressionWithSGD.train(s_data)
-    println("multi-input prediction made on model:")
-    m4.debug_print()
-    t_vec2 = s_data.map(_.features)
-    m4.predict(t_vec2).collect.foreach(println)
-
     FrovedisServer.shut_down();
     sc.stop()
   }
