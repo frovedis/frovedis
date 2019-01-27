@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 
 import numpy as np
-from ..exrpc.rpclib import *
-from ..exrpc.server import *
-from dtype import TypeUtil,DTYPE
+from frovedis.exrpc.rpclib import *
+from frovedis.exrpc.server import *
+from .dtype import TypeUtil,DTYPE
 
 # dtype: Currently supports float/double/int/long datatypes.
 # Extension for new Frovedis dense matrix is very simple.
@@ -54,16 +54,20 @@ class FrovedisDenseMatrix:
       dt = cls.get_dtype()
       if(dt == DTYPE.DOUBLE):
          dmat = rpclib.create_frovedis_double_dense_matrix(host,port,           
-                                                nrow,ncol,vv,cls.__mtype)
+                                                  nrow,ncol,vv,
+                                                  cls.__mtype.encode('ascii'))
       elif(dt == DTYPE.FLOAT):
          dmat = rpclib.create_frovedis_float_dense_matrix(host,port,
-                                               nrow,ncol,vv,cls.__mtype)
+                                                  nrow,ncol,vv,
+                                                  cls.__mtype.encode('ascii'))
       elif(dt == DTYPE.LONG):
          dmat = rpclib.create_frovedis_long_dense_matrix(host,port,
-                                               nrow,ncol,vv,cls.__mtype)
+                                                  nrow,ncol,vv,
+                                                  cls.__mtype.encode('ascii'))
       elif(dt == DTYPE.INT):
          dmat = rpclib.create_frovedis_int_dense_matrix(host,port,
-                                               nrow,ncol,vv,cls.__mtype)
+                                                  nrow,ncol,vv,
+                                                  cls.__mtype.encode('ascii'))
       else: raise TypeError("Unsupported input type: " + cls.__dtype)   
       excpt = rpclib.check_server_exception()
       if excpt["status"]: raise RuntimeError(excpt["info"])
@@ -87,7 +91,8 @@ class FrovedisDenseMatrix:
       if mat.__fdata is not None:
         (host, port) = FrovedisServer.getServerInstance()
         dmat = rpclib.copy_frovedis_dense_matrix(host,port,mat.get(),
-                                            mat.__mtype,mat.get_dtype())
+                                                 mat.__mtype.encode('ascii'),
+                                                 mat.get_dtype())
         excpt = rpclib.check_server_exception()
         if excpt["status"]: raise RuntimeError(excpt["info"]) 
         return cls.load_dummy(dmat)
@@ -96,8 +101,9 @@ class FrovedisDenseMatrix:
       cls.release()
       (host, port) = FrovedisServer.getServerInstance()
       if cls.__dtype is None: cls.__dtype = np.float32 # default type: float
-      dmat = rpclib.load_frovedis_dense_matrix(host,port,fname,False,
-                                               cls.__mtype,cls.get_dtype())
+      dmat = rpclib.load_frovedis_dense_matrix(host,port,fname.encode('ascii'),
+                                             False,cls.__mtype.encode('ascii'),
+                                             cls.get_dtype())
       excpt = rpclib.check_server_exception()
       if excpt["status"]: raise RuntimeError(excpt["info"]) 
       return cls.load_dummy(dmat)
@@ -106,8 +112,9 @@ class FrovedisDenseMatrix:
       cls.release()
       (host, port) = FrovedisServer.getServerInstance()
       if cls.__dtype is None: cls.__dtype = np.float32 # default type: float
-      dmat = rpclib.load_frovedis_dense_matrix(host,port,fname,True,
-                                               cls.__mtype,cls.get_dtype())
+      dmat = rpclib.load_frovedis_dense_matrix(host,port,fname.encode("ascii"),
+                                             True, cls.__mtype.encode('ascii'),
+                                             cls.get_dtype())
       excpt = rpclib.check_server_exception()
       if excpt["status"]: raise RuntimeError(excpt["info"]) 
       return cls.load_dummy(dmat)
@@ -116,7 +123,9 @@ class FrovedisDenseMatrix:
       if cls.__fdata is not None:
          (host, port) = FrovedisServer.getServerInstance()
          rpclib.save_frovedis_dense_matrix(host,port,cls.get(),
-                                         fname,False,cls.__mtype,cls.get_dtype())
+                                           fname.encode('ascii'),False,
+                                           cls.__mtype.encode('ascii'),
+                                           cls.get_dtype())
          excpt = rpclib.check_server_exception()
          if excpt["status"]: raise RuntimeError(excpt["info"]) 
    
@@ -124,7 +133,9 @@ class FrovedisDenseMatrix:
       if cls.__fdata is not None:
          (host, port) = FrovedisServer.getServerInstance()
          rpclib.save_frovedis_dense_matrix(host,port,cls.get(),
-                                         fname,True,cls.__mtype,cls.get_dtype())
+                                           fname.encode('ascii'),True,
+                                           cls.__mtype.encode('ascii'),
+                                           cls.get_dtype())
          excpt = rpclib.check_server_exception()
          if excpt["status"]: raise RuntimeError(excpt["info"]) 
 
@@ -132,7 +143,8 @@ class FrovedisDenseMatrix:
       if cls.__fdata is not None:
          (host, port) = FrovedisServer.getServerInstance()
          rpclib.release_frovedis_dense_matrix(host,port,cls.get(),
-                                              cls.__mtype,cls.get_dtype())
+                                              cls.__mtype.encode('ascii'),
+                                              cls.get_dtype())
          excpt = rpclib.check_server_exception()
          if excpt["status"]: raise RuntimeError(excpt["info"]) 
          cls.__fdata = None
@@ -146,7 +158,8 @@ class FrovedisDenseMatrix:
       if cls.__fdata is not None:
          (host, port) = FrovedisServer.getServerInstance()
          rpclib.show_frovedis_dense_matrix(host,port,cls.get(),
-                                           cls.__mtype,cls.get_dtype())
+                                           cls.__mtype.encode('ascii'),
+                                           cls.get_dtype())
          excpt = rpclib.check_server_exception()
          if excpt["status"]: raise RuntimeError(excpt["info"]) 
 
@@ -157,13 +170,17 @@ class FrovedisDenseMatrix:
          (host, port) = FrovedisServer.getServerInstance()
          arr = np.zeros(sz,dtype=cls.__dtype)
          if(dt == DTYPE.DOUBLE):
-            rpclib.get_double_rowmajor_array(host,port,cls.get(),cls.__mtype,arr,sz)
+            rpclib.get_double_rowmajor_array(host,port,cls.get(),
+                                             cls.__mtype.encode('ascii'),arr,sz)
          elif(dt == DTYPE.FLOAT):
-            rpclib.get_float_rowmajor_array(host,port,cls.get(),cls.__mtype,arr,sz)
+            rpclib.get_float_rowmajor_array(host,port,cls.get(),
+                                            cls.__mtype.encode('ascii'),arr,sz)
          elif(dt == DTYPE.LONG):
-            rpclib.get_long_rowmajor_array(host,port,cls.get(),cls.__mtype,arr,sz)
+            rpclib.get_long_rowmajor_array(host,port,cls.get(),
+                                           cls.__mtype.encode('ascii'),arr,sz)
          elif(dt == DTYPE.INT):
-            rpclib.get_int_rowmajor_array(host,port,cls.get(),cls.__mtype,arr,sz)
+            rpclib.get_int_rowmajor_array(host,port,cls.get(),
+                                          cls.__mtype.encode('ascii'),arr,sz)
          else: raise TypeError("Unsupported input type: " + dt)
          excpt = rpclib.check_server_exception()
          if excpt["status"]: raise RuntimeError(excpt["info"])
@@ -177,7 +194,8 @@ class FrovedisDenseMatrix:
          (host, port) = FrovedisServer.getServerInstance()
          dmat = rpclib.get_frovedis_rowmatrix(host,port,cls.get(),
                                               cls.numRows(), cls.numCols(),
-                                              cls.__mtype,cls.get_dtype())
+                                              cls.__mtype.encode('ascii'),
+                                              cls.get_dtype())
          excpt = rpclib.check_server_exception()
          if excpt["status"]: raise RuntimeError(excpt["info"]) 
          return FrovedisDenseMatrix(mtype='R',mat=dmat,dtype=cls.__dtype)
@@ -190,7 +208,8 @@ class FrovedisDenseMatrix:
       if cls.__fdata is not None:
          (host, port) = FrovedisServer.getServerInstance()
          dmat = rpclib.transpose_frovedis_dense_matrix(host,port,
-                                         cls.get(),cls.__mtype,cls.get_dtype())
+                                         cls.get(),cls.__mtype.encode('ascii'),
+                                         cls.get_dtype())
          excpt = rpclib.check_server_exception()
          if excpt["status"]: raise RuntimeError(excpt["info"]) 
          return FrovedisDenseMatrix(mtype=cls.__mtype,mat=dmat,dtype=cls.__dtype)
@@ -241,7 +260,7 @@ class FrovedisColmajorMatrix(FrovedisDenseMatrix):
             (mat.get_mtype() == 'C')): return mat
       else: return FrovedisColmajorMatrix().load_python_data(mat)
     
-from results import GetrfResult
+from .results import GetrfResult
 class FrovedisBlockcyclicMatrix(FrovedisDenseMatrix):
    "A python container for Frovedis server side blockcyclic_matrix"
 
@@ -300,7 +319,4 @@ class FrovedisBlockcyclicMatrix(FrovedisDenseMatrix):
       elif (isinstance(mat,FrovedisDenseMatrix) and 
             (mat.get_mtype() == 'B')): return mat
       else: return FrovedisBlockcyclicMatrix().load_python_data(mat)
-
-
-
 

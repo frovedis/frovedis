@@ -124,7 +124,7 @@ agg_grouped_dataframe.restype = c_long
 
 merge_frovedis_dataframe = lib.join_frovedis_dataframe
 merge_frovedis_dataframe.argtypes = [c_char_p, c_int, c_long, c_long, c_long,
-                                    c_char_p, c_char_p]
+                                     c_char_p, c_char_p]
 merge_frovedis_dataframe.restype = c_long
 
 rename_frovedis_dataframe = lib.rename_frovedis_dataframe

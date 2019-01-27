@@ -3,10 +3,10 @@
 from scipy.sparse import csr_matrix
 from ..exrpc.rpclib import *
 from ..exrpc.server import *
-from dense import FrovedisBlockcyclicMatrix
-from crs import FrovedisCRSMatrix
-from results import GesvdResult, GetrfResult
-from dtype import DTYPE, TypeUtil
+from .dense import FrovedisBlockcyclicMatrix
+from .crs import FrovedisCRSMatrix
+from .results import GesvdResult, GetrfResult
+from .dtype import DTYPE, TypeUtil
 
 class WrapperUtil:
   "A python class to check dtype equality of wrapper argumentsr"

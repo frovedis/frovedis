@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
-from model_util import *
+from __future__ import division
+from .model_util import *
 from ..exrpc.server import *
 from ..exrpc.rpclib import *
 from ..matrix.crs import FrovedisCRSMatrix
@@ -53,7 +54,7 @@ class ALS:
         if isinstance(ids,(list,tuple)) == False: 
            raise TypeError("Expected: List, Got: " + str(type(ids)))
         ids = np.asarray(ids,dtype=np.int32).flatten()
-        sz = (ids.size / 2)
+        sz = (ids.size // 2)
         (host,port) = FrovedisServer.getServerInstance()
         if cls.__mdtype is None: raise TypeError("input model for predict is typeless!")
         if(cls.__mdtype == DTYPE.FLOAT):
@@ -117,7 +118,8 @@ class ALS:
      else: cls.__mdtype = TypeUtil.to_id_dtype(dtype)
      cls.__mid = ModelID.get()
      (host,port) = FrovedisServer.getServerInstance()
-     ret = rpclib.load_frovedis_mfm(host,port,cls.__mid,cls.__mdtype,fname)
+     ret = rpclib.load_frovedis_mfm(host,port,cls.__mid,cls.__mdtype,
+                                    fname.encode('ascii'))
      excpt = rpclib.check_server_exception()
      if excpt["status"]: raise RuntimeError(excpt["info"]) 
      cls.rank = ret['rank']

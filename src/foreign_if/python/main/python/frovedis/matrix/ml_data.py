@@ -2,11 +2,11 @@
 
 import numpy as np
 from scipy.sparse import issparse
-from dvector import FrovedisDvector
-from crs import FrovedisCRSMatrix
-from dense import FrovedisColmajorMatrix
-from dense import FrovedisRowmajorMatrix
-from dtype import TypeUtil, DTYPE
+from .dvector import FrovedisDvector
+from .crs import FrovedisCRSMatrix
+from .dense import FrovedisColmajorMatrix
+from .dense import FrovedisRowmajorMatrix
+from .dtype import TypeUtil, DTYPE
 from ..exrpc.server import *
 
 class FrovedisLabeledPoint:

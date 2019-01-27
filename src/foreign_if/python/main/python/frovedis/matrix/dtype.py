@@ -19,7 +19,7 @@ class TypeUtil:
     elif(dtype == np.float32): return DTYPE.FLOAT
     elif(dtype == np.float64): return DTYPE.DOUBLE
     elif(dtype == np.bool):    return DTYPE.BOOL
-    elif(dtype == np.dtype(str) or dtype.char == 'S'): return DTYPE.STRING
+    elif(dtype == np.dtype(str) or dtype.char == 'S' or dtype.char == 'U'): return DTYPE.STRING
     else: raise TypeError("Unsupported numpy dtype: ", dtype)
 
   @staticmethod

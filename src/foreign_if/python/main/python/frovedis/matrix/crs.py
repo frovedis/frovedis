@@ -4,7 +4,7 @@ import numpy as np
 from scipy.sparse import issparse, csr_matrix
 from ..exrpc.rpclib import *
 from ..exrpc.server import *
-from dtype import TypeUtil, DTYPE
+from .dtype import TypeUtil, DTYPE
 
 class FrovedisCRSMatrix:
    "A python container for Frovedis server side crs_matrix"
@@ -42,8 +42,9 @@ class FrovedisCRSMatrix:
       (host, port) = FrovedisServer.getServerInstance()
       if cls.__dtype is None: cls.__dtype = np.float32 # default 'float' type data would be loaded
       cls.__set_or_validate_itype(np.int32) # default 'int' type index woule be loaded
-      dmat = rpclib.load_frovedis_crs_matrix(host,port,fname,False,
-                                             cls.get_dtype(),cls.get_itype())
+      dmat = rpclib.load_frovedis_crs_matrix(host,port,fname.encode('ascii'),
+                                             False,cls.get_dtype(),
+                                             cls.get_itype())
       excpt = rpclib.check_server_exception()
       if excpt["status"]: raise RuntimeError(excpt["info"]) 
       return cls.load_dummy(dmat)
@@ -53,8 +54,9 @@ class FrovedisCRSMatrix:
       (host, port) = FrovedisServer.getServerInstance()
       if cls.__dtype is None: cls.__dtype = np.float32 # default 'float' type data would be loaded
       cls.__set_or_validate_itype(np.int32) # default 'int' type index woule be loaded
-      dmat = rpclib.load_frovedis_crs_matrix(host,port,fname,True,
-                                             cls.get_dtype(),cls.get_itype())
+      dmat = rpclib.load_frovedis_crs_matrix(host,port,fname.encode('ascii'),
+                                             True,cls.get_dtype(),
+                                             cls.get_itype())
       excpt = rpclib.check_server_exception()
       if excpt["status"]: raise RuntimeError(excpt["info"]) 
       return cls.load_dummy(dmat)
@@ -112,16 +114,18 @@ class FrovedisCRSMatrix:
    def save(cls,fname):
       if cls.__fdata is not None:
          (host, port) = FrovedisServer.getServerInstance()
-         rpclib.save_frovedis_crs_matrix(host,port,cls.get(),fname,False,
-                                         cls.get_dtype(),cls.get_itype())
+         rpclib.save_frovedis_crs_matrix(host,port,cls.get(),
+                                         fname.encode('ascii'),
+                                         False,cls.get_dtype(),cls.get_itype())
          excpt = rpclib.check_server_exception()
          if excpt["status"]: raise RuntimeError(excpt["info"]) 
 
    def save_binary(cls,fname):
       if cls.__fdata is not None:
          (host, port) = FrovedisServer.getServerInstance()
-         rpclib.save_frovedis_crs_matrix(host,port,cls.get(),fname,True,
-                                         cls.get_dtype(),cls.get_itype())
+         rpclib.save_frovedis_crs_matrix(host,port,cls.get(),
+                                         fname.encode('ascii'),
+                                         True,cls.get_dtype(),cls.get_itype())
          excpt = rpclib.check_server_exception()
          if excpt["status"]: raise RuntimeError(excpt["info"]) 
 

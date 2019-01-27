@@ -7,8 +7,8 @@ from ctypes import *
 from ..exrpc.rpclib import *
 from ..exrpc.server import *
 from ..matrix.dtype import *
-from frovedisColumn import *
-import df
+from .frovedisColumn import *
+from . import df
 
 class FrovedisGroupedDataframe :
 
@@ -102,7 +102,7 @@ class FrovedisGroupedDataframe :
     g_cols = np.asarray(cls.__cols)
     sz1 = g_cols.size
     g_cols_arr = (c_char_p * sz1)()
-    g_cols_arr[:] = g_cols.T
+    g_cols_arr[:] = np.array([e.encode('ascii') for e in g_cols.T])
 
     a_func = np.asarray(agg_func)
     a_col = np.asarray(agg_col)
@@ -111,14 +111,15 @@ class FrovedisGroupedDataframe :
     a_func_arr = (c_char_p * sz2)()
     a_col_arr = (c_char_p * sz2)()
     a_col_as_arr = (c_char_p * sz2)()
-    a_func_arr[:] = a_func.T
-    a_col_arr[:] = a_col.T
-    a_col_as_arr[:] = a_col_as.T
+    a_func_arr[:] = np.array([e.encode('ascii') for e in a_func.T])
+    a_col_arr[:] = np.array([e.encode('ascii') for e in a_col.T])
+    a_col_as_arr[:] = np.array([e.encode('ascii') for e in a_col_as.T]) 
 
     (host, port) = FrovedisServer.getServerInstance()
     fdata = rpclib.agg_grouped_dataframe(host,port,cls.__fdata,
-                         g_cols_arr, sz1, 
-                         a_func_arr, a_col_arr, a_col_as_arr, sz2)
+                                         g_cols_arr,sz1, 
+                                         a_func_arr,a_col_arr,
+                                         a_col_as_arr,sz2)
     excpt = rpclib.check_server_exception()
     if excpt["status"]: raise RuntimeError(excpt["info"])
  

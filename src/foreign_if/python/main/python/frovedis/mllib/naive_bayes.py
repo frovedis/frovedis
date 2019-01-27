@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 
-from model_util import *
+from .model_util import *
 from ..exrpc.rpclib import *
 from ..exrpc.server import *
 from ..matrix.ml_data import FrovedisLabeledPoint
 from ..matrix.dtype import TypeUtil
-from metrics import *
+from .metrics import *
 import numpy as np
 
 # NaiveBayes multinomial class
@@ -51,7 +51,7 @@ class MultinomialNB:
     (host,port) = FrovedisServer.getServerInstance()
     rpclib.nb_train(host, port, data.get(),
                     label.get(), cls.alpha, cls.__mid,
-                    cls.Algo, cls.verbose, dtype, itype, dense)
+                    cls.Algo.encode('ascii'), cls.verbose, dtype, itype, dense)
     excpt = rpclib.check_server_exception()
     if excpt["status"]: raise RuntimeError(excpt["info"]) 
     return cls
@@ -90,7 +90,7 @@ class MultinomialNB:
       raise TypeError("Expected: String, Got: " + str(type(fname)))
     cls.__mid = ModelID.get()
     (host,port) = FrovedisServer.getServerInstance()
-    algo = rpclib.load_frovedis_nbm(host,port,cls.__mid,cls.__mdtype,fname)
+    algo = rpclib.load_frovedis_nbm(host,port,cls.__mid,cls.__mdtype,fname.encode('ascii'))
     excpt = rpclib.check_server_exception()
     if excpt["status"]: raise RuntimeError(excpt["info"]) 
     if(algo != cls.Algo):
@@ -154,7 +154,7 @@ class GaussianNB:
     (host,port) = FrovedisServer.getServerInstance()
     rpclib.nb_train(host, port, data.get(),
                     label.get(), cls.alpha, cls.__mid,
-                    cls.Algo, cls.verbose, dtype, itype, dense)
+                    cls.Algo.encode('ascii'), cls.verbose, dtype, itype, dense)
     excpt = rpclib.check_server_exception()
     if excpt["status"]: raise RuntimeError(excpt["info"]) 
 
@@ -190,7 +190,7 @@ class GaussianNB:
         raise TypeError("model type should be specified for loading from file!")
     else: cls.__mdtype = TypeUtil.to_id_dtype(dtype)
     (host,port) = FrovedisServer.getServerInstance()
-    algo = rpclib.load_frovedis_nbm(host,port,cls.__mid,cls.__mdtype,fname)
+    algo = rpclib.load_frovedis_nbm(host,port,cls.__mid,cls.__mdtype,fname.encode('ascii'))
     excpt = rpclib.check_server_exception()
     if excpt["status"]: raise RuntimeError(excpt["info"]) 
     if(algo != cls.Algo):
@@ -257,7 +257,7 @@ class BernoulliNB:
     (host,port) = FrovedisServer.getServerInstance()
     rpclib.nb_train(host, port, data.get(),
                     label.get(), cls.alpha, cls.__mid,
-                    cls.Algo, cls.verbose, dtype, itype, dense)
+                    cls.Algo.encode('ascii'), cls.verbose, dtype, itype, dense)
     excpt = rpclib.check_server_exception()
     if excpt["status"]: raise RuntimeError(excpt["info"]) 
     return cls
@@ -294,7 +294,7 @@ class BernoulliNB:
         raise TypeError("model type should be specified for loading from file!")
     else: cls.__mdtype = TypeUtil.to_id_dtype(dtype)
     (host,port) = FrovedisServer.getServerInstance()
-    algo = rpclib.load_frovedis_nbm(host,port,cls.__mid,cls.__mdtype,fname)
+    algo = rpclib.load_frovedis_nbm(host,port,cls.__mid,cls.__mdtype,fname.encode('ascii'))
     excpt = rpclib.check_server_exception()
     if excpt["status"]: raise RuntimeError(excpt["info"]) 
     if(algo != cls.Algo):

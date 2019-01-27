@@ -1,20 +1,20 @@
 #!/usr/bin/env python
 
-import node, rpclib
-
+from . import node, rpclib
 class FrovedisServer(object):
    "A singleton implementation to store Frovedis server information"
 
    __instance = None
-   __cmd = "mpirun -np 2 ../../server/frovedis_server" #default command
+   __cmd = "mpirun -np 1 /opt/nec/nosupport/frovedis/ve/bin/frovedis_server" #default command
  
    def __new__(cls):
       if FrovedisServer.__instance is None:
          FrovedisServer.__instance = object.__new__(cls)
-         n = rpclib.initialize_server(FrovedisServer.__cmd)
+         n = rpclib.initialize_server(FrovedisServer.__cmd.encode('ascii'))
          excpt = rpclib.check_server_exception()
          if excpt["status"]: raise RuntimeError(excpt["info"])
-         host = n['hostname']
+         #encoding hostname string to ascii, since it is the key-parameter to all rpc call
+         host = (n['hostname']).encode('ascii')
          port = n['rpcport']
          FrovedisServer.__instance.mnode = node.exrpc_node(host,port)
          FrovedisServer.__instance.wsize = rpclib.get_worker_size(host,port)

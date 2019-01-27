@@ -32,7 +32,7 @@ kmeans.release()
 kmeans.load("./out/MyKMeansModel",dtype=np.float64)
 
 # predicting with test data on loaded model
-print kmeans.predict(test_mat)
+print (kmeans.predict(test_mat))
 
 kmeans.release()
 FrovedisServer.shut_down()

@@ -2,7 +2,7 @@
 
 from ..exrpc.rpclib import *
 from ..exrpc.server import *
-from dtype import TypeUtil,DTYPE
+from .dtype import TypeUtil,DTYPE
 
 class FrovedisDvector:
    
@@ -43,6 +43,7 @@ class FrovedisDvector:
         dvec = rpclib.create_frovedis_double_dvector(host,port,vv,sz)
       elif (dt == DTYPE.STRING): 
         ptr_arr = (c_char_p * sz)()
+        vv = np.array([e.encode('ascii')  for e in vv])
         ptr_arr[:] = vv
         dvec = rpclib.create_frovedis_string_dvector(host,port,ptr_arr,sz)
       else:

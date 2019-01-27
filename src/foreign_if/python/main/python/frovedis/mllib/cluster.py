@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from model_util import *
+from .model_util import *
 from ..exrpc.server import *
 from ..exrpc.rpclib import *
 from ..matrix.ml_data import FrovedisFeatureData

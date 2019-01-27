@@ -2,8 +2,8 @@
 
 from ..exrpc.rpclib import *
 from ..exrpc.server import *
-from dfoperator import *
-from optype import *
+from .dfoperator import *
+from .optype import *
 
 class FrovedisColumn:
   def __init__(cls,colName,dtype):
@@ -30,13 +30,19 @@ class FrovedisColumn:
     (host, port) = FrovedisServer.getServerInstance()
     if isinstance(other,FrovedisColumn):
        #print ('Filtering dataframe where', cls.colName, '<', other.colName)
-       proxy = rpclib.get_frovedis_dfoperator(host,port,cls.colName,other.colName,cls.dtype,OPT.LT,False)
+       proxy = rpclib.get_frovedis_dfoperator(host,port,
+                                              cls.colName.encode('ascii'),
+                                              other.colName.encode('ascii'),
+                                              cls.dtype,OPT.LT,False)
        excpt = rpclib.check_server_exception()
        if excpt["status"]: raise RuntimeError(excpt["info"]) 
        return dfoperator(proxy)
     else:    
        #print ('Filtering dataframe where', cls.colName, '<', other)
-       proxy = rpclib.get_frovedis_dfoperator(host,port,cls.colName,str(other),cls.dtype,OPT.LT,True)
+       proxy = rpclib.get_frovedis_dfoperator(host,port,
+                                              cls.colName.encode('ascii'),
+                                              str(other).encode('ascii'),
+                                              cls.dtype,OPT.LT,True)
        excpt = rpclib.check_server_exception()
        if excpt["status"]: raise RuntimeError(excpt["info"]) 
        return dfoperator(proxy)
@@ -45,13 +51,19 @@ class FrovedisColumn:
     (host, port) = FrovedisServer.getServerInstance()
     if isinstance(other,FrovedisColumn):
        #print ('Filtering dataframe where', cls.colName, '>', other.colName)
-       proxy = rpclib.get_frovedis_dfoperator(host,port,cls.colName,other.colName,cls.dtype,OPT.GT,False)
+       proxy = rpclib.get_frovedis_dfoperator(host,port,
+                                              cls.colName.encode('ascii'),
+                                              other.colName.encode('ascii'),
+                                              cls.dtype,OPT.GT,False)
        excpt = rpclib.check_server_exception()
        if excpt["status"]: raise RuntimeError(excpt["info"]) 
        return dfoperator(proxy)
     else:
        #print ('Filtering dataframe where', cls.colName, '>', other)
-       proxy = rpclib.get_frovedis_dfoperator(host,port,cls.colName,str(other),cls.dtype,OPT.GT,True)
+       proxy = rpclib.get_frovedis_dfoperator(host,port,
+                                              cls.colName.encode('ascii'),
+                                              str(other).encode('ascii'),
+                                              cls.dtype,OPT.GT,True)
        excpt = rpclib.check_server_exception()
        if excpt["status"]: raise RuntimeError(excpt["info"]) 
        return dfoperator(proxy)
@@ -60,13 +72,19 @@ class FrovedisColumn:
     (host, port) = FrovedisServer.getServerInstance()
     if isinstance(other,FrovedisColumn):
        #print ('Filtering dataframe where', cls.colName, '==', other.colName)
-       proxy = rpclib.get_frovedis_dfoperator(host,port,cls.colName,other.colName,cls.dtype,OPT.EQ,False)
+       proxy = rpclib.get_frovedis_dfoperator(host,port,
+                                              cls.colName.encode('ascii'),
+                                              other.colName.encode('ascii'),
+                                              cls.dtype,OPT.EQ,False)
        excpt = rpclib.check_server_exception()
        if excpt["status"]: raise RuntimeError(excpt["info"]) 
        return dfoperator(proxy)
     else:
        #print ('Filtering dataframe where', cls.colName, '==', other)
-       proxy = rpclib.get_frovedis_dfoperator(host,port,cls.colName,str(other),cls.dtype,OPT.EQ,True)
+       proxy = rpclib.get_frovedis_dfoperator(host,port,
+                                              cls.colName.encode('ascii'),
+                                              str(other).encode('ascii'),
+                                              cls.dtype,OPT.EQ,True)
        excpt = rpclib.check_server_exception()
        if excpt["status"]: raise RuntimeError(excpt["info"]) 
        return dfoperator(proxy)
@@ -75,13 +93,19 @@ class FrovedisColumn:
     (host, port) = FrovedisServer.getServerInstance()
     if isinstance(other,FrovedisColumn):
        #print ('Filtering dataframe where', cls.colName, '!=', other.colName)
-       proxy = rpclib.get_frovedis_dfoperator(host,port,cls.colName,other.colName,cls.dtype,OPT.NE,False)
+       proxy = rpclib.get_frovedis_dfoperator(host,port,
+                                              cls.colName.encode('ascii'),
+                                              other.colName.encode('ascii'),
+                                              cls.dtype,OPT.NE,False)
        excpt = rpclib.check_server_exception()
        if excpt["status"]: raise RuntimeError(excpt["info"]) 
        return dfoperator(proxy)
     else:
        #print ('Filtering dataframe where', cls.colName, '!=', other)
-       proxy = rpclib.get_frovedis_dfoperator(host,port,cls.colName,str(other),cls.dtype,OPT.NE,True)
+       proxy = rpclib.get_frovedis_dfoperator(host,port,
+                                              cls.colName.encode('ascii'),
+                                              str(other).encode('ascii'),
+                                              cls.dtype,OPT.NE,True)
        excpt = rpclib.check_server_exception()
        if excpt["status"]: raise RuntimeError(excpt["info"]) 
        return dfoperator(proxy)
@@ -90,13 +114,19 @@ class FrovedisColumn:
     (host, port) = FrovedisServer.getServerInstance()
     if isinstance(other,FrovedisColumn):
        #print ('Filtering dataframe where', cls.colName, '<=', other.colName)
-       proxy = rpclib.get_frovedis_dfoperator(host,port,cls.colName,other.colName,cls.dtype,OPT.LE,False)
+       proxy = rpclib.get_frovedis_dfoperator(host,port,
+                                              cls.colName.encode('ascii'),
+                                              other.colName.encode('ascii'),
+                                              cls.dtype,OPT.LE,False)
        excpt = rpclib.check_server_exception()
        if excpt["status"]: raise RuntimeError(excpt["info"]) 
        return dfoperator(proxy)
     else:
        #print ('Filtering dataframe where', cls.colName, '<=', other)
-       proxy = rpclib.get_frovedis_dfoperator(host,port,cls.colName,str(other),cls.dtype,OPT.LE,True)
+       proxy = rpclib.get_frovedis_dfoperator(host,port,
+                                              cls.colName.encode('ascii'),
+                                              str(other).encode('ascii'),
+                                              cls.dtype,OPT.LE,True)
        excpt = rpclib.check_server_exception()
        if excpt["status"]: raise RuntimeError(excpt["info"]) 
        return dfoperator(proxy)
@@ -105,13 +135,19 @@ class FrovedisColumn:
     (host, port) = FrovedisServer.getServerInstance()
     if isinstance(other,FrovedisColumn):
        #print ('Filtering dataframe where', cls.colName, '>=', other.colName)
-       proxy = rpclib.get_frovedis_dfoperator(host,port,cls.colName,other.colName,cls.dtype,OPT.GE,False)
+       proxy = rpclib.get_frovedis_dfoperator(host,port,
+                                              cls.colName.encode('ascii'),
+                                              other.colName.encode('ascii'),
+                                              cls.dtype,OPT.GE,False)
        excpt = rpclib.check_server_exception()
        if excpt["status"]: raise RuntimeError(excpt["info"]) 
        return dfoperator(proxy)
     else:
        #print ('Filtering dataframe where', cls.colName, '>=', other)
-       proxy = rpclib.get_frovedis_dfoperator(host,port,cls.colName,str(other),cls.dtype,OPT.GE,True)
+       proxy = rpclib.get_frovedis_dfoperator(host,port,
+                                              cls.colName.encode('ascii'),
+                                              str(other).encode('ascii'),
+                                              cls.dtype,OPT.GE,True)
        excpt = rpclib.check_server_exception()
        if excpt["status"]: raise RuntimeError(excpt["info"]) 
        return dfoperator(proxy)

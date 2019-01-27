@@ -79,7 +79,7 @@ class GLM:
       if isinstance(fname, str) == False: 
         raise TypeError("Expected: String, Got: " + str(type(fname)))
       (host,port) = FrovedisServer.getServerInstance()
-      rpclib.load_frovedis_model(host,port,mid,mkind,mdtype,fname)
+      rpclib.load_frovedis_model(host,port,mid,mkind,mdtype,fname.encode('ascii'))
       excpt = rpclib.check_server_exception()
       if excpt["status"]: raise RuntimeError(excpt["info"]) 
 
@@ -89,7 +89,7 @@ class GLM:
       if isinstance(fname, str) == False: 
         raise TypeError("Expected: String, Got: " + str(type(fname)))
       (host,port) = FrovedisServer.getServerInstance()
-      rpclib.save_frovedis_model(host,port,mid,mkind,mdtype,fname)
+      rpclib.save_frovedis_model(host,port,mid,mkind,mdtype,fname.encode('ascii'))
       excpt = rpclib.check_server_exception()
       if excpt["status"]: raise RuntimeError(excpt["info"]) 
 

@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 
-from model_util import *
+from .model_util import *
 from ..exrpc.rpclib import *
 from ..exrpc.server import *
 from ..matrix.ml_data import FrovedisLabeledPoint
 from ..matrix.dtype import TypeUtil
-from metrics import *
+from .metrics import *
 
 # Factorization Machine Classifier class
 class FactorizationMachineClassifier:
@@ -91,7 +91,7 @@ class FactorizationMachineClassifier:
     (host,port) = FrovedisServer.getServerInstance()
     rpclib.fm_train(host, port, X.get(),
                     y.get(), cls.init_stdev, cls.iteration, 
-                    cls.init_learn_rate, cls.optimizer, cls.global_bias,
+                    cls.init_learn_rate, cls.optimizer.encode('ascii'), cls.global_bias,
                     cls.dim_one_interactions, cls.dim_factors_no, 
                     cls.reg_intercept,
                     cls.reg_one_interactions, cls.reg_factors_no, 
@@ -227,7 +227,7 @@ class FactorizationMachineRegressor:
     (host,port) = FrovedisServer.getServerInstance()
     rpclib.fm_train(host, port, X.get(),
               y.get(), cls.init_stdev, cls.iteration, 
-              cls.init_learn_rate, cls.optimizer, cls.global_bias,
+              cls.init_learn_rate, cls.optimizer.encode('ascii'), cls.global_bias,
               cls.dim_one_interactions, cls.dim_factors_no, cls.reg_intercept,
               cls.reg_one_interactions, cls.reg_factors_no, 
               cls.batch_size_pernode,

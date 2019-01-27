@@ -9,8 +9,7 @@ from ..exrpc.rpclib import *
 from ..exrpc.server import *
 from ..matrix.dvector import *
 from ..matrix.dtype import *
-from frovedisColumn import *
-import grouped_df
+from .frovedisColumn import *
 
 class FrovedisDataframe :
 
@@ -20,7 +19,6 @@ class FrovedisDataframe :
     cls.__cols  = None
     cls.__types = None
     if df is not None: cls.load(df)
-
   def load_dummy(cls,fdata,cols,types):
     cls.__fdata = fdata
     cls.__cols = copy.deepcopy(cols)
@@ -39,7 +37,7 @@ class FrovedisDataframe :
       if excpt["status"]: raise RuntimeError(excpt["info"]) 
       print("\n")
 
-  def release(cls):
+  def release(cls): 
     if cls.__fdata is not None:
        (host, port) = FrovedisServer.getServerInstance()
        rpclib.release_frovedis_dataframe(host,port,cls.__fdata)
@@ -91,7 +89,7 @@ class FrovedisDataframe :
 
     cols_a = np.asarray(cls.__cols)
     col_names = (c_char_p * size)()
-    col_names[:] = cols_a.T
+    col_names[:] = [e.encode('ascii') for e in cols_a.T]
     dvec_arr = np.asarray(dvec,dtype=c_long)
     dptr = dvec_arr.ctypes.data_as(POINTER(c_long))
     type_arr = np.asarray(cls.__types,dtype=c_short)
@@ -143,7 +141,7 @@ class FrovedisDataframe :
     vv = vec.T # returns self, since ndim=1
     sz = vec.size
     ptr_arr = (c_char_p * sz)()
-    ptr_arr[:] = vv
+    ptr_arr[:] = [e.encode('ascii') for e in vv]
 
     #print("making exrpc request to select requested columns")
     (host, port) = FrovedisServer.getServerInstance()
@@ -169,8 +167,8 @@ class FrovedisDataframe :
     vv = vec.T # returns self, since ndim=1
     sz = vec.size
     ptr_arr = (c_char_p * sz)()
-    ptr_arr[:] = vv
-      
+    ptr_arr[:] = [e.encode('ascii') for e in vv]
+
     ret = FrovedisDataframe()
     ret.__cols = copy.deepcopy(cls.__cols)
     ret.__types = copy.deepcopy(cls.__types)
@@ -192,6 +190,7 @@ class FrovedisDataframe :
 
   def groupby(cls, by=None, axis=0, level=None, 
               as_index=True, sort=True, group_keys=True, squeeze=False):
+    from frovedis.dataframe import grouped_df
     if cls.__fdata is None: 
       raise ValueError("Operation on invalid frovedis dataframe!")
     if(isinstance(by, str)):    g_by = [by]
@@ -209,7 +208,7 @@ class FrovedisDataframe :
     vv = vec.T
     sz = vec.size
     ptr_arr = (c_char_p * sz)()
-    ptr_arr[:] = vv
+    ptr_arr[:] = [e.encode('ascii') for e in vv]
 
     (host, port) = FrovedisServer.getServerInstance()
     fdata = rpclib.group_frovedis_dataframe(host,port,cls.get(),ptr_arr,sz)
@@ -281,7 +280,8 @@ class FrovedisDataframe :
 
     (host, port) = FrovedisServer.getServerInstance()
     ret.__fdata = rpclib.merge_frovedis_dataframe(host,port,cls.get(),df.get(),
-                                                  dfopt.get(),how,join_type)
+                                                  dfopt.get(),how.encode('ascii'),
+                                                  join_type.encode('ascii'))
     excpt = rpclib.check_server_exception()
     if excpt["status"]: raise RuntimeError(excpt["info"]) 
     return ret                                                        
@@ -301,8 +301,8 @@ class FrovedisDataframe :
       raise ValueError("Operation on invalid frovedis dataframe!")
     if not isinstance(columns,dict): 
       raise TypeError("Expected: dictionery; Received: ", type(columns).__name__)
-    names = columns.keys()
-    new_names = columns.values()
+    names = list(columns.keys())
+    new_names = list(columns.values())
     ret = FrovedisDataframe()
     ret.__cols = copy.deepcopy(cls.__cols)
     ret.__types = copy.deepcopy(cls.__types)
@@ -325,8 +325,8 @@ class FrovedisDataframe :
     vec2 = np.asarray(new_names)
     name_ptr = (c_char_p * sz)()
     new_name_ptr = (c_char_p * sz)()
-    name_ptr[:] = vec1.T
-    new_name_ptr[:] = vec2.T
+    name_ptr[:] = [e.encode('ascii') for e in vec1.T]
+    new_name_ptr[:] = [e.encode('ascii') for e in vec2.T]
 
     (host, port) = FrovedisServer.getServerInstance()
     ret.__fdata = rpclib.rename_frovedis_dataframe(host,port,cls.get(),
@@ -436,7 +436,8 @@ class FrovedisDataframe :
     sz = len(columns)
     cols = np.asarray(columns)
     cols_ptr = (c_char_p * sz)()
-    cols_ptr[:] = cols.T
+    cols_ptr[:] = [e.encode('ascii') for e in cols.T]
+
     if types: 
       type_arr = np.asarray(types,dtype=c_short)
       tptr = type_arr.ctypes.data_as(POINTER(c_short))
@@ -500,12 +501,11 @@ class FrovedisDataframe :
     data = {}
     (host, port) = FrovedisServer.getServerInstance()
     for i in range(0,sz):
-      col_val = rpclib.get_frovedis_col(host,port,cls.get(),cols[i],types[i]) 
+      col_val = rpclib.get_frovedis_col(host,port,cls.get(),
+                                        cols[i].encode('ascii'),types[i]) 
       excpt = rpclib.check_server_exception()
       if excpt["status"]: raise RuntimeError(excpt["info"]) 
       data[cols[i]] = col_val
     #print(data)
     return pd.DataFrame(data)
     
-    
-

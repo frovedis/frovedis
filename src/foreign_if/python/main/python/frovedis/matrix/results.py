@@ -3,7 +3,7 @@
 import numpy as np
 from ..exrpc.rpclib import *
 from ..exrpc.server import *
-from dense import FrovedisDenseMatrix
+from .dense import FrovedisDenseMatrix
 
 class GetrfResult:
    "A python container for holding pointers of Frovedis server side getrf results"
@@ -26,7 +26,7 @@ class GetrfResult:
    def release(cls):
       if cls.__mtype is not None:
          (host, port) = FrovedisServer.getServerInstance()
-         rpclib.release_ipiv(host,port,cls.mtype(),cls.ipiv())
+         rpclib.release_ipiv(host,port,cls.mtype().encode('ascii'),cls.ipiv())
          excpt = rpclib.check_server_exception()
          if excpt["status"]: raise RuntimeError(excpt["info"]) 
          cls.__mtype = None 
@@ -117,7 +117,8 @@ class GesvdResult:
       if cls.__svec is not None:
         if sfl is None: raise ValueError("s_filename can't be None")
         (host,port) = FrovedisServer.getServerInstance()
-        rpclib.save_as_diag_matrix(host,port,cls.__svec,sfl,False)
+        rpclib.save_as_diag_matrix(host,port,cls.__svec,
+                                   sfl.encode('ascii'),False)
         excpt = rpclib.check_server_exception()
         if excpt["status"]: raise RuntimeError(excpt["info"]) 
         wantU = cls.__umat is not None and ufl is not None
@@ -129,7 +130,8 @@ class GesvdResult:
       if cls.__svec is not None:
         if sfl is None: raise ValueError("s_filename can't be None")
         (host,port) = FrovedisServer.getServerInstance()
-        rpclib.save_as_diag_matrix(host,port,cls.__svec,sfl,True)
+        rpclib.save_as_diag_matrix(host,port,cls.__svec,
+                                   sfl.encode('ascii'),True)
         excpt = rpclib.check_server_exception()
         if excpt["status"]: raise RuntimeError(excpt["info"]) 
         wantU = cls.__umat is not None and ufl is not None
@@ -153,8 +155,11 @@ class GesvdResult:
       if wantV == False: vfl = ''
       (host,port) = FrovedisServer.getServerInstance()
       dummy = rpclib.get_svd_results_from_file(host,port,
-                                               sfl,ufl,vfl,bin,
-                                               wantU,wantV,mtype)
+                                               sfl.encode('ascii'),
+                                               ufl.encode('ascii'),
+                                               vfl.encode('ascii'),
+                                               bin,wantU,wantV,
+                                               mtype.encode('ascii'))
       excpt = rpclib.check_server_exception()
       if excpt["status"]: raise RuntimeError(excpt["info"]) 
       cls.load_dummy(dummy)

@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 
-from model_util import *
+from .model_util import *
 from ..exrpc.rpclib import *
 from ..exrpc.server import *
 from ..matrix.ml_data import FrovedisLabeledPoint
 from ..matrix.dtype import TypeUtil
-from metrics import *
+from .metrics import *
 import numpy as np
 
 # Decision Tree Regressor Class
@@ -86,8 +86,8 @@ class DecisionTreeRegressor:
 
     (host,port) = FrovedisServer.getServerInstance()
     rpclib.dt_train(host,port,X.get(),y.get(), 
-                    cls.algo, cls.criterion, cls.max_depth,
-                    cls.n_classes_, cls.max_bins, cls.min_samples_leaf, 
+                    cls.algo.encode('ascii'), cls.criterion.encode('ascii'),
+                    cls.max_depth, cls.n_classes_, cls.max_bins, cls.min_samples_leaf, 
                     cls.min_info_gain, cls.verbose, cls.__mid, 
                     dtype, itype, dense)
     excpt = rpclib.check_server_exception()
@@ -220,8 +220,8 @@ class DecisionTreeClassifier:
 
     (host,port) = FrovedisServer.getServerInstance()
     rpclib.dt_train(host,port,X.get(),y.get(), 
-                    cls.algo, cls.criterion, cls.max_depth,
-                    cls.n_classes_, cls.max_bins, cls.min_samples_leaf, 
+                    cls.algo.encode('ascii'), cls.criterion.encode('ascii'),
+                    cls.max_depth, cls.n_classes_, cls.max_bins, cls.min_samples_leaf, 
                     cls.min_info_gain, cls.verbose, cls.__mid,
                     dtype, itype, dense)
     excpt = rpclib.check_server_exception()
