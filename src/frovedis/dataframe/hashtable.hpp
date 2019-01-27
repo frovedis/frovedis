@@ -388,7 +388,7 @@ unique_hashtable<K,V>::unique_hashtable(const std::vector<K>& k,
       if(is_filledp[hash[i]] == false) {
         table_keyp[hash[i]] = keyoff[i];
         is_filledp[hash[i]] = true;
-        unique_checkerp[hash[i]] = i;
+        unique_checkerp[hash[i]] = i + offset;
       } else if(table_keyp[hash[i]] == keyoff[i]) {
         is_unique_ok = false;
       }
@@ -396,7 +396,7 @@ unique_hashtable<K,V>::unique_hashtable(const std::vector<K>& k,
 #pragma cdir nodep
 #pragma _NEC ivdep
     for(size_t i = 0; i < UNIQUE_HASH_VLEN; i++) {
-      if(unique_checkerp[hash[i]] == i) {
+      if(unique_checkerp[hash[i]] == i + offset) {
         table_valp[hash[i]] = valoff[i];
       } else if(table_keyp[hash[i]] != keyoff[i]) {
         missedp[missed_idx++] = i + offset;
@@ -418,7 +418,7 @@ unique_hashtable<K,V>::unique_hashtable(const std::vector<K>& k,
     if(is_filledp[hash[i]] == false) {
       table_keyp[hash[i]] = keyoff[i];
       is_filledp[hash[i]] = true;
-      unique_checkerp[hash[i]] = i;
+      unique_checkerp[hash[i]] = i + offset;
     } else if(table_keyp[hash[i]] == keyoff[i]) {
       is_unique_ok = false;
     }
@@ -426,7 +426,7 @@ unique_hashtable<K,V>::unique_hashtable(const std::vector<K>& k,
 #pragma cdir nodep
 #pragma _NEC ivdep
   for(size_t i = 0; i < remain_size; i++) {
-    if(unique_checkerp[hash[i]] == i) {
+    if(unique_checkerp[hash[i]] == i + offset) {
       table_valp[hash[i]] = valoff[i];
     } else if(table_keyp[hash[i]] != keyoff[i]) {
       missedp[missed_idx++] = i + offset;
