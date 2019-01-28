@@ -704,14 +704,25 @@ typed_dfcolumn<string>::extract(node_local<std::vector<size_t>>& idx) {
 std::shared_ptr<dfcolumn>
 typed_dfcolumn<string>::global_extract
 (node_local<std::vector<size_t>>& global_idx,
- node_local<std::vector<std::vector<size_t>>>& partitioned_idx,
+ node_local<std::vector<size_t>>& to_store_idx,
  node_local<std::vector<std::vector<size_t>>>& exchanged_idx) {
   auto ret = std::make_shared<typed_dfcolumn<std::string>>();
   auto exdata = val.map(global_extract_helper<size_t>, exchanged_idx);
-  auto exchanged_back = alltoall_exchange(exdata);
-  auto hashes = partitioned_idx.map(create_hash_from_partition<size_t>,
-                                    exchanged_back);
-  ret->val = global_idx.map(call_lookup<size_t>, hashes);
+  auto exchanged_back = alltoall_exchange(exdata).map(flatten<size_t>);
+  ret->val = exchanged_back.map
+    (+[](std::vector<size_t>& val, std::vector<size_t>& idx) {
+      auto valp = val.data();
+      auto idxp = idx.data();
+      auto size = idx.size();
+      std::vector<size_t> ret(size);
+      auto retp = ret.data();
+#pragma cdir nodep
+#pragma _NEC ivdep
+      for(size_t i = 0 ; i < size; i++) {
+        retp[i] = valp[idxp[i]];
+      }
+      return ret;
+    }, to_store_idx);
   if(contain_nulls) {
     auto exnulls = nulls.map(global_extract_null_helper, exchanged_idx);
     auto exchanged_back_nulls = alltoall_exchange(exnulls);

@@ -504,7 +504,8 @@ public:
                  std::shared_ptr<dfcolumn>&& sorted_column) :
     dftable_base(table), global_idx(std::move(global_idx_)),
     column_name(column_name), sorted_column(std::move(sorted_column)) {
-    partitioned_idx = partition_global_index_bynode(global_idx);
+    auto partitioned_idx = partition_global_index_bynode(global_idx);
+    to_store_idx = make_to_store_idx(partitioned_idx, global_idx);
     exchanged_idx = exchange_partitioned_index(partitioned_idx);
     is_cachable = !table.raw_column(column_name)->is_string();
   }
@@ -536,7 +537,7 @@ private:
   node_local<std::vector<size_t>> global_idx;
   std::string column_name;
   std::shared_ptr<dfcolumn> sorted_column;
-  node_local<std::vector<std::vector<size_t>>> partitioned_idx;
+  node_local<std::vector<size_t>> to_store_idx;
   node_local<std::vector<std::vector<size_t>>> exchanged_idx;
   bool is_cachable;
 };
@@ -552,10 +553,12 @@ public:
     left_idx(std::move(left_idx_)), right_idx(std::move(right_idx_)) {
     time_spent t(DEBUG);
     auto unique_left_idx = left_idx.map(get_unique_idx);
-    left_partitioned_idx = partition_global_index_bynode(unique_left_idx);
+    auto left_partitioned_idx = partition_global_index_bynode(unique_left_idx);
+    left_to_store_idx = make_to_store_idx(left_partitioned_idx, left_idx);
     left_exchanged_idx = exchange_partitioned_index(left_partitioned_idx);
     auto unique_right_idx = right_idx.map(get_unique_idx);
-    right_partitioned_idx = partition_global_index_bynode(unique_right_idx);
+    auto right_partitioned_idx = partition_global_index_bynode(unique_right_idx);
+    right_to_store_idx = make_to_store_idx(right_partitioned_idx, right_idx);
     right_exchanged_idx = exchange_partitioned_index(right_partitioned_idx);
     t.show("init hash_joined_dftable: ");
   }
@@ -573,10 +576,12 @@ public:
       left_idx = left_idx_.map(concat_idx, right_nulls);
     }
     auto unique_left_idx = left_idx.map(get_unique_idx);
-    left_partitioned_idx = partition_global_index_bynode(unique_left_idx);
+    auto left_partitioned_idx = partition_global_index_bynode(unique_left_idx);
+    left_to_store_idx = make_to_store_idx(left_partitioned_idx, left_idx);
     left_exchanged_idx = exchange_partitioned_index(left_partitioned_idx);
     auto unique_right_idx = right_idx.map(get_unique_idx);
-    right_partitioned_idx = partition_global_index_bynode(unique_right_idx);
+    auto right_partitioned_idx = partition_global_index_bynode(unique_right_idx);
+    right_to_store_idx = make_to_store_idx(right_partitioned_idx, right_idx);
     right_exchanged_idx = exchange_partitioned_index(right_partitioned_idx);
   }
   virtual size_t num_col() const;
@@ -613,9 +618,9 @@ private:
   node_local<std::vector<size_t>> left_idx;
   node_local<std::vector<size_t>> right_idx;
   node_local<std::vector<size_t>> right_nulls;
-  node_local<std::vector<std::vector<size_t>>> left_partitioned_idx;
+  node_local<std::vector<size_t>> left_to_store_idx;
   node_local<std::vector<std::vector<size_t>>> left_exchanged_idx;
-  node_local<std::vector<std::vector<size_t>>> right_partitioned_idx;
+  node_local<std::vector<size_t>> right_to_store_idx;
   node_local<std::vector<std::vector<size_t>>> right_exchanged_idx;
 };
 
@@ -627,7 +632,8 @@ public:
     dftable_base(left), is_outer(false), right(right),
     left_idx(std::move(left_idx_)), right_idx(std::move(right_idx_)) {
     auto unique_right_idx = right_idx.map(get_unique_idx);
-    right_partitioned_idx = partition_global_index_bynode(unique_right_idx);
+    auto right_partitioned_idx = partition_global_index_bynode(unique_right_idx);
+    right_to_store_idx = make_to_store_idx(right_partitioned_idx, right_idx);
     right_exchanged_idx = exchange_partitioned_index(right_partitioned_idx);
   }
   bcast_joined_dftable(dftable_base& left, dftable_base& right,
@@ -644,7 +650,8 @@ public:
       left_idx = left_idx_.map(concat_idx, right_nulls);
     }
     auto unique_right_idx = right_idx.map(get_unique_idx);
-    right_partitioned_idx = partition_global_index_bynode(unique_right_idx);
+    auto right_partitioned_idx = partition_global_index_bynode(unique_right_idx);
+    right_to_store_idx = make_to_store_idx(right_partitioned_idx, right_idx);
     right_exchanged_idx = exchange_partitioned_index(right_partitioned_idx);
   }
   virtual size_t num_col() const;
@@ -681,7 +688,7 @@ private:
   node_local<std::vector<size_t>> left_idx; // local index
   node_local<std::vector<size_t>> right_idx;
   node_local<std::vector<size_t>> right_nulls;
-  node_local<std::vector<std::vector<size_t>>> right_partitioned_idx;
+  node_local<std::vector<size_t>> right_to_store_idx;
   node_local<std::vector<std::vector<size_t>>> right_exchanged_idx;
 };
 
@@ -695,14 +702,16 @@ public:
     dftable_base(left), rights(std::move(rights_)),
     left_idx(std::move(left_idx_)), right_idxs(std::move(right_idxs_)) {
     size_t rightssize = rights.size();
-    right_partitioned_idxs.resize(rightssize);
+    right_to_store_idxs.resize(rightssize);
     right_exchanged_idxs.resize(rightssize);
     for(size_t i = 0; i < rightssize; i++) {
       auto unique_right_idx = right_idxs[i].map(get_unique_idx);
-      right_partitioned_idxs[i] =
+      auto right_partitioned_idx = 
         partition_global_index_bynode(unique_right_idx);
+      right_to_store_idxs[i] = make_to_store_idx(right_partitioned_idx,
+                                                 right_idxs[i]);
       right_exchanged_idxs[i] = 
-        exchange_partitioned_index(right_partitioned_idxs[i]);
+        exchange_partitioned_index(right_partitioned_idx);
     }
   }
   virtual size_t num_col() const;
@@ -737,8 +746,7 @@ private:
   std::vector<dftable_base> rights; // if the input is filtered_dftable, sliced
   node_local<std::vector<size_t>> left_idx; // local index
   std::vector<node_local<std::vector<size_t>>> right_idxs;
-  std::vector<node_local<std::vector<std::vector<size_t>>>> 
-  right_partitioned_idxs;
+  std::vector<node_local<std::vector<size_t>>> right_to_store_idxs;
   std::vector<node_local<std::vector<std::vector<size_t>>>>
   right_exchanged_idxs;
 };

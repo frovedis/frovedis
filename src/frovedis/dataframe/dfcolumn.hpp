@@ -40,7 +40,7 @@ public:
   extract(node_local<std::vector<size_t>>& idx) = 0;
   virtual std::shared_ptr<dfcolumn>
   global_extract(node_local<std::vector<size_t>>&,
-                 node_local<std::vector<std::vector<size_t>>>&,
+                 node_local<std::vector<size_t>>&,
                  node_local<std::vector<std::vector<size_t>>>&) = 0;
   virtual std::shared_ptr<dfcolumn>
   sort(node_local<std::vector<size_t>>&) = 0;
@@ -214,7 +214,7 @@ public:
   extract(node_local<std::vector<size_t>>& idx);
   virtual std::shared_ptr<dfcolumn>
   global_extract(node_local<std::vector<size_t>>& global_idx,
-                 node_local<std::vector<std::vector<size_t>>>& partitioned_idx,
+                 node_local<std::vector<size_t>>& to_store_idx,
                  node_local<std::vector<std::vector<size_t>>>& exchanged_idx);
   std::shared_ptr<dfcolumn> sort(node_local<std::vector<size_t>>&);
   std::shared_ptr<dfcolumn> sort_desc(node_local<std::vector<size_t>>&);
@@ -376,7 +376,7 @@ public:
   extract(node_local<std::vector<size_t>>& idx);
   virtual std::shared_ptr<dfcolumn>
   global_extract(node_local<std::vector<size_t>>& global_idx,
-                 node_local<std::vector<std::vector<size_t>>>& partitioned_idx,
+                 node_local<std::vector<size_t>>& to_store_idx,
                  node_local<std::vector<std::vector<size_t>>>& exchanged_idx);
   virtual std::shared_ptr<dfcolumn>
   sort(node_local<std::vector<size_t>>& idx);
@@ -566,6 +566,11 @@ node_local<std::vector<std::vector<size_t>>>
 exchange_partitioned_index(node_local<std::vector<std::vector<size_t>>>&
                            partitioned_idx);
 
+node_local<std::vector<size_t>> 
+make_to_store_idx(node_local<std::vector<std::vector<size_t>>>&
+                  partitioned_idx,
+                  node_local<std::vector<size_t>>& global_idx);
+
 node_local<std::vector<size_t>>
 local_to_global_idx(node_local<std::vector<size_t>>& local_idx);
 
@@ -701,7 +706,7 @@ void split_by_hash_no_outval(std::vector<T>& val,
 }
 
 template <class T>
-std::vector<T> flatten(std::vector<std::vector<T>>& v) {
+std::vector<T> flatten(const std::vector<std::vector<T>>& v) {
   size_t total = 0;
   size_t vsize = v.size();
   for(size_t i = 0; i < vsize; i++) total += v[i].size();
@@ -709,7 +714,7 @@ std::vector<T> flatten(std::vector<std::vector<T>>& v) {
   T* retp = &ret[0];
   size_t current = 0;
   for(size_t i = 0; i < vsize; i++) {
-    T* vp = &v[i][0];
+    const T* vp = v[i].data();
     size_t visize = v[i].size();
     for(size_t j = 0; j < visize; j++) {
       retp[current++] = vp[j];

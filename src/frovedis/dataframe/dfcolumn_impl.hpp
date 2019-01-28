@@ -371,40 +371,6 @@ global_extract_helper(std::vector<T>& val,
   return ret;
 }
 
-template <class T>
-unique_hashtable<size_t, T>
-create_hash_from_partition(std::vector<std::vector<size_t>>& part_idx,
-                           std::vector<std::vector<T>>& exchanged_val) {
-  size_t total = 0;
-  size_t size = part_idx.size();
-  if(exchanged_val.size() != size)
-    throw std::runtime_error("size error in create_hash_from_partition");
-  for(size_t i = 0; i < size; i++) total += part_idx[i].size();
-  std::vector<size_t> flat_part_idx(total);
-  std::vector<T> flat_exchanged_val(total);
-  size_t* flat_part_idxp = &flat_part_idx[0];
-  T* flat_exchanged_valp = &flat_exchanged_val[0];
-  size_t current = 0;
-  for(size_t i = 0; i < size; i++) {
-    size_t part_size = part_idx[i].size();
-    if(exchanged_val[i].size() != part_size)
-      throw std::runtime_error("size error in create_hash_from_partition");
-    size_t* part_idxp = &part_idx[i][0];
-    T* exchanged_valp = &exchanged_val[i][0];
-    for(size_t j = 0; j < part_size; j++) {
-      flat_part_idxp[current] = part_idxp[j];
-      flat_exchanged_valp[current++] = exchanged_valp[j];
-    }
-  }
-  return unique_hashtable<size_t, T>(flat_part_idx, flat_exchanged_val);
-}
-
-template <class T>
-std::vector<T> call_lookup(std::vector<size_t>& global_idx,
-                           unique_hashtable<size_t, T>& hashtable) {
-  return hashtable.lookup(global_idx);
-}
-
 std::vector<std::vector<size_t>> make_partition_idx(std::vector<size_t>& idx);
 
 std::vector<std::vector<size_t>>
@@ -1255,19 +1221,29 @@ template <class T>
 std::shared_ptr<dfcolumn>
 typed_dfcolumn<T>::global_extract
 (node_local<std::vector<size_t>>& global_idx,
- node_local<std::vector<std::vector<size_t>>>& partitioned_idx,
+ node_local<std::vector<size_t>>& to_store_idx,
  node_local<std::vector<std::vector<size_t>>>& exchanged_idx) {
   time_spent t(DEBUG);
   auto ret = std::make_shared<typed_dfcolumn<T>>();
   auto exdata = val.map(global_extract_helper<T>, exchanged_idx);
   t.show("global_exract_helper: ");
-  auto exchanged_back = alltoall_exchange(exdata);
-  t.show("alltoall_exchange: ");
-  auto hashes = partitioned_idx.map(create_hash_from_partition<T>,
-                                    exchanged_back);
-  t.show("create_hash_from_partition: ");
-  ret->val = global_idx.map(call_lookup<T>, hashes);
-  t.show("call_lookup: ");
+  auto exchanged_back = alltoall_exchange(exdata).map(flatten<T>);
+  t.show("alltoall_exchange + flatten: ");
+  ret->val = exchanged_back.map
+    (+[](std::vector<T>& val, std::vector<size_t>& idx) {
+      auto valp = val.data();
+      auto idxp = idx.data();
+      auto size = idx.size();
+      std::vector<T> ret(size);
+      auto retp = ret.data();
+#pragma cdir nodep
+#pragma _NEC ivdep
+      for(size_t i = 0 ; i < size; i++) {
+        retp[i] = valp[idxp[i]];
+      }
+      return ret;
+    }, to_store_idx);
+  t.show("store: ");
   if(contain_nulls) {
     auto exnulls = nulls.map(global_extract_null_helper, exchanged_idx);
     t.show("global_extract_null_helper: ");

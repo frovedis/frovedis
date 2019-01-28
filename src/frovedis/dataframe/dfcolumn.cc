@@ -136,6 +136,25 @@ exchange_partitioned_index(node_local<std::vector<std::vector<size_t>>>&
   return exchanged.map(remove_nodeinfo);
 }
 
+std::vector<size_t>
+make_to_store_idx_helper(std::vector<std::vector<size_t>>&
+                         partitioned_idx,
+                         std::vector<size_t>& global_idx) {
+  auto flattened_partitioned_idx = flatten(partitioned_idx);
+  auto size = flattened_partitioned_idx.size();
+  std::vector<size_t> iota(size);
+  for(size_t i = 0; i < size; i++) iota[i] = i;
+  auto ht = unique_hashtable<size_t, size_t>(flattened_partitioned_idx, iota);
+  return ht.lookup(global_idx);
+}
+
+node_local<std::vector<size_t>> 
+make_to_store_idx(node_local<std::vector<std::vector<size_t>>>&
+                  partitioned_idx,
+                  node_local<std::vector<size_t>>& global_idx) {
+  return partitioned_idx.map(make_to_store_idx_helper, global_idx);
+}
+
 // return with node information
 std::vector<std::vector<size_t>>
 global_extract_null_helper(std::vector<size_t>& nulls,

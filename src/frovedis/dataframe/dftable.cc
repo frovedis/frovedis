@@ -1204,7 +1204,7 @@ std::shared_ptr<dfcolumn> sorted_dftable::column(const std::string& name) {
     if(ret == col.end()) throw std::runtime_error("no such column: " + name);
     else {
       auto col = (*ret).second;
-      return col->global_extract(global_idx, partitioned_idx, exchanged_idx);
+      return col->global_extract(global_idx, to_store_idx, exchanged_idx);
     }
   }
 }
@@ -1215,6 +1215,25 @@ void sorted_dftable::debug_print() {
   for(auto& i: global_idx.gather()) {
     for(auto j: i) {
       std::cout << (j >> DFNODESHIFT) << "-" << (j & nodemask) << " ";
+    }
+    std::cout << ": ";
+  }
+  std::cout << std::endl;
+  std::cout << "to_store_idx: " << std::endl;
+  for(auto& i: to_store_idx.gather()) {
+    for(auto j: i) {
+      std::cout << j << " ";
+    }
+    std::cout << ": ";
+  }
+  std::cout << std::endl;
+  std::cout << "exchanged_idx: " << std::endl;
+  for(auto& i: exchanged_idx.gather()) {
+    for(auto j: i) {
+      for(auto k: j) {
+        std::cout << k << " ";
+      }
+      std::cout << "| ";
     }
     std::cout << ": ";
   }
@@ -1338,19 +1357,19 @@ hash_joined_dftable::column(const std::string& name) {
   if(left_ret != col.end()) {
     auto c = (*left_ret).second;
     // if outer, left_idx is changed to contain nulls in ctor
-    return c->global_extract(left_idx, left_partitioned_idx,
+    return c->global_extract(left_idx, left_to_store_idx,
                              left_exchanged_idx);
   } else {
     auto right_ret = right.col.find(name);
     if(right_ret != right.col.end()) {
       auto c = (*right_ret).second;
       if(is_outer) {
-        auto retcol = c->global_extract(right_idx, right_partitioned_idx,
+        auto retcol = c->global_extract(right_idx, right_to_store_idx,
                                         right_exchanged_idx);
         retcol->append_nulls(right_nulls);
         return retcol;
       } else {
-        return c->global_extract(right_idx, right_partitioned_idx,
+        return c->global_extract(right_idx, right_to_store_idx,
                                  right_exchanged_idx);
       }
     } else {
@@ -1377,6 +1396,44 @@ void hash_joined_dftable::debug_print() {
   for(auto& i: right_idx.gather()) {
     for(auto j: i) {
       std::cout << (j >> DFNODESHIFT) << "-" << (j & nodemask) << " ";
+    }
+    std::cout << ": ";
+  }
+  std::cout << std::endl;
+  std::cout << "left_to_store_idx: " << std::endl;
+  for(auto& i: left_to_store_idx.gather()) {
+    for(auto j: i) {
+      std::cout << j << " ";
+    }
+    std::cout << ": ";
+  }
+  std::cout << std::endl;
+  std::cout << "right_to_store_idx: " << std::endl;
+  for(auto& i: right_to_store_idx.gather()) {
+    for(auto j: i) {
+      std::cout << j << " ";
+    }
+    std::cout << ": ";
+  }
+  std::cout << std::endl;
+  std::cout << "left_exchanged_idx: " << std::endl;
+  for(auto& i: left_exchanged_idx.gather()) {
+    for(auto j: i) {
+      for(auto k: j) {
+        std::cout << k << " ";
+      }
+      std::cout << "| ";
+    }
+    std::cout << ": ";
+  }
+  std::cout << std::endl;
+  std::cout << "right_exchanged_idx: " << std::endl;
+  for(auto& i: right_exchanged_idx.gather()) {
+    for(auto j: i) {
+      for(auto k: j) {
+        std::cout << k << " ";
+      }
+      std::cout << "| ";
     }
     std::cout << ": ";
   }
@@ -1482,12 +1539,12 @@ bcast_joined_dftable::column(const std::string& name) {
     if(right_ret != right.col.end()) {
       auto c = (*right_ret).second;
       if(is_outer) {
-        auto retcol = c->global_extract(right_idx, right_partitioned_idx,
+        auto retcol = c->global_extract(right_idx, right_to_store_idx,
                                         right_exchanged_idx);
         retcol->append_nulls(right_nulls);
         return retcol;
       } else {
-        return c->global_extract(right_idx, right_partitioned_idx,
+        return c->global_extract(right_idx, right_to_store_idx,
                                  right_exchanged_idx);
       }
     } else {
@@ -1621,7 +1678,7 @@ star_joined_dftable::column(const std::string& name) {
       auto right_ret = rights[i].col.find(name);
       if(right_ret != rights[i].col.end()) {
         auto c = (*right_ret).second;
-        return c->global_extract(right_idxs[i], right_partitioned_idxs[i],
+        return c->global_extract(right_idxs[i], right_to_store_idxs[i],
                                  right_exchanged_idxs[i]);
       }
     }
