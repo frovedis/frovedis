@@ -12,9 +12,11 @@ namespace frovedis {
 
 // inference tool for a result type of map
 template <typename F, typename T, typename... Others>
-using map_result = std::invoke_result<F,
-                                      typename std::add_lvalue_reference<T>::type,
-                                      typename std::add_lvalue_reference<Others>::type...>;
+using map_result = frovedis::invoke_result<
+  F,
+  typename std::add_lvalue_reference<T>::type,
+  typename std::add_lvalue_reference<Others>::type...
+>;
 
 template <typename F, typename T, typename... Others>
 using map_result_t = typename map_result<F, T, Others...>::type;
