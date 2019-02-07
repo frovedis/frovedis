@@ -15,7 +15,16 @@
 #define SWITCH_INSERTION_THR 64
 #endif
 
+#define RADIX_SORT_ALIGN_SIZE 128
+
+#define CONTAIN_NEGATIVE_SIZE 65536
+
 namespace frovedis {
+
+#include "./radix_sort.incl"
+#define RADIX_SORT_KV_PAIR
+#include "./radix_sort.incl"
+#undef RADIX_SORT_KV_PAIR
 
 template <class K, class V>
 void insertion_sort(K* data, V* val, size_t size) {
@@ -32,6 +41,22 @@ void insertion_sort(K* data, V* val, size_t size) {
       } while (j > 0 && data[j - 1] > tmp);
       data[j] = tmp;
       val[j] = vtmp;
+    }
+  }
+}
+
+template <class K>
+void insertion_sort(K* data, size_t size) {
+  int i, j;
+  for (i = 1; i < size; i++) {
+    auto tmp = data[i];
+    if (data[i - 1] > tmp) {
+      j = i;
+      do {
+        data[j] = data[j - 1];
+        j--;
+      } while (j > 0 && data[j - 1] > tmp);
+      data[j] = tmp;
     }
   }
 }
@@ -55,388 +80,438 @@ void insertion_sort_desc(K* data, V* val, size_t size) {
   }
 }
 
-// supported K is int type, and only 0 or positive data
+template <class K>
+void insertion_sort_desc(K* data, size_t size) {
+  int i, j;
+  for (i = 1; i < size; i++) {
+    auto tmp = data[i];
+    if (data[i - 1] < tmp) {
+      j = i;
+      do {
+        data[j] = data[j - 1];
+        j--;
+      } while (j > 0 && data[j - 1] < tmp);
+      data[j] = tmp;
+    }
+  }
+}
+
+template <class K>
+bool contain_negative(K* key_array, size_t size) {
+  K min = 0;
+  size_t i = 0;
+  if(size > CONTAIN_NEGATIVE_SIZE) {
+    for(; i < size - CONTAIN_NEGATIVE_SIZE; i += CONTAIN_NEGATIVE_SIZE) {
+      auto k = key_array + i;
+      for(size_t j = 0; j < CONTAIN_NEGATIVE_SIZE; j++) {
+        if(k[j] < min) min = k[j];
+      }
+      if(min < 0) return true; 
+    }
+  }
+  for(; i < size; i++) {
+    if(key_array[i] < 0) return true;
+  }
+  return false;
+}
+
+inline
+bool contain_negative(unsigned int* key_array, size_t size) {
+  return false;
+}
+
+inline
+bool contain_negative(unsigned long* key_array, size_t size) {
+  return false;
+}
+
+inline
+bool contain_negative(unsigned long long* key_array, size_t size) {
+  return false;
+}
+
+template <class K>
+size_t get_max_key_size(K* key_array, size_t size) {
+  auto key_size = sizeof(K);
+  K max = 0;
+  for(size_t i = 0; i < size; i++) {
+    if(key_array[i] > max) max = key_array[i];
+  }
+  size_t max_key_size = 0;
+  size_t tmp = 0xFF;
+  for(size_t i = 1; i < key_size + 1; i++) {
+    if(max < tmp) {
+      max_key_size = i;
+      break;
+    } else {
+      tmp = (tmp << 8) | 0xFF;
+    }
+  }
+  return max_key_size;
+}
+
+template <class K>
+void flip_top(K* key_array, size_t size) {
+  if(sizeof(K) == 4) {
+    for(size_t i = 0; i < size; i++) {
+      key_array[i] ^= 0x80000000;
+    }
+  } else { // 8
+    for(size_t i = 0; i < size; i++) {
+      key_array[i] ^= 0x8000000000000000;
+    }
+  }
+}
+
+// see http://stereopsis.com/radix.html
+inline void float_flip(float* key_array, size_t size) {
+  uint32_t* key = reinterpret_cast<uint32_t*>(key_array);
+  for(size_t i = 0; i < size; i++) {
+    key[i] ^= -int32_t(key[i] >> 31) | 0x80000000;
+  }
+}
+
+inline void float_flip_reverse(float* key_array, size_t size) {
+  uint32_t* key = reinterpret_cast<uint32_t*>(key_array);
+  for(size_t i = 0; i < size; i++) {
+    key[i] ^= ((key[i] >> 31) - 1) | 0x80000000;
+  }
+}
+
+inline void double_flip(double* key_array, size_t size) {
+  uint64_t* key = reinterpret_cast<uint64_t*>(key_array);
+  for(size_t i = 0; i < size; i++) {
+    key[i] ^= -int64_t(key[i] >> 63) | 0x8000000000000000;
+  }
+}
+
+inline void double_flip_reverse(double* key_array, size_t size) {
+  uint64_t* key = reinterpret_cast<uint64_t*>(key_array);
+  for(size_t i = 0; i < size; i++) {
+    key[i] ^= ((key[i] >> 63) - 1) | 0x8000000000000000;
+  }
+}
+
 template <class K, class V>
-void radix_sort(K* key_array, V* val_array, size_t size) {
+void radix_sort(K* key_array, V* val_array, size_t size,
+                bool positive_only = false) {
   if(size < SWITCH_INSERTION_THR) {
     insertion_sort(key_array, val_array, size);
     return;
   }
-  size_t key_size = sizeof(K);
-  size_t bucket_ldim = RADIX_SORT_VLEN + 1;
-  size_t num_bucket = 1 << 8; // 8bit == 256
-  // bucket_table is columnar (VLEN + 1) by num_bucket matrix
-  // "1" is to avoid bank conflict, but reused for "rest" of the data
-  std::vector<size_t> bucket_table(num_bucket * bucket_ldim);
-  std::vector<size_t> px_bucket_table(num_bucket * bucket_ldim);
-  size_t* bucket_tablep = &bucket_table[0];
-  size_t* px_bucket_tablep = &px_bucket_table[0];
-
-  K max = 0;
-  for(size_t i = 0; i < size; i++) {
-    if(key_array[i] > max) max = key_array[i];
-  }
-
-  size_t max_key_size = 0;
-  size_t tmp = 0xFF;
-  for(size_t i = 1; i < key_size + 1; i++) {
-    if(max < tmp) {
-      max_key_size = i;
-      break;
+  if(positive_only) {
+    auto max_key_size = get_max_key_size(key_array, size);
+    radix_sort_impl(key_array, val_array, size, max_key_size);
+  } else {
+    auto neg = contain_negative(key_array, size);
+    size_t max_key_size;
+    if(neg) {
+      flip_top(key_array, size);
+      max_key_size = sizeof(K);
     } else {
-      tmp = (tmp << 8) | 0xFF;
+      max_key_size = get_max_key_size(key_array, size);
     }
-  }
+    radix_sort_impl(key_array, val_array, size, max_key_size);
+    if(neg) flip_top(key_array, size);
+  }  
+}
 
-  std::vector<size_t> pos(size);
-  size_t* posp = &pos[0];
-  std::vector<K> key_array_tmpv(size);
-  std::vector<V> val_array_tmpv(size);
-  K* key_array_tmp = &key_array_tmpv[0];
-  V* val_array_tmp = &val_array_tmpv[0];
-  int next_is_tmp = 1;
-  size_t block_size = size / RADIX_SORT_VLEN;
-  if(block_size % 2 == 0 && block_size != 0) block_size -= 1;
-  size_t rest = size - RADIX_SORT_VLEN * block_size;
-  for(size_t d = 1; d <= max_key_size; d++) { // d: digit
-    for(size_t i = 0; i < bucket_table.size(); i++) bucket_tablep[i] = 0;
-    K *key_src, *key_dst;
-    V *val_src, *val_dst;
-    if(next_is_tmp) {
-      key_src = key_array; key_dst = key_array_tmp;
-      val_src = val_array; val_dst = val_array_tmp;
+template <class K>
+void radix_sort(K* key_array, size_t size, bool positive_only = false) {
+  if(size < SWITCH_INSERTION_THR) {
+    insertion_sort(key_array, size);
+    return;
+  }
+  if(positive_only) {
+    auto max_key_size = get_max_key_size(key_array, size);
+    radix_sort_impl(key_array, size, max_key_size);
+  } else {
+    auto neg = contain_negative(key_array, size);
+    size_t max_key_size;
+    if(neg) {
+      flip_top(key_array, size);
+      max_key_size = sizeof(K);
     } else {
-      key_src = key_array_tmp; key_dst = key_array;
-      val_src = val_array_tmp; val_dst = val_array;
+      max_key_size = get_max_key_size(key_array, size);
     }
-    for(size_t b = 0; b < block_size; b++) { // b: block
-      // these loops are sparated to improve vectorization
-#pragma cdir nodep
-#pragma _NEC ivdep
-      for(int v = 0; v < RADIX_SORT_VLEN; v++) { // vector loop, loop raking
-        auto key = key_src[block_size * v + b];
-        int bucket = (key >> (d - 1) * 8) & 0xFF;
-        posp[block_size * v + b] = bucket_tablep[bucket_ldim * bucket + v];
-      }
-#pragma cdir nodep
-#pragma _NEC ivdep
-      for(int v = 0; v < RADIX_SORT_VLEN; v++) { // vector loop, loop raking
-        auto key = key_src[block_size * v + b];
-        int bucket = (key >> (d - 1) * 8) & 0xFF;
-        bucket_tablep[bucket_ldim * bucket + v]++;
-      }
-    }
-    size_t v = RADIX_SORT_VLEN;
-    for(int b = 0; b < rest; b++) { // not vector loop
-      auto key = key_src[block_size * v + b];
-      int bucket = (key >> (d - 1) * 8) & 0xFF;
-      posp[block_size * v + b] = bucket_tablep[bucket_ldim * bucket + v];
-      bucket_tablep[bucket_ldim * bucket + v]++;
-    }
-    // preparing for the copy
-    prefix_sum(bucket_tablep, px_bucket_tablep + 1,
-               num_bucket * bucket_ldim - 1);
-    // now copy the data to the bucket
-#pragma _NEC vob
-    for(size_t b = 0; b < block_size; b++) { // b: block
-#pragma cdir nodep
-#pragma _NEC ivdep
-#pragma _NEC vovertake
-      for(int v = 0; v < RADIX_SORT_VLEN; v++) { // vector loop, loop raking
-        auto key = key_src[block_size * v + b];
-        int bucket = (key >> (d - 1) * 8) & 0xFF;
-        size_t to = px_bucket_tablep[bucket_ldim * bucket + v] +
-          posp[block_size * v + b];
-        key_dst[to] = key;
-        val_dst[to] = val_src[block_size * v + b];
-      }
-    }
-    v = RADIX_SORT_VLEN;
-#pragma cdir nodep
-#pragma _NEC ivdep
-#pragma _NEC vovertake
-#pragma _NEC vob
-    for(size_t b = 0; b < rest; b++) {
-      auto key = key_src[block_size * v + b];
-      int bucket = (key >> (d - 1) * 8) & 0xFF;
-      size_t to = px_bucket_tablep[bucket_ldim * bucket + v] +
-        posp[block_size * v + b];
-      key_dst[to] = key;
-      val_dst[to] = val_src[block_size * v + b];
-    }
-    next_is_tmp = 1 - next_is_tmp;
-  }
+    radix_sort_impl(key_array, size, max_key_size);
+    if(neg) flip_top(key_array, size);
+  }  
+}
 
-  if(!next_is_tmp) {
-#pragma cdir nodep
-#pragma _NEC ivdep
-    for(size_t i = 0; i < size; i++) {
-      key_array[i] = key_array_tmp[i];
-      val_array[i] = val_array_tmp[i];
+template <class V>
+void radix_sort(float* key_array, V* val_array, size_t size,
+                bool positive_only = false) {
+  if(size < SWITCH_INSERTION_THR) {
+    insertion_sort(key_array, val_array, size);
+    return;
+  }
+  auto intkey = reinterpret_cast<uint32_t*>(key_array);
+  if(positive_only) {
+    auto max_key_size = get_max_key_size(intkey, size);
+    radix_sort_impl(intkey, val_array, size, max_key_size);
+  } else {
+    auto neg = contain_negative(key_array, size);
+    size_t max_key_size;
+    if(neg) {
+      float_flip(key_array, size);
+      max_key_size = sizeof(float);
+    } else {
+      max_key_size = get_max_key_size(intkey, size);
     }
+    radix_sort_impl(intkey, val_array, size, max_key_size);
+    if(neg) float_flip_reverse(key_array, size);
+  }  
+}
+
+inline 
+void radix_sort(float* key_array, size_t size, bool positive_only = false) {
+  if(size < SWITCH_INSERTION_THR) {
+    insertion_sort(key_array, size);
+    return;
+  }
+  auto intkey = reinterpret_cast<uint32_t*>(key_array);
+  if(positive_only) {
+    auto max_key_size = get_max_key_size(intkey, size);
+    radix_sort_impl(intkey, size, max_key_size);
+  } else {
+    auto neg = contain_negative(key_array, size);
+    size_t max_key_size;
+    if(neg) {
+      float_flip(key_array, size);
+      max_key_size = sizeof(float);
+    } else {
+      max_key_size = get_max_key_size(intkey, size);
+    }
+    radix_sort_impl(intkey, size, max_key_size);
+    if(neg) float_flip_reverse(key_array, size);
+  }  
+}
+
+template <class V>
+void radix_sort(double* key_array, V* val_array, size_t size,
+                bool positive_only = false) {
+  if(size < SWITCH_INSERTION_THR) {
+    insertion_sort(key_array, val_array, size);
+    return;
+  }
+  auto intkey = reinterpret_cast<uint64_t*>(key_array);
+  if(positive_only) {
+    auto max_key_size = get_max_key_size(intkey, size);
+    radix_sort_impl(intkey, val_array, size, max_key_size);
+  } else {
+    auto neg = contain_negative(key_array, size);
+    size_t max_key_size;
+    if(neg) {
+      double_flip(key_array, size);
+      max_key_size = sizeof(double);
+    } else {
+      max_key_size = get_max_key_size(intkey, size);
+    }
+    radix_sort_impl(intkey, val_array, size, max_key_size);
+    if(neg) double_flip_reverse(key_array, size);
+  }
+}
+
+inline
+void radix_sort(double* key_array, size_t size, bool positive_only = false) {
+  if(size < SWITCH_INSERTION_THR) {
+    insertion_sort(key_array, size);
+    return;
+  }
+  auto intkey = reinterpret_cast<uint64_t*>(key_array);
+  if(positive_only) {
+    auto max_key_size = get_max_key_size(intkey, size);
+    radix_sort_impl(intkey, size, max_key_size);
+  } else {
+    auto neg = contain_negative(key_array, size);
+    size_t max_key_size;
+    if(neg) {
+      double_flip(key_array, size);
+      max_key_size = sizeof(double);
+    } else {
+      max_key_size = get_max_key_size(intkey, size);
+    }
+    radix_sort_impl(intkey, size, max_key_size);
+    if(neg) double_flip_reverse(key_array, size);
   }
 }
 
 template <class K, class V>
-void radix_sort_desc(K* key_array, V* val_array, size_t size) {
+void radix_sort_desc(K* key_array, V* val_array, size_t size,
+                     bool positive_only = false) {
   if(size < SWITCH_INSERTION_THR) {
     insertion_sort_desc(key_array, val_array, size);
     return;
   }
-  size_t key_size = sizeof(K);
-  size_t bucket_ldim = RADIX_SORT_VLEN + 1;
-  size_t num_bucket = 1 << 8; // 8bit == 256
-  // bucket_table is columnar (VLEN + 1) by num_bucket matrix
-  // "1" is to avoid bank conflict, but reused for "rest" of the data
-  std::vector<size_t> bucket_table(num_bucket * bucket_ldim);
-  std::vector<size_t> px_bucket_table(num_bucket * bucket_ldim);
-  size_t* bucket_tablep = &bucket_table[0];
-  size_t* px_bucket_tablep = &px_bucket_table[0];
-
-  K max = 0;
-  for(size_t i = 0; i < size; i++) {
-    if(key_array[i] > max) max = key_array[i];
-  }
-
-  size_t max_key_size = 0;
-  size_t tmp = 0xFF;
-  for(size_t i = 1; i < key_size + 1; i++) {
-    if(max < tmp) {
-      max_key_size = i;
-      break;
+  if(positive_only) {
+    auto max_key_size = get_max_key_size(key_array, size);
+    radix_sort_desc_impl(key_array, val_array, size, max_key_size);
+  } else {
+    auto neg = contain_negative(key_array, size);
+    size_t max_key_size;
+    if(neg) {
+      flip_top(key_array, size);
+      max_key_size = sizeof(K);
     } else {
-      tmp = (tmp << 8) | 0xFF;
+      max_key_size = get_max_key_size(key_array, size);
     }
-  }
+    radix_sort_desc_impl(key_array, val_array, size, max_key_size);
+    if(neg) flip_top(key_array, size);
+  }  
+}
 
-  std::vector<size_t> pos(size);
-  size_t* posp = &pos[0];
-  std::vector<K> key_array_tmpv(size);
-  std::vector<V> val_array_tmpv(size);
-  K* key_array_tmp = &key_array_tmpv[0];
-  V* val_array_tmp = &val_array_tmpv[0];
-  int next_is_tmp = 1;
-  size_t block_size = size / RADIX_SORT_VLEN;
-  if(block_size % 2 == 0 && block_size != 0) block_size -= 1;
-  size_t rest = size - RADIX_SORT_VLEN * block_size;
-  for(size_t d = 1; d <= max_key_size; d++) { // d: digit
-    for(size_t i = 0; i < bucket_table.size(); i++) bucket_tablep[i] = 0;
-    K *key_src, *key_dst;
-    V *val_src, *val_dst;
-    if(next_is_tmp) {
-      key_src = key_array; key_dst = key_array_tmp;
-      val_src = val_array; val_dst = val_array_tmp;
+template <class K>
+void radix_sort_desc(K* key_array, size_t size, bool positive_only = false) {
+  if(size < SWITCH_INSERTION_THR) {
+    insertion_sort_desc(key_array, size);
+    return;
+  }
+  if(positive_only) {
+    auto max_key_size = get_max_key_size(key_array, size);
+    radix_sort_desc_impl(key_array, size, max_key_size);
+  } else {
+    auto neg = contain_negative(key_array, size);
+    size_t max_key_size;
+    if(neg) {
+      flip_top(key_array, size);
+      max_key_size = sizeof(K);
     } else {
-      key_src = key_array_tmp; key_dst = key_array;
-      val_src = val_array_tmp; val_dst = val_array;
+      max_key_size = get_max_key_size(key_array, size);
     }
-    for(size_t b = 0; b < block_size; b++) { // b: block
-#pragma cdir nodep
-#pragma _NEC ivdep
-      for(int v = 0; v < RADIX_SORT_VLEN; v++) { // vector loop, loop raking
-        auto key = key_src[block_size * v + b];
-        int bucket = 0xFF - ((key >> (d - 1) * 8) & 0xFF); // desc
-        posp[block_size * v + b] = bucket_tablep[bucket_ldim * bucket + v];
-      }
-#pragma cdir nodep
-#pragma _NEC ivdep
-      for(int v = 0; v < RADIX_SORT_VLEN; v++) { // vector loop, loop raking
-        auto key = key_src[block_size * v + b];
-        int bucket = 0xFF - ((key >> (d - 1) * 8) & 0xFF); // desc
-        bucket_tablep[bucket_ldim * bucket + v]++;
-      }
-    }
-    size_t v = RADIX_SORT_VLEN;
-    for(int b = 0; b < rest; b++) { // not vector loop
-      auto key = key_src[block_size * v + b];
-      int bucket = 0xFF - ((key >> (d - 1) * 8) & 0xFF); // desc
-      posp[block_size * v + b] = bucket_tablep[bucket_ldim * bucket + v];
-      bucket_tablep[bucket_ldim * bucket + v]++;
-    }
-    // preparing for the copy
-    prefix_sum(bucket_tablep, px_bucket_tablep + 1,
-               num_bucket * bucket_ldim - 1);
-    // now copy the data to the bucket
-#pragma _NEC vob
-    for(size_t b = 0; b < block_size; b++) { // b: block
-#pragma cdir nodep
-#pragma _NEC ivdep
-#pragma _NEC vovertake
-      for(int v = 0; v < RADIX_SORT_VLEN; v++) { // vector loop, loop raking
-        auto key = key_src[block_size * v + b];
-        int bucket = 0xFF - ((key >> (d - 1) * 8) & 0xFF); // desc
-        size_t to = px_bucket_tablep[bucket_ldim * bucket + v] +
-          posp[block_size * v + b];
-        key_dst[to] = key;
-        val_dst[to] = val_src[block_size * v + b];
-      }
-    }
-    v = RADIX_SORT_VLEN;
-#pragma cdir nodep
-#pragma _NEC ivdep
-#pragma _NEC vovertake
-#pragma _NEC vob
-    for(size_t b = 0; b < rest; b++) {
-      auto key = key_src[block_size * v + b];
-      int bucket = 0xFF - ((key >> (d - 1) * 8) & 0xFF); // desc
-      size_t to = px_bucket_tablep[bucket_ldim * bucket + v] +
-        posp[block_size * v + b];
-      key_dst[to] = key;
-      val_dst[to] = val_src[block_size * v + b];
-    }
-    next_is_tmp = 1 - next_is_tmp;
+    radix_sort_desc_impl(key_array, size, max_key_size);
+    if(neg) flip_top(key_array, size);
+  }  
+}
+
+template <class V>
+void radix_sort_desc(float* key_array, V* val_array, size_t size,
+                     bool positive_only = false) {
+  if(size < SWITCH_INSERTION_THR) {
+    insertion_sort_desc(key_array, val_array, size);
+    return;
   }
-
-  if(!next_is_tmp) {
-#pragma cdir nodep
-#pragma _NEC ivdep
-    for(size_t i = 0; i < size; i++) {
-      key_array[i] = key_array_tmp[i];
-      val_array[i] = val_array_tmp[i];
-    }
-  }
-}
-
-template <class V>
-void radix_sort(float* key_array, V* val_array, size_t size) {
-  radix_sort((uint32_t*) key_array, val_array, size);
-}
-
-template <class V>
-void radix_sort(double* key_array, V* val_array, size_t size) {
-  radix_sort((uint64_t*) key_array, val_array, size);
-}
-
-template <class V>
-void radix_sort_desc(float* key_array, V* val_array, size_t size) {
-  radix_sort_desc((uint32_t*) key_array, val_array, size);
-}
-
-template <class V>
-void radix_sort_desc(double* key_array, V* val_array, size_t size) {
-  radix_sort_desc((uint64_t*) key_array, val_array, size);
-}
-
-template <class K, class V>
-void radix_sort(std::vector<K>& key_array, std::vector<V>& val_array) {
-  size_t size = key_array.size();
-  if(val_array.size() != size)
-    throw std::runtime_error("radix_sort: different size of arrays");
-  K* kp = &key_array[0];
-  V* vp = &val_array[0];
-  size_t pos_size = 0;
-  for(size_t i = 0; i < size; i++) {
-    if(kp[i] >= 0) pos_size++;
-  }
-  std::vector<K> key_array_pos(pos_size);
-  std::vector<V> val_array_pos(pos_size);
-  std::vector<K> key_array_neg(size-pos_size);
-  std::vector<V> val_array_neg(size-pos_size);
-  K* kpp = &key_array_pos[0];
-  K* knp = &key_array_neg[0];
-  V* vpp = &val_array_pos[0];
-  V* vnp = &val_array_neg[0];
-  size_t pos_current = 0;
-  size_t neg_current = 0;
-  for(size_t i = 0; i < size; i++) {
-    if(kp[i] >= 0) {
-      kpp[pos_current] = kp[i];
-      vpp[pos_current++] = vp[i];
+  auto intkey = reinterpret_cast<uint32_t*>(key_array);
+  if(positive_only) {
+    auto max_key_size = get_max_key_size(intkey, size);
+    radix_sort_desc_impl(intkey, val_array, size, max_key_size);
+  } else {
+    auto neg = contain_negative(key_array, size);
+    size_t max_key_size;
+    if(neg) {
+      float_flip(key_array, size);
+      max_key_size = sizeof(float);
     } else {
-      knp[neg_current] = -kp[i];
-      vnp[neg_current++] = vp[i];
+      max_key_size = get_max_key_size(intkey, size);
     }
+    radix_sort_desc_impl(intkey, val_array, size, max_key_size);
+    if(neg) float_flip_reverse(key_array, size);
+  }  
+}
+
+inline 
+void radix_sort_desc(float* key_array, size_t size,
+                     bool positive_only = false) {
+  if(size < SWITCH_INSERTION_THR) {
+    insertion_sort_desc(key_array, size);
+    return;
   }
-  if(sizeof(K) == 8) {
-    uint64_t* knp_ = reinterpret_cast<uint64_t*>(knp);
-    uint64_t* kpp_ = reinterpret_cast<uint64_t*>(kpp);
-    radix_sort_desc(knp_, vnp, neg_current);
-    radix_sort(kpp_, vpp, pos_current);
-  } else if (sizeof(K) == 4) {
-    uint32_t* knp_ = reinterpret_cast<uint32_t*>(knp);
-    uint32_t* kpp_ = reinterpret_cast<uint32_t*>(kpp);
-    radix_sort_desc(knp_, vnp, neg_current);
-    radix_sort(kpp_, vpp, pos_current);
-  } else if (sizeof(K) == 2) {
-    uint16_t* knp_ = reinterpret_cast<uint16_t*>(knp);
-    uint16_t* kpp_ = reinterpret_cast<uint16_t*>(kpp);
-    radix_sort_desc(knp_, vnp, neg_current);
-    radix_sort(kpp_, vpp, pos_current);
-  } else if (sizeof(K) == 1) {
-    uint8_t* knp_ = reinterpret_cast<uint8_t*>(knp);
-    uint8_t* kpp_ = reinterpret_cast<uint8_t*>(kpp);
-    radix_sort_desc(knp_, vnp, neg_current);
-    radix_sort(kpp_, vpp, pos_current);
+  auto intkey = reinterpret_cast<uint32_t*>(key_array);
+  if(positive_only) {
+    auto max_key_size = get_max_key_size(intkey, size);
+    radix_sort_desc_impl(intkey, size, max_key_size);
+  } else {
+    auto neg = contain_negative(key_array, size);
+    size_t max_key_size;
+    if(neg) {
+      float_flip(key_array, size);
+      max_key_size = sizeof(float);
+    } else {
+      max_key_size = get_max_key_size(intkey, size);
+    }
+    radix_sort_desc_impl(intkey, size, max_key_size);
+    if(neg) float_flip_reverse(key_array, size);
+  }  
+}
+
+template <class V>
+void radix_sort_desc(double* key_array, V* val_array, size_t size,
+                     bool positive_only = false) {
+  if(size < SWITCH_INSERTION_THR) {
+    insertion_sort_desc(key_array, val_array, size);
+    return;
   }
-  for(size_t i = 0; i < neg_current; i++) {
-    kp[i] = -knp[i];
-    vp[i] = vnp[i];
+  auto intkey = reinterpret_cast<uint64_t*>(key_array);
+  if(positive_only) {
+    auto max_key_size = get_max_key_size(intkey, size);
+    radix_sort_desc_impl(intkey, val_array, size, max_key_size);
+  } else {
+    auto neg = contain_negative(key_array, size);
+    size_t max_key_size;
+    if(neg) {
+      double_flip(key_array, size);
+      max_key_size = sizeof(double);
+    } else {
+      max_key_size = get_max_key_size(intkey, size);
+    }
+    radix_sort_desc_impl(intkey, val_array, size, max_key_size);
+    if(neg) double_flip_reverse(key_array, size);
   }
-  for(size_t i = 0; i < pos_current; i++) {
-    kp[neg_current+i] = kpp[i];
-    vp[neg_current+i] = vpp[i];
+}
+
+inline
+void radix_sort_desc(double* key_array, size_t size,
+                     bool positive_only = false) {
+  if(size < SWITCH_INSERTION_THR) {
+    insertion_sort_desc(key_array, size);
+    return;
+  }
+  auto intkey = reinterpret_cast<uint64_t*>(key_array);
+  if(positive_only) {
+    auto max_key_size = get_max_key_size(intkey, size);
+    radix_sort_desc_impl(intkey, size, max_key_size);
+  } else {
+    auto neg = contain_negative(key_array, size);
+    size_t max_key_size;
+    if(neg) {
+      double_flip(key_array, size);
+      max_key_size = sizeof(double);
+    } else {
+      max_key_size = get_max_key_size(intkey, size);
+    }
+    radix_sort_desc_impl(intkey, size, max_key_size);
+    if(neg) double_flip_reverse(key_array, size);
   }
 }
 
 template <class K, class V>
-void radix_sort_desc(std::vector<K>& key_array, std::vector<V>& val_array) {
+void radix_sort(std::vector<K>& key_array, std::vector<V>& val_array,
+                bool positive_only = false) {
   size_t size = key_array.size();
   if(val_array.size() != size)
     throw std::runtime_error("radix_sort: different size of arrays");
-  K* kp = &key_array[0];
-  V* vp = &val_array[0];
-  size_t pos_size = 0;
-  for(size_t i = 0; i < size; i++) {
-    if(kp[i] >= 0) pos_size++;
-  }
-  std::vector<K> key_array_pos(pos_size);
-  std::vector<V> val_array_pos(pos_size);
-  std::vector<K> key_array_neg(size-pos_size);
-  std::vector<V> val_array_neg(size-pos_size);
-  K* kpp = &key_array_pos[0];
-  K* knp = &key_array_neg[0];
-  V* vpp = &val_array_pos[0];
-  V* vnp = &val_array_neg[0];
-  size_t pos_current = 0;
-  size_t neg_current = 0;
-  for(size_t i = 0; i < size; i++) {
-    if(kp[i] >= 0) {
-      kpp[pos_current] = kp[i];
-      vpp[pos_current++] = vp[i];
-    } else {
-      knp[neg_current] = -kp[i];
-      vnp[neg_current++] = vp[i];
-    }
-  }
-  if(sizeof(K) == 8) {
-    uint64_t* knp_ = reinterpret_cast<uint64_t*>(knp);
-    uint64_t* kpp_ = reinterpret_cast<uint64_t*>(kpp);
-    radix_sort(knp_, vnp, neg_current);
-    radix_sort_desc(kpp_, vpp, pos_current);
-  } else if (sizeof(K) == 4) {
-    uint32_t* knp_ = reinterpret_cast<uint32_t*>(knp);
-    uint32_t* kpp_ = reinterpret_cast<uint32_t*>(kpp);
-    radix_sort(knp_, vnp, neg_current);
-    radix_sort_desc(kpp_, vpp, pos_current);
-  } else if (sizeof(K) == 2) {
-    uint16_t* knp_ = reinterpret_cast<uint16_t*>(knp);
-    uint16_t* kpp_ = reinterpret_cast<uint16_t*>(kpp);
-    radix_sort(knp_, vnp, neg_current);
-    radix_sort_desc(kpp_, vpp, pos_current);
-  } else if (sizeof(K) == 1) {
-    uint8_t* knp_ = reinterpret_cast<uint8_t*>(knp);
-    uint8_t* kpp_ = reinterpret_cast<uint8_t*>(kpp);
-    radix_sort(knp_, vnp, neg_current);
-    radix_sort_desc(kpp_, vpp, pos_current);
-  }
-  for(size_t i = 0; i < pos_current; i++) {
-    kp[i] = kpp[i];
-    vp[i] = vpp[i];
-  }
-  for(size_t i = 0; i < neg_current; i++) {
-    kp[pos_current+i] = -knp[i];
-    vp[pos_current+i] = vnp[i];
-  }
+  radix_sort(key_array.data(), val_array.data(), size, positive_only);
+}
+
+template <class K>
+void radix_sort(std::vector<K>& key_array, bool positive_only = false) {
+  size_t size = key_array.size();
+  radix_sort(key_array.data(), size, positive_only);
+}
+
+template <class K, class V>
+void radix_sort_desc(std::vector<K>& key_array, std::vector<V>& val_array,
+                     bool positive_only = false) {
+  size_t size = key_array.size();
+  if(val_array.size() != size)
+    throw std::runtime_error("radix_sort: different size of arrays");
+  radix_sort_desc(key_array.data(), val_array.data(), size, positive_only);
+}
+
+template <class K>
+void radix_sort_desc(std::vector<K>& key_array, bool positive_only = false) {
+  size_t size = key_array.size();
+  radix_sort_desc(key_array.data(), size, positive_only);
 }
 
 }
