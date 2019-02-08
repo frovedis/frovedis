@@ -11,7 +11,6 @@ void radix_sort_impl
 #endif
  size_t size,
  size_t max_key_size) {
-  size_t key_size = sizeof(K);
   size_t bucket_ldim =
     (RADIX_SORT_VLEN * 4) + RADIX_SORT_ALIGN_SIZE/sizeof(size_t);
   size_t num_bucket = 1 << 8; // 8bit == 256
@@ -242,7 +241,6 @@ void radix_sort_desc_impl
 #endif
  size_t size,
  size_t max_key_size) {
-  size_t key_size = sizeof(K);
   size_t bucket_ldim =
     (RADIX_SORT_VLEN * 4) + RADIX_SORT_ALIGN_SIZE/sizeof(size_t);
   size_t num_bucket = 1 << 8; // 8bit == 256
