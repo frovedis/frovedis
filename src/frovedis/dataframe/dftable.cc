@@ -1003,8 +1003,8 @@ void dftable::load(const std::string& input) {
       auto vec = make_dvector_loadbinary<int>(valfile);
       auto sizes = vec.sizes();
       std::vector<size_t> pxsizes(sizes.size());
-      for(size_t i = 1; i < pxsizes.size(); i++) {
-        pxsizes[i] += pxsizes[i-1] + sizes[i-1];
+      for(size_t j = 1; j < pxsizes.size(); j++) {
+        pxsizes[j] += pxsizes[j-1] + sizes[j-1];
       }
       auto nl_sizes = make_node_local_scatter(pxsizes);
       append_column(cols[i], std::move(vec));
@@ -1016,8 +1016,8 @@ void dftable::load(const std::string& input) {
       auto vec = make_dvector_loadbinary<unsigned int>(valfile);
       auto sizes = vec.sizes();
       std::vector<size_t> pxsizes(sizes.size());
-      for(size_t i = 1; i < pxsizes.size(); i++) {
-        pxsizes[i] += pxsizes[i-1] + sizes[i-1];
+      for(size_t j = 1; j < pxsizes.size(); j++) {
+        pxsizes[j] += pxsizes[j-1] + sizes[j-1];
       }
       auto nl_sizes = make_node_local_scatter(pxsizes);
       append_column(cols[i], std::move(vec));
@@ -1030,8 +1030,8 @@ void dftable::load(const std::string& input) {
       auto vec = make_dvector_loadbinary<long>(valfile);
       auto sizes = vec.sizes();
       std::vector<size_t> pxsizes(sizes.size());
-      for(size_t i = 1; i < pxsizes.size(); i++) {
-        pxsizes[i] += pxsizes[i-1] + sizes[i-1];
+      for(size_t j = 1; j < pxsizes.size(); j++) {
+        pxsizes[j] += pxsizes[j-1] + sizes[j-1];
       }
       auto nl_sizes = make_node_local_scatter(pxsizes);
       append_column(cols[i], std::move(vec));
@@ -1043,8 +1043,8 @@ void dftable::load(const std::string& input) {
       auto vec = make_dvector_loadbinary<unsigned long>(valfile);
       auto sizes = vec.sizes();
       std::vector<size_t> pxsizes(sizes.size());
-      for(size_t i = 1; i < pxsizes.size(); i++) {
-        pxsizes[i] += pxsizes[i-1] + sizes[i-1];
+      for(size_t j = 1; j < pxsizes.size(); j++) {
+        pxsizes[j] += pxsizes[j-1] + sizes[j-1];
       }
       auto nl_sizes = make_node_local_scatter(pxsizes);
       append_column(cols[i], std::move(vec));
@@ -1057,8 +1057,8 @@ void dftable::load(const std::string& input) {
       auto vec = make_dvector_loadbinary<float>(valfile);
       auto sizes = vec.sizes();
       std::vector<size_t> pxsizes(sizes.size());
-      for(size_t i = 1; i < pxsizes.size(); i++) {
-        pxsizes[i] += pxsizes[i-1] + sizes[i-1];
+      for(size_t j = 1; j < pxsizes.size(); j++) {
+        pxsizes[j] += pxsizes[j-1] + sizes[j-1];
       }
       auto nl_sizes = make_node_local_scatter(pxsizes);
       append_column(cols[i], std::move(vec));
@@ -1070,8 +1070,8 @@ void dftable::load(const std::string& input) {
       auto vec = make_dvector_loadbinary<double>(valfile);
       auto sizes = vec.sizes();
       std::vector<size_t> pxsizes(sizes.size());
-      for(size_t i = 1; i < pxsizes.size(); i++) {
-        pxsizes[i] += pxsizes[i-1] + sizes[i-1];
+      for(size_t j = 1; j < pxsizes.size(); j++) {
+        pxsizes[j] += pxsizes[j-1] + sizes[j-1];
       }
       auto nl_sizes = make_node_local_scatter(pxsizes);
       append_column(cols[i], std::move(vec));
@@ -1106,8 +1106,8 @@ void dftable::load(const std::string& input) {
         sizes = vec.sizes();
       }
       std::vector<size_t> pxsizes(sizes.size());
-      for(size_t i = 1; i < pxsizes.size(); i++) {
-        pxsizes[i] += pxsizes[i-1] + sizes[i-1];
+      for(size_t j = 1; j < pxsizes.size(); j++) {
+        pxsizes[j] += pxsizes[j-1] + sizes[j-1];
       }
       auto nl_sizes = make_node_local_scatter(pxsizes);
       toappend->nulls = make_dvector_loadbinary<size_t>(nullsfile).
