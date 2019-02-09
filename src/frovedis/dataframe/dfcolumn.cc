@@ -254,6 +254,8 @@ std::vector<std::vector<size_t>> separate_to_bucket(std::vector<int>& key,
 // num_bucket should be small enough for memory usage
 // contents of key must be 0 to num_bucket - 1
 // returns separated index
+//
+// TODO: improve performance by unrolling, etc.
 std::vector<std::vector<size_t>> separate_to_bucket(std::vector<int>& key,
                                                     std::vector<size_t>& idx,
                                                     size_t num_bucket) {
@@ -272,6 +274,8 @@ std::vector<std::vector<size_t>> separate_to_bucket(std::vector<int>& key,
   size_t* px_bucket_tablep = &px_bucket_table[0];
   std::vector<size_t> bucket_sum(num_bucket);
   size_t* bucket_sump = &bucket_sum[0];
+  int bucket[RADIX_SORT_VLEN];
+#pragma vreg(bucket)
 
   std::vector<size_t> pos(size);
   size_t* posp = &pos[0];
@@ -286,14 +290,9 @@ std::vector<std::vector<size_t>> separate_to_bucket(std::vector<int>& key,
 #pragma cdir nodep
 #pragma _NEC ivdep
     for(int v = 0; v < SEPARATE_TO_BUCKET_VLEN; v++) { // vector loop, raking
-      int bucket = keyp[block_size * v + b];
-      posp[block_size * v + b] = bucket_tablep[bucket_ldim * bucket + v];
-    }
-#pragma cdir nodep
-#pragma _NEC ivdep
-    for(int v = 0; v < SEPARATE_TO_BUCKET_VLEN; v++) { // vector loop, raking
-      int bucket = keyp[block_size * v + b];
-      bucket_tablep[bucket_ldim * bucket + v]++;
+      bucket[v] = keyp[block_size * v + b];
+      posp[block_size * v + b] = bucket_tablep[bucket_ldim * bucket[v] + v];
+      bucket_tablep[bucket_ldim * bucket[v] + v]++;
     }
   }
   size_t v = SEPARATE_TO_BUCKET_VLEN;
