@@ -14,7 +14,7 @@
 #define UNIQUE_HASH_VLEN 1
 #define VECTOR_BINARY_SEARCH_VLEN 1
 #endif
-#define HASH_TABLE_SIZE_MULT 3
+#define HASH_TABLE_SIZE_MULT 5
 
 namespace frovedis {
 
@@ -33,14 +33,13 @@ std::vector<size_t> vector_binary_search(std::vector<T>& sorted,
 
   std::vector<size_t> ret(num_values);
   //range identifier for each value
-    
-  std::vector<size_t> left(VECTOR_BINARY_SEARCH_VLEN); 
-  std::vector<size_t> right(VECTOR_BINARY_SEARCH_VLEN);
-  std::vector<int> is_finished(VECTOR_BINARY_SEARCH_VLEN);
-  auto* leftp = &left[0];
-  auto* rightp = &right[0];
+  size_t leftp[VECTOR_BINARY_SEARCH_VLEN];
+#pragma _NEC vreg(leftp)
+  size_t rightp[VECTOR_BINARY_SEARCH_VLEN];
+#pragma _NEC vreg(rightp)
+  int is_finishedp[VECTOR_BINARY_SEARCH_VLEN];
+#pragma _NEC vreg(is_finishedp)
   auto* sortedp = &sorted[0];
-  auto* is_finishedp = &is_finished[0];
 
   size_t block_size = num_values / VECTOR_BINARY_SEARCH_VLEN;
   size_t remain = num_values % VECTOR_BINARY_SEARCH_VLEN;
@@ -48,12 +47,15 @@ std::vector<size_t> vector_binary_search(std::vector<T>& sorted,
   for(size_t i = 0; i < block_size + 1; i++) {
     size_t offset = i * VECTOR_BINARY_SEARCH_VLEN;
     auto* retp = &ret[0] + offset;
-    auto* valuesp = &values[0] + offset;
     size_t len = i < block_size ? VECTOR_BINARY_SEARCH_VLEN : remain;
+    auto* valuesp_tmp = &values[0] + offset;
+    T valuesp[VECTOR_BINARY_SEARCH_VLEN];
+#pragma _NEC vreg(valuesp)
     for(size_t j = 0; j < len; j++) {
       leftp[j] = 0;
       rightp[j] = num_elem - 1;
       is_finishedp[j] = 0;
+      valuesp[j] = valuesp_tmp[j]; 
     }
     bool is_finished_all = 0;
     while(is_finished_all == 0){
@@ -85,36 +87,32 @@ std::vector<size_t> vector_binary_search(std::vector<T>& sorted,
   return ret;
 }
 
-/*
-  To avoid the BUG(?) of SX compiler, casted to int
- */
 template <class K>
 inline
-size_t myhash(K key, size_t size) {
-  int ukey = static_cast<unsigned int>(key) & 0x7FFFFFFF;
-  int usize = size;
-  return ukey % usize;
+size_t myhash(const K& key, size_t size) {
+  unsigned long ukey = reinterpret_cast<const unsigned long&>(key);
+  return ukey % size;
+}
+
+// 32bit values are treated separately
+template <>
+inline
+size_t myhash(const int& key, size_t size) {
+  unsigned int ukey = reinterpret_cast<const unsigned int&>(key);
+  return ukey % size;
 }
 
 template <>
 inline
-size_t myhash(unsigned long long key, size_t size) {
-  // used mainly for global index... 26 is for supporting 512 nodes
-  unsigned int upper = (key >> 26) & 0x7FFFFFFF;
-  unsigned int lower = key & 0x7FFFFFFF;
-  int ukey = (upper + lower) & 0x7FFFFFFF;;
-  int usize = size;
-  return ukey % usize;
+size_t myhash(const unsigned int& key, size_t size) {
+  return key % size;
 }
 
 template <>
 inline
-size_t myhash(unsigned long key, size_t size) {
-  unsigned int upper = (key >> 26) & 0x7FFFFFFF;
-  unsigned int lower = key & 0x7FFFFFFF;
-  int ukey = (upper + lower) & 0x7FFFFFFF;;
-  int usize = size;
-  return ukey % usize;
+size_t myhash(const float& key, size_t size) {
+  unsigned int ukey = reinterpret_cast<const unsigned int&>(key);
+  return ukey % size;
 }
 
 // TODO: create non SX version? (used directly in dfcolumn.hpp)
