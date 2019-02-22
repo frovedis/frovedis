@@ -25,8 +25,7 @@
 namespace frovedis {
 namespace tree {
 
-// forward declarations of helper classes
-template <typename T> class splitvector;
+// a forward declaration of the helper class
 template <typename T> class modelvector;
 
 template <typename T>
@@ -45,8 +44,6 @@ public:
 
 template <typename T>
 class split {
-  friend class splitvector<T>;
-
   size_t findex;
   continuity fconty;
   std::vector<T> categories;
@@ -542,34 +539,43 @@ const predict_pair<T>& node<T>::predict_impl(
 
 template <typename T>
 class metainfo {
-  size_t height, num_nodes;
-  SERIALIZE(height, num_nodes)
+  size_t height, num_nodes, maxnum_feats;
+  SERIALIZE(height, num_nodes, maxnum_feats)
 
 public:
   metainfo() {}
   metainfo(
-    const size_t height, const size_t num_nodes
+    const size_t height, const size_t num_nodes,
+    const size_t maxnum_features
   ) :
-    height(height), num_nodes(num_nodes)
+    height(height), num_nodes(num_nodes), maxnum_feats(maxnum_features)
   {}
 
   metainfo(const std::shared_ptr<node<T>>& top_node) {
-    if (!top_node) {
+    if (top_node) {
+      *this = trace(top_node);
+    } else {
       throw std::runtime_error("invalid top_node");
     }
-    const auto temp = trace(top_node);
-    height = temp.height;
-    num_nodes = temp.num_nodes;
   }
 
   size_t get_height() const { return height; }
   size_t get_num_nodes() const { return num_nodes; }
+  size_t get_maxnum_features() const { return maxnum_feats; }
 
 private:
   metainfo<T> trace(const std::shared_ptr<node<T>>& node_ptr) {
     tree_assert(node_ptr);
     if (node_ptr->is_leaf()) {
-      return metainfo<T>(node_ptr->get_depth(), 1);
+      return metainfo<T>(node_ptr->get_depth(), 1, 0);
+    }
+
+    // the max number of features for this node
+    size_t currnum_feats = 1;
+    const auto split_ptr = node_ptr->get_split();
+    if (split_ptr->is_categorical()) {
+      currnum_feats = split_ptr->get_categories().size();
+      tree_assert(currnum_feats > 0);
     }
 
     // trace down recursively
@@ -577,7 +583,8 @@ private:
     const auto right = trace(node_ptr->get_right_node());
     return metainfo<T>(
       std::max(left.height, right.height),
-      left.num_nodes + right.num_nodes + 1
+      left.num_nodes + right.num_nodes + 1,
+      std::max({left.maxnum_feats, right.maxnum_feats, currnum_feats})
     );
   }
 };
@@ -615,32 +622,44 @@ std::shared_ptr<information_gain_stats<T>> make_stats(Args&&... args) {
 template <typename T>
 class decision_tree_model {
   std::shared_ptr<tree::node<T>> root_ptr;
+  size_t treeid;
   tree::algorithm algo;
   tree::metainfo<T> meta;
 
-  SERIALIZE(root_ptr, algo, meta)
+  SERIALIZE(root_ptr, treeid, algo, meta)
 
 public:
   decision_tree_model() {}
 
   decision_tree_model(
     const std::shared_ptr<tree::node<T>>& top_node,
-    const tree::algorithm algo
+    const size_t treeid, const tree::algorithm algo
   ) :
-    root_ptr(top_node), algo(algo), meta(top_node)
+    root_ptr(top_node), treeid(treeid), algo(algo), meta(top_node)
   {}
 
   decision_tree_model(
     const std::shared_ptr<tree::node<T>>& top_node,
-    const tree::algorithm algo,
+    const tree::algorithm algo
+  ) : decision_tree_model<T>(top_node, 0, algo) {}
+
+  decision_tree_model(
+    const std::shared_ptr<tree::node<T>>& top_node,
+    const size_t treeid, const tree::algorithm algo,
     tree::metainfo<T> meta
   ) :
-    root_ptr(top_node), algo(algo), meta(std::move(meta))
+    root_ptr(top_node), treeid(treeid), algo(algo), meta(std::move(meta))
   {}
 
+  size_t get_treeid() const { return treeid; }
   tree::algorithm get_algo() const { return algo; }
   size_t get_height() const { return meta.get_height(); }
   size_t get_num_nodes() const { return meta.get_num_nodes(); }
+  size_t get_maxnum_features() const { return meta.get_maxnum_features(); }
+
+  const tree::metainfo<T>& get_metainfo() const& { return meta; }
+  tree::metainfo<T> get_metainfo() && { return std::move(meta); }
+
   std::shared_ptr<tree::node<T>> get_top_node() const {
     return root_ptr;
   }
@@ -674,12 +693,12 @@ public:
 
   // file IO
   void save(const std::string& path) const {
-    tree::modelvector<T>(*this).save(path);
+    tree::modelvector<T>(*this).saveline(path);
   }
   void load(const std::string& path) {
     tree::modelvector<T> vtree;
-    vtree.load(path);
-    *this = decision_tree_model<T>(vtree.unzip());
+    vtree.loadline(path);
+    *this = decision_tree_model<T>(vtree.restore());
   }
   void savebinary(const std::string& path) const {
     tree::modelvector<T>(*this).savebinary(path);
@@ -687,7 +706,7 @@ public:
   void loadbinary(const std::string& path) {
     tree::modelvector<T> vtree;
     vtree.loadbinary(path);
-    *this = decision_tree_model<T>(vtree.unzip());
+    *this = decision_tree_model<T>(vtree.restore());
   }
 
   node_local<decision_tree_model<T>> broadcast() const;
@@ -714,7 +733,7 @@ template <typename T>
 decision_tree_model<T> tree_model_broadcast_helper(
   const tree::modelvector<T>& vtree
 ) {
-  return vtree.unzip();
+  return vtree.restore();
 }
 
 template <typename T>

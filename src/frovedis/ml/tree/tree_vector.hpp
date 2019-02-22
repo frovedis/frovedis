@@ -1,90 +1,35 @@
 #ifndef _TREE_VECTOR_HPP_
 #define _TREE_VECTOR_HPP_
 
-#include <algorithm>
-#include <initializer_list>
-#include <iterator>
+#include <array>
+#include <iostream>
 #include <memory>
-#include <stack>
+#include <queue>
+#include <sstream>
 #include <stdexcept>
 #include <string>
-#include <tuple>
 #include <type_traits>
 #include <utility>
 #include <vector>
 
 #include "../../../frovedis.hpp"
-#include "../../core/type_utility.hpp"
 
-#include "pragmas.hpp"
 #include "tree_assert.hpp"
 #include "tree_config.hpp"
 #include "tree_model.hpp"
+#include "tree_utility.hpp"
 
 namespace frovedis {
 namespace tree {
 
-constexpr size_t VVID = 201802;
+constexpr size_t VVID = 201902;
+
 constexpr bool LEAF_NODE = true;
 constexpr bool INTERNAL_NODE = !LEAF_NODE;
 
-template <typename... Args>
-inline void __expand(const Args&...) {}
-
-template <typename T, enable_if_uint<T> = nullptr>
-struct allreserve_helper {
-  allreserve_helper(const T n) : n(n) {}
-
-  template <typename Vec>
-  T operator()(Vec& vec) const {
-    vec.reserve(n);
-    return 0;
-  }
-
-  T n;
-};
-
-template <typename... Vecs>
-void allreserve(const size_t n, Vecs&... vecs) {
-  allreserve_helper<size_t> reserver(n);
-  __expand(reserver(vecs)...);
-}
-
-template <typename T>
-struct allappend_helper {
-  allappend_helper(const T val) : val(val) {}
-
-  template <typename Vec>
-  T operator()(Vec& vec) const {
-    vec.push_back(static_cast<typename Vec::value_type>(val));
-    return 0;
-  }
-
-  T val;
-};
-
-template <typename T, typename... Vecs>
-void allappend(const T value, Vecs&... vecs) {
-  allappend_helper<T> appender(value);
-  __expand(appender(vecs)...);
-}
-
-template <typename Vec>
-size_t get_size(const Vec& vec) { return vec.size(); }
-
-template <typename... Vecs>
-bool samesize(const size_t n, const Vecs&... vecs) {
-  std::initializer_list<size_t> list = { get_size(vecs)... };
-  return std::all_of(
-    list.begin(), list.end(),
-    [n] (const size_t vsize) { return vsize == n; }
-  );
-}
-
-template <typename Vec, typename... Vecs>
-bool samesize(const Vec& vec, const Vecs&... vecs) {
-  return samesize(vec.size(), vecs...);
-}
+constexpr size_t LEN_METAVEC = 7;
+constexpr size_t NUM_FIXFCOLS = 4;
+constexpr size_t NUM_ICOLS = 7;
 
 template <typename T>
 dvector<T> make_dvector_local(const std::vector<T>& vec) {
@@ -93,565 +38,488 @@ dvector<T> make_dvector_local(const std::vector<T>& vec) {
   return temp.template moveto_dvector<T>();
 }
 
-template <typename... Paths>
-class saveload_helper {
-  std::string dir;
-  std::tuple<Paths...> paths;
-
-public:
-  saveload_helper(const std::string& dir, Paths&&... paths) :
-    dir(dir), paths(std::forward<Paths>(paths)...)
-  {}
-
-  template <typename... Vecs>
-  void saveline(const Vecs&... vecs) const {
-    make_directory(dir);
-    _saveline<0, Vecs...>(vecs...);
-  }
-
-  template <typename... Vecs>
-  void loadline(Vecs&... vecs) const {
-    if (!directory_exists(dir)) {
-      throw std::runtime_error("no such directory: " + dir);
-    }
-    _loadline<0, Vecs...>(vecs...);
-  }
-
-  template <typename... Vecs>
-  void savebinary(const Vecs&... vecs) const {
-    make_directory(dir);
-    _savebinary<0, Vecs...>(vecs...);
-  }
-
-  template <typename... Vecs>
-  void loadbinary(Vecs&... vecs) const {
-    if (!directory_exists(dir)) {
-      throw std::runtime_error("no such directory: " + dir);
-    }
-    _loadbinary<0, Vecs...>(vecs...);
-  }
-
-private:
-  template <size_t N, typename Vec, typename... Vecs>
-  void _saveline(const Vec& vec, const Vecs&... vecs) const {
-    _saveline<N, Vec>(vec);
-    _saveline<N + 1, Vecs...>(vecs...);
-  }
-
-  template <size_t N, typename Vec>
-  void _saveline(const Vec& vec) const {
-    make_dvector_local(vec).saveline(dir + "/" + std::get<N>(paths));
-  }
-
-  template <size_t N, typename Vec, typename... Vecs>
-  void _loadline(Vec& vec, Vecs&... vecs) const {
-    _loadline<N, Vec>(vec);
-    _loadline<N + 1, Vecs...>(vecs...);
-  }
-
-  template <size_t N, typename Vec>
-  void _loadline(Vec& vec) const {
-    using T = typename Vec::value_type;
-    const std::string path(dir + "/" + std::get<N>(paths));
-    vec = make_dvector_loadline<T>(path).gather();
-  }
-
-  template <size_t N, typename Vec, typename... Vecs>
-  void _savebinary(const Vec& vec, const Vecs&... vecs) const {
-    _savebinary<N, Vec>(vec);
-    _savebinary<N + 1, Vecs...>(vecs...);
-  }
-
-  template <size_t N, typename Vec>
-  void _savebinary(const Vec& vec) const {
-    make_dvector_local(vec).savebinary(dir + "/" + std::get<N>(paths));
-  }
-
-  template <size_t N, typename Vec, typename... Vecs>
-  void _loadbinary(Vec& vec, Vecs&... vecs) const {
-    _loadbinary<N, Vec>(vec);
-    _loadbinary<N + 1, Vecs...>(vecs...);
-  }
-
-  template <size_t N, typename Vec>
-  void _loadbinary(Vec& vec) const {
-    using T = typename Vec::value_type;
-    const std::string path(dir + "/" + std::get<N>(paths));
-    vec = make_dvector_loadbinary<T>(path).gather();
-  }
-};
-
-template <typename... Args>
-saveload_helper<decltype(std::string(std::declval<Args>()))...>
-make_saveload_helper(const std::string& dir, Args&&... args) {
-  return saveload_helper<decltype(std::string(args))...>(
-    dir, std::string(std::forward<Args>(args))...
-  );
-}
-
-// ---------------------------------------------------------------------
-
-// a forward declaration
-template <typename T> class modelvector;
-
-template <typename T>
-class splitvector {
-  friend class modelvector<T>;
-
-  std::vector<size_t> indices;
-  std::vector<int> disables, conties;
-  std::vector<size_t> heads, tails;
-  std::vector<T> fvalues;
-
-  SERIALIZE(indices, disables, conties, heads, tails, fvalues)
-
-public:
-  splitvector() {}
-
-  splitvector(
-    std::vector<size_t>&& indices,
-    std::vector<int>&& disables, std::vector<int>&& conties,
-    std::vector<size_t>&& heads, std::vector<size_t>&& tails,
-    std::vector<T>&& feature_values
-  ) :
-    indices(std::move(indices)),
-    disables(std::move(disables)), conties(std::move(conties)),
-    heads(std::move(heads)), tails(std::move(tails)),
-    fvalues(std::move(feature_values))
-  {
-    ASSERT_SIZE();
-  }
-
-  size_t size() const {
-    ASSERT_SIZE();
-    return indices.size();
-  }
-
-  void reserve(const size_t n) {
-    allreserve(n, indices, disables, conties, heads, tails, fvalues);
-  }
-
-  void push_back_empty() {
-    allappend(0, indices, disables, conties, heads, tails);
-  }
-
-  void push_back(const split<T>& s) {
-    // note: splitvector is a friend of split
-    indices.push_back(s.findex);
-    disables.push_back(0);
-    conties.push_back(static_cast<int>(s.fconty));
-
-    heads.push_back(fvalues.size());
-    if (s.is_categorical()) {
-      const std::vector<T>& categories = s.categories;
-      const size_t num_categories = categories.size();
-_Pragma(__novector__)
-      for (size_t k = 0; k < num_categories; k++) {
-        fvalues.push_back(categories[k]);
-      }
-    } else if (s.is_continuous()) {
-      fvalues.push_back(s.threshold);
-    } else {
-      throw std::logic_error("invalid continuity");
-    }
-    tails.push_back(fvalues.size());
-  }
-
-  // pseudo emplace back
-  template <typename... Args>
-  void emplace_back(Args&&... args) {
-    push_back(split<T>(std::forward<Args>(args)...));
-  }
-
-  std::shared_ptr<split<T>> get(const size_t j) const {
-    if (is_categorical(j)) {
-      return make_split<T>(get_feature_index(j), get_categories(j));
-    } else if (is_continuous(j)) {
-      return make_split<T>(get_feature_index(j), get_threshold(j));
-    } else {
-      throw std::logic_error("invalid continuity");
-    }
-  }
-
-  size_t get_feature_index(const size_t j) const {
-    tree_assert(j < size());
-    return indices[j];
-  }
-
-  continuity get_feature_continuity(const size_t j) const {
-    tree_assert(j < size());
-    return static_cast<continuity>(conties[j]);
-  }
-
-  std::vector<T> get_categories(const size_t j) const {
-    tree_assert(is_categorical(j));
-    tree_assert(heads[j] < tails[j]);
-    tree_assert(tails[j] <= fvalues.size());
-#if defined(_SX) || defined(__ve__)
-    const size_t head = heads[j];
-    const size_t tail = tails[j];
-    const size_t num_categories = tail - head;
-    std::vector<T> ret(num_categories, 0);
-
-    const T* src = fvalues.data() + head;
-    T* dst = ret.data();
-    for (size_t k = 0; k < num_categories; k++) { dst[k] = src[k]; }
-
-    return ret;
-#else
-    auto origin = fvalues.cbegin();
-    auto head = std::next(origin, heads[j]);
-    auto tail = std::next(origin, tails[j]);
-    return std::vector<T>(head, tail);
-#endif
-  }
-
-  T get_threshold(const size_t j) const {
-    tree_assert(is_continuous(j));
-    tree_assert(heads[j] < fvalues.size());
-    tree_assert(heads[j] + 1 == tails[j]);
-    return fvalues[heads[j]];
-  }
-
-  bool is_categorical(const size_t j) const {
-    return get_feature_continuity(j) == continuity::Categorical;
-  }
-  bool is_continuous(const size_t j) const {
-    return get_feature_continuity(j) == continuity::Continuous;
-  }
-
-  node_local<splitvector<T>> broadcast() const;
-
-private:
-  void ASSERT_SIZE() const {
-    tree_assert(samesize(indices, disables, conties, heads, tails));
-  }
-};
-
-template <typename T>
-struct splitvector_broadcast_helper {
-  template <typename... Args>
-  splitvector<T> operator()(Args&&... args) const {
-    return splitvector<T>(std::move(args)...);
-  }
-
-  SERIALIZE_NONE
-};
-
-template <typename T>
-inline node_local<splitvector<T>> splitvector<T>::broadcast() const {
-  auto bcas_indices = make_node_local_broadcast(indices);
-  return bcas_indices.map(
-    splitvector_broadcast_helper<T>(),
-    make_node_local_broadcast(disables),
-    make_node_local_broadcast(conties),
-    make_node_local_broadcast(heads),
-    make_node_local_broadcast(tails),
-    make_node_local_broadcast(fvalues)
-  );
-}
-
 template <typename T>
 class modelvector {
-  algorithm algo;
-  metainfo<T> meta;
-  std::vector<size_t> ids;
-  std::vector<T> preds, probs, imprs;
-  std::vector<int> leaves;
-  std::vector<T> gains;
-  splitvector<T> splits;
+  using U = decltype(f2uint(std::declval<T>()));
 
-  SERIALIZE(
-    algo, meta, ids, preds, probs, imprs, leaves, gains, splits
-  )
+  size_t treeid;
+  algorithm algo;
+
+  size_t num_rows, num_fcols;
+  std::vector<T> fvec;
+  std::vector<size_t> ivec;
+
+  SERIALIZE(treeid, algo, num_rows, num_fcols, fvec, ivec)
 
 public:
   modelvector() {}
-
-  modelvector(const decision_tree_model<T>& model) :
-    algo(model.get_algo()),
-    meta(model.get_height(), model.get_num_nodes()),
-    ids(), preds(), probs(), imprs(), leaves(), gains(), splits()
-  {
-    reserve(model.get_num_nodes());
-    _zip(model.get_top_node());
-    ASSERT_SIZE();
-  }
+  modelvector(const decision_tree_model<T>&);
 
   modelvector(
-    const algorithm algo, metainfo<T>&& meta,
-    std::vector<size_t>&& ids,
-    std::vector<T>&& preds, std::vector<T>&& probs,
-    std::vector<T>&& imprs, std::vector<int>&& leaves,
-    std::vector<T>&& gains, splitvector<T>&& splits
+    const size_t treeid, const algorithm algo,
+    const size_t num_rows, const size_t num_fcols,
+    const std::vector<T>& fvec, const std::vector<size_t>& ivec
   ) :
-    algo(algo), meta(std::move(meta)),
-    ids(std::move(ids)),
-    preds(std::move(preds)),
-    probs(std::move(probs)),
-    imprs(std::move(imprs)),
-    leaves(std::move(leaves)),
-    gains(std::move(gains)),
-    splits(std::move(splits))
+    treeid(treeid), algo(algo),
+    num_rows(num_rows), num_fcols(num_fcols),
+    fvec(fvec), ivec(ivec)
   {
-    ASSERT_SIZE();
+    tree_assert(fvec.size() == num_rows * num_fcols);
+    tree_assert(ivec.size() == num_rows * NUM_ICOLS);
   }
 
-  void reserve(const size_t n) {
-    allreserve(n, ids, preds, probs, imprs, leaves, gains, splits);
-  }
-
-  std::vector<size_t> metavector() const {
-    return {
-      VVID, static_cast<size_t>(algo),
-      meta.get_height(), meta.get_num_nodes()
-    };
-  }
-
-  decision_tree_model<T> unzip() const;
+  decision_tree_model<T> restore() const;
   node_local<modelvector<T>> broadcast() const;
 
-  void save(const std::string&) const;
-  void load(const std::string&);
+  void saveline(const std::string&) const;
+  void loadline(const std::string&);
   void savebinary(const std::string&) const;
   void loadbinary(const std::string&);
 
+  std::string to_string() const;
+  void debug_print() const { std::cout << to_string(); }
+
 private:
-  void _zip(const std::shared_ptr<node<T>>&);
-
-  void check_size() const {
-    if (
-      !samesize(
-        meta.get_num_nodes(),
-        ids, preds, probs, imprs, leaves, gains, splits
-      )
-    ) {
-      throw std::runtime_error("invalid vector length");
-    }
-  }
-
-  template <typename Cond>
-  void check_structure(const Cond& condition) const {
-    if (!condition) {
-      throw std::runtime_error("invalid tree structre");
-    }
-  }
-
-  void ASSERT_SIZE() const {
-    tree_assert(meta.get_num_nodes() > 0);
-    tree_assert(
-      samesize(
-        meta.get_num_nodes(),
-        ids, preds, probs, imprs, leaves, gains, splits
-      )
+  std::array<size_t, LEN_METAVEC> metavector() const {
+    constexpr size_t ONE = 1;
+    return make_array<size_t>(
+      ONE, ONE, VVID,
+      treeid, static_cast<size_t>(algo),
+      num_rows, num_fcols
     );
   }
 };
 
 template <typename T>
+modelvector<T>::modelvector(const decision_tree_model<T>& model) :
+  treeid(model.get_treeid()), algo(model.get_algo()),
+  num_rows(model.get_num_nodes()),
+  num_fcols(NUM_FIXFCOLS + model.get_maxnum_features()),
+  fvec(num_rows * num_fcols, 0),
+  ivec(num_rows * NUM_ICOLS, 0)
+{
+  tree_assert(NUM_FIXFCOLS < num_fcols);
+
+  // breadth-first serialization
+  std::queue<std::shared_ptr<node<T>>> ptrs;
+  ptrs.push(model.get_top_node());
+
+  T* forigin = fvec.data();
+  size_t* iorigin = ivec.data();
+  for (size_t rowid = 0; !ptrs.empty(); rowid++, ptrs.pop()) {
+    const auto node_ptr = ptrs.front();
+    tree_assert(node_ptr);
+    tree_assert(rowid < num_rows);
+
+    T* fdst = forigin + rowid * num_fcols;
+    size_t* idst = iorigin + rowid * NUM_ICOLS;
+    size_t j = 0, k = 0;
+
+    const auto pred = node_ptr->get_predict();
+    idst[j++] = node_ptr->get_id();
+    fdst[k++] = pred.get_predict();
+    fdst[k++] = pred.get_probability();
+    fdst[k++] = node_ptr->get_impurity();
+
+    if (node_ptr->is_leaf()) {
+      idst[j++] = LEAF_NODE;
+      //tree_assert(j == 2 && k == 3);
+      continue;
+    }
+
+    tree_assert(node_ptr->get_stats());
+    tree_assert(node_ptr->get_split());
+
+    const auto split_ptr = node_ptr->get_split();
+    idst[j++] = INTERNAL_NODE;
+    idst[j++] = node_ptr->get_left_child_index();
+    idst[j++] = node_ptr->get_right_child_index();
+    fdst[k++] = node_ptr->get_stats()->get_gain();
+    idst[j++] = split_ptr->get_feature_index();
+    idst[j++] = static_cast<size_t>(split_ptr->get_feature_continuity());
+    tree_assert(k == NUM_FIXFCOLS);
+
+    if (split_ptr->is_categorical()) {
+      const auto categories = split_ptr->get_categories();
+      const size_t num_categories = categories.size();
+      tree_assert(NUM_FIXFCOLS + num_categories <= num_cols);
+
+      const T* catsrc = categories.data();
+      T* catdst = fdst + NUM_FIXFCOLS;
+
+      idst[j++] = num_categories;
+      for (size_t c = 0; c < num_categories; c++) {
+        catdst[c] = catsrc[c];
+      }
+    } else if (split_ptr->is_continuous()) {
+      idst[j++] = 1;
+      fdst[k++] = split_ptr->get_threshold();
+    } else {
+      throw std::logic_error("invalid continuity");
+    }
+
+    tree_assert(j == NUM_ICOLS);
+    ptrs.push(node_ptr->get_left_node());
+    ptrs.push(node_ptr->get_right_node());
+  }
+}
+
+template <typename T>
+decision_tree_model<T> modelvector<T>::restore() const {
+  tree_assert(fvec.size() == num_rows * num_fcols);
+  tree_assert(ivec.size() == num_rows * NUM_ICOLS);
+
+  std::queue<std::shared_ptr<node<T>>> ptrs;
+
+  const T* forigin = fvec.data();
+  const size_t* iorigin = ivec.data();
+  for (size_t i = num_rows; i > 0; i--) {
+    const size_t rowid = i - 1;
+    const T* fsrc = forigin + rowid * num_fcols;
+    const size_t* isrc = iorigin + rowid * NUM_ICOLS;
+
+    size_t j = 0, k = 0;
+    const size_t id = isrc[j++];
+    const T predict = fsrc[k++];
+    const T probability = fsrc[k++];
+    const T impurity = fsrc[k++];
+    predict_pair<T> pred(predict, probability);
+
+    if (probability < 0 || 1 < probability) {
+      RLOG(WARNING) << "WARNING: " <<
+        "<nodeid:" << id << "> wrong probability: " << probability <<
+      std::endl;
+    }
+
+    if (isrc[j++] > 0) {
+      // leaf node
+      ptrs.push(make_leaf<T>(id, std::move(pred), impurity));
+      //tree_assert(j == 2 && k == 3);
+      continue;
+    }
+
+    // internal node
+    tree_assert(ptrs.size() >= 2);
+    std::shared_ptr<node<T>> right_ptr(ptrs.front());
+    ptrs.pop();
+    std::shared_ptr<node<T>> left_ptr(ptrs.front());
+    ptrs.pop();
+
+    if (!(left_ptr->is_left_child() && right_ptr->is_right_child())) {
+      throw std::runtime_error("invalid tree structure");
+    }
+
+    if (
+      (id != left_ptr->get_parent_index()) ||
+      (id != right_ptr->get_parent_index())
+    ) {
+      std::ostringstream sout;
+      sout << "invalid tree structure: {";
+      sout << "nodeid: " << id << ", ";
+      sout << "leftid: " << left_ptr->get_id() << ", ";
+      sout << "rightid: " << right_ptr->get_id() << "}";
+      throw std::runtime_error(sout.str());
+    }
+
+    const size_t leftid = isrc[j++];
+    const size_t rightid = isrc[j++];
+
+    if (
+      (leftid != left_ptr->get_id()) || (rightid != right_ptr->get_id())
+    ) {
+      RLOG(WARNING) << "WARNING: " <<
+        "inconsistent node ids are ignored: {" <<
+        "nodeid: " << id << ", " <<
+        "leftid: " << leftid << ", " <<
+        "rightid: " << rightid << "}" <<
+      std::endl;
+    }
+
+    const T gain = fsrc[k++];
+    const size_t findex = isrc[j++];
+    const auto fconty = static_cast<continuity>(isrc[j++]);
+    tree_assert(k == NUM_FIXFCOLS);
+
+    std::shared_ptr<split<T>> split_ptr;
+
+    if (fconty == continuity::Categorical) {
+      const size_t num_categories = isrc[j++];
+      if (num_fcols < NUM_FIXFCOLS + num_categories) {
+        std::ostringstream sout;
+        sout << "<nodeid:" << id << "> ";
+        sout << "the number of categories is invalid: " << num_categories;
+        throw std::runtime_error(sout.str());
+      }
+
+      std::vector<T> categories(num_categories, 0);
+      const T* catsrc = fsrc + NUM_FIXFCOLS;
+      T* catdst = categories.data();
+
+      for (size_t c = 0; c < num_categories; c++) {
+        catdst[c] = catsrc[c];
+      }
+
+      split_ptr = make_split<T>(findex, std::move(categories));
+    } else if (fconty == continuity::Continuous) {
+      const size_t fnum = isrc[j++];
+      const T threshold = fsrc[k++];
+
+      if (fnum != 1) {
+        RLOG(WARNING) << "WARNING: " <<
+          "<nodeid:" << id << "> " <<
+          "the inconsistent number of features is ignored: " << fnum <<
+        std::endl;
+      }
+
+      split_ptr = make_split<T>(findex, threshold);
+    } else {
+      std::ostringstream sout;
+      sout << "<nodeid:" << id << "> invalid continuity";
+      throw std::runtime_error(sout.str());
+    }
+
+    tree_assert(j == NUM_ICOLS);
+    ptrs.push(
+      make_node<T>(
+        id, std::move(pred), impurity, INTERNAL_NODE,
+        std::move(split_ptr), std::move(left_ptr), std::move(right_ptr),
+        make_stats<T>(
+          gain, impurity,
+          left_ptr->get_impurity(), right_ptr->get_impurity(),
+          left_ptr->get_predict(), right_ptr->get_predict()
+        )
+      )
+    );
+  }
+
+  if (ptrs.size() != 1) {
+    throw std::runtime_error("there are too many nodes");
+  } else if (!ptrs.front()->is_root()) {
+    throw std::runtime_error("the first node is not a root");
+  }
+
+  return decision_tree_model<T>(ptrs.front(), algo);
+}
+
+template <typename T>
 struct modelvector_broadcast_helper {
   modelvector_broadcast_helper() {}
   modelvector_broadcast_helper(
-    const algorithm algo, const metainfo<T>& meta
+    const size_t treeid, const algorithm algo,
+    const size_t num_rows, const size_t num_fcols
   ) :
-    algo(algo), meta(meta)
+    treeid(treeid), algo(algo), num_rows(num_rows), num_fcols(num_fcols)
   {}
 
-  template <typename... Args>
-  modelvector<T> operator()(Args&&... args) {
-    return modelvector<T>(algo, std::move(meta), std::move(args)...);
+  modelvector<T> operator()(
+    const std::vector<T>& fvec, const std::vector<size_t>& ivec
+  ) const {
+    return modelvector<T>(treeid, algo, num_rows, num_fcols, fvec, ivec);
   }
 
+  size_t treeid;
   algorithm algo;
-  metainfo<T> meta;
-  SERIALIZE(algo, meta)
+  size_t num_rows, num_fcols;
+  SERIALIZE(treeid, algo, num_rows, num_fcols)
 };
 
 template <typename T>
 inline node_local<modelvector<T>> modelvector<T>::broadcast() const {
-  auto bcas_ids = make_node_local_broadcast(ids);
-  return bcas_ids.map(
-    modelvector_broadcast_helper<T>(algo, meta),
-    make_node_local_broadcast(preds),
-    make_node_local_broadcast(probs),
-    make_node_local_broadcast(imprs),
-    make_node_local_broadcast(leaves),
-    make_node_local_broadcast(gains),
-    splits.broadcast()
+  return make_node_local_broadcast(fvec).map(
+    modelvector_broadcast_helper<T>(treeid, algo, num_rows, num_fcols),
+    make_node_local_broadcast(ivec)
   );
 }
 
 template <typename T>
-void modelvector<T>::_zip(const std::shared_ptr<node<T>>& node_ptr) {
-  tree_assert(node_ptr);
-  if (!node_ptr->is_leaf()) {
-    _zip(node_ptr->get_left_node());
-    _zip(node_ptr->get_right_node());
+void modelvector<T>::saveline(const std::string& path) const {
+  const auto metavec = metavector();
+  const size_t* msrc = metavec.data();
+  const T* fsrc = fvec.data();
+  const size_t* isrc = ivec.data();
+
+  tree_assert(metavec.size() == LEN_METAVEC);
+  tree_assert(fvec.size() == num_rows * num_fcols);
+  tree_assert(ivec.size() == num_rows * NUM_ICOLS);
+
+  std::vector<T> vec(metavec.size() + fvec.size() + ivec.size(), 0);
+  T* mdst = vec.data();
+  T* fdst = vec.data() + metavec.size();
+  T* idst = vec.data() + metavec.size() + fvec.size();
+
+  for (size_t i = 0; i < metavec.size(); i++) {
+    mdst[i] = static_cast<T>(msrc[i]);
+  }
+  for (size_t i = 0; i < fvec.size(); i++) {
+    fdst[i] = fsrc[i];
+  }
+  for (size_t i = 0; i < ivec.size(); i++) {
+    idst[i] = static_cast<T>(isrc[i]);
   }
 
-  ids.push_back(node_ptr->get_id());
-
-  const auto& predprob = node_ptr->get_predict();
-  preds.push_back(predprob.get_predict());
-  probs.push_back(predprob.get_probability());
-  imprs.push_back(node_ptr->get_impurity());
-
-  if (node_ptr->is_leaf()) {
-    leaves.push_back(LEAF_NODE);
-    gains.push_back(0);
-    splits.push_back_empty();
-  } else {
-    tree_assert(node_ptr->get_stats());
-    tree_assert(node_ptr->get_split());
-    leaves.push_back(INTERNAL_NODE);
-    gains.push_back(node_ptr->get_stats()->get_gain());
-    splits.push_back(*(node_ptr->get_split()));
-  }
+  make_dvector_local(vec).saveline(path);
 }
 
 template <typename T>
-inline decision_tree_model<T> modelvector<T>::unzip() const {
-  ASSERT_SIZE();
-  const size_t num_nodes = meta.get_num_nodes();
-  std::stack<std::shared_ptr<node<T>>> left_ptrs;
-  std::shared_ptr<node<T>> right_ptr;
-
-  for (size_t i = 0; i < num_nodes; i++) {
-    const nodeid_helper id(ids[i]);
-    predict_pair<T> pred(preds[i], probs[i]);
-    std::shared_ptr<node<T>> node_ptr;
-
-    if (leaves[i]) {
-      check_structure(!right_ptr);
-      node_ptr = make_leaf<T>(
-        id.get_index(), std::move(pred), imprs[i]
-      );
-    } else {
-      check_structure(!left_ptrs.empty());
-      check_structure(right_ptr);
-
-      std::shared_ptr<node<T>> left_ptr = left_ptrs.top();
-      node_ptr = make_node<T>(
-        id.get_index(), std::move(pred), imprs[i],
-        INTERNAL_NODE,
-        splits.get(i), left_ptr, right_ptr,
-        make_stats<T>(
-          gains[i], imprs[i],
-          left_ptr->get_impurity(), right_ptr->get_impurity(),
-          left_ptr->get_predict(), right_ptr->get_predict()
-        )
-      );
-
-      left_ptrs.pop();
-      right_ptr.reset();
-    }
-
-    if (id.is_left_child()) {
-      left_ptrs.push(std::move(node_ptr));
-    } else if (id.is_right_child()) {
-      check_structure(!right_ptr);
-      right_ptr = std::move(node_ptr);
-    } else if (id.is_root()) {
-      check_structure(left_ptrs.empty());
-      check_structure(!right_ptr);
-      check_structure(i == num_nodes - 1);
-      return decision_tree_model<T>(node_ptr, algo, meta);
-    } else {
-      throw std::logic_error("invalid node type");
-    }
+void modelvector<T>::loadline(const std::string& path) {
+  const auto vec = make_dvector_loadline<T>(path).gather();
+  if (vec.size() < LEN_METAVEC) {
+    throw std::runtime_error("invalid input");
   }
 
-  check_structure(false);
-  throw std::logic_error("should not reach here");
-}
+  size_t i = 2;
+  const size_t vvid = static_cast<size_t>(vec[i++]);
+  treeid = static_cast<size_t>(vec[i++]);
+  algo = static_cast<algorithm>(vec[i++]);
+  num_rows = static_cast<size_t>(vec[i++]);
+  num_fcols = static_cast<size_t>(vec[i++]);
+  tree_assert(i == LEN_METAVEC);
 
-template <typename T>
-void modelvector<T>::save(const std::string& dir) const {
-  make_saveload_helper(
-    dir, "metainfo", "nodeid", "prediction", "probability",
-    "impurity", "leaf", "infogain",
-    "findex", "disable", "continuity", "head", "tail", "fvalue"
-  ).saveline(
-    metavector(), ids, preds, probs, imprs, leaves, gains,
-    splits.indices, splits.disables, splits.conties,
-    splits.heads, splits.tails, splits.fvalues
-  );
-}
+  const size_t flen = num_rows * num_fcols;
+  const size_t ilen = num_rows * NUM_ICOLS;
 
-template <typename T>
-void modelvector<T>::load(const std::string& dir) {
-  std::vector<size_t> metavec;
-  make_saveload_helper(
-    dir, "metainfo", "nodeid", "prediction", "probability",
-    "impurity", "leaf", "infogain",
-    "findex", "disable", "continuity", "head", "tail", "fvalue"
-  ).loadline(
-    metavec, ids, preds, probs, imprs, leaves, gains,
-    splits.indices, splits.disables, splits.conties,
-    splits.heads, splits.tails, splits.fvalues
-  );
-
-  if (metavec.at(0) != VVID) {
+  if (vvid != VVID) {
     throw std::runtime_error("vectorized version ID is different");
+  } else if (vec.size() != LEN_METAVEC + flen + ilen) {
+    throw std::runtime_error("invalid input length");
   }
 
-  algo = static_cast<algorithm>(metavec.at(1));
-  meta = metainfo<T>(metavec.at(2), metavec.at(3));
+#if defined(_SX) || defined(__ve__)
+  fvec = std::vector<T>(flen, 0);
+  ivec = std::vector<size_t>(ilen, 0);
+#else
+  fvec.resize(flen, 0);
+  ivec.resize(ilen, 0);
+#endif
 
-  check_size();
+  const T* fsrc = vec.data() + LEN_METAVEC;
+  const T* isrc = vec.data() + LEN_METAVEC + flen;
+  T* fdst = fvec.data();
+  size_t* idst = ivec.data();
+
+  for (i = 0; i < flen; i++) { fdst[i] = fsrc[i]; }
+  for (i = 0; i < ilen; i++) { idst[i] = static_cast<size_t>(isrc[i]); }
 }
 
 template <typename T>
-void modelvector<T>::savebinary(const std::string& dir) const {
-  make_saveload_helper(
-    dir, "metainfo", "nodeid", "prediction", "probability",
-    "impurity", "leaf", "infogain",
-    "findex", "disable", "continuity", "head", "tail", "fvalue"
-  ).savebinary(
-    metavector(), ids, preds, probs, imprs, leaves, gains,
-    splits.indices, splits.disables, splits.conties,
-    splits.heads, splits.tails, splits.fvalues
-  );
+void modelvector<T>::savebinary(const std::string& path) const {
+  const auto metavec = metavector();
+  const size_t* msrc = metavec.data();
+  const T* fsrc = fvec.data();
+  const size_t* isrc = ivec.data();
+
+  tree_assert(metavec.size() == LEN_METAVEC);
+  tree_assert(fvec.size() == num_rows * num_fcols);
+  tree_assert(ivec.size() == num_rows * NUM_ICOLS);
+
+  std::vector<T> vec(metavec.size() + fvec.size() + ivec.size(), 0);
+  U* mdst = fp2uintp(vec.data());
+  T* fdst = vec.data() + metavec.size();
+  U* idst = fp2uintp(vec.data() + metavec.size() + fvec.size());
+
+  for (size_t i = 0; i < metavec.size(); i++) {
+    mdst[i] = static_cast<U>(msrc[i]);
+  }
+  for (size_t i = 0; i < fvec.size(); i++) {
+    fdst[i] = fsrc[i];
+  }
+  for (size_t i = 0; i < ivec.size(); i++) {
+    idst[i] = static_cast<U>(isrc[i]);
+  }
+
+  make_dvector_local(vec).savebinary(path);
 }
 
 template <typename T>
-void modelvector<T>::loadbinary(const std::string& dir) {
-  std::vector<size_t> metavec;
-  make_saveload_helper(
-    dir, "metainfo", "nodeid", "prediction", "probability",
-    "impurity", "leaf", "infogain",
-    "findex", "disable", "continuity", "head", "tail", "fvalue"
-  ).loadbinary(
-    metavec, ids, preds, probs, imprs, leaves, gains,
-    splits.indices, splits.disables, splits.conties,
-    splits.heads, splits.tails, splits.fvalues
-  );
+void modelvector<T>::loadbinary(const std::string& path) {
+  const auto vec = make_dvector_loadbinary<T>(path).gather();
+  if (vec.size() < LEN_METAVEC) {
+    throw std::runtime_error("invalid input");
+  }
 
-  if (metavec.at(0) != VVID) {
+  size_t i = 0;
+  constexpr U ONE(1);
+  const U* msrc = fp2uintp(vec.data());
+
+  const U checker1 = msrc[i++];
+  const U checker2 = msrc[i++];
+
+  if ((checker1 != ONE) || (checker2 != ONE)) {
+    throw std::runtime_error("invalid binary format");
+  }
+
+  const size_t vvid = static_cast<size_t>(msrc[i++]);
+  treeid = static_cast<size_t>(msrc[i++]);
+  algo = static_cast<algorithm>(msrc[i++]);
+  num_rows = static_cast<size_t>(msrc[i++]);
+  num_fcols = static_cast<size_t>(msrc[i++]);
+  tree_assert(i == LEN_METAVEC);
+
+  const size_t flen = num_rows * num_fcols;
+  const size_t ilen = num_rows * NUM_ICOLS;
+
+  if (vvid != VVID) {
     throw std::runtime_error("vectorized version ID is different");
+  } else if (vec.size() != LEN_METAVEC + flen + ilen) {
+    throw std::runtime_error("invalid input length");
   }
 
-  algo = static_cast<algorithm>(metavec.at(1));
-  meta = metainfo<T>(metavec.at(2), metavec.at(3));
+#if defined(_SX) || defined(__ve__)
+  fvec = std::vector<T>(flen, 0);
+  ivec = std::vector<size_t>(ilen, 0);
+#else
+  fvec.resize(flen, 0);
+  ivec.resize(ilen, 0);
+#endif
 
-  check_size();
+  const T* fsrc = vec.data() + LEN_METAVEC;
+  const U* isrc = fp2uintp(vec.data() + LEN_METAVEC + flen);
+  T* fdst = fvec.data();
+  size_t* idst = ivec.data();
+
+  for (i = 0; i < flen; i++) { fdst[i] = fsrc[i]; }
+  for (i = 0; i < ilen; i++) { idst[i] = static_cast<size_t>(isrc[i]); }
+}
+
+template <typename T>
+std::string modelvector<T>::to_string() const {
+  std::ostringstream sout;
+  sout << "treeid: " << treeid << std::endl;
+  sout << "algo: " << static_cast<size_t>(algo) << std::endl;
+  sout << "num_rows: " << num_rows << std::endl;
+  sout << "num_fcols: " << num_fcols << std::endl;
+
+  const T* fsrc = fvec.data();
+  const size_t* isrc = ivec.data();
+  for (size_t i = 0; i < num_rows; i++) {
+    for (size_t j = 0; j < NUM_ICOLS; j++) {
+      sout << isrc[i * NUM_ICOLS + j] << (j + 1 < NUM_ICOLS ? " " : "; ");
+    }
+    for (size_t j = 0; j < num_fcols; j++) {
+      sout << fsrc[i * num_fcols + j] << (j + 1 < num_fcols ? " " : "");
+    }
+    sout << std::endl;
+  }
+
+  return sout.str();
 }
 
 } // end namespace tree
 
 // specialize for broadcast
 template <typename T>
-node_local<tree::splitvector<T>> make_node_local_broadcast(
-  const tree::splitvector<T>& splits
-) {
-  return splits.broadcast();
-}
-
-template <typename T>
 node_local<tree::modelvector<T>> make_node_local_broadcast(
   const tree::modelvector<T>& vtree
 ) {
   return vtree.broadcast();
+}
+
+// for output stream
+template <typename T>
+std::ostream& operator<<(
+  std::ostream& os, const tree::modelvector<T>& vtree
+) {
+  return os << vtree.to_string();
 }
 
 } // end namespace frovedis
