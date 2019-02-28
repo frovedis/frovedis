@@ -214,6 +214,64 @@ namespace frovedis {
             double alpha,
             double beta);
 
+  template <class T>
+  rowmajor_matrix_local<T>
+  mult_sliceA_trans_sliceB(rowmajor_matrix_local<T>& mat,
+                           size_t st1, size_t end1,
+                           size_t st2, size_t end2,
+                           T alpha = 1,
+                           T beta = 1) {
+    auto a_nrow = end1 - st1 + 1;
+    auto b_nrow = end2 - st2 + 1;
+    auto a_ncol = mat.local_num_col;
+    auto b_ncol = mat.local_num_col;
+
+    sliced_colmajor_matrix_local<T> sm1;
+    sm1.ldm = mat.local_num_col;
+    sm1.data = mat.val.data() + (st1 * sm1.ldm);
+    sm1.sliced_num_row = a_ncol;
+    sm1.sliced_num_col = a_nrow;
+
+    sliced_colmajor_matrix_local<T> sm2;
+    sm2.ldm = mat.local_num_col;
+    sm2.data = mat.val.data() + (st2 * sm2.ldm);
+    sm2.sliced_num_row = b_ncol;
+    sm2.sliced_num_col = b_nrow;
+
+    rowmajor_matrix_local<T> ret(a_nrow, b_nrow);
+    sliced_colmajor_matrix_local<T> sm3;
+    sm3.ldm = b_nrow;
+    sm3.data = ret.val.data();
+    sm3.sliced_num_row = b_nrow;
+    sm3.sliced_num_col = a_nrow;
+    gemm<T>(sm2, sm1, sm3, 'T', 'N', alpha, beta);
+    return ret;
+  }
+
+  template <class T>
+  std::vector<T>
+  mult_sliceA_vec(rowmajor_matrix_local<T>& mat,
+                  size_t st, size_t end,
+                  std::vector<T>& vec,
+                  T alpha = 1,
+                  T beta = 0) {
+    auto nrow = end - st + 1;
+    auto ncol = mat.local_num_col;
+    checkAssumption(ncol == vec.size());
+
+    sliced_colmajor_matrix_local<T> sm;
+    sm.ldm = mat.local_num_col;
+    sm.data = mat.val.data() + (st * sm.ldm);
+    sm.sliced_num_row = ncol;
+    sm.sliced_num_col = nrow;
+    sliced_colmajor_vector_local<T> sv(vec);
+
+    std::vector<T> ret(nrow);
+    sliced_colmajor_vector_local<T> sm_res(ret);
+    gemv<T>(sm, sv, sm_res, 'T', alpha, beta);
+    return ret;
+  }
+
   // This routine can be used to perform the below operation:
   //   (*) rowmajor_matrix_local * rowmajor_matrix_local
   template <class T>

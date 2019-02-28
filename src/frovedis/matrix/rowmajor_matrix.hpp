@@ -378,6 +378,41 @@ std::vector<T> sum_of_cols(const rowmajor_matrix_local<T>& m) {
 }
 
 template <class T>
+std::vector<T> squared_sum_of_cols(const rowmajor_matrix_local<T>& m) {
+  auto nrow = m.local_num_row;
+  auto ncol = m.local_num_col;
+  std::vector<T> ret(nrow,0);
+  T* retp = &ret[0];
+  const T* matp = &m.val[0];
+#if defined(_SX) || defined(__ve__)
+  if (nrow > ncol) {
+    for(size_t i = 0; i<nrow; i += MAT_VLEN) {
+      auto range = (i + MAT_VLEN <= nrow) ? (i + MAT_VLEN) : nrow;
+      for(size_t j = 0; j<ncol; ++j) {
+        for (size_t k=i; k<range; ++k) {
+          retp[k] += (matp[k * ncol + j] * matp[k * ncol + j]);
+        }
+      }
+    }
+  }
+  else {
+    for (size_t i=0; i<nrow; ++i) {
+      for(size_t j = 0; j<ncol; ++j) {
+        retp[i] += (matp[i * ncol + j] * matp[i * ncol + j]); 
+      }
+    }
+  }
+#else
+  for (size_t i=0; i<nrow; ++i) {
+    for(size_t j = 0; j<ncol; ++j) {
+      retp[i] += (matp[i * ncol + j] * matp[i * ncol + j]);
+    }
+  }
+#endif
+  return ret;
+}
+
+template <class T>
 std::vector<T> sum_of_rows(const rowmajor_matrix_local<T>& m) {
   auto nrow = m.local_num_row;
   auto ncol = m.local_num_col;
@@ -406,6 +441,41 @@ std::vector<T> sum_of_rows(const rowmajor_matrix_local<T>& m) {
   for (size_t i=0; i<nrow; ++i) {
     for(size_t j =0; j<ncol; ++j) {
       retp[j] += matp[i * ncol + j];
+    }
+  }
+#endif
+  return ret;
+}
+
+template <class T>
+std::vector<T> squared_sum_of_rows(const rowmajor_matrix_local<T>& m) {
+  auto nrow = m.local_num_row;
+  auto ncol = m.local_num_col;
+  std::vector<T> ret(ncol,0);
+  T* retp = &ret[0];
+  const T* matp = &m.val[0];
+#if defined(_SX) || defined(__ve__)
+  if (nrow > ncol) {
+    for(size_t i = 0; i<nrow; i += MAT_VLEN) {
+      auto range = (i + MAT_VLEN <= nrow) ? (i + MAT_VLEN) : nrow;
+      for(size_t j =0; j<ncol; ++j) {
+        for (size_t k=i; k<range; ++k) {
+          retp[j] += (matp[k * ncol + j] * matp[k * ncol + j]);
+        }
+      }
+    }
+  }
+  else {
+    for (size_t i=0; i<nrow; ++i) {
+      for(size_t j =0; j<ncol; ++j) {
+        retp[j] += (matp[i * ncol + j] * matp[i * ncol + j]);
+      }
+    }
+  }
+#else
+  for (size_t i=0; i<nrow; ++i) {
+    for(size_t j =0; j<ncol; ++j) {
+      retp[j] += (matp[i * ncol + j] * matp[i * ncol + j]);
     }
   }
 #endif
