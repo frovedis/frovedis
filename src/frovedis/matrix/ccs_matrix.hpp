@@ -207,7 +207,9 @@ dvector<T> operator*(ccs_matrix<T,I,O>& mat, dvector<T>& dv) {
     auto sizes = dv.sizes();
     size_t size = sizes.size();
     std::vector<int> count(size);
-    for(size_t i = 0; i < size; i++) count[i] = sizes[i]; // cast to int
+    auto countp = count.data();
+    auto sizesp = sizes.data();
+    for(size_t i = 0; i < size; i++) countp[i] = sizesp[i]; // cast to int
     bdv = dv.viewas_node_local().map(call_allgatherv<T>(count));
   } else {
     bdv = broadcast(dv.gather());

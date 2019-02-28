@@ -241,11 +241,13 @@ void send_bcast_rpcreq(rpc_type type, intptr_t function_addr,
                  root, frovedis_comm_rpc);
       vector<size_t> displs(node_size);
       displs[0] = 0;
+      auto displsp = displs.data();
+      auto recv_countsp = recv_counts.data();
       for(size_t i = 1; i < node_size; i++) {
-        displs[i] = displs[i-1] + recv_counts[i-1];
+        displsp[i] = displsp[i-1] + recv_countsp[i-1];
       }
       size_t total = 0;
-      for(size_t i = 0; i < node_size; i++) total += recv_counts[i];
+      for(size_t i = 0; i < node_size; i++) total += recv_countsp[i];
       string recv_data;
       recv_data.resize(total);
       large_gatherv(sizeof(char), send_data, send_data_size,
@@ -270,11 +272,13 @@ void send_bcast_rpcreq(rpc_type type, intptr_t function_addr,
                  root, frovedis_comm_rpc);
       vector<size_t> displs(node_size);
       displs[0] = 0;
+      auto displsp = displs.data();
+      auto recv_countsp = recv_counts.data();
       for(size_t i = 1; i < node_size; i++) {
-        displs[i] = displs[i-1] + recv_counts[i-1];
+        displsp[i] = displsp[i-1] + recv_countsp[i-1];
       }
       size_t total = 0;
-      for(size_t i = 0; i < node_size; i++) total += recv_counts[i];
+      for(size_t i = 0; i < node_size; i++) total += recv_countsp[i];
       string recv_data;
       recv_data.resize(total);
       large_gatherv(sizeof(char), send_data, send_data_size,
@@ -317,11 +321,13 @@ void send_bcast_rpcreq(rpc_type type, intptr_t function_addr,
                  root, frovedis_comm_rpc);
       vector<size_t> displs(node_size);
       displs[0] = 0;
+      auto displsp = displs.data();
+      auto recv_countsp = recv_counts.data();
       for(size_t i = 1; i < node_size; i++) {
-        displs[i] = displs[i-1] + recv_counts[i-1];
+        displsp[i] = displsp[i-1] + recv_countsp[i-1];
       }
       size_t total = 0;
-      for(size_t i = 0; i < node_size; i++) total += recv_counts[i];
+      for(size_t i = 0; i < node_size; i++) total += recv_countsp[i];
       string recv_data;
       recv_data.resize(total);
       large_gatherv(sizeof(char), send_data, send_data_size,

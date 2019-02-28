@@ -129,9 +129,10 @@ void softmax_gradient_descent::compute_error_inplace (
   auto nsamples = softmax_mat.local_num_row;
   auto nclasses = softmax_mat.local_num_col;
   T *smatp = &softmax_mat.val[0];
+  auto labelp = label.data();
   for(size_t j = 0; j < nclasses; ++j) {
     for(size_t i = 0; i < nsamples; ++i) {
-      smatp[i*nclasses+j] = label[i] - smatp[i*nclasses+j];
+      smatp[i*nclasses+j] = labelp[i] - smatp[i*nclasses+j];
     }
   }
 }

@@ -20,33 +20,36 @@ align_as_calc_alltoall_sizes(std::vector<size_t>& srcsizes,
   int self = get_selfid();
   int node_size = get_nodesize();
   size_t global_start = 0;
+  auto srcsizesp = srcsizes.data();
+  auto dstsizesp = dstsizes.data();
   for(int i = 0; i < self; i++) {
-    global_start += srcsizes[i];
+    global_start += srcsizesp[i];
   }
-  size_t global_end = global_start + srcsizes[self];
+  size_t global_end = global_start + srcsizesp[self];
   vector<size_t> alltoall_sizes(node_size);
+  auto alltoall_sizesp = alltoall_sizes.data();
   size_t dst_global_start = 0;
   for(int i = 0; i < node_size; i++) {
-    size_t dst_global_end = dst_global_start + dstsizes[i];
+    size_t dst_global_end = dst_global_start + dstsizesp[i];
     if(dst_global_start < global_start &&
        dst_global_end < global_start) {
       ;
     } else if(dst_global_start < global_start &&
               dst_global_end >= global_start &&
               dst_global_end < global_end) {
-      alltoall_sizes[i] = dst_global_end - global_start;
+      alltoall_sizesp[i] = dst_global_end - global_start;
     } else if(dst_global_start < global_start &&
               dst_global_end >= global_end) {
-      alltoall_sizes[i] = global_end - global_start;
+      alltoall_sizesp[i] = global_end - global_start;
     } else if(dst_global_start >= global_start &&
               dst_global_start < global_end &&
               dst_global_end >= global_start &&
               dst_global_end < global_end) {
-      alltoall_sizes[i] = dst_global_end - dst_global_start;
+      alltoall_sizesp[i] = dst_global_end - dst_global_start;
     } else if(dst_global_start >= global_start &&
               dst_global_start < global_end &&
               dst_global_end >= global_end) {
-      alltoall_sizes[i] = global_end - dst_global_start;
+      alltoall_sizesp[i] = global_end - dst_global_start;
     } else if(dst_global_start >= global_end &&
               dst_global_end >= global_end) {
       ;
@@ -54,7 +57,7 @@ align_as_calc_alltoall_sizes(std::vector<size_t>& srcsizes,
       throw
         std::runtime_error("internal error in align_as_calc_alltoall_sizes");
     }
-    dst_global_start += dstsizes[i];
+    dst_global_start += dstsizesp[i];
   }
   return alltoall_sizes;
 }
@@ -348,8 +351,11 @@ template <>
 std::vector<int> convert_endian(std::vector<int>& vec) {
   std::vector<int> ret(vec.size());
   if(no_conversion_needed()) {
-    for(size_t i = 0; i < vec.size(); i++) {
-      ret[i] = vec[i];
+    auto retp = ret.data();
+    auto vecp = vec.data();
+    auto size = vec.size();
+    for(size_t i = 0; i < size; i++) {
+      retp[i] = vecp[i];
     }
   } else {
 #if defined(_SX) && !defined(__ve__)
@@ -357,11 +363,14 @@ std::vector<int> convert_endian(std::vector<int>& vec) {
     void* retp = reinterpret_cast<void*>(&ret[0]);
     bswap_memcpy(retp, vecp, sizeof(int), vec.size());
 #else
-    for(size_t i = 0; i < vec.size(); i++) {
+    auto retp = ret.data();
+    auto vecp = vec.data();
+    auto size = vec.size();
+    for(size_t i = 0; i < size; i++) {
       int_uint32_t t1, t2;
-      t1.src = vec[i];
+      t1.src = vecp[i];
       t2.dst = swap32(t1.dst);
-      ret[i] = t2.src;
+      retp[i] = t2.src;
     }
 #endif
   }
@@ -372,8 +381,11 @@ template <>
 std::vector<unsigned int> convert_endian(std::vector<unsigned int>& vec) {
   std::vector<unsigned int> ret(vec.size());
   if(no_conversion_needed()) {
-    for(size_t i = 0; i < vec.size(); i++) {
-      ret[i] = vec[i];
+    auto retp = ret.data();
+    auto vecp = vec.data();
+    auto size = vec.size();
+    for(size_t i = 0; i < size; i++) {
+      retp[i] = vecp[i];
     }
   } else {
 #if defined(_SX) && !defined(__ve__)
@@ -381,8 +393,11 @@ std::vector<unsigned int> convert_endian(std::vector<unsigned int>& vec) {
     void* retp = reinterpret_cast<void*>(&ret[0]);
     bswap_memcpy(retp, vecp, sizeof(unsigned int), vec.size());
 #else
-    for(size_t i = 0; i < vec.size(); i++) {
-      ret[i] = swap32(vec[i]);
+    auto retp = ret.data();
+    auto vecp = vec.data();
+    auto size = vec.size();
+    for(size_t i = 0; i < size; i++) {
+      retp[i] = swap32(vecp[i]);
     }
 #endif
   }
@@ -393,8 +408,11 @@ template <>
 std::vector<long> convert_endian(std::vector<long>& vec) {
   std::vector<long> ret(vec.size());
   if(no_conversion_needed()) {
-    for(size_t i = 0; i < vec.size(); i++) {
-      ret[i] = vec[i];
+    auto retp = ret.data();
+    auto vecp = vec.data();
+    auto size = vec.size();
+    for(size_t i = 0; i < size; i++) {
+      retp[i] = vecp[i];
     }
   } else {
 #if defined(_SX) && !defined(__ve__)
@@ -402,19 +420,22 @@ std::vector<long> convert_endian(std::vector<long>& vec) {
     void* retp = reinterpret_cast<void*>(&ret[0]);
     bswap_memcpy(retp, vecp, sizeof(long), vec.size());
 #else
+    auto retp = ret.data();
+    auto vecp = vec.data();
+    auto size = vec.size();
     if(sizeof(long) == 8) {
-      for(size_t i = 0; i < vec.size(); i++) {
+      for(size_t i = 0; i < size; i++) {
         long_uint64_t t1, t2;
-        t1.src = vec[i];
+        t1.src = vecp[i];
         t2.dst = swap64(t1.dst);
-        ret[i] = t2.src;
+        retp[i] = t2.src;
       }
     } else { // sizeof(long) == 4
-      for(size_t i = 0; i < vec.size(); i++) {
+      for(size_t i = 0; i < size; i++) {
         long_uint32_t t1, t2;
-        t1.src = vec[i];
+        t1.src = vecp[i];
         t2.dst = swap32(t1.dst);
-        ret[i] = t2.src;
+        retp[i] = t2.src;
       }
     }
 #endif
@@ -426,8 +447,11 @@ template <>
 std::vector<unsigned long> convert_endian(std::vector<unsigned long>& vec) {
   std::vector<unsigned long> ret(vec.size());
   if(no_conversion_needed()) {
-    for(size_t i = 0; i < vec.size(); i++) {
-      ret[i] = vec[i];
+    auto retp = ret.data();
+    auto vecp = vec.data();
+    auto size = vec.size();
+    for(size_t i = 0; i < size; i++) {
+      retp[i] = vecp[i];
     }
   } else {
 #if defined(_SX) && !defined(__ve__)
@@ -435,13 +459,16 @@ std::vector<unsigned long> convert_endian(std::vector<unsigned long>& vec) {
     void* retp = reinterpret_cast<void*>(&ret[0]);
     bswap_memcpy(retp, vecp, sizeof(unsigned long), vec.size());
 #else
+    auto retp = ret.data();
+    auto vecp = vec.data();
+    auto size = vec.size();
     if(sizeof(unsigned long) == 8) {
-      for(size_t i = 0; i < vec.size(); i++) {
-        ret[i] = swap64(vec[i]);
+      for(size_t i = 0; i < size; i++) {
+        retp[i] = swap64(vecp[i]);
       }
     } else {
-      for(size_t i = 0; i < vec.size(); i++) {
-        ret[i] = swap32(vec[i]);
+      for(size_t i = 0; i < size; i++) {
+        retp[i] = swap32(vecp[i]);
       }
     }
 #endif
@@ -453,8 +480,11 @@ template <>
 std::vector<long long> convert_endian(std::vector<long long>& vec) {
   std::vector<long long> ret(vec.size());
   if(no_conversion_needed()) {
-    for(size_t i = 0; i < vec.size(); i++) {
-      ret[i] = vec[i];
+    auto retp = ret.data();
+    auto vecp = vec.data();
+    auto size = vec.size();
+    for(size_t i = 0; i < size; i++) {
+      retp[i] = vecp[i];
     }
   } else {
 #if defined(_SX) && !defined(__ve__)
@@ -462,11 +492,14 @@ std::vector<long long> convert_endian(std::vector<long long>& vec) {
     void* retp = reinterpret_cast<void*>(&ret[0]);
     bswap_memcpy(retp, vecp, sizeof(long long), vec.size());
 #else
-    for(size_t i = 0; i < vec.size(); i++) {
+    auto retp = ret.data();
+    auto vecp = vec.data();
+    auto size = vec.size();
+    for(size_t i = 0; i < size; i++) {
       long_long_uint64_t t1, t2;
-      t1.src = vec[i];
+      t1.src = vecp[i];
       t2.dst = swap64(t1.dst);
-      ret[i] = t2.src;
+      retp[i] = t2.src;
     }
 #endif
   }
@@ -478,8 +511,11 @@ std::vector<unsigned long long>
 convert_endian(std::vector<unsigned long long>& vec) {
   std::vector<unsigned long long> ret(vec.size());
   if(no_conversion_needed()) {
-    for(size_t i = 0; i < vec.size(); i++) {
-      ret[i] = vec[i];
+    auto retp = ret.data();
+    auto vecp = vec.data();
+    auto size = vec.size();
+    for(size_t i = 0; i < size; i++) {
+      retp[i] = vecp[i];
     }
   } else {
 #if defined(_SX) && !defined(__ve__)
@@ -487,8 +523,11 @@ convert_endian(std::vector<unsigned long long>& vec) {
     void* retp = reinterpret_cast<void*>(&ret[0]);
     bswap_memcpy(retp, vecp, sizeof(unsigned long long), vec.size());
 #else
-    for(size_t i = 0; i < vec.size(); i++) {
-      ret[i] = swap64(vec[i]);
+    auto retp = ret.data();
+    auto vecp = vec.data();
+    auto size = vec.size();
+    for(size_t i = 0; i < size; i++) {
+      retp[i] = swap64(vecp[i]);
     }
 #endif
   }
@@ -499,8 +538,11 @@ template <>
 std::vector<float> convert_endian(std::vector<float>& vec) {
   std::vector<float> ret(vec.size());
   if(no_conversion_needed()) {
-    for(size_t i = 0; i < vec.size(); i++) {
-      ret[i] = vec[i];
+    auto retp = ret.data();
+    auto vecp = vec.data();
+    auto size = vec.size();
+    for(size_t i = 0; i < size; i++) {
+      retp[i] = vecp[i];
     }
   } else {
 #if defined(_SX) && !defined(__ve__)
@@ -508,11 +550,14 @@ std::vector<float> convert_endian(std::vector<float>& vec) {
     void* retp = reinterpret_cast<void*>(&ret[0]);
     bswap_memcpy(retp, vecp, sizeof(float), vec.size());
 #else
-    for(size_t i = 0; i < vec.size(); i++) {
+    auto retp = ret.data();
+    auto vecp = vec.data();
+    auto size = vec.size();
+    for(size_t i = 0; i < size; i++) {
       float_uint32_t t1, t2;
-      t1.src = vec[i];
+      t1.src = vecp[i];
       t2.dst = swap32(t1.dst);
-      ret[i] = t2.src;
+      retp[i] = t2.src;
     }
 #endif
   }
@@ -523,8 +568,11 @@ template <>
 std::vector<double> convert_endian(std::vector<double>& vec) {
   std::vector<double> ret(vec.size());
   if(no_conversion_needed()) {
-    for(size_t i = 0; i < vec.size(); i++) {
-      ret[i] = vec[i];
+    auto retp = ret.data();
+    auto vecp = vec.data();
+    auto size = vec.size();
+    for(size_t i = 0; i < size; i++) {
+      retp[i] = vecp[i];
     }
   } else {
 #if defined(_SX) && !defined(__ve__)
@@ -532,11 +580,14 @@ std::vector<double> convert_endian(std::vector<double>& vec) {
     void* retp = reinterpret_cast<void*>(&ret[0]);
     bswap_memcpy(retp, vecp, sizeof(double), vec.size());
 #else
-    for(size_t i = 0; i < vec.size(); i++) {
+    auto retp = ret.data();
+    auto vecp = vec.data();
+    auto size = vec.size();
+    for(size_t i = 0; i < size; i++) {
       double_uint64_t t1, t2;
-      t1.src = vec[i];
+      t1.src = vecp[i];
       t2.dst = swap64(t1.dst);
-      ret[i] = t2.src;
+      retp[i] = t2.src;
     }
 #endif
   }

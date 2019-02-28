@@ -622,7 +622,8 @@ void split_by_hash_with_size(std::vector<T>& val,
       hashp[i] = static_cast<int>(myhash(valp[i], split_size));
     }
     std::vector<size_t> local_idx(size);
-    for(size_t i = 0; i < size; i++) local_idx[i] = i;
+    auto local_idxp = local_idx.data();
+    for(size_t i = 0; i < size; i++) local_idxp[i] = i;
     auto sep = separate_to_bucket(hash, local_idx, split_size);
     split_val.resize(split_size);
     split_idx.resize(split_size);

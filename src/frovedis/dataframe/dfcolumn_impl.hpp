@@ -517,11 +517,13 @@ void append_nulls_helper(std::vector<T>& val, std::vector<size_t>& to_append,
   size_t val_size = val.size();
   size_t to_append_size = to_append.size();
   std::vector<T> newval(val_size+to_append_size);
+  auto valp = val.data();
+  auto newvalp = newval.data();
   for(size_t i = 0; i < val_size; i++) {
-    newval[i] = val[i];
+    newvalp[i] = valp[i];
   }
   for(size_t i = 0; i < to_append_size; i++) {
-    newval[val_size + i] = std::numeric_limits<T>::max();
+    newvalp[val_size + i] = std::numeric_limits<T>::max();
   }
   val.swap(newval);
   nulls.resize(to_append_size);
@@ -1710,7 +1712,8 @@ void group_by_impl(node_local<std::vector<T>>& val,
         groupp[i] = newvalp[splitp[i]];
       }
       std::vector<size_t> iota(split_size-1);
-      for(size_t i = 0; i < split_size-1; i++) iota[i] = i;
+      auto iotap = iota.data();
+      for(size_t i = 0; i < split_size-1; i++) iotap[i] = i;
       std::vector<std::vector<T>> hashsplit_group;
       split_by_hash(group, hashsplit_group, iota, hash_divide);
       return hashsplit_group;
@@ -2330,9 +2333,12 @@ void typed_dfcolumn<T>::save(const std::string& file) {
   val.template viewas_dvector<T>().savebinary(file);
   auto dv_nulls = nulls.template viewas_dvector<size_t>();
   auto sizes = val.template viewas_dvector<T>().sizes();
+  auto sizesp = sizes.data();
   std::vector<size_t> pxsizes(sizes.size());
-  for(size_t i = 1; i < pxsizes.size(); i++) {
-    pxsizes[i] += pxsizes[i-1] + sizes[i-1];
+  auto pxsizesp = pxsizes.data();
+  auto pxsizessize = pxsizes.size();
+  for(size_t i = 1; i < pxsizessize; i++) {
+    pxsizesp[i] += pxsizesp[i-1] + sizesp[i-1];
   }
   auto nl_sizes = make_node_local_scatter(pxsizes);
   dv_nulls.map<size_t>(shift_local_index(), nl_sizes).
@@ -2374,6 +2380,8 @@ void dfcolumn_sort_partition(std::vector<T>& val,
   part_idx.resize(nodesize);
   size_t size = val.size();
   auto last_it = val.begin();
+  auto valp = val.data();
+  auto idxp = idx.data();
   for(size_t i = 0; i < nodesize - 1; i++) {
     auto it = std::lower_bound(val.begin(), val.end(), part[i]);
     size_t start = last_it - val.begin();
@@ -2384,8 +2392,8 @@ void dfcolumn_sort_partition(std::vector<T>& val,
     T* part_valp = &part_val[i][0];
     size_t* part_idxp = &part_idx[i][0];
     for(size_t i = 0; i < part_size; i++) {
-      part_valp[i] = val[start+i];
-      part_idxp[i] = idx[start+i];
+      part_valp[i] = valp[start+i];
+      part_idxp[i] = idxp[start+i];
     }
     last_it = it;
   }
@@ -2397,8 +2405,8 @@ void dfcolumn_sort_partition(std::vector<T>& val,
   T* part_valp = &part_val[nodesize-1][0];
   size_t* part_idxp = &part_idx[nodesize-1][0];
   for(size_t i = 0; i < part_size; i++) {
-    part_valp[i] = val[start+i];
-    part_idxp[i] = idx[start+i];
+    part_valp[i] = valp[start+i];
+    part_idxp[i] = idxp[start+i];
   }
 }
 
@@ -2484,6 +2492,8 @@ void dfcolumn_sort_partition_desc(std::vector<T>& val,
   part_idx.resize(nodesize);
   size_t size = val.size();
   auto last_it = val.begin();
+  auto valp = val.data();
+  auto idxp = idx.data();
   for(size_t i = 0; i < nodesize - 1; i++) {
     auto it = std::lower_bound(val.begin(), val.end(), part[i],
                                std::greater<T>());
@@ -2495,8 +2505,8 @@ void dfcolumn_sort_partition_desc(std::vector<T>& val,
     T* part_valp = &part_val[i][0];
     size_t* part_idxp = &part_idx[i][0];
     for(size_t i = 0; i < part_size; i++) {
-      part_valp[i] = val[start+i];
-      part_idxp[i] = idx[start+i];
+      part_valp[i] = valp[start+i];
+      part_idxp[i] = idxp[start+i];
     }
     last_it = it;
   }
@@ -2508,8 +2518,8 @@ void dfcolumn_sort_partition_desc(std::vector<T>& val,
   T* part_valp = &part_val[nodesize-1][0];
   size_t* part_idxp = &part_idx[nodesize-1][0];
   for(size_t i = 0; i < part_size; i++) {
-    part_valp[i] = val[start+i];
-    part_idxp[i] = idx[start+i];
+    part_valp[i] = valp[start+i];
+    part_idxp[i] = idxp[start+i];
   }
 }
 

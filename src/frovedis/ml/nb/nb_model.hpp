@@ -144,14 +144,14 @@ struct naive_bayes_model {
     T *theta_minus_negth = &theta_minus_negtheta.val[0];
     negtheta_sum.clear();
     negtheta_sum.resize(ncol,0); // allocating memory for negtheta_sum
-
+    auto negtheta_sump = negtheta_sum.data();
     // computing theta_minus_negtheta and negtheta_sum
     for (int i=0; i<nrow; i++) {
       for(int j=0; j<ncol; j++) {
         auto th = theta_minus_negth[i*ncol+j];
         auto negtheta = log10(1-exp(th));
         //std::cout << negtheta << " ";
-        negtheta_sum[j] += negtheta;
+        negtheta_sump[j] += negtheta;
         theta_minus_negth[i*ncol+j] = th - negtheta;        
       }
       //std::cout << std::endl;
@@ -160,8 +160,9 @@ struct naive_bayes_model {
 
   int get_max_index(std::vector<T>& vec) {
     int max_id = 0;
+    auto vecp = vec.data();
     for(int i=1; i<vec.size(); i++) {
-      if(vec[i] > vec[max_id])  max_id = i;
+      if(vecp[i] > vecp[max_id])  max_id = i;
     }
     return max_id;
   }
@@ -180,19 +181,24 @@ struct naive_bayes_model {
     auto nrow = r.local_num_row;
     auto ncol = r.local_num_col;
     // computation of axpy for each rows manually (for performace)
+    auto rvalp = r.val.data();
+    auto pip = pi.data();
+    auto negtheta_sump = negtheta_sum.data();
     for(int i=0; i<nrow; i++) {
       for(int j=0; j<ncol; j++) {
-        r.val[i*ncol+j] += pi[i] + negtheta_sum[i];
+        rvalp[i*ncol+j] += pip[i] + negtheta_sump[i];
       }
     }
     // checking max probablity for each case and predicting corresponding labels
     std::vector<T> ret(nrow);
+    auto retp = ret.data();
+    auto labelp = label.data();
     for(int i=0; i<nrow; i++) {
       int max_id = 0;
       for(int j=1; j<ncol; j++) {
-        if (r.val[i*ncol+j] > r.val[i*ncol+max_id]) max_id = j;
+        if (rvalp[i*ncol+j] > rvalp[i*ncol+max_id]) max_id = j;
       }
-      ret[i] = label[max_id];
+      retp[i] = labelp[max_id];
     }
     return ret;
   }
@@ -209,20 +215,24 @@ struct naive_bayes_model {
     auto r = testData * theta;
     auto nrow = r.local_num_row;
     auto ncol = r.local_num_col;
+    auto rvalp = r.val.data();
+    auto pip = pi.data();
     // computation of axpy for each rows manually (for performace)
     for(int i=0; i<nrow; i++) {
       for(int j=0; j<ncol; j++) {
-        r.val[i*ncol+j] += pi[i];
+        rvalp[i*ncol+j] += pip[i];
       }
     }
     // checking max probablity for each case and predicting corresponding labels
     std::vector<T> ret(nrow);
+    auto retp = ret.data();
+    auto labelp = label.data();
     for(int i=0; i<nrow; i++) {
       int max_id = 0;
       for(int j=1; j<ncol; j++) {
-        if (r.val[i*ncol+j] > r.val[i*ncol+max_id]) max_id = j;
+        if (rvalp[i*ncol+j] > rvalp[i*ncol+max_id]) max_id = j;
       }
-      ret[i] = label[max_id];
+      retp[i] = labelp[max_id];
     }
     return ret;
   }

@@ -41,8 +41,9 @@ std::vector<I> shrink_column_local(crs_matrix_local<T,I,O>& m) {
               << m.local_num_col << " to " << shrink_num_col << std::endl;
   m.local_num_col = shrink_num_col;
   std::vector<I> rettbl(shrink_num_col);
+  auto rettblp = rettbl.data();
   for(size_t i = 0; i < shrink_num_col; i++) {
-    rettbl[i] = worktbl[i];
+    rettblp[i] = worktblp[i];
   }
   return rettbl;
 }
@@ -177,13 +178,17 @@ create_shrink_vector_info_local(std::vector<I>& shrink_table,
   MPI_Alltoall(&ret.send_size[0], sizeof(size_t), MPI_CHAR,
                &ret.recv_size[0], sizeof(size_t), MPI_CHAR, MPI_COMM_WORLD);
   size_t total_size = 0;
+  auto retrecv_sizep = ret.recv_size.data();
   for(size_t i = 0; i < node_size; i++) {
-    total_size += ret.recv_size[i];
+    total_size += retrecv_sizep[i];
   }
-  ret.send_displ[0] = 0; ret.recv_displ[0] = 0;
+  auto retsend_displp = ret.send_displ.data();
+  auto retrecv_displp = ret.recv_displ.data();
+  auto retsend_sizep = ret.send_size.data();
+  retsend_displp[0] = 0; retrecv_displp[0] = 0;
   for(size_t i = 1; i < node_size; i++) {
-    ret.send_displ[i] = ret.send_displ[i-1] + ret.send_size[i-1];
-    ret.recv_displ[i] = ret.recv_displ[i-1] + ret.recv_size[i-1];
+    retsend_displp[i] = retsend_displp[i-1] + retsend_sizep[i-1];
+    retrecv_displp[i] = retrecv_displp[i-1] + retrecv_sizep[i-1];
   }
   ret.exchange_map.resize(total_size);
   large_alltoallv(sizeof(I),
@@ -194,10 +199,12 @@ create_shrink_vector_info_local(std::vector<I>& shrink_table,
                   ret.recv_size, ret.recv_displ, 
                   MPI_COMM_WORLD);
   size_t self = frovedis::get_selfid();
+  auto retexchange_mapp = ret.exchange_map.data();
+  auto column_partitionp = column_partition.data();
   for(size_t i = 0; i < total_size; i++) {
-    ret.exchange_map[i] -= column_partition[self];
+    retexchange_mapp[i] -= column_partitionp[self];
   }
-  ret.reduce_size = column_partition[self + 1] - column_partition[self];
+  ret.reduce_size = column_partitionp[self + 1] - column_partitionp[self];
   ret.bcast_size = shrink_table.size();
   return ret;
 }
@@ -243,17 +250,19 @@ std::vector<T> shrink_vector_sum_local(std::vector<T>& v,
   std::vector<T*> current_work_vec(node_size);
   std::vector<I*> current_ex_vec(node_size);
   std::vector<ssize_t> current_size(node_size); // make it signed for fail safe
+  auto current_work_vecp = current_work_vec.data();
+  auto vmrecv_displp = vm.recv_displ.data();
+  auto current_ex_vecp = current_ex_vec.data();
+  auto current_sizep = current_size.data();
+  auto vmrecv_sizep = vm.recv_size.data();
   for(size_t i = 0; i < node_size; i++) {
-    current_work_vec[i] = &work[0] + vm.recv_displ[i];
-    current_ex_vec[i] = &vm.exchange_map[0] + vm.recv_displ[i];
-    current_size[i] = vm.recv_size[i];
+    current_work_vecp[i] = &work[0] + vmrecv_displp[i];
+    current_ex_vecp[i] = &vm.exchange_map[0] + vmrecv_displp[i];
+    current_sizep[i] = vmrecv_sizep[i];
   }
-  T** current_work_vecp = &current_work_vec[0];
-  I** current_ex_vecp = &current_ex_vec[0];
-  ssize_t* current_sizep = &current_size[0];
   ssize_t max_len = 0;
   for(size_t i = 0; i < node_size; i++)
-    if(max_len < vm.recv_size[i]) max_len = vm.recv_size[i];
+    if(max_len < vmrecv_sizep[i]) max_len = vmrecv_sizep[i];
   ssize_t num_block = ceil_div<ssize_t>(max_len, SMAT_VLEN);
   for(size_t b = 0; b < num_block; b++) {
     for(size_t i = 0; i < node_size; i++) {
@@ -290,17 +299,19 @@ std::vector<T> shrink_vector_bcast_local(std::vector<T>& v,
   std::vector<T*> current_work_vec(node_size);
   std::vector<I*> current_ex_vec(node_size);
   std::vector<ssize_t> current_size(node_size);
+  auto current_work_vecp = current_work_vec.data();
+  auto current_ex_vecp = current_ex_vec.data();
+  auto current_sizep = current_size.data();
+  auto vmrecv_displp = vm.recv_displ.data();
+  auto vmrecv_sizep = vm.recv_size.data();
   for(size_t i = 0; i < node_size; i++) {
-    current_work_vec[i] = &work[0] + vm.recv_displ[i];
-    current_ex_vec[i] = &vm.exchange_map[0] + vm.recv_displ[i];
-    current_size[i] = vm.recv_size[i];
+    current_work_vecp[i] = &work[0] + vmrecv_displp[i];
+    current_ex_vecp[i] = &vm.exchange_map[0] + vmrecv_displp[i];
+    current_sizep[i] = vmrecv_sizep[i];
   }
-  T** current_work_vecp = &current_work_vec[0];
-  I** current_ex_vecp = &current_ex_vec[0];
-  ssize_t* current_sizep = &current_size[0];
   ssize_t max_len = 0;
   for(size_t i = 0; i < node_size; i++)
-    if(max_len < vm.recv_size[i]) max_len = vm.recv_size[i];
+    if(max_len < vmrecv_sizep[i]) max_len = vmrecv_sizep[i];
   ssize_t num_block = ceil_div<ssize_t>(max_len, SMAT_VLEN);
   for(size_t b = 0; b < num_block; b++) {
     for(size_t i = 0; i < node_size; i++) {
@@ -404,17 +415,19 @@ shrink_rowmajor_matrix_sum_local(rowmajor_matrix_local<T>& m,
   std::vector<T*> current_work_vec(node_size);
   std::vector<I*> current_ex_vec(node_size);
   std::vector<ssize_t> current_size(node_size); // make it signed for fail safe
+  auto current_work_vecp = current_work_vec.data();
+  auto current_ex_vecp = current_ex_vec.data();
+  auto current_sizep = current_size.data();
+  auto vmrecv_displp = vm.recv_displ.data();
+  auto vmrecv_sizep = vm.recv_size.data();
   for(size_t i = 0; i < node_size; i++) {
-    current_work_vec[i] = &work[0] + vm.recv_displ[i] * num_col;
-    current_ex_vec[i] = &vm.exchange_map[0] + vm.recv_displ[i];
-    current_size[i] = vm.recv_size[i];
+    current_work_vecp[i] = &work[0] + vmrecv_displp[i] * num_col;
+    current_ex_vecp[i] = &vm.exchange_map[0] + vmrecv_displp[i];
+    current_sizep[i] = vmrecv_sizep[i];
   }
-  T** current_work_vecp = &current_work_vec[0];
-  I** current_ex_vecp = &current_ex_vec[0];
-  ssize_t* current_sizep = &current_size[0];
   ssize_t max_len = 0;
   for(size_t i = 0; i < node_size; i++)
-    if(max_len < vm.recv_size[i]) max_len = vm.recv_size[i];
+    if(max_len < vmrecv_sizep[i]) max_len = vmrecv_sizep[i];
   ssize_t num_block = ceil_div<ssize_t>(max_len, SMAT_VLEN);
   for(size_t b = 0; b < num_block; b++) {
     for(size_t i = 0; i < node_size; i++) {
@@ -468,17 +481,19 @@ shrink_rowmajor_matrix_bcast_local(rowmajor_matrix_local<T>& m,
   std::vector<T*> current_work_vec(node_size);
   std::vector<I*> current_ex_vec(node_size);
   std::vector<ssize_t> current_size(node_size); // make it signed for fail safe
+  auto current_work_vecp = current_work_vec.data();
+  auto current_ex_vecp = current_ex_vec.data();
+  auto current_sizep = current_size.data();
+  auto vmrecv_displp = vm.recv_displ.data();
+  auto vmrecv_sizep = vm.recv_size.data();
   for(size_t i = 0; i < node_size; i++) {
-    current_work_vec[i] = &work[0] + vm.recv_displ[i] * num_col;
-    current_ex_vec[i] = &vm.exchange_map[0] + vm.recv_displ[i];
-    current_size[i] = vm.recv_size[i];
+    current_work_vecp[i] = &work[0] + vmrecv_displp[i] * num_col;
+    current_ex_vecp[i] = &vm.exchange_map[0] + vmrecv_displp[i];
+    current_sizep[i] = vmrecv_sizep[i];
   }
-  T** current_work_vecp = &current_work_vec[0];
-  I** current_ex_vecp = &current_ex_vec[0];
-  ssize_t* current_sizep = &current_size[0];
   ssize_t max_len = 0;
   for(size_t i = 0; i < node_size; i++)
-    if(max_len < vm.recv_size[i]) max_len = vm.recv_size[i];
+    if(max_len < vmrecv_sizep[i]) max_len = vmrecv_sizep[i];
   ssize_t num_block = ceil_div<ssize_t>(max_len, SMAT_VLEN);
   for(size_t b = 0; b < num_block; b++) {
     for(size_t i = 0; i < node_size; i++) {

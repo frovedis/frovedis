@@ -143,7 +143,8 @@ make_to_store_idx_helper(std::vector<std::vector<size_t>>&
   auto flattened_partitioned_idx = flatten(partitioned_idx);
   auto size = flattened_partitioned_idx.size();
   std::vector<size_t> iota(size);
-  for(size_t i = 0; i < size; i++) iota[i] = i;
+  auto iotap = iota.data();
+  for(size_t i = 0; i < size; i++) iotap[i] = i;
   auto ht = unique_hashtable<size_t, size_t>(flattened_partitioned_idx, iota);
   return ht.lookup(global_idx);
 }
@@ -424,20 +425,25 @@ limit_nulls_head(node_local<std::vector<size_t>>& nulls,
   int nodesize = get_nodesize();
   std::vector<size_t> limits(nodesize);
   std::vector<size_t> pxsizes(nodesize);
+  auto sizesp = sizes.data();
+  auto pxsizesp = pxsizes.data();
+  auto limitsp = limits.data();
   for(size_t i = 1; i < nodesize; i++) {
-    pxsizes[i] = pxsizes[i-1] + sizes[i-1];
+    pxsizesp[i] = pxsizesp[i-1] + sizesp[i-1];
   }
   for(size_t i = 0; i < nodesize; i++) {
-    if(pxsizes[i] > limit) limits[i] = 0;
-    else limits[i] = limit - pxsizes[i];
+    if(pxsizesp[i] > limit) limitsp[i] = 0;
+    else limitsp[i] = limit - pxsizesp[i];
   }
   auto slimits = make_node_local_scatter(limits);
   return nulls.map(+[](std::vector<size_t>& nulls, size_t limit) {
       size_t end =
         std::lower_bound(nulls.begin(), nulls.end(), limit) - nulls.begin();
       std::vector<size_t> ret(end);
+      auto retp = ret.data();
+      auto nullsp = nulls.data();
       for(size_t i = 0; i < end; i++) {
-        ret[i] = nulls[i];
+        retp[i] = nullsp[i];
       }
       return ret;
     }, slimits);
@@ -451,19 +457,24 @@ limit_nulls_tail(node_local<std::vector<size_t>>& nulls,
   int nodesize = get_nodesize();
   std::vector<size_t> limits(nodesize);
   std::vector<size_t> pxsizes(nodesize);
+  auto sizesp = sizes.data();
+  auto pxsizesp = pxsizes.data();
+  auto limitsp = limits.data();
   for(size_t i = 1; i < nodesize; i++) {
-    pxsizes[i] = pxsizes[i-1] + sizes[i-1];
+    pxsizesp[i] = pxsizesp[i-1] + sizesp[i-1];
   }
-  auto total = pxsizes[nodesize-1] + sizes[nodesize-1];
+  auto total = pxsizesp[nodesize-1] + sizesp[nodesize-1];
   auto limit_start = total - limit;
   for(size_t i = 0; i < nodesize; i++) {
-    if(pxsizes[i] > limit_start) limits[i] = 0;
-    else limits[i] = limit_start - pxsizes[i];
+    if(pxsizesp[i] > limit_start) limitsp[i] = 0;
+    else limitsp[i] = limit_start - pxsizesp[i];
   }
   auto slimits = make_node_local_scatter(limits);
   std::vector<size_t> sizediff(nodesize);
+  auto sizediffp = sizediff.data();
+  auto new_sizesp = new_sizes.data();
   for(size_t i = 0; i < nodesize; i++) {
-    sizediff[i] = sizes[i] - new_sizes[i];
+    sizediffp[i] = sizesp[i] - new_sizesp[i];
   }
   auto nlsizediff = make_node_local_scatter(sizediff);
   return nulls.map(+[](std::vector<size_t>& nulls, size_t limit,
@@ -472,8 +483,10 @@ limit_nulls_tail(node_local<std::vector<size_t>>& nulls,
         std::lower_bound(nulls.begin(), nulls.end(), limit) - nulls.begin();
       size_t retsize = nulls.size() - start;
       std::vector<size_t> ret(retsize);
+      auto retp = ret.data();
+      auto nullsp = nulls.data();
       for(size_t i = start; i < retsize; i++) {
-        ret[i] = nulls[i] - sizediff;
+        retp[i] = nullsp[i] - sizediff;
       }
       return ret;
     }, slimits, nlsizediff);

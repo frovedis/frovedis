@@ -74,8 +74,10 @@ void svd_mpi(SPARSE_MATRIX_LOCAL& mat,
   MPI_Allgather(&nloc, 1, MPI_INT, &each_n[0], 1, MPI_INT, comm);
 
   std::vector<I> column_partition(size+1);
+  auto column_partitionp = column_partition.data();
+  auto each_np = each_n.data();
   for(int i = 1; i < size+1; i++)
-    column_partition[i] = column_partition[i-1] + each_n[i-1];
+    column_partitionp[i] = column_partitionp[i-1] + each_np[i-1];
   auto mat_info = create_shrink_vector_info_local(tbl, column_partition);
 
   frovedis::time_spent t(DEBUG), t2(TRACE);
@@ -90,7 +92,8 @@ void svd_mpi(SPARSE_MATRIX_LOCAL& mat,
     if(ido == -1 || ido == 1) {
       REAL* start = &workd[ipntr[0]-1];
       std::vector<REAL> workv(nloc);
-      for(int i = 0; i < nloc; i++) workv[i] = start[i];
+      auto workvp = workv.data();
+      for(int i = 0; i < nloc; i++) workvp[i] = start[i];
       mpi_lap.lap_start();
       auto x = shrink_vector_bcast_local(workv, mat_info);
       mpi_lap.lap_stop();
@@ -100,7 +103,8 @@ void svd_mpi(SPARSE_MATRIX_LOCAL& mat,
       spmv_lap.lap_stop();
       auto y = shrink_vector_sum_local(yloc, mat_info);
       start = &workd[ipntr[1]-1];
-      for(int i = 0; i < nloc; i++) start[i] = y[i];
+      auto yp = y.data();
+      for(int i = 0; i < nloc; i++) start[i] = yp[i];
     } else break;
     count++;
     if(rank == 0) {t2.show("one iteration: ");}
@@ -141,7 +145,8 @@ void svd_mpi(SPARSE_MATRIX_LOCAL& mat,
       for(int i = 0; i < nev; i++) {
         std::vector<REAL> workv(nloc);
         REAL* start = z + i * nloc;
-        for(int j = 0; j < nloc; j++) workv[j] = start[j];
+        auto workvp = workv.data();
+        for(int j = 0; j < nloc; j++) workvp[j] = start[j];
         mpi_lap.lap_start();
         auto tmpv = shrink_vector_bcast_local(workv, mat_info);
         mpi_lap.lap_stop();

@@ -744,8 +744,10 @@ rowmajor_matrix<T> make_rowmajor_matrix_loadbinary(const std::string& input) {
     }
   }
   std::vector<size_t> sizes(get_nodesize());
+  auto sizesp = sizes.data();
+  auto rowsp = rows.data();
   for(size_t i = 0; i < sizes.size(); i++) {
-    sizes[i] = rows[i] * num_col;
+    sizesp[i] = rowsp[i] * num_col;
   }
   auto vec = make_dvector_loadbinary<T>(valfile, sizes);
   rowmajor_matrix<T> ret(vec.moveto_node_local().
@@ -800,8 +802,10 @@ template <class T>
 rowmajor_matrix<T> make_rowmajor_matrix_scatter(rowmajor_matrix_local<T>& m,
                                                 std::vector<size_t>& rows) {
   std::vector<size_t> sizes(get_nodesize());
+  auto sizesp = sizes.data();
+  auto rowsp = rows.data();
   for(size_t i = 0; i < sizes.size(); i++) {
-    sizes[i] = rows[i] * m.local_num_col;
+    sizesp[i] = rowsp[i] * m.local_num_col;
   }
   auto vec = make_dvector_scatter(m.val, sizes);
   rowmajor_matrix<T> ret(vec.moveto_node_local().
@@ -825,17 +829,19 @@ get_scattered_vectors(std::vector<T>& vec,
                       size_t nrow, size_t ncol, size_t wsize) {
   auto rows = get_block_sizes(nrow, wsize);
   std::vector<size_t> sizevec(wsize);
+  auto sizevecp = sizevec.data();
+  auto rowsp = rows.data();
   for(size_t i = 0; i < wsize; i++) {
-    sizevec[i] = rows[i] * ncol;
+    sizevecp[i] = rowsp[i] * ncol;
   }
   std::vector<std::vector<T>> src2(wsize);
   const T* srcp = &vec[0];
   for(size_t i = 0; i < wsize; i++) {
-    src2[i].resize(sizevec[i]);
-    for(size_t j = 0; j < sizevec[i]; j++) {
+    src2[i].resize(sizevecp[i]);
+    for(size_t j = 0; j < sizevecp[i]; j++) {
       src2[i][j] = srcp[j];
     }
-    srcp += sizevec[i];
+    srcp += sizevecp[i];
   }
   return src2;
 }
@@ -925,22 +931,27 @@ struct rowmajor_matrix_divide_and_exchange {
     auto rows = get_block_sizes(new_num_row);
     rowmajor_matrix_local<T> ret(rows[get_selfid()], new_num_col);
     std::vector<size_t> send_size(node_size);
+    auto send_sizep = send_size.data();
+    auto rowsp = rows.data();
     for(size_t i = 0; i < node_size; i++) {
-      send_size[i] = rows[i] * m.local_num_col;
+      send_sizep[i] = rowsp[i] * m.local_num_col;
     }
     std::vector<size_t> recv_size(node_size);
     MPI_Alltoall(&send_size[0], sizeof(size_t), MPI_CHAR,
                  &recv_size[0], sizeof(size_t), MPI_CHAR, MPI_COMM_WORLD);
     size_t total_size = 0;
+    auto recv_sizep = recv_size.data();
     for(size_t i = 0; i < node_size; i++) {
-      total_size += recv_size[i];
+      total_size += recv_sizep[i];
     }
     std::vector<size_t> send_displ(node_size);
     std::vector<size_t> recv_displ(node_size);
-    send_displ[0] = 0; recv_displ[0] = 0;
+    auto send_displp = send_displ.data();
+    auto recv_displp = recv_displ.data();
+    send_displp[0] = 0; recv_displp[0] = 0;
     for(size_t i = 1; i < node_size; i++) {
-      send_displ[i] = send_displ[i-1] + send_size[i-1];
-      recv_displ[i] = recv_displ[i-1] + recv_size[i-1];
+      send_displp[i] = send_displp[i-1] + send_sizep[i-1];
+      recv_displp[i] = recv_displp[i-1] + recv_sizep[i-1];
     }
     std::vector<T> tmpval(ret.val.size());
     large_alltoallv(sizeof(T),
@@ -1007,14 +1018,16 @@ rowmajor_matrix<T>::align_as(const std::vector<size_t>& dst) {
   auto mysizes = data.map(rowmajor_get_local_num_row<T>).gather();
   size_t dsttotal = 0;
   size_t selftotal = 0;
-  for(size_t i = 0; i < dst.size(); i++) dsttotal += dst[i];
-  for(size_t i = 0; i < mysizes.size(); i++) selftotal += mysizes[i];
+  auto dstp = dst.data();
+  auto mysizesp = mysizes.data();
+  for(size_t i = 0; i < dst.size(); i++) dsttotal += dstp[i];
+  for(size_t i = 0; i < mysizes.size(); i++) selftotal += mysizesp[i];
   if(dsttotal != selftotal)
     throw std::runtime_error
       ("align_as: total size of src and dst does not match");
   bool is_same = true;
   for(size_t i = 0; i < dst.size(); i++) {
-    if(dst[i] != mysizes[i]) {
+    if(dstp[i] != mysizesp[i]) {
       is_same = false;
       break;
     }

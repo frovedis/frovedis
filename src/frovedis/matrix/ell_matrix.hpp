@@ -75,8 +75,10 @@ ell_matrix_local<T,I>::ell_matrix_local(crs_matrix_local<T,I,O>& crs) {
   local_num_row = crs.local_num_row;
   local_num_col = crs.local_num_col;
   std::vector<O> col_sizes(local_num_row);
+  auto col_sizesp = col_sizes.data();
+  auto crsoffp = crs.off.data();
   for(size_t i = 0; i < local_num_row; i++) {
-    col_sizes[i] = crs.off[i+1] - crs.off[i];
+    col_sizesp[i] = crsoffp[i+1] - crsoffp[i];
   }
   O physical_num_col
     = *std::max_element(col_sizes.begin(), col_sizes.end());
@@ -86,7 +88,6 @@ ell_matrix_local<T,I>::ell_matrix_local(crs_matrix_local<T,I,O>& crs) {
   I* idxp = &idx[0];
   T* crsvalp = &crs.val[0];
   I* crsidxp = &crs.idx[0];
-  O* crsoffp = &crs.off[0];
   for(size_t r = 0; r < local_num_row; r++) {
 #pragma cdir nodep
 #pragma _NEC ivdep
@@ -396,7 +397,9 @@ dvector<T> operator*(ell_matrix<T,I>& mat, dvector<T>& dv) {
     auto sizes = dv.sizes();
     size_t size = sizes.size();
     std::vector<int> count(size);
-    for(size_t i = 0; i < size; i++) count[i] = sizes[i]; // cast to int
+    auto sizesp = sizes.data();
+    auto countp = count.data();
+    for(size_t i = 0; i < size; i++) countp[i] = sizesp[i]; // cast to int
     bdv = dv.viewas_node_local().map(call_allgatherv<T>(count));
   } else {
     bdv = broadcast(dv.gather());

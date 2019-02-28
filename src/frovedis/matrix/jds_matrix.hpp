@@ -101,13 +101,17 @@ jds_matrix_local(const crs_matrix_local<T,I,O>& m) {
 #if defined(_SX) || defined(__ve__)
   std::vector<O> perm_tmp_key(local_num_row);
   std::vector<P> perm_tmp_val(local_num_row);
+  auto perm_tmp_keyp = perm_tmp_key.data();
+  auto perm_tmp_valp = perm_tmp_val.data();
+  auto moffpp = m.off.data();
   for(size_t i = 0; i < local_num_row; i++) {
-    perm_tmp_key[i] = m.off[i+1] - m.off[i];
-    perm_tmp_val[i] = i;
+    perm_tmp_keyp[i] = moffpp[i+1] - moffpp[i];
+    perm_tmp_valp[i] = i;
   }
   radix_sort(&perm_tmp_key[0], &perm_tmp_val[0], local_num_row);
+  auto permpp = perm.data();
   for(size_t i = 0; i < local_num_row; i++) {
-    perm[i] = perm_tmp_val[local_num_row - i - 1];
+    permpp[i] = perm_tmp_valp[local_num_row - i - 1];
   }
   off.reserve(perm_tmp_key[local_num_row - 1] + 1);
 #else 
@@ -850,7 +854,9 @@ dvector<T> operator*(jds_matrix<T,I,O>& mat, dvector<T>& dv) {
     auto sizes = dv.sizes();
     size_t size = sizes.size();
     std::vector<int> count(size);
-    for(size_t i = 0; i < size; i++) count[i] = sizes[i]; // cast to int
+    auto sizesp = sizes.data();
+    auto countp = count.data();
+    for(size_t i = 0; i < size; i++) countp[i] = sizesp[i]; // cast to int
     bdv = dv.viewas_node_local().map(call_allgatherv<T>(count));
   } else {
     bdv = broadcast(dv.gather());

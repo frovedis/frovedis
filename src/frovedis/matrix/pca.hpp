@@ -21,7 +21,8 @@ void pca_helper(rowmajor_matrix<T>& mat_work, // destructed
 
   T var_sum = std::numeric_limits<T>::epsilon();
   auto total_var = variance(mat_work); // calculate before clear
-  for(size_t i = 0; i < total_var.size(); i++) var_sum += total_var[i];
+  auto total_varp = total_var.data();
+  for(size_t i = 0; i < total_var.size(); i++) var_sum += total_varp[i];
   size_t mat_num_row = mat_work.num_row;
 
   colmajor_matrix<T> u;

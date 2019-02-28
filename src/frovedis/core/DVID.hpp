@@ -353,9 +353,11 @@ void dvid_scatter_helper(dvid_t& d, std::vector<size_t>& sendcounts,
     int node_size = get_nodesize();
     char* buf = reinterpret_cast<char*>(bufptr);
     std::vector<size_t> displs(node_size);
+    auto displsp = displs.data();
+    auto sendcountsp = sendcounts.data();
     displs[0] = 0;
     for(size_t i = 1; i < node_size; i++)
-      displs[i] = sendcounts[i-1] + displs[i-1];
+      displsp[i] = sendcountsp[i-1] + displsp[i-1];
     std::string recvbuf;
     recvbuf.resize(sendcounts[0]);
     large_scatterv(sizeof(char), buf, sendcounts, displs, &recvbuf[0],
@@ -954,8 +956,10 @@ struct dvid_gather_helper {
     for(size_t i = 0; i < nodes; i++) total += recvcounts[i];
     std::vector<size_t> displs(nodes);
     if(self == 0) {
+      auto displsp = displs.data();
+      auto recvcountsp = recvcounts.data();
       for(size_t i = 1; i < nodes; i++) 
-        displs[i] = displs[i-1] + recvcounts[i-1];
+        displsp[i] = displsp[i-1] + recvcountsp[i-1];
     }
     std::string recvbuf;
     recvbuf.resize(total);

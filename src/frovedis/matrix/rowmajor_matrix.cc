@@ -7,12 +7,13 @@ std::vector<size_t> get_block_sizes(size_t num_row,
   size_t each_num_row = ceil_div(num_row, wsize);
   std::vector<size_t> rows(wsize);
   size_t left = num_row;
+  auto rowsp = rows.data();
   for(size_t i = 0; i < wsize; i++) {
     if(left < each_num_row) {
-      rows[i] = left;
+      rowsp[i] = left;
       break;
     } else {
-      rows[i] = each_num_row;
+      rowsp[i] = each_num_row;
       left -= each_num_row;
     }
   }

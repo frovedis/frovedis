@@ -181,8 +181,10 @@ T matrix_factorization_model<T>::predict(const size_t uID,
     REPORT_ERROR(USER_ERROR,"Product ID is not in range\n");
   }
   T sum = 0.0;
+  auto Xp = X.data();
+  auto Yp = Y.data();
   for(size_t i = 0; i < factor; i++) {
-    sum = sum + X[uID*factor+i] * Y[pID*factor+i];
+    sum = sum + Xp[uID*factor+i] * Yp[pID*factor+i];
   }    
   return sum;
 }

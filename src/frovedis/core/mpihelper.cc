@@ -20,11 +20,19 @@ void large_alltoallv(size_t element_size,
   std::vector<size_t> recvcounts(nodesize);
   std::vector<size_t> sdispls(nodesize);
   std::vector<size_t> rdispls(nodesize);
+  auto sendcountsp = sendcounts.data();
+  auto recvcountsp = recvcounts.data();
+  auto sdisplsp = sdispls.data();
+  auto rdisplsp = rdispls.data();
+  auto sendcounts_argp = sendcounts_arg.data();
+  auto recvcounts_argp = recvcounts_arg.data();
+  auto sdispls_argp = sdispls_arg.data();
+  auto rdispls_argp = rdispls_arg.data();
   for(int i = 0; i < nodesize; i++) {
-    sendcounts[i] = sendcounts_arg[i] * element_size;
-    recvcounts[i] = recvcounts_arg[i] * element_size;
-    sdispls[i] = sdispls_arg[i] * element_size;
-    rdispls[i] = rdispls_arg[i] * element_size;
+    sendcountsp[i] = sendcounts_argp[i] * element_size;
+    recvcountsp[i] = recvcounts_argp[i] * element_size;
+    sdisplsp[i] = sdispls_argp[i] * element_size;
+    rdisplsp[i] = rdispls_argp[i] * element_size;
   }
   std::vector<size_t> spos(nodesize);
   std::vector<size_t> rpos(nodesize);
@@ -33,47 +41,53 @@ void large_alltoallv(size_t element_size,
   std::vector<int> each_sdispls(nodesize);
   std::vector<int> each_rdispls(nodesize);
   size_t local_max_count = mpi_max_count / nodesize;
+  auto sposp = spos.data();
+  auto rposp = rpos.data();
+  auto each_sendcountsp = each_sendcounts.data();
+  auto each_recvcountsp = each_recvcounts.data();
+  auto each_sdisplsp = each_sdispls.data();
+  auto each_rdisplsp = each_rdispls.data();
   while(true) {
     for(int i = 0; i < nodesize; i++) {
-      each_sendcounts[i] = std::min(sendcounts[i]-spos[i], local_max_count);
-      each_recvcounts[i] = std::min(recvcounts[i]-rpos[i], local_max_count);
+      each_sendcountsp[i] = std::min(sendcountsp[i]-sposp[i], local_max_count);
+      each_recvcountsp[i] = std::min(recvcountsp[i]-rposp[i], local_max_count);
     }
     size_t total_send_size = 0;
     for(int i = 0; i < nodesize; i++)
-      total_send_size += each_sendcounts[i];
-    each_sdispls[0] = 0;
+      total_send_size += each_sendcountsp[i];
+    each_sdisplsp[0] = 0;
     for(int i = 1; i < nodesize; i++) {
-      each_sdispls[i] = each_sdispls[i-1] + each_sendcounts[i-1];
+      each_sdisplsp[i] = each_sdisplsp[i-1] + each_sendcountsp[i-1];
     }
     std::string sendbuf;
     sendbuf.resize(total_send_size);
     for(int i = 0; i < nodesize; i++) {
-      memcpy(&sendbuf[each_sdispls[i]], &sendbuf_arg[sdispls[i] + spos[i]],
-             each_sendcounts[i]);
+      memcpy(&sendbuf[each_sdisplsp[i]], &sendbuf_arg[sdisplsp[i] + sposp[i]],
+             each_sendcountsp[i]);
     }
     size_t total_recv_size = 0;
     for(int i = 0; i < nodesize; i++)
-      total_recv_size += each_recvcounts[i];
+      total_recv_size += each_recvcountsp[i];
     std::string recvbuf;
     recvbuf.resize(total_recv_size);
     each_rdispls[0] = 0;
     for(int i = 1; i < nodesize; i++) {
-      each_rdispls[i] = each_rdispls[i-1] + each_recvcounts[i-1];
+      each_rdisplsp[i] = each_rdisplsp[i-1] + each_recvcountsp[i-1];
     }
     MPI_Alltoallv(&sendbuf[0], &each_sendcounts[0], &each_sdispls[0],
                   MPI_CHAR, &recvbuf[0], &each_recvcounts[0],
                   &each_rdispls[0], MPI_CHAR, frovedis_comm_rpc);
     for(int i = 0; i < nodesize; i++) {
-      memcpy(&recvbuf_arg[rdispls[i] + rpos[i]], &recvbuf[each_rdispls[i]],
-             each_recvcounts[i]);
+      memcpy(&recvbuf_arg[rdisplsp[i] + rposp[i]], &recvbuf[each_rdisplsp[i]],
+             each_recvcountsp[i]);
     }
     for(int i = 0; i < nodesize; i++) {
-      spos[i] += each_sendcounts[i];
-      rpos[i] += each_recvcounts[i];
+      sposp[i] += each_sendcountsp[i];
+      rposp[i] += each_recvcountsp[i];
     }
     int done = 1;
     for(int i = 0; i < nodesize; i++) {
-      if(sendcounts[i] != spos[i] || recvcounts[i] != rpos[i]) {
+      if(sendcountsp[i] != sposp[i] || recvcountsp[i] != rposp[i]) {
         done = 0; break;
       }
     }
@@ -98,10 +112,14 @@ void large_gatherv(size_t element_size,
   size_t sendcount = sendcount_arg * element_size;
   std::vector<size_t> recvcounts(nodesize);
   std::vector<size_t> displs(nodesize);
+  auto recvcountsp = recvcounts.data();
+  auto displsp = displs.data();
+  auto displs_argp = displs_arg.data();
+  auto recvcounts_argp = recvcounts_arg.data();
   if(self == root) {
     for(int i = 0; i < nodesize; i++) {
-      recvcounts[i] = recvcounts_arg[i] * element_size;
-      displs[i] = displs_arg[i] * element_size;
+      recvcountsp[i] = recvcounts_argp[i] * element_size;
+      displsp[i] = displs_argp[i] * element_size;
     }
   }
   size_t spos = 0;
@@ -110,21 +128,24 @@ void large_gatherv(size_t element_size,
   std::vector<int> each_recvcounts(nodesize);
   std::vector<int> each_displs(nodesize);
   size_t local_max_count = mpi_max_count / nodesize;
+  auto rposp = rpos.data();
+  auto each_recvcountsp = each_recvcounts.data();
+  auto each_displsp = each_displs.data();
   while(true) {
     each_sendcount = std::min(sendcount-spos, local_max_count);
     char* sendbuf = sendbuf_arg + spos;
     std::string recvbuf;
     if(self == root) {
       for(int i = 0; i < nodesize; i++) {
-        each_recvcounts[i] = std::min(recvcounts[i]-rpos[i], local_max_count);
+        each_recvcountsp[i] = std::min(recvcountsp[i]-rposp[i], local_max_count);
       }
       size_t total_recv_size = 0;
       for(int i = 0; i < nodesize; i++)
-        total_recv_size += each_recvcounts[i];
+        total_recv_size += each_recvcountsp[i];
       recvbuf.resize(total_recv_size);
-      each_displs[0] = 0;
+      each_displsp[0] = 0;
       for(int i = 1; i < nodesize; i++) {
-        each_displs[i] = each_displs[i-1] + each_recvcounts[i-1];
+        each_displsp[i] = each_displsp[i-1] + each_recvcountsp[i-1];
       }
     }
     MPI_Gatherv(sendbuf, each_sendcount, MPI_CHAR,
@@ -134,14 +155,14 @@ void large_gatherv(size_t element_size,
     int done = 1;
     if(self == root) {
       for(int i = 0; i < nodesize; i++) {
-        memcpy(&recvbuf_arg[displs[i] + rpos[i]], &recvbuf[each_displs[i]],
-               each_recvcounts[i]);
+        memcpy(&recvbuf_arg[displsp[i] + rposp[i]], &recvbuf[each_displsp[i]],
+               each_recvcountsp[i]);
       }
       for(int i = 0; i < nodesize; i++) {
-        rpos[i] += each_recvcounts[i];
+        rposp[i] += each_recvcountsp[i];
       }
       for(int i = 0; i < nodesize; i++) {
-        if(recvcounts[i] != rpos[i]) {
+        if(recvcountsp[i] != rposp[i]) {
           done = 0; break;
         }
       }
@@ -165,10 +186,14 @@ void large_scatterv(size_t element_size,
   std::vector<size_t> sendcounts(nodesize);
   size_t recvcount;
   std::vector<size_t> displs(nodesize);
+  auto sendcountsp = sendcounts.data();
+  auto displsp = displs.data();
+  auto sendcounts_argp = sendcounts_arg.data();
+  auto displs_argp = displs_arg.data();
   if(self == root) {
     for(int i = 0; i < nodesize; i++) {
-      sendcounts[i] = sendcounts_arg[i] * element_size;
-      displs[i] = displs_arg[i] * element_size;
+      sendcountsp[i] = sendcounts_argp[i] * element_size;
+      displsp[i] = displs_argp[i] * element_size;
     }
   }
   recvcount = recvcount_arg * element_size;
@@ -178,37 +203,40 @@ void large_scatterv(size_t element_size,
   std::vector<int> each_sendcounts(nodesize);
   int each_recvcount = 0;
   std::vector<int> each_displs(nodesize);
+  auto each_displsp = each_displs.data();
   size_t local_max_count = mpi_max_count / nodesize;
+  auto sposp = spos.data();
+  auto each_sendcountsp = each_sendcounts.data();
   while(true) {
     each_recvcount = std::min(recvcount-rpos, local_max_count);
     char* recvbuf = recvbuf_arg + rpos;
     std::string sendbuf;
     if(self == root) {
       for(int i = 0; i < nodesize; i++) {
-        each_sendcounts[i] = std::min(sendcounts[i]-spos[i], local_max_count);
+        each_sendcountsp[i] = std::min(sendcountsp[i]-sposp[i], local_max_count);
       }
       size_t total_send_size = 0;
       for(int i = 0; i < nodesize; i++)
-        total_send_size += each_sendcounts[i];
-      each_displs[0] = 0;
+        total_send_size += each_sendcountsp[i];
+      each_displsp[0] = 0;
       for(int i = 1; i < nodesize; i++) {
-        each_displs[i] = each_displs[i-1] + each_sendcounts[i-1];
+        each_displsp[i] = each_displsp[i-1] + each_sendcountsp[i-1];
       }
       sendbuf.resize(total_send_size);
       for(int i = 0; i < nodesize; i++) {
-        memcpy(&sendbuf[each_displs[i]], &sendbuf_arg[displs[i] + spos[i]],
-               each_sendcounts[i]);
+        memcpy(&sendbuf[each_displsp[i]], &sendbuf_arg[displsp[i] + sposp[i]],
+               each_sendcountsp[i]);
       }
     }
-    MPI_Scatterv(&sendbuf[0], &each_sendcounts[0], &each_displs[0],
+    MPI_Scatterv(&sendbuf[0], &each_sendcountsp[0], &each_displsp[0],
                  MPI_CHAR, recvbuf, each_recvcount, MPI_CHAR, root, comm);
     int done = 1;
     if(self == root) {
       for(int i = 0; i < nodesize; i++) {
-        spos[i] += each_sendcounts[i];
+        sposp[i] += each_sendcountsp[i];
       }
       for(int i = 0; i < nodesize; i++) {
-        if(sendcounts[i] != spos[i]) {
+        if(sendcountsp[i] != sposp[i]) {
           done = 0; break;
         }
       }

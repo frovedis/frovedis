@@ -273,7 +273,8 @@ dftable_base::group_by(const std::vector<std::string>& cols) {
            std::vector<std::vector<size_t>>& hash_divide) {
         auto size = hash_base.size();
         std::vector<size_t> iota(size);
-        for(size_t i = 0; i < size; i++) iota[i] = i;
+        auto iotap = iota.data();
+        for(size_t i = 0; i < size; i++) iotap[i] = i;
         split_by_hash_no_outval(hash_base, iota, hash_divide);
       }, hash_divide);
     std::vector<std::shared_ptr<dfcolumn>> pcols3(size);
@@ -292,7 +293,8 @@ dftable_base::group_by(const std::vector<std::string>& cols) {
     auto nodeid = sizes.map
       (+[](std::vector<size_t>& sizes) {
         size_t total = 0;
-        for(size_t i = 0; i < sizes.size(); i++) total += sizes[i];
+        auto sizesp = sizes.data();
+        for(size_t i = 0; i < sizes.size(); i++) total += sizesp[i];
         std::vector<size_t> ret(total);
         auto retp = ret.data();
         for(size_t i = 0; i < sizes.size(); i++) {
@@ -308,7 +310,8 @@ dftable_base::group_by(const std::vector<std::string>& cols) {
       (+[](std::vector<size_t>& nodeid) {
         size_t size = nodeid.size();
         std::vector<size_t> ret(size);
-        for(size_t i = 0; i < size; i++) ret[i] = i;
+        auto retp = ret.data();
+        for(size_t i = 0; i < size; i++) retp[i] = i;
         return ret;
       });
     for(size_t i = 0; i < size-1; i++) {
@@ -910,7 +913,8 @@ struct append_rowid_helper {
     v.resize(size);
     size_t* vp = v.data();
     size_t start = 0;
-    for(size_t i = 0; i < self; i++) start += sizes[i];
+    auto sizesp = sizes.data();
+    for(size_t i = 0; i < self; i++) start += sizesp[i];
     start += offset;
     for(size_t i = 0; i < size; i++) vp[i] = start + i;
   }
@@ -1003,8 +1007,11 @@ void dftable::load(const std::string& input) {
       auto vec = make_dvector_loadbinary<int>(valfile);
       auto sizes = vec.sizes();
       std::vector<size_t> pxsizes(sizes.size());
-      for(size_t j = 1; j < pxsizes.size(); j++) {
-        pxsizes[j] += pxsizes[j-1] + sizes[j-1];
+      auto sizesp = sizes.data();
+      auto pxsizesp = pxsizes.data();
+      auto pxsizessize = pxsizes.size();
+      for(size_t j = 1; j < pxsizessize; j++) {
+        pxsizesp[j] += pxsizesp[j-1] + sizesp[j-1];
       }
       auto nl_sizes = make_node_local_scatter(pxsizes);
       append_column(cols[i], std::move(vec));
@@ -1016,8 +1023,11 @@ void dftable::load(const std::string& input) {
       auto vec = make_dvector_loadbinary<unsigned int>(valfile);
       auto sizes = vec.sizes();
       std::vector<size_t> pxsizes(sizes.size());
-      for(size_t j = 1; j < pxsizes.size(); j++) {
-        pxsizes[j] += pxsizes[j-1] + sizes[j-1];
+      auto sizesp = sizes.data();
+      auto pxsizesp = pxsizes.data();
+      auto pxsizessize = pxsizes.size();
+      for(size_t j = 1; j < pxsizessize; j++) {
+        pxsizesp[j] += pxsizesp[j-1] + sizesp[j-1];
       }
       auto nl_sizes = make_node_local_scatter(pxsizes);
       append_column(cols[i], std::move(vec));
@@ -1030,8 +1040,11 @@ void dftable::load(const std::string& input) {
       auto vec = make_dvector_loadbinary<long>(valfile);
       auto sizes = vec.sizes();
       std::vector<size_t> pxsizes(sizes.size());
-      for(size_t j = 1; j < pxsizes.size(); j++) {
-        pxsizes[j] += pxsizes[j-1] + sizes[j-1];
+      auto sizesp = sizes.data();
+      auto pxsizesp = pxsizes.data();
+      auto pxsizessize = pxsizes.size();
+      for(size_t j = 1; j < pxsizessize; j++) {
+        pxsizesp[j] += pxsizesp[j-1] + sizesp[j-1];
       }
       auto nl_sizes = make_node_local_scatter(pxsizes);
       append_column(cols[i], std::move(vec));
@@ -1043,8 +1056,11 @@ void dftable::load(const std::string& input) {
       auto vec = make_dvector_loadbinary<unsigned long>(valfile);
       auto sizes = vec.sizes();
       std::vector<size_t> pxsizes(sizes.size());
-      for(size_t j = 1; j < pxsizes.size(); j++) {
-        pxsizes[j] += pxsizes[j-1] + sizes[j-1];
+      auto sizesp = sizes.data();
+      auto pxsizesp = pxsizes.data();
+      auto pxsizessize = pxsizes.size();
+      for(size_t j = 1; j < pxsizessize; j++) {
+        pxsizesp[j] += pxsizesp[j-1] + sizesp[j-1];
       }
       auto nl_sizes = make_node_local_scatter(pxsizes);
       append_column(cols[i], std::move(vec));
@@ -1057,8 +1073,11 @@ void dftable::load(const std::string& input) {
       auto vec = make_dvector_loadbinary<float>(valfile);
       auto sizes = vec.sizes();
       std::vector<size_t> pxsizes(sizes.size());
-      for(size_t j = 1; j < pxsizes.size(); j++) {
-        pxsizes[j] += pxsizes[j-1] + sizes[j-1];
+      auto sizesp = sizes.data();
+      auto pxsizesp = pxsizes.data();
+      auto pxsizessize = pxsizes.size();
+      for(size_t j = 1; j < pxsizessize; j++) {
+        pxsizesp[j] += pxsizesp[j-1] + sizesp[j-1];
       }
       auto nl_sizes = make_node_local_scatter(pxsizes);
       append_column(cols[i], std::move(vec));
@@ -1070,8 +1089,11 @@ void dftable::load(const std::string& input) {
       auto vec = make_dvector_loadbinary<double>(valfile);
       auto sizes = vec.sizes();
       std::vector<size_t> pxsizes(sizes.size());
-      for(size_t j = 1; j < pxsizes.size(); j++) {
-        pxsizes[j] += pxsizes[j-1] + sizes[j-1];
+      auto sizesp = sizes.data();
+      auto pxsizesp = pxsizes.data();
+      auto pxsizessize = pxsizes.size();
+      for(size_t j = 1; j < pxsizessize; j++) {
+        pxsizesp[j] += pxsizesp[j-1] + sizesp[j-1];
       }
       auto nl_sizes = make_node_local_scatter(pxsizes);
       append_column(cols[i], std::move(vec));
@@ -1106,8 +1128,11 @@ void dftable::load(const std::string& input) {
         sizes = vec.sizes();
       }
       std::vector<size_t> pxsizes(sizes.size());
-      for(size_t j = 1; j < pxsizes.size(); j++) {
-        pxsizes[j] += pxsizes[j-1] + sizes[j-1];
+      auto sizesp = sizes.data();
+      auto pxsizesp = pxsizes.data();
+      auto pxsizessize = pxsizes.size();
+      for(size_t j = 1; j < pxsizessize; j++) {
+        pxsizesp[j] += pxsizesp[j-1] + sizesp[j-1];
       }
       auto nl_sizes = make_node_local_scatter(pxsizes);
       toappend->nulls = make_dvector_loadbinary<size_t>(nullsfile).

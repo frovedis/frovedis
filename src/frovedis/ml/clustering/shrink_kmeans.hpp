@@ -29,13 +29,16 @@ rowmajor_matrix_local<T> get_random_rows(crs_matrix<T,I,O>& mat, int k,
     int pos = static_cast<int>(drand48() * (mat.num_row - 1));
     auto sv = mat.get_row(pos);
     T each_norm = 0;
+    auto retvalp = ret.val.data();
+    auto svidxp = sv.idx.data();
+    auto svvalp = sv.val.data();
 #pragma cdir nodep
 #pragma _NEC ivdep
     for(size_t j = 0; j < sv.val.size(); j++) {
-      ret.val[k * sv.idx[j] + i] = sv.val[j];
+      retvalp[k * svidxp[j] + i] = svvalp[j];
     }
     for(size_t j = 0; j < sv.val.size(); j++) {
-      each_norm += sv.val[j] * sv.val[j] * 0.5;
+      each_norm += svvalp[j] * svvalp[j] * 0.5;
     }
     norm[i] = each_norm;
   }
@@ -52,8 +55,10 @@ rowmajor_matrix_local<T> get_random_rows(rowmajor_matrix<T>& mat, int k,
   for(int i = 0; i < k; i++) {
     int pos = static_cast<int>(drand48() * (num_row - 1));
     auto v = mat.get_row(pos);
+    auto retvalp = ret.val.data();
+    auto vp = v.data();
     for(size_t j = 0; j < num_col; j++) {
-      ret.val[k * j + i] = v[j];
+      retvalp[k * j + i] = vp[j];
     }
   }
   return ret;
@@ -387,8 +392,10 @@ template <class T>
 double is_diff_centroid_helper(rowmajor_matrix_local<T>& a,
                                rowmajor_matrix_local<T>& b) {
   double error = 0;
+  auto avalp = a.val.data();
+  auto bvalp = b.val.data();
   for(size_t i = 0; i < a.val.size(); i++) {
-    error += (a.val[i] - b.val[i]) * (a.val[i] - b.val[i]);
+    error += (avalp[i] - bvalp[i]) * (avalp[i] - bvalp[i]);
   }
   return error;
 }
@@ -400,7 +407,8 @@ bool is_diff_centroid(rowmajor_matrix<T>& a,
   else {
     auto diff = a.data.map(is_diff_centroid_helper<T>, b.data).gather();
     double error = 0;
-    for(size_t i = 0; i < diff.size(); i++) {error += diff[i];}
+    auto diffp = diff.data();
+    for(size_t i = 0; i < diff.size(); i++) {error += diffp[i];}
     if(error > eps) return true;
     else return false;
   }
@@ -563,8 +571,10 @@ bool is_diff_centroid(rowmajor_matrix_local<T>& a,
   if(a.val.size() != b.val.size()) return true;
   else {
     double error = 0;
+    auto avalp = a.val.data();
+    auto bvalp = b.val.data();
     for(size_t i = 0; i < a.val.size(); i++) {
-      error += (a.val[i] - b.val[i]) * (a.val[i] - b.val[i]);
+      error += (avalp[i] - bvalp[i]) * (avalp[i] - bvalp[i]);
     }
     if(error > eps) return true;
     else return false;

@@ -217,8 +217,11 @@ struct linear_regression_model {
     size_t numFtr = weight.size();
     linear_regression_model<T> ret(numFtr);
     ret.intercept = intercept + right_m.intercept;
+    auto retweightp = ret.weight.data();
+    auto weightp = weight.data();
+    auto right_mweightp = right_m.weight.data();
     for(size_t i = 0; i < numFtr; i++) {
-      ret.weight[i] = weight[i] + right_m.weight[i];
+      retweightp[i] = weightp[i] + right_mweightp[i];
     }
     return ret;
   }
@@ -228,23 +231,30 @@ struct linear_regression_model {
     size_t numFtr = weight.size();
     linear_regression_model<T> ret(numFtr);
     ret.intercept = intercept - right_m.intercept;
+    auto retweightp = ret.weight.data();
+    auto weightp = weight.data();
+    auto right_mweightp = right_m.weight.data();
     for(size_t i = 0; i < numFtr; i++) {
-      ret.weight[i] = weight[i] - right_m.weight[i];
+      retweightp[i] = weightp[i] - right_mweightp[i];
     }
     return ret;
   }
   void operator+=(const linear_regression_model<T>& right_m) {
     checkAssumption(weight.size() == right_m.weight.size()); 
     intercept += right_m.intercept;
+    auto weightp = weight.data();
+    auto right_mweightp = right_m.weight.data();
     for(size_t i = 0; i < weight.size(); i++) {
-      weight[i] += right_m.weight[i];
+      weightp[i] += right_mweightp[i];
     }
   }
   void operator-=(const linear_regression_model<T>& right_m) {
     checkAssumption(weight.size() == right_m.weight.size());
     intercept -= right_m.intercept;
+    auto weightp = weight.data();
+    auto right_mweightp = right_m.weight.data();
     for(size_t i = 0; i < weight.size(); i++) {
-      weight[i] -= right_m.weight[i];
+      weightp[i] -= right_mweightp[i];
     }
   }
   template <class DATA_MATRIX>
@@ -320,8 +330,11 @@ struct logistic_regression_model {
     size_t numFtr = weight.size();
     logistic_regression_model<T> ret(numFtr);
     ret.intercept = intercept + right_m.intercept;
+    auto retweightp = ret.weight.data();
+    auto weightp = weight.data();
+    auto right_mweightp = right_m.weight.data();
     for(size_t i = 0; i < numFtr; i++) {
-      ret.weight[i] = weight[i] + right_m.weight[i];
+      retweightp[i] = weightp[i] + right_mweightp[i];
     }
     ret.threshold = threshold;
     return ret;
@@ -333,8 +346,11 @@ struct logistic_regression_model {
     size_t numFtr = weight.size();
     logistic_regression_model<T> ret(numFtr);
     ret.intercept = intercept - right_m.intercept;
+    auto retweightp = ret.weight.data();
+    auto weightp = weight.data();
+    auto right_mweightp = right_m.weight.data();
     for(size_t i = 0; i < numFtr; i++) {
-      ret.weight[i] = weight[i] - right_m.weight[i];
+      retweightp[i] = weightp[i] - right_mweightp[i];
     }
     ret.threshold = threshold;
     return ret;
@@ -343,16 +359,20 @@ struct logistic_regression_model {
     checkAssumption(weight.size() == right_m.weight.size() && 
                     threshold == right_m.threshold);
     intercept += right_m.intercept;
+    auto weightp = weight.data();
+    auto right_mweightp = right_m.weight.data();
     for(size_t i = 0; i < weight.size(); i++) {
-      weight[i] += right_m.weight[i];
+      weightp[i] += right_mweightp[i];
     }
   }
   void operator-=(const logistic_regression_model<T>& right_m) {
     checkAssumption(weight.size() == right_m.weight.size() && 
                     threshold == right_m.threshold);
     intercept -= right_m.intercept;
+    auto weightp = weight.data();
+    auto right_mweightp = right_m.weight.data();
     for(size_t i = 0; i < weight.size(); i++) {
-      weight[i] -= right_m.weight[i];
+      weightp[i] -= right_mweightp[i];
     }
   }
   template <class DATA_MATRIX>
@@ -449,8 +469,11 @@ struct svm_model {
     size_t numFtr = weight.size();
     svm_model<T> ret(numFtr);
     ret.intercept = intercept + right_m.intercept;
+    auto retweightp = ret.weight.data();
+    auto weightp = weight.data();
+    auto right_mweightp = right_m.weight.data();
     for(size_t i = 0; i < numFtr; i++) {
-      ret.weight[i] = weight[i] + right_m.weight[i];
+      retweightp[i] = weightp[i] + right_mweightp[i];
     }
     ret.threshold = threshold;
     return ret;
@@ -462,8 +485,11 @@ struct svm_model {
     size_t numFtr = weight.size();
     svm_model<T> ret(numFtr);
     ret.intercept = intercept - right_m.intercept;
+    auto retweightp = ret.weight.data();
+    auto weightp = weight.data();
+    auto right_mweightp = right_m.weight.data();
     for(size_t i = 0; i < numFtr; i++) {
-      ret.weight[i] = weight[i] - right_m.weight[i];
+      retweightp[i] = weightp[i] - right_mweightp[i];
     }
     ret.threshold = threshold;
     return ret;
@@ -472,16 +498,20 @@ struct svm_model {
     checkAssumption(weight.size() == right_m.weight.size() &&
                     threshold == right_m.threshold);
     intercept += right_m.intercept;
+    auto weightp = weight.data();
+    auto right_mweightp = right_m.weight.data();
     for(size_t i = 0; i < weight.size(); i++) {
-      weight[i] += right_m.weight[i];
+      weightp[i] += right_mweightp[i];
     }
   }
   void operator-=(const svm_model<T>& right_m) {
     checkAssumption(weight.size() == right_m.weight.size() &&
                     threshold == right_m.threshold);
     intercept -= right_m.intercept;
+    auto weightp = weight.data();
+    auto right_mweightp = right_m.weight.data();
     for(size_t i = 0; i < weight.size(); i++) {
-      weight[i] -= right_m.weight[i];
+      weightp[i] -= right_mweightp[i];
     }
   }
   template <class DATA_MATRIX>

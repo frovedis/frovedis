@@ -48,8 +48,9 @@ jds_crs_hybrid_local(const crs_matrix_local<T,I,O>& m, size_t threashold) {
   } else if(local_num_row <= threashold) {
     crs = m;
     jds.perm.resize(m.local_num_row);
+    auto jdspermp = jds.perm.data();
     for(size_t i = 0; i < m.local_num_row; i++) {
-      jds.perm[i] = i;
+      jdspermp[i] = i;
     }
     return;
   } else if (threashold == 0) {
@@ -62,23 +63,28 @@ jds_crs_hybrid_local(const crs_matrix_local<T,I,O>& m, size_t threashold) {
     std::vector<O> perm_tmp_key(local_num_row);
     std::vector<P> perm_tmp_val(local_num_row);
     std::vector<O> perm_tmp_first(local_num_row);
+    auto perm_tmp_keyp = perm_tmp_key.data();
+    auto perm_tmp_valp = perm_tmp_val.data();
+    auto perm_tmp_firstp = perm_tmp_first.data();
+    auto moffpp = m.off.data();
     for(size_t i = 0; i < local_num_row; i++) {
-      perm_tmp_key[i] = m.off[i+1] - m.off[i];
-      perm_tmp_val[i] = i;
+      perm_tmp_keyp[i] = moffpp[i+1] - moffpp[i];
+      perm_tmp_valp[i] = i;
     }
     radix_sort(&perm_tmp_key[0], &perm_tmp_val[0], local_num_row);
     jds.perm.resize(local_num_row);
+    auto jdspermp = jds.perm.data();
     for(size_t i = 0; i < local_num_row; i++) {
-      perm_tmp_first[i] = perm_tmp_key[local_num_row - i - 1];
-      jds.perm[i] = perm_tmp_val[local_num_row - i - 1];
+      perm_tmp_firstp[i] = perm_tmp_keyp[local_num_row - i - 1];
+      jdspermp[i] = perm_tmp_valp[local_num_row - i - 1];
     }
     size_t crs_start_off = perm_tmp_first[threashold];
     size_t crs_num_row = threashold;
     for(;crs_num_row != 0; crs_num_row--)
-      if(perm_tmp_first[crs_num_row - 1] != crs_start_off) break;
+      if(perm_tmp_firstp[crs_num_row - 1] != crs_start_off) break;
     size_t crs_size = 0;
     for(size_t i = 0; i < crs_num_row; i++) {
-      crs_size += (perm_tmp_first[i] - crs_start_off);
+      crs_size += (perm_tmp_firstp[i] - crs_start_off);
     }
 #else 
     std::vector<std::pair<O, P>> perm_tmp(local_num_row);
@@ -251,7 +257,9 @@ dvector<T> operator*(jds_crs_hybrid<T,I,O>& mat, dvector<T>& dv) {
     auto sizes = dv.sizes();
     size_t size = sizes.size();
     std::vector<int> count(size);
-    for(size_t i = 0; i < size; i++) count[i] = sizes[i]; // cast to int
+    auto sizesp = sizes.data();
+    auto countp = count.data();
+    for(size_t i = 0; i < size; i++) countp[i] = sizesp[i]; // cast to int
     bdv = dv.viewas_node_local().map(call_allgatherv<T>(count));
   } else {
     bdv = broadcast(dv.gather());

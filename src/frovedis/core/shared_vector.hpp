@@ -279,9 +279,11 @@ void allgather_to_shared_vector_helper(shared_vector_local<T>& from,
     size_t total = 0;
     for(size_t i = 0; i < nodes; i++) total += recvcounts[i];
     std::vector<size_t> displs(nodes);
+    auto displsp = displs.data();
+    auto recvcountsp = recvcounts.data();
     if(self == 0) {
       for(size_t i = 1; i < nodes; i++) 
-        displs[i] = displs[i-1] + recvcounts[i-1];
+        displsp[i] = displsp[i-1] + recvcountsp[i-1];
     }
     large_gatherv(sizeof(T), reinterpret_cast<char*>(from.data()), vsize, 
                   reinterpret_cast<char*>(to.data()), recvcounts,

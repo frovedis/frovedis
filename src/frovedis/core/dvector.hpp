@@ -644,8 +644,10 @@ struct make_dvector_scatter_helper2 {
     T* srcp;
     if(self == 0) srcp = &src[0]; else srcp = 0;
     std::vector<size_t> displs(nodes);
+    auto displsp = displs.data();
+    auto sizevecp = sizevec.data();
 #pragma _NEC novector
-    for(size_t i = 1; i < nodes; i++) displs[i] = displs[i-1] + sizevec[i-1];
+    for(size_t i = 1; i < nodes; i++) displsp[i] = displsp[i-1] + sizevecp[i-1];
     large_scatterv(sizeof(T), reinterpret_cast<char*>(srcp), sizevec, displs, 
                    reinterpret_cast<char*>(dstp), sizevec[self], 0, 
                    frovedis_comm_rpc);
@@ -678,12 +680,13 @@ dvector<T> make_dvector_scatter(const std::vector<T>& src) {
   int nodes = get_nodesize();
   size_t each = ceil_div(total, static_cast<size_t>(nodes));
   std::vector<size_t> sizevec(nodes);
+  auto sizevecp = sizevec.data();
   size_t crnt = 0;
   size_t end = src.size();
   for(int i = 0; i < nodes; i++) {
     size_t part_end = crnt + each < end ? crnt + each : end;
     size_t part_size = part_end - crnt;
-    sizevec[i] = part_size;
+    sizevecp[i] = part_size;
     crnt = part_end;
   }
   return make_dvector_scatter(src, sizevec);

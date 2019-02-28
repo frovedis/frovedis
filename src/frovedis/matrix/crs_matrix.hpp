@@ -335,8 +335,13 @@ sparse_vector<T,I> crs_matrix_local<T,I,O>::get_row(size_t k) const {
   size_t size = off[k+1] - off[k];
   r.val.resize(size);
   r.idx.resize(size);
-  for(size_t i = 0; i < size; i++) r.val[i] = val[off[k]+i];
-  for(size_t i = 0; i < size; i++) r.idx[i] = idx[off[k]+i];
+  auto offp = off.data();
+  auto valp = val.data();
+  auto idxp = idx.data();
+  auto rvalp = r.val.data();
+  auto ridxp = r.idx.data();
+  for(size_t i = 0; i < size; i++) rvalp[i] = valp[offp[k]+i];
+  for(size_t i = 0; i < size; i++) ridxp[i] = idxp[offp[k]+i];
   r.size = local_num_col;
   return r;
 }
@@ -696,16 +701,25 @@ crs_matrix_local<TT,II,OO>
 change_datatype_helper(crs_matrix_local<T,I,O>& mat) {
   crs_matrix_local<TT,II,OO> ret;
   ret.val.resize(mat.val.size());
-  for(size_t i = 0; i < mat.val.size(); i++) {
-    ret.val[i] = static_cast<TT>(mat.val[i]);
-  }
   ret.idx.resize(mat.idx.size());
-  for(size_t i = 0; i < mat.idx.size(); i++) {
-    ret.idx[i] = static_cast<II>(mat.idx[i]);
-  }
   ret.off.resize(mat.off.size());
-  for(size_t i = 0; i < mat.off.size(); i++) {
-    ret.off[i] = static_cast<OO>(mat.off[i]);
+  auto matvalp = mat.val.data();
+  auto matidxp = mat.idx.data();
+  auto matoffp = mat.off.data();
+  auto retvalp = ret.val.data();
+  auto retidxp = ret.idx.dat();
+  auto retoffp = ret.off.data();
+  auto matvalsize = mat.val.size();
+  auto matidxsize = mat.idx.size();
+  auto matoffsize = mat.off.size();
+  for(size_t i = 0; i < matvalsize; i++) {
+    retvalp[i] = static_cast<TT>(matvalp[i]);
+  }
+  for(size_t i = 0; i < matidxsize; i++) {
+    retidxp[i] = static_cast<II>(matidxp[i]);
+  }
+  for(size_t i = 0; i < matoffsize; i++) {
+    retoffp[i] = static_cast<OO>(matoffp[i]);
   }
   ret.local_num_row = mat.local_num_row;
   ret.local_num_col = mat.local_num_col;
@@ -999,8 +1013,10 @@ make_crs_matrix_loadcoo(const std::string& file,
 
 template <class T, class I, class O>
 void to_zero_origin(crs_matrix_local<T,I,O>& mat) {
-  for(size_t i = 0; i < mat.idx.size(); i++) {
-    mat.idx[i]--;
+  auto matidxp = mat.idx.data();
+  auto matidxsize = mat.idx.size();
+  for(size_t i = 0; i < matidxsize; i++) {
+    matidxp[i]--;
   }
 }
 
@@ -1041,27 +1057,33 @@ divide_and_exchange(const crs_matrix_local<T,I,O>& mat,
                     const std::vector<size_t>& col_shift) {
   size_t node_size = frovedis::get_nodesize();
   std::vector<size_t> send_size(node_size);
+  auto send_sizep = send_size.data();
+  auto matoffp = mat.off.data();
+  auto divide_rowp = divide_row.data();
   for(size_t i = 0; i < node_size; i++) {
-    if(divide_row[i] != mat.local_num_row) {
-      send_size[i] =
-        mat.off[divide_row[i+1]] - mat.off[divide_row[i]];
+    if(divide_rowp[i] != mat.local_num_row) {
+      send_sizep[i] =
+        matoffp[divide_rowp[i+1]] - matoffp[divide_rowp[i]];
     } else {
-      send_size[i] = 0;
+      send_sizep[i] = 0;
     }
   }
   std::vector<size_t> recv_size(node_size);
+  auto recv_sizep = recv_size.data();
   MPI_Alltoall(&send_size[0], sizeof(size_t), MPI_CHAR,
                &recv_size[0], sizeof(size_t), MPI_CHAR, MPI_COMM_WORLD);
   size_t total_size = 0;
   for(size_t i = 0; i < node_size; i++) {
-    total_size += recv_size[i];
+    total_size += recv_sizep[i];
   }
   std::vector<size_t> send_displ(node_size);
   std::vector<size_t> recv_displ(node_size);
-  send_displ[0] = 0; recv_displ[0] = 0;
+  auto send_displp = send_displ.data();
+  auto recv_displp = recv_displ.data();
+  send_displp[0] = 0; recv_displp[0] = 0;
   for(size_t i = 1; i < node_size; i++) {
-    send_displ[i] = send_displ[i-1] + send_size[i-1];
-    recv_displ[i] = recv_displ[i-1] + recv_size[i-1];
+    send_displp[i] = send_displp[i-1] + send_sizep[i-1];
+    recv_displp[i] = recv_displp[i-1] + recv_sizep[i-1];
   }
   std::vector<T> val_tmp(total_size);
   std::vector<I> idx_tmp(total_size);
@@ -1084,17 +1106,21 @@ divide_and_exchange(const crs_matrix_local<T,I,O>& mat,
   std::vector<size_t> off_recv_size(node_size);
   std::vector<size_t> off_send_displ(node_size);
   std::vector<size_t> off_recv_displ(node_size);
+  auto off_send_sizep = off_send_size.data();
+  auto off_recv_sizep = off_recv_size.data();
+  auto off_send_displp = off_send_displ.data();
+  auto off_recv_displp = off_recv_displ.data();
   for(size_t i = 0; i < node_size; i++) {
-    off_send_size[i] = divide_row[i+1] - divide_row[i] + 1;
+    off_send_sizep[i] = divide_rowp[i+1] - divide_rowp[i] + 1;
   }
   for(size_t i = 0; i < node_size; i++) {
-    off_recv_size[i] = my_num_row + 1;
+    off_recv_sizep[i] = my_num_row + 1;
   }
-  off_send_displ[0] = 0; off_recv_displ[0] = 0; 
+  off_send_displp[0] = 0; off_recv_displp[0] = 0; 
   for(size_t i = 1; i < node_size; i++) {
-    off_send_displ[i] =
-      off_send_displ[i-1] + off_send_size[i-1] - 1;
-    off_recv_displ[i] = off_recv_displ[i-1] + off_recv_size[i-1];
+    off_send_displp[i] =
+      off_send_displp[i-1] + off_send_sizep[i-1] - 1;
+    off_recv_displp[i] = off_recv_displp[i-1] + off_recv_sizep[i-1];
   }
   large_alltoallv(sizeof(O),
                   reinterpret_cast<char*>(const_cast<O*>(&mat.off[0])),
@@ -1103,11 +1129,13 @@ divide_and_exchange(const crs_matrix_local<T,I,O>& mat,
                   off_recv_size, off_recv_displ,
                   MPI_COMM_WORLD);
   std::vector<O> off_each((my_num_row + 1) * node_size);
+  auto off_eachp = off_each.data();
+  auto off_tmpp = off_tmp.data();
   for(size_t n = 0; n < node_size; n++) {
     for(size_t r = 0; r < my_num_row + 1; r++) {
-      off_each[(my_num_row + 1) * n + r] =
-        off_tmp[(my_num_row + 1) * n + r] -
-        off_tmp[(my_num_row + 1) * n]; 
+      off_eachp[(my_num_row + 1) * n + r] =
+        off_tmpp[(my_num_row + 1) * n + r] -
+        off_tmpp[(my_num_row + 1) * n]; 
     }
   }
   crs_matrix_local<T,I,O> ret;
@@ -1119,8 +1147,6 @@ divide_and_exchange(const crs_matrix_local<T,I,O>& mat,
   O* ret_offp = &ret.off[0];
   T* val_tmpp = &val_tmp[0];
   I* idx_tmpp = &idx_tmp[0];
-  O* off_eachp = &off_each[0];
-  size_t* recv_displp = &recv_displ[0];
   const size_t* col_shiftp = &col_shift[0];
   size_t off = 0;
   for(size_t r = 0; r < my_num_row; r++) {
@@ -1161,9 +1187,11 @@ crs_matrix<T,I,O> crs_matrix<T,I,O>::transpose() {
     frovedis::make_node_local_broadcast<std::vector<size_t>>(divide_row);
   auto local_rows = data.map(crs_get_local_num_row<T,I,O>).gather();
   std::vector<size_t> col_shift(node_size + 1);
-  col_shift[0] = 0;
+  auto col_shiftp = col_shift.data();
+  auto local_rowsp = local_rows.data();
+  col_shiftp[0] = 0;
   for(size_t i = 1; i < node_size + 1; i++) {
-    col_shift[i] = col_shift[i-1] + local_rows[i-1];
+    col_shiftp[i] = col_shiftp[i-1] + local_rowsp[i-1];
   }
   auto bcast_col_shift =
     frovedis::make_node_local_broadcast<std::vector<size_t>>(col_shift);
@@ -1259,8 +1287,10 @@ make_crs_matrix_loadbinary(const std::string& input) {
     }
   }
   std::vector<size_t> sizes(node_size);
+  auto sizesp = sizes.data();
+  auto divide_elmp = divide_elm.data();
   for(size_t i = 0; i < node_size; i++) {
-    sizes[i] = divide_elm[i + 1] - divide_elm[i];
+    sizesp[i] = divide_elmp[i + 1] - divide_elmp[i];
   }
   crs_matrix<T,I,O> ret;
   ret.data = make_node_local_allocate<crs_matrix_local<T,I,O>>();
@@ -1270,19 +1300,23 @@ make_crs_matrix_loadbinary(const std::string& input) {
   ret.data.mapv(crs_matrix_set_idx<T,I,O>, loadidx);
 
   std::vector<size_t> sizes_off(node_size);
+  auto sizes_offp = sizes_off.data();
+  auto divide_rowp = divide_row.data();
   for(size_t i = 0; i < node_size; i++) {
-    sizes_off[i] = divide_row[i+1] - divide_row[i] + 1;
+    sizes_offp[i] = divide_rowp[i+1] - divide_rowp[i] + 1;
   }
   size_t adjust = 0;
   size_t current_node = 1;
   std::vector<O> newloadoff(loadoff.size() + node_size - 1);
   size_t j = 0;
+  auto newloadoffp = newloadoff.data();
+  auto loadoffp = loadoff.data();
   for(size_t i = 0; i < loadoff.size(); i++, j++) {
-    newloadoff[j] = loadoff[i] - adjust;
-    if(current_node < node_size && loadoff[i] == divide_elm[current_node]) {
+    newloadoffp[j] = loadoffp[i] - adjust;
+    if(current_node < node_size && loadoffp[i] == divide_elmp[current_node]) {
       j++;
-      newloadoff[j] = 0;
-      adjust = loadoff[i];
+      newloadoffp[j] = 0;
+      adjust = loadoffp[i];
       current_node++;
     }
   }
@@ -1611,9 +1645,11 @@ struct call_allgatherv {
   std::vector<T> operator()(std::vector<T>& v) {
     size_t size = count.size();
     std::vector<int> displs(size);
-    displs[0] = 0;
-    for(size_t i = 1; i < size; i++) displs[i] = displs[i-1] + count[i-1];
-    size_t total = displs[size-1] + count[size-1];
+    auto displsp = displs.data();
+    auto countp = count.data();
+    displsp[0] = 0;
+    for(size_t i = 1; i < size; i++) displsp[i] = displsp[i-1] + countp[i-1];
+    size_t total = displsp[size-1] + countp[size-1];
     std::vector<T> ret(total);
     typed_allgatherv<T>(v.data(), static_cast<int>(v.size()), ret.data(),
                         count.data(), displs.data(), MPI_COMM_WORLD);
@@ -1636,7 +1672,9 @@ dvector<T> operator*(crs_matrix<T,I,O>& mat, dvector<T>& dv) {
     auto sizes = dv.sizes();
     size_t size = sizes.size();
     std::vector<int> count(size);
-    for(size_t i = 0; i < size; i++) count[i] = sizes[i]; // cast to int
+    auto sizesp = sizes.data();
+    auto countp = count.data();
+    for(size_t i = 0; i < size; i++) countp[i] = sizesp[i]; // cast to int
     bdv = dv.viewas_node_local().map(call_allgatherv<T>(count));
   } else {
     bdv = broadcast(dv.gather());
@@ -1779,7 +1817,8 @@ ptr_t<T> assign_working_area_for_spmv(shared_vector<T>& sv,
       MPI_Allgather(&size, 1, MPI_LONG_LONG, sizes.data(), 1, MPI_LONG_LONG,
                     frovedis_shm_comm);
       long long my_offset = 0;
-      for(size_t i = 0; i < frovedis_shm_self_rank; i++) my_offset += sizes[i];
+      auto sizesp = sizes.data();
+      for(size_t i = 0; i < frovedis_shm_self_rank; i++) my_offset += sizesp[i];
       ptr_t_local<T> local_ret;
       local_ret.intptr = reinterpret_cast<intptr_t>(s.data() + my_offset);
       local_ret.size = size;
@@ -1801,7 +1840,8 @@ ptr_t<T> assign_working_area_for_spmm(shared_vector<T>& sv,
       MPI_Allgather(&size, 1, MPI_LONG_LONG, sizes.data(), 1, MPI_LONG_LONG,
                     frovedis_shm_comm);
       long long my_offset = 0;
-      for(size_t i = 0; i < frovedis_shm_self_rank; i++) my_offset += sizes[i];
+      auto sizesp = sizes.data();
+      for(size_t i = 0; i < frovedis_shm_self_rank; i++) my_offset += sizesp[i];
       ptr_t_local<T> local_ret;
       // cast to long long is needed to make VE compiler happy
       local_ret.intptr = reinterpret_cast<intptr_t>
@@ -1919,6 +1959,7 @@ void rebalance_for_spmm(crs_matrix<T,I,O>& crs, shared_vector<T>& input,
   size_t nodesize = get_nodesize();
   auto each  = pxmeasure[pxmeasure.size() - 1] / static_cast<double>(nodesize);
   std::vector<size_t> sizes(nodesize);
+  auto sizesp = sizes.data();
   auto start = pxmeasure.begin();
   std::vector<double>::iterator end;
   for(size_t i = 0; i < nodesize; i++) {
@@ -1926,9 +1967,9 @@ void rebalance_for_spmm(crs_matrix<T,I,O>& crs, shared_vector<T>& input,
       end = pxmeasure.end();
     else
       end = std::lower_bound(start, pxmeasure.end(), each * (i+1));
-    sizes[i] = end - start;
+    sizesp[i] = end - start;
     if(end == pxmeasure.end()) {
-      for(size_t j = i+1; j < nodesize; j++) sizes[j] = 0;
+      for(size_t j = i+1; j < nodesize; j++) sizesp[j] = 0;
       break;
     } else
       start = end;

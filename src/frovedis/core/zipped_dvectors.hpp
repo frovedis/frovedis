@@ -60,9 +60,13 @@ public:
   map_zippeddvectors(){}
   map_zippeddvectors(const F& f) : func(f) {}
   std::vector<R> operator()(std::vector<V1>& vec, std::vector<V2>& v2) {
-    std::vector<R> dst(vec.size());
-    for(size_t i = 0; i < vec.size(); i++) {
-      dst[i] = func(vec[i], v2[i]);
+    auto size = vec.size();
+    std::vector<R> dst(size);
+    auto dstp = dst.data();
+    auto vecp = vec.data();
+    auto v2p = v2.data();
+    for(size_t i = 0; i < size; i++) {
+      dstp[i] = func(vecp[i], v2p[i]);
     }
     return dst;
   }
@@ -85,8 +89,11 @@ public:
   mapv_zippeddvectors(){}
   mapv_zippeddvectors(const F& f) : func(f) {}
   void operator()(std::vector<V1>& vec, std::vector<V2>& v2) {
-    for(size_t i = 0; i < vec.size(); i++) {
-      func(vec[i],v2[i]);
+    auto size = vec.size();
+    auto vecp = vec.data();
+    auto v2p = v2.data();
+    for(size_t i = 0; i < size; i++) {
+      func(vecp[i],v2p[i]);
     }
   }
   F func;
