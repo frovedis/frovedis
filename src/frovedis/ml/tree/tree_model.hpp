@@ -862,6 +862,8 @@ decision_tree_model<T> make_tree_by_loadbinary(const std::string& path) {
   return model;
 }
 
+/*
+TODO: fix wrong specialization
 // specialize for broadcast
 template <typename T>
 node_local<decision_tree_model<T>> make_node_local_broadcast(
@@ -869,6 +871,7 @@ node_local<decision_tree_model<T>> make_node_local_broadcast(
 ) {
   return model.broadcast();
 }
+*/
 
 } // end namespace frovedis
 

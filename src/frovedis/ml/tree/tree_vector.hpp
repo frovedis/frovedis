@@ -506,6 +506,8 @@ std::string modelvector<T>::to_string() const {
 
 } // end namespace tree
 
+/*
+TODO: fix wrong specialization
 // specialize for broadcast
 template <typename T>
 node_local<tree::modelvector<T>> make_node_local_broadcast(
@@ -513,6 +515,7 @@ node_local<tree::modelvector<T>> make_node_local_broadcast(
 ) {
   return vtree.broadcast();
 }
+*/
 
 // for output stream
 template <typename T>
