@@ -12,7 +12,7 @@ void radix_sort_impl
  size_t size,
  size_t max_key_size) {
   size_t bucket_ldim =
-    (RADIX_SORT_VLEN * 4) + RADIX_SORT_ALIGN_SIZE/sizeof(size_t);
+    RADIX_SORT_VLEN + RADIX_SORT_ALIGN_SIZE/sizeof(size_t);
   size_t num_bucket = 1 << 8; // 8bit == 256
   // bucket_table is columnar (VLEN + 16) by num_bucket matrix
   // "16" is to avoid bank conflict/alignment, but reused for "rest" data
@@ -20,24 +20,24 @@ void radix_sort_impl
   std::vector<size_t> px_bucket_table(num_bucket * bucket_ldim);
   size_t* bucket_tablep = &bucket_table[0];
   size_t* px_bucket_tablep = &px_bucket_table[0];
-
   std::vector<size_t> pos(size);
   size_t* posp = &pos[0];
   std::vector<K> key_array_tmpv(size);
-  K* key_array_tmp = &key_array_tmpv[0];
 #ifdef RADIX_SORT_KV_PAIR
   std::vector<V> val_array_tmpv(size);
+#endif
+  K* key_array_tmp = &key_array_tmpv[0];
+#ifdef RADIX_SORT_KV_PAIR
   V* val_array_tmp = &val_array_tmpv[0];
 #endif
   int next_is_tmp = 1;
-  size_t block_size = size / (RADIX_SORT_VLEN * 4);
+  size_t block_size = size / RADIX_SORT_VLEN;
 
   auto aligned_block_size = block_size * sizeof(K) / RADIX_SORT_ALIGN_SIZE;
-  if(aligned_block_size % 2 == 0 && aligned_block_size != 0)
-    aligned_block_size -= 1;
+  if(aligned_block_size % 2 == 0 && aligned_block_size != 0) aligned_block_size -= 1;
   block_size = aligned_block_size * RADIX_SORT_ALIGN_SIZE / sizeof(K);
 
-  size_t rest = size - (RADIX_SORT_VLEN * 4) * block_size;
+  size_t rest = size - RADIX_SORT_VLEN * block_size;
   int bucket0[RADIX_SORT_VLEN];
   int bucket1[RADIX_SORT_VLEN];
   int bucket2[RADIX_SORT_VLEN];
@@ -70,16 +70,7 @@ void radix_sort_impl
 #pragma _NEC vreg(to1)
 #pragma _NEC vreg(to2)
 #pragma _NEC vreg(to3)
-#ifdef RADIX_SORT_KV_PAIR
-  V val0[RADIX_SORT_VLEN];
-  V val1[RADIX_SORT_VLEN];
-  V val2[RADIX_SORT_VLEN];
-  V val3[RADIX_SORT_VLEN];
-#pragma _NEC vreg(val0)
-#pragma _NEC vreg(val1)
-#pragma _NEC vreg(val2)
-#pragma _NEC vreg(val3)
-#endif
+  
   for(size_t d = 1; d <= max_key_size; d++) { // d: digit
     size_t to_shift = (d - 1) * 8;
     auto bucket_table_size = bucket_table.size();
@@ -99,56 +90,46 @@ void radix_sort_impl
       val_src = val_array_tmp; val_dst = val_array;
 #endif
     }
-    auto key_src0 = key_src;
-    auto key_src1 = key_src + block_size * RADIX_SORT_VLEN;
-    auto key_src2 = key_src + block_size * RADIX_SORT_VLEN * 2;
-    auto key_src3 = key_src + block_size * RADIX_SORT_VLEN * 3;
-#ifdef RADIX_SORT_KV_PAIR
-    auto val_src0 = val_src;
-    auto val_src1 = val_src + block_size * RADIX_SORT_VLEN;
-    auto val_src2 = val_src + block_size * RADIX_SORT_VLEN * 2;
-    auto val_src3 = val_src + block_size * RADIX_SORT_VLEN * 3;
-#endif
-    auto posp0 = posp;
-    auto posp1 = posp + block_size * RADIX_SORT_VLEN;
-    auto posp2 = posp + block_size * RADIX_SORT_VLEN * 2;
-    auto posp3 = posp + block_size * RADIX_SORT_VLEN * 3;
-    auto bucket_tablep0 = bucket_tablep;
-    auto bucket_tablep1 = bucket_tablep + RADIX_SORT_VLEN;
-    auto bucket_tablep2 = bucket_tablep + RADIX_SORT_VLEN * 2;
-    auto bucket_tablep3 = bucket_tablep + RADIX_SORT_VLEN * 3;
-    auto px_bucket_tablep0 = px_bucket_tablep;
-    auto px_bucket_tablep1 = px_bucket_tablep + RADIX_SORT_VLEN;
-    auto px_bucket_tablep2 = px_bucket_tablep + RADIX_SORT_VLEN * 2;
-    auto px_bucket_tablep3 = px_bucket_tablep + RADIX_SORT_VLEN * 3;
-
-    for(size_t b = 0; b < block_size; b++) { // b: block
+    size_t b = 0;
+    if(block_size > 3) {
+      for(; b < block_size-3; b+=4) { // b: block
 #pragma cdir nodep
 #pragma _NEC ivdep
-      for(int v = 0; v < RADIX_SORT_VLEN; v++) { // vector loop, loop raking
-        key0[v] = key_src0[block_size * v + b];
-        key1[v] = key_src1[block_size * v + b];
-        key2[v] = key_src2[block_size * v + b];
-        key3[v] = key_src3[block_size * v + b];
-        bucket0[v] = (key0[v] >> to_shift) & 0xFF;
-        bucket1[v] = (key1[v] >> to_shift) & 0xFF;
-        bucket2[v] = (key2[v] >> to_shift) & 0xFF;
-        bucket3[v] = (key3[v] >> to_shift) & 0xFF;
-        bucket_table_tmp0[v] = bucket_tablep0[bucket_ldim * bucket0[v] + v];
-        bucket_table_tmp1[v] = bucket_tablep1[bucket_ldim * bucket1[v] + v];
-        bucket_table_tmp2[v] = bucket_tablep2[bucket_ldim * bucket2[v] + v];
-        bucket_table_tmp3[v] = bucket_tablep3[bucket_ldim * bucket3[v] + v];
-        posp0[block_size * v + b] = bucket_table_tmp0[v];
-        posp1[block_size * v + b] = bucket_table_tmp1[v];
-        posp2[block_size * v + b] = bucket_table_tmp2[v];
-        posp3[block_size * v + b] = bucket_table_tmp3[v];
-        bucket_tablep0[bucket_ldim * bucket0[v] + v] = bucket_table_tmp0[v]+1;
-        bucket_tablep1[bucket_ldim * bucket1[v] + v] = bucket_table_tmp1[v]+1;
-        bucket_tablep2[bucket_ldim * bucket2[v] + v] = bucket_table_tmp2[v]+1;
-        bucket_tablep3[bucket_ldim * bucket3[v] + v] = bucket_table_tmp3[v]+1;
+        for(int v = 0; v < RADIX_SORT_VLEN; v++) { // vector loop, loop raking
+          key0[v]  = key_src[block_size * v + b];
+          key1[v]  = key_src[block_size * v + b+1];
+          key2[v]  = key_src[block_size * v + b+2];
+          key3[v]  = key_src[block_size * v + b+3];
+          bucket0[v] = (key0[v] >> to_shift) & 0xFF;
+          bucket1[v] = (key1[v] >> to_shift) & 0xFF;
+          bucket2[v] = (key2[v] >> to_shift) & 0xFF;
+          bucket3[v] = (key3[v] >> to_shift) & 0xFF;
+          bucket_table_tmp0[v] = bucket_tablep[bucket_ldim * bucket0[v] + v];
+          bucket_tablep[bucket_ldim * bucket0[v] + v] = bucket_table_tmp0[v] + 1;
+          bucket_table_tmp1[v] = bucket_tablep[bucket_ldim * bucket1[v] + v];
+          bucket_tablep[bucket_ldim * bucket1[v] + v] = bucket_table_tmp1[v] + 1;
+          bucket_table_tmp2[v] = bucket_tablep[bucket_ldim * bucket2[v] + v];
+          bucket_tablep[bucket_ldim * bucket2[v] + v] = bucket_table_tmp2[v] + 1;
+          bucket_table_tmp3[v] = bucket_tablep[bucket_ldim * bucket3[v] + v];
+          bucket_tablep[bucket_ldim * bucket3[v] + v] = bucket_table_tmp3[v] + 1;
+          posp[block_size * v + b] = bucket_table_tmp0[v];
+          posp[block_size * v + b+1] = bucket_table_tmp1[v];
+          posp[block_size * v + b+2] = bucket_table_tmp2[v];
+          posp[block_size * v + b+3] = bucket_table_tmp3[v];
+        }
       }
     }
-    size_t v = RADIX_SORT_VLEN * 4;
+    for(; b < block_size; b++) {
+#pragma cdir nodep
+#pragma _NEC ivdep
+      for(int v = 0; v < RADIX_SORT_VLEN; v++) {
+        key0[v]  = key_src[block_size * v + b];
+        bucket0[v] = (key0[v] >> to_shift) & 0xFF;
+        posp[block_size * v + b] = bucket_tablep[bucket_ldim * bucket0[v] + v];
+        bucket_tablep[bucket_ldim * bucket0[v] + v]++;
+      }
+    }
+    size_t v = RADIX_SORT_VLEN;
     for(int b = 0; b < rest; b++) { // not vector loop
       auto key = key_src[block_size * v + b];
       int bucket = (key >> to_shift) & 0xFF;
@@ -159,47 +140,60 @@ void radix_sort_impl
     prefix_sum(bucket_tablep, px_bucket_tablep + 1,
                num_bucket * bucket_ldim - 1);
     // now copy the data to the bucket
+    b = 0;
+    if(block_size > 3) {
 #pragma _NEC vob
-    for(size_t b = 0; b < block_size; b++) { // b: block
+      for(; b < block_size-3; b+=4) { // b: block
+#pragma cdir nodep
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+        for(int v = 0; v < RADIX_SORT_VLEN; v++) { // vector loop, loop raking
+          key0[v] = key_src[block_size * v + b];
+          key1[v] = key_src[block_size * v + b+1];
+          key2[v] = key_src[block_size * v + b+2];
+          key3[v] = key_src[block_size * v + b+3];
+          bucket0[v] = (key0[v] >> to_shift) & 0xFF;
+          bucket1[v] = (key1[v] >> to_shift) & 0xFF;
+          bucket2[v] = (key2[v] >> to_shift) & 0xFF;
+          bucket3[v] = (key3[v] >> to_shift) & 0xFF;
+          to0[v] = px_bucket_tablep[bucket_ldim * bucket0[v] + v] +
+            posp[block_size * v + b];
+          to1[v] = px_bucket_tablep[bucket_ldim * bucket1[v] + v] +
+            posp[block_size * v + b+1];
+          to2[v] = px_bucket_tablep[bucket_ldim * bucket2[v] + v] +
+            posp[block_size * v + b+2];
+          to3[v] = px_bucket_tablep[bucket_ldim * bucket3[v] + v] +
+            posp[block_size * v + b+3];
+          key_dst[to0[v]] = key0[v];
+          key_dst[to1[v]] = key1[v];
+          key_dst[to2[v]] = key2[v];
+          key_dst[to3[v]] = key3[v];
+#ifdef RADIX_SORT_KV_PAIR
+          val_dst[to0[v]] = val_src[block_size * v + b];
+          val_dst[to1[v]] = val_src[block_size * v + b+1];
+          val_dst[to2[v]] = val_src[block_size * v + b+2];
+          val_dst[to3[v]] = val_src[block_size * v + b+3];
+#endif
+        }
+      }
+    }
+#pragma _NEC vob
+    for(; b < block_size; b++) { // b: block
 #pragma cdir nodep
 #pragma _NEC ivdep
 #pragma _NEC vovertake
       for(int v = 0; v < RADIX_SORT_VLEN; v++) { // vector loop, loop raking
-        key0[v] = key_src0[block_size * v + b];
-        key1[v] = key_src1[block_size * v + b];
-        key2[v] = key_src2[block_size * v + b];
-        key3[v] = key_src3[block_size * v + b];
+        auto key = key_src[block_size * v + b];
+        int bucket = (key >> to_shift) & 0xFF;
+        size_t to = px_bucket_tablep[bucket_ldim * bucket + v] +
+          posp[block_size * v + b];
+        key_dst[to] = key;
 #ifdef RADIX_SORT_KV_PAIR
-        val0[v] = val_src0[block_size * v + b];
-        val1[v] = val_src1[block_size * v + b];
-        val2[v] = val_src2[block_size * v + b];
-        val3[v] = val_src3[block_size * v + b];
-#endif
-        bucket0[v] = (key0[v] >> to_shift) & 0xFF;
-        bucket1[v] = (key1[v] >> to_shift) & 0xFF;
-        bucket2[v] = (key2[v] >> to_shift) & 0xFF;
-        bucket3[v] = (key3[v] >> to_shift) & 0xFF;
-        to0[v] = px_bucket_tablep0[bucket_ldim * bucket0[v] + v] +
-          posp0[block_size * v + b];
-        to1[v] = px_bucket_tablep1[bucket_ldim * bucket1[v] + v] +
-          posp1[block_size * v + b];
-        to2[v] = px_bucket_tablep2[bucket_ldim * bucket2[v] + v] +
-          posp2[block_size * v + b];
-        to3[v] = px_bucket_tablep3[bucket_ldim * bucket3[v] + v] +
-          posp3[block_size * v + b];
-        key_dst[to0[v]] = key0[v];
-        key_dst[to1[v]] = key1[v];
-        key_dst[to2[v]] = key2[v];
-        key_dst[to3[v]] = key3[v];
-#ifdef RADIX_SORT_KV_PAIR
-        val_dst[to0[v]] = val0[v];
-        val_dst[to1[v]] = val1[v];
-        val_dst[to2[v]] = val2[v];
-        val_dst[to3[v]] = val3[v];
+        val_dst[to] = val_src[block_size * v + b];
 #endif
       }
     }
-    v = RADIX_SORT_VLEN * 4;
+    v = RADIX_SORT_VLEN;
 #pragma cdir nodep
 #pragma _NEC ivdep
 #pragma _NEC vovertake
@@ -229,6 +223,7 @@ void radix_sort_impl
   }
 }
 
+// supported K is int type, and only 0 or positive data
 #ifdef RADIX_SORT_KV_PAIR
 template <class K, class V>
 #else
@@ -250,24 +245,24 @@ void radix_sort_desc_impl
   std::vector<size_t> px_bucket_table(num_bucket * bucket_ldim);
   size_t* bucket_tablep = &bucket_table[0];
   size_t* px_bucket_tablep = &px_bucket_table[0];
-
   std::vector<size_t> pos(size);
   size_t* posp = &pos[0];
   std::vector<K> key_array_tmpv(size);
-  K* key_array_tmp = &key_array_tmpv[0];
 #ifdef RADIX_SORT_KV_PAIR
   std::vector<V> val_array_tmpv(size);
+#endif
+  K* key_array_tmp = &key_array_tmpv[0];
+#ifdef RADIX_SORT_KV_PAIR
   V* val_array_tmp = &val_array_tmpv[0];
 #endif
   int next_is_tmp = 1;
-  size_t block_size = size / (RADIX_SORT_VLEN * 4);
+  size_t block_size = size / RADIX_SORT_VLEN;
 
   auto aligned_block_size = block_size * sizeof(K) / RADIX_SORT_ALIGN_SIZE;
-  if(aligned_block_size % 2 == 0 && aligned_block_size != 0)
-    aligned_block_size -= 1;
+  if(aligned_block_size % 2 == 0 && aligned_block_size != 0) aligned_block_size -= 1;
   block_size = aligned_block_size * RADIX_SORT_ALIGN_SIZE / sizeof(K);
 
-  size_t rest = size - (RADIX_SORT_VLEN * 4) * block_size;
+  size_t rest = size - RADIX_SORT_VLEN * block_size;
   int bucket0[RADIX_SORT_VLEN];
   int bucket1[RADIX_SORT_VLEN];
   int bucket2[RADIX_SORT_VLEN];
@@ -300,16 +295,7 @@ void radix_sort_desc_impl
 #pragma _NEC vreg(to1)
 #pragma _NEC vreg(to2)
 #pragma _NEC vreg(to3)
-#ifdef RADIX_SORT_KV_PAIR
-  V val0[RADIX_SORT_VLEN];
-  V val1[RADIX_SORT_VLEN];
-  V val2[RADIX_SORT_VLEN];
-  V val3[RADIX_SORT_VLEN];
-#pragma _NEC vreg(val0)
-#pragma _NEC vreg(val1)
-#pragma _NEC vreg(val2)
-#pragma _NEC vreg(val3)
-#endif
+  
   for(size_t d = 1; d <= max_key_size; d++) { // d: digit
     size_t to_shift = (d - 1) * 8;
     auto bucket_table_size = bucket_table.size();
@@ -329,56 +315,46 @@ void radix_sort_desc_impl
       val_src = val_array_tmp; val_dst = val_array;
 #endif
     }
-    auto key_src0 = key_src;
-    auto key_src1 = key_src + block_size * RADIX_SORT_VLEN;
-    auto key_src2 = key_src + block_size * RADIX_SORT_VLEN * 2;
-    auto key_src3 = key_src + block_size * RADIX_SORT_VLEN * 3;
-#ifdef RADIX_SORT_KV_PAIR
-    auto val_src0 = val_src;
-    auto val_src1 = val_src + block_size * RADIX_SORT_VLEN;
-    auto val_src2 = val_src + block_size * RADIX_SORT_VLEN * 2;
-    auto val_src3 = val_src + block_size * RADIX_SORT_VLEN * 3;
-#endif
-    auto posp0 = posp;
-    auto posp1 = posp + block_size * RADIX_SORT_VLEN;
-    auto posp2 = posp + block_size * RADIX_SORT_VLEN * 2;
-    auto posp3 = posp + block_size * RADIX_SORT_VLEN * 3;
-    auto bucket_tablep0 = bucket_tablep;
-    auto bucket_tablep1 = bucket_tablep + RADIX_SORT_VLEN;
-    auto bucket_tablep2 = bucket_tablep + RADIX_SORT_VLEN * 2;
-    auto bucket_tablep3 = bucket_tablep + RADIX_SORT_VLEN * 3;
-    auto px_bucket_tablep0 = px_bucket_tablep;
-    auto px_bucket_tablep1 = px_bucket_tablep + RADIX_SORT_VLEN;
-    auto px_bucket_tablep2 = px_bucket_tablep + RADIX_SORT_VLEN * 2;
-    auto px_bucket_tablep3 = px_bucket_tablep + RADIX_SORT_VLEN * 3;
-
-    for(size_t b = 0; b < block_size; b++) { // b: block
+    size_t b = 0;
+    if(block_size > 3) {
+      for(; b < block_size-3; b+=4) { // b: block
 #pragma cdir nodep
 #pragma _NEC ivdep
-      for(int v = 0; v < RADIX_SORT_VLEN; v++) { // vector loop, loop raking
-        key0[v] = key_src0[block_size * v + b];
-        key1[v] = key_src1[block_size * v + b];
-        key2[v] = key_src2[block_size * v + b];
-        key3[v] = key_src3[block_size * v + b];
-        bucket0[v] = 0xFF - ((key0[v] >> to_shift) & 0xFF); // desc
-        bucket1[v] = 0xFF - ((key1[v] >> to_shift) & 0xFF);
-        bucket2[v] = 0xFF - ((key2[v] >> to_shift) & 0xFF);
-        bucket3[v] = 0xFF - ((key3[v] >> to_shift) & 0xFF);
-        bucket_table_tmp0[v] = bucket_tablep0[bucket_ldim * bucket0[v] + v];
-        bucket_table_tmp1[v] = bucket_tablep1[bucket_ldim * bucket1[v] + v];
-        bucket_table_tmp2[v] = bucket_tablep2[bucket_ldim * bucket2[v] + v];
-        bucket_table_tmp3[v] = bucket_tablep3[bucket_ldim * bucket3[v] + v];
-        posp0[block_size * v + b] = bucket_table_tmp0[v];
-        posp1[block_size * v + b] = bucket_table_tmp1[v];
-        posp2[block_size * v + b] = bucket_table_tmp2[v];
-        posp3[block_size * v + b] = bucket_table_tmp3[v];
-        bucket_tablep0[bucket_ldim * bucket0[v] + v] = bucket_table_tmp0[v]+1;
-        bucket_tablep1[bucket_ldim * bucket1[v] + v] = bucket_table_tmp1[v]+1;
-        bucket_tablep2[bucket_ldim * bucket2[v] + v] = bucket_table_tmp2[v]+1;
-        bucket_tablep3[bucket_ldim * bucket3[v] + v] = bucket_table_tmp3[v]+1;
+        for(int v = 0; v < RADIX_SORT_VLEN; v++) { // vector loop, loop raking
+          key0[v]  = key_src[block_size * v + b];
+          key1[v]  = key_src[block_size * v + b+1];
+          key2[v]  = key_src[block_size * v + b+2];
+          key3[v]  = key_src[block_size * v + b+3];
+          bucket0[v] = 0xFF - ((key0[v] >> to_shift) & 0xFF); // desc
+          bucket1[v] = 0xFF - ((key1[v] >> to_shift) & 0xFF);
+          bucket2[v] = 0xFF - ((key2[v] >> to_shift) & 0xFF);
+          bucket3[v] = 0xFF - ((key3[v] >> to_shift) & 0xFF);
+          bucket_table_tmp0[v] = bucket_tablep[bucket_ldim * bucket0[v] + v];
+          bucket_tablep[bucket_ldim * bucket0[v] + v] = bucket_table_tmp0[v] + 1;
+          bucket_table_tmp1[v] = bucket_tablep[bucket_ldim * bucket1[v] + v];
+          bucket_tablep[bucket_ldim * bucket1[v] + v] = bucket_table_tmp1[v] + 1;
+          bucket_table_tmp2[v] = bucket_tablep[bucket_ldim * bucket2[v] + v];
+          bucket_tablep[bucket_ldim * bucket2[v] + v] = bucket_table_tmp2[v] + 1;
+          bucket_table_tmp3[v] = bucket_tablep[bucket_ldim * bucket3[v] + v];
+          bucket_tablep[bucket_ldim * bucket3[v] + v] = bucket_table_tmp3[v] + 1;
+          posp[block_size * v + b] = bucket_table_tmp0[v];
+          posp[block_size * v + b+1] = bucket_table_tmp1[v];
+          posp[block_size * v + b+2] = bucket_table_tmp2[v];
+          posp[block_size * v + b+3] = bucket_table_tmp3[v];
+        }
       }
     }
-    size_t v = RADIX_SORT_VLEN * 4;
+    for(; b < block_size; b++) {
+#pragma cdir nodep
+#pragma _NEC ivdep
+      for(int v = 0; v < RADIX_SORT_VLEN; v++) {
+        key0[v]  = key_src[block_size * v + b];
+        bucket0[v] = 0xFF - ((key0[v] >> to_shift) & 0xFF); // desc
+        posp[block_size * v + b] = bucket_tablep[bucket_ldim * bucket0[v] + v];
+        bucket_tablep[bucket_ldim * bucket0[v] + v]++;
+      }
+    }
+    size_t v = RADIX_SORT_VLEN;
     for(int b = 0; b < rest; b++) { // not vector loop
       auto key = key_src[block_size * v + b];
       int bucket = 0xFF - ((key >> to_shift) & 0xFF); // desc
@@ -389,47 +365,60 @@ void radix_sort_desc_impl
     prefix_sum(bucket_tablep, px_bucket_tablep + 1,
                num_bucket * bucket_ldim - 1);
     // now copy the data to the bucket
+    b = 0;
+    if(block_size > 3) {
 #pragma _NEC vob
-    for(size_t b = 0; b < block_size; b++) { // b: block
+      for(; b < block_size-3; b+=4) { // b: block
+#pragma cdir nodep
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+        for(int v = 0; v < RADIX_SORT_VLEN; v++) { // vector loop, loop raking
+          key0[v] = key_src[block_size * v + b];
+          key1[v] = key_src[block_size * v + b+1];
+          key2[v] = key_src[block_size * v + b+2];
+          key3[v] = key_src[block_size * v + b+3];
+          bucket0[v] = 0xFF - ((key0[v] >> to_shift) & 0xFF); // desc
+          bucket1[v] = 0xFF - ((key1[v] >> to_shift) & 0xFF);
+          bucket2[v] = 0xFF - ((key2[v] >> to_shift) & 0xFF);
+          bucket3[v] = 0xFF - ((key3[v] >> to_shift) & 0xFF);
+          to0[v] = px_bucket_tablep[bucket_ldim * bucket0[v] + v] +
+            posp[block_size * v + b];
+          to1[v] = px_bucket_tablep[bucket_ldim * bucket1[v] + v] +
+            posp[block_size * v + b+1];
+          to2[v] = px_bucket_tablep[bucket_ldim * bucket2[v] + v] +
+            posp[block_size * v + b+2];
+          to3[v] = px_bucket_tablep[bucket_ldim * bucket3[v] + v] +
+            posp[block_size * v + b+3];
+          key_dst[to0[v]] = key0[v];
+          key_dst[to1[v]] = key1[v];
+          key_dst[to2[v]] = key2[v];
+          key_dst[to3[v]] = key3[v];
+#ifdef RADIX_SORT_KV_PAIR
+          val_dst[to0[v]] = val_src[block_size * v + b];
+          val_dst[to1[v]] = val_src[block_size * v + b+1];
+          val_dst[to2[v]] = val_src[block_size * v + b+2];
+          val_dst[to3[v]] = val_src[block_size * v + b+3];
+#endif
+        }
+      }
+    }
+#pragma _NEC vob
+    for(; b < block_size; b++) { // b: block
 #pragma cdir nodep
 #pragma _NEC ivdep
 #pragma _NEC vovertake
       for(int v = 0; v < RADIX_SORT_VLEN; v++) { // vector loop, loop raking
-        key0[v] = key_src0[block_size * v + b];
-        key1[v] = key_src1[block_size * v + b];
-        key2[v] = key_src2[block_size * v + b];
-        key3[v] = key_src3[block_size * v + b];
+        auto key = key_src[block_size * v + b];
+        int bucket = 0xFF - ((key >> to_shift) & 0xFF); // desc
+        size_t to = px_bucket_tablep[bucket_ldim * bucket + v] +
+          posp[block_size * v + b];
+        key_dst[to] = key;
 #ifdef RADIX_SORT_KV_PAIR
-        val0[v] = val_src0[block_size * v + b];
-        val1[v] = val_src1[block_size * v + b];
-        val2[v] = val_src2[block_size * v + b];
-        val3[v] = val_src3[block_size * v + b];
-#endif
-        bucket0[v] = 0xFF - ((key0[v] >> to_shift) & 0xFF); // desc
-        bucket1[v] = 0xFF - ((key1[v] >> to_shift) & 0xFF);
-        bucket2[v] = 0xFF - ((key2[v] >> to_shift) & 0xFF);
-        bucket3[v] = 0xFF - ((key3[v] >> to_shift) & 0xFF);
-        to0[v] = px_bucket_tablep0[bucket_ldim * bucket0[v] + v] +
-          posp0[block_size * v + b];
-        to1[v] = px_bucket_tablep1[bucket_ldim * bucket1[v] + v] +
-          posp1[block_size * v + b];
-        to2[v] = px_bucket_tablep2[bucket_ldim * bucket2[v] + v] +
-          posp2[block_size * v + b];
-        to3[v] = px_bucket_tablep3[bucket_ldim * bucket3[v] + v] +
-          posp3[block_size * v + b];
-        key_dst[to0[v]] = key0[v];
-        key_dst[to1[v]] = key1[v];
-        key_dst[to2[v]] = key2[v];
-        key_dst[to3[v]] = key3[v];
-#ifdef RADIX_SORT_KV_PAIR
-        val_dst[to0[v]] = val0[v];
-        val_dst[to1[v]] = val1[v];
-        val_dst[to2[v]] = val2[v];
-        val_dst[to3[v]] = val3[v];
+        val_dst[to] = val_src[block_size * v + b];
 #endif
       }
     }
-    v = RADIX_SORT_VLEN * 4;
+    v = RADIX_SORT_VLEN;
 #pragma cdir nodep
 #pragma _NEC ivdep
 #pragma _NEC vovertake
