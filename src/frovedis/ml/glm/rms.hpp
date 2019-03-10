@@ -19,8 +19,9 @@ T get_rms(const MODEL& model) {
 
   T sum = 0;
   size_t numFeatures = model.get_num_features();
+  auto weightp = model.weight.data();
   for(size_t i=0; i<numFeatures; i++) {
-     sum += model.weight[i] * model.weight[i];
+     sum += weightp[i] * weightp[i];
 #ifdef _RMS_DEBUG_
      std::cout << sum << " ";
 #endif
