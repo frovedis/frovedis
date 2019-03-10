@@ -3,6 +3,7 @@
 
 #include <cfloat>
 #include <climits>
+#include <limits>
 
 #include "../../matrix/jds_crs_hybrid.hpp"
 #include "../../matrix/rowmajor_matrix.hpp"
@@ -71,6 +72,7 @@ void calc_norm_helper(rowmajor_matrix_local<T>& centroid,
   auto mystart = each * get_selfid();
   auto myend = std::min(dim, each * (get_selfid() + 1));
 #pragma cdir novector // should be small
+#pragma _NEC novector
   for(size_t k = 0; k < num_centroids; k++) {
 #pragma cdir vector
     for(size_t i = mystart; i < myend; i++) {
@@ -116,8 +118,9 @@ void kmeans_calc_sum(jds_crs_hybrid_local<T,I,O>& mat,
   occurrence.clear();
   occurrence.resize(num_centroids);
   size_t* occurrencep = &occurrence[0];
+  auto Tmax = std::numeric_limits<T>::max();
   for(size_t r = 0; r < num_samples; r++) {
-    T min = DBL_MAX;
+    T min = Tmax;
     int pos = INT_MAX;
     for(size_t c = 0; c < num_centroids; c++) {
       if(prodvalp[num_centroids * r + c] < min) {
@@ -192,8 +195,9 @@ void kmeans_calc_sum(jds_matrix_local<T,I,O>& mat,
   occurrence.clear();
   occurrence.resize(num_centroids);
   size_t* occurrencep = &occurrence[0];
+  auto Tmax = std::numeric_limits<T>::max();
   for(size_t r = 0; r < num_samples; r++) {
-    T min = DBL_MAX;
+    T min = Tmax;
     int pos = INT_MAX;
     for(size_t c = 0; c < num_centroids; c++) {
       if(prodvalp[num_centroids * r + c] < min) {
@@ -258,8 +262,9 @@ void kmeans_calc_sum(crs_matrix_local<T,I,O>& mat,
   occurrence.clear();
   occurrence.resize(num_centroids);
   size_t* occurrencep = &occurrence[0];
+  auto Tmax = std::numeric_limits<T>::max();
   for(size_t r = 0; r < num_samples; r++) {
-    T min = DBL_MAX;
+    T min = Tmax;
     int pos = INT_MAX;
     for(size_t c = 0; c < num_centroids; c++) {
       if(prodvalp[num_centroids * r + c] < min) {
@@ -318,8 +323,9 @@ void kmeans_calc_sum_rowmajor(rowmajor_matrix_local<T>& mat,
   occurrence.clear();
   occurrence.resize(num_centroids);
   size_t* occurrencep = &occurrence[0];
+  auto Tmax = std::numeric_limits<T>::max();
   for(size_t r = 0; r < num_samples; r++) {
-    T min = DBL_MAX;
+    T min = Tmax;
     int pos = INT_MAX;
     for(size_t c = 0; c < num_centroids; c++) {
       if(prodvalp[num_centroids * r + c] < min) {
@@ -568,8 +574,9 @@ std::vector<int> kmeans_assign_cluster(crs_matrix_local<T,I,O>& mat,
     }
   }
   t.show(" norm minus product: ");
+  auto Tmax = std::numeric_limits<T>::max();
   for(size_t r = 0; r < num_samples; r++) {
-    T min = DBL_MAX;
+    T min = Tmax;
     int pos = INT_MAX;
     for(size_t c = 0; c < num_centroids; c++) {
       if(prodvalp[num_centroids * r + c] < min) {
@@ -606,8 +613,9 @@ std::vector<int> kmeans_assign_cluster(rowmajor_matrix_local<T>& mat,
     }
   }
   t.show(" norm minus product: ");
+  auto Tmax = std::numeric_limits<T>::max();
   for(size_t r = 0; r < num_samples; r++) {
-    T min = DBL_MAX;
+    T min = Tmax;
     int pos = INT_MAX;
     for(size_t c = 0; c < num_centroids; c++) {
       if(prodvalp[num_centroids * r + c] < min) {
