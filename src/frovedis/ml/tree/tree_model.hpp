@@ -534,7 +534,7 @@ const predict_pair<T>& node<T>::predict_impl(
   }
 
   const auto child_ptr = go_left ? left_ptr : right_ptr;
-  return child_ptr->predict_impl<V>(v, num_feats);
+  return child_ptr->template predict_impl<V>(v, num_feats);
 }
 
 template <typename T>
