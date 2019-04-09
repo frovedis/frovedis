@@ -1,7 +1,7 @@
 #python bipython sh
 
 export PYTHONPATH=../main/python:$PYTHONPATH
-export LD_LIBRARY_PATH=../main/lib:$LD_LIBRARY_PATH
+export LD_LIBRARY_PATH=../lib:$LD_LIBRARY_PATH
 
 COMMAND="mpirun -np 2 ../../server/frovedis_server"
 #COMMAND="mpirun -np 1 $FROVEDIS_SERVER" 
