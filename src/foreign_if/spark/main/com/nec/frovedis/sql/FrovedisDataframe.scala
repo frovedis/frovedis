@@ -5,6 +5,10 @@ import com.nec.frovedis.matrix.DTYPE
 import com.nec.frovedis.matrix.{IntDvector,LongDvector}
 import com.nec.frovedis.matrix.{FloatDvector,DoubleDvector}
 import com.nec.frovedis.matrix.{StringDvector,BoolDvector}
+import com.nec.frovedis.matrix.FrovedisRowmajorMatrix
+import com.nec.frovedis.matrix.FrovedisColmajorMatrix
+import com.nec.frovedis.exrpc.FrovedisSparseData
+import com.nec.frovedis.mllib.ModelID
 import org.apache.spark.rdd.RDD
 import org.apache.spark.SparkContext
 import org.apache.spark.mllib.linalg.{Vector,Vectors}
@@ -63,16 +67,16 @@ object DFConverter {
                           wnode: Node,
                           dptr: Long): Iterator[Int] = {
     val lvec = JNISupport.getLocalIntVector(wnode,dptr)
-    val info = JNISupport.checkServerException();
-    if (info != "") throw new java.rmi.ServerException(info);
+    val info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
     return lvec.toIterator
   }
   def to_Int_RDD(proxy: Long, cname: String,
                  dummy: RDD[Boolean],
                  mnode: Node, nodes: Array[Node]): RDD[Int] = {
     val eps = JNISupport.getLocalIntColumnPointers(mnode, proxy, cname)
-    val info = JNISupport.checkServerException();
-    if (info != "") throw new java.rmi.ServerException(info);
+    val info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
     val ret = dummy.mapPartitionsWithIndex((i,x) =>
                     setEachIntPartition(i,nodes(i),eps(i)))
     return ret
@@ -81,16 +85,16 @@ object DFConverter {
                           wnode: Node,
                           dptr: Long): Iterator[Long] = {
     val lvec = JNISupport.getLocalLongVector(wnode,dptr)
-    val info = JNISupport.checkServerException();
-    if (info != "") throw new java.rmi.ServerException(info);
+    val info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
     return lvec.toIterator
   }
   def to_Long_RDD(proxy: Long, cname: String,
                  dummy: RDD[Boolean],
                  mnode: Node, nodes: Array[Node]): RDD[Long] = {
     val eps = JNISupport.getLocalLongColumnPointers(mnode, proxy, cname)
-    val info = JNISupport.checkServerException();
-    if (info != "") throw new java.rmi.ServerException(info);
+    val info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
     val ret = dummy.mapPartitionsWithIndex((i,x) =>
                     setEachLongPartition(i,nodes(i),eps(i)))
     return ret
@@ -99,16 +103,16 @@ object DFConverter {
                           wnode: Node,
                           dptr: Long): Iterator[Float] = {
     val lvec = JNISupport.getLocalFloatVector(wnode,dptr)
-    val info = JNISupport.checkServerException();
-    if (info != "") throw new java.rmi.ServerException(info);
+    val info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
     return lvec.toIterator
   }
   def to_Float_RDD(proxy: Long, cname: String,
                  dummy: RDD[Boolean],
                  mnode: Node, nodes: Array[Node]): RDD[Float] = {
     val eps = JNISupport.getLocalFloatColumnPointers(mnode, proxy, cname)
-    val info = JNISupport.checkServerException();
-    if (info != "") throw new java.rmi.ServerException(info);
+    val info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
     val ret = dummy.mapPartitionsWithIndex((i,x) =>
                     setEachFloatPartition(i,nodes(i),eps(i)))
     return ret
@@ -117,16 +121,16 @@ object DFConverter {
                           wnode: Node,
                           dptr: Long): Iterator[Double] = {
     val lvec = JNISupport.getLocalDoubleVector(wnode,dptr)
-    val info = JNISupport.checkServerException();
-    if (info != "") throw new java.rmi.ServerException(info);
+    val info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
     return lvec.toIterator
   }
   def to_Double_RDD(proxy: Long, cname: String,
                  dummy: RDD[Boolean],
                  mnode: Node, nodes: Array[Node]): RDD[Double] = {
     val eps = JNISupport.getLocalDoubleColumnPointers(mnode, proxy, cname)
-    val info = JNISupport.checkServerException();
-    if (info != "") throw new java.rmi.ServerException(info);
+    val info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
     val ret = dummy.mapPartitionsWithIndex((i,x) =>
                     setEachDoublePartition(i,nodes(i),eps(i)))
     return ret
@@ -135,16 +139,16 @@ object DFConverter {
                           wnode: Node,
                           dptr: Long): Iterator[String] = {
     val lvec = JNISupport.getLocalStringVector(wnode,dptr)
-    val info = JNISupport.checkServerException();
-    if (info != "") throw new java.rmi.ServerException(info);
+    val info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
     return lvec.toIterator
   }
   def to_String_RDD(proxy: Long, cname: String,
                  dummy: RDD[Boolean],
                  mnode: Node, nodes: Array[Node]): RDD[String] = {
     val eps = JNISupport.getLocalStringColumnPointers(mnode, proxy, cname)
-    val info = JNISupport.checkServerException();
-    if (info != "") throw new java.rmi.ServerException(info);
+    val info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
     val ret = dummy.mapPartitionsWithIndex((i,x) =>
                     setEachStringPartition(i,nodes(i),eps(i)))
     return ret
@@ -162,8 +166,7 @@ class FrovedisDataFrame extends java.io.Serializable {
     load (df)
   }
   // internally used, not for user
-  def this(proxy: Long, cc: Array[String], 
-           tt: Array[Short]) = {
+  def this(proxy: Long, cc: Array[String], tt: Array[Short]) = {
     this()
     fdata = proxy
     cols = cc.clone()
@@ -174,8 +177,8 @@ class FrovedisDataFrame extends java.io.Serializable {
     if (fdata != -1) {
       val fs = FrovedisServer.getServerInstance()
       JNISupport.releaseFrovedisDataframe(fs.master_node,fdata)
-      val info = JNISupport.checkServerException();
-      if (info != "") throw new java.rmi.ServerException(info);
+      val info = JNISupport.checkServerException()
+      if (info != "") throw new java.rmi.ServerException(info)
       fdata = -1
       cols = null
       types = null
@@ -186,12 +189,11 @@ class FrovedisDataFrame extends java.io.Serializable {
     if (fdata != -1) {
       val fs = FrovedisServer.getServerInstance()
       JNISupport.showFrovedisDataframe(fs.master_node,fdata)
-      val info = JNISupport.checkServerException();
-      if (info != "") throw new java.rmi.ServerException(info);
+      val info = JNISupport.checkServerException()
+      if (info != "") throw new java.rmi.ServerException(info)
       println
     }
   }
-
   // loading data from a spark dataframe to a frovedis dataframe -> User API
   def load (df: DataFrame) : Unit = {
     /** releasing the old data (if any) */
@@ -209,10 +211,9 @@ class FrovedisDataFrame extends java.io.Serializable {
     }
     val fs = FrovedisServer.getServerInstance()
     fdata = JNISupport.createFrovedisDataframe(fs.master_node,types,cols,dvecs,size)
-    val info = JNISupport.checkServerException();
-    if (info != "") throw new java.rmi.ServerException(info);
+    val info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
   }
-
   // --- Frovedis server side FILTER definition here ---
   // Usage: df.filter(df.col("colA") > 10)
   // Usage: df.filter(df("colA") > 10)
@@ -220,8 +221,8 @@ class FrovedisDataFrame extends java.io.Serializable {
     if(fdata == -1) throw new IllegalArgumentException("Invalid Frovedis dataframe!")
     val fs = FrovedisServer.getServerInstance()
     val proxy = JNISupport.filterFrovedisDataframe(fs.master_node,this.get(),opt.get())
-    val info = JNISupport.checkServerException();
-    if (info != "") throw new java.rmi.ServerException(info);
+    val info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
     return new FrovedisDataFrame(proxy,cols,types)
   }
   // Usage: df.filter($$"colA" > 10)
@@ -249,8 +250,8 @@ class FrovedisDataFrame extends java.io.Serializable {
     val tt = getColumnTypes(targets) // throws exception, if colname not found
     val fs = FrovedisServer.getServerInstance()
     val proxy = JNISupport.selectFrovedisDataframe(fs.master_node,get(),targets,size)
-    val info = JNISupport.checkServerException();
-    if (info != "") throw new java.rmi.ServerException(info);
+    val info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
     return new FrovedisDataFrame(proxy,targets,tt)
   }
   // Usage: df.select("colA")
@@ -276,8 +277,8 @@ class FrovedisDataFrame extends java.io.Serializable {
         throw new IllegalArgumentException("No column named: " + targets(i)) 
     val fs = FrovedisServer.getServerInstance()
     val proxy = JNISupport.sortFrovedisDataframe(fs.master_node,get(),targets,size,isDesc)
-    val info = JNISupport.checkServerException();
-    if (info != "") throw new java.rmi.ServerException(info);
+    val info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
     return new FrovedisDataFrame(proxy,cols,types)
   }
   // Usage: df.sort("colA") 
@@ -327,8 +328,8 @@ class FrovedisDataFrame extends java.io.Serializable {
     val fs = FrovedisServer.getServerInstance()
     val proxy = JNISupport.joinFrovedisDataframes(fs.master_node,
                 this.get(),df.get(),opt.get(),join_type,join_algo)
-    val info = JNISupport.checkServerException();
-    if (info != "") throw new java.rmi.ServerException(info);
+    val info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
     // TODO: remove redundant names
     val new_cols = this.cols ++ df.cols
     val new_types = this.types ++ df.types
@@ -459,8 +460,8 @@ class FrovedisDataFrame extends java.io.Serializable {
     val fs = FrovedisServer.getServerInstance()
     val mnode = fs.master_node
     val wnodes = JNISupport.getWorkerInfo(mnode)
-    val info = JNISupport.checkServerException();
-    if (info != "") throw new java.rmi.ServerException(info);
+    val info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
     val tmp = new Array[Boolean](wnodes.size)
     val dummy = context.parallelize(tmp,wnodes.size)
     var ret = new Array[Any](size)
@@ -507,7 +508,6 @@ class FrovedisDataFrame extends java.io.Serializable {
 
   def get() = fdata
   def columns = cols
-  def tids = types
   def dtypes = cols.zip(get_types())
   def hasColumn(c: String) = cols.indexOf(c) != -1
   def getColumnType(c: String): Short = { 
@@ -527,9 +527,9 @@ class FrovedisDataFrame extends java.io.Serializable {
     if(fdata == -1)  throw new IllegalArgumentException("Invalid Frovedis Dataframe!\n")
     val fs = FrovedisServer.getServerInstance()
     val ret = JNISupport.getFrovedisDFSize(fs.master_node,get())
-    val info = JNISupport.checkServerException();
-    if (info != "") throw new java.rmi.ServerException(info);
-    else return ret;
+    val info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
+    else return ret
   }
   def count(cname: Array[String]): Array[String] = {
     if(fdata == -1)  throw new IllegalArgumentException("Invalid Frovedis Dataframe!\n")
@@ -539,9 +539,9 @@ class FrovedisDataFrame extends java.io.Serializable {
         throw new IllegalArgumentException("No column named: " + cname(i))
     val fs = FrovedisServer.getServerInstance()
     val ret = JNISupport.getFrovedisDFCounts(fs.master_node,get(),cname,size)
-    val info = JNISupport.checkServerException();
-    if (info != "") throw new java.rmi.ServerException(info);
-    else return ret;
+    val info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
+    else return ret
    }
   def count(cname: String*): Array[String] = {
     val all = cname.toArray.map(x => x.toString)
@@ -555,9 +555,9 @@ class FrovedisDataFrame extends java.io.Serializable {
     val size = cname.length
     val fs = FrovedisServer.getServerInstance()
     val ret = JNISupport.getFrovedisDFMeans(fs.master_node,get(),cname,size)
-    val info = JNISupport.checkServerException();
-    if (info != "") throw new java.rmi.ServerException(info);
-    else return ret;
+    val info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
+    else return ret
   }
   def avg(cname: String*): Array[String] = {
     val all = cname.toArray.map(x => x.toString)
@@ -571,9 +571,9 @@ class FrovedisDataFrame extends java.io.Serializable {
     val size = cname.length
     val fs = FrovedisServer.getServerInstance()
     val ret = JNISupport.getFrovedisDFTotals(fs.master_node,get(),cname,tids,size)
-    val info = JNISupport.checkServerException();
-    if (info != "") throw new java.rmi.ServerException(info);
-    else return ret;
+    val info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
+    else return ret
   }
   def sum(cname: Array[String]): Array[String] = {
     val tt = getColumnTypes(cname) // throws exception, if colname not found
@@ -591,9 +591,9 @@ class FrovedisDataFrame extends java.io.Serializable {
     val size = cname.length
     val fs = FrovedisServer.getServerInstance()
     val ret = JNISupport.getFrovedisDFMins(fs.master_node,get(),cname,tids,size)
-    val info = JNISupport.checkServerException();
-    if (info != "") throw new java.rmi.ServerException(info);
-    else return ret;
+    val info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
+    else return ret
   }
   def min(cname: Array[String]): Array[String] = {
     val tt = getColumnTypes(cname) // throws exception, if colname not found
@@ -611,9 +611,9 @@ class FrovedisDataFrame extends java.io.Serializable {
     val size = cname.length
     val fs = FrovedisServer.getServerInstance()
     val ret = JNISupport.getFrovedisDFMaxs(fs.master_node,get(),cname,tids,size)
-    val info = JNISupport.checkServerException();
-    if (info != "") throw new java.rmi.ServerException(info);
-    else return ret; 
+    val info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
+    else return ret
  }
   def max(cname: Array[String]): Array[String] = {
     val tt = getColumnTypes(cname) // throws exception, if colname not found
@@ -631,9 +631,9 @@ class FrovedisDataFrame extends java.io.Serializable {
     val size = cname.length
     val fs = FrovedisServer.getServerInstance()
     val ret = JNISupport.getFrovedisDFStds(fs.master_node,get(),cname,tids,size)
-    val info = JNISupport.checkServerException();
-    if (info != "") throw new java.rmi.ServerException(info);
-    else return ret;
+    val info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
+    else return ret
   }
   def std(cname: Array[String]): Array[String] = {
     val tt = getColumnTypes(cname) // throws exception, if colname not found
@@ -706,11 +706,76 @@ class FrovedisDataFrame extends java.io.Serializable {
     val fs = FrovedisServer.getServerInstance()
     val proxy = JNISupport.renameFrovedisDataframe(fs.master_node,get(),
                                                    name,new_name,size)
-    val info = JNISupport.checkServerException();
-    if (info != "") throw new java.rmi.ServerException(info);
+    val info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
     return new FrovedisDataFrame(proxy,new_cols,types)
   }
   def withColumnRenamed(name: String, new_name: String): FrovedisDataFrame = {
     return withColumnRenamed(Array(name), Array(new_name))
+  }
+  def toFrovedisRowmajorMatrix(name: Array[String]): FrovedisRowmajorMatrix = {
+    if(fdata == -1) throw new IllegalArgumentException("Invalid Frovedis dataframe!")
+    val size = name.size
+    for (i <- 0 to (size-1)) {
+      if(!hasColumn(name(i))) 
+        throw new IllegalArgumentException("No column named: " + name(i))
+    }
+    val fs = FrovedisServer.getServerInstance()
+    val dmat = JNISupport.DFToRowmajorMatrix(fs.master_node,get(),name,size)
+    val info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
+    return new FrovedisRowmajorMatrix(dmat)
+  }
+  def toFrovedisColmajorMatrix(name: Array[String]): FrovedisColmajorMatrix = {
+    if(fdata == -1) throw new IllegalArgumentException("Invalid Frovedis dataframe!")
+    val size = name.size
+    for (i <- 0 to (size-1)) {
+      if(!hasColumn(name(i))) 
+        throw new IllegalArgumentException("No column named: " + name(i))
+    }
+    val fs = FrovedisServer.getServerInstance()
+    val dmat = JNISupport.DFToColmajorMatrix(fs.master_node,get(),name,size)
+    val info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
+    return new FrovedisColmajorMatrix(dmat)
+  }
+  def toFrovedisSparseData(t_cols: Array[String],
+                          cat_cols: Array[String],
+                          need_info: Boolean = false): (FrovedisSparseData,DFtoSparseInfo) = {
+    if(fdata == -1) throw new IllegalArgumentException("Invalid Frovedis dataframe!")
+    val size1 = t_cols.size
+    val size2 = cat_cols.size
+    for (i <- 0 to (size1-1)) {
+      if(!hasColumn(t_cols(i))) 
+        throw new IllegalArgumentException("No column named: " + t_cols(i))
+    }
+    for (i <- 0 to (size2-1)) {
+      if(!(t_cols contains cat_cols(i))) 
+        throw new IllegalArgumentException("Target column list doesn't contain categorical column: " + cat_cols(i))
+    }
+    val fs = FrovedisServer.getServerInstance()
+    val info_id = ModelID.get() // getting unique id for info to be registered at server side
+    val dmat = JNISupport.DFToCRSMatrix(fs.master_node,get(),t_cols,size1,
+                                        cat_cols,size2,info_id)
+    val info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
+
+    val crs_mat = new FrovedisSparseData(dmat)
+    val conv_info = new DFtoSparseInfo(info_id)
+
+    if(need_info) return (crs_mat,conv_info)
+    else {
+      conv_info.release()
+      return (crs_mat,null)
+    }
+  }
+  def toFrovedisSparseData(conv_info: DFtoSparseInfo): FrovedisSparseData = {
+    if(fdata == -1) throw new IllegalArgumentException("Invalid Frovedis dataframe!")
+    if(conv_info.get() == -1) throw new IllegalArgumentException("Invalid sparse conversion info!")
+    val fs = FrovedisServer.getServerInstance()
+    val dmat = JNISupport.DFToCRSMatrixUsingInfo(fs.master_node,get(),conv_info.get())
+    val info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
+    return new FrovedisSparseData(dmat)
   }
 }

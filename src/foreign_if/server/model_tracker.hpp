@@ -26,26 +26,27 @@ enum MODEL_KIND {
   DTM,
   NBM,
   FMM,
-  FPM
+  FPM,
+  FPR,
+  SPARSE_CONV_INFO
 };
 
-enum DMAT_KIND {
+enum MAT_KIND {
   RMJR = 1,
   CMJR = 2,
   BCLC = 3,
-  RMJR_L = (20 + RMJR),
-  CMJR_L = (20 + CMJR),
-  BCLC_L = (20 + BCLC)
+  SCRS = 4,
+  SCCS = 5,
+  SELL = 6,
+  SHYBRID = 7,
+  RMJR_L = 101,
+  CMJR_L = 102,
+  BCLC_L = 103,
+  SCRS_L = 104,
+  SCCS_L = 105,
+  SELL_L = 106,
+  SHYBRID_L = 107
 };
-
-/*
-enum SMAT_KIND {
-  CRS = 1,
-  CCS = 2,
-  ELL = 3,
-  HYBRID = 4
-};
-*/
 
 enum DTYPE {
   INT = 1,

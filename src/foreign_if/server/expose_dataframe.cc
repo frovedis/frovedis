@@ -36,4 +36,15 @@ void expose_frovedis_dataframe_functions() {
   expose(get_df_double_col);
   expose(get_df_string_col);
   expose(frovedis_gdf_aggr);
+  expose(df_to_colmajor_float);
+  expose(df_to_colmajor_double);
+  expose(df_to_rowmajor_float);
+  expose(df_to_rowmajor_double);
+  expose(df_to_crs_float);
+  expose(df_to_crs_double);
+  expose(df_to_crs_float_using_info);
+  expose(df_to_crs_double_using_info);
+  expose(load_sparse_conversion_info);
+  expose(save_sparse_conversion_info);
+  expose(release_sparse_conversion_info);
 }

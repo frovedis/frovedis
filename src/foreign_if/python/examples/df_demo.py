@@ -3,6 +3,7 @@
 from frovedis.exrpc.server import FrovedisServer
 from frovedis.dataframe.df import FrovedisDataframe
 import sys
+import numpy as np
 import pandas as pd
 
 # initializing the Frovedis server
@@ -96,13 +97,38 @@ print(fdf1.describe()); print("\n")
 data = {'one': [10, 12, 13, 15],
         'two': [10.23, 12.20, 34.90, 100.12],
         'three': ['F', 'F', 'D', 'A'],
-        'four': [1, 2, 3, 4]
+        'four': [0, 0, 1, 2]
        }
 pdf = pd.DataFrame(data)
 print(pdf.describe()); print("\n")
 df = FrovedisDataframe(pdf)
 print(df.describe()); print("\n") # prints count, mean, std, sum, min, max
+
+
+# matrix conversion demo
+df.show()
+
+row_mat = df.to_frovedis_rowmajor_matrix(['one', 'two'], dtype=np.float64)
+row_mat.debug_print()
+
+col_mat = df.to_frovedis_colmajor_matrix(['one', 'two']) # default dtype = float32
+col_mat.debug_print()
+
+crs_mat,info = df.to_frovedis_crs_matrix(['one', 'two', 'four'], 
+                                         ['four'], need_info=True) # default dtype = float32
+crs_mat.debug_print()
+
+crs_mat2 = df.to_frovedis_crs_matrix_using_info(info)
+crs_mat2.debug_print()
+
 df.release()
+row_mat.release()
+col_mat.release()
+crs_mat.release()
+crs_mat2.release()
+info.save("info")
+info.release()
+
 
 fdf1.release()
 fdf2.release()

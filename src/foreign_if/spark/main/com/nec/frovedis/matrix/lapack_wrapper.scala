@@ -6,7 +6,7 @@ import com.nec.frovedis.Jexrpc.FrovedisServer
 object LAPACK {
   def getrf(mat: FrovedisColmajorMatrix): GetrfResult = {
     val fs = FrovedisServer.getServerInstance()
-    val r = JNISupport.getrf(fs.master_node,DMAT_KIND.CMJR,mat.get())
+    val r = JNISupport.getrf(fs.master_node,MAT_KIND.CMJR,mat.get())
     val info = JNISupport.checkServerException();
     if (info != "") throw new java.rmi.ServerException(info);
     return new GetrfResult(r)
@@ -15,7 +15,7 @@ object LAPACK {
   def getri(mat: FrovedisColmajorMatrix,
             ipiv_ptr: Long) : Int = {
     val fs = FrovedisServer.getServerInstance()
-    val ret = JNISupport.getri(fs.master_node,DMAT_KIND.CMJR,
+    val ret = JNISupport.getri(fs.master_node,MAT_KIND.CMJR,
                             mat.get(),ipiv_ptr)
     val info = JNISupport.checkServerException();
     if (info != "") throw new java.rmi.ServerException(info);
@@ -33,7 +33,7 @@ object LAPACK {
             ipiv_ptr: Long,
             isTrans: Boolean) : Int = {
     val fs = FrovedisServer.getServerInstance()
-    val ret = JNISupport.getrs(fs.master_node,DMAT_KIND.CMJR,
+    val ret = JNISupport.getrs(fs.master_node,MAT_KIND.CMJR,
                             matA.get(),matB.get(),
                             ipiv_ptr,isTrans)
     val info = JNISupport.checkServerException();
@@ -45,7 +45,7 @@ object LAPACK {
   def gesv(matA: FrovedisColmajorMatrix,
            matB: FrovedisColmajorMatrix): Int = {
     val fs = FrovedisServer.getServerInstance()
-    val ret =  JNISupport.gesv(fs.master_node,DMAT_KIND.CMJR,
+    val ret =  JNISupport.gesv(fs.master_node,MAT_KIND.CMJR,
                            matA.get(),matB.get())
     val info = JNISupport.checkServerException();
     if (info != "") throw new java.rmi.ServerException(info);
@@ -62,7 +62,7 @@ object LAPACK {
            matB: FrovedisColmajorMatrix,
            isTrans: Boolean): Int = {
     val fs = FrovedisServer.getServerInstance()
-    val ret =  JNISupport.gels(fs.master_node,DMAT_KIND.CMJR,
+    val ret =  JNISupport.gels(fs.master_node,MAT_KIND.CMJR,
                            matA.get(),matB.get(),isTrans)
     val info = JNISupport.checkServerException();
     if (info != "") throw new java.rmi.ServerException(info);
@@ -78,7 +78,7 @@ object LAPACK {
             wantU: Boolean,
             wantV: Boolean) :  GesvdResult = { 
     val fs = FrovedisServer.getServerInstance()
-    val ret = JNISupport.gesvd(fs.master_node,DMAT_KIND.CMJR,
+    val ret = JNISupport.gesvd(fs.master_node,MAT_KIND.CMJR,
                                mat.get(),wantU,wantV)
     val info = JNISupport.checkServerException();
     if (info != "") throw new java.rmi.ServerException(info);

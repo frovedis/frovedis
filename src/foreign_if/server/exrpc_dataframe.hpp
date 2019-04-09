@@ -4,7 +4,9 @@
 #include <frovedis/dataframe.hpp>
 #include <frovedis/dataframe/dfaggregator.hpp>
 #include "../exrpc/exrpc_expose.hpp"
-#include "model_tracker.hpp" // for OPTYPE
+#include "model_tracker.hpp" // for OPTYPE, model_table to register sparse_conv_info
+#include "frovedis_mem_pair.hpp"
+#include "dummy_matrix.hpp"
 
 using namespace frovedis;
 
@@ -128,5 +130,37 @@ exrpc_ptr_t frovedis_gdf_aggr(exrpc_ptr_t& df_proxy,
                               std::vector<std::string>& aggFuncs,
                               std::vector<std::string>& aggCols,
                               std::vector<std::string>& aggAsCols);
+
+dummy_matrix df_to_colmajor_float(exrpc_ptr_t& df_proxy,
+                                  std::vector<std::string>& t_cols);
+
+dummy_matrix df_to_colmajor_double(exrpc_ptr_t& df_proxy,
+                                   std::vector<std::string>& t_cols);
+
+dummy_matrix df_to_rowmajor_float(exrpc_ptr_t& df_proxy,
+                                  std::vector<std::string>& t_cols);
+
+dummy_matrix df_to_rowmajor_double(exrpc_ptr_t& df_proxy,
+                                   std::vector<std::string>& t_cols);
+
+dummy_matrix df_to_crs_float(exrpc_ptr_t& df_proxy,
+                             std::vector<std::string>& t_cols,
+                             std::vector<std::string>& cat_cols,
+                             long& info_id);
+
+dummy_matrix df_to_crs_double(exrpc_ptr_t& df_proxy,
+                              std::vector<std::string>& t_cols,
+                              std::vector<std::string>& cat_cols,
+                              long& info_id);
+
+dummy_matrix df_to_crs_float_using_info(exrpc_ptr_t& df_proxy,
+                                        long& info_id);
+
+dummy_matrix df_to_crs_double_using_info(exrpc_ptr_t& df_proxy,
+                                         long& info_id);
+
+void load_sparse_conversion_info(long& info_id, std::string&); 
+void save_sparse_conversion_info(long& info_id, std::string&); 
+void release_sparse_conversion_info(long& info_id); 
 
 #endif

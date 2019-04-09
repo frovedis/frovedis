@@ -90,9 +90,36 @@ object FrovedisDataframeDemo {
     df1.avg("Age").foreach(println)
     df1.std("Age").foreach(println)
 
+    val sampleDF = sc.textFile("./input/sample.txt")
+                     .map(_.split(","))
+                     .map(attributes => (attributes(0).trim.toInt, attributes(1).trim.toInt))
+                     .toDF("A","B")
+    val df5 = new FrovedisDataFrame(sampleDF)
+    df5.show()
+
+    // converting into the matrices from specific dataframe columns
+    val rmat = df5.toFrovedisRowmajorMatrix(Array("A", "B"))
+    val cmat = df5.toFrovedisColmajorMatrix(Array("A", "B"))
+    val (crsmat1,info) = df5.toFrovedisSparseData(Array("A", "B"), Array("A"), true)
+    val crsmat2 = df5.toFrovedisSparseData(info)
+
+    // displaying the converted matrices
+    rmat.debug_print()
+    cmat.debug_print()
+    crsmat1.debug_print()
+    crsmat2.debug_print()
+
     // releasing the dataframe objects from frovedis side
     df1.release()
     df2.release()
+    df3.release()
+    df4.release()
+    df5.release()
+    rmat.release()
+    cmat.release()
+    crsmat1.release()
+    crsmat2.release()
+    info.release()
 
     FrovedisServer.shut_down()
     sc.stop()

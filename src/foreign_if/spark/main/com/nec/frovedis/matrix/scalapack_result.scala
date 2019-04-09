@@ -141,28 +141,28 @@ class GesvdResult extends java.io.Serializable {
     // TODO - assert(sfl != null)
     val wantU = if(ufl == null) false else true
     val wantV = if(vfl == null) false else true
-    load_impl(sfl,ufl,vfl,wantU,wantV,DMAT_KIND.BCLC,false)
+    load_impl(sfl,ufl,vfl,wantU,wantV,MAT_KIND.BCLC,false)
   }
   def load_as_colmajor(sfl: String, 
                        ufl: String, vfl: String): Unit = {
     // TODO - assert(sfl != null)
     val wantU = if(ufl == null) false else true
     val wantV = if(vfl == null) false else true
-    load_impl(sfl,ufl,vfl,wantU,wantV,DMAT_KIND.CMJR,false)
+    load_impl(sfl,ufl,vfl,wantU,wantV,MAT_KIND.CMJR,false)
   }
   def loadbinary_as_blockcyclic(sfl: String, 
                                 ufl: String, vfl: String): Unit = {
     // TODO - assert(sfl != null)
     val wantU = if(ufl == null) false else true
     val wantV = if(vfl == null) false else true
-    load_impl(sfl,ufl,vfl,wantU,wantV,DMAT_KIND.BCLC,true)
+    load_impl(sfl,ufl,vfl,wantU,wantV,MAT_KIND.BCLC,true)
   }
   def loadbinary_as_colmajor(sfl: String, 
                              ufl: String, vfl: String): Unit = {
     // TODO - assert(sfl != null)
     val wantU = if(ufl == null) false else true
     val wantV = if(vfl == null) false else true
-    load_impl(sfl,ufl,vfl,wantU,wantV,DMAT_KIND.CMJR,true)
+    load_impl(sfl,ufl,vfl,wantU,wantV,MAT_KIND.CMJR,true)
   }
   def release() : Unit = {
     if(svec_ptr != -1) {

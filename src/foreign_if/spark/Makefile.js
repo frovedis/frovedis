@@ -22,10 +22,11 @@ all:
 	 ${SCALA_HOME}/bin/scalac -cp "./bin:${SPARK_HOME}/jars/*:${HDPATH}" -sourcepath . -d bin ./main/com/nec/frovedis/matrix/RowMatrixUtils.scala
 	 ${SCALA_HOME}/bin/scalac -cp "./bin:${SPARK_HOME}/jars/*:${HDPATH}" -sourcepath . -d bin ./main/com/nec/frovedis/sql/Expr.scala
 	 ${SCALA_HOME}/bin/scalac -cp "./bin:${SPARK_HOME}/jars/*:${HDPATH}" -sourcepath . -d bin ./main/com/nec/frovedis/sql/DFOperator.scala
+	 ${SCALA_HOME}/bin/scalac -cp "./bin:${SPARK_HOME}/jars/*:${HDPATH}" -sourcepath . -d bin ./main/com/nec/frovedis/mllib/GenericModel.scala
+	 ${SCALA_HOME}/bin/scalac -cp "./bin:${SPARK_HOME}/jars/*:${HDPATH}" -sourcepath . -d bin ./main/com/nec/frovedis/sql/DFtoSparseInfo.scala
 	 ${SCALA_HOME}/bin/scalac -cp "./bin:${SPARK_HOME}/jars/*:${HDPATH}" -sourcepath . -d bin ./main/com/nec/frovedis/sql/FrovedisTypedColumn.scala
 	 ${SCALA_HOME}/bin/scalac -cp "./bin:${SPARK_HOME}/jars/*:${HDPATH}" -sourcepath . -d bin ./main/com/nec/frovedis/sql/FrovedisColumn.scala
 	 ${SCALA_HOME}/bin/scalac -cp "./bin:${SPARK_HOME}/jars/*:${HDPATH}" -sourcepath . -d bin ./main/com/nec/frovedis/sql/FrovedisDataframe.scala
-	 ${SCALA_HOME}/bin/scalac -cp "./bin:${SPARK_HOME}/jars/*:${HDPATH}" -sourcepath . -d bin ./main/com/nec/frovedis/mllib/GenericModel.scala
 	 ${SCALA_HOME}/bin/scalac -cp "./bin:${SPARK_HOME}/jars/*:${HDPATH}" -sourcepath . -d bin ./main/com/nec/frovedis/mllib/regression/GeneralizedLinearAlgorithm.scala
 	 ${SCALA_HOME}/bin/scalac -cp "./bin:${SPARK_HOME}/jars/*:${HDPATH}" -sourcepath . -d bin ./main/com/nec/frovedis/mllib/regression/LinearRegression.scala
 	 ${SCALA_HOME}/bin/scalac -cp "./bin:${SPARK_HOME}/jars/*:${HDPATH}" -sourcepath . -d bin ./main/com/nec/frovedis/mllib/regression/Lasso.scala

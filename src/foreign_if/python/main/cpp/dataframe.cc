@@ -436,4 +436,129 @@ extern "C" {
     return ret;
   }
 
+  PyObject* df_to_rowmajor(const char* host, int port, long proxy,
+                           const char** cols, int size, 
+                           short dtype) {
+    ASSERT_PTR(host);
+    exrpc_node fm_node(host, port);
+    auto df_proxy = static_cast<exrpc_ptr_t> (proxy);
+    std::vector<std::string> cc(size);
+    for(size_t i = 0; i < size; ++i) cc[i] = std::string(cols[i]);
+    dummy_matrix dmat;
+    try {
+      switch(dtype) {
+        case FLOAT:  dmat = exrpc_async(fm_node,df_to_rowmajor_float,df_proxy,cc).get(); break;
+        case DOUBLE: dmat = exrpc_async(fm_node,df_to_rowmajor_double,df_proxy,cc).get(); break;
+        default: REPORT_ERROR(USER_ERROR, 
+                 "Unsupported dataframe to matrix conversion dtype is encountered!\n");
+      };
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return to_py_dummy_matrix(dmat);
+  }
+
+  PyObject* df_to_colmajor(const char* host, int port, long proxy,
+                           const char** cols, int size, 
+                           short dtype) {
+    ASSERT_PTR(host);
+    exrpc_node fm_node(host, port);
+    auto df_proxy = static_cast<exrpc_ptr_t> (proxy);
+    std::vector<std::string> cc(size);
+    for(size_t i = 0; i < size; ++i) cc[i] = std::string(cols[i]);
+    dummy_matrix dmat;
+    try {
+      switch(dtype) {
+        case FLOAT:  dmat = exrpc_async(fm_node,df_to_colmajor_float,df_proxy,cc).get(); break;
+        case DOUBLE: dmat = exrpc_async(fm_node,df_to_colmajor_double,df_proxy,cc).get(); break;
+        default: REPORT_ERROR(USER_ERROR, 
+                 "Unsupported dataframe to matrix conversion dtype is encountered!\n");
+      };
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return to_py_dummy_matrix(dmat);
+  }
+
+  PyObject* df_to_crs(const char* host, int port, long proxy,
+                      const char** cols, int size1,
+                      const char** cat_cols, int size2,
+                      long info_id, short dtype) {
+    ASSERT_PTR(host);
+    exrpc_node fm_node(host, port);
+    auto df_proxy = static_cast<exrpc_ptr_t> (proxy);
+    std::vector<std::string> cc1(size1), cc2(size2);
+    for(size_t i = 0; i < size1; ++i) cc1[i] = std::string(cols[i]);
+    for(size_t i = 0; i < size2; ++i) cc2[i] = std::string(cat_cols[i]);
+    dummy_matrix dmat;
+    try {
+      switch(dtype) {
+        case FLOAT:  dmat = exrpc_async(fm_node,df_to_crs_float,df_proxy,cc1,cc2,info_id).get(); break;
+        case DOUBLE: dmat = exrpc_async(fm_node,df_to_crs_double,df_proxy,cc1,cc2,info_id).get(); break;
+        default: REPORT_ERROR(USER_ERROR,
+                 "Unsupported dataframe to matrix conversion dtype is encountered!\n");
+      };
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return to_py_dummy_matrix(dmat);
+  }
+
+  PyObject* df_to_crs_using_info(const char* host, int port, long proxy,
+                                 long info_id, short dtype) {
+    ASSERT_PTR(host);
+    exrpc_node fm_node(host, port);
+    auto df_proxy = static_cast<exrpc_ptr_t> (proxy);
+    dummy_matrix dmat;
+    try {
+      switch(dtype) {
+        case FLOAT:  dmat = exrpc_async(fm_node,df_to_crs_float_using_info,df_proxy,info_id).get(); break;
+        case DOUBLE: dmat = exrpc_async(fm_node,df_to_crs_double_using_info,df_proxy,info_id).get(); break;
+        default: REPORT_ERROR(USER_ERROR,
+                 "Unsupported dataframe to matrix conversion dtype is encountered!\n");
+      };
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return to_py_dummy_matrix(dmat);
+  }
+
+  void load_dftable_to_sparse_info(const char* host, int port,
+                                   long info_id, const char* dirname) {
+    ASSERT_PTR(host);
+    exrpc_node fm_node(host, port);
+    try {
+      exrpc_oneway(fm_node,load_sparse_conversion_info,info_id,std::string(dirname));
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+  }
+
+  void save_dftable_to_sparse_info(const char* host, int port,
+                                   long info_id, const char* dirname) {
+    ASSERT_PTR(host);
+    exrpc_node fm_node(host, port);
+    try {
+      exrpc_oneway(fm_node,save_sparse_conversion_info,info_id,std::string(dirname));
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+  }
+
+  void release_dftable_to_sparse_info(const char* host, int port, long info_id) {
+    ASSERT_PTR(host);
+    exrpc_node fm_node(host, port);
+    try {
+      exrpc_oneway(fm_node,release_sparse_conversion_info,info_id);
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+  }
 }

@@ -9,6 +9,11 @@ from ..exrpc.rpclib import *
 from ..exrpc.server import *
 from ..matrix.dvector import *
 from ..matrix.dtype import *
+from ..matrix.dense import FrovedisRowmajorMatrix
+from ..matrix.dense import FrovedisColmajorMatrix
+from ..matrix.crs import FrovedisCRSMatrix
+from ..mllib.model_util import ModelID
+from .info import df_to_sparse_info
 from .frovedisColumn import *
 
 class FrovedisDataframe :
@@ -508,4 +513,108 @@ class FrovedisDataframe :
       data[cols[i]] = col_val
     #print(data)
     return pd.DataFrame(data)
+
+  def to_frovedis_rowmajor_matrix(cls,t_cols,dtype=np.float32): #default type: float
+    if cls.__fdata is None: 
+      raise ValueError("Operation on invalid frovedis dataframe!")
+    for item in t_cols: # implicit checks for iterable on 't_cols'
+      if item not in cls.__cols: raise ValueError("No column named: ", item)
+    sz = len(t_cols)
+    cols = np.asarray(t_cols)
+    cols_ptr = (c_char_p * sz)()
+    cols_ptr[:] = [e.encode('ascii') for e in cols.T]
+    (host, port) = FrovedisServer.getServerInstance()
+    if (dtype == np.float32):
+      dmat = rpclib.df_to_rowmajor(host,port,cls.get(),
+                                   cols_ptr,sz,DTYPE.FLOAT)
+    elif (dtype == np.float64):
+      dmat = rpclib.df_to_rowmajor(host,port,cls.get(),
+                                   cols_ptr,sz,DTYPE.DOUBLE)
+    else: 
+       raise TypeError("Supported types: float32/float64; Found: " + dtype.__name__)
+    excpt = rpclib.check_server_exception()
+    if excpt["status"]: raise RuntimeError(excpt["info"]) 
+    return FrovedisRowmajorMatrix(mat=dmat,dtype=dtype)
+    
+  def to_frovedis_colmajor_matrix(cls,t_cols,dtype=np.float32): #default type: float
+    if cls.__fdata is None: 
+      raise ValueError("Operation on invalid frovedis dataframe!")
+    for item in t_cols: # implicit checks for iterable on 't_cols'
+      if item not in cls.__cols: raise ValueError("No column named: ", item)
+    sz = len(t_cols)
+    cols = np.asarray(t_cols)
+    cols_ptr = (c_char_p * sz)()
+    cols_ptr[:] = [e.encode('ascii') for e in cols.T]
+    (host, port) = FrovedisServer.getServerInstance()
+    if (dtype == np.float32):
+      dmat = rpclib.df_to_colmajor(host,port,cls.get(),
+                                   cols_ptr,sz,DTYPE.FLOAT)
+    elif (dtype == np.float64):
+      dmat = rpclib.df_to_colmajor(host,port,cls.get(),
+                                   cols_ptr,sz,DTYPE.DOUBLE)
+    else: 
+       raise TypeError("Supported types: float32/float64; Found: " + dtype.__name__)
+    excpt = rpclib.check_server_exception()
+    if excpt["status"]: raise RuntimeError(excpt["info"]) 
+    return FrovedisColmajorMatrix(mat=dmat,dtype=dtype)
+
+  def to_frovedis_crs_matrix(cls,t_cols,cat_cols,
+                             dtype=np.float32, #default type: float
+                             need_info=False):
+    if cls.__fdata is None: 
+      raise ValueError("Operation on invalid frovedis dataframe!")
+    for item in t_cols: # implicit checks for iterable on 't_cols'
+      if item not in cls.__cols: raise ValueError("No column named: ", item)
+    for item in cat_cols: # implicit checks for iterable on 'cat_cols'
+      if item not in t_cols:
+        raise ValueError("target column list doesn't contain categorical column: ", item)
+    sz1 = len(t_cols)
+    cols = np.asarray(t_cols)
+    cols_ptr = (c_char_p * sz1)()
+    cols_ptr[:] = [e.encode('ascii') for e in cols.T]
+    sz2 = len(cat_cols)
+    cat_cols = np.asarray(cat_cols)
+    cat_cols_ptr = (c_char_p * sz2)()
+    cat_cols_ptr[:] = [e.encode('ascii') for e in cat_cols.T]
+    info_id = ModelID.get() # getting unique id for info to be registered at server side
+    (host, port) = FrovedisServer.getServerInstance()
+    if (dtype == np.float32):
+      dmat = rpclib.df_to_crs(host,port,cls.get(),
+                              cols_ptr,sz1,
+                              cat_cols_ptr,sz2,
+                              info_id,DTYPE.FLOAT)
+    elif (dtype == np.float64):
+      dmat = rpclib.df_to_crs(host,port,cls.get(),
+                              cols_ptr,sz1,
+                              cat_cols_ptr,sz2,
+                              info_id,DTYPE.DOUBLE)
+    else: 
+      raise TypeError("Supported types: float32/float64; Found: " + dtype.__name__)
+    excpt = rpclib.check_server_exception()
+    if excpt["status"]: raise RuntimeError(excpt["info"])
+    crs = FrovedisCRSMatrix(mat=dmat,dtype=dtype,itype=np.int64) #default at server: size_t
+    info = df_to_sparse_info(info_id)
+
+    if(need_info): 
+      return crs,info
+    else: 
+      info.release()
+      return crs
+
+  def to_frovedis_crs_matrix_using_info(cls,info,dtype=np.float32): #default type: float 
+    if cls.__fdata is None: 
+      raise ValueError("Operation on invalid frovedis dataframe!")
+    if info.get() is None: 
+      raise ValueError("Operation on invalid frovedis dataframe conversion info!")
+    (host, port) = FrovedisServer.getServerInstance()
+    if (dtype == np.float32):
+      dmat = rpclib.df_to_crs_using_info(host,port,cls.get(),info.get(),DTYPE.FLOAT)
+    elif (dtype == np.float64):
+      dmat = rpclib.df_to_crs_using_info(host,port,cls.get(),info.get(),DTYPE.DOUBLE)
+    else: 
+      raise TypeError("Supported types: float32/float64; Found: " + dtype.__name__)
+    excpt = rpclib.check_server_exception()
+    if excpt["status"]: raise RuntimeError(excpt["info"])
+    return FrovedisCRSMatrix(mat=dmat,dtype=dtype,itype=np.int64) #default at server: size_t 
+
     

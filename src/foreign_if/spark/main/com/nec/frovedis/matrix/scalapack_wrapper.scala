@@ -6,14 +6,14 @@ import com.nec.frovedis.Jexrpc.FrovedisServer
 object ScaLAPACK {
   def getrf(mat: FrovedisBlockcyclicMatrix): GetrfResult = {
     val fs = FrovedisServer.getServerInstance()
-    val r = JNISupport.getrf(fs.master_node,DMAT_KIND.BCLC,mat.get())
+    val r = JNISupport.getrf(fs.master_node,MAT_KIND.BCLC,mat.get())
     return new GetrfResult(r)
   }
 
   def getri(mat: FrovedisBlockcyclicMatrix,
             ipiv_ptr: Long) : Int = {
     val fs = FrovedisServer.getServerInstance()
-    val ret = JNISupport.getri(fs.master_node,DMAT_KIND.BCLC,
+    val ret = JNISupport.getri(fs.master_node,MAT_KIND.BCLC,
                             mat.get(),ipiv_ptr)
     val info = JNISupport.checkServerException();
     if (info != "") throw new java.rmi.ServerException(info);
@@ -31,7 +31,7 @@ object ScaLAPACK {
             ipiv_ptr: Long,
             isTrans: Boolean) : Int = {
     val fs = FrovedisServer.getServerInstance()
-    val ret = JNISupport.getrs(fs.master_node,DMAT_KIND.BCLC,
+    val ret = JNISupport.getrs(fs.master_node,MAT_KIND.BCLC,
                             matA.get(),matB.get(),
                             ipiv_ptr,isTrans)
     val info = JNISupport.checkServerException();
@@ -42,7 +42,7 @@ object ScaLAPACK {
   def gesv(matA: FrovedisBlockcyclicMatrix,
            matB: FrovedisBlockcyclicMatrix): Int = {
     val fs = FrovedisServer.getServerInstance()
-    val ret = JNISupport.gesv(fs.master_node,DMAT_KIND.BCLC,
+    val ret = JNISupport.gesv(fs.master_node,MAT_KIND.BCLC,
                            matA.get(),matB.get())
     val info = JNISupport.checkServerException();
     if (info != "") throw new java.rmi.ServerException(info);
@@ -58,7 +58,7 @@ object ScaLAPACK {
            matB: FrovedisBlockcyclicMatrix,
            isTrans: Boolean): Int = {
     val fs = FrovedisServer.getServerInstance()
-    val ret = JNISupport.gels(fs.master_node,DMAT_KIND.BCLC,
+    val ret = JNISupport.gels(fs.master_node,MAT_KIND.BCLC,
                            matA.get(),matB.get(),isTrans)
     val info = JNISupport.checkServerException();
     if (info != "") throw new java.rmi.ServerException(info);
@@ -74,7 +74,7 @@ object ScaLAPACK {
             wantU: Boolean,
             wantV: Boolean) : GesvdResult = { 
     val fs = FrovedisServer.getServerInstance()
-    val ret = JNISupport.gesvd(fs.master_node,DMAT_KIND.BCLC,
+    val ret = JNISupport.gesvd(fs.master_node,MAT_KIND.BCLC,
                                mat.get(),wantU,wantV)
     val info = JNISupport.checkServerException();
     if (info != "") throw new java.rmi.ServerException(info);

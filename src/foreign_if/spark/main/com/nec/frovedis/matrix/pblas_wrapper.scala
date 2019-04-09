@@ -11,7 +11,7 @@ object PBLAS {
   def swap(vec1: FrovedisBlockcyclicMatrix,
            vec2: FrovedisBlockcyclicMatrix): Unit = {
     val fs = FrovedisServer.getServerInstance()
-    JNISupport.swap(fs.master_node,DMAT_KIND.BCLC,vec1.get(),vec2.get())
+    JNISupport.swap(fs.master_node,MAT_KIND.BCLC,vec1.get(),vec2.get())
     val info = JNISupport.checkServerException();
     if (info != "") throw new java.rmi.ServerException(info);
   }
@@ -19,7 +19,7 @@ object PBLAS {
   def copy(vec1: FrovedisBlockcyclicMatrix,
            vec2: FrovedisBlockcyclicMatrix): Unit = {
     val fs = FrovedisServer.getServerInstance()
-    JNISupport.copy(fs.master_node,DMAT_KIND.BCLC,vec1.get(),vec2.get())
+    JNISupport.copy(fs.master_node,MAT_KIND.BCLC,vec1.get(),vec2.get())
     val info = JNISupport.checkServerException();
     if (info != "") throw new java.rmi.ServerException(info);
   }
@@ -27,7 +27,7 @@ object PBLAS {
   def scal(vec: FrovedisBlockcyclicMatrix,
            alpha: Double): Unit = {
     val fs = FrovedisServer.getServerInstance()
-    JNISupport.scal(fs.master_node,DMAT_KIND.BCLC,vec.get(),alpha)
+    JNISupport.scal(fs.master_node,MAT_KIND.BCLC,vec.get(),alpha)
     val info = JNISupport.checkServerException();
     if (info != "") throw new java.rmi.ServerException(info);
   }
@@ -41,7 +41,7 @@ object PBLAS {
            outvec: FrovedisBlockcyclicMatrix,
            alpha: Double): Unit = {
     val fs = FrovedisServer.getServerInstance()
-    JNISupport.axpy(fs.master_node,DMAT_KIND.BCLC,
+    JNISupport.axpy(fs.master_node,MAT_KIND.BCLC,
                     invec.get(),outvec.get(),alpha)
     val info = JNISupport.checkServerException();
     if (info != "") throw new java.rmi.ServerException(info);
@@ -50,7 +50,7 @@ object PBLAS {
   def dot(vec1: FrovedisBlockcyclicMatrix,
           vec2: FrovedisBlockcyclicMatrix): Double = {
     val fs = FrovedisServer.getServerInstance()
-    val ret = JNISupport.dot(fs.master_node,DMAT_KIND.BCLC,vec1.get(),vec2.get())
+    val ret = JNISupport.dot(fs.master_node,MAT_KIND.BCLC,vec1.get(),vec2.get())
     val info = JNISupport.checkServerException();
     if (info != "") throw new java.rmi.ServerException(info);
     else return ret;
@@ -58,7 +58,7 @@ object PBLAS {
 
   def nrm2(vec: FrovedisBlockcyclicMatrix): Double = {
     val fs = FrovedisServer.getServerInstance()
-    val ret = JNISupport.nrm2(fs.master_node,DMAT_KIND.BCLC,vec.get())
+    val ret = JNISupport.nrm2(fs.master_node,MAT_KIND.BCLC,vec.get())
     val info = JNISupport.checkServerException();
     if (info != "") throw new java.rmi.ServerException(info);
     else return ret;
@@ -88,7 +88,7 @@ object PBLAS {
            alpha: Double,
            beta: Double) : FrovedisBlockcyclicMatrix = {
     val fs = FrovedisServer.getServerInstance()
-    val dmat = JNISupport.gemv(fs.master_node,DMAT_KIND.BCLC,
+    val dmat = JNISupport.gemv(fs.master_node,MAT_KIND.BCLC,
                                inmat.get(),invec.get(),
                                isTrans,alpha,beta)
     val info = JNISupport.checkServerException();
@@ -105,7 +105,7 @@ object PBLAS {
           vec2: FrovedisBlockcyclicMatrix,
           alpha: Double) : FrovedisBlockcyclicMatrix = {
     val fs = FrovedisServer.getServerInstance()
-    val dmat = JNISupport.ger(fs.master_node,DMAT_KIND.BCLC,
+    val dmat = JNISupport.ger(fs.master_node,MAT_KIND.BCLC,
                               vec1.get(),vec2.get(),alpha)
     val info = JNISupport.checkServerException();
     if (info != "") throw new java.rmi.ServerException(info);
@@ -145,7 +145,7 @@ object PBLAS {
            alpha: Double,
            beta: Double) : FrovedisBlockcyclicMatrix = {
     val fs = FrovedisServer.getServerInstance()
-    val dmat = JNISupport.gemm(fs.master_node,DMAT_KIND.BCLC,
+    val dmat = JNISupport.gemm(fs.master_node,MAT_KIND.BCLC,
                                mat1.get(),mat2.get(),
                                isTransM1,isTransM2,alpha,beta)
     val info = JNISupport.checkServerException();
@@ -177,7 +177,7 @@ object PBLAS {
             alpha: Double,
             beta: Double) : Unit = {
     val fs = FrovedisServer.getServerInstance()
-    JNISupport.geadd(fs.master_node,DMAT_KIND.BCLC,
+    JNISupport.geadd(fs.master_node,MAT_KIND.BCLC,
                      mat1.get(),mat2.get(),
                      isTrans,alpha,beta)
     val info = JNISupport.checkServerException();

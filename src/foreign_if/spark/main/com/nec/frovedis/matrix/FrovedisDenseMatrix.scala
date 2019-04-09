@@ -108,7 +108,7 @@ class FrovedisDenseMatrix(mt: Short) extends java.io.Serializable {
     if(fdata == -1) return null // quick return
     val fs = FrovedisServer.getServerInstance() 
     var rmat = new DummyMatrix(fdata,num_row,num_col,mtype) // make ME a dummy
-    if(mtype != DMAT_KIND.RMJR) // converts to rowmajor matrix (new'ed)
+    if(mtype != MAT_KIND.RMJR) // converts to rowmajor matrix (new'ed)
       rmat = JNISupport.getFrovedisRowmajorMatrix(fs.master_node,fdata,mtype)
       val info = JNISupport.checkServerException();
       if (info != "") throw new java.rmi.ServerException(info);
@@ -126,7 +126,7 @@ class FrovedisDenseMatrix(mt: Short) extends java.io.Serializable {
   private def setEachPartitionsData(index: Int, t_node: Node,
                                     t_dptr: Long): Iterator[Vector] = {
     //println("[setEachPartitionsData] index: " + index)
-    val loc_arr = JNISupport.getLocalArray(t_node,t_dptr,DMAT_KIND.RMJR_L)
+    val loc_arr = JNISupport.getLocalArray(t_node,t_dptr,MAT_KIND.RMJR_L)
     val info = JNISupport.checkServerException();
     if (info != "") throw new java.rmi.ServerException(info);
     val l_num_col = num_col.intValue
@@ -157,7 +157,7 @@ class FrovedisDenseMatrix(mt: Short) extends java.io.Serializable {
     val rows = dist_dummy.mapPartitionsWithIndex((i,x) => 
                           setEachPartitionsData(i,fw_nodes(i),eps(i))).collect
     // releasing intermediate rowmajor matrix from server, if new'ed
-    if(mtype != DMAT_KIND.RMJR) rmat.release()
+    if(mtype != MAT_KIND.RMJR) rmat.release()
     return new RowMatrix(ctxt.parallelize(rows,eps.size))
   }
   def to_spark_Matrix(): Matrix = { 
@@ -205,7 +205,7 @@ class FrovedisDenseMatrix(mt: Short) extends java.io.Serializable {
       val rmat = to_frovedis_RowMatrix()
       rmat.debug_print()
       // releasing intermediate rowmajor matrix from server, if new'ed
-      if(mtype != DMAT_KIND.RMJR) rmat.release()
+      if(mtype != MAT_KIND.RMJR) rmat.release()
     }
   }
   def get() = fdata
@@ -214,7 +214,7 @@ class FrovedisDenseMatrix(mt: Short) extends java.io.Serializable {
   def numCols() = num_col
 }
 
-class FrovedisRowmajorMatrix extends FrovedisDenseMatrix(DMAT_KIND.RMJR) {
+class FrovedisRowmajorMatrix extends FrovedisDenseMatrix(MAT_KIND.RMJR) {
   // TODO: def this (data: RowMatrix) = {}
   def this (data: RDD[Vector]) = {
     this()
@@ -235,7 +235,7 @@ class FrovedisRowmajorMatrix extends FrovedisDenseMatrix(DMAT_KIND.RMJR) {
   }
 }
 
-class FrovedisColmajorMatrix extends FrovedisDenseMatrix(DMAT_KIND.CMJR) {
+class FrovedisColmajorMatrix extends FrovedisDenseMatrix(MAT_KIND.CMJR) {
   // TODO: def this (data: RowMatrix) = {}
   def this (data: RDD[Vector]) = {
     this()
@@ -256,7 +256,7 @@ class FrovedisColmajorMatrix extends FrovedisDenseMatrix(DMAT_KIND.CMJR) {
   }
 }
 
-class FrovedisBlockcyclicMatrix extends FrovedisDenseMatrix(DMAT_KIND.BCLC) {
+class FrovedisBlockcyclicMatrix extends FrovedisDenseMatrix(MAT_KIND.BCLC) {
   // TODO: def this (data: RowMatrix) = {}
   def this (data: RDD[Vector]) = {
     this()

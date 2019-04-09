@@ -11,7 +11,7 @@ object BLAS {
   def swap(vec1: FrovedisColmajorMatrix,
            vec2: FrovedisColmajorMatrix): Unit = {
     val fs = FrovedisServer.getServerInstance()
-    JNISupport.swap(fs.master_node,DMAT_KIND.CMJR,vec1.get(),vec2.get())
+    JNISupport.swap(fs.master_node,MAT_KIND.CMJR,vec1.get(),vec2.get())
     val info = JNISupport.checkServerException();
     if (info != "") throw new java.rmi.ServerException(info);
   }
@@ -19,7 +19,7 @@ object BLAS {
   def copy(vec1: FrovedisColmajorMatrix,
            vec2: FrovedisColmajorMatrix): Unit = {
     val fs = FrovedisServer.getServerInstance()
-    JNISupport.copy(fs.master_node,DMAT_KIND.CMJR,vec1.get(),vec2.get())
+    JNISupport.copy(fs.master_node,MAT_KIND.CMJR,vec1.get(),vec2.get())
     val info = JNISupport.checkServerException();
     if (info != "") throw new java.rmi.ServerException(info);
   }
@@ -27,7 +27,7 @@ object BLAS {
   def scal(vec: FrovedisColmajorMatrix,
            alpha: Double): Unit = {
     val fs = FrovedisServer.getServerInstance()
-    JNISupport.scal(fs.master_node,DMAT_KIND.CMJR,vec.get(),alpha)
+    JNISupport.scal(fs.master_node,MAT_KIND.CMJR,vec.get(),alpha)
     val info = JNISupport.checkServerException();
     if (info != "") throw new java.rmi.ServerException(info);
   }
@@ -41,7 +41,7 @@ object BLAS {
            outvec: FrovedisColmajorMatrix,
            alpha: Double): Unit = {
     val fs = FrovedisServer.getServerInstance()
-    JNISupport.axpy(fs.master_node,DMAT_KIND.CMJR,
+    JNISupport.axpy(fs.master_node,MAT_KIND.CMJR,
                     invec.get(),outvec.get(),alpha)
     val info = JNISupport.checkServerException();
     if (info != "") throw new java.rmi.ServerException(info);
@@ -50,7 +50,7 @@ object BLAS {
   def dot(vec1: FrovedisColmajorMatrix,
           vec2: FrovedisColmajorMatrix): Double = {
     val fs = FrovedisServer.getServerInstance()
-    val ret =  JNISupport.dot(fs.master_node,DMAT_KIND.CMJR,vec1.get(),vec2.get())
+    val ret =  JNISupport.dot(fs.master_node,MAT_KIND.CMJR,vec1.get(),vec2.get())
     val info = JNISupport.checkServerException();
     if (info != "") throw new java.rmi.ServerException(info);
     else return ret;
@@ -58,7 +58,7 @@ object BLAS {
 
   def nrm2(vec: FrovedisColmajorMatrix): Double = {
     val fs = FrovedisServer.getServerInstance()
-    val ret = JNISupport.nrm2(fs.master_node,DMAT_KIND.CMJR,vec.get())
+    val ret = JNISupport.nrm2(fs.master_node,MAT_KIND.CMJR,vec.get())
     val info = JNISupport.checkServerException();
     if (info != "") throw new java.rmi.ServerException(info);
     else return ret;
@@ -88,7 +88,7 @@ object BLAS {
            alpha: Double,
            beta: Double) : FrovedisColmajorMatrix = {
     val fs = FrovedisServer.getServerInstance()
-    val dmat = JNISupport.gemv(fs.master_node,DMAT_KIND.CMJR,
+    val dmat = JNISupport.gemv(fs.master_node,MAT_KIND.CMJR,
                                inmat.get(),invec.get(),
                                isTrans,alpha,beta)
     val info = JNISupport.checkServerException();
@@ -105,7 +105,7 @@ object BLAS {
           vec2: FrovedisColmajorMatrix,
           alpha: Double) : FrovedisColmajorMatrix = {
     val fs = FrovedisServer.getServerInstance()
-    val dmat = JNISupport.ger(fs.master_node,DMAT_KIND.CMJR,
+    val dmat = JNISupport.ger(fs.master_node,MAT_KIND.CMJR,
                               vec1.get(),vec2.get(),alpha)
     val info = JNISupport.checkServerException();
     if (info != "") throw new java.rmi.ServerException(info);
@@ -145,7 +145,7 @@ object BLAS {
            alpha: Double,
            beta: Double) : FrovedisColmajorMatrix = {
     val fs = FrovedisServer.getServerInstance()
-    val dmat = JNISupport.gemm(fs.master_node,DMAT_KIND.CMJR,
+    val dmat = JNISupport.gemm(fs.master_node,MAT_KIND.CMJR,
                                mat1.get(),mat2.get(),
                                isTransM1,isTransM2,alpha,beta)
     val info = JNISupport.checkServerException();

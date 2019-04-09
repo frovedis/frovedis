@@ -358,3 +358,143 @@ get_df_string_col(exrpc_ptr_t& df_proxy, std::string& cname) {
   return df.as_dvector<std::string>(cname).gather();
 }
 
+dummy_matrix df_to_colmajor_float(exrpc_ptr_t& df_proxy,
+                                 std::vector<std::string>& t_cols) {
+  auto& df = *reinterpret_cast<dftable_base*>(df_proxy);
+  auto mat = df.to_colmajor_matrix_float(t_cols);
+  auto nrow = mat.num_row;
+  auto ncol = mat.num_col;
+  auto retp = new colmajor_matrix<float>(std::move(mat));
+  if (!retp) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed.\n");
+  auto retp_ = reinterpret_cast<exrpc_ptr_t>(retp);
+  return dummy_matrix(retp_,nrow,ncol);
+}
+
+dummy_matrix df_to_colmajor_double(exrpc_ptr_t& df_proxy,
+                                 std::vector<std::string>& t_cols) {
+  auto& df = *reinterpret_cast<dftable_base*>(df_proxy);
+  auto mat = df.to_colmajor_matrix_double(t_cols);
+  auto nrow = mat.num_row;
+  auto ncol = mat.num_col;
+  auto retp = new colmajor_matrix<double>(std::move(mat));
+  if (!retp) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed.\n");
+  auto retp_ = reinterpret_cast<exrpc_ptr_t>(retp);
+  return dummy_matrix(retp_,nrow,ncol);
+}
+
+dummy_matrix df_to_rowmajor_float(exrpc_ptr_t& df_proxy,
+                                 std::vector<std::string>& t_cols) { 
+  auto& df = *reinterpret_cast<dftable_base*>(df_proxy);
+  auto mat = df.to_rowmajor_matrix_float(t_cols);
+  auto nrow = mat.num_row;
+  auto ncol = mat.num_col;
+  auto retp = new rowmajor_matrix<float>(std::move(mat));
+  if (!retp) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed.\n");
+  auto retp_ = reinterpret_cast<exrpc_ptr_t>(retp);
+  return dummy_matrix(retp_,nrow,ncol);
+}
+
+dummy_matrix df_to_rowmajor_double(exrpc_ptr_t& df_proxy,
+                                 std::vector<std::string>& t_cols) {
+  auto& df = *reinterpret_cast<dftable_base*>(df_proxy);
+  auto mat = df.to_rowmajor_matrix_double(t_cols);
+  auto nrow = mat.num_row;
+  auto ncol = mat.num_col;
+  auto retp = new rowmajor_matrix<double>(std::move(mat));
+  if (!retp) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed.\n");
+  auto retp_ = reinterpret_cast<exrpc_ptr_t>(retp);
+  return dummy_matrix(retp_,nrow,ncol);
+}
+
+dummy_matrix df_to_crs_float(exrpc_ptr_t& df_proxy,
+                             std::vector<std::string>& t_cols,
+                             std::vector<std::string>& cat_cols,
+                             long& info_id) {
+  dftable_to_sparse_info info;
+  auto& df = *reinterpret_cast<dftable_base*>(df_proxy);
+  auto mat = df.to_crs_matrix_float(t_cols, cat_cols, info);
+  auto nrow = mat.num_row;
+  auto ncol = mat.num_col;
+  auto matp = new crs_matrix<float>(std::move(mat));
+  if (!matp) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed for matrix.\n");
+  auto matp_ = reinterpret_cast<exrpc_ptr_t>(matp);
+  auto dmat = dummy_matrix(matp_,nrow,ncol);
+
+  auto infop = new dftable_to_sparse_info(std::move(info));
+  if (!infop) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed for info.\n");
+  auto infop_ = reinterpret_cast<exrpc_ptr_t>(infop);
+  // registering the sparse conversion info in model_table
+  register_model(info_id, SPARSE_CONV_INFO, infop_);
+  return dmat;
+}
+
+dummy_matrix df_to_crs_double(exrpc_ptr_t& df_proxy,
+                              std::vector<std::string>& t_cols,
+                              std::vector<std::string>& cat_cols,
+                              long& info_id) {
+  dftable_to_sparse_info info;
+  auto& df = *reinterpret_cast<dftable_base*>(df_proxy);
+  auto mat = df.to_crs_matrix_double(t_cols, cat_cols, info);
+  auto nrow = mat.num_row;
+  auto ncol = mat.num_col;
+  auto matp = new crs_matrix<double>(std::move(mat));
+  if (!matp) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed for matrix.\n");
+  auto matp_ = reinterpret_cast<exrpc_ptr_t>(matp);
+  auto dmat = dummy_matrix(matp_,nrow,ncol);
+
+  auto infop = new dftable_to_sparse_info(std::move(info));
+  if (!infop) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed for info.\n");
+  auto infop_ = reinterpret_cast<exrpc_ptr_t>(infop);
+  // registering the sparse conversion info in model_table
+  register_model(info_id, SPARSE_CONV_INFO, infop_);
+  return dmat;
+}
+
+dummy_matrix df_to_crs_float_using_info(exrpc_ptr_t& df_proxy,
+                                        long& info_id) {
+  auto& df = *reinterpret_cast<dftable_base*>(df_proxy);
+  auto& info = *get_model_ptr<dftable_to_sparse_info>(info_id);
+  auto mat = df.to_crs_matrix_float(info);
+  auto nrow = mat.num_row;
+  auto ncol = mat.num_col;
+  auto matp = new crs_matrix<float>(std::move(mat));
+  if (!matp) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed for matrix.\n");
+  auto matp_ = reinterpret_cast<exrpc_ptr_t>(matp);
+  return dummy_matrix(matp_,nrow,ncol);
+}
+
+dummy_matrix df_to_crs_double_using_info(exrpc_ptr_t& df_proxy,
+                                         long& info_id) {
+  auto& df = *reinterpret_cast<dftable_base*>(df_proxy);
+  auto& info = *get_model_ptr<dftable_to_sparse_info>(info_id);
+  auto mat = df.to_crs_matrix_double(info);
+  auto nrow = mat.num_row;
+  auto ncol = mat.num_col;
+  auto matp = new crs_matrix<double>(std::move(mat));
+  if (!matp) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed for matrix.\n");
+  auto matp_ = reinterpret_cast<exrpc_ptr_t>(matp);
+  return dummy_matrix(matp_,nrow,ncol);
+}
+
+void load_sparse_conversion_info(long& info_id, std::string& dirname) {
+  auto infop = new dftable_to_sparse_info();
+  if (!infop) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed for info.\n");
+  infop->load(dirname);
+  auto infop_ = reinterpret_cast<exrpc_ptr_t>(infop);
+  // registering the sparse conversion info in model_table
+  register_model(info_id, SPARSE_CONV_INFO, infop_);
+} 
+
+void save_sparse_conversion_info(long& info_id, std::string& dirname) {
+  auto& info = *get_model_ptr<dftable_to_sparse_info>(info_id);
+  info.save(dirname);
+}
+
+void release_sparse_conversion_info(long& info_id) {
+  if(!is_deleted(info_id)) {               // if not yet deleted, then
+    deleted_model_tracker.insert(info_id); // mark as 'deleted'
+    delete get_model_ptr<dftable_to_sparse_info>(info_id);  // get the model pointer and release it
+    model_table.erase(info_id);            // remove it's entry from model_table
+  }
+  else std::cout << "[warning] Request for already deleted info[" << info_id << "].\n";
+}

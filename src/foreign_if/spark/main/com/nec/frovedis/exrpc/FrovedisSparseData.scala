@@ -1,9 +1,10 @@
 package com.nec.frovedis.exrpc;
 
 import com.nec.frovedis.Jexrpc._
+import com.nec.frovedis.Jmatrix.DummyMatrix
 import com.nec.frovedis.matrix.Utils._
 import com.nec.frovedis.matrix.ScalaCRS
-import com.nec.frovedis.matrix.SMAT_KIND
+import com.nec.frovedis.matrix.MAT_KIND
 import org.apache.spark.rdd.RDD
 import org.apache.spark.SparkContext
 import org.apache.spark.mllib.linalg.Vector
@@ -17,6 +18,12 @@ class FrovedisSparseData extends java.io.Serializable {
   def this (data: RDD[Vector]) = {
     this()
     load(data)
+  }
+  def this(matInfo: DummyMatrix) = {
+    this()
+    fdata = matInfo.mptr
+    num_row = matInfo.nrow
+    num_col = matInfo.ncol
   }
   private def convert_and_send_local_data(data: Iterator[Vector],
                                           t_node: Node) : Iterator[Long] = {
@@ -86,7 +93,7 @@ class FrovedisSparseData extends java.io.Serializable {
                  (i,x) => convert_and_send_local_data_as_string_vector(x,fw_nodes(i))).collect
 
     /** getting frovedis distributed sparse data from frovedis local coo vector strings */ 
-    val dm = JNISupport.createFrovedisSparseMatrix(fs.master_node, ep_all, SMAT_KIND.CRS);
+    val dm = JNISupport.createFrovedisSparseMatrix(fs.master_node, ep_all, MAT_KIND.SCRS);
     val info1 = JNISupport.checkServerException();
     if (info1 != "") throw new java.rmi.ServerException(info1);
     fdata = dm.mptr

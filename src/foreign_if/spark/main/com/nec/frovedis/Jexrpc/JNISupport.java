@@ -219,12 +219,12 @@ public class JNISupport {
                                              int mid, 
                                              boolean movable,
                                              boolean isDense);
+
   // -------- Compute PCA --------
   public static native DummyPCAResult computePCA(Node master_node,
                                                  long fdata,
                                                  int k,
                                                  boolean movable);
-
   // -------- Compute SVD --------
   public static native DummyGesvdResult computeSVD(Node master_node,
                                                    long fdata,
@@ -238,7 +238,6 @@ public class JNISupport {
                                                               boolean wantU,
                                                               boolean wantV,
                                                               boolean isbinary);
-
   // -------- Frovedis Model Operations --------
   public static native void showFrovedisModel(Node master_node, int mid, short mkind);
   public static native void releaseFrovedisModel(Node master_node, int mid, short mkind);
@@ -490,4 +489,19 @@ public class JNISupport {
                                                   long dproxy, String[] cname,
                                                   short[] tids,
                                                   int size);
+  public static native DummyMatrix DFToRowmajorMatrix(Node master_node, long dproxy, 
+                                                      String[] cname, int size); 
+  public static native DummyMatrix DFToColmajorMatrix(Node master_node, long dproxy, 
+                                                      String[] cname, int size); 
+  public static native DummyMatrix DFToCRSMatrix(Node master_node, long dproxy, 
+                                                 String[] cname, int size1,
+                                                 String[] cat_name, int size2,
+                                                 long info_id); 
+  public static native DummyMatrix DFToCRSMatrixUsingInfo(Node master_node, long dproxy, 
+                                                          long info_id); 
+
+  // --- dftable_to_sparse_info ---
+  public static native void loadSparseConversionInfo(Node master_node,long info_id,String dirname);
+  public static native void saveSparseConversionInfo(Node master_node,long info_id,String dirname);
+  public static native void releaseSparseConversionInfo(Node master_node,long info_id);
 }

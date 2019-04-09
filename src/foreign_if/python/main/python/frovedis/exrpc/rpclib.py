@@ -166,6 +166,42 @@ get_frovedis_col = lib.get_frovedis_col
 get_frovedis_col.argtypes = [c_char_p, c_int, c_long, c_char_p, c_short] 
 get_frovedis_col.restype = py_object
 
+df_to_rowmajor = lib.df_to_rowmajor
+df_to_rowmajor.argtypes = [c_char_p, c_int, c_long,  #host, port, proxy
+                           POINTER(c_char_p), c_int, #t_cols_arr, size
+                           c_short]                  #dtype
+df_to_rowmajor.restype = py_object
+
+df_to_colmajor = lib.df_to_colmajor
+df_to_colmajor.argtypes = [c_char_p, c_int, c_long,  #host, port, proxy
+                           POINTER(c_char_p), c_int, #t_cols_arr, size
+                           c_short]                  #dtype
+df_to_colmajor.restype = py_object
+
+df_to_crs = lib.df_to_crs
+df_to_crs.argtypes = [c_char_p, c_int, c_long,  #host, port, proxy
+                      POINTER(c_char_p), c_int, #t_cols_arr, size1
+                      POINTER(c_char_p), c_int, #cat_cols_arr, size2
+                      c_long, c_short]          #info_id, dtype
+df_to_crs.restype = py_object
+
+df_to_crs_using_info = lib.df_to_crs_using_info
+df_to_crs_using_info.argtypes = [c_char_p, c_int, c_long,  #host, port, proxy
+                                 c_long, c_short]          #info_id, dtype
+df_to_crs_using_info.restype = py_object
+
+# --- Frovedis dftable_to_sparse_info ---
+load_dftable_to_sparse_info = lib.load_dftable_to_sparse_info
+load_dftable_to_sparse_info.argtypes = [c_char_p, c_int,  #host, port
+                                        c_long, c_char_p] #info_id, dirname
+
+save_dftable_to_sparse_info = lib.save_dftable_to_sparse_info
+save_dftable_to_sparse_info.argtypes = [c_char_p, c_int,  #host, port
+                                        c_long, c_char_p] #info_id, dirname
+
+release_dftable_to_sparse_info = lib.release_dftable_to_sparse_info
+release_dftable_to_sparse_info.argtypes = [c_char_p, c_int, c_long]  #host, port, info_id
+
 # --- Frovedis sparse matrices ---
 # create from scipy matrix
 create_frovedis_crs_II_matrix = lib.create_frovedis_crs_II_matrix
