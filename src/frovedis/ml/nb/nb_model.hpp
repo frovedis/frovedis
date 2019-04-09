@@ -1,8 +1,8 @@
 #ifndef _NB_MODEL_HPP_
 #define _NB_MODEL_HPP_
 
-#include "../../matrix/rowmajor_matrix.hpp"
-#include "../../matrix/blas_wrapper.hpp"
+#include "frovedis/matrix/rowmajor_matrix.hpp"
+#include "frovedis/matrix/blas_wrapper.hpp"
 
 namespace frovedis {
 

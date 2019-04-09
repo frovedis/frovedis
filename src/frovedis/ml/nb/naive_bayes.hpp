@@ -1,11 +1,14 @@
 #ifndef _NAIVE_BAYES_HPP_
 #define _NAIVE_BAYES_HPP_
 
+#define USE_DF // default implementation is using dataframe for group-by etc.
+
 #include <algorithm>
-#include "../../matrix/rowmajor_matrix.hpp"
-#include "../../matrix/blas_wrapper.hpp"
+#include <frovedis/matrix/rowmajor_matrix.hpp>
+#include <frovedis/matrix/blas_wrapper.hpp>
+
 #ifdef USE_DF
-#include "../../dataframe.hpp"
+#include <frovedis/dataframe.hpp>
 #endif
 #include "nb_model.hpp"
 
