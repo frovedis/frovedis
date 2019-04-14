@@ -14,7 +14,9 @@ extern "C" {
 // converting jstring to std::string
 std::string to_cstring(JNIEnv *env, jstring s) {
   const char *cStr = env->GetStringUTFChars(s, NULL);
-  return std::string(cStr);
+  auto ret = std::string(cStr);
+  env->ReleaseStringUTFChars(s,cStr);
+  return ret;
 }
 
 exrpc_node java_node_to_frovedis_node(JNIEnv *env, jobject& n) {
@@ -154,6 +156,9 @@ get_frovedis_double_crs_matrix_local(JNIEnv *env, jlong nrows, jlong ncols,
   auto c = static_cast<size_t>(ncols);
   crs_matrix_local<double> l_mat(r,c);
   l_mat.copy_from_jarray(offp_,idxp_,valp_,d_len);
+  env->ReleaseIntArrayElements(off,offp,JNI_ABORT); 
+  env->ReleaseIntArrayElements(idx,idxp,JNI_ABORT); 
+  env->ReleaseDoubleArrayElements(val,valp,JNI_ABORT); 
   return l_mat;
 }
 

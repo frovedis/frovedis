@@ -23,10 +23,11 @@ class FrovedisDenseMatrix(mt: Short) extends java.io.Serializable {
     val nrow: Long = darr.size
     val ncol: Long = if (nrow > 0) darr.map(_.size).apply(0) else 0
     //println("index: " + index + ", nrow: " + nrow + ", ncol: " + ncol)
-    val rmjr_arr = darr.map(_.toArray).flatten
-    val ret = JNISupport.loadFrovedisWorkerRmajorData(t_node,nrow,ncol,rmjr_arr)
-    val info = JNISupport.checkServerException();
-    if (info != "") throw new java.rmi.ServerException(info);
+    val rmjr_mat = darr.map(_.toArray) //.flatten
+    val ret = JNISupport.loadFrovedisWorkerRmajorMatData(t_node,nrow,ncol,rmjr_mat)
+    //val ret = JNISupport.loadFrovedisWorkerRmajorData(t_node,nrow,ncol,rmjr_arr)
+    val info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
     //mapPartitionsWithIndex needs to return an Iterator object
     return Array(ret).toIterator
   }

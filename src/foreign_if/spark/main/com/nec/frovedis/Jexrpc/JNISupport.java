@@ -63,6 +63,9 @@ public class JNISupport {
   public static native long loadFrovedisWorkerRmajorData(Node t_node, 
                                                        long nrows, long ncols,
                                                        double val[]);
+  public static native long loadFrovedisWorkerRmajorMatData(Node t_node, 
+                                                            long nrows, long ncols,
+                                                            double val[][]);
   public static native DummyMatrix getFrovedisRowmajorMatrix(Node master_node,
                                                            long fdata, 
                                                            short mtype);

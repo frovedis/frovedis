@@ -17,6 +17,7 @@ JNIEXPORT jobject JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_loadFrovedisWo
   jdouble *lblp = env->GetDoubleArrayElements(lbl, 0); double* lblp_ = lblp;
   std::vector<double> label(v_len);
   for(size_t i=0; i<v_len; ++i) label[i] = lblp_[i];
+  env->ReleaseDoubleArrayElements(lbl,lblp,JNI_ABORT); 
 
   auto fw_node = java_node_to_frovedis_node(env,target_node);
 #ifdef _EXRPC_DEBUG_
@@ -75,6 +76,37 @@ JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_loadFrovedisWork
 
   jdouble *valp = env->GetDoubleArrayElements(val, 0); double* valp_ = valp;
   rowmajor_matrix_local<double> rmat(nrows,ncols,valp_);
+  env->ReleaseDoubleArrayElements(val,valp,JNI_ABORT); 
+  auto fw_node = java_node_to_frovedis_node(env,target_node);
+#ifdef _EXRPC_DEBUG_
+  std::cout << "Connecting to worker node ("
+            << fw_node.hostname << "," << fw_node.rpcport
+            << ") to load local rowmajor data.\n";
+#endif
+  exrpc_ptr_t l_dptr = 0;
+  try{
+     l_dptr = exrpc_async(fw_node,load_local_data<R_LMAT1>,rmat).get();
+   }
+  catch(std::exception& e) { set_status(true,e.what()); }
+  return (jlong) l_dptr;
+}
+
+// it returns a memptr pointing to the heads of created rowmajor_matrix_local 
+JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_loadFrovedisWorkerRmajorMatData
+  (JNIEnv *env, jclass thisCls, jobject target_node, 
+   jlong nrows, jlong ncols, jobjectArray mat_data) {
+
+  jsize d_len = env->GetArrayLength(mat_data);
+  if(d_len != nrows) REPORT_ERROR(INTERNAL_ERROR, "Error in data extraction from JRE");
+  rowmajor_matrix_local<double> rmat(nrows,ncols);
+  auto rmjr_valp = rmat.val.data();
+  // flattening input 2D double jarray to create 1D double std::vector
+  for(size_t i = 0; i < nrows; ++i) {
+    jdoubleArray jdarr = (jdoubleArray) (env->GetObjectArrayElement(mat_data,i));
+    jdouble *valp = env->GetDoubleArrayElements(jdarr, 0); double* valp_ = valp;
+    for (size_t j = 0; j < ncols; ++j) rmjr_valp[i*ncols+j] = valp_[j];
+    env->ReleaseDoubleArrayElements(jdarr,valp,JNI_ABORT); 
+  }
   auto fw_node = java_node_to_frovedis_node(env,target_node);
 #ifdef _EXRPC_DEBUG_
   std::cout << "Connecting to worker node ("
