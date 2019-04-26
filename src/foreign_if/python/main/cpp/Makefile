@@ -7,8 +7,7 @@ INCLUDES := -I../../../../../third_party/cereal-1.2.2/include/ -I../../../.. -I.
 HEADERS := python_client_headers.hpp
 OBJS := utility.o exception_handling.o server_info.o dvector.o data_storage.o wrapper.o dataframe.o model.o ml.o
 
-DFLAGS := -DUSE_DF
-CXXFLAGS := ${CXXFLAGS_COMMON} ${INCLUDES} ${DFLAGS}
+CXXFLAGS := ${CXXFLAGS_COMMON} ${INCLUDES}
 
 TARGETS := libfrovedis_client_python.so
 

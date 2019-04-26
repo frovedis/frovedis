@@ -6,8 +6,7 @@ INCLUDES := -I../../../../../third_party/cereal-1.2.2/include/ -I../../../.. -I.
 HEADERS := spark_client_headers.hpp jre_config.hpp JNISupport.hpp
 OBJS := utility.o exception_handling.o server_info.o dvector.o data_storage.o wrapper.o dataframe.o model.o ml.o
 
-DFLAGS := -DUSE_DF
-CXXFLAGS := ${CXXFLAGS_COMMON} ${INCLUDES} ${DFLAGS}
+CXXFLAGS := ${CXXFLAGS_COMMON} ${INCLUDES}
 
 TARGETS := libfrovedis_client_spark.so
 
