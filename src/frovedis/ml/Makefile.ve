@@ -1,4 +1,6 @@
 include ../../../Makefile.in.ve
+IS_VE := true
+NCC_VER := $(shell ncc --version 2>&1 | grep ncc | cut -d" " -f 3 | cut -d"." -f 1)
 include Makefile.common
 
 w2v_core.o: w2v_core.cc
@@ -12,3 +14,8 @@ AS := nas
 
 libfrovedis_ml.a: ${OBJS}
 	${AR} r libfrovedis_ml.a ${OBJS}
+ifeq (${NCC_VER},1)
+	(cd dnn; rm -f vednn; ln -s vednn-musl vednn)
+else
+	(cd dnn; rm -f vednn; ln -s vednn-glibc vednn)
+endif

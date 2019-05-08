@@ -37,6 +37,15 @@ install: ${TARGETS}
 	cp w2v/LICENSE ${INSTALLPATH}/licenses/third_party/LICENSE.word2vec
 	install -d ${INSTALLPATH}/include/frovedis/ml/nb
 	cp nb/*.hpp ${INSTALLPATH}/include/frovedis/ml/nb
+	install -d ${INSTALLPATH}/include/frovedis/ml/dnn
+	cp -r dnn/tiny_dnn ${INSTALLPATH}/include
+	cp dnn/*.hpp ${INSTALLPATH}/include/frovedis/ml/dnn
+	cp dnn/LICENSE.tiny-dnn ${INSTALLPATH}/licenses/third_party/
+ifeq (${IS_VE},true)
+	install -d ${INSTALLPATH}/include/vednn
+	cp dnn/vednn/vednn.h ${INSTALLPATH}/include/vednn/vednn.h
+	cp dnn/vednn/libvednn_sequential.a ${INSTALLPATH}/lib
+endif
 	install -d ${INSTALLPATH}/include/frovedis/ml/graph
 	cp graph/*.hpp ${INSTALLPATH}/include/frovedis/ml/graph
 

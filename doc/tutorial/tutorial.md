@@ -1705,6 +1705,89 @@ A constructed tree model has common methods for classification/regression,
 but a regression tree&apos;s predicted probabilities make no sense
 (those values are always set to zero).
 
+# 4.7 Deep Learning
+
+We provide preliminary support of deep neural network. It is based on
+third party library "tiny-dnn", which is very cleanly written C++ deep
+learning library. We modified it and added some modules to support
+distributed training and to improve performance on vector architecture.
+It also depends on a library called "vednn", which provides optimized
+kernel operation of layers (e.g. convolutional layer) on vector
+architecture. 
+
+Basic idea of how to use it is the same as tiny-dnn. 
+Distributed training is implemented by splitting the training data
+into the nodes, which is so called data parallel style. Each node
+train the local data; at the time of back propagation, the gradient
+calculated at each node is all-gathered, which takes place in the
+optimizer. 
+
+Please look at "src/tut4.7-1/tut.cc", which uses MLP (multy layer
+perceptron) to recognize hand written digit (MNIST). 
+
+To run the code, you need MNIST dataset. If you installed Frovedis
+from rpm, you can find it in ${INSTALLPATH}/data/mnist.tar.gz. 
+Please extract data from the file.
+
+First, you need to include `<frovedis/ml/dnn/dnn.hpp>` in addition to
+`<frovedis.hpp>`. Since it uses mnist data, it also includes
+`<tiny_dnn/io/mnist_parser.h>`. The file `<tiny_dnn/io/display.h>` is
+used to display the progress. (Unlike the original tiny-dnn, we tried
+to separate including files.)
+
+In the main function, arguments are parsed and the function `train` is
+called. Please go to the function train.
+
+The function `parse_mnist_labels` and `parse_mnist_images` loads the
+images and labels of the MNIST data. The type of loaded label is
+`std::vecctor<label_t>`, where `label_t` is defined as `size_t`.
+The type of loaded image is `std::vector<vec_t>`, where `vec_t` is
+defined as `std::vector<float_t>`. The type of `float_t` is defined as
+`float`.
+
+The label and image is distributed using `make_dvector_scatter`.
+
+Next, `backend_type` is created. On x86, it should be internal. On VE,
+it should be ve.
+
+The network is defined as `network<sequential> nn`. It is constructed
+in function `construct_net`. It is exactly the same as tiny-dnn.
+As you can see, you can add layers using `<<` operator to the
+network. 
+
+As for optimizer, `dist_RMSprop optimizer` is defined. This is
+distributed version of optimizer and all-gathers the gradient
+calculated at each node internally. At this moment, we provide
+distributed version of RMSprop and adagrad.
+
+Tiny-dnn supports to call any function at the end of training of mini
+batch or epoch. The function object is defined as `on_enumerate_epoch`
+and `on_enumerate_minibatch`. Here, these function objects need to be
+sent to other nodes, so they need to be serialized. Therefore, we need
+to use function objects instead of lambda function of C++. 
+
+Usually, the usage of these functions is to see the progress of the
+training. Therefore, the pointer to the network, etc. is passed to the
+function object. Please note that the pointer is valid only on
+rank 0 of the nodes. Therefore, execution of the functions is guarded
+by `if(get_selfid() == 0)`. 
+
+Then you can just call `dnn_train` to train the network. It is similar
+to `train` method of network of tiny-dnn.
+
+After training, all nodes have the same weight of network. So you can
+test and save the model on rank 0.
+
+Currently, MLP and CNN with some other layers (e.g. dropout, batch
+normalization) are supported. As for CNN, please see
+"src/tut4.7-2/tut.cc". 
+
+It is mostly the same as the previous example. Only the network
+construction is different. 
+(In this example, testing during the training is comment out'ed,
+because it causes a problem during training with batch
+normalization...)
+
 # 5. Dataframe
 
 Dataframe for preprocessing is also supported. It provides

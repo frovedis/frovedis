@@ -9,8 +9,5 @@
 # Compiled Dynamic libraries
 *.so
 
-# Compiled Static libraries
-*.a
-
 # Backup file
 *~

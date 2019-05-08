@@ -14,6 +14,9 @@ fi
 
 for dir in * ; do
 	if [ -d $dir ]; then
-		cd $dir; make; cd ..
+# exclude dnn tutorial, which needs input file
+		if [ $dir != "tut4.7-1" -a $dir != "tut4.7-2" ]; then
+			cd $dir; make; cd ..
+		fi
 	fi
 done
