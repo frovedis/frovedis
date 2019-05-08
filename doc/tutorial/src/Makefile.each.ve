@@ -2,11 +2,11 @@ include ../Makefile.in.ve
 
 TARGETS := tut
 
-#LIBS := -L${INSTALLPATH}/lib -lfrovedis_dataframe -lfrovedis_ml -lfrovedis_matrix -lfrovedis_core ${LIBS_COMMON}
+#LIBS := -L${INSTALLPATH}/lib -lfrovedis_ml -lfrovedis_dataframe -lfrovedis_matrix -lfrovedis_core -lvednn_sequential ${LIBS_COMMON}
 #INCLUDES := -I${INSTALLPATH}/include
 
-LIBS := -L../../../../third_party/lib -L../../../../src/frovedis/core -L../../../../src/frovedis/matrix -L../../../../src/frovedis/ml -L../../../../src/frovedis/dataframe -lfrovedis_dataframe -lfrovedis_ml -lfrovedis_matrix -lfrovedis_core ${LIBS_COMMON}
-INCLUDES := -I../../../../src/ -I../../../../third_party/cereal-1.2.2/include/
+LIBS := -L../../../../third_party/lib -L../../../../src/frovedis/core -L../../../../src/frovedis/matrix -L../../../../src/frovedis/ml -L../../../../src/frovedis/dataframe -lfrovedis_ml -lfrovedis_dataframe -lfrovedis_matrix -lfrovedis_core ${LIBS_COMMON} -L../../../../src/frovedis/ml/dnn/vednn -lvednn_sequential
+INCLUDES := -I../../../../src/ -I../../../../third_party/cereal-1.2.2/include/ -I../../../../src/frovedis/ml/dnn/ -I../../../../src/frovedis/ml/dnn/vednn/
 
 CXXFLAGS := ${CXXFLAGS_COMMON} ${INCLUDES}
 
