@@ -2,7 +2,11 @@
 
 for dir in * ; do
 	if [ -d $dir ]; then
-		echo --- $dir ---
-		cd $dir; mpirun -np 4 -x ./tut; cd ..
+# exclude dnn tutorial, which needs input file
+# exclude w2v
+		if [ $dir != "tut4.7-1" -a $dir != "tut4.7-2" -a $dir != "tut4.6" ]; then
+			echo --- $dir ---
+			cd $dir; mpirun -np 4 -x ./tut; cd ..
+		fi
 	fi
 done
