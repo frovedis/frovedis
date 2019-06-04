@@ -1,0 +1,13 @@
+TARGETS := train_classifier train_regressor dump predict
+DEPENDS := ${TARGETS:%=%.d}
+
+include ../Makefile.in.icpc
+include ../Makefile.common
+-include ${DEPENDS}
+
+TO_INSTALL := ${TARGETS:%=%.cc}
+DIR := forest
+ARCH := icpc
+
+${TARGETS}: %: %.o
+	${LINK} -o $@ $^ ${LIBS}
