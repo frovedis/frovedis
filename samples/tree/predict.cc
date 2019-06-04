@@ -70,7 +70,7 @@ void do_validate(
     show_regression_errors(zipped, num_records);
     return;
   default:
-    std::logic_error("no such algorithm");
+    throw std::logic_error("invalid tree algorithm");
   }
 }
 

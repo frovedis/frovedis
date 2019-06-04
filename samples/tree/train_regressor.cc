@@ -29,24 +29,17 @@ void do_train(
   const size_t max_bins,
   const size_t min_instances_per_node,
   const T min_info_gain,
-  const size_t max_working_matrix_megabytes,
-  const bool working_matrix_is_per_process,
-  const size_t seed,
   const bool binary_mode
 ) {
   time_spent timer(DEBUG);
   decision_tree_model<T> model;
 
-  tree::strategy<T> strategy(tree::algorithm::Regression);
-  strategy
+  auto strategy = tree::make_regression_strategy<T>()
+    .set_categorical_features_info(categorical_features_info)
     .set_max_depth(max_depth)
     .set_max_bins(max_bins)
-    .set_categorical_features_info(categorical_features_info)
     .set_min_instances_per_node(min_instances_per_node)
-    .set_min_info_gain(min_info_gain)
-    .set_max_working_matrix_megabytes(max_working_matrix_megabytes)
-    .set_working_matrix_per_process(working_matrix_is_per_process)
-    .set_seed(seed);
+    .set_min_info_gain(min_info_gain);
   auto builder = make_decision_tree_builder(strategy);
 
   if (binary_mode) {
@@ -80,23 +73,18 @@ void do_train(
 
 template <typename T>
 void do_train(const po::variables_map& argmap) {
-  const auto cf_info = tree::parse_categorical_features_info(
-    argmap["category"].as<std::string>(),
-    argmap["default-cardinality"].as<size_t>()
-  );
-
   do_train<T>(
     argmap["input"].as<std::string>(),
     argmap["label"].as<std::string>(),
     argmap["output"].as<std::string>(),
-    cf_info,
+    tree::parse_categorical_features_info(
+      argmap["category"].as<std::string>(),
+      argmap["default-cardinality"].as<size_t>()
+    ),
     argmap["depth"].as<size_t>(),
     argmap["bins"].as<size_t>(),
     argmap["instances"].as<size_t>(),
     argmap["infogain"].as<double>(),
-    argmap["workbench"].as<size_t>(),
-    argmap.count("workbench-per-process"),
-    argmap["seed"].as<size_t>(),
     argmap.count("binary")
   );
 }
@@ -130,7 +118,7 @@ po::variables_map parse(int argc, char** argv) {
     "categorical features information (index: cardinality, ...)"
   )(
     "default-cardinality", po::value<size_t>()->default_value(2),
-    "a default cardinality of categorical features"
+    "default cardinality of categorical features"
   )(
     "depth,d", po::value<size_t>()->default_value(5),
     "maximum depth"
@@ -143,13 +131,6 @@ po::variables_map parse(int argc, char** argv) {
   )(
     "infogain", po::value<double>()->default_value(0.0),
     "minimum information gain"
-  )(
-    "workbench", po::value<size_t>()->default_value(512),
-    "maximum workbench size in MiB"
-  )(
-    "workbench-per-process", "use workbench size for each process"
-  )(
-    "seed", po::value<size_t>()->default_value(0), "random seed"
   )(
     "binary", "use binary input/output"
   )(
