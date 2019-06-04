@@ -12,6 +12,11 @@
 #include <utility>
 #include <vector>
 
+#include <cereal/archives/binary.hpp>
+#include <cereal/archives/json.hpp>
+#include <cereal/types/memory.hpp>
+#include <cereal/types/vector.hpp>
+
 #include "../../../frovedis.hpp"
 #include "../../core/type_utility.hpp"
 #include "../../matrix/rowmajor_matrix.hpp"
@@ -21,12 +26,10 @@
 #include "bitcount.hpp"
 #include "tree_assert.hpp"
 #include "tree_config.hpp"
+#include "tree_utility.hpp"
 
 namespace frovedis {
 namespace tree {
-
-// a forward declaration of the helper class
-template <typename T> class modelvector;
 
 template <typename T>
 class predict_pair {
@@ -185,6 +188,8 @@ class nodeid_helper {
   SERIALIZE(id)
 
 public:
+  nodeid_helper() : id(0) {}
+
   nodeid_helper(const size_t node_index) : id(node_index) {
     if (node_index < ROOT_ID) {
       throw std::invalid_argument("invalid node_index");
@@ -234,6 +239,8 @@ class node : public std::enable_shared_from_this<node<T>> {
   )
 
 public:
+  node() {}
+
   node(
     const size_t node_index,
     predict_pair<T> prediction,
@@ -314,7 +321,8 @@ public:
 
 /*
   template <typename DATA>
-  decltype(predict(std::declval<DATA>())) predict(DATA&& x) const {
+  predict_type<DATA>
+  predict(DATA&& x) const {
     return predict(std::forward<DATA>(x));
   }
 */
@@ -530,7 +538,7 @@ const predict_pair<T>& node<T>::predict_impl(
   } else if (split_ptr->is_continuous()) {
     go_left = (fvalue < split_ptr->get_threshold());
   } else {
-    throw std::logic_error("no such feature continuity");
+    throw std::logic_error("invalid feature continuity");
   }
 
   const auto child_ptr = go_left ? left_ptr : right_ptr;
@@ -539,16 +547,13 @@ const predict_pair<T>& node<T>::predict_impl(
 
 template <typename T>
 class metainfo {
-  size_t height, num_nodes, maxnum_feats;
-  SERIALIZE(height, num_nodes, maxnum_feats)
+  size_t height, num_nodes;
+  SERIALIZE(height, num_nodes)
 
 public:
   metainfo() {}
-  metainfo(
-    const size_t height, const size_t num_nodes,
-    const size_t maxnum_features
-  ) :
-    height(height), num_nodes(num_nodes), maxnum_feats(maxnum_features)
+  metainfo(const size_t height, const size_t num_nodes) :
+    height(height), num_nodes(num_nodes)
   {}
 
   metainfo(const std::shared_ptr<node<T>>& top_node) {
@@ -561,21 +566,12 @@ public:
 
   size_t get_height() const { return height; }
   size_t get_num_nodes() const { return num_nodes; }
-  size_t get_maxnum_features() const { return maxnum_feats; }
 
 private:
   metainfo<T> trace(const std::shared_ptr<node<T>>& node_ptr) {
     tree_assert(node_ptr);
     if (node_ptr->is_leaf()) {
-      return metainfo<T>(node_ptr->get_depth(), 1, 0);
-    }
-
-    // the max number of features for this node
-    size_t currnum_feats = 1;
-    const auto split_ptr = node_ptr->get_split();
-    if (split_ptr->is_categorical()) {
-      currnum_feats = split_ptr->get_categories().size();
-      tree_assert(currnum_feats > 0);
+      return metainfo<T>(node_ptr->get_depth(), 1);
     }
 
     // trace down recursively
@@ -583,8 +579,7 @@ private:
     const auto right = trace(node_ptr->get_right_node());
     return metainfo<T>(
       std::max(left.height, right.height),
-      left.num_nodes + right.num_nodes + 1,
-      std::max({left.maxnum_feats, right.maxnum_feats, currnum_feats})
+      left.num_nodes + right.num_nodes + 1
     );
   }
 };
@@ -622,40 +617,48 @@ std::shared_ptr<information_gain_stats<T>> make_stats(Args&&... args) {
 template <typename T>
 class decision_tree_model {
   std::shared_ptr<tree::node<T>> root_ptr;
-  size_t treeid;
   tree::algorithm algo;
   tree::metainfo<T> meta;
 
-  SERIALIZE(root_ptr, treeid, algo, meta)
+  SERIALIZE(root_ptr, algo, meta)
 
 public:
+  /*
+   * predict_type<DATA> is:
+   * - a single predict if DATA is a single data point
+   * - a vector of predicts if DATA is multi data points (matrix)
+   */
+  template <typename DATA>
+  using predict_type = decltype(
+    std::declval<tree::node<T>>().predict(std::declval<DATA>())
+  );
+
+  // with probability version
+  template <typename DATA>
+  using predict_with_probability_type = decltype(
+    std::declval<tree::node<T>>()
+    .predict_with_probability(std::declval<DATA>())
+  );
+
   decision_tree_model() {}
 
   decision_tree_model(
     const std::shared_ptr<tree::node<T>>& top_node,
-    const size_t treeid, const tree::algorithm algo
-  ) :
-    root_ptr(top_node), treeid(treeid), algo(algo), meta(top_node)
-  {}
-
-  decision_tree_model(
-    const std::shared_ptr<tree::node<T>>& top_node,
     const tree::algorithm algo
-  ) : decision_tree_model<T>(top_node, 0, algo) {}
+  ) :
+    root_ptr(top_node), algo(algo), meta(top_node)
+  {}
 
   decision_tree_model(
     const std::shared_ptr<tree::node<T>>& top_node,
-    const size_t treeid, const tree::algorithm algo,
-    tree::metainfo<T> meta
+    const tree::algorithm algo, tree::metainfo<T> meta
   ) :
-    root_ptr(top_node), treeid(treeid), algo(algo), meta(std::move(meta))
+    root_ptr(top_node), algo(algo), meta(std::move(meta))
   {}
 
-  size_t get_treeid() const { return treeid; }
   tree::algorithm get_algo() const { return algo; }
   size_t get_height() const { return meta.get_height(); }
   size_t get_num_nodes() const { return meta.get_num_nodes(); }
-  size_t get_maxnum_features() const { return meta.get_maxnum_features(); }
 
   const tree::metainfo<T>& get_metainfo() const& { return meta; }
   tree::metainfo<T> get_metainfo() && { return std::move(meta); }
@@ -676,73 +679,63 @@ public:
     return *this;
   }
 
-  // return a single predict if DATA is a single data point
-  // return a std::vector<predict_pair<T>> if DATA is multi data points
   template <typename DATA>
-  decltype(root_ptr->predict(std::declval<DATA>()))
+  predict_type<DATA>
   predict(DATA&& x) const {
     return root_ptr->predict(std::forward<DATA>(x));
   }
 
-  // with probability versions
   template <typename DATA>
-  decltype(root_ptr->predict_with_probability(std::declval<DATA>()))
+  predict_with_probability_type<DATA>
   predict_with_probability(DATA&& x) const {
     return root_ptr->predict_with_probability(std::forward<DATA>(x));
   }
 
   // file IO
   void save(const std::string& path) const {
-    tree::modelvector<T>(*this).saveline(path);
+    _save<cereal::JSONOutputArchive>(path);
   }
   void load(const std::string& path) {
-    tree::modelvector<T> vtree;
-    vtree.loadline(path);
-    *this = decision_tree_model<T>(vtree.restore());
+    _load<cereal::JSONInputArchive>(path);
   }
   void savebinary(const std::string& path) const {
-    tree::modelvector<T>(*this).savebinary(path);
+    _save<cereal::BinaryOutputArchive>(path);
   }
   void loadbinary(const std::string& path) {
-    tree::modelvector<T> vtree;
-    vtree.loadbinary(path);
-    *this = decision_tree_model<T>(vtree.restore());
+    _load<cereal::BinaryInputArchive>(path);
   }
-
-  node_local<decision_tree_model<T>> broadcast() const;
 
   // string output
   std::string to_string() const;
   void debug_print() const { std::cout << to_string(); }
 
   // shortcuts
-  bool is_classification_tree() const {
+  bool is_classification_model() const {
     return algo == tree::algorithm::Classification;
   }
-  bool is_regression_tree() const {
+  bool is_regression_model() const {
     return algo == tree::algorithm::Regression;
+  }
+
+  node_local<decision_tree_model<T>> broadcast() const {
+    return make_node_local_broadcast(*this);
   }
 
 private:
   std::shared_ptr<tree::node<T>> prune(
     const std::shared_ptr<tree::node<T>>&, const T
   ) const;
+
+  template <typename Archive>
+  void _save(const std::string& path) const {
+    tree::save_model<decision_tree_model<T>, Archive>(*this, path);
+  }
+
+  template <typename Archive>
+  void _load(const std::string& path) {
+    *this = tree::load_model<decision_tree_model<T>, Archive>(path);
+  }
 };
-
-template <typename T>
-decision_tree_model<T> tree_model_broadcast_helper(
-  const tree::modelvector<T>& vtree
-) {
-  return vtree.restore();
-}
-
-template <typename T>
-inline node_local<decision_tree_model<T>>
-decision_tree_model<T>::broadcast() const {
-  tree::modelvector<T> vtree(*this);
-  auto bcas_vtree = vtree.broadcast();
-  return bcas_vtree.map(tree_model_broadcast_helper<T>);
-}
 
 template <typename T>
 std::shared_ptr<tree::node<T>> decision_tree_model<T>::prune(
@@ -805,7 +798,7 @@ std::string decision_tree_model<T>::to_string() const {
 template <typename T>
 std::string tree::node<T>::to_string(const std::string& prefix) const {
   std::ostringstream sout;
-  if (!is_root()) { sout << " \\_ "; }
+  if (is_root()) { sout << prefix; } else { sout << " \\_ "; }
 
   if (is_leaf()) {
     sout << "(" << get_id() << ") ";
@@ -862,20 +855,6 @@ decision_tree_model<T> make_tree_by_loadbinary(const std::string& path) {
   return model;
 }
 
-/*
-TODO: fix wrong specialization
-// specialize for broadcast
-template <typename T>
-node_local<decision_tree_model<T>> make_node_local_broadcast(
-  const decision_tree_model<T>& model
-) {
-  return model.broadcast();
-}
-*/
-
 } // end namespace frovedis
-
-// tree model helper
-#include "tree_vector.hpp"
 
 #endif

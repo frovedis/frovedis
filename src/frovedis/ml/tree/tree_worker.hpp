@@ -24,10 +24,10 @@
 #include "bvmm.hpp"
 #endif
 #include "pragmas.hpp"
+#include "random.hpp"
 #include "tree_assert.hpp"
 #include "tree_config.hpp"
 #include "tree_model.hpp"
-#include "tree_vector.hpp"
 
 namespace frovedis {
 namespace tree {
@@ -52,6 +52,32 @@ template <typename MAT>
 void set_num(MAT& x, const size_t num_rows, const size_t num_cols) {
   x.local_num_row = num_rows;
   x.local_num_col = num_cols;
+}
+
+// ---------------------------------------------------------------------
+
+template <typename T>
+inline void iota(const size_t num, T* dst) {
+  for (size_t i = 0; i < num; i++) { dst[i] = i; }
+}
+
+template <typename T>
+inline std::vector<T> iota(const size_t num) {
+  std::vector<T> ret(num, 0);
+  iota(num, ret.data());
+  return ret;
+}
+
+template <typename T>
+inline void iota(const size_t num, T* dst, const T value) {
+  for (size_t i = 0; i < num; i++) { dst[i] = value + i; }
+}
+
+template <typename T>
+inline std::vector<T> iota(const size_t num, const T value) {
+  std::vector<T> ret(num, 0);
+  iota(num, ret.data(), value);
+  return ret;
 }
 
 // ---------------------------------------------------------------------
@@ -177,6 +203,42 @@ std::pair<T, U> add_pair(
 
 // ---------------------------------------------------------------------
 
+template <typename T>
+inline void compress(
+  const std::vector<size_t>& indices,
+  const colmajor_matrix_local<T>& src_matrix,
+  colmajor_matrix_local<T>& dest_matrix
+) {
+  const size_t num_indices = indices.size();
+  const size_t num_srcrows = src_matrix.local_num_row;
+  const size_t num_columns = src_matrix.local_num_col;
+  tree_assert(num_columns == dest_matrix.local_num_col);
+  tree_assert(num_indices * num_columns <= dest_matrix.val.size());
+
+  const size_t* idx = indices.data();
+  const T* src = src_matrix.val.data();
+  T* dst = dest_matrix.val.data();
+
+  dest_matrix.local_num_row = num_indices;
+
+_Pragma(__outerloop_unroll__)
+  for (size_t j = 0; j < num_columns; j++) {
+    for (size_t i = 0; i < num_indices; i++) {
+      dst[j * num_indices + i] = src[j * num_srcrows + idx[i]];
+    }
+  }
+}
+
+// ---------------------------------------------------------------------
+
+template <typename T, typename Random>
+Random initialize_random_engine(const strategy<T>& str) {
+  std::mt19937 tmp(str.get_seed() + get_selfid());
+  return Random(tmp());
+}
+
+// ---------------------------------------------------------------------
+
 // for classification tree
 template <typename T>
 colmajor_matrix_local<T> label_matrix_gtor(
@@ -214,13 +276,54 @@ colmajor_matrix_local<T> label_matrix_gtor(
   return ret;
 }
 
-template <typename MAT>
-std::vector<size_t> initial_indices_gtor(const MAT& x) {
+// ---------------------------------------------------------------------
+
+template <typename MAT, typename T, typename Random>
+std::vector<size_t> initial_indices_gtor(
+  const MAT& x, const strategy<T>& str, Random& engine
+) {
   const size_t num_records = x.local_num_row;
-  std::vector<size_t> ret(num_records, 0);
-  size_t* dst = ret.data();
-  for (size_t i = 0; i < num_records; i++) { dst[i] = i; }
-  return ret;
+  if (num_records == 0) { return std::vector<size_t>(); }
+  if (!str.subsampling_enabled()) { return iota<size_t>(num_records); }
+
+  const auto ss_str = str.get_subsampling_strategy();
+  const size_t num_sampling = str.get_subsampling_size(num_records);
+  if (ss_str == subsampling_strategy::Enable) {
+    tree_assert(num_sampling < num_records);
+    return sampling_without_replacement(
+      iota<size_t>(num_records), num_sampling, engine
+    );
+  }
+
+  tree_assert(
+    (ss_str == subsampling_strategy::Auto) ||
+    (ss_str == subsampling_strategy::Bootstrap)
+  );
+
+  uniform_int_distribution<size_t> dist(0, num_records - 1);
+  return dist(engine, num_sampling);
+}
+
+template <typename MAT>
+void initial_dataset_gtor(
+  const std::vector<size_t>& indices,
+  const MAT& src_dataset, const MAT& src_labels,
+  MAT& dest_dataset, MAT& dest_labels
+) {
+  const size_t num_records = indices.size();
+  tree_assert(src_dataset.local_num_row == src_labels.local_num_row);
+
+  dest_dataset = MAT(num_records, src_dataset.local_num_col);
+  dest_labels = MAT(num_records, src_labels.local_num_col);
+
+#ifdef _TREE_DEBUG_
+  for (size_t i = 0; i < num_records; i++) {
+    tree_assert(indices[i] < src_dataset.local_num_row);
+  }
+#endif
+
+  compress(indices, src_dataset, dest_dataset);
+  compress(indices, src_labels, dest_labels);
 }
 
 inline void check_workbench(const size_t n, const size_t orig) {
@@ -251,18 +354,24 @@ MAT initial_workbench_gtor(const size_t bytes) {
 template <typename T>
 rowmajor_matrix_local<T> minmax_finder(
   const colmajor_matrix_local<T>& x,
+  const std::vector<size_t>& feature_subset,
   const strategy<T>& str
 ) {
   const size_t num_records = x.local_num_row;
   if (num_records == 0) { return rowmajor_matrix_local<T>(0, 0); }
 
-  const size_t num_features = x.local_num_col;
+  const size_t num_features = feature_subset.size();
+  const size_t* subfeats = feature_subset.data();
+  tree_assert(num_features <= x.local_num_col);
   rowmajor_matrix_local<T> ret(2, num_features);
 
   T* mindst = ret.val.data();
   T* maxdst = mindst + num_features;
 
-  for (size_t j = 0; j < num_features; j++) {
+  for (size_t k = 0; k < num_features; k++) {
+    const size_t j = subfeats[k];
+    tree_assert(j < x.local_num_col);
+
     if (str.categorical_features_info.count(j)) {
       continue;
     }
@@ -275,14 +384,14 @@ rowmajor_matrix_local<T> minmax_finder(
       if (src[i] < min) { min = src[i]; }
       if (max < src[i]) { max = src[i]; }
     }
-    mindst[j] = min;
-    maxdst[j] = max;
+    mindst[k] = min;
+    maxdst[k] = max;
 #else
     auto begin = std::next(x.val.cbegin(), j * num_records);
     auto end = std::next(begin, num_records);
     auto minmax_itpair = std::minmax_element(begin, end);
-    mindst[j] = *(minmax_itpair.first);
-    maxdst[j] = *(minmax_itpair.second);
+    mindst[k] = *(minmax_itpair.first);
+    maxdst[k] = *(minmax_itpair.second);
 #endif
   }
 
@@ -344,9 +453,64 @@ public:
     indices(num_cats + num_continuous_criteria, 0),
     values(num_cats + num_continuous_criteria, 0)
   {
-    const auto& cc = categorical_criteria;
-    std::memcpy(index_ptr(), cc.index_ptr(), sizeof(size_t) * num_cats);
-    std::memcpy(value_ptr(), cc.value_ptr(), sizeof(T) * num_cats);
+    std::memcpy(
+      indices.data(), categorical_criteria.indices.data(),
+      sizeof(size_t) * num_cats
+    );
+    std::memcpy(
+      values.data(), categorical_criteria.values.data(),
+      sizeof(T) * num_cats
+    );
+  }
+
+  criteria_vectors(
+    const criteria_vectors<T>& categorical_criteria,
+    const std::vector<size_t>& feature_subset,
+    const size_t num_thresholds,
+    const size_t num_continuous_criteria
+  ) :
+    num_cats(0), num_thresh(num_thresholds),
+    indices(), values()
+  {
+    const size_t num_allcats = categorical_criteria.num_cats;
+    const size_t* srcidx = categorical_criteria.index_ptr();
+    const T* srcval = categorical_criteria.value_ptr();
+
+    const size_t num_subfeats = feature_subset.size();
+    const size_t* subfeats = feature_subset.data();
+
+    std::vector<size_t> find_result(num_allcats, num_allcats);
+    size_t* find = find_result.data();
+
+    size_t i = 0;
+    if (num_allcats < num_subfeats) {
+      for (size_t k = 0; k < num_allcats; k++) {
+        for (size_t j = 0; j < num_subfeats; j++) {
+          if (subfeats[j] == srcidx[k]) { find[i++] = k; }
+        }
+      }
+    } else {
+      for (size_t j = 0; j < num_subfeats; j++) {
+        for (size_t k = 0; k < num_allcats; k++) {
+          if (subfeats[j] == srcidx[k]) { find[i++] = k; }
+        }
+      }
+    }
+
+    num_cats = i;
+    tree_assert(num_cats <= num_allcats);
+
+    const size_t result_size = num_cats + num_continuous_criteria;
+    indices = std::vector<size_t>(result_size, 0);
+    values = std::vector<T>(result_size, 0);
+
+    size_t* dstidx = indices.data();
+    T* dstval = values.data();;
+
+    for (size_t k = 0; k < num_cats; k++) {
+      dstidx[k] = srcidx[find[k]];
+      dstval[k] = srcval[find[k]];
+    }
   }
 
   size_t size() const { return indices.size(); }
@@ -411,61 +575,93 @@ _Pragma(__novector__)
 }
 
 template <typename T>
+inline criteria_vectors<T> prepare_criteria_vectors(
+  const criteria_vectors<T>& categorical_criteria,
+  const bool feature_subset_enabled,
+  const std::vector<size_t>& feature_subset,
+  const size_t num_thresholds,
+  const size_t num_continuous_criteria
+) {
+  if (feature_subset_enabled) {
+    return criteria_vectors<T>(
+      categorical_criteria, feature_subset,
+      num_thresholds, num_continuous_criteria
+    );
+  } else {
+    return criteria_vectors<T>(
+      categorical_criteria, num_thresholds, num_continuous_criteria
+    );
+  }
+}
+
+template <typename T>
 criteria_vectors<T> make_criteria(
   const rowmajor_matrix_local<T>& minmax_matrix,
   const criteria_vectors<T>& cat_criteria,
-  const size_t num_bins
+  const std::vector<size_t>& feature_subset,
+  const size_t num_bins,
+  const strategy<T>& str
 ) {
   const size_t num_features = minmax_matrix.local_num_col;
   const T* mins = minmax_matrix.val.data();
   const T* maxs = mins + num_features;
   tree_assert(minmax_matrix.local_num_row == 2);
   tree_assert(minmax_matrix.val.size() == num_features * 2);
+  tree_assert(num_features == feature_subset.size());
 
-  std::vector<size_t> cont_features(num_features, 0);
-  size_t* feats = cont_features.data();
-  size_t k = 0;
+  std::vector<size_t> cont_indices(num_features, 0);
+  size_t* srcidx = cont_indices.data();
+  size_t num_contfeats = 0;
   for (size_t j = 0; j < num_features; j++) {
-    if (mins[j] < maxs[j]) { feats[k++] = j; }
+    if (mins[j] < maxs[j]) { srcidx[num_contfeats++] = j; }
   }
 
   const size_t num_thresholds = num_bins - 1;
-  const size_t num_contfeats = k;
-  const size_t num_contcriteria = k * num_thresholds;
-  criteria_vectors<T> ret(cat_criteria, num_thresholds, num_contcriteria);
+  const size_t num_contcriteria = num_contfeats * num_thresholds;
 
+  auto ret = prepare_criteria_vectors<T>(
+    cat_criteria,
+    str.feature_subset_enabled(), feature_subset,
+    num_thresholds, num_contcriteria
+  );
+
+  const size_t* subfeats = feature_subset.data();
   const T _num_bins = static_cast<T>(1) / num_bins;
-  const size_t offset = cat_criteria.get_num_categorical_criteria();
-  size_t* idx = ret.index_ptr() + offset;
-  T* val = ret.value_ptr() + offset;
+  const size_t offset = ret.get_num_categorical_criteria();
+  size_t* dstidx = ret.index_ptr() + offset;
+  T* dstval = ret.value_ptr() + offset;
 
   // TODO: consider max_vlen
   if (num_contfeats <= num_thresholds) {
     // note: this novector pragma suppresses partial vectorization
 _Pragma(__novector__)
-    for (k = 0; k < num_contfeats; k++) {
-      const size_t j = feats[k];
+    for (size_t k = 0; k < num_contfeats; k++) {
+      const size_t j = srcidx[k];
       const T width = (maxs[j] - mins[j]) * _num_bins;
       for (size_t t = 0; t < num_thresholds; t++) {
-        idx[k * num_thresholds + t] = j;
-        val[k * num_thresholds + t] = mins[j] + (t + 1) * width;
+        dstidx[k * num_thresholds + t] = subfeats[j];
+        dstval[k * num_thresholds + t] = mins[j] + (t + 1) * width;
       }
     }
   } else {
-    std::vector<T> gathered(num_contfeats * 2, 0);
-    T* g_mins = gathered.data();
-    T* widths = gathered.data() + num_contfeats;
-    for (k = 0; k < num_contfeats; k++) {
-      const size_t j = feats[k];
+    // gather indices/values of continuous features in advance
+    std::vector<size_t> gathered_indices(num_contfeats, 0);
+    size_t* g_idxs = gathered_indices.data();
+    std::vector<T> gathered_values(num_contfeats * 2, 0);
+    T* g_mins = gathered_values.data();
+    T* widths = gathered_values.data() + num_contfeats;
+    for (size_t k = 0; k < num_contfeats; k++) {
+      const size_t j = srcidx[k];
+      g_idxs[k] = subfeats[j];
       g_mins[k] = mins[j];
       widths[k] = (maxs[j] - mins[j]) * _num_bins;
     }
 
 #pragma _NEC notransform
     for (size_t t = 0; t < num_thresholds; t++) {
-      for (k = 0; k < num_contfeats; k++) {
-        idx[k * num_thresholds + t] = feats[k];
-        val[k * num_thresholds + t] = g_mins[k] + (t + 1) * widths[k];
+      for (size_t k = 0; k < num_contfeats; k++) {
+        dstidx[k * num_thresholds + t] = g_idxs[k];
+        dstval[k * num_thresholds + t] = g_mins[k] + (t + 1) * widths[k];
       }
     }
   }
@@ -691,7 +887,7 @@ struct classification_impurities_calcr {
   static void calc(
     const size_t, const size_t,
     const T*, const T*, const T*, const T*,
-    T*, T*, const F&
+    T*, T*, F&
   );
 };
 
@@ -700,7 +896,7 @@ struct classification_impurities_calcr<T, misclassrate_functor<T>> {
   static void calc(
     const size_t, const size_t,
     const T*, const T*, const T*, const T*,
-    T*, T*, const misclassrate_functor<T>&
+    T*, T*, misclassrate_functor<T>&
   );
 };
 
@@ -710,7 +906,7 @@ inline void classification_impurities_calcr<T, F>::calc(
   const T* l_size, const T* r_size,
   const T* l_count, const T* r_count,
   T* l_impurity, T* r_impurity,
-  const F& ifunc
+  F& ifunc
 ) {
   std::vector<T> inverse_sizes(num_criteria * 2, 0);
   T* _lsize = inverse_sizes.data();
@@ -737,7 +933,7 @@ inline void classification_impurities_calcr<
   const T* l_size, const T* r_size,
   const T* l_count, const T* r_count,
   T* l_impurity, T* r_impurity,
-  const misclassrate_functor<T>&
+  misclassrate_functor<T>&
 ) {
 _Pragma(__outerloop_unroll__)
   for (size_t k = 0; k < num_classes; k++) {
@@ -844,7 +1040,7 @@ template <typename T, typename F>
 inline void dev2mv_txsv(
   const colmajor_matrix_local<T>& x,
   const colmajor_matrix_local<T>& v,
-  impurity_stats<T>& stats, const F& ifunc,
+  impurity_stats<T>& stats, F& ifunc,
   const size_t slice_start, const size_t slice_width
 ) {
   const size_t num_xcols = x.local_num_col;
@@ -917,7 +1113,7 @@ public:
   regression_impurity_calcr() {}
   regression_impurity_calcr(const T mean) : mean(mean) {}
 
-  T operator()(const colmajor_matrix_local<T>& x, const F& ifunc) const {
+  T operator()(const colmajor_matrix_local<T>& x, F& ifunc) const {
     const size_t n = x.local_num_row;
     tree_assert(n <= x.val.size());
     const T mu = mean;
@@ -949,7 +1145,7 @@ public:
     colmajor_matrix_local<T>& workbench,
     const colmajor_matrix_local<T>& dataset,
     const colmajor_matrix_local<T>& labels,
-    const criteria_vectors<T>& criteria, const F& ifunc
+    const criteria_vectors<T>& criteria, F& ifunc
   ) const {
     tree_assert(criteria.size() > 0);
     tree_assert(dataset.local_num_row == labels.local_num_row);
@@ -972,7 +1168,7 @@ private:
       colmajor_matrix_local<T>&,
       const colmajor_matrix_local<T>&,
       const colmajor_matrix_local<T>&,
-      const criteria_vectors<T>&, const F&
+      const criteria_vectors<T>&, F&
     );
   };
 
@@ -984,7 +1180,7 @@ private:
       const colmajor_matrix_local<T>&,
       const colmajor_matrix_local<T>&,
       const criteria_vectors<T>&,
-      const variance_functor<T>&
+      variance_functor<T>&
     );
   };
 
@@ -996,7 +1192,7 @@ private:
       const colmajor_matrix_local<T>&,
       const colmajor_matrix_local<T>&,
       const criteria_vectors<T>&,
-      const friedmanvar_functor<T>&
+      friedmanvar_functor<T>&
     );
   };
 };
@@ -1009,7 +1205,7 @@ inline void regression_impurities_calcr<T>::_OperatorParen<F, Void>::calc(
   colmajor_matrix_local<T>& workbench,
   const colmajor_matrix_local<T>& dataset,
   const colmajor_matrix_local<T>& labels,
-  const criteria_vectors<T>& criteria, const F& ifunc
+  const criteria_vectors<T>& criteria, F& ifunc
 ) {
   constexpr size_t num_stats = 2;
   constexpr size_t num_branches = 2;
@@ -1119,7 +1315,7 @@ inline void regression_impurities_calcr<T>::_OperatorParen<
   const colmajor_matrix_local<T>& dataset,
   const colmajor_matrix_local<T>& labels,
   const criteria_vectors<T>& criteria,
-  const variance_functor<T>&
+  variance_functor<T>&
 ) {
   constexpr size_t num_stats = 3;
   const size_t num_records = dataset.local_num_row;
@@ -1192,7 +1388,7 @@ inline void regression_impurities_calcr<T>::_OperatorParen<
   const colmajor_matrix_local<T>& dataset,
   const colmajor_matrix_local<T>& labels,
   const criteria_vectors<T>& criteria,
-  const friedmanvar_functor<T>&
+  friedmanvar_functor<T>&
 ) {
   constexpr size_t num_stats = 2;
   const size_t num_records = dataset.local_num_row;
@@ -1293,18 +1489,18 @@ public:
   template <typename F, typename R>
   bestgain_stats<T> operator()(
     const colmajor_matrix_local<T>&,
-    const std::vector<T>&, const strategy<T>&, const F&, R&
+    const std::vector<T>&, const strategy<T>&, F&, R&
   ) const;
 
   // for regression
   template <typename F, typename R>
   bestgain_stats<T> operator()(
     const impurity_stats<T>& impurities,
-    const strategy<T>& str, const F&, R& rand_engine
+    const strategy<T>& str, F&, R& engine
   ) const {
     if (impurities.num_criteria() > 0) {
       return _OperatorParen<F, R>::find(
-        current_size, current_impurity, impurities, str, rand_engine
+        current_size, current_impurity, impurities, str, engine
       );
     } else {
       return bestgain_stats<T>(str.get_min_info_gain(), get_selfid());
@@ -1401,7 +1597,7 @@ template <typename T, typename R>
 inline bestgain_stats<T> bestgain_find_helper(
   const std::vector<T>& infogains,
   const T* l_size, const T* r_size,
-  const strategy<T>& str, R& rand_engine
+  const strategy<T>& str, R& engine
 ) {
   const size_t num_criteria = infogains.size();
   const T* ig = infogains.data();
@@ -1417,7 +1613,7 @@ inline bestgain_stats<T> bestgain_find_helper(
     }
   }
 
-  if (str.random_enabled() && (best_gain > str.get_min_info_gain())) {
+  if (str.tie_break_enabled() && (best_gain > str.get_min_info_gain())) {
     std::uniform_real_distribution<T> dist(0, 1);
 #if defined(_SX) || defined(__ve__)
     auto best_indices = search_indices(best_gain, ig, num_criteria);
@@ -1427,7 +1623,7 @@ inline bestgain_stats<T> bestgain_find_helper(
 
 _Pragma(__novector__)
     for (size_t j = 0; j < num_bests; j++) {
-      T temp_rand = dist(rand_engine);
+      T temp_rand = dist(engine);
       if (best_rand < temp_rand) {
         best_rand = temp_rand;
         best_index = idx[j];
@@ -1436,7 +1632,7 @@ _Pragma(__novector__)
 #else
     for (size_t j = 0; j < num_criteria; j++) {
       if (ig[j] == best_gain) {
-        T temp_rand = dist(rand_engine);
+        T temp_rand = dist(engine);
         if (best_rand < temp_rand) {
           best_rand = temp_rand;
           best_index = j;
@@ -1460,7 +1656,7 @@ template <typename F, typename R>
 bestgain_stats<T> bestgain_finder<T>::operator()(
   const colmajor_matrix_local<T>& left_counter,
   const std::vector<T>& current_counter,
-  const strategy<T>& str, const F& ifunc, R& rand_engine
+  const strategy<T>& str, F& ifunc, R& engine
 ) const {
   const size_t num_criteria = left_counter.local_num_row;
   if (num_criteria == 0) {
@@ -1510,7 +1706,7 @@ _Pragma(__outerloop_unroll__)
       l_size, r_size, l_impurity, r_impurity,
       num_criteria, str.get_min_instances_per_node()
     ),
-    l_size, r_size, str, rand_engine
+    l_size, r_size, str, engine
   );
 }
 
@@ -1521,7 +1717,7 @@ inline bestgain_stats<T>
 bestgain_finder<T>::_OperatorParen<F, R, Void>::find(
   const T current_size, const T current_impurity,
   const impurity_stats<T>& impurities,
-  const strategy<T>& str, R& rand_engine
+  const strategy<T>& str, R& engine
 ) {
   const T* l_size = impurities.buffer0();
   const T* r_size = impurities.buffer3();
@@ -1534,7 +1730,7 @@ bestgain_finder<T>::_OperatorParen<F, R, Void>::find(
       l_size, r_size, l_impurity, r_impurity,
       impurities.num_criteria(), str.get_min_instances_per_node()
     ),
-    l_size, r_size, str, rand_engine
+    l_size, r_size, str, engine
   );
 }
 
@@ -1544,7 +1740,7 @@ inline bestgain_stats<T>
 bestgain_finder<T>::_OperatorParen<friedmanvar_functor<T>, R, Void>::find(
   const T current_size, const T current_impurity,
   const impurity_stats<T>& impurities,
-  const strategy<T>& str, R& rand_engine
+  const strategy<T>& str, R& engine
 ) {
   const T* l_size = impurities.buffer0();
   const T* r_size = impurities.buffer3();
@@ -1556,7 +1752,7 @@ bestgain_finder<T>::_OperatorParen<friedmanvar_functor<T>, R, Void>::find(
       0, 0, l_size, r_size, l_mean, r_mean,
       impurities.num_criteria(), str.get_min_instances_per_node()
     ),
-    l_size, r_size, str, rand_engine
+    l_size, r_size, str, engine
   );
 
   best.gain /= square(current_size);
@@ -1639,38 +1835,13 @@ void listvector_gtor<T>::operator()(
       }
     }
   } else {
-    throw std::logic_error("no such feature continuity");
+    throw std::logic_error("invalid feature continuity");
   }
 
   tree_assert(l <= num_records);
   tree_assert(r <= num_records);
   left_indices.resize(l);
   right_indices.resize(r);
-}
-
-template <typename T>
-inline void compress_helper(
-  const std::vector<size_t>& indices,
-  const colmajor_matrix_local<T>& src_matrix,
-  colmajor_matrix_local<T>& dest_matrix
-) {
-  const size_t num_indices = indices.size();
-  const size_t num_srcrows = src_matrix.local_num_row;
-  const size_t num_columns = dest_matrix.local_num_col;
-  tree_assert(num_srcrows * num_columns == dest_matrix.val.size());
-
-  const size_t* idx = indices.data();
-  const T* src = src_matrix.val.data();
-  T* dst = dest_matrix.val.data();
-
-  dest_matrix.local_num_row = num_indices;
-
-_Pragma(__outerloop_unroll__)
-  for (size_t j = 0; j < num_columns; j++) {
-    for (size_t i = 0; i < num_indices; i++) {
-      dst[j * num_indices + i] = src[j * num_srcrows + idx[i]];
-    }
-  }
 }
 
 template <typename T>
@@ -1681,8 +1852,9 @@ void dataset_compressor(
   colmajor_matrix_local<T>& dest_dataset,
   colmajor_matrix_local<T>& dest_labels
 ) {
-  tree_assert(indices.size() <= src_dataset.local_num_row);
   tree_assert(src_dataset.local_num_row == src_labels.local_num_row);
+  tree_assert(src_dataset.local_num_col == dest_dataset.local_num_col);
+  tree_assert(src_labels.local_num_col == dest_labels.local_num_col);
 
 #ifdef _TREE_DEBUG_
   for (size_t i = 0; i < indices.size(); i++) {
@@ -1690,8 +1862,8 @@ void dataset_compressor(
   }
 #endif
 
-  compress_helper(indices, src_dataset, dest_dataset);
-  compress_helper(indices, src_labels, dest_labels);
+  compress(indices, src_dataset, dest_dataset);
+  compress(indices, src_labels, dest_labels);
 }
 
 } // end namespace tree

@@ -22,26 +22,23 @@ constexpr size_t __max_vlen = 256;
 #endif
 
 template <typename T, enable_if_uint<T> = nullptr>
-struct BIT_WIDTH {
-  static constexpr size_t value = sizeof(T) * CHAR_BIT;
-};
+constexpr size_t bitwidth_of() { return sizeof(T) * CHAR_BIT; }
 
 template <typename T, typename U = uint64_t>
 class bitpack_helper {
-  static constexpr size_t bit_width = BIT_WIDTH<U>::value;
   size_t _num_blocks, _eff_width, _last_vlen;
 
 public:
   bitpack_helper(const size_t slice_width) :
 #if defined(_SX) || defined(__ve__)
-    _num_blocks(std::max(__max_vlen, ceil_div(slice_width, bit_width))),
+    _num_blocks(std::max(__max_vlen, ceil_div(slice_width, bitwidth()))),
 #else
-    _num_blocks(ceil_div(slice_width, bit_width)),
+    _num_blocks(ceil_div(slice_width, bitwidth())),
 #endif
     _eff_width(ceil_div(slice_width, _num_blocks)),
     _last_vlen(((slice_width + _num_blocks - 1) % _num_blocks) + 1)
   {
-    tree_assert(0 < _eff_width && _eff_width <= bit_width);
+    tree_assert(0 < _eff_width && _eff_width <= bitwidth());
     tree_assert(0 < _last_vlen && _last_vlen <= _num_blocks);
   }
 
@@ -49,6 +46,8 @@ public:
   std::vector<U> operator()(const T*, const size_t, const size_t) const;
 
 private:
+  static constexpr size_t bitwidth() { return bitwidth_of<U>(); }
+
   void pack(
     const T* src, U* dst,
     const size_t num_blocks, const size_t leading_dim,

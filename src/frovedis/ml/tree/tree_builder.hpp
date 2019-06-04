@@ -7,7 +7,6 @@
 #include <iostream>
 #include <memory>
 #include <numeric>
-#include <random>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -20,6 +19,7 @@
 #include "../../matrix/colmajor_matrix.hpp"
 
 #include "pragmas.hpp"
+#include "random.hpp"
 #include "tree_assert.hpp"
 #include "tree_ftrace.hpp"
 #include "tree_impurity.hpp"
@@ -34,34 +34,38 @@ namespace tree {
 template <typename T, typename F>
 class strategy_helper : public strategy<T> {
   F ifunc;
-  node_local<F> bfunc;
-  node_local<strategy<T>> bstr;
+  node_local<F> ifuncs;
+  node_local<strategy<T>> strategies;
   node_local<criteria_vectors<T>> cat_criteria;
 
+  using RandomEngine = mt19937_64;
+  node_local<RandomEngine> engines;
+
 public:
+  using random_engine_type = RandomEngine;
+
   strategy_helper(
-    const strategy<T>& tree_strategy,
-    const F& impurity_functor
+    strategy<T> tree_strategy, F impurity_functor
   ) :
-    strategy<T>(tree_strategy),
-    ifunc(impurity_functor),
-    bfunc(make_node_local_broadcast(ifunc)),
-    bstr(make_node_local_broadcast(tree_strategy)),
-    cat_criteria(bstr.map(make_categorical_criteria<T>))
+    strategy<T>(tree_strategy.move()),
+    ifunc(std::move(impurity_functor)),
+    ifuncs(make_node_local_broadcast(ifunc)),
+    strategies(make_node_local_broadcast<strategy<T>>(*this)),
+    cat_criteria(strategies.map(make_categorical_criteria<T>)),
+    engines(strategies.map(initialize_random_engine<T, RandomEngine>))
   {}
 
-  F get_impurity_functor() const& { return ifunc; }
-  const node_local<F>& bcas_impurity_functor() const& { return bfunc; }
-  const node_local<strategy<T>>& broadcast() const& { return bstr; }
+  node_local<strategy<T>>& broadcast() { return strategies; }
 
-  const node_local<criteria_vectors<T>>&
-  bcas_categorical_criteria() const& { return cat_criteria; }
+  F& get_impurity_functor() { return ifunc; }
+  node_local<F>& bcas_impurity_functor() { return ifuncs; }
 
-  // disable rvalue overloads
-  void get_impurity_functor() && = delete;
-  void bcas_impurity_functor() && = delete;
-  void broadcast() && = delete;
-  void bcas_categorical_criteria() && = delete;
+  node_local<criteria_vectors<T>>&
+  bcas_categorical_criteria() { return cat_criteria; }
+
+  RandomEngine&
+  get_engine() { return *(engines.get_dvid().get_selfdata()); }
+  node_local<RandomEngine>& bcas_engine() { return engines; }
 };
 
 // ---------------------------------------------------------------------
@@ -143,16 +147,16 @@ struct classification_policy {
   static T calc_current_impurity(
     const T current_size, const current_total_t& current_counter,
     const colmajor_matrix<T>&, const T probability,
-    const strategy_helper<T, F>* pstr
+    strategy_helper<T, F>& str
   ) {
     if (probability == 1) { return 0; }
     return _CalcCurrentImpurity<F>::calc(
       current_size, current_counter.size(), current_counter.data(),
-      pstr->get_impurity_functor()
+      str.get_impurity_functor()
     );
   }
 
-  template <typename F, typename R>
+  template <typename F>
   static bestgain_stats<T> find_bestgain(
     const T current_size,
     const T current_impurity,
@@ -162,14 +166,13 @@ struct classification_policy {
     colmajor_matrix<T>& splits,
     const size_t num_criteria,
     const node_local<criteria_vectors<T>>& bcas_criteria,
-    const strategy_helper<T, F>* pstr,
-    R& rand_engine
+    strategy_helper<T, F>& str
   ) {
     colmajor_matrix_local<T> left_counter(0, 0);
     left_counter.val = splits.data.map(
       left_counter_calcr<T>,
       dataset.data, labels.data,
-      bcas_criteria, pstr->broadcast()
+      bcas_criteria, str.broadcast()
     ).vector_sum();
     left_counter.local_num_row = num_criteria;
     left_counter.local_num_col = labels.num_col;
@@ -177,7 +180,7 @@ struct classification_policy {
 
     return bestgain_finder<T>(current_size, current_impurity)(
       left_counter, current_counter,
-      *pstr, pstr->get_impurity_functor(), rand_engine
+      str, str.get_impurity_functor(), str.get_engine()
     );
   }
 
@@ -186,7 +189,7 @@ private:
   struct _CalcCurrentImpurity {
     static T calc(
       const T current_size, const size_t num_classes, const T* src,
-      const F& ifunc
+      F& ifunc
     ) {
       T impurity = 0;
       const T _current_size = 1 / current_size;
@@ -202,7 +205,7 @@ private:
   struct _CalcCurrentImpurity<misclassrate_functor<T>, Void> {
     static T calc(
       const T current_size, const size_t num_classes, const T* src,
-      const misclassrate_functor<T>&
+      misclassrate_functor<T>&
     ) {
       T max_count = 0;
       for (size_t k = 0; k < num_classes; k++) {
@@ -253,15 +256,15 @@ struct regression_policy {
   static T calc_current_impurity(
     const T current_size, const current_total_t& current_total,
     colmajor_matrix<T>& labels, const T,
-    const strategy_helper<T, F>* pstr
+    strategy_helper<T, F>& str
   ) {
     tree_assert(labels.num_col == 1);
     return _CalcCurrentImpurity<F>::calc(
-      current_size, current_total, labels, pstr
+      current_size, current_total, labels, str
     );
   }
 
-  template <typename F, typename R>
+  template <typename F>
   static bestgain_stats<T> find_bestgain(
     const T current_size,
     const T current_impurity,
@@ -271,8 +274,7 @@ struct regression_policy {
     colmajor_matrix<T>& splits,
     const size_t num_criteria,
     const node_local<criteria_vectors<T>>& bcas_criteria,
-    const strategy_helper<T, F>* pstr,
-    R& rand_engine
+    strategy_helper<T, F>& str
   ) {
     tree_assert(labels.num_col == 1);
 
@@ -283,12 +285,12 @@ struct regression_policy {
         current_total.first, current_total.second
       ),
       dataset.data, labels.data,
-      bcas_criteria, pstr->bcas_impurity_functor()
+      bcas_criteria, str.bcas_impurity_functor()
     );
     tree_assert(num_criteria == impurities.num_criteria());
 
     return bestgain_finder<T>(current_size, current_impurity)(
-      impurities, *pstr, pstr->get_impurity_functor(), rand_engine
+      impurities, str, str.get_impurity_functor(), str.get_engine()
     );
   }
 
@@ -319,12 +321,12 @@ private:
   struct _CalcCurrentImpurity {
     static T calc(
       const T current_size, const current_total_t& current_total,
-      colmajor_matrix<T>& labels, const strategy_helper<T, F>* pstr
+      colmajor_matrix<T>& labels, strategy_helper<T, F>& str
     ) {
       const T mean = current_total.first / current_size;
       return labels.data.map(
         regression_impurity_calcr<T, F>(mean),
-        pstr->bcas_impurity_functor()
+        str.bcas_impurity_functor()
       ).reduce(add<T>) / current_size;
     }
   };
@@ -342,7 +344,7 @@ private:
     static T calc(
       const T current_size, const current_total_t& current_total,
       const colmajor_matrix<T>&,
-      const strategy_helper<T, variance_functor<T>>*
+      strategy_helper<T, variance_functor<T>>&
     ) {
       return calc_variance(current_size, current_total);
     }
@@ -353,7 +355,7 @@ private:
     static T calc(
       const T current_size, const current_total_t& current_total,
       const colmajor_matrix<T>&,
-      const strategy_helper<T, friedmanvar_functor<T>>*
+      strategy_helper<T, friedmanvar_functor<T>>&
     ) {
       return calc_variance(current_size, current_total);
     }
@@ -361,6 +363,20 @@ private:
 };
 
 // ---------------------------------------------------------------------
+
+template <typename Random>
+std::vector<size_t> get_feature_subset(
+  const size_t num_features, const size_t num_subfeats, Random& engine
+) {
+  tree_assert(num_subfeats <= num_features);
+  if (num_subfeats == 0) { return std::vector<size_t>(); }
+
+  std::vector<size_t> iv = iota<size_t>(num_features);
+  if (num_features == num_subfeats) { return iv; }
+
+  // feature subset mode is enabled
+  return sampling_without_replacement(iv, num_subfeats, engine);
+}
 
 template <typename T>
 inline void compress(
@@ -372,7 +388,8 @@ inline void compress(
 ) {
   const size_t num_indices = indices.size();
   tree_assert(src_dataset.num_row == src_labels.num_row);
-  tree_assert(num_indices <= src_dataset.num_row);
+  tree_assert(src_dataset.num_col == dest_dataset.num_col);
+  tree_assert(src_labels.num_col == dest_labels.num_col);
 
   indices.viewas_node_local().mapv(
     dataset_compressor<T>,
@@ -386,33 +403,63 @@ inline void compress(
 
 // ---------------------------------------------------------------------
 
-template <typename T, typename F, typename AP>
+template <typename T, typename A, typename F>
 class builder_impl {
-  const strategy_helper<T, F>* pstr;
-  typename AP::unique_labels_t unique_labels;
+  strategy_helper<T, F> str;
+  typename A::unique_labels_t unique_labels;
   colmajor_matrix<T> full_dataset, full_labels;
   colmajor_matrix<T> work_dataset, work_labels, work_splits;
-  std::mt19937_64 rand_engine;
 
 public:
-  builder_impl(const strategy_helper<T, F>* strategy_ptr) :
-    pstr(strategy_ptr),
-    unique_labels(AP::make_unique_labels(pstr->get_num_classes())),
+  builder_impl(
+    strategy<T> tree_strategy, F impurity_functor = F()
+  ) :
+    str(tree_strategy.move(), std::move(impurity_functor)),
+    unique_labels(A::make_unique_labels(str.get_num_classes())),
     full_dataset(), full_labels(),
-    work_dataset(), work_labels(), work_splits(),
-    rand_engine(pstr->get_seed())
-  {
-    RLOG(TRACE) << get_typename(*this) << std::endl;
+    work_dataset(), work_labels(), work_splits()
+  {}
+
+  builder_impl(const builder_impl<T, A, F>& src) :
+    str(src.str), unique_labels(src.unique_labels),
+    full_dataset(), full_labels(),
+    work_dataset(), work_labels(), work_splits()
+  {}
+
+  builder_impl(builder_impl<T, A, F>&& src) :
+    str(std::move(src.str)), unique_labels(std::move(src.unique_labels)),
+    full_dataset(), full_labels(),
+    work_dataset(), work_labels(), work_splits()
+  {}
+
+  builder_impl<T, A, F>& operator=(const builder_impl<T, A, F>& src) {
+    str = src.str;
+    unique_labels = src.unique_labels;
+    full_dataset.clear(); full_labels.clear();
+    work_dataset.clear(); work_labels.clear(); work_splits.clear();
+    return *this;
   }
 
-  decision_tree_model<T> build(const colmajor_matrix<T>&, dvector<T>&);
+  builder_impl<T, A, F>& operator=(builder_impl<T, A, F>&& src) {
+    str = std::move(src.str);
+    unique_labels = std::move(src.unique_labels);
+    full_dataset.clear(); full_labels.clear();
+    work_dataset.clear(); work_labels.clear(); work_splits.clear();
+    return *this;
+  }
+
+  const strategy<T>& get_strategy() const& { return str; }
+  strategy<T> get_strategy() && { return str.move(); }
+
+  decision_tree_model<T>
+  operator()(const colmajor_matrix<T>&, dvector<T>&);
 
 private:
   std::shared_ptr<node<T>> _build(const size_t, dvector<size_t>&);
 };
 
-template <typename T, typename F, typename AP>
-decision_tree_model<T> builder_impl<T, F, AP>::build(
+template <typename T, typename A, typename F>
+decision_tree_model<T> builder_impl<T, A, F>::operator()(
   const colmajor_matrix<T>& dataset, dvector<T>& labels
 ) {
   const ftrace_region __ftr_prepare("# prepare to build");
@@ -427,27 +474,47 @@ decision_tree_model<T> builder_impl<T, F, AP>::build(
   labels.align_as(
     full_dataset.data.map(get_num_rows<local_matrix_t>).gather()
   );
-  full_labels = AP::make_label_matrix(labels, unique_labels);
+  full_labels = A::make_label_matrix(labels, unique_labels);
+  tree_assert(full_dataset.num_row == full_labels.num_row);
 
-  // just copy for root
-  work_dataset = full_dataset;
-  work_labels = full_labels;
-
-  // set the number of columns even for empty local matrices
-  work_dataset.data.mapv(
-    set_num_cols<local_matrix_t>,
-    make_node_local_broadcast(dataset.num_col)
-  );
-
+  using random_t = typename decltype(str)::random_engine_type;
   dvector<size_t> initial_indices = full_dataset.data.map(
-    initial_indices_gtor<local_matrix_t>
+    initial_indices_gtor<local_matrix_t, T, random_t>,
+    str.broadcast(), str.bcas_engine()
   ).template moveto_dvector<size_t>();
+  const size_t num_indices = initial_indices.size();
 
-  size_t bytes = pstr->get_max_working_matrix_bytes();
-  if (!pstr->working_matrix_is_per_process()) {
+  if (str.subsampling_enabled()) {
+    // allocate in advance
+    work_dataset.data = make_node_local_allocate<local_matrix_t>();
+    work_labels.data = make_node_local_allocate<local_matrix_t>();
+    work_dataset.set_num(num_indices, full_dataset.num_col);
+    work_labels.set_num(num_indices, full_labels.num_col);
+
+    // sampling
+    initial_indices.viewas_node_local().mapv(
+      initial_dataset_gtor<local_matrix_t>,
+      full_dataset.data, full_labels.data,
+      work_dataset.data, work_labels.data
+    );
+  } else {
+    // no sampling, just copy
+    work_dataset = full_dataset;
+    work_labels = full_labels;
+
+    // set the number of columns even for empty local matrices
+    work_dataset.data.mapv(
+      set_num_cols<local_matrix_t>,
+      make_node_local_broadcast(dataset.num_col)
+    );
+  }
+
+  size_t bytes = str.get_max_working_matrix_bytes();
+  if (!str.working_matrix_is_per_process()) {
     // use given memory size with all processes
     bytes /= get_nodesize();
   }
+
   work_splits = make_node_local_broadcast(bytes).map(
     initial_workbench_gtor<local_matrix_t>
   );
@@ -455,23 +522,24 @@ decision_tree_model<T> builder_impl<T, F, AP>::build(
   __ftr_prepare.end();
 
   return decision_tree_model<T>(
-    _build(ROOT_ID, initial_indices), pstr->get_algorithm()
+    _build(ROOT_ID, initial_indices), str.get_algorithm()
   );
 }
 
-template <typename T, typename F, typename AP>
-std::shared_ptr<node<T>> builder_impl<T, F, AP>::_build(
+template <typename T, typename A, typename F>
+std::shared_ptr<node<T>> builder_impl<T, A, F>::_build(
   const size_t node_index, dvector<size_t>& current_indices
 ) {
   const nodeid_helper id(node_index);
 
   const size_t num_records = work_dataset.num_row;
+  const size_t num_features = work_dataset.num_col;
   const T current_size = static_cast<T>(num_records);
   tree_assert(num_records == current_indices.size());
 
   bool leaf = (
-    (id.get_depth() == pstr->get_max_depth()) ||
-    (pstr->get_min_instances_per_node() == num_records)
+    (id.get_depth() == str.get_max_depth()) ||
+    (str.get_min_instances_per_node() == num_records)
   );
 
 #ifdef _TREE_DEBUG_
@@ -491,27 +559,27 @@ std::shared_ptr<node<T>> builder_impl<T, F, AP>::_build(
   );
 #endif
 
-  tree_assert(id.get_depth() <= pstr->get_max_depth());
+  tree_assert(id.get_depth() <= str.get_max_depth());
   tree_assert(0 < num_records);
-  tree_assert(pstr->get_min_instances_per_node() <= num_records);
+  tree_assert(str.get_min_instances_per_node() <= num_records);
   tree_assert(num_records == work_labels.num_row);
 
   const ftrace_region __ftr_total("# calc current total");
-  const auto current_total = AP::calc_current_total(
-    work_labels, pstr->get_impurity_functor()
+  const auto current_total = A::calc_current_total(
+    work_labels, str.get_impurity_functor()
   );
   __ftr_total.end();
 
   const ftrace_region __ftr_predict("# calc current predict");
-  auto current_predict = AP::calc_current_predict(
+  auto current_predict = A::calc_current_predict(
     current_size, current_total, unique_labels
   );
   __ftr_predict.end();
 
   const ftrace_region __ftr_impurity("# calc current impurity");
-  const T current_impurity = AP::calc_current_impurity(
+  const T current_impurity = A::calc_current_impurity(
     current_size, current_total, work_labels,
-    current_predict.get_probability(), pstr
+    current_predict.get_probability(), str
   );
   __ftr_impurity.end();
 
@@ -526,26 +594,43 @@ std::shared_ptr<node<T>> builder_impl<T, F, AP>::_build(
     );
   }
 
+  const size_t num_subfeats = str.get_feature_subset_size(num_features);
+  const std::vector<size_t> subfeats = get_feature_subset(
+    num_features, num_subfeats, str.get_engine()
+  );
+  tree_assert(subfeats.size() == num_subfeats);
+
+#ifdef _TREE_DEBUG_
+  RLOG(INFO) <<
+    "feature subset: {" << string_join(subfeats, ", ") << "}" <<
+  std::endl;
+#endif
+
+  const auto feature_subset = make_node_local_broadcast(subfeats);
+
   // find min/max values of each feature
   const ftrace_region __ftr_minmax("# get minmax matrix");
   auto bcas_minmax = work_dataset.data.map(
-    minmax_finder<T>, pstr->broadcast()
+    minmax_finder<T>, feature_subset, str.broadcast()
   ).allreduce(minmax_reducer<T>);
+
   tree_assert(bcas_minmax.get(0).local_num_row == 2);
-  tree_assert(bcas_minmax.get(0).local_num_col == work_dataset.num_col);
-  tree_assert(bcas_minmax.get(0).val.size() == work_dataset.num_col * 2);
+  tree_assert(bcas_minmax.get(0).local_num_col == num_subfeats);
+  tree_assert(bcas_minmax.get(0).val.size() == num_subfeats * 2);
   __ftr_minmax.end();
 
   const ftrace_region __ftr_criteria("# make criteria");
-  size_t num_bins = pstr->get_max_bins();
+  size_t num_bins = str.get_max_bins();
 _Pragma(__novector__)
   while (num_bins > num_records) { num_bins >>= 1; }
 
   // construct candidates of criteria
   auto bcas_criteria = bcas_minmax.map(
     make_criteria<T>,
-    pstr->bcas_categorical_criteria(),
-    make_node_local_broadcast(num_bins)
+    str.bcas_categorical_criteria(),
+    feature_subset,
+    make_node_local_broadcast(num_bins),
+    str.broadcast()
   );
 
   const auto criteria_ptr = bcas_criteria.get_dvid().get_selfdata();
@@ -556,16 +641,28 @@ _Pragma(__novector__)
   RLOG(INFO) << "number of criteria: " << num_criteria << std::endl;
 #endif
 
+  // check if there are criteria candidates or not
+  leaf = leaf || (num_criteria == 0);
+
+  if (leaf) {
+#ifdef _TREE_DEBUG_
+    RLOG(INFO) << "node #" << node_index << " is a leaf" << std::endl;
+#endif
+    return make_leaf<T>(
+      node_index, std::move(current_predict), current_impurity
+    );
+  }
+
   const ftrace_region __ftr_bestgain("# find best gain");
-  const auto best = AP::find_bestgain(
+  const auto best = A::find_bestgain(
     current_size, current_impurity, current_total,
     work_dataset, work_labels, work_splits,
-    num_criteria, bcas_criteria, pstr, rand_engine
+    num_criteria, bcas_criteria, str
   );
   __ftr_bestgain.end();
 
   // check if the reduced gain is valid or not
-  leaf = leaf || (best.gain <= pstr->get_min_info_gain());
+  leaf = leaf || (best.gain <= str.get_min_info_gain());
 
   if (leaf) {
 #ifdef _TREE_DEBUG_
@@ -673,60 +770,39 @@ _Pragma(__novector__)
   );
 }
 
-// ---------------------------------------------------------------------
-
-template <typename T, typename F, typename AP>
-class build_wrapper {
-  strategy_helper<T, F> str;
-
-public:
-  build_wrapper(
-    const strategy<T>& tree_strategy, const F& impurity_functor = F()
-  ) :
-    str(tree_strategy, impurity_functor)
-  {}
-
-  // TODO: support sparse matrix
-  // like: template <typename DATA>
-  decision_tree_model<T> operator()(
-    const colmajor_matrix<T>& dataset, dvector<T>& labels
-  ) const {
-    builder_impl<T, F, AP> builder(&str);
-    return builder.build(dataset, labels);
-  }
-};
-
-template <typename T>
-using build_f = std::function<
-  decision_tree_model<T>(const colmajor_matrix<T>&, dvector<T>&)
->;
-
 } // end namespace tree
 
 // ---------------------------------------------------------------------
 
-// a decision tree builder interface
 template <typename T>
 class decision_tree_builder {
-  tree::build_f<T> func;
+  std::function<
+    decision_tree_model<T>(const colmajor_matrix<T>&, dvector<T>&)
+  > wrapper;
 
 public:
-  decision_tree_builder(const tree::build_f<T>& func) : func(func) {}
-  decision_tree_builder(tree::build_f<T>&& func) : func(std::move(func)) {}
+  decision_tree_builder(tree::strategy<T>);
 
-  decision_tree_model<T> run(
-    const colmajor_matrix<T>& dataset, dvector<T>& labels
-  ) const {
-    return func(dataset, labels);
+  template <typename AlgorithmPolicy, typename ImpurityFunctor>
+  decision_tree_builder(
+    tree::builder_impl<T, AlgorithmPolicy, ImpurityFunctor> builder
+  ) :
+    wrapper(std::move(builder))
+  {}
+
+  decision_tree_model<T>
+  run(const colmajor_matrix<T>& dataset, dvector<T>& labels) {
+    return wrapper(dataset, labels);
   }
 };
 
 template <typename T>
-decision_tree_builder<T> make_decision_tree_builder(
-  const tree::strategy<T>& strategy
-) {
-  using builder_t = decision_tree_builder<T>;
+decision_tree_builder<T>::decision_tree_builder(
+  tree::strategy<T> strategy
+) : wrapper() {
   using namespace tree;
+  using CLA = classification_policy<T>;
+  using REG = regression_policy<T>;
   using GIN = gini_functor<T>;
   using ENT = entropy_functor<T>;
   using MCR = misclassrate_functor<T>;
@@ -734,19 +810,20 @@ decision_tree_builder<T> make_decision_tree_builder(
   using FRM = friedmanvar_functor<T>;
   using MSE = defvariance_functor<T>;
   using MAE = meanabserror_functor<T>;
-  using C = classification_policy<T>;
-  using R = regression_policy<T>;
 
   switch (strategy.algo) {
   case algorithm::Classification:
     switch (strategy.impurity) {
     case impurity_type::Default:
     case impurity_type::Gini:
-      return builder_t(build_wrapper<T, GIN, C>(strategy));
+      wrapper = builder_impl<T, CLA, GIN>(strategy.move());
+      return;
     case impurity_type::Entropy:
-      return builder_t(build_wrapper<T, ENT, C>(strategy));
+      wrapper = builder_impl<T, CLA, ENT>(strategy.move());
+      return;
     case impurity_type::MisclassRate:
-      return builder_t(build_wrapper<T, MCR, C>(strategy));
+      wrapper = builder_impl<T, CLA, MCR>(strategy.move());
+      return;
     default:
       throw std::logic_error("invalid impurity type");
     }
@@ -754,19 +831,29 @@ decision_tree_builder<T> make_decision_tree_builder(
     switch (strategy.impurity) {
     case impurity_type::Default:
     case impurity_type::Variance:
-      return builder_t(build_wrapper<T, VAR, R>(strategy));
+      wrapper = builder_impl<T, REG, VAR>(strategy.move());
+      return;
     case impurity_type::FriedmanVariance:
-      return builder_t(build_wrapper<T, FRM, R>(strategy));
+      wrapper = builder_impl<T, REG, FRM>(strategy.move());
+      return;
     case impurity_type::DefVariance:
-      return builder_t(build_wrapper<T, MSE, R>(strategy));
+      wrapper = builder_impl<T, REG, MSE>(strategy.move());
+      return;
     case impurity_type::MeanAbsError:
-      return builder_t(build_wrapper<T, MAE, R>(strategy));
+      wrapper = builder_impl<T, REG, MAE>(strategy.move());
+      return;
     default:
       throw std::logic_error("invalid impurity type");
     }
   default:
-    throw std::logic_error("no such tree algorithm");
+    throw std::logic_error("invalid tree algorithm");
   }
+}
+
+template <typename T>
+inline decision_tree_builder<T>
+make_decision_tree_builder(tree::strategy<T> strategy) {
+  return decision_tree_builder<T>(strategy.move());
 }
 
 } // end namespace frovedis

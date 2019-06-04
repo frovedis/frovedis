@@ -13,6 +13,62 @@
 namespace frovedis {
 namespace tree {
 
+std::unordered_map<std::string, subsampling_strategy>
+get_subsampling_map() {
+  std::unordered_map<std::string, subsampling_strategy> m;
+  m.emplace("auto", subsampling_strategy::Auto);
+  m.emplace("disable", subsampling_strategy::Disable);
+  m.emplace("enable", subsampling_strategy::Enable);
+  m.emplace("bootstrap", subsampling_strategy::Bootstrap);
+  return m;
+}
+
+subsampling_strategy
+get_subsampling_strategy(const std::string& arg) {
+  static auto ssmap = get_subsampling_map();
+  std::string str;
+  str.resize(arg.length());
+  std::transform(arg.cbegin(), arg.cend(), str.begin(), tolower);
+
+  try {
+    return ssmap.at(str);
+  } catch (const std::out_of_range&) {
+    throw std::runtime_error(
+      std::string("invalid subsampling strategy: ") + arg
+    );
+  }
+}
+
+std::unordered_map<std::string, feature_subset_strategy>
+get_feature_subset_map() {
+  std::unordered_map<std::string, feature_subset_strategy> m;
+  m.emplace("auto", feature_subset_strategy::Auto);
+  m.emplace("all", feature_subset_strategy::All);
+  m.emplace("onethird", feature_subset_strategy::OneThird);
+  m.emplace("1/3", feature_subset_strategy::OneThird);
+  m.emplace("sqrt", feature_subset_strategy::Sqrt);
+  m.emplace("log2", feature_subset_strategy::Log2);
+  m.emplace("custom", feature_subset_strategy::CustomRate);
+  m.emplace("customrate", feature_subset_strategy::CustomRate);
+  return m;
+}
+
+feature_subset_strategy
+get_feature_subset_strategy(const std::string& arg) {
+  static auto fsmap = get_feature_subset_map();
+  std::string str;
+  str.resize(arg.length());
+  std::transform(arg.cbegin(), arg.cend(), str.begin(), tolower);
+
+  try {
+    return fsmap.at(str);
+  } catch (const std::out_of_range&) {
+    throw std::runtime_error(
+      std::string("invalid feature subset strategy: ") + arg
+    );
+  }
+}
+
 // parse a dictionary-like string "key:value, key:value, ..."
 std::unordered_map<size_t, size_t>
 parse_categorical_features_info(
