@@ -27,10 +27,10 @@ namespace frovedis {
 
 template <typename T>
 class random_forest_model {
-  std::vector<decision_tree_model<T>> trees;
   tree::algorithm algo;
+  std::vector<decision_tree_model<T>> trees;
 
-  SERIALIZE(trees, algo)
+  SERIALIZE(algo, trees)
 
 public:
   template <typename DATA>
@@ -40,10 +40,10 @@ public:
   random_forest_model() {}
 
   random_forest_model(
-    std::vector<decision_tree_model<T>> trees,
-    const tree::algorithm algo
+    const tree::algorithm algo,
+    std::vector<decision_tree_model<T>> trees
   ) :
-    trees(std::move(trees)), algo(algo)
+    algo(algo), trees(std::move(trees))
   {}
 
   tree::algorithm get_algo() const { return algo; }

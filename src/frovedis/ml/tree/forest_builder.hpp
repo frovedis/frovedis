@@ -51,7 +51,7 @@ _Pragma(__novector__)
     }
 
     return random_forest_model<T>(
-      std::move(trees), get_strategy().get_algorithm()
+      get_strategy().get_algorithm(), std::move(trees)
     );
   }
 };
