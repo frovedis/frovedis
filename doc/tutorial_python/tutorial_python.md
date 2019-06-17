@@ -21,7 +21,7 @@ interpreter communicates with it.
 
 # 2. Environment setting
 
-In this tutorial, we asuume that Frovedis is installed from rpm.
+In this tutorial, we assume that Frovedis is installed from rpm.
 Please follow /opt/nec/nosupport/frovedis/ getting_started.md. 
 As described in the file, if you want to use frovedis_server on x86,
 please do:
@@ -66,7 +66,7 @@ environment, you might need to run following:
     (frovedis_tutorial) $ ipython kernel install --user --name=frovedis_tutorial
 
 If you run jupyter notebook server on a server machine and run your
-brower on a client machine, following setting woulb need to be added
+browser on a client machine, following setting would need to be added
 in your ~/.jupyter/jupyter_notebook_config.py
 
     c = get_config()
@@ -148,6 +148,10 @@ In this case, the speed of training of Frovedis is actually slower
 than scikit-learn. This is because the size of the data is very small
 (569, 30). 
 
+The frovedis server will be terminated when the interpreter exits.
+If it is not terminated because of abnormal termination, please kill the
+server manually by calling command like `pkill mpi`. 
+
 # 4. Machine learning algorithms
 
 At this moment, we support following algorithms:
@@ -178,7 +182,8 @@ learning just like scikit-learn. It is automatically sent to Frovedis
 server, and automatically distributed among MPI processes.
 (SX-Aurora TSUBASA shows much better performance with sparse matrix.)
 
-For more information, please refer to the manual.
+For more information, please refer to the manual. You can also find
+other samples in /opt/nec/nosupport/frovedis/ x86/foreign_if_demo/python/.
 
 # 5. Distributed matrix
 
@@ -192,7 +197,7 @@ Since you can keep the data at Frovedis server side, you can reduce
 the communication cost of sending data from Python to the server if
 you reuse the data.
 
-Please look at "src/tut4-1/tut.py". It creates sparse matrix at the
+Please look at "src/tut5-1/tut.py". It creates sparse matrix at the
 Frovedis server side from scipy csr matrix.
 
     mat = csr_matrix((data, indices, indptr),
@@ -244,7 +249,7 @@ You can create sparse matrix by loading from a file.
 
     fmat2 = FrovedisCRSMatrix().load_text("./result")
 
-creates a new matrixy from the saved data. `fmat2.debug_print()`
+creates a new matrix from the saved data. `fmat2.debug_print()`
 should produce the same output as the above.
 
 In this case, we used text file format, but you can also use binary
@@ -287,7 +292,7 @@ So far, we explained sparse matrix (FrovedisCRSMatrix), dense matrix
 vector (FrovedisDvector). We also another kind of distributed dense
 matrix called FrovedisBlockcyclicMatrix.
 
-FrovedisBlockcyclicMatrix supports distributed matrix operationos that
+FrovedisBlockcyclicMatrix supports distributed matrix operations that
 is backed by ScaLAPACK/PBLAS. It can be utilized for large scale
 matrix operations. Please see "src/tut5-4/tut.py". It contains
 examples of various PBLAS functionalities.
@@ -306,7 +311,7 @@ variables. However in this example, the blockcyclic matrix is copied
 back to Python interpreter and converted to numpy matrix by
 `to_numpy_matrix()` and printed. 
 
-Next example is multipyling by scalar: `PBLAS.scal(bcx,2)`. As you
+Next example is multiplying by scalar: `PBLAS.scal(bcx,2)`. As you
 see, PBLAS interface overwrites the original matrix.
 
 `PBLAS.axpy(bcx,bcy,2)` does y = ax + y, here a is 2. 
@@ -332,7 +337,7 @@ Lastly, you can explicitly release the blockcyclic matrix by calling
 `release()`, though they are automatically released when the variable
 is garbage collected.
 
-Next, we will explan ScaLAPACK functionalities. Please see
+Next, we will explain ScaLAPACK functionalities. Please see
 "src/tut5-5/tut.py". 
 
 This time, FrovedisBlockcyclicMatrix is created by loading from a
@@ -357,7 +362,7 @@ to use the factorized matrix later.
 
 
 Next, by using the factorized matrix, inverse of the matrix is
-calculated usign `getri`. 
+calculated using `getri`. 
 
     SCALAPACK.getri(bcm,rf.ipiv())
 
@@ -369,7 +374,7 @@ is overwritten to the argument matrix. The result is printed by
      [-1.46666667  0.63333333 -0.03333333]
      [-0.03333333 -0.13333333  0.03333333]]
 
-You can also use the result of LU factorization for solving the sytem
+You can also use the result of LU factorization for solving the system
 of linear equation by using `getrs`.
 
 Next example solves the system of linear equation directly using
@@ -423,7 +428,7 @@ In addition to machine learning algorithms, we support Pandas like
 DataFrame. 
 
 First, please install `pandas` to your virtual environment.
-Though pandas is installed to the system Python when Forvedis is
+Though pandas is installed to the system Python when Frovedis is
 installed, virtualenv does not copy system installed packages by
 default.
 
@@ -471,7 +476,7 @@ They should produce output like:
     3       Japan
     4       France
 
-To select colums, you can write like:
+To select columns, you can write like:
 
     fdf1[["Ename","Age"]].show()
 
@@ -498,7 +503,7 @@ To sort the rows, you can write like:
 
     fdf1.sort("Age",ascending=False).show()
 
-Since `ascending=False`, the it is sorted in descending order of Age.
+Since `ascending=False`, it is sorted in descending order of Age.
 Output should be like:
 
     Age     Country Ename
@@ -557,7 +562,7 @@ It produces output like:
     19      France  Raul    4       France
     31      Japan   Yuta    3       Japan
 
-You can chain operations. Here, join, sort, and select is chained.
+You can chain operations. Here, join, sort, and select are chained.
 
     fdf1.merge(fdf3, left_on="Country", right_on="Cname") \
         .sort("Age")[["Age", "Ename", "Country"]].show()
@@ -646,7 +651,7 @@ matrix. This produces
      [ 13.    34.9 ]
      [ 15.   100.12]]
 
-You can also create `FrovedisCorlmajormatrix` by `to_frovedis_colmajor_matrix`.
+You can also create `FrovedisColmajorMatrix` by `to_frovedis_colmajor_matrix`.
 
 Then, you can specify columns as category variable. In this case, it
 can be any data type; it is converted using on-hot encoding.
@@ -656,9 +661,9 @@ In this case, the result becomes FrovedisCRSMatrix.
                                              ['C'], need_info=True)
     crs_mat.debug_print()
 
-Here, columns 'A' and 'B', and 'C' is selected to create the matrix.
+Here, columns 'A', 'B', and 'C' is selected to create the matrix.
 The second argument is to specify which column is used as categorical
-variable. In this case column 'C' is specified. if `need_info=True`,
+variable. In this case column 'C' is specified. If `need_info=True`,
 `info` data structure is also returned. It is used to create a matrix 
 from FrovedisDataFrame next time (explained later). 
 
