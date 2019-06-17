@@ -6,6 +6,7 @@
 #include <iomanip>
 #include <vector>
 #include <string>
+#include "../../core/utility.hpp"
 
 #define YES_RESPONSE 1
 #define NO_RESPONSE -1
@@ -398,7 +399,7 @@ struct logistic_regression_model {
       auto exptmp = -(vp[i] + intercept);
       // for SX exp...
       if(exptmp > 709) retp[i] = 0;
-      else retp[i] = 1.0 / (1.0 + exp(exptmp));
+      else retp[i] = 1.0 / (1.0 + myexp(exptmp));
     }
     return ret;
   }

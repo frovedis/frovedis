@@ -4,6 +4,7 @@
 #include <iostream>
 #include <vector>
 #include <cmath>
+#include "../../core/utility.hpp"
 
 namespace frovedis {
 
@@ -27,7 +28,7 @@ public:
       auto tmp = outLabel * wtxp[i];
       // in the case of overflow, SX does not handle properly
       if(tmp > 709) gradScalarp[i] = outLabel;
-      else gradScalarp[i] = outLabel * (1-1/(1+exp(tmp)));
+      else gradScalarp[i] = outLabel * (1-1/(1+myexp(tmp)));
 //    gradScalarp[i] = outLabel * (1-1/(1+exp(outLabel * wtxp[i])));
     }
     return gradScalar;
