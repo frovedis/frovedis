@@ -12,6 +12,32 @@
 
 namespace frovedis {
 
+//-- These functions are workaround for ve vectorization compiler
+template <class REAL>
+void mysqrt(REAL* s, int nev) {
+  for(int i = 0; i < nev; i++) {
+    s[i] = sqrt(s[i]);
+  }
+}
+
+template <class REAL>
+REAL calc_sq_sum_local(REAL* ret_u_valp, int mloc, int c) {
+  REAL sq_sum_local = 0;
+  for(int r = 0; r < mloc; r++) {
+    sq_sum_local += ret_u_valp[c * mloc + r] * ret_u_valp[c * mloc + r];
+  }
+  return sq_sum_local;
+}
+
+template <class REAL>
+void norm_ret_u_valp(REAL* ret_u_valp, REAL norm, int mloc, int c){
+#pragma _NEC ivdep
+  for(size_t r = 0; r < mloc; r++) {
+    ret_u_valp[c * mloc + r] *= norm;
+  }
+}
+//--
+
 template <class REAL, class I, class SPARSE_MATRIX_LOCAL>
 void svd_mpi(SPARSE_MATRIX_LOCAL& mat,
              SPARSE_MATRIX_LOCAL& trans_mat,
@@ -104,7 +130,8 @@ void svd_mpi(SPARSE_MATRIX_LOCAL& mat,
       auto y = shrink_vector_sum_local(yloc, mat_info);
       start = &workd[ipntr[1]-1];
       auto yp = y.data();
-      for(int i = 0; i < nloc; i++) start[i] = yp[i];
+      //for(int i = 0; i < nloc; i++) start[i] = yp[i];
+      memcpy(start, yp, nloc * sizeof(REAL));
     } else break;
     count++;
     if(rank == 0) {t2.show("one iteration: ");}
@@ -154,28 +181,32 @@ void svd_mpi(SPARSE_MATRIX_LOCAL& mat,
         auto avloc = mat * tmpv;
         spmv_lap.lap_stop();
         REAL* avlocp = &avloc[0];
-        for(size_t j = 0; j < mloc; j++) {
+        memcpy(ret_u_valp + i * mloc, avlocp, mloc * sizeof(REAL));
+        /*for(size_t j = 0; j < mloc; j++) {
           ret_u_valp[i * mloc + j] = avlocp[j];
-        }
+        }*/
       }
       if(rank == 0) t.show("Calculate u time: ");
-      for(size_t i = 0; i < nev; i++) {
+      mysqrt(s, nev);
+      /*for(size_t i = 0; i < nev; i++) {
         s[i] = sqrt(s[i]);
-      }
+      }*/
       for(int c = 0; c < nev; c++) {
         REAL sq_sum = 0;
         REAL sq_sum_local = 0;
-        for(int r = 0; r < mloc; r++) {
+        sq_sum_local = calc_sq_sum_local(ret_u_valp, mloc, c);
+        /*for(int r = 0; r < mloc; r++) {
           sq_sum_local += ret_u_valp[c * mloc + r] * ret_u_valp[c * mloc + r];
-        }
+        }*/
         mpi_lap.lap_start();
         typed_allreduce<REAL>(&sq_sum_local, &sq_sum, 1, MPI_SUM,
                               MPI_COMM_WORLD);
         mpi_lap.lap_stop();
         REAL norm = 1.0 / sqrt(sq_sum);
-        for(size_t r = 0; r < mloc; r++) {
+        norm_ret_u_valp(ret_u_valp, norm, mloc, c);
+        /*for(size_t r = 0; r < mloc; r++) {
           ret_u_valp[c * mloc + r] *= norm;
-        }
+          }*/
       }
       if(rank == 0) t.show("Calculate returning s, u time: ");
     }
