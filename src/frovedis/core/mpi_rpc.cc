@@ -3,6 +3,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <algorithm>
+#include <malloc.h>
 #include "mpi_rpc.hpp"
 #include "mpihelper.hpp"
 
@@ -355,20 +356,27 @@ void send_bcast_rpcreq_oneway(rpc_type type, intptr_t function_addr,
 
 
 void initfrovedis(int argc, char* argv[]) {
-#ifdef USE_THREAD
   int provided;
+  // for OpenMP hybrid
   int err = MPI_Init_thread(&argc, &argv, MPI_THREAD_SERIALIZED, &provided);
   if(err != 0) {
     cerr << "MPI_THREAD_SERIALIZED is not supported. exiting." << endl;
     MPI_Finalize();
     exit(1);
   }
-#else
-  MPI_Init(&argc, &argv);
-#endif
   MPI_Comm_dup(MPI_COMM_WORLD, &frovedis_comm_rpc);
   MPI_Comm_rank(MPI_COMM_WORLD, &frovedis_self_rank);
   MPI_Comm_size(MPI_COMM_WORLD, &frovedis_comm_size);
+
+/*
+  On VE/glibc environment, configure not to return memory to VEOS,
+  because OS needs to zero clear memory before giving it to user process
+  and it takes large amount of time on VE, since it is done from VH
+*/
+#if defined(__ve__) && defined(M_MMAP_MAX) && defined(M_TRIM_THRESHOLD)
+  mallopt(M_MMAP_MAX,0);
+  mallopt(M_TRIM_THRESHOLD,-1);
+#endif
 
   if(frovedis_self_rank != 0) {
     handle_req();
