@@ -2,6 +2,7 @@
 #define UTILITY_HPP
 
 #include "rlog.hpp"
+#include <cmath>
 
 namespace frovedis {
 
@@ -42,6 +43,24 @@ private:
 
 void make_directory(const std::string&);
 bool directory_exists(const std::string&);
+
+// temporary; to improve vectorization
+#ifdef __ve__
+inline double myexp(double _Left) {
+  return (__builtin_exp(_Left));
+}
+inline float myexp(float _Left) {
+  return (__builtin_expf(_Left));
+}
+#else
+inline double myexp(double _Left) {
+  return std::exp(_Left);
+}
+inline float myexp(float _Left) {
+  return std::exp(_Left);
+}
+#endif
+
 
 }
 
