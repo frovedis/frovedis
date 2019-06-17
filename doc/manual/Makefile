@@ -1,21 +1,29 @@
 include ../../Makefile.conf
 include ../../Makefile.in.${TARGET}
 
+CPPMAN := core/dvector.md core/node_local.md core/dunordered_map.md matrix/rowmajor_matrix_local.md matrix/rowmajor_matrix.md matrix/colmajor_matrix_local.md matrix/colmajor_matrix.md matrix/sliced_colmajor_matrix_local.md matrix/sliced_colmajor_vector_local.md matrix/blas_wrapper.md matrix/lapack_wrapper.md matrix/blockcyclic_matrix.md  matrix/sliced_blockcyclic_matrix.md matrix/sliced_blockcyclic_vector.md matrix/pblas_wrapper.md matrix/scalapack_wrapper.md matrix/crs_matrix_local.md matrix/crs_matrix.md matrix/ccs_matrix_local.md matrix/ccs_matrix.md matrix/ell_matrix_local.md matrix/ell_matrix.md matrix/jds_matrix_local.md matrix/jds_matrix.md ml/linear_regression_model.md ml/linear_regression.md ml/lasso_regression.md ml/ridge_regression.md ml/logistic_regression_model.md ml/logistic_regression.md ml/svm_model.md ml/linear_svm.md ml/matrix_factorization_model.md ml/als.md ml/kmeans.md 
+
+SPARKMAN := spark/exrpc/frovedis_sparse_data.md spark/matrix/blockcyclic_matrix.md spark/matrix/pblas_wrapper.md spark/matrix/scalapack_wrapper.md spark/matrix/arpack_wrapper.md spark/matrix/getrf_result.md spark/matrix/gesvd_result.md spark/ml/linear_regression_model.md spark/ml/linear_regression.md spark/ml/lasso_regression.md spark/ml/ridge_regression.md spark/ml/logistic_regression_model.md spark/ml/logistic_regression.md spark/ml/svm_model.md spark/ml/linear_svm.md spark/ml/matrix_factorization_model.md spark/ml/als.md spark/ml/kmeans_model.md spark/ml/kmeans.md
+
+PYTHONMAN := python/matrix/dvector.md python/matrix/crs_matrix.md python/matrix/blockcyclic_matrix.md python/matrix/pblas_wrapper.md python/matrix/scalapack_wrapper.md python/matrix/arpack_wrapper.md python/matrix/getrf_result.md python/matrix/gesvd_result.md  python/ml/linear_regression.md python/ml/lasso_regression.md python/ml/ridge_regression.md python/ml/logistic_regression.md python/ml/linear_svm.md python/ml/als.md python/ml/kmeans.md
+
 all:
 	cd core; make
 	cd matrix; make
 	cd ml; make
+	(cp intro_cpp.md manual_cpp.md; for file in ${CPPMAN}; do sed -e 's/^\#/\#\#/' < $$file >> manual_cpp.md; done; pandoc -N --toc --toc-depth=1 -V documentclass=book -V geometry:margin=1in -o manual_cpp.pdf manual_cpp.md)
+	(cp intro_cpp.md manual_cpp.md; for file in ${CPPMAN}; do sed -e 's/^\#/\#\#/' < $$file > tmp; sed -e 's/^%\(.*\)/\n\n\#\1/' < tmp >> manual_cpp.md; done; pandoc -N --toc --toc-depth=1 -V documentclass=book -V geometry:margin=1in -o manual_cpp.pdf manual_cpp.md; rm tmp)
 	cd spark/exrpc; make
 	cd spark/matrix; make
 	cd spark/ml; make
+	(cp intro_spark.md manual_spark.md; for file in ${SPARKMAN}; do sed -e 's/^\#/\#\#/' < $$file > tmp; sed -e 's/^%\(.*\)/\n\n\#\1/' < tmp >> manual_spark.md; done; pandoc -N --toc --toc-depth=1 -V documentclass=book -V geometry:margin=1in -o manual_spark.pdf manual_spark.md; rm tmp)
 	cd python/matrix; make
 	cd python/ml; make
-	gs -dBATCH -dNOPAUSE -q -sDEVICE=pdfwrite -dPDFSETTINGS=/prepress -sOutputFile=manual.pdf core/dvector.pdf core/node_local.pdf core/dunordered_map.pdf matrix/rowmajor_matrix_local.pdf matrix/rowmajor_matrix.pdf matrix/colmajor_matrix_local.pdf matrix/colmajor_matrix.pdf matrix/sliced_colmajor_matrix_local.pdf matrix/sliced_colmajor_vector_local.pdf matrix/blas_wrapper.pdf matrix/lapack_wrapper.pdf matrix/blockcyclic_matrix.pdf  matrix/sliced_blockcyclic_matrix.pdf matrix/sliced_blockcyclic_vector.pdf matrix/pblas_wrapper.pdf matrix/scalapack_wrapper.pdf matrix/crs_matrix_local.pdf matrix/crs_matrix.pdf matrix/ccs_matrix_local.pdf matrix/ccs_matrix.pdf matrix/ell_matrix_local.pdf matrix/ell_matrix.pdf matrix/jds_matrix_local.pdf matrix/jds_matrix.pdf ml/linear_regression_model.pdf ml/linear_regression.pdf ml/lasso_regression.pdf ml/ridge_regression.pdf ml/logistic_regression_model.pdf ml/logistic_regression.pdf ml/svm_model.pdf ml/linear_svm.pdf ml/matrix_factorization_model.pdf ml/als.pdf ml/kmeans.pdf spark/exrpc/frovedis_sparse_data.pdf spark/matrix/blockcyclic_matrix.pdf spark/matrix/pblas_wrapper.pdf spark/matrix/scalapack_wrapper.pdf spark/matrix/arpack_wrapper.pdf spark/matrix/getrf_result.pdf spark/matrix/gesvd_result.pdf spark/ml/linear_regression_model.pdf spark/ml/linear_regression.pdf spark/ml/lasso_regression.pdf spark/ml/ridge_regression.pdf spark/ml/logistic_regression_model.pdf spark/ml/logistic_regression.pdf spark/ml/svm_model.pdf spark/ml/linear_svm.pdf spark/ml/matrix_factorization_model.pdf spark/ml/als.pdf spark/ml/kmeans_model.pdf spark/ml/kmeans.pdf python/matrix/dvector.pdf python/matrix/crs_matrix.pdf python/matrix/blockcyclic_matrix.pdf python/matrix/pblas_wrapper.pdf python/matrix/scalapack_wrapper.pdf python/matrix/arpack_wrapper.pdf python/matrix/getrf_result.pdf python/matrix/gesvd_result.pdf  python/ml/linear_regression.pdf python/ml/lasso_regression.pdf python/ml/ridge_regression.pdf python/ml/logistic_regression.pdf python/ml/linear_svm.pdf python/ml/als.pdf python/ml/kmeans.pdf
-
+	(cp intro_python.md manual_python.md; for file in ${PYTHONMAN}; do sed -e 's/^\#/\#\#/' < $$file > tmp; sed -e 's/^%\(.*\)/\n\n\#\1/' < tmp >> manual_python.md; done; pandoc -N --toc --toc-depth=1 -V documentclass=book -V geometry:margin=1in -o manual_python.pdf manual_python.md; rm tmp)
 
 install:
 	install -d ${INSTALLPATH}/doc/manual
-	cp manual.pdf ${INSTALLPATH}/doc/manual
+	cp manual_cpp.pdf manual_spark.pdf manual_python.pdf ${INSTALLPATH}/doc/manual
 	install -d ${INSTALLPATH}/man/man3
 	install -d ${INSTALLPATH}/man/man3s
 	install -d ${INSTALLPATH}/man/man3p

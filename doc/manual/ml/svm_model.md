@@ -1,4 +1,4 @@
-% `frovedis::svm_model<T>`
+% frovedis::svm_model\<T\>
 
 # NAME
 

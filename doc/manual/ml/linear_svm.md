@@ -1,4 +1,4 @@
-% Linear SVM  
+% Linear SVM
 
 # NAME
 

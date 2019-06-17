@@ -1,4 +1,4 @@
-% `frovedis::linear_regression_model<T>`
+% frovedis::linear_regression_model\<T\>
 
 # NAME
 

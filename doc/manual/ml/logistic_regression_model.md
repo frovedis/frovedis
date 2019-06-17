@@ -1,4 +1,4 @@
-% `frovedis::logistic_regression_model<T>`
+% frovedis::logistic_regression_model\<T\>
 
 # NAME
 

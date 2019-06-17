@@ -1,4 +1,4 @@
-% `frovedis::matrix_factorization_model<T>`
+% frovedis::matrix_factorization_model\<T\>
 
 # NAME
 

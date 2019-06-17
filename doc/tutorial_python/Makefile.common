@@ -1,0 +1,11 @@
+tutorial_python.pdf: tutorial_python.md
+	pandoc tutorial_python.md -o tutorial_python.pdf -V geometry:margin=1in
+
+install:
+	install -d ${INSTALLPATH}/doc/tutorial_python/src
+	cp tutorial_python.md tutorial_python.pdf ${INSTALLPATH}/doc/tutorial_python/
+	cp -r src ${INSTALLPATH}/doc/tutorial_python/
+
+clean:
+	rm -f *~
+

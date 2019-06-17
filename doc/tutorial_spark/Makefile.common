@@ -1,0 +1,15 @@
+tutorial_spark.pdf: tutorial_spark.md
+	pandoc tutorial_spark.md -o tutorial_spark.pdf -V geometry:margin=1in
+
+install:
+	install -d ${INSTALLPATH}/doc/tutorial_spark/src
+	cp tutorial_spark.md tutorial_spark.pdf ${INSTALLPATH}/doc/tutorial_spark/
+	cp -r src ${INSTALLPATH}/doc/tutorial_spark/
+
+clean:
+	rm -f *~
+	find ./ -name "*~" | xargs rm -f
+	find ./ -name "target" | xargs rm -rf
+	find ./ -name "project" | xargs rm -rf
+	find ./ -name "out*" | xargs rm -f
+	rm -fr src/tut6/metastore_db src/tut6/spark-warehouse src/tut6/derby.log

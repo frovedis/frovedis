@@ -1,6 +1,6 @@
 SOURCES := $(shell find . -name '*.md')
 
-all: man pdf
+all: man
 
 man:
 	@for t in $(SOURCES); do \
@@ -15,4 +15,4 @@ pdf:
 	done
 
 clean:
-	rm -f *.3s *.pdf *.~
+	rm -f *.3s *.~
