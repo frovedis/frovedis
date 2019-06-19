@@ -1,4 +1,5 @@
 import com.nec.frovedis.Jexrpc.FrovedisServer
+import com.nec.frovedis.exrpc.FrovedisLabeledPoint
 import com.nec.frovedis.exrpc.FrovedisSparseData
 import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.mllib.util.MLUtils
