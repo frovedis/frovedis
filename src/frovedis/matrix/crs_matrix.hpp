@@ -444,10 +444,10 @@ inline std::string remove_schema(const std::string& path) {
 /*
   The directory should contain following files:
   - val: big endian binary data file that contains values of the matrix 
-         in row major order
-  - idx: big endian binary size_t (64bit) data that contains column index of
+         whose type is T in row major order
+  - idx: big endian binary data whose type is I that contains column index of
          the value
-  - off: big endian binary size_t (64bit) data that contains offset of
+  - off: big endian binary data whose type is O that contains offset of
          the row
   - nums: text file that contains num_row in the first line and
           num_col in the second line
