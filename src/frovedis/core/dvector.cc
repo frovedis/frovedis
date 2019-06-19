@@ -4,6 +4,8 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <dirent.h>
+#include <stdlib.h>
 #include "dvector.hpp"
 #if defined(_SX) && !defined(__ve__)
 #include <byteswap.h>
@@ -13,6 +15,34 @@
 namespace frovedis {
 
 using namespace std;
+
+bool is_sequential_save() {
+  auto envval = getenv("FROVEDIS_SEQUENTIAL_SAVE");
+  if(envval == NULL) return false;
+  else if(std::string(envval) == "true") return true;
+  else return false;
+}
+
+void save_file_checker(const std::string& path) {
+  struct stat sb;
+  if(stat(path.c_str(), &sb) == 0) { // there is something
+    if(S_ISREG(sb.st_mode)) { // file?
+      if(unlink(path.c_str()) != 0) {
+        throw std::runtime_error("unlink " + path + " error: " +
+                                 std::string(strerror(errno)));
+      }
+    } else {
+      throw std::runtime_error(path + " that is not a file exists");
+    }
+  }
+  int fd = creat(path.c_str(), 0666);
+  if(fd == -1)
+    throw std::runtime_error("creat " + path + " error: " +
+                             std::string(strerror(errno)));
+  if(close(fd) == -1)
+    throw std::runtime_error("close " + path + " error: " +
+                             std::string(strerror(errno)));
+}
 
 std::vector<size_t> 
 align_as_calc_alltoall_sizes(std::vector<size_t>& srcsizes,

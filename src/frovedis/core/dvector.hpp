@@ -13,6 +13,7 @@
 #include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <fcntl.h>
 #include <unistd.h>
 #include "serfunc.hpp"
 #include "DVID.hpp"
@@ -1602,8 +1603,9 @@ template <class T>
 struct dvector_save_mpi_helper {
   dvector_save_mpi_helper(){}
   dvector_save_mpi_helper(const std::string& path,
-                          const std::string& delim) :
-    path(path), delim(delim) {}
+                          const std::string& delim,
+                          bool is_sequential_save) :
+    path(path), delim(delim), is_sequential_save(is_sequential_save) {}
   void operator()(std::vector<T>& v) {
     std::ostringstream oss;
     for(size_t i = 0; i < v.size(); i++) {
@@ -1619,36 +1621,68 @@ struct dvector_save_mpi_helper {
     size_t myoff = 0;
     for(size_t i = 0; i < self; i++) myoff += sizes[i];
 
-    MPI_File fh;
-    int ret = MPI_File_open(frovedis_comm_rpc, const_cast<char*>(path.c_str()),
-                            MPI_MODE_CREATE | MPI_MODE_WRONLY, MPI_INFO_NULL,
-                            &fh);
-    if(ret != 0) throw std::runtime_error("error in MPI_File_open");
-    char datarep[] = "native";
-    MPI_File_set_view(fh, myoff, MPI_CHAR, MPI_CHAR, datarep, MPI_INFO_NULL);
-    MPI_Status st;
-    char* write_data = &result[0];
-    size_t maxsize = 0;
-    size_t* sizesp = &sizes[0];
-    for(size_t i = 0; i < nodes; i++) {
-      if(maxsize < sizesp[i]) maxsize = sizesp[i];
+    if(is_sequential_save) {
+      for(size_t i = 0; i < nodes; i++) {
+        if(i == self) {
+          int fd = open(path.c_str(), O_RDWR);
+          if(fd == -1)
+            throw std::runtime_error("open " + path + " error: " +
+                                     std::string(strerror(errno)));
+          auto ret = lseek(fd, myoff, SEEK_SET);
+          if(ret == -1)
+            throw std::runtime_error("lseek " + path + " error: " +
+                                     std::string(strerror(errno)));
+          ssize_t to_write = mysize;
+          ssize_t pos = 0;
+          char* write_data = &result[0];
+          while(true) {
+            auto written = write(fd, write_data+pos, to_write);
+            if(written == -1) {
+              throw std::runtime_error("write " + path + " error: " +
+                                       std::string(strerror(errno)));
+            } else if(written < to_write) {
+              to_write -= written;
+              pos += written;
+            } else break;
+          }
+          close(fd);
+        }
+        MPI_Barrier(frovedis_comm_rpc);
+      }
+    } else {
+      MPI_File fh;
+      int ret = MPI_File_open(frovedis_comm_rpc,
+                              const_cast<char*>(path.c_str()),
+                              MPI_MODE_WRONLY, MPI_INFO_NULL, &fh);
+      if(ret != 0) throw std::runtime_error("error in MPI_File_open");
+      char datarep[] = "native";
+      MPI_File_set_view(fh, myoff, MPI_CHAR, MPI_CHAR, datarep, MPI_INFO_NULL);
+
+      char* write_data = &result[0];
+      size_t maxsize = 0;
+      size_t* sizesp = &sizes[0];
+      for(size_t i = 0; i < nodes; i++) {
+        if(maxsize < sizesp[i]) maxsize = sizesp[i];
+      }
+      size_t numiter = ceil_div(maxsize, mpi_max_count);
+      size_t to_write = mysize;
+      size_t pos = 0;
+      for(size_t i = 0; i < numiter; i++) {
+        size_t write_size = std::min(to_write, mpi_max_count);
+        MPI_Status st;
+        ret = MPI_File_write_all(fh, write_data+pos, write_size, MPI_CHAR, &st);
+        if(ret != 0) throw std::runtime_error("error in MPI_File_write_all");
+        pos += write_size;
+        if(to_write > mpi_max_count) to_write -= mpi_max_count;
+        else to_write = 0;
+      }
+      MPI_File_close(&fh);
     }
-    size_t numiter = ceil_div(maxsize, mpi_max_count);
-    size_t to_write = mysize;
-    size_t pos = 0;
-    for(size_t i = 0; i < numiter; i++) {
-      size_t write_size = std::min(to_write, mpi_max_count);
-      ret = MPI_File_write_all(fh, write_data + pos, write_size, MPI_CHAR, &st);
-      if(ret != 0) throw std::runtime_error("error in MPI_File_write_all");
-      pos += write_size;
-      if(to_write > mpi_max_count) to_write -= mpi_max_count;
-      else to_write = 0;
-    }
-    MPI_File_close(&fh);
   }
   std::string path;
   std::string delim;
-  SERIALIZE(path, delim)
+  bool is_sequential_save;
+  SERIALIZE(path, delim, is_sequential_save)
 };
 
 /*
@@ -1656,41 +1690,31 @@ struct dvector_save_mpi_helper {
   in the case of hdfs, path is directory;
   otherwise, path is file, and sequentially written
 */
+
+void save_file_checker(const std::string& path);
+bool is_sequential_save();
+
 template <class T>
 void dvector<T>::save(const std::string& path, const std::string& delim) {
   auto idx = path.find(':', 0);
   if(idx == std::string::npos) {
-    struct stat sb;
-    if(stat(path.c_str(), &sb) == 0 && S_ISREG(sb.st_mode)) {
-      if(unlink(path.c_str()) != 0) {
-        throw std::runtime_error(std::string(strerror(errno)));
-      }
-    }
-    mapv_partitions(dvector_save_mpi_helper<T>(path, delim));
+    save_file_checker(path);
+    mapv_partitions(dvector_save_mpi_helper<T>(path, delim,
+                                               is_sequential_save()));
     return;
   } else {
     if(path.substr(0, idx) == "file") {
       if(path.substr(idx + 1, 2) == "//") {
         auto newpath = path.substr(idx + 3);
-        struct stat sb;
-        if(stat(newpath.c_str(), &sb) == 0 && S_ISREG(sb.st_mode)) {
-          if(unlink(newpath.c_str()) != 0) {
-            throw std::runtime_error(std::string(strerror(errno)));
-          }
-        }
-        mapv_partitions(dvector_save_mpi_helper<T>
-                        (newpath.substr(idx + 3), delim));
+        save_file_checker(newpath);
+        mapv_partitions(dvector_save_mpi_helper<T>(newpath, delim,
+                                                   is_sequential_save()));
         return;
       } else {
         auto newpath = path.substr(idx + 1);
-        struct stat sb;
-        if(stat(newpath.c_str(), &sb) == 0 && S_ISREG(sb.st_mode)) {
-          if(unlink(newpath.c_str()) != 0) {
-            throw std::runtime_error(std::string(strerror(errno)));
-          }
-        }
-        mapv_partitions(dvector_save_mpi_helper<T>
-                        (newpath, delim));
+        save_file_checker(newpath);
+        mapv_partitions(dvector_save_mpi_helper<T>(newpath, delim,
+                                                   is_sequential_save()));
         return;
       } 
     } else {
@@ -2224,54 +2248,83 @@ template <class T>
 struct savebinary_helper {
   savebinary_helper(){}
   savebinary_helper(const std::string& path,
-                    const std::vector<size_t>& sizes) :
-    path(path), sizes(sizes) {}
+                    const std::vector<size_t>& sizes,
+                    bool is_sequential_save) :
+    path(path), sizes(sizes), is_sequential_save(is_sequential_save) {}
   void operator()(std::vector<T>& data) {
-    MPI_File fh;
-    int ret = MPI_File_open(frovedis_comm_rpc, const_cast<char*>(path.c_str()),
-                            MPI_MODE_CREATE | MPI_MODE_WRONLY, MPI_INFO_NULL,
-                            &fh);
-    if(ret != 0) throw std::runtime_error("error in MPI_File_open");
+    size_t nodes = get_nodesize();
+    size_t self = get_selfid();
     size_t start = 0;
-    for(size_t i = 0; i < frovedis::get_selfid(); i++) start += sizes[i];
-    MPI_Offset off = start * sizeof(T);
-    char datarep[] = "native";
-    MPI_File_set_view(fh, off, MPI_CHAR, MPI_CHAR, datarep, MPI_INFO_NULL);
-    MPI_Status st;
+    for(size_t i = 0; i < self; i++) start += sizes[i];
+    size_t to_write = data.size() * sizeof(T);
     auto conv_data = convert_endian<T>(data);
     char* write_data = reinterpret_cast<char*>(&conv_data[0]);
-    size_t maxsize = 0;
-    size_t* sizesp = &sizes[0];
-    for(size_t i = 0; i < sizes.size(); i++) {
-      if(maxsize < sizesp[i]) maxsize = sizesp[i];
+    if(is_sequential_save) {
+      size_t myoff = start * sizeof(T);
+      for(size_t i = 0; i < nodes; i++) {
+        if(i == self) {
+          int fd = open(path.c_str(), O_RDWR);
+          if(fd == -1)
+            throw std::runtime_error("open " + path + " error: " +
+                                     std::string(strerror(errno)));
+          auto ret = lseek(fd, myoff, SEEK_SET);
+          if(ret == -1)
+            throw std::runtime_error("lseek " + path + " error: " +
+                                     std::string(strerror(errno)));
+          ssize_t pos = 0;
+          while(true) {
+            auto written = write(fd, write_data+pos, to_write);
+            if(written == -1) {
+              throw std::runtime_error("write " + path + " error: " +
+                                       std::string(strerror(errno)));
+            } else if(written < to_write) {
+              to_write -= written;
+              pos += written;
+            } else break;
+          }
+          close(fd);
+        }
+        MPI_Barrier(frovedis_comm_rpc);
+      }
+    } else {
+      MPI_File fh;
+      int ret = MPI_File_open(frovedis_comm_rpc,
+                              const_cast<char*>(path.c_str()),
+                              MPI_MODE_WRONLY, MPI_INFO_NULL, &fh);
+      if(ret != 0) throw std::runtime_error("error in MPI_File_open");
+      MPI_Offset off = start * sizeof(T);
+      char datarep[] = "native";
+      MPI_File_set_view(fh, off, MPI_CHAR, MPI_CHAR, datarep, MPI_INFO_NULL);
+      size_t maxsize = 0;
+      size_t* sizesp = &sizes[0];
+      for(size_t i = 0; i < sizes.size(); i++) {
+        if(maxsize < sizesp[i]) maxsize = sizesp[i];
+      }
+      size_t numiter = ceil_div(maxsize * sizeof(T), mpi_max_count);
+      size_t pos = 0;
+      for(size_t i = 0; i < numiter; i++) {
+        size_t write_size = std::min(to_write, mpi_max_count);
+        MPI_Status st;
+        ret = MPI_File_write_all(fh, write_data + pos, write_size, MPI_CHAR,
+                                 &st);
+        if(ret != 0) throw std::runtime_error("error in MPI_File_write_all");
+        pos += write_size;
+        if(to_write > mpi_max_count) to_write -= mpi_max_count;
+        else to_write = 0;
+      }
+      MPI_File_close(&fh);
     }
-    size_t numiter = ceil_div(maxsize * sizeof(T), mpi_max_count);
-    size_t to_write = data.size() * sizeof(T);
-    size_t pos = 0;
-    for(size_t i = 0; i < numiter; i++) {
-      size_t write_size = std::min(to_write, mpi_max_count);
-      ret = MPI_File_write_all(fh, write_data + pos, write_size, MPI_CHAR, &st);
-      if(ret != 0) throw std::runtime_error("error in MPI_File_write_all");
-      pos += write_size;
-      if(to_write > mpi_max_count) to_write -= mpi_max_count;
-      else to_write = 0;
-    }
-    MPI_File_close(&fh);
   }
   std::string path;
   std::vector<size_t> sizes;
-  SERIALIZE(path, sizes)
+  bool is_sequential_save;
+  SERIALIZE(path, sizes, is_sequential_save)
 };
 
 template <class T>
 void dvector<T>::savebinary(const std::string& path) {
-  struct stat sb;
-  if(stat(path.c_str(), &sb) == 0 && S_ISREG(sb.st_mode)) {
-    if(unlink(path.c_str()) != 0) {
-      throw std::runtime_error(std::string(strerror(errno)));
-    }
-  }
-  dvid.mapv(savebinary_helper<T>(path, sizes()));
+  save_file_checker(path);
+  dvid.mapv(savebinary_helper<T>(path, sizes(), is_sequential_save()));
 }
 
 template <class T>

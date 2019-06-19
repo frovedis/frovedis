@@ -204,6 +204,12 @@ Both make_dvector_loadline and saveline are executed on workers in
 parallel using MPI-IO. So if you run the program in the distributed
 environment, please confirm that the file can be accessed by the worker.
 
+(If you are using NFS, there might be a problem when saving a file,
+because it does not support parallel write. If envirnment variable
+`FROVEDIS_SEQUENTIAL_SAVE` is set to `true`, save is done sequentially
+to avoid this problem. This is set by default if you are using rpm
+distribution and using x86env.sh or veenv.sh to set environment.)
+
 In this example, we explicitly parsed the contents using a function
 `parse_data`. However, we provide a functionality to parse numeric
 data at the time of loading. In this case,
