@@ -399,7 +399,7 @@ struct logistic_regression_model {
       auto exptmp = -(vp[i] + intercept);
       // for SX exp...
       if(exptmp > 709) retp[i] = 0;
-      else retp[i] = 1.0 / (1.0 + myexp(exptmp));
+      else retp[i] = 1.0 / (1.0 + exp(exptmp));
     }
     return ret;
   }
