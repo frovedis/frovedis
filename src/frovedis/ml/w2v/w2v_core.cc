@@ -211,7 +211,7 @@ void InitNet() {
   real hidden65536 = hidden_size * (real)65536;
   for (int i = 0; i < vocab_size * hidden_size; i++) {
     next_random = next_random * (ulonglong)25214903917 + 11;
-    Wih[i] = ((next_random & 0xFFFF) - 65536 / 2) / hidden65536;
+    Wih[i] = (int(next_random & 0xFFFF) - 65536 / 2) / hidden65536;
   }
 }
 
@@ -668,13 +668,15 @@ void Train_SGNS_general() {
             continue;
           }
 
+#if defined(USE_COMBINED_GEMM_ALL) || defined(USE_GEMM_FALLBACK)
 #if defined(USE_COMBINED_GEMM_ALL)
           // w2v kernel(gemm0,1,2)
           if (are_supposed_parameters) {
               tableW2VKernel[input_size](output_size, hidden_size, input_size,
                                          alpha, pInOffsets, pOutOffsets, corrM, Woh,
                                          Wih);
-          } else {   
+          } else {
+#endif   
             // fallback
             for (int i = 0; i < input_size; i++) {
               for (size_t j = 0; j < hidden_size; j++) {
@@ -708,7 +710,9 @@ void Train_SGNS_general() {
                 Wih[des + j] += inputM[src + j];
               }
             }
+#if defined(USE_COMBINED_GEMM_ALL) 
           }
+#endif
 #elif defined(USE_COMBINED_GEMM_12) || defined(USE_COMBINED_GEMM_EACH)
 // gemm0
 #if defined(USE_VGEMM0_HU256)
