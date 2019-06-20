@@ -28,18 +28,14 @@ please do:
 
     $ source /opt/nec/nosupport/frovedis/x86/bin/x86env.sh
 
-If you want to use vector engine, please do:
+If you want to use vector engine (VE), please do:
 
     $ source /opt/nec/nosupport/frovedis/ve/bin/veenv.sh
 
-If you use vector engine, please make sure that MPI for vector engine
-is set up. Usually, you need to do:
-
-    $ source /opt/nec/ve/mpi/[YOUR_MPI_VERSION]/bin/necmpivars.sh
-
 Main purpose of the script is to set environment variables like
 SCALA_HOME, SPARK_HOME, SPARK_SUBMIT_OPTIONS. 
-It also switches `mpirun` to call (x86 or ve). 
+It also switches `mpirun` to call (x86 or ve). If you did not source
+MPI set up script for VE, veenv.sh also source it internally.
 
 Scala and Spark is installed together with the Frovedis rpm;
 above environment variables point to them. If you want to use your own

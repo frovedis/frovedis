@@ -28,17 +28,13 @@ please do:
 
     $ source /opt/nec/nosupport/frovedis/x86/bin/x86env.sh
 
-If you want to use vector engine, please do:
+If you want to use vector engine (VE), please do:
 
     $ source /opt/nec/nosupport/frovedis/ve/bin/veenv.sh
 
-If you use vector engine, please make sure that MPI for vector engine
-is set up. Usually, you need to do:
-
-    $ source /opt/nec/ve/mpi/[YOUR_MPI_VERSION]/bin/necmpivars.sh
-
 Main purpose of the script is to set PYTHONPATH and LD_LIBRARY_PATH.
-It also switches `mpirun` to call (x86 or ve). 
+It also switches `mpirun` to call (x86 or ve). If you did not source
+MPI set up script for VE, veenv.sh also source it internally.
 
 Supported Python version is 2.7, which is installed in CentOS/RedHat
 by default. Since our wrapper is just a Python library and shared
