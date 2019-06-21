@@ -1641,39 +1641,60 @@ The following function builds a classification tree model.
       impurity, max_depth, max_bins
     );
 
-There are some parameters.
-`num_classes` is the number of classes;
-here, this example is a three-class classification problem.
+There are problem specification parameters and tunable parameters.
+
+Please specify `num_classes` and `categorical_features_info`
+depending on the problem you want to solve and your dataset.
+The number of classes is specified by `num_classes`.
+Here, this example is a three-class classification problem.
 You can specify categorical features&apos; information,
 which gives column indices of categorical features and
-the number of categories for those features.
+the number of categories for those features
+(but here, `categorical_features_info` is leaved empty
+ because the iris dataset has no categorical feature).
 For example, an unordered_map \{ \{0, 2\}, \{4, 5\} \} means that
 feature\[0\] takes values 0 or 1 (binary) and
 feature\[4\] has five categories (values 0, 1, 2, 3 or 4).
 Note that feature indices are zero-based.
-(But here, `categorical_features_info` is leaved empty
- because the iris dataset has no categorical feature.)
-Two types of impurity functions are available:
-"impurity_type::Gini" and "impurity_type::Entropy".
-The default impurity function is the Gini impurity.
-`max_depth` limits the maximum depth of a tree.
-`max_bins` specifies the maximum number of histogram bins
-for continuous features.
 
-A constructed tree model can be dumped
+The following parameters may be tuned.
+The impurity function is specified by `impurity`.
+Several types of impurity function are available:
+typical one is "impurity_type::Gini" or "impurity_type::Entropy"
+for classification problems.
+The default impurity function is the Gini impurity.
+The maximum tree depth (i.e. the tree height) is limited by `max_depth`.
+If `max_depth` is 0, you get a tree which has only a single node.
+Continuous features are divided up into histogram bins,
+and the maximum number of its bins is tuned by `max_bins`.
+
+Then, a constructed tree model can be dumped
 in a simple text format which would be like:
 
     <1> Split: feature[2] < 1.92188, IG: 0.333333
      \_ (2) Predict: 0 (100%)
      \_ <3> Split: feature[3] < 1.70312, IG: 0.378547
-        \_ ...
-        |
-        \_ ...
+        \_ <6> Split: feature[2] < 4.94062, IG: 0.0889681
+        |  \_ <12> Split: feature[3] < 1.6125, IG: 0.04543
+        |  |  \_ (24) Predict: 1 (100%)
+        |  |  \_ (25) Predict: 2 (100%)
+        |  \_ <13> Split: feature[3] < 1.55, IG: 0.222222
+        |     \_ (26) Predict: 2 (100%)
+        |     \_ <27> Split: feature[2] < 5.4, IG: 0.444444
+        |        \_ (54) Predict: 1 (100%)
+        |        \_ (55) Predict: 2 (100%)
+        \_ <7> Split: feature[2] < 4.86562, IG: 0.0150704
+           \_ <14> Split: feature[0] < 6.05, IG: 0.111111
+           |  \_ <28> Split: feature[0] < 5.95, IG: 0.5
+           |  |  \_ (56) Predict: 1 (100%)
+           |  |  \_ (57) Predict: 2 (100%)
+           |  \_ (29) Predict: 2 (100%)
+           \_ (15) Predict: 2 (100%)
 
 If the "Split" condition is true,
 the first child node is the next place, otherwise the second child node.
 For example, when you look at the node &lt;1&gt; and
-if a value of feature[2] is 1.92188 or more,
+if the condition "feature[2] < 1.92188" is false,
 the next place is node &lt;3&gt;.
 "IG" indicates the information gain with the spliting.
 
@@ -1699,8 +1720,9 @@ Most of the part is the same as the classification case.
       impurity, max_depth, max_bins
     );
 
-Note that there is no `num_classes` parameter and
-only an impurity function "impurity_type::Variance" is available.
+There is no `num_classes` parameter.
+About an impurity function, typical one is "impurity_type::Variance"
+for regression problems.
 A constructed tree model has common methods for classification/regression,
 but a regression tree&apos;s predicted probabilities make no sense
 (those values are always set to zero).
