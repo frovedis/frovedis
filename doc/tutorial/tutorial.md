@@ -1638,8 +1638,7 @@ The following function builds a classification tree model.
     auto model = frovedis::decision_tree::train_classifier(
       dataset, labels,
       num_classes, categorical_features_info,
-      impurity, max_depth, max_bins,
-      min_instances_per_node, min_info_gain
+      impurity, max_depth, max_bins
     );
 
 There are some parameters.
@@ -1660,10 +1659,6 @@ The default impurity function is the Gini impurity.
 `max_depth` limits the maximum depth of a tree.
 `max_bins` specifies the maximum number of histogram bins
 for continuous features.
-A tree stops growing
-when the number of training instances (samples) per tree node
-becomes less than `min_instances_per_node` or
-an information gain becomes smaller than `min_info_gain`.
 
 A constructed tree model can be dumped
 in a simple text format which would be like:
@@ -1701,8 +1696,7 @@ Most of the part is the same as the classification case.
     auto model = frovedis::decision_tree::train_regressor(
       dataset, labels,
       categorical_features_info,
-      impurity, max_depth, max_bins,
-      min_instances_per_node, min_info_gain
+      impurity, max_depth, max_bins
     );
 
 Note that there is no `num_classes` parameter and
