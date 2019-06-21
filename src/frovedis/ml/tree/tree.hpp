@@ -23,9 +23,7 @@ struct decision_tree {
     categorical_features_info = std::unordered_map<size_t, size_t>(),
     const tree::impurity_type impurity = tree::impurity_type::Default,
     const size_t max_depth = 5,
-    const size_t max_bins = 32,
-    const size_t min_instances_per_node = 1,
-    const T min_info_gain = 0
+    const size_t max_bins = 32
   ) {
     auto strategy = tree::make_classification_strategy<T>()
       .set_num_classes(num_classes)
@@ -33,8 +31,6 @@ struct decision_tree {
       .set_impurity_type(impurity)
       .set_max_depth(max_depth)
       .set_max_bins(max_bins)
-      .set_min_instances_per_node(min_instances_per_node)
-      .set_min_info_gain(min_info_gain)
       .move();
     decision_tree_builder<T> builder(strategy.move());
     return builder.run(dataset, labels);
@@ -47,17 +43,13 @@ struct decision_tree {
     categorical_features_info = std::unordered_map<size_t, size_t>(),
     const tree::impurity_type impurity = tree::impurity_type::Default,
     const size_t max_depth = 5,
-    const size_t max_bins = 32,
-    const size_t min_instances_per_node = 1,
-    const T min_info_gain = 0
+    const size_t max_bins = 32
   ) {
     auto strategy = tree::make_regression_strategy<T>()
       .set_categorical_features_info(std::move(categorical_features_info))
       .set_impurity_type(impurity)
       .set_max_depth(max_depth)
       .set_max_bins(max_bins)
-      .set_min_instances_per_node(min_instances_per_node)
-      .set_min_info_gain(min_info_gain)
       .move();
     decision_tree_builder<T> builder(strategy.move());
     return builder.run(dataset, labels);
@@ -77,8 +69,6 @@ struct random_forest {
     const tree::impurity_type impurity = tree::impurity_type::Default,
     const size_t max_depth = 4,
     const size_t max_bins = 32,
-    const size_t min_instances_per_node = 1,
-    const T min_info_gain = 0,
     const size_t seed = tree::strategy<T>::default_seed
   ) {
     auto strategy = tree::make_classification_strategy<T>()
@@ -89,8 +79,6 @@ struct random_forest {
       .set_impurity_type(impurity)
       .set_max_depth(max_depth)
       .set_max_bins(max_bins)
-      .set_min_instances_per_node(min_instances_per_node)
-      .set_min_info_gain(min_info_gain)
       .set_seed(seed)
       .move();
     random_forest_builder<T> builder(strategy.move());
@@ -108,8 +96,6 @@ struct random_forest {
     const tree::impurity_type impurity = tree::impurity_type::Default,
     const size_t max_depth = 4,
     const size_t max_bins = 32,
-    const size_t min_instances_per_node = 1,
-    const T min_info_gain = 0,
     const size_t seed = tree::strategy<T>::default_seed
   ) {
     auto strategy = tree::make_regression_strategy<T>()
@@ -119,8 +105,6 @@ struct random_forest {
       .set_impurity_type(impurity)
       .set_max_depth(max_depth)
       .set_max_bins(max_bins)
-      .set_min_instances_per_node(min_instances_per_node)
-      .set_min_info_gain(min_info_gain)
       .set_seed(seed)
       .move();
     random_forest_builder<T> builder(strategy.move());
