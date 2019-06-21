@@ -25,14 +25,11 @@ int main(int argc, char** argv) {
   const auto impurity = frovedis::tree::impurity_type::Variance;
   const size_t max_depth = 5;
   const size_t max_bins = 32;
-  const size_t min_instances_per_node = 1;
-  const double min_info_gain = 0.0;
 
   auto model = frovedis::decision_tree::train_regressor<double>(
     dataset, labels,
     categorical_features_info,
-    impurity, max_depth, max_bins,
-    min_instances_per_node, min_info_gain
+    impurity, max_depth, max_bins
   );
 
   std::cout << model << std::endl;
