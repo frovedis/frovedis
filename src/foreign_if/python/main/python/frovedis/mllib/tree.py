@@ -200,13 +200,6 @@ class DecisionTreeClassifier:
 
   # Fit Decision Tree classifier according to X (input data), y (Label)
   def fit(cls, X, y):
-    # compute number of classes in given label vector (y)
-    n_labels = []
-    for e in y: 
-      if e not in n_labels: n_labels.append(e)
-    cls.n_classes_ = len(n_labels)
-    # validate hyper-parameters
-    cls.validate()
     # release old model, if any
     cls.release()
     # perform the fit
@@ -216,7 +209,10 @@ class DecisionTreeClassifier:
     dtype = inp_data.get_dtype()
     itype = inp_data.get_itype()
     dense = inp_data.is_dense()
+    cls.n_classes_ = inp_data.get_distinct_label_count()
     cls.__mdtype = dtype
+    # validate hyper-parameters
+    cls.validate()
 
     (host,port) = FrovedisServer.getServerInstance()
     rpclib.dt_train(host,port,X.get(),y.get(), 

@@ -1,0 +1,32 @@
+#!/usr/bin/env python
+
+import sys
+from frovedis.exrpc.server import FrovedisServer
+from frovedis.feature.w2v import Word2Vector
+
+# initializing the Frovedis server
+argvs = sys.argv
+argc = len(argvs)
+if (argc < 2):
+    print ('Please give frovedis_server calling command as the first argument \n(e.g. "mpirun -np 2 -x /opt/nec/nosupport/frovedis/ve/bin/frovedis_server")')
+    quit()
+
+textfile = "./input/text8-10k"
+encode = "./out/text_encode.txt"
+vocab = "./out/text_vocab.txt"
+count = "./out/text_count.txt"
+
+weight = "./out/text_weight.txt"
+model = "./out/text_model.txt"
+
+# x86 task
+wv = Word2Vector(minCount=5)
+wv.build_vocab_and_dump(textfile, encode, vocab, count) 
+
+# ve task
+FrovedisServer.initialize(argvs[1])
+wv.fit(encode, vocab, weight)
+FrovedisServer.shut_down()
+
+#x86 task
+wv.save(weight, vocab, model)

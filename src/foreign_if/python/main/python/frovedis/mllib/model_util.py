@@ -19,6 +19,12 @@ class M_KIND:
   NBM = 7 
   FMM = 8
   FPM = 9
+  FPR = 10
+  ACM = 11
+  SCM = 12
+  SEM = 13
+  SPARSE_CONV_INFO = 14
+  MLR = 15
 
 class ModelID:
   "A python container for generating model IDs for ML"

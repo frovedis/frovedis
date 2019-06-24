@@ -4,6 +4,28 @@
 
 extern "C" {
 
+  int get_distinct_count(const char* host, int port, long dptr, int vtype) {
+    ASSERT_PTR(host); 
+    exrpc_node fm_node(host,port);
+    auto f_dptr = (exrpc_ptr_t) dptr;
+    int count = 0;
+    try {
+      switch(vtype) {
+        case INT:    count = exrpc_async(fm_node,count_distinct<int>,f_dptr).get(); break;
+        case LONG:   count = exrpc_async(fm_node,count_distinct<long>,f_dptr).get(); break;
+        case FLOAT:  count = exrpc_async(fm_node,count_distinct<float>,f_dptr).get(); break;
+        case DOUBLE: count = exrpc_async(fm_node,count_distinct<double>,f_dptr).get(); break;
+        case STRING: count = exrpc_async(fm_node,count_distinct<std::string>,f_dptr).get(); break;
+        default:  REPORT_ERROR(USER_ERROR,
+                "Unknown type for frovedis dvector: " + std::to_string(vtype));
+      }
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return count;
+  }
+
   // --- dvector creation/show/release ---
   void show_frovedis_dvector(const char* host, int port, long dptr, int vtype) {
     ASSERT_PTR(host); 

@@ -252,10 +252,32 @@ extern "C" {
     return to_py_gesvd_result(ret,'B',isU,isV);
   }
 
-  // --- Frovedis ARPACK Wrapper ---
-  PyObject* compute_sparse_svd(const char* host, int port, 
-                               long mptr, int k,
-                               short dtype, short itype) {
+  float float_var_sum(const char* host, int port, 
+                      long mptr, bool isDense) {
+    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
+    exrpc_node fm_node(host,port);
+    auto m = (exrpc_ptr_t) mptr;
+    bool to_standardize = false;
+    if(!isDense) REPORT_ERROR(USER_ERROR, 
+      "Frovedis doesn't support variance computation on sparse data\n");
+    return exrpc_async(fm_node, (compute_var_sum<DT2,R_MAT2>), m, to_standardize).get();
+  }
+
+  double double_var_sum(const char* host, int port, 
+                        long mptr, bool isDense) {
+    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
+    exrpc_node fm_node(host,port);
+    auto m = (exrpc_ptr_t) mptr;
+    bool to_standardize = false;
+    if(!isDense) REPORT_ERROR(USER_ERROR, 
+      "Frovedis doesn't support variance computation on sparse data\n");
+    return exrpc_async(fm_node, (compute_var_sum<DT1,R_MAT1>), m, to_standardize).get();
+  }
+
+  PyObject* compute_truncated_svd(const char* host, int port, 
+                                  long mptr, int k,
+                                  short dtype, short itype,
+                                  bool isDense) {
     if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
     exrpc_node fm_node(host,port);
     auto m = (exrpc_ptr_t) mptr;
@@ -265,22 +287,35 @@ extern "C" {
     char mtype = 'C';
     gesvd_result ret;
     try {
-      switch(dtype) {
-        case FLOAT: 
-          if (itype == INT) 
-            ret = exrpc_async(fm_node,(frovedis_sparse_svd<S_MAT24,DT2,DT4>),m,k,mvbl).get();
-          else if (itype == LONG) 
-            ret = exrpc_async(fm_node,(frovedis_sparse_svd<S_MAT25,DT2,DT5>),m,k,mvbl).get();
-          else REPORT_ERROR(USER_ERROR,"Unsupported itype for input sparse matrix!\n");
-          break;
-        case DOUBLE: 
-          if (itype == INT) 
-            ret = exrpc_async(fm_node,(frovedis_sparse_svd<S_MAT14,DT1,DT4>),m,k,mvbl).get();
-          else if (itype == LONG) 
-            ret = exrpc_async(fm_node,(frovedis_sparse_svd<S_MAT15,DT1,DT5>),m,k,mvbl).get();
-          else REPORT_ERROR(USER_ERROR,"Unsupported itype for input sparse matrix!\n");
-          break;
-        default: REPORT_ERROR(USER_ERROR,"Unsupported dtype for input sparse matrix!\n");
+      if(isDense) { 
+        switch(dtype) {
+          case FLOAT: 
+            ret = exrpc_async(fm_node,(frovedis_dense_truncated_svd<R_MAT2,DT2>),m,k,mvbl,true).get(); 
+            break;
+          case DOUBLE: 
+            ret = exrpc_async(fm_node,(frovedis_dense_truncated_svd<R_MAT1,DT1>),m,k,mvbl,true).get(); 
+            break;
+          default: REPORT_ERROR(USER_ERROR,"Unsupported dtype for input dense matrix!\n");
+        }
+      }
+      else {
+        switch(dtype) {
+          case FLOAT: 
+            if (itype == INT) 
+              ret = exrpc_async(fm_node,(frovedis_sparse_truncated_svd<S_MAT24,DT2,DT4>),m,k,mvbl,true).get();
+            else if (itype == LONG) 
+              ret = exrpc_async(fm_node,(frovedis_sparse_truncated_svd<S_MAT25,DT2,DT5>),m,k,mvbl,true).get();
+            else REPORT_ERROR(USER_ERROR,"Unsupported itype for input sparse matrix!\n");
+            break;
+          case DOUBLE: 
+            if (itype == INT) 
+              ret = exrpc_async(fm_node,(frovedis_sparse_truncated_svd<S_MAT14,DT1,DT4>),m,k,mvbl,true).get();
+            else if (itype == LONG) 
+              ret = exrpc_async(fm_node,(frovedis_sparse_truncated_svd<S_MAT15,DT1,DT5>),m,k,mvbl,true).get();
+            else REPORT_ERROR(USER_ERROR,"Unsupported itype for input sparse matrix!\n");
+            break;
+          default: REPORT_ERROR(USER_ERROR,"Unsupported dtype for input sparse matrix!\n");
+        }
       }
     }
     catch (std::exception& e) {
@@ -306,6 +341,24 @@ extern "C" {
     }
   }
 
+  void get_float_array(const char* host, int port,
+                       long dptr, float* ret) {
+    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
+    exrpc_node fm_node(host,port);
+    auto f_dptr = (exrpc_ptr_t) dptr;
+    std::vector<float> arr;
+    try {
+      arr = exrpc_async(fm_node,vec_to_array<DT2>,f_dptr).get(); // SVAL/SVEC
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    float *arrp = &arr[0];
+    // filling the output array (avoiding memory leak)
+    for(size_t i=0; i<arr.size(); ++i) ret[i] = arrp[i];
+  }
+
+
   void get_double_array(const char* host, int port, 
                         long dptr, double* ret) {
     if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
@@ -313,7 +366,7 @@ extern "C" {
     auto f_dptr = (exrpc_ptr_t) dptr;
     std::vector<double> arr;
     try {
-      arr = exrpc_async(fm_node,vec_to_array<DT1>,f_dptr).get(); // SVAL
+      arr = exrpc_async(fm_node,vec_to_array<DT1>,f_dptr).get(); // SVAL/SVEC
     }
     catch (std::exception& e) {
       set_status(true, e.what());
@@ -323,12 +376,24 @@ extern "C" {
     for(size_t i=0; i<arr.size(); ++i) ret[i] = arrp[i];
   }
 
+  void release_float_array(const char* host, int port, long dptr) {
+    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
+    exrpc_node fm_node(host,port);
+    auto f_dptr = (exrpc_ptr_t) dptr;
+    try {
+      exrpc_oneway(fm_node,(release_data<std::vector<float>>),f_dptr); // SVAL/SVEC
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+  }
+
   void release_double_array(const char* host, int port, long dptr) {
     if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
     exrpc_node fm_node(host,port);
     auto f_dptr = (exrpc_ptr_t) dptr;
     try {
-      exrpc_oneway(fm_node,(release_data<std::vector<double>>),f_dptr); // SVAL
+      exrpc_oneway(fm_node,(release_data<std::vector<double>>),f_dptr); // SVAL/SVEC
     }
     catch (std::exception& e) {
       set_status(true, e.what());
@@ -336,14 +401,20 @@ extern "C" {
   }
 
   void save_as_diag_matrix(const char* host, int port, long dptr,
-                           const char* path, bool bin) {
+                           const char* path, bool bin,
+                           char dtype) {
     ASSERT_PTR(path);
     if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
     exrpc_node fm_node(host,port);
     auto f_dptr = (exrpc_ptr_t) dptr;
     std::string fs_path(path);
     try {
-      exrpc_oneway(fm_node,save_as_diag_matrix_local<DT1>,f_dptr,fs_path,bin); // SVEC
+      if (dtype == 'D') 
+        exrpc_oneway(fm_node,save_as_diag_matrix_local<DT1>,f_dptr,fs_path,bin); // SVEC
+      else if (dtype == 'F') 
+        exrpc_oneway(fm_node,save_as_diag_matrix_local<DT2>,f_dptr,fs_path,bin); // SVEC
+      else
+        REPORT_ERROR(USER_ERROR, "Unsupported dtype is encountered!\n");
     }
     catch (std::exception& e) {
       set_status(true, e.what());
@@ -355,7 +426,8 @@ extern "C" {
                                       const char* upath, 
                                       const char* vpath, 
                                       bool bin, bool isU, bool isV,
-                                      char mtype) {
+                                      char mtype,
+                                      char dtype) {
     // upath/vpath can be empty (""), but not null
     ASSERT_PTR(spath); ASSERT_PTR(upath); ASSERT_PTR(vpath);
     if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
@@ -365,11 +437,21 @@ extern "C" {
     std::string vfl(vpath);
     gesvd_result ret;
     try {
-      switch(mtype) {
-        case 'C': ret = exrpc_async(fm_node,load_cmm_svd_results<DT1>,sfl,ufl,vfl,isU,isV,bin).get(); break;
-        case 'B': ret = exrpc_async(fm_node,load_bcm_svd_results<DT1>,sfl,ufl,vfl,isU,isV,bin).get(); break;
-        default:  REPORT_ERROR(USER_ERROR,"Unknown dense matrix kind is encountered!\n");
+      if(dtype == 'D') {
+        switch(mtype) {
+          case 'C': ret = exrpc_async(fm_node,load_cmm_svd_results<DT1>,sfl,ufl,vfl,isU,isV,bin).get(); break;
+          case 'B': ret = exrpc_async(fm_node,load_bcm_svd_results<DT1>,sfl,ufl,vfl,isU,isV,bin).get(); break;
+          default:  REPORT_ERROR(USER_ERROR,"Unknown dense matrix kind is encountered!\n");
+        }
       }
+      else if (dtype == 'F') {
+        switch(mtype) {
+          case 'C': ret = exrpc_async(fm_node,load_cmm_svd_results<DT2>,sfl,ufl,vfl,isU,isV,bin).get(); break;
+          case 'B': ret = exrpc_async(fm_node,load_bcm_svd_results<DT2>,sfl,ufl,vfl,isU,isV,bin).get(); break;
+          default:  REPORT_ERROR(USER_ERROR,"Unknown dense matrix kind is encountered!\n");
+        }
+      }
+      else REPORT_ERROR(USER_ERROR, "Unsupported dtype is encountered!\n");
     }
     catch (std::exception& e) {
       set_status(true, e.what());

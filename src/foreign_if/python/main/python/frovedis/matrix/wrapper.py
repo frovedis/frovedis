@@ -4,8 +4,8 @@ from scipy.sparse import csr_matrix
 from ..exrpc.rpclib import *
 from ..exrpc.server import *
 from .dense import FrovedisBlockcyclicMatrix
-from .crs import FrovedisCRSMatrix
-from .results import GesvdResult, GetrfResult
+from .ml_data import FrovedisFeatureData
+from .results import svdResult, GetrfResult
 from .dtype import DTYPE, TypeUtil
 
 class WrapperUtil:
@@ -186,22 +186,22 @@ class SCALAPACK:
     res = rpclib.pgesvd(host,port,mm.get(),wantU,wantV)
     excpt = rpclib.check_server_exception()
     if excpt["status"]: raise RuntimeError(excpt["info"])
-    return GesvdResult(res,TypeUtil.to_numpy_dtype(mm.get_dtype()))
+    return svdResult(res,TypeUtil.to_numpy_dtype(mm.get_dtype()))
 
-
-# Input matrix can be either (user created) FrovedisCRSMatrix
-# or any array-like object (FrovedisCRSMatrix auto creation and deletion)
 class ARPACK:
-  "A python wrapper to call arpack routines to compute sparse svd at Frovedis server"
+  "A python wrapper to call arpack routines to compute truncated svd at Frovedis server"
 
   @staticmethod
-  def computeSVD(mat,k):
-    mm = FrovedisCRSMatrix.asCRS(mat)
-    dtype = mm.get_dtype()
-    itype = mm.get_itype()
+  def computeSVD(X,k):
+    inp_data = FrovedisFeatureData(X,dense_kind='rowmajor')
+    X = inp_data.get()
+    dtype = inp_data.get_dtype()
+    itype = inp_data.get_itype()
+    dense = inp_data.is_dense()
     (host,port) = FrovedisServer.getServerInstance()
-    res = rpclib.compute_sparse_svd(host,port,mm.get(),k,dtype,itype)
-    excpt = rpclib.check_server_exception()
+    res = rpclib.compute_truncated_svd(host, port, X.get(),
+                                       k, dtype, itype, dense)
+    excpt = check_server_exception()
     if excpt["status"]: raise RuntimeError(excpt["info"])
-    return GesvdResult(res,TypeUtil.to_numpy_dtype(mm.get_dtype()))
+    return svdResult(res, TypeUtil.to_numpy_dtype(dtype))
 

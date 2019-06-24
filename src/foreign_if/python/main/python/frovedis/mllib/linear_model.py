@@ -2,7 +2,7 @@
 
 from .model_util import *
 from ..exrpc.rpclib import *
-from ..exrpc.server import *
+from ..exrpc.server import FrovedisServer 
 from ..matrix.ml_data import FrovedisLabeledPoint
 from ..matrix.dtype import TypeUtil
 
@@ -10,13 +10,14 @@ class LogisticRegression:
    "A python wrapper of Frovedis Logistic Regression"
 
    # defaults are as per Frovedis
-   # C (alpha): Frovedis: 0.01, Sklearn: 1.0
+   # lr_rate: Frovedis: 0.01 (added)
    # max_iter: Frovedis: 1000, Sklearn: 100
    # solver: Frovedis: sag (SGD), Sklearn: liblinear
-   def __init__(cls, penalty='l2', dual=False, tol=1e-4, C=0.01,
+   def __init__(cls, penalty='l2', dual=False, tol=1e-4, C=1.0,
                 fit_intercept=True, intercept_scaling=1, class_weight=None,
                 random_state=None, solver='sag', max_iter=1000,
-                multi_class='ovr', verbose=0, warm_start=False, n_jobs=1):
+                multi_class='ovr', verbose=0, warm_start=False,
+                n_jobs=1, l1_ratio=None, lr_rate=0.01):
       cls.penalty = penalty
       cls.dual = dual
       cls.tol = tol
@@ -31,43 +32,62 @@ class LogisticRegression:
       cls.verbose = verbose
       cls.warm_start = warm_start
       cls.n_jobs = n_jobs
+      cls.l1_ratio = l1_ratio
+      cls.lr_rate = lr_rate
       # extra
       cls.__mid = None
       cls.__mdtype = None
-      cls.__mkind = M_KIND.LRM
+      cls.__mkind = None
 
    def fit(cls, X, y, sample_weight=None):
       cls.release()
-      cls.__mid = ModelID.get()
       inp_data = FrovedisLabeledPoint(X,y)
       (X, y) = inp_data.get()
       dtype = inp_data.get_dtype()
       itype = inp_data.get_itype()
       dense = inp_data.is_dense()
+      cls.n_classes = inp_data.get_distinct_label_count()
+      cls.__mid = ModelID.get()
       cls.__mdtype = dtype
 
-      regTyp = 0
-      if cls.penalty == 'l1': regTyp = 1
-      elif cls.penalty == 'l2': reTyp = 2
-      else: raise ValueError("Invalid penalty is provided: ", cls.penalty)
+      if cls.multi_class == 'auto':
+        if cls.n_classes == 2 :
+          cls.multi_class = 'ovr'
+        else:
+          cls.multi_class = 'multinomial'
 
-      if cls.multi_class == 'ovr': pass
-      elif cls.multi_class == 'multinomial': 
-         raise ValueError("Frovedis doesn't support multinomial Logistic Regression currently.")
-      else: raise ValueError("Invalid multi_class input is provided: ", cls.multi_class)
-      
-      (host,port) = FrovedisServer.getServerInstance()
-      sv = ['newton-cg', 'liblinear']
+      if cls.penalty == 'l1': regTyp = 1
+      elif cls.penalty == 'l2': regTyp = 2
+      elif cls.penalty == 'none': regTyp = 0
+      else: raise ValueError("Unsupported penalty is provided: ", cls.penalty)
+
+      rparam = 1.0 / cls.C
+
+      sv = ['newton-cg', 'liblinear', 'saga']
       if cls.solver in sv:
          raise ValueError("Frovedis doesn't support solver %s for Logistic Regression currently." % cls.solver)
+      
+      if cls.multi_class == 'ovr':
+         isMult = False 
+         cls.__mkind = M_KIND.LRM
+      elif cls.multi_class == 'multinomial':
+         isMult = True 
+         cls.__mkind = M_KIND.MLR
+      else: raise ValueError("Unknown multi_class type!")
 
+      (host,port) = FrovedisServer.getServerInstance()
       if cls.solver == 'sag':
-         rpclib.lr_sgd(host,port,X.get(),y.get(),cls.max_iter,cls.C,
-                       regTyp,cls.fit_intercept,cls.tol,cls.verbose,cls.__mid,dtype,itype,dense)
+        rpclib.lr_sgd(host,port,X.get(),y.get(),cls.max_iter,cls.lr_rate,
+                      regTyp,rparam,isMult,cls.fit_intercept,
+                      cls.tol,cls.verbose,
+                      cls.__mid,dtype,itype,dense)
       elif cls.solver == 'lbfgs':
-         rpclib.lr_lbfgs(host,port,X.get(),y.get(),cls.max_iter,cls.C,
-                         regTyp,cls.fit_intercept,cls.tol,cls.verbose,cls.__mid,dtype,itype,dense)
+        rpclib.lr_lbfgs(host,port,X.get(),y.get(),cls.max_iter,cls.lr_rate,
+                        regTyp,rparam,isMult,cls.fit_intercept,
+                        cls.tol,cls.verbose,
+                        cls.__mid,dtype,itype,dense)
       else: raise ValueError("Unknown solver %s for Logistic Regression." % cls.solver)
+      
       excpt = rpclib.check_server_exception()
       if excpt["status"]: raise RuntimeError(excpt["info"]) 
 		 
@@ -85,9 +105,12 @@ class LogisticRegression:
       else: 
          raise ValueError("predict is called before calling fit, or the model is released.")
 
-   def load(cls,fname,dtype=None):
+   def load(cls, fname, is_multinomial=False, dtype=None):
       cls.release()
       cls.__mid = ModelID.get()
+      if cls.__mkind is None: #in case called before fit()
+        if is_multinomial: cls.__mkind = M_KIND.MLR
+        else:              cls.__mkind = M_KIND.LRM
       if dtype is None: 
         if cls.__mdtype is None:
           raise TypeError("model type should be specified for loading from file!")

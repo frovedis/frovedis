@@ -2,12 +2,13 @@
 
 import numpy as np
 from scipy.sparse import issparse
+from ..exrpc.server import FrovedisServer 
+from ..exrpc.rpclib import distinct_count
 from .dvector import FrovedisDvector
 from .crs import FrovedisCRSMatrix
 from .dense import FrovedisColmajorMatrix
 from .dense import FrovedisRowmajorMatrix
 from .dtype import TypeUtil, DTYPE
-from ..exrpc.server import *
 
 class FrovedisLabeledPoint:
   "A python container for frovedis side data for supervised ML algorithms"
@@ -18,8 +19,13 @@ class FrovedisLabeledPoint:
         isinstance(mat,FrovedisColmajorMatrix)): cls.__mat_movable = False
     else: cls.__mat_movable = True
 
-    if isinstance(lbl,FrovedisDvector): cls.__lbl_movable = False
-    else: cls.__lbl_movable = True
+    (host,port) = FrovedisServer.getServerInstance()
+    if isinstance(lbl,FrovedisDvector): 
+      cls.unique_label_count = distinct_count(host,port,lbl.get(),lbl.get_dtype())
+      cls.__lbl_movable = False
+    else: 
+      cls.unique_label_count = len(np.unique(lbl))
+      cls.__lbl_movable = True
 
     if(issparse(mat) or isinstance(mat,FrovedisCRSMatrix)):
       cls.__isDense = False
@@ -62,7 +68,7 @@ class FrovedisLabeledPoint:
   def numRows(cls): return cls.__num_row
   def numCols(cls): return cls.__num_col
   def is_dense(cls): return cls.__isDense
-
+  def get_distinct_label_count(cls): return cls.unique_label_count
   def __del__(cls):
     if FrovedisServer.isUP(): cls.release() 
 

@@ -395,6 +395,75 @@ parallel_double_glm_predict.argtypes = [c_char_p, c_int, c_int, c_short, c_long,
                                  ndpointer(c_double,ndim=1,flags="C_CONTIGUOUS"),
                                  c_ulong, c_bool, c_short, c_bool]
 
+# agglomerative 
+aca_train = lib.aca_train
+aca_train.argtypes = [c_char_p, c_int, c_long, # host, port, data_proxy
+                      c_int, c_char_p, # n_cluster, linkage
+                      ndpointer(c_int,ndim=1,flags="C_CONTIGUOUS"),c_long, #ret, ret_size
+                      c_int, c_int, # verbose, mid
+                      c_short, c_short, c_bool] #dtype, itype, dense
+
+acm_predict = lib.acm_predict
+acm_predict.argtypes = [c_char_p, c_int, #host, port
+                        c_int, c_short,  #mid, mtype
+                        c_int,           #ncluster
+                        ndpointer(c_int,ndim=1,flags="C_CONTIGUOUS"),c_long] #ret, ret_size
+
+# spectral embedding
+sea_train = lib.sea_train
+sea_train.argtypes = [ c_char_p, #host
+                       c_int,  #port
+                       c_long,#data
+                       c_int, #n_components
+                       c_double,#gamma
+                       c_bool, #precomputed
+                       c_bool, #norm_laplacian
+                       c_int, #mode
+                       c_bool, #drop_first
+                       c_int, #verbose
+                       c_int, #mid
+                       c_short, #dtype
+                       c_short,#itype
+                       c_bool #dense
+                     ]
+
+get_sem_affinity_matrix = lib.get_sem_aff_matrix
+get_sem_affinity_matrix.argtypes = [c_char_p, c_int, c_int, c_short]
+get_sem_affinity_matrix.restype = py_object
+
+get_sem_embedding_matrix = lib.get_sem_embed_matrix
+get_sem_embedding_matrix.argtypes = [c_char_p, c_int, c_int, c_short]
+get_sem_embedding_matrix.restype = py_object
+
+
+# spectral clustering
+
+sca_train = lib.sca_train
+sca_train.argtypes = [ c_char_p, #host
+                       c_int, #port
+                       c_long,#data 
+                       c_int, #n_clusters 
+                       c_int, #n_comp
+                       c_int, #n_iter
+                       c_double, #eps
+                       c_double,#gamma
+                       c_bool, #precomputed
+                       c_bool, #norm_laplacian 
+                       c_int, #mode
+                       c_bool, #drop_first                      
+                       ndpointer(c_int,ndim=1,flags="C_CONTIGUOUS"),#labels
+                       c_long, #labels array length
+                       c_int, #verbose
+                       c_int, #mid
+                       c_short, #dtype
+                       c_short, #itype
+                       c_bool #dense
+                      ]
+
+get_scm_affinity_matrix = lib.get_scm_aff_matrix
+get_scm_affinity_matrix.argtypes = [c_char_p, c_int, c_int, c_short]
+get_scm_affinity_matrix.restype = py_object
+
 # kmeans predict returns int always:
 parallel_kmeans_predict = lib.parallel_kmeans_predict
 parallel_kmeans_predict.argtypes = [c_char_p, c_int, c_int, 
@@ -447,6 +516,16 @@ load_frovedis_nbm = lib.load_frovedis_nbm
 load_frovedis_nbm.argtypes = [c_char_p,c_int,c_int,c_short,c_char_p]
 load_frovedis_nbm.restype = py_object
 
+# load scm
+load_frovedis_scm = lib.load_frovedis_scm
+load_frovedis_scm.argtypes = [c_char_p,c_int,c_int,c_short,c_char_p]
+load_frovedis_scm.restype = py_object
+
+#load acm
+load_frovedis_acm = lib.load_frovedis_acm
+load_frovedis_acm.argtypes = [c_char_p,c_int,c_int,c_short,c_char_p]
+load_frovedis_acm.restype = c_int
+
 load_frovedis_mfm = lib.load_frovedis_mfm
 load_frovedis_mfm.argtypes = [c_char_p,c_int,c_int,c_short,c_char_p]
 load_frovedis_mfm.restype = py_object
@@ -455,15 +534,23 @@ save_frovedis_model = lib.save_frovedis_model
 save_frovedis_model.argtypes = [c_char_p,c_int,c_int,c_short,c_short,c_char_p]
 
 # --- Frovedis ML Trainers ---
+distinct_count = lib.get_distinct_count
+distinct_count.argtypes = [c_char_p, c_int, c_long, c_short] #host, port, proxy, dtype
+distinct_count.restype = c_int
+
 lr_sgd = lib.lr_sgd
-lr_sgd.argtypes = [c_char_p, c_int, c_long, c_long, c_int, c_double,
-                   c_int, c_bool, c_double, c_int, c_int,
-                   c_short, c_short, c_bool]
+lr_sgd.argtypes = [c_char_p, c_int, c_long, c_long, #host,port,X,y
+                   c_int, c_double,                 #iter, lr_rate
+                   c_int, c_double, c_bool,          #rtype, rparam, is_mult
+                   c_bool, c_double, c_int, c_int,  #fit_icpt, tol, vb, mid
+                   c_short, c_short, c_bool]        #dtype, itype, dense
 
 lr_lbfgs = lib.lr_lbfgs
-lr_lbfgs.argtypes = [c_char_p, c_int, c_long, c_long, c_int, c_double,
-                     c_int, c_bool, c_double, c_int, c_int,
-                     c_short, c_short, c_bool]
+lr_lbfgs.argtypes = [c_char_p, c_int, c_long, c_long, #host,port,X,y
+                     c_int, c_double,                 #iter, lr_rate
+                     c_int, c_double, c_bool,          #rtype, rparam, is_mult
+                     c_bool, c_double, c_int, c_int,  #fit_icpt, tol, vb, mid
+                     c_short, c_short, c_bool]        #dtype, itype, dense
 
 svm_sgd = lib.svm_sgd
 svm_sgd.argtypes = [c_char_p, c_int, c_long, c_long, c_int, c_double,
@@ -525,6 +612,19 @@ als_train = lib.als_train
 als_train.argtypes = [c_char_p, c_int, c_long, c_int, c_int,
                       c_double, c_double, c_long, c_int, c_int,
                       c_short, c_short]
+#fp growth functions
+fpgrowth_trainer = lib.fpgrowth_trainer 
+fpgrowth_trainer.argtypes = [c_char_p, c_int, c_long, c_int, c_double, c_int] 
+
+
+#fpgrowth_freq_items = lib.fpgrowth_freq_items
+#fpgrowth_freq_items.argtypes = [c_char_p, c_int, c_int]
+
+#fpgrowth_rules = lib.fpgrowth_rules
+#fpgrowth_rules.argtypes = [c_char_p, c_int,c_int, c_double]
+
+fpgrowth_fpr = lib.fpgrowth_fpr
+fpgrowth_fpr.argtypes = [c_char_p, c_int, c_int, c_int, c_double]
 
 fm_train = lib.fm_trainer
 fm_train.argtypes = [c_char_p, c_int, 
@@ -535,6 +635,24 @@ fm_train.argtypes = [c_char_p, c_int,
                      c_double, c_double, c_double, 
                      c_int, c_int, c_bool, c_int,
                      c_short, c_short]
+
+w2v_build_vocab_and_dump = lib.w2v_build_vocab_and_dump
+w2v_build_vocab_and_dump.argtypes = [c_char_p, c_char_p, #text, encode
+                                     c_char_p, c_char_p, #vocab, count
+                                     c_int]              #minCount
+
+w2v_train = lib.w2v_train
+w2v_train.argtypes = [c_char_p, c_int,              #host, port
+                      c_char_p, c_char_p, c_char_p, #encode, weight, count
+                      c_int, c_int, c_float, c_int, #hidden, window, thr, neg
+                      c_int, c_float, c_float,      #iter, lr, syncperiod
+                      c_int, c_int,                 #syncWords, syncTimes,
+                      c_int, c_int]                 #msgSize, nthreads
+
+w2v_save_model = lib.w2v_save_model
+w2v_save_model.argtypes = [c_char_p, c_char_p,  #weight, vocab
+                           c_char_p, c_int,     #out, minCount
+                           c_bool]              #binary
 
 # --- Frovedis PBLAS Wrappers ---
 pswap = lib.pswap
@@ -601,14 +719,27 @@ pgesvd.argtypes = [c_char_p, c_int, c_long, c_bool, c_bool]
 pgesvd.restype = py_object
 
 # --- Frovedis ARPACK Wrappers ---
-compute_sparse_svd = lib.compute_sparse_svd
-compute_sparse_svd.argtypes = [c_char_p, c_int, c_long, c_int,
-                               c_short, c_short]
-compute_sparse_svd.restype = py_object
+
+float_var_sum = lib.float_var_sum
+float_var_sum.argtypes = [c_char_p, c_int, c_long, c_bool]
+float_var_sum.restype = c_float
+
+double_var_sum = lib.double_var_sum
+double_var_sum.argtypes = [c_char_p, c_int, c_long, c_bool]
+double_var_sum.restype = c_double
+
+compute_truncated_svd = lib.compute_truncated_svd
+compute_truncated_svd.argtypes = [c_char_p, c_int, c_long, c_int,
+                                  c_short, c_short, c_bool]
+compute_truncated_svd.restype = py_object
 
 # --- Scalapack Results ---
 release_ipiv = lib.release_ipiv
 release_ipiv.argtypes = [c_char_p, c_int, c_char, c_long]
+
+get_float_array = lib.get_float_array
+get_float_array.argtypes = [c_char_p, c_int, c_long, 
+                            ndpointer(c_float,ndim=1,flags="C_CONTIGUOUS")]
 
 get_double_array = lib.get_double_array
 get_double_array.argtypes = [c_char_p, c_int, c_long, 
@@ -617,11 +748,14 @@ get_double_array.argtypes = [c_char_p, c_int, c_long,
 release_double_array = lib.release_double_array
 release_double_array.argtypes = [c_char_p, c_int, c_long]
 
+release_float_array = lib.release_float_array
+release_float_array.argtypes = [c_char_p, c_int, c_long]
+
 save_as_diag_matrix = lib.save_as_diag_matrix
-save_as_diag_matrix.argtypes = [c_char_p, c_int, c_long, c_char_p, c_bool]
+save_as_diag_matrix.argtypes = [c_char_p, c_int, c_long, c_char_p, c_bool, c_char]
 
 get_svd_results_from_file = lib.get_svd_results_from_file
 get_svd_results_from_file.argtypes = [c_char_p, c_int,
                                       c_char_p, c_char_p, c_char_p,
-                                      c_bool, c_bool, c_bool, c_char]
+                                      c_bool, c_bool, c_bool, c_char, c_char]
 get_svd_results_from_file.restype = py_object

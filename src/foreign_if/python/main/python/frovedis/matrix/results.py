@@ -46,8 +46,8 @@ class GetrfResult:
       return cls.__info
 
 # A generic class for storing SVD results 
-# of the type colmajor_matrix<double> or blockcyclic_matrix<double>
-class GesvdResult:
+# of the type colmajor_matrix<float/double> or blockcyclic_matrix<float/double>
+class svdResult:
    "A python container for holding pointers of Frovedis server side gesvd results"
 
    def __init__(cls, dummy=None, dtype=None): # constructor
@@ -85,9 +85,14 @@ class GesvdResult:
 
    def debug_print(cls):
       if cls.__svec is not None:
-        svec = np.zeros(cls.getK(),dtype=np.float64)
         (host,port) = FrovedisServer.getServerInstance()
-        rpclib.get_double_array(host, port, cls.__svec, svec)
+        if(cls.__dtype == np.float64):
+          svec = np.zeros(cls.getK(),dtype=np.float64)
+          rpclib.get_double_array(host, port, cls.__svec, svec)
+        elif(cls.__dtype == np.float32):
+          svec = np.zeros(cls.getK(),dtype=np.float32)
+          rpclib.get_float_array(host, port, cls.__svec, svec)
+        else: raise TypeError("Invalid dtype encountered. Expects float/double.")
         excpt = rpclib.check_server_exception()
         if excpt["status"]: raise RuntimeError(excpt["info"]) 
         print ("svec: ", svec)
@@ -98,18 +103,24 @@ class GesvdResult:
           print ("vmat: ")
           cls.__vmat.get_rowmajor_view()
 
-   # TODO: Support FLOAT
    def to_numpy_results(cls):
       if cls.__svec is not None:
         umat = None
         vmat = None
-        svec = np.zeros(cls.getK(),dtype=np.float64)
         (host,port) = FrovedisServer.getServerInstance()
-        rpclib.get_double_array(host, port, cls.__svec, svec)
+        if(cls.__dtype == np.float64):
+          svec = np.zeros(cls.getK(),dtype=np.float64)
+          rpclib.get_double_array(host, port, cls.__svec, svec)
+        elif(cls.__dtype == np.float32):
+          svec = np.zeros(cls.getK(),dtype=np.float32)
+          rpclib.get_float_array(host, port, cls.__svec, svec)
+        else: raise TypeError("Invalid dtype encountered. Expects float/double.")
         excpt = rpclib.check_server_exception()
         if excpt["status"]: raise RuntimeError(excpt["info"]) 
-        if cls.__umat is not None: umat = cls.__umat.to_numpy_matrix() 
-        if cls.__vmat is not None: vmat = cls.__vmat.to_numpy_matrix() 
+        if cls.__umat is not None: 
+          umat = cls.__umat.to_numpy_matrix() 
+        if cls.__vmat is not None: 
+          vmat = cls.__vmat.to_numpy_matrix().T 
         return (umat,svec,vmat)
       else: raise ValueError("Empty input matrix.")
 
@@ -117,8 +128,12 @@ class GesvdResult:
       if cls.__svec is not None:
         if sfl is None: raise ValueError("s_filename can't be None")
         (host,port) = FrovedisServer.getServerInstance()
-        rpclib.save_as_diag_matrix(host,port,cls.__svec,
-                                   sfl.encode('ascii'),False)
+        if(cls.__dtype == np.float32): dtype = 'F'
+        elif(cls.__dtype == np.float64): dtype = 'D'
+        else: raise TypeError("Invalid dtype, expected double/float.")
+        rpclib.save_as_diag_matrix(host, port, cls.__svec,
+                                   sfl.encode('ascii'), False,
+                                   dtype.encode('ascii'))
         excpt = rpclib.check_server_exception()
         if excpt["status"]: raise RuntimeError(excpt["info"]) 
         wantU = cls.__umat is not None and ufl is not None
@@ -130,8 +145,12 @@ class GesvdResult:
       if cls.__svec is not None:
         if sfl is None: raise ValueError("s_filename can't be None")
         (host,port) = FrovedisServer.getServerInstance()
-        rpclib.save_as_diag_matrix(host,port,cls.__svec,
-                                   sfl.encode('ascii'),True)
+        if(cls.__dtype == np.float32): dtype = 'F'
+        elif(cls.__dtype == np.float64): dtype = 'D'
+        else: raise TypeError("Invalid dtype, expected double/float.")
+        rpclib.save_as_diag_matrix(host, port, cls.__svec,
+                                   sfl.encode('ascii'), True,
+                                   dtype.encode('ascii'))
         excpt = rpclib.check_server_exception()
         if excpt["status"]: raise RuntimeError(excpt["info"]) 
         wantU = cls.__umat is not None and ufl is not None
@@ -149,17 +168,21 @@ class GesvdResult:
       if sfl is None: raise ValueError("s_filename can't be None")
       if mtype != 'B' and mtype != 'C':
         raise ValueError("Unknown matrix type. Expected: (B or C), Got: ", mtype)
+      if(cls.__dtype == np.float32): dtype = 'F'
+      elif(cls.__dtype == np.float64): dtype = 'D'
+      else: raise TypeError("Invalid dtype, expected double/float.")
       wantU = ufl is not None   
       wantV = vfl is not None   
       if wantU == False: ufl = ''
       if wantV == False: vfl = ''
       (host,port) = FrovedisServer.getServerInstance()
-      dummy = rpclib.get_svd_results_from_file(host,port,
+      dummy = rpclib.get_svd_results_from_file(host, port,
                                                sfl.encode('ascii'),
                                                ufl.encode('ascii'),
                                                vfl.encode('ascii'),
-                                               bin,wantU,wantV,
-                                               mtype.encode('ascii'))
+                                               bin, wantU, wantV,
+                                               mtype.encode('ascii'),
+                                               dtype.encode('ascii'))
       excpt = rpclib.check_server_exception()
       if excpt["status"]: raise RuntimeError(excpt["info"]) 
       cls.load_dummy(dummy)
@@ -167,7 +190,11 @@ class GesvdResult:
    def release(cls):
       if cls.__svec is not None:
          (host,port) = FrovedisServer.getServerInstance()
-         rpclib.release_double_array(host,port,cls.__svec)
+         if(cls.__dtype == np.float64):
+           rpclib.release_double_array(host,port,cls.__svec)
+         elif(cls.__dtype == np.float32):
+           rpclib.release_float_array(host,port,cls.__svec)
+         else: raise TypeError("Invalid dtype, Expected double/float.")
          excpt = rpclib.check_server_exception()
          if excpt["status"]: raise RuntimeError(excpt["info"]) 
          if cls.__umat is not None: cls.__umat.release()

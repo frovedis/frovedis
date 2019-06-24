@@ -7,7 +7,8 @@ extern "C" {
 
   // --- (1) Logistic Regression ---
   void lr_sgd(const char* host, int port, long xptr, long yptr,
-              int iter, double al, int rtype, bool icpt, double tol,
+              int iter, double al, int rtype, double rprm, 
+              bool mult, bool icpt, double tol,
               int vb, int mid, short dtype, short itype, bool dense) {
     if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
     exrpc_node fm_node(host,port);
@@ -15,16 +16,15 @@ extern "C" {
     auto f_yptr = (exrpc_ptr_t) yptr;
     auto f_dptr = frovedis_mem_pair(f_xptr,f_yptr);
     double mbf = 1.0;   // default
-    double rprm = 0.01; // default
     bool mvbl = false; // auto-managed at python side
     try {
       if(dense) {
         switch(dtype) {
           case FLOAT:  
-	    exrpc_oneway(fm_node,(frovedis_lr_sgd<DT2,D_MAT2>),f_dptr,iter,al,mbf,rtype,rprm,icpt,tol,vb,mid,mvbl); 
+	    exrpc_oneway(fm_node,(frovedis_lr_sgd<DT2,D_MAT2>),f_dptr,iter,al,mbf,rtype,rprm,mult,icpt,tol,vb,mid,mvbl); 
             break;
           case DOUBLE: 
-	    exrpc_oneway(fm_node,(frovedis_lr_sgd<DT1,D_MAT1>),f_dptr,iter,al,mbf,rtype,rprm,icpt,tol,vb,mid,mvbl); 
+	    exrpc_oneway(fm_node,(frovedis_lr_sgd<DT1,D_MAT1>),f_dptr,iter,al,mbf,rtype,rprm,mult,icpt,tol,vb,mid,mvbl); 
             break;
           default: REPORT_ERROR(USER_ERROR, "Unsupported dtype of input dense data for training!\n");
         }
@@ -33,16 +33,16 @@ extern "C" {
         switch(dtype) {
           case FLOAT: 
             if(itype == INT) 
-              exrpc_oneway(fm_node,(frovedis_lr_sgd<DT2,S_MAT24>),f_dptr,iter,al,mbf,rtype,rprm,icpt,tol,vb,mid,mvbl);
+              exrpc_oneway(fm_node,(frovedis_lr_sgd<DT2,S_MAT24>),f_dptr,iter,al,mbf,rtype,rprm,mult,icpt,tol,vb,mid,mvbl);
             else if(itype == LONG) 
-              exrpc_oneway(fm_node,(frovedis_lr_sgd<DT2,S_MAT25>),f_dptr,iter,al,mbf,rtype,rprm,icpt,tol,vb,mid,mvbl);          
+              exrpc_oneway(fm_node,(frovedis_lr_sgd<DT2,S_MAT25>),f_dptr,iter,al,mbf,rtype,rprm,mult,icpt,tol,vb,mid,mvbl);        
             else REPORT_ERROR(USER_ERROR, "Unsupported itype of input sparse data for training!\n");
             break;
           case DOUBLE: 
             if(itype == INT) 
-              exrpc_oneway(fm_node,(frovedis_lr_sgd<DT1,S_MAT14>),f_dptr,iter,al,mbf,rtype,rprm,icpt,tol,vb,mid,mvbl);
+              exrpc_oneway(fm_node,(frovedis_lr_sgd<DT1,S_MAT14>),f_dptr,iter,al,mbf,rtype,rprm,mult,icpt,tol,vb,mid,mvbl);
             else if(itype == LONG) 
-              exrpc_oneway(fm_node,(frovedis_lr_sgd<DT1,S_MAT15>),f_dptr,iter,al,mbf,rtype,rprm,icpt,tol,vb,mid,mvbl);          
+              exrpc_oneway(fm_node,(frovedis_lr_sgd<DT1,S_MAT15>),f_dptr,iter,al,mbf,rtype,rprm,mult,icpt,tol,vb,mid,mvbl);        
             else REPORT_ERROR(USER_ERROR, "Unsupported itype of input sparse data for training!\n");
             break;
           default: REPORT_ERROR(USER_ERROR, "Unsupported dtype of input sparse data for training!\n");
@@ -55,7 +55,8 @@ extern "C" {
   }
 
   void lr_lbfgs(const char* host, int port, long xptr, long yptr,
-                int iter, double al, int rtype, bool icpt, double tol,
+                int iter, double al, int rtype, double rprm, 
+                bool mult, bool icpt, double tol,
                 int vb, int mid, short dtype, short itype, bool dense) {
     if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
     exrpc_node fm_node(host,port);
@@ -63,16 +64,15 @@ extern "C" {
     auto f_yptr = (exrpc_ptr_t) yptr;
     auto f_dptr = frovedis_mem_pair(f_xptr,f_yptr);
     int hs = 10;   // default
-    double rprm = 0.01; // default
     bool mvbl = false; // auto-managed at python side
     try {
       if(dense) {
         switch(dtype) {
           case FLOAT:
-            exrpc_oneway(fm_node,(frovedis_lr_lbfgs<DT2,D_MAT2>),f_dptr,iter,al,hs,rtype,rprm,icpt,tol,vb,mid,mvbl);
+            exrpc_oneway(fm_node,(frovedis_lr_lbfgs<DT2,D_MAT2>),f_dptr,iter,al,hs,rtype,rprm,mult,icpt,tol,vb,mid,mvbl);
             break;
           case DOUBLE:
-            exrpc_oneway(fm_node,(frovedis_lr_lbfgs<DT1,D_MAT1>),f_dptr,iter,al,hs,rtype,rprm,icpt,tol,vb,mid,mvbl);
+            exrpc_oneway(fm_node,(frovedis_lr_lbfgs<DT1,D_MAT1>),f_dptr,iter,al,hs,rtype,rprm,mult,icpt,tol,vb,mid,mvbl);
             break;
           default: REPORT_ERROR(USER_ERROR, "Unsupported dtype of input dense data for training!\n");
         }
@@ -81,16 +81,16 @@ extern "C" {
         switch(dtype) {
           case FLOAT:
             if(itype == INT)
-              exrpc_oneway(fm_node,(frovedis_lr_lbfgs<DT2,S_MAT24>),f_dptr,iter,al,hs,rtype,rprm,icpt,tol,vb,mid,mvbl);
+              exrpc_oneway(fm_node,(frovedis_lr_lbfgs<DT2,S_MAT24>),f_dptr,iter,al,hs,rtype,rprm,mult,icpt,tol,vb,mid,mvbl);
             else if(itype == LONG)
-              exrpc_oneway(fm_node,(frovedis_lr_lbfgs<DT2,S_MAT25>),f_dptr,iter,al,hs,rtype,rprm,icpt,tol,vb,mid,mvbl);
+              exrpc_oneway(fm_node,(frovedis_lr_lbfgs<DT2,S_MAT25>),f_dptr,iter,al,hs,rtype,rprm,mult,icpt,tol,vb,mid,mvbl);
             else REPORT_ERROR(USER_ERROR, "Unsupported itype of input sparse data for training!\n");
             break;
           case DOUBLE:
             if(itype == INT)
-              exrpc_oneway(fm_node,(frovedis_lr_lbfgs<DT1,S_MAT14>),f_dptr,iter,al,hs,rtype,rprm,icpt,tol,vb,mid,mvbl);
+              exrpc_oneway(fm_node,(frovedis_lr_lbfgs<DT1,S_MAT14>),f_dptr,iter,al,hs,rtype,rprm,mult,icpt,tol,vb,mid,mvbl);
             else if(itype == LONG)
-              exrpc_oneway(fm_node,(frovedis_lr_lbfgs<DT1,S_MAT15>),f_dptr,iter,al,hs,rtype,rprm,icpt,tol,vb,mid,mvbl);
+              exrpc_oneway(fm_node,(frovedis_lr_lbfgs<DT1,S_MAT15>),f_dptr,iter,al,hs,rtype,rprm,mult,icpt,tol,vb,mid,mvbl);
             else REPORT_ERROR(USER_ERROR, "Unsupported itype of input sparse data for training!\n");
             break;
           default: REPORT_ERROR(USER_ERROR, "Unsupported dtype of input sparse data for training!\n");
@@ -247,7 +247,6 @@ extern "C" {
       set_status(true, e.what());
     }
   }
-
 
   void lnr_lbfgs(const char* host, int port, long xptr, long yptr,
                  bool icpt, int vb, int mid, short dtype, short itype, bool dense) {
@@ -537,7 +536,109 @@ extern "C" {
     }
   }
 
-  // --- (7) Matrix Factorization using ALS ---
+  // (7) --- Agglomerative Clustering ---
+  void aca_train(const char* host, int port, long xptr, int k, 
+                 const char* linkage,
+                 int* ret, long len,
+                 int vb, int mid, 
+                 short dtype, short itype, bool dense) {
+    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
+    //std::cout<<"Ml.cc start\n\n";
+    exrpc_node fm_node(host,port);
+    auto f_xptr = (exrpc_ptr_t) xptr;
+    bool mvbl = false; // auto-managed at python side
+    std::string linkages = linkage;
+    //std::cout<<"ML.cc linkage = "<<linkages;
+    std::vector<int> pred;
+    try {
+      if(dense) {
+        switch(dtype) {
+          case FLOAT:
+            pred = exrpc_async(fm_node,(frovedis_aca<DT2,R_MAT2>),f_xptr,mid,linkages,k,vb,mvbl).get();
+            break;
+          case DOUBLE: 
+            pred = exrpc_async(fm_node,(frovedis_aca<DT1,R_MAT1>),f_xptr,mid,linkages,k,vb,mvbl).get();
+            break;
+          default: REPORT_ERROR(USER_ERROR, "Unsupported dtype of input dense data for training!\n");
+        }
+      }
+      else  REPORT_ERROR(USER_ERROR, 
+            "Frovedis doesn't support input sparse data for agglomerative clustering!\n");
+      auto sz = pred.size();
+      checkAssumption(len == sz);
+      for(size_t i=0; i<sz; ++i) {ret[i] = pred[i];}
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+  }
+
+  // (8) --- Spectral Embedding --
+  void sea_train(const char* host, int port, long xptr,
+                 int k, double gamma, 
+                 bool precomputed, bool norm_laplacian,
+                 int mode, bool drop_first, int vb, int mid,
+                 short dtype, short itype, bool dense) {
+    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
+    exrpc_node fm_node(host,port);
+    auto f_xptr = (exrpc_ptr_t) xptr;
+    bool mvbl = false; // auto-managed at python side
+    try {
+      if(dense) {
+        switch(dtype) {
+          case FLOAT:
+            exrpc_oneway(fm_node,(frovedis_sea<DT2,R_MAT2>),f_xptr,k,gamma,norm_laplacian,mid,vb,precomputed,mode,drop_first,mvbl);
+            break;
+          case DOUBLE:
+            exrpc_oneway(fm_node,(frovedis_sea<DT1,R_MAT1>),f_xptr,k,gamma,norm_laplacian,mid,vb,precomputed,mode,drop_first,mvbl);
+            break;
+          default: REPORT_ERROR(USER_ERROR, "Unsupported dtype of input dense data for training!\n");
+        }
+      }
+      else  REPORT_ERROR(USER_ERROR, 
+            "Frovedis doesn't support input sparse data for spectral embedding!\n");
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+  }
+
+  // (9) --- Spectral Clustering ---
+  void sca_train(const char* host, int port, long xptr,
+                 int k,int n_comp, int n_iter, double eps, double gamma,
+                 bool precomputed, bool norm_laplacian, int mode,
+                 bool drop_first, int* ret, long len, int vb, int mid,
+                 short dtype, short itype, bool dense) {
+    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
+    exrpc_node fm_node(host,port);
+    auto f_xptr = (exrpc_ptr_t) xptr;
+    bool mvbl = false; // auto-managed at python side
+    std::vector<int> pred;
+    try {
+      if(dense) {
+        switch(dtype) {
+          case FLOAT:
+            pred = exrpc_async(fm_node,(frovedis_sca<DT2,R_MAT2>),f_xptr,k,n_iter,n_comp,eps,gamma,
+                                        norm_laplacian,mid,vb,precomputed,mode,drop_first,mvbl).get();
+            break;
+          case DOUBLE:
+            pred = exrpc_async(fm_node,(frovedis_sca<DT1,R_MAT1>),f_xptr,k,n_iter,n_comp,eps,gamma,
+                                        norm_laplacian,mid,vb,precomputed,mode,drop_first,mvbl).get();
+            break;
+          default: REPORT_ERROR(USER_ERROR, "Unsupported dtype of input dense data for training!\n");
+        }
+      }
+      else  REPORT_ERROR(USER_ERROR, "Frovedis doesn't support input sparse data for spectral clustering!\n");
+      auto sz = pred.size();
+      checkAssumption(len == sz);
+      for(size_t i=0; i<len && i<sz; ++i) ret[i] = pred[i];
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+  }
+
+  // --- (10) Matrix Factorization using ALS ---
   void als_train(const char* host, int port, long dptr, int rank,
                  int iter, double al, double rprm, long seed,
                  int vb, int mid, short dtype, short itype) {
@@ -569,7 +670,7 @@ extern "C" {
     }
   }
 
-  // --- (8) Naive Bayes ---
+  // --- (11) Naive Bayes ---
   void nb_trainer(const char* host, int port, long xptr,
                  long yptr, double alpha, int mid,
                  const char* algo, int verbose, 
@@ -618,7 +719,7 @@ extern "C" {
     }
   }
 
-  // --- (9) Factorization Machine ---
+  // --- (12) Factorization Machine ---
   void fm_trainer(const char* host, int port, long xptr,
                   long yptr, double std_dev, int iter,
                   double init_learn_rate, char* optimizer, bool dim1,
@@ -668,7 +769,7 @@ extern "C" {
     }
   }
 
-  // --- (10) Decision Tree ---
+  // --- (13) Decision Tree ---
   void dt_trainer(const char* host, int port, long xptr,
                   long yptr, char* algo, char* impurity,
                   int max_depth, int num_classes, int max_bins,
@@ -722,6 +823,105 @@ extern "C" {
         }
       }
       else REPORT_ERROR(USER_ERROR, "Frovedis doesn't support input sparse data for DT training!\n");
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+  }
+
+  // --- (14) FP Growth ---
+  void fpgrowth_trainer(const char* host, int port, long fdata, 
+                        int mid, double minSupport, int verbose) {
+    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
+    //std::cout<<"Inside fpgrowth_trainer: --------------- \n";
+    exrpc_node fm_node(host,port);
+    auto f_dptr = (exrpc_ptr_t) (fdata);
+    bool mvbl = false; // auto-managed at python side
+    int vb = verbose; // no log (default)
+    try {
+      exrpc_oneway(fm_node, frovedis_fp_growth<dftable>, f_dptr, minSupport, vb, mid, mvbl);
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+  }
+
+  void fpgrowth_fpr(const char* host, int port,
+                        int mid, int midr, double con) {
+    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
+    exrpc_node fm_node(host,port);
+    try {
+      exrpc_oneway(fm_node, frovedis_fpr<fp_growth_model>,con, mid, midr);
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+  }
+
+  // --- (15) Word2Vector ---
+  void w2v_build_vocab_and_dump(const char* text, const char* encode,
+                                const char* vocab, const char* count,
+                                int minCount) {
+    ASSERT_PTR(text); ASSERT_PTR(encode);
+    ASSERT_PTR(vocab); ASSERT_PTR(count);
+    std::string txt(text), enc(encode), voc(vocab), cnt(count);
+    // x86 side vocab creation
+    try {
+      w2v::build_vocab_and_dump(txt,enc,voc,cnt,minCount);
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+  }
+
+  void w2v_train(const char* host, int port,
+                 const char* encode, const char* weight,
+                 const char* count, int hiddenSize, int window,
+                 float thr, int neg, int niter, float lr,
+                 float syncPeriod, int syncWords, 
+                 int syncTimes, int msgsz, int nthread) {
+    ASSERT_PTR(weight); ASSERT_PTR(encode); ASSERT_PTR(count);
+    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
+    exrpc_node fm_node(host,port);
+    std::string enc(encode), cnt(count), wght(weight);
+
+    int are_supposed_parameters =    \
+       hiddenSize <= 512 &&          \
+       hiddenSize % 2 == 0 &&        \
+       neg == 5 &&                   \
+       window <= 8;
+    if (!are_supposed_parameters) {
+       std::cout << "===============  CAUTION  ===============\n"
+                 << "Optimized computation is not supported for the specified arguments so this program fallbacks to slower version.\n"
+                 << "Recommended arguments to enable optimization are \n"
+                 << "    size <= 512 && " << std::endl
+                 << "    size % 2 == 0 && " << std::endl
+                 << "    negative == 5 && " << std::endl
+                 << "    window <= 8" << std::endl
+                 << "=========================================\n";
+    }
+    w2v::train_config config = {
+       hiddenSize, window, thr, neg, niter,
+       lr, syncPeriod, syncWords, syncTimes, 
+       msgsz, nthread
+    };
+
+    try {
+      exrpc_oneway(fm_node,frovedis_w2v_train,enc,wght,cnt,config);
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+  }
+
+  void w2v_save_model(const char* weight, const char* vocab,
+                      const char* out, int minCount,
+                      bool isBinary) {
+    ASSERT_PTR(weight); ASSERT_PTR(vocab); ASSERT_PTR(out); 
+    std::string wght(weight), voc(vocab), output(out);
+    // x86 side model saving
+    try {
+      w2v::save_model(wght, voc, out, minCount, isBinary);
     }
     catch (std::exception& e) {
       set_status(true, e.what());
