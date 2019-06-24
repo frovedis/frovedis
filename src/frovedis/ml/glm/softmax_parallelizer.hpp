@@ -63,6 +63,16 @@ struct softmax_parallelizer {
                     double convergenceTol,
                     MatType mType,
                     bool inputMovable);
+  
+  template <class T, class MODEL, class REGULARIZER>
+  MODEL parallelize(colmajor_matrix<T>& data,
+                    dvector<T>& label,
+                    MODEL& initModel,
+                    size_t numIteration,
+                    double alpha,
+                    double regParam,
+                    bool isIntercept,
+                    double convergenceTol);
 
   private:
   template <class T, class DATA_MATRIX, 
@@ -214,9 +224,9 @@ void softmax_parallelizer::do_train(node_local<DATA_MATRIX>& data,
 }
 
 
-template <class T, class DATA_MATRIX, class TRANS_MATRIX,
+template <class T, class DATA_MATRIX,
           class MODEL, class REGULARIZER>
-void do_train(node_local<DATA_MATRIX>& data,
+void softmax_parallelizer::do_train(node_local<DATA_MATRIX>& data,
                                 node_local<std::vector<T>>& label,
                                 MODEL& initModel,
                                 size_t numIteration,
@@ -227,7 +237,7 @@ void do_train(node_local<DATA_MATRIX>& data,
   REGULARIZER rType(regParam);
   auto nfeatures = initModel.nfeatures;
   auto nclasses = initModel.nclasses;
-
+  
   // -------- main loop --------
   for(size_t i = 1; i <= numIteration; i++) {
     auto distModel = initModel.broadcast();
@@ -258,7 +268,8 @@ MODEL softmax_parallelizer::parallelize(crs_matrix<T,I,O>& data,
                                     double convergenceTol,
                                     MatType mType,
                                     bool inputMovable) {
-  checkAssumption (numIteration > 0 && alpha > 0 && 
+   
+  checkAssumption (numIteration > 0 && alpha > 0 &&
                    regParam >= 0 && convergenceTol >= 0);
 
   MODEL trainedModel = initModel;
@@ -277,7 +288,7 @@ MODEL softmax_parallelizer::parallelize(crs_matrix<T,I,O>& data,
       (USER_ERROR,"Number of label and data are different\n");
 
   time_spent t0(DEBUG);
-  auto sizes = data.get_local_num_rows(); 
+  auto sizes = data.get_local_num_rows();
   label.align_as(sizes);
   auto nloc_label = label.viewas_node_local();
   t0.show("label resize & nloc: ");
@@ -287,28 +298,78 @@ MODEL softmax_parallelizer::parallelize(crs_matrix<T,I,O>& data,
     auto trans_crs_vec = data.data.map(to_trans_crs_data<T,I,O>);
     t0.show("to trans crs: ");
     do_train<T,crs_matrix_local<T,I,O>,crs_matrix_local<T,I,O>,
-             MODEL,REGULARIZER> 
+             MODEL,REGULARIZER>
                 (data.data,trans_crs_vec,nloc_label,trainedModel,
                  numIteration,alpha,regParam,isIntercept,convergenceTol);
   }
+  
   else if (mType == HYBRID) {
     auto jds_crs_vec = data.data.map(to_jds_crs_data<T,I,O>);
     t0.show("to jds_crs: ");
     auto trans_jds_crs_vec = data.data.map(to_trans_jds_crs_data<T,I,O>);
     t0.show("to trans jds_crs: ");
+    if(inputMovable) data.clear();
     do_train<T,jds_crs_hybrid_local<T,I,O>,jds_crs_hybrid_local<T,I,O>,
              MODEL,REGULARIZER>
                 (jds_crs_vec,trans_jds_crs_vec,nloc_label,trainedModel,
                  numIteration,alpha,regParam,isIntercept,convergenceTol);
-  } 
+  }
+ /*
+  * TODO: ell_matrix_local<T,I> * rowmajor_matrix_local<T>
+  * TODO: trans_mm(ell_matrix_local<T,I>, rowmajor_matrix_local<T>)
+  * On presence of above two functionalities, ELL part can be uncommented...
+  *
   else if (mType == ELL) {
     auto ell_vec = data.data.map(to_ell_data<T,I,O>);
     t0.show("to ell: ");
+    if(inputMovable) data.clear();
     do_train<T,ell_matrix_local<T,I>,MODEL,REGULARIZER>
                (ell_vec,nloc_label,trainedModel,
                 numIteration,alpha,regParam,isIntercept,convergenceTol);
   }
+ */
   else REPORT_ERROR(USER_ERROR,"Unsupported input matrix type!!\n");
+
+  return trainedModel;
+}
+
+template <class T, class MODEL, class REGULARIZER>
+MODEL softmax_parallelizer::parallelize(colmajor_matrix<T>& data,
+                                    dvector<T>& label,
+                                    MODEL& initModel,
+                                    size_t numIteration,
+                                    double alpha,
+                                    double regParam,
+                                    bool isIntercept,
+                                    double convergenceTol) {
+
+  checkAssumption (numIteration > 0 && alpha > 0 &&
+                   regParam >= 0 && convergenceTol >= 0);
+
+  MODEL trainedModel = initModel;
+  size_t numFeatures = data.num_col;
+  size_t numSamples  = data.num_row;
+
+  if(!numFeatures || !numSamples)
+    REPORT_ERROR(USER_ERROR,"Empty training data\n");
+
+  if(numFeatures != initModel.get_num_features())
+    REPORT_ERROR
+      (USER_ERROR,"Incompatible Test Vector with Provided Initial Model\n");
+
+  if(numSamples != label.size())
+    REPORT_ERROR
+      (USER_ERROR,"Number of label and data are different\n");
+
+  time_spent t0(DEBUG);
+  auto sizes = data.get_local_num_rows();
+  label.align_as(sizes);
+  auto nloc_label = label.viewas_node_local();
+  t0.show("label resize & nloc: ");
+ 
+  do_train<T,colmajor_matrix_local<T>, MODEL,REGULARIZER>
+         (data.data, nloc_label, trainedModel,
+          numIteration, alpha, regParam, isIntercept, convergenceTol);
 
   return trainedModel;
 }

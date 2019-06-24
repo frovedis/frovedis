@@ -408,6 +408,8 @@ struct logistic_regression_model {
     threshold = thr;
   }
   size_t get_num_features() const {return weight.size();}
+  size_t get_num_classes() const {return 2;}
+  T get_threshold() {return threshold;}
   void save(const std::string &inputPath) const {
     glm_save<T,logistic_regression_model<T>>(*this,inputPath);
   }
@@ -542,6 +544,8 @@ struct svm_model {
     threshold = thr;
   }
   size_t get_num_features() const {return weight.size();}
+  size_t get_num_classes() const {return 2;}
+  T get_threshold() {return threshold;}
   void save(const std::string &inputPath) const {
     glm_save<T,svm_model<T>>(*this,inputPath);
   }

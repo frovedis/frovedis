@@ -12,17 +12,17 @@ struct multinomial_logistic_regression_model {
 
   multinomial_logistic_regression_model(
     const multinomial_logistic_regression_model<T>& m) {
-    intercept = m.intercept;
-    nclasses = m.nclasses;
     weight = m.weight; 
+    intercept = m.intercept;
     nfeatures = m.nfeatures;
     isIntercept = m.isIntercept;
+    nclasses = m.nclasses;
   }
 
   multinomial_logistic_regression_model(
     multinomial_logistic_regression_model<T>&& m) {
-    intercept.swap(m.intercept);
     weight = m.weight; 
+    intercept.swap(m.intercept);
     nfeatures = m.nfeatures;
     isIntercept = m.isIntercept;
     nclasses = m.nclasses;
@@ -57,7 +57,6 @@ struct multinomial_logistic_regression_model {
     nfeatures = feature;
   }
 
-
   void debug_print() {
     std::cout << "weight: ";     weight.debug_print();
     std::cout << "intercept: "; 
@@ -69,51 +68,54 @@ struct multinomial_logistic_regression_model {
   }
 
   template <class MATRIX>
-   std::vector<std::pair<T,T>> predict_with_probability (MATRIX& mat) {
-      auto nsamples = mat.local_num_row;
-      softmax_gradient_descent gd(isIntercept);
-      auto wtx = gd.compute_wtx<T>(mat, weight, intercept);
-      auto softmax_mat = gd.compute_softmax_probability<T>(wtx);
-      //softmax_mat.save("softmax_prob");
-      std::vector<std::pair<T,T>> ret(nsamples);
-      std::vector<T> tmp(nsamples,0);
-      for(size_t j =0; j<nclasses; ++j) {
-        for (size_t i=0; i<nsamples; ++i) {
-          if(softmax_mat.val[i*nclasses+j] > tmp[i]) { 
-            tmp[i] = softmax_mat.val[i*nclasses+j];
-            ret[i] = std::make_pair(j+1, tmp[i]);
-          }
-        }
+  rowmajor_matrix_local<T> compute_probability_matrix (MATRIX& mat) {
+    softmax_gradient_descent gd(isIntercept);
+    auto wtx = gd.compute_wtx<T>(mat, weight, intercept);
+    auto softmax_mat = gd.compute_softmax_probability<T>(wtx);
+    //softmax_mat.save("softmax_prob");
+    return softmax_mat;
+  }
+
+  template <class MATRIX>
+  std::vector<T> predict (MATRIX& mat) {
+    auto nsamples = mat.local_num_row;
+    auto softmax_mat = compute_probability_matrix(mat);
+    std::vector<T> ret(nsamples,0);
+    auto retp = ret.data();
+    auto smatp = softmax_mat.val.data();
+    for(size_t j = 1; j < nclasses; ++j) { // j starts from 1, considering 0th class as target label
+      for (size_t i = 0; i < nsamples; ++i) { // nsamples >> nclasses
+        auto max_id = static_cast<int>(retp[i]);
+        auto max_proba = smatp[i * nclasses + max_id];
+        auto cur_proba = smatp[i * nclasses + j];
+        if(cur_proba > max_proba) retp[i] = j;
       }
-      return ret;
-   }
+    }
+    return ret;
+  }
 
-   template <class MATRIX>
-   std::vector<T> predict (MATRIX& mat) {
-      auto val_and_proba = predict_with_probability(mat);
-      auto nsamples = val_and_proba.size();
-      std::vector<T> ret(nsamples);
-      for(size_t i=0; i<nsamples; ++i) ret[i] = val_and_proba[i].first;
-      return ret;
-   }
+  template <class MATRIX>
+  std::vector<T> predict_probability (MATRIX& mat) {
+    auto nsamples = mat.local_num_row;
+    auto softmax_mat = compute_probability_matrix(mat);
+    std::vector<T> ret(nsamples,0);
+    auto retp = ret.data();
+    auto smatp = softmax_mat.val.data();
+    for (size_t i = 0; i < nsamples; ++i) retp[i] = smatp[i * nclasses + 0];
+    for(size_t j = 1; j < nclasses; ++j) { // j starts from 1, considering 0th class as target label
+      for (size_t i = 0; i < nsamples; ++i) { // nsamples >> nclasses
+        auto max_proba = retp[i];
+        auto cur_proba = smatp[i * nclasses + j];
+        if(cur_proba > max_proba) retp[i] = cur_proba; 
+      }
+    }
+    return ret;
+  }
 
-   template <class MATRIX>
-   std::vector<T> predict_probability (MATRIX& mat) {
-      auto val_and_proba = predict_with_probability(mat);
-      auto nsamples = val_and_proba.size();
-      std::vector<T> ret(nsamples);
-      for(size_t i=0; i<nsamples; ++i) ret[i] = val_and_proba[i].second;
-      return ret;
-   }
-
-   size_t get_num_features() { return nfeatures; }
-
-   void initialize(size_t seed = 1) {
-     srand(seed);
-     for(size_t i = 0; i < weight.val.size(); i++) weight.val[i] = rand() % 5;
-     for(size_t i = 0; i < intercept.size(); i++) intercept[i] = rand() % 2;
-   }
-
+  size_t get_num_features() { return nfeatures; }
+  size_t get_num_classes()  { return nclasses; }
+  T get_threshold() { return 0.5; } // to make it uniform
+  void set_threshold(T thr) {/*skip*/}     // to make it call by spark
 
   void __create_dir_struct (const std::string& dir) {
     struct stat sb;
@@ -142,7 +144,7 @@ struct multinomial_logistic_regression_model {
     metadata_str << nclasses    << std::endl;
     metadata_str << nfeatures   << std::endl;
     metadata_str << isIntercept << std::endl;
-    std::cout << "save request on multinomial logistic regression model with dirname: " << dir << std::endl;
+    //std::cout << "save request on multinomial logistic regression model with dirname: " << dir << std::endl;
   }
 
   void savebinary (const std::string& dir) {
@@ -158,7 +160,7 @@ struct multinomial_logistic_regression_model {
     metadata_str << nclasses    << std::endl;
     metadata_str << nfeatures   << std::endl;
     metadata_str << isIntercept << std::endl;
-    std::cout << "save binary request on multinomial logistic regression model with dirname: " << dir << std::endl;
+    //std::cout << "save binary request on multinomial logistic regression model with dirname: " << dir << std::endl;
   }
 
   void load (const std::string& dir) {
@@ -172,7 +174,7 @@ struct multinomial_logistic_regression_model {
     metadata_str >> nclasses;
     metadata_str >> nfeatures;
     metadata_str >> isIntercept;
-    std::cout << "load request for multinomial logistic regression model with dirname: " << dir << std::endl;
+    //std::cout << "load request for multinomial logistic regression model with dirname: " << dir << std::endl;
   }
 
   void loadbinary (const std::string& dir) {
@@ -185,7 +187,7 @@ struct multinomial_logistic_regression_model {
     metadata_str >> nclasses;
     metadata_str >> nfeatures;
     metadata_str >> isIntercept;
-    std::cout << "loadbinary request for multinomial logistic regression model with dirname: " << dir << std::endl;
+    //std::cout << "loadbinary request for multinomial logistic regression model with dirname: " << dir << std::endl;
   }
 
   node_local<multinomial_logistic_regression_model<T>> broadcast();  // for performance
