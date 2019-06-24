@@ -1,8 +1,16 @@
 #include "exrpc_ml.hpp"
 #include "short_hand_dense_type.hpp"
 #include "short_hand_sparse_type.hpp"
+#include "short_hand_model_type.hpp"
 
 using namespace frovedis;
+
+void frovedis_w2v_train(std::string& encode,
+                        std::string& weight,
+                        std::string& count,
+                        w2v::train_config& config) {
+  w2v::train_each(encode, count, weight, config);
+}
 
 void expose_frovedis_ml_functions() {
   // --- frovedis ML trainers ---
@@ -114,4 +122,22 @@ void expose_frovedis_ml_functions() {
   expose((frovedis_fm<DT1,S_MAT15>));     // python case
   expose((frovedis_fm<DT2,S_MAT24>));     // python case
   expose((frovedis_fm<DT2,S_MAT25>));     // python case
+  // (11) frequent pattern mining using fp-growth
+  expose(frovedis_fp_growth<dftable>);
+  expose(frovedis_fpr<fp_growth_model>);
+  //expose(get_frovedis_fpm<std::string>);
+  expose(get_frovedis_fpm<int>);
+  // (12) hierarchical clustering
+  expose((frovedis_aca2<DT1,R_MAT1>)); // spark case (only fit)
+  expose((frovedis_aca<DT1,R_MAT1>));  // python case (fit-predict)
+  expose((frovedis_aca<DT2,R_MAT2>));  // python case (fit-predict)
+  // (13) spectral clustering
+  expose((frovedis_sca<DT1,R_MAT1>));
+  expose((frovedis_sca<DT2,R_MAT2>)); // python case
+  // (14) spectral embedding
+  expose((frovedis_sea<DT1,R_MAT1>));
+  expose((frovedis_sea<DT2,R_MAT2>)); // python case
+  // (15) word2vector
+  expose(frovedis_w2v<DT2>);          // spark case
+  expose(frovedis_w2v_train);         // python case
 }

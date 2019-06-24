@@ -62,6 +62,16 @@ void expose_frovedis_model_functions() {
   expose((parallel_fmm_predict_with_broadcast<DT2,S_MAT24,S_LMAT24>)); // for python
   expose((parallel_fmm_predict_with_broadcast<DT2,S_MAT25,S_LMAT25>)); // for python
   // --- frovedis FP GrowthModel ---
+  // --- not template based ---
+  expose(show_model<FPM1>);
+  expose(release_model<FPM1>);
+  expose(save_model<FPM1>);
+  expose(load_model<FPM1>); // void returning
+  expose(show_model<FPR1>);
+  expose(release_model<FPR1>);
+  expose(save_model<FPR1>);
+  expose(load_model<FPR1>);
+//  expose(get_fis<FPM1>);  
   // --- frovedis LogisticRegressionModel ---
   expose(show_model<LRM1>);
   expose(show_model<LRM2>);    // for python
@@ -81,6 +91,25 @@ void expose_frovedis_model_functions() {
   expose((pgp2<DT1,S_MAT15,S_LMAT15,LRM1>));  // for python
   expose((pgp2<DT2,S_MAT24,S_LMAT24,LRM2>));  // for python
   expose((pgp2<DT2,S_MAT25,S_LMAT25,LRM2>));  // for python
+  // --- frovedis MultinomialLogisticRegressionModel ---
+  expose(show_model<MLR1>);
+  expose(show_model<MLR2>);
+  expose(save_model<MLR1>);
+  expose(save_model<MLR2>);
+  expose(release_model<MLR1>);
+  expose(release_model<MLR2>);
+  expose(load_glm<MLR1>);
+  expose(load_glm<MLR2>);
+  expose((set_glm_threshold<DT1,MLR1>));
+  expose((bcast_model_to_workers<DT1,MLR1>));
+  expose((single_glm_predict<DT1,S_LMAT1,MLR1>));
+  expose((parallel_glm_predict<DT1,S_LMAT1,MLR1>));
+  expose((pgp2<DT1,R_MAT1,R_LMAT1,MLR1>));    // for python
+  expose((pgp2<DT2,R_MAT2,R_LMAT2,MLR2>));    // for python
+  expose((pgp2<DT1,S_MAT14,S_LMAT14,MLR1>));
+  expose((pgp2<DT1,S_MAT15,S_LMAT15, MLR1>));
+  expose((pgp2<DT2,S_MAT24,S_LMAT24,MLR2>));
+  expose((pgp2<DT2,S_MAT24,S_LMAT24,SVM2>));
   // --- frovedis LinearRegressionModel ---
   expose(show_model<LNRM1>);
   expose(release_model<LNRM1>);
@@ -148,10 +177,51 @@ void expose_frovedis_model_functions() {
   expose((bcast_model_to_workers<DT1,KMM1>));
   expose((single_kmm_predict<S_LMAT1,KMM1>));
   expose((parallel_kmm_predict<S_LMAT1,KMM1>));
-  expose((pkp2<R_MAT1,R_LMAT1,KMM1>));   // for python
+  expose((pkp2<R_MAT1,R_LMAT1,KMM1>));   
   expose((pkp2<R_MAT2,R_LMAT2,KMM2>));   // for python
-  expose((pkp2<S_MAT14,S_LMAT14,KMM1>)); // for python
+  expose((pkp2<S_MAT14,S_LMAT14,KMM1>)); 
   expose((pkp2<S_MAT15,S_LMAT15,KMM1>)); // for python
   expose((pkp2<S_MAT24,S_LMAT24,KMM2>)); // for python
   expose((pkp2<S_MAT25,S_LMAT25,KMM2>)); // for python
+  // ---frovedis spectral embedding
+  expose(release_model<SEM1>);
+  expose(save_model<SEM1>);
+  expose(show_model<SEM1>);
+  expose(load_model<SEM1>);
+  expose(get_sem_affinity_matrix<DT1>);
+  expose(get_sem_embedding_matrix<DT1>);
+  expose(release_model<SEM2>);           // for python
+  expose(save_model<SEM2>);              // for python
+  expose(show_model<SEM2>);              // for python
+  expose(load_model<SEM2>);              // for python
+  expose(get_sem_affinity_matrix<DT2>);  // for python
+  expose(get_sem_embedding_matrix<DT2>); // for python
+  // ---frovedis spectral clustering
+  expose(release_model<SCM1>);
+  expose(save_model<SCM1>);
+  expose(show_model<SCM1>);
+  expose(load_scm<DT1>);
+  expose(get_scm_affinity_matrix<DT1>);
+  expose(release_model<SCM2>);           // for python
+  expose(save_model<SCM2>);              // for python
+  expose(show_model<SCM2>);              // for python
+  expose(load_scm<DT2>);                 // for python
+  expose(get_scm_affinity_matrix<DT2>);  // for python
+  // ---frovedis agglomerative clustering
+  expose(release_model<ACM1>);
+  expose(save_model<ACM1>);
+  expose(show_model<ACM1>);
+  expose(load_acm<DT1>);
+  expose(frovedis_acm_pred<DT1>);     
+  expose(release_model<ACM2>);           // for python
+  expose(save_model<ACM2>);              // for python
+  expose(show_model<ACM2>);              // for python
+  expose(load_acm<DT2>);                 // for python
+  expose(frovedis_acm_pred<DT2>);        // for python
+  // --- frovedis word2vector model
+  expose(release_model<W2V2>);
+  expose(get_w2v_weight_ptr<DT2>);
+  expose(get_w2v_weight_vector<DT2>);
+  expose(show_w2v_weight<DT2>);
+  expose(save_w2v_model<DT2>);
 }

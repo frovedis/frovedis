@@ -5,22 +5,21 @@ namespace frovedis {
 struct dummy_glm {
   dummy_glm() {}
   dummy_glm(int id, short kind, size_t nftr, int ncls=2, 
-            double icpt=0.0, double thr=0.5) : mid(id), mkind(kind),
-            numFeatures(nftr),numClasses(ncls),intercept(icpt),threshold(thr) {}
+            double thr=0.5) : mid(id), mkind(kind),
+            numFeatures(nftr),numClasses(ncls),threshold(thr) {}
   void debug_print() {
     std::cout << "mid: " << mid
               << ", mkind: " << mkind
               << ", numFeatures: " << numFeatures
               << ", numClasses: " << numClasses
-              << ", intercept: " << intercept
               << ", threshold: " << threshold << "\n";             
   }
   int mid;
   short mkind;
   size_t  numFeatures;
   int  numClasses;
-  double intercept, threshold;
-  SERIALIZE(mid, mkind, numFeatures, numClasses, intercept, threshold)
+  double threshold;
+  SERIALIZE(mid, mkind, numFeatures, numClasses, threshold)
 };
 
 struct dummy_mfm {

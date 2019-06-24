@@ -12,8 +12,8 @@
 #include "frovedis.hpp"
 #include "frovedis/matrix/crs_matrix.hpp"
 #include "frovedis/matrix/diag_matrix.hpp"
-#include "frovedis/matrix/jds_crs_hybrid.hpp"
 #include "frovedis/matrix/blockcyclic_matrix.hpp"
+#include "frovedis/dataframe/dftable.hpp"
 #include "../exrpc/exrpc_expose.hpp"
 #include "frovedis_mem_pair.hpp"
 #include "dummy_matrix.hpp"
@@ -37,6 +37,17 @@ void set_vector_data(std::vector<T>& vec,
   auto mem_ptr = reinterpret_cast<std::vector<T>*>(eps[iam]);
   if(is_to_be_moved) vec.swap(*mem_ptr);
   else vec = *mem_ptr;
+}
+
+template <class T>
+int count_distinct(exrpc_ptr_t& dptr) {
+  auto& dvec = *reinterpret_cast<dvector<T>*>(dptr);
+  dftable tmp;
+  tmp.append_column("dv",dvec);
+  std::vector<std::string> target = {std::string("dv")};
+  auto grouped = tmp.group_by(target);
+  int count = grouped.num_row();
+  return count;
 }
 
 template <class T>

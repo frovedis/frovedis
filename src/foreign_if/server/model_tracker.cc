@@ -1,5 +1,19 @@
 #include "model_tracker.hpp"
 
+// should get activated after type check (float/double) support added in model_table
+#if 0 
+#include "frovedis/ml/glm/linear_model.hpp"
+#include "frovedis/ml/recommendation/matrix_factorization_model.hpp"
+#include "frovedis/ml/clustering/kmeans.hpp"
+#include "frovedis/ml/tree/tree_model.hpp"
+#include "frovedis/ml/fm/model.hpp"
+#include "frovedis/ml/nb/nb_model.hpp"
+#include "frovedis/ml/fpm/fp_growth_model.hpp"
+#include "frovedis/ml/clustering/spectral_clustering_model.hpp"
+#include "frovedis/ml/clustering/spectral_embedding_model.hpp"
+#include "frovedis/ml/clustering/agglomerative_model.hpp"
+#endif
+
 namespace frovedis {
 
 std::map<int,std::pair<MODEL_KIND,exrpc_ptr_t>> model_table;

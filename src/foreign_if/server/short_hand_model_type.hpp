@@ -7,6 +7,8 @@ namespace frovedis {
   // --- All Frovedis ML MODEL Types ---
   typedef logistic_regression_model<DT1> LRM1;
   typedef logistic_regression_model<DT2> LRM2;
+  typedef multinomial_logistic_regression_model<DT1> MLR1;
+  typedef multinomial_logistic_regression_model<DT2> MLR2;
   typedef linear_regression_model<DT1> LNRM1;
   typedef linear_regression_model<DT2> LNRM2;
   typedef svm_model<DT1> SVM1;
@@ -21,5 +23,15 @@ namespace frovedis {
   typedef fm::fm_model<DT2> FMM2;
   typedef naive_bayes_model<DT1> NBM1;
   typedef naive_bayes_model<DT2> NBM2;
+  typedef fp_growth_model FPM1;
+  typedef association_rule FPR1;
+  typedef spectral_embedding_model<DT1> SEM1;
+  typedef spectral_embedding_model<DT2> SEM2;
+  typedef spectral_clustering_model<DT1> SCM1;
+  typedef spectral_clustering_model<DT2> SCM2;
+  typedef rowmajor_matrix_local<DT1> ACM1;
+  typedef rowmajor_matrix_local<DT2> ACM2;
+  typedef rowmajor_matrix_local<DT1> W2V1;
+  typedef rowmajor_matrix_local<DT2> W2V2;
 }
 #endif

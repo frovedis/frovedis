@@ -1,5 +1,5 @@
-#include "exrpc_pca.hpp"
 #include "exrpc_svd.hpp"
+#include "exrpc_pca.hpp"
 #include "exrpc_pblas.hpp"
 #include "exrpc_scalapack.hpp"
 #include "short_hand_dense_type.hpp"
@@ -10,14 +10,20 @@ using namespace frovedis;
 void expose_frovedis_wrapper_functions() {
   // --- frovedis pca ---
   expose((frovedis_pca<R_MAT1,DT1>));              // for spark
-  // --- frovedis sparse svd ---
-  expose((frovedis_sparse_svd<S_MAT1,DT1>));       // for spark
-  expose((frovedis_sparse_svd<S_MAT14,DT1,DT4>));  // for python
-  expose((frovedis_sparse_svd<S_MAT15,DT1,DT5>));  // for python
-  expose((frovedis_sparse_svd<S_MAT24,DT2,DT4>));  // for python
-  expose((frovedis_sparse_svd<S_MAT25,DT2,DT5>));  // for python
+  // --- frovedis svd ---
+  expose((compute_var_sum<DT1,R_MAT1>));
+  expose((compute_var_sum<DT2,R_MAT2>));
+  expose((frovedis_sparse_truncated_svd<S_MAT1,DT1>));       // for spark
+  expose((frovedis_sparse_truncated_svd<S_MAT14,DT1,DT4>));  // for python
+  expose((frovedis_sparse_truncated_svd<S_MAT15,DT1,DT5>));  // for python
+  expose((frovedis_sparse_truncated_svd<S_MAT24,DT2,DT4>));  // for python
+  expose((frovedis_sparse_truncated_svd<S_MAT25,DT2,DT5>));  // for python
+  expose((frovedis_dense_truncated_svd<R_MAT1,DT1>));        // for spark/python
+  expose((frovedis_dense_truncated_svd<R_MAT2,DT2>));        // for python
   expose(load_cmm_svd_results<DT1>); //GesvdResult (arpack/lapack)
   expose(load_bcm_svd_results<DT1>); //PGesvdResult (scalapack)
+  expose(load_cmm_svd_results<DT2>); //GesvdResult (arpack/lapack)
+  expose(load_bcm_svd_results<DT2>); //PGesvdResult (scalapack)
   // --- frovedis blas/pblas wrappers ---
   expose((frovedis_swap<DT1,C_LMAT1>));
   expose((frovedis_swap<DT1,B_MAT1>));

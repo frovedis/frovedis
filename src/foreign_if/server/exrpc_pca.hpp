@@ -8,9 +8,25 @@
 
 using namespace frovedis;
 
+template <class T>
+void rearrange_pca_output(colmajor_matrix<T>& components,
+                          std::vector<T>& variance) {
+  auto ncomp = variance.size();
+  auto sptr = variance.data();
+  for(size_t i = 0; i < ncomp/2; ++i) {
+    auto temp = sptr[i];
+    sptr[i] = sptr[ncomp - i - 1];
+    sptr[ncomp - i - 1] = temp;
+  }
+  // rearrange_colmajor_data_inplace: defined in exrpc_svd.hpp
+  components.data.mapv(rearrange_colmajor_data_inplace<T>);
+}
+
+
 template <class MATRIX, class T>
 pca_result frovedis_pca(exrpc_ptr_t& data_ptr, int& k, 
-                        bool& isMovableInput=false) {
+                        bool& isMovableInput = false,
+                        bool& rearrange_out = true) {
   MATRIX& mat = *reinterpret_cast<MATRIX*>(data_ptr);      
   auto pca_directions = new colmajor_matrix<T>(); 
   auto explained_variance_ratio = new std::vector<T>();  
@@ -30,7 +46,8 @@ pca_result frovedis_pca(exrpc_ptr_t& data_ptr, int& k,
   for(auto e: singular_values) std::cout << e << " "; std::cout << std::endl;
 #endif
   // if input is movable, destroying Frovedis side data after computation is done.
-  if (isMovableInput)  mat.clear(); 
+  if (isMovableInput)  mat.clear();
+  if (rearrange_out) rearrange_pca_output(*pca_directions,*explained_variance_ratio); 
   auto mptr = reinterpret_cast<exrpc_ptr_t>(pca_directions);
   auto vptr = reinterpret_cast<exrpc_ptr_t>(explained_variance_ratio);
   auto nrows = pca_directions->num_row;

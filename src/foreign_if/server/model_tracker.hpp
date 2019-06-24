@@ -5,13 +5,17 @@
 #include <boost/lexical_cast.hpp>
 
 #include "../exrpc/exrpc.hpp"
+/*
 #include "frovedis/ml/glm/linear_model.hpp"
 #include "frovedis/ml/recommendation/matrix_factorization_model.hpp"
 #include "frovedis/ml/clustering/kmeans.hpp"
 #include "frovedis/ml/tree/tree_model.hpp"
 #include "frovedis/ml/fm/model.hpp"
 #include "frovedis/ml/nb/nb_model.hpp"
-
+#include "frovedis/ml/fpm/fp_growth_model.hpp"
+#include "frovedis/ml/clustering/spectral_clustering.hpp"
+#include "frovedis/ml/clustering/agglomerative.hpp"
+*/
 namespace frovedis {
 
 enum { NONE = 0xDEAD }; 
@@ -28,7 +32,12 @@ enum MODEL_KIND {
   FMM,
   FPM,
   FPR,
-  SPARSE_CONV_INFO
+  ACM,
+  SCM,
+  SEM,
+  SPARSE_CONV_INFO,
+  MLR,
+  W2V
 };
 
 enum MAT_KIND {
@@ -86,8 +95,12 @@ void cleanup_frovedis_server();
 // retuns the model head for the requested registered model id
 template <class M>
 M* get_model_ptr(int mid) {
+  //std::cout<<"inside get model ptr \n\n";
   if(model_table.find(mid) == model_table.end()) { // if not registered
+ 
+  //std::cout<<"not registered \n\n";
     if(!is_under_training(mid)) { // if not under training
+     // std::cout<<"not under training\n\n";
       std::string message = "request for either non-registered or deleted model: [";
       message += boost::lexical_cast<std::string>(mid) + " ]\n";
       REPORT_ERROR(USER_ERROR, message);

@@ -12,13 +12,20 @@
 #include "frovedis.hpp"
 #include "frovedis/core/exceptions.hpp"
 #include "frovedis/ml/glm/linear_model.hpp"
+#include "frovedis/ml/glm/multinomial_logistic_regression_model.hpp"
 #include "frovedis/ml/recommendation/matrix_factorization_model.hpp"
 #include "frovedis/ml/clustering/kmeans.hpp"
+#include "frovedis/ml/clustering/agglomerative.hpp"
+#include "frovedis/ml/clustering/spectral_clustering_model.hpp"
+#include "frovedis/ml/clustering/spectral_embedding_model.hpp"
 #include "frovedis/ml/tree/tree_model.hpp"
 #include "frovedis/ml/fm/model.hpp"
 #include "frovedis/ml/nb/nb_model.hpp"
+#include "frovedis/ml/fpm/fp_growth_model.hpp"
+#include "frovedis/ml/w2v/word2vec.hpp"
 #include "../exrpc/exrpc_expose.hpp"
 #include "dummy_model.hpp"
+#include "dummy_matrix.hpp"
 #include "model_tracker.hpp"
 
 using namespace frovedis;
@@ -115,7 +122,7 @@ parallel_glm_predict(MATRIX& data, exrpc_ptr_t& mp) {
   std::cout << "with test data: \n";
   data.debug_print();
 #endif
-  auto thr = mptr->threshold;
+  auto thr = mptr->get_threshold();
   std::vector<T> ret = (thr == NONE) ? mptr->predict_probability(data) : mptr->predict(data);
 #ifdef _EXRPC_DEBUG_
   std::cout << "[worker" << get_selfid()
@@ -195,7 +202,7 @@ T single_glm_predict(MATRIX& data, int& mid) {
   std::cout << "with test data: \n";
   data.debug_print();
 #endif
-  auto thr = mptr->threshold;
+  auto thr = mptr->get_threshold();
   // predict/predictProbability returns std::vector<T>. 
   // In single input prediction case, a vector of single 'T' type data only [0]
   return (thr == NONE) ? mptr->predict_probability(data)[0] : mptr->predict(data)[0];
@@ -338,12 +345,11 @@ dummy_glm load_glm(int& mid, MODEL_KIND& mkind, std::string& path) {
   mptr->debug_print();
 #endif
   auto nftr = mptr->get_num_features();
-  auto icpt = mptr->intercept;
-  auto ncls = 2; // supports only binary classification problem 
-  auto thr  = mptr->threshold;
+  auto ncls = mptr->get_num_classes();
+  auto thr  = mptr->get_threshold();
   auto mptr_ = reinterpret_cast<exrpc_ptr_t>(mptr);
   register_model(mid,mkind,mptr_);
-  return dummy_glm(mid,mkind,nftr,ncls,icpt,thr);
+  return dummy_glm(mid,mkind,nftr,ncls,thr);
 }
 
 template <class T>
@@ -356,10 +362,9 @@ dummy_glm load_lnrm(int& mid, MODEL_KIND& mkind, std::string& path) {
   mptr->debug_print();
 #endif
   auto nftr = mptr->get_num_features();
-  auto icpt = mptr->intercept;
   auto mptr_ = reinterpret_cast<exrpc_ptr_t>(mptr);
   register_model(mid,mkind,mptr_);
-  return dummy_glm(mid,mkind,nftr,0,icpt,1.0);
+  return dummy_glm(mid,mkind,nftr,0,1.0);
 }
 
 // loads a frovedis mfm from the specified file
@@ -396,7 +401,7 @@ size_t load_kmm(int& mid, MODEL_KIND& mkind, std::string& path) {
   return k;
 }
 
-// generic model loading for decision_tree_model, fp_growth_model.
+// generic model loading for dftdfp_growth_model.
 template <class MODEL>
 void load_model(int& mid, MODEL_KIND& mkind, std::string& path) {
   auto mptr = new MODEL();
@@ -418,6 +423,30 @@ std::string load_nbm(int& mid, MODEL_KIND& mkind, std::string& path) {
   return mtype;
 }
 
+// load for agglomerative_model (rowmajor_matrix_local<T>)
+template <class T>
+int load_acm(int& mid, std::string& path) {
+  auto mptr = new rowmajor_matrix_local<T>();
+  if(!mptr) REPORT_ERROR(INTERNAL_ERROR,"memory allocation failed!\n");
+  *mptr = make_rowmajor_matrix_local_loadbinary<T>(path); // for faster loading
+  auto nsamples = mptr->local_num_row + 1;
+  auto mptr_ = reinterpret_cast<exrpc_ptr_t>(mptr);
+  register_model(mid,ACM,mptr_);
+  return nsamples;
+}
+
+// load for spectral_clustering_model returns an std::vector<int>
+template <class T>
+std::vector<int> load_scm(int& mid, std::string& path) {
+  auto mptr = new spectral_clustering_model<T>();
+  if(!mptr) REPORT_ERROR(INTERNAL_ERROR,"memory allocation failed!\n");
+  mptr->loadbinary(path); // for faster loading
+  auto lbl = mptr->labels;
+  auto mptr_ = reinterpret_cast<exrpc_ptr_t>(mptr);
+  register_model(mid,SCM,mptr_);
+  return lbl;
+}
+
 // saves the frovedis model to the specified file
 template <class MODEL>
 void save_model(int& mid, std::string& path) {
@@ -432,10 +461,53 @@ void save_fmm(int& mid, std::string& path) {
   mptr->save(path); // savebinary not implemented for factorization machine model
 }
 
+template <class T>
+std::vector<int>
+frovedis_acm_pred(int& mid, int& ncluster) {
+  auto& tree = *get_model_ptr<rowmajor_matrix_local<T>>(mid);
+  return agglomerative_assign_cluster(tree, ncluster);
+}
+
 template <class T, class MATRIX>
 T single_nbm_predict(MATRIX& data, int& mid) {
   auto mptr = get_model_ptr<naive_bayes_model<T>>(mid);
   return mptr->predict(data)[0]; // TODO: support: direct vector data from client side
+}
+
+template <class T>
+dummy_matrix get_scm_affinity_matrix(int& mid) {
+  auto& model = *get_model_ptr<spectral_clustering_model<T>>(mid);
+  auto aff_mat = model.affinity_matrix;
+  auto nrow = aff_mat.num_row;
+  auto ncol = aff_mat.num_col;
+  auto retp = new rowmajor_matrix<T>(std::move(aff_mat)); // stack to heap
+  if (!retp) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed.\n");
+  auto retp_ = reinterpret_cast<exrpc_ptr_t>(retp);
+  return dummy_matrix(retp_,nrow,ncol);
+}
+
+template <class T>
+dummy_matrix get_sem_affinity_matrix(int& mid) {
+  auto& model = *get_model_ptr<spectral_embedding_model<T>>(mid);
+  auto aff_mat = model.affinity_matrix;
+  auto nrow = aff_mat.num_row;
+  auto ncol = aff_mat.num_col;
+  auto retp = new rowmajor_matrix<T>(std::move(aff_mat)); // stack to heap
+  if (!retp) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed.\n");
+  auto retp_ = reinterpret_cast<exrpc_ptr_t>(retp);
+  return dummy_matrix(retp_,nrow,ncol);
+}
+
+template <class T>
+dummy_matrix get_sem_embedding_matrix(int& mid) {
+  auto& model = *get_model_ptr<spectral_embedding_model<T>>(mid);
+  auto embed_mat = model.embed_matrix;
+  auto nrow = embed_mat.num_row;
+  auto ncol = embed_mat.num_col;
+  auto retp = new rowmajor_matrix<T>(std::move(embed_mat)); // stack to heap
+  if (!retp) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed.\n");
+  auto retp_ = reinterpret_cast<exrpc_ptr_t>(retp);
+  return dummy_matrix(retp_,nrow,ncol);
 }
 
 // only for spark
@@ -551,6 +623,52 @@ parallel_fmm_predict_with_broadcast(exrpc_ptr_t& mat_ptr, int& mid) {
   //auto bmodel = model.broadcast(); // support as a member function, for performance
   return mat.data.map(fmm_predict_at_worker<T,L_MATRIX>,bmodel)
                  .template moveto_dvector<T>().gather();
+}
+
+template <class T>
+dummy_matrix get_w2v_weight_ptr(int& mid) {
+  auto& model = *get_model_ptr<rowmajor_matrix_local<T>>(mid);
+  auto nrow = model.local_num_row;
+  auto ncol = model.local_num_col;
+  auto retp = new rowmajor_matrix<T>(make_rowmajor_matrix_scatter<T>(model));
+  if (!retp) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed.\n");
+  auto retp_ = reinterpret_cast<exrpc_ptr_t>(retp);
+  return dummy_matrix(retp_,nrow,ncol);
+}
+
+template <class T>
+std::vector<T> get_w2v_weight_vector(int& mid) {
+  auto& model = *get_model_ptr<rowmajor_matrix_local<T>>(mid);
+  return model.val;
+}
+
+template <class T>
+void show_w2v_weight(int& mid) {
+  auto& model = *get_model_ptr<rowmajor_matrix_local<T>>(mid);
+  model.debug_print();
+}
+
+// ref: w2v/w2v_corpus.cc: saveModel()
+template <class T>
+void save_w2v_model(int& mid, std::vector<std::string>& vocab,
+                    std::string& path) {
+  auto& model = *get_model_ptr<rowmajor_matrix_local<T>>(mid);
+  int vocab_size = model.local_num_row;
+  int hidden_size = model.local_num_col;
+  const w2v::real* _weight_ptr = model.val.data();
+  auto Wih = const_cast<w2v::real*>(_weight_ptr);
+  FILE *fo = fopen(path.c_str(), "wb");
+  // Save the word vectors
+  fprintf(fo, "%d %d\n", vocab_size, hidden_size);
+  for (int a = 0; a < vocab_size; a++) {
+    fprintf(fo, "%s ", vocab[a].c_str());
+    for (int b = 0; b < hidden_size; b++) {
+      //fwrite(&Wih[a * hidden_size + b], sizeof(w2v::real), 1, fo); //binary
+      fprintf(fo, "%f ", Wih[a * hidden_size + b]);
+    }
+    fprintf(fo, "\n");
+  }
+  fclose(fo);
 }
 
 #endif 
