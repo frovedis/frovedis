@@ -1,5 +1,5 @@
-#ifndef SPARSE_SVD_HPP
-#define SPARSE_SVD_HPP
+#ifndef SPARSE_EIGEN_HPP
+#define SPARSE_EIGEN_HPP
 
 #include <sstream>
 
