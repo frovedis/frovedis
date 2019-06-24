@@ -23,6 +23,16 @@ enum class impurity_type {
 impurity_type get_impurity_type(const std::string&);
 
 template <typename T>
+inline T square(const T value) { return value * value; }
+
+template <typename T>
+inline T absval(const T value) { return std::abs(value); }
+template <>
+inline float absval(const float value) { return fabsf(value); }
+template <>
+inline double absval(const double value) { return fabs(value); }
+
+template <typename T>
 struct gini_functor {
   T operator()(const T freq) const {
     return freq * (1 - freq);
@@ -34,11 +44,7 @@ struct gini_functor {
 template <typename T>
 struct entropy_functor {
   T operator()(const T freq) const {
-#if defined(_SX) || defined(__ve__)
-    return -freq * std::log(freq);
-#else
     return (freq > 0) ? -freq * std::log(freq) : 0;
-#endif
   }
 
   SERIALIZE_NONE
@@ -49,9 +55,6 @@ struct misclassrate_functor {
   void operator()(const T) const = delete;
   SERIALIZE_NONE
 };
-
-template <typename T>
-inline T square(const T value) { return value * value; }
 
 template <typename T>
 struct variance_functor {
@@ -77,7 +80,7 @@ struct defvariance_functor {
 template <typename T>
 struct meanabserror_functor {
   T operator()(const T value, const T mean) const {
-    return std::abs(value - mean);
+    return absval(value - mean);
   }
 
   SERIALIZE_NONE
