@@ -17,10 +17,16 @@ all:
 	${SCALA_HOME}/bin/scalac -cp "${SPARK_HOME}/jars/*:${HDPATH}:${CLIENT_JAR}" -sourcepath . -d bin scala/LRSGDDemo.scala
 	${SCALA_HOME}/bin/scalac -cp "${SPARK_HOME}/jars/*:${HDPATH}:${CLIENT_JAR}" -sourcepath . -d bin scala/LRModelDemo.scala
 	${SCALA_HOME}/bin/scalac -cp "${SPARK_HOME}/jars/*:${HDPATH}:${CLIENT_JAR}" -sourcepath . -d bin scala/ALSDemo.scala
-	${SCALA_HOME}/bin/scalac -cp "${SPARK_HOME}/jars/*:${HDPATH}:${CLIENT_JAR}" -sourcepath . -d bin scala/KMeansDemo.scala
 	${SCALA_HOME}/bin/scalac -cp "${SPARK_HOME}/jars/*:${HDPATH}:${CLIENT_JAR}" -sourcepath . -d bin scala/NaiveBayesDemo.scala
 	${SCALA_HOME}/bin/scalac -cp "${SPARK_HOME}/jars/*:${HDPATH}:${CLIENT_JAR}" -sourcepath . -d bin scala/DecisionTreeDemo.scala
 	${SCALA_HOME}/bin/scalac -cp "${SPARK_HOME}/jars/*:${HDPATH}:${CLIENT_JAR}" -sourcepath . -d bin scala/FactorizationMachineDemo.scala
+	${SCALA_HOME}/bin/scalac -cp "${SPARK_HOME}/jars/*:${HDPATH}:${CLIENT_JAR}" -sourcepath . -d bin scala/KMeansDemo.scala
+	${SCALA_HOME}/bin/scalac -cp "${SPARK_HOME}/jars/*:${HDPATH}:${CLIENT_JAR}" -sourcepath . -d bin scala/ACDemo.scala
+	${SCALA_HOME}/bin/scalac -cp "${SPARK_HOME}/jars/*:${HDPATH}:${CLIENT_JAR}" -sourcepath . -d bin scala/SCADemo.scala
+	${SCALA_HOME}/bin/scalac -cp "${SPARK_HOME}/jars/*:${HDPATH}:${CLIENT_JAR}" -sourcepath . -d bin scala/SEADemo.scala
+	${SCALA_HOME}/bin/scalac -cp "${SPARK_HOME}/jars/*:${HDPATH}:${CLIENT_JAR}" -sourcepath . -d bin scala/FPGrowthDemo.scala
+	${SCALA_HOME}/bin/scalac -cp "${SPARK_HOME}/jars/*:${HDPATH}:${CLIENT_JAR}" -sourcepath . -d bin scala/Word2VectorDemo.scala
+
 	cd MANIFEST; make
 	cd bin; ${JAVA_HOME}/bin/jar -cfm ../lib/spark2frovedis_data_transfer.jar ../MANIFEST/dtransfer.mf test/scala/DataTransfer* 
 	cd bin; ${JAVA_HOME}/bin/jar -cfm ../lib/spark2frovedis_mat.jar ../MANIFEST/frov_mat.mf test/scala/FrovedisMatrixDemo*
@@ -31,10 +37,14 @@ all:
 	cd bin; ${JAVA_HOME}/bin/jar -cfm ../lib/spark2frovedis_lrsgd.jar ../MANIFEST/lrsgd.mf test/scala/LRSGD*
 	cd bin; ${JAVA_HOME}/bin/jar -cfm ../lib/spark2frovedis_lrm.jar ../MANIFEST/lrm.mf test/scala/LRModel*
 	cd bin; ${JAVA_HOME}/bin/jar -cfm ../lib/spark2frovedis_als.jar ../MANIFEST/als.mf test/scala/ALSDemo*
-	cd bin; ${JAVA_HOME}/bin/jar -cfm ../lib/spark2frovedis_kmeans.jar ../MANIFEST/kmeans.mf test/scala/KMeansDemo*
 	cd bin; ${JAVA_HOME}/bin/jar -cfm ../lib/spark2frovedis_nb.jar ../MANIFEST/nb.mf test/scala/NaiveBayesDemo*
 	cd bin; ${JAVA_HOME}/bin/jar -cfm ../lib/spark2frovedis_dt.jar ../MANIFEST/dt.mf test/scala/DecisionTreeDemo*
 	cd bin; ${JAVA_HOME}/bin/jar -cfm ../lib/spark2frovedis_fm.jar ../MANIFEST/fm.mf test/scala/FactorizationMachineDemo*
-
+	cd bin; ${JAVA_HOME}/bin/jar -cfm ../lib/spark2frovedis_kmeans.jar ../MANIFEST/kmeans.mf test/scala/KMeansDemo*
+	cd bin; ${JAVA_HOME}/bin/jar -cfm ../lib/spark2frovedis_ac.jar ../MANIFEST/ac.mf test/scala/ACDemo*
+	cd bin; ${JAVA_HOME}/bin/jar -cfm ../lib/spark2frovedis_sc.jar ../MANIFEST/sc.mf test/scala/SCADemo*
+	cd bin; ${JAVA_HOME}/bin/jar -cfm ../lib/spark2frovedis_se.jar ../MANIFEST/se.mf test/scala/SEADemo*
+	cd bin; ${JAVA_HOME}/bin/jar -cfm ../lib/spark2frovedis_fp.jar ../MANIFEST/fp.mf test/scala/FPGrowthDemo*
+	cd bin; ${JAVA_HOME}/bin/jar -cfm ../lib/spark2frovedis_w2v.jar ../MANIFEST/w2v.mf test/scala/Word2VecDemo*
 clean:
 	rm -fr *~ bin/test scala/*~ MANIFEST/*.mf MANIFEST/append MANIFEST/*~ out/* lib/*

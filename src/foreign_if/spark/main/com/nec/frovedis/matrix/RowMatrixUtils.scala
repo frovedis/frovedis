@@ -14,11 +14,26 @@ object SVD {
               k: Int): GesvdResult = {
     return computeImpl(data,k,false)
   }
+  def compute(data: FrovedisRowmajorMatrix, 
+              k: Int): GesvdResult = {
+    return computeImpl(data,k,false)
+  }
   def computeImpl(data: FrovedisSparseData,
                   k: Int,
                   inputMovable: Boolean): GesvdResult = {
     val fs = FrovedisServer.getServerInstance()
-    val res = JNISupport.computeSVD(fs.master_node,data.get(),k,inputMovable)
+    val isDense = false
+    val res = JNISupport.computeSVD(fs.master_node,data.get(),k,isDense,inputMovable)
+    val info = JNISupport.checkServerException();
+    if (info != "") throw new java.rmi.ServerException(info);
+    return new GesvdResult(res)
+  }
+  def computeImpl(data: FrovedisRowmajorMatrix,
+                  k: Int,
+                  inputMovable: Boolean): GesvdResult = {
+    val fs = FrovedisServer.getServerInstance()
+    val isDense = true
+    val res = JNISupport.computeSVD(fs.master_node,data.get(),k,isDense,inputMovable)
     val info = JNISupport.checkServerException();
     if (info != "") throw new java.rmi.ServerException(info);
     return new GesvdResult(res)
@@ -47,8 +62,16 @@ object RowMatrixUtils extends java.io.Serializable {
   implicit class RowMatrixPlus(data: RowMatrix) {
     def computeSVDUsingFrovedis(k: Int): GesvdResult = {
       val rddData = data.rows
-      val fdata = new FrovedisSparseData(rddData)
-      return SVD.computeImpl(fdata,k,true)
+      // judging type of Vector
+      val isDense = rddData.first.getClass.toString() matches ".*DenseVector*."
+      if(isDense) {
+        val fdata = new FrovedisRowmajorMatrix(rddData)
+        return SVD.computeImpl(fdata,k,true)
+      }
+      else {
+        val fdata = new FrovedisSparseData(rddData)
+        return SVD.computeImpl(fdata,k,true)
+      }
     }
     def computePrincipalComponentsUsingFrovedis(k: Int): FrovedisPCAModel = {
       val rddData = data.rows

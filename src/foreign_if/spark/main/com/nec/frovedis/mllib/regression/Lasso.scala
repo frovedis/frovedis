@@ -68,8 +68,7 @@ object LassoWithSGD {
      val info = JNISupport.checkServerException();
      if (info != "") throw new java.rmi.ServerException(info);  
      val numFeatures = data.numCols()
-     val intercept = 0.0 // assumed (To-Do: Support isIntercept, as in Frovedis)
-     return new LinearRegressionModel(mid,M_KIND.LNRM,numFeatures,intercept)
+     return new LinearRegressionModel(mid,M_KIND.LNRM,numFeatures)
   }
 
   def train(data: FrovedisLabeledPoint,
@@ -154,8 +153,7 @@ object LassoWithLBFGS {
      val info = JNISupport.checkServerException();
      if (info != "") throw new java.rmi.ServerException(info);
      val numFeatures = data.numCols()
-     val intercept = 0.0 // assumed (To-Do: Support isIntercept, as in Frovedis)
-     return new LinearRegressionModel(mid,M_KIND.LNRM,numFeatures,intercept)
+     return new LinearRegressionModel(mid,M_KIND.LNRM,numFeatures)
   }
 
   def train(data: FrovedisLabeledPoint,

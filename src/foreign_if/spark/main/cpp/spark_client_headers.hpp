@@ -38,6 +38,7 @@ extern "C" {
   // ml etc.
   jlongArray to_jlongArray(JNIEnv *, std::vector<exrpc_ptr_t>&);
   jdoubleArray to_jdoubleArray(JNIEnv *, std::vector<double>&);
+  jfloatArray to_jfloatArray(JNIEnv *, std::vector<float>&);
   jintArray to_jintArray(JNIEnv *, std::vector<int>&);
   jobjectArray to_jStringArray(JNIEnv *, std::vector<std::string>&);
   jobjectArray to_jNodeArray(JNIEnv *, std::vector<frovedis::exrpc_node>&);

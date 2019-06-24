@@ -1,10 +1,9 @@
 package test.scala;
 
 import com.nec.frovedis.Jexrpc.FrovedisServer
-import com.nec.frovedis.mllib.classification.LogisticRegressionWithSGD
+import com.nec.frovedis.mllib.classification.LogisticRegression
 import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.mllib.util.MLUtils
-import org.apache.spark.mllib.evaluation.MulticlassMetrics
 import org.apache.spark.mllib.linalg.Vectors
 import org.apache.spark.mllib.regression.LabeledPoint
 
@@ -19,44 +18,42 @@ object LRSGDDemo {
     if(args.length != 0) FrovedisServer.initialize(args(0))
 
     // -------- data loading from sample libSVM file at Spark side--------
-    var s_data = MLUtils.loadLibSVMFile(sc, "./input/libSVMFile.txt")
+    var binary_data = MLUtils.loadLibSVMFile(sc, "./input/libSVMFile.txt")
+    var multi_data = MLUtils.loadLibSVMFile(sc, "./input/iris")
 
-    // -------- train with default training params --------
-    val m1 = LogisticRegressionWithSGD.train(s_data) 
+    // -------- train for binomial logistic regression with default training params --------
+    val m1 = new LogisticRegression().setFamily("binomial")
+                                     .setSolver("sgd")
+                                     .fit(binary_data) // data conversion + training
+    m1.debug_print()
 
     // prediction with single test input
     var tvec = Vectors.dense(Array(1.9, 0.0, 0.0, 2.3, 4.9, 0.0, 0.0))
     println("single-input prediction made on model:")
-    m1.debug_print()
-    println(m1.toString())
-    // will connect to Frovedis master node and get the predicted result back
-    println("predicted val: " + m1.predict(tvec)) 
+    println("predicted val: " + m1.predict(tvec)) //single value prediction 
 
     // prediction with multiple test inputs
-    println("multi-input prediction made on model:")
-    m1.debug_print()
+    var tvec2 = binary_data.map(_.features)
+    println("multi-input prediction made on binary model:")
+    m1.predict(tvec2).collect.foreach(println)
+    
+    // save  model
+    m1.save("./out/BinaryLogisticRegressionModel")
 
-    // It is [OK] to connect to worker nodes and perform prediction in parallel
-    var t_vec2 = s_data.map(_.features)
-    m1.predict(t_vec2).collect.foreach(println)
+    // -------- train for multinomial logistic regression with default training params --------
+    val m2 = new LogisticRegression().setFamily("multinomial")
+                                     .setSolver("sgd")
+                                     .fit(multi_data) // data conversion + training
+    m2.debug_print()
+    println("multi-input prediction made on multinomial model:")
+    tvec2 = multi_data.map(_.features)
+    m2.predict(tvec2).collect.foreach(println)
 
-    // -------------------------------- :Note: ----------------------------
-    // This kind of lambda expression is really useful in terms of spark's own ML predict().
-    // But since it is called with map, all spark worker nodes will take part in this
-    // and all of them will invoke singlePrediction version at Frovedis master node.
-    // Thus one-by-one crs_vector_local creation at both spark (ScalaCRS) and Frovedis side
-    // and making Frovedis master node connection for single input prediction will make this process 
-    // extremely slow with current wrapper implementation of LogisticRegressionModel::predict()
-    // ---------------------------------------------------------------------
-    val predictionAndLabels = s_data.map { case LabeledPoint(label, point) =>
-       val pred = m1.predict(point)
-       (label, pred)
-    }
-    // Get evaluation metrics.
-    val metrics = new MulticlassMetrics(predictionAndLabels)
-    val accuracy = metrics.accuracy
-    println(s"Accuracy = $accuracy")
+    // save  model
+    m2.save("./out/MultinomialLogisticRegressionModel")
 
+    m1.release()
+    m2.release()
     FrovedisServer.shut_down();
     sc.stop()
   }

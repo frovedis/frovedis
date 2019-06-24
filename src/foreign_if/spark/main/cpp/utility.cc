@@ -46,13 +46,13 @@ jobject frovedis_node_to_java_node (JNIEnv *env, exrpc_node& n) {
 jobject frovedis_dummyGLM_to_java_dummyGLM(JNIEnv *env, dummy_glm& obj) { 
   jclass dglmCls = env->FindClass(JRE_PATH_DummyGLM);
   if (dglmCls == NULL) REPORT_ERROR(INTERNAL_ERROR, "DummyGLM class not found in JRE\n");
-  jmethodID dglmConst = env->GetMethodID(dglmCls, "<init>", "(ISJIDD)V");
-  if (dglmConst == NULL) REPORT_ERROR(INTERNAL_ERROR, "DummyGLM::DummyGLM(I,S,J,I,D,D) not found in JRE\n");
+  jmethodID dglmConst = env->GetMethodID(dglmCls, "<init>", "(ISJID)V");
+  if (dglmConst == NULL) REPORT_ERROR(INTERNAL_ERROR, "DummyGLM::DummyGLM(I,S,J,I,D) not found in JRE\n");
   long nftr = static_cast<long>(obj.numFeatures);
   auto newDummyGLM = env->NewObject(dglmCls, dglmConst,
                                     obj.mid, obj.mkind, 
                                     nftr, obj.numClasses,
-                                    obj.intercept, obj.threshold);
+                                    obj.threshold);
   if (newDummyGLM == NULL) REPORT_ERROR(INTERNAL_ERROR, "DummyGLM object creation failed\n");
   return newDummyGLM;
 }
@@ -181,6 +181,16 @@ jdoubleArray to_jdoubleArray(JNIEnv *env, std::vector<double>& pd) {
   jdoubleArray ret = env->NewDoubleArray(sz);
   if(ret == NULL) REPORT_ERROR(INTERNAL_ERROR, "New jdoubleArray allocation failed.\n");
   env->SetDoubleArrayRegion(ret, 0, sz, arr);
+  return ret;
+}
+
+// conversion std::vector<float> => jfloatArray
+jfloatArray to_jfloatArray(JNIEnv *env, std::vector<float>& pd) {
+  jfloat* arr = &pd[0];
+  size_t sz = pd.size();
+  jfloatArray ret = env->NewFloatArray(sz);
+  if(ret == NULL) REPORT_ERROR(INTERNAL_ERROR, "New jfloatArray allocation failed.\n");
+  env->SetFloatArrayRegion(ret, 0, sz, arr);
   return ret;
 }
   

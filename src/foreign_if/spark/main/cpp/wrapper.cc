@@ -13,19 +13,26 @@ extern "C" {
 // to compute SVD of a given sparse matrix 
 JNIEXPORT jobject JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_computeSVD
   (JNIEnv *env, jclass thisCls, jobject master_node, 
-   jlong fdata, jint k, jboolean movable) {
+   jlong fdata, jint k, jboolean isDense, jboolean movable) {
 
   auto fm_node = java_node_to_frovedis_node(env, master_node);
   auto f_dptr = (exrpc_ptr_t) fdata;
   bool mvbl = (bool) movable;
+  bool dense = (bool) isDense;
 #ifdef _EXRPC_DEBUG_
   std::cout << "Connecting to master node ("
             << fm_node.hostname << "," << fm_node.rpcport
-            << ") to compute sparse_svd.\n";
+            << ") to compute truncated svd.\n";
 #endif
   gesvd_result res;
+  bool rearrange_out = true;
   try{
-    res = exrpc_async(fm_node,(frovedis_sparse_svd<S_MAT1,DT1>),f_dptr,k,mvbl).get();
+    if(dense){
+      res = exrpc_async(fm_node,(frovedis_dense_truncated_svd<R_MAT1,DT1>),f_dptr,k,mvbl,rearrange_out).get();
+    }
+    else {
+      res = exrpc_async(fm_node,(frovedis_sparse_truncated_svd<S_MAT1,DT1>),f_dptr,k,mvbl,rearrange_out).get();
+    }
   }
   catch(std::exception& e) { set_status(true,e.what()); }
   return to_jDummyGesvdResult(env,res,CMJR,true,true);
@@ -45,8 +52,9 @@ JNIEXPORT jobject JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_computePCA
             << ") to compute PCA.\n";
 #endif
   pca_result res;
+  bool rearrange_out = true;
   try{
-    res = exrpc_async(fm_node,(frovedis_pca<R_MAT1,DT1>),f_dptr,k,mvbl).get();
+    res = exrpc_async(fm_node,(frovedis_pca<R_MAT1,DT1>),f_dptr,k,mvbl,rearrange_out).get();
   }
   catch(std::exception& e) { set_status(true,e.what()); }
   return to_jDummyPCAResult(env,res,CMJR);

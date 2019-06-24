@@ -11,16 +11,14 @@ class GeneralizedLinearModel(modelId: Int,
                              modelKind: Short,
                              nftr: Long,
                              ncls: Int,
-                             icpt: Double,
                              thr: Double) 
   extends GenericModelWithPredict(modelId,modelKind) {
   protected val numFeatures: Long = nftr
   protected val numClasses: Int = ncls
-  protected var intercept: Double = icpt
   protected var threshold: Double = thr
 
   override def toString() : String = {
-    val str = s"intercept: " + intercept + ", numFeatures: " + numFeatures + 
+    val str = s"numFeatures: " + numFeatures + 
               s", numClasses: " + numClasses + ", threshold: " + threshold
     return str
   }

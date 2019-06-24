@@ -20,6 +20,10 @@ import org.apache.spark.sql.DataFrame
 import scala.collection.mutable.ArrayBuffer
 
 object TMAPPER {
+
+  val func2id = Map("sum" -> DTYPE.NONE, "max" -> DTYPE.NONE, "min" -> DTYPE.NONE,
+                    "avg" -> DTYPE.DOUBLE, "count" -> DTYPE.LONG)
+
   val id2val = Map(DTYPE.INT -> "IntegerType",   DTYPE.LONG -> "LongType",
                    DTYPE.FLOAT -> "FloatType",   DTYPE.DOUBLE -> "DoubleType",
                    DTYPE.STRING -> "StringType", DTYPE.BOOL -> "BooleanType")

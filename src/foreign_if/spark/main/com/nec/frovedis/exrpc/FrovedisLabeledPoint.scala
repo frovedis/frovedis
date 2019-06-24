@@ -12,6 +12,7 @@ class FrovedisLabeledPoint extends java.io.Serializable {
   protected var num_row: Long = 0
   protected var num_col: Long = 0
   protected var isDense: Boolean = false
+  protected var uniqueLabelCount: Long = -1
 
   def this (data: RDD[LabeledPoint]) = {
     this()
@@ -29,6 +30,7 @@ class FrovedisLabeledPoint extends java.io.Serializable {
     // extracting label and points
     val y = data.map(_.label)
     val x = data.map(_.features)
+    this.uniqueLabelCount = y.distinct().count()
 
     // judging type of Vector
     this.isDense = x.first.getClass.toString() matches ".*DenseVector*."
@@ -64,6 +66,7 @@ class FrovedisLabeledPoint extends java.io.Serializable {
       num_row = 0
       num_col = 0
       isDense = false
+      uniqueLabelCount = -1
     }
   }
 
@@ -80,4 +83,5 @@ class FrovedisLabeledPoint extends java.io.Serializable {
   def numRows() = num_row
   def numCols() = num_col
   def is_dense() = isDense
+  def get_distinct_label_count() = uniqueLabelCount
 }

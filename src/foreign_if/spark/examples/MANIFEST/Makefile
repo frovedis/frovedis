@@ -1,7 +1,7 @@
 include ../../../../../Makefile.in.x86
 #include ../Makefile.in.x86
 
-all: dtransfer.mf frov_mat.mf frov_df.mf pblas_scalapack.mf svd.mf pca.mf als.mf kmeans.mf lrm.mf lrsgd.mf nb.mf fm.mf dt.mf 
+all: dtransfer.mf frov_mat.mf frov_df.mf pblas_scalapack.mf svd.mf pca.mf als.mf kmeans.mf lrm.mf lrsgd.mf nb.mf fm.mf dt.mf fp.mf ac.mf se.mf sc.mf w2v.mf
 
 append:
 	echo ${SPARK_HOME}/jars/*:${HDPATH} > tmp
@@ -32,6 +32,10 @@ nb.mf: nb.mf.tmpl append
 	cp nb.mf.tmpl nb.mf
 	cat append >> nb.mf
 
+fp.mf: fp.mf.tmpl append
+	cp fp.mf.tmpl fp.mf
+	cat append >> fp.mf
+
 fm.mf: fm.mf.tmpl append
 	cp fm.mf.tmpl fm.mf
 	cat append >> fm.mf
@@ -59,6 +63,22 @@ svd.mf: svd.mf.tmpl append
 pca.mf: pca.mf.tmpl append
 	cp pca.mf.tmpl pca.mf
 	cat append >> pca.mf
+
+ac.mf: ac.mf.tmpl append
+	cp ac.mf.tmpl ac.mf
+	cat append >> ac.mf
+
+se.mf: se.mf.tmpl append
+	cp se.mf.tmpl se.mf
+	cat append >> se.mf
+
+sc.mf: sc.mf.tmpl append
+	cp sc.mf.tmpl sc.mf
+	cat append >> sc.mf
+
+w2v.mf: w2v.mf.tmpl append
+	cp w2v.mf.tmpl w2v.mf
+	cat append >> w2v.mf
 
 clean:
 	rm -f *~ *.mf append

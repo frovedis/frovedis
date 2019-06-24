@@ -18,4 +18,3 @@ object MAT_KIND {
   val SELL_L: Short = (100 + SELL).shortValue
   val SHYBRID_L: Short = (100 + SHYBRID).shortValue
 }
-

@@ -10,12 +10,11 @@ import org.apache.spark.mllib.regression.LabeledPoint
 
 class LinearRegressionModel(modelId: Int,
                             modelKind: Short,
-                            nftr: Long,
-                            icpt: Double)
-  extends GeneralizedLinearModel(modelId,modelKind,nftr,0,icpt,1.0) {
-  def this(m: DummyGLM) = this(m.mid, m.mkind, m.numFeatures, m.intercept)
+                            nftr: Long) 
+  extends GeneralizedLinearModel(modelId,modelKind,nftr,0,1.0) {
+  def this(m: DummyGLM) = this(m.mid, m.mkind, m.numFeatures)
   override def toString() : String = {
-    val str = s"intercept: " + intercept + ", numFeatures: " + numFeatures  
+    val str = s"numFeatures: " + numFeatures  
     return str
   }
   // accessing threshold related routines of this model would cause runtime exception
@@ -90,8 +89,7 @@ object LinearRegressionWithSGD {
      val info = JNISupport.checkServerException();
      if (info != "") throw new java.rmi.ServerException(info);
      val numFeatures = data.numCols()
-     val intercept = 0.0 // assumed (To-Do: Support isIntercept, as in Frovedis)
-     return new LinearRegressionModel(mid,M_KIND.LNRM,numFeatures,intercept)
+     return new LinearRegressionModel(mid,M_KIND.LNRM,numFeatures)
   }
 
   def train(data: FrovedisLabeledPoint,
@@ -159,8 +157,7 @@ object LinearRegressionWithLBFGS {
      val info = JNISupport.checkServerException();
      if (info != "") throw new java.rmi.ServerException(info);
      val numFeatures = data.numCols()
-     val intercept = 0.0 // assumed (To-Do: Support isIntercept, as in Frovedis)
-     return new LinearRegressionModel(mid,M_KIND.LNRM,numFeatures,intercept)
+     return new LinearRegressionModel(mid,M_KIND.LNRM,numFeatures)
   }
 
   def train(data: FrovedisLabeledPoint,

@@ -18,6 +18,13 @@ object M_KIND {
   val NBM:    Short = 7
   val FMM:    Short = 8
   val FPM:    Short = 9
+  val FPR:    Short = 10
+  val ACM:    Short = 11
+  val SCM:    Short = 12
+  val SEM:    Short = 13
+  val SPARSE_CONV_INFO: Short = 14
+  val MLR: Short = 15
+  val W2V: Short = 16
 }
 
 object ModelID {
@@ -109,6 +116,6 @@ class GenericModelWithPredict(modelId: Int,
     if (info1 != "") throw new java.rmi.ServerException(info1);
     val wdata = data.repartition2(fs.worker_size)
     return wdata.mapPartitionsWithIndex((i,x) => 
-                parallel_predict(x,each_model(i),fw_nodes(i)))
+                parallel_predict(x,each_model(i),fw_nodes(i))).cache()
   }
 }

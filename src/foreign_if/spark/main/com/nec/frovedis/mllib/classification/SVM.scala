@@ -13,11 +13,10 @@ class SVMModel(modelId: Int,
                modelKind: Short,
                nftr: Long,
                ncls: Int,
-               icpt: Double,
                thr: Double)
-  extends GeneralizedLinearModel(modelId,modelKind,nftr,ncls,icpt,thr) {
+  extends GeneralizedLinearModel(modelId,modelKind,nftr,ncls,thr) {
   def this(m: DummyGLM) = {
-    this(m.mid, m.mkind, m.numFeatures, m.numClasses, m.intercept, m.threshold)
+    this(m.mid, m.mkind, m.numFeatures, m.numClasses, m.threshold)
   }
 }
 
@@ -98,10 +97,9 @@ object SVMWithSGD {
      val info = JNISupport.checkServerException();
      if (info != "") throw new java.rmi.ServerException(info);
      val numFeatures = data.numCols()
-     val intercept = 0.0 // assumed (To-Do: Support isIntercept, as in Frovedis)
      val numClasses = 2  // Currently Frovedis supports binary classification only
      val threshold = 0.0 // default
-     return new SVMModel(mid,M_KIND.SVM,numFeatures,numClasses,intercept,threshold)
+     return new SVMModel(mid,M_KIND.SVM,numFeatures,numClasses,threshold)
   }
 
   def train(data: FrovedisLabeledPoint,
@@ -187,10 +185,9 @@ object SVMWithLBFGS {
      val info = JNISupport.checkServerException();
      if (info != "") throw new java.rmi.ServerException(info);
      val numFeatures = data.numCols()
-     val intercept = 0.0 // assumed (To-Do: Support isIntercept, as in Frovedis)
      val numClasses = 2  // Currently Frovedis supports binary classification only
      val threshold = 0.0 // default
-     return new SVMModel(mid,M_KIND.SVM,numFeatures,numClasses,intercept,threshold)
+     return new SVMModel(mid,M_KIND.SVM,numFeatures,numClasses,threshold)
   }
 
   def train(data: FrovedisLabeledPoint,

@@ -59,7 +59,7 @@ object LRModelDemo {
     m1.save("./out/MyLRModel")
 
     println("loading same model from ./out/MyLRModel:")
-    val m2 = LogisticRegressionModel.load("./out/MyLRModel") 
+    val m2 = LogisticRegressionModel.load(sc,"./out/MyLRModel") 
     
 
     // -------------------------------- :Note: ----------------------------

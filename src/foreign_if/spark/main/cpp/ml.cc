@@ -2,6 +2,9 @@
 #include "short_hand_dense_type.hpp"
 #include "short_hand_sparse_type.hpp"
 #include "spark_client_headers.hpp"
+#include "exrpc_model.hpp"
+#include "short_hand_model_type.hpp"
+
 
 using namespace frovedis;
 
@@ -11,16 +14,16 @@ extern "C" {
 // initiates the training call at Frovedis master node for LogisticRegressionWithSGD
 JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisLRSGD
   (JNIEnv *env, jclass thisCls, jobject master_node, jobject fdata, 
-   jint numIter, jdouble stepSize, jdouble mbf, 
-   jdouble regParam, jint mid, jboolean movable, jboolean dense) {
+   jint numIter, jdouble stepSize, jdouble mbf, jint rtype, 
+   jdouble regParam, jboolean isMult, jboolean fit_intercept,
+   jdouble tol, jint mid, jboolean movable, jboolean dense) {
   
   auto fm_node = java_node_to_frovedis_node(env, master_node);
   auto f_dptr = java_mempair_to_frovedis_mempair(env, fdata);
+  bool mult = (bool) isMult;
+  bool icpt = (bool) fit_intercept;
   bool mvbl = (bool) movable;
   bool isDense = (bool) dense;
-  int rtype = 0; // ZERO (default)
-  bool icpt = false; // default
-  double tol = 0.001; // default
   int vb = 0; // no log (default)
 #ifdef _EXRPC_DEBUG_
   std::cout << "Connecting to master node (" 
@@ -29,9 +32,9 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisLRSGD
 #endif
   try{
     if(isDense) 
-      exrpc_oneway(fm_node,(frovedis_lr_sgd<DT1,D_MAT1>),f_dptr,numIter,stepSize,mbf,rtype,regParam,icpt,tol,vb,mid,mvbl);
+      exrpc_oneway(fm_node,(frovedis_lr_sgd<DT1,D_MAT1>),f_dptr,numIter,stepSize,mbf,rtype,regParam,mult,icpt,tol,vb,mid,mvbl);
     else
-      exrpc_oneway(fm_node,(frovedis_lr_sgd<DT1,S_MAT1>),f_dptr,numIter,stepSize,mbf,rtype,regParam,icpt,tol,vb,mid,mvbl);
+      exrpc_oneway(fm_node,(frovedis_lr_sgd<DT1,S_MAT1>),f_dptr,numIter,stepSize,mbf,rtype,regParam,mult,icpt,tol,vb,mid,mvbl);
   }
   catch(std::exception& e) { set_status(true,e.what()); }
 }
@@ -39,16 +42,16 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisLRSGD
 // initiates the training call at Frovedis master node for LogisticRegressionWithLBFGS
 JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisLRLBFGS
   (JNIEnv *env, jclass thisCls, jobject master_node, jobject fdata,
-   jint numIter, jdouble stepSize, jint histSize,
-   jdouble regParam, jint mid, jboolean movable, jboolean dense) {
+   jint numIter, jdouble stepSize, jint histSize, jint rtype,
+   jdouble regParam, jboolean isMult, jboolean fit_intercept,
+   jdouble tol, jint mid, jboolean movable, jboolean dense) {
 
   auto fm_node = java_node_to_frovedis_node(env, master_node);
   auto f_dptr = java_mempair_to_frovedis_mempair(env, fdata);
   bool mvbl = (bool) movable;
+  bool mult = (bool) isMult;
+  bool icpt = (bool) fit_intercept;
   bool isDense = (bool) dense;
-  int rtype = 0; // ZERO (default)
-  bool icpt = false; // default
-  double tol = 0.001; // default
   int vb = 0; // no log (default)
 #ifdef _EXRPC_DEBUG_
   std::cout << "Connecting to master node ("
@@ -57,9 +60,9 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisLRLBF
 #endif
   try {
     if (isDense)
-      exrpc_oneway(fm_node,(frovedis_lr_lbfgs<DT1,D_MAT1>),f_dptr,numIter,stepSize,histSize,rtype,regParam,icpt,tol,vb,mid,mvbl);
+      exrpc_oneway(fm_node,(frovedis_lr_lbfgs<DT1,D_MAT1>),f_dptr,numIter,stepSize,histSize,rtype,regParam,mult,icpt,tol,vb,mid,mvbl);
     else
-      exrpc_oneway(fm_node,(frovedis_lr_lbfgs<DT1,S_MAT1>),f_dptr,numIter,stepSize,histSize,rtype,regParam,icpt,tol,vb,mid,mvbl);
+      exrpc_oneway(fm_node,(frovedis_lr_lbfgs<DT1,S_MAT1>),f_dptr,numIter,stepSize,histSize,rtype,regParam,mult,icpt,tol,vb,mid,mvbl);
   } 
   catch(std::exception& e) { set_status(true,e.what()); }
 }
@@ -284,7 +287,7 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisRidge
   catch(std::exception& e) { set_status(true,e.what()); }
 }
 
-// (6) --- Matrix Factorization using ALS ---
+// (6) --- Matrix Factoriztion using ALS ---
 // initiates the training call at Frovedis master node for MatrixFactorizationUsingALS 
 JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisMFUsingALS
   (JNIEnv *env, jclass thisCls, jobject master_node, jlong fdata,
@@ -332,7 +335,100 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisKMean
   catch(std::exception& e) { set_status(true,e.what()); }
 }
 
-// (8) --- Factorization Machine ---
+// (8) --- Agglomerative Clustering ---
+JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisACA
+  (JNIEnv *env, jclass thisCls, jobject master_node, jlong fdata, 
+   jint mid, jstring linkage, jboolean movable, jboolean dense) {
+
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto f_dptr = (exrpc_ptr_t) fdata;
+  bool mvbl = (bool) movable;
+  int vb = 0; // no log (default)
+  bool isDense = (bool) dense;
+  auto link = to_cstring(env,linkage);
+#ifdef _EXRPC_DEBUG_
+  std::cout << "Connecting to master node ("
+            << fm_node.hostname << "," << fm_node.rpcport
+            << ") to train frovedis agglomerative training.\n";
+#endif
+  try {
+    if(isDense) { // agglomerative clustering accepts rowmajor matrix as for dense data
+      exrpc_oneway(fm_node,(frovedis_aca2<DT1,R_MAT1>),f_dptr,mid,link,vb,mvbl);
+    }
+    else REPORT_ERROR(USER_ERROR, 
+         "Frovedis agglomerative clustering doesn't accept sparse input at this moment.\n");
+  }
+  catch(std::exception& e) { set_status(true,e.what()); }
+}
+
+// (9) --- Spectral Clustering ---
+JNIEXPORT jintArray JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisSCA
+  (JNIEnv *env, jclass thisCls, jobject master_node, jlong fdata, jint ncluster, 
+   jint niteration, jint ncomponent, jdouble eps, jdouble gamma,
+   jboolean normlaplacian, jint mid, jboolean precomputed, 
+   jint mode, jboolean drop_first,
+   jboolean movable, jboolean dense) {
+
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto f_dptr = (exrpc_ptr_t) fdata;
+  bool mvbl = (bool) movable;
+  bool nlap = (bool) normlaplacian;
+  bool pre = (bool) precomputed;
+  int vb = 0; // no log (default)
+  bool isDense = (bool) dense;
+  bool drop = (bool) drop_first;
+#ifdef _EXRPC_DEBUG_
+  std::cout << "Connecting to master node ("
+            << fm_node.hostname << "," << fm_node.rpcport
+            << ") to train frovedis spectral clustering.\n";
+#endif
+  std::vector<int> ret;
+   try {
+    if(isDense){ // spectral clustering accepts rowmajor matrix as for dense data
+       ret = exrpc_async(fm_node,(frovedis_sca<DT1,R_MAT1>),f_dptr,ncluster,
+                         niteration,ncomponent,eps,gamma,nlap,mid,vb,pre,mode,drop,mvbl).get();
+    }
+    else REPORT_ERROR(USER_ERROR, 
+         "Frovedis spectral clustering doesn't accept sparse input at this moment.\n");
+  }
+  catch(std::exception& e) { set_status(true,e.what()); }
+
+  return to_jintArray(env,ret);
+}
+
+// (10) --- Spectral Embedding ---
+JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisSEA
+  (JNIEnv *env, jclass thisCls, jobject master_node, jlong fdata, jint ncomponent,
+   jdouble gamma,
+   jboolean normlaplacian, jint mid, 
+   jboolean precomputed, 
+   jint mode, jboolean drop_first,
+   jboolean movable, jboolean dense) {
+
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto f_dptr = (exrpc_ptr_t) fdata;
+  bool nlap = (bool) normlaplacian;
+  bool pre = (bool) precomputed;
+  bool mvbl = (bool) movable;
+  int vb = 0; // no log (default)
+  bool isDense = (bool) dense;
+  bool drop = (bool) drop_first;
+#ifdef _EXRPC_DEBUG_
+  std::cout << "Connecting to master node ("
+            << fm_node.hostname << "," << fm_node.rpcport
+            << ") to train frovedis spectral embedding.\n";
+#endif
+  try {
+    if(isDense){ // spectral embedding accepts rowmajor matrix as for dense data
+       exrpc_oneway(fm_node,(frovedis_sea<DT1,R_MAT1>),f_dptr,ncomponent,gamma,nlap,mid,vb,pre,mode,drop,mvbl);
+    }
+    else REPORT_ERROR(USER_ERROR, 
+         "Frovedis embedding clustering doesn't accept sparse input at this moment.\n");
+  }
+  catch(std::exception& e) { set_status(true,e.what()); }
+}
+
+// (11) --- Factorization Machine ---
 JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisFM
   (JNIEnv *env, jclass thisClass, jobject master_node, jobject fdata, 
    jdouble init_stdev, jdouble learn_rate, jint iteration, jstring optimizer, 
@@ -358,7 +454,7 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisFM
   catch(std::exception& e) { set_status(true,e.what()); }
 }
 
-// (9) --- Decision Tree ---
+// (12) --- Decision Tree ---
 std::unordered_map<size_t,size_t> 
 get_kv_pair(JNIEnv *env, jintArray jkeys, jintArray jvals, size_t size) {
   auto keys = to_int_vector(env, jkeys, size);
@@ -422,7 +518,7 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisDT
   catch(std::exception& e) { set_status(true,e.what()); }
 }
 
-// (11) --- Naive Bayes ---
+// (13) --- Naive Bayes ---
 // calling frovedis server side Naive Bayes trainer
 JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisNBM
   (JNIEnv *env, jclass thisCls, jobject master_node, jobject fdata,
@@ -440,6 +536,105 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisNBM
       exrpc_oneway(fm_node,(frovedis_nb<DT1,D_MAT1,D_LMAT1>),f_dptr,mtype,lambda,vb,model_id,mvbl);
     else
       exrpc_oneway(fm_node,(frovedis_nb<DT1,S_MAT1,S_LMAT1>),f_dptr,mtype,lambda,vb,model_id,mvbl);
+  }
+  catch(std::exception& e) { set_status(true,e.what()); }
+}
+
+// (14) --- FP-Growth ---
+jobjectArray to_FrovedisSparkArray(JNIEnv *env, 
+             std::vector<std::pair<std::vector<int>,long>>& fs) {
+  jclass item_cls = env->FindClass(JRE_PATH_DummyFreqItemset);
+  if (item_cls == NULL) REPORT_ERROR(INTERNAL_ERROR, "DummyFreqItemset class not found in path!\n");
+  jmethodID constructor = env->GetMethodID(item_cls, "<init>", "([i;J)V");
+  jobjectArray ret = env->NewObjectArray(fs.size(), item_cls, NULL);
+  if (ret == NULL) REPORT_ERROR(INTERNAL_ERROR, "New DummyFreqItemset Array allocation failed!\n");
+  for(int j=0; j<fs.size(); j++) {
+    auto each = fs[j];
+    auto vec = each.first;
+    int* arr = &vec[0];
+    int sz = vec.size();
+    jintArray iarray = env->NewIntArray(sz);
+    if(iarray == NULL) REPORT_ERROR(INTERNAL_ERROR, "New jintArray allocation failed.\n");
+    env->SetIntArrayRegion(iarray, 0, sz, arr);
+    jobject obj = env->NewObject(item_cls, constructor, iarray, (jlong) each.second); //TODO: SIGSEV 
+    if(obj == NULL) REPORT_ERROR(INTERNAL_ERROR, "New object creation failed.\n");
+    env->SetObjectArrayElement(ret, j, obj);
+  }
+  return ret;
+}
+
+JNIEXPORT jobjectArray JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_toSparkFPM
+  (JNIEnv *env, jclass thisCls, jobject master_node, jint mid) {
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto vec = exrpc_async(fm_node, get_frovedis_fpm<int>, mid).get();
+  return to_FrovedisSparkArray(env,vec);
+}
+
+JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisFPM
+  (JNIEnv *env, jclass thisCls, jobject master_node, jlong fdata,
+   jdouble minSupport, jint mid, jboolean movable) {
+
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto f_dptr = static_cast<exrpc_ptr_t> (fdata);
+  bool mvbl = (bool) movable;
+  int vb = 0; // no log (default)
+  try {
+    exrpc_oneway(fm_node,frovedis_fp_growth<dftable>,f_dptr,minSupport,vb,mid,mvbl);
+  }
+  catch(std::exception& e) { set_status(true,e.what()); }
+}
+
+// generate association rule
+JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisFPMR
+  (JNIEnv *env, jclass thisCls, jobject master_node ,
+   jdouble minConfidence, jint mid , jint midr) {
+
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  try {
+    exrpc_oneway(fm_node,frovedis_fpr<fp_growth_model>,minConfidence,mid,midr);
+  }
+  catch(std::exception& e) { set_status(true,e.what()); }
+}
+
+// (15) --- Word2Vector ---
+JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisW2V
+  (JNIEnv *env, jclass thisCls, jobject master_node, 
+   jlong hash_ptr, jintArray vocab_count, jint vocab_size, 
+   jint hidden_size, jint window, 
+   jfloat sample, jint negative, jint iter, jdouble alpha, 
+   jfloat model_sync_period, jint min_sync_words, jint full_sync_times, 
+   jint message_size, jint num_threads, jint mid) {
+
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto hsh_dptr = static_cast<exrpc_ptr_t> (hash_ptr);
+  auto count_vector = to_int_vector(env, vocab_count, vocab_size);
+
+  // --- input alert ---
+  int are_supposed_parameters =    \
+    hidden_size <= 512 &&          \
+    hidden_size % 2 == 0 &&        \
+    negative == 5 &&               \
+    window <= 8;
+  if (!are_supposed_parameters) {
+    std::cout << "===============  CAUTION  ===============\n"
+              << "Optimized computation is not supported for the specified arguments so this program fallbacks to slower version.\n"
+              << "Recommended arguments to enable optimization are \n"
+              << "    size <= 512 && " << std::endl
+              << "    size % 2 == 0 && " << std::endl
+              << "    negative == 5 && " << std::endl
+              << "    window <= 8" << std::endl
+              << "=========================================\n";
+  }
+
+  float al = (float) alpha; // spark side alpha is double
+  w2v::train_config config = {
+    hidden_size, window, sample, negative, iter,
+    al, model_sync_period, min_sync_words,
+    full_sync_times, message_size, num_threads
+  };
+
+  try {
+    exrpc_oneway(fm_node, frovedis_w2v<DT2>, hsh_dptr, count_vector, config, mid); //float
   }
   catch(std::exception& e) { set_status(true,e.what()); }
 }

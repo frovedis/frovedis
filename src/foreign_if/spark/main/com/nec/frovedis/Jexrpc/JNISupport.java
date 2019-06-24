@@ -4,6 +4,7 @@ import com.nec.frovedis.Jmatrix.DummyMatrix;
 import com.nec.frovedis.Jmatrix.DummyGetrfResult;
 import com.nec.frovedis.Jmatrix.DummyGesvdResult;
 import com.nec.frovedis.Jmatrix.DummyPCAResult;
+import com.nec.frovedis.Jmatrix.DummyFreqItemset;
 import com.nec.frovedis.Jmllib.DummyGLM;
 import com.nec.frovedis.Jmllib.IntDoublePair;
 
@@ -64,8 +65,8 @@ public class JNISupport {
                                                        long nrows, long ncols,
                                                        double val[]);
   public static native long loadFrovedisWorkerRmajorMatData(Node t_node, 
-                                                            long nrows, long ncols,
-                                                            double val[][]);
+                                                       long nrows, long ncols,
+                                                       double val[][]);
   public static native DummyMatrix getFrovedisRowmajorMatrix(Node master_node,
                                                            long fdata, 
                                                            short mtype);
@@ -105,22 +106,54 @@ public class JNISupport {
 
   // -------- Logistic Regression --------
   public static native void callFrovedisLRSGD(Node master_node,
-                                            MemPair fdata,
-                                            int numIter, 
-                                            double stepSize,
-                                            double miniBatchFraction,
-                                            double regParam, 
-                                            int mid, boolean movable,
-                                            boolean isDense);
-
-  public static native void callFrovedisLRLBFGS(Node master_node,
                                               MemPair fdata,
                                               int numIter, 
                                               double stepSize,
-                                              int histSize,
-                                              double regParam,
+                                              double miniBatchFraction,
+                                              int regType,
+                                              double regParam, 
+                                              boolean isMult, 
+                                              boolean icpt,
+                                              double tol,
                                               int mid, boolean movable,
                                               boolean isDense);
+
+  public static native void callFrovedisLRLBFGS(Node master_node,
+                                                MemPair fdata,
+                                                int numIter, 
+                                                double stepSize,
+                                                int histSize,
+                                                int regType,
+                                                double regParam, 
+                                                boolean isMult, 
+                                                boolean icpt,
+                                                double tol,
+                                                int mid, boolean movable,
+                                                boolean isDense);
+
+// -------- Word2Vector --------
+  public static native void callFrovedisW2V(Node master_node,
+                                            long hash_dptr,
+                                            int[] vocab_count,
+                                            int vocab_size,
+                                            int vectorSize,
+                                            int window,
+                                            float threshold,
+                                            int negative,
+                                            int numIterations,
+                                            double learningRate,
+                                            float modelSyncPeriod,
+                                            int minSyncWords,
+                                            int fullSyncTimes,
+                                            int messageSize,
+                                            int numThreads,
+                                            int mid);
+  public static native float[] getW2VWeight(Node master_node, int mid);
+  public static native DummyMatrix getW2VWeightPointer(Node master_node, int mid);
+  public static native void showW2VWeight(Node master_node, int mid);
+  public static native void saveW2VModel(Node master_node, int mid,
+                                         String[] vocab, int size,
+                                         String path);
 
   // -------- Linear SVM Regression --------
   public static native void callFrovedisSVMSGD(Node master_node,
@@ -212,7 +245,7 @@ public class JNISupport {
                                                  long seed,
                                                  int mid, boolean movable);
 
-  // -------- KMeans --------
+  // -------- Clustering --------
   public static native void callFrovedisKMeans(Node master_node,
                                              long fdata,
                                              int k,
@@ -222,16 +255,67 @@ public class JNISupport {
                                              int mid, 
                                              boolean movable,
                                              boolean isDense);
+ 
+  public static native void callFrovedisACA(Node master_node,
+                                            long fdata,
+                                            int mid,
+                                            String linkage,
+                                            boolean movable, 
+                                            boolean dense);
+
+  public static native int[] FrovedisACMPredict(Node master_node,
+                                                int mid, int ncluster);
+
+  public static native int loadFrovedisACM (Node master_node, 
+                                             int mid, String path);
+
+  public static native int[] callFrovedisSCA(Node master_node,
+                                             long fdata,
+                                             int nCluster,
+                                             int iteration,
+                                             int component,
+                                             double eps,
+                                             double gamma,
+                                             boolean normlaplacian,
+                                             int mid,
+                                             boolean precomputed,
+                                             int mode, 
+                                             boolean drop_first,
+                                             boolean movable, 
+                                             boolean dense);
+  public static native DummyMatrix getSCMAffinityMatrix (Node master_node, 
+                                                         int mid);
+  public static native int[] loadFrovedisSCM (Node master_node, 
+                                              int mid, String path);
+
+  public static native void callFrovedisSEA(Node master_node,
+                                            long fdata,
+                                            int component,
+                                            double gamma,
+                                            boolean normlaplacian,
+                                            int mid,
+                                            boolean precomputed,
+                                            int mode,
+                                            boolean drop_first,
+                                            boolean movable,
+                                            boolean dense);
+  public static native DummyMatrix getSEMAffinityMatrix (Node master_node,
+                                                         int mid);
+  public static native DummyMatrix getSEMEmbeddingMatrix (Node master_node,
+                                                         int mid);
+
+
 
   // -------- Compute PCA --------
   public static native DummyPCAResult computePCA(Node master_node,
-                                                 long fdata,
-                                                 int k,
-                                                 boolean movable);
+                                                long fdata,
+                                                int k,
+                                                boolean movable);
   // -------- Compute SVD --------
   public static native DummyGesvdResult computeSVD(Node master_node,
                                                    long fdata,
                                                    int k,
+                                                   boolean isDense,
                                                    boolean movable);
   public static native DummyGesvdResult getSVDResultFromFiles(Node master_node,
                                                               short mtype,
@@ -293,6 +377,21 @@ public class JNISupport {
                                          int mid, short mkind, String path);
   public static native void saveFrovedisModel(Node master_node, int mid, 
                                             short mkind, String path);
+
+  // new APIS
+  public static native DummyFreqItemset[] toSparkFPM(Node master_node,
+                                                     int mid);
+
+  public static native void callFrovedisFPM(Node master_node,
+                                          long fdata,
+                                          double minSupport,
+                                          int model_Id, boolean movable);
+
+  public static native void callFrovedisFPMR(Node master_node,
+                                        
+                                          double minConfidence,
+                                          int model_Id ,  int model_Idr);
+  
 
   public static native void loadFrovedisModel(Node master_node,
                                           int model_Id, 
@@ -492,6 +591,12 @@ public class JNISupport {
                                                   long dproxy, String[] cname,
                                                   short[] tids,
                                                   int size);
+  public static native long aggrFrovedisDataframe(Node master_node,
+                                                  long dproxy,
+                                                  String[] gCols, int sz1,
+                                                  String[] aFuns, String[] aCols,
+                                                  String[] aAsCols, int sz2);
+  public static native void releaseFrovedisGroupedDF(Node master_node, long data);
   public static native DummyMatrix DFToRowmajorMatrix(Node master_node, long dproxy, 
                                                       String[] cname, int size); 
   public static native DummyMatrix DFToColmajorMatrix(Node master_node, long dproxy, 

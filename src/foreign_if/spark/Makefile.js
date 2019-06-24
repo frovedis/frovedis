@@ -26,7 +26,9 @@ all:
 	 ${SCALA_HOME}/bin/scalac -cp "./bin:${SPARK_HOME}/jars/*:${HDPATH}" -sourcepath . -d bin ./main/com/nec/frovedis/sql/DFtoSparseInfo.scala
 	 ${SCALA_HOME}/bin/scalac -cp "./bin:${SPARK_HOME}/jars/*:${HDPATH}" -sourcepath . -d bin ./main/com/nec/frovedis/sql/FrovedisTypedColumn.scala
 	 ${SCALA_HOME}/bin/scalac -cp "./bin:${SPARK_HOME}/jars/*:${HDPATH}" -sourcepath . -d bin ./main/com/nec/frovedis/sql/FrovedisColumn.scala
+	 #${SCALA_HOME}/bin/scalac -cp "./bin:${SPARK_HOME}/jars/*:${HDPATH}" -sourcepath . -d bin ./main/com/nec/frovedis/sql/FrovedisAggr.scala
 	 ${SCALA_HOME}/bin/scalac -cp "./bin:${SPARK_HOME}/jars/*:${HDPATH}" -sourcepath . -d bin ./main/com/nec/frovedis/sql/FrovedisDataframe.scala
+	 #${SCALA_HOME}/bin/scalac -cp "./bin:${SPARK_HOME}/jars/*:${HDPATH}" -sourcepath . -d bin ./main/com/nec/frovedis/sql/FrovedisGroupedDF.scala
 	 ${SCALA_HOME}/bin/scalac -cp "./bin:${SPARK_HOME}/jars/*:${HDPATH}" -sourcepath . -d bin ./main/com/nec/frovedis/mllib/regression/GeneralizedLinearAlgorithm.scala
 	 ${SCALA_HOME}/bin/scalac -cp "./bin:${SPARK_HOME}/jars/*:${HDPATH}" -sourcepath . -d bin ./main/com/nec/frovedis/mllib/regression/LinearRegression.scala
 	 ${SCALA_HOME}/bin/scalac -cp "./bin:${SPARK_HOME}/jars/*:${HDPATH}" -sourcepath . -d bin ./main/com/nec/frovedis/mllib/regression/Lasso.scala
@@ -38,12 +40,17 @@ all:
 	 ${SCALA_HOME}/bin/scalac -cp "./bin:${SPARK_HOME}/jars/*:${HDPATH}" -sourcepath . -d bin ./main/com/nec/frovedis/mllib/recommendation/ALS.scala
 	 ${SCALA_HOME}/bin/scalac -cp "./bin:${SPARK_HOME}/jars/*:${HDPATH}" -sourcepath . -d bin ./main/com/nec/frovedis/mllib/clustering/KMeansModel.scala
 	 ${SCALA_HOME}/bin/scalac -cp "./bin:${SPARK_HOME}/jars/*:${HDPATH}" -sourcepath . -d bin ./main/com/nec/frovedis/mllib/clustering/KMeans.scala
+	 ${SCALA_HOME}/bin/scalac -cp "./bin:${SPARK_HOME}/jars/*:${HDPATH}" -sourcepath . -d bin ./main/com/nec/frovedis/mllib/clustering/SpectralClustering.scala
+	 ${SCALA_HOME}/bin/scalac -cp "./bin:${SPARK_HOME}/jars/*:${HDPATH}" -sourcepath . -d bin ./main/com/nec/frovedis/mllib/clustering/SpectralEmbedding.scala
+	 ${SCALA_HOME}/bin/scalac -cp "./bin:${SPARK_HOME}/jars/*:${HDPATH}" -sourcepath . -d bin ./main/com/nec/frovedis/mllib/clustering/AgglomerativeClustering.scala
+	 ${SCALA_HOME}/bin/scalac -cp "./bin:${SPARK_HOME}/jars/*:${HDPATH}" -sourcepath . -d bin ./main/com/nec/frovedis/mllib/fpm/FPGrowth.scala
 	 ${SCALA_HOME}/bin/scalac -cp "./bin:${SPARK_HOME}/jars/*:${HDPATH}" -sourcepath . -d bin ./main/com/nec/frovedis/mllib/fm/FMConfig.scala
 	 ${SCALA_HOME}/bin/scalac -cp "./bin:${SPARK_HOME}/jars/*:${HDPATH}" -sourcepath . -d bin ./main/com/nec/frovedis/mllib/fm/FactorizationMachine.scala
 	 ${SCALA_HOME}/bin/scalac -cp "./bin:${SPARK_HOME}/jars/*:${HDPATH}" -sourcepath . -d bin ./main/com/nec/frovedis/mllib/tree/Impurities.scala
 	 ${SCALA_HOME}/bin/scalac -cp "./bin:${SPARK_HOME}/jars/*:${HDPATH}" -sourcepath . -d bin ./main/com/nec/frovedis/mllib/tree/DecisionTreeModel.scala
 	 ${SCALA_HOME}/bin/scalac -cp "./bin:${SPARK_HOME}/jars/*:${HDPATH}" -sourcepath . -d bin ./main/com/nec/frovedis/mllib/tree/DecisionTree.scala
+	 ${SCALA_HOME}/bin/scalac -cp "./bin:${SPARK_HOME}/jars/*:${HDPATH}" -sourcepath . -d bin ./main/com/nec/frovedis/mllib/feature/Word2Vec.scala
 	 cd bin; ${JAVA_HOME}/bin/jar -cf ../lib/frovedis_client.jar com 
 
 clean:
-	rm -fr bin/com lib/frovedis_client.jar main/cpp/JNISupport.hpp main/com/nec/frovedis/Jmatrix/*~ main/com/nec/frovedis/Jexrpc/*~ main/com/nec/frovedis/Jmllib/*~ main/com/nec/frovedis/matrix/*~ main/com/nec/frovedis/exrpc/*~ main/com/nec/frovedis/mllib/*~ main/com/nec/frovedis/mllib/regression/*~ main/com/nec/frovedis/mllib/classification/*~ main/com/nec/frovedis/mllib/recommendation/*~ main/com/nec/frovedis/clustering/*~ main/com/nec/frovedis/fm/*~ main/com/nec/frovedis/tree/*~ main/com/nec/frovedis/sql/*~
+	rm -fr bin/com lib/frovedis_client.jar main/cpp/JNISupport.hpp main/com/nec/frovedis/Jmatrix/*~ main/com/nec/frovedis/Jexrpc/*~ main/com/nec/frovedis/Jmllib/*~ main/com/nec/frovedis/matrix/*~ main/com/nec/frovedis/exrpc/*~ main/com/nec/frovedis/mllib/*~ main/com/nec/frovedis/mllib/regression/*~ main/com/nec/frovedis/mllib/classification/*~ main/com/nec/frovedis/mllib/recommendation/*~ main/com/nec/frovedis/clustering/*~ main/com/nec/frovedis/fpm/*~ main/com/nec/frovedis/fm/*~ main/com/nec/frovedis/tree/*~ main/com/nec/frovedis/feature/*~ main/com/nec/frovedis/sql/*~
