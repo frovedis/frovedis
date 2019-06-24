@@ -27,6 +27,8 @@ inline T square(const T value) { return value * value; }
 
 template <typename T>
 inline T absval(const T value) { return std::abs(value); }
+
+// specialize because std::abs cannot be vectorize
 template <>
 inline float absval(const float value) { return fabsf(value); }
 template <>
