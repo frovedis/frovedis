@@ -17,6 +17,30 @@ extern std::map<std::string,
 
 // expose is not thread safe
 template <class R, class T1, class T2, class T3, class T4, class T5,
+          class T6, class T7, class T8, class T9, class T10,
+          class T11, class T12, class T13>
+void expose_function(const std::string& func_name, R(*f)(T1&,T2&,T3&,T4&,T5&,
+                                                         T6&,T7&,T8&,T9&,
+                                                         T10&,T11&,T12&,T13&)){
+  expose_table[func_name] =
+    std::make_pair(reinterpret_cast<intptr_t>(pfwrapper<R,T1,T2,T3,T4,T5,
+                                              T6,T7,T8,T9,T10,T11,T12,T13>),
+                   reinterpret_cast<intptr_t>(f));
+}
+
+template <class R, class T1, class T2, class T3, class T4, class T5,
+          class T6, class T7, class T8, class T9, class T10, 
+          class T11, class T12>
+void expose_function(const std::string& func_name, R(*f)(T1&,T2&,T3&,T4&,T5&,
+                                                         T6&,T7&,T8&,T9&,
+                                                         T10&,T11&,T12&)){
+  expose_table[func_name] =
+    std::make_pair(reinterpret_cast<intptr_t>(pfwrapper<R,T1,T2,T3,T4,T5,
+                                              T6,T7,T8,T9,T10,T11,T12>),
+                   reinterpret_cast<intptr_t>(f));
+}
+
+template <class R, class T1, class T2, class T3, class T4, class T5,
           class T6, class T7, class T8, class T9, class T10, class T11>
 void expose_function(const std::string& func_name, R(*f)(T1&,T2&,T3&,T4&,T5&,
                                                          T6&,T7&,T8&,T9&,
@@ -117,6 +141,31 @@ template <class R>
 void expose_function(const std::string& func_name, R(*f)()) {
   expose_table[func_name] =
     std::make_pair(reinterpret_cast<intptr_t>(pfwrapper<R>),
+                   reinterpret_cast<intptr_t>(f));
+}
+
+template <class T1, class T2, class T3, class T4, class T5,
+          class T6, class T7, class T8, class T9, class T10,
+          class T11, class T12, class T13>
+void expose_function(const std::string& func_name, void(*f)(T1&,T2&,T3&,T4&,
+                                                            T5&,T6&,T7&,T8&,
+                                                            T9&,T10&,T11&,T12&,
+                                                            T13&)) {
+  expose_table[func_name] =
+    std::make_pair(reinterpret_cast<intptr_t>(pfwrapper_oneway<T1,T2,T3,T4,
+                                              T5,T6,T7,T8,T9,T10,T11,T12,T13>),
+                   reinterpret_cast<intptr_t>(f));
+}
+
+template <class T1, class T2, class T3, class T4, class T5,
+          class T6, class T7, class T8, class T9, class T10, 
+          class T11, class T12>
+void expose_function(const std::string& func_name, void(*f)(T1&,T2&,T3&,T4&,
+                                                            T5&,T6&,T7&,T8&,
+                                                            T9&,T10&,T11&,T12&)) {
+  expose_table[func_name] =
+    std::make_pair(reinterpret_cast<intptr_t>(pfwrapper_oneway<T1,T2,T3,T4,
+                                              T5,T6,T7,T8,T9,T10,T11,T12>),
                    reinterpret_cast<intptr_t>(f));
 }
 

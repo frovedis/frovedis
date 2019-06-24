@@ -21,6 +21,81 @@ exrpc_result<R> send_exrpcreq_async(exrpc_node& n, const std::string& funcname,
   return exrpc_result<R>(s);
 }
 
+template <class R, class T1, class T2, class T3, class T4, class T5,
+          class T6, class T7, class T8, class T9, class T10,
+          class T11, class T12, class T13>
+void pfwrapper(intptr_t function_addr, my_portable_iarchive& inar,
+               my_portable_oarchive& outar) {
+  typedef R(*Ftype)(T1&,T2&,T3&,T4&,T5&,T6&,T7&,T8&,T9&,T10&,T11&,T12&,T13&);
+  Ftype f = reinterpret_cast<Ftype>(function_addr);
+  T1 a1;
+  T2 a2;
+  T3 a3;
+  T4 a4;
+  T5 a5;
+  T6 a6;
+  T7 a7;
+  T8 a8;
+  T9 a9;
+  T10 a10;
+  T11 a11;
+  T12 a12;
+  T13 a13;
+  inar >> a1;
+  inar >> a2;
+  inar >> a3;
+  inar >> a4;
+  inar >> a5;
+  inar >> a6;
+  inar >> a7;
+  inar >> a8;
+  inar >> a9;
+  inar >> a10;
+  inar >> a11;
+  inar >> a12;
+  inar >> a13;
+  R o = f(a1,a2,a3,a4,a5,a6,a7,a8,a9,a10,a11,a12,a13);
+  outar << (const R&) o;
+  return;
+}
+
+
+template <class R, class T1, class T2, class T3, class T4, class T5, 
+          class T6, class T7, class T8, class T9, class T10, 
+          class T11, class T12>
+void pfwrapper(intptr_t function_addr, my_portable_iarchive& inar,
+               my_portable_oarchive& outar) {
+  typedef R(*Ftype)(T1&,T2&,T3&,T4&,T5&,T6&,T7&,T8&,T9&,T10&,T11&,T12&);
+  Ftype f = reinterpret_cast<Ftype>(function_addr);
+  T1 a1;
+  T2 a2;
+  T3 a3;
+  T4 a4;
+  T5 a5;
+  T6 a6;
+  T7 a7;
+  T8 a8;
+  T9 a9;
+  T10 a10;
+  T11 a11;
+  T12 a12;
+  inar >> a1;
+  inar >> a2;
+  inar >> a3;
+  inar >> a4;
+  inar >> a5;
+  inar >> a6;
+  inar >> a7;
+  inar >> a8;
+  inar >> a9;
+  inar >> a10;
+  inar >> a11;
+  inar >> a12;
+  R o = f(a1,a2,a3,a4,a5,a6,a7,a8,a9,a10,a11,a12);
+  outar << (const R&) o;
+  return;
+}
+
 template <class R, class T1, class T2, class T3, class T4, class T5, class T6,
           class T7, class T8, class T9, class T10, class T11>
 void pfwrapper(intptr_t function_addr, my_portable_iarchive& inar,
@@ -276,6 +351,64 @@ void pfwrapper(intptr_t function_addr, my_portable_iarchive& inar,
   R o = f();
   outar << (const R&) o;
   return;
+}
+
+template <class R, class T1, class T2, class T3, class T4, class T5,
+          class T6, class T7, class T8, class T9, class T10,
+          class T11, class T12, class T13>
+exrpc_result<R> exrpc_function_async(exrpc_node& n, std::string fn,
+                                     R(*f)(T1&,T2&,T3&,T4&,T5&,T6&,T7&,T8&,
+                                           T9&,T10&,T11&,T12&,T13&),
+                                     const T1& a1, const T2& a2, const T3& a3,
+                                     const T4& a4, const T5& a5, const T6& a6,
+                                     const T7& a7, const T8& a8, const T9& a9,
+                                     const T10& a10, const T11& a11,
+                                     const T12& a12, const T13& a13){
+  std::ostringstream outss;
+  my_portable_oarchive outar(outss);
+  outar << a1;
+  outar << a2;
+  outar << a3;
+  outar << a4;
+  outar << a5;
+  outar << a6;
+  outar << a7;
+  outar << a8;
+  outar << a9;
+  outar << a10;
+  outar << a11;
+  outar << a12;
+  outar << a13;
+  return send_exrpcreq_async<R>(n, fn, outss.str());
+}
+
+
+template <class R, class T1, class T2, class T3, class T4, class T5, 
+          class T6, class T7, class T8, class T9, class T10, 
+          class T11, class T12>
+exrpc_result<R> exrpc_function_async(exrpc_node& n, std::string fn,
+                                     R(*f)(T1&,T2&,T3&,T4&,T5&,T6&,T7&,T8&,
+                                           T9&,T10&,T11&,T12&),
+                                     const T1& a1, const T2& a2, const T3& a3,
+                                     const T4& a4, const T5& a5, const T6& a6,
+                                     const T7& a7, const T8& a8, const T9& a9,
+                                     const T10& a10, const T11& a11,
+                                     const T12& a12){
+  std::ostringstream outss;
+  my_portable_oarchive outar(outss);
+  outar << a1;
+  outar << a2;
+  outar << a3;
+  outar << a4;
+  outar << a5;
+  outar << a6;
+  outar << a7;
+  outar << a8;
+  outar << a9;
+  outar << a10;
+  outar << a11;
+  outar << a12;
+  return send_exrpcreq_async<R>(n, fn, outss.str());
 }
 
 template <class R, class T1, class T2, class T3, class T4, class T5, class T6,
