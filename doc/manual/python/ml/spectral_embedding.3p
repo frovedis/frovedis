@@ -1,0 +1,272 @@
+.TH "spectral embedding" "" "" "" ""
+.SH NAME
+.PP
+spectral embedding \- Spectral embedding is the accurate method for
+extraction of meaningful patterns in high dimensional data.
+It forms an affinity matrix given by the specified function and applies
+spectral decomposition to the corresponding graph laplacian.
+The resulting transformation is given by the value of the normalized
+eigenvectors for each data point.
+.SH SYNOPSIS
+.PP
+class frovedis.mllib.cluster.SpectralEmbedding (n_components=2,
+affinity=\[aq]rbf\[aq], gamma=1.0, random_state=None, eigen_solver=None,
+n_neighbors=None, n_jobs=None, verbose=0, norm_laplacian=True, mode=1,
+drop_first=True)
+.SS Public Member Functions
+.PP
+fit(X, y=None)
+.PD 0
+.P
+.PD
+get_params()
+.PD 0
+.P
+.PD
+set_params(params)
+.PD 0
+.P
+.PD
+get_affinity_matrix()
+.PD 0
+.P
+.PD
+get_embedding_matrix()
+.PD 0
+.P
+.PD
+load(filename)
+.PD 0
+.P
+.PD
+save(filename)
+.PD 0
+.P
+.PD
+debug_print()
+.PD 0
+.P
+.PD
+release()
+.SH DESCRIPTION
+.PP
+Spectral embedding is particularly useful for reducing the
+dimensionality of data that is expected to lie on a low\-dimensional
+manifold contained within a high\-dimensional space, it yields a
+low\-dimensional representation of the data that best preserves the
+structure of the original manifold in the sense that points that are
+close to each other on the original manifold will also be close after
+embedding.
+At the same time, the embedding emphasizes clusters in the original
+data.
+.SS Detailed Description
+.SS SpectralEmbedding()
+.PP
+\f[B]Parameters\f[]
+.PP
+\f[B]n_components:\f[] An integer parameter containing the number of
+component count (Default: 2)
+.PD 0
+.P
+.PD
+\f[B]affinity:\f[] If a string, this may be one of
+\[aq]nearest_neighbors\[aq], \[aq]precomputed\[aq] according to input
+data.(Default: rbf)[Internally skipped]
+.PD 0
+.P
+.PD
+\f[B]gamma:\f[] The value required for computing nearby relational
+meaningful eigenvalues(Default: 1.0)
+.PD 0
+.P
+.PD
+\f[B]random_state:\f[] A pseudo random number generator used for the
+initialization of the lobpcg eigen vectors decomposition when
+eigen_solver == \[aq]amg\[aq] and by the K\-Means
+initialization.[Internally skipped]
+.PD 0
+.P
+.PD
+\f[B]eigen_solver:\f[] The eigenvalue decomposition strategy to use.
+AMG requires pyamg to be installed.
+It can be faster on very large, sparse problems, but may also lead to
+instabilities(Default: None)[Internally skipped]
+.PD 0
+.P
+.PD
+\f[B]n_neighbors:\f[] Number of neighbors to use when constructing the
+affinity matrix using the nearest neighbors method.[Internally skipped]
+.PD 0
+.P
+.PD
+\f[B]n_jobs:\f[] The number of parallel jobs to run.[Internally skipped]
+.PD 0
+.P
+.PD
+\f[B]verbose:\f[] An integer object specifying the log level to use.
+(Default: 0)
+.PD 0
+.P
+.PD
+\f[B]norm_laplacian:\f[] A boolean parameter if set True, then compute
+normalized Laplacian else not (Default: true)
+.PD 0
+.P
+.PD
+\f[B]mode:\f[] A parameter required to set the eigen computation method.
+It can be either 1 or 3, 1 for generic and 3 for shift\-invert(Default:
+1)
+.PD 0
+.P
+.PD
+\f[B]drop_first:\f[] A boolean parameter if set True, then drops the
+first eigenvector.
+The first eigenvector of a normalized laplacian is full of constants,
+thus if drop_first is set true, compute (n_comp+1) eigenvectors and will
+drop the first vector.
+Otherwise it will calculate n_comp number of eigenvectors(Default:
+false)
+.PP
+\f[B]Purpose\f[]
+.PP
+After getting the affinity matrix by computing distance co\-relation,
+this is used to extract meaningful patterns in high dimensional data.
+After the successful embedding, It returns a FrovedisRowmajorMatrix
+containing the assigned values.
+.PP
+\f[B]Return Value\f[]
+.PP
+This is a non\-blocking call.
+The control will return quickly, right after submitting the training
+request at frovedis server side with a SpectralEmbedding object
+containing a FrovedisRowmajorMatrix with meaningful or co\-related
+patterns obtained from eigenvectors.
+.SS fit(X, y=None)
+.PP
+\f[B]Parameters\f[]
+.PP
+\f[I]X\f[]: A scipy dense matrix or any python array\-like object or an
+instance of FrovedisRowmajorMatrix.
+.PD 0
+.P
+.PD
+\f[I]y\f[]: None (simply ignored in scikit\-learn as well).
+.PP
+\f[B]Purpose\f[]
+.PP
+It extracts meaningful or co\-related patterns obtained from normalized
+eigenvector computation.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ loading\ sample\ Rowmajor\ data\ file
+mat\ =\ FrovedisRowmajorMatrix().load("./sample")
+
+#\ fitting\ input\ matrix\ on\ embedding\ object
+embedding\ =\ SpectralEmbedding(n_components=2,\ gamma=1.0,\ mode=1,\ verbose=2).fit(mat)\ \ \ 
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PP
+It simply returns "self" reference.
+.PD 0
+.P
+.PD
+Note that the call will return quickly, right after submitting the fit
+request at frovedis server side with a unique model ID for the fit
+request.
+It may be possible that the training is not completed at the frovedis
+server side even though the client scikit\-learn side fit() returns.
+.SS get_params()
+.PP
+\f[B]Purpose\f[]
+.PP
+It returns the values of parameters used for embedding.
+.PP
+\f[B]Return Value\f[]
+.PP
+It simply returns "self" instance.
+.SS set_params()
+.PP
+\f[B]Purpose\f[]
+.PP
+It intialize the values of parameters the required for embedding.
+.PP
+\f[B]Return Value\f[]
+.PP
+It simply returns "self" instance.
+.SS get_affinity_matrix()
+.PP
+\f[B]Purpose\f[]
+.PP
+It returns the output value of the computed affinity matrix.
+.PP
+\f[B]Return Value\f[]
+.PP
+It returns FrovedisRowmajorMatrix instance.
+.SS get_embedding_matrix()
+.PP
+\f[B]Purpose\f[]
+.PP
+It returns the output value of the computed normalized embedding matrix.
+.PP
+\f[B]Return Value\f[]
+.PP
+It returns FrovedisRowmajorMatrix instance.
+.SS load(filename)
+.PP
+\f[B]Parameters\f[]
+.PP
+\f[I]filename\f[]: A string object containing the name of the file
+having model information to be loaded.
+.PP
+\f[B]Purpose\f[]
+.PP
+It loads the model from the specified file (having little\-endian binary
+data).
+.PP
+\f[B]Return Value\f[]
+.PP
+It returns nothing.
+.SS save(filename)
+.PP
+\f[B]Parameters\f[]
+.PP
+\f[I]filename\f[]: A string object containing the name of the file on
+which the target model is to be saved.
+.PP
+\f[B]Purpose\f[]
+.PP
+On success, it writes the model information in the specified file as
+little\-endian binary data.
+Otherwise, it throws an exception.
+.PP
+\f[B]Return Value\f[]
+.PP
+It returns nothing.
+.SS debug_print()
+.PP
+\f[B]Purpose\f[]
+.PP
+It shows the target model information on the server side user terminal.
+It is mainly used for debugging purpose.
+.PP
+\f[B]Return Value\f[]
+.PP
+It returns nothing.
+.SS release()
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It can be used to release the in\-memory model at frovedis server.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns nothing.

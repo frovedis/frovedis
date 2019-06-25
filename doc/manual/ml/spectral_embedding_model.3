@@ -1,0 +1,104 @@
+.TH "spectral_embedding_model" "" "" "" ""
+.SH NAME
+.PP
+\f[C]spectral_embedding_model<T>\f[] \- A data structure used in
+modeling the outputs of the frovedis spectral embedding algorithm.
+.SH SYNOPSIS
+.PP
+\f[C]#include\ <frovedis/ml/clustering/spectral_embedding_model.hpp>\f[]
+.SS Constructors
+.PP
+\f[C]spectral_embedding_model<T>()\f[]
+.PD 0
+.P
+.PD
+\f[C]spectral_embedding_model<T>(rowmajor_matrix<T>\f[]& aff,
+\f[C]rowmajor_matrix<T>\f[]& embed)
+.SS Public Member Functions
+.PP
+void save(const std::string& dir)
+.PD 0
+.P
+.PD
+void savebinary(const std::string& dir)
+.PD 0
+.P
+.PD
+void load(const std::string& dir)
+.PD 0
+.P
+.PD
+void loadbinary(const std::string& dir)
+.PD 0
+.P
+.PD
+void debug_print()
+.SS DESCRIPTION
+.PP
+\f[C]spectral_embedding_model<T>\f[] models the output of the frovedis
+spectral embedding algorithms.
+This model has the below structure:
+.PD 0
+.P
+.PD
+\f[C]template\ <class\ T>\f[]
+.PD 0
+.P
+.PD
+struct spectral_embedding_model {
+.PD 0
+.P
+.PD
+\  \  \  \  \  \  \f[C]rowmajor_matrix<T>\f[] affinity_matrix,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \  \f[C]rowmajor_matrix<T>\f[] embed_matrix) };
+.PP
+This is a template based data structure, where "T" is supposed to be
+"float" (single\-precision) or "double" (double\-precision).
+Note this is a serialized data structure.
+The detailed description can be found in subsequent sections.
+.SS Public Member Function Documentation
+.PP
+\f[B]void save(const std::string& dir)\f[]
+.PP
+It saves the target model in the specified path in simple text format.
+It will throw an exception, if any error occurs during the save
+operation.
+.PP
+\f[B]void savebinary(const std::string& dir)\f[]
+.PP
+It saves the target model in the specified path in (little\-endian)
+binary data format.
+It will throw an exception, if any error occurs during the save
+operation.
+.PP
+\f[B]void load(const std::string& dir)\f[]
+.PP
+It loads the target linear regression model from the data in specified
+text file.
+It will throw an exception, if any error occurs during the load
+operation.
+.PP
+\f[B]void loadbinary(const std::string& dir)\f[]
+.PP
+It loads the target linear regression model from the data in specified
+(little\-endian) binary file.
+It will throw an exception, if any error occurs during the load
+operation.
+.PP
+\f[B]void debug_print()\f[]
+.PP
+It prints the contents of the model on the user terminal.
+It is mainly useful for debugging purpose.
+.SS Public Data Member Documentation
+.PP
+\f[B]affinity_matrix:\f[] A \f[C]rowmajor_matrix<T>\f[] that return the
+values of distance co\-related data values required for model building.
+.PP
+\f[B]embed_matrix:\f[] A \f[C]rowmajor_matrix<T>\f[] containing
+meaningful patterns in normalized high dimensional data.
+.SH SEE ALSO
+.PP
+spectral_embedding, spectral_clustering_model

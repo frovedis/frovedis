@@ -48,3 +48,7 @@ We are still updating the contents.
     + [frovedis::matrix_factorization_model\<T\>]
     + [Matrix Factorization using ALS]
     + [kmeans]
+    + [spectral_clustering_model]
+    + [spectral clustering]
+    + [spectral_embedding_model]
+    + [spectral embedding]

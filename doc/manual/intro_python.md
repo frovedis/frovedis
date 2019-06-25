@@ -25,3 +25,5 @@ We are still updating the contents.
     + [Linear SVM]
     + [Matrix Factorization using ALS]
     + [kmeans]
+    + [spectral clustering]
+    + [spectral embedding]

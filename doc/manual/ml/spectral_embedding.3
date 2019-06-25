@@ -1,0 +1,155 @@
+.TH "spectral embedding" "" "" "" ""
+.SH NAME
+.PP
+spectral embedding \- Spectral embedding is useful for reducing the
+dimensionality of data that is expected to lie on a low\-dimensional
+manifold contained within a high\-dimensional space, it yields a
+low\-dimensional representation of the data that best preserves the
+structure of the original manifold in the sense that points that are
+close to each other on the original manifold will also be close after
+embedding.
+At the same time, the embedding emphasizes clusters in the original
+data.
+.PP
+.SH SYNOPSIS
+.PP
+\f[C]#include\ <frovedis/ml/clustering/spectral_embedding.hpp>\f[]
+.PP
+\f[C]spectral_embedding_model<T>\f[]
+.PD 0
+.P
+.PD
+frovedis::spectral_embedding(\f[C]rowmajor_matrix<T>\f[]& mat,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \  \  \  \  \ int n_comp = 2,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \  \  \  \  \ bool norm_laplacian = true,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \  \  \  \  \ bool precomputed = false,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \  \  \  \  \ bool drop_first = true,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \  \  \  \  \ double gamma = 1.0,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \  \  \  \  \ int mode = 1)
+.PP
+\f[C]spectral_embedding_model<T>\f[]
+.PD 0
+.P
+.PD
+frovedis::spectral_embedding(\f[C]rowmajor_matrix<T>\f[]&& mat,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \  \  \  \  \ int n_comp = 2,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \  \  \  \  \ bool norm_laplacian = true,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \  \  \  \  \ bool precomputed = false,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \  \  \  \  \ bool drop_first = true,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \  \  \  \  \ double gamma = 1.0,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \  \  \  \  \ int mode = 1)
+.SH DESCRIPTION
+.PP
+Spectral embedding is the accurate method for extraction of meaningful
+patterns in high dimensional data.
+It forms an affinity matrix given by the specified function and applies
+spectral decomposition to the corresponding graph laplacian.
+The resulting transformation is given by the value of the eigenvectors
+for each data point.
+.SS Detailed Description
+.SS Public Global Function Documentation
+.PP
+\f[C]spectral_embedding_model<T>\f[]
+.PD 0
+.P
+.PD
+spectral_embedding(mat,n_comp,norm_laplacian,precomputed,drop_first,gamma,mode)
+.PP
+\f[B]Parameters\f[]
+.PP
+\f[I]mat\f[]: A rowmajor_matrix of type "T"(where T can be either float
+or double) containing n\-dimensional data points.
+It can be treated as either input data matrix or precomputed affinity
+matrix, based on the boolean parameter "precomputed".
+The input can be passed as an lvalue or rvalue.
+The matrix is internally cleared to save computation memory during the
+algorithm, in case the input matrix is a rvalue.
+.PD 0
+.P
+.PD
+\f[I]n_comp\f[]: An integer parameter containing the number of
+components for clusters(Default: 2)
+.PD 0
+.P
+.PD
+\f[I]norm_laplacian\f[]: A boolean parameter if set True, then compute
+normalized Laplacian else not(Default: true)
+.PD 0
+.P
+.PD
+\f[I]precomputed\f[]: A boolean parameter if set False, then internally
+affinity matrix is computed based on input matrix otherwise input matrix
+is treated as precomputed affinity matrix and internal affinity
+computation is skipped(Default: false)
+.PD 0
+.P
+.PD
+\f[I]drop_first\f[]: A boolean parameter if set True, then drops the
+first eigenvector.
+The first eigenvector of a normalized laplacian is full of constants,
+thus if drop_first is set true, compute (n_comp+1) eigenvectors and will
+drop the first vector.
+Otherwise it will calculate n_comp number of eigenvectors(Default: true)
+.PD 0
+.P
+.PD
+\f[I]gamma\f[]: The value required for computing nearby relational
+meaningful eigenvalues(Default: 1.0)
+.PD 0
+.P
+.PD
+\f[I]mode\f[]: A parameter required to set the eigen computation method.
+It can be either 1 or 3, 1 for generic and 3 for shift\-invert
+mode(Default: 1)
+.PP
+\f[B]Purpose\f[]
+.PP
+After getting the affinity matrix by computing distance co\-relation,
+this is used to extract meaningful patterns using normalized
+eigenvectors.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns a \f[C]spectral_embedding_model<T>\f[] containing the values
+of the largest eigenvectors obtained from the normalized laplacian.
+.SH SEE ALSO
+.PP
+spectral_clustering, spectral_embedding_model

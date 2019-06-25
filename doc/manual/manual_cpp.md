@@ -48,6 +48,10 @@ We are still updating the contents.
     + [frovedis::matrix_factorization_model\<T\>]
     + [Matrix Factorization using ALS]
     + [kmeans]
+    + [spectral_clustering_model]
+    + [spectral clustering]
+    + [spectral_embedding_model]
+    + [spectral embedding]
 
 
 # frovedis::dvector\<T\>
@@ -10818,4 +10822,253 @@ to the closest centroid using kmeans_assign_cluster().
 
 __Return Value__  
 It returns a `std::vector<int>` containing the assigned values.   
+
+
+
+# spectral_clustering_model
+
+## NAME
+`spectral_clustering_model<T>` - A data structure used in modeling the outputs of the frovedis spectral clustering algorithm.
+
+## SYNOPSIS
+`#include <frovedis/ml/clustering/spectral_clustering_model.hpp>`  
+
+### Constructors
+`spectral_clustering_model<T>()`  
+`spectral_clustering_model<T>(rowmajor_matrix<T>& aff, std::vector<int>`& lbl, int ncluster)   
+
+### Public Member Functions  
+void save(const std::string& dir)  
+void savebinary(const std::string& dir)  
+void load(const std::string& dir)  
+void loadbinary(const std::string& dir)  
+void debug_print()  
+
+### DESCRIPTION
+`spectral_clustering_model<T>` models the output of the frovedis spectral clustering algorithms. This model has the below structure:  
+`template <class T>`  
+struct spectral_clustering_model {  
+\  \  \  \  \  \  `rowmajor_matrix<T>` affinity_matrix,  
+\  \  \  \  \  \  `std::vector<int>` labels,  
+\  \  \  \  \  \   int nclusters) };  
+
+This is a template based data structure, where "T" is supposed to be "float" (single-precision) or "double" (double-precision). Note this is a serialized data structure. The detailed description can be found in subsequent sections.
+
+### Public Member Function Documentation
+
+__void save(const std::string& dir)__   
+
+It saves the target model in the specified path in simple text format. It will throw an exception, if any error occurs during the save operation.
+
+__void savebinary(const std::string& dir)__   
+
+It saves the target model in the specified path in (little-endian) binary data format. It will throw an exception, if any error occurs during the save operation.
+
+__void load(const std::string& dir)__   
+
+It loads the target linear regression model from the data in specified text file. It will throw an exception, if any error occurs during the load operation.
+
+__void loadbinary(const std::string& dir)__   
+
+It loads the target linear regression model from the data in specified (little-endian) binary file. It will throw an exception, if any error occurs during the load operation.
+
+__void debug_print()__   
+
+It prints the contents of the model on the user terminal. It is mainly useful for debugging purpose.
+
+### Public Data Member Documentation
+__affinity_matrix:__ `A rowmajor_matrix<T>` that return the values of distance co-related data values required for model building.
+
+__labels:__ It contains the final cluster output obtained from the successful creation of the model.
+
+__nclusters:__ An integer parameter containing the number of components for clusters.
+
+## SEE ALSO
+spectral_clustering, spectral_embedding_model
+
+
+# spectral clustering
+
+## NAME
+spectral clustering - A clustering algorithm commonly used in EDA (exploratory data analysis), using the spectrum (eigenvalues) of the similarity matrix of the data to perform clustering.
+
+<br>
+
+## SYNOPSIS
+`#include <frovedis/ml/clustering/spectral_clustering.hpp>`
+
+`spectral_clustering_model<T>`  
+frovedis::spectral_clustering(`rowmajor_matrix<T>`& mat,  
+\  \  \  \  \  \  \  \  \  \ int ncluster = 2,  
+\  \  \  \  \  \  \  \  \  \ int n_comp = 2,  
+\  \  \  \  \  \  \  \  \  \ int niter = 100,  
+\  \  \  \  \  \  \  \  \  \ double eps = 0.01,  
+\  \  \  \  \  \  \  \  \  \ bool norm_laplacian = true,  
+\  \  \  \  \  \  \  \  \  \ bool precomputed = false,  
+\  \  \  \  \  \  \  \  \  \ bool drop_first = false,  
+\  \  \  \  \  \  \  \  \  \ double gamma = 1.0,  
+\  \  \  \  \  \  \  \  \  \ int mode = 1)
+
+`spectral_clustering_model<T>`  
+frovedis::spectral_clustering(`rowmajor_matrix<T>`&& mat,  
+\  \  \  \  \  \  \  \  \  \ int ncluster = 2,  
+\  \  \  \  \  \  \  \  \  \ int n_comp = 2,  
+\  \  \  \  \  \  \  \  \  \ int niter = 100,  
+\  \  \  \  \  \  \  \  \  \ double eps = 0.01,  
+\  \  \  \  \  \  \  \  \  \ bool norm_laplacian = true,  
+\  \  \  \  \  \  \  \  \  \ bool precomputed = false,  
+\  \  \  \  \  \  \  \  \  \ bool drop_first = false,  
+\  \  \  \  \  \  \  \  \  \ double gamma = 1.0,  
+\  \  \  \  \  \  \  \  \  \ int mode = 1)
+
+## DESCRIPTION
+Clustering is an unsupervised learning problem whereby we aim to group subsets of entities with one another based on some notion of similarity. In spectral clustering, the data points are treated as nodes of a graph. Thus, clustering is treated as a graph partitioning problem. The user can provide input in form of co-ordinate values for graphical representation or as affinity matrix. The components or features are identified as per column order in matrix data. The nodes are then mapped to a low-dimensional space that can be easily segregated to form clusters.
+
+### Detailed Description
+#### Public Global Function Documentation  
+
+`spectral_clustering_model<T>`  
+spectral_clustering(mat,ncluster,n_comp,niter,eps,norm_laplacian,precomputed,drop_first,gamma,mode)  
+
+
+__Parameters__  
+ 
+_mat_: A rowmajor_matrix of type "T"(where T can be either float or double) containing n-dimensional data points. It can be treated as either input data matrix or precomputed affinity matrix, based on the boolean parameter "precomputed". The input can be passed as an lvalue or rvalue. The matrix is internally cleared to save computation memory during the algorithm, in case the input matrix is a rvalue.  
+_ncluster_: An integer parameter containing the number of required clusters(Default: 2)  
+_n\_comp_: An integer parameter containing the number of components for clusters(Default: 2)  
+_niter_: An integer parameter containing the maximum number of iteration count for kmeans(Default: 300)  
+_eps_: A parameter of double type containing the epsilon value for kmeans(Default: 0.1)  
+_norm\_laplacian_: A boolean parameter if set True, then compute normalized Laplacian else not(Default: true)   
+_precomputed_: A boolean parameter if set False, then internally affinity matrix is computed based on input matrix otherwise input matrix is treated as precomputed affinity matrix and internal affinity computation is skipped(Default: false)  
+_drop\_first_: A boolean parameter if set True, then drops the first eigenvector. The first eigenvector of a normalized laplacian is full of constants, thus if drop_first is set true, compute (n_comp+1) eigenvectors and will drop the first vector. Otherwise it will calculate n_comp number of eigenvectors(Default: false)  
+_gamma_: The value required for computing nearby relational meaningful eigenvalues(Default: 1.0)  
+_mode_: A parameter required to set the eigen computation method. It can be either 1 or 3, 1 for generic and 3 for shift-invert mode(Default: 1)  
+
+__Purpose__  
+It computes the clusters with respect to the relational distance between the given data points, using normalized eigenvectors.  
+After the successful clustering, it returns `spectral_clustering_model<T>` containing the computed cluster values.  
+  
+__Return Value__  
+After the successful clustering it returns the `spectral_clustering_model<T>` from the computed labels containing the centroids from kmeans.
+
+## SEE ALSO
+spectral_clustering_model, spectral_embedding
+
+
+# spectral_embedding_model
+
+## NAME
+`spectral_embedding_model<T>` - A data structure used in modeling the outputs of the frovedis spectral embedding algorithm.
+
+## SYNOPSIS
+`#include <frovedis/ml/clustering/spectral_embedding_model.hpp>`
+
+### Constructors  
+`spectral_embedding_model<T>()`  
+`spectral_embedding_model<T>(rowmajor_matrix<T>`& aff, `rowmajor_matrix<T>`& embed)  
+
+### Public Member Functions  
+void save(const std::string& dir)  
+void savebinary(const std::string& dir)  
+void load(const std::string& dir)  
+void loadbinary(const std::string& dir)  
+void debug_print()  
+
+### DESCRIPTION
+`spectral_embedding_model<T>` models the output of the frovedis spectral embedding algorithms. This model has the below structure:  
+`template <class T>`  
+struct spectral_embedding_model {  
+\  \  \  \  \  \  `rowmajor_matrix<T>` affinity_matrix,  
+\  \  \  \  \  \  `rowmajor_matrix<T>` embed_matrix) };  
+
+This is a template based data structure, where "T" is supposed to be "float" (single-precision) or "double" (double-precision). Note this is a serialized data structure. The detailed description can be found in subsequent sections.
+
+### Public Member Function Documentation
+
+__void save(const std::string& dir)__   
+ 
+It saves the target model in the specified path in simple text format. It will throw an exception, if any error occurs during the save operation.
+
+__void savebinary(const std::string& dir)__   
+
+It saves the target model in the specified path in (little-endian) binary data format. It will throw an exception, if any error occurs during the save operation.
+
+__void load(const std::string& dir)__   
+
+It loads the target linear regression model from the data in specified text file. It will throw an exception, if any error occurs during the load operation.
+
+__void loadbinary(const std::string& dir)__   
+
+It loads the target linear regression model from the data in specified (little-endian) binary file. It will throw an exception, if any error occurs during the load operation.
+
+__void debug_print()__  
+
+It prints the contents of the model on the user terminal. It is mainly useful for debugging purpose.
+
+### Public Data Member Documentation
+__affinity_matrix:__ A `rowmajor_matrix<T>` that return the values of distance co-related data values required for model building.
+
+__embed_matrix:__ A `rowmajor_matrix<T>` containing meaningful patterns in normalized high dimensional data.
+
+## SEE ALSO
+spectral_embedding, spectral_clustering_model
+
+
+# spectral embedding
+
+## NAME
+spectral embedding - Spectral embedding is useful for reducing the dimensionality of data that is expected to lie on a low-dimensional manifold contained within a high-dimensional space, it yields a low-dimensional representation of the data that best preserves the structure of the original manifold in the sense that points that are close to each other on the original manifold will also be close after embedding. At the same time, the embedding emphasizes clusters in the original data.
+
+<br>
+
+## SYNOPSIS
+`#include <frovedis/ml/clustering/spectral_embedding.hpp>`  
+
+`spectral_embedding_model<T>`   
+frovedis::spectral_embedding(`rowmajor_matrix<T>`& mat,  
+\  \  \  \  \  \  \  \  \  \ int n_comp = 2,  
+\  \  \  \  \  \  \  \  \  \ bool norm_laplacian = true,  
+\  \  \  \  \  \  \  \  \  \ bool precomputed = false,  
+\  \  \  \  \  \  \  \  \  \ bool drop_first = true,  
+\  \  \  \  \  \  \  \  \  \ double gamma = 1.0,  
+\  \  \  \  \  \  \  \  \  \ int mode = 1)
+
+`spectral_embedding_model<T>`  
+frovedis::spectral_embedding(`rowmajor_matrix<T>`&& mat,  
+\  \  \  \  \  \  \  \  \  \ int n_comp = 2,  
+\  \  \  \  \  \  \  \  \  \ bool norm_laplacian = true,  
+\  \  \  \  \  \  \  \  \  \ bool precomputed = false,  
+\  \  \  \  \  \  \  \  \  \ bool drop_first = true,  
+\  \  \  \  \  \  \  \  \  \ double gamma = 1.0,  
+\  \  \  \  \  \  \  \  \  \ int mode = 1)
+
+## DESCRIPTION
+Spectral embedding is the accurate method for extraction of meaningful patterns in high dimensional data. It forms an affinity matrix given by the specified function and applies spectral decomposition to the corresponding graph laplacian. The resulting transformation is given by the value of the eigenvectors for each data point.
+
+### Detailed Description  
+#### Public Global Function Documentation  
+
+`spectral_embedding_model<T>`  
+spectral_embedding(mat,n_comp,norm_laplacian,precomputed,drop_first,gamma,mode)
+
+__Parameters__   
+
+_mat_: A rowmajor_matrix of type "T"(where T can be either float or double) containing n-dimensional data points. It can be treated as either input data matrix or precomputed affinity matrix, based on the boolean parameter "precomputed". The input can be passed as an lvalue or rvalue. The matrix is internally cleared to save computation memory during the algorithm, in case the input matrix is a rvalue.   
+_n\_comp_: An integer parameter containing the number of components for clusters(Default: 2)  
+_norm\_laplacian_: A boolean parameter if set True, then compute normalized Laplacian else not(Default: true)  
+_precomputed_: A boolean parameter if set False, then internally affinity matrix is computed based on input matrix otherwise input matrix is treated as precomputed affinity matrix and internal affinity computation is skipped(Default: false)  
+_drop\_first_: A boolean parameter if set True, then drops the first eigenvector. The first eigenvector of a normalized laplacian is full of constants, thus if drop_first is set true, compute (n_comp+1) eigenvectors and will drop the first vector. Otherwise it will calculate n_comp number of eigenvectors(Default: true)  
+_gamma_: The value required for computing nearby relational meaningful eigenvalues(Default: 1.0)  
+_mode_: A parameter required to set the eigen computation method. It can be either 1 or 3, 1 for generic and 3 for shift-invert mode(Default: 1)  
+
+
+__Purpose__  
+
+After getting the affinity matrix by computing distance co-relation, this is used to extract meaningful patterns using normalized eigenvectors.
+
+__Return Value__  
+It returns a `spectral_embedding_model<T>` containing the values of the largest eigenvectors obtained from the normalized laplacian.
+
+## SEE ALSO
+spectral_clustering, spectral_embedding_model
 
