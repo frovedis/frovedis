@@ -13,6 +13,7 @@ namespace frovedis {
 template <class T>
 class exrpc_result {
 public:
+  exrpc_result() : sockfd(-1), get_done(true) {}
   exrpc_result(int sockfd) : sockfd(sockfd), get_done(false) {}
   T get();
 private:
