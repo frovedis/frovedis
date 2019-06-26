@@ -4,6 +4,11 @@
 using namespace frovedis;
 
 void expose_frovedis_dvector_functions() {
+  expose(count_distinct<int>);
+  expose(count_distinct<long>);
+  expose(count_distinct<float>);
+  expose(count_distinct<double>);
+  expose(count_distinct<std::string>);
   // --- frovedis dvector for labels ---
   expose((load_local_data<std::vector<DT1>>));
   expose(create_and_set_dvector<DT1>);

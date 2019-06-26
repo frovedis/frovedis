@@ -102,6 +102,11 @@ void expose_frovedis_dense_matrix_functions() {
   expose((get_local_array<DT1,R_LMAT1>));
   expose((get_local_array<DT1,C_LMAT1>));
   expose((get_local_array<DT1,B_LMAT1>));
+  expose((get_local_array<DT2,R_LMAT2>));
+  expose((get_local_array<DT3,R_LMAT3>));
+  expose((get_local_array<DT4,R_LMAT4>));
   expose(vec_to_array<DT1>);
+  expose(vec_to_array<DT2>);
   expose(save_as_diag_matrix_local<DT1>);
+  expose(save_as_diag_matrix_local<DT2>);
 }
