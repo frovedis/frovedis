@@ -2,6 +2,7 @@
 #define _EXRPC_SVD_HPP_
 
 #include "frovedis.hpp"
+#include "frovedis/matrix/jds_crs_hybrid.hpp"
 #include "frovedis/matrix/truncated_svd.hpp"
 #include "frovedis/matrix/sparse_svd.hpp"
 #include "../exrpc/exrpc_expose.hpp"
