@@ -3,6 +3,140 @@
 #include "short_hand_dense_type.hpp"
 #include "short_hand_sparse_type.hpp"
 
+template <class T>
+std::vector<frovedis::crs_matrix_local<T,int,size_t>> 
+  prepare_scattered_crs_matrices(T* datavalp, int* dataidxp, long* dataoffp,
+                                 ulong nrow, ulong ncol, ulong total,
+                                 size_t node_size) {
+  size_t each_size = frovedis::ceil_div(total, node_size);
+  std::vector<size_t> divide_row(node_size+1);
+  for(size_t i = 0; i < node_size + 1; i++) {
+    auto it = std::lower_bound(dataoffp, dataoffp + nrow + 1, each_size * i);
+    if(it != dataoffp + nrow + 1) {
+      divide_row[i] = it - dataoffp;
+    } else {
+      divide_row[i] = nrow;
+    }
+  }
+  std::vector<frovedis::crs_matrix_local<T,int,size_t>> vret(node_size);
+#pragma omp parallel for
+  for(size_t i = 0; i < node_size; i++) {
+    vret[i].local_num_col = ncol;
+    size_t start_row = divide_row[i];
+    size_t end_row = divide_row[i+1];
+    vret[i].local_num_row = end_row - start_row;
+    size_t start_off = dataoffp[start_row];
+    size_t end_off = dataoffp[end_row];
+    size_t off_size = end_off - start_off;
+    vret[i].val.resize(off_size);
+    vret[i].idx.resize(off_size);
+    vret[i].off.resize(end_row - start_row + 1); // off[0] == 0 by ctor
+    T* valp = &vret[i].val[0];
+    int* idxp = &vret[i].idx[0];
+    size_t* offp = &vret[i].off[0];
+    for(size_t j = 0; j < off_size; j++) {
+      valp[j] = datavalp[j + start_off];
+      idxp[j] = dataidxp[j + start_off];
+    }
+    for(size_t j = 0; j < end_row - start_row; j++) {
+      offp[j+1] = offp[j] + (dataoffp[start_row + j + 1] -
+                             dataoffp[start_row + j]);
+    }
+  }
+  return vret;
+}
+
+template <class T>
+std::vector<frovedis::crs_matrix_local<T,size_t,size_t>> 
+  prepare_scattered_crs_matrices(T* datavalp, long* dataidxp, long* dataoffp,
+                                 ulong nrow, ulong ncol, ulong total,
+                                 size_t node_size) {
+  size_t each_size = frovedis::ceil_div(total, node_size);
+  std::vector<size_t> divide_row(node_size+1);
+  for(size_t i = 0; i < node_size + 1; i++) {
+    auto it = std::lower_bound(dataoffp, dataoffp + nrow + 1, each_size * i);
+    if(it != dataoffp + nrow + 1) {
+      divide_row[i] = it - dataoffp;
+    } else {
+      divide_row[i] = nrow;
+    }
+  }
+  std::vector<frovedis::crs_matrix_local<T,size_t,size_t>> vret(node_size);
+#pragma omp parallel for
+  for(size_t i = 0; i < node_size; i++) {
+    vret[i].local_num_col = ncol;
+    size_t start_row = divide_row[i];
+    size_t end_row = divide_row[i+1];
+    vret[i].local_num_row = end_row - start_row;
+    size_t start_off = dataoffp[start_row];
+    size_t end_off = dataoffp[end_row];
+    size_t off_size = end_off - start_off;
+    vret[i].val.resize(off_size);
+    vret[i].idx.resize(off_size);
+    vret[i].off.resize(end_row - start_row + 1); // off[0] == 0 by ctor
+    T* valp = &vret[i].val[0];
+    size_t* idxp = &vret[i].idx[0];
+    size_t* offp = &vret[i].off[0];
+    for(size_t j = 0; j < off_size; j++) {
+      valp[j] = datavalp[j + start_off];
+      idxp[j] = dataidxp[j + start_off];
+    }
+    for(size_t j = 0; j < end_row - start_row; j++) {
+      offp[j+1] = offp[j] + (dataoffp[start_row + j + 1] -
+                             dataoffp[start_row + j]);
+    }
+  }
+  return vret;
+}
+
+void get_exrpc_result(std::vector<frovedis::exrpc_ptr_t>& eps,
+                      std::vector<frovedis::exrpc_result
+                      <frovedis::exrpc_ptr_t>>& res,
+                      size_t wsize) {
+  size_t i = 0;
+  try {
+    for(; i < wsize; ++i) eps[i] = res[i].get();
+  } catch(std::exception& e) {
+    set_status(true,e.what());
+    try { // consume other result
+      for(; i < wsize; ++i) eps[i] = res[i].get();
+    } catch (std::exception& e) {
+      ; // already get the exception
+    }
+  }
+}
+
+template <class T>
+std::vector<rowmajor_matrix_local<T>>
+prepare_scattered_rowmajor_matrices(T* valp, size_t nrow, size_t ncol,
+                                    size_t wsize) {
+  auto rows = get_block_sizes(nrow, wsize);
+  std::vector<size_t> sizevec(wsize);
+  auto sizevecp = sizevec.data();
+  auto rowsp = rows.data();
+  for(size_t i = 0; i < wsize; i++) {
+    sizevecp[i] = rowsp[i] * ncol;
+  }
+  std::vector<size_t> sizepfx(wsize);
+  auto sizepfxp = sizepfx.data();
+  for(size_t i = 0; i < wsize-1; i++) {
+    sizepfxp[i+1] = sizepfxp[i] + sizevecp[i];
+  }
+  std::vector<rowmajor_matrix_local<T>> ret(wsize);
+#pragma omp parallel for
+  for(size_t i = 0; i < wsize; i++) {
+    ret[i].val.resize(sizevecp[i]);
+    auto retp = ret[i].val.data();
+    auto srcp = valp + sizepfxp[i];
+    for(size_t j = 0; j < sizevecp[i]; j++) {
+      retp[j] = srcp[j];
+    }
+    ret[i].set_local_num(rows[i], ncol);
+  }
+  return ret;
+}
+
+
 extern "C" {
 
   // --- frovedis crs matrx create/load/save/view/release ---
@@ -17,26 +151,16 @@ extern "C" {
     exrpc_node fm_node(host,port);
     auto nodes = get_worker_nodes(fm_node);
     auto wsize = nodes.size();
-    // constructing frovedis crs_matrix structure from python raw data 
-    crs_matrix_local<int,int,size_t> mloc(nrow, ncol);
-    std::vector<int> val(nelem);     int* valp    = &val[0];
-    std::vector<int> idx(nelem);     int* idxp    = &idx[0];
-    std::vector<size_t> off(nrow+1); size_t* offp = &off[0];
-    for(size_t i=0; i<nelem;  ++i) valp[i] = vv[i]; 
-    for(size_t i=0; i<nelem;  ++i) idxp[i] = ii[i]; 
-    for(size_t i=0; i<nrow+1; ++i) offp[i] = static_cast<size_t>(oo[i]); 
-    mloc.val.swap(val); mloc.idx.swap(idx); mloc.off.swap(off);
     // scattering scipy crs-data in (python) client side
-    auto mdist = get_scattered_crs_matrices(mloc,wsize);
+    auto mdist = prepare_scattered_crs_matrices(vv, ii, oo, nrow, ncol, nelem,
+                                                wsize);
     std::vector<exrpc_ptr_t> eps(wsize);
-    try {
-      for(size_t i=0; i<wsize; ++i) {
-        eps[i] = exrpc_async(nodes[i],load_local_data<S_LMAT44>,mdist[i]).get();
-      }
+    std::vector<exrpc_result<exrpc_ptr_t>> res(wsize);
+#pragma omp parallel for
+    for(size_t i=0; i<wsize; ++i) {
+      res[i] = exrpc_async(nodes[i],load_local_data<S_LMAT44>,mdist[i]);
     }
-    catch (std::exception& e) {
-      set_status(true, e.what());
-    }
+    get_exrpc_result(eps, res, wsize);
     return eps;
   }
 
@@ -51,26 +175,16 @@ extern "C" {
     exrpc_node fm_node(host,port);
     auto nodes = get_worker_nodes(fm_node);
     auto wsize = nodes.size();
-    // constructing frovedis crs_matrix structure from python raw data 
-    crs_matrix_local<int,size_t,size_t> mloc(nrow, ncol);
-    std::vector<int> val(nelem);     int* valp    = &val[0];
-    std::vector<size_t> idx(nelem);  size_t* idxp = &idx[0];
-    std::vector<size_t> off(nrow+1); size_t* offp = &off[0];
-    for(size_t i=0; i<nelem;  ++i) valp[i] = vv[i]; 
-    for(size_t i=0; i<nelem;  ++i) idxp[i] = static_cast<size_t>(ii[i]); 
-    for(size_t i=0; i<nrow+1; ++i) offp[i] = static_cast<size_t>(oo[i]); 
-    mloc.val.swap(val); mloc.idx.swap(idx); mloc.off.swap(off);
     // scattering scipy crs-data in (python) client side    
-    auto mdist = get_scattered_crs_matrices(mloc,wsize);
+    auto mdist = prepare_scattered_crs_matrices(vv, ii, oo, nrow, ncol, nelem,
+                                                wsize);
     std::vector<exrpc_ptr_t> eps(wsize);
-    try {
-      for(size_t i=0; i<wsize; ++i) {
-        eps[i] = exrpc_async(nodes[i],load_local_data<S_LMAT45>,mdist[i]).get();
-      }
+    std::vector<exrpc_result<exrpc_ptr_t>> res(wsize);
+#pragma omp parallel for
+    for(size_t i=0; i<wsize; ++i) {
+      res[i] = exrpc_async(nodes[i],load_local_data<S_LMAT45>,mdist[i]);
     }
-    catch (std::exception& e) {
-      set_status(true, e.what());
-    } 
+    get_exrpc_result(eps, res, wsize);
     return eps;
   }
 
@@ -85,26 +199,16 @@ extern "C" {
     exrpc_node fm_node(host,port);
     auto nodes = get_worker_nodes(fm_node);
     auto wsize = nodes.size();
-    // constructing frovedis crs_matrix structure from python raw data 
-    crs_matrix_local<long,int,size_t> mloc(nrow, ncol);
-    std::vector<long> val(nelem);    long* valp   = &val[0];
-    std::vector<int> idx(nelem);     int* idxp    = &idx[0];
-    std::vector<size_t> off(nrow+1); size_t* offp = &off[0];
-    for(size_t i=0; i<nelem;  ++i) valp[i] = vv[i]; 
-    for(size_t i=0; i<nelem;  ++i) idxp[i] = ii[i]; 
-    for(size_t i=0; i<nrow+1; ++i) offp[i] = static_cast<size_t>(oo[i]); 
-    mloc.val.swap(val); mloc.idx.swap(idx); mloc.off.swap(off);
     // scattering scipy crs-data in (python) client side    
-    auto mdist = get_scattered_crs_matrices(mloc,wsize);
+    auto mdist = prepare_scattered_crs_matrices(vv, ii, oo, nrow, ncol, nelem,
+                                                wsize);
     std::vector<exrpc_ptr_t> eps(wsize);
-    try {
-      for(size_t i=0; i<wsize; ++i) {
-        eps[i] = exrpc_async(nodes[i],load_local_data<S_LMAT34>,mdist[i]).get();
-      }
+    std::vector<exrpc_result<exrpc_ptr_t>> res(wsize);
+#pragma omp parallel for
+    for(size_t i=0; i<wsize; ++i) {
+      res[i] = exrpc_async(nodes[i],load_local_data<S_LMAT34>,mdist[i]);
     }
-    catch(std::exception& e) {
-      set_status(true,e.what());
-    }
+    get_exrpc_result(eps, res, wsize);
     return eps;
   }
 
@@ -119,26 +223,16 @@ extern "C" {
     exrpc_node fm_node(host,port);
     auto nodes = get_worker_nodes(fm_node);
     auto wsize = nodes.size();
-    // constructing frovedis crs_matrix structure from python raw data 
-    crs_matrix_local<long,size_t,size_t> mloc(nrow, ncol);
-    std::vector<long> val(nelem);    long* valp   = &val[0];
-    std::vector<size_t> idx(nelem);  size_t* idxp = &idx[0];
-    std::vector<size_t> off(nrow+1); size_t* offp = &off[0];
-    for(size_t i=0; i<nelem;  ++i) valp[i] = vv[i]; 
-    for(size_t i=0; i<nelem;  ++i) idxp[i] = static_cast<size_t>(ii[i]); 
-    for(size_t i=0; i<nrow+1; ++i) offp[i] = static_cast<size_t>(oo[i]); 
-    mloc.val.swap(val); mloc.idx.swap(idx); mloc.off.swap(off);
     // scattering scipy crs-data in (python) client side    
-    auto mdist = get_scattered_crs_matrices(mloc,wsize);
+    auto mdist = prepare_scattered_crs_matrices(vv, ii, oo, nrow, ncol, nelem,
+                                                wsize);
     std::vector<exrpc_ptr_t> eps(wsize);
-    try {
-      for(size_t i=0; i<wsize; ++i) {
-        eps[i] = exrpc_async(nodes[i],load_local_data<S_LMAT35>,mdist[i]).get();
-      }
+    std::vector<exrpc_result<exrpc_ptr_t>> res(wsize);
+#pragma omp parallel for
+    for(size_t i=0; i<wsize; ++i) {
+      res[i] = exrpc_async(nodes[i],load_local_data<S_LMAT35>,mdist[i]);
     }
-    catch(std::exception& e) {
-      set_status(true,e.what());
-    }
+    get_exrpc_result(eps, res, wsize);
     return eps;
   }
 
@@ -153,26 +247,16 @@ extern "C" {
     exrpc_node fm_node(host,port);
     auto nodes = get_worker_nodes(fm_node);
     auto wsize = nodes.size();
-    // constructing frovedis crs_matrix structure from python raw data 
-    crs_matrix_local<float,int,size_t> mloc(nrow, ncol);
-    std::vector<float> val(nelem);   float* valp  = &val[0];
-    std::vector<int> idx(nelem);     int* idxp    = &idx[0];
-    std::vector<size_t> off(nrow+1); size_t* offp = &off[0];
-    for(size_t i=0; i<nelem;  ++i) valp[i] = vv[i]; 
-    for(size_t i=0; i<nelem;  ++i) idxp[i] = ii[i]; 
-    for(size_t i=0; i<nrow+1; ++i) offp[i] = static_cast<size_t>(oo[i]); 
-    mloc.val.swap(val); mloc.idx.swap(idx); mloc.off.swap(off);
     // scattering scipy crs-data in (python) client side    
-    auto mdist = get_scattered_crs_matrices(mloc,wsize);
+    auto mdist = prepare_scattered_crs_matrices(vv, ii, oo, nrow, ncol, nelem,
+                                                wsize);
     std::vector<exrpc_ptr_t> eps(wsize);
-    try {
-      for(size_t i=0; i<wsize; ++i) {
-        eps[i] = exrpc_async(nodes[i],load_local_data<S_LMAT24>,mdist[i]).get();
-      }
+    std::vector<exrpc_result<exrpc_ptr_t>> res(wsize);
+#pragma omp parallel for
+    for(size_t i=0; i<wsize; ++i) {
+      res[i] = exrpc_async(nodes[i],load_local_data<S_LMAT24>,mdist[i]);
     }
-    catch(std::exception& e) {
-      set_status(true,e.what());
-    }
+    get_exrpc_result(eps, res, wsize);
     return eps;
   }
 
@@ -187,26 +271,16 @@ extern "C" {
     exrpc_node fm_node(host,port);
     auto nodes = get_worker_nodes(fm_node);
     auto wsize = nodes.size();
-    // constructing frovedis crs_matrix structure from python raw data 
-    crs_matrix_local<float,size_t,size_t> mloc(nrow, ncol);
-    std::vector<float> val(nelem);   float* valp  = &val[0];
-    std::vector<size_t> idx(nelem);  size_t* idxp = &idx[0];
-    std::vector<size_t> off(nrow+1); size_t* offp = &off[0];
-    for(size_t i=0; i<nelem;  ++i) valp[i] = vv[i]; 
-    for(size_t i=0; i<nelem;  ++i) idxp[i] = static_cast<size_t>(ii[i]); 
-    for(size_t i=0; i<nrow+1; ++i) offp[i] = static_cast<size_t>(oo[i]); 
-    mloc.val.swap(val); mloc.idx.swap(idx); mloc.off.swap(off);
     // scattering scipy crs-data in (python) client side    
-    auto mdist = get_scattered_crs_matrices(mloc,wsize);
+    auto mdist = prepare_scattered_crs_matrices(vv, ii, oo, nrow, ncol, nelem,
+                                                wsize);
     std::vector<exrpc_ptr_t> eps(wsize);
-    try {
-      for(size_t i=0; i<wsize; ++i) {
-        eps[i] = exrpc_async(nodes[i],load_local_data<S_LMAT25>,mdist[i]).get();
-      }
+    std::vector<exrpc_result<exrpc_ptr_t>> res(wsize);
+#pragma omp parallel for
+    for(size_t i=0; i<wsize; ++i) {
+      res[i] = exrpc_async(nodes[i],load_local_data<S_LMAT25>,mdist[i]);
     }
-    catch(std::exception& e) {
-      set_status(true,e.what());
-    }
+    get_exrpc_result(eps, res, wsize);
     return eps;
   }
 
@@ -221,26 +295,16 @@ extern "C" {
     exrpc_node fm_node(host,port);
     auto nodes = get_worker_nodes(fm_node);
     auto wsize = nodes.size();
-    // constructing frovedis crs_matrix structure from python raw data 
-    crs_matrix_local<double,int,size_t> mloc(nrow, ncol);
-    std::vector<double> val(nelem);  double* valp = &val[0];
-    std::vector<int> idx(nelem);     int* idxp    = &idx[0];
-    std::vector<size_t> off(nrow+1); size_t* offp = &off[0];
-    for(size_t i=0; i<nelem;  ++i) valp[i] = vv[i]; 
-    for(size_t i=0; i<nelem;  ++i) idxp[i] = ii[i]; 
-    for(size_t i=0; i<nrow+1; ++i) offp[i] = static_cast<size_t>(oo[i]); 
-    mloc.val.swap(val); mloc.idx.swap(idx); mloc.off.swap(off);
     // scattering scipy crs-data in (python) client side    
-    auto mdist = get_scattered_crs_matrices(mloc,wsize);
+    auto mdist = prepare_scattered_crs_matrices(vv, ii, oo, nrow, ncol, nelem,
+                                                wsize);
     std::vector<exrpc_ptr_t> eps(wsize);
-    try {
-      for(size_t i=0; i<wsize; ++i) {
-        eps[i] = exrpc_async(nodes[i],load_local_data<S_LMAT14>,mdist[i]).get();
-      }
+    std::vector<exrpc_result<exrpc_ptr_t>> res(wsize);
+#pragma omp parallel for
+    for(size_t i=0; i<wsize; ++i) {
+      res[i] = exrpc_async(nodes[i],load_local_data<S_LMAT14>,mdist[i]);
     }
-    catch(std::exception& e) {
-      set_status(true,e.what());
-    }
+    get_exrpc_result(eps, res, wsize);
     return eps;
   }
 
@@ -255,26 +319,16 @@ extern "C" {
     exrpc_node fm_node(host,port);
     auto nodes = get_worker_nodes(fm_node);
     auto wsize = nodes.size();
-    // constructing frovedis crs_matrix structure from python raw data 
-    crs_matrix_local<double,size_t,size_t> mloc(nrow, ncol);
-    std::vector<double> val(nelem);  double* valp = &val[0];
-    std::vector<size_t> idx(nelem);  size_t* idxp = &idx[0];
-    std::vector<size_t> off(nrow+1); size_t* offp = &off[0];
-    for(size_t i=0; i<nelem;  ++i) valp[i] = vv[i]; 
-    for(size_t i=0; i<nelem;  ++i) idxp[i] = static_cast<size_t>(ii[i]); 
-    for(size_t i=0; i<nrow+1; ++i) offp[i] = static_cast<size_t>(oo[i]); 
-    mloc.val.swap(val); mloc.idx.swap(idx); mloc.off.swap(off);
     // scattering scipy crs-data in (python) client side    
-    auto mdist = get_scattered_crs_matrices(mloc,wsize);
+    auto mdist = prepare_scattered_crs_matrices(vv, ii, oo, nrow, ncol, nelem,
+                                                wsize);
     std::vector<exrpc_ptr_t> eps(wsize);
-    try {
-      for(size_t i=0; i<wsize; ++i) {
-        eps[i] = exrpc_async(nodes[i],load_local_data<S_LMAT15>,mdist[i]).get();
-      }
+    std::vector<exrpc_result<exrpc_ptr_t>> res(wsize);
+#pragma omp parallel for
+    for(size_t i=0; i<wsize; ++i) {
+      res[i] = exrpc_async(nodes[i],load_local_data<S_LMAT15>,mdist[i]);
     }
-    catch(std::exception& e) {
-      set_status(true,e.what());
-    }
+    get_exrpc_result(eps, res, wsize);
     return eps;
   }
 
@@ -589,17 +643,14 @@ extern "C" {
     auto nodes = get_worker_nodes(fm_node);
     auto wsize = nodes.size();
     // scattering numpy matrix in (python) client side
-    rowmajor_matrix_local<double> mloc(nrow,ncol,vv);
-    auto mdist = get_scattered_rowmajor_matrices(mloc,wsize);
+    auto mdist = prepare_scattered_rowmajor_matrices(vv,nrow,ncol,wsize);
     std::vector<exrpc_ptr_t> eps(wsize);
-    try {
-      for(size_t i=0; i<wsize; ++i) { 
-        eps[i] = exrpc_async(nodes[i],load_local_data<R_LMAT1>,mdist[i]).get();
-      }
+    std::vector<exrpc_result<exrpc_ptr_t>> res(wsize);
+#pragma omp parallel for
+    for(size_t i=0; i<wsize; ++i) { 
+      res[i] = exrpc_async(nodes[i],load_local_data<R_LMAT1>,mdist[i]);
     }
-    catch (std::exception& e) {
-      set_status(true, e.what());
-    }
+    get_exrpc_result(eps, res, wsize);
     return eps;
   }
 
@@ -614,17 +665,14 @@ extern "C" {
     auto nodes = get_worker_nodes(fm_node);
     auto wsize = nodes.size();
     // scattering numpy matrix in (python) client side
-    rowmajor_matrix_local<float> mloc(nrow,ncol,vv);
-    auto mdist = get_scattered_rowmajor_matrices(mloc,wsize);
+    auto mdist = prepare_scattered_rowmajor_matrices(vv,nrow,ncol,wsize);
     std::vector<exrpc_ptr_t> eps(wsize);
-    try {
-      for(size_t i=0; i<wsize; ++i) {
-        eps[i] = exrpc_async(nodes[i],load_local_data<R_LMAT2>,mdist[i]).get();
-      }
+    std::vector<exrpc_result<exrpc_ptr_t>> res(wsize);
+#pragma omp parallel for
+    for(size_t i=0; i<wsize; ++i) {
+      res[i] = exrpc_async(nodes[i],load_local_data<R_LMAT2>,mdist[i]);
     }
-    catch (std::exception& e) {
-      set_status(true, e.what());
-    }
+    get_exrpc_result(eps, res, wsize);
     return eps;
   }
   
@@ -639,17 +687,14 @@ extern "C" {
     auto nodes = get_worker_nodes(fm_node);
     auto wsize = nodes.size();
     // scattering numpy matrix in (python) client side
-    rowmajor_matrix_local<long> mloc(nrow,ncol,vv);
-    auto mdist = get_scattered_rowmajor_matrices(mloc,wsize);
+    auto mdist = prepare_scattered_rowmajor_matrices(vv,nrow,ncol,wsize);
     std::vector<exrpc_ptr_t> eps(wsize);
-    try {
-      for(size_t i=0; i<wsize; ++i) {
-        eps[i] = exrpc_async(nodes[i],load_local_data<R_LMAT3>,mdist[i]).get();
-      }
+    std::vector<exrpc_result<exrpc_ptr_t>> res(wsize);
+#pragma omp parallel for
+    for(size_t i=0; i<wsize; ++i) {
+      res[i] = exrpc_async(nodes[i],load_local_data<R_LMAT3>,mdist[i]);
     }
-    catch (std::exception& e) {
-      set_status(true, e.what());
-    } 
+    get_exrpc_result(eps, res, wsize);
     return eps;
   }
 
@@ -664,17 +709,14 @@ extern "C" {
     auto nodes = get_worker_nodes(fm_node);
     auto wsize = nodes.size();
     // scattering numpy matrix in (python) client side
-    rowmajor_matrix_local<int> mloc(nrow,ncol,vv);
-    auto mdist = get_scattered_rowmajor_matrices(mloc,wsize);
+    auto mdist = prepare_scattered_rowmajor_matrices(vv,nrow,ncol,wsize);
     std::vector<exrpc_ptr_t> eps(wsize);
-    try {
-      for(size_t i=0; i<wsize; ++i) {
-        eps[i] = exrpc_async(nodes[i],load_local_data<R_LMAT4>,mdist[i]).get();
-      }
+    std::vector<exrpc_result<exrpc_ptr_t>> res(wsize);
+#pragma omp parallel for
+    for(size_t i=0; i<wsize; ++i) {
+      res[i] = exrpc_async(nodes[i],load_local_data<R_LMAT4>,mdist[i]);
     }
-    catch (std::exception& e) {
-      set_status(true, e.what());
-    }
+    get_exrpc_result(eps, res, wsize);
     return eps;
   }
 
@@ -978,16 +1020,34 @@ extern "C" {
       auto nodes = get_worker_nodes(fm_node);
       auto wsize = nodes.size();
       std::vector<std::vector<double>> evs(wsize);
-      size_t k = 0, total = 0;
-      for(size_t i=0; i<wsize; ++i) { 
-        evs[i] = exrpc_async(nodes[i],(get_local_array<DT1,R_LMAT1>),eps[i]).get();
-        total += evs[i].size();
+      std::vector<std::exception> exps(wsize);
+      std::vector<int> is_except(wsize);
+#pragma omp parallel for
+      for(size_t i=0; i<wsize; ++i) {
+        try {
+          evs[i] = exrpc_async(nodes[i],(get_local_array<DT1,R_LMAT1>),eps[i]).get();
+        } catch (std::exception& e) {
+          exps[i] = e;
+          is_except[i] = true;
+        }
+      }
+      size_t total = 0;
+      for(size_t i=0; i<wsize; ++i) {
+        if(is_except[i]) throw exps[i];
+        else total += evs[i].size();
+      }
+      std::vector<size_t> sizepfx(wsize);
+      for(size_t i = 0; i < wsize-1; i++) {
+        sizepfx[i+1] = sizepfx[i] + evs[i].size();
       }
       // The gathered size and expected size from client side should match
       checkAssumption(total == sz);
       // (4)
+#pragma omp parallel for
       for(size_t i=0; i<wsize; ++i) {
-        for(size_t j=0; j<evs[i].size(); ++j) ret[k++] = evs[i][j];
+        for(size_t j=0; j<evs[i].size(); ++j) {
+          ret[sizepfx[i]+j] = evs[i][j];
+        }
       }
     }
     catch (std::exception& e) {
@@ -1014,16 +1074,34 @@ extern "C" {
       auto nodes = get_worker_nodes(fm_node);
       auto wsize = nodes.size();
       std::vector<std::vector<float>> evs(wsize);
-      size_t k = 0, total = 0;
+      std::vector<std::exception> exps(wsize);
+      std::vector<int> is_except(wsize);
+#pragma omp parallel for
       for(size_t i=0; i<wsize; ++i) {
-        evs[i] = exrpc_async(nodes[i],(get_local_array<DT2,R_LMAT2>),eps[i]).get();
-        total += evs[i].size();
+        try {
+          evs[i] = exrpc_async(nodes[i],(get_local_array<DT2,R_LMAT2>),eps[i]).get();
+        } catch (std::exception& e) {
+          exps[i] = e;
+          is_except[i] = true;
+        }
+      }
+      size_t total = 0;
+      for(size_t i=0; i<wsize; ++i) {
+        if(is_except[i]) throw exps[i];
+        else total += evs[i].size();
+      }
+      std::vector<size_t> sizepfx(wsize);
+      for(size_t i = 0; i < wsize-1; i++) {
+        sizepfx[i+1] = sizepfx[i] + evs[i].size();
       }
       // The gathered size and expected size from client side should match
       checkAssumption(total == sz);
       // (4)
+#pragma omp parallel for
       for(size_t i=0; i<wsize; ++i) {
-        for(size_t j=0; j<evs[i].size(); ++j) ret[k++] = evs[i][j];
+        for(size_t j=0; j<evs[i].size(); ++j) {
+          ret[sizepfx[i]+j] = evs[i][j];
+        }
       }
     }
     catch (std::exception& e) {
@@ -1050,16 +1128,34 @@ extern "C" {
       auto nodes = get_worker_nodes(fm_node);
       auto wsize = nodes.size();
       std::vector<std::vector<long>> evs(wsize);
-      size_t k = 0, total = 0;
+      std::vector<std::exception> exps(wsize);
+      std::vector<int> is_except(wsize);
+#pragma omp parallel for
       for(size_t i=0; i<wsize; ++i) {
-        evs[i] = exrpc_async(nodes[i],(get_local_array<DT3,R_LMAT3>),eps[i]).get();
-        total += evs[i].size();
+        try {
+          evs[i] = exrpc_async(nodes[i],(get_local_array<DT3,R_LMAT3>),eps[i]).get();
+        } catch (std::exception& e) {
+          exps[i] = e;
+          is_except[i] = true;
+        }
+      }
+      size_t total = 0;
+      for(size_t i=0; i<wsize; ++i) {
+        if(is_except[i]) throw exps[i];
+        else total += evs[i].size();
+      }
+      std::vector<size_t> sizepfx(wsize);
+      for(size_t i = 0; i < wsize-1; i++) {
+        sizepfx[i+1] = sizepfx[i] + evs[i].size();
       }
       // The gathered size and expected size from client side should match
       checkAssumption(total == sz);
       // (4)
+#pragma omp parallel for
       for(size_t i=0; i<wsize; ++i) {
-        for(size_t j=0; j<evs[i].size(); ++j) ret[k++] = evs[i][j];
+        for(size_t j=0; j<evs[i].size(); ++j) {
+          ret[sizepfx[i]+j] = evs[i][j];
+        }
       }
     }
     catch (std::exception& e) {
@@ -1086,16 +1182,34 @@ extern "C" {
       auto nodes = get_worker_nodes(fm_node);
       auto wsize = nodes.size();
       std::vector<std::vector<int>> evs(wsize);
-      size_t k = 0, total = 0;
+      std::vector<std::exception> exps(wsize);
+      std::vector<int> is_except(wsize);
+#pragma omp parallel for
       for(size_t i=0; i<wsize; ++i) {
-        evs[i] = exrpc_async(nodes[i],(get_local_array<DT4,R_LMAT4>),eps[i]).get();
-        total += evs[i].size();
+        try {
+          evs[i] = exrpc_async(nodes[i],(get_local_array<DT4,R_LMAT4>),eps[i]).get();
+        } catch (std::exception& e) {
+          exps[i] = e;
+          is_except[i] = true;
+        }
+      }
+      size_t total = 0;
+      for(size_t i=0; i<wsize; ++i) {
+        if(is_except[i]) throw exps[i];
+        else total += evs[i].size();
+      }
+      std::vector<size_t> sizepfx(wsize);
+      for(size_t i = 0; i < wsize-1; i++) {
+        sizepfx[i+1] = sizepfx[i] + evs[i].size();
       }
       // The gathered size and expected size from client side should match
       checkAssumption(total == sz);
       // (4)
+#pragma omp parallel for
       for(size_t i=0; i<wsize; ++i) {
-        for(size_t j=0; j<evs[i].size(); ++j) ret[k++] = evs[i][j];
+        for(size_t j=0; j<evs[i].size(); ++j) {
+          ret[sizepfx[i]+j] = evs[i][j];
+        }
       }
     }
     catch (std::exception& e) {
