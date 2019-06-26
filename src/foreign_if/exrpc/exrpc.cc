@@ -149,6 +149,18 @@ int handle_exrpc_prepare(int& port) {
   return sockfd;
 }
 
+void inform_no_exposed_function(int fd, const std::string& funcname) {
+  std::string what = std::string("not exposed function is called: ") + funcname;
+  char exception_caught = true;
+  mywrite(fd, &exception_caught, 1);
+  exrpc_count_t send_data_size = what.size();
+  exrpc_count_t send_data_size_nw = myhtonll(send_data_size);
+  mywrite(fd, reinterpret_cast<char*>(&send_data_size_nw),
+          sizeof(send_data_size_nw));
+  mywrite(fd, what.c_str(), send_data_size);
+  ::close(fd);
+}
+
 bool handle_exrpc_onereq(int sockfd, int timeout) {
   int new_sockfd;
   struct sockaddr_in writer_addr;
@@ -191,75 +203,81 @@ bool handle_exrpc_onereq(int sockfd, int timeout) {
   if(hdr.type == exrpc_type::exrpc_async_type) {
     typedef void(*wptype)(intptr_t, my_portable_iarchive&,
                           my_portable_oarchive&);
-    if(expose_table.find(funcname) == expose_table.end())
-      throw std::runtime_error
-        (std::string("calling not exposed function: ") + funcname);
-    wptype wpt = reinterpret_cast<wptype>(expose_table[funcname].first);
-    std::istringstream inss(serialized_arg);
-    my_portable_iarchive inar(inss);
-    std::ostringstream result;
-    my_portable_oarchive outar(result);
-    std::string what;
-    char exception_caught = false; // 1 byte to avoid endian conv.
-    try {
-      wpt(expose_table[funcname].second, inar, outar);
-    } catch (std::exception& e) {
-      exception_caught = true;
-      what = e.what();
-    }
-    mywrite(new_sockfd, &exception_caught, 1); // should be 1
-    std::string resultstr;
-    if(!exception_caught) resultstr = result.str();
-    else resultstr = what;
-    exrpc_count_t send_data_size = resultstr.size();
-    exrpc_count_t send_data_size_nw = myhtonll(send_data_size);
-    mywrite(new_sockfd, reinterpret_cast<char*>(&send_data_size_nw),
-	    sizeof(send_data_size_nw));
-    mywrite(new_sockfd, resultstr.c_str(), resultstr.size());
-    ::close(new_sockfd);
-    return true;
-  } else if(hdr.type == exrpc_type::exrpc_oneway_type) {
-    typedef void(*wptype)(intptr_t, my_portable_iarchive&);
-    if(expose_table.find(funcname) == expose_table.end())
-      throw std::runtime_error
-        (std::string("calling not exposed function: ") + funcname);
-    wptype wpt = reinterpret_cast<wptype>(expose_table[funcname].first);
-    std::istringstream inss(serialized_arg);
-    my_portable_iarchive inar(inss);
-    std::ostringstream result;
-    my_portable_oarchive outar(result);
-    std::string what;
-    char exception_caught = false; // 1 byte to avoid endian conv.
-    try {
-      wpt(expose_table[funcname].second, inar);
-    } catch (std::exception& e) {
-      exception_caught = true;
-      what = e.what();
-    }
-    mywrite(new_sockfd, &exception_caught, 1); // should be 1
-    if(exception_caught) {
-      auto resultstr = what;
+    if(expose_table.find(funcname) == expose_table.end()) {
+      inform_no_exposed_function(new_sockfd, funcname);
+      return true;
+    } else {
+      wptype wpt = reinterpret_cast<wptype>(expose_table[funcname].first);
+      std::istringstream inss(serialized_arg);
+      my_portable_iarchive inar(inss);
+      std::ostringstream result;
+      my_portable_oarchive outar(result);
+      std::string what;
+      char exception_caught = false; // 1 byte to avoid endian conv.
+      try {
+        wpt(expose_table[funcname].second, inar, outar);
+      } catch (std::exception& e) {
+        exception_caught = true;
+        what = e.what();
+      }
+      mywrite(new_sockfd, &exception_caught, 1); // should be 1
+      std::string resultstr;
+      if(!exception_caught) resultstr = result.str();
+      else resultstr = what;
       exrpc_count_t send_data_size = resultstr.size();
       exrpc_count_t send_data_size_nw = myhtonll(send_data_size);
       mywrite(new_sockfd, reinterpret_cast<char*>(&send_data_size_nw),
-	      sizeof(send_data_size_nw));
+              sizeof(send_data_size_nw));
       mywrite(new_sockfd, resultstr.c_str(), resultstr.size());
+      ::close(new_sockfd);
+      return true;
     }
-    ::close(new_sockfd);
-    return true;
+  } else if(hdr.type == exrpc_type::exrpc_oneway_type) {
+    typedef void(*wptype)(intptr_t, my_portable_iarchive&);
+    if(expose_table.find(funcname) == expose_table.end()) {
+      inform_no_exposed_function(new_sockfd, funcname);
+      return true;
+    } else {
+      wptype wpt = reinterpret_cast<wptype>(expose_table[funcname].first);
+      std::istringstream inss(serialized_arg);
+      my_portable_iarchive inar(inss);
+      std::ostringstream result;
+      my_portable_oarchive outar(result);
+      std::string what;
+      char exception_caught = false; // 1 byte to avoid endian conv.
+      try {
+        wpt(expose_table[funcname].second, inar);
+      } catch (std::exception& e) {
+        exception_caught = true;
+        what = e.what();
+      }
+      mywrite(new_sockfd, &exception_caught, 1); // should be 1
+      if(exception_caught) {
+        auto resultstr = what;
+        exrpc_count_t send_data_size = resultstr.size();
+        exrpc_count_t send_data_size_nw = myhtonll(send_data_size);
+        mywrite(new_sockfd, reinterpret_cast<char*>(&send_data_size_nw),
+                sizeof(send_data_size_nw));
+        mywrite(new_sockfd, resultstr.c_str(), resultstr.size());
+      }
+      ::close(new_sockfd);
+      return true;
+    }
   } else if(hdr.type == exrpc_type::exrpc_oneway_noexcept_type) {
     typedef void(*wptype)(intptr_t, my_portable_iarchive&);
-    if(expose_table.find(funcname) == expose_table.end())
-      throw std::runtime_error
-        (std::string("calling not exposed function: ") + funcname);
-    wptype wpt = reinterpret_cast<wptype>(expose_table[funcname].first);
-    std::istringstream inss(serialized_arg);
-    my_portable_iarchive inar(inss);
-    std::ostringstream result;
-    my_portable_oarchive outar(result);
-    wpt(expose_table[funcname].second, inar);
-    ::close(new_sockfd);
-    return true;
+    if(expose_table.find(funcname) == expose_table.end()) {
+      inform_no_exposed_function(new_sockfd, funcname);
+      return true;
+    } else {
+      wptype wpt = reinterpret_cast<wptype>(expose_table[funcname].first);
+      std::istringstream inss(serialized_arg);
+      my_portable_iarchive inar(inss);
+      std::ostringstream result;
+      my_portable_oarchive outar(result);
+      wpt(expose_table[funcname].second, inar);
+      ::close(new_sockfd);
+      return true;
+    }
   } else {
     ::close(new_sockfd);
     return false;
