@@ -8,6 +8,29 @@
 
 namespace frovedis {
 
+void init_shm_info_local() {
+  int r = MPI_Comm_split_type(frovedis_comm_rpc, MPI_COMM_TYPE_SHARED, 0,
+                              MPI_INFO_NULL, &frovedis_shm_comm);
+  if(r != 0) throw std::runtime_error("failed to call MPI_Comm_split_type");
+  MPI_Comm_rank(frovedis_shm_comm, &frovedis_shm_self_rank);
+  MPI_Comm_size(frovedis_shm_comm, &frovedis_shm_comm_size);
+  int color = is_shm_root() ? 0 : 1;
+  r  = MPI_Comm_split(frovedis_comm_rpc, color, 0, &frovedis_shmroot_comm);
+  if(r != 0) throw std::runtime_error("failed to call MPI_Comm_split");
+  MPI_Comm_rank(frovedis_shmroot_comm, &frovedis_shmroot_self_rank);
+  MPI_Comm_size(frovedis_shmroot_comm, &frovedis_shmroot_comm_size);
+  if(frovedis_shm_self_rank == 0) {
+    shm_root_pid = getpid();
+    MPI_Bcast(reinterpret_cast<char*>(&shm_root_pid), sizeof(pid_t),
+              MPI_CHAR, 0, frovedis_shm_comm);
+  } else {
+    MPI_Bcast(reinterpret_cast<char*>(&shm_root_pid), sizeof(pid_t),
+              MPI_CHAR, 0, frovedis_shm_comm);
+  }
+  frovedis_shm_init = true;;
+}
+
+
 pid_t shm_root_pid;
 
 int current_shmid = 1;

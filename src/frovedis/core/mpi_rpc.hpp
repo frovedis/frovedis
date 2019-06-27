@@ -63,7 +63,7 @@ inline NID get_selfid(){return frovedis_self_rank;}
 inline int get_nodesize(){return frovedis_comm_size;}
 
 inline int get_shm_id(){return frovedis_shm_self_rank;}
-inline int get_shm_size(){return frovedis_shm_self_rank;}
+inline int get_shm_size(){return frovedis_shm_comm_size;}
 inline bool is_shm_root(){return frovedis_shm_self_rank == 0 ? true : false;}
 
 enum rpc_type {
