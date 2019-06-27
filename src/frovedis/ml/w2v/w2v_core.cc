@@ -33,6 +33,8 @@
 #include "w2vgemm.hpp"
 #include "w2v_common.hpp"
 
+#include "frovedis/core/mpi_rpc.hpp"
+
 #ifdef W2V_USE_MPI
 #include <mpi.h>
 #endif
@@ -62,6 +64,9 @@
 #define DEBUG(fmt, args...) /* Don't do anything in release builds */
 #endif
 
+namespace frovedis {
+  void init_shm_info_local();
+}
 
 namespace w2v {
 
@@ -365,7 +370,7 @@ void Train_SGNS_general() {
           min(local_train_words, proc_train_words - stream_offset);
 
 #if defined(USE_COMBINED_GEMM_ALL)
-      int are_supposed_parameters =      \ 
+      int are_supposed_parameters =      \
           hidden_size <= 512 &&    \
           hidden_size % 2 == 0 &&  \
           negative == 5 &&         \
@@ -948,7 +953,14 @@ std::vector<float> train_each(std::vector<int> &_proc_train_data,
   vocab_size = _vocab_count.size();
 
   if (num_threads == 0) {
-    num_threads = omp_get_num_procs();
+      frovedis::init_shm_info_local();
+      int num_procs = omp_get_num_procs();
+      int shm_size = frovedis::get_shm_size();
+      if(shm_size == 0) {
+        std::cerr << "WARN: frovedis::get_shm_size() returned 0, num_thrads for OpenMP is set to 1" << std::endl;
+        num_threads = 1;  
+      }
+      num_threads = std::max(num_procs / shm_size, 1);
   }
 
   Train_SGNS_general();
