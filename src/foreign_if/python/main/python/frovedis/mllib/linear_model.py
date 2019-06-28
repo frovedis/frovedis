@@ -13,7 +13,8 @@ class LogisticRegression:
    # lr_rate: Frovedis: 0.01 (added)
    # max_iter: Frovedis: 1000, Sklearn: 100
    # solver: Frovedis: sag (SGD), Sklearn: liblinear
-   def __init__(cls, penalty='l2', dual=False, tol=1e-4, C=1.0,
+   # penalty: Frovedis: none, Sklearn: l2
+   def __init__(cls, penalty='none', dual=False, tol=1e-4, C=1.0,
                 fit_intercept=True, intercept_scaling=1, class_weight=None,
                 random_state=None, solver='sag', max_iter=1000,
                 multi_class='ovr', verbose=0, warm_start=False,
