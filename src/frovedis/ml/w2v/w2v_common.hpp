@@ -40,7 +40,7 @@ read_vector_from_binary_file(const std::string& filename)
   std::vector<T> vec;
   
   struct stat stat_buf;
-  int ret = stat(filename.c_str(), &stat_buf);
+  stat(filename.c_str(), &stat_buf);
   vec.resize(stat_buf.st_size / sizeof(T));
 
   FILE *fp = fopen(filename.c_str(), "rb");
