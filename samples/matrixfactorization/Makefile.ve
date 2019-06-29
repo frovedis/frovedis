@@ -7,4 +7,4 @@ DIR := matrixfactorization
 ARCH := ve
 
 mf: mf.o
-	${LINK} ${CXXFLAGS} -o mf mf.o ${LIBS}
+	${LINK} -o mf mf.o ${LIBS}

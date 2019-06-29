@@ -8,11 +8,11 @@ ARCH := ve
 
 
 cc_BFS: cc_BFS.o
-	${MPICXX} ${CXXFLAGS} -o cc_BFS cc_BFS.o ${LIBS}
+	${LINK} -o cc_BFS cc_BFS.o ${LIBS}
 
 sssp: sssp.o
-	${MPICXX} ${CXXFLAGS} -o sssp sssp.o ${LIBS}
+	${LINK} -o sssp sssp.o ${LIBS}
 
 pagerank: pagerank.o
-	${MPICXX} ${CXXFLAGS} -o pagerank pagerank.o ${LIBS}
+	${LINK} -o pagerank pagerank.o ${LIBS}
 

@@ -7,13 +7,13 @@ DIR := document_matrix
 ARCH := ve
 
 tfidf: tfidf.o
-	${MPICXX} ${CXXFLAGS} -o tfidf tfidf.o ${LIBS}
+	${LINK} -o tfidf tfidf.o ${LIBS}
 
 shrink_mat: shrink_mat.o
-	${MPICXX} ${CXXFLAGS} -o shrink_mat shrink_mat.o ${LIBS}
+	${LINK} -o shrink_mat shrink_mat.o ${LIBS}
 
 show_matrix: show_matrix.o
-	${MPICXX} ${CXXFLAGS} -o show_matrix show_matrix.o ${LIBS}
+	${LINK} -o show_matrix show_matrix.o ${LIBS}
 
 normalize_row: normalize_row.o
-	${MPICXX} ${CXXFLAGS} -o normalize_row normalize_row.o ${LIBS}
+	${LINK} -o normalize_row normalize_row.o ${LIBS}

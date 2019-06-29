@@ -7,4 +7,4 @@ DIR := wikipedia2matrix
 ARCH := ve
 
 wikipedia2matrix: wikipedia2matrix.o
-	${LINK} ${CXXFLAGS} -o wikipedia2matrix wikipedia2matrix.o ${LIBS}
+	${LINK} -o wikipedia2matrix wikipedia2matrix.o ${LIBS}

@@ -13,7 +13,7 @@ CXXFLAGS := ${CXXFLAGS_COMMON} ${INCLUDES}
 all: ${TARGETS}
 
 tut: tut.o
-	${LINK} ${CXXFLAGS} -o tut tut.o ${LIBS}
+	${LINK} -o tut tut.o ${LIBS}
 
 clean:
 	${RM} -r *.o *~ ${TARGETS} result result_binary transposed model t saved.csv

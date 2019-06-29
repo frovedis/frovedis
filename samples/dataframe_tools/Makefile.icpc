@@ -7,7 +7,7 @@ DIR := dataframe_tools
 ARCH := icpc
 
 to_csv: to_csv.o
-	${LINK} ${CXXFLAGS} -o to_csv to_csv.o ${LIBS}
+	${LINK} -o to_csv to_csv.o ${LIBS}
 
 to_binary_df: to_binary_df.o
-	${LINK} ${CXXFLAGS} -o to_binary_df to_binary_df.o ${LIBS}
+	${LINK} -o to_binary_df to_binary_df.o ${LIBS}

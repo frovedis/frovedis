@@ -2,7 +2,7 @@ include ../../../Makefile.in.ve
 include Makefile.common
 
 frovedis_server: frovedis_server.o ${OBJS}
-	${LINK} ${CXXFLAGS} -o frovedis_server frovedis_server.o ${OBJS} ${LIBS}	
+	${LINK} -fopenmp -o frovedis_server frovedis_server.o ${OBJS} ${LIBS}	
 
 libfrovedis_server.a: ${OBJS}
 	${AR} r libfrovedis_server.a ${OBJS}

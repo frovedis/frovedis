@@ -7,4 +7,4 @@ DIR := eigen
 ARCH := ve
 
 eigen: eigen.o
-	${LINK} ${CXXFLAGS} -o eigen eigen.o ${LIBS}
+	${LINK} -o eigen eigen.o ${LIBS}

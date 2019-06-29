@@ -7,5 +7,5 @@ DIR := word2vec
 ARCH := ve
 
 ve_train_word: ve_train_word.o
-	${LINK} ${CXXFLAGS} -fopenmp -o ve_train_word ve_train_word.o ${LIBS}
+	${LINK} -fopenmp -o ve_train_word ve_train_word.o ${LIBS}
 

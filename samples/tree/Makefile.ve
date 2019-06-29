@@ -10,4 +10,4 @@ DIR := tree
 ARCH := ve
 
 ${TARGETS}: %: %.o
-	${LINK} ${CXXFLAGS} -o $@ $^ ${LIBS}
+	${LINK} -o $@ $^ ${LIBS}

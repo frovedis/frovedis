@@ -7,10 +7,10 @@ DIR := svd
 ARCH := ve
 
 svd: svd.o
-	${LINK} ${CXXFLAGS} -o svd svd.o ${LIBS}
+	${LINK} -o svd svd.o ${LIBS}
 
 shrink_svd: shrink_svd.o
-	${LINK} ${CXXFLAGS} -o shrink_svd shrink_svd.o ${LIBS}
+	${LINK} -o shrink_svd shrink_svd.o ${LIBS}
 
 show_topic: show_topic.o
-	${LINK} ${CXXFLAGS} -o show_topic show_topic.o ${LIBS}
+	${LINK} -o show_topic show_topic.o ${LIBS}

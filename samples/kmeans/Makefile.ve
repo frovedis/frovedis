@@ -7,12 +7,12 @@ DIR := kmeans
 ARCH := ve
 
 kmeans: kmeans.o
-	${LINK} ${CXXFLAGS} -o kmeans kmeans.o ${LIBS}
+	${LINK} -o kmeans kmeans.o ${LIBS}
 
 shrink_kmeans: shrink_kmeans.o
-	${LINK} ${CXXFLAGS} -o shrink_kmeans shrink_kmeans.o ${LIBS}
+	${LINK} -o shrink_kmeans shrink_kmeans.o ${LIBS}
 
 kmeans_jds: kmeans.cc
 	${MPICXX} -c ${CXXFLAGS} -DKMEANS_JDS kmeans.cc -o kmeans_jds.o
-	${LINK} ${CXXFLAGS} -o kmeans_jds kmeans_jds.o ${LIBS}
+	${LINK} -o kmeans_jds kmeans_jds.o ${LIBS}
 

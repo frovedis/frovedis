@@ -7,35 +7,35 @@ DIR := glm
 ARCH := ve
 
 lr_sgd: lr_sgd.o
-	${LINK} ${CXXFLAGS} -o lr_sgd lr_sgd.o ${LIBS}
+	${LINK} -o lr_sgd lr_sgd.o ${LIBS}
 
 reg_sgd: reg_sgd.o
-	${LINK} ${CXXFLAGS} -o reg_sgd reg_sgd.o ${LIBS}
+	${LINK} -o reg_sgd reg_sgd.o ${LIBS}
 
 lasso_sgd: lasso_sgd.o
-	${LINK} ${CXXFLAGS} -o lasso_sgd lasso_sgd.o ${LIBS}
+	${LINK} -o lasso_sgd lasso_sgd.o ${LIBS}
 
 ridge_sgd: ridge_sgd.o
-	${LINK} ${CXXFLAGS} -o ridge_sgd ridge_sgd.o ${LIBS}
+	${LINK} -o ridge_sgd ridge_sgd.o ${LIBS}
 
 linsvm_sgd: linsvm_sgd.o
-	${LINK} ${CXXFLAGS} -o linsvm_sgd linsvm_sgd.o ${LIBS}
+	${LINK} -o linsvm_sgd linsvm_sgd.o ${LIBS}
 
 lr_lbfgs: lr_lbfgs.o
-	${LINK} ${CXXFLAGS} -o lr_lbfgs lr_lbfgs.o ${LIBS}
+	${LINK} -o lr_lbfgs lr_lbfgs.o ${LIBS}
 
 reg_lbfgs: reg_lbfgs.o
-	${LINK} ${CXXFLAGS} -o reg_lbfgs reg_lbfgs.o ${LIBS}
+	${LINK} -o reg_lbfgs reg_lbfgs.o ${LIBS}
 
 lasso_lbfgs: lasso_lbfgs.o
-	${LINK} ${CXXFLAGS} -o lasso_lbfgs lasso_lbfgs.o ${LIBS}
+	${LINK} -o lasso_lbfgs lasso_lbfgs.o ${LIBS}
 
 ridge_lbfgs: ridge_lbfgs.o
-	${LINK} ${CXXFLAGS} -o ridge_lbfgs ridge_lbfgs.o ${LIBS}
+	${LINK} -o ridge_lbfgs ridge_lbfgs.o ${LIBS}
 
 linsvm_lbfgs: linsvm_lbfgs.o
-	${LINK} ${CXXFLAGS} -o linsvm_lbfgs linsvm_lbfgs.o ${LIBS}
+	${LINK} -o linsvm_lbfgs linsvm_lbfgs.o ${LIBS}
 
 lr_sgd_shrink: lr_sgd_shrink.o
-	${LINK} ${CXXFLAGS} -o lr_sgd_shrink lr_sgd_shrink.o ${LIBS}
+	${LINK} -o lr_sgd_shrink lr_sgd_shrink.o ${LIBS}
 
