@@ -1,7 +1,7 @@
 include ./Makefile.conf
 include ./Makefile.in.${TARGET}
 
-JOBS := $(shell /usr/bin/nproc)
+JOBS := $(shell /usr/bin/nproc --all)
 
 all:
 	cd third_party; make all

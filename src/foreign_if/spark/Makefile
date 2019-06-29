@@ -1,6 +1,6 @@
 include ../../../Makefile.in.x86
 
-JOBS := $(shell /usr/bin/nproc)
+JOBS := $(shell /usr/bin/nproc --all)
 
 all:
 	install -d ./bin
