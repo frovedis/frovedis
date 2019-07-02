@@ -47,6 +47,7 @@ public:
   {}
 
   tree::algorithm get_algo() const { return algo; }
+  tree::algorithm get_algorithm() const { return get_algo(); }
   size_t get_num_trees() const { return trees.size(); }
 
   size_t get_total_num_nodes() const {

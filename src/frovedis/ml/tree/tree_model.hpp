@@ -657,6 +657,7 @@ public:
   {}
 
   tree::algorithm get_algo() const { return algo; }
+  tree::algorithm get_algorithm() const { return get_algo(); }
   size_t get_height() const { return meta.get_height(); }
   size_t get_num_nodes() const { return meta.get_num_nodes(); }
 
