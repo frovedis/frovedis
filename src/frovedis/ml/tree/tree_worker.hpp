@@ -867,7 +867,6 @@ std::vector<T> left_counter_calcr(
     ret.data(), num_criteria, 0, 0, num_criteria, num_classes
   );
 
-  // TODO: implement bvmm
 _Pragma(__novector__)
   for (size_t i = 0; i < num_records; i += slice_width) {
     const size_t current_width = std::min(num_records - i, slice_width);
