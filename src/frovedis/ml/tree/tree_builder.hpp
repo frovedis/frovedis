@@ -435,16 +435,24 @@ public:
   builder_impl<T, A, F>& operator=(const builder_impl<T, A, F>& src) {
     str = src.str;
     unique_labels = src.unique_labels;
-    full_dataset.clear(); full_labels.clear();
-    work_dataset.clear(); work_labels.clear(); work_splits.clear();
+    // workaround instead of clear()
+    full_dataset = decltype(full_dataset)();
+    full_labels = decltype(full_labels)();
+    work_dataset = decltype(work_dataset)();
+    work_labels = decltype(work_labels)();
+    work_splits = decltype(work_splits)();
     return *this;
   }
 
   builder_impl<T, A, F>& operator=(builder_impl<T, A, F>&& src) {
     str = std::move(src.str);
     unique_labels = std::move(src.unique_labels);
-    full_dataset.clear(); full_labels.clear();
-    work_dataset.clear(); work_labels.clear(); work_splits.clear();
+    // workaround instead of clear()
+    full_dataset = decltype(full_dataset)();
+    full_labels = decltype(full_labels)();
+    work_dataset = decltype(work_dataset)();
+    work_labels = decltype(work_labels)();
+    work_splits = decltype(work_splits)();
     return *this;
   }
 
