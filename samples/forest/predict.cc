@@ -9,7 +9,7 @@
 #include <boost/program_options.hpp>
 
 #include <frovedis.hpp>
-#include <frovedis/ml/tree/forest_model.hpp>
+#include <frovedis/ml/tree/ensemble_model.hpp>
 #include <frovedis/matrix/rowmajor_matrix.hpp>
 
 namespace po = boost::program_options;
