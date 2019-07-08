@@ -1,0 +1,14 @@
+TARGETS := train_classifier train_regressor dump predict
+DEPENDS := ${TARGETS:%=%.d}
+
+include ../Makefile.in.sx
+include ../Makefile.common
+-include ${DEPENDS}
+
+TO_INSTALL := ${TARGETS:%=%.cc}
+DIR := gbts
+ARCH := sx
+
+${TARGETS}: %: %.o
+	${CXX} -prelink ${CXXFLAGS} $^ ${LIBS}
+	${MPICXX} ${CXXFLAGS} -o $@ $^ ${LIBS}
