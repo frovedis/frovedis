@@ -1,5 +1,5 @@
 RECM_OBJS := optimizer.o
-TREE_OBJS := tree_config.o tree_impurity.o tree_utility.o
+TREE_OBJS := tree_config.o tree_impurity.o tree_utility.o gbts_loss.o
 W2V_OBJS := w2v_core.o w2v_corpus.o w2vgemm0.o w2vgemm0_associated.o w2vgemm1.o w2vgemm2.o
 FM_OBJS := main.o
 UTIL_OBJS := batch_chain_communicator.o
@@ -55,6 +55,7 @@ optimizer.o: optimizer.cc
 tree_config.o: tree_config.cc tree_config.hpp
 tree_impurity.o: tree_impurity.cc tree_impurity.hpp
 tree_utility.o: tree_utility.cc tree_utility.hpp
+gbts_loss.o: gbts_loss.cc gbts_loss.hpp tree_impurity.hpp
 
 w2vgemm0.o: w2vgemm0.c
 	${CC} ${CFLAGS} -c $< -o $@

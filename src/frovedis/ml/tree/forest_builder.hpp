@@ -11,7 +11,7 @@
 #include "tree_builder.hpp"
 #include "tree_config.hpp"
 
-#include "forest_model.hpp"
+#include "ensemble_model.hpp"
 
 namespace frovedis {
 
@@ -67,9 +67,9 @@ class random_forest_builder {
 public:
   random_forest_builder(tree::strategy<T>);
 
-  template <typename AlgorithmPolicy, typename ImpurityFunctor>
+  template <typename Policy, typename Impurity>
   random_forest_builder(
-    tree::forest_builder_impl<T, AlgorithmPolicy, ImpurityFunctor> builder
+    tree::forest_builder_impl<T, Policy, Impurity> builder
   ) :
     wrapper(std::move(builder))
   {}

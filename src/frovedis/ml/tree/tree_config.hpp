@@ -10,6 +10,7 @@
 // explicit include for SX
 #include "../../core/unordered_map_serialize.hpp"
 
+#include "gbts_loss.hpp"
 #include "random.hpp"
 #include "tree_impurity.hpp"
 
@@ -139,6 +140,7 @@ inline
 #endif
 R explicit_cast(const T value) { return static_cast<R>(value); }
 
+// TODO: implement validation_tol
 template <typename T>
 struct strategy {
   strategy() {}
@@ -157,6 +159,10 @@ struct strategy {
     const size_t num_trees = 1,
     const ensemble_type ensemble = ensemble_type::None,
     const sampling_strategy<T>& sample_str = sampling_strategy<T>(),
+    const loss_type loss = loss_type::Default,
+    const T learning_rate = 0.1,
+    //const T validation_tol = 0.001,
+    const T delta = default_delta,
     const bool tie_break = false,
     const size_t max_working_matrix_megabytes = 512,
     const bool working_matrix_per_process = false,
@@ -177,6 +183,10 @@ struct strategy {
     num_trees(num_trees),
     ensemble(ensemble),
     sample_str(sample_str),
+    loss(loss),
+    learning_rate(learning_rate),
+    //validation_tol(validation_tol),
+    delta(delta),
     tie_break(tie_break),
     max_working_matrix_megabytes(max_working_matrix_megabytes),
     working_matrix_per_process(working_matrix_per_process),
@@ -254,6 +264,11 @@ struct strategy {
     return *this;
   }
 
+  strategy<T>& set_num_iterations(const size_t num_iterations) {
+    this->num_trees = num_iterations;
+    return *this;
+  }
+
   strategy<T>& set_ensemble_type(const ensemble_type ensemble) {
     this->ensemble = ensemble;
     return *this;
@@ -300,6 +315,33 @@ struct strategy {
 
   strategy<T>& set_feature_subset_rate(const T feature_subset_rate) {
     this->sample_str.fs_rate = feature_subset_rate;
+    return *this;
+  }
+
+  strategy<T>& set_loss_type(const loss_type loss) {
+    this->loss = loss;
+    return *this;
+  }
+
+  strategy<T>& set_loss_type(const std::string& str) {
+    this->loss = get_loss_type(str);
+    return *this;
+  }
+
+  strategy<T>& set_learning_rate(const T learning_rate) {
+    this->learning_rate = learning_rate;
+    return *this;
+  }
+
+/*
+  strategy<T>& set_validation_tol(const T validation_tol) {
+    this->validation_tol = validation_tol;
+    return *this;
+  }
+*/
+
+  strategy<T>& set_delta(const T delta) {
+    this->delta = delta;
     return *this;
   }
 
@@ -371,6 +413,7 @@ struct strategy {
 
   T get_min_info_gain() const { return min_info_gain; }
   size_t get_num_trees() const { return num_trees; }
+  size_t get_num_iterations() const { return get_num_trees(); }
   ensemble_type get_ensemble_type() const { return ensemble; }
 
   const sampling_strategy<T>&
@@ -461,6 +504,11 @@ struct strategy {
     }
   }
 
+  loss_type get_loss_type() const { return loss; }
+  T get_learning_rate() const { return learning_rate; }
+  //T get_validation_tol() const { return validation_tol; }
+  T get_delta() const { return delta; }
+
   bool tie_break_enabled() const { return tie_break; }
 
   size_t get_max_working_matrix_megabytes() const {
@@ -494,11 +542,14 @@ struct strategy {
   size_t num_trees;
   ensemble_type ensemble;
   sampling_strategy<T> sample_str;
+  loss_type loss;
+  T learning_rate, /*validation_tol, */delta;
   bool tie_break;
   size_t max_working_matrix_megabytes;
   bool working_matrix_per_process;
   size_t matmul_threshold, seed;
 
+  static constexpr T default_delta = tree::default_delta<T>();
   static constexpr size_t default_seed = mt19937::default_seed;
 
   SERIALIZE(
@@ -506,14 +557,16 @@ struct strategy {
     categorical_features_info,
     max_depth, num_classes, max_bins,
     min_instances_per_node, min_info_gain,
-    num_trees, ensemble,
-    sample_str, tie_break,
+    num_trees, ensemble, sample_str, loss, learning_rate, /*validation_tol,*/
+    delta, tie_break,
     max_working_matrix_megabytes, working_matrix_per_process,
     matmul_threshold, seed
   )
 };
 
 // a definition for static member
+template <typename T>
+constexpr T strategy<T>::default_delta;
 template <typename T>
 constexpr size_t strategy<T>::default_seed;
 

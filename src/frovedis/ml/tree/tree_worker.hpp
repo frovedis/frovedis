@@ -1865,6 +1865,36 @@ void dataset_compressor(
   compress(indices, src_labels, dest_labels);
 }
 
+// ---------------------------------------------------------------------
+
+template <typename T>
+std::vector<T> inference_initializer(const std::vector<T>& labels) {
+  return std::vector<T>(labels.size(), 0);
+}
+
+template <typename T>
+void inference_updater(
+  const std::vector<size_t>& indices,
+  std::vector<T>& inferences,
+  const T leaf_value
+) {
+  const size_t num_indices = indices.size();
+  const size_t* idx = indices.data();
+  T* dst = inferences.data();
+
+#ifdef _TREE_DEBUG_
+  for (size_t i = 0; i < num_indices; i++) {
+    tree_assert(idx[i] < inferences.size());
+  }
+#endif
+
+_Pragma(__ivdep__)
+  // dst[idx[i]] may be overlapped
+  for (size_t i = 0; i < num_indices; i++) {
+    dst[idx[i]] = leaf_value;
+  }
+}
+
 } // end namespace tree
 } // end namespace frovedis
 

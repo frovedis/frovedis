@@ -401,14 +401,56 @@ inline void compress(
   dest_labels.set_num(num_indices, src_labels.num_col);
 }
 
+// declaration only
+template <typename T, bool Inference, typename Void = void>
+struct inference_helper;
+
+// partial specialization if inferences are not required
+template <typename T, typename Void>
+struct inference_helper<T, false, Void> {
+  // do nothing
+  static void initialize(dvector<T>&, dvector<T>&) {}
+  static void update(dvector<size_t>&, dvector<T>&, const T) {}
+};
+
+// partial specialization if inferences are required
+template <typename T, typename Void>
+struct inference_helper<T, true, Void> {
+  static void initialize(dvector<T>& labels, dvector<T>& inferences) {
+    // TODO: improve performance
+    inferences = labels.viewas_node_local().map(
+      inference_initializer<T>
+    ).template moveto_dvector<T>();
+  }
+
+  static void update(
+    dvector<size_t>& indices,
+    dvector<T>& inferences,
+    const T leaf_value
+  ) {
+    indices.viewas_node_local().mapv(
+      inference_updater<T>,
+      inferences.viewas_node_local(),
+      make_node_local_broadcast(leaf_value)
+    );
+  }
+};
+
 // ---------------------------------------------------------------------
 
-template <typename T, typename A, typename F>
+/*
+ * T: type
+ * A: algorithm policy
+ * F: impurity functor
+ * Z: do inference or not during training
+ */
+template <typename T, typename A, typename F, bool Z = false>
 class builder_impl {
   strategy_helper<T, F> str;
   typename A::unique_labels_t unique_labels;
   colmajor_matrix<T> full_dataset, full_labels;
   colmajor_matrix<T> work_dataset, work_labels, work_splits;
+  dvector<T> inferences;
 
 public:
   builder_impl(
@@ -417,22 +459,26 @@ public:
     str(tree_strategy.move(), std::move(impurity_functor)),
     unique_labels(A::make_unique_labels(str.get_num_classes())),
     full_dataset(), full_labels(),
-    work_dataset(), work_labels(), work_splits()
+    work_dataset(), work_labels(), work_splits(),
+    inferences()
   {}
 
-  builder_impl(const builder_impl<T, A, F>& src) :
+  builder_impl(const builder_impl<T, A, F, Z>& src) :
     str(src.str), unique_labels(src.unique_labels),
     full_dataset(), full_labels(),
-    work_dataset(), work_labels(), work_splits()
+    work_dataset(), work_labels(), work_splits(),
+    inferences()
   {}
 
-  builder_impl(builder_impl<T, A, F>&& src) :
+  builder_impl(builder_impl<T, A, F, Z>&& src) :
     str(std::move(src.str)), unique_labels(std::move(src.unique_labels)),
     full_dataset(), full_labels(),
-    work_dataset(), work_labels(), work_splits()
+    work_dataset(), work_labels(), work_splits(),
+    inferences()
   {}
 
-  builder_impl<T, A, F>& operator=(const builder_impl<T, A, F>& src) {
+  builder_impl<T, A, F, Z>&
+  operator=(const builder_impl<T, A, F, Z>& src) {
     str = src.str;
     unique_labels = src.unique_labels;
     // workaround instead of clear()
@@ -441,10 +487,12 @@ public:
     work_dataset = decltype(work_dataset)();
     work_labels = decltype(work_labels)();
     work_splits = decltype(work_splits)();
+    inferences = decltype(inferences)();
     return *this;
   }
 
-  builder_impl<T, A, F>& operator=(builder_impl<T, A, F>&& src) {
+  builder_impl<T, A, F, Z>&
+  operator=(builder_impl<T, A, F, Z>&& src) {
     str = std::move(src.str);
     unique_labels = std::move(src.unique_labels);
     // workaround instead of clear()
@@ -453,11 +501,15 @@ public:
     work_dataset = decltype(work_dataset)();
     work_labels = decltype(work_labels)();
     work_splits = decltype(work_splits)();
+    inferences = decltype(inferences)();
     return *this;
   }
 
   const strategy<T>& get_strategy() const& { return str; }
   strategy<T> get_strategy() && { return str.move(); }
+
+  dvector<T>& get_inferences() & { return inferences; }
+  dvector<T> get_inferences() && { return std::move(inferences); }
 
   decision_tree_model<T>
   operator()(const colmajor_matrix<T>&, dvector<T>&);
@@ -466,10 +518,11 @@ private:
   std::shared_ptr<node<T>> _build(const size_t, dvector<size_t>&);
 };
 
-template <typename T, typename A, typename F>
-decision_tree_model<T> builder_impl<T, A, F>::operator()(
+template <typename T, typename A, typename F, bool Z>
+decision_tree_model<T> builder_impl<T, A, F, Z>::operator()(
   const colmajor_matrix<T>& dataset, dvector<T>& labels
 ) {
+  // TODO: improve performance
   const ftrace_region __ftr_prepare("# prepare to build");
   tree_assert(dataset.num_row == labels.size());
 
@@ -492,6 +545,7 @@ decision_tree_model<T> builder_impl<T, A, F>::operator()(
   ).template moveto_dvector<size_t>();
   const size_t num_indices = initial_indices.size();
 
+  // TODO: check conflict between sampling and inference
   if (str.subsampling_enabled()) {
     // allocate in advance
     work_dataset.data = make_node_local_allocate<local_matrix_t>();
@@ -527,6 +581,8 @@ decision_tree_model<T> builder_impl<T, A, F>::operator()(
     initial_workbench_gtor<local_matrix_t>
   );
 
+  inference_helper<T, Z>::initialize(labels, inferences);
+
   __ftr_prepare.end();
 
   return decision_tree_model<T>(
@@ -534,8 +590,8 @@ decision_tree_model<T> builder_impl<T, A, F>::operator()(
   );
 }
 
-template <typename T, typename A, typename F>
-std::shared_ptr<node<T>> builder_impl<T, A, F>::_build(
+template <typename T, typename A, typename F, bool Z>
+std::shared_ptr<node<T>> builder_impl<T, A, F, Z>::_build(
   const size_t node_index, dvector<size_t>& current_indices
 ) {
   const nodeid_helper id(node_index);
@@ -597,6 +653,9 @@ std::shared_ptr<node<T>> builder_impl<T, A, F>::_build(
 #ifdef _TREE_DEBUG_
     RLOG(INFO) << "node #" << node_index << " is a leaf" << std::endl;
 #endif
+    inference_helper<T, Z>::update(
+      current_indices, inferences, current_predict.get_predict()
+    );
     return make_leaf<T>(
       node_index, std::move(current_predict), current_impurity
     );
@@ -656,6 +715,9 @@ _Pragma(__novector__)
 #ifdef _TREE_DEBUG_
     RLOG(INFO) << "node #" << node_index << " is a leaf" << std::endl;
 #endif
+    inference_helper<T, Z>::update(
+      current_indices, inferences, current_predict.get_predict()
+    );
     return make_leaf<T>(
       node_index, std::move(current_predict), current_impurity
     );
@@ -676,6 +738,9 @@ _Pragma(__novector__)
 #ifdef _TREE_DEBUG_
     RLOG(INFO) << "node #" << node_index << " is a leaf" << std::endl;
 #endif
+    inference_helper<T, Z>::update(
+      current_indices, inferences, current_predict.get_predict()
+    );
     return make_leaf<T>(
       node_index, std::move(current_predict), current_impurity
     );
@@ -791,9 +856,9 @@ class decision_tree_builder {
 public:
   decision_tree_builder(tree::strategy<T>);
 
-  template <typename AlgorithmPolicy, typename ImpurityFunctor>
+  template <typename Policy, typename Impurity, bool Inference>
   decision_tree_builder(
-    tree::builder_impl<T, AlgorithmPolicy, ImpurityFunctor> builder
+    tree::builder_impl<T, Policy, Impurity, Inference> builder
   ) :
     wrapper(std::move(builder))
   {}
