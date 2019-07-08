@@ -19,7 +19,7 @@ std::vector<frovedis::crs_matrix_local<T,int,size_t>>
     }
   }
   std::vector<frovedis::crs_matrix_local<T,int,size_t>> vret(node_size);
-#pragma omp parallel for
+#pragma omp parallel for num_threads(node_size)
   for(size_t i = 0; i < node_size; i++) {
     vret[i].local_num_col = ncol;
     size_t start_row = divide_row[i];
@@ -62,7 +62,7 @@ std::vector<frovedis::crs_matrix_local<T,size_t,size_t>>
     }
   }
   std::vector<frovedis::crs_matrix_local<T,size_t,size_t>> vret(node_size);
-#pragma omp parallel for
+#pragma omp parallel for num_threads(node_size)
   for(size_t i = 0; i < node_size; i++) {
     vret[i].local_num_col = ncol;
     size_t start_row = divide_row[i];
@@ -123,7 +123,7 @@ prepare_scattered_rowmajor_matrices(T* valp, size_t nrow, size_t ncol,
     sizepfxp[i+1] = sizepfxp[i] + sizevecp[i];
   }
   std::vector<rowmajor_matrix_local<T>> ret(wsize);
-#pragma omp parallel for
+#pragma omp parallel for num_threads(wsize)
   for(size_t i = 0; i < wsize; i++) {
     ret[i].val.resize(sizevecp[i]);
     auto retp = ret[i].val.data();
@@ -156,7 +156,7 @@ extern "C" {
                                                 wsize);
     std::vector<exrpc_ptr_t> eps(wsize);
     std::vector<exrpc_result<exrpc_ptr_t>> res(wsize);
-#pragma omp parallel for
+#pragma omp parallel for num_threads(wsize)
     for(size_t i=0; i<wsize; ++i) {
       res[i] = exrpc_async(nodes[i],load_local_data<S_LMAT44>,mdist[i]);
     }
@@ -180,7 +180,7 @@ extern "C" {
                                                 wsize);
     std::vector<exrpc_ptr_t> eps(wsize);
     std::vector<exrpc_result<exrpc_ptr_t>> res(wsize);
-#pragma omp parallel for
+#pragma omp parallel for num_threads(wsize)
     for(size_t i=0; i<wsize; ++i) {
       res[i] = exrpc_async(nodes[i],load_local_data<S_LMAT45>,mdist[i]);
     }
@@ -204,7 +204,7 @@ extern "C" {
                                                 wsize);
     std::vector<exrpc_ptr_t> eps(wsize);
     std::vector<exrpc_result<exrpc_ptr_t>> res(wsize);
-#pragma omp parallel for
+#pragma omp parallel for num_threads(wsize)
     for(size_t i=0; i<wsize; ++i) {
       res[i] = exrpc_async(nodes[i],load_local_data<S_LMAT34>,mdist[i]);
     }
@@ -228,7 +228,7 @@ extern "C" {
                                                 wsize);
     std::vector<exrpc_ptr_t> eps(wsize);
     std::vector<exrpc_result<exrpc_ptr_t>> res(wsize);
-#pragma omp parallel for
+#pragma omp parallel for num_threads(wsize)
     for(size_t i=0; i<wsize; ++i) {
       res[i] = exrpc_async(nodes[i],load_local_data<S_LMAT35>,mdist[i]);
     }
@@ -252,7 +252,7 @@ extern "C" {
                                                 wsize);
     std::vector<exrpc_ptr_t> eps(wsize);
     std::vector<exrpc_result<exrpc_ptr_t>> res(wsize);
-#pragma omp parallel for
+#pragma omp parallel for num_threads(wsize)
     for(size_t i=0; i<wsize; ++i) {
       res[i] = exrpc_async(nodes[i],load_local_data<S_LMAT24>,mdist[i]);
     }
@@ -276,7 +276,7 @@ extern "C" {
                                                 wsize);
     std::vector<exrpc_ptr_t> eps(wsize);
     std::vector<exrpc_result<exrpc_ptr_t>> res(wsize);
-#pragma omp parallel for
+#pragma omp parallel for num_threads(wsize)
     for(size_t i=0; i<wsize; ++i) {
       res[i] = exrpc_async(nodes[i],load_local_data<S_LMAT25>,mdist[i]);
     }
@@ -300,7 +300,7 @@ extern "C" {
                                                 wsize);
     std::vector<exrpc_ptr_t> eps(wsize);
     std::vector<exrpc_result<exrpc_ptr_t>> res(wsize);
-#pragma omp parallel for
+#pragma omp parallel for num_threads(wsize)
     for(size_t i=0; i<wsize; ++i) {
       res[i] = exrpc_async(nodes[i],load_local_data<S_LMAT14>,mdist[i]);
     }
@@ -324,7 +324,7 @@ extern "C" {
                                                 wsize);
     std::vector<exrpc_ptr_t> eps(wsize);
     std::vector<exrpc_result<exrpc_ptr_t>> res(wsize);
-#pragma omp parallel for
+#pragma omp parallel for num_threads(wsize)
     for(size_t i=0; i<wsize; ++i) {
       res[i] = exrpc_async(nodes[i],load_local_data<S_LMAT15>,mdist[i]);
     }
@@ -646,7 +646,7 @@ extern "C" {
     auto mdist = prepare_scattered_rowmajor_matrices(vv,nrow,ncol,wsize);
     std::vector<exrpc_ptr_t> eps(wsize);
     std::vector<exrpc_result<exrpc_ptr_t>> res(wsize);
-#pragma omp parallel for
+#pragma omp parallel for num_threads(wsize)
     for(size_t i=0; i<wsize; ++i) { 
       res[i] = exrpc_async(nodes[i],load_local_data<R_LMAT1>,mdist[i]);
     }
@@ -668,7 +668,7 @@ extern "C" {
     auto mdist = prepare_scattered_rowmajor_matrices(vv,nrow,ncol,wsize);
     std::vector<exrpc_ptr_t> eps(wsize);
     std::vector<exrpc_result<exrpc_ptr_t>> res(wsize);
-#pragma omp parallel for
+#pragma omp parallel for num_threads(wsize)
     for(size_t i=0; i<wsize; ++i) {
       res[i] = exrpc_async(nodes[i],load_local_data<R_LMAT2>,mdist[i]);
     }
@@ -690,7 +690,7 @@ extern "C" {
     auto mdist = prepare_scattered_rowmajor_matrices(vv,nrow,ncol,wsize);
     std::vector<exrpc_ptr_t> eps(wsize);
     std::vector<exrpc_result<exrpc_ptr_t>> res(wsize);
-#pragma omp parallel for
+#pragma omp parallel for num_threads(wsize)
     for(size_t i=0; i<wsize; ++i) {
       res[i] = exrpc_async(nodes[i],load_local_data<R_LMAT3>,mdist[i]);
     }
@@ -712,7 +712,7 @@ extern "C" {
     auto mdist = prepare_scattered_rowmajor_matrices(vv,nrow,ncol,wsize);
     std::vector<exrpc_ptr_t> eps(wsize);
     std::vector<exrpc_result<exrpc_ptr_t>> res(wsize);
-#pragma omp parallel for
+#pragma omp parallel for num_threads(wsize)
     for(size_t i=0; i<wsize; ++i) {
       res[i] = exrpc_async(nodes[i],load_local_data<R_LMAT4>,mdist[i]);
     }
@@ -1022,7 +1022,7 @@ extern "C" {
       std::vector<std::vector<double>> evs(wsize);
       std::vector<std::exception> exps(wsize);
       std::vector<int> is_except(wsize);
-#pragma omp parallel for
+#pragma omp parallel for num_threads(wsize)
       for(size_t i=0; i<wsize; ++i) {
         try {
           evs[i] = exrpc_async(nodes[i],(get_local_array<DT1,R_LMAT1>),eps[i]).get();
@@ -1043,7 +1043,7 @@ extern "C" {
       // The gathered size and expected size from client side should match
       checkAssumption(total == sz);
       // (4)
-#pragma omp parallel for
+#pragma omp parallel for num_threads(wsize)
       for(size_t i=0; i<wsize; ++i) {
         for(size_t j=0; j<evs[i].size(); ++j) {
           ret[sizepfx[i]+j] = evs[i][j];
@@ -1076,7 +1076,7 @@ extern "C" {
       std::vector<std::vector<float>> evs(wsize);
       std::vector<std::exception> exps(wsize);
       std::vector<int> is_except(wsize);
-#pragma omp parallel for
+#pragma omp parallel for num_threads(wsize)
       for(size_t i=0; i<wsize; ++i) {
         try {
           evs[i] = exrpc_async(nodes[i],(get_local_array<DT2,R_LMAT2>),eps[i]).get();
@@ -1097,7 +1097,7 @@ extern "C" {
       // The gathered size and expected size from client side should match
       checkAssumption(total == sz);
       // (4)
-#pragma omp parallel for
+#pragma omp parallel for num_threads(wsize)
       for(size_t i=0; i<wsize; ++i) {
         for(size_t j=0; j<evs[i].size(); ++j) {
           ret[sizepfx[i]+j] = evs[i][j];
@@ -1130,7 +1130,7 @@ extern "C" {
       std::vector<std::vector<long>> evs(wsize);
       std::vector<std::exception> exps(wsize);
       std::vector<int> is_except(wsize);
-#pragma omp parallel for
+#pragma omp parallel for num_threads(wsize)
       for(size_t i=0; i<wsize; ++i) {
         try {
           evs[i] = exrpc_async(nodes[i],(get_local_array<DT3,R_LMAT3>),eps[i]).get();
@@ -1151,7 +1151,7 @@ extern "C" {
       // The gathered size and expected size from client side should match
       checkAssumption(total == sz);
       // (4)
-#pragma omp parallel for
+#pragma omp parallel for num_threads(wsize)
       for(size_t i=0; i<wsize; ++i) {
         for(size_t j=0; j<evs[i].size(); ++j) {
           ret[sizepfx[i]+j] = evs[i][j];
@@ -1184,7 +1184,7 @@ extern "C" {
       std::vector<std::vector<int>> evs(wsize);
       std::vector<std::exception> exps(wsize);
       std::vector<int> is_except(wsize);
-#pragma omp parallel for
+#pragma omp parallel for num_threads(wsize)
       for(size_t i=0; i<wsize; ++i) {
         try {
           evs[i] = exrpc_async(nodes[i],(get_local_array<DT4,R_LMAT4>),eps[i]).get();
@@ -1205,7 +1205,7 @@ extern "C" {
       // The gathered size and expected size from client side should match
       checkAssumption(total == sz);
       // (4)
-#pragma omp parallel for
+#pragma omp parallel for num_threads(wsize)
       for(size_t i=0; i<wsize; ++i) {
         for(size_t j=0; j<evs[i].size(); ++j) {
           ret[sizepfx[i]+j] = evs[i][j];
