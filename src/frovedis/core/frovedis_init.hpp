@@ -4,7 +4,7 @@
 namespace frovedis {
 
 void initfrovedis(int argc, char* argv[]);
-void finalizefrovedis();
+void finalizefrovedis(int code = 0);
 
 struct use_frovedis {
   use_frovedis(int argc, char* argv[]) {

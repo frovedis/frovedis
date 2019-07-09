@@ -383,11 +383,11 @@ void initfrovedis(int argc, char* argv[]) {
   }
 }
 
-void finalizefrovedis() {
+void finalizefrovedis(int code) {
   std::vector<std::string> dummy;
   send_bcast_rpcreq(rpc_type::finalize_type, 0, 0, "", dummy);
   MPI_Finalize();
-  exit(0);
+  exit(code);
 }
 
 }  
