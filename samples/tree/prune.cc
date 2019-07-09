@@ -56,13 +56,6 @@ void do_prune(const po::variables_map& argmap) {
   );
 }
 
-void abort(const int code = 0) {
-  std::vector<std::string> dummy;
-  send_bcast_rpcreq(rpc_type::finalize_type, 0, 0, "", dummy);
-  MPI_Finalize();
-  exit(code);
-}
-
 po::variables_map parse(int argc, char** argv) {
   // a description of positional arguments
   po::options_description posarg_desc(POSARG_CAPTION);
@@ -118,7 +111,7 @@ po::variables_map parse(int argc, char** argv) {
     po::notify(argmap);
   } catch (const po::error_with_option_name& e) {
     std::cerr << e.what() << std::endl;
-    abort(1);
+    finalizefrovedis(1);
   }
 
   // help message
@@ -146,7 +139,7 @@ po::variables_map parse(int argc, char** argv) {
     }
     std::cerr << optarg_desc;
 
-    abort(0);
+    finalizefrovedis(0);
   }
 
   // check required arguments
@@ -154,7 +147,7 @@ po::variables_map parse(int argc, char** argv) {
     const std::string& name = opt->long_name();
     if (!argmap.count(name)) {
       std::cerr << "missing argument '" << name << "'" << std::endl;
-      abort(1);
+      finalizefrovedis(1);
     }
   }
 
@@ -176,7 +169,7 @@ int main(int argc, char** argv) {
     }
   } catch (const std::exception& e) {
     std::cerr << e.what() << std::endl;
-    abort(1);
+    finalizefrovedis(1);
   }
 
   return 0;
