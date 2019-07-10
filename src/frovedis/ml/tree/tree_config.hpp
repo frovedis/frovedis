@@ -167,7 +167,7 @@ struct strategy {
     const size_t max_working_matrix_megabytes = 512,
     const bool working_matrix_per_process = false,
     const size_t matmul_threshold = 256,
-    const size_t seed = default_seed,
+    const unsigned int seed = default_seed,
     const bool seed_from_random_device = false
   ) :
     algo(algo),
@@ -367,7 +367,7 @@ struct strategy {
     return *this;
   }
 
-  strategy<T>& set_seed(const size_t seed = default_seed) {
+  strategy<T>& set_seed(const unsigned int seed = default_seed) {
     this->seed = seed;
     return *this;
   }
@@ -377,7 +377,8 @@ struct strategy {
     return *this;
   }
 
-  strategy<T>& set_seed(const size_t seed, const bool from_random_device) {
+  strategy<T>&
+  set_seed(const unsigned int seed, const bool from_random_device) {
     if (from_random_device) {
       set_seed_from_random_device();
     } else {
@@ -525,7 +526,7 @@ struct strategy {
   }
 
   size_t get_matmul_threshold() const { return matmul_threshold; }
-  size_t get_seed() const { return seed; }
+  unsigned int get_seed() const { return seed; }
 
   static random_device& get_random_device() {
     static random_device dev;
@@ -547,10 +548,11 @@ struct strategy {
   bool tie_break;
   size_t max_working_matrix_megabytes;
   bool working_matrix_per_process;
-  size_t matmul_threshold, seed;
+  size_t matmul_threshold;
+  unsigned int seed;
 
   static constexpr T default_delta = tree::default_delta<T>();
-  static constexpr size_t default_seed = mt19937::default_seed;
+  static constexpr unsigned int default_seed = mt19937::default_seed;
 
   SERIALIZE(
     algo, impurity, qstrategy, cstrategy,
@@ -568,7 +570,7 @@ struct strategy {
 template <typename T>
 constexpr T strategy<T>::default_delta;
 template <typename T>
-constexpr size_t strategy<T>::default_seed;
+constexpr unsigned int strategy<T>::default_seed;
 
 // shortcut functions
 template <typename T>

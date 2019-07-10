@@ -625,8 +625,8 @@ class decision_tree_model {
 public:
   /*
    * predict_type<DATA> is:
-   * - a single predict if DATA is a single data point
-   * - a vector of predicts if DATA is multi data points (matrix)
+   * - a single prediction if DATA is a single data point
+   * - a vector of predictions if DATA is multi data points (matrix)
    */
   template <typename DATA>
   using predict_type = decltype(

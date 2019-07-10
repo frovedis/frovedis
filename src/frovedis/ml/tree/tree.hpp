@@ -70,7 +70,7 @@ struct random_forest {
     const tree::impurity_type impurity = tree::impurity_type::Default,
     const size_t max_depth = 4,
     const size_t max_bins = 32,
-    const size_t seed = tree::strategy<T>::default_seed
+    const unsigned int seed = tree::strategy<T>::default_seed
   ) {
     auto strategy = tree::make_classification_strategy<T>()
       .set_num_classes(num_classes)
@@ -97,7 +97,7 @@ struct random_forest {
     const tree::impurity_type impurity = tree::impurity_type::Default,
     const size_t max_depth = 4,
     const size_t max_bins = 32,
-    const size_t seed = tree::strategy<T>::default_seed
+    const unsigned int seed = tree::strategy<T>::default_seed
   ) {
     auto strategy = tree::make_regression_strategy<T>()
       .set_categorical_features_info(std::move(categorical_features_info))
@@ -121,7 +121,7 @@ struct gradient_boosted_trees {
     std::unordered_map<size_t, size_t>
     categorical_features_info = std::unordered_map<size_t, size_t>(),
     const tree::impurity_type impurity = tree::impurity_type::Default,
-    const size_t max_depth = 5,
+    const size_t max_depth = 4,
     const size_t max_bins = 32,
     const size_t num_iterations = 10,
     const tree::loss_type loss = tree::loss_type::Default,
@@ -148,7 +148,7 @@ struct gradient_boosted_trees {
     std::unordered_map<size_t, size_t>
     categorical_features_info = std::unordered_map<size_t, size_t>(),
     const tree::impurity_type impurity = tree::impurity_type::Default,
-    const size_t max_depth = 5,
+    const size_t max_depth = 4,
     const size_t max_bins = 32,
     const size_t num_iterations = 10,
     const tree::loss_type loss = tree::loss_type::Default,

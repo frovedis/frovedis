@@ -20,34 +20,34 @@ namespace tree {
 template <typename T, typename G>
 void negative_gradient_calculator(
   std::vector<T>& negative_gradients,
-  const std::vector<T>& predictions,
+  const std::vector<T>& predicts,
   const std::vector<T>& labels,
   G& gfunc
 ) {
   const size_t num_records = negative_gradients.size();
-  tree_assert(predictions.size() == num_records);
+  tree_assert(predicts.size() == num_records);
   tree_assert(labels.size() == num_records);
 
-  const T* pre = predictions.data();
-  const T* lab = labels.data();
+  const T* psrc = predicts.data();
+  const T* lsrc = labels.data();
   T* dst = negative_gradients.data();
 
   for (size_t i = 0; i < num_records; i++) {
-    dst[i] = -gfunc(pre[i], lab[i]);
+    dst[i] = -gfunc(psrc[i], lsrc[i]);
   }
 }
 
 template <typename T>
 void prediction_updater(
-  std::vector<T>& predictions,
+  std::vector<T>& predicts,
   const std::vector<T>& inferences,
   const T learning_rate
 ) {
-  const size_t num_records = predictions.size();
+  const size_t num_records = predicts.size();
   tree_assert(inferences.size() == num_records);
 
   const T* src = inferences.data();
-  T* dst = predictions.data();
+  T* dst = predicts.data();
 
   for (size_t i = 0; i < num_records; i++) {
     dst[i] += src[i] * learning_rate;
@@ -127,8 +127,8 @@ public:
     auto bcas_learning_rate = make_node_local_broadcast(learning_rate);
 
     // get initial predictions by moving inferences
-    dvector<T> predictions = std::move(tree_builder.get_inferences());
-    auto predictions_view = predictions.viewas_node_local();
+    dvector<T> predicts = std::move(tree_builder.get_inferences());
+    auto predicts_view = predicts.viewas_node_local();
 
     // negative gradients keeper
     dvector<T> negative_gradients = labels;
@@ -142,12 +142,12 @@ _Pragma(__novector__)
 #endif
       negative_gradients_view.mapv(
         negative_gradient_calculator<T, G>,
-        predictions_view, labels_view, bcas_gfunc
+        predicts_view, labels_view, bcas_gfunc
       );
 
       dest[i] = tree_builder(dataset, negative_gradients);
 
-      predictions_view.mapv(
+      predicts_view.mapv(
         prediction_updater<T>,
         tree_builder.get_inferences().viewas_node_local(),
         bcas_learning_rate
@@ -160,7 +160,7 @@ _Pragma(__novector__)
 #endif
     negative_gradients_view.mapv(
       negative_gradient_calculator<T, G>,
-      predictions_view, labels_view, bcas_gfunc
+      predicts_view, labels_view, bcas_gfunc
     );
     dest[last_iter] = tree_builder(dataset, negative_gradients);
 
