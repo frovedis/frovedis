@@ -1824,7 +1824,7 @@ A regression example with Boston housing dataset is
 For regression GBTs, several types of loss functions are available:
 "loss_type::LeastSquaresError" and "loss_type::LeastAbsoluteError".
 
-# 4.7 Deep Learning
+## 4.7 Deep Learning
 
 We provide preliminary support of deep neural network. It is based on
 third party library "tiny-dnn", which is very cleanly written C++ deep
