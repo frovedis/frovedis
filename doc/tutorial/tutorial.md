@@ -1624,15 +1624,18 @@ calling `kmeans_assign_cluster`. The result should be like:
     1
     0
 
-## 4.5 Decision Tree
+## 4.5 Decision Trees
 
-We provide decision tree algorithms for classification and regression.
-Currently, dense data format is supported.
+We provide decision tree and tree ensemble algorithms
+for classification and regression.
+Currently, a dense data format is supported.
 
-Please look at "src/tut4.5-1/tut.cc".
+### 4.5.1 Decision Tree
+
+Please look at "src/tut4.5.1-1/tut.cc".
 This is a classification tree example
 with data created from the iris dataset.
-Unlike "tut4.1-1", the label contains "0", "1", or "2" for each sample.
+Unlike "tut4.1-1", the label is "0", "1", or "2" for each sample.
 The following function builds a classification tree model.
 
     auto model = frovedis::decision_tree::train_classifier(
@@ -1646,20 +1649,20 @@ There are problem specification parameters and tunable parameters.
 Please specify `num_classes` and `categorical_features_info`
 depending on the problem you want to solve and your dataset.
 The number of classes is specified by `num_classes`.
-Here, this example is a three-class classification problem.
+Here, this example is a 3-class classification problem.
 You can specify categorical features&apos; information,
 which gives column indices of categorical features and
 the number of categories for those features
 (but here, `categorical_features_info` is leaved empty
  because the iris dataset has no categorical feature).
 For example, an unordered_map \{ \{0, 2\}, \{4, 5\} \} means that
-feature\[0\] takes values 0 or 1 (binary) and
-feature\[4\] has five categories (values 0, 1, 2, 3 or 4).
-Note that feature indices are zero-based.
+the feature\[0\] takes values 0 or 1 (binary) and
+the feature\[4\] has five categories (values 0, 1, 2, 3 or 4).
+Note that feature indices and category assignments are 0-based.
 
 The following parameters may be tuned.
-The impurity function is specified by `impurity`.
-Several types of impurity function are available:
+An impurity function is specified by `impurity`.
+Several types of impurity functions are available:
 typical one is "impurity_type::Gini" or "impurity_type::Entropy"
 for classification problems.
 The default impurity function is the Gini impurity.
@@ -1695,12 +1698,12 @@ If the "Split" condition is true,
 the first child node is the next place, otherwise the second child node.
 For example, when you look at the node &lt;1&gt; and
 if the condition "feature[2] < 1.92188" is false,
-the next place is node &lt;3&gt;.
-"IG" indicates the information gain with the spliting.
+the next place is the node &lt;3&gt;.
+The "IG" indicates the information gain with the spliting.
 
-A tree model&apos;s `predict` method returns predicted results.
-If you need a probability of a prediction,
-please use the `predict_with_probability` method.
+A `predict` method of a tree model returns predicted results.
+If you need a probability of the prediction,
+please use a `predict_with_probability` method.
 For example, the following statement prints
 predicted classes and their probabilities.
 
@@ -1709,10 +1712,11 @@ predicted classes and their probabilities.
                 << result.get_probability() * 100 << "%)" << std::endl;
     }
 
-Next, please look at "src/tut4.5-2/tut.cc".
+Next, please look at "src/tut4.5.1-2/tut.cc".
 This is a regression tree example
 with data created from the Boston housing dataset.
 Most of the part is the same as the classification case.
+The following function builds a regression tree model.
 
     auto model = frovedis::decision_tree::train_regressor(
       dataset, labels,
@@ -1724,8 +1728,101 @@ There is no `num_classes` parameter.
 About an impurity function, typical one is "impurity_type::Variance"
 for regression problems.
 A constructed tree model has common methods for classification/regression,
-but a regression tree&apos;s predicted probabilities make no sense
-(those values are always set to zero).
+but probabilities which are predicted by a regression tree model
+make no sense (those values are always set to 0).
+
+### 4.5.2 Random Forest
+
+Random forest is a tree ensemble algorithm based on decision trees,
+and many of parameters are common with the decision tree.
+Here, we describe some additional parameters.
+Please look at "src/tut4.5.2-1/tut.cc".
+This is a classification example
+with the same iris dataset as "tut4.5.1-1".
+The following function builds a classification forest model.
+
+    auto model = frovedis::random_forest::train_classifier(
+      dataset, labels,
+      num_classes, categorical_features_info,
+      num_trees, feature_subset_strategy,
+      impurity, max_depth, max_bins,
+      seed
+    );
+
+There are additional parameters
+`num_trees`, `feature_subset_strategy`, and `seed`.
+Please specify `num_trees` as the number of trees.
+In this example `num_trees` is set to 3,
+but please set a more large number in practice.
+It depends on the dataset size and the feature dimension,
+but generally speaking, hundreds or thousands of trees are effective.
+
+Random forest does subsampling (sampling from dataset rows)
+for each tree and does feature-sampling (sampling from dataset columns)
+for each tree node.
+The default subsampling strategy is bootstrapping.
+You can specify a feature-sampling strategy by `feature_subset_strategy`,
+and typical one is "feature_subset_strategy::Sqrt"
+for classification problems.
+This means, when the feature dimension is `m`,
+only `sqrt(m)`-pieces of features are used
+for each tree node construction.
+At last, `seed` is a random seed.
+In this example, `seed` is set to current time,
+so you may get different results on every execution.
+
+A regression example with Boston housing dataset is
+"src/tut4.5.2-2/tut.cc", and its parameters are almost the same
+as the classification case.
+For regression forest, a typical feature-sampling strategy is
+"feature_subset_strategy::OneThird".
+This means only `m/3`-pieces of features are used
+when the feature dimension is `m`.
+
+### 4.5.3 Gradient Boosted Trees
+
+Gradient Boosted Trees (GBTs) algorithm,
+a.k.a. Gradient Boosting Decision Trees (GBDT) algorithm,
+is provided for \{1, -1\} binary classification and for regression.
+Multi-class classification is not supported,
+so please use decision tree or random forest
+for multi-class classification problems.
+
+Please look at "src/tut4.5.3-1/tut.cc".
+This is a \{1, -1\} binary classification example
+with data created from the iris dataset
+(but the label is different from "tut4.1-1";
+ "Iris-virginica" is assigned to 1, otherwise -1).
+Again, please note that labels must be \{1, -1\}, not \{0, 1\}, for GBTs.
+The following function builds a classification GBTs model.
+
+    auto model = frovedis::gradient_boosted_trees::train_classifier(
+      dataset, labels,
+      categorical_features_info,
+      impurity, max_depth, max_bins,
+      num_iterations, loss, learning_rate
+    );
+
+There are additional parameters
+`num_iterations`, `loss`, and `learning_rate`.
+But please take care of `impurity` as well.
+Even if classification GBTs, it is internally based on *regression* trees,
+so `impurity` must be set to an impurity function for *regression*.
+Again, a typical impurity function for regression is
+"impurity_type::Variance".
+
+Let&apos;s look into parameters for GBTs.
+Like as random forest,
+please specify `num_iterations` as the number of trees.
+A loss function is specified by `loss` and
+"loss_type::LogLoss" is available for classification problems.
+It works like logistic regression.
+You can tune a learning rate by `learning_rate`.
+
+A regression example with Boston housing dataset is
+"src/tut4.5.3-2/tut.cc".
+For regression GBTs, several types of loss functions are available:
+"loss_type::LeastSquaresError" and "loss_type::LeastAbsoluteError".
 
 # 4.7 Deep Learning
 
