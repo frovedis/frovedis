@@ -302,7 +302,7 @@ public:
     tree_ensemble_model<T>(algo, std::move(trees)),
     weights(std::move(weights))
   {
-    tree_assert(this->get_num_trees() == weights.size());
+    tree_assert(this->get_num_trees() == this->weights.size());
   }
 
   const std::vector<T>& get_tree_weights() const& { return weights; }
