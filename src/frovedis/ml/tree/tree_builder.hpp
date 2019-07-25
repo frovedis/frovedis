@@ -10,6 +10,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <typeinfo>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -461,7 +462,11 @@ public:
     full_dataset(), full_labels(),
     work_dataset(), work_labels(), work_splits(),
     inferences()
-  {}
+  {
+#ifdef _TREE_DEBUG_
+    RLOG(INFO) << typeid(*this).name() << std::endl;
+#endif
+  }
 
   builder_impl(const builder_impl<T, A, F, Z>& src) :
     str(src.str), unique_labels(src.unique_labels),
