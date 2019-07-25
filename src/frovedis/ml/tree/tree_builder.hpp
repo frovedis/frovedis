@@ -418,7 +418,6 @@ struct inference_helper<T, false, Void> {
 template <typename T, typename Void>
 struct inference_helper<T, true, Void> {
   static void initialize(dvector<T>& labels, dvector<T>& inferences) {
-    // TODO: improve performance
     inferences = labels.viewas_node_local().map(
       inference_initializer<T>
     ).template moveto_dvector<T>();
@@ -527,10 +526,10 @@ template <typename T, typename A, typename F, bool Z>
 decision_tree_model<T> builder_impl<T, A, F, Z>::operator()(
   const colmajor_matrix<T>& dataset, dvector<T>& labels
 ) {
-  // TODO: improve performance
   const ftrace_region __ftr_prepare("# prepare to build");
   tree_assert(dataset.num_row == labels.size());
 
+  // TODO: implement an option to fix full_dataset/labels
   constexpr bool as_view = true;
   using node_local_t = decltype(full_dataset.data);
   full_dataset.data = node_local_t(dataset.data.get_dvid(), as_view);

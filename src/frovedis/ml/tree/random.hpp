@@ -748,7 +748,7 @@ public:
     return ret;
   }
 
-  // TODO: optimize
+  // TODO: improve performance
   template <typename U, asl_randommethod_t Method>
   void operator()(
     asl_random_wrapper<U, Method>& w, const size_t num, result_type* dest

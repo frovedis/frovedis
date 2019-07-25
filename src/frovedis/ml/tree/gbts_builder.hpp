@@ -198,7 +198,7 @@ public:
   // TODO: implement run_with_validation
 };
 
-// TODO: simplify
+// TODO: simplify ctor of gbts-builder
 template <typename T>
 gradient_boosted_trees_builder<T>::gradient_boosted_trees_builder(
   tree::strategy<T> strategy

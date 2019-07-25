@@ -321,7 +321,7 @@ public:
     }
   }
 
-  // TODO: implement
+  // TODO: implement evaluate_each_iteration
   std::vector<T> evaluate_each_iteration(
     const std::vector<T>& data, const T label,
     const tree::loss_type loss
