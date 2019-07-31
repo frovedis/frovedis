@@ -2,7 +2,6 @@
 #define _TREE_BUILDER_HPP_
 
 #include <algorithm>
-#include <functional>
 #include <iterator>
 #include <iostream>
 #include <memory>
@@ -438,6 +437,27 @@ struct inference_helper<T, true, Void> {
 
 // ---------------------------------------------------------------------
 
+template <typename T, typename MODEL>
+class model_builder {
+public:
+  model_builder() {}
+  model_builder(const model_builder<T, MODEL>&) = delete;
+  model_builder(model_builder<T, MODEL>&&) = delete;
+
+  model_builder<T, MODEL>&
+  operator=(const model_builder<T, MODEL>&) = delete;
+  model_builder<T, MODEL>&
+  operator=(model_builder<T, MODEL>&&) = delete;
+
+  virtual ~model_builder() {}
+
+  virtual std::unique_ptr<model_builder<T, MODEL>> copy_ptr() const = 0;
+  virtual MODEL build(const colmajor_matrix<T>&, dvector<T>&) = 0;
+};
+
+template <typename T>
+using unitree_builder = model_builder<T, decision_tree_model<T>>;
+
 /*
  * T: type
  * A: algorithm policy
@@ -445,7 +465,7 @@ struct inference_helper<T, true, Void> {
  * Z: do inference or not during training
  */
 template <typename T, typename A, typename F, bool Z = false>
-class builder_impl {
+class unitree_builder_impl : public unitree_builder<T> {
   strategy_helper<T, F> str;
   typename A::unique_labels_t unique_labels;
   colmajor_matrix<T> full_dataset, full_labels;
@@ -453,7 +473,7 @@ class builder_impl {
   dvector<T> inferences;
 
 public:
-  builder_impl(
+  explicit unitree_builder_impl(
     strategy<T> tree_strategy, F impurity_functor = F()
   ) :
     str(tree_strategy.move(), std::move(impurity_functor)),
@@ -467,22 +487,22 @@ public:
 #endif
   }
 
-  builder_impl(const builder_impl<T, A, F, Z>& src) :
+  unitree_builder_impl(const unitree_builder_impl<T, A, F, Z>& src) :
     str(src.str), unique_labels(src.unique_labels),
     full_dataset(), full_labels(),
     work_dataset(), work_labels(), work_splits(),
     inferences()
   {}
 
-  builder_impl(builder_impl<T, A, F, Z>&& src) :
+  unitree_builder_impl(unitree_builder_impl<T, A, F, Z>&& src) :
     str(std::move(src.str)), unique_labels(std::move(src.unique_labels)),
     full_dataset(), full_labels(),
     work_dataset(), work_labels(), work_splits(),
     inferences()
   {}
 
-  builder_impl<T, A, F, Z>&
-  operator=(const builder_impl<T, A, F, Z>& src) {
+  unitree_builder_impl<T, A, F, Z>&
+  operator=(const unitree_builder_impl<T, A, F, Z>& src) {
     str = src.str;
     unique_labels = src.unique_labels;
     // workaround instead of clear()
@@ -495,8 +515,8 @@ public:
     return *this;
   }
 
-  builder_impl<T, A, F, Z>&
-  operator=(builder_impl<T, A, F, Z>&& src) {
+  unitree_builder_impl<T, A, F, Z>&
+  operator=(unitree_builder_impl<T, A, F, Z>&& src) {
     str = std::move(src.str);
     unique_labels = std::move(src.unique_labels);
     // workaround instead of clear()
@@ -509,21 +529,33 @@ public:
     return *this;
   }
 
+  virtual ~unitree_builder_impl() override {}
+
   const strategy<T>& get_strategy() const& { return str; }
   strategy<T> get_strategy() && { return str.move(); }
 
   dvector<T>& get_inferences() & { return inferences; }
   dvector<T> get_inferences() && { return std::move(inferences); }
 
+  virtual std::unique_ptr<unitree_builder<T>> copy_ptr() const override {
+    return std::make_unique<unitree_builder_impl<T, A, F, Z>>(*this);
+  }
+
+  virtual decision_tree_model<T>
+  build(const colmajor_matrix<T>&, dvector<T>&) override;
+
+  // TODO: delete
   decision_tree_model<T>
-  operator()(const colmajor_matrix<T>&, dvector<T>&);
+  operator()(const colmajor_matrix<T>& x, dvector<T>& v) {
+    return this->build(x, v);
+  }
 
 private:
   std::shared_ptr<node<T>> _build(const size_t, dvector<size_t>&);
 };
 
 template <typename T, typename A, typename F, bool Z>
-decision_tree_model<T> builder_impl<T, A, F, Z>::operator()(
+decision_tree_model<T> unitree_builder_impl<T, A, F, Z>::build(
   const colmajor_matrix<T>& dataset, dvector<T>& labels
 ) {
   const ftrace_region __ftr_prepare("# prepare to build");
@@ -595,7 +627,7 @@ decision_tree_model<T> builder_impl<T, A, F, Z>::operator()(
 }
 
 template <typename T, typename A, typename F, bool Z>
-std::shared_ptr<node<T>> builder_impl<T, A, F, Z>::_build(
+std::shared_ptr<node<T>> unitree_builder_impl<T, A, F, Z>::_build(
   const size_t node_index, dvector<size_t>& current_indices
 ) {
   const nodeid_helper id(node_index);
@@ -847,36 +879,77 @@ _Pragma(__novector__)
   );
 }
 
+template <
+  typename T, typename A, typename F, bool Z = false,
+  typename... Args
+>
+inline std::unique_ptr<unitree_builder<T>>
+make_unitree_builder(Args&&... args) {
+  return std::make_unique<unitree_builder_impl<T, A, F, Z>>(
+    std::forward<Args>(args)...
+  );
+}
+
 } // end namespace tree
 
 // ---------------------------------------------------------------------
 
 template <typename T>
 class decision_tree_builder {
-  std::function<
-    decision_tree_model<T>(const colmajor_matrix<T>&, dvector<T>&)
-  > wrapper;
+  std::unique_ptr<tree::unitree_builder<T>> builder_ptr;
 
 public:
-  decision_tree_builder(tree::strategy<T>);
+  explicit decision_tree_builder(tree::strategy<T>);
 
-  template <typename Policy, typename Impurity, bool Inference>
-  decision_tree_builder(
-    tree::builder_impl<T, Policy, Impurity, Inference> builder
+  decision_tree_builder(const decision_tree_builder<T>& src) :
+    builder_ptr(src.builder_ptr->copy_ptr())
+  {}
+
+  decision_tree_builder(decision_tree_builder<T>&& src) :
+    builder_ptr(std::move(src.builder_ptr))
+  {}
+
+  decision_tree_builder<T>&
+  operator=(const decision_tree_builder<T>& src) {
+    this->builder_ptr = src.builder_ptr->copy_ptr();
+    return *this;
+  }
+
+  decision_tree_builder<T>&
+  operator=(decision_tree_builder<T>&& src) {
+    this->builder_ptr = std::move(src.builder_ptr);
+    return *this;
+  }
+
+  // ctor from a pointer of any unitree_builder_impl<...>
+  explicit decision_tree_builder(
+    std::unique_ptr<tree::unitree_builder<T>>&& ptr
   ) :
-    wrapper(std::move(builder))
+    builder_ptr(std::move(ptr))
+  {}
+
+  // ctor from an object of any unitree_builder_impl<...>
+  template <typename Policy, typename Impurity, bool Inference>
+  explicit decision_tree_builder(
+    tree::unitree_builder_impl<T, Policy, Impurity, Inference> builder
+  ) :
+    builder_ptr(
+      tree::make_unitree_builder<T, Policy, Impurity, Inference>(
+        std::move(builder)
+      )
+    )
   {}
 
   decision_tree_model<T>
   run(const colmajor_matrix<T>& dataset, dvector<T>& labels) {
-    return wrapper(dataset, labels);
+    return builder_ptr->build(dataset, labels);
   }
 };
 
 template <typename T>
 decision_tree_builder<T>::decision_tree_builder(
   tree::strategy<T> strategy
-) : wrapper() {
+) : builder_ptr() {
   using namespace tree;
   using CLA = classification_policy<T>;
   using REG = regression_policy<T>;
@@ -893,13 +966,13 @@ decision_tree_builder<T>::decision_tree_builder(
     switch (strategy.impurity) {
     case impurity_type::Default:
     case impurity_type::Gini:
-      wrapper = builder_impl<T, CLA, GIN>(strategy.move());
+      builder_ptr = make_unitree_builder<T, CLA, GIN>(strategy.move());
       return;
     case impurity_type::Entropy:
-      wrapper = builder_impl<T, CLA, ENT>(strategy.move());
+      builder_ptr = make_unitree_builder<T, CLA, ENT>(strategy.move());
       return;
     case impurity_type::MisclassRate:
-      wrapper = builder_impl<T, CLA, MCR>(strategy.move());
+      builder_ptr = make_unitree_builder<T, CLA, MCR>(strategy.move());
       return;
     default:
       throw std::logic_error("invalid impurity type");
@@ -908,16 +981,16 @@ decision_tree_builder<T>::decision_tree_builder(
     switch (strategy.impurity) {
     case impurity_type::Default:
     case impurity_type::Variance:
-      wrapper = builder_impl<T, REG, VAR>(strategy.move());
+      builder_ptr = make_unitree_builder<T, REG, VAR>(strategy.move());
       return;
     case impurity_type::FriedmanVariance:
-      wrapper = builder_impl<T, REG, FRM>(strategy.move());
+      builder_ptr = make_unitree_builder<T, REG, FRM>(strategy.move());
       return;
     case impurity_type::DefVariance:
-      wrapper = builder_impl<T, REG, MSE>(strategy.move());
+      builder_ptr = make_unitree_builder<T, REG, MSE>(strategy.move());
       return;
     case impurity_type::MeanAbsError:
-      wrapper = builder_impl<T, REG, MAE>(strategy.move());
+      builder_ptr = make_unitree_builder<T, REG, MAE>(strategy.move());
       return;
     default:
       throw std::logic_error("invalid impurity type");

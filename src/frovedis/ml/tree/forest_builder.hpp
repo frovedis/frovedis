@@ -1,7 +1,7 @@
 #ifndef _FOREST_BUILDER_HPP_
 #define _FOREST_BUILDER_HPP_
 
-#include <functional>
+#include <memory>
 #include <utility>
 #include <vector>
 
@@ -17,37 +17,66 @@ namespace frovedis {
 
 namespace tree {
 
+template <typename T>
+using forest_builder = model_builder<T, random_forest_model<T>>;
+
 template <typename T, typename A, typename F>
-class forest_builder_impl {
-  builder_impl<T, A, F> tree_builder;
+class forest_builder_impl : public forest_builder<T> {
+  unitree_builder_impl<T, A, F> builder;
 
 public:
-  forest_builder_impl(
+  explicit forest_builder_impl(
     strategy<T> tree_strategy, F impurity_functor = F()
   ) :
-    tree_builder(
+    builder(
       tree_strategy.set_ensemble_type(ensemble_type::RandomForest).move(),
       std::move(impurity_functor)
     )
   {}
 
+  forest_builder_impl(const forest_builder_impl<T, A, F>& src) :
+    builder(src.builder)
+  {}
+
+  forest_builder_impl(forest_builder_impl<T, A, F>&& src) :
+    builder(std::move(src.builder))
+  {}
+
+  forest_builder_impl<T, A, F>&
+  operator=(const forest_builder_impl<T, A, F>& src) {
+    this->builder = src.builder;
+    return *this;
+  }
+
+  forest_builder_impl<T, A, F>&
+  operator=(forest_builder_impl<T, A, F>&& src) {
+    this->builder = std::move(src.builder);
+    return *this;
+  }
+
+  virtual ~forest_builder_impl() override {}
+
   const strategy<T>& get_strategy() const& {
-    return tree_builder.get_strategy();
+    return builder.get_strategy();
   }
 
   strategy<T> get_strategy() && {
-    return std::move(tree_builder.get_strategy());
+    return std::move(builder.get_strategy());
   }
 
-  random_forest_model<T>
-  operator()(const colmajor_matrix<T>& dataset, dvector<T>& labels) {
+  virtual std::unique_ptr<forest_builder<T>> copy_ptr() const override {
+    return std::make_unique<forest_builder_impl<T, A, F>>(*this);
+  }
+
+  virtual random_forest_model<T>
+  build(const colmajor_matrix<T>& dataset, dvector<T>& labels) override {
     const size_t num_trees = get_strategy().get_num_trees();
     std::vector<decision_tree_model<T>> trees(num_trees);
     decision_tree_model<T>* dest = trees.data();
 
 _Pragma(__novector__)
     for (size_t i = 0; i < num_trees; i++) {
-      dest[i] = tree_builder(dataset, labels);
+      dest[i] = builder(dataset, labels);
     }
 
     return random_forest_model<T>(
@@ -56,34 +85,70 @@ _Pragma(__novector__)
   }
 };
 
+template <typename T, typename A, typename F, typename... Args>
+inline std::unique_ptr<forest_builder<T>>
+make_forest_builder(Args&&... args) {
+  return std::make_unique<forest_builder_impl<T, A, F>>(
+    std::forward<Args>(args)...
+  );
+}
+
 } // end namespace tree
 
 template <typename T>
 class random_forest_builder {
-  std::function<
-    random_forest_model<T>(const colmajor_matrix<T>&, dvector<T>&)
-  > wrapper;
+  std::unique_ptr<tree::forest_builder<T>> builder_ptr;
 
 public:
-  random_forest_builder(tree::strategy<T>);
+  explicit random_forest_builder(tree::strategy<T>);
 
+  random_forest_builder(const random_forest_builder<T>& src) :
+    builder_ptr(src.builder_ptr->copy_ptr())
+  {}
+
+  random_forest_builder(random_forest_builder<T>&& src) :
+    builder_ptr(std::move(src.builder_ptr))
+  {}
+
+  random_forest_builder<T>&
+  operator=(const random_forest_builder<T>& src) {
+    this->builder_ptr = src.builder_ptr->copy_ptr();
+    return *this;
+  }
+
+  random_forest_builder<T>&
+  operator=(random_forest_builder<T>&& src) {
+    this->builder_ptr = std::move(src.builder_ptr);
+    return *this;
+  }
+
+  // ctor from a pointer of any forest_builder_impl<...>
+  explicit random_forest_builder(
+    std::unique_ptr<tree::forest_builder<T>>&& ptr
+  ) :
+    builder_ptr(std::move(ptr))
+  {}
+
+  // ctor from an object of any forest_builder_impl<...>
   template <typename Policy, typename Impurity>
-  random_forest_builder(
+  explicit random_forest_builder(
     tree::forest_builder_impl<T, Policy, Impurity> builder
   ) :
-    wrapper(std::move(builder))
+    builder_ptr(
+      tree::make_forest_builder<T, Policy, Impurity>(std::move(builder))
+    )
   {}
 
   random_forest_model<T>
   run(const colmajor_matrix<T>& dataset, dvector<T>& labels) {
-    return wrapper(dataset, labels);
+    return builder_ptr->build(dataset, labels);
   }
 };
 
 template <typename T>
 random_forest_builder<T>::random_forest_builder(
   tree::strategy<T> strategy
-) : wrapper() {
+) : builder_ptr() {
   using namespace tree;
   using CLA = classification_policy<T>;
   using REG = regression_policy<T>;
@@ -100,13 +165,13 @@ random_forest_builder<T>::random_forest_builder(
     switch (strategy.impurity) {
     case impurity_type::Default:
     case impurity_type::Gini:
-      wrapper = forest_builder_impl<T, CLA, GIN>(strategy.move());
+      builder_ptr = make_forest_builder<T, CLA, GIN>(strategy.move());
       return;
     case impurity_type::Entropy:
-      wrapper = forest_builder_impl<T, CLA, ENT>(strategy.move());
+      builder_ptr = make_forest_builder<T, CLA, ENT>(strategy.move());
       return;
     case impurity_type::MisclassRate:
-      wrapper = forest_builder_impl<T, CLA, MCR>(strategy.move());
+      builder_ptr = make_forest_builder<T, CLA, MCR>(strategy.move());
       return;
     default:
       throw std::logic_error("invalid impurity type");
@@ -115,16 +180,16 @@ random_forest_builder<T>::random_forest_builder(
     switch (strategy.impurity) {
     case impurity_type::Default:
     case impurity_type::Variance:
-      wrapper = forest_builder_impl<T, REG, VAR>(strategy.move());
+      builder_ptr = make_forest_builder<T, REG, VAR>(strategy.move());
       return;
     case impurity_type::FriedmanVariance:
-      wrapper = forest_builder_impl<T, REG, FRM>(strategy.move());
+      builder_ptr = make_forest_builder<T, REG, FRM>(strategy.move());
       return;
     case impurity_type::DefVariance:
-      wrapper = forest_builder_impl<T, REG, MSE>(strategy.move());
+      builder_ptr = make_forest_builder<T, REG, MSE>(strategy.move());
       return;
     case impurity_type::MeanAbsError:
-      wrapper = forest_builder_impl<T, REG, MAE>(strategy.move());
+      builder_ptr = make_forest_builder<T, REG, MAE>(strategy.move());
       return;
     default:
       throw std::logic_error("invalid impurity type");
