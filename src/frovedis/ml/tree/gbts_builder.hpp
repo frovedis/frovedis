@@ -124,13 +124,13 @@ public:
   }
 
   virtual gradient_boosted_trees_model<T>
-  build(const colmajor_matrix<T>&, dvector<T>& labels) override;
+  run(const colmajor_matrix<T>&, dvector<T>& labels) override;
 
   // TODO: implement run_with_validation
 };
 
 template <typename T, typename I, typename L>
-gradient_boosted_trees_model<T> gbts_builder_impl<T, I, L>::build(
+gradient_boosted_trees_model<T> gbts_builder_impl<T, I, L>::run(
   const colmajor_matrix<T>& dataset, dvector<T>& labels
 ) {
   const size_t num_iters = get_strategy().get_num_iterations();
@@ -152,7 +152,7 @@ gradient_boosted_trees_model<T> gbts_builder_impl<T, I, L>::build(
   RLOG(INFO) << "==== tree[0] ====" << std::endl;
 #endif
   weights[0] = 1;
-  dest[0] = builder(dataset, labels);
+  dest[0] = builder.build_model(dataset, labels);
 
   if (num_iters == 1) {
     return gradient_boosted_trees_model<T>(
@@ -189,7 +189,7 @@ _Pragma(__novector__)
       predicts_view, labels_view, bcas_gfunc
     );
 
-    dest[i] = builder(dataset, negative_gradients);
+    dest[i] = builder.build_model(dataset, negative_gradients);
 
     predicts_view.mapv(
       prediction_updater<T>,
@@ -206,7 +206,7 @@ _Pragma(__novector__)
     negative_gradient_calculator<T, G>,
     predicts_view, labels_view, bcas_gfunc
   );
-  dest[last_iter] = builder(dataset, negative_gradients);
+  dest[last_iter] = builder.build_model(dataset, negative_gradients);
 
   return gradient_boosted_trees_model<T>(
     algo, std::move(trees), std::move(weights)
@@ -272,7 +272,7 @@ public:
 
   gradient_boosted_trees_model<T>
   run(const colmajor_matrix<T>& dataset, dvector<T>& labels) {
-    return builder_ptr->build(dataset, labels);
+    return builder_ptr->run(dataset, labels);
   }
 
   // TODO: implement run_with_validation

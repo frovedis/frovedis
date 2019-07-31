@@ -452,7 +452,7 @@ public:
   virtual ~model_builder() {}
 
   virtual std::unique_ptr<model_builder<T, MODEL>> copy_ptr() const = 0;
-  virtual MODEL build(const colmajor_matrix<T>&, dvector<T>&) = 0;
+  virtual MODEL run(const colmajor_matrix<T>&, dvector<T>&) = 0;
 };
 
 template <typename T>
@@ -542,20 +542,24 @@ public:
   }
 
   virtual decision_tree_model<T>
-  build(const colmajor_matrix<T>&, dvector<T>&) override;
+  run(const colmajor_matrix<T>&, dvector<T>&) override;
 
-  // TODO: delete
-  decision_tree_model<T>
-  operator()(const colmajor_matrix<T>& x, dvector<T>& v) {
-    return this->build(x, v);
-  }
+  /* non-virtual */ decision_tree_model<T>
+  build_model(const colmajor_matrix<T>&, dvector<T>&);
 
 private:
-  std::shared_ptr<node<T>> _build(const size_t, dvector<size_t>&);
+  std::shared_ptr<node<T>> build_node(const size_t, dvector<size_t>&);
 };
 
 template <typename T, typename A, typename F, bool Z>
-decision_tree_model<T> unitree_builder_impl<T, A, F, Z>::build(
+decision_tree_model<T> unitree_builder_impl<T, A, F, Z>::run(
+  const colmajor_matrix<T>& dataset, dvector<T>& labels
+) {
+  return build_model(dataset, labels);
+}
+
+template <typename T, typename A, typename F, bool Z>
+decision_tree_model<T> unitree_builder_impl<T, A, F, Z>::build_model(
   const colmajor_matrix<T>& dataset, dvector<T>& labels
 ) {
   const ftrace_region __ftr_prepare("# prepare to build");
@@ -622,12 +626,12 @@ decision_tree_model<T> unitree_builder_impl<T, A, F, Z>::build(
   __ftr_prepare.end();
 
   return decision_tree_model<T>(
-    _build(ROOT_ID, initial_indices), str.get_algorithm()
+    build_node(ROOT_ID, initial_indices), str.get_algorithm()
   );
 }
 
 template <typename T, typename A, typename F, bool Z>
-std::shared_ptr<node<T>> unitree_builder_impl<T, A, F, Z>::_build(
+std::shared_ptr<node<T>> unitree_builder_impl<T, A, F, Z>::build_node(
   const size_t node_index, dvector<size_t>& current_indices
 ) {
   const nodeid_helper id(node_index);
@@ -845,7 +849,9 @@ _Pragma(__novector__)
     ).reduce(add<size_t>)
   );
 #endif
-  const auto left_node = _build(id.get_left_child_index(), left_indices);
+  const auto left_node = build_node(
+    id.get_left_child_index(), left_indices
+  );
 
   const ftrace_region __ftr_compress_right("# compress right matrices");
   compress(
@@ -864,7 +870,9 @@ _Pragma(__novector__)
     ).reduce(add<size_t>)
   );
 #endif
-  const auto right_node = _build(id.get_right_child_index(), right_indices);
+  const auto right_node = build_node(
+    id.get_right_child_index(), right_indices
+  );
 
   const auto ig_stats = make_stats<T>(
     best.gain, current_impurity,
@@ -942,7 +950,7 @@ public:
 
   decision_tree_model<T>
   run(const colmajor_matrix<T>& dataset, dvector<T>& labels) {
-    return builder_ptr->build(dataset, labels);
+    return builder_ptr->run(dataset, labels);
   }
 };
 

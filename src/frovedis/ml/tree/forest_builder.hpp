@@ -69,14 +69,14 @@ public:
   }
 
   virtual random_forest_model<T>
-  build(const colmajor_matrix<T>& dataset, dvector<T>& labels) override {
+  run(const colmajor_matrix<T>& dataset, dvector<T>& labels) override {
     const size_t num_trees = get_strategy().get_num_trees();
     std::vector<decision_tree_model<T>> trees(num_trees);
     decision_tree_model<T>* dest = trees.data();
 
 _Pragma(__novector__)
     for (size_t i = 0; i < num_trees; i++) {
-      dest[i] = builder(dataset, labels);
+      dest[i] = builder.build_model(dataset, labels);
     }
 
     return random_forest_model<T>(
@@ -141,7 +141,7 @@ public:
 
   random_forest_model<T>
   run(const colmajor_matrix<T>& dataset, dvector<T>& labels) {
-    return builder_ptr->build(dataset, labels);
+    return builder_ptr->run(dataset, labels);
   }
 };
 
