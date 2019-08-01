@@ -1624,6 +1624,34 @@ calling `kmeans_assign_cluster`. The result should be like:
     1
     0
 
+## 4.4 Factorization Machine
+
+We provide factorization machine algorithm.  
+
+Please look at "src/tut4.4/tut.cc". By calling below function, you can train the factorization machine model for classification/regression task. 
+
+    auto trained = frovedis::fm_train(dim_0, dim_1, dim_2, 
+        init_stdev, iteration, init_learn_rate, optimizer,
+        regular_0, regular_1, regular_2, is_regression,
+        data, label, batchsize_pernode);
+
+`dim_0` switches to use bias or not.  
+`dim_1` switches to use 1-way interation or not.  
+`dim_2` is the dimension of 2-way interation.  
+`init_stdev` is tdev for initialization of 2-way factors.  
+`iteration` is number of iteration.  
+`init_learn_rate` is initial learning rate for SGD.  
+`optimizer` is kind of optimizer.  
+`regular_0` is bias regularization parameter.  
+`regular_1` is 1-way regularization parameter.  
+`regular_2` is 2-way regularization parameter.  
+`is_regression` switches regression or classification.  
+`data` is training samples of crs matrix.  
+`label` is training labels.  
+`batchsize_pernode` is the size of minibatch processed by one node (actual size is this value multiplied by the number of nodes).  
+
+Our implementation followed to [libFM](http://www.libfm.org/), so it is helpfull to refer that to understand the detail. You can acquire predictions from trained model by calling `fm_model::predict` method and calculate RMSE based on trained model and test data and labels with calling `fm_test` method.
+
 ## 4.5 Decision Trees
 
 We provide decision tree and tree ensemble algorithms
@@ -1823,6 +1851,24 @@ A regression example with Boston housing dataset is
 "src/tut4.5.3-2/tut.cc".
 For regression GBTs, several types of loss functions are available:
 "loss_type::LeastSquaresError" and "loss_type::LeastAbsoluteError".
+
+## 4.6 Word2Vec
+
+We provide word2vec algorithm. It is based on [Intel pWord2Vec](https://github.com/IntelLabs/pWord2Vec.git) implementation. We only support a variation of negative-sampling and skip-gram.
+
+There are 3 steps to make word embeddings from raw text. First is to create vocabulary by calling `w2v_build_vocab_and_dump(train_file, stream_file, vocab_file, vocab_count_file, min_count)` method. `train_file` is path for raw text in which words are separated by space, and sentences by newline. 2nd, 3rd, 4th arguements specifies paths for output file. `stream_file` is sequence of one-hot integers made by input text, `vocab_file` is mapping between one-hot id and words. `vocab_countf_file` is counts of each word appeared in input text. Words with total frequency lower than `min_count` is not included in vocabulary. We suggest to run this step on x86 due to inefficiency with vector engine.
+
+Second step is to train word2vec model. Take care the computation is performed with OpenMP, so appropriate numbers of MPI process and OpenMP should be determined for fast computation. The method for training is,
+
+    auto weight = frovedis::w2v_train(
+        nl_train_data, vocab_count, hidden_size, window, 
+        sample, negative, iter, alpha, model_sync_period, 
+        min_sync_words, full_sync_times, message_size, num_threads);
+
+`nl_train_data`, `vacab_count` are data structure constructed before. `hidden_size` is dimension of embedding vector. `window` is the maximum lenght of current and predicted words in a sentence. `sample` is threshold to donwsample for high-frequency words. `negative` is the number for negative samples. `alpha` is initial learning rate. `num_threads` specifies the number of OpenMP threads used for inner-loop computation. Return value of this method is row major matrix in which each row specifies embedding vector of a word.
+
+Third step is save result to file of specific format. It is done by calling `w2v_save_model(weight, vocab_file, word_vectors_file, binary, min_count)` method. `vocab_file` is path of file made in first step. `binary` switches binary of output, `word_vectors_file`.
+
 
 ## 4.7 Deep Learning
 
