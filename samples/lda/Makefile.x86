@@ -1,0 +1,11 @@
+TARGETS := train_lda_cgs test_lda_cgs convert_bow_data 
+
+include ../Makefile.in.x86
+include ../Makefile.common
+
+TO_INSTALL := ${TARGETS:%=%.cc}
+DIR := lda
+ARCH := x86
+
+${TARGETS}: %: %.o
+	    ${MPICXX} ${CXXFLAGS} -o $@ $^ ${LIBS}
