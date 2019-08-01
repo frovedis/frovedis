@@ -89,6 +89,16 @@ int typed_allgatherv<float>(const float* sendbuf, int sendcount,
                             float* recvbuf, int *recvcounts,
                             int *displs, MPI_Comm comm);
 
+template <>
+int typed_allgatherv<int32_t>(const int32_t* sendbuf, int sendcount, 
+                             int32_t* recvbuf, int *recvcounts,
+                             int *displs, MPI_Comm comm);
+
+template <>
+int typed_allgatherv<int64_t>(const int64_t* sendbuf, int sendcount, 
+                             int64_t* recvbuf, int *recvcounts,
+                             int *displs, MPI_Comm comm);
+                             
 /* // currently not used; leave for future use
 template <class T>
 int typed_gatherv(const T* sendbuf, int sendcount, 
@@ -116,7 +126,6 @@ template <>
 int typed_bcast<float>(float* buffer, int count, int root,
                        MPI_Comm comm);
 */
-/* // comment out because not used; check before use!
 template <class T>
 int typed_allgather(const T* sendbuf, int sendcount,
                     T* recvbuf, int recvcount, MPI_Comm comm);
@@ -128,7 +137,14 @@ int typed_allgather(const double* sendbuf, int sendcount,
 template <>
 int typed_allgather(const float* sendbuf, int sendcount,
                     float* recvbuf, int recvcount, MPI_Comm comm);
-*/
+
+template <>
+int typed_allgather(const int32_t* sendbuf, int sendcount,
+                    int32_t* recvbuf, int recvcount, MPI_Comm comm);
+
+template <>
+int typed_allgather(const int64_t* sendbuf, int sendcount,
+                    int64_t* recvbuf, int recvcount, MPI_Comm comm);
 
 template <class T>
 int typed_allreduce(const T* sendbuf, T* recvbuf, int count,
@@ -142,6 +158,13 @@ template <>
 int typed_allreduce(const float* sendbuf, float* recvbuf, int count,
                     MPI_Op op, MPI_Comm comm);
 
+template <>
+int typed_allreduce(const int32_t* sendbuf, int32_t* recvbuf, int count,
+                    MPI_Op op, MPI_Comm comm);
+
+template <>
+int typed_allreduce(const int64_t* sendbuf, int64_t* recvbuf, int count,
+                    MPI_Op op, MPI_Comm comm);
 }
 
 #endif

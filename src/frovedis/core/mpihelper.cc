@@ -386,6 +386,34 @@ int typed_allgatherv<float>(const float* sendbuf, int sendcount,
                         comm);
 }
 
+template <>
+int typed_allgatherv<int32_t>(const int32_t* sendbuf, int sendcount, 
+                             int32_t* recvbuf, int *recvcounts,
+                             int *displs, MPI_Comm comm) {
+  return MPI_Allgatherv(static_cast<void*>(const_cast<int32_t*>(sendbuf)),
+                        sendcount,
+                        MPI_INT32_T,
+                        static_cast<void*>(recvbuf),
+                        recvcounts,
+                        displs,
+                        MPI_INT32_T,
+                        comm);
+}
+
+template <>
+int typed_allgatherv<int64_t>(const int64_t* sendbuf, int sendcount, 
+                             int64_t* recvbuf, int *recvcounts,
+                             int *displs, MPI_Comm comm) {
+  return MPI_Allgatherv(static_cast<void*>(const_cast<int64_t*>(sendbuf)),
+                        sendcount,
+                        MPI_INT64_T,
+                        static_cast<void*>(recvbuf),
+                        recvcounts,
+                        displs,
+                        MPI_INT64_T,
+                        comm);
+}
+
 /* // currently not used; leave for future use
 template <>
 int typed_gatherv<double>(const double* sendbuf, int sendcount, 
@@ -431,7 +459,7 @@ int typed_bcast<float>(float* buffer, int count, int root,
                    count, MPI_FLOAT, root, comm);
 }
 */
-/* // comment out because not used; check before use!
+
 template <>
 int typed_allgather<double>(const double* sendbuf, int sendcount,
                             double* recvbuf, int recvcount, MPI_Comm comm) {
@@ -449,7 +477,24 @@ int typed_allgather(const float* sendbuf, int sendcount,
                        static_cast<void*>(recvbuf), recvcount, MPI_FLOAT,
                        comm); 
 }
-*/
+
+template <>
+int typed_allgather(const int32_t* sendbuf, int sendcount,
+                    int32_t* recvbuf, int recvcount, MPI_Comm comm) {
+  return MPI_Allgather(static_cast<void*>(const_cast<int32_t*>(sendbuf)),
+                       sendcount, MPI_INT32_T,
+                       static_cast<void*>(recvbuf), recvcount, MPI_INT32_T, 
+                       comm); 
+}
+
+template <>
+int typed_allgather(const int64_t* sendbuf, int sendcount,
+                    int64_t* recvbuf, int recvcount, MPI_Comm comm) {
+  return MPI_Allgather(static_cast<void*>(const_cast<int64_t*>(sendbuf)),
+                       sendcount, MPI_INT64_T,
+                       static_cast<void*>(recvbuf), recvcount, MPI_INT64_T,
+                       comm); 
+}
 
 template <>
 int typed_allreduce<double>(const double* sendbuf, double* recvbuf, int count,
@@ -466,6 +511,22 @@ int typed_allreduce(const float* sendbuf, float* recvbuf, int count,
                        static_cast<void*>(recvbuf),
                        count, MPI_FLOAT, op, comm);
 
+}
+
+template <>
+int typed_allreduce(const int32_t* sendbuf, int32_t* recvbuf, int count,
+                    MPI_Op op, MPI_Comm comm) {
+  return MPI_Allreduce(static_cast<void*>(const_cast<int32_t*>(sendbuf)),
+                       static_cast<void*>(recvbuf),
+                       count, MPI_INT32_T, op, comm);
+}
+
+template <>
+int typed_allreduce(const int64_t* sendbuf, int64_t* recvbuf, int count,
+                    MPI_Op op, MPI_Comm comm) {
+  return MPI_Allreduce(static_cast<void*>(const_cast<int64_t*>(sendbuf)),
+                       static_cast<void*>(recvbuf),
+                       count, MPI_INT64_T, op, comm);
 }
 
 }
