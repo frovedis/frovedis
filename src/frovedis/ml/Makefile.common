@@ -49,6 +49,8 @@ ifeq (${IS_VE},true)
 endif
 	install -d ${INSTALLPATH}/include/frovedis/ml/graph
 	cp graph/*.hpp ${INSTALLPATH}/include/frovedis/ml/graph
+	install -d ${INSTALLPATH}/include/frovedis/ml/lda
+	cp lda/*.hpp ${INSTALLPATH}/include/frovedis/ml/lda
 
 optimizer.o: optimizer.cc
 
