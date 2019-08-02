@@ -10,8 +10,6 @@
 #include <utility>
 #include <vector>
 
-#include <cereal/archives/binary.hpp>
-#include <cereal/archives/json.hpp>
 #include <cereal/types/base_class.hpp>
 #include <cereal/types/vector.hpp>
 
@@ -143,16 +141,16 @@ public:
 
   // file IO
   void save(const std::string& path) const {
-    _save<cereal::JSONOutputArchive>(path);
+    tree::save_textmodel<random_forest_model<T>>(*this, path);
   }
   void load(const std::string& path) {
-    _load<cereal::JSONInputArchive>(path);
+    *this = tree::load_textmodel<random_forest_model<T>>(path);
   }
   void savebinary(const std::string& path) const {
-    _save<cereal::BinaryOutputArchive>(path);
+    tree::save_binarymodel<random_forest_model<T>>(*this, path);
   }
   void loadbinary(const std::string& path) {
-    _load<cereal::BinaryInputArchive>(path);
+    *this = tree::load_binarymodel<random_forest_model<T>>(path);
   }
 
   // string output
@@ -171,16 +169,6 @@ private:
   // predict for the given dense-data point
   std::vector<T> predict_by_vote(const rowmajor_matrix_local<T>&) const;
   std::vector<T> predict_by_average(const rowmajor_matrix_local<T>&) const;
-
-  template <typename Archive>
-  void _save(const std::string& path) const {
-    tree::save_model<random_forest_model<T>, Archive>(*this, path);
-  }
-
-  template <typename Archive>
-  void _load(const std::string& path) {
-    *this = tree::load_model<random_forest_model<T>, Archive>(path);
-  }
 };
 
 template <typename T>
@@ -331,16 +319,16 @@ public:
 
   // file IO
   void save(const std::string& path) const {
-    _save<cereal::JSONOutputArchive>(path);
+    tree::save_textmodel<gradient_boosted_trees_model<T>>(*this, path);
   }
   void load(const std::string& path) {
-    _load<cereal::JSONInputArchive>(path);
+    *this = tree::load_textmodel<gradient_boosted_trees_model<T>>(path);
   }
   void savebinary(const std::string& path) const {
-    _save<cereal::BinaryOutputArchive>(path);
+    tree::save_binarymodel<gradient_boosted_trees_model<T>>(*this, path);
   }
   void loadbinary(const std::string& path) {
-    _load<cereal::BinaryInputArchive>(path);
+    *this = tree::load_binarymodel<gradient_boosted_trees_model<T>>(path);
   }
 
   // string output
@@ -359,16 +347,6 @@ private:
   // predict for the given dense-data point
   std::vector<T> predict_as_binary(const rowmajor_matrix_local<T>&) const;
   std::vector<T> predict_as_rawvalue(const rowmajor_matrix_local<T>&) const;
-
-  template <typename Archive>
-  void _save(const std::string& path) const {
-    tree::save_model<gradient_boosted_trees_model<T>, Archive>(*this, path);
-  }
-
-  template <typename Archive>
-  void _load(const std::string& path) {
-    *this = tree::load_model<gradient_boosted_trees_model<T>, Archive>(path);
-  }
 };
 
 template <typename T>

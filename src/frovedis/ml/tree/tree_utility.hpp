@@ -144,6 +144,46 @@ Model load_model(const std::string& path) {
   return model;
 }
 
+template <typename Model>
+inline void save_jsonmodel(const Model& model, const std::string& path) {
+  save_model<Model, cereal::JSONOutputArchive>(model, path);
+}
+
+template <typename Model>
+inline Model load_jsonmodel(const std::string& path) {
+  return load_model<Model, cereal::JSONInputArchive>(path);
+}
+
+template <typename Model>
+inline void save_xmlmodel(const Model& model, const std::string& path) {
+  save_model<Model, cereal::XMLOutputArchive>(model, path);
+}
+
+template <typename Model>
+inline Model load_xmlmodel(const std::string& path) {
+  return load_model<Model, cereal::XMLInputArchive>(path);
+}
+
+template <typename Model>
+inline void save_textmodel(const Model& model, const std::string& path) {
+  save_jsonmodel<Model>(model, path);
+}
+
+template <typename Model>
+inline Model load_textmodel(const std::string& path) {
+  return load_jsonmodel<Model>(path);
+}
+
+template <typename Model>
+inline void save_binarymodel(const Model& model, const std::string& path) {
+  save_model<Model, cereal::BinaryOutputArchive>(model, path);
+}
+
+template <typename Model>
+inline Model load_binarymodel(const std::string& path) {
+  return load_model<Model, cereal::BinaryInputArchive>(path);
+}
+
 } // end namespace tree
 } // end namespace frovedis
 

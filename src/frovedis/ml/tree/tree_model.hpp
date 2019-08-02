@@ -12,8 +12,6 @@
 #include <utility>
 #include <vector>
 
-#include <cereal/archives/binary.hpp>
-#include <cereal/archives/json.hpp>
 #include <cereal/types/memory.hpp>
 #include <cereal/types/vector.hpp>
 
@@ -694,16 +692,16 @@ public:
 
   // file IO
   void save(const std::string& path) const {
-    _save<cereal::JSONOutputArchive>(path);
+    tree::save_textmodel<decision_tree_model<T>>(*this, path);
   }
   void load(const std::string& path) {
-    _load<cereal::JSONInputArchive>(path);
+    *this = tree::load_textmodel<decision_tree_model<T>>(path);
   }
   void savebinary(const std::string& path) const {
-    _save<cereal::BinaryOutputArchive>(path);
+    tree::save_binarymodel<decision_tree_model<T>>(*this, path);
   }
   void loadbinary(const std::string& path) {
-    _load<cereal::BinaryInputArchive>(path);
+    *this = tree::load_binarymodel<decision_tree_model<T>>(path);
   }
 
   // string output
@@ -726,16 +724,6 @@ private:
   std::shared_ptr<tree::node<T>> prune(
     const std::shared_ptr<tree::node<T>>&, const T
   ) const;
-
-  template <typename Archive>
-  void _save(const std::string& path) const {
-    tree::save_model<decision_tree_model<T>, Archive>(*this, path);
-  }
-
-  template <typename Archive>
-  void _load(const std::string& path) {
-    *this = tree::load_model<decision_tree_model<T>, Archive>(path);
-  }
 };
 
 template <typename T>
