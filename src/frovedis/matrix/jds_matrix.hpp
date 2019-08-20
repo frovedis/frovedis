@@ -738,12 +738,10 @@ void jds_spmm_helper16(const T* valp, const I* idxp, const O* offp, const T* vva
 */
 
 template <class T, class I, class O, class P>
-rowmajor_matrix_local<T> operator*(const jds_matrix_local<T,I,O,P>& mat,
-                                   const rowmajor_matrix_local<T>& v) {
-  rowmajor_matrix_local<T> tmp(mat.local_num_row, v.local_num_col);
-  rowmajor_matrix_local<T> ret(mat.local_num_row, v.local_num_col);
+void jds_matrix_spmm_impl(const jds_matrix_local<T,I,O,P>& mat,
+                          T* retvalp, const T* vvalp, size_t v_local_num_col) {
+  rowmajor_matrix_local<T> tmp(mat.local_num_row, v_local_num_col);
   T* tmpvalp = &tmp.val[0];
-  const T* vvalp = &v.val[0];
   const T* valp = &mat.val[0];
   const I* idxp = &mat.idx[0];
   const O* offp = &mat.off[0];
@@ -752,57 +750,65 @@ rowmajor_matrix_local<T> operator*(const jds_matrix_local<T,I,O,P>& mat,
   size_t num_groups = physical_col_size / group_size;
   for(size_t g = 0; g < num_groups; g++) {
     jds_spmm_helper8<T,I,O,P>(valp, idxp, offp, vvalp, tmpvalp,
-                              v.local_num_col, g * group_size, 0);
+                              v_local_num_col, g * group_size, 0);
   }
   size_t c = num_groups * group_size;
 /* // for unroll 16
   if(c + 7 < physical_col_size) {
     jds_spmm_helper8<T,I,O,P>(valp, idxp, offp, vvalp, tmpvalp,
-                              v.local_num_col, c, 0);
+                              v_local_num_col, c, 0);
     c += 8;
   }
 */
   if(c + 3 < physical_col_size) {
     jds_spmm_helper4<T,I,O,P>(valp, idxp, offp, vvalp, tmpvalp,
-                              v.local_num_col, c, 0);
+                              v_local_num_col, c, 0);
     c += 4;
   }
   if(c + 1 < physical_col_size) {
     jds_spmm_helper2<T,I,O,P>(valp, idxp, offp, vvalp, tmpvalp,
-                              v.local_num_col, c, 0);
+                              v_local_num_col, c, 0);
     c += 2;
   }
   if(c < physical_col_size) {
     jds_spmm_helper1<T,I,O,P>(valp, idxp, offp, vvalp, tmpvalp,
-                              v.local_num_col, c, 0);
+                              v_local_num_col, c, 0);
   }
-  T* retvalp = &ret.val[0];
   const P* permp = &mat.perm[0];
   O block_num = mat.local_num_row / JDS_VLEN;
   for(O b = 0; b < block_num; b++) {
-    for(size_t mc = 0; mc < v.local_num_col; mc++) {
+    for(size_t mc = 0; mc < v_local_num_col; mc++) {
 #pragma cdir nodep
 #pragma _NEC ivdep
 #pragma cdir on_adb(tmpvalp)
 #pragma cdir on_adb(retvalp)
 #pragma cdir on_adb(permp)
       for(O i = 0; i < JDS_VLEN; i++) {
-        retvalp[permp[b * JDS_VLEN + i] * v.local_num_col + mc] =
-          tmpvalp[(b * JDS_VLEN + i) * v.local_num_col + mc];
+        retvalp[permp[b * JDS_VLEN + i] * v_local_num_col + mc] =
+          tmpvalp[(b * JDS_VLEN + i) * v_local_num_col + mc];
       }
     }
   }
-  for(size_t mc = 0; mc < v.local_num_col; mc++) {
+  for(size_t mc = 0; mc < v_local_num_col; mc++) {
 #pragma cdir nodep
 #pragma _NEC ivdep
 #pragma cdir on_adb(tmpvalp)
 #pragma cdir on_adb(retvalp)
 #pragma cdir on_adb(permp)
     for(O i = block_num * JDS_VLEN; i < mat.local_num_row; i++) {
-      retvalp[permp[i] * v.local_num_col + mc] =
-        tmpvalp[i * v.local_num_col + mc];
+      retvalp[permp[i] * v_local_num_col + mc] =
+        tmpvalp[i * v_local_num_col + mc];
     }
   }
+}
+
+template <class T, class I, class O, class P>
+rowmajor_matrix_local<T> operator*(const jds_matrix_local<T,I,O,P>& mat,
+                                   const rowmajor_matrix_local<T>& v) {
+  rowmajor_matrix_local<T> ret(mat.local_num_row, v.local_num_col);
+  T* retvalp = &ret.val[0];
+  const T* vvalp = &v.val[0];
+  jds_matrix_spmm_impl(mat, retvalp, vvalp, v.local_num_col);
   return ret;
 }
 

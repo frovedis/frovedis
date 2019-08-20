@@ -221,13 +221,14 @@ std::vector<T> operator*(const jds_crs_hybrid_local<T,I,O,P>& mat,
 }
 
 template <class T, class I, class O, class P>
-rowmajor_matrix_local<T> operator*(const jds_crs_hybrid_local<T,I,O,P>& mat,
-                                   const rowmajor_matrix_local<T>& v) {
-  auto jdspart = mat.jds * v;
-  auto crspart = mat.crs * v;
+void jds_crs_hybrid_spmm_impl(const jds_crs_hybrid_local<T,I,O,P>& mat,
+                              T* retvalp, const T* vvalp,
+                              size_t v_local_num_col) {
+  rowmajor_matrix_local<T> crspart(mat.local_num_row, v_local_num_col);
+  T* crspartvalp = crspart.val.data();
+  jds_matrix_spmm_impl(mat.jds, retvalp, vvalp, v_local_num_col);
+  crs_matrix_spmm_impl(mat.crs, crspartvalp, vvalp, v_local_num_col);
   const P* permp = &mat.jds.perm[0];
-  T* jdspartvalp = &jdspart.val[0];
-  T* crspartvalp = &crspart.val[0];
   auto num_row = crspart.local_num_row;
   auto num_col = crspart.local_num_col;
   // in jds_crs_hybrid, crspart.local_num_row < threshold (e.g. 256)
@@ -235,10 +236,19 @@ rowmajor_matrix_local<T> operator*(const jds_crs_hybrid_local<T,I,O,P>& mat,
 #pragma cdir nodep
 #pragma _NEC ivdep
     for(size_t c = 0; c < num_col; c++) {
-      jdspartvalp[permp[r] * num_col + c] += crspartvalp[r * num_col + c];
+      retvalp[permp[r] * num_col + c] += crspartvalp[r * num_col + c];
     }
   }
-  return jdspart;
+}
+
+template <class T, class I, class O, class P>
+rowmajor_matrix_local<T> operator*(const jds_crs_hybrid_local<T,I,O,P>& mat,
+                                   const rowmajor_matrix_local<T>& v) {
+  rowmajor_matrix_local<T> ret(mat.local_num_row, v.local_num_col);
+  T* retvalp = &ret.val[0];
+  const T* vvalp = &v.val[0];
+  jds_crs_hybrid_spmm_impl(mat, retvalp, vvalp, v.local_num_col);
+  return ret;
 }
 
 template <class T, class I, class O>
