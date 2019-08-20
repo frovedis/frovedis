@@ -8,51 +8,84 @@
 
 using namespace frovedis;
 
-template <class T>
-void rearrange_pca_output(colmajor_matrix<T>& components,
-                          std::vector<T>& variance) {
-  auto ncomp = variance.size();
-  auto sptr = variance.data();
-  for(size_t i = 0; i < ncomp/2; ++i) {
-    auto temp = sptr[i];
-    sptr[i] = sptr[ncomp - i - 1];
-    sptr[ncomp - i - 1] = temp;
-  }
-  // rearrange_colmajor_data_inplace: defined in exrpc_svd.hpp
-  components.data.mapv(rearrange_colmajor_data_inplace<T>);
-}
-
-
 template <class MATRIX, class T>
 pca_result frovedis_pca(exrpc_ptr_t& data_ptr, int& k, 
-                        bool& isMovableInput = false,
-                        bool& rearrange_out = true) {
-  MATRIX& mat = *reinterpret_cast<MATRIX*>(data_ptr);      
-  auto pca_directions = new colmajor_matrix<T>(); 
+                        bool& toCopy = true,
+                        bool& rearrange_out = true,
+                        bool& need_pca_scores = false,
+                        bool& need_eigen_values = false,
+                        bool& need_variance_ratio = false,
+                        bool& need_singular_values = false,
+                        bool& need_mean = false,
+                        bool& isMovableInput = false ) {
+  MATRIX& mat = *reinterpret_cast<MATRIX*>(data_ptr);  // rowmajor_matrix<T> only at this moment    
+  auto nrows = mat.num_row;
+  auto ncols = mat.num_col;
+  // output attributes
+  auto pca_directions = new colmajor_matrix<T>(); // components_
+  auto pca_scores = new colmajor_matrix<T>();
+  auto eigen_values = new std::vector<T>(); // explained_varaiance_
   auto explained_variance_ratio = new std::vector<T>();  
-  colmajor_matrix<T> pca_scores;
-  std::vector<T> eigen_values, singular_values;
-  pca(mat,*pca_directions,pca_scores,
-      eigen_values,*explained_variance_ratio,
-      singular_values,k);
+  auto singular_values = new std::vector<T>();
+  auto mean = new std::vector<T>();
+  T noise_variance = 0;
+  // calling frovedis::pca(...)
+  pca(mat,*pca_directions,*pca_scores,
+      *eigen_values,*explained_variance_ratio,
+      *singular_values,*mean,noise_variance,k,false,toCopy);
+  // if input is movable, destroying Frovedis side data after computation is done.
+  if (isMovableInput)  mat.clear();
 #ifdef _EXRPC_DEBUG_
   std::cout << "components: \n"; pca_directions->debug_print();
-  std::cout << "ratio: \n"; pca_scores.debug_print();
+  std::cout << "ratio: \n"; pca_scores->debug_print();
   std::cout << "eigen values: \n"; 
-  for(auto e: eigen_values) std::cout << e << " "; std::cout << std::endl;
+  for(auto e: *eigen_values) std::cout << e << " "; std::cout << std::endl;
   std::cout << "variance ratio: \n";
   for(auto e: *explained_variance_ratio) std::cout << e << " "; std::cout << std::endl;
   std::cout << "singular values: \n";
-  for(auto e: singular_values) std::cout << e << " "; std::cout << std::endl;
+  for(auto e: *singular_values) std::cout << e << " "; std::cout << std::endl;
+  std::cout << "column wise mean: \n";
+  for(auto e: *mean) std::cout << e << " "; std::cout << std::endl;
+  std::cout << "noise_variance: " << noise_variance << std::endl;
 #endif
-  // if input is movable, destroying Frovedis side data after computation is done.
-  if (isMovableInput)  mat.clear();
-  if (rearrange_out) rearrange_pca_output(*pca_directions,*explained_variance_ratio); 
-  auto mptr = reinterpret_cast<exrpc_ptr_t>(pca_directions);
-  auto vptr = reinterpret_cast<exrpc_ptr_t>(explained_variance_ratio);
-  auto nrows = pca_directions->num_row;
-  auto ncols = pca_directions->num_col;
-  return pca_result(mptr,nrows,ncols,vptr,k);
+  if (rearrange_out) { // true for python/spark cases
+    // rearrange functionalities: defined in exrpc_svd.hpp
+    rearrange_colmajor_data_inplace(*pca_directions); // mandatory output
+    if(need_pca_scores) rearrange_colmajor_data_inplace(*pca_scores);
+    if(need_eigen_values) rearrange_vector_data_inplace(*eigen_values);
+    if(need_variance_ratio) rearrange_vector_data_inplace(*explained_variance_ratio);
+    if(need_singular_values) rearrange_vector_data_inplace(*singular_values);
+  }
+  // handling output attributes
+  auto comp_ptr = reinterpret_cast<exrpc_ptr_t>(pca_directions);
+
+  exrpc_ptr_t score_ptr = -1;
+  if(need_pca_scores) 
+    score_ptr = reinterpret_cast<exrpc_ptr_t>(pca_scores); 
+  else delete pca_scores;
+
+  exrpc_ptr_t eig_ptr = -1;
+  if(need_eigen_values) 
+    eig_ptr = reinterpret_cast<exrpc_ptr_t>(eigen_values);
+  else delete eigen_values;
+
+  exrpc_ptr_t var_ratio_ptr = -1;
+  if(need_variance_ratio)
+    var_ratio_ptr = reinterpret_cast<exrpc_ptr_t>(explained_variance_ratio);
+  else delete explained_variance_ratio;
+
+  exrpc_ptr_t sval_ptr = -1;
+  if(need_singular_values) 
+    sval_ptr = reinterpret_cast<exrpc_ptr_t>(singular_values);
+  else delete singular_values;
+
+  exrpc_ptr_t mean_ptr = -1;
+  if(need_mean) mean_ptr = reinterpret_cast<exrpc_ptr_t>(mean);
+  else delete mean;
+
+  return pca_result(nrows, ncols, k, noise_variance,
+                    comp_ptr, score_ptr, eig_ptr,
+                    var_ratio_ptr, sval_ptr, mean_ptr);
 }
 
 #endif
