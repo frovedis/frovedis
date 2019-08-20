@@ -1,4 +1,4 @@
-HEADERS := rowmajor_matrix.hpp diag_matrix.hpp colmajor_matrix.hpp crs_matrix.hpp ccs_matrix.hpp jds_matrix.hpp jds_crs_hybrid.hpp ell_matrix.hpp arpackdef.hpp sparse_svd.hpp sliced_matrix.hpp sliced_vector.hpp blas_wrapper.hpp lapack_wrapper.hpp blockcyclic_matrix.hpp pblas_wrapper.hpp scalapack_wrapper.hpp scalapack_redist.hpp cir_array_list.hpp shrink_matrix.hpp shrink_sparse_eigen.hpp shrink_sparse_svd.hpp truncated_svd.hpp pca.hpp spmspv.hpp
+HEADERS := rowmajor_matrix.hpp diag_matrix.hpp colmajor_matrix.hpp crs_matrix.hpp ccs_matrix.hpp jds_matrix.hpp jds_crs_hybrid.hpp ell_matrix.hpp arpackdef.hpp sparse_svd.hpp sliced_matrix.hpp sliced_vector.hpp blas_wrapper.hpp lapack_wrapper.hpp blockcyclic_matrix.hpp pblas_wrapper.hpp scalapack_wrapper.hpp scalapack_redist.hpp cir_array_list.hpp shrink_matrix.hpp shrink_sparse_eigen.hpp shrink_sparse_svd.hpp truncated_svd.hpp pca.hpp spmspv.hpp spgemm.hpp
 
 OBJS := rowmajor_matrix.o crs_matrix.o arpackdef.o blas_wrapper.o lapack_wrapper.o scalapack_redist.o pblas_wrapper.o scalapack_wrapper.o 
 
