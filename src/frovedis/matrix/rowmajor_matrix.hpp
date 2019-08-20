@@ -1128,27 +1128,50 @@ void mul_vector_row(rowmajor_matrix_local<T>& m, std::vector<T>& v) {
   }
 }
 
+template <class T>
+std::vector<T>
+compute_mean(rowmajor_matrix<T>& mat, int axis = 0) {
+  if(mat.num_row == 0)
+    throw std::runtime_error("matrix with ZERO rows for mean computation!");
+  std::vector<T> tmp;
+  T to_mul;
+  if(axis == 0) { // column-wise mean
+    tmp = mat.data.map(+[](rowmajor_matrix_local<T>& m)
+                       {return sum_of_rows(m);}).vector_sum();
+    to_mul = static_cast<T>(1)/static_cast<T>(mat.num_row); // for performance
+  }
+  else { // row-wise mean
+    tmp = mat.data.map(+[](rowmajor_matrix_local<T>& m)
+                       {return sum_of_cols(m);}).vector_sum();
+    to_mul = static_cast<T>(1)/static_cast<T>(mat.num_col); // for performance
+  }
+  auto tmpp = tmp.data();
+  for(size_t i = 0; i < tmp.size(); ++i) tmpp[i] *= to_mul; // average
+  return tmp;
+}
+
 // destructively standardize in column direction; used in pca.hpp
 template <class T>
 void standardize(rowmajor_matrix<T>& mat, bool sample_stddev = true) {
   if(mat.num_row < 2)
     throw std::runtime_error("cannot standardize if number of row is 0 or 1");
+  auto mean = compute_mean(mat, 0); // column-wise mean
+  standardize(mat, mean, sample_stddev);
+}
+
+template <class T>
+void standardize(rowmajor_matrix<T>& mat, std::vector<T>& mean, 
+                 bool sample_stddev = true) {
+  if(mat.num_row < 2)
+    throw std::runtime_error("cannot standardize if number of row is 0 or 1");
+  mat.data.mapv(sub_vector_row<T>, broadcast(mean));
   auto tmp = mat.data.map(+[](rowmajor_matrix_local<T>& m)
-                          {return sum_of_rows(m);}).vector_sum();
-  T* tmpp = tmp.data();
-  T to_mul = static_cast<T>(1)/static_cast<T>(mat.num_row);
-  size_t num_col = mat.num_col;
-  for(size_t i = 0; i < num_col; i++) {
-    tmpp[i] *= to_mul; // average
-  }
-  mat.data.mapv(sub_vector_row<T>, broadcast(tmp));
-  tmp = mat.data.map(+[](rowmajor_matrix_local<T>& m)
-                     {return stddev_of_cols_helper(m);}).vector_sum();
-  tmpp = tmp.data();
+                         {return stddev_of_cols_helper(m);}).vector_sum();
+  auto tmpp = tmp.data();
   T to_div;
   if(sample_stddev) to_div = static_cast<T>(mat.num_row - 1);
   else to_div = static_cast<T>(mat.num_row);
-  for(size_t i = 0; i < num_col; ++i) {
+  for(size_t i = 0; i < mat.num_col; ++i) {
     if(tmpp[i] == 0) tmpp[i] = 1.0; // data is zero so can be anything
     tmpp[i] = sqrt(to_div / tmpp[i]);
   }
@@ -1160,15 +1183,15 @@ template <class T>
 void centerize(rowmajor_matrix<T>& mat) {
   if(mat.num_row < 2)
     throw std::runtime_error("cannot centerize if number of row is 0 or 1");
-  auto tmp = mat.data.map(+[](rowmajor_matrix_local<T>& m)
-                          {return sum_of_rows(m);}).vector_sum();
-  T* tmpp = tmp.data();
-  T to_mul = static_cast<T>(1)/static_cast<T>(mat.num_row);
-  size_t num_col = mat.num_col;
-  for(size_t i = 0; i < num_col; i++) {
-    tmpp[i] *= to_mul; // average
-  }
-  mat.data.mapv(sub_vector_row<T>, broadcast(tmp));
+  auto mean = compute_mean(mat, 0); // column-wise mean
+  centerize(mat, mean);
+}
+
+template <class T>
+void centerize(rowmajor_matrix<T>& mat, std::vector<T>& mean) {
+  if(mat.num_row < 2)
+    throw std::runtime_error("cannot centerize if number of row is 0 or 1");
+  mat.data.mapv(sub_vector_row<T>, broadcast(mean));
 }
 
 template <class T>

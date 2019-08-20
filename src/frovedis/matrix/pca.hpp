@@ -14,31 +14,44 @@ void pca_helper(rowmajor_matrix<T>& mat_work, // destructed
                 std::vector<T>& eigen_values, // explained_variance_ in sklearn
                 std::vector<T>& explained_variance_ratio, 
                 std::vector<T>& singular_values,
+                std::vector<T>& mean,
+                T& noise_variance,
                 int k,
+                bool is_movable,
                 bool to_standardize = false) {
-  if(to_standardize) standardize(mat_work);
-  else centerize(mat_work); 
+  mean = compute_mean(mat_work, 0); // column-wise mean
+  if(to_standardize) standardize(mat_work, mean);
+  else centerize(mat_work, mean); 
 
   T var_sum = std::numeric_limits<T>::epsilon();
   auto total_var = variance(mat_work); // calculate before clear
   auto total_varp = total_var.data();
   for(size_t i = 0; i < total_var.size(); i++) var_sum += total_varp[i];
   size_t mat_num_row = mat_work.num_row;
+  size_t mat_num_col = mat_work.num_col;
 
   colmajor_matrix<T> u;
   diag_matrix_local<T> s;
 
-  truncated_svd<colmajor_matrix<T>, colmajor_matrix_local<T>>
-    (std::move(mat_work), u, s, pca_directions, k, true);
+  if(is_movable) {
+    truncated_svd<colmajor_matrix<T>, colmajor_matrix_local<T>>
+      (std::move(mat_work), u, s, pca_directions, k, true);
+  }
+  else {
+    truncated_svd<colmajor_matrix<T>, colmajor_matrix_local<T>>
+      (mat_work, u, s, pca_directions, k, true);
+  }
 
   pca_scores = u * s;
 
   eigen_values = s.val;
+  T exp_var_sum = std::numeric_limits<T>::epsilon();
   T* valp = eigen_values.data();
   size_t size = eigen_values.size();
   T to_div = static_cast<T>(mat_num_row - 1);
   for(size_t i = 0; i < size; i++) {
     valp[i] = (valp[i] * valp[i]) / to_div;
+    exp_var_sum += valp[i];
   }
 
   // based on scikit-learn implementation
@@ -50,6 +63,9 @@ void pca_helper(rowmajor_matrix<T>& mat_work, // destructed
     explained_variance_ratiop[i] *= to_mul;
   }
 
+  noise_variance = (var_sum - exp_var_sum);
+  noise_variance /= std::min(mat_num_row, mat_num_col) - k;
+
   singular_values = s.val;
 }
 
@@ -60,11 +76,24 @@ void pca(rowmajor_matrix<T>& mat,
          std::vector<T>& eigen_values,
          std::vector<T>& explained_variance_ratio,
          std::vector<T>& singular_values,
+         std::vector<T>& mean,
+         T& noise_variance,
          int k,
-         bool to_standardize = false) {
-  auto mat_work = mat;
-  pca_helper(mat_work, pca_directions, pca_scores, eigen_values,
-             explained_variance_ratio, singular_values, k, to_standardize);
+         bool to_standardize = false,
+         bool to_copy = true) {
+  if(to_copy) {
+    auto mat_work = mat;
+    auto movable = true; // lvalue input is copied
+    pca_helper(mat_work, pca_directions, pca_scores, eigen_values,
+               explained_variance_ratio, singular_values, mean, 
+               noise_variance, k, movable, to_standardize);
+  }
+  else {
+    auto movable = false; // lvalue input would get modified in-place
+    pca_helper(mat, pca_directions, pca_scores, eigen_values,
+               explained_variance_ratio, singular_values, mean, 
+               noise_variance, k, movable, to_standardize);
+  }
 }
 
 template <class T>
@@ -74,10 +103,14 @@ void pca(rowmajor_matrix<T>&& mat,
          std::vector<T>& eigen_values,
          std::vector<T>& explained_variance_ratio,
          std::vector<T>& singular_values,
+         std::vector<T>& mean,
+         T& noise_variance,
          int k,
          bool to_standardize = false) {
+  auto movable = true; // rvalue input
   pca_helper(mat, pca_directions, pca_scores, eigen_values,
-             explained_variance_ratio, singular_values, k, to_standardize);
+             explained_variance_ratio, singular_values, mean, 
+             noise_variance, k, movable, to_standardize);
 }
 
 }
