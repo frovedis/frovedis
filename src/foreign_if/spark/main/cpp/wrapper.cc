@@ -52,14 +52,22 @@ JNIEXPORT jobject JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_computePCA
             << ") to compute PCA.\n";
 #endif
   pca_result res;
+  bool to_copy = true;
   bool rearrange_out = true;
+  bool need_scores = false;
+  bool need_eig = false;
+  bool need_var = true;
+  bool need_sval = false;
+  bool need_mean = false;
   try{
-    res = exrpc_async(fm_node,(frovedis_pca<R_MAT1,DT1>),f_dptr,k,mvbl,rearrange_out).get();
+    res = exrpc_async(fm_node,(frovedis_pca<R_MAT1,DT1>),f_dptr,k,
+                               to_copy, rearrange_out,
+                               need_scores, need_eig, need_var, 
+                               need_sval, need_mean, mvbl).get();
   }
   catch(std::exception& e) { set_status(true,e.what()); }
   return to_jDummyPCAResult(env,res,CMJR);
 }
-
 
 JNIEXPORT jobject JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getSVDResultFromFiles
   (JNIEnv *env, jclass thisCls, jobject master_node, jshort mtype,

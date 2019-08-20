@@ -101,11 +101,11 @@ jobject to_jDummyPCAResult(JNIEnv *env, pca_result& obj, short mtype) {
   if (pcaCls == NULL) REPORT_ERROR(INTERNAL_ERROR, "DummyPCAResult class not found in JRE\n");
   jmethodID pcaConst = env->GetMethodID(pcaCls, "<init>", "(JIISJI)V");
   if (pcaConst == NULL) REPORT_ERROR(INTERNAL_ERROR, "DummyPCAResult(JIISJI) not found in JRE\n");
-  long pcmatp = static_cast<long>(obj.pc_ptr);
-  long varp = static_cast<long>(obj.var_ptr);
+  long pcmatp = static_cast<long>(obj.comp_ptr);
+  long varp = static_cast<long>(obj.var_ratio_ptr);
   auto newPCA = env->NewObject(pcaCls, pcaConst, 
-                               pcmatp, obj.nrows, obj.ncols, mtype,
-                               varp, obj.k);
+                               pcmatp, obj.n_features, obj.n_components, 
+                               mtype,  varp, obj.n_components);
   if (newPCA == NULL) REPORT_ERROR(INTERNAL_ERROR, "DummyPCAResult object creation failed\n");
   return newPCA;
 }
