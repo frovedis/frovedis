@@ -18,7 +18,7 @@ object Word2VecDemo {
 
     // --- frovedis from spark call ---
     val word2vec = new Word2Vec().setVectorSize(256)
-                                 .setNumThreads(8)
+                                 .setNumThreads(1)
                                  .setThreshold(1e-4f)
                                  .setNumIterations(5)
                                  .setLearningRate(0.05)
