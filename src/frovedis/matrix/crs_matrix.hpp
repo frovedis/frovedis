@@ -18,6 +18,8 @@
 #include "../core/shared_vector.hpp"
 #endif
 
+#define CRS_VLEN 256
+
 #define CRS_SPMM_THR 32
 #define CRS_SPMM_VLEN 256
 #define SPARSE_VECTOR_VLEN 256
@@ -114,7 +116,7 @@ sparse_vector<T,I> make_sparse_vector(const T* vp, size_t size) {
   size_t out_ridx[SPARSE_VECTOR_VLEN];
 // never remove this vreg! this is needed folowing vovertake
 // though this prevents ftrace...
-#pragma _NEC vreg(out_ridx)
+// #pragma _NEC vreg(out_ridx)
   for(size_t i = 0; i < SPARSE_VECTOR_VLEN; i++) {
     out_ridx[i] = each * i;
   }
@@ -139,11 +141,11 @@ sparse_vector<T,I> make_sparse_vector(const T* vp, size_t size) {
     }
     return ret;
   } else {
-#pragma _NEC vob
+//#pragma _NEC vob
     for(size_t j = 0; j < each; j++) {
 #pragma cdir nodep
 #pragma _NEC ivdep
-#pragma _NEC vovertake
+//#pragma _NEC vovertake
       for(size_t i = 0; i < SPARSE_VECTOR_VLEN; i++) {
         auto loaded_v = vp[j + each * i];
         if(loaded_v != 0) {
@@ -363,10 +365,10 @@ void transpose_compressed_matrix(std::vector<T>& val,
   ret_val.resize(val.size());
   ret_idx.resize(idx.size());
   ret_off.resize(local_num_col + 1);
-  std::vector<size_t> num_item(local_num_col);
-  std::vector<size_t> current_item(local_num_col);
-  size_t* num_itemp = &num_item[0];
-  size_t* current_itemp = &current_item[0];
+  std::vector<O> num_item(local_num_col);
+  std::vector<O> current_item(local_num_col);
+  O* num_itemp = &num_item[0];
+  O* current_itemp = &current_item[0];
   T* ret_valp = &ret_val[0];
   I* ret_idxp = &ret_idx[0];
   O* ret_offp = &ret_off[0];
@@ -389,9 +391,9 @@ void transpose_compressed_matrix(std::vector<T>& val,
 #pragma _NEC ivdep
     for(O src_pos = offp[src_row]; src_pos < offp[src_row + 1];
         src_pos++) {
-      size_t src_col = idxp[src_pos];
+      auto src_col = idxp[src_pos];
       T src_val = valp[src_pos];
-      size_t dst_pos = ret_offp[src_col] + current_itemp[src_col];
+      auto dst_pos = ret_offp[src_col] + current_itemp[src_col];
       ret_valp[dst_pos] = src_val;
       ret_idxp[dst_pos] = src_row;
       current_itemp[src_col]++;
@@ -765,6 +767,7 @@ struct crs_matrix {
   }
   void savebinary(const std::string& file);
   crs_matrix<T,I,O> transpose();
+  crs_matrix_local<T,I,O> gather();
   sparse_vector<T,I> get_row(size_t r);
   std::vector<size_t> get_local_num_rows();
   crs_matrix<T,I,O>& align_as(const std::vector<size_t>& size);
@@ -1203,6 +1206,11 @@ crs_matrix<T,I,O> crs_matrix<T,I,O>::transpose() {
 }
 
 template <class T, class I, class O>
+crs_matrix_local<T,I,O> crs_matrix<T,I,O>::gather() {
+  return merge_scattered_crs_matrices(data.gather());
+}
+
+template <class T, class I, class O>
 void crs_matrix_spmv_impl(const crs_matrix_local<T,I,O>& mat, T* retp, const T* vp) {
   const T* valp = &mat.val[0];
   const I* idxp = &mat.idx[0];
@@ -1443,7 +1451,52 @@ crs_matrix<T,I,O> make_crs_matrix_scatter(crs_matrix_local<T,I,O>& data) {
   return ret;
 }
 
-// TODO: write gather
+template <class T, class I, class O>
+crs_matrix_local<T,I,O>
+merge_scattered_crs_matrices(const std::vector<crs_matrix_local<T,I,O>>& vcrs) {
+  crs_matrix_local<T,I,O> ret;
+  size_t vcrssize = vcrs.size();
+  if(vcrssize == 0) return ret;
+  size_t num_col = vcrs[0].local_num_col;
+  for(size_t i = 1; i < vcrssize; i++) {
+    if(vcrs[i].local_num_col != num_col)
+      throw std::runtime_error
+        ("merge_scattered_crs_matrices: local_num_col is different");
+  }
+  size_t num_row = 0;
+  for(size_t i = 0; i < vcrssize; i++) num_row += vcrs[i].local_num_row;
+  size_t total_nnz = 0;
+  for(size_t i = 0; i < vcrssize; i++) total_nnz += vcrs[i].val.size();
+  ret.local_num_col = num_col;
+  ret.local_num_row = num_row;
+  ret.val.resize(total_nnz);
+  ret.idx.resize(total_nnz);
+  ret.off.resize(num_row+1);
+  auto crnt_retval = ret.val.data();
+  auto crnt_retidx = ret.idx.data();
+  auto crnt_retoff = ret.off.data();
+  O to_add = 0;
+  for(size_t i = 0; i < vcrssize; i++) {
+    auto valp = vcrs[i].val.data();
+    auto idxp = vcrs[i].idx.data();
+    auto offp = vcrs[i].off.data();
+    auto nnz = vcrs[i].val.size();
+    for(size_t j = 0; j < nnz; j++) {
+      crnt_retval[j] = valp[j];
+      crnt_retidx[j] = idxp[j];
+    }
+    crnt_retval += nnz;
+    crnt_retidx += nnz;
+    auto src_num_row = vcrs[i].local_num_row;
+    for(size_t j = 0; j < src_num_row; j++) {
+      crnt_retoff[j] = offp[j] + to_add;
+    }
+    to_add += offp[src_num_row];
+    crnt_retoff += src_num_row;
+  }
+  ret.off[num_row] = to_add;
+  return ret;
+}
 
 #if defined(_SX) || defined(__ve__)
 /*
@@ -1982,5 +2035,6 @@ void rebalance_for_spmm(crs_matrix<T,I,O>& crs, shared_vector<T>& input,
 }
 
 #endif
+
 }
 #endif
