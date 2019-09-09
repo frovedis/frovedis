@@ -519,11 +519,8 @@ void spmspv(ccs_matrix_local<T,I,O>& mat, sparse_vector<T,I>& sv,
   size_t total_nnz = pfx_sum_nnz[sv_size - 1];
   std::vector<T> mulout_val(total_nnz);
   std::vector<I> mulout_idx(total_nnz);
-  std::vector<T> mulout_val_tmp(total_nnz);
-  std::vector<I> mulout_idx_tmp(total_nnz);
   spmspv_impl(mat_valp, mat_idxp, mat_offp, sv_valp, sv_idxp, sv_size,
               mulout_val.data(), mulout_idx.data(),
-              mulout_val_tmp.data(), mulout_idx_tmp.data(),
               nnzp, pfx_sum_nnz.data(), total_nnz,
               ret, mat.local_num_row);
 }
