@@ -143,9 +143,9 @@ R explicit_cast(const T value) { return static_cast<R>(value); }
 // TODO: implement validation_tol
 template <typename T>
 struct strategy {
-  strategy() {}
-  strategy(
-    const algorithm algo,
+  // TODO: consider uninitialized algorithm
+  explicit strategy(
+    const algorithm algo = algorithm::Classification,
     const impurity_type impurity = impurity_type::Default,
     const size_t max_depth = 5,
     const size_t num_classes = 2,
