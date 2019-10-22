@@ -362,48 +362,40 @@ dummy_matrix df_to_colmajor_float(exrpc_ptr_t& df_proxy,
                                  std::vector<std::string>& t_cols) {
   auto& df = *reinterpret_cast<dftable_base*>(df_proxy);
   auto mat = df.to_colmajor_matrix_float(t_cols);
-  auto nrow = mat.num_row;
-  auto ncol = mat.num_col;
   auto retp = new colmajor_matrix<float>(std::move(mat));
   if (!retp) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed.\n");
-  auto retp_ = reinterpret_cast<exrpc_ptr_t>(retp);
-  return dummy_matrix(retp_,nrow,ncol);
+  return to_dummy_matrix<colmajor_matrix<float>, 
+                         colmajor_matrix_local<float>>(retp);
 }
 
 dummy_matrix df_to_colmajor_double(exrpc_ptr_t& df_proxy,
                                  std::vector<std::string>& t_cols) {
   auto& df = *reinterpret_cast<dftable_base*>(df_proxy);
   auto mat = df.to_colmajor_matrix_double(t_cols);
-  auto nrow = mat.num_row;
-  auto ncol = mat.num_col;
   auto retp = new colmajor_matrix<double>(std::move(mat));
   if (!retp) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed.\n");
-  auto retp_ = reinterpret_cast<exrpc_ptr_t>(retp);
-  return dummy_matrix(retp_,nrow,ncol);
+  return to_dummy_matrix<colmajor_matrix<double>, 
+                         colmajor_matrix_local<double>>(retp);
 }
 
 dummy_matrix df_to_rowmajor_float(exrpc_ptr_t& df_proxy,
                                  std::vector<std::string>& t_cols) { 
   auto& df = *reinterpret_cast<dftable_base*>(df_proxy);
   auto mat = df.to_rowmajor_matrix_float(t_cols);
-  auto nrow = mat.num_row;
-  auto ncol = mat.num_col;
   auto retp = new rowmajor_matrix<float>(std::move(mat));
   if (!retp) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed.\n");
-  auto retp_ = reinterpret_cast<exrpc_ptr_t>(retp);
-  return dummy_matrix(retp_,nrow,ncol);
+  return to_dummy_matrix<rowmajor_matrix<float>, 
+                         rowmajor_matrix_local<float>>(retp);
 }
 
 dummy_matrix df_to_rowmajor_double(exrpc_ptr_t& df_proxy,
                                  std::vector<std::string>& t_cols) {
   auto& df = *reinterpret_cast<dftable_base*>(df_proxy);
   auto mat = df.to_rowmajor_matrix_double(t_cols);
-  auto nrow = mat.num_row;
-  auto ncol = mat.num_col;
   auto retp = new rowmajor_matrix<double>(std::move(mat));
   if (!retp) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed.\n");
-  auto retp_ = reinterpret_cast<exrpc_ptr_t>(retp);
-  return dummy_matrix(retp_,nrow,ncol);
+  return to_dummy_matrix<rowmajor_matrix<double>, 
+                         rowmajor_matrix_local<double>>(retp);
 }
 
 dummy_matrix df_to_crs_float(exrpc_ptr_t& df_proxy,
@@ -413,13 +405,9 @@ dummy_matrix df_to_crs_float(exrpc_ptr_t& df_proxy,
   dftable_to_sparse_info info;
   auto& df = *reinterpret_cast<dftable_base*>(df_proxy);
   auto mat = df.to_crs_matrix_float(t_cols, cat_cols, info);
-  auto nrow = mat.num_row;
-  auto ncol = mat.num_col;
   auto matp = new crs_matrix<float>(std::move(mat));
   if (!matp) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed for matrix.\n");
-  auto matp_ = reinterpret_cast<exrpc_ptr_t>(matp);
-  auto dmat = dummy_matrix(matp_,nrow,ncol);
-
+  auto dmat = to_dummy_matrix<crs_matrix<float>, crs_matrix_local<float>>(matp);
   auto infop = new dftable_to_sparse_info(std::move(info));
   if (!infop) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed for info.\n");
   auto infop_ = reinterpret_cast<exrpc_ptr_t>(infop);
@@ -435,13 +423,9 @@ dummy_matrix df_to_crs_double(exrpc_ptr_t& df_proxy,
   dftable_to_sparse_info info;
   auto& df = *reinterpret_cast<dftable_base*>(df_proxy);
   auto mat = df.to_crs_matrix_double(t_cols, cat_cols, info);
-  auto nrow = mat.num_row;
-  auto ncol = mat.num_col;
   auto matp = new crs_matrix<double>(std::move(mat));
   if (!matp) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed for matrix.\n");
-  auto matp_ = reinterpret_cast<exrpc_ptr_t>(matp);
-  auto dmat = dummy_matrix(matp_,nrow,ncol);
-
+  auto dmat = to_dummy_matrix<crs_matrix<double>, crs_matrix_local<double>>(matp);
   auto infop = new dftable_to_sparse_info(std::move(info));
   if (!infop) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed for info.\n");
   auto infop_ = reinterpret_cast<exrpc_ptr_t>(infop);
@@ -455,12 +439,9 @@ dummy_matrix df_to_crs_float_using_info(exrpc_ptr_t& df_proxy,
   auto& df = *reinterpret_cast<dftable_base*>(df_proxy);
   auto& info = *get_model_ptr<dftable_to_sparse_info>(info_id);
   auto mat = df.to_crs_matrix_float(info);
-  auto nrow = mat.num_row;
-  auto ncol = mat.num_col;
   auto matp = new crs_matrix<float>(std::move(mat));
   if (!matp) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed for matrix.\n");
-  auto matp_ = reinterpret_cast<exrpc_ptr_t>(matp);
-  return dummy_matrix(matp_,nrow,ncol);
+  return to_dummy_matrix<crs_matrix<float>, crs_matrix_local<float>>(matp);
 }
 
 dummy_matrix df_to_crs_double_using_info(exrpc_ptr_t& df_proxy,
@@ -468,12 +449,9 @@ dummy_matrix df_to_crs_double_using_info(exrpc_ptr_t& df_proxy,
   auto& df = *reinterpret_cast<dftable_base*>(df_proxy);
   auto& info = *get_model_ptr<dftable_to_sparse_info>(info_id);
   auto mat = df.to_crs_matrix_double(info);
-  auto nrow = mat.num_row;
-  auto ncol = mat.num_col;
   auto matp = new crs_matrix<double>(std::move(mat));
   if (!matp) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed for matrix.\n");
-  auto matp_ = reinterpret_cast<exrpc_ptr_t>(matp);
-  return dummy_matrix(matp_,nrow,ncol);
+  return to_dummy_matrix<crs_matrix<double>, crs_matrix_local<double>>(matp);
 }
 
 void load_sparse_conversion_info(long& info_id, std::string& dirname) {
