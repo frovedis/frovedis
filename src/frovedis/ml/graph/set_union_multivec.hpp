@@ -3,9 +3,9 @@
 #ifndef GRAPH_SET_UNION_MULTIVEC_HPP
 #define	GRAPH_SET_UNION_MULTIVEC_HPP
 
-#define SET_VLEN 1023
-#define SET_VLEN_EACH 256
-#define SET_VLEN_EACH3 255
+#define GRAPH_SET_VLEN 1023
+#define GRAPH_SET_VLEN_EACH 256
+#define GRAPH_SET_VLEN_EACH3 255
 
 #include "binary_search.hpp"
 #include "find_partitions.hpp"
@@ -43,15 +43,15 @@ std::vector<size_t> set_separate_graph(const std::vector<T>& key) {
 template <class T>
 std::vector<size_t> set_separate_graph(const std::vector<T>& key) {
   size_t size = key.size();
-  int isFinished[SET_VLEN];
-  for(int i = 0; i < SET_VLEN; i++) isFinished[i] = false;
-  size_t each = frovedis::ceil_div(size, size_t(SET_VLEN));
+  int isFinished[GRAPH_SET_VLEN];
+  for(int i = 0; i < GRAPH_SET_VLEN; i++) isFinished[i] = false;
+  size_t each = frovedis::ceil_div(size, size_t(GRAPH_SET_VLEN));
   if(each % 2 == 0) each++;
-  size_t key_idx[SET_VLEN];
-  size_t key_idx_stop[SET_VLEN];
-  size_t out_idx[SET_VLEN];
-  size_t out_idx_save[SET_VLEN];
-  T current_key[SET_VLEN];
+  size_t key_idx[GRAPH_SET_VLEN];
+  size_t key_idx_stop[GRAPH_SET_VLEN];
+  size_t out_idx[GRAPH_SET_VLEN];
+  size_t out_idx_save[GRAPH_SET_VLEN];
+  T current_key[GRAPH_SET_VLEN];
   std::vector<size_t> out(size,0);
 //  out.resize(size);
   size_t* outp = &out[0];
@@ -68,7 +68,7 @@ std::vector<size_t> set_separate_graph(const std::vector<T>& key) {
     out_idx[0] = size;
     out_idx_save[0] = size;
   }
-  for(int i = 1; i < SET_VLEN; i++) {
+  for(int i = 1; i < GRAPH_SET_VLEN; i++) {
     size_t pos = each * i;
     if(pos < size) {
       key_idx[i] = pos;
@@ -82,15 +82,15 @@ std::vector<size_t> set_separate_graph(const std::vector<T>& key) {
       out_idx_save[i] = size;
     }
   }
-  for(int i = 0; i < SET_VLEN - 1; i++) {
+  for(int i = 0; i < GRAPH_SET_VLEN - 1; i++) {
     key_idx_stop[i] = key_idx[i + 1];
   }
-  key_idx_stop[SET_VLEN-1] = size;
+  key_idx_stop[GRAPH_SET_VLEN-1] = size;
   if(key_idx[0] == key_idx_stop[0]) isFinished[0] = true; 
   while(1) {
 #pragma cdir nodep
 #pragma _NEC ivdep      
-    for(int i = 0; i < SET_VLEN; i++) {
+    for(int i = 0; i < GRAPH_SET_VLEN; i++) {
       if(isFinished[i] == false) {
         auto keyval = keyp[key_idx[i]];
         if(keyval != current_key[i]) {
@@ -102,7 +102,7 @@ std::vector<size_t> set_separate_graph(const std::vector<T>& key) {
       }
     }
     bool isFinished_all = true;
-    for(int i = 0; i < SET_VLEN; i++) {
+    for(int i = 0; i < GRAPH_SET_VLEN; i++) {
         if(isFinished[i] == false) {
             isFinished_all = false;
             break;
@@ -111,13 +111,13 @@ std::vector<size_t> set_separate_graph(const std::vector<T>& key) {
     if(isFinished_all == true) break;
   }
   size_t total = 0;
-  for(size_t i = 0; i < SET_VLEN; i++) {
+  for(size_t i = 0; i < GRAPH_SET_VLEN; i++) {
     total += out_idx[i] - out_idx_save[i];
   }
   std::vector<size_t> ret(total+1,0);
   size_t* retp = &ret[0];
   size_t current = 0;
-  for(size_t i = 0; i < SET_VLEN; i++) {
+  for(size_t i = 0; i < GRAPH_SET_VLEN; i++) {
     for(size_t j = 0; j < out_idx[i] - out_idx_save[i]; j++, current++) {
       retp[current] = out[out_idx_save[i] + j];
     }
@@ -133,8 +133,8 @@ size_t set_union_vertical_unrolled(std::vector<T>& left, std::vector<T>& right,s
  
 
 
-  int valid[SET_VLEN];
-  for(int i = 0; i < SET_VLEN; i++) valid[i] = true;
+  int valid[GRAPH_SET_VLEN];
+  for(int i = 0; i < GRAPH_SET_VLEN; i++) valid[i] = true;
 
   size_t left_size = left.size();
   size_t right_size = right.size();
@@ -147,18 +147,18 @@ size_t set_union_vertical_unrolled(std::vector<T>& left, std::vector<T>& right,s
       return left_size;
   }
   
-  size_t each = frovedis::ceil_div(left_size, size_t(SET_VLEN));
+  size_t each = frovedis::ceil_div(left_size, size_t(GRAPH_SET_VLEN));
   if(each % 2 == 0) each++;
   
-  size_t left_idx[SET_VLEN];
-  size_t right_idx[SET_VLEN];
+  size_t left_idx[GRAPH_SET_VLEN];
+  size_t right_idx[GRAPH_SET_VLEN];
 
-  size_t left_idx_stop[SET_VLEN];
-  size_t right_idx_stop[SET_VLEN];
-  size_t out_idx[SET_VLEN];
-  size_t out_idx_save[SET_VLEN];
+  size_t left_idx_stop[GRAPH_SET_VLEN];
+  size_t right_idx_stop[GRAPH_SET_VLEN];
+  size_t out_idx[GRAPH_SET_VLEN];
+  size_t out_idx_save[GRAPH_SET_VLEN];
   size_t valid_count = 0;
-  for(int i = 0; i < SET_VLEN; i++) {
+  for(int i = 0; i < GRAPH_SET_VLEN; i++) {
     size_t pos = each * i;
     if(pos < left_size) {
       left_idx[i] = pos;
@@ -187,7 +187,7 @@ size_t set_union_vertical_unrolled(std::vector<T>& left, std::vector<T>& right,s
 #pragma cdir on_adb(right)
 #pragma cdir on_adb(valid)
 #pragma cdir on_adb(right_idx_valid_ptr)
-  for(size_t i=0; i<SET_VLEN-1; i++){
+  for(size_t i=0; i<GRAPH_SET_VLEN-1; i++){
       if(i< valid_count-1){
           if(left_milestone[i] <= right[right_size-1]){
                 right_idx[i+1] = right_idx_valid_ptr[i];
@@ -206,38 +206,38 @@ size_t set_union_vertical_unrolled(std::vector<T>& left, std::vector<T>& right,s
   out_idx_save[0] = 0;
     #pragma cdir nodep
     #pragma _NEC ivdep
-  for(int i = 1; i < SET_VLEN; i++) {
+  for(int i = 1; i < GRAPH_SET_VLEN; i++) {
     out_idx[i] = (left_idx[i] - left_idx[i-1])
       + (right_idx[i] - right_idx[i-1])
       + out_idx[i-1];
     out_idx_save[i] = out_idx[i];
   }
-  for(int i = 0; i < SET_VLEN - 1; i++) {
+  for(int i = 0; i < GRAPH_SET_VLEN - 1; i++) {
     left_idx_stop[i] = left_idx[i + 1];
     right_idx_stop[i] = right_idx[i + 1];
   }
-  left_idx_stop[SET_VLEN-1] = left_size;
-  right_idx_stop[SET_VLEN-1] = right_size;
-  for(int i = 0; i < SET_VLEN; i++) {
+  left_idx_stop[GRAPH_SET_VLEN-1] = left_size;
+  right_idx_stop[GRAPH_SET_VLEN-1] = right_size;
+  for(int i = 0; i < GRAPH_SET_VLEN; i++) {
     if(left_idx[i] == left_idx_stop[i] || right_idx[i] == right_idx_stop[i]) 
       valid[i] = false;
   }
 
-#include "frovedis/dataframe/set_operations.incl1"
-// #include "./set_operations.incl1"
+//#include "frovedis/dataframe/set_operations.incl1"
+ #include "./set_operations.incl1"
   T* lp = &left[0];
   T* rp = &right[0];
   T* op = &out[0];
   while(1) {
     
       
-#include "frovedis/dataframe/set_operations.incl2"
-// #include "./set_operations.incl2"
+//#include "frovedis/dataframe/set_operations.incl2"
+#include "./set_operations.incl2"
 #include "sparse_vector.hpp"
 
 #pragma cdir nodep
       #pragma _NEC ivdep
-    for(int j = 0; j < SET_VLEN_EACH; j++) {
+    for(int j = 0; j < GRAPH_SET_VLEN_EACH; j++) {
       if(valid_0[j]) {
         bool eq = leftelm0[j] == rightelm0[j];
         bool lt = leftelm0[j] < rightelm0[j];
@@ -260,7 +260,7 @@ size_t set_union_vertical_unrolled(std::vector<T>& left, std::vector<T>& right,s
 
 #pragma cdir nodep
     #pragma _NEC ivdep
-    for(int j = 0; j < SET_VLEN_EACH; j++) {
+    for(int j = 0; j < GRAPH_SET_VLEN_EACH; j++) {
       if(valid_1[j]) {
         bool eq = leftelm1[j] == rightelm1[j];
         bool lt = leftelm1[j] < rightelm1[j];
@@ -283,7 +283,7 @@ size_t set_union_vertical_unrolled(std::vector<T>& left, std::vector<T>& right,s
 
 #pragma cdir nodep       
     #pragma _NEC ivdep
-    for(int j = 0; j < SET_VLEN_EACH; j++) {
+    for(int j = 0; j < GRAPH_SET_VLEN_EACH; j++) {
       if(valid_2[j]) {
         bool eq = leftelm2[j] == rightelm2[j];
         bool lt = leftelm2[j] < rightelm2[j];
@@ -306,7 +306,7 @@ size_t set_union_vertical_unrolled(std::vector<T>& left, std::vector<T>& right,s
 
 #pragma cdir nodep   
     #pragma _NEC ivdep
-    for(int j = 0; j < SET_VLEN_EACH3; j++) {
+    for(int j = 0; j < GRAPH_SET_VLEN_EACH3; j++) {
       if(valid_3[j]) {
         bool eq = leftelm3[j] == rightelm3[j];
         bool lt = leftelm3[j] < rightelm3[j];
@@ -333,7 +333,7 @@ size_t set_union_vertical_unrolled(std::vector<T>& left, std::vector<T>& right,s
     #pragma cdir on_adb(valid_1)
     #pragma cdir on_adb(valid_2)
     #pragma cdir on_adb(valid_3)
-    for(int i = 0; i < SET_VLEN_EACH; i++) {
+    for(int i = 0; i < GRAPH_SET_VLEN_EACH; i++) {
       if(valid_0[i] || valid_1[i] || valid_2[i] || valid_3[i])
         any_valid = true;
     }
@@ -352,16 +352,16 @@ size_t set_union_vertical_unrolled(std::vector<T>& left, std::vector<T>& right,s
     #pragma cdir on_adb(right_idx_0)
     #pragma cdir on_adb(right_idx_1)
     #pragma cdir on_adb(right_idx_2)
-  for(size_t i = 0; i < SET_VLEN_EACH; i++) {
+  for(size_t i = 0; i < GRAPH_SET_VLEN_EACH; i++) {
     out_idx[i] = out_idx_0[i];
-    out_idx[SET_VLEN_EACH * 1 + i] = out_idx_1[i];
-    out_idx[SET_VLEN_EACH * 2 + i] = out_idx_2[i];
+    out_idx[GRAPH_SET_VLEN_EACH * 1 + i] = out_idx_1[i];
+    out_idx[GRAPH_SET_VLEN_EACH * 2 + i] = out_idx_2[i];
     left_idx[i] = left_idx_0[i];
-    left_idx[SET_VLEN_EACH * 1 + i] = left_idx_1[i];
-    left_idx[SET_VLEN_EACH * 2 + i] = left_idx_2[i];
+    left_idx[GRAPH_SET_VLEN_EACH * 1 + i] = left_idx_1[i];
+    left_idx[GRAPH_SET_VLEN_EACH * 2 + i] = left_idx_2[i];
     right_idx[i] = right_idx_0[i];
-    right_idx[SET_VLEN_EACH * 1 + i] = right_idx_1[i];
-    right_idx[SET_VLEN_EACH * 2 + i] = right_idx_2[i];
+    right_idx[GRAPH_SET_VLEN_EACH * 1 + i] = right_idx_1[i];
+    right_idx[GRAPH_SET_VLEN_EACH * 2 + i] = right_idx_2[i];
   }
     #pragma cdir on_adb(out_idx_3)
     #pragma cdir on_adb(left_idx_3)
@@ -369,10 +369,10 @@ size_t set_union_vertical_unrolled(std::vector<T>& left, std::vector<T>& right,s
     #pragma cdir on_adb(out_idx)
     #pragma cdir on_adb(left_idx)  
     #pragma cdir on_adb(right_idx)  
-  for(size_t i = 0; i < SET_VLEN_EACH3; i++) {
-    out_idx[SET_VLEN_EACH * 3 + i] = out_idx_3[i];
-    left_idx[SET_VLEN_EACH * 3 + i] = left_idx_3[i];
-    right_idx[SET_VLEN_EACH * 3 + i] = right_idx_3[i];
+  for(size_t i = 0; i < GRAPH_SET_VLEN_EACH3; i++) {
+    out_idx[GRAPH_SET_VLEN_EACH * 3 + i] = out_idx_3[i];
+    left_idx[GRAPH_SET_VLEN_EACH * 3 + i] = left_idx_3[i];
+    right_idx[GRAPH_SET_VLEN_EACH * 3 + i] = right_idx_3[i];
   }
   size_t total = 0;
     #pragma cdir on_adb(out_idx)
@@ -382,7 +382,7 @@ size_t set_union_vertical_unrolled(std::vector<T>& left, std::vector<T>& right,s
     #pragma cdir on_adb(out_idx)
     #pragma cdir on_adb(left_idx_stop)  
     #pragma cdir on_adb(right_idx_stop)    
-  for(size_t i = 0; i < SET_VLEN; i++) {
+  for(size_t i = 0; i < GRAPH_SET_VLEN; i++) {
     total += (out_idx[i] - out_idx_save[i]) +
       (left_idx_stop[i] - left_idx[i]) +
       (right_idx_stop[i] - right_idx[i]);
@@ -390,7 +390,7 @@ size_t set_union_vertical_unrolled(std::vector<T>& left, std::vector<T>& right,s
 
   T* retp = &ret[0];
   size_t current = 0;
-  for(size_t i = 0; i < SET_VLEN; i++) {
+  for(size_t i = 0; i < GRAPH_SET_VLEN; i++) {
     #pragma cdir on_adb(retp)
     #pragma cdir on_adb(op)
     #pragma cdir on_adb(out_idx)
@@ -420,8 +420,8 @@ size_t set_union_vertical_unrolled(std::vector<T>& left, std::vector<T>& right,s
 template <class T>
 std::vector<T> set_union_vertical(std::vector<T>& left, std::vector<T>& right) { //parallel binary search for right_idx
  
-  int valid[SET_VLEN_EACH3];
-  for(int i = 0; i < SET_VLEN_EACH3; i++) valid[i] = true;
+  int valid[GRAPH_SET_VLEN_EACH3];
+  for(int i = 0; i < GRAPH_SET_VLEN_EACH3; i++) valid[i] = true;
 
   size_t left_size = left.size();
   size_t right_size = right.size();
@@ -430,22 +430,22 @@ std::vector<T> set_union_vertical(std::vector<T>& left, std::vector<T>& right) {
   T* lp = &left[0];
   T* rp = &right[0];
   
-  size_t each = frovedis::ceil_div(left_size, size_t(SET_VLEN_EACH3));
+  size_t each = frovedis::ceil_div(left_size, size_t(GRAPH_SET_VLEN_EACH3));
   if(each % 2 == 0) each++;
   
-  size_t left_idx[SET_VLEN_EACH3];
-  size_t right_idx[SET_VLEN_EACH3];
+  size_t left_idx[GRAPH_SET_VLEN_EACH3];
+  size_t right_idx[GRAPH_SET_VLEN_EACH3];
 
-  size_t left_idx_stop[SET_VLEN_EACH3];
-  size_t right_idx_stop[SET_VLEN_EACH3];
-  size_t out_idx[SET_VLEN_EACH3];
-  size_t out_idx_save[SET_VLEN_EACH3];
+  size_t left_idx_stop[GRAPH_SET_VLEN_EACH3];
+  size_t right_idx_stop[GRAPH_SET_VLEN_EACH3];
+  size_t out_idx[GRAPH_SET_VLEN_EACH3];
+  size_t out_idx_save[GRAPH_SET_VLEN_EACH3];
   std::vector<T> out(left_size + right_size,0);
 //  out.resize(left_size + right_size);
   size_t valid_count = 0;
   
   #pragma cdir on_adb(left_idx)
-  for(int i = 0; i < SET_VLEN_EACH3; i++) {
+  for(int i = 0; i < GRAPH_SET_VLEN_EACH3; i++) {
     size_t pos = each * i;
     if(pos < left_size) {
       left_idx[i] = pos;
@@ -486,7 +486,7 @@ std::vector<T> set_union_vertical(std::vector<T>& left, std::vector<T>& right) {
         }
     }
   
-    for(size_t i = valid_count; i< SET_VLEN_EACH3; i++){
+    for(size_t i = valid_count; i< GRAPH_SET_VLEN_EACH3; i++){
         right_idx[i] = right_size;
     }
   
@@ -498,7 +498,7 @@ std::vector<T> set_union_vertical(std::vector<T>& left, std::vector<T>& right) {
 #pragma cdir on_adb(right_idx)
 #pragma cdir on_adb(out_idx)
 #pragma cdir on_adb(out_idx_save)
-  for(int i = 1; i < SET_VLEN_EACH3; i++) {
+  for(int i = 1; i < GRAPH_SET_VLEN_EACH3; i++) {
     out_idx[i] = (left_idx[i] - left_idx[i-1])
       + (right_idx[i] - right_idx[i-1])
       + out_idx[i-1];
@@ -508,12 +508,12 @@ std::vector<T> set_union_vertical(std::vector<T>& left, std::vector<T>& right) {
 #pragma cdir on_adb(right_idx_Stop)
 #pragma cdir on_adb(left_idx)
 #pragma cdir on_adb(right_idx)  
-  for(int i = 0; i < SET_VLEN_EACH3 - 1; i++) {
+  for(int i = 0; i < GRAPH_SET_VLEN_EACH3 - 1; i++) {
     left_idx_stop[i] = left_idx[i + 1];
     right_idx_stop[i] = right_idx[i + 1];
   }
-  left_idx_stop[SET_VLEN_EACH3-1] = left_size;
-  right_idx_stop[SET_VLEN_EACH3-1] = right_size;
+  left_idx_stop[GRAPH_SET_VLEN_EACH3-1] = left_size;
+  right_idx_stop[GRAPH_SET_VLEN_EACH3-1] = right_size;
 
 
   T* op = &out[0];
@@ -532,7 +532,7 @@ std::vector<T> set_union_vertical(std::vector<T>& left, std::vector<T>& right) {
 #pragma cdir on_adb(right_idx)  
 #pragma cdir on_adb(valid) 
       
-    for(int j = 0; j < SET_VLEN_EACH3; j++) {
+    for(int j = 0; j < GRAPH_SET_VLEN_EACH3; j++) {
         total_ct ++;
       if(! (left_idx[j] == left_idx_stop[j] || right_idx[j] == right_idx_stop[j])) {
           valid_ct ++;
@@ -559,7 +559,7 @@ std::vector<T> set_union_vertical(std::vector<T>& left, std::vector<T>& right) {
   
     bool any_valid = false;
     #pragma cdir on_adb(valid)
-    for(int i = 0; i < SET_VLEN_EACH3; i++) {
+    for(int i = 0; i < GRAPH_SET_VLEN_EACH3; i++) {
       if(valid[i]){
         any_valid = true;
         break;
@@ -576,7 +576,7 @@ std::vector<T> set_union_vertical(std::vector<T>& left, std::vector<T>& right) {
     #pragma cdir on_adb(out_idx)
     #pragma cdir on_adb(left_idx_stop)  
     #pragma cdir on_adb(right_idx_stop)    
-  for(size_t i = 0; i < SET_VLEN_EACH3; i++) {
+  for(size_t i = 0; i < GRAPH_SET_VLEN_EACH3; i++) {
     total += (out_idx[i] - out_idx_save[i]) +
       (left_idx_stop[i] - left_idx[i]) +
       (right_idx_stop[i] - right_idx[i]);
@@ -586,7 +586,7 @@ std::vector<T> set_union_vertical(std::vector<T>& left, std::vector<T>& right) {
   size_t current = 0;
 #pragma cdir on_adb(op)   
 #pragma cdir on_adb(retp)  
-  for(size_t i = 0; i < SET_VLEN_EACH3; i++) {
+  for(size_t i = 0; i < GRAPH_SET_VLEN_EACH3; i++) {
     #pragma cdir on_adb(retp)
     #pragma cdir on_adb(op)
     #pragma cdir on_adb(out_idx)
@@ -620,8 +620,8 @@ std::vector<T> set_union_vertical_overlap(std::vector<T>& left, std::vector<T>& 
     //only compare overlap part 
 
 
-  int valid[SET_VLEN_EACH3];
-  for(int i = 0; i < SET_VLEN_EACH3; i++) valid[i] = true;
+  int valid[GRAPH_SET_VLEN_EACH3];
+  for(int i = 0; i < GRAPH_SET_VLEN_EACH3; i++) valid[i] = true;
 
   size_t left_size = left.size();
   size_t right_size = right.size();
@@ -761,22 +761,22 @@ std::vector<T> set_union_vertical_overlap(std::vector<T>& left, std::vector<T>& 
         return ret;
     }
 
-  size_t each = frovedis::ceil_div(new_left_size, size_t(SET_VLEN_EACH3));
+  size_t each = frovedis::ceil_div(new_left_size, size_t(GRAPH_SET_VLEN_EACH3));
   if(each % 2 == 0) each++;
   
-  size_t left_idx[SET_VLEN_EACH3];
-  size_t right_idx[SET_VLEN_EACH3];
+  size_t left_idx[GRAPH_SET_VLEN_EACH3];
+  size_t right_idx[GRAPH_SET_VLEN_EACH3];
 
-  size_t left_idx_stop[SET_VLEN_EACH3];
-  size_t right_idx_stop[SET_VLEN_EACH3];
-  size_t out_idx[SET_VLEN_EACH3];
-  size_t out_idx_save[SET_VLEN_EACH3];
+  size_t left_idx_stop[GRAPH_SET_VLEN_EACH3];
+  size_t right_idx_stop[GRAPH_SET_VLEN_EACH3];
+  size_t out_idx[GRAPH_SET_VLEN_EACH3];
+  size_t out_idx_save[GRAPH_SET_VLEN_EACH3];
   std::vector<T> out(new_left_size + new_right_size);
 //  out.resize(left_size + right_size);
   size_t valid_count = 0;
   
   #pragma cdir on_adb(left_idx)
-  for(int i = 0; i < SET_VLEN_EACH3; i++) {
+  for(int i = 0; i < GRAPH_SET_VLEN_EACH3; i++) {
     size_t pos = each * i;
     if(pos < new_left_size) {
       left_idx[i] = pos;
@@ -812,7 +812,7 @@ std::vector<T> set_union_vertical_overlap(std::vector<T>& left, std::vector<T>& 
         }
     }
    
-    for(size_t i = valid_count; i< SET_VLEN_EACH3; i++){
+    for(size_t i = valid_count; i< GRAPH_SET_VLEN_EACH3; i++){
         right_idx[i] = new_right_size;
     }
 
@@ -824,7 +824,7 @@ std::vector<T> set_union_vertical_overlap(std::vector<T>& left, std::vector<T>& 
 #pragma cdir on_adb(right_idx)
 #pragma cdir on_adb(out_idx)
 #pragma cdir on_adb(out_idx_save)
-  for(int i = 1; i < SET_VLEN_EACH3; i++) {
+  for(int i = 1; i < GRAPH_SET_VLEN_EACH3; i++) {
     out_idx[i] = (left_idx[i] - left_idx[i-1])
       + (right_idx[i] - right_idx[i-1])
       + out_idx[i-1];
@@ -834,12 +834,12 @@ std::vector<T> set_union_vertical_overlap(std::vector<T>& left, std::vector<T>& 
 #pragma cdir on_adb(right_idx_Stop)
 #pragma cdir on_adb(left_idx)
 #pragma cdir on_adb(right_idx)  
-  for(int i = 0; i < SET_VLEN_EACH3 - 1; i++) {
+  for(int i = 0; i < GRAPH_SET_VLEN_EACH3 - 1; i++) {
     left_idx_stop[i] = left_idx[i + 1];
     right_idx_stop[i] = right_idx[i + 1];
   }
-  left_idx_stop[SET_VLEN_EACH3-1] = new_left_size;
-  right_idx_stop[SET_VLEN_EACH3-1] = new_right_size;
+  left_idx_stop[GRAPH_SET_VLEN_EACH3-1] = new_left_size;
+  right_idx_stop[GRAPH_SET_VLEN_EACH3-1] = new_right_size;
   
   T* op = &out[0];
 
@@ -855,7 +855,7 @@ std::vector<T> set_union_vertical_overlap(std::vector<T>& left, std::vector<T>& 
 #pragma cdir on_adb(left_idx)
 #pragma cdir on_adb(right_idx)  
 #pragma cdir on_adb(valid) 
-    for(int j = 0; j < SET_VLEN_EACH3; j++) {
+    for(int j = 0; j < GRAPH_SET_VLEN_EACH3; j++) {
       if(! (left_idx[j] == left_idx_stop[j] || right_idx[j] == right_idx_stop[j])) {
    #ifdef DEBUG_SET_UNION         
           valid_ct_each ++;
@@ -881,7 +881,7 @@ std::vector<T> set_union_vertical_overlap(std::vector<T>& left, std::vector<T>& 
     
     bool any_valid = false;
     #pragma cdir on_adb(valid)
-    for(int i = 0; i < SET_VLEN_EACH3; i++) {
+    for(int i = 0; i < GRAPH_SET_VLEN_EACH3; i++) {
       if(valid[i]){
         any_valid = true;
         break;
@@ -899,7 +899,7 @@ std::vector<T> set_union_vertical_overlap(std::vector<T>& left, std::vector<T>& 
     #pragma cdir on_adb(out_idx)
     #pragma cdir on_adb(left_idx_stop)  
     #pragma cdir on_adb(right_idx_stop)    
-  for(size_t i = 0; i < SET_VLEN_EACH3; i++) {
+  for(size_t i = 0; i < GRAPH_SET_VLEN_EACH3; i++) {
     total += (out_idx[i] - out_idx_save[i]) +
       (left_idx_stop[i] - left_idx[i]) +
       (right_idx_stop[i] - right_idx[i]);
@@ -915,7 +915,7 @@ std::vector<T> set_union_vertical_overlap(std::vector<T>& left, std::vector<T>& 
   
 #pragma cdir on_adb(op)   
 #pragma cdir on_adb(retp)  
-  for(size_t i = 0; i < SET_VLEN_EACH3; i++) {
+  for(size_t i = 0; i < GRAPH_SET_VLEN_EACH3; i++) {
     #pragma cdir on_adb(retp)
     #pragma cdir on_adb(op)
     #pragma cdir on_adb(out_idx)
@@ -948,8 +948,8 @@ template <class T>
 std::vector<T> set_union_mergepath(std::vector<T>& left, std::vector<T>& right) { 
     //Partition left and right vectors using mergepath technique for load-balance
 
-  int valid[SET_VLEN_EACH3];
-  for(int i = 0; i < SET_VLEN_EACH3; i++) valid[i] = true;
+  int valid[GRAPH_SET_VLEN_EACH3];
+  for(int i = 0; i < GRAPH_SET_VLEN_EACH3; i++) valid[i] = true;
 
   size_t left_size = left.size();
   size_t right_size = right.size();
@@ -963,28 +963,28 @@ std::vector<T> set_union_mergepath(std::vector<T>& left, std::vector<T>& right) 
 
 //Partition left/right vectors
   
-  size_t left_idx[SET_VLEN_EACH3];
-  size_t right_idx[SET_VLEN_EACH3];
+  size_t left_idx[GRAPH_SET_VLEN_EACH3];
+  size_t right_idx[GRAPH_SET_VLEN_EACH3];
 
-  size_t left_idx_stop[SET_VLEN_EACH3];
-  size_t right_idx_stop[SET_VLEN_EACH3];
-  size_t out_idx[SET_VLEN_EACH3];
-  size_t out_idx_save[SET_VLEN_EACH3];
+  size_t left_idx_stop[GRAPH_SET_VLEN_EACH3];
+  size_t right_idx_stop[GRAPH_SET_VLEN_EACH3];
+  size_t out_idx[GRAPH_SET_VLEN_EACH3];
+  size_t out_idx_save[GRAPH_SET_VLEN_EACH3];
   
   std::vector<T> out(left_size + right_size,0);
 
-  std::vector<size_t> lpar(SET_VLEN_EACH3,0);
-  std::vector<size_t> rpar(SET_VLEN_EACH3,0); 
+  std::vector<size_t> lpar(GRAPH_SET_VLEN_EACH3,0);
+  std::vector<size_t> rpar(GRAPH_SET_VLEN_EACH3,0); 
   auto* lparp = &lpar[0];
   auto* rparp = &rpar[0];  
-  find_partitions(left, right, SET_VLEN_EACH3,lpar,rpar);
+  find_partitions(left, right, GRAPH_SET_VLEN_EACH3,lpar,rpar);
 
   right_idx[0] = 0;
   left_idx[0] = 0;
     #pragma cdir on_adb(lpar)
     #pragma cdir on_adb(left_idx)
     #pragma cdir on_adb(valid)
-     for(size_t i=1; i<SET_VLEN_EACH3; i++){
+     for(size_t i=1; i<GRAPH_SET_VLEN_EACH3; i++){
         if(lparp[i-1] >= left_size){
             left_idx[i] = left_size;
             valid[i] = false;
@@ -995,7 +995,7 @@ std::vector<T> set_union_mergepath(std::vector<T>& left, std::vector<T>& right) 
     #pragma cdir on_adb(rpar)
     #pragma cdir on_adb(right_idx)
     #pragma cdir on_adb(valid)  
-     for(size_t i=1; i<SET_VLEN_EACH3; i++){  
+     for(size_t i=1; i<GRAPH_SET_VLEN_EACH3; i++){  
         if(rparp[i-1] >= right_size){
             right_idx[i] = right_size;
             valid[i] = false;
@@ -1012,7 +1012,7 @@ std::vector<T> set_union_mergepath(std::vector<T>& left, std::vector<T>& right) 
 #pragma cdir on_adb(right_idx)
 #pragma cdir on_adb(out_idx)
 #pragma cdir on_adb(out_idx_save)
-  for(int i = 1; i < SET_VLEN_EACH3; i++) {
+  for(int i = 1; i < GRAPH_SET_VLEN_EACH3; i++) {
     out_idx[i] = (left_idx[i] - left_idx[i-1])
       + (right_idx[i] - right_idx[i-1])
       + out_idx[i-1];
@@ -1022,19 +1022,19 @@ std::vector<T> set_union_mergepath(std::vector<T>& left, std::vector<T>& right) 
 #pragma cdir on_adb(right_idx_Stop)
 #pragma cdir on_adb(left_idx)
 #pragma cdir on_adb(right_idx)  
-  for(int i = 0; i < SET_VLEN_EACH3 - 1; i++) {
+  for(int i = 0; i < GRAPH_SET_VLEN_EACH3 - 1; i++) {
     left_idx_stop[i] = left_idx[i + 1];
     right_idx_stop[i] = right_idx[i + 1];
   }
-  left_idx_stop[SET_VLEN_EACH3-1] = left_size;
-  right_idx_stop[SET_VLEN_EACH3-1] = right_size;
+  left_idx_stop[GRAPH_SET_VLEN_EACH3-1] = left_size;
+  right_idx_stop[GRAPH_SET_VLEN_EACH3-1] = right_size;
   
 #pragma cdir on_adb(left_idx_stop)
 #pragma cdir on_adb(right_idx_Stop)
 #pragma cdir on_adb(left_idx)
 #pragma cdir on_adb(right_idx)
 #pragma cdir on_adb(valid)  
-  for(int i = 0; i < SET_VLEN_EACH3; i++) {
+  for(int i = 0; i < GRAPH_SET_VLEN_EACH3; i++) {
     if(left_idx[i] == left_idx_stop[i] || right_idx[i] == right_idx_stop[i]) 
       valid[i] = false;
   }
@@ -1052,7 +1052,7 @@ std::vector<T> set_union_mergepath(std::vector<T>& left, std::vector<T>& right) 
 #pragma cdir on_adb(left_idx)
 #pragma cdir on_adb(right_idx)  
 #pragma cdir on_adb(valid) 
-    for(int j = 0; j < SET_VLEN_EACH3; j++) {
+    for(int j = 0; j < GRAPH_SET_VLEN_EACH3; j++) {
       if(! (left_idx[j] == left_idx_stop[j] || right_idx[j] == right_idx_stop[j])) {
 
         int eq = lp[left_idx[j]] == rp[right_idx[j]];
@@ -1076,7 +1076,7 @@ std::vector<T> set_union_mergepath(std::vector<T>& left, std::vector<T>& right) 
 
     bool any_valid = false;
     #pragma cdir on_adb(valid)
-    for(int i = 0; i < SET_VLEN_EACH3; i++) {
+    for(int i = 0; i < GRAPH_SET_VLEN_EACH3; i++) {
         if(valid[i]){
           any_valid = true;
           break;
@@ -1094,7 +1094,7 @@ std::vector<T> set_union_mergepath(std::vector<T>& left, std::vector<T>& right) 
     #pragma cdir on_adb(out_idx)
     #pragma cdir on_adb(left_idx_stop)  
     #pragma cdir on_adb(right_idx_stop)    
-  for(size_t i = 0; i < SET_VLEN_EACH3; i++) {
+  for(size_t i = 0; i < GRAPH_SET_VLEN_EACH3; i++) {
     total += (out_idx[i] - out_idx_save[i]) +
       (left_idx_stop[i] - left_idx[i]) +
       (right_idx_stop[i] - right_idx[i]);
@@ -1106,7 +1106,7 @@ std::vector<T> set_union_mergepath(std::vector<T>& left, std::vector<T>& right) 
 
 #pragma cdir on_adb(op)   
 #pragma cdir on_adb(retp)  
-  for(size_t i = 0; i < SET_VLEN_EACH3; i++) {
+  for(size_t i = 0; i < GRAPH_SET_VLEN_EACH3; i++) {
     #pragma cdir on_adb(retp)
     #pragma cdir on_adb(op)
     #pragma cdir on_adb(out_idx)
@@ -1139,8 +1139,8 @@ std::vector<T> set_union_vertical_overlap_mergepath(std::vector<T>& left, std::v
   //overlap + mergepath
 
 
-  int valid[SET_VLEN_EACH3];
-  for(int i = 0; i < SET_VLEN_EACH3; i++) valid[i] = true;
+  int valid[GRAPH_SET_VLEN_EACH3];
+  for(int i = 0; i < GRAPH_SET_VLEN_EACH3; i++) valid[i] = true;
 
   size_t left_size = left.size();
   size_t right_size = right.size();
@@ -1281,30 +1281,30 @@ std::vector<T> set_union_vertical_overlap_mergepath(std::vector<T>& left, std::v
     }
 //Partition left/right vectors
   
-  size_t left_idx[SET_VLEN_EACH3];
-  size_t right_idx[SET_VLEN_EACH3];
+  size_t left_idx[GRAPH_SET_VLEN_EACH3];
+  size_t right_idx[GRAPH_SET_VLEN_EACH3];
 
-  size_t left_idx_stop[SET_VLEN_EACH3];
-  size_t right_idx_stop[SET_VLEN_EACH3];
-  size_t out_idx[SET_VLEN_EACH3];
-  size_t out_idx_save[SET_VLEN_EACH3];
+  size_t left_idx_stop[GRAPH_SET_VLEN_EACH3];
+  size_t right_idx_stop[GRAPH_SET_VLEN_EACH3];
+  size_t out_idx[GRAPH_SET_VLEN_EACH3];
+  size_t out_idx_save[GRAPH_SET_VLEN_EACH3];
   
   std::vector<T> out(new_left_size + new_right_size);
   
 //  size_t valid_count = 0;
   
-   std::vector<size_t> lpar(SET_VLEN_EACH3);
-  std::vector<size_t> rpar(SET_VLEN_EACH3); 
+   std::vector<size_t> lpar(GRAPH_SET_VLEN_EACH3);
+  std::vector<size_t> rpar(GRAPH_SET_VLEN_EACH3); 
   auto* lparp = &lpar[0];
   auto* rparp = &rpar[0];  
-  find_partitions(new_left, new_right, SET_VLEN_EACH3,lpar,rpar);
+  find_partitions(new_left, new_right, GRAPH_SET_VLEN_EACH3,lpar,rpar);
 
   right_idx[0] = 0;
   left_idx[0] = 0;
     #pragma cdir on_adb(lpar)
     #pragma cdir on_adb(left_idx)
     #pragma cdir on_adb(valid)
-     for(size_t i=1; i<SET_VLEN_EACH3; i++){
+     for(size_t i=1; i<GRAPH_SET_VLEN_EACH3; i++){
         if(lparp[i-1] >= new_left_size){
             left_idx[i] = new_left_size;
             valid[i] = false;
@@ -1315,7 +1315,7 @@ std::vector<T> set_union_vertical_overlap_mergepath(std::vector<T>& left, std::v
     #pragma cdir on_adb(rpar)
     #pragma cdir on_adb(right_idx)
     #pragma cdir on_adb(valid)  
-     for(size_t i=1; i<SET_VLEN_EACH3; i++){  
+     for(size_t i=1; i<GRAPH_SET_VLEN_EACH3; i++){  
         if(rparp[i-1] >= new_right_size){
             right_idx[i] = new_right_size;
             valid[i] = false;
@@ -1332,7 +1332,7 @@ std::vector<T> set_union_vertical_overlap_mergepath(std::vector<T>& left, std::v
 #pragma cdir on_adb(right_idx)
 #pragma cdir on_adb(out_idx)
 #pragma cdir on_adb(out_idx_save)
-  for(int i = 1; i < SET_VLEN_EACH3; i++) {
+  for(int i = 1; i < GRAPH_SET_VLEN_EACH3; i++) {
     out_idx[i] = (left_idx[i] - left_idx[i-1])
       + (right_idx[i] - right_idx[i-1])
       + out_idx[i-1];
@@ -1342,19 +1342,19 @@ std::vector<T> set_union_vertical_overlap_mergepath(std::vector<T>& left, std::v
 #pragma cdir on_adb(right_idx_Stop)
 #pragma cdir on_adb(left_idx)
 #pragma cdir on_adb(right_idx)  
-  for(int i = 0; i < SET_VLEN_EACH3 - 1; i++) {
+  for(int i = 0; i < GRAPH_SET_VLEN_EACH3 - 1; i++) {
     left_idx_stop[i] = left_idx[i + 1];
     right_idx_stop[i] = right_idx[i + 1];
   }
-  left_idx_stop[SET_VLEN_EACH3-1] = new_left_size;
-  right_idx_stop[SET_VLEN_EACH3-1] = new_right_size;
+  left_idx_stop[GRAPH_SET_VLEN_EACH3-1] = new_left_size;
+  right_idx_stop[GRAPH_SET_VLEN_EACH3-1] = new_right_size;
   
 #pragma cdir on_adb(left_idx_stop)
 #pragma cdir on_adb(right_idx_Stop)
 #pragma cdir on_adb(left_idx)
 #pragma cdir on_adb(right_idx)
 #pragma cdir on_adb(valid)  
-  for(int i = 0; i < SET_VLEN_EACH3; i++) {
+  for(int i = 0; i < GRAPH_SET_VLEN_EACH3; i++) {
     if(left_idx[i] == left_idx_stop[i] || right_idx[i] == right_idx_stop[i]) 
       valid[i] = false;
   }
@@ -1372,7 +1372,7 @@ std::vector<T> set_union_vertical_overlap_mergepath(std::vector<T>& left, std::v
 #pragma cdir on_adb(left_idx)
 #pragma cdir on_adb(right_idx)  
 #pragma cdir on_adb(valid) 
-    for(int j = 0; j < SET_VLEN_EACH3; j++) {
+    for(int j = 0; j < GRAPH_SET_VLEN_EACH3; j++) {
       if(! (left_idx[j] == left_idx_stop[j] || right_idx[j] == right_idx_stop[j])) {
    #ifdef DEBUG_SET_UNION         
           valid_ct_each ++;
@@ -1398,7 +1398,7 @@ std::vector<T> set_union_vertical_overlap_mergepath(std::vector<T>& left, std::v
 
     bool any_valid = false;
     #pragma cdir on_adb(valid)
-    for(int i = 0; i < SET_VLEN_EACH3; i++) {
+    for(int i = 0; i < GRAPH_SET_VLEN_EACH3; i++) {
       if(valid[i]){
         any_valid = true;
         break;
@@ -1416,7 +1416,7 @@ std::vector<T> set_union_vertical_overlap_mergepath(std::vector<T>& left, std::v
     #pragma cdir on_adb(out_idx)
     #pragma cdir on_adb(left_idx_stop)  
     #pragma cdir on_adb(right_idx_stop)    
-  for(size_t i = 0; i < SET_VLEN_EACH3; i++) {
+  for(size_t i = 0; i < GRAPH_SET_VLEN_EACH3; i++) {
     total += (out_idx[i] - out_idx_save[i]) +
       (left_idx_stop[i] - left_idx[i]) +
       (right_idx_stop[i] - right_idx[i]);
@@ -1432,7 +1432,7 @@ std::vector<T> set_union_vertical_overlap_mergepath(std::vector<T>& left, std::v
   
     #pragma cdir on_adb(op)   
     #pragma cdir on_adb(retp)  
-  for(size_t i = 0; i < SET_VLEN_EACH3; i++) {
+  for(size_t i = 0; i < GRAPH_SET_VLEN_EACH3; i++) {
     #pragma cdir on_adb(retp)
     #pragma cdir on_adb(op)
     #pragma cdir on_adb(out_idx)
@@ -1921,7 +1921,7 @@ std::vector<T> set_union_horizontal_compvalid(std::vector< T >& inputVecs_buff,s
         }
     size_t real_num_vecAfterMerge = num_vecAfterMerge - num_vecToMerge%2; //odd and even number of vectorToMerge 
         
-    if(real_num_vecAfterMerge > SET_VLEN_EACH3){
+    if(real_num_vecAfterMerge > GRAPH_SET_VLEN_EACH3){
     size_t valid_vec_idx[real_num_vecAfterMerge];
 
   
@@ -2235,7 +2235,7 @@ std::vector<T> set_union_horizontal_overlap(std::vector< T >& inputVecs_buff,std
             out_idx_save[j] = out_idx[j];
         }
         size_t real_num_vecAfterMerge = num_vecAfterMerge - num_vecToMerge%2; //odd and even number of vectorToMerge 
-        if(num_vecToMerge < SET_VLEN_EACH3){
+        if(num_vecToMerge < GRAPH_SET_VLEN_EACH3){
 
         lower_bound_HMerge(buffer_merge_cur,real_num_vecAfterMerge, left_idx, left_idx_stop, right_idx, right_idx_stop,new_left_idx,new_right_idx );
         size_t num_smallest_left[real_num_vecAfterMerge];

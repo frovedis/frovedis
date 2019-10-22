@@ -1,0 +1,77 @@
+  int valid_0[GRAPH_SET_VLEN_EACH];
+  int valid_1[GRAPH_SET_VLEN_EACH];
+  int valid_2[GRAPH_SET_VLEN_EACH];
+  int valid_3[GRAPH_SET_VLEN_EACH];
+  size_t left_idx_0[GRAPH_SET_VLEN_EACH];
+  size_t left_idx_1[GRAPH_SET_VLEN_EACH];
+  size_t left_idx_2[GRAPH_SET_VLEN_EACH];
+  size_t left_idx_3[GRAPH_SET_VLEN_EACH];
+  size_t right_idx_0[GRAPH_SET_VLEN_EACH];
+  size_t right_idx_1[GRAPH_SET_VLEN_EACH];
+  size_t right_idx_2[GRAPH_SET_VLEN_EACH];
+  size_t right_idx_3[GRAPH_SET_VLEN_EACH];
+  size_t left_idx_stop_0[GRAPH_SET_VLEN_EACH];
+  size_t left_idx_stop_1[GRAPH_SET_VLEN_EACH];
+  size_t left_idx_stop_2[GRAPH_SET_VLEN_EACH];
+  size_t left_idx_stop_3[GRAPH_SET_VLEN_EACH];
+  size_t right_idx_stop_0[GRAPH_SET_VLEN_EACH];
+  size_t right_idx_stop_1[GRAPH_SET_VLEN_EACH];
+  size_t right_idx_stop_2[GRAPH_SET_VLEN_EACH];
+  size_t right_idx_stop_3[GRAPH_SET_VLEN_EACH];
+  size_t out_idx_0[GRAPH_SET_VLEN_EACH];
+  size_t out_idx_1[GRAPH_SET_VLEN_EACH];
+  size_t out_idx_2[GRAPH_SET_VLEN_EACH];
+  size_t out_idx_3[GRAPH_SET_VLEN_EACH];
+#pragma cdir alloc_on_vreg(valid_0,GRAPH_SET_VLEN_EACH)
+#pragma cdir alloc_on_vreg(valid_1,GRAPH_SET_VLEN_EACH)
+#pragma cdir alloc_on_vreg(valid_2,GRAPH_SET_VLEN_EACH)
+#pragma cdir alloc_on_vreg(valid_3,GRAPH_SET_VLEN_EACH)
+#pragma cdir alloc_on_vreg(left_idx_stop_0,GRAPH_SET_VLEN_EACH)
+#pragma cdir alloc_on_vreg(left_idx_stop_1,GRAPH_SET_VLEN_EACH)
+#pragma cdir alloc_on_vreg(left_idx_stop_2,GRAPH_SET_VLEN_EACH)
+#pragma cdir alloc_on_vreg(left_idx_stop_3,GRAPH_SET_VLEN_EACH)
+#pragma cdir alloc_on_vreg(right_idx_stop_0,GRAPH_SET_VLEN_EACH)
+#pragma cdir alloc_on_vreg(right_idx_stop_1,GRAPH_SET_VLEN_EACH)
+#pragma cdir alloc_on_vreg(right_idx_stop_2,GRAPH_SET_VLEN_EACH)
+#pragma cdir alloc_on_vreg(right_idx_stop_3,GRAPH_SET_VLEN_EACH)
+#pragma cdir alloc_on_vreg(left_idx_0,GRAPH_SET_VLEN_EACH)
+#pragma cdir alloc_on_vreg(left_idx_1,GRAPH_SET_VLEN_EACH)
+#pragma cdir alloc_on_vreg(left_idx_2,GRAPH_SET_VLEN_EACH)
+#pragma cdir alloc_on_vreg(left_idx_3,GRAPH_SET_VLEN_EACH)
+#pragma cdir alloc_on_vreg(right_idx_0,GRAPH_SET_VLEN_EACH)
+#pragma cdir alloc_on_vreg(right_idx_1,GRAPH_SET_VLEN_EACH)
+#pragma cdir alloc_on_vreg(right_idx_2,GRAPH_SET_VLEN_EACH)
+#pragma cdir alloc_on_vreg(right_idx_3,GRAPH_SET_VLEN_EACH)
+#pragma cdir alloc_on_vreg(out_idx_0,GRAPH_SET_VLEN_EACH)
+#pragma cdir alloc_on_vreg(out_idx_1,GRAPH_SET_VLEN_EACH)
+#pragma cdir alloc_on_vreg(out_idx_2,GRAPH_SET_VLEN_EACH)
+#pragma cdir alloc_on_vreg(out_idx_3,GRAPH_SET_VLEN_EACH)
+  for(size_t i = 0; i < GRAPH_SET_VLEN_EACH; i++) {
+    valid_0[i] = valid[i];
+    valid_1[i] = valid[GRAPH_SET_VLEN_EACH * 1 + i];
+    valid_2[i] = valid[GRAPH_SET_VLEN_EACH * 2 + i];
+    left_idx_0[i] = left_idx[i];
+    left_idx_1[i] = left_idx[GRAPH_SET_VLEN_EACH * 1 + i];
+    left_idx_2[i] = left_idx[GRAPH_SET_VLEN_EACH * 2 + i];
+    right_idx_0[i] = right_idx[i];
+    right_idx_1[i] = right_idx[GRAPH_SET_VLEN_EACH * 1 + i];
+    right_idx_2[i] = right_idx[GRAPH_SET_VLEN_EACH * 2 + i];
+    left_idx_stop_0[i] = left_idx_stop[i];
+    left_idx_stop_1[i] = left_idx_stop[GRAPH_SET_VLEN_EACH * 1 + i];
+    left_idx_stop_2[i] = left_idx_stop[GRAPH_SET_VLEN_EACH * 2 + i];
+    right_idx_stop_0[i] = right_idx_stop[i];
+    right_idx_stop_1[i] = right_idx_stop[GRAPH_SET_VLEN_EACH * 1 + i];
+    right_idx_stop_2[i] = right_idx_stop[GRAPH_SET_VLEN_EACH * 2 + i];
+    out_idx_0[i] = out_idx[i];
+    out_idx_1[i] = out_idx[GRAPH_SET_VLEN_EACH * 1 + i];
+    out_idx_2[i] = out_idx[GRAPH_SET_VLEN_EACH * 2 + i];
+  }
+  for(size_t i = 0; i < GRAPH_SET_VLEN_EACH; i++) valid_3[i] = false;
+  for(size_t i = 0; i < GRAPH_SET_VLEN_EACH3; i++) {
+    valid_3[i] = valid[GRAPH_SET_VLEN_EACH * 3 + i];
+    left_idx_3[i] = left_idx[GRAPH_SET_VLEN_EACH * 3 + i];
+    right_idx_3[i] = right_idx[GRAPH_SET_VLEN_EACH * 3 + i];
+    left_idx_stop_3[i] = left_idx_stop[GRAPH_SET_VLEN_EACH * 3 + i];
+    right_idx_stop_3[i] = right_idx_stop[GRAPH_SET_VLEN_EACH * 3 + i];
+    out_idx_3[i] = out_idx[GRAPH_SET_VLEN_EACH * 3 + i];
+  }
