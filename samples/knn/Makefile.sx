@@ -1,0 +1,11 @@
+TARGETS := knn
+include ../Makefile.in.sx
+include ../Makefile.common
+
+TO_INSTALL := knn.cc
+DIR := knn
+ARCH := sx
+
+knn: knn.o
+	${CXX} -prelink ${CXXFLAGS} knn.o ${LIBS}
+	${MPICXX} ${CXXFLAGS} -o knn knn.o ${LIBS}

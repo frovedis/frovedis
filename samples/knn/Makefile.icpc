@@ -1,0 +1,10 @@
+TARGETS := knn
+include ../Makefile.in.icpc
+include ../Makefile.common
+
+TO_INSTALL := knn.cc
+DIR := knn
+ARCH := icpc
+
+knn: knn.o
+	${LINK} -o knn knn.o ${LIBS}

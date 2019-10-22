@@ -1,0 +1,10 @@
+TARGETS := knn
+include ../Makefile.in.x86
+include ../Makefile.common
+
+TO_INSTALL := knn.cc
+DIR := knn
+ARCH := x86
+
+knn: knn.o
+	${MPICXX} ${CXXFLAGS} -o knn knn.o ${LIBS}
