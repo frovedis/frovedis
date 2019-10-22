@@ -3,15 +3,24 @@ include ../Makefile.in.${TARGET}
 
 all:
 	cd svd; make -f Makefile.${TARGET} all
+	cd pca; make -f Makefile.${TARGET} all
 	cd glm; make -f Makefile.${TARGET} all
+	cd knn; make -f Makefile.${TARGET} all
 	cd kmeans; make -f Makefile.${TARGET} all
+	cd agglomerative; make -f Makefile.${TARGET} all
+	cd spectral; make -f Makefile.${TARGET} all
+	cd dbscan; make -f Makefile.${TARGET} all
 	cd document_matrix; make -f Makefile.${TARGET} all
 	cd matrixfactorization; make -f Makefile.${TARGET} all
 	cd factorization_machine; make -f Makefile.${TARGET} all
 	cd eigen; make -f Makefile.${TARGET} all
 	cd tree; make -f Makefile.${TARGET} all
+	cd forest; make -f Makefile.${TARGET} all
+	cd gbts; make -f Makefile.${TARGET} all
 	cd graph; make -f Makefile.${TARGET} all
 	cd word2vec; make -f Makefile.${TARGET}
+	cd fp_growth; make -f Makefile.${TARGET} all
+	cd lda; make -f Makefile.${TARGET} all
 ifeq (${TARGET},x86)
 	cd matrix_tools; make -f Makefile.${TARGET}
 	cd wikipedia2matrix; make -f Makefile.${TARGET}
@@ -23,15 +32,24 @@ install:
 	cat Makefile.common | sed -e /^LIBS/d | sed -e /^INCLUDES/d |sed -e s/^\#LIBS/LIBS/ |  sed -e s/^#INCLUDES/INCLUDES/g | sed -e /^install/,'$$'d > tmp; install tmp ${INSTALLPATH}/samples/Makefile.common; rm tmp
 	install Makefile.in.${TARGET} ${INSTALLPATH}/samples/
 	cd svd; make -f Makefile.${TARGET} install
+	cd pca; make -f Makefile.${TARGET} install
 	cd glm; make -f Makefile.${TARGET} install
+	cd knn; make -f Makefile.${TARGET} install
 	cd kmeans; make -f Makefile.${TARGET} install
+	cd agglomerative; make -f Makefile.${TARGET} install
+	cd spectral; make -f Makefile.${TARGET} install
+	cd dbscan; make -f Makefile.${TARGET} install
 	cd document_matrix; make -f Makefile.${TARGET} install
 	cd matrixfactorization; make -f Makefile.${TARGET} install
 	cd factorization_machine; make -f Makefile.${TARGET} install
 	cd eigen; make -f Makefile.${TARGET} install
 	cd tree; make -f Makefile.${TARGET} install
+	cd forest; make -f Makefile.${TARGET} install
+	cd gbts; make -f Makefile.${TARGET} install
 	cd graph; make -f Makefile.${TARGET} install
 	cd word2vec; make -f Makefile.${TARGET} install
+	cd fp_growth; make -f Makefile.${TARGET} install
+	cd lda; make -f Makefile.${TARGET} install
 ifeq (${TARGET},x86)
 	cd matrix_tools; make -f Makefile.${TARGET} install
 	cd wikipedia2matrix; make -f Makefile.${TARGET} install
@@ -40,15 +58,24 @@ endif
 
 clean:
 	cd svd; make -f Makefile.${TARGET} clean
+	cd pca; make -f Makefile.${TARGET} clean
 	cd glm; make -f Makefile.${TARGET} clean
+	cd knn; make -f Makefile.${TARGET} clean
 	cd kmeans; make -f Makefile.${TARGET} clean
+	cd agglomerative; make -f Makefile.${TARGET} clean
+	cd spectral; make -f Makefile.${TARGET} clean
+	cd dbscan; make -f Makefile.${TARGET} clean
 	cd document_matrix; make -f Makefile.${TARGET} clean
 	cd matrixfactorization; make -f Makefile.${TARGET} clean
 	cd factorization_machine; make -f Makefile.${TARGET} clean
 	cd eigen; make -f Makefile.${TARGET} clean
 	cd tree; make -f Makefile.${TARGET} clean
+	cd forest; make -f Makefile.${TARGET} clean
+	cd gbts; make -f Makefile.${TARGET} clean
 	cd graph; make -f Makefile.${TARGET} clean
 	cd word2vec; make -f Makefile.${TARGET} clean
+	cd fp_growth; make -f Makefile.${TARGET} clean
+	cd lda; make -f Makefile.${TARGET} clean
 ifeq (${TARGET},x86)
 	cd matrix_tools; make -f Makefile.${TARGET} clean
 	cd wikipedia2matrix; make -f Makefile.${TARGET} clean
