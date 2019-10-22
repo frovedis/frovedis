@@ -79,10 +79,11 @@ trans_mm(colmajor_matrix_local<T>& m1,
   auto m2p = m2.val.data();
   auto resp = res.val.data();
 
-  for(size_t i = 0; i < nrow1; ++i) {
-    for(size_t j = 0; j < ncol2; ++j) {
-      auto ind3 = i * ncol2 + j;
-      for(size_t k = 0; k < ncol1; ++k) {
+#pragma _NEC nointerchange
+  for(size_t j = 0; j < ncol2; ++j) {
+    for(size_t k = 0; k < ncol1; ++k) {
+      for(size_t i = 0; i < nrow1; ++i) {
+         auto ind3 = i * ncol2 + j;
          auto ind1 = i * ncol1 + k;
          auto ind2 = k * ncol2 + j;
          resp[ind3] += m1p[ind1] * m2p[ind2];
@@ -140,6 +141,7 @@ softmax_gradient_descent::compute_wtx (
   auto nclasses = wtx.local_num_col;
   T* wtxp = &wtx.val[0];
   if(isIntercept) {
+#pragma _NEC nointerchange
     for(size_t j = 0; j < nclasses; ++j) {
       for(size_t i = 0; i < nsamples; ++i) {
         wtxp[i*nclasses+j] += icpt[j];
@@ -166,12 +168,14 @@ void compute_exp_matrix(rowmajor_matrix_local<T>& wtx) { // update input in-plac
   auto wtxp = wtx.val.data();
   // marked 0th column (j = 0) as max
   for(size_t i = 0; i < nrow; ++i) maxp[i] = wtxp[i*ncol+0]; 
+#pragma _NEC nointerchange
   for(size_t j = 1; j < ncol; ++j) {
     for(size_t i = 0; i < nrow; ++i) { // nrow >> ncol (thus loop-interchange)
       if (wtxp[i*ncol+j] > maxp[i]) maxp[i] = wtxp[i*ncol+j];
     }
   }
   // updating wtx matrix as exp(wtx - max_of_each_wtx)
+#pragma _NEC nointerchange
   for(size_t j = 0; j < ncol; ++j) {
     for(size_t i = 0; i < nrow; ++i) { // nrow >> ncol (thus loop-interchange)
       wtxp[i*ncol+j] = exp( wtxp[i*ncol+j] - maxp[i] );
@@ -213,6 +217,7 @@ void softmax_gradient_descent::compute_error_inplace (
   auto nclasses = softmax_mat.local_num_col;
   T *smatp = &softmax_mat.val[0];
   auto labelp = label.data();
+#pragma _NEC nointerchange
   for(size_t j = 0; j < nclasses; ++j) {
     for(size_t i = 0; i < nsamples; ++i) {
       //smatp[i*nclasses+j] = labelp[i] - smatp[i*nclasses+j];
