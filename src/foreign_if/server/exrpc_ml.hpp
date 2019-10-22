@@ -37,7 +37,6 @@
 #include "../exrpc/exrpc_expose.hpp"
 #include "frovedis_mem_pair.hpp"
 #include "model_tracker.hpp"
-#include "dummy_matrix.hpp"
 
 using namespace frovedis;
 
