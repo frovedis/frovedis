@@ -11,6 +11,7 @@ struct naive_bayes_model {
   rowmajor_matrix_local<T> theta;
   std::vector<T> pi;
   std::vector<T> label;
+  std::vector<T> cls_counts;
   std::string model_type;
   // optional for bernoulli case
   rowmajor_matrix_local<T> theta_minus_negtheta;
@@ -20,10 +21,11 @@ struct naive_bayes_model {
 
   naive_bayes_model(const rowmajor_matrix_local<T>& th,
                     const std::vector<T>& p, const std::vector<T>& l,
-                    const std::string& mtype) {
+                    const std::vector<T>& cc, const std::string& mtype) {
     pi = p;
     label = l;
-    theta = th; 
+    cls_counts = cc;
+    theta = th;
     model_type = mtype;
     if (mtype == "bernoulli") compute_param();
   }
@@ -31,9 +33,10 @@ struct naive_bayes_model {
   // for performance
   naive_bayes_model(rowmajor_matrix_local<T>&& th,
                     std::vector<T>&& p, std::vector<T>&& l,
-                    const std::string& mtype) {
+                    std::vector<T>&& cc, const std::string& mtype) {
     pi.swap(p);
     label.swap(l);
+    cls_counts.swap(cc);
     theta = th; 
     model_type = mtype;
     if (mtype == "bernoulli") compute_param();
@@ -56,6 +59,8 @@ struct naive_bayes_model {
     for(auto i: pi) std::cout << i << " "; std::cout << std::endl;
     std::cout << "label: "; 
     for(auto i: label) std::cout << i << " "; std::cout << std::endl;
+    std::cout << "class count: ";
+    for(auto i: cls_counts) std::cout << i << " "; std::cout << std::endl;
     std::cout << "model_type: " << model_type << std::endl;
     if (model_type == "bernoulli") {
       std::cout << "theta_minus_negtheta: ";  theta_minus_negtheta.debug_print();
@@ -82,15 +87,16 @@ struct naive_bayes_model {
     theta.save(theta_file); //theta: rowmajor_matrix_local<T>
     std::string pi_file = dir + "/pi";
     std::string label_file = dir + "/label";
+    std::string count_file = dir + "/cls_count";
     std::string type_file = dir + "/type";
-    std::ofstream pi_str, label_str, type_str;
+    std::ofstream pi_str, label_str, count_str, type_str;
     pi_str.exceptions(std::ofstream::failbit | std::ofstream::badbit);
     label_str.exceptions(std::ofstream::failbit | std::ofstream::badbit);
     type_str.exceptions(std::ofstream::failbit | std::ofstream::badbit);
     pi_str.open(pi_file.c_str()); for(auto& e: pi) pi_str << e << std::endl;
     label_str.open(label_file.c_str()); for(auto& e: label) label_str << e << std::endl;
+    count_str.open(count_file.c_str()); for(auto& e: cls_counts) count_str << e << std::endl;
     type_str.open(type_file.c_str()); type_str << model_type << std::endl;
-    std::cout << "save request on naive bayes model with dirname: " << dir << std::endl;
   }
   void savebinary (const std::string& dir) {
     __create_dir_struct(dir);
@@ -98,39 +104,43 @@ struct naive_bayes_model {
     theta.savebinary(theta_dir); //theta: rowmajor_matrix_local<T>
     std::string pi_file = dir + "/pi";
     std::string label_file = dir + "/label";
+    std::string count_file = dir + "/cls_count";
     std::string type_file = dir + "/type";
     make_dvector_scatter(pi).savebinary(pi_file);
     make_dvector_scatter(label).savebinary(label_file);
+    make_dvector_scatter(cls_counts).savebinary(count_file);
     std::ofstream type_str;
     type_str.exceptions(std::ofstream::failbit | std::ofstream::badbit);
     type_str.open(type_file.c_str()); type_str << model_type << std::endl;
-    std::cout << "save binary request on naive bayes model with dirname: " << dir << std::endl;
   }
   void load (const std::string& dir) {
     std::string theta_file = dir + "/theta";
     theta = make_rowmajor_matrix_local_load<T>(theta_file);
     std::string pi_file = dir + "/pi";
     std::string label_file = dir + "/label";
+    std::string count_file = dir + "/cls_count";
     std::string type_file = dir + "/type";
     std::ifstream pi_str(pi_file.c_str());
     pi.clear(); for(T x; pi_str >> x;) pi.push_back(x);
     std::ifstream label_str(label_file.c_str());
     label.clear(); for(T x; label_str >> x;) label.push_back(x);
+    std::ifstream count_str(count_file.c_str());
+    cls_counts.clear(); for(T x; count_str >> x;) cls_counts.push_back(x);
     std::ifstream type_str(type_file.c_str()); type_str >> model_type;
     if (model_type == "bernoulli") compute_param();
-    std::cout << "load request for naive bayes model with dirname: " << dir << std::endl;
   }
   void loadbinary (const std::string& dir) {
     std::string theta_dir = dir + "/theta";
     theta = make_rowmajor_matrix_local_loadbinary<T>(theta_dir);
     std::string pi_file = dir + "/pi";
     std::string label_file = dir + "/label";
+    std::string count_file = dir + "/cls_count";
     std::string type_file = dir + "/type";
     pi = make_dvector_loadbinary<T>(pi_file).gather();
     label = make_dvector_loadbinary<T>(label_file).gather();
+    cls_counts = make_dvector_loadbinary<T>(count_file).gather();
     std::ifstream type_str(type_file.c_str()); type_str >> model_type;
     if (model_type == "bernoulli") compute_param();
-    std::cout << "loadbinary request for naive bayes model with dirname: " << dir << std::endl;
   }
 
   node_local<naive_bayes_model<T>> broadcast();  // for performance
@@ -244,10 +254,12 @@ struct nb_model_bcast_helper {
   nb_model_bcast_helper(std::string& mt): model_type(mt) {}
   naive_bayes_model<T> operator()(rowmajor_matrix_local<T>& theta,
                          std::vector<T>& pi,
-                         std::vector<T>& label) {
+                         std::vector<T>& label,
+                         std::vector<T>& cls_counts) {
     return naive_bayes_model<T>(std::move(theta),
                                 std::move(pi),
                                 std::move(label),
+                                std::move(cls_counts),
                                 model_type);
   }
   std::string model_type;
@@ -260,7 +272,8 @@ naive_bayes_model<T>::broadcast() {
   auto bth = theta.broadcast();
   auto bpi = frovedis::broadcast(pi);
   auto blb = frovedis::broadcast(label);
-  return bth.map(nb_model_bcast_helper<T>(model_type),bpi,blb);
+  auto bcc = frovedis::broadcast(cls_counts);
+  return bth.map(nb_model_bcast_helper<T>(model_type),bpi,blb,bcc);
 }
 
 }
