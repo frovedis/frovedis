@@ -14,6 +14,7 @@
 #include "frovedis/matrix/diag_matrix.hpp"
 #include "frovedis/matrix/blockcyclic_matrix.hpp"
 #include "frovedis/dataframe/dftable.hpp"
+#include "frovedis/dataframe/dfoperator.hpp"
 #include "../exrpc/exrpc_expose.hpp"
 #include "frovedis_mem_pair.hpp"
 #include "dummy_matrix.hpp"
@@ -48,6 +49,88 @@ int count_distinct(exrpc_ptr_t& dptr) {
   auto grouped = tmp.group_by(target);
   int count = grouped.num_row();
   return count;
+}
+
+template <class T>
+std::vector<T> get_distinct_elements(exrpc_ptr_t& dptr) {
+  auto& dvec = *reinterpret_cast<dvector<T>*>(dptr);
+  dftable tmp;
+  tmp.append_column("dv",dvec);
+  std::vector<std::string> target = {std::string("dv")};
+  auto distinct = tmp.group_by(target).select(target);
+  return distinct.sort("dv").as_dvector<T>("dv").gather();
+}
+
+template <class T>
+exrpc_ptr_t get_encoded_dvector(exrpc_ptr_t& dptr, 
+                                std::vector<T>& src,
+                                std::vector<T>& target) {
+  auto& dvec = *reinterpret_cast<dvector<T>*>(dptr);
+  // assumption: 'src' vector should contain all unique elements in dvector 'dvec'
+  dftable left, right;
+  left.append_column("labels", dvec);
+  right.append_column("src",make_dvector_scatter(src)); // original data, like {10, 20, 30, 40}
+  right.append_column("target",make_dvector_scatter(target)); // target data, like {0, 1, 2, 3}
+  auto joined = left.bcast_join(right, eq("labels", "src")); // encoding by joining
+  auto encoded = new dvector<T>(joined.as_dvector<T>("target")); // from stack to heap
+  return reinterpret_cast<exrpc_ptr_t>(encoded); // making a handle
+}
+
+template <class T, class R>
+std::vector<R> cast_type(std::vector<T>& vec) {
+  std::vector<R> ret(vec.size());
+  auto vptr = vec.data();
+  auto rptr = ret.data();
+  for(size_t i = 0; i < vec.size(); ++i) {
+    rptr[i] = static_cast<R>(vptr[i]);
+  }
+  return ret;
+} 
+
+// sorted unique elements in input dvector will be encodes by {0, 1, 2, ...}
+template <class T>
+exrpc_ptr_t get_encoded_dvector_zero_based(exrpc_ptr_t& dptr) { 
+  auto& dvec = *reinterpret_cast<dvector<T>*>(dptr);
+  dftable left;
+  left.append_column("labels", dvec);
+  std::vector<std::string> target = {std::string("labels")};
+  auto right = left.group_by(target).select(target)
+                   .rename("labels", "src")
+                   .sort("src")
+                   .append_rowid("target"); // zero based ids (col type: size_t)
+  auto joined = left.bcast_join(right, eq("labels", "src")); // encoding by joining
+  auto encoded = joined.as_dvector<size_t>("target"); 
+  // size_t type is casted as T and move casted data to heap from stack
+  auto casted_encoded_ptr = new dvector<T>(encoded.map_partitions(cast_type<size_t, T>));
+  return reinterpret_cast<exrpc_ptr_t>(casted_encoded_ptr); // making a handle
+}
+
+template <class T>
+dummy_vector create_frovedis_vector(std::vector<T>& vec, short& dtype) {
+  auto vecp = new std::vector<T>(std::move(vec)); 
+  auto vecp_ = reinterpret_cast<exrpc_ptr_t>(vecp);
+  return dummy_vector(vecp_, vecp->size(), dtype);
+}
+
+template <class T>
+void save_frovedis_vector(exrpc_ptr_t& vecptr,
+                          std::string& filename,
+                          bool& isBinary) {
+  auto& vec = *reinterpret_cast<std::vector<T>*>(vecptr);
+  if(isBinary) make_dvector_scatter(vec).savebinary(filename);
+  else make_dvector_scatter(vec).saveline(filename);
+}
+
+template <class T>
+dummy_vector load_frovedis_vector(std::string& filename,
+                                  bool& isBinary, 
+                                  short& dtype) {
+  dvector<T> dv;
+  if(isBinary) dv = make_dvector_loadbinary<T>(filename);
+  else dv = make_dvector_loadline<T>(filename);
+  auto vecp = new std::vector<T>(dv.gather());
+  auto vecp_ = reinterpret_cast<exrpc_ptr_t>(vecp);
+  return dummy_vector(vecp_, vecp->size(), dtype);
 }
 
 template <class T>
@@ -161,6 +244,48 @@ create_crs_data(std::vector<exrpc_ptr_t>& mat_eps,
          crs_matrix_local<T,I,O>>(mat_eps,nrows,ncols);
 }
 
+// spmv
+template <class T, class I=size_t, class O=size_t>
+std::vector<T> exrpc_spmv(crs_matrix_local<T,I,O>& mat, 
+                          std::vector<T>& vec) {
+  return mat * vec;
+}
+
+template <class T, class I=size_t, class O=size_t>
+dummy_vector get_computed_spmv(exrpc_ptr_t& dptr, 
+                               exrpc_ptr_t& vptr,
+                               short& dtype) {
+  auto& mat = *reinterpret_cast<crs_matrix<T,I,O>*>(dptr);
+  auto& vec = *reinterpret_cast<std::vector<T>*>(vptr);
+  auto res = mat.data.map(exrpc_spmv<T,I,O>, broadcast(vec))
+                .template moveto_dvector<T>().gather(); // stack
+  auto ret = new std::vector<T>(std::move(res)); // stack to heap
+  auto ret_ = reinterpret_cast<exrpc_ptr_t>(ret);
+  return dummy_vector(ret_, ret->size(), dtype);
+}
+
+// to_scipy_matrix()
+template <class T, class I=size_t, class O=size_t>
+crs_matrix_local<T,I,O> get_crs_matrix_local(exrpc_ptr_t& d_ptr) {
+  auto matp = reinterpret_cast<crs_matrix_local<T,I,O>*>(d_ptr);
+  return *matp;
+}
+
+// reurns the exrpc::pointer of the input local matrix
+template <class T, class I=size_t, class O=size_t>
+exrpc_ptr_t get_crs_matrix_local_pointer(crs_matrix_local<T,I,O>& lm) {
+  auto matp = &lm;
+  return reinterpret_cast<exrpc_ptr_t>(matp);
+}
+
+// returns all the local data pointers of the input MATRIX data
+template <class T, class I=size_t, class O=size_t>
+std::vector<exrpc_ptr_t>
+get_all_crs_matrix_local_pointers(exrpc_ptr_t& d_ptr) {
+  auto matp = reinterpret_cast<crs_matrix<T,I,O>*>(d_ptr);
+  return matp->data.map(get_crs_matrix_local_pointer<T,I,O>).gather();
+}
+
 // input arr[exrpc::rowmajor_matrix_local<T>] <= loaded from spark worker data
 // returns exrpc::rowmajor_matrix<T> from array of exrpc::rowmajor_matrix_local<T>
 template <class T>
@@ -227,17 +352,27 @@ void save_matrix(exrpc_ptr_t& mptr,
   isbinary ? matp->savebinary(path) : matp->save(path);
 }
 
+#if 0
+template <class L_MATRIX>
+size_t get_local_val_size(L_MATRIX& lmat) { return lmat.val.size(); }
+
+template <class T>
+T sum_size(T& x, T& y) { return x + y; }
+
 // converts exrpc::matrix to exrpc::dummy_matrix
-template <class MATRIX>
+template <class MATRIX, class L_MATRIX>
 dummy_matrix to_dummy_matrix(MATRIX* mptr) {
   size_t nr = mptr->num_row;
   size_t nc = mptr->num_col;
+  size_t n_nz = mptr->data.map(get_local_val_size<L_MATRIX>).reduce(sum_size);
   auto mptr_ = reinterpret_cast<exrpc_ptr_t>(mptr);
 #ifdef _EXRPC_DEBUG_
   show_data<MATRIX>(mptr_);
 #endif
-  return dummy_matrix(mptr_,nr,nc);
+  //return dummy_matrix(mptr_,nr,nc);
+  return dummy_matrix(mptr_,nr,nc,n_nz);
 }
+#endif
 
 // creates crs_matrix from node local coo vector strings
 template <class T, class I=size_t, class O=size_t>
@@ -251,7 +386,7 @@ create_crs_from_local_coo_string_vectors(std::vector<exrpc_ptr_t>& vec_eps) {
   bool zero_origin = false; // spark user_id starts with 1
   auto matp = new crs_matrix<T,I,O>(make_crs_matrix_loadcoo<T,I,O>(lvs,zero_origin));
   if(!matp) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed!\n");
-  return to_dummy_matrix<crs_matrix<T,I,O>>(matp);
+  return to_dummy_matrix<crs_matrix<T,I,O>, crs_matrix_local<T,I,O>>(matp);
 }
 
 // loads data from specified file/dir and creates a exrpc::crs_matrix<T,I,O>
@@ -263,7 +398,7 @@ dummy_matrix load_crs_matrix(std::string& path, bool& isbinary) {
   else
     matp = new crs_matrix<T,I,O>(make_crs_matrix_load<T,I,O>(path)); //rvalue
   if(!matp) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed!\n");
-  return to_dummy_matrix<crs_matrix<T,I,O>>(matp);
+  return to_dummy_matrix<crs_matrix<T,I,O>, crs_matrix_local<T,I,O>>(matp);
 }
  
 // loads data from specified file/dir and creates a exrpc::rowmajor_matrix<T>
@@ -275,7 +410,7 @@ dummy_matrix load_rmm_matrix(std::string& path, bool& isbinary) {
   else
     matp = new rowmajor_matrix<T>(make_rowmajor_matrix_load<T>(path)); //rvalue
   if(!matp) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed!\n");
-  return to_dummy_matrix<rowmajor_matrix<T>>(matp);
+  return to_dummy_matrix<rowmajor_matrix<T>, rowmajor_matrix_local<T>>(matp);
 }
  
 // loads data from specified file/dir and creates a exrpc::colmajor_matrix<T>
@@ -288,7 +423,7 @@ dummy_matrix load_cmm_matrix(std::string& path, bool& isbinary) {
   else
     matp = new colmajor_matrix<T>(make_rowmajor_matrix_load<T>(path));
   if(!matp) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed!\n");
-  return to_dummy_matrix<colmajor_matrix<T>>(matp);
+  return to_dummy_matrix<colmajor_matrix<T>, colmajor_matrix_local<T>>(matp);
 }
  
 // loads data from specified file/dir and creates a exrpc::blockcyclic_matrix<T>
@@ -302,7 +437,7 @@ dummy_matrix load_bcm_matrix(std::string& path, bool& isbinary) {
   // (rvalue) colmajor => blockcyclic
   auto matp = new blockcyclic_matrix<T>(std::move(cmat));
   if(!matp) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed!\n");
-  return to_dummy_matrix<blockcyclic_matrix<T>>(matp);
+  return to_dummy_matrix<blockcyclic_matrix<T>, blockcyclic_matrix_local<T>>(matp);
 }
  
 // releases the frovedis dvector from the heap
@@ -357,7 +492,7 @@ dummy_matrix to_rowmajor_matrix(exrpc_ptr_t& d_ptr) {
   auto rmat = matp->to_rowmajor(); 
   auto rmatp = new rowmajor_matrix<T>(std::move(rmat));
   if(!rmatp) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed!\n");
-  return to_dummy_matrix<rowmajor_matrix<T>>(rmatp);
+  return to_dummy_matrix<rowmajor_matrix<T>, rowmajor_matrix_local<T>>(rmatp);
 }
 
 // reurns the exrpc::pointer of the input local matrix
@@ -418,7 +553,7 @@ dummy_matrix blockcyclic_to_colmajor_matrix(exrpc_ptr_t& d_ptr) {
   auto bmatp = reinterpret_cast<blockcyclic_matrix<T>*>(d_ptr);
   auto cmatp = new colmajor_matrix<T>(bmatp->to_colmajor());
   if(!cmatp) REPORT_ERROR(INTERNAL_ERROR,"memory allocation failed!\n");
-  return to_dummy_matrix<colmajor_matrix<T>>(cmatp); 
+  return to_dummy_matrix<colmajor_matrix<T>, rowmajor_matrix_local<T>>(cmatp); 
 }
 
 // converts exrpc::rowmajor_matrix<T> to exrpc::colmajor_matrix<T>
@@ -428,7 +563,7 @@ dummy_matrix rowmajor_to_colmajor_matrix(exrpc_ptr_t& d_ptr) {
   auto &rmat = *rmatp;
   auto cmatp = new colmajor_matrix<T>(rmat); 
   if(!cmatp) REPORT_ERROR(INTERNAL_ERROR,"memory allocation failed!\n");
-  return to_dummy_matrix<colmajor_matrix<T>>(cmatp); 
+  return to_dummy_matrix<colmajor_matrix<T>, colmajor_matrix_local<T>>(cmatp); 
 }
 
 // returns a colmajor array from a exrpc::rowmajor_matrix<T> data
@@ -457,23 +592,23 @@ std::vector<T> blockcyclic_to_colmajor_array(exrpc_ptr_t& d_ptr) {
   return ret;
 }
 
-template <class MATRIX>
+template <class MATRIX, class L_MATRIX>
 dummy_matrix transpose_matrix(exrpc_ptr_t& d_ptr) {
   auto matp = reinterpret_cast<MATRIX*>(d_ptr);
   // MATRIX should have the transpose() method...
   auto retp = new MATRIX(matp->transpose());
   if(!retp) REPORT_ERROR(INTERNAL_ERROR,"memory allocation failed!\n");
-  return to_dummy_matrix<MATRIX>(retp); 
+  return to_dummy_matrix<MATRIX, L_MATRIX>(retp); 
 }
 
 // MATRIX should have copy-constructor implemented for deepcopy
-template <class MATRIX>
+template <class MATRIX, class L_MATRIX>
 dummy_matrix copy_matrix(exrpc_ptr_t& d_ptr) {
   auto matp = reinterpret_cast<MATRIX*>(d_ptr);
   MATRIX &mat = *matp;
   auto retp = new MATRIX(mat); // copy constructor
   if(!retp) REPORT_ERROR(INTERNAL_ERROR,"memory allocation failed!\n");
-  return to_dummy_matrix<MATRIX>(retp); 
+  return to_dummy_matrix<MATRIX, L_MATRIX>(retp); 
 }
 
 #endif
