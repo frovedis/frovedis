@@ -1,0 +1,11 @@
+TARGETS := agglomerative
+include ../Makefile.in.sx
+include ../Makefile.common
+
+TO_INSTALL := agglomerative.cc
+DIR := agglomerative
+ARCH := sx
+
+agglomerative: agglomerative.o
+	${CXX} -prelink ${CXXFLAGS} agglomerative.o ${LIBS}
+	${MPICXX} ${CXXFLAGS} -o agglomerative agglomerative.o ${LIBS}
