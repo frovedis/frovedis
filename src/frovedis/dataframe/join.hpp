@@ -8,7 +8,10 @@
 #include "../core/radix_sort.hpp"
 #include "set_operations.hpp"
 #include "hashtable.hpp"
+#include <limits>
 #endif
+
+#define JOIN_VLEN 256
 
 namespace frovedis {
 
@@ -111,6 +114,83 @@ std::vector<size_t> unique_equi_join2(std::vector<T>& left,
   return missed;
 }
 
+
+template <class T>
+void multi_equi_join_vreg(int* valid, size_t* left_idx, size_t* right_idx,
+                          size_t* left_idx_stop, size_t* out_idx,
+                          size_t* sep_idx, T* lp, size_t* lvp, T* rp,
+                          size_t* rvp, size_t* lvop, size_t* rvop,
+                          size_t* sepp, size_t right_size) {
+  T leftelm[JOIN_VLEN];
+  T rightelm[JOIN_VLEN];
+  T leftelm_next[JOIN_VLEN];
+#pragma _NEC vreg(leftelm)
+#pragma _NEC vreg(rightelm)
+#pragma _NEC vreg(leftelm_next)
+  for(int j = 0; j < JOIN_VLEN; j++) {
+    if(valid[j]) leftelm_next[j] = lp[left_idx[j]];
+  }
+  T rightmax = std::numeric_limits<T>::max();
+  int valid_vreg[JOIN_VLEN];
+  size_t left_idx_vreg[JOIN_VLEN];
+  size_t right_idx_vreg[JOIN_VLEN];
+  size_t left_idx_stop_vreg[JOIN_VLEN];
+  size_t out_idx_vreg[JOIN_VLEN];
+  size_t sep_idx_vreg[JOIN_VLEN];
+#pragma _NEC vreg(valid_vreg)
+#pragma _NEC vreg(left_idx_vreg)
+#pragma _NEC vreg(right_idx_vreg)
+#pragma _NEC vreg(left_idx_stop_vreg)
+#pragma _NEC vreg(out_idx_vreg)
+#pragma _NEC vreg(sep_idx_vreg)
+  for(size_t i = 0; i < JOIN_VLEN; i++) {
+    valid_vreg[i] = valid[i];
+    left_idx_vreg[i] = left_idx[i];
+    right_idx_vreg[i] = right_idx[i];
+    left_idx_stop_vreg[i] = left_idx_stop[i];
+    out_idx_vreg[i] = out_idx[i];
+    sep_idx_vreg[i] = sep_idx[i];
+  }
+  while(1) {
+#pragma cdir nodep
+#pragma _NEC ivdep
+    for(int j = 0; j < JOIN_VLEN; j++) {
+      if(valid_vreg[j]) {
+        leftelm[j] = leftelm_next[j];
+        if(right_idx_vreg[j] == right_size) rightelm[j] = rightmax;
+        else rightelm[j] = rp[right_idx_vreg[j]];
+        if(leftelm[j] == rightelm[j]) {
+          lvop[out_idx_vreg[j]] = lvp[left_idx_vreg[j]];
+          rvop[out_idx_vreg[j]++] = rvp[right_idx_vreg[j]];
+          right_idx_vreg[j]++;
+        } else if(leftelm[j] > rightelm[j]) {
+          sep_idx_vreg[j]++;
+          right_idx_vreg[j] = sepp[sep_idx_vreg[j]];
+        } else {
+          left_idx_vreg[j]++;
+          if(left_idx_vreg[j] == left_idx_stop_vreg[j]) {
+            valid_vreg[j] = false;
+          } else {
+            leftelm_next[j] = lp[left_idx_vreg[j]];
+            if(leftelm[j] == leftelm_next[j]) {
+              right_idx_vreg[j] = sepp[sep_idx_vreg[j]];
+            }
+          }
+        }
+      }
+    }
+    int any_valid = false;
+    for(int i = 0; i < JOIN_VLEN; i++) {
+      if(valid_vreg[i]) any_valid = true;
+    }
+    if(any_valid == false) break;
+  }
+  for(size_t i = 0; i < JOIN_VLEN; i++) {
+    out_idx[i] = out_idx_vreg[i];
+  }
+}
+
+
 template <class T>
 void multi_equi_join(std::vector<size_t>& sep,
                      std::vector<T>& left,
@@ -119,13 +199,13 @@ void multi_equi_join(std::vector<size_t>& sep,
                      std::vector<size_t>& right_val,
                      std::vector<size_t>& left_val_out_ret,
                      std::vector<size_t>& right_val_out_ret) {
-  int valid[SET_VLEN];
-  for(int i = 0; i < SET_VLEN; i++) valid[i] = true;
+  int valid[JOIN_VLEN];
+  for(int i = 0; i < JOIN_VLEN; i++) valid[i] = true;
   size_t left_size = left.size();
   size_t right_size = right.size();
   if(left_size != left_val.size() || right_size != right_val.size())
     throw std::runtime_error("sizes of key and value are not the same");
-  size_t each = ceil_div(left_size, size_t(SET_VLEN));
+  size_t each = ceil_div(left_size, size_t(JOIN_VLEN));
   if(each % 2 == 0) each++;
 
   size_t sep_size = sep.size();
@@ -137,17 +217,17 @@ void multi_equi_join(std::vector<size_t>& sep,
   for(size_t i = 0; i < sep_size - 1; i++) {
     if(max < sepdiff[i]) max = sepdiff[i];
   }
-  size_t left_idx[SET_VLEN];
-  size_t right_idx[SET_VLEN];
-  size_t left_idx_stop[SET_VLEN];
-  size_t out_idx[SET_VLEN];
-  size_t out_idx_save[SET_VLEN];
-  size_t sep_idx[SET_VLEN];
+  size_t left_idx[JOIN_VLEN];
+  size_t right_idx[JOIN_VLEN];
+  size_t left_idx_stop[JOIN_VLEN];
+  size_t out_idx[JOIN_VLEN];
+  size_t out_idx_save[JOIN_VLEN];
+  size_t sep_idx[JOIN_VLEN];
   size_t* sepp = &sep[0];
   std::vector<size_t> left_val_out(left_size * max);
   std::vector<size_t> right_val_out(left_size * max);
 
-  for(int i = 0; i < SET_VLEN; i++) {
+  for(int i = 0; i < JOIN_VLEN; i++) {
     size_t pos = each * i;
     if(pos < left_size) {
       left_idx[i] = pos;
@@ -156,7 +236,7 @@ void multi_equi_join(std::vector<size_t>& sep,
       left_idx[i] = left_size;
     }
   }
-  for(int i = 0; i < SET_VLEN; i++) {
+  for(int i = 0; i < JOIN_VLEN; i++) {
     if(valid[i]) {
       auto it = lower_bound(right.begin(), right.end(), left[left_idx[i]]);
       if(it != right.end()) {
@@ -180,311 +260,27 @@ void multi_equi_join(std::vector<size_t>& sep,
   }
   out_idx[0] = 0;
   out_idx_save[0] = 0;
-  for(int i = 1; i < SET_VLEN; i++) {
+  for(int i = 1; i < JOIN_VLEN; i++) {
     out_idx[i] = (left_idx[i] - left_idx[i-1]) * max + out_idx[i-1];
     out_idx_save[i] = out_idx[i];
   }
-  for(int i = 0; i < SET_VLEN - 1; i++) {
+  for(int i = 0; i < JOIN_VLEN - 1; i++) {
     left_idx_stop[i] = left_idx[i + 1];
   }
-  left_idx_stop[SET_VLEN-1] = left_size;
-  int valid_0[SET_VLEN_EACH];
-  int valid_1[SET_VLEN_EACH];
-  int valid_2[SET_VLEN_EACH];
-  int valid_3[SET_VLEN_EACH];
-  size_t left_idx_0[SET_VLEN_EACH];
-  size_t left_idx_1[SET_VLEN_EACH];
-  size_t left_idx_2[SET_VLEN_EACH];
-  size_t left_idx_3[SET_VLEN_EACH];
-  size_t right_idx_0[SET_VLEN_EACH];
-  size_t right_idx_1[SET_VLEN_EACH];
-  size_t right_idx_2[SET_VLEN_EACH];
-  size_t right_idx_3[SET_VLEN_EACH];
-  size_t left_idx_stop_0[SET_VLEN_EACH];
-  size_t left_idx_stop_1[SET_VLEN_EACH];
-  size_t left_idx_stop_2[SET_VLEN_EACH];
-  size_t left_idx_stop_3[SET_VLEN_EACH];
-  size_t out_idx_0[SET_VLEN_EACH];
-  size_t out_idx_1[SET_VLEN_EACH];
-  size_t out_idx_2[SET_VLEN_EACH];
-  size_t out_idx_3[SET_VLEN_EACH];
-#pragma cdir alloc_on_vreg(valid_0,SET_VLEN_EACH)
-#pragma cdir alloc_on_vreg(valid_1,SET_VLEN_EACH)
-#pragma cdir alloc_on_vreg(valid_2,SET_VLEN_EACH)
-#pragma cdir alloc_on_vreg(valid_3,SET_VLEN_EACH)
-#pragma cdir alloc_on_vreg(left_idx_stop_0,SET_VLEN_EACH)
-#pragma cdir alloc_on_vreg(left_idx_stop_1,SET_VLEN_EACH)
-#pragma cdir alloc_on_vreg(left_idx_stop_2,SET_VLEN_EACH)
-#pragma cdir alloc_on_vreg(left_idx_stop_3,SET_VLEN_EACH)
-#pragma cdir alloc_on_vreg(left_idx_0,SET_VLEN_EACH)
-#pragma cdir alloc_on_vreg(left_idx_1,SET_VLEN_EACH)
-#pragma cdir alloc_on_vreg(left_idx_2,SET_VLEN_EACH)
-#pragma cdir alloc_on_vreg(left_idx_3,SET_VLEN_EACH)
-#pragma cdir alloc_on_vreg(right_idx_0,SET_VLEN_EACH)
-#pragma cdir alloc_on_vreg(right_idx_1,SET_VLEN_EACH)
-#pragma cdir alloc_on_vreg(right_idx_2,SET_VLEN_EACH)
-#pragma cdir alloc_on_vreg(right_idx_3,SET_VLEN_EACH)
-#pragma cdir alloc_on_vreg(out_idx_0,SET_VLEN_EACH)
-#pragma cdir alloc_on_vreg(out_idx_1,SET_VLEN_EACH)
-#pragma cdir alloc_on_vreg(out_idx_2,SET_VLEN_EACH)
-#pragma cdir alloc_on_vreg(out_idx_3,SET_VLEN_EACH)
-  for(size_t i = 0; i < SET_VLEN_EACH; i++) {
-    valid_0[i] = valid[i];
-    valid_1[i] = valid[SET_VLEN_EACH * 1 + i];
-    valid_2[i] = valid[SET_VLEN_EACH * 2 + i];
-    left_idx_0[i] = left_idx[i];
-    left_idx_1[i] = left_idx[SET_VLEN_EACH * 1 + i];
-    left_idx_2[i] = left_idx[SET_VLEN_EACH * 2 + i];
-    right_idx_0[i] = right_idx[i];
-    right_idx_1[i] = right_idx[SET_VLEN_EACH * 1 + i];
-    right_idx_2[i] = right_idx[SET_VLEN_EACH * 2 + i];
-    left_idx_stop_0[i] = left_idx_stop[i];
-    left_idx_stop_1[i] = left_idx_stop[SET_VLEN_EACH * 1 + i];
-    left_idx_stop_2[i] = left_idx_stop[SET_VLEN_EACH * 2 + i];
-    out_idx_0[i] = out_idx[i];
-    out_idx_1[i] = out_idx[SET_VLEN_EACH * 1 + i];
-    out_idx_2[i] = out_idx[SET_VLEN_EACH * 2 + i];
-  }
-  for(size_t i = 0; i < SET_VLEN_EACH; i++) valid_3[i] = false;
-  for(size_t i = 0; i < SET_VLEN_EACH3; i++) {
-    valid_3[i] = valid[SET_VLEN_EACH * 3 + i];
-    left_idx_3[i] = left_idx[SET_VLEN_EACH * 3 + i];
-    right_idx_3[i] = right_idx[SET_VLEN_EACH * 3 + i];
-    left_idx_stop_3[i] = left_idx_stop[SET_VLEN_EACH * 3 + i];
-    out_idx_3[i] = out_idx[SET_VLEN_EACH * 3 + i];
-  }
-  size_t sepidx0[SET_VLEN_EACH];
-  size_t sepidx1[SET_VLEN_EACH];
-  size_t sepidx2[SET_VLEN_EACH];
-  size_t sepidx3[SET_VLEN_EACH3];
-#pragma cdir alloc_on_vreg(sepidx0,SET_VLEN_EACH)
-#pragma cdir alloc_on_vreg(sepidx1,SET_VLEN_EACH)
-#pragma cdir alloc_on_vreg(sepidx2,SET_VLEN_EACH)
-#pragma cdir alloc_on_vreg(sepidx3,SET_VLEN_EACH3)
-  for(size_t i = 0; i < SET_VLEN_EACH; i++) {
-    sepidx0[i] = sep_idx[i];
-    sepidx1[i] = sep_idx[SET_VLEN_EACH * 1 + i];
-    sepidx2[i] = sep_idx[SET_VLEN_EACH * 2 + i];
-  }
-  for(size_t i = 0; i < SET_VLEN_EACH3; i++) {
-    sepidx3[i] = sep_idx[SET_VLEN_EACH * 3 + i];
-  }
+  left_idx_stop[JOIN_VLEN-1] = left_size;
   T* lp = &left[0];
   size_t* lvp = &left_val[0];
   T* rp = &right[0];
   size_t* rvp = &right_val[0];
   size_t* lvop = &left_val_out[0];
   size_t* rvop = &right_val_out[0];
-  T leftelm0[SET_VLEN_EACH];
-  T leftelm1[SET_VLEN_EACH];
-  T leftelm2[SET_VLEN_EACH];
-  T leftelm3[SET_VLEN_EACH3];
-  T rightelm0[SET_VLEN_EACH];
-  T rightelm1[SET_VLEN_EACH];
-  T rightelm2[SET_VLEN_EACH];
-  T rightelm3[SET_VLEN_EACH3];
-  T leftelm0_next[SET_VLEN_EACH];
-  T leftelm1_next[SET_VLEN_EACH];
-  T leftelm2_next[SET_VLEN_EACH];
-  T leftelm3_next[SET_VLEN_EACH3];
-#pragma cdir alloc_on_vreg(leftelm0,SET_VLEN_EACH)
-#pragma cdir alloc_on_vreg(leftelm1,SET_VLEN_EACH)
-#pragma cdir alloc_on_vreg(leftelm2,SET_VLEN_EACH)
-#pragma cdir alloc_on_vreg(leftelm3,SET_VLEN_EACH3)
-#pragma cdir alloc_on_vreg(rightelm0,SET_VLEN_EACH)
-#pragma cdir alloc_on_vreg(rightelm1,SET_VLEN_EACH)
-#pragma cdir alloc_on_vreg(rightelm2,SET_VLEN_EACH)
-#pragma cdir alloc_on_vreg(rightelm3,SET_VLEN_EACH3)
-#pragma cdir alloc_on_vreg(leftelm0_next,SET_VLEN_EACH)
-#pragma cdir alloc_on_vreg(leftelm1_next,SET_VLEN_EACH)
-#pragma cdir alloc_on_vreg(leftelm2_next,SET_VLEN_EACH)
-#pragma cdir alloc_on_vreg(leftelm3_next,SET_VLEN_EACH3)
-  for(int j = 0; j < SET_VLEN_EACH; j++) {
-    if(valid_0[j]) leftelm0_next[j] = lp[left_idx_0[j]];
-    if(valid_1[j]) leftelm1_next[j] = lp[left_idx_1[j]];
-    if(valid_2[j]) leftelm2_next[j] = lp[left_idx_2[j]];
-  }
-  for(int j = 0; j < SET_VLEN_EACH3; j++) {
-    if(valid_3[j]) leftelm3_next[j] = lp[left_idx_3[j]];
-  }
-  while(1) {
-    for(int j = 0; j < SET_VLEN_EACH; j++) {
-      if(valid_0[j]) leftelm0[j] = leftelm0_next[j];
-      if(valid_0[j]) rightelm0[j] = rp[right_idx_0[j]];
-      if(valid_1[j]) leftelm1[j] = leftelm1_next[j];
-      if(valid_1[j]) rightelm1[j] = rp[right_idx_1[j]];
-      if(valid_2[j]) leftelm2[j] = leftelm2_next[j];
-      if(valid_2[j]) rightelm2[j] = rp[right_idx_2[j]];
-    }
-    for(int j = 0; j < SET_VLEN_EACH3; j++) {
-      if(valid_3[j]) leftelm3[j] = leftelm3_next[j];
-      if(valid_3[j]) rightelm3[j] = rp[right_idx_3[j]];
-    }
-    size_t leftval0[SET_VLEN_EACH];
-    size_t leftval1[SET_VLEN_EACH];
-    size_t leftval2[SET_VLEN_EACH];
-    size_t leftval3[SET_VLEN_EACH3];
-    size_t rightval0[SET_VLEN_EACH];
-    size_t rightval1[SET_VLEN_EACH];
-    size_t rightval2[SET_VLEN_EACH];
-    size_t rightval3[SET_VLEN_EACH3];
-#pragma cdir alloc_on_vreg(leftval0,SET_VLEN_EACH)
-#pragma cdir alloc_on_vreg(leftval1,SET_VLEN_EACH)
-#pragma cdir alloc_on_vreg(leftval2,SET_VLEN_EACH)
-#pragma cdir alloc_on_vreg(leftval3,SET_VLEN_EACH3)
-#pragma cdir alloc_on_vreg(rightval0,SET_VLEN_EACH)
-#pragma cdir alloc_on_vreg(rightval1,SET_VLEN_EACH)
-#pragma cdir alloc_on_vreg(rightval2,SET_VLEN_EACH)
-#pragma cdir alloc_on_vreg(rightval3,SET_VLEN_EACH3)
-    for(int j = 0; j < SET_VLEN_EACH; j++) {
-      if(valid_0[j]) leftval0[j] = lvp[left_idx_0[j]];
-      if(valid_0[j]) rightval0[j] = rvp[right_idx_0[j]];
-      if(valid_1[j]) leftval1[j] = lvp[left_idx_1[j]];
-      if(valid_1[j]) rightval1[j] = rvp[right_idx_1[j]];
-      if(valid_2[j]) leftval2[j] = lvp[left_idx_2[j]];
-      if(valid_2[j]) rightval2[j] = rvp[right_idx_2[j]];
-    }
-    for(int j = 0; j < SET_VLEN_EACH3; j++) {
-      if(valid_3[j]) leftval3[j] = lvp[left_idx_3[j]];
-      if(valid_3[j]) rightval3[j] = rvp[right_idx_3[j]];
-    }
-#pragma cdir nodep
-#pragma _NEC ivdep
-    for(int j = 0; j < SET_VLEN_EACH; j++) {
-      if(valid_0[j]) {
-        int eq = leftelm0[j] == rightelm0[j];
-        int gt = leftelm0[j] > rightelm0[j];
-        int check = false;
-        if(eq) {
-          lvop[out_idx_0[j]] = leftval0[j];
-          rvop[out_idx_0[j]++] = rightval0[j];
-          right_idx_0[j]++;
-        } else if(gt) {
-          sepidx0[j]++;
-          right_idx_0[j] = sepp[sepidx0[j]];
-        } else {
-          left_idx_0[j]++;
-          check = true;
-        }
-        if(left_idx_0[j] == left_idx_stop_0[j]) {
-          valid_0[j] = false;
-        }
-        if(valid_0[j]) leftelm0_next[j] = lp[left_idx_0[j]];
-        if(valid_0[j] && check && leftelm0[j] == leftelm0_next[j]) {
-          right_idx_0[j] = sepp[sepidx0[j]];
-        }
-        if(right_idx_0[j] == right_size) valid_0[j] = false;
-      }
-    }
-#pragma cdir nodep
-#pragma _NEC ivdep
-    for(int j = 0; j < SET_VLEN_EACH; j++) {
-      if(valid_1[j]) {
-        int eq = leftelm1[j] == rightelm1[j];
-        int gt = leftelm1[j] > rightelm1[j];
-        int check = false;
-        if(eq) {
-          lvop[out_idx_1[j]] = leftval1[j];
-          rvop[out_idx_1[j]++] = rightval1[j];
-          right_idx_1[j]++;
-        } else if(gt) {
-          sepidx1[j]++;
-          right_idx_1[j] = sepp[sepidx1[j]];
-        } else {
-          left_idx_1[j]++;
-          check = true;
-        }
-        if(left_idx_1[j] == left_idx_stop_1[j]) {
-          valid_1[j] = false;
-        }
-        if(valid_1[j]) leftelm1_next[j] = lp[left_idx_1[j]];
-        if(valid_1[j] && check && leftelm1[j] == leftelm1_next[j]) {
-          right_idx_1[j] = sepp[sepidx1[j]];
-        }
-        if(right_idx_1[j] == right_size) valid_1[j] = false;
-      }
-    }
-#pragma cdir nodep
-#pragma _NEC ivdep
-    for(int j = 0; j < SET_VLEN_EACH; j++) {
-      if(valid_2[j]) {
-        int eq = leftelm2[j] == rightelm2[j];
-        int gt = leftelm2[j] > rightelm2[j];
-        int check = false;
-        if(eq) {
-          lvop[out_idx_2[j]] = leftval2[j];
-          rvop[out_idx_2[j]++] = rightval2[j];
-          right_idx_2[j]++;
-        } else if(gt) {
-          sepidx2[j]++;
-          right_idx_2[j] = sepp[sepidx2[j]];
-        } else {
-          left_idx_2[j]++;
-          check = true;
-        }
-        if(left_idx_2[j] == left_idx_stop_2[j]) {
-          valid_2[j] = false;
-        }
-        if(valid_2[j]) leftelm2_next[j] = lp[left_idx_2[j]];
-        if(valid_2[j] && check && leftelm2[j] == leftelm2_next[j]) {
-          right_idx_2[j] = sepp[sepidx2[j]];
-        }
-        if(right_idx_2[j] == right_size) valid_2[j] = false;
-      }
-    }
-#pragma cdir nodep
-#pragma _NEC ivdep
-    for(int j = 0; j < SET_VLEN_EACH3; j++) {
-      if(valid_3[j]) {
-        int eq = leftelm3[j] == rightelm3[j];
-        int gt = leftelm3[j] > rightelm3[j];
-        int check = false;
-        if(eq) {
-          lvop[out_idx_3[j]] = leftval3[j];
-          rvop[out_idx_3[j]++] = rightval3[j];
-          right_idx_3[j]++;
-        } else if(gt) {
-          sepidx3[j]++;
-          right_idx_3[j] = sepp[sepidx3[j]];
-        } else {
-          left_idx_3[j]++;
-          check = true;
-        }
-        if(left_idx_3[j] == left_idx_stop_3[j]) {
-          valid_3[j] = false;
-        }
-        if(valid_3[j]) leftelm3_next[j] = lp[left_idx_3[j]];
-        if(valid_3[j] && check && leftelm3[j] == leftelm3_next[j]) {
-          right_idx_3[j] = sepp[sepidx3[j]];
-        }
-        if(right_idx_3[j] == right_size) valid_3[j] = false;
-      }
-    }
-    int any_valid = false;
-    for(int i = 0; i < SET_VLEN_EACH; i++) {
-      if(valid_0[i] || valid_1[i] || valid_2[i] || valid_3[i])
-        any_valid = true;
-    }
-    if(any_valid == false) break;
-  }
-  for(size_t i = 0; i < SET_VLEN_EACH; i++) {
-    out_idx[i] = out_idx_0[i];
-    out_idx[SET_VLEN_EACH * 1 + i] = out_idx_1[i];
-    out_idx[SET_VLEN_EACH * 2 + i] = out_idx_2[i];
-    left_idx[i] = left_idx_0[i];
-    left_idx[SET_VLEN_EACH * 1 + i] = left_idx_1[i];
-    left_idx[SET_VLEN_EACH * 2 + i] = left_idx_2[i];
-    right_idx[i] = right_idx_0[i];
-    right_idx[SET_VLEN_EACH * 1 + i] = right_idx_1[i];
-    right_idx[SET_VLEN_EACH * 2 + i] = right_idx_2[i];
-  }
-  for(size_t i = 0; i < SET_VLEN_EACH3; i++) {
-    out_idx[SET_VLEN_EACH * 3 + i] = out_idx_3[i];
-    left_idx[SET_VLEN_EACH * 3 + i] = left_idx_3[i];
-    right_idx[SET_VLEN_EACH * 3 + i] = right_idx_3[i];
-  }
+
+  multi_equi_join_vreg(valid, left_idx, right_idx, left_idx_stop,
+                       out_idx, sep_idx, lp, lvp, rp, rvp, lvop, rvop,
+                       sepp, right_size);
+
   size_t total = 0;
-  for(size_t i = 0; i < SET_VLEN; i++) {
+  for(size_t i = 0; i < JOIN_VLEN; i++) {
     total += out_idx[i] - out_idx_save[i];
   }
   left_val_out_ret.resize(total);
@@ -492,7 +288,7 @@ void multi_equi_join(std::vector<size_t>& sep,
   size_t* leftretp = &left_val_out_ret[0];
   size_t* rightretp = &right_val_out_ret[0];
   size_t current = 0;
-  for(size_t i = 0; i < SET_VLEN; i++) {
+  for(size_t i = 0; i < JOIN_VLEN; i++) {
     for(size_t j = 0; j < out_idx[i] - out_idx_save[i]; j++) {
       auto pos = out_idx_save[i];
       leftretp[current] = lvop[pos + j];
