@@ -1,0 +1,10 @@
+TARGETS := spectral
+include ../Makefile.in.x86
+include ../Makefile.common
+
+TO_INSTALL := spectral.cc
+DIR := spectral
+ARCH := x86
+
+spectral: spectral.o
+	${MPICXX} ${CXXFLAGS} -o spectral spectral.o ${LIBS}

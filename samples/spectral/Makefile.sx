@@ -1,0 +1,11 @@
+TARGETS := spectral
+include ../Makefile.in.sx
+include ../Makefile.common
+
+TO_INSTALL := spectral.cc
+DIR := spectral
+ARCH := sx
+
+spectral: spectral.o
+	${CXX} -prelink ${CXXFLAGS} spectral.o ${LIBS}
+	${MPICXX} ${CXXFLAGS} -o spectral spectral.o ${LIBS}
