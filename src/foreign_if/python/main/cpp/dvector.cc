@@ -26,6 +26,140 @@ extern "C" {
     return count;
   }
 
+  long encode_frovedis_int_dvector(const char* host, int port, 
+                                   long dptr, int* src, int* target, long size) {
+    ASSERT_PTR(host);
+    exrpc_node fm_node(host,port);
+    auto f_dptr = (exrpc_ptr_t) dptr;
+    std::vector<int> src_vec(size), target_vec(size);
+    for(size_t i = 0; i < size; ++i) {
+      src_vec[i] = src[i];
+      target_vec[i] = target[i];
+    }
+    exrpc_ptr_t proxy = 0;
+    try {
+      proxy = exrpc_async(fm_node,get_encoded_dvector<int>,f_dptr,src_vec,target_vec).get(); 
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return (long) proxy;
+  }
+
+  long encode_frovedis_long_dvector(const char* host, int port,
+                                    long dptr, long* src, long* target, long size) {
+    ASSERT_PTR(host);
+    exrpc_node fm_node(host,port);
+    auto f_dptr = (exrpc_ptr_t) dptr;
+    std::vector<long> src_vec(size), target_vec(size);
+    for(size_t i = 0; i < size; ++i) {
+      src_vec[i] = src[i];
+      target_vec[i] = target[i];
+    }
+    exrpc_ptr_t proxy = 0;
+    try {
+      proxy = exrpc_async(fm_node,get_encoded_dvector<long>,f_dptr,src_vec,target_vec).get(); 
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return (long) proxy;
+  }
+
+  long encode_frovedis_float_dvector(const char* host, int port,
+                                     long dptr, float* src, float* target, long size) {
+    ASSERT_PTR(host);
+    exrpc_node fm_node(host,port);
+    auto f_dptr = (exrpc_ptr_t) dptr;
+    std::vector<float> src_vec(size), target_vec(size);
+    for(size_t i = 0; i < size; ++i) {
+      src_vec[i] = src[i];
+      target_vec[i] = target[i];
+    }
+    exrpc_ptr_t proxy = 0;
+    try {
+      proxy = exrpc_async(fm_node,get_encoded_dvector<float>,f_dptr,src_vec,target_vec).get(); 
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return (long) proxy;
+  }
+
+  long encode_frovedis_double_dvector(const char* host, int port,
+                                      long dptr, double* src, double* target, long size) {
+    ASSERT_PTR(host);
+    exrpc_node fm_node(host,port);
+    auto f_dptr = (exrpc_ptr_t) dptr;
+    std::vector<double> src_vec(size), target_vec(size);
+    for(size_t i = 0; i < size; ++i) {
+      src_vec[i] = src[i];
+      target_vec[i] = target[i];
+    }
+    exrpc_ptr_t proxy = 0;
+    try {
+      proxy = exrpc_async(fm_node,get_encoded_dvector<double>,f_dptr,src_vec,target_vec).get(); 
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return (long) proxy;
+  }
+
+  long encode_frovedis_dvector_zero_based(const char* host, int port,
+                                          long dptr, short dtype) {
+    ASSERT_PTR(host);
+    exrpc_node fm_node(host,port);
+    auto f_dptr = (exrpc_ptr_t) dptr;
+    exrpc_ptr_t proxy = 0;
+    try {
+      switch(dtype) {
+        case INT:     proxy = exrpc_async(fm_node,get_encoded_dvector_zero_based<int>,f_dptr).get();
+                      break;
+        case LONG:    proxy = exrpc_async(fm_node,get_encoded_dvector_zero_based<long>,f_dptr).get();
+                      break;
+        case FLOAT:   proxy = exrpc_async(fm_node,get_encoded_dvector_zero_based<float>,f_dptr).get();
+                      break;
+        case DOUBLE:  proxy = exrpc_async(fm_node,get_encoded_dvector_zero_based<double>,f_dptr).get();
+                      break;
+        default:  REPORT_ERROR(USER_ERROR, "encode: Supported dtypes are int/long/float/double!\n");
+      }
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return (long) proxy;
+  }
+
+  PyObject* distinct_elements(const char* host, int port, long dptr, int vtype) {
+    ASSERT_PTR(host);
+    exrpc_node fm_node(host,port);
+    auto f_dptr = (exrpc_ptr_t) dptr;
+    PyObject* ret = NULL;
+    try {
+      switch(vtype) {
+        case INT:   { auto int_col  = exrpc_async(fm_node,get_distinct_elements<int>,f_dptr).get(); 
+                      ret = to_python_int_list(int_col); break;
+                    }
+        case LONG:  { auto long_col  = exrpc_async(fm_node,get_distinct_elements<long>,f_dptr).get(); 
+                      ret = to_python_long_list(long_col); break;
+                    }
+        case FLOAT: { auto float_col  = exrpc_async(fm_node,get_distinct_elements<float>,f_dptr).get(); 
+                      ret = to_python_float_list(float_col); break;
+                    }
+        case DOUBLE:{ auto double_col  = exrpc_async(fm_node,get_distinct_elements<double>,f_dptr).get(); 
+                      ret = to_python_double_list(double_col); break;
+                    }
+        default:  REPORT_ERROR(USER_ERROR,
+                "Unknown type for frovedis dvector: " + std::to_string(vtype));
+      }
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return ret;
+  }
+
   // --- dvector creation/show/release ---
   void show_frovedis_dvector(const char* host, int port, long dptr, int vtype) {
     ASSERT_PTR(host); 
@@ -124,7 +258,7 @@ extern "C" {
     catch (std::exception& e) {
       set_status(true, e.what());
     }
-    return to_py_dummy_vector(dptr,size,INT);
+    return to_py_dummy_vector(dummy_vector(dptr,size,INT));
   }
   
   std::vector<exrpc_ptr_t>
@@ -165,7 +299,7 @@ extern "C" {
     catch (std::exception& e) {
       set_status(true, e.what());
     }
-    return to_py_dummy_vector(dptr,size,LONG);
+    return to_py_dummy_vector(dummy_vector(dptr,size,LONG));
   }
 
   std::vector<exrpc_ptr_t>
@@ -206,7 +340,7 @@ extern "C" {
     catch (std::exception& e) {
       set_status(true, e.what());
     }
-    return to_py_dummy_vector(dptr,size,FLOAT);
+    return to_py_dummy_vector(dummy_vector(dptr,size,FLOAT));
   }
 
   std::vector<exrpc_ptr_t>
@@ -247,7 +381,7 @@ extern "C" {
     catch (std::exception& e) {
       set_status(true, e.what());
     }
-    return to_py_dummy_vector(dptr,size,DOUBLE);
+    return to_py_dummy_vector(dummy_vector(dptr,size,DOUBLE));
   }
 
   std::vector<exrpc_ptr_t>
@@ -290,7 +424,7 @@ extern "C" {
     catch (std::exception& e) {
       set_status(true, e.what());
     }
-    return to_py_dummy_vector(dptr,size,STRING);
+    return to_py_dummy_vector(dummy_vector(dptr,size,STRING));
   }
 
 }
