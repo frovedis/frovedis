@@ -462,14 +462,28 @@ make_crs_matrix_local_loadbinary(const std::string& input) {
   std::string offfile = input + "/off";
 #if defined(_SX) || defined(__ve__)
   std::string numsfile = remove_schema(input + "/nums");
+  std::string typefile = remove_schema(input + "/type");
 #else  
   std::string numsfile = input + "/nums";
+  std::string typefile = input + "/type";
 #endif
   std::ifstream numstr;
   numstr.exceptions(std::ifstream::failbit | std::ifstream::badbit);
   numstr.open(numsfile.c_str());
   size_t num_row, num_col;
   numstr >> num_row >> num_col;
+  struct stat sb;
+  if(stat(typefile.c_str(), &sb) == 0) { // no file/directory
+    std::ifstream typestr;
+    typestr.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+    typestr.open(typefile.c_str());
+    std::string valtype, idxtype, offtype;
+    typestr >> valtype >> idxtype >> offtype;
+    confirm_given_type_against_expected<T>(valtype, __func__, "val");
+    confirm_given_type_against_expected<I>(idxtype, __func__, "idx");
+    confirm_given_type_against_expected<O>(offtype, __func__, "off");
+  }
+  else RLOG(INFO) << "no type file is present: skipping the typecheck for binary data!\n";
   crs_matrix_local<T,I,O> ret;
   auto loadval = make_dvector_loadbinary<T>(valfile).gather();
   ret.val.swap(loadval);
@@ -497,10 +511,18 @@ void crs_matrix_local<T,I,O>::savebinary(const std::string& dir) {
   std::string idxfile = dir + "/idx";
   std::string offfile = dir + "/off";
   std::string numsfile = dir + "/nums";
+  std::string typefile = dir + "/type";
   std::ofstream numstr;
   numstr.exceptions(std::ofstream::failbit | std::ofstream::badbit);
   numstr.open(numsfile.c_str());
   numstr << local_num_row << "\n" << local_num_col << std::endl;
+  auto valtype = get_type_name<T>();
+  auto idxtype = get_type_name<I>();
+  auto offtype = get_type_name<O>();
+  std::ofstream typestr;
+  typestr.exceptions(std::ofstream::failbit | std::ofstream::badbit);
+  typestr.open(typefile.c_str());
+  typestr << valtype << "\n" << idxtype << "\n" << offtype << std::endl;
   make_dvector_scatter(val).savebinary(valfile);
   make_dvector_scatter(idx).savebinary(idxfile);
   make_dvector_scatter(off).savebinary(offfile);
@@ -1177,7 +1199,7 @@ crs_matrix<T,I,O> crs_matrix<T,I,O>::transpose() {
   size_t node_size = frovedis::get_nodesize();
   size_t each_size = frovedis::ceil_div(total_dst_row, node_size);
   std::vector<size_t> divide_row(node_size+1);
-  for(size_t i = 0; i < node_size + 1; i++) {
+  for(size_t i = 0; i < node_size; i++) {
     auto it = std::lower_bound(tmp_offs.begin(), tmp_offs.end(),
                                each_size * i);
     if(it != tmp_offs.end()) {
@@ -1186,6 +1208,7 @@ crs_matrix<T,I,O> crs_matrix<T,I,O>::transpose() {
       divide_row[i] = num_col;
     }
   }
+  divide_row[node_size] = num_col;
   auto bcast_divide_row =
     frovedis::make_node_local_broadcast<std::vector<size_t>>(divide_row);
   auto local_rows = data.map(crs_get_local_num_row<T,I,O>).gather();
@@ -1273,18 +1296,31 @@ make_crs_matrix_loadbinary(const std::string& input) {
   std::string idxfile = input + "/idx";
   std::string offfile = input + "/off";
   std::string numsfile = input + "/nums";
+  std::string typefile = input + "/type";
   std::ifstream numstr;
   numstr.exceptions(std::ifstream::failbit | std::ifstream::badbit);
   numstr.open(numsfile.c_str());
   size_t num_row, num_col;
   numstr >> num_row >> num_col;
+  struct stat sb;
+  if(stat(typefile.c_str(), &sb) == 0) { // no file/directory
+    std::ifstream typestr;
+    typestr.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+    typestr.open(typefile.c_str());
+    std::string valtype, idxtype, offtype;
+    typestr >> valtype >> idxtype >> offtype;
+    confirm_given_type_against_expected<T>(valtype, __func__, "val");
+    confirm_given_type_against_expected<I>(idxtype, __func__, "idx");
+    confirm_given_type_against_expected<O>(offtype, __func__, "off");
+  }
+  else RLOG(INFO) << "no type file is present: skipping the typecheck for binary data!\n";
   size_t node_size = get_nodesize();
   auto loadoff = make_dvector_loadbinary<O>(offfile).gather();
   size_t total_elm = loadoff[loadoff.size() - 1];
   size_t each_size = frovedis::ceil_div(total_elm, node_size);
   std::vector<size_t> divide_elm(node_size + 1);
   std::vector<size_t> divide_row(node_size + 1);
-  for(size_t i = 0; i < node_size + 1; i++) {
+  for(size_t i = 0; i < node_size; i++) {
     auto it = std::lower_bound(loadoff.begin(), loadoff.end(), each_size * i);
     if(it != loadoff.end()) {
       divide_elm[i] = *it;
@@ -1294,6 +1330,8 @@ make_crs_matrix_loadbinary(const std::string& input) {
       divide_row[i] = num_row;
     }
   }
+  divide_elm[node_size] = total_elm;
+  divide_row[node_size] = num_row;
   std::vector<size_t> sizes(node_size);
   auto sizesp = sizes.data();
   auto divide_elmp = divide_elm.data();
@@ -1366,10 +1404,18 @@ void crs_matrix<T,I,O>::savebinary(const std::string& dir) {
   std::string idxfile = dir + "/idx";
   std::string offfile = dir + "/off";
   std::string numsfile = dir + "/nums";
+  std::string typefile = dir + "/type";
   std::ofstream numstr;
   numstr.exceptions(std::ofstream::failbit | std::ofstream::badbit);
   numstr.open(numsfile.c_str());
   numstr << num_row << "\n" << num_col << std::endl;
+  auto valtype = get_type_name<T>();
+  auto idxtype = get_type_name<I>();
+  auto offtype = get_type_name<O>();
+  std::ofstream typestr;
+  typestr.exceptions(std::ofstream::failbit | std::ofstream::badbit);
+  typestr.open(typefile.c_str());
+  typestr << valtype << "\n" << idxtype << "\n" << offtype << std::endl;
   data.map(crs_matrix_get_val<T,I,O>).
     template moveto_dvector<T>().savebinary(valfile);
   data.map(crs_matrix_get_idx<T,I,O>).
@@ -1398,7 +1444,7 @@ get_scattered_crs_matrices(crs_matrix_local<T,I,O>& data,
   size_t total = data.off[data.off.size() - 1];
   size_t each_size = frovedis::ceil_div(total, node_size);
   std::vector<size_t> divide_row(node_size+1);
-  for(size_t i = 0; i < node_size + 1; i++) {
+  for(size_t i = 0; i < node_size; i++) {
     auto it = std::lower_bound(data.off.begin(), data.off.end(),
                                each_size * i);
     if(it != data.off.end()) {
@@ -1407,6 +1453,7 @@ get_scattered_crs_matrices(crs_matrix_local<T,I,O>& data,
       divide_row[i] = data.local_num_row;
     }
   }
+  divide_row[node_size] = data.local_num_row;
   std::vector<crs_matrix_local<T,I,O>> vret(node_size);
   T* datavalp = &data.val[0];
   I* dataidxp = &data.idx[0];
@@ -1451,30 +1498,31 @@ crs_matrix<T,I,O> make_crs_matrix_scatter(crs_matrix_local<T,I,O>& data) {
   return ret;
 }
 
-template <class T, class I, class O>
-crs_matrix_local<T,I,O>
-merge_scattered_crs_matrices(const std::vector<crs_matrix_local<T,I,O>>& vcrs) {
-  crs_matrix_local<T,I,O> ret;
+template <class T, class I, class O,
+          class TT, class II, class OO>
+void merge_scattered_crs_matrices_impl(
+                         const std::vector<crs_matrix_local<T,I,O>>& vcrs,
+                         TT* crnt_retval, 
+                         II* crnt_retidx, 
+                         OO* crnt_retoff,
+                         size_t vsize, size_t osize) {
   size_t vcrssize = vcrs.size();
-  if(vcrssize == 0) return ret;
   size_t num_col = vcrs[0].local_num_col;
   for(size_t i = 1; i < vcrssize; i++) {
     if(vcrs[i].local_num_col != num_col)
       throw std::runtime_error
-        ("merge_scattered_crs_matrices: local_num_col is different");
+        ("merge_scattered_crs_matrices_impl: local_num_col is different");
   }
-  size_t num_row = 0;
-  for(size_t i = 0; i < vcrssize; i++) num_row += vcrs[i].local_num_row;
-  size_t total_nnz = 0;
-  for(size_t i = 0; i < vcrssize; i++) total_nnz += vcrs[i].val.size();
-  ret.local_num_col = num_col;
-  ret.local_num_row = num_row;
-  ret.val.resize(total_nnz);
-  ret.idx.resize(total_nnz);
-  ret.off.resize(num_row+1);
-  auto crnt_retval = ret.val.data();
-  auto crnt_retidx = ret.idx.data();
-  auto crnt_retoff = ret.off.data();
+  // added for handling client side issues
+  size_t g_vsize = 0, g_osize = 0;
+  for(size_t i = 0; i < vcrssize; i++) {
+    g_vsize += vcrs[i].val.size();
+    g_osize += vcrs[i].off.size();
+  }
+  g_osize -= vcrssize -1; //adjusting global offset size
+  if(!(g_vsize == vsize && g_osize == osize))
+    throw std::runtime_error
+      ("merge_scattered_crs_matrices_impl: calculated and expected sizes differ!\n");
   O to_add = 0;
   for(size_t i = 0; i < vcrssize; i++) {
     auto valp = vcrs[i].val.data();
@@ -1482,19 +1530,41 @@ merge_scattered_crs_matrices(const std::vector<crs_matrix_local<T,I,O>>& vcrs) {
     auto offp = vcrs[i].off.data();
     auto nnz = vcrs[i].val.size();
     for(size_t j = 0; j < nnz; j++) {
-      crnt_retval[j] = valp[j];
-      crnt_retidx[j] = idxp[j];
+      crnt_retval[j] = static_cast<TT>(valp[j]);
+      crnt_retidx[j] = static_cast<II>(idxp[j]);
     }
     crnt_retval += nnz;
     crnt_retidx += nnz;
     auto src_num_row = vcrs[i].local_num_row;
     for(size_t j = 0; j < src_num_row; j++) {
-      crnt_retoff[j] = offp[j] + to_add;
+      crnt_retoff[j] = static_cast<OO>(offp[j] + to_add);
     }
     to_add += offp[src_num_row];
     crnt_retoff += src_num_row;
   }
-  ret.off[num_row] = to_add;
+  crnt_retoff[0] = static_cast<OO>(to_add); // addeed final count
+}
+
+template <class T, class I, class O>
+crs_matrix_local<T,I,O>
+merge_scattered_crs_matrices(const std::vector<crs_matrix_local<T,I,O>>& vcrs) {
+  crs_matrix_local<T,I,O> ret;
+  size_t vcrssize = vcrs.size();
+  if(vcrssize == 0) return ret;
+  size_t num_row = 0;
+  for(size_t i = 0; i < vcrssize; i++) num_row += vcrs[i].local_num_row;
+  size_t total_nnz = 0;
+  for(size_t i = 0; i < vcrssize; i++) total_nnz += vcrs[i].val.size();
+  ret.local_num_col = vcrs[0].local_num_col;
+  ret.local_num_row = num_row;
+  ret.val.resize(total_nnz);
+  ret.idx.resize(total_nnz);
+  ret.off.resize(num_row + 1);
+  auto crnt_retval = ret.val.data();
+  auto crnt_retidx = ret.idx.data();
+  auto crnt_retoff = ret.off.data();
+  merge_scattered_crs_matrices_impl(vcrs, crnt_retval, crnt_retidx, 
+                                    crnt_retoff, total_nnz, num_row + 1);
   return ret;
 }
 
