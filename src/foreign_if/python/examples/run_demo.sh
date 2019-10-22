@@ -14,6 +14,7 @@ fi
 python crs_matrix_demo.py "$COMMAND"
 python dense_matrix_demo.py "$COMMAND"
 python df_demo.py "$COMMAND"
+python linalg.py "$COMMAND"
 
 # --- ML Data Creation Demo ---
 python frovedis_labeled_point_demo.py "$COMMAND"
@@ -22,11 +23,13 @@ python frovedis_labeled_point_demo.py "$COMMAND"
 python pblas_demo.py "$COMMAND"
 python scalapack_demo.py "$COMMAND"
 python truncated_svd_demo.py "$COMMAND"
+python pca_demo.py "$COMMAND"
 
 # --- ML Demo ---
 python lr_demo.py "$COMMAND"
 python lnr_demo.py "$COMMAND"
 python mlr_demo.py "$COMMAND"
+python sgd_classifier_demo.py "$COMMAND"
 
 python svm_demo.py "$COMMAND"
 python dt_demo.py "$COMMAND"
@@ -34,9 +37,9 @@ python nbm_demo.py "$COMMAND"
 python fm_demo.py "$COMMAND"
 
 python kmeans_demo.py "$COMMAND"
+python agglomerative_clustering_demo.py "$COMMAND"
 python spectral_clustering_demo.py "$COMMAND"
 python spectral_embedding_demo.py "$COMMAND"
-python agglomerative_clustering_demo.py "$COMMAND"
 
 python als_demo.py "$COMMAND"
 python fp_growth_demo.py "$COMMAND"

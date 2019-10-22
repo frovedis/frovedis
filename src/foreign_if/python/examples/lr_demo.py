@@ -32,14 +32,24 @@ lr = LogisticRegression(solver='sag', C=1.0, verbose=0).fit(mat,lbl)
 print("predicting on sag logistic regression model: ")
 print(lr.predict(mat))
 
+print("attributes in fitted model: ")
+print(lr.coef_)
+print(lr.intercept_)
+print(lr.classes_)
+lr.debug_print()
+
 # saving the model
 lr.save("./out/LRModel")
 
 # loading the same model
 lr.load("./out/LRModel")
-
-# debug_print
+print("attributes in loaded model: ")
+print(lr.coef_)
+print(lr.intercept_)
+print(lr.classes_)
 lr.debug_print()
+
+
 lr.release()
 
 FrovedisServer.shut_down()

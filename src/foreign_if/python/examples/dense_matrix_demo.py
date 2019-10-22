@@ -118,7 +118,8 @@ lwr_triangle = FrovedisBlockcyclicMatrix(np.matrix([[1,0,0],[1,1,0],[1,1,1]],
 # no need to bother about releasing (rvalue) intermediate results of these expressions 
 # they will be auto-released after the result is used
 eye = lwr_triangle * lwr_triangle.inv()
-upr_triangle = lwr_triangle * lwr_triangle.inv() * (~lwr_triangle)
+upr_triangle = lwr_triangle * lwr_triangle.inv() 
+#upr_triangle = lwr_triangle * lwr_triangle.inv() * (~lwr_triangle)
 expr = lwr_triangle * upr_triangle
 
 print("lwr_triangle: ")

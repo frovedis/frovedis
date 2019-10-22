@@ -40,8 +40,15 @@ asmat.debug_print()
 asmat = FrovedisCRSMatrix.asCRS(mat)  # constructor (creates and returns) + destructor for above object
 asmat.debug_print()
 
+tmat = fmat.transpose()
+tmat.save("./out/trans_crs_3x3")
+
+v = tmat.dot([1, 3, 5])
+print("spmv: ", v)
+
 # Releasing the matrix from Frovedis server
 fmat.release()
+tmat.release()
 asmat.release()
 
 # Shutting down the Frovedis server

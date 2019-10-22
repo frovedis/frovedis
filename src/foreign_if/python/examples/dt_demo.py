@@ -21,7 +21,7 @@ mat = pd.DataFrame([[10, 0, 1, 0, 0, 1, 0],
                     [0, 1, 0, 1, 0, 1, 0],
                     [0, 1, 0, 0, 1, 0, 1],
                     [1, 0, 0, 1, 0, 1, 0]],dtype=np.float64)
-lbl = np.array([0, 1, 1.0, 0],dtype=np.float64)
+lbl = np.array([0, 1, 1, 0]) 
 
 # fitting input matrix and label on DecisionTree Classifier object
 dtc1 = DecisionTreeClassifier(criterion='gini', splitter='best', max_depth=5, 

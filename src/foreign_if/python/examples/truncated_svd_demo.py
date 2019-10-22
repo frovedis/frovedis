@@ -32,10 +32,10 @@ print("[Frovedis] explained variance: ", frov_svd.explained_variance_)
 print("[Frovedis] explained variance ratio: ", frov_svd.explained_variance_ratio_)
 
 # Saving results into files
-frov_svd.svd.save("./out/svec", "./out/umat", "./out/vmat")
+frov_svd.svd_res_.save("./out/svec", "./out/umat", "./out/vmat")
 
 # releasing results from server
-frov_svd.svd.release()
+frov_svd.svd_res_.release()
 
 try:
   from sklearn.decomposition.truncated_svd import TruncatedSVD as sklearn_svd
