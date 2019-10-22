@@ -5,6 +5,13 @@
 #include "fp_growth_model.hpp"
 
 namespace frovedis {
+  struct ratio_op {
+    double operator()(size_t a, size_t b) { 
+      return (double)a / b;
+    }
+    SERIALIZE_NONE
+  };
+
   fp_growth_model
   grow_fp_tree(dftable& df, double min_support);
 
@@ -18,5 +25,6 @@ namespace frovedis {
   template <class T>
   std::vector<std::pair<std::vector<T>,std::pair<T, double>>>
   frovedis_to_spark_ass_rule(std::vector<dftable>& freq);
+  void free_df(dftable_base&);
 } 
 #endif
