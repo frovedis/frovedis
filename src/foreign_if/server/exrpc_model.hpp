@@ -478,36 +478,30 @@ template <class T>
 dummy_matrix get_scm_affinity_matrix(int& mid) {
   auto& model = *get_model_ptr<spectral_clustering_model<T>>(mid);
   auto aff_mat = model.affinity_matrix;
-  auto nrow = aff_mat.num_row;
-  auto ncol = aff_mat.num_col;
   auto retp = new rowmajor_matrix<T>(std::move(aff_mat)); // stack to heap
   if (!retp) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed.\n");
-  auto retp_ = reinterpret_cast<exrpc_ptr_t>(retp);
-  return dummy_matrix(retp_,nrow,ncol);
+  return to_dummy_matrix<rowmajor_matrix<T>, 
+                         rowmajor_matrix_local<T>>(retp);
 }
 
 template <class T>
 dummy_matrix get_sem_affinity_matrix(int& mid) {
   auto& model = *get_model_ptr<spectral_embedding_model<T>>(mid);
   auto aff_mat = model.affinity_matrix;
-  auto nrow = aff_mat.num_row;
-  auto ncol = aff_mat.num_col;
   auto retp = new rowmajor_matrix<T>(std::move(aff_mat)); // stack to heap
   if (!retp) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed.\n");
-  auto retp_ = reinterpret_cast<exrpc_ptr_t>(retp);
-  return dummy_matrix(retp_,nrow,ncol);
+  return to_dummy_matrix<rowmajor_matrix<T>, 
+                         rowmajor_matrix_local<T>>(retp);
 }
 
 template <class T>
 dummy_matrix get_sem_embedding_matrix(int& mid) {
   auto& model = *get_model_ptr<spectral_embedding_model<T>>(mid);
   auto embed_mat = model.embed_matrix;
-  auto nrow = embed_mat.num_row;
-  auto ncol = embed_mat.num_col;
   auto retp = new rowmajor_matrix<T>(std::move(embed_mat)); // stack to heap
   if (!retp) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed.\n");
-  auto retp_ = reinterpret_cast<exrpc_ptr_t>(retp);
-  return dummy_matrix(retp_,nrow,ncol);
+  return to_dummy_matrix<rowmajor_matrix<T>, 
+                         rowmajor_matrix_local<T>>(retp);
 }
 
 // only for spark
@@ -625,15 +619,56 @@ parallel_fmm_predict_with_broadcast(exrpc_ptr_t& mat_ptr, int& mid) {
                  .template moveto_dvector<T>().gather();
 }
 
+template <class T, class MODEL>
+std::vector<T> get_weight_vector(int& mid) {
+  auto& model = *get_model_ptr<MODEL>(mid);
+  std::vector<T> ret;
+  return model.weight;
+}
+
+template <class T, class MODEL>
+std::vector<T> get_weight_as_vector(int& mid) {
+  auto& model = *get_model_ptr<MODEL>(mid);
+  return model.weight.val;
+}
+
+template <class T, class MODEL>
+std::vector<T> get_intercept_as_vector(int& mid) {
+  auto& model = *get_model_ptr<MODEL>(mid);
+  return std::vector<T>({model.intercept}); // intercept is a scalar quantity for other linear models
+}
+
+template <class T, class MODEL>
+std::vector<T> get_intercept_vector(int& mid) {
+  auto& model = *get_model_ptr<MODEL>(mid);
+  return model.intercept; 
+}
+
+template <class T, class MODEL>
+std::vector<T> get_pi_vector(int& mid) {
+  auto& model = *get_model_ptr<MODEL>(mid);
+  return model.pi;
+}
+
+template <class T, class MODEL>
+std::vector<T> get_theta_vector(int& mid) {
+  auto& model = *get_model_ptr<MODEL>(mid);
+  return model.theta.val;
+}
+
+template <class T, class MODEL>
+std::vector<T> get_cls_counts_vector(int& mid) {
+  auto& model = *get_model_ptr<MODEL>(mid);
+  return model.cls_counts;
+}
+
 template <class T>
 dummy_matrix get_w2v_weight_ptr(int& mid) {
   auto& model = *get_model_ptr<rowmajor_matrix_local<T>>(mid);
-  auto nrow = model.local_num_row;
-  auto ncol = model.local_num_col;
   auto retp = new rowmajor_matrix<T>(make_rowmajor_matrix_scatter<T>(model));
   if (!retp) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed.\n");
-  auto retp_ = reinterpret_cast<exrpc_ptr_t>(retp);
-  return dummy_matrix(retp_,nrow,ncol);
+  return to_dummy_matrix<rowmajor_matrix<T>, 
+                         rowmajor_matrix_local<T>>(retp);
 }
 
 template <class T>
