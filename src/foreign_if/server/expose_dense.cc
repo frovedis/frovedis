@@ -59,20 +59,20 @@ void expose_frovedis_dense_matrix_functions() {
   expose(save_matrix<C_MAT4>);
   expose(save_matrix<B_MAT1>);
   expose(save_matrix<B_MAT2>);
-  expose(transpose_matrix<R_MAT1>);
-  expose(transpose_matrix<R_MAT2>);
-  expose(transpose_matrix<R_MAT3>);
-  expose(transpose_matrix<R_MAT4>);
-  //expose(transpose_matrix<C_MAT1>); // not yet supported
-  //expose(transpose_matrix<C_MAT2>); // not yet supported
-  //expose(transpose_matrix<C_MAT3>); // not yet supported
-  //expose(transpose_matrix<C_MAT4>); // not yet supported
-  expose(transpose_matrix<B_MAT1>);
-  expose(transpose_matrix<B_MAT2>);
-  //expose(copy_matrix<R_MAT1>); // not yet supported
-  //expose(copy_matrix<C_MAT1>); // not yet supported
-  expose(copy_matrix<B_MAT1>);
-  expose(copy_matrix<B_MAT2>);
+  expose((transpose_matrix<R_MAT1,R_LMAT1>));
+  expose((transpose_matrix<R_MAT2,R_LMAT2>));
+  expose((transpose_matrix<R_MAT3,R_LMAT3>));
+  expose((transpose_matrix<R_MAT4,R_LMAT4>));
+  //expose((transpose_matrix<C_MAT1,C_LMAT1>)); // not yet supported
+  //expose((transpose_matrix<C_MAT2,C_LMAT2>)); // not yet supported
+  //expose((transpose_matrix<C_MAT3,C_LMAT3>)); // not yet supported
+  //expose((transpose_matrix<C_MAT4,C_LMAT4>)); // not yet supported
+  expose((transpose_matrix<B_MAT1,B_LMAT1>));
+  expose((transpose_matrix<B_MAT2,B_LMAT2>));
+  //expose((copy_matrix<R_MAT1,R_LMAT1>)); // not yet supported
+  //expose((copy_matrix<C_MAT1,C_LMAT1>)); // not yet supported
+  expose((copy_matrix<B_MAT1,B_LMAT1>));
+  expose((copy_matrix<B_MAT2,B_LMAT2>));
   expose((to_rowmajor_matrix<DT1,C_MAT1>));
   expose((to_rowmajor_matrix<DT2,C_MAT2>));
   expose((to_rowmajor_matrix<DT3,C_MAT3>));
@@ -100,13 +100,22 @@ void expose_frovedis_dense_matrix_functions() {
   expose((get_all_local_pointers<C_MAT1,C_LMAT1>));
   expose((get_all_local_pointers<B_MAT1,B_LMAT1>));
   expose((get_local_array<DT1,R_LMAT1>));
-  expose((get_local_array<DT1,C_LMAT1>));
-  expose((get_local_array<DT1,B_LMAT1>));
   expose((get_local_array<DT2,R_LMAT2>));
   expose((get_local_array<DT3,R_LMAT3>));
   expose((get_local_array<DT4,R_LMAT4>));
+  expose((get_local_array<DT1,C_LMAT1>));
+  expose((get_local_array<DT2,C_LMAT2>));
+  expose((get_local_array<DT3,C_LMAT3>));
+  expose((get_local_array<DT4,C_LMAT4>));
+  expose((get_local_array<DT1,B_LMAT1>));
+  expose((get_local_array<DT2,B_LMAT2>));
   expose(vec_to_array<DT1>);
   expose(vec_to_array<DT2>);
+  expose(vec_to_array<int>);
+  expose(vec_to_array<long>);
+  expose(vec_to_array<float>);
+  expose(vec_to_array<double>);
+  expose(vec_to_array<std::string>);
   expose(save_as_diag_matrix_local<DT1>);
   expose(save_as_diag_matrix_local<DT2>);
 }
