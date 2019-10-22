@@ -399,24 +399,24 @@ count_helper(std::vector<size_t>& grouped_idx,
 }
 
 template<>
-std::string get_type_name<int>(){return std::string("int");}
+std::string get_dftype_name<int>(){return std::string("int");}
 
 template<>
-std::string get_type_name<unsigned int>(){return std::string("unsigned int");}
+std::string get_dftype_name<unsigned int>(){return std::string("unsigned int");}
 
 template<>
-std::string get_type_name<long>(){return std::string("long");}
+std::string get_dftype_name<long>(){return std::string("long");}
 
 template<>
-std::string get_type_name<unsigned long>(){
+std::string get_dftype_name<unsigned long>(){
   return std::string("unsigned long");
 }
 
 template<>
-std::string get_type_name<float>(){return std::string("float");}
+std::string get_dftype_name<float>(){return std::string("float");}
 
 template<>
-std::string get_type_name<double>(){return std::string("double");}
+std::string get_dftype_name<double>(){return std::string("double");}
 
 node_local<std::vector<size_t>>
 limit_nulls_head(node_local<std::vector<size_t>>& nulls, 
