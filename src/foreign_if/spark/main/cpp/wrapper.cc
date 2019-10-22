@@ -59,9 +59,10 @@ JNIEXPORT jobject JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_computePCA
   bool need_var = true;
   bool need_sval = false;
   bool need_mean = false;
+  bool whiten = false;
   try{
     res = exrpc_async(fm_node,(frovedis_pca<R_MAT1,DT1>),f_dptr,k,
-                               to_copy, rearrange_out,
+                               whiten, to_copy, rearrange_out,
                                need_scores, need_eig, need_var, 
                                need_sval, need_mean, mvbl).get();
   }
@@ -155,8 +156,8 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_scal
 #endif
   try {
     switch(mtype) {
-      case CMJR: exrpc_oneway(fm_node,(frovedis_scal<DT1,C_LMAT1>),f_dptr,alpha); break;
-      case BCLC: exrpc_oneway(fm_node,(frovedis_scal<DT1,B_MAT1>),f_dptr,alpha); break;
+      //case CMJR: exrpc_oneway(fm_node,(frovedis_scal<DT1,C_LMAT1>),f_dptr,alpha); break; // not supported
+      case BCLC: exrpc_oneway(fm_node,(frovedis_scal<DT1,B_MAT1,B_LMAT1>),f_dptr,alpha); break;
       default:   REPORT_ERROR(USER_ERROR,"Unknown input matrix kind is encountered!\n");
     }
   }

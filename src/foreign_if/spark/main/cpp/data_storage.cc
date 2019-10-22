@@ -521,9 +521,9 @@ JNIEXPORT jobject JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_transposeFrove
   dummy_matrix ret;
   try{
     switch(mtype) {
-      case RMJR: ret = exrpc_async(fm_node,transpose_matrix<R_MAT1>,f_dptr).get(); break;
+      case RMJR: ret = exrpc_async(fm_node,(transpose_matrix<R_MAT1,R_LMAT1>),f_dptr).get(); break;
       case CMJR: REPORT_ERROR(USER_ERROR,"Frovedis doesn't support this transpose currently!\n");
-      case BCLC: ret = exrpc_async(fm_node,transpose_matrix<B_MAT1>,f_dptr).get(); break;
+      case BCLC: ret = exrpc_async(fm_node,(transpose_matrix<B_MAT1,B_LMAT1>),f_dptr).get(); break;
       default:   REPORT_ERROR(USER_ERROR,"Unknown dense matrix kind is encountered!\n");
     }
   }
