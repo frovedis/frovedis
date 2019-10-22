@@ -417,6 +417,8 @@ void jds_matrix_spmv_impl(const jds_matrix_local<T,I,O,P>& mat,
 #pragma cdir on_adb(tmpp)
 #pragma cdir on_adb(retp)
 #pragma cdir on_adb(permp)
+#pragma _NEC vovertake
+#pragma _NEC vob
   for(size_t i = 0; i < mat.local_num_row; i++) {
     retp[permp[i]] = tmpp[i];
   }
