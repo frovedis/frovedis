@@ -1605,9 +1605,11 @@ algorithm. You can use them as command line applications.
 
 ## 4.3 Clustering
 
+### 4.3.1 K-means
+
 We also provide clustering algorithm using k-means.
 
-Please look at "src/tut4.3/tut.cc". Again, The structure is mostly the
+Please look at "src/tut4.3-1/tut.cc". Again, The structure is mostly the
 same as previous example; it only takes the matrix dataset, not label.
 The data "./train.mat" is synthesized data.
 
@@ -1623,6 +1625,37 @@ calling `kmeans_assign_cluster`. The result should be like:
     2
     1
     0
+
+### 4.3.2 DBSCAN
+
+DBSCAN is another clustering method. Since it is based on the density
+of the samples, it might produce better clustering method. However, it
+might take longer time than K-means, especially if the number of
+dimension of the sample is large.
+
+Please look at "src/tut4.3-2/tut.cc", which looks like this:
+
+    auto dbscan = frovedis::dbscan(0.5, 5);
+    dbscan.fit(m);
+    auto labels = dbscan.labels();
+
+First, you need to create `frovedis::dbscan` object; first argument of
+the constructor is  epsilon, which is the maximum distance between two
+samples that can be considered as neighborhood. The second argument is
+the minimum number of samples in a neighborhood that is needed to be
+considered as a core point. 
+
+After creating the object, you can call `fit` method that takes 
+`rowmajor_matrix` as the argument; each row of the matrix represents a
+sample.
+
+The fit method assigns each point a label. That can be obtained by 
+`labels()` method. If a sample is considered as noise, the label
+becomes -1. 
+
+In this example, the sample data is created by a python script
+`gendata.py`. You can find the label of the generated data as
+`train.label`. It should be mostly the same as the clustering result. 
 
 ## 4.4 Factorization Machine
 
