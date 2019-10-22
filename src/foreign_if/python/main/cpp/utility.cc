@@ -53,22 +53,29 @@ extern "C" {
   }
 
   // --- Frovedis Data structure to Python Data structure ---
-  PyObject* to_py_dummy_matrix(dummy_matrix& m) {
-    return Py_BuildValue("{s:l, s:i, s:i}", 
-                         "dptr", (long)m.mptr, "nrow", m.nrow, "ncol", m.ncol);
+  PyObject* to_py_dummy_matrix(const dummy_matrix& m) {
+    return Py_BuildValue("{s:l, s:i, s:i, s:i}", 
+                         "dptr", (long)m.mptr, 
+                         "nrow", m.nrow, 
+                         "ncol", m.ncol,
+                         "n_nz", m.active_elems);
   }
 
-  PyObject* to_py_mfm_info(dummy_mfm& m) {
+  PyObject* to_py_mfm_info(const dummy_mfm& m) {
     return Py_BuildValue("{s:i, s:i, s:i}", 
-                         "rank", m.rank, "nrow", m.nrow, "ncol", m.ncol);
+                         "rank", m.rank, 
+                         "nrow", m.nrow, 
+                         "ncol", m.ncol);
   }
 
-  PyObject* to_py_dummy_vector(exrpc_ptr_t& ptr, int size, int vtype) {
-    return Py_BuildValue("{s:l, s:i, s:i}", "dptr", (long)ptr, "size", size, "vtype", vtype);
-
+  PyObject* to_py_dummy_vector(const dummy_vector& dv) {
+    return Py_BuildValue("{s:l, s:i, s:i}", 
+                         "dptr", (long)dv.vptr, 
+                         "size", (int)dv.size, 
+                         "vtype", (int)dv.dtype);
   }
 
-  PyObject* to_py_gesvd_result(gesvd_result& obj,
+  PyObject* to_py_gesvd_result(const gesvd_result& obj,
                                char mtype, bool isU, bool isV) {
     auto mt = (mtype == 'C') ? "C" : "B";
     long uptr = isU ? (long)obj.umat_ptr : 0;
@@ -81,10 +88,38 @@ extern "C" {
                          "info", obj.info);
   }
 
-  PyObject* to_py_getrf_result(getrf_result& obj,char mtype) {
+
+  PyObject* to_py_pca_result(const pca_result& obj,
+                             char mtype) {
+    if (mtype != 'C') 
+      REPORT_ERROR(INTERNAL_ERROR, "pca output should be colmajor matrix!");
+    auto mt = "C";
+    long comp_ptr = (long)obj.comp_ptr; // colmajor_matrix
+    long score_ptr = (long)obj.score_ptr; // colmajor_matrix
+    long var_ratio_ptr = (long)obj.var_ratio_ptr; // vector
+    long eig_ptr = (long)obj.eig_ptr; // vector
+    long sval_ptr = (long)obj.sval_ptr; // vector
+    long mean_ptr = (long)obj.mean_ptr; // vector
+    return Py_BuildValue("{s:s, s:l, s:l, s:l, s:l, s:l, s:l, s:i, s:i, s:i, s:d}", 
+                         "mtype", mt, 
+                         "pc_ptr", comp_ptr, 
+                         "var_ptr", var_ratio_ptr,
+                         "score_ptr", score_ptr,
+                         "exp_var_ptr", eig_ptr,
+                         "singular_val_ptr", sval_ptr,
+                         "mean_ptr", mean_ptr,
+                         "n_components", obj.n_components,
+                         "n_samples",  obj.n_samples,
+                         "n_features", obj.n_features,
+                         "noise", obj.noise);
+  }
+
+  PyObject* to_py_getrf_result(const getrf_result& obj,char mtype) {
     auto mt = (mtype == 'C') ? "C" : "B";
     long dptr = (long)obj.ipiv_ptr;
     return Py_BuildValue("{s:s, s:l, s:i}", 
-                         "mtype", mt, "dptr", dptr, "info", obj.info);
+                         "mtype", mt, 
+                         "dptr", dptr, 
+                         "info", obj.info);
   }
 }
