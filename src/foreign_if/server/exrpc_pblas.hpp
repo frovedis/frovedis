@@ -32,12 +32,28 @@ void frovedis_copy(exrpc_ptr_t& v_ptr1,
   frovedis::copy<T>(vv1,vv2);
 }
 
-template <class T, class MATRIX>
+
+// added for scaling matrix data...
+
+template <class T, class L_MATRIX>
+void scal_matrix_local_data(L_MATRIX& mat, T& alpha) {
+  auto dptr = mat.val.data();
+  auto size = mat.val.size();
+  for(size_t i = 0; i < size; ++i) dptr[i] *= alpha;
+}
+
+template <class T, class MATRIX, class L_MATRIX>
+void scal_matrix_data(MATRIX& mat, T& alpha) {
+  mat.data.mapv(scal_matrix_local_data<T, L_MATRIX>, broadcast(alpha));
+}
+
+template <class T, class MATRIX, class L_MATRIX>
 void frovedis_scal(exrpc_ptr_t& v_ptr, 
-                 T& alpha) {
+                   T& alpha) {
   auto v = reinterpret_cast<MATRIX*>(v_ptr);
   MATRIX &vv = *v;
-  frovedis::scal<T>(vv,alpha);
+  if (vv.num_col > 1) scal_matrix_data<T, MATRIX, L_MATRIX>(vv, alpha);
+  else frovedis::scal<T>(vv,alpha);
 }
 
 template <class T, class MATRIX>
@@ -71,9 +87,9 @@ T frovedis_nrm2(exrpc_ptr_t& v_ptr) {
 template <class T, class MATRIX>
 dummy_matrix
 frovedis_gemv(exrpc_ptr_t& m_ptr,
-            exrpc_ptr_t& v_ptr,
-            bool& isTrans,
-            T& alpha, T& beta) {
+              exrpc_ptr_t& v_ptr,
+              bool& isTrans,
+              T& alpha, T& beta) {
   auto m = reinterpret_cast<MATRIX*>(m_ptr); // MxN
   auto v = reinterpret_cast<MATRIX*>(v_ptr); // Nx1
   size_t r_nr = m->get_nrows();
