@@ -1,0 +1,11 @@
+TARGETS := pca
+include ../Makefile.in.sx
+include ../Makefile.common
+
+TO_INSTALL := pca.cc
+DIR := pca
+ARCH := sx
+
+pca: pca.o
+	${CXX} -prelink ${CXXFLAGS} pca.o ${LIBS}
+	${MPICXX} ${CXXFLAGS} -o pca pca.o ${LIBS}

@@ -1,0 +1,10 @@
+TARGETS := pca
+include ../Makefile.in.x86
+include ../Makefile.common
+
+TO_INSTALL := pca.cc
+DIR := pca
+ARCH := x86
+
+pca: pca.o
+	${MPICXX} ${CXXFLAGS} -o pca pca.o ${LIBS}

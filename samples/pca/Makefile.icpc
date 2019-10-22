@@ -1,0 +1,10 @@
+TARGETS := pca
+include ../Makefile.in.icpc
+include ../Makefile.common
+
+TO_INSTALL := pca.cc
+DIR := pca
+ARCH := icpc
+
+pca: pca.o
+	${LINK} -o pca pca.o ${LIBS}

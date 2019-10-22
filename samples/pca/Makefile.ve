@@ -1,0 +1,10 @@
+TARGETS := pca
+include ../Makefile.in.ve
+include ../Makefile.common
+
+TO_INSTALL := pca.cc
+DIR := pca
+ARCH := ve
+
+pca: pca.o
+	${LINK} -o pca pca.o ${LIBS}
