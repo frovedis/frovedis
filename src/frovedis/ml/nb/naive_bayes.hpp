@@ -21,7 +21,9 @@ struct fill_data {
   fill_data (T& val): value(val) {}
   void operator() (std::vector<T>& vec, 
                    const std::vector<size_t>& sizes) {
-    vec.resize(sizes[frovedis::get_selfid()],value);
+    vec.resize(sizes[frovedis::get_selfid()]);
+    auto vec_ptr = vec.data();
+    for(size_t i = 0; i < vec.size(); ++i) vec_ptr[i] = value; 
   }
   T value;
   SERIALIZE(value)
@@ -110,10 +112,17 @@ std::vector<T> get_freq(LOC_MATRIX& mat,
   }
 
   // creation of class label matrix
-  std::vector<T> temp(nsamples*nclasses,0);
-  for(auto i=0; i<nsamples; i++) {
-    auto index = get_index(uniq_labels,label[i]);
-    temp[i*nclasses+index] = 1;
+  std::vector<T> temp(nsamples*nclasses);
+  auto temp_ptr = temp.data();
+  auto uniq_labels_ptr = uniq_labels.data();
+  auto label_ptr = label.data();
+  for(auto i = 0; i < nsamples; i++) {
+    //auto index = get_index(uniq_labels,label[i]); // in-lined below
+    size_t index = 0;
+    for(index = 0; index < uniq_labels.size(); ++index) {
+      if (uniq_labels_ptr[index] == label_ptr[i]) break; // found always
+    }
+    temp_ptr[i*nclasses+index] = 1;
   }
   rowmajor_matrix_local<T> cls_mat;
   cls_mat.val.swap(temp);
@@ -138,6 +147,7 @@ rowmajor_matrix_local<T> get_theta (std::vector<T>& freq_table,
   T* cls_countsp = &cls_counts[0];
   if (modelType == "bernoulli") {
     for(auto i=0; i<nclasses; ++i) {
+#pragma _NEC ivdep
       for(auto j=0; j<nfeatures; ++j) {
         freqp[j*nclasses+i] = log(freqp[j*nclasses+i]+lambda) -
                               log(cls_countsp[i]+lambda*2); // 2: as for bernoulli 
@@ -150,6 +160,7 @@ rowmajor_matrix_local<T> get_theta (std::vector<T>& freq_table,
       for(auto j=0; j<nfeatures; ++j) {
         total += freqp[j*nclasses+i] + lambda; 
       }
+#pragma _NEC ivdep
       for(auto j=0; j<nfeatures; ++j) {
         freqp[j*nclasses+i] = log(freqp[j*nclasses+i]+lambda)-log(total);
       }
@@ -188,12 +199,12 @@ void naive_bayes_common(MATRIX& mat,
                         rowmajor_matrix_local<T>& theta, 
                         std::vector<T>& pi, 
                         std::vector<T>& uniq_labels,
+                        std::vector<T>& cls_counts,
                         const std::string& modelType) {
 
   if (mat.num_row != label.size())
     REPORT_ERROR(USER_ERROR,"number of samples is not same in data and label.\n");
 
-  std::vector<T> cls_counts;
   get_class_counts(label,uniq_labels,cls_counts);
   auto sizes = mat.data.map(get_local_row<LOC_MATRIX>).gather();
   //re-aligning the label (needed for using dataframe functions for above class counts)
@@ -214,23 +225,23 @@ void naive_bayes_common(MATRIX& mat,
 template <class T, class MATRIX, class LOC_MATRIX>
 naive_bayes_model<T>
 multinomial_nb (MATRIX& mat, dvector<T>& label, double lambda = 1.0) {
-  std::vector<T> pi, uniq_labels;
+  std::vector<T> pi, uniq_labels, cls_counts;
   rowmajor_matrix_local<T> theta;
-  naive_bayes_common<T,MATRIX,LOC_MATRIX>(mat,label,lambda,
-                                          theta,pi,uniq_labels,"multinomial");
-  return naive_bayes_model<T>(std::move(theta),std::move(pi),
-                              std::move(uniq_labels),"multinomial");
+  naive_bayes_common<T,MATRIX,LOC_MATRIX>(mat,label,lambda,theta,pi,
+                                          uniq_labels,cls_counts,"multinomial");
+  return naive_bayes_model<T>(std::move(theta),std::move(pi),std::move(uniq_labels),
+                              std::move(cls_counts),"multinomial");
 }
 
 template <class T, class MATRIX, class LOC_MATRIX>
 naive_bayes_model<T>
 bernoulli_nb (MATRIX& mat, dvector<T>& label, double lambda = 1.0) {
-  std::vector<T> pi, uniq_labels;
+  std::vector<T> pi, uniq_labels, cls_counts;
   rowmajor_matrix_local<T> theta;
-  naive_bayes_common<T,MATRIX,LOC_MATRIX>(mat,label,lambda,
-                                          theta,pi,uniq_labels,"bernoulli");
-  return naive_bayes_model<T>(std::move(theta),std::move(pi),
-                              std::move(uniq_labels),"bernoulli");
+  naive_bayes_common<T,MATRIX,LOC_MATRIX>(mat,label,lambda,theta,pi,
+                                          uniq_labels,cls_counts,"bernoulli");
+  return naive_bayes_model<T>(std::move(theta),std::move(pi),std::move(uniq_labels),
+                              std::move(cls_counts),"bernoulli");
 }
 
 } // end of namespace
