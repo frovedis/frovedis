@@ -73,5 +73,7 @@ batch_chain_communicator.o: batch_chain_communicator.cc batch_chain_communicator
 fp_growth_model.o: fp_growth_model.cc fp_growth_model.hpp
 fp_growth.o: fp_growth.cc fp_growth.hpp fp_growth_model.hpp
 
+graph.o: graph.cc binary_search.hpp connected_components.hpp find_partitions.hpp global.hpp graph.cc graph.hpp pagerank.hpp set_union_multivec.hpp sparse_vector.hpp sssp.hpp
+
 clean:
 	${RM} ${TO_CLEAN} glm/*~ recommendation/*~ fm/*~ fpm/*~ clustering/*~ ${TARGETS} 
