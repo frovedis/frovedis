@@ -39,11 +39,12 @@ extern "C" {
   PyObject* to_python_double_list (std::vector<double>& v);
 
   // --- Frovedis Data structure to Python Data structure ---
-  PyObject* to_py_dummy_matrix(dummy_matrix& m);
-  PyObject* to_py_mfm_info(dummy_mfm& m);
-  PyObject* to_py_dummy_vector(exrpc_ptr_t& ptr, int, int);
-  PyObject* to_py_gesvd_result(gesvd_result& obj,char, bool, bool);
-  PyObject* to_py_getrf_result(getrf_result& obj,char);
+  PyObject* to_py_dummy_matrix(const dummy_matrix& m);
+  PyObject* to_py_mfm_info(const dummy_mfm& m);
+  PyObject* to_py_dummy_vector(const dummy_vector& dv);
+  PyObject* to_py_gesvd_result(const gesvd_result& obj, char, bool, bool);
+  PyObject* to_py_getrf_result(const getrf_result& obj, char);
+  PyObject* to_py_pca_result(const pca_result& obj, char);
 
   // --- server info ---
   std::vector<exrpc_node> get_worker_nodes(exrpc_node& fm_node);
