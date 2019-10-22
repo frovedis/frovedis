@@ -2695,18 +2695,18 @@ void typed_dfcolumn<T>::contain_nulls_check() {
 }
 
 template <class T>
-std::string get_type_name(){throw std::runtime_error("unknown type");}
+std::string get_dftype_name(){throw std::runtime_error("unknown type");}
 
-template<> std::string get_type_name<int>();
-template<> std::string get_type_name<unsigned int>();
-template<> std::string get_type_name<long>();
-template<> std::string get_type_name<unsigned long>();
-template<> std::string get_type_name<float>();
-template<> std::string get_type_name<double>();
+template<> std::string get_dftype_name<int>();
+template<> std::string get_dftype_name<unsigned int>();
+template<> std::string get_dftype_name<long>();
+template<> std::string get_dftype_name<unsigned long>();
+template<> std::string get_dftype_name<float>();
+template<> std::string get_dftype_name<double>();
 
 template <class T>
 std::string typed_dfcolumn<T>::dtype() const {
-  return get_type_name<T>();
+  return get_dftype_name<T>();
 }
 
 template <class T, class U>
