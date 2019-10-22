@@ -1,0 +1,10 @@
+TARGETS := dbscan
+include ../Makefile.in.x86
+include ../Makefile.common
+
+TO_INSTALL := dbscan.cc
+DIR := dbscan
+ARCH := x86
+
+dbscan: dbscan.o
+	${MPICXX} ${CXXFLAGS} -o dbscan dbscan.o ${LIBS}

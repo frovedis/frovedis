@@ -1,0 +1,10 @@
+TARGETS := dbscan
+include ../Makefile.in.ve
+include ../Makefile.common
+
+TO_INSTALL := dbscan.cc
+DIR := dbscan
+ARCH := ve
+
+dbscan: dbscan.o
+	${LINK} -o dbscan dbscan.o ${LIBS}

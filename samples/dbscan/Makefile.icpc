@@ -1,0 +1,10 @@
+TARGETS := dbscan
+include ../Makefile.in.icpc
+include ../Makefile.common
+
+TO_INSTALL := dbscan.cc
+DIR := dbscan
+ARCH := icpc
+
+dbscan: dbscan.o
+	${LINK} -o dbscan dbscan.o ${LIBS}
