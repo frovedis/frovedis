@@ -14,8 +14,5 @@ void expose_frovedis_ml_data_functions() {
   expose((show_glm_data<DT1,D_MAT1>));
   // --- frovedis generic data ---
   expose(load_local_data<std::vector<std::string>>);
-  expose((release_data<std::vector<double>>)); //SVAL/SVEC
-  expose((release_data<std::vector<float>>));  //SVAL/SVEC
-  expose((release_data<std::vector<int>>));    //LAPACK(IPIV)
   expose((release_data<lvec<int>>));           //ScaLAPACK(IPIV)
 }
