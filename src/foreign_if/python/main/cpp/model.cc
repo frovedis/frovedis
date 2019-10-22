@@ -137,8 +137,8 @@ extern "C" {
       }
       else if (mdtype == DOUBLE) {
         switch(mkind) {
+          case LRM:    exrpc_oneway(fm_node,save_model<LRM1>,mid,fs_path); break;
           case MLR:    exrpc_oneway(fm_node,save_model<MLR1>,mid,fs_path); break;
-          case LRM:    exrpc_oneway(fm_node,save_model<LRM2>,mid,fs_path); break;
           case SVM:    exrpc_oneway(fm_node,save_model<SVM1>,mid,fs_path); break;
           case LNRM:   exrpc_oneway(fm_node,save_model<LNRM1>,mid,fs_path); break;
           case MFM:    exrpc_oneway(fm_node,save_model<MFM1>,mid,fs_path); break;
@@ -388,8 +388,162 @@ extern "C" {
     return to_py_mfm_info(ret);
   }
 
-  //create two different functions for 1. freqIterSet 2. AssRuleMine
-  // make exrpc request to server side for actual processing  
+  PyObject* get_frovedis_weight_vector(const char* host, int port,
+                                       int mid, short mkind, 
+                                       short mdtype) {
+    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
+    exrpc_node fm_node(host, port);
+    try { 
+      if (mdtype == FLOAT) {
+        std::vector<float> ret;
+        switch(mkind) {
+          case LRM:  ret = exrpc_async(fm_node, (get_weight_vector<DT2,LRM2>), mid).get(); break;
+          case MLR:  ret = exrpc_async(fm_node, (get_weight_as_vector<DT2,MLR2>), mid).get(); break;
+          case LNRM: ret = exrpc_async(fm_node, (get_weight_vector<DT2,LNRM2>), mid).get(); break;
+          case SVM:  ret = exrpc_async(fm_node, (get_weight_vector<DT2,SVM2>), mid).get(); break;
+          default: REPORT_ERROR(USER_ERROR, "Unknown model for weight vector extraction!\n");
+        }
+        return to_python_float_list(ret);
+      }
+      else if (mdtype == DOUBLE) {
+        std::vector<double> ret;
+        switch(mkind) {
+          case LRM:  ret = exrpc_async(fm_node, (get_weight_vector<DT1,LRM1>), mid).get(); break;
+          case MLR:  ret = exrpc_async(fm_node, (get_weight_as_vector<DT1,MLR1>), mid).get(); break;
+          case LNRM: ret = exrpc_async(fm_node, (get_weight_vector<DT1,LNRM1>), mid).get(); break;
+          case SVM:  ret = exrpc_async(fm_node, (get_weight_vector<DT1,SVM1>), mid).get(); break;
+          default: REPORT_ERROR(USER_ERROR, "Unknown model for weight vector extraction!\n");
+        }
+        return to_python_double_list(ret);
+      }
+      else REPORT_ERROR(USER_ERROR,"model dtype can either be float or double!\n");
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+  }
+
+  PyObject* get_frovedis_intercept_vector(const char* host, int port,
+                                          int mid, short mkind, 
+                                          short mdtype) {
+    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
+    exrpc_node fm_node(host, port);
+    try { 
+      if (mdtype == FLOAT) {
+        std::vector<float> ret;
+        switch(mkind) {
+          case LRM:  ret = exrpc_async(fm_node, (get_intercept_as_vector<DT2,LRM2>), mid).get(); break;
+          case MLR:  ret = exrpc_async(fm_node, (get_intercept_vector<DT2,MLR2>), mid).get(); break;
+          case LNRM: ret = exrpc_async(fm_node, (get_intercept_as_vector<DT2,LNRM2>), mid).get(); break;
+          case SVM:  ret = exrpc_async(fm_node, (get_intercept_as_vector<DT2,SVM2>), mid).get(); break;
+          default: REPORT_ERROR(USER_ERROR, "Unknown model for intercept vector extraction!\n");
+        }
+        return to_python_float_list(ret);
+      }
+      else if (mdtype == DOUBLE) {
+        std::vector<double> ret;
+        switch(mkind) {
+          case LRM:  ret = exrpc_async(fm_node, (get_intercept_as_vector<DT1,LRM1>), mid).get(); break;
+          case MLR:  ret = exrpc_async(fm_node, (get_intercept_vector<DT1,MLR1>), mid).get(); break;
+          case LNRM: ret = exrpc_async(fm_node, (get_intercept_as_vector<DT1,LNRM1>), mid).get(); break;
+          case SVM:  ret = exrpc_async(fm_node, (get_intercept_as_vector<DT1,SVM1>), mid).get(); break;
+          default: REPORT_ERROR(USER_ERROR, "Unknown model for intercept vector extraction!\n");
+        }
+        return to_python_double_list(ret);
+      }
+      else REPORT_ERROR(USER_ERROR,"model dtype can either be float or double!\n");
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+  }
+
+  PyObject* get_frovedis_pi_vector(const char* host, int port,
+                                   int mid, short mkind,
+                                   short mdtype) {
+    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
+    exrpc_node fm_node(host, port);
+    try {
+      if (mdtype == FLOAT) {
+        std::vector<float> ret;
+        switch(mkind) {
+          case NBM: ret = exrpc_async(fm_node, (get_pi_vector<DT2,NBM2>), mid).get(); break;
+          default: REPORT_ERROR(USER_ERROR, "Unknown model for class_log_prior vector extraction!\n");
+        }
+        return to_python_float_list(ret);
+      }
+      else if (mdtype == DOUBLE) {
+        std::vector<double> ret;
+        switch(mkind) {
+          case NBM: ret = exrpc_async(fm_node, (get_pi_vector<DT1,NBM1>), mid).get(); break;
+          default: REPORT_ERROR(USER_ERROR, "Unknown model for class_log_prior vector extraction!\n");
+        }
+        return to_python_double_list(ret);
+      }
+      else REPORT_ERROR(USER_ERROR,"model dtype can either be float or double!\n");
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+  }
+
+  PyObject* get_frovedis_theta_vector(const char* host, int port,
+                                      int mid, short mkind,
+                                      short mdtype) {
+    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
+    exrpc_node fm_node(host, port);
+    try {
+      if (mdtype == FLOAT) {
+        std::vector<float> ret;
+        switch(mkind) {
+          case NBM: ret = exrpc_async(fm_node, (get_theta_vector<DT2,NBM2>), mid).get(); break;
+          default: REPORT_ERROR(USER_ERROR, "Unknown model for feature_log_prob vector extraction!\n");
+        }
+        return to_python_float_list(ret);
+      }
+      else if (mdtype == DOUBLE) {
+        std::vector<double> ret;
+        switch(mkind) {
+          case NBM: ret = exrpc_async(fm_node, (get_theta_vector<DT1,NBM1>), mid).get(); break;
+          default: REPORT_ERROR(USER_ERROR, "Unknown model for feature_log_prob vector extraction!\n");
+        }
+        return to_python_double_list(ret);
+      }
+      else REPORT_ERROR(USER_ERROR,"model dtype can either be float or double!\n");
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+  }
+
+  PyObject* get_frovedis_cls_counts_vector(const char* host, int port,
+                                           int mid, short mkind,
+                                           short mdtype) {
+    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
+    exrpc_node fm_node(host, port);
+    try {
+      if (mdtype == FLOAT) {
+        std::vector<float> ret;
+        switch(mkind) {
+          case NBM: ret = exrpc_async(fm_node, (get_cls_counts_vector<DT2,NBM2>), mid).get(); break;
+          default: REPORT_ERROR(USER_ERROR, "Unknown model for class_count vector extraction!\n");
+        }
+        return to_python_float_list(ret);
+      }
+      else if (mdtype == DOUBLE) {
+        std::vector<double> ret;
+        switch(mkind) {
+          case NBM: ret = exrpc_async(fm_node, (get_cls_counts_vector<DT1,NBM1>), mid).get(); break;
+          default: REPORT_ERROR(USER_ERROR, "Unknown model for class_count vector extraction!\n");
+        }
+        return to_python_double_list(ret);
+      }
+      else REPORT_ERROR(USER_ERROR,"model dtype can either be float or double!\n");
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+  }
 
   void parallel_float_glm_predict(const char* host, int port,
                                   int mid, short mkind, long dptr, 
