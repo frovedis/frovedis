@@ -196,11 +196,12 @@ compute_dendogram (std::vector<T>& D, size_t n) {
   auto zptr = Z.val.data();
 #endif
   std::vector<size_t> size(n,1);
-  std::vector<int> cluster_chain(n,0);
+  std::vector<int> cluster_chain(n);
   auto dptr = D.data();
   auto szptr = size.data();
   auto cptr = cluster_chain.data();
 
+  size_t cond_index = 0;
   size_t chain_length = 0;
   size_t i, k, x, y, nx, ny, ni;
   T dist, current_min;
@@ -220,7 +221,9 @@ compute_dendogram (std::vector<T>& D, size_t n) {
       // minimum, to avoid potentially going in cycles.
       if(chain_length > 1){
         y = cptr[chain_length - 2];
-        current_min = dptr[condensed_index(n, x, y)];
+        if (x < y) cond_index = (n * x - (x * (x + 1) / 2) + (y - x - 1)); 
+        else       cond_index = (n * y - (y * (y + 1) / 2) + (x - y - 1));
+        current_min = dptr[cond_index];
       }
       else {
         y = 0;
@@ -229,7 +232,11 @@ compute_dendogram (std::vector<T>& D, size_t n) {
       std::vector<T> tmp(n); auto tptr = tmp.data();
       for(i = 0; i < n; ++i) {
         if(szptr[i] == 0 || x == i ) tptr[i] = INFINITY;
-        else tptr[i] = dptr[condensed_index(n, x, i)];
+        else {
+          if (x < i) cond_index = (n * x - (x * (x + 1) / 2) + (i - x - 1)); 
+          else       cond_index = (n * i - (i * (i + 1) / 2) + (x - i - 1));
+          tptr[i] = dptr[cond_index];
+        }
       }
 
       for(i = 0; i < n; ++i) {
@@ -270,15 +277,17 @@ compute_dendogram (std::vector<T>& D, size_t n) {
     szptr[x] = 0;        // cluster x will be dropped.
     szptr[y] = nx + ny;  // cluster y will be replaced with the new cluster
 
+    size_t x_indx = 0, y_indx = 0;
     //Update the distance matrix.
 #pragma _NEC ivdep
     for(i = 0; i < n; ++i){
       ni = szptr[i];
       if(ni == 0 || i == y) continue;
-      auto x_indx = condensed_index(n, i, x);
-      auto y_indx = condensed_index(n, i, y);
-      dptr[y_indx] =  new_dist(dptr[x_indx],dptr[y_indx],
-                               current_min, nx, ny, ni);
+      if (i < x) x_indx = (n * i - (i * (i + 1) / 2) + (x - i - 1)); 
+      else       x_indx = (n * x - (x * (x + 1) / 2) + (i - x - 1));
+      if (i < y) y_indx = (n * i - (i * (i + 1) / 2) + (y - i - 1)); 
+      else       y_indx = (n * y - (y * (y + 1) / 2) + (i - y - 1));
+      dptr[y_indx] =  ((nx * dptr[x_indx] + ny * dptr[y_indx]) / (nx + ny));
     }
   }
 
