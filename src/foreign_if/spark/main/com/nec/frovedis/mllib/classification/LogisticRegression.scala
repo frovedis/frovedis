@@ -48,19 +48,19 @@ object LogisticRegressionModel {  // companion object (for static members)
 //   regParam = 0.01           (Spark: 0.01)
 // --------------------------------------------------------------------------
 
-class LogisticRegression {
-  private var regParam: Double = 0.01
-  private var regType: String = "zero"
-  private var elasticNetParam: Double = 0.01
-  private var threshold: Double = 0.5
-  private var maxIter: Int = 1000
-  private var tol: Double = 1E-6
-  private var fitIntercept: Boolean = false
-  private var family: String = "auto"
-  private var stepSize: Double = 0.01
-  private var solver: String = "sgd"
-  private var miniBatchFraction: Double = 1.0
-  private var histSize: Int = 10
+class LogisticRegression(sol: String = "sgd") {
+  protected var solver: String = sol
+  protected var regParam: Double = 0.01
+  protected var regType: String = "zero"
+  protected var elasticNetParam: Double = 0.01
+  protected var threshold: Double = 0.5
+  protected var maxIter: Int = 1000
+  protected var tol: Double = 1E-6
+  protected var fitIntercept: Boolean = false
+  protected var family: String = "auto"
+  protected var stepSize: Double = 0.01
+  protected var miniBatchFraction: Double = 1.0
+  protected var histSize: Int = 10
   
   def setRegParam(rprm: Double) = { 
     this.regParam = rprm
@@ -92,12 +92,6 @@ class LogisticRegression {
     this.maxIter = iter
     this
   } 
-  def setHistSize(hs: Int) = {
-    require(hs > 0,
-      s"history size must be positive but got ${hs}")
-    this.histSize = hs
-    this
-  } 
   def setTol(tol: Double) = { 
     require(tol > 0, 
        s"tolerance must have positive value but got ${tol}")
@@ -125,18 +119,41 @@ class LogisticRegression {
     this
   } 
   def setMiniBatchFraction(fraction: Double) = { 
+    require(this.solver == "sgd", "mini batch fraction can be set for SGD solver only!")
     require(fraction > 0 && fraction <= 1.0,
       s"Fraction for mini-batch SGD must be in range (0, 1] but got ${fraction}")
     this.miniBatchFraction = fraction
     this
   }
+  def setHistSize(hs: Int) = {
+    require(this.solver == "lbfgs", "history size can be set for LBFGS solver only!")
+    require(hs > 0,
+      s"history size must be positive but got ${hs}")
+    this.histSize = hs
+    this
+  } 
   def setStepSize(step: Double) = { 
     require(step > 0,
       s"Initial step size must be positive but got ${step}")
     this.stepSize = step
     this
   }
-
+  override def toString() : String = {
+    var str = " solver: " + this.solver + 
+              "\n family: " + this.family +
+              "\n step size: " + this.stepSize +
+              "\n max iter: " + this.maxIter +
+              "\n regularization type: " + this.regType +
+              "\n regularization parameter: " + this.regParam +
+              "\n threshold: " + this.threshold +
+              "\n fit intercept: " + this.fitIntercept +
+              "\n convergence tolerance: " + this.tol +
+              "\n elastic net parameter: " + this.elasticNetParam
+    if (solver == "sgd") str += "\n mini-batch fraction: " + this.miniBatchFraction
+    else if (solver == "lbfgs") str += "\n history size: " + this.histSize
+    else throw new IllegalArgumentException("Currently supported solvers are: sgd/lbfgs\n")
+    return str + "\n"
+  }
   def fit(data: RDD[LabeledPoint]): LogisticRegressionModel = {
     val fdata = new FrovedisLabeledPoint(data) // Spark Data => Frovedis Data
     return fit(fdata, true)
@@ -172,11 +189,109 @@ class LogisticRegression {
                                      histSize,regT,regParam,isMult,
                                      fitIntercept,tol,
                                      mid,inputMovable,data.is_dense())
-    else throw new IllegalArgumentException("solver should be sgd/lbfgs")
+    else throw new IllegalArgumentException("Currently supported solvers are: sgd/lbfgs\n")
     val info = JNISupport.checkServerException();
     if (info != "") throw new java.rmi.ServerException(info);
     val numFeatures = data.numCols()
     return new LogisticRegressionModel(mid,mkind,numFeatures,ncls,threshold)
+  }
+}
+
+class LogisticRegressionWithSGD extends LogisticRegression("sgd") {
+  override def setStepSize(step: Double) = {
+    super.setStepSize(step)
+    this
+  }
+  override def setRegParam(rprm: Double) = {
+    super.setRegParam(rprm)
+    this
+  }
+  override def setRegType(regT: String) = {
+    super.setRegType(regT)
+    this
+  }
+  override def setElasticNetParam(elprm: Double) = {
+    super.setElasticNetParam(elprm)
+    this
+  }
+  override def setThreshold(thr: Double) = {
+    super.setThreshold(thr)
+    this
+  }
+  override def setMaxIter(iter: Int) = {
+    super.setMaxIter(iter)
+    this
+  }
+  override def setTol(tol: Double) = {
+    super.setTol(tol)
+    this
+  }
+  override def setFitIntercept(icpt: Boolean) = {
+    super.setFitIntercept(icpt)
+    this
+  }
+  override def setFamily(family: String) = {
+    super.setFamily(family)
+    this
+  }
+  override def setSolver(sol: String) = {
+    throw new NotImplementedError("Solver: Not applicable to be set for LogisticRegressionWithSGD")
+  }
+  override def setMiniBatchFraction(fraction: Double) = {
+    super.setMiniBatchFraction(fraction)
+    this
+  }
+  override def setHistSize(hs: Int) = {
+    throw new NotImplementedError("HistSize: Not applicable to be set for LogisticRegressionWithSGD")
+  }
+}
+
+class LogisticRegressionWithLBFGS extends LogisticRegression("lbfgs") {
+  override def setStepSize(step: Double) = {
+    super.setStepSize(step)
+    this
+  }
+  override def setRegParam(rprm: Double) = {
+    super.setRegParam(rprm)
+    this
+  }
+  override def setRegType(regT: String) = {
+    super.setRegType(regT)
+    this
+  }
+  override def setElasticNetParam(elprm: Double) = {
+    super.setElasticNetParam(elprm)
+    this
+  }
+  override def setThreshold(thr: Double) = {
+    super.setThreshold(thr)
+    this
+  }
+  override def setMaxIter(iter: Int) = {
+    super.setMaxIter(iter)
+    this
+  }
+  override def setTol(tol: Double) = {
+    super.setTol(tol)
+    this
+  }
+  override def setFitIntercept(icpt: Boolean) = {
+    super.setFitIntercept(icpt)
+    this
+  }
+  override def setFamily(family: String) = {
+    super.setFamily(family)
+    this
+  }
+  override def setSolver(sol: String) = {
+    throw new NotImplementedError("Solver: Not applicable to be set for LogisticRegressionWithLBFGS")
+  }
+  override def setMiniBatchFraction(fraction: Double) = {
+    throw new NotImplementedError("MiniBatchFraction: Not applicable to be set for LogisticRegressionWithLBFGS")
+  }
+  override def setHistSize(hs: Int) = {
+    super.setHistSize(hs)
+    this
   }
 }
 
