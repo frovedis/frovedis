@@ -10,6 +10,7 @@ using namespace frovedis;
 
 template <class MATRIX, class T>
 pca_result frovedis_pca(exrpc_ptr_t& data_ptr, int& k, 
+                        bool& whiten,
                         bool& toCopy = true,
                         bool& rearrange_out = true,
                         bool& need_pca_scores = false,
@@ -32,7 +33,7 @@ pca_result frovedis_pca(exrpc_ptr_t& data_ptr, int& k,
   // calling frovedis::pca(...)
   pca(mat,*pca_directions,*pca_scores,
       *eigen_values,*explained_variance_ratio,
-      *singular_values,*mean,noise_variance,k,false,toCopy);
+      *singular_values,*mean,noise_variance,k,whiten,false,toCopy);
   // if input is movable, destroying Frovedis side data after computation is done.
   if (isMovableInput)  mat.clear();
 #ifdef _EXRPC_DEBUG_
@@ -86,6 +87,38 @@ pca_result frovedis_pca(exrpc_ptr_t& data_ptr, int& k,
   return pca_result(nrows, ncols, k, noise_variance,
                     comp_ptr, score_ptr, eig_ptr,
                     var_ratio_ptr, sval_ptr, mean_ptr);
+}
+
+template <class MATRIX, class L_MATRIX, class T>
+dummy_matrix
+frovedis_pca_transform(exrpc_ptr_t& data_ptr,
+             exrpc_ptr_t& pc_ptr,
+             exrpc_ptr_t& var_ptr,
+             exrpc_ptr_t& mean_ptr,
+             bool& whiten){
+  MATRIX& mat = *reinterpret_cast<MATRIX*>(data_ptr);
+  colmajor_matrix<T>& pca_directions = *reinterpret_cast<colmajor_matrix<T>*>(pc_ptr);
+  std::vector<T>& explained_variance = *reinterpret_cast<std::vector<T>*>(var_ptr);
+  std::vector<T>& mean = *reinterpret_cast<std::vector<T>*>(mean_ptr);
+  auto res = transform_pca(mat, mean, pca_directions, explained_variance, whiten);
+  auto x_transformed = new MATRIX(std::move(res)); // move: stack to heap
+  return to_dummy_matrix<MATRIX, L_MATRIX>(x_transformed);
+}
+
+template <class MATRIX, class L_MATRIX, class T>
+dummy_matrix
+frovedis_pca_inverse_transform(exrpc_ptr_t& data_ptr,
+             exrpc_ptr_t& pc_ptr,
+             exrpc_ptr_t& var_ptr,
+             exrpc_ptr_t& mean_ptr,
+             bool& whiten){
+  MATRIX& mat = *reinterpret_cast<MATRIX*>(data_ptr);
+  colmajor_matrix<T>& pca_directions = *reinterpret_cast<colmajor_matrix<T>*>(pc_ptr);
+  std::vector<T>& explained_variance = *reinterpret_cast<std::vector<T>*>(var_ptr);
+  std::vector<T>& mean = *reinterpret_cast<std::vector<T>*>(mean_ptr);
+  auto res =  inverse_transform_pca(mat, mean, pca_directions, explained_variance, whiten);
+  auto x_inverse_transformed = new MATRIX(std::move(res));
+  return to_dummy_matrix<MATRIX, L_MATRIX>(x_inverse_transformed);
 }
 
 #endif
