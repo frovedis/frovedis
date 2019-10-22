@@ -45,7 +45,7 @@ public:
     
     //generate matrix graph file from list file
     void prep_graph_crs(const std::string &filename_edge, bool if_direct); //Prepare CRS graph from original edge files. direct or undirect  
-    void prep_graph_crs_pagerank(const std::string &filename_edge);
+  void prep_graph_crs_pagerank(const std::string &filename_edge, const std::string &output_file);
 
     size_t insert_mapping(const std::string &key);
     bool add_arc(size_t from, size_t to);

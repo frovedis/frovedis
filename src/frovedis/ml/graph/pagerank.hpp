@@ -142,14 +142,12 @@ PRmat_hyb(frovedis::jds_crs_hybrid_local<T>& m, std::vector<T>& prank, double& b
 
     auto temp_prank = m * prank;
     size_t prank_size = temp_prank.size();    
-    std::vector<double> temp_prank_new(prank_size,0);
     auto* temp_prankp = &temp_prank[0];
-    auto* temp_prank_newp = &temp_prank_new[0];
     for(size_t i=0;i<prank_size;i++){
-        temp_prank_newp[i] = (1-dfactor) * temp_prankp[i] + dfactor * b;
+        temp_prankp[i] = (1-dfactor) * temp_prankp[i] + dfactor * b;
     }
    
-    return temp_prank_new;
+    return temp_prank;
 
 }
 
@@ -202,8 +200,10 @@ T cal_abs_diff_vec(std::vector<T>& v1,std::vector<T>& v2){
     size_t v_size = v1.size();
     auto* v1p = &v1[0];
     auto* v2p = &v2[0];
-    for(size_t i=0;i<v_size;i++){ 
-        ret += std::abs(v1p[i]-v2p[i]);
+    for(size_t i=0;i<v_size;i++){
+      auto toadd = v1p[i] > v2p[i] ? v1p[i] - v2p[i] : v2p[i] - v1p[i];
+      ret += toadd;
+      //ret += std::abs(v1p[i]-v2p[i]);
     }
     return ret;
 }
@@ -216,7 +216,9 @@ cal_rel_prank(std::vector<T>& abs_prank){
     auto* rel_prankp = &rel_prank[0];
     auto* abs_prankp = &abs_prank[0];
 
-    T sum_prank = std::accumulate(abs_prank.begin(),abs_prank.end(),0.0);
+    //T sum_prank = std::accumulate(abs_prank.begin(),abs_prank.end(),0.0);
+    T sum_prank = 0;
+    for(size_t i = 0; i < prank_size; i++) sum_prank += abs_prankp[i];
     
     for(size_t i=0; i< prank_size;i++){
         rel_prankp[i] = abs_prankp[i]/sum_prank;
@@ -227,10 +229,17 @@ template<class T>
 bool by_rank_descend(std::pair<size_t, T> a, std::pair<size_t, T> b) { return  a.second> b.second; }
 
 template<class T>
-std::vector<std::pair<size_t, T>> 
+std::vector<size_t>
 sort_prank(std::vector<T>& prank){
     size_t prank_size = prank.size();
-    std::vector<std::pair<size_t, T>> prank_sorted(prank_size);
+#ifdef __ve__
+    std::vector<size_t> idx(prank_size);
+    auto idxp = idx.data();
+    for(size_t i = 0; i < prank_size; i++) idxp[i] = i;
+    radix_sort_desc(prank, idx);
+    return idx;
+#else
+    std::vector<std::pair<size_t,T>> prank_sorted(prank_size);
     auto* prank_sortedp = &prank_sorted[0];
 
     // prank_sorted.resize(prank.size());
@@ -239,11 +248,17 @@ sort_prank(std::vector<T>& prank){
         prank_sortedp[i].second = prank[i];
     }
     std::sort(prank_sorted.begin(),prank_sorted.end(),by_rank_descend<T>);
-    return prank_sorted;
+    std::vector<size_t> idx(prank_size);
+    for(size_t i = 0; i < prank_size; i++) {
+      idx[i] = prank_sorted[i].first;
+      prank[i] = prank_sorted[i].second;
+    }
+    return idx;
+#endif
 }
 
 template<class T>
-void print_sort_prank(std::vector<T> prank){
+void print_sort_prank(std::vector<T> prank){ // destruct; copy-in
     RLOG(TIME_RECORD_LOG_LEVEL)<<std::endl;
     RLOG(TIME_RECORD_LOG_LEVEL)<<"-------------------------------------------------"<<std::endl;   
     RLOG(TIME_RECORD_LOG_LEVEL)<<"Printing the RELATIVE ranks for the top 20 pages"<<std::endl;
@@ -252,7 +267,8 @@ void print_sort_prank(std::vector<T> prank){
     size_t max_page_out = 20;
         RLOG(TIME_RECORD_LOG_LEVEL)<<"No.\t"<<"pageID\t"<<"Rank"<<std::endl;
     while(i < max_page_out && i < prank_sorted.size()){
-        RLOG(TIME_RECORD_LOG_LEVEL)<<i<<"\t"<<prank_sorted[i].first<<"\t"<<prank_sorted[i].second<<std::endl;
+        // +1 is 0-based to 1-based
+        RLOG(TIME_RECORD_LOG_LEVEL)<<i<<"\t"<<prank_sorted[i]+1<<"\t"<<prank[i]<<std::endl;
         i++;
     }    
     RLOG(TIME_RECORD_LOG_LEVEL)<<"...."<<std::endl;

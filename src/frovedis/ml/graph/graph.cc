@@ -1169,32 +1169,141 @@ void graph::sssp_bf_spmspv_sort(bool if_sssp_enq, size_t source_vertex){
     }
 }
 
+template <class T>
+void gather_helper(std::vector<T>& v, std::vector<T>& gathered) {
+  int self = get_selfid();
+  int nodes = get_nodesize();
+  std::vector<size_t> recvcounts(nodes);
+  size_t vsize = v.size();
+  MPI_Gather(&vsize, sizeof(size_t), MPI_CHAR, 
+             reinterpret_cast<char*>(&recvcounts[0]),
+             sizeof(size_t), MPI_CHAR, 0, MPI_COMM_WORLD);
+  size_t total = 0;
+  for(size_t i = 0; i < nodes; i++) total += recvcounts[i];
+  std::vector<size_t> displs(nodes);
+  if(self == 0) {
+    for(size_t i = 1; i < nodes; i++) 
+      displs[i] = displs[i-1] + recvcounts[i-1];
+  }
+  gathered.resize(total);
+  auto gatheredp = gathered.data();
+  large_gatherv(sizeof(T), reinterpret_cast<char*>(&v[0]), vsize, 
+                reinterpret_cast<char*>(gatheredp), recvcounts,
+                displs, 0, MPI_COMM_WORLD);
+}
 
+template <class T>
+void bcast_helper(std::vector<T>& v) {
+  size_t vsize = v.size();
+  MPI_Bcast(&vsize, sizeof(size_t), MPI_CHAR, 0, MPI_COMM_WORLD);
+  if(get_selfid() != 0) v.resize(vsize);
+  large_bcast(sizeof(T), reinterpret_cast<char*>(v.data()), vsize, 0,
+              MPI_COMM_WORLD);
+}
+
+void pagerank_v1_helper_crs(crs_matrix_local<TYPE_MATRIX_PAGERANK>& A,
+                            std::vector<TYPE_MATRIX_PAGERANK>& prank,
+                            double bias, double dfactor, double epsilon,
+                            size_t iter_max) {
+  double diff = epsilon + 1;
+  size_t iter_index = 0;
+
+  time_spent spmv(TIME_RECORD_LOG_LEVEL);
+  time_spent comm(TIME_RECORD_LOG_LEVEL);
+  time_spent other(TIME_RECORD_LOG_LEVEL);
+  
+  RLOG(TIME_RECORD_LOG_LEVEL)<<"iter_idx\t"<<"diff(abs)"<<std::endl;
+  while(diff > epsilon && iter_index < iter_max){
+    iter_index ++;
+
+    spmv.lap_start();
+    auto res = PRmat_crs<TYPE_MATRIX_PAGERANK>(A, prank, bias, dfactor);
+    spmv.lap_stop();
+
+    comm.lap_start();
+    std::vector<TYPE_MATRIX_PAGERANK> prank_new;
+    gather_helper<TYPE_MATRIX_PAGERANK>(res, prank_new);
+    bcast_helper<TYPE_MATRIX_PAGERANK>(prank_new);
+    comm.lap_stop();
+        
+    other.lap_start();        
+    diff = cal_abs_diff_vec<TYPE_MATRIX_PAGERANK>(prank_new,prank);
+    prank = prank_new;
+    other.lap_stop();  
+
+    RLOG(TIME_RECORD_LOG_LEVEL)<<iter_index<<"\t";        
+    RLOG(TIME_RECORD_LOG_LEVEL)<<diff<<std::endl;
+  }
+
+  RLOG(TIME_RECORD_LOG_LEVEL)<<"****Converged or reached maximum iteration. Stopped.****"<<std::endl;
+
+  spmv.show_lap("spmv: ");
+  comm.show_lap("comm: ");
+  other.show_lap("other: ");
+}
+
+void pagerank_v1_helper_hyb(jds_crs_hybrid_local<TYPE_MATRIX_PAGERANK>& A,
+                            std::vector<TYPE_MATRIX_PAGERANK>& prank,
+                            double bias, double dfactor, double epsilon,
+                            size_t iter_max) {
+  double diff = epsilon + 1;
+  size_t iter_index = 0;
+
+  time_spent spmv(TIME_RECORD_LOG_LEVEL);
+  time_spent comm(TIME_RECORD_LOG_LEVEL);
+  time_spent other(TIME_RECORD_LOG_LEVEL);
+  
+  RLOG(TIME_RECORD_LOG_LEVEL)<<"iter_idx\t"<<"diff(abs)"<<std::endl;
+  while(diff > epsilon && iter_index < iter_max){
+    iter_index ++;
+
+    spmv.lap_start();
+    auto res = PRmat_hyb<TYPE_MATRIX_PAGERANK>(A, prank, bias, dfactor);
+    spmv.lap_stop();
+
+    comm.lap_start();
+    std::vector<TYPE_MATRIX_PAGERANK> prank_new;
+    gather_helper<TYPE_MATRIX_PAGERANK>(res, prank_new);
+    bcast_helper<TYPE_MATRIX_PAGERANK>(prank_new);
+    comm.lap_stop();
+        
+    other.lap_start();        
+    diff = cal_abs_diff_vec<TYPE_MATRIX_PAGERANK>(prank_new,prank);
+    prank = prank_new;
+    other.lap_stop();  
+
+    RLOG(TIME_RECORD_LOG_LEVEL)<<iter_index<<"\t";        
+    RLOG(TIME_RECORD_LOG_LEVEL)<<diff<<std::endl;
+  }
+
+  RLOG(TIME_RECORD_LOG_LEVEL)<<"****Converged or reached maximum iteration. Stopped.****"<<std::endl;
+
+  spmv.show_lap("spmv: ");
+  comm.show_lap("comm: ");
+  other.show_lap("other: ");
+}
 
 void graph::pagerank_v1(std::string matformat, double dfactor, double epsilon, size_t iter_max){ 
     //V1: prank_new = (1-df)*A*prank + df*V, V is unit vector 
+    t_all.lap_start();
+    time_spent t(TIME_RECORD_LOG_LEVEL);
   
-    double diff = 1000;
-    
     RLOG(TIME_RECORD_LOG_LEVEL)<<"Initializing PageRank..."<<std::endl;
     double bias = 1/(double)num_nodes;
     double prank_init = 1/(double)num_nodes;
-    this->prank.assign(num_nodes,prank_init);
-    
+    //this->prank.assign(num_nodes,prank_init);
+    prank.resize(num_nodes);
+    auto prankp = prank.data();
+    for(size_t i = 0; i < num_nodes; i++) prankp[i] = prank_init;
+    t.show("init: ");
 
     frovedis::jds_crs_hybrid<TYPE_MATRIX_PAGERANK> A_hyb;
-    frovedis::jds_matrix<TYPE_MATRIX_PAGERANK> A_jds;
-
     
     if(matformat == "HYB"){
         RLOG(TIME_RECORD_LOG_LEVEL)<<"Converting CRS Matrix to HYB...\n";    
         A_hyb = frovedis::jds_crs_hybrid<TYPE_MATRIX_PAGERANK>(A_pg);       
+        t.show("conversion to HYB: ");
     }
-    else if(matformat == "JDS"){
-        RLOG(TIME_RECORD_LOG_LEVEL)<<"Converting CRS Matrix to JDS...\n";    
-        A_jds = frovedis::jds_matrix<TYPE_MATRIX_PAGERANK>(A_pg);  
-    }
-    t_all.lap_start();
     RLOG(TIME_RECORD_LOG_LEVEL)<<"-------------------------"<<std::endl;
     RLOG(TIME_RECORD_LOG_LEVEL)<<"Damping factor= "<<dfactor<<std::endl;
     RLOG(TIME_RECORD_LOG_LEVEL)<<"Convergence Threshold= "<<epsilon<<std::endl;
@@ -1205,65 +1314,23 @@ void graph::pagerank_v1(std::string matformat, double dfactor, double epsilon, s
     RLOG(TIME_RECORD_LOG_LEVEL)<<"Computing PageRank(V1)..."<<std::endl;
     
 
-    t_comm.lap_start();
-    auto lb = frovedis::make_node_local_broadcast(bias); //broadcast B
-    auto ldf = frovedis::make_node_local_broadcast(dfactor); //broadcast dfactor
-    t_comm.lap_stop();
+    auto lb = frovedis::make_node_local_broadcast(bias);
+    auto ldf = frovedis::make_node_local_broadcast(dfactor);
+    auto leps = frovedis::make_node_local_broadcast(epsilon);
+    auto liter_max = frovedis::make_node_local_broadcast(iter_max);
+    auto lprank = frovedis::make_node_local_broadcast(prank);
     
-    RLOG(TIME_RECORD_LOG_LEVEL)<<"iter_idx\t"<<"diff(abs)"<<std::endl;
-    
-    size_t iter_index = 0;    
-    while(diff > epsilon && iter_index < iter_max){
-        iter_index ++; 
-
-        diff = 0;
-        
-        t_comm.lap_start();
-        auto lprank = frovedis::make_node_local_broadcast(prank);  //broadcast prank
-        t_comm.lap_stop();
-        
-        frovedis::node_local<std::vector<TYPE_MATRIX_PAGERANK>> prank_lres;
-        
-        t_compute_spmv.lap_start();
-        if(matformat == "CRS"){
-            prank_lres = A_pg.data.map(PRmat_crs<TYPE_MATRIX_PAGERANK>,lprank,lb,ldf);    //add damping factor, using only crs matrix
-        }
-        else if(matformat == "HYB"){
-            prank_lres = A_hyb.data.map(PRmat_hyb<TYPE_MATRIX_PAGERANK>,lprank,lb,ldf);   
-        }
-        t_compute_spmv.lap_stop();
-        
-        t_comm.lap_start();   
-        auto prank_new = prank_lres.moveto_dvector<TYPE_MATRIX_PAGERANK>().gather();
-        t_comm.lap_stop();
-        
-        t_compute_other.lap_start();        
-        diff = cal_abs_diff_vec<TYPE_MATRIX_PAGERANK>(prank_new,prank);
-        t_compute_other.lap_stop();  
-
-        
-        if(if_cout == true){
-            RLOG(TIME_RECORD_LOG_LEVEL)<<"absolute rank:"<<std::endl;
-            for(auto i: prank_new) RLOG(TIME_RECORD_LOG_LEVEL) << i << std::endl;   
-        }
-        
-        RLOG(TIME_RECORD_LOG_LEVEL)<<iter_index<<"\t";        
-        RLOG(TIME_RECORD_LOG_LEVEL)<<diff<<std::endl;
-        
-        prank = prank_new;
-
-        if(if_fout == true && fout.is_open()){
-            fout<<iter_index<<"\t";
-            for(auto i: rel_prank) fout << i << "\t";
-            fout<<diff;
-            fout<<std::endl;
-        }
+    if(matformat == "HYB") {
+      A_hyb.data.mapv(pagerank_v1_helper_hyb, lprank, lb, ldf, leps, liter_max);
+    } else {
+      A_pg.data.mapv(pagerank_v1_helper_crs, lprank, lb, ldf, leps, liter_max);
     }
-    RLOG(TIME_RECORD_LOG_LEVEL)<<"****Converged or reached maximum iteration. Stopped.****"<<std::endl;
+    prank = lprank.get(0);
+    t.show("pagerank: ");
     t_all.lap_stop();
+    t_all.show_lap("all: ");
     rel_prank = cal_rel_prank<TYPE_MATRIX_PAGERANK>(prank);    
     print_sort_prank<TYPE_MATRIX_PAGERANK>(prank);
-    print_exectime();
 }
 
 
@@ -1770,7 +1837,8 @@ void graph::prep_graph_crs(const std::string &filename_edge, bool if_direct){
 }
 
 
-void graph::prep_graph_crs_pagerank(const std::string &filename_edge){ 
+void graph::prep_graph_crs_pagerank(const std::string &filename_edge,
+                                    const std::string &output_file){ 
     //For pagerank graphs. Weight is not unity.
     //Prepare CRS graph from original file(SNAP web-graphs or Florida Sparse Matrix Collection, ignore lines with commentline_identifier)
     bool file_numeric = true;
@@ -1822,7 +1890,7 @@ void graph::prep_graph_crs_pagerank(const std::string &filename_edge){
         if (file_numeric == false) {
             from_idx = insert_mapping(from);
         } else {
-            from_idx = strtoull(from.c_str(), NULL, 10);
+          from_idx = strtoull(from.c_str(), NULL, 10) - 1; // 1-based to 0-based
         }
 
         to = raw_idx[1];
@@ -1835,7 +1903,7 @@ void graph::prep_graph_crs_pagerank(const std::string &filename_edge){
         if (file_numeric == false) {
             to_idx = insert_mapping(to);
         } else {
-            to_idx = strtoull(to.c_str(), NULL, 10);
+            to_idx = strtoull(to.c_str(), NULL, 10) - 1; // 1-based to 0-based
         }
         add_arc(from_idx, to_idx);
 
@@ -1856,7 +1924,7 @@ void graph::prep_graph_crs_pagerank(const std::string &filename_edge){
     
 
 //  Generating graph file in CRS format
-    graph_path = filename_edge + "_graph_in_crs";
+    graph_path = output_file;
     fgraph_out.open(graph_path,std::ios::out);
     if(fgraph_out.is_open()){
        RLOG(TIME_RECORD_LOG_LEVEL)<<"Generating graph file in CRS format to  "<<graph_path<<std::endl;
@@ -1871,7 +1939,7 @@ void graph::prep_graph_crs_pagerank(const std::string &filename_edge){
                     fgraph_out<<1/(double)num_outgoing[rows.at(i).at(j)]<<" ";
                    num_non_zero ++;         
             }
-            if(num_non_zero < rows.size()){
+            if(num_non_zero < rows.size() && i == 0){
                 fgraph_out<<rows.size()-1<<":0"; //make sure the CRS matrix keeps the number of row and coloumn the same
             }
             fgraph_out<<std::endl;
