@@ -9,6 +9,18 @@ void expose_frovedis_dvector_functions() {
   expose(count_distinct<float>);
   expose(count_distinct<double>);
   expose(count_distinct<std::string>);
+  expose(get_distinct_elements<int>);
+  expose(get_distinct_elements<long>);
+  expose(get_distinct_elements<float>);
+  expose(get_distinct_elements<double>);
+  expose(get_encoded_dvector<int>);
+  expose(get_encoded_dvector<long>);
+  expose(get_encoded_dvector<float>);
+  expose(get_encoded_dvector<double>);
+  expose(get_encoded_dvector_zero_based<int>);
+  expose(get_encoded_dvector_zero_based<long>);
+  expose(get_encoded_dvector_zero_based<float>);
+  expose(get_encoded_dvector_zero_based<double>);
   // --- frovedis dvector for labels ---
   expose((load_local_data<std::vector<DT1>>));
   expose(create_and_set_dvector<DT1>);
@@ -35,4 +47,28 @@ void expose_frovedis_dvector_functions() {
   expose(release_dvector<float>);
   expose(release_dvector<double>);
   expose(release_dvector<std::string>);
+  //expose frovedis vector create
+  expose(create_frovedis_vector<int>);
+  expose(create_frovedis_vector<long>);
+  expose(create_frovedis_vector<float>);
+  expose(create_frovedis_vector<double>);
+  expose(create_frovedis_vector<std::string>);
+  // expose frovedis vector save
+  expose(save_frovedis_vector<int>);
+  expose(save_frovedis_vector<long>);
+  expose(save_frovedis_vector<float>);
+  expose(save_frovedis_vector<double>);
+  //expose(save_frovedis_vector<std::string>); // not supported in frovedis
+  //expose frovedis vector load
+  expose(load_frovedis_vector<int>);
+  expose(load_frovedis_vector<long>);
+  expose(load_frovedis_vector<float>);
+  expose(load_frovedis_vector<double>);
+  //expose(load_frovedis_vector<std::string>); // not supported in frovedis
+  //expose frovedis vector release
+  expose((release_data<std::vector<int>>));    // FrovedisVector + LAPACK(IPIV)
+  expose((release_data<std::vector<long>>));   // FrovedisVector
+  expose((release_data<std::vector<float>>));  // FrovedisVector + SVAL/SVEC
+  expose((release_data<std::vector<double>>)); // FrovedisVector + SVAL/SVEC/EIGVAL
+  expose((release_data<std::vector<std::string>>));  // FrovedisVector
 }
