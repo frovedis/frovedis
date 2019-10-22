@@ -3,7 +3,7 @@
 from ..exrpc import rpclib
 from ..exrpc.server import FrovedisServer
 from .dtype import TypeUtil, DTYPE
-from ctypes import c_char_p
+from ctypes import c_char_p, c_int, c_long, c_float, c_double, POINTER
 import numpy as np
 
 
@@ -26,7 +26,8 @@ class FrovedisDvector:
                 raise TypeError(
                     "Unsupported input encountered: " + str(type(inp)))
             if dtype is None: dtype = self.__dtype
-            else: self.__dtype = dtype
+            else:
+                self.__dtype = dtype
             if self.__dtype is not None:
                 vec = np.asarray(inp, dtype=self.__dtype)
             else:
@@ -119,6 +120,92 @@ class FrovedisDvector:
     # def __del__(cls): # destructor
     #   if FrovedisServer.isUP(): cls.release()
 
+    def encode(self, src=None, target=None, need_logic=False):
+        if src is None and target is None:
+            return self.__encode_zero_based(need_logic)
+        else:
+            return self.__encode_as_needed(src, target, need_logic)
+
+    def __encode_zero_based(self, need_logic=False):
+        if self.__fdata:
+            (host, port) = FrovedisServer.getServerInstance()
+            proxy = rpclib.encode_frovedis_dvector_zero_based(host, port,
+                                                              self.get(),
+                                                              self.get_dtype())
+            excpt = rpclib.check_server_exception()
+            if excpt["status"]:
+                raise RuntimeError(excpt["info"])
+            ret = FrovedisDvector(dtype=self.__dtype)
+            ret.__fdata = proxy
+            ret.__size = self.__size
+            if need_logic:
+                src = np.asarray(self.get_unique_elements(), dtype=self.__dtype)
+                target = np.empty(src.size, dtype=self.__dtype)
+                for i in range(0, src.size): target[i] = i
+                logic = dict(zip(target, src))
+                return (ret, logic)
+            else:
+                return ret
+
+    def __encode_as_needed(self, src, target, need_logic=False):
+        if self.__fdata:
+            src = np.asarray(src, self.__dtype)
+            target = np.asarray(target, self.__dtype)
+            sz = src.size
+            if sz != target.size:
+                raise ValueError(\
+                    "encode: input src and target have different sizes!")
+            (host, port) = FrovedisServer.getServerInstance()
+            dt = self.get_dtype()
+            if dt == DTYPE.INT:
+                sptr = src.ctypes.data_as(POINTER(c_int))
+                tptr = target.ctypes.data_as(POINTER(c_int))
+                proxy = rpclib.encode_frovedis_int_dvector(host, port,
+                                                           self.get(),
+                                                           sptr, tptr, sz)
+            elif dt == DTYPE.LONG:
+                sptr = src.ctypes.data_as(POINTER(c_long))
+                tptr = target.ctypes.data_as(POINTER(c_long))
+                proxy = rpclib.encode_frovedis_long_dvector(host, port,
+                                                            self.get(),
+                                                            sptr, tptr, sz)
+            elif dt == DTYPE.FLOAT:
+                sptr = src.ctypes.data_as(POINTER(c_float))
+                tptr = target.ctypes.data_as(POINTER(c_float))
+                proxy = rpclib.encode_frovedis_float_dvector(host, port,
+                                                             self.get(),
+                                                             sptr, tptr, sz)
+            elif dt == DTYPE.DOUBLE:
+                sptr = src.ctypes.data_as(POINTER(c_double))
+                tptr = target.ctypes.data_as(POINTER(c_double))
+                proxy = rpclib.encode_frovedis_double_dvector(host, port,
+                                                              self.get(),
+                                                              sptr, tptr, sz)
+            else:
+                raise TypeError(\
+                "encode: currently supports int/long/float/double type only!")
+            excpt = rpclib.check_server_exception()
+            if excpt["status"]:
+                raise RuntimeError(excpt["info"])
+            ret = FrovedisDvector(dtype=self.__dtype)
+            ret.__fdata = proxy
+            ret.__size = self.__size
+            if need_logic:
+                logic = dict(zip(target, src))
+                return (ret, logic)
+            else:
+                return ret
+
+    def get_unique_elements(self):
+        if self.__fdata:
+            (host, port) = FrovedisServer.getServerInstance()
+            ret = rpclib.get_distinct_elements(host, \
+                    port, self.get(), self.get_dtype())
+            excpt = rpclib.check_server_exception()
+            if excpt["status"]:
+                raise RuntimeError(excpt["info"])
+            return ret
+
     @staticmethod
     def as_dvec(vec, dtype=None, retIsConverted=False):
         if isinstance(vec, FrovedisDvector):
@@ -128,7 +215,6 @@ class FrovedisDvector:
             ret = FrovedisDvector(vec, dtype=dtype)
             if retIsConverted: (ret, True)
             else: return ret
-
 
 class FrovedisIntDvector(FrovedisDvector):
     """A python Container handles integer type dvector"""
@@ -156,6 +242,7 @@ class FrovedisLongDvector(FrovedisDvector):
 
     @staticmethod
     def as_dvec(vec):
+        """as_dvec"""
         if isinstance(vec, FrovedisLongDvector):
             return vec
         else:
@@ -172,6 +259,7 @@ class FrovedisFloatDvector(FrovedisDvector):
 
     @staticmethod
     def as_dvec(vec):
+        """as_dvec"""
         if isinstance(vec, FrovedisFloatDvector):
             return vec
         else:
@@ -188,6 +276,7 @@ class FrovedisDoubleDvector(FrovedisDvector):
 
     @staticmethod
     def as_dvec(vec):
+        """as_dvec"""
         if isinstance(vec, FrovedisDoubleDvector):
             return vec
         else:
@@ -204,6 +293,7 @@ class FrovedisStringDvector(FrovedisDvector):
 
     @staticmethod
     def as_dvec(vec):
+        """as_dvec"""
         if isinstance(vec, FrovedisStringDvector):
             return vec
         else:

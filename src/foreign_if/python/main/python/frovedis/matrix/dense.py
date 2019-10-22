@@ -15,7 +15,7 @@ from .dtype import TypeUtil, DTYPE
 # e.g., FrovedisRowmajorMatrix => mtype: "R"
 #       FrovedisRowmajorMatrixLocal => mtype: "r" (not yet supported)
 
-class FrovedisDenseMatrix:
+class FrovedisDenseMatrix(object):
     """A python container for Frovedis server side dense matrices"""
 
     def __init__(self, mtype, mat=None, dtype=None):  # constructor
@@ -31,6 +31,7 @@ class FrovedisDenseMatrix:
             self.load(mat, dtype=dtype)
 
     def load(self, inp, dtype=None):
+        """load"""
         if isinstance(inp, dict):  # dummy_mat
             return self.load_dummy(inp)
         elif isinstance(inp, str):  # fname/dname
@@ -38,9 +39,10 @@ class FrovedisDenseMatrix:
         elif isinstance(inp, FrovedisDenseMatrix):  # copy cons
             return self.copy(inp)
         else:
-            return self.load_python_data(inp, dtype=dtype)  # any array-like object
+            return self.load_python_data(inp, dtype=dtype)#any array-like object
 
     def load_python_data(self, inp, dtype=None):
+        """load_python_data"""
         support = ['matrix', 'list', 'ndarray', 'tuple', 'DataFrame']
         if type(inp).__name__ not in support:
             raise TypeError("Unsupported input encountered: " + str(type(inp)))
@@ -53,6 +55,7 @@ class FrovedisDenseMatrix:
         return self.load_numpy_matrix(mat, dtype=dtype)
 
     def load_numpy_matrix(self, mat, dtype=None):
+        """load_numpy_matrix"""
         self.release()
         if dtype is None: dtype = self.__dtype
         else: self.__dtype = dtype
@@ -94,6 +97,7 @@ class FrovedisDenseMatrix:
         return self.load_dummy(dmat)
 
     def load_dummy(self, dmat):
+        """load_dummy"""
         self.release()
         try:
             self.__fdata = dmat['dptr']
@@ -104,6 +108,7 @@ class FrovedisDenseMatrix:
         return self
 
     def copy(self, mat):  # cls = mat
+        """copy"""
         self.release()
         if self.__dtype is None:
             self.__dtype = mat.__dtype
@@ -121,6 +126,7 @@ class FrovedisDenseMatrix:
             return self.load_dummy(dmat)
 
     def load_text(self, fname, dtype=None):
+        """load_text"""
         self.release()
         if dtype is None: dtype = self.__dtype
         else: self.__dtype = dtype
@@ -138,6 +144,7 @@ class FrovedisDenseMatrix:
         return self.load_dummy(dmat)
 
     def load_binary(self, fname, dtype=None):
+        """load_binary"""
         self.release()
         if dtype is None: dtype = self.__dtype
         else: self.__dtype = dtype
@@ -155,6 +162,7 @@ class FrovedisDenseMatrix:
         return self.load_dummy(dmat)
 
     def save(self, fname):
+        """save"""
         if self.__fdata is not None:
             (host, port) = FrovedisServer.getServerInstance()
             rpclib.save_frovedis_dense_matrix(host, port, self.get(),
@@ -166,6 +174,7 @@ class FrovedisDenseMatrix:
                 raise RuntimeError(excpt["info"])
 
     def save_binary(self, fname):
+        """save_binary"""
         if self.__fdata is not None:
             (host, port) = FrovedisServer.getServerInstance()
             rpclib.save_frovedis_dense_matrix(host, port, self.get(),
@@ -176,7 +185,21 @@ class FrovedisDenseMatrix:
             if excpt["status"]:
                 raise RuntimeError(excpt["info"])
 
+    # developer's API
+    def set_none(self):
+        """ this api sets the metadata to None. it does not 
+            release the actual matrix
+            in server side. this API should 
+            call when actual matrix is moved to
+            another matrix, e.g., a FrovedisDenseMatrix is moved as 
+            FrovedisBlockclicMatrix and in order to avoid memory release of
+            source FrovedisDenseMatrix, its metadata can be set to None """
+        self.__fdata = None
+        self.__num_row = None
+        self.__num_col = None
+ 
     def release(self):
+        """release"""
         if self.__fdata is not None:
             (host, port) = FrovedisServer.getServerInstance()
             rpclib.release_frovedis_dense_matrix(host, port, self.get(),
@@ -194,6 +217,7 @@ class FrovedisDenseMatrix:
             self.release()
 
     def debug_print(self):
+        """debug_print"""
         if self.__fdata is not None:
             (host, port) = FrovedisServer.getServerInstance()
             rpclib.show_frovedis_dense_matrix(host, port, self.get(),
@@ -203,38 +227,157 @@ class FrovedisDenseMatrix:
             if excpt["status"]:
                 raise RuntimeError(excpt["info"])
 
-    def to_numpy_matrix(self):
+    def __get_empty_array(self, dtype=None):
+        """__get_empty_array"""
         if self.__fdata is not None:
-            data_size = self.numRows() * self.numCols()
-            data_type = self.get_dtype()
+            my_shape = [self.numRows(), self.numCols()]
+            if dtype is None:
+                arr = np.empty(my_shape, dtype=self.__dtype)
+            else:
+                arr = np.empty(my_shape, dtype=dtype) # user requested dtype
+            return arr
+
+    def to_numpy_matrix(self, dtype=None):
+        """to_numpy_matrix"""
+        if self.__fdata is not None:
+            arr = self.__get_empty_array(dtype=dtype)
+            mat = np.asmatrix(arr) # no-copy
+            self.to_numpy_matrix_inplace(mat)
+            return mat
+
+    def to_numpy_array(self, dtype=None):
+        """to_numpy_array"""
+        if self.__fdata is not None:
+            arr = self.__get_empty_array(dtype=dtype)
+            self.to_numpy_array_inplace(arr)
+            return arr
+
+    def to_numpy_matrix_inplace(self, mat):
+        """ non-retuning function to overwrite input numpy matrix with 
+            converted matrix. self.size needs to be matched with mat.size 
+            self.__dtype needs to be matched with mat.dtype """
+        if type(mat).__name__ != 'matrix':
+            raise TypeError(\
+            "to_numpy_matrix_inplace: input is not a numpy matrix!")
+        if self.__fdata is not None:
+            self.__to_numpy_data_inplace(mat, is_ndarray=False)
+
+    def to_numpy_array_inplace(self, arr):
+        """ non-retuning function to overwrite input numpy array with 
+            converted matrix. self.size needs to be matched with mat.size 
+            self.__dtype needs to be matched with mat.dtype """
+        if type(arr).__name__ != 'ndarray':
+            raise TypeError(
+            "to_numpy_array_inplace: input is not a numpy ndarray!")
+        if self.__fdata is not None:
+            self.__to_numpy_data_inplace(arr, is_ndarray=True)
+
+    def __to_numpy_data_inplace(self, data, is_ndarray=True):
+        """ non-retuning function to overwrite input numpy matrix/ndarray with 
+            converted matrix. self.size needs to be matched with data.size 
+            self.__dtype needs to be matched with data.dtype """
+        if self.__fdata is not None:
+            data = np.asmatrix(data) # doesn't copy. it is needed 
+                                     #to get flattened array A1
+            if data.size != self.size:
+                raise ValueError(\
+                "input matrix/ndarray size is different than self size!")
             (host, port) = FrovedisServer.getServerInstance()
-            arr = np.zeros(data_size, dtype=self.__dtype)
-            if data_type == DTYPE.DOUBLE:
-                rpclib.get_double_rowmajor_array(host, port, self.get(),
+            arr = data.A1  #getting the flatten array from numpy matrix
+            data_size = self.size
+            inp_type = self.get_dtype()
+            out_type = TypeUtil.to_id_dtype(data.dtype)
+            # rpc functions overwrite the arr data in C-level
+            if inp_type == DTYPE.DOUBLE and out_type == DTYPE.INT:
+                rpclib.get_double_rowmajor_array_as_int_array(
+                                                 host, port, self.get(),
                                                  self.__mtype.encode('ascii'),
                                                  arr, data_size)
-            elif data_type == DTYPE.FLOAT:
-                rpclib.get_float_rowmajor_array(host, port, self.get(),
+            elif inp_type == DTYPE.DOUBLE and out_type == DTYPE.LONG:
+                rpclib.get_double_rowmajor_array_as_long_array(
+                                                 host, port, self.get(),
+                                                 self.__mtype.encode('ascii'),
+                                                 arr, data_size)
+            elif inp_type == DTYPE.DOUBLE and out_type == DTYPE.FLOAT:
+                rpclib.get_double_rowmajor_array_as_float_array(
+                                                 host, port, self.get(),
+                                                 self.__mtype.encode('ascii'),
+                                                 arr, data_size)
+            elif inp_type == DTYPE.DOUBLE and out_type == DTYPE.DOUBLE:
+                rpclib.get_double_rowmajor_array_as_double_array(
+                                                 host, port, self.get(),
+                                                 self.__mtype.encode('ascii'),
+                                                 arr, data_size)
+            elif inp_type == DTYPE.FLOAT and out_type == DTYPE.INT:
+                rpclib.get_float_rowmajor_array_as_int_array(
+                                                host, port, self.get(),
                                                 self.__mtype.encode('ascii'),
                                                 arr, data_size)
-            elif data_type == DTYPE.LONG:
-                rpclib.get_long_rowmajor_array(host, port, self.get(),
+            elif inp_type == DTYPE.FLOAT and out_type == DTYPE.LONG:
+                rpclib.get_float_rowmajor_array_as_long_array(
+                                                host, port, self.get(),
+                                                self.__mtype.encode('ascii'),
+                                                arr, data_size)
+            elif inp_type == DTYPE.FLOAT and out_type == DTYPE.FLOAT:
+                rpclib.get_float_rowmajor_array_as_float_array(
+                                                host, port, self.get(),
+                                                self.__mtype.encode('ascii'),
+                                                arr, data_size)
+            elif inp_type == DTYPE.FLOAT and out_type == DTYPE.DOUBLE:
+                rpclib.get_float_rowmajor_array_as_double_array(
+                                                host, port, self.get(),
+                                                self.__mtype.encode('ascii'),
+                                                arr, data_size)
+            elif inp_type == DTYPE.LONG and out_type == DTYPE.INT:
+                rpclib.get_long_rowmajor_array_as_int_array(
+                                               host, port, self.get(),
                                                self.__mtype.encode('ascii'),
                                                arr, data_size)
-            elif data_type == DTYPE.INT:
-                rpclib.get_int_rowmajor_array(host, port, self.get(),
+            elif inp_type == DTYPE.LONG and out_type == DTYPE.LONG:
+                rpclib.get_long_rowmajor_array_as_long_array(
+                                               host, port, self.get(),
+                                               self.__mtype.encode('ascii'),
+                                               arr, data_size)
+            elif inp_type == DTYPE.LONG and out_type == DTYPE.FLOAT:
+                rpclib.get_long_rowmajor_array_as_float_array(
+                                               host, port, self.get(),
+                                               self.__mtype.encode('ascii'),
+                                               arr, data_size)
+            elif inp_type == DTYPE.LONG and out_type == DTYPE.DOUBLE:
+                rpclib.get_long_rowmajor_array_as_double_array(
+                                               host, port, self.get(),
+                                               self.__mtype.encode('ascii'),
+                                               arr, data_size)
+            elif inp_type == DTYPE.INT and out_type == DTYPE.INT:
+                rpclib.get_int_rowmajor_array_as_int_array(
+                                              host, port, self.get(),
+                                              self.__mtype.encode('ascii'),
+                                              arr, data_size)
+            elif inp_type == DTYPE.INT and out_type == DTYPE.LONG:
+                rpclib.get_int_rowmajor_array_as_long_array(
+                                              host, port, self.get(),
+                                              self.__mtype.encode('ascii'),
+                                              arr, data_size)
+            elif inp_type == DTYPE.INT and out_type == DTYPE.FLOAT:
+                rpclib.get_int_rowmajor_array_as_float_array(
+                                              host, port, self.get(),
+                                              self.__mtype.encode('ascii'),
+                                              arr, data_size)
+            elif inp_type == DTYPE.INT and out_type == DTYPE.DOUBLE:
+                rpclib.get_int_rowmajor_array_as_double_array(
+                                              host, port, self.get(),
                                               self.__mtype.encode('ascii'),
                                               arr, data_size)
             else:
-                raise TypeError("Unsupported input type: " + data_type)
+                raise TypeError("to_numpy_matrix/array: \
+                Supported dtypes are int/long/float/double only!")
             excpt = rpclib.check_server_exception()
             if excpt["status"]:
                 raise RuntimeError(excpt["info"])
-            mat = np.asmatrix(arr)
-            mat = mat.reshape(self.numRows(), self.numCols())
-            return mat
+            if is_ndarray: data = np.asarray(data)
 
     def to_frovedis_rowmatrix(self):
+        """to_frovedis_rowmatrix"""
         if self.__mtype == 'R':
             return self
         if self.__fdata is not None:
@@ -252,10 +395,12 @@ class FrovedisDenseMatrix:
             raise ValueError("Empty input matrix.")
 
     def get_rowmajor_view(self):
+        """get_rowmajor_view"""
         if self.__fdata is not None:
             self.to_frovedis_rowmatrix().debug_print()
 
     def transpose(self):
+        """transpose"""
         if self.__fdata is not None:
             (host, port) = FrovedisServer.getServerInstance()
             dmat = rpclib.transpose_frovedis_dense_matrix(host, port,
@@ -272,20 +417,45 @@ class FrovedisDenseMatrix:
             raise ValueError("Empty input matrix.")
 
     def get(self):
+        """get"""
         return self.__fdata
 
     def numRows(self):
+        """numRows"""
         return self.__num_row
 
     def numCols(self):
         return self.__num_col
 
     def get_dtype(self):
+        """get_dtype"""
         return TypeUtil.to_id_dtype(self.__dtype)
 
     def get_mtype(self):
+        """get_mtype"""
         return self.__mtype
 
+    @property
+    def shape(self):
+        """shape getter"""
+        return (self.numRows(), self.numCols())
+
+    @shape.setter
+    def shape(self, s):
+        """shape setter"""
+        raise AttributeError(\
+        "attribute 'shape' of FrovedisDenseMatrix objects is not writable")
+
+    @property
+    def size(self):
+        """size getter"""
+        return self.numRows() * self.numCols()
+
+    @size.setter    
+    def size(self, s):
+        """size setter"""
+        raise AttributeError(\
+        "attribute 'size' of FrovedisDenseMatrix objects is not writable")
 
 class FrovedisRowmajorMatrix(FrovedisDenseMatrix):
     """A python container for Frovedis server side rowmajor_matrix"""
@@ -297,13 +467,18 @@ class FrovedisRowmajorMatrix(FrovedisDenseMatrix):
     # FrovedisDenseMatrix inter-conversion is not yet supported (TODO)
     @staticmethod
     def asRMM(mat, dtype=None, retIsConverted=False):
+        """asRMM"""
         if isinstance(mat, FrovedisRowmajorMatrix):
             if retIsConverted: return (mat, False)
             else: return mat
         elif (isinstance(mat, FrovedisDenseMatrix) and
               (mat.get_mtype() == 'R')):
-            if retIsConverted: return (mat, False)
-            else: return mat
+            dummy = {'dptr': mat.get(), 'nrow': mat.numRows(), \
+                     'ncol': mat.numCols()}
+            dt = TypeUtil.to_numpy_dtype(mat.get_dtype())
+            rm_mat = FrovedisRowmajorMatrix(mat=dummy, dtype=dt)
+            if retIsConverted: return (rm_mat, False)
+            else: return rm_mat
         else:
             ret = FrovedisRowmajorMatrix(dtype=dtype).load_python_data(mat)
             if retIsConverted: return (ret, True)
@@ -320,13 +495,18 @@ class FrovedisColmajorMatrix(FrovedisDenseMatrix):
     # FrovedisDenseMatrix inter-conversion is not yet supported (TODO)
     @staticmethod
     def asCMM(mat, dtype=None, retIsConverted=False):
+        """asCMM"""
         if isinstance(mat, FrovedisColmajorMatrix):
             if retIsConverted: return (mat, False)
             else: return mat
         elif (isinstance(mat, FrovedisDenseMatrix) and
               (mat.get_mtype() == 'C')):
-            if retIsConverted: return (mat, False)
-            else: return mat
+            dummy = {'dptr': mat.get(), 'nrow': mat.numRows(), \
+                     'ncol': mat.numCols()}
+            dt = TypeUtil.to_numpy_dtype(mat.get_dtype())
+            cm_mat = FrovedisColmajorMatrix(mat=dummy, dtype=dt)
+            if retIsConverted: return (cm_mat, False)
+            else: return cm_mat
         else:
             ret = FrovedisColmajorMatrix(dtype=dtype).load_python_data(mat)
             if retIsConverted: return (ret, True)
@@ -344,23 +524,29 @@ class FrovedisBlockcyclicMatrix(FrovedisDenseMatrix):
                 "Unsupported dtype for blockcyclic matrix creation!")
         FrovedisDenseMatrix.__init__(self, 'B', mat, dtype)
 
-    def __add__(self, mat):  # returns( cls + mat)
-        (host, port) = FrovedisServer.getServerInstance()
-        # tmp = cls + tmp(=mat)
+    def __add__(self, mat):  # returns(self + mat)
+        # tmp = self + tmp(=mat)
         tmp = FrovedisBlockcyclicMatrix(mat=mat)  # copy
+        if(self.get_dtype() != tmp.get_dtype()):
+            raise TypeError("add: input matrix types are not same!")
         # geadd performs B = al*A + be*B, thus tmp = B and tmp = A + tmp
-        rpclib.pgeadd(host, port, self.get(), tmp.get(), False, 1.0, 1.0)
+        (host, port) = FrovedisServer.getServerInstance()
+        rpclib.pgeadd(host, port, self.get(), tmp.get(), 
+                      False, 1.0, 1.0, self.get_dtype())
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
             raise RuntimeError(excpt["info"])
         return tmp
 
     def __sub__(self, mat):  # returns (cls - mat)
-        (host, port) = FrovedisServer.getServerInstance()
         # tmp = cls - tmp(=mat)
         tmp = FrovedisBlockcyclicMatrix(mat=mat)  # copy
+        if(self.get_dtype() != tmp.get_dtype()):
+            raise TypeError("sub: input matrix types are not same!")
         # geadd performs B = al*A + be*B, thus tmp = B and tmp = A - tmp
-        rpclib.pgeadd(host, port, self.get(), tmp.get(), False, 1.0, -1.0)
+        (host, port) = FrovedisServer.getServerInstance()
+        rpclib.pgeadd(host, port, self.get(), tmp.get(), 
+                      False, 1.0, -1.0, self.get_dtype())
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
             raise RuntimeError(excpt["info"])
@@ -368,9 +554,11 @@ class FrovedisBlockcyclicMatrix(FrovedisDenseMatrix):
 
     def __mul__(self, mat):  # returns (cls * mat)
         tmp = FrovedisBlockcyclicMatrix.asBCM(mat)
+        if(self.get_dtype() != tmp.get_dtype()):
+            raise TypeError("mul: input matrix types are not same!")
         (host, port) = FrovedisServer.getServerInstance()
         dmat = rpclib.pgemm(host, port, self.get(), tmp.get(), False, False,
-                            1.0, 0.0)
+                            1.0, 0.0, self.get_dtype())
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
             raise RuntimeError(excpt["info"])
@@ -381,27 +569,34 @@ class FrovedisBlockcyclicMatrix(FrovedisDenseMatrix):
         return self.transpose()
 
     def inv(self):  # returns inverse of self
+        """inv"""
         ret = FrovedisBlockcyclicMatrix(mat=self)  # ret = cls
         (host, port) = FrovedisServer.getServerInstance()
-        mat_rf = GetrfResult(rpclib.pgetrf(host, port, ret.get()))
-        rpclib.pgetri(host, port, ret.get(), mat_rf.ipiv())  # ret = inv(ret)
+        mat_rf = GetrfResult(rpclib.pgetrf(host, port, ret.get(), 
+                                           ret.get_dtype()))
+        rpclib.pgetri(host, port, ret.get(), mat_rf.ipiv(), 
+                      ret.get_dtype())  # ret = inv(ret)
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
             raise RuntimeError(excpt["info"])
-        mat_rf.release()
         return ret
 
     # 'mat' can be either FrovedisBlockcyclicMatrix or any array-like object
     # FrovedisDenseMatrix inter-conversion is not yet supported (TODO)
     @staticmethod
     def asBCM(mat, dtype=None, retIsConverted=False):
+        """asBCM"""
         if isinstance(mat, FrovedisBlockcyclicMatrix):
             if retIsConverted: return (mat, False)
             else: return mat
         elif (isinstance(mat, FrovedisDenseMatrix) and
               (mat.get_mtype() == 'B')):
-            if retIsConverted: return (mat, False)
-            else: return mat
+            dummy = {'dptr': mat.get(), 'nrow': mat.numRows(), \
+                     'ncol': mat.numCols()}
+            dt = TypeUtil.to_numpy_dtype(mat.get_dtype())
+            bc_mat = FrovedisBlockcyclicMatrix(mat=dummy, dtype=dt)
+            if retIsConverted: return (bc_mat, False)
+            else: return bc_mat
         else:
             ret = FrovedisBlockcyclicMatrix(dtype=dtype).load_python_data(mat)
             if retIsConverted: return (ret, True)

@@ -1,9 +1,10 @@
+"""ml_data.py"""
 #!/usr/bin/env python
 
 import numpy as np
 from scipy.sparse import issparse
 from ..exrpc.server import FrovedisServer
-from ..exrpc.rpclib import distinct_count
+from ..exrpc.rpclib import distinct_count, check_server_exception
 from .dvector import FrovedisDvector
 from .crs import FrovedisCRSMatrix
 from .dense import FrovedisColmajorMatrix
@@ -26,12 +27,17 @@ class FrovedisLabeledPoint:
 
         (host, port) = FrovedisServer.getServerInstance()
         if isinstance(lbl, FrovedisDvector):
-            self.unique_label_count = distinct_count(host, port, lbl.get(),
-                                                     lbl.get_dtype())
             self.__lbl_movable = False
+            #self.unique_label_count = distinct_count(host, port, lbl.get(),
+            #                                         lbl.get_dtype())
+            self.unique_elements = np.asarray(lbl.get_unique_elements())
+            excpt = check_server_exception()
+            if excpt["status"]:
+                raise RuntimeError(excpt["info"])
         else:
-            self.unique_label_count = len(np.unique(lbl))
             self.__lbl_movable = True
+            #self.unique_label_count = len(np.unique(lbl))
+            self.unique_elements = np.unique(lbl)
 
         if issparse(mat) or isinstance(mat, FrovedisCRSMatrix):
             self.__isDense = False
@@ -39,38 +45,38 @@ class FrovedisLabeledPoint:
             self.__isDense = True
 
         if self.__isDense:
-           if self.__mat_movable:
-               mat = np.asmatrix(mat)
-               if(mat.dtype != np.float32 and mat.dtype != np.float64):
-                   # default double type (in case input matrix is integer type)
-                   target_dtype = np.float64
-               else:
-                   target_dtype = mat.dtype
-               self.X = FrovedisColmajorMatrix.asCMM(mat, dtype=target_dtype)
-           else:
-               self.X = mat # already created colmajor matrix
-           self.__dtype = self.X.get_dtype()
-           self.__itype = 0  # not meaningful for dense matrix
+            if self.__mat_movable:
+                mat = np.asmatrix(mat)
+                if mat.dtype != np.float32 and mat.dtype != np.float64:
+                    # default double type (in case input matrix is integer type)
+                    target_dtype = np.float64
+                else:
+                    target_dtype = mat.dtype
+                self.X = FrovedisColmajorMatrix.asCMM(mat, dtype=target_dtype)
+            else:
+                self.X = mat # already created colmajor matrix
+            self.__dtype = self.X.get_dtype()
+            self.__itype = 0  # not meaningful for dense matrix
         else: # sparse case
-           if self.__mat_movable:
-               mat = mat.tocsr()
-               if(mat.dtype != np.float32 and mat.dtype != np.float64):
-                   # default double type (in case input matrix is integer type)
-                   target_dtype = np.float64
-               else:
-                   target_dtype = mat.dtype
-               self.X = FrovedisCRSMatrix.asCRS(mat, dtype=target_dtype)
-           else:
-               self.X = mat # already created crs matrix
-           self.__dtype = self.X.get_dtype()
-           self.__itype = self.X.get_itype()
+            if self.__mat_movable:
+                mat = mat.tocsr()
+                if mat.dtype != np.float32 and mat.dtype != np.float64:
+                    # default double type (in case input matrix is integer type)
+                    target_dtype = np.float64
+                else:
+                    target_dtype = mat.dtype
+                self.X = FrovedisCRSMatrix.asCRS(mat, dtype=target_dtype)
+            else:
+                self.X = mat # already created crs matrix
+            self.__dtype = self.X.get_dtype()
+            self.__itype = self.X.get_itype()
 
         self.__num_row = self.X.numRows()
         self.__num_col = self.X.numCols()
 
-        # if lbl is ndarary or any python tuple/list etc., 
+        # if lbl is ndarary or any python tuple/list etc.,
         # it would be converted as xdtype data, while creating frovedis dvector
-        # to support sklearn style integer input for labels 
+        # to support sklearn style integer input for labels
         # (mainly in case of classification problems)
         xdtype = TypeUtil.to_numpy_dtype(self.__dtype)
         self.y = FrovedisDvector.as_dvec(lbl, dtype=xdtype)
@@ -96,38 +102,55 @@ class FrovedisLabeledPoint:
                              "points: ", msg)
 
     def release(self):
+        """release"""
         if self.__lbl_movable:
             self.y.release()
         if self.__mat_movable:
             self.X.release()
 
+    def is_movable(self):
+        """is_movable"""
+        return (self.__lbl_movable, self.__mat_movable)
+
     def debug_print(self):
+        """debug_print"""
         print("label: ")
         self.y.debug_print()
         print("point: ")
         self.X.debug_print()
-        print("dtype: ",TypeUtil.to_numpy_dtype(self.get_dtype())) 
+        print("dtype: ", TypeUtil.to_numpy_dtype(self.get_dtype()))
 
     def get(self):
+        """get"""
         return self.X, self.y
 
     def get_dtype(self):
+        """get_dtype"""
         return self.__dtype
 
     def get_itype(self):
+        """get_itype"""
         return self.__itype
 
     def numRows(self):
+        """numRows"""
         return self.__num_row
 
     def numCols(self):
+        """numCols"""
         return self.__num_col
 
     def is_dense(self):
+        """is_dense"""
         return self.__isDense
 
+    def get_distinct_labels(self):
+        """get_distinct_labels"""
+        return self.unique_elements
+
     def get_distinct_label_count(self):
-        return self.unique_label_count
+        """get_distinct_label_count"""
+        return self.unique_elements.size
 
     def __del__(self):
         if FrovedisServer.isUP():
@@ -138,7 +161,7 @@ class FrovedisFeatureData:
     """A python container for frovedis side data for unsupervised
     ML algorithms"""
 
-    def __init__(self, mat, is_dense=None, dense_kind=None):
+    def __init__(self, mat, is_dense=None, dense_kind=None, dtype=None):
         # decision making whether the converted data would be movable
         # upon destruction
         if isinstance(mat, (FrovedisCRSMatrix, FrovedisRowmajorMatrix,
@@ -174,17 +197,23 @@ class FrovedisFeatureData:
 
             # load dense data
             if self.__mat_movable:
-                mat = np.asmatrix(mat)
-                if(mat.dtype != np.float32 and mat.dtype != np.float64):
+                if dtype is None:
+                    mat = np.asmatrix(mat)
+                else:
+                    mat = np.asmatrix(mat, dtype=dtype) # user given dtype
+                                                        #can not be int kind
+                if mat.dtype != np.float32 and mat.dtype != np.float64:
                     target_dtype = np.float64 #(default double, for integer mat)
                 else:
                     target_dtype = mat.dtype
                 if dense_kind == 'colmajor':
-                    self.X = FrovedisColmajorMatrix.asCMM(mat, dtype=target_dtype)
+                    self.X = FrovedisColmajorMatrix.asCMM(mat, \
+                        dtype=target_dtype)
                 elif dense_kind == 'rowmajor':
-                    self.X = FrovedisRowmajorMatrix.asRMM(mat, dtype=target_dtype)
+                    self.X = FrovedisRowmajorMatrix.asRMM(mat, \
+                        dtype=target_dtype)
                 else:
-                    raise ValueError(
+                    raise ValueError(\
                         "Supported dense kinds are either rowmajor or colmajor")
             else:
                 self.X = mat # already frovedis supported matrix
@@ -193,7 +222,7 @@ class FrovedisFeatureData:
         else:
             if self.__mat_movable:
                 mat = mat.tocsr()
-                if(mat.dtype != np.float32 and mat.dtype != np.float64):
+                if mat.dtype != np.float32 and mat.dtype != np.float64:
                     target_dtype = np.float64 #(default double, for integer mat)
                 else:
                     target_dtype = mat.dtype
@@ -216,28 +245,40 @@ class FrovedisFeatureData:
                 " either int or long!")
 
     def release(self):
+        """release"""
         if self.__mat_movable:
             self.X.release()
 
+    def is_movable(self):
+        """is_movable"""
+        return self.__mat_movable
+
     def debug_print(self):
+        """debug_print"""
         self.X.debug_print()
 
     def get(self):
+        """get"""
         return self.X
 
     def get_dtype(self):
+        """get_dtype"""
         return self.__dtype
 
     def get_itype(self):
+        """get_itype"""
         return self.__itype
 
     def numRows(self):
+        """numRows"""
         return self.__num_row
 
     def numCols(self):
+        """numCols"""
         return self.__num_col
 
     def is_dense(self):
+        """is_dense"""
         return self.__isDense
 
     def __del__(self):
