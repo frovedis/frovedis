@@ -558,11 +558,22 @@ rowmajor_matrix_local<T>
 make_rowmajor_matrix_local_loadbinary(const std::string& input) {
   std::string valfile = input + "/val";
   std::string numsfile = input + "/nums";
+  std::string typefile = input + "/type";
   std::ifstream numstr;
   numstr.exceptions(std::ifstream::failbit | std::ifstream::badbit);
   numstr.open(numsfile.c_str());
   size_t num_row, num_col;
   numstr >> num_row >> num_col;
+  struct stat sb;
+  if(stat(typefile.c_str(), &sb) == 0) { // no file/directory
+    std::ifstream typestr;
+    typestr.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+    typestr.open(typefile.c_str());
+    std::string valtype; 
+    typestr >> valtype;
+    confirm_given_type_against_expected<T>(valtype, __func__, "val");
+  }
+  else RLOG(INFO) << "no type file is present: skipping the typecheck for binary data!\n";
   rowmajor_matrix_local<T> ret;
   ret.set_local_num(num_row, num_col);
   auto vec = make_dvector_loadbinary<T>(valfile);
@@ -585,10 +596,15 @@ void rowmajor_matrix_local<T>::savebinary(const std::string& dir) {
   }
   std::string valfile = dir + "/val";
   std::string numsfile = dir + "/nums";
+  std::string typefile = dir + "/type";
   std::ofstream numstr;
   numstr.exceptions(std::ofstream::failbit | std::ofstream::badbit);
   numstr.open(numsfile.c_str());
   numstr << local_num_row << "\n" << local_num_col << std::endl;
+  std::ofstream typestr;
+  typestr.exceptions(std::ofstream::failbit | std::ofstream::badbit);
+  typestr.open(typefile.c_str());
+  typestr << get_type_name<T>() << std::endl;
   auto tmp = make_dvector_scatter(val);
   tmp.savebinary(valfile);
 }
@@ -726,11 +742,22 @@ template <class T>
 rowmajor_matrix<T> make_rowmajor_matrix_loadbinary(const std::string& input) {
   std::string valfile = input + "/val";
   std::string numsfile = input + "/nums";
+  std::string typefile = input + "/type";
   std::ifstream numstr;
   numstr.exceptions(std::ifstream::failbit | std::ifstream::badbit);
   numstr.open(numsfile.c_str());
   size_t num_row, num_col;
   numstr >> num_row >> num_col;
+  struct stat sb;
+  if(stat(typefile.c_str(), &sb) == 0) { // no file/directory
+    std::ifstream typestr;
+    typestr.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+    typestr.open(typefile.c_str());
+    std::string valtype;
+    typestr >> valtype;
+    confirm_given_type_against_expected<T>(valtype, __func__, "val");
+  }
+  else RLOG(INFO) << "no type file is present: skipping the typecheck for binary data!\n";
   size_t each_num_row = ceil_div(num_row, static_cast<size_t>(get_nodesize()));
   std::vector<size_t> rows(get_nodesize());
   size_t left = num_row;
@@ -777,10 +804,15 @@ void rowmajor_matrix<T>::savebinary(const std::string& dir) {
   }
   std::string valfile = dir + "/val";
   std::string numsfile = dir + "/nums";
+  std::string typefile = dir + "/type";
   std::ofstream numstr;
   numstr.exceptions(std::ofstream::failbit | std::ofstream::badbit);
   numstr.open(numsfile.c_str());
   numstr << num_row << "\n" << num_col << std::endl;
+  std::ofstream typestr;
+  typestr.exceptions(std::ofstream::failbit | std::ofstream::badbit);
+  typestr.open(typefile.c_str());
+  typestr << get_type_name<T>() << std::endl;
   auto tmp = data.map(rowmajor_matrix_local_extractval<T>).
     template moveto_dvector<T>();
   tmp.savebinary(valfile);
