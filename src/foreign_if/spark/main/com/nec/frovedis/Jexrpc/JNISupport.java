@@ -18,7 +18,12 @@ public class JNISupport {
     // even if user program aborts abnormally
     Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
         public void run() {
+          try {  
             FrovedisServer.shut_down();
+          }
+          catch(java.rmi.ServerException e) {
+            System.out.println(e.getMessage());
+          }
         }
     }, "Shutdown-thread"));
   }
