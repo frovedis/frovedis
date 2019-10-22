@@ -333,6 +333,10 @@ MODEL softmax_parallelizer::parallelize(crs_matrix<T,I,O>& data,
   return trainedModel;
 }
 
+template <class T>
+rowmajor_matrix_local<T>
+to_trans_rowmajor(rowmajor_matrix_local<T>& m) { return m.transpose(); }
+
 template <class T, class MODEL, class REGULARIZER>
 MODEL softmax_parallelizer::parallelize(colmajor_matrix<T>& data,
                                     dvector<T>& label,
@@ -367,8 +371,11 @@ MODEL softmax_parallelizer::parallelize(colmajor_matrix<T>& data,
   auto nloc_label = label.viewas_node_local();
   t0.show("label resize & nloc: ");
  
-  do_train<T,colmajor_matrix_local<T>, MODEL,REGULARIZER>
-         (data.data, nloc_label, trainedModel,
+  auto rmat = data.to_rowmajor();
+  auto t_rmat_data = rmat.data.map(to_trans_rowmajor<T>);
+  do_train<T,rowmajor_matrix_local<T>,rowmajor_matrix_local<T>,
+           MODEL,REGULARIZER>
+         (rmat.data, t_rmat_data, nloc_label, trainedModel,
           numIteration, alpha, regParam, isIntercept, convergenceTol);
 
   return trainedModel;
