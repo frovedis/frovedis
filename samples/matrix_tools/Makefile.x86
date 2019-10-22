@@ -33,5 +33,8 @@ coo_to_crs_matrix: coo_to_crs_matrix.o
 libsvm_to_crs_matrix_and_vector: libsvm_to_crs_matrix_and_vector.o
 	${MPICXX} ${CXXFLAGS} -o libsvm_to_crs_matrix_and_vector libsvm_to_crs_matrix_and_vector.o ${LIBS}
 
+mtx_to_crs_matrix: mtx_to_crs_matrix.o
+	${MPICXX} ${CXXFLAGS} -o mtx_to_crs_matrix mtx_to_crs_matrix.o ${LIBS}
+
 convert_endian: convert_endian.o
 	${MPICXX} ${CXXFLAGS} -o convert_endian convert_endian.o ${LIBS}
