@@ -1,0 +1,10 @@
+TARGETS := fp_growth
+include ../Makefile.in.x86
+include ../Makefile.common
+
+TO_INSTALL := fp_growth.cc
+DIR := fp_growth
+ARCH := x86
+
+fp_growth: fp_growth.o
+	${MPICXX} ${CXXFLAGS} -o fp_growth fp_growth.o ${LIBS}

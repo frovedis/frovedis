@@ -1,0 +1,10 @@
+TARGETS := fp_growth
+include ../Makefile.in.ve
+include ../Makefile.common
+
+TO_INSTALL := fp_growth.cc
+DIR := fp_growth
+ARCH := ve
+
+fp_growth: fp_growth.o
+	${LINK} -o fp_growth fp_growth.o ${LIBS}
