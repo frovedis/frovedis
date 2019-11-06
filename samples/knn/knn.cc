@@ -1,36 +1,90 @@
 #include <frovedis.hpp>
 #include <frovedis/ml/neighbors/knn.hpp>
+#include <boost/program_options.hpp>
 
-using namespace frovedis ;
+using namespace boost;
+using namespace frovedis;
 
-int main (int argc, char** argv) {
-  use_frovedis use(argc, argv);
+int main(int argc, char** argv) {
+  use_frovedis use(argc,argv);
+  using namespace boost::program_options;
 
-  try {
-    int k = 4;
-    std::string metric = "euclidean";
-    bool need_distance = false;
+  options_description opt("option");
+  opt.add_options()
+    ("help,h", "print help")
+    ("input,i", value<std::string>(), "input dense matrix")
+    ("neighbors,k", value<int>(), "number of required neighbors (default: 2)")
+    ("metric,m", value<std::string>(), "metric for distance calculation (default: euclidean)")
+    ("algorithm,a", value<std::string>(), "algorithm for knn (default: brute)")
+    ("radius,r", value<float>(), "radius for finding nearest neighbors (default: 1.0)")
+    ("need_distance,d", value<int>(), "need distance as output (1/0) (default: 1)")
+    ("chunk_size,s", value<float>(), "chunk size in MB for controlling runtime memory requirement (default: 1.0)");
+    
+  variables_map argmap;
+  store(command_line_parser(argc,argv).options(opt).allow_unregistered().
+        run(), argmap);
+  notify(argmap);
 
-    // will be modified with program options
-    if (argc > 1) metric = argv[1];
-    if (argc > 2) need_distance = std::stoi(argv[2]) == 1;
-
-    auto tr_mat = make_rowmajor_matrix_load<double>("train_data");
-    //auto ts_mat = make_rowmajor_matrix_local_load<double>("test_data");
+  std::string input;
+  int k = 2;
+  float radius = 1.0;
+  float chunk_size = 1.0;
+  std::string metric = "euclidean";
+  std::string algorithm = "brute";
+  bool need_distance = true;
   
-    time_spent calc_knn(INFO);
-    calc_knn.lap_start();
-    //auto ret = knn(tr_mat, ts_mat, k, metric, need_distance);
-    auto ret = knn(tr_mat, k, metric, need_distance); // find knn on train data itself
-    calc_knn.lap_stop();
-    calc_knn.show_lap("total knn computation: ");
-
-    ret.indices.save("indices");
-    if (need_distance) ret.distances.save("distances");
-  }
-  catch(std::exception& e) {
-    std::cout << "exception caught: " << e.what() << "\n";
+  if(argmap.count("help")){
+    std::cerr << opt << std::endl;
+    exit(1);
   }
 
+  if(argmap.count("input")){
+    input = argmap["input"].as<std::string>();
+  } else {
+    std::cerr << "input is not specified" << std::endl;
+    std::cerr << opt << std::endl;
+    exit(1);
+  }
+  auto data = make_rowmajor_matrix_load<double>(input);
+  
+  if(argmap.count("neighbors")){
+    k = argmap["neighbors"].as<int>();
+  }
+  
+  if(argmap.count("metric")){
+    metric = argmap["metric"].as<std::string>();
+  }
+
+  if(argmap.count("algorithm")){
+    algorithm = argmap["algorithm"].as<std::string>();
+  }
+
+  if(argmap.count("need_distance")){
+    need_distance = argmap["need_distance"].as<int>() == 1;
+  }
+  
+  if(argmap.count("chunk_size")){
+    chunk_size = argmap["chunk_size"].as<float>();
+  }
+
+  if(argmap.count("radius")){
+    radius = argmap["radius"].as<float>();
+  }
+
+  time_spent calc_knn(INFO);
+  calc_knn.lap_start();
+  nearest_neighbors<double> obj(k, radius, algorithm, metric, chunk_size);
+  obj.fit(data);
+  auto model = obj.kneighbors(data, k, need_distance);
+  calc_knn.lap_stop();
+  calc_knn.show_lap("total knn time: ");
+
+  //std::string mode = "connectivity";
+  //auto graph = model.create_graph(mode);
+
+  model.indices.save("indices");
+  if (need_distance) model.distances.save("distances");
+ 
   return 0;
 }
+
