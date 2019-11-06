@@ -119,7 +119,7 @@ get_double_array.argtypes = [c_char_p, c_int, c_long,
 
 save_frovedis_vector_client = LIB.save_frovedis_vector_client
 save_frovedis_vector_client.argtypes = [c_char_p, c_int, # host, port
-                                        c_int,  # data pointer
+                                        c_long,  # data pointer
                                         c_char_p, #path
                                         c_bool, #is_binary
                                         c_short #data type
