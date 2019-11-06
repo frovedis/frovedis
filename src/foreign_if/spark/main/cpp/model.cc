@@ -51,7 +51,7 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_releaseFrovedisMo
       case DTM:    exrpc_oneway(fm_node, release_model<DTM1>, mid); break;
       case FPM:    exrpc_oneway(fm_node, release_model<FPM1>, mid); break;
       case FPR:    exrpc_oneway(fm_node, release_model<FPR1>, mid); break;
-      case SEM:    exrpc_oneway(fm_node, release_model<SCM1>, mid); break;
+      case SEM:    exrpc_oneway(fm_node, release_model<SEM1>, mid); break;
       case SCM:    exrpc_oneway(fm_node, release_model<SCM1>, mid); break;
       case ACM:    exrpc_oneway(fm_node, release_model<ACM1>, mid); break;
       case FMM:    exrpc_oneway(fm_node, release_model<FMM1>, mid); break;
@@ -80,7 +80,7 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_saveFrovedisModel
       case DTM:    exrpc_oneway(fm_node,save_model<DTM1>,mid,fs_path); break;
       case FPM:    exrpc_oneway(fm_node,save_model<FPM1>,mid,fs_path); break;
       case FPR:    exrpc_oneway(fm_node,save_model<FPR1>,mid,fs_path); break;
-      case SEM:    exrpc_oneway(fm_node,save_model<SCM1>,mid,fs_path); break;
+      case SEM:    exrpc_oneway(fm_node,save_model<SEM1>,mid,fs_path); break;
       case SCM:    exrpc_oneway(fm_node,save_model<SCM1>,mid,fs_path); break;
       case ACM:    exrpc_oneway(fm_node,save_model<ACM1>,mid,fs_path); break;
       case FMM:    exrpc_oneway(fm_node,save_fmm<DT1>,mid,fs_path); break;
