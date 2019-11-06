@@ -345,7 +345,7 @@ class ARPACK:
         (host, port) = FrovedisServer.getServerInstance()
         res = rpclib.compute_truncated_svd(host, port, X.get(),
                                            k, dtype, itype, dense)
-        excpt = check_server_exception()
+        excpt = rpclib.check_server_exception()
         if excpt["status"]:
             raise RuntimeError(excpt["info"])
         return svdResult(res, TypeUtil.to_numpy_dtype(dtype))
