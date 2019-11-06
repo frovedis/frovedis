@@ -37,7 +37,7 @@ int main(int argc, char** argv) {
     ("input,i", value<std::string>(), "input dense matrix")
     ("model,m", value<std::string>(), "output model")
     ("label,o", value<std::string>(), "output label")
-    ("nclus,nc", value<int>(), "number of clusters(default is 2)")
+    ("nclus,n", value<int>(), "number of clusters(default is 2)")
     ("linkage,l", value<std::string>() , "linkage type")
     ("float,f", "for float type input")
     ("double,d","for double type input(default input type is double)")
