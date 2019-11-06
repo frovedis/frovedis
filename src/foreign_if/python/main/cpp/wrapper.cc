@@ -644,7 +644,7 @@ extern "C" {
   }
 
   //frovedis vector save
-  void save_frovedis_vector_client(const char* host, int port, int dptr,
+  void save_frovedis_vector_client(const char* host, int port, long dptr,
                                    const char* path, bool isBinary, short dtype) {
     if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
     exrpc_node fm_node(host,port);
