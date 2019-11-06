@@ -126,7 +126,7 @@ row_mat.release()
 col_mat.release()
 crs_mat.release()
 crs_mat2.release()
-info.save("info")
+info.save("./out/info")
 info.release()
 
 
