@@ -86,7 +86,7 @@ extern "C" {
         switch(mkind) {
           case LRM:    exrpc_oneway(fm_node,release_model<LRM1>,mid); break;
           case MLR:    exrpc_oneway(fm_node,release_model<MLR1>,mid); break;
-          case SVM:    exrpc_oneway(fm_node,release_model<SVM2>,mid); break;
+          case SVM:    exrpc_oneway(fm_node,release_model<SVM1>,mid); break;
           case LNRM:   exrpc_oneway(fm_node,release_model<LNRM1>,mid);break;
           case MFM:    exrpc_oneway(fm_node,release_model<MFM1>,mid); break;
           case DTM:    exrpc_oneway(fm_node,release_model<DTM1>,mid); break;
