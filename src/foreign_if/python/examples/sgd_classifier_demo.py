@@ -23,7 +23,6 @@ clf.fit(X, Y)
 
 print(clf.predict([[-0.8, -1]]))
 
-clf.save("sgd_classifier1")
-
+clf.save("./out/sgd_classifier1")
 
 FrovedisServer.shut_down()
