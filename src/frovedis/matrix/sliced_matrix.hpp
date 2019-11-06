@@ -41,8 +41,7 @@ struct sliced_colmajor_matrix_local {
   }
 
   bool is_valid() const {
-    if(ldm < 0 || ldm < sliced_num_row ||
-       sliced_num_row < 0 || sliced_num_col < 0)
+    if(ldm < sliced_num_row)
       return false;
     else
       return true;
@@ -90,9 +89,8 @@ make_sliced_colmajor_matrix_local(const sliced_colmajor_matrix_local<T>& inMat,
   if(!inMat.is_valid()) 
     REPORT_ERROR(USER_ERROR,"Invalid input matrix!!\n");
 
-  if(start_row_index < 0 || start_row_index >= inMat.sliced_num_row ||
-     start_col_index < 0 || start_col_index >= inMat.sliced_num_col ||
-     num_row <= 0 || num_col <= 0 ||
+  if(start_row_index >= inMat.sliced_num_row ||
+     start_col_index >= inMat.sliced_num_col ||
      num_row > inMat.sliced_num_row-start_row_index ||
      num_col > inMat.sliced_num_col-start_col_index) 
     REPORT_ERROR(USER_ERROR,"Slicing not possible!!\n");
@@ -259,9 +257,8 @@ make_sliced_blockcyclic_matrix(const sliced_blockcyclic_matrix<T>& inMat,
   auto& mat2 = const_cast<sliced_blockcyclic_matrix<T>&> (inMat);
   size_t sliced_num_row = mat2.data.map(get_sliced_num_row<T>).get(0);
   size_t sliced_num_col = mat2.data.map(get_sliced_num_col<T>).get(0);
-  if(start_row_index < 0 || start_row_index >= sliced_num_row ||
-     start_col_index < 0 || start_col_index >= sliced_num_col ||
-     num_row <= 0 || num_col <= 0 ||
+  if(start_row_index >= sliced_num_row ||
+     start_col_index >= sliced_num_col ||
      num_row > sliced_num_row-start_row_index  ||
      num_col > sliced_num_col-start_col_index) 
      REPORT_ERROR(USER_ERROR,"Slicing not possible!!\n");
