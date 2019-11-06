@@ -7,4 +7,9 @@ DIR := knn
 ARCH := ve
 
 knn: knn.o
+	#${LINK} -o knn -ftrace knn.o ${LIBS}
 	${LINK} -o knn knn.o ${LIBS}
+
+knn.o:	knn.cc
+	#${MPICXX} -c ${CXXFLAGS} -ftrace -report-all $< -o $@
+	${MPICXX} -c ${CXXFLAGS} -report-all $< -o $@
