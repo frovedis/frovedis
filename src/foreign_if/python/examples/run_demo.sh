@@ -3,7 +3,7 @@
 export PYTHONPATH=../main/python:$PYTHONPATH
 export LD_LIBRARY_PATH=../main/lib:$LD_LIBRARY_PATH
 
-COMMAND="mpirun -np 2 ../../server/frovedis_server"
+COMMAND="mpirun -np 1 ../../server/frovedis_server"
 #COMMAND="mpirun -np 1 $FROVEDIS_SERVER" 
 
 if [ ! -d out ]; then
@@ -14,7 +14,7 @@ fi
 python crs_matrix_demo.py "$COMMAND"
 python dense_matrix_demo.py "$COMMAND"
 python df_demo.py "$COMMAND"
-python linalg.py "$COMMAND"
+python linalg_demo.py "$COMMAND"
 
 # --- ML Data Creation Demo ---
 python frovedis_labeled_point_demo.py "$COMMAND"
