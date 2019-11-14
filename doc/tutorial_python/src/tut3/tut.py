@@ -7,8 +7,6 @@ from frovedis.mllib.linear_model import LogisticRegression # frovedis
 #from sklearn.linear_model import LogisticRegression # sklearn
 
 X, y = load_breast_cancer(return_X_y=True)
-y = y.astype(np.float64)
-y = 2 * y - 1  # frovedis only supports labels of {-1, 1}
 
 C = 10.0
 max_iter=10000
