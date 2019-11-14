@@ -98,40 +98,38 @@ public:
     std::vector<TYPE_MATRIX>& get_nodes_dist() { return nodes_dist; }
     std::vector<size_t>& get_nodes_pred() { return nodes_pred; }
 
+    frovedis::crs_matrix<TYPE_MATRIX> A;             // generic matrix 
+    frovedis::crs_matrix<TYPE_MATRIX_PAGERANK> A_pg; // pagerank matrix
+    std::vector<size_t> num_outgoing; // number of outgoing links per column
+    size_t num_nodes;    
+
 private:
 
-    
     std::string graph_path;    
-    frovedis::crs_matrix<TYPE_MATRIX> A;
+    //frovedis::crs_matrix<TYPE_MATRIX> A;
     std::vector<TYPE_BITMAP> nodes_ifVisited; //bitmap for each node to accelerate searching
     std::vector<TYPE_BITMAP> nodes_ifNext;
     std::vector<TYPE_BITMAP> nodes_ifCurrent;
     std::vector<size_t> v_local_num_row;
     std::vector<size_t> mat_offset;
-  
-    
-    
     
     sparse_vector<TYPE_BITMAP> nodes_Current_sp;
     sparse_vector<TYPE_BITMAP> nodes_Next_sp;
     
     std::vector<TYPE_IDXV> nodes_Next_idx;
     std::vector<TYPE_IDXV> nodes_Current_idx;
-//    sparse_vector<type_BitMap> nodes_ifVisited_sp;
+    //sparse_vector<type_BitMap> nodes_ifVisited_sp;
     
     size_t source_nodeID; //Note that the graph file we adopt is from 1. Node 0 is dummy and isolated
     std::vector<size_t> nodes_in_which_cc; //For each node, stores the lowest nodeID of the cc containg such node 
-//    std::vector<long long> nodes_dist; //For each node, stores the distance from the source node (shortest path)
+    //std::vector<long long> nodes_dist; //For each node, stores the distance from the source node (shortest path)
     
-
     size_t current_level;
-    size_t num_nodes;
+    //size_t num_nodes;
     size_t num_cc;  //number of connected components
     std::vector<size_t> num_nodes_in_each_cc; //num of nodes in each cc;
     size_t hyb_threshold;
     size_t num_nodes_in_cc; //number of nodes in each cc;
-
-
     
     bool if_fout;
     bool if_cout;
@@ -140,7 +138,7 @@ private:
     std::ofstream fgraph_out; // generated graph file output path; 
     std::ofstream fout_exectime;
     
-    std::vector<size_t> num_outgoing; // number of outgoing links per column
+    //std::vector<size_t> num_outgoing; // number of outgoing links per column
     std::vector< std::vector<size_t> > rows; // the rows of the hyperlink matrix
     std::map<std::string, size_t> nodes_to_idx; // mapping from string node IDs to numeric
     std::map<size_t, std::string> idx_to_nodes; // mapping from numeric node IDs to string
@@ -153,9 +151,8 @@ private:
     //pagerank
     std::vector<TYPE_MATRIX_PAGERANK> rel_prank; //relative rank vector
     std::vector<TYPE_MATRIX_PAGERANK> prank;  //rank vector
-    frovedis::crs_matrix<TYPE_MATRIX_PAGERANK> A_pg;
+    //frovedis::crs_matrix<TYPE_MATRIX_PAGERANK> A_pg;
     TYPE_MATRIX_PAGERANK* prankp;    
-
 
     void _load_pagerank(const std::string&, bool binary);
     void _load_cc(const std::string&, bool binary);
