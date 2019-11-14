@@ -28,6 +28,11 @@ class M_KIND(object):
     SEM = 13
     SPARSE_CONV_INFO = 14
     MLR = 15
+    W2V = 16
+    DBSCAN = 17
+    KNN = 18
+    KNC = 19
+    KNR = 20
 
 class ModelID(object):
     """A python container for generating model IDs for ML"""
@@ -70,11 +75,11 @@ class GLM(object):
         (host, port) = FrovedisServer.getServerInstance()
         len_l = X.numRows()
         if mdtype == DTYPE.FLOAT:
-            ret = np.zeros(len_l, dtype=np.float32)
+            ret = np.empty(len_l, dtype=np.float32)
             rpclib.parallel_float_glm_predict(host, port, mid, mkind, \
                 X.get(), ret, len_l, prob, itype, dense)
         elif mdtype == DTYPE.DOUBLE:
-            ret = np.zeros(len_l, dtype=np.float64)
+            ret = np.empty(len_l, dtype=np.float64)
             rpclib.parallel_double_glm_predict(host, port, mid, mkind, \
                 X.get(), ret, len_l, prob, itype, dense)
         else:
