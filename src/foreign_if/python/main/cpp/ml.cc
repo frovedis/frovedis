@@ -638,7 +638,37 @@ extern "C" {
     }
   }
 
-  // --- (10) Matrix Factorization using ALS ---
+  // --- (10) DBSCAN ---
+  void dbscan_train(const char* host, int port, long xptr, double eps,
+                    int min_pts, int* ret, long len, int vb, int mid, 
+                    short dtype, short itype, bool dense) {
+    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
+    exrpc_node fm_node(host,port);
+    auto f_xptr = (exrpc_ptr_t) xptr;
+    std::vector<int> pred;
+    try {
+      if(dense) {
+        switch(dtype) {
+          case FLOAT:
+            pred = exrpc_async(fm_node,(frovedis_dbscan<DT2,R_MAT2>),f_xptr,eps,min_pts,vb,mid).get();
+            break;
+          case DOUBLE:
+            pred = exrpc_async(fm_node,(frovedis_dbscan<DT1,R_MAT1>),f_xptr,eps,min_pts,vb,mid).get();
+            break;
+          default: REPORT_ERROR(USER_ERROR, "Unsupported dtype of input dense data for training!\n");
+        }
+      }
+      else REPORT_ERROR(USER_ERROR, "Frovedis doesn't support input sparse data for DBSCAN!\n");
+      auto sz = pred.size();
+      checkAssumption(len == sz);
+      for(size_t i=0; i<sz; ++i) ret[i] = pred[i];
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+  }
+
+  // --- (11) Matrix Factorization using ALS ---
   void als_train(const char* host, int port, long dptr, int rank,
                  int iter, double al, double rprm, long seed,
                  int vb, int mid, short dtype, short itype) {
@@ -670,7 +700,7 @@ extern "C" {
     }
   }
 
-  // --- (11) Naive Bayes ---
+  // --- (12) Naive Bayes ---
   void nb_trainer(const char* host, int port, long xptr,
                  long yptr, double alpha, int mid,
                  const char* algo, int verbose, 
@@ -719,7 +749,7 @@ extern "C" {
     }
   }
 
-  // --- (12) Factorization Machine ---
+  // --- (13) Factorization Machine ---
   void fm_trainer(const char* host, int port, long xptr,
                   long yptr, double std_dev, int iter,
                   double init_learn_rate, char* optimizer, bool dim1,
@@ -769,7 +799,7 @@ extern "C" {
     }
   }
 
-  // --- (13) Decision Tree ---
+  // --- (14) Decision Tree ---
   void dt_trainer(const char* host, int port, long xptr,
                   long yptr, char* algo, char* impurity,
                   int max_depth, int num_classes, int max_bins,
@@ -829,7 +859,7 @@ extern "C" {
     }
   }
 
-  // --- (14) FP Growth ---
+  // --- (15) FP Growth ---
   void fpgrowth_trainer(const char* host, int port, long fdata, 
                         int mid, double minSupport, int verbose) {
     if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
@@ -858,7 +888,7 @@ extern "C" {
     }
   }
 
-  // --- (15) Word2Vector ---
+  // --- (16) Word2Vector ---
   void w2v_build_vocab_and_dump(const char* text, const char* encode,
                                 const char* vocab, const char* count,
                                 int minCount) {
@@ -927,4 +957,110 @@ extern "C" {
       set_status(true, e.what());
     }
   }
+
+  // --- (17) K-Nearest Neighbor (KNN) ---
+  void knn_fit(const char* host, int port, long xptr, int k,
+               float radius, const char* algorithm, const char* metric,
+               float chunk_size, int vb, int mid, 
+               short dtype, short itype, bool dense) {
+    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
+    exrpc_node fm_node(host,port);
+    auto f_xptr = (exrpc_ptr_t) xptr;
+    std::string algorithm_ = algorithm;
+    std::string metric_ = metric;
+    try {
+      if(dense) {
+        switch(dtype) {
+          case FLOAT: 
+            exrpc_oneway(fm_node,(frovedis_knn<DT2,R_MAT2>), f_xptr, k, radius,
+                         algorithm_, metric_, chunk_size, vb, mid);
+            break;
+          case DOUBLE: 
+            exrpc_oneway(fm_node,(frovedis_knn<DT1,R_MAT1>), f_xptr, k, radius,
+                         algorithm_, metric_, chunk_size, vb, mid);
+            break;
+          default: REPORT_ERROR(USER_ERROR, "Unsupported dtype of input dense data for training!\n");
+        }
+      }
+      else{
+        REPORT_ERROR(USER_ERROR, "frovedis Nearest Neighbors currently supports only dense data. \n");
+      } 
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+  }
+
+  //knc - knn classifier
+  void knc_fit(const char* host, int port, long xptr, long yptr, int k,
+               const char* algorithm, const char* metric,
+               float chunk_size, int vb, int mid, 
+               short dtype, short itype, bool dense) {
+    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
+    exrpc_node fm_node(host,port);
+    auto f_xptr = (exrpc_ptr_t) xptr;
+    auto f_yptr = (exrpc_ptr_t) yptr;
+    auto f_dptr = frovedis_mem_pair(f_xptr,f_yptr);
+
+    std::string algorithm_ = algorithm;
+    std::string metric_ = metric;
+    try {
+      if(dense) {
+        switch(dtype) {
+          case FLOAT: 
+            exrpc_oneway(fm_node,(frovedis_knc<DT2,R_MAT2>), f_dptr, k,
+                         algorithm_, metric_, chunk_size, vb, mid);
+            break;
+          case DOUBLE: 
+            exrpc_oneway(fm_node,(frovedis_knc<DT1,R_MAT1>), f_dptr, k,
+                         algorithm_, metric_, chunk_size, vb, mid);
+            break;
+          default: REPORT_ERROR(USER_ERROR, "Unsupported dtype of input dense data for training!\n");
+        }
+      }
+      else{
+        REPORT_ERROR(USER_ERROR, "frovedis Nearest Neighbors currently supports only dense data. \n");
+      } 
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+  }
+
+  // knr - knn regressor
+  void knr_fit(const char* host, int port, long xptr, long yptr, int k,
+               const char* algorithm, const char* metric,
+               float chunk_size, int vb, int mid, 
+               short dtype, short itype, bool dense) {
+    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
+    exrpc_node fm_node(host,port);
+    auto f_xptr = (exrpc_ptr_t) xptr;
+    auto f_yptr = (exrpc_ptr_t) yptr;
+    auto f_dptr = frovedis_mem_pair(f_xptr,f_yptr);
+
+    std::string algorithm_ = algorithm;
+    std::string metric_ = metric;
+    try {
+      if(dense) {
+        switch(dtype) {
+          case FLOAT: 
+            exrpc_oneway(fm_node,(frovedis_knr<DT2,R_MAT2>), f_dptr, k,
+                         algorithm_, metric_, chunk_size, vb, mid);
+            break;
+          case DOUBLE: 
+            exrpc_oneway(fm_node,(frovedis_knr<DT1,R_MAT1>), f_dptr, k,
+                         algorithm_, metric_, chunk_size, vb, mid);
+            break;
+          default: REPORT_ERROR(USER_ERROR, "Unsupported dtype of input dense data for training!\n");
+        }
+      }
+      else{
+        REPORT_ERROR(USER_ERROR, "frovedis Nearest Neighbors currently supports only dense data. \n");
+      } 
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+  }
+
 }
