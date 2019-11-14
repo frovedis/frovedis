@@ -101,4 +101,6 @@ void expose_frovedis_sparse_matrix_functions() {
   expose(save_matrix<S_MAT35>);
   expose(save_matrix<S_MAT44>);
   expose(save_matrix<S_MAT45>);
+  expose((get_global_data<S_MAT1,S_LMAT1>));
+  expose((copy_matrix<S_MAT1,S_LMAT1>)); 
 }
