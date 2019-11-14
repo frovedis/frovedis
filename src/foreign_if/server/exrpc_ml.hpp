@@ -33,6 +33,9 @@
 #include "frovedis/ml/fpm/fp_growth.hpp"
 #include "frovedis/dataframe.hpp"
 #include "frovedis/dataframe/dftable_to_dvector.hpp"
+#include "frovedis/ml/clustering/dbscan.hpp"
+#include "frovedis/ml/neighbors/knn_unsupervised.hpp"
+#include "frovedis/ml/neighbors/knn_supervised.hpp"
 
 #include "../exrpc/exrpc_expose.hpp"
 #include "frovedis_mem_pair.hpp"
@@ -112,6 +115,8 @@ void frovedis_lr_sgd(frovedis_mem_pair& mp, int& numIter, double& stepSize,
   }
   frovedis::set_loglevel(old_level);
 }
+
+
 
 template <class T, class MATRIX>
 void frovedis_lr_lbfgs(frovedis_mem_pair& mp, int& numIter, double& stepSize, 
@@ -407,6 +412,73 @@ void frovedis_kmeans(exrpc_ptr_t& data_ptr, int& k, int& numIter, long& seed,
   handle_trained_model<rowmajor_matrix_local<T>>(mid, KMEANS, m);
 }
 
+// knn - nearest neighbors (NN)
+template <class T, class MATRIX>
+void frovedis_knn(exrpc_ptr_t& data_ptr, int& k, 
+                  float& radius,
+                  std::string& algorithm, 
+                  std::string& metric, 
+                  float& chunk_size,
+                  int& verbose, 
+                  int& mid) {
+  register_for_train(mid);   // mark model 'mid' as "under training"
+  MATRIX& mat = *reinterpret_cast<MATRIX*>(data_ptr);  // training input data holder
+  auto old_level = frovedis::get_loglevel();
+  if (verbose == 1) frovedis::set_loglevel(frovedis::DEBUG);
+  else if (verbose == 2) frovedis::set_loglevel(frovedis::TRACE);
+
+  nearest_neighbors<T> obj(k, radius, algorithm, metric, chunk_size);
+  obj.fit(mat);
+  frovedis::set_loglevel(old_level);
+  handle_trained_model<nearest_neighbors<T>>(mid, KNN , obj);
+}
+
+// knc - knn classifier
+template <class T, class MATRIX>
+void frovedis_knc(frovedis_mem_pair& mp, int& k, 
+                  std::string& algorithm, 
+                  std::string& metric, 
+                  float& chunk_size,
+                  int& verbose, 
+                  int& mid) {
+  register_for_train(mid);   // mark model 'mid' as "under training"
+  MATRIX& mat = *reinterpret_cast<MATRIX*>(mp.first());
+  dvector<T> lbl = *reinterpret_cast<dvector<T>*>(mp.second());
+
+  auto old_level = frovedis::get_loglevel();
+  if (verbose == 1) frovedis::set_loglevel(frovedis::DEBUG);
+  else if (verbose == 2) frovedis::set_loglevel(frovedis::TRACE);
+
+  kneighbors_classifier<T> obj(k, algorithm, metric, chunk_size);
+  obj.fit(mat, lbl);
+
+  frovedis::set_loglevel(old_level);
+  handle_trained_model<kneighbors_classifier<T>>(mid, KNC , obj);
+}
+
+// knr - knn regressor
+template <class T, class MATRIX>
+void frovedis_knr(frovedis_mem_pair& mp, int& k,
+                  std::string& algorithm, 
+                  std::string& metric, 
+                  float& chunk_size,
+                  int& verbose, 
+                  int& mid) {
+  register_for_train(mid);   // mark model 'mid' as "under training"
+  MATRIX& mat = *reinterpret_cast<MATRIX*>(mp.first());
+  dvector<T> lbl = *reinterpret_cast<dvector<T>*>(mp.second()); // copying
+
+  auto old_level = frovedis::get_loglevel();
+  if (verbose == 1) frovedis::set_loglevel(frovedis::DEBUG);
+  else if (verbose == 2) frovedis::set_loglevel(frovedis::TRACE);
+
+  kneighbors_regressor<T> obj(k, algorithm, metric, chunk_size);
+  obj.fit(mat, lbl);
+
+  frovedis::set_loglevel(old_level);
+  handle_trained_model<kneighbors_regressor<T>>(mid, KNR , obj);
+}
+
 // Agglomerative Clustering 
 // fit-predict
 template <class T, class MATRIX>
@@ -444,6 +516,25 @@ void frovedis_aca2(exrpc_ptr_t& data_ptr, int& mid,
   if (isMovableInput)  mat.clear();
   frovedis::set_loglevel(old_level);
   handle_trained_model<rowmajor_matrix_local<T>>(mid,ACM,model);
+}
+
+// DBSCAN fit-predict
+template <class T, class MATRIX>
+std::vector<int>
+frovedis_dbscan(exrpc_ptr_t& data_ptr,
+                double& eps, int& min_pts,
+                int& verbose, int& mid) {
+  register_for_train(mid);   // mark model 'mid' as "under training"
+  MATRIX& mat = *reinterpret_cast<MATRIX*>(data_ptr);  // training input data holder
+  auto old_level = frovedis::get_loglevel();
+  if (verbose == 1) frovedis::set_loglevel(frovedis::DEBUG);
+  else if (verbose == 2) frovedis::set_loglevel(frovedis::TRACE);
+  auto dbm = dbscan(eps, min_pts);
+  dbm.fit(mat);
+  auto label = dbm.labels();
+  frovedis::set_loglevel(old_level);
+  handle_trained_model<dbscan>(mid,DBSCAN,dbm);
+  return label;
 }
 
 template <class T, class MATRIX>
