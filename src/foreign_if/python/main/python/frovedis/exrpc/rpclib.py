@@ -865,6 +865,22 @@ get_scm_affinity_matrix = LIB.get_scm_aff_matrix
 get_scm_affinity_matrix.argtypes = [c_char_p, c_int, c_int, c_short]
 get_scm_affinity_matrix.restype = py_object
 
+#DBSCAN 
+dbscan_train = LIB.dbscan_train
+dbscan_train.argtypes = [c_char_p, #host
+                         c_int, #port
+                         c_long,#data
+                         c_double, #eps
+                         c_int, #min_pts
+                         ndpointer(c_int, ndim=1, flags="C_CONTIGUOUS"),#labels
+                         c_long, #labels array length
+                         c_int, #verbose
+                         c_int, #mid
+                         c_short, #dtype
+                         c_short, #itype
+                         c_bool #dense
+                        ]
+
 # kmeans predict returns int always:
 parallel_kmeans_predict = LIB.parallel_kmeans_predict
 parallel_kmeans_predict.argtypes = [c_char_p, c_int, c_int,
@@ -1216,6 +1232,208 @@ compute_pca.argtypes = [ c_char_p, #host
                          c_bool #movable 
                        ]
 compute_pca.restype = py_object
+
+# knn - Nearest Neighbors
+knn_fit = LIB.knn_fit
+knn_fit.argtypes = [  c_char_p, #host
+                      c_int,  #port
+                      c_long, #data
+                      c_int, #k
+                      c_float, #radius
+                      c_char_p, #algorithm
+                      c_char_p, # metric
+                      c_float, #chunk_size
+                      c_int, #vb
+                      c_int, #mid
+                      c_short, #dtype
+                      c_short, #itype
+                      c_bool #dense
+                    ]
+
+knc_fit = LIB.knc_fit
+knc_fit.argtypes = [  c_char_p, #host
+                      c_int,  #port
+                      c_long, #data - mat
+                      c_long, #data - labels
+                      c_int, #k
+                      c_char_p, #algorithm
+                      c_char_p, # metric
+                      c_float, #chunk_size
+                      c_int, #vb
+                      c_int, #mid
+                      c_short, #dtype
+                      c_short, #itype
+                      c_bool #dense
+                    ]
+
+knr_fit = LIB.knr_fit
+knr_fit.argtypes = [  c_char_p, #host
+                      c_int,  #port
+                      c_long, #data - mat
+                      c_long, #data - labels
+                      c_int, #k
+                      c_char_p, #algorithm
+                      c_char_p, # metric
+                      c_float, #chunk_size
+                      c_int, #vb
+                      c_int, #mid
+                      c_short, #dtype
+                      c_short, #itype
+                      c_bool #dense
+                    ]
+
+knc_kneighbors = LIB.knc_kneighbors
+knc_kneighbors.argtypes = [c_char_p, #host
+                           c_int,  #port
+                           c_long, #data
+                           c_int, #k
+                           c_int, #mid
+                           c_bool, #need distance,
+                           c_short #dtype
+                          ]
+knc_kneighbors.restype = py_object
+
+knr_kneighbors = LIB.knr_kneighbors
+knr_kneighbors.argtypes = [ c_char_p, #host
+                           c_int,  #port
+                           c_long, #data
+                           c_int, #k
+                           c_int, #mid
+                           c_bool, #need distance,
+                           c_short #dtype
+                          ]
+knr_kneighbors.restype = py_object
+
+knc_kneighbors_graph = LIB.knc_kneighbors_graph
+knc_kneighbors_graph.argtypes = [ c_char_p, #host
+                                 c_int,  #port
+                                 c_long, #data
+                                 c_int, #k
+                                 c_int, #mid
+                                 c_char_p, #mode,
+                                 c_short #dtype
+                                ]
+knc_kneighbors_graph.restype = py_object
+
+knr_kneighbors_graph = LIB.knr_kneighbors_graph
+knr_kneighbors_graph.argtypes = [ c_char_p, #host
+                                 c_int,  #port
+                                 c_long, #data
+                                 c_int, #k
+                                 c_int, #mid
+                                 c_char_p, #mode,
+                                 c_short #dtype
+                                ]
+knr_kneighbors_graph.restype = py_object
+
+knc_float_predict = LIB.knc_float_predict
+knc_float_predict.argtypes = [ 
+                         c_char_p, #host
+                         c_int,  #port
+                         c_long, #data
+                         c_int, #mid
+                         c_bool, # save_proba
+                         ndpointer(c_float, ndim=1, flags="C_CONTIGUOUS"),
+                         c_long # ret length
+                        ]
+
+knc_double_predict = LIB.knc_double_predict
+knc_double_predict.argtypes = [ 
+                         c_char_p, #host
+                         c_int,  #port
+                         c_long, #data
+                         c_int, #mid
+                         c_bool, # save_proba
+                         ndpointer(c_double, ndim=1, flags="C_CONTIGUOUS"),
+                         c_long # ret length
+                        ]
+
+knr_float_predict = LIB.knr_float_predict
+knr_float_predict.argtypes = [ 
+                         c_char_p, #host
+                         c_int,  #port
+                         c_long, #data
+                         c_int, #mid
+                         ndpointer(c_float, ndim=1, flags="C_CONTIGUOUS"),
+                         c_long # ret length
+                        ]
+
+knr_double_predict = LIB.knr_double_predict
+knr_double_predict.argtypes = [ 
+                         c_char_p, #host
+                         c_int,  #port
+                         c_long, #data
+                         c_int, #mid
+                         ndpointer(c_double, ndim=1, flags="C_CONTIGUOUS"),
+                         c_long # ret length
+                        ]
+
+knc_predict_proba = LIB.knc_predict_proba
+knc_predict_proba.argtypes = [ c_char_p, #host
+                               c_int,  #port
+                               c_long, #data
+                               c_int, #mid
+                               c_short #dtype
+                             ]
+knc_predict_proba.restype = py_object
+
+knr_model_score = LIB.knr_model_score
+knr_model_score.argtypes = [ 
+                         c_char_p, #host
+                         c_int,  #port
+                         c_long, #data - mat
+                         c_long, #data - labels
+                         c_int, #mid
+                         c_short #dtype
+                        ]
+knr_model_score.restype = c_float
+
+knc_model_score = LIB.knc_model_score
+knc_model_score.argtypes = [ 
+                         c_char_p, #host
+                         c_int,  #port
+                         c_long, #data - mat
+                         c_long, #data - labels
+                         c_int, #mid
+                         c_short #dtype
+                        ]
+knc_model_score.restype = c_float
+
+knn_kneighbors = LIB.knn_kneighbors
+knn_kneighbors.argtypes = [c_char_p, #host
+                           c_int,  #port
+                           c_long, #data
+                           c_int, #k
+                           c_int, #mid
+                           c_bool, #need distance,
+                           c_short #dtype
+                          ]
+knn_kneighbors.restype = py_object
+
+knn_kneighbors_graph = LIB.knn_kneighbors_graph
+knn_kneighbors_graph.argtypes = [ c_char_p, #host
+                                 c_int,  #port
+                                 c_long, #data
+                                 c_int, #k
+                                 c_int, #mid
+                                 c_char_p, #mode,
+                                 c_short #dtype
+                                ]
+knn_kneighbors_graph.restype = py_object
+
+knn_radius_neighbors = LIB.knn_radius_neighbors
+knn_radius_neighbors.argtypes = [ c_char_p, c_int, #host ,port
+                                  c_long, c_float, c_int, #data, radius, mid
+                                  c_bool, c_short  #need_distance, dtype
+                                ]
+knn_radius_neighbors.restype = py_object
+
+knn_radius_neighbors_graph = LIB.knn_radius_neighbors_graph
+knn_radius_neighbors_graph.argtypes = [ c_char_p, c_int, #host ,port
+                                        c_long, c_float, c_int, #data, radius, mid
+                                        c_char_p, c_short  #mode, dtype
+                                      ]
+knn_radius_neighbors_graph.restype = py_object
 
 pca_transform = LIB.pca_transform
 pca_transform.argtypes = [ c_char_p, #host
