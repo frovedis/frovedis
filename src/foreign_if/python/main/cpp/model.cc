@@ -24,6 +24,7 @@ extern "C" {
           case ACM:    exrpc_oneway(fm_node,show_model<ACM2>,mid); break;
           case SEM:    exrpc_oneway(fm_node,show_model<SEM2>,mid); break;
           case SCM:    exrpc_oneway(fm_node,show_model<SCM2>,mid); break;
+          //case DBSCAN: exrpc_oneway(fm_node,show_model<DBM2>,mid); break; 
           case DTM:    exrpc_oneway(fm_node,show_model<DTM2>,mid); break;
           case FPM:    exrpc_oneway(fm_node,show_model<FPM1>,mid); break; // not template based
           case FPR:    exrpc_oneway(fm_node, show_model<FPR1>, mid); break;
@@ -43,6 +44,7 @@ extern "C" {
           case ACM:    exrpc_oneway(fm_node,show_model<ACM1>,mid); break;
           case SEM:    exrpc_oneway(fm_node,show_model<SEM1>,mid); break;
           case SCM:    exrpc_oneway(fm_node,show_model<SCM1>,mid); break;
+          //case DBSCAN: exrpc_oneway(fm_node,show_model<DBM1>,mid); break; 
           case DTM:    exrpc_oneway(fm_node,show_model<DTM1>,mid); break;
           case FPM:    exrpc_oneway(fm_node,show_model<FPM1>,mid); break; // not template based
           case FPR:    exrpc_oneway(fm_node, show_model<FPR1>, mid); break;
@@ -74,11 +76,15 @@ extern "C" {
           case ACM:    exrpc_oneway(fm_node,release_model<ACM2>,mid); break;
           case SEM:    exrpc_oneway(fm_node,release_model<SEM2>,mid); break;
           case SCM:    exrpc_oneway(fm_node,release_model<SCM2>,mid); break;
+          case DBSCAN: exrpc_oneway(fm_node,release_model<dbscan>,mid); break; 
           case DTM:    exrpc_oneway(fm_node,release_model<DTM2>,mid); break;
           case FPM:    exrpc_oneway(fm_node,release_model<FPM1>,mid); break; // not template based
           case FPR:    exrpc_oneway(fm_node, release_model<FPR1>, mid); break;
           case FMM:    exrpc_oneway(fm_node,release_model<FMM2>,mid); break;
           case NBM:    exrpc_oneway(fm_node,release_model<NBM2>,mid); break;
+          case KNN:    exrpc_oneway(fm_node,release_model<KNN2>,mid); break;
+          case KNR:    exrpc_oneway(fm_node,release_model<KNR2>,mid); break;
+          case KNC:    exrpc_oneway(fm_node,release_model<KNC2>,mid); break;
           default:     REPORT_ERROR(USER_ERROR,"Unknown Model Kind is encountered!\n");
         }
       }
@@ -94,10 +100,14 @@ extern "C" {
           case ACM:    exrpc_oneway(fm_node,release_model<ACM1>,mid); break;
           case SEM:    exrpc_oneway(fm_node,release_model<SEM1>,mid); break;
           case SCM:    exrpc_oneway(fm_node,release_model<SCM1>,mid); break;
+          case DBSCAN: exrpc_oneway(fm_node,release_model<dbscan>,mid); break; 
           case FPM:    exrpc_oneway(fm_node,release_model<FPM1>,mid); break; // not template based
           case FPR:    exrpc_oneway(fm_node, release_model<FPR1>, mid); break;
           case FMM:    exrpc_oneway(fm_node,release_model<FMM1>,mid); break;
           case NBM:    exrpc_oneway(fm_node,release_model<NBM1>,mid); break;
+          case KNN:    exrpc_oneway(fm_node,release_model<KNN1>,mid); break;
+          case KNR:    exrpc_oneway(fm_node,release_model<KNR1>,mid); break;
+          case KNC:    exrpc_oneway(fm_node,release_model<KNC1>,mid); break;
           default:     REPORT_ERROR(USER_ERROR,"Unknown Model Kind is encountered!\n");
         }
       }
@@ -298,7 +308,7 @@ extern "C" {
     }
     return nsamples;
   }
- 
+
   PyObject* get_scm_aff_matrix(const char* host, int port,
                                int mid, short mdtype) {
     if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
@@ -393,6 +403,7 @@ extern "C" {
                                        short mdtype) {
     if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
     exrpc_node fm_node(host, port);
+    PyObject* ret_ptr = NULL;
     try { 
       if (mdtype == FLOAT) {
         std::vector<float> ret;
@@ -403,7 +414,7 @@ extern "C" {
           case SVM:  ret = exrpc_async(fm_node, (get_weight_vector<DT2,SVM2>), mid).get(); break;
           default: REPORT_ERROR(USER_ERROR, "Unknown model for weight vector extraction!\n");
         }
-        return to_python_float_list(ret);
+        ret_ptr = to_python_float_list(ret);
       }
       else if (mdtype == DOUBLE) {
         std::vector<double> ret;
@@ -414,13 +425,14 @@ extern "C" {
           case SVM:  ret = exrpc_async(fm_node, (get_weight_vector<DT1,SVM1>), mid).get(); break;
           default: REPORT_ERROR(USER_ERROR, "Unknown model for weight vector extraction!\n");
         }
-        return to_python_double_list(ret);
+        ret_ptr = to_python_double_list(ret);
       }
       else REPORT_ERROR(USER_ERROR,"model dtype can either be float or double!\n");
     }
     catch (std::exception& e) {
       set_status(true, e.what());
     }
+    return ret_ptr;
   }
 
   PyObject* get_frovedis_intercept_vector(const char* host, int port,
@@ -428,6 +440,7 @@ extern "C" {
                                           short mdtype) {
     if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
     exrpc_node fm_node(host, port);
+    PyObject* ret_ptr = NULL;
     try { 
       if (mdtype == FLOAT) {
         std::vector<float> ret;
@@ -438,7 +451,7 @@ extern "C" {
           case SVM:  ret = exrpc_async(fm_node, (get_intercept_as_vector<DT2,SVM2>), mid).get(); break;
           default: REPORT_ERROR(USER_ERROR, "Unknown model for intercept vector extraction!\n");
         }
-        return to_python_float_list(ret);
+        ret_ptr = to_python_float_list(ret);
       }
       else if (mdtype == DOUBLE) {
         std::vector<double> ret;
@@ -449,13 +462,14 @@ extern "C" {
           case SVM:  ret = exrpc_async(fm_node, (get_intercept_as_vector<DT1,SVM1>), mid).get(); break;
           default: REPORT_ERROR(USER_ERROR, "Unknown model for intercept vector extraction!\n");
         }
-        return to_python_double_list(ret);
+        ret_ptr = to_python_double_list(ret);
       }
       else REPORT_ERROR(USER_ERROR,"model dtype can either be float or double!\n");
     }
     catch (std::exception& e) {
       set_status(true, e.what());
     }
+    return ret_ptr;
   }
 
   PyObject* get_frovedis_pi_vector(const char* host, int port,
@@ -463,6 +477,7 @@ extern "C" {
                                    short mdtype) {
     if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
     exrpc_node fm_node(host, port);
+    PyObject* ret_ptr = NULL;
     try {
       if (mdtype == FLOAT) {
         std::vector<float> ret;
@@ -470,7 +485,7 @@ extern "C" {
           case NBM: ret = exrpc_async(fm_node, (get_pi_vector<DT2,NBM2>), mid).get(); break;
           default: REPORT_ERROR(USER_ERROR, "Unknown model for class_log_prior vector extraction!\n");
         }
-        return to_python_float_list(ret);
+        ret_ptr = to_python_float_list(ret);
       }
       else if (mdtype == DOUBLE) {
         std::vector<double> ret;
@@ -478,13 +493,14 @@ extern "C" {
           case NBM: ret = exrpc_async(fm_node, (get_pi_vector<DT1,NBM1>), mid).get(); break;
           default: REPORT_ERROR(USER_ERROR, "Unknown model for class_log_prior vector extraction!\n");
         }
-        return to_python_double_list(ret);
+        ret_ptr = to_python_double_list(ret);
       }
       else REPORT_ERROR(USER_ERROR,"model dtype can either be float or double!\n");
     }
     catch (std::exception& e) {
       set_status(true, e.what());
     }
+    return ret_ptr;
   }
 
   PyObject* get_frovedis_theta_vector(const char* host, int port,
@@ -492,6 +508,7 @@ extern "C" {
                                       short mdtype) {
     if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
     exrpc_node fm_node(host, port);
+    PyObject* ret_ptr = NULL;
     try {
       if (mdtype == FLOAT) {
         std::vector<float> ret;
@@ -499,7 +516,7 @@ extern "C" {
           case NBM: ret = exrpc_async(fm_node, (get_theta_vector<DT2,NBM2>), mid).get(); break;
           default: REPORT_ERROR(USER_ERROR, "Unknown model for feature_log_prob vector extraction!\n");
         }
-        return to_python_float_list(ret);
+        ret_ptr = to_python_float_list(ret);
       }
       else if (mdtype == DOUBLE) {
         std::vector<double> ret;
@@ -507,13 +524,14 @@ extern "C" {
           case NBM: ret = exrpc_async(fm_node, (get_theta_vector<DT1,NBM1>), mid).get(); break;
           default: REPORT_ERROR(USER_ERROR, "Unknown model for feature_log_prob vector extraction!\n");
         }
-        return to_python_double_list(ret);
+        ret_ptr = to_python_double_list(ret);
       }
       else REPORT_ERROR(USER_ERROR,"model dtype can either be float or double!\n");
     }
     catch (std::exception& e) {
       set_status(true, e.what());
     }
+    return ret_ptr;
   }
 
   PyObject* get_frovedis_cls_counts_vector(const char* host, int port,
@@ -521,6 +539,7 @@ extern "C" {
                                            short mdtype) {
     if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
     exrpc_node fm_node(host, port);
+    PyObject* ret_ptr = NULL;
     try {
       if (mdtype == FLOAT) {
         std::vector<float> ret;
@@ -528,7 +547,7 @@ extern "C" {
           case NBM: ret = exrpc_async(fm_node, (get_cls_counts_vector<DT2,NBM2>), mid).get(); break;
           default: REPORT_ERROR(USER_ERROR, "Unknown model for class_count vector extraction!\n");
         }
-        return to_python_float_list(ret);
+        ret_ptr = to_python_float_list(ret);
       }
       else if (mdtype == DOUBLE) {
         std::vector<double> ret;
@@ -536,16 +555,17 @@ extern "C" {
           case NBM: ret = exrpc_async(fm_node, (get_cls_counts_vector<DT1,NBM1>), mid).get(); break;
           default: REPORT_ERROR(USER_ERROR, "Unknown model for class_count vector extraction!\n");
         }
-        return to_python_double_list(ret);
+        ret_ptr = to_python_double_list(ret);
       }
       else REPORT_ERROR(USER_ERROR,"model dtype can either be float or double!\n");
     }
     catch (std::exception& e) {
       set_status(true, e.what());
     }
+    return ret_ptr;
   }
 
-  void parallel_float_glm_predict(const char* host, int port,
+ void parallel_float_glm_predict(const char* host, int port,
                                   int mid, short mkind, long dptr, 
                                   float* ret, ulong len, bool prob,
                                   short itype, bool isDense) {
@@ -895,6 +915,371 @@ extern "C" {
       scores[i] = pd[i].second;
     }
   }
+
+  PyObject* knn_kneighbors(const char* host, int port,
+                           long tptr, int k, int mid,
+                           bool need_distance, short dtype) { // short itype, bool dense
+      if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
+      exrpc_node fm_node(host,port);
+      auto test_dptr = (exrpc_ptr_t) tptr;
+      knn_result res;
+      try {
+        switch(dtype) {
+          case FLOAT:
+            res = exrpc_async(fm_node, (frovedis_kneighbors<DT2,DT5,R_MAT2,KNN2>), test_dptr, 
+                              mid, k, need_distance ).get();
+            break;
+          case DOUBLE:
+            res = exrpc_async(fm_node, (frovedis_kneighbors<DT1,DT5,R_MAT1,KNN1>), test_dptr, 
+                              mid, k, need_distance ).get();
+            break;
+          default: REPORT_ERROR(USER_ERROR,"Unsupported dtype for input dense matrix!\n");
+        }
+      }
+      catch (std::exception& e) {
+        set_status(true, e.what());
+      }
+
+      char mtype = 'R'; // indices, distances => rowmajor matrix
+      return to_py_knn_result(res, mtype);
+    }
+
+  // knc
+  PyObject* knc_kneighbors(const char* host, int port,
+                           long tptr, int k, int mid,
+                           bool need_distance, short dtype) { 
+      if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
+      exrpc_node fm_node(host,port);
+      auto test_dptr = (exrpc_ptr_t) tptr;
+      knn_result res;
+      try {
+        switch(dtype) {
+          case FLOAT:
+            res = exrpc_async(fm_node, (frovedis_kneighbors<DT2,DT5,R_MAT2,KNC2>), test_dptr, 
+                              mid, k, need_distance ).get();
+            break;
+          case DOUBLE:
+            res = exrpc_async(fm_node, (frovedis_kneighbors<DT1,DT5,R_MAT1,KNC1>), test_dptr, 
+                              mid, k, need_distance ).get();
+            break;
+          default: REPORT_ERROR(USER_ERROR,"Unsupported dtype for input dense matrix!\n");
+        }
+      }
+      catch (std::exception& e) {
+        set_status(true, e.what());
+      }
+
+      char mtype = 'R'; // indices, distances => rowmajor matrix
+      return to_py_knn_result(res, mtype);
+    }
+
+  // knr
+  PyObject* knr_kneighbors(const char* host, int port,
+                           long tptr, int k, int mid,
+                           bool need_distance, short dtype) { 
+      if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
+      exrpc_node fm_node(host,port);
+      auto test_dptr = (exrpc_ptr_t) tptr;
+      knn_result res;
+      try {
+        switch(dtype) {
+          case FLOAT:
+            res = exrpc_async(fm_node, (frovedis_kneighbors<DT2,DT5,R_MAT2,KNR2>), test_dptr, 
+                              mid, k, need_distance ).get();
+            break;
+          case DOUBLE:
+            res = exrpc_async(fm_node, (frovedis_kneighbors<DT1,DT5,R_MAT1,KNR1>), test_dptr, 
+                              mid, k, need_distance ).get();
+            break;
+          default: REPORT_ERROR(USER_ERROR,"Unsupported dtype for input dense matrix!\n");
+        }
+      }
+      catch (std::exception& e) {
+        set_status(true, e.what());
+      }
+
+      char mtype = 'R'; // indices, distances => rowmajor matrix
+      return to_py_knn_result(res, mtype);
+    }
+
+
+  PyObject* knn_kneighbors_graph(const char* host, int port,
+                                 long tptr, int k, int mid,
+                                 const char* mode, short dtype) { // itype, dense
+      if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
+      exrpc_node fm_node(host,port);
+      auto test_dptr = (exrpc_ptr_t) tptr;
+      std::string mode_ = mode;
+      dummy_matrix dmat;
+      try {
+        switch(dtype) {
+          case FLOAT:
+            dmat = exrpc_async(fm_node, (frovedis_kneighbors_graph<DT5,R_MAT2,KNN2,S_MAT25,S_LMAT25>), test_dptr, 
+                              mid, k, mode_).get();
+            break;
+          case DOUBLE:
+            dmat = exrpc_async(fm_node, (frovedis_kneighbors_graph<DT5,R_MAT1,KNN1,S_MAT15,S_LMAT15>), test_dptr, 
+                              mid, k, mode_).get();
+            break;
+          default: REPORT_ERROR(USER_ERROR,"Unsupported dtype for input dense matrix!\n");
+        }
+      }
+      catch (std::exception& e) {
+        set_status(true, e.what());
+      }
+      return to_py_dummy_matrix(dmat);
+    }
+  
+  // knc
+  PyObject* knc_kneighbors_graph(const char* host, int port,
+                                 long tptr, int k, int mid,
+                                 const char* mode, short dtype) { 
+      if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
+      exrpc_node fm_node(host,port);
+      auto test_dptr = (exrpc_ptr_t) tptr;
+      std::string mode_ = mode;
+      dummy_matrix dmat;
+      try {
+        switch(dtype) {
+          case FLOAT:
+            dmat = exrpc_async(fm_node, (frovedis_kneighbors_graph<DT5,R_MAT2,KNC2,S_MAT25,S_LMAT25>), test_dptr, 
+                              mid, k, mode_).get();
+            break;
+          case DOUBLE:
+            dmat = exrpc_async(fm_node, (frovedis_kneighbors_graph<DT5,R_MAT1,KNC1,S_MAT15,S_LMAT15>), test_dptr, 
+                              mid, k, mode_).get();
+            break;
+          default: REPORT_ERROR(USER_ERROR,"Unsupported dtype for input dense matrix!\n");
+        }
+      }
+      catch (std::exception& e) {
+        set_status(true, e.what());
+      }
+      return to_py_dummy_matrix(dmat);
+    }
+
+  // knr
+  PyObject* knr_kneighbors_graph(const char* host, int port,
+                                 long tptr, int k, int mid,
+                                 const char* mode, short dtype) {
+      if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
+      exrpc_node fm_node(host,port);
+      auto test_dptr = (exrpc_ptr_t) tptr;
+      std::string mode_ = mode;
+      dummy_matrix dmat;
+      try {
+        switch(dtype) {
+          case FLOAT:
+            dmat = exrpc_async(fm_node, (frovedis_kneighbors_graph<DT5,R_MAT2,KNR2,S_MAT25,S_LMAT25>), test_dptr, 
+                              mid, k, mode_).get();
+            break;
+          case DOUBLE:
+            dmat = exrpc_async(fm_node, (frovedis_kneighbors_graph<DT5,R_MAT1,KNR1,S_MAT15,S_LMAT15>), test_dptr, 
+                              mid, k, mode_).get();
+            break;
+          default: REPORT_ERROR(USER_ERROR,"Unsupported dtype for input dense matrix!\n");
+        }
+      }
+      catch (std::exception& e) {
+        set_status(true, e.what());
+      }
+      return to_py_dummy_matrix(dmat);
+    }
+
+  PyObject* knn_radius_neighbors(const char* host, int port,
+                                 long tptr, float radius, int mid,
+                                 bool need_distance, short dtype) { // itype, dense
+      if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
+      exrpc_node fm_node(host,port);
+      auto test_dptr = (exrpc_ptr_t) tptr;
+      dummy_matrix dmat;
+      try {
+        switch(dtype) {
+          case FLOAT:
+            dmat = exrpc_async(fm_node, (frovedis_radius_neighbors<DT5,R_MAT2,KNN2,S_MAT25,S_LMAT25>), test_dptr, 
+                              mid, radius, need_distance ).get();
+            break;
+          case DOUBLE:
+            dmat = exrpc_async(fm_node, (frovedis_radius_neighbors<DT5,R_MAT1,KNN1,S_MAT15,S_LMAT15>), test_dptr, 
+                              mid, radius, need_distance ).get();
+            break;
+          default: REPORT_ERROR(USER_ERROR,"Unsupported dtype for input dense matrix!\n");
+        }
+      }
+      catch (std::exception& e) {
+        set_status(true, e.what());
+      }
+      return to_py_dummy_matrix(dmat);
+    }
+
+  PyObject* knn_radius_neighbors_graph(const char* host, int port,
+                                       long tptr, float radius, int mid,
+                                       const char* mode, short dtype) { // itype, dense
+      if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
+      exrpc_node fm_node(host,port);
+      auto test_dptr = (exrpc_ptr_t) tptr;
+      std::string mode_ = mode;
+      dummy_matrix dmat;
+      try {
+        switch(dtype) {
+          case FLOAT:
+            dmat = exrpc_async(fm_node, (frovedis_radius_neighbors_graph<DT5,R_MAT2,KNN2,S_MAT25,S_LMAT25>), test_dptr, 
+                              mid, radius, mode_).get();
+            break;
+          case DOUBLE:
+            dmat = exrpc_async(fm_node, (frovedis_radius_neighbors_graph<DT5,R_MAT1,KNN1,S_MAT15,S_LMAT15>), test_dptr, 
+                              mid, radius, mode_ ).get();
+            break;
+          default: REPORT_ERROR(USER_ERROR,"Unsupported dtype for input dense matrix!\n");
+        }
+      }
+      catch (std::exception& e) {
+        set_status(true, e.what());
+      }
+      return to_py_dummy_matrix(dmat);
+    }
+
+  // knc and knr predict
+  void knc_double_predict(const char* host, int port, long tptr,
+                          int mid, bool save_proba, 
+                          double* ret, long ret_len) {
+    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
+    exrpc_node fm_node(host,port);
+    auto test_dptr = (exrpc_ptr_t) tptr;
+    std::vector<double> label;
+    try {
+      label = exrpc_async(fm_node, (frovedis_knc_predict<DT1,DT5,R_MAT1,KNC1>), test_dptr, mid, save_proba).get(); 
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    checkAssumption(label.size() == ret_len);
+    for(size_t i = 0; i < ret_len; ++i) ret[i] = label[i];
+  }
+
+  void knc_float_predict(const char* host, int port, long tptr,
+                         int mid, bool save_proba, 
+                         float* ret, long ret_len) {
+    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
+    exrpc_node fm_node(host,port);
+    auto test_dptr = (exrpc_ptr_t) tptr;
+    std::vector<float> label;
+    try {
+      label = exrpc_async(fm_node, (frovedis_knc_predict<DT2,DT5,R_MAT2,KNC2>), test_dptr, mid, save_proba).get(); 
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    checkAssumption(label.size() == ret_len);
+    for(size_t i = 0; i < ret_len; ++i) ret[i] = label[i];
+  }
+
+  void knr_double_predict(const char* host, int port, long tptr,
+                          int mid, double* ret, long ret_len) {
+    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
+    exrpc_node fm_node(host,port);
+    auto test_dptr = (exrpc_ptr_t) tptr;
+    std::vector<double> label;
+    try {
+      label = exrpc_async(fm_node, (frovedis_knr_predict<DT1,DT5,R_MAT1,KNR1>), test_dptr, mid).get();
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    checkAssumption(label.size() == ret_len);
+    for(size_t i = 0; i < ret_len; ++i) ret[i] = label[i];
+  }
+
+  void knr_float_predict(const char* host, int port, long tptr,
+                         int mid, float* ret, long ret_len) {
+    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
+    exrpc_node fm_node(host,port);
+    auto test_dptr = (exrpc_ptr_t) tptr;
+    std::vector<float> label;
+    try {
+      label = exrpc_async(fm_node, (frovedis_knr_predict<DT2,DT5,R_MAT2,KNR2>), test_dptr, mid).get();
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    checkAssumption(label.size() == ret_len);
+    for(size_t i = 0; i < ret_len; ++i) ret[i] = label[i];
+  }
+
+  // knc predict proba
+  PyObject* knc_predict_proba(const char* host, int port,
+                              long tptr, int mid, short dtype) {
+      if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
+      exrpc_node fm_node(host,port);
+      auto test_dptr = (exrpc_ptr_t) tptr;
+      dummy_matrix dmat;
+      try {
+        switch(dtype) {
+          case FLOAT:
+            dmat = exrpc_async(fm_node, (frovedis_knc_predict_proba<DT5,R_MAT2,KNC2,R_MAT2,R_LMAT2>), 
+                               test_dptr, mid).get();
+            break;
+          case DOUBLE:
+            dmat = exrpc_async(fm_node, (frovedis_knc_predict_proba<DT5,R_MAT1,KNC1,R_MAT1,R_LMAT1>), 
+                               test_dptr, mid).get();
+            break;
+          default: REPORT_ERROR(USER_ERROR,"Unsupported dtype for input dense matrix!\n");
+        }
+      }
+      catch (std::exception& e) {
+        set_status(true, e.what());
+      }
+      return to_py_dummy_matrix(dmat);
+    }
+
+  float knr_model_score(const char* host, int port, long xptr,
+                        long yptr, int mid, short dtype){
+    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
+    exrpc_node fm_node(host,port);
+    auto mptr = (exrpc_ptr_t) xptr;
+    auto lblptr = (exrpc_ptr_t) yptr;
+    float res = 0.0;
+    try {
+      switch(dtype) {
+        case FLOAT:
+          res = exrpc_async(fm_node, (frovedis_model_score<DT2,DT5,R_MAT2,KNR2>), mptr, lblptr, mid).get();
+          break;
+        case DOUBLE:
+          res = exrpc_async(fm_node, (frovedis_model_score<DT1,DT5,R_MAT1,KNR1>), mptr, lblptr, mid).get();
+          break;
+        default: REPORT_ERROR(USER_ERROR,"Unsupported dtype for input dense matrix!\n");
+      }
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return res;
+  }
+
+  float knc_model_score(const char* host, int port, long xptr,
+                    long yptr, int mid, short dtype){
+    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
+    exrpc_node fm_node(host,port);
+    auto mptr = (exrpc_ptr_t) xptr;
+    auto lblptr = (exrpc_ptr_t) yptr;
+    float res = 0 ;
+    try {
+      switch(dtype) {
+        case FLOAT:
+          res = exrpc_async(fm_node, (frovedis_model_score<DT2,DT5,R_MAT2,KNC2>), mptr, lblptr, mid).get();
+          break;
+        case DOUBLE:
+          res = exrpc_async(fm_node, (frovedis_model_score<DT1,DT5,R_MAT1,KNC1>), mptr, lblptr, mid).get();
+          break;
+        default: REPORT_ERROR(USER_ERROR,"Unsupported dtype for input dense matrix!\n");
+      }
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return res;
+  }
+
 
 /*
 void fpgrowth_freq_items(const char* host, int port,
