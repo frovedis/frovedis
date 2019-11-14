@@ -113,6 +113,22 @@ extern "C" {
                          "n_features", obj.n_features,
                          "noise", obj.noise);
   }
+  
+  PyObject* to_py_knn_result(const knn_result& obj,
+                             char mtype) {
+    if (mtype != 'R') 
+      REPORT_ERROR(INTERNAL_ERROR, "knn output should be rowmajor matrix!");
+    auto mt = "R";
+    return Py_BuildValue("{s:s, s:l, s:l, s:l, s:l, s:l, s:l, s:i}", 
+                         "mtype", mt, 
+                         "indices_ptr", (long) obj.indices_ptr, 
+                         "distances_ptr", (long) obj.distances_ptr,
+                         "nrow_ind", (long) obj.nrow_ind,
+                         "ncol_ind",  (long) obj.ncol_ind,
+                         "nrow_dist", (long) obj.nrow_dist,
+                         "ncol_dist", (long) obj.ncol_dist,
+                         "k", obj.k);
+  }  
 
   PyObject* to_py_getrf_result(const getrf_result& obj,char mtype) {
     auto mt = (mtype == 'C') ? "C" : "B";
