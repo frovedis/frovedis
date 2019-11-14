@@ -1,15 +1,23 @@
-TARGETS := knn
+TARGETS := knn_supervised knn_unsupervised
 include ../Makefile.in.ve
 include ../Makefile.common
 
-TO_INSTALL := knn.cc
+TO_INSTALL := knn_supervised.cc knn_unsupervised.cc
 DIR := knn
 ARCH := ve
 
-knn: knn.o
-	#${LINK} -o knn -ftrace knn.o ${LIBS}
-	${LINK} -o knn knn.o ${LIBS}
+knn_supervised: knn_supervised.o
+	#${LINK} -o knn_supervised -ftrace knn_supervised.o ${LIBS}
+	${LINK} -o knn_supervised knn_supervised.o ${LIBS}
 
-knn.o:	knn.cc
+knn_unsupervised: knn_unsupervised.o
+	#${LINK} -o knn_unsupervised -ftrace knn_unsupervised.o ${LIBS}
+	${LINK} -o knn_unsupervised knn_unsupervised.o ${LIBS}
+
+knn_supervised.o:	knn_supervised.cc
+	#${MPICXX} -c ${CXXFLAGS} -ftrace -report-all $< -o $@
+	${MPICXX} -c ${CXXFLAGS} -report-all $< -o $@
+
+knn_unsupervised.o:	knn_unsupervised.cc
 	#${MPICXX} -c ${CXXFLAGS} -ftrace -report-all $< -o $@
 	${MPICXX} -c ${CXXFLAGS} -report-all $< -o $@

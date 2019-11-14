@@ -1,11 +1,15 @@
-TARGETS := knn
+TARGETS := knn_supervised knn_unsupervised
 include ../Makefile.in.sx
 include ../Makefile.common
 
-TO_INSTALL := knn.cc
+TO_INSTALL := knn_supervised.cc knn_unsupervised.cc
 DIR := knn
 ARCH := sx
 
-knn: knn.o
-	${CXX} -prelink ${CXXFLAGS} knn.o ${LIBS}
-	${MPICXX} ${CXXFLAGS} -o knn knn.o ${LIBS}
+knn_supervised: knn_supervised.o
+	${CXX} -prelink ${CXXFLAGS} knn_supervised.o ${LIBS}
+	${MPICXX} ${CXXFLAGS} -o knn_supervised knn_supervised.o ${LIBS}
+
+knn_unsupervised: knn_unsupervised.o
+	${CXX} -prelink ${CXXFLAGS} knn_unsupervised.o ${LIBS}
+	${MPICXX} ${CXXFLAGS} -o knn_unsupervised knn_unsupervised.o ${LIBS}
