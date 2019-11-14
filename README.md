@@ -1,5 +1,5 @@
 Frovedis:  
-<u>Fr</u>amework <u>o</u>f <u>ve</u>ctorized and <u>dis</u>tributed data analytics
+FRamework Of VEctorized and DIStributed data analytics
 ===
 
 # 1. Introduction
