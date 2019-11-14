@@ -51,6 +51,8 @@ endif
 	cp graph/*.hpp ${INSTALLPATH}/include/frovedis/ml/graph
 	install -d ${INSTALLPATH}/include/frovedis/ml/lda
 	cp lda/*.hpp ${INSTALLPATH}/include/frovedis/ml/lda
+	install -d ${INSTALLPATH}/include/frovedis/ml/fpm
+	cp fpm/*.hpp ${INSTALLPATH}/include/frovedis/ml/fpm
 
 optimizer.o: optimizer.cc
 
