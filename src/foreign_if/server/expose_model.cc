@@ -49,7 +49,6 @@ void expose_frovedis_model_functions() {
   expose((get_theta_vector<DT2,NBM2>));
   expose((get_cls_counts_vector<DT1,NBM1>));
   expose((get_cls_counts_vector<DT2,NBM2>));
-
   // --- frovedis FMModel ---
   //expose(show_model<FMM1>);   // not supported
   //expose(show_model<FMM2>);   // for python (not supported)
@@ -247,4 +246,75 @@ void expose_frovedis_model_functions() {
   expose(get_w2v_weight_vector<DT2>);
   expose(show_w2v_weight<DT2>);
   expose(save_w2v_model<DT2>);
+  // ---frovedis dbscan
+  expose(release_model<dbscan>);
+  // knn -Nearest Neigbors ( NN )
+  expose((frovedis_kneighbors<DT1,DT4,R_MAT1,KNN1>));   
+  expose((frovedis_kneighbors<DT2,DT4,R_MAT2,KNN2>));   
+  expose((frovedis_kneighbors<DT1,DT5,R_MAT1,KNN1>));   
+  expose((frovedis_kneighbors<DT2,DT5,R_MAT2,KNN2>));   
+  expose((frovedis_kneighbors_graph<DT4,R_MAT1,KNN1,S_MAT14,S_LMAT14>));
+  expose((frovedis_kneighbors_graph<DT4,R_MAT2,KNN2,S_MAT24,S_LMAT24>));
+  expose((frovedis_kneighbors_graph<DT5,R_MAT1,KNN1,S_MAT15,S_LMAT15>));
+  expose((frovedis_kneighbors_graph<DT5,R_MAT2,KNN2,S_MAT25,S_LMAT25>));
+  expose((frovedis_radius_neighbors<DT4,R_MAT1,KNN1,S_MAT14,S_LMAT14>));   
+  expose((frovedis_radius_neighbors<DT4,R_MAT2,KNN2,S_MAT24,S_LMAT24>));   
+  expose((frovedis_radius_neighbors<DT5,R_MAT1,KNN1,S_MAT15,S_LMAT15>));   
+  expose((frovedis_radius_neighbors<DT5,R_MAT2,KNN2,S_MAT25,S_LMAT25>));   
+  expose((frovedis_radius_neighbors_graph<DT4,R_MAT1,KNN1,S_MAT14,S_LMAT14>));
+  expose((frovedis_radius_neighbors_graph<DT4,R_MAT2,KNN2,S_MAT24,S_LMAT24>));
+  expose((frovedis_radius_neighbors_graph<DT5,R_MAT1,KNN1,S_MAT15,S_LMAT15>));
+  expose((frovedis_radius_neighbors_graph<DT5,R_MAT2,KNN2,S_MAT25,S_LMAT25>));
+  // knc
+  expose((frovedis_kneighbors<DT1,DT4,R_MAT1,KNC1>));
+  expose((frovedis_kneighbors<DT2,DT4,R_MAT2,KNC2>));
+  expose((frovedis_kneighbors<DT1,DT5,R_MAT1,KNC1>));
+  expose((frovedis_kneighbors<DT2,DT5,R_MAT2,KNC2>));
+  // knc - graph
+  expose((frovedis_kneighbors_graph<DT4,R_MAT1,KNC1,S_MAT14,S_LMAT14>));
+  expose((frovedis_kneighbors_graph<DT4,R_MAT2,KNC2,S_MAT24,S_LMAT24>));
+  expose((frovedis_kneighbors_graph<DT5,R_MAT1,KNC1,S_MAT15,S_LMAT15>));
+  expose((frovedis_kneighbors_graph<DT5,R_MAT2,KNC2,S_MAT25,S_LMAT25>));
+  // knc - predict
+  expose((frovedis_knc_predict<DT1,DT4,R_MAT1,KNC1>));
+  expose((frovedis_knc_predict<DT2,DT4,R_MAT2,KNC2>));
+  expose((frovedis_knc_predict<DT1,DT5,R_MAT1,KNC1>));
+  expose((frovedis_knc_predict<DT2,DT5,R_MAT2,KNC2>));
+  //knc - predict_proba
+  expose((frovedis_knc_predict_proba<DT4,R_MAT1,KNC1,R_MAT1,R_LMAT1>));
+  expose((frovedis_knc_predict_proba<DT4,R_MAT2,KNC2,R_MAT2,R_LMAT2>));
+  expose((frovedis_knc_predict_proba<DT5,R_MAT1,KNC1,R_MAT1,R_LMAT1>));
+  expose((frovedis_knc_predict_proba<DT5,R_MAT2,KNC2,R_MAT2,R_LMAT2>));
+  // knc -score
+  expose((frovedis_model_score<DT1,DT4,R_MAT1,KNC1>));
+  expose((frovedis_model_score<DT2,DT4,R_MAT2,KNC2>));
+  expose((frovedis_model_score<DT1,DT5,R_MAT1,KNC1>));
+  expose((frovedis_model_score<DT2,DT5,R_MAT2,KNC2>));
+  //knr
+  expose((frovedis_kneighbors<DT1,DT4,R_MAT1,KNR1>));
+  expose((frovedis_kneighbors<DT2,DT4,R_MAT2,KNR2>));
+  expose((frovedis_kneighbors<DT1,DT5,R_MAT1,KNR1>));
+  expose((frovedis_kneighbors<DT2,DT5,R_MAT2,KNR2>));
+  // knr - graph
+  expose((frovedis_kneighbors_graph<DT4,R_MAT1,KNR1,S_MAT14,S_LMAT14>));
+  expose((frovedis_kneighbors_graph<DT4,R_MAT2,KNR2,S_MAT24,S_LMAT24>));
+  expose((frovedis_kneighbors_graph<DT5,R_MAT1,KNR1,S_MAT15,S_LMAT15>));
+  expose((frovedis_kneighbors_graph<DT5,R_MAT2,KNR2,S_MAT25,S_LMAT25>));
+  // knr - predict
+  expose((frovedis_knr_predict<DT1,DT4,R_MAT1,KNR1>));
+  expose((frovedis_knr_predict<DT2,DT4,R_MAT2,KNR2>));
+  expose((frovedis_knr_predict<DT1,DT5,R_MAT1,KNR1>));
+  expose((frovedis_knr_predict<DT2,DT5,R_MAT2,KNR2>));
+  // knr -score
+  expose((frovedis_model_score<DT1,DT4,R_MAT1,KNR1>));
+  expose((frovedis_model_score<DT2,DT4,R_MAT2,KNR2>));
+  expose((frovedis_model_score<DT1,DT5,R_MAT1,KNR1>));
+  expose((frovedis_model_score<DT2,DT5,R_MAT2,KNR2>));
+  // release knn algo models
+  expose(release_model<KNN1>);
+  expose(release_model<KNR1>);
+  expose(release_model<KNC1>);
+  expose(release_model<KNN2>);
+  expose(release_model<KNR2>);
+  expose(release_model<KNC2>);
 }
