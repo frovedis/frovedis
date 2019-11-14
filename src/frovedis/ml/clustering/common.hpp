@@ -4,6 +4,9 @@
 #include <math.h>
 #include <frovedis/matrix/blas_wrapper.hpp>
 
+#define COMPUTE_ONLY_B2_FOR_PARTIAL_DISTANCE
+//#define NEED_TRANS_FOR_MULT
+
 namespace frovedis {
 
 //x: index of base point, y: index of target point to be swapped
@@ -34,7 +37,7 @@ std::vector<T> get_block(T sz) {
 
 template <class T>
 rowmajor_matrix_local<T>
-get_global_data(rowmajor_matrix<T>& mat) {
+get_global_data(rowmajor_matrix<T>& mat) { // mat.gather()
   auto g_data = mat.data.gather();
   auto nrows = g_data[0].local_num_row;
   auto ncols = g_data[0].local_num_col;
@@ -60,6 +63,227 @@ alloc_vector(size_t size, bool incremental = false) {
   return ret;
 }
 
+template <class T>
+void display(std::vector<T>& vec) {
+  for(auto i: vec) std::cout << i << " "; std::cout << std::endl;
+}
+
+template <class T>
+rowmajor_matrix_local<T>
+mult_a_with_trans_b (rowmajor_matrix_local<T>& a,
+                     rowmajor_matrix_local<T>& b) {
+    auto a_nrow = a.local_num_row;
+    auto b_nrow = b.local_num_row;
+    auto a_ncol = a.local_num_col;
+    auto b_ncol = a.local_num_col;
+
+    sliced_colmajor_matrix_local<T> sm1;
+    sm1.ldm = a.local_num_col;
+    sm1.data = a.val.data();
+    sm1.sliced_num_row = a_ncol;
+    sm1.sliced_num_col = a_nrow;
+
+    sliced_colmajor_matrix_local<T> sm2;
+    sm2.ldm = b.local_num_col;
+    sm2.data = b.val.data();
+    sm2.sliced_num_row = b_ncol;
+    sm2.sliced_num_col = b_nrow;
+
+    rowmajor_matrix_local<T> ret(a_nrow, b_nrow); // ret = a * trans(b)
+    sliced_colmajor_matrix_local<T> sm3;
+    sm3.ldm = b_nrow;
+    sm3.data = ret.val.data();
+    sm3.sliced_num_row = b_nrow;
+    sm3.sliced_num_col = a_nrow;
+    gemm<T>(sm2, sm1, sm3, 'T', 'N');
+    return ret;
+}
+
+struct compute_dist {
+  compute_dist() {}
+  compute_dist(std::string& metric, bool is_trans_b,
+               bool need_distance) {
+    this->metric = metric;
+    this->is_trans_b = is_trans_b;
+    this->need_distance = need_distance;
+  }
+
+  template <class T>
+  rowmajor_matrix_local<T>
+  operator()(rowmajor_matrix_local<T>& a,
+             rowmajor_matrix_local<T>& b) {
+    if (!a.local_num_row || !b.local_num_row) return std::vector<T>();
+    std::vector<T> a2, b2;
+    const T *a2ptr, *b2ptr;
+    a2ptr = b2ptr = NULL;
+#ifdef COMPUTE_ONLY_B2_FOR_PARTIAL_DISTANCE
+    if (need_distance) {
+      a2 = squared_sum_of_cols(a);
+      a2ptr = a2.data();
+    }
+    if (is_trans_b) b2 = squared_sum_of_rows(b); // b is transposed
+    else b2 = squared_sum_of_cols(b); // b is not transposed
+    b2ptr = b2.data();
+#else
+    a2 = squared_sum_of_cols(a);
+    a2ptr = a2.data();
+    if (need_distance) {
+      if (is_trans_b) b2 = squared_sum_of_rows(b); // b is transposed
+      else b2 = squared_sum_of_cols(b); // b is not transposed
+      b2ptr = b2.data();
+    }
+#endif
+    rowmajor_matrix_local<T> ab;
+    if (is_trans_b) ab = a * b;
+    else ab = mult_a_with_trans_b(a, b); // without physical transpose
+    auto abptr = ab.val.data();
+    auto nrow = ab.local_num_row;
+    auto ncol = ab.local_num_col;
+    if (metric == "euclidean" && need_distance) {
+      if (nrow > ncol) {
+#pragma _NEC nointerchange
+        for(size_t j = 0; j < ncol; ++j) {
+          for(size_t i = 0; i < nrow; ++i) {
+            auto sq_dist = a2ptr[i] + b2ptr[j] - 2 * abptr[i*ncol+j];
+            if (sq_dist > 0) abptr[i*ncol+j] = std::sqrt(sq_dist);
+            else abptr[i*ncol+j] = 0;
+          }
+        }
+      }
+      else {
+#pragma _NEC nointerchange
+        for(size_t i = 0; i < nrow; ++i) {
+          for(size_t j = 0; j < ncol; ++j) {
+            auto sq_dist = a2ptr[i] + b2ptr[j] - 2 * abptr[i*ncol+j];
+            if (sq_dist > 0) abptr[i*ncol+j] = std::sqrt(sq_dist);
+            else abptr[i*ncol+j] = 0;
+          }
+        }
+      }
+    }
+    else if (metric == "euclidean" && !need_distance) {
+      if (nrow > ncol) {
+#pragma _NEC nointerchange
+        for(size_t j = 0; j < ncol; ++j) {
+          for(size_t i = 0; i < nrow; ++i) {
+            abptr[i*ncol+j] = b2ptr[j] - 2 * abptr[i*ncol+j];
+          }
+        }
+      }
+      else {
+#pragma _NEC nointerchange
+        for(size_t i = 0; i < nrow; ++i) {
+          for(size_t j = 0; j < ncol; ++j) {
+            abptr[i*ncol+j] = b2ptr[j] - 2 * abptr[i*ncol+j];
+          }
+        }
+      }
+    }
+    else if (metric == "seuclidean" and need_distance) {
+      if (nrow > ncol) {
+#pragma _NEC nointerchange
+        for(size_t j = 0; j < ncol; ++j) {
+          for(size_t i = 0; i < nrow; ++i) {
+            auto sq_dist = a2ptr[i] + b2ptr[j] - 2 * abptr[i*ncol+j];
+            if (sq_dist > 0) abptr[i*ncol+j] = sq_dist;
+            else abptr[i*ncol+j] = 0;
+          }
+        }
+      }
+      else {
+#pragma _NEC nointerchange
+        for(size_t i = 0; i < nrow; ++i) {
+          for(size_t j = 0; j < ncol; ++j) {
+            auto sq_dist = a2ptr[i] + b2ptr[j] - 2 * abptr[i*ncol+j];
+            if (sq_dist > 0) abptr[i*ncol+j] = sq_dist;
+            else abptr[i*ncol+j] = 0;
+          }
+        }
+      }
+    }
+    else if (metric == "seuclidean" and !need_distance) {
+      if (nrow > ncol) {
+#pragma _NEC nointerchange
+        for(size_t j = 0; j < ncol; ++j) {
+          for(size_t i = 0; i < nrow; ++i) {
+            abptr[i*ncol+j] = b2ptr[j] - 2 * abptr[i*ncol+j];
+          }
+        }
+      }
+      else {
+#pragma _NEC nointerchange
+        for(size_t i = 0; i < nrow; ++i) {
+          for(size_t j = 0; j < ncol; ++j) {
+            abptr[i*ncol+j] = b2ptr[j] - 2 * abptr[i*ncol+j];
+          }
+        }
+      }
+    }
+    else
+      REPORT_ERROR(USER_ERROR,
+      "Currently frovedis knn supports only euclidean/seuclidean distance!\n");
+    return ab;
+  }
+  std::string metric;
+  bool is_trans_b, need_distance;
+  SERIALIZE(metric, is_trans_b, need_distance)
+};
+
+// construct distance of points in x_mat from the points in y_mat
+// output: y_mat.num_row * x_mat.num_row
+// rows: <y1, y2, ..., yn>
+// cols: <x1, x2, ..., xn>
+template <class T>
+rowmajor_matrix<T>
+construct_distance_matrix(rowmajor_matrix<T>& x_mat,
+                          rowmajor_matrix<T>& y_mat,
+                          const std::string& metric,
+                          bool need_distance = true) {
+  auto nsamples = x_mat.num_row;
+  auto nquery   = y_mat.num_row;
+  std::string dist_metric = metric; // removing const-ness
+  rowmajor_matrix<T> dist_mat;
+
+  time_spent calc_dist(INFO);
+  calc_dist.lap_start();
+  // a simple heuristic to decide which matrix to broadcast
+  if (nsamples/100 <= nquery) {
+    auto g_x_mat = x_mat.gather();
+#ifdef NEED_TRANS_FOR_MULT
+    auto b_mat = broadcast(g_x_mat.transpose());
+    auto trans_b = true;
+#else
+    auto b_mat = broadcast(g_x_mat);
+    auto trans_b = false;
+#endif
+    g_x_mat.clear(); // releasing memory for gathered data
+    auto loc_dist_mat = y_mat.data.map(compute_dist(dist_metric,
+                                       trans_b,need_distance), b_mat);
+    dist_mat.data = std::move(loc_dist_mat);
+    dist_mat.num_row = nquery;
+    dist_mat.num_col = nsamples; // no tranpose required, since Y * Xt is performed
+  }
+  else { // nsamples >> nquery (more than 100 times)
+    auto g_y_mat = y_mat.gather();
+#ifdef NEED_TRANS_FOR_MULT
+    auto b_mat = broadcast(g_y_mat.transpose());
+    auto trans_b = true;
+#else
+    auto b_mat = broadcast(g_y_mat);
+    auto trans_b = false;
+#endif
+    g_y_mat.clear(); // releasing memory for gathered data
+    auto loc_dist_mat = x_mat.data.map(compute_dist(dist_metric,
+                                       trans_b,need_distance), b_mat);
+    rowmajor_matrix<T> tmp_dist_mat(std::move(loc_dist_mat));
+    tmp_dist_mat.num_row = nsamples;
+    tmp_dist_mat.num_col = nquery;
+    dist_mat = tmp_dist_mat.transpose(); // transpose is needed, since X * Yt is performed
+  }
+  calc_dist.lap_stop();
+  calc_dist.show_lap("dist calculation: ");
+  return dist_mat;
+}
 
 // construction of distance matrix in distributed way using gemm
 template <class T>
@@ -92,13 +316,16 @@ construct_distance_matrix_helper(rowmajor_matrix_local<T>& mat,
     for(size_t i = 0; i < dm_nrow; ++i) {
       for(size_t j = 0; j < dm_ncol; ++j) { // dm_ncol >> dm_nrow (as for distance 2AB)
         auto tmp = twoab_ptr[i*dm_ncol+j];
-        twoab_ptr[i*dm_ncol+j] = std::sqrt(a2_ptr[myst+i] + a2_ptr[j] - tmp);
+        auto sq_dist = (a2_ptr[myst+i] + a2_ptr[j] - tmp);
+        if (sq_dist > 0) // for fixing nan outcome, due to possible numerical error
+          twoab_ptr[i*dm_ncol+j] = std::sqrt(sq_dist);
+        else
+          twoab_ptr[i*dm_ncol+j] = 0;
       }
     }
   }
   return twice_ab; // in-place updated with distance
 }
-
 
 template <class T>
 rowmajor_matrix<T>
@@ -169,12 +396,24 @@ construct_condensed_distance_matrix_helper(rowmajor_matrix_local<T>& mat,
   std::vector<T> ret(size); // contains a^2 + b^2 - 2ab
   size_t k = 0;
 
-  for(size_t i = myst; i <= myend; ++i) {
-    for(size_t j = i+1; j < dm_ncol; ++j) {
-      auto local_i = i - myst;
-      auto tmp = twoab_ptr[local_i*dm_ncol+j];
-      if (is_sq_euclidian) ret[k++] = a2_ptr[i] + a2_ptr[j] - tmp;
-      else                 ret[k++] = std::sqrt(a2_ptr[i] + a2_ptr[j] - tmp);
+  if (is_sq_euclidian) { 
+    for(size_t i = myst; i <= myend; ++i) {
+      for(size_t j = i+1; j < dm_ncol; ++j) {
+        auto local_i = i - myst;
+        auto tmp = twoab_ptr[local_i*dm_ncol+j];
+        ret[k++] = a2_ptr[i] + a2_ptr[j] - tmp;
+      }
+    }
+  }
+  else { 
+    for(size_t i = myst; i <= myend; ++i) {
+      for(size_t j = i+1; j < dm_ncol; ++j) {
+        auto local_i = i - myst;
+        auto tmp = twoab_ptr[local_i*dm_ncol+j];
+        auto sq_dist = (a2_ptr[i] + a2_ptr[j] - tmp);
+        if (sq_dist > 0) ret[k++] = std::sqrt(sq_dist); // fixing of possible nan outcome
+        else ret[k++] = 0;
+      }
     }
   }
   return ret;
