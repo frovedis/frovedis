@@ -5,6 +5,8 @@ import com.nec.frovedis.Jmatrix.DummyGetrfResult;
 import com.nec.frovedis.Jmatrix.DummyGesvdResult;
 import com.nec.frovedis.Jmatrix.DummyPCAResult;
 import com.nec.frovedis.Jmatrix.DummyFreqItemset;
+import com.nec.frovedis.Jgraph.DummyEdge;
+import com.nec.frovedis.Jgraph.DummyGraph;
 import com.nec.frovedis.Jmllib.DummyGLM;
 import com.nec.frovedis.Jmllib.IntDoublePair;
 
@@ -617,4 +619,20 @@ public class JNISupport {
   public static native void loadSparseConversionInfo(Node master_node,long info_id,String dirname);
   public static native void saveSparseConversionInfo(Node master_node,long info_id,String dirname);
   public static native void releaseSparseConversionInfo(Node master_node,long info_id);
+
+  // --- Graphx ---
+  public static native DummyGraph loadGraphFromTextFile(Node master_node, 
+                                                        String fname);
+  public static native void saveGraph(Node master_node, long dptr, 
+                                      String fname);
+  public static native long copyGraph(Node master_node, long dptr);
+  public static native void showGraph(Node master_node, long dptr);
+  public static native void releaseGraph(Node master_node, long dptr);
+  public static native long setGraphData(Node master_node, long dptr);
+  public static native DummyEdge[] getGraphData(Node master_node, long dptr);
+  public static native double[] callFrovedisPageRank(Node master_node, 
+                                                     long dptr,
+                                                     double epsilon, 
+                                                     double dfactor,
+                                                     int maxIter);
 }
