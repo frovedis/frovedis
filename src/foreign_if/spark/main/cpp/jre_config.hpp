@@ -11,5 +11,7 @@
 #define JRE_PATH_DummyMatrix "com/nec/frovedis/Jmatrix/DummyMatrix"
 #define JRE_PATH_DummyGLM "com/nec/frovedis/Jmllib/DummyGLM"
 #define JRE_PATH_IntDoublePair "com/nec/frovedis/Jmllib/IntDoublePair"
+#define JRE_PATH_DummyEdge "com/nec/frovedis/Jgraph/DummyEdge"
+#define JRE_PATH_DummyGraph "com/nec/frovedis/Jgraph/DummyGraph"
 
 #endif
