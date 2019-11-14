@@ -24,6 +24,7 @@ object SEADemo {
     val algo = new SpectralEmbedding().setNumComponent(2)
                                       .setDropFirst(true)
     val m1 = algo.run(fdata)
+    m1.save("./out/SEMModel")
     //m1.debug_print()
 
     println("affinity matrix: ")
