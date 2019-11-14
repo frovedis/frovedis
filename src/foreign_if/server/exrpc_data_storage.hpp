@@ -611,4 +611,10 @@ dummy_matrix copy_matrix(exrpc_ptr_t& d_ptr) {
   return to_dummy_matrix<MATRIX, L_MATRIX>(retp); 
 }
 
+template <class MATRIX, class L_MATRIX>
+L_MATRIX get_global_data(exrpc_ptr_t& dptr) {
+  auto& mat = *reinterpret_cast<MATRIX*>(dptr);  
+  return mat.gather();
+}
+  
 #endif
