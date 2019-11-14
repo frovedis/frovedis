@@ -735,3 +735,101 @@ class AgglomerativeClustering(object):
         if FrovedisServer.isUP():
             self.release()
 
+class DBSCAN(object):
+    """
+    A python wrapper of Frovedis dbcsan
+    """
+    def __init__(self, eps=0.5, min_samples=5, metric='euclidean', 
+                 metric_params=None, algorithm='brute', leaf_size=30, 
+                 p=None, n_jobs=None, verbose=0):
+        self.eps = eps
+        self.min_samples = min_samples
+        self.metric = metric
+        self.metric_params = metric_params
+        self.algorithm = algorithm
+        self.leaf_size = leaf_size
+        self.p = p
+        self.n_jobs = n_jobs
+        self.verbose = verbose
+        #extra
+        self.__mid = None
+        self.__mdtype = None
+        self.__mkind = M_KIND.DBSCAN 
+        self._labels = None
+
+    def fit(self, X, y=None):
+        """
+        DESC: fit method for dbscan
+        """
+        self.release()
+        self.__mid = ModelID.get()
+        # Currently Frovedis DBSCAN does not support sparse data, 
+        # it would be loaded as rowmajor matrix
+        inp_data = FrovedisFeatureData(X, dense_kind='rowmajor')
+
+        X = inp_data.get()
+        dtype = inp_data.get_dtype()
+        itype = inp_data.get_itype()
+        dense = inp_data.is_dense()
+        self.__mdtype = dtype
+        n_samples = X.numRows()
+
+        if self.eps <= 0:
+            raise ValueError(\
+                "Invalid parameter value passed for eps")
+        if self.min_samples < 1:
+            raise ValueError(\
+                "Invalid parameter value passed for min_samples")
+        if self.metric is not "euclidean":
+            raise ValueError(\
+                "Currently Frovedis DBSCAN does not support %s metric!" \
+                % self.metric)
+        if self.algorithm is not "brute":
+            raise ValueError(\
+                "Currently Frovedis DBSCAN does not support %s algorithm!" \
+                % self.algorithm)
+
+        (host, port) = FrovedisServer.getServerInstance()
+        ret = np.zeros(n_samples, dtype=np.int32)
+        rpclib.dbscan_train(host, port, X.get(), self.eps, self.min_samples, \
+                            ret, n_samples, self.verbose, self.__mid, dtype, \
+                            itype, dense)
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
+        self._labels = ret
+        return self
+
+    def fit_predict(self, X):
+        """
+        NAME: fit_predict
+        """
+        self.fit(X)
+        return self._labels
+
+    def release(self):
+        """
+        NAME: release
+        """
+        if self.__mid is not None:
+            GLM.release(self.__mid, self.__mkind, self.__mdtype)
+            #print (self.__mid, " model is released")
+            self.__mid = None
+            self._labels= None
+
+    @property
+    def labels_(self):
+        """labels_ getter"""
+        if self.__mid is not None:
+            if self._labels is not None:
+                return self._labels
+        else:
+            raise AttributeError(\
+            "attribute 'labels_' might have been released or called before fit")
+
+    @labels_.setter
+    def labels_(self, val):
+        """labels_ setter"""
+        raise AttributeError(\
+            "attribute 'labels_' of DBSCAN object is not writable")
+
