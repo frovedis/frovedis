@@ -27,6 +27,11 @@
 #include "dummy_model.hpp"
 #include "dummy_matrix.hpp"
 #include "model_tracker.hpp"
+#include "frovedis/ml/clustering/dbscan.hpp"
+#include "frovedis/ml/neighbors/knn_unsupervised.hpp"
+#include "frovedis/ml/neighbors/knn_supervised.hpp"
+#include "knn_result.hpp"
+#include "frovedis_mem_pair.hpp"
 
 using namespace frovedis;
    
@@ -315,6 +320,91 @@ std::vector<int> pkp2(exrpc_ptr_t& mat_ptr, int& mid) {
   auto bmodel = model.broadcast(); // for performance
   return mat.data.map(predict_kmm_by_worker<L_MATRIX,MODEL>,bmodel)
                       .template moveto_dvector<int>().gather();
+}
+
+template <class T, class I, class MATRIX, class ALGO>
+knn_result frovedis_kneighbors(exrpc_ptr_t& mat_ptr, int& mid, 
+                               int& k, bool& need_distance) {
+  auto& mat = *reinterpret_cast<MATRIX*> (mat_ptr);
+  auto& obj = *get_model_ptr<ALGO>(mid);
+  auto model = obj.template kneighbors<I>(mat, k, need_distance); // knn model is returned
+  auto indices = new rowmajor_matrix<I>(std::move(model.indices));
+  auto distances = new rowmajor_matrix<T>(std::move(model.distances));
+  auto indices_ptr = reinterpret_cast<exrpc_ptr_t>(indices);
+  auto distances_ptr = reinterpret_cast<exrpc_ptr_t>(distances);
+  return knn_result(k, 
+                    indices_ptr, indices->num_row, indices->num_col,
+                    distances_ptr, distances->num_row, distances->num_col);
+}
+
+template <class I, class MATRIX, class ALGO, 
+          class OUTMAT, class OUTMAT_LOC>
+dummy_matrix frovedis_kneighbors_graph(exrpc_ptr_t& mat_ptr, int& mid, 
+                                       int& k, std::string& mode) {
+
+  auto& mat = *reinterpret_cast<MATRIX*> (mat_ptr);
+  auto& obj = *get_model_ptr<ALGO>(mid);
+  auto ret = new OUTMAT(obj.template kneighbors_graph<I>(mat, k, mode)); 
+  return to_dummy_matrix<OUTMAT,OUTMAT_LOC>(ret);
+}
+
+
+template <class I, class MATRIX, class ALGO,
+          class OUTMAT, class OUTMAT_LOC>
+dummy_matrix frovedis_radius_neighbors(exrpc_ptr_t& mat_ptr, int& mid, 
+                                       float& radius, bool& need_distance) {
+  auto& mat = *reinterpret_cast<MATRIX*> (mat_ptr);
+  auto& obj = *get_model_ptr<ALGO>(mid);
+  auto ret = new OUTMAT(obj.template radius_neighbors<I>(mat, radius, need_distance));
+  return to_dummy_matrix<OUTMAT,OUTMAT_LOC>(ret);
+}
+
+
+template <class I, class MATRIX, class ALGO,
+          class OUTMAT, class OUTMAT_LOC>
+dummy_matrix frovedis_radius_neighbors_graph(exrpc_ptr_t& mat_ptr, int& mid, 
+                                             float& radius, std::string& mode) {
+  auto& mat = *reinterpret_cast<MATRIX*> (mat_ptr);
+  auto& obj = *get_model_ptr<ALGO>(mid);
+  auto ret = new OUTMAT(obj.template radius_neighbors_graph<I>(mat, radius, mode));  
+  return to_dummy_matrix<OUTMAT,OUTMAT_LOC>(ret);
+}
+
+// predict for knc
+template <class T, class I, class MATRIX, class ALGO>
+std::vector<T> 
+frovedis_knc_predict(exrpc_ptr_t& mat_ptr, int& mid, bool& save_proba){
+  auto& mat = *reinterpret_cast<MATRIX*> (mat_ptr);
+  auto& obj = *get_model_ptr<ALGO>(mid);
+  return obj.template predict<I>(mat, save_proba).gather();
+}
+
+// predict for knr
+template <class T, class I, class MATRIX, class ALGO>
+std::vector<T> 
+frovedis_knr_predict(exrpc_ptr_t& mat_ptr, int& mid){
+  auto& mat = *reinterpret_cast<MATRIX*> (mat_ptr);
+  auto& obj = *get_model_ptr<ALGO>(mid);
+  return obj.template predict<I>(mat).gather();
+}
+
+// predict_proba for knc 
+template <class I, class MATRIX, class ALGO,
+          class OUTMAT, class OUTMAT_LOC>
+dummy_matrix frovedis_knc_predict_proba(exrpc_ptr_t& mat_ptr, int& mid){
+  auto& mat = *reinterpret_cast<MATRIX*> (mat_ptr);
+  auto& obj = *get_model_ptr<ALGO>(mid);
+  auto ret = new OUTMAT(obj.template predict_proba<I>(mat)); // rmm 
+  return to_dummy_matrix<OUTMAT,OUTMAT_LOC>(ret);
+}
+
+// score for knr 
+template <class T, class I, class MATRIX, class ALGO>
+float frovedis_model_score(exrpc_ptr_t& mptr, exrpc_ptr_t& lblptr, int& mid){
+  auto& mat = *reinterpret_cast<MATRIX*>(mptr);
+  dvector<T>& lbl = *reinterpret_cast<dvector<T>*>(lblptr); 
+  auto& obj = *get_model_ptr<ALGO>(mid);
+  return obj.template score<I>(mat, lbl);
 }
 
 // single input (crs_vector_local): prediction done in master node
