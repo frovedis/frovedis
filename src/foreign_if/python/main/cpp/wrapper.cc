@@ -613,27 +613,33 @@ extern "C" {
     if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
     exrpc_node fm_node(host,port);
     auto f_dptr = (exrpc_ptr_t) dptr;
+    PyObject* ret_ptr = NULL;
     try {
       switch(dtype) {
-        case INT:    {
+        case INT:    { 
                        auto ret = exrpc_async(fm_node,vec_to_array<int>,f_dptr).get();
-                       return to_python_int_list(ret);
+                       ret_ptr = to_python_int_list(ret);
+                       break;
                      }
         case LONG:   {
-                      auto ret = exrpc_async(fm_node,vec_to_array<long>,f_dptr).get();
-                      return to_python_long_list(ret);
+                       auto ret = exrpc_async(fm_node,vec_to_array<long>,f_dptr).get();
+                       ret_ptr = to_python_long_list(ret);
+                       break;
                      }
         case FLOAT:  {
                        auto ret = exrpc_async(fm_node,vec_to_array<float>,f_dptr).get();
-                       return to_python_float_list(ret);
+                       ret_ptr = to_python_float_list(ret);
+                       break;
                      }
         case DOUBLE: {
                        auto ret = exrpc_async(fm_node,vec_to_array<double>,f_dptr).get();
-                       return to_python_double_list(ret);
+                       ret_ptr = to_python_double_list(ret);
+                       break;
                      }
         case STRING: {
                        auto ret = exrpc_async(fm_node,vec_to_array<std::string>,f_dptr).get();
-                       return to_python_string_list(ret);
+                       ret_ptr = to_python_string_list(ret);
+                       break;
                      }
         default: REPORT_ERROR(USER_ERROR, "Unsupported dtype is encountered!\n");
       }
@@ -641,6 +647,7 @@ extern "C" {
     catch (std::exception& e) {
       set_status(true, e.what());
     }
+    return ret_ptr;
   }
 
   //frovedis vector save
@@ -795,13 +802,13 @@ extern "C" {
                             need_scores, need_eig, need_var,
                             need_sval, need_mean, mvbl).get();
 	  break;
-	case DOUBLE:
+        case DOUBLE:
 	  res = exrpc_async(fm_node,(frovedis_pca<R_MAT1,DT1>),f_dptr,k,
                             whiten, to_copy, rearrange_out,
                             need_scores, need_eig, need_var,
                             need_sval, need_mean, mvbl).get();
 	  break;
-	default: REPORT_ERROR(USER_ERROR,"Unsupported dtype for input dense matrix!\n");
+      	default: REPORT_ERROR(USER_ERROR,"Unsupported dtype for input dense matrix!\n");
       }
     }
     catch (std::exception& e) {
