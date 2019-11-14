@@ -1,5 +1,5 @@
 Frovedis:  
-NEC **fr**amework **o**f **ve**ctorized and **dis**tributed data analytics
+<u>Fr</u>amework <u>o</u>f <u>ve</u>ctorized and <u>dis</u>tributed data analytics
 ===
 
 # 1. Introduction
@@ -109,6 +109,25 @@ to `sudo`.
 
 # 3. Getting started
 
+If you have installed Frovedis from prebuilt binary, you can find 
+/opt/nec/nosupport/frovedis/getting_started.md; please also refer to
+it. 
+
+In this case, if you want to use VE version, you can set up your
+environment variables by
+
+    $ source /opt/nec/nosupport/frovedis/ve/bin/veenv.sh
+
+If you want to use x86 version, please use following:
+
+    $ source /opt/nec/nosupport/frovedis/ve/bin/veenv.sh
+
+In the case of prebuilt binary, `${INSTALLPATH}` is
+`/opt/nec/nosupport/frovedis/ve/` in the case of VE, and
+`/opt/nec/nosupport/frovedis/x86/` in the case of x86. 
+
+## 3.1 C++ interface
+
 Tutorial is in `${INSTALLPATH}`/doc/tutorial/tutorial.[md,pdf]. 
 The directory also contains small programs that are explained in the
 tutorial. You can copy the source files into your home directory and
@@ -148,11 +167,12 @@ detail than the tutorial. Manuals for `man` command is in
 `${INSTALLPATH}`/man; you can do like `man dvector` after setting the
 directory into your MANPATH.
 
-
-# 4. Spark/Python interface
+## 3.2. Spark/Python interface
 
 You can utilize the predefined functionalities from Spark/Python,
-which includes machine learning algorithms and matrix operations.
+which includes machine learning algorithms, matrix operations, and
+dataframe operations.
+
 This is implemented as a server; the server accepts RPC (remote
 procedure call) to provide the above functionalities from Spark or
 Python. The server can run on both x86 and VE.
@@ -165,8 +185,15 @@ command) is in /etc/hosts or registered in DNS.*
 Even if you want to use VE, you need to build x86 version, because it
 builds dynamic link libraries for Spark/Python interface.
 
-If the insall path of x86 version is `${INSTALLPATH}`, 
-`${INSTALLPATH}`/foreign_if_demo/[spark,python] includes the demo.
+Tutorial is in `${INSTALLPATH}`/doc/tutorial_spark/tutorial.[md,pdf],
+and `${INSTALLPATH}`/doc/tutorial_python/tutorial.[md,pdf].
+ The directory also contains small programs that are explained in the
+tutorial. You can copy the source files into your home directory and
+run them by yourself. 
+
+If the insall path of x86 version is `${X86_INSTALLPATH}`, 
+`${X86_INSTALLPATH}`/foreign_if_demo/[spark,python] includes
+another demo.
 
 Please copy these directories into your home directory (since it
 creates files). The scripts ./foreign_if_demo/spark/run_demo.sh and 
@@ -176,7 +203,9 @@ As for Spark, compiled jar files are used; as for Python, Python
 scripts are used. The server is invoked from the script and shutdown
 at the end of the program. 
 
-To run the demo, you need to set following environment variables:
+To run the demo, you need to set following environment variables
+(if you are using prebuilt binary, veenv.sh or x86env.sh sets these
+variables): 
 
     export INSTALLPATH=...
     export FROVEDIS_SERVER=${INSTALLPATH}/bin/frovedis_server
@@ -192,17 +221,8 @@ is used in the Python library.
 You can modify the Spark programs and Python scripts; there is a
 Makefile to build jar file from Spark/Scala programs.
 
-If you want to run the server on VE, you need to change the
-environment varaiable like:
 
-    export FROVEDIS_SERVER="-x ${INSTALLPATH}/bin/frovedis_server"
-
-Here, `${INSTALLPATH}` is the installation path of VE version.
-Please note "-x"; it is required because `mpirun` of SX-Aurora TSUBASA
-requires "-x" option to specify the binary.
-
-
-# 5. License
+# 4. License
 
 License of this software is in LICENSE file. 
 
