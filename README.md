@@ -120,7 +120,7 @@ environment variables by
 
 If you want to use x86 version, please use following:
 
-    $ source /opt/nec/nosupport/frovedis/ve/bin/veenv.sh
+    $ source /opt/nec/nosupport/frovedis/x86/bin/x86env.sh
 
 In the case of prebuilt binary, `${INSTALLPATH}` is
 `/opt/nec/nosupport/frovedis/ve/` in the case of VE, and
