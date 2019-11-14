@@ -100,9 +100,6 @@ In the case of scikit-learn, following module is imported instead:
 
     from sklearn.linear_model import LogisticRegression
 
-Since Frovedis only accepts np.float64 type of `{-1, 1}` as label,
-loaded value of y that contains `{0, 1}` is converted to np.float64
-and modified as `y = 2 * y - 1`.
 
 Before using the logistic regression routine, you need to invoke
 frovedis_server: 
