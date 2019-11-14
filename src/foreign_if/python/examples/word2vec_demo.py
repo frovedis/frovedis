@@ -12,11 +12,11 @@ if (argc < 2):
     quit()
 
 textfile = "./input/text8-10k"
-encode = "./out/text_encode.txt"
+encode = "./out/text_encode.bin"
 vocab = "./out/text_vocab.txt"
-count = "./out/text_count.txt"
+count = "./out/text_count.bin"
 
-weight = "./out/text_weight.txt"
+weight = "./out/text_weight.bin"
 model = "./out/text_model.txt"
 
 # x86 task
