@@ -37,7 +37,11 @@ enum MODEL_KIND {
   SEM,
   SPARSE_CONV_INFO,
   MLR,
-  W2V
+  W2V,
+  DBSCAN,
+  KNN,
+  KNC,
+  KNR
 };
 
 enum MAT_KIND {
