@@ -4,14 +4,12 @@
 // decide number of elements of 1M memory size
 #define CHUNK_SIZE 1024 * 1024 
 
-#define COMPUTE_ONLY_B2_FOR_PARTIAL_DISTANCE
 //#define MANUAL_LOOP_COLLAPSE_IN_EXTRACTION 
 //#define DEBUG_SAVE
-//#define NEED_TRANS_FOR_MULT
 
 #include <frovedis/core/radix_sort.hpp>
-#include <frovedis/matrix/blas_wrapper.hpp>
 #include <frovedis/matrix/crs_matrix.hpp>
+#include <frovedis/ml/clustering/common.hpp>
 
 namespace frovedis {
 
@@ -66,11 +64,12 @@ struct knn_model {
   knn_model(int kk): k(kk) {}
   void save(const std::string& fname) {
     indices.save(fname + "/indices");
-    distances.save(fname + "/distances");
+    if (distances.num_row != 0) distances.save(fname + "/distances");
   }
   template <class O = size_t>
   crs_matrix<T, I, O>
-  create_graph(const std::string& mode) {
+  create_graph(const std::string& mode,
+               size_t nsamples) {
     if (mode != "connectivity" && mode != "distance")
       REPORT_ERROR(USER_ERROR, "Unknown mode for graph creation!\n");
     if (mode == "distance" && distances.num_row == 0) {
@@ -79,184 +78,18 @@ struct knn_model {
       REPORT_ERROR(USER_ERROR, msg);
     }
     crs_matrix<T, I, O> ret;
-    auto nsamples = indices.num_row;
     std::string mode_ = mode; // removing const-ness
     ret.data = make_node_local_allocate<crs_matrix_local<T,I,O>>();
     ret.data.mapv(create_graph_helper(nsamples, mode_), 
                   indices.data, distances.data);
-    ret.num_row = ret.num_col = nsamples; // squared matrix
+    ret.num_row = indices.num_row;
+    ret.num_col = nsamples;
     return ret;
   }
   rowmajor_matrix<I> indices;
   rowmajor_matrix<T> distances;
   int k;
   SERIALIZE(indices, distances, k)
-};
-
-template <class T>
-void display(std::vector<T>& vec) {
-  for(auto i: vec) std::cout << i << " "; std::cout << std::endl;
-}
-
-template <class T>
-rowmajor_matrix_local<T>
-mult_a_with_trans_b (rowmajor_matrix_local<T>& a,
-                     rowmajor_matrix_local<T>& b) {
-    auto a_nrow = a.local_num_row;
-    auto b_nrow = b.local_num_row;
-    auto a_ncol = a.local_num_col;
-    auto b_ncol = a.local_num_col;
-
-    sliced_colmajor_matrix_local<T> sm1;
-    sm1.ldm = a.local_num_col;
-    sm1.data = a.val.data();
-    sm1.sliced_num_row = a_ncol;
-    sm1.sliced_num_col = a_nrow;
-
-    sliced_colmajor_matrix_local<T> sm2;
-    sm2.ldm = b.local_num_col;
-    sm2.data = b.val.data();
-    sm2.sliced_num_row = b_ncol;
-    sm2.sliced_num_col = b_nrow;
-
-    rowmajor_matrix_local<T> ret(a_nrow, b_nrow); // ret = a * trans(b)
-    sliced_colmajor_matrix_local<T> sm3;
-    sm3.ldm = b_nrow;
-    sm3.data = ret.val.data();
-    sm3.sliced_num_row = b_nrow;
-    sm3.sliced_num_col = a_nrow;
-    gemm<T>(sm2, sm1, sm3, 'T', 'N');
-    return ret;
-}
-
-struct compute_dist {
-  compute_dist() {}
-  compute_dist(std::string& metric, bool is_trans_b,
-               bool need_distance) {
-    this->metric = metric;
-    this->is_trans_b = is_trans_b;
-    this->need_distance = need_distance;
-  }
-
-  template <class T>
-  rowmajor_matrix_local<T> 
-  operator()(rowmajor_matrix_local<T>& a,
-             rowmajor_matrix_local<T>& b) {
-    if (!a.local_num_row || !b.local_num_row) return std::vector<T>();
-    std::vector<T> a2, b2;
-    const T *a2ptr, *b2ptr;
-    a2ptr = b2ptr = NULL;
-#ifdef COMPUTE_ONLY_B2_FOR_PARTIAL_DISTANCE
-    if (need_distance) {
-      a2 = squared_sum_of_cols(a);
-      a2ptr = a2.data();
-    }
-    if (is_trans_b) b2 = squared_sum_of_rows(b); // b is transposed
-    else b2 = squared_sum_of_cols(b); // b is not transposed
-    b2ptr = b2.data();
-#else
-    a2 = squared_sum_of_cols(a);
-    a2ptr = a2.data();
-    if (need_distance) {
-      if (is_trans_b) b2 = squared_sum_of_rows(b); // b is transposed
-      else b2 = squared_sum_of_cols(b); // b is not transposed
-      b2ptr = b2.data();
-    }
-#endif
-    rowmajor_matrix_local<T> ab;
-    if (is_trans_b) ab = a * b;
-    else ab = mult_a_with_trans_b(a, b); // without physical transpose
-    auto abptr = ab.val.data();
-    auto nrow = ab.local_num_row;
-    auto ncol = ab.local_num_col;
-    if (metric == "euclidean" && need_distance) {
-      if (nrow > ncol) {
-#pragma _NEC nointerchange
-        for(size_t j = 0; j < ncol; ++j) {
-          for(size_t i = 0; i < nrow; ++i) {
-            auto sq_dist = a2ptr[i] + b2ptr[j] - 2 * abptr[i*ncol+j];
-            if (sq_dist > 0) abptr[i*ncol+j] = std::sqrt(sq_dist);
-            else abptr[i*ncol+j] = 0;
-          }
-        }
-      }
-      else {
-#pragma _NEC nointerchange
-        for(size_t i = 0; i < nrow; ++i) {
-          for(size_t j = 0; j < ncol; ++j) {
-            auto sq_dist = a2ptr[i] + b2ptr[j] - 2 * abptr[i*ncol+j];
-            if (sq_dist > 0) abptr[i*ncol+j] = std::sqrt(sq_dist);
-            else abptr[i*ncol+j] = 0;
-          }
-        }
-      }
-    }
-    else if (metric == "euclidean" && !need_distance) {
-      if (nrow > ncol) {
-#pragma _NEC nointerchange
-        for(size_t j = 0; j < ncol; ++j) {
-          for(size_t i = 0; i < nrow; ++i) {
-            abptr[i*ncol+j] = b2ptr[j] - 2 * abptr[i*ncol+j];
-          }
-        }
-      }
-      else {
-#pragma _NEC nointerchange
-        for(size_t i = 0; i < nrow; ++i) {
-          for(size_t j = 0; j < ncol; ++j) {
-            abptr[i*ncol+j] = b2ptr[j] - 2 * abptr[i*ncol+j];
-          }
-        }
-      }
-    }
-    else if (metric == "seuclidean" and need_distance) {
-      if (nrow > ncol) {
-#pragma _NEC nointerchange
-        for(size_t j = 0; j < ncol; ++j) {
-          for(size_t i = 0; i < nrow; ++i) {
-            auto sq_dist = a2ptr[i] + b2ptr[j] - 2 * abptr[i*ncol+j];
-            if (sq_dist > 0) abptr[i*ncol+j] = sq_dist;
-            else abptr[i*ncol+j] = 0;
-          }
-        }
-      }
-      else {
-#pragma _NEC nointerchange
-        for(size_t i = 0; i < nrow; ++i) {
-          for(size_t j = 0; j < ncol; ++j) {
-            auto sq_dist = a2ptr[i] + b2ptr[j] - 2 * abptr[i*ncol+j];
-            if (sq_dist > 0) abptr[i*ncol+j] = sq_dist;
-            else abptr[i*ncol+j] = 0;
-          }
-        }
-      }
-    }
-    else if (metric == "seuclidean" and !need_distance) {
-      if (nrow > ncol) {
-#pragma _NEC nointerchange
-        for(size_t j = 0; j < ncol; ++j) {
-          for(size_t i = 0; i < nrow; ++i) {
-            abptr[i*ncol+j] = b2ptr[j] - 2 * abptr[i*ncol+j];
-          }
-        }
-      }
-      else {
-#pragma _NEC nointerchange
-        for(size_t i = 0; i < nrow; ++i) {
-          for(size_t j = 0; j < ncol; ++j) {
-            abptr[i*ncol+j] = b2ptr[j] - 2 * abptr[i*ncol+j];
-          }
-        }
-      }
-    }
-    else
-      REPORT_ERROR(USER_ERROR, 
-      "Currently frovedis knn supports only euclidean/seuclidean distance!\n");
-    return ab;
-  }
-  std::string metric;
-  bool is_trans_b, need_distance;
-  SERIALIZE(metric, is_trans_b, need_distance)
 };
 
 template <class T>
@@ -420,7 +253,6 @@ knn_model<T, I> knn(rowmajor_matrix<T>& x_mat,
                     float chunk_size = 1.0) {
   auto nsamples = x_mat.num_row;
   auto nquery   = y_mat.num_row;
-  std::string dist_metric = metric; // removing const-ness
 
   if (k <= 0 || k > nsamples) 
     REPORT_ERROR(USER_ERROR, std::string("Invalid value for k: ") + 
@@ -434,51 +266,7 @@ knn_model<T, I> knn(rowmajor_matrix<T>& x_mat,
     REPORT_ERROR(USER_ERROR, 
       "Currently frovedis knn supports only euclidean/seuclidean distance!\n");
 
-  rowmajor_matrix<T> dist_mat;
-  time_spent calc_dist(INFO);
-
-  // a simple heuristic to decide which matrix to broadcast
-  if (nsamples/100 <= nquery) {
-    auto g_x_mat = x_mat.gather();
-    calc_dist.lap_start();
-#ifdef NEED_TRANS_FOR_MULT
-    auto b_mat = broadcast(g_x_mat.transpose());
-    auto trans_b = true;
-#else
-    auto b_mat = broadcast(g_x_mat);
-    auto trans_b = false;
-#endif
-    g_x_mat.clear(); // releasing memory for gathered data
-    auto loc_dist_mat = y_mat.data.map(compute_dist(dist_metric,
-                                       trans_b,need_distance), b_mat);
-    dist_mat.data = std::move(loc_dist_mat);
-    dist_mat.num_row = nquery;
-    dist_mat.num_col = nsamples; // no tranpose required, since Y * Xt is performed
-    calc_dist.lap_stop();
-    calc_dist.show_lap("dist calculation: ");
-  }
-
-  else { // nsamples >> nquery (more than 100 times)
-    auto g_y_mat = y_mat.gather();
-    calc_dist.lap_start();
-#ifdef NEED_TRANS_FOR_MULT
-    auto b_mat = broadcast(g_y_mat.transpose());
-    auto trans_b = true;
-#else
-    auto b_mat = broadcast(g_y_mat);
-    auto trans_b = false;
-#endif
-    g_y_mat.clear(); // releasing memory for gathered data
-    auto loc_dist_mat = x_mat.data.map(compute_dist(dist_metric,
-                                       trans_b,need_distance), b_mat);
-    rowmajor_matrix<T> tmp_dist_mat(std::move(loc_dist_mat));
-    tmp_dist_mat.num_row = nsamples;
-    tmp_dist_mat.num_col = nquery;
-    dist_mat = tmp_dist_mat.transpose(); // transpose is needed, since X * Yt is performed
-    calc_dist.lap_stop();
-    calc_dist.show_lap("dist calculation: ");
-  }
-
+  auto dist_mat = construct_distance_matrix(x_mat, y_mat, metric, need_distance);
 #ifdef DEBUG_SAVE
   dist_mat.save("unsorted_distance_matrix");
 #endif
@@ -511,47 +299,100 @@ knn_model<T, I> knn(rowmajor_matrix<T>& mat,
   return knn(mat, mat, k, algorithm, metric, need_distance, chunk_size);
 }
 
+struct find_radius_neighbor {
+  find_radius_neighbor() {}
+  find_radius_neighbor(float rad, bool need_dist, float c_sz):
+    radius(rad), need_distance(need_dist), chunk_size(c_sz) {}
 
-// sklearn-like interface
-template <class T>
-struct nearest_neighbors {
-  nearest_neighbors(int k, float rad, const std::string& algo,
-                    const std::string& met, float c_sz):
-    n_neighbors(k), radius(rad), algorithm(algo), 
-    metric(met), chunk_size(c_sz) {}
-  
-  void fit(rowmajor_matrix<T>& mat) {
-    observation_data = mat;
+  template <class T, class I, class O>
+  void operator()(rowmajor_matrix_local<T>& dist_mat,
+                  crs_matrix_local<T,I,O>& ret) {
+    auto nrow = dist_mat.local_num_row;
+    auto ncol = dist_mat.local_num_col;
+    auto dmatptr = dist_mat.val.data();
+    size_t count = 0;
+    // counting number of in-radius elements for getting size of val/idx of ret
+    for(size_t i = 0; i < nrow * ncol; ++i) {
+      if (dmatptr[i] <= radius) { // && dmatptr[i] != 0) {
+        count++;
+      }
+    }
+    ret.val.resize(count);
+    ret.idx.resize(count);
+    ret.off.resize(nrow + 1);
+    ret.off[0] = 0;
+    ret.local_num_row = nrow;
+    ret.local_num_col = ncol; // nsamples in observation data
+    auto retvalptr = ret.val.data();
+    auto retidxptr = ret.idx.data();
+    auto retoffptr = ret.off.data();
+    size_t curidx = 0;
+    if (need_distance) {
+      for(size_t i = 0; i < nrow; ++i) {
+        for(size_t j = 0; j < ncol; ++j) {
+          auto dist = dmatptr[i * ncol + j];
+          if (dist <= radius) { // && dist != 0) {
+            retvalptr[curidx] = dist;
+            retidxptr[curidx] = j;
+            curidx++;
+          }
+        }
+        retoffptr[i+1] = curidx;
+      }
+    }
+    else {
+      for(size_t i = 0; i < nrow; ++i) {
+        for(size_t j = 0; j < ncol; ++j) {
+          auto dist = dmatptr[i * ncol + j];
+          if (dist <= radius) { // && dist != 0) {
+            retvalptr[curidx] = 1.0; // means connected
+            retidxptr[curidx] = j;
+            curidx++;
+          }
+        }
+        retoffptr[i+1] = curidx;
+      }
+    }
   }
-
-  template <class I = size_t>
-  knn_model<T,I>
-  kneighbors(rowmajor_matrix<T>& enquiry_data, 
-             int k = 0, 
-             bool need_distance = true) {
-    if (k == 0) k = n_neighbors;
-    return knn(observation_data, enquiry_data, 
-                k, algorithm, metric, need_distance, chunk_size);
-  }
-
-  template <class I = size_t, class O = size_t>
-  crs_matrix<T, I, O>
-  kneighbors_graph(rowmajor_matrix<T>& enquiry_data,
-                   int k = 0,
-                   const std::string& mode = "connectivity") {
-    auto need_distance = (mode == std::string("distance"));
-    auto model = kneighbors(enquiry_data, k, need_distance);
-    return model.create_graph(mode); 
-  }
-
-  rowmajor_matrix<T> observation_data;
-  int n_neighbors;
   float radius;
-  std::string algorithm;
-  std::string metric;
+  bool need_distance;
   float chunk_size;
-  SERIALIZE(observation_data, n_neighbors, radius, algorithm, metric, chunk_size)
+  SERIALIZE(radius, need_distance, chunk_size)
 };
+
+template <class T, class I = size_t, class O = size_t>
+crs_matrix<T, I, O> 
+knn_radius(rowmajor_matrix<T>& x_mat,
+           rowmajor_matrix<T>& y_mat,
+           float radius,
+           const std::string& algorithm = "brute",
+           const std::string& metric = "euclidean",
+           bool need_distance = false,
+           float chunk_size = 1.0) {
+  auto nsamples = x_mat.num_row;
+  auto nquery   = y_mat.num_row;
+
+  if (algorithm != "brute")
+    REPORT_ERROR(USER_ERROR,
+      "Currently frovedis knn supports only brute force implementation!\n");
+
+  if (metric != "euclidean" && metric != "seuclidean")
+    REPORT_ERROR(USER_ERROR,
+      "Currently frovedis knn supports only euclidean/seuclidean distance!\n");
+
+  auto dist_mat = construct_distance_matrix(x_mat, y_mat, metric, need_distance);
+#ifdef DEBUG_SAVE
+  dist_mat.save("unsorted_distance_matrix");
+#endif
+
+  crs_matrix<T,I,O> knn_radius_model;
+  knn_radius_model.data = make_node_local_allocate<crs_matrix_local<T,I,O>>();
+  dist_mat.data.mapv(find_radius_neighbor(radius, need_distance, chunk_size),
+                     knn_radius_model.data);
+  knn_radius_model.num_row = nquery;
+  knn_radius_model.num_col = nsamples;
+  return knn_radius_model;
+}
 
 }
 
