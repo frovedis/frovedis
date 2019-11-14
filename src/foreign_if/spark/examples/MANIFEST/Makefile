@@ -1,7 +1,7 @@
 include ../../../../../Makefile.in.x86
 #include ../Makefile.in.x86
 
-all: dtransfer.mf frov_mat.mf frov_df.mf pblas_scalapack.mf svd.mf pca.mf als.mf kmeans.mf lrm.mf lrsgd.mf nb.mf fm.mf dt.mf fp.mf ac.mf se.mf sc.mf w2v.mf
+all: dtransfer.mf frov_mat.mf frov_df.mf pblas_scalapack.mf svd.mf pca.mf als.mf kmeans.mf lrm.mf lrsgd.mf nb.mf fm.mf dt.mf fp.mf ac.mf se.mf sc.mf w2v.mf page_rank.mf 
 
 append:
 	echo ${SPARK_HOME}/jars/*:${HDPATH} > tmp
@@ -79,6 +79,10 @@ sc.mf: sc.mf.tmpl append
 w2v.mf: w2v.mf.tmpl append
 	cp w2v.mf.tmpl w2v.mf
 	cat append >> w2v.mf
+
+page_rank.mf: page_rank.mf.tmpl append
+	cp page_rank.mf.tmpl page_rank.mf
+	cat append >> page_rank.mf
 
 clean:
 	rm -f *~ *.mf append
