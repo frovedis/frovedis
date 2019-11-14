@@ -53,6 +53,8 @@ endif
 	cp lda/*.hpp ${INSTALLPATH}/include/frovedis/ml/lda
 	install -d ${INSTALLPATH}/include/frovedis/ml/fpm
 	cp fpm/*.hpp ${INSTALLPATH}/include/frovedis/ml/fpm
+	install -d ${INSTALLPATH}/include/frovedis/ml/neighbors
+	cp neighbors/*.hpp ${INSTALLPATH}/include/frovedis/ml/neighbors
 
 optimizer.o: optimizer.cc
 
