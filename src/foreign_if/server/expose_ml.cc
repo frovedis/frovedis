@@ -140,4 +140,17 @@ void expose_frovedis_ml_functions() {
   // (15) word2vector
   expose(frovedis_w2v<DT2>);          // spark case
   expose(frovedis_w2v_train);         // python case
+  // (16) dbscan
+  expose((frovedis_dbscan<DT1,R_MAT1>)); // python case (fit-predict)
+  expose((frovedis_dbscan<DT2,R_MAT2>)); // python case (fit-predict)
+  // (17) knn - Nearest Neighbors (NN)
+  expose((frovedis_knn<DT1,R_MAT1>));
+  expose((frovedis_knn<DT2,R_MAT2>)); 
+  // (18) knc
+  expose((frovedis_knc<DT1,R_MAT1>));
+  expose((frovedis_knc<DT2,R_MAT2>)); 
+  // (19) knr
+  expose((frovedis_knr<DT1,R_MAT1>));
+  expose((frovedis_knr<DT2,R_MAT2>)); 
+
 }
