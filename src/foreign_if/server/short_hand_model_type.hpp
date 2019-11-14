@@ -1,6 +1,8 @@
 #ifndef _SHORT_HAND_MODEL_TYPE_
 #define _SHORT_HAND_MODEL_TYPE_ 
 
+#include <frovedis/ml/neighbors/knn_unsupervised.hpp>
+#include <frovedis/ml/neighbors/knn_supervised.hpp>
 #include "short_hand_dtype.hpp"
 
 namespace frovedis {
@@ -33,5 +35,11 @@ namespace frovedis {
   typedef rowmajor_matrix_local<DT2> ACM2;
   typedef rowmajor_matrix_local<DT1> W2V1;
   typedef rowmajor_matrix_local<DT2> W2V2;
+  typedef nearest_neighbors<DT1> KNN1;
+  typedef nearest_neighbors<DT2> KNN2;
+  typedef kneighbors_classifier<DT1> KNC1;
+  typedef kneighbors_classifier<DT2> KNC2;
+  typedef kneighbors_regressor<DT1> KNR1;
+  typedef kneighbors_regressor<DT2> KNR2;
 }
 #endif
