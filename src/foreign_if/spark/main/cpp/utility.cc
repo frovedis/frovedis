@@ -70,6 +70,20 @@ jobject to_jDummyMatrix(JNIEnv *env, dummy_matrix& obj, short mtype) {
   return newDummyMat;
 }
 
+jobject to_jDummyGraph(JNIEnv *env, dummy_graph& obj) {
+  jclass dgrCls = env->FindClass(JRE_PATH_DummyGraph);
+  if (dgrCls == NULL) REPORT_ERROR(INTERNAL_ERROR, "DummyGraph class not found in JRE\n");
+  jmethodID dgrConst = env->GetMethodID(dgrCls, "<init>", "(JJJ)V");
+  if (dgrConst == NULL) REPORT_ERROR(INTERNAL_ERROR, "DummyGraph(J,J,J) not found in JRE\n");
+  long dptr = static_cast<long>(obj.dptr);
+  long nEdges = static_cast<long>(obj.num_edges);
+  long nNodes = static_cast<long>(obj.num_nodes);
+  auto newDummyGr = env->NewObject(dgrCls,dgrConst,dptr,nEdges,nNodes);
+  if (newDummyGr == NULL) REPORT_ERROR(INTERNAL_ERROR, "DummyGraph object creation failed\n");
+  return newDummyGr;
+}
+
+
 jobject to_jDummyGetrfResult(JNIEnv *env, getrf_result& obj, short mtype) {
   jclass rfCls = env->FindClass(JRE_PATH_DummyGetrfResult);
   if (rfCls == NULL) REPORT_ERROR(INTERNAL_ERROR, "DummyGetrfResult class not found in JRE\n");
@@ -352,6 +366,36 @@ jobjectArray to_jIntDoublePairArray(JNIEnv *env,
     auto p = make_jIntDoublePair(env, pd[i].first, pd[i].second);
     env->SetObjectArrayElement(ret, i, p);
   }  
+  return ret;
+}
+
+jobject to_java_DummyEdge (JNIEnv *env, size_t srcID, size_t dstID, double attr) {
+  jclass edgeCls = env->FindClass(JRE_PATH_DummyEdge);
+  if (edgeCls == NULL) REPORT_ERROR(INTERNAL_ERROR, "DummyEdge class not found in JRE\n");
+  jmethodID dummyEdgeConst = env->GetMethodID(edgeCls, "<init>", "(JJD)V");
+  if (dummyEdgeConst == NULL) 
+    REPORT_ERROR(INTERNAL_ERROR, "DummyEdge::DummyEdge(J,J,D) not found in JRE\n");
+  auto new_edge = env->NewObject(edgeCls, dummyEdgeConst, (long)srcID, (long)dstID, attr);
+  if (new_edge == NULL) REPORT_ERROR(INTERNAL_ERROR, "DummyEdge object creation failed\n");
+  return new_edge;
+}
+
+// conversion of graph adjacency matrix => jobjectArray(DummyEdge)
+jobjectArray to_jDummyEdgeArray(JNIEnv *env, crs_matrix_local<double>& mat) {
+  auto nrow = mat.local_num_row;
+  jclass edgeCls = env->FindClass(JRE_PATH_DummyEdge);
+  if (edgeCls == NULL) REPORT_ERROR(INTERNAL_ERROR, "DummyEdge class not found in JRE\n");
+  jobjectArray ret = env->NewObjectArray(mat.val.size(), edgeCls, NULL);
+  if (ret == NULL) REPORT_ERROR(INTERNAL_ERROR, "DummyEdge Array creation failed!\n");
+  for(size_t i = 0; i < nrow; ++i) {
+    for(size_t j = mat.off[i]; j < mat.off[i+1]; ++j) {
+      auto srcID = mat.idx[j] + 1;
+      auto dstID = i + 1;
+      auto attr = mat.val[j];
+      auto edge = to_java_DummyEdge(env,srcID,dstID,attr);
+      env->SetObjectArrayElement(ret, j, edge);
+    }
+  }
   return ret;
 }
 

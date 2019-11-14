@@ -22,6 +22,7 @@ extern "C" {
   jobject frovedis_node_to_java_node (JNIEnv *, exrpc_node&);
 
   jobject frovedis_dummyGLM_to_java_dummyGLM(JNIEnv *, dummy_glm&);
+  jobject to_jDummyGraph(JNIEnv *, dummy_graph&);
   jobject to_jDummyMatrix(JNIEnv *, dummy_matrix&, short );
   jobject to_jDummyGetrfResult(JNIEnv *, getrf_result&, short);
   jobject to_jDummyGesvdResult(JNIEnv *, gesvd_result&, short, bool, bool);
@@ -43,6 +44,7 @@ extern "C" {
   jobjectArray to_jStringArray(JNIEnv *, std::vector<std::string>&);
   jobjectArray to_jNodeArray(JNIEnv *, std::vector<frovedis::exrpc_node>&);
   jobjectArray to_jIntDoublePairArray(JNIEnv *, std::vector<std::pair<size_t,double>>&);
+  jobjectArray to_jDummyEdgeArray(JNIEnv *, crs_matrix_local<double>&);
 
   // dataframe etc.
   std::vector<float> to_float_vector(JNIEnv *, jfloatArray&, size_t);
