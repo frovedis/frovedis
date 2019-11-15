@@ -72,21 +72,27 @@ class GenericModel(modelId: Int,
 }
 
 class GenericModelWithPredict(modelId: Int,
-                              modelKind: Short) 
+                              modelKind: Short,
+                              logic: Map[Double, Double]) 
   extends GenericModel(modelId,modelKind) {
+  protected val enc_logic: Map[Double, Double] = logic
+
   private[mllib] def parallel_predict(data: Iterator[Vector],
-                       mptr: Long,
-                       t_node: Node) : Iterator[Double] = {
+                                      mptr: Long,
+                                      t_node: Node) : Iterator[Double] = {
     val darr = data.map(x => x.toSparse).toArray
     val scalaCRS = new ScalaCRS(darr)
-    val ret = JNISupport.doParallelGLMPredict(t_node, mptr, mkind,
+    var ret = JNISupport.doParallelGLMPredict(t_node, mptr, mkind,
                                               scalaCRS.nrows, 
                                               scalaCRS.ncols,
                                               scalaCRS.off.toArray,
                                               scalaCRS.idx.toArray,
                                               scalaCRS.data.toArray)
-    val info = JNISupport.checkServerException();
-    if (info != "") throw new java.rmi.ServerException(info);
+    val info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
+    val needed_decoding = Array(M_KIND.LRM, M_KIND.SVM, M_KIND.DTM)
+    if ((needed_decoding contains mkind) && (logic != null))
+      ret = ret.map(x => logic(x)) 
     return ret.toIterator
   }
   // prediction on single input
@@ -94,26 +100,28 @@ class GenericModelWithPredict(modelId: Int,
     val fs = FrovedisServer.getServerInstance()
     val darr = Array(data.toSparse) // an array of one SparseVector
     val scalaCRS = new ScalaCRS(darr)
-    val ret = JNISupport.doSingleGLMPredict(fs.master_node, mid, mkind,
+    var ret = JNISupport.doSingleGLMPredict(fs.master_node, mid, mkind,
                                             scalaCRS.nrows, 
                                             scalaCRS.ncols,
                                             scalaCRS.off.toArray,
                                             scalaCRS.idx.toArray,
                                             scalaCRS.data.toArray);
-    val info = JNISupport.checkServerException();
-    if (info != "") throw new java.rmi.ServerException(info);
-    return ret;
+    val info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
+    val needed_decoding = Array(M_KIND.LRM, M_KIND.SVM, M_KIND.DTM)
+    if ((needed_decoding contains mkind) && (logic != null)) ret = logic(ret) 
+    return ret
   }
   // prediction on multiple inputs
   def predict(data: RDD[Vector]) : RDD[Double] = {
     val fs = FrovedisServer.getServerInstance()
     val each_model = JNISupport.broadcast2AllWorkers(fs.master_node,mid,mkind)
-    val info = JNISupport.checkServerException();
-    if (info != "") throw new java.rmi.ServerException(info);
+    val info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
     //println("[scala] Getting worker info for prediction on model[" + mid + "].")
     val fw_nodes = JNISupport.getWorkerInfo(fs.master_node)
-    val info1 = JNISupport.checkServerException();
-    if (info1 != "") throw new java.rmi.ServerException(info1);
+    val info1 = JNISupport.checkServerException()
+    if (info1 != "") throw new java.rmi.ServerException(info1)
     val wdata = data.repartition2(fs.worker_size)
     return wdata.mapPartitionsWithIndex((i,x) => 
                 parallel_predict(x,each_model(i),fw_nodes(i))).cache()

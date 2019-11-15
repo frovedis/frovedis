@@ -4,8 +4,9 @@ import com.nec.frovedis.Jexrpc.{FrovedisServer,JNISupport}
 import com.nec.frovedis.mllib.{M_KIND,ModelID,GenericModelWithPredict}
 import org.apache.spark.SparkContext
 
-class DecisionTreeModel(val model_Id: Int) 
-  extends GenericModelWithPredict(model_Id, M_KIND.DTM){
+class DecisionTreeModel(val model_Id: Int,
+                        val logic: Map[Double, Double]) 
+  extends GenericModelWithPredict(model_Id, M_KIND.DTM, logic){
   
   // to be implemented...
   /*
@@ -23,7 +24,7 @@ object DecisionTreeModel {
     JNISupport.loadFrovedisModel(fs.master_node,modelId,M_KIND.DTM,path)
     val info = JNISupport.checkServerException();
     if (info != "") throw new java.rmi.ServerException(info);
-    return new DecisionTreeModel(modelId)
+    return new DecisionTreeModel(modelId, null)
   }
 }
 

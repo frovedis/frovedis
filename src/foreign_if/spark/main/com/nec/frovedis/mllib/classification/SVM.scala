@@ -1,6 +1,6 @@
 package com.nec.frovedis.mllib.classification;
 
-import com.nec.frovedis.Jexrpc.{FrovedisServer,JNISupport}
+import com.nec.frovedis.Jexrpc.{FrovedisServer,JNISupport,MemPair}
 import com.nec.frovedis.Jmllib.DummyGLM
 import com.nec.frovedis.exrpc.FrovedisLabeledPoint
 import com.nec.frovedis.mllib.{M_KIND,ModelID}
@@ -13,10 +13,11 @@ class SVMModel(modelId: Int,
                modelKind: Short,
                nftr: Long,
                ncls: Int,
-               thr: Double)
-  extends GeneralizedLinearModel(modelId,modelKind,nftr,ncls,thr) {
+               thr: Double,
+               logic: Map[Double, Double])
+  extends GeneralizedLinearModel(modelId,modelKind,nftr,ncls,thr,logic) {
   def this(m: DummyGLM) = {
-    this(m.mid, m.mkind, m.numFeatures, m.numClasses, m.threshold)
+    this(m.mid, m.mkind, m.numFeatures, m.numClasses, m.threshold, null)
   }
 }
 
@@ -89,17 +90,24 @@ object SVMWithSGD {
             regParam: Double,
             miniBatchFraction: Double,
             isMovableInput: Boolean) : SVMModel = {
+     val ncls = data.get_distinct_label_count().intValue
+     require(ncls == 2, s"Currently frovedis SVM supports only binary classification!")
+     val enc_ret = data.encode_labels(Array(-1.0, 1.0))
+     val encoded_data = enc_ret._1
+     val logic = enc_ret._2
+
      val mid = ModelID.get()
      val fs = FrovedisServer.getServerInstance()
-     JNISupport.callFrovedisSVMSGD(fs.master_node,data.get(),numIter,stepSize,
+     JNISupport.callFrovedisSVMSGD(fs.master_node,encoded_data,numIter,stepSize,
                                    miniBatchFraction,regParam,mid,isMovableInput,
                                    data.is_dense())
-     val info = JNISupport.checkServerException();
-     if (info != "") throw new java.rmi.ServerException(info);
+     val info = JNISupport.checkServerException()
+     if (info != "") throw new java.rmi.ServerException(info)
+     data.release_encoded_labels() // releasing encoded labels from server
      val numFeatures = data.numCols()
-     val numClasses = 2  // Currently Frovedis supports binary classification only
+     val numClasses = ncls.intValue
      val threshold = 0.0 // default
-     return new SVMModel(mid,M_KIND.SVM,numFeatures,numClasses,threshold)
+     return new SVMModel(mid,M_KIND.SVM,numFeatures,numClasses,threshold,logic)
   }
 
   def train(data: FrovedisLabeledPoint,
@@ -177,17 +185,24 @@ object SVMWithLBFGS {
             regParam: Double,
             histSize: Int,
             isMovableInput: Boolean) : SVMModel = {
+     val ncls = data.get_distinct_label_count().intValue
+     require(ncls == 2, s"Currently frovedis SVM supports only binary classification!")
+     val enc_ret = data.encode_labels(Array(-1.0, 1.0))
+     val encoded_data = enc_ret._1
+     val logic = enc_ret._2
+
      val mid = ModelID.get()
      val fs = FrovedisServer.getServerInstance()
-     JNISupport.callFrovedisSVMLBFGS(fs.master_node,data.get(),numIter,stepSize,
+     JNISupport.callFrovedisSVMLBFGS(fs.master_node,encoded_data,numIter,stepSize,
                                    histSize,regParam,mid,isMovableInput,
                                    data.is_dense())
-     val info = JNISupport.checkServerException();
-     if (info != "") throw new java.rmi.ServerException(info);
+     val info = JNISupport.checkServerException()
+     if (info != "") throw new java.rmi.ServerException(info)
+     data.release_encoded_labels() // releasing encoded labels from server
      val numFeatures = data.numCols()
-     val numClasses = 2  // Currently Frovedis supports binary classification only
+     val numClasses = ncls.intValue
      val threshold = 0.0 // default
-     return new SVMModel(mid,M_KIND.SVM,numFeatures,numClasses,threshold)
+     return new SVMModel(mid,M_KIND.SVM,numFeatures,numClasses,threshold,logic)
   }
 
   def train(data: FrovedisLabeledPoint,

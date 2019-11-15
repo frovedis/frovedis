@@ -86,8 +86,10 @@ object NaiveBayes {
 }
 
 class NaiveBayesModel (val model_Id: Int,
-                       val modelType: String)
-   extends GenericModelWithPredict(model_Id, (M_KIND.NBM)) {}
+                       val modelType: String) // Not used [?]
+   extends GenericModelWithPredict(model_Id, M_KIND.NBM, 
+                                   null) { // no encoding required for naive bayes
+} 
 
 object NaiveBayesModel{
   def load(sc: SparkContext, path: String) : NaiveBayesModel = load(path)

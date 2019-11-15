@@ -1,6 +1,6 @@
 package com.nec.frovedis.mllib.classification;
 
-import com.nec.frovedis.Jexrpc.{FrovedisServer,JNISupport}
+import com.nec.frovedis.Jexrpc.{FrovedisServer,JNISupport,MemPair}
 import com.nec.frovedis.Jmllib.DummyGLM
 import com.nec.frovedis.exrpc.FrovedisLabeledPoint
 import com.nec.frovedis.mllib.{M_KIND,ModelID}
@@ -13,10 +13,11 @@ class LogisticRegressionModel(modelId: Int,
                               modelKind: Short,
                               nftr: Long,
                               ncls: Int,
-                              thr: Double) 
-  extends GeneralizedLinearModel(modelId,modelKind,nftr,ncls,thr) {
+                              thr: Double,
+                              logic: Map[Double,Double]) 
+  extends GeneralizedLinearModel(modelId,modelKind,nftr,ncls,thr,logic) {
   def this(m: DummyGLM) = {
-    this(m.mid, m.mkind, m.numFeatures, m.numClasses, m.threshold)
+    this(m.mid, m.mkind, m.numFeatures, m.numClasses, m.threshold, null)
   }
 }
 
@@ -174,26 +175,34 @@ class LogisticRegression(sol: String = "sgd") {
       isMult = true
       mkind = M_KIND.MLR
     }
+
+    var enc_ret: (MemPair,  Map[Double, Double]) = null
+    if (isMult) enc_ret = data.encode_labels()
+    else        enc_ret = data.encode_labels(Array(-1.0, 1.0))
+    val encoded_data = enc_ret._1
+    val logic = enc_ret._2
+
     var regT: Int = 0
     if(regType == "l1") regT = 1
     else if(regType == "l2") regT = 2
     val mid = ModelID.get()
     val fs = FrovedisServer.getServerInstance()
     if (solver == "sgd")
-      JNISupport.callFrovedisLRSGD(fs.master_node,data.get(),maxIter,stepSize,
+      JNISupport.callFrovedisLRSGD(fs.master_node,encoded_data,maxIter,stepSize,
                                    miniBatchFraction,regT,regParam,isMult,
                                    fitIntercept,tol,
                                    mid,inputMovable,data.is_dense())
     else if(solver == "lbfgs")
-      JNISupport.callFrovedisLRLBFGS(fs.master_node,data.get(),maxIter,stepSize,
+      JNISupport.callFrovedisLRLBFGS(fs.master_node,encoded_data,maxIter,stepSize,
                                      histSize,regT,regParam,isMult,
                                      fitIntercept,tol,
                                      mid,inputMovable,data.is_dense())
     else throw new IllegalArgumentException("Currently supported solvers are: sgd/lbfgs\n")
-    val info = JNISupport.checkServerException();
-    if (info != "") throw new java.rmi.ServerException(info);
+    val info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
+    data.release_encoded_labels() // deleting encoded labels from server
     val numFeatures = data.numCols()
-    return new LogisticRegressionModel(mid,mkind,numFeatures,ncls,threshold)
+    return new LogisticRegressionModel(mid,mkind,numFeatures,ncls,threshold,logic)
   }
 }
 

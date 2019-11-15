@@ -7,8 +7,10 @@ import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 import org.apache.spark.mllib.regression.LabeledPoint
 
-class FactorizationMachineModel (val model_Id: Int) 
-  extends GenericModelWithPredict(model_Id,M_KIND.FMM) { }
+class FactorizationMachineModel (val model_Id: Int)
+  extends GenericModelWithPredict(model_Id, M_KIND.FMM, 
+                                  null) { // no encoding required for FM
+ }
 
 object FactorizationMachineModel{
   def load(sc: SparkContext, path: String): FactorizationMachineModel = load(path)
@@ -16,8 +18,8 @@ object FactorizationMachineModel{
     val modelId = ModelID.get()
     val fs = FrovedisServer.getServerInstance()
     JNISupport.loadFrovedisModel(fs.master_node,modelId,M_KIND.FMM,path)
-    val info = JNISupport.checkServerException();
-    if (info != "") throw new java.rmi.ServerException(info);
+    val info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
     return new FactorizationMachineModel(modelId)
   }
 }
@@ -50,9 +52,9 @@ class FactorizationMachine private (val fm_config: FMConfig) {
                          fm_config.regParam._3,       // Double
                          model_Id,                    // Int
 			 movable)                     // Boolean
-    val info = JNISupport.checkServerException();
-    if (info != "") throw new java.rmi.ServerException(info);
-    return new FactorizationMachineModel (model_Id)
+    val info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
+    return new FactorizationMachineModel(model_Id)
   }
 }
 

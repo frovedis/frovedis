@@ -1,7 +1,7 @@
 package com.nec.frovedis.mllib.tree;
 
 import collection.JavaConversions._
-import com.nec.frovedis.Jexrpc.{FrovedisServer,JNISupport}
+import com.nec.frovedis.Jexrpc.{FrovedisServer,JNISupport,MemPair}
 import com.nec.frovedis.exrpc.FrovedisLabeledPoint
 import com.nec.frovedis.mllib.{M_KIND,ModelID}
 import org.apache.spark.mllib.tree.configuration.{Algo, FeatureType}
@@ -72,9 +72,16 @@ class DecisionTree private(val strategy: Strategy, var seed: Int){
     val values = strategy.getCategoricalFeaturesInfo().values.toArray
     val size = keys.size
     val algo = strategy.getAlgo().toString()
+    var encoded_data: MemPair = fdata.get()
+    var logic: Map[Double, Double] = null
+    if (algo == "Classification") {
+      val enc_ret = fdata.encode_labels()
+      encoded_data = enc_ret._1
+      logic = enc_ret._2
+    }
     val impt = Impurities.toString(strategy.getImpurity)
     val fs = FrovedisServer.getServerInstance()
-    JNISupport.callFrovedisDT(fs.master_node,fdata.get(),
+    JNISupport.callFrovedisDT(fs.master_node,encoded_data,
                              algo,  
                              strategy.getMaxDepth(),   
 		             strategy.getNumClasses(), 
@@ -85,9 +92,10 @@ class DecisionTree private(val strategy: Strategy, var seed: Int){
                              impt, keys, values, size,        
                              model_id, movable,
                              fdata.is_dense())       
-    val info = JNISupport.checkServerException();
-    if (info != "") throw new java.rmi.ServerException(info);
-    return new DecisionTreeModel (model_id)
+    val info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
+    fdata.release_encoded_labels()
+    return new DecisionTreeModel (model_id, logic)
   }
 }
 

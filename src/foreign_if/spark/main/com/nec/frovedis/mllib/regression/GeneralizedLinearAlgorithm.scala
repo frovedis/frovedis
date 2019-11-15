@@ -11,8 +11,9 @@ class GeneralizedLinearModel(modelId: Int,
                              modelKind: Short,
                              nftr: Long,
                              ncls: Int,
-                             thr: Double) 
-  extends GenericModelWithPredict(modelId,modelKind) {
+                             thr: Double,
+                             logic: Map[Double, Double]) 
+  extends GenericModelWithPredict(modelId,modelKind,logic) {
   protected val numFeatures: Long = nftr
   protected val numClasses: Int = ncls
   protected var threshold: Double = thr
