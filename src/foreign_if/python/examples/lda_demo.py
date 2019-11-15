@@ -3,9 +3,12 @@ import numpy as np
 from scipy.sparse import csr_matrix
 from frovedis.exrpc.server import *
 from frovedis.matrix.crs import FrovedisCRSMatrix
-from sklearn.feature_extraction.text import CountVectorizer
 import sys
-
+try:
+    from sklearn.feature_extraction.text import CountVectorizer
+except:
+    print ('Please prepare environment with scikit-learn (see tutorial)')
+    quit()
 
 # initializing the Frovedis server
 argvs = sys.argv
