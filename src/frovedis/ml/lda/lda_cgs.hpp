@@ -7,6 +7,22 @@
 
 namespace frovedis {
 
+template <typename TD, typename TW, typename TK>
+rowmajor_matrix_local<TD> 
+get_doc_topic_count_rmml(lda::lda_corpus<TD,TW,TK>& corpus){
+  auto sz = corpus.size();
+  auto num_topic = corpus[0].doc_topic_count.local_num_col;
+  rowmajor_matrix_local<TD> ret(sz, num_topic);
+  auto rptr = ret.val.data();
+  for(size_t i = 0; i < sz; i++) {
+    auto vptr = corpus[i].doc_topic_count.val.data();
+    for(size_t j = 0; j < num_topic; j++) {
+      rptr[i * num_topic + j] = vptr[j];
+    }
+  }
+  return ret;
+}
+
 // TC: number of tokens in training corpus;
 // TD: number of tokens in each training documents;
 // TW: number of words;
@@ -243,10 +259,13 @@ lda_model<TC> lda_train(
 }
 
 
-template <typename TC, typename TD = int32_t, typename TW = int32_t, typename TK = int32_t, typename TA = int16_t>
-void lda_test(crs_matrix<TD>& data_test , const double alpha, const double beta, const int num_iter, std::string& algorithm, 
-              const int num_explore_iter, lda_model<TC>& model, 
-              std::vector<double>& perplexity, std::vector<double>& likelihood) {
+template <typename TC, typename TD = int32_t, typename TW = int32_t, 
+          typename TK = int32_t, typename TA = int16_t>
+rowmajor_matrix<TD>
+lda_test(crs_matrix<TD>& data_test , const double alpha, const double beta, 
+         const int num_iter, std::string& algorithm, 
+         const int num_explore_iter, lda_model<TC>& model, 
+         std::vector<double>& perplexity, std::vector<double>& likelihood) {
             
     RLOG(TRACE)<<"=================== START TESTING ========================"<<std::endl;    
 
@@ -322,7 +341,7 @@ void lda_test(crs_matrix<TD>& data_test , const double alpha, const double beta,
     perplexity = std::vector<double>();
     likelihood = std::vector<double>();
     auto model_l = make_node_local_broadcast(model);
-    model.clear();
+    //model.clear(); // causing issues for consecutive use of same model
         
     for(int i=1; i<=num_iter; i++){      
         
@@ -360,6 +379,11 @@ void lda_test(crs_matrix<TD>& data_test , const double alpha, const double beta,
     RLOG(DEBUG)<<"-----------------------------------------------------------"<<std::endl;
       
     // if(save_model) corpus_l.mapv(lda::lda_document<TD,TW,TK>::dump_document,broadcast(dataset_name),broadcast(doc_per_thread),broadcast(false));
+    rowmajor_matrix<TD> rmm(corpus_l.map(get_doc_topic_count_rmml<TD,TW,TK>));
+    rmm.num_col = config.num_topics;
+    rmm.num_row = data_test.num_row;
+    return rmm;
+
 }
 
 }  // namespace frovedis
