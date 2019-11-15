@@ -161,7 +161,8 @@ class FrovedisFeatureData:
     """A python container for frovedis side data for unsupervised
     ML algorithms"""
 
-    def __init__(self, mat, is_dense=None, dense_kind=None, dtype=None):
+    def __init__(self, mat, is_dense=None, dense_kind=None, dtype=None, \
+                 allow_int_dtype=False):
         # decision making whether the converted data would be movable
         # upon destruction
         if isinstance(mat, (FrovedisCRSMatrix, FrovedisRowmajorMatrix,
@@ -202,7 +203,8 @@ class FrovedisFeatureData:
                 else:
                     mat = np.asmatrix(mat, dtype=dtype) # user given dtype
                                                         #can not be int kind
-                if mat.dtype != np.float32 and mat.dtype != np.float64:
+                if mat.dtype != np.float32 and mat.dtype != np.float64 \
+                                           and allow_int_dtype != True:
                     target_dtype = np.float64 #(default double, for integer mat)
                 else:
                     target_dtype = mat.dtype
@@ -222,7 +224,8 @@ class FrovedisFeatureData:
         else:
             if self.__mat_movable:
                 mat = mat.tocsr()
-                if mat.dtype != np.float32 and mat.dtype != np.float64:
+                if mat.dtype != np.float32 and mat.dtype != np.float64 \
+                                           and allow_int_dtype != True:
                     target_dtype = np.float64 #(default double, for integer mat)
                 else:
                     target_dtype = mat.dtype
@@ -235,7 +238,8 @@ class FrovedisFeatureData:
         self.__num_row = self.X.numRows()
         self.__num_col = self.X.numCols()
 
-        if self.__dtype != DTYPE.FLOAT and self.__dtype != DTYPE.DOUBLE:
+        if self.__dtype != DTYPE.FLOAT and self.__dtype != DTYPE.DOUBLE \
+                                       and allow_int_dtype != True:
             raise TypeError(
                 "Expected training data either of float or double type!")
         if not self.__isDense and (
