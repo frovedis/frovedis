@@ -115,4 +115,56 @@ JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_createFrovedisDv
   return (jlong) dvecp;
 }
 
+// needed for FrovedisLabeledPoint
+
+JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_releaseFrovedisDvector
+  (JNIEnv *env, jclass thisCls, jobject master_node, jlong dvec_ptr) {
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto f_dptr = (exrpc_ptr_t) dvec_ptr;
+  try {
+    exrpc_oneway(fm_node, release_dvector<DT1>, f_dptr);
+  }
+  catch(std::exception& e) { set_status(true,e.what()); }
+}
+
+JNIEXPORT jdoubleArray JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getUniqueDvectorElements
+  (JNIEnv *env, jclass thisCls, jobject master_node, jlong dvec_ptr) {
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto f_dptr = (exrpc_ptr_t) dvec_ptr;
+  std::vector<double> uniq_elem;
+  try {
+    uniq_elem = exrpc_async(fm_node,get_distinct_elements<double>,f_dptr).get();
+  }
+  catch(std::exception& e) { set_status(true,e.what()); }
+  return to_jdoubleArray(env, uniq_elem);
+}
+
+JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getZeroBasedEncodedDvector
+  (JNIEnv *env, jclass thisCls, jobject master_node, jlong dvec_ptr) { 
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto f_dptr = (exrpc_ptr_t) dvec_ptr;
+  exrpc_ptr_t res_ptr = -1;
+  try {
+    res_ptr = exrpc_async(fm_node, get_encoded_dvector_zero_based<double>, f_dptr).get();
+  }
+  catch(std::exception& e) { set_status(true,e.what()); }
+  return (jlong) res_ptr;
+}
+
+JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getEncodedDvectorAs
+  (JNIEnv *env, jclass thisCls, jobject master_node, jlong dvec_ptr, 
+   jdoubleArray src, jdoubleArray enc, jint uniqCnt) {
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto f_dptr = (exrpc_ptr_t) dvec_ptr;
+  auto src_vec = to_double_vector(env, src, uniqCnt);
+  auto enc_vec = to_double_vector(env, enc, uniqCnt);
+  exrpc_ptr_t res_ptr = -1;
+  try {
+    res_ptr = exrpc_async(fm_node, get_encoded_dvector<double>, f_dptr, 
+                          src_vec, enc_vec).get();
+  }
+  catch(std::exception& e) { set_status(true,e.what()); }
+  return (jlong) res_ptr;
+}
+
 }
