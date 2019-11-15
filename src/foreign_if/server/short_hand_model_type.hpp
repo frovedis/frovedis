@@ -41,5 +41,7 @@ namespace frovedis {
   typedef kneighbors_classifier<DT2> KNC2;
   typedef kneighbors_regressor<DT1> KNR1;
   typedef kneighbors_regressor<DT2> KNR2;
+  typedef lda_model<DT4> LDA4;
+  typedef lda_model<DT3> LDA3;
 }
 #endif

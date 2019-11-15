@@ -23,14 +23,16 @@
 #include "frovedis/ml/nb/nb_model.hpp"
 #include "frovedis/ml/fpm/fp_growth_model.hpp"
 #include "frovedis/ml/w2v/word2vec.hpp"
+#include "frovedis/ml/clustering/dbscan.hpp"
+#include "frovedis/ml/neighbors/knn_unsupervised.hpp"
+#include "frovedis/ml/neighbors/knn_supervised.hpp"
+#include "frovedis/ml/lda/lda_cgs.hpp"
 #include "../exrpc/exrpc_expose.hpp"
 #include "dummy_model.hpp"
 #include "dummy_matrix.hpp"
 #include "model_tracker.hpp"
-#include "frovedis/ml/clustering/dbscan.hpp"
-#include "frovedis/ml/neighbors/knn_unsupervised.hpp"
-#include "frovedis/ml/neighbors/knn_supervised.hpp"
 #include "knn_result.hpp"
+#include "lda_result.hpp"
 #include "frovedis_mem_pair.hpp"
 
 using namespace frovedis;
@@ -795,5 +797,67 @@ void save_w2v_model(int& mid, std::vector<std::string>& vocab,
   }
   fclose(fo);
 }
+
+template <class T>
+rowmajor_matrix_local <double>
+get_doc_topic_distribution(rowmajor_matrix_local<T>& m){
+  auto nrow = m.local_num_row;
+  auto ncol = m.local_num_col;
+  auto vec = sum_of_cols(m);
+  std::vector<double> dbl_vec(vec.size());
+  auto vptr = vec.data();
+  auto dvptr = dbl_vec.data();
+  for(size_t i=0; i < vec.size(); i++) dvptr[i] = 1 / (double) vptr[i];
+  rowmajor_matrix_local<double> ret(nrow, ncol);
+  auto mvalptr = m.val.data();
+  auto retvalptr = ret.val.data();
+  if (nrow > ncol) {
+    for(size_t j = 0; j < ncol; ++j) {
+      for(size_t i = 0; i < nrow; ++i) {
+        retvalptr[i * ncol + j] = mvalptr[i * ncol + j] * dvptr[i];
+      }
+    }
+  }
+  else {
+    for(size_t i = 0; i < nrow; ++i) {
+      for(size_t j = 0; j < ncol; ++j) {
+        retvalptr[i * ncol + j] = mvalptr[i * ncol + j] * dvptr[i];
+      }
+    }
+  }
+  return ret;
+}
+
+template <class MODEL>
+dummy_matrix get_lda_component(int& mid) {
+  auto& model = *get_model_ptr<MODEL>(mid);
+  auto dist = get_doc_topic_distribution(model.word_topic_count);
+  auto distptr = new rowmajor_matrix<double>(make_rowmajor_matrix_scatter(dist));
+  return to_dummy_matrix<rowmajor_matrix<double>,
+                         rowmajor_matrix_local<double>>(distptr);
+}
+
+template <class TD, class MATRIX, class MODEL>
+dummy_lda_result
+frovedis_lda_transform(exrpc_ptr_t& dptr, double& alpha,
+                       double& beta, int& num_iter,
+                       std::string& algorithm,
+                       int& num_explore_iter, int& mid){
+  auto& model = *get_model_ptr<MODEL>(mid);
+  MATRIX& mat = *reinterpret_cast<MATRIX*>(dptr);
+  auto copy_mat = mat;
+  std::vector<double> likelihood, perplexity;
+  rowmajor_matrix<TD> doc_topic_count = lda_test(copy_mat, alpha, beta, num_iter, algorithm,
+                                  num_explore_iter, model, perplexity,
+                                  likelihood);
+  rowmajor_matrix<double> ret(doc_topic_count.data.map(get_doc_topic_distribution<TD>));
+  ret.num_row = doc_topic_count.num_row;
+  ret.num_col = doc_topic_count.num_col;
+  auto retptr = new rowmajor_matrix<double>(std::move(ret));
+  auto dmat = to_dummy_matrix<rowmajor_matrix<double>,
+                              rowmajor_matrix_local<double>>(retptr);
+  return dummy_lda_result(dmat, perplexity.back(), likelihood.back());
+}
+
 
 #endif 

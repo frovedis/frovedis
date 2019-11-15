@@ -41,7 +41,8 @@ enum MODEL_KIND {
   DBSCAN,
   KNN,
   KNC,
-  KNR
+  KNR,
+  LDA
 };
 
 enum MAT_KIND {

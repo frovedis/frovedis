@@ -36,6 +36,7 @@
 #include "frovedis/ml/clustering/dbscan.hpp"
 #include "frovedis/ml/neighbors/knn_unsupervised.hpp"
 #include "frovedis/ml/neighbors/knn_supervised.hpp"
+#include "frovedis/ml/lda/lda_cgs.hpp"
 
 #include "../exrpc/exrpc_expose.hpp"
 #include "frovedis_mem_pair.hpp"
@@ -62,16 +63,6 @@ inline void handle_trained_model(int mid, MODEL_KIND mkind, MODEL& model) {
 }
 
 // --- Frovedis ML Trainer Calls ---
-// For logistic regression, svm: 
-// Frovedis expects -1 as NEGATIVE RESPONSE
-// whereas scikit-learn, spark etc. expects 0 as NEGATIVE RESPONSE
-// thus this function is used to convert 0 response as -1 response
-template <class T>
-void transform_output_label(std::vector<T>& val) {
-  size_t sz = val.size();
-  T* valp = &val[0];
-  for(size_t i=0; i<sz; ++i) valp[i] = (valp[i] == (T)0) ? -1 : valp[i];
-}
 
 template <class T, class MATRIX>
 void frovedis_lr_sgd(frovedis_mem_pair& mp, int& numIter, double& stepSize, 
@@ -81,8 +72,7 @@ void frovedis_lr_sgd(frovedis_mem_pair& mp, int& numIter, double& stepSize,
   register_for_train(mid);  // mark model 'mid' as "under training"
   // extracting input data
   MATRIX& mat = *reinterpret_cast<MATRIX*>(mp.first());
-  dvector<T> lbl = *reinterpret_cast<dvector<T>*>(mp.second()); // copying 
-  lbl.mapv_partitions(transform_output_label<T>); // transforming copied dvector
+  dvector<T>& lbl = *reinterpret_cast<dvector<T>*>(mp.second()); 
 
   auto old_level = frovedis::get_loglevel();
   if (verbose == 1) frovedis::set_loglevel(frovedis::DEBUG);
@@ -128,9 +118,8 @@ void frovedis_lr_lbfgs(frovedis_mem_pair& mp, int& numIter, double& stepSize,
   register_for_train(mid);  // mark model 'mid' as "under training"
   // extracting input data
   MATRIX& mat = *reinterpret_cast<MATRIX*>(mp.first());
-  dvector<T> lbl = *reinterpret_cast<dvector<T>*>(mp.second()); // copying 
-  lbl.mapv_partitions(transform_output_label<T>); // transforming copied dvector
-  logistic_regression_model<T> m;                // trained output model holder
+  dvector<T>& lbl = *reinterpret_cast<dvector<T>*>(mp.second()); 
+  logistic_regression_model<T> m; // trained output model holder
 
   auto old_level = frovedis::get_loglevel();
   if (verbose == 1) frovedis::set_loglevel(frovedis::DEBUG);
@@ -162,8 +151,7 @@ void frovedis_svm_sgd(frovedis_mem_pair& mp, int& numIter, double& stepSize,
   register_for_train(mid);  // mark model 'mid' as "under training"
   // extracting input data
   MATRIX& mat = *reinterpret_cast<MATRIX*>(mp.first());
-  dvector<T> lbl = *reinterpret_cast<dvector<T>*>(mp.second()); // copying 
-  lbl.mapv_partitions(transform_output_label<T>); // transforming copied dvector
+  dvector<T>& lbl = *reinterpret_cast<dvector<T>*>(mp.second()); 
   svm_model<T> m;  // trained output model holder
 
   auto old_level = frovedis::get_loglevel();
@@ -193,8 +181,7 @@ void frovedis_svm_lbfgs(frovedis_mem_pair& mp, int& numIter, double& stepSize,
   register_for_train(mid);  // mark model 'mid' as "under training"
   // extracting input data
   MATRIX& mat = *reinterpret_cast<MATRIX*>(mp.first());
-  dvector<T> lbl = *reinterpret_cast<dvector<T>*>(mp.second()); // copying 
-  lbl.mapv_partitions(transform_output_label<T>); // transforming copied dvector
+  dvector<T>& lbl = *reinterpret_cast<dvector<T>*>(mp.second());
   svm_model<T> m;  // trained output model holder
 
   auto old_level = frovedis::get_loglevel();
@@ -225,7 +212,7 @@ void frovedis_lnr_sgd(frovedis_mem_pair& mp, int& numIter, double& stepSize,
   register_for_train(mid);  // mark model 'mid' as "under training"
   // extracting input data
   MATRIX& mat = *reinterpret_cast<MATRIX*>(mp.first());
-  dvector<T> lbl = *reinterpret_cast<dvector<T>*>(mp.second()); // copying 
+  dvector<T>& lbl = *reinterpret_cast<dvector<T>*>(mp.second()); 
   linear_regression_model<T> m;   // trained output model holder
 
   auto old_level = frovedis::get_loglevel();
@@ -251,7 +238,7 @@ void frovedis_lnr_lbfgs(frovedis_mem_pair& mp, int& numIter, double& stepSize,
   register_for_train(mid);  // mark model 'mid' as "under training"
   // extracting input data
   MATRIX& mat = *reinterpret_cast<MATRIX*>(mp.first());
-  dvector<T> lbl = *reinterpret_cast<dvector<T>*>(mp.second()); // copying 
+  dvector<T>& lbl = *reinterpret_cast<dvector<T>*>(mp.second());
   linear_regression_model<T> m;   // trained output model holder
 
   auto old_level = frovedis::get_loglevel();
@@ -278,7 +265,7 @@ void frovedis_lasso_sgd(frovedis_mem_pair& mp, int& numIter, double& stepSize,
   register_for_train(mid);  // mark model 'mid' as "under training"
   // extracting input data
   MATRIX& mat = *reinterpret_cast<MATRIX*>(mp.first());
-  dvector<T> lbl = *reinterpret_cast<dvector<T>*>(mp.second()); // copying 
+  dvector<T>& lbl = *reinterpret_cast<dvector<T>*>(mp.second());  
   linear_regression_model<T> m;   // trained output model holder
 
   auto old_level = frovedis::get_loglevel();
@@ -304,7 +291,7 @@ void frovedis_lasso_lbfgs(frovedis_mem_pair& mp, int& numIter, double& stepSize,
   register_for_train(mid);  // mark model 'mid' as "under training"
   // extracting input data
   MATRIX& mat = *reinterpret_cast<MATRIX*>(mp.first());
-  dvector<T> lbl = *reinterpret_cast<dvector<T>*>(mp.second()); // copying 
+  dvector<T>& lbl = *reinterpret_cast<dvector<T>*>(mp.second()); 
   linear_regression_model<T> m;   // trained output model holder
 
   auto old_level = frovedis::get_loglevel();
@@ -331,7 +318,7 @@ void frovedis_ridge_sgd(frovedis_mem_pair& mp, int& numIter, double& stepSize,
   register_for_train(mid);  // mark model 'mid' as "under training"
   // extracting input data
   MATRIX& mat = *reinterpret_cast<MATRIX*>(mp.first());
-  dvector<T> lbl = *reinterpret_cast<dvector<T>*>(mp.second()); // copying 
+  dvector<T>& lbl = *reinterpret_cast<dvector<T>*>(mp.second());  
   linear_regression_model<T> m;   // trained output model holder
 
   auto old_level = frovedis::get_loglevel();
@@ -357,7 +344,7 @@ void frovedis_ridge_lbfgs(frovedis_mem_pair& mp, int& numIter, double& stepSize,
   register_for_train(mid);  // mark model 'mid' as "under training"
   // extracting input data
   MATRIX& mat = *reinterpret_cast<MATRIX*>(mp.first());
-  dvector<T> lbl = *reinterpret_cast<dvector<T>*>(mp.second()); // copying 
+  dvector<T>& lbl = *reinterpret_cast<dvector<T>*>(mp.second());
   linear_regression_model<T> m;   // trained output model holder
 
   auto old_level = frovedis::get_loglevel();
@@ -443,7 +430,7 @@ void frovedis_knc(frovedis_mem_pair& mp, int& k,
                   int& mid) {
   register_for_train(mid);   // mark model 'mid' as "under training"
   MATRIX& mat = *reinterpret_cast<MATRIX*>(mp.first());
-  dvector<T> lbl = *reinterpret_cast<dvector<T>*>(mp.second());
+  dvector<T>& lbl = *reinterpret_cast<dvector<T>*>(mp.second());
 
   auto old_level = frovedis::get_loglevel();
   if (verbose == 1) frovedis::set_loglevel(frovedis::DEBUG);
@@ -466,7 +453,7 @@ void frovedis_knr(frovedis_mem_pair& mp, int& k,
                   int& mid) {
   register_for_train(mid);   // mark model 'mid' as "under training"
   MATRIX& mat = *reinterpret_cast<MATRIX*>(mp.first());
-  dvector<T> lbl = *reinterpret_cast<dvector<T>*>(mp.second()); // copying
+  dvector<T>& lbl = *reinterpret_cast<dvector<T>*>(mp.second()); 
 
   auto old_level = frovedis::get_loglevel();
   if (verbose == 1) frovedis::set_loglevel(frovedis::DEBUG);
@@ -586,7 +573,7 @@ void frovedis_dt(frovedis_mem_pair& mp, tree::strategy<T>& str,
   register_for_train(mid);  // mark model 'mid' as "under training"
   // extracting input data
   MATRIX& mat = *reinterpret_cast<MATRIX*>(mp.first());
-  dvector<T> lbl = *reinterpret_cast<dvector<T>*>(mp.second()); // copying
+  dvector<T>& lbl = *reinterpret_cast<dvector<T>*>(mp.second());
 
   auto old_level = frovedis::get_loglevel();
   if (verbose == 1) frovedis::set_loglevel(frovedis::DEBUG);
@@ -612,12 +599,7 @@ void frovedis_fm(frovedis_mem_pair& mp, std::string& optimizer_name,
   register_for_train(mid);  // mark model 'mid' as "under training"
   // extracting input data
   MATRIX& mat = *reinterpret_cast<MATRIX*>(mp.first());
-  dvector<T> lbl = *reinterpret_cast<dvector<T>*>(mp.second()); // copying
-
-  auto isReg = conf.is_regression;
-  if(!isReg) { // for classification case, transform label vector
-    lbl.mapv_partitions(transform_output_label<T>);
-  }
+  dvector<T>& lbl = *reinterpret_cast<dvector<T>*>(mp.second()); 
 
   auto old_level = frovedis::get_loglevel();
   if (verbose == 1) frovedis::set_loglevel(frovedis::DEBUG);
@@ -649,7 +631,7 @@ void frovedis_nb(frovedis_mem_pair& mp, std::string& model_type,
   register_for_train(mid);  // mark model 'mid' as "under training"
   // extracting input data
   MATRIX& mat = *reinterpret_cast<MATRIX*>(mp.first());
-  dvector<T> lbl = *reinterpret_cast<dvector<T>*>(mp.second()); // copying
+  dvector<T>& lbl = *reinterpret_cast<dvector<T>*>(mp.second());
 
   auto old_level = frovedis::get_loglevel();
   if (verbose == 1) frovedis::set_loglevel(frovedis::DEBUG);
@@ -903,4 +885,25 @@ void frovedis_w2v_train(std::string& encode,
                         std::string& weight,
                         std::string& count,
                         w2v::train_config& config);
+
+template <class TC, class MATRIX>
+void frovedis_lda_train(exrpc_ptr_t& dptr,  double& alpha,
+                        double& beta,  int& num_topics,
+                        int& num_iter,  std::string& algorithm,
+                        int& num_explore_iter,  int& num_eval_cycle,
+                        int& verbose, int& mid) {
+  register_for_train(mid);  // mark model 'mid' as "under training"
+
+  auto old_level = frovedis::get_loglevel();
+  if (verbose == 1) frovedis::set_loglevel(frovedis::DEBUG);
+  else if (verbose == 2) frovedis::set_loglevel(frovedis::TRACE);
+
+  MATRIX& mat = *reinterpret_cast<MATRIX*>(dptr);
+  auto copy_mat = mat;
+  auto model = lda_train<TC>(copy_mat,alpha,beta,num_topics,num_iter,algorithm,
+                             num_explore_iter,num_eval_cycle);
+  handle_trained_model<lda_model<TC>>(mid, LDA, model);
+  frovedis::set_loglevel(old_level);
+}
+
 #endif

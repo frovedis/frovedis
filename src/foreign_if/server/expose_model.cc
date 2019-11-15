@@ -317,4 +317,20 @@ void expose_frovedis_model_functions() {
   expose(release_model<KNN2>);
   expose(release_model<KNR2>);
   expose(release_model<KNC2>);
+  // --- frovedis Latent Dirichlet Allocation
+  expose((frovedis_lda_transform<DT4,S_MAT45,LDA4>));
+  expose((frovedis_lda_transform<DT3,S_MAT35,LDA3>));
+  /* currently frovedis lda does not accept I for input csr matrix */
+  /*
+  expose((frovedis_lda_transform<DT4,S_MAT44,LDA4>));
+  expose((frovedis_lda_transform<DT3,S_MAT34,LDA3>));
+  */
+  expose(get_lda_component<LDA3>);
+  expose(get_lda_component<LDA4>);
+  expose(save_model<LDA4>);
+  expose(save_model<LDA3>);
+  expose(load_model<LDA4>);
+  expose(load_model<LDA3>);
+  expose(release_model<LDA4>);
+  expose(release_model<LDA3>);
 }

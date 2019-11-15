@@ -152,5 +152,12 @@ void expose_frovedis_ml_functions() {
   // (19) knr
   expose((frovedis_knr<DT1,R_MAT1>));
   expose((frovedis_knr<DT2,R_MAT2>)); 
-
+  // (20) Latent Dirichlet Allocation
+  expose((frovedis_lda_train<DT4,S_MAT45>));
+  expose((frovedis_lda_train<DT3,S_MAT35>));
+  /* currently frovedis lda does not accept I for input csr matrix */
+  /*
+  expose((frovedis_lda_train<DT4,S_MAT44>));
+  expose((frovedis_lda_train<DT3,S_MAT34>));
+  */
 }
