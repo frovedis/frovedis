@@ -519,6 +519,16 @@ public class JNISupport {
                                                        boolean data[]);
   public static native long createFrovedisDvector(Node master_node, long proxies[],
                                                 long sizes[], long size, short dtype);
+  public static native double[] getUniqueDvectorElements(Node master_node,
+                                                         long dptr);
+  public static native long getZeroBasedEncodedDvector(Node master_node, 
+                                                       long dptr);
+  public static native long getEncodedDvectorAs(Node master_node, 
+                                                long dptr,
+                                                double uniq_lbl[],
+                                                double encoded_as[],
+                                                int uniq_cnt);
+  public static native void releaseFrovedisDvector(Node master_node, long dptr);
 
   // frovedis dataframe column extraction
   public static native long[] getLocalIntColumnPointers(Node master_node,
