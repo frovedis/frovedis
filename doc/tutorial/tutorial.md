@@ -1058,8 +1058,8 @@ This program shows binary data load:
     auto m = frovedis::make_rowmajor_matrix_loadbinary<double>("./data_binary");
 
 To load the data as double, `<double>` is given as the template
-parameter. Here, `data_binary` is a directory that contains two files:
-nums and val. The contents of nums is two lines of text num_row and
+parameter. Here, `data_binary` is a directory that contains three files:
+nums, val, and type. The contents of nums is two lines of text num_row and
 num_col. In this case,
 
     4
@@ -1067,6 +1067,8 @@ num_col. In this case,
 
 because the matrix is 4 by 5. Then, `val` contains the values of the
 matrix in *little endian* binary form, which is similar to dvector case.
+The file `type` contains the type information of `val`, which is
+`double` in this case.
 
     m.transpose().save("./transposed");
 
@@ -1341,8 +1343,8 @@ This program shows binary data load, which is quite similar to tut3.1.1-2.
     auto m = frovedis::make_crs_matrix_loadbinary<double>("./data_binary");
 
 To load the data as double, `<double>` is given as the template
-parameter. Here, `data_binary` is a directory that contains 4 files:
-nums, val, idx, and off. The contents of nums is two lines of text, 
+parameter. Here, `data_binary` is a directory that contains 5 files:
+nums, val, idx, off, and type. The contents of nums is two lines of text, 
 num_row and num_col. In this case,
 
     6
@@ -1351,7 +1353,9 @@ num_row and num_col. In this case,
 Then, `val` contains the values of the matrix, `idx` contains the
 column indices of the values, and `off` contains the offset that shows
 the starting position of each row. All of them are in *little endian*
-binary form. 
+binary form. The file `type` contains the type information of `val`,
+`idx`, and `off`, which is `double`, `uint64_t`, and `uint64_t` in
+this case.
 
     m.transpose().save("./transposed");
 
