@@ -111,6 +111,20 @@ extern "C" {
           default:     REPORT_ERROR(USER_ERROR,"Unknown Model Kind is encountered!\n");
         }
       }
+      else if (mdtype == INT){
+        switch(mkind) {
+          case LDA:    exrpc_oneway(fm_node,release_model<LDA4>,mid); break;
+          default:     REPORT_ERROR(USER_ERROR,
+                       "Unknown Model Kind of int mdtype is encountered!\n");
+        }
+      }
+      else if (mdtype == LONG){
+        switch(mkind) {
+          case LDA:    exrpc_oneway(fm_node,release_model<LDA3>,mid); break;
+          default:     REPORT_ERROR(USER_ERROR,
+                       "Unknown Model Kind of int mdtype is encountered!\n");
+        }
+      }
       else REPORT_ERROR(USER_ERROR,"model dtype can either be float or double!\n");
     }
     catch (std::exception& e) {
@@ -164,6 +178,20 @@ extern "C" {
           default:     REPORT_ERROR(USER_ERROR,"Unknown Model Kind is encountered!\n");
         }
       }
+      else if (mdtype == INT) {
+        switch(mkind) {
+          case LDA:  exrpc_oneway(fm_node,save_model<LDA4>,mid,fs_path); break;
+          default:   REPORT_ERROR(USER_ERROR,
+                     "Unknown Model Kind for int mdtype is encountered!\n");
+        }
+      }
+      else if (mdtype == LONG) {
+        switch(mkind) {
+          case LDA:  exrpc_oneway(fm_node,save_model<LDA3>,mid,fs_path); break;
+          default:   REPORT_ERROR(USER_ERROR,
+                     "Unknown Model Kind for long mdtype is encountered!\n");
+        }
+      }
       else REPORT_ERROR(USER_ERROR,"model dtype can either be float or double!\n");
     }
     catch (std::exception& e) {
@@ -208,6 +236,20 @@ extern "C" {
           case FMM:    REPORT_ERROR(USER_ERROR,"currently frovedis fm_model can't be loaded!");
           case FPM:    exrpc_oneway(fm_node,load_model<FPM1>,mid,FPM,fs_path); break; // not template based
           default:   REPORT_ERROR(USER_ERROR,"Unknown Model Kind is encountered!\n");
+        }
+      }
+      else if (mdtype == INT) {
+        switch(mkind) {
+          case LDA:  exrpc_oneway(fm_node,load_model<LDA4>,mid,LDA,fs_path); break;
+          default:   REPORT_ERROR(USER_ERROR,
+                     "Unknown Model Kind for int mdtype is encountered!\n");
+        }
+      }
+      else if (mdtype == LONG) {
+        switch(mkind) {
+          case LDA:  exrpc_oneway(fm_node,load_model<LDA3>,mid,LDA,fs_path); break;
+          default:   REPORT_ERROR(USER_ERROR,
+                     "Unknown Model Kind for long mdtype is encountered!\n");
         }
       }
       else REPORT_ERROR(USER_ERROR,"model dtype can either be float or double!\n");
@@ -1319,5 +1361,73 @@ void fpgrowth_rules(const char* host, int port,
     //std::cout<<" Received association rules Successfully \n"<< x << std::endl;
   }
 */
+
+  PyObject* compute_lda_component(const char* host, int port,
+                                  int mid, short dtype){
+    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
+    exrpc_node fm_node(host,port);
+    dummy_matrix ret;
+    try {
+      switch(dtype) {
+        case INT:
+          ret = exrpc_async(fm_node,get_lda_component<LDA3>, mid).get();
+          break;
+        case LONG:
+          ret = exrpc_async(fm_node,get_lda_component<LDA4>, mid).get();
+          break;
+        default: REPORT_ERROR(USER_ERROR, "Unsupported dtype for LDA model!\n");
+      }
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return to_py_dummy_matrix(ret);
+  }
+
+  PyObject* compute_lda_transform(const char* host, int port,
+                                  long dptr, double alpha,
+                                  double beta, int num_iter,
+                                  const char* algorithm,
+                                  int num_explore_iter, int mid,
+                                  short dtype, short itype) {
+    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
+    exrpc_node fm_node(host,port);
+    auto f_dptr = (exrpc_ptr_t) dptr;
+    std::string algo(algorithm);
+    dummy_lda_result ret;
+    try {
+      switch(dtype) {
+        case INT:
+          if(itype == INT)
+            /* currently integer itype is not supported in the library */
+            /*ret = exrpc_async(fm_node,(frovedis_lda_transform<DT4,S_MAT44,LDA4>),f_dptr, alpha,
+                                beta, num_iter, algo, num_explore_iter, mid).get();*/
+            REPORT_ERROR(USER_ERROR,
+                         "Currently frovedis LDA doesn't support int itype for sparse data!\n");
+          else if(itype == LONG)
+            ret = exrpc_async(fm_node,(frovedis_lda_transform<DT4,S_MAT45,LDA4>),f_dptr, alpha,
+                              beta, num_iter, algo, num_explore_iter, mid).get();
+          else REPORT_ERROR(USER_ERROR, "Unsupported itype for input sparse datain LDA test!\n");
+          break;
+        case LONG:
+          if(itype == INT)
+            /* currently integer itype is not supported in the library */
+            /*ret = exrpc_async(fm_node,(frovedis_lda_transform<DT3,S_MAT34,LDA3>),f_dptr, alpha,
+                                beta, num_iter, algo, num_explore_iter, mid).get();*/
+            REPORT_ERROR(USER_ERROR,
+                         "Currently frovedis LDA doesn't support int itype for sparse data!\n");
+          else if(itype == LONG)
+            ret = exrpc_async(fm_node,(frovedis_lda_transform<DT3,S_MAT35,LDA3>),f_dptr, alpha,
+                           beta, num_iter, algo, num_explore_iter, mid).get();
+          else REPORT_ERROR(USER_ERROR, "Unsupported itype for input sparse datain LDA test!\n");
+          break;
+        default: REPORT_ERROR(USER_ERROR, "Unsupported dtype of input sparse data for LDA test!\n");
+      }
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return to_py_dummy_lda_result(ret);
+  }
 
 }

@@ -46,7 +46,7 @@ extern "C" {
   PyObject* to_py_getrf_result(const getrf_result& obj, char);
   PyObject* to_py_pca_result(const pca_result& obj, char);
   PyObject* to_py_knn_result(const knn_result& obj, char);
-
+  PyObject* to_py_dummy_lda_result(const dummy_lda_result& m);
 
   // --- server info ---
   std::vector<exrpc_node> get_worker_nodes(exrpc_node& fm_node);

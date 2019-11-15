@@ -1063,4 +1063,51 @@ extern "C" {
     }
   }
 
+  // --- (18) Latent Dirichlet Allocation (LDA) ---
+  void compute_lda_train(const char* host, int port,
+                         long dptr, double alpha,
+                         double beta, int num_topics,
+                         int num_iter, const char* algorithm,
+                         int num_explore_iter,  int num_eval_cycle,
+                         short dtype, short itype, int verbose, int mid) {
+    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
+    exrpc_node fm_node(host,port);
+    auto f_dptr = (exrpc_ptr_t) dptr;
+    std::string algo(algorithm);
+    try {
+      switch(dtype) {
+        case INT:
+          if (itype == INT)
+            //exrpc_oneway(fm_node,(frovedis_lda_train<DT4,S_MAT44>), f_dptr, alpha,
+            //             beta, num_topics, num_iter, algo, num_explore_iter, num_eval_cycle,
+            //             verbose, mid);
+            REPORT_ERROR(USER_ERROR,
+                         "Currently frovedis LDA doesn't support int itype for sparse data!\n");
+          else if (itype == LONG )
+            exrpc_oneway(fm_node,(frovedis_lda_train<DT4,S_MAT45>), f_dptr, alpha,
+                         beta, num_topics, num_iter, algo, num_explore_iter, num_eval_cycle,
+                         verbose, mid);
+          else REPORT_ERROR(USER_ERROR, "Unsupported itype for input sparse datain LDA train!\n");
+          break;
+        case LONG:
+          if (itype == INT)
+            //exrpc_oneway(fm_node,(frovedis_lda_train<DT3,S_MAT34>), f_dptr, alpha,
+            //             beta, num_topics, num_iter, algo, num_explore_iter, num_eval_cycle,
+            //             verbose, mid);
+            REPORT_ERROR(USER_ERROR,
+                         "Currently frovedis LDA doesn't support int itype for sparse data!\n");
+          else if (itype == LONG)
+            exrpc_oneway(fm_node,(frovedis_lda_train<DT3,S_MAT35>), f_dptr, alpha,
+                         beta, num_topics, num_iter, algo, num_explore_iter, num_eval_cycle,
+                         verbose, mid);
+          else REPORT_ERROR(USER_ERROR, "Unsupported itype for input sparse datain LDA train!\n");
+          break;
+        default: REPORT_ERROR(USER_ERROR,"Unsupported dtype for input matrix!\n");
+      }
+   }
+   catch (std::exception& e) {
+     set_status(true, e.what());
+   }
+ }
+
 }

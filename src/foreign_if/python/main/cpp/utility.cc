@@ -138,4 +138,13 @@ extern "C" {
                          "dptr", dptr, 
                          "info", obj.info);
   }
+
+  PyObject* to_py_dummy_lda_result(const dummy_lda_result& m) {
+    return Py_BuildValue("{s:l, s:i, s:i, s:d, s:d}",
+                         "dist_mat", (long)m.dist_mat.mptr,
+                         "nrow", m.dist_mat.nrow,
+                         "ncol", m.dist_mat.ncol,
+                         "perplexity", m.perplexity,
+                         "likelihood", m.likelihood);
+  }
 }
