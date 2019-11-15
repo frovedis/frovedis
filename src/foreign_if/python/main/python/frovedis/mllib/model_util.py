@@ -33,6 +33,7 @@ class M_KIND(object):
     KNN = 18
     KNC = 19
     KNR = 20
+    LDA = 21
 
 class ModelID(object):
     """A python container for generating model IDs for ML"""
