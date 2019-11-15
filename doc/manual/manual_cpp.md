@@ -3485,11 +3485,12 @@ file in rowmajor format with text data.
 It writes the elements of the global rowmajor matrix to the specified 
 directory in rowmajor format with binary data.
 
-The output directory will contain two files, named "nums" and "val" 
+The output directory will contain three files, named "nums", "val", and "type"
 respectively. "nums" is a text file containing the number of rows and 
 number of columns information in first two lines of the file. And 
 "val" is a binary file containing the matrix elements stored in 
-little-endian form.
+little-endian form. The file "type" is a text file containing the type
+information of `val`.
 
 #### `rowmajor_matrix<T>&` align_as(const `std::vector<size_t>`& sz)
 
@@ -7595,10 +7596,12 @@ as text data with the format "index:value" for each non-zero elements.
 It writes the elements of a distributed crs matrix to the specified directory 
 as little-endian binary data.
 
-The output directory will contain four files, named "nums", "val", "idx" and 
-"off". "nums" is a text file containing the number of rows and 
+The output directory will contain five files, named "nums", "val", "idx", 
+"off", and "type". "nums" is a text file containing the number of rows and 
 number of columns information in first two lines of the file. And 
 rest three files contain the binary data related to compressed row storage. 
+The file "type" is a text file containing the type information of
+"val", "idx", and "off".
 
 #### void clear()
 It clears the memory space for the allocated `crs_matrix_local<T,I,O>` per worker.

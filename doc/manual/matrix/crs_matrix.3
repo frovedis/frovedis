@@ -198,12 +198,14 @@ as text data with the format "index:value" for each non\-zero elements.
 It writes the elements of a distributed crs matrix to the specified
 directory as little\-endian binary data.
 .PP
-The output directory will contain four files, named "nums", "val", "idx"
-and "off".
+The output directory will contain five files, named "nums", "val",
+"idx", "off", and "type".
 "nums" is a text file containing the number of rows and number of
 columns information in first two lines of the file.
 And rest three files contain the binary data related to compressed row
 storage.
+The file "type" is a text file containing the type information of "val",
+"idx", and "off".
 .SS void clear()
 .PP
 It clears the memory space for the allocated

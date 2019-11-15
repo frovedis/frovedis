@@ -178,11 +178,12 @@ file in rowmajor format with text data.
 It writes the elements of the global rowmajor matrix to the specified 
 directory in rowmajor format with binary data.
 
-The output directory will contain two files, named "nums" and "val" 
+The output directory will contain three files, named "nums", "val", and "type"
 respectively. "nums" is a text file containing the number of rows and 
 number of columns information in first two lines of the file. And 
 "val" is a binary file containing the matrix elements stored in 
-little-endian form.
+little-endian form. The file "type" is a text file containing the type
+information of `val`.
 
 ### `rowmajor_matrix<T>&` align_as(const `std::vector<size_t>`& sz)
 

@@ -251,12 +251,14 @@ file in rowmajor format with text data.
 It writes the elements of the global rowmajor matrix to the specified
 directory in rowmajor format with binary data.
 .PP
-The output directory will contain two files, named "nums" and "val"
-respectively.
+The output directory will contain three files, named "nums", "val", and
+"type" respectively.
 "nums" is a text file containing the number of rows and number of
 columns information in first two lines of the file.
 And "val" is a binary file containing the matrix elements stored in
 little\-endian form.
+The file "type" is a text file containing the type information of
+\f[C]val\f[].
 .SS \f[C]rowmajor_matrix<T>&\f[] align_as(const
 \f[C]std::vector<size_t>\f[]& sz)
 .PP
