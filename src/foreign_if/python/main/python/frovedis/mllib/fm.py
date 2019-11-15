@@ -303,20 +303,20 @@ class FactorizationMachineRegressor(object):
             raise TypeError("Expected Sparse matrix data for training!")
         (host, port) = FrovedisServer.getServerInstance()
         rpclib.fm_train(host, port, X.get(),
-                  y.get(), self.init_stdev, self.iteration,
-                  self.init_learn_rate, self.optimizer.encode('ascii'),
-                  self.global_bias, self.dim_one_interactions,
-                  self.dim_factors_no, self.reg_intercept,
-                  self.reg_one_interactions, self.reg_factors_no,
-                  self.batch_size_pernode,
-                  self.__mid, self.isregressor, self.verbose,
-                  dtype, itype)
+                        y.get(), self.init_stdev, self.iteration,
+                        self.init_learn_rate, self.optimizer.encode('ascii'),
+                        self.global_bias, self.dim_one_interactions,
+                        self.dim_factors_no, self.reg_intercept,
+                        self.reg_one_interactions, self.reg_factors_no,
+                        self.batch_size_pernode,
+                        self.__mid, self.isregressor, self.verbose,
+                        dtype, itype)
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
             raise RuntimeError(excpt["info"])
         return self
 
-    # Perform classification on an array of test vectors X.
+    # Perform regression on an array of test vectors X.
     def predict(self, X):
         """
         NAME: predict
