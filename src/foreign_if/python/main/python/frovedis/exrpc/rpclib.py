@@ -1459,3 +1459,27 @@ pca_inverse_transform.argtypes = [ c_char_p, #host
                         ]
 pca_inverse_transform.restype = py_object
 
+compute_lda_component = LIB.compute_lda_component
+compute_lda_component.argtypes = [c_char_p, c_int,\
+                                  c_int, c_short]
+compute_lda_component.restype = py_object
+
+
+compute_lda_train = LIB.compute_lda_train
+compute_lda_train.argtypes = [c_char_p, c_int,\
+                              c_ulong, c_double,\
+                              c_double, c_int,\
+                              c_int, c_char_p,\
+                              c_int, c_int,\
+                              c_short, c_short,\
+                              c_int, c_int]
+
+compute_lda_transform = LIB.compute_lda_transform
+compute_lda_transform.argtypes = [c_char_p, c_int,\
+                                  c_ulong, c_double,\
+                                  c_double, c_int,\
+                                  c_char_p,\
+                                  c_int, c_int,\
+                                  c_short, c_short]
+compute_lda_transform.restype = py_object
+
