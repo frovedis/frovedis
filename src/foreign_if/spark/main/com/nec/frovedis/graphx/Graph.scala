@@ -60,6 +60,12 @@ class Graph extends java.io.Serializable {
     def pageRank(tol: Double, 
                  resetProb: Double = 0.15, 
                  maxIter: Int = 100): com.nec.frovedis.graphx.Graph = {
+        require(tol > 0,
+            s"Tolerance should be greater than 0, but got ${tol}.")
+        require(resetProb >= 0 && resetProb <= 1,
+            s"Random reset probability should range from 0 to 1, but got ${resetProb}.")
+        require(maxIter > 0,
+            s"Max iteration should be greater than 0, but got ${maxIter}.")
         val copy_gr = this.copy()
         val fs = FrovedisServer.getServerInstance()
         val result = JNISupport.callFrovedisPageRank(fs.master_node, 
