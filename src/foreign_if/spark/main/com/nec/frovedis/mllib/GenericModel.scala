@@ -25,6 +25,11 @@ object M_KIND {
   val SPARSE_CONV_INFO: Short = 14
   val MLR: Short = 15
   val W2V: Short = 16
+  val DBSCAN: Short = 17
+  val KNN: Short = 18
+  val KNC: Short = 19
+  val KNR: Short = 20
+  val LDA: Short = 21
 }
 
 object ModelID {

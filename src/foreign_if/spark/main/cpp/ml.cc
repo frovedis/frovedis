@@ -639,4 +639,100 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisW2V
   catch(std::exception& e) { set_status(true,e.what()); }
 }
 
+// (16) --- DBSCAN ---
+JNIEXPORT jintArray JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisDBSCAN
+  (JNIEnv *env, jclass thisCls, jobject master_node, jlong fdata, jdouble eps,
+   jint min_samples, jint mid, jboolean isDense) {
+
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto f_dptr = (exrpc_ptr_t) fdata;
+  int vb = 0;
+#ifdef _EXRPC_DEBUG_
+  std::cout << "Connecting to master node ("
+            << fm_node.hostname << "," << fm_node.rpcport
+            << ") to train frovedis DBSCAN.\n";
+#endif
+  std::vector<int> ret;
+  try {
+    if(isDense){ // dbscan accepts rowmajor matrix for dense data
+      ret = exrpc_async(fm_node,(frovedis_dbscan<DT1,R_MAT1>),f_dptr,eps,min_samples,vb,mid).get();
+    }
+    else REPORT_ERROR(USER_ERROR,
+         "Frovedis DBSCAN doesn't accept sparse input at this moment.\n");
+  }
+  catch(std::exception& e) { set_status(true,e.what()); }
+
+  return to_jintArray(env,ret);
+}
+
+// --- (17) K-Nearest Neighbor (KNN) ---
+JNIEXPORT void Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisKnnFit
+            (JNIEnv *env, jclass thisCls, jobject master_node, jlong xptr, jint k,
+             jfloat radius, jstring algorithm, jstring metric,
+             jfloat chunk_size, jint mid, jboolean dense) {
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto f_xptr = (exrpc_ptr_t) xptr;
+  auto algorithm_ = to_cstring(env,algorithm);
+  auto metric_ = to_cstring(env,metric);
+  bool isDense= (bool) dense;
+  int vb = 0; // no log (default)
+  try {
+    if(isDense) {
+      exrpc_oneway(fm_node,(frovedis_knn<DT1,R_MAT1>), f_xptr, k, radius,
+                       algorithm_, metric_, chunk_size, vb, mid);
+    }
+    else{
+      REPORT_ERROR(USER_ERROR, "frovedis Nearest Neighbors currently supports only dense data. \n");
+    }
+  }
+  catch (std::exception& e) {
+    set_status(true, e.what());
+  }
+}
+
+// --- (18) K-Nearest Neighbor Classifier (KNC) ---
+JNIEXPORT void Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisKncFit
+          (JNIEnv *env, jclass thisCls, jobject master_node, jobject fdata, jint k,
+           jstring algorithm, jstring metric,
+           jfloat chunk_size, jint mid, jboolean dense) {
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto f_dptr = java_mempair_to_frovedis_mempair(env, fdata);
+  auto algorithm_ = to_cstring(env,algorithm);
+  auto metric_ = to_cstring(env,metric);
+  bool isDense= (bool) dense;
+  int vb = 0; // no log (default)
+  try {
+    if(isDense) {
+      exrpc_oneway(fm_node,(frovedis_knc<DT1,R_MAT1>), f_dptr, k,
+                       algorithm_, metric_, chunk_size, vb, mid);
+    }
+    else{
+      REPORT_ERROR(USER_ERROR, "frovedis KNeighbors Classifier currently supports only dense data. \n");
+    }
+  }
+  catch (std::exception& e) {
+    set_status(true, e.what());
+  }
+}
+
+// --- (19) Latent Dirichlet Allocation (LDA) ---
+JNIEXPORT jobject JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisLDA
+  (JNIEnv *env, jclass thisCls, jobject master_node, jlong fdata,
+   jint mid, jint num_topics, jint num_iter, jdouble alpha, jdouble beta,
+   jint num_explore_iter, jint num_eval_cycle, jstring algo) {
+
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto f_dptr = (exrpc_ptr_t) fdata;
+  int vb = 0; // no log (default)
+  auto algo_ = to_cstring(env,algo);
+  dummy_lda_model ret;
+  try {
+    ret = exrpc_async(fm_node,(frovedis_lda_train_for_spark<DT3,S_MAT15>), f_dptr, 
+                      alpha, beta, num_topics, num_iter,
+                      algo_, num_explore_iter, 
+		      num_eval_cycle, vb, mid).get();
+  }
+  catch(std::exception& e) { set_status(true,e.what()); }
+  return to_jDummyLDAModel(env, ret);
+}
 }

@@ -124,6 +124,21 @@ jobject to_jDummyPCAResult(JNIEnv *env, pca_result& obj, short mtype) {
   return newPCA;
 }
 
+jobject to_jDummyKNNResult(JNIEnv *env, knn_result& obj) {
+  jclass knnCls = env->FindClass(JRE_PATH_DummyKNNResult);
+  if (knnCls == NULL) REPORT_ERROR(INTERNAL_ERROR, "DummyKNNResult class not found in JRE\n");
+  jmethodID knnConst = env->GetMethodID(knnCls, "<init>", "(JJIIIII)V");
+  if (knnConst == NULL) REPORT_ERROR(INTERNAL_ERROR, "DummyKNNResult(JJIIIII) not found in JRE\n");
+  long indices_ptr = static_cast<long>(obj.indices_ptr); // rowmajor_matrix
+  long distances_ptr = static_cast<long>(obj.distances_ptr); // rowmajor_matrix
+  auto newKNN = env->NewObject(knnCls, knnConst,
+                               indices_ptr, distances_ptr, 
+                               obj.nrow_ind, obj.ncol_ind,
+                               obj.nrow_dist, obj.ncol_dist, obj.k);
+  if (newKNN == NULL) REPORT_ERROR(INTERNAL_ERROR, "DummyKNNResult object creation failed\n");
+  return newKNN;
+}
+
 frovedis_mem_pair java_mempair_to_frovedis_mempair(JNIEnv *env, jobject& mp) {
   jclass mpCls = env->FindClass(JRE_PATH_MemPair);
   if (mpCls == NULL) REPORT_ERROR(INTERNAL_ERROR, "MemPair class not found in JRE\n");
@@ -398,5 +413,33 @@ jobjectArray to_jDummyEdgeArray(JNIEnv *env, crs_matrix_local<double>& mat) {
   }
   return ret;
 }
+
+jobject to_jDummyLDAResult(JNIEnv *env, dummy_lda_result& obj) {
+  jclass ldaCls = env->FindClass(JRE_PATH_DummyLDAResult);
+  if (ldaCls == NULL) REPORT_ERROR(INTERNAL_ERROR, "DummyLDAResult class not found in JRE\n");
+  jmethodID ldaConst = env->GetMethodID(ldaCls, "<init>", "(JJJDD)V");
+  if (ldaConst == NULL) REPORT_ERROR(INTERNAL_ERROR, "DummyLDAResult(J,J,J,D,D) not found in JRE\n");
+  long mptr = static_cast<long>(obj.dist_mat.mptr);
+  long nrow = static_cast<long>(obj.dist_mat.nrow);
+  long ncol = static_cast<long>(obj.dist_mat.ncol);
+  double perplexity = static_cast<double>(obj.perplexity);
+  double likelihood = static_cast<double>(obj.likelihood);
+  auto newDummyMat = env->NewObject(ldaCls,ldaConst,mptr,nrow,ncol,perplexity,likelihood);
+  if (newDummyMat == NULL) REPORT_ERROR(INTERNAL_ERROR, "DummyLDAResult object creation failed\n");
+  return newDummyMat;
+}
+
+jobject to_jDummyLDAModel(JNIEnv *env, dummy_lda_model& obj) {
+  jclass ldaCls = env->FindClass(JRE_PATH_DummyLDAModel);
+  if (ldaCls == NULL) REPORT_ERROR(INTERNAL_ERROR, "DummyLDAModel class not found in JRE\n");
+  jmethodID ldaConst = env->GetMethodID(ldaCls, "<init>", "(II)V");
+  if (ldaConst == NULL) REPORT_ERROR(INTERNAL_ERROR, "DummyLDAModel(I,I) not found in JRE\n");
+  int num_topics = static_cast<int>(obj.num_topics);
+  int vocabsz = static_cast<int>(obj.vocabsz);
+  auto newDummyModel = env->NewObject(ldaCls,ldaConst,num_topics,vocabsz);
+  if (newDummyModel == NULL) REPORT_ERROR(INTERNAL_ERROR, "DummyLDAModel object creation failed\n");
+  return newDummyModel;
+}
+
 
 }

@@ -120,6 +120,7 @@ class FrovedisSparseData extends java.io.Serializable {
     }
   }
   def get() = fdata
+  def matType() = MAT_KIND.SCRS 
   def numRows() = num_row
   def numCols() = num_col
 }

@@ -367,7 +367,7 @@ JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_createFrovedisDe
 // releases the dynamically allocated frovedis glm data from Frovedis nodes
 JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_releaseFrovedisLabeledPoint
   (JNIEnv *env, jclass thisCls, jobject master_node, jobject fdata, 
-   jboolean dense) {
+   jboolean dense, jshort mtype) {
   
   auto fm_node = java_node_to_frovedis_node(env, master_node);
   auto f_dptr = java_mempair_to_frovedis_mempair(env, fdata);
@@ -378,8 +378,14 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_releaseFrovedisLa
             << ") to release frovedis data.\n";
 #endif
   try{
-     if(isDense) exrpc_oneway(fm_node,(release_glm_data<DT1,D_MAT1>),f_dptr);
-     else        exrpc_oneway(fm_node,(release_glm_data<DT1,S_MAT1>),f_dptr);
+     if(isDense) {
+       switch(mtype) {     
+         case RMJR: exrpc_oneway(fm_node,(release_glm_data<DT1,R_MAT1>),f_dptr); break;
+         case CMJR: exrpc_oneway(fm_node,(release_glm_data<DT1,C_MAT1>),f_dptr); break;
+         default:   REPORT_ERROR(USER_ERROR,"Unsupported dense matrix kind is encountered!\n");
+       }
+     }
+     else exrpc_oneway(fm_node,(release_glm_data<DT1,S_MAT1>),f_dptr);
   }
   catch(std::exception& e) { set_status(true,e.what()); }
 }
@@ -426,7 +432,7 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_releaseFrovedisDe
 // prints the created frovedis glm data for debugging purpose
 JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_showFrovedisLabeledPoint
   (JNIEnv *env, jclass thisCls, jobject master_node, jobject fdata,
-   jboolean dense) {
+   jboolean dense, jshort mtype) {
   
   auto fm_node = java_node_to_frovedis_node(env, master_node);
   auto f_dptr = java_mempair_to_frovedis_mempair(env, fdata);
@@ -437,8 +443,14 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_showFrovedisLabel
             << ") to print frovedis data.\n";
 #endif
   try{
-     if(isDense) exrpc_oneway(fm_node,(show_glm_data<DT1,D_MAT1>),f_dptr);
-     else        exrpc_oneway(fm_node,(show_glm_data<DT1,S_MAT1>),f_dptr);
+     if(isDense) { 
+       switch(mtype) {     
+         case RMJR: exrpc_oneway(fm_node,(show_glm_data<DT1,R_MAT1>),f_dptr); break;
+         case CMJR: exrpc_oneway(fm_node,(show_glm_data<DT1,C_MAT1>),f_dptr); break;
+         default:   REPORT_ERROR(USER_ERROR,"Unsupported dense matrix kind is encountered!\n");
+       }
+     }
+     else exrpc_oneway(fm_node,(show_glm_data<DT1,S_MAT1>),f_dptr);
   }
   catch(std::exception& e) { set_status(true,e.what()); }
 }

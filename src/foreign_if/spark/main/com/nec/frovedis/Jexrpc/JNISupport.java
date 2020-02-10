@@ -9,6 +9,9 @@ import com.nec.frovedis.Jgraph.DummyEdge;
 import com.nec.frovedis.Jgraph.DummyGraph;
 import com.nec.frovedis.Jmllib.DummyGLM;
 import com.nec.frovedis.Jmllib.IntDoublePair;
+import com.nec.frovedis.Jmllib.DummyLDAResult;
+import com.nec.frovedis.Jmllib.DummyLDAModel;
+import com.nec.frovedis.Jmllib.DummyKNNResult;
 
 public class JNISupport {
  
@@ -44,10 +47,12 @@ public class JNISupport {
                                                           long nrows, long ncols);
   public static native void releaseFrovedisLabeledPoint(Node master_node, 
                                                         MemPair fdata, 
-                                                        boolean isDense);
+                                                        boolean isDense,
+                                                        short mtype);
   public static native void showFrovedisLabeledPoint(Node master_node, 
                                                      MemPair fdata, 
-                                                     boolean isDense);
+                                                     boolean isDense,
+                                                     short mtype);
   // ---
   public static native long loadFrovedisWorkerVectorStringData(Node t_node, 
                                                              String val[], 
@@ -311,7 +316,82 @@ public class JNISupport {
   public static native DummyMatrix getSEMEmbeddingMatrix (Node master_node,
                                                          int mid);
 
+  public static native int[] callFrovedisDBSCAN(Node master_node,
+                                               long fdata,
+                                               double eps,
+                                               int min_samples,
+                                               int mid,
+                                               boolean dense);
 
+  // ---------------------KNN----------------------------------  
+  public static native void callFrovedisKnnFit(Node master_node,
+                                            long xptr,
+                                            int k,
+                                            float radius,
+                                            String algorithm,
+                                            String metric,
+                                            float chunk_size,
+                                            int mid,
+                                            boolean dense);
+
+  public static native DummyKNNResult knnKneighbors(Node master_node,
+                                                    long tptr,
+                                                    int k,
+                                                    int mid,
+                                                    boolean needDistance);
+
+  public static native DummyMatrix knnKneighborsGraph(Node master_node,
+                                                      long tptr,
+                                                      int k,
+                                                      int mid,
+                                                      String mode);
+
+  public static native DummyMatrix knnRadiusNeighbors(Node master_node,
+                                                      long tptr,
+                                                      float radius,
+                                                      int mid,
+                                                      boolean needDistance);
+
+  public static native DummyMatrix knnRadiusNeighborsGraph(Node master_node,
+                                                          long tptr,
+                                                          float radius,
+                                                          int mid,
+                                                          String mode);
+  // ---------------------KNC----------------------------------  
+  public static native void callFrovedisKncFit(Node master_node,
+                                            MemPair fdata,
+                                            int k,
+                                            String algorithm,
+                                            String metric,
+                                            float chunk_size,
+                                            int mid,
+                                            boolean dense);
+
+  public static native DummyKNNResult kncKneighbors(Node master_node,
+                                                    long tptr,
+                                                    int k,
+                                                    int mid,
+                                                    boolean needDistance);
+
+  public static native DummyMatrix kncKneighborsGraph(Node master_node,
+                                                      long tptr,
+                                                      int k,
+                                                      int mid,
+                                                      String mode);
+
+  public static native double[] kncDoublePredict(Node master_node,
+                                                 long tptr,
+                                                 int mid,
+                                                 boolean saveProba);
+
+  public static native DummyMatrix kncPredictProba(Node master_node,
+                                                long tptr,
+                                                int mid);
+
+  public static native float kncModelScore(Node master_node,
+                                          long xptr,
+                                          long yptr,
+                                          int mid);
 
   // -------- Compute PCA --------
   public static native DummyPCAResult computePCA(Node master_node,
@@ -645,4 +725,35 @@ public class JNISupport {
                                                      double epsilon, 
                                                      double dfactor,
                                                      int maxIter);
+  public static native void callFrovedisSSSP(Node master_node,
+                                                     long dptr,
+                                                     int[] dist,
+                                                     long[] pred,
+                                                     long numVertices,
+                                                     long source_vertex);
+  public static native long[] callFrovedisBFS(Node master_node,
+                                                     long dptr,
+                                                     long[] nodes_in_which_cc,
+                                                     int[] dist,
+                                                     long numVertices);
+  // --- LDA ---
+  public static native DummyLDAModel callFrovedisLDA(Node master_node,
+					    long fdata, int mid, 
+					    int num_topics, int num_iter, 
+					    double alpha, double beta,
+					    int num_explore_iter, 
+					    int num_eval_cycle, String algo);
+  public static native DummyLDAResult callFrovedisLDATransform(Node master_node,
+					    long fdata, int mid, 
+					    int num_topics, int num_iter, 
+					    double alpha, double beta,
+					    int num_explore_iter, 
+					    String algo);
+  public static native DummyMatrix getTopicsMatrix(Node master_node, int mid);
+  public static native void getDescribeMatrix(Node master_node, int mid,
+                                              int nr, int maxTermsPerTopic, 
+					      int[] word_id, double[] word_topic_dist);
+  public static native DummyLDAModel loadFrovedisLDAModel(Node master_node,
+                                                          int model_Id, 
+                                                          String path);
 }

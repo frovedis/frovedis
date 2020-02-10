@@ -1,7 +1,10 @@
 package com.nec.frovedis.exrpc;
 
 import com.nec.frovedis.Jexrpc._
+import com.nec.frovedis.Jmatrix.DummyMatrix
 import com.nec.frovedis.matrix.FrovedisColmajorMatrix
+import com.nec.frovedis.matrix.FrovedisRowmajorMatrix
+import com.nec.frovedis.matrix.MAT_KIND
 import com.nec.frovedis.matrix.DoubleDvector
 import org.apache.spark.rdd.RDD
 import org.apache.spark.mllib.regression.LabeledPoint
@@ -13,14 +16,17 @@ class FrovedisLabeledPoint extends java.io.Serializable {
   protected var num_row: Long = 0
   protected var num_col: Long = 0
   protected var isDense: Boolean = false
+  protected var mtype: Short = 0
   protected var uniqueLabels: Array[Double] = null
 
-  def this (data: RDD[LabeledPoint]) = {
+  def this (data: RDD[LabeledPoint],
+            need_rowmajor: Boolean = false) = {
     this()
-    load(data)
+    load(data, need_rowmajor)
   }
 
-  def load(data: RDD[LabeledPoint]) : Unit  = {
+  def load(data: RDD[LabeledPoint],
+           need_rowmajor: Boolean = false) : Unit  = {
     /** releasing the old data (if any) */
     release()
 
@@ -44,14 +50,27 @@ class FrovedisLabeledPoint extends java.io.Serializable {
     // getting matrix pointer along with num_row, num_col info
     var xptr: Long = -1
     if (this.isDense) {
-       val mat = new FrovedisColmajorMatrix(x)
-       xptr = mat.get()
-       this.num_row = mat.numRows()
-       this.num_col = mat.numCols()
+       // TODO FIX: if destructor gets activated, the below matrix would 
+       //           get released, right after get() is called
+       if (need_rowmajor) {
+         val mat = new FrovedisRowmajorMatrix(x)
+         xptr = mat.get()
+         this.mtype = mat.matType()
+         this.num_row = mat.numRows()
+         this.num_col = mat.numCols()
+       } 
+       else {
+         val mat = new FrovedisColmajorMatrix(x)
+         xptr = mat.get()
+         this.mtype = mat.matType()
+         this.num_row = mat.numRows()
+         this.num_col = mat.numCols()
+       }
     }
     else {
        val mat = new FrovedisSparseData(x)
        xptr = mat.get()
+       this.mtype = mat.matType()
        this.num_row = mat.numRows()
        this.num_col = mat.numCols()
     }
@@ -109,13 +128,14 @@ class FrovedisLabeledPoint extends java.io.Serializable {
     release_encoded_labels()
     if (fdata != null) {
       val fs = FrovedisServer.getServerInstance()
-      JNISupport.releaseFrovedisLabeledPoint(fs.master_node,fdata,isDense) // isDense is added
+      JNISupport.releaseFrovedisLabeledPoint(fs.master_node,fdata,isDense,mtype)
       val info = JNISupport.checkServerException()
       if (info != "") throw new java.rmi.ServerException(info)
-      fdata = null
       num_row = 0
       num_col = 0
       isDense = false
+      mtype = 0
+      fdata = null
       uniqueLabels = null
     }
   }
@@ -123,16 +143,36 @@ class FrovedisLabeledPoint extends java.io.Serializable {
   def debug_print() : Unit = {
     if (fdata != null) {
       val fs = FrovedisServer.getServerInstance()
-      JNISupport.showFrovedisLabeledPoint(fs.master_node,fdata,isDense) // isDense is added
+      JNISupport.showFrovedisLabeledPoint(fs.master_node,fdata,isDense,mtype)
       val info = JNISupport.checkServerException();
       if (info != "") throw new java.rmi.ServerException(info);
     }
   }
 
   def get() = fdata
+  def feature_as_rowmajor(): FrovedisRowmajorMatrix = {
+    require(this.matType() == MAT_KIND.RMJR, 
+      "FrovedisLabeledPoint does not have rowmajor data!")
+    val dmat = new DummyMatrix(fdata.first(),numRows(),numCols(),matType())
+    return new FrovedisRowmajorMatrix(dmat)
+  }
+  def feature_as_colmajor(): FrovedisColmajorMatrix = {
+    require(this.matType() == MAT_KIND.CMJR, 
+      "FrovedisLabeledPoint does not have colmajor data!")
+    val dmat = new DummyMatrix(fdata.first(),numRows(),numCols(),matType())
+    return new FrovedisColmajorMatrix(dmat)
+  }
+  def feature_as_crs(): FrovedisSparseData = {
+    require(this.matType() == MAT_KIND.SCRS, 
+      "FrovedisLabeledPoint does not have CRS data!")
+    val dmat = new DummyMatrix(fdata.first(),numRows(),numCols(),matType())
+    return new FrovedisSparseData(dmat)
+  }
+  def label() = fdata.second()
   def numRows() = num_row
   def numCols() = num_col
   def is_dense() = isDense
+  def matType() = mtype
   def get_distinct_labels()= uniqueLabels
   def get_distinct_label_count() = uniqueLabels.size
 }

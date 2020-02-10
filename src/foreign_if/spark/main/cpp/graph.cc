@@ -103,4 +103,42 @@ Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisPageRank(JNIEnv *env, jclass
   return to_jdoubleArray(env, result);
 }
 
+JNIEXPORT void JNICALL
+Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisSSSP(JNIEnv *env, jclass thisCls,
+  jobject master_node, jlong fdata,
+  jintArray dist_arr, jlongArray pred_arr, jlong sz,
+  jlong source_vertex) {
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto f_dptr = static_cast<exrpc_ptr_t> (fdata);
+  int vb = 0; // no log (default)
+  sssp_result res;
+  try {
+    res = exrpc_async(fm_node, frovedis_sssp<graph>, f_dptr,
+                      source_vertex, vb).get();
+  }
+  catch(std::exception& e) { set_status(true,e.what()); }
+  checkAssumption(sz == res.nodes_dist.size()); // check in case any size issue
+  env->SetIntArrayRegion(dist_arr, 0, sz, res.nodes_dist.data());
+  env->SetLongArrayRegion(pred_arr, 0, sz, res.nodes_pred.data());
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisBFS(JNIEnv *env, jclass thisCls,
+  jobject master_node, jlong fdata,
+  jlongArray nodes_in_which_cc,
+  jintArray nodes_dist, jlong sz) {
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto f_dptr = static_cast<exrpc_ptr_t> (fdata);
+  int vb = 0; // no log (default)
+  bfs_result res;
+  try {
+    res = exrpc_async(fm_node, frovedis_bfs<graph>, f_dptr, vb).get();
+  }
+  catch(std::exception& e) { set_status(true,e.what()); }
+  checkAssumption(sz == res.nodes_dist.size()); // check in case any size issue
+  env->SetIntArrayRegion(nodes_dist, 0, sz, res.nodes_dist.data());
+  env->SetLongArrayRegion(nodes_in_which_cc, 0, sz, res.nodes_in_which_cc.data());
+  return to_jlongArray(env, res.num_nodes_in_each_cc);
+}
+
 }
