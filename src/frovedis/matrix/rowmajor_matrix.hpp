@@ -9,6 +9,7 @@
 
 #include "../core/dvector.hpp"
 #include "../core/mpihelper.hpp"
+#include "../core/partition_sort.hpp"
 #include "diag_matrix.hpp"
 
 #define MAT_VLEN 256
@@ -607,6 +608,17 @@ void rowmajor_matrix_local<T>::savebinary(const std::string& dir) {
   typestr << get_type_name<T>() << std::endl;
   auto tmp = make_dvector_scatter(val);
   tmp.savebinary(valfile);
+}
+
+template <class T, class I>
+void arg_partition(rowmajor_matrix_local<T>& key,
+                   rowmajor_matrix_local<I>& value,
+                   size_t k) {
+  auto nrow = key.local_num_row;
+  auto ncol = key.local_num_col;
+  if (nrow != value.local_num_row && ncol != value.local_num_col)
+    throw std::runtime_error("partition_sort: different dimension for key and value is encountered!\n");
+  partition_sort(key.val.data(), value.val.data(), nrow, ncol, k);
 }
 
 /*
