@@ -1078,26 +1078,26 @@ extern "C" {
       switch(dtype) {
         case INT:
           if (itype == INT)
-            //exrpc_oneway(fm_node,(frovedis_lda_train<DT4,S_MAT44>), f_dptr, alpha,
+            //exrpc_async(fm_node,(frovedis_lda_train<DT4,S_MAT44>), f_dptr, alpha,
             //             beta, num_topics, num_iter, algo, num_explore_iter, num_eval_cycle,
             //             verbose, mid);
             REPORT_ERROR(USER_ERROR,
                          "Currently frovedis LDA doesn't support int itype for sparse data!\n");
           else if (itype == LONG )
-            exrpc_oneway(fm_node,(frovedis_lda_train<DT4,S_MAT45>), f_dptr, alpha,
+            exrpc_async(fm_node,(frovedis_lda_train<DT4,S_MAT45>), f_dptr, alpha,
                          beta, num_topics, num_iter, algo, num_explore_iter, num_eval_cycle,
                          verbose, mid);
           else REPORT_ERROR(USER_ERROR, "Unsupported itype for input sparse datain LDA train!\n");
           break;
         case LONG:
           if (itype == INT)
-            //exrpc_oneway(fm_node,(frovedis_lda_train<DT3,S_MAT34>), f_dptr, alpha,
+            //exrpc_async(fm_node,(frovedis_lda_train<DT3,S_MAT34>), f_dptr, alpha,
             //             beta, num_topics, num_iter, algo, num_explore_iter, num_eval_cycle,
             //             verbose, mid);
             REPORT_ERROR(USER_ERROR,
                          "Currently frovedis LDA doesn't support int itype for sparse data!\n");
           else if (itype == LONG)
-            exrpc_oneway(fm_node,(frovedis_lda_train<DT3,S_MAT35>), f_dptr, alpha,
+            exrpc_async(fm_node,(frovedis_lda_train<DT3,S_MAT35>), f_dptr, alpha,
                          beta, num_topics, num_iter, algo, num_explore_iter, num_eval_cycle,
                          verbose, mid);
           else REPORT_ERROR(USER_ERROR, "Unsupported itype for input sparse datain LDA train!\n");

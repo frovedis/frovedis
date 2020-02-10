@@ -76,7 +76,7 @@ extern "C" {
           case ACM:    exrpc_oneway(fm_node,release_model<ACM2>,mid); break;
           case SEM:    exrpc_oneway(fm_node,release_model<SEM2>,mid); break;
           case SCM:    exrpc_oneway(fm_node,release_model<SCM2>,mid); break;
-          case DBSCAN: exrpc_oneway(fm_node,release_model<dbscan>,mid); break; 
+          case DBSCAN: exrpc_oneway(fm_node,release_model<DBSCAN1>,mid); break; // not template based
           case DTM:    exrpc_oneway(fm_node,release_model<DTM2>,mid); break;
           case FPM:    exrpc_oneway(fm_node,release_model<FPM1>,mid); break; // not template based
           case FPR:    exrpc_oneway(fm_node, release_model<FPR1>, mid); break;
@@ -100,7 +100,7 @@ extern "C" {
           case ACM:    exrpc_oneway(fm_node,release_model<ACM1>,mid); break;
           case SEM:    exrpc_oneway(fm_node,release_model<SEM1>,mid); break;
           case SCM:    exrpc_oneway(fm_node,release_model<SCM1>,mid); break;
-          case DBSCAN: exrpc_oneway(fm_node,release_model<dbscan>,mid); break; 
+          case DBSCAN: exrpc_oneway(fm_node,release_model<DBSCAN1>,mid); break; // not template based
           case FPM:    exrpc_oneway(fm_node,release_model<FPM1>,mid); break; // not template based
           case FPR:    exrpc_oneway(fm_node, release_model<FPR1>, mid); break;
           case FMM:    exrpc_oneway(fm_node,release_model<FMM1>,mid); break;
