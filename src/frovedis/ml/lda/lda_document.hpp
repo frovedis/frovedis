@@ -209,7 +209,7 @@ lda_corpus<TD,TW,TK> lda_document<TD,TW,TK>::gen_corpus_from_crs(crs_matrix_loca
 #if (defined(_SX) || defined(__ve__)) 
     asl_random_destroy(rng);asl_library_finalize();
 #endif
-    data.clear();
+    //data.clear(); // data is not movable
     return corpus;
 }
 

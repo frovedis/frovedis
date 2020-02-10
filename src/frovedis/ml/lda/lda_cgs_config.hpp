@@ -9,7 +9,7 @@
 #include "frovedis/core/node_local.hpp"
 #include "frovedis/core/dvector.hpp"
 #include "frovedis/core/radix_sort.hpp"
-#include "frovedis/dataframe/set_operations.hpp"
+#include "frovedis/core/set_operations.hpp"
 #include "frovedis/core/mpihelper.hpp"
 // #include "typed_funcs.hpp"
 #include <map>
