@@ -4,7 +4,7 @@
 #include <vector>
 #include <utility>
 
-#include "set_operations.hpp"
+#include "../core/set_operations.hpp"
 #include "../core/radix_sort.hpp"
 
 #if defined(_SX) || defined(__ve__) // might be used in x86

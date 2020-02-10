@@ -3,7 +3,7 @@
 
 #include <regex>
 #include "dftable.hpp"
-#include "set_operations.hpp"
+#include "../core/set_operations.hpp"
 
 namespace frovedis {
 

@@ -1,0 +1,31 @@
+  T leftelm0[SET_VLEN_EACH];
+  T leftelm1[SET_VLEN_EACH];
+  T leftelm2[SET_VLEN_EACH];
+  T rightelm0[SET_VLEN_EACH];
+  T rightelm1[SET_VLEN_EACH];
+  T rightelm2[SET_VLEN_EACH];
+#pragma _NEC vreg(leftelm0)
+#pragma _NEC vreg(leftelm1)
+#pragma _NEC vreg(leftelm2)
+#pragma _NEC vreg(rightelm0)
+#pragma _NEC vreg(rightelm1)
+#pragma _NEC vreg(rightelm2)
+
+#pragma _NEC vovertake
+  for(int j = 0; j < SET_VLEN_EACH; j++) {
+    if(left_idx_0[j] != left_idx_stop_0[j] &&
+       right_idx_0[j] != right_idx_stop_0[j]) {
+      leftelm0[j] = lp[left_idx_0[j]];
+      rightelm0[j] = rp[right_idx_0[j]];
+    }
+    if(left_idx_1[j] != left_idx_stop_1[j] &&
+       right_idx_1[j] != right_idx_stop_1[j]) {
+      leftelm1[j] = lp[left_idx_1[j]];
+      rightelm1[j] = rp[right_idx_1[j]];
+    }
+    if(left_idx_2[j] != left_idx_stop_2[j] &&
+       right_idx_2[j] != right_idx_stop_2[j]) {
+        leftelm2[j] = lp[left_idx_2[j]];
+        rightelm2[j] = rp[right_idx_2[j]];
+    }
+  }

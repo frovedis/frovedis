@@ -6,7 +6,7 @@
 #include <unordered_map>
 #else
 #include "../core/radix_sort.hpp"
-#include "set_operations.hpp"
+#include "../core/set_operations.hpp"
 #include "hashtable.hpp"
 #include <limits>
 #endif

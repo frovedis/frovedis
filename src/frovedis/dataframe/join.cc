@@ -1,7 +1,7 @@
 #include <cstddef>
 #include <stdexcept>
 #include "join.hpp"
-#include "set_operations.hpp"
+#include "../core/set_operations.hpp"
 
 #define SHRINK_MISSED_VLEN 256
 

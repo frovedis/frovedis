@@ -1,6 +1,3 @@
-  int valid_0[SET_VLEN_EACH];
-  int valid_1[SET_VLEN_EACH];
-  int valid_2[SET_VLEN_EACH];
   size_t left_idx_0[SET_VLEN_EACH];
   size_t left_idx_1[SET_VLEN_EACH];
   size_t left_idx_2[SET_VLEN_EACH];
@@ -16,9 +13,6 @@
   size_t out_idx_0[SET_VLEN_EACH];
   size_t out_idx_1[SET_VLEN_EACH];
   size_t out_idx_2[SET_VLEN_EACH];
-#pragma _NEC vreg(valid_0)
-#pragma _NEC vreg(valid_1)
-#pragma _NEC vreg(valid_2)
 #pragma _NEC vreg(left_idx_stop_0)
 #pragma _NEC vreg(left_idx_stop_1)
 #pragma _NEC vreg(left_idx_stop_2)
@@ -35,9 +29,6 @@
 #pragma _NEC vreg(out_idx_1)
 #pragma _NEC vreg(out_idx_2)
   for(size_t i = 0; i < SET_VLEN_EACH; i++) {
-    valid_0[i] = valid[i];
-    valid_1[i] = valid[SET_VLEN_EACH * 1 + i];
-    valid_2[i] = valid[SET_VLEN_EACH * 2 + i];
     left_idx_0[i] = left_idx[i];
     left_idx_1[i] = left_idx[SET_VLEN_EACH * 1 + i];
     left_idx_2[i] = left_idx[SET_VLEN_EACH * 2 + i];

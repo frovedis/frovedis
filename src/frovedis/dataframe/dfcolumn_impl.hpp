@@ -4,7 +4,7 @@
 #include "dfcolumn.hpp"
 
 #include <limits>
-#include "set_operations.hpp"
+#include "../core/set_operations.hpp"
 #include "../core/radix_sort.hpp"
 #include "hashtable.hpp"
 #include "join.hpp"
