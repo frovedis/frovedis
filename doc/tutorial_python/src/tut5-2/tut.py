@@ -6,7 +6,7 @@ from frovedis.matrix.dense import FrovedisRowmajorMatrix
 
 # sample 4x4 numpy matrix creation
 mat = np.matrix([[1,2,3,4],[5,6,7,8],[8,7,6,5],[4,3,2,1]],
-                 dtype=np.float64)
+                dtype=np.float64)
 
 FrovedisServer.initialize("mpirun -np 2 {}".format(os.environ['FROVEDIS_SERVER']))
 print ("-- matrix created from np.matrix --")

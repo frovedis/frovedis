@@ -10,9 +10,9 @@ FrovedisServer.initialize("mpirun -np 2 {}".format(os.environ['FROVEDIS_SERVER']
 x = np.matrix([[1],[2],[3],[4]], dtype=np.float64) # 4x1
 y = np.matrix([[5],[6],[7],[8]], dtype=np.float64) # 4x1
 m = np.matrix([[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]],
-               dtype=np.float64) # 4x4: eye(I)
+              dtype=np.float64) # 4x4: eye(I)
 n = np.matrix([[1,2,3,4],[5,6,7,8],[8,7,6,5],[4,3,2,1]],
-               dtype=np.float64) # 4x4
+              dtype=np.float64) # 4x4
 
 # Creating Frovedis server side blockcyclic matrics from numpy matrices
 bcx = FrovedisBlockcyclicMatrix(x) # blockcyclic vector (x)

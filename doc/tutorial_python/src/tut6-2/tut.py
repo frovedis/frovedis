@@ -27,7 +27,7 @@ crs_mat.debug_print(); print
 data2 = {'A': [12,13],
          'B': [34.56, 78.9],
          'C': ['male','male'],
-     }
+        }
 pdf2 = pd.DataFrame(data2)
 df2 = FrovedisDataframe(pdf2)
 print (pdf2); print
