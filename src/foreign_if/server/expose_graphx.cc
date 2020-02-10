@@ -12,4 +12,6 @@ void expose_frovedis_graph_functions(){
   expose(set_graph_data<S_MAT1>);
   expose(get_graph_data<graph>);
   expose(frovedis_pagerank<graph>);
+  expose(frovedis_sssp<graph>);
+  expose(frovedis_bfs<graph>);
 }

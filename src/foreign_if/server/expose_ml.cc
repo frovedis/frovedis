@@ -160,4 +160,6 @@ void expose_frovedis_ml_functions() {
   expose((frovedis_lda_train<DT4,S_MAT44>));
   expose((frovedis_lda_train<DT3,S_MAT34>));
   */
+  // for spark (changed datatype internally S_MAT15 -> S_MAT35)
+  expose((frovedis_lda_train_for_spark<DT3,S_MAT15>)); 
 }

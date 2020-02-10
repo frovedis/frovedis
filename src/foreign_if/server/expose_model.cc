@@ -247,12 +247,13 @@ void expose_frovedis_model_functions() {
   expose(show_w2v_weight<DT2>);
   expose(save_w2v_model<DT2>);
   // ---frovedis dbscan
-  expose(release_model<dbscan>);
+  expose(release_model<DBSCAN1>);
   // knn -Nearest Neigbors ( NN )
   expose((frovedis_kneighbors<DT1,DT4,R_MAT1,KNN1>));   
   expose((frovedis_kneighbors<DT2,DT4,R_MAT2,KNN2>));   
   expose((frovedis_kneighbors<DT1,DT5,R_MAT1,KNN1>));   
-  expose((frovedis_kneighbors<DT2,DT5,R_MAT2,KNN2>));   
+  expose((frovedis_kneighbors<DT2,DT5,R_MAT2,KNN2>));
+  expose((frovedis_kneighbors_spark<DT1,DT5,R_MAT1,KNN1>)); // for spark
   expose((frovedis_kneighbors_graph<DT4,R_MAT1,KNN1,S_MAT14,S_LMAT14>));
   expose((frovedis_kneighbors_graph<DT4,R_MAT2,KNN2,S_MAT24,S_LMAT24>));
   expose((frovedis_kneighbors_graph<DT5,R_MAT1,KNN1,S_MAT15,S_LMAT15>));
@@ -328,9 +329,16 @@ void expose_frovedis_model_functions() {
   expose(get_lda_component<LDA3>);
   expose(get_lda_component<LDA4>);
   expose(save_model<LDA4>);
-  expose(save_model<LDA3>);
+  expose(save_model<LDA3>);    // for spark + python
   expose(load_model<LDA4>);
-  expose(load_model<LDA3>);
+  expose(load_model<LDA3>);    // for only python
   expose(release_model<LDA4>);
-  expose(release_model<LDA3>);
+  expose(release_model<LDA3>); // for spark + python
+  // for spark (changed datatype internally S_MAT15 -> S_MAT35)
+  expose((frovedis_lda_transform_for_spark<DT3,S_MAT15,LDA3>)); 
+  expose((get_topics_matrix<DT3,LDA3>)); // for spark
+  expose(get_vocabulary_size<LDA3>); // for spark
+  expose(get_num_topics<LDA3>); // for spark
+  expose(get_describe_matrix<LDA3>); // for spark
+  expose(load_lda_model<LDA3>);    // for spark
 }

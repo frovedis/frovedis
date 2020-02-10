@@ -41,6 +41,7 @@
 #include "../exrpc/exrpc_expose.hpp"
 #include "frovedis_mem_pair.hpp"
 #include "model_tracker.hpp"
+#include "lda_result.hpp"
 
 using namespace frovedis;
 
@@ -887,11 +888,12 @@ void frovedis_w2v_train(std::string& encode,
                         w2v::train_config& config);
 
 template <class TC, class MATRIX>
-void frovedis_lda_train(exrpc_ptr_t& dptr,  double& alpha,
-                        double& beta,  int& num_topics,
-                        int& num_iter,  std::string& algorithm,
-                        int& num_explore_iter,  int& num_eval_cycle,
-                        int& verbose, int& mid) {
+dummy_lda_model 
+frovedis_lda_train(exrpc_ptr_t& dptr, double& alpha,
+                   double& beta, int& num_topics,
+                   int& num_iter, std::string& algorithm,
+                   int& num_explore_iter, int& num_eval_cycle,
+                   int& verbose, int& mid) {
   register_for_train(mid);  // mark model 'mid' as "under training"
 
   auto old_level = frovedis::get_loglevel();
@@ -899,11 +901,33 @@ void frovedis_lda_train(exrpc_ptr_t& dptr,  double& alpha,
   else if (verbose == 2) frovedis::set_loglevel(frovedis::TRACE);
 
   MATRIX& mat = *reinterpret_cast<MATRIX*>(dptr);
-  auto copy_mat = mat;
-  auto model = lda_train<TC>(copy_mat,alpha,beta,num_topics,num_iter,algorithm,
+  auto model = lda_train<TC>(mat,alpha,beta,num_topics,num_iter,algorithm,
                              num_explore_iter,num_eval_cycle);
   handle_trained_model<lda_model<TC>>(mid, LDA, model);
   frovedis::set_loglevel(old_level);
+  return dummy_lda_model(num_topics,(int)model.word_topic_count.local_num_row); 
+}
+
+template <class TC, class MATRIX>
+dummy_lda_model 
+frovedis_lda_train_for_spark(exrpc_ptr_t& dptr, double& alpha,
+                             double& beta, int& num_topics,
+                             int& num_iter, std::string& algorithm,
+                             int& num_explore_iter, int& num_eval_cycle,
+                             int& verbose, int& mid) {
+  register_for_train(mid);  // mark model 'mid' as "under training"
+
+  auto old_level = frovedis::get_loglevel();
+  if (verbose == 1) frovedis::set_loglevel(frovedis::DEBUG);
+  else if (verbose == 2) frovedis::set_loglevel(frovedis::TRACE);
+
+  MATRIX& mat = *reinterpret_cast<MATRIX*>(dptr);
+  auto mod_mat = mat.template change_datatype<TC>();
+  auto model = lda_train<TC>(mod_mat,alpha,beta,num_topics,num_iter,algorithm,
+                             num_explore_iter,num_eval_cycle);
+  handle_trained_model<lda_model<TC>>(mid, LDA, model);
+  frovedis::set_loglevel(old_level);
+  return dummy_lda_model(num_topics,(int)model.word_topic_count.local_num_row); 
 }
 
 #endif

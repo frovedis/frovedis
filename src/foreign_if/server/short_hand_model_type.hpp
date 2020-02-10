@@ -35,6 +35,7 @@ namespace frovedis {
   typedef rowmajor_matrix_local<DT2> ACM2;
   typedef rowmajor_matrix_local<DT1> W2V1;
   typedef rowmajor_matrix_local<DT2> W2V2;
+  typedef dbscan DBSCAN1; // dbscan structure is typeless...
   typedef nearest_neighbors<DT1> KNN1;
   typedef nearest_neighbors<DT2> KNN2;
   typedef kneighbors_classifier<DT1> KNC1;
@@ -43,5 +44,6 @@ namespace frovedis {
   typedef kneighbors_regressor<DT2> KNR2;
   typedef lda_model<DT4> LDA4;
   typedef lda_model<DT3> LDA3;
+  typedef lda_model<DT1> LDA1;
 }
 #endif

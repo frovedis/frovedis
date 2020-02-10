@@ -36,7 +36,7 @@
 #include "frovedis_mem_pair.hpp"
 
 using namespace frovedis;
-   
+
 // --- Frovedis Models Handling (print, delete, set threshold) ---
 // prints registered Frovedis Model
 template <class MODEL>
@@ -339,17 +339,55 @@ knn_result frovedis_kneighbors(exrpc_ptr_t& mat_ptr, int& mid,
                     distances_ptr, distances->num_row, distances->num_col);
 }
 
+template <class R, class T> 
+rowmajor_matrix_local<R> 
+change_datatype_helper(rowmajor_matrix_local<T>& mat){
+  auto nrow = mat.local_num_row;
+  auto ncol = mat.local_num_col;
+  rowmajor_matrix_local<R> res(nrow, ncol);
+  auto datap = mat.val.data();
+  auto resdatap = res.val.data();
+  for(size_t i = 0; i < nrow * ncol; i++) {
+    resdatap[i] = static_cast<R> (datap[i]);
+  }
+  return res;
+}
+
+template <class R, class T> 
+rowmajor_matrix<R> 
+change_datatype(rowmajor_matrix<T>& mat) {
+  rowmajor_matrix<R> res;
+  res.num_row = mat.num_row;
+  res.num_col = mat.num_col; 
+  res.data = mat.data.map(change_datatype_helper<R,T>);
+  return res;
+}
+
+// for spark: indices mat wil be typecasted rmm<int> => rmm<double>
+template <class T, class I, class MATRIX, class ALGO>
+knn_result frovedis_kneighbors_spark(exrpc_ptr_t& mat_ptr, int& mid, 
+                                     int& k, bool& need_distance) {
+  auto& mat = *reinterpret_cast<MATRIX*> (mat_ptr);
+  auto& obj = *get_model_ptr<ALGO>(mid);
+  auto model = obj.template kneighbors<I>(mat, k, need_distance); // knn model is returned
+  auto indices = new rowmajor_matrix<double>(change_datatype<double>(model.indices)); 
+  auto distances = new rowmajor_matrix<T>(std::move(model.distances));
+  auto indices_ptr = reinterpret_cast<exrpc_ptr_t>(indices);
+  auto distances_ptr = reinterpret_cast<exrpc_ptr_t>(distances);
+  return knn_result(k, 
+                    indices_ptr, indices->num_row, indices->num_col,
+                    distances_ptr, distances->num_row, distances->num_col);
+}
+
 template <class I, class MATRIX, class ALGO, 
           class OUTMAT, class OUTMAT_LOC>
 dummy_matrix frovedis_kneighbors_graph(exrpc_ptr_t& mat_ptr, int& mid, 
                                        int& k, std::string& mode) {
-
   auto& mat = *reinterpret_cast<MATRIX*> (mat_ptr);
   auto& obj = *get_model_ptr<ALGO>(mid);
   auto ret = new OUTMAT(obj.template kneighbors_graph<I>(mat, k, mode)); 
   return to_dummy_matrix<OUTMAT,OUTMAT_LOC>(ret);
 }
-
 
 template <class I, class MATRIX, class ALGO,
           class OUTMAT, class OUTMAT_LOC>
@@ -360,7 +398,6 @@ dummy_matrix frovedis_radius_neighbors(exrpc_ptr_t& mat_ptr, int& mid,
   auto ret = new OUTMAT(obj.template radius_neighbors<I>(mat, radius, need_distance));
   return to_dummy_matrix<OUTMAT,OUTMAT_LOC>(ret);
 }
-
 
 template <class I, class MATRIX, class ALGO,
           class OUTMAT, class OUTMAT_LOC>
@@ -842,12 +879,11 @@ dummy_lda_result
 frovedis_lda_transform(exrpc_ptr_t& dptr, double& alpha,
                        double& beta, int& num_iter,
                        std::string& algorithm,
-                       int& num_explore_iter, int& mid){
+                       int& num_explore_iter, int& mid) {
   auto& model = *get_model_ptr<MODEL>(mid);
   MATRIX& mat = *reinterpret_cast<MATRIX*>(dptr);
-  auto copy_mat = mat;
   std::vector<double> likelihood, perplexity;
-  rowmajor_matrix<TD> doc_topic_count = lda_test(copy_mat, alpha, beta, num_iter, algorithm,
+  auto doc_topic_count = lda_test(mat, alpha, beta, num_iter, algorithm,
                                   num_explore_iter, model, perplexity,
                                   likelihood);
   rowmajor_matrix<double> ret(doc_topic_count.data.map(get_doc_topic_distribution<TD>));
@@ -859,5 +895,90 @@ frovedis_lda_transform(exrpc_ptr_t& dptr, double& alpha,
   return dummy_lda_result(dmat, perplexity.back(), likelihood.back());
 }
 
+template <class TD, class MATRIX, class MODEL>
+dummy_lda_result
+frovedis_lda_transform_for_spark(exrpc_ptr_t& dptr, double& alpha,
+                                 double& beta, int& num_iter,
+                                 std::string& algorithm,
+                                 int& num_explore_iter, int& mid) {
+  auto& model = *get_model_ptr<MODEL>(mid);
+  MATRIX& mat = *reinterpret_cast<MATRIX*>(dptr);
+  std::vector<double> likelihood, perplexity;
+  auto mod_mat = mat.change_datatype<TD>();
+  auto doc_topic_count = lda_test(mod_mat, alpha, beta, num_iter, algorithm,
+                                  num_explore_iter, model, perplexity,
+                                  likelihood);
+  rowmajor_matrix<double> ret(doc_topic_count.data.map(get_doc_topic_distribution<TD>));
+  ret.num_row = doc_topic_count.num_row;
+  ret.num_col = doc_topic_count.num_col;
+  auto retptr = new rowmajor_matrix<double>(std::move(ret));
+  auto dmat = to_dummy_matrix<rowmajor_matrix<double>,
+                              rowmajor_matrix_local<double>>(retptr);
+  return dummy_lda_result(dmat, perplexity.back(), likelihood.back());
+}
+
+template <class TC, class MODEL>
+dummy_matrix get_topics_matrix(int& mid) {
+  auto& model = *get_model_ptr<MODEL>(mid);
+  auto topic_mat = model.word_topic_count;
+  auto topic_mat_ptr = new rowmajor_matrix<TC>(make_rowmajor_matrix_scatter(topic_mat));
+  return to_dummy_matrix<rowmajor_matrix<TC>,
+                         rowmajor_matrix_local<TC>>(topic_mat_ptr);
+}
+
+template <class MODEL>
+size_t get_vocabulary_size(int& mid) {
+  auto& model = *get_model_ptr<MODEL>(mid);
+  return  model.word_topic_count.local_num_row;
+}
+
+template <class MODEL>
+size_t get_num_topics(int& mid) {
+  auto& model = *get_model_ptr<MODEL>(mid);
+  return  model.word_topic_count.local_num_col;
+}
+
+template <class T>
+rowmajor_matrix_local<int>
+get_sorted_word_topic_vec(rowmajor_matrix_local<T>& word_topic_dist) {
+  // input matrix would get in-place sorted row-by-row
+  auto nr = word_topic_dist.local_num_row;
+  auto nc = word_topic_dist.local_num_col;
+  rowmajor_matrix_local<int> word_id(nr, nc);
+  auto wid_ptr = word_id.val.data();
+  auto mat_ptr = word_topic_dist.val.data();
+  for(size_t i = 0; i < nr; ++i) {
+    for(size_t j = 0; j < nc; ++j) {
+      wid_ptr[j + i * nc] = j;
+    }
+  }
+  // COMMENT: address performance issue. row-by-row sorting would cause poor performance
+  // refer segmented chunk sorting at a go from ml/neighbors/knn.hpp
+  for (size_t i = 0; i < nr; i++){
+    auto mptr = mat_ptr + i * nc;
+    auto wptr = wid_ptr + i * nc;
+    radix_sort_desc(mptr, wptr, nc);
+  } 
+  return word_id; 
+}
+
+template <class MODEL>
+describeMatrix get_describe_matrix(int& mid, int& max_terms) {
+  auto& model = *get_model_ptr<MODEL>(mid);
+  auto word_topic_dist = get_doc_topic_distribution(model.word_topic_count)
+                         .transpose(); //num_topics * vocabsize local_mat
+  auto sorted_word_ids = get_sorted_word_topic_vec(word_topic_dist);
+  return describeMatrix(sorted_word_ids, word_topic_dist, max_terms);
+}
+
+// generic model loading for lda_model
+template <class MODEL>
+dummy_lda_model load_lda_model(int& mid, std::string& path) {
+  auto mkind = LDA;
+  load_model<MODEL>(mid,mkind,path);
+  auto& model = *get_model_ptr<MODEL>(mid);
+  return dummy_lda_model(model.word_topic_count.local_num_col,
+                         model.word_topic_count.local_num_row);
+}
 
 #endif 

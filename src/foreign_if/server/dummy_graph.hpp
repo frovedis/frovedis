@@ -25,5 +25,58 @@ dummy_graph to_dummy_graph(graph* gptr) {
   return dummy_graph(gptr_, nEdges, nNodes);
 }
 
+struct sssp_result {
+  sssp_result() {}
+  sssp_result(std::vector<int>& dist, 
+              std::vector<size_t>& pred) {
+    checkAssumption(dist.size() == pred.size());
+    nodes_dist.resize(dist.size());
+    nodes_pred.resize(pred.size());
+    auto distptr = dist.data();
+    auto predptr = pred.data();
+    auto nodes_distptr = nodes_dist.data();
+    auto nodes_predptr = nodes_pred.data();
+    for(size_t i = 0; i < pred.size(); ++i) {
+      nodes_distptr[i] = distptr[i]; // no need for type casting
+      nodes_predptr[i] = static_cast<long> (predptr[i]);
+    }    
+  }
+  std::vector<int> nodes_dist;
+  std::vector<long> nodes_pred;
+  SERIALIZE(nodes_dist, nodes_pred)
+};
+
+struct bfs_result{
+  bfs_result() {}
+  bfs_result(std::vector<int>& dist,
+             std::vector<size_t>& nid,
+             size_t num_cc,
+             std::vector<size_t>& nn) {
+    checkAssumption(dist.size() == nid.size());
+    auto num_nodes = dist.size();
+    nodes_dist.resize(num_nodes);
+    nodes_in_which_cc.resize(num_nodes); // nid
+    num_nodes_in_each_cc.resize(num_cc); // nn
+    auto distptr = dist.data();
+    auto nidptr = nid.data();
+    auto nnptr = nn.data();
+    auto res_distptr = nodes_dist.data();
+    auto res_nidptr = nodes_in_which_cc.data(); // nid
+    auto res_nnptr = num_nodes_in_each_cc.data(); // nn
+    for(size_t i = 0; i < num_nodes; ++i) {
+      res_distptr[i] = distptr[i]; // no need for type casting
+      res_nidptr[i] = static_cast<long> (nidptr[i]);
+    }
+    for(size_t i = 0; i < num_cc; ++i){
+      // extracting first num_cc elements
+      res_nnptr[i] = static_cast<long> (nnptr[i]); 
+    }
+  }  
+  std::vector<int> nodes_dist;
+  std::vector<long> num_nodes_in_each_cc;
+  std::vector<long> nodes_in_which_cc;
+  SERIALIZE(nodes_dist, num_nodes_in_each_cc, nodes_in_which_cc)
+};
+
 }
 #endif

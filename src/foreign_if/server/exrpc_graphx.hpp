@@ -28,7 +28,7 @@ exrpc_ptr_t set_graph_data(exrpc_ptr_t& dptr) {
                          .template as_dvector<size_t>().gather();
   checkAssumption(num_outgoing.size() == mat.num_row);
   auto g = new graph();
-  g->A_pg = mat.transpose(); // transpose: since frovedis assumes nodes in column
+  g->A_pg = mat.transpose(); //transpose:since frovedis assumes nodes in column
   g->num_nodes = mat.num_row;
   g->num_outgoing = num_outgoing;
   return reinterpret_cast<exrpc_ptr_t>(g);
@@ -46,7 +46,8 @@ dummy_graph load_graph(std::string& fname) {
   auto mat = make_crs_matrix_load<TYPE_MATRIX_PAGERANK>(fname);
   if(mat.num_row != mat.num_col)
     REPORT_ERROR(USER_ERROR, "Loaded matrix needs to be a sqaure matrix!\n");
-  auto num_outgoing = mat.transpose() // transpose needed, sinced saved graph considers nodes in column
+  //transpose needed, sinced saved graph considers nodes in column
+  auto num_outgoing = mat.transpose() 
                          .data
                          .map(get_outgoing_edges<TYPE_MATRIX_PAGERANK>)
                          .template as_dvector<size_t>().gather();
@@ -134,4 +135,37 @@ frovedis_pagerank(exrpc_ptr_t& dptr,
   return graph.get_prank();
 }
 
+template <class GRAPH>
+sssp_result frovedis_sssp(exrpc_ptr_t& dptr, 
+                          long& source_vertex,
+                          int& verbose) { 
+  auto old_level = frovedis::get_loglevel();
+  if (verbose == 1) frovedis::set_loglevel(frovedis::DEBUG);
+  else if (verbose == 2) frovedis::set_loglevel(frovedis::TRACE);
+  auto& graph = *reinterpret_cast<GRAPH*>(dptr);
+  if ((graph.A_pg.num_row != graph.A.num_row) || 
+      (graph.A_pg.num_col != graph.A.num_col)) 
+    graph.A = graph.A_pg.template change_datatype<int>();
+  graph.sssp_bf_spmv(false, source_vertex);
+  frovedis::set_loglevel(old_level);
+  return sssp_result(graph.get_nodes_dist(), graph.get_nodes_pred());
+}
+
+template <class GRAPH>
+bfs_result frovedis_bfs(exrpc_ptr_t& dptr, 
+                        int& verbose) { 
+  auto old_level = frovedis::get_loglevel();
+  if (verbose == 1) frovedis::set_loglevel(frovedis::DEBUG);
+  else if (verbose == 2) frovedis::set_loglevel(frovedis::TRACE);
+  auto& graph = *reinterpret_cast<GRAPH*>(dptr);
+  if ((graph.A_pg.num_row != graph.A.num_row) || 
+      (graph.A_pg.num_col != graph.A.num_col)) 
+    graph.A = graph.A_pg.template change_datatype<int>();
+  graph.cc_bfs_scatter();
+  frovedis::set_loglevel(old_level);
+  return bfs_result(graph.get_nodes_dist(), 
+                    graph.get_nodes_in_which_cc(),
+                    graph.get_num_cc(),
+                    graph.get_num_nodes_in_each_cc());
+}
 #endif
