@@ -1,8 +1,8 @@
-TARGETS := to_binary_rowmajor_matrix to_text_rowmajor_matrix to_binary_crs_matrix to_text_crs_matrix to_text_vector to_binary_vector transpose_crs_matrix coo_to_crs_matrix libsvm_to_crs_matrix_and_vector convert_endian
+TARGETS := to_binary_rowmajor_matrix to_text_rowmajor_matrix to_binary_crs_matrix to_text_crs_matrix to_text_vector to_binary_vector transpose_crs_matrix coo_to_crs_matrix libsvm_to_crs_matrix_and_vector mtx_to_crs_matrix convert_endian
 include ../Makefile.in.x86
 include ../Makefile.common
 
-TO_INSTALL := to_binary_crs_matrix.cc to_binary_rowmajor_matrix.cc to_binary_vector.cc to_text_crs_matrix.cc to_text_rowmajor_matrix.cc to_text_vector.cc transpose_crs_matrix.cc coo_to_crs_matrix.cc libsvm_to_crs_matrix_and_vector.cc convert_endian.cc
+TO_INSTALL := to_binary_crs_matrix.cc to_binary_rowmajor_matrix.cc to_binary_vector.cc to_text_crs_matrix.cc to_text_rowmajor_matrix.cc to_text_vector.cc transpose_crs_matrix.cc coo_to_crs_matrix.cc libsvm_to_crs_matrix_and_vector.cc mtx_to_crs_matrix.cc convert_endian.cc
 DIR := matrix_tools
 ARCH := x86
 
