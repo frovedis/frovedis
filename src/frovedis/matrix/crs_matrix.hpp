@@ -731,7 +731,7 @@ change_datatype_helper(crs_matrix_local<T,I,O>& mat) {
   auto matidxp = mat.idx.data();
   auto matoffp = mat.off.data();
   auto retvalp = ret.val.data();
-  auto retidxp = ret.idx.dat();
+  auto retidxp = ret.idx.data();
   auto retoffp = ret.off.data();
   auto matvalsize = mat.val.size();
   auto matidxsize = mat.idx.size();
