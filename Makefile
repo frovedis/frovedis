@@ -9,6 +9,7 @@ all:
 	cd src/frovedis/matrix; make -f Makefile.${TARGET} -j ${JOBS}
 	cd src/frovedis/ml; make -f Makefile.${TARGET} -j ${JOBS}
 	cd src/frovedis/dataframe; make -f Makefile.${TARGET} -j ${JOBS}
+	cd src/frovedis/text; make -f Makefile.${TARGET} -j ${JOBS}
 ifeq (${BUILD_FOREIGN_IF},true)
 	cd src/foreign_if; make all
 endif
@@ -22,6 +23,7 @@ install:
 	cd src/frovedis/matrix; make -f Makefile.${TARGET} install
 	cd src/frovedis/ml; make -f Makefile.${TARGET} install
 	cd src/frovedis/dataframe; make -f Makefile.${TARGET} install
+	cd src/frovedis/text; make -f Makefile.${TARGET} install
 	cd doc/tutorial; make -f Makefile.${TARGET} install
 	cd doc/tutorial_python; make -f Makefile.${TARGET} install
 	cd doc/tutorial_spark; make -f Makefile.${TARGET} install
@@ -39,6 +41,7 @@ clean:
 	cd src/frovedis/matrix; make -f Makefile.${TARGET} clean
 	cd src/frovedis/ml; make -f Makefile.${TARGET} clean
 	cd src/frovedis/dataframe; make -f Makefile.${TARGET} clean
+	cd src/frovedis/text; make -f Makefile.${TARGET} clean
 ifeq (${BUILD_FOREIGN_IF},true)
 	cd src/foreign_if; make clean
 endif
