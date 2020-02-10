@@ -137,10 +137,10 @@ size_t get_max_key_size(K* key_array, size_t size) {
   for(size_t i = 0; i < size; i++) {
     if(key_array[i] > max) max = key_array[i];
   }
-  size_t max_key_size = 0;
+  size_t max_key_size = key_size;
   size_t tmp = 0xFF;
   for(size_t i = 1; i < key_size + 1; i++) {
-    if(max < tmp) {
+    if(max <= tmp) {
       max_key_size = i;
       break;
     } else {
