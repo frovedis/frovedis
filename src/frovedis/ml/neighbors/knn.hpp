@@ -8,6 +8,7 @@
 //#define DEBUG_SAVE
 
 #include <frovedis/core/radix_sort.hpp>
+#include <frovedis/core/partition_sort.hpp>
 #include <frovedis/matrix/crs_matrix.hpp>
 #include <frovedis/ml/clustering/common.hpp>
 
@@ -102,35 +103,53 @@ size_t get_rows_per_chunk(size_t nrow, size_t ncol,
 }
   
 template <class T, class I>
-void sort_segmented_rows(T* dptr, I* iptr, 
-                         size_t size,
-                         size_t ncol,
-                         bool need_distance) {
+void sort_segmented_rows(T* dist_buf_ptr,       // distance buffer pointer (destroyed)
+                         I* imat_ptr,           // chunk-partitioned index matrix pointer 
+                         T* dptr, I* iptr,      // model member pointers
+                         size_t size, size_t k, // nrow_in_buffer = size / k
+                         size_t ncol,           // ncol of indx_mat: imat_ptr
+                         bool need_distance,
+                         time_spent& radix_t,
+                         time_spent& extract_t) {
   std::vector<T> copy_dist;
   if (need_distance) {
     copy_dist.resize(size);
     auto copy_dptr = copy_dist.data();
-    for(size_t i = 0; i < size; ++i) copy_dptr[i] = dptr[i]; // copying before sort
+    for(size_t i = 0; i < size; ++i) copy_dptr[i] = dist_buf_ptr[i]; // copying before sort
   }
   // iptr contains physical indices, but reused later as col-index.
   for(size_t i = 0; i < size; ++i) iptr[i] = i;
-  radix_sort(dptr, iptr, size); // sort entire data in dptr(size) in one go
-  auto one_by_ncol = 1.0 / ncol;
+  radix_t.lap_start();
+  radix_sort(dist_buf_ptr, iptr, size); // sort entire data in distance buffer in one go
+  radix_t.lap_stop();
+  auto one_by_k = 1.0 / k;
   std::vector<I> row_indx(size);
   auto riptr = row_indx.data();
   for(size_t i = 0; i < size; ++i) {
-    riptr[i] = iptr[i] * one_by_ncol;
-    iptr[i] = iptr[i] - (riptr[i] * ncol); // physical index to col index conversion: reuse of memory 
+    riptr[i] = iptr[i] * one_by_k;
+    iptr[i] = iptr[i] - (riptr[i] * k); // physical index to col index conversion: reuse of memory 
   }
+  radix_t.lap_start();
   radix_sort(riptr, iptr, size); // sort to know positional changes in each row
+  radix_t.lap_stop();
+  extract_t.lap_start();
   if (need_distance) {
     auto copy_dptr = copy_dist.data();
-    for(size_t k = 0; k < size; ++k) {
-      auto i = riptr[k];
-      auto j = iptr[k]; // actually col-index
-      dptr[k] = copy_dptr[i * ncol + j]; // update dptr in-place using its copy (after sort)
+    for(size_t ij = 0; ij < size; ++ij) {
+      auto i = riptr[ij];
+      auto j = iptr[ij]; // actually col-index
+      dptr[ij] = copy_dptr[i * k + j]; // update model dptr in-place
+      iptr[ij] = imat_ptr[i * ncol + j]; // update model iptr in-place, with actual index
     }
   }
+  else {
+    for(size_t ij = 0; ij < size; ++ij) {
+      auto i = riptr[ij];
+      auto j = iptr[ij]; // actually col-index
+      iptr[ij] = imat_ptr[i * ncol + j]; // update model iptr in-place, with actual index
+    }
+  }
+  extract_t.lap_stop();
 }
 
 template <class T>
@@ -169,6 +188,18 @@ void extract_k_cols(const T* srcptr, T* dstptr,
   }
 }
 
+template <class I>
+void set_index(rowmajor_matrix_local<I>& mat) {
+  auto nrow = mat.local_num_row;
+  auto ncol = mat.local_num_col;
+  auto mptr = mat.val.data();
+  for(size_t i = 0; i < nrow; ++i) {
+    for(size_t j = 0; j < ncol; ++j) {
+      mptr[i * ncol + j] = j;
+    }
+  }
+}
+
 struct find_kneighbor {
   find_kneighbor() {}
   find_kneighbor(int kk, bool need_dist, float c_sz): 
@@ -181,13 +212,24 @@ struct find_kneighbor {
     auto nrow = dist_mat.local_num_row;
     auto ncol = dist_mat.local_num_col;
 
-    // allocating output memory for model indx
+    // allocating output memory for model parameters
     model_indx.val.resize(nrow * k);
     model_indx.set_local_num(nrow, k);
+    if (need_distance) {
+      model_dist.val.resize(nrow * k);
+      model_dist.set_local_num(nrow, k);
+    }
+    else {
+      model_dist.set_local_num(0, 0); // empty distance matrix for model component
+    }
+    auto model_iptr = model_indx.val.data();
+    auto model_dptr = model_dist.val.data();
     
     // decide each chunk of rows (startring index and total nrow in each chunk)
-    auto rows_per_chunk = get_rows_per_chunk<T>(nrow, ncol, chunk_size);
+    auto rows_per_chunk = get_rows_per_chunk<T>(nrow, k, chunk_size);
     auto n_iter = ceil_div(nrow, rows_per_chunk);
+    RLOG(DEBUG) << "distance sorting problem will be solved in " 
+                  + std::to_string(n_iter) + " steps!\n";
     std::vector<size_t> rows(n_iter + 1);
     rows[0] = 0;
     auto rows_ptr = rows.data();
@@ -195,45 +237,50 @@ struct find_kneighbor {
     if (rows[n_iter] > nrow) rows[n_iter] = nrow;
     //display(rows);
 
-    std::vector<I> indx_buffer(rows_per_chunk * ncol); // reusable buffer of CHUNK_SIZE
-    auto indx_bfptr = indx_buffer.data();
-    time_spent sort_t(INFO), extract_t(INFO);
+    time_spent partition_t(INFO), sort_each_t(DEBUG), extract_t(INFO), radix_t(INFO);
+    time_spent comp_t(INFO), copy_t(INFO);
     for(size_t i = 0; i < n_iter; ++i) {
-      //std::cout << "sorting: " << rows[i] << " -> " << rows[i+1] << std::endl;
-      // creating chunk for dist_mat.val for sorting
-      auto mat_dptr = dist_mat.val.data() + (rows[i] * ncol);
-      auto row_in_chunk = rows[i+1] - rows[i];
-      auto size = row_in_chunk * ncol;
-      // sorting on distance and column index
-      sort_t.lap_start();
-      sort_segmented_rows(mat_dptr, indx_bfptr, size, ncol, need_distance);
-      sort_t.lap_stop();
-      // extracting first k from sorted column index chunk
+      RLOG(DEBUG) << "working on chunk [" << rows[i] << " : " << rows[i+1] - 1 << "]\n";
+      size_t nrow_in_chunk = rows[i+1] - rows[i] ;
+      rowmajor_matrix_local<I> indx_mat(nrow_in_chunk, ncol);
+      set_index(indx_mat); 
+      auto dist_mptr = dist_mat.val.data() + (rows[i] * ncol);
+      auto indx_mptr = indx_mat.val.data();
+      partition_t.lap_start();
+      partition_sort(dist_mptr, indx_mptr, nrow_in_chunk, ncol, k, comp_t, copy_t); 
+      partition_t.lap_stop();
+
       extract_t.lap_start();
-      auto model_iptr = model_indx.val.data() + (rows[i] * k);
-      extract_k_cols(indx_bfptr, model_iptr, row_in_chunk, ncol, k); 
+      std::vector<T> dist_buffer(nrow_in_chunk * k);
+      auto dist_buf_ptr = dist_buffer.data();
+      extract_k_cols(dist_mptr, dist_buf_ptr, nrow_in_chunk, ncol, k); 
       extract_t.lap_stop();
-    }
-    // extracting first k from entire sorted distance matrix
-    extract_t.lap_start();
-    if (need_distance) {
-      if (k != ncol) {
-        model_dist.val.resize(nrow * k);
-        model_dist.set_local_num(nrow, k);
-        auto mat_dptr = dist_mat.val.data();
-        auto model_dptr = model_dist.val.data();
-        extract_k_cols(mat_dptr, model_dptr, nrow, ncol, k);
+
+      // sorting on distance and column index
+      auto b_size = dist_buffer.size();
+      auto dptr = model_dptr;
+      if (need_distance) dptr = dptr + (rows[i] * k);
+      auto iptr = model_iptr + (rows[i] * k);
+      sort_each_t.lap_start();
+      sort_segmented_rows(dist_buf_ptr,        // partitioned distance buffer pointer
+                          indx_mptr,           // partitioned sorted indx_mat pointer
+                          dptr, iptr,          // model pointers
+                          b_size, k, ncol,
+                          need_distance, 
+                          radix_t, extract_t);
+      sort_each_t.lap_stop();      
+      if(get_selfid() == 0) {
+        auto chunk = "[" + std::to_string(rows[i])     + ":" + 
+                           std::to_string(rows[i+1]-1) + "]";
+        sort_each_t.show_lap(chunk + " chunk-wise sorting time: "); // includes distance extraction time
       }
-      else {
-        model_dist = std::move(dist_mat); // dist_mat will be destroyed at this stage
-      } 
+      sort_each_t.reset();
     }
-    else {
-      model_dist.set_local_num(0, 0); // empty distance matrix for model component
-    }
-    extract_t.lap_stop();
     if(get_selfid() == 0) { // logging only by rank 0
-      sort_t.show_lap("sorting time: ");
+      partition_t.show_lap("partition time: ");
+      comp_t.show_lap("  \\_ comparison time: ");
+      copy_t.show_lap("  \\_ copy back time: ");
+      radix_t.show_lap("radix sorting time: ");
       extract_t.show_lap("extraction time: ");
     }
   }
@@ -301,8 +348,8 @@ knn_model<T, I> knn(rowmajor_matrix<T>& mat,
 
 struct find_radius_neighbor {
   find_radius_neighbor() {}
-  find_radius_neighbor(float rad, bool need_dist, float c_sz):
-    radius(rad), need_distance(need_dist), chunk_size(c_sz) {}
+  find_radius_neighbor(float rad, size_t ns):
+    radius(rad), nsamples(ns) {}
 
   template <class T, class I, class O>
   void operator()(rowmajor_matrix_local<T>& dist_mat,
@@ -322,43 +369,46 @@ struct find_radius_neighbor {
     ret.off.resize(nrow + 1);
     ret.off[0] = 0;
     ret.local_num_row = nrow;
-    ret.local_num_col = ncol; // nsamples in observation data
+    ret.local_num_col = nsamples;
     auto retvalptr = ret.val.data();
     auto retidxptr = ret.idx.data();
     auto retoffptr = ret.off.data();
     size_t curidx = 0;
-    if (need_distance) {
-      for(size_t i = 0; i < nrow; ++i) {
-        for(size_t j = 0; j < ncol; ++j) {
-          auto dist = dmatptr[i * ncol + j];
-          if (dist <= radius) { // && dist != 0) {
-            retvalptr[curidx] = dist;
-            retidxptr[curidx] = j;
-            curidx++;
-          }
+    for(size_t i = 0; i < nrow; ++i) {
+      for(size_t j = 0; j < ncol; ++j) {
+        auto dist = dmatptr[i * ncol + j];
+        if (dist <= radius) { // && dist != 0) {
+          retvalptr[curidx] = dist;
+          retidxptr[curidx] = j;
+          curidx++;
         }
-        retoffptr[i+1] = curidx;
       }
-    }
-    else {
-      for(size_t i = 0; i < nrow; ++i) {
-        for(size_t j = 0; j < ncol; ++j) {
-          auto dist = dmatptr[i * ncol + j];
-          if (dist <= radius) { // && dist != 0) {
-            retvalptr[curidx] = 1.0; // means connected
-            retidxptr[curidx] = j;
-            curidx++;
-          }
-        }
-        retoffptr[i+1] = curidx;
-      }
+      retoffptr[i+1] = curidx;
     }
   }
   float radius;
-  bool need_distance;
-  float chunk_size;
-  SERIALIZE(radius, need_distance, chunk_size)
+  size_t nsamples;
+  SERIALIZE(radius, nsamples)
 };
+
+template <class T, class I, class O>
+void convert_to_connectivity_graph(crs_matrix_local<T,I,O>& mat) {
+  auto vptr = mat.val.data();
+  for(size_t i = 0; i < mat.val.size(); ++i) vptr[i] = 1.0; // means connected
+}
+
+template <class T, class I, class O>
+crs_matrix<T,I,O>
+create_radius_graph(crs_matrix<T,I,O>& mat, const std::string& mode) {
+  crs_matrix<T,I,O> ret;
+  if (mode == "distance") ret = mat;
+  else if (mode == "connectivity") { // copy mat and replace distnace values with 1.0
+    ret = mat;
+    ret.data.mapv(convert_to_connectivity_graph<T,I,O>);
+  }
+  else REPORT_ERROR(USER_ERROR, "Unknown mode is encountered for graph creation!\n");
+  return ret;
+}
 
 template <class T, class I = size_t, class O = size_t>
 crs_matrix<T, I, O> 
@@ -371,6 +421,9 @@ knn_radius(rowmajor_matrix<T>& x_mat,
            float chunk_size = 1.0) {
   auto nsamples = x_mat.num_row;
   auto nquery   = y_mat.num_row;
+
+  if (radius <= 0)
+    REPORT_ERROR(USER_ERROR, "Input radius should be a positive number!\n");
 
   if (algorithm != "brute")
     REPORT_ERROR(USER_ERROR,
@@ -387,7 +440,7 @@ knn_radius(rowmajor_matrix<T>& x_mat,
 
   crs_matrix<T,I,O> knn_radius_model;
   knn_radius_model.data = make_node_local_allocate<crs_matrix_local<T,I,O>>();
-  dist_mat.data.mapv(find_radius_neighbor(radius, need_distance, chunk_size),
+  dist_mat.data.mapv(find_radius_neighbor(radius, nsamples),
                      knn_radius_model.data);
   knn_radius_model.num_row = nquery;
   knn_radius_model.num_col = nsamples;

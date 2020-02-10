@@ -32,7 +32,7 @@ struct nearest_neighbors {
   kneighbors_graph(rowmajor_matrix<T>& enquiry_data,
                    int k = 0,
                    const std::string& mode = "connectivity") {
-    auto need_distance = (mode == std::string("distance"));
+    bool need_distance = true; // need correct distance for graph creation
     auto model = kneighbors<I>(enquiry_data, k, need_distance);
     auto nsamples = observation_data.num_row;
     return model.create_graph(mode, nsamples); 
@@ -53,8 +53,9 @@ struct nearest_neighbors {
   radius_neighbors_graph(rowmajor_matrix<T>& enquiry_data,
                          float rad = 0,
                          const std::string& mode = "connectivity") {
-    auto need_distance = (mode == std::string("distance"));
-    return radius_neighbors<I>(enquiry_data, rad, need_distance);
+    bool need_distance = true; // need correct distance for graph creation
+    auto radius_model = radius_neighbors<I>(enquiry_data, rad, need_distance);
+    return create_radius_graph(radius_model, mode);
   }
 
   int n_neighbors;
