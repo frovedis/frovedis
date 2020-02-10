@@ -1,0 +1,29 @@
+HEADERS := char_int_conv.hpp find.hpp load_text.hpp words.hpp text_utility.hpp dict.hpp load_csv.hpp parseint.hpp parsefloat.hpp int_to_words.hpp float_to_words.hpp find_condition.hpp cursors.hpp
+
+OBJS := char_int_conv.o find.o load_text.o words.o text_utility.o dict.o load_csv.o cursors.o
+
+TARGETS := libfrovedis_text.a
+
+INCLUDES := -I../../../third_party/cereal-1.2.2/include/
+
+CXXFLAGS := ${CXXFLAGS_COMMON} ${INCLUDES}
+
+targets: ${TARGETS}
+
+install: ${TARGETS}
+	install -d ${INSTALLPATH}/lib
+	cp libfrovedis_text.a ${INSTALLPATH}/lib/libfrovedis_text.a
+	install -d ${INSTALLPATH}/include/frovedis/text/
+	cp ${HEADERS} ${INSTALLPATH}/include/frovedis/text/
+
+char_int_conv.o: char_int_conv.cc char_int_conv.hpp
+find.o: find.cc find.hpp
+load_text.o: load_text.cc load_text.hpp char_int_conv.hpp find.hpp
+words.o: words.cc words.hpp find.hpp
+text_utility.o: text_utility.hpp find.hpp
+dict.o: dict.cc dict.hpp words.hpp
+load_csv.o: load_csv.cc load_csv.hpp words.hpp find.hpp load_text.hpp
+cursors.o: cursors.cc cursors.hpp find_condition.hpp
+
+clean:
+	${RM} ${TO_CLEAN} ${TARGETS} 

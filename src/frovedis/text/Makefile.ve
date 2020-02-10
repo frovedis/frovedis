@@ -1,0 +1,5 @@
+include ../../../Makefile.in.ve
+include Makefile.common
+
+libfrovedis_text.a: ${OBJS}
+	${AR} r libfrovedis_text.a ${OBJS}
