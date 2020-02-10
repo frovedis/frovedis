@@ -72,3 +72,20 @@ spark-submit --driver-java-options "-Djava.library.path=$LIBRARY_PATH" --jars $J
 echo -e "\n --- executing page rank demo ---"
 spark-submit --driver-java-options "-Djava.library.path=$LIBRARY_PATH" --jars $JARS --conf spark.driver.memory=8g lib/frovedis_pagerank.jar "$COMMAND"
 
+echo -e "\n --- executing frovedis dbscan demo ---"
+spark-submit --driver-java-options "-Djava.library.path=$LIBRARY_PATH" --jars $JARS --conf spark.driver.memory=8g lib/frovedis_dbscan.jar "$COMMAND"
+
+echo -e "\n --- executing SSSP demo ---"
+spark-submit --driver-java-options "-Djava.library.path=$LIBRARY_PATH" --jars $JARS --conf spark.driver.memory=8g lib/frovedis_sssp.jar "$COMMAND"
+
+echo -e "\n --- executing BFS demo ---"
+spark-submit --driver-java-options "-Djava.library.path=$LIBRARY_PATH" --jars $JARS --conf spark.driver.memory=8g lib/frovedis_bfs.jar "$COMMAND"
+
+echo "\n --- executing knn demo ---"
+spark-submit --driver-java-options "-Djava.library.path=$LIBRARY_PATH" --jars $JARS --conf spark.driver.memory=8g lib/spark2frovedis_knn.jar "$COMMAND"
+
+echo "\n --- executing knc demo ---"
+spark-submit --driver-java-options "-Djava.library.path=$LIBRARY_PATH" --jars $JARS --conf spark.driver.memory=8g lib/spark2frovedis_knc.jar "$COMMAND"
+
+echo "\n --- executing lda demo ---"
+spark-submit --driver-java-options "-Djava.library.path=$LIBRARY_PATH" --jars $JARS --conf spark.driver.memory=8g lib/spark2frovedis_lda.jar "$COMMAND"

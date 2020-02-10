@@ -1,7 +1,7 @@
 include ../../../../../Makefile.in.x86
 #include ../Makefile.in.x86
 
-all: dtransfer.mf frov_mat.mf frov_df.mf pblas_scalapack.mf svd.mf pca.mf als.mf kmeans.mf lrm.mf lrsgd.mf nb.mf fm.mf dt.mf fp.mf ac.mf se.mf sc.mf w2v.mf page_rank.mf 
+all: dtransfer.mf frov_mat.mf frov_df.mf pblas_scalapack.mf svd.mf pca.mf als.mf kmeans.mf lrm.mf lrsgd.mf nb.mf fm.mf dt.mf fp.mf ac.mf se.mf sc.mf w2v.mf page_rank.mf knn.mf knc.mf sssp.mf bfs.mf dbscan.mf lda.mf
 
 append:
 	echo ${SPARK_HOME}/jars/*:${HDPATH} > tmp
@@ -64,6 +64,14 @@ pca.mf: pca.mf.tmpl append
 	cp pca.mf.tmpl pca.mf
 	cat append >> pca.mf
 
+knn.mf: knn.mf.tmpl append
+	cp knn.mf.tmpl knn.mf
+	cat append >> knn.mf
+
+knc.mf: knc.mf.tmpl append
+	cp knc.mf.tmpl knc.mf
+	cat append >> knc.mf
+
 ac.mf: ac.mf.tmpl append
 	cp ac.mf.tmpl ac.mf
 	cat append >> ac.mf
@@ -80,9 +88,26 @@ w2v.mf: w2v.mf.tmpl append
 	cp w2v.mf.tmpl w2v.mf
 	cat append >> w2v.mf
 
+dbscan.mf: dbscan.mf.tmpl append
+	cp dbscan.mf.tmpl dbscan.mf
+	cat append >> dbscan.mf
+
 page_rank.mf: page_rank.mf.tmpl append
 	cp page_rank.mf.tmpl page_rank.mf
 	cat append >> page_rank.mf
+
+sssp.mf: sssp.mf.tmpl append
+	cp sssp.mf.tmpl sssp.mf
+	cat append >> sssp.mf
+
+bfs.mf: bfs.mf.tmpl append
+	cp bfs.mf.tmpl bfs.mf
+	cat append >> bfs.mf
+
+
+lda.mf: lda.mf.tmpl append
+	cp lda.mf.tmpl lda.mf
+	cat append >> lda.mf
 
 clean:
 	rm -f *~ *.mf append

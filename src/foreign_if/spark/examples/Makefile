@@ -27,6 +27,13 @@ all:
 	${SCALA_HOME}/bin/scalac -cp "${SPARK_HOME}/jars/*:${HDPATH}:${CLIENT_JAR}" -sourcepath . -d bin scala/FPGrowthDemo.scala
 	${SCALA_HOME}/bin/scalac -cp "${SPARK_HOME}/jars/*:${HDPATH}:${CLIENT_JAR}" -sourcepath . -d bin scala/Word2VectorDemo.scala
 	${SCALA_HOME}/bin/scalac -cp "${SPARK_HOME}/jars/*:${HDPATH}:${CLIENT_JAR}" -sourcepath . -d bin scala/FrovedisPageRank.scala
+	${SCALA_HOME}/bin/scalac -cp "${SPARK_HOME}/jars/*:${HDPATH}:${CLIENT_JAR}" -sourcepath . -d bin scala/DBSCANDemo.scala
+	${SCALA_HOME}/bin/scalac -cp "${SPARK_HOME}/jars/*:${HDPATH}:${CLIENT_JAR}" -sourcepath . -d bin scala/KNNDemo.scala
+	${SCALA_HOME}/bin/scalac -cp "${SPARK_HOME}/jars/*:${HDPATH}:${CLIENT_JAR}" -sourcepath . -d bin scala/KNCDemo.scala
+	${SCALA_HOME}/bin/scalac -cp "${SPARK_HOME}/jars/*:${HDPATH}:${CLIENT_JAR}" -sourcepath . -d bin scala/FrovedisSSSP.scala
+	${SCALA_HOME}/bin/scalac -cp "${SPARK_HOME}/jars/*:${HDPATH}:${CLIENT_JAR}" -sourcepath . -d bin scala/FrovedisBFS.scala
+	${SCALA_HOME}/bin/scalac -cp "${SPARK_HOME}/jars/*:${HDPATH}:${CLIENT_JAR}" -sourcepath . -d bin scala/LDADemo.scala
+
 
 	cd MANIFEST; make
 	cd bin; ${JAVA_HOME}/bin/jar -cfm ../lib/spark2frovedis_data_transfer.jar ../MANIFEST/dtransfer.mf test/scala/DataTransfer* 
@@ -48,5 +55,12 @@ all:
 	cd bin; ${JAVA_HOME}/bin/jar -cfm ../lib/spark2frovedis_fp.jar ../MANIFEST/fp.mf test/scala/FPGrowthDemo*
 	cd bin; ${JAVA_HOME}/bin/jar -cfm ../lib/spark2frovedis_w2v.jar ../MANIFEST/w2v.mf test/scala/Word2VecDemo*
 	cd bin; ${JAVA_HOME}/bin/jar -cfm ../lib/frovedis_pagerank.jar ../MANIFEST/page_rank.mf test/scala/FrovedisPageRank*
+	cd bin; ${JAVA_HOME}/bin/jar -cfm ../lib/frovedis_dbscan.jar ../MANIFEST/dbscan.mf test/scala/DBSCANDemo*
+	cd bin; ${JAVA_HOME}/bin/jar -cfm ../lib/spark2frovedis_knn.jar ../MANIFEST/knn.mf test/scala/KNNDemo*
+	cd bin; ${JAVA_HOME}/bin/jar -cfm ../lib/spark2frovedis_knc.jar ../MANIFEST/knc.mf test/scala/KNCDemo*
+	cd bin; ${JAVA_HOME}/bin/jar -cfm ../lib/frovedis_sssp.jar ../MANIFEST/sssp.mf test/scala/FrovedisSSSP*
+	cd bin; ${JAVA_HOME}/bin/jar -cfm ../lib/frovedis_bfs.jar ../MANIFEST/bfs.mf test/scala/FrovedisBFS*
+	cd bin; ${JAVA_HOME}/bin/jar -cfm ../lib/spark2frovedis_lda.jar ../MANIFEST/lda.mf test/scala/LDADemo*
+
 clean:
 	rm -fr *~ bin/test scala/*~ MANIFEST/*.mf MANIFEST/append MANIFEST/*~ out/* lib/*
