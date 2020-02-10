@@ -7,7 +7,7 @@
 //#include <frovedis/matrix/ccs_matrix.hpp>
 #include <frovedis/matrix/jds_crs_hybrid.hpp>
 #include <frovedis/matrix/shrink_matrix.hpp>
-#include <frovedis/dataframe/set_operations.hpp>
+#include <frovedis/core/set_operations.hpp>
 #include <frovedis/core/utility.hpp>
 #include <frovedis/core/zipped_dvectors.hpp>
 #include "frovedis/ml/graph/sparse_vector.hpp"
