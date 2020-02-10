@@ -23,67 +23,39 @@ class FrovedisCRSMatrix(object):
     def to_scipy_matrix(self):
         if self.__fdata is not None:
             crs_shape = [self.numRows(), self.numCols()]
-            if self.nnz: 
-                data_nzelem = self.nnz #get_nzelem()
-            else:
-                raise ValueError("active element not set")
             data_type = TypeUtil.to_numpy_dtype(self.get_dtype())
             idx_type = TypeUtil.to_numpy_dtype(self.get_itype())
-            val_arr = np.empty(data_nzelem, dtype=data_type)
-            idx_arr = np.empty(data_nzelem, dtype=idx_type) 
-            off_arr = np.empty((self.numRows()+1), dtype=np.int64)
-            ddt = self.get_dtype()
-            idt = self.get_itype()
-            (host, port) = FrovedisServer.getServerInstance()
-            dmat = rpclib.get_crs_matrix_components(host, port, self.get(),
-                                                        val_arr.__array_interface__['data'][0], 
-                                                        idx_arr.__array_interface__['data'][0], 
-                                                        off_arr.__array_interface__['data'][0],
-                                                        ddt, idt, val_arr.size, off_arr.size)
-            '''
-            if ddt == DTYPE.INT and idt == DTYPE.INT:
-                dmat = rpclib.get_crs_II_matrix_components(host, port, self.get(),
-                                                        val_arr, idx_arr, off_arr)
-            elif ddt == DTYPE.INT and idt == DTYPE.LONG:
-                dmat = rpclib.get_crs_IL_matrix_components(host, port, self.get(),
-                                                            val_arr, idx_arr, off_arr)
-            elif ddt == DTYPE.LONG and idt == DTYPE.INT:
-                dmat = rpclib.get_crs_LI_matrix_components(host, port, self.get(),
-                                                            val_arr, idx_arr, off_arr)
-            elif ddt == DTYPE.LONG and idt == DTYPE.LONG:
-                dmat = rpclib.get_crs_LL_matrix_components(host, port, self.get(),
-                                                            val_arr, idx_arr, off_arr)
-            elif ddt == DTYPE.FLOAT and idt == DTYPE.INT:
-                dmat = rpclib.get_crs_FI_matrix_components(host, port, self.get(),
-                                                            val_arr, idx_arr, off_arr)
-            elif ddt == DTYPE.FLOAT and idt == DTYPE.LONG:
-                dmat = rpclib.get_crs_FL_matrix_components(host, port, self.get(),
-                                                            val_arr, idx_arr, off_arr)
-            elif ddt == DTYPE.DOUBLE and idt == DTYPE.INT:
-                dmat = rpclib.get_crs_DI_matrix_components(host, port, self.get(),
-                                                            val_arr, idx_arr, off_arr)
-            elif ddt == DTYPE.DOUBLE and idt == DTYPE.LONG:
-                dmat = rpclib.get_crs_DL_matrix_components(host, port, self.get(),
-                                                            val_arr, idx_arr, off_arr)
+            if self.nnz == 0:
+                offset = np.zeros(self.numRows()+1, dtype=np.int32)
+                ret = csr_matrix(([],[],offset), dtype=data_type,\
+                                  shape=crs_shape) #empty matrix
             else:
-                raise TypeError("Unsupported dtype/itype for crs_matrix creation!")
+                data_nzelem = self.nnz #get_nzelem()
+                val_arr = np.empty(data_nzelem, dtype=data_type)
+                idx_arr = np.empty(data_nzelem, dtype=idx_type) 
+                off_arr = np.empty((self.numRows()+1), dtype=np.int64)
+                ddt = self.get_dtype()
+                idt = self.get_itype()
+                (host, port) = FrovedisServer.getServerInstance()
+                rpclib.get_crs_matrix_components(host, port, self.get(),
+                                                 val_arr.__array_interface__['data'][0], 
+                                                 idx_arr.__array_interface__['data'][0], 
+                                                 off_arr.__array_interface__['data'][0],
+                                                 ddt, idt, val_arr.size, off_arr.size)
                 excpt = rpclib.check_server_exception()
                 if excpt["status"]:
                     raise RuntimeError(excpt["info"])
-            '''
-            excpt = rpclib.check_server_exception()
-            if excpt["status"]:
-                raise RuntimeError(excpt["info"])
-            return csr_matrix((val_arr, idx_arr, off_arr), dtype=data_type,\
-                   shape=crs_shape)
+                ret = csr_matrix((val_arr, idx_arr, off_arr), dtype=data_type,\
+                                 shape=crs_shape)
+            return ret
 
     def transpose(self):
         if self.__fdata is not None:
             (host, port) = FrovedisServer.getServerInstance()
             dmat = rpclib.transpose_frovedis_sparse_matrix(host, port,
-                                                          self.get(),
-                                                          self.get_dtype(),
-                                                          self.get_itype())
+                                                           self.get(),
+                                                           self.get_dtype(),
+                                                           self.get_itype())
             excpt = rpclib.check_server_exception()
             if excpt["status"]:
                 raise RuntimeError(excpt["info"])
@@ -358,17 +330,17 @@ class FrovedisCRSMatrix(object):
         raise AttributeError("attribute 'nnz' of FrovedisCRSMatrix objects is not writable")
 
     @staticmethod
-    def asCRS(mat, dtype=None, retIsConverted=False):
+    def asCRS(mat, dtype=None, itype=None, retIsConverted=False):
         if isinstance(mat, FrovedisCRSMatrix):
             if retIsConverted: return (mat, False)
             else: return mat
         elif issparse(mat):  # any sparse matrix
             smat = mat.tocsr()
-            ret = FrovedisCRSMatrix(dtype=dtype).load_scipy_matrix(smat)
+            ret = FrovedisCRSMatrix(dtype=dtype, itype=itype).load_scipy_matrix(smat)
             if retIsConverted: return (ret, True)
             else: return ret
         else:
-            ret = FrovedisCRSMatrix(dtype=dtype).load_python_data(mat)
+            ret = FrovedisCRSMatrix(dtype=dtype, itype=itype).load_python_data(mat)
             if retIsConverted: return (ret, True)
             else: return ret
            

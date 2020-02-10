@@ -84,7 +84,7 @@ class FPGrowth(object):
         """
         if self.__mid is not None:
             GLM.save(self.__mid, self.__mkind,
-                DTYPE.DOUBLE, fname)
+                     DTYPE.DOUBLE, fname)
 
     def debug_print(self):
         """
@@ -92,7 +92,7 @@ class FPGrowth(object):
         """
         if self.__mid is not None:
             GLM.debug_print(self.__mid, self.__mkind,
-                DTYPE.DOUBLE)
+                            DTYPE.DOUBLE)
 
     def release(self):
         """
@@ -123,4 +123,4 @@ class Fp_rules(object):
         """
         if self.__mid is not None:
             GLM.debug_print(self.__mid, self.__mkind,
-                DTYPE.DOUBLE)
+                            DTYPE.DOUBLE)

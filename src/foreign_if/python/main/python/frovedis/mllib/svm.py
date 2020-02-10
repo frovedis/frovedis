@@ -151,7 +151,7 @@ class LinearSVC(object):
         if self.__mid is not None:
             if self._classes is None:
                 self._classes = \
-                    np.asarray(self.label_map.values(), dtype=np.int64)
+                    np.asarray(list(self.label_map.values()), dtype=np.int64)
             return self._classes
         else:
             raise AttributeError(\

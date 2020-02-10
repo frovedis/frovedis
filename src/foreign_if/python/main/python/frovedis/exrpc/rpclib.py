@@ -43,26 +43,26 @@ check_server_exception.restype = py_object
 # --- Frovedis dvector ---
 # create from numpy array
 create_frovedis_int_dvector = LIB.create_frovedis_int_dvector
-create_frovedis_int_dvector.argtypes = [c_char_p, c_int,
-                                 ndpointer(c_int, ndim=1, flags="C_CONTIGUOUS"),
+create_frovedis_int_dvector.argtypes = [c_char_p, c_int,\
+                            ndpointer(c_int, ndim=1, flags="C_CONTIGUOUS"),\
                                   c_int]
 create_frovedis_int_dvector.restype = py_object
 
 create_frovedis_long_dvector = LIB.create_frovedis_long_dvector
-create_frovedis_long_dvector.argtypes = [c_char_p, c_int,
-                                ndpointer(c_long, ndim=1, flags="C_CONTIGUOUS"),
+create_frovedis_long_dvector.argtypes = [c_char_p, c_int,\
+                           ndpointer(c_long, ndim=1, flags="C_CONTIGUOUS"),\
                                   c_int]
 create_frovedis_long_dvector.restype = py_object
 
 create_frovedis_float_dvector = LIB.create_frovedis_float_dvector
-create_frovedis_float_dvector.argtypes = [c_char_p, c_int,
-                               ndpointer(c_float, ndim=1, flags="C_CONTIGUOUS"),
+create_frovedis_float_dvector.argtypes = [c_char_p, c_int,\
+                          ndpointer(c_float, ndim=1, flags="C_CONTIGUOUS"),\
                                   c_int]
 create_frovedis_float_dvector.restype = py_object
 
 create_frovedis_double_dvector = LIB.create_frovedis_double_dvector
-create_frovedis_double_dvector.argtypes = [c_char_p, c_int,
-                              ndpointer(c_double, ndim=1, flags="C_CONTIGUOUS"),
+create_frovedis_double_dvector.argtypes = [c_char_p, c_int,\
+                         ndpointer(c_double, ndim=1, flags="C_CONTIGUOUS"),\
                                   c_int]
 create_frovedis_double_dvector.restype = py_object
 
@@ -382,11 +382,11 @@ get_crs_matrix_components.argtypes = [c_char_p, c_int,\
                                          c_void_p,\
                                          c_void_p,\
                                          c_void_p,\
-                                         c_short, c_short,
+                                         c_short, c_short,\
                                          c_ulong, c_ulong]
 
 transpose_frovedis_sparse_matrix = LIB.transpose_frovedis_sparse_matrix
-transpose_frovedis_sparse_matrix.argtypes = [c_char_p, c_int,
+transpose_frovedis_sparse_matrix.argtypes = [c_char_p, c_int,\
                                             c_long, c_short, c_short]
 transpose_frovedis_sparse_matrix.restype = py_object
 
@@ -513,16 +513,16 @@ show_frovedis_crs_matrix.argtypes = [c_char_p, c_int, c_long,
 # --- Frovedis Dense matrices ---
 # create from numpy matrix
 create_frovedis_double_dense_matrix = LIB.create_frovedis_double_dense_matrix
-create_frovedis_double_dense_matrix.argtypes = [c_char_p, c_int,
-                                       c_ulong, c_ulong,
+create_frovedis_double_dense_matrix.argtypes = [c_char_p, c_int,\
+                                       c_ulong, c_ulong,\
                                        ndpointer(c_double, ndim=1,\
                                        flags="C_CONTIGUOUS"),\
                                        c_char]
 create_frovedis_double_dense_matrix.restype = py_object
 
 create_frovedis_float_dense_matrix = LIB.create_frovedis_float_dense_matrix
-create_frovedis_float_dense_matrix.argtypes = [c_char_p, c_int,
-                                       c_ulong, c_ulong,
+create_frovedis_float_dense_matrix.argtypes = [c_char_p, c_int,\
+                                       c_ulong, c_ulong,\
                                        ndpointer(c_float, ndim=1,\
                                        flags="C_CONTIGUOUS"),\
                                        c_char]
@@ -531,8 +531,8 @@ create_frovedis_float_dense_matrix.restype = py_object
 
 
 create_frovedis_long_dense_matrix = LIB.create_frovedis_long_dense_matrix
-create_frovedis_long_dense_matrix.argtypes = [c_char_p, c_int,
-                                       c_ulong, c_ulong,
+create_frovedis_long_dense_matrix.argtypes = [c_char_p, c_int,\
+                                       c_ulong, c_ulong,\
                                        ndpointer(c_long, ndim=1,\
                                        flags="C_CONTIGUOUS"),\
                                        c_char]
@@ -541,8 +541,8 @@ create_frovedis_long_dense_matrix.restype = py_object
 
 
 create_frovedis_int_dense_matrix = LIB.create_frovedis_int_dense_matrix
-create_frovedis_int_dense_matrix.argtypes = [c_char_p, c_int,
-                                       c_ulong, c_ulong,
+create_frovedis_int_dense_matrix.argtypes = [c_char_p, c_int,\
+                                       c_ulong, c_ulong,\
                                        ndpointer(c_int, ndim=1,\
                                        flags="C_CONTIGUOUS"),\
                                        c_char]
@@ -585,211 +585,211 @@ get_frovedis_rowmatrix.argtypes = [c_char_p, c_int, c_long,
 get_frovedis_rowmatrix.restype = py_object
 
 get_double_rowmajor_array_as_int_array = LIB.get_double_rowmajor_array_as_int_array
-get_double_rowmajor_array_as_int_array.argtypes = [
-                             c_char_p, c_int, c_long, c_char,
-                             ndpointer(c_int, ndim=1, flags="C_CONTIGUOUS"),
+get_double_rowmajor_array_as_int_array.argtypes = [\
+                             c_char_p, c_int, c_long, c_char,\
+                             ndpointer(c_int, ndim=1, flags="C_CONTIGUOUS"),\
                              c_ulong]
 
 get_double_rowmajor_array_as_long_array = LIB.get_double_rowmajor_array_as_long_array
-get_double_rowmajor_array_as_long_array.argtypes = [
-                             c_char_p, c_int, c_long, c_char,
-                             ndpointer(c_long, ndim=1, flags="C_CONTIGUOUS"),
+get_double_rowmajor_array_as_long_array.argtypes = [\
+                             c_char_p, c_int, c_long, c_char,\
+                             ndpointer(c_long, ndim=1, flags="C_CONTIGUOUS"),\
                              c_ulong]
 
 get_double_rowmajor_array_as_float_array = LIB.get_double_rowmajor_array_as_float_array
-get_double_rowmajor_array_as_float_array.argtypes = [
-                             c_char_p, c_int, c_long, c_char,
-                             ndpointer(c_float, ndim=1, flags="C_CONTIGUOUS"),
+get_double_rowmajor_array_as_float_array.argtypes = [\
+                             c_char_p, c_int, c_long, c_char,\
+                             ndpointer(c_float, ndim=1, flags="C_CONTIGUOUS"),\
                              c_ulong]
 
 get_double_rowmajor_array_as_double_array = LIB.get_double_rowmajor_array_as_double_array
-get_double_rowmajor_array_as_double_array.argtypes = [
-                             c_char_p, c_int, c_long, c_char,
-                             ndpointer(c_double, ndim=1, flags="C_CONTIGUOUS"),
+get_double_rowmajor_array_as_double_array.argtypes = [\
+                             c_char_p, c_int, c_long, c_char,\
+                             ndpointer(c_double, ndim=1, flags="C_CONTIGUOUS"),\
                              c_ulong]
 
 get_float_rowmajor_array_as_int_array = LIB.get_float_rowmajor_array_as_int_array
-get_float_rowmajor_array_as_int_array.argtypes = [
-                             c_char_p, c_int, c_long, c_char,
-                             ndpointer(c_int, ndim=1, flags="C_CONTIGUOUS"),
+get_float_rowmajor_array_as_int_array.argtypes = [\
+                             c_char_p, c_int, c_long, c_char,\
+                             ndpointer(c_int, ndim=1, flags="C_CONTIGUOUS"),\
                              c_ulong]
 
 get_float_rowmajor_array_as_long_array = LIB.get_float_rowmajor_array_as_long_array
-get_float_rowmajor_array_as_long_array.argtypes = [
-                             c_char_p, c_int, c_long, c_char,
-                             ndpointer(c_long, ndim=1, flags="C_CONTIGUOUS"),
+get_float_rowmajor_array_as_long_array.argtypes = [\
+                             c_char_p, c_int, c_long, c_char,\
+                             ndpointer(c_long, ndim=1, flags="C_CONTIGUOUS"),\
                              c_ulong]
 
 get_float_rowmajor_array_as_float_array = LIB.get_float_rowmajor_array_as_float_array
-get_float_rowmajor_array_as_float_array.argtypes = [
-                             c_char_p, c_int, c_long, c_char,
-                             ndpointer(c_float, ndim=1, flags="C_CONTIGUOUS"),
+get_float_rowmajor_array_as_float_array.argtypes = [\
+                             c_char_p, c_int, c_long, c_char,\
+                             ndpointer(c_float, ndim=1, flags="C_CONTIGUOUS"),\
                              c_ulong]
 
 get_float_rowmajor_array_as_double_array = LIB.get_float_rowmajor_array_as_double_array
-get_float_rowmajor_array_as_double_array.argtypes = [
-                             c_char_p, c_int, c_long, c_char,
-                             ndpointer(c_double, ndim=1, flags="C_CONTIGUOUS"),
+get_float_rowmajor_array_as_double_array.argtypes = [\
+                             c_char_p, c_int, c_long, c_char,\
+                             ndpointer(c_double, ndim=1, flags="C_CONTIGUOUS"),\
                              c_ulong]
 
 get_long_rowmajor_array_as_int_array = LIB.get_long_rowmajor_array_as_int_array
-get_long_rowmajor_array_as_int_array.argtypes = [
-                             c_char_p, c_int, c_long, c_char,
-                             ndpointer(c_int, ndim=1, flags="C_CONTIGUOUS"),
+get_long_rowmajor_array_as_int_array.argtypes = [\
+                             c_char_p, c_int, c_long, c_char,\
+                             ndpointer(c_int, ndim=1, flags="C_CONTIGUOUS"),\
                              c_ulong]
 
 get_long_rowmajor_array_as_long_array = LIB.get_long_rowmajor_array_as_long_array
-get_long_rowmajor_array_as_long_array.argtypes = [
-                             c_char_p, c_int, c_long, c_char,
-                             ndpointer(c_long, ndim=1, flags="C_CONTIGUOUS"),
+get_long_rowmajor_array_as_long_array.argtypes = [\
+                             c_char_p, c_int, c_long, c_char,\
+                             ndpointer(c_long, ndim=1, flags="C_CONTIGUOUS"),\
                              c_ulong]
 
 get_long_rowmajor_array_as_float_array = LIB.get_long_rowmajor_array_as_float_array
-get_long_rowmajor_array_as_float_array.argtypes = [
-                             c_char_p, c_int, c_long, c_char,
-                             ndpointer(c_float, ndim=1, flags="C_CONTIGUOUS"),
+get_long_rowmajor_array_as_float_array.argtypes = [\
+                             c_char_p, c_int, c_long, c_char,\
+                             ndpointer(c_float, ndim=1, flags="C_CONTIGUOUS"),\
                              c_ulong]
 
 get_long_rowmajor_array_as_double_array = LIB.get_long_rowmajor_array_as_double_array
-get_long_rowmajor_array_as_double_array.argtypes = [
-                             c_char_p, c_int, c_long, c_char,
-                             ndpointer(c_double, ndim=1, flags="C_CONTIGUOUS"),
+get_long_rowmajor_array_as_double_array.argtypes = [\
+                             c_char_p, c_int, c_long, c_char,\
+                             ndpointer(c_double, ndim=1, flags="C_CONTIGUOUS"),\
                              c_ulong]
 
 get_int_rowmajor_array_as_int_array = LIB.get_int_rowmajor_array_as_int_array
-get_int_rowmajor_array_as_int_array.argtypes = [
-                             c_char_p, c_int, c_long, c_char,
-                             ndpointer(c_int, ndim=1, flags="C_CONTIGUOUS"),
+get_int_rowmajor_array_as_int_array.argtypes = [\
+                             c_char_p, c_int, c_long, c_char,\
+                             ndpointer(c_int, ndim=1, flags="C_CONTIGUOUS"),\
                              c_ulong]
 
 get_int_rowmajor_array_as_long_array = LIB.get_int_rowmajor_array_as_long_array
-get_int_rowmajor_array_as_long_array.argtypes = [
-                             c_char_p, c_int, c_long, c_char,
-                             ndpointer(c_long, ndim=1, flags="C_CONTIGUOUS"),
+get_int_rowmajor_array_as_long_array.argtypes = [\
+                             c_char_p, c_int, c_long, c_char,\
+                             ndpointer(c_long, ndim=1, flags="C_CONTIGUOUS"),\
                              c_ulong]
 
 get_int_rowmajor_array_as_float_array = LIB.get_int_rowmajor_array_as_float_array
-get_int_rowmajor_array_as_float_array.argtypes = [
-                             c_char_p, c_int, c_long, c_char,
-                             ndpointer(c_float, ndim=1, flags="C_CONTIGUOUS"),
+get_int_rowmajor_array_as_float_array.argtypes = [\
+                             c_char_p, c_int, c_long, c_char,\
+                             ndpointer(c_float, ndim=1, flags="C_CONTIGUOUS"),\
                              c_ulong]
 
 get_int_rowmajor_array_as_double_array = LIB.get_int_rowmajor_array_as_double_array
-get_int_rowmajor_array_as_double_array.argtypes = [
-                             c_char_p, c_int, c_long, c_char,
-                             ndpointer(c_double, ndim=1, flags="C_CONTIGUOUS"),
+get_int_rowmajor_array_as_double_array.argtypes = [\
+                             c_char_p, c_int, c_long, c_char,\
+                             ndpointer(c_double, ndim=1, flags="C_CONTIGUOUS"),\
                              c_ulong]
 
 # INT to OTHERS
 I2I_cast_and_copy_array = LIB.I2I_cast_and_copy_array
-I2I_cast_and_copy_array.argtypes = [
-                                ndpointer(c_int, ndim=1, flags="C_CONTIGUOUS"),
-                                ndpointer(c_int, ndim=1, flags="C_CONTIGUOUS"),
+I2I_cast_and_copy_array.argtypes = [\
+                                ndpointer(c_int, ndim=1, flags="C_CONTIGUOUS"),\
+                                ndpointer(c_int, ndim=1, flags="C_CONTIGUOUS"),\
                                 c_ulong]
 
 I2L_cast_and_copy_array = LIB.I2L_cast_and_copy_array
-I2L_cast_and_copy_array.argtypes = [
-                                ndpointer(c_int, ndim=1, flags="C_CONTIGUOUS"),
-                                ndpointer(c_long, ndim=1, flags="C_CONTIGUOUS"),
+I2L_cast_and_copy_array.argtypes = [\
+                                ndpointer(c_int, ndim=1, flags="C_CONTIGUOUS"),\
+                                ndpointer(c_long, ndim=1, flags="C_CONTIGUOUS"),\
                                 c_ulong]
 
 I2F_cast_and_copy_array = LIB.I2F_cast_and_copy_array
-I2F_cast_and_copy_array.argtypes = [
-                                ndpointer(c_int, ndim=1, flags="C_CONTIGUOUS"),
-                                ndpointer(c_float, ndim=1, flags="C_CONTIGUOUS"),
+I2F_cast_and_copy_array.argtypes = [\
+                                ndpointer(c_int, ndim=1, flags="C_CONTIGUOUS"),\
+                                ndpointer(c_float, ndim=1, flags="C_CONTIGUOUS"),\
                                 c_ulong]
 
 I2D_cast_and_copy_array = LIB.I2D_cast_and_copy_array
-I2D_cast_and_copy_array.argtypes = [
-                                ndpointer(c_int, ndim=1, flags="C_CONTIGUOUS"),
-                                ndpointer(c_double, ndim=1, flags="C_CONTIGUOUS"),
+I2D_cast_and_copy_array.argtypes = [\
+                                ndpointer(c_int, ndim=1, flags="C_CONTIGUOUS"),\
+                                ndpointer(c_double, ndim=1, flags="C_CONTIGUOUS"),\
                                 c_ulong]
 
 # LONG to OTHERS
 L2I_cast_and_copy_array = LIB.L2I_cast_and_copy_array
-L2I_cast_and_copy_array.argtypes = [
-                                ndpointer(c_long, ndim=1, flags="C_CONTIGUOUS"),
-                                ndpointer(c_int, ndim=1, flags="C_CONTIGUOUS"),
+L2I_cast_and_copy_array.argtypes = [\
+                                ndpointer(c_long, ndim=1, flags="C_CONTIGUOUS"),\
+                                ndpointer(c_int, ndim=1, flags="C_CONTIGUOUS"),\
                                 c_ulong]
 
 L2L_cast_and_copy_array = LIB.L2L_cast_and_copy_array
-L2L_cast_and_copy_array.argtypes = [
-                                ndpointer(c_long, ndim=1, flags="C_CONTIGUOUS"),
-                                ndpointer(c_long, ndim=1, flags="C_CONTIGUOUS"),
+L2L_cast_and_copy_array.argtypes = [\
+                                ndpointer(c_long, ndim=1, flags="C_CONTIGUOUS"),\
+                                ndpointer(c_long, ndim=1, flags="C_CONTIGUOUS"),\
                                 c_ulong]
 
 L2F_cast_and_copy_array = LIB.L2F_cast_and_copy_array
-L2F_cast_and_copy_array.argtypes = [
-                                ndpointer(c_long, ndim=1, flags="C_CONTIGUOUS"),
-                                ndpointer(c_float, ndim=1, flags="C_CONTIGUOUS"),
+L2F_cast_and_copy_array.argtypes = [\
+                                ndpointer(c_long, ndim=1, flags="C_CONTIGUOUS"),\
+                                ndpointer(c_float, ndim=1, flags="C_CONTIGUOUS"),\
                                 c_ulong]
 
 L2D_cast_and_copy_array = LIB.L2D_cast_and_copy_array
-L2D_cast_and_copy_array.argtypes = [
-                                ndpointer(c_long, ndim=1, flags="C_CONTIGUOUS"),
-                                ndpointer(c_double, ndim=1, flags="C_CONTIGUOUS"),
+L2D_cast_and_copy_array.argtypes = [\
+                                ndpointer(c_long, ndim=1, flags="C_CONTIGUOUS"),\
+                                ndpointer(c_double, ndim=1, flags="C_CONTIGUOUS"),\
                                 c_ulong]
 
 # FLOAT to OTHERS
 F2I_cast_and_copy_array = LIB.F2I_cast_and_copy_array
-F2I_cast_and_copy_array.argtypes = [
-                                ndpointer(c_float, ndim=1, flags="C_CONTIGUOUS"),
-                                ndpointer(c_int, ndim=1, flags="C_CONTIGUOUS"),
+F2I_cast_and_copy_array.argtypes = [\
+                                ndpointer(c_float, ndim=1, flags="C_CONTIGUOUS"),\
+                                ndpointer(c_int, ndim=1, flags="C_CONTIGUOUS"),\
                                 c_ulong]
 
 F2L_cast_and_copy_array = LIB.F2L_cast_and_copy_array
-F2L_cast_and_copy_array.argtypes = [
-                                ndpointer(c_float, ndim=1, flags="C_CONTIGUOUS"),
-                                ndpointer(c_long, ndim=1, flags="C_CONTIGUOUS"),
+F2L_cast_and_copy_array.argtypes = [\
+                                ndpointer(c_float, ndim=1, flags="C_CONTIGUOUS"),\
+                                ndpointer(c_long, ndim=1, flags="C_CONTIGUOUS"),\
                                 c_ulong]
 
 F2F_cast_and_copy_array = LIB.F2F_cast_and_copy_array
-F2F_cast_and_copy_array.argtypes = [
-                                ndpointer(c_float, ndim=1, flags="C_CONTIGUOUS"),
-                                ndpointer(c_float, ndim=1, flags="C_CONTIGUOUS"),
+F2F_cast_and_copy_array.argtypes = [\
+                                ndpointer(c_float, ndim=1, flags="C_CONTIGUOUS"),\
+                                ndpointer(c_float, ndim=1, flags="C_CONTIGUOUS"),\
                                 c_ulong]
 
 F2D_cast_and_copy_array = LIB.F2D_cast_and_copy_array
-F2D_cast_and_copy_array.argtypes = [
-                                ndpointer(c_float, ndim=1, flags="C_CONTIGUOUS"),
-                                ndpointer(c_double, ndim=1, flags="C_CONTIGUOUS"),
+F2D_cast_and_copy_array.argtypes = [\
+                                ndpointer(c_float, ndim=1, flags="C_CONTIGUOUS"),\
+                                ndpointer(c_double, ndim=1, flags="C_CONTIGUOUS"),\
                                 c_ulong]
 
 # DOUBLE to OTHERS
 D2I_cast_and_copy_array = LIB.D2I_cast_and_copy_array
-D2I_cast_and_copy_array.argtypes = [
-                                ndpointer(c_double, ndim=1, flags="C_CONTIGUOUS"),
-                                ndpointer(c_int, ndim=1, flags="C_CONTIGUOUS"),
+D2I_cast_and_copy_array.argtypes = [\
+                                ndpointer(c_double, ndim=1, flags="C_CONTIGUOUS"),\
+                                ndpointer(c_int, ndim=1, flags="C_CONTIGUOUS"),\
                                 c_ulong]
 
 D2L_cast_and_copy_array = LIB.D2L_cast_and_copy_array
-D2L_cast_and_copy_array.argtypes = [
-                                ndpointer(c_double, ndim=1, flags="C_CONTIGUOUS"),
-                                ndpointer(c_long, ndim=1, flags="C_CONTIGUOUS"),
+D2L_cast_and_copy_array.argtypes = [\
+                                ndpointer(c_double, ndim=1, flags="C_CONTIGUOUS"),\
+                                ndpointer(c_long, ndim=1, flags="C_CONTIGUOUS"),\
                                 c_ulong]
 
 D2F_cast_and_copy_array = LIB.D2F_cast_and_copy_array
-D2F_cast_and_copy_array.argtypes = [
-                                ndpointer(c_double, ndim=1, flags="C_CONTIGUOUS"),
-                                ndpointer(c_float, ndim=1, flags="C_CONTIGUOUS"),
+D2F_cast_and_copy_array.argtypes = [\
+                                ndpointer(c_double, ndim=1, flags="C_CONTIGUOUS"),\
+                                ndpointer(c_float, ndim=1, flags="C_CONTIGUOUS"),\
                                 c_ulong]
 
 D2D_cast_and_copy_array = LIB.D2D_cast_and_copy_array
-D2D_cast_and_copy_array.argtypes = [
-                                ndpointer(c_double, ndim=1, flags="C_CONTIGUOUS"),
-                                ndpointer(c_double, ndim=1, flags="C_CONTIGUOUS"),
+D2D_cast_and_copy_array.argtypes = [\
+                                ndpointer(c_double, ndim=1, flags="C_CONTIGUOUS"),\
+                                ndpointer(c_double, ndim=1, flags="C_CONTIGUOUS"),\
                                 c_ulong]
 
 # --- Frovedis ML Models ---
 
 parallel_float_glm_predict = LIB.parallel_float_glm_predict
-parallel_float_glm_predict.argtypes = [c_char_p, c_int, c_int, c_short, c_long,
+parallel_float_glm_predict.argtypes = [c_char_p, c_int, c_int, c_short, c_long,\
                                  ndpointer(c_float, ndim=1,\
                                  flags="C_CONTIGUOUS"),\
                                  c_ulong, c_bool, c_short, c_bool]
 
 parallel_double_glm_predict = LIB.parallel_double_glm_predict
-parallel_double_glm_predict.argtypes = [c_char_p, c_int, c_int, c_short, c_long,
+parallel_double_glm_predict.argtypes = [c_char_p, c_int, c_int, c_short, c_long,\
                                  ndpointer(c_double, ndim=1,\
                                  flags="C_CONTIGUOUS"),\
                                  c_ulong, c_bool, c_short, c_bool]
@@ -813,19 +813,19 @@ acm_predict.argtypes = [c_char_p, c_int, #host, port
 # spectral embedding
 sea_train = LIB.sea_train
 sea_train.argtypes = [c_char_p, #host
-                       c_int,  #port
-                       c_long,#data
-                       c_int, #n_components
-                       c_double,#gamma
-                       c_bool, #precomputed
-                       c_bool, #norm_laplacian
-                       c_int, #mode
-                       c_bool, #drop_first
-                       c_int, #verbose
-                       c_int, #mid
-                       c_short, #dtype
-                       c_short,#itype
-                       c_bool #dense
+                      c_int,  #port
+                      c_long,#data
+                      c_int, #n_components
+                      c_double,#gamma
+                      c_bool, #precomputed
+                      c_bool, #norm_laplacian
+                      c_int, #mode
+                      c_bool, #drop_first
+                      c_int, #verbose
+                      c_int, #mid
+                      c_short, #dtype
+                      c_short,#itype
+                      c_bool #dense
                      ]
 
 get_sem_affinity_matrix = LIB.get_sem_aff_matrix
@@ -841,25 +841,25 @@ get_sem_embedding_matrix.restype = py_object
 
 sca_train = LIB.sca_train
 sca_train.argtypes = [c_char_p, #host
-                       c_int, #port
-                       c_long,#data
-                       c_int, #n_clusters
-                       c_int, #n_comp
-                       c_int, #n_iter
-                       c_double, #eps
-                       c_double,#gamma
-                       c_bool, #precomputed
-                       c_bool, #norm_laplacian
-                       c_int, #mode
-                       c_bool, #drop_first
-                       ndpointer(c_int, ndim=1, flags="C_CONTIGUOUS"),#labels
-                       c_long, #labels array length
-                       c_int, #verbose
-                       c_int, #mid
-                       c_short, #dtype
-                       c_short, #itype
-                       c_bool #dense
-                      ]
+                      c_int, #port
+                      c_long,#data
+                      c_int, #n_clusters
+                      c_int, #n_comp
+                      c_int, #n_iter
+                      c_double, #eps
+                      c_double,#gamma
+                      c_bool, #precomputed
+                      c_bool, #norm_laplacian
+                      c_int, #mode
+                      c_bool, #drop_first
+                      ndpointer(c_int, ndim=1, flags="C_CONTIGUOUS"),#labels
+                      c_long, #labels array length
+                      c_int, #verbose
+                      c_int, #mid
+                      c_short, #dtype
+                      c_short, #itype
+                      c_bool #dense
+                     ]
 
 get_scm_affinity_matrix = LIB.get_scm_aff_matrix
 get_scm_affinity_matrix.argtypes = [c_char_p, c_int, c_int, c_short]
@@ -890,35 +890,35 @@ parallel_kmeans_predict.argtypes = [c_char_p, c_int, c_int,
                                     c_ulong, c_short, c_bool]
 
 als_float_predict = LIB.als_float_predict
-als_float_predict.argtypes = [c_char_p, c_int, c_int,
-                        ndpointer(c_int, ndim=1, flags="C_CONTIGUOUS"),
-                        ndpointer(c_float, ndim=1, flags="C_CONTIGUOUS"),
+als_float_predict.argtypes = [c_char_p, c_int, c_int,\
+                        ndpointer(c_int, ndim=1, flags="C_CONTIGUOUS"),\
+                        ndpointer(c_float, ndim=1, flags="C_CONTIGUOUS"),\
                         c_ulong]
 
 als_double_predict = LIB.als_double_predict
-als_double_predict.argtypes = [c_char_p, c_int, c_int,
-                        ndpointer(c_int, ndim=1, flags="C_CONTIGUOUS"),
-                        ndpointer(c_double, ndim=1, flags="C_CONTIGUOUS"),
+als_double_predict.argtypes = [c_char_p, c_int, c_int,\
+                        ndpointer(c_int, ndim=1, flags="C_CONTIGUOUS"),\
+                        ndpointer(c_double, ndim=1, flags="C_CONTIGUOUS"),\
                         c_ulong]
 
 als_float_rec_users = LIB.als_float_rec_users
-als_float_rec_users.argtypes = [c_char_p, c_int, c_int, c_int, c_int,
-                          ndpointer(c_int, ndim=1, flags="C_CONTIGUOUS"),
+als_float_rec_users.argtypes = [c_char_p, c_int, c_int, c_int, c_int,\
+                          ndpointer(c_int, ndim=1, flags="C_CONTIGUOUS"),\
                           ndpointer(c_float, ndim=1, flags="C_CONTIGUOUS")]
 
 als_double_rec_users = LIB.als_double_rec_users
-als_double_rec_users.argtypes = [c_char_p, c_int, c_int, c_int, c_int,
-                          ndpointer(c_int, ndim=1, flags="C_CONTIGUOUS"),
+als_double_rec_users.argtypes = [c_char_p, c_int, c_int, c_int, c_int,\
+                          ndpointer(c_int, ndim=1, flags="C_CONTIGUOUS"),\
                           ndpointer(c_double, ndim=1, flags="C_CONTIGUOUS")]
 
 als_float_rec_prods = LIB.als_float_rec_prods
-als_float_rec_prods.argtypes = [c_char_p, c_int, c_int, c_int, c_int,
-                          ndpointer(c_int, ndim=1, flags="C_CONTIGUOUS"),
+als_float_rec_prods.argtypes = [c_char_p, c_int, c_int, c_int, c_int,\
+                          ndpointer(c_int, ndim=1, flags="C_CONTIGUOUS"),\
                           ndpointer(c_float, ndim=1, flags="C_CONTIGUOUS")]
 
 als_double_rec_prods = LIB.als_double_rec_prods
-als_double_rec_prods.argtypes = [c_char_p, c_int, c_int, c_int, c_int,
-                          ndpointer(c_int, ndim=1, flags="C_CONTIGUOUS"),
+als_double_rec_prods.argtypes = [c_char_p, c_int, c_int, c_int, c_int,\
+                          ndpointer(c_int, ndim=1, flags="C_CONTIGUOUS"),\
                           ndpointer(c_double, ndim=1, flags="C_CONTIGUOUS")]
 
 release_frovedis_model = LIB.release_frovedis_model
@@ -997,8 +997,8 @@ encode_frovedis_int_dvector.restype = c_long # out proxy
 
 encode_frovedis_long_dvector = LIB.encode_frovedis_long_dvector
 encode_frovedis_long_dvector.argtypes = [c_char_p, c_int, c_long,  #host, port, proxy
-                                        POINTER(c_long), POINTER(c_long), #src, target 
-                                        c_long] # size
+                                         POINTER(c_long), POINTER(c_long), #src, target 
+                                         c_long] # size
 encode_frovedis_long_dvector.restype = c_long # out proxy
 
 encode_frovedis_float_dvector = LIB.encode_frovedis_float_dvector
@@ -1010,7 +1010,7 @@ encode_frovedis_float_dvector.restype = c_long # out proxy
 encode_frovedis_double_dvector = LIB.encode_frovedis_double_dvector
 encode_frovedis_double_dvector.argtypes = [c_char_p, c_int, c_long,  #host, port, proxy
                                            POINTER(c_double), POINTER(c_double), #src, target 
-                                        c_long] # size
+                                           c_long] # size
 encode_frovedis_double_dvector.restype = c_long # out proxy
 
 lr_sgd = LIB.lr_sgd
@@ -1047,7 +1047,7 @@ dt_train.argtypes = [c_char_p, c_int, c_long,
 nb_train = LIB.nb_trainer
 nb_train.argtypes = [c_char_p, c_int, c_long,
                      c_long, c_double, c_int, c_char_p, c_int,
-		     c_short, c_short, c_bool]
+                     c_short, c_short, c_bool]
 
 lnr_sgd = LIB.lnr_sgd
 lnr_sgd.argtypes = [c_char_p, c_int, c_long, c_long, c_bool, c_int, c_int,
@@ -1079,8 +1079,8 @@ ridge_lbfgs.argtypes = [c_char_p, c_int, c_long, c_long, c_int, c_double,
 
 kmeans_train = LIB.kmeans_train
 kmeans_train.argtypes = [c_char_p, c_int, c_long, c_int,
-                        c_int, c_long, c_double, c_int, c_int,
-                        c_short, c_short, c_bool]
+                         c_int, c_long, c_double, c_int, c_int,
+                         c_short, c_short, c_bool]
 
 # als will always be trained with sparse data
 als_train = LIB.als_train
@@ -1248,7 +1248,7 @@ knn_fit.argtypes = [  c_char_p, #host
                       c_short, #dtype
                       c_short, #itype
                       c_bool #dense
-                    ]
+                   ]
 
 knc_fit = LIB.knc_fit
 knc_fit.argtypes = [  c_char_p, #host
@@ -1264,7 +1264,7 @@ knc_fit.argtypes = [  c_char_p, #host
                       c_short, #dtype
                       c_short, #itype
                       c_bool #dense
-                    ]
+                   ]
 
 knr_fit = LIB.knr_fit
 knr_fit.argtypes = [  c_char_p, #host
@@ -1280,7 +1280,7 @@ knr_fit.argtypes = [  c_char_p, #host
                       c_short, #dtype
                       c_short, #itype
                       c_bool #dense
-                    ]
+                   ]
 
 knc_kneighbors = LIB.knc_kneighbors
 knc_kneighbors.argtypes = [c_char_p, #host
@@ -1295,78 +1295,74 @@ knc_kneighbors.restype = py_object
 
 knr_kneighbors = LIB.knr_kneighbors
 knr_kneighbors.argtypes = [ c_char_p, #host
-                           c_int,  #port
-                           c_long, #data
-                           c_int, #k
-                           c_int, #mid
-                           c_bool, #need distance,
-                           c_short #dtype
+                            c_int,  #port
+                            c_long, #data
+                            c_int, #k
+                            c_int, #mid
+                            c_bool, #need distance,
+                            c_short #dtype
                           ]
 knr_kneighbors.restype = py_object
 
 knc_kneighbors_graph = LIB.knc_kneighbors_graph
 knc_kneighbors_graph.argtypes = [ c_char_p, #host
-                                 c_int,  #port
-                                 c_long, #data
-                                 c_int, #k
-                                 c_int, #mid
-                                 c_char_p, #mode,
-                                 c_short #dtype
+                                  c_int,  #port
+                                  c_long, #data
+                                  c_int, #k
+                                  c_int, #mid
+                                  c_char_p, #mode,
+                                  c_short #dtype
                                 ]
 knc_kneighbors_graph.restype = py_object
 
 knr_kneighbors_graph = LIB.knr_kneighbors_graph
 knr_kneighbors_graph.argtypes = [ c_char_p, #host
-                                 c_int,  #port
-                                 c_long, #data
-                                 c_int, #k
-                                 c_int, #mid
-                                 c_char_p, #mode,
-                                 c_short #dtype
+                                  c_int,  #port
+                                  c_long, #data
+                                  c_int, #k
+                                  c_int, #mid
+                                  c_char_p, #mode,
+                                  c_short #dtype
                                 ]
 knr_kneighbors_graph.restype = py_object
 
 knc_float_predict = LIB.knc_float_predict
-knc_float_predict.argtypes = [ 
-                         c_char_p, #host
-                         c_int,  #port
-                         c_long, #data
-                         c_int, #mid
-                         c_bool, # save_proba
-                         ndpointer(c_float, ndim=1, flags="C_CONTIGUOUS"),
-                         c_long # ret length
-                        ]
+knc_float_predict.argtypes = [ c_char_p, #host
+                               c_int,  #port
+                               c_long, #data
+                               c_int, #mid
+                               c_bool, # save_proba
+                               ndpointer(c_float, ndim=1, flags="C_CONTIGUOUS"),
+                               c_long # ret length
+                             ]
 
 knc_double_predict = LIB.knc_double_predict
-knc_double_predict.argtypes = [ 
-                         c_char_p, #host
-                         c_int,  #port
-                         c_long, #data
-                         c_int, #mid
-                         c_bool, # save_proba
-                         ndpointer(c_double, ndim=1, flags="C_CONTIGUOUS"),
-                         c_long # ret length
-                        ]
+knc_double_predict.argtypes = [ c_char_p, #host
+                                c_int,  #port
+                                c_long, #data
+                                c_int, #mid
+                                c_bool, # save_proba
+                                ndpointer(c_double, ndim=1, flags="C_CONTIGUOUS"),
+                                c_long # ret length
+                              ]
 
 knr_float_predict = LIB.knr_float_predict
-knr_float_predict.argtypes = [ 
-                         c_char_p, #host
-                         c_int,  #port
-                         c_long, #data
-                         c_int, #mid
-                         ndpointer(c_float, ndim=1, flags="C_CONTIGUOUS"),
-                         c_long # ret length
-                        ]
+knr_float_predict.argtypes = [ c_char_p, #host
+                               c_int,  #port
+                               c_long, #data
+                               c_int, #mid
+                               ndpointer(c_float, ndim=1, flags="C_CONTIGUOUS"),
+                               c_long # ret length
+                             ]
 
 knr_double_predict = LIB.knr_double_predict
-knr_double_predict.argtypes = [ 
-                         c_char_p, #host
-                         c_int,  #port
-                         c_long, #data
-                         c_int, #mid
-                         ndpointer(c_double, ndim=1, flags="C_CONTIGUOUS"),
-                         c_long # ret length
-                        ]
+knr_double_predict.argtypes = [ c_char_p, #host
+                                c_int,  #port
+                                c_long, #data
+                                c_int, #mid
+                                ndpointer(c_double, ndim=1, flags="C_CONTIGUOUS"),
+                                c_long # ret length
+                              ]
 
 knc_predict_proba = LIB.knc_predict_proba
 knc_predict_proba.argtypes = [ c_char_p, #host
@@ -1378,25 +1374,23 @@ knc_predict_proba.argtypes = [ c_char_p, #host
 knc_predict_proba.restype = py_object
 
 knr_model_score = LIB.knr_model_score
-knr_model_score.argtypes = [ 
-                         c_char_p, #host
-                         c_int,  #port
-                         c_long, #data - mat
-                         c_long, #data - labels
-                         c_int, #mid
-                         c_short #dtype
-                        ]
+knr_model_score.argtypes = [ c_char_p, #host
+                             c_int,  #port
+                             c_long, #data - mat
+                             c_long, #data - labels
+                             c_int, #mid
+                             c_short #dtype
+                           ]
 knr_model_score.restype = c_float
 
 knc_model_score = LIB.knc_model_score
-knc_model_score.argtypes = [ 
-                         c_char_p, #host
-                         c_int,  #port
-                         c_long, #data - mat
-                         c_long, #data - labels
-                         c_int, #mid
-                         c_short #dtype
-                        ]
+knc_model_score.argtypes = [ c_char_p, #host
+                             c_int,  #port
+                             c_long, #data - mat
+                             c_long, #data - labels
+                             c_int, #mid
+                             c_short #dtype
+                           ]
 knc_model_score.restype = c_float
 
 knn_kneighbors = LIB.knn_kneighbors
@@ -1412,12 +1406,12 @@ knn_kneighbors.restype = py_object
 
 knn_kneighbors_graph = LIB.knn_kneighbors_graph
 knn_kneighbors_graph.argtypes = [ c_char_p, #host
-                                 c_int,  #port
-                                 c_long, #data
-                                 c_int, #k
-                                 c_int, #mid
-                                 c_char_p, #mode,
-                                 c_short #dtype
+                                  c_int,  #port
+                                  c_long, #data
+                                  c_int, #k
+                                  c_int, #mid
+                                  c_char_p, #mode,
+                                  c_short #dtype
                                 ]
 knn_kneighbors_graph.restype = py_object
 
@@ -1444,19 +1438,19 @@ pca_transform.argtypes = [ c_char_p, #host
                            c_long, #mean
                            c_short, #dtype
                            c_bool #whiten
-                        ]
+                         ]
 pca_transform.restype = py_object
 
 pca_inverse_transform = LIB.pca_inverse_transform
 pca_inverse_transform.argtypes = [ c_char_p, #host
-                           c_int,  #port
-                           c_long, #data
-                           c_long, #pca _directions
-                           c_long, #explained variance
-                           c_long, #mean
-                           c_short, #dtype
-                           c_bool #whiten
-                        ]
+                                   c_int,  #port
+                                   c_long, #data
+                                   c_long, #pca _directions
+                                   c_long, #explained variance
+                                   c_long, #mean
+                                   c_short, #dtype
+                                   c_bool #whiten
+                                 ]
 pca_inverse_transform.restype = py_object
 
 compute_lda_component = LIB.compute_lda_component

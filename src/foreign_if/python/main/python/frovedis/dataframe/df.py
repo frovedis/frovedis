@@ -6,7 +6,7 @@ df.py
 import numpy as np
 import pandas as pd
 import copy
-from dfoperator import dfoperator
+from .dfoperator import dfoperator
 from ctypes import *
 from array import array
 from ..exrpc import rpclib
@@ -59,7 +59,7 @@ class FrovedisDataframe(object):
             excpt = rpclib.check_server_exception()
             if excpt["status"]:
                 raise RuntimeError(excpt["info"])
-            print "\n"
+            print("\n")
 
     def release(self):
         """
@@ -402,7 +402,7 @@ class FrovedisDataframe(object):
             raise ValueError("Operation on invalid frovedis dataframe!")
         if not isinstance(columns, dict):
             raise TypeError("Expected: dictionery; Received: ",
-                             type(columns).__name__)
+                            type(columns).__name__)
         names = list(columns.keys())
         new_names = list(columns.values())
         ret = FrovedisDataframe()

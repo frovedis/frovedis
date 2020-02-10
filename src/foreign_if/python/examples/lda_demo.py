@@ -34,7 +34,6 @@ test_corpus = [
     'This This one third document.'
 ]
 
-vectorizer = CountVectorizer()
 mat_01 = vectorizer.fit_transform(test_corpus)
 fmat_01 = FrovedisCRSMatrix(mat_01, dtype=np.int32, itype=np.int64)
 #fmat_01.save('test_corpus_crs_001')
@@ -53,3 +52,5 @@ lda.fit_transform(fmat)
 print(lda.perplexity(fmat_01))
 print(lda.score(fmat_01))
 
+# Shutting down the Frovedis server
+FrovedisServer.shut_down()

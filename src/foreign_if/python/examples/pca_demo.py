@@ -17,8 +17,8 @@ FrovedisServer.initialize(argvs[1])
 
 # sample numpy dense data (3x3)
 mat = np.matrix([[1.0, 0.0, 7.0, 0.0, 0.0], 
-                [2.0, 0.0, 3.0, 4.0, 5.0], 
-                [4.0, 0.0, 0.0, 6.0, 7.0]], 
+                 [2.0, 0.0, 3.0, 4.0, 5.0], 
+                 [4.0, 0.0, 0.0, 6.0, 7.0]], 
                 #dtype=np.float32)
                 dtype=np.float64)
 
@@ -76,10 +76,10 @@ print(pca.noise_variance_)
 # releasing results from server
 #pca.pca_res_.release()
 a = np.array([[1.0, 0.0, 7.0, 0.0, 0.0], 
-                [2.0, 0.0, 3.0, 4.0, 5.0], 
-                [4.0, 0.0, 0.0, 6.0, 7.0]], 
-                #dtype=np.float32)
-                dtype=np.float64)
+              [2.0, 0.0, 3.0, 4.0, 5.0], 
+              [4.0, 0.0, 0.0, 6.0, 7.0]], 
+             #dtype=np.float32)
+             dtype=np.float64)
 
 X1 = pca.transform(a)
 #X1 = pca.transform(FrovedisRowmajorMatrix(a))

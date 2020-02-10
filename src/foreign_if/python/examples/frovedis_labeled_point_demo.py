@@ -19,8 +19,8 @@ data = np.array([1, 2, 3, 4, 5, 6])
 indices = np.array([0, 2, 2, 0, 1, 2])
 indptr = np.array([0, 2, 3, 6])
 X = csr_matrix((data, indices, indptr),
-                 dtype=np.float64,
-                 shape=(3, 3))
+               dtype=np.float64,
+               shape=(3, 3))
 
 y = [1, 2, 3] # label
 #data = FrovedisLabeledPoint(X,y) # abnormal case (type mismatch)

@@ -25,10 +25,10 @@ lbl = np.array([0, 1, 1, 0])
 
 # fitting input matrix and label on DecisionTree Classifier object
 dtc1 = DecisionTreeClassifier(criterion='gini', splitter='best', max_depth=5, 
-                 min_samples_split=2, min_samples_leaf=1, min_weight_fraction_leaf=0.0, 
-                 max_features=None, random_state=None, max_leaf_nodes=1, 
-                 min_impurity_decrease=0.0,
-		 class_weight=None, presort=False, verbose = 0)
+                              min_samples_split=2, min_samples_leaf=1, min_weight_fraction_leaf=0.0, 
+                              max_features=None, random_state=None, max_leaf_nodes=1, 
+                              min_impurity_decrease=0.0,
+                              class_weight=None, presort=False, verbose = 0)
 dtc = dtc1.fit(mat,lbl)
 dtc.debug_print()
 
@@ -42,10 +42,10 @@ print (dtc.score(mat,lbl))
 
 # fitting input matrix and label on DecisionTree Regressor object
 dtr1 = DecisionTreeRegressor(criterion='mse', splitter='best',
-                 max_depth=5, min_samples_split=2, min_samples_leaf=1,
-                 min_weight_fraction_leaf=0.0, max_features=None, random_state=None,
-                 max_leaf_nodes=1, min_impurity_decrease=0.0, min_impurity_split=None,
-                 class_weight=None, presort=False, verbose = 0)
+                             max_depth=5, min_samples_split=2, min_samples_leaf=1,
+                             min_weight_fraction_leaf=0.0, max_features=None, random_state=None,
+                             max_leaf_nodes=1, min_impurity_decrease=0.0, min_impurity_split=None,
+                             class_weight=None, presort=False, verbose = 0)
 lbl1 = np.array([1.2,0.3,1.1,1.9])
 dtr = dtr1.fit(mat,lbl1)
 dtr.debug_print()

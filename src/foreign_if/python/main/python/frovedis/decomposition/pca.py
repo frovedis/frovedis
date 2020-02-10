@@ -47,7 +47,7 @@ class PCA(object):
         supported_solvers = {'arpack', 'auto'}
         if self.svd_solver not in supported_solvers:
             raise ValueError("svd_solver: currently Frovedis "
-                "supports only arpack!")
+                             "supports only arpack!")
 
         if self.svd_solver == "auto":
             self.svd_solver = "arpack"
@@ -112,8 +112,8 @@ class PCA(object):
         if self.pca_res_ is None:
             raise AttributeError("components_: PCA object is not fitted!")
         elif self.pca_res_._components is None:
-            raise AttributeError("pca_res_._components: pca result "
-              "object might have been released!")
+            raise AttributeError("pca_res_._components: pca result "\
+                                 "object might have been released!")
         else:
             if self._components is None:
                 self._components = self.pca_res_._components \
@@ -157,7 +157,7 @@ class PCA(object):
             raise AttributeError(\
                 "explained_variance_: PCA object is not fitted!")
         elif self.pca_res_._explained_variance is None:
-            raise AttributeError("pca_res_._explained_variance: pca result "
+            raise AttributeError("pca_res_._explained_variance: pca result "\
               "object might have been released!")
 
         if self._explained_variance is None:
@@ -177,7 +177,7 @@ class PCA(object):
         if self.pca_res_ is None:
             raise AttributeError("mean_: PCA object is not fitted!")
         elif self.pca_res_._mean is None:
-            raise AttributeError("pca_res_._mean: pca result "
+            raise AttributeError("pca_res_._mean: pca result "\
               "object might have been released!")
 
         if self._mean is None:
@@ -195,7 +195,7 @@ class PCA(object):
         if self.pca_res_ is None:
             raise AttributeError("singular_values_: PCA object is not fitted!")
         elif self.pca_res_._singular_values is None:
-            raise AttributeError("pca_res_._singular_values: pca result "
+            raise AttributeError("pca_res_._singular_values: pca result "\
               "object might have been released!")
 
         if self._singular_values is None:
@@ -212,7 +212,7 @@ class PCA(object):
         """fit_transform"""
         self.fit(X)
         if self.pca_res_._score is None: # should not occur, if fit works well
-            raise AttributeError("pca_res_._score: pca result "
+            raise AttributeError("pca_res_._score: pca result "\
               "object does not have score computed!")
         return self.pca_res_._score.to_numpy_array()
 

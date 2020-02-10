@@ -312,7 +312,7 @@ def sgesv(a, b, overwrite_a=0, overwrite_b=0):
     return gesv(a, b, overwrite_a, overwrite_b, dtype=np.float32)
 
 def gels(a, b, trans='N', lwork=0, overwrite_a=0,
-          overwrite_b=0, dtype=np.float64):
+         overwrite_b=0, dtype=np.float64):
     """gels"""
     (input_a, to_convert_a, isMatrix) = \
         handle_scalapack_input(a, overwrite_a, dtype=dtype)
@@ -414,7 +414,7 @@ def gesvd(a, compute_uv=1, full_matrices=1, lwork=0,
         raise ValueError("compute_uv: can be either 0 or 1")
     res = SCALAPACK.gesvd(input_a, wantU, wantV) # input_a will be destroyed
     _, stat = handle_scalapack_output(input_a, to_convert, a,
-                                            overwrite_a, res.stat(), isMatrix)
+                                      overwrite_a, res.stat(), isMatrix)
     if to_convert:
         u, s, vt = res.to_numpy_results()
         if u is None:

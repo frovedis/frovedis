@@ -7,9 +7,22 @@ from frovedis.linalg.scalapack import *
 from frovedis.matrix.dtype import DTYPE, TypeUtil
 from frovedis.matrix.wrapper import PBLAS
 
+def check_if_vec(a):
+    """checking if the input mat is col or row vec"""
+    isRowvec = False
+    isNmat = False
+    if not isinstance(a, FrovedisBlockcyclicMatrix):
+        if a.ndim == 1:
+            isRowvec = True
+        else:
+            isNmat = True
+    return (isRowvec, isNmat)
+
+
 def get_computation_matrix(a, copy_bcm=False,
                            check_col_vector=False,
-                           return_ndim=False):
+                           return_ndim=False,
+                           isVector=False):
     """get_computation_matrix"""
     if not isinstance(a, FrovedisBlockcyclicMatrix):
         if type(a).__name__ == 'matrix':
@@ -28,8 +41,8 @@ def get_computation_matrix(a, copy_bcm=False,
             t_dt = np.float64 # default: double
         # scaling of a row vector is not possible using frovedis
         if check_col_vector and ndim == 1:
-            arr = arr.reshape(-1, 1) # converting into col-vector to
-                                    #   support dot, scal
+            if not isVector:
+                arr = arr.reshape(-1, 1)
         ret = FrovedisBlockcyclicMatrix(arr, dtype=t_dt)
     else:
         conv = False
@@ -48,7 +61,7 @@ def get_computation_matrix(a, copy_bcm=False,
     else:
         return (ret, conv, isMatrix)
 
-def handle_scal_output(y, cv, out, isMatrix):
+def handle_scal_output(y, cv, out, isMatrix, toFlatten=False):
     """handle_scal_output"""
     if not cv:
         return y # when input is a bcm, output will be bcm
@@ -62,9 +75,6 @@ def handle_scal_output(y, cv, out, isMatrix):
             raise ValueError("dot: size of out parameter is incompatible \
                 with input size!")
 
-        if out.dtype != TypeUtil.to_numpy_dtype(y.get_dtype()):
-            raise ValueError("dot: dtype of out parameter is incompatible \
-                with input types!")
         if isMatrix:
             y.to_numpy_matrix_inplace(out)
         else:
@@ -75,9 +85,9 @@ def handle_scal_output(y, cv, out, isMatrix):
         if isMatrix:
             return y.to_numpy_matrix()
         else:
-            return y.to_numpy_array()
+            return y.to_numpy_array().flatten()
 
-def handle_dot_output(x1, x2, y, cv1, cv2, out, isMatrix):
+def handle_dot_output(x1, x2, y, cv1, cv2, out, isMatrix, toFlatten=False):
     """handle_dot_output"""
     if cv1 == False or cv2 == False:
         return y # when any of the inputs is a bcm,
@@ -89,15 +99,11 @@ def handle_dot_output(x1, x2, y, cv1, cv2, out, isMatrix):
 
         nrow1, _ = x1.shape
         _, ncol2 = x2.shape
+        odtype = out.dtype
         nrow3, ncol3 = out.shape #(nrow1, ncol2)
         if not (nrow1 == nrow3 and ncol2 == ncol3):
             raise ValueError("dot: shape of out parameter is incompatible \
                 with input shapes!")
-
-        if out.dtype != TypeUtil.to_numpy_dtype(y.get_dtype()):
-            raise ValueError("dot: dtype of out parameter is incompatible \
-                with input types!")
-
         if isMatrix:
             y.to_numpy_matrix_inplace(out)
         else:
@@ -108,7 +114,10 @@ def handle_dot_output(x1, x2, y, cv1, cv2, out, isMatrix):
         if isMatrix:
             return y.to_numpy_matrix()
         else:
-            return y.to_numpy_array()
+            if toFlatten:
+                return y.to_numpy_array().flatten()
+            else:
+                return y.to_numpy_array()
 
 def svd(a, full_matrices=True, compute_uv=True):
     #-> gesvd
@@ -232,30 +241,54 @@ def dot(a, b, out=None):
          If a and b are both scalars or both 1-D arrays then a
          scalar is returned; otherwise an array is returned.
     """
+    #if out is specified, check its type with input mat
+    if (not isinstance(a, FrovedisBlockcyclicMatrix)) and\
+       out is not None:
+        if np.asarray(a).dtype != np.asarray(out).dtype:
+            raise TypeError("dot: dtype of out is not compatible with input")
     # when both a and b are scalar
     if np.isscalar(a) and np.isscalar(b):
         return a * b
     # when either a or b is scalar
     elif np.isscalar(a) and not np.isscalar(b):
+        b_isRowvec, b_isNmat = check_if_vec(b)
         b, cv, isM, _ = get_computation_matrix(b, copy_bcm=False, \
                                         check_col_vector=True, \
 		                        return_ndim=True)
         PBLAS.scal(b, a)
-        return handle_scal_output(b, cv, out, isM)
+        if b_isRowvec:
+            return handle_scal_output(b, cv, out, isM, toFlatten=True)
+        else:
+            return handle_scal_output(b, cv, out, isM)
     elif not np.isscalar(a) and np.isscalar(b):
+        a_isRowvec, a_isNmat = check_if_vec(a)
         a, cv, isM, _ = get_computation_matrix(a, copy_bcm=False, \
                                         check_col_vector=True,\
 		                        return_ndim=True)
         PBLAS.scal(a, b)
-        return handle_scal_output(a, cv, out, isM)
+        if a_isRowvec:
+            return handle_scal_output(a, cv, out, isM, toFlatten=True)
+        else:
+            return handle_scal_output(a, cv, out, isM)
     # when neither a nor b is scalar
     else:
-        a, cv1, isM1, a_ndim = get_computation_matrix(a, copy_bcm=False, \
-                                                check_col_vector=True, \
-                                                return_ndim=True)
-        b, cv2, isM2, b_ndim = get_computation_matrix(b, copy_bcm=False, \
-                                                check_col_vector=True, \
-                                                return_ndim=True)
+        a_isRowvec, a_isNmat = check_if_vec(a)
+        b_isRowvec, b_isNmat = check_if_vec(b)
+        if a_isRowvec and b_isNmat:
+             a, cv1, isM1, a_ndim = get_computation_matrix(a, copy_bcm=False, \
+                                                       check_col_vector=True, \
+                                                       return_ndim=True,      \
+                                                       isVector=True)
+             b, cv2, isM2, b_ndim = get_computation_matrix(b, copy_bcm=False, \
+                                                       check_col_vector=True, \
+                                                       return_ndim=True)
+        else: 
+             a, cv1, isM1, a_ndim = get_computation_matrix(a, copy_bcm=False, \
+                                                       check_col_vector=True, \
+                                                       return_ndim=True)
+             b, cv2, isM2, b_ndim = get_computation_matrix(b, copy_bcm=False, \
+                                                       check_col_vector=True, \
+                                                       return_ndim=True)
         if a.get_dtype() != b.get_dtype():
             raise TypeError("dot: dtype of a and b are not compatible!")
 
@@ -267,7 +300,11 @@ def dot(a, b, out=None):
                 raise ValueError("dot: input dimensions does not comply \
                     with matrix-vector multiplication rule!")
             c = PBLAS.gemv(a, b)
-            return handle_dot_output(a, b, c, cv1, cv2, out, isM1 or isM2)
+            if a_isNmat and b_isRowvec:
+                return handle_dot_output(a, b, c, cv1, cv2, out, isM1 or isM2,\
+                                         toFlatten=True)
+            else:
+                return handle_dot_output(a, b, c, cv1, cv2, out, isM1 or isM2)
         elif a_ndim == 2 and b_ndim == 2:
             if a.numCols() != b.numRows():
                 raise ValueError("dot: input dimensions does not comply \
@@ -275,6 +312,15 @@ def dot(a, b, out=None):
             c = PBLAS.gemm(a, b)
             return handle_dot_output(a, b, c, cv1, cv2, out, isM1 or isM2)
         else:
-            raise ValueError("dot: vector-matrix multiplication is not \
-                supported!")
+            if a_isRowvec and not b_isNmat:
+                print(b_isNmat)
+                c = PBLAS.gemv(a, b)
+                return handle_dot_output(a, b, c, cv1, cv2, out, isM1 or isM2,\
+                                         toFlatten=True)
+            else:
+               c = PBLAS.gemm(a, b)
+               return handle_dot_output(a, b, c, cv1, cv2, out, isM1 or isM2,\
+                                        toFlatten=True)  
+            #raise ValueError("dot: vector-matrix multiplication is not \
+            #    supported!")
 

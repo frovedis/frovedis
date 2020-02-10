@@ -19,7 +19,7 @@ FrovedisServer.initialize(argvs[1])
 
 # sample 4x4 numpy matrix creation
 mat = np.matrix([[1,2,3,4],[5,6,7,8],[8,7,6,5],[4,3,2,1]],
-                 dtype=np.float64)
+                dtype=np.float64)
 
 # Creating Frovedis server side blockcyclic matrix from numpy matrix
 print("creating blockcyclic matrix from numpy matrix: ")
@@ -113,7 +113,7 @@ asmat.release()
 
 # sample blockcyclic matrix from numpy matrix
 lwr_triangle = FrovedisBlockcyclicMatrix(np.matrix([[1,0,0],[1,1,0],[1,1,1]],
-                                                 dtype=np.float64))
+                                                   dtype=np.float64))
 # sample expressions
 # no need to bother about releasing (rvalue) intermediate results of these expressions 
 # they will be auto-released after the result is used

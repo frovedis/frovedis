@@ -19,9 +19,9 @@ class KMeans(object):
     A python wrapper of Frovedis kmeans
     """
     def __init__(self, n_clusters=8, init='k-means++', n_init=10,
-               max_iter=300, tol=1e-4, precompute_distances='auto',
-               verbose=0, random_state=None, copy_x=True,
-               n_jobs=1, algorithm='auto'):
+                 max_iter=300, tol=1e-4, precompute_distances='auto',
+                 verbose=0, random_state=None, copy_x=True,
+                 n_jobs=1, algorithm='auto'):
         self.n_clusters = n_clusters
         self.init = init
         self.max_iter = max_iter
@@ -162,11 +162,11 @@ class SpectralClustering(object):
     A python wrapper of Frovedis Spectral clustering
     """
     def __init__(self, n_clusters=8, eigen_solver=None, random_state=None,
-                n_init=10, gamma=1.0, affinity='rbf', n_neighbors=10,
-                eigen_tol=0.0, assign_labels='kmeans', degree=3, coef0=1,
-                kernel_params=None, n_jobs=None, verbose=0, n_iter=100,
-                eps=0.01, n_comp=None, norm_laplacian=True, mode=1,
-                drop_first=False):
+                 n_init=10, gamma=1.0, affinity='rbf', n_neighbors=10,
+                 eigen_tol=0.0, assign_labels='kmeans', degree=3, coef0=1,
+                 kernel_params=None, n_jobs=None, verbose=0, n_iter=100,
+                 eps=0.01, n_comp=None, norm_laplacian=True, mode=1,
+                 drop_first=False):
         self.n_clusters = n_clusters
         self.eigen_solver = eigen_solver
         self.random_state = random_state
@@ -236,24 +236,24 @@ class SpectralClustering(object):
         NAME: get_params
         """
         d_l = {'n_clusters': self.n_clusters,
-        'eigen_solver' : self.eigen_solver,
-        'random_state' : self.random_state,
-        'n_init' : self.n_init,
-        'gamma' : self.gamma,
-        'affinity' : self.affinity,
-        'n_neighbors' : self.n_neighbors,
-        'eigen_tol' : self.eigen_tol,
-        'assign_labels' : self.assign_labels,
-        'degree' : self.degree,
-        'coef0' : self.coef0,
-        'kernel_params' : self.kernel_params,
-        'n_jobs' : self.n_jobs,
-        'n_iter' : self.n_iter,
-        'eps' : self.eps,
-        'n_comp' : self.n_comp,
-        'norm_laplacian' : self.norm_laplacian,
-        'mode' : self.mode,
-        'drop_first' : self.drop_first}
+               'eigen_solver' : self.eigen_solver,
+               'random_state' : self.random_state,
+               'n_init' : self.n_init,
+               'gamma' : self.gamma,
+               'affinity' : self.affinity,
+               'n_neighbors' : self.n_neighbors,
+               'eigen_tol' : self.eigen_tol,
+               'assign_labels' : self.assign_labels,
+               'degree' : self.degree,
+               'coef0' : self.coef0,
+               'kernel_params' : self.kernel_params,
+               'n_jobs' : self.n_jobs,
+               'n_iter' : self.n_iter,
+               'eps' : self.eps,
+               'n_comp' : self.n_comp,
+               'norm_laplacian' : self.norm_laplacian,
+               'mode' : self.mode,
+               'drop_first' : self.drop_first}
         return d_l
 
     def __str__(self):
@@ -423,15 +423,15 @@ class SpectralEmbedding(object):
         NAME: get_params
         """
         d_l = {'n_components': self.n_components,
-        'affinity' : self.affinity,
-        'gamma' : self.gamma,
-        'random_state' : self.random_state,
-        'eigen_solver' : self.eigen_solver,
-        'n_neighbors' : self.n_neighbors,
-        'n_jobs' : self.n_jobs,
-        'norm_laplacian' : self.norm_laplacian,
-        'mode' : self.mode,
-        'drop_first' : self.drop_first}
+               'affinity' : self.affinity,
+               'gamma' : self.gamma,
+               'random_state' : self.random_state,
+               'eigen_solver' : self.eigen_solver,
+               'n_neighbors' : self.n_neighbors,
+               'n_jobs' : self.n_jobs,
+               'norm_laplacian' : self.norm_laplacian,
+               'mode' : self.mode,
+               'drop_first' : self.drop_first}
         return d_l
 
     def __str__(self):
@@ -584,7 +584,8 @@ class AgglomerativeClustering(object):
         (host, port) = FrovedisServer.getServerInstance()
         ret = np.zeros(nsamples, dtype=np.int32)
         rpclib.aca_train(host, port, X.get(), self.n_clusters,
-                         self.linkage, ret, nsamples, self.verbose, self.__mid,
+                         self.linkage.encode('ascii'), ret, nsamples, 
+                         self.verbose, self.__mid,
                          dtype, itype, dense)
         self.labels_ = ret
         self.__nsamples = nsamples
@@ -622,13 +623,13 @@ class AgglomerativeClustering(object):
         NAME: get_params
         """
         d_l = {'n_clusters': self.n_clusters,
-             'affinity': self.affinity,
-             'memory': self.memory,
-             'connectivity': self.connectivity,
-             'compute_full_tree': self.compute_full_tree,
-             'linkage': self.linkage,
-             'pooling_func': self.pooling_func,
-             'verbose': self.verbose}
+               'affinity': self.affinity,
+               'memory': self.memory,
+               'connectivity': self.connectivity,
+               'compute_full_tree': self.compute_full_tree,
+               'linkage': self.linkage,
+               'pooling_func': self.pooling_func,
+               'verbose': self.verbose}
         return d_l
 
     def __str__(self):

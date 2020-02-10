@@ -22,8 +22,8 @@ lbl = np.array([1, 1, -1, 1, -1, 1], dtype=np.float64)
 
 # fitting input matrix and label on Factorization Machine Classifier object
 fmc = FactorizationMachineClassifier(iteration = 100, init_stdev = 0.1,
-            	 init_learn_rate = 0.01, optimizer="SGD", dim = (True, True, 8),
-                 reg = (False, False, 0), batch_size_pernode = 5000, verbose = 0).fit(cmat,lbl)
+                                     init_learn_rate = 0.01, optimizer="SGD", dim = (True, True, 8),
+                                     reg = (False, False, 0), batch_size_pernode = 5000, verbose = 0).fit(cmat,lbl)
 
 # prediction on created model
 print("predicting on factorization machine classifier model: ")
@@ -38,8 +38,8 @@ cmat2 = FrovedisCRSMatrix(mat2, dtype=np.float64)
 lbl2 = np.array([1.2,0.3,1.1,1.9,1.7,0.5,1.2,1.1],dtype=np.float64)
 # fitting input matrix and label on Factorization Machine Regressor object
 fmr = FactorizationMachineRegressor(iteration = 100, init_stdev = 0.1,
-                 init_learn_rate = 0.01, optimizer="SGD", dim = (True, True, 8),
-                 reg = (False, False, 0), batch_size_pernode = 5000, verbose = 0).fit(cmat2,lbl2)
+                                    init_learn_rate = 0.01, optimizer="SGD", dim = (True, True, 8),
+                                    reg = (False, False, 0), batch_size_pernode = 5000, verbose = 0).fit(cmat2,lbl2)
 
 # prediction on created model
 print("predicting on factorization machine regressor model: ")

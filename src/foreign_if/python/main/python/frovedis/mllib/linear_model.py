@@ -195,7 +195,7 @@ class LogisticRegression(object):
         if self.__mid is not None:
             if self._classes is None:
                 self._classes = \
-                    np.asarray(self.label_map.values(), dtype=np.int64)
+                    np.asarray(list(self.label_map.values()), dtype=np.int64)
             return self._classes
         else:
             raise AttributeError("attribute 'classes_' \
@@ -306,7 +306,7 @@ class LogisticRegression(object):
 class LinearRegression(object):
     """A python wrapper of Frovedis Linear Regression"""
     def __init__(self, fit_intercept=True, normalize=False, copy_X=True,
-                n_jobs=1, solver='sag', verbose=0):
+                 n_jobs=1, solver='sag', verbose=0):
         self.fit_intercept = fit_intercept
         self.normalize = normalize
         self.copy_X = copy_X
@@ -479,10 +479,10 @@ class Lasso(object):
     # defaults are as per Frovedis
     # alpha: Frovedis: 0.01, Sklearn: 1.0
     def __init__(self, alpha=0.01, fit_intercept=True, normalize=False,
-                precompute=False, copy_X=True, max_iter=1000,
-                tol=1e-4, warm_start=False, positive=False,
-                random_state=None, selection='cyclic',
-                verbose=0, solver='sag'):
+                 precompute=False, copy_X=True, max_iter=1000,
+                 tol=1e-4, warm_start=False, positive=False,
+                 random_state=None, selection='cyclic',
+                 verbose=0, solver='sag'):
         self.alpha = alpha
         self.fit_intercept = fit_intercept
         self.normalize = normalize
@@ -662,8 +662,8 @@ class Ridge(object):
     # defaults are as per Frovedis
     # alpha: Frovedis: 0.01, Sklearn: 1.0
     def __init__(self, alpha=0.01, fit_intercept=True, normalize=False,
-                copy_X=True, max_iter=1000, tol=1e-3, solver='sag',
-                random_state=None, verbose=0):
+                 copy_X=True, max_iter=1000, tol=1e-3, solver='sag',
+                 random_state=None, verbose=0):
         self.alpha = alpha
         self.fit_intercept = fit_intercept
         self.normalize = normalize
@@ -846,12 +846,12 @@ class SGDClassifier(object):
     A python wrapper for SGD classifier
     """
     def __init__(self, loss="hinge", penalty='l2', alpha=0.0001, l1_ratio=0.15,
-                fit_intercept=True, max_iter=1000, tol=1e-3, shuffle=True,
-                verbose=0, epsilon=0.1, n_jobs=None,
-                random_state=None, learning_rate="invscaling", eta0=1.0,
-                power_t=0.5, early_stopping=False, validation_fraction=0.1,
-                n_iter_no_change=5, class_weight=None, warm_start=False,
-                average=False):
+                 fit_intercept=True, max_iter=1000, tol=1e-3, shuffle=True,
+                 verbose=0, epsilon=0.1, n_jobs=None,
+                 random_state=None, learning_rate="invscaling", eta0=1.0,
+                 power_t=0.5, early_stopping=False, validation_fraction=0.1,
+                 n_iter_no_change=5, class_weight=None, warm_start=False,
+                 average=False):
         self.loss = loss
         self.penalty = penalty
         self.alpha = alpha
@@ -939,7 +939,7 @@ class SGDClassifier(object):
             self.label_map = logic
             rpclib.lr_sgd(host, port, X.get(), encoded_y.get(), self.max_iter, \
                        self.eta0, regTyp, rparam, isMult, \
-                       self.fit_intercept, self.tol, self.verbose,
+                       self.fit_intercept, self.tol, self.verbose,\
                        self.__mid, dtype, itype, dense)
         elif self.loss == "hinge":
             if self.n_classes != 2:
@@ -1022,7 +1022,7 @@ class SGDClassifier(object):
         if self.__mid is not None:
             if self._classes is None:
                 self._classes = \
-                    np.asarray(self.label_map.values(), dtype=np.int64)
+                    np.asarray(list(self.label_map.values()), dtype=np.int64)
             return self._classes
         else:
             raise AttributeError(\

@@ -15,7 +15,7 @@ FrovedisServer.initialize(argvs[1])
 
 samples = np.loadtxt("./input/knn_data.txt", dtype=np.float64)
 knn = NearestNeighbors(n_neighbors=3, radius=2.0, 
-                         algorithm='brute', metric='euclidean')
+                       algorithm='brute', metric='euclidean')
 knn.fit(samples)
 
 distances, indices = knn.kneighbors()

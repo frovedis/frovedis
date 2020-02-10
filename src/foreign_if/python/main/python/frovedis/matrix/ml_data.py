@@ -2,7 +2,7 @@
 #!/usr/bin/env python
 
 import numpy as np
-from scipy.sparse import issparse
+from scipy.sparse import issparse, csr_matrix
 from ..exrpc.server import FrovedisServer
 from ..exrpc.rpclib import distinct_count, check_server_exception
 from .dvector import FrovedisDvector
@@ -19,7 +19,7 @@ class FrovedisLabeledPoint:
     def __init__(self, mat, lbl):
         # decision making whether the converted data would be movable upon
         # destruction
-        if (isinstance(mat, FrovedisCRSMatrix) or
+        if (isinstance(mat, FrovedisCRSMatrix) or\
             isinstance(mat, FrovedisColmajorMatrix)):
             self.__mat_movable = False
         else:
@@ -162,7 +162,7 @@ class FrovedisFeatureData:
     ML algorithms"""
 
     def __init__(self, mat, is_dense=None, dense_kind=None, dtype=None, \
-                 allow_int_dtype=False):
+                 itype=None, allow_int_dtype=False):
         # decision making whether the converted data would be movable
         # upon destruction
         if isinstance(mat, (FrovedisCRSMatrix, FrovedisRowmajorMatrix,
@@ -203,11 +203,16 @@ class FrovedisFeatureData:
                 else:
                     mat = np.asmatrix(mat, dtype=dtype) # user given dtype
                                                         #can not be int kind
-                if mat.dtype != np.float32 and mat.dtype != np.float64 \
-                                           and allow_int_dtype != True:
-                    target_dtype = np.float64 #(default double, for integer mat)
+                if allow_int_dtype:
+                    if mat.dtype != np.int32 and mat.dtype != np.int64:
+                        target_dtype = np.int64 #(default long)
+                    else:
+                        target_dtype = mat.dtype
                 else:
-                    target_dtype = mat.dtype
+                    if mat.dtype != np.float32 and mat.dtype != np.float64: 
+                        target_dtype = np.float64 #(default double)
+                    else:
+                        target_dtype = mat.dtype
                 if dense_kind == 'colmajor':
                     self.X = FrovedisColmajorMatrix.asCMM(mat, \
                         dtype=target_dtype)
@@ -223,13 +228,22 @@ class FrovedisFeatureData:
             self.__itype = 0  # not meaningful for dense matrix
         else:
             if self.__mat_movable:
-                mat = mat.tocsr()
-                if mat.dtype != np.float32 and mat.dtype != np.float64 \
-                                           and allow_int_dtype != True:
-                    target_dtype = np.float64 #(default double, for integer mat)
+                if dtype is None:
+                    mat = csr_matrix(mat) #ok for dense and sparse matrices
                 else:
-                    target_dtype = mat.dtype
-                self.X = FrovedisCRSMatrix.asCRS(mat, dtype=target_dtype)
+                    mat = csr_matrix(mat, dtype=dtype)
+                if allow_int_dtype:
+                    if mat.dtype != np.int32 and mat.dtype != np.int64:
+                        target_dtype = np.int64 #(default long)
+                    else:
+                        target_dtype = mat.dtype
+                else:
+                    if mat.dtype != np.float32 and mat.dtype != np.float64: 
+                        target_dtype = np.float64 #(default double)
+                    else:
+                        target_dtype = mat.dtype
+                self.X = FrovedisCRSMatrix.asCRS(mat, dtype=target_dtype, \
+                                                 itype=itype)
             else:
                 self.X = mat # already frovedis crs matrix
             self.__dtype = self.X.get_dtype()
@@ -242,6 +256,10 @@ class FrovedisFeatureData:
                                        and allow_int_dtype != True:
             raise TypeError(
                 "Expected training data either of float or double type!")
+        elif self.__dtype != DTYPE.INT and self.__dtype != DTYPE.LONG \
+                                       and allow_int_dtype == True:
+            raise TypeError(
+                "Expected training data either of int or long type!")
         if not self.__isDense and (
                 self.__itype != DTYPE.INT and self.__itype != DTYPE.LONG):
             raise TypeError(
