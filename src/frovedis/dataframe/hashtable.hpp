@@ -234,6 +234,8 @@ unique_hashtable<K,V>::unique_hashtable(const std::vector<K>& k,
   int* is_filledp = &is_filled[0];
   size_t hash[UNIQUE_HASH_VLEN];
 #pragma _NEC vreg(hash)
+  size_t hash_remain[UNIQUE_HASH_VLEN];
+#pragma _NEC vreg(hash_remain)
 
   size_t block_size = size / UNIQUE_HASH_VLEN;
   size_t remain_size = size % UNIQUE_HASH_VLEN;
@@ -241,9 +243,28 @@ unique_hashtable<K,V>::unique_hashtable(const std::vector<K>& k,
     size_t offset = b * UNIQUE_HASH_VLEN;
     auto keyoff = keyp + offset;
     auto valoff = valp + offset;
+    /*
     for(size_t i = 0; i < UNIQUE_HASH_VLEN; i++) {
       hash[i] = myhash(keyoff[i], table_size);
-    }    
+    } 
+    */
+    if(sizeof(K) == 4) { // workaround of bug? of compiler
+      const uint32_t* keyoff_hash = reinterpret_cast<const uint32_t*>(keyoff);
+#pragma cdir nodep
+#pragma _NEC ivdep
+      for(size_t i = 0; i < UNIQUE_HASH_VLEN; i++) {
+        hash[i] = myhash(keyoff_hash[i], table_size);
+      } 
+    } else if(sizeof(K) == 8) {
+      const uint64_t* keyoff_hash = reinterpret_cast<const uint64_t*>(keyoff);
+#pragma cdir nodep
+#pragma _NEC ivdep
+      for(size_t i = 0; i < UNIQUE_HASH_VLEN; i++) {
+        hash[i] = myhash(keyoff_hash[i], table_size);
+      } 
+    } else {
+      throw std::runtime_error("unique_hashtable only supports key whose size is 4 or 8");
+    }
 #pragma cdir nodep
 #pragma _NEC ivdep
     for(size_t i = 0; i < UNIQUE_HASH_VLEN; i++) {
@@ -265,22 +286,42 @@ unique_hashtable<K,V>::unique_hashtable(const std::vector<K>& k,
   size_t offset = block_size * UNIQUE_HASH_VLEN;
   auto keyoff = keyp + offset;
   auto valoff = valp + offset;
+/*
 #pragma cdir nodep
 #pragma _NEC ivdep
   for(size_t i = 0; i < remain_size; i++) {
-    hash[i] = myhash(keyoff[i], table_size);
+    hash_remain[i] = myhash(keyoff[i], table_size);
   }    
+*/
+  if(sizeof(K) == 4) {
+    const uint32_t* keyoff_hash = reinterpret_cast<const uint32_t*>(keyoff);
+#pragma cdir nodep
+#pragma _NEC ivdep
+    for(size_t i = 0; i < remain_size; i++) {
+      hash_remain[i] = myhash(keyoff_hash[i], table_size);
+    } 
+  } else if(sizeof(K) == 8) {
+    const uint64_t* keyoff_hash = reinterpret_cast<const uint64_t*>(keyoff);
+#pragma cdir nodep
+#pragma _NEC ivdep
+    for(size_t i = 0; i < remain_size; i++) {
+      hash_remain[i] = myhash(keyoff_hash[i], table_size);
+    } 
+  } else {
+    throw std::runtime_error("unique_hashtable only supports key whose size is 4 or 8");
+  }
+
   for(size_t i = 0; i < remain_size; i++) {
-    if(is_filledp[hash[i]] == false) {
-      table_keyp[hash[i]] = keyoff[i];
-      is_filledp[hash[i]] = true;
+    if(is_filledp[hash_remain[i]] == false) {
+      table_keyp[hash_remain[i]] = keyoff[i];
+      is_filledp[hash_remain[i]] = true;
     }
   }
 #pragma cdir nodep
 #pragma _NEC ivdep
   for(size_t i = 0; i < remain_size; i++) {
-    if(table_keyp[hash[i]] == keyoff[i]) {
-      table_valp[hash[i]] = valoff[i];
+    if(table_keyp[hash_remain[i]] == keyoff[i]) {
+      table_valp[hash_remain[i]] = valoff[i];
     } else {
       missedp[missed_idx++] = i + offset;      
     }
@@ -366,6 +407,8 @@ unique_hashtable<K,V>::unique_hashtable(const std::vector<K>& k,
   int* is_filledp = &is_filled[0];
   size_t hash[UNIQUE_HASH_VLEN];
 #pragma _NEC vreg(hash)
+  size_t hash_remain[UNIQUE_HASH_VLEN];
+#pragma _NEC vreg(hash_remain)
   is_unique_ok = true;
   std::vector<size_t> unique_checker(table_size,
                                      std::numeric_limits<size_t>::max());
@@ -377,9 +420,28 @@ unique_hashtable<K,V>::unique_hashtable(const std::vector<K>& k,
     size_t offset = b * UNIQUE_HASH_VLEN;
     auto keyoff = keyp + offset;
     auto valoff = valp + offset;
+/*
     for(size_t i = 0; i < UNIQUE_HASH_VLEN; i++) {
       hash[i] = myhash(keyoff[i], table_size);
     }    
+*/
+    if(sizeof(K) == 4) { // workaround of bug? of compiler
+      const uint32_t* keyoff_hash = reinterpret_cast<const uint32_t*>(keyoff);
+#pragma cdir nodep
+#pragma _NEC ivdep
+      for(size_t i = 0; i < UNIQUE_HASH_VLEN; i++) {
+        hash[i] = myhash(keyoff_hash[i], table_size);
+      } 
+    } else if(sizeof(K) == 8) {
+      const uint64_t* keyoff_hash = reinterpret_cast<const uint64_t*>(keyoff);
+#pragma cdir nodep
+#pragma _NEC ivdep
+      for(size_t i = 0; i < UNIQUE_HASH_VLEN; i++) {
+        hash[i] = myhash(keyoff_hash[i], table_size);
+      } 
+    } else {
+      throw std::runtime_error("unique_hashtable only supports key whose size is 4 or 8");
+    }
 #pragma cdir nodep
 #pragma _NEC ivdep
     for(size_t i = 0; i < UNIQUE_HASH_VLEN; i++) {
@@ -407,26 +469,45 @@ unique_hashtable<K,V>::unique_hashtable(const std::vector<K>& k,
   size_t offset = block_size * UNIQUE_HASH_VLEN;
   auto keyoff = keyp + offset;
   auto valoff = valp + offset;
+/*
   for(size_t i = 0; i < remain_size; i++) {
-    hash[i] = myhash(keyoff[i], table_size);
+    hash_remain[i] = myhash(keyoff[i], table_size);
   }    
+*/
+  if(sizeof(K) == 4) {
+    const uint32_t* keyoff_hash = reinterpret_cast<const uint32_t*>(keyoff);
+#pragma cdir nodep
+#pragma _NEC ivdep
+    for(size_t i = 0; i < remain_size; i++) {
+      hash_remain[i] = myhash(keyoff_hash[i], table_size);
+    } 
+  } else if(sizeof(K) == 8) {
+    const uint64_t* keyoff_hash = reinterpret_cast<const uint64_t*>(keyoff);
+#pragma cdir nodep
+#pragma _NEC ivdep
+    for(size_t i = 0; i < remain_size; i++) {
+      hash_remain[i] = myhash(keyoff_hash[i], table_size);
+    } 
+  } else {
+    throw std::runtime_error("unique_hashtable only supports key whose size is 4 or 8");
+  }
 #pragma cdir nodep
 #pragma _NEC ivdep
   for(size_t i = 0; i < remain_size; i++) {
-    if(is_filledp[hash[i]] == false) {
-      table_keyp[hash[i]] = keyoff[i];
-      is_filledp[hash[i]] = true;
-      unique_checkerp[hash[i]] = i + offset;
-    } else if(table_keyp[hash[i]] == keyoff[i]) {
+    if(is_filledp[hash_remain[i]] == false) {
+      table_keyp[hash_remain[i]] = keyoff[i];
+      is_filledp[hash_remain[i]] = true;
+      unique_checkerp[hash_remain[i]] = i + offset;
+    } else if(table_keyp[hash_remain[i]] == keyoff[i]) {
       is_unique_ok = false;
     }
   }
 #pragma cdir nodep
 #pragma _NEC ivdep
   for(size_t i = 0; i < remain_size; i++) {
-    if(unique_checkerp[hash[i]] == i + offset) {
-      table_valp[hash[i]] = valoff[i];
-    } else if(table_keyp[hash[i]] != keyoff[i]) {
+    if(unique_checkerp[hash_remain[i]] == i + offset) {
+      table_valp[hash_remain[i]] = valoff[i];
+    } else if(table_keyp[hash_remain[i]] != keyoff[i]) {
       missedp[missed_idx++] = i + offset;
     } else {
       is_unique_ok = false;
@@ -504,15 +585,36 @@ unique_hashtable<K,V>::unique_hashtable(const std::vector<K>& k) {
   int* is_filledp = &is_filled[0];
   size_t hash[UNIQUE_HASH_VLEN];
 #pragma _NEC vreg(hash)
+  size_t hash_remain[UNIQUE_HASH_VLEN];
+#pragma _NEC vreg(hash_remain)
 
   size_t block_size = size / UNIQUE_HASH_VLEN;
   size_t remain_size = size % UNIQUE_HASH_VLEN;
   for(size_t b = 0; b < block_size; b++) {
     size_t offset = b * UNIQUE_HASH_VLEN;
     auto keyoff = keyp + offset;
+/*
     for(size_t i = 0; i < UNIQUE_HASH_VLEN; i++) {
       hash[i] = myhash(keyoff[i], table_size);
     }    
+*/
+    if(sizeof(K) == 4) { // workaround of bug? of compiler
+      const uint32_t* keyoff_hash = reinterpret_cast<const uint32_t*>(keyoff);
+#pragma cdir nodep
+#pragma _NEC ivdep
+      for(size_t i = 0; i < UNIQUE_HASH_VLEN; i++) {
+        hash[i] = myhash(keyoff_hash[i], table_size);
+      } 
+    } else if(sizeof(K) == 8) {
+      const uint64_t* keyoff_hash = reinterpret_cast<const uint64_t*>(keyoff);
+#pragma cdir nodep
+#pragma _NEC ivdep
+      for(size_t i = 0; i < UNIQUE_HASH_VLEN; i++) {
+        hash[i] = myhash(keyoff_hash[i], table_size);
+      } 
+    } else {
+      throw std::runtime_error("unique_hashtable only supports key whose size is 4 or 8");
+    }
 #pragma cdir nodep
 #pragma _NEC ivdep
     for(size_t i = 0; i < UNIQUE_HASH_VLEN; i++) {
@@ -533,21 +635,40 @@ unique_hashtable<K,V>::unique_hashtable(const std::vector<K>& k) {
   }
   size_t offset = block_size * UNIQUE_HASH_VLEN;
   auto keyoff = keyp + offset;
+/*
 #pragma cdir nodep
 #pragma _NEC ivdep
   for(size_t i = 0; i < remain_size; i++) {
-    hash[i] = myhash(keyoff[i], table_size);
+    hash_remain[i] = myhash(keyoff[i], table_size);
   }    
+*/
+  if(sizeof(K) == 4) {
+    const uint32_t* keyoff_hash = reinterpret_cast<const uint32_t*>(keyoff);
+#pragma cdir nodep
+#pragma _NEC ivdep
+    for(size_t i = 0; i < remain_size; i++) {
+      hash_remain[i] = myhash(keyoff_hash[i], table_size);
+    } 
+  } else if(sizeof(K) == 8) {
+    const uint64_t* keyoff_hash = reinterpret_cast<const uint64_t*>(keyoff);
+#pragma cdir nodep
+#pragma _NEC ivdep
+    for(size_t i = 0; i < remain_size; i++) {
+      hash_remain[i] = myhash(keyoff_hash[i], table_size);
+    } 
+  } else {
+    throw std::runtime_error("unique_hashtable only supports key whose size is 4 or 8");
+  }
   for(size_t i = 0; i < remain_size; i++) {
-    if(is_filledp[hash[i]] == false) {
-      table_keyp[hash[i]] = keyoff[i];
-      is_filledp[hash[i]] = true;
+    if(is_filledp[hash_remain[i]] == false) {
+      table_keyp[hash_remain[i]] = keyoff[i];
+      is_filledp[hash_remain[i]] = true;
     }
   }
 #pragma cdir nodep
 #pragma _NEC ivdep
   for(size_t i = 0; i < remain_size; i++) {
-    if(table_keyp[hash[i]] != keyoff[i]) {
+    if(table_keyp[hash_remain[i]] != keyoff[i]) {
       missedp[missed_idx++] = i + offset;      
     }
   }
@@ -580,6 +701,7 @@ std::vector<V> unique_hashtable<K,V>::lookup(const std::vector<K>& k) {
   std::vector<size_t> missed(size);
   size_t* missedp = &missed[0];
   size_t missed_idx = 0;
+/*
 #pragma cdir nodep
 #pragma _NEC ivdep
   for(size_t i = 0; i < size; i++) {
@@ -589,6 +711,34 @@ std::vector<V> unique_hashtable<K,V>::lookup(const std::vector<K>& k) {
     } else {
       missedp[missed_idx++] = i;      
     }
+  }
+*/
+  if(sizeof(K) == 4) {
+    const uint32_t* keyp_hash = reinterpret_cast<const uint32_t*>(keyp);
+#pragma cdir nodep
+#pragma _NEC ivdep
+    for(size_t i = 0; i < size; i++) {
+      size_t hash = myhash(keyp_hash[i], table_size);
+      if(table_keyp[hash] == keyp[i]) {
+        valp[i] = table_valp[hash];
+      } else {
+        missedp[missed_idx++] = i;      
+      }
+    }
+  } else if(sizeof(K) == 8) {
+    const uint64_t* keyp_hash = reinterpret_cast<const uint64_t*>(keyp);
+#pragma cdir nodep
+#pragma _NEC ivdep
+    for(size_t i = 0; i < size; i++) {
+      size_t hash = myhash(keyp_hash[i], table_size);
+      if(table_keyp[hash] == keyp[i]) {
+        valp[i] = table_valp[hash];
+      } else {
+        missedp[missed_idx++] = i;      
+      }
+    }
+  } else {
+    throw std::runtime_error("unique_hashtable only supports key whose size is 4 or 8");
   }
   if(missed_idx > 0) {
     std::vector<K> missed_key(missed_idx);
@@ -630,6 +780,7 @@ std::vector<V> unique_hashtable<K,V>::lookup(const std::vector<K>& k,
   std::vector<size_t> misstmp1(size);
   size_t* misstmp1p = &misstmp1[0];
   size_t misstmp1_idx = 0;
+/*
 #pragma cdir nodep
 #pragma _NEC ivdep
   for(size_t i = 0; i < size; i++) {
@@ -640,6 +791,36 @@ std::vector<V> unique_hashtable<K,V>::lookup(const std::vector<K>& k,
       } else missedp[missed_idx++] = i; // check conflict
       // need to use different array for vectorization
     } else misstmp0p[misstmp0_idx++] = i; // clearly miss
+  }
+*/
+  if(sizeof(K) == 4) {
+    const uint32_t* keyp_hash = reinterpret_cast<const uint32_t*>(keyp);
+#pragma cdir nodep
+#pragma _NEC ivdep
+    for(size_t i = 0; i < size; i++) {
+      size_t hash = myhash(keyp_hash[i], table_size);
+      if(is_filledp[hash]) {
+        if(table_keyp[hash] == keyp[i]) {
+          valp[i] = table_valp[hash];
+        } else missedp[missed_idx++] = i; // check conflict
+        // need to use different array for vectorization
+      } else misstmp0p[misstmp0_idx++] = i; // clearly miss
+    }
+  } else if(sizeof(K) == 8) {
+    const uint64_t* keyp_hash = reinterpret_cast<const uint64_t*>(keyp);
+#pragma cdir nodep
+#pragma _NEC ivdep
+    for(size_t i = 0; i < size; i++) {
+      size_t hash = myhash(keyp_hash[i], table_size);
+      if(is_filledp[hash]) {
+        if(table_keyp[hash] == keyp[i]) {
+          valp[i] = table_valp[hash];
+        } else missedp[missed_idx++] = i; // check conflict
+        // need to use different array for vectorization
+      } else misstmp0p[misstmp0_idx++] = i; // clearly miss
+    }
+  } else {
+    throw std::runtime_error("unique_hashtable only supports key whose size is 4 or 8");
   }
   if(missed_idx > 0) {
     if(conflict_key.size() > 0) {
@@ -690,6 +871,7 @@ unique_hashtable<K,V>::check_existence(const std::vector<K>& k) {
   size_t* missedp = &missed[0];
   size_t missed_idx = 0;
   int* is_filledp = &is_filled[0];
+/*
 #pragma cdir nodep
 #pragma _NEC ivdep
   for(size_t i = 0; i < size; i++) {
@@ -702,7 +884,39 @@ unique_hashtable<K,V>::check_existence(const std::vector<K>& k) {
       }
     }
   }
-  
+*/
+  if(sizeof(K) == 4) {
+    const uint32_t* keyp_hash = reinterpret_cast<const uint32_t*>(keyp);
+#pragma cdir nodep
+#pragma _NEC ivdep
+    for(size_t i = 0; i < size; i++) {
+      size_t hash = myhash(keyp_hash[i], table_size);
+      if(is_filledp[hash]) {
+        if(table_keyp[hash] == keyp[i]) {
+          retp[i] = 1;
+        } else {
+          missedp[missed_idx++] = i;      
+        }
+      }
+    }
+  } else if(sizeof(K) == 8) {
+    const uint64_t* keyp_hash = reinterpret_cast<const uint64_t*>(keyp);
+#pragma cdir nodep
+#pragma _NEC ivdep
+    for(size_t i = 0; i < size; i++) {
+      size_t hash = myhash(keyp_hash[i], table_size);
+      if(is_filledp[hash]) {
+        if(table_keyp[hash] == keyp[i]) {
+          retp[i] = 1;
+        } else {
+          missedp[missed_idx++] = i;      
+        }
+      }
+    }
+  } else {
+    throw std::runtime_error("unique_hashtable only supports key whose size is 4 or 8");
+  }
+
   if(missed_idx > 0) {
     if(conflict_key.size() > 0) {
       std::vector<K> missed_key(missed_idx);
