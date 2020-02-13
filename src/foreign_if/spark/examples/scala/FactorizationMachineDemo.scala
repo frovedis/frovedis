@@ -4,10 +4,11 @@ import com.nec.frovedis.Jexrpc.FrovedisServer
 import com.nec.frovedis.mllib.fm.{FactorizationMachine,FactorizationMachineModel}
 import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.mllib.util.MLUtils
+import org.apache.log4j.{Level, Logger}
 
 object FactorizationMachineDemo {
-
   def main(args: Array[String]): Unit = {
+    Logger.getLogger("org").setLevel(Level.ERROR)
 
     // -------- configurations --------
     val conf = new SparkConf().setAppName("FactorizationMachineDemo").setMaster("local[2]")

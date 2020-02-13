@@ -5,9 +5,11 @@ import com.nec.frovedis.matrix._
 import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.mllib.linalg.{Vector, Vectors}
+import org.apache.log4j.{Level, Logger}
 
 object PblasScalapackDemo {
   def main(args: Array[String]): Unit = {
+    Logger.getLogger("org").setLevel(Level.ERROR)
 
     // -------- configurations --------
     val conf = new SparkConf().setAppName("PblasScalapackDemo").setMaster("local[2]")

@@ -3,15 +3,17 @@ package test.scala;
 import org.apache.spark.SparkConf
 import org.apache.spark.SparkContext
 import com.nec.frovedis.Jexrpc.FrovedisServer
+import org.apache.log4j.{Level, Logger}
 
 object FrovedisPageRank {
   def main(args: Array[String]) {
+    Logger.getLogger("org").setLevel(Level.ERROR)
     val conf = new SparkConf().setAppName("PageRank").setMaster("local[1]")
     val sc = new SparkContext(conf)
-    val f1 = "input/urldata.dat"
 
     // Spark Demo
     import org.apache.spark.graphx.GraphLoader
+    val f1 = "input/urldata.dat"
     val sp_graph = GraphLoader.edgeListFile(sc, f1)
     val sp_res = sp_graph.pageRank(0.0001, 0.05) 
     println("...............Spark Page Rank................")

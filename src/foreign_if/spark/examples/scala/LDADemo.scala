@@ -6,9 +6,12 @@ import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.mllib.linalg.Vectors
 import com.nec.frovedis.matrix.FrovedisRowmajorMatrix
 import com.nec.frovedis.exrpc.FrovedisSparseData
+import org.apache.log4j.{Level, Logger}
 
 object LDADemo {
   def main(args: Array[String]): Unit = {
+    Logger.getLogger("org").setLevel(Level.ERROR)
+
     // -------- configurations --------
     val conf = new SparkConf().setAppName("SPAExample").setMaster("local[2]")
     val sc = new SparkContext(conf)

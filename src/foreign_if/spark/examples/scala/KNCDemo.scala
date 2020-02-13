@@ -11,9 +11,12 @@ import com.nec.frovedis.mllib.neighbors.KNeighborsClassifier
 import org.apache.spark.rdd.RDD
 import com.nec.frovedis.exrpc.FrovedisLabeledPoint
 import com.nec.frovedis.matrix.DoubleDvector
+import org.apache.log4j.{Level, Logger}
 
 object KNCDemo {
   def main(args: Array[String]): Unit = {
+    Logger.getLogger("org").setLevel(Level.ERROR)
+
     // -------- configurations --------
     val conf = new SparkConf().setAppName("SPAExample").setMaster("local[2]")
     val sc = new SparkContext(conf)
@@ -38,68 +41,61 @@ object KNCDemo {
 
     //  -------- data loading from sample file at Spark side--------
     val s_data = sc.textFile("./input/knn_data.txt")
-                    .map(s => Vectors.dense(s.split(' ').map(_.toDouble)))
+                   .map(s => Vectors.dense(s.split(' ').map(_.toDouble)))
 
     val fdata = new FrovedisRowmajorMatrix(s_data)
     
-    val algo = new KNeighborsClassifier().setNNeighbors(3)
-                                         .setAlgorithm("brute")
-                                         .setMetric("euclidean")
+    val knc = new KNeighborsClassifier().setNNeighbors(3)
+                                        .setAlgorithm("brute")
+                                        .setMetric("euclidean")
 
-    println("\n\n For frovedis data \n\n")
-    val m1 = algo.run(f_lp)
-    
-    var (dist, ind) = m1.kneighbors(fdata, 3, true);
+    println("Using frovedis data")
+    knc.run(f_lp)
+    var (dist, ind) = knc.kneighbors(fdata, 3, true);
     println("distance matrix")
     dist.debug_print()
     println("indices matrix")
     ind.debug_print()
     
-    var graph = m1.kneighbors_graph(fdata, 3, "connectivity")
+    var graph = knc.kneighbors_graph(fdata, 3, "connectivity")
     println("knn graph:")
     graph.debug_print()
 
-    var pred: Array[Double] = m1.predict(fdata, true)
-    println("predict output: ")
-    for(e<-pred) print(e+" ")
+    var pred: Array[Double] = knc.predict(s_data)
+    println("predicted output: ")
+    for(e <- pred) print(e + " ")
 
-    var pred_proba = m1.predict_proba(fdata)
-    println("\n predict proba output")
+    var pred_proba = knc.predict_proba(fdata)
+    println("predict proba output")
     pred_proba.debug_print()
     
     var d_lbl = sc.parallelize(lbl) // distributed labels
-    var score = m1.score(fdata, DoubleDvector.get(d_lbl))
-    println("\n score ok = ")
-    println(score)
+    var score = knc.score(fdata, DoubleDvector.get(d_lbl))
+    println("score: " + score)
 
-    println("\n\n For spark data \n\n")
-    val m2 = algo.run(d_lp)
-
-    var (dist2, ind2) = m2.kneighbors(s_data);
+    println("Using spark data")
+    knc.run(d_lp)
+    var (dist2, ind2) = knc.kneighbors(s_data)
     
     println("Distance Row matrix: ")
-    println(dist2)
     dist2.rows.collect.foreach(println)
     println("Indices Row matrix:")
-    println(ind2)
     ind2.rows.collect.foreach(println)
 
-    var pred2: Array[Double] = m2.predict(s_data, true)
-    println("predict output: ")
-    for(e<-pred) print(e+" ")
+    var pred2: Array[Double] = knc.predict(s_data)
+    println("predicted output: ")
+    for(e <- pred2) print(e + " ")
 
-    var pred_proba2 = m2.predict_proba(s_data)
-    println("\n predict proba output: ")
-    println(pred_proba2)
+    var pred_proba2 = knc.predict_proba(s_data)
+    println("predict proba output: ")
     pred_proba2.rows.collect.foreach(println)
 
-    var score2 = m2.score(d_lp)
-    println("\n score ok = ")
-    println(score)
+    var score2 = knc.score(d_lp)
+    println("score: " + score)
 
     fdata.release()
-    m1.release()
-    m2.release()
+    knc.release()
+
     FrovedisServer.shut_down()
     sc.stop()
   }

@@ -5,9 +5,12 @@ import com.nec.frovedis.sql.FrovedisDataFrame
 import com.nec.frovedis.sql.implicits_._
 import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.sql.SparkSession
+import org.apache.log4j.{Level, Logger}
 
 object FrovedisDataframeDemo {
   def main(args: Array[String]): Unit = {
+    Logger.getLogger("org").setLevel(Level.ERROR)
+
     // -------- configurations --------
     val spark = SparkSession.builder()
                             .appName("FrovedisDataframeDemo")

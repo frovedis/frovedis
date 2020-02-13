@@ -5,10 +5,11 @@ import com.nec.frovedis.mllib.fpm.{FPGrowth,FPGrowthModel}
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.rdd.RDD
+import org.apache.log4j.{Level, Logger}
 
 object FPGrowthDemo {
-
   def main(args: Array[String]): Unit = {
+    Logger.getLogger("org").setLevel(Level.ERROR)
     
     // -------- configurations --------
     val conf = new SparkConf().setAppName("FPGrowthDemo").setMaster("local[2]")

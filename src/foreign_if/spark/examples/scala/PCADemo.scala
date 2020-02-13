@@ -7,9 +7,11 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.mllib.linalg.{Vector, Vectors}
 import org.apache.spark.mllib.linalg.Matrix
 import org.apache.spark.mllib.linalg.distributed.RowMatrix
+import org.apache.log4j.{Level, Logger}
 
 object PCADemo {
   def main(args: Array[String]): Unit = {
+    Logger.getLogger("org").setLevel(Level.ERROR)
 
     // -------- configurations --------
     val conf = new SparkConf().setAppName("PCADemo").setMaster("local[2]")

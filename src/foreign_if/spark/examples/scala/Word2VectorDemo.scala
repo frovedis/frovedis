@@ -3,9 +3,11 @@ package test.scala;
 import com.nec.frovedis.Jexrpc.FrovedisServer
 import com.nec.frovedis.mllib.feature.Word2Vec
 import org.apache.spark.{SparkConf, SparkContext}
+import org.apache.log4j.{Level, Logger}
 
 object Word2VecDemo {
   def main(args: Array[String]): Unit = {
+    Logger.getLogger("org").setLevel(Level.ERROR)
 
     // -------- configurations --------
     val conf = new SparkConf().setAppName("Word2VecExample").setMaster("local[2]")

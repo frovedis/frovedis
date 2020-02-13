@@ -5,9 +5,11 @@ import com.nec.frovedis.mllib.recommendation.ALS
 import com.nec.frovedis.mllib.recommendation.MatrixFactorizationModel
 import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.mllib.recommendation.Rating
+import org.apache.log4j.{Level, Logger}
 
 object ALSDemo {
   def main(args: Array[String]): Unit = {
+    Logger.getLogger("org").setLevel(Level.ERROR)
 
     // -------- configurations --------
     val conf = new SparkConf().setAppName("ALSExample").setMaster("local[2]")

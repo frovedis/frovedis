@@ -8,9 +8,11 @@ import org.apache.spark.mllib.linalg.{Vector, Vectors}
 import org.apache.spark.mllib.linalg.SingularValueDecomposition
 import org.apache.spark.mllib.linalg.Matrix
 import org.apache.spark.mllib.linalg.distributed.RowMatrix
+import org.apache.log4j.{Level, Logger}
 
 object SVDDemo {
   def main(args: Array[String]): Unit = {
+    Logger.getLogger("org").setLevel(Level.ERROR)
 
     // -------- configurations --------
     val conf = new SparkConf().setAppName("SVDDemo").setMaster("local[2]")

@@ -5,9 +5,11 @@ import com.nec.frovedis.mllib.clustering.KMeans
 import com.nec.frovedis.mllib.clustering.KMeansModel
 import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.mllib.linalg.Vectors
+import org.apache.log4j.{Level, Logger}
 
 object KMeansDemo {
   def main(args: Array[String]): Unit = {
+    Logger.getLogger("org").setLevel(Level.ERROR)
 
     // -------- configurations --------
     val conf = new SparkConf().setAppName("KmeansExample").setMaster("local[2]")
