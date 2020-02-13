@@ -991,7 +991,7 @@ extern "C" {
     }
   }
 
-  //knc - knn classifier
+  // --- (18) K-Nearest Neighbor Classifier (KNC) ---
   void knc_fit(const char* host, int port, long xptr, long yptr, int k,
                const char* algorithm, const char* metric,
                float chunk_size, int vb, int mid, 
@@ -1027,7 +1027,7 @@ extern "C" {
     }
   }
 
-  // knr - knn regressor
+  // --- (19) K-Nearest Neighbor Regressor (KNR) ---
   void knr_fit(const char* host, int port, long xptr, long yptr, int k,
                const char* algorithm, const char* metric,
                float chunk_size, int vb, int mid, 
@@ -1063,7 +1063,7 @@ extern "C" {
     }
   }
 
-  // --- (18) Latent Dirichlet Allocation (LDA) ---
+  // --- (20) Latent Dirichlet Allocation (LDA) ---
   void compute_lda_train(const char* host, int port,
                          long dptr, double alpha,
                          double beta, int num_topics,
