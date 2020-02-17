@@ -330,7 +330,19 @@ DVID<std::vector<float>> make_dvid_broadcast(const std::vector<float>& src);
 template <>
 DVID<std::vector<int>> make_dvid_broadcast(const std::vector<int>& src);
 template <>
-DVID<std::vector<size_t>> make_dvid_broadcast(const std::vector<size_t>& src);
+DVID<std::vector<long>> make_dvid_broadcast(const std::vector<long>& src);
+template <>
+DVID<std::vector<long long>>
+make_dvid_broadcast(const std::vector<long long>& src);
+template <>
+DVID<std::vector<unsigned int>>
+make_dvid_broadcast(const std::vector<unsigned int>& src);
+template <>
+DVID<std::vector<unsigned long>>
+make_dvid_broadcast(const std::vector<unsigned long>& src);
+template <>
+DVID<std::vector<unsigned long long>>
+make_dvid_broadcast(const std::vector<unsigned long long>& src);
 
 template <class T, class F>
 void mapv_dvars(dvid_t& d1, F& f) {
@@ -898,28 +910,107 @@ struct vector_sum_helper<int> {
 };
 
 template <>
-struct vector_sum_helper<size_t> {
+struct vector_sum_helper<long> {
   vector_sum_helper(intptr_t addr) : addr(addr) {}
   vector_sum_helper() {}
-  void operator()(std::vector<size_t>& vec) {
+  void operator()(std::vector<long>& vec) {
     if(get_selfid() == 0) {
-      std::vector<size_t>& ret = *reinterpret_cast<std::vector<size_t>*>(addr);
+      std::vector<long>& ret = *reinterpret_cast<std::vector<long>*>(addr);
       ret.resize(vec.size());
-      if(sizeof(size_t) == 8)
-	MPI_Reduce(&vec[0], &ret[0], vec.size(), MPI_UNSIGNED_LONG_LONG,
-		   MPI_SUM, 0, frovedis_comm_rpc);
-      else
-	MPI_Reduce(&vec[0], &ret[0], vec.size(), MPI_UNSIGNED,
-		   MPI_SUM, 0, frovedis_comm_rpc);
-	
+      MPI_Reduce(&vec[0], &ret[0], vec.size(), MPI_LONG, MPI_SUM, 0,
+                 frovedis_comm_rpc);
     } else {
-      std::vector<size_t> ret(vec.size());
-      if(sizeof(size_t) == 8)
-	MPI_Reduce(&vec[0], &ret[0], vec.size(), MPI_UNSIGNED_LONG_LONG,
-		   MPI_SUM, 0, frovedis_comm_rpc);
-      else
-	MPI_Reduce(&vec[0], &ret[0], vec.size(), MPI_UNSIGNED,
-		   MPI_SUM, 0, frovedis_comm_rpc);
+      std::vector<long> ret(vec.size());
+      MPI_Reduce(&vec[0], &ret[0], vec.size(), MPI_LONG, MPI_SUM, 0,
+                 frovedis_comm_rpc);
+    }
+  }
+  intptr_t addr;
+
+  SERIALIZE(addr)
+};
+
+template <>
+struct vector_sum_helper<long long> {
+  vector_sum_helper(intptr_t addr) : addr(addr) {}
+  vector_sum_helper() {}
+  void operator()(std::vector<long long>& vec) {
+    if(get_selfid() == 0) {
+      std::vector<long long>& ret =
+        *reinterpret_cast<std::vector<long long>*>(addr);
+      ret.resize(vec.size());
+      MPI_Reduce(&vec[0], &ret[0], vec.size(), MPI_LONG_LONG, MPI_SUM, 0,
+                 frovedis_comm_rpc);
+    } else {
+      std::vector<long long> ret(vec.size());
+      MPI_Reduce(&vec[0], &ret[0], vec.size(), MPI_LONG_LONG, MPI_SUM, 0,
+                 frovedis_comm_rpc);
+    }
+  }
+  intptr_t addr;
+
+  SERIALIZE(addr)
+};
+
+template <>
+struct vector_sum_helper<unsigned int> {
+  vector_sum_helper(intptr_t addr) : addr(addr) {}
+  vector_sum_helper() {}
+  void operator()(std::vector<unsigned int>& vec) {
+    if(get_selfid() == 0) {
+      std::vector<unsigned int>& ret =
+        *reinterpret_cast<std::vector<unsigned int>*>(addr);
+      ret.resize(vec.size());
+      MPI_Reduce(&vec[0], &ret[0], vec.size(), MPI_UNSIGNED, MPI_SUM, 0,
+                 frovedis_comm_rpc);
+    } else {
+      std::vector<unsigned int> ret(vec.size());
+      MPI_Reduce(&vec[0], &ret[0], vec.size(), MPI_UNSIGNED, MPI_SUM, 0,
+                 frovedis_comm_rpc);
+    }
+  }
+  intptr_t addr;
+
+  SERIALIZE(addr)
+};
+
+template <>
+struct vector_sum_helper<unsigned long> {
+  vector_sum_helper(intptr_t addr) : addr(addr) {}
+  vector_sum_helper() {}
+  void operator()(std::vector<unsigned long>& vec) {
+    if(get_selfid() == 0) {
+      std::vector<unsigned long>& ret =
+        *reinterpret_cast<std::vector<unsigned long>*>(addr);
+      ret.resize(vec.size());
+      MPI_Reduce(&vec[0], &ret[0], vec.size(), MPI_UNSIGNED_LONG, MPI_SUM, 0,
+                 frovedis_comm_rpc);
+    } else {
+      std::vector<unsigned long> ret(vec.size());
+      MPI_Reduce(&vec[0], &ret[0], vec.size(), MPI_UNSIGNED_LONG, MPI_SUM, 0,
+                 frovedis_comm_rpc);
+    }
+  }
+  intptr_t addr;
+
+  SERIALIZE(addr)
+};
+
+template <>
+struct vector_sum_helper<unsigned long long> {
+  vector_sum_helper(intptr_t addr) : addr(addr) {}
+  vector_sum_helper() {}
+  void operator()(std::vector<unsigned long long>& vec) {
+    if(get_selfid() == 0) {
+      std::vector<unsigned long long>& ret =
+        *reinterpret_cast<std::vector<unsigned long long>*>(addr);
+      ret.resize(vec.size());
+      MPI_Reduce(&vec[0], &ret[0], vec.size(), MPI_UNSIGNED_LONG_LONG,
+                 MPI_SUM, 0, frovedis_comm_rpc);
+    } else {
+      std::vector<unsigned long long> ret(vec.size());
+      MPI_Reduce(&vec[0], &ret[0], vec.size(), MPI_UNSIGNED_LONG_LONG,
+                 MPI_SUM, 0, frovedis_comm_rpc);
     }
   }
   intptr_t addr;
@@ -1040,8 +1131,19 @@ template <>
 std::vector<std::vector<float>> gather(DVID<std::vector<float>>& d);
 template <> 
 std::vector<std::vector<int>> gather(DVID<std::vector<int>>& d);
-template <>
-std::vector<std::vector<size_t>> gather(DVID<std::vector<size_t>>& d);
+template <> 
+std::vector<std::vector<long>> gather(DVID<std::vector<long>>& d);
+template <> 
+std::vector<std::vector<long long>> gather(DVID<std::vector<long long>>& d);
+template <> 
+std::vector<std::vector<unsigned int>>
+gather(DVID<std::vector<unsigned int>>& d);
+template <> 
+std::vector<std::vector<unsigned long>>
+gather(DVID<std::vector<unsigned long>>& d);
+template <> 
+std::vector<std::vector<unsigned long long>>
+gather(DVID<std::vector<unsigned long long>>& d);
 
 template <class T>
 void dvid_put_helper(dvid_t& dvid, int& node, intptr_t& valptr) {

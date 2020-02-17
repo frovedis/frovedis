@@ -16,7 +16,7 @@ dvid_t get_new_dvid() {
 std::map<dvid_t,intptr_t> dvid_table;
 
 /*
-  for vector of double/float/int/size_t, serialization is skipped
+  for vector of PoD, serialization is skipped
  */
 template <>
 DVID<std::vector<double>> make_dvid_broadcast(const std::vector<double>& src) {
@@ -55,15 +55,70 @@ DVID<std::vector<int>> make_dvid_broadcast(const std::vector<int>& src) {
 }
 
 template <>
-DVID<std::vector<size_t>> make_dvid_broadcast(const std::vector<size_t>& src) {
-  std::vector<size_t>* newsrc = new std::vector<size_t>();
+DVID<std::vector<long>> make_dvid_broadcast(const std::vector<long>& src) {
+  std::vector<long>* newsrc = new std::vector<long>();
   *newsrc = src;
   auto d = get_new_dvid();
   intptr_t root_buf_ptr = reinterpret_cast<intptr_t>(&(*newsrc)[0]);
-  size_t size = src.size() * sizeof(size_t);
-  bcast_rpc_oneway(dvid_broadcast_helper2<size_t>, d, size, root_buf_ptr);
-  set_data<std::vector<size_t>>(d, newsrc);
-  return DVID<std::vector<size_t>>(d);
+  size_t size = src.size() * sizeof(long);
+  bcast_rpc_oneway(dvid_broadcast_helper2<long>, d, size, root_buf_ptr);
+  set_data<std::vector<long>>(d, newsrc);
+  return DVID<std::vector<long>>(d);
+}
+
+template <>
+DVID<std::vector<long long>>
+make_dvid_broadcast(const std::vector<long long>& src) {
+  std::vector<long long>* newsrc = new std::vector<long long>();
+  *newsrc = src;
+  auto d = get_new_dvid();
+  intptr_t root_buf_ptr = reinterpret_cast<intptr_t>(&(*newsrc)[0]);
+  size_t size = src.size() * sizeof(long long);
+  bcast_rpc_oneway(dvid_broadcast_helper2<long long>, d, size, root_buf_ptr);
+  set_data<std::vector<long long>>(d, newsrc);
+  return DVID<std::vector<long long>>(d);
+}
+
+template <>
+DVID<std::vector<unsigned int>>
+make_dvid_broadcast(const std::vector<unsigned int>& src) {
+  std::vector<unsigned int>* newsrc = new std::vector<unsigned int>();
+  *newsrc = src;
+  auto d = get_new_dvid();
+  intptr_t root_buf_ptr = reinterpret_cast<intptr_t>(&(*newsrc)[0]);
+  size_t size = src.size() * sizeof(unsigned int);
+  bcast_rpc_oneway(dvid_broadcast_helper2<unsigned int>, d, size, root_buf_ptr);
+  set_data<std::vector<unsigned int>>(d, newsrc);
+  return DVID<std::vector<unsigned int>>(d);
+}
+
+template <>
+DVID<std::vector<unsigned long>>
+make_dvid_broadcast(const std::vector<unsigned long>& src) {
+  std::vector<unsigned long>* newsrc = new std::vector<unsigned long>();
+  *newsrc = src;
+  auto d = get_new_dvid();
+  intptr_t root_buf_ptr = reinterpret_cast<intptr_t>(&(*newsrc)[0]);
+  size_t size = src.size() * sizeof(unsigned long);
+  bcast_rpc_oneway(dvid_broadcast_helper2<unsigned long>, d, size,
+                   root_buf_ptr);
+  set_data<std::vector<unsigned long>>(d, newsrc);
+  return DVID<std::vector<unsigned long>>(d);
+}
+
+template <>
+DVID<std::vector<unsigned long long>>
+make_dvid_broadcast(const std::vector<unsigned long long>& src) {
+  std::vector<unsigned long long>* newsrc =
+    new std::vector<unsigned long long>();
+  *newsrc = src;
+  auto d = get_new_dvid();
+  intptr_t root_buf_ptr = reinterpret_cast<intptr_t>(&(*newsrc)[0]);
+  size_t size = src.size() * sizeof(unsigned long long);
+  bcast_rpc_oneway(dvid_broadcast_helper2<unsigned long long>, d, size,
+                   root_buf_ptr);
+  set_data<std::vector<unsigned long long>>(d, newsrc);
+  return DVID<std::vector<unsigned long long>>(d);
 }
 
 template <> std::vector<std::vector<double>> 
@@ -84,11 +139,35 @@ gather(DVID<std::vector<int>>& d) {
   d.mapv(dvid_gather_helper2<int>(reinterpret_cast<intptr_t>(&ret)));
   return ret;
 }
-template <> std::vector<std::vector<size_t>>
-gather(DVID<std::vector<size_t>>& d) {
-  std::vector<std::vector<size_t>> ret(get_nodesize());
-  d.mapv(dvid_gather_helper2<size_t>(reinterpret_cast<intptr_t>(&ret)));
+template <> std::vector<std::vector<long>> 
+gather(DVID<std::vector<long>>& d) {
+  std::vector<std::vector<long>> ret(get_nodesize());
+  d.mapv(dvid_gather_helper2<long>(reinterpret_cast<intptr_t>(&ret)));
   return ret;
 }
-
+template <> std::vector<std::vector<long long>> 
+gather(DVID<std::vector<long long>>& d) {
+  std::vector<std::vector<long long>> ret(get_nodesize());
+  d.mapv(dvid_gather_helper2<long long>(reinterpret_cast<intptr_t>(&ret)));
+  return ret;
+}
+template <> std::vector<std::vector<unsigned int>> 
+gather(DVID<std::vector<unsigned int>>& d) {
+  std::vector<std::vector<unsigned int>> ret(get_nodesize());
+  d.mapv(dvid_gather_helper2<unsigned int>(reinterpret_cast<intptr_t>(&ret)));
+  return ret;
+}
+template <> std::vector<std::vector<unsigned long>> 
+gather(DVID<std::vector<unsigned long>>& d) {
+  std::vector<std::vector<unsigned long>> ret(get_nodesize());
+  d.mapv(dvid_gather_helper2<unsigned long>(reinterpret_cast<intptr_t>(&ret)));
+  return ret;
+}
+template <> std::vector<std::vector<unsigned long long>> 
+gather(DVID<std::vector<unsigned long long>>& d) {
+  std::vector<std::vector<unsigned long long>> ret(get_nodesize());
+  d.mapv(dvid_gather_helper2<unsigned long long>
+         (reinterpret_cast<intptr_t>(&ret)));
+  return ret;
+}
 }
