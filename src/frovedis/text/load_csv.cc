@@ -60,13 +60,13 @@ void parse_csv_vreg(uint32_t state[][256], const int* vp, int* outvp,
   size_t stop_ridx[LOAD_CSV_VLEN];
 #pragma _NEC vreg(stop_ridx)
   size_t out_ridx[LOAD_CSV_VLEN];
-//#pragma _NEC vreg(out_ridx) // doesn't compile with ncc 2.4.1
+#pragma _NEC vreg(out_ridx) // doesn't compile with ncc 2.4.1
   size_t outstart_ridx[LOAD_CSV_VLEN];
-//#pragma _NEC vreg(outstart_ridx)
+#pragma _NEC vreg(outstart_ridx)
   uint32_t crnt_state_ridx[LOAD_CSV_VLEN];
-//#pragma _NEC vreg(crnt_state_ridx)
+#pragma _NEC vreg(crnt_state_ridx)
   size_t outline_ridx[LOAD_CSV_VLEN];
-//#pragma _NEC vreg(outline_ridx)
+#pragma _NEC vreg(outline_ridx)
 
   for(size_t i = 0; i < LOAD_CSV_VLEN; i++) {
     crnt_ridx[i] = startidx[i];
@@ -77,8 +77,10 @@ void parse_csv_vreg(uint32_t state[][256], const int* vp, int* outvp,
     outline_ridx[i] = outlineidx[i];
   }
 
+#pragma _NEC vob
   for(size_t i = 0; i < max; i++) {
 #pragma _NEC ivdep
+#pragma _NEC vovertake
     for(size_t j = 0; j < LOAD_CSV_VLEN; j++) {
       if(crnt_ridx[j] != stop_ridx[j]) {
         auto loaded = vp[crnt_ridx[j]];
