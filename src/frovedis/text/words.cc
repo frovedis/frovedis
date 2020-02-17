@@ -3,6 +3,7 @@
 #include "../core/radix_sort.hpp"
 #include "../core/set_operations.hpp"
 #include "../core/lower_bound.hpp"
+#include "../core/prefix_sum.hpp"
 #include <stdexcept>
 
 using namespace std;
@@ -685,5 +686,100 @@ words merge_words(const words& a, const words& b) {
   }
   return r;
 }
+
+// quite similar to concat_docs, but vectorization is differnt
+// since words are short
+// delimiter is also added to the end of the vector
+vector<int> concat_words(const vector<int>& v,
+                         const vector<size_t>& starts,
+                         const vector<size_t>& lens,
+                         const string& delim,
+                         vector<size_t>& new_starts) {
+  auto vp = v.data();
+  auto starts_size = starts.size();
+  auto startsp = starts.data();
+  auto lensp = lens.data();
+  auto delim_size = delim.size();
+  size_t total = 0;
+  for(size_t i = 0; i < starts_size; i++) total += lensp[i];
+  total += starts_size * delim_size; // for delimiter
+  vector<int> ret(total);
+  auto retp = ret.data();
+  new_starts.resize(starts_size);
+  auto new_startsp = new_starts.data();
+  auto lens_size = lens.size();
+  vector<size_t> lenstmp(lens_size);
+  auto lenstmpp = lenstmp.data();
+  for(size_t i = 0; i < lens_size; i++) lenstmpp[i] = lensp[i] + delim_size;
+  prefix_sum(lenstmpp, new_startsp+1, lens_size-1);
+  auto each = starts_size / WORDS_VLEN; // not loop raking
+  auto rest = starts_size - each * WORDS_VLEN;
+  for(size_t i = 0; i < each; i++) {
+    size_t starts_vreg[WORDS_VLEN];
+#pragma _NEC vreg(starts_vreg)
+    size_t lens_vreg[WORDS_VLEN];
+#pragma _NEC vreg(lens_vreg)
+    size_t new_starts_vreg[WORDS_VLEN];
+#pragma _NEC vreg(new_starts_vreg)
+    for(size_t v = 0; v < WORDS_VLEN; v++) {
+      starts_vreg[v] = startsp[i * WORDS_VLEN + v];
+      lens_vreg[v] = lensp[i * WORDS_VLEN + v];
+      new_starts_vreg[v] = new_startsp[i * WORDS_VLEN + v];
+    }
+    size_t max = 0;
+    for(size_t v = 0; v < WORDS_VLEN; v++) {
+      if(max < lens_vreg[v]) max = lens_vreg[v];
+    }
+#pragma _NEC novector
+    for(size_t j = 0; j < max; j++) {
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+      for(size_t v = 0; v < WORDS_VLEN; v++) {
+        if(lens_vreg[v] > j) {
+          retp[new_starts_vreg[v] + j] = vp[starts_vreg[v] + j];
+        }
+      }
+    }
+  }
+  size_t i = each;
+  size_t starts_vreg2[WORDS_VLEN];
+  size_t lens_vreg2[WORDS_VLEN];
+  size_t new_starts_vreg2[WORDS_VLEN];
+  for(size_t v = 0; v < rest; v++) {
+    starts_vreg2[v] = startsp[i * WORDS_VLEN + v];
+    lens_vreg2[v] = lensp[i * WORDS_VLEN + v];
+    new_starts_vreg2[v] = new_startsp[i * WORDS_VLEN + v];
+  }
+  size_t max = 0;
+  for(size_t v = 0; v < rest; v++) {
+    if(max < lens_vreg2[v]) max = lens_vreg2[v];
+  }
+#pragma _NEC novector
+  for(size_t j = 0; j < max; j++) {
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+    for(size_t v = 0; v < rest; v++) {
+      if(lens_vreg2[v] > j) {
+        retp[new_starts_vreg2[v] + j] = vp[starts_vreg2[v] + j];
+      }
+    }
+  }
+  for(size_t d = 0; d < delim_size; d++) {
+    int crnt_delim = delim[d];
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+    for(size_t i = 1; i < starts_size; i++) {
+      retp[new_startsp[i]-delim_size+d] = crnt_delim;
+    }
+    retp[ret.size()-delim_size+d] = crnt_delim;
+  }
+  return ret;
+}
+
+std::vector<int> concat_words(const words& w, const string& delim,
+                              vector<size_t>& new_starts) {
+  return concat_words(w.chars, w.starts, w.lens, delim, new_starts);
+}
+
 
 }

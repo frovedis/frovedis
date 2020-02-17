@@ -133,5 +133,14 @@ convert_position_to_word_count(const std::vector<size_t>& doc_starts,
 
 words merge_words(const words& a, const words& b);
 
+std::vector<int> concat_words(const std::vector<int>& v,
+                              const std::vector<size_t>& starts,
+                              const std::vector<size_t>& len,
+                              const std::string& delim,
+                              std::vector<size_t>& new_starts);
+
+std::vector<int> concat_words(const words& w, const std::string& delim,
+                              std::vector<size_t>& new_starts);
+
 }
 #endif
