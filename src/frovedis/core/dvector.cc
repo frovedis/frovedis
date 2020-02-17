@@ -111,7 +111,34 @@ void align_as_align(std::vector<int>& src, std::vector<int>& dst,
 }
 
 template <>
-void align_as_align(std::vector<size_t>& src, std::vector<size_t>& dst,
+void align_as_align(std::vector<long>& src, std::vector<long>& dst,
+                    std::vector<std::vector<size_t>>& alltoall_sizes) {
+  align_as_align_pod(src, dst, alltoall_sizes);
+}
+
+template <>
+void align_as_align(std::vector<long long>& src, std::vector<long long>& dst,
+                    std::vector<std::vector<size_t>>& alltoall_sizes) {
+  align_as_align_pod(src, dst, alltoall_sizes);
+}
+
+template <>
+void align_as_align(std::vector<unsigned int>& src,
+                    std::vector<unsigned int>& dst,
+                    std::vector<std::vector<size_t>>& alltoall_sizes) {
+  align_as_align_pod(src, dst, alltoall_sizes);
+}
+
+template <>
+void align_as_align(std::vector<unsigned long>& src,
+                    std::vector<unsigned long>& dst,
+                    std::vector<std::vector<size_t>>& alltoall_sizes) {
+  align_as_align_pod(src, dst, alltoall_sizes);
+}
+
+template <>
+void align_as_align(std::vector<unsigned long long>& src,
+                    std::vector<unsigned long long>& dst,
                     std::vector<std::vector<size_t>>& alltoall_sizes) {
   align_as_align_pod(src, dst, alltoall_sizes);
 }
@@ -306,10 +333,6 @@ dvector<std::string> make_dvector_load<std::string>(const std::string& path,
                            " is not implemented yet.");
     }
   }
-}
-
-dvector<std::string> make_dvector_loadline(const std::string& path) {
-  return make_dvector_load(path, string("\n"));
 }
 
 inline bool is_bigendian() {
@@ -658,12 +681,58 @@ dvector<int> make_dvector_scatter(const std::vector<int>& src,
 }
 
 template <>
-dvector<size_t> make_dvector_scatter(const std::vector<size_t>& src,
-                                     const std::vector<size_t>& sizevec) {
-  auto dvid = make_dvid_allocate<std::vector<size_t>>();
+dvector<long> make_dvector_scatter(const std::vector<long>& src,
+                                   const std::vector<size_t>& sizevec) {
+  auto dvid = make_dvid_allocate<std::vector<long>>();
   intptr_t ptr = reinterpret_cast<intptr_t>(&src);
-  dvid.mapv(make_dvector_scatter_helper2<size_t>(ptr, sizevec));
-  dvector<size_t> dvec(dvid);
+  dvid.mapv(make_dvector_scatter_helper2<long>(ptr, sizevec));
+  dvector<long> dvec(dvid);
+  dvec.set_sizes(sizevec);
+  return dvec;
+}
+
+template <>
+dvector<long long> make_dvector_scatter(const std::vector<long long>& src,
+                                        const std::vector<size_t>& sizevec) {
+  auto dvid = make_dvid_allocate<std::vector<long long>>();
+  intptr_t ptr = reinterpret_cast<intptr_t>(&src);
+  dvid.mapv(make_dvector_scatter_helper2<long long>(ptr, sizevec));
+  dvector<long long> dvec(dvid);
+  dvec.set_sizes(sizevec);
+  return dvec;
+}
+
+template <>
+dvector<unsigned int> make_dvector_scatter(const std::vector<unsigned int>& src,
+                                           const std::vector<size_t>& sizevec) {
+  auto dvid = make_dvid_allocate<std::vector<unsigned int>>();
+  intptr_t ptr = reinterpret_cast<intptr_t>(&src);
+  dvid.mapv(make_dvector_scatter_helper2<unsigned int>(ptr, sizevec));
+  dvector<unsigned int> dvec(dvid);
+  dvec.set_sizes(sizevec);
+  return dvec;
+}
+
+template <>
+dvector<unsigned long>
+make_dvector_scatter(const std::vector<unsigned long>& src,
+                     const std::vector<size_t>& sizevec) {
+  auto dvid = make_dvid_allocate<std::vector<unsigned long>>();
+  intptr_t ptr = reinterpret_cast<intptr_t>(&src);
+  dvid.mapv(make_dvector_scatter_helper2<unsigned long>(ptr, sizevec));
+  dvector<unsigned long> dvec(dvid);
+  dvec.set_sizes(sizevec);
+  return dvec;
+}
+
+template <>
+dvector<unsigned long long>
+make_dvector_scatter(const std::vector<unsigned long long>& src,
+                     const std::vector<size_t>& sizevec) {
+  auto dvid = make_dvid_allocate<std::vector<unsigned long long>>();
+  intptr_t ptr = reinterpret_cast<intptr_t>(&src);
+  dvid.mapv(make_dvector_scatter_helper2<unsigned long long>(ptr, sizevec));
+  dvector<unsigned long long> dvec(dvid);
   dvec.set_sizes(sizevec);
   return dvec;
 }
@@ -693,10 +762,45 @@ std::vector<int> gather(dvector<int>& dv) {
 }
 
 template <>
-std::vector<size_t> gather(dvector<size_t>& dv) {
-  std::vector<size_t> ret;
+std::vector<long> gather(dvector<long>& dv) {
+  std::vector<long> ret;
   dv.get_dvid().
-    mapv(dvector_gather_helper2<size_t>(reinterpret_cast<intptr_t>(&ret)));
+    mapv(dvector_gather_helper2<long>(reinterpret_cast<intptr_t>(&ret)));
+  return ret;
+}
+
+template <>
+std::vector<long long> gather(dvector<long long>& dv) {
+  std::vector<long long> ret;
+  dv.get_dvid().
+    mapv(dvector_gather_helper2<long long>(reinterpret_cast<intptr_t>(&ret)));
+  return ret;
+}
+
+template <>
+std::vector<unsigned int> gather(dvector<unsigned int>& dv) {
+  std::vector<unsigned int> ret;
+  dv.get_dvid().
+    mapv(dvector_gather_helper2<unsigned int>
+         (reinterpret_cast<intptr_t>(&ret)));
+  return ret;
+}
+
+template <>
+std::vector<unsigned long> gather(dvector<unsigned long>& dv) {
+  std::vector<unsigned long> ret;
+  dv.get_dvid().
+    mapv(dvector_gather_helper2<unsigned long>
+         (reinterpret_cast<intptr_t>(&ret)));
+  return ret;
+}
+
+template <>
+std::vector<unsigned long long> gather(dvector<unsigned long long>& dv) {
+  std::vector<unsigned long long> ret;
+  dv.get_dvid().
+    mapv(dvector_gather_helper2<unsigned long long>
+         (reinterpret_cast<intptr_t>(&ret)));
   return ret;
 }
 }

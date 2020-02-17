@@ -31,6 +31,14 @@
 #include <boost/serialization/string.hpp>
 #endif
 
+#ifdef __ve__
+#include "../text/load_text.hpp"
+#include "../text/parseint.hpp"
+#include "../text/parsefloat.hpp"
+#include "../text/int_to_words.hpp"
+#include "../text/float_to_words.hpp"
+#endif
+
 namespace frovedis {
 
 template <class K, class V> class dunordered_map;
@@ -672,8 +680,26 @@ dvector<int> make_dvector_scatter(const std::vector<int>& src,
                                   const std::vector<size_t>& sizevec);
 
 template <>
-dvector<size_t> make_dvector_scatter(const std::vector<size_t>& src,
-                                     const std::vector<size_t>& sizevec);
+dvector<long> make_dvector_scatter(const std::vector<long>& src,
+                                   const std::vector<size_t>& sizevec);
+
+template <>
+dvector<long long> make_dvector_scatter(const std::vector<long long>& src,
+                                        const std::vector<size_t>& sizevec);
+
+template <>
+dvector<unsigned int> make_dvector_scatter(const std::vector<unsigned int>& src,
+                                           const std::vector<size_t>& sizevec);
+
+template <>
+dvector<unsigned long>
+make_dvector_scatter(const std::vector<unsigned long>& src,
+                     const std::vector<size_t>& sizevec);
+
+template <>
+dvector<unsigned long long>
+make_dvector_scatter(const std::vector<unsigned long long>& src,
+                     const std::vector<size_t>& sizevec);
 
 template <class T>
 dvector<T> make_dvector_scatter(const std::vector<T>& src) {
@@ -701,6 +727,92 @@ template <>
 dvector<std::string>
 make_dvector_load<std::string>(const std::string& path,
                                const std::string& delim);
+
+#ifdef __ve__
+// should be inline because load_text is linked after libfrovedis_core
+template <> inline
+dvector<float> make_dvector_load<float>(const std::string& path,
+                                        const std::string& delim) {
+  auto start = make_node_local_allocate<std::vector<size_t>>();
+  auto len = make_node_local_allocate<std::vector<size_t>>();
+  auto loaded_text = load_text(path, delim, start, len);
+  auto parsed = loaded_text.map(parsefloat<float>, start, len);
+  return parsed.moveto_dvector<float>();
+}
+
+template <> inline
+dvector<double> make_dvector_load<double>(const std::string& path,
+                                          const std::string& delim) {
+  auto start = make_node_local_allocate<std::vector<size_t>>();
+  auto len = make_node_local_allocate<std::vector<size_t>>();
+  auto loaded_text = load_text(path, delim, start, len);
+  auto parsed = loaded_text.map(parsefloat<double>, start, len);
+  return parsed.moveto_dvector<double>();
+}
+
+template <> inline
+dvector<int> make_dvector_load<int>(const std::string& path,
+                                    const std::string& delim) {
+  auto start = make_node_local_allocate<std::vector<size_t>>();
+  auto len = make_node_local_allocate<std::vector<size_t>>();
+  auto loaded_text = load_text(path, delim, start, len);
+  auto parsed = loaded_text.map(parseint<int>, start, len);
+  return parsed.moveto_dvector<int>();
+}
+
+template <> inline
+dvector<long> make_dvector_load<long>(const std::string& path,
+                                      const std::string& delim) {
+  auto start = make_node_local_allocate<std::vector<size_t>>();
+  auto len = make_node_local_allocate<std::vector<size_t>>();
+  auto loaded_text = load_text(path, delim, start, len);
+  auto parsed = loaded_text.map(parseint<long>, start, len);
+  return parsed.moveto_dvector<long>();
+}
+
+template <> inline
+dvector<long long> make_dvector_load<long long>(const std::string& path,
+                                                const std::string& delim) {
+  auto start = make_node_local_allocate<std::vector<size_t>>();
+  auto len = make_node_local_allocate<std::vector<size_t>>();
+  auto loaded_text = load_text(path, delim, start, len);
+  auto parsed = loaded_text.map(parseint<long long>, start, len);
+  return parsed.moveto_dvector<long long>();
+}
+
+template <> inline
+dvector<unsigned int>
+make_dvector_load<unsigned int>(const std::string& path,
+                                const std::string& delim) {
+  auto start = make_node_local_allocate<std::vector<size_t>>();
+  auto len = make_node_local_allocate<std::vector<size_t>>();
+  auto loaded_text = load_text(path, delim, start, len);
+  auto parsed = loaded_text.map(parseint<unsigned int>, start, len);
+  return parsed.moveto_dvector<unsigned int>();
+}
+
+template <> inline
+dvector<unsigned long>
+make_dvector_load<unsigned long>(const std::string& path,
+                                 const std::string& delim) {
+  auto start = make_node_local_allocate<std::vector<size_t>>();
+  auto len = make_node_local_allocate<std::vector<size_t>>();
+  auto loaded_text = load_text(path, delim, start, len);
+  auto parsed = loaded_text.map(parseint<unsigned long>, start, len);
+  return parsed.moveto_dvector<unsigned long>();
+}
+
+template <> inline
+dvector<unsigned long long>
+make_dvector_load<unsigned long long>(const std::string& path,
+                                      const std::string& delim) {
+  auto start = make_node_local_allocate<std::vector<size_t>>();
+  auto len = make_node_local_allocate<std::vector<size_t>>();
+  auto loaded_text = load_text(path, delim, start, len);
+  auto parsed = loaded_text.map(parseint<unsigned long long>, start, len);
+  return parsed.moveto_dvector<unsigned long long>();
+}
+#endif
 
 template <class T>
 T make_dvector_load_helper(std::string& s) {
@@ -1403,7 +1515,15 @@ std::vector<float> gather(dvector<float>& dv);
 template <>
 std::vector<int> gather(dvector<int>& dv);
 template <>
-std::vector<size_t> gather(dvector<size_t>& dv);
+std::vector<long> gather(dvector<long>& dv);
+template <>
+std::vector<long long> gather(dvector<long long>& dv);
+template <>
+std::vector<unsigned int> gather(dvector<unsigned int>& dv);
+template <>
+std::vector<unsigned long> gather(dvector<unsigned long>& dv);
+template <>
+std::vector<unsigned long long> gather(dvector<unsigned long long>& dv);
 
 template <class T>
 size_t sizes_helper(DVID<T>& dvid) {
@@ -1463,7 +1583,26 @@ void align_as_align(std::vector<int>& src, std::vector<int>& dst,
                     std::vector<std::vector<size_t>>& alltoall_sizes);
 
 template <>
-void align_as_align(std::vector<size_t>& src, std::vector<size_t>& dst,
+void align_as_align(std::vector<long>& src, std::vector<long>& dst,
+                    std::vector<std::vector<size_t>>& alltoall_sizes);
+
+template <>
+void align_as_align(std::vector<long long>& src, std::vector<long long>& dst,
+                    std::vector<std::vector<size_t>>& alltoall_sizes);
+
+template <>
+void align_as_align(std::vector<unsigned int>& src,
+                    std::vector<unsigned int>& dst,
+                    std::vector<std::vector<size_t>>& alltoall_sizes);
+
+template <>
+void align_as_align(std::vector<unsigned long>& src,
+                    std::vector<unsigned long>& dst,
+                    std::vector<std::vector<size_t>>& alltoall_sizes);
+
+template <>
+void align_as_align(std::vector<unsigned long long>& src,
+                    std::vector<unsigned long long>& dst,
                     std::vector<std::vector<size_t>>& alltoall_sizes);
 
 template <class T>
@@ -1599,6 +1738,71 @@ dvector<T>& dvector<T>::align_block() {
   return align_as(block_size);
 }
 
+template <class T> inline
+std::string dvector_vector_to_string(const std::vector<T>& v,
+                                     const std::string& delim) {
+  std::ostringstream oss;
+  for(size_t i = 0; i < v.size(); i++) {
+    oss << v[i] << delim;
+  }
+  return oss.str();
+}
+
+#ifdef __ve__
+// TODO: specify precision, %e, %g
+// should be inline because load_text is linked after libfrovedis_core
+template <> inline
+std::string dvector_vector_to_string<float>(const std::vector<float>& v,
+                                            const std::string& delim) {
+  std::vector<size_t> new_starts; // not used
+  return int_to_char(concat_words(float_to_words(v), delim, new_starts));
+}
+template <> inline
+std::string dvector_vector_to_string<double>(const std::vector<double>& v,
+                                             const std::string& delim) {
+  std::vector<size_t> new_starts; // not used
+  return int_to_char(concat_words(float_to_words(v), delim, new_starts));
+}
+template <> inline
+std::string dvector_vector_to_string<int>(const std::vector<int>& v,
+                                          const std::string& delim) {
+  std::vector<size_t> new_starts; // not used
+  return int_to_char(concat_words(int_to_words(v), delim, new_starts));
+}
+template <> inline
+std::string dvector_vector_to_string<long>(const std::vector<long>& v,
+                                           const std::string& delim) {
+  std::vector<size_t> new_starts; // not used
+  return int_to_char(concat_words(int_to_words(v), delim, new_starts));
+}
+template <> inline
+std::string dvector_vector_to_string<long long>(const std::vector<long long>& v,
+                                                const std::string& delim) {
+  std::vector<size_t> new_starts; // not used
+  return int_to_char(concat_words(int_to_words(v), delim, new_starts));
+}
+template <> inline
+std::string
+dvector_vector_to_string<unsigned int>(const std::vector<unsigned int>& v,
+                                       const std::string& delim) {
+  std::vector<size_t> new_starts; // not used
+  return int_to_char(concat_words(int_to_words(v), delim, new_starts));
+}
+template <> inline
+std::string
+dvector_vector_to_string<unsigned long>(const std::vector<unsigned long>& v,
+                                        const std::string& delim) {
+  std::vector<size_t> new_starts; // not used
+  return int_to_char(concat_words(int_to_words(v), delim, new_starts));
+}
+template <> inline
+std::string dvector_vector_to_string<unsigned long long>
+(const std::vector<unsigned long long>& v, const std::string& delim) {
+  std::vector<size_t> new_starts; // not used
+  return int_to_char(concat_words(int_to_words(v), delim, new_starts));
+}
+#endif
+
 template <class T>
 struct dvector_save_mpi_helper {
   dvector_save_mpi_helper(){}
@@ -1607,14 +1811,10 @@ struct dvector_save_mpi_helper {
                           bool is_sequential_save) :
     path(path), delim(delim), is_sequential_save(is_sequential_save) {}
   void operator()(std::vector<T>& v) {
-    std::ostringstream oss;
-    for(size_t i = 0; i < v.size(); i++) {
-      oss << v[i] << delim;
-    }
     size_t nodes = get_nodesize();
     size_t self = get_selfid();
     std::vector<size_t> sizes(nodes);
-    auto result = oss.str();
+    auto result = dvector_vector_to_string(v, delim);
     size_t mysize = result.size();
     MPI_Allgather(&mysize, sizeof(mysize), MPI_CHAR, &sizes[0], sizeof(mysize),
                   MPI_CHAR, frovedis_comm_rpc);
