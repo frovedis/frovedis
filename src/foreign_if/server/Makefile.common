@@ -4,7 +4,7 @@ OBJS := model_tracker.o exrpc_dataframe.o expose_dvector.o expose_dense.o expose
 
 INCLUDES := -I../.. -I../../../third_party/cereal-1.2.2/include/
 CXXFLAGS := ${CXXFLAGS_COMMON} -fopenmp ${INCLUDES}
-LIBS := -L../../../third_party/lib -L../../frovedis/core -L../../frovedis/matrix -L../../frovedis/ml -L../../frovedis/dataframe -L../exrpc -lfrovedis_exrpc -lfrovedis_ml -lfrovedis_dataframe -lfrovedis_matrix -lfrovedis_core ${LIBS_COMMON}
+LIBS := -L../../../third_party/lib -L../../frovedis/core -L../../frovedis/text -L../../frovedis/matrix -L../../frovedis/ml -L../../frovedis/dataframe -L../exrpc -lfrovedis_exrpc -lfrovedis_ml -lfrovedis_dataframe -lfrovedis_matrix -lfrovedis_text -lfrovedis_core ${LIBS_COMMON}
 
 TARGETS := frovedis_server libfrovedis_server.a
 

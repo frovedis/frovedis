@@ -1,6 +1,6 @@
 include ../../../../../Makefile.in.x86
 
-LIBS := ../../../exrpc/libfrovedis_exrpc.a ../../../../frovedis/core/libfrovedis_core.a ../../../../frovedis/matrix/libfrovedis_matrix.a ../../../../frovedis/ml/libfrovedis_ml.a ../../../../frovedis/dataframe/libfrovedis_dataframe.a ../../../server/libfrovedis_server.a
+LIBS := ../../../exrpc/libfrovedis_exrpc.a ../../../../frovedis/core/libfrovedis_core.a ../../../../frovedis/text/libfrovedis_text.a ../../../../frovedis/matrix/libfrovedis_matrix.a ../../../../frovedis/ml/libfrovedis_ml.a ../../../../frovedis/dataframe/libfrovedis_dataframe.a ../../../server/libfrovedis_server.a
 INCLUDES := -I../../../../../third_party/cereal-1.2.2/include/ -I../../../.. -I../../../exrpc -I../../../server -I${JAVA_HOME}/include -I${JAVA_HOME}/include/linux
 
 HEADERS := spark_client_headers.hpp jre_config.hpp JNISupport.hpp
