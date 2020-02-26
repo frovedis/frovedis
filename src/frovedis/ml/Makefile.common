@@ -48,7 +48,7 @@ ifeq (${IS_VE},true)
 	cp dnn/vednn/libvednn_sequential.a ${INSTALLPATH}/lib
 endif
 	install -d ${INSTALLPATH}/include/frovedis/ml/graph
-	cp graph/*.hpp ${INSTALLPATH}/include/frovedis/ml/graph
+	cp graph/*.hpp graph/set_operations.incl1 graph/set_operations.incl2 ${INSTALLPATH}/include/frovedis/ml/graph
 	install -d ${INSTALLPATH}/include/frovedis/ml/lda
 	cp lda/*.hpp ${INSTALLPATH}/include/frovedis/ml/lda
 	install -d ${INSTALLPATH}/include/frovedis/ml/fpm
