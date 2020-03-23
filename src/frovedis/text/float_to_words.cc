@@ -51,4 +51,41 @@ std::vector<float> get_mult_fp<float>(size_t& pad) {
   return mult;
 }
 
+template <>
+words number_to_words<float>(const std::vector<float>& src, size_t prec) {
+  return float_to_words<float>(src, prec);
+}
+template <>
+words number_to_words<double>(const std::vector<double>& src, size_t prec) {
+  return float_to_words<double>(src, prec);
+}
+template <>
+words number_to_words<int>(const std::vector<int>& src, size_t prec) {
+  return int_to_words<int>(src);
+}
+template <>
+words number_to_words<long>(const std::vector<long>& src, size_t prec) {
+  return int_to_words<long>(src);
+}
+template <>
+words number_to_words<long long> (const std::vector<long long>& src,
+                                  size_t prec) {
+  return int_to_words<long long>(src);
+}
+template <>
+words number_to_words<unsigned int>(const std::vector<unsigned int>& src,
+                                    size_t prec) {
+  return int_to_words<unsigned int>(src);
+}
+template <>
+words number_to_words<unsigned long>(const std::vector<unsigned long>& src,
+                                     size_t prec) {
+  return int_to_words<unsigned long>(src);
+}
+template <>
+words number_to_words<unsigned long long>
+(const std::vector<unsigned long long>& src, size_t prec) {
+  return int_to_words<unsigned long long>(src);
+}
+
 }
