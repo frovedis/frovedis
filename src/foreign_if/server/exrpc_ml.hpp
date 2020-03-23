@@ -208,7 +208,7 @@ void frovedis_svm_lbfgs(frovedis_mem_pair& mp, int& numIter, double& stepSize,
 template <class T, class MATRIX>
 void frovedis_lnr_sgd(frovedis_mem_pair& mp, int& numIter, double& stepSize, 
                       double& mbf,
-                      bool& isIntercept, int& verbose, int& mid, 
+                      bool& isIntercept, double& tol, int& verbose, int& mid, 
                       bool& isMovableInput=false) {
   register_for_train(mid);  // mark model 'mid' as "under training"
   // extracting input data
@@ -222,11 +222,11 @@ void frovedis_lnr_sgd(frovedis_mem_pair& mp, int& numIter, double& stepSize,
 
   if (isMovableInput) {
     m = linear_regression_with_sgd::train(std::move(mat),lbl,numIter,stepSize,
-                                          mbf,isIntercept);
+                                          mbf,isIntercept,tol);
     lbl.mapv_partitions(clear_lbl_data<T>); 
   }
   else m = linear_regression_with_sgd::train(mat,lbl,numIter,stepSize,
-                                             mbf,isIntercept);
+                                             mbf,isIntercept,tol);
   frovedis::set_loglevel(old_level);
   handle_trained_model<linear_regression_model<T>>(mid, LNRM, m);
 }
@@ -234,7 +234,7 @@ void frovedis_lnr_sgd(frovedis_mem_pair& mp, int& numIter, double& stepSize,
 template <class T, class MATRIX>
 void frovedis_lnr_lbfgs(frovedis_mem_pair& mp, int& numIter, double& stepSize, 
                         int& histSize,
-                        bool& isIntercept, int& verbose, int& mid, 
+                        bool& isIntercept, double& tol, int& verbose, int& mid, 
                         bool& isMovableInput=false) {
   register_for_train(mid);  // mark model 'mid' as "under training"
   // extracting input data
@@ -248,12 +248,12 @@ void frovedis_lnr_lbfgs(frovedis_mem_pair& mp, int& numIter, double& stepSize,
 
   if (isMovableInput) {
     m = linear_regression_with_lbfgs::train(std::move(mat),lbl,numIter,stepSize,
-                                            histSize,isIntercept);
+                                            histSize,isIntercept,tol);
     mat.clear();
     lbl.mapv_partitions(clear_lbl_data<T>);
   }
   else m = linear_regression_with_lbfgs::train(mat,lbl,numIter,stepSize,
-                                               histSize,isIntercept);
+                                               histSize,isIntercept,tol);
   frovedis::set_loglevel(old_level);
   handle_trained_model<linear_regression_model<T>>(mid, LNRM, m);
 }
