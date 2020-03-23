@@ -94,12 +94,7 @@ template <class T>
 std::vector<size_t> lower_bound(const std::vector<T>& sorted,
                                 const std::vector<T>& to_find) {
   std::vector<size_t> ret(to_find.size());
-  if(to_find.size() == 0) return ret;
-  if(sorted.size() == 0) {
-    auto retp = ret.data();
-    for(size_t i = 0; i < ret.size(); i++) retp[i] = 1;
-    return ret;
-  }
+  if(to_find.size() == 0 || sorted.size() == 0) return ret;
   lower_bound(sorted.data(), sorted.size(), to_find.data(), to_find.size(),
               ret.data());
   return ret;
@@ -189,12 +184,7 @@ template <class T>
 std::vector<size_t> lower_bound_desc(const std::vector<T>& sorted,
                                      const std::vector<T>& to_find) {
   std::vector<size_t> ret(to_find.size());
-  if(to_find.size() == 0) return ret;
-  if(sorted.size() == 0) {
-    auto retp = ret.data();
-    for(size_t i = 0; i < ret.size(); i++) retp[i] = 1;
-    return ret;
-  }
+  if(to_find.size() == 0 || sorted.size() == 0) return ret;
   lower_bound_desc(sorted.data(), sorted.size(), to_find.data(), to_find.size(),
                    ret.data());
   return ret;
