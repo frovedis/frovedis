@@ -42,6 +42,9 @@ class KMeans(object):
         """
         DESC:
         """
+        if self.init != "random":
+            raise ValueError("init: currently Frovedis supports only \
+                              random!")
         self.release()
         self.__mid = ModelID.get()
         eps = 0.01
@@ -321,6 +324,9 @@ class SpectralClustering(object):
             (host, port) = FrovedisServer.getServerInstance()
             dmat = rpclib.get_scm_affinity_matrix(host, port, self.__mid, \
                                                     self.__mdtype)
+            excpt = rpclib.check_server_exception()
+            if excpt["status"]:
+                raise RuntimeError(excpt["info"])
             return FrovedisRowmajorMatrix(mat=dmat, dtype=TypeUtil. \
                         to_numpy_dtype(self.__mdtype))
 
@@ -469,6 +475,9 @@ class SpectralEmbedding(object):
             (host, port) = FrovedisServer.getServerInstance()
             dmat = rpclib.get_sem_affinity_matrix(host, port, self.__mid, \
                                                     self.__mdtype)
+            excpt = rpclib.check_server_exception()
+            if excpt["status"]:
+                raise RuntimeError(excpt["info"])
             return FrovedisRowmajorMatrix(mat=dmat, dtype=TypeUtil. \
                         to_numpy_dtype(self.__mdtype))
 
@@ -480,6 +489,9 @@ class SpectralEmbedding(object):
             (host, port) = FrovedisServer.getServerInstance()
             dmat = rpclib.get_sem_embedding_matrix(host, port, self.__mid, \
                                                             self.__mdtype)
+            excpt = rpclib.check_server_exception()
+            if excpt["status"]:
+                raise RuntimeError(excpt["info"])
             return FrovedisRowmajorMatrix(mat=dmat, dtype=TypeUtil. \
                              to_numpy_dtype(self.__mdtype))
 
