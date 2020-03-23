@@ -1,135 +1,54 @@
 #ifndef _NAIVE_BAYES_HPP_
 #define _NAIVE_BAYES_HPP_
 
-#define USE_DF // default implementation is using dataframe for group-by etc.
-
 #include <algorithm>
 #include <frovedis/matrix/rowmajor_matrix.hpp>
 #include <frovedis/matrix/blas_wrapper.hpp>
-
-#ifdef USE_DF
 #include <frovedis/dataframe.hpp>
-#endif
 #include "nb_model.hpp"
 
 namespace frovedis {
 
-#ifdef USE_DF
 template <class T>
-struct fill_data {
-  fill_data () {}
-  fill_data (T& val): value(val) {}
-  void operator() (std::vector<T>& vec, 
-                   const std::vector<size_t>& sizes) {
-    vec.resize(sizes[frovedis::get_selfid()]);
-    auto vec_ptr = vec.data();
-    for(size_t i = 0; i < vec.size(); ++i) vec_ptr[i] = value; 
-  }
-  T value;
-  SERIALIZE(value)
-};
-
-// to create dvector with given value and size-vector
-template <class T>
-dvector<T> make_dvector(const std::vector<size_t>& sizes, 
-                        T value) {
-  auto local_vec = make_node_local_allocate<std::vector<T>>();
-  local_vec.mapv(fill_data<T>(value),broadcast(sizes));
-  return local_vec.template moveto_dvector<T>();
-}
-#else 
-template <class T>
-std::pair<T,T> get_pair(const T& data) {
-  return std::make_pair(data,1);
-}
-
-template <class T>  T sum (const T& x, const T& y) { return x + y; }
-#endif
-
-template <class T>
-size_t get_index(const std::vector<T>& src, const T& item) {
-  // src needs to be sorted...
-  auto id = std::lower_bound(src.begin(), src.end(), item);
-  if(id == src.end() || *id != item) 
-    REPORT_ERROR(INTERNAL_ERROR,"item not found\n"); // should not occur
-  return id - src.begin();
-}
-
-template <class T>
-void get_class_counts (dvector<T>& label, 
-                       std::vector<T>& uniq_labels, 
-                       std::vector<T>& cls_counts) {
-#ifdef USE_DF
-  // assigning ones to each label just to get uniq label counts
-  auto mark = make_dvector<T>(label.sizes(),1);
-
+dvector<size_t> 
+get_class_counts (dvector<T>& label, 
+                  std::vector<T>& uniq_labels, 
+                  std::vector<size_t>& cls_counts) {
   dftable tmp;
   tmp.append_column("label",label);
-  tmp.append_column("mark",mark);
   //tmp.show();
-
-  std::vector<std::string> target = {std::string("label")};
-  auto grouped = tmp.group_by(target);
-  auto agg = sum_as("mark","count");
-  std::vector<std::shared_ptr<frovedis::dfaggregator>> aggv = {agg};
-  auto with_count = grouped.select(target,aggv)
-                           .sort("label"); // sort() needed for lower_bound search
-  //with_count.show();
-
-  uniq_labels = with_count.as_dvector<T>("label").gather(); 
-  cls_counts  = with_count.as_dvector<T>("count").gather(); 
-#else
-  auto dv3 = label.map(get_pair<T>)
-                  .reduce_by_key<T,T>(sum<T>)
-                  .as_dvector().sort().gather(); // sort() needed for lower bound search
-  auto nclasses = dv3.size();
-  uniq_labels.resize(nclasses);
-  cls_counts.resize(nclasses);
-  for(int i=0; i<nclasses; i++) {
-    uniq_labels[i] = dv3[i].first;
-    cls_counts[i]  = dv3[i].second;
-  }
-#endif
+  std::vector<std::string> target = {"label"};
+  auto processed = tmp.group_by(target)
+                      .select(target, {count_as("label", "count")})
+                      .rename("label", "src")
+                      //.sort("src")
+                      .append_rowid("target") // zero based ids (col type: size_t)
+                      .select({"src", "target", "count"});
+  //processed.show();
+  uniq_labels = processed.template as_dvector<T>("src").gather(); 
+  cls_counts  = processed.template as_dvector<size_t>("count").gather(); 
+  auto joined = tmp.bcast_join(processed, eq("label", "src")); // encoding by joining
+  auto encoded_label = joined.template as_dvector<size_t>("target"); // zero based
   //display<T>(uniq_labels);
-  //display<T>(cls_counts);
+  //display<size_t>(cls_counts);
+  //display<size_t>(encoded_label);
+  return encoded_label;
 }
 
 template <class T, class LOC_MATRIX>
 std::vector<T> get_freq(LOC_MATRIX& mat, 
-                        std::vector<T>& label,
-                        std::vector<T>& uniq_labels,
-                        std::vector<T>& cls_counts,
-                        double lambda) {
-  auto nfeatures  = mat.local_num_col;
-  auto nsamples   = label.size(); 
-  auto nclasses   = uniq_labels.size();
-
-  // TODO: Handle exception when worker doesnt contain data
-  // for workers which doesn't contain any values
-  if (nsamples == 0) { 
-     //std::cout << "[" << get_selfid() << "]: " << mat.local_num_row << std::endl;
-     return std::vector<T>(nfeatures*nclasses,0);
-  }
-
-  // creation of class label matrix
-  std::vector<T> temp(nsamples*nclasses);
-  auto temp_ptr = temp.data();
-  auto uniq_labels_ptr = uniq_labels.data();
-  auto label_ptr = label.data();
+                        std::vector<size_t>& encoded_label,
+                        size_t nclasses) {
+  auto nsamples   = encoded_label.size(); 
+  rowmajor_matrix_local<T> cls_mat(nsamples, nclasses);
+  auto clsmat_ptr = cls_mat.val.data();
+  auto en_label_ptr = encoded_label.data();
   for(auto i = 0; i < nsamples; i++) {
-    //auto index = get_index(uniq_labels,label[i]); // in-lined below
-    size_t index = 0;
-    for(index = 0; index < uniq_labels.size(); ++index) {
-      if (uniq_labels_ptr[index] == label_ptr[i]) break; // found always
-    }
-    temp_ptr[i*nclasses+index] = 1;
+    size_t index = en_label_ptr[i];
+    clsmat_ptr[i * nclasses + index] = 1;
   }
-  rowmajor_matrix_local<T> cls_mat;
-  cls_mat.val.swap(temp);
-  cls_mat.set_local_num(nsamples,nclasses);
   //cls_mat.debug_print();
 
-  // calculation of frequency table 
   auto freq_table = mat.transpose() * cls_mat;
   // freq_table.debug_print();
 
@@ -137,52 +56,52 @@ std::vector<T> get_freq(LOC_MATRIX& mat,
 }
 
 template <class T>
-rowmajor_matrix_local<T> get_theta (std::vector<T>& freq_table, 
-                                    std::vector<T>& cls_counts,
+rowmajor_matrix_local<T> get_theta (std::vector<T>& freq_table, // destroyed 
+                                    std::vector<size_t>& cls_counts,
                                     double lambda, 
                                     const std::string& modelType,
                                     size_t nfeatures,
                                     size_t nclasses) {
-  T* freqp = &freq_table[0];
-  T* cls_countsp = &cls_counts[0];
+  auto freqp = freq_table.data();
+  auto cls_countsp = cls_counts.data();
   if (modelType == "bernoulli") {
-    for(auto i=0; i<nclasses; ++i) {
+    for(size_t i = 0; i < nclasses; ++i) {
 #pragma _NEC ivdep
       for(auto j=0; j<nfeatures; ++j) {
-        freqp[j*nclasses+i] = log(freqp[j*nclasses+i]+lambda) -
-                              log(cls_countsp[i]+lambda*2); // 2: as for bernoulli 
+        freqp[j*nclasses+i] = log(freqp[j*nclasses+i] + lambda) -
+                              log(cls_countsp[i] + lambda*2); // 2: as for bernoulli 
       }
     }
   }
   else if (modelType == "multinomial"){
-    for(auto i=0; i<nclasses; ++i) {
+#pragma _NEC nointerchange
+    for(size_t i = 0; i < nclasses; ++i) {
       T total = 0;
-      for(auto j=0; j<nfeatures; ++j) {
-        total += freqp[j*nclasses+i] + lambda; 
-      }
+      for(size_t j = 0; j < nfeatures; ++j) total += freqp[j * nclasses + i] + lambda; 
 #pragma _NEC ivdep
-      for(auto j=0; j<nfeatures; ++j) {
-        freqp[j*nclasses+i] = log(freqp[j*nclasses+i]+lambda)-log(total);
+      for(size_t j = 0; j < nfeatures; ++j) {
+        freqp[j * nclasses + i] = log(freqp[j*nclasses+i] + lambda) - log(total);
       }
     }
   }
   else REPORT_ERROR(USER_ERROR, "Unsupported model type is specified!\n");
   rowmajor_matrix_local<T> theta;
   theta.val.swap(freq_table); // smoothened freq_table
-  theta.set_local_num(nfeatures,nclasses);
+  theta.set_local_num(nfeatures, nclasses);
   //theta.debug_print();
   return theta;
 }
 
 template <class T>
-std::vector<T> get_pi (std::vector<T>& cls_counts, 
+std::vector<T> get_pi (std::vector<size_t>& cls_counts, 
                        double lambda, size_t nsamples) {
   auto nclasses = cls_counts.size();
   std::vector<T> pi(nclasses); 
-  T* pip = &pi[0];
-  T* cls_countsp = &cls_counts[0];
-  for(auto i=0; i<nclasses; i++) {
-    pip[i] = log(cls_countsp[i]+lambda) - log(nsamples+nclasses*lambda);
+  auto pip = pi.data();
+  auto cls_countsp = cls_counts.data();
+  auto subt = log(nsamples + nclasses * lambda);
+  for(auto i = 0; i < nclasses; i++) {
+    pip[i] = log(cls_countsp[i] + lambda) - subt;
   }
   return pi; // smoothened pi
 }
@@ -199,33 +118,49 @@ void naive_bayes_common(MATRIX& mat,
                         rowmajor_matrix_local<T>& theta, 
                         std::vector<T>& pi, 
                         std::vector<T>& uniq_labels,
-                        std::vector<T>& cls_counts,
+                        std::vector<size_t>& cls_counts,
                         const std::string& modelType) {
 
+  auto nsamples  = mat.num_row;
+  auto nfeatures = mat.num_col;
   if (mat.num_row != label.size())
     REPORT_ERROR(USER_ERROR,"number of samples is not same in data and label.\n");
 
-  get_class_counts(label,uniq_labels,cls_counts);
+  time_spent tencode(INFO), tfreq(INFO), ttheta(INFO), tpi(INFO);
+  tencode.lap_start();
+  auto encoded_label = get_class_counts(label, uniq_labels, cls_counts);
+  tencode.lap_stop();
+  tencode.show_lap("label encode time: ");
+  auto nclasses  = uniq_labels.size();
+
   auto sizes = mat.data.map(get_local_row<LOC_MATRIX>).gather();
   //re-aligning the label (needed for using dataframe functions for above class counts)
-  label.align_as(sizes); 
-  auto nsamples  = mat.num_row;
-  auto nfeatures = mat.num_col;
-  auto nclasses  = uniq_labels.size();
+  encoded_label.align_as(sizes);
+ 
+  tfreq.lap_start();
   auto freq_table = mat.data.map(get_freq<T,LOC_MATRIX>,
-                                 label.viewas_node_local(),
-                                 broadcast(uniq_labels),
-                                 broadcast(cls_counts),
-                                 broadcast(lambda)).vector_sum();
+                                 encoded_label.viewas_node_local(),
+                                 broadcast(nclasses)).vector_sum();
+  tfreq.lap_stop();
+  tfreq.show_lap("freq calc: ");
+
+  ttheta.lap_start();
   // freq_table would be smoothened in-place and replaced with theta.val
   theta = get_theta(freq_table,cls_counts,lambda,modelType,nfeatures,nclasses);
-  pi = get_pi(cls_counts,lambda,nsamples);
+  ttheta.lap_stop();
+  ttheta.show_lap("theta calc: ");
+
+  tpi.lap_start();
+  pi = get_pi<T>(cls_counts, lambda, nsamples);
+  tpi.lap_stop();
+  tpi.show_lap("pi calc: ");
 }
 
 template <class T, class MATRIX, class LOC_MATRIX>
 naive_bayes_model<T>
 multinomial_nb (MATRIX& mat, dvector<T>& label, double lambda = 1.0) {
-  std::vector<T> pi, uniq_labels, cls_counts;
+  std::vector<T> pi, uniq_labels;
+  std::vector<size_t> cls_counts;
   rowmajor_matrix_local<T> theta;
   naive_bayes_common<T,MATRIX,LOC_MATRIX>(mat,label,lambda,theta,pi,
                                           uniq_labels,cls_counts,"multinomial");
@@ -233,15 +168,48 @@ multinomial_nb (MATRIX& mat, dvector<T>& label, double lambda = 1.0) {
                               std::move(cls_counts),"multinomial");
 }
 
+template <class T>
+naive_bayes_model<T>
+multinomial_nb (crs_matrix<T>& mat, 
+                dvector<T>& label, 
+                double lambda = 1.0) {
+  return multinomial_nb<T, crs_matrix<T>, crs_matrix_local<T>>(mat, label, lambda);
+}
+
+template <class T>
+naive_bayes_model<T>
+multinomial_nb (rowmajor_matrix<T>& mat, 
+                dvector<T>& label, 
+                double lambda = 1.0) {
+  return multinomial_nb<T, rowmajor_matrix<T>, rowmajor_matrix_local<T>>(mat, label, lambda);
+}
+
 template <class T, class MATRIX, class LOC_MATRIX>
 naive_bayes_model<T>
 bernoulli_nb (MATRIX& mat, dvector<T>& label, double lambda = 1.0) {
-  std::vector<T> pi, uniq_labels, cls_counts;
+  std::vector<T> pi, uniq_labels;
+  std::vector<size_t> cls_counts;
   rowmajor_matrix_local<T> theta;
   naive_bayes_common<T,MATRIX,LOC_MATRIX>(mat,label,lambda,theta,pi,
                                           uniq_labels,cls_counts,"bernoulli");
   return naive_bayes_model<T>(std::move(theta),std::move(pi),std::move(uniq_labels),
                               std::move(cls_counts),"bernoulli");
+}
+
+template <class T>
+naive_bayes_model<T>
+bernoulli_nb (crs_matrix<T>& mat, 
+              dvector<T>& label, 
+              double lambda = 1.0) {
+  return bernoulli_nb<T, crs_matrix<T>, crs_matrix_local<T>>(mat, label, lambda);
+}
+
+template <class T>
+naive_bayes_model<T>
+bernoulli_nb (rowmajor_matrix<T>& mat, 
+              dvector<T>& label, 
+              double lambda = 1.0) {
+  return bernoulli_nb<T, rowmajor_matrix<T>, rowmajor_matrix_local<T>>(mat, label, lambda);
 }
 
 } // end of namespace
