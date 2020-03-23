@@ -17,9 +17,10 @@ class LogisticRegression(object):
     """
     A python wrapper of Frovedis Logistic Regression
     defaults are as per Frovedis
-    lr_rate: Frovedis: 0.01 (added)
+    penalty: Frovedis: none, Sklearn: l2
     max_iter: Frovedis: 1000, Sklearn: 100
-    solver: Frovedis: sag (SGD), Sklearn: liblinear
+    solver: Frovedis: sag (SGD), Sklearn: lbfgs
+    lr_rate: Frovedis: 0.01 (added)
     """
     def __init__(self, penalty='none', dual=False, tol=1e-4, C=1.0,
                  fit_intercept=True, intercept_scaling=1, class_weight=None,
@@ -41,8 +42,8 @@ class LogisticRegression(object):
         self.warm_start = warm_start
         self.n_jobs = n_jobs
         self.l1_ratio = l1_ratio
-        self.lr_rate = lr_rate
         # extra
+        self.lr_rate = lr_rate
         self.__mid = None
         self.__mdtype = None
         self.__mkind = None
@@ -56,6 +57,8 @@ class LogisticRegression(object):
         """
         NAME: fit
         """
+        if self.C < 0:
+            raise ValueError("fit: parameter C must be strictly positive!")
         self.release()
         inp_data = FrovedisLabeledPoint(X, y)
         (X, y) = inp_data.get()
@@ -113,7 +116,6 @@ class LogisticRegression(object):
                              #   for binary logistic regression
             encoded_y, logic = y.encode(unique_labels, target, need_logic=True)
         self.label_map = logic
-
         (host, port) = FrovedisServer.getServerInstance()
         if self.solver == 'sag':
             rpclib.lr_sgd(host, port, X.get(), encoded_y.get(), self.max_iter, \
@@ -304,14 +306,23 @@ class LogisticRegression(object):
             self.release()
 
 class LinearRegression(object):
-    """A python wrapper of Frovedis Linear Regression"""
+    """A python wrapper of Frovedis Linear Regression
+    max_iter: Frovedis: 1000 (added)
+    solver: Frovedis: sag (SGD) (added)
+    lr_rate: Frovedis: 0.01 (added)
+    tol: Frovedis: 0.0001 (added)
+    """
     def __init__(self, fit_intercept=True, normalize=False, copy_X=True,
-                 n_jobs=1, solver='sag', verbose=0):
+                 n_jobs=1, max_iter=1000, tol=0.0001, lr_rate=1e-8, 
+                 solver='sag', verbose=0):
         self.fit_intercept = fit_intercept
         self.normalize = normalize
         self.copy_X = copy_X
         self.n_jobs = n_jobs
         # extra
+        self.max_iter = max_iter
+        self.tol = tol
+        self.lr_rate = lr_rate
         self.solver = solver
         self.verbose = verbose
         self.__mid = None
@@ -336,11 +347,13 @@ class LinearRegression(object):
         (host, port) = FrovedisServer.getServerInstance()
         if self.solver == 'sag':
             rpclib.lnr_sgd(host, port, X.get(), y.get(), \
-                self.fit_intercept, self.verbose, self.__mid, \
+                self.max_iter, self.lr_rate, \
+                self.fit_intercept, self.tol, self.verbose, self.__mid, \
                 dtype, itype, dense)
         elif self.solver == 'lbfgs':
             rpclib.lnr_lbfgs(host, port, X.get(), y.get(), \
-                self.fit_intercept, self.verbose, self.__mid, \
+                self.max_iter, self.lr_rate, \
+                self.fit_intercept, self.tol, self.verbose, self.__mid, \
                 dtype, itype, dense)
         else:
             raise ValueError( \
@@ -477,12 +490,13 @@ class LinearRegression(object):
 class Lasso(object):
     """A python wrapper of Frovedis Lasso Regression"""
     # defaults are as per Frovedis
-    # alpha: Frovedis: 0.01, Sklearn: 1.0
+    # lr_rate: Frovedis: 0.01 (added)
+    # solver: Frovedis: sag (SGD) (added)
     def __init__(self, alpha=0.01, fit_intercept=True, normalize=False,
                  precompute=False, copy_X=True, max_iter=1000,
                  tol=1e-4, warm_start=False, positive=False,
                  random_state=None, selection='cyclic',
-                 verbose=0, solver='sag'):
+                 lr_rate=1e-8, verbose=0, solver='sag'):
         self.alpha = alpha
         self.fit_intercept = fit_intercept
         self.normalize = normalize
@@ -495,6 +509,7 @@ class Lasso(object):
         self.random_state = random_state
         self.selection = selection
         # extra
+        self.lr_rate = lr_rate
         self.verbose = verbose
         self.solver = solver
         self.__mid = None
@@ -517,14 +532,17 @@ class Lasso(object):
         self.__mdtype = dtype
         (host, port) = FrovedisServer.getServerInstance()
         if self.solver == 'sag':
-            rpclib.lasso_sgd(host, port, X.get(), y.get(), self.max_iter, \
-                    self.alpha, self.fit_intercept, self.tol, \
+            rpclib.lasso_sgd(host, port, X.get(), y.get(), \
+                    self.max_iter, self.lr_rate, \
+                    self.alpha, \
+                    self.fit_intercept, self.tol, \
                     self.verbose, self.__mid, dtype, itype, dense)
         elif self.solver == 'lbfgs':
-            rpclib.lasso_lbfgs(host, port, X.get(), y.get(), self.max_iter, \
-                    self.alpha, self.fit_intercept, \
-                    self.tol, self.verbose, self.__mid, \
-                    dtype, itype, dense)
+            rpclib.lasso_lbfgs(host, port, X.get(), y.get(), \
+                    self.max_iter, self.lr_rate, \
+                    self.alpha, \
+                    self.fit_intercept, self.tol,\
+                    self.verbose, self.__mid, dtype, itype, dense)
         else:
             raise ValueError( \
             "Unknown solver %s for Lasso Regression." % self.solver)
@@ -660,10 +678,10 @@ class Lasso(object):
 class Ridge(object):
     """A python wrapper of Frovedis Ridge Regression"""
     # defaults are as per Frovedis
-    # alpha: Frovedis: 0.01, Sklearn: 1.0
+    # lr_rate: Frovedis: 0.01 (added)
     def __init__(self, alpha=0.01, fit_intercept=True, normalize=False,
                  copy_X=True, max_iter=1000, tol=1e-3, solver='sag',
-                 random_state=None, verbose=0):
+                 random_state=None, lr_rate=1e-8, verbose=0):
         self.alpha = alpha
         self.fit_intercept = fit_intercept
         self.normalize = normalize
@@ -673,6 +691,7 @@ class Ridge(object):
         self.solver = solver
         self.random_state = random_state
         # extra
+        self.lr_rate = lr_rate
         self.verbose = verbose
         self.__mid = None
         self.__mdtype = None
@@ -700,15 +719,19 @@ class Ridge(object):
             Regression currently." % self.solver)
         (host, port) = FrovedisServer.getServerInstance()
         if self.solver == 'sag' or self.solver == 'auto':
-            rpclib.ridge_sgd(host, port, X.get(), y.get(), self.max_iter,\
-                            self.alpha, self.fit_intercept, self.tol, \
+            rpclib.ridge_sgd(host, port, X.get(), y.get(), \
+                            self.max_iter, self.lr_rate, \
+                            self.alpha, \
+                            self.fit_intercept, self.tol, \
                             self.verbose, self.__mid, \
                             dtype, itype, dense)
         elif self.solver == 'lbfgs':
             rpclib.ridge_lbfgs(host, port, X.get(), y.get(), \
-                              self.max_iter, self.alpha, \
-                              self.fit_intercept, self.tol, self.verbose, \
-                              self.__mid, dtype, itype, dense)
+                              self.max_iter, self.lr_rate, \
+                              self.alpha, \
+                              self.fit_intercept, self.tol, \
+                              self.verbose, self.__mid, \
+                              dtype, itype, dense)
         else:
             raise ValueError( \
             "Unknown solver %s for Ridge Regression." % self.solver)
@@ -950,8 +973,15 @@ class SGDClassifier(object):
             encoded_y, logic = y.encode(unique_labels, target, need_logic=True)
             self.label_map = logic
             rpclib.svm_sgd(host, port, X.get(), encoded_y.get(), \
-                        self.max_iter, \
-                        rparam, regTyp, self.fit_intercept, self.tol, \
+                        self.max_iter, self.eta0, \
+                        regTyp, rparam, self.fit_intercept, self.tol, \
+                        self.verbose, self.__mid, dtype, itype, dense)
+        elif self.loss == "squared_loss":
+            self.__mkind = M_KIND.LNRM
+            self.n_classes = -1 # meaningless for regression case
+            rpclib.lnr2_sgd(host, port, X.get(), y.get(), \
+                        self.max_iter, self.eta0, \
+                        regTyp, rparam, self.fit_intercept, self.tol, \
                         self.verbose, self.__mid, dtype, itype, dense)
         else:
             raise ValueError("Supported loss are only logic and hinge!")
@@ -975,7 +1005,8 @@ class SGDClassifier(object):
                 excpt = rpclib.check_server_exception()
                 if excpt["status"]:
                     raise RuntimeError(excpt["info"])
-                if self.__mkind == M_KIND.LRM or self.__mkind == M_KIND.SVM:
+                if self.__mkind == M_KIND.LRM or self.__mkind == M_KIND.SVM \
+                    or self.__mkind == M_KIND.LNRM:
                     n_features = len(wgt)
                     shape = (1, n_features)
                 else: # MLR case
@@ -1020,6 +1051,9 @@ class SGDClassifier(object):
     def classes_(self):
         """classes_ getter"""
         if self.__mid is not None:
+            if self.__mkind == M_KIND.LNRM:
+                raise AttributeError(\
+                "attribute 'classes_' is not available for squared_loss")
             if self._classes is None:
                 self._classes = \
                     np.asarray(list(self.label_map.values()), dtype=np.int64)
@@ -1041,9 +1075,12 @@ class SGDClassifier(object):
         if self.__mid is not None:
             frov_pred = GLM.predict(X, self.__mid, self.__mkind, \
                                     self.__mdtype, False)
-            new_pred = \
-            [self.label_map[frov_pred[i]] for i in range(0, len(frov_pred))]
-            return np.asarray(new_pred, dtype=np.int64)
+            if self.__mkind == M_KIND.LNRM:
+                return np.asarray(frov_pred, dtype=np.float64)
+            else:
+                new_pred = \
+                [self.label_map[frov_pred[i]] for i in range(0, len(frov_pred))]
+                return np.asarray(new_pred, dtype=np.int64)
         else:
             raise ValueError( \
             "predict is called before calling fit, or the model is released.")
@@ -1053,6 +1090,9 @@ class SGDClassifier(object):
         NAME: predict_proba
         """
         if self.__mid is not None:
+            if self.__mkind == M_KIND.LNRM:
+                raise AttributeError(\
+                "attribute 'predict_proba' is not available for squared_loss")
             proba = GLM.predict(X, self.__mid, self.__mkind, \
                                self.__mdtype, True)
             return np.asarray(proba)
@@ -1068,9 +1108,10 @@ class SGDClassifier(object):
             raise ValueError(\
                 "the model with name %s does not exist!" % fname)
         self.release()
-        target = open(fname+"/label_map", "rb")
-        self.label_map = pickle.load(target)
-        target.close()
+        if self.__mkind != M_KIND.LNRM:
+            target = open(fname+"/label_map", "rb")
+            self.label_map = pickle.load(target)
+            target.close()
         metadata = open(fname+"/metadata", "rb")
         self.loss, self.n_classes, self.__mkind, self.__mdtype = \
             pickle.load(metadata)
@@ -1096,9 +1137,10 @@ class SGDClassifier(object):
             else:
                 os.makedirs(fname)
             GLM.save(self.__mid, self.__mkind, self.__mdtype, fname+"/model")
-            target = open(fname+"/label_map", "wb")
-            pickle.dump(self.label_map, target)
-            target.close()
+            if self.__mkind != M_KIND.LNRM:
+                target = open(fname+"/label_map", "wb")
+                pickle.dump(self.label_map, target)
+                target.close()
             metadata = open(fname+"/metadata", "wb")
             pickle.dump(\
             (self.loss, self.n_classes, self.__mkind, self.__mdtype), metadata)
