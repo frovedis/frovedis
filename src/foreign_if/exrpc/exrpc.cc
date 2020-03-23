@@ -338,7 +338,7 @@ exrpc_node invoke_frovedis_server(const std::string& command) {
   bool is_ok = handle_exrpc_onereq(sockfd, 5);
   ::close(sockfd);
   if(is_ok) return server_node;
-  else throw std::runtime_error(std::string("invoke_frovedis_server: timeout (check server invocation command)"));
+  else throw std::runtime_error(std::string("invoke_frovedis_server: timeout (check server invocation command and if the hostname is in /etc/hosts or DNS)"));
 }
 
 void init_frovedis_server(int argc, char* argv[]) {
