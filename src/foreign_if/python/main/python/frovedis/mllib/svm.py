@@ -14,12 +14,14 @@ from ..matrix.dtype import TypeUtil
 class LinearSVC(object):
     """A python wrapper of Frovedis Linear SVM"""
     # defaults are as per Frovedis
-    # C (alpha): Frovedis: 0.01, Sklearn: 1.0
     # loss: Frovedis: 'hinge', Sklearn: 'squared_hinge'
+    # lr_rate: Frovedis: 0.01 (added)
+    # solver: Frovedis: sag (SGD) (added)
     def __init__(self, penalty='l2', loss='hinge', dual=True, tol=1e-4,
-                 C=0.01, multi_class='ovr', fit_intercept=True,
+                 C=1.0, multi_class='ovr', fit_intercept=True,
                  intercept_scaling=1, class_weight=None, verbose=0,
-                 random_state=None, max_iter=1000, solver='sag'):
+                 random_state=None, max_iter=1000, 
+                 lr_rate=0.01, solver='sag'):
         self.penalty = penalty
         self.loss = loss
         self.dual = dual
@@ -33,6 +35,7 @@ class LinearSVC(object):
         self.random_state = random_state
         self.max_iter = max_iter
         # extra
+        self.lr_rate = lr_rate
         self.solver = solver
         self.__mid = None
         self.__mdtype = None
@@ -47,6 +50,10 @@ class LinearSVC(object):
         """
         NAME: fit
         """
+        if self.loss != 'hinge':
+            raise ValueError("fit: frovedis svm supports only hinge loss!")
+        if self.C < 0:
+            raise ValueError("fit: parameter C must be strictly positive!")
         self.release()
         self.__mid = ModelID.get()
         inp_data = FrovedisLabeledPoint(X, y)
@@ -69,6 +76,7 @@ class LinearSVC(object):
             regTyp = 2
         else:
             raise ValueError("Invalid penalty is provided: ", self.penalty)
+        rparam = 1.0 / self.C
 
         #Encoder
         target = [-1, 1]
@@ -77,15 +85,17 @@ class LinearSVC(object):
         (host, port) = FrovedisServer.getServerInstance()
         if self.solver == 'sag':
             rpclib.svm_sgd(host, port, X.get(), encoded_y.get(), \
-                           self.max_iter, self.C, regTyp, self.fit_intercept, \
+                           self.max_iter, self.lr_rate, \
+                           regTyp, rparam, self.fit_intercept, \
                            self.tol, self.verbose, self.__mid, dtype, \
                            itype, dense)
 
         elif self.solver == 'lbfgs':
             rpclib.svm_lbfgs(host, port, X.get(), encoded_y.get(), \
-                             self.max_iter, \
-                             self.C, regTyp, self.fit_intercept, self.tol, \
-                             self.verbose, self.__mid, dtype, itype, dense)
+                             self.max_iter, self.lr_rate, \
+                             regTyp, rparam, self.fit_intercept, \
+                             self.tol, self.verbose, self.__mid, dtype, \
+                             itype, dense)
         else:
             raise ValueError( \
               "Unknown solver %s for Linear SVM." % self.solver)
