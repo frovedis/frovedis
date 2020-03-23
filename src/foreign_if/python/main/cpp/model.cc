@@ -581,30 +581,26 @@ extern "C" {
                                            short mdtype) {
     if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
     exrpc_node fm_node(host, port);
-    PyObject* ret_ptr = NULL;
+    std::vector<size_t> ret;
     try {
       if (mdtype == FLOAT) {
-        std::vector<float> ret;
         switch(mkind) {
-          case NBM: ret = exrpc_async(fm_node, (get_cls_counts_vector<DT2,NBM2>), mid).get(); break;
+          case NBM: ret = exrpc_async(fm_node, (get_cls_counts_vector<DT5,NBM2>), mid).get(); break;
           default: REPORT_ERROR(USER_ERROR, "Unknown model for class_count vector extraction!\n");
         }
-        ret_ptr = to_python_float_list(ret);
       }
       else if (mdtype == DOUBLE) {
-        std::vector<double> ret;
         switch(mkind) {
-          case NBM: ret = exrpc_async(fm_node, (get_cls_counts_vector<DT1,NBM1>), mid).get(); break;
+          case NBM: ret = exrpc_async(fm_node, (get_cls_counts_vector<DT5,NBM1>), mid).get(); break;
           default: REPORT_ERROR(USER_ERROR, "Unknown model for class_count vector extraction!\n");
         }
-        ret_ptr = to_python_double_list(ret);
       }
       else REPORT_ERROR(USER_ERROR,"model dtype can either be float or double!\n");
     }
     catch (std::exception& e) {
       set_status(true, e.what());
     }
-    return ret_ptr;
+    return to_python_llong_list(ret);
   }
 
  void parallel_float_glm_predict(const char* host, int port,
