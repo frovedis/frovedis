@@ -104,15 +104,16 @@ extern "C" {
 
   // --- (2) Linear SVM ---
   void svm_sgd(const char* host, int port, long xptr, long yptr,
-               int iter, double al, int rtype, bool icpt, double tol,
-               int vb, int mid, short dtype, short itype, bool dense) {
+               int iter, double al, 
+               int rtype, double rprm, 
+               bool icpt, double tol, int vb, int mid, 
+               short dtype, short itype, bool dense) {
     if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
     exrpc_node fm_node(host,port);
     auto f_xptr = (exrpc_ptr_t) xptr;
     auto f_yptr = (exrpc_ptr_t) yptr;
     auto f_dptr = frovedis_mem_pair(f_xptr,f_yptr);
     double mbf = 1.0;   // default
-    double rprm = 0.01; // default
     bool mvbl = false; // auto-managed at python side
     try {
       if(dense) {
@@ -152,15 +153,16 @@ extern "C" {
   }
 
   void svm_lbfgs(const char* host, int port, long xptr, long yptr,
-                 int iter, double al, int rtype, bool icpt, double tol,
-                 int vb, int mid, short dtype, short itype, bool dense) {
+                 int iter, double al, 
+                 int rtype, double rprm, 
+                 bool icpt, double tol, int vb, int mid, 
+                 short dtype, short itype, bool dense) {
     if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
     exrpc_node fm_node(host,port);
     auto f_xptr = (exrpc_ptr_t) xptr;
     auto f_yptr = (exrpc_ptr_t) yptr;
     auto f_dptr = frovedis_mem_pair(f_xptr,f_yptr);
     int hs = 10;   // default
-    double rprm = 0.01; // default
     bool mvbl = false; // auto-managed at python side
     try {
       if(dense) {
@@ -201,24 +203,24 @@ extern "C" {
  
   // --- (3) Linear Regression ---
   void lnr_sgd(const char* host, int port, long xptr, long yptr,
-               bool icpt, int vb, int mid, short dtype, short itype, bool dense) {
+               int iter, double al,            
+               bool icpt, double tol, int vb, int mid, 
+               short dtype, short itype, bool dense) {
     if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
     exrpc_node fm_node(host,port);
     auto f_xptr = (exrpc_ptr_t) xptr;
     auto f_yptr = (exrpc_ptr_t) yptr;
     auto f_dptr = frovedis_mem_pair(f_xptr,f_yptr);
-    int iter = 1000;  //default
-    double al = 0.01;  //default
     double mbf = 1.0;  // default
     bool mvbl = false;  // auto-managed at python side
     try {
       if(dense) {
         switch(dtype) {
           case FLOAT:
-            exrpc_oneway(fm_node,(frovedis_lnr_sgd<DT2,D_MAT2>),f_dptr,iter,al,mbf,icpt,vb,mid,mvbl);
+            exrpc_oneway(fm_node,(frovedis_lnr_sgd<DT2,D_MAT2>),f_dptr,iter,al,mbf,icpt,tol,vb,mid,mvbl);
             break;
           case DOUBLE:
-            exrpc_oneway(fm_node,(frovedis_lnr_sgd<DT1,D_MAT1>),f_dptr,iter,al,mbf,icpt,vb,mid,mvbl);
+            exrpc_oneway(fm_node,(frovedis_lnr_sgd<DT1,D_MAT1>),f_dptr,iter,al,mbf,icpt,tol,vb,mid,mvbl);
             break;
           default: REPORT_ERROR(USER_ERROR, "Unsupported dtype of input dense data for training!\n");
         }
@@ -227,16 +229,16 @@ extern "C" {
         switch(dtype) {
           case FLOAT:
             if(itype == INT)
-              exrpc_oneway(fm_node,(frovedis_lnr_sgd<DT2,S_MAT24>),f_dptr,iter,al,mbf,icpt,vb,mid,mvbl);
+              exrpc_oneway(fm_node,(frovedis_lnr_sgd<DT2,S_MAT24>),f_dptr,iter,al,mbf,icpt,tol,vb,mid,mvbl);
             else if(itype == LONG)
-              exrpc_oneway(fm_node,(frovedis_lnr_sgd<DT2,S_MAT25>),f_dptr,iter,al,mbf,icpt,vb,mid,mvbl);
+              exrpc_oneway(fm_node,(frovedis_lnr_sgd<DT2,S_MAT25>),f_dptr,iter,al,mbf,icpt,tol,vb,mid,mvbl);
             else REPORT_ERROR(USER_ERROR, "Unsupported itype of input sparse data for training!\n");
             break;
           case DOUBLE:
             if(itype == INT)
-              exrpc_oneway(fm_node,(frovedis_lnr_sgd<DT1,S_MAT14>),f_dptr,iter,al,mbf,icpt,vb,mid,mvbl);
+              exrpc_oneway(fm_node,(frovedis_lnr_sgd<DT1,S_MAT14>),f_dptr,iter,al,mbf,icpt,tol,vb,mid,mvbl);
             else if(itype == LONG)
-              exrpc_oneway(fm_node,(frovedis_lnr_sgd<DT1,S_MAT15>),f_dptr,iter,al,mbf,icpt,vb,mid,mvbl);
+              exrpc_oneway(fm_node,(frovedis_lnr_sgd<DT1,S_MAT15>),f_dptr,iter,al,mbf,icpt,tol,vb,mid,mvbl);
             else REPORT_ERROR(USER_ERROR, "Unsupported itype of input sparse data for training!\n");
             break;
           default: REPORT_ERROR(USER_ERROR, "Unsupported dtype of input sparse data for training!\n");
@@ -249,24 +251,24 @@ extern "C" {
   }
 
   void lnr_lbfgs(const char* host, int port, long xptr, long yptr,
-                 bool icpt, int vb, int mid, short dtype, short itype, bool dense) {
+                 int iter, double al,            
+                 bool icpt, double tol, int vb, int mid, 
+                 short dtype, short itype, bool dense) {
     if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
     exrpc_node fm_node(host,port);
     auto f_xptr = (exrpc_ptr_t) xptr;
     auto f_yptr = (exrpc_ptr_t) yptr;
     auto f_dptr = frovedis_mem_pair(f_xptr,f_yptr);
-    int iter = 1000;  //default
-    double al = 0.01;  //default
     int hs = 10;  // default
     bool mvbl = false; // auto-managed at python side
     try {
       if(dense) {
         switch(dtype) {
           case FLOAT:
-            exrpc_oneway(fm_node,(frovedis_lnr_lbfgs<DT2,D_MAT2>),f_dptr,iter,al,hs,icpt,vb,mid,mvbl);
+            exrpc_oneway(fm_node,(frovedis_lnr_lbfgs<DT2,D_MAT2>),f_dptr,iter,al,hs,icpt,tol,vb,mid,mvbl);
             break;
           case DOUBLE:
-            exrpc_oneway(fm_node,(frovedis_lnr_lbfgs<DT1,D_MAT1>),f_dptr,iter,al,hs,icpt,vb,mid,mvbl);
+            exrpc_oneway(fm_node,(frovedis_lnr_lbfgs<DT1,D_MAT1>),f_dptr,iter,al,hs,icpt,tol,vb,mid,mvbl);
             break;
           default: REPORT_ERROR(USER_ERROR, "Unsupported dtype of input dense data for training!\n");
         }
@@ -275,16 +277,16 @@ extern "C" {
         switch(dtype) {
           case FLOAT:
             if(itype == INT)
-              exrpc_oneway(fm_node,(frovedis_lnr_lbfgs<DT2,S_MAT24>),f_dptr,iter,al,hs,icpt,vb,mid,mvbl);
+              exrpc_oneway(fm_node,(frovedis_lnr_lbfgs<DT2,S_MAT24>),f_dptr,iter,al,hs,icpt,tol,vb,mid,mvbl);
             else if(itype == LONG)
-              exrpc_oneway(fm_node,(frovedis_lnr_lbfgs<DT2,S_MAT25>),f_dptr,iter,al,hs,icpt,vb,mid,mvbl);
+              exrpc_oneway(fm_node,(frovedis_lnr_lbfgs<DT2,S_MAT25>),f_dptr,iter,al,hs,icpt,tol,vb,mid,mvbl);
             else REPORT_ERROR(USER_ERROR, "Unsupported itype of input sparse data for training!\n");
             break;
           case DOUBLE:
             if(itype == INT)
-              exrpc_oneway(fm_node,(frovedis_lnr_lbfgs<DT1,S_MAT14>),f_dptr,iter,al,hs,icpt,vb,mid,mvbl);
+              exrpc_oneway(fm_node,(frovedis_lnr_lbfgs<DT1,S_MAT14>),f_dptr,iter,al,hs,icpt,tol,vb,mid,mvbl);
             else if(itype == LONG)
-              exrpc_oneway(fm_node,(frovedis_lnr_lbfgs<DT1,S_MAT15>),f_dptr,iter,al,hs,icpt,vb,mid,mvbl);
+              exrpc_oneway(fm_node,(frovedis_lnr_lbfgs<DT1,S_MAT15>),f_dptr,iter,al,hs,icpt,tol,vb,mid,mvbl);
             else REPORT_ERROR(USER_ERROR, "Unsupported itype of input sparse data for training!\n");
             break;
           default: REPORT_ERROR(USER_ERROR, "Unsupported dtype of input sparse data for training!\n");
@@ -298,7 +300,8 @@ extern "C" {
 
   // --- (4) Lasso Regression ---
   void lasso_sgd(const char* host, int port, long xptr, long yptr,
-                 int iter, double al, bool icpt, double tol,
+                 int iter, double al, double rprm, 
+                 bool icpt, double tol,
                  int vb, int mid, short dtype, short itype, bool dense) {
     if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
     exrpc_node fm_node(host,port);
@@ -306,7 +309,6 @@ extern "C" {
     auto f_yptr = (exrpc_ptr_t) yptr;
     auto f_dptr = frovedis_mem_pair(f_xptr,f_yptr);
     double mbf = 1.0;   // default
-    double rprm = 0.01; // default
     bool mvbl = false; // auto-managed at python side
     try {
       if(dense) {
@@ -346,7 +348,8 @@ extern "C" {
   }
 
   void lasso_lbfgs(const char* host, int port, long xptr, long yptr,
-                   int iter, double al, bool icpt, double tol,
+                   int iter, double al, double rprm, 
+                   bool icpt, double tol,
                    int vb, int mid, short dtype, short itype, bool dense) {
     if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
     exrpc_node fm_node(host,port);
@@ -354,7 +357,6 @@ extern "C" {
     auto f_yptr = (exrpc_ptr_t) yptr;
     auto f_dptr = frovedis_mem_pair(f_xptr,f_yptr);
     int hs = 10;   // default
-    double rprm = 0.01; // default
     bool mvbl = false; // auto-managed at python side
     try {
       if(dense) {
@@ -395,7 +397,8 @@ extern "C" {
 
   // --- (5) Ridge Regression ---
   void ridge_sgd(const char* host, int port, long xptr, long yptr,
-                 int iter, double al, bool icpt, double tol,
+                 int iter, double al, double rprm, 
+                 bool icpt, double tol,
                  int vb, int mid, short dtype, short itype, bool dense) {
     if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
     exrpc_node fm_node(host,port);
@@ -403,7 +406,6 @@ extern "C" {
     auto f_yptr = (exrpc_ptr_t) yptr;
     auto f_dptr = frovedis_mem_pair(f_xptr,f_yptr);
     double mbf = 1.0;   // default
-    double rprm = 0.01; // default
     bool mvbl = false; // auto-managed at python side
     try {
       if(dense) {
@@ -443,7 +445,8 @@ extern "C" {
   }
 
   void ridge_lbfgs(const char* host, int port, long xptr, long yptr,
-                   int iter, double al, bool icpt, double tol,
+                   int iter, double al, double rprm, 
+                   bool icpt, double tol,
                    int vb, int mid, short dtype, short itype, bool dense) {
     if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
     exrpc_node fm_node(host,port);
@@ -451,7 +454,6 @@ extern "C" {
     auto f_yptr = (exrpc_ptr_t) yptr;
     auto f_dptr = frovedis_mem_pair(f_xptr,f_yptr);
     int hs = 10;   // default
-    double rprm = 0.01; // default
     bool mvbl = false; // auto-managed at python side
     try {
       if(dense) {
@@ -487,6 +489,23 @@ extern "C" {
     }
     catch (std::exception& e) {
       set_status(true, e.what());
+    }
+  }
+
+  // case: SGDClassifier with "squared_loss" 
+  void lnr2_sgd(const char* host, int port, long xptr, long yptr,
+               int iter, double al,
+               int rtype, double rprm,
+               bool icpt, double tol, int vb, int mid,
+               short dtype, short itype, bool dense) {
+    switch(rtype) {
+      case 0: lnr_sgd(host, port, xptr, yptr, iter, al, icpt, tol, vb, mid, dtype, itype, dense);
+              break;
+      case 1: lasso_sgd(host, port, xptr, yptr, iter, al, rprm, icpt, tol, vb, mid, dtype, itype, dense);
+              break;
+      case 2: ridge_sgd(host, port, xptr, yptr, iter, al, rprm, icpt, tol, vb, mid, dtype, itype, dense);
+              break;
+      default: REPORT_ERROR(USER_ERROR, "Unsupported regularization type is encountered!\n");
     }
   }
 
