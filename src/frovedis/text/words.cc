@@ -3,7 +3,9 @@
 #include "../core/radix_sort.hpp"
 #include "../core/set_operations.hpp"
 #include "../core/lower_bound.hpp"
+#include "../core/upper_bound.hpp"
 #include "../core/prefix_sum.hpp"
+#include "find_condition.hpp"
 #include <stdexcept>
 
 using namespace std;
@@ -687,6 +689,53 @@ words merge_words(const words& a, const words& b) {
   return r;
 }
 
+words merge_multi_words(const vector<words>& vecwords) {
+  words r;
+  auto vecwords_size = vecwords.size();
+  auto total_chars_size = 0;
+  auto total_starts_size = 0;
+  for(size_t i = 0; i < vecwords_size; i++) {
+    total_chars_size += vecwords[i].chars.size();
+    total_starts_size += vecwords[i].starts.size();
+  }
+  r.chars.resize(total_chars_size);
+  r.starts.resize(total_starts_size);
+  r.lens.resize(total_starts_size);
+  auto r_charsp = r.chars.data();
+  auto crnt_r_charsp = r_charsp;
+  for(size_t i = 0; i < vecwords_size; i++) {
+    auto crnt_charsp = vecwords[i].chars.data();
+    auto crnt_chars_size = vecwords[i].chars.size();
+    for(size_t j = 0; j < crnt_chars_size; j++) {
+      crnt_r_charsp[j] = crnt_charsp[j];
+    }
+    crnt_r_charsp += crnt_chars_size;
+  }
+  auto r_startsp = r.starts.data();
+  auto crnt_r_startsp = r_startsp;
+  auto crnt_shift = 0;
+  for(size_t i = 0; i < vecwords_size; i++) {
+    auto crnt_startsp = vecwords[i].starts.data();
+    auto crnt_starts_size = vecwords[i].starts.size();
+    for(size_t j = 0; j < crnt_starts_size; j++) {
+      crnt_r_startsp[j] = crnt_startsp[j] + crnt_shift;
+    }
+    crnt_r_startsp += crnt_starts_size;
+    crnt_shift += vecwords[i].chars.size();
+  }
+  auto r_lensp = r.lens.data();
+  auto crnt_r_lensp = r_lensp;
+  for(size_t i = 0; i < vecwords_size; i++) {
+    auto crnt_lensp = vecwords[i].lens.data();
+    auto crnt_lens_size = vecwords[i].lens.size();
+    for(size_t j = 0; j < crnt_lens_size; j++) {
+      crnt_r_lensp[j] = crnt_lensp[j];
+    }
+    crnt_r_lensp += crnt_lens_size;
+  }
+  return r;
+}
+
 // quite similar to concat_docs, but vectorization is differnt
 // since words are short
 // delimiter is also added to the end of the vector
@@ -695,8 +744,12 @@ vector<int> concat_words(const vector<int>& v,
                          const vector<size_t>& lens,
                          const string& delim,
                          vector<size_t>& new_starts) {
-  auto vp = v.data();
   auto starts_size = starts.size();
+  if(starts_size == 0) {
+    new_starts.resize(0);
+    return vector<int>();
+  }
+  auto vp = v.data();
   auto startsp = starts.data();
   auto lensp = lens.data();
   auto delim_size = delim.size();
@@ -781,5 +834,322 @@ std::vector<int> concat_words(const words& w, const string& delim,
   return concat_words(w.chars, w.starts, w.lens, delim, new_starts);
 }
 
+struct is_not_zero_like {
+  int operator()(size_t a) const {return !(a == 0);}
+};
+
+struct is_zero_like {
+  int operator()(size_t a) const {return a == 0;}
+};
+
+struct is_char_like {
+  is_char_like(int to_comp) : to_comp(to_comp) {}
+  int operator()(int a) const {return a == to_comp;}
+  int to_comp;
+};
+
+void advance_char_like(const vector<int>& chars,
+                       vector<size_t>& crnt_pos,
+                       vector<size_t>& crnt_lens,
+                       vector<size_t>& crnt_idx,
+                       int crnt_char) {
+  auto non_zero = find_condition(crnt_lens, is_not_zero_like());
+  auto non_zero_size = non_zero.size();
+  auto crnt_pos_size = crnt_pos.size();
+  if(non_zero_size != crnt_pos_size) {
+    vector<size_t> next_pos(non_zero_size);
+    vector<size_t> next_lens(non_zero_size);
+    vector<size_t> next_idx(non_zero_size);
+    auto next_posp = next_pos.data();
+    auto next_lensp = next_lens.data();
+    auto next_idxp = next_idx.data();
+    auto crnt_posp = crnt_pos.data();
+    auto crnt_lensp = crnt_lens.data();
+    auto crnt_idxp = crnt_idx.data();
+    auto non_zerop = non_zero.data();
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+    for(size_t i = 0; i < non_zero_size; i++) {
+      next_posp[i] = crnt_posp[non_zerop[i]];
+      next_lensp[i] = crnt_lensp[non_zerop[i]];
+      next_idxp[i] = crnt_idxp[non_zerop[i]];
+    }
+    crnt_pos.swap(next_pos);
+    crnt_lens.swap(next_lens);
+    crnt_idx.swap(next_idx);
+  }
+  auto char_found = find_condition_index(chars, crnt_pos,
+                                         is_char_like(crnt_char));
+  auto char_found_size = char_found.size();
+  vector<size_t> next_pos(char_found_size);
+  vector<size_t> next_lens(char_found_size);
+  vector<size_t> next_idx(char_found_size);
+  auto next_posp = next_pos.data();
+  auto next_lensp = next_lens.data();
+  auto next_idxp = next_idx.data();
+  auto crnt_posp = crnt_pos.data();
+  auto crnt_lensp = crnt_lens.data();
+  auto crnt_idxp = crnt_idx.data();
+  auto char_foundp = char_found.data();
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+  for(size_t i = 0; i < char_found_size; i++) {
+    next_posp[i] = crnt_posp[char_foundp[i]] + 1;
+    next_lensp[i] = crnt_lensp[char_foundp[i]] - 1;
+    next_idxp[i] = crnt_idxp[char_foundp[i]];
+  }
+  crnt_pos.swap(next_pos);
+  crnt_lens.swap(next_lens);
+  crnt_idx.swap(next_idx);
+}
+
+// return multiple candidates in one word
+// "%ab" need to match "acab"; 1st and 3rd pos need to be returned for "a"
+void advance_until_char_like(const vector<int>& chars,
+                             const vector<size_t>& starts,
+                             const vector<size_t>& lens,
+                             vector<size_t>& crnt_pos,
+                             vector<size_t>& crnt_lens,
+                             vector<size_t>& crnt_idx,
+                             int crnt_char) {
+
+  std::vector<std::vector<size_t>> hit_pos, hit_idx;
+  hit_pos.reserve(1000);
+  hit_idx.reserve(1000);
+  while(true) {
+    auto non_zero = find_condition(crnt_lens, is_not_zero_like());
+    auto non_zero_size = non_zero.size();
+    if(non_zero_size == 0) break;
+    auto crnt_pos_size = crnt_pos.size();
+    if(non_zero_size != crnt_pos_size) {
+      vector<size_t> next_pos(non_zero_size);
+      vector<size_t> next_lens(non_zero_size);
+      vector<size_t> next_idx(non_zero_size);
+      auto next_posp = next_pos.data();
+      auto next_lensp = next_lens.data();
+      auto next_idxp = next_idx.data();
+      auto crnt_posp = crnt_pos.data();
+      auto crnt_lensp = crnt_lens.data();
+      auto crnt_idxp = crnt_idx.data();
+      auto non_zerop = non_zero.data();
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+      for(size_t i = 0; i < non_zero_size; i++) {
+        next_posp[i] = crnt_posp[non_zerop[i]];
+        next_lensp[i] = crnt_lensp[non_zerop[i]];
+        next_idxp[i] = crnt_idxp[non_zerop[i]];
+      }
+      crnt_pos.swap(next_pos);
+      crnt_lens.swap(next_lens);
+      crnt_idx.swap(next_idx);
+    }
+    auto hit = find_condition_index(chars, crnt_pos, is_char_like(crnt_char));
+    auto hit_size = hit.size();
+    if(hit_size > 0) {
+      std::vector<size_t> hit_pos_tmp(hit_size);
+      std::vector<size_t>  hit_idx_tmp(hit_size);
+      auto hit_pos_tmpp = hit_pos_tmp.data();
+      auto hit_idx_tmpp = hit_idx_tmp.data();
+      auto crnt_posp = crnt_pos.data();
+      auto crnt_idxp = crnt_idx.data();
+      auto hitp = hit.data();
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+      for(size_t i = 0; i < hit_size; i++) {
+        hit_pos_tmpp[i] = crnt_posp[hitp[i]];
+        hit_idx_tmpp[i] = crnt_idxp[hitp[i]];
+      }
+      hit_pos.push_back(hit_pos_tmp);
+      hit_idx.push_back(hit_idx_tmp);
+    }
+    crnt_pos_size = crnt_pos.size();
+    auto crnt_posp = crnt_pos.data();
+    auto crnt_lensp = crnt_lens.data();
+    for(size_t i = 0; i < crnt_pos_size; i++) {
+      crnt_posp[i]++;
+      crnt_lensp[i]--;
+    }
+  }
+  set_multimerge_pair(hit_idx, hit_pos, crnt_idx, crnt_pos);
+  auto crnt_idx_size = crnt_idx.size();
+  crnt_lens.resize(crnt_idx_size);
+  auto crnt_idxp = crnt_idx.data();
+  auto crnt_posp = crnt_pos.data();
+  auto crnt_lensp = crnt_lens.data();
+  auto startsp = starts.data();
+  auto lensp = lens.data();
+  for(size_t i = 0; i < crnt_idx_size; i++) {
+    crnt_posp[i]++;
+  }
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+  for(size_t i = 0; i < crnt_idx_size; i++) {
+    crnt_lensp[i] =
+      lensp[crnt_idxp[i]] - (crnt_posp[i] - startsp[crnt_idxp[i]]);
+  }
+}
+
+std::vector<size_t> like(const std::vector<int>& chars,
+                         const std::vector<size_t>& starts,
+                         const std::vector<size_t>& lens,
+                         const std::string& to_search,
+                         int wild_card,
+                         int escape) {
+  auto to_search_size = to_search.size();
+  if(to_search_size == 0) return find_condition(lens, is_zero_like());
+  if(to_search[to_search_size-1] == escape)
+    throw runtime_error("like: format error. last char is escape");
+  auto starts_size = starts.size();
+  auto startsp = starts.data();
+  auto lensp = lens.data();
+  std::vector<size_t> crnt_pos(starts_size), crnt_lens(starts_size);
+  std::vector<size_t> crnt_idx(starts_size);
+  auto crnt_posp = crnt_pos.data();
+  auto crnt_lensp = crnt_lens.data();
+  auto crnt_idxp = crnt_idx.data();
+  for(size_t i = 0; i < starts_size; i++) {
+    crnt_posp[i] = startsp[i];
+    crnt_lensp[i] = lensp[i];
+    crnt_idxp[i] = i;
+  }
+  bool is_in_wildcard = false;
+  bool is_in_escape = false;
+  for(size_t i = 0; i < to_search_size; i++) {
+    int crnt_char = static_cast<int>(to_search[i]);
+    if(is_in_escape && is_in_wildcard) {
+      advance_until_char_like(chars, starts, lens, crnt_pos, crnt_lens,
+                              crnt_idx, crnt_char);
+      is_in_wildcard = false;
+      is_in_escape = false;
+    } else if(is_in_escape && !is_in_wildcard) {
+      advance_char_like(chars, crnt_pos, crnt_lens, crnt_idx, crnt_char);
+      is_in_escape = false;
+    } else if(!is_in_escape && is_in_wildcard) {
+      if(crnt_char == escape) {
+        is_in_escape = true;
+        continue;
+      } else if(crnt_char == wild_card) { // does not make sense, though
+        continue;
+      } else {
+        advance_until_char_like(chars, starts, lens, crnt_pos, crnt_lens,
+                                crnt_idx, crnt_char);
+        is_in_wildcard = false;
+      }
+    } else if(!is_in_escape && !is_in_wildcard) {
+      if(crnt_char == escape) {
+        is_in_escape = true;
+        continue;
+      } else if(crnt_char == wild_card) {
+        is_in_wildcard = true;
+        continue;
+      } else {
+        advance_char_like(chars, crnt_pos, crnt_lens, crnt_idx, crnt_char);
+      }
+    }
+  }
+  if(is_in_wildcard) {
+    return set_unique(crnt_idx);
+  } else {
+    auto r = find_condition(crnt_lens, is_zero_like());
+    auto r_size = r.size();
+    std::vector<size_t> ret_idx(r_size);
+    auto ret_idxp = ret_idx.data();
+    auto rp = r.data();
+    auto crnt_idxp = crnt_idx.data();
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+    for(size_t i = 0; i < r_size; i++) {
+      ret_idxp[i] = crnt_idxp[rp[i]];
+    }
+    return set_unique(ret_idx);
+  }
+}
+
+std::vector<size_t> like(const words& w, const std::string& to_search,
+                         int wild_card, int escape) {
+  return like(w.chars, w.starts, w.lens, to_search, wild_card, escape);
+}
+
+struct quote_and_escape_char {
+  int operator()(int a) const {return ((a == '\"') || (a == '\\'));}
+};
+
+// quote by "..." and escape '"' and '\' by '\' for saving csv file
+void quote_and_escape(words& ws) {
+  vector<size_t> new_starts;
+  // later ' ' is replaced by '"'
+  auto new_chars_concat = concat_words(ws, "  ", new_starts);
+  auto new_chars_size = new_chars_concat.size();
+  vector<int> new_chars(new_chars_size);
+  auto new_chars_concatp = new_chars_concat.data();
+  auto new_charsp = new_chars.data();
+  new_charsp[0] = ' ';
+  for(size_t i = 0; i < new_chars_size - 1; i++) {
+    new_charsp[i+1] = new_chars_concatp[i];
+  }
+  {vector<int> tmp; tmp.swap(new_chars_concat);} // clear
+  auto lensp = ws.lens.data();
+  auto new_startsp = new_starts.data();
+  auto starts_size = new_starts.size();
+  for(size_t i = 0; i < starts_size; i++) {
+    lensp[i] += 2;
+  }
+  auto to_escape = find_condition(new_chars, quote_and_escape_char());
+  auto to_escape_size = to_escape.size();
+  vector<int> ret_chars;
+  if(to_escape_size != 0) {
+    ret_chars.resize(new_chars_size + to_escape_size);
+    auto ret_charsp = ret_chars.data();
+    auto to_escapep = to_escape.data();
+    size_t start = 0;
+    for(size_t i = 0; i < to_escape_size; i++) {
+      size_t end = to_escapep[i];
+      for(size_t j = start; j < end; j++) {
+        ret_charsp[i + j] = new_charsp[j];
+      }
+      ret_charsp[i + end] = '\\';
+      start = end;
+    }
+    for(size_t j = start; j < new_chars_size; j++) {
+      ret_charsp[to_escape_size + j] = new_charsp[j];
+    }
+    auto escape_starts = upper_bound(new_starts, to_escape);
+    auto escape_starts_size = escape_starts.size();
+    auto escape_startsp = escape_starts.data();
+    start = 0;
+    for(size_t i = 0; i < escape_starts_size; i++) {
+      auto estart = escape_startsp[i];
+      /* -1 is safe because to_escape_size != 0
+         (last word is at starts_size) */
+      lensp[estart-1]++; 
+      auto end = estart;
+      for(size_t j = start; j < end; j++) {
+        new_startsp[j] += i;
+      }
+      start = end;
+    }
+    for(size_t j = start; j < starts_size; j++) {
+      new_startsp[j] += escape_starts_size;
+    }
+  } else {
+    ret_chars.swap(new_chars);
+  }
+  auto ret_charsp = ret_chars.data();
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+  for(size_t i = 0; i < starts_size; i++) {
+    ret_charsp[new_startsp[i]] = '"';
+    ret_charsp[new_startsp[i] + lensp[i] - 1] = '"';
+  }
+  ws.chars.swap(ret_chars);
+  ws.starts.swap(new_starts);
+}
 
 }

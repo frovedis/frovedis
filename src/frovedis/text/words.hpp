@@ -1,6 +1,8 @@
 #ifndef WORDS_HPP
 #define WORDS_HPP
 
+#include <vector>
+#include <string>
 #include "../core/mpi_rpc.hpp"
 #include "../core/serializehelper.hpp"
 
@@ -133,6 +135,8 @@ convert_position_to_word_count(const std::vector<size_t>& doc_starts,
 
 words merge_words(const words& a, const words& b);
 
+words merge_multi_words(const std::vector<words>&);
+
 std::vector<int> concat_words(const std::vector<int>& v,
                               const std::vector<size_t>& starts,
                               const std::vector<size_t>& len,
@@ -141,6 +145,17 @@ std::vector<int> concat_words(const std::vector<int>& v,
 
 std::vector<int> concat_words(const words& w, const std::string& delim,
                               std::vector<size_t>& new_starts);
+
+std::vector<size_t> like(const std::vector<int>& chars,
+                         const std::vector<size_t>& starts,
+                         const std::vector<size_t>& lens,
+                         const std::string& to_search,
+                         int wild_card = '%', int escape = '\\');
+std::vector<size_t> like(const words& w, const std::string& to_search,
+                         int wild_card = '%', int escape = '\\');
+
+// for saving CSV file
+void quote_and_escape(words& ws);
 
 }
 #endif
