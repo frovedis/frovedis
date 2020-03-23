@@ -62,6 +62,9 @@ class FPGrowth(object):
         midr = ModelID.get()
         (host, port) = FrovedisServer.getServerInstance()
         rpclib.fpgrowth_fpr(host, port, self.__mid, midr, confidence)
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
         return Fp_rules(midr)
 
     def load(self, fname):
