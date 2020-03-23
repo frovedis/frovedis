@@ -99,6 +99,14 @@ template <class T>
 struct is_nan {
   int operator()(T a) const {return isnan(a);}
 };
+
+#ifdef __ve__
+/* 
+Since isnan cannot be vectorized, specialized version is added.
+This code causes "dereferencing type-punned pointer will break
+strict-aliasing rules" warning in the case of g++, so ifdef'ed only for VE.
+(using double/float instead of int does not work, since it is NaN)
+*/
 template <>
 struct is_nan<double> {
   is_nan() {
@@ -121,6 +129,7 @@ struct is_nan<float> {
   }
   uint32_t mynan;
 };
+#endif
 
 template <class T>
 struct is_inf {
@@ -566,6 +575,29 @@ words float_to_words(const std::vector<T>& src, size_t prec = 6) {
   ret.trim_tail("."); // should be separated for like 100.0
   return ret;
 }
+
+template <class T>
+words number_to_words(const std::vector<T>& src, size_t prec = 6);
+template <>
+words number_to_words<float>(const std::vector<float>& src, size_t prec);
+template <>
+words number_to_words<double>(const std::vector<double>& src, size_t prec);
+template <>
+words number_to_words<int>(const std::vector<int>& src, size_t prec);
+template <>
+words number_to_words<long>(const std::vector<long>& src, size_t prec);
+template <>
+words number_to_words<long long>(const std::vector<long long>& src,
+                                 size_t prec);
+template <>
+words number_to_words<unsigned int>(const std::vector<unsigned int>& src,
+                                    size_t prec);
+template <>
+words number_to_words<unsigned long>(const std::vector<unsigned long>& src,
+                                     size_t prec);
+template <>
+words number_to_words<unsigned long long>
+(const std::vector<unsigned long long>& src, size_t prec);
 
 }
 #endif
