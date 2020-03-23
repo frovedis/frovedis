@@ -11,6 +11,14 @@
 #include "../core/mpihelper.hpp"
 #include "../core/partition_sort.hpp"
 #include "diag_matrix.hpp"
+#ifdef __ve__
+#include "../text/load_csv.hpp"
+#include "../text/parseint.hpp"
+#include "../text/parsefloat.hpp"
+#include "../text/int_to_words.hpp"
+#include "../text/float_to_words.hpp"
+#include "../core/utility.hpp"
+#endif
 
 #define MAT_VLEN 256
 
@@ -80,10 +88,7 @@ struct rowmajor_matrix_local {
   crs_matrix_local<T,I,O> to_crs();
   void debug_print();
   std::vector<T> get_row(size_t r) const;
-  void save(const std::string& file) {
-    std::ofstream str(file.c_str());
-    str << *this;
-  }
+  void save(const std::string& file);
   void clear() {
     std::vector<T> tmpval; tmpval.swap(val);
     local_num_row = 0;
@@ -138,6 +143,29 @@ node_local<rowmajor_matrix_local<T>> rowmajor_matrix_local<T>::broadcast() {
   return bval.template map<rowmajor_matrix_local<T>>
     (rowmajor_matrix_broadcast_helper<T>(local_num_row, local_num_col));
 }
+
+#ifdef __ve__
+template <class T>
+void rowmajor_matrix_local<T>::save(const std::string& file) {
+  std::vector<size_t> new_starts;
+  auto intvec = concat_words(number_to_words(val), " ", new_starts);
+  auto intvecp = intvec.data();
+  auto new_startsp = new_starts.data();
+#pragma _NEC ivdep
+  for(size_t i = 1; i < local_num_row; i++) {
+    intvecp[new_startsp[i*local_num_col]-1] = '\n';
+  }
+  if(intvec.size() > 0) intvecp[intvec.size()-1] = '\n';
+  auto str = int_to_char(intvec);
+  savebinary_local(str.data(), str.size(), file);
+}
+#else
+template <class T>
+void rowmajor_matrix_local<T>::save(const std::string& file) {
+  std::ofstream str(file.c_str());
+  str << *this;
+}
+#endif
 
 template <class T>
 std::ostream& operator<<(std::ostream& str,
@@ -199,12 +227,30 @@ std::istream& operator>>(std::istream& str,
   return str;
 }
 
+#ifdef __ve__
+template <class T>
+rowmajor_matrix_local<T>
+make_rowmajor_matrix_local_load(const std::string& file) {
+  std::vector<size_t> line_starts_byword;
+  auto ws = load_simple_csv_local(file, line_starts_byword, false, false, ' ');
+  rowmajor_matrix_local<T> ret;
+  ret.val = parsenumber<T>(ws);
+  if(line_starts_byword.size() > 1) { // 1st item is always 0
+    ret.local_num_col = line_starts_byword[1];
+  } else {
+    ret.local_num_col = ret.val.size();
+  }
+  ret.local_num_row = line_starts_byword.size();
+  return ret;
+}
+#else
 template <class T>
 rowmajor_matrix_local<T>
 make_rowmajor_matrix_local_load(const std::string& file) {
   std::ifstream str(file.c_str());
   return make_rowmajor_matrix_local_readstream<T>(str);
 }
+#endif
 
 // used for making (distributed) rowmajor_matrix
 template <class T>
@@ -613,12 +659,32 @@ void rowmajor_matrix_local<T>::savebinary(const std::string& dir) {
 template <class T, class I>
 void arg_partition(rowmajor_matrix_local<T>& key,
                    rowmajor_matrix_local<I>& value,
-                   size_t k) {
+                   size_t k,
+                   bool allow_multiple = false) {
   auto nrow = key.local_num_row;
   auto ncol = key.local_num_col;
   if (nrow != value.local_num_row && ncol != value.local_num_col)
     throw std::runtime_error("partition_sort: different dimension for key and value is encountered!\n");
-  partition_sort(key.val.data(), value.val.data(), nrow, ncol, k);
+  partition_sort(key.val.data(), value.val.data(), nrow, ncol, k, allow_multiple);
+}
+
+
+template <class T, class I = int>
+rowmajor_matrix_local<I>
+arg_partition(rowmajor_matrix_local<T>& key,
+              size_t k,
+              bool allow_multiple = false) {
+  auto nrow = key.local_num_row;
+  auto ncol = key.local_num_col;
+  rowmajor_matrix_local<I> ret(nrow, ncol);
+  auto iptr = ret.val.data();
+  for(size_t i = 0; i < nrow; ++i) {
+    for(size_t j = 0; j < ncol; ++j) {
+      iptr[i * ncol + j] = j; // storing col-index
+    }
+  }
+  partition_sort(key.val.data(), iptr, nrow, ncol, k, allow_multiple);
+  return ret;
 }
 
 /*
@@ -650,12 +716,9 @@ struct rowmajor_matrix {
   template <class I = size_t, class O = size_t>
   crs_matrix<T,I,O> to_crs();
   std::vector<T> get_row(size_t r);
-
+  std::vector<size_t> get_local_num_rows(); 
   void debug_print() {data.mapv(call_debug_print<rowmajor_matrix_local<T>>);}
-  void save(const std::string& file) {
-    std::ofstream str(file.c_str());
-    str << *this;
-  }
+  void save(const std::string& file);
   void clear() {
     data.mapv(rowmajor_clear_helper<T>);
     num_row = 0;
@@ -675,6 +738,11 @@ size_t rowmajor_get_local_num_row(const rowmajor_matrix_local<T>& mat) {
 template <class T>
 size_t rowmajor_get_local_num_col(const rowmajor_matrix_local<T>& mat) {
   return mat.local_num_col;
+}
+
+template <class T>
+std::vector<size_t> rowmajor_matrix<T>::get_local_num_rows() {
+  return data.map(rowmajor_get_local_num_row<T>).gather();
 }
 
 template <class T>
@@ -714,6 +782,31 @@ std::vector<T> rowmajor_matrix<T>::get_row(size_t pos) {
   throw std::runtime_error("get_row: invalid position");  
 }
 
+#ifdef __ve__
+template <class T>
+rowmajor_matrix<T> make_rowmajor_matrix_load(const std::string& input) {
+  auto line_starts_byword = make_node_local_allocate<std::vector<size_t>>(); 
+  auto ws = load_simple_csv(input, line_starts_byword, false, false, ' ');
+  rowmajor_matrix<T>
+    ret(ws.map(+[](const words& ws, const std::vector<size_t>& ls) {
+          rowmajor_matrix_local<T> ret;
+          ret.val = parsenumber<T>(ws);
+          if(ls.size() > 1) { // 1st item is always 0
+            ret.local_num_col = ls[1];
+          } else {
+            ret.local_num_col = ret.val.size();
+          }
+          ret.local_num_row = ls.size();
+          return ret;
+        }, line_starts_byword));
+  ret.num_row = ret.data.map(rowmajor_get_local_num_row<T>).reduce(add<size_t>);
+  ret.num_col = ret.data.map(rowmajor_get_local_num_col<T>).gather()[0];
+  // if number of row is zero, num_col is not set properly
+  ret.data.mapv(rowmajor_set_local_num_col<T>, broadcast(ret.num_col));
+  ret.align_block();
+  return ret;
+}
+#else
 template <class T>
 rowmajor_matrix<T> make_rowmajor_matrix_load(const std::string& input) {
   auto dvec = make_dvector_loadline(input);
@@ -726,6 +819,7 @@ rowmajor_matrix<T> make_rowmajor_matrix_load(const std::string& input) {
   ret.data.mapv(rowmajor_set_local_num_col<T>, broadcast(ret.num_col));
   return ret;
 }
+#endif
 
 template <class T>
 struct moveto_rowmajor_matrix_local {
@@ -838,6 +932,35 @@ std::ostream& operator<<(std::ostream& str, const rowmajor_matrix<T>& mat) {
   for(auto& l: gmat) str << l;
   return str;
 }
+
+#ifdef __ve__
+template <class T>
+void rowmajor_matrix<T>::save(const std::string& file) {
+  auto to_save = data.map(+[](rowmajor_matrix_local<T>& m) {
+      std::vector<size_t> new_starts;
+      auto intvec = concat_words(number_to_words(m.val), " ", new_starts);
+      auto intvecp = intvec.data();
+      auto intvec_size = intvec.size();
+      auto new_startsp = new_starts.data();
+      auto local_num_row = m.local_num_row;
+      auto local_num_col = m.local_num_col;
+      for(size_t i = 1; i < local_num_row; i++) {
+        intvecp[new_startsp[i*local_num_col]-1] = '\n';
+      }
+      if(intvec_size > 0) intvecp[intvec.size()-1] = '\n';
+      std::vector<char> ret(intvec_size);
+      int_to_char(intvecp, intvec_size, ret.data());
+      return ret;
+    });
+  to_save.template moveto_dvector<char>().savebinary(file);
+}
+#else
+template <class T>
+void rowmajor_matrix<T>::save(const std::string& file) {
+  std::ofstream str(file.c_str());
+  str << *this;
+}
+#endif
 
 std::vector<size_t> get_block_sizes(size_t num_row);
 std::vector<size_t> get_block_sizes(size_t num_row, size_t wsize);
