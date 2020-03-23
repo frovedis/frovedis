@@ -34,6 +34,33 @@ lda_model<TC> lda_train(
     const int num_topics, const int num_iter, const std::string& algorithm, 
     const int num_explore_iter, const int num_eval_cycle) {
 
+    rowmajor_matrix<TD> doc_topic_count;
+    const bool need_doc_topic_count = false; 
+    return lda_train<TC>(data_train, alpha, beta, num_topics, num_iter, algorithm,
+                     num_explore_iter, num_eval_cycle, 
+                     doc_topic_count, need_doc_topic_count); 
+}
+
+template <typename TC, typename TD = int32_t, typename TW = int32_t, typename TK = int32_t, typename TA = int16_t>
+lda_model<TC> lda_train(
+    crs_matrix<TD>& data_train, const double alpha, const double beta, 
+    const int num_topics, const int num_iter, const std::string& algorithm, 
+    const int num_explore_iter, const int num_eval_cycle,
+    rowmajor_matrix<TD>& doc_topic_count) {
+
+    const bool need_doc_topic_count = true;
+    return lda_train<TC>(data_train, alpha, beta, num_topics, num_iter, algorithm,
+                     num_explore_iter, num_eval_cycle, 
+                     doc_topic_count, need_doc_topic_count); 
+}
+
+template <typename TC, typename TD = int32_t, typename TW = int32_t, typename TK = int32_t, typename TA = int16_t>
+lda_model<TC> lda_train(
+    crs_matrix<TD>& data_train, const double alpha, const double beta, 
+    const int num_topics, const int num_iter, const std::string& algorithm, 
+    const int num_explore_iter, const int num_eval_cycle, 
+    rowmajor_matrix<TD>& doc_topic_count, const bool need_doc_topic_count) {
+
     // NOTE: delay_update=false causes error in some case. So we removed this from input params.
     const bool delay_update = true;  
 
@@ -255,9 +282,14 @@ lda_model<TC> lda_train(
 #endif    
     // ======================== save doc topic count ======================== //
     auto model = model_g.get(0);    
+    /* saving the doc_topic_count matrix */ 
+    if (need_doc_topic_count) { 
+      doc_topic_count = rowmajor_matrix<TD>(corpus_l.map(get_doc_topic_count_rmml<TD,TW,TK>));
+      doc_topic_count.num_row = data_train.num_row;
+      doc_topic_count.num_col = config.num_topics;
+    }
     return model;    
 }
-
 
 template <typename TC, typename TD = int32_t, typename TW = int32_t, 
           typename TK = int32_t, typename TA = int16_t>
