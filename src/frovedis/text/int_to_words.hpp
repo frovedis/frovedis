@@ -120,6 +120,7 @@ void int_to_words_write_digits(int* charsp, const size_t* startsp,
 
 template <class T, class U>
 words int_to_words_signed_helper(const T* srcp, size_t src_size) {
+  if(src_size == 0) return words();
   words ret;
   auto digits = get_digits_10<U>();
   auto digits_size = digits.size();
@@ -175,6 +176,7 @@ words int_to_words_signed_helper(const T* srcp, size_t src_size) {
 
 template <class T>
 words int_to_words_unsigned_helper(const T* srcp, size_t src_size) {
+  if(src_size == 0) return words();
   words ret;
   auto digits = get_digits_10<T>();
   auto digits_size = digits.size();
