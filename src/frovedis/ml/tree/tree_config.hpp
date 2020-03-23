@@ -89,7 +89,7 @@ struct sampling_strategy {
 
   sampling_strategy<T>&
   set_subsampling_strategy(const std::string& str) {
-    this->ss_str = get_subsampling_strategy(str);
+    this->ss_str = frovedis::tree::get_subsampling_strategy(str);
     return *this;
   }
 
@@ -106,7 +106,7 @@ struct sampling_strategy {
 
   sampling_strategy<T>&
   set_feature_subset_strategy(const std::string& str) {
-    this->fs_str = get_feature_subset_strategy(str);
+    this->fs_str = frovedis::tree::get_feature_subset_strategy(str);
     return *this;
   }
 
@@ -210,7 +210,7 @@ struct strategy {
   }
 
   strategy<T>& set_impurity_type(const std::string& str) {
-    this->impurity = get_impurity_type(str);
+    this->impurity = frovedis::tree::get_impurity_type(str);
     return *this;
   }
 
@@ -324,7 +324,7 @@ struct strategy {
   }
 
   strategy<T>& set_loss_type(const std::string& str) {
-    this->loss = get_loss_type(str);
+    this->loss = frovedis::tree::get_loss_type(str);
     return *this;
   }
 
