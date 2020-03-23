@@ -1,5 +1,7 @@
 #include "dict.hpp"
 #include "../core/utility.hpp"
+#include "../core/upper_bound.hpp"
+#include "../core/prefix_sum.hpp"
 #include <stdexcept>
 
 #include "words.hpp"
@@ -31,9 +33,9 @@ void compress_words(const int* vp,
   std::vector<size_t> compressed_lens_tmp(num_words);
   auto compressed_lens_tmpp = compressed_lens_tmp.data();
   for(size_t i = 0; i < num_words; i++) {
-    // not inlined?
-    // compressed_lens_tmpp[i] = ceil_div(lensp[i], size_t(8));
-    compressed_lens_tmpp[i] = (lensp[i] == 0) ? 0 : (lensp[i] - 1) / 8 + 1;
+    // if(lensp[i] == 0) lensp[i] should be 1, 
+    // because always at least one data should be stored
+    compressed_lens_tmpp[i] = (lensp[i] == 0) ? 1 : (lensp[i] - 1) / 8 + 1;
   }
   auto sep_tmp = set_separate(compressed_lens_tmp);
   auto sep_tmpp = sep_tmp.data();
@@ -166,25 +168,28 @@ void print_compressed_words(const std::vector<uint64_t>& compressed,
   cout << endl;
 }
 
-struct words compressed_words::decompress() {
-  struct words ret;
-  auto total_chars = words.size() * 8;
+words decompress_compressed_words(const std::vector<uint64_t>& cwords,
+                                  const std::vector<size_t>& lens,
+                                  const std::vector<size_t>& lens_num,
+                                  const std::vector<size_t>& order) {
+  words ret;
+  auto total_chars = cwords.size() * 8;
   ret.chars.resize(total_chars);
   auto charsp = ret.chars.data();
-  auto wordsp = words.data();
-  auto words_size = words.size();
-  for(size_t i = 0; i < words_size; i++) {
-    charsp[i*8] = (wordsp[i] >> (7 * 8)) & 0x00000000000000FF;
-    charsp[i*8+1] = (wordsp[i] >> (6 * 8)) & 0x00000000000000FF;
-    charsp[i*8+2] = (wordsp[i] >> (5 * 8)) & 0x00000000000000FF;
-    charsp[i*8+3] = (wordsp[i] >> (4 * 8)) & 0x00000000000000FF;
-    charsp[i*8+4] = (wordsp[i] >> (3 * 8)) & 0x00000000000000FF;
-    charsp[i*8+5] = (wordsp[i] >> (2 * 8)) & 0x00000000000000FF;
-    charsp[i*8+6] = (wordsp[i] >> (1 * 8)) & 0x00000000000000FF;
-    charsp[i*8+7] = wordsp[i] & 0x00000000000000FF;
+  auto cwordsp = cwords.data();
+  auto cwords_size = cwords.size();
+  for(size_t i = 0; i < cwords_size; i++) {
+    charsp[i*8] = (cwordsp[i] >> (7 * 8)) & 0x00000000000000FF;
+    charsp[i*8+1] = (cwordsp[i] >> (6 * 8)) & 0x00000000000000FF;
+    charsp[i*8+2] = (cwordsp[i] >> (5 * 8)) & 0x00000000000000FF;
+    charsp[i*8+3] = (cwordsp[i] >> (4 * 8)) & 0x00000000000000FF;
+    charsp[i*8+4] = (cwordsp[i] >> (3 * 8)) & 0x00000000000000FF;
+    charsp[i*8+5] = (cwordsp[i] >> (2 * 8)) & 0x00000000000000FF;
+    charsp[i*8+6] = (cwordsp[i] >> (1 * 8)) & 0x00000000000000FF;
+    charsp[i*8+7] = cwordsp[i] & 0x00000000000000FF;
   }
 
-  auto num_words_ = num_words();
+  auto num_words_ = order.size();
   vector<size_t> startstmp(num_words_);
   vector<size_t> lenstmp(num_words_);
   auto startstmpp = startstmp.data();
@@ -212,14 +217,24 @@ struct words compressed_words::decompress() {
     startsp[orderp[i]] = startstmpp[i];
     lensp[orderp[i]] = lenstmpp[i];
   }
-  ret.trim_tail("\0");
+  string to_trim; // initializing by "\0" does not work
+  to_trim.resize(1);
+  to_trim[0] = 0;
+  ret.trim_tail(to_trim);
   return ret;
 }
 
-void compressed_words::lexical_sort() {
+words compressed_words::decompress() const {
+  return decompress_compressed_words(cwords, lens, lens_num, order);
+}
+
+void lexical_sort_compressed_words(const std::vector<uint64_t>& cwords,
+                                   const std::vector<size_t>& lens,
+                                   const std::vector<size_t>& lens_num,
+                                   std::vector<size_t>& order) {
   if(lens.size() == 0) return;
-  auto num_words_ = num_words();
-  auto wordsp = words.data();
+  auto num_words_ = order.size();
+  auto cwordsp = cwords.data();
   vector<uint64_t> buf(num_words_);
   auto bufp = buf.data();
   vector<size_t> rev_order(num_words_);
@@ -237,7 +252,7 @@ void compressed_words::lexical_sort() {
     size_t work_size = num_words_ - tmp;
     size_t words_off = 0;
     for(size_t i = 0; i < lenpos; i++) words_off += lens_num[i] * lens[i];
-    auto crnt_wordsp = wordsp + words_off;
+    auto crnt_wordsp = cwordsp + words_off;
     auto work_buf = bufp + num_words_ - work_size;
     auto crnt_work_buf = work_buf;
     for(size_t i = lenpos; i < lens_size; i++) {
@@ -260,59 +275,67 @@ void compressed_words::lexical_sort() {
   }
 }
 
+void compressed_words::lexical_sort() {
+  lexical_sort_compressed_words(cwords, lens, lens_num, order);
+}
+
 compressed_words merge_compressed_words(const compressed_words& a,
                                         const compressed_words& b) {
+  if(a.cwords.size() == 0) return b;
+  else if (b.cwords.size() == 0) return a;
   compressed_words ret;
-  auto size = a.words.size() + b.words.size();
-  ret.words.resize(size);
+  auto size = a.cwords.size() + b.cwords.size();
+  ret.cwords.resize(size);
   ret.lens = set_union(a.lens, b.lens);
   ret.lens_num.resize(ret.lens.size());
   auto num_words = a.order.size() + b.order.size();
   ret.order.resize(num_words);
-  auto ret_wordsp = ret.words.data();
-  auto a_wordsp = a.words.data();
-  auto b_wordsp = b.words.data();
+  auto ret_cwordsp = ret.cwords.data();
+  auto a_cwordsp = a.cwords.data();
+  auto b_cwordsp = b.cwords.data();
   auto ret_orderp = ret.order.data();
   auto a_orderp = a.order.data();
   auto b_orderp = b.order.data();
   size_t aidx = 0;
   size_t bidx = 0;
-  auto crnt_ret_wordsp = ret_wordsp;
-  auto crnt_a_wordsp = a_wordsp;
-  auto crnt_b_wordsp = b_wordsp;
+  auto crnt_ret_cwordsp = ret_cwordsp;
+  auto crnt_a_cwordsp = a_cwordsp;
+  auto crnt_b_cwordsp = b_cwordsp;
   auto offset = a.order.size();
   auto crnt_ret_orderp = ret_orderp;
   auto crnt_a_orderp = a_orderp;
   auto crnt_b_orderp = b_orderp;
+  auto a_lens_size = a.lens.size();
+  auto b_lens_size = b.lens.size();
   for(size_t i = 0; i < ret.lens.size(); i++) {
-    auto crnt_lens_num = 0;
-    if(a.lens[aidx] == ret.lens[i]) {
+    size_t crnt_lens_num = 0;
+    if(aidx < a_lens_size && a.lens[aidx] == ret.lens[i]) {
       auto a_lens_num = a.lens_num[aidx];
       auto total_size = a_lens_num * a.lens[aidx];
       for(size_t j = 0; j < total_size; j++) {
-        crnt_ret_wordsp[j] = crnt_a_wordsp[j];
+        crnt_ret_cwordsp[j] = crnt_a_cwordsp[j];
       }
       for(size_t j = 0; j < a_lens_num; j++) {
         crnt_ret_orderp[j] = crnt_a_orderp[j];
       }
-      crnt_ret_wordsp += total_size;
-      crnt_a_wordsp += total_size;
+      crnt_ret_cwordsp += total_size;
+      crnt_a_cwordsp += total_size;
       crnt_ret_orderp += a_lens_num;
       crnt_a_orderp += a_lens_num;
       crnt_lens_num += a_lens_num;
       aidx++;
     }
-    if(b.lens[bidx] == ret.lens[i]) {
+    if(bidx < b_lens_size && b.lens[bidx] == ret.lens[i]) {
       auto b_lens_num = b.lens_num[bidx];
       auto total_size = b_lens_num * b.lens[bidx];
       for(size_t j = 0; j < total_size; j++) {
-        crnt_ret_wordsp[j] = crnt_b_wordsp[j];
+        crnt_ret_cwordsp[j] = crnt_b_cwordsp[j];
       }
       for(size_t j = 0; j < b_lens_num; j++) {
         crnt_ret_orderp[j] = crnt_b_orderp[j] + offset;
       }
-      crnt_ret_wordsp += total_size;
-      crnt_b_wordsp += total_size;
+      crnt_ret_cwordsp += total_size;
+      crnt_b_cwordsp += total_size;
       crnt_ret_orderp += b_lens_num;
       crnt_b_orderp += b_lens_num;
       crnt_lens_num += b_lens_num;
@@ -323,10 +346,135 @@ compressed_words merge_compressed_words(const compressed_words& a,
   return ret;
 }
 
+// TODO: copying at a time like merge_multi_words would be faster...
+// input is destructive: not const
+compressed_words
+merge_multi_compressed_words(vector<compressed_words>& vcws) {
+  auto vcws_size = vcws.size();
+  if(vcws_size == 0) {
+    return compressed_words();
+  } else if(vcws_size == 1) {
+    return vcws[0];
+  } else if(vcws_size == 2) {
+    return merge_compressed_words(vcws[0], vcws[1]);
+  } else {
+    auto left_size = ceil_div(vcws_size, size_t(2));
+    auto right_size = vcws_size - left_size;
+    vector<compressed_words> left(left_size);
+    vector<compressed_words> right(right_size);
+    for(size_t i = 0; i < left_size; i++) {
+      left[i] = move(vcws[i]);
+    }
+    for(size_t i = 0; i < right_size; i++) {
+      right[i] = move(vcws[left_size + i]);
+    }
+    return merge_compressed_words(merge_multi_compressed_words(left),
+                                  merge_multi_compressed_words(right));
+  }
+}
+
 compressed_words make_compressed_words(const words& w) {
   compressed_words ret;
-  compress_words(w.chars, w.starts, w.lens, ret.words, ret.lens, ret.lens_num,
+  compress_words(w.chars, w.starts, w.lens, ret.cwords, ret.lens, ret.lens_num,
                  ret.order);
+  return ret;
+}
+
+compressed_words
+compressed_words::extract(const std::vector<size_t>& idx) const {
+  auto idxp = idx.data();
+  auto idx_size = idx.size();
+  if(idx_size == 0) return compressed_words();
+  size_t max = 0;
+  for(size_t i = 0; i < idx_size; i++) {
+    if(max < idxp[i]) max = idxp[i];
+  }
+  auto order_size = order.size();
+  if(max >= order_size)
+    throw std::runtime_error
+      ("compressed_words::extract: index exceeds num_words");
+  std::vector<size_t> rorder(order_size);
+  auto rorderp = rorder.data();
+  auto orderp = order.data();
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+  for(size_t i = 0; i < order_size; i++) {
+    rorderp[orderp[i]] = i;
+  }
+  std::vector<size_t> sidx(idx_size);
+  auto sidxp = sidx.data();
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+  for(size_t i = 0; i < idx_size; i++) {
+    sidxp[i] = rorderp[idxp[i]];
+  }
+  compressed_words ret;
+  ret.order.resize(idx_size);
+  auto ret_orderp = ret.order.data();
+  for(size_t i = 0; i < idx_size; i++) ret_orderp[i] = i;
+  radix_sort(sidx, ret.order);
+  auto px_lens_num = prefix_sum(lens_num);
+  auto lens_pos = upper_bound(px_lens_num, sidx);
+  auto sep = set_separate(lens_pos);
+  auto ret_lens_size = sep.size() - 1;
+  ret.lens.resize(ret_lens_size);
+  ret.lens_num.resize(ret_lens_size);
+  auto ret_lensp = ret.lens.data();
+  auto ret_lens_nump = ret.lens_num.data();
+  auto sepp = sep.data();
+  auto lensp = lens.data();
+  auto lens_posp = lens_pos.data();
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+  for(size_t i = 0; i < ret_lens_size; i++) {
+    ret_lensp[i] = lensp[lens_posp[sepp[i]]];
+    ret_lens_nump[i] = sepp[i+1] - sepp[i];
+  }
+  size_t ret_cwords_len = 0;
+  for(size_t i = 0; i < ret_lens_size; i++) {
+    ret_cwords_len += ret_lensp[i] * ret_lens_nump[i];
+  }
+  ret.cwords.resize(ret_cwords_len);
+
+  auto lens_nump = lens_num.data();
+  auto lens_num_size = lens_num.size();
+  std::vector<size_t> mult_lens_num(lens_num_size);
+  auto mult_lens_nump = mult_lens_num.data();
+  for(size_t i = 0; i < lens_num_size; i++) {
+    mult_lens_nump[i] = lens_nump[i] * lensp[i];
+  }
+  std::vector<size_t> px_mult_lens_num(lens_num_size+1);
+  auto px_mult_lens_nump = px_mult_lens_num.data();
+  prefix_sum(mult_lens_num.data(), px_mult_lens_nump+1, lens_num_size);
+
+  auto ret_cwordsp = ret.cwords.data();
+  auto crnt_ret_cwordsp = ret_cwordsp;
+  auto cwordsp = cwords.data();
+  auto px_lens_nump = px_lens_num.data();
+  auto crnt_idx = 0;
+  sidxp = sidx.data();
+  for(size_t i = 0; i < ret_lens_size; i++) {
+    auto crnt_cwordsp = cwordsp + px_mult_lens_nump[lens_posp[sepp[i]]];
+    auto crnt_len = ret_lensp[i];
+    auto crnt_lens_num = ret_lens_nump[i];
+    auto to_shift =
+      lens_posp[sepp[i]] == 0 ? 0 : px_lens_nump[lens_posp[sepp[i]] - 1];
+#pragma _NEC novector
+#pragma _NEC vob
+    for(size_t l = 0; l < crnt_len; l++) {
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+      for(size_t j = 0; j < crnt_lens_num; j++) {
+        crnt_ret_cwordsp[j * crnt_len + l] =
+          crnt_cwordsp[(sidxp[crnt_idx + j] - to_shift) * crnt_len + l];
+      }
+    }
+    crnt_ret_cwordsp += crnt_len * crnt_lens_num;
+    crnt_idx += crnt_lens_num;
+  }
   return ret;
 }
 
@@ -404,7 +552,7 @@ dict make_dict(const words& w) {
                  compressed_lens_num, order);
   dict ret;
   unique_words(compressed, compressed_lens, compressed_lens_num,
-               ret.words, ret.lens, ret.lens_num);
+               ret.cwords, ret.lens, ret.lens_num);
   return ret;
 }
 
@@ -415,8 +563,8 @@ dict make_dict_from_words(const words& w) {
 // from compressed words
 dict make_dict(const compressed_words& comp) {
   dict ret;
-  unique_words(comp.words, comp.lens, comp.lens_num,
-               ret.words, ret.lens, ret.lens_num);
+  unique_words(comp.cwords, comp.lens, comp.lens_num,
+               ret.cwords, ret.lens, ret.lens_num);
   return ret;
 }
 
@@ -425,53 +573,59 @@ dict make_dict_from_compressed(const compressed_words& comp) {
 }
 
 dict merge_dict(const dict& a, const dict& b) {
-  auto size = a.words.size() + b.words.size();
-  vector<uint64_t> tmp_words(size);
+  auto asize = a.cwords.size();
+  auto bsize = b.cwords.size();
+  if(asize == 0) return b;
+  if(bsize == 0) return a;
+  auto size = asize + bsize;
+  vector<uint64_t> tmp_cwords(size);
   auto tmp_lens = set_union(a.lens, b.lens);
   vector<size_t> tmp_lens_num(tmp_lens.size());
-  auto tmp_wordsp = tmp_words.data();
-  auto a_wordsp = a.words.data();
-  auto b_wordsp = b.words.data();
+  auto tmp_cwordsp = tmp_cwords.data();
+  auto a_cwordsp = a.cwords.data();
+  auto b_cwordsp = b.cwords.data();
   size_t aidx = 0;
   size_t bidx = 0;
-  auto crnt_tmp_wordsp = tmp_wordsp;
-  auto crnt_a_wordsp = a_wordsp;
-  auto crnt_b_wordsp = b_wordsp;
+  auto crnt_tmp_cwordsp = tmp_cwordsp;
+  auto crnt_a_cwordsp = a_cwordsp;
+  auto crnt_b_cwordsp = b_cwordsp;
+  auto a_lens_size = a.lens.size();
+  auto b_lens_size = b.lens.size();
   for(size_t i = 0; i < tmp_lens.size(); i++) {
-    auto crnt_lens_num = 0;
-    if(a.lens[aidx] == tmp_lens[i]) {
+    size_t crnt_lens_num = 0;
+    if(aidx < a_lens_size && a.lens[aidx] == tmp_lens[i]) {
       auto total = a.lens_num[aidx] * a.lens[aidx];
       for(size_t j = 0; j < total; j++) {
-        crnt_tmp_wordsp[j] = crnt_a_wordsp[j];
+        crnt_tmp_cwordsp[j] = crnt_a_cwordsp[j];
       }
-      crnt_tmp_wordsp += total;
-      crnt_a_wordsp += total;
+      crnt_tmp_cwordsp += total;
+      crnt_a_cwordsp += total;
       crnt_lens_num += a.lens_num[aidx];
       aidx++;
     }
-    if(b.lens[bidx] == tmp_lens[i]) {
+    if(bidx < b_lens_size && b.lens[bidx] == tmp_lens[i]) {
       auto total = b.lens_num[bidx] * b.lens[bidx];
       for(size_t j = 0; j < total; j++) {
-        crnt_tmp_wordsp[j] = crnt_b_wordsp[j];
+        crnt_tmp_cwordsp[j] = crnt_b_cwordsp[j];
       }
-      crnt_tmp_wordsp += total;
-      crnt_b_wordsp += total;
+      crnt_tmp_cwordsp += total;
+      crnt_b_cwordsp += total;
       crnt_lens_num += b.lens_num[bidx];
       bidx++;
     }
     tmp_lens_num[i] = crnt_lens_num;
   }
   dict ret;
-  unique_words(tmp_words, tmp_lens, tmp_lens_num,
-               ret.words, ret.lens, ret.lens_num);
+  unique_words(tmp_cwords, tmp_lens, tmp_lens_num,
+               ret.cwords, ret.lens, ret.lens_num);
   return ret;
 }
 
 std::vector<size_t> dict::lookup(const compressed_words& cw) const {
-  auto& words_lookup = cw.words;
+  auto& cwords_lookup = cw.cwords;
   auto& lens_lookup = cw.lens;
   auto& lens_num_lookup = cw.lens_num;
-  if(words_lookup.size() == 0) return vector<size_t>();
+  if(cwords_lookup.size() == 0) return vector<size_t>();
   auto NOT_FOUND = numeric_limits<size_t>::max();
   size_t num_words_lookup = cw.num_words();
   std::vector<size_t> ret(num_words_lookup);
@@ -494,7 +648,7 @@ std::vector<size_t> dict::lookup(const compressed_words& cw) const {
   uint64_t packed_lookup_1st[DICT_VLEN];
 #pragma _NEC vreg(packed_lookup_1st)
 
-  auto crnt_words_lookupp = words_lookup.data();
+  auto crnt_cwords_lookupp = cwords_lookup.data();
   auto crnt_retp = retp;
   auto lens_lookup_size = lens_lookup.size();
 
@@ -507,13 +661,13 @@ std::vector<size_t> dict::lookup(const compressed_words& cw) const {
     }
     if(lenpos == lens.size()) { // no such len in dict
       for(size_t i = 0; i < to_lookup_size; i++) crnt_retp[i] = NOT_FOUND;
-      crnt_words_lookupp += len * to_lookup_size;
+      crnt_cwords_lookupp += len * to_lookup_size;
       crnt_retp += to_lookup_size;
       continue;
     }
     size_t total = 0;
     for(size_t i = 0; i < lenpos; i++) total += lens[i] * lens_num[i];
-    auto crnt_wordsp = words.data() + total;
+    auto crnt_cwordsp = cwords.data() + total;
     size_t offset = 0;
     for(size_t i = 0; i < lenpos; i++) offset += lens_num[i];
     size_t block_size = to_lookup_size / DICT_VLEN;
@@ -526,7 +680,7 @@ std::vector<size_t> dict::lookup(const compressed_words& cw) const {
         is_valid[j] = 1;
       }
       for(size_t j = 0; j < DICT_VLEN; j++) {
-        packed_lookup_1st[j] = crnt_words_lookupp[len * j];
+        packed_lookup_1st[j] = crnt_cwords_lookupp[len * j];
       }
       size_t max_iter = 0;
       auto tmp = lens_num[lenpos];
@@ -539,7 +693,7 @@ std::vector<size_t> dict::lookup(const compressed_words& cw) const {
 #pragma _NEC ivdep
         for(size_t j = 0; j < DICT_VLEN; j++) {
           if(is_valid[j]) {
-            auto packed_dict = crnt_wordsp[len * mid[j]];
+            auto packed_dict = crnt_cwordsp[len * mid[j]];
             is_eq[j] = (packed_dict == packed_lookup_1st[j]);
             is_lt[j] = (packed_dict < packed_lookup_1st[j]);
           }
@@ -548,8 +702,8 @@ std::vector<size_t> dict::lookup(const compressed_words& cw) const {
 #pragma _NEC ivdep
           for(size_t j = 0; j < DICT_VLEN; j++) {
             if(is_valid[j]) {
-              auto packed_lookup = crnt_words_lookupp[len * j + l];
-              auto packed_dict = crnt_wordsp[len * mid[j] + l];
+              auto packed_lookup = crnt_cwords_lookupp[len * j + l];
+              auto packed_dict = crnt_cwordsp[len * mid[j] + l];
               int crnt_is_eq = (packed_dict == packed_lookup);
               int crnt_is_lt = (packed_dict < packed_lookup);
               if(is_eq[j]) is_lt[j] = crnt_is_lt;
@@ -580,7 +734,7 @@ std::vector<size_t> dict::lookup(const compressed_words& cw) const {
         else crnt_retp[j] = NOT_FOUND;
       }
       crnt_retp += DICT_VLEN;
-      crnt_words_lookupp += len * DICT_VLEN;
+      crnt_cwords_lookupp += len * DICT_VLEN;
     }
     // remain; use different variable to avoid error (2.4.1)
     ssize_t left2[DICT_VLEN];
@@ -597,7 +751,7 @@ std::vector<size_t> dict::lookup(const compressed_words& cw) const {
       is_valid2[j] = 1;
     }
     for(size_t j = 0; j < remain; j++) {
-      packed_lookup_1st2[j] = crnt_words_lookupp[len * j];
+      packed_lookup_1st2[j] = crnt_cwords_lookupp[len * j];
     }
     size_t max_iter = 0;
     auto tmp = lens_num[lenpos];
@@ -610,7 +764,7 @@ std::vector<size_t> dict::lookup(const compressed_words& cw) const {
 #pragma _NEC ivdep
       for(size_t j = 0; j < remain; j++) {
         if(is_valid2[j]) {
-          auto packed_dict = crnt_wordsp[len * mid2[j]];
+          auto packed_dict = crnt_cwordsp[len * mid2[j]];
           is_eq2[j] = (packed_dict == packed_lookup_1st2[j]);
           is_lt2[j] = (packed_dict < packed_lookup_1st2[j]);
         }
@@ -619,8 +773,8 @@ std::vector<size_t> dict::lookup(const compressed_words& cw) const {
 #pragma _NEC ivdep
         for(size_t j = 0; j < remain; j++) {
           if(is_valid2[j]) {
-            auto packed_lookup = crnt_words_lookupp[len * j + l];
-            auto packed_dict = crnt_wordsp[len * mid2[j] + l];
+            auto packed_lookup = crnt_cwords_lookupp[len * j + l];
+            auto packed_dict = crnt_cwordsp[len * mid2[j] + l];
             int crnt_is_eq2 = (packed_dict == packed_lookup);
             int crnt_is_lt2 = (packed_dict < packed_lookup);
             if(is_eq2[j]) is_lt2[j] = crnt_is_lt2;
@@ -651,7 +805,7 @@ std::vector<size_t> dict::lookup(const compressed_words& cw) const {
       else crnt_retp[j] = NOT_FOUND;
     }
     crnt_retp += remain;
-    crnt_words_lookupp += len * remain;
+    crnt_cwords_lookupp += len * remain;
   }
   auto orderp = cw.order.data();
   std::vector<size_t> order_ret(num_words_lookup);
@@ -670,5 +824,38 @@ size_t dict::num_words() const {
   for(size_t i = 0; i < lens_num.size(); i++) num_words += lens_num[i];
   return num_words;
 }
+
+words dict::index_to_words(const std::vector<size_t>& idx) const {
+  auto num_words_ = num_words();
+  vector<size_t> order(num_words_);
+  auto orderp = order.data();
+  for(size_t i = 0; i < num_words_; i++) orderp[i] = i;
+  auto ws = decompress_compressed_words(cwords, lens, lens_num, order);
+  auto idx_size = idx.size();
+  auto idxp = idx.data();
+  vector<size_t> new_starts(idx_size), new_lens(idx_size);
+  auto new_startsp = new_starts.data();
+  auto new_lensp = new_lens.data();
+  auto startsp = ws.starts.data();
+  auto lensp = ws.lens.data();
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+  for(size_t i = 0; i < idx_size; i++) {
+    new_startsp[i] = startsp[idxp[i]];
+    new_lensp[i] = lensp[idxp[i]];
+  }
+  ws.starts.swap(new_starts);
+  ws.lens.swap(new_lens);
+  return ws;
+}
+
+words dict::decompress() const {
+  auto num_words_ = num_words();
+  vector<size_t> order(num_words_);
+  auto orderp = order.data();
+  for(size_t i = 0; i < num_words_; i++) orderp[i] = i;
+  return decompress_compressed_words(cwords, lens, lens_num, order);
+}  
 
 }

@@ -43,32 +43,48 @@ void print_compressed_words(const std::vector<uint64_t>& compressed,
                             const std::vector<size_t>& compressed_lens_num,
                             bool print_idx = false);
 
+words decompress_compressed_words(const std::vector<uint64_t>& cwords,
+                                  const std::vector<size_t>& lens,
+                                  const std::vector<size_t>& lens_num,
+                                  const std::vector<size_t>& order);
+
+void lexical_sort_compressed_words(const std::vector<uint64_t>& cwords,
+                                   const std::vector<size_t>& lens,
+                                   const std::vector<size_t>& lens_num,
+                                   std::vector<size_t>& order);
+
 struct compressed_words {
-  std::vector<uint64_t> words; // compressed
+  std::vector<uint64_t> cwords; // compressed
   std::vector<size_t> lens;
   std::vector<size_t> lens_num;
   std::vector<size_t> order;
   
-  struct words decompress();
+  struct words decompress() const;
   void lexical_sort();
-  void print() const {print_compressed_words(words, lens, lens_num, order);}
+  compressed_words extract(const std::vector<size_t>& idx) const; 
+  void print() const {print_compressed_words(cwords, lens, lens_num, order);}
   size_t num_words() const {return order.size();}
   
-  SERIALIZE(words, lens, lens_num, order)
+  SERIALIZE(cwords, lens, lens_num, order)
 };
 
 compressed_words merge_compressed_words(const compressed_words& a,
                                         const compressed_words& b);
 
+compressed_words
+merge_multi_compressed_words(std::vector<compressed_words>&);
+
 compressed_words make_compressed_words(const words&);
 
 struct dict {
-  std::vector<uint64_t> words; // compressed
+  std::vector<uint64_t> cwords; // compressed
   std::vector<size_t> lens;
   std::vector<size_t> lens_num;
 
-  void print() const {print_compressed_words(words, lens, lens_num, true);}
+  void print() const {print_compressed_words(cwords, lens, lens_num, true);}
   std::vector<size_t> lookup(const compressed_words& cw) const;
+  struct words index_to_words(const std::vector<size_t>& idx) const;
+  struct words decompress() const;
   template <class T, class I = size_t, class O = size_t>
   crs_matrix_local<T, I, O>
   lookup_to_crs_matrix(const compressed_words& cw,
@@ -76,7 +92,7 @@ struct dict {
 
   size_t num_words() const;
   
-  SERIALIZE(words, lens, lens_num)
+  SERIALIZE(cwords, lens, lens_num)
 };
 
 dict make_dict(const words& ws);
