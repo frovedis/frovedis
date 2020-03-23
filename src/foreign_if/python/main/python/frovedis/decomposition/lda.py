@@ -222,6 +222,9 @@ class LatentDirichletAllocation(object):
         if self._components is None:
             (host, port) = FrovedisServer.getServerInstance()
             dmat = compute_lda_component(host, port, self.__mid, self.__mdtype)
+            excpt = rpclib.check_server_exception()
+            if excpt["status"]:
+                raise RuntimeError(excpt["info"])
 	    #sklearn expects word-topic distribution, hence taking transpose
 	    #of the matrix
             self._components = FrovedisRowmajorMatrix(mat=dmat, \
