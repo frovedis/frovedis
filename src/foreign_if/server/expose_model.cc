@@ -47,8 +47,8 @@ void expose_frovedis_model_functions() {
   expose((get_pi_vector<DT2,NBM2>));
   expose((get_theta_vector<DT1,NBM1>));
   expose((get_theta_vector<DT2,NBM2>));
-  expose((get_cls_counts_vector<DT1,NBM1>));
-  expose((get_cls_counts_vector<DT2,NBM2>));
+  expose((get_cls_counts_vector<DT5,NBM1>));
+  expose((get_cls_counts_vector<DT5,NBM2>));
   // --- frovedis FMModel ---
   //expose(show_model<FMM1>);   // not supported
   //expose(show_model<FMM2>);   // for python (not supported)
