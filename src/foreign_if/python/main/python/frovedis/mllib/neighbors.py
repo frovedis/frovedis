@@ -71,6 +71,9 @@ class NearestNeighbors(object):
                        self.chunk_size,
                        self.verbose, self.__mid,
                        dtype, itype, dense)
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
         return self
 
     def kneighbors(self, X=None, n_neighbors=None, return_distance=True):
@@ -93,6 +96,9 @@ class NearestNeighbors(object):
         knn_res = rpclib.knn_kneighbors(host, port, x.get(), n_neighbors, 
                                         self.__mid, 
                                         return_distance, dtype)
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
         dummy_dist = {'dptr': knn_res['distances_ptr'], 
                       'nrow': knn_res['nrow_dist'],
                       'ncol': knn_res['ncol_dist'] }
@@ -135,6 +141,9 @@ class NearestNeighbors(object):
                                             self.__mid, 
                                             mode.encode("ascii"), 
                                             dtype) #allow type, dense
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
         ret = FrovedisCRSMatrix(mat=graph, 
                                 dtype=TypeUtil.to_numpy_dtype(dtype), 
                                 itype=np.int64)
@@ -164,6 +173,9 @@ class NearestNeighbors(object):
         dmat = rpclib.knn_radius_neighbors(host, port, x.get(), radius, 
                                            self.__mid, 
                                            return_distance, dtype)
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
         fmat = FrovedisCRSMatrix(mat=dmat, 
                                  dtype=TypeUtil.to_numpy_dtype(dtype), 
                                  itype=np.int64)
@@ -203,6 +215,9 @@ class NearestNeighbors(object):
                                                  self.__mid, 
                                                  mode.encode("ascii"), 
                                                  dtype)
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
         #TODO: pass itype, dense
         ret = FrovedisCRSMatrix(mat=dmat, 
                                 dtype=TypeUtil.to_numpy_dtype(dtype), 
@@ -309,6 +324,9 @@ class KNeighborsClassifier(object):
                        self.chunk_size,
                        self.verbose, self.__mid,
                        dtype, itype, dense)
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
         return self
 
     def kneighbors(self, X=None, n_neighbors=None, return_distance=True):
@@ -331,6 +349,9 @@ class KNeighborsClassifier(object):
         knn_res = rpclib.knc_kneighbors(host, port, x.get(), n_neighbors, 
                                         self.__mid, 
                                         return_distance, dtype) 
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
         dummy_dist = {'dptr': knn_res['distances_ptr'], 
                       'nrow': knn_res['nrow_dist'],
                       'ncol': knn_res['ncol_dist'] }
@@ -372,6 +393,9 @@ class KNeighborsClassifier(object):
                                             self.__mid, 
                                             mode.encode("ascii"), 
                                             dtype) 
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
         ret = FrovedisCRSMatrix(mat=graph, 
                                 dtype=TypeUtil.to_numpy_dtype(dtype), 
                                 itype=np.int64)
@@ -417,6 +441,9 @@ class KNeighborsClassifier(object):
                                       save_proba, ret, nsamples)
         else:
             raise TypeError("input type should be either float or double!")
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
         return ret
 
     def predict_proba(self, X):
@@ -434,6 +461,9 @@ class KNeighborsClassifier(object):
                              fitted data dtype")
         (host, port) = FrovedisServer.getServerInstance()
         dmat = rpclib.knc_predict_proba(host, port, X.get(), self.__mid, dtype) 
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
         ret =FrovedisRowmajorMatrix(mat=dmat, 
                                     dtype=TypeUtil.to_numpy_dtype(dtype))
         if test_data.is_movable() and self._X_movable:
@@ -463,6 +493,9 @@ class KNeighborsClassifier(object):
         (host, port) = FrovedisServer.getServerInstance()
         res = rpclib.knc_model_score(host, port, x.get(), y.get(), 
                                      self.__mid, dtype)
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
         return res
     
     def debug_print(self):
@@ -550,6 +583,9 @@ class KNeighborsRegressor(object):
                        self.chunk_size,
                        self.verbose, self.__mid,
                        dtype, itype, dense)
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
         return self
 
     def kneighbors(self, X=None, n_neighbors=None, return_distance=True):
@@ -571,6 +607,9 @@ class KNeighborsRegressor(object):
         (host, port) = FrovedisServer.getServerInstance()
         knn_res = rpclib.knr_kneighbors(host, port, x.get(), n_neighbors, 
                                         self.__mid, return_distance, dtype) 
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
         dummy_dist = {'dptr': knn_res['distances_ptr'], 
                       'nrow': knn_res['nrow_dist'],
                       'ncol': knn_res['ncol_dist'] }
@@ -612,6 +651,9 @@ class KNeighborsRegressor(object):
                                             self.__mid, 
                                             mode.encode("ascii"), 
                                             dtype) 
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
         ret = FrovedisCRSMatrix(mat=graph, 
                                 dtype=TypeUtil.to_numpy_dtype(dtype), 
                                 itype=np.int64)
@@ -657,6 +699,9 @@ class KNeighborsRegressor(object):
                                       ret, nsamples)
         else:
             raise TypeError("input type should be either float or double!")
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
         return ret
 
     def score(self, X, y, sample_weight=None):
@@ -681,6 +726,9 @@ class KNeighborsRegressor(object):
         (host, port) = FrovedisServer.getServerInstance()
         res = rpclib.knr_model_score(host, port, x.get(), y.get(), 
                                      self.__mid, dtype)
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
         return res
   
     def debug_print(self):
