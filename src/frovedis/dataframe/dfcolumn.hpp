@@ -8,6 +8,7 @@
 #include "../core/dunordered_map.hpp"
 #include "hashtable.hpp"
 #include "join.hpp"
+#include "../text/dict.hpp"
 
 #define DFNODESHIFT 48 // used to concatenate node id and local index
 
@@ -20,6 +21,8 @@ public:
   virtual std::vector<size_t> sizes() = 0;
   virtual void debug_print() = 0;
   virtual dvector<std::string> as_string() = 0;
+  virtual node_local<words> as_words(bool quote_escape = false,
+                                     const std::string& nullstr = "NULL") = 0;
   virtual node_local<std::vector<size_t>>
   filter_eq(std::shared_ptr<dfcolumn>& right) = 0;
   virtual node_local<std::vector<size_t>>
@@ -182,6 +185,8 @@ public:
   virtual size_t size();
   virtual std::vector<size_t> sizes();
   virtual dvector<std::string> as_string();
+  virtual node_local<words> as_words(bool escape = true,
+                                     const std::string& nullstr = "NULL");
   virtual node_local<std::vector<size_t>>
   filter_eq(std::shared_ptr<dfcolumn>& right);
   node_local<std::vector<size_t>>
@@ -338,6 +343,14 @@ public:
     {init(dv);}
   typed_dfcolumn(dvector<std::string>&& dv) : contain_nulls(false)
     {init(dv);}
+  typed_dfcolumn(dvector<std::string>& dv,
+                 node_local<std::vector<size_t>>& nulls_) {
+    init(dv); nulls = nulls_; contain_nulls_check();
+  }
+  typed_dfcolumn(dvector<std::string>&& dv,
+                 node_local<std::vector<size_t>>&& nulls_) {
+    init(dv); nulls = std::move(nulls_); contain_nulls_check();
+  }
   virtual size_t size();
   virtual std::vector<size_t> sizes();
   virtual node_local<std::vector<size_t>>
@@ -392,6 +405,8 @@ public:
   node_local<std::vector<size_t>> get_nulls();
   node_local<std::vector<std::string>> get_val();
   virtual dvector<std::string> as_string();
+  virtual node_local<words> as_words(bool quote_escape = false,
+                                     const std::string& nullstr = "NULL");
   virtual node_local<std::vector<size_t>> get_local_index();
   virtual std::pair<node_local<std::vector<size_t>>,
                     node_local<std::vector<size_t>>>
@@ -519,6 +534,468 @@ public:
   bool contain_nulls;
 };
 
+struct dic_string {}; // for tag
+
+template <>
+class typed_dfcolumn<dic_string> : public dfcolumn {
+public:
+  typed_dfcolumn() : contain_nulls(false) {}
+  typed_dfcolumn(node_local<words>& ws) : contain_nulls(false) {init(ws);}
+  typed_dfcolumn(node_local<words>&& ws) : contain_nulls(false) {init(ws);}
+  typed_dfcolumn(node_local<words>& ws,
+                 node_local<std::vector<size_t>>& nulls) :
+    nulls(nulls) {init(ws, false); contain_nulls_check();}
+  typed_dfcolumn(node_local<words>&& ws,
+                 node_local<std::vector<size_t>>&& nulls) :
+    nulls(std::move(nulls)) {init(ws, false); contain_nulls_check();}
+  typed_dfcolumn(node_local<compressed_words>& ws) : contain_nulls(false)
+    {init_compressed(ws);}
+  typed_dfcolumn(node_local<compressed_words>&& ws) : contain_nulls(false)
+    {init_compressed(ws);}
+  typed_dfcolumn(node_local<compressed_words>& ws,
+                 node_local<std::vector<size_t>>& nulls) :
+    nulls(nulls) {init_compressed(ws, false); contain_nulls_check();}
+  typed_dfcolumn(node_local<compressed_words>&& ws,
+                 node_local<std::vector<size_t>>&& nulls)
+    : nulls(std::move(nulls))
+    {init_compressed(ws, false); contain_nulls_check();}
+  virtual size_t size(); 
+  virtual std::vector<size_t> sizes(); 
+  virtual node_local<std::vector<size_t>>
+  filter_eq(std::shared_ptr<dfcolumn>& right);
+  virtual node_local<std::vector<size_t>>
+  filter_neq(std::shared_ptr<dfcolumn>& right);
+  virtual node_local<std::vector<size_t>>
+  filter_lt(std::shared_ptr<dfcolumn>& right) {
+    throw std::runtime_error("filtering with lt for dic_string");
+  }
+  virtual node_local<std::vector<size_t>>
+  filter_le(std::shared_ptr<dfcolumn>& right) {
+    throw std::runtime_error("filtering with le for dic_string");
+  }
+  virtual node_local<std::vector<size_t>>
+  filter_gt(std::shared_ptr<dfcolumn>& right) {
+    throw std::runtime_error("filtering with gt for dic_string");
+  }
+  virtual node_local<std::vector<size_t>>
+  filter_ge(std::shared_ptr<dfcolumn>& right) {
+    throw std::runtime_error("filtering with ge for dic_string");
+  }
+  virtual node_local<std::vector<size_t>>
+  filter_is_null();
+  virtual node_local<std::vector<size_t>>
+  filter_is_not_null();
+  node_local<std::vector<size_t>>
+  filter_like(const std::string& pattern);
+  node_local<std::vector<size_t>>
+  filter_not_like(const std::string& pattern);
+  virtual std::shared_ptr<dfcolumn>
+  extract(node_local<std::vector<size_t>>& idx);
+  virtual std::shared_ptr<dfcolumn>
+  global_extract(node_local<std::vector<size_t>>& global_idx,
+                 node_local<std::vector<size_t>>& to_store_idx,
+                 node_local<std::vector<std::vector<size_t>>>& exchanged_idx);
+  virtual std::shared_ptr<dfcolumn>
+  sort(node_local<std::vector<size_t>>& idx);
+  virtual std::shared_ptr<dfcolumn>
+  sort_desc(node_local<std::vector<size_t>>& idx);
+  virtual std::shared_ptr<dfcolumn>
+  sort_with_idx(node_local<std::vector<size_t>>& idx,
+                node_local<std::vector<size_t>>& ret_idx);
+  virtual std::shared_ptr<dfcolumn>
+  sort_with_idx_desc(node_local<std::vector<size_t>>& idx,
+                     node_local<std::vector<size_t>>& ret_idx);
+  virtual void debug_print();
+  node_local<std::vector<size_t>> get_nulls(){return nulls;}
+  node_local<std::vector<dic_string>> get_val() {
+    throw std::runtime_error("get_val is not defined for dic_string");
+  }
+  virtual dvector<std::string> as_string() {
+    throw std::runtime_error("as_string is obsolete");
+  }
+  virtual node_local<words> as_words(bool quote_escape = false,
+                                     const std::string& nullstr = "NULL");
+  virtual node_local<std::vector<size_t>> get_local_index();
+  virtual std::pair<node_local<std::vector<size_t>>,
+                    node_local<std::vector<size_t>>>
+  hash_join_eq(std::shared_ptr<dfcolumn>& right,
+               node_local<std::vector<size_t>>& left_full_local_idx, 
+               node_local<std::vector<size_t>>& right_full_local_idx);
+  virtual std::tuple<node_local<std::vector<size_t>>,
+                     node_local<std::vector<size_t>>,
+                     node_local<std::vector<size_t>>>
+  outer_hash_join_eq(std::shared_ptr<dfcolumn>& right,
+                     node_local<std::vector<size_t>>& left_full_local_idx, 
+                     node_local<std::vector<size_t>>& right_full_local_idx);
+  virtual std::pair<node_local<std::vector<size_t>>,
+                    node_local<std::vector<size_t>>>
+  bcast_join_eq(std::shared_ptr<dfcolumn>& right,
+                node_local<std::vector<size_t>>& left_full_local_idx, 
+                node_local<std::vector<size_t>>& right_full_local_idx);
+  virtual std::tuple<node_local<std::vector<size_t>>,
+                     node_local<std::vector<size_t>>,
+                     node_local<std::vector<size_t>>>
+  outer_bcast_join_eq(std::shared_ptr<dfcolumn>& right,
+                      node_local<std::vector<size_t>>& left_full_local_idx, 
+                      node_local<std::vector<size_t>>& right_full_local_idx);
+  virtual std::pair<node_local<std::vector<size_t>>,
+                    node_local<std::vector<size_t>>>
+  star_join_eq(std::shared_ptr<dfcolumn>& right,
+               node_local<std::vector<size_t>>& left_full_local_idx, 
+               node_local<std::vector<size_t>>& right_full_local_idx);
+  virtual void append_nulls(node_local<std::vector<size_t>>& to_append);
+  virtual std::shared_ptr<dfcolumn> group_by
+  (node_local<std::vector<size_t>>& local_idx,
+   node_local<std::vector<size_t>>& split_idx,
+   node_local<std::vector<std::vector<size_t>>>& hash_divide,
+   node_local<std::vector<std::vector<size_t>>>& merge_map);
+  virtual void
+  multi_group_by_sort(node_local<std::vector<size_t>>& local_idx);
+  virtual node_local<std::vector<size_t>>
+  multi_group_by_sort_split(node_local<std::vector<size_t>>& local_idx);
+  virtual node_local<std::vector<size_t>>
+  multi_group_by_split(node_local<std::vector<size_t>>& local_idx);
+  virtual std::shared_ptr<dfcolumn> multi_group_by_extract
+  (node_local<std::vector<size_t>>& local_idx,
+   node_local<std::vector<size_t>>& split_idx,
+   bool check_nulls);
+  virtual node_local<std::vector<size_t>>
+  calc_hash_base();
+  virtual void
+  calc_hash_base(node_local<std::vector<size_t>>& hash, int shift);
+  virtual std::shared_ptr<dfcolumn> 
+  multi_group_by_exchange(node_local<std::vector<std::vector<size_t>>>&
+                          hash_divide);
+  virtual std::shared_ptr<dfcolumn>
+  sum(node_local<std::vector<size_t>>& local_grouped_idx,
+      node_local<std::vector<size_t>>& local_idx_split,
+      node_local<std::vector<std::vector<size_t>>>& hash_divide,
+      node_local<std::vector<std::vector<size_t>>>& merge_map,
+      node_local<size_t>& row_sizes) {
+    throw std::runtime_error("sum of dic_string is not defined");
+  }
+  virtual std::shared_ptr<dfcolumn>
+  count(node_local<std::vector<size_t>>& local_grouped_idx,
+        node_local<std::vector<size_t>>& local_idx_split,
+        node_local<std::vector<std::vector<size_t>>>& hash_divide,
+        node_local<std::vector<std::vector<size_t>>>& merge_map,
+        node_local<size_t>& row_sizes);
+  virtual std::shared_ptr<dfcolumn>
+  avg(node_local<std::vector<size_t>>& local_grouped_idx,
+      node_local<std::vector<size_t>>& local_idx_split,
+      node_local<std::vector<std::vector<size_t>>>& hash_divide,
+      node_local<std::vector<std::vector<size_t>>>& merge_map,
+      node_local<size_t>& row_sizes) {
+    throw std::runtime_error("avg of dic_string is not defined");
+  }
+  virtual std::shared_ptr<dfcolumn>
+  max(node_local<std::vector<size_t>>& local_grouped_idx,
+      node_local<std::vector<size_t>>& local_idx_split,
+      node_local<std::vector<std::vector<size_t>>>& hash_divide,
+      node_local<std::vector<std::vector<size_t>>>& merge_map,
+      node_local<size_t>& row_sizes) {
+    throw std::runtime_error("max of dic_string is not defined");
+  }
+  virtual std::shared_ptr<dfcolumn>
+  min(node_local<std::vector<size_t>>& local_grouped_idx,
+      node_local<std::vector<size_t>>& local_idx_split,
+      node_local<std::vector<std::vector<size_t>>>& hash_divide,
+      node_local<std::vector<std::vector<size_t>>>& merge_map,
+      node_local<size_t>& row_sizes) {
+    throw std::runtime_error("min of dic_string is not defined");
+  }
+  virtual size_t count();
+  dic_string sum() {
+    throw std::runtime_error("sum of dic_string is not defined");
+  }
+  virtual double avg() {
+    throw std::runtime_error("avg of dic_string is not defined");
+  }
+  dic_string max() {
+    throw std::runtime_error("max of dic_string is not defined");
+  }
+  dic_string min() {
+    throw std::runtime_error("min of dic_string is not defined");
+  }
+  virtual dvector<float> as_dvector_float() {
+    throw std::runtime_error("as_dvector_float of dic_string is not defined");
+  } 
+  virtual dvector<double> as_dvector_double() {
+    throw std::runtime_error("as_dvector_double of dic_string is not defined");
+  }
+  virtual std::string dtype() const {return std::string("dic_string");}
+  virtual void save(const std::string& file);
+  virtual bool is_string() {return true;} // to check cachable in sort
+  void init(node_local<words>& ws, bool allocate_nulls = true);
+  void init_compressed(node_local<compressed_words>& ws,
+                       bool allocate_nulls = true);
+  typed_dfcolumn<size_t> sort_prepare();
+  node_local<std::vector<size_t>> equal_prepare
+  (std::shared_ptr<typed_dfcolumn<dic_string>>&);
+  virtual void contain_nulls_check();
+  virtual std::shared_ptr<dfcolumn> head(size_t limit);
+  virtual std::shared_ptr<dfcolumn> tail(size_t limit);
+  // dictionary is shared between columns; all node have the same dic
+  std::shared_ptr<node_local<dict>> dic;
+  node_local<std::vector<size_t>> val;
+  node_local<std::vector<size_t>> nulls;
+  bool contain_nulls;
+};
+
+struct raw_string {}; // for tag
+
+template <>
+class typed_dfcolumn<raw_string> : public dfcolumn {
+public:
+  typed_dfcolumn() : contain_nulls(false) {}
+  typed_dfcolumn(node_local<words>& ws) : contain_nulls(false) {init(ws);}
+  typed_dfcolumn(node_local<words>&& ws) : contain_nulls(false) {init(ws);}
+  typed_dfcolumn(node_local<words>& ws,
+                 node_local<std::vector<size_t>>& nulls) :
+    nulls(nulls) {init(ws, false); contain_nulls_check();}
+  typed_dfcolumn(node_local<words>&& ws,
+                 node_local<std::vector<size_t>>&& nulls) :
+    nulls(std::move(nulls)) {init(ws, false); contain_nulls_check();}
+  typed_dfcolumn(node_local<compressed_words>& ws) : contain_nulls(false)
+    {init_compressed(ws);}
+  typed_dfcolumn(node_local<compressed_words>&& ws) : contain_nulls(false)
+    {init_compressed(std::move(ws));}
+  typed_dfcolumn(node_local<compressed_words>& ws,
+                 node_local<std::vector<size_t>>& nulls) :
+    nulls(nulls) {init_compressed(ws, false); contain_nulls_check();}
+  typed_dfcolumn(node_local<compressed_words>&& ws,
+                 node_local<std::vector<size_t>>&& nulls)
+    : nulls(std::move(nulls))
+    {init_compressed(std::move(ws), false); contain_nulls_check();}
+  virtual size_t size(); 
+  virtual std::vector<size_t> sizes(); 
+  virtual node_local<std::vector<size_t>>
+  filter_eq(std::shared_ptr<dfcolumn>& right) {
+    throw std::runtime_error("filtering with eq for raw_string");
+  }
+  virtual node_local<std::vector<size_t>>
+  filter_neq(std::shared_ptr<dfcolumn>& right) {
+    throw std::runtime_error("filtering with neq for raw_string");
+  }
+  virtual node_local<std::vector<size_t>>
+  filter_lt(std::shared_ptr<dfcolumn>& right) {
+    throw std::runtime_error("filtering with lt for raw_string");
+  }
+  virtual node_local<std::vector<size_t>>
+  filter_le(std::shared_ptr<dfcolumn>& right) {
+    throw std::runtime_error("filtering with le for raw_string");
+  }
+  virtual node_local<std::vector<size_t>>
+  filter_gt(std::shared_ptr<dfcolumn>& right) {
+    throw std::runtime_error("filtering with gt for raw_string");
+  }
+  virtual node_local<std::vector<size_t>>
+  filter_ge(std::shared_ptr<dfcolumn>& right) {
+    throw std::runtime_error("filtering with ge for raw_string");
+  }
+  virtual node_local<std::vector<size_t>>
+  filter_is_null();
+  virtual node_local<std::vector<size_t>>
+  filter_is_not_null();
+  node_local<std::vector<size_t>>
+  filter_like(const std::string& pattern);
+  node_local<std::vector<size_t>>
+  filter_not_like(const std::string& pattern);
+  virtual std::shared_ptr<dfcolumn>
+  extract(node_local<std::vector<size_t>>& idx);
+  virtual std::shared_ptr<dfcolumn>
+  global_extract(node_local<std::vector<size_t>>& global_idx,
+                 node_local<std::vector<size_t>>& to_store_idx,
+                 node_local<std::vector<std::vector<size_t>>>& exchanged_idx);
+  virtual std::shared_ptr<dfcolumn>
+  sort(node_local<std::vector<size_t>>& idx) {
+    throw std::runtime_error("sort is not defined for raw_string");
+  }
+  virtual std::shared_ptr<dfcolumn>
+  sort_desc(node_local<std::vector<size_t>>& idx) {
+    throw std::runtime_error("sort_desc is not defined for raw_string");
+  }
+  virtual std::shared_ptr<dfcolumn>
+  sort_with_idx(node_local<std::vector<size_t>>& idx,
+                node_local<std::vector<size_t>>& ret_idx) {
+    throw std::runtime_error("sort_with_idx is not defined for raw_string");
+  }
+  virtual std::shared_ptr<dfcolumn>
+  sort_with_idx_desc(node_local<std::vector<size_t>>& idx,
+                     node_local<std::vector<size_t>>& ret_idx) {
+    throw std::runtime_error("sort_with_idx_desc is not defined for raw_string");
+  }
+  virtual void debug_print();
+  node_local<std::vector<size_t>> get_nulls(){return nulls;}
+  node_local<std::vector<raw_string>> get_val() {
+    throw std::runtime_error("get_val is not defined for raw_string");
+  }
+  virtual dvector<std::string> as_string() {
+    throw std::runtime_error("as_string is obsolete");
+  }
+  virtual node_local<words> as_words(bool quote_escape = false,
+                                     const std::string& nullstr = "NULL");
+  virtual node_local<std::vector<size_t>> get_local_index();
+  virtual std::pair<node_local<std::vector<size_t>>,
+                    node_local<std::vector<size_t>>>
+  hash_join_eq(std::shared_ptr<dfcolumn>& right,
+               node_local<std::vector<size_t>>& left_full_local_idx, 
+               node_local<std::vector<size_t>>& right_full_local_idx) {
+    throw std::runtime_error("join is not defined for raw_string");
+  }
+  virtual std::tuple<node_local<std::vector<size_t>>,
+                     node_local<std::vector<size_t>>,
+                     node_local<std::vector<size_t>>>
+  outer_hash_join_eq(std::shared_ptr<dfcolumn>& right,
+                     node_local<std::vector<size_t>>& left_full_local_idx, 
+                     node_local<std::vector<size_t>>& right_full_local_idx) {
+    throw std::runtime_error("join is not defined for raw_string");
+  }
+  virtual std::pair<node_local<std::vector<size_t>>,
+                    node_local<std::vector<size_t>>>
+  bcast_join_eq(std::shared_ptr<dfcolumn>& right,
+                node_local<std::vector<size_t>>& left_full_local_idx, 
+                node_local<std::vector<size_t>>& right_full_local_idx) {
+    throw std::runtime_error("join is not defined for raw_string");
+  }
+  virtual std::tuple<node_local<std::vector<size_t>>,
+                     node_local<std::vector<size_t>>,
+                     node_local<std::vector<size_t>>>
+  outer_bcast_join_eq(std::shared_ptr<dfcolumn>& right,
+                      node_local<std::vector<size_t>>& left_full_local_idx, 
+                      node_local<std::vector<size_t>>& right_full_local_idx) {
+    throw std::runtime_error("join is not defined for raw_string");
+  }
+  virtual std::pair<node_local<std::vector<size_t>>,
+                    node_local<std::vector<size_t>>>
+  star_join_eq(std::shared_ptr<dfcolumn>& right,
+               node_local<std::vector<size_t>>& left_full_local_idx, 
+               node_local<std::vector<size_t>>& right_full_local_idx) {
+    throw std::runtime_error("join is not defined for raw_string");
+  }
+  virtual void append_nulls(node_local<std::vector<size_t>>& to_append);
+  virtual std::shared_ptr<dfcolumn> group_by
+  (node_local<std::vector<size_t>>& local_idx,
+   node_local<std::vector<size_t>>& split_idx,
+   node_local<std::vector<std::vector<size_t>>>& hash_divide,
+   node_local<std::vector<std::vector<size_t>>>& merge_map) {
+    throw std::runtime_error("group_by is not defined for raw_string");
+  }
+  virtual void
+  multi_group_by_sort(node_local<std::vector<size_t>>& local_idx) {
+    throw std::runtime_error("group_by is not defined for raw_string");
+  }
+  virtual node_local<std::vector<size_t>>
+  multi_group_by_sort_split(node_local<std::vector<size_t>>& local_idx) {
+    throw std::runtime_error("group_by is not defined for raw_string");
+  }
+  virtual node_local<std::vector<size_t>>
+  multi_group_by_split(node_local<std::vector<size_t>>& local_idx) {
+    throw std::runtime_error("group_by is not defined for raw_string");
+  }
+  virtual std::shared_ptr<dfcolumn> multi_group_by_extract
+  (node_local<std::vector<size_t>>& local_idx,
+   node_local<std::vector<size_t>>& split_idx,
+   bool check_nulls) {
+    throw std::runtime_error("group_by is not defined for raw_string");
+  }
+  virtual node_local<std::vector<size_t>>
+  calc_hash_base() {
+    throw std::runtime_error("group_by is not defined for raw_string");
+  }
+  virtual void
+  calc_hash_base(node_local<std::vector<size_t>>& hash, int shift) {
+    throw std::runtime_error("group_by is not defined for raw_string");
+  }
+  virtual std::shared_ptr<dfcolumn> 
+  multi_group_by_exchange(node_local<std::vector<std::vector<size_t>>>&
+                          hash_divide) {
+    throw std::runtime_error("group_by is not defined for raw_string");
+  }
+  virtual std::shared_ptr<dfcolumn>
+  sum(node_local<std::vector<size_t>>& local_grouped_idx,
+      node_local<std::vector<size_t>>& local_idx_split,
+      node_local<std::vector<std::vector<size_t>>>& hash_divide,
+      node_local<std::vector<std::vector<size_t>>>& merge_map,
+      node_local<size_t>& row_sizes) {
+    throw std::runtime_error("sum of raw_string is not defined");
+  }
+  virtual std::shared_ptr<dfcolumn>
+  count(node_local<std::vector<size_t>>& local_grouped_idx,
+        node_local<std::vector<size_t>>& local_idx_split,
+        node_local<std::vector<std::vector<size_t>>>& hash_divide,
+        node_local<std::vector<std::vector<size_t>>>& merge_map,
+        node_local<size_t>& row_sizes) {
+    throw std::runtime_error("count of raw_string is not defined");
+  }
+  virtual std::shared_ptr<dfcolumn>
+  avg(node_local<std::vector<size_t>>& local_grouped_idx,
+      node_local<std::vector<size_t>>& local_idx_split,
+      node_local<std::vector<std::vector<size_t>>>& hash_divide,
+      node_local<std::vector<std::vector<size_t>>>& merge_map,
+      node_local<size_t>& row_sizes) {
+    throw std::runtime_error("avg of raw_string is not defined");
+  }
+  virtual std::shared_ptr<dfcolumn>
+  max(node_local<std::vector<size_t>>& local_grouped_idx,
+      node_local<std::vector<size_t>>& local_idx_split,
+      node_local<std::vector<std::vector<size_t>>>& hash_divide,
+      node_local<std::vector<std::vector<size_t>>>& merge_map,
+      node_local<size_t>& row_sizes) {
+    throw std::runtime_error("max of raw_string is not defined");
+  }
+  virtual std::shared_ptr<dfcolumn>
+  min(node_local<std::vector<size_t>>& local_grouped_idx,
+      node_local<std::vector<size_t>>& local_idx_split,
+      node_local<std::vector<std::vector<size_t>>>& hash_divide,
+      node_local<std::vector<std::vector<size_t>>>& merge_map,
+      node_local<size_t>& row_sizes) {
+    throw std::runtime_error("min of raw_string is not defined");
+  }
+  virtual size_t count();
+  raw_string sum() {
+    throw std::runtime_error("sum of raw_string is not defined");
+  }
+  virtual double avg() {
+    throw std::runtime_error("avg of raw_string is not defined");
+  }
+  raw_string max() {
+    throw std::runtime_error("max of raw_string is not defined");
+  }
+  raw_string min() {
+    throw std::runtime_error("min of raw_string is not defined");
+  }
+  virtual dvector<float> as_dvector_float() {
+    throw std::runtime_error("as_dvector_float of raw_string is not defined");
+  } 
+  virtual dvector<double> as_dvector_double() {
+    throw std::runtime_error("as_dvector_double of raw_string is not defined");
+  }
+  virtual std::string dtype() const {return std::string("raw_string");}
+  virtual void save(const std::string& file);
+  virtual bool is_string() {return true;} // to check cachable in sort
+  void init(node_local<words>& ws, bool allocate_nulls = true);
+  void init_compressed(node_local<compressed_words>&& ws,
+                       bool allocate_nulls = true);
+  void init_compressed(node_local<compressed_words>& ws,
+                       bool allocate_nulls = true);
+  typed_dfcolumn<size_t> sort_prepare() {
+    throw std::runtime_error("sort is not defined for raw_string");
+  }
+  node_local<std::vector<size_t>> equal_prepare
+  (std::shared_ptr<typed_dfcolumn<raw_string>>&) {
+    throw std::runtime_error("eq is not defined for raw_string");
+  }
+  virtual void contain_nulls_check();
+  virtual std::shared_ptr<dfcolumn> head(size_t limit);
+  virtual std::shared_ptr<dfcolumn> tail(size_t limit);
+  void align_as(const std::vector<size_t>&);
+  // dictionary is shared between columns; all node have the same dic
+  node_local<compressed_words> comp_words;
+  node_local<std::vector<size_t>> nulls;
+  bool contain_nulls;
+};
+
 template <class T>
 dvector<T> dfcolumn::as_dvector() {
   try {
@@ -576,11 +1053,6 @@ local_to_global_idx(node_local<std::vector<size_t>>& local_idx);
 
 struct shift_local_index {
   size_t operator()(size_t i, size_t shift) {return i+shift;}
-  SERIALIZE_NONE
-};
-
-struct shiftback_local_index {
-  size_t operator()(size_t i, size_t shift) {return i-shift;}
   SERIALIZE_NONE
 };
 

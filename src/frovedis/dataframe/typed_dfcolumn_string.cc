@@ -1,5 +1,8 @@
 #include "dfcolumn_impl.hpp"
 #include <regex>
+#if !(defined(_SX) || defined(__ve__))
+#include <unordered_set>
+#endif
 
 namespace frovedis {
 
@@ -506,7 +509,7 @@ typed_dfcolumn<string>::star_join_eq
                                 nulls, left_non_null_idx);
   } else {
     left_non_null_val = val.map(extract_helper2<size_t>, left_full_local_idx);
-    left_non_null_idx = std::move(left_full_local_idx);
+    left_non_null_idx = left_full_local_idx;
   }
   auto right_non_null_idx = make_node_local_allocate<std::vector<size_t>>();
   auto right_val = equal_prepare(right2);
@@ -745,6 +748,78 @@ typed_dfcolumn<string>::get_nulls(){return nulls;}
 
 dvector<std::string> typed_dfcolumn<string>::as_string() {
   return get_val().template moveto_dvector<std::string>();
+}
+
+words vector_string_to_words(const vector<string>& str) {
+  words ret;
+  auto size = str.size();
+  if(size == 0) return ret;
+  auto strp = str.data();
+  ret.lens.resize(size);
+  auto lensp = ret.lens.data();
+  for(size_t i = 0; i < size; i++) {
+    lensp[i] = strp[i].size();
+  }
+  ret.starts.resize(size);
+  auto startsp = ret.starts.data();
+  prefix_sum(lensp, startsp+1, size-1);
+  auto total_size = startsp[size-1] + lensp[size-1];
+  ret.chars.resize(total_size);
+  auto charsp = ret.chars.data();
+  for(size_t i = 0; i < size; i++) {
+    auto crnt_strp = strp[i].data();
+    for(size_t j = 0; j < lensp[i]; j++) {
+      charsp[startsp[i] + j] = crnt_strp[j];
+    }
+  }
+  return ret;
+}
+
+words dfcolumn_string_as_words_helper(const std::vector<string>& str,
+                                      const std::vector<size_t>& nulls,
+                                      const std::string& nullstr) {
+  auto ws = vector_string_to_words(str);
+  auto nulls_size = nulls.size();
+  auto nullsp = nulls.data();
+  auto nullstrvec = char_to_int(nullstr);
+  auto nullstr_size = nullstr.size();
+  auto chars_size = ws.chars.size();
+  auto newchars_size = chars_size + nullstr_size;
+  auto charsp = ws.chars.data();
+  std::vector<int> newchars(newchars_size);
+  auto newcharsp = newchars.data();
+  for(size_t i = 0; i < chars_size; i++) newcharsp[i] = charsp[i];
+  auto nullstrvecp = nullstrvec.data();
+  for(size_t i = 0; i < nullstr_size; i++) {
+    newcharsp[chars_size + i] = nullstrvecp[i];
+  }
+  ws.chars.swap(newchars);
+  size_t nullstart = chars_size;
+  size_t nulllens = nullstr_size;
+  auto startsp = ws.starts.data();
+  auto lensp = ws.lens.data();
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob  
+  for(size_t i = 0; i < nulls_size; i++) {
+    startsp[nullsp[i]] = nullstart;
+    lensp[nullsp[i]] = nulllens;
+  }
+  return ws;
+}
+
+node_local<words> typed_dfcolumn<string>::as_words(bool quote_escape,
+                                                   const std::string& nullstr) {
+  if(contain_nulls) {
+    auto nl_words = get_val().map(dfcolumn_string_as_words_helper, nulls,
+                                  broadcast(nullstr));
+    if(quote_escape) nl_words.mapv(quote_and_escape);
+    return nl_words;
+  } else {
+    auto nl_words = get_val().map(vector_string_to_words);
+    if(quote_escape) nl_words.mapv(quote_and_escape);
+    return nl_words;
+  }
 }
 
 node_local<std::vector<size_t>> typed_dfcolumn<string>::get_local_index() {
@@ -1016,7 +1091,7 @@ typed_dfcolumn<string>::head(size_t limit) {
   ret->val = val.viewas_dvector<size_t>().head(limit).moveto_node_local();
   if(contain_nulls) {
     ret->nulls = limit_nulls_head(nulls, sizes(), limit);
-    ret->contain_nulls = true;
+    ret->contain_nulls_check();
   } else {
     ret->nulls = make_node_local_allocate<std::vector<size_t>>();    
   }
@@ -1032,10 +1107,9 @@ typed_dfcolumn<string>::tail(size_t limit) {
   auto new_sizes = ret->val.template viewas_dvector<size_t>().sizes();
   if(contain_nulls) {
     ret->nulls = limit_nulls_tail(nulls, sizes(), new_sizes, limit);
-    ret->contain_nulls = true;
+    ret->contain_nulls_check();
   } else {
     ret->nulls = make_node_local_allocate<std::vector<size_t>>();    
-    ret->contain_nulls = true;
   }
   ret->dic = dic;
   ret->dic_idx = dic_idx;

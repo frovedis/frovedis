@@ -1,6 +1,12 @@
+#include <unordered_set>
 #include "dftable.hpp"
 #include "dfoperator.hpp"
 #include "dftable_to_string.hpp"
+#include "dftable_to_words.hpp"
+#include "make_dftable_loadtext.hpp"
+#include "../text/char_int_conv.hpp"
+#include "../text/load_text.hpp"
+#include "../core/prefix_sum.hpp"
 
 #define GROUPED_DFTABLE_VLEN 256
 
@@ -380,19 +386,35 @@ dftable dftable_base::tail(size_t limit) {
 }
 
 void dftable_base::show_all(bool with_index) {
-  auto table_string = dftable_to_string(*this).gather();
+  auto table_words = dftable_to_words(*this).reduce(merge_words);
   auto cols = columns();
+  auto num_col = cols.size();
+  auto num_words = table_words.starts.size();
+  auto num_row = num_words / num_col;
+  if(num_words % num_col != 0)
+    throw std::runtime_error("show_all: incorrect number of col or row");
   if(with_index) std::cout << "\t";
-  for(size_t i = 0; i < cols.size()-1; i++) {
+  for(size_t i = 0; i < num_col-1; i++) {
     std::cout << cols[i] << "\t";
   }
-  std::cout << cols[cols.size()-1] << std::endl;
-  for(size_t i = 0; i < table_string.size(); i++) {
+  std::cout << cols[num_col-1] << std::endl;
+  auto charsp = table_words.chars.data();
+  for(size_t i = 0; i < num_row; i++) {
     if(with_index) std::cout << i << "\t";
-    for(size_t j = 0; j < table_string[i].size()-1; j++) {
-      std::cout << table_string[i][j] << "\t";
+    for(size_t j = 0; j < num_col-1; j++) {
+      auto crnt_start = table_words.starts[i * num_col + j];
+      auto crnt_len = table_words.lens[i * num_col + j];
+      for(size_t k = 0; k < crnt_len; k++) {
+        std::cout << static_cast<char>(charsp[crnt_start + k]);
+      }
+      std::cout << "\t";
     }
-    std::cout << table_string[i][table_string[i].size()-1] << std::endl;
+    auto crnt_start = table_words.starts[i * num_col + num_col - 1];
+    auto crnt_len = table_words.lens[i * num_col + num_col - 1];
+    for(size_t k = 0; k < crnt_len; k++) {
+      std::cout << static_cast<char>(charsp[crnt_start + k]);
+    }
+    std::cout << "\n";
   }
 }
 
@@ -462,45 +484,33 @@ void dftable_base::save(const std::string& dir) {
   }
 }
 
-struct dftable_concat_string {
-  dftable_concat_string(){}
-  dftable_concat_string(std::string sep) : sep(sep) {}
-  void myreplace(std::string& s, const std::string& from, const std::string& to) {
-    size_t pos = 0;
-    while((pos = s.find(from, pos)) != std::string::npos) {
-      s.replace(pos, from.size(), to);
-      pos += to.size();
-    }
+std::vector<char> savetext_helper(const words& ws, size_t num_col,
+                                  const std::string& sep) {
+  std::vector<size_t> new_starts;
+  auto vecint = concat_words(ws, sep, new_starts);
+  auto new_starts_size = new_starts.size();
+  auto new_startsp = new_starts.data();
+  auto vecintp = vecint.data();
+  auto num_row = new_starts_size / num_col;
+  if(new_starts_size % num_col != 0)
+    throw std::runtime_error("savetext: incorrect number of col or row");
+  for(size_t i = 1; i < num_row; i++) {
+    vecintp[new_startsp[i * num_col] - 1] = '\n';
   }
-  std::string operator()(std::vector<std::string>& vs) {
-    std::string ret;
-    for(size_t i = 0; i < vs.size(); i++) {
-      myreplace(vs[i], "\\", "\\\\");
-      myreplace(vs[i], sep, "\\" + sep);
-      myreplace(vs[i], "\"", "\\\"");
-    }
-    for(size_t i = 0; i < vs.size() - 1; i++) {
-      ret.append(vs[i]);
-      ret.append(sep);
-    }
-    ret.append(vs[vs.size() - 1]);
-    return ret;
-  }
-  std::string sep;
-  SERIALIZE(sep)
-};
-
-std::vector<std::pair<std::string, std::string>>
-dftable_base::savetext(const std::string& file, const std::string& sep) {
-  auto dv = dftable_to_string(*this);
-  auto tosave = dv.map(dftable_concat_string(sep));
-  tosave.saveline(file);
-  return dtypes();
+  auto vecint_size = vecint.size();
+  vecintp[vecint_size-1] = '\n';
+  std::vector<char> ret(vecint_size);
+  int_to_char(vecintp, vecint_size, ret.data());
+  return ret;
 }
 
 std::vector<std::pair<std::string, std::string>>
-dftable_base::savetext(const std::string& file) {
-  return savetext(file, ",");
+  dftable_base::savetext(const std::string& file, const std::string& sep,
+                         bool quote_and_escape, const std::string& nullstr) {
+  auto table_words = dftable_to_words(*this, quote_and_escape, nullstr);
+  table_words.map(savetext_helper, broadcast(num_col()), broadcast(sep))
+    .moveto_dvector<char>().savebinary(file);
+  return dtypes();
 }
 
 colmajor_matrix<float>
@@ -983,7 +993,26 @@ void prepare_string_load(my_map<std::string, std::vector<size_t>>& group,
     global_idx[size] = std::numeric_limits<size_t>::max();
   }
 }
-                          
+
+void dftable_offset_nulls(std::vector<size_t>& nulls,
+                          const std::vector<size_t>& pxsizes) {
+  auto selfid = get_selfid();
+  auto lower = selfid == 0 ? 0 : pxsizes[selfid - 1];
+  auto upper = pxsizes[selfid];
+  auto lowerpos = std::lower_bound(nulls.begin(), nulls.end(), lower)
+    - nulls.begin();
+  auto upperpos = std::lower_bound(nulls.begin(), nulls.end(), upper)
+    - nulls.begin();
+  auto new_nulls_size = upperpos - lowerpos;
+  std::vector<size_t> new_nulls(new_nulls_size);
+  auto nullsp = nulls.data();
+  auto new_nullsp = new_nulls.data();
+  for(size_t i = 0; i < new_nulls_size; i++) {
+    new_nullsp[i] = nullsp[lowerpos + i] - lower;
+  }
+  nulls.swap(new_nulls);
+}
+
 void dftable::load(const std::string& input) {
   std::string colfile = input + "/columns";
   std::string typefile = input + "/types";
@@ -1005,101 +1034,57 @@ void dftable::load(const std::string& input) {
     std::string nullsfile = input + "/" + cols[i]+ "_nulls";
     if(types[i] == "int") {
       auto vec = make_dvector_loadbinary<int>(valfile);
-      auto sizes = vec.sizes();
-      std::vector<size_t> pxsizes(sizes.size());
-      auto sizesp = sizes.data();
-      auto pxsizesp = pxsizes.data();
-      auto pxsizessize = pxsizes.size();
-      for(size_t j = 1; j < pxsizessize; j++) {
-        pxsizesp[j] += pxsizesp[j-1] + sizesp[j-1];
-      }
-      auto nl_sizes = make_node_local_scatter(pxsizes);
+      auto pxsizes = broadcast(prefix_sum(vec.sizes()));
       append_column(cols[i], std::move(vec));
-      std::dynamic_pointer_cast<typed_dfcolumn<int>>(column(cols[i]))->
-        nulls = make_dvector_loadbinary<size_t>(nullsfile).
-        map<size_t>(shiftback_local_index(), nl_sizes).moveto_node_local();
+      auto nulls = broadcast(make_dvector_loadbinary<size_t>(nullsfile)
+                             .gather()).mapv(dftable_offset_nulls, pxsizes);
+      std::dynamic_pointer_cast<typed_dfcolumn<int>>
+        (column(cols[i]))->nulls = std::move(nulls);
       column(cols[i])->contain_nulls_check();
     } else if(types[i] == "unsigned int") {
       auto vec = make_dvector_loadbinary<unsigned int>(valfile);
-      auto sizes = vec.sizes();
-      std::vector<size_t> pxsizes(sizes.size());
-      auto sizesp = sizes.data();
-      auto pxsizesp = pxsizes.data();
-      auto pxsizessize = pxsizes.size();
-      for(size_t j = 1; j < pxsizessize; j++) {
-        pxsizesp[j] += pxsizesp[j-1] + sizesp[j-1];
-      }
-      auto nl_sizes = make_node_local_scatter(pxsizes);
+      auto pxsizes = broadcast(prefix_sum(vec.sizes()));
       append_column(cols[i], std::move(vec));
+      auto nulls = broadcast(make_dvector_loadbinary<size_t>(nullsfile)
+                             .gather()).mapv(dftable_offset_nulls, pxsizes);
       std::dynamic_pointer_cast<typed_dfcolumn<unsigned int>>
-        (column(cols[i]))->
-        nulls = make_dvector_loadbinary<size_t>(nullsfile).
-        map<size_t>(shiftback_local_index(), nl_sizes).moveto_node_local();
+        (column(cols[i]))->nulls = std::move(nulls);
       column(cols[i])->contain_nulls_check();
     } else if(types[i] == "long") {
       auto vec = make_dvector_loadbinary<long>(valfile);
-      auto sizes = vec.sizes();
-      std::vector<size_t> pxsizes(sizes.size());
-      auto sizesp = sizes.data();
-      auto pxsizesp = pxsizes.data();
-      auto pxsizessize = pxsizes.size();
-      for(size_t j = 1; j < pxsizessize; j++) {
-        pxsizesp[j] += pxsizesp[j-1] + sizesp[j-1];
-      }
-      auto nl_sizes = make_node_local_scatter(pxsizes);
+      auto pxsizes = broadcast(prefix_sum(vec.sizes()));
       append_column(cols[i], std::move(vec));
-      std::dynamic_pointer_cast<typed_dfcolumn<long>>(column(cols[i]))->
-        nulls = make_dvector_loadbinary<size_t>(nullsfile).
-        map<size_t>(shiftback_local_index(), nl_sizes).moveto_node_local();
+      auto nulls = broadcast(make_dvector_loadbinary<size_t>(nullsfile)
+                             .gather()).mapv(dftable_offset_nulls, pxsizes);
+      std::dynamic_pointer_cast<typed_dfcolumn<long>>
+        (column(cols[i]))->nulls = std::move(nulls);
       column(cols[i])->contain_nulls_check();
     } else if(types[i] == "unsigned long") {
       auto vec = make_dvector_loadbinary<unsigned long>(valfile);
-      auto sizes = vec.sizes();
-      std::vector<size_t> pxsizes(sizes.size());
-      auto sizesp = sizes.data();
-      auto pxsizesp = pxsizes.data();
-      auto pxsizessize = pxsizes.size();
-      for(size_t j = 1; j < pxsizessize; j++) {
-        pxsizesp[j] += pxsizesp[j-1] + sizesp[j-1];
-      }
-      auto nl_sizes = make_node_local_scatter(pxsizes);
+      auto pxsizes = broadcast(prefix_sum(vec.sizes()));
       append_column(cols[i], std::move(vec));
+      auto nulls = broadcast(make_dvector_loadbinary<size_t>(nullsfile)
+                             .gather()).mapv(dftable_offset_nulls, pxsizes);
       std::dynamic_pointer_cast<typed_dfcolumn<unsigned long>>
-        (column(cols[i]))->
-        nulls = make_dvector_loadbinary<size_t>(nullsfile).
-        map<size_t>(shiftback_local_index(), nl_sizes).moveto_node_local();
+        (column(cols[i]))->nulls = std::move(nulls);
       column(cols[i])->contain_nulls_check();
     } else if(types[i] == "float") {
       auto vec = make_dvector_loadbinary<float>(valfile);
-      auto sizes = vec.sizes();
-      std::vector<size_t> pxsizes(sizes.size());
-      auto sizesp = sizes.data();
-      auto pxsizesp = pxsizes.data();
-      auto pxsizessize = pxsizes.size();
-      for(size_t j = 1; j < pxsizessize; j++) {
-        pxsizesp[j] += pxsizesp[j-1] + sizesp[j-1];
-      }
-      auto nl_sizes = make_node_local_scatter(pxsizes);
+      auto pxsizes = broadcast(prefix_sum(vec.sizes()));
       append_column(cols[i], std::move(vec));
-      std::dynamic_pointer_cast<typed_dfcolumn<float>>(column(cols[i]))->
-        nulls = make_dvector_loadbinary<size_t>(nullsfile).
-        map<size_t>(shiftback_local_index(), nl_sizes).moveto_node_local();
+      auto nulls = broadcast(make_dvector_loadbinary<size_t>(nullsfile)
+                             .gather()).mapv(dftable_offset_nulls, pxsizes);
+      std::dynamic_pointer_cast<typed_dfcolumn<float>>
+        (column(cols[i]))->nulls = std::move(nulls);
       column(cols[i])->contain_nulls_check();
     } else if(types[i] == "double") {
       auto vec = make_dvector_loadbinary<double>(valfile);
-      auto sizes = vec.sizes();
-      std::vector<size_t> pxsizes(sizes.size());
-      auto sizesp = sizes.data();
-      auto pxsizesp = pxsizes.data();
-      auto pxsizessize = pxsizes.size();
-      for(size_t j = 1; j < pxsizessize; j++) {
-        pxsizesp[j] += pxsizesp[j-1] + sizesp[j-1];
-      }
-      auto nl_sizes = make_node_local_scatter(pxsizes);
+      auto pxsizes = broadcast(prefix_sum(vec.sizes()));
       append_column(cols[i], std::move(vec));
-      std::dynamic_pointer_cast<typed_dfcolumn<double>>(column(cols[i]))->
-        nulls = make_dvector_loadbinary<size_t>(nullsfile).
-        map<size_t>(shiftback_local_index(), nl_sizes).moveto_node_local();
+      auto nulls = broadcast(make_dvector_loadbinary<size_t>(nullsfile)
+                             .gather()).mapv(dftable_offset_nulls, pxsizes);
+      std::dynamic_pointer_cast<typed_dfcolumn<double>>
+        (column(cols[i]))->nulls = std::move(nulls);
       column(cols[i])->contain_nulls_check();
     } else if(types[i] == "string") {
       auto toappend = std::make_shared<typed_dfcolumn<std::string>>();
@@ -1127,25 +1112,68 @@ void dftable::load(const std::string& input) {
       } else {
         sizes = vec.sizes();
       }
-      std::vector<size_t> pxsizes(sizes.size());
-      auto sizesp = sizes.data();
-      auto pxsizesp = pxsizes.data();
-      auto pxsizessize = pxsizes.size();
-      for(size_t j = 1; j < pxsizessize; j++) {
-        pxsizesp[j] += pxsizesp[j-1] + sizesp[j-1];
-      }
-      auto nl_sizes = make_node_local_scatter(pxsizes);
-      toappend->nulls = make_dvector_loadbinary<size_t>(nullsfile).
-        map<size_t>(shiftback_local_index(), nl_sizes).moveto_node_local();
+      auto pxsizes = broadcast(prefix_sum(sizes));
+      auto nulls = broadcast(make_dvector_loadbinary<size_t>(nullsfile)
+                             .gather()).mapv(dftable_offset_nulls, pxsizes);
+      toappend->nulls = std::move(nulls);
       toappend->contain_nulls_check();
       dftable t1, t2;
       t1.append_column("original", std::move(vec));
       t2.append_column("contiguous", cont_idx.moveto_dvector<size_t>());
       t2.append_column("global_idx", global_idx.moveto_dvector<size_t>());
-      
       auto conved = t1.bcast_join(t2, frovedis::eq("original", "contiguous"))
         .as_dvector<size_t>("global_idx");
       toappend->val = conved.moveto_node_local();
+      append_column(cols[i], std::move(toappend));
+    } else if(types[i] == "dic_string") {
+      auto toappend = std::make_shared<typed_dfcolumn<dic_string>>();
+      auto loaddic = loadbinary_local<char>(valfile + "_dic");
+      auto vintdic = vchar_to_int(loaddic);
+      auto dicwords = split_to_words(vintdic, "\n");
+      auto dic_to_use = make_dict_from_words(dicwords);
+      toappend->dic = std::make_shared<node_local<dict>>(broadcast(dic_to_use));
+      auto vec = make_dvector_loadbinary<size_t>(valfile + "_idx");
+      std::vector<size_t> sizes;
+      if(i != 0) {
+        sizes = column(col_order[0])->sizes();
+        vec.align_as(sizes);
+      } else {
+        sizes = vec.sizes();
+      }
+      auto pxsizes = broadcast(prefix_sum(sizes));
+      auto nulls = broadcast(make_dvector_loadbinary<size_t>(nullsfile)
+                             .gather()).mapv(dftable_offset_nulls, pxsizes);
+      toappend->nulls = std::move(nulls);
+      toappend->contain_nulls_check();
+      toappend->val = vec.moveto_node_local();
+      append_column(cols[i], std::move(toappend));
+    } else if(types[i] == "raw_string") {
+      auto toappend = std::make_shared<typed_dfcolumn<raw_string>>();
+      auto sep = make_node_local_allocate<std::vector<size_t>>();
+      auto len = make_node_local_allocate<std::vector<size_t>>();
+      auto loaded_text = load_text(valfile, "\n", sep, len);
+      toappend->comp_words =
+        loaded_text.map(+[](std::vector<int>& t,
+                            std::vector<size_t>& s,
+                            std::vector<size_t>& l) {
+                          words w;
+                          w.chars.swap(t);
+                          w.starts.swap(s);
+                          w.lens.swap(l);
+                          return make_compressed_words(w);
+                        }, sep, len);
+      std::vector<size_t> sizes;
+      if(i != 0) {
+        sizes = column(col_order[0])->sizes();
+        toappend->align_as(sizes);
+      } else {
+        sizes = toappend->sizes();
+      }
+      auto pxsizes = broadcast(prefix_sum(sizes));
+      auto nulls = broadcast(make_dvector_loadbinary<size_t>(nullsfile)
+                             .gather()).mapv(dftable_offset_nulls, pxsizes);
+      toappend->nulls = std::move(nulls);
+      toappend->contain_nulls_check();
       append_column(cols[i], std::move(toappend));
     }
   }
@@ -1155,6 +1183,27 @@ dftable make_dftable_load(const std::string& input) {
   dftable t;
   t.load(input);
   return t;
+}
+
+void dftable::loadtext(const std::string& filename,
+                       const std::vector<std::string>& types,
+                       int separator,
+                       const std::string& nullstr,
+                       bool is_crlf) {
+  auto ret = make_dftable_loadtext(filename, types, separator, nullstr,
+                                   is_crlf);
+  *this = std::move(ret);
+}
+
+void dftable::loadtext(const std::string& filename,
+                       const std::vector<std::string>& types,
+                       const std::vector<std::string>& names,
+                       int separator,
+                       const std::string& nullstr,
+                       bool is_crlf) {
+  auto ret = make_dftable_loadtext(filename, types, names, separator, nullstr,
+                                   is_crlf);
+  *this = std::move(ret);
 }
 
 // ---------- for sorted_dftable ----------

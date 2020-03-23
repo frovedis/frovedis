@@ -8,6 +8,8 @@
 #include "../core/radix_sort.hpp"
 #include "hashtable.hpp"
 #include "join.hpp"
+#include "../text/float_to_words.hpp"
+#include "../text/char_int_conv.hpp"
 
 #include <boost/lexical_cast.hpp>
 
@@ -526,9 +528,16 @@ void append_nulls_helper(std::vector<T>& val, std::vector<size_t>& to_append,
     newvalp[val_size + i] = std::numeric_limits<T>::max();
   }
   val.swap(newval);
-  nulls.resize(to_append_size);
-  size_t* nullsp = &nulls[0];
-  for(size_t i = 0; i < to_append_size; i++) nullsp[i] = val_size + i;
+  auto nulls_size = nulls.size();
+  auto new_nulls_size = nulls_size + to_append_size;
+  std::vector<size_t> new_nulls(new_nulls_size);
+  auto new_nullsp = new_nulls.data();
+  auto nullsp = nulls.data();
+  for(size_t i = 0; i < nulls_size; i++) new_nullsp[i] = nullsp[i];
+  for(size_t i = 0; i < to_append_size; i++) {
+    new_nullsp[nulls_size + i] = val_size + i;
+  }
+  nulls.swap(new_nulls);
 }
 
 template <class T>
@@ -1067,6 +1076,62 @@ template <class T>
 dvector<std::string> typed_dfcolumn<T>::as_string() {
   return val.map(as_string_helper<T>, nulls).
     template moveto_dvector<std::string>();
+}
+
+template <class T>
+words dfcolumn_as_words_helper(std::vector<T>& v,
+                               const std::vector<size_t>& nulls,
+                               const std::string& nullstr) {
+  auto nulls_size = nulls.size();
+  auto nullsp = nulls.data();
+  auto vp = v.data();
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob  
+  for(size_t i = 0; i < nulls_size; i++) {
+    vp[nullsp[i]] = 0; // max is too long for creating words
+  }
+  auto ws = number_to_words<T>(v);
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob  
+  for(size_t i = 0; i < nulls_size; i++) {
+    vp[nullsp[i]] = std::numeric_limits<T>::max();
+  }
+  auto nullstrvec = char_to_int(nullstr);
+  auto nullstr_size = nullstr.size();
+  auto chars_size = ws.chars.size();
+  auto newchars_size = chars_size + nullstr_size;
+  auto charsp = ws.chars.data();
+  std::vector<int> newchars(newchars_size);
+  auto newcharsp = newchars.data();
+  for(size_t i = 0; i < chars_size; i++) newcharsp[i] = charsp[i];
+  auto nullstrvecp = nullstrvec.data();
+  for(size_t i = 0; i < nullstr_size; i++) {
+    newcharsp[chars_size + i] = nullstrvecp[i];
+  }
+  ws.chars.swap(newchars);
+  size_t nullstart = chars_size;
+  size_t nulllens = nullstr_size;
+  auto startsp = ws.starts.data();
+  auto lensp = ws.lens.data();
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob  
+  for(size_t i = 0; i < nulls_size; i++) {
+    startsp[nullsp[i]] = nullstart;
+    lensp[nullsp[i]] = nulllens;
+  }
+  return ws;
+}
+
+template <class T>
+node_local<words> typed_dfcolumn<T>::as_words(bool quote_escape, // not used
+                                              const std::string& nullstr) {
+  if(contain_nulls)
+    return val.map(dfcolumn_as_words_helper<T>, nulls, broadcast(nullstr));
+  else 
+    return val.map(+[](const std::vector<T>& v){return number_to_words<T>(v);});
 }
 
 template <class T>
@@ -2306,7 +2371,7 @@ typed_dfcolumn<T>::head(size_t limit) {
   ret->val = val.template viewas_dvector<T>().head(limit).moveto_node_local();
   if(contain_nulls) {
     ret->nulls = limit_nulls_head(nulls, sizes(), limit);
-    ret->contain_nulls = true;
+    ret->contain_nulls_check();
   } else {
     ret->nulls = make_node_local_allocate<std::vector<size_t>>();    
   }
@@ -2321,7 +2386,7 @@ typed_dfcolumn<T>::tail(size_t limit) {
   auto new_sizes = ret->val.template viewas_dvector<T>().sizes();
   if(contain_nulls) {
     ret->nulls = limit_nulls_tail(nulls, sizes(), new_sizes, limit);
-    ret->contain_nulls = true;
+    ret->contain_nulls_check();
   } else {
     ret->nulls = make_node_local_allocate<std::vector<size_t>>();    
   }

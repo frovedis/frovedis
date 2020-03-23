@@ -65,9 +65,9 @@ public:
   void print(); 
   void save(const std::string& dir);
   std::vector<std::pair<std::string, std::string>>
-    savetext(const std::string& file);
-  std::vector<std::pair<std::string, std::string>>
-    savetext(const std::string& file, const std::string& separator);
+    savetext(const std::string& file, const std::string& separator = ",",
+             bool quote_and_escape = true,
+             const std::string& nullstr = "NULL");
   colmajor_matrix<float>
   to_colmajor_matrix_float(const std::vector<std::string>&);
   colmajor_matrix<double>
@@ -183,6 +183,17 @@ public:
   dftable& append_rowid(const std::string& name, size_t offset = 0);
 
   void load(const std::string& input);
+  void loadtext(const std::string& filename,
+                const std::vector<std::string>& types,
+                int separator = ',',
+                const std::string& nullstr = "NULL",
+                bool is_crlf = false);
+  void loadtext(const std::string& filename,
+                const std::vector<std::string>& types,
+                const std::vector<std::string>& names,
+                int separator = ',',
+                const std::string& nullstr = "NULL",
+                bool is_crlf = false);
   virtual bool is_right_joinable() {return true;}
 
   friend filtered_dftable;

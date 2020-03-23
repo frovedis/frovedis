@@ -55,6 +55,16 @@ is_not_regex(const std::string& col, const std::string& pattern) {
 }
 
 std::shared_ptr<dfoperator>
+is_like(const std::string& col, const std::string& pattern) {
+  return std::make_shared<dfoperator_like>(col, pattern);
+}
+
+std::shared_ptr<dfoperator>
+is_not_like(const std::string& col, const std::string& pattern) {
+  return std::make_shared<dfoperator_not_like>(col, pattern);
+}
+
+std::shared_ptr<dfoperator>
 and_op(const std::shared_ptr<dfoperator>& left,
        const std::shared_ptr<dfoperator>& right) {
   return std::make_shared<dfoperator_and>(left,right);

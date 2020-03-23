@@ -191,32 +191,4 @@ dftable make_dftable_string(dvector<string>& d,
   return ret;
 }
 
-dftable make_dftable_loadtext_sep(const string& filename,
-                                  const vector<string>& types,
-                                  const vector<string>& names,
-                                  const string& sep) {
-  auto dv = make_dvector_loadline(filename);
-  return make_dftable_string(dv, types, names, sep);
-}
-
-dftable make_dftable_loadtext_sep(const string& filename,
-                                  const vector<string>& types, 
-                                  const string& sep) {
-  auto dv = make_dvector_loadline(filename);
-  return make_dftable_string(dv, types, sep);
-}
-
-dftable make_dftable_loadtext(const string& filename,
-                              const vector<string>& types,
-                              const vector<string>& names) {
-  auto dv = make_dvector_loadline(filename);
-  return make_dftable_string(dv, types, names);
-}
-
-dftable make_dftable_loadtext(const string& filename,
-                              const vector<string>& types) {
-  auto dv = make_dvector_loadline(filename);
-  return make_dftable_string(dv, types);
-}
-
 }

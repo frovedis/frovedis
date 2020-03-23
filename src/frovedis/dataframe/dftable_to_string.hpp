@@ -5,6 +5,7 @@
 
 namespace frovedis {
 
+// NOTE: obsolete. use dftable_to_words. this function will be deleted
 dvector<std::vector<std::string>> dftable_to_string(dftable_base& table);
 
 }

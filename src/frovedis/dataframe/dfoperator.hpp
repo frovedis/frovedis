@@ -365,6 +365,58 @@ is_regex(const std::string& col, const std::string& pattern);
 std::shared_ptr<dfoperator>
 is_not_regex(const std::string& col, const std::string& pattern);
 
+struct dfoperator_like : public dfoperator {
+  dfoperator_like(const std::string& left, const std::string& pattern) :
+    left(left), pattern(pattern) {}
+  virtual node_local<std::vector<size_t>> filter(dftable_base& t) const {
+    auto left_column_dic =
+      std::dynamic_pointer_cast<typed_dfcolumn<dic_string>>(t.column(left));
+    if(left_column_dic) {
+      return left_column_dic->filter_like(pattern);
+    } else {
+      auto left_column_raw =
+        std::dynamic_pointer_cast<typed_dfcolumn<raw_string>>(t.column(left));
+      if(left_column_raw) {
+        return left_column_raw->filter_like(pattern);
+      } else {
+      throw std::runtime_error
+        ("dfoperator_like: column type is not dic_string or raw_string");
+      }
+    }
+  }
+  std::string left;
+  std::string pattern;
+};
+
+struct dfoperator_not_like : public dfoperator {
+  dfoperator_not_like(const std::string& left, const std::string& pattern) :
+    left(left), pattern(pattern) {}
+  virtual node_local<std::vector<size_t>> filter(dftable_base& t) const {
+    auto left_column_dic =
+      std::dynamic_pointer_cast<typed_dfcolumn<dic_string>>(t.column(left));
+    if(left_column_dic) {
+      return left_column_dic->filter_not_like(pattern);
+    } else {
+      auto left_column_raw =
+        std::dynamic_pointer_cast<typed_dfcolumn<raw_string>>(t.column(left));
+      if(left_column_raw) {
+        return left_column_raw->filter_not_like(pattern);
+      } else {
+        throw std::runtime_error
+          ("dfoperator_like: column type is not dic_string or raw_string");
+      }
+    }
+  }
+  std::string left;
+  std::string pattern;
+};
+
+std::shared_ptr<dfoperator>
+is_like(const std::string& col, const std::string& pattern);
+
+std::shared_ptr<dfoperator>
+is_not_like(const std::string& col, const std::string& pattern);
+
 std::vector<size_t>
 convert_filtered_idx(std::vector<size_t>& org_idx,
                      std::vector<size_t>& created_idx);
