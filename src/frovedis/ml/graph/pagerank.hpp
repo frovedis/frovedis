@@ -13,7 +13,8 @@ namespace frovedis {
 template <class T, class I, class O>
 frovedis::node_local<std::vector<size_t>> 
 partition_shrink_column_pagerank(frovedis::crs_matrix<T,I,O>& m) {
-    auto tmp = m.data.map(frovedis::crs_get_local_num_row<T>).gather();
+    //auto tmp = m.data.map(frovedis::crs_get_local_num_row<T>).gather();
+    auto tmp = m.get_local_num_rows();
     std::vector<size_t> ret(tmp.size()+1);
     for(size_t i = 1; i < ret.size(); i++){
         ret[i] = ret[i-1] + tmp[i-1];
