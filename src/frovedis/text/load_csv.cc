@@ -9,7 +9,7 @@ namespace frovedis {
 
 void normalize_tail(vector<int>& v) {
   auto v_size = v.size();
-  if(v[v_size-1] != '\n') {
+  if(v_size > 0 && v[v_size-1] != '\n') {
     vector<int> tmp(v_size + 1);
     auto vp = v.data();
     auto tmpp = tmp.data();
@@ -21,17 +21,21 @@ void normalize_tail(vector<int>& v) {
   }
 }
 
-void skip_head(vector<int>& v, vector<size_t>& start) {
+void skip_head_local(vector<size_t>& start) {
+  auto start_size = start.size();
+  if(start_size == 0) return;
+  vector<size_t> tmpstart(start_size);
+  auto startp = start.data();
+  auto tmpstartp = tmpstart.data();
+  for(size_t i = 0; i < start_size-1; i++) {
+    tmpstartp[i] = startp[i+1];
+  }
+  start.swap(tmpstart);
+}
+
+void skip_head(vector<size_t>& start) {
   if(get_selfid() == 0) {
-    auto start_size = start.size();
-    if(start_size == 0) return;
-    vector<size_t> tmpstart(start_size);
-    auto startp = start.data();
-    auto tmpstartp = tmpstart.data();
-    for(size_t i = 0; i < start_size-1; i++) {
-      tmpstartp[i] = startp[i+1];
-    }
-    start.swap(tmpstart);
+    skip_head_local(start);
   }
 }
 
@@ -294,8 +298,30 @@ load_csv(const std::string& path,
     lv = load_text(path, "\n", start, len);
     lv.mapv(normalize_tail);
   }
-  if(to_skip_head) lv.mapv(skip_head, start);
+  if(to_skip_head) start.mapv(skip_head);
   return lv.map(parse_csv, start, line_starts_byword, broadcast(separator));
+}
+
+words
+load_csv_local(const std::string& path,
+               std::vector<size_t>& line_starts_byword,
+               bool is_crlf,
+               bool to_skip_head,
+               int separator) {
+  vector<size_t> start;
+  vector<int> v;
+  if(is_crlf) {
+    vector<size_t> start_tmp;
+    vector<size_t> len;
+    auto v_tmp = load_text_local(path, "\r\n", start_tmp, len);
+    v = concat_docs(v_tmp, start_tmp, len, '\n', start);
+  } else {
+    vector<size_t> len;
+    v = load_text_local(path, "\n", start, len);
+    normalize_tail(v);
+  }
+  if(to_skip_head) skip_head_local(start);
+  return parse_csv(v, start, line_starts_byword, separator);
 }
 
 words split_simple_csv(std::vector<int>& v, std::vector<size_t>& start,
@@ -335,9 +361,33 @@ load_simple_csv(const std::string& path,
     lv = load_text(path, "\n", start, len);
     lv.mapv(normalize_tail);
   }
-  if(to_skip_head) lv.mapv(skip_head, start);
+  if(to_skip_head) start.mapv(skip_head);
   auto ret = lv.map(split_simple_csv, start, broadcast(separator));
   line_starts_byword = start.map(convert_line_starts, ret);
+  return ret;
+}
+
+words
+load_simple_csv_local(const std::string& path,
+                      std::vector<size_t>& line_starts_byword,
+                      bool is_crlf,
+                      bool to_skip_head,
+                      int separator) {
+  vector<size_t> start;
+  vector<int> v;
+  if(is_crlf) {
+    vector<size_t> start_tmp;
+    vector<size_t> len;
+    auto v_tmp = load_text_local(path, "\r\n", start_tmp, len);
+    v = concat_docs(v_tmp, start_tmp, len, '\n', start);
+  } else {
+    vector<size_t> len;
+    v = load_text_local(path, "\n", start, len);
+    normalize_tail(v);
+  }
+  if(to_skip_head) skip_head_local(start);
+  auto ret = split_simple_csv(v, start, separator);
+  line_starts_byword = convert_line_starts(start, ret);
   return ret;
 }
 

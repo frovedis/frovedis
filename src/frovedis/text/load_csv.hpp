@@ -26,5 +26,19 @@ load_simple_csv(const std::string& path,
                 bool is_crlf = false,
                 bool to_skip_head = false,
                 int separator = ',');
+
+words
+load_csv_local(const std::string& path,
+               std::vector<size_t>& line_starts_byword,
+               bool is_crlf = false,
+               bool skip_head = false,
+               int separator = ',');
+
+words
+load_simple_csv_local(const std::string& path,
+                      std::vector<size_t>& line_starts_byword,
+                      bool is_crlf = false,
+                      bool to_skip_head = false,
+                      int separator = ',');
 }
 #endif
