@@ -1016,26 +1016,30 @@ encode_frovedis_double_dvector.restype = c_long # out proxy
 lr_sgd = LIB.lr_sgd
 lr_sgd.argtypes = [c_char_p, c_int, c_long, c_long, #host,port,X,y
                    c_int, c_double,                 #iter, lr_rate
-                   c_int, c_double, c_bool,          #rtype, rparam, is_mult
+                   c_int, c_double, c_bool,         #rtype, rparam, is_mult
                    c_bool, c_double, c_int, c_int,  #fit_icpt, tol, vb, mid
                    c_short, c_short, c_bool]        #dtype, itype, dense
 
 lr_lbfgs = LIB.lr_lbfgs
 lr_lbfgs.argtypes = [c_char_p, c_int, c_long, c_long, #host,port,X,y
                      c_int, c_double,                 #iter, lr_rate
-                     c_int, c_double, c_bool,          #rtype, rparam, is_mult
+                     c_int, c_double, c_bool,         #rtype, rparam, is_mult
                      c_bool, c_double, c_int, c_int,  #fit_icpt, tol, vb, mid
                      c_short, c_short, c_bool]        #dtype, itype, dense
 
 svm_sgd = LIB.svm_sgd
-svm_sgd.argtypes = [c_char_p, c_int, c_long, c_long, c_int, c_double,
-                    c_int, c_bool, c_double, c_int, c_int,
-                    c_short, c_short, c_bool]
+svm_sgd.argtypes = [c_char_p, c_int, c_long, c_long, #host,port,X,y 
+                    c_int, c_double,                 #iter, lr_rate
+                    c_int, c_double,                 #rtype, rparam 
+                    c_bool, c_double, c_int, c_int,  #fit_icpt, tol, vb, mid
+                    c_short, c_short, c_bool]        #dtype, itype, dense
 
 svm_lbfgs = LIB.svm_lbfgs
-svm_lbfgs.argtypes = [c_char_p, c_int, c_long, c_long, c_int, c_double,
-                      c_int, c_bool, c_double, c_int, c_int,
-                      c_short, c_short, c_bool]
+svm_lbfgs.argtypes = [c_char_p, c_int, c_long, c_long, #host,port,X,y
+                      c_int, c_double,                 #iter, lr_rate
+                      c_int, c_double,                 #rtype, rparam 
+                      c_bool, c_double, c_int, c_int,  #fit_icpt, tol, vb, mid
+                      c_short, c_short, c_bool]        #dtype, itype, dense
 
 dt_train = LIB.dt_trainer
 dt_train.argtypes = [c_char_p, c_int, c_long,
@@ -1050,32 +1054,52 @@ nb_train.argtypes = [c_char_p, c_int, c_long,
                      c_short, c_short, c_bool]
 
 lnr_sgd = LIB.lnr_sgd
-lnr_sgd.argtypes = [c_char_p, c_int, c_long, c_long, c_bool, c_int, c_int,
-                    c_short, c_short, c_bool]
+lnr_sgd.argtypes = [c_char_p, c_int, c_long, c_long, #host,port,X,y 
+                    c_int, c_double,                 #iter, lr_rate
+                    c_bool, c_double, c_int, c_int,  #fit_icpt, tol, vb, mid
+                    c_short, c_short, c_bool]        #dtype, itype, dense
 
 lnr_lbfgs = LIB.lnr_lbfgs
-lnr_lbfgs.argtypes = [c_char_p, c_int, c_long, c_long, c_bool, c_int, c_int,
-                      c_short, c_short, c_bool]
+lnr_lbfgs.argtypes = [c_char_p, c_int, c_long, c_long, #host,port,X,y 
+                      c_int, c_double,                 #iter, lr_rate
+                      c_bool, c_double, c_int, c_int,  #fit_icpt, tol, vb, mid
+                      c_short, c_short, c_bool]        #dtype, itype, dense
 
 lasso_sgd = LIB.lasso_sgd
-lasso_sgd.argtypes = [c_char_p, c_int, c_long, c_long, c_int, c_double,
-                      c_bool, c_double, c_int, c_int,
-                      c_short, c_short, c_bool]
+lasso_sgd.argtypes = [c_char_p, c_int, c_long, c_long, #host,port,X,y
+                      c_int, c_double,                 #iter, lr_rate
+                      c_double,                        #regparam 
+                      c_bool, c_double, c_int, c_int,  #fit_icpt, tol, vb, mid
+                      c_short, c_short, c_bool]        #dtype, itype, dense
 
 lasso_lbfgs = LIB.lasso_lbfgs
-lasso_lbfgs.argtypes = [c_char_p, c_int, c_long, c_long, c_int, c_double,
-                        c_bool, c_double, c_int, c_int,
-                        c_short, c_short, c_bool]
+lasso_lbfgs.argtypes = [c_char_p, c_int, c_long, c_long, #host,port,X,y
+                        c_int, c_double,                 #iter, lr_rate
+                        c_double,                        #regparam 
+                        c_bool, c_double, c_int, c_int,  #fit_icpt, tol, vb, mid
+                        c_short, c_short, c_bool]        #dtype, itype, dense
 
 ridge_sgd = LIB.ridge_sgd
-ridge_sgd.argtypes = [c_char_p, c_int, c_long, c_long, c_int, c_double,
-                      c_bool, c_double, c_int, c_int,
-                      c_short, c_short, c_bool]
+ridge_sgd.argtypes = [c_char_p, c_int, c_long, c_long, #host,port,X,y 
+                      c_int, c_double,                 #iter, lr_rate
+                      c_double,                        #regparam 
+                      c_bool, c_double, c_int, c_int,  #fit_icpt, tol, vb, mid
+                      c_short, c_short, c_bool]        #dtype, itype, dense
 
 ridge_lbfgs = LIB.ridge_lbfgs
-ridge_lbfgs.argtypes = [c_char_p, c_int, c_long, c_long, c_int, c_double,
-                        c_bool, c_double, c_int, c_int,
-                        c_short, c_short, c_bool]
+ridge_lbfgs.argtypes = [c_char_p, c_int, c_long, c_long, #host,port,X,y 
+                        c_int, c_double,                 #iter, lr_rate
+                        c_double,                        #regparam 
+                        c_bool, c_double, c_int, c_int,  #fit_icpt, tol, vb, mid
+                        c_short, c_short, c_bool]        #dtype, itype, dense
+
+# For SGDClassifier with "squared_loss"
+lnr2_sgd = LIB.lnr2_sgd
+lnr2_sgd.argtypes = [c_char_p, c_int, c_long, c_long, #host,port,X,y
+                     c_int, c_double,                 #iter, lr_rate
+                     c_int, c_double,                 #rtype, rparam
+                     c_bool, c_double, c_int, c_int,  #fit_icpt, tol, vb, mid
+                     c_short, c_short, c_bool]        #dtype, itype, dense
 
 kmeans_train = LIB.kmeans_train
 kmeans_train.argtypes = [c_char_p, c_int, c_long, c_int,
