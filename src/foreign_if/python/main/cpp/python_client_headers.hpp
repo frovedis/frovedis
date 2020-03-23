@@ -32,6 +32,9 @@ extern "C" {
   // std::vector<long> => python List of long integers
   PyObject* to_python_long_list (std::vector<long>& v);
 
+  // std::vector<size_t> => python List of long integers
+  PyObject* to_python_llong_list (std::vector<size_t>& v);
+
   // std::vector<float> => python List of floats
   PyObject* to_python_float_list (std::vector<float>& v); 
 

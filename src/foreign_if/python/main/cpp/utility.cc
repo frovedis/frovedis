@@ -38,6 +38,17 @@ extern "C" {
     return Py_BuildValue("O",PList);
   }
 
+  // std::vector<size_t> => python List of long integers
+  PyObject* to_python_llong_list (std::vector<size_t>& val) {
+    PyObject *PList = PyList_New(0);
+    for(auto& each: val) {
+      auto leach = static_cast<long>(each);
+      PyList_Append(PList,Py_BuildValue("l",leach));
+    }
+    return Py_BuildValue("O",PList);
+  }
+
+
   // std::vector<float> => python List of floats
   PyObject* to_python_float_list (std::vector<float>& val) {
     PyObject *PList = PyList_New(0);
