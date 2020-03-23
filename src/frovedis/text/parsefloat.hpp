@@ -102,7 +102,7 @@ void parsefloat(const int* charsp, const size_t* startsp,
       anyvalid = false;
 #pragma _NEC ivdep
       for(size_t i = 0; i < PARSEFLOAT_VLEN; i++) {
-        if(ispoint[i] && starts_buf[i] != stops_buf[i]) {
+        if(starts_buf[i] != stops_buf[i] && ispoint[i]) {
           auto c = charsp[starts_buf[i]];
           if(c >= '0' && c <= '9') {
             res_buf[i] = res_buf[i] * 10 + c - '0';
@@ -127,7 +127,7 @@ void parsefloat(const int* charsp, const size_t* startsp,
     }
 #pragma _NEC ivdep
     for(size_t i = 0; i < PARSEFLOAT_VLEN; i++) {
-      if(isexp[i] && starts_buf[i] != stops_buf[i]) {
+      if(starts_buf[i] != stops_buf[i] && isexp[i]) {
         auto c = charsp[starts_buf[i]];
         if(c == '+') {
           starts_buf[i]++;
@@ -142,7 +142,7 @@ void parsefloat(const int* charsp, const size_t* startsp,
       anyvalid = false;
 #pragma _NEC ivdep
       for(size_t i = 0; i < PARSEFLOAT_VLEN; i++) {
-        if(isexp[i] && starts_buf[i] != stops_buf[i]) {
+        if(starts_buf[i] != stops_buf[i] && isexp[i]) {
           auto c = charsp[starts_buf[i]];
           if(c >= '0' && c <= '9') {
             e_val_buf[i] = e_val_buf[i] * 10 + c - '0';
@@ -242,7 +242,7 @@ void parsefloat(const int* charsp, const size_t* startsp,
     anyvalid = false;
 #pragma _NEC ivdep
     for(size_t i = 0; i < rest; i++) {
-      if(ispoint2[i] && starts_buf2[i] != stops_buf2[i]) {
+      if(starts_buf2[i] != stops_buf2[i] && ispoint2[i]) {
         auto c = charsp[starts_buf2[i]];
         if(c >= '0' && c <= '9') {
           res_buf2[i] = res_buf2[i] * 10 + c - '0';
@@ -267,7 +267,7 @@ void parsefloat(const int* charsp, const size_t* startsp,
   }
 #pragma _NEC ivdep
   for(size_t i = 0; i < rest; i++) {
-    if(isexp2[i] && starts_buf2[i] != stops_buf2[i]) {
+    if(starts_buf2[i] != stops_buf2[i] && isexp2[i]) {
       auto c = charsp[starts_buf2[i]];
       if(c == '+') {
         starts_buf2[i]++;
@@ -282,7 +282,7 @@ void parsefloat(const int* charsp, const size_t* startsp,
     anyvalid = false;
 #pragma _NEC ivdep
     for(size_t i = 0; i < rest; i++) {
-      if(isexp2[i] && starts_buf2[i] != stops_buf2[i]) {
+      if(starts_buf2[i] != stops_buf2[i] && isexp2[i]) {
         auto c = charsp[starts_buf2[i]];
         if(c >= '0' && c <= '9') {
           e_val_buf2[i] = e_val_buf2[i] * 10 + c - '0';
@@ -413,6 +413,55 @@ std::vector<T> parsefloat(const words& w) {
   return parsefloat<T>(w.chars, w.starts, w.lens);
 }
 
+template <class T> std::vector<T> parsenumber(const words& w);
+template <> std::vector<float> parsenumber<float>(const words& w);
+template <> std::vector<double> parsenumber<double>(const words& w);
+template <> std::vector<int> parsenumber<int>(const words& w);
+template <> std::vector<long> parsenumber<long>(const words& w);
+template <> std::vector<long long> parsenumber<long long>(const words& w);
+template <> std::vector<unsigned int> parsenumber<unsigned int>(const words& w);
+template <> std::vector<unsigned long>
+parsenumber<unsigned long>(const words& w);
+template <> std::vector<unsigned long long>
+parsenumber<unsigned long long>(const words& w);
+
+template <class T>
+std::vector<T> parsenumber(const std::vector<int>& chars,
+                           const std::vector<size_t>& starts,
+                           const std::vector<size_t>& lens);
+template <>
+std::vector<float> parsenumber<float>(const std::vector<int>& chars,
+                                      const std::vector<size_t>& starts,
+                                      const std::vector<size_t>& lens);
+template <>
+std::vector<double> parsenumber<double>(const std::vector<int>& chars,
+                                        const std::vector<size_t>& starts,
+                                        const std::vector<size_t>& lens);
+template <>
+std::vector<int> parsenumber<int>(const std::vector<int>& chars,
+                                  const std::vector<size_t>& starts,
+                                  const std::vector<size_t>& lens);
+template <>
+std::vector<long> parsenumber<long>(const std::vector<int>& chars,
+                                    const std::vector<size_t>& starts,
+                                    const std::vector<size_t>& lens);
+template <>
+std::vector<long long> parsenumber<long long>(const std::vector<int>& chars,
+                                              const std::vector<size_t>& starts,
+                                              const std::vector<size_t>& lens);
+template <>
+std::vector<unsigned int>
+parsenumber<unsigned int>(const std::vector<int>& chars,
+                          const std::vector<size_t>& starts,
+                          const std::vector<size_t>& lens);
+template <> std::vector<unsigned long>
+parsenumber<unsigned long>(const std::vector<int>& chars,
+                           const std::vector<size_t>& starts,
+                           const std::vector<size_t>& lens);
+template <> std::vector<unsigned long long>
+parsenumber<unsigned long long>(const std::vector<int>& chars,
+                                const std::vector<size_t>& starts,
+                                const std::vector<size_t>& lens);
 
 }
 #endif
