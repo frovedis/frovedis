@@ -57,7 +57,6 @@ class MultinomialNB(object):
         self.release()
         self.__mid = ModelID.get()
         inp_data = FrovedisLabeledPoint(X, y)
-        (X, y) = inp_data.get()
         (data, label) = inp_data.get()
         dtype = inp_data.get_dtype()
         itype = inp_data.get_itype()
