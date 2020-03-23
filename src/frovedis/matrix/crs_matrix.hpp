@@ -318,6 +318,7 @@ struct crs_matrix_local {
     std::cout << std::endl;
   }
   sparse_vector<T,I> get_row(size_t r) const;
+  void save(const std::string& file);
   void savebinary(const std::string&);
   void clear() {
     std::vector<T> tmpval; tmpval.swap(val);
@@ -436,6 +437,116 @@ rowmajor_matrix_local<T> crs_matrix_local<T,I,O>::to_rowmajor() {
   }
   return ret;
 }
+
+template <class T, class I, class O>
+std::ostream& operator<<(std::ostream& str, crs_matrix_local<T,I,O>& mat) {
+  for(size_t row = 0; row < mat.local_num_row; row++) {
+    for(O col = mat.off[row]; col < mat.off[row + 1]; col++) {
+      str << mat.idx[col] << ":" << mat.val[col];
+      if(col != mat.off[row + 1] - 1) str << " ";
+    }
+    str << "\n";
+  }
+  return str;
+}
+
+#ifdef __ve__
+struct crs_is_zero {
+  int operator()(size_t a) const {return a == 0;}
+};
+
+template <class T, class I, class O>
+std::vector<char> crs_matrix_local_to_string(const crs_matrix_local<T,I,O>& m) {
+  auto size = m.idx.size();
+  if(size == 0) return std::vector<char>();
+  auto ws = merge_words(number_to_words(m.idx), number_to_words(m.val));
+  std::vector<size_t> new_starts(size * 2);
+  std::vector<size_t> new_lens(size * 2);
+  auto startsp = ws.starts.data();
+  auto lensp = ws.lens.data();
+  auto new_startsp = new_starts.data();
+  auto new_lensp = new_lens.data();
+  for(size_t i = 0; i < size; i++) {
+    new_startsp[i * 2] = startsp[i];
+    new_startsp[i * 2 + 1] = startsp[size + i];
+    new_lensp[i * 2] = lensp[i];
+    new_lensp[i * 2 + 1] = lensp[size + i];
+  }
+  std::vector<size_t> concat_starts;
+  auto intvec = concat_words(ws.chars, new_starts, new_lens, " ",
+                             concat_starts);
+  auto intvecp = intvec.data();
+  auto intvec_size = intvec.size();
+  auto concat_startsp = concat_starts.data();
+  auto concat_starts_size = concat_starts.size();
+#pragma _NEC ivdep
+  for(size_t i = 0; i < concat_starts_size/2; i++) {
+    intvecp[concat_startsp[i*2+1]-1] = ':';
+  }
+  auto offp = m.off.data();
+  auto off_size = m.off.size();
+  std::vector<size_t> row_nnz(off_size-1);
+  auto row_nnzp = row_nnz.data();
+  for(size_t i = 0; i < off_size - 1; i++) {
+    row_nnzp[i] = offp[i+1] - offp[i];
+  }
+  auto zeros = find_condition(row_nnz, crs_is_zero());
+  auto zeros_size = zeros.size();
+  if(zeros_size != 0) {
+#pragma _NEC ivdep
+    for(size_t i = 1; i < off_size-1; i++) {
+      if(offp[i] > 0 && offp[i] < size) // guard first or last is null 
+        intvecp[concat_startsp[offp[i]*2]-1] = '\n';
+    }
+    intvecp[intvec_size-1] = '\n';
+    auto zerosp = zeros.data();
+    std::vector<int> intvec2(intvec_size + zeros_size);
+    auto intvec2p = intvec2.data();
+    size_t start = 0;
+    size_t end;
+    for(size_t i = 0; i < zeros_size; i++) {
+      auto pos = offp[zerosp[i]]*2;
+      if(pos < concat_starts_size)  // guard last is null
+        end = concat_startsp[pos];
+      else
+        end = intvec_size;
+#pragma _NEC ivdep
+      for(size_t j = start; j < end; j++) {
+        intvec2p[j + i] = intvecp[j];
+      }
+      intvec2p[end + i] = '\n';
+      start = end;
+    }
+    for(size_t j = start; j < intvec_size; j++) {
+      intvec2p[j + zeros_size] = intvecp[j];
+    }
+    std::vector<char> ret(intvec_size + zeros_size);
+    int_to_char(intvec2p, intvec_size + zeros_size, ret.data());
+    return ret;
+  } else {
+#pragma _NEC ivdep
+    for(size_t i = 1; i < off_size-1; i++) {
+      intvecp[concat_startsp[offp[i]*2]-1] = '\n';
+    }
+    intvecp[intvec_size-1] = '\n';
+    std::vector<char> ret(intvec_size);
+    int_to_char(intvec.data(), intvec_size, ret.data());
+    return ret;
+  }
+}
+
+template <class T, class I, class O>
+void crs_matrix_local<T,I,O>::save(const std::string& file) {
+  auto vc = crs_matrix_local_to_string(*this);
+  savebinary_local(vc.data(), vc.size(), file);  
+}
+#else
+template <class T, class I, class O>
+void crs_matrix_local<T,I,O>::save(const std::string& file) {
+  std::ofstream str(file.c_str());
+  str << *this;
+}
+#endif
 
 inline std::string remove_schema(const std::string& path) {
   auto idx = path.find(':', 0);
@@ -569,6 +680,66 @@ make_crs_matrix_local_readstream(std::istream& str) {
   return ret;
 }
 
+#ifdef __ve__
+void crs_matrix_split_val_idx(const std::vector<int>& v,
+                              std::vector<size_t>& starts, // -> idx
+                              std::vector<size_t>& lens, // -> idx
+                              std::vector<size_t>& val_starts,
+                              std::vector<size_t>& val_lens,
+                              std::vector<size_t>& line_starts); // -> off
+
+template <class T, class I = size_t, class O = size_t>
+crs_matrix_local<T,I,O>
+make_crs_matrix_local_load_helper(words& ws,
+                                  std::vector<size_t>& line_starts_byword,
+                                  size_t num_col,
+                                  bool calc_num_col) {
+  std::vector<size_t> val_starts, val_lens;
+  crs_matrix_split_val_idx(ws.chars, ws.starts, ws.lens,
+                           val_starts, val_lens, line_starts_byword);
+  crs_matrix_local<T,I,O> ret;
+  ret.idx = parsenumber<I>(ws.chars, ws.starts, ws.lens);
+  ret.val = parsenumber<T>(ws.chars, val_starts, val_lens);
+  auto offsize = line_starts_byword.size() + 1;
+  auto line_startsp = line_starts_byword.data();
+  ret.off.resize(offsize);
+  auto offp = ret.off.data();
+  for(size_t i = 0; i < offsize-1; i++) offp[i] = line_startsp[i];
+  offp[offsize-1] = ret.idx.size();
+  ret.local_num_row = ret.off.size() - 1;
+  if(calc_num_col) {
+    if(ret.local_num_row == 0) ret.local_num_col = 0;
+    else {
+      auto idxp = ret.idx.data();
+      auto idx_size = ret.idx.size();
+      I max = 0;
+      for(size_t i = 0; i < idx_size; i++) {
+        if(idxp[i] > max) max = idxp[i];
+      }
+      ret.local_num_col = max + 1;
+    }
+  } else ret.local_num_col = num_col;
+  return ret;
+}
+
+template <class T, class I = size_t, class O = size_t>
+crs_matrix_local<T,I,O>
+make_crs_matrix_local_load(const std::string& file, size_t num_col) {
+  std::vector<size_t> line_starts_byword;
+  auto ws = load_simple_csv_local(file, line_starts_byword, false, false, ' ');
+  return make_crs_matrix_local_load_helper<T,I,O>(ws, line_starts_byword,
+                                                  num_col, false);
+}
+
+template <class T, class I = size_t, class O = size_t>
+crs_matrix_local<T,I,O>
+make_crs_matrix_local_load(const std::string& file) {
+  std::vector<size_t> line_starts_byword;
+  auto ws = load_simple_csv_local(file, line_starts_byword, false, false, ' ');
+  return make_crs_matrix_local_load_helper<T,I,O>(ws, line_starts_byword,
+                                                  0, true);
+}
+#else
 template <class T, class I = size_t, class O = size_t>
 crs_matrix_local<T,I,O>
 make_crs_matrix_local_load(const std::string& file, size_t num_col) {
@@ -590,7 +761,7 @@ make_crs_matrix_local_load(const std::string& file) {
   else ret.local_num_col = 0;
   return ret;
 }
-
+#endif
 // used for making (distributed) crs_matrix; size is set outside
 template <class T, class I, class O>
 crs_matrix_local<T,I,O>
@@ -782,11 +953,7 @@ struct crs_matrix {
     }
   }
   rowmajor_matrix<T> to_rowmajor();
-  // for similar API as dvector
-  void save(const std::string& file) {
-    std::ofstream str(file.c_str());
-    str << *this;
-  }
+  void save(const std::string& file);
   void savebinary(const std::string& file);
   crs_matrix<T,I,O> transpose();
   crs_matrix_local<T,I,O> gather();
@@ -818,9 +985,14 @@ void crs_matrix<T,I,O>::clear() {
   num_col = 0;
 }
 
-template <class T, class I = size_t, class O = size_t>
+template <class T, class I, class O>
 size_t crs_get_local_num_row(crs_matrix_local<T,I,O>& mat) {
   return mat.local_num_row;
+}
+
+template <class T, class I, class O>
+size_t crs_get_local_num_col(crs_matrix_local<T,I,O>& mat) {
+  return mat.local_num_col;
 }
 
 template <class T, class I, class O>
@@ -859,6 +1031,62 @@ sparse_vector<T,I> crs_matrix<T,I,O>::get_row(size_t pos) {
   throw std::runtime_error("get_row: invalid position");  
 }
 
+template <class T, class I, class O>
+size_t crs_matrix_get_maxidx(crs_matrix_local<T,I,O>& m) {
+  auto idxp = m.idx.data();
+  auto idx_size = m.idx.size();
+  I max = 0;
+  for(size_t i = 0; i < idx_size; i++) {
+    if(idxp[i] > max) max = idxp[i];
+  }
+  return max;
+}
+
+#ifdef __ve__
+template <class T, class I, class O>
+crs_matrix<T,I,O> make_crs_matrix_load_helper(const std::string& file,
+                                              size_t num_col,
+                                              bool calc_num_col) {
+  // to destruct loaded text quickly, it is used as rvalue
+  auto line_starts_byword = make_node_local_allocate<std::vector<size_t>>();
+  crs_matrix<T,I,O> ret(
+    load_simple_csv(file, line_starts_byword, false, false, ' ')
+    .map(make_crs_matrix_local_load_helper<T,I,O>,
+         line_starts_byword, 
+         broadcast(num_col),
+         broadcast(calc_num_col)));
+  auto num_rows = ret.data.map(crs_get_local_num_row<T,I,O>).gather();
+  auto num_rowsp = num_rows.data();
+  auto num_rows_size = num_rows.size();
+  auto total_num_row = 0;
+  for(size_t i = 0; i < num_rows_size; i++) total_num_row += num_rowsp[i];
+  ret.num_row = total_num_row;
+  if(calc_num_col) {
+    auto num_cols = ret.data.map(crs_get_local_num_col<T,I,O>).gather();
+    auto num_colsp = num_cols.data();
+    auto num_cols_size = num_cols.size();
+    auto max_num_col = 0;
+    for(size_t i = 0; i < num_cols_size; i++) {
+      if(max_num_col < num_colsp[i]) max_num_col = num_colsp[i];
+    }
+    ret.num_col = max_num_col;
+  } else {
+    ret.num_col = num_col;
+  }
+  // if number of row is zero, num_col is not set properly
+  ret.data.mapv(set_local_num_crs_helper<T,I,O>(ret.num_col));
+  return ret;
+}
+template <class T, class I = size_t, class O = size_t>
+crs_matrix<T,I,O> make_crs_matrix_load(const std::string& file,
+                                       size_t num_col) {
+  return make_crs_matrix_load_helper<T,I,O>(file, num_col, false);
+}
+template <class T, class I = size_t, class O = size_t>
+crs_matrix<T,I,O> make_crs_matrix_load(const std::string& file) {
+  return make_crs_matrix_load_helper<T,I,O>(file, 0, true);
+}
+#else
 template <class T, class I = size_t, class O = size_t>
 crs_matrix<T,I,O> make_crs_matrix_load(const std::string& file,
                                        size_t num_col) {
@@ -870,13 +1098,6 @@ crs_matrix<T,I,O> make_crs_matrix_load(const std::string& file,
   ret.num_col = num_col;
   ret.num_row = num_row;
   return ret;
-}
-
-template <class T, class I, class O>
-size_t crs_matrix_get_maxidx(crs_matrix_local<T,I,O>& m) {
-  auto it = std::max_element(m.idx.begin(), m.idx.end());
-  if(it != m.idx.end()) return *it;
-  else return 0;
 }
 
 template <class T, class I = size_t, class O = size_t>
@@ -892,6 +1113,7 @@ crs_matrix<T,I,O> make_crs_matrix_load(const std::string& file) {
   ret.num_row = num_row;
   return ret;
 }
+#endif
 
 template <class T, class I>
 std::vector<std::pair<I, coo_triplet<T,I>>>
@@ -1256,18 +1478,6 @@ std::vector<T> operator*(const crs_matrix_local<T,I,O>& mat, const std::vector<T
 }
 
 template <class T, class I, class O>
-std::ostream& operator<<(std::ostream& str, crs_matrix_local<T,I,O>& mat) {
-  for(size_t row = 0; row < mat.local_num_row; row++) {
-    for(O col = mat.off[row]; col < mat.off[row + 1]; col++) {
-      str << mat.idx[col] << ":" << mat.val[col];
-      if(col != mat.off[row + 1] - 1) str << " ";
-    }
-    str << "\n";
-  }
-  return str;
-}
-
-template <class T, class I, class O>
 std::ostream& operator<<(std::ostream& str, crs_matrix<T,I,O>& mat) {
   auto gmat = mat.data.gather();
   for(auto& l: gmat) str << l;
@@ -1387,6 +1597,20 @@ template <class T, class I, class O>
 std::vector<O> crs_matrix_get_off(crs_matrix_local<T,I,O>& m) {
   return m.off;
 }
+
+#ifdef __ve__
+template <class T, class I, class O>
+void crs_matrix<T,I,O>::save(const std::string& file) {
+  auto vc = data.map(crs_matrix_local_to_string<T,I,O>);
+  vc.template moveto_dvector<char>().savebinary(file);
+}
+#else
+template <class T, class I, class O>
+void crs_matrix<T,I,O>::save(const std::string& file) {
+  std::ofstream str(file.c_str());
+  str << *this;
+}
+#endif
 
 template <class T, class I, class O>
 void crs_matrix<T,I,O>::savebinary(const std::string& dir) {
