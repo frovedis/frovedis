@@ -1,0 +1,15 @@
+TARGETS := nb
+include ../Makefile.in.ve
+include ../Makefile.common
+
+TO_INSTALL := nb.cc
+DIR := nb
+ARCH := ve
+
+nb: nb.o
+	${LINK} -o nb nb.o ${LIBS}
+	#${LINK} -ftrace -o nb nb.o ${LIBS}
+
+nb.o: nb.cc
+	${MPICXX} -c ${CXXFLAGS} $< -o $@
+	#${MPICXX} -c ${CXXFLAGS} -ftrace -report-all $< -o $@

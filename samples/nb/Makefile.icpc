@@ -1,0 +1,10 @@
+TARGETS := nb
+include ../Makefile.in.icpc
+include ../Makefile.common
+
+TO_INSTALL := nb.cc
+DIR := nb
+ARCH := icpc
+
+nb: nb.o
+	${LINK} -o nb nb.o ${LIBS}

@@ -1,0 +1,10 @@
+TARGETS := nb
+include ../Makefile.in.x86
+include ../Makefile.common
+
+TO_INSTALL := nb.cc
+DIR := nb
+ARCH := x86
+
+nb: nb.o
+	${MPICXX} ${CXXFLAGS} -o nb nb.o ${LIBS}
