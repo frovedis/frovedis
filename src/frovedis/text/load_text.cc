@@ -221,5 +221,48 @@ load_text(const string& path, const string& delim,
   return ret;
 }
 
+vector<int>
+load_text_local(const string& path, const string& delim,
+                vector<size_t>& sep, vector<size_t>& len){
+  auto vchar = loadbinary_local<char>(path);
+  vector<int> intstring(vchar.size());
+  char_to_int(vchar.data(), vchar.size(), intstring.data());
+  auto delimstart = find(intstring, delim);
+  auto delimstart_size = delimstart.size();
+  sep.resize(delimstart_size + 1); // first is always 0
+  auto sepp = sep.data(); 
+  auto delimstartp = delimstart.data();
+  auto delim_len = delim.size();
+  for(size_t i = 0; i < delimstart_size; i++) {
+    sepp[i+1] = delimstartp[i] + delim_len;
+  }
+  auto sep_size = sep.size();
+  len.resize(sep_size);
+  auto lenp = len.data();
+  for(size_t i = 0; i < sep_size - 1; i++) {
+    lenp[i] = sepp[i+1] - sepp[i] - delim_len;
+  }
+  int lastdelim = true;
+  auto ret_size = intstring.size();
+  // if ret_size < delim_len, lastdelim != true
+  if(ret_size >= delim_len) {
+    for(size_t i = 0; i < delim_len; i++) {
+      if(intstring[intstring.size() - delim_len + i]
+         != static_cast<int>(delim[i])) {
+        lastdelim = false;
+        break;
+      }
+    }
+  } else lastdelim = false;
+  if(lastdelim) {
+    lenp[sep_size - 1] = intstring.size() - sepp[sep_size - 1] - delim_len;
+    sep.pop_back();
+    len.pop_back();
+  } else {
+    lenp[sep_size - 1] = intstring.size() - sepp[sep_size - 1];
+  }
+  return intstring;
+}
+
 }
 
