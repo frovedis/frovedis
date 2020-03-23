@@ -22,6 +22,12 @@ load_text(const std::string& path,
           node_local<std::vector<size_t>>& sep,
           node_local<std::vector<size_t>>& len);
 
+std::vector<int>
+load_text_local(const std::string& path,
+                const std::string& delim,
+                std::vector<size_t>& sep,
+                std::vector<size_t>& len);
+
 }
 
 #endif
