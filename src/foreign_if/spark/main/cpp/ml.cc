@@ -136,6 +136,7 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisLNRSG
   bool mvbl = (bool) movable;
   bool icpt = false; // default
   int vb = 0; // no log (default)
+  double tol = 0.001; // default (TODO: send from spark client)
   bool isDense = (bool) dense;
 #ifdef _EXRPC_DEBUG_
   std::cout << "Connecting to master node (" 
@@ -144,9 +145,9 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisLNRSG
 #endif
   try {
     if(isDense)
-      exrpc_oneway(fm_node,(frovedis_lnr_sgd<DT1,D_MAT1>),f_dptr,numIter,stepSize,mbf,icpt,vb,mid,mvbl);
+      exrpc_oneway(fm_node,(frovedis_lnr_sgd<DT1,D_MAT1>),f_dptr,numIter,stepSize,mbf,icpt,tol,vb,mid,mvbl);
     else
-      exrpc_oneway(fm_node,(frovedis_lnr_sgd<DT1,S_MAT1>),f_dptr,numIter,stepSize,mbf,icpt,vb,mid,mvbl);
+      exrpc_oneway(fm_node,(frovedis_lnr_sgd<DT1,S_MAT1>),f_dptr,numIter,stepSize,mbf,icpt,tol,vb,mid,mvbl);
   }
   catch(std::exception& e) { set_status(true,e.what()); }
 }
@@ -162,6 +163,7 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisLNRLB
   bool mvbl = (bool) movable;
   bool icpt = false; // default
   int vb = 0; // no log (default)
+  double tol = 0.001; // default (TODO: send from spark client)
   bool isDense = (bool) dense;
 #ifdef _EXRPC_DEBUG_
   std::cout << "Connecting to master node ("
@@ -170,9 +172,9 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisLNRLB
 #endif 
   try {
     if(isDense)
-      exrpc_oneway(fm_node,(frovedis_lnr_lbfgs<DT1,D_MAT1>),f_dptr,numIter,stepSize,histSize,icpt,vb,mid,mvbl);
+      exrpc_oneway(fm_node,(frovedis_lnr_lbfgs<DT1,D_MAT1>),f_dptr,numIter,stepSize,histSize,icpt,tol,vb,mid,mvbl);
     else
-      exrpc_oneway(fm_node,(frovedis_lnr_lbfgs<DT1,S_MAT1>),f_dptr,numIter,stepSize,histSize,icpt,vb,mid,mvbl);
+      exrpc_oneway(fm_node,(frovedis_lnr_lbfgs<DT1,S_MAT1>),f_dptr,numIter,stepSize,histSize,icpt,tol,vb,mid,mvbl);
   }
   catch(std::exception& e) { set_status(true,e.what()); }
 }
