@@ -38,6 +38,13 @@ vector<int> char_to_int(const std::string& s) {
   return r;
 }
 
+vector<int> vchar_to_int(const std::vector<char>& s) {
+  auto size = s.size();
+  vector<int> r(size);
+  char_to_int(s.data(), size, r.data());
+  return r;
+}
+
 void int_to_char(const int* v, size_t size, char* s) {
   if(is_bigendian()) throw runtime_error("big endian is not supported");
   auto isize = size / 4;
@@ -61,6 +68,13 @@ string int_to_char(const vector<int>& v) {
   string r;
   r.resize(size);
   int_to_char(v.data(), size, const_cast<char*>(r.data()));
+  return r;
+}
+
+vector<char> int_to_vchar(const vector<int>& v) {
+  auto size = v.size();
+  vector<char> r(size);
+  int_to_char(v.data(), size, r.data());
   return r;
 }
 
