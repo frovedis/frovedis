@@ -60,6 +60,9 @@ class FrovedisVector:
         else:
             raise ValueError(\
             "load_numpy_array: Unsupported dtype is encountered!")
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
         return self.load_dummy(dmat)
 
     def load_dummy(self, vec, dtype=None):
