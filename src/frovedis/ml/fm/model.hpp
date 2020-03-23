@@ -3,6 +3,8 @@
 
 #include <assert.h>
 #include <frovedis/matrix/rowmajor_matrix.hpp>
+#include <sstream>
+#include <cereal/archives/binary.hpp>
 
 namespace frovedis {
 namespace fm {
