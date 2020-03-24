@@ -30,6 +30,7 @@ all:
 	${SCALA_HOME}/bin/scalac -cp "${SPARK_HOME}/jars/*:${HDPATH}:${CLIENT_JAR}" -sourcepath . -d bin scala/DBSCANDemo.scala
 	${SCALA_HOME}/bin/scalac -cp "${SPARK_HOME}/jars/*:${HDPATH}:${CLIENT_JAR}" -sourcepath . -d bin scala/KNNDemo.scala
 	${SCALA_HOME}/bin/scalac -cp "${SPARK_HOME}/jars/*:${HDPATH}:${CLIENT_JAR}" -sourcepath . -d bin scala/KNCDemo.scala
+	${SCALA_HOME}/bin/scalac -cp "${SPARK_HOME}/jars/*:${HDPATH}:${CLIENT_JAR}" -sourcepath . -d bin scala/KNRDemo.scala
 	${SCALA_HOME}/bin/scalac -cp "${SPARK_HOME}/jars/*:${HDPATH}:${CLIENT_JAR}" -sourcepath . -d bin scala/FrovedisSSSP.scala
 	${SCALA_HOME}/bin/scalac -cp "${SPARK_HOME}/jars/*:${HDPATH}:${CLIENT_JAR}" -sourcepath . -d bin scala/FrovedisBFS.scala
 	${SCALA_HOME}/bin/scalac -cp "${SPARK_HOME}/jars/*:${HDPATH}:${CLIENT_JAR}" -sourcepath . -d bin scala/LDADemo.scala
@@ -58,6 +59,7 @@ all:
 	cd bin; ${JAVA_HOME}/bin/jar -cfm ../lib/frovedis_dbscan.jar ../MANIFEST/dbscan.mf test/scala/DBSCANDemo*
 	cd bin; ${JAVA_HOME}/bin/jar -cfm ../lib/spark2frovedis_knn.jar ../MANIFEST/knn.mf test/scala/KNNDemo*
 	cd bin; ${JAVA_HOME}/bin/jar -cfm ../lib/spark2frovedis_knc.jar ../MANIFEST/knc.mf test/scala/KNCDemo*
+	cd bin; ${JAVA_HOME}/bin/jar -cfm ../lib/spark2frovedis_knr.jar ../MANIFEST/knr.mf test/scala/KNRDemo*
 	cd bin; ${JAVA_HOME}/bin/jar -cfm ../lib/frovedis_sssp.jar ../MANIFEST/sssp.mf test/scala/FrovedisSSSP*
 	cd bin; ${JAVA_HOME}/bin/jar -cfm ../lib/frovedis_bfs.jar ../MANIFEST/bfs.mf test/scala/FrovedisBFS*
 	cd bin; ${JAVA_HOME}/bin/jar -cfm ../lib/spark2frovedis_lda.jar ../MANIFEST/lda.mf test/scala/LDADemo*
