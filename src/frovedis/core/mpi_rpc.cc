@@ -4,6 +4,7 @@
 #include <stdexcept>
 #include <algorithm>
 #include <malloc.h>
+#include <iostream>
 #include "mpi_rpc.hpp"
 #include "mpihelper.hpp"
 
@@ -54,9 +55,9 @@ bool handle_one_bcast_req() {
   if(hdr->type == rpc_type::bcast_rpc_type) {
     typedef void(*wptype)(intptr_t, my_iarchive&, my_oarchive&);
     wptype wpt = (wptype)(hdr->wrapper_addr);
-    std::istringstream inss(serialized_arg);
+    STRING_TO_ISTREAM(inss,serialized_arg);
     my_iarchive inar(inss);
-    ostringstream result;
+    my_ostream result;
     my_oarchive outar(result);
     string what;
     int exception_caught = false;
@@ -71,7 +72,7 @@ bool handle_one_bcast_req() {
                   reinterpret_cast<void*>(&all_exception_caught),
                   1, MPI_INT, MPI_LOR, frovedis_comm_rpc);
     if(!all_exception_caught) {
-      auto resultstr = result.str();
+      OSTREAM_TO_STRING(result, resultstr);
       size_t send_data_size = resultstr.size();
       char* send_data = &resultstr[0];
       MPI_Gather(reinterpret_cast<void*>(&send_data_size), 
@@ -95,7 +96,7 @@ bool handle_one_bcast_req() {
   } else if (hdr->type == rpc_type::bcast_rpc_oneway_type) {
     typedef void(*wptype)(intptr_t, my_iarchive&);
     wptype wpt = (wptype)(hdr->wrapper_addr);
-    std::istringstream inss(serialized_arg);
+    STRING_TO_ISTREAM(inss, serialized_arg);
     my_iarchive inar(inss);
     string what;
     int exception_caught = false;
@@ -145,12 +146,12 @@ bool handle_one_req() {
   if(hdr->type == rpc_type::rpc_async_type) {
     typedef void(*wptype)(intptr_t, my_iarchive&, my_oarchive&);
     wptype wpt = (wptype)(hdr->wrapper_addr);
-    std::istringstream inss(serialized_arg);
+    STRING_TO_ISTREAM(inss, serialized_arg);
     my_iarchive inar(inss);
-    ostringstream result;
+    my_ostream result;
     my_oarchive outar(result);
     wpt(hdr->function_addr, inar, outar);
-    auto resultstr = result.str();
+    OSTREAM_TO_STRING(result, resultstr);
     size_t send_data_size = resultstr.size();
     MPI_Send(reinterpret_cast<char*>(&send_data_size), sizeof(send_data_size),
              MPI_CHAR, from, hdr->tag, frovedis_comm_rpc);
@@ -163,7 +164,7 @@ bool handle_one_req() {
   } else if (hdr->type == rpc_type::rpc_oneway_type) {
     typedef void(*wptype)(intptr_t, my_iarchive&);
     wptype wpt = (wptype)(hdr->wrapper_addr);
-    std::istringstream inss(serialized_arg);
+    STRING_TO_ISTREAM(inss, serialized_arg);
     my_iarchive inar(inss);
     wpt(hdr->function_addr, inar);
   } else if (hdr->type == rpc_type::finalize_type) {
@@ -215,9 +216,9 @@ void send_bcast_rpcreq(rpc_type type, intptr_t function_addr,
   if(type == rpc_type::bcast_rpc_type) {
     typedef void(*wptype)(intptr_t, my_iarchive&, my_oarchive&);
     wptype wpt = (wptype)(hdr.wrapper_addr);
-    istringstream inss(serialized_arg);
+    STRING_TO_ISTREAM(inss, serialized_arg);
     my_iarchive inar(inss);
-    ostringstream result;
+    my_ostream result;
     my_oarchive outar(result);
     string what;
     int exception_caught = false;
@@ -232,7 +233,7 @@ void send_bcast_rpcreq(rpc_type type, intptr_t function_addr,
                   reinterpret_cast<void*>(&all_exception_caught),
                   1, MPI_INT, MPI_LOR, frovedis_comm_rpc);
     if(!all_exception_caught) {
-      auto resultstr = result.str();
+      OSTREAM_TO_STRING(result, resultstr);
       size_t send_data_size = resultstr.size();
       char* send_data = &resultstr[0];
       vector<size_t> recv_counts(node_size);
@@ -298,7 +299,7 @@ void send_bcast_rpcreq(rpc_type type, intptr_t function_addr,
   } else if (type == rpc_type::bcast_rpc_oneway_type) {
     typedef void(*wptype)(intptr_t, my_iarchive&);
     wptype wpt = (wptype)(hdr.wrapper_addr);
-    std::istringstream inss(serialized_arg);
+    STRING_TO_ISTREAM(inss, serialized_arg);
     my_iarchive inar(inss);
     string what;
     int exception_caught = false;

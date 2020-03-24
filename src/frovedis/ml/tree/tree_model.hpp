@@ -26,6 +26,34 @@
 #include "tree_config.hpp"
 #include "tree_utility.hpp"
 
+#ifdef USE_YAS
+// since YAS does not support shared_ptr, defined as workaround
+#ifndef YAS_SHARED_PTR
+#define YAS_SHARED_PTR
+namespace yas {
+template<typename Ar, typename T>
+void serialize(Ar &ar, const std::shared_ptr<T> &t) {
+  if(t) {
+    ar & 1;
+    ar & *t;
+  } else {
+    ar & 0;
+  }
+}
+template<typename Ar, typename T>
+void serialize(Ar &ar, std::shared_ptr<T> &t) {
+  int checker;
+  ar & checker;
+  if(checker) {
+    T tmp;
+    ar & tmp;
+    t = std::make_shared<T>(std::move(tmp));
+  }
+}
+}
+#endif
+#endif
+
 namespace frovedis {
 namespace tree {
 

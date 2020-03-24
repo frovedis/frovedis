@@ -6,7 +6,7 @@ TARGETS := test
 #INCLUDES := -I${INSTALLPATH}/include
 
 LIBS := -L../../../third_party/lib -L../../../src/frovedis/core -L../../../src/frovedis/matrix -L../../../src/frovedis/ml -lfrovedis_ml -lfrovedis_matrix -lfrovedis_core ${LIBS_COMMON}
-INCLUDES := -I../../../src -I../../../third_party/cereal-1.2.2/include/
+INCLUDES := -I../../../src -I../../../third_party/cereal-1.2.2/include/ -I../../../third_party/yas-7.0.5/include/
 
 CXXFLAGS := ${CXXFLAGS_COMMON} ${INCLUDES} -Wno-unused-result
 

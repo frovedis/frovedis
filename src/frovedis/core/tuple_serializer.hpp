@@ -39,4 +39,8 @@ void serialize(Ar & ar, std::tuple<Ts...> & t, const unsigned int ver) {
 #include <cereal/types/tuple.hpp>
 #endif
 
+#ifdef USE_YAS
+#include <yas/types/std/tuple.hpp>
+#endif
+
 #endif

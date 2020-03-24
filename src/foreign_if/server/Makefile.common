@@ -2,7 +2,7 @@ HEADERS := dummy_model.hpp dummy_matrix.hpp exrpc_data_storage.hpp exrpc_model.h
 
 OBJS := model_tracker.o exrpc_dataframe.o expose_dvector.o expose_dense.o expose_sparse.o expose_mldata.o expose_dataframe.o expose_wrapper.o expose_model.o expose_ml.o expose_graphx.o
 
-INCLUDES := -I../.. -I../../../third_party/cereal-1.2.2/include/
+INCLUDES := -I../.. -I../../../third_party/cereal-1.2.2/include/ -I../../../third_party/yas-7.0.5/include/
 CXXFLAGS := ${CXXFLAGS_COMMON} -fopenmp ${INCLUDES}
 LIBS := -L../../../third_party/lib -L../../frovedis/core -L../../frovedis/text -L../../frovedis/matrix -L../../frovedis/ml -L../../frovedis/dataframe -L../exrpc -lfrovedis_exrpc -lfrovedis_ml -lfrovedis_dataframe -lfrovedis_matrix -lfrovedis_text -lfrovedis_core ${LIBS_COMMON}
 

@@ -42,10 +42,10 @@ T rpc_result<T>::get() {
                frovedis_comm_rpc, &s);
     }
     // TODO: remove this copy
-    std::istringstream ss(buf);
+    STRING_TO_ISTREAM(ss, buf);
     my_iarchive ar(ss);
     T ret;
-    ar >> ret;
+    ar & ret;
     get_done = true;
     return ret;
 #if !(defined(_SX) || defined(__ve__))

@@ -3,6 +3,16 @@
 
 #include "dvector.hpp"
 
+#ifdef USE_YAS
+#ifdef USE_ORDERED_MAP
+#include <yas/types/std/map.hpp>
+#include <yas/types/std/pair.hpp>
+#else
+#include <yas/types/std/unordered_map.hpp>
+#include <yas/types/std/pair.hpp>
+#endif
+#endif
+
 #ifdef USE_CEREAL
 #ifdef USE_ORDERED_MAP
 #include <cereal/types/map.hpp>

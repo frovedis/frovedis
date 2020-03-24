@@ -110,7 +110,12 @@ std::string tree_ensemble_model<T>::_str(
 
 template <typename T>
 class random_forest_model : public tree_ensemble_model<T> {
+// TODO: currently using both YAS and cereal is not supported
+#ifdef USE_YAS
+  SERIALIZE(yas::base_object<tree_ensemble_model<T>>(*this))
+#else
   SERIALIZE(cereal::base_class<tree_ensemble_model<T>>(this))
+#endif
 
 public:
   template <typename DATA>
@@ -273,7 +278,12 @@ std::vector<T> random_forest_model<T>::predict_by_average(
 template <typename T>
 class gradient_boosted_trees_model : public tree_ensemble_model<T> {
   std::vector<T> weights;
+// TODO: currently using both YAS and cereal is not supported
+#ifdef USE_YAS
+  SERIALIZE(yas::base_object<tree_ensemble_model<T>>(*this), weights)
+#else
   SERIALIZE(cereal::base_class<tree_ensemble_model<T>>(this), weights)
+#endif
 
 public:
   template <typename DATA>

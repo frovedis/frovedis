@@ -6,7 +6,7 @@ TARGETS := tut
 #INCLUDES := -I${INSTALLPATH}/include
 
 LIBS := -L../../../../third_party/lib -L../../../../src/frovedis/core -L../../../../src/frovedis/text -L../../../../src/frovedis/matrix -L../../../../src/frovedis/ml -L../../../../src/frovedis/dataframe -lfrovedis_ml -lfrovedis_dataframe -lfrovedis_matrix -lfrovedis_text -lfrovedis_core ${LIBS_COMMON} -L../../../../src/frovedis/ml/dnn/vednn -lvednn_sequential
-INCLUDES := -I../../../../src/ -I../../../../third_party/cereal-1.2.2/include/ -I../../../../src/frovedis/ml/dnn/ -I../../../../src/frovedis/ml/dnn/vednn/
+INCLUDES := -I../../../../src/ -I../../../../third_party/cereal-1.2.2/include/ -I../../../../third_party/yas-7.0.5/include/ -I../../../../src/frovedis/ml/dnn/ -I../../../../src/frovedis/ml/dnn/vednn/
 
 CXXFLAGS := ${CXXFLAGS_COMMON} ${INCLUDES}
 

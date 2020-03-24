@@ -10,13 +10,20 @@
 //#define USE_BOOST_HASH
 //#endif
 
-#define USE_CEREAL_FOR_RPC
-#define USE_CEREAL_FOR_EXRPC
+#define USE_YAS_FOR_RPC
+#define USE_YAS_FOR_EXRPC
+//#define USE_CEREAL_FOR_RPC
+//#define USE_CEREAL_FOR_EXRPC
+//#define USE_BOOST_FOR_RPC
+//#define USE_BOOST_FOR_EXRPC
 
+#if defined(USE_YAS_FOR_RPC) || defined(USE_YAS_FOR_EXRPC)
+#define USE_YAS
+#endif
 #if defined(USE_CEREAL_FOR_RPC) || defined(USE_CEREAL_FOR_EXRPC)
 #define USE_CEREAL
 #endif
-#if !defined(USE_CEREAL_FOR_RPC) || !defined(USE_CEREAL_FOR_EXRPC)
+#if defined(USE_BOOST_FOR_RPC) || defined(USE_BOOST_FOR_EXRPC)
 #define USE_BOOST_SERIALIZATION
 #endif
 

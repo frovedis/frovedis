@@ -5,6 +5,8 @@
 #include <frovedis/matrix/rowmajor_matrix.hpp>
 #include <sstream>
 #include <cereal/archives/binary.hpp>
+#include <cereal/types/vector.hpp>
+#include <cereal/types/string.hpp>
 
 namespace frovedis {
 namespace fm {

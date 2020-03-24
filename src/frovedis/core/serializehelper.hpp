@@ -27,33 +27,24 @@
 #define PP_SERIALIZATION(z,count,array)         \
   & BOOST_PP_ARRAY_ELEM(count,array)
 
-#if defined(USE_CEREAL) && !defined(USE_BOOST_SERIALIZATION)
+#if defined(USE_BOOST_SERIALIZATION)
 #define SERIALIZE(...)                          \
-  private:                                      \
-  friend class cereal::access;                  \
-  template<class Ar>  \
+  public:                                       \
+  template<class Ar>                            \
   void serialize(Ar & ar,const unsigned int){   \
     ar SERIALIZE_I((__VA_ARGS__));              \
-  }
-#elif defined(USE_CEREAL) && defined(USE_BOOST_SERIALIZATION)
-#define SERIALIZE(...)                          \
-  private:                                      \
-  friend class boost::serialization::access;    \
-  friend class cereal::access;                  \
-  template<class Ar>  \
-  void serialize(Ar & ar,const unsigned int){   \
-    ar SERIALIZE_I((__VA_ARGS__));              \
-  }
-#elif !defined(USE_CEREAL) && defined(USE_BOOST_SERIALIZATION)
-#define SERIALIZE(...)                          \
-  private:                                      \
-  friend class boost::serialization::access;    \
-  template<class Ar>  \
-  void serialize(Ar & ar,const unsigned int){   \
+  }                                             \
+  template<class Ar>                            \
+  void serialize(Ar & ar){                      \
     ar SERIALIZE_I((__VA_ARGS__));              \
   }
 #else
-#error conflicted definition of USE_SEREAL and USE_BOOST_SERIALIZATION
+#define SERIALIZE(...)                          \
+  public:                                       \
+  template<class Ar>                            \
+  void serialize(Ar & ar){                      \
+    ar SERIALIZE_I((__VA_ARGS__));              \
+  }
 #endif
 
 #define SERIALIZE_I(tuple)                              \
@@ -63,27 +54,18 @@
 
 #define SERIALIZE_II(tuple) BOOST_PP_REPEAT tuple
 
-#if defined(USE_CEREAL) && !defined(USE_BOOST_SERIALIZATION)
+#if defined(USE_BOOST_SERIALIZATION)
 #define SERIALIZE_NONE                          \
-  private:                                      \
-  friend class cereal::access;                  \
+  public:                                       \
   template<class Ar>                            \
-  void serialize(Ar & ar,const unsigned int){}            
-#elif defined(USE_CEREAL) && defined(USE_BOOST_SERIALIZATION)
-#define SERIALIZE_NONE                          \
-  private:                                      \
-  friend class boost::serialization::access;    \
-  friend class cereal::access;                  \
+  void serialize(Ar & ar,const unsigned int){}  \
   template<class Ar>                            \
-  void serialize(Ar & ar,const unsigned int){}            
-#elif !defined(USE_CEREAL) && defined(USE_BOOST_SERIALIZATION)
-#define SERIALIZE_NONE                          \
-  private:                                      \
-  friend class boost::serialization::access;    \
-  template<class Ar>                            \
-  void serialize(Ar & ar,const unsigned int){}            
+  void serialize(Ar & ar){}            
 #else
-#error conflicted definition of USE_SEREAL and USE_BOOST_SERIALIZATION
+#define SERIALIZE_NONE                          \
+  public:                                       \
+  template<class Ar>                            \
+  void serialize(Ar & ar){}            
 #endif
 
 #endif

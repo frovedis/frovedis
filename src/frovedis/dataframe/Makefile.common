@@ -4,7 +4,7 @@ OBJS := dfcolumn.o typed_dfcolumn_dic_string.o typed_dfcolumn_raw_string.o typed
 
 TARGETS := libfrovedis_dataframe.a
 
-INCLUDES := -I../../../third_party/cereal-1.2.2/include/
+INCLUDES := -I../../../third_party/cereal-1.2.2/include/ -I../../../third_party/yas-7.0.5/include/
 
 CXXFLAGS := ${CXXFLAGS_COMMON} ${INCLUDES}
 

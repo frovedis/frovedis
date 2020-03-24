@@ -5,6 +5,10 @@
 #include "char_int_conv.hpp"
 #include "find.hpp"
 
+#ifdef USE_YAS
+#include <yas/types/std/vector.hpp>
+#include <yas/types/std/string.hpp>
+#endif
 #ifdef USE_CEREAL
 #include <cereal/types/vector.hpp>
 #include <cereal/types/string.hpp>

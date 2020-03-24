@@ -12,33 +12,61 @@
 #include "frovedis.hpp"
 #include "frovedis/core/exceptions.hpp"
 
-#ifdef USE_BOOST_SERIALIZATION
-#include <boost/serialization/serialization.hpp>
-#include <boost/serialization/map.hpp>
-#endif
-
-#ifdef USE_CEREAL_FOR_EXRPC
-#include <cereal/types/unordered_map.hpp>
+#if defined(USE_YAS)
+#include <yas/types/std/vector.hpp>
+#include <yas/types/std/string.hpp>
+#include <yas/types/std/map.hpp>
+#include <yas/types/std/pair.hpp>
+#elif defined(USE_CEREAL)
 #include <cereal/types/vector.hpp>
 #include <cereal/types/string.hpp>
+#include <cereal/types/map.hpp>
 #include <cereal/types/utility.hpp>
+#elif defined(USE_BOOST_SERIALIZATION)
+#include <boost/serialization/vector.hpp>
+#include <boost/serialization/string.hpp>
+#include <boost/serialization/map.hpp>
+#include <boost/serialization/utility.hpp>
+#endif
 
-// not portable, though...; for VE<->VH, it's OK
-namespace frovedis {
+#if defined(USE_YAS_FOR_EXRPC)
+namespace frovedis{
+typedef yas::mem_istream my_portable_istream;
+typedef yas::mem_ostream my_portable_ostream;
+typedef yas::binary_iarchive<yas::mem_istream,yas::binary|yas::no_header>
+  my_portable_iarchive;
+typedef yas::binary_oarchive<yas::mem_ostream,yas::binary|yas::no_header>
+  my_portable_oarchive;
+}
+#define STRING_TO_PORTABLE_ISTREAM(is, str) \
+  my_portable_istream is(str.c_str(), str.size())
+#define PORTABLE_OSTREAM_TO_STRING(os, str)           \
+  std::string str;                                    \
+  auto os ## _yas_buf = os.get_intrusive_buffer();    \
+  str.assign(os ## _yas_buf.data, os ## _yas_buf.size)
+
+#elif defined(USE_CEREAL_FOR_EXRPC)
+namespace frovedis{
+typedef std::istringstream my_portable_istream;
+typedef std::ostringstream my_portable_ostream;
 typedef cereal::BinaryInputArchive my_portable_iarchive;
 typedef cereal::BinaryOutputArchive my_portable_oarchive;
 }
+#define STRING_TO_PORTABLE_ISTREAM(is, str) my_portable_istream is(str)
+#define PORTABLE_OSTREAM_TO_STRING(os, r) auto r = os.str()
 
-#else
-
+#elif defined(USE_BOOST_FOR_EXRPC)
 #define NO_EXPLICIT_TEMPLATE_INSTANTIATION
 #include "portable_iarchive.hpp"
 #include "portable_oarchive.hpp"
-          
 namespace frovedis{
+typedef std::istringstream my_portable_istream;
+typedef std::ostringstream my_portable_ostream;
 typedef eos::portable_iarchive my_portable_iarchive;
 typedef eos::portable_oarchive my_portable_oarchive;
 }
+#define STRING_TO_PORTABLE_ISTREAM(is, str) my_portable_istream is(str)
+#define PORTABLE_OSTREAM_TO_STRING(os, r) auto r = os.str()
 #endif
 
 namespace frovedis {

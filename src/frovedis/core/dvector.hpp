@@ -22,6 +22,10 @@
 #include "mpihelper.hpp"
 #include "type_utility.hpp"
 
+#ifdef USE_YAS
+#include <yas/types/std/vector.hpp>
+#include <yas/types/std/string.hpp>
+#endif
 #ifdef USE_CEREAL
 #include <cereal/types/vector.hpp>
 #include <cereal/types/string.hpp>
@@ -1621,10 +1625,11 @@ void align_as_align(std::vector<T>& src, std::vector<T>& dst,
       tmp[j] = crntsrcp[j];
     }
     crntsrcp += tmp_size;
-    std::ostringstream ss;
+    my_ostream ss;
     my_oarchive outar(ss);
-    outar << tmp;
-    srcservec[i] = ss.str();
+    outar & tmp;
+    OSTREAM_TO_STRING(ss, str);
+    srcservec[i] = std::move(str);
     ser_sendcounts[i] = srcservec[i].size();
     total += srcservec[i].size();
   }
@@ -1662,10 +1667,10 @@ void align_as_align(std::vector<T>& src, std::vector<T>& dst,
     std::string sertmp;
     sertmp.resize(ser_recvcounts[i]);
     memcpy(&sertmp[0], &dstser[0] + rdispls[i], ser_recvcounts[i]);
-    std::istringstream inss(sertmp);
+    STRING_TO_ISTREAM(inss, sertmp);
     my_iarchive inar(inss);
     std::vector<T> tmp;
-    inar >> tmp;
+    inar & tmp;
     size_t tmpsize = tmp.size();
     for(size_t j = 0; j < tmpsize; j++) {
       crntdstp[j] = tmp[j];
@@ -2021,10 +2026,11 @@ std::vector<std::string>
 to_serialized_binary(std::vector<T>& v) {
   std::vector<std::string> ret(v.size());
   for(size_t i = 0; i < v.size(); i++) {
-    std::ostringstream ss;
+    my_ostream ss;
     my_oarchive outar(ss);
-    outar << v[i];
-    ret[i] = std::move(ss.str());
+    outar & v[i];
+    OSTREAM_TO_STRING(ss, str);
+    ret[i] = std::move(str);
   }
   return ret;
 }
@@ -2122,9 +2128,9 @@ template <class T>
 std::vector<T> deserialize_binary(std::vector<std::string>& ser) {
   std::vector<T> ret(get_nodesize());
   for(int i = 0; i < get_nodesize(); i++) {
-    std::istringstream inss(ser[i]); // TODO: remove this copy
+    STRING_TO_ISTREAM(inss, ser[i]);
     my_iarchive inar(inss);
-    inar >> ret[i];
+    inar & ret[i];
   }
   return ret;
 }

@@ -281,22 +281,22 @@ void dvid_broadcast_helper(dvid_t& to, size_t& size, intptr_t& root_buf_ptr) {
     buf.resize(size);
     char* rbuf = const_cast<char*>(&buf[0]);
     large_bcast(sizeof(char), rbuf, size, root, frovedis_comm_rpc);
-    std::istringstream inss(buf); // TODO: remove this copy
+    STRING_TO_ISTREAM(inss, buf);
     my_iarchive inar(inss);
     T* var = new T();
-    inar >> *var;
+    inar & *var;
     set_data<T>(to, var);
   }
 }
 
 template <class T>
 DVID<T> make_dvid_broadcast(const T& src) {
-  std::ostringstream ss;
+  my_ostream ss;
   my_oarchive outar(ss);
-  outar << src;
-  std::string buf = ss.str();
+  outar & src;
+  OSTREAM_TO_STRING(ss, buf);
   intptr_t root_buf_ptr = reinterpret_cast<intptr_t>(buf.c_str());
-  size_t size = ss.str().size();
+  size_t size = buf.size();
   auto d = get_new_dvid();
   bcast_rpc_oneway(dvid_broadcast_helper<T>, d, size, root_buf_ptr);
   // SX dislikes copy ctor of std::vector
@@ -381,10 +381,10 @@ void dvid_scatter_helper(dvid_t& d, std::vector<size_t>& sendcounts,
     std::vector<size_t> displs; // dummy
     large_scatterv(sizeof(char), 0, sendcounts, displs, &recvbuf[0],
                    recvcount, root, frovedis_comm_rpc);
-    std::istringstream inss(recvbuf); // TODO: remove this copy
+    STRING_TO_ISTREAM(inss, recvbuf);
     my_iarchive inar(inss);
     T* newsrc = new T();
-    inar >> *newsrc;
+    inar & *newsrc;
     set_data<T>(d, newsrc);
   }
 }
@@ -396,10 +396,11 @@ DVID<T> make_dvid_scatter(std::vector<T>& src) {
     throw std::runtime_error("invalid vector size for scatter");
   std::vector<std::string> serialized_src(node_size);
   for(size_t i = 1; i < node_size; i++) { // skip root
-    std::ostringstream ss;
+    my_ostream ss;
     my_oarchive outar(ss);
-    outar << src[i];
-    serialized_src[i] = ss.str(); // TODO: avoid this copy
+    outar & src[i];
+    OSTREAM_TO_STRING(ss, tmp);
+    serialized_src[i] = std::move(tmp);
   }
   size_t total = 0;
   for(size_t i = 0; i < node_size; i++) total += serialized_src[i].size();
@@ -433,17 +434,17 @@ void receive_data_helper(int from, T& data) {
   buf.resize(recv_size);
   large_recv(sizeof(char), &buf[0], recv_size, from, 0, frovedis_comm_rpc,
              &s);
-  std::istringstream inss(buf);
+  STRING_TO_ISTREAM(inss, buf);
   my_iarchive inar(inss);
-  inar >> data;
+  inar & data;
 }
 
 template <class T>
 void send_data_helper(int to, const T& data) {
-  std::ostringstream ss;
+  my_ostream ss;
   my_oarchive outar(ss);
-  outar << data;
-  std::string buf = ss.str();
+  outar & data;
+  OSTREAM_TO_STRING(ss, buf);
   size_t send_size = buf.size();
   MPI_Send(&send_size, sizeof(size_t), MPI_CHAR, to, 0, frovedis_comm_rpc);
   large_send(sizeof(char), &buf[0], send_size, to, 0, frovedis_comm_rpc);
@@ -1033,10 +1034,10 @@ struct dvid_gather_helper {
   void operator()(T& data) {
     int self = get_selfid();
     int nodes = get_nodesize();
-    std::ostringstream ss;
+    my_ostream ss;
     my_oarchive outar(ss);
-    outar << data;
-    std::string sendbuf = ss.str();
+    outar & data;
+    OSTREAM_TO_STRING(ss, sendbuf);
     size_t send_size = sendbuf.size();
 
     std::vector<size_t> recvcounts(nodes);
@@ -1064,9 +1065,9 @@ struct dvid_gather_helper {
         std::string serbuf;
         serbuf.resize(recvcounts[i]);
         memcpy(&serbuf[0], recvbufp + displs[i], recvcounts[i]);
-        std::istringstream inss(serbuf);
+        STRING_TO_ISTREAM(inss, serbuf);
         my_iarchive inar(inss);
-        inar >> gatherv[i];
+        inar & gatherv[i];
       }
     }
   }

@@ -4,7 +4,7 @@ OBJS := mpi_rpc.o fwrapper_oneway.o rpc_oneway.o bcast_rpc_oneway.o log.o mpihel
 
 TARGETS := libfrovedis_core.a
 
-INCLUDES := -I../../../third_party/cereal-1.2.2/include/
+INCLUDES := -I../../../third_party/cereal-1.2.2/include/ -I../../../third_party/yas-7.0.5/include/
 
 CXXFLAGS := ${CXXFLAGS_COMMON} ${INCLUDES}
 

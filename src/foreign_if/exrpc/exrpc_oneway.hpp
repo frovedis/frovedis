@@ -35,19 +35,19 @@ void pfwrapper_oneway(intptr_t function_addr, my_portable_iarchive& inar)
   T11 a11;
   T12 a12;
   T13 a13;
-  inar >> a1;
-  inar >> a2;
-  inar >> a3;
-  inar >> a4;
-  inar >> a5;
-  inar >> a6;
-  inar >> a7;
-  inar >> a8;
-  inar >> a9;
-  inar >> a10;
-  inar >> a11;
-  inar >> a12;
-  inar >> a13;
+  inar & a1;
+  inar & a2;
+  inar & a3;
+  inar & a4;
+  inar & a5;
+  inar & a6;
+  inar & a7;
+  inar & a8;
+  inar & a9;
+  inar & a10;
+  inar & a11;
+  inar & a12;
+  inar & a13;
   f(a1,a2,a3,a4,a5,a6,a7,a8,a9,a10,a11,a12,a13);
   return;
 }
@@ -71,18 +71,18 @@ void pfwrapper_oneway(intptr_t function_addr, my_portable_iarchive& inar)
   T10 a10;
   T11 a11;
   T12 a12;
-  inar >> a1;
-  inar >> a2;
-  inar >> a3;
-  inar >> a4;
-  inar >> a5;
-  inar >> a6;
-  inar >> a7;
-  inar >> a8;
-  inar >> a9;
-  inar >> a10;
-  inar >> a11;
-  inar >> a12;
+  inar & a1;
+  inar & a2;
+  inar & a3;
+  inar & a4;
+  inar & a5;
+  inar & a6;
+  inar & a7;
+  inar & a8;
+  inar & a9;
+  inar & a10;
+  inar & a11;
+  inar & a12;
   f(a1,a2,a3,a4,a5,a6,a7,a8,a9,a10,a11,a12);
   return;
 }
@@ -104,17 +104,17 @@ void pfwrapper_oneway(intptr_t function_addr, my_portable_iarchive& inar)
   T9 a9;
   T10 a10;
   T11 a11;
-  inar >> a1;
-  inar >> a2;
-  inar >> a3;
-  inar >> a4;
-  inar >> a5;
-  inar >> a6;
-  inar >> a7;
-  inar >> a8;
-  inar >> a9;
-  inar >> a10;
-  inar >> a11;
+  inar & a1;
+  inar & a2;
+  inar & a3;
+  inar & a4;
+  inar & a5;
+  inar & a6;
+  inar & a7;
+  inar & a8;
+  inar & a9;
+  inar & a10;
+  inar & a11;
   f(a1,a2,a3,a4,a5,a6,a7,a8,a9,a10,a11);
   return;
 }
@@ -135,16 +135,16 @@ void pfwrapper_oneway(intptr_t function_addr, my_portable_iarchive& inar)
   T8 a8;
   T9 a9;
   T10 a10;
-  inar >> a1;
-  inar >> a2;
-  inar >> a3;
-  inar >> a4;
-  inar >> a5;
-  inar >> a6;
-  inar >> a7;
-  inar >> a8;
-  inar >> a9;
-  inar >> a10;
+  inar & a1;
+  inar & a2;
+  inar & a3;
+  inar & a4;
+  inar & a5;
+  inar & a6;
+  inar & a7;
+  inar & a8;
+  inar & a9;
+  inar & a10;
   f(a1,a2,a3,a4,a5,a6,a7,a8,a9,a10);
   return;
 }
@@ -164,15 +164,15 @@ void pfwrapper_oneway(intptr_t function_addr, my_portable_iarchive& inar)
   T7 a7;
   T8 a8;
   T9 a9;
-  inar >> a1;
-  inar >> a2;
-  inar >> a3;
-  inar >> a4;
-  inar >> a5;
-  inar >> a6;
-  inar >> a7;
-  inar >> a8;
-  inar >> a9;
+  inar & a1;
+  inar & a2;
+  inar & a3;
+  inar & a4;
+  inar & a5;
+  inar & a6;
+  inar & a7;
+  inar & a8;
+  inar & a9;
   f(a1,a2,a3,a4,a5,a6,a7,a8,a9);
   return;
 }
@@ -191,14 +191,14 @@ void pfwrapper_oneway(intptr_t function_addr, my_portable_iarchive& inar)
   T6 a6;
   T7 a7;
   T8 a8;
-  inar >> a1;
-  inar >> a2;
-  inar >> a3;
-  inar >> a4;
-  inar >> a5;
-  inar >> a6;
-  inar >> a7;
-  inar >> a8;
+  inar & a1;
+  inar & a2;
+  inar & a3;
+  inar & a4;
+  inar & a5;
+  inar & a6;
+  inar & a7;
+  inar & a8;
   f(a1,a2,a3,a4,a5,a6,a7,a8);
   return;
 }
@@ -215,13 +215,13 @@ void pfwrapper_oneway(intptr_t function_addr, my_portable_iarchive& inar)
   T5 a5;
   T6 a6;
   T7 a7;
-  inar >> a1;
-  inar >> a2;
-  inar >> a3;
-  inar >> a4;
-  inar >> a5;
-  inar >> a6;
-  inar >> a7;
+  inar & a1;
+  inar & a2;
+  inar & a3;
+  inar & a4;
+  inar & a5;
+  inar & a6;
+  inar & a7;
   f(a1,a2,a3,a4,a5,a6,a7);
   return;
 }
@@ -237,12 +237,12 @@ void pfwrapper_oneway(intptr_t function_addr, my_portable_iarchive& inar)
   T4 a4;
   T5 a5;
   T6 a6;
-  inar >> a1;
-  inar >> a2;
-  inar >> a3;
-  inar >> a4;
-  inar >> a5;
-  inar >> a6;
+  inar & a1;
+  inar & a2;
+  inar & a3;
+  inar & a4;
+  inar & a5;
+  inar & a6;
   f(a1,a2,a3,a4,a5,a6);
   return;
 }
@@ -257,11 +257,11 @@ void pfwrapper_oneway(intptr_t function_addr, my_portable_iarchive& inar)
   T3 a3;
   T4 a4;
   T5 a5;
-  inar >> a1;
-  inar >> a2;
-  inar >> a3;
-  inar >> a4;
-  inar >> a5;
+  inar & a1;
+  inar & a2;
+  inar & a3;
+  inar & a4;
+  inar & a5;
   f(a1,a2,a3,a4,a5);
   return;
 }
@@ -275,10 +275,10 @@ void pfwrapper_oneway(intptr_t function_addr, my_portable_iarchive& inar)
   T2 a2;
   T3 a3;
   T4 a4;
-  inar >> a1;
-  inar >> a2;
-  inar >> a3;
-  inar >> a4;
+  inar & a1;
+  inar & a2;
+  inar & a3;
+  inar & a4;
   f(a1,a2,a3,a4);
   return;
 }
@@ -291,9 +291,9 @@ void pfwrapper_oneway(intptr_t function_addr, my_portable_iarchive& inar)
   T1 a1;
   T2 a2;
   T3 a3;
-  inar >> a1;
-  inar >> a2;
-  inar >> a3;
+  inar & a1;
+  inar & a2;
+  inar & a3;
   f(a1,a2,a3);
   return;
 }
@@ -305,8 +305,8 @@ void pfwrapper_oneway(intptr_t function_addr, my_portable_iarchive& inar)
   Ftype f = reinterpret_cast<Ftype>(function_addr);
   T1 a1;
   T2 a2;
-  inar >> a1;
-  inar >> a2;
+  inar & a1;
+  inar & a2;
   f(a1,a2);
   return;
 }
@@ -316,7 +316,7 @@ void pfwrapper_oneway(intptr_t function_addr, my_portable_iarchive& inar) {
   typedef void(*Ftype)(T1&);
   Ftype f = reinterpret_cast<Ftype>(function_addr);
   T1 a1;
-  inar >> a1;
+  inar & a1;
   f(a1);
   return;
 }
@@ -332,22 +332,23 @@ void exrpc_function_oneway(exrpc_node& n, std::string fn,
                            const T7& a7, const T8& a8, const T9& a9,
                            const T10& a10, const T11& a11, const T12& a12,
                            const T13& a13) {
-  std::ostringstream outss;
+  my_portable_ostream outss;
   my_portable_oarchive outar(outss);
-  outar << a1;
-  outar << a2;
-  outar << a3;
-  outar << a4;
-  outar << a5;
-  outar << a6;
-  outar << a7;
-  outar << a8;
-  outar << a9;
-  outar << a10;
-  outar << a11;
-  outar << a12;
-  outar << a13;
-  send_exrpcreq_oneway(n, fn, outss.str());
+  outar & a1;
+  outar & a2;
+  outar & a3;
+  outar & a4;
+  outar & a5;
+  outar & a6;
+  outar & a7;
+  outar & a8;
+  outar & a9;
+  outar & a10;
+  outar & a11;
+  outar & a12;
+  outar & a13;
+  PORTABLE_OSTREAM_TO_STRING(outss, str);
+  send_exrpcreq_oneway(n, fn, str);
 }
 
 template <class T1, class T2, class T3, class T4, class T5,
@@ -360,21 +361,22 @@ void exrpc_function_oneway(exrpc_node& n, std::string fn,
                            const T4& a4, const T5& a5, const T6& a6,
                            const T7& a7, const T8& a8, const T9& a9,
                            const T10& a10, const T11& a11, const T12& a12) {
-  std::ostringstream outss;
+  my_portable_ostream outss;
   my_portable_oarchive outar(outss);
-  outar << a1;
-  outar << a2;
-  outar << a3;
-  outar << a4;
-  outar << a5;
-  outar << a6;
-  outar << a7;
-  outar << a8;
-  outar << a9;
-  outar << a10;
-  outar << a11;
-  outar << a12;
-  send_exrpcreq_oneway(n, fn, outss.str());
+  outar & a1;
+  outar & a2;
+  outar & a3;
+  outar & a4;
+  outar & a5;
+  outar & a6;
+  outar & a7;
+  outar & a8;
+  outar & a9;
+  outar & a10;
+  outar & a11;
+  outar & a12;
+  PORTABLE_OSTREAM_TO_STRING(outss, str);
+  send_exrpcreq_oneway(n, fn, str);
 }
 
 template <class T1, class T2, class T3, class T4, class T5,
@@ -387,20 +389,21 @@ void exrpc_function_oneway(exrpc_node& n, std::string fn,
                            const T4& a4, const T5& a5, const T6& a6,
                            const T7& a7, const T8& a8, const T9& a9,
                            const T10& a10, const T11& a11) {
-  std::ostringstream outss;
+  my_portable_ostream outss;
   my_portable_oarchive outar(outss);
-  outar << a1;
-  outar << a2;
-  outar << a3;
-  outar << a4;
-  outar << a5;
-  outar << a6;
-  outar << a7;
-  outar << a8;
-  outar << a9;
-  outar << a10;
-  outar << a11;
-  send_exrpcreq_oneway(n, fn, outss.str());
+  outar & a1;
+  outar & a2;
+  outar & a3;
+  outar & a4;
+  outar & a5;
+  outar & a6;
+  outar & a7;
+  outar & a8;
+  outar & a9;
+  outar & a10;
+  outar & a11;
+  PORTABLE_OSTREAM_TO_STRING(outss, str);
+  send_exrpcreq_oneway(n, fn, str);
 }
 
 template <class T1, class T2, class T3, class T4, class T5, 
@@ -411,19 +414,20 @@ void exrpc_function_oneway(exrpc_node& n, std::string fn,
                            const T4& a4, const T5& a5, const T6& a6,
                            const T7& a7, const T8& a8, const T9& a9,
                            const T10& a10) {
-  std::ostringstream outss;
+  my_portable_ostream outss;
   my_portable_oarchive outar(outss);
-  outar << a1;
-  outar << a2;
-  outar << a3;
-  outar << a4;
-  outar << a5;
-  outar << a6;
-  outar << a7;
-  outar << a8;
-  outar << a9;
-  outar << a10;
-  send_exrpcreq_oneway(n, fn, outss.str());
+  outar & a1;
+  outar & a2;
+  outar & a3;
+  outar & a4;
+  outar & a5;
+  outar & a6;
+  outar & a7;
+  outar & a8;
+  outar & a9;
+  outar & a10;
+  PORTABLE_OSTREAM_TO_STRING(outss, str);
+  send_exrpcreq_oneway(n, fn, str);
 }
 
 template <class T1, class T2, class T3, class T4, class T5,
@@ -433,18 +437,19 @@ void exrpc_function_oneway(exrpc_node& n, std::string fn,
                            const T1& a1, const T2& a2, const T3& a3,
                            const T4& a4, const T5& a5, const T6& a6,
                            const T7& a7, const T8& a8, const T9& a9) {
-  std::ostringstream outss;
+  my_portable_ostream outss;
   my_portable_oarchive outar(outss);
-  outar << a1;
-  outar << a2;
-  outar << a3;
-  outar << a4;
-  outar << a5;
-  outar << a6;
-  outar << a7;
-  outar << a8;
-  outar << a9;
-  send_exrpcreq_oneway(n, fn, outss.str());
+  outar & a1;
+  outar & a2;
+  outar & a3;
+  outar & a4;
+  outar & a5;
+  outar & a6;
+  outar & a7;
+  outar & a8;
+  outar & a9;
+  PORTABLE_OSTREAM_TO_STRING(outss, str);
+  send_exrpcreq_oneway(n, fn, str);
 }
 
 template <class T1, class T2, class T3, class T4, class T5, 
@@ -454,17 +459,18 @@ void exrpc_function_oneway(exrpc_node& n, std::string fn,
                            const T1& a1, const T2& a2, const T3& a3,
                            const T4& a4, const T5& a5, const T6& a6,
                            const T7& a7, const T8& a8) {
-  std::ostringstream outss;
+  my_portable_ostream outss;
   my_portable_oarchive outar(outss);
-  outar << a1;
-  outar << a2;
-  outar << a3;
-  outar << a4;
-  outar << a5;
-  outar << a6;
-  outar << a7;
-  outar << a8;
-  send_exrpcreq_oneway(n, fn, outss.str());
+  outar & a1;
+  outar & a2;
+  outar & a3;
+  outar & a4;
+  outar & a5;
+  outar & a6;
+  outar & a7;
+  outar & a8;
+  PORTABLE_OSTREAM_TO_STRING(outss, str);
+  send_exrpcreq_oneway(n, fn, str);
 }
 
 template <class T1, class T2, class T3, class T4, class T5,
@@ -474,16 +480,17 @@ void exrpc_function_oneway(exrpc_node& n, std::string fn,
                            const T1& a1, const T2& a2, const T3& a3,
                            const T4& a4, const T5& a5, const T6& a6,
                            const T7& a7) {
-  std::ostringstream outss;
+  my_portable_ostream outss;
   my_portable_oarchive outar(outss);
-  outar << a1;
-  outar << a2;
-  outar << a3;
-  outar << a4;
-  outar << a5;
-  outar << a6;
-  outar << a7;
-  send_exrpcreq_oneway(n, fn, outss.str());
+  outar & a1;
+  outar & a2;
+  outar & a3;
+  outar & a4;
+  outar & a5;
+  outar & a6;
+  outar & a7;
+  PORTABLE_OSTREAM_TO_STRING(outss, str);
+  send_exrpcreq_oneway(n, fn, str);
 }
 
 template <class T1, class T2, class T3, class T4, class T5,
@@ -492,15 +499,16 @@ void exrpc_function_oneway(exrpc_node& n, std::string fn,
                            void(*f)(T1&,T2&,T3&,T4&,T5&,T6&),
                            const T1& a1, const T2& a2, const T3& a3,
                            const T4& a4, const T5& a5, const T6& a6) {
-  std::ostringstream outss;
+  my_portable_ostream outss;
   my_portable_oarchive outar(outss);
-  outar << a1;
-  outar << a2;
-  outar << a3;
-  outar << a4;
-  outar << a5;
-  outar << a6;
-  send_exrpcreq_oneway(n, fn, outss.str());
+  outar & a1;
+  outar & a2;
+  outar & a3;
+  outar & a4;
+  outar & a5;
+  outar & a6;
+  PORTABLE_OSTREAM_TO_STRING(outss, str);
+  send_exrpcreq_oneway(n, fn, str);
 }
 
 template <class T1, class T2, class T3, class T4, class T5>
@@ -508,14 +516,15 @@ void exrpc_function_oneway(exrpc_node& n, std::string fn,
                            void(*f)(T1&,T2&,T3&,T4&,T5&),
                            const T1& a1, const T2& a2, const T3& a3,
                            const T4& a4, const T5& a5) {
-  std::ostringstream outss;
+  my_portable_ostream outss;
   my_portable_oarchive outar(outss);
-  outar << a1;
-  outar << a2;
-  outar << a3;
-  outar << a4;
-  outar << a5;
-  send_exrpcreq_oneway(n, fn, outss.str());
+  outar & a1;
+  outar & a2;
+  outar & a3;
+  outar & a4;
+  outar & a5;
+  PORTABLE_OSTREAM_TO_STRING(outss, str);
+  send_exrpcreq_oneway(n, fn, str);
 }
 
 template <class T1, class T2, class T3, class T4>
@@ -523,46 +532,50 @@ void exrpc_function_oneway(exrpc_node& n, std::string fn,
                            void(*f)(T1&,T2&,T3&,T4&),
                            const T1& a1, const T2& a2, const T3& a3,
                            const T4& a4) {
-  std::ostringstream outss;
+  my_portable_ostream outss;
   my_portable_oarchive outar(outss);
-  outar << a1;
-  outar << a2;
-  outar << a3;
-  outar << a4;
-  send_exrpcreq_oneway(n, fn, outss.str());
+  outar & a1;
+  outar & a2;
+  outar & a3;
+  outar & a4;
+  PORTABLE_OSTREAM_TO_STRING(outss, str);
+  send_exrpcreq_oneway(n, fn, str);
 }
 
 template <class T1, class T2, class T3>
 void exrpc_function_oneway(exrpc_node& n, std::string fn,
                            void(*f)(T1&,T2&,T3&),
                            const T1& a1, const T2& a2, const T3& a3) {
-  std::ostringstream outss;
+  my_portable_ostream outss;
   my_portable_oarchive outar(outss);
-  outar << a1;
-  outar << a2;
-  outar << a3;
-  send_exrpcreq_oneway(n, fn, outss.str());
+  outar & a1;
+  outar & a2;
+  outar & a3;
+  PORTABLE_OSTREAM_TO_STRING(outss, str);
+  send_exrpcreq_oneway(n, fn, str);
 }
 
 template <class T1, class T2>
 void exrpc_function_oneway(exrpc_node& n, std::string fn,
                            void(*f)(T1&,T2&),
                            const T1& a1, const T2& a2) {
-  std::ostringstream outss;
+  my_portable_ostream outss;
   my_portable_oarchive outar(outss);
-  outar << a1;
-  outar << a2;
-  send_exrpcreq_oneway(n, fn, outss.str());
+  outar & a1;
+  outar & a2;
+  PORTABLE_OSTREAM_TO_STRING(outss, str);
+  send_exrpcreq_oneway(n, fn, str);
 }
 
 template <class T1>
 void exrpc_function_oneway(exrpc_node& n, std::string fn,
                            void(*f)(T1&),
                            const T1& a1) {
-  std::ostringstream outss;
+  my_portable_ostream outss;
   my_portable_oarchive outar(outss);
-  outar << a1;
-  send_exrpcreq_oneway(n, fn, outss.str());
+  outar & a1;
+  PORTABLE_OSTREAM_TO_STRING(outss, str);
+  send_exrpcreq_oneway(n, fn, str);
 }
 
 void exrpc_function_oneway(exrpc_node& n, std::string fn, void(*f)());

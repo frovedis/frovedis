@@ -12,9 +12,10 @@ void send_exrpcreq_oneway_noexcept(exrpc_node& n, const std::string& funcname,
 
 void exrpc_function_oneway_noexcept(exrpc_node& n, std::string fn,
                                     void(*f)()) {
-  std::ostringstream outss;
+  my_portable_ostream outss;
   my_portable_oarchive outar(outss);
-  send_exrpcreq_oneway_noexcept(n, fn, outss.str());
+  PORTABLE_OSTREAM_TO_STRING(outss, str);
+  send_exrpcreq_oneway_noexcept(n, fn, str);
 }
 
 }

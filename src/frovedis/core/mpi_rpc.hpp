@@ -5,30 +5,61 @@
 
 #include <mpi.h>
 #include <stdint.h>
+#include <vector>
+#include <string>
 
 #ifdef USE_THREAD
 #include <pthread.h>
 #endif
 
+#ifdef USE_YAS
+#include <yas/mem_streams.hpp>
+#include <yas/binary_iarchive.hpp>
+#include <yas/binary_oarchive.hpp>
+#endif
 #ifdef USE_CEREAL
+#include <sstream>
 #include <cereal/archives/binary.hpp>
 #endif
 #ifdef USE_BOOST_SERIALIZATION
+#include <sstream>
 #include <boost/serialization/serialization.hpp>
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/archive/binary_oarchive.hpp>
 #endif
 
-#ifdef USE_CEREAL_FOR_RPC
+#if defined(USE_YAS_FOR_RPC)
 namespace frovedis{
+typedef yas::mem_istream my_istream;
+typedef yas::mem_ostream my_ostream;
+typedef yas::binary_iarchive<yas::mem_istream,yas::binary|yas::no_header>
+  my_iarchive;
+typedef yas::binary_oarchive<yas::mem_ostream,yas::binary|yas::no_header>
+  my_oarchive;
+}
+#define STRING_TO_ISTREAM(is, str) my_istream is(str.c_str(), str.size())
+#define OSTREAM_TO_STRING(os, str)                    \
+  std::string str;                                    \
+  auto os ## _yas_buf = os.get_intrusive_buffer();    \
+  str.assign(os ## _yas_buf.data, os ## _yas_buf.size)
+#elif defined(USE_CEREAL_FOR_RPC)
+namespace frovedis{
+typedef std::istringstream my_istream;
+typedef std::ostringstream my_ostream;
 typedef cereal::BinaryInputArchive my_iarchive;
 typedef cereal::BinaryOutputArchive my_oarchive;
 }
+#define STRING_TO_ISTREAM(is, str) my_istream is(str)
+#define OSTREAM_TO_STRING(os, r) auto r = os.str()
 #else
 namespace frovedis{
-typedef boost::archive::binary_oarchive my_oarchive;
+typedef std::istringstream my_istream;
+typedef std::ostringstream my_ostream;
 typedef boost::archive::binary_iarchive my_iarchive;
+typedef boost::archive::binary_oarchive my_oarchive;
 }
+#define STRING_TO_ISTREAM(is, str) my_istream is(str)
+#define OSTREAM_TO_STRING(os, r) auto r = os.str()
 #endif
 
 namespace frovedis {

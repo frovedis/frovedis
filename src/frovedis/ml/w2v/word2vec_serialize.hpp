@@ -12,6 +12,27 @@
 #include "w2v_core.hpp"
 #include "../../core/config.hpp"
 
+#if defined(USE_YAS) 
+namespace yas {
+template <class Archive>
+void serialize(Archive& ar, w2v::train_config& m)
+{
+  ar(
+     m.hidden_size,
+     m.window,
+     m.sample,
+     m.negative,
+     m.iter,
+     m.alpha,
+     m.model_sync_period,
+     m.min_sync_words,
+     m.full_sync_times,
+     m.message_size,
+     m.num_threads
+  );
+}
+}  // namespace yas
+#endif
 
 #if defined(USE_CEREAL) 
 namespace cereal {

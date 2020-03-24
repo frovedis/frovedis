@@ -10,7 +10,7 @@ OBJS := ${RECM_OBJS} ${TREE_OBJS} ${W2V_OBJS} ${FM_OBJS} ${UTIL_OBJS} ${GRAPH_OB
 
 TARGETS := libfrovedis_ml.a
 
-INCLUDES := -I../../../third_party/cereal-1.2.2/include/ -I../../../third_party/include -I../..
+INCLUDES := -I../../../third_party/cereal-1.2.2/include/ -I../../../third_party/yas-7.0.5/include/ -I../../../third_party/include -I../..
 CXXFLAGS := ${CXXFLAGS_COMMON} ${INCLUDES}
 LIBS := -L../matrix -lfrovedis_matrix -L../core -lfrovedis_core ${LIBS_COMMON}
 VPATH := glm recommendation tree w2v fm utility graph fpm

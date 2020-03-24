@@ -87,10 +87,10 @@ int send_exrpcreq(exrpc_type type, exrpc_node& n, const std::string& funcname,
     throw std::runtime_error
       (std::string("send_exrpcreq: error in connect: ") + strerror(errno));
   }
-  std::ostringstream result;
+  my_portable_ostream result;
   my_portable_oarchive outar(result);
-  outar << hdr;
-  auto serialized_hdr = result.str();
+  outar & hdr;
+  PORTABLE_OSTREAM_TO_STRING(result, serialized_hdr);
   uint32_t hdr_size = serialized_hdr.size();
   uint32_t hdr_size_nw = htonl(hdr_size);
 #ifndef _SX
@@ -193,9 +193,9 @@ bool handle_exrpc_onereq(int sockfd, int timeout) {
   serialized_hdr.resize(hdr_size);
   myread(new_sockfd, const_cast<char*>(serialized_hdr.c_str()), hdr_size);
   exrpc_header hdr;
-  std::istringstream hdrss(serialized_hdr);
+  STRING_TO_PORTABLE_ISTREAM(hdrss, serialized_hdr);
   my_portable_iarchive hdrar(hdrss);
-  hdrar >> hdr;
+  hdrar & hdr;
   std::string funcname = hdr.funcname;
   std::string serialized_arg;
   serialized_arg.resize(hdr.arg_count);
@@ -208,9 +208,9 @@ bool handle_exrpc_onereq(int sockfd, int timeout) {
       return true;
     } else {
       wptype wpt = reinterpret_cast<wptype>(expose_table[funcname].first);
-      std::istringstream inss(serialized_arg);
+      STRING_TO_PORTABLE_ISTREAM(inss, serialized_arg);
       my_portable_iarchive inar(inss);
-      std::ostringstream result;
+      my_portable_ostream result;
       my_portable_oarchive outar(result);
       std::string what;
       char exception_caught = false; // 1 byte to avoid endian conv.
@@ -222,7 +222,10 @@ bool handle_exrpc_onereq(int sockfd, int timeout) {
       }
       mywrite(new_sockfd, &exception_caught, 1); // should be 1
       std::string resultstr;
-      if(!exception_caught) resultstr = result.str();
+      if(!exception_caught) {
+        PORTABLE_OSTREAM_TO_STRING(result, tmp);
+        resultstr = std::move(tmp);
+      }
       else resultstr = what;
       exrpc_count_t send_data_size = resultstr.size();
       exrpc_count_t send_data_size_nw = myhtonll(send_data_size);
@@ -239,9 +242,9 @@ bool handle_exrpc_onereq(int sockfd, int timeout) {
       return true;
     } else {
       wptype wpt = reinterpret_cast<wptype>(expose_table[funcname].first);
-      std::istringstream inss(serialized_arg);
+      STRING_TO_PORTABLE_ISTREAM(inss, serialized_arg);
       my_portable_iarchive inar(inss);
-      std::ostringstream result;
+      my_portable_ostream result;
       my_portable_oarchive outar(result);
       std::string what;
       char exception_caught = false; // 1 byte to avoid endian conv.
@@ -270,9 +273,9 @@ bool handle_exrpc_onereq(int sockfd, int timeout) {
       return true;
     } else {
       wptype wpt = reinterpret_cast<wptype>(expose_table[funcname].first);
-      std::istringstream inss(serialized_arg);
+      STRING_TO_PORTABLE_ISTREAM(inss, serialized_arg);
       my_portable_iarchive inar(inss);
-      std::ostringstream result;
+      my_portable_ostream result;
       my_portable_oarchive outar(result);
       wpt(expose_table[funcname].second, inar);
       ::close(new_sockfd);

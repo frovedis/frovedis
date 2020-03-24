@@ -3,7 +3,7 @@ include ../../../../Makefile.in.x86
 TARGETS := client server
 
 LIBS := -L.. -lfrovedis_exrpc -L../../../frovedis/core -lfrovedis_core -L../../../../third_party/lib ${LIBS_COMMON}
-INCLUDES := -I.. -I../../../ -I../../../../third_party/cereal-1.2.2/include/
+INCLUDES := -I.. -I../../../ -I../../../../third_party/cereal-1.2.2/include/ -I../../../../third_party/yas-7.0.5/include/
 
 CXXFLAGS := ${CXXFLAGS_COMMON} ${INCLUDES}
 

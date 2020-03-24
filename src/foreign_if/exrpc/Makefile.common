@@ -1,7 +1,7 @@
 HEADERS := exrpc.hpp exrpc_async.hpp exrpc_expose.hpp exrpc_oneway.hpp exrpc_oneway_noexcept.hpp exrpc_result.hpp portable_archive_exception.hpp portable_iarchive.hpp portable_oarchive.hpp
 OBJS := exrpc.o exrpc_expose.o exrpc_oneway.o exrpc_oneway_noexcept.o inst_archive.o
 
-INCLUDES := -I../.. -I../../../third_party/cereal-1.2.2/include/
+INCLUDES := -I../.. -I../../../third_party/cereal-1.2.2/include/ -I../../../third_party/yas-7.0.5/include/
 CXXFLAGS := ${CXXFLAGS_COMMON} ${INCLUDES}
 
 TARGETS := libfrovedis_exrpc.a

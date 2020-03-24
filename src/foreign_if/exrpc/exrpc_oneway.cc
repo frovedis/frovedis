@@ -30,9 +30,10 @@ void send_exrpcreq_oneway(exrpc_node& n, const std::string& funcname,
 }
 
 void exrpc_function_oneway(exrpc_node& n, std::string fn, void(*f)()) {
-  std::ostringstream outss;
+  my_portable_ostream outss;
   my_portable_oarchive outar(outss);
-  send_exrpcreq_oneway(n, fn, outss.str());
+  PORTABLE_OSTREAM_TO_STRING(outss, str);
+  send_exrpcreq_oneway(n, fn, str);
 }
 
 }

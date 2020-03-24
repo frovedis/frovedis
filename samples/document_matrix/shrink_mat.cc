@@ -114,7 +114,7 @@ void shrink_mat(const string& input_matrix,
                                                 word_to_remove),
                                          removed_article_nloc));
   // crs_get_local_num_row<T> is defined in crs_matrix.hpp
-  auto local_num_rows = shrinked.data.map(crs_get_local_num_row<int>).gather();
+  auto local_num_rows = shrinked.data.map(crs_get_local_num_row<int,size_t,size_t>).gather();
   size_t num_row = 0;
   for(size_t i = 0; i < local_num_rows.size(); i++)
     num_row += local_num_rows[i];
@@ -131,7 +131,7 @@ void shrink_mat(const string& input_matrix,
   }
 
   auto original_local_num_rows =
-    mat.data.map(crs_get_local_num_row<int>).gather();
+    mat.data.map(crs_get_local_num_row<int,size_t,size_t>).gather();
   auto local_removed_articles = removed_article_nloc.gather();
   vector<size_t> global_removed_article;
   size_t offset = 0;

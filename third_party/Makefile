@@ -38,6 +38,8 @@ endif
 	install -d ${INSTALLPATH}/include/
 	cp -r cereal-1.2.2/include/cereal ${INSTALLPATH}/include
 	install -d ${INSTALLPATH}/licenses/third_party/; cp cereal-1.2.2/LICENSE ${INSTALLPATH}/licenses/third_party/LICENSE.cereal
+	cp -r yas-7.0.5/include/yas ${INSTALLPATH}/include
+	head -35 yas-7.0.5/include/yas/version.hpp > ${INSTALLPATH}/licenses/third_party/LICENSE.yas
 
 clean: 
 ifeq (${BUILD_BLAS},true)

@@ -37,10 +37,10 @@ T exrpc_result<T>::get() {
     char* recv_data = &buf[0];
     myread(sockfd, recv_data, count);
     if(!caught_exception) {
-      std::istringstream ss(buf);
+      STRING_TO_PORTABLE_ISTREAM(ss, buf);
       my_portable_iarchive ar(ss);
       T ret;
-      ar >> ret;
+      ar & ret;
       get_done = true;
       ::close(sockfd);
       return ret;

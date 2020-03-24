@@ -4,7 +4,7 @@ OBJS := char_int_conv.o find.o load_text.o words.o text_utility.o dict.o load_cs
 
 TARGETS := libfrovedis_text.a
 
-INCLUDES := -I../../../third_party/cereal-1.2.2/include/
+INCLUDES := -I../../../third_party/cereal-1.2.2/include/ -I../../../third_party/yas-7.0.5/include/
 
 CXXFLAGS := ${CXXFLAGS_COMMON} ${INCLUDES}
 
