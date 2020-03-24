@@ -13,7 +13,7 @@ INSTALLPATH := /opt/nec/nosupport/frovedis/ve
 CXX := nc++
 MPICXX := mpinc++
 AR := nar
-CXXFLAGS_COMMON := -O4 -fno-defer-inline-template-instantiation -D_MPIPP_INCLUDE -I${BOOST_INC} -I${NLC_INC} -fdiag-vector=2 -msched-block
+CXXFLAGS_COMMON := -O4 -fno-defer-inline-template-instantiation -finline-functions -D_MPIPP_INCLUDE -I${BOOST_INC} -I${NLC_INC} -fdiag-vector=2 -msched-block
 
 LINK :=	nfort -cxxlib -static
 MPI_LINK = $(shell mpinc++ -show | cut -d" " -f 2-)
