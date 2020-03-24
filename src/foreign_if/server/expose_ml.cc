@@ -162,4 +162,10 @@ void expose_frovedis_ml_functions() {
   */
   // for spark (changed datatype internally S_MAT15 -> S_MAT35)
   expose((frovedis_lda_train_for_spark<DT3,S_MAT15>)); 
+  // (21) Random forest
+  expose((frovedis_rf<DT1,D_MAT1>));   // both spark and python case
+  expose((frovedis_rf<DT2,D_MAT2>));   // python case
+  // (23) GBT
+  expose((frovedis_gbt<DT1,D_MAT1>));   
+  expose((frovedis_gbt<DT2,D_MAT2>));
 }

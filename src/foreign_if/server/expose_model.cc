@@ -329,16 +329,51 @@ void expose_frovedis_model_functions() {
   expose(get_lda_component<LDA3>);
   expose(get_lda_component<LDA4>);
   expose(save_model<LDA4>);
-  expose(save_model<LDA3>);    // for spark + python
+  expose(save_model<LDA3>);
   expose(load_model<LDA4>);
-  expose(load_model<LDA3>);    // for only python
+  expose(load_model<LDA3>);
   expose(release_model<LDA4>);
-  expose(release_model<LDA3>); // for spark + python
-  // for spark (changed datatype internally S_MAT15 -> S_MAT35)
-  expose((frovedis_lda_transform_for_spark<DT3,S_MAT15,LDA3>)); 
-  expose((get_topics_matrix<DT3,LDA3>)); // for spark
-  expose(get_vocabulary_size<LDA3>); // for spark
-  expose(get_num_topics<LDA3>); // for spark
-  expose(get_describe_matrix<LDA3>); // for spark
-  expose(load_lda_model<LDA3>);    // for spark
+  expose(release_model<LDA3>);
+  // --- For Spark Client ---
+  expose((frovedis_lda_transform_for_spark<DT3,S_MAT15,LDASP3>)); // for spark
+  expose((get_topics_matrix<DT3,LDASP3>)); // for spark
+  expose(get_vocabulary_size<LDASP3>); // for spark
+  expose(get_num_topics<LDASP3>); // for spark
+  expose(get_topic_word_distribution<LDASP3>); // for spark
+  expose((get_doc_topic_distribution<LDASP3,DT3>)); // for spark
+  expose(get_topic_doc_distribution<LDASP3>); // for spark
+  expose((extract_sorted_topic_word_distribution<DT4,DT1>)); // for spark
+  expose((extract_sorted_doc_topic_distribution<DT4,DT1>)); // for spark
+  expose((extract_sorted_topic_doc_distribution<LDASP3,DT3,DT1>)); // for spark (doc ids are long: DT3)
+  expose((get_top_topics_per_document<DT3,S_MAT15,LDASP3,DT4,DT1>));  // for spark
+  expose((get_top_documents_per_topic<DT3,S_MAT15,LDASP3,DT3,DT1>));  // for spark (doc ids are long: DT3)
+  expose(save_model<LDASP3>); // for spark
+  expose(load_lda_model<LDASP3>); // for spark
+  expose(release_model<LDASP3>); // for spark
+
+  // --- frovedis RandomForestModel ---
+  expose(show_model<RFM1>);
+  expose(show_model<RFM2>);    // for python
+  expose(release_model<RFM1>);
+  expose(release_model<RFM2>); // for python
+  expose(save_model<RFM1>);
+  expose(save_model<RFM2>);    // for python
+  expose(load_model<RFM1>);    // void returning
+  expose(load_model<RFM2>);    // for python (void returning)
+  expose((bcast_model_to_workers<DT1,RFM1>));
+//  expose((single_rfm_predict<DT1,S_LMAT1>));
+//  expose((parallel_rfm_predict<DT1,S_LMAT1>));
+  expose((parallel_rfm_predict_with_broadcast<DT1,R_MAT1,R_LMAT1>));   // for python
+  expose((parallel_rfm_predict_with_broadcast<DT2,R_MAT2,R_LMAT2>));   // for python
+  // frovedis GBT
+  expose((parallel_gbt_predict_with_broadcast<DT1,R_MAT1,R_LMAT1>));   
+  expose((parallel_gbt_predict_with_broadcast<DT2,R_MAT2,R_LMAT2>));
+  expose(show_model<GBT1>);
+  expose(show_model<GBT2>);    // for python
+  expose(release_model<GBT1>);
+  expose(release_model<GBT2>); // for python
+  expose(save_model<GBT1>);
+  expose(save_model<GBT2>);    // for python
+  expose(load_model<GBT1>);    // void returning
+  expose(load_model<GBT2>);    // for python (void returning)
 }

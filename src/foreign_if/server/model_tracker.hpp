@@ -42,7 +42,10 @@ enum MODEL_KIND {
   KNN,
   KNC,
   KNR,
-  LDA
+  LDA,
+  LDASP,
+  RFM,
+  GBT
 };
 
 enum MAT_KIND {

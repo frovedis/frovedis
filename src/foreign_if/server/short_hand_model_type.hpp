@@ -3,6 +3,7 @@
 
 #include <frovedis/ml/neighbors/knn_unsupervised.hpp>
 #include <frovedis/ml/neighbors/knn_supervised.hpp>
+#include <frovedis/ml/tree/ensemble_model.hpp>
 #include "short_hand_dtype.hpp"
 
 namespace frovedis {
@@ -44,6 +45,10 @@ namespace frovedis {
   typedef kneighbors_regressor<DT2> KNR2;
   typedef lda_model<DT4> LDA4;
   typedef lda_model<DT3> LDA3;
-  typedef lda_model<DT1> LDA1;
+  typedef lda_model_wrapper<DT3> LDASP3; //for spark
+  typedef random_forest_model<DT1> RFM1;
+  typedef random_forest_model<DT2> RFM2;
+  typedef gradient_boosted_trees_model<DT1> GBT1;
+  typedef gradient_boosted_trees_model<DT2> GBT2;
 }
 #endif

@@ -905,13 +905,14 @@ frovedis_lda_train(exrpc_ptr_t& dptr, double& alpha,
                              num_explore_iter,num_eval_cycle);
   handle_trained_model<lda_model<TC>>(mid, LDA, model);
   frovedis::set_loglevel(old_level);
-  return dummy_lda_model(num_topics,(int)model.word_topic_count.local_num_row); 
+  return dummy_lda_model(mat.num_row, num_topics, 
+                         model.word_topic_count.local_num_row);
 }
 
 template <class TC, class MATRIX>
 dummy_lda_model 
-frovedis_lda_train_for_spark(exrpc_ptr_t& dptr, double& alpha,
-                             double& beta, int& num_topics,
+frovedis_lda_train_for_spark(exrpc_ptr_t& dptr, std::vector<long>& orig_doc_id,
+                             bool& save_doc_id, double& alpha, double& beta, int& num_topics,
                              int& num_iter, std::string& algorithm,
                              int& num_explore_iter, int& num_eval_cycle,
                              int& verbose, int& mid) {
@@ -923,11 +924,66 @@ frovedis_lda_train_for_spark(exrpc_ptr_t& dptr, double& alpha,
 
   MATRIX& mat = *reinterpret_cast<MATRIX*>(dptr);
   auto mod_mat = mat.template change_datatype<TC>();
+  rowmajor_matrix<TC> doc_topic_count;
   auto model = lda_train<TC>(mod_mat,alpha,beta,num_topics,num_iter,algorithm,
-                             num_explore_iter,num_eval_cycle);
-  handle_trained_model<lda_model<TC>>(mid, LDA, model);
+                             num_explore_iter,num_eval_cycle,doc_topic_count);
+  lda_model_wrapper<TC> wrapper(model,doc_topic_count,orig_doc_id,save_doc_id);
+  handle_trained_model<lda_model_wrapper<TC>>(mid, LDASP, wrapper);
   frovedis::set_loglevel(old_level);
-  return dummy_lda_model(num_topics,(int)model.word_topic_count.local_num_row); 
+  return dummy_lda_model(mat.num_row, num_topics, 
+                         model.word_topic_count.local_num_row);
+}
+
+template <class T, class MATRIX>
+void frovedis_rf(frovedis_mem_pair& mp, tree::strategy<T>& strat,
+                 int& verbose, int& mid,
+                 bool& isMovableInput=false) {
+  register_for_train(mid);  // mark model 'mid' as "under training"
+  // extracting input data
+  MATRIX& mat = *reinterpret_cast<MATRIX*>(mp.first());
+  dvector<T>& lbl = *reinterpret_cast<dvector<T>*>(mp.second());
+
+  auto old_level = frovedis::get_loglevel();
+  if (verbose == 1) frovedis::set_loglevel(frovedis::DEBUG);
+  else if (verbose == 2) frovedis::set_loglevel(frovedis::TRACE);
+
+  //auto builder = make_random_forest_builder<T>(strat.move());
+  random_forest_builder<T> builder(strat.move());
+  auto model = builder.run(mat, lbl);
+
+  frovedis::set_loglevel(old_level);
+  handle_trained_model<random_forest_model<T>>(mid, RFM, model);
+
+  if (isMovableInput) {
+    mat.clear(); 
+    lbl.mapv_partitions(clear_lbl_data<T>);
+  }
+}
+
+//gbt
+template <class T, class MATRIX>
+void frovedis_gbt(frovedis_mem_pair& mp, tree::strategy<T>& strategy,
+                 int& verbose, int& mid,
+                 bool& isMovableInput=false) {
+  register_for_train(mid);  // mark model 'mid' as "under training"
+  // extracting input data
+  MATRIX& mat = *reinterpret_cast<MATRIX*>(mp.first());
+  dvector<T>& lbl = *reinterpret_cast<dvector<T>*>(mp.second());
+
+  auto old_level = frovedis::get_loglevel();
+  if (verbose == 1) frovedis::set_loglevel(frovedis::DEBUG);
+  else if (verbose == 2) frovedis::set_loglevel(frovedis::TRACE);
+
+  auto builder = make_gradient_boosted_trees_builder(std::move(strategy));
+  auto model = builder.run(mat, lbl);
+
+  frovedis::set_loglevel(old_level);
+  handle_trained_model<gradient_boosted_trees_model<T>>(mid, GBT, model);
+
+  if (isMovableInput) {
+    mat.clear();
+    lbl.mapv_partitions(clear_lbl_data<T>);
+  }
 }
 
 #endif

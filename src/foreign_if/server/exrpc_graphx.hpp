@@ -1,6 +1,35 @@
 #ifndef _EXRPC_GRAPHX_HPP_
 #define _EXRPC_GRAPHX_HPP_
 
+#include "frovedis.hpp"
+#include "frovedis/ml/glm/multinomial_logistic_regression.hpp"
+#include "frovedis/ml/glm/logistic_regression_with_sgd.hpp"
+#include "frovedis/ml/glm/logistic_regression_with_lbfgs.hpp"
+#include "frovedis/ml/glm/svm_with_sgd.hpp"
+#include "frovedis/ml/glm/svm_with_lbfgs.hpp"
+#include "frovedis/ml/glm/linear_regression_with_sgd.hpp"
+#include "frovedis/ml/glm/linear_regression_with_lbfgs.hpp"
+#include "frovedis/ml/glm/lasso_with_sgd.hpp"
+#include "frovedis/ml/glm/lasso_with_lbfgs.hpp"
+#include "frovedis/ml/glm/ridge_regression_with_sgd.hpp"
+#include "frovedis/ml/glm/ridge_regression_with_lbfgs.hpp"
+#include "frovedis/ml/recommendation/als.hpp"
+#include "frovedis/ml/clustering/agglomerative.hpp"
+#include "frovedis/ml/clustering/spectral_clustering.hpp"
+#include "frovedis/ml/clustering/spectral_embedding.hpp"
+#include "frovedis/ml/clustering/kmeans.hpp"
+#include "frovedis/ml/tree/tree.hpp"
+#include "frovedis/ml/fm/main.hpp"
+#include "frovedis/ml/w2v/word2vec.hpp"
+#include "frovedis/ml/nb/naive_bayes.hpp"
+#include "frovedis/ml/fpm/fp_growth.hpp"
+#include "frovedis/dataframe.hpp"
+#include "frovedis/dataframe/dftable_to_dvector.hpp"
+#include "frovedis/ml/clustering/dbscan.hpp"
+#include "frovedis/ml/neighbors/knn_unsupervised.hpp"
+#include "frovedis/ml/neighbors/knn_supervised.hpp"
+#include "frovedis/ml/lda/lda_cgs.hpp"
+
 #include "../exrpc/exrpc_expose.hpp"
 #include "dummy_graph.hpp"
 
@@ -28,7 +57,7 @@ exrpc_ptr_t set_graph_data(exrpc_ptr_t& dptr) {
                          .template as_dvector<size_t>().gather();
   checkAssumption(num_outgoing.size() == mat.num_row);
   auto g = new graph();
-  g->A_pg = mat.transpose(); //transpose:since frovedis assumes nodes in column
+  g->A_pg = mat.transpose(); //transpose: since frovedis assumes nodes in column
   g->num_nodes = mat.num_row;
   g->num_outgoing = num_outgoing;
   return reinterpret_cast<exrpc_ptr_t>(g);
@@ -64,6 +93,14 @@ crs_matrix_local<TYPE_MATRIX_PAGERANK>
 get_graph_data(exrpc_ptr_t& dptr) {
   auto& graph = *reinterpret_cast<GRAPH*>(dptr);
   return graph.A_pg.gather();
+}
+
+template <class GRAPH>
+dummy_matrix
+get_graph_data_dummy_matrix(exrpc_ptr_t& dptr) {
+  auto& graph = *reinterpret_cast<GRAPH*>(dptr);
+  auto cmat = new crs_matrix<double>(graph.A_pg);
+  return to_dummy_matrix<crs_matrix<double>, crs_matrix_local<double>>(cmat);
 }
 
 template <class T>

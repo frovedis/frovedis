@@ -19,6 +19,7 @@
 #include "frovedis/ml/clustering/spectral_clustering_model.hpp"
 #include "frovedis/ml/clustering/spectral_embedding_model.hpp"
 #include "frovedis/ml/tree/tree_model.hpp"
+#include "frovedis/ml/tree/ensemble_model.hpp"
 #include "frovedis/ml/fm/model.hpp"
 #include "frovedis/ml/nb/nb_model.hpp"
 #include "frovedis/ml/fpm/fp_growth_model.hpp"
@@ -27,6 +28,7 @@
 #include "frovedis/ml/neighbors/knn_unsupervised.hpp"
 #include "frovedis/ml/neighbors/knn_supervised.hpp"
 #include "frovedis/ml/lda/lda_cgs.hpp"
+#include "frovedis/ml/tree/ensemble_model.hpp"
 #include "../exrpc/exrpc_expose.hpp"
 #include "dummy_model.hpp"
 #include "dummy_matrix.hpp"
@@ -174,7 +176,7 @@ std::vector<T> predict_proba_glm_by_worker(L_MATRIX& mat, MODEL& model) {
 
 // multiple inputs (crs_matrix): prediction done in parallel in worker nodes
 template <class T, class MATRIX, class L_MATRIX, class MODEL>
-std::vector<T> pgp2(exrpc_ptr_t& mat_ptr, int& mid, bool& prob) { // sklearn
+std::vector<T> pgp2(exrpc_ptr_t& mat_ptr, int& mid, bool& prob) { // sklearn`
   auto mat_ptr_ = reinterpret_cast<MATRIX*> (mat_ptr);
   auto model_ptr = get_model_ptr<MODEL>(mid);
   MATRIX& mat = *mat_ptr_;
@@ -835,40 +837,10 @@ void save_w2v_model(int& mid, std::vector<std::string>& vocab,
   fclose(fo);
 }
 
-template <class T>
-rowmajor_matrix_local <double>
-get_doc_topic_distribution(rowmajor_matrix_local<T>& m){
-  auto nrow = m.local_num_row;
-  auto ncol = m.local_num_col;
-  auto vec = sum_of_cols(m);
-  std::vector<double> dbl_vec(vec.size());
-  auto vptr = vec.data();
-  auto dvptr = dbl_vec.data();
-  for(size_t i=0; i < vec.size(); i++) dvptr[i] = 1 / (double) vptr[i];
-  rowmajor_matrix_local<double> ret(nrow, ncol);
-  auto mvalptr = m.val.data();
-  auto retvalptr = ret.val.data();
-  if (nrow > ncol) {
-    for(size_t j = 0; j < ncol; ++j) {
-      for(size_t i = 0; i < nrow; ++i) {
-        retvalptr[i * ncol + j] = mvalptr[i * ncol + j] * dvptr[i];
-      }
-    }
-  }
-  else {
-    for(size_t i = 0; i < nrow; ++i) {
-      for(size_t j = 0; j < ncol; ++j) {
-        retvalptr[i * ncol + j] = mvalptr[i * ncol + j] * dvptr[i];
-      }
-    }
-  }
-  return ret;
-}
-
 template <class MODEL>
 dummy_matrix get_lda_component(int& mid) {
   auto& model = *get_model_ptr<MODEL>(mid);
-  auto dist = get_doc_topic_distribution(model.word_topic_count);
+  auto dist = get_distribution_matrix_local(model.word_topic_count);
   auto distptr = new rowmajor_matrix<double>(make_rowmajor_matrix_scatter(dist));
   return to_dummy_matrix<rowmajor_matrix<double>,
                          rowmajor_matrix_local<double>>(distptr);
@@ -886,13 +858,31 @@ frovedis_lda_transform(exrpc_ptr_t& dptr, double& alpha,
   auto doc_topic_count = lda_test(mat, alpha, beta, num_iter, algorithm,
                                   num_explore_iter, model, perplexity,
                                   likelihood);
-  rowmajor_matrix<double> ret(doc_topic_count.data.map(get_doc_topic_distribution<TD>));
-  ret.num_row = doc_topic_count.num_row;
-  ret.num_col = doc_topic_count.num_col;
-  auto retptr = new rowmajor_matrix<double>(std::move(ret));
+  auto retptr = new rowmajor_matrix<double>(
+                get_distribution_matrix<TD>(doc_topic_count));
   auto dmat = to_dummy_matrix<rowmajor_matrix<double>,
                               rowmajor_matrix_local<double>>(retptr);
   return dummy_lda_result(dmat, perplexity.back(), likelihood.back());
+}
+
+template <class TD, class MATRIX, class MODEL>
+rowmajor_matrix<TD>
+spark_lda_test(exrpc_ptr_t& dptr, double& alpha,
+               double& beta, int& num_iter,
+               std::string& algorithm,
+               int& num_explore_iter, int& mid,
+               double& ppl, double& llh) {
+  auto& t_mod = *get_model_ptr<MODEL>(mid);
+  MATRIX& mat = *reinterpret_cast<MATRIX*>(dptr);
+  auto mod_mat = mat.change_datatype<TD>();
+  std::vector<double> likelihood, perplexity;
+  auto doc_topic_count = lda_test(mod_mat, alpha, beta, num_iter, algorithm,
+                                  num_explore_iter, t_mod.model, perplexity,
+                                  likelihood);
+  // --- outputs ---
+  ppl = perplexity.back();
+  llh = likelihood.back();
+  return doc_topic_count;
 }
 
 template <class TD, class MATRIX, class MODEL>
@@ -901,26 +891,22 @@ frovedis_lda_transform_for_spark(exrpc_ptr_t& dptr, double& alpha,
                                  double& beta, int& num_iter,
                                  std::string& algorithm,
                                  int& num_explore_iter, int& mid) {
-  auto& model = *get_model_ptr<MODEL>(mid);
-  MATRIX& mat = *reinterpret_cast<MATRIX*>(dptr);
-  std::vector<double> likelihood, perplexity;
-  auto mod_mat = mat.change_datatype<TD>();
-  auto doc_topic_count = lda_test(mod_mat, alpha, beta, num_iter, algorithm,
-                                  num_explore_iter, model, perplexity,
-                                  likelihood);
-  rowmajor_matrix<double> ret(doc_topic_count.data.map(get_doc_topic_distribution<TD>));
-  ret.num_row = doc_topic_count.num_row;
-  ret.num_col = doc_topic_count.num_col;
-  auto retptr = new rowmajor_matrix<double>(std::move(ret));
+  double ppl, llh;
+  auto doc_topic_count = spark_lda_test<TD,MATRIX,MODEL>(dptr, alpha, 
+                                        beta, num_iter, 
+                                        algorithm, num_explore_iter, mid,
+                                        ppl, llh);
+  auto retptr = new rowmajor_matrix<double>(
+                get_distribution_matrix<TD>(doc_topic_count));
   auto dmat = to_dummy_matrix<rowmajor_matrix<double>,
                               rowmajor_matrix_local<double>>(retptr);
-  return dummy_lda_result(dmat, perplexity.back(), likelihood.back());
+  return dummy_lda_result(dmat, ppl, llh);
 }
 
 template <class TC, class MODEL>
 dummy_matrix get_topics_matrix(int& mid) {
-  auto& model = *get_model_ptr<MODEL>(mid);
-  auto topic_mat = model.word_topic_count;
+  auto& t_mod = *get_model_ptr<MODEL>(mid);
+  auto topic_mat = t_mod.model.word_topic_count; // COMMENT: OK or compute distribution same as lda_component?
   auto topic_mat_ptr = new rowmajor_matrix<TC>(make_rowmajor_matrix_scatter(topic_mat));
   return to_dummy_matrix<rowmajor_matrix<TC>,
                          rowmajor_matrix_local<TC>>(topic_mat_ptr);
@@ -928,57 +914,243 @@ dummy_matrix get_topics_matrix(int& mid) {
 
 template <class MODEL>
 size_t get_vocabulary_size(int& mid) {
-  auto& model = *get_model_ptr<MODEL>(mid);
-  return  model.word_topic_count.local_num_row;
+  auto& t_mod = *get_model_ptr<MODEL>(mid);
+  return t_mod.model.word_topic_count.local_num_row;
 }
 
 template <class MODEL>
 size_t get_num_topics(int& mid) {
-  auto& model = *get_model_ptr<MODEL>(mid);
-  return  model.word_topic_count.local_num_col;
+  auto& t_mod = *get_model_ptr<MODEL>(mid);
+  return t_mod.model.word_topic_count.local_num_col;
 }
 
-template <class T>
-rowmajor_matrix_local<int>
-get_sorted_word_topic_vec(rowmajor_matrix_local<T>& word_topic_dist) {
-  // input matrix would get in-place sorted row-by-row
-  auto nr = word_topic_dist.local_num_row;
-  auto nc = word_topic_dist.local_num_col;
-  rowmajor_matrix_local<int> word_id(nr, nc);
-  auto wid_ptr = word_id.val.data();
-  auto mat_ptr = word_topic_dist.val.data();
-  for(size_t i = 0; i < nr; ++i) {
-    for(size_t j = 0; j < nc; ++j) {
-      wid_ptr[j + i * nc] = j;
-    }
+template <class I, class T>
+rowmajor_matrix_local<I>
+arg_partition_local(rowmajor_matrix_local<T>& mat, // to resolve overloaded version  
+                    size_t max_terms) {
+  return frovedis::arg_partition<T,I>(mat, max_terms);
+}
+
+template <class I, class T>
+rowmajor_matrix<I>
+arg_partition_global(rowmajor_matrix<T>& mat, size_t max_terms) {
+  auto nrow = mat.num_row;
+  auto ncol = mat.num_col;
+  rowmajor_matrix<I> ret(mat.data.map(arg_partition_local<I,T>, 
+                         broadcast(max_terms)));
+  ret.num_row = nrow;
+  ret.num_col = ncol;
+  return ret;
+}
+
+// map unordered document ids(from spark) with 
+// ordered document ids(assumed by frovedis LDA)
+template <class I>
+void map_unordered_doc_ids(rowmajor_matrix_local<I>& unord_doc_id,
+                           std::vector<I> ord_doc_id) {
+  auto unord_ptr = unord_doc_id.val.data();
+  auto ord_ptr = ord_doc_id.data();
+  for(size_t i=0; i < unord_doc_id.val.size(); i++) {
+    unord_ptr[i] = ord_ptr[unord_ptr[i]];
   }
-  // COMMENT: address performance issue. row-by-row sorting would cause poor performance
-  // refer segmented chunk sorting at a go from ml/neighbors/knn.hpp
-  for (size_t i = 0; i < nr; i++){
-    auto mptr = mat_ptr + i * nc;
-    auto wptr = wid_ptr + i * nc;
-    radix_sort_desc(mptr, wptr, nc);
-  } 
-  return word_id; 
 }
 
+template <class I, class T>
+distMatrix<I,T>
+extract_top_k_of_each_row(rowmajor_matrix<T>& mat, 
+                          int& k, std::vector<I>& orig_doc_id, 
+                          bool& create_doc_mapping=false) {
+  auto index = arg_partition_global<I,T>(mat, k);
+  auto key = extract_k_cols(mat, k).gather();
+  auto val = extract_k_cols(index, k);
+  if (create_doc_mapping) {
+    val.data.mapv(map_unordered_doc_ids<I>,broadcast(orig_doc_id));
+  }
+  auto value = val.gather();
+  radix_sort_desc(key.val.data(), value.val.data(), key.val.size());
+  return distMatrix<I,T>(std::move(value), std::move(key));
+}
+
+// compute distribution of words (vocab) per topic
 template <class MODEL>
-describeMatrix get_describe_matrix(int& mid, int& max_terms) {
+dummy_matrix get_topic_word_distribution(int& mid) {
   auto& model = *get_model_ptr<MODEL>(mid);
-  auto word_topic_dist = get_doc_topic_distribution(model.word_topic_count)
-                         .transpose(); //num_topics * vocabsize local_mat
-  auto sorted_word_ids = get_sorted_word_topic_vec(word_topic_dist);
-  return describeMatrix(sorted_word_ids, word_topic_dist, max_terms);
+  auto topic_word_count_local = model.model.word_topic_count.transpose();
+  auto topic_word_count = make_rowmajor_matrix_scatter(topic_word_count_local);
+  auto topic_word_dist = new rowmajor_matrix<double>(
+                         get_distribution_matrix(topic_word_count));
+  return to_dummy_matrix<rowmajor_matrix<double>, 
+                         rowmajor_matrix_local<double>>(topic_word_dist);
 }
 
-// generic model loading for lda_model
+// extract: top words (vocab) per topic (describeTopics(max))
+template <class I, class T>
+distMatrix<I,T> 
+extract_sorted_topic_word_distribution(exrpc_ptr_t& dptr,
+                                       int& max_terms) {
+  auto& mat = *reinterpret_cast<rowmajor_matrix<T>*>(dptr);
+  std::vector<I> dumm_vec;
+  bool save_doc_id = false;
+  return extract_top_k_of_each_row<I,T>(mat, max_terms,
+                                        dumm_vec, save_doc_id);
+}
+
+// compute distribution of documents per topic
+template <class MODEL>
+dummy_matrix get_topic_doc_distribution(int& mid) { 
+  auto& model = *get_model_ptr<MODEL>(mid);
+  auto topic_doc_count = model.doc_topic_count.transpose(); 
+  auto topic_doc_dist = new rowmajor_matrix<double>(
+                        get_distribution_matrix(topic_doc_count));
+  return to_dummy_matrix<rowmajor_matrix<double>,
+                         rowmajor_matrix_local<double>>(topic_doc_dist);
+}  
+
+// extract: top documents per topic
+template <class MODEL, class I, class T>
+distMatrix<I,T> 
+extract_sorted_topic_doc_distribution(exrpc_ptr_t& dptr,
+                                      int& mid,
+                                      int& maxDocumentsPerTopic) { 
+  auto& mat = *reinterpret_cast<rowmajor_matrix<T>*>(dptr);
+  auto& model = *get_model_ptr<MODEL>(mid);
+  return extract_top_k_of_each_row<I,T>(mat, maxDocumentsPerTopic,
+                                        model.orig_doc_id, model.save_doc_id);
+}
+
+// compute distribution of topics per document
+template <class MODEL, class I>
+dummy_matrix get_doc_topic_distribution(int& mid, std::vector<I>& test_doc_id) {
+  auto& model = *get_model_ptr<MODEL>(mid);
+  if (model.save_doc_id) {
+    test_doc_id = model.orig_doc_id;
+  }
+  auto doc_topic_count = model.doc_topic_count;
+  auto doc_topic_dist = new rowmajor_matrix<double>(
+                        get_distribution_matrix(doc_topic_count));
+  return to_dummy_matrix<rowmajor_matrix<double>,
+                         rowmajor_matrix_local<double>>(doc_topic_dist);
+}
+
+// extract: top topics per document
+template <class I, class T>
+distMatrix<I,T> 
+extract_sorted_doc_topic_distribution(exrpc_ptr_t& dptr,
+                                      int& k) { 
+  auto& mat = *reinterpret_cast<rowmajor_matrix<T>*>(dptr);
+  std::vector<I> orig_doc_id;
+  bool save_doc_id = false;
+  return extract_top_k_of_each_row<I,T>(mat, k, 
+                                        orig_doc_id, save_doc_id);
+}
+
+template <class TD, class MATRIX, class MODEL, 
+          class I, class T>
+distMatrix<I,T>
+get_top_documents_per_topic(exrpc_ptr_t& dptr, std::vector<I>& orig_doc_id,
+                            bool& save_doc_id, double& alpha, double& beta, 
+                            int& num_iter, std::string& algorithm,
+                            int& num_explore_iter, int& mid,
+                            int& maxDocumentsPerTopic) { 
+  // lda_test(dptr, alpha, ...) + sort(extract(part(distribution(topic_doc_count))), maxDocumentsPerTopic)
+  double ppl, llh;
+  auto doc_topic_count = spark_lda_test<TD,MATRIX,MODEL>(dptr, alpha,
+                                        beta, num_iter,
+                                        algorithm, num_explore_iter, mid,
+                                        ppl, llh);
+  auto topic_doc_count = doc_topic_count.transpose();
+  auto topic_doc_dist = get_distribution_matrix(topic_doc_count);
+  return extract_top_k_of_each_row<I,T>(topic_doc_dist, maxDocumentsPerTopic, 
+                                        orig_doc_id, save_doc_id);
+}
+
+template <class TD, class MATRIX, class MODEL, 
+          class I, class T>
+distMatrix<I,T>
+get_top_topics_per_document(exrpc_ptr_t& dptr,
+                            double& alpha,
+                            double& beta, int& num_iter,
+                            std::string& algorithm,
+                            int& num_explore_iter, int& mid,
+                            int& k) {
+  // lda_test(dptr, alpha, ...) + sort(extract(part(distribution(doc_topic_count))), k)
+  double ppl, llh;
+  auto doc_topic_count = spark_lda_test<TD,MATRIX,MODEL>(dptr, alpha,
+                                        beta, num_iter,
+                                        algorithm, num_explore_iter, mid,
+                                        ppl, llh);
+  auto doc_topic_dist = get_distribution_matrix(doc_topic_count);
+  std::vector<I> dum_vec;
+  bool save_doc_id = false;
+  return extract_top_k_of_each_row<I,T>(doc_topic_dist, k, 
+                                        dum_vec, save_doc_id);
+}
+
 template <class MODEL>
 dummy_lda_model load_lda_model(int& mid, std::string& path) {
-  auto mkind = LDA;
-  load_model<MODEL>(mid,mkind,path);
-  auto& model = *get_model_ptr<MODEL>(mid);
-  return dummy_lda_model(model.word_topic_count.local_num_col,
-                         model.word_topic_count.local_num_row);
+  auto spark_lda_model_kind = LDASP;
+  load_model<MODEL>(mid, spark_lda_model_kind, path);
+  auto& model_ = *get_model_ptr<MODEL>(mid);
+  return dummy_lda_model(model_.num_docs, model_.num_topics, 
+                         model_.model.word_topic_count.local_num_row);
+}
+
+template <class T, class MATRIX>
+T single_rfm_predict(MATRIX& data, int& mid) {
+  auto mptr = get_model_ptr<random_forest_model<T>>(mid);
+  return mptr->predict(data)[0]; 
+}
+
+// only for spark
+// it should be executed by each worker.
+// model should have broadcasted beforehand.
+template <class T, class MATRIX>
+std::vector<T> parallel_rfm_predict(MATRIX& data, exrpc_ptr_t& mp) {
+  auto mptr = reinterpret_cast<random_forest_model<T>*>(mp);
+  std::vector<T> ret = mptr->predict(data);
+  // after prediction broadcasted models will be freed from worker nodes.
+  delete mptr;
+  return ret;
+}
+
+template <class T, class MATRIX>
+std::vector<T> 
+rfm_predict_at_worker(MATRIX& data, 
+                      random_forest_model<T>& model, bool& prob) {
+    return model.predict(data);
+}
+
+
+// the below call is for scikit-learn. 
+// in that case model would be broadcasted first at master, 
+// and then predict call would be mapped on each worker with probability value
+template <class T, class MATRIX, class L_MATRIX>
+std::vector<T> 
+parallel_rfm_predict_with_broadcast(exrpc_ptr_t& mat_ptr, int& mid, bool& prob) { 
+  MATRIX& mat = *reinterpret_cast<MATRIX*> (mat_ptr);
+  auto& model = *get_model_ptr<random_forest_model<T>>(mid);
+  auto bmodel = model.broadcast(); // for performance
+  return mat.data.map(rfm_predict_at_worker<T,L_MATRIX>,bmodel,broadcast(prob))
+                 .template moveto_dvector<T>().gather();
+}
+
+//gbt
+template <class T, class MATRIX>
+std::vector<T> 
+gbt_predict_at_worker(MATRIX& data, 
+                      gradient_boosted_trees_model<T>& model) {
+  return model.predict(data);
+}
+
+template <class T, class MATRIX, class L_MATRIX>
+std::vector<T> 
+parallel_gbt_predict_with_broadcast(exrpc_ptr_t& mat_ptr, int& mid, bool& prob) {
+  if(prob) REPORT_ERROR(USER_ERROR,"Frovedis currently doeesnt support predict_proba for GBT"); 
+  MATRIX& mat = *reinterpret_cast<MATRIX*> (mat_ptr);
+  auto& model = *get_model_ptr<gradient_boosted_trees_model<T>>(mid);
+  auto bmodel = model.broadcast(); // for performance
+  return mat.data.map(gbt_predict_at_worker<T,L_MATRIX>,bmodel)
+                 .template moveto_dvector<T>().gather();
 }
 
 #endif 
