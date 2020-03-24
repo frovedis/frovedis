@@ -10,7 +10,7 @@ std::vector<frovedis::crs_matrix_local<T,int,size_t>>
                                  size_t node_size) {
   size_t each_size = frovedis::ceil_div(total, node_size);
   std::vector<size_t> divide_row(node_size+1);
-  for(size_t i = 0; i < node_size + 1; i++) {
+  for(size_t i = 0; i < node_size; i++) {
     auto it = std::lower_bound(dataoffp, dataoffp + nrow + 1, each_size * i);
     if(it != dataoffp + nrow + 1) {
       divide_row[i] = it - dataoffp;
@@ -18,6 +18,7 @@ std::vector<frovedis::crs_matrix_local<T,int,size_t>>
       divide_row[i] = nrow;
     }
   }
+  divide_row[node_size] = nrow;
   std::vector<frovedis::crs_matrix_local<T,int,size_t>> vret(node_size);
 #pragma omp parallel for num_threads(node_size)
   for(size_t i = 0; i < node_size; i++) {
@@ -53,7 +54,7 @@ std::vector<frovedis::crs_matrix_local<T,size_t,size_t>>
                                  size_t node_size) {
   size_t each_size = frovedis::ceil_div(total, node_size);
   std::vector<size_t> divide_row(node_size+1);
-  for(size_t i = 0; i < node_size + 1; i++) {
+  for(size_t i = 0; i < node_size; i++) {
     auto it = std::lower_bound(dataoffp, dataoffp + nrow + 1, each_size * i);
     if(it != dataoffp + nrow + 1) {
       divide_row[i] = it - dataoffp;
@@ -61,6 +62,7 @@ std::vector<frovedis::crs_matrix_local<T,size_t,size_t>>
       divide_row[i] = nrow;
     }
   }
+  divide_row[node_size] = nrow;
   std::vector<frovedis::crs_matrix_local<T,size_t,size_t>> vret(node_size);
 #pragma omp parallel for num_threads(node_size)
   for(size_t i = 0; i < node_size; i++) {
