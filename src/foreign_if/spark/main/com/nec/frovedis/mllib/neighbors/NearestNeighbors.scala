@@ -63,13 +63,17 @@ class NearestNeighbors(var nNeighbors: Int,
       val fdata = new FrovedisRowmajorMatrix(data)
       return run(fdata,true)
     }
-    else { // TODO: add call for FrovedisSparseData, instead of raising exception here
-      throw new IllegalArgumentException("Sparse data for KNN"+
-                                        " is currently not supported.")
+    else { 
+      val fdata = new FrovedisSparseData(data)
+      return run(fdata,true)
     }
   }
 
   def run(data: FrovedisRowmajorMatrix): this.type = {
+    return run(data, false)
+  }
+
+  def run(data: FrovedisSparseData): this.type = {
     return run(data, false)
   }
 
@@ -87,7 +91,19 @@ class NearestNeighbors(var nNeighbors: Int,
     return this
   }
 
-  // TODO: Add run() with FrovedisSparseData version as well...
+  def run(data: FrovedisSparseData,
+          movable: Boolean): this.type = {
+    release() // releasing old model (if any)
+    this.mid = ModelID.get()
+    val fs = FrovedisServer.getServerInstance()
+    JNISupport.callFrovedisKnnFit(fs.master_node,
+                               data.get(), nNeighbors,
+                               radius, algorithm, metric,
+                               chunkSize, mid, false)
+    val info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
+    return this
+  }
 
   def kneighbors(X: RDD[Vector], 
                  nNeighbors: Int = this.nNeighbors,
@@ -105,10 +121,63 @@ class NearestNeighbors(var nNeighbors: Int,
       else 
         return (null, ind.to_spark_RowMatrix(context)) 
     }
-    else { // TODO: add call for FrovedisSparseData, instead of raising exception here
-      throw new IllegalArgumentException("Sparse data for KNN"+
-                                        " is currently not supported.")
+    else {
+      val fdata = new FrovedisSparseData(X)
+      val (dist, ind) = kneighbors(fdata, nNeighbors, returnDistance)
+      fdata.release() // releasing intermediate matrix
+      val context = X.context
+      if (returnDistance) 
+        return (dist.to_spark_RowMatrix(context),
+                ind.to_spark_RowMatrix(context))
+      else 
+        return (null, ind.to_spark_RowMatrix(context))
     }
+  }
+
+  // dense kneighbors()
+  def kneighbors(X: FrovedisRowmajorMatrix, 
+                 nNeighbors: Int,
+                 returnDistance: Boolean): 
+    (FrovedisRowmajorMatrix, FrovedisRowmajorMatrix) = {
+    require(mid > 0, "kneighbors() is called before fitting data using run()")
+    val fs = FrovedisServer.getServerInstance()
+    val knn_res = JNISupport.knnKneighbors(fs.master_node, X.get(), nNeighbors,
+                                           mid, returnDistance, true)
+    val info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
+    val distances = new FrovedisRowmajorMatrix(knn_res.distances_ptr, 
+                                               knn_res.nrow_dist, 
+                                               knn_res.ncol_dist)
+    val indices = new FrovedisRowmajorMatrix(knn_res.indices_ptr, 
+                                             knn_res.nrow_ind, 
+                                             knn_res.ncol_ind)
+    if (returnDistance) 
+      return (distances, indices)
+    else 
+      return (null, indices)
+  }
+
+  // sparse kneighbors()
+  def kneighbors(X: FrovedisSparseData, 
+                 nNeighbors: Int,
+                 returnDistance: Boolean): 
+    (FrovedisRowmajorMatrix, FrovedisRowmajorMatrix) = {
+    require(mid > 0, "kneighbors() is called before fitting data using run()")
+    val fs = FrovedisServer.getServerInstance()
+    val knn_res = JNISupport.knnKneighbors(fs.master_node, X.get(), nNeighbors,
+                                           mid, returnDistance, false)
+    val info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
+    val distances = new FrovedisRowmajorMatrix(knn_res.distances_ptr, 
+                                               knn_res.nrow_dist, 
+                                               knn_res.ncol_dist)
+    val indices = new FrovedisRowmajorMatrix(knn_res.indices_ptr, 
+                                             knn_res.nrow_ind, 
+                                             knn_res.ncol_ind)
+    if (returnDistance) 
+      return (distances, indices)
+    else 
+      return (null, indices)
   }
 
   def kneighbors_graph(X: RDD[Vector], 
@@ -123,10 +192,40 @@ class NearestNeighbors(var nNeighbors: Int,
       fdata.release() // release intermediate matrix
       return graph
     }
-    else { // TODO: add call for FrovedisSparseData, instead of raising exception here
-      throw new IllegalArgumentException("Sparse data for KNN"+
-                                        " is currently not supported.")
+    else { 
+      val fdata = new FrovedisSparseData(X)
+      val graph = kneighbors_graph(fdata, nNeighbors, mode)
+      fdata.release() // release intermediate matrix
+      return graph
     }
+  }
+
+  // dense kneighbors_graph()
+  def kneighbors_graph(X: FrovedisRowmajorMatrix, 
+                       nNeighbors: Int,
+                       mode: String): FrovedisSparseData = {
+    require(mid > 0, "kneighbors_graph() is called before fitting data using run()")
+    val fs = FrovedisServer.getServerInstance()
+    val graph = JNISupport.knnKneighborsGraph(fs.master_node, X.get(), 
+                              nNeighbors, mid, mode, true) //dummy mat: crs 
+    val info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
+    val ret = new FrovedisSparseData(graph)
+    return ret
+  }
+
+  // sparse kneighbors_graph()
+  def kneighbors_graph(X: FrovedisSparseData, 
+                       nNeighbors: Int,
+                       mode: String): FrovedisSparseData = {
+    require(mid > 0, "kneighbors_graph() is called before fitting data using run()")
+    val fs = FrovedisServer.getServerInstance()
+    val graph = JNISupport.knnKneighborsGraph(fs.master_node, X.get(), 
+                              nNeighbors, mid, mode, false) //dummy mat: crs 
+    val info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
+    val ret = new FrovedisSparseData(graph)
+    return ret
   }
 
   def radius_neighbors(X: RDD[Vector], 
@@ -141,17 +240,48 @@ class NearestNeighbors(var nNeighbors: Int,
       fdata.release() // release intermediate matrix
       return neighbors
     }
-    else { // TODO: add call for FrovedisSparseData, instead of raising exception here
-      throw new IllegalArgumentException("Sparse data for KNN"+
-                                        " is currently not supported.")
+    else {
+      val fdata = new FrovedisSparseData(X)
+      val neighbors = radius_neighbors(fdata, radius, returnDistance)
+      fdata.release() // release intermediate matrix
+      return neighbors
     }
+  }
+
+  // dense radius_neighbors
+  def radius_neighbors(X: FrovedisRowmajorMatrix, 
+                       radius: Float,
+                       returnDistance: Boolean): FrovedisSparseData = {
+    require(mid > 0, "radius_neighbors() is called before fitting data using run()")
+    val fs = FrovedisServer.getServerInstance()
+    val dmat = JNISupport.knnRadiusNeighbors(fs.master_node, X.get(), 
+                          radius, mid, returnDistance, true) //dummy mat: crs 
+    val info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
+    val ret = new FrovedisSparseData(dmat)
+    return ret 
+  }
+
+  // sparse radius_neighbors
+  def radius_neighbors(X: FrovedisSparseData, 
+                       radius: Float,
+                       returnDistance: Boolean): FrovedisSparseData = {
+    require(mid > 0, "radius_neighbors() is called before fitting data using run()")
+    val fs = FrovedisServer.getServerInstance()
+    val dmat = JNISupport.knnRadiusNeighbors(fs.master_node, X.get(), 
+                          radius, mid, returnDistance, false) //dummy mat: crs 
+    val info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
+    val ret = new FrovedisSparseData(dmat)
+    return ret 
   }
 
   def radius_neighbors_graph(X: RDD[Vector], 
                              radius: Float = this.radius,
                              mode: String = "connectivity"): 
     FrovedisSparseData = {
-    require(mid > 0, "radius_neighbors_graph() is called before fitting data using run()")
+    require(mid > 0, "radius_neighbors_graph() is called before fitting data "+
+                     "using run()")
     val isDense = X.first.getClass.toString() matches ".*DenseVector*."
     if (isDense) {
       val fdata = new FrovedisRowmajorMatrix(X)
@@ -159,64 +289,41 @@ class NearestNeighbors(var nNeighbors: Int,
       fdata.release() // release intermediate matrix
       return graph
     }
-    else { // TODO: add call for FrovedisSparseData, instead of raising exception here
-      throw new IllegalArgumentException("Sparse data for KNN"+
-                                        " is currently not supported.")
+    else {
+      val fdata = new FrovedisSparseData(X)
+      val graph = radius_neighbors_graph(fdata, radius, mode)
+      fdata.release() // release intermediate matrix
+      return graph
     }
   }
 
-  // TODO: Add cases for below functions with FrovedisSparseData input as well...
-
-  def kneighbors(X: FrovedisRowmajorMatrix, 
-                 nNeighbors: Int,
-                 returnDistance: Boolean): 
-    (FrovedisRowmajorMatrix, FrovedisRowmajorMatrix) = {
-    require(mid > 0, "kneighbors() is called before fitting data using run()")
-    val fs = FrovedisServer.getServerInstance()
-    var knn_res = JNISupport.knnKneighbors(fs.master_node, X.get(), nNeighbors,
-                               mid, returnDistance)
-    var distances = new FrovedisRowmajorMatrix(knn_res.distances_ptr, 
-                                               knn_res.nrow_dist, 
-                                               knn_res.ncol_dist)
-    var indices = new FrovedisRowmajorMatrix(knn_res.indices_ptr, 
-                                             knn_res.nrow_ind, 
-                                             knn_res.ncol_ind)
-    if (returnDistance) 
-      return (distances, indices)
-    else 
-      return (null, indices)
-  }
-
-  def kneighbors_graph(X: FrovedisRowmajorMatrix, 
-                       nNeighbors: Int,
-                       mode: String): FrovedisSparseData = {
-    require(mid > 0, "kneighbors_graph() is called before fitting data using run()")
-    val fs = FrovedisServer.getServerInstance()
-    var graph = JNISupport.knnKneighborsGraph(fs.master_node, X.get(), 
-                              nNeighbors, mid, mode) //dummy mat: crs 
-    var ret = new FrovedisSparseData(graph)
-    return ret
-  }
-
-  def radius_neighbors(X: FrovedisRowmajorMatrix, 
-                       radius: Float,
-                       returnDistance: Boolean): FrovedisSparseData = {
-    require(mid > 0, "radius_neighbors() is called before fitting data using run()")
-    val fs = FrovedisServer.getServerInstance()
-    var dmat = JNISupport.knnRadiusNeighbors(fs.master_node, X.get(), 
-                          radius, mid, returnDistance) //dummy mat: crs 
-    var ret = new FrovedisSparseData(dmat)
-    return ret 
-  }
-
+  // dense radius_neighbors_graph
   def radius_neighbors_graph(X: FrovedisRowmajorMatrix, 
                              radius: Float,
                              mode: String): FrovedisSparseData = {
-    require(mid > 0, "radius_neighbors_graph() is called before fitting data using run()")
+    require(mid > 0, "radius_neighbors_graph() is called before fitting data "+
+                     "using run()")
     val fs = FrovedisServer.getServerInstance()
-    var graph = JNISupport.knnRadiusNeighborsGraph(fs.master_node, X.get(), 
-                                       radius, mid, mode) //dummy mat: crs 
-    var ret = new FrovedisSparseData(graph)
+    val graph = JNISupport.knnRadiusNeighborsGraph(fs.master_node, X.get(), 
+                                       radius, mid, mode, true) //dummy mat: crs 
+    val info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
+    val ret = new FrovedisSparseData(graph)
+    return ret
+  }
+
+  // sparse radius_neighbors_graph
+  def radius_neighbors_graph(X: FrovedisSparseData, 
+                             radius: Float,
+                             mode: String): FrovedisSparseData = {
+    require(mid > 0, "radius_neighbors_graph() is called before fitting data "+
+                     "using run()")
+    val fs = FrovedisServer.getServerInstance()
+    val graph = JNISupport.knnRadiusNeighborsGraph(fs.master_node, X.get(), 
+                                       radius, mid, mode, false) //dummy mat: crs 
+    val info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
+    val ret = new FrovedisSparseData(graph)
     return ret
   }
 

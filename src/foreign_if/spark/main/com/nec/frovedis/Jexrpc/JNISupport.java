@@ -338,25 +338,29 @@ public class JNISupport {
                                                     long tptr,
                                                     int k,
                                                     int mid,
-                                                    boolean needDistance);
+                                                    boolean needDistance,
+                                                    boolean dense);
 
   public static native DummyMatrix knnKneighborsGraph(Node master_node,
                                                       long tptr,
                                                       int k,
                                                       int mid,
-                                                      String mode);
+                                                      String mode,
+                                                      boolean dense);
 
   public static native DummyMatrix knnRadiusNeighbors(Node master_node,
                                                       long tptr,
                                                       float radius,
                                                       int mid,
-                                                      boolean needDistance);
+                                                      boolean needDistance,
+                                                      boolean dense);
 
   public static native DummyMatrix knnRadiusNeighborsGraph(Node master_node,
                                                           long tptr,
                                                           float radius,
                                                           int mid,
-                                                          String mode);
+                                                          String mode,
+                                                          boolean dense);
   // ---------------------KNC----------------------------------  
   public static native void callFrovedisKncFit(Node master_node,
                                             MemPair fdata,
@@ -371,27 +375,67 @@ public class JNISupport {
                                                     long tptr,
                                                     int k,
                                                     int mid,
-                                                    boolean needDistance);
+                                                    boolean needDistance,
+                                                    boolean dense);
 
   public static native DummyMatrix kncKneighborsGraph(Node master_node,
                                                       long tptr,
                                                       int k,
                                                       int mid,
-                                                      String mode);
+                                                      String mode,
+                                                      boolean dense);
 
   public static native double[] kncDoublePredict(Node master_node,
                                                  long tptr,
                                                  int mid,
-                                                 boolean saveProba);
+                                                 boolean saveProba,
+                                                 boolean dense);
 
   public static native DummyMatrix kncPredictProba(Node master_node,
                                                 long tptr,
-                                                int mid);
+                                                int mid,
+                                                boolean dense);
 
   public static native float kncModelScore(Node master_node,
                                           long xptr,
                                           long yptr,
-                                          int mid);
+                                          int mid,
+                                          boolean dense);
+
+  // ---------------------KNR----------------------------------  
+  public static native void callFrovedisKnrFit(Node master_node,
+                                            MemPair fdata,
+                                            int k,
+                                            String algorithm,
+                                            String metric,
+                                            float chunk_size,
+                                            int mid,
+                                            boolean dense);
+
+  public static native DummyKNNResult knrKneighbors(Node master_node,
+                                                    long tptr,
+                                                    int k,
+                                                    int mid,
+                                                    boolean needDistance,
+                                                    boolean dense);
+
+  public static native DummyMatrix knrKneighborsGraph(Node master_node,
+                                                      long tptr,
+                                                      int k,
+                                                      int mid,
+                                                      String mode,
+                                                      boolean dense);
+  
+  public static native double[] knrDoublePredict(Node master_node,
+                                                 long tptr,
+                                                 int mid,
+                                                 boolean dense);
+
+  public static native float knrModelScore(Node master_node,
+                                          long xptr,
+                                          long yptr,
+                                          int mid,
+                                          boolean dense);
 
   // -------- Compute PCA --------
   public static native DummyPCAResult computePCA(Node master_node,
@@ -738,21 +782,69 @@ public class JNISupport {
                                                      long numVertices);
   // --- LDA ---
   public static native DummyLDAModel callFrovedisLDA(Node master_node,
-					    long fdata, int mid, 
+					    long fdata, long[] orig_doc_id,
+                                            long num_docs, boolean save_doc_id, int mid, 
 					    int num_topics, int num_iter, 
 					    double alpha, double beta,
 					    int num_explore_iter, 
 					    int num_eval_cycle, String algo);
   public static native DummyLDAResult callFrovedisLDATransform(Node master_node,
 					    long fdata, int mid, 
-					    int num_topics, int num_iter, 
+					    int num_iter, 
 					    double alpha, double beta,
 					    int num_explore_iter, 
 					    String algo);
   public static native DummyMatrix getTopicsMatrix(Node master_node, int mid);
-  public static native void getDescribeMatrix(Node master_node, int mid,
-                                              int nr, int maxTermsPerTopic, 
-					      int[] word_id, double[] word_topic_dist);
+  public static native DummyMatrix getTopicWordDistribution(Node master_node, int mid);
+  public static native void extractTopWordsPerTopic(Node master_node, 
+                                                    long fdata,
+                                                    int num_topics,
+                                                    int maxTermsPerTopic, 
+                                                    int[] word_id,
+                                                    double[] topic_word_dist);
+  public static native DummyMatrix getTopicDocDistribution(Node master_node, int mid);
+  public static native void extractTopDocsPerTopic(Node master_node, 
+                                                   int mid, 
+                                                   long fdata,
+                                                   int num_topics,
+                                                   int maxDocumentsPerTopic, 
+                                                   long[] doc_id,
+                                                   double[] topic_doc_dist);
+  public static native DummyMatrix getDocTopicDistribution(Node master_node, int mid,
+                                                   long[] test_doc_id,
+                                                   long num_docs);
+  public static native void extractTopTopicsPerDoc(Node master_node, 
+                                                   long fdata,
+                                                   int num_docs,
+                                                   int max_topic, 
+                                                   int[] topic_id,
+                                                   double[] doc_topic_dist);
+  public static native void transformAndExtractTopTopicsPerDoc(Node master_node,
+					                       long fdata, int mid, 
+                                                               int num_iter, 
+					                       double alpha, 
+                                                               double beta,
+					                       int num_explore_iter, 
+					                       String algo,
+                                                               int num_docs,
+                                                               int max_topic,
+                                                               int[] topic_id,
+                                                               double[] doc_topic_dist);
+  public static native void transformAndExtractTopDocsPerTopic(Node master_node,
+					                       long fdata, 
+                                                               long[] orig_doc_id,
+                                                               boolean save_doc_id, 
+                                                               long num_docs, 
+                                                               int mid, 
+                                                               int num_iter, 
+					                       double alpha, 
+                                                               double beta,
+					                       int num_explore_iter, 
+					                       String algo,
+                                                               int num_topics,
+                                                               int maxDocumentsPerTopic,
+                                                               long[] doc_id,
+                                                               double[] topic_doc_dist);
   public static native DummyLDAModel loadFrovedisLDAModel(Node master_node,
                                                           int model_Id, 
                                                           String path);

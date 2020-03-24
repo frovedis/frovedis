@@ -30,6 +30,7 @@ object M_KIND {
   val KNC: Short = 19
   val KNR: Short = 20
   val LDA: Short = 21
+  val LDASP: Short = 22
 }
 
 object ModelID {
