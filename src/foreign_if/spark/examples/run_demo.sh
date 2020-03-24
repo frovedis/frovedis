@@ -80,6 +80,9 @@ spark-submit --driver-java-options "-Djava.library.path=$LIBRARY_PATH" --jars $J
 echo -e "\n --- executing knc demo ---"
 spark-submit --driver-java-options "-Djava.library.path=$LIBRARY_PATH" --jars $JARS --conf spark.driver.memory=8g lib/spark2frovedis_knc.jar "$COMMAND"
 
+echo -e "\n --- executing knr demo ---"
+spark-submit --driver-java-options "-Djava.library.path=$LIBRARY_PATH" --jars $JARS --conf spark.driver.memory=8g lib/spark2frovedis_knr.jar "$COMMAND"
+
 # --- Rule Mining ---
 echo -e "\n --- executing fp growth demo ---"
 spark-submit --driver-java-options "-Djava.library.path=$LIBRARY_PATH" --jars $JARS --conf spark.driver.memory=8g lib/spark2frovedis_fp.jar "$COMMAND"
