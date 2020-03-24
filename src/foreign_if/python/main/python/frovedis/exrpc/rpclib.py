@@ -1028,16 +1028,16 @@ lr_lbfgs.argtypes = [c_char_p, c_int, c_long, c_long, #host,port,X,y
                      c_short, c_short, c_bool]        #dtype, itype, dense
 
 svm_sgd = LIB.svm_sgd
-svm_sgd.argtypes = [c_char_p, c_int, c_long, c_long, #host,port,X,y 
+svm_sgd.argtypes = [c_char_p, c_int, c_long, c_long, #host,port,X,y
                     c_int, c_double,                 #iter, lr_rate
-                    c_int, c_double,                 #rtype, rparam 
+                    c_int, c_double,                 #rtype, rparam
                     c_bool, c_double, c_int, c_int,  #fit_icpt, tol, vb, mid
                     c_short, c_short, c_bool]        #dtype, itype, dense
 
 svm_lbfgs = LIB.svm_lbfgs
 svm_lbfgs.argtypes = [c_char_p, c_int, c_long, c_long, #host,port,X,y
                       c_int, c_double,                 #iter, lr_rate
-                      c_int, c_double,                 #rtype, rparam 
+                      c_int, c_double,                 #rtype, rparam
                       c_bool, c_double, c_int, c_int,  #fit_icpt, tol, vb, mid
                       c_short, c_short, c_bool]        #dtype, itype, dense
 
@@ -1054,13 +1054,13 @@ nb_train.argtypes = [c_char_p, c_int, c_long,
                      c_short, c_short, c_bool]
 
 lnr_sgd = LIB.lnr_sgd
-lnr_sgd.argtypes = [c_char_p, c_int, c_long, c_long, #host,port,X,y 
+lnr_sgd.argtypes = [c_char_p, c_int, c_long, c_long, #host,port,X,y
                     c_int, c_double,                 #iter, lr_rate
                     c_bool, c_double, c_int, c_int,  #fit_icpt, tol, vb, mid
                     c_short, c_short, c_bool]        #dtype, itype, dense
 
 lnr_lbfgs = LIB.lnr_lbfgs
-lnr_lbfgs.argtypes = [c_char_p, c_int, c_long, c_long, #host,port,X,y 
+lnr_lbfgs.argtypes = [c_char_p, c_int, c_long, c_long, #host,port,X,y
                       c_int, c_double,                 #iter, lr_rate
                       c_bool, c_double, c_int, c_int,  #fit_icpt, tol, vb, mid
                       c_short, c_short, c_bool]        #dtype, itype, dense
@@ -1068,28 +1068,28 @@ lnr_lbfgs.argtypes = [c_char_p, c_int, c_long, c_long, #host,port,X,y
 lasso_sgd = LIB.lasso_sgd
 lasso_sgd.argtypes = [c_char_p, c_int, c_long, c_long, #host,port,X,y
                       c_int, c_double,                 #iter, lr_rate
-                      c_double,                        #regparam 
+                      c_double,                        #regparam
                       c_bool, c_double, c_int, c_int,  #fit_icpt, tol, vb, mid
                       c_short, c_short, c_bool]        #dtype, itype, dense
 
 lasso_lbfgs = LIB.lasso_lbfgs
 lasso_lbfgs.argtypes = [c_char_p, c_int, c_long, c_long, #host,port,X,y
                         c_int, c_double,                 #iter, lr_rate
-                        c_double,                        #regparam 
+                        c_double,                        #regparam
                         c_bool, c_double, c_int, c_int,  #fit_icpt, tol, vb, mid
                         c_short, c_short, c_bool]        #dtype, itype, dense
 
 ridge_sgd = LIB.ridge_sgd
-ridge_sgd.argtypes = [c_char_p, c_int, c_long, c_long, #host,port,X,y 
+ridge_sgd.argtypes = [c_char_p, c_int, c_long, c_long, #host,port,X,y
                       c_int, c_double,                 #iter, lr_rate
-                      c_double,                        #regparam 
+                      c_double,                        #regparam
                       c_bool, c_double, c_int, c_int,  #fit_icpt, tol, vb, mid
                       c_short, c_short, c_bool]        #dtype, itype, dense
 
 ridge_lbfgs = LIB.ridge_lbfgs
-ridge_lbfgs.argtypes = [c_char_p, c_int, c_long, c_long, #host,port,X,y 
+ridge_lbfgs.argtypes = [c_char_p, c_int, c_long, c_long, #host,port,X,y
                         c_int, c_double,                 #iter, lr_rate
-                        c_double,                        #regparam 
+                        c_double,                        #regparam
                         c_bool, c_double, c_int, c_int,  #fit_icpt, tol, vb, mid
                         c_short, c_short, c_bool]        #dtype, itype, dense
 
@@ -1501,3 +1501,73 @@ compute_lda_transform.argtypes = [c_char_p, c_int,\
                                   c_short, c_short]
 compute_lda_transform.restype = py_object
 
+call_frovedis_pagerank = LIB.call_frovedis_pagerank
+call_frovedis_pagerank.argtypes = [c_char_p, c_int,\
+                                  c_long, c_double,\
+                                  c_double, c_int]
+call_frovedis_pagerank.restype = py_object
+
+set_graph_data= LIB.set_graph_data
+set_graph_data.argtypes = [c_char_p, c_int,\
+                           c_ulong]
+set_graph_data.restype = c_ulong
+
+get_graph_data= LIB.get_graph_data
+get_graph_data.argtypes = [c_char_p, c_int,\
+                           c_ulong]
+get_graph_data.restype = c_ulong
+
+show_graph_py= LIB.show_graph_py
+show_graph_py.argtypes = [c_char_p, c_int,\
+                           c_ulong]
+
+release_graph_py= LIB.release_graph_py
+release_graph_py.argtypes = [c_char_p, c_int,\
+                           c_ulong]
+
+save_graph_py= LIB.save_graph_py
+save_graph_py.argtypes = [c_char_p, c_int,\
+                 c_ulong, c_char_p]
+
+load_graph_from_text_file= LIB.load_graph_from_text_file
+load_graph_from_text_file.argtypes = [c_char_p, c_int,\
+                                      c_char_p]
+load_graph_from_text_file.restype = py_object
+
+copy_graph_py= LIB.copy_graph_py
+copy_graph_py.argtypes = [c_char_p, c_int,\
+                          c_ulong]
+copy_graph_py.restype = c_ulong
+
+call_frovedis_sssp= LIB.call_frovedis_sssp
+call_frovedis_sssp.argtypes = [c_char_p, c_int,\
+                          c_ulong, py_object, py_object, c_ulong, c_ulong]
+
+
+#random forest trainer function
+rf_train = LIB.rf_trainer
+rf_train.argtypes = [c_char_p, c_int, c_long,         #host,port,X
+                     c_long, c_char_p, c_char_p,      #y,algo,criterion
+                     c_int, c_int, c_int, c_char_p,   #n_est,max_dep,n_cl,feature_subset_strat
+                     c_double, #feature_subset_rate
+                     c_int, c_int, c_double, c_long,   #mx_bin ,min_sample_leaf,min_impurity_decrease,seed
+                     c_int, c_int, c_short, c_short,  #vb,mid,dtype,itype
+                     c_bool]                          #dense
+
+
+call_frovedis_bfs= LIB.call_frovedis_bfs
+call_frovedis_bfs.argtypes = [c_char_p, c_int,\
+                          c_ulong, py_object, py_object, c_ulong]
+call_frovedis_bfs.restype = py_object
+
+gbt_train = LIB.gbt_trainer
+gbt_train.argtypes = [c_char_p, c_int, # host, port
+                     c_long, c_long, # xptr, yptr
+                     c_char_p, c_char_p, c_char_p, # algo, loss, impurity
+                     c_double, c_int, c_double, # learning_rate, max_depth, min_impurity_decrease
+                     c_int, c_double, c_int, # seed, tol, max_bins
+                     c_double, c_char_p, c_double, #subsampling rate, strategy, subset_features
+                     c_int, c_int, # n_estimators, nclasses 
+                     c_int, c_int, # verbose, mid
+                     c_short, c_short, c_bool # dtype, itype, dense
+                     ]

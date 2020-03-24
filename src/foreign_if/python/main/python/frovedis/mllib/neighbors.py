@@ -108,6 +108,7 @@ class NearestNeighbors(object):
         distances = FrovedisRowmajorMatrix(mat=dummy_dist, 
                                            dtype=\
                                                TypeUtil.to_numpy_dtype(dtype))
+        print(knn_res)
         indices = FrovedisRowmajorMatrix(mat=dummy_ind, dtype=np.int64)
         if test_data.is_movable() and self._X_movable:
             if return_distance == True:

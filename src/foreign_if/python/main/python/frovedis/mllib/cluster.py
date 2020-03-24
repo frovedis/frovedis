@@ -42,9 +42,6 @@ class KMeans(object):
         """
         DESC:
         """
-        if self.init != "random":
-            raise ValueError("init: currently Frovedis supports only \
-                              random!")
         self.release()
         self.__mid = ModelID.get()
         eps = 0.01

@@ -30,6 +30,8 @@ extern "C" {
           case FPR:    exrpc_oneway(fm_node, show_model<FPR1>, mid); break;
           case FMM:    REPORT_ERROR(USER_ERROR,"currently Frovedis fm_model can't be displayed!");
           case NBM:    exrpc_oneway(fm_node,show_model<NBM2>,mid); break;
+          case RFM:    exrpc_oneway(fm_node,show_model<RFM2>,mid); break;
+          case GBT:    exrpc_oneway(fm_node,show_model<GBT2>,mid); break;
           default:     REPORT_ERROR(USER_ERROR,"Unknown Model Kind is encountered!\n");
         }
       }
@@ -50,6 +52,8 @@ extern "C" {
           case FPR:    exrpc_oneway(fm_node, show_model<FPR1>, mid); break;
           case FMM:    REPORT_ERROR(USER_ERROR,"currently Frovedis fm_model can't be displayed!");
           case NBM:    exrpc_oneway(fm_node,show_model<NBM1>,mid); break;
+          case RFM:    exrpc_oneway(fm_node,show_model<RFM1>,mid); break;
+          case GBT:    exrpc_oneway(fm_node,show_model<GBT1>,mid); break;
           default:     REPORT_ERROR(USER_ERROR,"Unknown Model Kind is encountered!\n");
         }
       }
@@ -85,6 +89,8 @@ extern "C" {
           case KNN:    exrpc_oneway(fm_node,release_model<KNN2>,mid); break;
           case KNR:    exrpc_oneway(fm_node,release_model<KNR2>,mid); break;
           case KNC:    exrpc_oneway(fm_node,release_model<KNC2>,mid); break;
+          case RFM:    exrpc_oneway(fm_node,release_model<RFM2>,mid); break;
+          case GBT:    exrpc_oneway(fm_node,release_model<GBT2>,mid); break;
           default:     REPORT_ERROR(USER_ERROR,"Unknown Model Kind is encountered!\n");
         }
       }
@@ -108,6 +114,8 @@ extern "C" {
           case KNN:    exrpc_oneway(fm_node,release_model<KNN1>,mid); break;
           case KNR:    exrpc_oneway(fm_node,release_model<KNR1>,mid); break;
           case KNC:    exrpc_oneway(fm_node,release_model<KNC1>,mid); break;
+          case RFM:    exrpc_oneway(fm_node,release_model<RFM1>,mid); break;
+          case GBT:    exrpc_oneway(fm_node,release_model<GBT1>,mid); break;
           default:     REPORT_ERROR(USER_ERROR,"Unknown Model Kind is encountered!\n");
         }
       }
@@ -156,6 +164,8 @@ extern "C" {
           case FPR:    exrpc_oneway(fm_node,save_model<FPR1>,mid,fs_path); break;
           case FMM:    exrpc_oneway(fm_node,save_fmm<DT2>,mid,fs_path); break;
           case NBM:    exrpc_oneway(fm_node,save_model<NBM2>,mid,fs_path); break;
+          case RFM:    exrpc_oneway(fm_node,save_model<RFM2>,mid,fs_path); break;
+          case GBT:    exrpc_oneway(fm_node,save_model<GBT2>,mid,fs_path); break;
           default:     REPORT_ERROR(USER_ERROR,"Unknown Model Kind is encountered!\n");
         }
       }
@@ -175,6 +185,8 @@ extern "C" {
           case FPM:    exrpc_oneway(fm_node,save_model<FPM1>,mid,fs_path); break; // not template based
           case FMM:    exrpc_oneway(fm_node,save_fmm<DT1>,mid,fs_path); break;
           case NBM:    exrpc_oneway(fm_node,save_model<NBM1>,mid,fs_path); break;
+          case RFM:    exrpc_oneway(fm_node,save_model<RFM1>,mid,fs_path); break;
+          case GBT:    exrpc_oneway(fm_node,save_model<GBT1>,mid,fs_path); break;
           default:     REPORT_ERROR(USER_ERROR,"Unknown Model Kind is encountered!\n");
         }
       }
@@ -220,6 +232,8 @@ extern "C" {
           case FMM:    REPORT_ERROR(USER_ERROR,"currently frovedis fm_model can't be loaded!");
           case FPM:    exrpc_oneway(fm_node,load_model<FPM1>,mid,FPM,fs_path); break; // not template based
           case FPR:  exrpc_oneway(fm_node,load_model<FPR1>,mid,FPM,fs_path); break;
+          case RFM:    exrpc_oneway(fm_node,load_model<RFM2>,mid,RFM,fs_path); break;
+          case GBT:    exrpc_oneway(fm_node,load_model<GBT2>,mid,GBT,fs_path); break;
           default:   REPORT_ERROR(USER_ERROR,"Unknown Model Kind is encountered!\n");
         }
       }
@@ -235,6 +249,8 @@ extern "C" {
           case FPR:    exrpc_oneway(fm_node,load_model<FPR1>,mid,FPM,fs_path); break;
           case FMM:    REPORT_ERROR(USER_ERROR,"currently frovedis fm_model can't be loaded!");
           case FPM:    exrpc_oneway(fm_node,load_model<FPM1>,mid,FPM,fs_path); break; // not template based
+          case RFM:    exrpc_oneway(fm_node,load_model<RFM1>,mid,RFM,fs_path); break;
+          case GBT:    exrpc_oneway(fm_node,load_model<GBT1>,mid,GBT,fs_path); break;
           default:   REPORT_ERROR(USER_ERROR,"Unknown Model Kind is encountered!\n");
         }
       }
@@ -624,6 +640,10 @@ extern "C" {
           case FMM:  REPORT_ERROR(USER_ERROR,"currently Frovedis doesn't support dense test data for FM!\n");
           case NBM:  pred = exrpc_async(fm_node,(parallel_nbm_predict_with_broadcast<DT2,R_MAT2,R_LMAT2>),
                                         f_dptr,mid,prob).get(); break;
+          case RFM:  pred = exrpc_async(fm_node,(parallel_rfm_predict_with_broadcast<DT2,R_MAT2,R_LMAT2>),
+                                        f_dptr,mid,prob).get(); break;
+          case GBT:  pred = exrpc_async(fm_node,(parallel_gbt_predict_with_broadcast<DT2,R_MAT2,R_LMAT2>),
+                                        f_dptr,mid,prob).get(); break;
           default:   REPORT_ERROR(USER_ERROR,"Unknown Model Kind is encountered!\n");
         }
       }
@@ -717,6 +737,10 @@ extern "C" {
           case FMM:  REPORT_ERROR(USER_ERROR,"currently Frovedis doesn't support dense test data for FM!\n");
           case NBM:  pred = exrpc_async(fm_node,(parallel_nbm_predict_with_broadcast<DT1,R_MAT1,R_LMAT1>),
                                         f_dptr,mid,prob).get(); break;
+          case RFM:  pred = exrpc_async(fm_node,(parallel_rfm_predict_with_broadcast<DT1,R_MAT1,R_LMAT1>),
+                                        f_dptr,mid,prob).get(); break;
+          case GBT:  pred = exrpc_async(fm_node,(parallel_gbt_predict_with_broadcast<DT1,R_MAT1,R_LMAT1>),
+                                        f_dptr,mid,prob).get(); break;
           default:   REPORT_ERROR(USER_ERROR,"Unknown Model Kind is encountered!\n");
         }
       }
@@ -785,12 +809,10 @@ extern "C" {
       auto sz = pred.size();
       checkAssumption(len == sz);
       for(size_t i=0; i<sz; ++i) ret[i] = pred[i];
-
     }
     catch (std::exception& e) {
       set_status(true, e.what());
     }
-
   }
 
   void parallel_kmeans_predict(const char* host, int port,

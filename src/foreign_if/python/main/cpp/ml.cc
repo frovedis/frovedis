@@ -203,7 +203,7 @@ extern "C" {
  
   // --- (3) Linear Regression ---
   void lnr_sgd(const char* host, int port, long xptr, long yptr,
-               int iter, double al,            
+               int iter, double al,
                bool icpt, double tol, int vb, int mid, 
                short dtype, short itype, bool dense) {
     if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
@@ -251,7 +251,7 @@ extern "C" {
   }
 
   void lnr_lbfgs(const char* host, int port, long xptr, long yptr,
-                 int iter, double al,            
+                 int iter, double al,
                  bool icpt, double tol, int vb, int mid, 
                  short dtype, short itype, bool dense) {
     if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
@@ -397,7 +397,7 @@ extern "C" {
 
   // --- (5) Ridge Regression ---
   void ridge_sgd(const char* host, int port, long xptr, long yptr,
-                 int iter, double al, double rprm, 
+                 int iter, double al, double rprm,
                  bool icpt, double tol,
                  int vb, int mid, short dtype, short itype, bool dense) {
     if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
@@ -492,7 +492,7 @@ extern "C" {
     }
   }
 
-  // case: SGDClassifier with "squared_loss" 
+  // case: SGDClassifier with "squared_loss"
   void lnr2_sgd(const char* host, int port, long xptr, long yptr,
                int iter, double al,
                int rtype, double rprm,
@@ -1128,5 +1128,170 @@ extern "C" {
      set_status(true, e.what());
    }
  }
+
+  // --- (21) Random Forest ---
+  void rf_trainer(const char* host, int port, long xptr,
+                  long yptr, char* algo, char* impurity,
+                  int num_trees, int max_depth, int num_classes,
+                  const char* feature_subset_strategy,
+                  double feature_subset_rate, int max_bins,
+                  int min_instance, double min_impurity_decrease,
+                  long random_state, int verbose, int mid,
+                  short dtype, short itype, bool dense) {
+    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
+    exrpc_node fm_node(host,port);
+    auto f_xptr = (exrpc_ptr_t) xptr;
+    auto f_yptr = (exrpc_ptr_t) yptr;
+    auto f_dptr = frovedis_mem_pair(f_xptr,f_yptr);
+    auto algorithm = tree::algorithm::Regression;
+    if(std::string(algo) == "Classification")
+      algorithm = tree::algorithm::Classification;
+    else algorithm = tree::algorithm::Regression;
+    auto imp = std::string(impurity);
+    auto feature_subset_strategy_ = std::string(feature_subset_strategy);
+    bool mvbl = false; // auto-managed at python side
+    try {
+      if(dense) {
+        switch(dtype) {
+          case FLOAT: {
+            auto min_impurity_decrease_float = static_cast<float>(min_impurity_decrease);
+            auto feature_subset_rate_float = static_cast<float>(feature_subset_rate);
+            tree::sampling_strategy<float> subsample_strat;
+            subsample_strat.set_feature_subset_strategy(feature_subset_strategy_)
+                           .set_feature_subset_rate(feature_subset_rate_float);
+            tree::strategy<float> float_str;
+            float_str.set_algorithm(algorithm)
+                 .set_impurity_type(imp)
+                 .set_max_depth(max_depth)
+                 .set_max_bins(max_bins)
+                 .set_min_instances_per_node(min_instance)
+                 .set_min_info_gain(min_impurity_decrease_float)
+                 .set_num_trees(num_trees)
+                 .set_sampling_strategy(std::move(subsample_strat));
+            if(std::string(algo) == "Classification")
+              float_str.set_num_classes(num_classes);
+            if(random_state != -1)
+              float_str.set_seed(random_state);
+            exrpc_oneway(fm_node,(frovedis_rf<DT2,D_MAT2>),f_dptr,float_str,verbose,mid,mvbl);
+            break;
+          }
+          case DOUBLE: {
+            tree::sampling_strategy<double> subsample_strat;
+            subsample_strat.set_feature_subset_strategy(feature_subset_strategy_)
+                           .set_feature_subset_rate(feature_subset_rate);
+            tree::strategy<double> double_str;
+            double_str.set_algorithm(algorithm)
+                 .set_impurity_type(imp)
+                 .set_max_depth(max_depth)
+                 .set_max_bins(max_bins)
+                 .set_min_instances_per_node(min_instance)
+                 .set_min_info_gain(min_impurity_decrease)
+                 .set_num_trees(num_trees)
+                 .set_sampling_strategy(std::move(subsample_strat));
+            if(std::string(algo) == "Classification")
+              double_str.set_num_classes(num_classes);
+            if(random_state != -1)
+              double_str.set_seed(random_state);
+            exrpc_oneway(fm_node,(frovedis_rf<DT1,D_MAT1>),f_dptr,double_str,verbose,mid,mvbl);
+            break;
+          }
+          default: REPORT_ERROR(USER_ERROR, "Unsupported dtype of input dense data for training!\n");
+        }
+      }
+      else REPORT_ERROR(USER_ERROR, "Frovedis doesn't support input sparse data for Random Forest training!\n");
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+  }
+
+    // --- (24) GBT ---
+  void gbt_trainer(const char* host, int port, long xptr, long yptr, 
+                   const char* algo, const char* loss, const char *impurity, 
+                   double learning_rate,
+                   int max_depth, double min_impurity_decrease,
+                   int random_state, double tol, int max_bins,
+                   double subsampling_rate, 
+                   const char* feature_subset_strategy, 
+                   double feature_subset_rate,
+                   int n_estimators, int nclasses,
+                   int verbose, int mid, 
+                   short dtype, short itype, bool dense) {
+    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
+    exrpc_node fm_node(host,port);
+    auto f_xptr = (exrpc_ptr_t) xptr;
+    auto f_yptr = (exrpc_ptr_t) yptr;
+    auto f_dptr = frovedis_mem_pair(f_xptr,f_yptr);
+    auto algorithm = tree::algorithm::Regression;
+    if(std::string(algo) == "Classification") 
+      algorithm = tree::algorithm::Classification;
+    else algorithm = tree::algorithm::Regression;
+    auto impurity_ = std::string(impurity);
+    auto feature_subset_strategy_ = std::string(feature_subset_strategy);
+    auto loss_ = std::string(loss);
+    bool mvbl = false; // auto-managed at python side
+    if (nclasses > 2) 
+      REPORT_ERROR(USER_ERROR, "Currently frovedis GBTClassifier supports only binary problem!\n");
+    try {
+      if(dense) {
+        switch(dtype) {
+          case FLOAT: { 
+            auto min_impurity_decrease_float = static_cast<float>(min_impurity_decrease);
+            auto subsampling_rate_float = static_cast<float>(subsampling_rate);
+            auto feature_subset_rate_float = static_cast<float>(feature_subset_rate);
+            tree::sampling_strategy<float> subsample_strat;
+            subsample_strat.set_subsampling_rate(subsampling_rate_float)
+                           .set_feature_subset_strategy(feature_subset_strategy_)
+                           .set_feature_subset_rate(feature_subset_rate_float);
+            // tol wont be used right now
+            tree::strategy<float> strat;
+            strat.set_algorithm(algorithm)
+                 .set_impurity_type(impurity_)
+                 .set_loss_type(loss_)
+                 .set_learning_rate(learning_rate)
+                 .set_max_depth(max_depth)
+                 .set_min_info_gain(min_impurity_decrease_float)
+                 .set_max_bins(max_bins)
+                 .set_num_iterations(n_estimators)
+                 .set_sampling_strategy(std::move(subsample_strat));
+            if(std::string(algo) == "Classification") 
+              strat.set_num_classes(nclasses);
+            if(random_state !=-1)
+              strat.set_seed(random_state);
+            exrpc_oneway(fm_node,(frovedis_gbt<DT2,D_MAT2>),f_dptr,strat,verbose,mid,mvbl);
+            break;
+          }
+          case DOUBLE: {
+            tree::sampling_strategy<double> subsample_strat;
+            subsample_strat.set_subsampling_rate(subsampling_rate)
+                           .set_feature_subset_strategy(feature_subset_strategy_)
+                           .set_feature_subset_rate(feature_subset_rate);
+            // tol wont be used right now
+            tree::strategy<double> strat;
+            strat.set_algorithm(algorithm)
+                 .set_impurity_type(impurity_)
+                 .set_loss_type(loss_)
+                 .set_learning_rate(learning_rate)
+                 .set_max_depth(max_depth)
+                 .set_min_info_gain(min_impurity_decrease)
+                 .set_max_bins(max_bins)
+                 .set_num_iterations(n_estimators)
+                 .set_sampling_strategy(std::move(subsample_strat));
+            if(std::string(algo) == "Classification") 
+              strat.set_num_classes(nclasses);
+            if(random_state !=-1)
+              strat.set_seed(random_state);
+            exrpc_oneway(fm_node,(frovedis_gbt<DT1,D_MAT1>),f_dptr,strat,verbose,mid,mvbl);
+            break;
+          }
+          default: REPORT_ERROR(USER_ERROR, "Unsupported dtype of input dense data for training!\n");
+        }
+      }
+      else REPORT_ERROR(USER_ERROR, "Frovedis doesn't support input sparse data for GBT training!\n");
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+  }
 
 }

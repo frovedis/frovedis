@@ -34,6 +34,9 @@ class M_KIND(object):
     KNC = 19
     KNR = 20
     LDA = 21
+    LDASP = 22 #for spark
+    RFM = 23
+    GBT = 24
 
 class ModelID(object):
     """A python container for generating model IDs for ML"""

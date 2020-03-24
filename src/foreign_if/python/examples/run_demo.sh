@@ -1,5 +1,3 @@
-#python bipython sh
-
 export PYTHONPATH=../main/python:$PYTHONPATH
 export LD_LIBRARY_PATH=../main/lib:$LD_LIBRARY_PATH
 
@@ -33,6 +31,8 @@ python sgd_classifier_demo.py "$COMMAND"
 
 python svm_demo.py "$COMMAND"
 python dt_demo.py "$COMMAND"
+python rf_demo.py "$COMMAND"
+python gbt_demo.py "$COMMAND"
 python nbm_demo.py "$COMMAND"
 python fm_demo.py "$COMMAND"
 
@@ -48,3 +48,8 @@ python als_demo.py "$COMMAND"
 python fp_growth_demo.py "$COMMAND"
 python word2vec_demo.py "$COMMAND"
 python lda_demo.py "$COMMAND"
+
+# --- Graph Demo ---
+python graph_pagerank.py "$COMMAND"
+python graph_sssp.py "$COMMAND"
+python graph_conn_com.py "$COMMAND"

@@ -2,10 +2,10 @@ include ../../../../../Makefile.in.x86
 
 LIBS := ../../../exrpc/libfrovedis_exrpc.a ../../../../frovedis/core/libfrovedis_core.a ../../../../frovedis/text/libfrovedis_text.a ../../../../frovedis/matrix/libfrovedis_matrix.a ../../../../frovedis/ml/libfrovedis_ml.a ../../../../frovedis/dataframe/libfrovedis_dataframe.a ../../../server/libfrovedis_server.a
 
-INCLUDES := -I../../../../../third_party/cereal-1.2.2/include/ -I../../../.. -I../../../exrpc -I../../../server -I${PYTHON_INC}
+INCLUDES := -I../../../../../third_party/cereal-1.2.2/include/ -I../../../../../third_party/yas-7.0.5/include/ -I../../../.. -I../../../exrpc -I../../../server -I${PYTHON_INC}
 
 HEADERS := python_client_headers.hpp
-OBJS := utility.o exception_handling.o server_info.o dvector.o data_storage.o wrapper.o dataframe.o model.o ml.o
+OBJS := utility.o exception_handling.o server_info.o dvector.o data_storage.o wrapper.o dataframe.o model.o ml.o graph.o
 
 CXXFLAGS := ${CXXFLAGS_COMMON} ${INCLUDES} -fopenmp
 
@@ -25,6 +25,7 @@ wrapper.o: wrapper.cc ${HEADERS}
 dataframe.o: dataframe.cc ${HEADERS}
 model.o: model.cc ${HEADERS}
 ml.o: ml.cc ${HEADERS}
+graph.o: graph.cc ${HEADERS}
 
 clean:
 	${RM} ${TO_CLEAN} ${TARGETS} ${OBJS}

@@ -253,7 +253,7 @@ class DecisionTreeClassifier(object):
         NAME: validate
         """
         if self.criterion != "GINI" and self.criterion != "ENTROPY":
-            raise ValueError("Invalid criterion for Decision Tree Regressor!")
+            raise ValueError("Invalid criterion for Decision Tree Classifier!")
         elif self.max_depth < 0:
             raise ValueError("max depth can not be negative !")
         elif self.min_info_gain < 0:
@@ -316,8 +316,7 @@ class DecisionTreeClassifier(object):
         """
         if self.__mid is not None:
             frov_pred = GLM.predict(X, self.__mid, self.__mkind, \
-                               self.__mdtype,\
-                               False)
+                               self.__mdtype, False)
             new_pred = \
             [self.label_map[frov_pred[i]] for i in range(0, len(frov_pred))]
             return np.asarray(new_pred, dtype=np.int64)
@@ -333,8 +332,7 @@ class DecisionTreeClassifier(object):
         """
         if self.__mid is not None:
             return GLM.predict(X, self.__mid, self.__mkind, \
-                               self.__mdtype,\
-                               True)
+                               self.__mdtype, True)
         else:
             raise ValueError(\
             "predict is called before calling fit, or the model is released.")
