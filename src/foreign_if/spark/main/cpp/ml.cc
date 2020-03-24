@@ -717,24 +717,58 @@ JNIEXPORT void Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisKncFit
   }
 }
 
-// --- (19) Latent Dirichlet Allocation (LDA) ---
+// --- (19) K-Nearest Neighbor Regressor (KNR) ---
+JNIEXPORT void Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisKnrFit
+            (JNIEnv *env, jclass thisCls, jobject master_node, jobject fdata, jint k,
+             jstring algorithm, jstring metric,
+             jfloat chunk_size, jint mid, jboolean dense) {
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto f_dptr = java_mempair_to_frovedis_mempair(env, fdata);
+  auto algorithm_ = to_cstring(env,algorithm);
+  auto metric_ = to_cstring(env,metric);
+  bool isDense= (bool) dense;
+  int vb = 0; // no log (default)
+  try {
+    if(isDense) {
+      exrpc_oneway(fm_node,(frovedis_knr<DT1,R_MAT1>), f_dptr, k,
+                       algorithm_, metric_, chunk_size, vb, mid);
+    }
+    else{
+      REPORT_ERROR(USER_ERROR, "frovedis KNeighbors Regressor currently supports only dense data. \n");
+    }
+  }
+  catch (std::exception& e) {
+    set_status(true, e.what());
+  }
+}
+
+// --- (20) Latent Dirichlet Allocation (LDA) ---
 JNIEXPORT jobject JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisLDA
   (JNIEnv *env, jclass thisCls, jobject master_node, jlong fdata,
-   jint mid, jint num_topics, jint num_iter, jdouble alpha, jdouble beta,
+   jlongArray orig_doc_id, jlong num_docs, jboolean save_doc_id, jint mid, 
+   jint num_topics, jint num_iter, jdouble alpha, jdouble beta,
    jint num_explore_iter, jint num_eval_cycle, jstring algo) {
 
   auto fm_node = java_node_to_frovedis_node(env, master_node);
   auto f_dptr = (exrpc_ptr_t) fdata;
+  bool save_doc = (bool) save_doc_id;
+  std::vector<long> org_doc_id_vector;
+  if (save_doc) {
+    org_doc_id_vector = to_long_vector(env, orig_doc_id, num_docs);
+  }
+  else {
+    org_doc_id_vector = to_long_vector(env, orig_doc_id, 0);
+  }
   int vb = 0; // no log (default)
   auto algo_ = to_cstring(env,algo);
   dummy_lda_model ret;
   try {
     ret = exrpc_async(fm_node,(frovedis_lda_train_for_spark<DT3,S_MAT15>), f_dptr, 
-                      alpha, beta, num_topics, num_iter,
-                      algo_, num_explore_iter, 
-		      num_eval_cycle, vb, mid).get();
+                      org_doc_id_vector, save_doc, alpha, beta, num_topics, 
+                      num_iter, algo_, num_explore_iter, num_eval_cycle, vb, mid).get();
   }
   catch(std::exception& e) { set_status(true,e.what()); }
   return to_jDummyLDAModel(env, ret);
 }
+
 }

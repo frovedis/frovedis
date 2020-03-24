@@ -432,11 +432,12 @@ jobject to_jDummyLDAResult(JNIEnv *env, dummy_lda_result& obj) {
 jobject to_jDummyLDAModel(JNIEnv *env, dummy_lda_model& obj) {
   jclass ldaCls = env->FindClass(JRE_PATH_DummyLDAModel);
   if (ldaCls == NULL) REPORT_ERROR(INTERNAL_ERROR, "DummyLDAModel class not found in JRE\n");
-  jmethodID ldaConst = env->GetMethodID(ldaCls, "<init>", "(II)V");
-  if (ldaConst == NULL) REPORT_ERROR(INTERNAL_ERROR, "DummyLDAModel(I,I) not found in JRE\n");
+  jmethodID ldaConst = env->GetMethodID(ldaCls, "<init>", "(III)V");
+  if (ldaConst == NULL) REPORT_ERROR(INTERNAL_ERROR, "DummyLDAModel(I,I,I) not found in JRE\n");
   int num_topics = static_cast<int>(obj.num_topics);
   int vocabsz = static_cast<int>(obj.vocabsz);
-  auto newDummyModel = env->NewObject(ldaCls,ldaConst,num_topics,vocabsz);
+  int ndocs = static_cast<int>(obj.num_docs);
+  auto newDummyModel = env->NewObject(ldaCls,ldaConst,num_topics,vocabsz,ndocs);
   if (newDummyModel == NULL) REPORT_ERROR(INTERNAL_ERROR, "DummyLDAModel object creation failed\n");
   return newDummyModel;
 }

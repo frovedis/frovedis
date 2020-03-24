@@ -60,7 +60,8 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_releaseFrovedisMo
       case DBSCAN: exrpc_oneway(fm_node, release_model<DBSCAN1>, mid); break;
       case KNN:    exrpc_oneway(fm_node, release_model<KNN1>, mid); break;
       case KNC:    exrpc_oneway(fm_node, release_model<KNC1>, mid); break;
-      case LDA:    exrpc_oneway(fm_node, release_model<LDA3>, mid); break; // long for lda_model
+      case KNR:    exrpc_oneway(fm_node, release_model<KNR1>, mid); break;
+      case LDASP:  exrpc_oneway(fm_node, release_model<LDASP3>, mid); break;
       default:     REPORT_ERROR(USER_ERROR,"Unknown Model Kind is encountered!\n");
     }
   }
@@ -89,7 +90,7 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_saveFrovedisModel
       case ACM:    exrpc_oneway(fm_node,save_model<ACM1>,mid,fs_path); break;
       case FMM:    exrpc_oneway(fm_node,save_fmm<DT1>,mid,fs_path); break;
       case NBM:    exrpc_oneway(fm_node,save_model<NBM1>,mid,fs_path); break;
-      case LDA:    exrpc_oneway(fm_node,save_model<LDA3>,mid,fs_path); break; // long for lda_model
+      case LDASP:  exrpc_oneway(fm_node,save_model<LDASP3>,mid,fs_path); break;
       default:     REPORT_ERROR(USER_ERROR,"Unknown Model Kind is encountered!\n");
     }
   }
@@ -544,16 +545,23 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_saveW2VModel
 }
 
 //KNN 
-JNIEXPORT jobject JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_knnKneighbors
-  (JNIEnv *env, jclass thisCls, jobject master_node, jlong tptr,
-  jint k, jint mid, jboolean needDistance) { // TODO: add isDense
+JNIEXPORT jobject JNICALL
+Java_com_nec_frovedis_Jexrpc_JNISupport_knnKneighbors
+(JNIEnv *env, jclass thisCls, jobject master_node, jlong tptr,
+  jint k, jint mid, jboolean needDistance, jboolean dense) { 
   auto fm_node = java_node_to_frovedis_node(env, master_node);
   auto test_dptr = (exrpc_ptr_t) tptr;
   bool need_distance = (bool) needDistance;
+  bool isDense = (bool) dense;
   knn_result res;
   try {
-    res = exrpc_async(fm_node, (frovedis_kneighbors_spark<DT1,DT5,R_MAT1,KNN1>), test_dptr, 
-                      mid, k, need_distance ).get();
+    if (isDense){
+      res = exrpc_async(fm_node, (frovedis_kneighbors_spark<DT1,DT5,R_MAT1,KNN1>),
+                        test_dptr, mid, k, need_distance ).get();
+    }
+    else REPORT_ERROR(USER_ERROR, 
+         "Frovedis K-Nearest Neighbor doesn't support sparse input at "
+         "this moment.\n");
   }
   catch (std::exception& e) {
     set_status(true, e.what());
@@ -561,16 +569,23 @@ JNIEXPORT jobject JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_knnKneighbors
   return to_jDummyKNNResult(env,res);
 }
 
-JNIEXPORT jobject JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_knnKneighborsGraph
-  (JNIEnv *env, jclass thisCls, jobject master_node, jlong tptr,
-  jint k, jint mid, jstring mode) { // TODO: add isDense
+JNIEXPORT jobject JNICALL
+Java_com_nec_frovedis_Jexrpc_JNISupport_knnKneighborsGraph
+(JNIEnv *env, jclass thisCls, jobject master_node, jlong tptr,
+  jint k, jint mid, jstring mode, jboolean dense) { 
   auto fm_node = java_node_to_frovedis_node(env, master_node);
   auto test_dptr = (exrpc_ptr_t) tptr;
   auto mode_ = to_cstring(env,mode);
+  bool isDense = (bool) dense;
   dummy_matrix dmat;
   try {
-    dmat = exrpc_async(fm_node, (frovedis_kneighbors_graph<DT5,R_MAT1,KNN1,S_MAT15,S_LMAT15>), test_dptr, 
-                              mid, k, mode_).get();
+    if (isDense){
+      dmat = exrpc_async(fm_node, (frovedis_kneighbors_graph<DT5,R_MAT1,KNN1,S_MAT15,S_LMAT15>),
+                         test_dptr, mid, k, mode_).get();  
+    }
+    else REPORT_ERROR(USER_ERROR, 
+         "Frovedis K-Nearest Neighbor doesn't support sparse input at "
+         "this moment.\n");
   }
   catch (std::exception& e) {
     set_status(true, e.what());
@@ -578,16 +593,23 @@ JNIEXPORT jobject JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_knnKneighborsG
   return to_jDummyMatrix(env, dmat, SCRS);
 }
 
-JNIEXPORT jobject JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_knnRadiusNeighbors
-  (JNIEnv *env, jclass thisCls, jobject master_node, jlong tptr,
-  jfloat radius, jint mid, jboolean needDistance) { // TODO: add isDense
+JNIEXPORT jobject JNICALL
+Java_com_nec_frovedis_Jexrpc_JNISupport_knnRadiusNeighbors
+(JNIEnv *env, jclass thisCls, jobject master_node, jlong tptr,
+  jfloat radius, jint mid, jboolean needDistance, jboolean dense) { 
   auto fm_node = java_node_to_frovedis_node(env, master_node);
   auto test_dptr = (exrpc_ptr_t) tptr;
   bool need_distance = (bool) needDistance;
+  bool isDense = (bool) dense;
   dummy_matrix dmat;
   try {
-    dmat = exrpc_async(fm_node, (frovedis_radius_neighbors<DT5,R_MAT1,KNN1,S_MAT15,S_LMAT15>), test_dptr, 
-                              mid, radius, need_distance).get();
+    if (isDense){
+      dmat = exrpc_async(fm_node, (frovedis_radius_neighbors<DT5,R_MAT1,KNN1,S_MAT15,S_LMAT15>),
+                                  test_dptr, mid, radius, need_distance).get();  
+    }
+    else REPORT_ERROR(USER_ERROR, 
+         "Frovedis K-Nearest Neighbor doesn't support sparse input at "
+         "this moment.\n");
   }
   catch (std::exception& e) {
     set_status(true, e.what());
@@ -595,16 +617,23 @@ JNIEXPORT jobject JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_knnRadiusNeigh
   return to_jDummyMatrix(env, dmat, SCRS);
 }
 
-JNIEXPORT jobject JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_knnRadiusNeighborsGraph
-  (JNIEnv *env, jclass thisCls, jobject master_node, jlong tptr,
-  jfloat radius, jint mid, jstring mode) { // TODO: add isDense
+JNIEXPORT jobject JNICALL
+Java_com_nec_frovedis_Jexrpc_JNISupport_knnRadiusNeighborsGraph
+(JNIEnv *env, jclass thisCls, jobject master_node, jlong tptr,
+  jfloat radius, jint mid, jstring mode, jboolean dense) {
   auto fm_node = java_node_to_frovedis_node(env, master_node);
   auto test_dptr = (exrpc_ptr_t) tptr;
   auto mode_ = to_cstring(env,mode);
+  bool isDense = (bool) dense;
   dummy_matrix dmat;
   try {
-    dmat = exrpc_async(fm_node, (frovedis_radius_neighbors_graph<DT5,R_MAT1,KNN1,S_MAT15,S_LMAT15>), test_dptr, 
-                              mid, radius, mode_ ).get();
+    if (isDense){
+      dmat = exrpc_async(fm_node, (frovedis_radius_neighbors_graph<DT5,R_MAT1,KNN1,S_MAT15,S_LMAT15>),
+                        test_dptr, mid, radius, mode_ ).get();  
+    }
+    else REPORT_ERROR(USER_ERROR, 
+         "Frovedis K-Nearest Neighbor doesn't support sparse input at "
+         "this moment.\n");
   }
   catch (std::exception& e) {
     set_status(true, e.what());
@@ -613,16 +642,23 @@ JNIEXPORT jobject JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_knnRadiusNeigh
 }
 
 // KNC
-JNIEXPORT jobject JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_kncKneighbors
-  (JNIEnv *env, jclass thisCls, jobject master_node, jlong tptr,
-  jint k, jint mid, jboolean needDistance) { // TODO: add isDense
+JNIEXPORT jobject JNICALL
+Java_com_nec_frovedis_Jexrpc_JNISupport_kncKneighbors
+(JNIEnv *env, jclass thisCls, jobject master_node, jlong tptr,
+  jint k, jint mid, jboolean needDistance, jboolean dense) { 
   auto fm_node = java_node_to_frovedis_node(env, master_node);
   auto test_dptr = (exrpc_ptr_t) tptr;
   bool need_distance = (bool) needDistance;
+  bool isDense = (bool) dense;
   knn_result res;
   try {
-    res = exrpc_async(fm_node, (frovedis_kneighbors<DT1,DT5,R_MAT1,KNC1>), test_dptr, 
-                              mid, k, need_distance ).get();
+    if(isDense){
+      res = exrpc_async(fm_node, (frovedis_kneighbors<DT1,DT5,R_MAT1,KNC1>),
+                        test_dptr, mid, k, need_distance ).get();
+    }
+    else REPORT_ERROR(USER_ERROR, 
+         "Frovedis K-neighbor classifier doesn't support sparse input at "
+         "this moment.\n");
   }
   catch (std::exception& e) {
     set_status(true, e.what());
@@ -630,16 +666,23 @@ JNIEXPORT jobject JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_kncKneighbors
   return to_jDummyKNNResult(env,res);
 }
 
-JNIEXPORT jobject JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_kncKneighborsGraph
-  (JNIEnv *env, jclass thisCls, jobject master_node, jlong tptr,
-  jint k, jint mid, jstring mode) { // TODO: add isDense
+JNIEXPORT jobject JNICALL
+Java_com_nec_frovedis_Jexrpc_JNISupport_kncKneighborsGraph
+(JNIEnv *env, jclass thisCls, jobject master_node, jlong tptr,
+  jint k, jint mid, jstring mode, jboolean dense) { 
   auto fm_node = java_node_to_frovedis_node(env, master_node);
   auto test_dptr = (exrpc_ptr_t) tptr;
   auto mode_ = to_cstring(env,mode);
+  bool isDense = (bool) dense;
   dummy_matrix dmat;
   try {
-    dmat = exrpc_async(fm_node, (frovedis_kneighbors_graph<DT5,R_MAT1,KNC1,S_MAT15,S_LMAT15>), test_dptr, 
-                              mid, k, mode_).get();
+    if (isDense){
+      dmat = exrpc_async(fm_node, (frovedis_kneighbors_graph<DT5,R_MAT1,KNC1,S_MAT15,S_LMAT15>),
+                        test_dptr, mid, k, mode_).get();  
+    }
+    else REPORT_ERROR(USER_ERROR, 
+         "Frovedis K-neighbor classifier doesn't support sparse input at "
+         "this moment.\n");
   }
   catch (std::exception& e) {
     set_status(true, e.what());
@@ -647,15 +690,23 @@ JNIEXPORT jobject JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_kncKneighborsG
   return to_jDummyMatrix(env, dmat, SCRS);
 }
 
-JNIEXPORT jdoubleArray JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_kncDoublePredict
-  (JNIEnv *env, jclass thisCls, jobject master_node, jlong tptr, jint mid,
-   jboolean saveProba) { // TODO: add isDense
+JNIEXPORT jdoubleArray JNICALL
+Java_com_nec_frovedis_Jexrpc_JNISupport_kncDoublePredict
+(JNIEnv *env, jclass thisCls, jobject master_node, jlong tptr, jint mid,
+   jboolean saveProba, jboolean dense) { 
   auto fm_node = java_node_to_frovedis_node(env, master_node);
   auto test_dptr = (exrpc_ptr_t) tptr;
   bool save_proba = (bool) saveProba;
+  bool isDense = (bool) dense;
   std::vector<double> label;
   try {
-    label = exrpc_async(fm_node, (frovedis_knc_predict<DT1,DT5,R_MAT1,KNC1>), test_dptr, mid, save_proba).get(); 
+    if (isDense){
+      label = exrpc_async(fm_node, (frovedis_knc_predict<DT1,DT5,R_MAT1,KNC1>),
+                          test_dptr, mid, save_proba).get();   
+    }
+    else REPORT_ERROR(USER_ERROR, 
+         "Frovedis K-neighbor classifier doesn't support sparse input at "
+         "this moment.\n"); 
   }
   catch (std::exception& e) {
       set_status(true, e.what());
@@ -663,14 +714,22 @@ JNIEXPORT jdoubleArray JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_kncDouble
   return to_jdoubleArray(env, label);
 }
 
-JNIEXPORT jobject JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_kncPredictProba
-  (JNIEnv *env, jclass thisCls, jobject master_node, jlong tptr, jint mid) { // TODO: add isDense
+JNIEXPORT jobject JNICALL
+Java_com_nec_frovedis_Jexrpc_JNISupport_kncPredictProba
+(JNIEnv *env, jclass thisCls, jobject master_node, jlong tptr, jint mid,
+jboolean dense) {
   auto fm_node = java_node_to_frovedis_node(env, master_node);
   auto test_dptr = (exrpc_ptr_t) tptr;
+  bool isDense = (bool) dense;
   dummy_matrix dmat;
   try {
-    dmat = exrpc_async(fm_node, (frovedis_knc_predict_proba<DT5,R_MAT1,KNC1,R_MAT1,R_LMAT1>), 
-                               test_dptr, mid).get();
+    if (isDense){
+      dmat = exrpc_async(fm_node, (frovedis_knc_predict_proba<DT5,R_MAT1,KNC1,R_MAT1,R_LMAT1>), 
+                               test_dptr, mid).get();  
+    }
+    else REPORT_ERROR(USER_ERROR, 
+         "Frovedis K-neighbor classifier doesn't support sparse input at "
+         "this moment.\n");
   }
   catch (std::exception& e) {
       set_status(true, e.what());
@@ -678,14 +737,117 @@ JNIEXPORT jobject JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_kncPredictProb
   return to_jDummyMatrix(env, dmat, RMJR);
 }
 
-JNIEXPORT jfloat JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_kncModelScore
-(JNIEnv *env, jclass thisCls, jobject master_node, jlong xptr, jlong yptr, jint mid) { // TODO: add isDense
+JNIEXPORT jfloat JNICALL
+Java_com_nec_frovedis_Jexrpc_JNISupport_kncModelScore
+(JNIEnv *env, jclass thisCls, jobject master_node, jlong xptr, jlong yptr,
+jint mid, jboolean dense) {
   auto fm_node = java_node_to_frovedis_node(env, master_node);
   auto mptr = (exrpc_ptr_t) xptr;
   auto lblptr = (exrpc_ptr_t) yptr;
   float res = 0.0;
+  bool isDense = (bool) dense;
   try {
-    res = exrpc_async(fm_node, (frovedis_model_score<DT1,DT5,R_MAT1,KNC1>), mptr, lblptr, mid).get();
+    if (isDense){
+      res = exrpc_async(fm_node, (frovedis_model_score<DT1,DT5,R_MAT1,KNC1>),
+                        mptr, lblptr, mid).get();  
+    }
+    else REPORT_ERROR(USER_ERROR, 
+         "Frovedis K-neighbor classifier doesn't support sparse input at "
+         "this moment.\n");
+  }
+  catch (std::exception& e) {
+      set_status(true, e.what());
+  }  
+  return res;
+}
+
+// KNR
+JNIEXPORT jobject JNICALL
+Java_com_nec_frovedis_Jexrpc_JNISupport_knrKneighbors
+(JNIEnv *env, jclass thisCls, jobject master_node, jlong tptr,
+  jint k, jint mid, jboolean needDistance, jboolean dense) {
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto test_dptr = (exrpc_ptr_t) tptr;
+  bool need_distance = (bool) needDistance;
+  bool isDense = (bool) dense;
+  knn_result res;
+  try {
+    if(isDense){
+      res = exrpc_async(fm_node, (frovedis_kneighbors<DT1,DT5,R_MAT1,KNR1>),
+                        test_dptr, mid, k, need_distance ).get();
+    }
+    else REPORT_ERROR(USER_ERROR, 
+         "Frovedis K-neighbor regressor doesn't support sparse input at "
+         "this moment.\n");
+  }
+  catch (std::exception& e) {
+    set_status(true, e.what());
+  }
+  return to_jDummyKNNResult(env,res);
+}
+
+JNIEXPORT jobject JNICALL
+Java_com_nec_frovedis_Jexrpc_JNISupport_knrKneighborsGraph
+(JNIEnv *env, jclass thisCls, jobject master_node, jlong tptr,
+  jint k, jint mid, jstring mode ,jboolean dense) {
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto test_dptr = (exrpc_ptr_t) tptr;
+  auto mode_ = to_cstring(env,mode);
+  bool isDense = (bool) dense;
+  dummy_matrix dmat;
+  try {
+    if(isDense) {
+      dmat = exrpc_async(fm_node, (frovedis_kneighbors_graph<DT5,R_MAT1,KNR1,S_MAT15,S_LMAT15>),
+                        test_dptr, mid, k, mode_).get();  
+    }
+    else REPORT_ERROR(USER_ERROR, 
+         "Frovedis K-neighbor regressor doesn't support sparse input at "
+         "this moment.\n");
+  }
+  catch (std::exception& e) {
+    set_status(true, e.what());
+  }
+  return to_jDummyMatrix(env, dmat, SCRS);
+}
+
+JNIEXPORT jdoubleArray JNICALL
+Java_com_nec_frovedis_Jexrpc_JNISupport_knrDoublePredict
+(JNIEnv *env, jclass thisCls, jobject master_node, jlong tptr, jint mid, jboolean dense) {
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto test_dptr = (exrpc_ptr_t) tptr;
+  std::vector<double> label;
+  bool isDense = (bool) dense;
+  try {
+    if(isDense){
+      label = exrpc_async(fm_node, (frovedis_knr_predict<DT1,DT5,R_MAT1,KNR1>),
+                          test_dptr, mid).get();
+    }
+    else REPORT_ERROR(USER_ERROR, 
+         "Frovedis K-neighbor regressor doesn't support sparse input at "
+         "this moment.\n");
+  }
+  catch (std::exception& e) {
+      set_status(true, e.what());
+  }
+  return to_jdoubleArray(env, label);
+}
+
+JNIEXPORT jfloat JNICALL
+Java_com_nec_frovedis_Jexrpc_JNISupport_knrModelScore
+(JNIEnv *env, jclass thisCls, jobject master_node, jlong xptr, jlong yptr, jint mid, jboolean dense) {
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto mptr = (exrpc_ptr_t) xptr;
+  auto lblptr = (exrpc_ptr_t) yptr;
+  float res = 0.0;
+  bool isDense = (bool) dense;
+  try {
+    if(isDense){
+      res = exrpc_async(fm_node, (frovedis_model_score<DT1,DT5,R_MAT1,KNR1>),
+                        mptr, lblptr, mid).get();  
+    }
+    else REPORT_ERROR(USER_ERROR, 
+         "Frovedis K-neighbor regressor doesn't support sparse input at "
+         "this moment.\n");   
   }
   catch (std::exception& e) {
       set_status(true, e.what());
@@ -696,14 +858,14 @@ JNIEXPORT jfloat JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_kncModelScore
 // LDA
 JNIEXPORT jobject JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisLDATransform
   (JNIEnv *env, jclass thisCls, jobject master_node, jlong fdata,
-   jint mid, jint num_topics, jint num_iter, jdouble alpha, jdouble beta,
+   jint mid, jint num_iter, jdouble alpha, jdouble beta,
    jint num_explore_iter, jstring algo) { 
   auto fm_node = java_node_to_frovedis_node(env, master_node);
   auto f_dptr = (exrpc_ptr_t) fdata;
   dummy_lda_result ret;
   auto algo_ = to_cstring(env,algo);
   try{
-    ret = exrpc_async(fm_node,(frovedis_lda_transform_for_spark<DT3,S_MAT15,LDA3>),
+    ret = exrpc_async(fm_node,(frovedis_lda_transform_for_spark<DT3,S_MAT15,LDASP3>),
                       f_dptr, alpha, beta, num_iter, algo_, 
                       num_explore_iter, mid).get();
   }
@@ -718,7 +880,7 @@ JNIEXPORT jobject JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getTopicsMatri
   auto fm_node = java_node_to_frovedis_node(env, master_node);
   dummy_matrix ret;
   try{
-    ret = exrpc_async(fm_node,(get_topics_matrix<DT3,LDA3>),mid).get();
+    ret = exrpc_async(fm_node,(get_topics_matrix<DT3,LDASP3>),mid).get();
   }
   catch(std::exception& e) { 
     set_status(true,e.what()); 
@@ -731,7 +893,7 @@ JNIEXPORT jint JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getVocabSize
   auto fm_node = java_node_to_frovedis_node(env, master_node);
   int ret = -1;
   try{
-    ret = exrpc_async(fm_node,get_vocabulary_size<LDA3>,mid).get();
+    ret = exrpc_async(fm_node,get_vocabulary_size<LDASP3>,mid).get();
   }
   catch(std::exception& e) { 
     set_status(true,e.what()); 
@@ -744,7 +906,7 @@ JNIEXPORT jint JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getNumTopics
   auto fm_node = java_node_to_frovedis_node(env, master_node);
   int ret = -1;
   try{
-    ret = exrpc_async(fm_node,get_num_topics<LDA3>,mid).get();
+    ret = exrpc_async(fm_node,get_num_topics<LDASP3>,mid).get();
   }
   catch(std::exception& e) { 
     set_status(true,e.what()); 
@@ -752,19 +914,149 @@ JNIEXPORT jint JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getNumTopics
   return ret;
 }
 
-JNIEXPORT void 
-JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getDescribeMatrix
-  (JNIEnv *env, jclass thisCls, jobject master_node, jint mid, jint nr,
-   jint maxTermsPerTopic, jintArray word_id, jdoubleArray word_topic_dist) { 
+JNIEXPORT jobject JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getTopicWordDistribution
+  (JNIEnv *env, jclass thisCls, jobject master_node, jint mid) {
   auto fm_node = java_node_to_frovedis_node(env, master_node);
-  auto sz = nr * maxTermsPerTopic;
-  describeMatrix result;
+  dummy_matrix dmat;
   try {
-    result = exrpc_async(fm_node, get_describe_matrix<LDA3>,mid,maxTermsPerTopic).get();
+    dmat = exrpc_async(fm_node,get_topic_word_distribution<LDASP3>,mid).get();
+  }
+  catch(std::exception& e) { set_status(true,e.what()); }
+  return to_jDummyMatrix(env,dmat,RMJR);
+}
+
+JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_extractTopWordsPerTopic
+  (JNIEnv *env, jclass thisCls, jobject master_node, jlong fdata,
+   jint num_topics, jint maxTermsPerTopic,
+   jintArray word_id, jdoubleArray topic_word_dist) {
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto f_dptr = exrpc_ptr_t (fdata);
+  auto sz = num_topics * maxTermsPerTopic;
+  distMatrix<DT4,DT1> result;
+  try {
+    result = exrpc_async(fm_node, (extract_sorted_topic_word_distribution<DT4,DT1>),
+                         f_dptr,maxTermsPerTopic).get();
   }
   catch(std::exception& e) { set_status(true,e.what());}
-  env->SetIntArrayRegion(word_id, 0, sz, result.wid_vec.data());
-  env->SetDoubleArrayRegion(word_topic_dist, 0, sz, result.dist_vec.data());
+  checkAssumption(result.indices.val.size() == sz);
+  env->SetIntArrayRegion(word_id, 0, sz, result.indices.val.data());
+  env->SetDoubleArrayRegion(topic_word_dist, 0, sz, result.distances.val.data());
+}
+
+JNIEXPORT jobject JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getTopicDocDistribution
+  (JNIEnv *env, jclass thisCls, jobject master_node, jint mid) { 
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  dummy_matrix dmat;
+  try {
+    dmat = exrpc_async(fm_node,get_topic_doc_distribution<LDASP3>,mid).get();
+  }
+  catch(std::exception& e) { set_status(true,e.what()); }
+  return to_jDummyMatrix(env,dmat,RMJR);
+}
+
+JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_extractTopDocsPerTopic
+  (JNIEnv *env, jclass thisCls, jobject master_node, jint mid, jlong fdata, 
+   jint num_topics, jint maxDocumentsPerTopic, 
+   jlongArray doc_id, jdoubleArray topic_doc_dist) {
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto f_dptr = exrpc_ptr_t (fdata);
+  auto sz = num_topics * maxDocumentsPerTopic;
+  distMatrix<DT3,DT1> result;
+  try {
+    result = exrpc_async(fm_node, (extract_sorted_topic_doc_distribution<LDASP3,DT3,DT1>),
+                         f_dptr,mid,maxDocumentsPerTopic).get();
+  }
+  catch(std::exception& e) { set_status(true,e.what());}
+  checkAssumption(result.indices.val.size() == sz);
+  env->SetLongArrayRegion(doc_id, 0, sz, result.indices.val.data());
+  env->SetDoubleArrayRegion(topic_doc_dist, 0, sz, result.distances.val.data());
+}
+
+JNIEXPORT jobject JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getDocTopicDistribution
+  (JNIEnv *env, jclass thisCls, jobject master_node, 
+                         jint mid, jlongArray test_doc_id, jlong num_docs) { 
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto test_doc_vec = to_long_vector(env, test_doc_id, num_docs);
+  dummy_matrix dmat;
+  try {
+    dmat = exrpc_async(fm_node,(get_doc_topic_distribution<LDASP3,DT3>),mid,
+                                                         test_doc_vec).get();
+  }
+  catch(std::exception& e) { set_status(true,e.what()); }
+  return to_jDummyMatrix(env,dmat,RMJR);
+}
+
+JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_extractTopTopicsPerDoc
+  (JNIEnv *env, jclass thisCls, jobject master_node, jlong fdata, 
+   jint num_docs, jint max_topics, 
+   jintArray topic_id, jdoubleArray doc_topic_dist) {
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto f_dptr = exrpc_ptr_t (fdata);
+  auto sz = num_docs * max_topics;
+  distMatrix<DT4,DT1> result;
+  try {
+    result = exrpc_async(fm_node, (extract_sorted_doc_topic_distribution<DT4,DT1>),
+                         f_dptr,max_topics).get();
+  }
+  catch(std::exception& e) { set_status(true,e.what());}
+  checkAssumption(result.indices.val.size() == sz);
+  env->SetIntArrayRegion(topic_id, 0, sz, result.indices.val.data());
+  env->SetDoubleArrayRegion(doc_topic_dist, 0, sz, result.distances.val.data());
+}
+
+JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_transformAndExtractTopTopicsPerDoc
+  (JNIEnv *env, jclass thisCls, jobject master_node, jlong fdata,
+   jint mid, jint num_iter, 
+   jdouble alpha, jdouble beta,
+   jint num_explore_iter, jstring algo,
+   jint num_docs, jint max_topics,
+   jintArray topic_id, jdoubleArray doc_topic_dist) {
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto f_dptr = (exrpc_ptr_t) fdata;
+  auto algo_ = to_cstring(env,algo);
+  auto sz = num_docs * max_topics;
+  distMatrix<DT4,DT1> result;
+  try {
+    result = exrpc_async(fm_node, (get_top_topics_per_document<DT3,S_MAT15,LDASP3,DT4,DT1>),
+                         f_dptr, alpha, beta, num_iter, algo_,
+                         num_explore_iter, mid, max_topics).get();
+  }
+  catch(std::exception& e) { set_status(true,e.what());}
+  checkAssumption(result.indices.val.size() == sz);
+  env->SetIntArrayRegion(topic_id, 0, sz, result.indices.val.data());
+  env->SetDoubleArrayRegion(doc_topic_dist, 0, sz, result.distances.val.data());
+}
+
+JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_transformAndExtractTopDocsPerTopic
+  (JNIEnv *env, jclass thisCls, jobject master_node, jlong fdata,
+   jlongArray orig_doc_id, jboolean save_doc_id, jlong num_docs,
+   jint mid, jint num_iter, 
+   jdouble alpha, jdouble beta,
+   jint num_explore_iter, jstring algo,
+   jint num_topics, jint maxDocumentsPerTopic,
+   jlongArray doc_id, jdoubleArray topic_doc_dist) {
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto f_dptr = (exrpc_ptr_t) fdata;
+  auto algo_ = to_cstring(env,algo);
+  auto sz = num_topics * maxDocumentsPerTopic;
+  bool save_doc = (bool)save_doc_id;
+  std::vector<long> orig_doc_id_vec;
+  if (save_doc) {
+    orig_doc_id_vec = to_long_vector(env, orig_doc_id, num_docs);
+  }
+  else {
+    orig_doc_id_vec = to_long_vector(env, orig_doc_id, 0);
+  }
+  distMatrix<DT3,DT1> result;
+  try {
+    result = exrpc_async(fm_node, (get_top_documents_per_topic<DT3,S_MAT15,LDASP3,DT3,DT1>),
+                         f_dptr, orig_doc_id_vec, save_doc, alpha, beta, num_iter, algo_,
+                         num_explore_iter, mid, maxDocumentsPerTopic).get();
+  }
+  catch(std::exception& e) { set_status(true,e.what());}
+  checkAssumption(result.indices.val.size() == sz);
+  env->SetLongArrayRegion(doc_id, 0, sz, result.indices.val.data());
+  env->SetDoubleArrayRegion(topic_doc_dist, 0, sz, result.distances.val.data());
 }
 
 // loads the lda model from the specified file
@@ -775,9 +1067,10 @@ JNIEXPORT jobject JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_loadFrovedisLD
   auto fm_node = java_node_to_frovedis_node(env, master_node);
   dummy_lda_model ret;
   try {
-    ret = exrpc_async(fm_node,load_lda_model<LDA3>,mid,fs_path).get();
+    ret = exrpc_async(fm_node,load_lda_model<LDASP3>,mid,fs_path).get();
   }
   catch(std::exception& e) { set_status(true,e.what()); }
   return to_jDummyLDAModel(env, ret);
 }
+
 }
