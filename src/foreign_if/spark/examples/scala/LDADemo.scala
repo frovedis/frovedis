@@ -28,9 +28,10 @@ object LDADemo {
     val corpus = new FrovedisSparseData(corp)
     
     //---LDA train---
-    val vec = Vectors.dense(1.1,1.1,1.1) 
+    val vec = Vectors.dense(1.1,1.1,1.1,1.1,1.1) 
     // Cluster the documents into three topics using LDA
     val lda = new LDA()
+
     println("getDocConcentration: " + lda.getDocConcentration)
     println("lda.getK: " + lda.getK)
     println("lda.getMaxIterations: " + lda.getMaxIterations)
@@ -43,7 +44,7 @@ object LDADemo {
     println("lda.getNumexploreiter: " + lda.getNumexploreiter)
     println("lda.getAlgorithm: " + lda.getAlgorithm)
 
-    val ldaModel = lda.setK(3)
+    val ldaModel = lda.setK(5)
                       .setMaxIterations(10)
                       .setDocConcentration(vec)
                       .setTopicConcentration(0.1)
@@ -64,8 +65,25 @@ object LDADemo {
     val mm = ldaModel.describeTopics
     for(e<-mm) { for(a<-e._1) print(a+" "); println(); for(b<-e._2) print(b+" "); println();  }
     ldaModel.save(sc, "./out/LDAModel")
+    println("ldaModel.describeTopics(3)")
     val mm1 = ldaModel.describeTopics(3)
     for(e<-mm1) { for(a<-e._1) print(a+" "); println(); for(b<-e._2) print(b+" "); println();  }
+    println("ldaModel.topDocumentsPerTopic(4):")
+    val mm2 = ldaModel.topDocumentsPerTopic(4)
+    for(e<-mm2) { for(a<-e._1) print(a+" "); println(); for(b<-e._2) print(b+" "); println();  }
+    println("ldaModel.topTopicsPerDocument(3):")
+
+    val mm3 = ldaModel.topTopicsPerDocument(3)
+    for(e<-mm3) { for(b<-e._2) print(b+" "); println(); for(c<-e._3) print(c+" "); println();}
+    println("ldaModel.topDocumentsPerTopic(corpus,2):")
+    val mm4 = ldaModel.topDocumentsPerTopic(corpus,2)
+    for(e<-mm4) { for(a<-e._1) print(a+" "); println(); for(b<-e._2) print(b+" "); println();  }
+    println("ldaModel.topTopicsPerDocument(corpus,4):")
+    val mm5 = ldaModel.topTopicsPerDocument(corpus,4)
+    for(e<-mm5) { for(b<-e._2) print(b+" "); println(); for(c<-e._3) print(c+" "); println();}
+    println("ldaModel.topicDistributions(corpus).save(rmm_topicDistributions): " 
+                          + ldaModel.topicDistributions(corpus).save("rmm_topicDistributions"))
+    ldaModel.save(sc, "./out/LDAModel")
     ldaModel.release() 
     LDAModel.load(sc, "./out/LDAModel") 
 
