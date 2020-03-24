@@ -59,6 +59,7 @@ all:
 	 ${SCALA_HOME}/bin/scalac -cp "./bin:${SPARK_HOME}/jars/*:${HDPATH}" -sourcepath . -d bin ./main/com/nec/frovedis/mllib/feature/Word2Vec.scala
 	 ${SCALA_HOME}/bin/scalac -cp "./bin:${SPARK_HOME}/jars/*:${HDPATH}" -sourcepath . -d bin ./main/com/nec/frovedis/mllib/neighbors/NearestNeighbors.scala
 	 ${SCALA_HOME}/bin/scalac -cp "./bin:${SPARK_HOME}/jars/*:${HDPATH}" -sourcepath . -d bin ./main/com/nec/frovedis/mllib/neighbors/KNeighborsClassifier.scala
+	 ${SCALA_HOME}/bin/scalac -cp "./bin:${SPARK_HOME}/jars/*:${HDPATH}" -sourcepath . -d bin ./main/com/nec/frovedis/mllib/neighbors/KNeighborsRegressor.scala
 	 cd bin; ${JAVA_HOME}/bin/jar -cf ../lib/frovedis_client.jar com 
 
 clean:
