@@ -15,7 +15,7 @@ object FrovedisSSSP {
     if(args.length != 0) FrovedisServer.initialize(args(0))
 
     val f1 = "input/urldata_sssp.dat"
-    val source_vertex = 4
+    val source_vertex = 1
     val frov_graph = com.nec.frovedis.graphx.GraphLoader.edgeListFile(sc, f1)
     val res = frov_graph.sssp(source_vertex)
 
@@ -24,7 +24,7 @@ object FrovedisSSSP {
     println("Dist: " + q._1)
     println("Path: " + q._2)
 
-    val arr: Array[Int] = Array(-1,0,1,2,3,4,5,6,50,100,101,102,100000,100001)
+    val arr: Array[Int] = Array(1,2,3,4,5)
     val qs: Array[(Int, String)] = res.sssp_query(arr)
     qs.foreach{ println }
 
