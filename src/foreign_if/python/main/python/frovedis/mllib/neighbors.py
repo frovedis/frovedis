@@ -675,7 +675,7 @@ class KNeighborsRegressor(object):
         """
         pass
 
-    def predict(self, X, save_proba=True):
+    def predict(self, X):
         """
         NAME: predict for KNeighbors Regressor
         """
