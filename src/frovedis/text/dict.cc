@@ -648,6 +648,18 @@ std::vector<size_t> dict::lookup(const compressed_words& cw) const {
   uint64_t packed_lookup_1st[DICT_VLEN];
 #pragma _NEC vreg(packed_lookup_1st)
 
+  // to surpress "may be used uninitialized" warning
+  for(int i = 0; i < DICT_VLEN; i++) {
+    left[i] = 0;
+    right[i] = 0;
+    mid[i] = 0;
+    is_valid[i] = 0;
+    is_eq[i] = 0;
+    is_lt[i] = 0;
+    retbuf[i] = 0;
+    packed_lookup_1st[i] = 0;
+  }
+
   auto crnt_cwords_lookupp = cwords_lookup.data();
   auto crnt_retp = retp;
   auto lens_lookup_size = lens_lookup.size();
@@ -745,6 +757,19 @@ std::vector<size_t> dict::lookup(const compressed_words& cw) const {
     int is_lt2[DICT_VLEN];
     size_t retbuf2[DICT_VLEN];
     uint64_t packed_lookup_1st2[DICT_VLEN];
+
+    // to surpress "may be used uninitialized" warning
+    for(int i = 0; i < DICT_VLEN; i++) {
+      left2[i] = 0;
+      right2[i] = 0;
+      mid2[i] = 0;
+      is_valid2[i] = 0;
+      is_eq2[i] = 0;
+      is_lt2[i] = 0;
+      retbuf2[i] = 0;
+      packed_lookup_1st2[i] = 0;
+    }
+
     for(size_t j = 0; j < remain; j++) {
       left2[j] = 0;
       right2[j] = lens_num[lenpos] - 1;

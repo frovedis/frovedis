@@ -44,6 +44,19 @@ void parsefloat(const int* charsp, const size_t* startsp,
   T e_val_buf[PARSEFLOAT_VLEN];
 #pragma _NEC vreg(e_val_buf)
 
+  // to surpress "may be used uninitialized" warning  
+  for(int i = 0; i < PARSEFLOAT_VLEN; i++) {
+    starts_buf[i] = 0;
+    stops_buf[i] = 0;
+    res_buf[i] = 0;
+    sign_buf[i] = 0;
+    e_buf[i] = 0;
+    esign_buf[i] = 0;
+    ispoint[i] = 0;
+    isexp[i] = 0;
+    e_val_buf[i] = 0;
+  }
+
   int anyvalid = true;
 
   for(size_t b = 0; b < block; b++) {
@@ -185,6 +198,19 @@ void parsefloat(const int* charsp, const size_t* startsp,
 //#pragma _NEC vreg(isexp2)
   T e_val_buf2[PARSEFLOAT_VLEN];
 //#pragma _NEC vreg(e_val_buf2)
+
+  // to surpress "may be used uninitialized" warning  
+  for(int i = 0; i < PARSEFLOAT_VLEN; i++) {
+    starts_buf2[i] = 0;
+    stops_buf2[i] = 0;
+    res_buf2[i] = 0;
+    sign_buf2[i] = 0;
+    e_buf2[i] = 0;
+    esign_buf2[i] = 0;
+    ispoint2[i] = 0;
+    isexp2[i] = 0;
+    e_val_buf2[i] = 0;
+  }
 
   auto crnt_startsp = startsp + block * PARSEFLOAT_VLEN;
   auto crnt_lensp = lensp + block * PARSEFLOAT_VLEN;
