@@ -32,11 +32,9 @@ def pagerank(G, alpha=0.85, personalization=None, max_iter=100, tol=1.0e-6, \
     excpt = rpclib.check_server_exception()
     if excpt["status"]:
         raise RuntimeError(excpt["info"])
+    copy_gr.release() # releasing the temporary graph created for normalization at server
     # TODO: vertices ID based on input graph
     verts = {}
-    v_id = 1
-    for i in result:
-        verts[v_id] = i
-        v_id = v_id + 1
-    copy_gr.release()
+    for i in range(len(result)):
+        verts[i+1] = result[i]
     return verts

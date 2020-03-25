@@ -5,8 +5,37 @@ from scipy.sparse import coo_matrix
 import networkx as nx
 from .graph import Graph
 
+def custom_read_edgelist(path, comments='#', delimiter=None, 
+                         create_using=None,\
+                         nodetype=None, data=True, \
+                         edgetype=None, encoding='utf-8'):
+    """
+    DESC: Customized read_edgelist() to construct graph adjacency matrix 
+          in the form of scipy csr matrix directly from input file.
+    PARAMS:    Same as in networkx.read_edgelist(). 
+               nodetype, data, edgetype, encoding are not used.
+    """
+    mat = np.loadtxt(fname=path, comments=comments, \
+                     delimiter=delimiter, dtype=np.int64) #loads data as int64
+    rowid = mat[:, 0] - 1
+    colid = mat[:, 1] - 1
+    maxid = max(rowid.max(), colid.max())
+    num_vertices = maxid + 1
+    num_edges = mat.shape[0]
+    shape = (num_vertices, num_vertices)
+    if (isinstance(create_using, nx.classes.digraph.DiGraph)):
+        data = np.ones(num_edges)
+        coo = coo_matrix((data, (rowid, colid)), shape=shape)
+    else:
+        data = np.ones(num_edges*2)
+        rowid_ = np.concatenate((rowid, colid))
+        colid_ = np.concatenate((colid, rowid))
+        coo = coo_matrix((data, (rowid_, colid_)), shape=shape)
+    return coo.tocsr()
+
+
 def read_edgelist(path, comments='#', delimiter=None, create_using=None,\
-        nodetype=None, data=True, edgetype=None, encoding='utf-8'):
+                  nodetype=None, data=True, edgetype=None, encoding='utf-8'):
     """
     DESC: Reads edgelist data from persistent storage.
     PARAMS:    path : file or string
@@ -34,24 +63,9 @@ def read_edgelist(path, comments='#', delimiter=None, create_using=None,\
                       Specify which encoding to use when reading file.
     """
     #nx_graph = nx.read_edgelist(path, comments, delimiter, create_using, \
-    #                nodetype, data, edgetype, encoding)
+    #                            nodetype, data, edgetype, encoding)
     #return Graph(nx_graph=nx_graph)
-    mat = np.loadtxt(fname=path, comments=comments, \
-                     delimiter=delimiter, dtype=np.int64)
-    rowid = mat[:, 0] - 1
-    colid = mat[:, 1] - 1
-    maxid = max(rowid.max(), colid.max())
-    num_vertices = maxid + 1
-    num_edges = mat.shape[0]
-    shape = (num_vertices, num_vertices)
-    if (isinstance(create_using, nx.classes.digraph.DiGraph)):
-        data = np.ones(num_edges)
-        coo = coo_matrix((data, (rowid, colid)), shape=shape)
-    else:
-        data = np.ones(num_edges*2)
-        rowid_ = np.concatenate((rowid, colid))
-        colid_ = np.concatenate((colid, rowid))
-        coo = coo_matrix((data, (rowid_, colid_)), shape=shape)
-    smat = coo.tocsr()
-    return Graph(smat)
+    smat = custom_read_edgelist(path, comments, delimiter, create_using, \
+                                nodetype, data, edgetype, encoding)
+    return Graph(nx_graph=smat)
 

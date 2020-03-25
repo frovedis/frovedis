@@ -1541,7 +1541,12 @@ copy_graph_py.restype = c_ulong
 
 call_frovedis_sssp= LIB.call_frovedis_sssp
 call_frovedis_sssp.argtypes = [c_char_p, c_int,\
-                          c_ulong, py_object, py_object, c_ulong, c_ulong]
+                          c_ulong, \
+                          ndpointer(c_int, ndim=1,\
+                              flags="C_CONTIGUOUS"), \
+                          ndpointer(c_long, ndim=1,\
+                              flags="C_CONTIGUOUS"), \
+                          c_ulong, c_ulong]
 
 
 #random forest trainer function
@@ -1557,7 +1562,12 @@ rf_train.argtypes = [c_char_p, c_int, c_long,         #host,port,X
 
 call_frovedis_bfs= LIB.call_frovedis_bfs
 call_frovedis_bfs.argtypes = [c_char_p, c_int,\
-                          c_ulong, py_object, py_object, c_ulong]
+                          c_ulong, \
+                          ndpointer(c_long, ndim=1,\
+                              flags="C_CONTIGUOUS"), \
+                          ndpointer(c_int, ndim=1,\
+                              flags="C_CONTIGUOUS"), \
+                          c_ulong]
 call_frovedis_bfs.restype = py_object
 
 gbt_train = LIB.gbt_trainer
