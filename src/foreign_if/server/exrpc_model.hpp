@@ -943,30 +943,21 @@ arg_partition_global(rowmajor_matrix<T>& mat, size_t max_terms) {
   return ret;
 }
 
-// map unordered document ids(from spark) with 
-// ordered document ids(assumed by frovedis LDA)
 template <class I>
-void map_unordered_doc_ids(rowmajor_matrix_local<I>& unord_doc_id,
-                           std::vector<I> ord_doc_id) {
-  auto unord_ptr = unord_doc_id.val.data();
-  auto ord_ptr = ord_doc_id.data();
-  for(size_t i=0; i < unord_doc_id.val.size(); i++) {
-    unord_ptr[i] = ord_ptr[unord_ptr[i]];
-  }
+void decode_doc_ids(rowmajor_matrix_local<I>& matrix,
+                    std::vector<I> logic) {
+  auto mptr = matrix.val.data();
+  auto idptr = logic.data();
+  for(size_t i = 0; i < matrix.val.size(); i++) mptr[i] = idptr[mptr[i]];
 }
 
 template <class I, class T>
 distMatrix<I,T>
 extract_top_k_of_each_row(rowmajor_matrix<T>& mat, 
-                          int& k, std::vector<I>& orig_doc_id, 
-                          bool& create_doc_mapping=false) {
+                          int& k) {
   auto index = arg_partition_global<I,T>(mat, k);
   auto key = extract_k_cols(mat, k).gather();
-  auto val = extract_k_cols(index, k);
-  if (create_doc_mapping) {
-    val.data.mapv(map_unordered_doc_ids<I>,broadcast(orig_doc_id));
-  }
-  auto value = val.gather();
+  auto value = extract_k_cols(index, k).gather();
   radix_sort_desc(key.val.data(), value.val.data(), key.val.size());
   return distMatrix<I,T>(std::move(value), std::move(key));
 }
@@ -989,10 +980,7 @@ distMatrix<I,T>
 extract_sorted_topic_word_distribution(exrpc_ptr_t& dptr,
                                        int& max_terms) {
   auto& mat = *reinterpret_cast<rowmajor_matrix<T>*>(dptr);
-  std::vector<I> dumm_vec;
-  bool save_doc_id = false;
-  return extract_top_k_of_each_row<I,T>(mat, max_terms,
-                                        dumm_vec, save_doc_id);
+  return extract_top_k_of_each_row<I,T>(mat, max_terms);
 }
 
 // compute distribution of documents per topic
@@ -1014,22 +1002,26 @@ extract_sorted_topic_doc_distribution(exrpc_ptr_t& dptr,
                                       int& maxDocumentsPerTopic) { 
   auto& mat = *reinterpret_cast<rowmajor_matrix<T>*>(dptr);
   auto& model = *get_model_ptr<MODEL>(mid);
-  return extract_top_k_of_each_row<I,T>(mat, maxDocumentsPerTopic,
-                                        model.orig_doc_id, model.save_doc_id);
+  auto ret = extract_top_k_of_each_row<I,T>(mat, maxDocumentsPerTopic);
+  decode_doc_ids(ret.indices, model.orig_doc_id); // decode ids in-place
+  return ret;
 }
 
 // compute distribution of topics per document
-template <class MODEL, class I>
-dummy_matrix get_doc_topic_distribution(int& mid, std::vector<I>& test_doc_id) {
+template <class MODEL>
+dummy_matrix get_doc_topic_distribution(int& mid) {
   auto& model = *get_model_ptr<MODEL>(mid);
-  if (model.save_doc_id) {
-    test_doc_id = model.orig_doc_id;
-  }
   auto doc_topic_count = model.doc_topic_count;
   auto doc_topic_dist = new rowmajor_matrix<double>(
                         get_distribution_matrix(doc_topic_count));
   return to_dummy_matrix<rowmajor_matrix<double>,
                          rowmajor_matrix_local<double>>(doc_topic_dist);
+}
+
+template <class MODEL>
+std::vector<long> get_doc_id(int& mid) {
+  auto& model = *get_model_ptr<MODEL>(mid);
+  return model.orig_doc_id;
 }
 
 // extract: top topics per document
@@ -1038,17 +1030,14 @@ distMatrix<I,T>
 extract_sorted_doc_topic_distribution(exrpc_ptr_t& dptr,
                                       int& k) { 
   auto& mat = *reinterpret_cast<rowmajor_matrix<T>*>(dptr);
-  std::vector<I> orig_doc_id;
-  bool save_doc_id = false;
-  return extract_top_k_of_each_row<I,T>(mat, k, 
-                                        orig_doc_id, save_doc_id);
+  return extract_top_k_of_each_row<I,T>(mat, k); 
 }
 
 template <class TD, class MATRIX, class MODEL, 
           class I, class T>
 distMatrix<I,T>
 get_top_documents_per_topic(exrpc_ptr_t& dptr, std::vector<I>& orig_doc_id,
-                            bool& save_doc_id, double& alpha, double& beta, 
+                            double& alpha, double& beta, 
                             int& num_iter, std::string& algorithm,
                             int& num_explore_iter, int& mid,
                             int& maxDocumentsPerTopic) { 
@@ -1060,8 +1049,9 @@ get_top_documents_per_topic(exrpc_ptr_t& dptr, std::vector<I>& orig_doc_id,
                                         ppl, llh);
   auto topic_doc_count = doc_topic_count.transpose();
   auto topic_doc_dist = get_distribution_matrix(topic_doc_count);
-  return extract_top_k_of_each_row<I,T>(topic_doc_dist, maxDocumentsPerTopic, 
-                                        orig_doc_id, save_doc_id);
+  auto ret = extract_top_k_of_each_row<I,T>(topic_doc_dist, maxDocumentsPerTopic); 
+  decode_doc_ids(ret.indices, orig_doc_id); // decode ids in-place
+  return ret;
 }
 
 template <class TD, class MATRIX, class MODEL, 
@@ -1080,10 +1070,7 @@ get_top_topics_per_document(exrpc_ptr_t& dptr,
                                         algorithm, num_explore_iter, mid,
                                         ppl, llh);
   auto doc_topic_dist = get_distribution_matrix(doc_topic_count);
-  std::vector<I> dum_vec;
-  bool save_doc_id = false;
-  return extract_top_k_of_each_row<I,T>(doc_topic_dist, k, 
-                                        dum_vec, save_doc_id);
+  return extract_top_k_of_each_row<I,T>(doc_topic_dist, k); 
 }
 
 template <class MODEL>

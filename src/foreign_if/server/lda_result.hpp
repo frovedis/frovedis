@@ -13,36 +13,37 @@ namespace frovedis {
 template <class TC>
 struct lda_model_wrapper{
   lda_model_wrapper() {}
-  lda_model_wrapper(lda_model<TC> t_model, rowmajor_matrix<TC>& mat,
-                    std::vector<long>& orig_doc_id, bool& save_doc_id):
+  lda_model_wrapper(lda_model<TC>& t_model, rowmajor_matrix<TC>& mat,
+                    std::vector<long>& orig_doc_id):
                     model(t_model), doc_topic_count(mat), 
-                    orig_doc_id(orig_doc_id), save_doc_id(save_doc_id) {
+                    orig_doc_id(orig_doc_id) {
     num_docs = doc_topic_count.num_row; 
     num_topics = doc_topic_count.num_col; 
     num_words = model.word_topic_count.local_num_row; // vocab size in model
-    train_doc_ids.val.swap(orig_doc_id);
-    train_doc_ids.set_local_num(1,num_docs);
+  }
+  lda_model_wrapper(lda_model<TC>&& t_model, rowmajor_matrix<TC>&& mat,
+                    std::vector<long>&& orig_doc_id):
+                    model(t_model), doc_topic_count(mat),
+                    orig_doc_id(orig_doc_id) {
+    num_docs = doc_topic_count.num_row;
+    num_topics = doc_topic_count.num_col;
+    num_words = model.word_topic_count.local_num_row; // vocab size in model
   }
   void loadbinary (const std::string& path) {
     model.loadbinary(path); // for faster loading
     doc_topic_count = make_rowmajor_matrix_loadbinary<TC>(path + "/doc_topic");
-    auto rmm_doc_id = make_rowmajor_matrix_local_loadbinary<long>(path + "/doc_ids");
-    orig_doc_id.swap(rmm_doc_id.val);
-    orig_doc_id.resize(rmm_doc_id.local_num_col);
+    orig_doc_id = make_dvector_loadbinary<long>(path + "/doc_ids").gather();
   }
   void savebinary (const std::string& path) {
     model.savebinary(path); // for faster saving
     doc_topic_count.savebinary(path + "/doc_topic");
-    train_doc_ids.savebinary(path + "/doc_ids");
+    make_dvector_scatter(orig_doc_id).savebinary(path + "/doc_ids");
   }
   lda_model<TC> model;
   rowmajor_matrix<TC> doc_topic_count;
-  rowmajor_matrix_local<long> train_doc_ids;
   std::vector<long> orig_doc_id;
-  bool save_doc_id;
   size_t num_docs, num_topics, num_words;
-  SERIALIZE(model, doc_topic_count, num_docs, num_topics, num_words,
-            train_doc_ids, save_doc_id)
+  SERIALIZE(model, doc_topic_count, num_docs, num_topics, num_words, orig_doc_id);
 };
 
 template <class I, class T>

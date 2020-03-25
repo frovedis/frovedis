@@ -340,8 +340,9 @@ void expose_frovedis_model_functions() {
   expose(get_vocabulary_size<LDASP3>); // for spark
   expose(get_num_topics<LDASP3>); // for spark
   expose(get_topic_word_distribution<LDASP3>); // for spark
-  expose((get_doc_topic_distribution<LDASP3,DT3>)); // for spark
+  expose(get_doc_topic_distribution<LDASP3>); // for spark
   expose(get_topic_doc_distribution<LDASP3>); // for spark
+  expose(get_doc_id<LDASP3>);
   expose((extract_sorted_topic_word_distribution<DT4,DT1>)); // for spark
   expose((extract_sorted_doc_topic_distribution<DT4,DT1>)); // for spark
   expose((extract_sorted_topic_doc_distribution<LDASP3,DT3,DT1>)); // for spark (doc ids are long: DT3)

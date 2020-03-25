@@ -911,8 +911,9 @@ frovedis_lda_train(exrpc_ptr_t& dptr, double& alpha,
 
 template <class TC, class MATRIX>
 dummy_lda_model 
-frovedis_lda_train_for_spark(exrpc_ptr_t& dptr, std::vector<long>& orig_doc_id,
-                             bool& save_doc_id, double& alpha, double& beta, int& num_topics,
+frovedis_lda_train_for_spark(exrpc_ptr_t& dptr, 
+                             std::vector<long>& orig_doc_id, 
+                             double& alpha, double& beta, int& num_topics,
                              int& num_iter, std::string& algorithm,
                              int& num_explore_iter, int& num_eval_cycle,
                              int& verbose, int& mid) {
@@ -927,7 +928,8 @@ frovedis_lda_train_for_spark(exrpc_ptr_t& dptr, std::vector<long>& orig_doc_id,
   rowmajor_matrix<TC> doc_topic_count;
   auto model = lda_train<TC>(mod_mat,alpha,beta,num_topics,num_iter,algorithm,
                              num_explore_iter,num_eval_cycle,doc_topic_count);
-  lda_model_wrapper<TC> wrapper(model,doc_topic_count,orig_doc_id,save_doc_id);
+  lda_model_wrapper<TC> wrapper(std::move(model),std::move(doc_topic_count),
+                                std::move(orig_doc_id));
   handle_trained_model<lda_model_wrapper<TC>>(mid, LDASP, wrapper);
   frovedis::set_loglevel(old_level);
   return dummy_lda_model(mat.num_row, num_topics, 
