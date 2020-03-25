@@ -82,7 +82,7 @@ object LDADemo {
     val mm5 = ldaModel.topTopicsPerDocument(corpus,4)
     for(e<-mm5) { for(b<-e._2) print(b+" "); println(); for(c<-e._3) print(c+" "); println();}
     println("ldaModel.topicDistributions(corpus).save(rmm_topicDistributions): " 
-                          + ldaModel.topicDistributions(corpus).save("rmm_topicDistributions"))
+                          + ldaModel.topicDistributions(corpus).save("./out/rmm_topicDistributions"))
     ldaModel.save(sc, "./out/LDAModel")
     ldaModel.release() 
     LDAModel.load(sc, "./out/LDAModel") 
