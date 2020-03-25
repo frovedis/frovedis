@@ -41,6 +41,7 @@ extern "C" {
 
   // ml etc.
   jlongArray to_jlongArray(JNIEnv *, std::vector<exrpc_ptr_t>&);
+  jlongArray to_jlongArray2(JNIEnv *, std::vector<long>&);
   jdoubleArray to_jdoubleArray(JNIEnv *, std::vector<double>&);
   jfloatArray to_jfloatArray(JNIEnv *, std::vector<float>&);
   jintArray to_jintArray(JNIEnv *, std::vector<int>&);

@@ -18,3 +18,19 @@ object MAT_KIND {
   val SELL_L: Short = (100 + SELL).shortValue
   val SHYBRID_L: Short = (100 + SHYBRID).shortValue
 }
+
+object ENUM {
+  val NONE = 0xDEAD
+}
+
+/*
+object MyWriter {
+  def dump(fname: String,
+           metadata: Array[String]): Unit = {
+    val file = new File(fname)
+    val bw = BufferedWriter(new FileWriter(file))
+    for (i <- metadata) bw.writer(i)
+    bw.close()
+  }
+}
+*/

@@ -2,18 +2,14 @@ package com.nec.frovedis.mllib.regression;
 
 import com.nec.frovedis.Jexrpc.{FrovedisServer,JNISupport}
 import com.nec.frovedis.mllib.{M_KIND,ModelID,GenericModelWithPredict}
-
-object FROVEDIS {
-  val NONE = 0xDEAD
-}
+import com.nec.frovedis.matrix.ENUM
 
 class GeneralizedLinearModel(modelId: Int,
                              modelKind: Short,
                              nftr: Long,
                              ncls: Int,
-                             thr: Double,
-                             logic: Map[Double, Double]) 
-  extends GenericModelWithPredict(modelId,modelKind,logic) {
+                             thr: Double)
+  extends GenericModelWithPredict(modelId, modelKind) {
   protected val numFeatures: Long = nftr
   protected val numClasses: Int = ncls
   protected var threshold: Double = thr
@@ -31,6 +27,6 @@ class GeneralizedLinearModel(modelId: Int,
     val info = JNISupport.checkServerException();
     if (info != "") throw new java.rmi.ServerException(info);
   }
-  def clearThreshold() : Unit = setThreshold(FROVEDIS.NONE); // predict-probability
+  def clearThreshold() : Unit = setThreshold(ENUM.NONE); // predict-probability
 }
 

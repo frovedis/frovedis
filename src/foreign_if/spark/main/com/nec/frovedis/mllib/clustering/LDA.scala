@@ -9,6 +9,7 @@ import com.nec.frovedis.mllib.{M_KIND,ModelID,GenericModel}
 import com.nec.frovedis.exrpc.FrovedisSparseData
 import com.nec.frovedis.matrix.FrovedisRowmajorMatrix
 import com.nec.frovedis.matrix.MAT_KIND
+import com.nec.frovedis.matrix.Utils._
 import org.apache.spark.rdd.RDD
 import org.apache.spark.SparkContext
 import org.apache.spark.sql.SparkSession
@@ -142,36 +143,35 @@ class LDA (
   }   
   /* train lda model */
   def run(documents: RDD[(Long, Vector)]): LDAModel= {
-  /* save the document ids in the model */
-    var orig_doc_ids = documents.map(x => x._1).collect
     var doc_vec = documents.map(x => x._2)
+    var doc_ids = documents.map(x => x._1).collect
     val fdata = new FrovedisSparseData(doc_vec)
-    val save_doc_id = true 
-    val model =  run(orig_doc_ids, fdata, save_doc_id)
+    val model = run_impl(fdata, doc_ids)
     fdata.release()
     return model
   }
   def run(data: FrovedisSparseData): LDAModel = { 
-    val orig_doc_ids = new Array[Long](0)
-    val save_doc_id = false // ordered doc_ids 
-    return run(orig_doc_ids, data, save_doc_id) 
+    val nsamples = data.numRows().toInt
+    val dummy_doc_ids = Array.range(0, nsamples).map(x => x.toLong)
+    return run_impl(data, dummy_doc_ids) 
   }
-
-  def run(orig_doc_ids: Array[Long], data: FrovedisSparseData, 
-                                 save_doc_id: Boolean = false): LDAModel = {
+  private def run_impl(data: FrovedisSparseData,
+                       doc_ids: Array[Long]): LDAModel = {
     val mid = ModelID.get()
-    val num_docs = orig_doc_ids.length
+    val num_docs = doc_ids.length
     val fs = FrovedisServer.getServerInstance()
     val ret = JNISupport.callFrovedisLDA(fs.master_node,
-                                data.get(),orig_doc_ids,num_docs,save_doc_id,mid,k,maxIterations,
+                                data.get(),doc_ids,num_docs,
+                                mid,k,maxIterations,
                                 getAlpha,getBeta,num_explore_iter,
                                 num_eval_cycle,algorithm)
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
     require(ret.vocabsz > 0, s"run: Incorrect vocabSize : ${ret.vocabsz}")
+    require(ret.num_docs> 0, s"run: Incorrect num_docs : ${ret.num_docs}")
     return new LDAModel(mid, ret.num_topics, ret.vocabsz, ret.num_docs, 
                         maxIterations, getAlpha, getBeta, num_explore_iter, 
-			algorithm,save_doc_id)
+			algorithm)
   }
 }
 
@@ -183,9 +183,7 @@ class LDAModel(private var model_Id: Int,
                private var alpha: Double = 0.1, 
 	       private var beta: Double = 0.1, 
 	       private var num_explore_iter: Int = 0, 
-	       private var algorithm: String = "original",
-               /*private var orig_doc_ids: Array[Long],*/
-               private var save_doc_id: Boolean = false) // assume ordered doc_ids
+	       private var algorithm: String = "original")
       extends GenericModel(model_Id, M_KIND.LDASP) {
   /* show/save are handled in GenericModel */
   private var ppl: Double = 0.0
@@ -305,14 +303,15 @@ class LDAModel(private var model_Id: Int,
     val ctxt = documents.context
     val test_doc_id = documents.map(x => x._1) // RDD[Long]
     val doc_vec = documents.map(x => x._2)
-    val save_doc_id = true
     val fdata = new FrovedisSparseData(doc_vec)
     val transformRes = transform(fdata)
     fdata.release()
     var ret: RDD[(Long, Vector)] = null
     if (need_distribution) {
       val spark_rows = transformRes.to_spark_RowMatrix(ctxt).rows // RDD[Vector]
-      ret = test_doc_id.zipWithIndex.map(_.swap).join(spark_rows.zipWithIndex.map(_.swap)).values
+      val npart = spark_rows.getNumPartitions
+      val tdoc_id = test_doc_id.repartition2(npart)
+      ret = tdoc_id.zip(spark_rows)
     } 
     transformRes.release()
     return ret
@@ -342,7 +341,6 @@ class LDAModel(private var model_Id: Int,
   def topicDistributions(documents: FrovedisSparseData): FrovedisRowmajorMatrix = {
     return transform(documents)
   }  
-
   def logLikelihood(documents: RDD[(Long, Vector)]): Double = {
     transform(documents, false)
     return this.llh
@@ -389,25 +387,24 @@ class LDAModel(private var model_Id: Int,
   def topDocumentsPerTopic(documents: RDD[(Long, Vector)],
                            maxDocumentsPerTopic: Int):
                            Array[(Array[Long], Array[Double])] = { // for test document
-    val doc_id = documents.map(x => x._1).collect
     val doc_vec = documents.map(x => x._2)
-    val save_doc_id = true
+    val doc_id = documents.map(x => x._1).collect
     val fdata = new FrovedisSparseData(doc_vec)
-    val ret = topDocumentsPerTopic(doc_id, fdata, maxDocumentsPerTopic, 
-                                   save_doc_id)
+    val ret = topDocumentsPerTopic_impl(fdata, doc_id, maxDocumentsPerTopic) 
     fdata.release()
     return ret
   }
   def topDocumentsPerTopic(data: FrovedisSparseData, 
                            maxDocumentsPerTopic: Int): 
                            Array[(Array[Long], Array[Double])] = {
-    val orig_doc_id = new Array[Long](0)
-    val save_doc_id = false
-    return topDocumentsPerTopic(orig_doc_id, data, maxDocumentsPerTopic,
-                                save_doc_id)
+    val nsamples = data.numRows().toInt
+    val dummy_doc_ids = Array.range(0, nsamples).map(x => x.toLong)
+    return topDocumentsPerTopic_impl(data, dummy_doc_ids, maxDocumentsPerTopic)
   }
-  private def topDocumentsPerTopic(orig_doc_id: Array[Long], data: FrovedisSparseData,
-                           maxDocumentsPerTopic: Int, save_doc_id: Boolean=false):
+  private def topDocumentsPerTopic_impl(
+                           data: FrovedisSparseData,
+                           test_doc_id: Array[Long], 
+                           maxDocumentsPerTopic: Int):
                            Array[(Array[Long], Array[Double])] = { 
     require(maxDocumentsPerTopic > 0 && maxDocumentsPerTopic <= num_docs, 
     s"topDocumentsPerTopic: Input maxDocumentsPerTopic " +
@@ -417,8 +414,7 @@ class LDAModel(private var model_Id: Int,
     val topic_doc_dist = new Array[Double](k * maxDocumentsPerTopic)
     JNISupport.transformAndExtractTopDocsPerTopic(fs.master_node,
                                             data.get(),
-                                            orig_doc_id,
-                                            save_doc_id,
+                                            test_doc_id,
                                             num_docs,
                                             model_Id,
 					    maxIterations,
@@ -439,58 +435,53 @@ class LDAModel(private var model_Id: Int,
     s"topTopicsPerDocument: Input maxTopics " +
     "must be less than or equal to num_topics: ${k}, but got ${maxTopics}")
     val fs = FrovedisServer.getServerInstance()
-    val test_doc_id = new Array[Long](num_docs) 
     val topic_id = new Array[Int](num_docs * maxTopics)
     val doc_topic_dist = new Array[Double](num_docs * maxTopics)
     if (this.sorted_doc_topic_distribution == null) {
-      val dmat = JNISupport.getDocTopicDistribution(
-                                       fs.master_node, 
-                                       model_Id, test_doc_id, 
-                                       num_docs)
+      val dmat = JNISupport.getDocTopicDistribution(fs.master_node, model_Id) 
       val info = JNISupport.checkServerException()
       if (info != "") throw new java.rmi.ServerException(info)
       this.sorted_doc_topic_distribution = new FrovedisRowmajorMatrix(dmat)
     }
+    val train_doc_id = JNISupport.getLDAModelDocIds(fs.master_node, model_Id);
+    var info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
     JNISupport.extractTopTopicsPerDoc(fs.master_node,
                                   sorted_doc_topic_distribution.get(),
                                   num_docs, maxTopics,
                                   topic_id, doc_topic_dist)
-    val info = JNISupport.checkServerException()
+    info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
     val arry = topic_id.grouped(maxTopics).toArray
     val arrz = doc_topic_dist.grouped(maxTopics).toArray
     val zip_pair = arry.zip(arrz)
     val sc = SparkContext.getOrCreate()
     val rdd_pair = sc.parallelize(zip_pair)
-    val rdd_test_doc_id = sc.parallelize(test_doc_id)
-    var pair: RDD[(Long, Array[Int], Array[Double])] = null
-    if (save_doc_id) {
-      pair = rdd_pair.zip(rdd_test_doc_id).map { case ((a, b), index) => (index, a, b) } 
-    }
-    else {
-      pair = rdd_pair.zipWithIndex().map { case ((a, b), index) => (index, a, b) } // BUG
-    }
+    val rdd_train_doc_id = sc.parallelize(train_doc_id)
+    val pair = rdd_pair.zip(rdd_train_doc_id).map { case ((a, b), index) => (index, a, b) } 
     return pair
   }
   def topTopicsPerDocument(documents: RDD[(Long, Vector)],
                            maxTopics: Int):
                            RDD[(Long, Array[Int], Array[Double])]= { // for test document
-    val test_doc_id = documents.map(x => x._1).collect
     val doc_vec = documents.map(x => x._2)
-    val save_doc_id = true
+    val test_doc_id = documents.map(x => x._1).collect
     val fdata = new FrovedisSparseData(doc_vec)
-    val ret = topTopicsPerDocument(test_doc_id, fdata, maxTopics, save_doc_id)
+    val ret = topTopicsPerDocument_impl(fdata, test_doc_id, maxTopics)
     fdata.release()
     return ret
   }
-  def topTopicsPerDocument(data: FrovedisSparseData,maxTopics: Int): 
-                                        RDD[(Long, Array[Int], Array[Double])]= {
-    val test_doc_id = new Array[Long](0)
-    val save_doc_id = false
-    return topTopicsPerDocument(test_doc_id,data,maxTopics,save_doc_id)
+  def topTopicsPerDocument(data: FrovedisSparseData,
+                           maxTopics: Int): 
+                           RDD[(Long, Array[Int], Array[Double])]= {
+    val nsamples = data.numRows().toInt
+    val dummy_doc_ids = Array.range(0, nsamples).map(x => x.toLong)
+    return topTopicsPerDocument_impl(data,dummy_doc_ids,maxTopics)
   }
-  private def topTopicsPerDocument(test_doc_id: Array[Long], data: FrovedisSparseData,
-                           maxTopics: Int, save_doc_id: Boolean=false):
+  private def topTopicsPerDocument_impl(
+                           data: FrovedisSparseData,
+                           test_doc_id: Array[Long], 
+                           maxTopics: Int):
                            RDD[(Long, Array[Int], Array[Double])]= {
     require(maxTopics > 0 && maxTopics <= k,
     s"topTopicsPerDocument: Input maxTopics " +
@@ -514,13 +505,7 @@ class LDAModel(private var model_Id: Int,
     val sc = SparkContext.getOrCreate()
     val rdd_pair = sc.parallelize(zip_pair)
     val rdd_test_doc_id = sc.parallelize(test_doc_id)
-    var pair: RDD[(Long, Array[Int], Array[Double])] = null
-    if (save_doc_id) {
-      pair = rdd_pair.zip(rdd_test_doc_id).map { case ((a, b), index) => (index, a, b) } 
-    }
-    else {
-      pair = rdd_pair.zipWithIndex().map { case ((a, b), index) => (index, a, b) } // BUG
-    }
+    val pair = rdd_pair.zip(rdd_test_doc_id).map { case ((a, b), index) => (index, a, b) } 
     return pair
   }
   override def release(): Unit = {

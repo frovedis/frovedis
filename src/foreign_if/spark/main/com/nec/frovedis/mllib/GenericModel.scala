@@ -78,10 +78,8 @@ class GenericModel(modelId: Int,
 }
 
 class GenericModelWithPredict(modelId: Int,
-                              modelKind: Short,
-                              logic: Map[Double, Double]) 
-  extends GenericModel(modelId,modelKind) {
-  protected val enc_logic: Map[Double, Double] = logic
+                              modelKind: Short)
+  extends GenericModel(modelId, modelKind) {
 
   private[mllib] def parallel_predict(data: Iterator[Vector],
                                       mptr: Long,
@@ -96,9 +94,6 @@ class GenericModelWithPredict(modelId: Int,
                                               scalaCRS.data.toArray)
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
-    val needed_decoding = Array(M_KIND.LRM, M_KIND.SVM, M_KIND.DTM)
-    if ((needed_decoding contains mkind) && (logic != null))
-      ret = ret.map(x => logic(x)) 
     return ret.toIterator
   }
   // prediction on single input
@@ -114,8 +109,6 @@ class GenericModelWithPredict(modelId: Int,
                                             scalaCRS.data.toArray);
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
-    val needed_decoding = Array(M_KIND.LRM, M_KIND.SVM, M_KIND.DTM)
-    if ((needed_decoding contains mkind) && (logic != null)) ret = logic(ret) 
     return ret
   }
   // prediction on multiple inputs

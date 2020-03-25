@@ -3,7 +3,7 @@ package com.nec.frovedis.mllib.clustering;
 import com.nec.frovedis.Jexrpc.{FrovedisServer,JNISupport}
 import com.nec.frovedis.exrpc.FrovedisSparseData
 import com.nec.frovedis.matrix.FrovedisRowmajorMatrix
-import com.nec.frovedis.mllib.{M_KIND,ModelID,GenericModel}
+import com.nec.frovedis.mllib.{M_KIND,ModelID}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.mllib.linalg.Vector
 

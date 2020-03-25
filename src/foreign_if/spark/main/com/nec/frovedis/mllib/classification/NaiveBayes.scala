@@ -87,8 +87,7 @@ object NaiveBayes {
 
 class NaiveBayesModel (val model_Id: Int,
                        val modelType: String) // Not used [?]
-   extends GenericModelWithPredict(model_Id, M_KIND.NBM, 
-                                   null) { // no encoding required for naive bayes
+   extends GenericModelWithPredict(model_Id, M_KIND.NBM) { 
 } 
 
 object NaiveBayesModel{

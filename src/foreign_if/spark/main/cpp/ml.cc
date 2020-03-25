@@ -745,26 +745,19 @@ JNIEXPORT void Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisKnrFit
 // --- (20) Latent Dirichlet Allocation (LDA) ---
 JNIEXPORT jobject JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisLDA
   (JNIEnv *env, jclass thisCls, jobject master_node, jlong fdata,
-   jlongArray orig_doc_id, jlong num_docs, jboolean save_doc_id, jint mid, 
+   jlongArray orig_doc_id, jlong num_docs, jint mid, 
    jint num_topics, jint num_iter, jdouble alpha, jdouble beta,
    jint num_explore_iter, jint num_eval_cycle, jstring algo) {
 
   auto fm_node = java_node_to_frovedis_node(env, master_node);
   auto f_dptr = (exrpc_ptr_t) fdata;
-  bool save_doc = (bool) save_doc_id;
-  std::vector<long> org_doc_id_vector;
-  if (save_doc) {
-    org_doc_id_vector = to_long_vector(env, orig_doc_id, num_docs);
-  }
-  else {
-    org_doc_id_vector = to_long_vector(env, orig_doc_id, 0);
-  }
+  std::vector<long> org_doc_id_vector = to_long_vector(env, orig_doc_id, num_docs);
   int vb = 0; // no log (default)
   auto algo_ = to_cstring(env,algo);
   dummy_lda_model ret;
   try {
     ret = exrpc_async(fm_node,(frovedis_lda_train_for_spark<DT3,S_MAT15>), f_dptr, 
-                      org_doc_id_vector, save_doc, alpha, beta, num_topics, 
+                      org_doc_id_vector, alpha, beta, num_topics, 
                       num_iter, algo_, num_explore_iter, num_eval_cycle, vb, mid).get();
   }
   catch(std::exception& e) { set_status(true,e.what()); }

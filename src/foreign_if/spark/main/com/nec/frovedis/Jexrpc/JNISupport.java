@@ -782,8 +782,8 @@ public class JNISupport {
                                                      long numVertices);
   // --- LDA ---
   public static native DummyLDAModel callFrovedisLDA(Node master_node,
-					    long fdata, long[] orig_doc_id,
-                                            long num_docs, boolean save_doc_id, int mid, 
+					    long fdata, long[] doc_id,
+                                            long num_docs, int mid, 
 					    int num_topics, int num_iter, 
 					    double alpha, double beta,
 					    int num_explore_iter, 
@@ -810,9 +810,8 @@ public class JNISupport {
                                                    int maxDocumentsPerTopic, 
                                                    long[] doc_id,
                                                    double[] topic_doc_dist);
-  public static native DummyMatrix getDocTopicDistribution(Node master_node, int mid,
-                                                   long[] test_doc_id,
-                                                   long num_docs);
+  public static native DummyMatrix getDocTopicDistribution(Node master_node, int mid);
+  public static native long[] getLDAModelDocIds(Node master_node, int mid);
   public static native void extractTopTopicsPerDoc(Node master_node, 
                                                    long fdata,
                                                    int num_docs,
@@ -832,8 +831,7 @@ public class JNISupport {
                                                                double[] doc_topic_dist);
   public static native void transformAndExtractTopDocsPerTopic(Node master_node,
 					                       long fdata, 
-                                                               long[] orig_doc_id,
-                                                               boolean save_doc_id, 
+                                                               long[] test_doc_id,
                                                                long num_docs, 
                                                                int mid, 
                                                                int num_iter, 

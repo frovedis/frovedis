@@ -202,7 +202,17 @@ jlongArray to_jlongArray(JNIEnv *env, std::vector<exrpc_ptr_t>& eps) {
   env->SetLongArrayRegion(ret, 0, sz, arr);
   return ret;
 }
-  
+
+// conversion std::vector<long> => jlongArray
+jlongArray to_jlongArray2(JNIEnv *env, std::vector<long>& eps) {
+  size_t sz = eps.size();
+  jlong* arr = &eps[0];
+  jlongArray ret = env->NewLongArray(sz);
+  if(ret == NULL) REPORT_ERROR(INTERNAL_ERROR, "New jlongArray allocation failed.\n");
+  env->SetLongArrayRegion(ret, 0, sz, arr);
+  return ret;
+}
+ 
 // conversion std::vector<double> => jdoubleArray
 jdoubleArray to_jdoubleArray(JNIEnv *env, std::vector<double>& pd) {
   jdouble* arr = &pd[0];

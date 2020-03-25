@@ -973,17 +973,25 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_extractTopDocsPer
 }
 
 JNIEXPORT jobject JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getDocTopicDistribution
-  (JNIEnv *env, jclass thisCls, jobject master_node, 
-                         jint mid, jlongArray test_doc_id, jlong num_docs) { 
+  (JNIEnv *env, jclass thisCls, jobject master_node, jint mid) { 
   auto fm_node = java_node_to_frovedis_node(env, master_node);
-  auto test_doc_vec = to_long_vector(env, test_doc_id, num_docs);
   dummy_matrix dmat;
   try {
-    dmat = exrpc_async(fm_node,(get_doc_topic_distribution<LDASP3,DT3>),mid,
-                                                         test_doc_vec).get();
+    dmat = exrpc_async(fm_node,get_doc_topic_distribution<LDASP3>,mid).get();
   }
   catch(std::exception& e) { set_status(true,e.what()); }
   return to_jDummyMatrix(env,dmat,RMJR);
+}
+
+JNIEXPORT jlongArray JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getLDAModelDocIds
+  (JNIEnv *env, jclass thisCls, jobject master_node, jint mid) {
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  std::vector<long> doc_id;
+  try {
+    doc_id = exrpc_async(fm_node,get_doc_id<LDASP3>,mid).get();
+  }
+  catch(std::exception& e) { set_status(true,e.what()); }
+  return to_jlongArray2(env, doc_id);
 }
 
 JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_extractTopTopicsPerDoc
@@ -1029,7 +1037,7 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_transformAndExtra
 
 JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_transformAndExtractTopDocsPerTopic
   (JNIEnv *env, jclass thisCls, jobject master_node, jlong fdata,
-   jlongArray orig_doc_id, jboolean save_doc_id, jlong num_docs,
+   jlongArray test_doc_id, jlong num_docs,
    jint mid, jint num_iter, 
    jdouble alpha, jdouble beta,
    jint num_explore_iter, jstring algo,
@@ -1039,18 +1047,11 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_transformAndExtra
   auto f_dptr = (exrpc_ptr_t) fdata;
   auto algo_ = to_cstring(env,algo);
   auto sz = num_topics * maxDocumentsPerTopic;
-  bool save_doc = (bool)save_doc_id;
-  std::vector<long> orig_doc_id_vec;
-  if (save_doc) {
-    orig_doc_id_vec = to_long_vector(env, orig_doc_id, num_docs);
-  }
-  else {
-    orig_doc_id_vec = to_long_vector(env, orig_doc_id, 0);
-  }
+  auto test_doc_id_vec = to_long_vector(env, test_doc_id, (long)num_docs);
   distMatrix<DT3,DT1> result;
   try {
     result = exrpc_async(fm_node, (get_top_documents_per_topic<DT3,S_MAT15,LDASP3,DT3,DT1>),
-                         f_dptr, orig_doc_id_vec, save_doc, alpha, beta, num_iter, algo_,
+                         f_dptr, test_doc_id_vec, alpha, beta, num_iter, algo_,
                          num_explore_iter, mid, maxDocumentsPerTopic).get();
   }
   catch(std::exception& e) { set_status(true,e.what());}

@@ -2,12 +2,14 @@ package com.nec.frovedis.mllib.classification;
 
 import com.nec.frovedis.Jexrpc.{FrovedisServer,JNISupport,MemPair}
 import com.nec.frovedis.Jmllib.DummyGLM
+import com.nec.frovedis.matrix.ENUM
 import com.nec.frovedis.exrpc.FrovedisLabeledPoint
 import com.nec.frovedis.mllib.{M_KIND,ModelID}
 import com.nec.frovedis.mllib.regression.GeneralizedLinearModel
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 import org.apache.spark.mllib.regression.LabeledPoint
+import org.apache.spark.mllib.linalg.Vector
 
 class LogisticRegressionModel(modelId: Int,
                               modelKind: Short,
@@ -15,9 +17,18 @@ class LogisticRegressionModel(modelId: Int,
                               ncls: Int,
                               thr: Double,
                               logic: Map[Double,Double]) 
-  extends GeneralizedLinearModel(modelId,modelKind,nftr,ncls,thr,logic) {
+  extends GeneralizedLinearModel(modelId,modelKind,nftr,ncls,thr) {
+  protected val enc_logic: Map[Double,Double] = logic
   def this(m: DummyGLM) = {
     this(m.mid, m.mkind, m.numFeatures, m.numClasses, m.threshold, null)
+  }
+  override def predict(data: Vector) : Double = {
+     val ret = super.predict(data)
+     return if (threshold == ENUM.NONE || enc_logic == null) ret else enc_logic(ret)
+  }
+  override def predict(data: RDD[Vector]) : RDD[Double] = {
+    val ret = super.predict(data)
+    return if (threshold == ENUM.NONE || enc_logic == null) ret else ret.map(x => enc_logic(x))
   }
 }
 

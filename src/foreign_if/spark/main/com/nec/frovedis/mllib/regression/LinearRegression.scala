@@ -11,8 +11,7 @@ import org.apache.spark.mllib.regression.LabeledPoint
 class LinearRegressionModel(modelId: Int,
                             modelKind: Short,
                             nftr: Long) 
-  extends GeneralizedLinearModel(modelId,modelKind,nftr,0,1.0,
-                                 null) { // no encoding required for regression algorithms
+  extends GeneralizedLinearModel(modelId,modelKind,nftr,0,1.0) {
   def this(m: DummyGLM) = this(m.mid, m.mkind, m.numFeatures)
   override def toString() : String = {
     val str = s"numFeatures: " + numFeatures  

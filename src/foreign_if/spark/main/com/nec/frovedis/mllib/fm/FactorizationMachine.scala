@@ -8,8 +8,7 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.mllib.regression.LabeledPoint
 
 class FactorizationMachineModel (val model_Id: Int)
-  extends GenericModelWithPredict(model_Id, M_KIND.FMM, 
-                                  null) { // no encoding required for FM
+  extends GenericModelWithPredict(model_Id, M_KIND.FMM) { 
  }
 
 object FactorizationMachineModel{
