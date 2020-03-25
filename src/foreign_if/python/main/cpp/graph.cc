@@ -48,7 +48,7 @@ extern "C" {
     return to_python_double_list(result);
   }
   void call_frovedis_sssp(const char* host, int port, long proxy,
-                                  PyObject* dist, PyObject* pred, long num_vertices, long source){
+                        int* dist, long* pred, long num_vertices, long source){
     ASSERT_PTR(host);
     exrpc_node fm_node(host, port);
     auto f_dptr = static_cast<exrpc_ptr_t> (proxy);
@@ -59,13 +59,18 @@ extern "C" {
                        source, vb).get();
     }
     catch(std::exception& e) { set_status(true,e.what()); }
-    for (int i=0; i<num_vertices; i++){
-      PyList_Append(dist, Py_BuildValue("i", result.nodes_dist.data()[i]));
-      PyList_Append(pred, Py_BuildValue("l", result.nodes_pred.data()[i]));
+    checkAssumption(result.nodes_dist.size() == num_vertices);
+    checkAssumption(result.nodes_pred.size() == num_vertices);
+    auto resdistp = result.nodes_dist.data();
+    auto respredp = result.nodes_pred.data();
+    for(size_t i = 0; i < num_vertices; ++i){
+      dist[i] = resdistp[i];
+      pred[i] = respredp[i];
     }
   }
   PyObject* call_frovedis_bfs(const char* host, int port, long proxy,
-                                  PyObject* nodes_in_which_cc, PyObject* nodes_dist, long num_vertices){
+                              long* nodes_in_which_cc, 
+                              int* nodes_dist, long num_vertices) {
     ASSERT_PTR(host);
     exrpc_node fm_node(host, port);
     auto f_dptr = static_cast<exrpc_ptr_t> (proxy);
@@ -75,9 +80,13 @@ extern "C" {
       result = exrpc_async(fm_node, frovedis_bfs<graph>, f_dptr, vb).get();
     }
     catch(std::exception& e) { set_status(true,e.what());}
-    for (int i=0; i<num_vertices; i++){
-      PyList_Append(nodes_dist, Py_BuildValue("i", result.nodes_dist.data()[i]));
-      PyList_Append(nodes_in_which_cc, Py_BuildValue("l", result.nodes_in_which_cc.data()[i]));
+    checkAssumption(result.nodes_dist.size() == num_vertices);
+    checkAssumption(result.nodes_in_which_cc.size() == num_vertices);
+    auto resdistp = result.nodes_dist.data();
+    auto reswhichp = result.nodes_in_which_cc.data();
+    for(size_t i = 0; i < num_vertices; ++i){
+      nodes_dist[i] = resdistp[i];
+      nodes_in_which_cc[i] = reswhichp[i];
     }
     return to_python_long_list(result.num_nodes_in_each_cc);
   }
