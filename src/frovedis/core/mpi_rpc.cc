@@ -64,6 +64,9 @@ bool handle_one_bcast_req() {
     int all_exception_caught = false;
     try {
       wpt(hdr->function_addr, inar, outar);
+    } catch (std::bad_alloc& e) {
+      exception_caught = true;
+      what = std::string("std::bad_alloc");
     } catch (std::exception& e) {
       exception_caught = true;
       what = e.what();
@@ -103,6 +106,9 @@ bool handle_one_bcast_req() {
     int all_exception_caught = false;
     try {
       wpt(hdr->function_addr, inar);
+    } catch (std::bad_alloc& e) {
+      exception_caught = true;
+      what = std::string("std::bad_alloc");
     } catch (std::exception& e) {
       exception_caught = true;
       what = e.what();
@@ -225,6 +231,9 @@ void send_bcast_rpcreq(rpc_type type, intptr_t function_addr,
     int all_exception_caught = false;
     try {
       wpt(hdr.function_addr, inar, outar);
+    } catch (std::bad_alloc& e) {
+      exception_caught = true;
+      what = std::string("std::bad_alloc");
     } catch (std::exception& e) {
       exception_caught = true;
       what = e.what();
@@ -286,13 +295,13 @@ void send_bcast_rpcreq(rpc_type type, intptr_t function_addr,
       large_gatherv(sizeof(char), send_data, send_data_size,
                     &recv_data[0], recv_counts, displs, root,
                     frovedis_comm_rpc);
-      string all_what;
+      string all_what = "exception at any of the ranks:";
       for(int i = 0; i < node_size; i++) {
         string what(recv_data.substr(displs[i], recv_counts[i]));
-        if(i < node_size - 1)
-          all_what.append(string("rank ") + to_string(i) + ": " + what + "\n");
-        else 
-          all_what.append(string("rank ") + to_string(i) + ": " + what);
+        if(what != "") {
+          all_what.append(string("\n") + string("rank ") + to_string(i) +
+                          ": " + what);
+        }
       }
       throw std::runtime_error(all_what);
     }
@@ -306,6 +315,9 @@ void send_bcast_rpcreq(rpc_type type, intptr_t function_addr,
     int all_exception_caught = false;
     try {
       wpt(hdr.function_addr, inar);
+    } catch (std::bad_alloc& e) {
+      exception_caught = true;
+      what = std::string("std::bad_alloc");
     } catch (std::exception& e) {
       exception_caught = true;
       what = e.what();
@@ -335,13 +347,13 @@ void send_bcast_rpcreq(rpc_type type, intptr_t function_addr,
       large_gatherv(sizeof(char), send_data, send_data_size,
                     &recv_data[0], recv_counts, displs, root,
                     frovedis_comm_rpc);
-      string all_what;
+      string all_what = "exception at any of the ranks:";
       for(int i = 0; i < node_size; i++) {
         string what(recv_data.substr(displs[i], recv_counts[i]));
-        if(i < node_size - 1)
-          all_what.append(string("rank ") + to_string(i) + ": " + what + "\n");
-        else 
-          all_what.append(string("rank ") + to_string(i) + ": " + what);
+        if(what != "") {
+          all_what.append(string("\n") + string("rank ") + to_string(i) +
+                          ": " + what);
+        }
       }
       throw std::runtime_error(all_what);
     }
