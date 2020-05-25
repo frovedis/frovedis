@@ -1661,6 +1661,20 @@ In this example, the sample data is created by a python script
 `gendata.py`. You can find the label of the generated data as
 `train.label`. It should be mostly the same as the clustering result. 
 
+### 4.3.3 ART2a
+
+ART2a is one of clustering algorithm. The feature of this algorithm is that the number of cluster is not fixed but increased in the process affected by the model parameter.
+
+Please look at "src/tut4.3-3", which looks like this:
+
+       auto result = frovedis::art2a(data, weight_size, max_iter, random_shuffle, random_seed, learning_rate, vigilance);
+
+This method performs clustering based art2a method. `data` is samples to be clustered, in which each row is one sample. `weight_size` is the initial number of clusters and this is the row size of initial weight matrix. `random_shuffle` enables shuffling order of sample selection. `learning_rate` and `vigilance` are parameters for art2a model. If `data_inplace` is true, preprocess to `data0` is applied in-place. If you want to keep it constant, set `data_inplace` false.
+
+
+Return value is weight matrix of final clusters and its assignment of each sample. Cluster assignment is represented as vector with the number of all samples, and its element is the row index of weight matrix.  
+
+
 ## 4.4 Factorization Machine
 
 We provide factorization machine algorithm.  
@@ -2083,8 +2097,8 @@ the names of the columns. Both are represented as
 `std::vector<std::string>`.
 
 Here, we assume that the columns are separated by comma. If you want
-to use a different separater, you can use `make_dftabke_loadtext_sep`
-and specify the separater as the last argument of it.
+to use a different separater, you can specify the separater as the
+extra argument of it.
 
 In addition, if the first line of the file is the name of the columns,
 you can remove the column name argument; the function treats the first
