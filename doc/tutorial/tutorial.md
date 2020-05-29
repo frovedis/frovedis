@@ -2004,6 +2004,23 @@ construction is different.
 because it causes a problem during training with batch
 normalization...)
 
+## 4.8 Kernel SVM
+
+We provide kernel support vector machine (SVM), which adopts nonlinear functions to calculate kernel matrix
+
+Please look at "src/tut4.8/tut.cc". You can initialize C-SVC model with parameters like this,
+
+    frovedis::kernel_csvc_model<kernel_t> model(tol, C, cache_size, max_iter, kernel_ty_str, gamma, coef0, degree);
+
+`tol` is tolerance for stopping criterion. `C` is regularization parameter for C-SVC. `cache_size` is cache size for internal kernel matrix which determines working set size. `kernel_ty_str` specifies the type of kernel function, chosen in one of "rbf", "poly", "sigmoid". `gamma` is coeficient of kernel functions. `coef0` is independent term in "poly" or "sigmoid" kernel functions. `degree` is degree of the "poly" kernel function.
+
+Then after you train model with given data and label as calling `model.train(train_x, train_y)`. Noted that values of label have to be +1 or -1.
+
+If you call `model2.predict(test_x)` after training the model, you get the classification result for given data. You can also give `batch_size` as its argument, by which the it splits the data into batches.  
+
+This model is implemented by using openmp parallelization. If you run the training with multiple MPI process, only one thread (master) actually works. So please be carefull not assign the multiple process on single node, because this causes work interference of openmp thread.
+
+
 # 5. Dataframe
 
 Dataframe for preprocessing is also supported. It provides
