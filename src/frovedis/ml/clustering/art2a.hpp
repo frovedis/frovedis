@@ -1,3 +1,6 @@
+// Implementation is referred to:
+// https://pubs.acs.org/doi/10.1021/ac9809682
+
 #ifndef _ART2A_HPP_
 #define _ART2A_HPP_
 
