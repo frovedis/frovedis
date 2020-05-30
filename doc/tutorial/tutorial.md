@@ -1667,7 +1667,9 @@ ART2a is one of clustering algorithm. The feature of this algorithm is that the 
 
 Please look at "src/tut4.3-3", which looks like this:
 
-       auto result = frovedis::art2a(data, weight_size, max_iter, random_shuffle, random_seed, learning_rate, vigilance);
+    auto result = frovedis::art2a(
+        data, weight_size, max_iter, random_shuffle, random_seed, 
+        learning_rate, vigilance);
 
 This method performs clustering based art2a method. `data` is samples to be clustered, in which each row is one sample. `weight_size` is the initial number of clusters and this is the row size of initial weight matrix. `random_shuffle` enables shuffling order of sample selection. `learning_rate` and `vigilance` are parameters for art2a model. If `data_inplace` is true, preprocess to `data0` is applied in-place. If you want to keep it constant, set `data_inplace` false.
 
@@ -2006,11 +2008,13 @@ normalization...)
 
 ## 4.8 Kernel SVM
 
-We provide kernel support vector machine (SVM), which adopts nonlinear functions to calculate kernel matrix
+We provide kernel support vector machine (SVM), which adopts nonlinear functions to calculate kernel matrix.
 
 Please look at "src/tut4.8/tut.cc". You can initialize C-SVC model with parameters like this,
 
-    frovedis::kernel_csvc_model<kernel_t> model(tol, C, cache_size, max_iter, kernel_ty_str, gamma, coef0, degree);
+    frovedis::kernel_csvc_model<kernel_t> model(
+        tol, C, cache_size, max_iter, kernel_ty_str, 
+        gamma, coef0, degree);
 
 `tol` is tolerance for stopping criterion. `C` is regularization parameter for C-SVC. `cache_size` is cache size for internal kernel matrix which determines working set size. `kernel_ty_str` specifies the type of kernel function, chosen in one of "rbf", "poly", "sigmoid". `gamma` is coeficient of kernel functions. `coef0` is independent term in "poly" or "sigmoid" kernel functions. `degree` is degree of the "poly" kernel function.
 
