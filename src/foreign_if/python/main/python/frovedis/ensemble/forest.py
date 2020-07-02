@@ -6,6 +6,7 @@ ensemble.py: wrapper of frovedis Random Forest (classifier and regressor)
 import os.path
 import pickle
 from ..mllib.model_util import M_KIND, ModelID, GLM
+from ..base import *
 from ..exrpc import rpclib
 from ..exrpc.server import FrovedisServer
 from ..matrix.ml_data import FrovedisLabeledPoint
@@ -14,7 +15,7 @@ from ..mllib.metrics import accuracy_score, r2_score
 import numpy as np
 
 #Random Forest Classifier Class
-class RandomForestClassifier(object):
+class RandomForestClassifier(BaseEstimator):
     """A python wrapper of Frovedis Random Forest Classifier
     parameter   		:   default value
     n_estimators	   	:   10
@@ -243,58 +244,6 @@ class RandomForestClassifier(object):
             raise AttributeError(\
                 "save: requested model might have been released!")
 
-    def get_params(self):
-        """
-        NAME: get_params
-        """
-        d_l = {'n_estimators': self.n_estimators,
-               'criterion' : self.criterion,
-               'max_depth' : self.max_depth,
-               'min_samples_split' : self.min_samples_split,
-               'min_samples_leaf' : self.min_samples_leaf,
-               'min_weight_fraction_leaf' : self.min_weight_fraction_leaf,
-               'max_features' : self.max_features,
-               'max_leaf_nodes' : self.max_leaf_nodes,
-               'min_impurity_decrease' : self.min_impurity_decrease,
-               'min_impurity_split' : self.min_impurity_split,
-               'bootstrap' : self.bootstrap,
-               'oob_score' : self.oob_score,
-               'n_jobs' : self.n_jobs,
-               'random_state' : self.random_state,
-               'verbose' : self.verbose,
-               'warm_start' : self.warm_start,
-               'class_weight' : self.class_weight,
-               'ccp_alpha' : self.ccp_alpha,
-               'max_samples' : self.max_samples}
-        return d_l
-
-    def set_params(self, **params):
-        """
-        NAME: set_params
-        """
-        d_l = self.get_params()
-        valid_params = set(d_l.keys())
-        given_params = set(params.keys())
-        if given_params <= valid_params:
-            #print "Valid params"
-            extra_params = {'mid': self.__mid,
-                            'mdtype': self.__mdtype,
-                            'mkind': self.__mkind,
-                            'label_map': self.label_map,
-                            'n_classes_': self.n_classes_,
-                            'max_bins' : self.max_bins}
-
-            self.__init__(**params)
-            self.__mid = extra_params['mid']
-            self.__mdtype = extra_params['mdtype']
-            self.__mkind = extra_params['mkind']
-            self.label_map = extra_params['label_map']
-            self.n_classes_ = extra_params['n_classes_']
-            self.max_bins = extra_params['max_bins']
-            return self
-        else:
-            raise ValueError("Invalid parameters passed")
-
     # Show the model
     def debug_print(self):
         """
@@ -325,7 +274,7 @@ class RandomForestClassifier(object):
             self.release()
 
 # Random Forest Regressor Class
-class RandomForestRegressor(object):
+class RandomForestRegressor(BaseEstimator):
     """A python wrapper of Frovedis Random Forest Regressor
     parameter   		:   default value
     n_estimators	   	:   100
@@ -524,55 +473,6 @@ class RandomForestRegressor(object):
         else:
             raise AttributeError(\
                 "save: requested model might have been released!")
-
-    def get_params(self):
-        """
-        NAME: get_params
-        """
-        d_l = {'n_estimators': self.n_estimators,
-               'criterion' : self.criterion,
-               'max_depth' : self.max_depth,
-               'min_samples_split' : self.min_samples_split,
-               'min_samples_leaf' : self.min_samples_leaf,
-               'min_weight_fraction_leaf' : self.min_weight_fraction_leaf,
-               'max_features' : self.max_features,
-               'max_leaf_nodes' : self.max_leaf_nodes,
-               'min_impurity_decrease' : self.min_impurity_decrease,
-               'min_impurity_split' : self.min_impurity_split,
-               'bootstrap' : self.bootstrap,
-               'oob_score' : self.oob_score,
-               'n_jobs' : self.n_jobs,
-               'random_state' : self.random_state,
-               'verbose' : self.verbose,
-               'warm_start' : self.warm_start,
-               'ccp_alpha' : self.ccp_alpha,
-               'max_samples' : self.max_samples}
-        return d_l
-
-    def set_params(self, **params):
-        """
-        NAME: set_params
-        """
-        d_l = self.get_params()
-        valid_params = set(d_l.keys())
-        given_params = set(params.keys())
-        if given_params <= valid_params:
-            #print "Valid params"
-            extra_params = {'mid': self.__mid,
-                            'mdtype': self.__mdtype,
-                            'mkind': self.__mkind,
-                            'n_classes_': self.n_classes_,
-                            'max_bins' : self.max_bins}
-
-            self.__init__(**params)
-            self.__mid = extra_params['mid']
-            self.__mdtype = extra_params['mdtype']
-            self.__mkind = extra_params['mkind']
-            self.n_classes_ = extra_params['n_classes_']
-            self.max_bins = extra_params['max_bins']
-            return self
-        else:
-            raise ValueError("Invalid parameters passed")
 
     # Show the model
     def debug_print(self):

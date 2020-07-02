@@ -2,6 +2,7 @@
 #!/usr/bin/env python
 
 import numpy as np
+from ..base import *
 from ..exrpc.server import FrovedisServer
 from ..exrpc.rpclib import compute_pca, check_server_exception, pca_transform,\
          pca_inverse_transform
@@ -12,7 +13,7 @@ from ..matrix.results import PcaResult
 from ..matrix.dtype import TypeUtil
 from frovedis.matrix.dense import FrovedisRowmajorMatrix
 
-class PCA(object):
+class PCA(BaseEstimator):
     """Principal Components Analysis (PCA) """
 
     # TODO: support whiten

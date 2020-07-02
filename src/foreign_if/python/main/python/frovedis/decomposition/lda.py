@@ -3,6 +3,7 @@
 #!/usr/bin/env python
 
 from ..exrpc.server import FrovedisServer
+from ..base import *
 from ..exrpc.rpclib import compute_lda_train, compute_lda_transform,\
                            compute_lda_component, \
 			   check_server_exception
@@ -14,7 +15,7 @@ import numpy as np
 import pickle
 import os
 
-class LatentDirichletAllocation(object):
+class LatentDirichletAllocation(BaseEstimator):
     """Topic modeling using LDA."""
 
     def __init__(self, n_components=10, doc_topic_prior=None,

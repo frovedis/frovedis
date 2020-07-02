@@ -3,6 +3,7 @@
 #!/usr/bin/env python
 
 from ..exrpc.server import FrovedisServer
+from ..base import *
 from ..exrpc.rpclib import compute_truncated_svd, compute_var_sum
 from ..exrpc.rpclib import check_server_exception
 from ..matrix.ml_data import FrovedisFeatureData
@@ -13,7 +14,7 @@ from ..matrix.dtype import TypeUtil
 import numpy as np
 from scipy.sparse import issparse
 
-class TruncatedSVD(object):
+class TruncatedSVD(BaseEstimator):
     """Dimensionality reduction using truncated SVD (aka LSA)."""
 
     def __init__(self, n_components=2, algorithm="arpack", n_iter=5,
