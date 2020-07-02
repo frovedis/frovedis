@@ -184,12 +184,12 @@ JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_groupFrovedisDat
 
 JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_sortFrovedisDataframe
   (JNIEnv *env, jclass thisCls, jobject master_node, jlong dftbl,
-   jobjectArray target, jlong size, jboolean isDesc) {
+   jobjectArray targets, jintArray isDescArr, jlong size) {
 
   auto fm_node = java_node_to_frovedis_node(env, master_node);
   auto df_proxy = static_cast<exrpc_ptr_t> (dftbl);
-  auto cols = to_string_vector(env,target,size);
-  auto desc = (bool) isDesc; 
+  auto cols = to_string_vector(env,targets,size);
+  auto desc = to_int_vector(env,isDescArr,size);
   exrpc_ptr_t ret_proxy = 0;
   try {
     ret_proxy = exrpc_async(fm_node,sort_df,df_proxy,cols,desc).get();

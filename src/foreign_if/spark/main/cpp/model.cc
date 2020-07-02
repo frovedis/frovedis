@@ -22,6 +22,8 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_showFrovedisModel
       case MFM:    exrpc_oneway(fm_node, show_model<MFM1>, mid); break;
       case KMEANS: exrpc_oneway(fm_node, show_model<KMM1>, mid); break;
       case DTM:    exrpc_oneway(fm_node, show_model<DTM1>, mid); break;
+      case GBT:    exrpc_oneway(fm_node, show_model<GBT1>, mid); break;
+      case RFM:    exrpc_oneway(fm_node, show_model<RFM1>, mid); break;
       case FPM:    exrpc_oneway(fm_node, show_model<FPM1>, mid); break;
       case FPR:    exrpc_oneway(fm_node, show_model<FPR1>, mid); break;
       case SEM:    exrpc_oneway(fm_node, show_model<SEM1>, mid); break;
@@ -49,6 +51,8 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_releaseFrovedisMo
       case MFM:    exrpc_oneway(fm_node, release_model<MFM1>, mid); break;
       case KMEANS: exrpc_oneway(fm_node, release_model<KMM1>, mid); break;
       case DTM:    exrpc_oneway(fm_node, release_model<DTM1>, mid); break;
+      case GBT:    exrpc_oneway(fm_node, release_model<GBT1>, mid); break;
+      case RFM:    exrpc_oneway(fm_node, release_model<RFM1>, mid); break;
       case FPM:    exrpc_oneway(fm_node, release_model<FPM1>, mid); break;
       case FPR:    exrpc_oneway(fm_node, release_model<FPR1>, mid); break;
       case SEM:    exrpc_oneway(fm_node, release_model<SEM1>, mid); break;
@@ -83,6 +87,8 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_saveFrovedisModel
       case MFM:    exrpc_oneway(fm_node,save_model<MFM1>,mid,fs_path); break;
       case KMEANS: exrpc_oneway(fm_node,save_model<KMM1>,mid,fs_path); break;
       case DTM:    exrpc_oneway(fm_node,save_model<DTM1>,mid,fs_path); break;
+      case GBT:    exrpc_oneway(fm_node,save_model<GBT1>,mid,fs_path); break;
+      case RFM:    exrpc_oneway(fm_node,save_model<RFM1>,mid,fs_path); break;
       case FPM:    exrpc_oneway(fm_node,save_model<FPM1>,mid,fs_path); break;
       case FPR:    exrpc_oneway(fm_node,save_model<FPR1>,mid,fs_path); break;
       case SEM:    exrpc_oneway(fm_node,save_model<SEM1>,mid,fs_path); break;
@@ -122,6 +128,7 @@ JNIEXPORT jlongArray JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_broadcast2A
       case DTM:    eps = exrpc_async(fm_node,(bcast_model_to_workers<DT1,DTM1>),mid).get(); break;
       case FMM:    eps = exrpc_async(fm_node,bcast_fmm_to_workers<DT1>,mid).get(); break;
       case NBM:    eps = exrpc_async(fm_node,(bcast_model_to_workers<DT1,NBM1>),mid).get(); break;
+      //case RFM:    eps = exrpc_async(fm_node,(bcast_model_to_workers<DT1,RFM1>),mid).get(); break;
       default:   REPORT_ERROR(USER_ERROR,"Unknown Model Kind is encountered!\n");
     }
     // converting eps to jlongArray
@@ -168,6 +175,8 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_loadFrovedisModel
       case FPR:  exrpc_oneway(fm_node,load_model<FPR1>,mid,FPM,fs_path); break;
       case FMM:  REPORT_ERROR(USER_ERROR,"currently Frovedis fm_model can't be loaded!\n"); 
       case DTM:  exrpc_oneway(fm_node,load_model<DTM1>,mid,DTM,fs_path); break;
+      case GBT:  exrpc_oneway(fm_node,load_model<GBT1>,mid,DTM,fs_path); break;
+      case RFM:  exrpc_oneway(fm_node,load_model<RFM1>,mid,RFM,fs_path); break;
       case SEM:  exrpc_oneway(fm_node,load_model<SEM1>,mid,SEM,fs_path); break;
       default:   REPORT_ERROR(USER_ERROR,"Unknown Model Kind is encountered!\n");
     }
@@ -1072,6 +1081,192 @@ JNIEXPORT jobject JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_loadFrovedisLD
   }
   catch(std::exception& e) { set_status(true,e.what()); }
   return to_jDummyLDAModel(env, ret);
+}
+
+JNIEXPORT jdoubleArray JNICALL
+Java_com_nec_frovedis_Jexrpc_JNISupport_genericPredict
+(JNIEnv *env, jclass thisCls, jobject master_node, jlong tptr, jint mid,
+   jshort mkind, jboolean dense, jboolean need_prob) {
+
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto f_dptr = (exrpc_ptr_t) tptr;
+  bool isDense = (bool) dense;
+  std::vector<double> pred;
+  bool prob = (bool) need_prob;
+  
+  try {
+    if (isDense){
+      switch(mkind){
+        case LRM:  pred = exrpc_async(fm_node,(pgp2<DT1,R_MAT1,R_LMAT1,LRM1>),f_dptr,mid,prob).get(); break;
+        case MLR:  pred = exrpc_async(fm_node,(pgp2<DT1,R_MAT1,R_LMAT1,MLR1>),f_dptr,mid,prob).get(); break;
+        case SVM:  pred = exrpc_async(fm_node,(pgp2<DT1,R_MAT1,R_LMAT1,SVM1>),f_dptr,mid,prob).get(); break;
+        case LNRM: pred = exrpc_async(fm_node,(pgp2<DT1,R_MAT1,R_LMAT1,LNRM1>),f_dptr,mid,prob).get(); break;
+        case FMM:  REPORT_ERROR(USER_ERROR,"currently Frovedis doesn't support dense test data for FM!\n");
+        case NBM:  pred = exrpc_async(fm_node,(parallel_nbm_predict_with_broadcast<DT1,R_MAT1,R_LMAT1>),
+                                      f_dptr,mid,prob).get(); break;
+        case DTM:  pred = exrpc_async(fm_node,(parallel_dtm_predict_with_broadcast<DT1,R_MAT1,R_LMAT1>),
+                                      f_dptr,mid,prob).get(); break;
+        case RFM:  pred = exrpc_async(fm_node,(parallel_rfm_predict_with_broadcast<DT1,R_MAT1,R_LMAT1>),
+                                      f_dptr,mid,prob).get(); break;
+        case GBT: pred = exrpc_async(fm_node,(parallel_gbt_predict_with_broadcast<DT1,R_MAT1,R_LMAT1>),
+                                        f_dptr,mid,prob).get(); break;
+        default:  REPORT_ERROR(USER_ERROR,"Unknown Model Kind is encountered!\n");
+      }
+    }
+    else{
+      switch(mkind){
+        case LRM: {
+          pred = exrpc_async(fm_node,(pgp2<DT1,S_MAT15,S_LMAT15,LRM1>),f_dptr,mid,prob).get();
+          break;
+        }
+        case MLR: {
+          pred = exrpc_async(fm_node,(pgp2<DT1,S_MAT15,S_LMAT15, MLR1>),f_dptr,mid,prob).get();
+          break;
+        }
+        case SVM: {
+          pred = exrpc_async(fm_node,(pgp2<DT1,S_MAT15,S_LMAT15,SVM1>),f_dptr,mid,prob).get();
+          break;
+        }
+        case LNRM: {
+          pred = exrpc_async(fm_node,(pgp2<DT1,S_MAT15,S_LMAT15,LNRM1>),f_dptr,mid,prob).get();
+          break;
+        }
+        case FMM: {
+          pred = exrpc_async(fm_node,(parallel_fmm_predict_with_broadcast<DT1,S_MAT15,S_LMAT15>),f_dptr,mid).get();
+          break;
+        }
+        case NBM: {
+          pred = exrpc_async(fm_node,(parallel_nbm_predict_with_broadcast<DT1,S_MAT15,S_LMAT15>),f_dptr,mid,prob).get();
+          break;
+        }
+        case DTM: {
+          pred = exrpc_async(fm_node,(parallel_dtm_predict_with_broadcast<DT1,S_MAT15,S_LMAT15>),f_dptr,mid,prob).get();
+          break;
+        }
+        case RFM:  REPORT_ERROR(USER_ERROR,"currently Frovedis doesn't support sparse test data for Random Forest prediction!\n");
+        case GBT: REPORT_ERROR(USER_ERROR,"currently Frovedis doesn't support sparse test data for GBT prediction!\n");
+        default:  REPORT_ERROR(USER_ERROR,"Unknown Model Kind is encountered!\n");
+      }
+    }
+
+  }
+  catch (std::exception& e) {
+      set_status(true, e.what());
+  }
+  return to_jdoubleArray(env, pred);
+
+}
+
+// GBT getters
+
+JNIEXPORT jint JNICALL
+Java_com_nec_frovedis_Jexrpc_JNISupport_gbtNumTrees
+(JNIEnv *env, jclass thisCls, jobject master_node, jint mid) {
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  size_t n = 0;
+  int res;
+  try {
+    n = exrpc_async(fm_node,frovedis_ensemble_get_num_trees<GBT1>,mid).get();   
+  }
+  catch (std::exception& e) {
+    set_status(true, e.what());
+  }
+  res = static_cast<int>(n);
+  return res;
+}
+
+JNIEXPORT jint JNICALL
+Java_com_nec_frovedis_Jexrpc_JNISupport_gbtTotalNumNodes
+(JNIEnv *env, jclass thisCls, jobject master_node, jint mid) {
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  size_t n = 0;
+  int res;
+  try {
+    n = exrpc_async(fm_node,frovedis_ensemble_get_total_num_nodes<GBT1>,mid).get(); 
+  }
+  catch (std::exception& e) {
+    set_status(true, e.what());
+  }
+  res = static_cast<int>(n);
+  return res;
+}
+
+JNIEXPORT jdoubleArray JNICALL
+Java_com_nec_frovedis_Jexrpc_JNISupport_gbtTreeWeights
+(JNIEnv *env, jclass thisCls, jobject master_node, jint mid) {
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  std::vector<double> res;
+  try {
+    res = exrpc_async(fm_node,(frovedis_ensemble_get_tree_weights<GBT1,DT1>),mid).get();   
+  }
+  catch (std::exception& e) {
+    set_status(true, e.what());
+  }
+  return to_jdoubleArray(env, res);
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_nec_frovedis_Jexrpc_JNISupport_gbtToString
+(JNIEnv *env, jclass thisCls, jobject master_node, jint mid) {
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  std::string res;
+  try {
+    res = exrpc_async(fm_node,frovedis_ensemble_to_string<GBT1>,mid).get();   
+  }
+  catch (std::exception& e) {
+    set_status(true, e.what());
+  }
+  jstring js = env->NewStringUTF(res.c_str());
+  return js;
+}
+
+// RFM getters
+
+JNIEXPORT jint JNICALL
+Java_com_nec_frovedis_Jexrpc_JNISupport_rfNumTrees
+(JNIEnv *env, jclass thisCls, jobject master_node, jint mid) {
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  size_t rf = 0;
+  int res;
+  try {
+    rf = exrpc_async(fm_node,frovedis_ensemble_get_num_trees<RFM1>,mid).get();
+  }
+  catch (std::exception& e) {
+    set_status(true, e.what());
+  }
+  res = static_cast<int>(rf);
+  return res;
+}
+
+JNIEXPORT jint JNICALL
+Java_com_nec_frovedis_Jexrpc_JNISupport_rfTotalNumNodes
+(JNIEnv *env, jclass thisCls, jobject master_node, jint mid) {
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  size_t rf = 0;
+  int res;
+  try {
+    rf = exrpc_async(fm_node,frovedis_ensemble_get_total_num_nodes<RFM1>,mid).get();
+  }
+  catch (std::exception& e) {
+    set_status(true, e.what());
+  }
+  res = static_cast<int>(rf);
+  return res;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_nec_frovedis_Jexrpc_JNISupport_rfToString
+(JNIEnv *env, jclass thisCls, jobject master_node, jint mid) {
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  std::string res;
+  try {
+    res = exrpc_async(fm_node,frovedis_ensemble_to_string<RFM1>,mid).get();
+  }
+  catch (std::exception& e) {
+    set_status(true, e.what());
+  }
+  jstring js = env->NewStringUTF(res.c_str());
+  return js;
 }
 
 }

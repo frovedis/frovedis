@@ -589,4 +589,125 @@ JNIEXPORT jobject JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_loadFrovedisDe
   return to_jDummyMatrix(env,ret,mtype);
 }
 
+// returns an array containing memory heads of the crs_matrix_local
+JNIEXPORT jlongArray 
+JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getAllSparseMatrixLocalPointers
+  (JNIEnv *env, jclass thisCls, jobject master_node, 
+   jlong dptr, jshort mtype) {
+
+  auto fm_node = java_node_to_frovedis_node(env,master_node);
+  auto f_dptr = (exrpc_ptr_t) dptr;
+#ifdef _EXRPC_DEBUG_
+  std::cout << "Connecting to master node ("
+            << fm_node.hostname << "," << fm_node.rpcport
+            << ") to get each local data heads.\n";
+#endif
+  std::vector<exrpc_ptr_t> eps;
+  try {
+    switch(mtype) {
+      case SCRS: eps = exrpc_async(fm_node,(get_all_crs_matrix_local_pointers<DT1,DT5,DT5>),f_dptr).get(); break;
+      default: REPORT_ERROR(USER_ERROR,"Unknown local sparse matrix kind is encountered!\n");
+    }
+  }
+  catch(std::exception& e) { set_status(true,e.what()); }
+  return to_jlongArray(env,eps); 
+}
+
+// returns each local nnz from specified frovedis worker nodes
+JNIEXPORT jintArray JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getAllSparseMatrixLocalNNZ
+  (JNIEnv *env, jclass thisCls, jobject target_node, 
+   jlong fdata, jshort mtype) {
+
+  auto fw_node = java_node_to_frovedis_node(env,target_node); // from worker node
+  auto f_dptr = (exrpc_ptr_t) fdata;
+#ifdef _EXRPC_DEBUG_
+  std::cout << "Connecting to worker node ("
+            << fw_node.hostname << "," << fw_node.rpcport
+            << ") to get each local array.\n";
+#endif
+  std::vector<size_t> ret_nnz;
+  try {
+    switch(mtype) {
+      case SCRS: ret_nnz = exrpc_async(fw_node,(get_all_nnz<DT1,DT5,DT5>),f_dptr).get(); break;
+      default: REPORT_ERROR(USER_ERROR,"Unknown local sparse matrix kind is encountered!\n");
+    }
+  }
+  catch(std::exception& e) { set_status(true,e.what()); }
+  std::vector<int> ret(ret_nnz.size());
+  auto retn_p = ret_nnz.data();
+  auto ret_p = ret.data();
+  for(size_t i = 0; i < ret_nnz.size(); ++i) {
+    ret_p[i] = static_cast<int>(retn_p[i]);
+  }
+  return to_jintArray(env,ret);
+}
+
+// returns each local nnz from specified frovedis worker nodes
+JNIEXPORT jintArray JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getAllSparseMatrixLocalRows
+  (JNIEnv *env, jclass thisCls, jobject target_node, 
+   jlong fdata, jshort mtype) {
+
+  auto fw_node = java_node_to_frovedis_node(env,target_node); // from worker node
+  auto f_dptr = (exrpc_ptr_t) fdata;
+#ifdef _EXRPC_DEBUG_
+  std::cout << "Connecting to worker node ("
+            << fw_node.hostname << "," << fw_node.rpcport
+            << ") to get each local array.\n";
+#endif
+  std::vector<size_t> ret_nrow;
+  try {
+    switch(mtype) {
+      case SCRS: ret_nrow = exrpc_async(fw_node,(get_all_nrow<DT1,DT5,DT5>),f_dptr).get(); break;
+      default: REPORT_ERROR(USER_ERROR,"Unknown local sparse matrix kind is encountered!\n");
+    }
+  }
+  catch(std::exception& e) { set_status(true,e.what()); }
+  std::vector<int> ret(ret_nrow.size());
+  auto retn_p = ret_nrow.data();
+  auto ret_p = ret.data();
+  for(size_t i = 0; i < ret_nrow.size(); ++i) {
+    ret_p[i] = static_cast<int>(retn_p[i]);
+  }
+  return to_jintArray(env,ret);
+}
+
+
+// extract local val, index and offset
+JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getLocalCRSMatrixComponents 
+  (JNIEnv *env, jclass thisCls, jobject target_node, jlong fdata,
+   jdoubleArray data, jintArray indx, jintArray offset, jint nrow, jint nnz) {
+
+  auto fw_node = java_node_to_frovedis_node(env,target_node); // from worker node
+  auto f_dptr = (exrpc_ptr_t) fdata;
+#ifdef _EXRPC_DEBUG_
+  std::cout << "Connecting to worker node ("
+            << fw_node.hostname << "," << fw_node.rpcport
+            << ") to get each local array.\n";
+#endif
+  
+  crs_matrix_local<DT1,DT5,DT5> ret_crs;
+  try {
+    ret_crs = exrpc_async(fw_node,(get_crs_matrix_local<DT1,DT5,DT5>),f_dptr).get();
+  } 
+  catch (std::exception& e) { set_status(true,e.what()); }
+  checkAssumption(ret_crs.val.size() == nnz);
+  checkAssumption(ret_crs.idx.size() == nnz);
+  checkAssumption(ret_crs.off.size() == (nrow + 1));
+  std::vector<int> ret_idx(nnz,0);
+  std::vector<int> ret_off(nrow+1,0);
+  auto ret_idxp = ret_idx.data();
+  auto ret_offp = ret_off.data();
+  auto ret_crs_idxp = ret_crs.idx.data();
+  auto ret_crs_offp = ret_crs.off.data();
+  for(size_t i = 0; i < nnz; ++i) {
+    ret_idxp[i] = static_cast<int>(ret_crs_idxp[i]);
+  }
+  for(size_t i = 0; i < nrow + 1; ++i) {
+    ret_offp[i] = static_cast<int>(ret_crs_offp[i]);
+  }
+  env->SetIntArrayRegion(indx, 0, nnz, ret_idx.data());
+  env->SetIntArrayRegion(offset, 0, (nrow + 1), ret_off.data());
+  env->SetDoubleArrayRegion(data, 0, nnz, ret_crs.val.data());
+}
+
 }

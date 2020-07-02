@@ -763,5 +763,116 @@ JNIEXPORT jobject JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisLD
   catch(std::exception& e) { set_status(true,e.what()); }
   return to_jDummyLDAModel(env, ret);
 }
+// (21) --- Random Forest ---
+JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisRF
+  (JNIEnv *env, jclass thisClass, jobject master_node, jobject fdata,
+   jstring algoname, jint max_depth, jdouble min_info_gain, jint num_classes,
+   jint max_bins, jdouble subsampling_rate,
+   jstring impurityType, jint num_trees, jstring feature_subset, jlong seed,
+   jintArray keys, jintArray values, jint size,
+   jint mid, jboolean movable, jboolean dense) {
+
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto f_dptr = java_mempair_to_frovedis_mempair(env, fdata);
+  auto cat_ftr_info = get_kv_pair(env,keys,values,size);
+  bool mvbl = (bool) movable;
+  bool isDense = (bool) dense;
+  int vb = 0; // no log (default)
+
+  auto al = to_cstring(env,algoname);
+  tree::algorithm algo = tree::algorithm::Classification; // initializing
+  if (al == "Classification")  algo = tree::algorithm::Classification;
+  else if (al == "Regression") algo = tree::algorithm::Regression;
+  else REPORT_ERROR(USER_ERROR, "Unsupported algorithm type is provided!\n");
+
+  auto feature_subset_strategy = to_cstring(env, feature_subset);
+  auto impurity_ = to_cstring(env,impurityType);
+ 
+  try {
+    if(isDense) {
+      tree::sampling_strategy<double> subsample_strat;
+      subsample_strat.set_feature_subset_strategy(feature_subset_strategy)
+                    .set_subsampling_rate(subsampling_rate);
+      tree::strategy<double> strat;
+      strat.set_algorithm(algo)
+           .set_impurity_type(impurity_)
+           .set_max_depth(max_depth)
+           .set_min_info_gain(min_info_gain)
+           .set_max_bins(max_bins)
+           .set_categorical_features_info(cat_ftr_info)
+           .set_num_trees(num_trees)
+           .set_sampling_strategy(std::move(subsample_strat));
+      if(to_cstring(env, algoname) == "Classification")
+        strat.set_num_classes(num_classes);
+      if(seed != -1)
+        strat.set_seed(seed);
+      exrpc_oneway(fm_node,(frovedis_rf<DT1,D_MAT1>),f_dptr,strat,vb,mid,mvbl);
+    }
+    else REPORT_ERROR(USER_ERROR, "currently Frovedis doesn't support random forest train with sparse data!\n");
+  }
+  catch(std::exception& e) { set_status(true,e.what()); }
+}
+
+// --- (22) GBT ---
+JNIEXPORT void Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisGbtFit
+  (JNIEnv *env, jclass thisCls, jobject master_node, jobject fdata,
+   jstring algo, jstring loss, jstring impurity, 
+   jdouble learning_rate,
+   jint max_depth, jdouble min_info_gain,
+   jint random_state, jdouble tol, jint max_bins,
+   jdouble subsampling_rate, 
+   jstring feature_subset_strategy,
+   jint n_estimators, jint nclasses,
+   jintArray keys, jintArray values, jint size,
+   jint mid, jboolean movable, jboolean dense) {
+
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto f_dptr = java_mempair_to_frovedis_mempair(env, fdata);
+
+  auto algorithm = tree::algorithm::Regression;
+  if(to_cstring(env, algo) == "Classification") 
+    algorithm = tree::algorithm::Classification;
+  else algorithm = tree::algorithm::Regression;
+
+  auto impurity_ = to_cstring(env,impurity);
+  auto feature_subset_strategy_ = to_cstring(env, feature_subset_strategy);
+  auto loss_ = to_cstring(env, loss);
+  bool isDense = (bool) dense;
+  auto cat_ftr_info = get_kv_pair(env,keys,values,size);
+  bool mvbl = (bool) movable;
+  int verbose = 0;
+
+  if (nclasses > 2) 
+    REPORT_ERROR(USER_ERROR, "Currently frovedis GBT Classifier supports only binary classification!\n");
+
+  try {
+    if(isDense) {
+      tree::sampling_strategy<double> subsample_strat;
+      subsample_strat.set_subsampling_rate(subsampling_rate)
+                     .set_feature_subset_strategy(feature_subset_strategy_);
+      // tol wont be used right now
+      tree::strategy<double> strat;
+      strat.set_algorithm(algorithm)
+           .set_impurity_type(impurity_)
+           .set_loss_type(loss_)
+           .set_learning_rate(learning_rate)
+           .set_max_depth(max_depth)
+           .set_min_info_gain(min_info_gain)
+           .set_max_bins(max_bins)
+           .set_num_iterations(n_estimators)
+           .set_sampling_strategy(std::move(subsample_strat))
+           .set_categorical_features_info(cat_ftr_info);
+      if(to_cstring(env, algo) == "Classification") 
+        strat.set_num_classes(nclasses);
+      if(random_state != -1)
+        strat.set_seed(random_state);
+      exrpc_oneway(fm_node,(frovedis_gbt<DT1,D_MAT1>),f_dptr,strat,verbose,mid,mvbl);
+    }
+    else REPORT_ERROR(USER_ERROR, "Frovedis doesn't support input sparse data for GBT training!\n");
+  }
+  catch (std::exception& e) {
+    set_status(true, e.what());
+  }
+}
 
 }
