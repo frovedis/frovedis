@@ -8,6 +8,7 @@ import com.nec.frovedis.matrix.MAT_KIND
 import com.nec.frovedis.matrix.DoubleDvector
 import org.apache.spark.rdd.RDD
 import org.apache.spark.mllib.regression.LabeledPoint
+import scala.collection.immutable.Map
 
 class FrovedisLabeledPoint extends java.io.Serializable {
 
