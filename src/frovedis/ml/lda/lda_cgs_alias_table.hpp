@@ -106,7 +106,7 @@ void alias_table<TC,TK,TA>::gather_sparse_table(size_t local_size){
     size_t local_voc = norms.size() / size;
     int rank = get_selfid();
     std::vector<int> rev_sizes(size), displ(size); 
-    MPI_Allgather(&local_size, 1, MPI_INT, rev_sizes.data(), 1, MPI_INT, MPI_COMM_WORLD);  
+    MPI_Allgather(&local_size, 1, MPI_INT, rev_sizes.data(), 1, MPI_INT, frovedis_comm_rpc);  
     displ[0] = 0; total_nonzero += rev_sizes[0];
     for(size_t r = 1; r < size; r++){
         total_nonzero += rev_sizes[r];
@@ -121,11 +121,11 @@ void alias_table<TC,TK,TA>::gather_sparse_table(size_t local_size){
         topic_split.resize(total_nonzero);
     }
     
-    typed_allgather<TC>(num_nonzeros.data(), local_voc, num_nonzeros.data(), local_voc, MPI_COMM_WORLD);  
-    typed_allgatherv<TK>(topic_top.data(), local_size, topic_top.data(),rev_sizes.data(), displ.data(), MPI_COMM_WORLD); 
-    typed_allgatherv<TK>(topic_bot.data(), local_size, topic_bot.data(),rev_sizes.data(), displ.data(), MPI_COMM_WORLD); 
-    MPI_Allgather(norms.data(), local_voc, MPI_FLOAT, norms.data(), local_voc, MPI_FLOAT, MPI_COMM_WORLD);
-    MPI_Allgatherv(topic_split.data(), local_size, MPI_FLOAT,topic_split.data(),rev_sizes.data(), displ.data(),MPI_FLOAT, MPI_COMM_WORLD);
+    typed_allgather<TC>(num_nonzeros.data(), local_voc, num_nonzeros.data(), local_voc, frovedis_comm_rpc);  
+    typed_allgatherv<TK>(topic_top.data(), local_size, topic_top.data(),rev_sizes.data(), displ.data(), frovedis_comm_rpc); 
+    typed_allgatherv<TK>(topic_bot.data(), local_size, topic_bot.data(),rev_sizes.data(), displ.data(), frovedis_comm_rpc); 
+    MPI_Allgather(norms.data(), local_voc, MPI_FLOAT, norms.data(), local_voc, MPI_FLOAT, frovedis_comm_rpc);
+    MPI_Allgatherv(topic_split.data(), local_size, MPI_FLOAT,topic_split.data(),rev_sizes.data(), displ.data(),MPI_FLOAT, frovedis_comm_rpc);
 }
 
 template <typename TC, typename TK, typename TA>
@@ -377,7 +377,7 @@ void alias_table<TC,int32_t,int16_t>::gather_sparse_table(size_t local_size){
     size_t local_voc = norms.size() / size;
     int rank = get_selfid();
     std::vector<int> rev_sizes(size), displ(size); 
-    MPI_Allgather(&local_size, 1, MPI_INT, rev_sizes.data(), 1, MPI_INT, MPI_COMM_WORLD);  
+    MPI_Allgather(&local_size, 1, MPI_INT, rev_sizes.data(), 1, MPI_INT, frovedis_comm_rpc);  
     displ[0] = 0; total_nonzero += rev_sizes[0];
     for(size_t r = 1; r < size; r++){
         total_nonzero += rev_sizes[r];
@@ -391,10 +391,10 @@ void alias_table<TC,int32_t,int16_t>::gather_sparse_table(size_t local_size){
         topic_split.resize(total_nonzero);
     }
     
-    typed_allgather<TC>(num_nonzeros.data(), local_voc, num_nonzeros.data(), local_voc, MPI_COMM_WORLD);  
-    typed_allgatherv<int32_t>(topics.data(), local_size, topics.data(),rev_sizes.data(), displ.data(), MPI_COMM_WORLD); 
-    MPI_Allgather(norms.data(), local_voc, MPI_FLOAT, norms.data(), local_voc, MPI_FLOAT, MPI_COMM_WORLD);
-    MPI_Allgatherv(topic_split.data(), local_size, MPI_FLOAT,topic_split.data(),rev_sizes.data(), displ.data(),MPI_FLOAT, MPI_COMM_WORLD);
+    typed_allgather<TC>(num_nonzeros.data(), local_voc, num_nonzeros.data(), local_voc, frovedis_comm_rpc);  
+    typed_allgatherv<int32_t>(topics.data(), local_size, topics.data(),rev_sizes.data(), displ.data(), frovedis_comm_rpc); 
+    MPI_Allgather(norms.data(), local_voc, MPI_FLOAT, norms.data(), local_voc, MPI_FLOAT, frovedis_comm_rpc);
+    MPI_Allgatherv(topic_split.data(), local_size, MPI_FLOAT,topic_split.data(),rev_sizes.data(), displ.data(),MPI_FLOAT, frovedis_comm_rpc);
 }
 
 template <typename TC>
