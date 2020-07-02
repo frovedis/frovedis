@@ -7,6 +7,7 @@ cluster.py: module containing wrapper for kmeans, agglomerative
 import os.path
 import pickle
 from .model_util import *
+from ..base import *
 from ..exrpc.server import FrovedisServer
 from ..exrpc import rpclib
 from ..matrix.ml_data import FrovedisFeatureData
@@ -14,7 +15,14 @@ from ..matrix.dense import FrovedisRowmajorMatrix
 from ..matrix.dtype import TypeUtil
 import numpy as np
 
-class KMeans(object):
+def clustering_score(labels_true, labels_pred):
+  try:
+      from sklearn.metrics.cluster import homogeneity_score
+      return homogeneity_score(labels_true, labels_pred)
+  except: #for system without sklearn
+      raise AttributeError("score: needs scikit-learn to use this method!")
+
+class KMeans(BaseEstimator):
     """
     A python wrapper of Frovedis kmeans
     """
@@ -38,10 +46,8 @@ class KMeans(object):
         self.__mdtype = None
         self.__mkind = M_KIND.KMEANS
 
-    def fit(self, X, y=None):
-        """
-        DESC:
-        """
+    def fit(self, X, y=None, sample_weight=None):
+        """Compute k-means clustering."""
         self.release()
         self.__mid = ModelID.get()
         eps = 0.01
@@ -65,10 +71,8 @@ class KMeans(object):
             raise RuntimeError(excpt["info"])
         return self
 
-    def predict(self, X):
-        """
-        NAME: predict
-        """
+    def predict(self, X, sample_weight=None):
+        """Predict the closest cluster each sample in X belongs to."""
         if self.__mid is not None:
             # if X is not a sparse data, it would be loaded as
             #rowmajor matrix
@@ -93,6 +97,16 @@ class KMeans(object):
         else:
             raise ValueError( \
             "predict is called before calling fit, or the model is released.")
+
+    def fit_predict(self, X, y=None, sample_weight=None):
+        """Compute cluster centers and predict cluster index for each sample"""
+        return self.fit(X, y, sample_weight).predict(X, sample_weight)
+
+    def score(self, X, y, sample_weight=None):
+        """uses scikit-learn homogeneity_score for scoring"""
+        if self.__mid is not None:
+            #TODO: implement inertia
+            return clustering_score(y, self.predict(X, sample_weight))
 
     def load(self, fname, dtype=None):
         """
@@ -156,19 +170,19 @@ class KMeans(object):
         if FrovedisServer.isUP():
             self.release()
 
-
-class SpectralClustering(object):
+class SpectralClustering(BaseEstimator):
     """
     A python wrapper of Frovedis Spectral clustering
     """
-    def __init__(self, n_clusters=8, eigen_solver=None, random_state=None,
-                 n_init=10, gamma=1.0, affinity='rbf', n_neighbors=10,
-                 eigen_tol=0.0, assign_labels='kmeans', degree=3, coef0=1,
-                 kernel_params=None, n_jobs=None, verbose=0, n_iter=100,
-                 eps=0.01, n_comp=None, norm_laplacian=True, mode=1,
-                 drop_first=False):
+    def __init__(self, n_clusters=8, eigen_solver=None, n_components=None, 
+                 random_state=None, n_init=10, gamma=1.0, affinity='rbf', 
+                 n_neighbors=10, eigen_tol=0.0, assign_labels='kmeans', 
+                 degree=3, coef0=1, kernel_params=None, n_jobs=None, 
+                 verbose=0, n_iter=100, eps=0.01, norm_laplacian=True, 
+                 mode=1, drop_first=False):
         self.n_clusters = n_clusters
         self.eigen_solver = eigen_solver
+        self.n_components = n_clusters if n_components is None else n_components
         self.random_state = random_state
         self.n_init = n_init
         self.gamma = gamma
@@ -187,7 +201,6 @@ class SpectralClustering(object):
         self.__mkind = M_KIND.SCM
         self.n_iter = n_iter
         self.eps = eps
-        self.n_comp = n_clusters if n_comp is None else n_comp
         self.norm_laplacian = norm_laplacian
         self.mode = mode
         self.drop_first = drop_first
@@ -213,7 +226,7 @@ class SpectralClustering(object):
         len_l = X.numRows()
         (host, port) = FrovedisServer.getServerInstance()
         ret = np.zeros(len_l, dtype=np.int32)
-        rpclib.sca_train(host, port, X.get(), self.n_clusters, self.n_comp,
+        rpclib.sca_train(host, port, X.get(), self.n_clusters, self.n_components,
                          self.n_iter, self.eps, self.gamma,
                          precomputed, self.norm_laplacian, self.mode,
                          self.drop_first, ret, len_l, self.verbose, self.__mid,
@@ -231,57 +244,16 @@ class SpectralClustering(object):
         self.fit(X, y)
         return self.labels_
 
-    def get_params(self):
-        """
-        NAME: get_params
-        """
-        d_l = {'n_clusters': self.n_clusters,
-               'eigen_solver' : self.eigen_solver,
-               'random_state' : self.random_state,
-               'n_init' : self.n_init,
-               'gamma' : self.gamma,
-               'affinity' : self.affinity,
-               'n_neighbors' : self.n_neighbors,
-               'eigen_tol' : self.eigen_tol,
-               'assign_labels' : self.assign_labels,
-               'degree' : self.degree,
-               'coef0' : self.coef0,
-               'kernel_params' : self.kernel_params,
-               'n_jobs' : self.n_jobs,
-               'n_iter' : self.n_iter,
-               'eps' : self.eps,
-               'n_comp' : self.n_comp,
-               'norm_laplacian' : self.norm_laplacian,
-               'mode' : self.mode,
-               'drop_first' : self.drop_first}
-        return d_l
+    def score(self, X, y, sample_weight=None):
+        """uses scikit-learn homogeneity_score for scoring"""
+        if self.__mid is not None:
+            return clustering_score(y, self.fit_predict(X, y))
 
     def __str__(self):
         """
         NAME: __str__
         """
         return str(self.get_params())
-
-    def set_params(self, **params):
-        """
-        NAME: set_params
-        """
-        d_l = self.get_params()
-        valid_params = set(d_l.keys())
-        given_params = set(params.keys())
-        if given_params <= valid_params:
-            #print "Valid params"
-            extra_params = {'mid': self.__mid,
-                            'mdtype': self.__mdtype,
-                            'mkind': self.__mkind}
-
-            self.__init__(**params)
-            self.__mid = extra_params['mid']
-            self.__mdtype = extra_params['mdtype']
-            self.__mkind = extra_params['mkind']
-            return self
-        else:
-            raise ValueError("Invalid parameters passed")
 
     def load(self, fname, dtype=None):
         """
@@ -294,7 +266,7 @@ class SpectralClustering(object):
                 "the model with name %s does not exist!" % fname)
         self.release()
         metadata = open(fname+"/metadata", "rb")
-        self.n_clusters, self.n_comp, self.__mkind, self.__mdtype = \
+        self.n_clusters, self.n_components, self.__mkind, self.__mdtype = \
             pickle.load(metadata)
         metadata.close()
         if dtype is not None:
@@ -339,7 +311,7 @@ class SpectralClustering(object):
                 os.makedirs(fname)
             GLM.save(self.__mid, self.__mkind, self.__mdtype, fname+"/model")
             metadata = open(fname+"/metadata", "wb")
-            pickle.dump((self.n_clusters, self.n_comp, \
+            pickle.dump((self.n_clusters, self.n_components, \
                 self.__mkind, self.__mdtype), metadata)
             metadata.close()
         else:
@@ -360,6 +332,7 @@ class SpectralClustering(object):
         if self.__mid is not None:
             GLM.release(self.__mid, self.__mkind, self.__mdtype)
             self.__mid = None
+            self.labels_ = None
 
     def __del__(self):
         """
@@ -368,8 +341,7 @@ class SpectralClustering(object):
         if FrovedisServer.isUP():
             self.release()
 
-
-class SpectralEmbedding(object):
+class SpectralEmbedding(BaseEstimator):
     """
     A python wrapper of Frovedis Spectral clustering
     """
@@ -421,48 +393,11 @@ class SpectralEmbedding(object):
             raise RuntimeError(excpt["info"])
         return self
 
-    def get_params(self):
-        """
-        NAME: get_params
-        """
-        d_l = {'n_components': self.n_components,
-               'affinity' : self.affinity,
-               'gamma' : self.gamma,
-               'random_state' : self.random_state,
-               'eigen_solver' : self.eigen_solver,
-               'n_neighbors' : self.n_neighbors,
-               'n_jobs' : self.n_jobs,
-               'norm_laplacian' : self.norm_laplacian,
-               'mode' : self.mode,
-               'drop_first' : self.drop_first}
-        return d_l
-
     def __str__(self):
         """
         NAME: __str__
         """
         return str(self.get_params())
-
-    def set_params(self, **params):
-        """
-        NAME: set_params
-        """
-        d_l = self.get_params()
-        valid_params = set(d_l.keys())
-        given_params = set(params.keys())
-        if given_params <= valid_params:
-            #print "Valid params"
-            extra_params = {'mid': self.__mid,
-                            'mdtype': self.__mdtype,
-                            'mkind': self.__mkind}
-
-            self.__init__(**params)
-            self.__mid = extra_params['mid']
-            self.__mdtype = extra_params['mdtype']
-            self.__mkind = extra_params['mkind']
-            return self
-        else:
-            raise ValueError("Invalid parameters passed")
 
     def get_affinity_matrix(self):
         """
@@ -554,8 +489,7 @@ class SpectralEmbedding(object):
         if FrovedisServer.isUP():
             self.release()
 
-
-class AgglomerativeClustering(object):
+class AgglomerativeClustering(BaseEstimator):
     """
     A python wrapper of Frovedis Agglomerative Clustering
     """
@@ -579,7 +513,7 @@ class AgglomerativeClustering(object):
 
     def fit(self, X, y=None):
         """
-        NAME: fir
+        NAME: fit
         """
         self.release()
         self.__mid = ModelID.get()
@@ -613,60 +547,34 @@ class AgglomerativeClustering(object):
     # added for predicting with different nclusters on same model
     def predict(self, ncluster=None):
         """
-        NAME: predict
+        recomputes cluster indices when input 'ncluster' is different 
+        than self.n_clusters
         """
-        if ncluster is not None:
+        if ncluster is not None and ncluster != self.n_clusters:
+            if (ncluster <= 0): 
+                raise ValueError("predict: ncluster must be a positive integer!")
             self.n_clusters = ncluster
-        (host, port) = FrovedisServer.getServerInstance()
-        ret = np.zeros(self.__nsamples, dtype=np.int32)
-        rpclib.acm_predict(host, port, self.__mid, self.__mdtype,
-                           self.n_clusters, ret, self.__nsamples)
-        excpt = rpclib.check_server_exception()
-        if excpt["status"]:
-            raise RuntimeError(excpt["info"])
-        self.labels_ = ret
+            (host, port) = FrovedisServer.getServerInstance()
+            ret = np.zeros(self.__nsamples, dtype=np.int32)
+            rpclib.acm_predict(host, port, self.__mid, self.__mdtype,
+                               self.n_clusters, ret, self.__nsamples)
+            excpt = rpclib.check_server_exception()
+            if excpt["status"]:
+                raise RuntimeError(excpt["info"])
+            self.labels_ = ret
         return self.labels_
-
-    def get_params(self):
-        """
-        NAME: get_params
-        """
-        d_l = {'n_clusters': self.n_clusters,
-               'affinity': self.affinity,
-               'memory': self.memory,
-               'connectivity': self.connectivity,
-               'compute_full_tree': self.compute_full_tree,
-               'linkage': self.linkage,
-               'pooling_func': self.pooling_func,
-               'verbose': self.verbose}
-        return d_l
+    
+    def score(self, X, y, sample_weight=None):
+        """uses scikit-learn homogeneity_score for scoring"""
+        if self.__mid is not None:
+            return clustering_score(y, self.fit_predict(X, y))
 
     def __str__(self):
         """
         NAME: __str__
         """
         return str(self.get_params())
-
-    def set_params(self, **params):
-        """
-        NAME: set_params
-        """
-        d_l = self.get_params()
-        valid_params = set(d_l.keys())
-        given_params = set(params.keys())
-        if given_params <= valid_params:
-            #print "Valid params"
-            extra_params = {'mid': self.__mid,
-                            'mdtype': self.__mdtype,
-                            'mkind': self.__mkind}
-            self.__init__(**params)
-            self.__mid = extra_params['mid']
-            self.__mdtype = extra_params['mdtype']
-            self.__mkind = extra_params['mkind']
-            return self
-        else:
-            raise ValueError("Invalid parameters passed")
-
+   
     def load(self, fname, dtype=None):
         """
         NAME: load
@@ -737,6 +645,7 @@ class AgglomerativeClustering(object):
         if self.__mid is not None:
             GLM.release(self.__mid, self.__mkind, self.__mdtype)
             self.__mid = None
+            self.labels_ = None
 
     def __del__(self):
         """
@@ -745,7 +654,7 @@ class AgglomerativeClustering(object):
         if FrovedisServer.isUP():
             self.release()
 
-class DBSCAN(object):
+class DBSCAN(BaseEstimator):
     """
     A python wrapper of Frovedis dbcsan
     """
@@ -816,6 +725,11 @@ class DBSCAN(object):
         """
         self.fit(X)
         return self._labels
+
+    def score(self, X, y, sample_weight=None):
+        """uses scikit-learn homogeneity_score for scoring"""
+        if self.__mid is not None:
+            return clustering_score(y, self.fit_predict(X))
 
     def release(self):
         """
