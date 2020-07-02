@@ -108,8 +108,7 @@ linear_regression_with_sgd::train (crs_matrix<T,I,O>& data,
                                    double convergenceTol,
                                    MatType mType) {
   size_t numFeatures = data.num_col;
-  T intercept = isIntercept ? 1.0 : 0.0;
-  linear_regression_model<T> initModel(numFeatures,intercept);
+  linear_regression_model<T> initModel(numFeatures);
   return train<T>(data,label,initModel,numIteration,alpha,miniBatchFraction,
                   isIntercept,convergenceTol,mType,false);
 }
@@ -125,8 +124,7 @@ linear_regression_with_sgd::train (crs_matrix<T,I,O>&& data,
                                    double convergenceTol,
                                    MatType mType) {
   size_t numFeatures = data.num_col;
-  T intercept = isIntercept ? 1.0 : 0.0;
-  linear_regression_model<T> initModel(numFeatures,intercept);
+  linear_regression_model<T> initModel(numFeatures);
   return train<T>(data,label,initModel,numIteration,alpha,miniBatchFraction,
                   isIntercept,convergenceTol,mType,true);
 }
@@ -165,9 +163,11 @@ linear_regression_with_sgd::train (crs_matrix<T,I,O>& data,
 #endif
 
   sgd_parallelizer par(miniBatchFraction);
+  linear_gradient<T> grad;
+  zero_regularizer<T> rType(0.0);
   return par.template parallelize<T,I,O,linear_regression_model<T>,
                                   linear_gradient<T>, zero_regularizer<T>>
-         (data,label,initModel,numIteration,alpha,0.0,
+         (data,label,initModel,grad,rType,numIteration,alpha,
           isIntercept,convergenceTol,mType,inputMovable);
 }
 
@@ -181,8 +181,7 @@ linear_regression_with_sgd::train (const colmajor_matrix<T>& data,
                                    bool isIntercept,
                                    double convergenceTol) {
   size_t numFeatures = data.num_col;
-  T intercept = isIntercept ? 1.0 : 0.0;
-  linear_regression_model<T> initModel(numFeatures,intercept);
+  linear_regression_model<T> initModel(numFeatures);
   return train<T>(data,label,initModel,numIteration,alpha,miniBatchFraction,
                   isIntercept,convergenceTol);
 }
@@ -204,10 +203,12 @@ linear_regression_with_sgd::train (const colmajor_matrix<T>& data,
 #endif
 
   auto& dmat = const_cast<colmajor_matrix<T>&> (data);
+  linear_gradient<T> grad;
   sgd_parallelizer par(miniBatchFraction);
+  zero_regularizer<T> rType(0.0);
   return par.template parallelize<T,linear_regression_model<T>,
                                   linear_gradient<T>, zero_regularizer<T>>
-         (dmat,label,initModel,numIteration,alpha,0.0,
+         (dmat,label,initModel,grad,rType,numIteration,alpha,
           isIntercept,convergenceTol);
 }
 
