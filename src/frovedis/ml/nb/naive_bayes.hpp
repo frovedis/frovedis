@@ -45,7 +45,7 @@ std::vector<T> get_freq(LOC_MATRIX& mat,
   auto en_label_ptr = encoded_label.data();
   for(auto i = 0; i < nsamples; i++) {
     size_t index = en_label_ptr[i];
-    clsmat_ptr[i * nclasses + index] = 1;
+    clsmat_ptr[i * nclasses + index] = 1.0;
   }
   //cls_mat.debug_print();
 
@@ -126,7 +126,7 @@ void naive_bayes_common(MATRIX& mat,
   if (mat.num_row != label.size())
     REPORT_ERROR(USER_ERROR,"number of samples is not same in data and label.\n");
 
-  time_spent tencode(INFO), tfreq(INFO), ttheta(INFO), tpi(INFO);
+  time_spent tencode(DEBUG), tfreq(DEBUG), ttheta(DEBUG), tpi(DEBUG);
   tencode.lap_start();
   auto encoded_label = get_class_counts(label, uniq_labels, cls_counts);
   tencode.lap_stop();
