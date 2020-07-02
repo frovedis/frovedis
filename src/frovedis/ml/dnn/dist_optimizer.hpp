@@ -17,10 +17,10 @@ struct dist_adagrad : public tiny_dnn::stateful_optimizer<1> {
     tiny_dnn::vec_t& org_dW = const_cast<tiny_dnn::vec_t&>(dW);
     if(sizeof(tiny_dnn::float_t) == 4) {
       MPI_Allreduce(&org_dW[0], &red_dW[0], size,
-                    MPI_FLOAT, MPI_SUM, MPI_COMM_WORLD);    
+                    MPI_FLOAT, MPI_SUM, frovedis_comm_rpc);    
     } else {
       MPI_Allreduce(&org_dW[0], &red_dW[0], size,
-                    MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);    
+                    MPI_DOUBLE, MPI_SUM, frovedis_comm_rpc);    
     }
     float_t* gp = g.data();
     float_t* red_dWp = red_dW.data();
@@ -56,10 +56,10 @@ struct dist_RMSprop : public tiny_dnn::stateful_optimizer<1> {
     tiny_dnn::vec_t& org_dW = const_cast<tiny_dnn::vec_t&>(dW);
     if(sizeof(tiny_dnn::float_t) == 4) {
       MPI_Allreduce(&org_dW[0], &red_dW[0], size,
-                    MPI_FLOAT, MPI_SUM, MPI_COMM_WORLD);
+                    MPI_FLOAT, MPI_SUM, frovedis_comm_rpc);
     } else {
       MPI_Allreduce(&org_dW[0], &red_dW[0], size,
-                    MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+                    MPI_DOUBLE, MPI_SUM, frovedis_comm_rpc);
     }
     float_t* gp = g.data();
     float_t* red_dWp = red_dW.data();

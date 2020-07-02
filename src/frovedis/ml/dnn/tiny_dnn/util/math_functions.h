@@ -44,14 +44,14 @@ inline void moments_impl_calc_mean(size_t num_examples,
   }
   if(sizeof(tiny_dnn::float_t) == 4) {
       MPI_Allreduce(&local_mean[0], &mean[0], mean_size,
-                    MPI_FLOAT, MPI_SUM, MPI_COMM_WORLD);    
+                    MPI_FLOAT, MPI_SUM, frovedis_comm_rpc);    
       MPI_Allreduce(&local_div, &red_div, 1,
-                    MPI_FLOAT, MPI_SUM, MPI_COMM_WORLD);                          
+                    MPI_FLOAT, MPI_SUM, frovedis_comm_rpc);                          
   } else {
       MPI_Allreduce(&local_mean[0], &mean[0], mean_size,
-                    MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);    
+                    MPI_DOUBLE, MPI_SUM, frovedis_comm_rpc);    
       MPI_Allreduce(&local_div, &red_div, 1,
-                    MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);    
+                    MPI_DOUBLE, MPI_SUM, frovedis_comm_rpc);    
   }
   vector_div(mean, red_div);
 }
@@ -82,14 +82,14 @@ inline void moments_impl_calc_variance(size_t num_examples,
   }
  if(sizeof(tiny_dnn::float_t) == 4) {
       MPI_Allreduce(&local_variance[0], &variance[0], variance_size,
-                    MPI_FLOAT, MPI_SUM, MPI_COMM_WORLD);    
+                    MPI_FLOAT, MPI_SUM, frovedis_comm_rpc);    
       MPI_Allreduce(&local_div, &red_div, 1,
-                    MPI_FLOAT, MPI_SUM, MPI_COMM_WORLD);    
+                    MPI_FLOAT, MPI_SUM, frovedis_comm_rpc);    
   } else {
       MPI_Allreduce(&local_variance[0], &variance[0], variance_size,
-                    MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);    
+                    MPI_DOUBLE, MPI_SUM, frovedis_comm_rpc);    
       MPI_Allreduce(&local_div, &red_div, 1,
-                    MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);    
+                    MPI_DOUBLE, MPI_SUM, frovedis_comm_rpc);    
   }
   vector_div(variance, red_div);
 }
