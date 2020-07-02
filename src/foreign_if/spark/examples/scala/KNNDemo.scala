@@ -60,7 +60,8 @@ object KNNDemo {
     ind2.rows.collect.foreach(println)
     
     var graph2 = knn.kneighbors_graph(s_data)
-    graph2.debug_print()
+    println("knn graph :")
+    graph2.foreach(println)
 
     var radius_neighbors2 = knn.radius_neighbors(s_data, 2.0F, true) // crs matrix
     println("radius_neighbors: ")
@@ -68,7 +69,7 @@ object KNNDemo {
 
     var radius_neighbors_graph2 = knn.radius_neighbors_graph(s_data, 2.0F, "connectivity") // crs matrix
     println("radius_neighbors_graph: ")
-    radius_neighbors_graph2.debug_print()
+    radius_neighbors_graph2.foreach(println)
 
     fdata.release()
     knn.release()
