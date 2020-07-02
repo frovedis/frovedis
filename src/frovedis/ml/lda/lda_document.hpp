@@ -133,7 +133,7 @@ void lda_document<TD,TW,TK>::dump_document(lda_corpus<TD,TW,TK>& corpus, std::st
           throw std::runtime_error(dir + " is not a directory");
         }
     }
-    MPI_Barrier(MPI_COMM_WORLD);
+    MPI_Barrier(frovedis_comm_rpc);
     std::ofstream out(dir+"/"+std::to_string(rank)+".txt");
     size_t num_topics = corpus[0].doc_topic_count.local_num_col;
     for(size_t d=0; d<corpus.size(); d++) {
