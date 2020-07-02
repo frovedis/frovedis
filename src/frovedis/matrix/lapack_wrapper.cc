@@ -17,15 +17,15 @@ int gesv(const sliced_colmajor_matrix_local<float>& inMat,
   if(!inMat.is_valid() || !outMat.is_valid())
     REPORT_ERROR(USER_ERROR,"Invalid input matrix!!\n");
 
-  if(inMat.sliced_num_row != inMat.sliced_num_col)
+  if(inMat.local_num_row != inMat.local_num_col)
     REPORT_ERROR(USER_ERROR,"The coefficient matrix is not a square matrix!!\n");
 
-  if(outMat.sliced_num_row < inMat.sliced_num_row || outMat.sliced_num_col < 1)
+  if(outMat.local_num_row < inMat.local_num_row || outMat.local_num_col < 1)
     REPORT_ERROR(USER_ERROR,"Invalid right hand side matrix!!\n");
 #endif 
 
-  int N = static_cast<int>(inMat.sliced_num_row); // inMat.sliced_num_col;
-  int NRHS = static_cast<int>(outMat.sliced_num_col);
+  int N = static_cast<int>(inMat.local_num_row); // inMat.local_num_col;
+  int NRHS = static_cast<int>(outMat.local_num_col);
 
   float* Aptr = inMat.data;
   int LDA = static_cast<int>(inMat.ldm);
@@ -65,15 +65,15 @@ int gesv(const sliced_colmajor_matrix_local<double>& inMat,
   if(!inMat.is_valid() || !outMat.is_valid())
     REPORT_ERROR(USER_ERROR,"Invalid input matrix!!\n");
 
-  if(inMat.sliced_num_row != inMat.sliced_num_col)
+  if(inMat.local_num_row != inMat.local_num_col)
     REPORT_ERROR(USER_ERROR,"The coefficient matrix is not a square matrix!!\n");
 
-  if(outMat.sliced_num_row < inMat.sliced_num_row || outMat.sliced_num_col < 1)
+  if(outMat.local_num_row < inMat.local_num_row || outMat.local_num_col < 1)
     REPORT_ERROR(USER_ERROR,"Invalid right hand side matrix!!\n");
 #endif 
 
-  int N = static_cast<int>(inMat.sliced_num_row); // inMat.sliced_num_col;
-  int NRHS = static_cast<int>(outMat.sliced_num_col);
+  int N = static_cast<int>(inMat.local_num_row); // inMat.local_num_col;
+  int NRHS = static_cast<int>(outMat.local_num_col);
 
   double* Aptr = inMat.data;
   int LDA = static_cast<int>(inMat.ldm);
@@ -116,14 +116,14 @@ int gels(const sliced_colmajor_matrix_local<float>& inMat,
   if(TRANS != 'N' && TRANS != 'T')
     REPORT_ERROR(USER_ERROR,"Invalid value for TRANS parameter!!\n");
 
-  size_t maxSize = std::max(inMat.sliced_num_row, inMat.sliced_num_col);
-  if(outMat.sliced_num_row < maxSize || outMat.sliced_num_col < 1)
+  size_t maxSize = std::max(inMat.local_num_row, inMat.local_num_col);
+  if(outMat.local_num_row < maxSize || outMat.local_num_col < 1)
     REPORT_ERROR(USER_ERROR,"Invalid right hand side matrix!!\n");
 #endif 
      
-  int M = static_cast<int>(inMat.sliced_num_row);
-  int N = static_cast<int>(inMat.sliced_num_col);
-  int NRHS = static_cast<int>(outMat.sliced_num_col);
+  int M = static_cast<int>(inMat.local_num_row);
+  int N = static_cast<int>(inMat.local_num_col);
+  int NRHS = static_cast<int>(outMat.local_num_col);
 
   float* Aptr = inMat.data;
   int LDA = static_cast<int>(inMat.ldm);
@@ -171,14 +171,14 @@ int gels(const sliced_colmajor_matrix_local<double>& inMat,
   if(TRANS != 'N' && TRANS != 'T')
     REPORT_ERROR(USER_ERROR,"Invalid value for TRANS parameter!!\n");
 
-  size_t maxSize = std::max(inMat.sliced_num_row, inMat.sliced_num_col);
-  if(outMat.sliced_num_row < maxSize || outMat.sliced_num_col < 1)
+  size_t maxSize = std::max(inMat.local_num_row, inMat.local_num_col);
+  if(outMat.local_num_row < maxSize || outMat.local_num_col < 1)
     REPORT_ERROR(USER_ERROR,"Invalid right hand side matrix!!\n");
 #endif 
      
-  int M = static_cast<int>(inMat.sliced_num_row);
-  int N = static_cast<int>(inMat.sliced_num_col);
-  int NRHS = static_cast<int>(outMat.sliced_num_col);
+  int M = static_cast<int>(inMat.local_num_row);
+  int N = static_cast<int>(inMat.local_num_col);
+  int NRHS = static_cast<int>(outMat.local_num_col);
 
   double* Aptr = inMat.data;
   int LDA = static_cast<int>(inMat.ldm);
@@ -226,17 +226,17 @@ int gelsd(const sliced_colmajor_matrix_local<float>& inMat,
   if(!inMat.is_valid() || !outMat.is_valid())
     REPORT_ERROR(USER_ERROR,"Invalid input matrix!!\n");
   
-  size_t maxSize = std::max(inMat.sliced_num_row, inMat.sliced_num_col);
-  if(outMat.sliced_num_row < maxSize || outMat.sliced_num_col < 1)
+  size_t maxSize = std::max(inMat.local_num_row, inMat.local_num_col);
+  if(outMat.local_num_row < maxSize || outMat.local_num_col < 1)
      REPORT_ERROR(USER_ERROR,"Invalid right hand side matrix!!\n");
 #endif 
 
-  size_t minSize = std::min(inMat.sliced_num_row, inMat.sliced_num_col);
+  size_t minSize = std::min(inMat.local_num_row, inMat.local_num_col);
   S_VAL.resize(minSize,0);
 
-  int M = static_cast<int>(inMat.sliced_num_row);
-  int N = static_cast<int>(inMat.sliced_num_col);
-  int NRHS = static_cast<int>(outMat.sliced_num_col);
+  int M = static_cast<int>(inMat.local_num_row);
+  int N = static_cast<int>(inMat.local_num_col);
+  int NRHS = static_cast<int>(outMat.local_num_col);
 
   float* Aptr = inMat.data;
   int LDA = static_cast<int>(inMat.ldm);
@@ -300,17 +300,17 @@ int gelsd(const sliced_colmajor_matrix_local<double>& inMat,
   if(!inMat.is_valid() || !outMat.is_valid())
     REPORT_ERROR(USER_ERROR,"Invalid input matrix!!\n");
   
-  size_t maxSize = std::max(inMat.sliced_num_row, inMat.sliced_num_col);
-  if(outMat.sliced_num_row < maxSize || outMat.sliced_num_col < 1)
+  size_t maxSize = std::max(inMat.local_num_row, inMat.local_num_col);
+  if(outMat.local_num_row < maxSize || outMat.local_num_col < 1)
      REPORT_ERROR(USER_ERROR,"Invalid right hand side matrix!!\n");
 #endif 
 
-  size_t minSize = std::min(inMat.sliced_num_row, inMat.sliced_num_col);
+  size_t minSize = std::min(inMat.local_num_row, inMat.local_num_col);
   S_VAL.resize(minSize,0);
 
-  int M = static_cast<int>(inMat.sliced_num_row);
-  int N = static_cast<int>(inMat.sliced_num_col);
-  int NRHS = static_cast<int>(outMat.sliced_num_col);
+  int M = static_cast<int>(inMat.local_num_row);
+  int N = static_cast<int>(inMat.local_num_col);
+  int NRHS = static_cast<int>(outMat.local_num_col);
 
   double* Aptr = inMat.data;
   int LDA = static_cast<int>(inMat.ldm);
@@ -371,12 +371,12 @@ int geev(const sliced_colmajor_matrix_local<float>& inMat,
   if(!inMat.is_valid())
     REPORT_ERROR(USER_ERROR,"Invalid input matrix!!\n");
 
-  if(inMat.sliced_num_row != inMat.sliced_num_col)
+  if(inMat.local_num_row != inMat.local_num_col)
     REPORT_ERROR(USER_ERROR,"The input matrix is not a square matrix!!\n");
 #endif 
 
   char JOBZ = 'N';
-  int N = static_cast<int>(inMat.sliced_num_row); // inMat.sliced_num_col;
+  int N = static_cast<int>(inMat.local_num_row); // inMat.local_num_col;
   float* Aptr = inMat.data;
   int LDA = static_cast<int>(inMat.ldm);
 
@@ -426,12 +426,12 @@ int geev(const sliced_colmajor_matrix_local<double>& inMat,
   if(!inMat.is_valid())
     REPORT_ERROR(USER_ERROR,"Invalid input matrix!!\n");
 
-  if(inMat.sliced_num_row != inMat.sliced_num_col)
+  if(inMat.local_num_row != inMat.local_num_col)
     REPORT_ERROR(USER_ERROR,"The input matrix is not a square matrix!!\n");
 #endif 
 
   char JOBZ = 'N';
-  int N = static_cast<int>(inMat.sliced_num_row); // inMat.sliced_num_col;
+  int N = static_cast<int>(inMat.local_num_row); // inMat.local_num_col;
   double* Aptr = inMat.data;
   int LDA = static_cast<int>(inMat.ldm);
 
@@ -491,11 +491,11 @@ int geev(const sliced_colmajor_matrix_local<float>& inMat,
   if(!E_VEC.is_valid())
     REPORT_ERROR(USER_ERROR,"Invalid output matrix for eigen vectors !!\n");
 
-  if(inMat.sliced_num_row != inMat.sliced_num_col)
+  if(inMat.local_num_row != inMat.local_num_col)
     REPORT_ERROR(USER_ERROR,"The input matrix is not a square matrix!!\n");
 
-  if(E_VEC.sliced_num_row < inMat.sliced_num_row ||
-     E_VEC.sliced_num_col < inMat.sliced_num_row)
+  if(E_VEC.local_num_row < inMat.local_num_row ||
+     E_VEC.local_num_col < inMat.local_num_row)
     REPORT_ERROR(USER_ERROR,"Incompatible size of the 3rd argument matrix!!\n");
 #endif 
 
@@ -516,7 +516,7 @@ int geev(const sliced_colmajor_matrix_local<float>& inMat,
   else
     REPORT_ERROR(USER_ERROR,"Illegal value provided for the 4th argument!!\n");
 
-  int N = static_cast<int>(inMat.sliced_num_row); // inMat.sliced_num_col;
+  int N = static_cast<int>(inMat.local_num_row); // inMat.local_num_col;
   float* Aptr = inMat.data;
   int LDA = static_cast<int>(inMat.ldm);
 
@@ -572,11 +572,11 @@ int geev(const sliced_colmajor_matrix_local<double>& inMat,
   if(!E_VEC.is_valid())
     REPORT_ERROR(USER_ERROR,"Invalid output matrix for eigen vectors!!\n");
 
-  if(inMat.sliced_num_row != inMat.sliced_num_col)
+  if(inMat.local_num_row != inMat.local_num_col)
     REPORT_ERROR(USER_ERROR,"The input matrix is not a square matrix!!\n");
 
-  if(E_VEC.sliced_num_row < inMat.sliced_num_row ||
-     E_VEC.sliced_num_col < inMat.sliced_num_row)
+  if(E_VEC.local_num_row < inMat.local_num_row ||
+     E_VEC.local_num_col < inMat.local_num_row)
     REPORT_ERROR(USER_ERROR,"Incompatible size of the 3rd argument matrix!!\n");
 #endif 
 
@@ -597,7 +597,7 @@ int geev(const sliced_colmajor_matrix_local<double>& inMat,
   else
     REPORT_ERROR(USER_ERROR,"Illegal value provided for the 4th argument!!\n");
 
-  int N = static_cast<int>(inMat.sliced_num_row); // inMat.sliced_num_col;
+  int N = static_cast<int>(inMat.local_num_row); // inMat.local_num_col;
   double* Aptr = inMat.data;
   int LDA = static_cast<int>(inMat.ldm);
 
@@ -654,20 +654,20 @@ int geev(const sliced_colmajor_matrix_local<float>& inMat,
   if(!L_VEC.is_valid() || !R_VEC.is_valid())
     REPORT_ERROR(USER_ERROR,"Invalid output matrix for eigen vectors!!\n");
 
-  if(inMat.sliced_num_row != inMat.sliced_num_col)
+  if(inMat.local_num_row != inMat.local_num_col)
     REPORT_ERROR(USER_ERROR,"The input matrix is not a square matrix!!\n");
 
-  if(L_VEC.sliced_num_row < inMat.sliced_num_row ||
-     L_VEC.sliced_num_col < inMat.sliced_num_row)
+  if(L_VEC.local_num_row < inMat.local_num_row ||
+     L_VEC.local_num_col < inMat.local_num_row)
     REPORT_ERROR(USER_ERROR,"Incompatible size of the 3rd argument matrix!!\n");
 
-  if(R_VEC.sliced_num_row < inMat.sliced_num_row ||
-     R_VEC.sliced_num_col < inMat.sliced_num_row)
+  if(R_VEC.local_num_row < inMat.local_num_row ||
+     R_VEC.local_num_col < inMat.local_num_row)
     REPORT_ERROR(USER_ERROR,"Incompatible size of the 4th argument matrix!!\n");
 #endif 
 
   char JOBZ = 'V';
-  int N = static_cast<int>(inMat.sliced_num_row); // inMat.sliced_num_col;
+  int N = static_cast<int>(inMat.local_num_row); // inMat.local_num_col;
   float* Aptr = inMat.data;
   int LDA = static_cast<int>(inMat.ldm);
 
@@ -729,20 +729,20 @@ int geev(const sliced_colmajor_matrix_local<double>& inMat,
   if(!L_VEC.is_valid() || !R_VEC.is_valid())
     REPORT_ERROR(USER_ERROR,"Invalid output matrix for eigen vectors!!\n");
 
-  if(inMat.sliced_num_row != inMat.sliced_num_col)
+  if(inMat.local_num_row != inMat.local_num_col)
     REPORT_ERROR(USER_ERROR,"The input matrix is not a square matrix!!\n");
 
-  if(L_VEC.sliced_num_row < inMat.sliced_num_row ||
-     L_VEC.sliced_num_col < inMat.sliced_num_row)
+  if(L_VEC.local_num_row < inMat.local_num_row ||
+     L_VEC.local_num_col < inMat.local_num_row)
     REPORT_ERROR(USER_ERROR,"Incompatible size of the 3rd argument matrix!!\n");
 
-  if(R_VEC.sliced_num_row < inMat.sliced_num_row ||
-     R_VEC.sliced_num_col < inMat.sliced_num_row)
+  if(R_VEC.local_num_row < inMat.local_num_row ||
+     R_VEC.local_num_col < inMat.local_num_row)
     REPORT_ERROR(USER_ERROR,"Incompatible size of the 4th argument matrix!!\n");
 #endif 
 
   char JOBZ = 'V';
-  int N = static_cast<int>(inMat.sliced_num_row); // inMat.sliced_num_col;
+  int N = static_cast<int>(inMat.local_num_row); // inMat.local_num_col;
   double* Aptr = inMat.data;
   int LDA = static_cast<int>(inMat.ldm);
 
@@ -805,8 +805,8 @@ int gesvd(const sliced_colmajor_matrix_local<float>& inMat,
   else if(OPTION != 'N')
     REPORT_ERROR(USER_ERROR,"Illegal value provided for 3rd argument!!\n");
 
-  int M = static_cast<int>(inMat.sliced_num_row);
-  int N = static_cast<int>(inMat.sliced_num_col);
+  int M = static_cast<int>(inMat.local_num_row);
+  int N = static_cast<int>(inMat.local_num_col);
   float* Aptr = inMat.data;
   int LDA = static_cast<int>(inMat.ldm);
 
@@ -865,8 +865,8 @@ int gesvd(const sliced_colmajor_matrix_local<double>& inMat,
   else if(OPTION != 'N')
     REPORT_ERROR(USER_ERROR,"Illegal value provided for 3rd argument!!\n");
 
-  int M = static_cast<int>(inMat.sliced_num_row);
-  int N = static_cast<int>(inMat.sliced_num_col);
+  int M = static_cast<int>(inMat.local_num_row);
+  int N = static_cast<int>(inMat.local_num_col);
   double* Aptr = inMat.data;
   int LDA = static_cast<int>(inMat.ldm);
 
@@ -936,19 +936,19 @@ int gesvd(const sliced_colmajor_matrix_local<float>& inMat,
   char JOBU = 'A', JOBVT = 'A';
   float *U = NULL, *VT = NULL;
   int LDU = 1, LDVT = 1;
-  size_t MIN_MN = std::min(inMat.sliced_num_row, inMat.sliced_num_col);
+  size_t MIN_MN = std::min(inMat.local_num_row, inMat.local_num_col);
 
   if(VEC_TYPE == 'L') {
 
     if(PART == 'A') { 
-      if(S_VEC.sliced_num_row < inMat.sliced_num_row ||
-         S_VEC.sliced_num_col < inMat.sliced_num_row)
+      if(S_VEC.local_num_row < inMat.local_num_row ||
+         S_VEC.local_num_col < inMat.local_num_row)
         REPORT_ERROR(USER_ERROR, 
            "Incompatible size for the 3rd argument matrix!!\n");
     }
     else {
-      if(S_VEC.sliced_num_row < inMat.sliced_num_row ||
-         S_VEC.sliced_num_col < MIN_MN)
+      if(S_VEC.local_num_row < inMat.local_num_row ||
+         S_VEC.local_num_col < MIN_MN)
         REPORT_ERROR(USER_ERROR, 
            "Incompatible size for the 3rd argument matrix!!\n");
     }
@@ -961,14 +961,14 @@ int gesvd(const sliced_colmajor_matrix_local<float>& inMat,
   else if(VEC_TYPE == 'R') {
 
     if(PART == 'A') {
-      if(S_VEC.sliced_num_row < inMat.sliced_num_col ||
-         S_VEC.sliced_num_col < inMat.sliced_num_col)
+      if(S_VEC.local_num_row < inMat.local_num_col ||
+         S_VEC.local_num_col < inMat.local_num_col)
         REPORT_ERROR(USER_ERROR, 
            "Incompatible size for the 3rd argument matrix!!\n");
     }
     else {
-      if(S_VEC.sliced_num_row < MIN_MN ||
-         S_VEC.sliced_num_col < inMat.sliced_num_col)
+      if(S_VEC.local_num_row < MIN_MN ||
+         S_VEC.local_num_col < inMat.local_num_col)
         REPORT_ERROR(USER_ERROR, 
            "Incompatible size for the 3rd argument matrix!!\n");
     }
@@ -981,8 +981,8 @@ int gesvd(const sliced_colmajor_matrix_local<float>& inMat,
   else
     REPORT_ERROR(USER_ERROR,"Illegal value provided for 4th argument!!\n");
 
-  int M = static_cast<int>(inMat.sliced_num_row);
-  int N = static_cast<int>(inMat.sliced_num_col);
+  int M = static_cast<int>(inMat.local_num_row);
+  int N = static_cast<int>(inMat.local_num_col);
   float* Aptr = inMat.data;
   int LDA = static_cast<int>(inMat.ldm);
 
@@ -1050,19 +1050,19 @@ int gesvd(const sliced_colmajor_matrix_local<double>& inMat,
   char JOBU = 'A', JOBVT = 'A';
   double *U = NULL, *VT = NULL;
   int LDU = 1, LDVT = 1;
-  size_t MIN_MN = std::min(inMat.sliced_num_row, inMat.sliced_num_col);
+  size_t MIN_MN = std::min(inMat.local_num_row, inMat.local_num_col);
 
   if(VEC_TYPE == 'L') {
 
     if(PART == 'A') { 
-      if(S_VEC.sliced_num_row < inMat.sliced_num_row ||
-         S_VEC.sliced_num_col < inMat.sliced_num_row)
+      if(S_VEC.local_num_row < inMat.local_num_row ||
+         S_VEC.local_num_col < inMat.local_num_row)
         REPORT_ERROR(USER_ERROR, 
            "Incompatible size for the 3rd argument matrix!!\n");
     }
     else { 
-      if(S_VEC.sliced_num_row < inMat.sliced_num_row ||
-         S_VEC.sliced_num_col < MIN_MN)
+      if(S_VEC.local_num_row < inMat.local_num_row ||
+         S_VEC.local_num_col < MIN_MN)
         REPORT_ERROR(USER_ERROR, 
            "Incompatible size for the 3rd argument matrix!!\n");
     }
@@ -1075,14 +1075,14 @@ int gesvd(const sliced_colmajor_matrix_local<double>& inMat,
   else if(VEC_TYPE == 'R') {
 
     if(PART == 'A') {
-      if(S_VEC.sliced_num_row < inMat.sliced_num_col ||
-         S_VEC.sliced_num_col < inMat.sliced_num_col)
+      if(S_VEC.local_num_row < inMat.local_num_col ||
+         S_VEC.local_num_col < inMat.local_num_col)
         REPORT_ERROR(USER_ERROR, 
            "Incompatible size for the 3rd argument matrix!!\n");
     }
     else {
-      if(S_VEC.sliced_num_row < MIN_MN ||
-         S_VEC.sliced_num_col < inMat.sliced_num_col)
+      if(S_VEC.local_num_row < MIN_MN ||
+         S_VEC.local_num_col < inMat.local_num_col)
         REPORT_ERROR(USER_ERROR, 
            "Incompatible size for the 3rd argument matrix!!\n");
     }
@@ -1095,8 +1095,8 @@ int gesvd(const sliced_colmajor_matrix_local<double>& inMat,
   else
     REPORT_ERROR(USER_ERROR,"Illegal value provided for 4th argument!!\n");
 
-  int M = static_cast<int>(inMat.sliced_num_row);
-  int N = static_cast<int>(inMat.sliced_num_col);
+  int M = static_cast<int>(inMat.local_num_row);
+  int N = static_cast<int>(inMat.local_num_col);
   double* Aptr = inMat.data;
   int LDA = static_cast<int>(inMat.ldm);
 
@@ -1158,17 +1158,17 @@ int gesvd(const sliced_colmajor_matrix_local<float>& inMat,
   if(!L_VEC.is_valid() || !R_VEC.is_valid())
     REPORT_ERROR(USER_ERROR,"Invalid output matrix for singular vectors!!\n");
   
-  size_t MIN_MN = std::min(inMat.sliced_num_row, inMat.sliced_num_col);
+  size_t MIN_MN = std::min(inMat.local_num_row, inMat.local_num_col);
 
   if(PART_L == 'A') { 
-     if(L_VEC.sliced_num_row < inMat.sliced_num_row ||
-        L_VEC.sliced_num_col < inMat.sliced_num_row)
+     if(L_VEC.local_num_row < inMat.local_num_row ||
+        L_VEC.local_num_col < inMat.local_num_row)
        REPORT_ERROR(USER_ERROR,
              "Incompatible size for the 3rd argument matrix!!\n");
   }
   else if(PART_L == 'S') {
-     if(L_VEC.sliced_num_row < inMat.sliced_num_row ||
-        L_VEC.sliced_num_col < MIN_MN)
+     if(L_VEC.local_num_row < inMat.local_num_row ||
+        L_VEC.local_num_col < MIN_MN)
        REPORT_ERROR(USER_ERROR,
              "Incompatible size for the 3rd argument matrix!!\n");
   }
@@ -1177,14 +1177,14 @@ int gesvd(const sliced_colmajor_matrix_local<float>& inMat,
 
 
   if(PART_R == 'A') { 
-     if(R_VEC.sliced_num_row < inMat.sliced_num_col ||
-        R_VEC.sliced_num_col < inMat.sliced_num_col)
+     if(R_VEC.local_num_row < inMat.local_num_col ||
+        R_VEC.local_num_col < inMat.local_num_col)
        REPORT_ERROR(USER_ERROR,
              "Incompatible size for the 4th argument matrix!!\n");
   }
   else if(PART_R == 'S') {
-     if(R_VEC.sliced_num_row < MIN_MN ||
-        R_VEC.sliced_num_col < inMat.sliced_num_col)
+     if(R_VEC.local_num_row < MIN_MN ||
+        R_VEC.local_num_col < inMat.local_num_col)
        REPORT_ERROR(USER_ERROR,
              "Incompatible size for the 4th argument matrix!!\n");
   }
@@ -1192,8 +1192,8 @@ int gesvd(const sliced_colmajor_matrix_local<float>& inMat,
     REPORT_ERROR(USER_ERROR,"Illegal value provided for 6th argument!!\n");
 #endif 
 
-  int M = static_cast<int>(inMat.sliced_num_row);
-  int N = static_cast<int>(inMat.sliced_num_col);
+  int M = static_cast<int>(inMat.local_num_row);
+  int N = static_cast<int>(inMat.local_num_col);
   float* Aptr = inMat.data;
   int LDA = static_cast<int>(inMat.ldm);
 
@@ -1259,17 +1259,17 @@ int gesvd(const sliced_colmajor_matrix_local<double>& inMat,
   if(!L_VEC.is_valid() || !R_VEC.is_valid())
     REPORT_ERROR(USER_ERROR,"Invalid output matrix for singular vectors!!\n");
   
-  size_t MIN_MN = std::min(inMat.sliced_num_row, inMat.sliced_num_col);
+  size_t MIN_MN = std::min(inMat.local_num_row, inMat.local_num_col);
 
   if(PART_L == 'A') { 
-     if(L_VEC.sliced_num_row < inMat.sliced_num_row ||
-        L_VEC.sliced_num_col < inMat.sliced_num_row)
+     if(L_VEC.local_num_row < inMat.local_num_row ||
+        L_VEC.local_num_col < inMat.local_num_row)
        REPORT_ERROR(USER_ERROR,
              "Incompatible size for the 3rd argument matrix!!\n");
   }
   else if(PART_L == 'S') {
-     if(L_VEC.sliced_num_row < inMat.sliced_num_row ||
-        L_VEC.sliced_num_col < MIN_MN)
+     if(L_VEC.local_num_row < inMat.local_num_row ||
+        L_VEC.local_num_col < MIN_MN)
        REPORT_ERROR(USER_ERROR,
              "Incompatible size for the 3rd argument matrix!!\n");
   }
@@ -1278,14 +1278,14 @@ int gesvd(const sliced_colmajor_matrix_local<double>& inMat,
 
 
   if(PART_R == 'A') {
-     if(R_VEC.sliced_num_row < inMat.sliced_num_col ||
-        R_VEC.sliced_num_col < inMat.sliced_num_col)
+     if(R_VEC.local_num_row < inMat.local_num_col ||
+        R_VEC.local_num_col < inMat.local_num_col)
        REPORT_ERROR(USER_ERROR,
              "Incompatible size for the 4th argument matrix!!\n");
   }
   else if(PART_R == 'S') {
-     if(R_VEC.sliced_num_row < MIN_MN ||
-        R_VEC.sliced_num_col < inMat.sliced_num_col)
+     if(R_VEC.local_num_row < MIN_MN ||
+        R_VEC.local_num_col < inMat.local_num_col)
        REPORT_ERROR(USER_ERROR,
              "Incompatible size for the 4th argument matrix!!\n");
   }
@@ -1293,8 +1293,8 @@ int gesvd(const sliced_colmajor_matrix_local<double>& inMat,
     REPORT_ERROR(USER_ERROR,"Illegal value provided for 6th argument!!\n");
 #endif 
 
-  int M = static_cast<int>(inMat.sliced_num_row);
-  int N = static_cast<int>(inMat.sliced_num_col);
+  int M = static_cast<int>(inMat.local_num_row);
+  int N = static_cast<int>(inMat.local_num_col);
   double* Aptr = inMat.data;
   int LDA = static_cast<int>(inMat.ldm);
 
@@ -1346,8 +1346,8 @@ int gesdd(const sliced_colmajor_matrix_local<float>& inMat,
 #endif 
   
   char JOBZ = 'N';
-  int M = static_cast<int>(inMat.sliced_num_row);
-  int N = static_cast<int>(inMat.sliced_num_col);
+  int M = static_cast<int>(inMat.local_num_row);
+  int N = static_cast<int>(inMat.local_num_col);
 
   int MIN_MN = std::min(M,N);
   std::vector<int> IWORK(8*MIN_MN,0);
@@ -1402,8 +1402,8 @@ int gesdd(const sliced_colmajor_matrix_local<double>& inMat,
 #endif 
   
   char JOBZ = 'N';
-  int M = static_cast<int>(inMat.sliced_num_row);
-  int N = static_cast<int>(inMat.sliced_num_col);
+  int M = static_cast<int>(inMat.local_num_row);
+  int N = static_cast<int>(inMat.local_num_col);
 
   int MIN_MN = std::min(M,N);
   std::vector<int> IWORK(8*MIN_MN,0);
@@ -1465,23 +1465,23 @@ int gesdd(const sliced_colmajor_matrix_local<float>& inMat,
    REPORT_ERROR(USER_ERROR,"Invalid 3rd argument matrix!!\n");
 #endif 
   
-  int M = static_cast<int>(inMat.sliced_num_row);
-  int N = static_cast<int>(inMat.sliced_num_col);
+  int M = static_cast<int>(inMat.local_num_row);
+  int N = static_cast<int>(inMat.local_num_col);
 
   char JOBZ = 'O';
   float *U = NULL, *VT = NULL;
   int LDU = 1, LDVT = 1;
 
   if(M >= N){
-    if(S_VEC.sliced_num_row < inMat.sliced_num_col ||
-       S_VEC.sliced_num_col < inMat.sliced_num_col)
+    if(S_VEC.local_num_row < inMat.local_num_col ||
+       S_VEC.local_num_col < inMat.local_num_col)
       REPORT_ERROR(USER_ERROR,"Incompatible size of the 3rd argument matrix!!\n");
     VT = S_VEC.data;
     LDVT = S_VEC.ldm;
   }
   else{
-    if(S_VEC.sliced_num_row < inMat.sliced_num_row ||
-       S_VEC.sliced_num_col < inMat.sliced_num_row)
+    if(S_VEC.local_num_row < inMat.local_num_row ||
+       S_VEC.local_num_col < inMat.local_num_row)
       REPORT_ERROR(USER_ERROR,"Incompatible size of the 3rd argument matrix!!\n");
     U = S_VEC.data;
     LDU = S_VEC.ldm;
@@ -1543,23 +1543,23 @@ int gesdd(const sliced_colmajor_matrix_local<double>& inMat,
    REPORT_ERROR(USER_ERROR,"Invalid 3rd argument matrix!!\n");
 #endif 
   
-  int M = static_cast<int>(inMat.sliced_num_row);
-  int N = static_cast<int>(inMat.sliced_num_col);
+  int M = static_cast<int>(inMat.local_num_row);
+  int N = static_cast<int>(inMat.local_num_col);
 
   char JOBZ = 'O';
   double *U = NULL, *VT = NULL;
   int LDU = 1, LDVT = 1;
 
   if(M >= N){
-    if(S_VEC.sliced_num_row < inMat.sliced_num_col ||
-       S_VEC.sliced_num_col < inMat.sliced_num_col)
+    if(S_VEC.local_num_row < inMat.local_num_col ||
+       S_VEC.local_num_col < inMat.local_num_col)
       REPORT_ERROR(USER_ERROR,"Incompatible size of the 3rd argument matrix!!\n");
     VT = S_VEC.data;
     LDVT = S_VEC.ldm;
   }
   else{
-    if(S_VEC.sliced_num_row < inMat.sliced_num_row ||
-       S_VEC.sliced_num_col < inMat.sliced_num_row)
+    if(S_VEC.local_num_row < inMat.local_num_row ||
+       S_VEC.local_num_col < inMat.local_num_row)
       REPORT_ERROR(USER_ERROR,"Incompatible size of the 3rd argument matrix!!\n");
     U = S_VEC.data;
     LDU = S_VEC.ldm;
@@ -1623,32 +1623,32 @@ int gesdd(const sliced_colmajor_matrix_local<float>& inMat,
   if(!L_VEC.is_valid() || !R_VEC.is_valid())
     REPORT_ERROR(USER_ERROR,"Invalid output matrix for singular vectors!!\n");
 
-  size_t MIN_MN = std::min(inMat.sliced_num_row,inMat.sliced_num_col);
+  size_t MIN_MN = std::min(inMat.local_num_row,inMat.local_num_col);
 
   if(PART_LR == 'A') {
-    if(L_VEC.sliced_num_row < inMat.sliced_num_row ||
-       L_VEC.sliced_num_col < inMat.sliced_num_row)
+    if(L_VEC.local_num_row < inMat.local_num_row ||
+       L_VEC.local_num_col < inMat.local_num_row)
       REPORT_ERROR(USER_ERROR,"Incompatible size of the 3rd argument matrix!!\n");
 
-    if(R_VEC.sliced_num_row < inMat.sliced_num_col ||
-       R_VEC.sliced_num_col < inMat.sliced_num_col)
+    if(R_VEC.local_num_row < inMat.local_num_col ||
+       R_VEC.local_num_col < inMat.local_num_col)
       REPORT_ERROR(USER_ERROR,"Incompatible size of the 4th argument matrix!!\n");
   }
   else if(PART_LR == 'S') {
-    if(L_VEC.sliced_num_row < inMat.sliced_num_row ||
-       L_VEC.sliced_num_col < MIN_MN)
+    if(L_VEC.local_num_row < inMat.local_num_row ||
+       L_VEC.local_num_col < MIN_MN)
       REPORT_ERROR(USER_ERROR,"Incompatible size of the 3rd argument matrix!!\n");
 
-    if(R_VEC.sliced_num_row < MIN_MN ||
-       R_VEC.sliced_num_col < inMat.sliced_num_col)
+    if(R_VEC.local_num_row < MIN_MN ||
+       R_VEC.local_num_col < inMat.local_num_col)
       REPORT_ERROR(USER_ERROR,"Incompatible size of the 4th argument matrix!!\n");
   }
   else
     REPORT_ERROR(USER_ERROR,"Illegal value provided for the 5th argument!!\n");
 #endif 
     
-  int M = static_cast<int>(inMat.sliced_num_row);
-  int N = static_cast<int>(inMat.sliced_num_col);
+  int M = static_cast<int>(inMat.local_num_row);
+  int N = static_cast<int>(inMat.local_num_col);
   int min = std::min(M,N);
 
   float* Aptr = inMat.data;
@@ -1713,32 +1713,32 @@ int gesdd(const sliced_colmajor_matrix_local<double>& inMat,
   if(!L_VEC.is_valid() || !R_VEC.is_valid())
     REPORT_ERROR(USER_ERROR,"Invalid output matrix for singular vectors!!\n");
 
-  size_t MIN_MN = std::min(inMat.sliced_num_row,inMat.sliced_num_col);
+  size_t MIN_MN = std::min(inMat.local_num_row,inMat.local_num_col);
 
   if(PART_LR == 'A') {
-    if(L_VEC.sliced_num_row < inMat.sliced_num_row ||
-       L_VEC.sliced_num_col < inMat.sliced_num_row)
+    if(L_VEC.local_num_row < inMat.local_num_row ||
+       L_VEC.local_num_col < inMat.local_num_row)
       REPORT_ERROR(USER_ERROR,"Incompatible size of the 3rd argument matrix!!\n");
 
-    if(R_VEC.sliced_num_row < inMat.sliced_num_col ||
-       R_VEC.sliced_num_col < inMat.sliced_num_col)
+    if(R_VEC.local_num_row < inMat.local_num_col ||
+       R_VEC.local_num_col < inMat.local_num_col)
       REPORT_ERROR(USER_ERROR,"Incompatible size of the 4th argument matrix!!\n");
   }
   else if(PART_LR == 'S') {
-    if(L_VEC.sliced_num_row < inMat.sliced_num_row ||
-       L_VEC.sliced_num_col < MIN_MN)
+    if(L_VEC.local_num_row < inMat.local_num_row ||
+       L_VEC.local_num_col < MIN_MN)
       REPORT_ERROR(USER_ERROR,"Incompatible size of the 3rd argument matrix!!\n");
 
-    if(R_VEC.sliced_num_row < MIN_MN ||
-       R_VEC.sliced_num_col < inMat.sliced_num_col)
+    if(R_VEC.local_num_row < MIN_MN ||
+       R_VEC.local_num_col < inMat.local_num_col)
       REPORT_ERROR(USER_ERROR,"Incompatible size of the 4th argument matrix!!\n");
   }
   else
     REPORT_ERROR(USER_ERROR,"Illegal value provided for the 5th argument!!\n");
 #endif 
 
-  int M = static_cast<int>(inMat.sliced_num_row);
-  int N = static_cast<int>(inMat.sliced_num_col);
+  int M = static_cast<int>(inMat.local_num_row);
+  int N = static_cast<int>(inMat.local_num_col);
   int min = std::min(M,N);
 
   double* Aptr = inMat.data;
@@ -1795,14 +1795,14 @@ int gelsy(const sliced_colmajor_matrix_local<float>& inMat,
   if(!inMat.is_valid() || !outMat.is_valid())
     REPORT_ERROR(USER_ERROR,"Invalid input matrix!!\n");
 
-  size_t maxSize = std::max(inMat.sliced_num_row,inMat.sliced_num_col);
-  if(outMat.sliced_num_row < maxSize || outMat.sliced_num_col < 1)
+  size_t maxSize = std::max(inMat.local_num_row,inMat.local_num_col);
+  if(outMat.local_num_row < maxSize || outMat.local_num_col < 1)
      REPORT_ERROR(USER_ERROR,"Invalid right hand side matrix!!\n");
 #endif 
  
-  int M = static_cast<int>(inMat.sliced_num_row);
-  int N = static_cast<int>(inMat.sliced_num_col);
-  int NRHS = static_cast<int>(outMat.sliced_num_col);
+  int M = static_cast<int>(inMat.local_num_row);
+  int N = static_cast<int>(inMat.local_num_col);
+  int NRHS = static_cast<int>(outMat.local_num_col);
 
   float *Aptr = inMat.data;
   int LDA = static_cast<int>(inMat.ldm);
@@ -1862,14 +1862,14 @@ int gelsy(const sliced_colmajor_matrix_local<double>& inMat,
   if(!inMat.is_valid() || !outMat.is_valid())
     REPORT_ERROR(USER_ERROR,"Invalid input matrix!!\n");
 
-  size_t maxSize = std::max(inMat.sliced_num_row,inMat.sliced_num_col);
-  if(outMat.sliced_num_row < maxSize || outMat.sliced_num_col < 1)
+  size_t maxSize = std::max(inMat.local_num_row,inMat.local_num_col);
+  if(outMat.local_num_row < maxSize || outMat.local_num_col < 1)
      REPORT_ERROR(USER_ERROR,"Invalid right hand side matrix!!\n");
 #endif 
  
-  int M = static_cast<int>(inMat.sliced_num_row);
-  int N = static_cast<int>(inMat.sliced_num_col);
-  int NRHS = static_cast<int>(outMat.sliced_num_col);
+  int M = static_cast<int>(inMat.local_num_row);
+  int N = static_cast<int>(inMat.local_num_col);
+  int NRHS = static_cast<int>(outMat.local_num_col);
 
   double* Aptr = inMat.data;
   int LDA = static_cast<int>(inMat.ldm);
@@ -1930,14 +1930,14 @@ int gelss(const sliced_colmajor_matrix_local<float>& inMat,
   if(!inMat.is_valid() || !outMat.is_valid())
     REPORT_ERROR(USER_ERROR,"Invalid input matrix!!\n");
 
-  size_t maxSize = std::max(inMat.sliced_num_row,inMat.sliced_num_col);
-  if(outMat.sliced_num_row < maxSize || outMat.sliced_num_col < 1)
+  size_t maxSize = std::max(inMat.local_num_row,inMat.local_num_col);
+  if(outMat.local_num_row < maxSize || outMat.local_num_col < 1)
      REPORT_ERROR(USER_ERROR,"Invalid right hand side matrix!!\n");
 #endif 
      
-  int M = static_cast<int>(inMat.sliced_num_row);
-  int N = static_cast<int>(inMat.sliced_num_col);
-  int NRHS = static_cast<int>(outMat.sliced_num_col);
+  int M = static_cast<int>(inMat.local_num_row);
+  int N = static_cast<int>(inMat.local_num_col);
+  int NRHS = static_cast<int>(outMat.local_num_col);
 
   int MIN_MN = std::min(M,N);
   S_VAL.resize(MIN_MN,0);
@@ -1999,14 +1999,14 @@ int gelss(const sliced_colmajor_matrix_local<double>& inMat,
   if(!inMat.is_valid() || !outMat.is_valid())
     REPORT_ERROR(USER_ERROR,"Invalid input matrix!!\n");
 
-  size_t maxSize = std::max(inMat.sliced_num_row,inMat.sliced_num_col);
-  if(outMat.sliced_num_row < maxSize || outMat.sliced_num_col < 1)
+  size_t maxSize = std::max(inMat.local_num_row,inMat.local_num_col);
+  if(outMat.local_num_row < maxSize || outMat.local_num_col < 1)
      REPORT_ERROR(USER_ERROR,"Invalid right hand side matrix!!\n");
 #endif 
      
-  int M = static_cast<int>(inMat.sliced_num_row);
-  int N = static_cast<int>(inMat.sliced_num_col);
-  int NRHS = static_cast<int>(outMat.sliced_num_col);
+  int M = static_cast<int>(inMat.local_num_row);
+  int N = static_cast<int>(inMat.local_num_col);
+  int NRHS = static_cast<int>(outMat.local_num_col);
 
   int MIN_MN = std::min(M,N);
   S_VAL.resize(MIN_MN,0);
@@ -2066,8 +2066,8 @@ int getrf(const sliced_colmajor_matrix_local<float>& inMat,
     REPORT_ERROR(USER_ERROR,"Invalid input matrix!!\n");
 #endif 
 
-  int M = static_cast<int>(inMat.sliced_num_row);
-  int N = static_cast<int>(inMat.sliced_num_col);
+  int M = static_cast<int>(inMat.local_num_row);
+  int N = static_cast<int>(inMat.local_num_col);
   int MIN_MN = std::min(M,N);
 
   float* Aptr = inMat.data;
@@ -2094,8 +2094,8 @@ int getrf(const sliced_colmajor_matrix_local<double>& inMat,
     REPORT_ERROR(USER_ERROR,"Invalid input matrix!!\n");
 #endif 
 
-  int M = static_cast<int>(inMat.sliced_num_row);
-  int N = static_cast<int>(inMat.sliced_num_col);
+  int M = static_cast<int>(inMat.local_num_row);
+  int N = static_cast<int>(inMat.local_num_col);
   int MIN_MN = std::min(M,N);
 
   double* Aptr = inMat.data;
@@ -2121,14 +2121,14 @@ int getri(const sliced_colmajor_matrix_local<float>& inMat,
   if(!inMat.is_valid())
     REPORT_ERROR(USER_ERROR,"Invalid input matrix!!\n");
 
-  if(inMat.sliced_num_row != inMat.sliced_num_col)
+  if(inMat.local_num_row != inMat.local_num_col)
     REPORT_ERROR(USER_ERROR,"The input matrix is not a square matrix!!\n");
 
-  if(IPIV.size() < inMat.sliced_num_row)
+  if(IPIV.size() < inMat.local_num_row)
     REPORT_ERROR(USER_ERROR,"Incompatible size of the input pivot array!!\n");
 #endif 
 
-  int N = static_cast<int>(inMat.sliced_num_row); // inMat.sliced_num_col;
+  int N = static_cast<int>(inMat.local_num_row); // inMat.local_num_col;
   float* Aptr = inMat.data;
   int LDA = static_cast<int>(inMat.ldm);
 
@@ -2166,14 +2166,14 @@ int getri(const sliced_colmajor_matrix_local<double>& inMat,
   if(!inMat.is_valid())
     REPORT_ERROR(USER_ERROR,"Invalid input matrix!!\n");
 
-  if(inMat.sliced_num_row != inMat.sliced_num_col)
+  if(inMat.local_num_row != inMat.local_num_col)
     REPORT_ERROR(USER_ERROR,"The input matrix is not a square matrix!!\n");
 
-  if(IPIV.size() < inMat.sliced_num_row)
+  if(IPIV.size() < inMat.local_num_row)
     REPORT_ERROR(USER_ERROR,"Incompatible size of the input pivot array!!\n");
 #endif 
 
-  int N = static_cast<int>(inMat.sliced_num_row); // inMat.sliced_num_col;
+  int N = static_cast<int>(inMat.local_num_row); // inMat.local_num_col;
   double* Aptr = inMat.data;
   int LDA = static_cast<int>(inMat.ldm);
 
@@ -2214,23 +2214,23 @@ int getrs(const sliced_colmajor_matrix_local<float>& inMat,
   if(!inMat.is_valid() || !outMat.is_valid())
     REPORT_ERROR(USER_ERROR,"Invalid input matrix!!\n");
 
-  if(inMat.sliced_num_row != inMat.sliced_num_col)
+  if(inMat.local_num_row != inMat.local_num_col)
     REPORT_ERROR(USER_ERROR,"The input matrix is not a square matrix!!\n");
 
-  if(outMat.sliced_num_row < inMat.sliced_num_row ||
-     outMat.sliced_num_col < 1)
+  if(outMat.local_num_row < inMat.local_num_row ||
+     outMat.local_num_col < 1)
     REPORT_ERROR(USER_ERROR, 
        "Incompatible size of the right hand side matrix!!\n");
 
-  if(IPIV.size() < inMat.sliced_num_row)
+  if(IPIV.size() < inMat.local_num_row)
     REPORT_ERROR(USER_ERROR,"Incompatible size of the input pivot array!!\n");
 
   if((TRANS != 'N') && (TRANS != 'T'))
     REPORT_ERROR(USER_ERROR,"Illegal value for the TRANS parameter!!\n");
 #endif 
 
-  int N = static_cast<int>(inMat.sliced_num_row); // inMat.sliced_num_col;
-  int NRHS = static_cast<int>(outMat.sliced_num_col);
+  int N = static_cast<int>(inMat.local_num_row); // inMat.local_num_col;
+  int NRHS = static_cast<int>(outMat.local_num_col);
 
   float* Aptr = inMat.data;
   int LDA = static_cast<int>(inMat.ldm);
@@ -2262,23 +2262,23 @@ int getrs(const sliced_colmajor_matrix_local<double>& inMat,
   if(!inMat.is_valid() || !outMat.is_valid())
     REPORT_ERROR(USER_ERROR,"Invalid input matrix!!\n");
 
-  if(inMat.sliced_num_row != inMat.sliced_num_col)
+  if(inMat.local_num_row != inMat.local_num_col)
     REPORT_ERROR(USER_ERROR,"The input matrix is not a square matrix!!\n");
 
-  if(outMat.sliced_num_row < inMat.sliced_num_row ||
-     outMat.sliced_num_col < 1)
+  if(outMat.local_num_row < inMat.local_num_row ||
+     outMat.local_num_col < 1)
     REPORT_ERROR(USER_ERROR, 
        "Incompatible size of the right hand side matrix!!\n");
 
-  if(IPIV.size() < inMat.sliced_num_row)
+  if(IPIV.size() < inMat.local_num_row)
     REPORT_ERROR(USER_ERROR,"Incompatible size of the input pivot array!!\n");
 
   if((TRANS != 'N') && (TRANS != 'T'))
     REPORT_ERROR(USER_ERROR,"Illegal value for the TRANS parameter!!\n");
 #endif 
 
-  int N = static_cast<int>(inMat.sliced_num_row); // inMat.sliced_num_col;
-  int NRHS = static_cast<int>(outMat.sliced_num_col);
+  int N = static_cast<int>(inMat.local_num_row); // inMat.local_num_col;
+  int NRHS = static_cast<int>(outMat.local_num_col);
 
   double* Aptr = inMat.data;
   int LDA = static_cast<int>(inMat.ldm);

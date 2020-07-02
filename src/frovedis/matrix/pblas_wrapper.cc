@@ -444,12 +444,12 @@ pgemv<float>::operator() (sliced_blockcyclic_matrix_local<float>& inMat,
 
     size_t nrowa, ncola;
     if(TRANS == 'N') {
-      nrowa = inMat.sliced_num_row;
-      ncola = inMat.sliced_num_col;
+      nrowa = inMat.local_num_row;
+      ncola = inMat.local_num_col;
     }
     else if(TRANS == 'T') {
-      nrowa = inMat.sliced_num_col;
-      ncola = inMat.sliced_num_row;
+      nrowa = inMat.local_num_col;
+      ncola = inMat.local_num_row;
     }
     else
       REPORT_ERROR(USER_ERROR,"Illegal value provided for TRANS parameter!!\n");
@@ -459,8 +459,8 @@ pgemv<float>::operator() (sliced_blockcyclic_matrix_local<float>& inMat,
         "Incompatible input sizes: matrix-vector multiplication not possible!!\n");
 #endif
 
-    int M = static_cast<int>(inMat.sliced_num_row);
-    int N = static_cast<int>(inMat.sliced_num_col);
+    int M = static_cast<int>(inMat.local_num_row);
+    int N = static_cast<int>(inMat.local_num_col);
 
     float* aptr = inMat.data;
     int IA = static_cast<int>(inMat.IA);
@@ -513,12 +513,12 @@ pgemv<double>::operator() (sliced_blockcyclic_matrix_local<double>& inMat,
 
     size_t nrowa, ncola;
     if(TRANS == 'N') {
-      nrowa = inMat.sliced_num_row;
-      ncola = inMat.sliced_num_col;
+      nrowa = inMat.local_num_row;
+      ncola = inMat.local_num_col;
     }
     else if(TRANS == 'T') {
-      nrowa = inMat.sliced_num_col;
-      ncola = inMat.sliced_num_row;
+      nrowa = inMat.local_num_col;
+      ncola = inMat.local_num_row;
     }
     else
       REPORT_ERROR(USER_ERROR,"Illegal value provided for TRANS parameter!!\n");
@@ -528,8 +528,8 @@ pgemv<double>::operator() (sliced_blockcyclic_matrix_local<double>& inMat,
         "Incompatible input sizes: matrix-vector multiplication not possible!!\n");
 #endif
 
-    int M = static_cast<int>(inMat.sliced_num_row);
-    int N = static_cast<int>(inMat.sliced_num_col);
+    int M = static_cast<int>(inMat.local_num_row);
+    int N = static_cast<int>(inMat.local_num_col);
   
     double* aptr = inMat.data;
     int IA = static_cast<int>(inMat.IA);
@@ -581,14 +581,14 @@ pger<float>::operator() (sliced_blockcyclic_vector_local<float>& inVec1,
     if(!inVec1.is_valid() || !inVec2.is_valid())
       REPORT_ERROR(USER_ERROR,"Invalid input vector!!\n");
 
-    if(inVec1.size < outMat.sliced_num_row || 
-       inVec2.size < outMat.sliced_num_col)
+    if(inVec1.size < outMat.local_num_row || 
+       inVec2.size < outMat.local_num_col)
       REPORT_ERROR(USER_ERROR, 
         "Incompatible input sizes: multiplication not possible!!\n");
 #endif
 
-    int M = static_cast<int>(outMat.sliced_num_row);
-    int N = static_cast<int>(outMat.sliced_num_col);
+    int M = static_cast<int>(outMat.local_num_row);
+    int N = static_cast<int>(outMat.local_num_col);
 
     float* aptr = outMat.data;
     int IA = static_cast<int>(outMat.IA);
@@ -637,14 +637,14 @@ pger<double>::operator() (sliced_blockcyclic_vector_local<double>& inVec1,
     if(!inVec1.is_valid() || !inVec2.is_valid())
       REPORT_ERROR(USER_ERROR,"Invalid input vector!!\n");
 
-    if(inVec1.size < outMat.sliced_num_row || 
-       inVec2.size < outMat.sliced_num_col)
+    if(inVec1.size < outMat.local_num_row || 
+       inVec2.size < outMat.local_num_col)
       REPORT_ERROR(USER_ERROR, 
         "Incompatible input sizes: multiplication not possible!!\n");
 #endif
 
-    int M = static_cast<int>(outMat.sliced_num_row);
-    int N = static_cast<int>(outMat.sliced_num_col);
+    int M = static_cast<int>(outMat.local_num_row);
+    int N = static_cast<int>(outMat.local_num_col);
 
     double* aptr = outMat.data;
     int IA = static_cast<int>(outMat.IA);
@@ -693,29 +693,29 @@ pgemm<float>::operator() (sliced_blockcyclic_matrix_local<float>& inMat1,
 
     size_t nrowa=0, nrowb=0, nrowc=0, ncola=0, ncolb=0, ncolc=0;
     if(TRANS_M1 == 'N') {
-      nrowa = inMat1.sliced_num_row;
-      ncola = inMat1.sliced_num_col;
+      nrowa = inMat1.local_num_row;
+      ncola = inMat1.local_num_col;
     }
     else if(TRANS_M1 == 'T') {
-      nrowa = inMat1.sliced_num_col;
-      ncola = inMat1.sliced_num_row;
+      nrowa = inMat1.local_num_col;
+      ncola = inMat1.local_num_row;
     }
     else
       REPORT_ERROR(USER_ERROR,"Illegal value provided for TRANS parameter!!\n");
 
     if(TRANS_M2 == 'N') {
-      nrowb = inMat2.sliced_num_row;
-      ncolb = inMat2.sliced_num_col;
+      nrowb = inMat2.local_num_row;
+      ncolb = inMat2.local_num_col;
     }
     else if(TRANS_M2 == 'T') {
-      nrowb = inMat2.sliced_num_col;
-      ncolb = inMat2.sliced_num_row;
+      nrowb = inMat2.local_num_col;
+      ncolb = inMat2.local_num_row;
     }
     else
       REPORT_ERROR(USER_ERROR,"Illegal value provided for TRANS parameter!!\n");
   
-    nrowc = outMat.sliced_num_row;
-    ncolc = outMat.sliced_num_col;
+    nrowc = outMat.local_num_row;
+    ncolc = outMat.local_num_col;
 
     if (ncola != nrowb || nrowc < nrowa || ncolc < ncolb)
       REPORT_ERROR(USER_ERROR,
@@ -772,29 +772,29 @@ pgemm<double>::operator() (sliced_blockcyclic_matrix_local<double>& inMat1,
 
     size_t nrowa=0, nrowb=0, nrowc=0, ncola=0, ncolb=0, ncolc=0;
     if(TRANS_M1 == 'N') {
-      nrowa = inMat1.sliced_num_row;
-      ncola = inMat1.sliced_num_col;
+      nrowa = inMat1.local_num_row;
+      ncola = inMat1.local_num_col;
     }
     else if(TRANS_M1 == 'T') {
-      nrowa = inMat1.sliced_num_col;
-      ncola = inMat1.sliced_num_row;
+      nrowa = inMat1.local_num_col;
+      ncola = inMat1.local_num_row;
     }
     else
       REPORT_ERROR(USER_ERROR,"Illegal value provided for TRANS parameter!!\n");
 
     if(TRANS_M2 == 'N') {
-      nrowb = inMat2.sliced_num_row;
-      ncolb = inMat2.sliced_num_col;
+      nrowb = inMat2.local_num_row;
+      ncolb = inMat2.local_num_col;
     }
     else if(TRANS_M2 == 'T') {
-      nrowb = inMat2.sliced_num_col;
-      ncolb = inMat2.sliced_num_row;
+      nrowb = inMat2.local_num_col;
+      ncolb = inMat2.local_num_row;
     }
     else
       REPORT_ERROR(USER_ERROR,"Illegal value provided for TRANS parameter!!\n");
     
-    nrowc = outMat.sliced_num_row;
-    ncolc = outMat.sliced_num_col;
+    nrowc = outMat.local_num_row;
+    ncolc = outMat.local_num_col;
 
     if (ncola != nrowb || nrowc < nrowa || ncolc < ncolb)
       REPORT_ERROR(USER_ERROR,
@@ -847,18 +847,18 @@ pgeadd<float>::operator() (sliced_blockcyclic_matrix_local<float>& inMat,
 
     size_t nrowa=0, nrowb=0, ncola=0, ncolb=0;
     if(TRANS == 'N') {
-      nrowa = inMat.sliced_num_row;
-      ncola = inMat.sliced_num_col;
+      nrowa = inMat.local_num_row;
+      ncola = inMat.local_num_col;
     }
     else if(TRANS == 'T') {
-      nrowa = inMat.sliced_num_col;
-      ncola = inMat.sliced_num_row;
+      nrowa = inMat.local_num_col;
+      ncola = inMat.local_num_row;
     }
     else
       REPORT_ERROR(USER_ERROR,"Illegal value provided for TRANS parameter!!\n");
 
-    nrowb = outMat.sliced_num_row;
-    ncolb = outMat.sliced_num_col;
+    nrowb = outMat.local_num_row;
+    ncolb = outMat.local_num_col;
 
     if (nrowa != nrowb || ncola != ncolb)
       REPORT_ERROR(USER_ERROR,
@@ -904,18 +904,18 @@ pgeadd<double>::operator() (sliced_blockcyclic_matrix_local<double>& inMat,
 
     size_t nrowa=0, nrowb=0, ncola=0, ncolb=0;
     if(TRANS == 'N') {
-      nrowa = inMat.sliced_num_row;
-      ncola = inMat.sliced_num_col;
+      nrowa = inMat.local_num_row;
+      ncola = inMat.local_num_col;
     }
     else if(TRANS == 'T') {
-      nrowa = inMat.sliced_num_col;
-      ncola = inMat.sliced_num_row;
+      nrowa = inMat.local_num_col;
+      ncola = inMat.local_num_row;
     }
     else
       REPORT_ERROR(USER_ERROR,"Illegal value provided for TRANS parameter!!\n");
 
-    nrowb = outMat.sliced_num_row;
-    ncolb = outMat.sliced_num_col;
+    nrowb = outMat.local_num_row;
+    ncolb = outMat.local_num_col;
 
     if (nrowa != nrowb || ncola != ncolb)
       REPORT_ERROR(USER_ERROR,

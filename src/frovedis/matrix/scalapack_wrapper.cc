@@ -18,8 +18,8 @@ int pgetrf (sliced_blockcyclic_matrix_local<float>& inMat,
       REPORT_ERROR(USER_ERROR,"Invalid input matrix!!\n");
 #endif
 
-    int M = static_cast<int>(inMat.sliced_num_row);
-    int N = static_cast<int>(inMat.sliced_num_col);
+    int M = static_cast<int>(inMat.local_num_row);
+    int N = static_cast<int>(inMat.local_num_col);
 
     float* aptr = inMat.data;
     int IA = static_cast<int>(inMat.IA);
@@ -77,8 +77,8 @@ int pgetrf (sliced_blockcyclic_matrix_local<double>& inMat,
       REPORT_ERROR(USER_ERROR,"Invalid input matrix!!\n");
 #endif
 
-    int M = static_cast<int>(inMat.sliced_num_row);
-    int N = static_cast<int>(inMat.sliced_num_col);
+    int M = static_cast<int>(inMat.local_num_row);
+    int N = static_cast<int>(inMat.local_num_col);
 
     double* aptr = inMat.data;
     int IA = static_cast<int>(inMat.IA);
@@ -135,12 +135,12 @@ int pgetri (sliced_blockcyclic_matrix_local<float>& inMat,
     if(!inMat.is_valid())
       REPORT_ERROR(USER_ERROR,"Invalid input matrix!!\n");
 
-    if(inMat.sliced_num_row != inMat.sliced_num_col)
+    if(inMat.local_num_row != inMat.local_num_col)
       REPORT_ERROR(USER_ERROR,
          "Matrix-inverse not possible: Input matrix is not a square matrix!!\n");
 #endif
 
-    int N = static_cast<int>(inMat.sliced_num_row); // inMat.sliced_num_col;
+    int N = static_cast<int>(inMat.local_num_row); // inMat.local_num_col;
 
     float* aptr = inMat.data;
     int IA = static_cast<int>(inMat.IA);
@@ -217,12 +217,12 @@ int pgetri (sliced_blockcyclic_matrix_local<double>& inMat,
     if(!inMat.is_valid())
       REPORT_ERROR(USER_ERROR,"Invalid input matrix!!\n");
 
-    if(inMat.sliced_num_row != inMat.sliced_num_col)
+    if(inMat.local_num_row != inMat.local_num_col)
       REPORT_ERROR(USER_ERROR,
          "Matrix-inverse not possible: Input matrix is not a square matrix!!\n");
 #endif
 
-    int N = static_cast<int>(inMat.sliced_num_row); // inMat.sliced_num_col;
+    int N = static_cast<int>(inMat.local_num_row); // inMat.local_num_col;
 
     double* aptr = inMat.data;
     int IA = static_cast<int>(inMat.IA);
@@ -304,19 +304,19 @@ int pgetrs (sliced_blockcyclic_matrix_local<float>& inMat,
     if(!inMat.is_valid() || !outMat.is_valid())
       REPORT_ERROR(USER_ERROR,"Invalid input matrix!!\n");
 
-    if(inMat.sliced_num_row != inMat.sliced_num_col)
+    if(inMat.local_num_row != inMat.local_num_col)
       REPORT_ERROR(USER_ERROR,"The co-efficient matrix is not a square matrix!!\n");
 
-    if(outMat.sliced_num_row < inMat.sliced_num_row ||
-       outMat.sliced_num_col < 1)
+    if(outMat.local_num_row < inMat.local_num_row ||
+       outMat.local_num_col < 1)
       REPORT_ERROR(USER_ERROR,"Invalid right hand side matrix!!\n");
     
     if(TRANS != 'N' && TRANS != 'T')
       REPORT_ERROR(USER_ERROR,"Illegal value for the TRANS parameter!!\n");
 #endif
 
-    int N = static_cast<int>(inMat.sliced_num_row); // inMat.sliced_num_col;
-    int NRHS = static_cast<int>(outMat.sliced_num_col);
+    int N = static_cast<int>(inMat.local_num_row); // inMat.local_num_col;
+    int NRHS = static_cast<int>(outMat.local_num_col);
 
     float* aptr = inMat.data;
     int IA = static_cast<int>(inMat.IA);
@@ -391,19 +391,19 @@ int pgetrs (sliced_blockcyclic_matrix_local<double>& inMat,
     if(!inMat.is_valid() || !outMat.is_valid())
       REPORT_ERROR(USER_ERROR,"Invalid input matrix!!\n");
 
-    if(inMat.sliced_num_row != inMat.sliced_num_col)
+    if(inMat.local_num_row != inMat.local_num_col)
       REPORT_ERROR(USER_ERROR,"The co-efficient matrix is not a square matrix!!\n");
 
-    if(outMat.sliced_num_row < inMat.sliced_num_row ||
-       outMat.sliced_num_col < 1)
+    if(outMat.local_num_row < inMat.local_num_row ||
+       outMat.local_num_col < 1)
       REPORT_ERROR(USER_ERROR,"Invalid right hand side matrix!!\n");
     
     if(TRANS != 'N' && TRANS != 'T')
       REPORT_ERROR(USER_ERROR,"Illegal value for the TRANS parameter!!\n");
 #endif
 
-    int N = static_cast<int>(inMat.sliced_num_row); // inMat.sliced_num_col;
-    int NRHS = static_cast<int>(outMat.sliced_num_col);
+    int N = static_cast<int>(inMat.local_num_row); // inMat.local_num_col;
+    int NRHS = static_cast<int>(outMat.local_num_col);
 
     double* aptr = inMat.data;
     int IA = static_cast<int>(inMat.IA);
@@ -477,16 +477,16 @@ int pgesv2 (sliced_blockcyclic_matrix_local<float>& inMat,
     if(!inMat.is_valid() || !outMat.is_valid())
       REPORT_ERROR(USER_ERROR,"Invalid input matrix!!\n");
 
-    if(inMat.sliced_num_row != inMat.sliced_num_col)
+    if(inMat.local_num_row != inMat.local_num_col)
       REPORT_ERROR(USER_ERROR,"The co-efficient matrix is not a square matrix!!\n");
 
-    if(outMat.sliced_num_row < inMat.sliced_num_row ||
-       outMat.sliced_num_col < 1)
+    if(outMat.local_num_row < inMat.local_num_row ||
+       outMat.local_num_col < 1)
       REPORT_ERROR(USER_ERROR,"Invalid right hand side matrix!!\n");
 #endif
     
-    int N = static_cast<int>(inMat.sliced_num_row); // inMat.sliced_num_col;
-    int NRHS = static_cast<int>(outMat.sliced_num_col);
+    int N = static_cast<int>(inMat.local_num_row); // inMat.local_num_col;
+    int NRHS = static_cast<int>(outMat.local_num_col);
 
     float* aptr = inMat.data;
     int IA = static_cast<int>(inMat.IA);
@@ -560,16 +560,16 @@ int pgesv2 (sliced_blockcyclic_matrix_local<double>& inMat,
     if(!inMat.is_valid() || !outMat.is_valid())
       REPORT_ERROR(USER_ERROR,"Invalid input matrix!!\n");
 
-    if(inMat.sliced_num_row != inMat.sliced_num_col)
+    if(inMat.local_num_row != inMat.local_num_col)
       REPORT_ERROR(USER_ERROR,"The co-efficient matrix is not a square matrix!!\n");
 
-    if(outMat.sliced_num_row < inMat.sliced_num_row ||
-       outMat.sliced_num_col < 1)
+    if(outMat.local_num_row < inMat.local_num_row ||
+       outMat.local_num_col < 1)
       REPORT_ERROR(USER_ERROR,"Invalid right hand side matrix!!\n");
 #endif
     
-    int N = static_cast<int>(inMat.sliced_num_row); // inMat.sliced_num_col;
-    int NRHS = static_cast<int>(outMat.sliced_num_col);
+    int N = static_cast<int>(inMat.local_num_row); // inMat.local_num_col;
+    int NRHS = static_cast<int>(outMat.local_num_col);
 
     double* aptr = inMat.data;
     int IA = static_cast<int>(inMat.IA);
@@ -662,14 +662,14 @@ int pgels (sliced_blockcyclic_matrix_local<float>& inMat,
     if((TRANS != 'N') && (TRANS != 'T'))
       REPORT_ERROR(USER_ERROR, "Invalid value for TRANS parameter!!\n");
 
-    size_t maxSize = std::max(inMat.sliced_num_row,inMat.sliced_num_col);
-    if(outMat.sliced_num_row < maxSize || outMat.sliced_num_col < 1)
+    size_t maxSize = std::max(inMat.local_num_row,inMat.local_num_col);
+    if(outMat.local_num_row < maxSize || outMat.local_num_col < 1)
       REPORT_ERROR(USER_ERROR, "Invalid right hand side matrix!!\n");
 #endif
     
-    int M = static_cast<int>(inMat.sliced_num_row);
-    int N = static_cast<int>(inMat.sliced_num_col);
-    int NRHS = static_cast<int>(outMat.sliced_num_col);
+    int M = static_cast<int>(inMat.local_num_row);
+    int N = static_cast<int>(inMat.local_num_col);
+    int NRHS = static_cast<int>(outMat.local_num_col);
 
     float* aptr = inMat.data;
     int IA = static_cast<int>(inMat.IA);
@@ -760,14 +760,14 @@ int pgels (sliced_blockcyclic_matrix_local<double>& inMat,
     if((TRANS != 'N') && (TRANS != 'T'))
       REPORT_ERROR(USER_ERROR, "Invalid value for TRANS parameter!!\n");
 
-    size_t maxSize = std::max(inMat.sliced_num_row,inMat.sliced_num_col);
-    if(outMat.sliced_num_row < maxSize || outMat.sliced_num_col < 1)
+    size_t maxSize = std::max(inMat.local_num_row,inMat.local_num_col);
+    if(outMat.local_num_row < maxSize || outMat.local_num_col < 1)
       REPORT_ERROR(USER_ERROR, "Invalid right hand side matrix!!\n");
 #endif
     
-    int M = static_cast<int>(inMat.sliced_num_row);
-    int N = static_cast<int>(inMat.sliced_num_col);
-    int NRHS = static_cast<int>(outMat.sliced_num_col);
+    int M = static_cast<int>(inMat.local_num_row);
+    int N = static_cast<int>(inMat.local_num_col);
+    int NRHS = static_cast<int>(outMat.local_num_col);
 
     double* aptr = inMat.data;
     int IA = static_cast<int>(inMat.IA);
@@ -854,8 +854,8 @@ int pgesvd1 (sliced_blockcyclic_matrix_local<float>& inMat,
 
     char JOBZ = 'N';
     
-    int M = static_cast<int>(inMat.sliced_num_row);
-    int N = static_cast<int>(inMat.sliced_num_col);
+    int M = static_cast<int>(inMat.local_num_row);
+    int N = static_cast<int>(inMat.local_num_col);
 
     float* aptr = inMat.data;
     int IA = static_cast<int>(inMat.IA);
@@ -941,8 +941,8 @@ int pgesvd1 (sliced_blockcyclic_matrix_local<double>& inMat,
 
     char JOBZ = 'N';
     
-    int M = static_cast<int>(inMat.sliced_num_row);
-    int N = static_cast<int>(inMat.sliced_num_col);
+    int M = static_cast<int>(inMat.local_num_row);
+    int N = static_cast<int>(inMat.local_num_col);
 
     double* aptr = inMat.data;
     int IA = static_cast<int>(inMat.IA);
@@ -1033,8 +1033,8 @@ int pgesvd2 (sliced_blockcyclic_matrix_local<float>& inMat,
 
     char JOBU = 'N', JOBVT = 'N';
 
-    int M = static_cast<int>(inMat.sliced_num_row);
-    int N = static_cast<int>(inMat.sliced_num_col);
+    int M = static_cast<int>(inMat.local_num_row);
+    int N = static_cast<int>(inMat.local_num_col);
     int MIN_MN = std::min(M,N);
 
     float* uptr = NULL;
@@ -1054,7 +1054,7 @@ int pgesvd2 (sliced_blockcyclic_matrix_local<float>& inMat,
         REPORT_ERROR(USER_ERROR, 
 	  "Invalid output matrix (left singular vector)!!\n");
 
-      if (S_VEC.sliced_num_row < M || S_VEC.sliced_num_col < MIN_MN)
+      if (S_VEC.local_num_row < M || S_VEC.local_num_col < MIN_MN)
         REPORT_ERROR(USER_ERROR, 
                      "Incompatible size for the 3rd argument matrix!!\n");
 
@@ -1074,7 +1074,7 @@ int pgesvd2 (sliced_blockcyclic_matrix_local<float>& inMat,
         REPORT_ERROR(USER_ERROR,
 	  "Invalid output matrix (right singular vector)!!\n");
 
-      if (S_VEC.sliced_num_row < MIN_MN || S_VEC.sliced_num_col < N)
+      if (S_VEC.local_num_row < MIN_MN || S_VEC.local_num_col < N)
         REPORT_ERROR(USER_ERROR, 
                      "Incompatible size for the 3rd argument matrix!!\n");
 
@@ -1192,8 +1192,8 @@ int pgesvd2 (sliced_blockcyclic_matrix_local<double>& inMat,
 
     char JOBU = 'N', JOBVT = 'N';
 
-    int M = static_cast<int>(inMat.sliced_num_row);
-    int N = static_cast<int>(inMat.sliced_num_col);
+    int M = static_cast<int>(inMat.local_num_row);
+    int N = static_cast<int>(inMat.local_num_col);
     int MIN_MN = std::min(M,N);
 
     double* uptr = NULL;
@@ -1213,7 +1213,7 @@ int pgesvd2 (sliced_blockcyclic_matrix_local<double>& inMat,
         REPORT_ERROR(USER_ERROR, 
 	  "Invalid output matrix (left singular vector)!!\n");
 
-      if (S_VEC.sliced_num_row < M || S_VEC.sliced_num_col < MIN_MN)
+      if (S_VEC.local_num_row < M || S_VEC.local_num_col < MIN_MN)
         REPORT_ERROR(USER_ERROR, 
                      "Incompatible size for the 3rd argument matrix!!\n");
 
@@ -1233,7 +1233,7 @@ int pgesvd2 (sliced_blockcyclic_matrix_local<double>& inMat,
         REPORT_ERROR(USER_ERROR,
 	  "Invalid output matrix (right singular vector)!!\n");
 
-      if (S_VEC.sliced_num_row < MIN_MN || S_VEC.sliced_num_col < N)
+      if (S_VEC.local_num_row < MIN_MN || S_VEC.local_num_col < N)
         REPORT_ERROR(USER_ERROR, 
                      "Incompatible size for the 3rd argument matrix!!\n");
 
@@ -1355,22 +1355,22 @@ int pgesvd3 (sliced_blockcyclic_matrix_local<float>& inMat,
     if(!L_SVEC.is_valid() || !R_SVEC.is_valid())
       REPORT_ERROR(USER_ERROR,"Invalid output matrix for singular vectors!!\n");
 
-    int MIN_MN = std::min(inMat.sliced_num_row,inMat.sliced_num_col);
+    int MIN_MN = std::min(inMat.local_num_row,inMat.local_num_col);
 
-    if (L_SVEC.sliced_num_row < inMat.sliced_num_row || 
-        L_SVEC.sliced_num_col < MIN_MN)
+    if (L_SVEC.local_num_row < inMat.local_num_row || 
+        L_SVEC.local_num_col < MIN_MN)
       REPORT_ERROR(USER_ERROR, 
                    "Incompatible size for the 3rd argument matrix!!\n");
 
-    if (R_SVEC.sliced_num_row < MIN_MN || 
-        R_SVEC.sliced_num_col < inMat.sliced_num_col)
+    if (R_SVEC.local_num_row < MIN_MN || 
+        R_SVEC.local_num_col < inMat.local_num_col)
       REPORT_ERROR(USER_ERROR, 
                    "Incompatible size for the 4th argument matrix!!\n");
 #endif
 
     char JOBU = 'V', JOBVT = 'V';
-    int M = static_cast<int>(inMat.sliced_num_row);
-    int N = static_cast<int>(inMat.sliced_num_col);
+    int M = static_cast<int>(inMat.local_num_row);
+    int N = static_cast<int>(inMat.local_num_col);
 
     float* aptr = inMat.data;
     int IA = static_cast<int>(inMat.IA);
@@ -1484,22 +1484,22 @@ int pgesvd3 (sliced_blockcyclic_matrix_local<double>& inMat,
     if(!L_SVEC.is_valid() || !R_SVEC.is_valid())
       REPORT_ERROR(USER_ERROR,"Invalid output matrix for singular vectors!!\n");
 
-    int MIN_MN = std::min(inMat.sliced_num_row,inMat.sliced_num_col);
+    int MIN_MN = std::min(inMat.local_num_row,inMat.local_num_col);
 
-    if (L_SVEC.sliced_num_row < inMat.sliced_num_row ||
-        L_SVEC.sliced_num_col < MIN_MN)
+    if (L_SVEC.local_num_row < inMat.local_num_row ||
+        L_SVEC.local_num_col < MIN_MN)
       REPORT_ERROR(USER_ERROR,
                    "Incompatible size for the 3rd argument matrix!!\n");
 
-    if (R_SVEC.sliced_num_row < MIN_MN ||
-        R_SVEC.sliced_num_col < inMat.sliced_num_col)
+    if (R_SVEC.local_num_row < MIN_MN ||
+        R_SVEC.local_num_col < inMat.local_num_col)
       REPORT_ERROR(USER_ERROR,
                    "Incompatible size for the 4th argument matrix!!\n");
 #endif
 
     char JOBU = 'V', JOBVT = 'V';
-    int M = static_cast<int>(inMat.sliced_num_row);
-    int N = static_cast<int>(inMat.sliced_num_col);
+    int M = static_cast<int>(inMat.local_num_row);
+    int N = static_cast<int>(inMat.local_num_col);
 
     double* aptr = inMat.data;
     int IA = static_cast<int>(inMat.IA);
@@ -1608,16 +1608,16 @@ void placpy(sliced_blockcyclic_matrix_local<float>& inMat,
     if(!outMat.is_valid())
       REPORT_ERROR(USER_ERROR,"Invalid output matrix!!\n");
 
-    if(inMat.sliced_num_row != outMat.sliced_num_row ||
-       inMat.sliced_num_col != outMat.sliced_num_col)
+    if(inMat.local_num_row != outMat.local_num_row ||
+       inMat.local_num_col != outMat.local_num_col)
       REPORT_ERROR(USER_ERROR,"Incompatible sizes of the input matrices!!\n");
 
     if(UPLO != 'U' && UPLO != 'L' && UPLO != 'A')
       REPORT_ERROR(USER_ERROR,"Illegal value provided for 3rd argument!!\n");
 #endif
    
-    int M = static_cast<int>(inMat.sliced_num_row);
-    int N = static_cast<int>(inMat.sliced_num_col);
+    int M = static_cast<int>(inMat.local_num_row);
+    int N = static_cast<int>(inMat.local_num_col);
 
     float* aptr = inMat.data;
     int IA = static_cast<int>(inMat.IA);
@@ -1657,16 +1657,16 @@ void placpy(sliced_blockcyclic_matrix_local<double>& inMat,
     if(!outMat.is_valid())
       REPORT_ERROR(USER_ERROR,"Invalid output matrix!!\n");
 
-    if(inMat.sliced_num_row != outMat.sliced_num_row ||
-       inMat.sliced_num_col != outMat.sliced_num_col)
+    if(inMat.local_num_row != outMat.local_num_row ||
+       inMat.local_num_col != outMat.local_num_col)
       REPORT_ERROR(USER_ERROR,"Incompatible sizes of the input matrices!!\n");
 
     if(UPLO != 'U' && UPLO != 'L' && UPLO != 'A')
       REPORT_ERROR(USER_ERROR,"Illegal value provided for 3rd argument!!\n");
 #endif
    
-    int M = static_cast<int>(inMat.sliced_num_row);
-    int N = static_cast<int>(inMat.sliced_num_col);
+    int M = static_cast<int>(inMat.local_num_row);
+    int N = static_cast<int>(inMat.local_num_col);
 
     double* aptr = inMat.data;
     int IA = static_cast<int>(inMat.IA);

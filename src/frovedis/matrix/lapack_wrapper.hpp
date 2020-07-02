@@ -518,10 +518,10 @@ namespace frovedis{
     if(!inMat.is_valid())
       REPORT_ERROR(USER_ERROR,"Invalid input matrix!!\n");
     
-    if(inMat.sliced_num_row != inMat.sliced_num_col)
+    if(inMat.local_num_row != inMat.local_num_col)
       REPORT_ERROR(USER_ERROR, "Input matrix is not a square matrix!!\n");
 
-    size_t N = inMat.sliced_num_row; // inMat.sliced_num_col;
+    size_t N = inMat.local_num_row; // inMat.local_num_col;
     colmajor_matrix_local<T> ret(N,N);
 
     T *retp = &ret.val[0];

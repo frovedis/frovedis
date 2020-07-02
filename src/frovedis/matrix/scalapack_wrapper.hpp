@@ -440,8 +440,8 @@ blockcyclic_matrix<T>
 inv(const sliced_blockcyclic_matrix<T>& inMat) {
 
   auto& m1 = const_cast<sliced_blockcyclic_matrix<T>&> (inMat);  
-  size_t nrow = m1.data.map(get_sliced_num_row<T>).get(0);
-  size_t ncol = m1.data.map(get_sliced_num_col<T>).get(0);
+  size_t nrow = m1.data.map(get_local_num_row<T>).get(0);
+  size_t ncol = m1.data.map(get_local_num_col<T>).get(0);
 
   if(nrow != ncol)
     REPORT_ERROR(USER_ERROR, "Input matrix is not a square matrix!!\n");

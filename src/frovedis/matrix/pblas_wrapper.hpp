@@ -406,10 +406,10 @@ operator*(const sliced_blockcyclic_matrix<T>& inMat1,
    auto &m1 = const_cast<sliced_blockcyclic_matrix<T>&> (inMat1);
    auto &m2 = const_cast<sliced_blockcyclic_matrix<T>&> (inMat2);
   
-   size_t nrowa = m1.data.map(get_sliced_num_row<T>).get(0);
-   size_t ncola = m1.data.map(get_sliced_num_col<T>).get(0);
-   size_t nrowb = m2.data.map(get_sliced_num_row<T>).get(0);
-   size_t ncolb = m2.data.map(get_sliced_num_col<T>).get(0);
+   size_t nrowa = m1.data.map(get_local_num_row<T>).get(0);
+   size_t ncola = m1.data.map(get_local_num_col<T>).get(0);
+   size_t nrowb = m2.data.map(get_local_num_row<T>).get(0);
+   size_t ncolb = m2.data.map(get_local_num_col<T>).get(0);
 
    if(ncola != nrowb)
      REPORT_ERROR(USER_ERROR,
@@ -475,10 +475,10 @@ add_copy(const sliced_blockcyclic_matrix<T>& inMat1,
    auto &m1 = const_cast<sliced_blockcyclic_matrix<T>&> (inMat1);
    auto &m2 = const_cast<sliced_blockcyclic_matrix<T>&> (inMat2);
 
-   size_t nrowa = m1.data.map(get_sliced_num_row<T>).get(0);
-   size_t ncola = m1.data.map(get_sliced_num_col<T>).get(0);
-   size_t nrowb = m2.data.map(get_sliced_num_row<T>).get(0);
-   size_t ncolb = m2.data.map(get_sliced_num_col<T>).get(0);
+   size_t nrowa = m1.data.map(get_local_num_row<T>).get(0);
+   size_t ncola = m1.data.map(get_local_num_col<T>).get(0);
+   size_t nrowb = m2.data.map(get_local_num_row<T>).get(0);
+   size_t ncolb = m2.data.map(get_local_num_col<T>).get(0);
 
    if(nrowa != nrowb || ncola != ncolb)
      REPORT_ERROR(USER_ERROR,
@@ -510,10 +510,10 @@ add_nocopy(const blockcyclic_matrix<T>& inMat1,
    sliced_blockcyclic_matrix<T> m1(outMat);
    auto &m2 = const_cast<sliced_blockcyclic_matrix<T>&> (inMat2);   
 
-   size_t nrowa = m1.data.map(get_sliced_num_row<T>).get(0);
-   size_t ncola = m1.data.map(get_sliced_num_col<T>).get(0);
-   size_t nrowb = m2.data.map(get_sliced_num_row<T>).get(0);
-   size_t ncolb = m2.data.map(get_sliced_num_col<T>).get(0);
+   size_t nrowa = m1.data.map(get_local_num_row<T>).get(0);
+   size_t ncola = m1.data.map(get_local_num_col<T>).get(0);
+   size_t nrowb = m2.data.map(get_local_num_row<T>).get(0);
+   size_t ncolb = m2.data.map(get_local_num_col<T>).get(0);
 
    if(nrowa != nrowb || ncola != ncolb)
      REPORT_ERROR(USER_ERROR,
@@ -613,8 +613,8 @@ template <class T>
 blockcyclic_matrix<T>
 trans(const sliced_blockcyclic_matrix<T>& inMat) {
    auto &m1 = const_cast<sliced_blockcyclic_matrix<T>&> (inMat);
-   size_t nrow = m1.data.map(get_sliced_num_row<T>).get(0);
-   size_t ncol = m1.data.map(get_sliced_num_col<T>).get(0);
+   size_t nrow = m1.data.map(get_local_num_row<T>).get(0);
+   size_t ncol = m1.data.map(get_local_num_col<T>).get(0);
    blockcyclic_matrix<T> outMat(ncol,nrow);
    sliced_blockcyclic_matrix<T> m2(outMat);
 
