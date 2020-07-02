@@ -11,7 +11,7 @@ aggregate(dftable_base& table,
           node_local<std::vector<std::vector<size_t>>>& hash_divide,
           node_local<std::vector<std::vector<size_t>>>& merge_map,
           node_local<size_t>& row_sizes) {
-  auto colp = table.column(col);
+  auto colp = table.raw_column(col);
   return colp->sum(local_grouped_idx, local_idx_split, hash_divide,
                    merge_map, row_sizes);
 }
@@ -24,7 +24,7 @@ aggregate(dftable_base& table,
           node_local<std::vector<std::vector<size_t>>>& hash_divide,
           node_local<std::vector<std::vector<size_t>>>& merge_map,
           node_local<size_t>& row_sizes) {
-  auto colp = table.column(col);
+  auto colp = table.raw_column(col);
   return colp->count(local_grouped_idx, local_idx_split, hash_divide,
                      merge_map, row_sizes);
 }
@@ -37,7 +37,7 @@ aggregate(dftable_base& table,
           node_local<std::vector<std::vector<size_t>>>& hash_divide,
           node_local<std::vector<std::vector<size_t>>>& merge_map,
           node_local<size_t>& row_sizes) {
-  auto colp = table.column(col);
+  auto colp = table.raw_column(col);
   return colp->avg(local_grouped_idx, local_idx_split, hash_divide,
                    merge_map, row_sizes);
 }
@@ -50,7 +50,7 @@ aggregate(dftable_base& table,
           node_local<std::vector<std::vector<size_t>>>& hash_divide,
           node_local<std::vector<std::vector<size_t>>>& merge_map,
           node_local<size_t>& row_sizes) {
-  auto colp = table.column(col);
+  auto colp = table.raw_column(col);
   return colp->max(local_grouped_idx, local_idx_split, hash_divide,
                    merge_map, row_sizes);
 }
@@ -63,7 +63,7 @@ aggregate(dftable_base& table,
           node_local<std::vector<std::vector<size_t>>>& hash_divide,
           node_local<std::vector<std::vector<size_t>>>& merge_map,
           node_local<size_t>& row_sizes) {
-  auto colp = table.column(col);
+  auto colp = table.raw_column(col);
   return colp->min(local_grouped_idx, local_idx_split, hash_divide,
                    merge_map, row_sizes);
 }
