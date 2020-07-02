@@ -60,13 +60,9 @@ struct sparse_vector {
     val.assign(vsize, initv);
     idx.assign(vsize, initv);
   }   
-  void debug_print() const {
-    std::cout << "val : ";
-    for(auto i: val) std::cout << i << " ";
-    std::cout << std::endl;
-    std::cout << "idx : ";
-    for(auto i: idx) std::cout << i << " ";
-    std::cout << std::endl;
+  void debug_print(size_t n = 0) const {
+    std::cout << "val : "; debug_print_vector(val, n);
+    std::cout << "idx : "; debug_print_vector(idx, n);
     std::cout << "size : " << size << std::endl;
   }
   std::vector<T> to_vector();
@@ -303,19 +299,13 @@ struct crs_matrix_local {
       std::cout << std::endl;
     }
   }
-  void debug_print() const {
+  void debug_print(size_t n = 0) const {
     std::cout << "local_num_row = " << local_num_row
               << ", local_num_col = " << local_num_col
               << std::endl;
-    std::cout << "val : ";
-    for(auto i: val) std::cout << i << " ";
-    std::cout << std::endl;
-    std::cout << "idx : ";
-    for(auto i: idx) std::cout << i << " ";
-    std::cout << std::endl;
-    std::cout << "off : ";
-    for(auto i: off) std::cout << i << " ";
-    std::cout << std::endl;
+    std::cout << "val : "; debug_print_vector(val, n);
+    std::cout << "idx : "; debug_print_vector(idx, n);
+    std::cout << "off : "; debug_print_vector(off, n);
   }
   sparse_vector<T,I> get_row(size_t r) const;
   void save(const std::string& file);
@@ -797,7 +787,10 @@ parse_coo_triplet(std::vector<std::string>& s, bool zero_origin) {
       std::istringstream is(s[i]);
       coo_triplet<T,I> r;
       double tmp_i, tmp_j; // index might be expressed as floating point
-      is >> tmp_i >> tmp_j >> r.v;
+      //is >> tmp_i >> tmp_j >> r.v;
+      is >> tmp_i >> tmp_j;
+      if (!is.eof()) is >> r.v;
+      else r.v = 1.0;
       r.i = static_cast<I>(tmp_i);
       r.j = static_cast<I>(tmp_j);
       if(!zero_origin) {
@@ -943,13 +936,13 @@ struct crs_matrix {
       g[i].debug_pretty_print();
     }
   }
-  void debug_print() {
+  void debug_print(size_t n = 0) {
     std::cout << "num_row = " << num_row
               << ", num_col = " << num_col << std::endl;
     auto g = data.gather();
     for(size_t i = 0; i < g.size(); i++) {
       std::cout << "node " << i << std::endl;
-      g[i].debug_print();
+      g[i].debug_print(n);
     }
   }
   rowmajor_matrix<T> to_rowmajor();
@@ -1318,7 +1311,7 @@ divide_and_exchange(const crs_matrix_local<T,I,O>& mat,
   std::vector<size_t> recv_size(node_size);
   auto recv_sizep = recv_size.data();
   MPI_Alltoall(&send_size[0], sizeof(size_t), MPI_CHAR,
-               &recv_size[0], sizeof(size_t), MPI_CHAR, MPI_COMM_WORLD);
+               &recv_size[0], sizeof(size_t), MPI_CHAR, frovedis_comm_rpc);
   size_t total_size = 0;
   for(size_t i = 0; i < node_size; i++) {
     total_size += recv_sizep[i];
@@ -1339,13 +1332,13 @@ divide_and_exchange(const crs_matrix_local<T,I,O>& mat,
                   send_size, send_displ, 
                   reinterpret_cast<char*>(const_cast<T*>(&val_tmp[0])),
                   recv_size, recv_displ, 
-                  MPI_COMM_WORLD);
+                  frovedis_comm_rpc);
   large_alltoallv(sizeof(I),
                   reinterpret_cast<char*>(const_cast<I*>(&mat.idx[0])),
                   send_size, send_displ,
                   reinterpret_cast<char*>(const_cast<I*>(&idx_tmp[0])),
                   recv_size, recv_displ,
-                  MPI_COMM_WORLD);
+                  frovedis_comm_rpc);
   size_t my_num_row =
     divide_row[frovedis::get_selfid() + 1] - divide_row[frovedis::get_selfid()];
   std::vector<O> off_tmp((my_num_row + 1) * node_size);
@@ -1374,7 +1367,7 @@ divide_and_exchange(const crs_matrix_local<T,I,O>& mat,
                   off_send_size, off_send_displ,
                   reinterpret_cast<char*>(const_cast<O*>(&off_tmp[0])),
                   off_recv_size, off_recv_displ,
-                  MPI_COMM_WORLD);
+                  frovedis_comm_rpc);
   std::vector<O> off_each((my_num_row + 1) * node_size);
   auto off_eachp = off_each.data();
   auto off_tmpp = off_tmp.data();
@@ -1999,7 +1992,7 @@ struct call_allgatherv {
     size_t total = displsp[size-1] + countp[size-1];
     std::vector<T> ret(total);
     typed_allgatherv<T>(v.data(), static_cast<int>(v.size()), ret.data(),
-                        count.data(), displs.data(), MPI_COMM_WORLD);
+                        count.data(), displs.data(), frovedis_comm_rpc);
     return ret;
   }
   
@@ -2329,6 +2322,267 @@ void rebalance_for_spmm(crs_matrix<T,I,O>& crs, shared_vector<T>& input,
 }
 
 #endif
+
+template <class T, class I, class O>
+std::vector<T>
+sum_of_rows_helper(crs_matrix_local<T, I, O>& mat,
+                   std::vector<I>& count) {
+  auto nrow = mat.local_num_row;
+  auto ncol = mat.local_num_col;
+  std::vector<T> ret(ncol);
+  count.resize(ncol);
+  auto rptr = ret.data();
+  auto cptr = count.data();
+  auto valptr = mat.val.data();
+  auto idxptr = mat.idx.data();
+  auto offptr = mat.off.data();
+  for(size_t i = 0; i < nrow; ++i) {
+#pragma _NEC ivdep
+    for(size_t j = offptr[i]; j < offptr[i + 1]; ++j) {
+      rptr[idxptr[j]] += valptr[j]; // summing
+      cptr[idxptr[j]] += 1; // counting nnz column-wise
+    }
+  }
+  return ret;
+}
+
+template <class T, class I, class O>
+std::vector<T>
+sum_of_rows(crs_matrix<T, I, O>& mat,
+            std::vector<I>& count) {
+  auto lcount = make_node_local_allocate<std::vector<I>>();
+  auto sum = mat.data.map(sum_of_rows_helper<T,I,O>, lcount).vector_sum();
+  count = lcount.vector_sum();
+  return sum;
+}
+
+template <class T, class I, class O>
+std::vector<T>
+squared_sum_of_rows_helper(crs_matrix_local<T, I, O>& mat,
+                           std::vector<I>& count) {
+  auto nrow = mat.local_num_row;
+  auto ncol = mat.local_num_col;
+  std::vector<T> ret(ncol);
+  count.resize(ncol);
+  auto rptr = ret.data();
+  auto cptr = count.data();
+  auto valptr = mat.val.data();
+  auto idxptr = mat.idx.data();
+  auto offptr = mat.off.data();
+  for(size_t i = 0; i < nrow; ++i) {
+#pragma _NEC ivdep
+    for(size_t j = offptr[i]; j < offptr[i + 1]; ++j) {
+      rptr[idxptr[j]] += (valptr[j] * valptr[j]); // squared summing
+      cptr[idxptr[j]] += 1; // counting
+    }
+  }
+  return ret;
+}
+
+template <class T, class I, class O>
+std::vector<T>
+squared_sum_of_rows(crs_matrix<T, I, O>& mat,
+                    std::vector<I>& count) {
+  auto lcount = make_node_local_allocate<std::vector<I>>();
+  auto sqsum = mat.data.map(squared_sum_of_rows_helper<T,I,O>, lcount).vector_sum();
+  count = lcount.vector_sum();
+  return sqsum;
+}
+
+template <class T, class I, class O>
+void crs_sub_vector_row(crs_matrix_local<T, I, O>& mat,
+                        std::vector<T>& vec) {
+  auto vptr = vec.data();
+  auto valptr = mat.val.data();
+  auto idxptr = mat.idx.data();
+  auto nnz = mat.val.size();
+  for(size_t i = 0; i < nnz; ++i) valptr[i] -= vptr[idxptr[i]];
+}
+
+template <class T, class I, class O>
+void crs_add_vector_row(crs_matrix_local<T, I, O>& mat,
+                        std::vector<T>& vec) {
+  auto vptr = vec.data();
+  auto valptr = mat.val.data();
+  auto idxptr = mat.idx.data();
+  auto nnz = mat.val.size();
+  for(size_t i = 0; i < nnz; ++i) valptr[i] += vptr[idxptr[i]];
+}
+
+template <class T, class I, class O>
+void crs_mul_vector_row(crs_matrix_local<T, I, O>& mat,
+                        std::vector<T>& vec) {
+  auto vptr = vec.data();
+  auto valptr = mat.val.data();
+  auto idxptr = mat.idx.data();
+  auto nnz = mat.val.size();
+  for(size_t i = 0; i < nnz; ++i) valptr[i] *= vptr[idxptr[i]];
+}
+
+template <class T, class I, class O>
+void scale_matrix(crs_matrix<T, I, O>& mat,
+                  std::vector<T>& vec) {
+  mat.data.mapv(crs_mul_vector_row<T,I,O>, broadcast(vec));
+}
+
+template <class T, class I, class O>
+std::vector<T>
+compute_mean(crs_matrix<T, I, O>& mat,
+             std::vector<I>& count,
+             bool with_nnz = false) {
+  auto ncol = mat.num_col;
+  auto nrow = mat.num_row;
+  if(nrow == 0)
+    throw std::runtime_error("matrix with ZERO rows for mean computation!");
+  auto tmp = sum_of_rows(mat, count);
+  auto tmpptr = tmp.data();
+  // tmp: sum of rows will inplace be updated with mean
+  if(with_nnz) {
+    auto cptr = count.data();
+    for(size_t i = 0; i < ncol; ++i) {
+      if (cptr[i] != 0) tmpptr[i] /= cptr[i];
+    }
+  }
+  else{
+    T to_mult = static_cast<T>(1) / static_cast<T>(nrow);
+    for(size_t i = 0; i < ncol; ++i) tmpptr[i] *= to_mult;
+  }
+  return tmp;
+}
+
+template <class T, class I, class O>
+std::vector<T>
+compute_mean(crs_matrix<T, I, O>& mat,
+             bool with_nnz = false) {
+  std::vector<I> count;
+  return compute_mean(mat, count, with_nnz);
+}
+
+template <class T, class I, class O>
+void centerize(crs_matrix<T,I,O>& mat, std::vector<T>& mean) {
+  throw std::runtime_error("cannot centerize sparse matrices!\n");
+}
+
+template <class T, class I, class O>
+void centerize(crs_matrix<T,I,O>& mat) {
+  throw std::runtime_error("cannot centerize sparse matrices!\n");
+}
+
+template <class T, class I, class O>
+void decenterize(crs_matrix<T,I,O>& mat, std::vector<T>& mean) {
+  throw std::runtime_error("cannot decenterize sparse matrices!\n");
+}
+
+template <class T, class I, class O>
+std::vector<T>
+compute_stddev(crs_matrix<T, I, O>& mat, 
+               std::vector<T>& mean, 
+               bool sample_stddev = true,
+               bool with_nnz = false) {
+  auto ncol = mat.num_col;
+  auto nrow = mat.num_row;
+  if(nrow < 2)
+    throw std::runtime_error("cannot compute stddev if number of row is 0 or 1");
+  mat.data.mapv(crs_sub_vector_row<T,I,O>, broadcast(mean));
+  std::vector<I> count; // count of non-zeros in each column
+  auto tmp = squared_sum_of_rows(mat, count);
+  auto tmpptr = tmp.data();
+  auto cptr = count.data();
+  // tmp: sqsum of rows will inplace be updated with reciprocal of stddev
+  if(!with_nnz) {
+    auto meanp = mean.data();
+    for(size_t i = 0; i < ncol; ++i) {
+      auto nzeros = nrow - cptr[i];
+      tmpptr[i] += (meanp[i] * meanp[i] * nzeros);
+    }
+    T to_div;
+    if(sample_stddev) to_div = static_cast<T>(nrow - 1);
+    else to_div = static_cast<T>(nrow);
+    for(size_t i = 0; i < ncol; ++i) {
+      if(tmpptr[i] == 0) tmpptr[i] = 1.0;
+      else tmpptr[i] = sqrt(tmpptr[i] / to_div);
+    }
+  }
+  else {
+    if(sample_stddev) {
+      for(size_t i = 0; i < ncol; ++i) {
+        if(tmpptr[i] == 0) tmpptr[i] = 1.0;
+        else tmpptr[i] = sqrt(tmpptr[i] / (cptr[i] - 1));
+      }
+    }
+    else {
+      for(size_t i = 0; i < ncol; ++i) {
+        if(tmpptr[i] == 0) tmpptr[i] = 1.0;
+        else tmpptr[i] = sqrt(tmpptr[i] / cptr[i]);
+      }
+    }
+  }
+  return tmp;
+}
+
+template <class T, class I, class O>
+std::vector<T>
+compute_stddev(crs_matrix<T, I, O>& mat, 
+               bool sample_stddev = true,
+               bool with_nnz = false) {
+  auto mean = compute_mean(mat, with_nnz);
+  return compute_stddev(mat, mean, sample_stddev, with_nnz);
+}
+
+template <class T, class I, class O>
+void standardize(crs_matrix<T, I, O>& mat,
+                 std::vector<T>& mean, 
+                 bool sample_stddev = true,
+                 bool with_nnz = false) {
+  auto ncol = mat.num_col;
+  auto nrow = mat.num_row;
+  if(nrow < 2)
+    throw std::runtime_error("cannot compute stddev if number of row is 0 or 1");
+  mat.data.mapv(crs_sub_vector_row<T,I,O>, broadcast(mean));
+  std::vector<I> count; // count of non-zeros in each column
+  auto tmp = squared_sum_of_rows(mat, count);
+  auto tmpptr = tmp.data();
+  auto cptr = count.data();
+  // tmp: sqsum of rows will inplace be updated with reciprocal of stddev
+  if(!with_nnz) {
+    auto meanp = mean.data();
+    for(size_t i = 0; i < ncol; ++i) {
+      auto nzeros = nrow - cptr[i];
+      tmpptr[i] += (meanp[i] * meanp[i] * nzeros);
+    }
+    T to_div;
+    if(sample_stddev) to_div = static_cast<T>(nrow - 1);
+    else to_div = static_cast<T>(nrow);
+    for(size_t i = 0; i < ncol; ++i) {
+      if(tmpptr[i] == 0) tmpptr[i] = 1.0;
+      else tmpptr[i] = sqrt(to_div / tmpptr[i]);
+    }
+  }
+  else {
+    if(sample_stddev) {
+      for(size_t i = 0; i < ncol; ++i) {
+        if(tmpptr[i] == 0) tmpptr[i] = 1.0;
+        else tmpptr[i] = sqrt((cptr[i] - 1) / tmpptr[i]);
+      }
+    }
+    else {
+      for(size_t i = 0; i < ncol; ++i) {
+        if(tmpptr[i] == 0) tmpptr[i] = 1.0;
+        else tmpptr[i] = sqrt(cptr[i] / tmpptr[i]);
+      }
+    }
+  }
+  // tmp: reciprocal of stddev
+  scale_matrix(mat, tmp);
+}
+
+template <class T, class I, class O>
+void standardize(crs_matrix<T, I, O>& mat,
+                 bool sample_stddev = true,
+                 bool with_nnz = false) {
+  auto mean = compute_mean(mat, with_nnz);
+  standardize(mat, mean, sample_stddev, with_nnz);
+}
 
 }
 #endif
