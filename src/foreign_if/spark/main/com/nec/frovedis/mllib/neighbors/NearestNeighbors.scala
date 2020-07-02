@@ -182,21 +182,20 @@ class NearestNeighbors(var nNeighbors: Int,
 
   def kneighbors_graph(X: RDD[Vector], 
                        nNeighbors: Int = this.nNeighbors,
-                       mode: String = "connectivity"): 
-    FrovedisSparseData = {
+                       mode: String = "connectivity"): RDD[Vector] = {
     require(mid > 0, "kneighbors_graph() is called before fitting data using run()")
     val isDense = X.first.getClass.toString() matches ".*DenseVector*."
     if (isDense) {
       val fdata = new FrovedisRowmajorMatrix(X)
       val graph = kneighbors_graph(fdata, nNeighbors, mode)
       fdata.release() // release intermediate matrix
-      return graph
+      return graph.to_spark_sparse_matrix()
     }
     else { 
       val fdata = new FrovedisSparseData(X)
       val graph = kneighbors_graph(fdata, nNeighbors, mode)
       fdata.release() // release intermediate matrix
-      return graph
+      return graph.to_spark_sparse_matrix()
     }
   }
 
@@ -278,8 +277,7 @@ class NearestNeighbors(var nNeighbors: Int,
 
   def radius_neighbors_graph(X: RDD[Vector], 
                              radius: Float = this.radius,
-                             mode: String = "connectivity"): 
-    FrovedisSparseData = {
+                             mode: String = "connectivity"): RDD[Vector] = {
     require(mid > 0, "radius_neighbors_graph() is called before fitting data "+
                      "using run()")
     val isDense = X.first.getClass.toString() matches ".*DenseVector*."
@@ -287,13 +285,13 @@ class NearestNeighbors(var nNeighbors: Int,
       val fdata = new FrovedisRowmajorMatrix(X)
       val graph = radius_neighbors_graph(fdata, radius, mode)
       fdata.release() // release intermediate matrix
-      return graph
+      return graph.to_spark_sparse_matrix()
     }
     else {
       val fdata = new FrovedisSparseData(X)
       val graph = radius_neighbors_graph(fdata, radius, mode)
       fdata.release() // release intermediate matrix
-      return graph
+      return graph.to_spark_sparse_matrix()
     }
   }
 
