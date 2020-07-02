@@ -115,8 +115,7 @@ lasso_with_sgd::train (crs_matrix<T,I,O>& data,
                        double convergenceTol,
                        MatType mType) {
   size_t numFeatures = data.num_col;
-  T intercept = isIntercept ? 1.0 : 0.0;
-  linear_regression_model<T> initModel(numFeatures,intercept);
+  linear_regression_model<T> initModel(numFeatures);
   return train<T>(data,label,initModel,numIteration,alpha,miniBatchFraction,
                   regParam,isIntercept,convergenceTol,mType,false);
 }
@@ -133,8 +132,7 @@ lasso_with_sgd::train (crs_matrix<T,I,O>&& data,
                        double convergenceTol,
                        MatType mType) {
   size_t numFeatures = data.num_col;
-  T intercept = isIntercept ? 1.0 : 0.0;
-  linear_regression_model<T> initModel(numFeatures,intercept);
+  linear_regression_model<T> initModel(numFeatures);
   return train<T>(data,label,initModel,numIteration,alpha,miniBatchFraction,
                   regParam,isIntercept,convergenceTol,mType,true);
 }
@@ -175,9 +173,11 @@ lasso_with_sgd::train (crs_matrix<T,I,O>& data,
 #endif
 
   sgd_parallelizer par(miniBatchFraction);
+  linear_gradient<T> grad;
+  l1_regularizer<T> rType(regParam);
   return par.template parallelize<T,I,O,linear_regression_model<T>,
                                   linear_gradient<T>, l1_regularizer<T>>
-         (data,label,initModel,numIteration,alpha,regParam,
+         (data,label,initModel,grad,rType,numIteration,alpha,
           isIntercept,convergenceTol,mType,inputMovable);
 }
 
@@ -192,8 +192,7 @@ lasso_with_sgd::train (const colmajor_matrix<T>& data,
                        bool isIntercept,
                        double convergenceTol) {
   size_t numFeatures = data.num_col;
-  T intercept = isIntercept ? 1.0 : 0.0;
-  linear_regression_model<T> initModel(numFeatures,intercept);
+  linear_regression_model<T> initModel(numFeatures);
   return train<T>(data,label,initModel,numIteration,alpha,miniBatchFraction,
                   regParam,isIntercept,convergenceTol);
 }
@@ -217,9 +216,11 @@ lasso_with_sgd::train (const colmajor_matrix<T>& data,
 
   auto& dmat = const_cast<colmajor_matrix<T>&> (data);
   sgd_parallelizer par(miniBatchFraction);
+  linear_gradient<T> grad;
+  l1_regularizer<T> rType(regParam);
   return par.template parallelize<T,linear_regression_model<T>,
                                   linear_gradient<T>, l1_regularizer<T>>
-         (dmat,label,initModel,numIteration,alpha,regParam,
+         (dmat,label,initModel,grad,rType,numIteration,alpha,
           isIntercept,convergenceTol);
 }
 
