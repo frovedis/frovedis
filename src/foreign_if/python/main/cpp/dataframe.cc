@@ -171,13 +171,17 @@ extern "C" {
    
   // To sort dataframe entries based on given column and requested order
   long sort_frovedis_dataframe(const char* host, int port, long proxy, 
-                               const char** cols, int size, bool asc){
+                               const char** cols, 
+                               int* asc, int size){
     ASSERT_PTR(host); 
     exrpc_node fm_node(host, port);
     auto df_proxy = static_cast<exrpc_ptr_t> (proxy);
     std::vector<std::string> targets(size);
-    for(size_t i=0; i<size; ++i) targets[i] = std::string(cols[i]);
-    auto isdesc = asc ? false : true;
+    std::vector<int> isdesc(size);
+    for(size_t i = 0; i < size; ++i) {
+      targets[i] = std::string(cols[i]);
+      isdesc[i] = asc[i] == 1 ? 0 : 1;
+    }
     exrpc_ptr_t ret_proxy = 0;
     try {
       ret_proxy = exrpc_async(fm_node,sort_df,df_proxy,targets,isdesc).get();
