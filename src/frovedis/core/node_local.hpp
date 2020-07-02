@@ -21,7 +21,10 @@ public:
     dvid(std::move(dvid_)), is_view(is_view_)  {}
   node_local(const node_local<T>& src) :
     dvid(src.dvid.copy()), is_view(false)  {}
-  node_local(node_local<T>&& src) : is_view(false) {std::swap(dvid, src.dvid);}
+  node_local(node_local<T>&& src) {
+    std::swap(dvid, src.dvid);
+    std::swap(is_view, src.is_view);
+  }
   node_local<T>& operator=(const node_local<T>& src) {
     if(!is_view) dvid.delete_var();
     dvid = src.dvid.copy();
@@ -334,7 +337,7 @@ node_local<T> make_node_local_allocate() {
 }
 
 template <class T>
-node_local<T> make_node_local_scatter(std::vector<T>& v) {
+node_local<T> make_node_local_scatter(const std::vector<T>& v) {
   return node_local<T>(make_dvid_scatter<T>(v));
 }
 
