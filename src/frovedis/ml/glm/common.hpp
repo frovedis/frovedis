@@ -11,21 +11,22 @@
 #include "regularizer.hpp"
 #include "rms.hpp"
 #include "../utility/matrix_conversion.hpp"
+#include "../utility/mattype.hpp"
 
 #include <boost/lexical_cast.hpp>
 
-#define ITOS boost::lexical_cast<std::string>
-#define _ALLOW_CONV_RATE_CHECK_
 #define LR_VLEN 1024 // made it same as JDS/ELL
+#define ITOS boost::lexical_cast<std::string>
+
+#define _CONV_RATE_CHECK_
+//#define _LOSS_CHECK_
+#define _RMSE_CONV_RATE_CHECK_
+
+#ifdef _LOSS_CHECK_
+#define NITER_NO_CHANGE 10
+#endif 
 
 namespace frovedis {
-
-enum MatType {
-  CRS = 0,
-  JDS,
-  ELL,
-  HYBRID
-};
 
 template <class T>
 std::vector<sliced_colmajor_matrix_local<T>>
