@@ -17,4 +17,9 @@ JAVA_HOME := /usr/lib/jvm/java-1.8.0-openjdk
 SCALA_HOME := ${INSTALLPATH}/opt/scala-2.11.12
 SPARK_HOME := ${INSTALLPATH}/opt/spark-2.2.1-bin-hadoop2.7
 HDPATH := # ${shell hadoop classpath}
+RH_VERSION := $(shell source /etc/os-release; echo $$VERSION_ID)
+ifeq (${RH_VERSION},7)
 PYTHON_INC := /usr/include/python2.7
+else # CentOS/RedHat8
+PYTHON_INC := /usr/include/python3.6m
+endif
