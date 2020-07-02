@@ -81,7 +81,7 @@ struct colmajor_matrix_local {
     local_num_row = 0;
     local_num_col = 0;
   }
-  void debug_print();
+  void debug_print(size_t n = 0);
   size_t get_nrows() { return local_num_row; }
   size_t get_ncols() { return local_num_col; }
   colmajor_matrix_local<T> transpose() const;
@@ -123,13 +123,12 @@ node_local<colmajor_matrix_local<T>> colmajor_matrix_local<T>::broadcast() {
 }
 
 template <class T>
-void colmajor_matrix_local<T>::debug_print() {
+void colmajor_matrix_local<T>::debug_print(size_t n) {
   std::cout << "node = " << get_selfid()
             << ", local_num_row = " << local_num_row
             << ", local_num_col = " << local_num_col
             << ", val = ";
-  for(auto i: val){ std::cout << i << " "; }
-  std::cout << std::endl;
+  debug_print_vector(val, n);
 }
 
 /*
@@ -258,7 +257,15 @@ struct colmajor_matrix {
   void savebinary(const std::string& path) {
     to_rowmajor().savebinary(path);
   }
-  void debug_print() {data.mapv(call_debug_print<colmajor_matrix_local<T>>);}
+  void debug_print(size_t n = 0) {
+    std::cout << "num_row = " << num_row
+              << ", num_col = " << num_col << std::endl;
+    auto g = data.gather();
+    for(size_t i = 0; i < g.size(); i++) {
+      std::cout << "node " << i << std::endl;
+      g[i].debug_print(n);
+    }
+  }
   void set_num(size_t r, size_t c) {
     num_row = r; num_col = c;
   }
@@ -288,6 +295,168 @@ colmajor_matrix<T> operator*(const colmajor_matrix<T>& aa,
   ret.num_row = a.num_row;
   ret.num_col = a.num_col;
   return ret;
+}
+
+template <class T>
+std::vector<T>
+sum_of_rows(colmajor_matrix_local<T>& mat) {
+  auto nrow = mat.local_num_row;
+  auto ncol = mat.local_num_col;
+  std::vector<T> ret(ncol, 0);
+  auto retp = ret.data();
+  auto mvalp = mat.val.data();
+  for (size_t i = 0; i < ncol; ++i) {
+    for (size_t j = 0; j < nrow; ++j) retp[i] += mvalp[i * nrow + j];
+  }
+  return ret;
+}
+
+template <class T>
+std::vector<T>
+squared_sum_of_rows(colmajor_matrix_local<T>& mat) {
+  auto nrow = mat.local_num_row;
+  auto ncol = mat.local_num_col;
+  std::vector<T> ret(ncol, 0);
+  auto retp = ret.data();
+  auto mvalp = mat.val.data();
+  for (size_t i = 0; i < ncol; ++i) {
+    for (size_t j = 0; j < nrow; ++j) {
+      retp[i] += (mvalp[i * nrow + j] * mvalp[i * nrow + j]);
+    }
+  }
+  return ret;
+}
+
+template <class T>
+void colmajor_sub_vector_row(colmajor_matrix_local<T>& m, std::vector<T>& v) {
+  size_t ncol = m.local_num_col;
+  size_t nrow = m.local_num_row;
+  if(ncol != v.size())
+    throw std::runtime_error("sub_vector_row: size mismatch");
+  auto valp = m.val.data();
+  auto vp = v.data();
+  for (size_t j = 0; j < ncol; j++) {
+    for(size_t i = 0; i < nrow; i++) valp[j * nrow + i] -= vp[j];
+  }
+}
+
+template <class T>
+void colmajor_add_vector_row(colmajor_matrix_local<T>& m, std::vector<T>& v) {
+  size_t ncol = m.local_num_col;
+  size_t nrow = m.local_num_row;
+  if(ncol != v.size())
+    throw std::runtime_error("add_vector_row: size mismatch");
+  auto valp = m.val.data();
+  auto vp = v.data();
+  for (size_t j = 0; j < ncol; j++) {
+    for(size_t i = 0; i < nrow; i++) valp[j * nrow + i] += vp[j];
+  }
+}
+
+template <class T>
+void colmajor_mul_vector_row(colmajor_matrix_local<T>& m, std::vector<T>& v) {
+  size_t ncol = m.local_num_col;
+  size_t nrow = m.local_num_row;
+  if(ncol != v.size())
+    throw std::runtime_error("mul_vector_row: size mismatch");
+  auto valp = m.val.data();
+  auto vp = v.data();
+  for (size_t j = 0; j < ncol; j++) {
+    for(size_t i = 0; i < nrow; i++) valp[j * nrow + i] *= vp[j];
+  }
+}
+
+template <class T>
+void scale_matrix(colmajor_matrix<T>& mat, std::vector<T>& vec) {
+  mat.data.mapv(colmajor_mul_vector_row<T>, broadcast(vec));
+} 
+
+// TODO: Add axis parameter to support row-wise mean
+template <class T>
+std::vector<T>
+compute_mean(colmajor_matrix<T>& mat) { // column-wise mean
+  if(mat.num_row  == 0)
+    throw std::runtime_error("matrix with ZERO rows for mean computation!");
+  auto ret = mat.data.map(+[](colmajor_matrix_local<T>& m)
+                       {return sum_of_rows(m);}).vector_sum();
+  T to_mul = static_cast<T>(1)/static_cast<T>(mat.num_row); // for performance
+  auto retp = ret.data();
+  for(size_t i = 0; i < ret.size(); ++i) retp[i] *= to_mul; // average
+  return ret;
+}
+
+template <class T>
+void centerize(colmajor_matrix<T>& mat, std::vector<T>& mean) {
+  if(mat.num_row < 2)
+    throw std::runtime_error("cannot centerize if number of row is 0 or 1");
+  mat.data.mapv(colmajor_sub_vector_row<T>, broadcast(mean));
+}
+
+template <class T>
+void centerize(colmajor_matrix<T>& mat) {
+  auto mean = compute_mean(mat, 0); // column-wise mean
+  centerize(mat, mean);
+}
+
+template <class T>
+void decenterize(colmajor_matrix<T>& mat, std::vector<T>& mean) {
+  if(mat.num_row < 2)
+    throw std::runtime_error("cannot decenterize if number of row is 0 or 1");
+  mat.data.mapv(colmajor_add_vector_row<T>, broadcast(mean));
+}
+
+template <class T>
+std::vector<T>
+compute_stddev(colmajor_matrix<T>& mat,
+               std::vector<T>& mean,
+               bool sample_stddev = true) {
+  if(mat.num_row < 2)
+    throw std::runtime_error("cannot compute stddev if number of row is 0 or 1");
+  centerize(mat, mean); // m = m - mean
+  auto ret = mat.data.map(+[](colmajor_matrix_local<T>& m)
+                         {return squared_sum_of_rows(m);}).vector_sum();
+  auto retp = ret.data();
+  T to_div;
+  if(sample_stddev) to_div = static_cast<T>(mat.num_row - 1);
+  else to_div = static_cast<T>(mat.num_row);
+  for(size_t i = 0; i < mat.num_col; ++i) {
+    if(retp[i] == 0) retp[i] = 1.0;
+    retp[i] = sqrt(retp[i] / to_div);
+  }
+  return ret;
+}
+
+template <class T>
+std::vector<T>
+compute_stddev(colmajor_matrix<T>& mat, bool sample_stddev = true) {
+  auto mean = compute_mean(mat, 0); // column-wise mean
+  return compute_stddev(mat, mean, sample_stddev);
+}
+
+template <class T>
+void standardize(colmajor_matrix<T>& mat,
+                 std::vector<T>& mean, 
+                 bool sample_stddev = true) {
+  if(mat.num_row < 2)
+    throw std::runtime_error("cannot standardize if number of row is 0 or 1");
+  centerize(mat, mean);
+  auto tmp = mat.data.map(+[](colmajor_matrix_local<T>& m)
+                         {return squared_sum_of_rows(m);}).vector_sum();
+  auto tmpp = tmp.data();
+  T to_div;
+  if(sample_stddev) to_div = static_cast<T>(mat.num_row - 1);
+  else to_div = static_cast<T>(mat.num_row);
+  for(size_t i = 0; i < mat.num_col; ++i) {
+    if(tmpp[i] == 0) tmpp[i] = 1.0; // data is zero so can be anything
+    tmpp[i] = sqrt(to_div / tmpp[i]);
+  }
+  mat.data.mapv(colmajor_mul_vector_row<T>, broadcast(tmp));
+}
+
+template <class T>
+void standardize(colmajor_matrix<T>& mat, bool sample_stddev = true) {
+  auto mean = compute_mean(mat); // column-wise mean
+  standardize(mat, mean, sample_stddev);
 }
 
 }
