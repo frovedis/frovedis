@@ -17,19 +17,29 @@ FrovedisServer.initialize(argvs[1])
 train_mat = FrovedisRowmajorMatrix(dtype=np.float64).load("./input/spectral_data.txt")
 
 # creating spectral agglomerative object
-acm = AgglomerativeClustering(n_clusters=2, verbose=0)
+n_clusters = 2
+acm = AgglomerativeClustering(n_clusters=n_clusters)
 
 # fitting the training matrix on agglomerative clustering object
 acm.fit(train_mat)
-acm.debug_print()
+print('\nconstructed dendogram of diemnsion: (%d, 4)' % (train_mat.numRows()-1))
+acm.debug_print() # prints dendogram 
+
+# printing clustered labels
+print('\ncomputed labels for %d clusters: %s' % (n_clusters, str(acm.labels_)))
 
 # saving the trained model
 acm.save("./out/MyAcmClusteringModel")
-acm.release()
+acm.release() # freeing model object from memory of Frovedis Server
 
 # loading the same trained model
 acm.load("./out/MyAcmClusteringModel",dtype=np.float64)
-acm.debug_print()
+
+# printing relabeling for new n_clusters 
+# on loaded model (on previously fitted matrix)
+n_clusters = 3
+new_labels = acm.predict(n_clusters)
+print('\nrecomputed labels for %d clusters: %s' % (n_clusters, str(new_labels)))
 
 acm.release()
 FrovedisServer.shut_down()
