@@ -16,6 +16,8 @@ namespace frovedis {
   typedef linear_regression_model<DT2> LNRM2;
   typedef svm_model<DT1> SVM1;
   typedef svm_model<DT2> SVM2; 
+  typedef linear_regression_model<DT1> SVR1;
+  typedef linear_regression_model<DT2> SVR2; 
   typedef matrix_factorization_model<DT1> MFM1;
   typedef matrix_factorization_model<DT2> MFM2;
   typedef rowmajor_matrix_local<DT1> KMM1;

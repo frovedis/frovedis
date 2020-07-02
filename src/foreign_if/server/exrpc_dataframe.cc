@@ -102,24 +102,22 @@ exrpc_ptr_t select_df(exrpc_ptr_t& df_proxy,
 
 exrpc_ptr_t sort_df(exrpc_ptr_t& df_proxy,
                     std::vector<std::string>& cols,
-                    bool& isDesc) {
-  checkAssumption(cols.size() >= 1);
+                    std::vector<int>& isDesc) {
+  auto size = cols.size();
+  checkAssumption(size > 0 && isDesc.size() == size);
   auto& dftbl = *reinterpret_cast<dftable_base*>(df_proxy);
-  sorted_dftable *s_df_ptr = NULL;
-  auto tsize = cols.size();
-  if(isDesc) {
-    auto ret = dftbl.sort_desc(cols[tsize-1]); // sorting based on last column
-    for(int i=tsize-2; i>=0; --i) ret = ret.sort_desc(cols[i]);
-    s_df_ptr = new sorted_dftable(std::move(ret));
-    if (!s_df_ptr) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed.\n");
+  sorted_dftable *ret = NULL;
+  auto cname = cols[size - 1];
+  auto desc = isDesc[size - 1];
+  if(desc == 1) ret = new sorted_dftable(dftbl.sort_desc(cname));
+  else          ret = new sorted_dftable(dftbl.sort(cname));
+  for (int i = size - 2; i >= 0; --i) {
+    cname = cols[i];
+    desc = isDesc[i];
+    if(desc) *ret = ret->sort_desc(cname);
+    else     *ret = ret->sort(cname);
   }
-  else {
-    auto ret = dftbl.sort(cols[tsize-1]); // sorting based on last column
-    for(int i=tsize-2; i>=0; --i) ret = ret.sort(cols[i]);
-    s_df_ptr = new sorted_dftable(std::move(ret));
-    if (!s_df_ptr) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed.\n");
-  }
-  return reinterpret_cast<exrpc_ptr_t> (s_df_ptr);
+  return reinterpret_cast<exrpc_ptr_t> (ret);
 }
 
 exrpc_ptr_t join_df(exrpc_ptr_t& left_proxy, exrpc_ptr_t& right_proxy,

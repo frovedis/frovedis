@@ -74,7 +74,8 @@ exrpc_ptr_t filter_df(exrpc_ptr_t& df_proxy, exrpc_ptr_t& opt_proxy);
 exrpc_ptr_t select_df(exrpc_ptr_t& df_proxy, std::vector<std::string>& cols);
 
 exrpc_ptr_t sort_df(exrpc_ptr_t& df_proxy, 
-                    std::vector<std::string>& cols, bool& isDesc);
+                    std::vector<std::string>& cols, 
+                    std::vector<int>& isDesc);
 
 exrpc_ptr_t join_df(exrpc_ptr_t& left_proxy, exrpc_ptr_t& right_proxy,
                     exrpc_ptr_t& opt_proxy, 

@@ -44,6 +44,13 @@ void expose_frovedis_ml_functions() {
   expose((frovedis_svm_lbfgs<DT1,S_MAT15>)); // python case
   expose((frovedis_svm_lbfgs<DT2,S_MAT24>)); // python case
   expose((frovedis_svm_lbfgs<DT2,S_MAT25>)); // python case
+  // linear svm regressor
+  expose((frovedis_svm_regressor_sgd<DT1,D_MAT1>));    // both spark and python case
+  expose((frovedis_svm_regressor_sgd<DT2,D_MAT2>));    // python case
+  expose((frovedis_svm_regressor_sgd<DT1,S_MAT14>));   // python case
+  expose((frovedis_svm_regressor_sgd<DT1,S_MAT15>));   // python case
+  expose((frovedis_svm_regressor_sgd<DT2,S_MAT24>));   // python case
+  expose((frovedis_svm_regressor_sgd<DT2,S_MAT25>));   // python case
   // (3) decision tree
   //expose((frovedis_dt<DT1,S_MAT1>)); // not supported currently
   expose((frovedis_dt<DT1,D_MAT1>));   // both spark and python case
@@ -71,6 +78,10 @@ void expose_frovedis_ml_functions() {
   expose((frovedis_lnr_sgd<DT1,S_MAT15>));     // python case
   expose((frovedis_lnr_sgd<DT2,S_MAT24>));     // python case
   expose((frovedis_lnr_sgd<DT2,S_MAT25>));     // python case
+  expose((frovedis_lnr_lapack<DT1,D_MAT1>));   // both spark and python case
+  expose((frovedis_lnr_lapack<DT2,D_MAT2>));   // python case
+  expose((frovedis_lnr_scalapack<DT1,D_MAT1>));   // both spark and python case
+  expose((frovedis_lnr_scalapack<DT2,D_MAT2>));   // python case
   // (6) lasso regression
   expose((frovedis_lasso_sgd<DT1,D_MAT1>));    // both spark and python case
   expose((frovedis_lasso_sgd<DT2,D_MAT2>));    // python case
@@ -165,7 +176,7 @@ void expose_frovedis_ml_functions() {
   // (21) Random forest
   expose((frovedis_rf<DT1,D_MAT1>));   // both spark and python case
   expose((frovedis_rf<DT2,D_MAT2>));   // python case
-  // (23) GBT
+  // (22) GBT
   expose((frovedis_gbt<DT1,D_MAT1>));   
   expose((frovedis_gbt<DT2,D_MAT2>));
 }

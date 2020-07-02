@@ -136,12 +136,12 @@ void expose_frovedis_model_functions() {
   expose((bcast_model_to_workers<DT1,LNRM1>));
   expose((single_lnrm_predict<DT1,S_LMAT1>));
   expose((parallel_lnrm_predict<DT1,S_LMAT1>));
-  expose((p_lnrm_p2<DT1,R_MAT1,R_LMAT1>));    // for python
-  expose((p_lnrm_p2<DT2,R_MAT2,R_LMAT2>));    // for python
-  expose((p_lnrm_p2<DT1,S_MAT14,S_LMAT14>));  // for python
-  expose((p_lnrm_p2<DT1,S_MAT15,S_LMAT15>));  // for python
-  expose((p_lnrm_p2<DT2,S_MAT24,S_LMAT24>));  // for python
-  expose((p_lnrm_p2<DT2,S_MAT25,S_LMAT25>));  // for python
+  expose((pgp2<DT1,R_MAT1,R_LMAT1,LNRM1>));    // for python
+  expose((pgp2<DT2,R_MAT2,R_LMAT2,LNRM2>));    // for python
+  expose((pgp2<DT1,S_MAT14,S_LMAT14,LNRM1>));  // for python
+  expose((pgp2<DT1,S_MAT15,S_LMAT15,LNRM1>));  // for python
+  expose((pgp2<DT2,S_MAT24,S_LMAT24,LNRM2>));  // for python
+  expose((pgp2<DT2,S_MAT25,S_LMAT25,LNRM2>));  // for python
   expose((get_weight_vector<DT1,LNRM1>));
   expose((get_weight_vector<DT2,LNRM2>));
   expose((get_intercept_as_vector<DT1,LNRM1>));
@@ -169,6 +169,25 @@ void expose_frovedis_model_functions() {
   expose((get_weight_vector<DT2,SVM2>));
   expose((get_intercept_as_vector<DT1,SVM1>));
   expose((get_intercept_as_vector<DT2,SVM2>));
+  // --- frovedis SVM Regression Model ---
+  expose(show_model<SVR1>);
+  expose(release_model<SVR1>);
+  expose(save_model<SVR1>);
+  expose(load_lnrm<DT1>);
+  expose(show_model<SVR2>);    // for python
+  expose(release_model<SVR2>); // for python
+  expose(save_model<SVR2>);    // for python
+  expose(load_lnrm<DT2>);      // for python
+  expose((pgp2<DT1,R_MAT1,R_LMAT1,SVR1>));   // for python
+  expose((pgp2<DT2,R_MAT2,R_LMAT2,SVR2>));   // for python
+  expose((pgp2<DT1,S_MAT14,S_LMAT14,SVR1>)); // for python
+  expose((pgp2<DT1,S_MAT15,S_LMAT15,SVR1>)); // for python
+  expose((pgp2<DT2,S_MAT24,S_LMAT24,SVR2>)); // for python
+  expose((pgp2<DT2,S_MAT25,S_LMAT25,SVR2>)); // for python
+  expose((get_weight_vector<DT1,SVR1>));
+  expose((get_weight_vector<DT2,SVR2>));
+  expose((get_intercept_as_vector<DT1,SVR1>));
+  expose((get_intercept_as_vector<DT2,SVR2>));
   // --- frovedis MatrixFactorizationModel ---
   expose(show_model<MFM1>);
   expose(release_model<MFM1>);
@@ -361,14 +380,15 @@ void expose_frovedis_model_functions() {
   expose(save_model<RFM2>);    // for python
   expose(load_model<RFM1>);    // void returning
   expose(load_model<RFM2>);    // for python (void returning)
-  expose((bcast_model_to_workers<DT1,RFM1>));
-//  expose((single_rfm_predict<DT1,S_LMAT1>));
-//  expose((parallel_rfm_predict<DT1,S_LMAT1>));
   expose((parallel_rfm_predict_with_broadcast<DT1,R_MAT1,R_LMAT1>));   // for python
   expose((parallel_rfm_predict_with_broadcast<DT2,R_MAT2,R_LMAT2>));   // for python
-  // frovedis GBT
-  expose((parallel_gbt_predict_with_broadcast<DT1,R_MAT1,R_LMAT1>));   
-  expose((parallel_gbt_predict_with_broadcast<DT2,R_MAT2,R_LMAT2>));
+  //spark getters
+  expose(frovedis_ensemble_get_num_trees<RFM1>);
+  expose(frovedis_ensemble_get_total_num_nodes<RFM1>);
+  //expose((frovedis_ensemble_get_tree_weights<RFM1,DT1>)); //not added in frovedis
+  expose(frovedis_ensemble_to_string<RFM1>);
+
+  // --- frovedis GBT ---
   expose(show_model<GBT1>);
   expose(show_model<GBT2>);    // for python
   expose(release_model<GBT1>);
@@ -377,4 +397,11 @@ void expose_frovedis_model_functions() {
   expose(save_model<GBT2>);    // for python
   expose(load_model<GBT1>);    // void returning
   expose(load_model<GBT2>);    // for python (void returning)
+  expose((parallel_gbt_predict_with_broadcast<DT1,R_MAT1,R_LMAT1>));   
+  expose((parallel_gbt_predict_with_broadcast<DT2,R_MAT2,R_LMAT2>));
+  //spark getters
+  expose(frovedis_ensemble_get_num_trees<GBT1>);
+  expose(frovedis_ensemble_get_total_num_nodes<GBT1>);
+  expose((frovedis_ensemble_get_tree_weights<GBT1,DT1>));
+  expose(frovedis_ensemble_to_string<GBT1>);
 }

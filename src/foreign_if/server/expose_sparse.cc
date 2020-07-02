@@ -102,5 +102,8 @@ void expose_frovedis_sparse_matrix_functions() {
   expose(save_matrix<S_MAT44>);
   expose(save_matrix<S_MAT45>);
   expose((get_global_data<S_MAT1,S_LMAT1>));
-  expose((copy_matrix<S_MAT1,S_LMAT1>)); 
+  expose((copy_matrix<S_MAT1,S_LMAT1>));
+  // --- frovedis to_spark API --- 
+  expose((get_all_nnz<DT1,DT5,DT5>));
+  expose((get_all_nrow<DT1,DT5,DT5>));
 }

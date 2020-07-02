@@ -45,7 +45,8 @@ enum MODEL_KIND {
   LDA,
   LDASP,
   RFM,
-  GBT
+  GBT,
+  SVR
 };
 
 enum MAT_KIND {

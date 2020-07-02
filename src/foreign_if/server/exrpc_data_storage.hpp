@@ -616,5 +616,27 @@ L_MATRIX get_global_data(exrpc_ptr_t& dptr) {
   auto& mat = *reinterpret_cast<MATRIX*>(dptr);  
   return mat.gather();
 }
-  
+
+// returns the non-zero elements of the input local crs matrix
+template <class T, class I=size_t, class O=size_t>
+size_t get_local_nnz(crs_matrix_local<T,I,O>& l_mat) { 
+  return l_mat.val.size(); 
+}
+
+// returns vector of non-zero elements of the input local crs matrix
+template <class T, class I=size_t, class O=size_t>
+std::vector<size_t>
+get_all_nnz(exrpc_ptr_t& d_ptr) {
+  auto& mat = *reinterpret_cast<crs_matrix<T,I,O>*>(d_ptr);
+  return mat.data.map(get_local_nnz<T,I,O>).gather();
+}
+
+// returns vector of local_num_row of the input local crs matrix
+template <class T, class I=size_t, class O=size_t>
+std::vector<size_t>
+get_all_nrow(exrpc_ptr_t& d_ptr) {
+  auto& mat = *reinterpret_cast<crs_matrix<T,I,O>*>(d_ptr);
+  return mat.get_local_num_rows();
+}
+
 #endif
