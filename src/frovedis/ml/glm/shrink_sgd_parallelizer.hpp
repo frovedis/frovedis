@@ -119,7 +119,7 @@ bool update_model_local(double regParam, double convergenceTol,
   if(isIntercept) {
     reduce_lap.lap_start();
     typed_allreduce(&diff.intercept, &totaldiff.intercept, 1, MPI_SUM, 
-                    MPI_COMM_WORLD);
+                    frovedis_comm_rpc);
     reduce_lap.lap_stop();
     if(self == 0) t.show("Allreduce intercept: ");
   }
@@ -127,11 +127,11 @@ bool update_model_local(double regParam, double convergenceTol,
   reg.regularize(global.weight);
   if(self == 0) t.show("regularize: ");
 
-#ifdef _ALLOW_CONV_RATE_CHECK_
+#ifdef _CONV_RATE_CHECK_
   conv_lap.lap_start();
   T sqdiff = local_square_sum(diff_sum.data(), diff_sum.size());
   T sqdiff_sum = 0;
-  typed_allreduce(&sqdiff, &sqdiff_sum, 1, MPI_SUM, MPI_COMM_WORLD);
+  typed_allreduce(&sqdiff, &sqdiff_sum, 1, MPI_SUM, frovedis_comm_rpc);
   if(isIntercept) 
     sqdiff_sum += diff.intercept * diff.intercept;
   double RMSE = sqrt(sqdiff_sum/(numFeatures + 1));
@@ -193,7 +193,7 @@ struct do_train_with_trans {
         std::string msg = "[Iteration: " + ITOS(i) + "] elapsed-time: ";
         trace_iter.show(msg);
       }
-#ifdef _ALLOW_CONV_RATE_CHECK_
+#ifdef _CONV_RATE_CHECK_
       if(conv) {
         if(self == 0) {
           RLOG(INFO) << std::string("Convergence achieved in ") + 
@@ -208,7 +208,7 @@ struct do_train_with_trans {
       reduce_lap.show_lap("reduce time: ");
       dtrain_lap.show_lap("dtrain time: ");
       update_lap.show_lap("update time: ");
-#ifdef _ALLOW_CONV_RATE_CHECK_
+#ifdef _CONV_RATE_CHECK_
       conv_lap.show_lap("check convergence time: ");
 #endif
     }
@@ -265,7 +265,7 @@ struct do_train_notrans {
         std::string msg = "[Iteration: " + ITOS(i) + "] elapsed-time: ";
         trace_iter.show(msg);
       }
-#ifdef _ALLOW_CONV_RATE_CHECK_
+#ifdef _CONV_RATE_CHECK_
       if(conv) {
         if(self == 0) {
           RLOG(INFO) << std::string("Convergence achieved in ") + 
@@ -280,7 +280,7 @@ struct do_train_notrans {
       reduce_lap.show_lap("reduce time: ");
       dtrain_lap.show_lap("dtrain time: ");
       update_lap.show_lap("update time: ");
-#ifdef _ALLOW_CONV_RATE_CHECK_
+#ifdef _CONV_RATE_CHECK_
       conv_lap.show_lap("check convergence time: ");
 #endif
     }
