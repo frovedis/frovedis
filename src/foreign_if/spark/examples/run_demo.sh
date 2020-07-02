@@ -50,6 +50,13 @@ spark-submit --driver-java-options "-Djava.library.path=$LIBRARY_PATH" --jars $J
 echo -e "\n --- executing frovedis decision tree demo ---"
 spark-submit --driver-java-options "-Djava.library.path=$LIBRARY_PATH" --jars $JARS --conf spark.driver.memory=8g lib/spark2frovedis_dt.jar "$COMMAND"
 
+echo "\n --- executing GBT demo ---"
+spark-submit --driver-java-options "-Djava.library.path=$LIBRARY_PATH" --jars $JARS --conf spark.driver.memory=8g lib/spark2frovedis_gbt.jar "$COMMAND"
+
+echo "\n --- executing Random Forest demo ---"
+spark-submit --driver-java-options "-Djava.library.path=$LIBRARY_PATH" --jars $JARS --conf spark.driver.memory=8g lib/spark2frovedis_rf.jar "$COMMAND"
+
+
 echo -e "\n --- executing frovedis factorization machine demo ---"
 spark-submit --driver-java-options "-Djava.library.path=$LIBRARY_PATH" --jars $JARS --conf spark.driver.memory=8g lib/spark2frovedis_fm.jar "$COMMAND"
 

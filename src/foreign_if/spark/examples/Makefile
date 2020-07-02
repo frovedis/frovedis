@@ -34,6 +34,8 @@ all:
 	${SCALA_HOME}/bin/scalac -cp "${SPARK_HOME}/jars/*:${HDPATH}:${CLIENT_JAR}" -sourcepath . -d bin scala/FrovedisSSSP.scala
 	${SCALA_HOME}/bin/scalac -cp "${SPARK_HOME}/jars/*:${HDPATH}:${CLIENT_JAR}" -sourcepath . -d bin scala/FrovedisBFS.scala
 	${SCALA_HOME}/bin/scalac -cp "${SPARK_HOME}/jars/*:${HDPATH}:${CLIENT_JAR}" -sourcepath . -d bin scala/LDADemo.scala
+	${SCALA_HOME}/bin/scalac -cp "${SPARK_HOME}/jars/*:${HDPATH}:${CLIENT_JAR}" -sourcepath . -d bin scala/RFDemo.scala
+	${SCALA_HOME}/bin/scalac -cp "${SPARK_HOME}/jars/*:${HDPATH}:${CLIENT_JAR}" -sourcepath . -d bin scala/GBTDemo.scala
 
 
 	cd MANIFEST; make
@@ -63,6 +65,8 @@ all:
 	cd bin; ${JAVA_HOME}/bin/jar -cfm ../lib/frovedis_sssp.jar ../MANIFEST/sssp.mf test/scala/FrovedisSSSP*
 	cd bin; ${JAVA_HOME}/bin/jar -cfm ../lib/frovedis_bfs.jar ../MANIFEST/bfs.mf test/scala/FrovedisBFS*
 	cd bin; ${JAVA_HOME}/bin/jar -cfm ../lib/spark2frovedis_lda.jar ../MANIFEST/lda.mf test/scala/LDADemo*
+	cd bin; ${JAVA_HOME}/bin/jar -cfm ../lib/spark2frovedis_rf.jar ../MANIFEST/rf.mf test/scala/RFDemo*
+	cd bin; ${JAVA_HOME}/bin/jar -cfm ../lib/spark2frovedis_gbt.jar ../MANIFEST/gbt.mf test/scala/GBTDemo*
 
 clean:
 	rm -fr *~ bin/test scala/*~ MANIFEST/*.mf MANIFEST/append MANIFEST/*~ out/* lib/*
