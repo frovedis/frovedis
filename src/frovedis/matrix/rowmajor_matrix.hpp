@@ -31,6 +31,22 @@ template <class T, class I, class O>
 struct crs_matrix;
 
 template <class T>
+void debug_print_vector(const std::vector<T>& val, 
+                        size_t n = 0) {
+  if (n == 0 || val.size() < 2*n) {
+    for(auto i: val){ std::cout << i << " "; }
+    std::cout << std::endl;
+  }
+  else {
+    for(size_t i = 0; i < n; ++i){ std::cout << val[i] << " "; }
+    std::cout << " ... ";
+    auto size = val.size();
+    for(size_t i = size - n; i < size; ++i){ std::cout << val[i] << " "; }
+    std::cout << std::endl;
+  }
+}
+
+template <class T>
 struct rowmajor_matrix_local {
   rowmajor_matrix_local(){}
   rowmajor_matrix_local(size_t r, size_t c) :
@@ -86,7 +102,7 @@ struct rowmajor_matrix_local {
   }
   template <class I = size_t, class O = size_t>
   crs_matrix_local<T,I,O> to_crs();
-  void debug_print();
+  void debug_print(size_t n = 0);
   std::vector<T> get_row(size_t r) const;
   void save(const std::string& file);
   void clear() {
@@ -181,13 +197,12 @@ std::ostream& operator<<(std::ostream& str,
 }
 
 template <class T>
-void rowmajor_matrix_local<T>::debug_print() {
+void rowmajor_matrix_local<T>::debug_print(size_t n) {
   std::cout << "node = " << get_selfid()
             << ", local_num_row = " << local_num_row
             << ", local_num_col = " << local_num_col
             << ", val = ";
-  for(auto i: val){ std::cout << i << " "; }
-  std::cout << std::endl;
+  debug_print_vector(val, n);
 }
 
 template <class T>
@@ -466,31 +481,11 @@ std::vector<T> sum_of_rows(const rowmajor_matrix_local<T>& m) {
   std::vector<T> ret(ncol,0);
   T* retp = &ret[0];
   const T* matp = &m.val[0];
-#if defined(_SX) || defined(__ve__)
-  if (nrow > ncol) {
-    for(size_t i = 0; i<nrow; i += MAT_VLEN) {
-      auto range = (i + MAT_VLEN <= nrow) ? (i + MAT_VLEN) : nrow;
-      for(size_t j =0; j<ncol; ++j) {
-        for (size_t k=i; k<range; ++k) {
-          retp[j] += matp[k * ncol + j];
-        }
-      }
-    }
-  }
-  else {
-    for (size_t i=0; i<nrow; ++i) {
-      for(size_t j =0; j<ncol; ++j) {
-        retp[j] += matp[i * ncol + j];
-      }
-    }
-  }
-#else
-  for (size_t i=0; i<nrow; ++i) {
-    for(size_t j =0; j<ncol; ++j) {
+  for (size_t i = 0; i < nrow; ++i) {
+    for(size_t j = 0; j < ncol; ++j) {
       retp[j] += matp[i * ncol + j];
     }
   }
-#endif
   return ret;
 }
 
@@ -501,31 +496,11 @@ std::vector<T> squared_sum_of_rows(const rowmajor_matrix_local<T>& m) {
   std::vector<T> ret(ncol,0);
   T* retp = &ret[0];
   const T* matp = &m.val[0];
-#if defined(_SX) || defined(__ve__)
-  if (nrow > ncol) {
-    for(size_t i = 0; i<nrow; i += MAT_VLEN) {
-      auto range = (i + MAT_VLEN <= nrow) ? (i + MAT_VLEN) : nrow;
-      for(size_t j =0; j<ncol; ++j) {
-        for (size_t k=i; k<range; ++k) {
-          retp[j] += (matp[k * ncol + j] * matp[k * ncol + j]);
-        }
-      }
-    }
-  }
-  else {
-    for (size_t i=0; i<nrow; ++i) {
-      for(size_t j =0; j<ncol; ++j) {
-        retp[j] += (matp[i * ncol + j] * matp[i * ncol + j]);
-      }
-    }
-  }
-#else
-  for (size_t i=0; i<nrow; ++i) {
-    for(size_t j =0; j<ncol; ++j) {
+  for (size_t i = 0; i < nrow; ++i) {
+    for(size_t j = 0; j < ncol; ++j) {
       retp[j] += (matp[i * ncol + j] * matp[i * ncol + j]);
     }
   }
-#endif
   return ret;
 }
 
@@ -692,11 +667,6 @@ arg_partition(rowmajor_matrix_local<T>& key,
  */
 
 template <class T>
-void call_debug_print(T& m) {
-  m.debug_print();
-}
-
-template <class T>
 void rowmajor_clear_helper(rowmajor_matrix_local<T>& mat) {mat.clear();}
 
 template <class T>
@@ -717,7 +687,15 @@ struct rowmajor_matrix {
   crs_matrix<T,I,O> to_crs();
   std::vector<T> get_row(size_t r);
   std::vector<size_t> get_local_num_rows(); 
-  void debug_print() {data.mapv(call_debug_print<rowmajor_matrix_local<T>>);}
+  void debug_print(size_t n = 0) {
+    std::cout << "num_row = " << num_row
+              << ", num_col = " << num_col << std::endl;
+    auto g = data.gather();
+    for(size_t i = 0; i < g.size(); i++) {
+      std::cout << "node " << i << std::endl;
+      g[i].debug_print(n);
+    }
+  }
   void save(const std::string& file);
   void clear() {
     data.mapv(rowmajor_clear_helper<T>);
@@ -1105,7 +1083,7 @@ struct rowmajor_matrix_divide_and_exchange {
     }
     std::vector<size_t> recv_size(node_size);
     MPI_Alltoall(&send_size[0], sizeof(size_t), MPI_CHAR,
-                 &recv_size[0], sizeof(size_t), MPI_CHAR, MPI_COMM_WORLD);
+                 &recv_size[0], sizeof(size_t), MPI_CHAR, frovedis_comm_rpc);
     size_t total_size = 0;
     auto recv_sizep = recv_size.data();
     for(size_t i = 0; i < node_size; i++) {
@@ -1124,7 +1102,7 @@ struct rowmajor_matrix_divide_and_exchange {
     large_alltoallv(sizeof(T),
                     reinterpret_cast<char*>(&m.val[0]), send_size, send_displ, 
                     reinterpret_cast<char*>(&tmpval[0]), recv_size, recv_displ, 
-                    MPI_COMM_WORLD);
+                    frovedis_comm_rpc);
     T* retvalp = &ret.val[0];
     T* off = &tmpval[0];
     size_t global_c_off = 0;
@@ -1252,48 +1230,47 @@ rowmajor_matrix<T>& rowmajor_matrix<T>::align_block() {
 
 template <class T>
 void sub_vector_row(rowmajor_matrix_local<T>& m, std::vector<T>& v) {
-  T* valp = m.val.data();
   size_t num_col = m.local_num_col;
   size_t num_row = m.local_num_row;
   if(num_col != v.size())
     throw std::runtime_error("sub_vector_row: size mismatch");
+  T* valp = m.val.data();
   T* vp = v.data();
   for(size_t i = 0; i < num_row; i++) {
-    for(size_t j = 0; j < num_col; j++) {
-      valp[num_col * i + j] -= vp[j];
-    }
+    for(size_t j = 0; j < num_col; j++) valp[num_col * i + j] -= vp[j];
   }
 }
 
 template <class T>
-std::vector<T> stddev_of_cols_helper(const rowmajor_matrix_local<T>& m) {
-  auto nrow = m.local_num_row;
-  auto ncol = m.local_num_col;
-  std::vector<T> ret(ncol,0);
-  T* retp = &ret[0];
-  const T* matp = &m.val[0];
-  for (size_t i = 0; i < nrow; ++i) {
-    for(size_t j = 0; j < ncol; ++j) {
-      retp[j] += matp[i * ncol + j] * matp[i * ncol + j];
-    }
+void add_vector_row(rowmajor_matrix_local<T>& m, std::vector<T>& v) {
+  size_t num_col = m.local_num_col;
+  size_t num_row = m.local_num_row;
+  if(num_col != v.size())
+    throw std::runtime_error("add_vector_row: size mismatch");
+  T* valp = m.val.data();
+  T* vp = v.data();
+  for(size_t i = 0; i < num_row; i++) {
+    for(size_t j = 0; j < num_col; j++) valp[num_col * i + j] += vp[j];
   }
-  return ret;
 }
 
 template <class T>
 void mul_vector_row(rowmajor_matrix_local<T>& m, std::vector<T>& v) {
-  T* valp = m.val.data();
   size_t num_col = m.local_num_col;
   size_t num_row = m.local_num_row;
   if(num_col != v.size())
     throw std::runtime_error("mul_vector_row: size mismatch");
+  T* valp = m.val.data();
   T* vp = v.data();
   for(size_t i = 0; i < num_row; i++) {
-    for(size_t j = 0; j < num_col; j++) {
-      valp[num_col * i + j] *= vp[j];
-    }
+    for(size_t j = 0; j < num_col; j++) valp[num_col * i + j] *= vp[j];
   }
 }
+
+template <class T>
+void scale_matrix(rowmajor_matrix<T>& mat, std::vector<T>& vec) {
+  mat.data.mapv(mul_vector_row<T>, broadcast(vec));
+} 
 
 template <class T>
 std::vector<T>
@@ -1317,23 +1294,64 @@ compute_mean(rowmajor_matrix<T>& mat, int axis = 0) {
   return tmp;
 }
 
-// destructively standardize in column direction; used in pca.hpp
 template <class T>
-void standardize(rowmajor_matrix<T>& mat, bool sample_stddev = true) {
+void centerize(rowmajor_matrix<T>& mat, std::vector<T>& mean) {
   if(mat.num_row < 2)
-    throw std::runtime_error("cannot standardize if number of row is 0 or 1");
+    throw std::runtime_error("cannot centerize if number of row is 0 or 1");
+  mat.data.mapv(sub_vector_row<T>, broadcast(mean));
+}
+
+// destructively centerize in column direction; used in pca.hpp
+template <class T>
+void centerize(rowmajor_matrix<T>& mat) {
   auto mean = compute_mean(mat, 0); // column-wise mean
-  standardize(mat, mean, sample_stddev);
+  centerize(mat, mean);
 }
 
 template <class T>
-void standardize(rowmajor_matrix<T>& mat, std::vector<T>& mean, 
+void decenterize(rowmajor_matrix<T>& mat, std::vector<T>& mean) {
+  if(mat.num_row < 2)
+    throw std::runtime_error("cannot decenterize if number of row is 0 or 1");
+  mat.data.mapv(add_vector_row<T>, broadcast(mean));
+}
+
+template <class T>
+std::vector<T>
+compute_stddev(rowmajor_matrix<T>& mat, 
+               std::vector<T>& mean, 
+               bool sample_stddev = true) {
+  if(mat.num_row < 2)
+    throw std::runtime_error("cannot compute stddev if number of row is 0 or 1");
+  centerize(mat, mean); // m = m - mean
+  auto ret = mat.data.map(+[](rowmajor_matrix_local<T>& m)
+                         {return squared_sum_of_rows(m);}).vector_sum();
+  auto retp = ret.data();
+  T to_div;
+  if(sample_stddev) to_div = static_cast<T>(mat.num_row - 1);
+  else to_div = static_cast<T>(mat.num_row);
+  for(size_t i = 0; i < mat.num_col; ++i) {
+    if(retp[i] == 0) retp[i] = 1.0;
+    retp[i] = sqrt(retp[i] / to_div);
+  }
+  return ret;
+}
+
+template <class T>
+std::vector<T>
+compute_stddev(rowmajor_matrix<T>& mat, bool sample_stddev = true) {
+  auto mean = compute_mean(mat, 0); // column-wise mean
+  return compute_stddev(mat, mean, sample_stddev);
+}
+
+template <class T>
+void standardize(rowmajor_matrix<T>& mat, 
+                 std::vector<T>& mean, 
                  bool sample_stddev = true) {
   if(mat.num_row < 2)
     throw std::runtime_error("cannot standardize if number of row is 0 or 1");
   mat.data.mapv(sub_vector_row<T>, broadcast(mean));
   auto tmp = mat.data.map(+[](rowmajor_matrix_local<T>& m)
-                         {return stddev_of_cols_helper(m);}).vector_sum();
+                         {return squared_sum_of_rows(m);}).vector_sum();
   auto tmpp = tmp.data();
   T to_div;
   if(sample_stddev) to_div = static_cast<T>(mat.num_row - 1);
@@ -1345,20 +1363,13 @@ void standardize(rowmajor_matrix<T>& mat, std::vector<T>& mean,
   mat.data.mapv(mul_vector_row<T>, broadcast(tmp));
 }
 
-// destructively centerize in column direction; used in pca.hpp
+// destructively standardize in column direction; used in pca.hpp
 template <class T>
-void centerize(rowmajor_matrix<T>& mat) {
+void standardize(rowmajor_matrix<T>& mat, bool sample_stddev = true) {
   if(mat.num_row < 2)
-    throw std::runtime_error("cannot centerize if number of row is 0 or 1");
+    throw std::runtime_error("cannot standardize if number of row is 0 or 1");
   auto mean = compute_mean(mat, 0); // column-wise mean
-  centerize(mat, mean);
-}
-
-template <class T>
-void centerize(rowmajor_matrix<T>& mat, std::vector<T>& mean) {
-  if(mat.num_row < 2)
-    throw std::runtime_error("cannot centerize if number of row is 0 or 1");
-  mat.data.mapv(sub_vector_row<T>, broadcast(mean));
+  standardize(mat, mean, sample_stddev);
 }
 
 template <class T>
