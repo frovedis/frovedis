@@ -191,7 +191,7 @@ template <class T>
 struct linear_regression_model {
   linear_regression_model(): intercept(0.0) {}
   linear_regression_model(size_t numFtr, T intercpt=0.0) :
-    weight(numFtr,0), intercept(intercpt) {} 
+    weight(numFtr,1), intercept(intercpt) {} 
   linear_regression_model(const linear_regression_model<T>& l) {
     weight = l.weight;
     intercept = l.intercept;
@@ -263,10 +263,15 @@ struct linear_regression_model {
   predict(DATA_MATRIX& mat) {
     auto v = mat * weight;
     T* vp = &v[0];
-    for(size_t i = 0; i < v.size(); i++) {
-      vp[i] += intercept;
+    if (intercept != 0) {
+      for(size_t i = 0; i < v.size(); i++) vp[i] += intercept;
     }
     return v;
+  }
+  template <class DATA_MATRIX>
+  std::vector<T>
+  predict_probability(DATA_MATRIX& mat) { // added to make all glm model uniform
+    return predict(mat);
   }
   size_t get_num_features() const {return weight.size();}
   void save(const std::string &inputPath) const {
@@ -298,7 +303,7 @@ struct logistic_regression_model {
   // default threshold = 0.5
   logistic_regression_model(): intercept(0.0), threshold(0.5) {} 
   logistic_regression_model(size_t numFtr, T intercpt=0.0, T thr=0.5):
-    weight(numFtr,0), intercept(intercpt), threshold(thr) 
+    weight(numFtr,1), intercept(intercpt), threshold(thr) 
     { checkAssumption(thr >= 0); }
   logistic_regression_model(const logistic_regression_model<T>& l) {
     weight = l.weight;
@@ -378,30 +383,39 @@ struct logistic_regression_model {
   }
   template <class DATA_MATRIX>
   std::vector<T>
-  predict(DATA_MATRIX& mat) {
-    auto tmp = predict_probability(mat);
+  predict(DATA_MATRIX& mat, bool use_score=false) {
+    auto tmp = predict_probability(mat, use_score);
     std::vector<T> ret(tmp.size());
     T* tmpp = &tmp[0];
     T* retp = &ret[0];
-    for(size_t i = 0; i < tmp.size(); ++i) {
-      retp[i] = (tmpp[i] >= threshold) ? YES_RESPONSE : NO_RESPONSE;
+    if(use_score) {
+      for(size_t i = 0; i < tmp.size(); ++i) {
+        retp[i] = (tmpp[i] > 0) ? YES_RESPONSE : NO_RESPONSE;
+      }
+    }
+    else {
+      for(size_t i = 0; i < tmp.size(); ++i) {
+        retp[i] = (tmpp[i] >= threshold) ? YES_RESPONSE : NO_RESPONSE;
+      }
     } 
     return ret;
   }
   template <class DATA_MATRIX>
   std::vector<T>
-  predict_probability(DATA_MATRIX& mat) {
+  predict_probability(DATA_MATRIX& mat, bool use_score=false) {
     auto v = mat * weight;
-    std::vector<T> ret(v.size());
-    T* vp = &v[0];
-    T* retp = &ret[0];
-    for(size_t i = 0; i < v.size(); i++) {
-      auto exptmp = -(vp[i] + intercept);
-      // for SX exp...
-      if(exptmp > 709) retp[i] = 0;
-      else retp[i] = 1.0 / (1.0 + exp(exptmp));
+    auto vp = v.data();
+    if (intercept != 0) {
+      for(size_t i = 0; i < v.size(); i++) vp[i] += intercept;
     }
-    return ret;
+    if(!use_score) { // calculate sigmoid score
+      for(size_t i = 0; i < v.size(); i++) {
+        auto exptmp = -1.0 * vp[i];
+        if(exptmp > 709) vp[i] = 0; // for SX exp...
+        else vp[i] = 1.0 / (1.0 + exp(exptmp));
+      }
+    }
+    return v;
   }
   void set_threshold(T thr) {
     if(thr < 0) REPORT_ERROR(USER_ERROR,"Negative Threshold Value\n");
@@ -439,7 +453,7 @@ struct svm_model {
   // default threshold = 0.0
   svm_model(): intercept(0.0), threshold(0.0) {} 
   svm_model(size_t numFtr, T intercpt=0.0, T thr=0.0) :
-    weight(numFtr,0), intercept(intercpt), threshold(thr) 
+    weight(numFtr,1), intercept(intercpt), threshold(thr) 
     { checkAssumption(thr >= 0); }
   svm_model(const svm_model<T>& l) {
     weight = l.weight;
@@ -525,7 +539,8 @@ struct svm_model {
     T* tmpp = &tmp[0];
     T* retp = &ret[0];
     for(size_t i = 0; i < tmp.size(); i++) {
-      retp[i] = (tmpp[i] >= threshold) ? YES_RESPONSE : NO_RESPONSE;
+      //retp[i] = (tmpp[i] >= threshold) ? YES_RESPONSE : NO_RESPONSE;
+      retp[i] = (tmpp[i] > 0) ? YES_RESPONSE : NO_RESPONSE;
     }
     return ret;
   }
@@ -533,9 +548,9 @@ struct svm_model {
   std::vector<T>
   predict_probability(DATA_MATRIX& mat) {
     auto v = mat * weight;
-    T* vp = &v[0];
-    for(size_t i = 0; i < v.size(); i++) {
-      vp[i] += intercept;
+    auto vp = v.data();
+    if (intercept != 0) {
+      for(size_t i = 0; i < v.size(); i++) vp[i] += intercept;
     }
     return v;
   }
