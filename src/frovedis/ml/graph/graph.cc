@@ -884,10 +884,9 @@ void graph::sssp_query(){
         RLOG(TIME_RECORD_LOG_LEVEL)<<"*****************************\n";    
 }
 
-void graph::sssp_bf_spmv(bool if_sssp_enq, size_t source_vertex){ 
+void graph::sssp_bf_spmv(bool if_sssp_enq, size_t source_vertex) {
+#ifdef SPMV 
     //spMV, CCS
-
-
     RLOG(TIME_RECORD_LOG_LEVEL)<<"converting matrix from crs to ccs.."<<std::endl;
     frovedis::ccs_matrix<TYPE_MATRIX> A_ccs(A);
     t_all.lap_start();
@@ -944,22 +943,24 @@ void graph::sssp_bf_spmv(bool if_sssp_enq, size_t source_vertex){
         isConverged_all = 0;
         auto* isConverged_ptr = &isConverged[0];
         for(size_t i=0; i<isConverged.size();i++){
-            isConverged_all += isConverged_ptr[i];
+          isConverged_all += isConverged_ptr[i];
         }
-
         iter ++;
     }
     RLOG(TIME_RECORD_LOG_LEVEL)<<"Finished!"<<std::endl;
     t_all.lap_stop();
     nodes_pred = lnodes_pred.moveto_dvector<size_t>().gather(); 
     this->print_exectime();
-    //shortest path query
-    if(if_sssp_enq == true){
-        sssp_query();
-    }
+#else
+  std::vector<TYPE_MATRIX> dist;
+  std::vector<size_t> pred;
+  sssp_bf_impl(A, source_vertex, dist, pred);
+  this->nodes_dist.swap(dist);
+  this->nodes_pred.swap(pred);
+#endif
+  //shortest path query
+  if(if_sssp_enq == true) sssp_query();
 }
-
-
 
 void graph::sssp_bf_spmspv_2dmerge(bool if_sssp_enq, size_t source_vertex, size_t upperbound){ 
     //Using sparse vector for frontiers and focus on only recently updated vertices
@@ -1177,7 +1178,7 @@ void gather_helper(std::vector<T>& v, std::vector<T>& gathered) {
   size_t vsize = v.size();
   MPI_Gather(&vsize, sizeof(size_t), MPI_CHAR, 
              reinterpret_cast<char*>(&recvcounts[0]),
-             sizeof(size_t), MPI_CHAR, 0, MPI_COMM_WORLD);
+             sizeof(size_t), MPI_CHAR, 0, frovedis_comm_rpc);
   size_t total = 0;
   for(size_t i = 0; i < nodes; i++) total += recvcounts[i];
   std::vector<size_t> displs(nodes);
@@ -1189,16 +1190,16 @@ void gather_helper(std::vector<T>& v, std::vector<T>& gathered) {
   auto gatheredp = gathered.data();
   large_gatherv(sizeof(T), reinterpret_cast<char*>(&v[0]), vsize, 
                 reinterpret_cast<char*>(gatheredp), recvcounts,
-                displs, 0, MPI_COMM_WORLD);
+                displs, 0, frovedis_comm_rpc);
 }
 
 template <class T>
 void bcast_helper(std::vector<T>& v) {
   size_t vsize = v.size();
-  MPI_Bcast(&vsize, sizeof(size_t), MPI_CHAR, 0, MPI_COMM_WORLD);
+  MPI_Bcast(&vsize, sizeof(size_t), MPI_CHAR, 0, frovedis_comm_rpc);
   if(get_selfid() != 0) v.resize(vsize);
   large_bcast(sizeof(T), reinterpret_cast<char*>(v.data()), vsize, 0,
-              MPI_COMM_WORLD);
+              frovedis_comm_rpc);
 }
 
 void pagerank_v1_helper_crs(crs_matrix_local<TYPE_MATRIX_PAGERANK>& A,
