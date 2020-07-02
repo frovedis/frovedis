@@ -5,6 +5,24 @@
 
 namespace frovedis {
 
+struct sgd_config {
+  sgd_config() {
+    numIteration = 1000;
+    alpha = 0.01;
+    convergenceTol = 0.001;
+    isIntercept = false;
+  }
+  sgd_config(size_t niter, double lr,
+             double tol, bool icpt):
+    numIteration(niter), alpha(lr), 
+    convergenceTol(tol), isIntercept(icpt) {}
+  
+  size_t numIteration;
+  double alpha, convergenceTol;
+  bool isIntercept;
+  SERIALIZE(numIteration, alpha, convergenceTol, isIntercept)
+};
+
 template <class T>
 struct sgd_dtrain {
   sgd_dtrain(): iterCount(1), alpha(0.01), isIntercept(false) {}
@@ -15,14 +33,15 @@ struct sgd_dtrain {
   MODEL operator()(std::vector<DATA_MATRIX>& data,
                    std::vector<std::vector<T>>& label,
                    MODEL& gModel,
-                   GRADIENT& loss) {
+                   GRADIENT& grad,
+                   double& loss) {
     // --- One time check ---
     if(iterCount == 1 && data.size() != label.size())
       REPORT_FATAL(INTERNAL_ERROR,
                    "Report bug: Problem in internal minibatch creation.\n");
     MODEL lModel = gModel;   
     gradient_descent gd(alpha, isIntercept);
-    gd.optimize<T>(data,label,lModel,loss,iterCount);
+    gd.optimize<T>(data,label,lModel,grad,iterCount,loss);
     return lModel;
   }
 
@@ -44,14 +63,15 @@ struct sgd_dtrain_with_trans {
                    std::vector<TRANS_MATRIX>& trans,
                    std::vector<std::vector<T>>& label,
                    MODEL& gModel,
-                   GRADIENT& loss) {
+                   GRADIENT& grad,
+                   double& loss) {
     // --- One time check ---
     if(iterCount == 1 && data.size() != label.size())
       REPORT_FATAL(INTERNAL_ERROR,
                    "Report bug: Problem in internal minibatch creation.\n");
     MODEL lModel = gModel;   
     gradient_descent gd(alpha, isIntercept);
-    gd.optimize<T>(data,trans,label,lModel,loss,iterCount);
+    gd.optimize<T>(data,trans,label,lModel,grad,iterCount,loss);
     return lModel;
   }
 
@@ -71,9 +91,10 @@ struct sgd_parallelizer {
   MODEL parallelize(crs_matrix<T,I,O>& data,
                     dvector<T>& label,
                     MODEL& initModel,
+                    GRADIENT& grad,
+                    REGULARIZER& rType,
                     size_t numIteration,
                     double alpha,
-                    double regParam,
                     bool isIntercept,
                     double convergenceTol,
                     MatType mType,
@@ -83,9 +104,10 @@ struct sgd_parallelizer {
   MODEL parallelize(colmajor_matrix<T>& data,
                     dvector<T>& label,
                     MODEL& initModel,
+                    GRADIENT& grad,
+                    REGULARIZER& rType,
                     size_t numIteration,
                     double alpha,
-                    double regParam,
                     bool isIntercept,
                     double convergenceTol);
   double miniBatchFraction;
@@ -124,34 +146,42 @@ void do_train_with_trans(std::vector<DATA_MATRIX>& data,
                          std::vector<TRANS_MATRIX>& transData,
                          std::vector<std::vector<T>>& label,
                          MODEL& model,
-                         size_t numIteration,
-                         double alpha,
-                         double regParam,
-                         bool isIntercept,
-                         double convergenceTol) {
-  frovedis::time_spent trace(TRACE), trace_iter(TRACE),
+                         GRADIENT& grad,
+                         REGULARIZER& rType,
+                         sgd_config& config,
+                         size_t nsamples) {
+  frovedis::time_spent trace(TRACE), trace_iter(DEBUG),
     reduce_lap(DEBUG), dtrain_lap(DEBUG),
     update_lap(DEBUG), conv_lap(DEBUG);
 
+  // --- extract hyper-parameters ---
+  auto numIteration = config.numIteration;
+  auto alpha = config.alpha;
+  auto convergenceTol = config.convergenceTol;
+  auto isIntercept = config.isIntercept;
+
   auto self = get_selfid();
-  REGULARIZER rType(regParam);
-  GRADIENT loss; // only used in sgd_dtrain...
   size_t weight_size = model.weight.size();
   std::vector<T> weight_intercept(weight_size + 1);
   auto weight_interceptp = weight_intercept.data();
   std::vector<T> totaldiffvec(weight_size + 1);
   auto totaldiffvecp = totaldiffvec.data();
-
+  double l_loss = 0.0, sumloss = 0.0;
+#ifdef _LOSS_CHECK_
+  double best_loss = std::numeric_limits<double>::infinity();
+  int no_improvement_count = 0;
+#endif
+  
   // -------- main loop --------
   for(size_t i = 1; i <= numIteration; i++) {
     dtrain_lap.lap_start();
     auto updated_model = sgd_dtrain_with_trans<T>(i,alpha,isIntercept)
-      (data,transData,label,model,loss);
+      (data,transData,label,model,grad,l_loss);
     dtrain_lap.lap_stop();
     if(self == 0) trace.show("dtrain: ");
 
     reduce_lap.lap_start();
-#ifdef _ALLOW_CONV_RATE_CHECK_
+#ifdef _RMSE_CONV_RATE_CHECK_
     auto prev_model = model;
 #endif
     // updated_model = updated_model - model
@@ -161,7 +191,8 @@ void do_train_with_trans(std::vector<DATA_MATRIX>& data,
     weight_interceptp[weight_size] = updated_model.intercept;
     // assume weight_size can be represented as int
     typed_allreduce(weight_interceptp, totaldiffvecp, weight_size + 1,
-                    MPI_SUM, MPI_COMM_WORLD);
+                    MPI_SUM, frovedis_comm_rpc);
+    typed_allreduce(&l_loss, &sumloss, 1, MPI_SUM, frovedis_comm_rpc);
     reduce_lap.lap_stop();
     if(self == 0) trace.show("allreduce: ");
 
@@ -169,37 +200,52 @@ void do_train_with_trans(std::vector<DATA_MATRIX>& data,
     auto model_weightp = model.weight.data();
     add_weight(model_weightp, totaldiffvecp, weight_size);
     model.intercept += totaldiffvecp[weight_size];
-    rType.regularize(model.weight);
+    rType.regularize(model.weight, alpha / std::sqrt(i));
     update_lap.lap_stop();
     if(self == 0) trace.show("update and regularize: ");
 
-#ifdef _ALLOW_CONV_RATE_CHECK_
+#ifdef _CONV_RATE_CHECK_
     conv_lap.lap_start();
+#ifdef _RMSE_CONV_RATE_CHECK_
     auto prev_model_weightp = prev_model.weight.data();
     T sum = local_diff_square_sum(prev_model_weightp,
                                   model_weightp, weight_size);
     T reduced_sum;
-    typed_allreduce(&sum, &reduced_sum, 1, MPI_SUM, MPI_COMM_WORLD);
+    typed_allreduce(&sum, &reduced_sum, 1, MPI_SUM, frovedis_comm_rpc);
     reduced_sum +=
       (prev_model.intercept - model.intercept) *
       (prev_model.intercept - model.intercept);
     T RMSE = sqrt(reduced_sum/(weight_size + 1));
-    conv_lap.lap_stop();
-    if(self == 0) {
-      std::string msg = std::string("RMS error: ") + ITOS(RMSE) + ": ";
-      trace.show(msg);
-    }
+    if(self == 0) trace.show("RMS error: " + std::to_string(RMSE) + ": ");
     if(RMSE < convergenceTol) {
-      if(self == 0) {
-        RLOG(INFO) << std::string("Convergence achieved in ") + 
-          ITOS(i) + " iterations.\n";
-      }
+      if(self == 0) 
+        RLOG(INFO) << "Convergence achieved in " << ITOS(i) << " iterations.\n";
       break;
     }
+//#elif _LOSS_CHECK_
+#else
+    if (i > 1) {
+        if (sumloss > best_loss - convergenceTol * nsamples)
+        no_improvement_count++;
+      else
+        no_improvement_count = 0;
+      if (sumloss < best_loss) best_loss = sumloss;
+      if (no_improvement_count >= NITER_NO_CHANGE) {
+        if(self == 0)
+          RLOG(INFO) << "Convergence achieved in " << ITOS(i) << " iterations.\n";
+        break;
+      }
+    }
+#endif
+    conv_lap.lap_stop();
 #endif
 
     if(self == 0) {
-      std::string msg = "[Iteration: " + ITOS(i) + "] elapsed-time: ";
+      auto msg = " --- Epoch: " + std::to_string(i) + " ---\n";
+      msg += "  -> norm(w): "  + std::to_string(nrm2<T>(model.weight));
+      msg += ", bias: " + std::to_string(model.intercept);
+      msg += ", avg. loss: " + std::to_string(sumloss / nsamples);
+      msg += ", elapsed-time: ";
       trace_iter.show(msg);
     }
   }
@@ -207,7 +253,7 @@ void do_train_with_trans(std::vector<DATA_MATRIX>& data,
     reduce_lap.show_lap("allreduce time: ");
     dtrain_lap.show_lap("dtrain time: ");
     update_lap.show_lap("update time: ");
-#ifdef _ALLOW_CONV_RATE_CHECK_
+#ifdef _CONV_RATE_CHECK_
     conv_lap.show_lap("check convergence time: ");
 #endif
   }
@@ -218,34 +264,42 @@ template <class T, class DATA_MATRIX,
 void do_train_notrans(std::vector<DATA_MATRIX>& data,
                       std::vector<std::vector<T>>& label,
                       MODEL& model,
-                      size_t numIteration,
-                      double alpha,
-                      double regParam,
-                      bool isIntercept,
-                      double convergenceTol) {
-  frovedis::time_spent trace(TRACE), trace_iter(TRACE),
+                      GRADIENT& grad,
+                      REGULARIZER& rType,
+                      sgd_config& config,
+                      size_t nsamples) {
+  frovedis::time_spent trace(TRACE), trace_iter(DEBUG),
     reduce_lap(DEBUG), dtrain_lap(DEBUG),
     update_lap(DEBUG), conv_lap(DEBUG);
 
+  // --- extract hyper-parameters ---
+  auto numIteration = config.numIteration;
+  auto alpha = config.alpha;
+  auto convergenceTol = config.convergenceTol;
+  auto isIntercept = config.isIntercept;
+
   auto self = get_selfid();
-  REGULARIZER rType(regParam);
-  GRADIENT loss; // only used in sgd_dtrain...
   size_t weight_size = model.weight.size();
   std::vector<T> weight_intercept(weight_size + 1);
   auto weight_interceptp = weight_intercept.data();
   std::vector<T> totaldiffvec(weight_size + 1);
   auto totaldiffvecp = totaldiffvec.data();
+  double l_loss = 0.0, sumloss = 0.0;
+#ifdef _LOSS_CHECK_
+  double best_loss = std::numeric_limits<double>::infinity();
+  int no_improvement_count = 0;
+#endif
 
   // -------- main loop --------
   for(size_t i = 1; i <= numIteration; i++) {
     dtrain_lap.lap_start();
     auto updated_model =
-      sgd_dtrain<T>(i,alpha,isIntercept)(data,label,model,loss);
+      sgd_dtrain<T>(i,alpha,isIntercept)(data,label,model,grad,l_loss);
     dtrain_lap.lap_stop();
     if(self == 0) trace.show("dtrain: ");
 
     reduce_lap.lap_start();
-#ifdef _ALLOW_CONV_RATE_CHECK_
+#ifdef _RMSE_CONV_RATE_CHECK_
     auto prev_model = model;
 #endif
     // updated_model = updated_model - model
@@ -255,7 +309,8 @@ void do_train_notrans(std::vector<DATA_MATRIX>& data,
     weight_interceptp[weight_size] = updated_model.intercept;
     // assume weight_size can be represented as int
     typed_allreduce(weight_interceptp, totaldiffvecp, weight_size + 1,
-                    MPI_SUM, MPI_COMM_WORLD);
+                    MPI_SUM, frovedis_comm_rpc);
+    typed_allreduce(&l_loss, &sumloss, 1, MPI_SUM, frovedis_comm_rpc);
     reduce_lap.lap_stop();
     if(self == 0) trace.show("allreduce: ");
 
@@ -263,37 +318,52 @@ void do_train_notrans(std::vector<DATA_MATRIX>& data,
     auto model_weightp = model.weight.data();
     add_weight(model_weightp, totaldiffvecp, weight_size);
     model.intercept += totaldiffvecp[weight_size];
-    rType.regularize(model.weight);
+    rType.regularize(model.weight, alpha / std::sqrt(i));
     update_lap.lap_stop();
     if(self == 0) trace.show("update and regularize: ");
 
-#ifdef _ALLOW_CONV_RATE_CHECK_
+#ifdef _CONV_RATE_CHECK_
     conv_lap.lap_start();
+#ifdef _RMSE_CONV_RATE_CHECK_
     auto prev_model_weightp = prev_model.weight.data();
     T sum = local_diff_square_sum(prev_model_weightp,
                                   model_weightp, weight_size);
     T reduced_sum;
-    typed_allreduce(&sum, &reduced_sum, 1, MPI_SUM, MPI_COMM_WORLD);
+    typed_allreduce(&sum, &reduced_sum, 1, MPI_SUM, frovedis_comm_rpc);
     reduced_sum +=
       (prev_model.intercept - model.intercept) *
       (prev_model.intercept - model.intercept);
     T RMSE = sqrt(reduced_sum/(weight_size + 1));
-    conv_lap.lap_stop();
-    if(self == 0) {
-      std::string msg = std::string("RMS error: ") + ITOS(RMSE) + ": ";
-      trace.show(msg);
-    }
+    if(self == 0) trace.show("RMS error: " + std::to_string(RMSE) + ": ");
     if(RMSE < convergenceTol) {
-      if(self == 0) {
-        RLOG(INFO) << std::string("Convergence achieved in ") + 
-          ITOS(i) + " iterations.\n";
-      }
+      if(self == 0) 
+        RLOG(INFO) << "Convergence achieved in " << ITOS(i) << " iterations.\n"; 
       break;
     }
+//#elif _LOSS_CHECK_
+#else
+    if (i > 1) {
+      if (sumloss > best_loss - convergenceTol * nsamples) 
+        no_improvement_count++;
+      else 
+        no_improvement_count = 0;
+      if (sumloss < best_loss) best_loss = sumloss;
+      if (no_improvement_count >= NITER_NO_CHANGE) {
+        if(self == 0) 
+          RLOG(INFO) << "Convergence achieved in " << ITOS(i) << " iterations.\n"; 
+        break;
+      }
+    }
+#endif
+    conv_lap.lap_stop();
 #endif
 
     if(self == 0) {
-      std::string msg = "[Iteration: " + ITOS(i) + "] elapsed-time: ";
+      auto msg = " --- Epoch: " + std::to_string(i) + " ---\n";
+      msg += "  -> norm(w): "  + std::to_string(nrm2<T>(model.weight));
+      msg += ", bias: " + std::to_string(model.intercept);
+      msg += ", avg. loss: " + std::to_string(sumloss / nsamples);
+      msg += ", elapsed-time: ";
       trace_iter.show(msg);
     }
   }
@@ -301,7 +371,7 @@ void do_train_notrans(std::vector<DATA_MATRIX>& data,
     reduce_lap.show_lap("allreduce time: ");
     dtrain_lap.show_lap("dtrain time: ");
     update_lap.show_lap("update time: ");
-#ifdef _ALLOW_CONV_RATE_CHECK_
+#ifdef _CONV_RATE_CHECK_
     conv_lap.show_lap("check convergence time: ");
 #endif
   }
@@ -313,14 +383,14 @@ template <class T, class MODEL,
 MODEL sgd_parallelizer::parallelize(colmajor_matrix<T>& data,
                                     dvector<T>& label,
                                     MODEL& initModel,
+                                    GRADIENT& grad,
+                                    REGULARIZER& rType,
                                     size_t numIteration,
                                     double alpha,
-                                    double regParam,
                                     bool isIntercept,
                                     double convergenceTol) {
   checkAssumption (numIteration > 0 && alpha > 0 &&
-                   regParam >= 0 && convergenceTol >= 0);
-
+                   rType.regParam >= 0 && convergenceTol >= 0);
   size_t numFeatures = data.num_col;
   size_t numSamples  = data.num_row;
 
@@ -349,12 +419,12 @@ MODEL sgd_parallelizer::parallelize(colmajor_matrix<T>& data,
   t0.show("divide minibatch: ");
 
   auto trainedModel = broadcast(initModel);
+  sgd_config config(numIteration, alpha, convergenceTol, isIntercept);
   div_data.mapv(do_train_notrans<T,sliced_colmajor_matrix_local<T>,
                 MODEL,GRADIENT,REGULARIZER>,
-                div_label, trainedModel, broadcast(numIteration),
-                broadcast(alpha),broadcast(regParam),
-                broadcast(isIntercept),broadcast(convergenceTol));
-  
+                div_label, trainedModel, 
+                broadcast(grad), broadcast(rType),
+                broadcast(config), broadcast(numSamples));
   return trainedModel.get(0);
 }
 
@@ -363,17 +433,16 @@ template <class T, class I, class O,
 MODEL sgd_parallelizer::parallelize(crs_matrix<T,I,O>& data,
                                     dvector<T>& label,
                                     MODEL& initModel,
+                                    GRADIENT& grad,
+                                    REGULARIZER& rType,
                                     size_t numIteration,
                                     double alpha,
-                                    double regParam,
                                     bool isIntercept,
                                     double convergenceTol,
                                     MatType mType,
                                     bool inputMovable) {
   checkAssumption (numIteration > 0 && alpha > 0 && 
-                   regParam >= 0 && convergenceTol >= 0);
-
-  auto trainedModel = broadcast(initModel);
+                   rType.regParam >= 0 && convergenceTol >= 0);
   size_t numFeatures = data.num_col;
   size_t numSamples  = data.num_row;
 
@@ -405,16 +474,18 @@ MODEL sgd_parallelizer::parallelize(crs_matrix<T,I,O>& data,
     t0.show("clear input contents: ");
   }
 
+  auto trainedModel = broadcast(initModel);
+  sgd_config config(numIteration, alpha, convergenceTol, isIntercept);
+
   // -------- selection of input matrix structure --------
   if (mType == CRS) {
     auto trans_crs_vec = div_data.map(to_trans_crs_vec<T,I,O>);
     t0.show("to trans crs: ");
     div_data.mapv(do_train_with_trans<T,crs_matrix_local<T,I,O>,
                   crs_matrix_local<T,I,O>,MODEL,GRADIENT,REGULARIZER>,
-                  trans_crs_vec, div_label, trainedModel,
-                  broadcast(numIteration), broadcast(alpha),
-                  broadcast(regParam), broadcast(isIntercept),
-                  broadcast(convergenceTol));
+                  trans_crs_vec, div_label, trainedModel, 
+                  broadcast(grad), broadcast(rType), 
+                  broadcast(config), broadcast(numSamples));
     t0.show("training loop: ");
   }
   else if (mType == HYBRID) {
@@ -427,9 +498,8 @@ MODEL sgd_parallelizer::parallelize(crs_matrix<T,I,O>& data,
     jds_crs_vec.mapv(do_train_with_trans<T,jds_crs_hybrid_local<T,I,O>,
                      jds_crs_hybrid_local<T,I,O>,MODEL,GRADIENT,REGULARIZER>,
                      trans_jds_crs_vec, div_label, trainedModel,
-                     broadcast(numIteration), broadcast(alpha),
-                     broadcast(regParam), broadcast(isIntercept),
-                     broadcast(convergenceTol));
+                     broadcast(grad), broadcast(rType), 
+                     broadcast(config), broadcast(numSamples));
     t0.show("training loop: ");
   } else  if (mType == JDS) {
     auto jds_vec = div_data.map(to_jds_vec<T,I,O>);
@@ -441,9 +511,8 @@ MODEL sgd_parallelizer::parallelize(crs_matrix<T,I,O>& data,
     jds_vec.mapv(do_train_with_trans<T,jds_matrix_local<T,I,O>,
                  jds_matrix_local<T,I,O>,MODEL,GRADIENT,REGULARIZER>,
                  trans_jds_vec, div_label, trainedModel,
-                 broadcast(numIteration), broadcast(alpha),
-                 broadcast(regParam), broadcast(isIntercept),
-                 broadcast(convergenceTol));
+                 broadcast(grad), broadcast(rType), 
+                 broadcast(config), broadcast(numSamples));
     t0.show("training loop: ");
   } else if (mType == ELL) {
     auto ell_vec = div_data.map(to_ell_vec<T,I,O>);
@@ -453,14 +522,12 @@ MODEL sgd_parallelizer::parallelize(crs_matrix<T,I,O>& data,
     ell_vec.mapv(do_train_notrans<T,ell_matrix_local<T,I>,
                  MODEL,GRADIENT,REGULARIZER>,
                  div_label, trainedModel,
-                 broadcast(numIteration), broadcast(alpha),
-                 broadcast(regParam), broadcast(isIntercept),
-                 broadcast(convergenceTol));
+                 broadcast(grad), broadcast(rType), 
+                 broadcast(config), broadcast(numSamples));
     t0.show("training loop: ");
   }
   else
     REPORT_ERROR(USER_ERROR,"Unsupported input matrix type!!\n");
-
   return trainedModel.get(0);
 }
 
