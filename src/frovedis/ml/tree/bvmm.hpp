@@ -106,9 +106,9 @@ inline void bvmm_txsy(
   tree_assert(slice_width <= y.local_num_row - slice_start);
   tree_assert(num_xcols > 0);
   tree_assert(num_ycols > 0);
-  tree_assert(num_xcols == sz.sliced_num_row);
-  tree_assert(num_ycols == sz.sliced_num_col);
-  tree_assert(sz.ldm == sz.sliced_num_row);
+  tree_assert(num_xcols == sz.local_num_row);
+  tree_assert(num_ycols == sz.local_num_col);
+  tree_assert(sz.ldm == sz.local_num_row);
 
   const bitpack_helper<T, U> packer(slice_width);
   const size_t num_blocks = packer.get_num_blocks();
@@ -143,7 +143,7 @@ _Pragma(__outerloop_unroll__)
 
 #ifdef __BVMM_ZLEAD_MAYBE_NEQ_NUM_ROWS__
   const size_t zlead = sz.ldm;
-  if (zlead == sz.sliced_num_row)
+  if (zlead == sz.local_num_row)
 #endif
   {
     const size_t zn = mm_result.size();
