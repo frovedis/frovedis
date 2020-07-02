@@ -135,8 +135,8 @@ void lda_model<TC>::mpi_gather_model(lda_model<TC>& model_l,lda_model<TC>& model
     size_t size1 = model_l.corpus_topic_count.local_num_col;
     size_t size2 = model_l.word_topic_count.local_num_col * model_l.word_topic_count.local_num_row;  
     if(get_nodesize() > 1) {  
-        typed_allreduce<TC>(model_l.corpus_topic_count.val.data(),model_g.corpus_topic_count.val.data(),size1,MPI_SUM,MPI_COMM_WORLD);
-        typed_allreduce<TC>(model_l.word_topic_count.val.data(),model_g.word_topic_count.val.data(),size2,MPI_SUM,MPI_COMM_WORLD);
+        typed_allreduce<TC>(model_l.corpus_topic_count.val.data(),model_g.corpus_topic_count.val.data(),size1,MPI_SUM,frovedis_comm_rpc);
+        typed_allreduce<TC>(model_l.word_topic_count.val.data(),model_g.word_topic_count.val.data(),size2,MPI_SUM,frovedis_comm_rpc);
     } else {
         memcpy(model_g.corpus_topic_count.val.data(), model_l.corpus_topic_count.val.data(), sizeof(TC)*size1);
         memcpy(model_g.word_topic_count.val.data(), model_l.word_topic_count.val.data(), sizeof(TC)*size2);
@@ -148,7 +148,7 @@ template <typename TC>
 void lda_model<TC>::mpi_gather_model_sparse(lda_model<TC>& model_l,lda_model<TC>& model_g,crs_matrix_local<TC>& v){         
     model_g.clear_value(); 
     size_t size = model_l.corpus_topic_count.local_num_col;
-    typed_allreduce<TC>(model_l.corpus_topic_count.val.data(),model_g.corpus_topic_count.val.data(),size,MPI_SUM,MPI_COMM_WORLD); 
+    typed_allreduce<TC>(model_l.corpus_topic_count.val.data(),model_g.corpus_topic_count.val.data(),size,MPI_SUM,frovedis_comm_rpc); 
     model_g.word_topic_count = v.to_rowmajor();
     model_l.clear_value();
 }
