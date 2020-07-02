@@ -63,7 +63,7 @@ public:
   dvector(const dvector<T>& src) :
     dvid(src.dvid.copy()), 
     is_sizevec_valid(src.is_sizevec_valid), sizevec(src.sizevec),
-    is_view(src.is_view) {}
+    is_view(false) {}
   dvector(dvector<T>&& src) :
     is_sizevec_valid(src.is_sizevec_valid), sizevec(std::move(src.sizevec)), 
     is_view(src.is_view) {
@@ -74,7 +74,7 @@ public:
     dvid = src.dvid.copy();
     is_sizevec_valid = src.is_sizevec_valid;
     sizevec = src.sizevec;
-    is_view = src.is_view;
+    is_view = false;
     return *this;
   }
   dvector<T>& operator=(dvector<T>&& src) {
@@ -589,7 +589,7 @@ public:
     return node_local<std::vector<T>>(dvid.copy());
   }
   node_local<std::vector<T>> moveto_node_local() {
-    node_local<std::vector<T>> r(dvid);
+    node_local<std::vector<T>> r(dvid, is_view);
     dvid.clear_dvid();
     return r;
   }
@@ -1488,7 +1488,7 @@ struct dvector_gather_helper2 {
     size_t vsize = v.size();
     MPI_Gather(&vsize, sizeof(size_t), MPI_CHAR, 
                reinterpret_cast<char*>(&recvcounts[0]),
-               sizeof(size_t), MPI_CHAR, 0, MPI_COMM_WORLD);
+               sizeof(size_t), MPI_CHAR, 0, frovedis_comm_rpc);
     size_t total = 0;
     for(size_t i = 0; i < nodes; i++) total += recvcounts[i];
     std::vector<size_t> displs(nodes);
@@ -1505,7 +1505,7 @@ struct dvector_gather_helper2 {
     // defined in DVID.cc
     large_gatherv(sizeof(T), reinterpret_cast<char*>(&v[0]), vsize, 
                   reinterpret_cast<char*>(gathervp), recvcounts,
-                  displs, 0, MPI_COMM_WORLD);
+                  displs, 0, frovedis_comm_rpc);
   }
   intptr_t ptr;
 
@@ -2007,7 +2007,7 @@ dvector<U> node_local<T>::as_dvector() const {
 template <class T>
 template <class U>
 dvector<U> node_local<T>::moveto_dvector() {
-  dvector<U> ret(dvid);
+  dvector<U> ret(dvid, is_view);
   dvid.clear_dvid();
   return ret;
 }
