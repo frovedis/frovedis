@@ -3,6 +3,7 @@
 import os.path
 import pickle
 from .model_util import *
+from ..base import BaseEstimator
 from ..exrpc.server import FrovedisServer
 from ..exrpc import rpclib
 from ..matrix.ml_data import FrovedisFeatureData
@@ -12,7 +13,7 @@ from ..matrix.crs import FrovedisCRSMatrix
 from ..matrix.dtype import DTYPE, TypeUtil
 import numpy as np
 
-class NearestNeighbors(object):
+class NearestNeighbors(BaseEstimator):
     """
     A python wrapper of Frovedis Nearest  Neigbors
     """
@@ -108,7 +109,6 @@ class NearestNeighbors(object):
         distances = FrovedisRowmajorMatrix(mat=dummy_dist, 
                                            dtype=\
                                                TypeUtil.to_numpy_dtype(dtype))
-        print(knn_res)
         indices = FrovedisRowmajorMatrix(mat=dummy_ind, dtype=np.int64)
         if test_data.is_movable() and self._X_movable:
             if return_distance == True:
@@ -264,7 +264,7 @@ class NearestNeighbors(object):
         if FrovedisServer.isUP():
             self.release()
 
-class KNeighborsClassifier(object):
+class KNeighborsClassifier(BaseEstimator):
     """
     A python wrapper of KNeigborsClassifiers
     """
@@ -523,7 +523,7 @@ class KNeighborsClassifier(object):
         if FrovedisServer.isUP():
             self.release()
 
-class KNeighborsRegressor(object):
+class KNeighborsRegressor(BaseEstimator):
     """
     A python wrapper of Kneigbors Regressor
     """

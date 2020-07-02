@@ -7,6 +7,7 @@ naive_bayes.py: wrapper of multinomial and bernoulli naive bayes
 import os.path
 import pickle
 from .model_util import *
+from ..base import *
 from ..exrpc import rpclib
 from ..exrpc.server import FrovedisServer
 from ..matrix.ml_data import FrovedisLabeledPoint
@@ -15,7 +16,7 @@ from .metrics import *
 import numpy as np
 
 # NaiveBayes multinomial class
-class MultinomialNB(object):
+class MultinomialNB(BaseEstimator):
     """A python wrapper of Frovedis Multinomial Naive Bayes
     parameter      :    default value
     alpha (lambda) :    1.0
@@ -262,7 +263,7 @@ class MultinomialNB(object):
 
 # Not implemented yet in Frovedis
 # NaiveBayes Gaussian class
-class GaussianNB(object):
+class GaussianNB(BaseEstimator):
     """A python wrapper of Frovedis Gaussian Naive Bayes
     parameter      :    default value
     alpha (lambda) :    1.0
@@ -428,7 +429,7 @@ class GaussianNB(object):
             self.release()
 
 # NaiveBayes Bernoulli class
-class BernoulliNB(object):
+class BernoulliNB(BaseEstimator):
     """A python wrapper of Frovedis Bernouli Naive Bayes
     parameter      :    default value
     alpha (lambda) :    1.0

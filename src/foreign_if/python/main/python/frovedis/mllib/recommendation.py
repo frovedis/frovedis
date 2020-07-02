@@ -7,13 +7,14 @@ from __future__ import division
 import os.path
 import pickle
 from .model_util import *
+from ..base import BaseEstimator
 from ..exrpc.server import FrovedisServer
 from ..exrpc import rpclib
 from ..matrix.crs import FrovedisCRSMatrix
 from ..matrix.dtype import DTYPE
 import numpy as np
 
-class ALS(object):
+class ALS(BaseEstimator):
     """A python wrapper of Frovedis ALS"""
     def __init__(self, max_iter=100, alpha=0.01, regParam=0.01,
                  seed=0, verbose=0):

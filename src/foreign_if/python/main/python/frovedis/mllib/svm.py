@@ -6,12 +6,14 @@ svm.py: wrapper of frovedis Linear SVM
 import os.path
 import pickle
 from .model_util import *
+from ..base import BaseEstimator
+from .metrics import *
 from ..exrpc import rpclib
 from ..exrpc.server import FrovedisServer
 from ..matrix.ml_data import FrovedisLabeledPoint
 from ..matrix.dtype import TypeUtil
 
-class LinearSVC(object):
+class LinearSVC(BaseEstimator):
     """A python wrapper of Frovedis Linear SVM"""
     # defaults are as per Frovedis
     # loss: Frovedis: 'hinge', Sklearn: 'squared_hinge'
@@ -69,13 +71,14 @@ class LinearSVC(object):
             raise ValueError("fit: frovedis svm does not support multinomial\
                     data currently!")
 
-        regTyp = 0
         if self.penalty == 'l1':
             regTyp = 1
         elif self.penalty == 'l2':
             regTyp = 2
+        elif self.penalty == 'none':
+            regTyp = 0
         else:
-            raise ValueError("Invalid penalty is provided: ", self.penalty)
+            raise ValueError("Unsupported penalty is provided: ", self.penalty)
         rparam = 1.0 / self.C
 
         #Encoder
@@ -245,6 +248,13 @@ class LinearSVC(object):
             raise AttributeError(\
                     "save: requested model might have been released!")
 
+    def score(self, X, y):
+        """
+        NAME: score
+        """
+        if self.__mid is not None:
+            return accuracy_score(y, self.predict(X))
+
     def debug_print(self):
         """
         NAME: debug_print
@@ -262,6 +272,247 @@ class LinearSVC(object):
             self._coef = None
             self._intercept = None
             self._classes = None
+
+    def __del__(self):
+        """
+        NAME: __del__
+        """
+        if FrovedisServer.isUP():
+            self.release()
+
+class LinearSVR(BaseEstimator):
+    """Python wrapper of Frovedis Linear SVR"""
+    # defaults are as per Frovedis
+    # penalty: Frovedis: l2 (added)
+    # lr_rate: Frovedis: 0.01 (added)
+    # solver: Frovedis: sag (SGD) (added)
+    def __init__(self, epsilon=0.0, tol=1e-4, C=1.0,
+                 loss='epsilon_insensitive', fit_intercept=True,
+                 intercept_scaling=1, dual=True, verbose=0,
+                 random_state=None, max_iter=1000,
+                 penalty='l2', 
+                 lr_rate=0.01, solver='sag'):
+        self.penalty = penalty
+        self.epsilon = epsilon
+        self.tol = tol
+        self.C = C
+        self.loss = loss
+        self.fit_intercept = fit_intercept
+        self.intercept_scaling = intercept_scaling
+        self.dual = dual
+        self.verbose = verbose
+        self.random_state = random_state
+        self.max_iter = max_iter
+        # extra
+        self.lr_rate = lr_rate
+        self.solver = solver
+        self.__mid = None
+        self.__mdtype = None
+        self.__mkind = M_KIND.SVR
+        self._coef = None
+        self._intercept = None
+
+    def validate(self):
+        """
+        NAME: validate
+        """
+        if self.epsilon < 0:
+            raise ValueError("fit: epsilon parameter must be zero or positive!")
+
+        if self.tol < 0:
+            raise ValueError("fit: tol parameter must be zero or positive!")
+
+        if self.C < 0:
+            raise ValueError("fit: parameter C must be strictly positive!")
+
+        supported_loss = ("epsilon_insensitive", "squared_epsilon_insensitive")
+        if self.loss not in supported_loss:
+            raise ValueError("fit: Invalid loss type for LinearSVM Regressor provided!"
+                            + "'{}'".format(self.loss))
+
+        if self.max_iter <= 0:
+            raise ValueError("fit: max_iter must be a positive value!")
+
+        if self.lr_rate <= 0:
+            raise ValueError("fit: lr_rate must be a positive value!")
+
+    def fit(self, X, y, sample_weight=None):
+        """
+        NAME: fit
+        """
+        # release old model, if any
+        self.release()
+        # perform the fit
+        self.__mid = ModelID.get()
+        inp_data = FrovedisLabeledPoint(X, y)
+        (X, y) = inp_data.get()
+        dtype = inp_data.get_dtype()
+        itype = inp_data.get_itype()
+        dense = inp_data.is_dense()
+        self.__mdtype = dtype
+        self.validate()
+
+        rparam = 1.0 / self.C
+        if self.penalty == 'l1':
+            regTyp = 1
+        elif self.penalty == 'l2':
+            regTyp = 2
+        elif self.penalty == 'none':
+            regTyp = 0
+        else:
+            raise ValueError("Unsupported penalty is provided: ", self.penalty)
+
+        if self.loss == 'epsilon_insensitive':
+            intLoss = 1 # L1 loss 
+        elif self.loss == 'squared_epsilon_insensitive':
+            intLoss = 2 # L2 loss 
+        else:
+            raise ValueError("Invalid loss is provided: ", self.loss)
+
+        (host, port) = FrovedisServer.getServerInstance()
+        if self.solver == 'sag':
+            rpclib.svm_regressor_sgd(host, port, X.get(), y.get(), \
+                                     self.max_iter, self.lr_rate, \
+                                     self.epsilon, regTyp, rparam, \
+                                     self.fit_intercept, self.tol, \
+                                     intLoss, self.verbose, self.__mid, \
+                                     dtype, itype, dense)
+
+        elif self.solver == 'lbfgs':
+            raise ValueError("Currently LinearSVM Regressor doesn't support lbfgs solver!")
+        else:
+            raise ValueError( \
+              "Unknown solver %s for Linear SVM Regressor." % self.solver)
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
+        self._coef = None
+        self._intercept = None
+        return self
+
+    @property
+    def coef_(self):
+        """coef_ getter"""
+        if self.__mid is not None:
+            if self._coef is None:
+                (host, port) = FrovedisServer.getServerInstance()
+                wgt = rpclib.get_weight_vector(host, port, self.__mid, \
+                    self.__mkind, self.__mdtype)
+                excpt = rpclib.check_server_exception()
+                if excpt["status"]:
+                    raise RuntimeError(excpt["info"])
+                n_features = len(wgt)
+                shape = (1, n_features)
+                self._coef = np.asarray(wgt).reshape(shape)
+            return self._coef
+        else:
+            raise AttributeError(\
+            "attribute 'coef_' might have been released or called before fit")
+
+    @coef_.setter
+    def coef_(self, val):
+        """coef_ setter"""
+        raise AttributeError(\
+            "attribute 'coef_' of LinearSVR object is not writable")
+
+    @property
+    def intercept_(self):
+        """intercept_ getter"""
+        if self.__mid is not None:
+            if self._intercept is None:
+                (host, port) = FrovedisServer.getServerInstance()
+                icpt = rpclib.get_intercept_vector(host, port, self.__mid, \
+                    self.__mkind, self.__mdtype)
+                excpt = rpclib.check_server_exception()
+                if excpt["status"]:
+                    raise RuntimeError(excpt["info"])
+                self._intercept = np.asarray(icpt)
+            return self._intercept
+        else:
+            raise AttributeError(\
+        "attribute 'intercept_' might have been released or called before fit")
+
+    @intercept_.setter
+    def intercept_(self, val):
+        """intercept_ setter"""
+        raise AttributeError(\
+            "attribute 'intercept_' of LinearSVR object is not writable")
+
+    def predict(self, X):
+        """
+        NAME: predict
+        """
+        if self.__mid is not None:
+            frov_pred = GLM.predict(X, self.__mid, self.__mkind, \
+                                    self.__mdtype, False)
+            return np.asarray(frov_pred)
+            
+        else:
+            raise ValueError( \
+            "predict is called before calling fit, or the model is released.")
+
+    def load(self, fname, dtype=None):
+        """
+        NAME: load
+        """
+        if not os.path.exists(fname):
+            raise ValueError(\
+                "the model with name %s does not exist!" % fname)
+        self.release()
+        metadata = open(fname+"/metadata", "rb")
+        self.__mkind, self.__mdtype = pickle.load(metadata)
+        metadata.close()
+        if dtype is not None:
+            mdt = TypeUtil.to_numpy_dtype(self.__mdtype)
+            if dtype != mdt:
+                raise ValueError("load: type mismatches detected!" + \
+                                 "expected type: " + str(mdt) + \
+                                 "; given type: " + str(dtype))
+        self.__mid = ModelID.get()
+        GLM.load(self.__mid, self.__mkind, self.__mdtype, fname+"/model")
+        return self
+
+    def save(self, fname):
+        """
+        NAME: save
+        """
+        if self.__mid is not None:
+            if os.path.exists(fname):
+                raise ValueError(\
+                    "another model with %s name already exists!" % fname)
+            else:
+                os.makedirs(fname)
+            GLM.save(self.__mid, self.__mkind, self.__mdtype, fname+"/model")
+            metadata = open(fname+"/metadata", "wb")
+            pickle.dump((self.__mkind, self.__mdtype), metadata)
+            metadata.close()
+        else:
+            raise AttributeError(\
+                    "save: requested model might have been released!")
+
+    def score(self, X, y):
+        """
+        NAME: score
+        """
+        if self.__mid is not None:
+            return r2_score(y, self.predict(X))
+
+    def debug_print(self):
+        """
+        NAME: debug_print
+        """
+        if self.__mid is not None:
+            GLM.debug_print(self.__mid, self.__mkind, self.__mdtype)
+
+    def release(self):
+        """
+        NAME: release
+        """
+        if self.__mid is not None:
+            GLM.release(self.__mid, self.__mkind, self.__mdtype)
+            self.__mid = None
+            self._coef = None
+            self._intercept = None
 
     def __del__(self):
         """

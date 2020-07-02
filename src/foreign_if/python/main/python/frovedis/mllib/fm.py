@@ -7,6 +7,7 @@ fm.py: wrapper of frovedis Factorization Machine
 import os.path
 import pickle
 from .model_util import *
+from ..base import *
 from ..exrpc import rpclib
 from ..exrpc.server import FrovedisServer
 from ..matrix.ml_data import FrovedisLabeledPoint
@@ -14,7 +15,7 @@ from ..matrix.dtype import TypeUtil
 from .metrics import *
 
 # Factorization Machine Classifier class
-class FactorizationMachineClassifier(object):
+class FactorizationMachineClassifier(BaseEstimator):
     """
     A python wrapper of Frovedis Factorization Machine Classifier
     parameter               :    default value
@@ -43,6 +44,8 @@ class FactorizationMachineClassifier(object):
         self.init_learn_rate = init_learn_rate
         self.optimizer = optimizer
         self.batch_size_pernode = batch_size_pernode
+        self.dim = dim
+        self.reg = reg
         self.global_bias = dim[0]           #global bias term
         self.dim_one_interactions = dim[1]  #one-way interactions
         #number of factors that are used for pairwise interactions
@@ -210,7 +213,7 @@ class FactorizationMachineClassifier(object):
             self.release()
 
 # Factorization Machine Regressor class
-class FactorizationMachineRegressor(object):
+class FactorizationMachineRegressor(BaseEstimator):
     """
     A python wrapper of Frovedis Factorization Machine Regressor
     parameter               :    default value
@@ -238,6 +241,8 @@ class FactorizationMachineRegressor(object):
         self.init_learn_rate = init_learn_rate
         self.optimizer = optimizer
         self.batch_size_pernode = batch_size_pernode
+        self.dim = dim
+        self.reg = reg
         self.global_bias = dim[0]                       #global bias term
         self.dim_one_interactions = dim[1]              #one-way interactions
         #number of factors that are used for pairwise interactions

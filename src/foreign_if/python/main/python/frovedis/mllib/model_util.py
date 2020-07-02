@@ -37,6 +37,7 @@ class M_KIND(object):
     LDASP = 22 #for spark
     RFM = 23
     GBT = 24
+    SVR = 25
 
 class ModelID(object):
     """A python container for generating model IDs for ML"""

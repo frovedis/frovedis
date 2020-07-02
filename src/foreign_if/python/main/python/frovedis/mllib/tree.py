@@ -6,6 +6,7 @@ tree.py: wrapper of frovedis decistion tree (classifier and regressor)
 import os.path
 import pickle
 from .model_util import *
+from ..base import *
 from ..exrpc import rpclib
 from ..exrpc.server import FrovedisServer
 from ..matrix.ml_data import FrovedisLabeledPoint
@@ -14,7 +15,7 @@ from .metrics import *
 import numpy as np
 
 # Decision Tree Regressor Class
-class DecisionTreeRegressor(object):
+class DecisionTreeRegressor(BaseEstimator):
     """A python wrapper of Frovedis Decision Tree Regressor
     parameter                   :   default value
     criterion or impurity       :   'mse'
@@ -37,12 +38,12 @@ class DecisionTreeRegressor(object):
                  min_impurity_split=None,
                  class_weight=None, presort=False,
                  min_info_gain=0.0, max_bins=32, verbose=0):
-        self.criterion = criterion.upper()
         self.splitter = splitter
         if max_depth is None:
             self.max_depth = 5
         else:
             self.max_depth = max_depth
+        self.criterion = criterion
         self.min_samples_split = min_samples_split
         self.min_samples_leaf = min_samples_leaf
         self.min_weight_fraction_leaf = min_weight_fraction_leaf
@@ -69,6 +70,7 @@ class DecisionTreeRegressor(object):
         """
         NAME: validate
         """
+        self.criterion = self.criterion.upper()
         if self.criterion != "MSE":
             raise ValueError("Invalid criterion for Decision Tree Regressor!")
         elif self.max_depth < 0:
@@ -198,7 +200,7 @@ class DecisionTreeRegressor(object):
             self.release()
 
 # Decision Tree Classifier Class
-class DecisionTreeClassifier(object):
+class DecisionTreeClassifier(BaseEstimator):
     """A python wrapper of Frovedis Decision Tree Classifier
     parameter   		:   default value
     criterion or impurity   	:   'gini'
@@ -211,7 +213,7 @@ class DecisionTreeClassifier(object):
     verbose      		:   0
     """
     # defaults are as per Frovedis/scikit-learn
-    # Decision Tree Regressor constructor
+    # Decision Tree Classifier constructor
     def __init__(self, criterion='gini', splitter='best',
                  max_depth=None, min_samples_split=2, min_samples_leaf=1,
                  min_weight_fraction_leaf=0.0, max_features=None,
@@ -220,7 +222,7 @@ class DecisionTreeClassifier(object):
                  min_impurity_split=None,
                  class_weight=None, presort=False, min_info_gain=0.0,
                  max_bins=32, verbose=0):
-        self.criterion = criterion.upper()
+        self.criterion = criterion
         self.splitter = splitter
         if max_depth is None:
             self.max_depth = 5
@@ -252,6 +254,7 @@ class DecisionTreeClassifier(object):
         """
         NAME: validate
         """
+        self.criterion = self.criterion.upper()
         if self.criterion != "GINI" and self.criterion != "ENTROPY":
             raise ValueError("Invalid criterion for Decision Tree Classifier!")
         elif self.max_depth < 0:
