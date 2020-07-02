@@ -2,14 +2,16 @@ package com.nec.frovedis.mllib.classification;
 
 import com.nec.frovedis.Jexrpc.{FrovedisServer,JNISupport,MemPair}
 import com.nec.frovedis.Jmllib.DummyGLM
+import com.nec.frovedis.io.FrovedisIO
+import com.nec.frovedis.matrix.ENUM
 import com.nec.frovedis.exrpc.FrovedisLabeledPoint
 import com.nec.frovedis.mllib.{M_KIND,ModelID}
 import com.nec.frovedis.mllib.regression.GeneralizedLinearModel
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 import org.apache.spark.mllib.regression.LabeledPoint
-import com.nec.frovedis.matrix.ENUM
 import org.apache.spark.mllib.linalg.Vector
+import scala.collection.immutable.Map
 
 class SVMModel(modelId: Int,
                modelKind: Short,
@@ -19,30 +21,48 @@ class SVMModel(modelId: Int,
                logic: Map[Double, Double])
   extends GeneralizedLinearModel(modelId,modelKind,nftr,ncls,thr) {
   protected val enc_logic: Map[Double,Double] = logic
-  def this(m: DummyGLM) = {
-    this(m.mid, m.mkind, m.numFeatures, m.numClasses, m.threshold, null)
+  def this(m: DummyGLM,
+           logic: Map[Double,Double]) = {
+    this(m.mid, m.mkind, m.numFeatures, m.numClasses, m.threshold, logic)
   }
   override def predict(data: Vector) : Double = {
      val ret = super.predict(data)
-     return if (threshold == ENUM.NONE || enc_logic == null) ret else enc_logic(ret)
+     return if (threshold == ENUM.NONE) ret else enc_logic(ret)
   }
   override def predict(data: RDD[Vector]) : RDD[Double] = {
     val ret = super.predict(data)
-    return if (threshold == ENUM.NONE || enc_logic == null) ret else ret.map(x => enc_logic(x))
+    return if (threshold == ENUM.NONE) ret else ret.map(x => enc_logic(x))
+  }
+  override def save(path: String) : Unit = {
+    val context = SparkContext.getOrCreate()
+    save(context, path)
+  }
+  override def save(sc: SparkContext, path: String) : Unit = {
+    val success = FrovedisIO.createDir(path)
+    require(success, "Another model named " + path + " already exists!")
+    super.save(path + "/model")
+    sc.parallelize(logic.toSeq, 2).saveAsObjectFile(path + "/label_map_spk")
   }
 }
 
 object SVMModel {  // companion object (for static members)
   def load(sc: SparkContext, path: String) : SVMModel = load(path)
   def load(path: String) : SVMModel = {
+    val exist = FrovedisIO.checkExists(path)
+    require(exist, "No model named " + path + " is found!")
     val model_id = ModelID.get()
     val fs = FrovedisServer.getServerInstance()
     // load an SVMModel from the 'path' 
     // and register it with 'model_id' at Frovedis server
-    val ret = JNISupport.loadFrovedisGLM(fs.master_node,model_id,M_KIND.SVM,path)
-    val info = JNISupport.checkServerException();
-    if (info != "") throw new java.rmi.ServerException(info);
-    return new SVMModel(ret)
+    val ret = JNISupport.loadFrovedisGLM(fs.master_node,model_id,
+                                         M_KIND.SVM, path + "/model")
+    val info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
+    val context = SparkContext.getOrCreate()
+    val logic = context.objectFile[(Double, Double)](path + "/label_map_spk")
+                       .collectAsMap // returns generic scala.collection.Map
+                       .toMap        // to make it immutable Map
+    return new SVMModel(ret, logic)
   }
 }
 
