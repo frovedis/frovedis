@@ -200,8 +200,120 @@ extern "C" {
       set_status(true, e.what());
     }
   }
- 
+
+  // --- Linear SVM Regressor ---
+  void svm_regressor_sgd(const char* host, int port, long xptr, long yptr,
+                         int iter, double alpha, double eps, 
+                         int rtype, double rprm,
+                         bool icpt, double tol, int intLoss, int vb, int mid,
+                         short dtype, short itype, bool dense) {
+    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
+    exrpc_node fm_node(host,port);
+    auto f_xptr = (exrpc_ptr_t) xptr;
+    auto f_yptr = (exrpc_ptr_t) yptr;
+    auto f_dptr = frovedis_mem_pair(f_xptr,f_yptr);
+    double mbf = 1.0;   // default
+    bool mvbl = false; // auto-managed at python side
+    try {
+      if(dense) {
+        switch(dtype) {
+          case FLOAT:
+            exrpc_oneway(fm_node,(frovedis_svm_regressor_sgd<DT2,D_MAT2>),f_dptr,iter,alpha,mbf,
+                         rtype,rprm,icpt,tol,eps,intLoss,vb,mid,mvbl);
+            break;
+          case DOUBLE:
+            exrpc_oneway(fm_node,(frovedis_svm_regressor_sgd<DT1,D_MAT1>),f_dptr,iter,alpha,mbf,
+                         rtype,rprm,icpt,tol,eps,intLoss,vb,mid,mvbl);
+            break;
+          default: REPORT_ERROR(USER_ERROR, "Unsupported dtype of input dense data for training!\n");
+        }
+      }
+      else {
+        switch(dtype) {
+          case FLOAT:
+            if(itype == INT)
+              exrpc_oneway(fm_node,(frovedis_svm_regressor_sgd<DT2,S_MAT24>),f_dptr,iter,alpha,mbf,
+                                    rtype,rprm,icpt,tol,eps,intLoss,vb,mid,mvbl);
+            else if(itype == LONG)
+              exrpc_oneway(fm_node,(frovedis_svm_regressor_sgd<DT2,S_MAT25>),f_dptr,iter,alpha,mbf,
+                                    rtype,rprm,icpt,tol,eps,intLoss,vb,mid,mvbl);
+            else REPORT_ERROR(USER_ERROR, "Unsupported itype of input sparse data for training!\n");
+            break;
+          case DOUBLE:
+            if(itype == INT)
+              exrpc_oneway(fm_node,(frovedis_svm_regressor_sgd<DT1,S_MAT14>),f_dptr,iter,alpha,mbf,
+                                    rtype,rprm,icpt,tol,eps,intLoss,vb,mid,mvbl);
+            else if(itype == LONG)
+              exrpc_oneway(fm_node,(frovedis_svm_regressor_sgd<DT1,S_MAT15>),f_dptr,iter,alpha,mbf,
+                                    rtype,rprm,icpt,tol,eps,intLoss,vb,mid,mvbl);
+            else REPORT_ERROR(USER_ERROR, "Unsupported itype of input sparse data for training!\n");
+            break;
+          default: REPORT_ERROR(USER_ERROR, "Unsupported dtype of input sparse data for training!\n");
+        }
+      }
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+  }
+
   // --- (3) Linear Regression ---
+  PyObject* lnr_lapack(const char* host, int port, long xptr, long yptr,
+                       bool icpt, int vb, int mid, short dtype) {
+    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
+    exrpc_node fm_node(host,port);
+    auto f_xptr = (exrpc_ptr_t) xptr;
+    auto f_yptr = (exrpc_ptr_t) yptr;
+    auto f_dptr = frovedis_mem_pair(f_xptr,f_yptr);
+    bool mvbl = false;
+    PyObject* retptr = NULL;
+    try {
+      switch(dtype) {
+        case FLOAT: {
+          std::vector<DT2> sval;
+          sval = exrpc_async(fm_node,(frovedis_lnr_lapack<DT2,D_MAT2>),f_dptr,icpt,vb,mid,mvbl).get();
+          retptr = to_python_float_list(sval);
+          break;
+        }
+        case DOUBLE: {
+          std::vector<DT1> sval;
+          sval = exrpc_async(fm_node,(frovedis_lnr_lapack<DT1,D_MAT1>),f_dptr,icpt,vb,mid,mvbl).get();
+          retptr = to_python_double_list(sval);
+          break;
+        }
+        default: REPORT_ERROR(USER_ERROR, "Unsupported dtype of input dense data for training!\n");
+      }
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return retptr;
+  }
+
+  void lnr_scalapack(const char* host, int port, long xptr, long yptr,
+                     bool icpt, int vb, int mid, short dtype) {
+    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
+    exrpc_node fm_node(host,port);
+    auto f_xptr = (exrpc_ptr_t) xptr;
+    auto f_yptr = (exrpc_ptr_t) yptr;
+    auto f_dptr = frovedis_mem_pair(f_xptr,f_yptr);
+    bool mvbl = false;
+    try {
+      switch(dtype) {
+        case FLOAT:
+          exrpc_oneway(fm_node,(frovedis_lnr_scalapack<DT2,D_MAT2>),f_dptr,icpt,vb,mid,mvbl);
+          break;
+        case DOUBLE:
+          exrpc_oneway(fm_node,(frovedis_lnr_scalapack<DT1,D_MAT1>),f_dptr,icpt,vb,mid,mvbl);
+          break;
+        default: REPORT_ERROR(USER_ERROR, "Unsupported dtype of input dense data for training!\n");
+      }
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+  }
+
   void lnr_sgd(const char* host, int port, long xptr, long yptr,
                int iter, double al,
                bool icpt, double tol, int vb, int mid, 
@@ -1130,6 +1242,7 @@ extern "C" {
  }
 
   // --- (21) Random Forest ---
+  // subsampling rate ?
   void rf_trainer(const char* host, int port, long xptr,
                   long yptr, char* algo, char* impurity,
                   int num_trees, int max_depth, int num_classes,
@@ -1205,7 +1318,7 @@ extern "C" {
     }
   }
 
-    // --- (24) GBT ---
+  // --- (22) GBT ---
   void gbt_trainer(const char* host, int port, long xptr, long yptr, 
                    const char* algo, const char* loss, const char *impurity, 
                    double learning_rate,
@@ -1231,7 +1344,7 @@ extern "C" {
     auto loss_ = std::string(loss);
     bool mvbl = false; // auto-managed at python side
     if (nclasses > 2) 
-      REPORT_ERROR(USER_ERROR, "Currently frovedis GBTClassifier supports only binary problem!\n");
+      REPORT_ERROR(USER_ERROR, "Currently frovedis GBTClassifier supports only binary classification!\n");
     try {
       if(dense) {
         switch(dtype) {
