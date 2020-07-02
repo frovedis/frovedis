@@ -83,8 +83,8 @@ lda_model<TC> lda_train(
         +[](lda::lda_config& config, size_t& num_tokens){
             TC tmp_total, local_total = num_tokens; 
             TD tmp_max, local_max = config.max_token;
-            typed_allreduce<TC>(&local_total,&tmp_total,1,MPI_SUM,MPI_COMM_WORLD);
-            typed_allreduce<TD>(&local_max,&tmp_max,1,MPI_MAX,MPI_COMM_WORLD);
+            typed_allreduce<TC>(&local_total,&tmp_total,1,MPI_SUM,frovedis_comm_rpc);
+            typed_allreduce<TD>(&local_max,&tmp_max,1,MPI_MAX,frovedis_comm_rpc);
             num_tokens = tmp_total; config.max_token = tmp_max;
         } , local_num_tokens
     ); 
@@ -322,8 +322,8 @@ lda_test(crs_matrix<TD>& data_test , const double alpha, const double beta,
         +[](lda::lda_config& config, size_t& num_tokens){
             TC tmp_total, local_total = num_tokens; 
             TD tmp_max, local_max = config.max_token;
-            typed_allreduce<TC>(&local_total,&tmp_total,1,MPI_SUM,MPI_COMM_WORLD);
-            typed_allreduce<TD>(&local_max,&tmp_max,1,MPI_MAX,MPI_COMM_WORLD);
+            typed_allreduce<TC>(&local_total,&tmp_total,1,MPI_SUM,frovedis_comm_rpc);
+            typed_allreduce<TD>(&local_max,&tmp_max,1,MPI_MAX,frovedis_comm_rpc);
             num_tokens = tmp_total; config.max_token = tmp_max;
         }, local_num_tokens
     );     
