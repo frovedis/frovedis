@@ -1,7 +1,6 @@
 package com.nec.frovedis.mllib.classification
 
 import com.nec.frovedis.matrix.Utils._
-import com.nec.frovedis.matrix.ScalaCRS
 import com.nec.frovedis.Jexrpc.{Node,FrovedisServer,JNISupport}
 import com.nec.frovedis.exrpc.FrovedisLabeledPoint
 import com.nec.frovedis.mllib.{M_KIND,ModelID,GenericModelWithPredict}
@@ -86,7 +85,7 @@ object NaiveBayes {
 }
 
 class NaiveBayesModel (val model_Id: Int,
-                       val modelType: String) // Not used [?]
+                       val modelType: String)
    extends GenericModelWithPredict(model_Id, M_KIND.NBM) { 
 } 
 
