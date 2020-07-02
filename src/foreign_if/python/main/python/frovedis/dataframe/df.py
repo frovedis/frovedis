@@ -206,24 +206,41 @@ class FrovedisDataframe(object):
         sort_values
         """
         if self.__fdata is None:
-            raise ValueError("Operation on invalid frovedis dataframe!")
+            raise ValueError("sort: Operation on invalid frovedis dataframe!")
         if type(by).__name__ == 'str':
             sort_by = [by]
         elif type(by).__name__ == 'list':
             sort_by = by
         else:
-            raise TypeError("Expected: string|list; Received: ",
+            raise TypeError("sort: Expected: string|list; Received: ",
                             type(by).__name__)
 
         for item in sort_by:
             if not item in self.__cols:
-                raise ValueError("No column named: ", item)
+                raise ValueError("sort: No column named: ", item)
 
         vec = np.asarray(sort_by)
         vv = vec.T # returns self, since ndim=1
         sz = vec.size
-        ptr_arr = (c_char_p * sz)()
-        ptr_arr[:] = [e.encode('ascii') for e in vv]
+        sort_by_arr = (c_char_p * sz)()
+        sort_by_arr[:] = [e.encode('ascii') for e in vv]
+
+        
+        if type(ascending).__name__ == 'bool': 
+            orderlist = [ascending] * sz
+            sort_order = np.asarray(orderlist, dtype=np.int32)
+        elif type(ascending).__name__ == 'list':
+            if len(ascending) != sz:
+                raise ValueError("sort: Length of by and ascending parameters are not matching!")
+            sort_order = np.asarray(ascending, dtype=np.int32)
+        else:
+            dgt = str(ascending).isdigit()
+            if dgt:
+              orderlist = [bool(ascending)] * sz
+              sort_order = np.asarray(orderlist, dtype=np.int32)
+            else:
+                raise TypeError("sort: Expected: digit|list; Received: ",
+                                type(ascending).__name__)
 
         ret = FrovedisDataframe()
         ret.__cols = copy.deepcopy(self.__cols)
@@ -234,7 +251,7 @@ class FrovedisDataframe(object):
         #Making exrpc request for sorting.
         (host, port) = FrovedisServer.getServerInstance()
         ret.__fdata = rpclib.sort_frovedis_dataframe(host, port, self.get(),
-                                                     ptr_arr, sz, ascending)
+                                                     sort_by_arr, sort_order, sz)
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
             raise RuntimeError(excpt["info"])
