@@ -73,7 +73,7 @@ public:
   dunordered_map<K,V>& operator=(const dunordered_map<K,V>& src) {
     if(!is_view) dvid.delete_var();
     dvid = src.dvid.copy();
-    is_view = src.is_view;
+    is_view = false;
     return *this;
   }
   dunordered_map<K,V>& operator=(dunordered_map<K,V>&& src) {
