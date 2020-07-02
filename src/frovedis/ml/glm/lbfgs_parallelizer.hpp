@@ -127,14 +127,14 @@ lbfgs_parallelizer::update_global_model(MODEL& initModel,
   auto grad_vector = grad_vector_part.vector_sum(); // reduce grad-vectors
   t.show("reduce: ");
 
-#ifdef _ALLOW_CONV_RATE_CHECK_
+#ifdef _CONV_RATE_CHECK_
   MODEL prev_model = initModel;
 #endif
 
   opt.optimize(grad_vector,initModel,iterCount,rType);
   t.show("update and regularize: ");
 
-#ifdef _ALLOW_CONV_RATE_CHECK_
+#ifdef _CONV_RATE_CHECK_
   MODEL& cur_model = initModel; // updated initModel
   if(is_converged(cur_model,prev_model,convergenceTol,iterCount)) conv = true;
 #endif
@@ -173,7 +173,7 @@ void lbfgs_parallelizer::do_train(node_local<DATA_MATRIX>& data,
     // work_at_master
     bool conv = update_global_model<T>(initModel,grad_vector_part,opt,
                                        rType,convergenceTol,i,t3);
-#ifdef _ALLOW_CONV_RATE_CHECK_
+#ifdef _CONV_RATE_CHECK_
     if(conv) break;
 #endif
 
@@ -213,7 +213,7 @@ void lbfgs_parallelizer::do_train(node_local<DATA_MATRIX>& data,
     // work_at_master
     bool conv = update_global_model<T>(initModel,grad_vector_part,opt,
                                        rType,convergenceTol,i,t3);
-#ifdef _ALLOW_CONV_RATE_CHECK_
+#ifdef _CONV_RATE_CHECK_
     if(conv) break;
 #endif
 
