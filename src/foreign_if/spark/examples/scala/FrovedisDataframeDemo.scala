@@ -2,6 +2,7 @@ package test.scala;
 
 import com.nec.frovedis.Jexrpc.FrovedisServer
 import com.nec.frovedis.sql.FrovedisDataFrame
+import com.nec.frovedis.sql.functions._
 import com.nec.frovedis.sql.implicits_._
 import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.sql.SparkSession
@@ -49,14 +50,14 @@ object FrovedisDataframeDemo {
     df1.filter(($$"Country" !== "Japan") && ($$"Age" > 19)).show()
 
     // sort demo
-    df1.sort($$"Age").show()
+    df1.sort(col("Country").asc, $$"Age".desc).show()
 
     // join demo
-    df1.join(df2, df1("Country") === df2("CName"),"outer","hash")
+    df1.join(df2, df1("Country") === df2("CName"))
        .select("EName","Age","CCode","CName").show()
 
     // combined operation demo
-    df1.join(df2, df1("Country") === df2("CName"),"outer","hash")
+    df1.join(df2, df1("Country") === df2("CName"))
        .select("EName","Age","CCode","CName")
        .when($$"Age" > 19)
        .sort($$"CCode", $$"Age").show()
@@ -68,16 +69,22 @@ object FrovedisDataframeDemo {
     val df3 = new FrovedisDataFrame(countryDF2)
 
     // exception at frovedis server: joining table have same key name
-    //df1.join(df3, df1("Country") === df3("Country"),"outer","hash")
+    //df1.join(df3, df1("Country") === df3("Country"))
     //   .select("EName","Age","CCode","CName").show()
 
     // for above case, just perform a renaming of the target key in right table (df3)
     val df4 = df3.withColumnRenamed("Country", "CName")
-    df1.join(df4, df1("Country") === df4("CName"),"outer","hash")
+    df1.join(df4, df1("Country") === df4("CName"))
        .select("EName","Age","CCode","CName").show()
 
     // groupBy demo
-    df1.groupBy("Country").select("Country").show()
+    df1.groupBy("Country").count().show()
+    val gdf = df1.groupBy("Country").agg(max("Age").as("max_age"),
+                                         min("Age").as("min_age"),
+                                         avg($$"Age").as("avg_age"),
+                                         mean("Age").as("mean_age"),
+                                         sum($$"Age").as("sum_age"))
+    gdf.show()
 
     // miscellaneous
     df1.withColumnRenamed("Country", "Cname").show()
@@ -85,13 +92,11 @@ object FrovedisDataframeDemo {
     peopleDF.describe().show() // spark implementation
     df1.describe().show()      // frovedis implementation
     println("Total rows: " + df1.count())
-    println("Total countries: " + df1.groupBy("Country").count())
-    df1.count("Age").foreach(println)
-    df1.min("Age").foreach(println)
-    df1.max("Age").foreach(println)
-    df1.sum("Age").foreach(println)
-    df1.avg("Age").foreach(println)
-    df1.std("Age").foreach(println)
+    df1.agg(min("Age").as("min_age"),
+            max("Age").as("max_age"),
+            sum($$"Age").as("sum_age"),
+            avg($$"Age").as("avg_age"),
+            std("Age").as("stddev(age)")).show()
 
     val sampleDF = sc.textFile("./input/sample.txt")
                      .map(_.split(","))
@@ -118,6 +123,7 @@ object FrovedisDataframeDemo {
     df3.release()
     df4.release()
     df5.release()
+    gdf.release()
     rmat.release()
     cmat.release()
     crsmat1.release()
