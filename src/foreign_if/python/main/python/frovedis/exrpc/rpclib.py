@@ -19,8 +19,8 @@ except OSError:
     try:
         LIB = CDLL("../lib/libfrovedis_client_python.so")
     except OSError:
-        raise OSError("libfrovedis_client_python.so: No such dll found \
-                      (set LD_LIBRARY_PATH)")
+        raise OSError("libfrovedis_client_python.so: No such dll found " + \
+                      "(set LD_LIBRARY_PATH)")
 
 # --- Frovedis Server ---
 initialize_server = LIB.initialize_server
@@ -176,7 +176,9 @@ select_frovedis_dataframe.restype = c_long
 
 sort_frovedis_dataframe = LIB.sort_frovedis_dataframe
 sort_frovedis_dataframe.argtypes = [c_char_p, c_int, c_long, \
-                                    POINTER(c_char_p), c_int, c_bool]
+                                    POINTER(c_char_p), \
+                                    ndpointer(c_int, ndim=1, \
+                                    flags="C_CONTIGUOUS"), c_int]
 sort_frovedis_dataframe.restype = c_long
 
 group_frovedis_dataframe = LIB.group_frovedis_dataframe
@@ -1041,6 +1043,15 @@ svm_lbfgs.argtypes = [c_char_p, c_int, c_long, c_long, #host,port,X,y
                       c_bool, c_double, c_int, c_int,  #fit_icpt, tol, vb, mid
                       c_short, c_short, c_bool]        #dtype, itype, dense
 
+svm_regressor_sgd = LIB.svm_regressor_sgd
+svm_regressor_sgd.argtypes = [c_char_p, c_int, c_long, c_long, #host,port,X,y
+                              c_int, c_double,                 #iter, lr_rate
+                              c_double,                        #eps
+                              c_int, c_double,                 #rtype, rparam
+                              c_bool, c_double,                #fit_icpt, tol
+                              c_int, c_int, c_int,             #loss, vb, mid
+                              c_short, c_short, c_bool]        #dtype, itype, dense
+
 dt_train = LIB.dt_trainer
 dt_train.argtypes = [c_char_p, c_int, c_long,
                      c_long, c_char_p, c_char_p,
@@ -1052,6 +1063,19 @@ nb_train = LIB.nb_trainer
 nb_train.argtypes = [c_char_p, c_int, c_long,
                      c_long, c_double, c_int, c_char_p, c_int,
                      c_short, c_short, c_bool]
+
+lnr_lapack = LIB.lnr_lapack
+lnr_lapack.argtypes = [c_char_p, c_int,  # host, port
+                       c_long, c_long,   # X, y
+                       c_bool, c_int,  # fit_icpt, vb
+                       c_int, c_short]   # mid, dtype
+lnr_lapack.restype = py_object
+
+lnr_scalapack = LIB.lnr_scalapack
+lnr_scalapack.argtypes = [c_char_p, c_int,  # host, port
+                          c_long, c_long,   # X, y
+                          c_bool, c_int,  # fit_icpt, vb
+                          c_int, c_short]   # mid, dtype
 
 lnr_sgd = LIB.lnr_sgd
 lnr_sgd.argtypes = [c_char_p, c_int, c_long, c_long, #host,port,X,y
