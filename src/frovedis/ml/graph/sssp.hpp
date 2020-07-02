@@ -4,8 +4,243 @@
 
 #include "sparse_vector.hpp"
 #include "global.hpp"
+
 namespace frovedis {
-    
+
+template <class T, class I, class O>
+crs_matrix_local<T, I, O>
+construct_min_crs_matrix(crs_matrix_local<T, I, O>& mat,
+                         std::vector<I>& rowid,
+                         std::vector<T>& dist,
+                         std::vector<I>& target_dest_ids,
+                         size_t myst) {
+  auto nrow = mat.local_num_row;
+  auto nedges = mat.val.size();
+  auto mvalp = mat.val.data();
+  auto sidp = mat.idx.data();
+  auto didp = rowid.data();
+  auto distp = dist.data();
+  auto Tmax = std::numeric_limits<T>::max();
+  std::vector<T> minval(nedges); auto minvalp = minval.data();
+  std::vector<I> minidx(nedges); auto minidxp = minidx.data();
+  std::vector<O> tmpvec(nrow);   auto tmpvecp = tmpvec.data();
+  size_t count = 0;
+  for(size_t i = 0; i < nedges; ++i) {
+    auto src = sidp[i];
+    auto dst = didp[i];
+    if(distp[src] != Tmax && ((distp[src] + mvalp[i]) < distp[dst + myst])) {
+      minvalp[count] = distp[src] + mvalp[i];
+      minidxp[count] = src;
+      count++;
+      tmpvecp[dst] = count;
+    }
+  }
+
+  size_t k = 0;
+  auto targetp = target_dest_ids.data();
+  for(size_t dst = 0; dst < nrow; ++dst) if (tmpvecp[dst] != 0) targetp[k++] = dst;
+
+  std::vector<O> countvec(k + 1); auto cntvecp = countvec.data();
+  for(size_t i = 0; i < k; ++i) cntvecp[i+1] = tmpvecp[targetp[i]];
+  O max_freq = 0;
+  for(size_t i = 0; i < k; ++i) {
+    auto freq = cntvecp[i+1] - cntvecp[i];
+    if (freq > max_freq) max_freq = freq;
+  }
+
+  crs_matrix_local<T,I,O> ret;
+  ret.val.swap(minval); // extra-sized (skipping extraction step to avoid copy of short loop-length)
+  ret.idx.swap(minidx); // extra-sized (skipping here as well)
+  ret.off.swap(countvec);
+  ret.local_num_row = k;
+  ret.local_num_col = max_freq;
+  return ret;
+}
+
+template <class T, class I, class O>
+std::vector<T>
+compute_nextdist(crs_matrix_local<T, I, O>& mat,
+                 std::vector<T>& dist,
+                 std::vector<I>& pred,
+                 std::vector<I>& target_dest_ids,
+                 size_t myst) {
+  auto nrow = pred.size();
+  auto max_freq = mat.local_num_col;
+  auto target_dest_cnt = mat.local_num_row;
+  auto tmpvalp = mat.val.data();
+  auto tmpidxp = mat.idx.data();
+  auto tmpoffp = mat.off.data();
+  std::vector<T> nextdist(nrow);
+  auto nextdistp = nextdist.data();
+  auto distp = dist.data();
+  auto predp = pred.data();
+  auto targetp = target_dest_ids.data();
+
+  for(size_t i = 0; i < nrow; ++i) nextdistp[i] = distp[i + myst]; // initializing nextdist
+#pragma _NEC nointerchange
+  for(size_t j = 0; j < max_freq; ++j) {
+#pragma _NEC ivdep
+    for(size_t i = 0; i < target_dest_cnt; ++i) {
+      int freq = tmpoffp[i+1] - tmpoffp[i] - j;
+      if (freq > 0) { // guarding to check if jth column exist for ith row
+        auto target_dest = targetp[i]; // 'target_dest' would be different across i-loop, hence 'ivdep' is applied
+        auto src = tmpidxp[tmpoffp[i] + j];
+        auto t_dist = tmpvalp[tmpoffp[i] + j];
+        if(t_dist < nextdistp[target_dest]) {
+          nextdistp[target_dest] = t_dist;
+          predp[target_dest] = src;
+        }
+      }
+    }
+  }
+  return nextdist;
+}
+
+template <class T, class I, class O>
+std::vector<T>
+calc_sssp_bf_impl(crs_matrix_local<T, I, O>& mat,
+                  std::vector<I>& rowid,
+                  std::vector<T>& dist,
+                  std::vector<I>& pred,
+                  size_t myst) {
+  auto myrank = get_selfid();
+  auto nrow = mat.local_num_row;
+  std::vector<I> target_dest_ids(nrow);
+  time_spent t_compute(TRACE), t_update(TRACE);
+
+  t_compute.lap_start();
+  auto tmp_crs_mat = construct_min_crs_matrix(mat, rowid, dist,
+                     target_dest_ids, myst);
+  t_compute.lap_stop();
+  //std::cout << "[" << myrank << "] tmp_crs_mat: "; tmp_crs_mat.debug_print(10);
+
+  t_update.lap_start();
+  auto nextdist = compute_nextdist(tmp_crs_mat, dist, pred,
+                  target_dest_ids, myst);
+  t_update.lap_stop();
+  //std::cout << "[" << myrank << "] nextdist: "; debug_print_vector(nextdist, 10);
+
+  if(myrank == 0) {
+    RLOG(TRACE) << "target_dest_cnt: " << tmp_crs_mat.local_num_row
+                << "; max_freq: " << tmp_crs_mat.local_num_col << std::endl;
+    t_compute.show_lap("  - bf compute time: ");
+    t_update.show_lap("  - distance update time: ");
+  }
+  return nextdist;
+}
+
+template <class T, class I, class O>
+std::vector<I> compute_rowid(crs_matrix_local<T,I,O>& mat) {
+  auto nrow = mat.local_num_row;
+  auto nelem = mat.val.size();
+  std::vector<I> ret(nelem);
+  auto offp = mat.off.data();
+  auto retp = ret.data();
+  for(size_t i = 0; i < nrow; ++i) {
+    for(size_t j = offp[i]; j < offp[i+1]; ++j) retp[j] = i;
+  }
+  return ret;
+}
+
+template <class T, class I, class O>
+int get_local_nrows_int(crs_matrix_local<T,I,O>& mat) {
+  return static_cast<int>(mat.local_num_row);
+}
+
+template <class T, class I, class O>
+void set_local_ncol(crs_matrix_local<T,I,O>& mat, size_t ncol) {
+  mat.local_num_col = ncol;
+}
+
+template <class T, class I, class O>
+crs_matrix<T,I,O>
+check_input(crs_matrix<T,I,O>& mat) {
+  auto nrow = mat.num_row;
+  auto ncol = mat.num_col;
+  if (nrow == ncol) return mat;
+  else if(ncol < nrow) {
+    auto ret = mat;
+    ret.num_row = ret.num_col = nrow;
+    ret.data.mapv(set_local_ncol<T,I,O>, broadcast(nrow));
+    return ret;
+  }
+  else REPORT_ERROR(USER_ERROR, "input is not a square matrix!\n");
+}
+
+template <class T, class I, class O>
+std::vector<T>
+calc_sssp_bf(crs_matrix_local<T, I, O>& mat,
+             std::vector<I>& rowid,
+             std::vector<T>& dist,
+             std::vector<I>& pred,
+             std::vector<int>& nrows_per_process,
+             std::vector<int>& stidx_per_process) {
+  auto nrow = mat.local_num_row;
+  auto nvert = mat.local_num_col;
+  auto myrank = get_selfid();
+  auto myst = stidx_per_process[myrank];
+  auto step = 1;
+  std::vector<T> all_nextdist(nvert);
+  auto countp = nrows_per_process.data();
+  auto displp = stidx_per_process.data();
+  pred.resize(nrow); auto predp = pred.data();
+  for(size_t i = 0; i < nrow; ++i) predp[i] = i + myst; // initializing predecessor
+  while (step <= nvert) {
+    time_spent t_iter(DEBUG), t_com(DEBUG);
+    t_iter.lap_start();
+    auto mynextdist = calc_sssp_bf_impl(mat, rowid, dist, pred, myst);
+    t_com.lap_start();
+    typed_allgatherv<T>(mynextdist.data(), nrow,
+                        all_nextdist.data(), countp, displp,
+                        frovedis_comm_rpc); // all_nextdist = gather all mynextdist process-by-process
+    t_com.lap_stop();
+    if(myrank == 0) t_com.show_lap("Communication time: ");
+
+    if (all_nextdist == dist) {
+      if(myrank == 0) {
+        RLOG(INFO) << "Converged in " + std::to_string(step) + " steps!\n";
+        t_iter.lap_stop();
+        t_iter.show_lap("One iteration: ");
+      }
+      break;
+    }
+    dist.swap(all_nextdist); // exchange all_nextdist with dist
+    step++;
+    t_iter.lap_stop();
+    if(myrank == 0) t_iter.show_lap("One iteration: ");
+  }
+  return dist;
+}
+
+template <class T, class I, class O>
+void sssp_bf_impl(crs_matrix<T, I, O>& adj_mat, size_t srcid,
+                  std::vector<T>& dist,
+                  std::vector<I>& pred) {
+  auto gr = check_input(adj_mat);
+  //std::cout << "input adjacency matrix (src nodes in column): \n";
+  //gr.debug_print(10);
+
+  auto nvert = gr.num_col;
+  if (srcid >= nvert)
+    REPORT_ERROR(USER_ERROR, "source index should be in between 0 and nvert-1!\n");
+
+  // --- initialization step ---
+  auto Tmax = std::numeric_limits<T>::max();
+  dist.clear(); dist.resize(nvert); auto distp = dist.data(); // output vector
+  for(size_t i = 0; i < nvert; ++i) distp[i] = Tmax;
+  dist[srcid] = 0;
+  // --- initialization related to distributed design ---
+  auto rowid = gr.data.map(compute_rowid<T,I,O>);
+  auto nrows = gr.data.map(get_local_nrows_int<T,I,O>).gather();
+  std::vector<int> sidx(nrows.size()); sidx[0] = 0;
+  for(size_t i = 1; i < nrows.size(); ++i) sidx[i] = sidx[i-1] + nrows[i-1];
+  auto pred_loc = make_node_local_allocate<std::vector<I>>();
+  // --- distributed computation step ---
+  dist = gr.data.map(calc_sssp_bf<T,I,O>,
+                     rowid, broadcast(dist), pred_loc,
+                     broadcast(nrows), broadcast(sidx)).get(0); // all processes have updated distance
+  pred = pred_loc.template moveto_dvector<I>().gather();
+}
 
 template <class O>
 std::vector<O> 
