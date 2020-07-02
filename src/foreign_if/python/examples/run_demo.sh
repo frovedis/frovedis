@@ -1,5 +1,5 @@
 export PYTHONPATH=../main/python:$PYTHONPATH
-export LD_LIBRARY_PATH=../main/lib:$LD_LIBRARY_PATH
+export LD_LIBRARY_PATH=../lib:$LD_LIBRARY_PATH
 
 COMMAND="mpirun -np 1 ../../server/frovedis_server"
 #COMMAND="mpirun -np 1 $FROVEDIS_SERVER" 
@@ -7,6 +7,7 @@ COMMAND="mpirun -np 1 ../../server/frovedis_server"
 if [ ! -d out ]; then
        mkdir out
 fi
+rm -rf out/*
 
 # --- Matrix Creation Demo ---
 python crs_matrix_demo.py "$COMMAND"
@@ -28,8 +29,10 @@ python lr_demo.py "$COMMAND"
 python lnr_demo.py "$COMMAND"
 python mlr_demo.py "$COMMAND"
 python sgd_classifier_demo.py "$COMMAND"
+python sgd_regressor_demo.py "$COMMAND"
 
 python svm_demo.py "$COMMAND"
+python svr_demo.py "$COMMAND"
 python dt_demo.py "$COMMAND"
 python rf_demo.py "$COMMAND"
 python gbt_demo.py "$COMMAND"
@@ -48,6 +51,9 @@ python als_demo.py "$COMMAND"
 python fp_growth_demo.py "$COMMAND"
 python word2vec_demo.py "$COMMAND"
 python lda_demo.py "$COMMAND"
+
+# --- GridSearchCV with Logistic Regression Demo ---
+python LRGridSearchCV_demo.py "$COMMAND"
 
 # --- Graph Demo ---
 python graph_pagerank.py "$COMMAND"
