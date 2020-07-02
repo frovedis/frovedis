@@ -12,7 +12,7 @@ namespace frovedis {
 template <class T>
 struct sliced_colmajor_matrix_local {
   sliced_colmajor_matrix_local() : data(NULL), ldm(0), 
-        sliced_num_row(0), sliced_num_col(0) {}
+        local_num_row(0), local_num_col(0) {}
 
   // implicit conversion: colmajor_matrix_local<T> => sliced_colmajor_matrix_local<T>
   sliced_colmajor_matrix_local(const colmajor_matrix_local<T>& inMat) {
@@ -20,28 +20,22 @@ struct sliced_colmajor_matrix_local {
     // But 'data' pointer is a non-const pointer. 
     // Thus the below casting is required.
     auto& mat = const_cast<colmajor_matrix_local<T>&> (inMat);
-    if(mat.val.size() == 0) 
-      REPORT_ERROR(USER_ERROR,"Empty input matrix!!\n");
-        
-    data = &mat.val[0];
+    data = mat.val.data();
     ldm  = mat.local_num_row;
-    sliced_num_row = mat.local_num_row;
-    sliced_num_col = mat.local_num_col;
+    local_num_row = mat.local_num_row;
+    local_num_col = mat.local_num_col;
   }
 
   sliced_colmajor_matrix_local(const std::vector<T>& inVec) {
     auto& vec = const_cast<std::vector<T>&> (inVec);
-    if(vec.size() == 0) 
-      REPORT_ERROR(USER_ERROR,"Empty input vector!!\n");
-        
-    data = &vec[0];
+    data = vec.data();
     ldm  = vec.size();
-    sliced_num_row = vec.size();
-    sliced_num_col = 1;
+    local_num_row = vec.size();
+    local_num_col = 1;
   }
 
   bool is_valid() const {
-    if(ldm < sliced_num_row)
+    if(ldm < local_num_row)
       return false;
     else
       return true;
@@ -49,19 +43,19 @@ struct sliced_colmajor_matrix_local {
 
   void debug_print() const {
     std::cout << "value = \n";
-    for(size_t i=0; i<sliced_num_row; i++){
-       for(size_t j=0; j<sliced_num_col; j++)
+    for(size_t i=0; i<local_num_row; i++){
+       for(size_t j=0; j<local_num_col; j++)
           std::cout << data[j*ldm+i] << " ";
        std::cout << std::endl;
     }
   }
 
   colmajor_matrix_local<T> get_copy() {
-    colmajor_matrix_local<T> ret(sliced_num_row,sliced_num_col);
+    colmajor_matrix_local<T> ret(local_num_row,local_num_col);
     T* retp = &ret.val[0];
-    auto ret_ldm = sliced_num_row;
-    for(size_t i=0; i<sliced_num_row; i++){
-      for(size_t j=0; j<sliced_num_col; j++)
+    auto ret_ldm = local_num_row;
+    for(size_t i=0; i<local_num_row; i++){
+      for(size_t j=0; j<local_num_col; j++)
         retp[j*ret_ldm+i] = data[j*ldm+i];
     }
     return ret;
@@ -69,9 +63,9 @@ struct sliced_colmajor_matrix_local {
 
   T*  data;      // Pointer to the input (colmajor_matrix_local<T>) matrix
   size_t ldm;       // Leading dimension of the input matrix to be sliced
-  size_t sliced_num_row; // No. of rows in the sliced matrix
-  size_t sliced_num_col; // No. of cols in the sliced matrix
-  SERIALIZE(data, ldm, sliced_num_row, sliced_num_col)
+  size_t local_num_row; // No. of rows in the sliced matrix
+  size_t local_num_col; // No. of cols in the sliced matrix
+  SERIALIZE(data, ldm, local_num_row, local_num_col)
 };
 
 
@@ -89,19 +83,19 @@ make_sliced_colmajor_matrix_local(const sliced_colmajor_matrix_local<T>& inMat,
   if(!inMat.is_valid()) 
     REPORT_ERROR(USER_ERROR,"Invalid input matrix!!\n");
 
-  if(start_row_index >= inMat.sliced_num_row ||
-     start_col_index >= inMat.sliced_num_col ||
-     num_row > inMat.sliced_num_row-start_row_index ||
-     num_col > inMat.sliced_num_col-start_col_index) 
+  if(start_row_index >= inMat.local_num_row ||
+     start_col_index >= inMat.local_num_col ||
+     num_row > inMat.local_num_row-start_row_index ||
+     num_col > inMat.local_num_col-start_col_index) 
     REPORT_ERROR(USER_ERROR,"Slicing not possible!!\n");
-     // (start_row_index + num_row) > inMat.sliced_num_row ||
-     // (start_col_index + num_col) > inMat.sliced_num_col ) 
+     // (start_row_index + num_row) > inMat.local_num_row ||
+     // (start_col_index + num_col) > inMat.local_num_col ) 
 
   sliced_colmajor_matrix_local<T> outMat;
   outMat.ldm = inMat.ldm; 
   outMat.data = inMat.data + start_row_index + (start_col_index * inMat.ldm);
-  outMat.sliced_num_row = num_row;
-  outMat.sliced_num_col = num_col;
+  outMat.local_num_row = num_row;
+  outMat.local_num_col = num_col;
 
   return outMat;
 }
@@ -114,7 +108,7 @@ template <class T>
 struct sliced_blockcyclic_matrix_local {
 
   sliced_blockcyclic_matrix_local() : data(NULL), descA(NULL), 
-         IA(0), JA(0), sliced_num_row(0), sliced_num_col(0) {}
+         IA(0), JA(0), local_num_row(0), local_num_col(0) {}
 
   // implicit conversion: 
   // blockcyclic_matrix_local<T> => sliced_blockcyclic_matrix_local<T>
@@ -133,12 +127,12 @@ struct sliced_blockcyclic_matrix_local {
 
     // global (distributed) informations
     IA = JA = 1;
-    sliced_num_row = mat.descA[2];
-    sliced_num_col = mat.descA[3];
+    local_num_row = mat.descA[2];
+    local_num_col = mat.descA[3];
   }
 
   bool is_valid() const {
-    if(IA < 0 || JA < 0 || sliced_num_row < 0 || sliced_num_col < 0)
+    if(IA < 0 || JA < 0 || local_num_row < 0 || local_num_col < 0)
       return false;
     else
       return true;
@@ -148,9 +142,9 @@ struct sliced_blockcyclic_matrix_local {
   int* descA;         // pointer to the node-local distributed array descriptor
   size_t IA;             // Start row-index of the global distributed submatrix
   size_t JA;             // Start col-index of the global distributed submatrix
-  size_t sliced_num_row; // No. of rows in the global distributed submatrix
-  size_t sliced_num_col; // No. of cols in the global distributed submatrix
-  SERIALIZE(data, descA, IA, JA, sliced_num_row, sliced_num_col)
+  size_t local_num_row; // No. of rows in the global distributed submatrix
+  size_t local_num_col; // No. of cols in the global distributed submatrix
+  SERIALIZE(data, descA, IA, JA, local_num_row, local_num_col)
 };
 
 
@@ -168,13 +162,13 @@ to_sliced_blockcyclic_matrix_local(blockcyclic_matrix_local<T>& inMat) {
 }
 
 template <class T>
-size_t get_sliced_num_row(sliced_blockcyclic_matrix_local<T>& inMat) {
-  return inMat.sliced_num_row;
+size_t get_local_num_row(sliced_blockcyclic_matrix_local<T>& inMat) {
+  return inMat.local_num_row;
 }
 
 template <class T>
-size_t get_sliced_num_col(sliced_blockcyclic_matrix_local<T>& inMat) {
-  return inMat.sliced_num_col;
+size_t get_local_num_col(sliced_blockcyclic_matrix_local<T>& inMat) {
+  return inMat.local_num_col;
 }
 
 
@@ -232,8 +226,8 @@ struct slice_matrix_from_blockcyclic_matrix {
     // global (distributed) informations
     outMat.IA = inMat.IA + ridx;
     outMat.JA = inMat.JA + cidx;
-    outMat.sliced_num_row = num_row;
-    outMat.sliced_num_col = num_col;
+    outMat.local_num_row = num_row;
+    outMat.local_num_col = num_col;
 
     return outMat;
   }
@@ -255,12 +249,12 @@ make_sliced_blockcyclic_matrix(const sliced_blockcyclic_matrix<T>& inMat,
 		               size_t num_col) {
 
   auto& mat2 = const_cast<sliced_blockcyclic_matrix<T>&> (inMat);
-  size_t sliced_num_row = mat2.data.map(get_sliced_num_row<T>).get(0);
-  size_t sliced_num_col = mat2.data.map(get_sliced_num_col<T>).get(0);
-  if(start_row_index >= sliced_num_row ||
-     start_col_index >= sliced_num_col ||
-     num_row > sliced_num_row-start_row_index  ||
-     num_col > sliced_num_col-start_col_index) 
+  size_t local_num_row = mat2.data.map(get_local_num_row<T>).get(0);
+  size_t local_num_col = mat2.data.map(get_local_num_col<T>).get(0);
+  if(start_row_index >= local_num_row ||
+     start_col_index >= local_num_col ||
+     num_row > local_num_row-start_row_index  ||
+     num_col > local_num_col-start_col_index) 
      REPORT_ERROR(USER_ERROR,"Slicing not possible!!\n");
 
   sliced_blockcyclic_matrix<T> outMat(mat2.data.

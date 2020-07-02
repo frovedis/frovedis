@@ -20,15 +20,12 @@ struct sliced_colmajor_vector_local {
     // But 'data' pointer is a non-const pointer. 
     // Thus the below casting is required.
     auto& mat = const_cast<colmajor_matrix_local<T>&> (inMat);
-    if(mat.val.size() == 0)
-      REPORT_ERROR(USER_ERROR,"Empty input matrix!!\n");
-
     if(mat.local_num_col > 1) {
       std::string msg = "Input matrix has more than one columns.\n";
       msg += "It can't be converted to a vector!!\n";
       REPORT_ERROR(USER_ERROR,msg);
     }
-    data   = &mat.val[0]; 
+    data   = mat.val.data(); 
     size   = mat.local_num_row;
     stride = 1;
   }
@@ -38,10 +35,7 @@ struct sliced_colmajor_vector_local {
     // But 'data' pointer is a non-const pointer. 
     // Thus the below casting is required.
     auto& vec = const_cast<std::vector<T>&> (inVec);
-    if(vec.size() == 0) 
-      REPORT_ERROR(USER_ERROR,"Empty input vector!!\n");
-          
-    data   = &vec[0]; 
+    data   = vec.data(); 
     size   = vec.size();
     stride = 1;
   }
@@ -75,12 +69,12 @@ make_row_vector(const sliced_colmajor_matrix_local<T>& inMat,
   if(!inMat.is_valid())
     REPORT_ERROR(USER_ERROR,"Invalid input matrix!!\n");
 
-  if(row_index < 0 || row_index >= inMat.sliced_num_row) 
+  if(row_index < 0 || row_index >= inMat.local_num_row) 
     REPORT_ERROR(USER_ERROR,"Invalid row index!!\n");
 
   sliced_colmajor_vector_local<T> outVec;
   outVec.data   = inMat.data + row_index;
-  outVec.size   = inMat.sliced_num_col;
+  outVec.size   = inMat.local_num_col;
   outVec.stride = inMat.ldm;
 
   return outVec;
@@ -98,12 +92,12 @@ make_col_vector(const sliced_colmajor_matrix_local<T>& inMat,
   if(!inMat.is_valid())
     REPORT_ERROR(USER_ERROR,"Invalid input matrix!!\n");
 
-  if(col_index < 0 || col_index >= inMat.sliced_num_col) 
+  if(col_index < 0 || col_index >= inMat.local_num_col) 
     REPORT_ERROR(USER_ERROR,"Invalid col index!!\n");
 
   sliced_colmajor_vector_local<T> outVec;
   outVec.data   = inMat.data + col_index * inMat.ldm;
-  outVec.size   = inMat.sliced_num_row;
+  outVec.size   = inMat.local_num_row;
   outVec.stride = 1;
 
   return outVec;
@@ -230,14 +224,14 @@ struct slice_vector_from_blockcyclic_matrix {
     if(what == 'r') { // for row-vector
       outVec.IA = inMat.IA + index;
       outVec.JA = inMat.JA;
-      outVec.size   = inMat.sliced_num_col;
+      outVec.size   = inMat.local_num_col;
       // leadieng dimension (no. of rows) of the global (distributed) matrix
       outVec.stride = inMat.descA[2]; 
     }
     else { // for col-vector
       outVec.IA = inMat.IA;
       outVec.JA = inMat.JA + index;
-      outVec.size   = inMat.sliced_num_row;
+      outVec.size   = inMat.local_num_row;
       outVec.stride = 1;
     }
 
@@ -256,8 +250,8 @@ template <class T>
 sliced_blockcyclic_vector<T>
 make_row_vector(const sliced_blockcyclic_matrix<T>& inMat, size_t rIndex) {
    auto& mat2 = const_cast<sliced_blockcyclic_matrix<T>&> (inMat);
-   size_t sliced_num_row = mat2.data.map(get_sliced_num_row<T>).get(0);
-   if(rIndex < 0 || rIndex >= sliced_num_row)
+   size_t local_num_row = mat2.data.map(get_local_num_row<T>).get(0);
+   if(rIndex < 0 || rIndex >= local_num_row)
       REPORT_ERROR(USER_ERROR,"Invalid row index!!\n");
    sliced_blockcyclic_vector<T> outVec(mat2.data.
                                 template map<sliced_blockcyclic_vector_local<T>>
@@ -273,8 +267,8 @@ template <class T>
 sliced_blockcyclic_vector<T>
 make_col_vector(const sliced_blockcyclic_matrix<T>& inMat, size_t cIndex) {
    auto& mat2 = const_cast<sliced_blockcyclic_matrix<T>&> (inMat);
-   size_t sliced_num_col = mat2.data.map(get_sliced_num_col<T>).get(0);
-   if(cIndex < 0 || cIndex >= sliced_num_col)
+   size_t local_num_col = mat2.data.map(get_local_num_col<T>).get(0);
+   if(cIndex < 0 || cIndex >= local_num_col)
       REPORT_ERROR(USER_ERROR,"Invalid col index!!\n");
    sliced_blockcyclic_vector<T> outVec(mat2.data.
                                 template map<sliced_blockcyclic_vector_local<T>>
