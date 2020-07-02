@@ -1,32 +1,59 @@
 package com.nec.frovedis.matrix
 
-import scala.collection.mutable.ArrayBuffer
-import org.apache.spark.mllib.linalg.SparseVector
+import org.apache.spark.mllib.linalg.{Vectors, Vector}
 
 class ScalaCRS extends java.io.Serializable {
   var nrows: Long = 0
   var ncols: Long = 0
-  var off  = new ArrayBuffer[Int]()
-  var idx  = new ArrayBuffer[Int]()
-  var data = new ArrayBuffer[Double]()
-  off += 0 // 0 based offset
+  var off: Array[Int] = null
+  var idx: Array[Int] = null
+  var data: Array[Double] = null
  
-  def this(input: Array[SparseVector]) = {
+  def this(input_arr: Array[Vector]) = {
     this()
+    val input = input_arr.map(p => p.toSparse)
     nrows = input.length
     ncols = if (nrows > 0) input(0).size else 0
-    for (i <- 0 to (input.length-1)) {
+    val nr = nrows.intValue
+    var nnz = 0
+    for (i <- 0 until nr) {
+      nnz = nnz + input(i).indices.size
+    }
+    off = new Array[Int](nr + 1)
+    idx = new Array[Int](nnz)
+    data = new Array[Double](nnz)
+    off(0) = 0
+    var count = 0
+    for (i <- 0 until nr) {
       val indx = input(i).indices
       val vals = input(i).values
       if (indx.length != vals.length) println ("Input error in ScalaCRS")
-      // Note: Spark reduces the index count by 1, while parsing libSVMFile
-      // Whereas, Frovedis read the file as it is...
-      // This issue needs to be fixed in Frovedis side!!
-      for(j <- 0 to (indx.length-1)) idx  += indx(j)
-      for(j <- 0 to (vals.length-1)) data += vals(j)
-      val tmp = off(i) + indx.length
-      off += tmp
+      for(j <- 0 until indx.length) { 
+        idx(count + j) = indx(j)
+        data(count + j) = vals(j)
+      }
+      count = count + indx.length
+      off(i + 1) = count
     }
+  }
+
+  def to_vector_array(): Array[Vector] = {
+    val local_row = nrows.intValue
+    val local_col = ncols.intValue
+    val ret = new Array[Vector](local_row)
+    for (i <- 0 until local_row) {
+      val nzero = off(i+1) - off(i)
+      val indices = new Array[Int](nzero)
+      val values = new Array[Double](nzero)
+      var k = 0
+      for (j <- off(i) until off(i+1)) {
+        indices(k) = idx(j)
+        values(k) = data(j) 
+        k = k + 1
+      }
+      ret(i) = Vectors.sparse(local_col, indices, values)
+    } 
+    return ret 
   }
 
   def debug_print() : Unit = {
