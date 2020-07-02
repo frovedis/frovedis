@@ -7,7 +7,7 @@ import com.nec.frovedis.matrix.ScalaCRS
 import com.nec.frovedis.matrix.MAT_KIND
 import org.apache.spark.rdd.RDD
 import org.apache.spark.SparkContext
-import org.apache.spark.mllib.linalg.Vector
+import org.apache.spark.mllib.linalg.{Matrices, Vector}
 import org.apache.spark.mllib.recommendation.Rating
 
 class FrovedisSparseData extends java.io.Serializable {
@@ -25,18 +25,66 @@ class FrovedisSparseData extends java.io.Serializable {
     num_row = matInfo.nrow
     num_col = matInfo.ncol
   }
+  private def setEachPartitionsData(index: Int, t_node: Node,
+                                    t_dptr: Long, nrow: Int, 
+                                    nnz: Int): Iterator[Vector] = {
+    val data = new Array[Double](nnz)
+    val index = new Array[Int](nnz)
+    val offset = new Array[Int](nrow+1)
+    JNISupport.getLocalCRSMatrixComponents(t_node, t_dptr, data, index, 
+                                           offset, nrow, nnz) 
+    val info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
+    val crs = new ScalaCRS()
+    crs.nrows = nrow
+    crs.ncols = this.num_col 
+    crs.off = offset
+    crs.idx = index
+    crs.data = data
+    return crs.to_vector_array().toIterator
+  }
+  def to_spark_sparse_matrix() : RDD[Vector] = {
+    if(fdata == -1) return null    
+    val ctxt: SparkContext = SparkContext.getOrCreate()
+    return to_spark_sparse_matrix(ctxt)
+  }
+  def to_spark_sparse_matrix(ctxt: SparkContext) : RDD[Vector] = {
+    if(fdata == -1) return null    
+    val fs = FrovedisServer.getServerInstance()
+    /* get array of local crs_matrix pointers from all workers */
+    val eps = JNISupport.getAllSparseMatrixLocalPointers(fs.master_node,
+                                                         fdata, MAT_KIND.SCRS)
+    var info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
+    val l_rows = JNISupport.getAllSparseMatrixLocalRows(fs.master_node, fdata,
+                                                        MAT_KIND.SCRS)
+    info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
+    val l_nnz = JNISupport.getAllSparseMatrixLocalNNZ(fs.master_node, fdata,
+                                                      MAT_KIND.SCRS)
+    info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
+    val fw_nodes = JNISupport.getWorkerInfo(fs.master_node)
+    info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info) 
+    val dummy = new Array[Boolean](eps.size)
+    val dist_dummy =  ctxt.parallelize(dummy,eps.size)
+    val rows = dist_dummy.mapPartitionsWithIndex((i,x) =>
+                          setEachPartitionsData(i,fw_nodes(i),eps(i),
+                                                l_rows(i),l_nnz(i))).cache()
+    return rows
+  }
   private def convert_and_send_local_data(data: Iterator[Vector],
                                           t_node: Node) : Iterator[Long] = {
-    val darr = data.map(p => p.toSparse).toArray
-    val scalaCRS = new ScalaCRS(darr)
+    val scalaCRS = new ScalaCRS(data.toArray)
     val ret = JNISupport.loadFrovedisWorkerData(t_node, 
                                               scalaCRS.nrows,
                                               scalaCRS.ncols,
-                                              scalaCRS.off.toArray,
-                                              scalaCRS.idx.toArray,
-                                              scalaCRS.data.toArray)
-    val info = JNISupport.checkServerException();
-    if (info != "") throw new java.rmi.ServerException(info);
+                                              scalaCRS.off,
+                                              scalaCRS.idx,
+                                              scalaCRS.data)
+    val info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
     //mapPartitionsWithIndex needs to return an Iterator object
     return Array(ret).toIterator
   }
