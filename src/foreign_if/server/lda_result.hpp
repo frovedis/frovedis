@@ -83,18 +83,22 @@ struct dummy_lda_model {
 
 template <class T>
 rowmajor_matrix_local <double>
-get_distribution_matrix_local(rowmajor_matrix_local<T>& m){
+get_distribution_matrix_local(rowmajor_matrix_local<T>& m, 
+                              std::vector<T>& vec,
+                              int axis = 1){
   auto nrow = m.local_num_row;
   auto ncol = m.local_num_col;
-  auto vec = sum_of_cols(m);
   std::vector<double> dbl_vec(vec.size());
   auto vptr = vec.data();
   auto dvptr = dbl_vec.data();
-  for(size_t i=0; i < vec.size(); i++) dvptr[i] = 1 / (double) vptr[i];
+  for(size_t i=0; i < vec.size(); i++) {
+    if(vptr[i]) dvptr[i] = 1.0 / vptr[i];
+    else        dvptr[i] = 1.0;
+  }
   rowmajor_matrix_local<double> ret(nrow, ncol);
   auto mvalptr = m.val.data();
   auto retvalptr = ret.val.data();
-  if (nrow > ncol) {
+  if (axis) {
     for(size_t j = 0; j < ncol; ++j) {
       for(size_t i = 0; i < nrow; ++i) {
         retvalptr[i * ncol + j] = mvalptr[i * ncol + j] * dvptr[i];
@@ -102,9 +106,9 @@ get_distribution_matrix_local(rowmajor_matrix_local<T>& m){
     }
   }
   else {
-    for(size_t i = 0; i < nrow; ++i) {
-      for(size_t j = 0; j < ncol; ++j) {
-        retvalptr[i * ncol + j] = mvalptr[i * ncol + j] * dvptr[i];
+    for(size_t j = 0; j < ncol; ++j) {
+      for(size_t i = 0; i < nrow; ++i) {
+        retvalptr[i * ncol + j] = mvalptr[i * ncol + j] * dvptr[j];
       }
     }
   }
@@ -113,8 +117,19 @@ get_distribution_matrix_local(rowmajor_matrix_local<T>& m){
 
 template <class T>
 rowmajor_matrix <double>
-get_distribution_matrix(rowmajor_matrix<T>& m) {
-  rowmajor_matrix<double> ret(m.data.map(get_distribution_matrix_local<T>));
+get_distribution_matrix(rowmajor_matrix<T>& m,
+                        int axis = 1) {
+  std::vector<T> sum;
+  // there are overloaded sum_of_cols/rows
+  std::vector<T> (*sum_of_cols_T)(const rowmajor_matrix_local<T>&) =
+    sum_of_cols<T>;
+  std::vector<T> (*sum_of_rows_T)(const rowmajor_matrix_local<T>&) =
+    sum_of_rows<T>;
+  if(axis) sum = m.data.map(sum_of_cols_T)
+                       .template moveto_dvector<T>().gather();
+  else     sum = m.data.map(sum_of_rows_T).vector_sum();
+  rowmajor_matrix<double> ret(m.data.map(get_distribution_matrix_local<T>, 
+                              broadcast(sum), broadcast(axis)));
   ret.num_row = m.num_row;
   ret.num_col = m.num_col;
   return ret;
