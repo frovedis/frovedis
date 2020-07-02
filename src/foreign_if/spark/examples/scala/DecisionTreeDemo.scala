@@ -28,22 +28,29 @@ object DecisionTreeDemo {
     val maxDepth = 5
     val maxBins = 32
     // -------- train classifier --------
-    val model1 = DecisionTree.trainClassifier(data,
+    val m1 = DecisionTree.trainClassifier(data,
                                               numClasses, 
                                               categoricalFeaturesInfo,
                                               impurity, maxDepth, maxBins)
-    model1.debug_print()
-    
+    m1.debug_print()
+    val ftr = data.map(_.features)
+    println("prediction on trained model: ")
+    m1.predict(ftr).collect.foreach(println) // prediction
+
+    // -------- load/save --------
+    m1.save(sc, "./out/DecisionTreeClassModel")
+    val m2 = DecisionTreeModel.load(sc, "./out/DecisionTreeClassModel")
+    println("prediction on loaded model: ")
+    m2.predict(ftr).collect.foreach(println) // prediction on loaded model
+
     // -------- prediction --------
-    val predictionAndLabel = data.map(p => (model1.predict(p.features), p.label))
+    val predictionAndLabel = data.map(p => (m2.predict(p.features), p.label))
     val accuracy = 1.0 * predictionAndLabel.filter(x => x._1 == x._2).count() / data.count()
     println("Test accuracy: " + accuracy)
 
-    // -------- load/save --------
-    model1.save(sc, "./out/DecisionTreeClassModel")
-
     // -------- clean-up --------
-    model1.release() 
+    m1.release() 
+    m2.release() 
 
     FrovedisServer.shut_down()
     sc.stop()
