@@ -79,6 +79,19 @@ extern MPI_Comm frovedis_shmroot_comm;
 extern int frovedis_shmroot_self_rank;
 extern int frovedis_shmroot_comm_size;
 
+// stacks for split_context_execution
+extern std::vector<MPI_Comm> frovedis_comm_rpc_stack;
+extern std::vector<int> frovedis_self_rank_stack;
+extern std::vector<int> frovedis_comm_size_stack;
+
+extern std::vector<bool> frovedis_shm_init_stack;
+extern std::vector<MPI_Comm> frovedis_shm_comm_stack;
+extern std::vector<int> frovedis_shm_self_rank_stack;
+extern std::vector<int> frovedis_shm_comm_size_stack;
+extern std::vector<MPI_Comm> frovedis_shmroot_comm_stack;
+extern std::vector<int> frovedis_shmroot_self_rank_stack;
+extern std::vector<int> frovedis_shmroot_comm_size_stack;
+
 #ifdef USE_THREAD
 extern pthread_mutex_t mpi_tag_lock;
 #endif
@@ -115,7 +128,7 @@ struct rpc_header {
 
 int get_mpi_tag();
 void handle_req();
-bool handle_one_req();
+bool handle_one_bcast_req();
 int send_rpcreq(rpc_type, NID, intptr_t, intptr_t, const std::string&);        
 void send_bcast_rpcreq(rpc_type, intptr_t, intptr_t, const std::string&,
                        std::vector<std::string>&);

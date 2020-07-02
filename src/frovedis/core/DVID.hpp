@@ -16,7 +16,12 @@ namespace frovedis {
 
 typedef int dvid_t;
 extern std::map<dvid_t, intptr_t> dvid_table;
+extern dvid_t current_dvid;
 dvid_t get_new_dvid();
+
+// stacks for split_context_execution
+extern std::vector<std::map<dvid_t,intptr_t>> dvid_table_stack;
+extern std::vector<dvid_t> current_dvid_stack;
 
 template <class T> class DVID;
 template <class T> std::vector<T> gather(DVID<T>& d);
@@ -390,7 +395,7 @@ void dvid_scatter_helper(dvid_t& d, std::vector<size_t>& sendcounts,
 }
 
 template <class T>
-DVID<T> make_dvid_scatter(std::vector<T>& src) {
+DVID<T> make_dvid_scatter(const std::vector<T>& src) {
   int node_size = get_nodesize();
   if(node_size != src.size())
     throw std::runtime_error("invalid vector size for scatter");

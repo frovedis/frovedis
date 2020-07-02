@@ -15,6 +15,10 @@ dvid_t get_new_dvid() {
 }
 std::map<dvid_t,intptr_t> dvid_table;
 
+// stacks for split_context_execution
+std::vector<std::map<dvid_t,intptr_t>> dvid_table_stack;
+std::vector<dvid_t> current_dvid_stack;
+
 /*
   for vector of PoD, serialization is skipped
  */

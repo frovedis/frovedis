@@ -1,3 +1,4 @@
+#include <vector>
 #include <string>
 #include <cstdint>
 #include <sstream>
@@ -23,6 +24,19 @@ int frovedis_shm_comm_size;
 MPI_Comm frovedis_shmroot_comm;
 int frovedis_shmroot_self_rank;
 int frovedis_shmroot_comm_size;
+
+// stacks for split_context_execution
+std::vector<MPI_Comm> frovedis_comm_rpc_stack;
+std::vector<int> frovedis_self_rank_stack;
+std::vector<int> frovedis_comm_size_stack;
+
+std::vector<bool> frovedis_shm_init_stack;
+std::vector<MPI_Comm> frovedis_shm_comm_stack;
+std::vector<int> frovedis_shm_self_rank_stack;
+std::vector<int> frovedis_shm_comm_size_stack;
+std::vector<MPI_Comm> frovedis_shmroot_comm_stack;
+std::vector<int> frovedis_shmroot_self_rank_stack;
+std::vector<int> frovedis_shmroot_comm_size_stack;
 
 #ifdef USE_THREAD
 pthread_mutex_t mpi_tag_lock = PTHREAD_MUTEX_INITIALIZER;
