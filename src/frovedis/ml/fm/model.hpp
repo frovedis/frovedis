@@ -42,7 +42,7 @@ struct fm_config {
   size_t factor_size;
   size_t feature_size;  // not assigned at initialization
   size_t batch_size_pernode;
-  
+
   SERIALIZE(init_stdev, iteration, init_learn_rate, learn_rate,
             regular_w0, regular_w, regular_v, is_regression, 
             use_w0, use_w, use_v, factor_size, feature_size, batch_size_pernode);
@@ -70,7 +70,16 @@ struct fm_parameter {
   
   T w0;
   std::vector<T> w;
-  rowmajor_matrix_local<T> v;   
+  rowmajor_matrix_local<T> v;
+
+  void debug_print() {
+    std::cout << "w0: " << w0 << std::endl;
+    std::cout << "w: ";
+    for(auto i: w) std::cout << i << " ";
+    std::cout << std::endl;
+    std::cout << "v: ";
+    v.debug_print();
+  }
   
   SERIALIZE(w0, w, v);
 };
@@ -182,6 +191,10 @@ struct fm_model {
       
   fm_config<T> config;
   fm_parameter<T> parameter;
+
+  void debug_print() {
+    parameter.debug_print();
+  }
   
   SERIALIZE(config, parameter);
 };
