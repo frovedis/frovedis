@@ -43,8 +43,8 @@ fdf1[fdf1.Age > 19].show()
 fdf1[fdf1.Age > 19 and fdf1.Country == 'Japan'].show()
 
 # sort demo 
-fdf1.sort("Age",ascending=False).show() # single column
-fdf1.sort(["Age", "Country"]).show()    # multiple column
+fdf1.sort_values("Age",ascending=1).show() # single column
+fdf1.sort_values(["Country", "Age"], ascending=[0,1]).show() # multiple column
 
 # groupby demo
 fdf1.groupby('Country').agg({'Age': ['max','min','mean'], 
