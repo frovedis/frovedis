@@ -237,8 +237,8 @@ struct find_kneighbor {
     if (rows[n_iter] > nrow) rows[n_iter] = nrow;
     //display(rows);
 
-    time_spent partition_t(INFO), sort_each_t(DEBUG), extract_t(INFO), radix_t(INFO);
-    time_spent comp_t(INFO), copy_t(INFO);
+    time_spent partition_t(DEBUG), sort_each_t(TRACE), extract_t(DEBUG), radix_t(DEBUG);
+    time_spent comp_t(DEBUG), copy_t(DEBUG);
     for(size_t i = 0; i < n_iter; ++i) {
       RLOG(DEBUG) << "working on chunk [" << rows[i] << " : " << rows[i+1] - 1 << "]\n";
       size_t nrow_in_chunk = rows[i+1] - rows[i] ;
