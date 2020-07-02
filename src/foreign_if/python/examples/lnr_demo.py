@@ -1,9 +1,6 @@
 #!/usr/bin/env python
 
 from frovedis.exrpc.server import FrovedisServer
-from frovedis.matrix.crs import FrovedisCRSMatrix
-from frovedis.matrix.dvector import FrovedisDvector
-from frovedis.mllib.linear_model import *
 import numpy as np
 import sys
 
@@ -15,22 +12,24 @@ if (argc < 2):
     quit()
 FrovedisServer.initialize(argvs[1])
 
-mat = FrovedisCRSMatrix(dtype=np.float64).load("./input/libSVMFile.txt")
-lbl = FrovedisDvector([1.1,0.2,1.3,1.4,1.5,0.6,1.7,1.8],dtype=np.float64)
 
-# fitting input matrix and label on linear regression object
-lr = LinearRegression(solver='lbfgs', verbose=0).fit(mat,lbl)
+from sklearn.datasets import load_boston
+mat, label = load_boston(return_X_y=True)
 
-# predicting on loaded model
-print("predicting on lbfgs linear regression model: ")
-print(lr.predict(mat))
 
-# fitting input matrix and label on linear regression object
-lr = LinearRegression(solver='sag', verbose=0).fit(mat,lbl)
+from frovedis.mllib.linear_model import LinearRegression
+lr = LinearRegression().fit(mat, label)
 
-# predicting on loaded model
-print("predicting on sag linear regression model: ")
-print(lr.predict(mat))
+print("predicting on trained model: ")
+print(lr.predict(mat[:10]))
+print("score: %.2f" % lr.score(mat[:10], label[:10]))
+print("coef: ")
+print(lr.coef_)
+
+# when solver = lapack, following outputs can also be obtained
+#print("singular: ")
+#print(lr.singular_)
+#print("rank: %d" % lr.rank_)
 
 # saving the model
 lr.save("./out/LNRModel")
@@ -40,6 +39,6 @@ lr.load("./out/LNRModel")
 
 # debug_print
 lr.debug_print()
-lr.release()
 
+lr.release()
 FrovedisServer.shut_down()
