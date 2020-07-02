@@ -18,12 +18,13 @@ compute_spectral_cluster(rowmajor_matrix<T>& mat, // affinity matrix
                          int mode = 1,
                          bool drop_first = false) {
   auto embed = compute_spectral_embedding(mat,n_comp,norm_laplacian,drop_first,mode);
-  if(SAVE) embed.save("./dump/embed");
-
-  time_spent kmeans_t(INFO);
+  time_spent kmeans_t(DEBUG);
   kmeans_t.lap_start();
   auto centroid = kmeans(embed,ncluster,niter,eps);
+  kmeans_t.lap_stop();
+  //std::cout << "centroid: \n"; centroid.debug_print(10);
   if(SAVE) centroid.save("./dump/centroid");
+  kmeans_t.lap_start();
   auto bcentroid = broadcast(centroid);
   auto labels = embed.data.map(kmeans_assign_cluster<T>, bcentroid)
                           .template moveto_dvector<int>().gather();
@@ -71,15 +72,19 @@ spectral_clustering_impl(rowmajor_matrix<T>& mat,
     else affinity = mat;
   }
   else { // 'mat' is input data
-    time_spent aff_t(INFO);
-    aff_t.lap_start();
+    time_spent aff_t(DEBUG);
     auto gdata = get_global_data(mat);
     if(input_movable) mat.clear();
+    aff_t.lap_start();
     affinity = construct_distance_matrix(gdata,true); //locally created "gdata" is movable
+    aff_t.lap_stop();
+    if(SAVE) affinity.save("./dump/distance");
+    aff_t.lap_start();
     construct_affinity_matrix_inplace(affinity,gamma);
-    if(SAVE) affinity.save("./dump/affinity");
     aff_t.lap_stop();
     aff_t.show_lap("affinity computation time: ");
+    //std::cout << "affinity: \n"; affinity.debug_print(10);
+    if(SAVE) affinity.save("./dump/affinity");
   }
 
   // quick return cases...
