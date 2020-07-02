@@ -76,6 +76,11 @@ or_op(const std::shared_ptr<dfoperator>& left,
   return std::make_shared<dfoperator_or>(left,right);
 }
 
+std::shared_ptr<dfoperator>
+not_op(const std::shared_ptr<dfoperator>& op) {
+  return std::make_shared<dfoperator_not>(op);
+}
+
 // ---------- filter of all kinds of tables ----------
 
 filtered_dftable dftable_base::filter(const std::shared_ptr<dfoperator>& op) {
