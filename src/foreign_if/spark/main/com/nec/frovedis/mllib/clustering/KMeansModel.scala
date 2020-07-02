@@ -18,31 +18,29 @@ class KMeansModel(modelId: Int,
   private def parallel_predict(data: Iterator[Vector],
                                mptr: Long,
                                t_node: Node) : Iterator[Int] = {
-    val darr = data.map(x => x.toSparse).toArray
-    val scalaCRS = new ScalaCRS(darr)
+    val scalaCRS = new ScalaCRS(data.toArray)
     val ret = JNISupport.doParallelKMMPredict(t_node, mptr, mkind,
                                               scalaCRS.nrows, 
                                               scalaCRS.ncols,
-                                              scalaCRS.off.toArray,
-                                              scalaCRS.idx.toArray,
-                                              scalaCRS.data.toArray)
-    val info = JNISupport.checkServerException();
-    if (info != "") throw new java.rmi.ServerException(info);
+                                              scalaCRS.off,
+                                              scalaCRS.idx,
+                                              scalaCRS.data)
+    val info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
     return ret.toIterator
   }
   // prediction on single input
   def predict(data: Vector) : Int = {
     val fs = FrovedisServer.getServerInstance()
-    val darr = Array(data.toSparse) // an array of one SparseVector
-    val scalaCRS = new ScalaCRS(darr)
+    val scalaCRS = new ScalaCRS(Array(data))
     val ret = JNISupport.doSingleKMMPredict(fs.master_node, mid, mkind,
                                             scalaCRS.nrows, 
                                             scalaCRS.ncols,
-                                            scalaCRS.off.toArray,
-                                            scalaCRS.idx.toArray,
-                                            scalaCRS.data.toArray);
-    val info = JNISupport.checkServerException();
-    if (info != "") throw new java.rmi.ServerException(info);
+                                            scalaCRS.off,
+                                            scalaCRS.idx,
+                                            scalaCRS.data)
+    val info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
     return ret;
   }
   // prediction on multiple inputs
