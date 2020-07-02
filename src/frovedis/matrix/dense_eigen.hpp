@@ -23,10 +23,10 @@ void dense_eigen_sym_mpi(DENSE_MATRIX_LOCAL& mat,
     REPORT_ERROR(USER_ERROR, "dense_eigen_sym: Unsupported mode is encountered!\n");
 
   int rank, size;
-  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-  MPI_Comm_size(MPI_COMM_WORLD, &size);
-  MPI_Comm comm = MPI_COMM_WORLD;
-  MPI_Fint fcomm = MPI_Comm_c2f(MPI_COMM_WORLD);
+  MPI_Comm_rank(frovedis_comm_rpc, &rank);
+  MPI_Comm_size(frovedis_comm_rpc, &size);
+  MPI_Comm comm = frovedis_comm_rpc;
+  MPI_Fint fcomm = MPI_Comm_c2f(frovedis_comm_rpc);
 
   // assumed that mat is distributed by row
   int mloc = mat.local_num_row;
@@ -123,7 +123,7 @@ void dense_eigen_sym_mpi(DENSE_MATRIX_LOCAL& mat,
       else start = &workd[ipntr[0]-1];
       mpi_lap.lap_start();
       typed_allgatherv<REAL>(start, nloc, &x[0], recvcount_n,
-                             displs_n, MPI_COMM_WORLD);
+                             displs_n, frovedis_comm_rpc);
       mpi_lap.lap_stop();
       mv_lap.lap_start();
       auto axloc = mat * x;
