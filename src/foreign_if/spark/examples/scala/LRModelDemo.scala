@@ -44,7 +44,7 @@ object LRModelDemo {
     println(m1.toString)
 
     var t_vec2 = s_data.map(_.features)
-    println("[predict]: multi-input prediction:")
+    println("[predict]: multi-input prediction on trained model:")
     m1.predict(t_vec2).collect.foreach(println)
 
     val thr = m1.getThreshold
@@ -57,12 +57,14 @@ object LRModelDemo {
     println("setting back the older threshold: " + thr)
     m1.setThreshold(thr)
     
+    // -------- load/save --------
     println("saving model to ./out/MyLRModel:")
     m1.save("./out/MyLRModel")
 
     println("loading same model from ./out/MyLRModel:")
     val m2 = LogisticRegressionModel.load(sc,"./out/MyLRModel") 
-    
+    println("prediction on loaded model: ")
+    m2.predict(t_vec2).collect.foreach(println) // prediction on loaded model
 
     // -------------------------------- :Note: ----------------------------
     // This kind of lambda expression is really useful in terms of spark's own ML predict().
@@ -81,11 +83,12 @@ object LRModelDemo {
     // Get evaluation metrics.
     val metrics = new MulticlassMetrics(predictionAndLabels)
     val accuracy = metrics.accuracy
-
     println("prediction made on loaded model:")
-    m2.debug_print()
-    println(s"Accuracy = $accuracy") 
+    println(s"Test Accuracy = $accuracy") 
     
+    // -------- clean-up --------
+    m1.release() 
+    m2.release() 
 
     FrovedisServer.shut_down()
     sc.stop()
