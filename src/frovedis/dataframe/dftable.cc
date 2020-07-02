@@ -241,14 +241,14 @@ dftable_base::group_by(const std::vector<std::string>& cols) {
       make_node_local_allocate<std::vector<std::vector<size_t>>>();
     auto merge_map =
       make_node_local_allocate<std::vector<std::vector<size_t>>>();
-    auto grouped_column = column(cols[0])->group_by
+    auto grouped_column = raw_column(cols[0])->group_by
       (local_idx, split_idx, hash_divide, merge_map);
     return grouped_dftable(*this, std::move(local_idx), std::move(split_idx),
                            std::move(hash_divide), std::move(merge_map),
                            {grouped_column}, cols);
   } else {
     std::vector<std::shared_ptr<dfcolumn>> pcols(size);
-    for(size_t i = 0; i < size; i++) pcols[i] = column(cols[i]);
+    for(size_t i = 0; i < size; i++) pcols[i] = raw_column(cols[i]);
     auto local_idx = get_local_index(); // might be filtered
     // sort reverse order to show intuitive result
     for(size_t i = 0; i < size-1; i++) {

@@ -914,7 +914,7 @@ typed_dfcolumn<string>::count
  node_local<std::vector<std::vector<size_t>>>& hash_divide,
  node_local<std::vector<std::vector<size_t>>>& merge_map,
  node_local<size_t>& row_sizes) {
-  return count_impl(nulls, local_grouped_idx, local_idx_split,
+  return count_impl(val, nulls, local_grouped_idx, local_idx_split,
                     hash_divide, merge_map, row_sizes);
 }
 

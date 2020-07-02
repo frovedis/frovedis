@@ -4,6 +4,7 @@
 #include "dfcolumn.hpp"
 
 #include <limits>
+#include <climits>
 #include "../core/set_operations.hpp"
 #include "../core/radix_sort.hpp"
 #include "hashtable.hpp"
@@ -633,7 +634,7 @@ sum_helper(std::vector<T>& org_val,
   for(size_t i = 0; i < nullssize; i++) {
     org_valp[nullsp[i]] = 0;
   }
-  size_t valsize = org_val.size();
+  size_t valsize = grouped_idx.size();
   std::vector<T> val(valsize);
   auto valp = val.data();
   auto grouped_idxp = grouped_idx.data();
@@ -792,7 +793,7 @@ max_helper(std::vector<T>& org_val,
   for(size_t i = 0; i < nullssize; i++) {
     org_valp[nullsp[i]] = min;
   }
-  size_t valsize = org_val.size();
+  size_t valsize = grouped_idx.size();
   std::vector<T> val(valsize);
   auto valp = val.data();
   auto grouped_idxp = grouped_idx.data();
@@ -943,7 +944,7 @@ min_helper(std::vector<T>& org_val,
            std::vector<std::vector<size_t>>& hash_divide,
            std::vector<size_t>& nulls) {
   T* org_valp = org_val.data();
-  size_t valsize = org_val.size();
+  size_t valsize = grouped_idx.size();
   std::vector<T> val(valsize);
   auto valp = val.data();
   auto grouped_idxp = grouped_idx.data();
@@ -1973,7 +1974,10 @@ struct calc_hash_base_helper2 {
     T* valp = &val[0];
     size_t* hash_basep = &hash_base[0];
     for(size_t i = 0; i < size; i++) {
-      hash_basep[i] = (hash_basep[i] << shift) + static_cast<size_t>(valp[i]);
+      hash_basep[i] =
+        ((hash_basep[i] << shift) |
+         (hash_basep[i] >> (sizeof(size_t)*CHAR_BIT - shift)))
+        + static_cast<size_t>(valp[i]);
     }
   }
   int shift;
@@ -2023,8 +2027,10 @@ typed_dfcolumn<T>::multi_group_by_exchange
   return ret;
 }
 
+template <class T>
 std::vector<std::vector<size_t>>
-count_helper(std::vector<size_t>& grouped_idx,
+count_helper(std::vector<T>& val,
+             std::vector<size_t>& grouped_idx,
              std::vector<size_t>& idx_split,
              std::vector<std::vector<size_t>>& hash_divide,
              std::vector<size_t>& nulls);
@@ -2065,8 +2071,8 @@ typed_dfcolumn<T>::sum
   ret->val = std::move(newval);
   if(contain_nulls) {
     // in the case of sum, default value (= 0) cannot be used to check null
-    auto local_agg = local_grouped_idx.map(count_helper, local_idx_split,
-                                           hash_divide, nulls);
+    auto local_agg = val.map(count_helper<T>, local_grouped_idx,
+                             local_idx_split, hash_divide, nulls);
     auto exchanged = alltoall_exchange(local_agg);
     ret->nulls = exchanged.map
       (+[](std::vector<std::vector<size_t>>& exchanged,
@@ -2106,13 +2112,78 @@ typed_dfcolumn<T>::sum
   return ret;
 }
 
+template <class T>
+std::vector<std::vector<size_t>>
+count_helper(std::vector<T>& val,
+             std::vector<size_t>& grouped_idx,
+             std::vector<size_t>& idx_split,
+             std::vector<std::vector<size_t>>& hash_divide,
+             std::vector<size_t>& nulls) {
+  size_t nullssize = nulls.size();
+  if(nullssize == 0) {
+    size_t splitsize = idx_split.size();
+    std::vector<size_t> ret(splitsize-1);
+    size_t* idx_splitp = &idx_split[0];
+    size_t* retp = &ret[0];
+    for(size_t i = 0; i < splitsize-1; i++) {
+      retp[i] = idx_splitp[i+1] - idx_splitp[i];
+    }
+    auto nodesize = hash_divide.size();
+    std::vector<std::vector<size_t>> hashed_ret(nodesize);
+    for(size_t i = 0; i < nodesize; i++) {
+      auto each_size = hash_divide[i].size();
+      hashed_ret[i].resize(each_size);
+      auto hash_dividep = hash_divide[i].data();
+      auto hashed_retp = hashed_ret[i].data();
+      for(size_t j = 0; j < each_size; j++) {
+        hashed_retp[j] = retp[hash_dividep[j]];
+      }
+    }
+    return hashed_ret;
+  } else { // slow: takes same time as sum
+    auto size = val.size();
+    std::vector<size_t> tmp(size, 1);
+    return sum_helper(tmp, grouped_idx, idx_split, hash_divide, nulls);
+  }
+}
+
+template <class T>
 std::shared_ptr<dfcolumn>
-count_impl(node_local<std::vector<size_t>>& nulls,
+count_impl(node_local<std::vector<T>>& val,
+           node_local<std::vector<size_t>>& nulls,
            node_local<std::vector<size_t>>& local_grouped_idx,
            node_local<std::vector<size_t>>& local_idx_split,
            node_local<std::vector<std::vector<size_t>>>& hash_divide,
            node_local<std::vector<std::vector<size_t>>>& merge_map,
-           node_local<size_t>& row_sizes);
+           node_local<size_t>& row_sizes) {
+  auto ret = std::make_shared<typed_dfcolumn<size_t>>();
+  ret->nulls = make_node_local_allocate<std::vector<size_t>>();
+  auto local_agg = val.map(count_helper<T>, local_grouped_idx, local_idx_split,
+                           hash_divide, nulls);
+  auto exchanged = alltoall_exchange(local_agg);
+  auto newval = exchanged.map
+    (+[](std::vector<std::vector<size_t>>& exchanged,
+         std::vector<std::vector<size_t>>& merge_map,
+         size_t row_size) {
+      std::vector<size_t> newval(row_size);
+      auto newvalp = newval.data();
+      for(size_t i = 0; i < exchanged.size(); i++) {
+        auto currentp = exchanged[i].data();
+        auto current_size = exchanged[i].size();
+        auto merge_mapp = merge_map[i].data();
+#pragma cdir nodep
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+        for(size_t j = 0; j < current_size; j++) {
+          newvalp[merge_mapp[j]] += currentp[j];
+        }
+      }
+      return newval;
+    }, merge_map, row_sizes);
+  ret->val = std::move(newval);
+  return ret;
+}
 
 template <class T>
 std::shared_ptr<dfcolumn>
@@ -2122,7 +2193,7 @@ typed_dfcolumn<T>::count
  node_local<std::vector<std::vector<size_t>>>& hash_divide,
  node_local<std::vector<std::vector<size_t>>>& merge_map,
  node_local<size_t>& row_sizes) {
-  return count_impl(nulls, local_grouped_idx, local_idx_split,
+  return count_impl(val, nulls, local_grouped_idx, local_idx_split,
                     hash_divide, merge_map, row_sizes);
 }
 
