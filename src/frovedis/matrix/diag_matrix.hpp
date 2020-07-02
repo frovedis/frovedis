@@ -34,7 +34,7 @@ struct diag_matrix_local {
     str << *this;
   }
   void savebinary(const std::string&);
-  void debug_print();
+  void debug_print(size_t n = 0);
 
   SERIALIZE(val)
 };
@@ -71,12 +71,10 @@ make_diag_matrix_local_load(const std::string& file) {
 
 
 template <class T>
-void diag_matrix_local<T>::debug_print() {
+void diag_matrix_local<T>::debug_print(size_t n) {
   std::cout << "node = " << get_selfid()
             << ", local_num() = " << local_num()
-            << ", val = ";
-  for(auto i: val){ std::cout << i << " "; }
-  std::cout << std::endl;
+            << ", val = "; debug_print_vector(val, n);
 }
 
 /*
