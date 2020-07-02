@@ -19,11 +19,11 @@ struct jds_crs_hybrid_local {
   crs_matrix_local<T,I,O> crs;
   size_t local_num_col;
   size_t local_num_row;
-  void debug_print() const {
+  void debug_print(size_t n = 0) const {
     std::cout << "jds part:" << std::endl;
-    jds.debug_print();
+    jds.debug_print(n);
     std::cout << "crs part:" << std::endl;
-    crs.debug_print();
+    crs.debug_print(n);
   }
   void clear() {
     jds.clear();
@@ -171,13 +171,13 @@ struct jds_crs_hybrid {
            (crs2jdscrs<T,I,O,P>(t))),
       num_row(crs.num_row), num_col(crs.num_col)
     {}
-  void debug_print() {
+  void debug_print(size_t n = 0) {
     std::cout << "num_row = " << num_row
               << ", num_col = " << num_col << std::endl;
     auto g = data.gather();
     for(size_t i = 0; i < g.size(); i++) {
       std::cout << "node " << i << std::endl;
-      g[i].debug_print();
+      g[i].debug_print(n);
     }
   }
   void clear();

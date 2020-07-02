@@ -56,22 +56,14 @@ struct jds_matrix_local {
   std::vector<P> perm;
   size_t local_num_col;
   size_t local_num_row;
-  void debug_print() const {
+  void debug_print(size_t n = 0) const {
     std::cout << "local_num_row = " << local_num_row
               << ", local_num_col = " << local_num_col
               << std::endl;
-    std::cout << "val : ";
-    for(auto i: val) std::cout << i << " ";
-    std::cout << std::endl;
-    std::cout << "idx : ";
-    for(auto i: idx) std::cout << i << " ";
-    std::cout << std::endl;
-    std::cout << "off : ";
-    for(auto i: off) std::cout << i << " ";
-    std::cout << std::endl;
-    std::cout << "perm : ";
-    for(auto i: perm) std::cout << i << " ";
-    std::cout << std::endl;
+    std::cout << "val : "; debug_print_vector(val, n);
+    std::cout << "idx : "; debug_print_vector(idx, n);
+    std::cout << "off : "; debug_print_vector(off, n);
+    std::cout << "perm : "; debug_print_vector(perm, n);
   }
   void savebinary(const std::string&); // for testing... do not use
   void clear() {
@@ -225,13 +217,13 @@ struct jds_matrix {
     : data(crs.data.map(crs2jds<T,I,O,P>)), num_row(crs.num_row),
       num_col(crs.num_col)
     {}
-  void debug_print() {
+  void debug_print(size_t n = 0) {
     std::cout << "num_row = " << num_row
               << ", num_col = " << num_col << std::endl;
     auto g = data.gather();
     for(size_t i = 0; i < g.size(); i++) {
       std::cout << "node " << i << std::endl;
-      g[i].debug_print();
+      g[i].debug_print(n);
     }
   }
   void clear();

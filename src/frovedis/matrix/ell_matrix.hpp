@@ -40,16 +40,12 @@ struct ell_matrix_local {
     local_num_col = m.local_num_col;
     return *this;
   }
-  void debug_print() const {
+  void debug_print(size_t n = 0) const {
     std::cout << "local_num_row = " << local_num_row
               << ", local_num_col = " << local_num_col
               << std::endl;
-    std::cout << "val : ";
-    for(auto i: val) std::cout << i << " ";
-    std::cout << std::endl;
-    std::cout << "idx : ";
-    for(auto i: idx) std::cout << i << " ";
-    std::cout << std::endl;
+    std::cout << "val : "; debug_print_vector(val, n);
+    std::cout << "idx : "; debug_print_vector(idx, n);
   }
   template <class O = size_t>
   crs_matrix_local<T,I,O> to_crs();
@@ -177,13 +173,13 @@ struct ell_matrix {
     ret.set_num(num_row, num_col);
     return ret;
   }
-  void debug_print() {
+  void debug_print(size_t n = 0) {
     std::cout << "num_row = " << num_row
               << ", num_col = " << num_col << std::endl;
     auto g = data.gather();
     for(size_t i = 0; i < g.size(); i++) {
       std::cout << "node " << i << std::endl;
-      g[i].debug_print();
+      g[i].debug_print(n);
     }
   }
   frovedis::node_local<ell_matrix_local<T,I>> data;
