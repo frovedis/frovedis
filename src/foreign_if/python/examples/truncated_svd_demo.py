@@ -4,7 +4,7 @@ import sys
 import numpy as np
 from scipy.sparse import csr_matrix
 from frovedis.exrpc.server import FrovedisServer
-from frovedis.decomposition.truncated_svd import TruncatedSVD
+from frovedis.decomposition import TruncatedSVD
 
 # initializing the Frovedis server
 argvs = sys.argv
