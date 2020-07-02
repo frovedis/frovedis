@@ -190,7 +190,7 @@ index_suite<I> make_index_suite_by_exchange(index_suite<I>& one_suite)
   
   index_suite<I> another_suite(nodesize);
   MPI_Alltoall(one_suite.counts.data(), sizeof(size_t), MPI_CHAR,
-               another_suite.counts.data(), sizeof(size_t), MPI_CHAR, MPI_COMM_WORLD);
+               another_suite.counts.data(), sizeof(size_t), MPI_CHAR, frovedis_comm_rpc);
   size_t another_bufsize = another_suite.counts[0];
   another_suite.displs[0] = 0;
   for (size_t i_node = 1; i_node < nodesize; i_node++) {
@@ -202,7 +202,7 @@ index_suite<I> make_index_suite_by_exchange(index_suite<I>& one_suite)
   large_alltoallv(sizeof(I), 
                   reinterpret_cast<char*>(one_suite.buf.data()), one_suite.counts, one_suite.displs,
                   reinterpret_cast<char*>(another_suite.buf.data()), another_suite.counts, another_suite.displs,
-                  MPI_COMM_WORLD);
+                  frovedis_comm_rpc);
 
   return another_suite;    
 }
@@ -308,7 +308,7 @@ void aggregate_to_managing_node(chain_schedule<I>& sched, size_t batch_id,
   large_alltoallv(sizeof(T) * block,
                   reinterpret_cast<char*>(local_grad.data()), computed_suite.counts, computed_suite.displs,
                   reinterpret_cast<char*>(gathered_buffer.data()), gathered_suite.counts, gathered_suite.displs,  
-                  MPI_COMM_WORLD);
+                  frovedis_comm_rpc);
   auto* ptr_gathered_buffer = gathered_buffer.data();
 
   // clear accumulater in relevant position
@@ -438,7 +438,7 @@ broadcast_from_managing_node(chain_schedule<I>& sched, size_t batch_id,
   large_alltoallv(sizeof(T) * block,
                   reinterpret_cast<char*>(param_buffer.data()), gathered_suite.counts, gathered_suite.displs,  
                   reinterpret_cast<char*>(computed_parameter.data()), computed_suite.counts, computed_suite.displs,
-                  MPI_COMM_WORLD);
+                  frovedis_comm_rpc);
   
   return computed_parameter;
 }
