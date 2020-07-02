@@ -101,16 +101,14 @@ struct blockcyclic_matrix_local {
             (descA.size() == ARRAY_DESCRIPTOR_SIZE) && 
             (type >= 1 && type <= 2));
   }
-  void debug_print() const {
+  void debug_print(size_t n = 0) const {
     std::cout << "node = " << get_selfid()
               << ", local_num_row = " << local_num_row
               << ", local_num_col = " << local_num_col
               << ", type = " << type
               << ", descriptor = "; 
     for(auto i: descA){ std::cout << i << " "; }
-    std::cout << "\nval = ";
-    for(auto i: val){ std::cout << i << " "; }
-    std::cout << std::endl;
+    std::cout << "\nval = "; debug_print_vector(val, n);
   }
   std::vector<T> val;
   std::vector<int> descA;
@@ -773,7 +771,15 @@ struct blockcyclic_matrix {
   void savebinary(const std::string& dir) {
     to_rowmajor().savebinary(dir);
   }
-  void debug_print() {data.mapv(call_debug_print<blockcyclic_matrix_local<T>>);}
+  void debug_print(size_t n = 0) {
+    std::cout << "num_row = " << num_row
+              << ", num_col = " << num_col << std::endl;
+    auto g = data.gather();
+    for(size_t i = 0; i < g.size(); i++) {
+      std::cout << "node " << i << std::endl;
+      g[i].debug_print(n);
+    }
+  }
   size_t get_nrows() { return num_row; }
   size_t get_ncols() { return num_col; }
 
