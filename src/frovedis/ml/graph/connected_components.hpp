@@ -970,7 +970,7 @@ Allgather_next_idx(std::vector<T>& ret_idx_unvisited){
     int recv_counts[num_worker];       
 
  
-    MPI_Allgather(send_data, 1, MPI_INT, recv_counts, 1, MPI_INT, MPI_COMM_WORLD);
+    MPI_Allgather(send_data, 1, MPI_INT, recv_counts, 1, MPI_INT, frovedis_comm_rpc);
     
     int displs[num_worker];   
     size_t num_ret_idx_unvisited_all = 0;
@@ -993,7 +993,7 @@ Allgather_next_idx(std::vector<T>& ret_idx_unvisited){
                 recv_counts,
                 displs,
                 MPI_UNSIGNED_LONG_LONG,
-                MPI_COMM_WORLD);
+                frovedis_comm_rpc);
 
         return ret_idx_unvisited_all;
     }
