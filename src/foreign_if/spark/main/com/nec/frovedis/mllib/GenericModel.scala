@@ -6,6 +6,8 @@ import com.nec.frovedis.matrix.ScalaCRS
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 import org.apache.spark.mllib.linalg.Vector
+import com.nec.frovedis.exrpc.FrovedisSparseData
+import com.nec.frovedis.matrix.FrovedisRowmajorMatrix
 
 object M_KIND {
   val GLM:    Short = 0
@@ -31,6 +33,8 @@ object M_KIND {
   val KNR: Short = 20
   val LDA: Short = 21
   val LDASP: Short = 22
+  val RFM: Short = 23
+  val GBT: Short = 24
 }
 
 object ModelID {
@@ -53,15 +57,15 @@ class GenericModel(modelId: Int,
   def debug_print() : Unit = {
     val fs = FrovedisServer.getServerInstance() 
     JNISupport.showFrovedisModel(fs.master_node,mid,mkind)
-    val info = JNISupport.checkServerException();
-    if (info != "") throw new java.rmi.ServerException(info);
+    val info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
   }
   def save(sc: SparkContext, path: String) : Unit = save(path) 
   def save(path: String) : Unit = {
     val fs = FrovedisServer.getServerInstance()
     JNISupport.saveFrovedisModel(fs.master_node,mid,mkind,path) 
-    val info = JNISupport.checkServerException();
-    if (info != "") throw new java.rmi.ServerException(info);
+    val info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
   }
   def release() : Unit = {
     val fs = FrovedisServer.getServerInstance() 
@@ -70,8 +74,8 @@ class GenericModel(modelId: Int,
     // [What is the Spark way of getting selfid()?]
     // Currently, the same is taken care using a deleted-model tracker at Frovedis side.
     JNISupport.releaseFrovedisModel(fs.master_node,mid,mkind)
-    val info = JNISupport.checkServerException();
-    if (info != "") throw new java.rmi.ServerException(info);
+    val info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
     //println("[scala] model[" + mid + "] is finalized.")
   }
   //override def finalize() = release()
@@ -84,14 +88,13 @@ class GenericModelWithPredict(modelId: Int,
   private[mllib] def parallel_predict(data: Iterator[Vector],
                                       mptr: Long,
                                       t_node: Node) : Iterator[Double] = {
-    val darr = data.map(x => x.toSparse).toArray
-    val scalaCRS = new ScalaCRS(darr)
+    val scalaCRS = new ScalaCRS(data.toArray)
     var ret = JNISupport.doParallelGLMPredict(t_node, mptr, mkind,
                                               scalaCRS.nrows, 
                                               scalaCRS.ncols,
-                                              scalaCRS.off.toArray,
-                                              scalaCRS.idx.toArray,
-                                              scalaCRS.data.toArray)
+                                              scalaCRS.off,
+                                              scalaCRS.idx,
+                                              scalaCRS.data)
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
     return ret.toIterator
@@ -99,14 +102,13 @@ class GenericModelWithPredict(modelId: Int,
   // prediction on single input
   def predict(data: Vector) : Double = {
     val fs = FrovedisServer.getServerInstance()
-    val darr = Array(data.toSparse) // an array of one SparseVector
-    val scalaCRS = new ScalaCRS(darr)
+    val scalaCRS = new ScalaCRS(Array(data))
     var ret = JNISupport.doSingleGLMPredict(fs.master_node, mid, mkind,
                                             scalaCRS.nrows, 
                                             scalaCRS.ncols,
-                                            scalaCRS.off.toArray,
-                                            scalaCRS.idx.toArray,
-                                            scalaCRS.data.toArray);
+                                            scalaCRS.off,
+                                            scalaCRS.idx,
+                                            scalaCRS.data)
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
     return ret
@@ -124,5 +126,145 @@ class GenericModelWithPredict(modelId: Int,
     val wdata = data.repartition2(fs.worker_size)
     return wdata.mapPartitionsWithIndex((i,x) => 
                 parallel_predict(x,each_model(i),fw_nodes(i))).cache()
+  }
+}
+
+
+class GenericModelWithPredict2(modelId: Int,
+                              modelKind: Short)
+  extends GenericModel(modelId, modelKind) {
+
+/*
+  def predict(data: Vector): Double = {
+    val context = SparkContext.getOrCreate()
+    val rddv = context.parallelize(Array(data), 1) // Vector -> RDD[Vector]
+    val ret = predict(rddv) // RDD[Double]
+    val retarr = ret.collect
+    assert(retarr.size==1) // asserting only one element is present
+    return retarr(0)
+  }
+*/
+  
+  def predict(X: Vector): Double = {
+    require(this.mid > 0, "predict() is called before training ")
+    val prob = false
+    var dproxy: Long = -1
+    var pred: Double = 0
+    val fs = FrovedisServer.getServerInstance()
+    val isDense = X.getClass.toString() matches ".*DenseVector*."
+    if (isDense) {
+      val nrow: Long = 1
+      val ncol: Long = X.size
+      val rmjr_arr = X.toArray
+      dproxy = JNISupport.loadFrovedisWorkerRmajorData(fs.master_node,nrow,ncol,rmjr_arr)
+      val info = JNISupport.checkServerException()
+      if (info != "") throw new java.rmi.ServerException(info)
+    }
+    else {
+      val scalaCRS = new ScalaCRS(Array(X))
+      dproxy = JNISupport.loadFrovedisWorkerData(fs.master_node,
+                                                 scalaCRS.nrows,
+                                                 scalaCRS.ncols,
+                                                 scalaCRS.off,
+                                                 scalaCRS.idx,
+                                                 scalaCRS.data)
+      val info = JNISupport.checkServerException()
+      if (info != "") throw new java.rmi.ServerException(info)
+    }
+    pred = JNISupport.genericSinglePredict(fs.master_node, dproxy, this.mid, 
+                                           this.mkind, isDense, prob) // TODO: delete dproxy in-place
+    val info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
+    return pred
+  }
+
+  def predict(X: RDD[Vector]): RDD[Double] = {
+    require(this.mid > 0, "predict() is called before training ")
+    val isDense = X.first.getClass.toString() matches ".*DenseVector*."
+    if (isDense) {
+      val fdata = new FrovedisRowmajorMatrix(X)
+      val res = predict(fdata)
+      fdata.release()
+      return res
+    }
+    else {
+      val fdata = new FrovedisSparseData(X)
+      val res = predict(fdata)
+      fdata.release()
+      return res
+    }
+  }
+
+  // dense predict()
+  def predict(X: FrovedisRowmajorMatrix): RDD[Double] = {
+    require(this.mid > 0, "predict() is called before training ")
+    val fs = FrovedisServer.getServerInstance()
+    val prob = false
+    val res: Array[Double] = JNISupport.genericPredict(fs.master_node, X.get(),
+                                                      this.mid, this.mkind,
+                                                      true, prob)
+    val info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
+    val context = SparkContext.getOrCreate()
+    return context.parallelize(res)
+  }
+
+  // sparse predict()
+  def predict(X: FrovedisSparseData): RDD[Double] = {
+    require(this.mid > 0, "predict() is called before training ")
+    val fs = FrovedisServer.getServerInstance()
+    val prob = false
+    val res: Array[Double] = JNISupport.genericPredict(fs.master_node, X.get(),
+                                                      this.mid, this.mkind,
+                                                      false, prob)
+    val info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
+    val context = SparkContext.getOrCreate()
+    return context.parallelize(res)
+  }
+
+  def predict_proba(X: RDD[Vector]): RDD[Double] = {
+    require(this.mid > 0, "predict_proba() is called before training ")
+    val isDense = X.first.getClass.toString() matches ".*DenseVector*."
+    if (isDense) {
+      val fdata = new FrovedisRowmajorMatrix(X)
+      val res = predict_proba(fdata)
+      fdata.release()
+      return res
+    }
+    else {
+      val fdata = new FrovedisSparseData(X)
+      val res = predict_proba(fdata)
+      fdata.release()
+      return res
+    }
+  }
+
+  // dense predict_proba()
+  def predict_proba(X: FrovedisRowmajorMatrix): RDD[Double] = {
+    require(this.mid > 0, "predict_proba() is called before training ")
+    val fs = FrovedisServer.getServerInstance()
+    val prob = true
+    val res: Array[Double] = JNISupport.genericPredict(fs.master_node, X.get(),
+                                                      this.mid, this.mkind,
+                                                      true, prob)
+    val info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
+    val context = SparkContext.getOrCreate()
+    return context.parallelize(res)
+  }
+
+  // sparse predict_proba()
+  def predict_proba(X: FrovedisSparseData): RDD[Double] = {
+    require(this.mid > 0, "predict_proba() is called before training ")
+    val fs = FrovedisServer.getServerInstance()
+    val prob = true
+    val res: Array[Double] = JNISupport.genericPredict(fs.master_node, X.get(),
+                                                      this.mid, this.mkind,
+                                                      false, prob)
+    val info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
+    val context = SparkContext.getOrCreate()
+    return context.parallelize(res)
   }
 }
