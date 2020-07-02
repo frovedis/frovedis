@@ -38,9 +38,15 @@ class Expr extends java.io.Serializable {
   def &&(e: Expr): Expr = {
     new Expr(this, e, OPTYPE.AND)
   }
+
+  def and(e: Expr): Expr = &&(e)
+
   def ||(e: Expr): Expr = {
     new Expr(this, e, OPTYPE.OR)
   }
+
+  def or(e: Expr): Expr = ||(e)
+
   private def get_opt(optid: Short): String = {
     return optid match {
       case OPTYPE.EQ => "=="
@@ -64,13 +70,13 @@ class Expr extends java.io.Serializable {
       var isImmed = false
       if (index == -1)  isImmed = true
       val ret = JNISupport.getDFOperator(fs.master_node,st1,st2,tid,opt,isImmed)
-      val info = JNISupport.checkServerException();
-      if (info != "") throw new java.rmi.ServerException(info);
-      else return ret; 
+      val info = JNISupport.checkServerException()
+      if (info != "") throw new java.rmi.ServerException(info)
+      else return ret
    }
     else {
       val p1 = op1.get_proxy(cols,types)
-      val p2 = op1.get_proxy(cols,types)
+      val p2 = op2.get_proxy(cols,types)
       // below calls release p1, p2 after getting combined operator
         val ret = opt match  {
         case OPTYPE.AND => JNISupport.getDFAndOperator(fs.master_node,p1,p2)
@@ -78,12 +84,10 @@ class Expr extends java.io.Serializable {
         case _ => throw new IllegalArgumentException("Unsupported logical operator type: " + opt)
       }
   
-      val info1 = JNISupport.checkServerException();
-      if (info1 != "") throw new java.rmi.ServerException(info1);
-      else return ret;
+      val info1 = JNISupport.checkServerException()
+      if (info1 != "") throw new java.rmi.ServerException(info1)
+      else return ret
     } 
-  
-  
   }
   override def toString(): String = {
     var ret = ""

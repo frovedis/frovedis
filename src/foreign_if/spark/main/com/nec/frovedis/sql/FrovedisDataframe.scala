@@ -14,21 +14,24 @@ import org.apache.spark.SparkContext
 import org.apache.spark.mllib.linalg.{Vector,Vectors}
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.Row
-import org.apache.spark.sql.types.StructField
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.DataFrame
 import scala.collection.mutable.ArrayBuffer
 
 object TMAPPER {
-
   val func2id = Map("sum" -> DTYPE.NONE, "max" -> DTYPE.NONE, "min" -> DTYPE.NONE,
-                    "avg" -> DTYPE.DOUBLE, "count" -> DTYPE.LONG)
+                    "mean" -> DTYPE.DOUBLE, "avg" -> DTYPE.DOUBLE, 
+                    "std" -> DTYPE.DOUBLE,  "count" -> DTYPE.LONG)
 
-  val id2val = Map(DTYPE.INT -> "IntegerType",   DTYPE.LONG -> "LongType",
-                   DTYPE.FLOAT -> "FloatType",   DTYPE.DOUBLE -> "DoubleType",
-                   DTYPE.STRING -> "StringType", DTYPE.BOOL -> "BooleanType")
+  val id2string = Map(DTYPE.INT -> "IntegerType",   DTYPE.LONG -> "LongType",
+                      DTYPE.FLOAT -> "FloatType",   DTYPE.DOUBLE -> "DoubleType",
+                      DTYPE.STRING -> "StringType", DTYPE.BOOL -> "BooleanType")
 
-  val val2id = Map("IntegerType" -> DTYPE.INT,    "LongType" -> DTYPE.LONG,
+  val id2field = Map(DTYPE.INT -> IntegerType,   DTYPE.LONG -> LongType,
+                     DTYPE.FLOAT -> FloatType,   DTYPE.DOUBLE -> DoubleType,
+                     DTYPE.STRING -> StringType, DTYPE.BOOL -> BooleanType)
+
+  val string2id = Map("IntegerType" -> DTYPE.INT,    "LongType" -> DTYPE.LONG,
                    "FloatType"   -> DTYPE.FLOAT,  "DoubleType" -> DTYPE.DOUBLE,
                    "StringType"  -> DTYPE.STRING, "BooleanType" -> DTYPE.BOOL)
 
@@ -66,7 +69,26 @@ object TMAPPER {
   }
 }
 
+object converter {
+  def cast(v: String, to_type: Short): Any = {
+    return to_type match {
+      case DTYPE.INT => v.toInt
+      case DTYPE.LONG => v.toLong
+      case DTYPE.FLOAT => v.toFloat
+      case DTYPE.DOUBLE => v.toDouble
+      case DTYPE.BOOL => v.toBoolean
+      case DTYPE.STRING => v
+      case _ => throw new IllegalArgumentException("Unsupported type: " + TMAPPER.id2string(to_type))
+    }
+  }
+}
+
 object DFConverter {
+  def toDF(row: Array[Row], schema: StructType): DataFrame = {
+    val spark = SparkSession.builder.getOrCreate()
+    val ctxt = SparkContext.getOrCreate()
+    return spark.createDataFrame(ctxt.parallelize(row), schema)
+  }
   def setEachIntPartition(nid: Int, 
                           wnode: Node,
                           dptr: Long): Iterator[Int] = {
@@ -210,7 +232,7 @@ class FrovedisDataFrame extends java.io.Serializable {
     for (i <- 0 to (size-1)) {
       //print("col_name: " + cols(i) + " col_type: " + tt(i) + "\n")
       val tname = tt(i)
-      types(i) = TMAPPER.val2id(tname)
+      types(i) = TMAPPER.string2id(tname)
       dvecs(i) = TMAPPER.toTypedDvector(df,tname,i)
     }
     val fs = FrovedisServer.getServerInstance()
@@ -270,36 +292,48 @@ class FrovedisDataFrame extends java.io.Serializable {
     return select(all)
   } // TODO: Support of expression like [df.select($"colA", $"colB" + 1)]
 
-  // --- Frovedis server side SORT definition here ---
-  // Usage: df.sort(Array("colA", "colB"), true) // for descending sorting
-  // Usage: df.sort(Array("colA", "colB"))       // for ascending sorting
-  def sort(targets: Array[String], isDesc: Boolean = false): FrovedisDataFrame = {
-    if(fdata == -1) throw new IllegalArgumentException("Invalid Frovedis dataframe!")
+  private def sort_impl(targets: Array[String], 
+                        isDescArr: Array[Int]): FrovedisDataFrame = {
     val size = targets.size
     for (i <- 0 to (size-1)) 
       if(!hasColumn(targets(i))) 
         throw new IllegalArgumentException("No column named: " + targets(i)) 
     val fs = FrovedisServer.getServerInstance()
-    val proxy = JNISupport.sortFrovedisDataframe(fs.master_node,get(),targets,size,isDesc)
+    val proxy = JNISupport.sortFrovedisDataframe(fs.master_node,get(),
+                                                 targets,isDescArr,size)
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
     return new FrovedisDataFrame(proxy,cols,types)
   }
-  // Usage: df.sort("colA") 
-  // Usage: df.sort("colA", "colB") // ... any number of strings
-  def sort(must: String, optional: String*): FrovedisDataFrame = {
-    val all = (Array(must) ++ optional).toArray.map(x => x.toString)
-    return sort(all)
-  }
-  // Usage: df.sort($$"colA", $$"colB") // ... any number of cols in $$"name" form
   def sort(c: FrovedisColumn*): FrovedisDataFrame = {
-    val all = c.toArray.map(x => x.toString)
-    return sort(all)
-  } // TODO: Support column-wise asc/desc sorting [e.g., df.select($"colA".asc, $"colB".desc)]
+    if(fdata == -1) throw new IllegalArgumentException("Invalid Frovedis dataframe!")
+    val targets = c.toArray.map(x => x.toString)
+    val isDescArr = c.toArray.map(x => x.getIsDesc)
+    return sort_impl(targets, isDescArr)
+  }
+  def sort(must: FrovedisTypedColumn, 
+           optional: FrovedisTypedColumn*): FrovedisDataFrame = {
+    if(fdata == -1) throw new IllegalArgumentException("Invalid Frovedis dataframe!")
+    val c = (Array(must) ++ optional)
+    val targets = c.toArray.map(x => x.toString)
+    val isDescArr = c.toArray.map(x => x.getIsDesc)
+    return sort_impl(targets, isDescArr)
+  }
+  def sort(must: String, optional: String*): FrovedisDataFrame = {
+    val all = (Array(must) ++ optional).toArray.map(x => new FrovedisColumn(x))
+    return sort(all:_*)
+  }
+
+  def orderBy(must: String, optional: String*): 
+    FrovedisDataFrame = sort(must, optional : _*)
+  def orderBy(c: FrovedisColumn*): FrovedisDataFrame = sort(c : _*)
+  def orderBy(must: FrovedisTypedColumn, 
+              optional: FrovedisTypedColumn*): 
+    FrovedisDataFrame = sort(must, optional : _*)
 
   // --- Frovedis server side GROUP_BY definition here ---
   // Usage: df.groupBy(Array("colA", "colB")) 
-  def groupBy(targets: Array[String]): FrovedisDataFrame = {
+  def groupBy(targets: Array[String]): FrovedisGroupedDF = {
     if(fdata == -1) throw new IllegalArgumentException("Invalid Frovedis dataframe!")
     val size = targets.size
     val tt = getColumnTypes(targets) // throws exception, if colname not found
@@ -307,18 +341,28 @@ class FrovedisDataFrame extends java.io.Serializable {
     val proxy = JNISupport.groupFrovedisDataframe(fs.master_node,get(),targets,size)
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
-    return new FrovedisDataFrame(proxy,targets,tt)
+    return new FrovedisGroupedDF(proxy,cols,types,targets,tt)
   }
   // Usage: df.groupBy("colA") 
   // Usage: df.groupBy("colA", "colB") // ... any number of strings
-  def groupBy(must: String, optional: String*): FrovedisDataFrame = {
+  def groupBy(must: String, optional: String*): FrovedisGroupedDF = {
     val all = (Array(must) ++ optional).toArray.map(x => x.toString)
     return groupBy(all)
   }
   // Usage: df.groupBy($$"colA", $$"colB") // ... any number of cols in $$"name" form
-  def groupBy(c: FrovedisColumn*): FrovedisDataFrame = {
+  def groupBy(c: FrovedisColumn*): FrovedisGroupedDF = {
     val all = c.toArray.map(x => x.toString)
     return groupBy(all)
+  }
+
+  private def getFrovedisJoinType(join_type: String): String = {
+    // mapping of join type, spark-> "frovedis"
+    val joinTypeMap = Map("inner" -> "inner",  
+                          "left" -> "outer", 
+                          "leftouter" -> "outer")
+    if(!joinTypeMap.contains(join_type)) 
+      throw new IllegalArgumentException("Unsupported join type: " + join_type)
+    return joinTypeMap(join_type)
   }
 
   // --- Frovedis server side JOIN definition here ---
@@ -330,8 +374,9 @@ class FrovedisDataFrame extends java.io.Serializable {
            join_type: String, join_algo: String): FrovedisDataFrame = {
     if(fdata == -1) throw new IllegalArgumentException("Invalid Frovedis dataframe!")
     val fs = FrovedisServer.getServerInstance()
+    val frov_join_type = getFrovedisJoinType(join_type)
     val proxy = JNISupport.joinFrovedisDataframes(fs.master_node,
-                this.get(),df.get(),opt.get(),join_type,join_algo)
+                this.get(),df.get(),opt.get(),frov_join_type,join_algo)
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
     // TODO: remove redundant names
@@ -352,6 +397,8 @@ class FrovedisDataFrame extends java.io.Serializable {
            join_type: String, join_algo: String): FrovedisDataFrame = {
     // converting key to DFOperator
     //exp.display() // debug
+    //TODO: exception for multi-column join
+    //TODO: exception for anything other than equi-join
     val t_cols = this.cols ++ df.cols
     val t_types = this.types ++ df.types
     val opt = new DFOperator(exp,t_cols,t_types) 
@@ -501,7 +548,7 @@ class FrovedisDataFrame extends java.io.Serializable {
   private def get_types(): Array[String] = {
     val size = types.size
     var ret = new Array[String](size)
-    for (i <- 0 to (size-1)) ret(i) = TMAPPER.id2val(types(i))
+    for (i <- 0 to (size-1)) ret(i) = TMAPPER.id2string(types(i))
     return ret
   }
 
@@ -646,6 +693,37 @@ class FrovedisDataFrame extends java.io.Serializable {
   def std(cname: String*): Array[String] = {
     val all = cname.toArray.map(x => x.toString)
     return std(all)
+  }
+  def agg(targets: Array[FrovedisAggr]): DataFrame = {
+    if(fdata == -1) throw new IllegalArgumentException("Invalid Frovedis dataframe!")
+    val size = targets.length
+    val res = new Array[Any](size)
+    val field = new Array[StructField](size)
+      for (i <- 0 to (size-1)) {
+        val cname = targets(i).col_name
+        val func = targets(i).func_name
+        require(hasColumn(cname), "No column named: " + cname)
+        var asnm = targets(i).asCol_name
+        if (asnm == null) asnm = func + "(" + cname + ")"
+        var ret_type = TMAPPER.func2id(func)
+        if(ret_type == DTYPE.NONE) ret_type = getColumnType(cname)
+        res(i) = func match {
+          case "max" => converter.cast(max(cname)(0), ret_type)
+          case "min" => converter.cast(min(cname)(0), ret_type)
+          case "avg" => converter.cast(avg(cname)(0), ret_type)
+          case "sum" => converter.cast(sum(cname)(0), ret_type)
+          case "std" => converter.cast(std(cname)(0), ret_type)
+          case "count" => converter.cast(count(cname)(0), ret_type)
+      }
+      field(i) = StructField(asnm, TMAPPER.id2field(ret_type), true)      
+    }
+    val row = Row.fromSeq(res.toSeq)
+    val schema = StructType(field)
+    return DFConverter.toDF(Array(row), schema)
+  }
+  def agg(x: FrovedisAggr, y: FrovedisAggr*): DataFrame = {
+    val arr = (Array(x) ++ y).toArray
+    return agg(arr)
   }
   def get_numeric_dtypes(): Array[(Short,String)] = {
     val size = types.length
