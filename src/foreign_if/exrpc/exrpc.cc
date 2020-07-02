@@ -19,6 +19,9 @@
 
 namespace frovedis {
 
+static int watch_sockfd;
+static int is_rank0 = 0;
+
 void mywrite(int fd, const char* write_data, size_t to_write) {
   while(to_write > 0) {
     ssize_t write_count = ::write(fd, write_data, to_write);
@@ -47,17 +50,103 @@ void myread(int fd, char* read_data, size_t to_read) {
   }
 }
 
-int send_exrpcreq(exrpc_type type, exrpc_node& n, const std::string& funcname,
-                  const std::string& serialized_arg) {
-  exrpc_header hdr;
-  hdr.type = type;
-  hdr.funcname = funcname;
-  hdr.arg_count = serialized_arg.size();
-  
+int handle_exrpc_listen(int& port) {
+  int sockfd;
+  struct sockaddr_in reader_addr; 
+
+  if((sockfd = socket(PF_INET, SOCK_STREAM, 0)) < 0) {
+    throw std::runtime_error
+      (std::string("handle_exrpc_listen: error in creating socket: ") +
+       strerror(errno));
+  }
+  int yes = 1;
+  setsockopt(sockfd,
+             SOL_SOCKET, SO_REUSEADDR, (const char *)&yes, sizeof(yes));
+  bzero(&reader_addr, sizeof(reader_addr));
+  reader_addr.sin_family = PF_INET;
+  reader_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+  reader_addr.sin_port = htons(port); // allow to be zero
+  if(::bind(sockfd, (struct sockaddr *)&reader_addr,
+            sizeof(reader_addr)) < 0) {
+    throw std::runtime_error
+      (std::string("handle_exrpc_listen: error in bind: ") + strerror(errno));
+  }
+  if(port == 0) {
+    bzero(&reader_addr, sizeof(reader_addr));
+    socklen_t reader_len = sizeof(reader_addr);
+    if(::getsockname(sockfd, (struct sockaddr *)&reader_addr,
+                     &reader_len) < 0) {
+      throw std::runtime_error
+        (std::string("handle_exrpc_listen: error in getsockname: ") +
+         strerror(errno));
+    }
+    port = ntohs(reader_addr.sin_port); // ephemeral port
+  }
+  if(listen(sockfd, 128) < 0) {
+    ::close(sockfd);
+    throw std::runtime_error
+      (std::string("handle_exrpc_listen: error in listen: ") +
+       strerror(errno));
+  }
+  return sockfd;
+}
+
+bool handle_exrpc_accept(int sockfd, int timeout, int& new_sockfd) {
+  struct sockaddr_in writer_addr;
+  socklen_t writer_len = sizeof(writer_addr);
+  if(is_rank0 == false) {
+    if(timeout != 0) {
+      fd_set rfds;
+      FD_ZERO(&rfds);
+      FD_SET(sockfd, &rfds);
+      struct timeval tv;
+      tv.tv_sec = timeout;
+      tv.tv_usec = 0;
+      int retval = select(sockfd+1, &rfds, NULL, NULL, &tv);
+      if(retval == -1)
+        throw std::runtime_error
+          (std::string("handle_exrpc_accept: error in select: ") +
+           strerror(errno));
+      else if(retval == 0) return false; // timeout
+    } 
+  } else { // is_rank0 == true; check connection to client
+    fd_set rfds;
+    FD_ZERO(&rfds);
+    FD_SET(sockfd, &rfds);
+    FD_SET(watch_sockfd, &rfds);
+    int maxfd = std::max(sockfd, watch_sockfd);
+    int retval;
+    if(timeout == 0) {
+      retval = select(maxfd+1, &rfds, NULL, NULL, NULL);
+    } else {
+      struct timeval tv;
+      tv.tv_sec = timeout;
+      tv.tv_usec = 0;
+      retval = select(maxfd+1, &rfds, NULL, NULL, &tv);
+    }
+    if(retval == -1)
+      throw std::runtime_error
+        (std::string("handle_exrpc_accept: error in select: ") +
+         strerror(errno));
+    else if(retval == 0) return false; // timeout
+    else if(FD_ISSET(watch_sockfd, &rfds)) {
+      return false; // connection to client is closed
+    }
+  }
+  if((new_sockfd = ::accept(sockfd, (struct sockaddr *)&writer_addr,
+                            &writer_len)) < 0) {
+    ::close(sockfd);
+    throw std::runtime_error
+      (std::string("handle_exrpc_accept: error in accept: ") + strerror(errno));
+  }
+  return true;
+}
+
+int handle_exrpc_connect(const std::string& hostname, int rpcport) {
   int sockfd = ::socket(AF_INET, SOCK_STREAM, 0);
   if(sockfd < 0) {
     throw std::runtime_error(
-      std::string("send_exrpcreq: error in creating socket: ") +
+      std::string("handle_exrpc_connect: error in creating socket: ") +
       strerror(errno));
   }
   struct addrinfo hints, *res;
@@ -66,12 +155,13 @@ int send_exrpcreq(exrpc_type type, exrpc_node& n, const std::string& funcname,
   hints.ai_flags = AI_NUMERICSERV;
   hints.ai_socktype = SOCK_STREAM;
   hints.ai_family = AF_INET;
-  auto portstr = boost::lexical_cast<std::string>(n.rpcport);
-  if ((err = getaddrinfo(n.hostname.c_str(), portstr.c_str(), &hints, &res))
+  auto portstr = boost::lexical_cast<std::string>(rpcport);
+  if ((err = getaddrinfo(hostname.c_str(), portstr.c_str(), &hints, &res))
       != 0) {
     throw
-      std::runtime_error(std::string("send_exrpcreq: error in getaddrinfo: ") +
-                         gai_strerror(err));
+      std::runtime_error
+      (std::string("handle_exrpc_connect: error in getaddrinfo: ") +
+       gai_strerror(err));
   }
   bool connected = false;
   for (; res != NULL; res = res->ai_next) {
@@ -85,18 +175,32 @@ int send_exrpcreq(exrpc_type type, exrpc_node& n, const std::string& funcname,
   freeaddrinfo(res);
   if(!connected) {
     throw std::runtime_error
-      (std::string("send_exrpcreq: error in connect: ") + strerror(errno));
+      (std::string("handle_exrpc_connect: error in connect: ") +
+       strerror(errno));
   }
+  int one = 1;
+  if(setsockopt(sockfd, SOL_TCP, TCP_NODELAY, &one, sizeof(one)) != 0) {
+    throw std::runtime_error
+      (std::string("handle_exrpc_connect: error in setsockopt: ") +
+       strerror(errno));
+  }
+  return sockfd;
+}
+
+int send_exrpcreq(exrpc_type type, exrpc_node& n, const std::string& funcname,
+                  const std::string& serialized_arg) {
+  int sockfd = handle_exrpc_connect(n.hostname, n.rpcport);
+  exrpc_header hdr;
+  hdr.type = type;
+  hdr.funcname = funcname;
+  hdr.arg_count = serialized_arg.size();
+  
   my_portable_ostream result;
   my_portable_oarchive outar(result);
   outar & hdr;
   PORTABLE_OSTREAM_TO_STRING(result, serialized_hdr);
   uint32_t hdr_size = serialized_hdr.size();
   uint32_t hdr_size_nw = htonl(hdr_size);
-#ifndef _SX
-  int one = 1;
-  setsockopt(sockfd, SOL_TCP, TCP_NODELAY, &one, sizeof(one));
-#endif
   mywrite(sockfd, reinterpret_cast<char*>(&hdr_size_nw), sizeof(hdr_size_nw));
   mywrite(sockfd, serialized_hdr.c_str(), hdr_size);
   mywrite(sockfd, serialized_arg.c_str(), serialized_arg.size());
@@ -109,46 +213,6 @@ void send_exrpc_finish(exrpc_node& n) {
   ::close(sockfd);
 }
 
-int handle_exrpc_prepare(int& port) {
-  int sockfd;
-  struct sockaddr_in reader_addr; 
-
-  if((sockfd = socket(PF_INET, SOCK_STREAM, 0)) < 0) {
-    throw std::runtime_error
-      (std::string("handle_exrpc_req: error in creating socket: ") +
-       strerror(errno));
-  }
-  int yes = 1;
-  setsockopt(sockfd,
-             SOL_SOCKET, SO_REUSEADDR, (const char *)&yes, sizeof(yes));
-  bzero(&reader_addr, sizeof(reader_addr));
-  reader_addr.sin_family = PF_INET;
-  reader_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-  reader_addr.sin_port = htons(port); // allow to be zero
-  if(::bind(sockfd, (struct sockaddr *)&reader_addr,
-            sizeof(reader_addr)) < 0) {
-    throw std::runtime_error(std::string("handle_exrpc_req: error in bind: ") +
-                             strerror(errno));
-  }
-  if(port == 0) {
-    bzero(&reader_addr, sizeof(reader_addr));
-    socklen_t reader_len = sizeof(reader_addr);
-    if(::getsockname(sockfd, (struct sockaddr *)&reader_addr,
-                     &reader_len) < 0) {
-      throw std::runtime_error
-        (std::string("handle_exrpc_req: error in getsockname: ") +
-         strerror(errno));
-    }
-    port = ntohs(reader_addr.sin_port); // ephemeral port
-  }
-  if(listen(sockfd, 128) < 0) {
-    ::close(sockfd);
-    throw std::runtime_error
-      (std::string("handle_exrpc_req: error in listen: ") + strerror(errno));
-  }
-  return sockfd;
-}
-
 void inform_no_exposed_function(int fd, const std::string& funcname) {
   std::string what = std::string("not exposed function is called: ") + funcname;
   char exception_caught = true;
@@ -158,33 +222,9 @@ void inform_no_exposed_function(int fd, const std::string& funcname) {
   mywrite(fd, reinterpret_cast<char*>(&send_data_size_nw),
           sizeof(send_data_size_nw));
   mywrite(fd, what.c_str(), send_data_size);
-  ::close(fd);
 }
 
-bool handle_exrpc_onereq(int sockfd, int timeout) {
-  int new_sockfd;
-  struct sockaddr_in writer_addr;
-  socklen_t writer_len = sizeof(writer_addr);
-  if(timeout != 0) {
-    fd_set rfds;
-    FD_ZERO(&rfds);
-    FD_SET(sockfd, &rfds);
-    struct timeval tv;
-    tv.tv_sec = timeout;
-    tv.tv_usec = 0;
-    int retval = select(sockfd+1, &rfds, NULL, NULL, &tv);
-    if(retval == -1)
-      throw std::runtime_error
-        (std::string("handle_exrpc_onreq: error in select: ") +
-         strerror(errno));
-    else if(retval == 0) return false; // timeout
-  }
-  if((new_sockfd = ::accept(sockfd, (struct sockaddr *)&writer_addr,
-                            &writer_len)) < 0) {
-    ::close(sockfd);
-    throw std::runtime_error
-      (std::string("handle_exrpc_req: error in accept: ") + strerror(errno));
-  }
+bool handle_exrpc_process(int new_sockfd) {
   uint32_t hdr_size_nw;
   myread(new_sockfd, reinterpret_cast<char*>(&hdr_size_nw),
          sizeof(hdr_size_nw));
@@ -232,7 +272,6 @@ bool handle_exrpc_onereq(int sockfd, int timeout) {
       mywrite(new_sockfd, reinterpret_cast<char*>(&send_data_size_nw),
               sizeof(send_data_size_nw));
       mywrite(new_sockfd, resultstr.c_str(), resultstr.size());
-      ::close(new_sockfd);
       return true;
     }
   } else if(hdr.type == exrpc_type::exrpc_oneway_type) {
@@ -263,7 +302,6 @@ bool handle_exrpc_onereq(int sockfd, int timeout) {
                 sizeof(send_data_size_nw));
         mywrite(new_sockfd, resultstr.c_str(), resultstr.size());
       }
-      ::close(new_sockfd);
       return true;
     }
   } else if(hdr.type == exrpc_type::exrpc_oneway_noexcept_type) {
@@ -278,31 +316,36 @@ bool handle_exrpc_onereq(int sockfd, int timeout) {
       my_portable_ostream result;
       my_portable_oarchive outar(result);
       wpt(expose_table[funcname].second, inar);
-      ::close(new_sockfd);
       return true;
     }
   } else {
-    ::close(new_sockfd);
     return false;
   }
 }
 
-void handle_exrpc_req(int port) {
-  int sockfd = handle_exrpc_prepare(port);
-  while(handle_exrpc_onereq(sockfd));
-  ::close(sockfd);
+bool handle_exrpc_onereq(int sockfd, int timeout) {
+  int new_sockfd;
+  auto r = handle_exrpc_accept(sockfd, timeout, new_sockfd);
+  if(r) {
+    r = handle_exrpc_process(new_sockfd);
+    ::close(new_sockfd);
+  }
+  return r;
 }
 
-static exrpc_node server_node;
-
-void set_server_node(exrpc_node& n) {
-  server_node = n;
+std::string get_server_name() {
+  char server_hostname[1024];
+  if(gethostname(server_hostname, 1024) == -1) {
+    throw std::runtime_error
+      (std::string("get_server_name: error in gethostname: ") +
+       + strerror(errno));
+  }
+  return std::string(server_hostname);
 }
 
 exrpc_node invoke_frovedis_server(const std::string& command) {
-  expose(set_server_node);
   int port = 0;
-  int sockfd = handle_exrpc_prepare(port);
+  int sockfd = handle_exrpc_listen(port);
   char hostname[1024];
   if(gethostname(hostname, 1024) == -1) {
     throw std::runtime_error
@@ -338,9 +381,24 @@ exrpc_node invoke_frovedis_server(const std::string& command) {
       (std::string("invoke_frovedis_server: error in system: ") +
        + strerror(errno));
   }
-  bool is_ok = handle_exrpc_onereq(sockfd, 5);
+  int new_sockfd;
+  bool is_ok = handle_exrpc_accept(sockfd, 5, new_sockfd);
   ::close(sockfd);
-  if(is_ok) return server_node;
+  if(is_ok) {
+    int port;
+    size_t server_name_size;
+    std::string server_name;
+    myread(new_sockfd, (char*)&port, sizeof(port));
+    myread(new_sockfd, (char*)&server_name_size, sizeof(server_name_size));
+    server_name.resize(server_name_size);
+    char* server_namep = const_cast<char*>(server_name.c_str());
+    myread(new_sockfd, server_namep, server_name_size);
+    exrpc_node server_node;
+    server_node.hostname = server_name;
+    server_node.rpcport = port;
+    return server_node;
+    // new_sockfd is left untouched; will send RST when client aborts
+  }
   else throw std::runtime_error(std::string("invoke_frovedis_server: timeout (check server invocation command and if the hostname is in /etc/hosts or DNS)"));
 }
 
@@ -395,38 +453,25 @@ void init_frovedis_server(int argc, char* argv[]) {
     exit(1);
   }
 #endif
-
-  exrpc_node client(client_hostname, client_port);
+  int accept_sockfd;
   int port = 0;
-  int sockfd = handle_exrpc_prepare(port);
-  char server_hostname[1024];
-  if(gethostname(server_hostname, 1024) == -1) {
-    throw std::runtime_error
-      (std::string("init_frovedis_server: error in gethostname: ") +
-       + strerror(errno));
+  try {
+    // watch_sockfd is static variable
+    watch_sockfd = handle_exrpc_connect(client_hostname, client_port);
+    is_rank0 = true;
+    accept_sockfd = handle_exrpc_listen(port);
+    auto server_name = get_server_name();
+    auto server_name_size = server_name.size();
+    mywrite(watch_sockfd, (char*)&port, sizeof(port));
+    mywrite(watch_sockfd, (char*)&server_name_size, sizeof(server_name_size));
+    mywrite(watch_sockfd, server_name.c_str(), server_name_size);
+  } catch (std::exception& e) {
+    std::cerr << "error connection from server to client: "
+              << e.what() << std::endl;
+    exit(1);
   }
-#ifdef USE_IP_EXRPC
-  struct addrinfo hints, *res;
-  struct in_addr addr;
-  int err;
-  bzero(&hints, sizeof(hints));
-  hints.ai_flags = AI_NUMERICSERV;
-  hints.ai_socktype = SOCK_STREAM;
-  hints.ai_family = AF_INET;
-  if((err = getaddrinfo(server_hostname, NULL, &hints, &res)) != 0) {
-    throw
-      std::runtime_error(std::string("init_frovedis_server: error in getaddrinfo: ") +
-                         gai_strerror(err));
-  }
-  addr.s_addr = ((struct sockaddr_in *)(res->ai_addr))->sin_addr.s_addr;
-  exrpc_node server(std::string(inet_ntoa(addr)), port);
-  freeaddrinfo(res);
-#else
-  exrpc_node server(std::string(server_hostname), port);
-#endif
-  exrpc_oneway(client, set_server_node, server);
-  while(handle_exrpc_onereq(sockfd));
-  ::close(sockfd);
+  while(handle_exrpc_onereq(accept_sockfd, 0));
+  ::close(accept_sockfd);
 }
 
 void finalize_frovedis_server(exrpc_node& n){
@@ -435,7 +480,7 @@ void finalize_frovedis_server(exrpc_node& n){
 
 void prepare_parallel_exrpc_worker(exrpc_info& i) {
   int port = 0;
-  i.sockfd = handle_exrpc_prepare(port);
+  i.sockfd = handle_exrpc_listen(port);
   char hostname[1024];
   if(gethostname(hostname, 1024) == -1) {
     throw std::runtime_error

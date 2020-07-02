@@ -102,9 +102,11 @@ void mywrite(int fd, const char* write_data, size_t to_write);
 void myread(int fd, char* read_data, size_t to_read);
 void send_exrpc_finish(exrpc_node&);
 
-int handle_exrpc_prepare(int& port);
+int handle_exrpc_listen(int& port);
+bool handle_exrpc_accept(int sockfd, int timeout, int& new_sockfd);
+int handle_exrpc_connect(const std::string& hostname, int rpcport);
+bool handle_exrpc_process(int new_sockfd);
 bool handle_exrpc_onereq(int sockfd, int timeout = 0);
-void handle_exrpc_req(int port);
 
 exrpc_node invoke_frovedis_server(const std::string& command);
 void init_frovedis_server(int argc, char* argv[]);
