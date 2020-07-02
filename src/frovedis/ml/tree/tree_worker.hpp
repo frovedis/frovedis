@@ -743,8 +743,8 @@ inline sliced_colmajor_matrix_local<T> make_sliced_colmajor_matrix_local(
   sliced_colmajor_matrix_local<T> ret;
   ret.data = const_cast<T*>(ptr) + start_row + start_col * leading_dim;
   ret.ldm = leading_dim;
-  ret.sliced_num_row = num_rows;
-  ret.sliced_num_col = num_cols;
+  ret.local_num_row = num_rows;
+  ret.local_num_col = num_cols;
   return ret;
 }
 
@@ -798,9 +798,9 @@ inline void gemm_txsy(
   tree_assert(slice_width <= y.local_num_row - slice_start);
   tree_assert(num_xcols > 0);
   tree_assert(num_ycols > 0);
-  tree_assert(num_xcols == sz.sliced_num_row);
-  tree_assert(num_ycols == sz.sliced_num_col);
-  tree_assert(zlead == sz.sliced_num_row);
+  tree_assert(num_xcols == sz.local_num_row);
+  tree_assert(num_ycols == sz.local_num_col);
+  tree_assert(zlead == sz.local_num_row);
 
   const T* xp = x.val.data();
   const T* yp = y.val.data() + slice_start;
@@ -833,9 +833,9 @@ inline void gemm_txsy(
   const auto sy = make_sliced_colmajor_matrix_local(
     y, slice_start, 0, slice_width, y.local_num_col
   );
-  tree_assert(sx.sliced_num_row == sy.sliced_num_row);
-  tree_assert(sx.sliced_num_col == sz.sliced_num_row);
-  tree_assert(sy.sliced_num_col == sz.sliced_num_col);
+  tree_assert(sx.local_num_row == sy.local_num_row);
+  tree_assert(sx.local_num_col == sz.local_num_row);
+  tree_assert(sy.local_num_col == sz.local_num_col);
   gemm<T>(sx, sy, sz, 'T', 'N', 1, 1);
 }
 
@@ -1017,9 +1017,9 @@ inline void gem1v_txsv(
   tree_assert(slice_start < v.local_num_row);
   tree_assert(slice_width <= v.local_num_row - slice_start);
   tree_assert(num_xcols > 0);
-  tree_assert(sz.sliced_num_row == num_xcols);
-  tree_assert(sz.sliced_num_col == 2);
-  tree_assert(sz.ldm == sz.sliced_num_row);
+  tree_assert(sz.local_num_row == num_xcols);
+  tree_assert(sz.local_num_col == 2);
+  tree_assert(sz.ldm == sz.local_num_row);
 
   const T* xp = x.val.data();
   const T* vp = v.val.data() + slice_start;
@@ -1083,9 +1083,9 @@ inline void gem1vv2_txsv(
   tree_assert(slice_start < v.local_num_row);
   tree_assert(slice_width <= v.local_num_row - slice_start);
   tree_assert(num_xcols > 0);
-  tree_assert(sz.sliced_num_row == num_xcols);
-  tree_assert(sz.sliced_num_col == 3);
-  tree_assert(sz.ldm == sz.sliced_num_row);
+  tree_assert(sz.local_num_row == num_xcols);
+  tree_assert(sz.local_num_col == 3);
+  tree_assert(sz.ldm == sz.local_num_row);
 
   const T* xp = x.val.data();
   const T* vp = v.val.data() + slice_start;
