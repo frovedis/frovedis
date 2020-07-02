@@ -12,6 +12,7 @@ struct load_text_helper {
     path(path), delim(delim) {}
   void operator()(vector<int>& ret, vector<size_t>& sep, vector<size_t>& len) {
     MPI_File fh;
+    time_spent t(DEBUG);
     int r = MPI_File_open(frovedis_comm_rpc, const_cast<char*>(path.c_str()),
                           MPI_MODE_RDONLY, MPI_INFO_NULL, &fh);
     if(r != 0) throw runtime_error("error in MPI_File_open");
@@ -57,6 +58,7 @@ struct load_text_helper {
       else to_read = 0;
     }
     MPI_File_close(&fh);
+    t.show("load_text: MPI_File_read_all time: ");
     auto intstring = char_to_int(buf);
     {string tmp; tmp.swap(buf);} // deallocate buf
     auto delimstart = find(intstring, delim);
@@ -205,6 +207,7 @@ struct load_text_helper {
         }
       }
     }
+    t.show("load_text: find delimiter and align time: ");
   }
   string path;
   string delim;
