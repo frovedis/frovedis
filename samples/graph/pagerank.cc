@@ -1,43 +1,11 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
-
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
-
-/* 
- * File:   main.cpp
- * Author: haoran
- *
- * Created on October 2, 2017, 9:09 AM
- */
-
-#include <cstdlib>
-#include <boost/program_options/options_description.hpp>
 #include <frovedis.hpp>
-#include <frovedis/matrix/crs_matrix.hpp>
-#include <vector>
-#include <iostream>
-#include <fstream>
-#include <string>
-#include <sstream>      // std::istringstream
-#include <unordered_map>
-#include <ctime>// record time 
-#include <cmath>
-#include <numeric>
-#include <frovedis/ml/graph/graph.hpp>
-// #include <frovedis/ml/graph/graph.cpp>
+#include <frovedis/ml/graph/opt_graph.hpp>
+
 #include <boost/program_options.hpp>
 
 using namespace boost;
 using namespace frovedis;
 using namespace std;
-
 
 int main(int argc, char* argv[]){
     frovedis::use_frovedis use(argc, argv);
@@ -46,126 +14,98 @@ int main(int argc, char* argv[]){
     
     options_description opt("option");
     opt.add_options()
-      ("help,h", "produce help message")
-      ("input,i" , value<std::string>(), "input data path")
-      ("output,o" , value<std::string>(), "output data path")
-      ("binary,b" , "use binary matrix file" ) 
-      ("dfactor,d", value<double>(), "damping factor (default: 0.15)")
-      ("epsilon,e", value<double>(), "convergence threshold (default: 1E-4)")
-      ("iter_max,t", value<size_t>(), "maximum iterations (default: 100)")
-      ("prepare,p" , "output CRS matrix from mtx file (do not execute pagerank): each line contains src_node dst_node")
-      ("method,m" , value<std::string>(), "method (pagerank_v1, pagerank_v1_shrink, pagerank_v2, pagerank_v2_shrink (only affect performance. default: pagerank_v1)")
-      ("matformat,f" , value<std::string>(), "matrix format (default: spMV: CRS(X86) HYB(SX)")
-      ("verbose,v", "show execution time")
-      ("verbose2", "show various information");
-    
+        ("help,h", "produce help message")
+        ("input,i" , value<std::string>(), "input data path containing either edgelist or adjacency matrix data") 
+        ("dtype,t" , value<std::string>(), "input data type (int, float or double) [default: int]") 
+        ("output,o" , value<std::string>(), "output data path to save ranking scores")
+        ("dfactor,d", value<double>(), "damping factor (default: 0.15)") 
+        ("epsilon,e", value<double>(), "convergence threshold (default: 1E-4)")
+        ("niter_max,n", value<size_t>(), "maximum no. of iterations (default: 100)") 
+        ("prepare,p" , "whether to generate the CRS matrix from original edgelist file ");
+                
     variables_map argmap;
     store(command_line_parser(argc,argv).options(opt).allow_unregistered().
           run(), argmap);
     notify(argmap);                
-
+                
     bool if_prep = 0; // true if prepare data from raw dataset
-    bool if_binary = 0; 
-
+    std::string data_p, out_p, dtype = "int";
     size_t iter_max = 100;
-    double epsilon = 1e-4; //default convergence threshold
+    double epsilon = 1e-4; 
     double df = 0.15;
-    
-    std::string data_p;
-    std::string output_p;
-    std::string method_name = "pagerank_v1";
-    std::string matformat;
-// #ifndef _SX
-#if !defined(_SX) && !defined(__ve__)
-    matformat = "CRS";
-#else
-    matformat = "HYB";
-#endif
-    bool if_verbose = 0;
-    bool if_verbose2 = 0;
-    
-//////////////////////////   command options   ///////////////////////////
-    if(argmap.count("help")){
-        std::cerr << opt << std::endl;
-        exit(1);
-    }
 
+    //////////////////////////   command options   ///////////////////////////
+
+    if(argmap.count("help")){
+      std::cerr << opt << std::endl;
+      exit(1);
+    }
     if(argmap.count("input")){
       data_p = argmap["input"].as<std::string>();
     } else {
-      std::cerr << "input is not specified" << std::endl;
+      std::cerr << "input path is not specified" << std::endl;
       std::cerr << opt << std::endl;
       exit(1);
+    }    
+    if(argmap.count("dtype")){
+      data_p = argmap["dtype"].as<std::string>();
     }    
     if(argmap.count("output")){
-      output_p = argmap["output"].as<std::string>();
+      out_p = argmap["output"].as<std::string>();
     } else {
-      std::cerr << "output is not specified" << std::endl;
+      std::cerr << "output path is not specified" << std::endl;
       std::cerr << opt << std::endl;
       exit(1);
     }    
-    if(argmap.count("binary")){
-        if_binary = true;
-    }
     if(argmap.count("prepare")){
-        if_prep = true;
-    } 
-    if(argmap.count("method")){
-        method_name = argmap["method"].as<std::string>();
+      if_prep = true;
     }
-    if(argmap.count("matformat")){
-       matformat = argmap["matformat"].as<std::string>();
-    }    
     if(argmap.count("dfactor")){
        df = argmap["dfactor"].as<double>();
-    }  
+    }
     if(argmap.count("epsilon")){
        epsilon = argmap["epsilon"].as<double>();
-    } 
+    }
     if(argmap.count("iter_max")){
        iter_max = argmap["iter_max"].as<size_t>();
-    }        
-    if(argmap.count("verbose")){
-        if_verbose = true;
     }
-    if(argmap.count("verbose2")){
-        if_verbose2 = true;
-    }
-/////////////////////////////////////////////////////////////////
-
-    if(if_verbose2) set_loglevel(TIME_RECORD_LOG_LEVEL);
-  
-    graph* CCptr = new graph();      
+    /////////////////////////////////////////////////////////////////
     
-    if(if_prep == true){
-        CCptr->prep_graph_crs_pagerank(data_p, output_p);
-        return 0;
+    if (dtype == "int") {
+      graph<int> gr;
+      if(if_prep) gr = read_edgelist<int>(data_p);
+      else {
+        auto mat = make_crs_matrix_load<int>(data_p);
+        gr = graph<int>(mat);
+      }
+      auto res = gr.pagerank(df, epsilon, iter_max);
+      make_dvector_scatter(res).saveline(out_p);
+    }      
+    else if (dtype == "float") {
+      graph<float> gr;
+      if(if_prep) gr = read_edgelist<float>(data_p);
+      else {
+        auto mat = make_crs_matrix_load<float>(data_p);
+        gr = graph<float>(mat);
+      }
+      auto res = gr.pagerank(df, epsilon, iter_max);
+      make_dvector_scatter(res).saveline(out_p);
+    }      
+    else if (dtype == "double") {
+      graph<double> gr;
+      if(if_prep) gr = read_edgelist<double>(data_p);
+      else {
+        auto mat = make_crs_matrix_load<double>(data_p);
+        gr = graph<double>(mat);
+      }
+      auto res = gr.pagerank(df, epsilon, iter_max);
+      make_dvector_scatter(res).saveline(out_p);
+    }      
+    else {
+      std::cerr << "Supported dtypes are only int, float and double!\n";
+      std::cerr << opt << std::endl;
+      exit(1);
     }
-    time_spent t;
-    CCptr->read_graph_pagerank(data_p, if_binary);
-    if(if_verbose) t.show("read: ");
-    
-    if(method_name == "pagerank_v1"){
-        CCptr->pagerank_v1(matformat, df, epsilon, iter_max);
-    }              
-    else if(method_name == "pagerank_v1_shrink"){
-        CCptr->pagerank_v1_shrink(matformat, df, epsilon, iter_max);
-    }
-    else if(method_name == "pagerank_v2"){
-        CCptr->pagerank_v2(matformat, df, epsilon, iter_max);
-    }
-    else if(method_name == "pagerank_v2_shrink"){
-        CCptr->pagerank_v2_shrink(matformat, df, epsilon, iter_max);
-    }    
-    else{
-        std::cerr<<"ERROR: Method "<<method_name<<" doesn't exist!"<<std::endl;
-        std::cerr << opt << std::endl;
-        exit(1);
-    }
-    if(if_verbose) t.show("pagerank: ");
-    if(if_binary) CCptr->savebinary_pagerank(output_p);
-    else CCptr->save_pagerank(output_p);
-    if(if_verbose) t.show("save: ");
     return 0;
 }
 
