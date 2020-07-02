@@ -119,18 +119,26 @@ void kmeans_calc_sum(jds_crs_hybrid_local<T,I,O>& mat,
   occurrence.resize(num_centroids);
   size_t* occurrencep = &occurrence[0];
   auto Tmax = std::numeric_limits<T>::max();
+  std::vector<T> minval(num_samples);
+  auto minvalp = minval.data();
   for(size_t r = 0; r < num_samples; r++) {
-    T min = Tmax;
-    int pos = INT_MAX;
-    for(size_t c = 0; c < num_centroids; c++) {
-      if(prodvalp[num_centroids * r + c] < min) {
-        min = prodvalp[num_centroids * r + c];
-        pos = c;
+    minvalp[r] = Tmax;
+    minlocp[r] = INT_MAX;
+  }
+  for(size_t c = 0; c < num_centroids; c++) {
+    for(size_t r = 0; r < num_samples; r++) {
+      if(prodvalp[num_centroids * r + c] < minvalp[r]) {
+        minvalp[r] = prodvalp[num_centroids * r + c];
+        minlocp[r] = c;
       }
     }
-    minlocp[r] = pos;
-    occurrencep[pos]++;
   }
+  for(size_t r = 0; r < num_samples; r++) {
+    if (minlocp[r] == INT_MAX)
+      REPORT_ERROR(USER_ERROR, "Please check input matrix: it seems to have invalid entry!\n");
+  }
+  // segfault might occur if not checked above case
+  for(size_t r = 0; r < num_samples; r++) occurrencep[minlocp[r]]++;
   t.show(" calc minloc: ");
   size_t dim = mat.local_num_col;
   sum.clear();
@@ -196,18 +204,26 @@ void kmeans_calc_sum(jds_matrix_local<T,I,O>& mat,
   occurrence.resize(num_centroids);
   size_t* occurrencep = &occurrence[0];
   auto Tmax = std::numeric_limits<T>::max();
+  std::vector<T> minval(num_samples);
+  auto minvalp = minval.data();
   for(size_t r = 0; r < num_samples; r++) {
-    T min = Tmax;
-    int pos = INT_MAX;
-    for(size_t c = 0; c < num_centroids; c++) {
-      if(prodvalp[num_centroids * r + c] < min) {
-        min = prodvalp[num_centroids * r + c];
-        pos = c;
+    minvalp[r] = Tmax;
+    minlocp[r] = INT_MAX;
+  }
+  for(size_t c = 0; c < num_centroids; c++) {
+    for(size_t r = 0; r < num_samples; r++) {
+      if(prodvalp[num_centroids * r + c] < minvalp[r]) {
+        minvalp[r] = prodvalp[num_centroids * r + c];
+        minlocp[r] = c;
       }
     }
-    minlocp[r] = pos;
-    occurrencep[pos]++;
   }
+  for(size_t r = 0; r < num_samples; r++) {
+    if (minlocp[r] == INT_MAX)
+      REPORT_ERROR(USER_ERROR, "Please check input matrix: it seems to have invalid entry!\n");
+  }
+  // segfault might occur if not checked above case
+  for(size_t r = 0; r < num_samples; r++) occurrencep[minlocp[r]]++;
   t.show(" calc minloc: ");
   size_t dim = mat.local_num_col;
   sum.clear();
@@ -263,18 +279,26 @@ void kmeans_calc_sum(crs_matrix_local<T,I,O>& mat,
   occurrence.resize(num_centroids);
   size_t* occurrencep = &occurrence[0];
   auto Tmax = std::numeric_limits<T>::max();
+  std::vector<T> minval(num_samples);
+  auto minvalp = minval.data();
   for(size_t r = 0; r < num_samples; r++) {
-    T min = Tmax;
-    int pos = INT_MAX;
-    for(size_t c = 0; c < num_centroids; c++) {
-      if(prodvalp[num_centroids * r + c] < min) {
-        min = prodvalp[num_centroids * r + c];
-        pos = c;
+    minvalp[r] = Tmax;
+    minlocp[r] = INT_MAX;
+  }
+  for(size_t c = 0; c < num_centroids; c++) {
+    for(size_t r = 0; r < num_samples; r++) {
+      if(prodvalp[num_centroids * r + c] < minvalp[r]) {
+        minvalp[r] = prodvalp[num_centroids * r + c];
+        minlocp[r] = c;
       }
     }
-    minlocp[r] = pos;
-    occurrencep[pos]++;
   }
+  for(size_t r = 0; r < num_samples; r++) {
+    if (minlocp[r] == INT_MAX)
+      REPORT_ERROR(USER_ERROR, "Please check input matrix: it seems to have invalid entry!\n");
+  }
+  // segfault might occur if not checked above case
+  for(size_t r = 0; r < num_samples; r++) occurrencep[minlocp[r]]++;
   t.show(" calc minloc: ");
   size_t dim = mat.local_num_col;
   sum.clear();
@@ -324,18 +348,26 @@ void kmeans_calc_sum_rowmajor(rowmajor_matrix_local<T>& mat,
   occurrence.resize(num_centroids);
   size_t* occurrencep = &occurrence[0];
   auto Tmax = std::numeric_limits<T>::max();
+  std::vector<T> minval(num_samples);
+  auto minvalp = minval.data();
   for(size_t r = 0; r < num_samples; r++) {
-    T min = Tmax;
-    int pos = INT_MAX;
-    for(size_t c = 0; c < num_centroids; c++) {
-      if(prodvalp[num_centroids * r + c] < min) {
-        min = prodvalp[num_centroids * r + c];
-        pos = c;
+    minvalp[r] = Tmax; 
+    minlocp[r] = INT_MAX; 
+  }
+  for(size_t c = 0; c < num_centroids; c++) {
+    for(size_t r = 0; r < num_samples; r++) {
+      if(prodvalp[num_centroids * r + c] < minvalp[r]) {
+        minvalp[r] = prodvalp[num_centroids * r + c];
+        minlocp[r] = c;
       }
     }
-    minlocp[r] = pos;
-    occurrencep[pos]++;
   }
+  for(size_t r = 0; r < num_samples; r++) {
+    if (minlocp[r] == INT_MAX) 
+      REPORT_ERROR(USER_ERROR, "Please check input matrix: it seems to have invalid entry!\n");
+  }
+  // segfault might occur if not checked above case
+  for(size_t r = 0; r < num_samples; r++) occurrencep[minlocp[r]]++;
   t.show(" calc minloc: ");
   size_t dim = mat.local_num_col;
   sum.clear();
@@ -575,16 +607,23 @@ std::vector<int> kmeans_assign_cluster(crs_matrix_local<T,I,O>& mat,
   }
   t.show(" norm minus product: ");
   auto Tmax = std::numeric_limits<T>::max();
+  std::vector<T> minval(num_samples);
+  auto minvalp = minval.data();
   for(size_t r = 0; r < num_samples; r++) {
-    T min = Tmax;
-    int pos = INT_MAX;
-    for(size_t c = 0; c < num_centroids; c++) {
-      if(prodvalp[num_centroids * r + c] < min) {
-        min = prodvalp[num_centroids * r + c];
-        pos = c;
+    minvalp[r] = Tmax;
+    minlocp[r] = INT_MAX;
+  }
+  for(size_t c = 0; c < num_centroids; c++) {
+    for(size_t r = 0; r < num_samples; r++) {
+      if(prodvalp[num_centroids * r + c] < minvalp[r]) {
+        minvalp[r] = prodvalp[num_centroids * r + c];
+        minlocp[r] = c;
       }
     }
-    minlocp[r] = pos;
+  }
+  for(size_t r = 0; r < num_samples; r++) {
+    if (minlocp[r] == INT_MAX)
+      REPORT_ERROR(USER_ERROR, "Please check input matrix: it seems to have invalid entry!\n");
   }
   t.show(" calc minloc: ");
   return minloc;
@@ -614,16 +653,23 @@ std::vector<int> kmeans_assign_cluster(rowmajor_matrix_local<T>& mat,
   }
   t.show(" norm minus product: ");
   auto Tmax = std::numeric_limits<T>::max();
+  std::vector<T> minval(num_samples);
+  auto minvalp = minval.data();
   for(size_t r = 0; r < num_samples; r++) {
-    T min = Tmax;
-    int pos = INT_MAX;
-    for(size_t c = 0; c < num_centroids; c++) {
-      if(prodvalp[num_centroids * r + c] < min) {
-        min = prodvalp[num_centroids * r + c];
-        pos = c;
+    minvalp[r] = Tmax;
+    minlocp[r] = INT_MAX;
+  }
+  for(size_t c = 0; c < num_centroids; c++) {
+    for(size_t r = 0; r < num_samples; r++) {
+      if(prodvalp[num_centroids * r + c] < minvalp[r]) {
+        minvalp[r] = prodvalp[num_centroids * r + c];
+        minlocp[r] = c;
       }
     }
-    minlocp[r] = pos;
+  }
+  for(size_t r = 0; r < num_samples; r++) {
+    if (minlocp[r] == INT_MAX)
+      REPORT_ERROR(USER_ERROR, "Please check input matrix: it seems to have invalid entry!\n");
   }
   t.show(" calc minloc: ");
   return minloc;
