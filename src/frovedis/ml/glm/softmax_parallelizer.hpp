@@ -146,7 +146,7 @@ bool softmax_parallelizer::update_global_model(
   auto nfeatures = model.nfeatures;
   auto nclasses  = model.nclasses;
 
-#ifdef _ALLOW_CONV_RATE_CHECK_
+#ifdef _CONV_RATE_CHECK_
   MODEL prev_model = model;
 #endif
 
@@ -166,7 +166,7 @@ bool softmax_parallelizer::update_global_model(
 
   rType.regularize(model.weight.val);
 
-#ifdef _ALLOW_CONV_RATE_CHECK_
+#ifdef _CONV_RATE_CHECK_
   auto diff = model - prev_model;
   T sum = 0;
   T *wp = &diff.weight.val[0];
@@ -217,7 +217,7 @@ void softmax_parallelizer::do_train(node_local<DATA_MATRIX>& data,
     bool conv = update_global_model(initModel,glob_grad,rType,alpha,
                                     convergenceTol,isIntercept,i);
 
-#ifdef _ALLOW_CONV_RATE_CHECK_
+#ifdef _CONV_RATE_CHECK_
     if(conv) break;
 #endif
   }
@@ -250,7 +250,7 @@ void softmax_parallelizer::do_train(node_local<DATA_MATRIX>& data,
     bool conv = update_global_model(initModel,glob_grad,rType,alpha,
                                     convergenceTol,isIntercept,i);
 
-#ifdef _ALLOW_CONV_RATE_CHECK_
+#ifdef _CONV_RATE_CHECK_
     if(conv) break;
 #endif
   }
