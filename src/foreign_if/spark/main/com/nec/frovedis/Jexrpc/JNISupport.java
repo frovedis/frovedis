@@ -437,6 +437,7 @@ public class JNISupport {
                                           int mid,
                                           boolean dense);
 
+
   // -------- Compute PCA --------
   public static native DummyPCAResult computePCA(Node master_node,
                                                 long fdata,
@@ -487,6 +488,20 @@ public class JNISupport {
   // [MFM] for single test vector (prediction done in master node)
   public static native double doSingleALSPredict(Node master_node, int mid, short mkind,
                                                  int uid, int pid);
+  // generic predict
+  public static native double[] genericPredict(Node master_node,
+                                              long tptr,
+                                              int mid,
+                                              short mkind,
+                                              boolean dense,
+                                              boolean need_prob);
+
+  public static native double genericSinglePredict(Node master_node,
+                                                   long tptr,
+                                                   int mid,
+                                                   short mkind,
+                                                   boolean dense,
+                                                   boolean need_prob);
 
   // [MFM] for recommending 'num' no. of products (with rating) for a given user
   public static native IntDoublePair[] recommendProducts(Node master_node, 
@@ -553,23 +568,6 @@ public class JNISupport {
   public static native String loadFrovedisNBM(Node master_node,
                                               int model_id,
                                               short mkind,String path);
-
-
-  public static native void callFrovedisDT(Node master_node,
-					MemPair fdata,
-					String Algo ,
-					int maxDepth,
-					int num_classes,
-					int max_bins,
-					String quantile_strategy,
-					double min_info_gain,
-                                        int min_instance_per_node,
-                                        String impurityType,
-                                 	int keys[],
-					int values[], int size,
-                                        int model_id,
-                                        boolean movable,
-                                        boolean isDense);  
 
   // [p]blas level 1 routines   
   public static native void swap(Node master_node, short mtype, 
@@ -698,13 +696,16 @@ public class JNISupport {
                                                  String algo);
   public static native long sortFrovedisDataframe(Node master_node,
                                                 long dproxy, String targets[],
-                                                long size, boolean isDesc);
+                                                int[] isDesc, long size);
   public static native long selectFrovedisDataframe(Node master_node,
                                                   long dproxy,
                                                   String targets[], long size);
   public static native long groupFrovedisDataframe(Node master_node,
                                                  long dproxy, String targets[],
                                                  long size);
+  // groupBy(x)
+  public static native long groupFrovedisDataframeX(Node master_node,
+                                                 long dproxy);
   public static native long renameFrovedisDataframe(Node master_node,
                                                     long dproxy,
                                                     String[] name, String[] new_name,
@@ -846,4 +847,103 @@ public class JNISupport {
   public static native DummyLDAModel loadFrovedisLDAModel(Node master_node,
                                                           int model_Id, 
                                                           String path);
+
+   // --- to_spark_sparse_matrix() support
+  public static native long[] getAllSparseMatrixLocalPointers(Node master_node,
+                                                              long dptr, 
+                                                              short mtype);
+  public static native int[] getAllSparseMatrixLocalRows(Node master_node, 
+                                                          long dptr, 
+                                                          short mtype);
+  public static native int[] getAllSparseMatrixLocalNNZ(Node master_node, 
+                                                         long dptr, 
+                                                         short mtype);
+  public static native void getLocalCRSMatrixComponents(Node master_node, 
+                                                          long dptr, 
+                                                          double[] data, 
+                                                          int[] index, 
+                                                          int[] offset, 
+                                                          int nrow, 
+                                                          int nnz);
+
+  // ---Random Forest ---
+  public static native void callFrovedisRF(Node master_node,
+                                        MemPair fdata,
+                                        String Algo ,
+                                        int maxDepth,
+                                        double min_info_gain,
+                                        int num_classes,
+                                        int max_bins,
+                                        double subsampling_rate,
+                                        String impurityType,
+                                        int num_trees,
+                                        String feature_subset_strategy,
+                                        long seed,
+                                        int keys[],
+                                        int values[], int size,
+                                        int model_id,
+                                        boolean movable,
+                                        boolean isDense);
+
+  public static native int rfNumTrees(Node master_node,
+                                      int mid);
+
+  public static native int rfTotalNumNodes(Node master_node,
+                                           int mid);
+
+  public static native String rfToString(Node master_node,
+                                          int mid);
+
+  // ---------------------GBT----------------------------------  
+  public static native void callFrovedisGbtFit(Node master_node,
+                                              MemPair fdata,
+                                              String algo,
+                                              String loss,
+                                              String impurity,
+                                              double learning_rate,
+                                              int max_depth,
+                                              double min_info_gain,
+                                              int random_state,
+                                              double tol,
+                                              int max_bins,
+                                              double subsampling_rate,
+                                              String feature_subset_strategy,
+                                              int n_estimators,
+                                              int nclasses,
+                                              int keys[],
+                                              int values[],
+                                              int size,
+                                              int mid,
+                                              boolean movable,
+                                              boolean dense);
+  
+  public static native int gbtNumTrees(Node master_node,
+                                      int mid);
+
+  public static native int gbtTotalNumNodes(Node master_node,
+                                           int mid);
+
+  public static native double[] gbtTreeWeights(Node master_node,
+                                              int mid);
+
+  public static native String gbtToString(Node master_node,
+                                          int mid);
+  
+  // Decision Tree
+  public static native void callFrovedisDT(Node master_node,
+                                          MemPair fdata,
+                                          String Algo ,
+                                          int maxDepth,
+                                          int num_classes,
+                                          int max_bins,
+                                          String quantile_strategy,
+                                          double min_info_gain,
+                                          int min_instance_per_node,
+                                          String impurityType,
+                                          int keys[],
+                                          int values[], int size,
+                                          int model_id,
+                                          boolean movable,
+                                          boolean isDense);  
+
 }
