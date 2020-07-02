@@ -176,7 +176,7 @@ create_shrink_vector_info_local(std::vector<I>& shrink_table,
     prev_it = it;
   }
   MPI_Alltoall(&ret.send_size[0], sizeof(size_t), MPI_CHAR,
-               &ret.recv_size[0], sizeof(size_t), MPI_CHAR, MPI_COMM_WORLD);
+               &ret.recv_size[0], sizeof(size_t), MPI_CHAR, frovedis_comm_rpc);
   size_t total_size = 0;
   auto retrecv_sizep = ret.recv_size.data();
   for(size_t i = 0; i < node_size; i++) {
@@ -197,7 +197,7 @@ create_shrink_vector_info_local(std::vector<I>& shrink_table,
                   reinterpret_cast<char*>
                   (const_cast<I*>(&ret.exchange_map[0])),
                   ret.recv_size, ret.recv_displ, 
-                  MPI_COMM_WORLD);
+                  frovedis_comm_rpc);
   size_t self = frovedis::get_selfid();
   auto retexchange_mapp = ret.exchange_map.data();
   auto column_partitionp = column_partition.data();
@@ -244,7 +244,7 @@ std::vector<T> shrink_vector_sum_local(std::vector<T>& v,
                   vm.send_size, vm.send_displ, 
                   reinterpret_cast<char*>(const_cast<T*>(&work[0])),
                   vm.recv_size, vm.recv_displ, 
-                  MPI_COMM_WORLD);
+                  frovedis_comm_rpc);
   T* retp = &ret[0];
   size_t node_size = frovedis::get_nodesize();
   std::vector<T*> current_work_vec(node_size);
@@ -335,7 +335,7 @@ std::vector<T> shrink_vector_bcast_local(std::vector<T>& v,
                   vm.recv_size, vm.recv_displ, 
                   reinterpret_cast<char*>(const_cast<T*>(&ret[0])),
                   vm.send_size, vm.send_displ, 
-                  MPI_COMM_WORLD);
+                  frovedis_comm_rpc);
   return ret;
 }
 
@@ -355,7 +355,7 @@ std::vector<T> shrink_vector_merge_local(std::vector<T>& v,
                   vm.send_size, vm.send_displ, 
                   reinterpret_cast<char*>(const_cast<T*>(&work[0])),
                   vm.recv_size, vm.recv_displ, 
-                  MPI_COMM_WORLD);
+                  frovedis_comm_rpc);
   T* retp = &ret[0];
   size_t node_size = frovedis::get_nodesize();
   for(size_t i = 0; i < node_size; i++) {
@@ -409,7 +409,7 @@ shrink_rowmajor_matrix_sum_local(rowmajor_matrix_local<T>& m,
                   vm.send_size, vm.send_displ, 
                   reinterpret_cast<char*>(const_cast<T*>(&work[0])),
                   vm.recv_size, vm.recv_displ, 
-                  MPI_COMM_WORLD);
+                  frovedis_comm_rpc);
   T* retp = &ret.val[0];
   size_t node_size = frovedis::get_nodesize();
   std::vector<T*> current_work_vec(node_size);
@@ -519,7 +519,7 @@ shrink_rowmajor_matrix_bcast_local(rowmajor_matrix_local<T>& m,
                   vm.recv_size, vm.recv_displ, 
                   reinterpret_cast<char*>(const_cast<T*>(&ret.val[0])),
                   vm.send_size, vm.send_displ, 
-                  MPI_COMM_WORLD);
+                  frovedis_comm_rpc);
   return ret;
 }
 
@@ -542,7 +542,7 @@ shrink_rowmajor_matrix_merge_local(rowmajor_matrix_local<T>& m,
                   vm.send_size, vm.send_displ, 
                   reinterpret_cast<char*>(const_cast<T*>(&work[0])),
                   vm.recv_size, vm.recv_displ, 
-                  MPI_COMM_WORLD);
+                  frovedis_comm_rpc);
   T* retp = &ret.val[0];
   size_t node_size = frovedis::get_nodesize();
   for(size_t i = 0; i < node_size; i++) {

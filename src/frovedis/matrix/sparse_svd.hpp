@@ -45,10 +45,10 @@ void svd_mpi(SPARSE_MATRIX_LOCAL& mat,
              colmajor_matrix_local<REAL>& ret_v,
              int k) {
   int rank, size;
-  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-  MPI_Comm_size(MPI_COMM_WORLD, &size);
-  MPI_Comm comm = MPI_COMM_WORLD;
-  MPI_Fint fcomm = MPI_Comm_c2f(MPI_COMM_WORLD);
+  MPI_Comm_rank(frovedis_comm_rpc, &rank);
+  MPI_Comm_size(frovedis_comm_rpc, &size);
+  MPI_Comm comm = frovedis_comm_rpc;
+  MPI_Fint fcomm = MPI_Comm_c2f(frovedis_comm_rpc);
 
   // we assume that mat/trans_mat is distributed by row
   // whole matrix is m x n; m > n
@@ -118,14 +118,14 @@ void svd_mpi(SPARSE_MATRIX_LOCAL& mat,
       REAL* start = &workd[ipntr[0]-1];
       mpi_lap.lap_start();
       typed_allgatherv<REAL>(start, nloc, &x[0], recvcount_n,
-                             displs_n, MPI_COMM_WORLD);
+                             displs_n, frovedis_comm_rpc);
       mpi_lap.lap_stop();
       spmv_lap.lap_start();
       auto axloc = mat * x;
       auto yloc = trans_mat * axloc;
       spmv_lap.lap_stop();
       mpi_lap.lap_start();
-      typed_allreduce(&yloc[0], &y[0], n, MPI_SUM, MPI_COMM_WORLD);
+      typed_allreduce(&yloc[0], &y[0], n, MPI_SUM, frovedis_comm_rpc);
       mpi_lap.lap_stop();
       start = &workd[ipntr[1]-1];
       REAL* yptr = &y[0] + n_each * rank;
@@ -173,7 +173,7 @@ void svd_mpi(SPARSE_MATRIX_LOCAL& mat,
       for(int i = 0; i < nev; i++) {
         mpi_lap.lap_start();
         typed_allgatherv<REAL>(z + i * nloc, nloc, tmpvp, recvcount_n,
-                               displs_n, MPI_COMM_WORLD);
+                               displs_n, frovedis_comm_rpc);
         mpi_lap.lap_stop();
         spmv_lap.lap_start();
         auto avloc = mat * tmpv;
@@ -198,7 +198,7 @@ void svd_mpi(SPARSE_MATRIX_LOCAL& mat,
         }*/
         mpi_lap.lap_start();
         typed_allreduce<REAL>(&sq_sum_local, &sq_sum, 1, MPI_SUM,
-                              MPI_COMM_WORLD);
+                              frovedis_comm_rpc);
         mpi_lap.lap_stop();
         REAL norm = 1.0 / sqrt(sq_sum);
         norm_ret_u_valp(ret_u_valp, norm, mloc, c);

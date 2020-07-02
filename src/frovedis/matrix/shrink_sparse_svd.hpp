@@ -49,10 +49,10 @@ void svd_mpi(SPARSE_MATRIX_LOCAL& mat,
              colmajor_matrix_local<REAL>& ret_v,
              int k) {
   int rank, size;
-  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-  MPI_Comm_size(MPI_COMM_WORLD, &size);
-  MPI_Comm comm = MPI_COMM_WORLD;
-  MPI_Fint fcomm = MPI_Comm_c2f(MPI_COMM_WORLD);
+  MPI_Comm_rank(frovedis_comm_rpc, &rank);
+  MPI_Comm_size(frovedis_comm_rpc, &size);
+  MPI_Comm comm = frovedis_comm_rpc;
+  MPI_Fint fcomm = MPI_Comm_c2f(frovedis_comm_rpc);
 
   // we assume that mat/trans_mat is distributed by row
   // whole matrix is m x n; m > n
@@ -200,7 +200,7 @@ void svd_mpi(SPARSE_MATRIX_LOCAL& mat,
         }*/
         mpi_lap.lap_start();
         typed_allreduce<REAL>(&sq_sum_local, &sq_sum, 1, MPI_SUM,
-                              MPI_COMM_WORLD);
+                              frovedis_comm_rpc);
         mpi_lap.lap_stop();
         REAL norm = 1.0 / sqrt(sq_sum);
         norm_ret_u_valp(ret_u_valp, norm, mloc, c);

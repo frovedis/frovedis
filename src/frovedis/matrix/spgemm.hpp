@@ -2236,8 +2236,8 @@ separate_crs_matrix_for_spgemm_mpi(crs_matrix_local<T,I,O>& left,
       ("separate_crs_matrix_for_spgemm: matrix size mismatch");
 
   int size, rank;
-  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-  MPI_Comm_size(MPI_COMM_WORLD, &size);
+  MPI_Comm_rank(frovedis_comm_rpc, &rank);
+  MPI_Comm_size(frovedis_comm_rpc, &size);
 
   // first, separate according to nnz for interm nnz calculation
   size_t total_nnz = left.off[left.off.size() - 1];
@@ -2287,7 +2287,7 @@ separate_crs_matrix_for_spgemm_mpi(crs_matrix_local<T,I,O>& left,
   MPI_Allgatherv(pfx_interim_nnz_per_column_local.data(),
                  my_num_row * sizeof(O), MPI_CHAR,
                  pfx_interim_nnz_per_column.data()+1,
-                 recvcountsp, displsp, MPI_CHAR, MPI_COMM_WORLD);
+                 recvcountsp, displsp, MPI_CHAR, frovedis_comm_rpc);
   
   auto pfx_interim_nnz_per_columnp = pfx_interim_nnz_per_column.data();
   for(size_t i = 1; i < size; i++) {

@@ -21,10 +21,10 @@ void eigen_sym_mpi(SPARSE_MATRIX_LOCAL& mat,
                    std::string order,
                    int k) {
   int rank, size;
-  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-  MPI_Comm_size(MPI_COMM_WORLD, &size);
-  MPI_Comm comm = MPI_COMM_WORLD;
-  MPI_Fint fcomm = MPI_Comm_c2f(MPI_COMM_WORLD);
+  MPI_Comm_rank(frovedis_comm_rpc, &rank);
+  MPI_Comm_size(frovedis_comm_rpc, &size);
+  MPI_Comm comm = frovedis_comm_rpc;
+  MPI_Fint fcomm = MPI_Comm_c2f(frovedis_comm_rpc);
 
   int mloc = mat.local_num_row;
   int n = mat_size;
