@@ -2,6 +2,7 @@ package com.nec.frovedis.mllib.classification;
 
 import com.nec.frovedis.Jexrpc.{FrovedisServer,JNISupport,MemPair}
 import com.nec.frovedis.Jmllib.DummyGLM
+import com.nec.frovedis.io.FrovedisIO
 import com.nec.frovedis.matrix.ENUM
 import com.nec.frovedis.exrpc.FrovedisLabeledPoint
 import com.nec.frovedis.mllib.{M_KIND,ModelID}
@@ -10,6 +11,7 @@ import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 import org.apache.spark.mllib.regression.LabeledPoint
 import org.apache.spark.mllib.linalg.Vector
+import scala.collection.immutable.Map
 
 class LogisticRegressionModel(modelId: Int,
                               modelKind: Short,
@@ -19,16 +21,27 @@ class LogisticRegressionModel(modelId: Int,
                               logic: Map[Double,Double]) 
   extends GeneralizedLinearModel(modelId,modelKind,nftr,ncls,thr) {
   protected val enc_logic: Map[Double,Double] = logic
-  def this(m: DummyGLM) = {
-    this(m.mid, m.mkind, m.numFeatures, m.numClasses, m.threshold, null)
+  def this(m: DummyGLM,
+           logic: Map[Double,Double]) = {
+    this(m.mid, m.mkind, m.numFeatures, m.numClasses, m.threshold, logic)
   }
   override def predict(data: Vector) : Double = {
      val ret = super.predict(data)
-     return if (threshold == ENUM.NONE || enc_logic == null) ret else enc_logic(ret)
+     return if (threshold == ENUM.NONE) ret else enc_logic(ret)
   }
   override def predict(data: RDD[Vector]) : RDD[Double] = {
     val ret = super.predict(data)
-    return if (threshold == ENUM.NONE || enc_logic == null) ret else ret.map(x => enc_logic(x))
+    return if (threshold == ENUM.NONE) ret else ret.map(x => enc_logic(x))
+  }
+  override def save(path: String) : Unit = {
+    val context = SparkContext.getOrCreate()
+    save(context, path)
+  }
+  override def save(sc: SparkContext, path: String) : Unit = {
+    val success = FrovedisIO.createDir(path) 
+    require(success, "Another model named " + path + " already exists!")
+    super.save(path + "/model")
+    sc.parallelize(logic.toSeq, 2).saveAsObjectFile(path + "/label_map_spk")
   }
 }
 
@@ -36,16 +49,23 @@ object LogisticRegressionModel {  // companion object (for static members)
   def load(sc: SparkContext,
            path: String,
            isMultinomial: Boolean = false) : LogisticRegressionModel = {
+    val exist = FrovedisIO.checkExists(path)
+    require(exist, "No model named " + path + " is found!")
     val model_id = ModelID.get()
     val fs = FrovedisServer.getServerInstance()
     // load a LogisticRegressionModel from the 'path'
     // and register it with 'model_id' at Frovedis server
     var kind = M_KIND.LRM
     if(isMultinomial) kind = M_KIND.MLR
-    val ret = JNISupport.loadFrovedisGLM(fs.master_node,model_id,kind,path)
-    val info = JNISupport.checkServerException();
-    if (info != "") throw new java.rmi.ServerException(info);
-    return new LogisticRegressionModel(ret)
+    val ret = JNISupport.loadFrovedisGLM(fs.master_node,
+                                         model_id, kind, path + "/model")
+    val info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
+    val context = SparkContext.getOrCreate()
+    val logic = context.objectFile[(Double, Double)](path + "/label_map_spk")
+                       .collectAsMap // returns generic scala.collection.Map
+                       .toMap        // to make it immutable Map
+    return new LogisticRegressionModel(ret, logic)
   }
 }
 
