@@ -122,8 +122,7 @@ svm_with_sgd::train (crs_matrix<T,I,O>& data,
                      double convergenceTol,
                      MatType mType) {
   size_t numFeatures = data.num_col;
-  T intercept = isIntercept ? 1.0 : 0.0;
-  svm_model<T> initModel(numFeatures,intercept);
+  svm_model<T> initModel(numFeatures);
   return train<T>(data,label,initModel,numIteration,alpha,miniBatchFraction,
                   regParam,regTyp,isIntercept,convergenceTol,mType,false);
 }
@@ -141,8 +140,7 @@ svm_with_sgd::train (crs_matrix<T,I,O>&& data,
                      double convergenceTol,
                      MatType mType) {
   size_t numFeatures = data.num_col;
-  T intercept = isIntercept ? 1.0 : 0.0;
-  svm_model<T> initModel(numFeatures,intercept);
+  svm_model<T> initModel(numFeatures);
   return train<T>(data,label,initModel,numIteration,alpha,miniBatchFraction,
                   regParam,regTyp,isIntercept,convergenceTol,mType,true);
 }
@@ -186,22 +184,30 @@ svm_with_sgd::train (crs_matrix<T,I,O>& data,
 
   sgd_parallelizer par(miniBatchFraction);
   svm_model<T> ret;
+  hinge_gradient<T> grad;
 
-  if(regTyp == ZERO)
+  if(regTyp == ZERO) {
+    zero_regularizer<T> rType(regParam);
     ret = par.template parallelize<T,I,O,svm_model<T>,
                                    hinge_gradient<T>, zero_regularizer<T>>
-         (data,label,initModel,numIteration,alpha,regParam,
+         (data,label,initModel,grad,rType,numIteration,alpha,
           isIntercept,convergenceTol,mType,inputMovable);
-  else if(regTyp == L1)
+  }
+  else if(regTyp == L1) {
+    l1_regularizer<T> rType(regParam);
     ret = par.template parallelize<T,I,O,svm_model<T>,
                                    hinge_gradient<T>, l1_regularizer<T>>
-         (data,label,initModel,numIteration,alpha,regParam,
+         (data,label,initModel,grad,rType,numIteration,alpha,
           isIntercept,convergenceTol,mType,inputMovable);
-  else if(regTyp == L2)
+  }
+  else if(regTyp == L2) {
+    l2_regularizer<T> rType(regParam);
     ret = par.template parallelize<T,I,O,svm_model<T>,
                                    hinge_gradient<T>, l2_regularizer<T>>
-         (data,label,initModel,numIteration,alpha,regParam,
+         (data,label,initModel,grad,rType,numIteration,alpha,
           isIntercept,convergenceTol,mType,inputMovable);
+  }
+  else REPORT_ERROR(USER_ERROR, "Unsupported regularizer!\n");
   return ret;
 }
 
@@ -217,8 +223,7 @@ svm_with_sgd::train (const colmajor_matrix<T>& data,
                      bool isIntercept,
                      double convergenceTol) {
   size_t numFeatures = data.num_col;
-  T intercept = isIntercept ? 1.0 : 0.0;
-  svm_model<T> initModel(numFeatures,intercept);
+  svm_model<T> initModel(numFeatures);
   return train<T>(data,label,initModel,numIteration,alpha,miniBatchFraction,
                   regParam,regTyp,isIntercept,convergenceTol);
 }
@@ -243,23 +248,31 @@ svm_with_sgd::train (const colmajor_matrix<T>& data,
 
   auto& dmat = const_cast<colmajor_matrix<T>&> (data);
   sgd_parallelizer par(miniBatchFraction);
+  hinge_gradient<T> grad;
   svm_model<T> ret;
 
-  if(regTyp == ZERO)
+  if(regTyp == ZERO) {
+    zero_regularizer<T> rType(regParam);
     ret = par.template parallelize<T,svm_model<T>,
                                    hinge_gradient<T>, zero_regularizer<T>>
-         (dmat,label,initModel,numIteration,alpha,regParam,
+         (dmat,label,initModel,grad,rType,numIteration,alpha,
           isIntercept,convergenceTol);
-  else if(regTyp == L1)
+  }
+  else if(regTyp == L1) {
+    l1_regularizer<T> rType(regParam);
     ret = par.template parallelize<T,svm_model<T>,
                                    hinge_gradient<T>, l1_regularizer<T>>
-         (dmat,label,initModel,numIteration,alpha,regParam,
+         (dmat,label,initModel,grad,rType,numIteration,alpha,
           isIntercept,convergenceTol);
-  else if(regTyp == L2)
+  }
+  else if(regTyp == L2) {
+    l2_regularizer<T> rType(regParam);
     ret = par.template parallelize<T,svm_model<T>,
                                    hinge_gradient<T>, l2_regularizer<T>>
-         (dmat,label,initModel,numIteration,alpha,regParam,
+         (dmat,label,initModel,grad,rType,numIteration,alpha,
           isIntercept,convergenceTol);
+  }
+  else REPORT_ERROR(USER_ERROR, "Unsupported regularizer!\n");
   return ret;
 }
 
