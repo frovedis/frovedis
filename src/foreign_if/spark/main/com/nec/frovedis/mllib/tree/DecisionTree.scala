@@ -73,7 +73,7 @@ class DecisionTree private(val strategy: Strategy, var seed: Int){
     val size = keys.size
     val algo = strategy.getAlgo().toString()
     var encoded_data: MemPair = fdata.get()
-    var logic: Map[Double, Double] = null
+    var logic: scala.collection.immutable.Map[Double, Double] = null
     if (algo == "Classification") {
       val enc_ret = fdata.encode_labels()
       encoded_data = enc_ret._1
