@@ -5,7 +5,6 @@ import numpy as np
 from frovedis.matrix.dense import FrovedisRowmajorMatrix
 from frovedis.exrpc.server import FrovedisServer
 from frovedis.mllib.linear_model import SGDClassifier
-#from sklearn.decomposition import PCA
 
 # initializing the Frovedis server
 argvs = sys.argv
