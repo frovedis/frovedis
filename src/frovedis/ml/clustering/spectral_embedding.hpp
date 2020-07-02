@@ -1,8 +1,8 @@
 #ifndef _SPECTRAL_EMBED_
 #define _SPECTRAL_EMBED_
 
+//#define SPARSE
 #define SAVE false 
-#define SPARSE false
 
 #ifdef SPARSE
 #include <frovedis/matrix/shrink_sparse_eigen.hpp>
@@ -28,10 +28,13 @@ get_target_eigen_vector(rowmajor_matrix<T>& mat,
   sparse_eigen_sym(smat,eig_val,eig_vec,std::string("LA"),num);
 #else
   if (mode == 1) dense_eigen_sym(mat,eig_val,eig_vec,"LA",num); // standard mode
-  else if (mode == 3) dense_eigen_sym(mat,eig_val,eig_vec,"LM",num,1.0); // shift-invert mode
+  else if (mode == 3) {
+    T sigma = 1.0;
+    dense_eigen_sym(mat,eig_val,eig_vec,"LM",num,sigma); // shift-invert mode
+  }
   else REPORT_ERROR(USER_ERROR, "Unsupported arpack mode for eigen computation is encountered!\n");
 #endif
-  //std::cout << "eigen values: \n";  eig_val.debug_print();
+  //std::cout << "eigen values: \n";  eig_val.debug_print(10);
   return eig_vec.to_rowmajor();
 }
 
@@ -69,15 +72,14 @@ compute_spectral_embedding(rowmajor_matrix<T>& aff, //affinity matrix
                            bool norm_laplacian = true,
                            bool drop_first = true,
                            int mode = 1) {
-  time_spent diag_t(INFO), laplace_t(INFO);
-  time_spent embed_t(INFO), embed_norm_t(INFO);
+  time_spent diag_t(DEBUG), laplace_t(DEBUG);
+  time_spent embed_t(DEBUG), embed_norm_t(DEBUG);
 
   auto myst = get_start_indices(aff);
   if(drop_first) n_comp++;
 
   diag_t.lap_start();
   auto con_diag_loc = construct_connectivity_diagonals<T>(aff, myst);
-  if (norm_laplacian) con_diag_loc.mapv(one_by_sqrt_inplace<T>);
   auto con_diag_g = con_diag_loc.template moveto_dvector<T>().gather();
   //std::cout << "connectivity diagonal: \n"; 
   //for(auto& t: con_diag_g) std::cout << t << " "; std::cout << std::endl;
@@ -87,26 +89,26 @@ compute_spectral_embedding(rowmajor_matrix<T>& aff, //affinity matrix
 
   laplace_t.lap_start();
   auto laplace = construct_laplace_matrix(aff,con_diag,myst,norm_laplacian); // L= D - A
-  if(SAVE) laplace.save("./dump/laplace");
-  laplace.data.mapv(negate_inplace<T>); // negating as done in sklearn
   laplace_t.lap_stop();
   laplace_t.show_lap("laplace computation time: ");
+  //std::cout << "laplace: \n"; laplace.debug_print(10);
+  if(SAVE) laplace.save("./dump/laplace");
 
   embed_t.lap_start();
+  laplace.data.mapv(negate_inplace<T>); // negating as done in sklearn
   auto eig_vec = get_target_eigen_vector<T>(laplace,n_comp,mode);
-  if(SAVE) eig_vec.save("./dump/eig_vec");
   embed_t.lap_stop();
   embed_t.show_lap("eigen computation time: ");
+  if(SAVE) eig_vec.save("./dump/eig_vec");
 
   embed_norm_t.lap_start();
   auto embed = construct_embed_matrix(eig_vec,con_diag,myst,norm_laplacian);
   embed_norm_t.lap_stop();
   embed_norm_t.show_lap("embed computation time: ");
+  //std::cout << "embed: \n"; embed.debug_print(10);
+  if(SAVE) embed.save("./dump/embed");
 
-  if(drop_first) {
-    if(SAVE) embed.save("./dump/embed_compl");
-    return drop_first_column(embed);
-  }
+  if(drop_first) return drop_first_column(embed);
   else return embed;
 }
 
@@ -132,18 +134,20 @@ spectral_embedding_impl(rowmajor_matrix<T>& mat,
     embed = compute_spectral_embedding(mat,n_comp,norm_laplacian,drop_first,mode);
   }
   else { // 'mat' is input data
-    time_spent aff_t(INFO);
-    aff_t.lap_start();
+    time_spent aff_t(DEBUG);
     auto gdata = get_global_data(mat);
     if(input_movable) mat.clear();
+    aff_t.lap_start();
     affinity = construct_distance_matrix(gdata,true); //locally created "gdata" is movable
+    aff_t.lap_stop();
+    if(SAVE) affinity.save("./dump/distance");
+    aff_t.lap_start();
     construct_affinity_matrix_inplace(affinity,gamma);
-    if(SAVE) affinity.save("./dump/dmat");
     aff_t.lap_stop();
     aff_t.show_lap("affinity computation time: ");
+    if(SAVE) affinity.save("./dump/dmat");
     embed = compute_spectral_embedding(affinity,n_comp,norm_laplacian,drop_first,mode);
   }
-  if(SAVE) embed.save("./dump/embed");
   spectral_embedding_model<T> model;
   model.embed_matrix = std::move(embed);
   model.affinity_matrix = std::move(affinity);
