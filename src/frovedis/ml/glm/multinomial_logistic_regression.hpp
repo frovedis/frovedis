@@ -244,7 +244,6 @@ multinomial_logistic_regression::train (colmajor_matrix<T>& data,
   multinomial_logistic_regression_model<T> ret;
 
   if (regTyp == ZERO)
-
     ret = par.template parallelize<T,multinomial_logistic_regression_model<T>,
                                    zero_regularizer<T>>
           (data,label,initModel,numIteration,alpha,regParam,
