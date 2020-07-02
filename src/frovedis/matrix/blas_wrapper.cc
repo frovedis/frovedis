@@ -343,14 +343,27 @@ float nrm2(const sliced_colmajor_vector_local<float>& inVec){
     size_t INCX = inVec.stride;
     float* xptr = inVec.data;
 
-    if(N == 1) //quick return
-      return fabs(xptr[0]);
+    // quick return
+    if(N == 1) return std::abs(xptr[0]);
 
+/*
     float norm = 0.0f;
     for(size_t i = 0; i < N*INCX; i += INCX)
-      norm += xptr[i] * xptr[i];
-    
+      norm += xptr[i] * xptr[i]; // may cause overflow here...
     return sqrt(norm);
+*/
+  auto maxval = std::abs(xptr[0]);
+  for(size_t i = 0; i < N*INCX; i += INCX) {
+    auto absval = xptr[i] * ((xptr[i] >= 0.0f) - (xptr[i] < 0.0f));
+    if (absval > maxval) maxval = absval;
+  }
+  float one_by_max = 1.0f / maxval;
+  float sqsum = 0.0f;
+  for(size_t i = 0; i < N*INCX; i += INCX) {
+    auto tmp = xptr[i] * one_by_max; // dividing with max to avoid overflow!
+    sqsum += tmp * tmp;
+  }
+  return std::sqrt(sqsum) * maxval;
 }
 
 template<>
@@ -367,14 +380,27 @@ double nrm2(const sliced_colmajor_vector_local<double>& inVec){
     size_t INCX = inVec.stride;
     double* xptr = inVec.data;
 
-    if(N == 1) //quick return
-      return fabs(xptr[0]);
+    // quick return
+    if(N == 1) return std::abs(xptr[0]);
 
+/*
     double norm = 0.0;
     for(size_t i = 0; i < N*INCX; i += INCX)
-      norm += xptr[i] * xptr[i];
-    
+      norm += xptr[i] * xptr[i]; // may cause overflow here...
     return sqrt(norm);
+*/
+  auto maxval = std::abs(xptr[0]);
+  for(size_t i = 0; i < N*INCX; i += INCX) {
+    auto absval = xptr[i] * ((xptr[i] >= 0.0) - (xptr[i] < 0.0));
+    if (absval > maxval) maxval = absval;
+  }
+  double one_by_max = 1.0 / maxval;
+  double sqsum = 0.0;
+  for(size_t i = 0; i < N*INCX; i += INCX) {
+    auto tmp = xptr[i] * one_by_max; // dividing with max to avoid overflow!
+    sqsum += tmp * tmp;
+  }
+  return std::sqrt(sqsum) * maxval;
 }
 
 template<>
@@ -400,12 +426,12 @@ void gemv(const sliced_colmajor_matrix_local<float>& inMat,
 
     size_t nrowa = 0, ncola = 0;
     if(TRANS == 'N') {
-      nrowa = inMat.sliced_num_row;
-      ncola = inMat.sliced_num_col;
+      nrowa = inMat.local_num_row;
+      ncola = inMat.local_num_col;
     }
     else if (TRANS == 'T') {
-      nrowa = inMat.sliced_num_col;
-      ncola = inMat.sliced_num_row;
+      nrowa = inMat.local_num_col;
+      ncola = inMat.local_num_row;
     }
     else
       REPORT_ERROR(USER_ERROR, "Invalid value for TRANS parameter!!\n");
@@ -414,8 +440,8 @@ void gemv(const sliced_colmajor_matrix_local<float>& inMat,
       REPORT_ERROR(USER_ERROR,
         "Incompatible input sizes: matrix-vector multiplication not possible!!\n");
 
-    int M = static_cast<int>(inMat.sliced_num_row);
-    int N = static_cast<int>(inMat.sliced_num_col);
+    int M = static_cast<int>(inMat.local_num_row);
+    int N = static_cast<int>(inMat.local_num_col);
     float* mptr = inMat.data;
     int LDM = static_cast<int>(inMat.ldm);
 
@@ -457,12 +483,12 @@ void gemv(const sliced_colmajor_matrix_local<double>& inMat,
 
     size_t nrowa = 0, ncola = 0;
     if(TRANS == 'N') {
-      nrowa = inMat.sliced_num_row;
-      ncola = inMat.sliced_num_col;
+      nrowa = inMat.local_num_row;
+      ncola = inMat.local_num_col;
     }
     else if (TRANS == 'T') {
-      nrowa = inMat.sliced_num_col;
-      ncola = inMat.sliced_num_row;
+      nrowa = inMat.local_num_col;
+      ncola = inMat.local_num_row;
     }
     else
       REPORT_ERROR(USER_ERROR, "Invalid value for TRANS parameter!!\n");
@@ -471,8 +497,8 @@ void gemv(const sliced_colmajor_matrix_local<double>& inMat,
       REPORT_ERROR(USER_ERROR,
         "Incompatible input sizes: matrix-vector multiplication not possible!!\n");
 
-    int M = static_cast<int>(inMat.sliced_num_row);
-    int N = static_cast<int>(inMat.sliced_num_col);
+    int M = static_cast<int>(inMat.local_num_row);
+    int N = static_cast<int>(inMat.local_num_col);
     double* mptr = inMat.data;
     int LDM = static_cast<int>(inMat.ldm);
 
@@ -509,14 +535,14 @@ void ger(const sliced_colmajor_vector_local<float>& inVec1,
     if(!outMat.is_valid())
       REPORT_ERROR(USER_ERROR,"Invalid output matrix!!\n");
 
-    if(outMat.sliced_num_row > inVec1.size || 
-       outMat.sliced_num_col > inVec2.size)
+    if(outMat.local_num_row > inVec1.size || 
+       outMat.local_num_col > inVec2.size)
       REPORT_ERROR(USER_ERROR, 
         "Incompatible input sizes: multiplication not possible!!\n");
 #endif
 
-    int M = static_cast<int>(outMat.sliced_num_row);
-    int N = static_cast<int>(outMat.sliced_num_col);
+    int M = static_cast<int>(outMat.local_num_row);
+    int N = static_cast<int>(outMat.local_num_col);
     float* mptr = outMat.data;
     int LDM = static_cast<int>(outMat.ldm);
 
@@ -550,14 +576,14 @@ void ger(const sliced_colmajor_vector_local<double>& inVec1,
     if(!outMat.is_valid())
       REPORT_ERROR(USER_ERROR,"Invalid output matrix!!\n");
 
-    if(outMat.sliced_num_row > inVec1.size || 
-       outMat.sliced_num_col > inVec2.size)
+    if(outMat.local_num_row > inVec1.size || 
+       outMat.local_num_col > inVec2.size)
       REPORT_ERROR(USER_ERROR, 
         "Incompatible input sizes: multiplication not possible!!\n");
 #endif
 
-    int M = static_cast<int>(outMat.sliced_num_row);
-    int N = static_cast<int>(outMat.sliced_num_col);
+    int M = static_cast<int>(outMat.local_num_row);
+    int N = static_cast<int>(outMat.local_num_col);
     double* mptr = outMat.data;
     int LDM = static_cast<int>(outMat.ldm);
 
@@ -598,29 +624,29 @@ void gemm(const sliced_colmajor_matrix_local<float>& inMat1,
     size_t nrowa=0, nrowb=0, nrowc=0, ncola=0, ncolb=0, ncolc=0;
 
     if(TRANS_M1 == 'N') {
-      nrowa = inMat1.sliced_num_row;
-      ncola = inMat1.sliced_num_col;
+      nrowa = inMat1.local_num_row;
+      ncola = inMat1.local_num_col;
     }
     else if(TRANS_M1 == 'T') {
-      nrowa = inMat1.sliced_num_col;
-      ncola = inMat1.sliced_num_row;
+      nrowa = inMat1.local_num_col;
+      ncola = inMat1.local_num_row;
     }
     else
       REPORT_ERROR(USER_ERROR,"Invalid value for TRANS parameter!!\n");
 
     if(TRANS_M2 == 'N') {
-      nrowb = inMat2.sliced_num_row;
-      ncolb = inMat2.sliced_num_col;
+      nrowb = inMat2.local_num_row;
+      ncolb = inMat2.local_num_col;
     }
     else if(TRANS_M2 == 'T') {
-      nrowb = inMat2.sliced_num_col;
-      ncolb = inMat2.sliced_num_row;
+      nrowb = inMat2.local_num_col;
+      ncolb = inMat2.local_num_row;
     }
     else
       REPORT_ERROR(USER_ERROR,"Invalid value for TRANS parameter!!\n");
 
-    nrowc = outMat.sliced_num_row;
-    ncolc = outMat.sliced_num_col;
+    nrowc = outMat.local_num_row;
+    ncolc = outMat.local_num_col;
 
     if (ncola != nrowb || nrowc < nrowa || ncolc < ncolb)
       REPORT_ERROR(USER_ERROR,
@@ -673,29 +699,29 @@ void gemm(const sliced_colmajor_matrix_local<double>& inMat1,
     size_t nrowa=0, nrowb=0, nrowc=0, ncola=0, ncolb=0, ncolc=0;
 
     if(TRANS_M1 == 'N') {
-      nrowa = inMat1.sliced_num_row;
-      ncola = inMat1.sliced_num_col;
+      nrowa = inMat1.local_num_row;
+      ncola = inMat1.local_num_col;
     }
     else if(TRANS_M1 == 'T') {
-      nrowa = inMat1.sliced_num_col;
-      ncola = inMat1.sliced_num_row;
+      nrowa = inMat1.local_num_col;
+      ncola = inMat1.local_num_row;
     }
     else
       REPORT_ERROR(USER_ERROR,"Invalid value for TRANS parameter!!\n");
 
     if(TRANS_M2 == 'N') {
-      nrowb = inMat2.sliced_num_row;
-      ncolb = inMat2.sliced_num_col;
+      nrowb = inMat2.local_num_row;
+      ncolb = inMat2.local_num_col;
     }
     else if(TRANS_M2 == 'T') {
-      nrowb = inMat2.sliced_num_col;
-      ncolb = inMat2.sliced_num_row;
+      nrowb = inMat2.local_num_col;
+      ncolb = inMat2.local_num_row;
     }
     else
       REPORT_ERROR(USER_ERROR,"Invalid value for TRANS parameter!!\n");
 
-    nrowc = outMat.sliced_num_row;
-    ncolc = outMat.sliced_num_col;
+    nrowc = outMat.local_num_row;
+    ncolc = outMat.local_num_col;
 
     if (ncola != nrowb || nrowc < nrowa || ncolc < ncolb)
       REPORT_ERROR(USER_ERROR,

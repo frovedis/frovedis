@@ -229,21 +229,21 @@ namespace frovedis {
     sliced_colmajor_matrix_local<T> sm1;
     sm1.ldm = mat.local_num_col;
     sm1.data = mat.val.data() + (st1 * sm1.ldm);
-    sm1.sliced_num_row = a_ncol;
-    sm1.sliced_num_col = a_nrow;
+    sm1.local_num_row = a_ncol;
+    sm1.local_num_col = a_nrow;
 
     sliced_colmajor_matrix_local<T> sm2;
     sm2.ldm = mat.local_num_col;
     sm2.data = mat.val.data() + (st2 * sm2.ldm);
-    sm2.sliced_num_row = b_ncol;
-    sm2.sliced_num_col = b_nrow;
+    sm2.local_num_row = b_ncol;
+    sm2.local_num_col = b_nrow;
 
     rowmajor_matrix_local<T> ret(a_nrow, b_nrow);
     sliced_colmajor_matrix_local<T> sm3;
     sm3.ldm = b_nrow;
     sm3.data = ret.val.data();
-    sm3.sliced_num_row = b_nrow;
-    sm3.sliced_num_col = a_nrow;
+    sm3.local_num_row = b_nrow;
+    sm3.local_num_col = a_nrow;
     gemm<T>(sm2, sm1, sm3, 'T', 'N', alpha, beta);
     return ret;
   }
@@ -262,8 +262,8 @@ namespace frovedis {
     sliced_colmajor_matrix_local<T> sm;
     sm.ldm = mat.local_num_col;
     sm.data = mat.val.data() + (st * sm.ldm);
-    sm.sliced_num_row = ncol;
-    sm.sliced_num_col = nrow;
+    sm.local_num_row = ncol;
+    sm.local_num_col = nrow;
     sliced_colmajor_vector_local<T> sv(vec);
 
     std::vector<T> ret(nrow);
@@ -281,12 +281,12 @@ namespace frovedis {
 
     sliced_colmajor_matrix_local<T> sm1(inMat1.val);
     sm1.ldm = inMat1.local_num_col;
-    sm1.sliced_num_row = inMat1.local_num_col;
-    sm1.sliced_num_col = inMat1.local_num_row;
+    sm1.local_num_row = inMat1.local_num_col;
+    sm1.local_num_col = inMat1.local_num_row;
     sliced_colmajor_matrix_local<T> sm2(inMat2.val);
     sm2.ldm = inMat2.local_num_col;
-    sm2.sliced_num_row = inMat2.local_num_col;
-    sm2.sliced_num_col = inMat2.local_num_row;
+    sm2.local_num_row = inMat2.local_num_col;
+    sm2.local_num_col = inMat2.local_num_row;
 
     auto out = sm2 * sm1;
     rowmajor_matrix_local<T> ret(out.val);
@@ -350,12 +350,12 @@ namespace frovedis {
    if(!inMat1.is_valid() || !inMat2.is_valid())
      REPORT_ERROR(USER_ERROR,"Invalid input matrix!!\n");
 
-   if(inMat1.sliced_num_col != inMat2.sliced_num_row)
+   if(inMat1.local_num_col != inMat2.local_num_row)
      REPORT_ERROR(USER_ERROR,
         "Incompatible input sizes: Matrix-multiplication not possible!!\n");
 
-   colmajor_matrix_local<T> res_mat(inMat1.sliced_num_row,
-                                    inMat2.sliced_num_col);
+   colmajor_matrix_local<T> res_mat(inMat1.local_num_row,
+                                    inMat2.local_num_col);
    gemm<T>(inMat1,inMat2,res_mat);
    return res_mat;
   }
@@ -370,7 +370,7 @@ namespace frovedis {
   template <class T>
   std::vector<T> trans_mv(const sliced_colmajor_matrix_local<T>& mat,
                           const std::vector<T>& v) {
-    std::vector<T> ret(mat.sliced_num_col);
+    std::vector<T> ret(mat.local_num_col);
     gemv<T>(mat,v,ret,'T');
     return ret;
   }
@@ -385,7 +385,7 @@ namespace frovedis {
   template <class T>
   std::vector<T> operator*(const sliced_colmajor_matrix_local<T>& mat,
                            const std::vector<T>& v) {
-    std::vector<T> ret(mat.sliced_num_row);
+    std::vector<T> ret(mat.local_num_row);
     gemv<T>(mat,v,ret,'N');
     return ret;
   }
@@ -401,8 +401,8 @@ namespace frovedis {
   colmajor_matrix_local<T>
   operator~ (const sliced_colmajor_matrix_local<T>& inMat) {
 
-    size_t nrow = inMat.sliced_num_row;
-    size_t ncol = inMat.sliced_num_col;
+    size_t nrow = inMat.local_num_row;
+    size_t ncol = inMat.local_num_col;
     colmajor_matrix_local<T> ret(ncol,nrow);
 
     T* retp = &ret.val[0];
