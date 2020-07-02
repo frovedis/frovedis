@@ -21,7 +21,7 @@ divide_to_minibatch_with_size(crs_matrix_local<T,I,O>& data, std::vector<T>& lab
   // TODO: extend typed_allreduce() and make below concise.
   float local_batch_count_f = local_batch_count;
   float batch_count_f;
-  typed_allreduce(&local_batch_count_f, &batch_count_f, 1, MPI_MAX, MPI_COMM_WORLD);
+  typed_allreduce(&local_batch_count_f, &batch_count_f, 1, MPI_MAX, frovedis_comm_rpc);
   size_t batch_count = batch_count_f; 
   LOG(DEBUG) << "Number of minibatches: " << batch_count << std::endl;
   

@@ -13,7 +13,7 @@ void aggregate_fm_parameter_to_managing_node(
     chain_schedule<I>& schedule, size_t batch_id, fm_parameter<T>& local_grad, 
     fm_parameter<T>& grad_accumulator, fm_config<T>& config) {
 
-  typed_allreduce(&local_grad.w0, &grad_accumulator.w0, 1, MPI_SUM, MPI_COMM_WORLD);
+  typed_allreduce(&local_grad.w0, &grad_accumulator.w0, 1, MPI_SUM, frovedis_comm_rpc);
 
   aggregate_to_managing_node(schedule, batch_id, local_grad.w, grad_accumulator.w, 1);
 
