@@ -265,7 +265,7 @@ void Train_SGNS_general() {
       while (ready_threads < num_threads - 1) {
         usleep(1);
       }
-      MPI_Barrier(MPI_COMM_WORLD);
+      MPI_Barrier(frovedis::frovedis_comm_rpc);
 
 #pragma omp atomic
       ready_threads = ready_threads + 1;
@@ -285,9 +285,9 @@ void Train_SGNS_general() {
 
           // synchronize parameters
           MPI_Allreduce(&active_processes, &active_processes_global, 1, MPI_INT,
-                        MPI_SUM, MPI_COMM_WORLD);
+                        MPI_SUM, frovedis::frovedis_comm_rpc);
           MPI_Allreduce(&word_count_actual, &word_count_actual_global, 1,
-                        MPI_LONG_LONG, MPI_SUM, MPI_COMM_WORLD);
+                        MPI_LONG_LONG, MPI_SUM, frovedis::frovedis_comm_rpc);
 
           // determine if full sync
           int sync_vocab_size =
@@ -308,10 +308,10 @@ void Train_SGNS_general() {
             int sync_size = min(sync_chunk_size, sync_vocab_size - start);
             MPI_Allreduce(MPI_IN_PLACE, Wih + start * hidden_size,
                           sync_size * hidden_size, MPI_SCALAR, MPI_SUM,
-                          MPI_COMM_WORLD);
+                          frovedis::frovedis_comm_rpc);
             MPI_Allreduce(MPI_IN_PLACE, Woh + start * hidden_size,
                           sync_size * hidden_size, MPI_SCALAR, MPI_SUM,
-                          MPI_COMM_WORLD);
+                          frovedis::frovedis_comm_rpc);
           }
 
           for (int i = 0; i < sync_vocab_size * hidden_size; i++) {
@@ -899,7 +899,7 @@ void Train_SGNS_general() {
   } // omp parallel num_threads
 
 #ifdef W2V_USE_MPI
-  MPI_Barrier(MPI_COMM_WORLD);
+  MPI_Barrier(frovedis::frovedis_comm_rpc);
 #endif
 
 }
@@ -926,8 +926,8 @@ std::vector<float> train_each(std::vector<int> &_proc_train_data,
   batch_size = _config.window * 2 + 1;  // dependent
 
 #ifdef W2V_USE_MPI
-  MPI_Comm_size(MPI_COMM_WORLD, &num_procs);
-  MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
+  MPI_Comm_size(frovedis::frovedis_comm_rpc, &num_procs);
+  MPI_Comm_rank(frovedis::frovedis_comm_rpc, &my_rank);
 #else
   num_procs = 1;
   my_rank = 0;
@@ -937,7 +937,7 @@ std::vector<float> train_each(std::vector<int> &_proc_train_data,
   proc_train_words = _proc_train_data.size();
 #ifdef W2V_USE_MPI
   MPI_Allreduce(&proc_train_words, &train_words, 1, MPI_LONG_LONG, MPI_SUM,
-                MPI_COMM_WORLD);
+                frovedis::frovedis_comm_rpc);
 #else
   train_words = proc_train_words;
 #endif
@@ -984,8 +984,8 @@ void train_each(std::string &_train_file_str,
                            train_config &_config) {
 
 #ifdef W2V_USE_MPI
-  MPI_Comm_size(MPI_COMM_WORLD, &num_procs);
-  MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
+  MPI_Comm_size(frovedis::frovedis_comm_rpc, &num_procs);
+  MPI_Comm_rank(frovedis::frovedis_comm_rpc, &my_rank);
 #else
   num_procs = 1;
   my_rank = 0;
@@ -998,7 +998,7 @@ void train_each(std::string &_train_file_str,
   }
 
 #ifdef W2V_USE_MPI
-  MPI_Bcast(&train_words, 1, MPI_LONG_LONG, 0, MPI_COMM_WORLD);
+  MPI_Bcast(&train_words, 1, MPI_LONG_LONG, 0, frovedis::frovedis_comm_rpc);
 
   ulonglong step =
       train_words / num_procs + (train_words / num_procs > 0 ? 1 : 0);
@@ -1015,7 +1015,7 @@ void train_each(std::string &_train_file_str,
 
   MPI_Scatterv(_train_data.data(), counts.data(), displs.data(), MPI_INT,
                _proc_train_data.data(), counts[my_rank], MPI_INT, 0,
-               MPI_COMM_WORLD);
+               frovedis::frovedis_comm_rpc);
   proc_train_words = counts[my_rank];
   // release
   std::vector<int>().swap(_train_data);
