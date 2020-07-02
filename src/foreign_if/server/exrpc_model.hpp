@@ -37,6 +37,7 @@
 #include "lda_result.hpp"
 #include "frovedis_mem_pair.hpp"
 
+#include <typeinfo>
 using namespace frovedis;
 
 // --- Frovedis Models Handling (print, delete, set threshold) ---
@@ -166,17 +167,23 @@ parallel_lnrm_predict(MATRIX& data, exrpc_ptr_t& mp) {
 
 template <class T, class L_MATRIX, class MODEL>
 std::vector<T> predict_glm_by_worker(L_MATRIX& mat, MODEL& model) {
-  return model.predict(mat);
+  if (mat.local_num_row > 0) 
+    return model.predict(mat);
+  else
+    return std::vector<T>();
 }
 
 template <class T, class L_MATRIX, class MODEL>
 std::vector<T> predict_proba_glm_by_worker(L_MATRIX& mat, MODEL& model) {
-  return model.predict_probability(mat);
+  if (mat.local_num_row > 0)
+    return model.predict_probability(mat);
+  else
+    return std::vector<T>();
 }
 
 // multiple inputs (crs_matrix): prediction done in parallel in worker nodes
 template <class T, class MATRIX, class L_MATRIX, class MODEL>
-std::vector<T> pgp2(exrpc_ptr_t& mat_ptr, int& mid, bool& prob) { // sklearn`
+std::vector<T> pgp2(exrpc_ptr_t& mat_ptr, int& mid, bool& prob) { // sklearn` 
   auto mat_ptr_ = reinterpret_cast<MATRIX*> (mat_ptr);
   auto model_ptr = get_model_ptr<MODEL>(mid);
   MATRIX& mat = *mat_ptr_;
@@ -187,18 +194,6 @@ std::vector<T> pgp2(exrpc_ptr_t& mat_ptr, int& mid, bool& prob) { // sklearn`
                            .template moveto_dvector<T>().gather();
   else return mat.data.map(predict_glm_by_worker<T,L_MATRIX,MODEL>,bmodel)
                       .template moveto_dvector<T>().gather();
-}
-
-template <class T, class MATRIX, class L_MATRIX>
-std::vector<T> p_lnrm_p2(exrpc_ptr_t& mat_ptr, int& mid) { // sklearn
-  auto mat_ptr_ = reinterpret_cast<MATRIX*> (mat_ptr);
-  auto model_ptr = get_model_ptr<linear_regression_model<T>>(mid);
-  MATRIX& mat = *mat_ptr_;
-  linear_regression_model<T>& model = *model_ptr;
-  //auto bmodel = broadcast(model);
-  auto bmodel = model.broadcast(); // for performance
-  return mat.data.map(predict_glm_by_worker<T,L_MATRIX,linear_regression_model<T>>,
-                      bmodel).template moveto_dvector<T>().gather();
 }
 
 // single input (crs_vector_local): prediction done in master node
@@ -256,6 +251,7 @@ parallel_mfm_predict(exrpc_ptr_t& mp,
             << " to perform parallel prediction with model:\n";
   mptr->debug_print();
   std::cout << "with test data: \n [";
+  auto total = ids.size();
   for(int i=0; i<total; ++i) 
     std::cout << "(" << ids[i].first << "," << ids[i].second << "), ";
   std::cout << "]\n";
@@ -652,7 +648,11 @@ std::vector<T>
 nbm_predict_at_worker(MATRIX& data, 
                       naive_bayes_model<T>& model, bool& prob) {
   //return (prob ? model.predict(data): model.predict_proba(data));
-  return model.predict(data);
+  if (data.local_num_row > 0) 
+    return model.predict(data);
+  else
+    return std::vector<T>();
+
 }
 
 // the below call is for scikit-learn. 
@@ -690,6 +690,7 @@ template <class T, class MATRIX>
 std::vector<T> 
 dtm_predict_at_worker(MATRIX& data, 
                       decision_tree_model<T>& model, bool& prob) {
+  if (data.local_num_row <= 0) return std::vector<T>();
   if(!prob) return model.predict(data);
   else {
     auto tmp = model.predict_with_probability(data);
@@ -733,7 +734,11 @@ std::vector<T> parallel_fmm_predict(MATRIX& data, exrpc_ptr_t& mp) {
 template <class T, class MATRIX>
 std::vector<T> 
 fmm_predict_at_worker(MATRIX& data, fm::fm_model<T>& model) {
-  return model.predict(data);
+
+  if (data.local_num_row > 0) 
+    return model.predict(data);
+  else
+    return std::vector<T>();
 }
 
 // the below call is for scikit-learn. 
@@ -840,7 +845,9 @@ void save_w2v_model(int& mid, std::vector<std::string>& vocab,
 template <class MODEL>
 dummy_matrix get_lda_component(int& mid) {
   auto& model = *get_model_ptr<MODEL>(mid);
-  auto dist = get_distribution_matrix_local(model.word_topic_count);
+  auto sum = sum_of_rows(model.word_topic_count); // computing sum_of_rows for word_topic_count
+  int axis = 0;
+  auto dist = get_distribution_matrix_local(model.word_topic_count, sum, axis);
   auto distptr = new rowmajor_matrix<double>(make_rowmajor_matrix_scatter(dist));
   return to_dummy_matrix<rowmajor_matrix<double>,
                          rowmajor_matrix_local<double>>(distptr);
@@ -1104,7 +1111,10 @@ template <class T, class MATRIX>
 std::vector<T> 
 rfm_predict_at_worker(MATRIX& data, 
                       random_forest_model<T>& model, bool& prob) {
+  if (data.local_num_row > 0) 
     return model.predict(data);
+  else
+    return std::vector<T>();
 }
 
 
@@ -1126,18 +1136,50 @@ template <class T, class MATRIX>
 std::vector<T> 
 gbt_predict_at_worker(MATRIX& data, 
                       gradient_boosted_trees_model<T>& model) {
-  return model.predict(data);
+  if (data.local_num_row > 0) 
+    return model.predict(data);
+  else
+    return std::vector<T>();
 }
 
 template <class T, class MATRIX, class L_MATRIX>
 std::vector<T> 
 parallel_gbt_predict_with_broadcast(exrpc_ptr_t& mat_ptr, int& mid, bool& prob) {
-  if(prob) REPORT_ERROR(USER_ERROR,"Frovedis currently doeesnt support predict_proba for GBT"); 
+  if(prob) REPORT_ERROR(USER_ERROR,"Frovedis currently doesn't support predict_proba for GBT"); 
   MATRIX& mat = *reinterpret_cast<MATRIX*> (mat_ptr);
   auto& model = *get_model_ptr<gradient_boosted_trees_model<T>>(mid);
   auto bmodel = model.broadcast(); // for performance
   return mat.data.map(gbt_predict_at_worker<T,L_MATRIX>,bmodel)
                  .template moveto_dvector<T>().gather();
+}
+
+// GBT spark related getters
+template <class MODEL>
+size_t
+frovedis_ensemble_get_num_trees(int& mid) {
+  auto& model = *get_model_ptr<MODEL>(mid);
+  return model.get_num_trees();
+}
+
+template <class MODEL>
+size_t
+frovedis_ensemble_get_total_num_nodes(int& mid) {
+  auto& model = *get_model_ptr<MODEL>(mid);
+  return model.get_total_num_nodes();
+}
+
+template <class MODEL, class T>
+std::vector<T>
+frovedis_ensemble_get_tree_weights(int& mid) {
+  auto& model = *get_model_ptr<MODEL>(mid);
+  return model.get_tree_weights();
+}
+
+template <class MODEL>
+std::string
+frovedis_ensemble_to_string(int& mid) {
+  auto& model = *get_model_ptr<MODEL>(mid);
+  return model.to_string();
 }
 
 #endif 
