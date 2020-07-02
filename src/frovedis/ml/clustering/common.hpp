@@ -80,21 +80,21 @@ mult_a_with_trans_b (rowmajor_matrix_local<T>& a,
     sliced_colmajor_matrix_local<T> sm1;
     sm1.ldm = a.local_num_col;
     sm1.data = a.val.data();
-    sm1.sliced_num_row = a_ncol;
-    sm1.sliced_num_col = a_nrow;
+    sm1.local_num_row = a_ncol;
+    sm1.local_num_col = a_nrow;
 
     sliced_colmajor_matrix_local<T> sm2;
     sm2.ldm = b.local_num_col;
     sm2.data = b.val.data();
-    sm2.sliced_num_row = b_ncol;
-    sm2.sliced_num_col = b_nrow;
+    sm2.local_num_row = b_ncol;
+    sm2.local_num_col = b_nrow;
 
     rowmajor_matrix_local<T> ret(a_nrow, b_nrow); // ret = a * trans(b)
     sliced_colmajor_matrix_local<T> sm3;
     sm3.ldm = b_nrow;
     sm3.data = ret.val.data();
-    sm3.sliced_num_row = b_nrow;
-    sm3.sliced_num_col = a_nrow;
+    sm3.local_num_row = b_nrow;
+    sm3.local_num_col = a_nrow;
     gemm<T>(sm2, sm1, sm3, 'T', 'N');
     return ret;
 }
@@ -488,10 +488,11 @@ sum_of_cols_without_diagonal(rowmajor_matrix_local<T>& aff_loc,
   return con_vec;
 }
 
-template <class T>
-node_local<size_t> get_start_indices(rowmajor_matrix<T>& mat) {
-  auto nrows = mat.data.map(rowmajor_get_local_num_row<T>).gather();
-  std::vector<size_t> sidx(nrows.size(),0);
+template <class MATRIX>
+node_local<size_t> 
+get_start_indices(MATRIX& mat) {
+  auto nrows = mat.get_local_num_rows();
+  std::vector<size_t> sidx(nrows.size()); sidx[0] = 0;
   for(size_t i=1; i<nrows.size(); ++i) sidx[i] = sidx[i-1] + nrows[i-1];
   return make_node_local_scatter(sidx);
 }
@@ -503,9 +504,20 @@ lvec<T> construct_connectivity_diagonals(rowmajor_matrix<T>& mat,
 }
 
 template <class T>
-void one_by_sqrt_inplace(std::vector<T>& conn_vec) {
+std::vector<int> 
+one_by_sqrt_inplace(std::vector<T>& conn_vec) {
+  auto nsamples = conn_vec.size();
+  std::vector<int> isolated(nsamples);
   auto cptr = conn_vec.data();
-  for(size_t i = 0; i < conn_vec.size(); ++i) cptr[i] = 1 / sqrt(cptr[i]);
+  auto isoptr = isolated.data();
+  for(size_t i = 0; i < nsamples; ++i) {
+    if (cptr[i] == 0) cptr[i] = isoptr[i] = 1;
+    else {
+      isoptr[i] = 0;
+      cptr[i] = 1 / sqrt(cptr[i]);
+    }
+  }
+  return isolated;
 }
 
 // construction of laplace matrix from affinity matrix and degree matrix
@@ -522,17 +534,21 @@ struct construct_laplace_matrix_helper {
     auto nrow = mat.local_num_row;
     auto ncol = mat.local_num_col;
     auto mptr = mat.val.data();
-    auto cptr = conn_vec.data();
+    // algo: scipy.sparse.csgraph.laplacian
     if(norm_laplacian) {
+      auto isolated = one_by_sqrt_inplace(conn_vec); // returns vector(1 or 0) 
+      auto cptr = conn_vec.data();
+      auto isoptr = isolated.data();
       for(size_t i = 0; i < nrow; ++i) {
         auto diag_j = i + myst; 
         for(size_t j = 0; j < ncol; ++j) {
-          mptr[i*ncol+j] *= -1.0 * cptr[j] * cptr[diag_j]; 
+          mptr[i*ncol+j] *= -1.0 * cptr[j] * cptr[diag_j];  
         }
-        mptr[i * ncol + diag_j] = 1.0; // taking care of diagonals
+        mptr[i * ncol + diag_j] = 1.0 - isoptr[i]; // taking care of diagonals
       }
     }
     else {
+      auto cptr = conn_vec.data();
       for(size_t i = 0; i < nrow*ncol; ++i) mptr[i] *= -1.0; // -A 
       for(size_t i = 0; i < nrow; ++i) {
         auto diag_j = i + myst; 
