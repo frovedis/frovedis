@@ -881,7 +881,7 @@ spark_lda_test(exrpc_ptr_t& dptr, double& alpha,
                double& ppl, double& llh) {
   auto& t_mod = *get_model_ptr<MODEL>(mid);
   MATRIX& mat = *reinterpret_cast<MATRIX*>(dptr);
-  auto mod_mat = mat.change_datatype<TD>();
+  auto mod_mat = mat.template change_datatype<TD>();
   std::vector<double> likelihood, perplexity;
   auto doc_topic_count = lda_test(mod_mat, alpha, beta, num_iter, algorithm,
                                   num_explore_iter, t_mod.model, perplexity,
