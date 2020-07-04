@@ -29,12 +29,8 @@ from frovedis.mllib.linear_model import *
 lr = LogisticRegression(solver='lbfgs', C=1.0, verbose=0)
 C = [0.001,0.0001]
 param = dict(C=C)
-try:
-    grid_search_cv(lr,param,'r2',mat,lbl)
-except:
-    print("Fail")
+grid_search_cv(lr,param,'r2',mat,lbl)
+
 lr.release()
-
 FrovedisServer.shut_down()
-
 
