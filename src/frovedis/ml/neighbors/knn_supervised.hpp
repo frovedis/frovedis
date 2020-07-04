@@ -74,7 +74,7 @@ struct kneighbors_classifier {
                      bool save_proba = false);
 
   template <class I = size_t>
-  rowmajor_matrix<T> predict_proba(rowmajor_matrix<T>& mat);
+  rowmajor_matrix<T> predict_probability(rowmajor_matrix<T>& mat);
 
   template <class I = size_t>
   float score(rowmajor_matrix<T>& mat, dvector<T>& true_label);
@@ -205,7 +205,7 @@ kneighbors_classifier<T>::predict(rowmajor_matrix<T>& mat,
   return count.data.map(predict_local<T,I>, broadcast(uniq_labels))
                    .template moveto_dvector<T>();
 #else // based on probability
-  auto proba = predict_proba<I>(mat);
+  auto proba = predict_probability<I>(mat);
   if(save_proba) proba.save("probability_matrix");
   return proba.data.map(predict_from_proba<T>, broadcast(uniq_labels))
                    .template moveto_dvector<T>();
@@ -214,7 +214,7 @@ kneighbors_classifier<T>::predict(rowmajor_matrix<T>& mat,
 
 template <class T, class I>
 rowmajor_matrix_local<T> 
-predict_proba_local(rowmajor_matrix_local<I>& count,
+predict_probability_local(rowmajor_matrix_local<I>& count,
                     int k) {
   auto nrow = count.local_num_row;
   auto nclasses = count.local_num_col;
@@ -231,12 +231,12 @@ predict_proba_local(rowmajor_matrix_local<I>& count,
 template <class T>
 template <class I>
 rowmajor_matrix<T> 
-kneighbors_classifier<T>::predict_proba(rowmajor_matrix<T>& mat) {
+kneighbors_classifier<T>::predict_probability(rowmajor_matrix<T>& mat) {
   auto k = n_neighbors;
   auto need_distance = false;
   auto model = kneighbors<I>(mat, k, need_distance);
   auto count = get_count_matrix(model.indices, encoded_label, nclasses);
-  rowmajor_matrix<T> pred(count.data.map(predict_proba_local<T,I>, 
+  rowmajor_matrix<T> pred(count.data.map(predict_probability_local<T,I>, 
                                          broadcast(k))); 
   pred.num_row = mat.num_row;
   pred.num_col = nclasses;
