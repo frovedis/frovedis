@@ -27,6 +27,12 @@
 
 namespace frovedis {
 
+enum IndexOrigin {
+  AUTO = 0,
+  ZERO_ORIG,
+  ONE_ORIG
+};
+
 template <class T, class I = size_t>
 struct sparse_vector {
   sparse_vector() : size(0) {}
@@ -854,7 +860,8 @@ std::vector<T> loadlibsvm_extract_label(std::vector<std::string>& vecstr) {
 template <class T, class I = size_t, class O = size_t>
 crs_matrix_local<T,I,O>
 make_crs_matrix_local_loadlibsvm(const std::string& file, 
-                                 std::vector<T>& label) {
+                                 std::vector<T>& label,
+                                 IndexOrigin idxorg = AUTO) {
   std::ifstream ifs(file.c_str());
   std::vector<std::string> vecstr;
   std::string line;
@@ -864,8 +871,15 @@ make_crs_matrix_local_loadlibsvm(const std::string& file,
   ret.local_num_row = ret.off.size() - 1;
   auto it = std::max_element(ret.idx.begin(), ret.idx.end());
   ret.local_num_col = *it + 1;
-  for(size_t i = 0; i < ret.idx.size(); i++) {
-    ret.idx[i]--; // one origin to zero origin
+  auto retidxp = ret.idx.data();
+  if (idxorg == ONE_ORIG) {
+    for(size_t i = 0; i < ret.idx.size(); i++) retidxp[i]--;
+  }
+  else if (idxorg == AUTO) {
+    auto minidx = *std::min_element(ret.idx.begin(), ret.idx.end());
+    if(minidx > 0) {
+      for(size_t i = 0; i < ret.idx.size(); i++) retidxp[i]--;
+    }
   }
   return ret;
 }
@@ -1033,6 +1047,17 @@ size_t crs_matrix_get_maxidx(crs_matrix_local<T,I,O>& m) {
     if(idxp[i] > max) max = idxp[i];
   }
   return max;
+}
+
+template <class T, class I, class O>
+size_t crs_matrix_get_minidx(crs_matrix_local<T,I,O>& m) {
+  auto idxp = m.idx.data();
+  auto idx_size = m.idx.size();
+  I min = std::numeric_limits<I>::max();
+  for(size_t i = 0; i < idx_size; i++) {
+    if(idxp[i] < min) min = idxp[i];
+  }
+  return min;
 }
 
 #ifdef __ve__
@@ -1263,14 +1288,20 @@ void to_zero_origin(crs_matrix_local<T,I,O>& mat) {
 template <class T, class I = size_t, class O = size_t>
 crs_matrix<T,I,O>
 make_crs_matrix_loadlibsvm(const std::string& file, 
-                           dvector<T>& label) {
+                           dvector<T>& label,
+                           IndexOrigin idxorg = AUTO) {
   auto rawdata = frovedis::make_dvector_loadline(file);
   size_t num_row = rawdata.size();
   label = rawdata.viewas_node_local().map(loadlibsvm_extract_label<T>).
     template moveto_dvector<T>();
   crs_matrix<T,I,O> ret(rawdata.moveto_node_local().
                         map(make_crs_matrix_local_vectorstring<T,I,O>));
-  ret.data.mapv(to_zero_origin<T,I,O>);
+  if (idxorg == ONE_ORIG) ret.data.mapv(to_zero_origin<T,I,O>);
+  else if (idxorg == AUTO) {
+    auto mins = ret.data.map(crs_matrix_get_minidx<T,I,O>).gather();
+    auto minidx = *std::min_element(mins.begin(), mins.end());
+    if(minidx > 0) ret.data.mapv(to_zero_origin<T,I,O>);
+  }
   auto maxs = ret.data.map(crs_matrix_get_maxidx<T,I,O>).gather();
   size_t num_col = *std::max_element(maxs.begin(), maxs.end()) + 1;
   ret.data.mapv(set_local_num_crs_helper<T,I,O>(num_col));
