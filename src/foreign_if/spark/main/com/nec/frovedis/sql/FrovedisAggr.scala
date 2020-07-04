@@ -34,4 +34,5 @@ object functions {
   def column(colName: String): FrovedisColumn = new FrovedisColumn(colName)
   def asc(columnName: String): FrovedisColumn = new FrovedisColumn(columnName).asc
   def desc(columnName: String): FrovedisColumn = new FrovedisColumn(columnName).desc
+  def not(e: Expr): Expr = !e
 }

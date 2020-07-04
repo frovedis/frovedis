@@ -11,6 +11,7 @@ object OPTYPE {
   val LE: Short = 6
   val AND: Short = 11
   val OR: Short = 12
+  val NOT: Short = 13
 }
 
 class Expr extends java.io.Serializable {
@@ -47,6 +48,10 @@ class Expr extends java.io.Serializable {
 
   def or(e: Expr): Expr = ||(e)
 
+  def unary_! : Expr = {
+    new Expr(this, null, OPTYPE.NOT)
+  }
+
   private def get_opt(optid: Short): String = {
     return optid match {
       case OPTYPE.EQ => "=="
@@ -57,6 +62,7 @@ class Expr extends java.io.Serializable {
       case OPTYPE.LE => "<="
       case OPTYPE.AND => "&&"
       case OPTYPE.OR => "||"
+      case OPTYPE.NOT => "!"
       case _ => throw new IllegalArgumentException("Unsupported operator type: " + optid)
     }    
   }   
@@ -76,11 +82,13 @@ class Expr extends java.io.Serializable {
    }
     else {
       val p1 = op1.get_proxy(cols,types)
-      val p2 = op2.get_proxy(cols,types)
+      var p2 = -1L
+      if ( opt != OPTYPE.NOT ) p2 = op2.get_proxy(cols,types)
       // below calls release p1, p2 after getting combined operator
         val ret = opt match  {
         case OPTYPE.AND => JNISupport.getDFAndOperator(fs.master_node,p1,p2)
         case OPTYPE.OR  => JNISupport.getDFOrOperator(fs.master_node,p1,p2)
+        case OPTYPE.NOT  => JNISupport.getDFNotOperator(fs.master_node, p1)
         case _ => throw new IllegalArgumentException("Unsupported logical operator type: " + opt)
       }
   
@@ -93,8 +101,10 @@ class Expr extends java.io.Serializable {
     var ret = ""
     if(isTerminal) return "(" + st1 + " " + get_opt(opt) + " " + st2 + ")"
     else {
-      val r1 = op1.toString() 
-      val r2 = op2.toString() 
+      val r1 = op1.toString()
+      if( opt == OPTYPE.NOT ) return "(" + " " + get_opt(opt) + " " + r1 + " " + ")"
+
+      val r2 = op2.toString()
       return "(" + r1 + " " + get_opt(opt) + " " + r2 + ")"
     }
   }

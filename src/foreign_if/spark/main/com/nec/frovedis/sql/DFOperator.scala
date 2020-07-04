@@ -42,6 +42,14 @@ class DFOperator extends java.io.Serializable {
 
   def or(opt: DFOperator): DFOperator = ||(opt)
 
+  def unary_! : DFOperator = {
+    val fs = FrovedisServer.getServerInstance()
+    val r_proxy = JNISupport.getDFNotOperator(fs.master_node,proxy)
+    val info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
+    new DFOperator(r_proxy)
+  }
+
   def get() = proxy
 }
 
