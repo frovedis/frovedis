@@ -7,6 +7,7 @@
 #include <vector>
 #include <string>
 #include "../../core/utility.hpp"
+#include "../../matrix/rowmajor_matrix.hpp"
 
 #define YES_RESPONSE 1
 #define NO_RESPONSE -1
@@ -268,11 +269,6 @@ struct linear_regression_model {
     }
     return v;
   }
-  template <class DATA_MATRIX>
-  std::vector<T>
-  predict_probability(DATA_MATRIX& mat) { // added to make all glm model uniform
-    return predict(mat);
-  }
   size_t get_num_features() const {return weight.size();}
   void save(const std::string &inputPath) const {
     glm_save<T>(*this,inputPath);
@@ -383,25 +379,6 @@ struct logistic_regression_model {
   }
   template <class DATA_MATRIX>
   std::vector<T>
-  predict(DATA_MATRIX& mat, bool use_score=false) {
-    auto tmp = predict_probability(mat, use_score);
-    std::vector<T> ret(tmp.size());
-    T* tmpp = &tmp[0];
-    T* retp = &ret[0];
-    if(use_score) {
-      for(size_t i = 0; i < tmp.size(); ++i) {
-        retp[i] = (tmpp[i] > 0) ? YES_RESPONSE : NO_RESPONSE;
-      }
-    }
-    else {
-      for(size_t i = 0; i < tmp.size(); ++i) {
-        retp[i] = (tmpp[i] >= threshold) ? YES_RESPONSE : NO_RESPONSE;
-      }
-    } 
-    return ret;
-  }
-  template <class DATA_MATRIX>
-  std::vector<T>
   predict_probability(DATA_MATRIX& mat, bool use_score=false) {
     auto v = mat * weight;
     auto vp = v.data();
@@ -417,8 +394,48 @@ struct logistic_regression_model {
     }
     return v;
   }
+  template <class DATA_MATRIX>
+  std::vector<T>
+  predict(DATA_MATRIX& mat, bool use_score=false) {
+    auto tmp = predict_probability(mat, use_score);
+    std::vector<T> ret(tmp.size());
+    auto tmpp = tmp.data();
+    auto retp = ret.data();
+    if(use_score) {
+      for(size_t i = 0; i < tmp.size(); ++i) {
+        retp[i] = (tmpp[i] > 0) ? YES_RESPONSE : NO_RESPONSE;
+      }
+    }
+    else {
+      for(size_t i = 0; i < tmp.size(); ++i) {
+        retp[i] = (tmpp[i] >= threshold) ? YES_RESPONSE : NO_RESPONSE;
+      }
+    } 
+    return ret;
+  }
+  template <class DATA_MATRIX>
+  rowmajor_matrix_local<T>
+  compute_probability_matrix(DATA_MATRIX& mat) {
+    auto tmp = predict_probability(mat);
+    auto nclasses = 2;
+    auto nsamples = tmp.size();
+    rowmajor_matrix_local<T> ret(nsamples, nclasses);
+    auto tmpp = tmp.data();
+    auto retp = ret.val.data();
+    for(size_t i = 0; i < nsamples; ++i) {
+      if (tmpp[i] >= threshold) {
+        retp[i * nclasses + 0] = 1.0 - tmpp[i];
+        retp[i * nclasses + 1] = tmpp[i];
+      }
+      else {
+        retp[i * nclasses + 0] = tmpp[i];
+        retp[i * nclasses + 1] = 1.0 - tmpp[i];
+      }
+    }
+    return ret;
+  }
   void set_threshold(T thr) {
-    if(thr < 0) REPORT_ERROR(USER_ERROR,"Negative Threshold Value\n");
+    if(thr < 0) REPORT_ERROR(USER_ERROR, "Negative Threshold Value\n");
     threshold = thr;
   }
   size_t get_num_features() const {return weight.size();}
