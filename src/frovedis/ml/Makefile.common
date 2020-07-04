@@ -3,17 +3,16 @@ TREE_OBJS := tree_config.o tree_impurity.o tree_utility.o gbts_loss.o
 W2V_OBJS := w2v_core.o w2v_corpus.o w2vgemm0.o w2vgemm0_associated.o w2vgemm1.o w2vgemm2.o
 FM_OBJS := main.o
 UTIL_OBJS := batch_chain_communicator.o
-GRAPH_OBJS := graph.o
 FP_OBJS := fp_growth_model.o fp_growth.o
 
-OBJS := ${RECM_OBJS} ${TREE_OBJS} ${W2V_OBJS} ${FM_OBJS} ${UTIL_OBJS} ${GRAPH_OBJS} ${FP_OBJS}
+OBJS := ${RECM_OBJS} ${TREE_OBJS} ${W2V_OBJS} ${FM_OBJS} ${UTIL_OBJS} ${FP_OBJS}
 
 TARGETS := libfrovedis_ml.a
 
 INCLUDES := -I../../../third_party/cereal-1.2.2/include/ -I../../../third_party/yas-7.0.5/include/ -I../../../third_party/include -I../..
 CXXFLAGS := ${CXXFLAGS_COMMON} ${INCLUDES}
 LIBS := -L../matrix -lfrovedis_matrix -L../core -lfrovedis_core ${LIBS_COMMON}
-VPATH := glm recommendation tree w2v fm utility graph fpm kernel
+VPATH := glm recommendation tree w2v fm utility fpm kernel
 
 targets: ${TARGETS}
 
@@ -78,8 +77,6 @@ main.o: main.cc main.hpp
 batch_chain_communicator.o: batch_chain_communicator.cc batch_chain_communicator.hpp
 fp_growth_model.o: fp_growth_model.cc fp_growth_model.hpp
 fp_growth.o: fp_growth.cc fp_growth.hpp fp_growth_model.hpp
-
-graph.o: graph.cc binary_search.hpp connected_components.hpp find_partitions.hpp global.hpp graph.cc graph.hpp pagerank.hpp set_union_multivec.hpp sparse_vector.hpp sssp.hpp
 
 clean:
 	${RM} ${TO_CLEAN} glm/*~ recommendation/*~ fm/*~ fpm/*~ clustering/*~ ${TARGETS} 
