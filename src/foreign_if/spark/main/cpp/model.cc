@@ -18,6 +18,7 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_showFrovedisModel
       case LRM:    exrpc_oneway(fm_node, show_model<LRM1>, mid); break;
       case MLR:    exrpc_oneway(fm_node, show_model<MLR1>, mid); break;
       case SVM:    exrpc_oneway(fm_node, show_model<SVM1>, mid); break;
+      case SVR:    exrpc_oneway(fm_node, show_model<SVR1>, mid); break;
       case LNRM:   exrpc_oneway(fm_node, show_model<LNRM1>, mid); break;
       case MFM:    exrpc_oneway(fm_node, show_model<MFM1>, mid); break;
       case KMEANS: exrpc_oneway(fm_node, show_model<KMM1>, mid); break;
@@ -47,6 +48,7 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_releaseFrovedisMo
       case LRM:    exrpc_oneway(fm_node, release_model<LRM1>, mid); break;
       case MLR:    exrpc_oneway(fm_node, release_model<MLR1>, mid); break;
       case SVM:    exrpc_oneway(fm_node, release_model<SVM1>, mid); break;
+      case SVR:    exrpc_oneway(fm_node, release_model<SVR1>, mid); break;
       case LNRM:   exrpc_oneway(fm_node, release_model<LNRM1>, mid); break;
       case MFM:    exrpc_oneway(fm_node, release_model<MFM1>, mid); break;
       case KMEANS: exrpc_oneway(fm_node, release_model<KMM1>, mid); break;
@@ -83,6 +85,7 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_saveFrovedisModel
       case LRM:    exrpc_oneway(fm_node,save_model<LRM1>,mid,fs_path); break;
       case MLR:    exrpc_oneway(fm_node,save_model<MLR1>,mid,fs_path); break;
       case SVM:    exrpc_oneway(fm_node,save_model<SVM1>,mid,fs_path); break;
+      case SVR:    exrpc_oneway(fm_node,save_model<SVR1>,mid,fs_path); break;
       case LNRM:   exrpc_oneway(fm_node,save_model<LNRM1>,mid,fs_path); break;
       case MFM:    exrpc_oneway(fm_node,save_model<MFM1>,mid,fs_path); break;
       case KMEANS: exrpc_oneway(fm_node,save_model<KMM1>,mid,fs_path); break;
@@ -107,7 +110,6 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_saveFrovedisModel
 // and returns a vector containing model heads at worker nodes
 JNIEXPORT jlongArray JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_broadcast2AllWorkers
   (JNIEnv *env, jclass thisCls, jobject master_node, jint mid, jshort mkind) {
-  
   auto fm_node = java_node_to_frovedis_node(env, master_node);
 #ifdef _EXRPC_DEBUG_
   std::cout << "Connecting to master node (" 
@@ -119,17 +121,9 @@ JNIEXPORT jlongArray JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_broadcast2A
   jlongArray ret = NULL;
   try {
     switch(mkind) {
-      case LRM:    eps = exrpc_async(fm_node,(bcast_model_to_workers<DT1,LRM1>),mid).get(); break;
-      case MLR:    eps = exrpc_async(fm_node,(bcast_model_to_workers<DT1,MLR1>),mid).get(); break;
-      case SVM:    eps = exrpc_async(fm_node,(bcast_model_to_workers<DT1,SVM1>),mid).get(); break;
-      case LNRM:   eps = exrpc_async(fm_node,(bcast_model_to_workers<DT1,LNRM1>),mid).get(); break;
       case MFM:    eps = exrpc_async(fm_node,(bcast_model_to_workers<DT1,MFM1>),mid).get(); break;
       case KMEANS: eps = exrpc_async(fm_node,(bcast_model_to_workers<DT1,KMM1>),mid).get(); break;
-      case DTM:    eps = exrpc_async(fm_node,(bcast_model_to_workers<DT1,DTM1>),mid).get(); break;
-      case FMM:    eps = exrpc_async(fm_node,bcast_fmm_to_workers<DT1>,mid).get(); break;
-      case NBM:    eps = exrpc_async(fm_node,(bcast_model_to_workers<DT1,NBM1>),mid).get(); break;
-      //case RFM:    eps = exrpc_async(fm_node,(bcast_model_to_workers<DT1,RFM1>),mid).get(); break;
-      default:   REPORT_ERROR(USER_ERROR,"Unknown Model Kind is encountered!\n");
+      default:     REPORT_ERROR(USER_ERROR,"Unknown Model Kind is encountered!\n");
     }
     // converting eps to jlongArray
     size_t sz = eps.size();
@@ -146,13 +140,13 @@ JNIEXPORT jlongArray JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_broadcast2A
 // resets threshold value in trained Frovedis glm 
 JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_setFrovedisGLMThreshold
   (JNIEnv *env, jclass thisCls, jobject master_node, jint mid, jshort mkind, jdouble thr) {
-
   auto fm_node = java_node_to_frovedis_node(env, master_node);
   try {
      switch(mkind) {
        case LRM:    exrpc_oneway(fm_node,(set_glm_threshold<DT1,LRM1>),mid,thr); break;
        case MLR:    exrpc_oneway(fm_node,(set_glm_threshold<DT1,MLR1>),mid,thr); break;
        case SVM:    exrpc_oneway(fm_node,(set_glm_threshold<DT1,SVM1>),mid,thr); break;
+       case SVR:
        case LNRM:
        case MFM:
        case KMEANS: REPORT_ERROR(USER_ERROR,"This model doesn't have any threshold parameter!\n");
@@ -166,7 +160,6 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_setFrovedisGLMThr
 // loads frovedis generic models
 JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_loadFrovedisModel
   (JNIEnv *env, jclass thisCls, jobject master_node, jint mid, jshort mkind, jstring path) {
-
   auto fs_path = to_cstring(env,path);
   auto fm_node = java_node_to_frovedis_node(env, master_node);
   try {
@@ -202,7 +195,6 @@ JNIEXPORT jstring JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_loadFrovedisNB
 // loads the scm from the specified file
 JNIEXPORT jintArray JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_loadFrovedisSCM
   (JNIEnv *env, jclass thisCls, jobject master_node, jint mid, jstring path) {
-
   auto fs_path = to_cstring(env,path);
   auto fm_node = java_node_to_frovedis_node(env, master_node);
   std::vector<int> ret;
@@ -215,7 +207,6 @@ JNIEXPORT jintArray JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_loadFrovedis
 
 JNIEXPORT jintArray JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_FrovedisACMPredict
   (JNIEnv *env, jclass thisCls, jobject master_node, jint mid, jint ncluster) {
-
   auto fm_node = java_node_to_frovedis_node(env, master_node);
   std::vector<int> ret;
   try {
@@ -250,6 +241,7 @@ JNIEXPORT jobject JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_loadFrovedisGL
     switch(mkind) {
       case LRM:  model = exrpc_async(fm_node,load_glm<LRM1>,mid,LRM,fs_path).get(); break;
       case SVM:  model = exrpc_async(fm_node,load_glm<SVM1>,mid,SVM,fs_path).get(); break;
+      case SVR:  model = exrpc_async(fm_node,load_lnrm<DT1>,mid,SVR,fs_path).get(); break;
       case LNRM: model = exrpc_async(fm_node,load_lnrm<DT1>,mid,LNRM,fs_path).get(); break;
       default:   REPORT_ERROR(USER_ERROR,"Unknown Model Kind is encountered!\n");
     }
@@ -288,67 +280,6 @@ JNIEXPORT jint JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_loadFrovedisKMM
   }
   catch(std::exception& e) { set_status(true,e.what()); }
   return ret;  
-}
-
-// TODO: rename function (without GLM)
-// for multiple test inputs: prediction is carried out in parallel in Frovedis worker nodes
-JNIEXPORT jdoubleArray JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_doParallelGLMPredict
-  (JNIEnv *env, jclass thisCls, jobject worker_node, jlong mptr, jshort mkind, 
-   jlong nrows, jlong ncols, jintArray off, jintArray idx, jdoubleArray val) {
-
-  auto crs_loc = get_frovedis_double_crs_matrix_local(env,nrows,ncols,off,idx,val);
-  auto fw_node = java_node_to_frovedis_node(env, worker_node);
-  auto mptr_ = (exrpc_ptr_t) mptr;
-#ifdef _EXRPC_DEBUG_
-  std::cout << "Connecting to worker node (" 
-            << fw_node.hostname << "," << fw_node.rpcport 
-            << ") to perform multiple prediction in parallel.\n";
-#endif
-  std::vector<double> pd;
-  try {
-    switch(mkind) {
-      case LRM:  pd = exrpc_async(fw_node,(parallel_glm_predict<DT1,S_LMAT1,LRM1>),crs_loc,mptr_).get(); break;
-      case MLR:  pd = exrpc_async(fw_node,(parallel_glm_predict<DT1,S_LMAT1,MLR1>),crs_loc,mptr_).get(); break;
-      case SVM:  pd = exrpc_async(fw_node,(parallel_glm_predict<DT1,S_LMAT1,SVM1>),crs_loc,mptr_).get(); break;
-      case LNRM: pd = exrpc_async(fw_node,(parallel_lnrm_predict<DT1,S_LMAT1>),crs_loc,mptr_).get(); break;
-      case DTM:  pd = exrpc_async(fw_node,(parallel_dtm_predict<DT1,S_LMAT1>),crs_loc,mptr_).get(); break;
-      case FMM:  pd = exrpc_async(fw_node,(parallel_fmm_predict<DT1,S_LMAT1>),crs_loc,mptr_).get(); break;
-      case NBM:  pd = exrpc_async(fw_node,(parallel_nbm_predict<DT1,S_LMAT1>),crs_loc,mptr_).get(); break;
-      default:   REPORT_ERROR(USER_ERROR,"Unknown Model Kind is encountered!\n");
-    }
-  }
-  catch(std::exception& e) { set_status(true,e.what()); }
-  return to_jdoubleArray(env, pd);
-}
-
-// TODO: rename function (without GLM)
-// for single test input: prediction on trained glm is carried out in master node
-JNIEXPORT jdouble JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_doSingleGLMPredict
-  (JNIEnv *env, jclass thisCls, jobject master_node, jint mid, jshort mkind, 
-   jlong nrows, jlong ncols, jintArray off, jintArray idx, jdoubleArray val) {
-
-  auto crs_loc = get_frovedis_double_crs_matrix_local(env,nrows,ncols,off,idx,val);
-  auto fm_node = java_node_to_frovedis_node(env, master_node);
-#ifdef _EXRPC_DEBUG_
-  std::cout << "Connecting to master node (" 
-            << fm_node.hostname << "," << fm_node.rpcport 
-            << ") to perform single prediction.\n";
-#endif
-  double ret = 0.0;
-  try {
-    switch(mkind) {
-      case LRM:  ret = exrpc_async(fm_node,(single_glm_predict<DT1,S_LMAT1,LRM1>),crs_loc,mid).get(); break;
-      case MLR:  ret = exrpc_async(fm_node,(single_glm_predict<DT1,S_LMAT1,MLR1>),crs_loc,mid).get(); break;
-      case SVM:  ret = exrpc_async(fm_node,(single_glm_predict<DT1,S_LMAT1,SVM1>),crs_loc,mid).get(); break;
-      case LNRM: ret = exrpc_async(fm_node,(single_lnrm_predict<DT1,S_LMAT1>),crs_loc,mid).get(); break;
-      case DTM:  ret = exrpc_async(fm_node,(single_dtm_predict<DT1,S_LMAT1>),crs_loc,mid).get(); break;
-      case FMM:  ret = exrpc_async(fm_node,(single_fmm_predict<DT1,S_LMAT1>),crs_loc,mid).get(); break;
-      case NBM:  ret = exrpc_async(fm_node,(single_nbm_predict<DT1,S_LMAT1>),crs_loc,mid).get(); break;
-      default:   REPORT_ERROR(USER_ERROR,"Unknown Model Kind is encountered!\n");
-    } 
-  }
-  catch(std::exception& e) { set_status(true,e.what()); }
-  return ret;
 }
 
 // Array[uid], Array[pid]: prediction carried out in parallel in worker nodes
@@ -662,7 +593,7 @@ Java_com_nec_frovedis_Jexrpc_JNISupport_kncKneighbors
   knn_result res;
   try {
     if(isDense){
-      res = exrpc_async(fm_node, (frovedis_kneighbors<DT1,DT5,R_MAT1,KNC1>),
+      res = exrpc_async(fm_node, (frovedis_kneighbors_spark<DT1,DT5,R_MAT1,KNC1>),
                         test_dptr, mid, k, need_distance ).get();
     }
     else REPORT_ERROR(USER_ERROR, 
@@ -782,7 +713,7 @@ Java_com_nec_frovedis_Jexrpc_JNISupport_knrKneighbors
   knn_result res;
   try {
     if(isDense){
-      res = exrpc_async(fm_node, (frovedis_kneighbors<DT1,DT5,R_MAT1,KNR1>),
+      res = exrpc_async(fm_node, (frovedis_kneighbors_spark<DT1,DT5,R_MAT1,KNR1>),
                         test_dptr, mid, k, need_distance ).get();
     }
     else REPORT_ERROR(USER_ERROR, 
@@ -1087,7 +1018,6 @@ JNIEXPORT jdoubleArray JNICALL
 Java_com_nec_frovedis_Jexrpc_JNISupport_genericPredict
 (JNIEnv *env, jclass thisCls, jobject master_node, jlong tptr, jint mid,
    jshort mkind, jboolean dense, jboolean need_prob) {
-
   auto fm_node = java_node_to_frovedis_node(env, master_node);
   auto f_dptr = (exrpc_ptr_t) tptr;
   bool isDense = (bool) dense;
@@ -1095,70 +1025,125 @@ Java_com_nec_frovedis_Jexrpc_JNISupport_genericPredict
   bool prob = (bool) need_prob;
   
   try {
-    if (isDense){
-      switch(mkind){
-        case LRM:  pred = exrpc_async(fm_node,(pgp2<DT1,R_MAT1,R_LMAT1,LRM1>),f_dptr,mid,prob).get(); break;
-        case MLR:  pred = exrpc_async(fm_node,(pgp2<DT1,R_MAT1,R_LMAT1,MLR1>),f_dptr,mid,prob).get(); break;
-        case SVM:  pred = exrpc_async(fm_node,(pgp2<DT1,R_MAT1,R_LMAT1,SVM1>),f_dptr,mid,prob).get(); break;
-        case LNRM: pred = exrpc_async(fm_node,(pgp2<DT1,R_MAT1,R_LMAT1,LNRM1>),f_dptr,mid,prob).get(); break;
-        case FMM:  REPORT_ERROR(USER_ERROR,"currently Frovedis doesn't support dense test data for FM!\n");
-        case NBM:  pred = exrpc_async(fm_node,(parallel_nbm_predict_with_broadcast<DT1,R_MAT1,R_LMAT1>),
+    if (isDense) {
+      switch(mkind) {
+        case LRM:  pred = exrpc_async(fm_node,(parallel_lrm_predict<DT1,R_MAT1,R_LMAT1,LRM1>),
                                       f_dptr,mid,prob).get(); break;
-        case DTM:  pred = exrpc_async(fm_node,(parallel_dtm_predict_with_broadcast<DT1,R_MAT1,R_LMAT1>),
+        case MLR:  pred = exrpc_async(fm_node,(parallel_lrm_predict<DT1,R_MAT1,R_LMAT1,MLR1>),
                                       f_dptr,mid,prob).get(); break;
-        case RFM:  pred = exrpc_async(fm_node,(parallel_rfm_predict_with_broadcast<DT1,R_MAT1,R_LMAT1>),
+        case SVM:  pred = exrpc_async(fm_node,(parallel_svm_predict<DT1,R_MAT1,R_LMAT1>),
                                       f_dptr,mid,prob).get(); break;
-        case GBT: pred = exrpc_async(fm_node,(parallel_gbt_predict_with_broadcast<DT1,R_MAT1,R_LMAT1>),
-                                        f_dptr,mid,prob).get(); break;
-        default:  REPORT_ERROR(USER_ERROR,"Unknown Model Kind is encountered!\n");
+        case SVR:  pred = exrpc_async(fm_node,(parallel_lnrm_predict<DT1,R_MAT1,R_LMAT1>),
+                                      f_dptr,mid,prob).get(); break;
+        case LNRM: pred = exrpc_async(fm_node,(parallel_lnrm_predict<DT1,R_MAT1,R_LMAT1>),
+                                      f_dptr,mid,prob).get(); break;
+        case FMM:  REPORT_ERROR(USER_ERROR, "currently Frovedis doesn't support dense test data for FM!\n");
+        case NBM:  pred = exrpc_async(fm_node,(parallel_generic_predict<DT1,R_MAT1,R_LMAT1,NBM1>),
+                                      f_dptr,mid,prob).get(); break;
+        case DTM:  pred = exrpc_async(fm_node,(parallel_dtm_predict<DT1,R_MAT1,R_LMAT1>),
+                                      f_dptr,mid,prob).get(); break;
+        case RFM:  pred = exrpc_async(fm_node,(parallel_rfm_predict<DT1,R_MAT1,R_LMAT1>),
+                                      f_dptr,mid,prob).get(); break;
+        case GBT:  pred = exrpc_async(fm_node,(parallel_gbt_predict<DT1,R_MAT1,R_LMAT1>),
+                                      f_dptr,mid,prob).get(); break;
+        default:   REPORT_ERROR(USER_ERROR, "Unknown model kind is encountered!\n");
       }
     }
-    else{
-      switch(mkind){
-        case LRM: {
-          pred = exrpc_async(fm_node,(pgp2<DT1,S_MAT15,S_LMAT15,LRM1>),f_dptr,mid,prob).get();
-          break;
-        }
-        case MLR: {
-          pred = exrpc_async(fm_node,(pgp2<DT1,S_MAT15,S_LMAT15, MLR1>),f_dptr,mid,prob).get();
-          break;
-        }
-        case SVM: {
-          pred = exrpc_async(fm_node,(pgp2<DT1,S_MAT15,S_LMAT15,SVM1>),f_dptr,mid,prob).get();
-          break;
-        }
-        case LNRM: {
-          pred = exrpc_async(fm_node,(pgp2<DT1,S_MAT15,S_LMAT15,LNRM1>),f_dptr,mid,prob).get();
-          break;
-        }
-        case FMM: {
-          pred = exrpc_async(fm_node,(parallel_fmm_predict_with_broadcast<DT1,S_MAT15,S_LMAT15>),f_dptr,mid).get();
-          break;
-        }
-        case NBM: {
-          pred = exrpc_async(fm_node,(parallel_nbm_predict_with_broadcast<DT1,S_MAT15,S_LMAT15>),f_dptr,mid,prob).get();
-          break;
-        }
-        case DTM: {
-          pred = exrpc_async(fm_node,(parallel_dtm_predict_with_broadcast<DT1,S_MAT15,S_LMAT15>),f_dptr,mid,prob).get();
-          break;
-        }
-        case RFM:  REPORT_ERROR(USER_ERROR,"currently Frovedis doesn't support sparse test data for Random Forest prediction!\n");
-        case GBT: REPORT_ERROR(USER_ERROR,"currently Frovedis doesn't support sparse test data for GBT prediction!\n");
-        default:  REPORT_ERROR(USER_ERROR,"Unknown Model Kind is encountered!\n");
+    else {
+      switch(mkind) {
+        case LRM:  pred = exrpc_async(fm_node,(parallel_lrm_predict<DT1,S_MAT15,S_LMAT15,LRM1>),
+                                      f_dptr,mid,prob).get(); break;
+        case MLR:  pred = exrpc_async(fm_node,(parallel_lrm_predict<DT1,S_MAT15,S_LMAT15,MLR1>),
+                                      f_dptr,mid,prob).get(); break;
+        case SVM:  pred = exrpc_async(fm_node,(parallel_svm_predict<DT1,S_MAT15,S_LMAT15>),
+                                      f_dptr,mid,prob).get(); break;
+        case SVR:  pred = exrpc_async(fm_node,(parallel_lnrm_predict<DT1,S_MAT15,S_LMAT15>),
+                                      f_dptr,mid,prob).get(); break;
+        case LNRM: pred = exrpc_async(fm_node,(parallel_lnrm_predict<DT1,S_MAT15,S_LMAT15>),
+                                      f_dptr,mid,prob).get(); break;
+        case FMM:  pred = exrpc_async(fm_node,(parallel_fmm_predict<DT1,S_MAT15,S_LMAT15>),
+                                      f_dptr,mid,prob).get(); break;
+        case NBM:  pred = exrpc_async(fm_node,(parallel_generic_predict<DT1,S_MAT15,S_LMAT15,NBM1>),
+                                      f_dptr,mid,prob).get(); break;
+        case DTM:  pred = exrpc_async(fm_node,(parallel_dtm_predict<DT1,S_MAT15,S_LMAT15>),
+                                      f_dptr,mid,prob).get(); break;
+        case RFM:  REPORT_ERROR(USER_ERROR, "currently Frovedis doesn't support sparse test data for Random Forest prediction!\n");
+        case GBT: REPORT_ERROR(USER_ERROR, "currently Frovedis doesn't support sparse test data for GBT prediction!\n");
+        default:  REPORT_ERROR(USER_ERROR, "Unknown model kind is encountered!\n");
       }
     }
-
   }
   catch (std::exception& e) {
       set_status(true, e.what());
   }
   return to_jdoubleArray(env, pred);
+}
 
+JNIEXPORT jdouble JNICALL
+Java_com_nec_frovedis_Jexrpc_JNISupport_genericSinglePredict
+(JNIEnv *env, jclass thisCls, jobject master_node, jlong tptr, jint mid,
+   jshort mkind, jboolean dense) {
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto f_dptr = (exrpc_ptr_t) tptr;
+  bool isDense = (bool) dense;
+  double pred = 0.0;
+
+  try {
+    if (isDense) {
+      switch(mkind) {
+        case LRM:  pred = exrpc_async(fm_node,(single_glm_predict<DT1,R_LMAT1,LRM1>),
+                                      f_dptr,mid).get(); break;
+        case MLR:  pred = exrpc_async(fm_node,(single_glm_predict<DT1,R_LMAT1,MLR1>),
+                                      f_dptr,mid).get(); break;
+        case SVM:  pred = exrpc_async(fm_node,(single_glm_predict<DT1,R_LMAT1,SVM1>),
+                                      f_dptr,mid).get(); break;
+        case SVR:  pred = exrpc_async(fm_node,(single_generic_predict<DT1,R_LMAT1,SVR1>),
+                                      f_dptr,mid).get(); break;
+        case LNRM: pred = exrpc_async(fm_node,(single_generic_predict<DT1,R_LMAT1,LNRM1>),
+                                      f_dptr,mid).get(); break;
+        case FMM:  REPORT_ERROR(USER_ERROR, "currently Frovedis doesn't support dense test data for FM!\n");
+        case NBM:  pred = exrpc_async(fm_node,(single_generic_predict<DT1,R_LMAT1,NBM1>),
+                                      f_dptr,mid).get(); break;
+        case DTM:  pred = exrpc_async(fm_node,(single_generic_predict<DT1,R_LMAT1,DTM1>),
+                                      f_dptr,mid).get(); break;
+        case RFM:  pred = exrpc_async(fm_node,(single_generic_predict<DT1,R_LMAT1,RFM1>),
+                                      f_dptr,mid).get(); break;
+        case GBT:  pred = exrpc_async(fm_node,(single_generic_predict<DT1,R_LMAT1,GBT1>),
+                                      f_dptr,mid).get(); break;
+        default:   REPORT_ERROR(USER_ERROR, "Unknown model kind is encountered!\n");
+      }
+    }
+    else {
+      switch(mkind) {
+        case LRM:  pred = exrpc_async(fm_node,(single_glm_predict<DT1,S_LMAT1,LRM1>),
+                                      f_dptr,mid).get(); break;
+        case MLR:  pred = exrpc_async(fm_node,(single_glm_predict<DT1,S_LMAT1,MLR1>),
+                                      f_dptr,mid).get(); break;
+        case SVM:  pred = exrpc_async(fm_node,(single_glm_predict<DT1,S_LMAT1,SVM1>),
+                                      f_dptr,mid).get(); break;
+        case SVR:  pred = exrpc_async(fm_node,(single_generic_predict<DT1,S_LMAT1,SVR1>),
+                                      f_dptr,mid).get(); break;
+        case LNRM: pred = exrpc_async(fm_node,(single_generic_predict<DT1,S_LMAT1,LNRM1>),
+                                      f_dptr,mid).get(); break;
+        case FMM:  pred = exrpc_async(fm_node,(single_generic_predict<DT1,S_LMAT1,FMM1>),
+                                      f_dptr,mid).get(); break;
+        case NBM:  pred = exrpc_async(fm_node,(single_generic_predict<DT1,S_LMAT1,NBM1>),
+                                      f_dptr,mid).get(); break;
+        case DTM:  pred = exrpc_async(fm_node,(single_generic_predict<DT1,S_LMAT1,DTM1>),
+                                      f_dptr,mid).get(); break;
+        case RFM:  REPORT_ERROR(USER_ERROR, "currently Frovedis doesn't support sparse test data for Random Forest prediction!\n");
+        case GBT:  REPORT_ERROR(USER_ERROR, "currently Frovedis doesn't support sparse test data for GBT prediction!\n");
+        default:   REPORT_ERROR(USER_ERROR, "Unknown model kind is encountered!\n");
+      }
+    }
+  }
+  catch (std::exception& e) {
+      set_status(true, e.what());
+  }
+  return pred;
 }
 
 // GBT getters
-
 JNIEXPORT jint JNICALL
 Java_com_nec_frovedis_Jexrpc_JNISupport_gbtNumTrees
 (JNIEnv *env, jclass thisCls, jobject master_node, jint mid) {
