@@ -24,27 +24,15 @@ object KNCDemo {
     // initializing Frovedis server with "personalized command", if provided in command line
     if(args.length != 0) FrovedisServer.initialize(args(0))
 
-    val data = Vector(
-       Vectors.dense(-1,1),
-       Vectors.dense(-2, -1),
-       Vectors.dense(-3, -2),
-       Vectors.dense(1,1),
-       Vectors.dense(2, 1),
-       Vectors.dense(3, 2)
-    )
-    
-    val lbl = Vector(10.0, 10.0, 10.0, 20.0, 10.0, 20.0)
-    val zip1 = lbl zip data
-    var lpv = zip1.map( a => LabeledPoint(a._1, a._2) ) // vector of LabeledPoint
-    var d_lp: RDD[LabeledPoint] = sc.parallelize(lpv)  // distributed LabeledPoint
-    val f_lp = new FrovedisLabeledPoint(d_lp, true) // frovedis LabeledPoint
-
     //  -------- data loading from sample file at Spark side--------
     val s_data = sc.textFile("./input/knn_data.txt")
                    .map(s => Vectors.dense(s.split(' ').map(_.toDouble)))
-
     val fdata = new FrovedisRowmajorMatrix(s_data)
-    
+
+    val lbl = sc.parallelize(Array(10.0, 10.0, 10.0, 20.0, 10.0, 20.0))
+    val lbv = (lbl zip s_data).map(a => LabeledPoint(a._1, a._2))
+    val f_lp = new FrovedisLabeledPoint(lbv, true) // frovedis LabeledPoint
+
     val knc = new KNeighborsClassifier().setNNeighbors(3)
                                         .setAlgorithm("brute")
                                         .setMetric("euclidean")
@@ -69,12 +57,11 @@ object KNCDemo {
     println("predict proba output")
     pred_proba.debug_print()
     
-    var d_lbl = sc.parallelize(lbl) // distributed labels
-    var score = knc.score(fdata, DoubleDvector.get(d_lbl))
+    var score = knc.score(fdata, DoubleDvector.get(lbl))
     println("score: " + score)
 
     println("Using spark data")
-    knc.run(d_lp)
+    knc.run(lbv)
     var (dist2, ind2) = knc.kneighbors(s_data)
     
     println("Distance Row matrix: ")
@@ -90,7 +77,7 @@ object KNCDemo {
     println("predict proba output: ")
     pred_proba2.rows.collect.foreach(println)
 
-    var score2 = knc.score(d_lp)
+    var score2 = knc.score(lbv)
     println("score: " + score)
 
     fdata.release()
