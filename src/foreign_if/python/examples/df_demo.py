@@ -40,7 +40,8 @@ fdf1[["Ename","Age"]].show() # multiple column
 
 # filter demo
 fdf1[fdf1.Age > 19].show()  
-fdf1[fdf1.Age > 19 and fdf1.Country == 'Japan'].show()
+fdf1[(fdf1.Age > 19) & (fdf1.Country == 'Japan')].show()    # AND Demo
+fdf1[~((fdf1.Age > 19) & (fdf1.Country == 'Japan'))].show() # NOT Demo
 
 # sort demo 
 fdf1.sort_values("Age",ascending=1).show() # single column
