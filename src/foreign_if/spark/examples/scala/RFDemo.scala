@@ -68,7 +68,6 @@ object RFDemo {
     println("Prediction with loaded model: ")
     val pred3 = sameModel.predict(test_data)
     pred3.foreach(println)
-    sameModel.release()
 
     // -------- clean-up --------
     model.release()

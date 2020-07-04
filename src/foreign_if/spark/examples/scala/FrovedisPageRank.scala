@@ -22,11 +22,8 @@ object FrovedisPageRank {
     // Frovedis Demo
     if(args.length != 0) FrovedisServer.initialize(args(0))
 
-    //import com.nec.frovedis.graphx.GraphLoader
     val frov_graph = com.nec.frovedis.graphx.GraphLoader.edgeListFile(sc, f1)
     val frov_res = frov_graph.pageRank(0.0001, 0.05)
-    println("...............Frovedis Page Rank................")
-    frov_res.vertices.collect().foreach(println)
  
     println("---FROVEDIS input GRAPH---")
     frov_graph.debug_print()

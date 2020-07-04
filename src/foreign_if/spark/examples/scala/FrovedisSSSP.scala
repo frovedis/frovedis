@@ -24,8 +24,8 @@ object FrovedisSSSP {
     println("Dist: " + q._1)
     println("Path: " + q._2)
 
-    val arr: Array[Int] = Array(1,2,3,4,5)
-    val qs: Array[(Int, String)] = res.sssp_query(arr)
+    val arr: Array[Long] = Array(1,2,3,4,5)
+    val qs: Array[(Double, String)] = res.sssp_query(arr)
     qs.foreach{ println }
 
     FrovedisServer.shut_down()
