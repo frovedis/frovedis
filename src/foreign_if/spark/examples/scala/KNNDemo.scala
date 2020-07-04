@@ -23,13 +23,12 @@ object KNNDemo {
     // -------- data loading from sample file at Spark side--------
     val s_data = sc.textFile("./input/knn_data.txt")
                    .map(s => Vectors.dense(s.split(' ').map(_.toDouble)))
-
     val fdata = new FrovedisRowmajorMatrix(s_data)
    
     val knn = new NearestNeighbors().setNNeighbors(3)
-                                     .setRadius(2.0F)
-                                     .setAlgorithm("brute")
-                                     .setMetric("euclidean")
+                                    .setRadius(2.0F)
+                                    .setAlgorithm("brute")
+                                    .setMetric("euclidean")
     println("Using frovedis data ")
     knn.run(fdata)
     var (dist, ind) = knn.kneighbors(fdata, 3, true);
