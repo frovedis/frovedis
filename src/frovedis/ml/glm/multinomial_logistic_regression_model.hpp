@@ -68,7 +68,8 @@ struct multinomial_logistic_regression_model {
   }
 
   template <class MATRIX>
-  rowmajor_matrix_local<T> compute_probability_matrix (MATRIX& mat) {
+  rowmajor_matrix_local<T> 
+  compute_probability_matrix (MATRIX& mat) {
     softmax_gradient_descent gd(isIntercept);
     auto wtx = gd.compute_wtx<T>(mat, weight, intercept);
     auto softmax_mat = gd.compute_softmax_probability<T>(wtx);
