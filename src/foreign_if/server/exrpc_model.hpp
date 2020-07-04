@@ -107,123 +107,131 @@ bcast_model_to_workers(int& mid) {
   return ret.gather();
 }
 
-// broadcasts the fm_model from master node to all worker nodes
-// and returns the vector containing all model heads at worker nodes
-template <class T>
-std::vector<exrpc_ptr_t>
-bcast_fmm_to_workers(int& mid) {
-  auto& model = *get_model_ptr<fm::fm_model<T>>(mid);
-  auto bcast_model = frovedis::broadcast(model);
-  //auto bcast_model = model.broadcast(); // TODO: support as a member function, for performance
-  auto ret = bcast_model.map(get_each_model<fm::fm_model<T>>);
-  return ret.gather();
-}
-
-// --- Prediction related functions on glm ---
-// multiple inputs (crs_matrix_local): prediction done in parallel in worker nodes
+// --- Prediction related functions on Generic Models ---
+// For: LNRM, NBM, FMM, DTM, RFM, GBT (spark only)
 template <class T, class MATRIX, class MODEL>
-std::vector<T> 
-parallel_glm_predict(MATRIX& data, exrpc_ptr_t& mp) {
-  auto mptr = reinterpret_cast<MODEL*>(mp);
+T single_generic_predict(exrpc_ptr_t& f_dptr, int& mid) {
+  auto matptr = reinterpret_cast<MATRIX*>(f_dptr);
+  MATRIX& mat = *matptr;
+  MODEL& model = *get_model_ptr<MODEL>(mid);
 #ifdef _EXRPC_DEBUG_
-  std::cout << "Connected with worker[" << get_selfid()
-            << "] to perform parallel prediction with model:\n";
-  mptr->debug_print();
+  std::cout << "Connected with master node to perform single generic prediction with model:\n";
+  model.debug_print();
   std::cout << "with test data: \n";
-  data.debug_print();
-#endif
-  auto thr = mptr->get_threshold();
-  std::vector<T> ret = (thr == NONE) ? mptr->predict_probability(data) : mptr->predict(data);
-#ifdef _EXRPC_DEBUG_
-  std::cout << "[worker" << get_selfid()
-            << "]: prediction done...deleting local model.\n";
-#endif
-  // after prediction broadcasted models will be freed from worker nodes.
-  delete mptr;
-  return ret;
-}
-
-template <class T, class MATRIX>
-std::vector<T> 
-parallel_lnrm_predict(MATRIX& data, exrpc_ptr_t& mp) {
-  auto mptr = reinterpret_cast<linear_regression_model<T>*>(mp);
-#ifdef _EXRPC_DEBUG_
-  std::cout << "Connected with worker[" << get_selfid()
-            << "] to perform parallel prediction with model:\n";
-  mptr->debug_print();
-  std::cout << "with test data: \n";
-  data.debug_print();
-#endif
-  std::vector<T> ret = mptr->predict(data);
-#ifdef _EXRPC_DEBUG_
-  std::cout << "[worker" << get_selfid()
-            << "]: prediction done...deleting local model.\n";
-#endif
-  // after prediction broadcasted models will be freed from worker nodes.
-  delete mptr;
-  return ret;
-}
-
-
-template <class T, class L_MATRIX, class MODEL>
-std::vector<T> predict_glm_by_worker(L_MATRIX& mat, MODEL& model) {
-  if (mat.local_num_row > 0) 
-    return model.predict(mat);
-  else
-    return std::vector<T>();
-}
-
-template <class T, class L_MATRIX, class MODEL>
-std::vector<T> predict_proba_glm_by_worker(L_MATRIX& mat, MODEL& model) {
-  if (mat.local_num_row > 0)
-    return model.predict_probability(mat);
-  else
-    return std::vector<T>();
-}
-
-// multiple inputs (crs_matrix): prediction done in parallel in worker nodes
-template <class T, class MATRIX, class L_MATRIX, class MODEL>
-std::vector<T> pgp2(exrpc_ptr_t& mat_ptr, int& mid, bool& prob) { // sklearn` 
-  auto mat_ptr_ = reinterpret_cast<MATRIX*> (mat_ptr);
-  auto model_ptr = get_model_ptr<MODEL>(mid);
-  MATRIX& mat = *mat_ptr_;
-  MODEL& model = *model_ptr;
-  //auto bmodel = broadcast(model);
-  auto bmodel = model.broadcast(); // for performance
-  if (prob) return mat.data.map(predict_proba_glm_by_worker<T,L_MATRIX,MODEL>,bmodel)
-                           .template moveto_dvector<T>().gather();
-  else return mat.data.map(predict_glm_by_worker<T,L_MATRIX,MODEL>,bmodel)
-                      .template moveto_dvector<T>().gather();
-}
-
-// single input (crs_vector_local): prediction done in master node
-template <class T, class MATRIX, class MODEL>
-T single_glm_predict(MATRIX& data, int& mid) {
-  auto mptr = get_model_ptr<MODEL>(mid);
-#ifdef _EXRPC_DEBUG_
-  std::cout << "Connected with master node to perform single prediction with model:\n";
-  mptr->debug_print();
-  std::cout << "with test data: \n";
-  data.debug_print();
-#endif
-  auto thr = mptr->get_threshold();
-  // predict/predictProbability returns std::vector<T>. 
-  // In single input prediction case, a vector of single 'T' type data only [0]
-  return (thr == NONE) ? mptr->predict_probability(data)[0] : mptr->predict(data)[0];
-}
-
-template <class T, class MATRIX>
-T single_lnrm_predict(MATRIX& data, int& mid) {
-  auto mptr = get_model_ptr<linear_regression_model<T>>(mid);
-#ifdef _EXRPC_DEBUG_
-  std::cout << "Connected with master node to perform single prediction with model:\n";
-  mptr->debug_print();
-  std::cout << "with test data: \n";
-  data.debug_print();
+  mat.debug_print();
 #endif
   // predict returns std::vector<T>. 
   // In single input prediction case, a vector of single 'T' type data only [0]
-  return mptr->predict(data)[0];
+  auto ret = model.predict(mat)[0];
+  delete matptr; // it is internally created at spark side predict(Vector)
+  return ret;
+}
+
+template <class T, class MATRIX, class MODEL>
+std::vector<T> 
+parallel_predict_at_worker(MATRIX& data, MODEL& model) {
+  if(data.local_num_row < 1) return std::vector<T>();
+  return model.predict(data);
+}
+
+template <class T, class MATRIX, class MODEL>
+std::vector<T>
+parallel_predict_proba_at_worker(MATRIX& data, MODEL& model) {
+  if(data.local_num_row < 1) return std::vector<T>();
+  return model.compute_probability_matrix(data).val;
+}
+
+// multi-input prediction in parallel: For NBM 
+// first, model is broadcasted at rank #0, 
+// and then predict call would be mapped on each worker with probability value
+template <class T, class MATRIX, class L_MATRIX, class MODEL>
+std::vector<T> 
+parallel_generic_predict(exrpc_ptr_t& mat_ptr, int& mid, bool& prob) { 
+  MATRIX& mat = *reinterpret_cast<MATRIX*> (mat_ptr);
+  MODEL& model = *get_model_ptr<MODEL>(mid);
+  auto bmodel = model.broadcast();
+  auto loc_ret = make_node_local_allocate<std::vector<T>>();
+  if(!prob) loc_ret = mat.data.map(parallel_predict_at_worker<T,L_MATRIX,MODEL>,
+                                  bmodel);
+  else loc_ret = mat.data.map(parallel_predict_proba_at_worker<T,L_MATRIX,MODEL>,
+                              bmodel);
+  return loc_ret.template moveto_dvector<T>().gather();
+}
+
+// --- Prediction related functions on glm ---
+template <class T, class L_MATRIX, class MODEL>
+std::vector<T> 
+predict_lrm_at_worker(L_MATRIX& mat, MODEL& model, bool& prob) {
+  if (mat.local_num_row < 1) return std::vector<T>();
+  if(prob) return model.compute_probability_matrix(mat).val;
+  else {
+    // for spark: if threshold is cleared, it will always return raw probability values
+    auto thr = model.get_threshold();
+    if (thr == NONE) return model.predict_probability(mat);
+    else             return model.predict(mat);
+  }
+}
+
+// multiple inputs: prediction done in parallel in worker nodes
+template <class T, class MATRIX, class L_MATRIX, class MODEL>
+std::vector<T> 
+parallel_lrm_predict(exrpc_ptr_t& mat_ptr, int& mid, bool& prob) {  
+  MATRIX& mat = *reinterpret_cast<MATRIX*> (mat_ptr);
+  MODEL& model = *get_model_ptr<MODEL>(mid);
+  auto bmodel = model.broadcast(); 
+  return mat.data.map(predict_lrm_at_worker<T,L_MATRIX,MODEL>,
+                      bmodel, broadcast(prob))
+                 .template moveto_dvector<T>().gather();
+}
+
+template <class T, class MATRIX, class L_MATRIX>
+std::vector<T>
+parallel_lnrm_predict(exrpc_ptr_t& mat_ptr, int& mid, bool& prob) {
+  MATRIX& mat = *reinterpret_cast<MATRIX*> (mat_ptr);
+  auto& model = *get_model_ptr<linear_regression_model<T>>(mid);
+  auto bmodel = model.broadcast();
+  std::vector<T> ret;
+  if(prob) REPORT_ERROR(USER_ERROR, "predict_proba: not applicable for regression model!\n");
+  else ret = mat.data.map(parallel_predict_at_worker<T,L_MATRIX,
+                          linear_regression_model<T>>,
+                          bmodel)
+                     .template moveto_dvector<T>().gather();
+  return ret;
+}
+
+template <class T, class MATRIX, class L_MATRIX>
+std::vector<T>
+parallel_svm_predict(exrpc_ptr_t& mat_ptr, int& mid, bool& prob) {
+  MATRIX& mat = *reinterpret_cast<MATRIX*> (mat_ptr);
+  auto& model = *get_model_ptr<svm_model<T>>(mid);
+  auto bmodel = model.broadcast();
+  std::vector<T> ret;
+  if(prob) REPORT_ERROR(USER_ERROR, "predict_proba: not applicable for svm model!\n");
+  else ret = mat.data.map(parallel_predict_at_worker<T,L_MATRIX,
+                          svm_model<T>>,
+                          bmodel)
+                     .template moveto_dvector<T>().gather();
+  return ret;
+}
+
+// single input: prediction done in master node (spark only)
+template <class T, class MATRIX, class MODEL>
+T single_glm_predict(exrpc_ptr_t& f_dptr, int& mid) {
+  auto matptr = reinterpret_cast<MATRIX*>(f_dptr);
+  MATRIX& mat = *matptr;
+  MODEL& model = *get_model_ptr<MODEL>(mid);
+#ifdef _EXRPC_DEBUG_
+  std::cout << "Connected with master node to perform single glm prediction with model:\n";
+  model.debug_print();
+  std::cout << "with test data: \n";
+  mat.debug_print();
+#endif
+  auto thr = model.get_threshold();
+  // predict/predictProbability returns std::vector<T>. 
+  // In single input prediction case, a vector of single 'T' type data only [0]
+  auto ret = (thr == NONE) ? model.predict_probability(mat)[0] : model.predict(mat)[0];
+  delete matptr; // it is internally created at spark side predict(Vector)
+  return ret;
 }
 
 // --- Prediction related functions on mfm ---
@@ -281,7 +289,7 @@ recommend_products(int& mid, int& uid, int& num) {
 }
 
 // --- Prediction related functions on kmeans model ---
-// multiple inputs (crs_matrix_local): prediction done in parallel in worker nodes
+// multiple inputs: prediction done in parallel in worker nodes
 template <class MATRIX, class MODEL>
 std::vector<int> 
 parallel_kmm_predict(MATRIX& data, exrpc_ptr_t& mp) {
@@ -316,12 +324,28 @@ std::vector<int> pkp2(exrpc_ptr_t& mat_ptr, int& mid) {
   auto model_ptr = get_model_ptr<MODEL>(mid);
   MATRIX& mat = *mat_ptr_;
   MODEL& model = *model_ptr;
-  //auto bmodel = broadcast(model);
   auto bmodel = model.broadcast(); // for performance
   return mat.data.map(predict_kmm_by_worker<L_MATRIX,MODEL>,bmodel)
                       .template moveto_dvector<int>().gather();
 }
 
+// single input: prediction done in master node
+template <class MATRIX, class MODEL>
+int single_kmm_predict(MATRIX& data, int& mid) {
+  auto mptr = get_model_ptr<MODEL>(mid);
+  MODEL& kmeans_model = *mptr; // centroid
+#ifdef _EXRPC_DEBUG_
+  std::cout << "Connected with master node to perform single prediction with model:\n";
+  mptr->debug_print();
+  std::cout << "with test data: \n";
+  data.debug_print();
+#endif
+  // frovedis::kmeans_assign_cluster returns std::vector<int>.
+  // In single input prediction case, a vector of single 'int' type data only [0]
+  return frovedis::kmeans_assign_cluster(data,kmeans_model)[0];
+}
+
+// --- KNN related functions ---
 template <class T, class I, class MATRIX, class ALGO>
 knn_result frovedis_kneighbors(exrpc_ptr_t& mat_ptr, int& mid, 
                                int& k, bool& need_distance) {
@@ -431,7 +455,7 @@ template <class I, class MATRIX, class ALGO,
 dummy_matrix frovedis_knc_predict_proba(exrpc_ptr_t& mat_ptr, int& mid){
   auto& mat = *reinterpret_cast<MATRIX*> (mat_ptr);
   auto& obj = *get_model_ptr<ALGO>(mid);
-  auto ret = new OUTMAT(obj.template predict_proba<I>(mat)); // rmm 
+  auto ret = new OUTMAT(obj.template predict_probability<I>(mat)); // rmm 
   return to_dummy_matrix<OUTMAT,OUTMAT_LOC>(ret);
 }
 
@@ -444,20 +468,20 @@ float frovedis_model_score(exrpc_ptr_t& mptr, exrpc_ptr_t& lblptr, int& mid){
   return obj.template score<I>(mat, lbl);
 }
 
-// single input (crs_vector_local): prediction done in master node
-template <class MATRIX, class MODEL>
-int single_kmm_predict(MATRIX& data, int& mid) {
-  auto mptr = get_model_ptr<MODEL>(mid);
-  MODEL& kmeans_model = *mptr; // centroid
-#ifdef _EXRPC_DEBUG_
-  std::cout << "Connected with master node to perform single prediction with model:\n";
-  mptr->debug_print();
-  std::cout << "with test data: \n";
-  data.debug_print();
-#endif
-  // frovedis::kmeans_assign_cluster returns std::vector<int>. 
-  // In single input prediction case, a vector of single 'int' type data only [0]
-  return frovedis::kmeans_assign_cluster(data,kmeans_model)[0];
+// --- Prediction related functions for factorization machine model ---
+template <class T, class MATRIX, class L_MATRIX>
+std::vector<T>
+parallel_fmm_predict(exrpc_ptr_t& mat_ptr, int& mid, bool& prob) {
+  MATRIX& mat = *reinterpret_cast<MATRIX*> (mat_ptr);
+  auto& model = *get_model_ptr<fm::fm_model<T>>(mid);
+  //auto bmodel = model.broadcast(); // not supported
+  auto bmodel = broadcast(model);
+  std::vector<T> ret;
+  if(prob) REPORT_ERROR(USER_ERROR,"Frovedis currently doesn't support predict_proba for Factorization machine!\n");
+  else ret = mat.data.map(parallel_predict_at_worker<T,L_MATRIX,
+                          fm::fm_model<T>>, bmodel)
+                     .template moveto_dvector<T>().gather();
+  return ret;
 }
 
 // --- Load and Save Models ---
@@ -595,12 +619,6 @@ frovedis_acm_pred(int& mid, int& ncluster) {
   return agglomerative_assign_cluster(tree, ncluster);
 }
 
-template <class T, class MATRIX>
-T single_nbm_predict(MATRIX& data, int& mid) {
-  auto mptr = get_model_ptr<naive_bayes_model<T>>(mid);
-  return mptr->predict(data)[0]; // TODO: support: direct vector data from client side
-}
-
 template <class T>
 dummy_matrix get_scm_affinity_matrix(int& mid) {
   auto& model = *get_model_ptr<spectral_clustering_model<T>>(mid);
@@ -631,61 +649,7 @@ dummy_matrix get_sem_embedding_matrix(int& mid) {
                          rowmajor_matrix_local<T>>(retp);
 }
 
-// only for spark
-// it should be executed by each worker.
-// model should have broadcasted beforehand.
-template <class T, class MATRIX>
-std::vector<T> parallel_nbm_predict(MATRIX& data, exrpc_ptr_t& mp) {
-  auto mptr = reinterpret_cast<naive_bayes_model<T>*>(mp);
-  std::vector<T> ret = mptr->predict(data);
-  // after prediction broadcasted models will be freed from worker nodes.
-  delete mptr;
-  return ret;
-}
-
-template <class T, class MATRIX>
-std::vector<T> 
-nbm_predict_at_worker(MATRIX& data, 
-                      naive_bayes_model<T>& model, bool& prob) {
-  //return (prob ? model.predict(data): model.predict_proba(data));
-  if (data.local_num_row > 0) 
-    return model.predict(data);
-  else
-    return std::vector<T>();
-
-}
-
-// the below call is for scikit-learn. 
-// in that case model would be broadcasted first at master, 
-// and then predict call would be mapped on each worker with probability value
-template <class T, class MATRIX, class L_MATRIX>
-std::vector<T> 
-parallel_nbm_predict_with_broadcast(exrpc_ptr_t& mat_ptr, int& mid, bool& prob) { 
-  MATRIX& mat = *reinterpret_cast<MATRIX*> (mat_ptr);
-  auto& model = *get_model_ptr<naive_bayes_model<T>>(mid);
-  auto bmodel = model.broadcast(); // for performance
-  return mat.data.map(nbm_predict_at_worker<T,L_MATRIX>,bmodel,broadcast(prob))
-                 .template moveto_dvector<T>().gather();
-}
-
-template <class T, class MATRIX>
-T single_dtm_predict(MATRIX& data, int& mid) {
-  auto mptr = get_model_ptr<decision_tree_model<T>>(mid);
-  return mptr->predict(data)[0]; // TODO: support: direct vector data from client side
-}
-
-// only for spark
-// it should be executed by each worker.
-// model should have broadcasted beforehand.
-template <class T, class MATRIX>
-std::vector<T> parallel_dtm_predict(MATRIX& data, exrpc_ptr_t& mp) {
-  auto mptr = reinterpret_cast<decision_tree_model<T>*>(mp);
-  std::vector<T> ret = mptr->predict(data);
-  // after prediction broadcasted models will be freed from worker nodes.
-  delete mptr;
-  return ret;
-}
-
+// --- Prediction related functions on Tree models ---
 template <class T, class MATRIX>
 std::vector<T> 
 dtm_predict_at_worker(MATRIX& data, 
@@ -695,64 +659,78 @@ dtm_predict_at_worker(MATRIX& data,
   else {
     auto tmp = model.predict_with_probability(data);
     std::vector<T> ret(tmp.size());
-    for(size_t i=0; i<tmp.size(); ++i) ret[i] = tmp[i].get_probability();
+    for(size_t i = 0; i < tmp.size(); ++i) ret[i] = tmp[i].get_probability();
     return ret;
   }
 }
 
-// the below call is for scikit-learn. 
-// in that case model would be broadcasted first at master, 
-// and then predict call would be mapped on each worker with probability value
 template <class T, class MATRIX, class L_MATRIX>
 std::vector<T> 
-parallel_dtm_predict_with_broadcast(exrpc_ptr_t& mat_ptr, int& mid, bool& prob) { 
+parallel_dtm_predict(exrpc_ptr_t& mat_ptr, int& mid, bool& prob) { 
   MATRIX& mat = *reinterpret_cast<MATRIX*> (mat_ptr);
   auto& model = *get_model_ptr<decision_tree_model<T>>(mid);
-  auto bmodel = model.broadcast(); // for performance
-  return mat.data.map(dtm_predict_at_worker<T,L_MATRIX>,bmodel,broadcast(prob))
+  auto bmodel = model.broadcast(); 
+  return mat.data.map(dtm_predict_at_worker<T,L_MATRIX>,
+                      bmodel, broadcast(prob))
                  .template moveto_dvector<T>().gather();
 }
 
-template <class T, class MATRIX>
-T single_fmm_predict(MATRIX& data, int& mid) {
-  auto mptr = get_model_ptr<fm::fm_model<T>>(mid);
-  return mptr->predict(data)[0]; // TODO: support: direct vector data from client side
-}
-
-// only for spark
-// it should be executed by each worker.
-// model should have broadcasted beforehand.
-template <class T, class MATRIX>
-std::vector<T> parallel_fmm_predict(MATRIX& data, exrpc_ptr_t& mp) {
-  auto mptr = reinterpret_cast<fm::fm_model<T>*>(mp);
-  std::vector<T> ret = mptr->predict(data);
-  // after prediction broadcasted models will be freed from worker nodes.
-  delete mptr;
+template <class T, class MATRIX, class L_MATRIX>
+std::vector<T> 
+parallel_rfm_predict(exrpc_ptr_t& mat_ptr, int& mid, bool& prob) { 
+  MATRIX& mat = *reinterpret_cast<MATRIX*> (mat_ptr);
+  auto& model = *get_model_ptr<random_forest_model<T>>(mid);
+  auto bmodel = model.broadcast();
+  std::vector<T> ret; 
+  if(prob) REPORT_ERROR(USER_ERROR,"Frovedis currently doesn't support predict_proba for Random Forest!\n");
+  else ret = mat.data.map(parallel_predict_at_worker<T,L_MATRIX,
+                          random_forest_model<T>>, bmodel)
+                     .template moveto_dvector<T>().gather();
   return ret;
 }
 
-template <class T, class MATRIX>
-std::vector<T> 
-fmm_predict_at_worker(MATRIX& data, fm::fm_model<T>& model) {
-
-  if (data.local_num_row > 0) 
-    return model.predict(data);
-  else
-    return std::vector<T>();
-}
-
-// the below call is for scikit-learn. 
-// in that case model would be broadcasted first at master, 
-// and then predict call would be mapped on each worker with probability value
 template <class T, class MATRIX, class L_MATRIX>
 std::vector<T> 
-parallel_fmm_predict_with_broadcast(exrpc_ptr_t& mat_ptr, int& mid) { 
+parallel_gbt_predict(exrpc_ptr_t& mat_ptr, int& mid, bool& prob) {
   MATRIX& mat = *reinterpret_cast<MATRIX*> (mat_ptr);
-  auto& model = *get_model_ptr<fm::fm_model<T>>(mid);
-  auto bmodel = frovedis::broadcast(model); 
-  //auto bmodel = model.broadcast(); // support as a member function, for performance
-  return mat.data.map(fmm_predict_at_worker<T,L_MATRIX>,bmodel)
-                 .template moveto_dvector<T>().gather();
+  auto& model = *get_model_ptr<gradient_boosted_trees_model<T>>(mid);
+  auto bmodel = model.broadcast(); 
+  std::vector<T> ret; 
+  if(prob) REPORT_ERROR(USER_ERROR,"Frovedis currently doesn't support predict_proba for GBTree!\n"); 
+  else ret = mat.data.map(parallel_predict_at_worker<T,L_MATRIX,
+                          gradient_boosted_trees_model<T>>,
+                          bmodel)
+                     .template moveto_dvector<T>().gather();
+  return ret;
+}
+
+// GBT spark related getters
+template <class MODEL>
+size_t
+frovedis_ensemble_get_num_trees(int& mid) {
+  auto& model = *get_model_ptr<MODEL>(mid);
+  return model.get_num_trees();
+}
+
+template <class MODEL>
+size_t
+frovedis_ensemble_get_total_num_nodes(int& mid) {
+  auto& model = *get_model_ptr<MODEL>(mid);
+  return model.get_total_num_nodes();
+}
+
+template <class MODEL, class T>
+std::vector<T>
+frovedis_ensemble_get_tree_weights(int& mid) {
+  auto& model = *get_model_ptr<MODEL>(mid);
+  return model.get_tree_weights();
+}
+
+template <class MODEL>
+std::string
+frovedis_ensemble_to_string(int& mid) {
+  auto& model = *get_model_ptr<MODEL>(mid);
+  return model.to_string();
 }
 
 template <class T, class MODEL>
@@ -1087,99 +1065,6 @@ dummy_lda_model load_lda_model(int& mid, std::string& path) {
   auto& model_ = *get_model_ptr<MODEL>(mid);
   return dummy_lda_model(model_.num_docs, model_.num_topics, 
                          model_.model.word_topic_count.local_num_row);
-}
-
-template <class T, class MATRIX>
-T single_rfm_predict(MATRIX& data, int& mid) {
-  auto mptr = get_model_ptr<random_forest_model<T>>(mid);
-  return mptr->predict(data)[0]; 
-}
-
-// only for spark
-// it should be executed by each worker.
-// model should have broadcasted beforehand.
-template <class T, class MATRIX>
-std::vector<T> parallel_rfm_predict(MATRIX& data, exrpc_ptr_t& mp) {
-  auto mptr = reinterpret_cast<random_forest_model<T>*>(mp);
-  std::vector<T> ret = mptr->predict(data);
-  // after prediction broadcasted models will be freed from worker nodes.
-  delete mptr;
-  return ret;
-}
-
-template <class T, class MATRIX>
-std::vector<T> 
-rfm_predict_at_worker(MATRIX& data, 
-                      random_forest_model<T>& model, bool& prob) {
-  if (data.local_num_row > 0) 
-    return model.predict(data);
-  else
-    return std::vector<T>();
-}
-
-
-// the below call is for scikit-learn. 
-// in that case model would be broadcasted first at master, 
-// and then predict call would be mapped on each worker with probability value
-template <class T, class MATRIX, class L_MATRIX>
-std::vector<T> 
-parallel_rfm_predict_with_broadcast(exrpc_ptr_t& mat_ptr, int& mid, bool& prob) { 
-  MATRIX& mat = *reinterpret_cast<MATRIX*> (mat_ptr);
-  auto& model = *get_model_ptr<random_forest_model<T>>(mid);
-  auto bmodel = model.broadcast(); // for performance
-  return mat.data.map(rfm_predict_at_worker<T,L_MATRIX>,bmodel,broadcast(prob))
-                 .template moveto_dvector<T>().gather();
-}
-
-//gbt
-template <class T, class MATRIX>
-std::vector<T> 
-gbt_predict_at_worker(MATRIX& data, 
-                      gradient_boosted_trees_model<T>& model) {
-  if (data.local_num_row > 0) 
-    return model.predict(data);
-  else
-    return std::vector<T>();
-}
-
-template <class T, class MATRIX, class L_MATRIX>
-std::vector<T> 
-parallel_gbt_predict_with_broadcast(exrpc_ptr_t& mat_ptr, int& mid, bool& prob) {
-  if(prob) REPORT_ERROR(USER_ERROR,"Frovedis currently doesn't support predict_proba for GBT"); 
-  MATRIX& mat = *reinterpret_cast<MATRIX*> (mat_ptr);
-  auto& model = *get_model_ptr<gradient_boosted_trees_model<T>>(mid);
-  auto bmodel = model.broadcast(); // for performance
-  return mat.data.map(gbt_predict_at_worker<T,L_MATRIX>,bmodel)
-                 .template moveto_dvector<T>().gather();
-}
-
-// GBT spark related getters
-template <class MODEL>
-size_t
-frovedis_ensemble_get_num_trees(int& mid) {
-  auto& model = *get_model_ptr<MODEL>(mid);
-  return model.get_num_trees();
-}
-
-template <class MODEL>
-size_t
-frovedis_ensemble_get_total_num_nodes(int& mid) {
-  auto& model = *get_model_ptr<MODEL>(mid);
-  return model.get_total_num_nodes();
-}
-
-template <class MODEL, class T>
-std::vector<T>
-frovedis_ensemble_get_tree_weights(int& mid) {
-  auto& model = *get_model_ptr<MODEL>(mid);
-  return model.get_tree_weights();
-}
-
-template <class MODEL>
-std::string
-frovedis_ensemble_to_string(int& mid) {
-  auto& model = *get_model_ptr<MODEL>(mid);
-  return model.to_string();
 }
 
 #endif 
