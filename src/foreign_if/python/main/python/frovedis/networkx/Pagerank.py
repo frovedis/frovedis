@@ -19,20 +19,22 @@ def pagerank(G, alpha=0.85, personalization=None, max_iter=100, tol=1.0e-6, \
             dict -> dangling -> None
     RETURN: dict of ranks
     """
-    copy_gr = None
     if isinstance(G, nx.classes.graph.Graph):
-        copy_gr = Graph(nx_graph=G) #convert to frov graph
+        frov_gr = Graph(nx_graph=G)
+        movable = True
     elif isinstance(G, Graph):
-        copy_gr = G.copy()
+        frov_gr = G
+        movable = False
     else:
         raise TypeError("Requires networkx graph or frovedis graph, but provided type is: ", type(G))
     (host, port) = FrovedisServer.getServerInstance()
     result = rpclib.call_frovedis_pagerank(host, port,\
-                copy_gr.get(), tol, alpha, max_iter)
+                frov_gr.get(), tol, alpha, max_iter)
     excpt = rpclib.check_server_exception()
     if excpt["status"]:
         raise RuntimeError(excpt["info"])
-    copy_gr.release() # releasing the temporary graph created for normalization at server
+    if movable:
+        frov_gr.release()
     # TODO: vertices ID based on input graph
     verts = {}
     for i in range(len(result)):

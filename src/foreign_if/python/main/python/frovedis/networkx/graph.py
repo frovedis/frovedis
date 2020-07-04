@@ -2,6 +2,7 @@
 Graph class
 """
 
+import os
 import numpy as np
 import networkx as nx
 from scipy.sparse import issparse, csr_matrix
@@ -80,7 +81,7 @@ class Graph(object):
         if issparse(nx_graph):  # any sparse matrix
             mat = nx_graph.tocsr()
             self.load_csr(mat)
-        elif isinstance(nx_graph, nx.classes.graph.Graph):  # any sparse matrix
+        elif isinstance(nx_graph, nx.classes.graph.Graph):  
             self.load(nx_graph)
         elif nx_graph is not None:
             raise ValueError("Graph: Supported types are networkx graph or scipy sparse matrices!")
@@ -89,7 +90,7 @@ class Graph(object):
         """
         DESC: load a networkx graph to create a frovedis graph
         PARAM: nx_graph
-        RETURN: None
+        RETURN: self
         """
         self.release()
         self.num_edges = nx_graph.number_of_edges()
@@ -106,10 +107,16 @@ class Graph(object):
             raise RuntimeError(excpt["info"])
         return self
 
-    def load_csr(self, smat): #TODO: add description 
+    def load_csr(self, smat): 
+        """
+        DESC: loads Frovedis graph from a scipy csr_matrix 
+        PARAM: any sparse matrix 
+        RETURN: self
+        """
         self.release()
         self.num_edges = len(smat.data) 
         self.num_vertices = smat.shape[0]
+        #TODO: support dtype: np.int32 as well for graphs with weight = 1
         fsmat = FrovedisCRSMatrix(mat=smat, dtype=np.float64, itype=np.int64)
         (host, port) = FrovedisServer.getServerInstance()
         self.fdata = rpclib.set_graph_data(host, port, fsmat.get())
@@ -180,6 +187,9 @@ class Graph(object):
         RETURN: None
         """
         if self.fdata != None:
+            if os.path.exists(fname):
+                raise ValueError(\
+                    "another graph object with %s name already exists!" % fname)
             (host, port) = FrovedisServer.getServerInstance()
             rpclib.save_graph_py(host, port, self.get(), fname.encode('ascii'))
             excpt = rpclib.check_server_exception()
@@ -192,6 +202,9 @@ class Graph(object):
         PARAM: string-> file path
         RETURN: None
         """
+        if not os.path.exists(fname):
+            raise ValueError(\
+                "the graph object with name %s does not exist!" % fname)
         self.release()
         (host, port) = FrovedisServer.getServerInstance()
         dummy_graph = \
@@ -216,6 +229,7 @@ class Graph(object):
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
             raise RuntimeError(excpt["info"])
+        # TODO: support other types
         fmat = FrovedisCRSMatrix(dmat, dtype=np.float64, itype=np.int64)
         smat = fmat.to_scipy_matrix()
         return nx.from_scipy_sparse_matrix(smat)

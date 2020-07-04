@@ -22,7 +22,7 @@ def connected_components(G, print_summary=False):
         inp_movable = False
 
     (host, port) = FrovedisServer.getServerInstance()
-    nodes_dist = np.empty(G.num_vertices, dtype=np.int32)
+    nodes_dist = np.empty(G.num_vertices, dtype=np.int64)
     nodes_in_which_cc = np.empty(G.num_vertices, dtype=np.int64)
     num_nodes_in_each_cc = rpclib.call_frovedis_bfs(host, port,\
                                     G.get(), nodes_in_which_cc,\
@@ -48,8 +48,8 @@ def connected_components(G, print_summary=False):
     ret = {i+1 : [] for i in np.unique(nodes_in_which_cc)}
     for i in range(G.num_vertices):
         cc_root = nodes_in_which_cc[i] + 1
-        pair = (i+1, nodes_dist[i])
-        ret[cc_root].append(pair)
+        ret[cc_root].append(i+1)
     if(inp_movable):
         G.release()
-    return ret
+    for i in ret.values():
+        yield set(i)

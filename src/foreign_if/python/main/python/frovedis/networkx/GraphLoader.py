@@ -15,6 +15,7 @@ def custom_read_edgelist(path, comments='#', delimiter=None,
     PARAMS:    Same as in networkx.read_edgelist(). 
                nodetype, data, edgetype, encoding are not used.
     """
+    # TODO: support weight data to be loaded from file (if present)
     mat = np.loadtxt(fname=path, comments=comments, \
                      delimiter=delimiter, dtype=np.int64) #loads data as int64
     rowid = mat[:, 0] - 1
@@ -24,9 +25,11 @@ def custom_read_edgelist(path, comments='#', delimiter=None,
     num_edges = mat.shape[0]
     shape = (num_vertices, num_vertices)
     if (isinstance(create_using, nx.classes.digraph.DiGraph)):
+        # TODO: support weight type to be specified
         data = np.ones(num_edges)
         coo = coo_matrix((data, (rowid, colid)), shape=shape)
     else:
+        # TODO: support weight type to be specified
         data = np.ones(num_edges*2)
         rowid_ = np.concatenate((rowid, colid))
         colid_ = np.concatenate((colid, rowid))
