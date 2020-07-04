@@ -47,6 +47,16 @@ class dfoperator(object):
                 raise RuntimeError(excpt["info"])
             return dfoperator(proxy)
 
+    def __invert__(self):
+        """Unary NOT operator"""
+        if self.__proxy is not None:
+            (host, port) = FrovedisServer.getServerInstance()
+            proxy = rpclib.get_dfNOToperator(host, port, self.get())
+            excpt = rpclib.check_server_exception()
+            if excpt["status"]:
+                raise RuntimeError(excpt["info"])
+            return dfoperator(proxy)
+
     def get(self):
         """get object"""
         return self.__proxy
