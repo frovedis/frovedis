@@ -500,8 +500,7 @@ public class JNISupport {
                                                    long tptr,
                                                    int mid,
                                                    short mkind,
-                                                   boolean dense,
-                                                   boolean need_prob);
+                                                   boolean dense);
 
   // [MFM] for recommending 'num' no. of products (with rating) for a given user
   public static native IntDoublePair[] recommendProducts(Node master_node, 
@@ -687,6 +686,8 @@ public class JNISupport {
                                              long proxy1, long proxy2);
   public static native long getDFOrOperator(Node master_node,
                                             long proxy1, long proxy2);
+  public static native long getDFNotOperator(Node master_node,
+                                            long proxy);
   public static native void releaseFrovedisDFOperator(Node master_node, long proxy);
   public static native long filterFrovedisDataframe(Node master_node,
                                                   long data_proxy, long opt_proxy);
@@ -703,9 +704,6 @@ public class JNISupport {
   public static native long groupFrovedisDataframe(Node master_node,
                                                  long dproxy, String targets[],
                                                  long size);
-  // groupBy(x)
-  public static native long groupFrovedisDataframeX(Node master_node,
-                                                 long dproxy);
   public static native long renameFrovedisDataframe(Node master_node,
                                                     long dproxy,
                                                     String[] name, String[] new_name,
@@ -764,22 +762,23 @@ public class JNISupport {
   public static native void showGraph(Node master_node, long dptr);
   public static native void releaseGraph(Node master_node, long dptr);
   public static native long setGraphData(Node master_node, long dptr);
-  public static native DummyEdge[] getGraphData(Node master_node, long dptr);
-  public static native double[] callFrovedisPageRank(Node master_node, 
-                                                     long dptr,
-                                                     double epsilon, 
-                                                     double dfactor,
-                                                     int maxIter);
+  public static native DummyEdge[] getGraphEdgeData(Node master_node, long dptr);
+  public static native double[] getGraphVertexData(Node master_node, long dptr);
+  public static native DummyGraph callFrovedisPageRank(Node master_node, 
+                                                 long dptr,
+                                                 double epsilon, 
+                                                 double dfactor,
+                                                 int maxIter);
   public static native void callFrovedisSSSP(Node master_node,
                                                      long dptr,
-                                                     int[] dist,
+                                                     double[] dist,
                                                      long[] pred,
                                                      long numVertices,
                                                      long source_vertex);
   public static native long[] callFrovedisBFS(Node master_node,
                                                      long dptr,
                                                      long[] nodes_in_which_cc,
-                                                     int[] dist,
+                                                     long[] dist,
                                                      long numVertices);
   // --- LDA ---
   public static native DummyLDAModel callFrovedisLDA(Node master_node,
