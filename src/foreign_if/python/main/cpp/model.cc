@@ -14,7 +14,6 @@ extern "C" {
     try {
       if (mdtype == FLOAT) {
         switch(mkind) {
-          
           case LRM:    exrpc_oneway(fm_node,show_model<LRM2>,mid); break;
           case MLR:    exrpc_oneway(fm_node,show_model<MLR2>,mid); break;
           case SVM:    exrpc_oneway(fm_node,show_model<SVM2>,mid); break;
@@ -231,7 +230,7 @@ extern "C" {
           case MLR:    exrpc_async(fm_node,load_glm<MLR2>,mid,MLR,fs_path).get(); break;
           case LRM:    exrpc_async(fm_node,load_glm<LRM2>,mid,LRM,fs_path).get(); break;
           case SVM:    exrpc_async(fm_node,load_glm<SVM2>,mid,SVM,fs_path).get(); break;
-          case SVR:    exrpc_async(fm_node,load_lnrm<DT2>,mid,SVM,fs_path).get(); break;
+          case SVR:    exrpc_async(fm_node,load_lnrm<DT2>,mid,SVR,fs_path).get(); break;
           case LNRM:   exrpc_async(fm_node,load_lnrm<DT2>,mid,LNRM,fs_path).get(); break;
           case KMEANS: exrpc_async(fm_node,load_kmm<DT2>,mid,KMEANS,fs_path).get(); break;
           case SEM:    exrpc_oneway(fm_node,load_model<SEM2>,mid,SEM,fs_path); break;
@@ -635,7 +634,7 @@ extern "C" {
                                   int mid, short mkind, long dptr, 
                                   float* ret, ulong len, bool prob,
                                   short itype, bool isDense) {
-    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
+    if(!host) REPORT_ERROR(USER_ERROR, "Invalid hostname!!");
     exrpc_node fm_node(host,port);
     auto f_dptr = (exrpc_ptr_t) dptr;
     std::vector<float> pred;
@@ -643,97 +642,118 @@ extern "C" {
     try {
       if(isDense) {
         switch(mkind) {
-          case LRM:  pred = exrpc_async(fm_node,(pgp2<DT2,R_MAT2,R_LMAT2,LRM2>),f_dptr,mid,prob).get(); break;
-          case MLR:  pred = exrpc_async(fm_node,(pgp2<DT2,R_MAT2,R_LMAT2,MLR2>),f_dptr,mid,prob).get(); break;
-          case SVM:  pred = exrpc_async(fm_node,(pgp2<DT2,R_MAT2,R_LMAT2,SVM2>),f_dptr,mid,prob).get(); break;
-          case SVR:  pred = exrpc_async(fm_node,(pgp2<DT2,R_MAT2,R_LMAT2,SVR2>),f_dptr,mid,prob).get(); break;
-          case LNRM: pred = exrpc_async(fm_node,(pgp2<DT2,R_MAT2,R_LMAT2,LNRM2>),f_dptr,mid,prob).get(); break;
-          case DTM:  pred = exrpc_async(fm_node,(parallel_dtm_predict_with_broadcast<DT2,R_MAT2,R_LMAT2>),
+          case LRM:  pred = exrpc_async(fm_node,(parallel_lrm_predict<DT2,R_MAT2,R_LMAT2,LRM2>),
                                         f_dptr,mid,prob).get(); break;
-          case FMM:  REPORT_ERROR(USER_ERROR,"currently Frovedis doesn't support dense test data for FM!\n");
-          case NBM:  pred = exrpc_async(fm_node,(parallel_nbm_predict_with_broadcast<DT2,R_MAT2,R_LMAT2>),
+          case MLR:  pred = exrpc_async(fm_node,(parallel_lrm_predict<DT2,R_MAT2,R_LMAT2,MLR2>),
                                         f_dptr,mid,prob).get(); break;
-          case RFM:  pred = exrpc_async(fm_node,(parallel_rfm_predict_with_broadcast<DT2,R_MAT2,R_LMAT2>),
+          case SVM:  pred = exrpc_async(fm_node,(parallel_svm_predict<DT2,R_MAT2,R_LMAT2>),
                                         f_dptr,mid,prob).get(); break;
-          case GBT:  pred = exrpc_async(fm_node,(parallel_gbt_predict_with_broadcast<DT2,R_MAT2,R_LMAT2>),
+          case SVR:  pred = exrpc_async(fm_node,(parallel_lnrm_predict<DT2,R_MAT2,R_LMAT2>),
                                         f_dptr,mid,prob).get(); break;
-          default:   REPORT_ERROR(USER_ERROR,"Unknown Model Kind is encountered!\n");
+          case LNRM: pred = exrpc_async(fm_node,(parallel_lnrm_predict<DT2,R_MAT2,R_LMAT2>),
+                                        f_dptr,mid,prob).get(); break;
+          case DTM:  pred = exrpc_async(fm_node,(parallel_dtm_predict<DT2,R_MAT2,R_LMAT2>),
+                                        f_dptr,mid,prob).get(); break;
+          case FMM:  REPORT_ERROR(USER_ERROR, "currently Frovedis doesn't support dense test data for FM!\n");
+          case NBM:  pred = exrpc_async(fm_node,(parallel_generic_predict<DT2,R_MAT2,R_LMAT2,NBM2>),
+                                        f_dptr,mid,prob).get(); break;
+          case RFM:  pred = exrpc_async(fm_node,(parallel_rfm_predict<DT2,R_MAT2,R_LMAT2>),
+                                        f_dptr,mid,prob).get(); break;
+          case GBT:  pred = exrpc_async(fm_node,(parallel_gbt_predict<DT2,R_MAT2,R_LMAT2>),
+                                        f_dptr,mid,prob).get(); break;
+          default:   REPORT_ERROR(USER_ERROR, "Unknown model kind is encountered!\n");
         }
       }
       else {
         switch(mkind) {
           case LRM: { 
             if(itype == INT)
-              pred = exrpc_async(fm_node,(pgp2<DT2,S_MAT24,S_LMAT24,LRM2>),f_dptr,mid,prob).get(); 
+              pred = exrpc_async(fm_node,(parallel_lrm_predict<DT2,S_MAT24,S_LMAT24,LRM2>),
+                                 f_dptr,mid,prob).get(); 
             else if(itype == LONG)
-              pred = exrpc_async(fm_node,(pgp2<DT2,S_MAT25,S_LMAT25,LRM2>),f_dptr,mid,prob).get(); 
-            else REPORT_ERROR(USER_ERROR,"Unsupported itype for sparse data!\n");
+              pred = exrpc_async(fm_node,(parallel_lrm_predict<DT2,S_MAT25,S_LMAT25,LRM2>),
+                                 f_dptr,mid,prob).get(); 
+            else REPORT_ERROR(USER_ERROR, "Unsupported itype for sparse data!\n");
             break;
           }
           case MLR: {
             if(itype == INT)
-              pred = exrpc_async(fm_node,(pgp2<DT2,S_MAT24,S_LMAT24,MLR2>),f_dptr,mid,prob).get();
+              pred = exrpc_async(fm_node,(parallel_lrm_predict<DT2,S_MAT24,S_LMAT24,MLR2>),
+                                 f_dptr,mid,prob).get();
             else if(itype == LONG)
-              pred = exrpc_async(fm_node,(pgp2<DT2,S_MAT25,S_LMAT25,MLR2>),f_dptr,mid,prob).get();
-            else REPORT_ERROR(USER_ERROR,"Unsupported itype for sparse data!\n");
+              pred = exrpc_async(fm_node,(parallel_lrm_predict<DT2,S_MAT25,S_LMAT25,MLR2>),
+                                 f_dptr,mid,prob).get();
+            else REPORT_ERROR(USER_ERROR, "Unsupported itype for sparse data!\n");
             break;
           }
           case SVM: {
             if(itype == INT)
-              pred = exrpc_async(fm_node,(pgp2<DT2,S_MAT24,S_LMAT24,SVM2>),f_dptr,mid,prob).get(); 
+              pred = exrpc_async(fm_node,(parallel_svm_predict<DT2,S_MAT24,S_LMAT24>),
+                                 f_dptr,mid,prob).get(); 
             else if(itype == LONG)
-              pred = exrpc_async(fm_node,(pgp2<DT2,S_MAT25,S_LMAT25,SVM2>),f_dptr,mid,prob).get();
-            else REPORT_ERROR(USER_ERROR,"Unsupported itype for sparse data!\n");
+              pred = exrpc_async(fm_node,(parallel_svm_predict<DT2,S_MAT25,S_LMAT25>),
+                                 f_dptr,mid,prob).get();
+            else REPORT_ERROR(USER_ERROR, "Unsupported itype for sparse data!\n");
             break;
           }
           case SVR: {
             if(itype == INT)
-              pred = exrpc_async(fm_node,(pgp2<DT2,S_MAT24,S_LMAT24,SVR2>),f_dptr,mid,prob).get();
+              pred = exrpc_async(fm_node,(parallel_lnrm_predict<DT2,S_MAT24,S_LMAT24>),
+                                 f_dptr,mid,prob).get();
             else if(itype == LONG)
-              pred = exrpc_async(fm_node,(pgp2<DT2,S_MAT25,S_LMAT25,SVR2>),f_dptr,mid,prob).get();
-            else REPORT_ERROR(USER_ERROR,"Unsupported itype for sparse data!\n");
+              pred = exrpc_async(fm_node,(parallel_lnrm_predict<DT2,S_MAT25,S_LMAT25>),
+                                 f_dptr,mid,prob).get();
+            else REPORT_ERROR(USER_ERROR, "Unsupported itype for sparse data!\n");
             break;
           }
           case LNRM: {
             if(itype == INT)
-               pred = exrpc_async(fm_node,(pgp2<DT2,S_MAT24,S_LMAT24,LNRM2>),f_dptr,mid,prob).get(); 
+               pred = exrpc_async(fm_node,(parallel_lnrm_predict<DT2,S_MAT24,S_LMAT24>),
+                                  f_dptr,mid,prob).get(); 
             else if(itype == LONG)
-               pred = exrpc_async(fm_node,(pgp2<DT2,S_MAT25,S_LMAT25,LNRM2>),f_dptr,mid,prob).get(); 
-            else REPORT_ERROR(USER_ERROR,"Unsupported itype for sparse data!\n");
+               pred = exrpc_async(fm_node,(parallel_lnrm_predict<DT2,S_MAT25,S_LMAT25>),
+                                  f_dptr,mid,prob).get(); 
+            else REPORT_ERROR(USER_ERROR, "Unsupported itype for sparse data!\n");
             break;
           }
           case DTM: {
             if(itype == INT)
-               pred = exrpc_async(fm_node,(parallel_dtm_predict_with_broadcast<DT2,S_MAT24,S_LMAT24>),f_dptr,mid,prob).get();  
+               pred = exrpc_async(fm_node,(parallel_dtm_predict<DT2,S_MAT24,S_LMAT24>),
+                                  f_dptr,mid,prob).get();  
             else if(itype == LONG)
-               pred = exrpc_async(fm_node,(parallel_dtm_predict_with_broadcast<DT2,S_MAT25,S_LMAT25>),f_dptr,mid,prob).get(); 
-            else REPORT_ERROR(USER_ERROR,"Unsupported itype for sparse data!\n");
+               pred = exrpc_async(fm_node,(parallel_dtm_predict<DT2,S_MAT25,S_LMAT25>),
+                                  f_dptr,mid,prob).get(); 
+            else REPORT_ERROR(USER_ERROR, "Unsupported itype for sparse data!\n");
             break;
           }
           case FMM: {
             if(itype == INT)
-              pred = exrpc_async(fm_node,(parallel_fmm_predict_with_broadcast<DT2,S_MAT24,S_LMAT24>),f_dptr,mid).get();
+              pred = exrpc_async(fm_node,(parallel_fmm_predict<DT2,S_MAT24,S_LMAT24>),
+                                 f_dptr,mid,prob).get();
             else if(itype == LONG)
-              pred = exrpc_async(fm_node,(parallel_fmm_predict_with_broadcast<DT2,S_MAT25,S_LMAT25>),f_dptr,mid).get();
-            else REPORT_ERROR(USER_ERROR,"Unsupported itype for sparse data!\n");
+              pred = exrpc_async(fm_node,(parallel_fmm_predict<DT2,S_MAT25,S_LMAT25>),
+                                 f_dptr,mid,prob).get();
+            else REPORT_ERROR(USER_ERROR, "Unsupported itype for sparse data!\n");
             break;
           }
           case NBM: {
             if(itype == INT)
-              pred = exrpc_async(fm_node,(parallel_nbm_predict_with_broadcast<DT2,S_MAT24,S_LMAT24>),f_dptr,mid,prob).get(); 
+              pred = exrpc_async(fm_node,(parallel_generic_predict<DT2,S_MAT24,S_LMAT24,NBM2>),
+                                 f_dptr,mid,prob).get(); 
             else if(itype == LONG)
-              pred = exrpc_async(fm_node,(parallel_nbm_predict_with_broadcast<DT2,S_MAT25,S_LMAT25>),f_dptr,mid,prob).get(); 
-           else REPORT_ERROR(USER_ERROR,"Unsupported itype for sparse data!\n");
+              pred = exrpc_async(fm_node,(parallel_generic_predict<DT2,S_MAT25,S_LMAT25,NBM2>),
+                                 f_dptr,mid,prob).get(); 
+           else REPORT_ERROR(USER_ERROR, "Unsupported itype for sparse data!\n");
            break;
           }
-          case RFM:  REPORT_ERROR(USER_ERROR,"currently Frovedis doesn't support sparse test data for Random Forest prediction!\n");break;
-          case GBT:  REPORT_ERROR(USER_ERROR,"currently Frovedis doesn't support sparse test data for GBT prediction!\n");break;
-          default:   REPORT_ERROR(USER_ERROR,"Unknown Model Kind is encountered!\n");
+          case RFM:  REPORT_ERROR(USER_ERROR, "currently Frovedis doesn't support sparse test data for Random Forest prediction!\n");
+          case GBT:  REPORT_ERROR(USER_ERROR, "currently Frovedis doesn't support sparse test data for GBT prediction!\n");
+          default:   REPORT_ERROR(USER_ERROR, "Unknown model kind is encountered!\n");
         }
       }
       auto sz = pred.size();
       checkAssumption(len == sz);
-      for(size_t i=0; i<sz; ++i) ret[i] = pred[i];
+      for(size_t i = 0; i < sz; ++i) ret[i] = pred[i];
     }
     catch (std::exception& e) {
       set_status(true, e.what());
@@ -742,8 +762,9 @@ extern "C" {
 
   void parallel_double_glm_predict(const char* host, int port,
                                    int mid, short mkind, long dptr, 
-                                   double* ret, ulong len, bool prob, short itype , bool isDense) {
-    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
+                                   double* ret, ulong len, bool prob, 
+                                   short itype , bool isDense) {
+    if(!host) REPORT_ERROR(USER_ERROR, "Invalid hostname!!");
     exrpc_node fm_node(host,port);
     auto f_dptr = (exrpc_ptr_t) dptr;
     std::vector<double> pred;
@@ -751,97 +772,118 @@ extern "C" {
     try {
       if(isDense) {
         switch(mkind) {
-          case LRM:  pred = exrpc_async(fm_node,(pgp2<DT1,R_MAT1,R_LMAT1,LRM1>),f_dptr,mid,prob).get(); break;
-          case MLR:  pred = exrpc_async(fm_node,(pgp2<DT1,R_MAT1,R_LMAT1,MLR1>),f_dptr,mid,prob).get(); break;
-          case SVM:  pred = exrpc_async(fm_node,(pgp2<DT1,R_MAT1,R_LMAT1,SVM1>),f_dptr,mid,prob).get(); break;
-          case SVR:  pred = exrpc_async(fm_node,(pgp2<DT1,R_MAT1,R_LMAT1,SVR1>),f_dptr,mid,prob).get(); break;
-          case LNRM: pred = exrpc_async(fm_node,(pgp2<DT1,R_MAT1,R_LMAT1,LNRM1>),f_dptr,mid,prob).get(); break;
-          case DTM:  pred = exrpc_async(fm_node,(parallel_dtm_predict_with_broadcast<DT1,R_MAT1,R_LMAT1>),
+          case LRM:  pred = exrpc_async(fm_node,(parallel_lrm_predict<DT1,R_MAT1,R_LMAT1,LRM1>),
                                         f_dptr,mid,prob).get(); break;
-          case FMM:  REPORT_ERROR(USER_ERROR,"currently Frovedis doesn't support dense test data for FM!\n");
-          case NBM:  pred = exrpc_async(fm_node,(parallel_nbm_predict_with_broadcast<DT1,R_MAT1,R_LMAT1>),
+          case MLR:  pred = exrpc_async(fm_node,(parallel_lrm_predict<DT1,R_MAT1,R_LMAT1,MLR1>),
                                         f_dptr,mid,prob).get(); break;
-          case RFM:  pred = exrpc_async(fm_node,(parallel_rfm_predict_with_broadcast<DT1,R_MAT1,R_LMAT1>),
+          case SVM:  pred = exrpc_async(fm_node,(parallel_svm_predict<DT1,R_MAT1,R_LMAT1>),
                                         f_dptr,mid,prob).get(); break;
-          case GBT:  pred = exrpc_async(fm_node,(parallel_gbt_predict_with_broadcast<DT1,R_MAT1,R_LMAT1>),
+          case SVR:  pred = exrpc_async(fm_node,(parallel_lnrm_predict<DT1,R_MAT1,R_LMAT1>),
                                         f_dptr,mid,prob).get(); break;
-          default:   REPORT_ERROR(USER_ERROR,"Unknown Model Kind is encountered!\n");
+          case LNRM: pred = exrpc_async(fm_node,(parallel_lnrm_predict<DT1,R_MAT1,R_LMAT1>),
+                                        f_dptr,mid,prob).get(); break;
+          case DTM:  pred = exrpc_async(fm_node,(parallel_dtm_predict<DT1,R_MAT1,R_LMAT1>),
+                                        f_dptr,mid,prob).get(); break;
+          case FMM:  REPORT_ERROR(USER_ERROR, "currently Frovedis doesn't support dense test data for FM!\n");
+          case NBM:  pred = exrpc_async(fm_node,(parallel_generic_predict<DT1,R_MAT1,R_LMAT1,NBM1>),
+                                        f_dptr,mid,prob).get(); break;
+          case RFM:  pred = exrpc_async(fm_node,(parallel_rfm_predict<DT1,R_MAT1,R_LMAT1>),
+                                        f_dptr,mid,prob).get(); break;
+          case GBT:  pred = exrpc_async(fm_node,(parallel_gbt_predict<DT1,R_MAT1,R_LMAT1>),
+                                        f_dptr,mid,prob).get(); break;
+          default:   REPORT_ERROR(USER_ERROR, "Unknown model kind is encountered!\n");
         }
       }
       else {
         switch(mkind) {
           case LRM: {
             if(itype == INT)
-              pred = exrpc_async(fm_node,(pgp2<DT1,S_MAT14,S_LMAT14,LRM1>),f_dptr,mid,prob).get();
+              pred = exrpc_async(fm_node,(parallel_lrm_predict<DT1,S_MAT14,S_LMAT14,LRM1>),
+                                 f_dptr,mid,prob).get();
             else if(itype == LONG)
-              pred = exrpc_async(fm_node,(pgp2<DT1,S_MAT15,S_LMAT15,LRM1>),f_dptr,mid,prob).get();
-            else REPORT_ERROR(USER_ERROR,"Unsupported itype for sparse data!\n");
+              pred = exrpc_async(fm_node,(parallel_lrm_predict<DT1,S_MAT15,S_LMAT15,LRM1>),
+                                 f_dptr,mid,prob).get();
+            else REPORT_ERROR(USER_ERROR, "Unsupported itype for sparse data!\n");
             break;
           }
           case MLR: {
             if(itype == INT)
-              pred = exrpc_async(fm_node,(pgp2<DT1,S_MAT14,S_LMAT14,MLR1>),f_dptr,mid,prob).get();
+              pred = exrpc_async(fm_node,(parallel_lrm_predict<DT1,S_MAT14,S_LMAT14,MLR1>),
+                                 f_dptr,mid,prob).get();
             else if(itype == LONG)
-              pred = exrpc_async(fm_node,(pgp2<DT1,S_MAT15,S_LMAT15, MLR1>),f_dptr,mid,prob).get();
-            else REPORT_ERROR(USER_ERROR,"Unsupported itype for sparse data!\n");
+              pred = exrpc_async(fm_node,(parallel_lrm_predict<DT1,S_MAT15,S_LMAT15,MLR1>),
+                                 f_dptr,mid,prob).get();
+            else REPORT_ERROR(USER_ERROR, "Unsupported itype for sparse data!\n");
             break;
           }
           case SVM: {
             if(itype == INT)
-              pred = exrpc_async(fm_node,(pgp2<DT1,S_MAT14,S_LMAT14,SVM1>),f_dptr,mid,prob).get();
+              pred = exrpc_async(fm_node,(parallel_svm_predict<DT1,S_MAT14,S_LMAT14>),
+                                 f_dptr,mid,prob).get();
             else if(itype == LONG)
-              pred = exrpc_async(fm_node,(pgp2<DT1,S_MAT15,S_LMAT15,SVM1>),f_dptr,mid,prob).get();
-            else REPORT_ERROR(USER_ERROR,"Unsupported itype for sparse data!\n");
+              pred = exrpc_async(fm_node,(parallel_svm_predict<DT1,S_MAT15,S_LMAT15>),
+                                 f_dptr,mid,prob).get();
+            else REPORT_ERROR(USER_ERROR, "Unsupported itype for sparse data!\n");
             break;
           }
           case SVR: {
             if(itype == INT)
-              pred = exrpc_async(fm_node,(pgp2<DT1,S_MAT14,S_LMAT14,SVR1>),f_dptr,mid,prob).get();
+              pred = exrpc_async(fm_node,(parallel_lnrm_predict<DT1,S_MAT14,S_LMAT14>),
+                                 f_dptr,mid,prob).get();
             else if(itype == LONG)
-              pred = exrpc_async(fm_node,(pgp2<DT1,S_MAT15,S_LMAT15,SVR1>),f_dptr,mid,prob).get();
-            else REPORT_ERROR(USER_ERROR,"Unsupported itype for sparse data!\n");
+              pred = exrpc_async(fm_node,(parallel_lnrm_predict<DT1,S_MAT15,S_LMAT15>),
+                                 f_dptr,mid,prob).get();
+            else REPORT_ERROR(USER_ERROR, "Unsupported itype for sparse data!\n");
             break;
           }
           case LNRM: {
             if(itype == INT)
-               pred = exrpc_async(fm_node,(pgp2<DT1,S_MAT14,S_LMAT14,LNRM1>),f_dptr,mid,prob).get();
+               pred = exrpc_async(fm_node,(parallel_lnrm_predict<DT1,S_MAT14,S_LMAT14>),
+                                  f_dptr,mid,prob).get();
             else if(itype == LONG)
-               pred = exrpc_async(fm_node,(pgp2<DT1,S_MAT15,S_LMAT15,LNRM1>),f_dptr,mid,prob).get();
-            else REPORT_ERROR(USER_ERROR,"Unsupported itype for sparse data!\n");
+               pred = exrpc_async(fm_node,(parallel_lnrm_predict<DT1,S_MAT15,S_LMAT15>),
+                                  f_dptr,mid,prob).get();
+            else REPORT_ERROR(USER_ERROR, "Unsupported itype for sparse data!\n");
             break;
           }
           case DTM: {
             if(itype == INT)
-               pred = exrpc_async(fm_node,(parallel_dtm_predict_with_broadcast<DT1,S_MAT14,S_LMAT14>),f_dptr,mid,prob).get();
+               pred = exrpc_async(fm_node,(parallel_dtm_predict<DT1,S_MAT14,S_LMAT14>),
+                                  f_dptr,mid,prob).get();
              else if(itype == LONG)
-               pred = exrpc_async(fm_node,(parallel_dtm_predict_with_broadcast<DT1,S_MAT15,S_LMAT15>),f_dptr,mid,prob).get();
-             else REPORT_ERROR(USER_ERROR,"Unsupported itype for sparse data!\n");
+               pred = exrpc_async(fm_node,(parallel_dtm_predict<DT1,S_MAT15,S_LMAT15>),
+                                  f_dptr,mid,prob).get();
+             else REPORT_ERROR(USER_ERROR, "Unsupported itype for sparse data!\n");
              break;
           }
           case FMM: {
             if(itype == INT)
-              pred = exrpc_async(fm_node,(parallel_fmm_predict_with_broadcast<DT1,S_MAT14,S_LMAT14>),f_dptr,mid).get();
+              pred = exrpc_async(fm_node,(parallel_fmm_predict<DT1,S_MAT14,S_LMAT14>),
+                                 f_dptr,mid,prob).get();
             else if(itype == LONG)
-              pred = exrpc_async(fm_node,(parallel_fmm_predict_with_broadcast<DT1,S_MAT15,S_LMAT15>),f_dptr,mid).get();
-            else REPORT_ERROR(USER_ERROR,"Unsupported itype for sparse data!\n");
+              pred = exrpc_async(fm_node,(parallel_fmm_predict<DT1,S_MAT15,S_LMAT15>),
+                                 f_dptr,mid,prob).get();
+            else REPORT_ERROR(USER_ERROR, "Unsupported itype for sparse data!\n");
             break;
           }
           case NBM: {
             if(itype == INT)
-               pred = exrpc_async(fm_node,(parallel_nbm_predict_with_broadcast<DT1,S_MAT14,S_LMAT14>),f_dptr,mid,prob).get();
+               pred = exrpc_async(fm_node,(parallel_generic_predict<DT1,S_MAT14,S_LMAT14,NBM1>),
+                                  f_dptr,mid,prob).get();
             else if(itype == LONG)
-               pred = exrpc_async(fm_node,(parallel_nbm_predict_with_broadcast<DT1,S_MAT15,S_LMAT15>),f_dptr,mid,prob).get();
-            else REPORT_ERROR(USER_ERROR,"Unsupported itype for sparse data!\n");
+               pred = exrpc_async(fm_node,(parallel_generic_predict<DT1,S_MAT15,S_LMAT15,NBM1>),
+                                  f_dptr,mid,prob).get();
+            else REPORT_ERROR(USER_ERROR, "Unsupported itype for sparse data!\n");
             break;
           }
-          case RFM:  REPORT_ERROR(USER_ERROR,"currently Frovedis doesn't support sparse test data for Random Forest prediction!\n");break;
-          case GBT:  REPORT_ERROR(USER_ERROR,"currently Frovedis doesn't support sparse test data for GBT prediction!\n");break;
-          default:   REPORT_ERROR(USER_ERROR,"Unknown Model Kind is encountered!\n");
+          case RFM:  REPORT_ERROR(USER_ERROR, "currently Frovedis doesn't support sparse test data for Random Forest prediction!\n");
+          case GBT:  REPORT_ERROR(USER_ERROR, "currently Frovedis doesn't support sparse test data for GBT prediction!\n");
+          default:   REPORT_ERROR(USER_ERROR, "Unknown model kind is encountered!\n");
         }
       }
       auto sz = pred.size();
       checkAssumption(len == sz);
-      for(size_t i=0; i<sz; ++i) ret[i] = pred[i];
+      for(size_t i = 0; i < sz; ++i) ret[i] = pred[i];
     }
     catch (std::exception& e) {
       set_status(true, e.what());
