@@ -158,29 +158,13 @@ extern "C" {
                          "likelihood", m.likelihood);
   }
 
-  /*PyObject* to_py_dummy_edge_array(crs_matrix_local<double>& mat) {
-    PyObject *PList = PyList_New(0);
-    auto nrow = mat.local_num_row;
-    for(size_t i = 0; i < nrow; ++i) {
-      for(size_t j = mat.off[i]; j < mat.off[i+1]; ++j) {
-        auto srcID = mat.idx[j] + 1;
-        auto dstID = i + 1;
-        auto attr = mat.val[j];
-        PyList_Append(PList,Py_BuildValue("{s:l, s:l, s:d}",
-                                          "srcID", srcID, 
-                                          "dstID", dstID, 
-                                          "attr", attr));
-      }
-    }
-    return Py_BuildValue("O",PList);
-  }*/
   PyObject* to_py_dummy_graph(const dummy_graph& obj){  
-  long dptr = static_cast<long>(obj.dptr);
-  long num_edges = static_cast<long>(obj.num_edges);
-  long num_vertices = static_cast<long>(obj.num_nodes);
-  return Py_BuildValue("{s:l, s:l, s:l}",
-                       "dptr", dptr,
-                       "nEdges", num_edges,
-                       "nNodes", num_vertices);
+    long dptr = static_cast<long>(obj.dptr);
+    long num_edges = static_cast<long>(obj.num_edges);
+    long num_vertices = static_cast<long>(obj.num_nodes);
+    return Py_BuildValue("{s:l, s:l, s:l}",
+                         "dptr", dptr,
+                         "nEdges", num_edges,
+                         "nNodes", num_vertices);
   }
 }
