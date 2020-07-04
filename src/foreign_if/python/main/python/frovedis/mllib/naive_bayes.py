@@ -58,11 +58,12 @@ class MultinomialNB(BaseEstimator):
         self.release()
         self.__mid = ModelID.get()
         inp_data = FrovedisLabeledPoint(X, y)
-        (X, y) = inp_data.get()
         (data, label) = inp_data.get()
         dtype = inp_data.get_dtype()
         itype = inp_data.get_itype()
         dense = inp_data.is_dense()
+        unique_labels = inp_data.get_distinct_labels()
+        self.n_classes = unique_labels.size
         self.__mdtype = dtype
         (host, port) = FrovedisServer.getServerInstance()
         rpclib.nb_train(host, port, data.get(),
@@ -168,8 +169,10 @@ class MultinomialNB(BaseEstimator):
         """
         if self.__mid is not None:
             proba = GLM.predict(X, self.__mid, self.__mkind, \
-                        self.__mdtype, True)
-            return np.asarray(proba)
+                        self.__mdtype, True, self.n_classes)
+            n_samples = len(proba) // self.n_classes
+            shape = (n_samples, self.n_classes)
+            return np.asarray(proba).reshape(shape)
         else:
             raise ValueError(\
             "predict is called before calling fit, or the model is released.")
@@ -302,6 +305,8 @@ class GaussianNB(BaseEstimator):
         dtype = inp_data.get_dtype()
         itype = inp_data.get_itype()
         dense = inp_data.is_dense()
+        unique_labels = inp_data.get_distinct_labels()
+        self.n_classes = unique_labels.size
         self.__mdtype = dtype
         (host, port) = FrovedisServer.getServerInstance()
         rpclib.nb_train(host, port, data.get(),
@@ -334,8 +339,10 @@ class GaussianNB(BaseEstimator):
         """
         if self.__mid is not None:
             proba = GLM.predict(X, self.__mid, self.__mkind, \
-                        self.__mdtype, True)
-            return np.asarray(proba)
+                        self.__mdtype, True, self.n_classes)
+            n_samples = len(proba) // self.n_classes
+            shape = (n_samples, self.n_classes)
+            return np.asarray(proba).reshape(shape)
         else:
             raise ValueError( \
             "predict is called before calling fit, \
@@ -463,7 +470,7 @@ class BernoulliNB(BaseEstimator):
         if self.alpha < 0:
             raise ValueError("alpha should be greater than or equal to 1")
 
-    # Fit NaiveBayes multinomial classifier according to X (input data),
+    # Fit NaiveBayes bernoulli classifier according to X (input data),
     # y (Label).
     def fit(self, X, y):
         """
@@ -477,12 +484,14 @@ class BernoulliNB(BaseEstimator):
         dtype = inp_data.get_dtype()
         itype = inp_data.get_itype()
         dense = inp_data.is_dense()
+        unique_labels = inp_data.get_distinct_labels()
+        self.n_classes = unique_labels.size
         self.__mdtype = dtype
         (host, port) = FrovedisServer.getServerInstance()
         rpclib.nb_train(host, port, data.get(),
                         label.get(), self.alpha, self.__mid,
                         self.Algo.encode('ascii'), self.verbose, dtype, itype, \
-                                        dense)
+                        dense)
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
             raise RuntimeError(excpt["info"])
@@ -511,23 +520,8 @@ class BernoulliNB(BaseEstimator):
     @class_log_prior_.setter
     def class_log_prior_(self, val):
         """class_log_prior_ setter"""
-        raise AttributeError("attribute 'class_log_prior_' of Multinomial \
+        raise AttributeError("attribute 'class_log_prior_' of Bernoulli \
                     NaiveBayes object is not writable")
-
-
-    # Perform classification on an array of test vectors X.
-    def predict(self, X):
-        """
-        NAME: predict
-        """
-        if self.__mid is not None:
-            pred = GLM.predict(X, self.__mid, self.__mkind, \
-                               self.__mdtype, False)
-            return np.asarray(pred, dtype=np.int64)
-        else:
-            raise ValueError( \
-            "predict is called before calling fit, \
-             or the model is released.")
 
     @property
     def feature_log_prob_(self):
@@ -549,7 +543,7 @@ class BernoulliNB(BaseEstimator):
     @feature_log_prob_.setter
     def feature_log_prob_(self, val):
         """feature_log_prob_ setter"""
-        raise AttributeError("attribute 'feature_log_prob_' of Multinomial \
+        raise AttributeError("attribute 'feature_log_prob_' of Bernoulli \
                     NaiveBayes object is not writable")
 
     @property
@@ -572,8 +566,22 @@ class BernoulliNB(BaseEstimator):
     @class_count_.setter
     def class_count_(self, val):
         """class_count_ setter"""
-        raise AttributeError("attribute 'class_count_' of Multinomial \
+        raise AttributeError("attribute 'class_count_' of Bernoulli \
                     NaiveBayes object is not writable")
+
+    # Perform classification on an array of test vectors X.
+    def predict(self, X):
+        """
+        NAME: predict
+        """
+        if self.__mid is not None:
+            pred = GLM.predict(X, self.__mid, self.__mkind, \
+                               self.__mdtype, False)
+            return np.asarray(pred, dtype=np.int64)
+        else:
+            raise ValueError( \
+            "predict is called before calling fit, \
+             or the model is released.")
 
     # Perform classification on an array and return probability estimates
     # for the test vector X.
@@ -583,8 +591,10 @@ class BernoulliNB(BaseEstimator):
         """
         if self.__mid is not None:
             proba = GLM.predict(X, self.__mid, self.__mkind, \
-                self.__mdtype, True)
-            return np.asarray(proba)
+                self.__mdtype, True, self.n_classes)
+            n_samples = len(proba) // self.n_classes
+            shape = (n_samples, self.n_classes)
+            return np.asarray(proba).reshape(shape)
         else:
             raise ValueError( \
             "predict is called before calling fit, or the model is released.")

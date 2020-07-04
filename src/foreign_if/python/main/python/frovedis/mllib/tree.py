@@ -334,8 +334,13 @@ class DecisionTreeClassifier(BaseEstimator):
         NAME: predict_proba
         """
         if self.__mid is not None:
-            return GLM.predict(X, self.__mid, self.__mkind, \
+            if(self.n_classes_ > 2):
+                raise AttributeError("Frovedis DecisionTreeClassifier doesn't support" \
+                                     + " predict_proba() for multinomial classification!")
+            pred = GLM.predict(X, self.__mid, self.__mkind, \
                                self.__mdtype, True)
+            # TODO: Perform (1.0 - pred) from within frovedis library
+            return np.asarray(pred).reshape((len(pred), 1)) 
         else:
             raise ValueError(\
             "predict is called before calling fit, or the model is released.")

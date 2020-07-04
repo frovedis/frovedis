@@ -229,8 +229,10 @@ class LogisticRegression(BaseEstimator):
         """
         if self.__mid is not None:
             proba = GLM.predict(X, self.__mid, self.__mkind, \
-                                self.__mdtype, True)
-            return np.asarray(proba)
+                                self.__mdtype, True, self.n_classes)
+            n_samples = len(proba) // self.n_classes
+            shape = (n_samples, self.n_classes)
+            return np.asarray(proba).reshape(shape)
         else:
             raise ValueError( \
             "predict is called before calling fit, or the model is released.")
@@ -1157,12 +1159,14 @@ class SGDClassifier(BaseEstimator):
         NAME: predict_proba
         """
         if self.__mid is not None:
-            if self.__mkind == M_KIND.LNRM:
+            if self.__mkind == M_KIND.LNRM or self.__mkind == M_KIND.SVM:
                 raise AttributeError(\
-                "attribute 'predict_proba' is not available for squared_loss")
+                "attribute 'predict_proba' is not available for [squared/hinge]_loss")
             proba = GLM.predict(X, self.__mid, self.__mkind, \
-                               self.__mdtype, True)
-            return np.asarray(proba)
+                               self.__mdtype, True, self.n_classes)
+            n_samples = len(proba) // self.n_classes
+            shape = (n_samples, self.n_classes)
+            return np.asarray(proba).reshape(shape)
         else:
             raise ValueError( \
             "predict is called before calling fit, or the model is released.")

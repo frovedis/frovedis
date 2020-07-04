@@ -63,7 +63,7 @@ class ModelID(object):
 class GLM(object):
     """A python util for common operations on Generic Model"""
     @staticmethod
-    def predict(X, mid, mkind, mdtype, prob):
+    def predict(X, mid, mkind, mdtype, prob, n_classes = 1):
         """
         NAME: predict
         """
@@ -78,7 +78,7 @@ class GLM(object):
             raise TypeError( \
             "Input CRS matrix dtype is different than model dtype!")
         (host, port) = FrovedisServer.getServerInstance()
-        len_l = X.numRows()
+        len_l = X.numRows() * n_classes
         if mdtype == DTYPE.FLOAT:
             ret = np.empty(len_l, dtype=np.float32)
             rpclib.parallel_float_glm_predict(host, port, mid, mkind, \

@@ -190,18 +190,6 @@ class LinearSVC(BaseEstimator):
             raise ValueError( \
             "predict is called before calling fit, or the model is released.")
 
-    def predict_proba(self, X):
-        """
-        NAME: predict_proba
-        """
-        if self.__mid is not None:
-            proba = GLM.predict(X, self.__mid, self.__mkind, \
-                               self.__mdtype, True)
-            return np.asarray(proba)
-        else:
-            raise ValueError( \
-            "predict is called before calling fit, or the model is released.")
-
     def load(self, fname, dtype=None):
         """
         NAME: load
