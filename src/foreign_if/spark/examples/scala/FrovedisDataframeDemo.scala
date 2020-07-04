@@ -48,6 +48,10 @@ object FrovedisDataframeDemo {
     df1.filter($$"Country" === "Japan").show()
     df1.filter($$"Country" !== "USA").show()
     df1.filter(($$"Country" !== "Japan") && ($$"Age" > 19)).show()
+    
+    // not operator
+    df1.filter(!($$"Country" === "France")).show()
+    df1.filter(not($$"Country" === "France")).show()
 
     // sort demo
     df1.sort(col("Country").asc, $$"Age".desc).show()
