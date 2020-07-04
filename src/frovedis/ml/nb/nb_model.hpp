@@ -49,8 +49,24 @@ struct naive_bayes_model {
 
   template <class MATRIX>
   std::vector<T> predict(MATRIX& testData) {
-    if (model_type == "bernoulli") return bernoulli_predict(testData);
+    if (model_type == "bernoulli") 
+      return bernoulli_predict(testData);
     else return multinomial_predict(testData);
+  }
+
+  template <class MATRIX>
+  std::vector<T> predict_probability(MATRIX& testData) {
+    if (model_type == "bernoulli") 
+      return bernoulli_predict_probability(testData);
+    else return multinomial_predict_probability(testData);
+  }
+
+  template <class MATRIX>
+  rowmajor_matrix_local<T> 
+  compute_probability_matrix(MATRIX& testData) {
+    if (model_type == "bernoulli") 
+      return bernoulli_compute_probability_matrix(testData);
+    else return multinomial_compute_probability_matrix(testData);
   }
 
   void debug_print() {
@@ -146,7 +162,6 @@ struct naive_bayes_model {
   node_local<naive_bayes_model<T>> broadcast();  // for performance
 
   private:
-
   void compute_param() {
     auto nrow = theta.local_num_row;
     auto ncol = theta.local_num_col;
@@ -179,70 +194,134 @@ struct naive_bayes_model {
 
   T bernoulli_predict(std::vector<T>& testData) {
     auto r = theta_minus_negtheta.transpose() * testData;
-    axpy<T>(pi,r,1.0);
-    axpy<T>(negtheta_sum,r,1.0);
+    T al = 1.0;
+    axpy<T>(pi, r, al);
+    axpy<T>(negtheta_sum, r, al);
     auto max_index = get_max_index(r);
     return label[max_index];
   }
 
   template <class MATRIX>
-  std::vector<T> bernoulli_predict(MATRIX& testData) {
+  rowmajor_matrix_local<T> 
+  bernoulli_compute_probability_matrix(MATRIX& testData) {
     auto r = testData * theta_minus_negtheta;
     auto nrow = r.local_num_row;
     auto ncol = r.local_num_col;
-    // computation of axpy for each rows manually (for performace)
+    // computation of axpy for each rows manually (for performance)
     auto rvalp = r.val.data();
     auto pip = pi.data();
     auto negtheta_sump = negtheta_sum.data();
-    for(int i=0; i<nrow; i++) {
-      for(int j=0; j<ncol; j++) {
-        rvalp[i*ncol+j] += pip[i] + negtheta_sump[i];
+    for(size_t i = 0; i < nrow; ++i) {
+      for(size_t j=0; j < ncol; ++j) {
+        rvalp[i * ncol + j] += pip[i] + negtheta_sump[i];
       }
     }
+    return r;
+  }
+
+  template <class MATRIX>
+  std::vector<T> bernoulli_predict(MATRIX& testData) {
+    auto prob_mat = bernoulli_compute_probability_matrix(testData);
+    auto nrow = prob_mat.local_num_row;
+    auto ncol = prob_mat.local_num_col;
+    auto rvalp = prob_mat.val.data();
     // checking max probablity for each case and predicting corresponding labels
     std::vector<T> ret(nrow);
     auto retp = ret.data();
     auto labelp = label.data();
-    for(int i=0; i<nrow; i++) {
-      int max_id = 0;
-      for(int j=1; j<ncol; j++) {
-        if (rvalp[i*ncol+j] > rvalp[i*ncol+max_id]) max_id = j;
+    // TODO: Loop interchange
+    for(size_t i = 0; i < nrow; ++i) {
+      size_t max_id = 0;
+      for(int j = 1; j < ncol; ++j) {
+        if (rvalp[i * ncol + j] > rvalp[i * ncol + max_id]) max_id = j;
       }
       retp[i] = labelp[max_id];
     }
     return ret;
   }
 
+  template <class MATRIX>
+  std::vector<T> bernoulli_predict_probability(MATRIX& testData) {
+    auto prob_mat = bernoulli_compute_probability_matrix(testData);
+    auto nrow = prob_mat.local_num_row;
+    auto ncol = prob_mat.local_num_col;
+    auto rvalp = prob_mat.val.data();
+    // checking max probablity for each case and predicting corresponding labels
+    std::vector<T> ret(nrow);
+    auto retp = ret.data();
+    // TODO: Loop interchange
+    for(size_t i = 0; i < nrow; ++i) {
+      auto max = rvalp[i * ncol + 0];
+      for(int j = 1; j < ncol; ++j) {
+        if (rvalp[i * ncol + j] > max) max = rvalp[i * ncol + j];
+      }
+      retp[i] = max;
+    }
+    return ret;
+  }
+
   T multinomial_predict(std::vector<T>& testData) {
     auto r = theta.transpose() * testData;
-    axpy<T>(pi,r,1.0);
+    T al = 1.0;
+    axpy<T>(pi, r, al);
     auto max_index = get_max_index(r);
     return label[max_index];
   }
 
   template <class MATRIX>
-  std::vector<T> multinomial_predict(MATRIX& testData) {
+  rowmajor_matrix_local<T> 
+  multinomial_compute_probability_matrix(MATRIX& testData) {
     auto r = testData * theta;
     auto nrow = r.local_num_row;
     auto ncol = r.local_num_col;
     auto rvalp = r.val.data();
     auto pip = pi.data();
-    // computation of axpy for each rows manually (for performace)
-    for(int i=0; i<nrow; i++) {
-      for(int j=0; j<ncol; j++) {
-        rvalp[i*ncol+j] += pip[i];
+    // computation of axpy for each rows manually (for performance)
+    for(size_t i = 0; i < nrow; ++i) {
+      for(size_t j = 0; j < ncol; ++j) {
+        rvalp[i * ncol + j] += pip[i];
       }
     }
+    return r;
+  }
+
+  template <class MATRIX>
+  std::vector<T> multinomial_predict(MATRIX& testData) {
+    auto prob_mat = multinomial_compute_probability_matrix(testData);
+    auto nrow = prob_mat.local_num_row;
+    auto ncol = prob_mat.local_num_col;
+    auto rvalp = prob_mat.val.data();
     // checking max probablity for each case and predicting corresponding labels
     std::vector<T> ret(nrow);
     auto retp = ret.data();
     auto labelp = label.data();
-    for(int i=0; i<nrow; i++) {
-      int max_id = 0;
-      for(int j=1; j<ncol; j++) {
-        if (rvalp[i*ncol+j] > rvalp[i*ncol+max_id]) max_id = j;
+    // TODO: Loop interchange
+    for(size_t i = 0; i < nrow; ++i) {
+      size_t max_id = 0;
+      for(size_t j = 1; j < ncol; ++j) {
+        if (rvalp[i * ncol + j] > rvalp[i * ncol + max_id]) max_id = j;
       }
       retp[i] = labelp[max_id];
+    }
+    return ret;
+  }
+
+  template <class MATRIX>
+  std::vector<T> multinomial_predict_probability(MATRIX& testData) {
+    auto prob_mat = multinomial_compute_probability_matrix(testData);
+    auto nrow = prob_mat.local_num_row;
+    auto ncol = prob_mat.local_num_col;
+    auto rvalp = prob_mat.val.data();
+    // checking max probablity for each case and predicting corresponding labels
+    std::vector<T> ret(nrow);
+    auto retp = ret.data();
+    // TODO: Loop interchange
+    for(size_t i = 0; i < nrow; ++i) {
+      auto max = rvalp[i * ncol + 0];
+      for(size_t j = 1; j < ncol; ++j) {
+        if (rvalp[i * ncol + j] > max) max = rvalp[i * ncol + j];
+      }
+      retp[i] = max;
     }
     return ret;
   }
