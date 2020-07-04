@@ -83,6 +83,15 @@ exrpc_ptr_t get_dfORoperator(exrpc_ptr_t& lopt_proxy,
   return reinterpret_cast<exrpc_ptr_t> (or_opt_ptr);
 }
 
+exrpc_ptr_t get_dfNOToperator(exrpc_ptr_t& opt_proxy) {
+  auto opt = reinterpret_cast<std::shared_ptr<dfoperator>*>(opt_proxy);
+  auto not_opt_ptr = new std::shared_ptr<dfoperator>(not_op(*opt));
+  if (!not_opt_ptr) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed.\n");
+  delete opt;
+  return reinterpret_cast<exrpc_ptr_t> (not_opt_ptr);
+}
+
+
 exrpc_ptr_t filter_df(exrpc_ptr_t& df_proxy,
                       exrpc_ptr_t& opt_proxy) {
   auto& dftbl = *reinterpret_cast<dftable_base*>(df_proxy);

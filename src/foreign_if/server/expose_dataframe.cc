@@ -16,6 +16,7 @@ void expose_frovedis_dataframe_functions() {
   expose(get_str_dfoperator);
   expose(get_dfANDoperator);
   expose(get_dfORoperator);
+  expose(get_dfNOToperator);
   expose((release_data<std::shared_ptr<dfoperator>>));
   expose(filter_df);
   expose(select_df);

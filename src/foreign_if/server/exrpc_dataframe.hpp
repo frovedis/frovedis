@@ -65,9 +65,11 @@ exrpc_ptr_t get_dfoperator(std::string& op1, std::string& op2,
 exrpc_ptr_t get_str_dfoperator(std::string& op1, std::string& op2,
                                short& op_id, bool& isImmed); 
 
-exrpc_ptr_t get_dfANDoperator(exrpc_ptr_t& lopt_proxy, exrpc_ptr_t& ropt_proxy); 
+exrpc_ptr_t get_dfANDoperator(exrpc_ptr_t& lopt_proxy, exrpc_ptr_t& ropt_proxy);
 
 exrpc_ptr_t get_dfORoperator(exrpc_ptr_t& lopt_proxy, exrpc_ptr_t& ropt_proxy);
+
+exrpc_ptr_t get_dfNOToperator(exrpc_ptr_t& opt_proxy);
 
 exrpc_ptr_t filter_df(exrpc_ptr_t& df_proxy, exrpc_ptr_t& opt_proxy);
 
