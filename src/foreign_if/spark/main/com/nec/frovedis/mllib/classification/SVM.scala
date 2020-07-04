@@ -4,6 +4,8 @@ import com.nec.frovedis.Jexrpc.{FrovedisServer,JNISupport,MemPair}
 import com.nec.frovedis.Jmllib.DummyGLM
 import com.nec.frovedis.io.FrovedisIO
 import com.nec.frovedis.matrix.ENUM
+import com.nec.frovedis.matrix.FrovedisRowmajorMatrix
+import com.nec.frovedis.exrpc.FrovedisSparseData
 import com.nec.frovedis.exrpc.FrovedisLabeledPoint
 import com.nec.frovedis.mllib.{M_KIND,ModelID}
 import com.nec.frovedis.mllib.regression.GeneralizedLinearModel
@@ -29,7 +31,11 @@ class SVMModel(modelId: Int,
      val ret = super.predict(data)
      return if (threshold == ENUM.NONE) ret else enc_logic(ret)
   }
-  override def predict(data: RDD[Vector]) : RDD[Double] = {
+  override def predict(data: FrovedisRowmajorMatrix) : RDD[Double] = {
+    val ret = super.predict(data)
+    return if (threshold == ENUM.NONE) ret else ret.map(x => enc_logic(x))
+  }
+  override def predict(data: FrovedisSparseData) : RDD[Double] = {
     val ret = super.predict(data)
     return if (threshold == ENUM.NONE) ret else ret.map(x => enc_logic(x))
   }

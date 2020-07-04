@@ -86,7 +86,7 @@ object NaiveBayes {
 
 class NaiveBayesModel (val model_Id: Int,
                        val modelType: String)
-   extends GenericModelWithPredict(model_Id, M_KIND.NBM) { 
+  extends GenericModelWithPredict(model_Id, M_KIND.NBM) { 
 } 
 
 object NaiveBayesModel{
