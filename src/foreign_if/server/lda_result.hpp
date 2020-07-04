@@ -119,17 +119,21 @@ template <class T>
 rowmajor_matrix <double>
 get_distribution_matrix(rowmajor_matrix<T>& m,
                         int axis = 1) {
-  std::vector<T> sum;
-  // there are overloaded sum_of_cols/rows
-  std::vector<T> (*sum_of_cols_T)(const rowmajor_matrix_local<T>&) =
-    sum_of_cols<T>;
-  std::vector<T> (*sum_of_rows_T)(const rowmajor_matrix_local<T>&) =
-    sum_of_rows<T>;
-  if(axis) sum = m.data.map(sum_of_cols_T)
-                       .template moveto_dvector<T>().gather();
-  else     sum = m.data.map(sum_of_rows_T).vector_sum();
-  rowmajor_matrix<double> ret(m.data.map(get_distribution_matrix_local<T>, 
-                              broadcast(sum), broadcast(axis)));
+  rowmajor_matrix<double> ret;
+  if(axis) {
+    std::vector<T> (*sum_of_cols_T)(const rowmajor_matrix_local<T>&) =
+                                    sum_of_cols<T>;
+    auto sumcol = m.data.map(sum_of_cols_T);
+    ret.data = m.data.map(get_distribution_matrix_local<T>,
+                          sumcol, broadcast(axis));
+  }
+  else {
+    std::vector<T> (*sum_of_rows_T)(const rowmajor_matrix_local<T>&) =
+                                    sum_of_rows<T>;
+    auto sumrow = m.data.map(sum_of_rows_T).vector_sum();
+    ret.data = m.data.map(get_distribution_matrix_local<T>,
+                          broadcast(sumrow), broadcast(axis));
+  }
   ret.num_row = m.num_row;
   ret.num_col = m.num_col;
   return ret;
