@@ -165,6 +165,10 @@ get_dfORoperator = LIB.get_frovedis_dfORoperator
 get_dfORoperator.argtypes = [c_char_p, c_int, c_long, c_long]
 get_dfORoperator.restype = c_long
 
+get_dfNOToperator = LIB.get_frovedis_dfNOToperator
+get_dfNOToperator.argtypes = [c_char_p, c_int, c_long]
+get_dfNOToperator.restype = c_long
+
 filter_frovedis_dataframe = LIB.filter_frovedis_dataframe
 filter_frovedis_dataframe.argtypes = [c_char_p, c_int, c_long, c_long]
 filter_frovedis_dataframe.restype = c_long
@@ -1589,7 +1593,7 @@ call_frovedis_bfs.argtypes = [c_char_p, c_int,\
                           c_ulong, \
                           ndpointer(c_long, ndim=1,\
                               flags="C_CONTIGUOUS"), \
-                          ndpointer(c_int, ndim=1,\
+                          ndpointer(c_long, ndim=1,\
                               flags="C_CONTIGUOUS"), \
                           c_ulong]
 call_frovedis_bfs.restype = py_object
