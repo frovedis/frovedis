@@ -1,5 +1,5 @@
 #include <frovedis.hpp>
-#include <frovedis/ml/graph/opt_graph.hpp>
+#include <frovedis/ml/graph/graph.hpp>
 
 #include <boost/program_options.hpp>
 
@@ -48,7 +48,7 @@ int main(int argc, char* argv[]){
       exit(1);
     }    
     if(argmap.count("dtype")){
-      data_p = argmap["dtype"].as<std::string>();
+      dtype = argmap["dtype"].as<std::string>();
     }    
     if(argmap.count("output")){
       out_p = argmap["output"].as<std::string>();
@@ -108,6 +108,4 @@ int main(int argc, char* argv[]){
     }
     return 0;
 }
-
-
 
