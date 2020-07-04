@@ -4,7 +4,7 @@ import com.nec.frovedis.Jexrpc.{FrovedisServer,JNISupport}
 import com.nec.frovedis.io.FrovedisIO
 import com.nec.frovedis.matrix.FrovedisRowmajorMatrix
 import com.nec.frovedis.exrpc.FrovedisSparseData
-import com.nec.frovedis.mllib.{M_KIND,ModelID,GenericModelWithPredict2}
+import com.nec.frovedis.mllib.{M_KIND,ModelID,GenericModelWithPredict}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.mllib.linalg.Vector
 import org.apache.spark.SparkContext
@@ -13,9 +13,13 @@ import scala.collection.immutable.Map
 
 class RandomForestModel(val model_Id: Int,
                         val logic: Map[Double, Double]) 
-  extends GenericModelWithPredict2(model_Id, M_KIND.RFM){
+  extends GenericModelWithPredict(model_Id, M_KIND.RFM){
   protected val enc_logic: Map[Double,Double] = logic
 
+  override def predict(data: Vector) : Double = {
+    val ret = super.predict(data)
+    return if (enc_logic != null) enc_logic(ret) else ret
+  }
   override def predict(data: FrovedisRowmajorMatrix) : RDD[Double] = {
     val ret = super.predict(data)
     return if (enc_logic != null) ret.map(x => enc_logic(x)) else ret
