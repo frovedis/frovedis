@@ -75,6 +75,18 @@ JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getDFOrOperator
   return (jlong) ret_proxy;
 }
 
+JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getDFNotOperator
+  (JNIEnv *env, jclass thisCls, jobject master_node, jlong op) {
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto oproxy = static_cast<exrpc_ptr_t> (op);
+  exrpc_ptr_t ret_proxy = 0;
+  try {
+    ret_proxy = exrpc_async(fm_node,get_dfNOToperator,oproxy).get();
+  }
+  catch(std::exception& e) { set_status(true,e.what()); }
+  return (jlong) ret_proxy;
+}
+
 JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_releaseFrovedisDFOperator
   (JNIEnv *env, jclass thisCls, jobject master_node, jlong proxy) {
 
