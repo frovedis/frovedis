@@ -218,8 +218,9 @@ void do_train_with_trans(std::vector<DATA_MATRIX>& data,
     T RMSE = sqrt(reduced_sum/(weight_size + 1));
     if(self == 0) trace.show("RMS error: " + std::to_string(RMSE) + ": ");
     if(RMSE < convergenceTol) {
-      if(self == 0) 
+      if(self == 0) { 
         RLOG(INFO) << "Convergence achieved in " << ITOS(i) << " iterations.\n";
+      }
       break;
     }
 //#elif _LOSS_CHECK_
@@ -231,8 +232,9 @@ void do_train_with_trans(std::vector<DATA_MATRIX>& data,
         no_improvement_count = 0;
       if (sumloss < best_loss) best_loss = sumloss;
       if (no_improvement_count >= NITER_NO_CHANGE) {
-        if(self == 0)
+        if(self == 0) {
           RLOG(INFO) << "Convergence achieved in " << ITOS(i) << " iterations.\n";
+        }
         break;
       }
     }
@@ -336,8 +338,9 @@ void do_train_notrans(std::vector<DATA_MATRIX>& data,
     T RMSE = sqrt(reduced_sum/(weight_size + 1));
     if(self == 0) trace.show("RMS error: " + std::to_string(RMSE) + ": ");
     if(RMSE < convergenceTol) {
-      if(self == 0) 
-        RLOG(INFO) << "Convergence achieved in " << ITOS(i) << " iterations.\n"; 
+      if(self == 0) { 
+        RLOG(INFO) << "Convergence achieved in " << ITOS(i) << " iterations.\n";
+      } 
       break;
     }
 //#elif _LOSS_CHECK_
@@ -349,8 +352,9 @@ void do_train_notrans(std::vector<DATA_MATRIX>& data,
         no_improvement_count = 0;
       if (sumloss < best_loss) best_loss = sumloss;
       if (no_improvement_count >= NITER_NO_CHANGE) {
-        if(self == 0) 
-          RLOG(INFO) << "Convergence achieved in " << ITOS(i) << " iterations.\n"; 
+        if(self == 0) { 
+          RLOG(INFO) << "Convergence achieved in " << ITOS(i) << " iterations.\n";
+        } 
         break;
       }
     }
