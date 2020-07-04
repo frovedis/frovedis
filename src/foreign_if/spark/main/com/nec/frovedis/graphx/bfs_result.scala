@@ -3,11 +3,11 @@ package com.nec.frovedis.graphx;
 class bfs_result extends java.io.Serializable {
   var num_cc: Long = -1
   var num_nodes: Long = -1
-  var nodes_dist: Array[Int] = Array()
+  var nodes_dist: Array[Long] = Array()
   var nodes_in_which_cc: Array[Long] = Array()
   var num_nodes_in_each_cc: Array[Long] = Array()
 
-  def this(num_cc: Long, num_nodes: Long, nodes_dist: Array[Int], 
+  def this(num_cc: Long, num_nodes: Long, nodes_dist: Array[Long], 
           nodes_in_which_cc: Array[Long], num_nodes_in_each_cc: Array[Long]){
     this()
     this.num_cc = num_cc

@@ -14,7 +14,6 @@ class Graph extends java.io.Serializable {
   protected var fdata: Long = -1
   var numEdges: Long = -1
   var numVertices: Long = -1
-  var vertices: VertexRDD[Double] = null
 
   def this(data: org.apache.spark.graphx.Graph[Int, Int]) = {
     this()
@@ -24,50 +23,52 @@ class Graph extends java.io.Serializable {
     release() // releasing old graph data before loading new data
     this.numEdges = data.numEdges
     this.numVertices = data.numVertices
-    // VertexRDD[Int] => VertexRDD[Double] 
-    this.vertices = VertexRDD(data.vertices.map(x => (x._1, x._2.toDouble))) 
-    val coo = data.edges.map(x => Rating(x.srcId.toInt, x.dstId.toInt, 
-                                                                x.attr))
+    // TODO: set vertices data at server 
+    // VertexRDD[Int] => VertexRDD[Double]
+    // val vertices = VertexRDD(data.vertices.map(x => (x._1, x._2.toDouble))) 
+    val coo = data.edges.map(x => Rating(x.srcId.toInt, x.dstId.toInt, x.attr))
     val smat = new FrovedisSparseData()
     smat.loadcoo(coo) 
     val fs = FrovedisServer.getServerInstance()
+    // TODO: set vertices data at server graph
     this.fdata = JNISupport.setGraphData(fs.master_node, smat.get()) 
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
     smat.release() // releasing after graph creation 
-                   //(graph contains transpose of smat))
   }
   def copy(): Graph = {
     val fs = FrovedisServer.getServerInstance()
     val gptr = JNISupport.copyGraph(fs.master_node, this.get())
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
-    val c_graph = new Graph()
+    val c_graph = new com.nec.frovedis.graphx.Graph()
     c_graph.fdata = gptr
     c_graph.numEdges = this.numEdges
     c_graph.numVertices = this.numVertices
-    c_graph.vertices = this.vertices
     return c_graph
   }
   def to_spark_graph(): org.apache.spark.graphx.Graph[Double, Double] = {
     val fs = FrovedisServer.getServerInstance()
-    // dummyArr: Array (dummyEdge => srcId, dstId, attr)
-    val dummyArr = JNISupport.getGraphData(fs.master_node, this.get()) 
-    val info = JNISupport.checkServerException();
+    val t_edgeArr = JNISupport.getGraphEdgeData(fs.master_node, this.get()) 
+    var info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
-    val context = vertices.context
-    val npart = vertices.getNumPartitions
-    val edgeArr = dummyArr.map(x => Edge(x.srcId, x.dstId, x.attr.toDouble))
-    val edgeRDD = context.parallelize(edgeArr, npart)
-    return org.apache.spark.graphx.Graph(vertices, edgeRDD)
+    val t_vertArr = JNISupport.getGraphVertexData(fs.master_node, this.get()) 
+    info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
+    val edgeArr = t_edgeArr.map(x => Edge(x.srcId, x.dstId, x.attr.toDouble))
+    val vertArr: Array[(VertexId, Double)] = t_vertArr.zipWithIndex
+                                        .map{ case(x, i) => (i+1.toLong, x) }
+    val context = SparkContext.getOrCreate()
+    val edgeRDD = context.parallelize(edgeArr)
+    val vertRDD = context.parallelize(vertArr)
+    return org.apache.spark.graphx.Graph(vertRDD, edgeRDD)
   }
   def bfs(): com.nec.frovedis.graphx.bfs_result = {
-    val fs = FrovedisServer.getServerInstance()
-
     //TODO: Need to discuss the cast from Long to Int
-    val nodes_dist: Array[Int] = new Array(numVertices.toInt)
+    val nodes_dist: Array[Long] = new Array(numVertices.toInt)
     //TODO: Need to discuss the cast from Long to Int
     val nodes_in_which_cc: Array[Long] = new Array(numVertices.toInt)
+    val fs = FrovedisServer.getServerInstance()
     val num_nodes_in_each_cc = JNISupport.callFrovedisBFS(fs.master_node,
                            this.get(), nodes_in_which_cc,
                            nodes_dist, numVertices)
@@ -81,12 +82,11 @@ class Graph extends java.io.Serializable {
     require(source_vertex >= 0 && source_vertex < numVertices,
     s"Source Vertex should range from 0 to ${numVertices - 1}," + 
     " provided value is ${source_vertex}.")
-    val fs = FrovedisServer.getServerInstance()
-
     //TODO: Need to discuss the cast from Long to Int
-    val dist: Array[Int] = new Array(numVertices.toInt) 
+    val dist: Array[Double] = new Array(numVertices.toInt) 
     //TODO: Need to discuss the cast from Long to Int
     val pred: Array[Long] = new Array(numVertices.toInt) 
+    val fs = FrovedisServer.getServerInstance()
     JNISupport.callFrovedisSSSP(fs.master_node,
                    this.get(), dist, pred, numVertices, source_vertex)
     val info = JNISupport.checkServerException()
@@ -94,8 +94,8 @@ class Graph extends java.io.Serializable {
     return new sssp_result(pred, dist, numVertices, source_vertex)
   }
   def pageRank(tol: Double, 
-             resetProb: Double = 0.15, 
-             maxIter: Int = 100): com.nec.frovedis.graphx.Graph = {
+               resetProb: Double = 0.15, 
+               maxIter: Int = 100): com.nec.frovedis.graphx.Graph = {
     require(tol > 0,
         s"Tolerance should be greater than 0, but got ${tol}.")
     require(resetProb >= 0 && resetProb <= 1,
@@ -103,19 +103,16 @@ class Graph extends java.io.Serializable {
         "but got ${resetProb}.")
     require(maxIter > 0,
         s"Max iteration should be greater than 0, but got ${maxIter}.")
-    val copy_gr = this.copy()
     val fs = FrovedisServer.getServerInstance()
-    val result = JNISupport.callFrovedisPageRank(fs.master_node, 
-                           copy_gr.get(), tol, resetProb, maxIter)
+    val dgraph = JNISupport.callFrovedisPageRank(fs.master_node, 
+                            this.get(), tol, resetProb, maxIter)
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
-    val nrank = result.size 
-    val vertArr: Array[(VertexId, Double)] = new Array(nrank)
-    for (i <- 0 to (nrank - 1)) vertArr(i) = ((i+1).toLong, result(i))
-    val context = copy_gr.vertices.context
-    val npart = copy_gr.vertices.getNumPartitions
-    copy_gr.vertices = VertexRDD(context.parallelize(vertArr, npart))
-    return copy_gr
+    val ret = new com.nec.frovedis.graphx.Graph()
+    ret.fdata = dgraph.dptr
+    ret.numEdges = dgraph.numEdges
+    ret.numVertices = dgraph.numVertices
+    return ret
   }
   def debug_print(): Unit = {
     if (fdata != -1) {
@@ -136,7 +133,6 @@ class Graph extends java.io.Serializable {
       this.fdata = -1
       this.numEdges = -1
       this.numVertices = -1
-      this.vertices = null
     }
   }
   def save(fname: String): Unit = {
@@ -156,12 +152,6 @@ class Graph extends java.io.Serializable {
     this.fdata = dummy_graph.dptr
     this.numEdges = dummy_graph.numEdges
     this.numVertices = dummy_graph.numVertices
-    val vertArr: Array[(VertexId, Double)] = new Array(this.numVertices.toInt)
-    for (i <- 0 to (this.numVertices.toInt - 1)) 
-      vertArr(i) = ((i+1).toLong, 1.0)
-    val context = SparkContext.getOrCreate()
-    val npart = fs.worker_size
-    this.vertices = VertexRDD(context.parallelize(vertArr, npart))
   }
   def get() = fdata
 }
