@@ -9,7 +9,7 @@ import org.apache.spark.mllib.regression.LabeledPoint
 
 class FactorizationMachineModel (val model_Id: Int)
   extends GenericModelWithPredict(model_Id, M_KIND.FMM) { 
- }
+}
 
 object FactorizationMachineModel{
   def load(sc: SparkContext, path: String): FactorizationMachineModel = load(path)
