@@ -1,171 +1,149 @@
+#ifndef _GRAPH_
+#define _GRAPH_
 
-#ifndef GRAPH_HPP
-#define GRAPH_HPP
-
-#include "global.hpp"
-#include "frovedis/ml/graph/set_union_multivec.hpp"
-#include "frovedis/ml/graph/connected_components.hpp"
-#include "frovedis/ml/graph/sssp.hpp"
-#include "frovedis/ml/graph/pagerank.hpp"
+#include <frovedis/ml/utility/mattype.hpp>
+#include <frovedis/ml/graph/opt_sssp.hpp>
+#include <frovedis/ml/graph/opt_pagerank.hpp>
+#include <frovedis/ml/graph/opt_connected_components.hpp>
 
 namespace frovedis {
-    
 
-class graph {
-public:
-   
-    void read_graph(std::string gp, bool if_binary);  //read graph in CRS matrix
-    void read_graph_pagerank(std::string gp, bool if_binary);  //read graph in CRS matrix
+template <class T, class I, class O>
+std::vector<size_t> 
+get_outgoing_edges(crs_matrix_local<T,I,O>& mat) {
+  auto nrow = mat.local_num_row;
+  std::vector<size_t> num_out(nrow);
+  auto offptr = mat.off.data();
+  auto retptr = num_out.data();
+  for(size_t i = 0; i < nrow; ++i) {
+    retptr[i] = offptr[i+1] - offptr[i];
+  }
+  return num_out;
+}
 
-    //Connected Components
-#if 0  // NOT SUPPORTED DUE TO INTERNAL BUG. 
-    void cc_bfs_spmv(std::string matformat); //Breath-first search for connected components.
+template <class T, class I, class O>
+size_t get_local_nnz(crs_matrix_local<T,I,O>& mat) {
+  return mat.val.size();
+}
+
+template <class T>
+T sum(T& a, T& b) { return a + b; }
+
+template <class T, class I, class O>
+void set_local_ncol(crs_matrix_local<T,I,O>& mat, size_t ncol) {
+  mat.local_num_col = ncol;
+}
+
+template <class T, class I, class O>
+crs_matrix<T,I,O>
+check_input(crs_matrix<T,I,O>& mat) {
+  auto nrow = mat.num_row;
+  auto ncol = mat.num_col;
+  if(nrow != ncol && ncol > nrow) 
+    REPORT_ERROR(USER_ERROR, "input is not a square matrix!\n");
+  if (nrow == ncol) return mat;
+  else {
+    auto ret = mat;
+    ret.num_row = ret.num_col = nrow;
+    ret.data.mapv(set_local_ncol<T,I,O>, broadcast(nrow));
+    return ret;
+  }
+}
+
+template <class T, class I, class O>
+int check_equal_helper(crs_matrix_local<T,I,O>& amat,
+                       crs_matrix_local<T,I,O>& bmat) {
+  return (amat.local_num_row == bmat.local_num_row && 
+          amat.local_num_col == bmat.local_num_col &&
+          amat.val == bmat.val && amat.idx == bmat.idx && amat.off == bmat.off);
+}
+
+template <class T, class I, class O>
+bool check_equal(crs_matrix<T,I,O>& amat,
+                 crs_matrix<T,I,O>& bmat) {
+  auto eq = amat.data.map(check_equal_helper<T,I,O>, bmat.data).gather();
+  for(auto each: eq) if (!each) return false;
+  return true;
+}
+
+template <class T, class I = size_t, class O = size_t>
+struct graph {
+  graph() {}
+  graph(crs_matrix<T,I,O>& mat) {
+    auto sqmat = check_input(mat);
+    num_vertices = sqmat.num_col;
+    num_edges = sqmat.data.map(get_local_nnz<T,I,O>)
+                          .reduce(sum<size_t>);
+    num_outgoing = sqmat.data.map(get_outgoing_edges<T,I,O>)
+                             .template moveto_dvector<size_t>()
+                             .gather();
+    adj_mat = sqmat.transpose(); // frovedis expects src nodes to be in columns
+    vertices.resize(num_vertices, 1.0); 
+    if (check_equal(sqmat, adj_mat)) is_direct = false;
+    else                             is_direct = true;
+  }
+  graph(const graph& gr) {
+    num_edges = gr.num_edges;
+    num_vertices = gr.num_vertices;
+    num_outgoing = gr.num_outgoing;
+    adj_mat = gr.adj_mat;
+    is_direct = gr.is_direct;
+    vertices = gr.vertices;
+  }  
+  sssp_result<T,I> single_source_shortest_path (size_t srcid) {
+    return sssp_bf_impl(adj_mat, srcid);
+  }
+  cc_result<I> connected_components() {
+    return cc(adj_mat, is_direct);
+  }
+  std::vector<double> 
+  pagerank(double dfactor, 
+           double epsilon, 
+           size_t iter_max,
+#if defined(_SX) || defined(__ve__)
+           MatType mType = HYBRID) {
+#else
+           MatType mType = CRS) {
 #endif
-    void cc_bfs_scatter();
-    void cc_bfs_idxsort(size_t threshold, bool if_hyb);
-    void cc_BFS_HybridMerge(size_t merge_th);
-#if 0  // NOT SUPPORTED DUE TO INTERNAL BUG. 
-    void cc_bfs_2dmerge_allgather(size_t merge_th); //update and check ifVisited locally, exchange idx_next among workers using allgather
+    crs_matrix<double,I,O> norm_mat;
+    return pagerank_v1(adj_mat, dfactor, epsilon, iter_max, 
+                       norm_mat, mType); 
+  }
+  graph<double,I,O>
+  normalized_pagerank(double dfactor,
+                      double epsilon,
+                      size_t iter_max,
+#if defined(_SX) || defined(__ve__)
+                      MatType mType = HYBRID) {
+#else
+                      MatType mType = CRS) {
 #endif
-    void cc_bfs_2dmerge_gather(size_t merge_th, bool if_scale_free, bool if_hyb); 
-    
-    
-    //SSSP
-    void sssp_bf_spmv(bool if_sssp_enq, size_t source_vertex);
-    void sssp_bf_spmspv_2dmerge(bool if_sssp_enq, size_t source_vertex, size_t upperbound);
-    void sssp_bf_spmspv_sort(bool if_sssp_enq, size_t source_vertex);   
-    void sssp_query();
-    
-    //PageRank
-    void pagerank_v1(std::string matformat, double dfactor, double epsilon, size_t iter_max);
-    void pagerank_v1_shrink(std::string matformat, double dfactor, double epsilon, size_t iter_max);
-    void pagerank_v2(std::string matformat, double dfactor, double epsilon, size_t iter_max);
-    void pagerank_v2_shrink(std::string matformat, double dfactor, double epsilon, size_t iter_max);
-        
-    
-    //generate matrix graph file from list file
-    void prep_graph_crs(const std::string &filename_edge, bool if_direct); //Prepare CRS graph from original edge files. direct or undirect  
-  void prep_graph_crs_pagerank(const std::string &filename_edge, const std::string &output_file);
+    crs_matrix<double,I,O> norm_mat;
+    auto rank =  pagerank_v1(adj_mat, dfactor, epsilon, iter_max,
+                             norm_mat, mType);
+    graph<double,I,O> ret;
+    ret.adj_mat = norm_mat;
+    ret.num_edges = num_edges;
+    ret.num_vertices = num_vertices;
+    ret.num_outgoing = num_outgoing;
+    ret.is_direct = is_direct;
+    ret.vertices = rank;
+    return ret;
+  }
 
-    size_t insert_mapping(const std::string &key);
-    bool add_arc(size_t from, size_t to);
-    template <class Vector, class T> bool insert_into_vector(Vector& v, const T& t); 
-    
-    
-    time_spent_graph t_all; //Exclude t_load
-    time_spent_graph t_load;
-    time_spent_graph t_compute_spmv;
-    time_spent_graph t_compute_other;
-    time_spent_graph t_comm;
-    
-    graph();
-    graph(const graph& orig);
-    void set_if_cout(bool if_cout){
-        this->if_cout = if_cout;
-    }
-    void set_if_fout(bool if_fout){
-        this->if_fout = if_fout;
-    }    
-    void reset();    
-
-    virtual ~graph();
-    
-    void print_exectime();
-    void print_summary_cc();
-    void print_trace();  
-
-    // load,save
-    void loadbinary_pagerank(const std::string& path) { _load_pagerank(path, true); }
-    void loadbinary_cc(const std::string& path) { _load_cc(path, true); }
-    void loadbinary_sssp(const std::string& path) { _load_sssp(path, true); }
-    void load_pagerank(const std::string& path) { _load_pagerank(path, false); }
-    void load_cc(const std::string& path) { _load_cc(path, false); }
-    void load_sssp(const std::string& path) { _load_sssp(path, false); }
-  
-    void savebinary_pagerank(const std::string& path) { _save_pagerank(path, true); }
-    void savebinary_cc(const std::string& path) { _save_cc(path, true); }
-    void savebinary_sssp(const std::string& path) { _save_sssp(path, true); }
-    void save_pagerank(const std::string& path) { _save_pagerank(path, false); }
-    void save_cc(const std::string& path) { _save_cc(path, false); }
-    void save_sssp(const std::string& path) { _save_sssp(path, false); }
-  
-    size_t get_num_nodes() { return num_nodes; }
-    size_t get_num_cc() { return num_cc; }
-    size_t get_source_nodeID() { return source_nodeID; }
-    std::vector<TYPE_MATRIX_PAGERANK> get_prank() { return prank; }
-    std::vector<size_t>& get_num_nodes_in_each_cc() { return num_nodes_in_each_cc; }
-    std::vector<size_t>& get_nodes_in_which_cc() { return nodes_in_which_cc; }
-    std::vector<TYPE_MATRIX>& get_nodes_dist() { return nodes_dist; }
-    std::vector<size_t>& get_nodes_pred() { return nodes_pred; }
-
-    frovedis::crs_matrix<TYPE_MATRIX> A;             // generic matrix 
-    frovedis::crs_matrix<TYPE_MATRIX_PAGERANK> A_pg; // pagerank matrix
-    std::vector<size_t> num_outgoing; // number of outgoing links per column
-    size_t num_nodes;    
-
-private:
-
-    std::string graph_path;    
-    //frovedis::crs_matrix<TYPE_MATRIX> A;
-    std::vector<TYPE_BITMAP> nodes_ifVisited; //bitmap for each node to accelerate searching
-    std::vector<TYPE_BITMAP> nodes_ifNext;
-    std::vector<TYPE_BITMAP> nodes_ifCurrent;
-    std::vector<size_t> v_local_num_row;
-    std::vector<size_t> mat_offset;
-    
-    sparse_vector<TYPE_BITMAP> nodes_Current_sp;
-    sparse_vector<TYPE_BITMAP> nodes_Next_sp;
-    
-    std::vector<TYPE_IDXV> nodes_Next_idx;
-    std::vector<TYPE_IDXV> nodes_Current_idx;
-    //sparse_vector<type_BitMap> nodes_ifVisited_sp;
-    
-    size_t source_nodeID; //Note that the graph file we adopt is from 1. Node 0 is dummy and isolated
-    std::vector<size_t> nodes_in_which_cc; //For each node, stores the lowest nodeID of the cc containg such node 
-    //std::vector<long long> nodes_dist; //For each node, stores the distance from the source node (shortest path)
-    
-    size_t current_level;
-    //size_t num_nodes;
-    size_t num_cc;  //number of connected components
-    std::vector<size_t> num_nodes_in_each_cc; //num of nodes in each cc;
-    size_t hyb_threshold;
-    size_t num_nodes_in_cc; //number of nodes in each cc;
-    
-    bool if_fout;
-    bool if_cout;
-    
-    std::ofstream fout;
-    std::ofstream fgraph_out; // generated graph file output path; 
-    std::ofstream fout_exectime;
-    
-    //std::vector<size_t> num_outgoing; // number of outgoing links per column
-    std::vector< std::vector<size_t> > rows; // the rows of the hyperlink matrix
-    std::map<std::string, size_t> nodes_to_idx; // mapping from string node IDs to numeric
-    std::map<size_t, std::string> idx_to_nodes; // mapping from numeric node IDs to string
-
-    //sssp 
-    std::vector<TYPE_MATRIX> nodes_dist;
-    std::vector<size_t> nodes_pred;
-    sparse_vector_tri<TYPE_MATRIX> nodes_dist_current;
-    
-    //pagerank
-    std::vector<TYPE_MATRIX_PAGERANK> rel_prank; //relative rank vector
-    std::vector<TYPE_MATRIX_PAGERANK> prank;  //rank vector
-    //frovedis::crs_matrix<TYPE_MATRIX_PAGERANK> A_pg;
-    TYPE_MATRIX_PAGERANK* prankp;    
-
-    void _load_pagerank(const std::string&, bool binary);
-    void _load_cc(const std::string&, bool binary);
-    void _load_sssp(const std::string&, bool binary);
-  
-    void _save_pagerank(const std::string&, bool binary);
-    void _save_cc(const std::string&, bool binary);
-    void _save_sssp(const std::string&, bool binary);
-
+  crs_matrix<T,I,O> adj_mat;
+  std::vector<size_t> num_outgoing;
+  std::vector<double> vertices;
+  size_t num_vertices, num_edges;
+  bool is_direct;
+  SERIALIZE(adj_mat, num_outgoing, vertices, num_vertices, num_edges, is_direct)
 };
 
-
+template <class T, class I = size_t, class O = size_t>
+graph<T,I,O> read_edgelist(const std::string& filename) {
+  auto mat = make_crs_matrix_loadcoo<T,I,O>(filename);
+  return graph<T,I,O>(mat);
+}
 
 }
-#endif	/* GRAPH_HPP */
-
+#endif
