@@ -106,7 +106,22 @@ extern "C" {
     }
     return (static_cast<long>(ret_proxy));
   }
-  
+
+  //To support dfNOT operator
+  long get_frovedis_dfNOToperator(const char* host,int port,long op1){
+    ASSERT_PTR(host);
+    exrpc_node fm_node(host, port);
+    auto lopt_proxy = static_cast<exrpc_ptr_t> (op1);
+    exrpc_ptr_t ret_proxy = 0;
+    try {
+      ret_proxy = exrpc_async(fm_node, get_dfNOToperator,lopt_proxy).get();
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return (static_cast<long>(ret_proxy));
+  }
+ 
   //To release data frame
   void release_frovedis_dataframe(const char* host,int port,long proxy){
     ASSERT_PTR(host); 
