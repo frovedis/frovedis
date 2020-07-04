@@ -4,12 +4,10 @@ base.py
 
 #!/usr/bin/env python
 
-import inspect
-import funcsigs
 from collections import defaultdict
 
 class BaseEstimator(object):
-    """Base class for all estimators in frovedis, with support for 
+    """Base class for all estimators in frovedis, with support for
     get_params(), and set_params()
     Notes
     -----
@@ -28,8 +26,10 @@ class BaseEstimator(object):
 
         import sys
         if sys.version_info[0] < 3:
+            import funcsigs
             init_signature = funcsigs.signature(init)
         else:
+            import inspect
             init_signature = inspect.signature(init)
         parameters = [p for p in init_signature.parameters.values()
                       if p.name != 'self' and p.kind != p.VAR_KEYWORD]
@@ -103,3 +103,4 @@ class BaseEstimator(object):
             params_list[key].set_params(**internal_params)
 
         return self
+
