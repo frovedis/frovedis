@@ -1258,6 +1258,20 @@ compute_truncated_svd.argtypes = [c_char_p, c_int, c_long, c_int,
                                   c_short, c_short, c_bool]
 compute_truncated_svd.restype = py_object
 
+compute_svd_transform = LIB.compute_svd_transform
+compute_svd_transform.argtypes = [c_char_p, c_int,  # host, port
+                                  c_long, c_short,  # Xptr, dtype 
+                                  c_short, c_bool,  # itype, isDense
+                                  c_long]           # comp_ptr
+compute_svd_transform.restype = py_object
+
+compute_svd_inverse_transform = LIB.compute_svd_inverse_transform
+compute_svd_inverse_transform.argtypes = [c_char_p, c_int,  # host, port
+                                          c_long, c_short,  # Xptr, dtype 
+                                          c_short, c_bool,  # itype, isDense
+                                          c_long]           # comp_ptr
+compute_svd_inverse_transform.restype = py_object
+
 # --- Scalapack Results ---
 release_ipiv = LIB.release_ipiv
 release_ipiv.argtypes = [c_char_p, c_int, c_char, c_long]

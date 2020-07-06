@@ -5,6 +5,7 @@
 from ..exrpc.server import FrovedisServer
 from ..base import *
 from ..exrpc.rpclib import compute_truncated_svd, compute_var_sum
+from ..exrpc.rpclib import compute_svd_transform, compute_svd_inverse_transform
 from ..exrpc.rpclib import check_server_exception
 from ..matrix.ml_data import FrovedisFeatureData
 from ..matrix.crs import FrovedisCRSMatrix
@@ -32,11 +33,11 @@ class TruncatedSVD(BaseEstimator):
         self._singular_values = None
 
     def fit(self, X, y=None):
-        """Fit LSA model on training data X."""
+        """Fits LSA model on training data X."""
         (host, port) = FrovedisServer.getServerInstance()
         if self.algorithm != "arpack":
-            raise ValueError("algorithm: currently Frovedis supports only \
-                              arpack!")
+            raise ValueError("algorithm: currently Frovedis supports only " \
+                              + "arpack!")
         if isinstance(X, FrovedisCRSMatrix):
             self.var_sum = None
         elif isinstance(X, FrovedisRowmajorMatrix):
@@ -70,6 +71,62 @@ class TruncatedSVD(BaseEstimator):
             raise RuntimeError(excpt["info"])
         self.svd_res_ = svdResult(res, TypeUtil.to_numpy_dtype(x_dtype))
         return self
+
+    def fit_transform(self, X, y=None):
+        """Fits LSA model to X and performs dimensionality reduction on X."""
+        return self.fit(X).transform(X)
+
+    def transform(self, X):
+        """Performs dimensionality reduction on X."""
+        if self.svd_res_ is None:
+            raise ValueError("transform() is called before fit()!")
+        (host, port) = FrovedisServer.getServerInstance()
+        if isinstance(X, (FrovedisCRSMatrix, FrovedisRowmajorMatrix)):
+            inp_data = FrovedisFeatureData(X, dense_kind='rowmajor')
+            X = inp_data.get()
+            x_dtype = inp_data.get_dtype()
+            x_itype = inp_data.get_itype()
+            dense = inp_data.is_dense()
+            component = self.svd_res_.vmat_ # always colmajor matrix
+            if (x_dtype != component.get_dtype()):
+                raise TypeError("Type mismatches in input X-mat and " \
+                                + "svd component!")
+            res = compute_svd_transform(host, port, X.get(),
+                                        x_dtype, x_itype, dense,
+                                        component.get())
+            excpt = check_server_exception()
+            if excpt["status"]:
+                raise RuntimeError(excpt["info"])
+            return FrovedisRowmajorMatrix(res, 
+                   dtype=TypeUtil.to_numpy_dtype(x_dtype))
+        else:
+            return X * self.components_.T
+
+    def inverse_transform(self, X):
+        """Transforms X back to its original space."""
+        if self.svd_res_ is None:
+            raise ValueError("inverse_transform() is called before fit()!")
+        (host, port) = FrovedisServer.getServerInstance()
+        if isinstance(X, (FrovedisCRSMatrix, FrovedisRowmajorMatrix)):
+            inp_data = FrovedisFeatureData(X, dense_kind='rowmajor')
+            X = inp_data.get()
+            x_dtype = inp_data.get_dtype()
+            x_itype = inp_data.get_itype()
+            dense = inp_data.is_dense()
+            component = self.svd_res_.vmat_ # always colmajor matrix
+            if (x_dtype != component.get_dtype()):
+                raise TypeError("Type mismatches in input X-mat and " \
+                                + "svd component!")
+            res = compute_svd_inverse_transform(host, port, X.get(),
+                                                x_dtype, x_itype, dense,
+                                                component.get())
+            excpt = check_server_exception()
+            if excpt["status"]:
+                raise RuntimeError(excpt["info"])
+            return FrovedisRowmajorMatrix(res, 
+                   dtype=TypeUtil.to_numpy_dtype(x_dtype))
+        else:
+            return X * self.components_
 
     def __set_results(self):
         """ it should be called after fit().

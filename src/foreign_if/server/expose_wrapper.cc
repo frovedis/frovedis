@@ -25,6 +25,18 @@ void expose_frovedis_wrapper_functions() {
   expose((frovedis_sparse_truncated_svd<S_MAT25,DT2,DT5>));  // for python
   expose((frovedis_dense_truncated_svd<R_MAT1,DT1>));        // for spark/python
   expose((frovedis_dense_truncated_svd<R_MAT2,DT2>));        // for python
+  expose((frovedis_svd_transform<R_MAT1,DT1>));              // for python (spark: to be added)
+  expose((frovedis_svd_transform<R_MAT2,DT2>));              // for python
+  expose((frovedis_svd_transform<S_MAT14,DT1>));             // for python
+  expose((frovedis_svd_transform<S_MAT15,DT1>));             // for python (spark: to be added)
+  expose((frovedis_svd_transform<S_MAT24,DT2>));             // for python
+  expose((frovedis_svd_transform<S_MAT25,DT2>));             // for python
+  expose((frovedis_svd_inv_transform<R_MAT1,DT1>));          // for python (spark: to be added)
+  expose((frovedis_svd_inv_transform<R_MAT2,DT2>));          // for python
+  expose((frovedis_svd_inv_transform<S_MAT14,DT1>));         // for python
+  expose((frovedis_svd_inv_transform<S_MAT15,DT1>));         // for python (spark: to be added)
+  expose((frovedis_svd_inv_transform<S_MAT24,DT2>));         // for python
+  expose((frovedis_svd_inv_transform<S_MAT25,DT2>));         // for python
   expose(load_cmm_svd_results<DT1>); //GesvdResult (arpack/lapack)
   expose(load_bcm_svd_results<DT1>); //PGesvdResult (scalapack)
   expose(load_cmm_svd_results<DT2>); //GesvdResult (arpack/lapack)

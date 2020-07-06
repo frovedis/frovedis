@@ -106,6 +106,32 @@ gesvd_result frovedis_sparse_truncated_svd(exrpc_ptr_t& data_ptr, int& k,
   return gesvd_result(svecp,umatp,vmatp,m,n,k,info);
 }
 
+template <class MATRIX, class T>
+dummy_matrix 
+frovedis_svd_transform(exrpc_ptr_t& data_ptr,
+                       exrpc_ptr_t& v_ptr) {
+  MATRIX& mat = *reinterpret_cast<MATRIX*>(data_ptr);
+  auto& vmat = *reinterpret_cast<colmajor_matrix<T>*>(v_ptr);
+  auto v_rmat = vmat.to_rowmajor();
+  // TODO: provide interface for rowmajor_matrix<T> * rowmajor_matrix<T>
+  auto resloc = mat.gather() * v_rmat.gather(); 
+  auto res = new rowmajor_matrix<T>(make_rowmajor_matrix_scatter<T>(resloc));
+  return to_dummy_matrix<rowmajor_matrix<T>, rowmajor_matrix_local<T>>(res);
+} 
+
+template <class MATRIX, class T>
+dummy_matrix 
+frovedis_svd_inv_transform(exrpc_ptr_t& data_ptr,
+                           exrpc_ptr_t& v_ptr) {
+  MATRIX& mat = *reinterpret_cast<MATRIX*>(data_ptr);
+  auto& vmat = *reinterpret_cast<colmajor_matrix<T>*>(v_ptr);
+  auto v_rmat = vmat.to_rowmajor();
+  // TODO: provide interface for rowmajor_matrix<T> * rowmajor_matrix<T>
+  auto resloc = mat.gather() * v_rmat.gather().transpose(); 
+  auto res = new rowmajor_matrix<T>(make_rowmajor_matrix_scatter<T>(resloc));
+  return to_dummy_matrix<rowmajor_matrix<T>, rowmajor_matrix_local<T>>(res);
+} 
+
 // loads svd result from files
 // u_file/v_file is loaded as colmajor_matrix<T> (lapack/arpack)
 // if wantU/wantV is true, else they are ignored

@@ -476,6 +476,98 @@ extern "C" {
     return to_py_gesvd_result(ret,mtype,wantU,wantV);
   }
 
+  PyObject* compute_svd_transform(const char* host, int port,
+                                  long mptr, short dtype, short itype,
+                                  bool isDense, long vptr) {
+    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
+    exrpc_node fm_node(host,port);
+    auto m = (exrpc_ptr_t) mptr;
+    auto v = (exrpc_ptr_t) vptr;
+    dummy_matrix ret;
+    try {
+      if(isDense) {
+        switch(dtype) {
+          case FLOAT:
+            ret = exrpc_async(fm_node,(frovedis_svd_transform<R_MAT2,DT2>),m,v).get();
+            break;
+          case DOUBLE:
+            ret = exrpc_async(fm_node,(frovedis_svd_transform<R_MAT1,DT1>),m,v).get();
+            break;
+          default: REPORT_ERROR(USER_ERROR,"Unsupported dtype for input dense matrix!\n");
+        }
+      }
+      else {
+        switch(dtype) {
+          case FLOAT:
+            if (itype == INT)
+              ret = exrpc_async(fm_node,(frovedis_svd_transform<S_MAT24,DT2>),m,v).get();
+            else if (itype == LONG)
+              ret = exrpc_async(fm_node,(frovedis_svd_transform<S_MAT25,DT2>),m,v).get();
+            else REPORT_ERROR(USER_ERROR,"Unsupported itype for input sparse matrix!\n");
+            break;
+          case DOUBLE:
+            if (itype == INT)
+              ret = exrpc_async(fm_node,(frovedis_svd_transform<S_MAT14,DT1>),m,v).get();
+            else if (itype == LONG)
+              ret = exrpc_async(fm_node,(frovedis_svd_transform<S_MAT15,DT1>),m,v).get();
+            else REPORT_ERROR(USER_ERROR,"Unsupported itype for input sparse matrix!\n");
+            break;
+          default: REPORT_ERROR(USER_ERROR,"Unsupported dtype for input sparse matrix!\n");
+        }
+      }
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return to_py_dummy_matrix(ret); 
+  }
+
+  PyObject* compute_svd_inverse_transform(const char* host, int port,
+                                          long mptr, short dtype, short itype,
+                                          bool isDense, long vptr) {
+    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
+    exrpc_node fm_node(host,port);
+    auto m = (exrpc_ptr_t) mptr;
+    auto v = (exrpc_ptr_t) vptr;
+    dummy_matrix ret;
+    try {
+      if(isDense) {
+        switch(dtype) {
+          case FLOAT:
+            ret = exrpc_async(fm_node,(frovedis_svd_inv_transform<R_MAT2,DT2>),m,v).get();
+            break;
+          case DOUBLE:
+            ret = exrpc_async(fm_node,(frovedis_svd_inv_transform<R_MAT1,DT1>),m,v).get();
+            break;
+          default: REPORT_ERROR(USER_ERROR,"Unsupported dtype for input dense matrix!\n");
+        }
+      }
+      else {
+        switch(dtype) {
+          case FLOAT:
+            if (itype == INT)
+              ret = exrpc_async(fm_node,(frovedis_svd_inv_transform<S_MAT24,DT2>),m,v).get();
+            else if (itype == LONG)
+              ret = exrpc_async(fm_node,(frovedis_svd_inv_transform<S_MAT25,DT2>),m,v).get();
+            else REPORT_ERROR(USER_ERROR,"Unsupported itype for input sparse matrix!\n");
+            break;
+          case DOUBLE:
+            if (itype == INT)
+              ret = exrpc_async(fm_node,(frovedis_svd_inv_transform<S_MAT14,DT1>),m,v).get();
+            else if (itype == LONG)
+              ret = exrpc_async(fm_node,(frovedis_svd_inv_transform<S_MAT15,DT1>),m,v).get();
+            else REPORT_ERROR(USER_ERROR,"Unsupported itype for input sparse matrix!\n");
+            break;
+          default: REPORT_ERROR(USER_ERROR,"Unsupported dtype for input sparse matrix!\n");
+        }
+      }
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return to_py_dummy_matrix(ret); 
+  }
+
   // --- Frovedis Scalapack Wrapper Results ---
   void release_ipiv(const char* host, int port, char mtype, long ipiv_ptr) {
     if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
