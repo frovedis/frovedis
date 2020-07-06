@@ -396,6 +396,8 @@ exrpc_node invoke_frovedis_server(const std::string& command) {
     exrpc_node server_node;
     server_node.hostname = server_name;
     server_node.rpcport = port;
+    char ack = 1;
+    mywrite(new_sockfd, &ack, 1);
     return server_node;
     // new_sockfd is left untouched; will send RST when client aborts
   }
@@ -465,6 +467,22 @@ void init_frovedis_server(int argc, char* argv[]) {
     mywrite(watch_sockfd, (char*)&port, sizeof(port));
     mywrite(watch_sockfd, (char*)&server_name_size, sizeof(server_name_size));
     mywrite(watch_sockfd, server_name.c_str(), server_name_size);
+    // get ack from client
+    fd_set rfds;
+    FD_ZERO(&rfds);
+    FD_SET(watch_sockfd, &rfds);
+    struct timeval tv;
+    tv.tv_sec = 5;
+    tv.tv_usec = 0;
+    int retval = select(watch_sockfd+1, &rfds, NULL, NULL, &tv);
+    if(retval == -1) {
+      throw std::runtime_error
+        (std::string("error in select: ") + strerror(errno));
+    } else if(retval == 0) {
+      throw std::runtime_error("client is not responding");
+    }
+    char ack;
+    myread(watch_sockfd, &ack, 1);
   } catch (std::exception& e) {
     std::cerr << "error connection from server to client: "
               << e.what() << std::endl;
