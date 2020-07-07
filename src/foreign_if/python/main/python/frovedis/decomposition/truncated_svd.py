@@ -5,7 +5,9 @@
 from ..exrpc.server import FrovedisServer
 from ..base import *
 from ..exrpc.rpclib import compute_truncated_svd, compute_var_sum
-from ..exrpc.rpclib import compute_svd_transform, compute_svd_inverse_transform
+from ..exrpc.rpclib import compute_svd_transform
+from ..exrpc.rpclib import compute_svd_self_transform
+from ..exrpc.rpclib import compute_svd_inverse_transform
 from ..exrpc.rpclib import check_server_exception
 from ..matrix.ml_data import FrovedisFeatureData
 from ..matrix.crs import FrovedisCRSMatrix
@@ -63,6 +65,7 @@ class TruncatedSVD(BaseEstimator):
         x_dtype = inp_data.get_dtype()
         x_itype = inp_data.get_itype()
         dense = inp_data.is_dense()
+        self.__mdtype = x_dtype
         res = compute_truncated_svd(host, port, X.get(),
                                     self.n_components,
                                     x_dtype, x_itype, dense)
@@ -74,7 +77,22 @@ class TruncatedSVD(BaseEstimator):
 
     def fit_transform(self, X, y=None):
         """Fits LSA model to X and performs dimensionality reduction on X."""
-        return self.fit(X).transform(X)
+        self.fit(X)
+        umat = self.svd_res_.umat_            # dense (colmajor matrix)
+        svec = self.svd_res_.singular_values_ # std::vector
+        (host, port) = FrovedisServer.getServerInstance()
+        res = compute_svd_self_transform(host, port, 
+                                         umat.get(), svec.get(), 
+                                         self.__mdtype)
+        excpt = check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
+        dmat = FrovedisRowmajorMatrix(res, 
+               dtype=TypeUtil.to_numpy_dtype(self.__mdtype))
+        if isinstance(X, (FrovedisCRSMatrix, FrovedisRowmajorMatrix)):
+            return dmat
+        else:
+            return dmat.to_numpy_array()
 
     def transform(self, X):
         """Performs dimensionality reduction on X."""
@@ -82,13 +100,14 @@ class TruncatedSVD(BaseEstimator):
             raise ValueError("transform() is called before fit()!")
         (host, port) = FrovedisServer.getServerInstance()
         if isinstance(X, (FrovedisCRSMatrix, FrovedisRowmajorMatrix)):
-            inp_data = FrovedisFeatureData(X, dense_kind='rowmajor')
+            inp_data = FrovedisFeatureData(X, dense_kind='rowmajor', 
+                                           dtype=self.__mdtype)
             X = inp_data.get()
             x_dtype = inp_data.get_dtype()
             x_itype = inp_data.get_itype()
             dense = inp_data.is_dense()
             component = self.svd_res_.vmat_ # always colmajor matrix
-            if (x_dtype != component.get_dtype()):
+            if (x_dtype != self.__mdtype):
                 raise TypeError("Type mismatches in input X-mat and " \
                                 + "svd component!")
             res = compute_svd_transform(host, port, X.get(),
@@ -98,9 +117,9 @@ class TruncatedSVD(BaseEstimator):
             if excpt["status"]:
                 raise RuntimeError(excpt["info"])
             return FrovedisRowmajorMatrix(res, 
-                   dtype=TypeUtil.to_numpy_dtype(x_dtype))
+                   dtype=TypeUtil.to_numpy_dtype(self.__mdtype))
         else:
-            return X * self.components_.T
+            return np.asarray(X * self.components_.T)
 
     def inverse_transform(self, X):
         """Transforms X back to its original space."""
@@ -108,13 +127,14 @@ class TruncatedSVD(BaseEstimator):
             raise ValueError("inverse_transform() is called before fit()!")
         (host, port) = FrovedisServer.getServerInstance()
         if isinstance(X, (FrovedisCRSMatrix, FrovedisRowmajorMatrix)):
-            inp_data = FrovedisFeatureData(X, dense_kind='rowmajor')
+            inp_data = FrovedisFeatureData(X, dense_kind='rowmajor', 
+                                           dtype=self.__mdtype)
             X = inp_data.get()
             x_dtype = inp_data.get_dtype()
             x_itype = inp_data.get_itype()
             dense = inp_data.is_dense()
             component = self.svd_res_.vmat_ # always colmajor matrix
-            if (x_dtype != component.get_dtype()):
+            if (x_dtype != self.__mdtype):
                 raise TypeError("Type mismatches in input X-mat and " \
                                 + "svd component!")
             res = compute_svd_inverse_transform(host, port, X.get(),
@@ -124,9 +144,9 @@ class TruncatedSVD(BaseEstimator):
             if excpt["status"]:
                 raise RuntimeError(excpt["info"])
             return FrovedisRowmajorMatrix(res, 
-                   dtype=TypeUtil.to_numpy_dtype(x_dtype))
+                   dtype=TypeUtil.to_numpy_dtype(self.__mdtype))
         else:
-            return X * self.components_
+            return np.asarray(X * self.components_)
 
     def __set_results(self):
         """ it should be called after fit().
@@ -136,8 +156,8 @@ class TruncatedSVD(BaseEstimator):
         (U, s, VT) = self.svd_res_.to_numpy_results()
         self._components = VT
         self._singular_values = s
-        X_transformed = U * np.diag(s)
-        exp_var = np.var(X_transformed, axis=0)
+        self.X_transformed = U * np.diag(s)
+        exp_var = np.var(self.X_transformed, axis=0)
         self._explained_variance = np.asarray(exp_var)[0]
         if self.var_sum is not None:
             self._explained_variance_ratio = \

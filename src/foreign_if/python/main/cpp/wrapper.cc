@@ -476,6 +476,26 @@ extern "C" {
     return to_py_gesvd_result(ret,mtype,wantU,wantV);
   }
 
+  PyObject* compute_svd_self_transform(const char* host, int port,
+                                       long uptr, long sptr, short dtype) {
+    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
+    exrpc_node fm_node(host,port);
+    auto u = (exrpc_ptr_t) uptr;
+    auto s = (exrpc_ptr_t) sptr;
+    dummy_matrix ret;
+    try {
+      switch(dtype) {
+        case FLOAT:  ret = exrpc_async(fm_node, frovedis_svd_self_transform<DT2>, u, s).get(); break;
+        case DOUBLE: ret = exrpc_async(fm_node, frovedis_svd_self_transform<DT1>, u, s).get(); break;
+        default:     REPORT_ERROR(USER_ERROR, "Unsupported dtype for input dense matrix!\n");
+      }
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return to_py_dummy_matrix(ret);
+  }
+
   PyObject* compute_svd_transform(const char* host, int port,
                                   long mptr, short dtype, short itype,
                                   bool isDense, long vptr) {

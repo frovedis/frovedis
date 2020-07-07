@@ -119,6 +119,40 @@ frovedis_svd_transform(exrpc_ptr_t& data_ptr,
   return to_dummy_matrix<rowmajor_matrix<T>, rowmajor_matrix_local<T>>(res);
 } 
 
+template <class T>
+rowmajor_matrix_local<T>
+multiply_colmajor_with_diagvector(const colmajor_matrix_local<T>& a,
+                                  const std::vector<T>& b) {
+  if(a.local_num_col != b.size())
+    throw std::runtime_error("invalid size for matrix multiplication");
+  size_t nrow = a.local_num_row;
+  size_t ncol = a.local_num_col;
+  rowmajor_matrix_local<T> c(nrow, ncol);
+  auto ap = a.val.data();
+  auto bp = b.data();
+  auto cp = c.val.data();
+  for(size_t j = 0; j < ncol; ++j) {
+    for (size_t i = 0; i < nrow; ++i) {
+      cp[i * ncol + j] = ap[j * nrow + i] * bp[j];
+    }
+  }
+  return c;
+}
+
+template <class T>
+dummy_matrix
+frovedis_svd_self_transform(exrpc_ptr_t& umat_ptr,
+                            exrpc_ptr_t& sval_ptr) {
+  auto& umat = *reinterpret_cast<colmajor_matrix<T>*>(umat_ptr);
+  auto& sval = *reinterpret_cast<std::vector<T>*>(sval_ptr);
+  auto res = new rowmajor_matrix<T>(umat.data.map(
+                                    multiply_colmajor_with_diagvector<T>, 
+                                    broadcast(sval)));
+  res->num_row = umat.num_row;
+  res->num_col = umat.num_col;
+  return to_dummy_matrix<rowmajor_matrix<T>, rowmajor_matrix_local<T>>(res);
+}
+
 template <class MATRIX, class T>
 dummy_matrix 
 frovedis_svd_inv_transform(exrpc_ptr_t& data_ptr,
