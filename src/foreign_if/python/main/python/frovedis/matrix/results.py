@@ -123,16 +123,16 @@ class svdResult(object):
         if self.__svec is not None:
             svec = self.__svec.to_numpy_array()
             if self.__umat is not None:
-                umat = self.__umat.to_numpy_matrix()
+                umat = self.__umat.to_numpy_array()
             else:
                 umat = None
             if self.__vmat is not None:
                 mtype = self.__vmat.get_mtype()
                 if (mtype == 'B'):
-                    vmat = self.__vmat.transpose().to_numpy_matrix()
+                    vmat = self.__vmat.transpose().to_numpy_array()
                 elif (mtype == 'C'):
                     vmat = self.__vmat.to_frovedis_rowmatrix() \
-                               .transpose().to_numpy_matrix()
+                               .transpose().to_numpy_array()
                 else:
                     raise ValueError(\
                         "SVD vmat: expected mtype is either B or C")
@@ -432,10 +432,10 @@ class PcaResult(object):
 
         if self.__pc: # colmajor matrix
             pca_components = self.__pc.to_frovedis_rowmatrix() \
-                                 .transpose().to_numpy_matrix()
+                                 .transpose().to_numpy_array()
 
         if self.__score:
-            pca_scores = self.__score.to_numpy_matrix()
+            pca_scores = self.__score.to_numpy_array()
 
         if self.__var_ratio:
             explained_variance_ratio = self.__var_ratio.to_numpy_array()

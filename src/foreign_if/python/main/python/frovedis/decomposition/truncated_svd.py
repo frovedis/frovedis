@@ -156,7 +156,8 @@ class TruncatedSVD(BaseEstimator):
         (U, s, VT) = self.svd_res_.to_numpy_results()
         self._components = VT
         self._singular_values = s
-        self.X_transformed = U * np.diag(s)
+        #self.X_transformed = U * np.diag(s)
+        self.X_transformed = U * s
         exp_var = np.var(self.X_transformed, axis=0)
         self._explained_variance = np.asarray(exp_var)[0]
         if self.var_sum is not None:

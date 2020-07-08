@@ -4,8 +4,8 @@
 import numpy as np
 from ..base import *
 from ..exrpc.server import FrovedisServer
-from ..exrpc.rpclib import compute_pca, check_server_exception, pca_transform,\
-         pca_inverse_transform
+from ..exrpc.rpclib import compute_pca, check_server_exception
+from ..exrpc.rpclib import pca_transform, pca_inverse_transform
 from ..exrpc.rpclib import get_double_array, get_float_array
 from ..exrpc.rpclib import release_frovedis_array
 from ..matrix.ml_data import FrovedisFeatureData
