@@ -4,6 +4,7 @@
 #include <vector>
 #include <string>
 #include <cstddef>
+#include "../core/utility.hpp"
 
 namespace frovedis {
 

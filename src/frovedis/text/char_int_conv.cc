@@ -6,13 +6,6 @@ using namespace std;
 
 namespace frovedis {
 
-// same definition is in dvector.cc
-inline bool is_bigendian() {
-  int i = 1;
-  if(*((char*)&i)) return false;
-  else return true;
-}
-
 void char_to_int(const char* s, size_t size, int* v) {
   if(is_bigendian()) throw runtime_error("big endian is not supported");
   auto isize = size / 4;
