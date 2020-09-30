@@ -6,87 +6,25 @@
 
 #include "../core/set_operations.hpp"
 #include "../core/radix_sort.hpp"
+#include "../core/lower_bound.hpp"
+#include "../text/find_condition.hpp"
 
 #if defined(_SX) || defined(__ve__) // might be used in x86
-#define UNIQUE_HASH_VLEN 256
-#define VECTOR_BINARY_SEARCH_VLEN 2048
+#define FIND_MISS_VLEN 1024
+#define FIND_MISS_VLEN_EACH 256
+#define FIND_MISS_THR 16
+#define FIND_MISS_ALIGN_SIZE 128
 #else
-#define UNIQUE_HASH_VLEN 1
-#define VECTOR_BINARY_SEARCH_VLEN 1
+#define FIND_MISS_VLEN 4
+#define FIND_MISS_VLEN_EACH 1
+#define FIND_MISS_THR 1
+#define FIND_MISS_ALIGN_SIZE 1
 #endif
 #define HASH_TABLE_SIZE_MULT 5
 
 namespace frovedis {
 
-// Originally written by Haoran
-// different from std::lower_bound, always returns idx that is inside of 
-// the array. Need to check if the returned idx points to the same value!
-template <class T>
-std::vector<size_t> vector_binary_search(std::vector<T>& sorted,
-                                         std::vector<T>& values) { 
-  size_t num_values = values.size(); // to search
-  size_t num_elem = sorted.size();
-
-  if(num_values == 0) return std::vector<size_t>();
-  if(num_elem == 0)
-    throw std::runtime_error("zero sized vector is not supported");
-
-  std::vector<size_t> ret(num_values);
-  //range identifier for each value
-  size_t leftp[VECTOR_BINARY_SEARCH_VLEN];
-//#pragma _NEC vreg(leftp)
-  size_t rightp[VECTOR_BINARY_SEARCH_VLEN];
-//#pragma _NEC vreg(rightp)
-  int is_finishedp[VECTOR_BINARY_SEARCH_VLEN];
-//#pragma _NEC vreg(is_finishedp)
-  auto* sortedp = &sorted[0];
-
-  size_t block_size = num_values / VECTOR_BINARY_SEARCH_VLEN;
-  size_t remain = num_values % VECTOR_BINARY_SEARCH_VLEN;
-
-  for(size_t i = 0; i < block_size + 1; i++) {
-    size_t offset = i * VECTOR_BINARY_SEARCH_VLEN;
-    auto* retp = &ret[0] + offset;
-    size_t len = i < block_size ? VECTOR_BINARY_SEARCH_VLEN : remain;
-    auto* valuesp_tmp = &values[0] + offset;
-    T valuesp[VECTOR_BINARY_SEARCH_VLEN];
-//#pragma _NEC vreg(valuesp)
-    for(size_t j = 0; j < len; j++) {
-      leftp[j] = 0;
-      rightp[j] = num_elem - 1;
-      is_finishedp[j] = 0;
-      valuesp[j] = valuesp_tmp[j]; 
-    }
-    bool is_finished_all = 0;
-    while(is_finished_all == 0){
-      for(size_t j = 0; j < len; j++){
-        if(is_finishedp[j] == 0 && leftp[j] != rightp[j]) {
-          size_t mid = (leftp[j] + rightp[j])/2;
-          if(valuesp[j] < sortedp[mid]) {
-            rightp[j] = mid;
-          } else if(valuesp[j] > sortedp[mid]) {
-            leftp[j] = mid + 1;
-          } else { // equal
-            retp[j] = mid;
-            is_finishedp[j] = 1;
-          }
-        } else if(is_finishedp[j] == 0 && leftp[j] == rightp[j]) {
-          retp[j] = leftp[j];
-          is_finishedp[j] = 1;
-        }          
-      }
-      is_finished_all = 1;
-      for(size_t k = 0; k < len; k++){
-        if(is_finishedp[k] == 0) {
-          is_finished_all = 0;
-          break;
-        }
-      }
-    }
-  }
-  return ret;
-}
-
+/* used in dfcolumn.hpp */
 template <class K>
 inline
 size_t myhash(const K& key, size_t size) {
@@ -166,20 +104,16 @@ public:
 private:
   std::vector<K> key;
   std::vector<V> val;
-  std::vector<int> is_filled;
+  std::vector<int> is_filled; // to allow key to accept any value
   std::vector<K> conflict_key; // sorted
   std::vector<V> conflict_val;
 };
 
-template <class K, class V>
-unique_hashtable<K,V>::unique_hashtable(const std::vector<K>& k,
-                                        const std::vector<V>& v) {
-  size_t size = k.size();
-  if(v.size() != size)
-    throw std::runtime_error("sizes of key and value are different");
-  // http://d.hatena.ne.jp/zariganitosh/20090716/1247709137
-  // http://tools.m-bsys.com/calculators/prime_number_generator.php
-  long long primes[] = { // should be 64bit
+// should be 64bit
+// http://d.hatena.ne.jp/zariganitosh/20090716/1247709137
+// http://tools.m-bsys.com/calculators/prime_number_generator.php
+inline std::vector<long long> prime_numbers() {
+  std::vector<long long> ret = {
     8 + 3,
     16 + 3,
     32 + 5,
@@ -214,131 +148,1091 @@ unique_hashtable<K,V>::unique_hashtable(const std::vector<K>& k,
     17179869184 + 25,
     34359738368 + 53, // 32GB, primes + 32
   };
+  return ret;
+}
+
+// modified version of find_condition
+template <class K, class V>
+std::vector<size_t> find_miss_write_table(const K* kp, const V* vp, size_t size,
+                                          const K* table_keyp, V* table_valp, 
+                                          const size_t* hashp) {
+  if(size == 0) {
+    return std::vector<size_t>();
+  }
+  std::vector<size_t> rettmp(size);
+  auto rettmpp = rettmp.data();
+
+  size_t each = size / FIND_MISS_VLEN; // maybe 0
+  auto aligned_each = each * sizeof(K) / FIND_MISS_ALIGN_SIZE;
+  if(aligned_each % 2 == 0 && aligned_each != 0)
+    aligned_each -= 1;
+  each = aligned_each * FIND_MISS_ALIGN_SIZE / sizeof(K);
+  size_t rest = size - each * FIND_MISS_VLEN;
+
+  size_t out_ridx[FIND_MISS_VLEN];
+  size_t out_ridx_0[FIND_MISS_VLEN_EACH];
+  size_t out_ridx_1[FIND_MISS_VLEN_EACH];
+  size_t out_ridx_2[FIND_MISS_VLEN_EACH];
+  size_t out_ridx_3[FIND_MISS_VLEN_EACH];
+// never remove this vreg! this is needed following vovertake
+#pragma _NEC vreg(out_ridx_0)
+#pragma _NEC vreg(out_ridx_1)
+#pragma _NEC vreg(out_ridx_2)
+#pragma _NEC vreg(out_ridx_3)
+  for(size_t i = 0; i < FIND_MISS_VLEN_EACH; i++) {
+    auto v0 = i;
+    auto v1 = i + FIND_MISS_VLEN_EACH;
+    auto v2 = i + FIND_MISS_VLEN_EACH * 2;
+    auto v3 = i + FIND_MISS_VLEN_EACH * 3;
+    out_ridx_0[i] = each * v0;
+    out_ridx_1[i] = each * v1;
+    out_ridx_2[i] = each * v2;
+    out_ridx_3[i] = each * v3;
+  }
+
+  if(each < FIND_MISS_THR) {
+    size_t current = 0;
+    for(size_t i = 0; i < size; i++) {
+      if(kp[i] != table_keyp[hashp[i]]) {
+        rettmpp[current++] = i;
+      } else {
+        table_valp[hashp[i]] = vp[i];
+      }
+    }
+    std::vector<size_t> ret(current);
+    auto retp = ret.data();
+    for(size_t i = 0; i < current; i++) {
+      retp[i] = rettmpp[i];
+    }
+    return ret;
+  } else {
+#pragma _NEC vob
+    for(size_t j = 0; j < each; j++) {
+#pragma cdir nodep
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+      for(size_t i = 0; i < FIND_MISS_VLEN_EACH; i++) {
+        auto idx0 = j + each * i;
+        auto idx1 = j + each * (i + FIND_MISS_VLEN_EACH);
+        auto idx2 = j + each * (i + FIND_MISS_VLEN_EACH * 2);
+        auto idx3 = j + each * (i + FIND_MISS_VLEN_EACH * 3);
+        auto key0 = kp[idx0];
+        auto key1 = kp[idx1];
+        auto key2 = kp[idx2];
+        auto key3 = kp[idx3];
+        auto hash_idx0 = hashp[idx0];
+        auto hash_idx1 = hashp[idx1];
+        auto hash_idx2 = hashp[idx2];
+        auto hash_idx3 = hashp[idx3];
+        auto tab0 = table_keyp[hash_idx0];
+        auto tab1 = table_keyp[hash_idx1];
+        auto tab2 = table_keyp[hash_idx2];
+        auto tab3 = table_keyp[hash_idx3];
+        if(key0 != tab0) {
+          rettmpp[out_ridx_0[i]++] = idx0;
+        } else {
+          table_valp[hash_idx0] = vp[idx0];
+        }
+        if(key1 != tab1) {
+          rettmpp[out_ridx_1[i]++] = idx1;
+        } else {
+          table_valp[hash_idx1] = vp[idx1];
+        }
+        if(key2 != tab2) {
+          rettmpp[out_ridx_2[i]++] = idx2;
+        } else {
+          table_valp[hash_idx2] = vp[idx2];
+        }
+        if(key3 != tab3) {
+          rettmpp[out_ridx_3[i]++] = idx3;
+        } else {
+          table_valp[hash_idx3] = vp[idx3];
+        }
+      }
+    }
+    
+    size_t rest_idx_start = each * FIND_MISS_VLEN;
+    size_t rest_idx = rest_idx_start;
+    if(rest != 0) {
+      for(size_t j = 0; j < rest; j++) {
+        if(kp[j + rest_idx_start] != table_keyp[hashp[j + rest_idx_start]]) {
+          rettmpp[rest_idx++] = j + rest_idx_start;
+        } else {
+          table_valp[hashp[j + rest_idx_start]] = vp[j + rest_idx_start];
+        }
+      }
+    }
+    for(size_t i = 0; i < FIND_MISS_VLEN_EACH; i++) {
+      auto v0 = i;
+      auto v1 = i + FIND_MISS_VLEN_EACH;
+      auto v2 = i + FIND_MISS_VLEN_EACH * 2;
+      auto v3 = i + FIND_MISS_VLEN_EACH * 3;
+      out_ridx[v0] = out_ridx_0[i];
+      out_ridx[v1] = out_ridx_1[i];
+      out_ridx[v2] = out_ridx_2[i];
+      out_ridx[v3] = out_ridx_3[i];
+    }
+    size_t sizes[FIND_MISS_VLEN];
+    for(size_t i = 0; i < FIND_MISS_VLEN; i++) {
+      sizes[i] = out_ridx[i] - each * i;
+    }
+    size_t total = 0;
+    for(size_t i = 0; i < FIND_MISS_VLEN; i++) {
+      total += sizes[i];
+    }
+    size_t rest_size = rest_idx - each * FIND_MISS_VLEN;
+    total += rest_size;
+    std::vector<size_t> ret(total);
+    auto retp = ret.data();
+    size_t current = 0;
+    for(size_t i = 0; i < FIND_MISS_VLEN; i++) {
+      for(size_t j = 0; j < sizes[i]; j++) {
+        retp[current + j] = rettmpp[each * i + j];
+      }
+      current += sizes[i];
+    }
+    for(size_t j = 0; j < rest_size; j++) {
+      retp[current + j] = rettmpp[rest_idx_start + j];
+    }
+    return ret;
+  }
+}
+
+template <class K, class V>
+std::vector<size_t> find_miss_unique_check(const K* kp, const V* vp,
+                                           size_t size,
+                                           const K* table_keyp, V* table_valp, 
+                                           const size_t* hashp,
+                                           const size_t* unique_checkerp,
+                                           int& is_unique_ok) {
+  is_unique_ok = true;
+  if(size == 0) {
+    return std::vector<size_t>();
+  }
+  std::vector<size_t> rettmp(size);
+  auto rettmpp = rettmp.data();
+
+  size_t each = size / FIND_MISS_VLEN; // maybe 0
+  auto aligned_each = each * sizeof(K) / FIND_MISS_ALIGN_SIZE;
+  if(aligned_each % 2 == 0 && aligned_each != 0)
+    aligned_each -= 1;
+  each = aligned_each * FIND_MISS_ALIGN_SIZE / sizeof(K);
+  size_t rest = size - each * FIND_MISS_VLEN;
+
+  size_t out_ridx[FIND_MISS_VLEN];
+  size_t out_ridx_0[FIND_MISS_VLEN_EACH];
+  size_t out_ridx_1[FIND_MISS_VLEN_EACH];
+  size_t out_ridx_2[FIND_MISS_VLEN_EACH];
+  size_t out_ridx_3[FIND_MISS_VLEN_EACH];
+// never remove this vreg! this is needed following vovertake
+#pragma _NEC vreg(out_ridx_0)
+#pragma _NEC vreg(out_ridx_1)
+#pragma _NEC vreg(out_ridx_2)
+#pragma _NEC vreg(out_ridx_3)
+  for(size_t i = 0; i < FIND_MISS_VLEN_EACH; i++) {
+    auto v0 = i;
+    auto v1 = i + FIND_MISS_VLEN_EACH;
+    auto v2 = i + FIND_MISS_VLEN_EACH * 2;
+    auto v3 = i + FIND_MISS_VLEN_EACH * 3;
+    out_ridx_0[i] = each * v0;
+    out_ridx_1[i] = each * v1;
+    out_ridx_2[i] = each * v2;
+    out_ridx_3[i] = each * v3;
+  }
+
+  if(each < FIND_MISS_THR) {
+    size_t current = 0;
+    for(size_t i = 0; i < size; i++) {
+      if(kp[i] != table_keyp[hashp[i]]) {
+        rettmpp[current++] = i;
+      } else if(unique_checkerp[hashp[i]] == i) {
+        table_valp[hashp[i]] = vp[i];
+      } else is_unique_ok = false;
+    }
+    std::vector<size_t> ret(current);
+    auto retp = ret.data();
+    for(size_t i = 0; i < current; i++) {
+      retp[i] = rettmpp[i];
+    }
+    return ret;
+  } else {
+#pragma _NEC vob
+    for(size_t j = 0; j < each; j++) {
+#pragma cdir nodep
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+      for(size_t i = 0; i < FIND_MISS_VLEN_EACH; i++) {
+        auto idx0 = j + each * i;
+        auto idx1 = j + each * (i + FIND_MISS_VLEN_EACH);
+        auto idx2 = j + each * (i + FIND_MISS_VLEN_EACH * 2);
+        auto idx3 = j + each * (i + FIND_MISS_VLEN_EACH * 3);
+        auto key0 = kp[idx0];
+        auto key1 = kp[idx1];
+        auto key2 = kp[idx2];
+        auto key3 = kp[idx3];
+        auto hash_idx0 = hashp[idx0];
+        auto hash_idx1 = hashp[idx1];
+        auto hash_idx2 = hashp[idx2];
+        auto hash_idx3 = hashp[idx3];
+        auto tab0 = table_keyp[hash_idx0];
+        auto tab1 = table_keyp[hash_idx1];
+        auto tab2 = table_keyp[hash_idx2];
+        auto tab3 = table_keyp[hash_idx3];
+        auto uniq0 = unique_checkerp[hash_idx0];
+        auto uniq1 = unique_checkerp[hash_idx1];
+        auto uniq2 = unique_checkerp[hash_idx2];
+        auto uniq3 = unique_checkerp[hash_idx3];
+        if(key0 != tab0) {
+          rettmpp[out_ridx_0[i]++] = idx0;
+        } else if(uniq0 == idx0) {
+          table_valp[hash_idx0] = vp[idx0];
+        } else is_unique_ok = false;
+        if(key1 != tab1) {
+          rettmpp[out_ridx_1[i]++] = idx1;
+        } else if(uniq1 == idx1) {
+          table_valp[hash_idx1] = vp[idx1];
+        } else is_unique_ok = false;
+        if(key2 != tab2) {
+          rettmpp[out_ridx_2[i]++] = idx2;
+        } else if(uniq2 == idx2) {
+          table_valp[hash_idx2] = vp[idx2];
+        } else is_unique_ok = false;
+        if(key3 != tab3) {
+          rettmpp[out_ridx_3[i]++] = idx3;
+        } else if(uniq3 == idx3) {
+          table_valp[hash_idx3] = vp[idx3];
+        } else is_unique_ok = false;
+      }
+    }
+    
+    size_t rest_idx_start = each * FIND_MISS_VLEN;
+    size_t rest_idx = rest_idx_start;
+    if(rest != 0) {
+      for(size_t j = 0; j < rest; j++) {
+        if(kp[j + rest_idx_start] != table_keyp[hashp[j + rest_idx_start]]) {
+          rettmpp[rest_idx++] = j + rest_idx_start;
+        } else if (unique_checkerp[hashp[j + rest_idx_start]] ==
+                   j + rest_idx_start) {
+          table_valp[hashp[j + rest_idx_start]] = vp[j + rest_idx_start];
+        } else is_unique_ok = false;
+      }
+    }
+    for(size_t i = 0; i < FIND_MISS_VLEN_EACH; i++) {
+      auto v0 = i;
+      auto v1 = i + FIND_MISS_VLEN_EACH;
+      auto v2 = i + FIND_MISS_VLEN_EACH * 2;
+      auto v3 = i + FIND_MISS_VLEN_EACH * 3;
+      out_ridx[v0] = out_ridx_0[i];
+      out_ridx[v1] = out_ridx_1[i];
+      out_ridx[v2] = out_ridx_2[i];
+      out_ridx[v3] = out_ridx_3[i];
+    }
+    size_t sizes[FIND_MISS_VLEN];
+    for(size_t i = 0; i < FIND_MISS_VLEN; i++) {
+      sizes[i] = out_ridx[i] - each * i;
+    }
+    size_t total = 0;
+    for(size_t i = 0; i < FIND_MISS_VLEN; i++) {
+      total += sizes[i];
+    }
+    size_t rest_size = rest_idx - each * FIND_MISS_VLEN;
+    total += rest_size;
+    std::vector<size_t> ret(total);
+    auto retp = ret.data();
+    size_t current = 0;
+    for(size_t i = 0; i < FIND_MISS_VLEN; i++) {
+      for(size_t j = 0; j < sizes[i]; j++) {
+        retp[current + j] = rettmpp[each * i + j];
+      }
+      current += sizes[i];
+    }
+    for(size_t j = 0; j < rest_size; j++) {
+      retp[current + j] = rettmpp[rest_idx_start + j];
+    }
+    return ret;
+  }
+}
+
+template <class K>
+std::vector<size_t> find_miss(const K* kp, size_t size,
+                              const K* table_keyp, const size_t* hashp) {
+  if(size == 0) {
+    return std::vector<size_t>();
+  }
+  std::vector<size_t> rettmp(size);
+  auto rettmpp = rettmp.data();
+
+  size_t each = size / FIND_MISS_VLEN; // maybe 0
+  auto aligned_each = each * sizeof(K) / FIND_MISS_ALIGN_SIZE;
+  if(aligned_each % 2 == 0 && aligned_each != 0)
+    aligned_each -= 1;
+  each = aligned_each * FIND_MISS_ALIGN_SIZE / sizeof(K);
+  size_t rest = size - each * FIND_MISS_VLEN;
+
+  size_t out_ridx[FIND_MISS_VLEN];
+  size_t out_ridx_0[FIND_MISS_VLEN_EACH];
+  size_t out_ridx_1[FIND_MISS_VLEN_EACH];
+  size_t out_ridx_2[FIND_MISS_VLEN_EACH];
+  size_t out_ridx_3[FIND_MISS_VLEN_EACH];
+// never remove this vreg! this is needed following vovertake
+#pragma _NEC vreg(out_ridx_0)
+#pragma _NEC vreg(out_ridx_1)
+#pragma _NEC vreg(out_ridx_2)
+#pragma _NEC vreg(out_ridx_3)
+  for(size_t i = 0; i < FIND_MISS_VLEN_EACH; i++) {
+    auto v0 = i;
+    auto v1 = i + FIND_MISS_VLEN_EACH;
+    auto v2 = i + FIND_MISS_VLEN_EACH * 2;
+    auto v3 = i + FIND_MISS_VLEN_EACH * 3;
+    out_ridx_0[i] = each * v0;
+    out_ridx_1[i] = each * v1;
+    out_ridx_2[i] = each * v2;
+    out_ridx_3[i] = each * v3;
+  }
+
+  if(each < FIND_MISS_THR) {
+    size_t current = 0;
+    for(size_t i = 0; i < size; i++) {
+      if(kp[i] != table_keyp[hashp[i]]) {
+        rettmpp[current++] = i;
+      } 
+    }
+    std::vector<size_t> ret(current);
+    auto retp = ret.data();
+    for(size_t i = 0; i < current; i++) {
+      retp[i] = rettmpp[i];
+    }
+    return ret;
+  } else {
+#pragma _NEC vob
+    for(size_t j = 0; j < each; j++) {
+#pragma cdir nodep
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+      for(size_t i = 0; i < FIND_MISS_VLEN_EACH; i++) {
+        auto idx0 = j + each * i;
+        auto idx1 = j + each * (i + FIND_MISS_VLEN_EACH);
+        auto idx2 = j + each * (i + FIND_MISS_VLEN_EACH * 2);
+        auto idx3 = j + each * (i + FIND_MISS_VLEN_EACH * 3);
+        auto key0 = kp[idx0];
+        auto key1 = kp[idx1];
+        auto key2 = kp[idx2];
+        auto key3 = kp[idx3];
+        auto hash_idx0 = hashp[idx0];
+        auto hash_idx1 = hashp[idx1];
+        auto hash_idx2 = hashp[idx2];
+        auto hash_idx3 = hashp[idx3];
+        auto tab0 = table_keyp[hash_idx0];
+        auto tab1 = table_keyp[hash_idx1];
+        auto tab2 = table_keyp[hash_idx2];
+        auto tab3 = table_keyp[hash_idx3];
+        if(key0 != tab0) {
+          rettmpp[out_ridx_0[i]++] = idx0;
+        }
+        if(key1 != tab1) {
+          rettmpp[out_ridx_1[i]++] = idx1;
+        }
+        if(key2 != tab2) {
+          rettmpp[out_ridx_2[i]++] = idx2;
+        }
+        if(key3 != tab3) {
+          rettmpp[out_ridx_3[i]++] = idx3;
+        }
+      }
+    }
+    
+    size_t rest_idx_start = each * FIND_MISS_VLEN;
+    size_t rest_idx = rest_idx_start;
+    if(rest != 0) {
+      for(size_t j = 0; j < rest; j++) {
+        if(kp[j + rest_idx_start] != table_keyp[hashp[j + rest_idx_start]]) {
+          rettmpp[rest_idx++] = j + rest_idx_start;
+        }
+      }
+    }
+    for(size_t i = 0; i < FIND_MISS_VLEN_EACH; i++) {
+      auto v0 = i;
+      auto v1 = i + FIND_MISS_VLEN_EACH;
+      auto v2 = i + FIND_MISS_VLEN_EACH * 2;
+      auto v3 = i + FIND_MISS_VLEN_EACH * 3;
+      out_ridx[v0] = out_ridx_0[i];
+      out_ridx[v1] = out_ridx_1[i];
+      out_ridx[v2] = out_ridx_2[i];
+      out_ridx[v3] = out_ridx_3[i];
+    }
+    size_t sizes[FIND_MISS_VLEN];
+    for(size_t i = 0; i < FIND_MISS_VLEN; i++) {
+      sizes[i] = out_ridx[i] - each * i;
+    }
+    size_t total = 0;
+    for(size_t i = 0; i < FIND_MISS_VLEN; i++) {
+      total += sizes[i];
+    }
+    size_t rest_size = rest_idx - each * FIND_MISS_VLEN;
+    total += rest_size;
+    std::vector<size_t> ret(total);
+    auto retp = ret.data();
+    size_t current = 0;
+    for(size_t i = 0; i < FIND_MISS_VLEN; i++) {
+      for(size_t j = 0; j < sizes[i]; j++) {
+        retp[current + j] = rettmpp[each * i + j];
+      }
+      current += sizes[i];
+    }
+    for(size_t j = 0; j < rest_size; j++) {
+      retp[current + j] = rettmpp[rest_idx_start + j];
+    }
+    return ret;
+  }
+}
+
+template <class K, class V>
+std::vector<size_t> find_miss_read_table(const K* kp, V* vp, size_t size,
+                                         const K* table_keyp,
+                                         const V* table_valp, 
+                                         const size_t* hashp) {
+  if(size == 0) {
+    return std::vector<size_t>();
+  }
+  std::vector<size_t> rettmp(size);
+  auto rettmpp = rettmp.data();
+
+  size_t each = size / FIND_MISS_VLEN; // maybe 0
+  auto aligned_each = each * sizeof(K) / FIND_MISS_ALIGN_SIZE;
+  if(aligned_each % 2 == 0 && aligned_each != 0)
+    aligned_each -= 1;
+  each = aligned_each * FIND_MISS_ALIGN_SIZE / sizeof(K);
+  size_t rest = size - each * FIND_MISS_VLEN;
+
+  size_t out_ridx[FIND_MISS_VLEN];
+  size_t out_ridx_0[FIND_MISS_VLEN_EACH];
+  size_t out_ridx_1[FIND_MISS_VLEN_EACH];
+  size_t out_ridx_2[FIND_MISS_VLEN_EACH];
+  size_t out_ridx_3[FIND_MISS_VLEN_EACH];
+// never remove this vreg! this is needed following vovertake
+#pragma _NEC vreg(out_ridx_0)
+#pragma _NEC vreg(out_ridx_1)
+#pragma _NEC vreg(out_ridx_2)
+#pragma _NEC vreg(out_ridx_3)
+  for(size_t i = 0; i < FIND_MISS_VLEN_EACH; i++) {
+    auto v0 = i;
+    auto v1 = i + FIND_MISS_VLEN_EACH;
+    auto v2 = i + FIND_MISS_VLEN_EACH * 2;
+    auto v3 = i + FIND_MISS_VLEN_EACH * 3;
+    out_ridx_0[i] = each * v0;
+    out_ridx_1[i] = each * v1;
+    out_ridx_2[i] = each * v2;
+    out_ridx_3[i] = each * v3;
+  }
+
+  if(each < FIND_MISS_THR) {
+    size_t current = 0;
+    for(size_t i = 0; i < size; i++) {
+      if(kp[i] != table_keyp[hashp[i]]) {
+        rettmpp[current++] = i;
+      } else {
+        vp[i] = table_valp[hashp[i]];
+      }
+    }
+    std::vector<size_t> ret(current);
+    auto retp = ret.data();
+    for(size_t i = 0; i < current; i++) {
+      retp[i] = rettmpp[i];
+    }
+    return ret;
+  } else {
+#pragma _NEC vob
+    for(size_t j = 0; j < each; j++) {
+#pragma cdir nodep
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+      for(size_t i = 0; i < FIND_MISS_VLEN_EACH; i++) {
+        auto idx0 = j + each * i;
+        auto idx1 = j + each * (i + FIND_MISS_VLEN_EACH);
+        auto idx2 = j + each * (i + FIND_MISS_VLEN_EACH * 2);
+        auto idx3 = j + each * (i + FIND_MISS_VLEN_EACH * 3);
+        auto key0 = kp[idx0];
+        auto key1 = kp[idx1];
+        auto key2 = kp[idx2];
+        auto key3 = kp[idx3];
+        auto hash_idx0 = hashp[idx0];
+        auto hash_idx1 = hashp[idx1];
+        auto hash_idx2 = hashp[idx2];
+        auto hash_idx3 = hashp[idx3];
+        auto tab0 = table_keyp[hash_idx0];
+        auto tab1 = table_keyp[hash_idx1];
+        auto tab2 = table_keyp[hash_idx2];
+        auto tab3 = table_keyp[hash_idx3];
+        if(key0 != tab0) {
+          rettmpp[out_ridx_0[i]++] = idx0;
+        } else {
+          vp[idx0] = table_valp[hash_idx0];
+        }
+        if(key1 != tab1) {
+          rettmpp[out_ridx_1[i]++] = idx1;
+        } else {
+          vp[idx1] = table_valp[hash_idx1];
+        }
+        if(key2 != tab2) {
+          rettmpp[out_ridx_2[i]++] = idx2;
+        } else {
+          vp[idx2] = table_valp[hash_idx2];
+        }
+        if(key3 != tab3) {
+          rettmpp[out_ridx_3[i]++] = idx3;
+        } else {
+          vp[idx3] = table_valp[hash_idx3];
+        }
+      }
+    }
+    
+    size_t rest_idx_start = each * FIND_MISS_VLEN;
+    size_t rest_idx = rest_idx_start;
+    if(rest != 0) {
+      for(size_t j = 0; j < rest; j++) {
+        if(kp[j + rest_idx_start] != table_keyp[hashp[j + rest_idx_start]]) {
+          rettmpp[rest_idx++] = j + rest_idx_start;
+        } else {
+          vp[j + rest_idx_start] = table_valp[hashp[j + rest_idx_start]];
+        }
+      }
+    }
+    for(size_t i = 0; i < FIND_MISS_VLEN_EACH; i++) {
+      auto v0 = i;
+      auto v1 = i + FIND_MISS_VLEN_EACH;
+      auto v2 = i + FIND_MISS_VLEN_EACH * 2;
+      auto v3 = i + FIND_MISS_VLEN_EACH * 3;
+      out_ridx[v0] = out_ridx_0[i];
+      out_ridx[v1] = out_ridx_1[i];
+      out_ridx[v2] = out_ridx_2[i];
+      out_ridx[v3] = out_ridx_3[i];
+    }
+    size_t sizes[FIND_MISS_VLEN];
+    for(size_t i = 0; i < FIND_MISS_VLEN; i++) {
+      sizes[i] = out_ridx[i] - each * i;
+    }
+    size_t total = 0;
+    for(size_t i = 0; i < FIND_MISS_VLEN; i++) {
+      total += sizes[i];
+    }
+    size_t rest_size = rest_idx - each * FIND_MISS_VLEN;
+    total += rest_size;
+    std::vector<size_t> ret(total);
+    auto retp = ret.data();
+    size_t current = 0;
+    for(size_t i = 0; i < FIND_MISS_VLEN; i++) {
+      for(size_t j = 0; j < sizes[i]; j++) {
+        retp[current + j] = rettmpp[each * i + j];
+      }
+      current += sizes[i];
+    }
+    for(size_t j = 0; j < rest_size; j++) {
+      retp[current + j] = rettmpp[rest_idx_start + j];
+    }
+    return ret;
+  }
+}
+
+template <class K, class V>
+std::vector<size_t>
+find_miss_read_table_checkfill(const K* kp, V* vp, size_t size,
+                               const K* table_keyp, const V* table_valp,
+                               const int* is_filledp, const size_t* hashp,
+                               std::vector<size_t>& clear_miss) {
+  if(size == 0) {
+    clear_miss.resize(0);
+    return std::vector<size_t>();
+  }
+  std::vector<size_t> rettmp(size);
+  auto rettmpp = rettmp.data();
+  std::vector<size_t> clear_miss_tmp(size);
+  auto clear_miss_tmpp = clear_miss_tmp.data();
+
+  size_t each = size / FIND_MISS_VLEN; // maybe 0
+  auto aligned_each = each * sizeof(K) / FIND_MISS_ALIGN_SIZE;
+  if(aligned_each % 2 == 0 && aligned_each != 0)
+    aligned_each -= 1;
+  each = aligned_each * FIND_MISS_ALIGN_SIZE / sizeof(K);
+  size_t rest = size - each * FIND_MISS_VLEN;
+
+  size_t out_ridx[FIND_MISS_VLEN];
+  size_t out_ridx_0[FIND_MISS_VLEN_EACH];
+  size_t out_ridx_1[FIND_MISS_VLEN_EACH];
+  size_t out_ridx_2[FIND_MISS_VLEN_EACH];
+  size_t out_ridx_3[FIND_MISS_VLEN_EACH];
+// never remove this vreg! this is needed following vovertake
+#pragma _NEC vreg(out_ridx_0)
+#pragma _NEC vreg(out_ridx_1)
+#pragma _NEC vreg(out_ridx_2)
+#pragma _NEC vreg(out_ridx_3)
+
+  size_t out2_ridx[FIND_MISS_VLEN];
+  size_t out2_ridx_0[FIND_MISS_VLEN_EACH];
+  size_t out2_ridx_1[FIND_MISS_VLEN_EACH];
+  size_t out2_ridx_2[FIND_MISS_VLEN_EACH];
+  size_t out2_ridx_3[FIND_MISS_VLEN_EACH];
+// never remove this vreg! this is needed following vovertake
+#pragma _NEC vreg(out2_ridx_0)
+#pragma _NEC vreg(out2_ridx_1)
+#pragma _NEC vreg(out2_ridx_2)
+#pragma _NEC vreg(out2_ridx_3)
+
+  for(size_t i = 0; i < FIND_MISS_VLEN_EACH; i++) {
+    auto v0 = i;
+    auto v1 = i + FIND_MISS_VLEN_EACH;
+    auto v2 = i + FIND_MISS_VLEN_EACH * 2;
+    auto v3 = i + FIND_MISS_VLEN_EACH * 3;
+    out_ridx_0[i] = each * v0;
+    out_ridx_1[i] = each * v1;
+    out_ridx_2[i] = each * v2;
+    out_ridx_3[i] = each * v3;
+    out2_ridx_0[i] = each * v0;
+    out2_ridx_1[i] = each * v1;
+    out2_ridx_2[i] = each * v2;
+    out2_ridx_3[i] = each * v3;
+  }
+
+  if(each < FIND_MISS_THR) {
+    size_t current = 0;
+    size_t current_clear_miss = 0;
+    for(size_t i = 0; i < size; i++) {
+      if(!is_filledp[hashp[i]]) {
+        clear_miss_tmpp[current_clear_miss++] = i;
+      } else if(kp[i] != table_keyp[hashp[i]]) {
+        rettmpp[current++] = i;
+      } else {
+        vp[i] = table_valp[hashp[i]];
+      }
+    }
+
+    clear_miss.resize(current_clear_miss);
+    auto clear_missp = clear_miss.data();
+    for(size_t i = 0; i < current_clear_miss; i++) {
+      clear_missp[i] = clear_miss_tmpp[i];
+    }
+    std::vector<size_t> ret(current);
+    auto retp = ret.data();
+    for(size_t i = 0; i < current; i++) {
+      retp[i] = rettmpp[i];
+    }
+
+    return ret;
+  } else {
+
+#pragma _NEC vob
+    for(size_t j = 0; j < each; j++) {
+#pragma cdir nodep
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+      for(size_t i = 0; i < FIND_MISS_VLEN_EACH; i++) {
+        auto idx0 = j + each * i;
+        auto idx1 = j + each * (i + FIND_MISS_VLEN_EACH);
+        auto idx2 = j + each * (i + FIND_MISS_VLEN_EACH * 2);
+        auto idx3 = j + each * (i + FIND_MISS_VLEN_EACH * 3);
+        auto key0 = kp[idx0];
+        auto key1 = kp[idx1];
+        auto key2 = kp[idx2];
+        auto key3 = kp[idx3];
+        auto hash_idx0 = hashp[idx0];
+        auto hash_idx1 = hashp[idx1];
+        auto hash_idx2 = hashp[idx2];
+        auto hash_idx3 = hashp[idx3];
+        auto tab0 = table_keyp[hash_idx0];
+        auto tab1 = table_keyp[hash_idx1];
+        auto tab2 = table_keyp[hash_idx2];
+        auto tab3 = table_keyp[hash_idx3];
+        auto isfill0 = is_filledp[hash_idx0];
+        auto isfill1 = is_filledp[hash_idx1];
+        auto isfill2 = is_filledp[hash_idx2];
+        auto isfill3 = is_filledp[hash_idx3];
+        if(!isfill0) {
+          clear_miss_tmpp[out2_ridx_0[i]++] = idx0;
+        } else if(key0 != tab0) {
+          rettmpp[out_ridx_0[i]++] = idx0;
+        } else {
+          vp[idx0] = table_valp[hash_idx0];
+        }
+        if(!isfill1) {
+          clear_miss_tmpp[out2_ridx_1[i]++] = idx1;
+        } else if(key1 != tab1) {
+          rettmpp[out_ridx_1[i]++] = idx1;
+        } else {
+          vp[idx1] = table_valp[hash_idx1];
+        }
+        if(!isfill2) {
+          clear_miss_tmpp[out2_ridx_2[i]++] = idx2;
+        } else if(key2 != tab2) {
+          rettmpp[out_ridx_2[i]++] = idx2;
+        } else {
+          vp[idx2] = table_valp[hash_idx2];
+        }
+        if(!isfill3) {
+          clear_miss_tmpp[out2_ridx_3[i]++] = idx3;
+        } else if(key3 != tab3) {
+          rettmpp[out_ridx_3[i]++] = idx3;
+        } else {
+          vp[idx3] = table_valp[hash_idx3];
+        }
+      }
+    }
+    
+    size_t rest_idx_start = each * FIND_MISS_VLEN;
+    size_t rest_idx = rest_idx_start;
+    size_t rest_idx2 = rest_idx_start;
+    if(rest != 0) {
+      for(size_t j = 0; j < rest; j++) {
+        if (!is_filledp[hashp[j + rest_idx_start]]) {
+          clear_miss_tmpp[rest_idx2++] = j + rest_idx_start;
+        } else if(kp[j + rest_idx_start] !=
+                  table_keyp[hashp[j + rest_idx_start]]) {
+          rettmpp[rest_idx++] = j + rest_idx_start;
+        } else {
+          vp[j + rest_idx_start] = table_valp[hashp[j + rest_idx_start]];
+        }
+      }
+    }
+    for(size_t i = 0; i < FIND_MISS_VLEN_EACH; i++) {
+      auto v0 = i;
+      auto v1 = i + FIND_MISS_VLEN_EACH;
+      auto v2 = i + FIND_MISS_VLEN_EACH * 2;
+      auto v3 = i + FIND_MISS_VLEN_EACH * 3;
+      out_ridx[v0] = out_ridx_0[i];
+      out_ridx[v1] = out_ridx_1[i];
+      out_ridx[v2] = out_ridx_2[i];
+      out_ridx[v3] = out_ridx_3[i];
+      out2_ridx[v0] = out2_ridx_0[i];
+      out2_ridx[v1] = out2_ridx_1[i];
+      out2_ridx[v2] = out2_ridx_2[i];
+      out2_ridx[v3] = out2_ridx_3[i];
+    }
+    size_t sizes[FIND_MISS_VLEN];
+    for(size_t i = 0; i < FIND_MISS_VLEN; i++) {
+      sizes[i] = out_ridx[i] - each * i;
+    }
+    size_t total = 0;
+    for(size_t i = 0; i < FIND_MISS_VLEN; i++) {
+      total += sizes[i];
+    }
+    size_t rest_size = rest_idx - each * FIND_MISS_VLEN;
+    total += rest_size;
+    std::vector<size_t> ret(total);
+    auto retp = ret.data();
+    size_t current = 0;
+    for(size_t i = 0; i < FIND_MISS_VLEN; i++) {
+      for(size_t j = 0; j < sizes[i]; j++) {
+        retp[current + j] = rettmpp[each * i + j];
+      }
+      current += sizes[i];
+    }
+    for(size_t j = 0; j < rest_size; j++) {
+      retp[current + j] = rettmpp[rest_idx_start + j];
+    }
+
+    size_t sizes2[FIND_MISS_VLEN];
+    for(size_t i = 0; i < FIND_MISS_VLEN; i++) {
+      sizes2[i] = out2_ridx[i] - each * i;
+    }
+    size_t total2 = 0;
+    for(size_t i = 0; i < FIND_MISS_VLEN; i++) {
+      total2 += sizes2[i];
+    }
+    size_t rest_size2 = rest_idx2 - each * FIND_MISS_VLEN;
+    total2 += rest_size2;
+    clear_miss.resize(total2);
+    auto clear_missp = clear_miss.data();
+    size_t current2 = 0;
+    for(size_t i = 0; i < FIND_MISS_VLEN; i++) {
+      for(size_t j = 0; j < sizes2[i]; j++) {
+        clear_missp[current2 + j] = clear_miss_tmpp[each * i + j];
+      }
+      current2 += sizes2[i];
+    }
+    for(size_t j = 0; j < rest_size2; j++) {
+      clear_missp[current2 + j] = clear_miss_tmpp[rest_idx_start + j];
+    }
+
+    return ret;
+  }
+}
+
+template <class K>
+std::vector<size_t>
+find_miss_checkfill(const K* kp, size_t size, const K* table_keyp, 
+                    const int* is_filledp, const size_t* hashp,
+                    std::vector<size_t>& clear_miss) {
+  if(size == 0) {
+    clear_miss.resize(0);
+    return std::vector<size_t>();
+  }
+  std::vector<size_t> rettmp(size);
+  auto rettmpp = rettmp.data();
+  std::vector<size_t> clear_miss_tmp(size);
+  auto clear_miss_tmpp = clear_miss_tmp.data();
+
+  size_t each = size / FIND_MISS_VLEN; // maybe 0
+  auto aligned_each = each * sizeof(K) / FIND_MISS_ALIGN_SIZE;
+  if(aligned_each % 2 == 0 && aligned_each != 0)
+    aligned_each -= 1;
+  each = aligned_each * FIND_MISS_ALIGN_SIZE / sizeof(K);
+  size_t rest = size - each * FIND_MISS_VLEN;
+
+  size_t out_ridx[FIND_MISS_VLEN];
+  size_t out_ridx_0[FIND_MISS_VLEN_EACH];
+  size_t out_ridx_1[FIND_MISS_VLEN_EACH];
+  size_t out_ridx_2[FIND_MISS_VLEN_EACH];
+  size_t out_ridx_3[FIND_MISS_VLEN_EACH];
+// never remove this vreg! this is needed following vovertake
+#pragma _NEC vreg(out_ridx_0)
+#pragma _NEC vreg(out_ridx_1)
+#pragma _NEC vreg(out_ridx_2)
+#pragma _NEC vreg(out_ridx_3)
+
+  size_t out2_ridx[FIND_MISS_VLEN];
+  size_t out2_ridx_0[FIND_MISS_VLEN_EACH];
+  size_t out2_ridx_1[FIND_MISS_VLEN_EACH];
+  size_t out2_ridx_2[FIND_MISS_VLEN_EACH];
+  size_t out2_ridx_3[FIND_MISS_VLEN_EACH];
+// never remove this vreg! this is needed following vovertake
+#pragma _NEC vreg(out2_ridx_0)
+#pragma _NEC vreg(out2_ridx_1)
+#pragma _NEC vreg(out2_ridx_2)
+#pragma _NEC vreg(out2_ridx_3)
+
+  for(size_t i = 0; i < FIND_MISS_VLEN_EACH; i++) {
+    auto v0 = i;
+    auto v1 = i + FIND_MISS_VLEN_EACH;
+    auto v2 = i + FIND_MISS_VLEN_EACH * 2;
+    auto v3 = i + FIND_MISS_VLEN_EACH * 3;
+    out_ridx_0[i] = each * v0;
+    out_ridx_1[i] = each * v1;
+    out_ridx_2[i] = each * v2;
+    out_ridx_3[i] = each * v3;
+    out2_ridx_0[i] = each * v0;
+    out2_ridx_1[i] = each * v1;
+    out2_ridx_2[i] = each * v2;
+    out2_ridx_3[i] = each * v3;
+  }
+
+  if(each < FIND_MISS_THR) {
+    size_t current = 0;
+    size_t current_clear_miss = 0;
+    for(size_t i = 0; i < size; i++) {
+      if(!is_filledp[hashp[i]]) {
+        clear_miss_tmpp[current_clear_miss++] = i;
+      } else if(kp[i] != table_keyp[hashp[i]]) {
+        rettmpp[current++] = i;
+      }
+    }
+
+    clear_miss.resize(current_clear_miss);
+    auto clear_missp = clear_miss.data();
+    for(size_t i = 0; i < current_clear_miss; i++) {
+      clear_missp[i] = clear_miss_tmpp[i];
+    }
+    std::vector<size_t> ret(current);
+    auto retp = ret.data();
+    for(size_t i = 0; i < current; i++) {
+      retp[i] = rettmpp[i];
+    }
+
+    return ret;
+  } else {
+
+#pragma _NEC vob
+    for(size_t j = 0; j < each; j++) {
+#pragma cdir nodep
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+      for(size_t i = 0; i < FIND_MISS_VLEN_EACH; i++) {
+        auto idx0 = j + each * i;
+        auto idx1 = j + each * (i + FIND_MISS_VLEN_EACH);
+        auto idx2 = j + each * (i + FIND_MISS_VLEN_EACH * 2);
+        auto idx3 = j + each * (i + FIND_MISS_VLEN_EACH * 3);
+        auto key0 = kp[idx0];
+        auto key1 = kp[idx1];
+        auto key2 = kp[idx2];
+        auto key3 = kp[idx3];
+        auto hash_idx0 = hashp[idx0];
+        auto hash_idx1 = hashp[idx1];
+        auto hash_idx2 = hashp[idx2];
+        auto hash_idx3 = hashp[idx3];
+        auto tab0 = table_keyp[hash_idx0];
+        auto tab1 = table_keyp[hash_idx1];
+        auto tab2 = table_keyp[hash_idx2];
+        auto tab3 = table_keyp[hash_idx3];
+        auto isfill0 = is_filledp[hash_idx0];
+        auto isfill1 = is_filledp[hash_idx1];
+        auto isfill2 = is_filledp[hash_idx2];
+        auto isfill3 = is_filledp[hash_idx3];
+        if(!isfill0) {
+          clear_miss_tmpp[out2_ridx_0[i]++] = idx0;
+        } else if(key0 != tab0) {
+          rettmpp[out_ridx_0[i]++] = idx0;
+        }
+        if(!isfill1) {
+          clear_miss_tmpp[out2_ridx_1[i]++] = idx1;
+        } else if(key1 != tab1) {
+          rettmpp[out_ridx_1[i]++] = idx1;
+        }
+        if(!isfill2) {
+          clear_miss_tmpp[out2_ridx_2[i]++] = idx2;
+        } else if(key2 != tab2) {
+          rettmpp[out_ridx_2[i]++] = idx2;
+        }
+        if(!isfill3) {
+          clear_miss_tmpp[out2_ridx_3[i]++] = idx3;
+        } else if(key3 != tab3) {
+          rettmpp[out_ridx_3[i]++] = idx3;
+        }
+      }
+    }
+    
+    size_t rest_idx_start = each * FIND_MISS_VLEN;
+    size_t rest_idx = rest_idx_start;
+    size_t rest_idx2 = rest_idx_start;
+    if(rest != 0) {
+      for(size_t j = 0; j < rest; j++) {
+        if (!is_filledp[hashp[j + rest_idx_start]]) {
+          clear_miss_tmpp[rest_idx2++] = j + rest_idx_start;
+        } else if(kp[j + rest_idx_start] !=
+                  table_keyp[hashp[j + rest_idx_start]]) {
+          rettmpp[rest_idx++] = j + rest_idx_start;
+        }
+      }
+    }
+    for(size_t i = 0; i < FIND_MISS_VLEN_EACH; i++) {
+      auto v0 = i;
+      auto v1 = i + FIND_MISS_VLEN_EACH;
+      auto v2 = i + FIND_MISS_VLEN_EACH * 2;
+      auto v3 = i + FIND_MISS_VLEN_EACH * 3;
+      out_ridx[v0] = out_ridx_0[i];
+      out_ridx[v1] = out_ridx_1[i];
+      out_ridx[v2] = out_ridx_2[i];
+      out_ridx[v3] = out_ridx_3[i];
+      out2_ridx[v0] = out2_ridx_0[i];
+      out2_ridx[v1] = out2_ridx_1[i];
+      out2_ridx[v2] = out2_ridx_2[i];
+      out2_ridx[v3] = out2_ridx_3[i];
+    }
+    size_t sizes[FIND_MISS_VLEN];
+    for(size_t i = 0; i < FIND_MISS_VLEN; i++) {
+      sizes[i] = out_ridx[i] - each * i;
+    }
+    size_t total = 0;
+    for(size_t i = 0; i < FIND_MISS_VLEN; i++) {
+      total += sizes[i];
+    }
+    size_t rest_size = rest_idx - each * FIND_MISS_VLEN;
+    total += rest_size;
+    std::vector<size_t> ret(total);
+    auto retp = ret.data();
+    size_t current = 0;
+    for(size_t i = 0; i < FIND_MISS_VLEN; i++) {
+      for(size_t j = 0; j < sizes[i]; j++) {
+        retp[current + j] = rettmpp[each * i + j];
+      }
+      current += sizes[i];
+    }
+    for(size_t j = 0; j < rest_size; j++) {
+      retp[current + j] = rettmpp[rest_idx_start + j];
+    }
+
+    size_t sizes2[FIND_MISS_VLEN];
+    for(size_t i = 0; i < FIND_MISS_VLEN; i++) {
+      sizes2[i] = out2_ridx[i] - each * i;
+    }
+    size_t total2 = 0;
+    for(size_t i = 0; i < FIND_MISS_VLEN; i++) {
+      total2 += sizes2[i];
+    }
+    size_t rest_size2 = rest_idx2 - each * FIND_MISS_VLEN;
+    total2 += rest_size2;
+    clear_miss.resize(total2);
+    auto clear_missp = clear_miss.data();
+    size_t current2 = 0;
+    for(size_t i = 0; i < FIND_MISS_VLEN; i++) {
+      for(size_t j = 0; j < sizes2[i]; j++) {
+        clear_missp[current2 + j] = clear_miss_tmpp[each * i + j];
+      }
+      current2 += sizes2[i];
+    }
+    for(size_t j = 0; j < rest_size2; j++) {
+      clear_missp[current2 + j] = clear_miss_tmpp[rest_idx_start + j];
+    }
+
+    return ret;
+  }
+}
+
+template <class K, class V>
+unique_hashtable<K,V>::unique_hashtable(const std::vector<K>& k,
+                                        const std::vector<V>& v) {
+  size_t size = k.size();
+  if(v.size() != size)
+    throw std::runtime_error("sizes of key and value are different");
+  auto primes = prime_numbers();
   size_t target_table_size = size * HASH_TABLE_SIZE_MULT;
-  auto* table_size_candp =
-    std::lower_bound(primes, primes + 33, target_table_size);
-  if(table_size_candp == primes + 33)
+  auto table_size_cand_it =
+    std::lower_bound(primes.begin(), primes.end(), target_table_size);
+  if(table_size_cand_it == primes.end())
     throw std::runtime_error("unique_hash_table: requested size too large");
-  size_t table_size = *table_size_candp;
+  size_t table_size = *table_size_cand_it;
   key.resize(table_size);
   val.resize(table_size);
   is_filled.resize(table_size);
-  const K* keyp = &k[0];
-  const V* valp = &v[0];
-  K* table_keyp = &key[0];
-  V* table_valp = &val[0];
-  std::vector<size_t> missed(size);
-  size_t* missedp = &missed[0];
-  size_t missed_idx = 0;
-  for(size_t i = 0; i < table_size; i++) is_filled[i] = false;
-  int* is_filledp = &is_filled[0];
-  size_t hash[UNIQUE_HASH_VLEN];
-#pragma _NEC vreg(hash)
-  size_t hash_remain[UNIQUE_HASH_VLEN];
-#pragma _NEC vreg(hash_remain)
+  const K* keyp = k.data();
+  const V* valp = v.data();
+  K* table_keyp = key.data();
+  V* table_valp = val.data();
+  int* is_filledp = is_filled.data();
+  std::vector<size_t> hash(size);
+  auto hashp = hash.data();
 
-  size_t block_size = size / UNIQUE_HASH_VLEN;
-  size_t remain_size = size % UNIQUE_HASH_VLEN;
-  for(size_t b = 0; b < block_size; b++) {
-    size_t offset = b * UNIQUE_HASH_VLEN;
-    auto keyoff = keyp + offset;
-    auto valoff = valp + offset;
-    /*
-    for(size_t i = 0; i < UNIQUE_HASH_VLEN; i++) {
-      hash[i] = myhash(keyoff[i], table_size);
-    } 
-    */
-    if(sizeof(K) == 4) { // workaround of bug? of compiler
-      const uint32_t* keyoff_hash = reinterpret_cast<const uint32_t*>(keyoff);
-#pragma cdir nodep
-#pragma _NEC ivdep
-      for(size_t i = 0; i < UNIQUE_HASH_VLEN; i++) {
-        hash[i] = keyoff_hash[i] % table_size; 
-      } 
-    } else if(sizeof(K) == 8) {
-      const uint64_t* keyoff_hash = reinterpret_cast<const uint64_t*>(keyoff);
-#pragma cdir nodep
-#pragma _NEC ivdep
-      for(size_t i = 0; i < UNIQUE_HASH_VLEN; i++) {
-        hash[i] = keyoff_hash[i] % table_size; 
-      } 
-    } else {
-      throw std::runtime_error("unique_hashtable only supports key whose size is 4 or 8");
-    }
-#pragma cdir nodep
-#pragma _NEC ivdep
-    for(size_t i = 0; i < UNIQUE_HASH_VLEN; i++) {
-      if(is_filledp[hash[i]] == false) {
-        table_keyp[hash[i]] = keyoff[i];
-        is_filledp[hash[i]] = true;
-      }
-    }
-#pragma cdir nodep
-#pragma _NEC ivdep
-    for(size_t i = 0; i < UNIQUE_HASH_VLEN; i++) {
-      if(table_keyp[hash[i]] == keyoff[i]) {
-        table_valp[hash[i]] = valoff[i];
-      } else {
-        missedp[missed_idx++] = i + offset;
-      }
-    }
-  }
-  size_t offset = block_size * UNIQUE_HASH_VLEN;
-  auto keyoff = keyp + offset;
-  auto valoff = valp + offset;
-/*
-#pragma cdir nodep
-#pragma _NEC ivdep
-  for(size_t i = 0; i < remain_size; i++) {
-    hash_remain[i] = myhash(keyoff[i], table_size);
-  }    
-*/
   if(sizeof(K) == 4) {
-    const uint32_t* keyoff_hash = reinterpret_cast<const uint32_t*>(keyoff);
-#pragma cdir nodep
+    const uint32_t* keyp_hash = reinterpret_cast<const uint32_t*>(keyp);
 #pragma _NEC ivdep
-    for(size_t i = 0; i < remain_size; i++) {
-      hash_remain[i] = keyoff_hash[i] % table_size; 
-    } 
-  } else if(sizeof(K) == 8) {
-    const uint64_t* keyoff_hash = reinterpret_cast<const uint64_t*>(keyoff);
-#pragma cdir nodep
+#pragma _NEC vovertake
+#pragma _NEC vob
+    for(size_t i = 0; i < size; i++) {
+      size_t hashval = keyp_hash[i] % table_size;
+      table_keyp[hashval] = keyp[i];
+      is_filledp[hashval] = true;
+      hashp[i] = hashval;
+    }
+  } else if (sizeof(K) == 8) {
+    const uint64_t* keyp_hash = reinterpret_cast<const uint64_t*>(keyp);
 #pragma _NEC ivdep
-    for(size_t i = 0; i < remain_size; i++) {
-      hash_remain[i] = keyoff_hash[i] % table_size; 
-    } 
+#pragma _NEC vovertake
+#pragma _NEC vob
+    for(size_t i = 0; i < size; i++) {
+      size_t hashval = keyp_hash[i] % table_size;
+      table_keyp[hashval] = keyp[i];
+      is_filledp[hashval] = true;
+      hashp[i] = hashval;
+    }
   } else {
     throw std::runtime_error("unique_hashtable only supports key whose size is 4 or 8");
   }
-
-  for(size_t i = 0; i < remain_size; i++) {
-    if(is_filledp[hash_remain[i]] == false) {
-      table_keyp[hash_remain[i]] = keyoff[i];
-      is_filledp[hash_remain[i]] = true;
-    }
-  }
-#pragma cdir nodep
-#pragma _NEC ivdep
-  for(size_t i = 0; i < remain_size; i++) {
-    if(table_keyp[hash_remain[i]] == keyoff[i]) {
-      table_valp[hash_remain[i]] = valoff[i];
-    } else {
-      missedp[missed_idx++] = i + offset;      
-    }
-  }
-  if(missed_idx > 0) {
-    RLOG(DEBUG) << "missed = " << missed_idx << "/" << size
+  auto missed = find_miss_write_table(keyp, valp, size, table_keyp,
+                                      table_valp, hashp);
+  auto missed_size = missed.size();
+  if(missed_size > 0) {
+    RLOG(DEBUG) << "missed = " << missed_size << "/" << size
                 << ", table_size = " << table_size << std::endl;
-    conflict_key.resize(missed_idx);
-    conflict_val.resize(missed_idx);
-    K* conflict_keyp = &conflict_key[0];
-    V* conflict_valp = &conflict_val[0];
-    for(size_t i = 0; i < missed_idx; i++) {
+    conflict_key.resize(missed_size);
+    conflict_val.resize(missed_size);
+    auto conflict_keyp = conflict_key.data();
+    auto conflict_valp = conflict_val.data();
+    auto missedp = missed.data();
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+    for(size_t i = 0; i < missed_size; i++) {
       conflict_keyp[i] = keyp[missedp[i]];
       conflict_valp[i] = valp[missedp[i]];
     }
     radix_sort(conflict_key, conflict_val);
-  }
+  } 
 }
 
 // If duplicated keys are passed, is_uniqe_ok is set to false
@@ -350,343 +1244,140 @@ unique_hashtable<K,V>::unique_hashtable(const std::vector<K>& k,
   size_t size = k.size();
   if(v.size() != size)
     throw std::runtime_error("sizes of key and value are different");
-  // http://d.hatena.ne.jp/zariganitosh/20090716/1247709137
-  // http://tools.m-bsys.com/calculators/prime_number_generator.php
-  long long primes[] = { // should be 64bit
-    8 + 3,
-    16 + 3,
-    32 + 5,
-    64 + 3,
-    128 + 3,
-    256 + 27,
-    512 + 9,
-    1024 + 9,
-    2048 + 5,
-    4096 + 3,
-    8192 + 27,
-    16384 + 43,
-    32768 + 3,
-    65536 + 45,
-    131072 + 29,
-    262144 + 3,
-    524288 + 21,
-    1048576 + 7,
-    2097152 + 17,
-    4194304 + 15,
-    8388608 + 9,
-    16777216 + 43,
-    33554432 + 35,
-    67108864 + 15,
-    134217728 + 29,
-    268435456 + 3,
-    536870912 + 11,
-    1073741824 + 85,
-    2147483648 + 11,
-    4294967296 + 15,
-    8589934592 + 17,
-    17179869184 + 25,
-    34359738368 + 53, // 32GB, primes + 32
-  };
+  auto primes = prime_numbers();
   size_t target_table_size = size * HASH_TABLE_SIZE_MULT;
-  auto* table_size_candp =
-    std::lower_bound(primes, primes + 33, target_table_size);
-  if(table_size_candp == primes + 33)
+  auto table_size_cand_it =
+    std::lower_bound(primes.begin(), primes.end(), target_table_size);
+  if(table_size_cand_it == primes.end())
     throw std::runtime_error("unique_hash_table: requested size too large");
-  size_t table_size = *table_size_candp;
+  size_t table_size = *table_size_cand_it;
   key.resize(table_size);
   val.resize(table_size);
   is_filled.resize(table_size);
-  const K* keyp = &k[0];
-  const V* valp = &v[0];
-  K* table_keyp = &key[0];
-  V* table_valp = &val[0];
-  std::vector<size_t> missed(size);
-  size_t* missedp = &missed[0];
-  size_t missed_idx = 0;
-  for(size_t i = 0; i < table_size; i++) is_filled[i] = false;
-  int* is_filledp = &is_filled[0];
-  size_t hash[UNIQUE_HASH_VLEN];
-#pragma _NEC vreg(hash)
-  size_t hash_remain[UNIQUE_HASH_VLEN];
-#pragma _NEC vreg(hash_remain)
+  const K* keyp = k.data();
+  const V* valp = v.data();
+  K* table_keyp = key.data();
+  V* table_valp = val.data();
+  int* is_filledp = is_filled.data();
+  std::vector<size_t> hash(size);
+  auto hashp = hash.data();
+
   is_unique_ok = true;
   std::vector<size_t> unique_checker(table_size,
                                      std::numeric_limits<size_t>::max());
-  size_t* unique_checkerp = &unique_checker[0];
+  size_t* unique_checkerp = unique_checker.data();
 
-  size_t block_size = size / UNIQUE_HASH_VLEN;
-  size_t remain_size = size % UNIQUE_HASH_VLEN;
-  for(size_t b = 0; b < block_size; b++) {
-    size_t offset = b * UNIQUE_HASH_VLEN;
-    auto keyoff = keyp + offset;
-    auto valoff = valp + offset;
-/*
-    for(size_t i = 0; i < UNIQUE_HASH_VLEN; i++) {
-      hash[i] = myhash(keyoff[i], table_size);
-    }    
-*/
-    if(sizeof(K) == 4) { // workaround of bug? of compiler
-      const uint32_t* keyoff_hash = reinterpret_cast<const uint32_t*>(keyoff);
-#pragma cdir nodep
-#pragma _NEC ivdep
-      for(size_t i = 0; i < UNIQUE_HASH_VLEN; i++) {
-        hash[i] = keyoff_hash[i] % table_size; 
-      } 
-    } else if(sizeof(K) == 8) {
-      const uint64_t* keyoff_hash = reinterpret_cast<const uint64_t*>(keyoff);
-#pragma cdir nodep
-#pragma _NEC ivdep
-      for(size_t i = 0; i < UNIQUE_HASH_VLEN; i++) {
-        hash[i] = keyoff_hash[i] % table_size; 
-      } 
-    } else {
-      throw std::runtime_error("unique_hashtable only supports key whose size is 4 or 8");
-    }
-#pragma cdir nodep
-#pragma _NEC ivdep
-    for(size_t i = 0; i < UNIQUE_HASH_VLEN; i++) {
-      if(is_filledp[hash[i]] == false) {
-        table_keyp[hash[i]] = keyoff[i];
-        is_filledp[hash[i]] = true;
-        unique_checkerp[hash[i]] = i + offset;
-      } else if(table_keyp[hash[i]] == keyoff[i]) {
-        is_unique_ok = false;
-      }
-    }
-#pragma cdir nodep
-#pragma _NEC ivdep
-    for(size_t i = 0; i < UNIQUE_HASH_VLEN; i++) {
-      if(unique_checkerp[hash[i]] == i + offset) {
-        table_valp[hash[i]] = valoff[i];
-      } else if(table_keyp[hash[i]] != keyoff[i]) {
-        missedp[missed_idx++] = i + offset;
-      } else {
-        is_unique_ok = false;
-      }
-    }
-    if(is_unique_ok == false) return;
-  }
-  size_t offset = block_size * UNIQUE_HASH_VLEN;
-  auto keyoff = keyp + offset;
-  auto valoff = valp + offset;
-/*
-  for(size_t i = 0; i < remain_size; i++) {
-    hash_remain[i] = myhash(keyoff[i], table_size);
-  }    
-*/
   if(sizeof(K) == 4) {
-    const uint32_t* keyoff_hash = reinterpret_cast<const uint32_t*>(keyoff);
-#pragma cdir nodep
+    const uint32_t* keyp_hash = reinterpret_cast<const uint32_t*>(keyp);
 #pragma _NEC ivdep
-    for(size_t i = 0; i < remain_size; i++) {
-      hash_remain[i] = keyoff_hash[i] % table_size; 
-    } 
-  } else if(sizeof(K) == 8) {
-    const uint64_t* keyoff_hash = reinterpret_cast<const uint64_t*>(keyoff);
-#pragma cdir nodep
+#pragma _NEC vovertake
+#pragma _NEC vob
+    for(size_t i = 0; i < size; i++) {
+      size_t hashval = keyp_hash[i] % table_size;
+      table_keyp[hashval] = keyp[i];
+      is_filledp[hashval] = true;
+      unique_checkerp[hashval] = i;
+      hashp[i] = hashval;
+    }
+  } else if (sizeof(K) == 8) {
+    const uint64_t* keyp_hash = reinterpret_cast<const uint64_t*>(keyp);
 #pragma _NEC ivdep
-    for(size_t i = 0; i < remain_size; i++) {
-      hash_remain[i] = keyoff_hash[i] % table_size; 
-    } 
+#pragma _NEC vovertake
+#pragma _NEC vob
+    for(size_t i = 0; i < size; i++) {
+      size_t hashval = keyp_hash[i] % table_size;
+      table_keyp[hashval] = keyp[i];
+      is_filledp[hashval] = true;
+      unique_checkerp[hashval] = i;
+      hashp[i] = hashval;
+    }
   } else {
     throw std::runtime_error("unique_hashtable only supports key whose size is 4 or 8");
   }
-#pragma cdir nodep
-#pragma _NEC ivdep
-  for(size_t i = 0; i < remain_size; i++) {
-    if(is_filledp[hash_remain[i]] == false) {
-      table_keyp[hash_remain[i]] = keyoff[i];
-      is_filledp[hash_remain[i]] = true;
-      unique_checkerp[hash_remain[i]] = i + offset;
-    } else if(table_keyp[hash_remain[i]] == keyoff[i]) {
-      is_unique_ok = false;
-    }
-  }
-#pragma cdir nodep
-#pragma _NEC ivdep
-  for(size_t i = 0; i < remain_size; i++) {
-    if(unique_checkerp[hash_remain[i]] == i + offset) {
-      table_valp[hash_remain[i]] = valoff[i];
-    } else if(table_keyp[hash_remain[i]] != keyoff[i]) {
-      missedp[missed_idx++] = i + offset;
-    } else {
-      is_unique_ok = false;
-    }
-  }
-  if(is_unique_ok == false) return;
-  if(missed_idx > 0) {
-    RLOG(DEBUG) << "missed = " << missed_idx << "/" << size
+
+  auto missed = find_miss_unique_check(keyp, valp, size, table_keyp,
+                                       table_valp, hashp, unique_checkerp,
+                                       is_unique_ok);
+  auto missed_size = missed.size();
+  if(missed_size > 0) {
+    RLOG(DEBUG) << "missed = " << missed_size << "/" << size
                 << ", table_size = " << table_size << std::endl;
-    conflict_key.resize(missed_idx);
-    conflict_val.resize(missed_idx);
-    K* conflict_keyp = &conflict_key[0];
-    V* conflict_valp = &conflict_val[0];
-    for(size_t i = 0; i < missed_idx; i++) {
+    conflict_key.resize(missed_size);
+    conflict_val.resize(missed_size);
+    auto conflict_keyp = conflict_key.data();
+    auto conflict_valp = conflict_val.data();
+    auto missedp = missed.data();
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+    for(size_t i = 0; i < missed_size; i++) {
       conflict_keyp[i] = keyp[missedp[i]];
       conflict_valp[i] = valp[missedp[i]];
     }
     radix_sort(conflict_key, conflict_val);
-  }
+  } 
 }
 
 // for set, accept duplicated keys
 template <class K, class V>
 unique_hashtable<K,V>::unique_hashtable(const std::vector<K>& k) {
   size_t size = k.size();
-  long long primes[] = { // should be 64bit
-    8 + 3,
-    16 + 3,
-    32 + 5,
-    64 + 3,
-    128 + 3,
-    256 + 27,
-    512 + 9,
-    1024 + 9,
-    2048 + 5,
-    4096 + 3,
-    8192 + 27,
-    16384 + 43,
-    32768 + 3,
-    65536 + 45,
-    131072 + 29,
-    262144 + 3,
-    524288 + 21,
-    1048576 + 7,
-    2097152 + 17,
-    4194304 + 15,
-    8388608 + 9,
-    16777216 + 43,
-    33554432 + 35,
-    67108864 + 15,
-    134217728 + 29,
-    268435456 + 3,
-    536870912 + 11,
-    1073741824 + 85,
-    2147483648 + 11,
-    4294967296 + 15,
-    8589934592 + 17,
-    17179869184 + 25,
-    34359738368 + 53, // 32GB, primes + 32
-  };
+  auto primes = prime_numbers();
   size_t target_table_size = size * HASH_TABLE_SIZE_MULT;
-  auto* table_size_candp =
-    std::lower_bound(primes, primes + 33, target_table_size);
-  if(table_size_candp == primes + 33)
+  auto table_size_cand_it =
+    std::lower_bound(primes.begin(), primes.end(), target_table_size);
+  if(table_size_cand_it == primes.end())
     throw std::runtime_error("unique_hash_table: requested size too large");
-  size_t table_size = *table_size_candp;
+  size_t table_size = *table_size_cand_it;
   key.resize(table_size);
   is_filled.resize(table_size);
-  const K* keyp = &k[0];
-  K* table_keyp = &key[0];
-  std::vector<size_t> missed(size);
-  size_t* missedp = &missed[0];
-  size_t missed_idx = 0;
-  for(size_t i = 0; i < table_size; i++) is_filled[i] = false;
-  int* is_filledp = &is_filled[0];
-  size_t hash[UNIQUE_HASH_VLEN];
-#pragma _NEC vreg(hash)
-  size_t hash_remain[UNIQUE_HASH_VLEN];
-#pragma _NEC vreg(hash_remain)
+  const K* keyp = k.data();
+  K* table_keyp = key.data();
+  int* is_filledp = is_filled.data();
+  std::vector<size_t> hash(size);
+  auto hashp = hash.data();
 
-  size_t block_size = size / UNIQUE_HASH_VLEN;
-  size_t remain_size = size % UNIQUE_HASH_VLEN;
-  for(size_t b = 0; b < block_size; b++) {
-    size_t offset = b * UNIQUE_HASH_VLEN;
-    auto keyoff = keyp + offset;
-/*
-    for(size_t i = 0; i < UNIQUE_HASH_VLEN; i++) {
-      hash[i] = myhash(keyoff[i], table_size);
-    }    
-*/
-    if(sizeof(K) == 4) { // workaround of bug? of compiler
-      const uint32_t* keyoff_hash = reinterpret_cast<const uint32_t*>(keyoff);
-#pragma cdir nodep
-#pragma _NEC ivdep
-      for(size_t i = 0; i < UNIQUE_HASH_VLEN; i++) {
-        hash[i] = keyoff_hash[i] % table_size; 
-      } 
-    } else if(sizeof(K) == 8) {
-      const uint64_t* keyoff_hash = reinterpret_cast<const uint64_t*>(keyoff);
-#pragma cdir nodep
-#pragma _NEC ivdep
-      for(size_t i = 0; i < UNIQUE_HASH_VLEN; i++) {
-        hash[i] = keyoff_hash[i] % table_size; 
-      } 
-    } else {
-      throw std::runtime_error("unique_hashtable only supports key whose size is 4 or 8");
-    }
-#pragma cdir nodep
-#pragma _NEC ivdep
-    for(size_t i = 0; i < UNIQUE_HASH_VLEN; i++) {
-      if(is_filledp[hash[i]] == false) {
-        table_keyp[hash[i]] = keyoff[i];
-        is_filledp[hash[i]] = true;
-      }
-    }
-#pragma cdir nodep
-#pragma _NEC ivdep
-    for(size_t i = 0; i < UNIQUE_HASH_VLEN; i++) {
-      if(table_keyp[hash[i]] == keyoff[i]) {
-        ;
-      } else {
-        missedp[missed_idx++] = i + offset;
-      }
-    }
-  }
-  size_t offset = block_size * UNIQUE_HASH_VLEN;
-  auto keyoff = keyp + offset;
-/*
-#pragma cdir nodep
-#pragma _NEC ivdep
-  for(size_t i = 0; i < remain_size; i++) {
-    hash_remain[i] = myhash(keyoff[i], table_size);
-  }    
-*/
   if(sizeof(K) == 4) {
-    const uint32_t* keyoff_hash = reinterpret_cast<const uint32_t*>(keyoff);
-#pragma cdir nodep
+    const uint32_t* keyp_hash = reinterpret_cast<const uint32_t*>(keyp);
 #pragma _NEC ivdep
-    for(size_t i = 0; i < remain_size; i++) {
-      hash_remain[i] = keyoff_hash[i] % table_size; 
-    } 
-  } else if(sizeof(K) == 8) {
-    const uint64_t* keyoff_hash = reinterpret_cast<const uint64_t*>(keyoff);
-#pragma cdir nodep
+#pragma _NEC vovertake
+#pragma _NEC vob
+    for(size_t i = 0; i < size; i++) {
+      size_t hashval = keyp_hash[i] % table_size;
+      table_keyp[hashval] = keyp[i];
+      is_filledp[hashval] = true;
+      hashp[i] = hashval;
+    }
+  } else if (sizeof(K) == 8) {
+    const uint64_t* keyp_hash = reinterpret_cast<const uint64_t*>(keyp);
 #pragma _NEC ivdep
-    for(size_t i = 0; i < remain_size; i++) {
-      hash_remain[i] = keyoff_hash[i] % table_size; 
-    } 
+#pragma _NEC vovertake
+#pragma _NEC vob
+    for(size_t i = 0; i < size; i++) {
+      size_t hashval = keyp_hash[i] % table_size;
+      table_keyp[hashval] = keyp[i];
+      is_filledp[hashval] = true;
+      hashp[i] = hashval;
+    }
   } else {
     throw std::runtime_error("unique_hashtable only supports key whose size is 4 or 8");
   }
-  for(size_t i = 0; i < remain_size; i++) {
-    if(is_filledp[hash_remain[i]] == false) {
-      table_keyp[hash_remain[i]] = keyoff[i];
-      is_filledp[hash_remain[i]] = true;
-    }
-  }
-#pragma cdir nodep
-#pragma _NEC ivdep
-  for(size_t i = 0; i < remain_size; i++) {
-    if(table_keyp[hash_remain[i]] != keyoff[i]) {
-      missedp[missed_idx++] = i + offset;      
-    }
-  }
-  if(missed_idx > 0) {
-    RLOG(DEBUG) << "(set) missed = " << missed_idx << "/" << size
+  auto missed = find_miss(keyp, size, table_keyp, hashp);
+  auto missed_size = missed.size();
+  if(missed_size > 0) {
+    RLOG(DEBUG) << "missed = " << missed_size << "/" << size
                 << ", table_size = " << table_size << std::endl;
-    conflict_key.resize(missed_idx);
-    conflict_val.resize(missed_idx); // dummy
-    K* conflict_keyp = &conflict_key[0];
-#pragma cdir nodep
+    conflict_key.resize(missed_size);
+    auto conflict_keyp = conflict_key.data();
+    auto missedp = missed.data();
 #pragma _NEC ivdep
-    for(size_t i = 0; i < missed_idx; i++) {
+#pragma _NEC vovertake
+#pragma _NEC vob
+    for(size_t i = 0; i < missed_size; i++) {
       conflict_keyp[i] = keyp[missedp[i]];
     }
-    radix_sort(conflict_key, conflict_val);
-    auto tmp = set_unique(conflict_key);
-    tmp.swap(conflict_key);
-  }
+    radix_sort(conflict_key);
+  } 
 }
 
 template <class K, class V> 
@@ -694,66 +1385,51 @@ std::vector<V> unique_hashtable<K,V>::lookup(const std::vector<K>& k) {
   size_t size = k.size();
   size_t table_size = key.size();
   std::vector<V> v(size);
-  const K* keyp = &k[0];
-  V* valp = &v[0];
-  K* table_keyp = &key[0];
-  V* table_valp = &val[0];
-  std::vector<size_t> missed(size);
-  size_t* missedp = &missed[0];
-  size_t missed_idx = 0;
-/*
-#pragma cdir nodep
-#pragma _NEC ivdep
-  for(size_t i = 0; i < size; i++) {
-    size_t hash = myhash(keyp[i], table_size);
-    if(table_keyp[hash] == keyp[i]) {
-      valp[i] = table_valp[hash];
-    } else {
-      missedp[missed_idx++] = i;      
-    }
-  }
-*/
+  const K* keyp = k.data();
+  V* valp = v.data();
+  K* table_keyp = key.data();
+  V* table_valp = val.data();
+  std::vector<size_t> hash(size);
+  auto hashp = hash.data();
+
   if(sizeof(K) == 4) {
     const uint32_t* keyp_hash = reinterpret_cast<const uint32_t*>(keyp);
-#pragma cdir nodep
 #pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
     for(size_t i = 0; i < size; i++) {
-      size_t hash = keyp_hash[i] % table_size;
-      if(table_keyp[hash] == keyp[i]) {
-        valp[i] = table_valp[hash];
-      } else {
-        missedp[missed_idx++] = i;      
-      }
+      hashp[i] = keyp_hash[i] % table_size;
     }
-  } else if(sizeof(K) == 8) {
+  } else if (sizeof(K) == 8) {
     const uint64_t* keyp_hash = reinterpret_cast<const uint64_t*>(keyp);
-#pragma cdir nodep
 #pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
     for(size_t i = 0; i < size; i++) {
-      size_t hash = keyp_hash[i] % table_size;
-      if(table_keyp[hash] == keyp[i]) {
-        valp[i] = table_valp[hash];
-      } else {
-        missedp[missed_idx++] = i;      
-      }
+      hashp[i] = keyp_hash[i] % table_size;
     }
-  } else {
-    throw std::runtime_error("unique_hashtable only supports key whose size is 4 or 8");
-  }
-  if(missed_idx > 0) {
-    std::vector<K> missed_key(missed_idx);
-    K* missed_keyp = &missed_key[0];
-#pragma cdir nodep
+  } 
+  auto missed = find_miss_read_table(keyp, valp, size, table_keyp,
+                                     table_valp, hashp);
+
+  auto missed_size = missed.size();
+  if(missed_size > 0) {
+    std::vector<K> missed_key(missed_size);
+    K* missed_keyp = missed_key.data();
+    auto missedp = missed.data();
 #pragma _NEC ivdep
-    for(size_t i = 0; i < missed_idx; i++) {
+#pragma _NEC vovertake
+#pragma _NEC vob
+    for(size_t i = 0; i < missed_size; i++) {
       missed_keyp[i] = keyp[missedp[i]];
     }
-    auto missed_val_idx = vector_binary_search(conflict_key, missed_key);
-    size_t* missed_val_idxp = &missed_val_idx[0];
-    V* conflict_valp = &conflict_val[0];
-#pragma cdir nodep
+    auto missed_val_idx = lower_bound(conflict_key, missed_key);
+    size_t* missed_val_idxp = missed_val_idx.data();
+    V* conflict_valp = conflict_val.data();
 #pragma _NEC ivdep
-    for(size_t i = 0; i < missed_idx; i++) {
+#pragma _NEC vovertake
+#pragma _NEC vob
+    for(size_t i = 0; i < missed_size; i++) {
       valp[missedp[i]] = conflict_valp[missed_val_idxp[i]];
     }
   }
@@ -766,95 +1442,72 @@ std::vector<V> unique_hashtable<K,V>::lookup(const std::vector<K>& k,
   size_t size = k.size();
   size_t table_size = key.size();
   std::vector<V> v(size);
-  const K* keyp = &k[0];
-  V* valp = &v[0];
-  K* table_keyp = &key[0];
-  V* table_valp = &val[0];
-  std::vector<size_t> missed(size);
-  size_t* missedp = &missed[0];
-  size_t missed_idx = 0;
-  int* is_filledp = &is_filled[0];
-  std::vector<size_t> misstmp0(size);
-  size_t* misstmp0p = &misstmp0[0];
-  size_t misstmp0_idx = 0;
-  std::vector<size_t> misstmp1(size);
-  size_t* misstmp1p = &misstmp1[0];
-  size_t misstmp1_idx = 0;
-/*
-#pragma cdir nodep
-#pragma _NEC ivdep
-  for(size_t i = 0; i < size; i++) {
-    size_t hash = myhash(keyp[i], table_size);
-    if(is_filledp[hash]) {
-      if(table_keyp[hash] == keyp[i]) {
-        valp[i] = table_valp[hash];
-      } else missedp[missed_idx++] = i; // check conflict
-      // need to use different array for vectorization
-    } else misstmp0p[misstmp0_idx++] = i; // clearly miss
-  }
-*/
+  const K* keyp = k.data();
+  V* valp = v.data();
+  K* table_keyp = key.data();
+  V* table_valp = val.data();
+  std::vector<size_t> hash(size);
+  auto hashp = hash.data();
+
   if(sizeof(K) == 4) {
     const uint32_t* keyp_hash = reinterpret_cast<const uint32_t*>(keyp);
-#pragma cdir nodep
 #pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
     for(size_t i = 0; i < size; i++) {
-      size_t hash = keyp_hash[i] % table_size;
-      if(is_filledp[hash]) {
-        if(table_keyp[hash] == keyp[i]) {
-          valp[i] = table_valp[hash];
-        } else missedp[missed_idx++] = i; // check conflict
-        // need to use different array for vectorization
-      } else misstmp0p[misstmp0_idx++] = i; // clearly miss
+      hashp[i] = keyp_hash[i] % table_size;
     }
-  } else if(sizeof(K) == 8) {
+  } else if (sizeof(K) == 8) {
     const uint64_t* keyp_hash = reinterpret_cast<const uint64_t*>(keyp);
-#pragma cdir nodep
 #pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
     for(size_t i = 0; i < size; i++) {
-      size_t hash = keyp_hash[i] % table_size;
-      if(is_filledp[hash]) {
-        if(table_keyp[hash] == keyp[i]) {
-          valp[i] = table_valp[hash];
-        } else missedp[missed_idx++] = i; // check conflict
-        // need to use different array for vectorization
-      } else misstmp0p[misstmp0_idx++] = i; // clearly miss
+      hashp[i] = keyp_hash[i] % table_size;
     }
-  } else {
-    throw std::runtime_error("unique_hashtable only supports key whose size is 4 or 8");
   }
-  if(missed_idx > 0) {
-    if(conflict_key.size() > 0) {
-      std::vector<K> missed_key(missed_idx);
-      K* missed_keyp = &missed_key[0];
-#pragma cdir nodep
+  auto is_filledp = is_filled.data();
+  std::vector<size_t> clear_miss;
+  auto missed = find_miss_read_table_checkfill(keyp, valp, size, table_keyp,
+                                               table_valp, is_filledp, hashp,
+                                               clear_miss);
+
+  auto missed_size = missed.size();
+  if(missed_size > 0) {
+    std::vector<K> retmisstmp(missed_size);
+    auto retmisstmpp = retmisstmp.data();
+    std::vector<K> missed_key(missed_size);
+    K* missed_keyp = missed_key.data();
+    auto missedp = missed.data();
 #pragma _NEC ivdep
-      for(size_t i = 0; i < missed_idx; i++) {
-        missed_keyp[i] = keyp[missedp[i]];
-      }
-      auto missed_val_idx = vector_binary_search(conflict_key, missed_key);
-      size_t* missed_val_idxp = &missed_val_idx[0];
-      V* conflict_valp = &conflict_val[0];
-      K* conflict_keyp = &conflict_key[0];
-#pragma cdir nodep
-#pragma _NEC ivdep
-      for(size_t i = 0; i < missed_idx; i++) {
-        if(conflict_keyp[missed_val_idxp[i]] == missed_keyp[i])
-          valp[missedp[i]] = conflict_valp[missed_val_idxp[i]];
-        else
-          misstmp1p[misstmp1_idx++] = missedp[i];
-      }
-    } else { // not conflict; all of them are miss
-      for(size_t i = 0; i < missed_idx; i++) {
-        misstmp1p[misstmp1_idx++] = missedp[i];
+#pragma _NEC vovertake
+#pragma _NEC vob
+    for(size_t i = 0; i < missed_size; i++) {
+      missed_keyp[i] = keyp[missedp[i]];
+    }
+    auto missed_val_idx = lower_bound(conflict_key, missed_key);
+    auto missed_val_idxp = missed_val_idx.data();
+    auto conflict_valp = conflict_val.data();
+    auto conflict_val_size = conflict_val.size();
+    size_t crntpos = 0;
+    auto conflict_keyp = conflict_key.data();
+    for(size_t i = 0; i < missed_size; i++) {
+      if(missed_val_idxp[i] < conflict_val_size &&
+         conflict_keyp[missed_val_idxp[i]] == missed_keyp[i]) {
+        valp[missedp[i]] = conflict_valp[missed_val_idxp[i]];
+      } else {
+        // slow, but shouldn't be that often...
+        retmisstmpp[crntpos++] = missedp[i]; 
       }
     }
-    misstmp0.resize(misstmp0_idx);
-    misstmp1.resize(misstmp1_idx);
-    retmiss = set_union(misstmp0, misstmp1);
+    std::vector<size_t> retmisstmp2(crntpos);
+    auto retmisstmp2p = retmisstmp2.data();
+    for(size_t i = 0; i < crntpos; i++) retmisstmp2p[i] = retmisstmpp[i];
+    retmiss = set_union(clear_miss, retmisstmp2);
   } else {
-    misstmp0.resize(misstmp0_idx);
-    retmiss.swap(misstmp0);
+    retmiss.swap(clear_miss);
   }
+  
   return v;
 }
 
@@ -863,182 +1516,95 @@ std::vector<int>
 unique_hashtable<K,V>::check_existence(const std::vector<K>& k) {
   size_t size = k.size();
   size_t table_size = key.size();
-  std::vector<int> ret(size);
-  const K* keyp = &k[0];
-  V* retp = &ret[0];
-  K* table_keyp = &key[0];
-  std::vector<size_t> missed(size);
-  size_t* missedp = &missed[0];
-  size_t missed_idx = 0;
-  int* is_filledp = &is_filled[0];
-/*
-#pragma cdir nodep
-#pragma _NEC ivdep
-  for(size_t i = 0; i < size; i++) {
-    size_t hash = myhash(keyp[i], table_size);
-    if(is_filledp[hash]) {
-      if(table_keyp[hash] == keyp[i]) {
-        retp[i] = 1;
-      } else {
-        missedp[missed_idx++] = i;      
-      }
-    }
-  }
-*/
+  std::vector<V> v(size);
+  const K* keyp = k.data();
+  K* table_keyp = key.data();
+  std::vector<size_t> hash(size);
+  auto hashp = hash.data();
+
   if(sizeof(K) == 4) {
     const uint32_t* keyp_hash = reinterpret_cast<const uint32_t*>(keyp);
-#pragma cdir nodep
 #pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
     for(size_t i = 0; i < size; i++) {
-      size_t hash = keyp_hash[i] % table_size;
-      if(is_filledp[hash]) {
-        if(table_keyp[hash] == keyp[i]) {
-          retp[i] = 1;
-        } else {
-          missedp[missed_idx++] = i;      
-        }
-      }
+      hashp[i] = keyp_hash[i] % table_size;
     }
-  } else if(sizeof(K) == 8) {
+  } else if (sizeof(K) == 8) {
     const uint64_t* keyp_hash = reinterpret_cast<const uint64_t*>(keyp);
-#pragma cdir nodep
 #pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
     for(size_t i = 0; i < size; i++) {
-      size_t hash = keyp_hash[i] % table_size;
-      if(is_filledp[hash]) {
-        if(table_keyp[hash] == keyp[i]) {
-          retp[i] = 1;
-        } else {
-          missedp[missed_idx++] = i;      
-        }
+      hashp[i] = keyp_hash[i] % table_size;
+    }
+  }
+  auto is_filledp = is_filled.data();
+  std::vector<size_t> clear_miss;
+  auto missed = find_miss_checkfill(keyp, size, table_keyp, is_filledp, hashp,
+                                    clear_miss);
+  auto missed_size = missed.size();
+  std::vector<int> ret(size, 1);
+  auto retp = ret.data();
+  auto clear_miss_size = clear_miss.size();
+  auto clear_missp = clear_miss.data();
+  for(size_t i = 0; i < clear_miss_size; i++) {
+    retp[clear_missp[i]] = 0;
+  }
+  if(missed_size > 0) {
+    std::vector<K> missed_key(missed_size);
+    auto missed_keyp = missed_key.data();
+    auto missedp = missed.data();
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+    for(size_t i = 0; i < missed_size; i++) {
+      missed_keyp[i] = keyp[missedp[i]];
+    }
+    auto missed_val_idx = lower_bound(conflict_key, missed_key);
+    auto missed_val_idxp = missed_val_idx.data();
+    auto conflict_val_size = conflict_val.size();
+    auto conflict_keyp = conflict_key.data();
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+    for(size_t i = 0; i < missed_size; i++) {
+      if(missed_val_idxp[i] == conflict_val_size ||
+         conflict_keyp[missed_val_idxp[i]] != missed_keyp[i]) {
+        retp[missedp[i]] = 0;
       }
     }
-  } else {
-    throw std::runtime_error("unique_hashtable only supports key whose size is 4 or 8");
-  }
-
-  if(missed_idx > 0) {
-    if(conflict_key.size() > 0) {
-      std::vector<K> missed_key(missed_idx);
-      K* missed_keyp = &missed_key[0];
-#pragma cdir nodep
-#pragma _NEC ivdep
-      for(size_t i = 0; i < missed_idx; i++) {
-        missed_keyp[i] = keyp[missedp[i]];
-      }
-      auto missed_val_idx = vector_binary_search(conflict_key, missed_key);
-      size_t* missed_val_idxp = &missed_val_idx[0];
-      K* conflict_keyp = &conflict_key[0];
-#pragma cdir nodep
-#pragma _NEC ivdep
-      for(size_t i = 0; i < missed_idx; i++) {
-        if(conflict_keyp[missed_val_idxp[i]] == missed_keyp[i])
-          retp[missedp[i]] = 1;
-      }
-    } // else not conflict; no need to check
   }
   return ret;
 }
 
+struct hashtable_is_filled {
+  int operator()(int c) const {return (c == 1);}
+};
+
 template <class K, class V> 
 std::vector<K>
 unique_hashtable<K,V>::all_keys() {
-  int* is_filledp = is_filled.data();
-  size_t size = key.size();
-  if(size == 0) {
-    return std::vector<K>();
-  }
-  std::vector<K> keytmp(size);
-  K* keytmpp = keytmp.data();
-  K* keyp = key.data();
-  
-  size_t each = size / UNIQUE_HASH_VLEN; // maybe 0
-  if(each % 2 == 0 && each > 1) each--;
-  size_t rest = size - each * UNIQUE_HASH_VLEN;
-  size_t out_ridx[UNIQUE_HASH_VLEN];
-// never remove this vreg! this is needed folowing vovertake
-// though this prevents ftrace...
-#pragma _NEC vreg(out_ridx)
-  for(size_t i = 0; i < UNIQUE_HASH_VLEN; i++) {
-    out_ridx[i] = each * i;
-  }
-  if(each == 0) {
-    size_t current = 0;
-    for(size_t i = 0; i < size; i++) {
-      if(is_filledp[i]) {
-        keytmpp[current] = keyp[i];
-        current++;
-      }
-    }
-    size_t conflict_key_size = conflict_key.size();
-    std::vector<K> ret(current+conflict_key_size);
-    K* retp = ret.data();
-    for(size_t i = 0; i < current; i++) {
-      retp[i] = keytmpp[i];
-    }
-    K* conflict_keyp = &conflict_key[0];
-    for(size_t i = 0; i < conflict_key_size; i++) {
-      retp[current + i] = conflict_keyp[i];
-    }
-    return ret;
-  } else {
-#pragma _NEC vob
-    for(size_t j = 0; j < each; j++) {
-#pragma cdir nodep
+  auto hit = find_condition(is_filled, hashtable_is_filled());
+  auto hit_size = hit.size();
+  auto conflict_key_size = conflict_key.size();
+  auto ret_size = hit_size + conflict_key_size;
+  std::vector<K> ret(ret_size);
+  auto retp = ret.data();
+  auto keyp = key.data();
+  auto hitp = hit.data();
 #pragma _NEC ivdep
 #pragma _NEC vovertake
-      for(size_t i = 0; i < UNIQUE_HASH_VLEN; i++) {
-        auto loaded_is_filled = is_filledp[j + each * i];
-        if(loaded_is_filled) {
-          keytmpp[out_ridx[i]] = keyp[j + each * i];
-          out_ridx[i]++;
-        }
-      }
-    }
-    size_t rest_idx_start = each * UNIQUE_HASH_VLEN;
-    size_t rest_idx = rest_idx_start;
-    if(rest != 0) {
-      for(size_t j = 0; j < rest; j++) {
-        auto loaded_is_filled = is_filledp[j + rest_idx_start]; 
-        if(loaded_is_filled != 0) {
-          keytmpp[rest_idx] = keyp[j + rest_idx_start];
-          rest_idx++;
-        }
-      }
-    }
-    size_t sizes[UNIQUE_HASH_VLEN];
-    for(size_t i = 0; i < UNIQUE_HASH_VLEN; i++) {
-      sizes[i] = out_ridx[i] - each * i;
-    }
-    size_t total = 0;
-    for(size_t i = 0; i < UNIQUE_HASH_VLEN; i++) {
-      total += sizes[i];
-    }
-    size_t rest_size = rest_idx - each * UNIQUE_HASH_VLEN;
-    total += rest_size;
-    size_t conflict_key_size = conflict_key.size();
-    total += conflict_key_size;
-
-    std::vector<K> ret(total);
-    K* retp = ret.data();
-    size_t current = 0;
-    for(size_t i = 0; i < UNIQUE_HASH_VLEN; i++) {
-      for(size_t j = 0; j < sizes[i]; j++) {
-        retp[current + j] = keytmpp[each * i + j];
-      }
-      current += sizes[i];
-    }
-    for(size_t j = 0; j < rest_size; j++) {
-      retp[current + j] = keytmpp[rest_idx_start + j];
-    }
-    current += rest_size;
-    K* conflict_keyp = &conflict_key[0];
-    for(size_t i = 0; i < conflict_key_size; i++) {
-      retp[current + i] = conflict_keyp[i];
-    }
-
-    return ret;
+#pragma _NEC vob
+  for(size_t i = 0; i < hit_size; i++) {
+    retp[i] = keyp[hitp[i]];
   }
+  auto restretp = retp + hit_size;
+  auto conflict_keyp = conflict_key.data();
+  for(size_t i = 0; i < conflict_key_size; i++) {
+    restretp[i] = conflict_keyp[i];
+  }
+  return ret;
 }
 
 }
