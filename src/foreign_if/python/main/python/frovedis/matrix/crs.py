@@ -122,6 +122,7 @@ class FrovedisCRSMatrix(object):
             raise TypeError("[INTERNAL ERROR] Invalid input encountered.")
         return self
 
+    # TODO: support ncol information to be passed
     def load_text(self, fname, dtype=None):
         self.release()
         if dtype is None: dtype = self.__dtype
@@ -168,8 +169,10 @@ class FrovedisCRSMatrix(object):
         if self.__dtype is None:
             mat = csr_matrix(np.asmatrix(inp))  # loaded as input datatype
         else:
-            mat = csr_matrix(np.asmatrix(inp), dtype=self.__dtype)
             # loaded as user-given datatype
+            mat = csr_matrix(np.asmatrix(inp), dtype=self.__dtype)
+        if not mat.has_sorted_indices:
+            mat.sort_indices() # sorting indices in ascending order, if not sorted
         return self.load_scipy_matrix(mat, dtype=dtype)
 
     def load_scipy_matrix(self, mat, dtype=None):
