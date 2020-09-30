@@ -29,6 +29,7 @@
 #include "frovedis/ml/neighbors/knn_supervised.hpp"
 #include "frovedis/ml/lda/lda_cgs.hpp"
 #include "frovedis/ml/tree/ensemble_model.hpp"
+#include "frovedis/ml/kernel/kernel_svm.hpp"
 #include "../exrpc/exrpc_expose.hpp"
 #include "dummy_model.hpp"
 #include "dummy_matrix.hpp"
@@ -1065,6 +1066,38 @@ dummy_lda_model load_lda_model(int& mid, std::string& path) {
   auto& model_ = *get_model_ptr<MODEL>(mid);
   return dummy_lda_model(model_.num_docs, model_.num_topics, 
                          model_.model.word_topic_count.local_num_row);
+}
+
+//predict for svm kernel
+template <class T, class MATRIX, class MODEL>
+std::vector<T>
+ksvm_predict(exrpc_ptr_t& mat_ptr, int& mid, bool& prob) {
+  MATRIX& mat = *reinterpret_cast<MATRIX*> (mat_ptr);
+  auto loc_mat = mat.gather();
+  MODEL& model = *get_model_ptr<MODEL>(mid);
+  if(!prob) return model.predict(loc_mat);
+  else return model.compute_probability_matrix(loc_mat).val;
+}
+
+template <class T, class MODEL>
+std::vector<T> get_support_vector(int& mid) {
+  auto& model = *get_model_ptr<MODEL>(mid);
+  return model.sv.val;
+}
+
+template <class T, class MODEL>
+std::vector<T> get_support_idx(int& mid) {
+  auto& model = *get_model_ptr<MODEL>(mid);
+  auto vsize = model.sv.val.size();
+  std::vector<T> temp(vsize);
+  auto tptr = temp.data();
+  auto vptr = model.sv.val.data();
+  size_t k = 0;
+  for(size_t i = 0; i < vsize; ++i) if(vptr[i] != 0) tptr[k++] = i;
+  std::vector<T> idx(k);
+  auto iptr = idx.data();
+  for(size_t i = 0; i < k; ++i) iptr[i] = tptr[i];
+  return idx;
 }
 
 #endif 
