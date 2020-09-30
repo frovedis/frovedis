@@ -119,6 +119,7 @@ struct rowmajor_matrix_local {
   size_t local_num_col;
 
   SERIALIZE(val, local_num_row, local_num_col)
+  typedef T value_type;
 };
 
 template <class T>
@@ -706,6 +707,8 @@ struct rowmajor_matrix {
   frovedis::node_local<rowmajor_matrix_local<T>> data;
   size_t num_row;
   size_t num_col;
+  typedef T value_type;
+  typedef rowmajor_matrix_local<T> local_mat_type;
 };
 
 template <class T>
@@ -970,7 +973,7 @@ rowmajor_matrix<T> make_rowmajor_matrix_scatter(rowmajor_matrix_local<T>& m) {
 // scattering a vector into a number of requested pieces
 template <class T>
 std::vector<std::vector<T>>
-get_scattered_vectors(std::vector<T>& vec, 
+get_scattered_vectors(const std::vector<T>& vec, 
                       size_t nrow, size_t ncol, size_t wsize) {
   auto rows = get_block_sizes(nrow, wsize);
   std::vector<size_t> sizevec(wsize);
@@ -993,7 +996,7 @@ get_scattered_vectors(std::vector<T>& vec,
 
 template <class T>
 std::vector<std::vector<T>>
-get_scattered_vectors(std::vector<T>& vec, 
+get_scattered_vectors(const std::vector<T>& vec, 
                       size_t nrow, size_t ncol) {
   return get_scattered_vectors(vec,nrow,ncol,get_nodesize());
 }
