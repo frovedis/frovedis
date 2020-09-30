@@ -8,6 +8,7 @@
 #endif
 
 #include <frovedis/matrix/rowmajor_matrix.hpp>
+#include <frovedis/matrix/blas_wrapper.hpp>
 #include <frovedis/ml/clustering/common.hpp>
 
 #define TOLERANCE 1e-5
@@ -19,122 +20,110 @@
 #define MINGAIN 0.01
 #define MEAN 0.0
 #define VAR 0.0001
-#define GK_N_ITER 256
+#define GK_N_ITER 100
 #define N_ITER_CHECK 50
 #define EXPLORATION_N_ITER 250
-#define DESIRED_PRECISION 1e10
+#define MACHINE_EPSILON std::numeric_limits<double>::epsilon()
+#define EPSILON_DBL 1e-8
 
 namespace frovedis {
 
 template <class T>
-T sum(T& a, T& b) { return a + b; }
-
-template <class T>
-std::vector<T>
-get_row_max(const rowmajor_matrix_local<T>& mat) {
-  size_t nrow = mat.local_num_row;
-  size_t ncol = mat.local_num_col;
-  auto m_valp = mat.val.data();
-  std::vector<T> row_max(nrow, std::numeric_limits<T>::min());
-  auto rmax_valp = row_max.data();
-  if (nrow > ncol) {
-#pragma _NEC nointerchange
-    for(size_t c = 0; c < ncol; c++) {
-      for(size_t r = 0; r < nrow; r++) {
-        if (m_valp[r * ncol + c] > rmax_valp[r]) {
-          rmax_valp[r] = m_valp[r * ncol + c];
-        }
-      }
-    }
-  }
-  else {
-#pragma _NEC nointerchange
-    for(size_t r = 0; r < nrow; r++) {
-      for(size_t c = 0; c < ncol; c++) {
-        if (m_valp[r * ncol + c] > rmax_valp[r]) {
-          rmax_valp[r] = m_valp[r * ncol + c];
-        }
-      }
-    }
-  }
-  return row_max;
-}
-
-template <class T>
-rowmajor_matrix_local<T>
-compute_probability_matrix (
-  const rowmajor_matrix_local<T>& exp_matrix) {
-  auto sum_vec = sum_of_cols(exp_matrix);
-  diag_matrix_local<T> one_by_tot(sum_vec.size());
-  auto diagp = one_by_tot.val.data();
-  auto sum_vecp = sum_vec.data();
-  for(size_t i = 0; i < sum_vec.size(); ++i) {
-    if(sum_vecp[i] != 0.0) diagp[i] = 1.0 / sum_vecp[i];
-    else                   diagp[i] = 1.0;
-  }
-  return one_by_tot * exp_matrix;
-}
+T sum(T a, T b) { return a + b; }
 
 template <class T>
 rowmajor_matrix_local<T> 
 compute_gaussian_kernel(const rowmajor_matrix_local<T>& mat, 
-                        const std::vector<T>& row_max,
-                        double perplexity) {
+                        double perplexity,
+                        size_t myst) {
   size_t nrow = mat.local_num_row;
   size_t ncol = mat.local_num_col;
   rowmajor_matrix_local<T> ret(nrow, ncol);
+
+  std::vector<T> conv_status(nrow, 0);
+  std::vector<T> beta(nrow, 1.0);
+  std::vector<T> min_beta(nrow, -std::numeric_limits<T>::infinity());
+  std::vector<T> max_beta(nrow, std::numeric_limits<T>::infinity());
+
   auto retp = ret.val.data();
   auto mvalp = mat.val.data();
-  auto row_max_valp = row_max.data();
-
+  auto conv_statusp = conv_status.data();
+  auto betap = beta.data();
+  auto min_betap = min_beta.data();
+  auto max_betap = max_beta.data();
+ 
   // Compute the Gaussian kernel row by row
-  for(size_t r = 0; r < nrow; r++) {
-    // Initialize some variables
-    double beta = 1.0;
-    double min_beta = -DBL_MAX;
-    double max_beta =  DBL_MAX;
-    double sum_P = 0.0;
+  for(size_t iter = 0; iter < GK_N_ITER; iter++) {
     // Iterate until we found a good perplexity
-    for(size_t iter = 0; iter < GK_N_ITER; iter++) {
-      // Compute Gaussian kernel row
-      sum_P = 0.0;
-      double entropy = 0.0;
-      for(size_t c = 0; c < ncol; c++) {
-        size_t ind = r * ncol + c;
-        if (mvalp[ind] != 0.0) {
-          retp[ind] = exp(-beta * mvalp[ind] - row_max_valp[r]);
+    for(size_t r = 0; r < nrow; r++) {
+      if (conv_statusp[r] == 0) {
+        // Compute Gaussian kernel row
+        double sum_P = 0.0;
+        double entropy = 0.0;
+        T t_max = std::numeric_limits<T>::min();
+        for(size_t c = 0; c < ncol; c++) {
+          if (r + myst != c) {
+            auto tmp = -betap[r] * mvalp[r * ncol + c];
+            if (tmp > t_max) t_max = tmp;
+            retp[r * ncol + c] = tmp;
+          }
         }
-        sum_P += retp[ind];
-        entropy += beta * (mvalp[ind] * retp[ind]);
-      }
-      if (sum_P != 0.0) {
-	    entropy = (entropy / sum_P) + log(sum_P);
-      }
-      // Evaluate whether the entropy is within the tolerance level
-      double entropy_diff = entropy - log(perplexity);
-      if(entropy_diff < TOLERANCE && -entropy_diff < TOLERANCE) {
-        break;
-      }
-      else {
+        for(size_t c = 0; c < ncol; c++) {
+          if (r + myst != c) {
+            size_t ind = r * ncol + c; 
+            retp[ind] = exp(retp[ind] - t_max);
+            sum_P += retp[ind];
+          }
+        }
+        if (sum_P == 0.0) sum_P = EPSILON_DBL;	  
+        T one_by_sumP = (T)1.0 / sum_P;
+        T sum_disti_Pi = 0.0;
+        for(size_t c = 0; c < ncol; c++) {
+          if (r + myst != c) {
+            size_t ind = r * ncol + c;
+            retp[ind] *= one_by_sumP;
+            sum_disti_Pi += mvalp[ind] * retp[ind];
+          }
+        }
+        entropy = log(sum_P) + betap[r] * sum_disti_Pi;
+        // Evaluate whether the entropy is within the tolerance level
+        double entropy_diff = entropy - log(perplexity);
+        if(fabs(entropy_diff) <= TOLERANCE) conv_statusp[r] = 1;
         if(entropy_diff > 0) {
-          min_beta = beta;
-          if(max_beta == DBL_MAX || max_beta == -DBL_MAX)
-            beta *= 2.0;
+          min_betap[r] = betap[r];
+          if(max_betap[r] == std::numeric_limits<T>::infinity())
+            betap[r] *= 2.0;
           else
-            beta = (beta + max_beta) / 2.0;
+            betap[r] = (betap[r] + max_betap[r]) / 2.0;
         }
         else {
-          max_beta = beta;
-          if(min_beta == -DBL_MAX || min_beta == DBL_MAX)
-            beta /= 2.0;
+          max_betap[r] = betap[r];
+          if(min_betap[r] == -std::numeric_limits<T>::infinity())
+            betap[r] /= 2.0;
           else
-            beta = (beta + min_beta) / 2.0;
+            betap[r] = (betap[r] + min_betap[r]) / 2.0;
         }
       }
     }
   }
   // Row normalize probability
-  return compute_probability_matrix(ret);
+  return ret;
+}
+
+template <class T>
+void
+compute_joint_probability_matrix(rowmajor_matrix_local<T>& mat1,
+                                 const rowmajor_matrix_local<T>& mat2,
+                                 double one_by_twice_nsamples) {
+  auto size = mat1.val.size();
+  if (size != mat2.val.size()) 
+    REPORT_ERROR(USER_ERROR, "mat1 size is not equal to mat2 size!!\n");
+  auto m1_valp = mat1.val.data();
+  auto m2_valp = mat2.val.data();
+  for(size_t r = 0; r < size; r++) {
+    m1_valp[r] = (m1_valp[r] + m2_valp[r]) * one_by_twice_nsamples;
+    if ((m1_valp[r] != 0) && (MACHINE_EPSILON > m1_valp[r])) m1_valp[r] = MACHINE_EPSILON;
+  }
 }
 
 template <class T>
@@ -176,7 +165,9 @@ compute_gradient_mat(const rowmajor_matrix_local<T>& P_mat,
   auto p_valp = P_mat.val.data();
   auto q_valp = Q_mat.val.data();
   for(size_t r = 0; r < size; r++) {
-    retp[r] = (p_valp[r] - (q_valp[r] * sum_Q)) * q_valp[r];
+    auto tmp = q_valp[r] * sum_Q;
+    if ((tmp != 0) and (MACHINE_EPSILON > tmp)) tmp = MACHINE_EPSILON;
+    retp[r] = (p_valp[r] - tmp) * q_valp[r];
   }
   return ret;
 }
@@ -190,7 +181,7 @@ void performs_DminusA_inplace(rowmajor_matrix_local<T>& mat,
   auto mptr = mat.val.data();
   auto D = sum_of_cols(mat);
   auto dptr = D.data();
-  // perfoms mat = D - mat on distributed local matrix mat
+  // performs mat = D - mat on distributed local matrix mat
   for(size_t r = 0; r < size; ++r) {
     mptr[r] *= -1.0;
   }
@@ -226,9 +217,6 @@ void update_Y_mat(rowmajor_matrix_local<T>& y_mat,
 
     // ** update Y **
     y_valp[r] += uY_valp[r];
-
-    // ** Normalize Y values to handle double precision error
-    y_valp[r] = (trunc(y_valp[r] * DESIRED_PRECISION)) / DESIRED_PRECISION;
   }
 }
 
@@ -312,24 +300,34 @@ gen_random(size_t N, double mean, double stddev) {
 template <class T>
 rowmajor_matrix<T>
 compute_conditional_probability(rowmajor_matrix<T>& mat, 
-                                double perplexity) {
-  // ** Compute Euclidean distances
-  auto gdata = get_global_data(mat);
-  auto affinity = construct_distance_matrix(gdata, true, true);
+                                double perplexity,
+                                std::string metric) {
+  rowmajor_matrix<T> affinity;
+  if (metric == "euclidean") {
+    // ** Compute Euclidean distances
+    auto gdata = get_global_data(mat);
+    affinity = construct_distance_matrix(gdata, true, true);
+  }
+  else if (metric == "precomputed") affinity = mat;
+  else    REPORT_ERROR(USER_ERROR, "invalid metric parameter value!!\n");
   // ** Get max value of each row
-  auto row_max = affinity.data.map(get_row_max<T>);
+  auto myst = get_start_indices(affinity);
   // ** Compute Gaussian Kernel for each row
   rowmajor_matrix<T> probability_mat(affinity.data.map(
                                      compute_gaussian_kernel<T>, 
-                                     row_max, 
-                                     broadcast(perplexity)));
+                                     broadcast(perplexity),
+                                     myst));
   probability_mat.num_row = affinity.num_row;
   probability_mat.num_col = affinity.num_col;
 
   // ** Symmetrizing Probability Matrix
-  auto inv_row_cnt = 1.0 / (2 * probability_mat.num_row);
-  probability_mat.data.mapv(scale_matrix_in_place<T>, 
-                            broadcast(2 * inv_row_cnt));
+  auto b_trans_prob_mat = probability_mat.transpose().data;
+  auto sum_P = 2 * probability_mat.num_row;
+  if (MACHINE_EPSILON > sum_P) sum_P = MACHINE_EPSILON;
+  auto inv_row_cnt = 1.0 / sum_P;
+  probability_mat.data.mapv(compute_joint_probability_matrix<T>,
+                            b_trans_prob_mat,
+                            broadcast(inv_row_cnt));
   return probability_mat;
 }
 
@@ -384,7 +382,7 @@ template <class T>
 rowmajor_matrix<T>
 compute_gradient(rowmajor_matrix<T>& P_mat, 
                  const rowmajor_matrix<T>& Q_mat,
-                 rowmajor_matrix<T>& Y_mat, // TODO: why not const?
+                 const rowmajor_matrix<T>& Y_mat,
                  double inv_sumq) {
   rowmajor_matrix<T> grad_mat(P_mat.data.map(compute_gradient_mat<T>, 
                                              Q_mat.data, 
@@ -393,9 +391,7 @@ compute_gradient(rowmajor_matrix<T>& P_mat,
   grad_mat.num_col = P_mat.num_col;
   auto myst = get_start_indices(grad_mat);
   grad_mat.data.mapv(performs_DminusA_inplace<T>, myst);
-  // TODO: improve operator* here...
-  auto grad_local = get_global_data(grad_mat) * get_global_data(Y_mat);
-  grad_mat = make_rowmajor_matrix_scatter(grad_local);
+  grad_mat = grad_mat * Y_mat;
   grad_mat.data.mapv(scale_matrix_in_place<T>, broadcast(GRAD_NORM));
   return grad_mat;
 }
@@ -407,7 +403,11 @@ T compute_grad_error(rowmajor_matrix<T>& P_mat,
   rowmajor_matrix<T> error_mat(P_mat.data.map(compute_error<T>, 
                                Q_mat.data,
                                broadcast(inv_sumq)));
+  //auto tmp = error_mat.gather();
+  //T sum_error = 0;
+  //for(size_t i=0; i < tmp.val.size(); i++) sum_error = sum_error + tmp.val[i];
   return error_mat.data.map(sum_of_elements<T>).reduce(sum<T>);
+  //return sum_error;
 }
 
 template <class T>
@@ -438,22 +438,71 @@ double calc_matrix_norm(rowmajor_matrix<T>& mat) {
   return std::sqrt(sqsm);
 }
 
+
+template <class T>
+void check_non_negative_mat(rowmajor_matrix<T>& mat) {
+  bool res = mat.data.map(+[](rowmajor_matrix_local<T>& mat) -> bool {
+    bool result = true; 
+    for(size_t i = 0; i < mat.val.size(); i++){ 
+      if(mat.val[i] < 0){result = false; break;}}
+    return result;}).reduce(sum<bool>);
+  if (res == 0)
+    REPORT_ERROR(USER_ERROR, "invalid matrix: matrix should contain positive elements!!\n");
+}
+
+template <class T>
+void check_finite_mat(rowmajor_matrix<T>& mat) {
+  bool res = mat.data.map(+[](rowmajor_matrix_local<T>& mat) -> bool {
+    bool result = true; 
+    for(size_t i = 0; i < mat.val.size(); i++){ 
+      if(!std::isfinite(mat.val[i])){result = false; break;}}
+    return result;}).reduce(sum<bool>);
+  if (res == 0)
+    REPORT_ERROR(USER_ERROR, "invalid matrix: matrix should contain finite elements!!\n");
+}
+
+template <class T>
+void check_less_than_one_val(rowmajor_matrix<T>& mat) {
+  bool res = mat.data.map(+[](rowmajor_matrix_local<T>& mat) -> bool {
+    bool result = true; 
+    for(size_t i = 0; i < mat.val.size(); i++){ 
+      if(mat.val[i] > 1){result = false; break;}}
+    return result;}).reduce(sum<bool>);
+  if (res == 0)
+    REPORT_ERROR(USER_ERROR, "invalid matrix: elements should be less than or equal to one!!\n");
+}
+
+template <class T>
+void validate_precomputed_distance_mat(rowmajor_matrix<T>& mat) {
+  if (mat.num_row != mat.num_col) 
+    REPORT_ERROR(USER_ERROR, "invalid precomputed distance matrix: matrix should be a square distance matrix!!\n");
+  check_non_negative_mat(mat);
+}
+
+template <class T>
+void validate_probability_mat(rowmajor_matrix<T>& mat) {
+  check_non_negative_mat(mat);
+  check_finite_mat(mat);
+  check_less_than_one_val(mat);
+}
+
 template <class T>
 rowmajor_matrix<T>
 tsne(rowmajor_matrix<T>& mat, 
-     double perplexity = 5.0,
+     double perplexity = 30.0,
      double early_exaggeration = 12.0,
      double min_grad_norm = 1e-7,
      double learning_rate = 200.0,
      size_t desired_dimensions = 2,
      size_t n_iter = 1000,
      size_t n_iter_without_progress = 300,
+     std::string metric="euclidean",
      bool verbose = false) {
     // Initialize variables to check convergence progress
     size_t best_iter = 0;
     size_t n_iter_progress_threshold = EXPLORATION_N_ITER;
-    double error = DBL_MAX;
-    double best_error = DBL_MAX;
+    auto error = std::numeric_limits<double>::max(); //DBL_MAX;
+    auto best_error = error; //DBL_MAX;
     bool check_convergence = false;
     auto b_learning_rate = broadcast(learning_rate);
     double momentum = INITIAL_MOMENTUM;
@@ -462,7 +511,10 @@ tsne(rowmajor_matrix<T>& mat,
     time_spent t_calP(DEBUG), t_init(DEBUG), t_comp(DEBUG);
     time_spent t_qmat(DEBUG), t_gradmat(DEBUG), t_updateY(DEBUG); 
     t_calP.lap_start();
-    auto probability_mat = compute_conditional_probability<T>(mat, perplexity);
+    if (metric == "precomputed") validate_precomputed_distance_mat<T>(mat);
+    auto probability_mat = compute_conditional_probability<T>(mat, perplexity, metric);
+    // Added assertions for P matrix
+    validate_probability_mat<T>(probability_mat);
     t_calP.lap_stop();
     t_calP.show_lap("Conditional probability matrix computation time: ");
 
@@ -491,6 +543,10 @@ tsne(rowmajor_matrix<T>& mat,
       // Compute Q matrix
       auto Q_mat = compute_low_dimensional_probabilities<T>(Y_mat);
       auto sum_Q = Q_mat.data.map(sum_of_elements<T>).reduce(sum<T>);
+      //auto tmp = Q_mat.gather();
+      //T sum_Q = 0;
+      //for(size_t i=0; i < tmp.val.size(); i++) sum_Q = sum_Q + tmp.val[i];
+
       t_qmat.lap_stop();
 
       t_gradmat.lap_start();
@@ -510,13 +566,19 @@ tsne(rowmajor_matrix<T>& mat,
 
       // perform final optimization with momentum at 0.8 and 
       // disable early_exaggeration
-      if (i == EXPLORATION_N_ITER) {
+      // Also re-initialize gains mat and update_Y mat
+      if (i == EXPLORATION_N_ITER - 1) {
         b_momentum = broadcast(FINAL_MOMENTUM);
         n_iter_progress_threshold = n_iter_without_progress;
         // ** Disable early exaggeration
         if (early_exaggeration != 0.0)
           probability_mat.data.mapv(scale_matrix_in_place<T>, 
                                     broadcast(1.0 / early_exaggeration));
+        // ** Re-initialize gains mat and update_Y mat
+        update_Y = init_matrix<T>(mat.get_local_num_rows(),
+                                  n_row, desired_dimensions, (T) 0.0);
+        gains = init_matrix<T>(mat.get_local_num_rows(),
+                               n_row, desired_dimensions, (T) 1.0);
       }
 
       if (check_convergence){
