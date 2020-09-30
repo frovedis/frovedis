@@ -257,6 +257,39 @@ extern "C" {
     }
   }
 
+  // --- SVM Kernel ---
+  void frovedis_svc(const char* host, int port, long xptr, long yptr,
+                    double tol, double C, int cache, int iter,
+                    const char* kernel_type, double gamma, double coef, int degree,
+                    int vb, int mid, short dtype, short itype, bool dense) {
+    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
+    exrpc_node fm_node(host, port);
+    auto f_xptr = (exrpc_ptr_t) xptr;
+    auto f_yptr = (exrpc_ptr_t) yptr;
+    auto f_dptr = frovedis_mem_pair(f_xptr, f_yptr);
+    auto kernel = std::string(kernel_type);
+    bool mvbl = false; // auto-managed at python side
+    try {
+      if(dense) {
+        switch(dtype) {
+          case FLOAT:
+            exrpc_oneway(fm_node,(frovedis_svc<DT2,R_MAT2>),f_dptr,tol,C,cache,iter,
+                         kernel,gamma,coef,degree,vb,mid,mvbl);
+            break;
+          case DOUBLE:
+            exrpc_oneway(fm_node,(frovedis_svc<DT1,R_MAT1>),f_dptr,tol,C,cache,iter,
+                         kernel,gamma,coef,degree,vb,mid,mvbl);
+            break;
+          default: REPORT_ERROR(USER_ERROR, "Unsupported dtype of input dense data for training!\n");
+        }
+      }
+      else REPORT_ERROR(USER_ERROR, "Frovedis doesn't support input sparse data for SVM Kernel!\n");
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+  }
+
   // --- (3) Linear Regression ---
   PyObject* lnr_lapack(const char* host, int port, long xptr, long yptr,
                        bool icpt, int vb, int mid, short dtype) {
