@@ -10,6 +10,7 @@
 #include "dfaggregator.hpp"
 #include "../matrix/colmajor_matrix.hpp"
 #include "../matrix/ell_matrix.hpp"
+#include "../text/find_condition.hpp"
 
 namespace frovedis {
 
@@ -56,6 +57,11 @@ public:
   template <class T> T max(const std::string& name);
   template <class T> T min(const std::string& name);
   template <class T> dvector<T> as_dvector(const std::string name);
+  node_local<words> as_words(const std::string name,
+                             size_t precision = 6,
+                             const std::string& datetime_fmt = "%Y-%m-%d",
+                             bool quote_escape = false,
+                             const std::string& nullstr = "NULL");
   dftable head(size_t limit);
   dftable tail(size_t limit);
   void show(size_t limit);
@@ -65,8 +71,11 @@ public:
   void print(); 
   void save(const std::string& dir);
   std::vector<std::pair<std::string, std::string>>
-    savetext(const std::string& file, const std::string& separator = ",",
-             bool quote_and_escape = true,
+    savetext(const std::string& file,
+             size_t precision = 6,
+             const std::string& datetime_fmt = "%Y-%m-%d",
+             const std::string& separator = ",",
+             bool quote_and_escape = true, 
              const std::string& nullstr = "NULL");
   colmajor_matrix<float>
   to_colmajor_matrix_float(const std::vector<std::string>&);
@@ -143,16 +152,53 @@ public:
   dftable(){}
   dftable(dftable_base& b) : dftable_base(b) {}
   dftable(dftable_base&& b) : dftable_base(std::move(b)) {}
-  /*
-    dfcolumn specific member functions
-    As for other classes, return types are different
-  */
   dftable& drop(const std::string& name);
   dftable& rename(const std::string& name, const std::string& name2);
+  /*
+    if check_null_like == true, values of numeric_limits<T>::max or "NULL"
+    are treated as NULL
+   */
   template <class T>
-  dftable& append_column(const std::string& name, dvector<T>& d);
+  dftable& append_column(const std::string& name, dvector<T>& d, 
+                         bool check_null_like = false);
   template <class T>
-  dftable& append_column(const std::string& name, dvector<T>&& d);
+  dftable& append_column(const std::string& name, dvector<T>&& d,
+                         bool check_null_like = false);
+  // need to be separated, because datetime_t is PoD
+  dftable& append_datetime_column(const std::string& name,
+                                  dvector<datetime_t>& d, 
+                                  bool check_null_like = false);
+  dftable& append_datetime_column(const std::string& name,
+                                  dvector<datetime_t>&& d,
+                                  bool check_null_like = false);
+  // if T == std::string, dic_string column is used by default in append_column
+  // below can be used to append raw_string, string, or explicitly dic_string
+  dftable& append_dic_string_column(const std::string& name,
+                                    dvector<std::string>& d, 
+                                    bool check_null_like = false);
+  dftable& append_dic_string_column(const std::string& name,
+                                    dvector<std::string>&& d,
+                                    bool check_null_like = false);
+  dftable& append_raw_string_column(const std::string& name,
+                                    dvector<std::string>& d, 
+                                    bool check_null_like = false);
+  dftable& append_raw_string_column(const std::string& name,
+                                    dvector<std::string>&& d,
+                                    bool check_null_like = false);
+  dftable& append_string_column(const std::string& name,
+                                dvector<std::string>& d, 
+                                bool check_null_like = false);
+  dftable& append_string_column(const std::string& name,
+                                dvector<std::string>&& d,
+                                bool check_null_like = false);
+  // creating dic_string or raw_string from dvector<std::string> is ineffcient
+  // provide functions that takes node_local<words> as input
+  dftable& append_dic_string_column(const std::string& name,
+                                    node_local<words>& w, 
+                                    bool check_null_like = false);
+  dftable& append_raw_string_column(const std::string& name,
+                                    node_local<words>& w, 
+                                    bool check_null_like = false);
   // do not align dfcolumn, since it is used in other place
   // do not use this if you are not sure of the alignment!
   dftable& append_column(const std::string& name,
@@ -216,19 +262,28 @@ struct dftable_to_sparse_info {
 dftable make_dftable_load(const std::string& input);
 
 template <class T>
-dftable& dftable::append_column(const std::string& name, dvector<T>& d) {
+dftable& dftable::append_column(const std::string& name, 
+                                dvector<T>& d,
+                                bool check_null_like) {
   if(col.find(name) != col.end())
     throw std::runtime_error("append_column: same column name already exists");
   std::shared_ptr<dfcolumn> c;
   if(col.size() == 0) {
     row_size = d.size();
     d.align_block();
-    c = std::make_shared<typed_dfcolumn<T>>(d);
   } else {
     if(d.size() != row_size)
       throw std::runtime_error("different size of columns");
     auto sizes = column(col_order[0])->sizes();
     d.align_as(sizes);
+  }
+  if(check_null_like) {
+    auto d_nloc = d.as_node_local(); // d: lvalue
+    auto nulls = d_nloc.map(get_null_like_positions<T>);
+    c = std::make_shared<typed_dfcolumn<T>>(std::move(d_nloc), 
+                                            std::move(nulls));
+  }
+  else {
     c = std::make_shared<typed_dfcolumn<T>>(d);
   }
   col.insert(std::make_pair(name, c));
@@ -237,19 +292,28 @@ dftable& dftable::append_column(const std::string& name, dvector<T>& d) {
 }
 
 template <class T>
-dftable& dftable::append_column(const std::string& name, dvector<T>&& d) {
+dftable& dftable::append_column(const std::string& name, 
+                                dvector<T>&& d,
+                                bool check_null_like) {
   if(col.find(name) != col.end())
     throw std::runtime_error("append_column: same column name already exists");
   std::shared_ptr<dfcolumn> c;
   if(col.size() == 0) {
     row_size = d.size();
     d.align_block();
-    c = std::make_shared<typed_dfcolumn<T>>(std::move(d));
   } else {
     if(d.size() != row_size)
       throw std::runtime_error("different size of columns");
     auto sizes = column(col_order[0])->sizes();
     d.align_as(sizes);
+  }
+  if(check_null_like) {
+    auto d_nloc = d.moveto_node_local(); // d: rvalue
+    auto nulls = d_nloc.map(get_null_like_positions<T>);
+    c = std::make_shared<typed_dfcolumn<T>>(std::move(d_nloc), 
+                                            std::move(nulls));
+  }
+  else {
     c = std::make_shared<typed_dfcolumn<T>>(std::move(d));
   }
   col.insert(std::make_pair(name, c));
@@ -257,6 +321,20 @@ dftable& dftable::append_column(const std::string& name, dvector<T>&& d) {
   return *this;
 }
 
+// special handling for string columns (defined in dftable.cc)
+template <>
+dftable& dftable::append_column(const std::string& name,
+                                dvector<std::string>& d,
+                                bool check_null_like); 
+
+template <>
+dftable& dftable::append_column(const std::string& name,
+                                dvector<std::string>&& d,
+                                bool check_null_like); 
+
+words dfcolumn_string_as_words_helper(const std::vector<std::string>& str,
+                                      const std::vector<size_t>& nulls,
+                                      const std::string& nullstr);
 template <class R, class T1, class F>
 struct calc_helper1 {
   calc_helper1(){}
@@ -598,7 +676,7 @@ public:
   virtual size_t num_col() const;
   virtual size_t num_row();
   virtual std::vector<std::string> columns() const;
-  dftable select(const std::vector<std::string>& cols);
+  virtual dftable select(const std::vector<std::string>& cols);
   virtual filtered_dftable filter(const std::shared_ptr<dfoperator>& op);
   virtual sorted_dftable sort(const std::string& name);
   virtual sorted_dftable sort_desc(const std::string& name);
@@ -614,12 +692,12 @@ public:
   star_join(const std::vector<dftable_base*>& dftables, 
             const std::vector<std::shared_ptr<dfoperator>>& op);
   virtual grouped_dftable group_by(const std::vector<std::string>& cols);
-  std::shared_ptr<dfcolumn> column(const std::string& name);
+  virtual std::shared_ptr<dfcolumn> column(const std::string& name);
   virtual node_local<std::vector<size_t>> get_local_index() {
     throw std::runtime_error("get_local_index on hash_joined_dftable");
   }
   virtual bool is_right_joinable() {return false;}
-  void debug_print();
+  virtual void debug_print();
 
   dftable append_rowid(const std::string& name, size_t offset = 0);
 private:
@@ -668,7 +746,7 @@ public:
   virtual size_t num_col() const;
   virtual size_t num_row();
   virtual std::vector<std::string> columns() const;
-  dftable select(const std::vector<std::string>& cols);
+  virtual dftable select(const std::vector<std::string>& cols);
   virtual filtered_dftable filter(const std::shared_ptr<dfoperator>& op);
   virtual sorted_dftable sort(const std::string& name);
   virtual sorted_dftable sort_desc(const std::string& name);
@@ -684,14 +762,22 @@ public:
   star_join(const std::vector<dftable_base*>& dftables, 
             const std::vector<std::shared_ptr<dfoperator>>& op);
   virtual grouped_dftable group_by(const std::vector<std::string>& cols);
-  std::shared_ptr<dfcolumn> column(const std::string& name);
+  virtual std::shared_ptr<dfcolumn> column(const std::string& name);
   virtual node_local<std::vector<size_t>> get_local_index() {
     throw std::runtime_error("get_local_index on bcast_joined_dftable");
   }
   virtual bool is_right_joinable() {return false;}
-  void debug_print();
+  virtual void debug_print();
 
   dftable append_rowid(const std::string& name, size_t offset = 0);
+  bcast_joined_dftable& inplace_filter(const std::shared_ptr<dfoperator>& op);
+  // inplace_filter_pre is used in joining with dfoperator_and
+  // - it does not update right_to_store_idx and right_exchanged_idx
+  // - left_idx, right_idx are used for joining
+  void inplace_filter_pre(const std::shared_ptr<dfoperator>& op);
+  void update_to_store_idx_and_exchanged_idx();
+  node_local<std::vector<size_t>>& get_left_idx() {return left_idx;}
+  node_local<std::vector<size_t>>& get_right_idx() {return right_idx;}
 private:
   // left table is base class; if the input is filtered_dftable, sliced
   bool is_outer;
@@ -728,7 +814,7 @@ public:
   virtual size_t num_col() const;
   virtual size_t num_row();
   virtual std::vector<std::string> columns() const;
-  dftable select(const std::vector<std::string>& cols);
+  virtual dftable select(const std::vector<std::string>& cols);
   virtual filtered_dftable filter(const std::shared_ptr<dfoperator>& op);
   virtual sorted_dftable sort(const std::string& name);
   virtual sorted_dftable sort_desc(const std::string& name);
@@ -744,12 +830,12 @@ public:
   star_join(const std::vector<dftable_base*>& dftables, 
             const std::vector<std::shared_ptr<dfoperator>>& op);
   virtual grouped_dftable group_by(const std::vector<std::string>& cols);
-  std::shared_ptr<dfcolumn> column(const std::string& name);
+  virtual std::shared_ptr<dfcolumn> column(const std::string& name);
   virtual node_local<std::vector<size_t>> get_local_index() {
     throw std::runtime_error("get_local_index on star_joined_dftable");
   }
   virtual bool is_right_joinable() {return false;}
-  void debug_print();
+  virtual void debug_print();
 
   dftable append_rowid(const std::string& name, size_t offset = 0);
 private:
