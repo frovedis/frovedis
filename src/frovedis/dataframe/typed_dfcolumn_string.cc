@@ -10,6 +10,50 @@ using namespace std;
 
 template class typed_dfcolumn<std::string>;
 
+struct is_4 {
+  int operator()(size_t a) const {return a == 4;}
+};
+
+struct is_nullstr {
+  is_nullstr(int n) : n(n) {}
+  int operator()(int a) const {return a == n;}
+  int n;
+};
+
+template <>
+std::vector<size_t>
+get_null_like_positions (std::vector<std::string>& col) {
+  auto size = col.size();
+  auto colp = col.data();
+  std::vector<size_t> string_size(size);
+  auto string_sizep = string_size.data();
+  for(size_t i = 0; i < size; i++) {
+    string_sizep[i] = colp[i].size();
+  }
+  auto cand = find_condition(string_size, is_4());
+  auto candp = cand.data();
+  auto cand_size = cand.size();
+  std::vector<int*> candptr(cand_size);
+  auto candptrp = candptr.data();
+  for(size_t i = 0; i < cand_size; i++) {
+    candptrp[i] = 
+      reinterpret_cast<int*>(const_cast<char*>(colp[candp[i]].data()));
+  }
+  // this is possible because "NULL" happend to be four characters...
+  const char* nullstr = "NULL";
+  int intnullstr = *reinterpret_cast<const int*>(nullstr);
+  auto hit = find_condition_pointer(candptrp, cand_size,
+                                    is_nullstr(intnullstr));
+  auto hit_size = hit.size();
+  auto hitp = hit.data();
+  std::vector<size_t> ret(hit_size);
+  auto retp = ret.data();
+  for(size_t i = 0; i < hit_size; i++) {
+    retp[i] = candp[hitp[i]];
+  }
+  return ret;
+}
+
 vector<string>
 convert_val(vector<size_t>& val, vector<vector<string>>& dic_idx) {
   vector<string> ret(val.size());
@@ -83,10 +127,8 @@ node_local<vector<string>> typed_dfcolumn<string>::get_val() {
   auto bcast_dic_idx = broadcast(dic_idx->gather()); // TODO: expensive!
   return val.map(convert_val, bcast_dic_idx);
 }
-
-void typed_dfcolumn<string>::init(dvector<string>& dv) {
+void typed_dfcolumn<string>::init(node_local<std::vector<std::string>>& nl) {
   nulls = make_node_local_allocate<vector<size_t>>();
-  auto nl = dv.viewas_node_local();
   auto withidx = nl.map(append_idx);
   auto withidxdv = withidx.viewas_dvector<pair<string,size_t>>();
   auto group = withidxdv.group_by_key<string,size_t>();
@@ -106,6 +148,7 @@ void typed_dfcolumn<string>::init(dvector<string>& dv) {
 }
 
 void typed_dfcolumn<string>::debug_print() {
+  std::cout << "dtype: " << dtype() << std::endl;
   size_t nodemask = (size_t(1) << DFNODESHIFT) - 1;
   std::cout << "dic: " << std::endl;
   for(auto& i: dic->viewas_node_local().gather()) {
@@ -150,13 +193,24 @@ vector<size_t> extract_idx(vector<pair<string,size_t>>& v) {
 }
 
 vector<size_t> convert_sorted_idx(vector<size_t>& val,
-                                  vector<size_t>& idx_dic) {
+                                  vector<size_t>& idx_dic,
+                                  vector<size_t>& nulls) {
   size_t dicsize = idx_dic.size();
   vector<size_t> newidx(dicsize);
   size_t* newidxp = &newidx[0];
   for(size_t i = 0; i < dicsize; i++) newidxp[i] = i;
   auto ht = unique_hashtable<size_t, size_t>(idx_dic, newidx);
-  return ht.lookup(val);
+  std::vector<size_t> missed; // not used; should be same as nulls
+  auto ret = ht.lookup(val, missed);
+  auto retp = ret.data();
+  auto nullsp = nulls.data();
+  auto nulls_size = nulls.size();
+  auto null_value = std::numeric_limits<size_t>::max();
+#pragma _NEC ivdep
+  for(size_t i = 0; i < nulls_size; i++) {
+    retp[nullsp[i]] = null_value;
+  }
+  return ret;
 }
 
 typed_dfcolumn<size_t>
@@ -167,7 +221,7 @@ typed_dfcolumn<string>::sort_prepare() {
   auto with_idx_sorted = with_idx_dv.sort().moveto_node_local();
   auto idx_dic = broadcast(with_idx_sorted.map(extract_idx).
                            viewas_dvector<size_t>().gather());
-  rescol.val = val.map(convert_sorted_idx, idx_dic);
+  rescol.val = val.map(convert_sorted_idx, idx_dic, nulls);
   rescol.nulls = nulls; // copy
   return rescol;
 }
@@ -750,31 +804,6 @@ dvector<std::string> typed_dfcolumn<string>::as_string() {
   return get_val().template moveto_dvector<std::string>();
 }
 
-words vector_string_to_words(const vector<string>& str) {
-  words ret;
-  auto size = str.size();
-  if(size == 0) return ret;
-  auto strp = str.data();
-  ret.lens.resize(size);
-  auto lensp = ret.lens.data();
-  for(size_t i = 0; i < size; i++) {
-    lensp[i] = strp[i].size();
-  }
-  ret.starts.resize(size);
-  auto startsp = ret.starts.data();
-  prefix_sum(lensp, startsp+1, size-1);
-  auto total_size = startsp[size-1] + lensp[size-1];
-  ret.chars.resize(total_size);
-  auto charsp = ret.chars.data();
-  for(size_t i = 0; i < size; i++) {
-    auto crnt_strp = strp[i].data();
-    for(size_t j = 0; j < lensp[i]; j++) {
-      charsp[startsp[i] + j] = crnt_strp[j];
-    }
-  }
-  return ret;
-}
-
 words dfcolumn_string_as_words_helper(const std::vector<string>& str,
                                       const std::vector<size_t>& nulls,
                                       const std::string& nullstr) {
@@ -808,8 +837,11 @@ words dfcolumn_string_as_words_helper(const std::vector<string>& str,
   return ws;
 }
 
-node_local<words> typed_dfcolumn<string>::as_words(bool quote_escape,
-                                                   const std::string& nullstr) {
+node_local<words>
+typed_dfcolumn<string>::as_words(size_t precision, // not used
+                                 const std::string& datetime_fmt, // not used
+                                 bool quote_escape,
+                                 const std::string& nullstr) {
   if(contain_nulls) {
     auto nl_words = get_val().map(dfcolumn_string_as_words_helper, nulls,
                                   broadcast(nullstr));
