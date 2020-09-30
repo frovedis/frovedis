@@ -81,27 +81,27 @@ release_frovedis_dvector.argtypes = [c_char_p, c_int, c_long, c_int]
 
 #------ Frovedis Vector
 create_frovedis_int_vector = LIB.create_frovedis_int_vector
-create_frovedis_int_vector.argtypes = [c_char_p, c_int, 
+create_frovedis_int_vector.argtypes = [c_char_p, c_int,
                                        POINTER(c_int), c_ulong, c_short]
 create_frovedis_int_vector.restype = py_object
 
 create_frovedis_long_vector = LIB.create_frovedis_long_vector
-create_frovedis_long_vector.argtypes = [c_char_p, c_int, 
+create_frovedis_long_vector.argtypes = [c_char_p, c_int,
                                         POINTER(c_long), c_ulong, c_short]
 create_frovedis_long_vector.restype = py_object
 
 create_frovedis_float_vector = LIB.create_frovedis_float_vector
-create_frovedis_float_vector.argtypes = [c_char_p, c_int, 
+create_frovedis_float_vector.argtypes = [c_char_p, c_int,
                                          POINTER(c_float), c_ulong, c_short]
 create_frovedis_float_vector.restype = py_object
 
 create_frovedis_double_vector = LIB.create_frovedis_double_vector
-create_frovedis_double_vector.argtypes = [c_char_p, c_int, 
+create_frovedis_double_vector.argtypes = [c_char_p, c_int,
                                           POINTER(c_double), c_ulong, c_short]
 create_frovedis_double_vector.restype = py_object
 
 create_frovedis_string_vector = LIB.create_frovedis_string_vector
-create_frovedis_string_vector.argtypes = [c_char_p, c_int, 
+create_frovedis_string_vector.argtypes = [c_char_p, c_int,
                                           POINTER(c_char_p), c_ulong, c_short]
 create_frovedis_string_vector.restype = py_object
 
@@ -123,14 +123,14 @@ save_frovedis_vector_client.argtypes = [c_char_p, c_int, # host, port
                                         c_char_p, #path
                                         c_bool, #is_binary
                                         c_short #data type
-                                        ]
+                                      ]
 
 load_frovedis_vector_client = LIB.load_frovedis_vector_client
 load_frovedis_vector_client.argtypes = [c_char_p, c_int, # host, port
                                         c_char_p, #path
                                         c_bool, #is_binary
                                         c_short #data type
-                                        ]
+                                      ]
 load_frovedis_vector_client.restype = py_object
 
 release_frovedis_array = LIB.release_frovedis_array
@@ -269,6 +269,15 @@ df_to_crs_using_info = LIB.df_to_crs_using_info
 df_to_crs_using_info.argtypes = [c_char_p, c_int, c_long,  #host, port, proxy
                                  c_long, c_short]          #info_id, dtype
 df_to_crs_using_info.restype = py_object
+
+# multi_eq df opt
+
+get_multi_eq_dfopt = LIB.get_multi_eq_dfopt
+get_multi_eq_dfopt.argtypes = [c_char_p, c_int, # host, port
+                               POINTER(c_char_p), # left_on
+                               POINTER(c_char_p), # right_on
+                               c_ulong] # size
+get_multi_eq_dfopt.restype = c_long
 
 # --- Frovedis dftable_to_sparse_info ---
 load_dftable_to_sparse_info = LIB.load_dftable_to_sparse_info
@@ -871,7 +880,7 @@ get_scm_affinity_matrix = LIB.get_scm_aff_matrix
 get_scm_affinity_matrix.argtypes = [c_char_p, c_int, c_int, c_short]
 get_scm_affinity_matrix.restype = py_object
 
-#DBSCAN 
+#DBSCAN
 dbscan_train = LIB.dbscan_train
 dbscan_train.argtypes = [c_char_p, #host
                          c_int, #port
@@ -979,6 +988,14 @@ get_cls_counts_vector = LIB.get_frovedis_cls_counts_vector
 get_cls_counts_vector.argtypes = [c_char_p, c_int, c_int, c_short, c_short]
 get_cls_counts_vector.restype = py_object
 
+get_support_idx = LIB.get_frovedis_support_idx
+get_support_idx.argtypes = [c_char_p, c_int, c_int, c_short, c_short]
+get_support_idx.restype = py_object
+
+get_support_vector = LIB.get_frovedis_support_vector
+get_support_vector.argtypes = [c_char_p, c_int, c_int, c_short, c_short]
+get_support_vector.restype = py_object
+
 # --- Frovedis ML Trainers ---
 distinct_count = LIB.get_distinct_count
 distinct_count.argtypes = [c_char_p, c_int, c_long, c_short] #host, port,\
@@ -997,25 +1014,25 @@ encode_frovedis_dvector_zero_based.restype = c_long # out proxy
 
 encode_frovedis_int_dvector = LIB.encode_frovedis_int_dvector
 encode_frovedis_int_dvector.argtypes = [c_char_p, c_int, c_long,  #host, port, proxy
-                                        POINTER(c_int), POINTER(c_int), #src, target 
+                                        POINTER(c_int), POINTER(c_int), #src, target
                                         c_long] # size
 encode_frovedis_int_dvector.restype = c_long # out proxy
 
 encode_frovedis_long_dvector = LIB.encode_frovedis_long_dvector
 encode_frovedis_long_dvector.argtypes = [c_char_p, c_int, c_long,  #host, port, proxy
-                                         POINTER(c_long), POINTER(c_long), #src, target 
+                                         POINTER(c_long), POINTER(c_long), #src, target
                                          c_long] # size
 encode_frovedis_long_dvector.restype = c_long # out proxy
 
 encode_frovedis_float_dvector = LIB.encode_frovedis_float_dvector
 encode_frovedis_float_dvector.argtypes = [c_char_p, c_int, c_long,  #host, port, proxy
-                                          POINTER(c_float), POINTER(c_float), #src, target 
+                                          POINTER(c_float), POINTER(c_float), #src, target
                                           c_long] # size
 encode_frovedis_float_dvector.restype = c_long # out proxy
 
 encode_frovedis_double_dvector = LIB.encode_frovedis_double_dvector
 encode_frovedis_double_dvector.argtypes = [c_char_p, c_int, c_long,  #host, port, proxy
-                                           POINTER(c_double), POINTER(c_double), #src, target 
+                                           POINTER(c_double), POINTER(c_double), #src, target
                                            c_long] # size
 encode_frovedis_double_dvector.restype = c_long # out proxy
 
@@ -1046,6 +1063,13 @@ svm_lbfgs.argtypes = [c_char_p, c_int, c_long, c_long, #host,port,X,y
                       c_int, c_double,                 #rtype, rparam
                       c_bool, c_double, c_int, c_int,  #fit_icpt, tol, vb, mid
                       c_short, c_short, c_bool]        #dtype, itype, dense
+
+frovedis_svc = LIB.frovedis_svc
+frovedis_svc.argtypes = [c_char_p, c_int, c_long, c_long,  #host,port,X,y
+                         c_double, c_double, c_int, c_int, #tol, C, cache, max_itr
+                         c_char_p, c_double, c_double,     #kernel, gamma, coef
+                         c_int, c_int, c_int,              #degree, vb, mid
+                         c_short, c_short, c_bool]         #dtype, itype, dense
 
 svm_regressor_sgd = LIB.svm_regressor_sgd
 svm_regressor_sgd.argtypes = [c_char_p, c_int, c_long, c_long, #host,port,X,y
