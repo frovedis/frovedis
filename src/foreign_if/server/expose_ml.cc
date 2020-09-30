@@ -51,6 +51,14 @@ void expose_frovedis_ml_functions() {
   expose((frovedis_svm_regressor_sgd<DT1,S_MAT15>));   // python case
   expose((frovedis_svm_regressor_sgd<DT2,S_MAT24>));   // python case
   expose((frovedis_svm_regressor_sgd<DT2,S_MAT25>));   // python case
+  //svm kernel
+  expose((frovedis_svc<DT1,R_MAT1>));    // both spark and python case
+  expose((frovedis_svc<DT2,R_MAT2>));    // python case
+  //expose((frovedis_svc<DT1,S_MAT1>));  // spark case
+  //expose((frovedis_svc<DT1,S_MAT14>)); // python case
+  //expose((frovedis_svc<DT1,S_MAT15>)); // python case
+  //expose((frovedis_svc<DT2,S_MAT24>)); // python case
+  //expose((frovedis_svc<DT2,S_MAT25>)); // python case
   // (3) decision tree
   //expose((frovedis_dt<DT1,S_MAT1>)); // not supported currently
   expose((frovedis_dt<DT1,D_MAT1>));   // both spark and python case
