@@ -1,9 +1,10 @@
 #ifndef PCA_HPP
 #define PCA_HPP
 
-#include "truncated_svd.hpp"
 #include <limits>
 #include <cmath>
+#include "truncated_svd.hpp"
+#include "blas_wrapper.hpp"
 
 namespace frovedis {
 
@@ -16,7 +17,7 @@ void scale_colmajor_matrix(colmajor_matrix_local<T>& mat,
                            double n){
   auto vec = mat.val.data();
   auto sz = mat.val.size();
-  for(size_t i=0; i < sz; i++) vec[i] *= n;
+  for(size_t i = 0; i < sz; i++) vec[i] *= n;
 }
 
 template <class T>
@@ -152,48 +153,22 @@ void add_mat_vec(rowmajor_matrix_local<T>& mat,
 }
 
 template <class T>
-rowmajor_matrix_local<T> mat_mul(rowmajor_matrix_local<T>& m1, 
-                                 rowmajor_matrix_local<T>& m2){
-  return m1 * m2;
-}
-
-template <class T>
-void mult_mat_col_with_vec(rowmajor_matrix_local<T>& mat, 
-                           std::vector<T>& vec){ // vec will be destroyed
-  diag_matrix_local<T> dmat(vec.size());
-  dmat.val.swap(vec);
-  auto res = mat * dmat;
-  mat.val.swap(res.val);
-}
-
-template <class T>
-void mult_mat_row_with_vec(rowmajor_matrix_local<T>& mat,
-                           std::vector<T>& vec){ // vec will be destroyed
-  diag_matrix_local<T> dmat(vec.size());
-  dmat.val.swap(vec);
-  auto res = dmat * mat;
-  mat.val.swap(res.val);
-}
-
-template <class T>
 rowmajor_matrix<T> transform_pca(rowmajor_matrix<T>& x,
                                  colmajor_matrix<T>& pca_directions,
                                  std::vector<T>& explained_variance,
-                                 bool whiten = false){
-  auto comp = pca_directions.to_rowmajor().gather(); // smaller in size in comparison to x
-  auto b_comp = broadcast(comp);
-  rowmajor_matrix<T> ret(x.data.map(mat_mul<T>, b_comp));
-  ret.num_row = x.num_row;
-  ret.num_col = comp.local_num_col;
-
-  if(whiten){
-     std::vector<T> one_by_expvar(explained_variance.size());
-     auto onebyp = one_by_expvar.data();
-     auto expvarp = explained_variance.data();
-     for(size_t i = 0; i < explained_variance.size(); ++i) 
-       onebyp[i] = 1.0 / sqrt(expvarp[i]);
-     auto b_one_by_expvar = broadcast(one_by_expvar);
-     ret.data.mapv(mult_mat_col_with_vec<T>, b_one_by_expvar);
+                                 bool whiten = false) {
+  auto comp_rmjr = pca_directions.to_rowmajor(); // TODO: avoid to_rowmajor()...
+  auto ret = x * comp_rmjr;
+  if(whiten) {
+    auto size = explained_variance.size();
+    std::vector<T> one_by_expvar(size);
+    auto onebyp = one_by_expvar.data();
+    auto expvarp = explained_variance.data();
+    for(size_t i = 0; i < size; ++i) {
+      if(expvarp[i] != 0.0) onebyp[i] = 1.0 / sqrt(expvarp[i]);
+      else                  onebyp[i] = 1.0;
+    }
+    scale_matrix<T>(ret, one_by_expvar);
   }
   return ret;
 }
@@ -217,23 +192,20 @@ rowmajor_matrix<T> inverse_transform_pca(rowmajor_matrix<T>& x,
   // distributed implementation of:
   // np.sqrt(self.explained_variance_[:, np.newaxis]) * self.components_)
   // Note: self.components_ = pca_directions.transpose()
-  auto comp_rmjr = pca_directions.to_rowmajor();
+  auto comp_rmjr = pca_directions.to_rowmajor(); // TODO: avoid to_rowmajor()...
   if(whiten){
     auto sz = explained_variance.size();
     std::vector<T> explained_variance_sqrt(sz);
     auto expvar_sqrtp = explained_variance_sqrt.data();
     auto expvarp = explained_variance.data();
-    for(size_t i=0; i < sz; i++) expvar_sqrtp[i] = sqrt(expvarp[i]);
-    auto b_explained_variance_sqrt = broadcast(explained_variance_sqrt);
-    comp_rmjr.data.mapv(mult_mat_col_with_vec<T>, b_explained_variance_sqrt);
+    for(size_t i = 0; i < sz; i++) {
+      if(expvarp[i] != 0.0) expvar_sqrtp[i] = sqrt(expvarp[i]);
+      else                  expvar_sqrtp[i] = 1.0;
+    }
+    scale_matrix<T>(comp_rmjr, explained_variance_sqrt);
   }
-  auto comp = comp_rmjr.gather().transpose();
-  auto b_comp = broadcast(comp);
-  rowmajor_matrix<T> ret(x.data.map(mat_mul<T>, b_comp));
-  ret.num_row = x.num_row;
-  ret.num_col = comp.local_num_col;
-  auto mean_b = broadcast(mean);
-  ret.data.mapv(add_mat_vec<T>, mean_b);
+  auto ret = x * comp_rmjr.transpose();
+  ret.data.mapv(add_mat_vec<T>, broadcast(mean));
   return ret;
 }
 
