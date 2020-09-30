@@ -5,14 +5,14 @@ from scipy.sparse import coo_matrix
 import networkx as nx
 from .graph import Graph
 
-def custom_read_edgelist(path, comments='#', delimiter=None, 
+def custom_read_edgelist(path, comments='#', delimiter=None,
                          create_using=None,\
                          nodetype=None, data=True, \
                          edgetype=None, encoding='utf-8'):
     """
-    DESC: Customized read_edgelist() to construct graph adjacency matrix 
+    DESC: Customized read_edgelist() to construct graph adjacency matrix
           in the form of scipy csr matrix directly from input file.
-    PARAMS:    Same as in networkx.read_edgelist(). 
+    PARAMS:    Same as in networkx.read_edgelist().
                nodetype, data, edgetype, encoding are not used.
     """
     # TODO: support weight data to be loaded from file (if present)

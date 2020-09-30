@@ -12,7 +12,7 @@ def connected_components(G, print_summary=False):
     DESC:   Computes connected components of a graph
     PARAM:  Frovedis graph object
     RETURN: A dictionary with keys as root-nodeid for each component,
-            and values as list of pairs of nodeid with its distance 
+            and values as list of pairs of nodeid with its distance
             from root of the component to which the node belongs
     """
     if isinstance(G, nx.classes.graph.Graph):
@@ -30,13 +30,14 @@ def connected_components(G, print_summary=False):
     excpt = rpclib.check_server_exception()
     if excpt["status"]:
         raise RuntimeError(excpt["info"])
-    if(print_summary):
+    if print_summary:
         num_cc = len(num_nodes_in_each_cc)
         print("Number of Connected Components: %d" % num_cc)
         num_cc_printed = 20
         if num_cc < num_cc_printed:
             num_cc_printed = num_cc
-        print("Number of nodes in each connected component: (printing the first %d) " % num_cc_printed)
+        print("Number of nodes in each connected component: \
+            (printing the first %d) " % num_cc_printed)
         for i in range(num_cc_printed):
             print("%d:%d  " % (i, num_nodes_in_each_cc[i]))
         print("Nodes in which cc: ")
@@ -49,7 +50,7 @@ def connected_components(G, print_summary=False):
     for i in range(G.num_vertices):
         cc_root = nodes_in_which_cc[i] + 1
         ret[cc_root].append(i+1)
-    if(inp_movable):
+    if inp_movable:
         G.release()
     for i in ret.values():
         yield set(i)

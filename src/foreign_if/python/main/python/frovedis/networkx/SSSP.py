@@ -36,19 +36,19 @@ def single_source_shortest_path(G, source):
     for i in range(0, G.num_vertices):
         if i == srcid:
             sssp_ret[i+1] = [source]
-        elif i == pred_lst[i]: 
-            pass # skip for those nodes which can not be reached from source 
+        elif i == pred_lst[i]:
+            pass # skip for those nodes which can not be reached from source
         else:    # for all nodes which can be reached from source
             dist = dist_lst[i]
             sssp_ret[i+1] = [0] * (dist + 1) # +1 for storing the destination itself
             pred = pred_lst[i]
             cur_idx = dist - 1
-            while(pred != srcid):
+            while pred != srcid:
                 sssp_ret[i+1][cur_idx] = pred + 1
                 pred = pred_lst[pred]
                 cur_idx = cur_idx - 1
             sssp_ret[i+1][0] = source   #loop terminates when it finds source
             sssp_ret[i+1][dist] = i + 1 #storing the destination at end
-    if(inp_movable): 
+    if inp_movable:
         G.release()
     return sssp_ret
