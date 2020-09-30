@@ -1,0 +1,202 @@
+#include <frovedis/matrix/rowmajor_matrix.hpp>
+#include <frovedis/matrix/crs_matrix.hpp>
+
+namespace frovedis {
+
+template <class T>
+rowmajor_matrix<T> 
+make_dmatrix_scatter(rowmajor_matrix_local<T>& mat) {
+  return make_rowmajor_matrix_scatter(mat);
+}
+
+// TODO: Use idxtype, offtype for I and O
+template <class T, class I = size_t, class O = size_t>
+crs_matrix<T,I,O> 
+make_dmatrix_scatter(crs_matrix_local<T,I,O>& mat) {
+  return make_crs_matrix_scatter(mat);
+}
+
+template <class T>
+std::vector<std::vector<T>>
+prepare_scattered_vectors(const std::vector<T>& vec,
+                          size_t nsplits) {
+  // defined in rowmajor_matrix.hpp
+  return get_scattered_vectors(vec, vec.size(), 1, nsplits); 
+}
+
+template <class T>
+std::vector<rowmajor_matrix_local<T>>
+prepare_scattered_matrices(const rowmajor_matrix_local<T>& mat,
+                           size_t nsplits) {
+  auto nrow = mat.local_num_row;
+  auto ncol = mat.local_num_col;
+  auto valp = mat.val.data();
+
+  auto rows = get_block_sizes(nrow, nsplits);
+  std::vector<size_t> sizevec(nsplits);
+  auto sizevecp = sizevec.data();
+  auto rowsp = rows.data();
+  for(size_t i = 0; i < nsplits; i++) sizevecp[i] = rowsp[i] * ncol;
+ 
+  std::vector<size_t> sizepfx(nsplits);
+  auto sizepfxp = sizepfx.data();
+  for(size_t i = 0; i < nsplits - 1; i++) {
+    sizepfxp[i + 1] = sizepfxp[i] + sizevecp[i];
+  }
+  
+  std::vector<rowmajor_matrix_local<T>> ret(nsplits);
+#pragma omp parallel for num_threads(nsplits)
+  for(size_t i = 0; i < nsplits; ++i) {
+    ret[i].val.resize(sizevecp[i]);
+    auto retp = ret[i].val.data();
+    auto srcp = valp + sizepfxp[i];
+    for(size_t j = 0; j < sizevecp[i]; ++j) retp[j] = srcp[j];
+    ret[i].set_local_num(rows[i], ncol);
+  }
+  return ret;
+}
+
+// TODO: Use idxtype, offtype for I and O
+template <class T, class I = size_t, class O = size_t>
+std::vector<crs_matrix_local<T,I,O>>
+prepare_scattered_matrices(const crs_matrix_local<T,I,O>& mat,
+                           size_t nsplits) {
+  auto nrow = mat.local_num_row;
+  auto ncol = mat.local_num_col;
+  auto datavalp = mat.val.data();
+  auto dataidxp = mat.idx.data();
+  auto dataoffp = mat.off.data();
+
+  auto rows = get_block_sizes(nrow, nsplits);
+  std::vector<size_t> divide_row(nsplits + 1);
+  for(size_t i = 0; i < nsplits; ++i) {
+    divide_row[i + 1] = divide_row[i] + rows[i];
+  }
+
+  std::vector<frovedis::crs_matrix_local<T,I,O>> ret(nsplits);
+#pragma omp parallel for num_threads(nsplits)
+  for(size_t i = 0; i < nsplits; ++i) {
+    size_t start_row = divide_row[i];
+    size_t end_row = divide_row[i + 1];
+    ret[i].local_num_row = end_row - start_row;
+    ret[i].local_num_col = ncol;
+    size_t start_off = dataoffp[start_row];
+    size_t end_off = dataoffp[end_row];
+    size_t off_size = end_off - start_off;
+    ret[i].val.resize(off_size);
+    ret[i].idx.resize(off_size);
+    ret[i].off.resize(end_row - start_row + 1); // off[0] == 0 by ctor
+    auto valp = ret[i].val.data();
+    auto idxp = ret[i].idx.data();
+    auto offp = ret[i].off.data();
+    for(size_t j = 0; j < off_size; ++j) {
+      valp[j] = datavalp[j + start_off];
+      idxp[j] = dataidxp[j + start_off];
+    }
+    for(size_t j = 0; j < end_row - start_row; ++j) {
+      offp[j+1] = offp[j] + (dataoffp[start_row + j + 1] -
+                             dataoffp[start_row + j]);
+    }
+  }
+  return ret;
+}
+
+template <class T>
+rowmajor_matrix_local<T>
+merge_splitted_matrices(const std::vector<rowmajor_matrix_local<T>>& splitted_matrices,
+                        size_t not_index) {
+  rowmajor_matrix_local<T> ret;
+  auto nsplits = splitted_matrices.size();
+  if (nsplits == 0) return ret; // quick return
+  size_t ncol = splitted_matrices[0].local_num_col;
+  size_t nrow = 0; //to be calculated
+  for(size_t i = 0; i < nsplits; ++i) {
+    if(i != not_index) nrow += splitted_matrices[i].local_num_row;
+  }
+  ret.val.resize(nrow * ncol);
+  ret.local_num_row = nrow;
+  ret.local_num_col = ncol;
+  auto retvalp = ret.val.data();
+  for(size_t i = 0; i < nsplits; ++i) {
+    if(i != not_index) {
+      auto split_val_size = splitted_matrices[i].val.size();
+      auto splitvalp = splitted_matrices[i].val.data();
+      for(size_t j = 0; j < split_val_size; ++j) retvalp[j] = splitvalp[j];
+      retvalp += split_val_size;
+    }
+  }
+  return ret;
+}
+
+// TODO: Use idxtype, offtype for I and O
+template <class T, class I = size_t, class O = size_t>
+crs_matrix_local<T, I, O>
+merge_splitted_matrices(const std::vector<crs_matrix_local<T,I,O>>& splitted_matrices,
+                        size_t not_index) {
+  crs_matrix_local<T,I,O> ret;
+  auto nsplits = splitted_matrices.size();
+  if (nsplits == 0) return ret; // quick return
+  size_t ncol = splitted_matrices[0].local_num_col;
+  size_t nrow = 0, nzero = 0; //to be calculated
+  for(size_t i = 0; i < nsplits; ++i) {
+    if(i != not_index) {
+      nrow += splitted_matrices[i].local_num_row;
+      nzero += splitted_matrices[i].val.size();
+    }
+  }
+  ret.val.resize(nzero);
+  ret.idx.resize(nzero);
+  ret.off.resize(nrow + 1);
+  ret.local_num_row = nrow;
+  ret.local_num_col = ncol;
+  auto retvalp = ret.val.data();
+  auto retidxp = ret.idx.data();
+  auto retoffp = ret.off.data();
+  retoffp[0] = 0;
+  for(size_t i = 0; i < nsplits; ++i) {
+    if(i != not_index) {
+      auto split_nrow = splitted_matrices[i].local_num_row;
+      auto split_nzero = splitted_matrices[i].val.size();
+      auto splitvalp = splitted_matrices[i].val.data();
+      auto splitidxp = splitted_matrices[i].idx.data();
+      auto splitoffp = splitted_matrices[i].off.data();
+      for(size_t j = 0; j < split_nzero; ++j) {
+        retvalp[j] = splitvalp[j];
+        retidxp[j] = splitidxp[j];
+      }
+      for(size_t j = 1; j < split_nrow + 1; ++j) {
+        retoffp[j] = retoffp[0] + splitoffp[j];
+      }
+      retvalp += split_nzero;
+      retidxp += split_nzero;
+      retoffp += split_nrow;
+    }
+  }
+  return ret;
+}
+
+template <class T>
+std::vector<T>
+merge_splitted_vectors(const std::vector<std::vector<T>>& splitted_vectors,
+                       size_t not_index) {
+  std::vector<T> ret;
+  auto nsplits = splitted_vectors.size();
+  if (nsplits == 0) return ret; // quick return
+  size_t size = 0; //to be calculated
+  for(size_t i = 0; i < nsplits; ++i) {
+    if(i != not_index) size += splitted_vectors[i].size();
+  }
+  ret.resize(size);
+  auto retvecp = ret.data();
+  for(size_t i = 0; i < nsplits; ++i) {
+    if(i != not_index) {
+      auto split_vec_size = splitted_vectors[i].size();
+      auto splitvecp = splitted_vectors[i].data();
+      for(size_t j = 0; j < split_vec_size; ++j) retvecp[j] = splitvecp[j];
+      retvecp += split_vec_size;
+    }
+  }
+  return ret;
+}
+
+}
