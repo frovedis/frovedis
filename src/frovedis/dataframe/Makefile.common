@@ -1,6 +1,6 @@
 HEADERS := dfcolumn.hpp dfcolumn_impl.hpp dftable.hpp dfoperator.hpp hashtable.hpp join.hpp dfaggregator.hpp time_extract.hpp make_dftable_dvector.hpp make_dftable_string.hpp dftable_to_string.hpp dftable_to_words.hpp dftable_to_dvector.hpp make_dftable_loadtext.hpp
 
-OBJS := dfcolumn.o typed_dfcolumn_dic_string.o typed_dfcolumn_raw_string.o typed_dfcolumn_string.o typed_dfcolumn_uint.o typed_dfcolumn_int.o typed_dfcolumn_double.o typed_dfcolumn_float.o typed_dfcolumn_ulong.o typed_dfcolumn_long.o dfoperator.o dftable.o dfaggregator.o join.o dftable_to_string.o dftable_to_words.o make_dftable_string.o make_dftable_loadtext.o
+OBJS := dfcolumn.o typed_dfcolumn_datetime.o typed_dfcolumn_dic_string.o typed_dfcolumn_raw_string.o typed_dfcolumn_string.o typed_dfcolumn_uint.o typed_dfcolumn_int.o typed_dfcolumn_double.o typed_dfcolumn_float.o typed_dfcolumn_ulong.o typed_dfcolumn_long.o dfoperator.o dftable.o dfaggregator.o join.o dftable_to_string.o dftable_to_words.o make_dftable_string.o make_dftable_loadtext.o
 
 TARGETS := libfrovedis_dataframe.a
 
@@ -18,6 +18,7 @@ install: ${TARGETS}
 	cp ../dataframe.hpp ${INSTALLPATH}/include/frovedis/
 
 dfcolumn.o: dfcolumn.cc dfcolumn.hpp dfcolumn_impl.hpp hashtable.hpp join.hpp
+typed_dfcolumn_datetime.o : typed_dfcolumn_datetime.cc dfcolumn.hpp dfcolumn_impl.hpp hashtable.hpp join.hpp
 typed_dfcolumn_dic_string.o : typed_dfcolumn_dic_string.cc dfcolumn.hpp dfcolumn_impl.hpp hashtable.hpp join.hpp
 typed_dfcolumn_raw_string.o : typed_dfcolumn_raw_string.cc dfcolumn.hpp dfcolumn_impl.hpp
 typed_dfcolumn_string.o : typed_dfcolumn_string.cc dfcolumn.hpp dfcolumn_impl.hpp hashtable.hpp join.hpp
