@@ -97,6 +97,18 @@ public:
 
   template <class T>
   static logistic_regression_model<T> train (
+    rowmajor_matrix<T>& data,
+    dvector<T>& label,
+    size_t numIteration=1000,
+    double alpha=0.01,
+    double miniBatchFraction=1.0,
+    double regParam=0.01,
+    RegType regTyp=ZERO,
+    bool isIntercept=false,
+    double convergenceTol=0.001);
+
+  template <class T>
+  static logistic_regression_model<T> train (
     const colmajor_matrix<T>& data,
     dvector<T>& label,
     logistic_regression_model<T>& lrm,
@@ -209,6 +221,22 @@ logistic_regression_with_sgd::train (crs_matrix<T,I,O>& data,
   }
   else REPORT_ERROR(USER_ERROR, "Unsupported regularizer!\n");
   return ret;
+}
+
+template <class T>
+logistic_regression_model<T>
+logistic_regression_with_sgd::train (rowmajor_matrix<T>& data,
+                                     dvector<T>& label,
+                                     size_t numIteration,
+                                     double alpha,
+                                     double miniBatchFraction,
+                                     double regParam,
+                                     RegType regTyp,
+                                     bool isIntercept,
+                                     double convergenceTol) {
+  // rowmajor to const colmajor& implicit conversion would take place
+  return train<T>(data, label, numIteration, alpha, miniBatchFraction, 
+                  regParam, regTyp, isIntercept, convergenceTol); 
 }
 
 template <class T>
