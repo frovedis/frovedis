@@ -387,6 +387,8 @@ words float_to_words_exp(const T* srcp, size_t src_size, size_t num_of_dec) {
     if(elenp[i] < 2) elenp[i] = 2; // if data is 0, elenp might become 0
   }
   int_to_words_write_digits(charsp, new_startsp, expsp, elenp, src_size);
+  std::string nullchar(1,'\0');
+  ret.trim_tail(nullchar);
   return ret;
 }
 
@@ -552,6 +554,8 @@ words float_to_words(const std::vector<T>& src, size_t prec = 6) {
     }
   }
   auto normalw = float_to_words_normal(normal_src, normal_num_of_decv);
+  normalw.trim_tail("0");
+  normalw.trim_tail("."); // should be separated for like 100.0
   auto ret = merge_words(expw, normalw);
   std::vector<size_t> work_starts(src_size);
   std::vector<size_t> work_lens(src_size);
@@ -571,8 +575,6 @@ words float_to_words(const std::vector<T>& src, size_t prec = 6) {
     ret_startsp[normal_fpp[i]] = crnt_startsp[i];
     ret_lensp[normal_fpp[i]] = crnt_lensp[i];
   }
-  ret.trim_tail("0");
-  ret.trim_tail("."); // should be separated for like 100.0
   return ret;
 }
 
