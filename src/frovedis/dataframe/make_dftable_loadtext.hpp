@@ -4,6 +4,7 @@
 #include "dftable.hpp"
 #include "../text/words.hpp"
 #include "../text/parsefloat.hpp"
+#include "../text/infer_dtype.hpp"
 
 namespace frovedis {
 
@@ -19,6 +20,19 @@ dftable make_dftable_loadtext(const std::string& filename,
                               int separator = ',',
                               const std::string& nullstr = "NULL",
                               bool is_crlf = false);
+
+dftable make_dftable_loadtext_infertype(const std::string& filename,
+                                        int separator = ',',
+                                        const std::string& nullstr = "NULL",
+                                        size_t rows_to_see = 1024,
+                                        bool is_crlf = false);
+
+dftable make_dftable_loadtext_infertype(const std::string& filename,
+                                        const std::vector<std::string>& names,
+                                        int separator = ',',
+                                        const std::string& nullstr = "NULL",
+                                        size_t rows_to_see = 1024,
+                                        bool is_crlf = false);
 
 std::vector<size_t> extract_nulls(std::vector<int>& chars,
                                   std::vector<size_t>& starts,
