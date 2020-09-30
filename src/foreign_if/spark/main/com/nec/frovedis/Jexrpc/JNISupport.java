@@ -167,7 +167,7 @@ public class JNISupport {
                                          String[] vocab, int size,
                                          String path);
 
-  // -------- Linear SVM Regression --------
+  // -------- Linear SVM Classification --------
   public static native void callFrovedisSVMSGD(Node master_node,
                                              MemPair fdata,
                                              int numIter,
@@ -185,6 +185,20 @@ public class JNISupport {
                                                double regParam,
                                                int mid, boolean movable,
                                                boolean isDense);
+  // -------- Linear SVM Regression --------
+  public static native void callFrovedisSVR(Node master_node,
+                                            MemPair fdata,
+                                            int numIter,
+                                            double stepSize,
+                                            double miniBatchFraction,
+                                            double regParam,
+                                            String regType,
+                                            String loss,
+                                            double eps,
+                                            boolean isIntercept,
+                                            double convergenceTol,
+                                            int mid, boolean movable,
+                                            boolean isDense);
 
   // -------- Linear Regression --------
   public static native void callFrovedisLNRSGD(Node master_node,
@@ -746,7 +760,10 @@ public class JNISupport {
                                                  String[] cat_name, int size2,
                                                  long info_id); 
   public static native DummyMatrix DFToCRSMatrixUsingInfo(Node master_node, long dproxy, 
-                                                          long info_id); 
+                                                          long info_id);
+  public static native long getMultiEqDfopt(Node master_node, String left_on[],
+                                            String right_on[], long sz); 
+
 
   // --- dftable_to_sparse_info ---
   public static native void loadSparseConversionInfo(Node master_node,long info_id,String dirname);
