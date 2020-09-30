@@ -324,6 +324,9 @@ struct crs_matrix_local {
     local_num_col = 0;
   }
 
+  typedef T value_type;
+  typedef I index_type;
+  typedef O offset_type;
   SERIALIZE(val, idx, off, local_num_col, local_num_row)
 };
 
@@ -971,6 +974,10 @@ struct crs_matrix {
   frovedis::node_local<crs_matrix_local<T,I,O>> data;
   size_t num_row;
   size_t num_col;
+  typedef T value_type;
+  typedef I index_type;
+  typedef O offset_type;
+  typedef crs_matrix_local<T,I,O> local_mat_type;
 };
 
 template <class T, class I, class O>
@@ -1992,12 +1999,37 @@ void crs_matrix_spmm_impl(const crs_matrix_local<T,I,O>& mat,
 #endif
 
 template <class T, class I, class O>
-rowmajor_matrix_local<T> operator*(const crs_matrix_local<T,I,O>& mat,
-                                   const rowmajor_matrix_local<T>& v) {
+rowmajor_matrix_local<T> 
+operator*(const crs_matrix_local<T,I,O>& mat,
+          const rowmajor_matrix_local<T>& v) {
+  if(mat.local_num_col != v.local_num_row)
+    throw std::runtime_error("invalid size for matrix multiplication");
   rowmajor_matrix_local<T> ret(mat.local_num_row, v.local_num_col);
   T* retvalp = &ret.val[0];
   const T* vvalp = &v.val[0];
   crs_matrix_spmm_impl(mat, retvalp, vvalp, v.local_num_col);
+  return ret;
+}
+
+template <class T, class I, class O>
+rowmajor_matrix_local<T> 
+call_crs_rowmajor_mm(const crs_matrix_local<T,I,O>& crs_locmat,
+                     const rowmajor_matrix_local<T>& row_locmat) {
+  return crs_locmat * row_locmat;
+}
+
+template <class T, class I, class O>
+rowmajor_matrix<T> 
+operator*(const crs_matrix<T,I,O>& a,
+          const rowmajor_matrix<T>& b) {
+  if(a.num_col != b.num_row)
+    throw std::runtime_error("invalid size for matrix multiplication");
+  auto& amat = const_cast<crs_matrix<T,I,O>&>(a);  // const_cast: to call map()
+  auto& bmat = const_cast<rowmajor_matrix<T>&>(b); // const_cast: to call gather()
+  rowmajor_matrix<T> ret(amat.data.map(call_crs_rowmajor_mm<T,I,O>,
+                         broadcast(bmat.gather())));
+  ret.num_row = amat.num_row;
+  ret.num_col = bmat.num_col;
   return ret;
 }
 
