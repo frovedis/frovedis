@@ -202,3 +202,103 @@ class FrovedisColumn(object):
             if excpt["status"]:
                 raise RuntimeError(excpt["info"])
             return dfoperator(proxy)
+
+    @property
+    def str(self):
+        """returns a FrovedisStringMethods object, for: \
+        startswith/endwith/contains operations
+        """
+        return FrovedisStringMethods(self.colName, self.dtype)
+
+
+class FrovedisStringMethods(object):
+    """
+    FrovedisStringMethods
+    """
+    def __init__(self, colName, dtype):
+        """
+        __init__
+        """
+        self.__colName = colName
+        self.__dtype = dtype
+
+    @property
+    def colName(self):
+        """
+        colName
+        """
+        return self.__colName
+
+    @colName.setter
+    def colName(self, value):
+        """
+        colName
+        """
+        self.__colName = value
+
+    @property
+    def dtype(self):
+        """
+        dtype
+        """
+        return self.__dtype
+
+    @dtype.setter
+    def dtype(self, value):
+        """
+        dtype
+        """
+        self.__dtype = value
+
+    def like(self, other):
+        """
+        like function
+        """
+        (host, port) = FrovedisServer.getServerInstance()
+        if isinstance(other, FrovedisColumn):
+            raise RuntimeError("like operator can be applied on pattern only!")
+        else:
+            proxy = rpclib.get_frovedis_dfoperator(host, port,
+                                                   self.colName.encode('ascii'),
+                                                   str(other).encode('ascii'),
+                                                   self.dtype, OPT.LIKE, True)
+            excpt = rpclib.check_server_exception()
+            if excpt["status"]:
+                raise RuntimeError(excpt["info"])
+            return dfoperator(proxy)
+
+    def startswith(self, pat, na=False):
+        """
+        startswith => ( "pattern% )
+        """
+        if na:
+            raise ValueError("startswith: replacing missing values with True"+
+                             " is currently unsupported!")
+        return self.like(pat + "%")
+
+    def contains(self, pat, case=True, flags=0, na=False, regex=False):
+        """
+        contains => ( "%pattern%" )
+        """
+        import warnings
+        if na:
+            raise ValueError("contains: replacing missing values with True is"+
+                             " currently unsupported!")
+        if not case:
+            raise ValueError("contains: case insensitive matching is currently"+
+                             " unsupported!")
+        if regex:
+            warnings.warn("contains: 'regex' is not supported! 'pat' will be"+
+                          " treated as literal string!")
+        return self.like("%" + pat + "%")
+
+    def endswith(self, pat, na=False):
+        """
+        endswith => ( "%pattern" )
+        """
+        if na:
+            raise ValueError("endswith: replacing missing values with True is"+
+                             " currently unsupported!")
+        return self.like("%" + pat)
+
+

@@ -3,12 +3,13 @@ df.py
 """
 #!/usr/bin/env python
 
-import numpy as np
-import pandas as pd
 import copy
-from .dfoperator import dfoperator
 from ctypes import *
 from array import array
+import numpy as np
+import pandas as pd
+
+from .dfoperator import dfoperator
 from ..exrpc import rpclib
 from ..exrpc.server import FrovedisServer
 from ..matrix.dvector import FrovedisIntDvector, FrovedisLongDvector
@@ -93,9 +94,19 @@ class FrovedisDataframe(object):
         dvec = [0]*size
         idx = 0
 
+        # null replacements
+        null_replacement = {}
+        null_replacement['float64'] = np.finfo(np.float64).max
+        null_replacement['float32'] = np.finfo(np.float32).max
+        null_replacement['int64'] = np.iinfo(np.int64).max
+        null_replacement['int32'] = np.iinfo(np.int32).max
+        null_replacement['str'] = "NULL"
+
         for cname in cols:
             val = df[cname]
             vtype = type(val[0]).__name__
+            val = val.fillna(null_replacement[vtype])
+
             if vtype == 'int32':
                 dt = DTYPE.INT
                 tmp[idx] = FrovedisIntDvector(val)
@@ -150,6 +161,11 @@ class FrovedisDataframe(object):
                 raise TypeError("Unsupported indexing input type!")
         else:
             raise ValueError("Operation on invalid frovedis dataframe!")
+
+    @property
+    def columns(self):
+        """returns column list"""
+        return self.__cols
 
     def filter_frovedis_dataframe(self, opt):
         """
@@ -216,7 +232,7 @@ class FrovedisDataframe(object):
                             type(by).__name__)
 
         for item in sort_by:
-            if not item in self.__cols:
+            if item not in self.__cols:
                 raise ValueError("sort: No column named: ", item)
 
         vec = np.asarray(sort_by)
@@ -224,9 +240,8 @@ class FrovedisDataframe(object):
         sz = vec.size
         sort_by_arr = (c_char_p * sz)()
         sort_by_arr[:] = [e.encode('ascii') for e in vv]
-
         
-        if type(ascending).__name__ == 'bool': 
+        if type(ascending).__name__ == 'bool':
             orderlist = [ascending] * sz
             sort_order = np.asarray(orderlist, dtype=np.int32)
         elif type(ascending).__name__ == 'list':
@@ -236,8 +251,8 @@ class FrovedisDataframe(object):
         else:
             dgt = str(ascending).isdigit()
             if dgt:
-              orderlist = [bool(ascending)] * sz
-              sort_order = np.asarray(orderlist, dtype=np.int32)
+                orderlist = [bool(ascending)] * sz
+                sort_order = np.asarray(orderlist, dtype=np.int32)
             else:
                 raise TypeError("sort: Expected: digit|list; Received: ",
                                 type(ascending).__name__)
@@ -287,7 +302,7 @@ class FrovedisDataframe(object):
 
         types = []
         for item in g_by:
-            if not item in self.__cols:
+            if item not in self.__cols:
                 raise ValueError("No column named: ", item)
             else:
                 types.append(self.__dict__[item].dtype)
@@ -310,35 +325,44 @@ class FrovedisDataframe(object):
                                                                 self.__types)
 
     # method to evaluate join keys
-    def __evaluate(self, df, left_on, right_on):
+    def __evaluate_join_condition(self, df_right, left_on, right_on):
         """
-        __evaluate
+        __evaluate_join_condition
         """
-        if(type(left_on).__name__) == 'str' and (type(right_on).__name__) == \
-           'str':
-            c1 = self.__dict__[left_on]
-            c2 = df.__dict__[right_on]
-            dfopt = (c1 == c2)
-        elif  (type(left_on).__name__) == 'list' and (type(right_on).__name__)\
-                == 'list':
-            if len(left_on) == len(right_on) and len(left_on) >= 1:
-                c1 = self.__dict__[left_on[0]]
-                c2 = df.__dict__[right_on[0]]
-                dfopt = (c1 == c2)
-            for i in range(1, len(left_on)):
-                c1 = self.__dict__[left_on[i]]
-                c2 = df.__dict__[right_on[i]]
-                dfopt = (dfopt & (c1 == c2))
-            else:
-                raise ValueError("Size of left_on and right_on is \
-                                  not matched!")
-        else:
-            raise TypeError("Invalid key to join!")
-        return dfopt
+        # assumes left_on, right_on as python list
+        if len(left_on) != len(right_on):
+            raise ValueError("Size of left_on and right_on is" +
+                             " not matched!")
+        #for renaming
+        col_dict = {}
+        for i in range(len(left_on)):
+            if left_on[i] == right_on[i]:
+                tmp = right_on[i] + "_right"
+                col_dict[right_on[i]] = tmp
+                right_on[i] = tmp
+        df_right = df_right.rename(col_dict)
+        renamed_key = list(col_dict.values()) # [] if no renaming is performed
+
+        # for dfopt combining
+        left_on_ = np.asarray(left_on)
+        right_on_ = np.asarray(right_on)
+        sz = left_on_.size
+
+        left_on_arr = (c_char_p * sz)()
+        right_on_arr = (c_char_p * sz)()
+
+        left_on_arr[:] = np.array([e.encode('ascii') for e in left_on_.T])
+        right_on_arr[:] = np.array([e.encode('ascii') for e in right_on_.T])
+
+        (host, port) = FrovedisServer.getServerInstance()
+        dfopt_proxy = rpclib.get_multi_eq_dfopt(host, port, left_on_arr,
+                                                right_on_arr, sz)
+        dfopt = dfoperator(dfopt_proxy)
+        return (df_right, dfopt, renamed_key, right_on)
 
     def merge(self, right, on=None, how='inner', left_on=None, right_on=None,
               left_index=False, right_index=False, sort=False,
-              suffixes=['_left', '_right'], copy=True,
+              suffixes=('_x', '_y'), copy=True,
               indicator=False, join_type='bcast'):
         """
         merge
@@ -346,54 +370,90 @@ class FrovedisDataframe(object):
 
         if self.__fdata is None:
             raise ValueError("Operation on invalid frovedis dataframe!")
-        df = FrovedisDataframe.asDF(right)
+        right = FrovedisDataframe.asDF(right)
 
-        left = []
-        right = []
-        for item in self.__cols:
-            if item in df.__cols:
-                left.append(item)
-                left.append(item + suffixes[0])
-                right.append(item)
-                right.append(item + suffixes[1])
-        sz = len(left)
-        vec1 = np.asarray(left)
-        vec2 = np.asarray(right)
-        ptr_left = (c_char_p * sz)()
-        ptr_right = (c_char_p * sz)()
-        ptr_left[:] = vec1.T
-        ptr_right[:] = vec2.T
+        # no of nulls
+        n_nulls = sum(x is None for x in (on, right_on, left_on))
+        if n_nulls == 3:
+            if self == right:
+                # Early return , all columns are common => all comlumns are treated as keys
+                # returning a copy of self
+                return self.select_frovedis_dataframe(self.columns)
+            common_cols = list(set(self.columns) & set(right.columns))
+            if len(common_cols) == 0:
+                raise ValueError("No common columns to perform merge on.")
+            left_on = right_on = common_cols
 
         if on: #if key name is same in both dataframes
             if(left_on) or (right_on):
-                raise ValueError("Can only pass 'on' OR 'left_on' and \
-                                  'right_on', not a combination of both!")
-            # currently exception at frovedis server
-            dfopt = self.__evaluate(df, on, on)
-        elif (left_on) and (right_on):
-            dfopt = self.__evaluate(df, left_on, right_on)
+                raise ValueError("Can only pass 'on' OR 'left_on' and" +
+                                 " 'right_on', not a combination of both!")
+            left_on = right_on = on
+        elif (left_on and not right_on) or (not left_on and right_on):
+            raise ValueError("Both left_on and right_on need to be provided."+
+                             " In case of common keys, use 'on' parameter!")
+
+        if not isinstance(left_on, (tuple, list)):
+            left_keys = [left_on]
         else:
-            raise ValueError("Key field cannot be None!")
+            left_keys = list(left_on)
+
+        if not isinstance(right_on, (tuple, list)):
+            right_keys = [right_on]
+        else:
+            right_keys = list(right_on)
+
+        # right, right_keys may be modified if keys are same ( in __evaluate_join_condition())
+        right, dfopt, renamed_keys, right_keys = \
+            self.__evaluate_join_condition(right, left_keys, right_keys)
+
+        left_non_key_cols = set(self.__cols) - set(left_keys)
+        right_non_key_cols = set(right.__cols) - set(right_keys)
+        common_non_key_cols = left_non_key_cols & right_non_key_cols
+
+        # if renaming required add suffixes
+        df_left = self
+        df_right = right
+        if len(common_non_key_cols) > 0:
+            renamed_left_cols = {}
+            renamed_right_cols = {}
+            lsuf, rsuf = suffixes
+            if lsuf == '' and rsuf == '':
+                raise ValueError("columns overlap but no suffix specified: %s " \
+                                % common_non_key_cols)
+            for e in common_non_key_cols:
+                renamed_left_cols[e] = e + str(lsuf)
+                renamed_right_cols[e] = e + str(rsuf)
+            if lsuf != '':
+                df_left = self.rename(renamed_left_cols)
+            if rsuf != '':
+                df_right = right.rename(renamed_right_cols)
 
         ret = FrovedisDataframe()
-        ret.__cols = self.__cols + df.__cols
-        ret.__types = self.__types + df.__types
-        for item in self.__cols:
-            ret.__dict__[item] = self.__dict__[item]
-        for item in df.__cols:
-            if item not in ret.__dict__:
-                ret.__dict__[item] = df.__dict__[item]
+        ret.__cols = df_left.__cols + df_right.__cols
+        ret.__types = df_left.__types + df_right.__types
+        for item in df_left.__cols:
+            ret.__dict__[item] = df_left.__dict__[item]
+        for item in df_right.__cols:
+            ret.__dict__[item] = df_right.__dict__[item]
 
         (host, port) = FrovedisServer.getServerInstance()
         ret.__fdata = \
-                    rpclib.merge_frovedis_dataframe(host, port, self.get(),
-                                                    df.get(), dfopt.get(),
+                    rpclib.merge_frovedis_dataframe(host, port, df_left.get(),
+                                                    df_right.get(), dfopt.get(),
                                                     how.encode('ascii'),
                                                     join_type.encode('ascii'))
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
             raise RuntimeError(excpt["info"])
-        return ret
+
+        if renamed_keys:
+            targets = list(ret.__cols)
+            for key in renamed_keys:
+                targets.remove(key)
+            return ret.select_frovedis_dataframe(targets)
+        else:
+            return ret
 
     # exception at frovedis server: same key is not
     # currently supported by frovedis
@@ -418,8 +478,10 @@ class FrovedisDataframe(object):
         if self.__fdata is None:
             raise ValueError("Operation on invalid frovedis dataframe!")
         if not isinstance(columns, dict):
-            raise TypeError("Expected: dictionery; Received: ",
+            raise TypeError("Expected: dictionary; Received: ",
                             type(columns).__name__)
+        if not columns:
+            return self
         names = list(columns.keys())
         new_names = list(columns.values())
         ret = FrovedisDataframe()
@@ -431,14 +493,14 @@ class FrovedisDataframe(object):
         for i in range(0, len(names)):
             item = names[i]
             new_item = new_names[i]
-            if not item in ret.__cols:
+            if item not in ret.__cols:
                 raise ValueError("No column named: ", item)
-        else:
-            idx = ret.__cols.index(item)
-            dt = ret.__types[idx]
-            ret.__cols[idx] = new_item
-            del ret.__dict__[item]
-            ret.__dict__[new_item] = FrovedisColumn(new_item, dt)
+            else:
+                idx = ret.__cols.index(item)
+                dt = ret.__types[idx]
+                ret.__cols[idx] = new_item
+                del ret.__dict__[item]
+                ret.__dict__[new_item] = FrovedisColumn(new_item, dt)
 
         sz = len(names)
         vec1 = np.asarray(names)
@@ -570,7 +632,7 @@ class FrovedisDataframe(object):
         if self.__fdata is None:
             raise ValueError("Operation on invalid frovedis dataframe!")
         # count of all columns
-        if not columns:
+        if columns is None:
             return self.__get_stat('count', self.__cols)
         vtype = type(columns).__name__
         if vtype == 'str':
@@ -604,6 +666,8 @@ class FrovedisDataframe(object):
         """
         __get_stat
         """
+        if len(columns) == 0:
+            return []
         if type(types).__name__ == 'list' and len(columns) != len(types):
             raise ValueError("Size of inputs doesn't match!")
         if type(name).__name__ != 'str':
@@ -709,9 +773,23 @@ class FrovedisDataframe(object):
             excpt = rpclib.check_server_exception()
             if excpt["status"]:
                 raise RuntimeError(excpt["info"])
-            data[cols[i]] = col_val
+            data[cols[i]] = np.asarray(col_val)
+
         #print(data)
-        return pd.DataFrame(data)
+        res = pd.DataFrame(data)
+
+        # null replacements
+        null_replacement = {}
+        null_replacement[DTYPE.DOUBLE] = np.finfo(np.float64).max
+        null_replacement[DTYPE.FLOAT] = np.finfo(np.float32).max
+        null_replacement[DTYPE.LONG] = np.iinfo(np.int64).max
+        null_replacement[DTYPE.INT] = np.iinfo(np.int32).max
+        null_replacement[DTYPE.STRING] = "NULL"
+
+        for i in range(0, sz):
+            res[cols[i]].replace(null_replacement[types[i]], np.nan, inplace=True)
+
+        return res
 
     #default type: float
     def to_frovedis_rowmajor_matrix(self, t_cols, dtype=np.float32):
@@ -848,3 +926,55 @@ class FrovedisDataframe(object):
             raise RuntimeError(excpt["info"])
         #default at server: size_t
         return FrovedisCRSMatrix(mat=dmat, dtype=dtype, itype=np.int64)
+
+    def filter(self, items=None, like=None, regex=None, axis=None):
+        """
+        Subset the dataframe rows or columns according to the specified index labels.
+        """
+        # no of keyword args
+        nkw = sum(x is not None for x in (items, like, regex))
+        # only 1 can be not-None
+        if nkw > 1:
+            raise TypeError(
+                "Keyword arguments `items`, `like`, or `regex` "
+                "are mutually exclusive"
+            )
+
+        if axis not in (None, 0, 1, 'columns', 'index'):
+            raise ValueError("filter(): Unsupported axis '%s' is"+
+                             " provided!" % str(axis))
+
+        # default axis = 1 , i.e. column names
+        if axis is None or axis == 'columns':
+            axis = 1
+        elif axis == 0 or axis == 'index':
+            raise ValueError("filter() on 'index' axis is not supported for"+
+                             " FrovedisDataframe!")
+
+        if items is not None:
+            targets = list(items)
+        elif like is not None:
+            def func(x):
+                """ used for filtering """
+                return like in x
+            targets = list(filter(func, self.__cols))
+        elif regex is not None:
+            import re
+            pattern = re.compile(regex)
+            def func(x):
+                """ used for filtering """
+                return pattern.search(x) is not None
+            targets = list(filter(func, self.__cols))
+        else:
+            raise TypeError("Must pass either `items`, `like`, or `regex`")
+
+        return self.select_frovedis_dataframe(targets)
+
+    def __str__(self):
+        #TODO: fixme to return df as a string
+        self.show()
+        return ""
+
+    def __repr__(self):
+        return self.__str__()
+
