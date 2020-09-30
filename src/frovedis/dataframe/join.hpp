@@ -7,6 +7,8 @@
 #else
 #include "../core/radix_sort.hpp"
 #include "../core/set_operations.hpp"
+#include "../core/lower_bound.hpp"
+#include "../core/upper_bound.hpp"
 #include "hashtable.hpp"
 #include <limits>
 #endif
@@ -376,6 +378,157 @@ std::vector<size_t> outer_equi_join(std::vector<T>& left,
 }
 
 #endif
+
+// left, left_idx, right, right_idx are destructed
+template <class T>
+void lt_join(std::vector<T>& left,
+             std::vector<size_t>& left_idx,
+             std::vector<T>& right,
+             std::vector<size_t>& right_idx,
+             std::vector<size_t>& left_idx_out,
+             std::vector<size_t>& right_idx_out) {
+  radix_sort(right, right_idx);
+  auto sep = upper_bound(right, left);
+  auto sep_size = sep.size();
+  std::vector<size_t> sizes(sep_size);
+  auto sepp = sep.data();
+  auto sizesp = sizes.data();
+  auto right_size = right.size();
+  for(size_t i = 0; i < sep_size; i++) {
+    sizesp[i] = right_size - sepp[i];
+  }
+  size_t total = 0;
+  for(size_t i = 0; i < sep_size; i++) {
+    total += sizesp[i];
+  }
+  left_idx_out.resize(total);
+  right_idx_out.resize(total);
+  auto left_idx_outp = left_idx_out.data();
+  auto right_idx_outp = right_idx_out.data();
+  auto left_idxp = left_idx.data();
+  auto right_idxp = right_idx.data();
+  auto left_size = left.size();
+  auto crnt_left_idx_outp = left_idx_outp;
+  auto crnt_right_idx_outp = right_idx_outp;
+  for(size_t i = 0; i < left_size; i++) {
+    auto crnt_right_idxp = right_idxp + sepp[i];
+    for(size_t j = 0; j < sizes[i]; j++) {
+      crnt_left_idx_outp[j] = left_idxp[i];
+      crnt_right_idx_outp[j] = crnt_right_idxp[j];
+    }
+    crnt_left_idx_outp += sizesp[i];
+    crnt_right_idx_outp += sizesp[i];
+  }
+}
+
+template <class T>
+void le_join(std::vector<T>& left,
+             std::vector<size_t>& left_idx,
+             std::vector<T>& right,
+             std::vector<size_t>& right_idx,
+             std::vector<size_t>& left_idx_out,
+             std::vector<size_t>& right_idx_out) {
+  radix_sort(right, right_idx);
+  auto sep = lower_bound(right, left);
+  auto sep_size = sep.size();
+  std::vector<size_t> sizes(sep_size);
+  auto sepp = sep.data();
+  auto sizesp = sizes.data();
+  auto right_size = right.size();
+  for(size_t i = 0; i < sep_size; i++) {
+    sizesp[i] = right_size - sepp[i];
+  }
+  size_t total = 0;
+  for(size_t i = 0; i < sep_size; i++) {
+    total += sizesp[i];
+  }
+  left_idx_out.resize(total);
+  right_idx_out.resize(total);
+  auto left_idx_outp = left_idx_out.data();
+  auto right_idx_outp = right_idx_out.data();
+  auto left_idxp = left_idx.data();
+  auto right_idxp = right_idx.data();
+  auto left_size = left.size();
+  auto crnt_left_idx_outp = left_idx_outp;
+  auto crnt_right_idx_outp = right_idx_outp;
+  for(size_t i = 0; i < left_size; i++) {
+    auto crnt_right_idxp = right_idxp + sepp[i];
+    for(size_t j = 0; j < sizes[i]; j++) {
+      crnt_left_idx_outp[j] = left_idxp[i];
+      crnt_right_idx_outp[j] = crnt_right_idxp[j];
+    }
+    crnt_left_idx_outp += sizesp[i];
+    crnt_right_idx_outp += sizesp[i];
+  }
+}
+
+template <class T>
+void gt_join(std::vector<T>& left,
+             std::vector<size_t>& left_idx,
+             std::vector<T>& right,
+             std::vector<size_t>& right_idx,
+             std::vector<size_t>& left_idx_out,
+             std::vector<size_t>& right_idx_out) {
+  radix_sort(right, right_idx);
+  auto sep = lower_bound(right, left);
+  auto sep_size = sep.size();
+  auto sepp = sep.data();
+  size_t total = 0;
+  for(size_t i = 0; i < sep_size; i++) {
+    total += sepp[i];
+  }
+  left_idx_out.resize(total);
+  right_idx_out.resize(total);
+  auto left_idx_outp = left_idx_out.data();
+  auto right_idx_outp = right_idx_out.data();
+  auto left_idxp = left_idx.data();
+  auto right_idxp = right_idx.data();
+  auto left_size = left.size();
+  auto crnt_left_idx_outp = left_idx_outp;
+  auto crnt_right_idx_outp = right_idx_outp;
+  for(size_t i = 0; i < left_size; i++) {
+    for(size_t j = 0; j < sepp[i]; j++) {
+      crnt_left_idx_outp[j] = left_idxp[i];
+      crnt_right_idx_outp[j] = right_idxp[j];
+    }
+    crnt_left_idx_outp += sepp[i];
+    crnt_right_idx_outp += sepp[i];
+  }
+}
+
+template <class T>
+void ge_join(std::vector<T>& left,
+             std::vector<size_t>& left_idx,
+             std::vector<T>& right,
+             std::vector<size_t>& right_idx,
+             std::vector<size_t>& left_idx_out,
+             std::vector<size_t>& right_idx_out) {
+  radix_sort(right, right_idx);
+  auto sep = upper_bound(right, left);
+  auto sep_size = sep.size();
+  auto sepp = sep.data();
+  size_t total = 0;
+  for(size_t i = 0; i < sep_size; i++) {
+    total += sepp[i];
+  }
+  left_idx_out.resize(total);
+  right_idx_out.resize(total);
+  auto left_idx_outp = left_idx_out.data();
+  auto right_idx_outp = right_idx_out.data();
+  auto left_idxp = left_idx.data();
+  auto right_idxp = right_idx.data();
+  auto left_size = left.size();
+  auto crnt_left_idx_outp = left_idx_outp;
+  auto crnt_right_idx_outp = right_idx_outp;
+  for(size_t i = 0; i < left_size; i++) {
+    for(size_t j = 0; j < sepp[i]; j++) {
+      crnt_left_idx_outp[j] = left_idxp[i];
+      crnt_right_idx_outp[j] = right_idxp[j];
+    }
+    crnt_left_idx_outp += sepp[i];
+    crnt_right_idx_outp += sepp[i];
+  }
+}
 
 }
 #endif
