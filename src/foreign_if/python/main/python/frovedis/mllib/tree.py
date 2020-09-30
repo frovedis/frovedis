@@ -39,10 +39,7 @@ class DecisionTreeRegressor(BaseEstimator):
                  class_weight=None, presort=False,
                  min_info_gain=0.0, max_bins=32, verbose=0):
         self.splitter = splitter
-        if max_depth is None:
-            self.max_depth = 5
-        else:
-            self.max_depth = max_depth
+        self.max_depth = max_depth
         self.criterion = criterion
         self.min_samples_split = min_samples_split
         self.min_samples_leaf = min_samples_leaf
@@ -73,16 +70,20 @@ class DecisionTreeRegressor(BaseEstimator):
         self.criterion = self.criterion.upper()
         if self.criterion != "MSE":
             raise ValueError("Invalid criterion for Decision Tree Regressor!")
+
+        if self.max_depth is None:
+            self.max_depth = 5 # as in Frovedis DecisionTree
         elif self.max_depth < 0:
             raise ValueError("max depth can not be negative !")
-        elif self.min_info_gain < 0:
+
+        if self.min_info_gain < 0:
             raise ValueError("Value of min_info_gain should be greater than 0")
-        elif self.max_bins < 0:
+        if self.max_bins < 0:
             raise ValueError("Value of max_bin should be greater than 0")
-        elif self.n_classes_ < 0:
+        if self.n_classes_ < 0:
             raise ValueError(\
             "Value of number of classes should be +ve integer or zero!")
-        elif self.min_samples_leaf < 0:
+        if self.min_samples_leaf < 0:
             raise ValueError(\
             "Value of min_samples_leaf should be greater than 0!")
 
@@ -224,10 +225,7 @@ class DecisionTreeClassifier(BaseEstimator):
                  max_bins=32, verbose=0):
         self.criterion = criterion
         self.splitter = splitter
-        if max_depth is None:
-            self.max_depth = 5
-        else:
-            self.max_depth = max_depth
+        self.max_depth = max_depth
         self.min_samples_split = min_samples_split
         self.min_samples_leaf = min_samples_leaf
         self.min_weight_fraction_leaf = min_weight_fraction_leaf
@@ -257,17 +255,21 @@ class DecisionTreeClassifier(BaseEstimator):
         self.criterion = self.criterion.upper()
         if self.criterion != "GINI" and self.criterion != "ENTROPY":
             raise ValueError("Invalid criterion for Decision Tree Classifier!")
+
+        if self.max_depth is None:
+            self.max_depth = 5 # as in Frovedis DecisionTree
         elif self.max_depth < 0:
             raise ValueError("max depth can not be negative !")
-        elif self.min_info_gain < 0:
+
+        if self.min_info_gain < 0:
             raise ValueError(\
             "Value of min_info_gain should be greater than 0")
-        elif self.max_bins < 0:
+        if self.max_bins < 0:
             raise ValueError("Value of max_bin should be greater than 0")
-        elif self.min_samples_leaf < 0:
+        if self.min_samples_leaf < 0:
             raise ValueError(\
             "Value of min_samples_leaf should be greater than 0!")
-        elif self.n_classes_ < 0:
+        if self.n_classes_ < 0:
             raise ValueError(\
             "Value of number of classes should be +ve integer or zero!")
 
