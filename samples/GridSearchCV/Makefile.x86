@@ -1,0 +1,10 @@
+TARGETS := search_cv
+include ../Makefile.in.x86
+include ../Makefile.common
+
+TO_INSTALL := search_cv.cc
+DIR := search_cv
+ARCH := x86
+
+search_cv: search_cv.o
+	${MPICXX} ${CXXFLAGS} -o search_cv search_cv.o ${LIBS}

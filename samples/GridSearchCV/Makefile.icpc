@@ -1,0 +1,10 @@
+TARGETS := search_cv
+include ../Makefile.in.icpc
+include ../Makefile.common
+
+TO_INSTALL := search_cv.cc
+DIR := search_cv
+ARCH := icpc
+
+search_cv: search_cv.o
+	${LINK} -o search_cv search_cv.o ${LIBS}

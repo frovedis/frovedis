@@ -1,0 +1,11 @@
+TARGETS := search_cv
+include ../Makefile.in.sx
+include ../Makefile.common
+
+TO_INSTALL := search_cv.cc
+DIR := search_cv
+ARCH := sx
+
+search_cv: search_cv.o
+	${CXX} -prelink ${CXXFLAGS} search_cv.o ${LIBS}
+	${MPICXX} ${CXXFLAGS} -o search_cv search_cv.o ${LIBS}
