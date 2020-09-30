@@ -516,6 +516,10 @@ class AgglomerativeClustering(BaseEstimator):
         NAME: fit
         """
         self.release()
+        supported_linkages = {'average', 'complete', 'single'}
+        if self.linkage not in supported_linkages:
+            raise ValueError("linkage: Frovedis doesn't support the "\
+                              + "given linkage!")
         self.__mid = ModelID.get()
         inp_data = FrovedisFeatureData(X, dense_kind='rowmajor')
         X = inp_data.get()
