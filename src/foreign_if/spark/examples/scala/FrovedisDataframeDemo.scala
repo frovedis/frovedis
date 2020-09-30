@@ -72,14 +72,41 @@ object FrovedisDataframeDemo {
                       .toDF("CCode","Country")
     val df3 = new FrovedisDataFrame(countryDF2)
 
-    // exception at frovedis server: joining table have same key name
-    //df1.join(df3, df1("Country") === df3("Country"))
-    //   .select("EName","Age","CCode","CName").show()
+    df1.join(df3, Seq("Country")) //SAME AS : df1("Country") === df3("Country"))
+       .select("EName","Age","CCode","Country").show()
 
-    // for above case, just perform a renaming of the target key in right table (df3)
-    val df4 = df3.withColumnRenamed("Country", "CName")
-    df1.join(df4, df1("Country") === df4("CName"))
-       .select("EName","Age","CCode","CName").show()
+    // multi-eq
+  	val country3 = Seq(
+      (1, "USA", "A"),
+      (2, "England", "B"),
+      (3, "Japan", "C"),
+      (4, "France", "F")
+    )
+    val countryColumns3 = Seq("CCode","CName", "City")
+    val countryDF3 = country3.toDF(countryColumns3:_*)
+    val country_frov1 = new FrovedisDataFrame(countryDF3)
+
+    val country4 = Seq(
+      (1, "A", 120),
+      (2, "B", 240),
+      (3, "C", 100),
+      (4, "F", 240)
+    )
+    val countryColumns4 = Seq("CCode", "City", "ElectricalRating")
+    val countryDF4 = country4.toDF(countryColumns4:_*)
+    val country_frov2 = new FrovedisDataFrame(countryDF4)
+
+    var df_tmp = country_frov1.join(country_frov2,
+                                   $$"CCode" === $$"CCode"
+                                   && $$"City" === $$"City")
+    df_tmp.show()
+
+    //non-equi
+    val df_tmp2 = df_tmp.withColumnRenamed(Array("CCode", "City", "CName"),
+                                          Array("CCode2", "City2", "CName2"))
+    country_frov2.join(df_tmp2, $$"ElectricalRating" < $$"ElectricalRating")
+                 .select("City", "City2").show()    
+
 
     // groupBy demo
     df1.groupBy("Country").count().show()
@@ -125,7 +152,6 @@ object FrovedisDataframeDemo {
     df1.release()
     df2.release()
     df3.release()
-    df4.release()
     df5.release()
     gdf.release()
     rmat.release()
@@ -133,6 +159,10 @@ object FrovedisDataframeDemo {
     crsmat1.release()
     crsmat2.release()
     info.release()
+    country_frov1.release()
+    country_frov2.release()
+    df_tmp.release()
+    df_tmp2.release()
 
     FrovedisServer.shut_down()
     sc.stop()
