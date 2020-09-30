@@ -9,6 +9,7 @@ from ..exrpc.server import FrovedisServer
 from ..exrpc import rpclib
 from ..matrix.ml_data import FrovedisFeatureData
 from ..matrix.dtype import DTYPE, TypeUtil
+from ..matrix.dense import FrovedisRowmajorMatrix
 
 class M_KIND(object):
     """A python enumerator for wrapping model kinds"""
@@ -38,6 +39,7 @@ class M_KIND(object):
     RFM = 23
     GBT = 24
     SVR = 25
+    KSVC = 26
 
 class ModelID(object):
     """A python container for generating model IDs for ML"""
@@ -69,14 +71,18 @@ class GLM(object):
         """
         if mdtype is None:
             raise ValueError("model for predict is typeless!")
-        inp_data = FrovedisFeatureData(X, dense_kind='rowmajor')
+        inp_data = FrovedisFeatureData(X, dense_kind='rowmajor', \
+                                dtype=TypeUtil.to_numpy_dtype(mdtype))
         X = inp_data.get()
         dtype = inp_data.get_dtype()
         itype = inp_data.get_itype()
         dense = inp_data.is_dense()
         if dtype != mdtype:
             raise TypeError( \
-            "Input CRS matrix dtype is different than model dtype!")
+            "Input matrix dtype is different than model dtype!")
+        if(dense and not isinstance(X, FrovedisRowmajorMatrix)):
+            raise TypeError("Currently prediction is supported only " \
+                    + "for Rowmajor Matrix as for Frovedis dense data!")
         (host, port) = FrovedisServer.getServerInstance()
         len_l = X.numRows() * n_classes
         if mdtype == DTYPE.FLOAT:
