@@ -2,6 +2,7 @@
 #define _EXRPC_SVD_HPP_
 
 #include "frovedis.hpp"
+#include "frovedis/matrix/blas_wrapper.hpp"
 #include "frovedis/matrix/jds_crs_hybrid.hpp"
 #include "frovedis/matrix/truncated_svd.hpp"
 #include "frovedis/matrix/sparse_svd.hpp"
@@ -112,10 +113,8 @@ frovedis_svd_transform(exrpc_ptr_t& data_ptr,
                        exrpc_ptr_t& v_ptr) {
   MATRIX& mat = *reinterpret_cast<MATRIX*>(data_ptr);
   auto& vmat = *reinterpret_cast<colmajor_matrix<T>*>(v_ptr);
-  auto v_rmat = vmat.to_rowmajor();
-  // TODO: provide interface for rowmajor_matrix<T> * rowmajor_matrix<T>
-  auto resloc = mat.gather() * v_rmat.gather(); 
-  auto res = new rowmajor_matrix<T>(make_rowmajor_matrix_scatter<T>(resloc));
+  // TODO: avoid to_rowmajor()...
+  auto res = new rowmajor_matrix<T>(mat * vmat.to_rowmajor());
   return to_dummy_matrix<rowmajor_matrix<T>, rowmajor_matrix_local<T>>(res);
 } 
 
@@ -159,10 +158,8 @@ frovedis_svd_inv_transform(exrpc_ptr_t& data_ptr,
                            exrpc_ptr_t& v_ptr) {
   MATRIX& mat = *reinterpret_cast<MATRIX*>(data_ptr);
   auto& vmat = *reinterpret_cast<colmajor_matrix<T>*>(v_ptr);
-  auto v_rmat = vmat.to_rowmajor();
-  // TODO: provide interface for rowmajor_matrix<T> * rowmajor_matrix<T>
-  auto resloc = mat.gather() * v_rmat.gather().transpose(); 
-  auto res = new rowmajor_matrix<T>(make_rowmajor_matrix_scatter<T>(resloc));
+  // TODO: avoid to_rowmajor()...
+  auto res = new rowmajor_matrix<T>(mat * vmat.to_rowmajor().transpose());
   return to_dummy_matrix<rowmajor_matrix<T>, rowmajor_matrix_local<T>>(res);
 } 
 
