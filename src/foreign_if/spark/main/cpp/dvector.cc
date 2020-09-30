@@ -63,7 +63,7 @@ JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_loadFrovedisWork
   return (jlong) proxy;
 }
 
-JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_loadFrovedisWorkerBooleanVector
+JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_loadFrovedisWorkerBoolVector
   (JNIEnv *env, jclass thisCls, jobject master_node, jlong size,
    jbooleanArray data) {
 
