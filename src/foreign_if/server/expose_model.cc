@@ -183,6 +183,19 @@ void expose_frovedis_model_functions() {
   expose((get_weight_vector<DT2,SVR2>));
   expose((get_intercept_as_vector<DT1,SVR1>));
   expose((get_intercept_as_vector<DT2,SVR2>));
+  // --- frovedis SVM Kernel Model ---
+  expose(release_model<KSVC1>);
+  expose(release_model<KSVC2>); // for python
+  expose(save_model<KSVC1>);
+  expose(save_model<KSVC2>);    // for python
+  expose(load_model<KSVC1>);
+  expose(load_model<KSVC2>);    // for python
+  expose((ksvm_predict<DT1,R_MAT1,KSVC1>));  // for spark+python
+  expose((ksvm_predict<DT2,R_MAT2,KSVC2>));  // for python
+  expose((get_support_vector<DT1,KSVC1>));
+  expose((get_support_vector<DT2,KSVC2>));
+  expose((get_support_idx<DT5,KSVC1>));
+  expose((get_support_idx<DT5,KSVC2>));
   // --- frovedis MatrixFactorizationModel ---
   expose(show_model<MFM1>);
   expose(release_model<MFM1>);
