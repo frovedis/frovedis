@@ -13,6 +13,7 @@
 #include <string>
 #include <frovedis/ml/clustering/common.hpp>
 #include <frovedis/core/radix_sort.hpp>
+#include <frovedis/ml/clustering/linkage.hpp>
 
 namespace frovedis {
 
@@ -59,7 +60,7 @@ struct LinkageUnionFind {
 template<class T>
 void label(std::vector<std::vector<T>> &Z, size_t n){
   //Correctly label clusters in unsorted dendrogram
-  LinkageUnionFind uf(n);//  =  new LinkageUnionFind(n);
+  LinkageUnionFind uf(n);
   size_t i, x, y, x_root, y_root;
   for(i = 0; i < n-1; ++i){
     x = size_t(Z[i][0]);
@@ -179,16 +180,15 @@ void vectorized_sort(rowmajor_matrix_local<T>& Z) {
 }
 #endif
 
+template<class T, class LINKAGE>
 #ifdef VEC_VEC
-template<class T>
 std::vector<std::vector<T>>
 #else
-template<class T>
 rowmajor_matrix_local<T>
-#endif 
+#endif
 compute_dendogram (std::vector<T>& D, size_t n) {
-  //create an empty dendogram for storing the future information
-  //nrows rows and 4 columns
+ //create an empty dendogram for storing the future information
+ //nrows rows and 4 columns
 #ifdef VEC_VEC 
   std::vector<std::vector<T>> Z(n-1, std::vector<T>(4));
 #else
@@ -203,16 +203,17 @@ compute_dendogram (std::vector<T>& D, size_t n) {
 
   size_t cond_index = 0;
   size_t chain_length = 0;
-  size_t i, k, x, y, nx, ny, ni;
+  size_t i, k, x, y;
   T dist, current_min;
-
-  for(k = 0; k < n-1; ++k) {
+  
+  LINKAGE ln(n); // LINKAGE object is instantiated here before for-loop
+  for(k = 0; k < n-1; ++k) { 
     if(chain_length == 0) {
       // search for active cluster
       for(i = 0; i < n; ++i) if(szptr[i] > 0) break;
       cptr[chain_length++] = i; // push
     }
-
+    
     // go through chain of neighbors until two mutual neighbors are found.
     while(true) {
       x = cptr[chain_length - 1];
@@ -249,7 +250,6 @@ compute_dendogram (std::vector<T>& D, size_t n) {
       if(chain_length > 1 && y == cptr[chain_length - 2]) break;
       else cptr[chain_length++] = y; //push
     }
-
     //Merge clusters x and y and pop them from stack.
     chain_length -= 2;
 
@@ -257,40 +257,23 @@ compute_dendogram (std::vector<T>& D, size_t n) {
     if(x > y)  std::swap(x,y);
     //std::cout << x << ", " << y << std::endl;
 
-    //get the original numbers of posize_ts in clusters x and y
-    nx = szptr[x];
-    ny = szptr[y];
-
     //Record the new node.
 #ifdef VEC_VEC
     Z[k][0] = (T)x;
     Z[k][1] = (T)y;
     Z[k][2] = current_min;
-    Z[k][3] = (T) nx + ny;
+    Z[k][3] = (T) szptr[x]+szptr[y];
 #else
     zptr[k*4+0] = (T)x;
     zptr[k*4+1] = (T)y;
     zptr[k*4+2] = current_min;
-    zptr[k*4+3] = (T) nx + ny;
+    zptr[k*4+3] = (T) szptr[x]+szptr[y];
 #endif
 
-    szptr[x] = 0;        // cluster x will be dropped.
-    szptr[y] = nx + ny;  // cluster y will be replaced with the new cluster
-
-    size_t x_indx = 0, y_indx = 0;
-    //Update the distance matrix.
-#pragma _NEC ivdep
-    for(i = 0; i < n; ++i){
-      ni = szptr[i];
-      if(ni == 0 || i == y) continue;
-      if (i < x) x_indx = (n * i - (i * (i + 1) / 2) + (x - i - 1)); 
-      else       x_indx = (n * x - (x * (x + 1) / 2) + (i - x - 1));
-      if (i < y) y_indx = (n * i - (i * (i + 1) / 2) + (y - i - 1)); 
-      else       y_indx = (n * y - (y * (y + 1) / 2) + (i - y - 1));
-      dptr[y_indx] =  ((nx * dptr[x_indx] + ny * dptr[y_indx]) / (nx + ny));
-    }
+    ln.update_distance(D, size, x, y); // calling update_distance() of instantiated linkage object
   }
 
+  
   //Sort Z by cluster distances.
 #ifdef VEC_VEC
   std::sort(Z.begin(), Z.end(), sortcol);
@@ -410,25 +393,24 @@ assign_labels_impl(rowmajor_matrix_local<T>& Z,
   return assign_labels_vectorized<T>(Z,nsamples,ncluster);
 }
 
-template <class T>
+template <class T, class LINKAGE>
 #ifdef VEC_VEC
 std::vector<std::vector<T>>
 #else
 rowmajor_matrix_local<T>
 #endif
-agglomerative_impl(rowmajor_matrix_local<T>& mat, 
-                   const std::string& linkage,
+agglomerative_impl(rowmajor_matrix_local<T>& mat,
                    bool inputMovable = false) {
-  if(linkage != "average") REPORT_ERROR(USER_ERROR, "Frovedis supports only average linkage!\n");
   auto nsamples = mat.local_num_row;
-  time_spent dist(DEBUG), nn(DEBUG);
+  time_spent dist(INFO), nn(INFO);
   dist.lap_start();
   auto dist_vec = construct_condensed_distance_matrix(mat);
   dist.lap_stop();
   dist.show_lap("condensed dist computation: ");
   if(inputMovable) mat.clear();
   nn.lap_start();
-  auto tree = compute_dendogram(dist_vec, nsamples);
+  // pass the template type to be instantiated inside compute_dendogram
+  auto tree = compute_dendogram<T, LINKAGE>(dist_vec, nsamples); 
   nn.lap_stop();
   nn.show_lap("nn chain computation: ");
   return tree;
@@ -444,10 +426,29 @@ rowmajor_matrix_local<T>
 #endif
 agglomerative_training(rowmajor_matrix<T>& mat,
                        const std::string& linkage = "average") {
+  auto movable = true;
+  auto nsamples = mat.num_row;
   auto lmat = mat.gather();
-  return agglomerative_impl(lmat, linkage, true);
+  // linkage is passed as template
+  if (linkage == "average")
+    return agglomerative_impl<T, average_linkage<T>>(lmat, movable);
+  else if (linkage == "complete")
+    return agglomerative_impl<T, complete_linkage<T>>(lmat, movable);
+  else if (linkage == "single")
+    return agglomerative_impl<T, single_linkage<T>>(lmat, movable); 
+  else 
+     REPORT_ERROR(USER_ERROR,"Unsupported linkage type is encountered.\n");
+  
+#ifdef VEC_VEC 
+  std::vector<std::vector<T>> Z(nsamples-1, std::vector<T>(4));
+#else
+  rowmajor_matrix_local<T> Z(nsamples-1, 4);
+#endif
+
+  return Z;
+  
 }
-              
+             
 template <class T>
 #ifdef VEC_VEC
 std::vector<std::vector<T>>
@@ -456,11 +457,28 @@ rowmajor_matrix_local<T>
 #endif
 agglomerative_training(rowmajor_matrix<T>&& mat,
                        const std::string& linkage = "average") {
+  auto movable = true;
   auto lmat = mat.gather();
+  auto nsamples = mat.num_row;
   mat.clear(); // mat is rvalue
-  return agglomerative_impl(lmat, linkage, true);
+  if (linkage == "average")
+    return agglomerative_impl<T, average_linkage<T>>(lmat, movable);
+  else if (linkage == "complete")
+    return agglomerative_impl<T, complete_linkage<T>>(lmat, movable);
+  else if (linkage == "single")
+    return agglomerative_impl<T, single_linkage<T>>(lmat, movable);
+  else
+    REPORT_ERROR(USER_ERROR,"Unsupported linkage type is encountered.\n");
+ 
+#ifdef VEC_VEC 
+  std::vector<std::vector<T>> Z(nsamples-1, std::vector<T>(4));
+#else
+  rowmajor_matrix_local<T> Z(nsamples-1, 4);
+#endif
+
+  return Z; 
 }
-              
+   
 template <class T>
 #ifdef VEC_VEC
 std::vector<std::vector<T>>
@@ -469,7 +487,21 @@ rowmajor_matrix_local<T>
 #endif
 agglomerative_training(rowmajor_matrix_local<T>& mat,
                        const std::string& linkage = "average") {
-  return agglomerative_impl(mat, linkage, false); // mat is lvalue
+  auto movable = false;
+  auto nsamples = mat.local_num_row;
+  if (linkage == "average")
+    return agglomerative_impl<T, average_linkage<T>>(mat, movable);
+  else if (linkage == "complete")
+    return agglomerative_impl<T, complete_linkage<T>>(mat, movable);
+  else if (linkage == "single")
+    return agglomerative_impl<T, single_linkage<T>>(mat, movable);
+
+#ifdef VEC_VEC 
+  std::vector<std::vector<T>> Z(nsamples-1, std::vector<T>(4));
+#else
+  rowmajor_matrix_local<T> Z(nsamples-1, 4);
+#endif
+  return Z;  
 }
 
 template <class T>
@@ -480,8 +512,23 @@ rowmajor_matrix_local<T>
 #endif
 agglomerative_training(rowmajor_matrix_local<T>&& mat,
                        const std::string& linkage = "average") {
-  return agglomerative_impl(mat, linkage, true); // mat is rvalue
+  auto movable = true;
+  auto nsamples = mat.local_num_row;
+  if (linkage == "average")
+    return agglomerative_impl<T, average_linkage<T>>(mat, movable);
+  else if (linkage == "complete")
+    return agglomerative_impl<T, complete_linkage<T>>(mat, movable);
+  else if (linkage == "single")
+    return agglomerative_impl<T, single_linkage<T>>(mat, movable);
+
+#ifdef VEC_VEC 
+  std::vector<std::vector<T>> Z(nsamples-1, std::vector<T>(4));
+#else
+  rowmajor_matrix_local<T> Z(nsamples-1, 4);
+#endif
+  return Z;  
 }
+
 
 template <class T>
 std::vector<int>
@@ -491,7 +538,7 @@ agglomerative_assign_cluster(std::vector<std::vector<T>>& tree,
 agglomerative_assign_cluster(rowmajor_matrix_local<T>& tree, 
 #endif
                              int ncluster) {
-  time_spent assign(DEBUG);
+  time_spent assign(INFO);
   auto nsamples = tree.local_num_row + 1;
   if ((ncluster <= 0) || (ncluster > nsamples))
     REPORT_ERROR(USER_ERROR,"Number of clusters should be greater than 0 and less than nsamples.\n");
