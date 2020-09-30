@@ -33,6 +33,7 @@ python sgd_regressor_demo.py "$COMMAND"
 
 python svm_demo.py "$COMMAND"
 python svr_demo.py "$COMMAND"
+python svc_demo.py "$COMMAND"
 python dt_demo.py "$COMMAND"
 python rf_demo.py "$COMMAND"
 python gbt_demo.py "$COMMAND"

@@ -52,8 +52,21 @@ fdf1.groupby('Country').agg({'Age': ['max','min','mean'],
                              'Ename': ['count']}).show()
 
 # merge demo
-#currently joining on same key is not supported at frovedis server
-#fdf1.merge(fdf2, left_on="Country", right_on="Country").show()
+fdf1.merge(fdf2, left_on="Country", right_on="Country").show()
+
+# multi-key join
+df_tmp = fdf1.rename({'Age': 'Age2' })
+fdf1.join(df_tmp, on = ["Ename", "Country"]).show()
+
+# filter()
+print("Filter")
+fdf1.filter(items=['Ename']).show()
+fdf1.filter(like='C', axis=1).show()
+
+# contains, startswith, endswith
+fdf1[fdf1.Country.str.contains("a")].show()
+fdf1[fdf1.Country.str.startswith("J")].show()
+fdf1[fdf1.Country.str.endswith("e")].show()
 
 # renaming demo
 fdf3 = fdf2.rename({'Country' : 'Cname'})
@@ -63,12 +76,6 @@ fdf3.show()
 # join after column renaming
 fdf1.merge(fdf3, left_on="Country", right_on="Cname").show() # with defaults
 fdf1.merge(fdf3, left_on="Country", right_on="Cname", how='outer', join_type='hash').show()
-
-# note: frovedis doesn't support multiple key joining at this moment.
-# thus below call would cause an exception at frovedis server
-#fdf1.merge(fdf3, left_on=["Country","Country"], 
-#           right_on=["Cname","Cname"], how='outer', join_type='hash').show()
-
 # operation chaining: join -> sort -> select -> show
 fdf1.merge(fdf3, left_on="Country", 
            right_on="Cname", how='outer', join_type='hash').sort("Age")[["Age", "Ename", "Country"]].show()
@@ -105,7 +112,6 @@ print(pdf.describe()); print("\n")
 df = FrovedisDataframe(pdf)
 print(df.describe()); print("\n") # prints count, mean, std, sum, min, max
 
-
 # matrix conversion demo
 df.show()
 
@@ -129,7 +135,6 @@ crs_mat.release()
 crs_mat2.release()
 info.save("./out/info")
 info.release()
-
 
 fdf1.release()
 fdf2.release()

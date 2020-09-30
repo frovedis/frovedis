@@ -13,7 +13,7 @@ if (argc < 2):
 FrovedisServer.initialize(argvs[1])
 
 from sklearn.model_selection import GridSearchCV
-def grid_search_cv(obj,param,scoring,mat,lab):
+def grid_search_cv(obj, param, mat, lab):
     grid = GridSearchCV(obj, param, refit=True)
     grid_result = grid.fit(mat, lab)
     print('Best Score: ', grid_result.best_score_)
@@ -26,11 +26,9 @@ mat = FrovedisCRSMatrix(dtype=np.float64).load("./input/libSVMFile.txt").to_scip
 lbl = np.array([1,0,1,1,1,0,1,1])
 
 from frovedis.mllib.linear_model import *
-lr = LogisticRegression(solver='lbfgs', C=1.0, verbose=0)
-C = [0.001,0.0001]
-param = dict(C=C)
-grid_search_cv(lr,param,'r2',mat,lbl)
+lr = LogisticRegression(solver='sag')
+param = { 'C': [0.001,0.0001] }
+grid_search_cv(lr, param, mat, lbl)
 
 lr.release()
 FrovedisServer.shut_down()
-

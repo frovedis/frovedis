@@ -19,7 +19,7 @@ FrovedisServer.initialize(argvs[1])
 mat, lbl = load_boston(return_X_y=True)
 
 # fitting input matrix and label on svm regression object
-svr = SVR(loss='epsilon_insensitive', epsilon = 0.1, 
+svr = SVR(loss='epsilon_insensitive', epsilon = 0.1,
           max_iter=1000, penalty='l2').fit(mat,lbl)
 
 # predicting on loaded model
@@ -38,3 +38,4 @@ svr.debug_print()
 svr.release()
 
 FrovedisServer.shut_down()
+

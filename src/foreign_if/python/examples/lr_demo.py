@@ -16,7 +16,7 @@ if (argc < 2):
 FrovedisServer.initialize(argvs[1])
 
 mat = FrovedisCRSMatrix(dtype=np.float64).load("./input/libSVMFile.txt")
-lbl = FrovedisDvector([1,0,1,1,1,0,1,1],dtype=np.float64)
+lbl = [1,0,1,1,1,0,1,1]
 
 # fitting input matrix and label on logistic regression object
 lr = LogisticRegression(solver='lbfgs', C=1.0, verbose=0).fit(mat,lbl)
@@ -24,6 +24,7 @@ lr = LogisticRegression(solver='lbfgs', C=1.0, verbose=0).fit(mat,lbl)
 # predicting on loaded model
 print("predicting on lbfgs logistic regression model: ")
 print(lr.predict(mat))
+print("score: %.2f " % (lr.score(mat, lbl)))
 
 # fitting input matrix and label on logistic regression object
 lr = LogisticRegression(solver='sag', C=1.0, verbose=0).fit(mat,lbl)
@@ -31,12 +32,17 @@ lr = LogisticRegression(solver='sag', C=1.0, verbose=0).fit(mat,lbl)
 # predicting on loaded model
 print("predicting on sag logistic regression model: ")
 print(lr.predict(mat))
+print("score: %.2f " % (lr.score(mat, lbl)))
 
 print("attributes in fitted model: ")
+print("coef: ")
 print(lr.coef_)
+
+print("intercept: ")
 print(lr.intercept_)
+
+print("classes: ")
 print(lr.classes_)
-lr.debug_print()
 
 # saving the model
 lr.save("./out/LRModel")
@@ -44,11 +50,14 @@ lr.save("./out/LRModel")
 # loading the same model
 lr.load("./out/LRModel")
 print("attributes in loaded model: ")
+print("coef: ")
 print(lr.coef_)
-print(lr.intercept_)
-print(lr.classes_)
-lr.debug_print()
 
+print("intercept: ")
+print(lr.intercept_)
+
+print("classes: ")
+print(lr.classes_)
 
 lr.release()
 

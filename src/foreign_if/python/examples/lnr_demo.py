@@ -16,7 +16,6 @@ FrovedisServer.initialize(argvs[1])
 from sklearn.datasets import load_boston
 mat, label = load_boston(return_X_y=True)
 
-
 from frovedis.mllib.linear_model import LinearRegression
 lr = LinearRegression().fit(mat, label)
 
@@ -26,10 +25,11 @@ print("score: %.2f" % lr.score(mat[:10], label[:10]))
 print("coef: ")
 print(lr.coef_)
 
-# when solver = lapack, following outputs can also be obtained
-#print("singular: ")
-#print(lr.singular_)
-#print("rank: %d" % lr.rank_)
+# fitted with default solver = lapack, 
+# thus following outputs can also be obtained
+print("singular: ")
+print(lr.singular_)
+print("rank: %d" % lr.rank_)
 
 # saving the model
 lr.save("./out/LNRModel")
