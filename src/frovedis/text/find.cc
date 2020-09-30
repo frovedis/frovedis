@@ -1,4 +1,5 @@
 #include "find.hpp"
+#include <stdexcept>
 
 using namespace std;
 
@@ -244,8 +245,8 @@ void find_helper(const int* vp,
   }
 }
 
-vector<size_t> find(const int* vp, size_t size,
-                    const string& to_find) {
+vector<size_t> find_impl(const int* vp, size_t size,
+                         const string& to_find) {
   auto to_find_size = to_find.size();
   if(to_find_size == 0 || size == 0 || size < to_find_size)
     return vector<size_t>();
@@ -263,16 +264,77 @@ vector<size_t> find(const int* vp, size_t size,
                 static_cast<int>(static_cast<unsigned char>(to_find[i])), i);
     crntsize = retsize;
   }
+  {std::vector<size_t> tmp; bufidx.swap(tmp);}
   std::vector<size_t> ret(retsize);
   auto retp = ret.data();
   for(size_t i = 0; i < retsize; i++) retp[i] = crntidxp[i];
   return ret;
 }
 
-std::vector<size_t> find(const std::vector<int>& sv,
-                         const std::string& to_find) {
-  return find(sv.data(), sv.size(), to_find);
+std::vector<size_t> find_impl(const std::vector<int>& sv,
+                              const std::string& to_find) {
+  return find_impl(sv.data(), sv.size(), to_find);
 }
 
+
+vector<size_t> find(const int* vp, size_t size,
+                    const string& to_find,
+                    size_t block_size_mb) {
+  if(block_size_mb == 0) throw runtime_error("block_size is 0");
+  auto block_size = block_size_mb * 1024 * 1024 / 4;
+  auto to_find_size = to_find.size();
+  if(block_size < to_find_size)
+    throw runtime_error("to_find size is larger than block_size");
+  auto num_block = size / block_size;
+  auto rest_size = size - num_block * block_size;
+  if(num_block == 0) return find_impl(vp, size, to_find);
+  std::vector<std::vector<size_t>> retvec(num_block + 1);
+  auto retvecp = retvec.data();
+  for(size_t i = 0; i < num_block; i++) {
+    if(i == 0) {
+      retvecp[i] = find_impl(vp, block_size, to_find);
+    } else {
+      auto start_pos = block_size * i - (to_find_size - 1);
+      auto find_size = block_size + (to_find_size - 1);
+      retvecp[i] = find_impl(vp + start_pos, find_size, to_find);
+      auto retvecip = retvecp[i].data();
+      auto retveci_size = retvecp[i].size();
+      for(size_t j = 0; j < retveci_size; j++) {
+        retvecip[j] += start_pos;
+      }
+    }
+  }
+  // at least one block
+  auto start_pos = block_size * num_block - (to_find_size - 1);
+  auto find_size = rest_size + (to_find_size - 1);
+  retvecp[num_block] = find_impl(vp + start_pos, find_size, to_find);
+  auto retvecip = retvecp[num_block].data();
+  auto retveci_size = retvecp[num_block].size();
+  for(size_t j = 0; j < retveci_size; j++) {
+    retvecip[j] += start_pos;
+  }
+  size_t total = 0;
+  for(size_t i = 0; i < num_block + 1; i++) {
+    total += retvecp[i].size();
+  }
+  vector<size_t> ret(total);
+  auto retp = ret.data();
+  auto crnt_retp = retp;
+  for(size_t i = 0; i < num_block + 1; i++) {
+    auto crnt_size = retvecp[i].size();
+    auto retvecip = retvecp[i].data();
+    for(size_t j = 0; j < crnt_size; j++) {
+      crnt_retp[j] = retvecip[j];
+    }
+    crnt_retp += crnt_size;
+  }
+  return ret;
+}
+
+std::vector<size_t> find(const std::vector<int>& sv,
+                         const std::string& to_find,
+                         size_t block_size_mb) {
+  return find(sv.data(), sv.size(), to_find, block_size_mb);
+}
 
 }

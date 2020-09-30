@@ -18,11 +18,19 @@
 
 namespace frovedis {
 
-std::vector<size_t> find(const int* svp, size_t size,
-                         const std::string& to_find);
+std::vector<size_t> find_impl(const int* svp, size_t size,
+                              const std::string& to_find);
+
+std::vector<size_t> find_impl(const std::vector<int>& sv,
+                              const std::string& to_find);
+
+std::vector<size_t> find(const int* vp, size_t size,
+                         const std::string& to_find,
+                         size_t block_size_mb = 10);
 
 std::vector<size_t> find(const std::vector<int>& sv,
-                         const std::string& to_find);
+                         const std::string& to_find,
+                         size_t block_size_mb = 10);
 
 }
 
