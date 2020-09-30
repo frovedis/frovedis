@@ -74,9 +74,9 @@ extern "C" {
       result = exrpc_async(fm_node, (frovedis_bfs<graph<DT1>,DT5>), f_dptr, vb).get();
     }
     catch(std::exception& e) { set_status(true,e.what());}
-    checkAssumption(result.dist_nodes.size() == num_vertices);
+    checkAssumption(result.distances.size() == num_vertices);
     checkAssumption(result.num_nodes_in_which_cc.size() == num_vertices);
-    auto resdistp = result.dist_nodes.data();
+    auto resdistp = result.distances.data();
     auto reswhichp = result.num_nodes_in_which_cc.data();
     for(size_t i = 0; i < num_vertices; ++i){
       nodes_dist[i] = resdistp[i];
