@@ -194,7 +194,7 @@ words decompress_compressed_words(const std::vector<uint64_t>& cwords,
   vector<size_t> lenstmp(num_words_);
   auto startstmpp = startstmp.data();
   auto lenstmpp = lenstmp.data();
-  auto crnt_start = 0;
+  size_t crnt_start = 0;
   auto crnt_startstmpp = startstmpp;
   auto crnt_lenstmpp = lenstmpp;
   for(size_t len_i = 0; len_i < lens.size(); len_i++) {
@@ -350,13 +350,17 @@ compressed_words merge_compressed_words(const compressed_words& a,
 // input is destructive: not const
 compressed_words
 merge_multi_compressed_words(vector<compressed_words>& vcws) {
+  // clear() is for fail safe...
   auto vcws_size = vcws.size();
   if(vcws_size == 0) {
     return compressed_words();
   } else if(vcws_size == 1) {
     return vcws[0];
   } else if(vcws_size == 2) {
-    return merge_compressed_words(vcws[0], vcws[1]);
+    auto r = merge_compressed_words(vcws[0], vcws[1]);
+    vcws[0].clear();
+    vcws[1].clear();
+    return r;
   } else {
     auto left_size = ceil_div(vcws_size, size_t(2));
     auto right_size = vcws_size - left_size;
@@ -364,12 +368,20 @@ merge_multi_compressed_words(vector<compressed_words>& vcws) {
     vector<compressed_words> right(right_size);
     for(size_t i = 0; i < left_size; i++) {
       left[i] = move(vcws[i]);
+      vcws[i].clear();
     }
     for(size_t i = 0; i < right_size; i++) {
       right[i] = move(vcws[left_size + i]);
+      vcws[left_size + i].clear();
     }
-    return merge_compressed_words(merge_multi_compressed_words(left),
-                                  merge_multi_compressed_words(right));
+    auto left_merged = merge_multi_compressed_words(left);
+    for(size_t i = 0; i < left_size; i++) left[i].clear();
+    auto right_merged = merge_multi_compressed_words(right);
+    for(size_t i = 0; i < right_size; i++) right[i].clear();
+    auto r = merge_compressed_words(left_merged, right_merged);
+    left_merged.clear();
+    right_merged.clear();
+    return r;
   }
 }
 
@@ -454,7 +466,7 @@ compressed_words::extract(const std::vector<size_t>& idx) const {
   auto crnt_ret_cwordsp = ret_cwordsp;
   auto cwordsp = cwords.data();
   auto px_lens_nump = px_lens_num.data();
-  auto crnt_idx = 0;
+  size_t crnt_idx = 0;
   sidxp = sidx.data();
   for(size_t i = 0; i < ret_lens_size; i++) {
     auto crnt_cwordsp = cwordsp + px_mult_lens_nump[lens_posp[sepp[i]]];

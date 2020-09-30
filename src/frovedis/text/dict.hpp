@@ -58,7 +58,13 @@ struct compressed_words {
   std::vector<size_t> lens;
   std::vector<size_t> lens_num;
   std::vector<size_t> order;
-  
+
+  void clear() { // to free memory
+    std::vector<uint64_t> cwords_tmp; cwords.swap(cwords_tmp);
+    std::vector<size_t> lens_tmp; lens.swap(lens_tmp);
+    std::vector<size_t> lens_num_tmp; lens_num.swap(lens_num_tmp);
+    std::vector<size_t> order_tmp; order.swap(order_tmp);
+  }
   struct words decompress() const;
   void lexical_sort();
   compressed_words extract(const std::vector<size_t>& idx) const; 
