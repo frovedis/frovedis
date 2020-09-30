@@ -110,8 +110,10 @@ void parse_csv_vreg(uint32_t state[][256], const int* vp, int* outvp,
   }
 }
 
-words parse_csv(const vector<int>& v, const vector<size_t>& start,
-                vector<size_t>& line_starts_byword, int separator) {
+words parse_csv_impl(const int*  vp, size_t v_size,
+                     const size_t* startp, size_t start_size,
+                     vector<size_t>& line_starts_byword, int separator) {
+  if(v_size == 0 || start_size == 0) return words();
   uint32_t state[7][256];
   size_t num_chars = 256;
   for(size_t i = 0; i < num_chars; i++) {
@@ -179,9 +181,7 @@ words parse_csv(const vector<int>& v, const vector<size_t>& start,
       state[csv_state::out_quote][i] = (csv_state::out_quote|csv_action::out);
   }
 
-  auto v_size = v.size();
   vector<int> outv(v_size);
-  auto vp = v.data();
   auto outvp = outv.data();
   vector<size_t> outstart(v_size);
   auto outstartp = outstart.data();
@@ -193,8 +193,6 @@ words parse_csv(const vector<int>& v, const vector<size_t>& start,
     if(each * i < v_size) starttmp[i] = each * i;
     else starttmp[i] = v_size;
   }
-  auto startp = start.data();
-  auto start_size = start.size();
   size_t startlineidx[LOAD_CSV_VLEN];
   lower_bound(startp, start_size, starttmp, LOAD_CSV_VLEN, startlineidx);
   size_t startidx[LOAD_CSV_VLEN];
@@ -276,6 +274,95 @@ words parse_csv(const vector<int>& v, const vector<size_t>& start,
   auto line_starts_bywordp = line_starts_byword.data();
   for(size_t i = 0; i < start_size; i++) {
     line_starts_bywordp[i] = startlinep[i];
+  }
+  return ret;
+}
+
+words parse_csv(vector<int>& v, vector<size_t>& start,
+                vector<size_t>& line_starts_byword, int separator) {
+  size_t block_size_mb = 10; // TODO: how to specify?
+  auto block_size = block_size_mb * 1024 * 1024 / 4;
+  auto v_size = v.size();
+  auto num_block = v_size / block_size;
+  if(num_block == 0) {
+    return parse_csv_impl(v.data(), v.size(), start.data(), start.size(),
+                          line_starts_byword, separator);
+  }    
+  std::vector<size_t> search_block_pos(num_block);
+  auto search_block_posp = search_block_pos.data();
+  for(size_t i = 0; i < num_block; i++) search_block_posp[i] = block_size * i;
+  // block_pos may contain same pos or start.end()
+  auto block_pos = lower_bound(start, search_block_pos);
+  vector<words> vec_ret(num_block);
+  vector<vector<size_t>> vec_line_starts_byword(num_block);
+  auto vp = v.data();
+  size_t crnt_num_words = 0;
+  auto start_size = start.size();
+  auto startp = start.data();
+  for(size_t i = 0; i < num_block-1; i++) {
+    if(block_pos[i] == start_size || block_pos[i+1] == block_pos[i]) continue;
+    size_t call_vsize, call_start_size;
+    if(block_pos[i+1] == start_size) {
+      call_vsize = v_size - start[block_pos[i]];
+      call_start_size = start_size - block_pos[i];
+    } else {
+      call_vsize = start[block_pos[i+1]] - start[block_pos[i]];
+      call_start_size = block_pos[i+1] - block_pos[i];
+    }
+    auto start_pos = block_pos[i];
+    auto v_pos = start[block_pos[i]];
+    for(size_t j = 0; j < call_start_size; j++) {
+      startp[start_pos + j] -= v_pos;
+    }
+    vec_ret[i] = parse_csv_impl(vp + v_pos,
+                                call_vsize,
+                                startp + start_pos,
+                                call_start_size,
+                                vec_line_starts_byword[i],
+                                separator);
+    auto vec_line_starts_bywordip = vec_line_starts_byword[i].data();
+    auto vec_line_starts_bywordi_size = vec_line_starts_byword[i].size();
+    for(size_t j = 0; j < vec_line_starts_bywordi_size; j++) {
+      vec_line_starts_bywordip[j] += crnt_num_words;
+    }
+    crnt_num_words += vec_line_starts_bywordi_size;
+  }
+  if(block_pos[num_block-1] != start_size) {
+    size_t call_vsize, call_start_size;
+    call_vsize = v_size - start[block_pos[num_block-1]];
+    call_start_size = start_size - block_pos[num_block-1];
+    auto start_pos = block_pos[num_block-1];
+    auto v_pos = start[block_pos[num_block-1]];
+    for(size_t j = 0; j < call_start_size; j++) {
+      startp[start_pos + j] -= v_pos;
+    }
+    vec_ret[num_block-1] = parse_csv_impl(vp + v_pos,
+                                          call_vsize,
+                                          startp + start_pos,
+                                          call_start_size,
+                                          vec_line_starts_byword[num_block-1],
+                                          separator);
+    auto vec_line_starts_bywordip = vec_line_starts_byword[num_block-1].data();
+    auto vec_line_starts_bywordi_size =
+      vec_line_starts_byword[num_block-1].size();
+    for(size_t j = 0; j < vec_line_starts_bywordi_size; j++) {
+      vec_line_starts_bywordip[j] += crnt_num_words;
+    }
+    crnt_num_words += vec_line_starts_bywordi_size;
+  }
+  {vector<int> vtmp; v.swap(vtmp);}
+  {vector<size_t> starttmp; start.swap(starttmp);}
+  words ret = merge_multi_words(vec_ret);
+  line_starts_byword.resize(crnt_num_words);
+  auto line_starts_bywordp = line_starts_byword.data();
+  auto crnt_line_starts_bywordp = line_starts_bywordp;
+  for(size_t i = 0; i < num_block; i++) {
+    auto vec_line_starts_bywordip = vec_line_starts_byword[i].data();
+    auto vec_line_starts_bywordi_size = vec_line_starts_byword[i].size();
+    for(size_t j = 0; j < vec_line_starts_bywordi_size; j++) {
+      crnt_line_starts_bywordp[j] = vec_line_starts_bywordip[j];
+    }
+    crnt_line_starts_bywordp += vec_line_starts_bywordi_size;
   }
   return ret;
 }
