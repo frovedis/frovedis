@@ -18,6 +18,7 @@ extern "C" {
           case MLR:    exrpc_oneway(fm_node,show_model<MLR2>,mid); break;
           case SVM:    exrpc_oneway(fm_node,show_model<SVM2>,mid); break;
           case SVR:    exrpc_oneway(fm_node,show_model<SVR2>,mid); break;
+          //case KSVC:   exrpc_oneway(fm_node,show_model<KSVC2>,mid); break;
           case LNRM:   exrpc_oneway(fm_node,show_model<LNRM2>,mid); break;
           case MFM:    exrpc_oneway(fm_node,show_model<MFM2>,mid); break;
           case KMEANS: exrpc_oneway(fm_node,show_model<KMM2>,mid); break;
@@ -41,6 +42,7 @@ extern "C" {
           case MLR:    exrpc_oneway(fm_node,show_model<MLR1>,mid); break;
           case SVM:    exrpc_oneway(fm_node,show_model<SVM1>,mid); break;
           case SVR:    exrpc_oneway(fm_node,show_model<SVR1>,mid); break;
+          //case KSVC:   exrpc_oneway(fm_node,show_model<KSVC1>,mid); break;
           case LNRM:   exrpc_oneway(fm_node,show_model<LNRM1>,mid); break;
           case MFM:    exrpc_oneway(fm_node,show_model<MFM1>,mid); break;
           case KMEANS: exrpc_oneway(fm_node,show_model<KMM1>,mid); break;
@@ -76,6 +78,7 @@ extern "C" {
           case MLR:    exrpc_oneway(fm_node,release_model<MLR2>,mid); break;
           case SVM:    exrpc_oneway(fm_node,release_model<SVM2>,mid); break;
           case SVR:    exrpc_oneway(fm_node,release_model<SVR2>,mid); break;
+          case KSVC:   exrpc_oneway(fm_node,release_model<KSVC2>,mid); break;
           case LNRM:   exrpc_oneway(fm_node,release_model<LNRM2>,mid);break;
           case MFM:    exrpc_oneway(fm_node,release_model<MFM2>,mid); break;
           case KMEANS: exrpc_oneway(fm_node,release_model<KMM2>,mid); break;
@@ -102,6 +105,7 @@ extern "C" {
           case MLR:    exrpc_oneway(fm_node,release_model<MLR1>,mid); break;
           case SVM:    exrpc_oneway(fm_node,release_model<SVM1>,mid); break;
           case SVR:    exrpc_oneway(fm_node,release_model<SVR1>,mid); break;
+          case KSVC:   exrpc_oneway(fm_node,release_model<KSVC1>,mid); break;
           case LNRM:   exrpc_oneway(fm_node,release_model<LNRM1>,mid);break;
           case MFM:    exrpc_oneway(fm_node,release_model<MFM1>,mid); break;
           case DTM:    exrpc_oneway(fm_node,release_model<DTM1>,mid); break;
@@ -157,6 +161,7 @@ extern "C" {
           case MLR:    exrpc_oneway(fm_node,save_model<MLR2>,mid,fs_path); break;
           case SVM:    exrpc_oneway(fm_node,save_model<SVM2>,mid,fs_path); break;
           case SVR:    exrpc_oneway(fm_node,save_model<SVR2>,mid,fs_path); break;
+          case KSVC:   exrpc_oneway(fm_node,save_model<KSVC2>,mid,fs_path); break;
           case LNRM:   exrpc_oneway(fm_node,save_model<LNRM2>,mid,fs_path); break;
           case MFM:    exrpc_oneway(fm_node,save_model<MFM2>,mid,fs_path); break;
           case KMEANS: exrpc_oneway(fm_node,save_model<KMM2>,mid,fs_path); break;
@@ -179,6 +184,7 @@ extern "C" {
           case MLR:    exrpc_oneway(fm_node,save_model<MLR1>,mid,fs_path); break;
           case SVM:    exrpc_oneway(fm_node,save_model<SVM1>,mid,fs_path); break;
           case SVR:    exrpc_oneway(fm_node,save_model<SVR1>,mid,fs_path); break;
+          case KSVC:   exrpc_oneway(fm_node,save_model<KSVC1>,mid,fs_path); break;
           case LNRM:   exrpc_oneway(fm_node,save_model<LNRM1>,mid,fs_path); break;
           case MFM:    exrpc_oneway(fm_node,save_model<MFM1>,mid,fs_path); break;
           case KMEANS: exrpc_oneway(fm_node,save_model<KMM1>,mid,fs_path); break;
@@ -231,6 +237,7 @@ extern "C" {
           case LRM:    exrpc_async(fm_node,load_glm<LRM2>,mid,LRM,fs_path).get(); break;
           case SVM:    exrpc_async(fm_node,load_glm<SVM2>,mid,SVM,fs_path).get(); break;
           case SVR:    exrpc_async(fm_node,load_lnrm<DT2>,mid,SVR,fs_path).get(); break;
+          case KSVC:   exrpc_async(fm_node,load_model<KSVC2>,mid,KSVC,fs_path); break; 
           case LNRM:   exrpc_async(fm_node,load_lnrm<DT2>,mid,LNRM,fs_path).get(); break;
           case KMEANS: exrpc_async(fm_node,load_kmm<DT2>,mid,KMEANS,fs_path).get(); break;
           case SEM:    exrpc_oneway(fm_node,load_model<SEM2>,mid,SEM,fs_path); break;
@@ -249,6 +256,7 @@ extern "C" {
           case LRM:    exrpc_async(fm_node,load_glm<LRM1>,mid,LRM,fs_path).get(); break;; 
           case SVM:    exrpc_async(fm_node,load_glm<SVM1>,mid,SVM,fs_path).get(); break;
           case SVR:    exrpc_async(fm_node,load_lnrm<DT1>,mid,SVR,fs_path).get(); break;
+          case KSVC:   exrpc_async(fm_node,load_model<KSVC1>,mid,KSVC,fs_path); break; 
           case LNRM:   exrpc_async(fm_node,load_lnrm<DT1>,mid,LNRM,fs_path).get(); break;
           case KMEANS: exrpc_async(fm_node,load_kmm<DT1>,mid,KMEANS,fs_path).get(); break;
           case SEM:    exrpc_oneway(fm_node,load_model<SEM1>,mid,SEM,fs_path); break;
@@ -650,6 +658,8 @@ extern "C" {
                                         f_dptr,mid,prob).get(); break;
           case SVR:  pred = exrpc_async(fm_node,(parallel_lnrm_predict<DT2,R_MAT2,R_LMAT2>),
                                         f_dptr,mid,prob).get(); break;
+          case KSVC:  pred = exrpc_async(fm_node,(ksvm_predict<DT2,R_MAT2,KSVC2>),
+                                        f_dptr,mid,prob).get(); break;
           case LNRM: pred = exrpc_async(fm_node,(parallel_lnrm_predict<DT2,R_MAT2,R_LMAT2>),
                                         f_dptr,mid,prob).get(); break;
           case DTM:  pred = exrpc_async(fm_node,(parallel_dtm_predict<DT2,R_MAT2,R_LMAT2>),
@@ -748,6 +758,7 @@ extern "C" {
           }
           case RFM:  REPORT_ERROR(USER_ERROR, "currently Frovedis doesn't support sparse test data for Random Forest prediction!\n");
           case GBT:  REPORT_ERROR(USER_ERROR, "currently Frovedis doesn't support sparse test data for GBT prediction!\n");
+          case KSVC:  REPORT_ERROR(USER_ERROR, "currently Frovedis doesn't support sparse test data for SVM Kernel prediction!\n");
           default:   REPORT_ERROR(USER_ERROR, "Unknown model kind is encountered!\n");
         }
       }
@@ -779,6 +790,8 @@ extern "C" {
           case SVM:  pred = exrpc_async(fm_node,(parallel_svm_predict<DT1,R_MAT1,R_LMAT1>),
                                         f_dptr,mid,prob).get(); break;
           case SVR:  pred = exrpc_async(fm_node,(parallel_lnrm_predict<DT1,R_MAT1,R_LMAT1>),
+                                        f_dptr,mid,prob).get(); break;
+          case KSVC:  pred = exrpc_async(fm_node,(ksvm_predict<DT1,R_MAT1,KSVC1>),
                                         f_dptr,mid,prob).get(); break;
           case LNRM: pred = exrpc_async(fm_node,(parallel_lnrm_predict<DT1,R_MAT1,R_LMAT1>),
                                         f_dptr,mid,prob).get(); break;
@@ -878,6 +891,7 @@ extern "C" {
           }
           case RFM:  REPORT_ERROR(USER_ERROR, "currently Frovedis doesn't support sparse test data for Random Forest prediction!\n");
           case GBT:  REPORT_ERROR(USER_ERROR, "currently Frovedis doesn't support sparse test data for GBT prediction!\n");
+          case KSVC:  REPORT_ERROR(USER_ERROR, "currently Frovedis doesn't support sparse test data for SVM Kernel prediction!\n");
           default:   REPORT_ERROR(USER_ERROR, "Unknown model kind is encountered!\n");
         }
       }
@@ -1521,6 +1535,64 @@ void fpgrowth_rules(const char* host, int port,
       set_status(true, e.what());
     }
     return to_py_dummy_lda_result(ret);
+  }
+
+  PyObject* get_frovedis_support_vector(const char* host, int port,
+                                        int mid, short mkind,
+                                        short mdtype) {
+    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
+    exrpc_node fm_node(host, port);
+    PyObject* ret_ptr = NULL;
+    try {
+      if (mdtype == FLOAT) {
+      std::vector<float> ret;
+        switch(mkind) {
+          case KSVC: ret = exrpc_async(fm_node, (get_support_vector<DT2,KSVC2>), mid).get(); break;
+          default: REPORT_ERROR(USER_ERROR, "Unknown model for support vector extraction!\n");
+        }
+        ret_ptr = to_python_float_list(ret);
+      }
+      else if (mdtype == DOUBLE) {
+      std::vector<double> ret;
+        switch(mkind) {
+          case KSVC: ret = exrpc_async(fm_node, (get_support_vector<DT1,KSVC1>), mid).get(); break;
+          default: REPORT_ERROR(USER_ERROR, "Unknown model for support index extraction!\n");
+        }
+        ret_ptr = to_python_double_list(ret);
+      }
+      else REPORT_ERROR(USER_ERROR,"model dtype can either be float or double!\n");
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return ret_ptr;
+  }
+
+  PyObject* get_frovedis_support_idx(const char* host, int port,
+                                     int mid, short mkind,
+                                     short mdtype) {
+    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
+    exrpc_node fm_node(host, port);
+    std::vector<size_t> ret;
+    try {
+      if (mdtype == FLOAT) {
+        switch(mkind) {
+          case KSVC: ret = exrpc_async(fm_node, (get_support_idx<DT5,KSVC2>), mid).get(); break;
+          default: REPORT_ERROR(USER_ERROR, "Unknown model for support index extraction!\n");
+        }
+      }
+      else if (mdtype == DOUBLE) {
+        switch(mkind) {
+          case KSVC: ret = exrpc_async(fm_node, (get_support_idx<DT5,KSVC1>), mid).get(); break;
+          default: REPORT_ERROR(USER_ERROR, "Unknown model for support index extraction!\n");
+        }
+      }
+      else REPORT_ERROR(USER_ERROR,"model dtype can either be float or double!\n");
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return to_python_llong_list(ret);
   }
 
 }
