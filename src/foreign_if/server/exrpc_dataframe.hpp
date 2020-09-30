@@ -33,29 +33,33 @@ template <class T>
 exrpc_ptr_t get_dfoperator(std::string& op1, std::string& op2,
                            short& op_id, bool& isImmed) {
   std::shared_ptr<dfoperator> *opt = NULL;
+  // op2 would be treated as pattern, instead of immediate value in case of LIKE/NLIKE
+  if(op_id == LIKE || op_id == NLIKE) isImmed = false;
   if(isImmed) {
     auto data = cast<T>(op2);
     switch(op_id) {
-      case EQ: opt = new std::shared_ptr<dfoperator>(eq_im<T>(op1,data)); break;
-      case NE: opt = new std::shared_ptr<dfoperator>(neq_im<T>(op1,data)); break;
-      case LT: opt = new std::shared_ptr<dfoperator>(lt_im<T>(op1,data)); break;
-      case LE: opt = new std::shared_ptr<dfoperator>(le_im<T>(op1,data)); break;
-      case GT: opt = new std::shared_ptr<dfoperator>(gt_im<T>(op1,data)); break;
-      case GE: opt = new std::shared_ptr<dfoperator>(ge_im<T>(op1,data)); break;
-      default: REPORT_ERROR(USER_ERROR,
-               "Unsupported filter operation is encountered!\n");
+        case EQ: opt = new std::shared_ptr<dfoperator>(eq_im<T>(op1,data)); break;
+        case NE: opt = new std::shared_ptr<dfoperator>(neq_im<T>(op1,data)); break;
+        case LT: opt = new std::shared_ptr<dfoperator>(lt_im<T>(op1,data)); break;
+        case LE: opt = new std::shared_ptr<dfoperator>(le_im<T>(op1,data)); break;
+        case GT: opt = new std::shared_ptr<dfoperator>(gt_im<T>(op1,data)); break;
+        case GE: opt = new std::shared_ptr<dfoperator>(ge_im<T>(op1,data)); break;
+        default: REPORT_ERROR(USER_ERROR,
+                 "Unsupported filter operation is encountered!\n");
     }
   }
   else {
     switch(op_id) {
-      case EQ: opt = new std::shared_ptr<dfoperator>(eq(op1,op2)); break;
-      case NE: opt = new std::shared_ptr<dfoperator>(neq(op1,op2)); break;
-      case LT: opt = new std::shared_ptr<dfoperator>(lt(op1,op2)); break;
-      case LE: opt = new std::shared_ptr<dfoperator>(le(op1,op2)); break;
-      case GT: opt = new std::shared_ptr<dfoperator>(gt(op1,op2)); break;
-      case GE: opt = new std::shared_ptr<dfoperator>(ge(op1,op2)); break;
-      default: REPORT_ERROR(USER_ERROR,
-               "Unsupported filter operation is encountered!\n");
+        case EQ: opt = new std::shared_ptr<dfoperator>(eq(op1,op2)); break;
+        case NE: opt = new std::shared_ptr<dfoperator>(neq(op1,op2)); break;
+        case LT: opt = new std::shared_ptr<dfoperator>(lt(op1,op2)); break;
+        case LE: opt = new std::shared_ptr<dfoperator>(le(op1,op2)); break;
+        case GT: opt = new std::shared_ptr<dfoperator>(gt(op1,op2)); break;
+        case GE: opt = new std::shared_ptr<dfoperator>(ge(op1,op2)); break;
+        case LIKE: opt = new std::shared_ptr<dfoperator>(is_like(op1,op2)); break;
+        case NLIKE: opt = new std::shared_ptr<dfoperator>(is_not_like(op1,op2)); break;
+        default: REPORT_ERROR(USER_ERROR,
+                 "Unsupported filter operation is encountered!\n");
     }
   }
   if (!opt) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed.\n");
@@ -164,6 +168,8 @@ dummy_matrix df_to_crs_double_using_info(exrpc_ptr_t& df_proxy,
 
 void load_sparse_conversion_info(long& info_id, std::string&); 
 void save_sparse_conversion_info(long& info_id, std::string&); 
-void release_sparse_conversion_info(long& info_id); 
+void release_sparse_conversion_info(long& info_id);
+exrpc_ptr_t frov_multi_eq_dfopt(std::vector<std::string>& left_cols, 
+                                std::vector<std::string>& right_cols);
 
 #endif
