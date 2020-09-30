@@ -278,7 +278,8 @@ namespace frovedis {
   rowmajor_matrix_local<T> 
   operator* (const rowmajor_matrix_local<T>& inMat1,
              const rowmajor_matrix_local<T>& inMat2){
-
+    if(inMat1.local_num_col != inMat2.local_num_row)
+      throw std::runtime_error("invalid size for matrix multiplication");
     sliced_colmajor_matrix_local<T> sm1(inMat1.val);
     sm1.ldm = inMat1.local_num_col;
     sm1.local_num_row = inMat1.local_num_col;
@@ -292,6 +293,28 @@ namespace frovedis {
     rowmajor_matrix_local<T> ret(out.val);
     ret.set_local_num(inMat1.local_num_row, inMat2.local_num_col);
 
+    return ret;
+  }
+
+  template <class T>
+  rowmajor_matrix_local<T>
+  gemm_rxr(const rowmajor_matrix_local<T>& aloc,
+           const rowmajor_matrix_local<T>& bloc) {
+    return aloc * bloc;
+  }
+
+  template <class T>
+  rowmajor_matrix<T>
+  operator* (const rowmajor_matrix<T>& a,
+             const rowmajor_matrix<T>& b) {
+    if(a.num_col != b.num_row)
+      throw std::runtime_error("invalid size for matrix multiplication");
+    auto& amat = const_cast<rowmajor_matrix<T>&>(a); // const_cast: to call map()
+    auto& bmat = const_cast<rowmajor_matrix<T>&>(b); // const_cast: to call gather()
+    rowmajor_matrix<T> ret(amat.data.map(gemm_rxr<T>, 
+                           broadcast(bmat.gather())));
+    ret.num_row = amat.num_row;
+    ret.num_col = bmat.num_col;
     return ret;
   }
 
@@ -312,7 +335,6 @@ namespace frovedis {
   colmajor_matrix_local<T> 
   operator* (const colmajor_matrix_local<T>& inMat1,
              const colmajor_matrix_local<T>& inMat2){
-
     sliced_colmajor_matrix_local<T> sm1(inMat1);
     sliced_colmajor_matrix_local<T> sm2(inMat2);
     return sm1 * sm2;
