@@ -1,0 +1,10 @@
+TARGETS := tsne
+include ../Makefile.in.x86
+include ../Makefile.common
+
+TO_INSTALL := tsne.cc
+DIR := tsne
+ARCH := x86
+
+tsne: tsne.o
+	${MPICXX} ${CXXFLAGS} -o tsne tsne.o ${LIBS}

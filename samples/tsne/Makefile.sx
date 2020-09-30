@@ -1,0 +1,11 @@
+TARGETS := tsne
+include ../Makefile.in.sx
+include ../Makefile.common
+
+TO_INSTALL := tsne.cc
+DIR := tsne
+ARCH := sx
+
+tsne: tsne.o
+	${CXX} -prelink ${CXXFLAGS} tsne.o ${LIBS}
+	${MPICXX} ${CXXFLAGS} -o tsne tsne.o ${LIBS}

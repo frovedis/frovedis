@@ -1,0 +1,10 @@
+TARGETS := tsne
+include ../Makefile.in.ve
+include ../Makefile.common
+
+TO_INSTALL := tsne.cc
+DIR := tsne
+ARCH := ve
+
+tsne: tsne.o
+	${LINK} -o tsne tsne.o ${LIBS}

@@ -1,0 +1,10 @@
+TARGETS := tsne
+include ../Makefile.in.icpc
+include ../Makefile.common
+
+TO_INSTALL := tsne.cc
+DIR := tsne
+ARCH := icpc
+
+tsne: tsne.o
+	${LINK} -o tsne tsne.o ${LIBS}
