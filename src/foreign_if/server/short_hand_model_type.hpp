@@ -4,6 +4,7 @@
 #include <frovedis/ml/neighbors/knn_unsupervised.hpp>
 #include <frovedis/ml/neighbors/knn_supervised.hpp>
 #include <frovedis/ml/tree/ensemble_model.hpp>
+#include "frovedis/ml/kernel/kernel_svm.hpp"
 #include "short_hand_dtype.hpp"
 
 namespace frovedis {
@@ -16,6 +17,8 @@ namespace frovedis {
   typedef linear_regression_model<DT2> LNRM2;
   typedef svm_model<DT1> SVM1;
   typedef svm_model<DT2> SVM2; 
+  typedef kernel_csvc_model<DT1> KSVC1;
+  typedef kernel_csvc_model<DT2> KSVC2; 
   typedef linear_regression_model<DT1> SVR1;
   typedef linear_regression_model<DT2> SVR2; 
   typedef matrix_factorization_model<DT1> MFM1;
