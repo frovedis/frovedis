@@ -172,6 +172,15 @@ dfoperator_eq_immed<T>::not_filter(dftable_base& t) const {
   return dfoperator_neq_immed<T>(left, right).filter(t);
 }
 
+// --- specialized to handle string-typed columns ---
+template <>
+node_local<std::vector<size_t>> 
+dfoperator_eq_immed<std::string>::filter(dftable_base& t) const; 
+
+template <>
+node_local<std::vector<size_t>> 
+dfoperator_neq_immed<std::string>::filter(dftable_base& t) const; 
+
 struct dfoperator_lt : public dfoperator {
   dfoperator_lt(const std::string& left, const std::string& right) :
     left(left), right(right) {}
@@ -179,6 +188,15 @@ struct dfoperator_lt : public dfoperator {
     auto left_column = t.column(left);
     auto right_column = t.column(right);
     return left_column->filter_lt(right_column);
+  }
+  virtual std::pair<node_local<std::vector<size_t>>,
+                    node_local<std::vector<size_t>>>
+    bcast_join(dftable_base& left_t, dftable_base& right_t,
+               node_local<std::vector<size_t>>& left_idx,
+               node_local<std::vector<size_t>>& right_idx) const {
+    auto left_column = left_t.raw_column(left);
+    auto right_column = right_t.raw_column(right);
+    return left_column->bcast_join_lt(right_column, left_idx, right_idx);
   }
   virtual node_local<std::vector<size_t>> not_filter(dftable_base& t) const;
   std::string left, right;
@@ -194,6 +212,15 @@ struct dfoperator_ge : public dfoperator {
   }
   virtual node_local<std::vector<size_t>> not_filter(dftable_base& t) const {
     return dfoperator_lt(left, right).filter(t);
+  }
+  virtual std::pair<node_local<std::vector<size_t>>,
+                    node_local<std::vector<size_t>>>
+    bcast_join(dftable_base& left_t, dftable_base& right_t,
+               node_local<std::vector<size_t>>& left_idx,
+               node_local<std::vector<size_t>>& right_idx) const {
+    auto left_column = left_t.raw_column(left);
+    auto right_column = right_t.raw_column(right);
+    return left_column->bcast_join_ge(right_column, left_idx, right_idx);
   }
   std::string left, right;
 };
@@ -212,6 +239,15 @@ struct dfoperator_le : public dfoperator {
     auto right_column = t.column(right);
     return left_column->filter_le(right_column);
   }
+  virtual std::pair<node_local<std::vector<size_t>>,
+                    node_local<std::vector<size_t>>>
+    bcast_join(dftable_base& left_t, dftable_base& right_t,
+               node_local<std::vector<size_t>>& left_idx,
+               node_local<std::vector<size_t>>& right_idx) const {
+    auto left_column = left_t.raw_column(left);
+    auto right_column = right_t.raw_column(right);
+    return left_column->bcast_join_le(right_column, left_idx, right_idx);
+  }
   virtual node_local<std::vector<size_t>> not_filter(dftable_base& t) const;
   std::string left, right;
 };
@@ -226,6 +262,15 @@ struct dfoperator_gt : public dfoperator {
   }
   virtual node_local<std::vector<size_t>> not_filter(dftable_base& t) const {
     return dfoperator_le(left, right).filter(t);
+  }
+  virtual std::pair<node_local<std::vector<size_t>>,
+                    node_local<std::vector<size_t>>>
+    bcast_join(dftable_base& left_t, dftable_base& right_t,
+               node_local<std::vector<size_t>>& left_idx,
+               node_local<std::vector<size_t>>& right_idx) const {
+    auto left_column = left_t.raw_column(left);
+    auto right_column = right_t.raw_column(right);
+    return left_column->bcast_join_gt(right_column, left_idx, right_idx);
   }
   std::string left, right;
 };
@@ -450,19 +495,23 @@ struct dfoperator_like : public dfoperator {
   dfoperator_like(const std::string& left, const std::string& pattern) :
     left(left), pattern(pattern) {}
   virtual node_local<std::vector<size_t>> filter(dftable_base& t) const {
-    auto left_column_dic =
-      std::dynamic_pointer_cast<typed_dfcolumn<dic_string>>(t.column(left));
-    if(left_column_dic) {
+    auto tcol = t.column(left);
+    if(tcol->dtype() == "dic_string") {
+      auto left_column_dic =
+        std::dynamic_pointer_cast<typed_dfcolumn<dic_string>>(tcol);
       return left_column_dic->filter_like(pattern);
-    } else {
+    }
+    else if(tcol->dtype() == "raw_string") {
       auto left_column_raw =
-        std::dynamic_pointer_cast<typed_dfcolumn<raw_string>>(t.column(left));
-      if(left_column_raw) {
-        return left_column_raw->filter_like(pattern);
-      } else {
-      throw std::runtime_error
-        ("dfoperator_like: column type is not dic_string or raw_string");
-      }
+        std::dynamic_pointer_cast<typed_dfcolumn<raw_string>>(tcol);
+      return left_column_raw->filter_like(pattern);
+    }
+    else {
+      auto words = tcol->as_words();
+      auto nulls = tcol->get_nulls();
+      auto tmp = std::make_shared<typed_dfcolumn<dic_string>>(
+                     std::move(words), std::move(nulls));
+      return tmp->filter_like(pattern);
     }
   }
   virtual node_local<std::vector<size_t>> not_filter(dftable_base& t) const;
@@ -474,23 +523,28 @@ struct dfoperator_not_like : public dfoperator {
   dfoperator_not_like(const std::string& left, const std::string& pattern) :
     left(left), pattern(pattern) {}
   virtual node_local<std::vector<size_t>> filter(dftable_base& t) const {
-    auto left_column_dic =
-      std::dynamic_pointer_cast<typed_dfcolumn<dic_string>>(t.column(left));
-    if(left_column_dic) {
+    auto tcol = t.column(left);
+    if(tcol->dtype() == "dic_string") {
+      auto left_column_dic =
+        std::dynamic_pointer_cast<typed_dfcolumn<dic_string>>(tcol);
       return left_column_dic->filter_not_like(pattern);
-    } else {
+    } 
+    else if(tcol->dtype() == "raw_string") {
       auto left_column_raw =
-        std::dynamic_pointer_cast<typed_dfcolumn<raw_string>>(t.column(left));
-      if(left_column_raw) {
-        return left_column_raw->filter_not_like(pattern);
-      } else {
-        throw std::runtime_error
-          ("dfoperator_like: column type is not dic_string or raw_string");
-      }
+        std::dynamic_pointer_cast<typed_dfcolumn<raw_string>>(tcol);
+      return left_column_raw->filter_not_like(pattern);
+    } 
+    else {
+      auto words = tcol->as_words();
+      auto nulls = tcol->get_nulls();
+      auto tmp = std::make_shared<typed_dfcolumn<dic_string>>(
+                     std::move(words), std::move(nulls));
+      return tmp->filter_not_like(pattern);
     }
   }
   virtual node_local<std::vector<size_t>> not_filter(dftable_base& t) const {
-    return dfoperator_not_regex(left, pattern).filter(t);
+    //return dfoperator_not_regex(left, pattern).filter(t);
+    return dfoperator_like(left, pattern).filter(t);
   }
   std::string left;
   std::string pattern;
@@ -499,7 +553,8 @@ struct dfoperator_not_like : public dfoperator {
 inline
 node_local<std::vector<size_t>>
 dfoperator_like::not_filter(dftable_base& t) const {
-  return dfoperator_not_regex(left, pattern).filter(t);
+  //return dfoperator_not_regex(left, pattern).filter(t);
+  return dfoperator_not_like(left, pattern).filter(t);
 }
 
 std::shared_ptr<dfoperator>
@@ -552,6 +607,11 @@ struct dfoperator_and : public dfoperator {
     auto right_filtered_idx = right->not_filter(t);
     return left_filtered_idx.map(set_union<size_t>, right_filtered_idx);
   }
+  virtual std::pair<node_local<std::vector<size_t>>,
+                    node_local<std::vector<size_t>>>
+  bcast_join(dftable_base& left, dftable_base& right,
+             node_local<std::vector<size_t>>& left_idx,
+             node_local<std::vector<size_t>>& right_idx) const;
   std::shared_ptr<dfoperator> left;
   std::shared_ptr<dfoperator> right;
 };
@@ -597,6 +657,56 @@ struct dfoperator_not : public dfoperator {
 
 std::shared_ptr<dfoperator>
 not_op(const std::shared_ptr<dfoperator>& op);
+
+struct dfoperator_multi_eq : public dfoperator {
+  dfoperator_multi_eq(const std::vector<std::string>& leftv,
+                      const std::vector<std::string>& rightv) :
+    leftv(leftv), rightv(rightv) {
+    if(leftv.size() != rightv.size())
+      throw std::runtime_error("number of columns is different");
+  }
+  virtual node_local<std::vector<size_t>> filter(dftable_base& t) const {
+    throw std::runtime_error("filter on this operator is not implemented");
+  }
+  virtual node_local<std::vector<size_t>> not_filter(dftable_base& t) const {
+    throw std::runtime_error("not_filter on this operator is not implemented");
+  }
+  virtual std::pair<node_local<std::vector<size_t>>,
+                    node_local<std::vector<size_t>>>
+    hash_join(dftable_base& left_t, dftable_base& right_t,
+              node_local<std::vector<size_t>>& left_idx,
+              node_local<std::vector<size_t>>& right_idx) const;
+  virtual std::pair<node_local<std::vector<size_t>>,
+                    node_local<std::vector<size_t>>>
+    bcast_join(dftable_base& left, dftable_base& right,
+               node_local<std::vector<size_t>>& left_idx,
+               node_local<std::vector<size_t>>& right_idx) const;
+  std::vector<std::string> leftv, rightv;
+};
+
+void filter_idx(std::vector<size_t>& idx,
+                const std::vector<size_t>& filter);
+
+std::shared_ptr<dfoperator>
+multi_eq(const std::vector<std::string>& left,
+         const std::vector<std::string>& right);
+
+struct dfoperator_cross : public dfoperator {
+  dfoperator_cross() {}
+  virtual node_local<std::vector<size_t>> filter(dftable_base& t) const {
+    throw std::runtime_error("filter on this operator is not implemented");
+  }
+  virtual node_local<std::vector<size_t>> not_filter(dftable_base& t) const {
+    throw std::runtime_error("not_filter on this operator is not implemented");
+  }
+  virtual std::pair<node_local<std::vector<size_t>>,
+                    node_local<std::vector<size_t>>>
+  bcast_join(dftable_base& left, dftable_base& right,
+             node_local<std::vector<size_t>>& left_idx,
+             node_local<std::vector<size_t>>& right_idx) const;
+};
+
+std::shared_ptr<dfoperator> cross();
 
 }
 #endif

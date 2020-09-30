@@ -81,6 +81,54 @@ not_op(const std::shared_ptr<dfoperator>& op) {
   return std::make_shared<dfoperator_not>(op);
 }
 
+template <>
+node_local<std::vector<size_t>>
+dfoperator_eq_immed<std::string>::filter(dftable_base& t) const {
+  auto tcol = t.column(left);
+  if (tcol->dtype() == "string") {
+    auto left_column =
+      std::dynamic_pointer_cast<typed_dfcolumn<std::string>>(tcol);
+    return left_column->filter_eq_immed(right);
+  }
+  else if (tcol->dtype() == "dic_string") {
+    auto left_column =
+      std::dynamic_pointer_cast<typed_dfcolumn<dic_string>>(tcol);
+    return left_column->filter_eq_immed(right);
+  }
+  else if (tcol->dtype() == "raw_string") {
+    auto left_column =
+      std::dynamic_pointer_cast<typed_dfcolumn<raw_string>>(tcol);
+    return left_column->filter_eq_immed(right);
+  }
+  else {
+    throw std::runtime_error("dfoperator_eq_immed: non-string column is specified with string target!");
+  }
+}
+
+template <>
+node_local<std::vector<size_t>>
+dfoperator_neq_immed<std::string>::filter(dftable_base& t) const {
+  auto tcol = t.column(left);
+  if (tcol->dtype() == "string") {
+    auto left_column =
+      std::dynamic_pointer_cast<typed_dfcolumn<std::string>>(tcol);
+    return left_column->filter_neq_immed(right);
+  }
+  else if (tcol->dtype() == "dic_string") {
+    auto left_column =
+      std::dynamic_pointer_cast<typed_dfcolumn<dic_string>>(tcol);
+    return left_column->filter_neq_immed(right);
+  }
+  else if (tcol->dtype() == "raw_string") {
+    auto left_column =
+      std::dynamic_pointer_cast<typed_dfcolumn<raw_string>>(tcol);
+    return left_column->filter_neq_immed(right);
+  }
+  else {
+    throw std::runtime_error("dfoperator_neq_immed: non-string column is specified with string target!");
+  }
+}
+
 // ---------- filter of all kinds of tables ----------
 
 filtered_dftable dftable_base::filter(const std::shared_ptr<dfoperator>& op) {
@@ -183,6 +231,305 @@ void filtered_dftable::debug_print() {
     std::cout << ": ";
   }
   std::cout << std::endl;
+}
+
+// ---------- for multi_eq ----------
+
+std::shared_ptr<dfoperator>
+multi_eq(const std::vector<std::string>& left,
+         const std::vector<std::string>& right) {
+  return std::make_shared<dfoperator_multi_eq>(left,right);
+}
+
+void filter_idx(std::vector<size_t>& idx,
+                const std::vector<size_t>& filter) {
+  auto idxp = idx.data();
+  auto filter_size = filter.size();
+  auto filterp = filter.data();
+  std::vector<size_t> r(filter_size);
+  auto rp = r.data();
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+  for(size_t i = 0; i < filter_size; i++) {
+    rp[i] = idxp[filterp[i]];
+  }
+  swap(idx, r);
+}
+
+std::pair<node_local<std::vector<size_t>>,
+          node_local<std::vector<size_t>>>
+dfoperator_multi_eq::hash_join
+               (dftable_base& left_t, dftable_base& right_t,
+                node_local<std::vector<size_t>>& left_idx,
+                node_local<std::vector<size_t>>& right_idx) const {
+  auto size = leftv.size();
+  if(size == 0) {
+    throw std::runtime_error("column is not specified for hash_join");    
+  } if(size == 1) {
+    auto left_column = left_t.raw_column(leftv[0]);
+    auto right_column = right_t.raw_column(rightv[0]);
+    return left_column->hash_join_eq(right_column, left_idx, right_idx);
+  } else {
+    std::vector<std::shared_ptr<dfcolumn>> left_pcols(size), right_pcols(size);
+    for(size_t i = 0; i < size; i++) {
+      left_pcols[i] = left_t.raw_column(leftv[i]);
+      right_pcols[i] = right_t.raw_column(rightv[i]);
+    }
+    // TODO: even in the case of filtered_dftable, calculate all hash values,
+    // which can be avoided...
+    auto left_hash_base = left_pcols[0]->calc_hash_base();
+    auto right_hash_base = right_pcols[0]->calc_hash_base();
+    // 52 is fraction of double, size_t might be 32bit...
+    int bit_len = std::min(sizeof(size_t) * 8, size_t(52));
+    int shift = bit_len / size;
+    for(size_t i = 1; i < size; i++) {
+      left_pcols[i]->calc_hash_base(left_hash_base, shift);
+      right_pcols[i]->calc_hash_base(right_hash_base, shift);
+    }
+    auto left_nulls = left_pcols[0]->get_nulls();
+    auto right_nulls = right_pcols[0]->get_nulls();
+    for(size_t i = 1; i < size; i++) {
+      left_nulls.mapv(+[](std::vector<size_t>& nulls,
+                          std::vector<size_t>& to_merge) {
+                        auto r = set_union(nulls, to_merge);
+                        nulls = r;
+                      }, left_pcols[i]->get_nulls());
+      right_nulls.mapv(+[](std::vector<size_t>& nulls,
+                           std::vector<size_t>& to_merge) {
+                         auto r = set_union(nulls, to_merge);
+                         nulls = r;
+                       }, right_pcols[i]->get_nulls());
+    }
+    shared_ptr<dfcolumn> left_hash =
+      std::make_shared<typed_dfcolumn<size_t>>(left_hash_base, left_nulls);
+    shared_ptr<dfcolumn> right_hash =
+      std::make_shared<typed_dfcolumn<size_t>>(right_hash_base, right_nulls);
+    auto idx_pair = left_hash->hash_join_eq(right_hash, left_idx, right_idx);
+    auto& left_joined_idx = idx_pair.first;
+    auto& right_joined_idx = idx_pair.second;
+    auto unique_left_idx = left_joined_idx.map(get_unique_idx);
+    auto left_partitioned_idx = partition_global_index_bynode(unique_left_idx);
+    auto left_to_store_idx =
+      make_to_store_idx(left_partitioned_idx, left_joined_idx);
+    auto left_exchanged_idx = exchange_partitioned_index(left_partitioned_idx);
+    auto unique_right_idx = right_joined_idx.map(get_unique_idx);
+    auto right_partitioned_idx =
+      partition_global_index_bynode(unique_right_idx);
+    auto right_to_store_idx =
+      make_to_store_idx(right_partitioned_idx, right_joined_idx);
+    auto right_exchanged_idx =
+      exchange_partitioned_index(right_partitioned_idx);
+    auto left_extracted = left_pcols[0]->global_extract
+      (left_joined_idx, left_to_store_idx, left_exchanged_idx);
+    auto right_extracted = right_pcols[0]->global_extract
+      (right_joined_idx, right_to_store_idx, right_exchanged_idx);
+    auto filtered_idx = left_extracted->filter_eq(right_extracted);
+    for(size_t i = 1; i < size; i++) {
+      left_extracted = left_pcols[i]->global_extract
+        (left_joined_idx, left_to_store_idx, left_exchanged_idx);
+      right_extracted = right_pcols[i]->global_extract
+        (right_joined_idx, right_to_store_idx, right_exchanged_idx);
+      auto filtered_idx_each = left_extracted->filter_eq(right_extracted);
+      filtered_idx.mapv(+[](std::vector<size_t>& idx1,
+                            std::vector<size_t>& idx2) {
+                          auto r = set_intersection(idx1, idx2);
+                          swap(idx1, r);
+                        }, filtered_idx_each);
+    }
+    left_joined_idx.mapv(filter_idx, filtered_idx);
+    right_joined_idx.mapv(filter_idx, filtered_idx);
+    return idx_pair;
+  }
+}
+
+std::pair<node_local<std::vector<size_t>>,
+          node_local<std::vector<size_t>>>
+dfoperator_multi_eq::bcast_join
+               (dftable_base& left_t, dftable_base& right_t,
+                node_local<std::vector<size_t>>& left_idx,
+                node_local<std::vector<size_t>>& right_idx) const {
+  auto size = leftv.size();
+  if(size == 0) {
+    throw std::runtime_error("column is not specified for bcast_join");    
+  } if(size == 1) {
+    auto left_column = left_t.raw_column(leftv[0]);
+    auto right_column = right_t.raw_column(rightv[0]);
+    return left_column->bcast_join_eq(right_column, left_idx, right_idx);
+  } else {
+    std::vector<std::shared_ptr<dfcolumn>> left_pcols(size), right_pcols(size);
+    for(size_t i = 0; i < size; i++) {
+      left_pcols[i] = left_t.raw_column(leftv[i]);
+      right_pcols[i] = right_t.raw_column(rightv[i]);
+    }
+    // TODO: even in the case of filtered_dftable, calculate all hash values,
+    // which can be avoided...
+    auto left_hash_base = left_pcols[0]->calc_hash_base();
+    auto right_hash_base = right_pcols[0]->calc_hash_base();
+    // 52 is fraction of double, size_t might be 32bit...
+    int bit_len = std::min(sizeof(size_t) * 8, size_t(52));
+    int shift = bit_len / size;
+    for(size_t i = 1; i < size; i++) {
+      left_pcols[i]->calc_hash_base(left_hash_base, shift);
+      right_pcols[i]->calc_hash_base(right_hash_base, shift);
+    }
+    auto left_nulls = left_pcols[0]->get_nulls();
+    auto right_nulls = right_pcols[0]->get_nulls();
+    for(size_t i = 1; i < size; i++) {
+      left_nulls.mapv(+[](std::vector<size_t>& nulls,
+                          std::vector<size_t>& to_merge) {
+                        auto r = set_union(nulls, to_merge);
+                        nulls = r;
+                      }, left_pcols[i]->get_nulls());
+      right_nulls.mapv(+[](std::vector<size_t>& nulls,
+                           std::vector<size_t>& to_merge) {
+                         auto r = set_union(nulls, to_merge);
+                         nulls = r;
+                       }, right_pcols[i]->get_nulls());
+    }
+    shared_ptr<dfcolumn> left_hash =
+      std::make_shared<typed_dfcolumn<size_t>>(left_hash_base, left_nulls);
+    shared_ptr<dfcolumn> right_hash =
+      std::make_shared<typed_dfcolumn<size_t>>(right_hash_base, right_nulls);
+    auto idx_pair = left_hash->bcast_join_eq(right_hash, left_idx, right_idx);
+    auto& left_joined_idx = idx_pair.first;
+    auto& right_joined_idx = idx_pair.second;
+    auto unique_right_idx = right_joined_idx.map(get_unique_idx);
+    auto right_partitioned_idx =
+      partition_global_index_bynode(unique_right_idx);
+    auto right_to_store_idx =
+      make_to_store_idx(right_partitioned_idx, right_joined_idx);
+    auto right_exchanged_idx =
+      exchange_partitioned_index(right_partitioned_idx);
+    auto left_extracted = left_pcols[0]->extract(left_joined_idx);
+    auto right_extracted = right_pcols[0]->global_extract
+      (right_joined_idx, right_to_store_idx, right_exchanged_idx);
+    auto filtered_idx = left_extracted->filter_eq(right_extracted);
+    for(size_t i = 1; i < size; i++) {
+      left_extracted = left_pcols[i]->extract(left_joined_idx);
+      right_extracted = right_pcols[i]->global_extract
+        (right_joined_idx, right_to_store_idx, right_exchanged_idx);
+      auto filtered_idx_each = left_extracted->filter_eq(right_extracted);
+      filtered_idx.mapv(+[](std::vector<size_t>& idx1,
+                            std::vector<size_t>& idx2) {
+                          auto r = set_intersection(idx1, idx2);
+                          swap(idx1, r);
+                        }, filtered_idx_each);
+    }
+    left_joined_idx.mapv(filter_idx, filtered_idx);
+    right_joined_idx.mapv(filter_idx, filtered_idx);
+    return idx_pair;
+  }
+}
+
+// ---------- for cross ----------
+
+void make_cross_idx(const std::vector<size_t>& left_idx,
+                    const std::vector<size_t>& right_idx,
+                    std::vector<size_t>& left_idx_ret,
+                    std::vector<size_t>& right_idx_ret) {
+  auto left_idx_size = left_idx.size();
+  auto right_idx_size = right_idx.size();
+  auto total_size = left_idx_size * right_idx_size;
+  left_idx_ret.resize(total_size);
+  right_idx_ret.resize(total_size);
+  auto left_idx_retp = left_idx_ret.data();
+  auto right_idx_retp = right_idx_ret.data();
+  auto left_idxp = left_idx.data();
+  auto right_idxp = right_idx.data();
+  for(size_t i = 0; i < left_idx_size; i++) {
+    for(size_t j = 0; j < right_idx_size; j++) {
+      right_idx_retp[i * right_idx_size + j] = right_idxp[j];
+      left_idx_retp[i * right_idx_size + j] = left_idxp[i];
+    }
+  }
+}
+
+std::pair<node_local<std::vector<size_t>>,
+          node_local<std::vector<size_t>>>
+dfoperator_cross::bcast_join
+               (dftable_base& left_t, dftable_base& right_t,
+                node_local<std::vector<size_t>>& left_idx,
+                node_local<std::vector<size_t>>& right_idx) const {
+  auto right_global_idx = local_to_global_idx(right_idx);
+  auto right_global_idx_bcast =
+    broadcast(right_global_idx.template viewas_dvector<size_t>().gather());
+  auto left_idx_ret = make_node_local_allocate<std::vector<size_t>>();
+  auto right_idx_ret = make_node_local_allocate<std::vector<size_t>>();
+  left_idx.mapv(make_cross_idx, right_global_idx_bcast, left_idx_ret,
+                right_idx_ret);
+  return std::make_pair(std::move(left_idx_ret), std::move(right_idx_ret));
+}
+
+std::shared_ptr<dfoperator> cross() {
+  return std::make_shared<dfoperator_cross>();
+}
+
+// ---------- for dfoperator_and bcast_join ----------
+
+void flatten_and_op_helper(const shared_ptr<dfoperator>& op,
+                           std::vector<shared_ptr<dfoperator>>& ret) {
+  auto and_op_cand = dynamic_pointer_cast<dfoperator_and>(op);
+  if(and_op_cand) {
+    flatten_and_op_helper(and_op_cand->left, ret);
+    flatten_and_op_helper(and_op_cand->right, ret);
+  } else {
+    if(dynamic_pointer_cast<dfoperator_or>(op)) {
+      throw std::runtime_error("only and_op can be used for bcast_join");
+    }
+    ret.push_back(op);
+  }
+}
+
+std::vector<shared_ptr<dfoperator>>
+flatten_and_op(const dfoperator_and& op) {
+  std::vector<shared_ptr<dfoperator>> ret;
+  flatten_and_op_helper(op.left, ret);
+  flatten_and_op_helper(op.right, ret);
+  return ret;
+}
+
+std::pair<node_local<std::vector<size_t>>,
+          node_local<std::vector<size_t>>>
+dfoperator_and::bcast_join(dftable_base& left, dftable_base& right,
+                           node_local<std::vector<size_t>>& left_idx,
+                           node_local<std::vector<size_t>>& right_idx) const {
+
+  auto flattend_op = flatten_and_op(*this);
+  std::vector<shared_ptr<dfoperator>> filter_op;
+  std::pair<node_local<std::vector<size_t>>,
+            node_local<std::vector<size_t>>> idx_pair;
+  if(dynamic_pointer_cast<dfoperator_eq>(flattend_op[0])) {
+    auto multi_eq_op = dfoperator_multi_eq({}, {});
+    size_t i = 0;
+    for(; i < flattend_op.size(); i++) {
+      if(auto eq_op = dynamic_pointer_cast<dfoperator_eq>(flattend_op[i])) {
+        multi_eq_op.leftv.push_back(eq_op->left);
+        multi_eq_op.rightv.push_back(eq_op->right);
+      } else break;
+    }
+    for(; i < flattend_op.size(); i++) {
+      filter_op.push_back(flattend_op[i]);
+    }
+    idx_pair = multi_eq_op.bcast_join(left, right, left_idx, right_idx);
+  } else {
+    idx_pair = flattend_op[0]->bcast_join(left, right, left_idx, right_idx);
+    for(size_t i = 1; i < flattend_op.size(); i++) {
+      filter_op.push_back(flattend_op[i]);
+    }
+  }
+  bcast_joined_dftable joined_table(left, right,
+                                    std::move(idx_pair.first),
+                                    std::move(idx_pair.second));
+  for(size_t i = 0; i < filter_op.size(); i++) {
+    joined_table.inplace_filter_pre(filter_op[i]);
+    if(i != filter_op.size() - 1) {
+      joined_table.update_to_store_idx_and_exchanged_idx();
+    }
+  }
+  idx_pair.first = std::move(joined_table.get_left_idx());
+  idx_pair.second = std::move(joined_table.get_right_idx());
+  return idx_pair;
 }
 
 }
