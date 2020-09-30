@@ -13,6 +13,7 @@ class DFOperator extends java.io.Serializable {
     this()
     proxy = e.get_proxy(cols,types)
   }
+
   def release () : Unit = {
     if (proxy != -1) {
       val fs = FrovedisServer.getServerInstance()
