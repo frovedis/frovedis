@@ -359,32 +359,34 @@ typed_dfcolumn<dic_string>::star_join_eq
 }
 
 vector<size_t> filter_like_helper(const dict& dic,
-                                  const std::string& pattern) {
+                                  const std::string& pattern,
+                                  int wild_card) {
   auto num_words = dic.num_words();
   std::vector<size_t> order(num_words);
   auto orderp = order.data();
   for(size_t i = 0; i < num_words; i++) orderp[i] = i;
   auto ws = decompress_compressed_words(dic.cwords, dic.lens, dic.lens_num,
                                         order);
-  return like(ws, pattern);
+  return like(ws, pattern, wild_card);
 }
 
 vector<size_t> filter_not_like_helper(const dict& dic,
-                                      const std::string& pattern) {
+                                      const std::string& pattern,
+                                      int wild_card) {
   auto num_words = dic.num_words();
   std::vector<size_t> order(num_words);
   auto orderp = order.data();
   for(size_t i = 0; i < num_words; i++) orderp[i] = i;
   auto ws = decompress_compressed_words(dic.cwords, dic.lens, dic.lens_num,
                                         order);
-  auto hit = like(ws, pattern);
+  auto hit = like(ws, pattern, wild_card);
   return set_difference(order, hit);
 }
 
 #if !(defined(_SX) || defined(__ve__))
 vector<size_t> filter_like_join(std::vector<size_t>& left,
-                                 std::vector<size_t>& left_idx, 
-                                 std::vector<size_t>& right) {
+                                std::vector<size_t>& left_idx, 
+                                std::vector<size_t>& right) {
   std::unordered_set<size_t> right_set;
   for(size_t i = 0; i < right.size(); i++) {
     right_set.insert(right[i]);
@@ -400,8 +402,8 @@ vector<size_t> filter_like_join(std::vector<size_t>& left,
 }
 #else
 std::vector<size_t> filter_like_join(std::vector<size_t>& left,
-                                      std::vector<size_t>& left_idx,
-                                      std::vector<size_t>& right) {
+                                     std::vector<size_t>& left_idx,
+                                     std::vector<size_t>& right) {
   vector<size_t> dummy(right.size());
   unique_hashtable<size_t, size_t> ht(right, dummy);
   std::vector<size_t> missed;
@@ -413,8 +415,10 @@ std::vector<size_t> filter_like_join(std::vector<size_t>& left,
 // implement as join, since matched strings might be many
 node_local<std::vector<size_t>>
 typed_dfcolumn<dic_string>::
-filter_like(const std::string& pattern) {
-  auto right_non_null_val = dic->map(filter_like_helper, broadcast(pattern));
+filter_like(const std::string& pattern, int wild_card) {
+  auto right_non_null_val = dic->map(filter_like_helper, 
+                                     broadcast(pattern), 
+                                     broadcast(wild_card));
   auto left_full_local_idx = get_local_index();
   node_local<std::vector<size_t>> left_non_null_idx;
   node_local<std::vector<size_t>> left_non_null_val;
@@ -435,8 +439,10 @@ filter_like(const std::string& pattern) {
 
 node_local<std::vector<size_t>>
 typed_dfcolumn<dic_string>::
-filter_not_like(const std::string& pattern) {
-  auto right_non_null_val = dic->map(filter_not_like_helper, broadcast(pattern));
+filter_not_like(const std::string& pattern, int wild_card) {
+  auto right_non_null_val = dic->map(filter_not_like_helper, 
+                                     broadcast(pattern), 
+                                     broadcast(wild_card));
   auto left_full_local_idx = get_local_index();
   node_local<std::vector<size_t>> left_non_null_idx;
   node_local<std::vector<size_t>> left_non_null_val;
@@ -457,14 +463,23 @@ filter_not_like(const std::string& pattern) {
 
 std::vector<size_t>
 dic_string_sort_prepare_helper(const std::vector<size_t>& val,
-                               const std::vector<size_t>& order) {
+                               const std::vector<size_t>& order,
+                               const std::vector<size_t>& nulls) {
   auto orderp = order.data();
   auto valp = val.data();
   auto val_size = val.size();
   std::vector<size_t> new_val(val_size);
   auto new_valp = new_val.data();
+  auto null_value = std::numeric_limits<size_t>::max();
+#pragma _NEC ivdep
   for(size_t i = 0; i < val_size; i++) {
-    new_valp[i] = orderp[valp[i]];
+    if(valp[i] != null_value) new_valp[i] = orderp[valp[i]];
+  }
+  auto nullsp = nulls.data();
+  auto nulls_size = nulls.size();
+#pragma _NEC ivdep
+  for(size_t i = 0; i < nulls_size; i++) {
+    new_valp[nullsp[i]] = null_value;
   }
   return new_val;
 }
@@ -480,7 +495,8 @@ typed_dfcolumn<dic_string>::sort_prepare() {
   for(size_t i = 0; i < num_words; i++) orderp[i] = i;
   lexical_sort_compressed_words(local_dic.cwords, local_dic.lens,
                                 local_dic.lens_num, order);
-  rescol.val = val.map(dic_string_sort_prepare_helper, broadcast(order));
+  rescol.val = val.map(dic_string_sort_prepare_helper, broadcast(order),
+                       nulls);
   rescol.nulls = nulls; // copy
   return rescol;
 }
@@ -583,6 +599,52 @@ typed_dfcolumn<dic_string>::filter_neq(std::shared_ptr<dfcolumn>& right) {
   if(contain_nulls)
     return filtered_idx.map(set_difference<size_t>, nulls);
   else return filtered_idx;
+}
+
+node_local<std::vector<size_t>>
+typed_dfcolumn<dic_string>::filter_eq_immed(const std::string& right) {
+  return val.map
+    (+[](std::vector<size_t>& val, const dict& dic, 
+         const std::string& right, const std::vector<size_t>& nulls,
+         bool contain_nulls) {
+      words right_word;
+      right_word.chars = char_to_int(right);
+      right_word.starts = {0};
+      right_word.lens = {right.size()};
+      auto right_cword = make_compressed_words(right_word);
+      auto lookedup = dic.lookup(right_cword);
+      if(lookedup[0] != numeric_limits<size_t>::max()) {
+        auto filtered_idx = filter_eq_immed_helper<size_t>(val, lookedup[0]);
+        if(contain_nulls) return set_difference(filtered_idx, nulls);
+        else return filtered_idx;
+      }
+      else {
+        return std::vector<size_t>();
+      }
+    }, *dic, broadcast(right), nulls, broadcast(contain_nulls));
+}
+
+node_local<std::vector<size_t>>
+typed_dfcolumn<dic_string>::filter_neq_immed(const std::string& right) {
+  return val.map
+    (+[](std::vector<size_t>& val, const dict& dic, 
+         const std::string& right, const std::vector<size_t>& nulls,
+         bool contain_nulls) {
+      words right_word;
+      right_word.chars = char_to_int(right);
+      right_word.starts = {0};
+      right_word.lens = {right.size()};
+      auto right_cword = make_compressed_words(right_word);
+      auto lookedup = dic.lookup(right_cword);
+      if(lookedup[0] != numeric_limits<size_t>::max()) {
+        auto filtered_idx = filter_neq_immed_helper<size_t>(val, lookedup[0]);
+        if(contain_nulls) return set_difference(filtered_idx, nulls);
+        else return filtered_idx;
+      }
+      else {
+        return std::vector<size_t>();
+      }
+    }, *dic, broadcast(right), nulls, broadcast(contain_nulls));
 }
 
 node_local<std::vector<size_t>> typed_dfcolumn<dic_string>::get_local_index() {
@@ -743,7 +805,9 @@ void dfcolumn_replace_nullstr(words& ws,
 }
 
 node_local<words>
-typed_dfcolumn<dic_string>::as_words(bool quote_escape,
+typed_dfcolumn<dic_string>::as_words(size_t precision, // not used
+                                     const std::string& datetime_fmt, // not used
+                                     bool quote_escape,
                                      const std::string& nullstr) {
   auto nl_words = dic->map
     (+[](const dict& d, const std::vector<size_t>& val, const std::vector<size_t>& nulls) {
@@ -779,6 +843,7 @@ typed_dfcolumn<dic_string>::as_words(bool quote_escape,
 }
 
 void typed_dfcolumn<dic_string>::debug_print() {
+  std::cout << "dtype: " << dtype() << std::endl;
   std::cout << "dic: " << std::endl;
   dic->get(0).print();
   std::cout << "val: " << std::endl;
