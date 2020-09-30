@@ -124,6 +124,46 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisSVMLB
   catch(std::exception& e) { set_status(true,e.what()); }
 }
 
+// initiates the training call at Frovedis master node for SVMRegressionWithSGD and LinearSVR
+JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisSVR
+  (JNIEnv *env, jclass thisCls, jobject master_node, jobject fdata,
+   jint numIter, jdouble stepSize, jdouble mbf,
+   jdouble regParam, jstring regType, jstring lossName,
+   jdouble eps, jboolean isIntercept, jdouble tol,
+   jint mid, jboolean movable, jboolean dense) {
+
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto f_dptr = java_mempair_to_frovedis_mempair(env, fdata);
+  bool mvbl = (bool) movable;
+  auto regTyp = to_cstring(env,regType);  
+  int rtype = 0; // ZERO (default)
+  if (regTyp == "ZERO")  rtype = 0;
+  else if (regTyp == "L1") rtype = 1;
+  else if (regTyp == "L2") rtype = 2;
+  else REPORT_ERROR(USER_ERROR, "Unsupported regType is provided!\n");
+  bool icpt = (bool) isIntercept;
+  int vb = 0; // no log (default)
+  bool isDense = (bool) dense;
+  auto lossType = to_cstring(env,lossName);
+  int loss = 1; // initializing
+  if (lossType == "epsilon_insensitive")  loss = 1;
+  else if (lossType == "squared_epsilon_insensitive") loss = 2;
+  else REPORT_ERROR(USER_ERROR, "Unsupported loss type is provided!\n");
+
+#ifdef _EXRPC_DEBUG_
+  std::cout << "Connecting to master node ("
+            << fm_node.hostname << "," << fm_node.rpcport
+            << ") to train frovedis Linear SVM Regression.\n";
+#endif
+  try {
+    if(isDense)
+      exrpc_oneway(fm_node,(frovedis_svm_regressor_sgd<DT1,D_MAT1>),f_dptr,numIter,stepSize,mbf,rtype,regParam,icpt,tol,eps,loss,vb,mid,mvbl);
+    else
+      exrpc_oneway(fm_node,(frovedis_svm_regressor_sgd<DT1,S_MAT1>),f_dptr,numIter,stepSize,mbf,rtype,regParam,icpt,tol,eps,loss,vb,mid,mvbl);
+  }
+  catch(std::exception& e) { set_status(true,e.what()); }
+}
+
 // (3) --- Linear Regression ---
 // initiates the training call at Frovedis master node for LinearRegressionWithSGD
 JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisLNRSGD
