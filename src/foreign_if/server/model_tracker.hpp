@@ -46,7 +46,8 @@ enum MODEL_KIND {
   LDASP,
   RFM,
   GBT,
-  SVR
+  SVR,
+  KSVC
 };
 
 enum MAT_KIND {
@@ -83,7 +84,10 @@ enum OPTYPE {
   LT = 5,
   LE = 6,
   AND = 11,
-  OR = 12
+  OR = 12,
+  NOT = 13,
+  LIKE = 14,
+  NLIKE = 15
 };
 
 // [MODEL_ID] => [MODEL_KIND, MODEL_PTR]
