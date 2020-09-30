@@ -1,7 +1,7 @@
 include ../../../../../Makefile.in.x86
 #include ../Makefile.in.x86
 
-all: dtransfer.mf frov_mat.mf frov_df.mf pblas_scalapack.mf svd.mf pca.mf als.mf kmeans.mf lrm.mf lrsgd.mf nb.mf fm.mf dt.mf fp.mf ac.mf se.mf sc.mf w2v.mf page_rank.mf knn.mf knc.mf knr.mf sssp.mf bfs.mf dbscan.mf lda.mf rf.mf gbt.mf
+all: dtransfer.mf frov_mat.mf frov_df.mf pblas_scalapack.mf svd.mf pca.mf als.mf kmeans.mf lrm.mf lrsgd.mf nb.mf fm.mf dt.mf fp.mf ac.mf se.mf sc.mf w2v.mf page_rank.mf knn.mf knc.mf knr.mf sssp.mf bfs.mf dbscan.mf lda.mf rf.mf gbt.mf svr.mf
 
 append:
 	echo ${SPARK_HOME}/jars/*:${HDPATH} > tmp
@@ -120,6 +120,10 @@ rf.mf: rf.mf.tmpl append
 gbt.mf: gbt.mf.tmpl append
 	cp gbt.mf.tmpl gbt.mf
 	cat append >> gbt.mf
+
+svr.mf: svr.mf.tmpl append
+	cp svr.mf.tmpl svr.mf
+	cat append >> svr.mf
 
 clean:
 	rm -f *~ *.mf append
