@@ -43,14 +43,10 @@ object DecisionTreeDemo {
     println("prediction on loaded model: ")
     m2.predict(ftr).collect.foreach(println) // prediction on loaded model
 
-/*
- * FIXME
- *
     // -------- prediction --------
     val predictionAndLabel = data.map(p => (m2.predict(p.features), p.label))
     val accuracy = 1.0 * predictionAndLabel.filter(x => x._1 == x._2).count() / data.count()
     println("Test accuracy: " + accuracy)
-*/
 
     // -------- clean-up --------
     m1.release() 
