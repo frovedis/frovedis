@@ -27,7 +27,7 @@ class LogisticRegression(BaseEstimator):
     def __init__(self, penalty='none', dual=False, tol=1e-4, C=1.0,
                  fit_intercept=True, intercept_scaling=1, class_weight=None,
                  random_state=None, solver='sag', max_iter=1000,
-                 multi_class='ovr', verbose=0, warm_start=False,
+                 multi_class='auto', verbose=0, warm_start=False,
                  n_jobs=1, l1_ratio=None, lr_rate=0.01):
         self.penalty = penalty
         self.dual = dual
@@ -72,18 +72,21 @@ class LogisticRegression(BaseEstimator):
         self.__mid = ModelID.get()
         self.__mdtype = dtype
 
-        if self.n_classes > 2 and self.multi_class == 'ovr':
-            raise ValueError("fit: binary classfication on \
-                multinomial data is requested!")
-
-        if self.multi_class == 'auto':
+        if self.n_classes < 2:
+            raise ValueError("fit: number of unique " \
+                             + "labels in y are less than 2!")
+        if self.multi_class == 'auto' or self.multi_class == 'ovr':
             if self.n_classes == 2:
-                self.multi_class = 'ovr'
-            elif self.n_classes > 2:
-                self.multi_class = 'multinomial'
+                isMult = False
+                self.__mkind = M_KIND.LRM
             else:
-                raise ValueError("fit: number of unique \
-                    labels in y are less than 2")
+                isMult = True
+                self.__mkind = M_KIND.MLR
+        elif self.multi_class == 'multinomial':
+            isMult = True # even for binary data
+            self.__mkind = M_KIND.MLR
+        else:
+            raise ValueError("Unknown multi_class: %s!" % self.multi_class)
 
         if self.penalty == 'l1':
             regTyp = 1
@@ -93,29 +96,21 @@ class LogisticRegression(BaseEstimator):
             regTyp = 0
         else:
             raise ValueError("Unsupported penalty is provided: ", self.penalty)
+
         rparam = 1.0 / self.C
         sv = ['newton-cg', 'liblinear', 'saga']
         if self.solver in sv:
             raise ValueError( \
-            "Frovedis doesn't support solver %s for Logistic Regression \
-            currently." % self.solver)
-
-        if self.multi_class == 'ovr':
-            isMult = False
-            self.__mkind = M_KIND.LRM
-        elif self.multi_class == 'multinomial':
-            isMult = True
-            self.__mkind = M_KIND.MLR
-        else:
-            raise ValueError("Unknown multi_class type!")
+            "Frovedis doesn't support solver %s for Logistic Regression " \
+            + "currently." % self.solver)
 
         if isMult:
             encoded_y, logic = y.encode(need_logic=True)
         else:
-            target = [-1, 1] # frovedis supports -1 and 1
-                             #   for binary logistic regression
+            target = [-1, 1] # for binary case: frovedis supports -1 and 1
             encoded_y, logic = y.encode(unique_labels, target, need_logic=True)
         self.label_map = logic
+
         (host, port) = FrovedisServer.getServerInstance()
         if self.solver == 'sag':
             rpclib.lr_sgd(host, port, X.get(), encoded_y.get(), self.max_iter, \
@@ -360,9 +355,9 @@ class LinearRegression(BaseEstimator):
         # select default solver, when None is given
         if self.solver is None:
             if dense:
-                self.solver = 'scalapack' # p?gels for dense X
+                self.solver = 'lapack' # ?gelsd for dense X
             else:
-                self.solver = 'sag'       # SGDRegressor for sparse X
+                self.solver = 'sag'    # SGDRegressor for sparse X
 
         (host, port) = FrovedisServer.getServerInstance()
         if self.solver == 'sag':
@@ -412,9 +407,7 @@ class LinearRegression(BaseEstimator):
                 excpt = rpclib.check_server_exception()
                 if excpt["status"]:
                     raise RuntimeError(excpt["info"])
-                n_features = len(wgt)
-                shape = (1, n_features)
-                self._coef = np.asarray(wgt).reshape(shape)
+                self._coef = np.asarray(wgt)
             return self._coef
         else:
             raise AttributeError("attribute 'coef_' \
@@ -437,7 +430,7 @@ class LinearRegression(BaseEstimator):
                 excpt = rpclib.check_server_exception()
                 if excpt["status"]:
                     raise RuntimeError(excpt["info"])
-                self._intercept = np.asarray(icpt)
+                self._intercept = icpt
             return self._intercept
         else:
             raise AttributeError("attribute 'intercept_' \
@@ -611,9 +604,7 @@ class Lasso(BaseEstimator):
                 excpt = rpclib.check_server_exception()
                 if excpt["status"]:
                     raise RuntimeError(excpt["info"])
-                n_features = len(wgt)
-                shape = (1, n_features)
-                self._coef = np.asarray(wgt).reshape(shape)
+                self._coef = np.asarray(wgt)
             return self._coef
         else:
             raise AttributeError(\
@@ -636,7 +627,7 @@ class Lasso(BaseEstimator):
                 excpt = rpclib.check_server_exception()
                 if excpt["status"]:
                     raise RuntimeError(excpt["info"])
-                self._intercept = np.asarray(icpt)
+                self._intercept = icpt
             return self._intercept
         else:
             raise AttributeError(\
@@ -811,9 +802,7 @@ class Ridge(BaseEstimator):
                 excpt = rpclib.check_server_exception()
                 if excpt["status"]:
                     raise RuntimeError(excpt["info"])
-                n_features = len(wgt)
-                shape = (1, n_features)
-                self._coef = np.asarray(wgt).reshape(shape)
+                self._coef = np.asarray(wgt)
             return self._coef
         else:
             raise AttributeError(\
@@ -836,7 +825,7 @@ class Ridge(BaseEstimator):
                 excpt = rpclib.check_server_exception()
                 if excpt["status"]:
                     raise RuntimeError(excpt["info"])
-                self._intercept = np.asarray(icpt)
+                self._intercept = icpt
             return self._intercept
         else:
             raise AttributeError("attribute 'intercept_'\
@@ -1395,9 +1384,7 @@ class SGDRegressor(BaseEstimator):
                 excpt = rpclib.check_server_exception()
                 if excpt["status"]:
                     raise RuntimeError(excpt["info"])
-                n_features = len(wgt)
-                shape = (1, n_features)
-                self._coef = np.asarray(wgt).reshape(shape)
+                self._coef = np.asarray(wgt)
             return self._coef
         else:
             raise AttributeError(\
