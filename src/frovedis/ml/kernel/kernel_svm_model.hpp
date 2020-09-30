@@ -31,14 +31,15 @@ struct csvc_model {
 
   // Classify data based on kernel values with support vectors.
   // Input data is splitted into batches with the size specified by `batche_size` (-1 for fixing auto).
-  std::vector<double> predict(rowmajor_matrix_local<K>& data, int batch_size = -1);
-  std::vector<double> predict_values(rowmajor_matrix_local<K>& data, int batch_size = -1);
+  std::vector<K> predict(rowmajor_matrix_local<K>& data, int batch_size = -1);
+  std::vector<K> predict_values(rowmajor_matrix_local<K>& data, int batch_size = -1);
+  rowmajor_matrix_local<K> compute_probability_matrix(rowmajor_matrix_local<K>& data);
   size_t get_working_set_size(size_t cache_size, size_t data_size, size_t feature_size);
   void save(const std::string& path);
   void load(const std::string& path);
   void savebinary(const std::string& path);
   void loadbinary(const std::string& path);
-  
+
   double tol;
   double C;
   int cache_size;
@@ -141,7 +142,7 @@ void csvc_model<K>::train(rowmajor_matrix_local<K>& data, std::vector<K>& label)
 
 
 template <typename K>
-std::vector<double> 
+std::vector<K> 
 csvc_model<K>::predict_values(rowmajor_matrix_local<K>& data, int batch_size) {
   size_t feature_size = data.local_num_col;
   size_t data_size = data.local_num_row;
@@ -164,7 +165,7 @@ csvc_model<K>::predict_values(rowmajor_matrix_local<K>& data, int batch_size) {
   rowmajor_matrix_local<K> kernel_rows(batch_size, sv_size);
   kernel_matrix<K> kmatrix(sv, kernel_ty, gamma, coef0, degree);
 
-  std::vector<double> dec_values(data_size);
+  std::vector<K> dec_values(data_size);
 
   assert(batch_size > 0);
   size_t loop = ceil_div(data_size, size_t(batch_size));
@@ -190,13 +191,31 @@ csvc_model<K>::predict_values(rowmajor_matrix_local<K>& data, int batch_size) {
   return dec_values;
 }
 
+template <typename K>
+rowmajor_matrix_local<K>
+csvc_model<K>::compute_probability_matrix(rowmajor_matrix_local<K>& data) {
+  auto tmp = predict_values(data);
+  //std::cout << "predict_values: \n";  debug_print_vector(tmp,10);
+  auto nsamples = tmp.size();
+  size_t nclasses = 2;  //Currently support only binomial case
+  rowmajor_matrix_local<K> ret(nsamples, nclasses);
+  auto tmpp = tmp.data();
+  auto retp = ret.val.data();
+  for(size_t i = 0; i < nsamples; ++i) {
+    K prob_1 = 1.0 / (1.0 + exp(-tmpp[i]));
+    K prob_0 = 1.0 - prob_1;
+    retp[i * nclasses + 0] = prob_0;
+    retp[i * nclasses + 1] = prob_1;
+  }
+  return ret;
+}
 
 template <typename K>
-std::vector<double> 
+std::vector<K> 
 csvc_model<K>::predict(rowmajor_matrix_local<K>& data, int batch_size) {
-  std::vector<double> dec_values = predict_values(data, batch_size);
+  std::vector<K> dec_values = predict_values(data, batch_size);
   for (size_t i = 0; i < dec_values.size(); i++) {
-    double lb;
+    K lb;
     if (dec_values[i] > 0) lb = 1.0;
     else lb = -1.0;
     dec_values[i] = lb;
