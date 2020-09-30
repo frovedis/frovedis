@@ -8,8 +8,8 @@ using namespace std;
 template class typed_dfcolumn<raw_string>;
 
 vector<compressed_words>
-raw_string_align_as_helper(compressed_words& cws,
-                           vector<size_t>& alltoall_sizes) {
+compressed_words_align_as_helper(compressed_words& cws,
+                                 vector<size_t>& alltoall_sizes) {
   auto nodesize = alltoall_sizes.size();
   vector<compressed_words> ret(nodesize);
   size_t current = 0;
@@ -26,11 +26,12 @@ raw_string_align_as_helper(compressed_words& cws,
   return ret;
 }
 
-void typed_dfcolumn<raw_string>::align_as(const vector<size_t>& dst) {
+void compressed_words_align_as(node_local<compressed_words>& comp_words,
+                               const vector<size_t>& mysizes,
+                               const vector<size_t>& dst) {
   if(dst.size() != get_nodesize()) 
     throw std::runtime_error
       ("align_as: size of dst is not equal to node size");
-  auto mysizes = sizes();
   size_t dsttotal = 0;
   size_t selftotal = 0;
   for(size_t i = 0; i < dst.size(); i++) dsttotal += dst[i];
@@ -49,10 +50,18 @@ void typed_dfcolumn<raw_string>::align_as(const vector<size_t>& dst) {
   // align_as_calc_alltoall_sizes is in dvector.hpp
   auto alltoall_sizes = broadcast(mysizes).map(align_as_calc_alltoall_sizes,
                                                broadcast(dst));
-  auto comp_words_toex = comp_words.map(raw_string_align_as_helper,
+  auto comp_words_toex = comp_words.map(compressed_words_align_as_helper,
                                         alltoall_sizes);
+  comp_words.mapv(+[](compressed_words& cw){cw.clear();});
   auto comp_words_exchanged = alltoall_exchange(comp_words_toex);
+  comp_words_toex.mapv(+[](vector<compressed_words>& vcw)
+                       {for(auto& cw: vcw) cw.clear();});
   comp_words = comp_words_exchanged.map(merge_multi_compressed_words);
+}
+
+void typed_dfcolumn<raw_string>::align_as(const vector<size_t>& dst) {
+  // overwrite
+  compressed_words_align_as(comp_words, sizes(), dst);
 }
 
 // use "NULL" as string for NULL, which will not be used directly anyway
@@ -99,10 +108,12 @@ void typed_dfcolumn<raw_string>::append_nulls
 
 node_local<std::vector<size_t>>
 typed_dfcolumn<raw_string>::
-filter_like(const std::string& pattern) {
+filter_like(const std::string& pattern, int wild_card) {
   auto hit =
-    comp_words.map(+[](const compressed_words& cws, const std::string& p)
-                   {return like(cws.decompress(), p);}, broadcast(pattern));
+    comp_words.map(+[](const compressed_words& cws, 
+                       const std::string& p, int wild_card) {
+                     return like(cws.decompress(), p, wild_card);
+                   }, broadcast(pattern), broadcast(wild_card));
   if(contain_nulls) {
     return hit.map(set_difference<size_t>, nulls);
   } else {
@@ -112,16 +123,17 @@ filter_like(const std::string& pattern) {
 
 node_local<std::vector<size_t>>
 typed_dfcolumn<raw_string>::
-filter_not_like(const std::string& pattern) {
+filter_not_like(const std::string& pattern, int wild_card) {
   auto hit =
-    comp_words.map(+[](const compressed_words& cws, const std::string& p) {
+    comp_words.map(+[](const compressed_words& cws, 
+                       const std::string& p, int wild_card) {
         auto num_words = cws.num_words();
-        auto hit_like = like(cws.decompress(), p);
+        auto hit_like = like(cws.decompress(), p, wild_card);
         std::vector<size_t> iota(num_words);
         auto iotap = iota.data();
         for(size_t i = 0; i < num_words; i++) iotap[i] = i;
         return set_difference(iota, hit_like);
-      }, broadcast(pattern));
+      }, broadcast(pattern), broadcast(wild_card));
   if(contain_nulls) {
     return hit.map(set_difference<size_t>, nulls);
   } else {
@@ -347,7 +359,9 @@ void dfcolumn_replace_nullstr(words& ws,
                               const std::vector<size_t>& nulls,
                               const std::string& nullstr);
 node_local<words>
-typed_dfcolumn<raw_string>::as_words(bool quote_escape,
+typed_dfcolumn<raw_string>::as_words(size_t precision, // not used
+                                     const std::string& datetime_fmt, // not used
+                                     bool quote_escape,
                                      const std::string& nullstr) {
   auto nl_words = comp_words.map(+[](const compressed_words& cws)
                                  {return cws.decompress();});
@@ -358,6 +372,7 @@ typed_dfcolumn<raw_string>::as_words(bool quote_escape,
 }
 
 void typed_dfcolumn<raw_string>::debug_print() {
+  std::cout << "dtype: " << dtype() << std::endl;
   for(auto& i: comp_words.gather()) {
       i.print();
   }
