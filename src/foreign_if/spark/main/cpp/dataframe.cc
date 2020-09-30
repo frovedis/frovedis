@@ -448,4 +448,27 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_releaseSparseConv
   catch(std::exception& e) { set_status(true,e.what()); }
 }
 
+// multi-eq join
+JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getMultiEqDfopt
+                     (JNIEnv *env, jclass thisCls,
+                      jobject master_node,
+                      jobjectArray left_on,
+                      jobjectArray right_on,
+                      jlong sz) {
+  
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto left_cols = to_string_vector(env, left_on, sz);
+  auto right_cols = to_string_vector(env, right_on, sz);
+
+  exrpc_ptr_t ret_proxy = 0;
+  try {
+    ret_proxy = exrpc_async(fm_node, frov_multi_eq_dfopt, left_cols, right_cols).get();
+  }
+  catch (std::exception& e) {
+    set_status(true, e.what());
+  }
+  return (jlong) ret_proxy;
+}
+
+
 }
