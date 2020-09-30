@@ -39,6 +39,7 @@
 #include "frovedis/ml/neighbors/knn_unsupervised.hpp"
 #include "frovedis/ml/neighbors/knn_supervised.hpp"
 #include "frovedis/ml/lda/lda_cgs.hpp"
+#include "frovedis/ml/kernel/kernel_svm.hpp"
 
 #include "../exrpc/exrpc_expose.hpp"
 #include "frovedis_mem_pair.hpp"
@@ -108,8 +109,6 @@ void frovedis_lr_sgd(frovedis_mem_pair& mp, int& numIter, double& stepSize,
   }
   frovedis::set_loglevel(old_level);
 }
-
-
 
 template <class T, class MATRIX>
 void frovedis_lr_lbfgs(frovedis_mem_pair& mp, int& numIter, double& stepSize, 
@@ -244,6 +243,35 @@ void frovedis_svm_regressor_sgd(frovedis_mem_pair& mp, int& numIter, double& alp
                                           tol,eps,loss);
   frovedis::set_loglevel(old_level);
   handle_trained_model<linear_regression_model<T>>(mid, SVR, m);
+}
+
+template <class T, class MATRIX>
+void frovedis_svc(frovedis_mem_pair& mp, double& tol, double& C, 
+                  int& cache_size,
+                  int& max_iter, std::string& kernel, 
+                  double& gamma, double& coef0,
+                  int& degree, int& verbose, int& mid, 
+                  bool& isMovableInput=false) {
+  register_for_train(mid);  // mark model 'mid' as "under training"
+  // extracting input data
+  MATRIX& matrix = *reinterpret_cast<MATRIX*>(mp.first());
+  dvector<T>& label = *reinterpret_cast<dvector<T>*>(mp.second());
+  auto lbl = label.gather();
+  auto mat = matrix.gather();
+
+  auto old_level = frovedis::get_loglevel();
+  if (verbose == 1) frovedis::set_loglevel(frovedis::DEBUG);
+  else if (verbose == 2) frovedis::set_loglevel(frovedis::TRACE);
+ 
+  frovedis::kernel_csvc_model<T> model(tol, C, cache_size, max_iter, 
+                                       kernel, gamma, coef0, degree);
+  model.train(mat, lbl);
+  if (isMovableInput) {
+    matrix.clear();
+    label.mapv_partitions(clear_lbl_data<T>);
+  }
+  frovedis::set_loglevel(old_level);
+  handle_trained_model<kernel_csvc_model<T>>(mid, KSVC, model);
 }
 
 template <class T, class MATRIX>
