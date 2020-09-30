@@ -375,6 +375,29 @@ T calc_squared_error_diff(std::vector<T>& pred_label,
 }
 
 template <class T>
+T calc_vec_sum(const std::vector<T>& vec) {
+  T sum = 0;
+  auto vptr = vec.data();
+  for(size_t i = 0; i < vec.size(); ++i) sum += vptr[i];
+  return sum;
+}
+
+template <class T>
+T calc_squared_mean_error_diff(std::vector<T>& true_label,
+                               T nsamples) {
+  T lbl_sum = 0, sq_error = 0;
+  auto loc_lbl_sum = calc_vec_sum(true_label);
+  typed_allreduce(&loc_lbl_sum, &lbl_sum, 1, MPI_SUM, frovedis_comm_rpc);
+  auto true_label_mean = lbl_sum / nsamples;
+  auto tlblptr = true_label.data();
+  for(size_t i = 0; i < true_label.size(); ++i) {
+    auto error = tlblptr[i] - true_label_mean;
+    sq_error += (error * error);
+  }
+  return sq_error;
+}
+
+template <class T>
 template <class I>
 float kneighbors_regressor<T>::score(rowmajor_matrix<T>& mat,
                                      dvector<T>& true_label) {
@@ -383,11 +406,21 @@ float kneighbors_regressor<T>::score(rowmajor_matrix<T>& mat,
   if (nsamples != true_label.size())
     REPORT_ERROR(USER_ERROR, "number of entries differ in input matrix and label!\n");
   auto pred_label = predict<I>(mat);
-  auto tot_sq_error =  pred_label.viewas_node_local()
-                                 .map(calc_squared_error_diff<T>,
-                                     true_label.viewas_node_local())
-                                 .reduce(sum_total<T>);
-  return (float) std::sqrt(tot_sq_error / nsamples);
+  auto u =  pred_label.viewas_node_local()
+                      .map(calc_squared_error_diff<T>,
+                           true_label.viewas_node_local())
+                      .reduce(sum_total<T>);
+/*
+  auto label_sum = true_label.viewas_node_local()
+                             .map(calc_vec_sum<T>)
+                             .reduce(sum_total<T>);
+  auto label_mean = label_sum / true_label.size();
+*/
+  auto v =  true_label.viewas_node_local()
+                      .map(calc_squared_mean_error_diff<T>,
+                           broadcast(true_label.size()))
+                      .reduce(sum_total<T>);
+  return  1 - u / v; 
 }
 
 }
