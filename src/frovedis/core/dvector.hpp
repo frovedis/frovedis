@@ -21,6 +21,7 @@
 #include "serializehelper.hpp"
 #include "mpihelper.hpp"
 #include "type_utility.hpp"
+#include "utility.hpp"
 
 #ifdef USE_YAS
 #include <yas/types/std/vector.hpp>

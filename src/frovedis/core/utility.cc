@@ -7,6 +7,12 @@
 
 namespace frovedis {
 
+bool is_bigendian() {
+  int i = 1;
+  if(*((char*)&i)) return false;
+  else return true;
+}
+
 double get_dtime(){
   return MPI_Wtime();
 /*

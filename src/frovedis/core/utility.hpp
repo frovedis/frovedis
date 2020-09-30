@@ -32,6 +32,8 @@ T ceil_div(T a, T b){
   else return (a - 1) / b + 1;
 }
 
+bool is_bigendian();
+
 template <class T>
 T add(T a, T b){return a + b;}
 

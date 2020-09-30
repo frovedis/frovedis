@@ -335,12 +335,6 @@ dvector<std::string> make_dvector_load<std::string>(const std::string& path,
   }
 }
 
-inline bool is_bigendian() {
-  int i = 1;
-  if(*((char*)&i)) return false;
-  else return true;
-}
-
 inline bool no_conversion_needed() {
 #if defined(BIG_ENDIAN_FILE)
   return is_bigendian();
