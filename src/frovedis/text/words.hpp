@@ -8,9 +8,11 @@
 
 #if defined(__ve__) || defined(_SX)
 #define WORDS_VLEN 256
+#define WORDS_VECTOR_BLOCK 4096
 #else
 //#define WORDS_VLEN 1
 #define WORDS_VLEN 4
+#define WORDS_VECTOR_BLOCK 4
 #endif
 
 namespace frovedis {
@@ -104,6 +106,11 @@ struct words {
   std::vector<size_t> starts;
   std::vector<size_t> lens;
 
+  void clear() { // to free memory
+    std::vector<int> chars_tmp; chars.swap(chars_tmp);
+    std::vector<size_t> starts_tmp; starts.swap(starts_tmp);
+    std::vector<size_t> lens_tmp; lens.swap(lens_tmp);
+  }
   void print()
     {print_words(chars, starts, lens);}
   void trim_head(const std::string& to_trim)
@@ -156,6 +163,9 @@ std::vector<size_t> like(const words& w, const std::string& to_search,
 
 // for saving CSV file
 void quote_and_escape(words& ws);
+
+words vector_string_to_words(const std::vector<std::string>& str);
+std::vector<std::string> words_to_vector_string(const words& ws);
 
 }
 #endif

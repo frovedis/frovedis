@@ -37,7 +37,7 @@ concat_docs(const vector<int>& v, const vector<size_t>& sep,
   total += sep_size; // for delimiter
   vector<int> ret(total);
   auto retp = ret.data();
-  auto crnt_pos = 0;
+  size_t crnt_pos = 0;
   doc_start.resize(sep_size);
   auto doc_startp = doc_start.data();
   for(size_t i = 0; i < sep_size; i++) {
@@ -692,8 +692,8 @@ words merge_words(const words& a, const words& b) {
 words merge_multi_words(const vector<words>& vecwords) {
   words r;
   auto vecwords_size = vecwords.size();
-  auto total_chars_size = 0;
-  auto total_starts_size = 0;
+  size_t total_chars_size = 0;
+  size_t total_starts_size = 0;
   for(size_t i = 0; i < vecwords_size; i++) {
     total_chars_size += vecwords[i].chars.size();
     total_starts_size += vecwords[i].starts.size();
@@ -713,7 +713,7 @@ words merge_multi_words(const vector<words>& vecwords) {
   }
   auto r_startsp = r.starts.data();
   auto crnt_r_startsp = r_startsp;
-  auto crnt_shift = 0;
+  size_t crnt_shift = 0;
   for(size_t i = 0; i < vecwords_size; i++) {
     auto crnt_startsp = vecwords[i].starts.data();
     auto crnt_starts_size = vecwords[i].starts.size();
@@ -1082,6 +1082,7 @@ struct quote_and_escape_char {
 
 // quote by "..." and escape '"' and '\' by '\' for saving csv file
 void quote_and_escape(words& ws) {
+  if(ws.starts.size() == 0) return;
   vector<size_t> new_starts;
   // later ' ' is replaced by '"'
   auto new_chars_concat = concat_words(ws, "  ", new_starts);
@@ -1150,6 +1151,175 @@ void quote_and_escape(words& ws) {
   }
   ws.chars.swap(ret_chars);
   ws.starts.swap(new_starts);
+}
+
+words vector_string_to_words(const vector<string>& str) {
+  words ret;
+  auto size = str.size();
+  if(size == 0) return ret;
+  auto strp = str.data();
+  ret.lens.resize(size);
+  auto lensp = ret.lens.data();
+  for(size_t i = 0; i < size; i++) {
+    lensp[i] = strp[i].size();
+  }
+  ret.starts.resize(size);
+  auto startsp = ret.starts.data();
+  prefix_sum(lensp, startsp+1, size-1);
+  auto total_size = startsp[size-1] + lensp[size-1];
+  ret.chars.resize(total_size);
+  auto charsp = ret.chars.data();
+  if(is_bigendian()) throw runtime_error("big endian is not supported");
+  std::vector<uint32_t*> intstrp(size);
+  auto intstrpp = intstrp.data();
+  for(size_t i = 0; i < size; i++) {
+    intstrpp[i] =
+      reinterpret_cast<uint32_t*>(const_cast<char*>(strp[i].data()));
+  }
+  std::vector<size_t> pos(size); // int pos; actual_pos / 4
+  auto posp = pos.data();
+  for(size_t i = 0; i < size; i++) {
+    posp[i] = 0;
+  }
+  size_t num_block = size / WORDS_VECTOR_BLOCK;
+  size_t rest = size - num_block * WORDS_VECTOR_BLOCK;
+  for(size_t b = 0; b < num_block; b++) {
+    int still_working = true;
+    while(still_working) {
+      still_working = false;
+#pragma _NEC ivdep
+      for(size_t i = 0; i < WORDS_VECTOR_BLOCK; i++) {
+        auto idx = b * WORDS_VECTOR_BLOCK + i;
+        if(posp[idx] * 4 + 3 < lensp[idx]) {
+          still_working = true;
+          auto packed = *(intstrpp[idx] + posp[idx]);
+          charsp[startsp[idx] + posp[idx] * 4] = packed & 0xFF;
+          charsp[startsp[idx] + posp[idx] * 4 + 1] = (packed >> 8) & 0xFF;
+          charsp[startsp[idx] + posp[idx] * 4 + 2] = (packed >> 16) & 0xFF;
+          charsp[startsp[idx] + posp[idx] * 4 + 3] = (packed >> 24) & 0xFF;
+          posp[idx]++;
+        }
+      }
+    }
+    for(size_t i = 0; i < WORDS_VECTOR_BLOCK; i++) {
+      auto idx = b * WORDS_VECTOR_BLOCK + i;
+      auto pos4 = posp[idx] * 4;
+      auto crnt_strp = strp[idx].data();
+      auto lensp_idx = lensp[idx];
+      for(size_t j = pos4; j < lensp_idx; j++) {
+        charsp[startsp[idx] + j] = crnt_strp[j];
+      }
+    }
+  }
+  int still_working = true;
+  while(still_working) {
+    still_working = false;
+#pragma _NEC ivdep
+    for(size_t i = 0; i < rest; i++) {
+      auto idx = num_block * WORDS_VECTOR_BLOCK + i;
+      if(posp[idx] * 4 + 3 < lensp[idx]) {
+        still_working = true;
+        auto packed = *(intstrpp[idx] + posp[idx]);
+        charsp[startsp[idx] + posp[idx] * 4] = packed & 0xFF;
+        charsp[startsp[idx] + posp[idx] * 4 + 1] = (packed >> 8)& 0xFF;
+        charsp[startsp[idx] + posp[idx] * 4 + 2] = (packed >> 16) & 0xFF;
+        charsp[startsp[idx] + posp[idx] * 4 + 3] = (packed >> 24) & 0xFF;
+        posp[idx]++;
+      }
+    }
+  }
+  for(size_t i = 0; i < rest; i++) {
+    auto idx = num_block * WORDS_VECTOR_BLOCK + i;
+    auto pos4 = posp[idx] * 4;
+    auto crnt_strp = strp[idx].data();
+    auto lensp_idx = lensp[idx];
+    for(size_t j = pos4; j < lensp_idx; j++) {
+      charsp[startsp[idx] + j] = crnt_strp[j];
+    }
+  }
+  return ret;
+}
+
+vector<string> words_to_vector_string(const words& ws) {
+  auto size = ws.starts.size();
+  if(size == 0) return vector<string>();
+  vector<string> str(size);
+  auto strp = str.data();
+  auto lensp = ws.lens.data();
+  for(size_t i = 0; i < size; i++) {
+    strp[i].resize(lensp[i]);
+  }
+  auto startsp = ws.starts.data();
+  auto charsp = ws.chars.data();
+  if(is_bigendian()) throw runtime_error("big endian is not supported");
+  std::vector<uint32_t*> intstrp(size);
+  auto intstrpp = intstrp.data();
+  for(size_t i = 0; i < size; i++) {
+    intstrpp[i] =
+      reinterpret_cast<uint32_t*>(const_cast<char*>(strp[i].data()));
+  }
+  std::vector<size_t> pos(size); // int pos; actual_pos / 4
+  auto posp = pos.data();
+  for(size_t i = 0; i < size; i++) {
+    posp[i] = 0;
+  }
+  size_t num_block = size / WORDS_VECTOR_BLOCK;
+  size_t rest = size - num_block * WORDS_VECTOR_BLOCK;
+  for(size_t b = 0; b < num_block; b++) {
+    int still_working = true;
+    while(still_working) {
+      still_working = false;
+#pragma _NEC ivdep
+      for(size_t i = 0; i < WORDS_VECTOR_BLOCK; i++) {
+        auto idx = b * WORDS_VECTOR_BLOCK + i;
+        if(posp[idx] * 4 + 3 < lensp[idx]) {
+          still_working = true;
+          *(intstrpp[idx] + posp[idx]) = 
+            charsp[startsp[idx] + posp[idx] * 4] + 
+            (charsp[startsp[idx] + posp[idx] * 4 + 1] << 8) + 
+            (charsp[startsp[idx] + posp[idx] * 4 + 2] << 16) + 
+            (charsp[startsp[idx] + posp[idx] * 4 + 3] << 24);
+          posp[idx]++;
+        }
+      }
+    }
+    for(size_t i = 0; i < WORDS_VECTOR_BLOCK; i++) {
+      auto idx = b * WORDS_VECTOR_BLOCK + i;
+      auto pos4 = posp[idx] * 4;
+      auto crnt_strp = const_cast<char*>(strp[idx].data());
+      auto lensp_idx = lensp[idx];
+      for(size_t j = pos4; j < lensp_idx; j++) {
+        crnt_strp[j] = charsp[startsp[idx] + j];
+      }
+    }
+  }
+  int still_working = true;
+  while(still_working) {
+    still_working = false;
+#pragma _NEC ivdep
+    for(size_t i = 0; i < rest; i++) {
+      auto idx = num_block * WORDS_VECTOR_BLOCK + i;
+      if(posp[idx] * 4 + 3 < lensp[idx]) {
+        still_working = true;
+        *(intstrpp[idx] + posp[idx]) = 
+          charsp[startsp[idx] + posp[idx] * 4] + 
+          (charsp[startsp[idx] + posp[idx] * 4 + 1] << 8) + 
+          (charsp[startsp[idx] + posp[idx] * 4 + 2] << 16) + 
+          (charsp[startsp[idx] + posp[idx] * 4 + 3] << 24);
+        posp[idx]++;
+      }
+    }
+  }
+  for(size_t i = 0; i < WORDS_VECTOR_BLOCK; i++) {
+    auto idx = num_block * WORDS_VECTOR_BLOCK + i;
+    auto pos4 = posp[idx] * 4;
+    auto crnt_strp = const_cast<char*>(strp[idx].data());
+    auto lensp_idx = lensp[idx];
+    for(size_t j = pos4; j < lensp_idx; j++) {
+      crnt_strp[j] = charsp[startsp[idx] + j];
+    }
+  }
+  return str;
 }
 
 }
