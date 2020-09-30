@@ -79,7 +79,9 @@ class RandomForestClassifier(BaseEstimator):
         if self.n_estimators <= 0:
             raise ValueError("n_estimators can not be negative !")
 
-        if self.max_depth < 0:
+        if self.max_depth is None:
+            self.max_depth = 4 # default as in frovedis random_forest
+        elif self.max_depth < 0:
             raise ValueError("max depth can not be negative !")
 
         if self.min_impurity_decrease < 0:
@@ -96,9 +98,6 @@ class RandomForestClassifier(BaseEstimator):
         if self.n_classes_ < 2:
             raise ValueError(\
             "Value of number of classes should be greater than or equal to 2")
-
-        if self.max_depth is None:
-            self.max_depth = 4 # default as in frovedis random_forest
 
         if self.random_state is None:
             self.random_state = -1
@@ -336,7 +335,9 @@ class RandomForestRegressor(BaseEstimator):
             raise ValueError("Invalid criterion for RandomForestRegressor:"
                              + "'{}'".format(self.criterion))
 
-        if self.max_depth < 0:
+        if self.max_depth is None:
+            self.max_depth = 4 #default as in frovedis random_forest
+        elif self.max_depth < 0:
             raise ValueError("max depth can not be negative !")
 
         if self.min_impurity_decrease < 0:
@@ -349,9 +350,6 @@ class RandomForestRegressor(BaseEstimator):
         if self.min_samples_leaf < 0:
             raise ValueError(\
             "Value of min_samples_leaf should be greater than 0!")
-
-        if self.max_depth is None:
-            self.max_depth = 4 #default as in frovedis random_forest
 
         if self.random_state is None:
             self.random_state = -1
