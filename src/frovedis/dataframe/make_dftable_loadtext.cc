@@ -116,6 +116,48 @@ compressed_words extract_compressed_words(words& ws,
   return ret;
 }
 
+std::vector<datetime_t> words_to_datetime(words& ws,
+                                          const std::vector<size_t>& line_starts,
+                                          size_t col,
+                                          const std::string& nullstr,
+                                          std::vector<size_t>& nulls,
+                                          bool skip_head,
+                                          const std::string& fmt) {
+  auto startsp = ws.starts.data();
+  auto lensp = ws.lens.data();
+  auto num_words = ws.starts.size();
+  auto num_rows = line_starts.size();
+  if(num_rows == 0) return std::vector<datetime_t>();
+  auto num_cols = num_words / num_rows;
+  if(num_cols < col || num_words % num_rows != 0) 
+    throw std::runtime_error("invalid number of colums, types, or names");
+  if(get_selfid() == 0 && skip_head) {
+    startsp += num_cols;
+    lensp += num_cols;
+    num_rows--;
+    if(num_rows == 0) return std::vector<datetime_t>();
+  }
+  std::vector<size_t> new_starts(num_rows), new_lens(num_rows);
+  auto new_startsp = new_starts.data();
+  auto new_lensp = new_lens.data();
+  for(size_t i = 0; i < num_rows; i++) {
+    new_startsp[i] = startsp[i * num_cols + col];
+    new_lensp[i] = lensp[i * num_cols + col];
+  }
+  nulls = extract_nulls(ws.chars, new_starts, new_lens, nullstr);
+  auto ret = parsedatetime(ws.chars, new_starts, new_lens, fmt);
+  auto nullsp = nulls.data();
+  auto nulls_size = nulls.size();
+  auto retp = ret.data();
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+  for(size_t i = 0; i < nulls_size; i++) {
+    retp[nullsp[i]] = std::numeric_limits<datetime_t>::max();
+  }
+  return ret;
+}
+
 std::shared_ptr<dfcolumn>
 parse_words(node_local<words>& ws,
             node_local<vector<size_t>>& line_starts,
@@ -129,11 +171,10 @@ parse_words(node_local<words>& ws,
   auto nulls = make_node_local_allocate<vector<size_t>>();
   time_spent t(DEBUG);
   if(type == "string") {
-    auto dv = ws.map(words_to_string, line_starts, nl_col, nl_nullstr, nulls,
-                     nl_skip_head)
-      .moveto_dvector<string>();
+    auto nl = ws.map(words_to_string, line_starts, nl_col, nl_nullstr, nulls,
+                     nl_skip_head);
     t.show("parse_words, words_to_string: ");
-    return make_shared<typed_dfcolumn<string>>(move(dv), move(nulls));
+    return make_shared<typed_dfcolumn<string>>(move(nl), move(nulls));
   } else if(type == "dic_string") {
     auto nl = ws.map(extract_compressed_words, line_starts, nl_col, nl_nullstr,
                      nulls, nl_skip_head);
@@ -174,6 +215,12 @@ parse_words(node_local<words>& ws,
                      nl_nullstr, nulls, nl_skip_head);
     t.show("parse_words, words_to_number: ");
     return make_shared<typed_dfcolumn<unsigned long>>(move(nl), move(nulls));
+  } else if (type.find("datetime:") == 0) {
+    auto fmt = type.substr(9);
+    auto nl = ws.map(words_to_datetime, line_starts, nl_col,
+                     nl_nullstr, nulls, nl_skip_head, broadcast(fmt));
+    t.show("parse_words, words_to_datetime: ");
+    return make_shared<typed_dfcolumn<datetime>>(move(nl), move(nulls));
   } else throw runtime_error("unknown type: " + type);
 }
 
@@ -240,5 +287,138 @@ dftable make_dftable_loadtext(const string& filename,
   }
   return ret;
 }
+
+inferred_dtype infer_dtype_loadtext(words& ws,
+                                    const std::vector<size_t>& line_starts,
+                                    size_t col,
+                                    const std::string& nullstr,
+                                    size_t rows_to_see,
+                                    bool skip_head) {
+  auto startsp = ws.starts.data();
+  auto lensp = ws.lens.data();
+  auto num_words = ws.starts.size();
+  auto num_rows = line_starts.size();
+  // int is the smallest set
+  if(num_rows == 0) return inferred_dtype::inferred_dtype_int;
+  auto num_cols = num_words / num_rows;
+  if(num_cols < col || num_words % num_rows != 0) 
+    throw std::runtime_error("invalid number of colums, types, or names");
+  if(get_selfid() == 0 && skip_head) {
+    startsp += num_cols;
+    lensp += num_cols;
+    num_rows--;
+    if(num_rows == 0) return inferred_dtype::inferred_dtype_int;
+  }
+  rows_to_see = std::min(num_rows, rows_to_see);
+  std::vector<size_t> new_starts(rows_to_see), new_lens(rows_to_see);
+  auto new_startsp = new_starts.data();
+  auto new_lensp = new_lens.data();
+  for(size_t i = 0; i < rows_to_see; i++) {
+    new_startsp[i] = startsp[i * num_cols + col];
+    new_lensp[i] = lensp[i * num_cols + col];
+  }
+  auto nulls = extract_nulls(ws.chars, new_starts, new_lens, nullstr, false);
+  if(nulls.size() != 0) {
+    std::vector<size_t> iota(rows_to_see);
+    auto iotap = iota.data();
+    for(size_t i = 0; i < rows_to_see; i++) {
+      iotap[i] = i;
+    }
+    auto exclude_nulls = set_difference(iota, nulls);
+    size_t exclude_nulls_size = exclude_nulls.size();
+    std::vector<size_t> new_starts_tmp(exclude_nulls_size),
+      new_lens_tmp(exclude_nulls_size);
+    auto new_starts_tmpp = new_starts_tmp.data();
+    auto new_lens_tmpp = new_lens_tmp.data();
+    auto exclude_nullsp = exclude_nulls.data();
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+    for(size_t i = 0; i < exclude_nulls_size; i++) {
+      new_starts_tmpp[i] = new_startsp[exclude_nullsp[i]];
+      new_lens_tmpp[i] = new_lensp[exclude_nullsp[i]];
+    }
+    new_starts.swap(new_starts_tmp);
+    new_lens.swap(new_lens_tmp);
+  }
+  return infer_dtype(ws.chars, new_starts, new_lens, rows_to_see);
+}
+
+inferred_dtype reduce_inferred_dtype(inferred_dtype a, inferred_dtype b) {
+  if(a == inferred_dtype::inferred_dtype_int) {
+    if(b == inferred_dtype::inferred_dtype_int)
+      return inferred_dtype::inferred_dtype_int;
+    else if(b == inferred_dtype::inferred_dtype_float)
+      return inferred_dtype::inferred_dtype_float;
+    else
+      return inferred_dtype::inferred_dtype_string;
+  } else if(a == inferred_dtype::inferred_dtype_float) {
+    if(b == inferred_dtype::inferred_dtype_int ||
+       b == inferred_dtype::inferred_dtype_float)
+      return inferred_dtype::inferred_dtype_float;
+    else
+      return inferred_dtype::inferred_dtype_string;
+  } else return inferred_dtype::inferred_dtype_string;
+}
+
+dftable make_dftable_loadtext_infertype(const string& filename,
+                                        const vector<string>& names,
+                                        int separator,
+                                        const string& nullstr,
+                                        size_t rows_to_see,
+                                        bool is_crlf) {
+  time_spent t(DEBUG);
+  auto line_starts_byword = make_node_local_allocate<std::vector<size_t>>();
+  auto ws = load_csv(filename, line_starts_byword, is_crlf, false, separator);
+  t.show("make_dftable_loadtext::load_csv: ");
+  auto num_cols = names.size();
+  dftable ret;
+  auto brows_to_see = broadcast(rows_to_see);
+  auto bnullstr = broadcast(nullstr);
+  auto bfalse = broadcast(false);
+  for(size_t i = 0; i < num_cols; i++) {
+    auto type = ws.map(infer_dtype_loadtext, line_starts_byword,
+                       broadcast(i), bnullstr, brows_to_see, bfalse).
+      reduce(reduce_inferred_dtype);
+    string stype;
+    if(type == inferred_dtype::inferred_dtype_int) stype = "long";
+    else if(type == inferred_dtype::inferred_dtype_float) stype = "double";
+    else stype = "dic_string";
+    auto col = parse_words(ws, line_starts_byword, stype, i, nullstr, false);
+    ret.append_column(names[i], col);
+    t.show(std::string("make_dftable_loadtext::parse_words, ")
+           + names[i] + ": ");
+  }
+  return ret;
+}
+
+dftable make_dftable_loadtext_infertype(const string& filename,
+                                        int separator,
+                                        const string& nullstr,
+                                        size_t rows_to_see,
+                                        bool is_crlf) {
+  auto line_starts_byword = make_node_local_allocate<std::vector<size_t>>();
+  auto ws = load_csv(filename, line_starts_byword, is_crlf, false, separator);
+  auto names = ws.map(get_names, line_starts_byword).get(0);
+  auto num_cols = names.size();
+  dftable ret;
+  auto brows_to_see = broadcast(rows_to_see);
+  auto bnullstr = broadcast(nullstr);
+  auto btrue = broadcast(true);
+  for(size_t i = 0; i < num_cols; i++) {
+    auto type = ws.map(infer_dtype_loadtext, line_starts_byword,
+                       broadcast(i), bnullstr, brows_to_see, btrue).
+      reduce(reduce_inferred_dtype);
+    string stype;
+    if(type == inferred_dtype::inferred_dtype_int) stype = "long";
+    else if(type == inferred_dtype::inferred_dtype_float) stype = "double";
+    else stype = "dic_string";
+    auto col = parse_words(ws, line_starts_byword, stype, i, nullstr, true);
+    ret.append_column(names[i], col);
+  }
+  return ret;
+}
+
+
 
 }
