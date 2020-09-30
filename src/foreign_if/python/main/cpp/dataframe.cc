@@ -580,4 +580,25 @@ extern "C" {
       set_status(true, e.what());
     }
   }
+
+  // multi-eq join
+  long get_multi_eq_dfopt(const char* host, int port, 
+                        const char** left_on,
+                        const char** right_on,
+                        ulong sz) {
+    ASSERT_PTR(host); 
+    exrpc_node fm_node(host, port);
+
+    auto left_cols = to_string_vector(left_on, sz);
+    auto right_cols = to_string_vector(right_on, sz);
+
+    exrpc_ptr_t ret_proxy = 0;
+    try {
+      ret_proxy = exrpc_async(fm_node, frov_multi_eq_dfopt, left_cols, right_cols).get();
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return (static_cast<long>(ret_proxy));
+  }
 }

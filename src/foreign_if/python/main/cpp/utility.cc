@@ -167,4 +167,13 @@ extern "C" {
                          "nEdges", num_edges,
                          "nNodes", num_vertices);
   }
+
+
+  // converison : const char** => std::vector<std::string>
+  std::vector<std::string> 
+  to_string_vector(const char** data, ulong sz) {
+    std::vector<std::string> vec(sz);
+    for(size_t i=0; i<sz; ++i) vec[i] = std::string(data[i]);
+    return vec;
+  }
 }

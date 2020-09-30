@@ -54,6 +54,9 @@ extern "C" {
 
   // --- server info ---
   std::vector<exrpc_node> get_worker_nodes(exrpc_node& fm_node);
+
+  // conversion
+  std::vector<std::string> to_string_vector(const char** data, ulong sz);
 }
 
 #endif
