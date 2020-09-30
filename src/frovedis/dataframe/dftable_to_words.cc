@@ -42,14 +42,16 @@ words dftable_to_words_helper(vector<words>& vw) {
 }
 
 node_local<words>
-dftable_to_words(dftable_base& table, bool quote_escape,
+dftable_to_words(dftable_base& table, size_t precision,
+                 const std::string& datetime_fmt, bool quote_escape, 
                  const std::string& nullstr) {
   auto cols = table.columns();
   auto num_col = table.num_col();
   vector<words> work(num_col);
   auto nl_work = broadcast(work);
   for(size_t i = 0; i < cols.size(); i++) {
-    auto ws = table.column(cols[i])->as_words(quote_escape, nullstr);
+    auto ws = table.column(cols[i])->as_words(precision, datetime_fmt,
+                                              quote_escape, nullstr);
     nl_work.mapv(put_words_ith(i), ws);
   }
   return nl_work.map(dftable_to_words_helper);
