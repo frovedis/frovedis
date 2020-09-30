@@ -7,17 +7,17 @@ using namespace frovedis;
 using namespace std;
 
 template <class T>
-void call_sssp(const std::string& data_p,
-               const std::string& out_p,
-               bool if_prep,
-               size_t source_vertex) {
+void call_cc(const std::string& data_p, 
+             const std::string& out_p,
+             bool if_prep,
+             int opt_level) {
   graph<T> gr;
   if(if_prep) gr = read_edgelist<T>(data_p);
   else {
     auto mat = make_crs_matrix_load<T>(data_p);
     gr = graph<T>(mat);
   }
-  auto res = gr.single_source_shortest_path(source_vertex);
+  auto res = gr.connected_components(opt_level);
   res.save(out_p);
   res.debug_print(5);
 }
@@ -31,8 +31,8 @@ int main(int argc, char* argv[]){
         ("help,h", "produce help message")
         ("input,i" , value<std::string>(), "input data path containing either edgelist or adjacency matrix data") 
         ("dtype,t" , value<std::string>(), "input data type (int, float or double) [default: int]") 
-        ("output,o" , value<std::string>(), "output data path to save cc results")
-        ("source,s", value<size_t>(), "source vertex id (default: 1)") 
+        ("output,o" , value<std::string>(), "output data path to save cc results") 
+        ("opt-level", value<int>(), "optimization level 0 or 1 (default: 1)") 
         ("verbose", "set loglevel to DEBUG")
         ("verbose2", "set loglevel to TRACE")
         ("prepare,p" , "whether to generate the CRS matrix from original edgelist file ");
@@ -43,8 +43,8 @@ int main(int argc, char* argv[]){
     notify(argmap);                
                 
     bool if_prep = 0; // true if prepare data from raw dataset
+    int opt_level = 1;
     std::string data_p, out_p, dtype = "int";
-    size_t source_vertex = 1;
     
     if(argmap.count("help")){
       std::cerr << opt << std::endl;
@@ -66,12 +66,12 @@ int main(int argc, char* argv[]){
     }    
     if(argmap.count("prepare")){
       if_prep = true;
-    }
+    } 
     if(argmap.count("dtype")){
       dtype = argmap["dtype"].as<std::string>();
     }    
-    if(argmap.count("source")){
-       source_vertex = argmap["source"].as<size_t>();
+    if(argmap.count("opt-level")){
+       opt_level = argmap["opt-level"].as<size_t>();
     }
     if(argmap.count("verbose")){
       set_loglevel(DEBUG);
@@ -80,15 +80,15 @@ int main(int argc, char* argv[]){
       set_loglevel(TRACE);
     }
 
-    try {
+    try{
       if (dtype == "int") {
-        call_sssp<int>(data_p, out_p, if_prep, source_vertex);
+        call_cc<int>(data_p, out_p, if_prep, opt_level);
       }      
       else if (dtype == "float") {
-        call_sssp<float>(data_p, out_p, if_prep, source_vertex);
+        call_cc<float>(data_p, out_p, if_prep, opt_level);
       }      
       else if (dtype == "double") {
-        call_sssp<double>(data_p, out_p, if_prep, source_vertex);
+        call_cc<double>(data_p, out_p, if_prep, opt_level);
       }      
       else {
         std::cerr << "Supported dtypes are only int, float and double!\n";

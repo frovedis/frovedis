@@ -1,15 +1,30 @@
 #include <frovedis.hpp>
 #include <frovedis/ml/graph/graph.hpp>
-
 #include <boost/program_options.hpp>
 
 using namespace boost;
 using namespace frovedis;
 using namespace std;
 
+template <class T>
+void call_bfs(const std::string& data_p, 
+              const std::string& out_p,
+              bool if_prep,
+              size_t source_vertex,
+              int opt_level) {
+  graph<T> gr;
+  if(if_prep) gr = read_edgelist<T>(data_p);
+  else {
+    auto mat = make_crs_matrix_load<T>(data_p);
+    gr = graph<T>(mat);
+  }
+  auto res = gr.bfs(source_vertex, opt_level);
+  res.save(out_p);
+  res.debug_print(5);
+}
+
 int main(int argc, char* argv[]){
     frovedis::use_frovedis use(argc, argv);
-    
     using namespace boost::program_options;
     
     options_description opt("option");
@@ -18,6 +33,10 @@ int main(int argc, char* argv[]){
         ("input,i" , value<std::string>(), "input data path containing either edgelist or adjacency matrix data") 
         ("dtype,t" , value<std::string>(), "input data type (int, float or double) [default: int]") 
         ("output,o" , value<std::string>(), "output data path to save cc results") 
+        ("source,s", value<size_t>(), "source vertex id (default: 1)") 
+        ("opt-level", value<int>(), "optimization level 0 or 1 (default: 1)") 
+        ("verbose", "set loglevel to DEBUG")
+        ("verbose2", "set loglevel to TRACE")
         ("prepare,p" , "whether to generate the CRS matrix from original edgelist file ");
                 
     variables_map argmap;
@@ -27,9 +46,9 @@ int main(int argc, char* argv[]){
                 
     bool if_prep = 0; // true if prepare data from raw dataset
     std::string data_p, out_p, dtype = "int";
+    size_t source_vertex = 1;
+    int opt_level = 1;
     
-    //////////////////////////   command options   ///////////////////////////
-
     if(argmap.count("help")){
       std::cerr << opt << std::endl;
       exit(1);
@@ -41,9 +60,6 @@ int main(int argc, char* argv[]){
       std::cerr << opt << std::endl;
       exit(1);
     }    
-    if(argmap.count("dtype")){
-      dtype = argmap["dtype"].as<std::string>();
-    }    
     if(argmap.count("output")){
       out_p = argmap["output"].as<std::string>();
     } else {
@@ -54,42 +70,40 @@ int main(int argc, char* argv[]){
     if(argmap.count("prepare")){
       if_prep = true;
     } 
-    /////////////////////////////////////////////////////////////////
+    if(argmap.count("dtype")){
+      dtype = argmap["dtype"].as<std::string>();
+    }    
+    if(argmap.count("source")){
+       source_vertex = argmap["source"].as<size_t>();
+    }
+    if(argmap.count("opt-level")){
+       opt_level = argmap["opt-level"].as<int>();
+    }
+    if(argmap.count("verbose")){
+      set_loglevel(DEBUG);
+    }
+    if(argmap.count("verbose2")){
+      set_loglevel(TRACE);
+    }
     
-    if (dtype == "int") {
-      graph<int> gr;
-      if(if_prep) gr = read_edgelist<int>(data_p);
+    try {
+      if (dtype == "int") {
+        call_bfs<int>(data_p, out_p, if_prep, source_vertex, opt_level);
+      }      
+      else if (dtype == "float") {
+        call_bfs<float>(data_p, out_p, if_prep, source_vertex, opt_level);
+      }      
+      else if (dtype == "double") {
+        call_bfs<double>(data_p, out_p, if_prep, source_vertex, opt_level);
+      }      
       else {
-        auto mat = make_crs_matrix_load<int>(data_p);
-        gr = graph<int>(mat);
+        std::cerr << "Supported dtypes are only int, float and double!\n";
+        std::cerr << opt << std::endl;
+        exit(1);
       }
-      auto res = gr.connected_components();
-      res.save(out_p);
-    }      
-    else if (dtype == "float") {
-      graph<float> gr;
-      if(if_prep) gr = read_edgelist<float>(data_p);
-      else {
-        auto mat = make_crs_matrix_load<float>(data_p);
-        gr = graph<float>(mat);
-      }
-      auto res = gr.connected_components();
-      res.save(out_p);
-    }      
-    else if (dtype == "double") {
-      graph<double> gr;
-      if(if_prep) gr = read_edgelist<double>(data_p);
-      else {
-        auto mat = make_crs_matrix_load<double>(data_p);
-        gr = graph<double>(mat);
-      }
-      auto res = gr.connected_components();
-      res.save(out_p);
-    }      
-    else {
-      std::cerr << "Supported dtypes are only int, float and double!\n";
-      std::cerr << opt << std::endl;
-      exit(1);
+    }
+    catch (std::exception& e) {
+      std::cout << "exception caught: " << e.what() << std::endl; 
     }
     return 0;
 }

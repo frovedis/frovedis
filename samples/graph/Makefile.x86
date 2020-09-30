@@ -1,19 +1,25 @@
-TARGETS := sssp cc_BFS pagerank 
+TARGETS := bfs connected_component sssp pagerank convert_to_one_base_edgelist
 include ../Makefile.in.x86
 include ../Makefile.common
 
-TO_INSTALL := sssp.cc cc_BFS.cc  pagerank.cc
+TO_INSTALL := bfs.cc connected_component.cc sssp.cc pagerank.cc
 DIR := graph
 ARCH := x86
 
+# graph algorithm demo
+bfs: bfs.o
+	${MPICXX} ${CXXFLAGS} -o bfs bfs.o ${LIBS}
+
+connected_component: connected_component.o
+	${MPICXX} ${CXXFLAGS} -o connected_component connected_component.o ${LIBS}
+
 sssp: sssp.o
-	${MPICXX} ${CXXFLAGS} -o sssp sssp.o  ${LIBS}
-
-
-cc_BFS: cc_BFS.o
-	${MPICXX} ${CXXFLAGS} -o cc_BFS cc_BFS.o ${LIBS}
-
+	${MPICXX} ${CXXFLAGS} -o sssp sssp.o ${LIBS}
 
 pagerank: pagerank.o
 	${MPICXX} ${CXXFLAGS} -o pagerank pagerank.o ${LIBS}
 
+# currently frovedis supports only 1-based edgelist data
+# tool to convert edgelist file to 1-based edgelist file 
+convert_to_one_base_edgelist: convert_to_one_base_edgelist.o
+	${MPICXX} ${CXXFLAGS} -o convert_to_one_base_edgelist convert_to_one_base_edgelist.o ${LIBS}
