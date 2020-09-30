@@ -11,6 +11,7 @@
 #include "join.hpp"
 #include "../text/float_to_words.hpp"
 #include "../text/char_int_conv.hpp"
+#include "../text/find_condition.hpp"
 
 #include <boost/lexical_cast.hpp>
 
@@ -91,213 +92,147 @@ std::vector<std::string> as_string_helper(std::vector<T>& val,
 }
 
 template <class T>
+struct filter_eq_pred {
+  int operator()(T a, T b) const {return a == b;}
+};
+
+template <class T>
 std::vector<size_t> filter_eq_helper(std::vector<T>& left,
                                      std::vector<T>& right) {
-  std::vector<size_t> tmp(left.size()); // large enough size
-  size_t current = 0;
-  T* leftp = &left[0];
-  T* rightp = &right[0];
-  size_t* tmpp = &tmp[0];
-  size_t size = left.size();
-  for(size_t i = 0; i < size; i++) {
-    if(leftp[i] == rightp[i]) tmpp[current++] = i;
-  }
-  std::vector<size_t> ret(current);
-  size_t* retp = &ret[0];
-  for(size_t i = 0; i < current; i++) retp[i] = tmpp[i];
-  return ret;
+  return find_condition_pair(left, right, filter_eq_pred<T>());
 }
+
+template <class T>
+struct filter_eq_immed_pred {
+  filter_eq_immed_pred(T c) : c(c) {}
+  int operator()(T a) const {return a == c;}
+  T c;
+};
 
 template <class T>
 std::vector<size_t> filter_eq_immed_helper(std::vector<T>& left,
                                            T right) {
-  std::vector<size_t> tmp(left.size()); // large enough size
-  size_t current = 0;
-  T* leftp = &left[0];
-  size_t* tmpp = &tmp[0];
-  size_t size = left.size();
-  for(size_t i = 0; i < size; i++) {
-    if(leftp[i] == right) tmpp[current++] = i;
-  }
-  std::vector<size_t> ret(current);
-  size_t* retp = &ret[0];
-  for(size_t i = 0; i < current; i++) retp[i] = tmpp[i];
-  return ret;
+  return find_condition(left, filter_eq_immed_pred<T>(right));
 }
+
+template <class T>
+struct filter_neq_pred {
+  int operator()(T a, T b) const {return a != b;}
+};
 
 template <class T>
 std::vector<size_t> filter_neq_helper(std::vector<T>& left,
                                       std::vector<T>& right) {
-  std::vector<size_t> tmp(left.size()); // large enough size
-  size_t current = 0;
-  T* leftp = &left[0];
-  T* rightp = &right[0];
-  size_t* tmpp = &tmp[0];
-  size_t size = left.size();
-  for(size_t i = 0; i < size; i++) {
-    if(leftp[i] != rightp[i]) tmpp[current++] = i;
-  }
-  std::vector<size_t> ret(current);
-  size_t* retp = &ret[0];
-  for(size_t i = 0; i < current; i++) retp[i] = tmpp[i];
-  return ret;
+  return find_condition_pair(left, right, filter_neq_pred<T>());
 }
 
 template <class T>
+struct filter_neq_immed_pred {
+  filter_neq_immed_pred(T c) : c(c) {}
+  int operator()(T a) const {return a != c;}
+  T c;
+};
+
+template <class T>
 std::vector<size_t> filter_neq_immed_helper(std::vector<T>& left,
-                                           T right) {
-  std::vector<size_t> tmp(left.size()); // large enough size
-  size_t current = 0;
-  T* leftp = &left[0];
-  size_t* tmpp = &tmp[0];
-  size_t size = left.size();
-  for(size_t i = 0; i < size; i++) {
-    if(leftp[i] != right) tmpp[current++] = i;
-  }
-  std::vector<size_t> ret(current);
-  size_t* retp = &ret[0];
-  for(size_t i = 0; i < current; i++) retp[i] = tmpp[i];
-  return ret;
+                                            T right) {
+  return find_condition(left, filter_neq_immed_pred<T>(right));
 }
+
+template <class T>
+struct filter_lt_pred {
+  int operator()(T a, T b) const {return a < b;}
+};
 
 template <class T>
 std::vector<size_t> filter_lt_helper(std::vector<T>& left,
                                      std::vector<T>& right) {
-  std::vector<size_t> tmp(left.size()); // large enough size
-  size_t current = 0;
-  T* leftp = &left[0];
-  T* rightp = &right[0];
-  size_t* tmpp = &tmp[0];
-  size_t size = left.size();
-  for(size_t i = 0; i < size; i++) {
-    if(leftp[i] < rightp[i]) tmpp[current++] = i;
-  }
-  std::vector<size_t> ret(current);
-  size_t* retp = &ret[0];
-  for(size_t i = 0; i < current; i++) retp[i] = tmpp[i];
-  return ret;
+  return find_condition_pair(left, right, filter_lt_pred<T>());
 }
+
+template <class T>
+struct filter_lt_immed_pred {
+  filter_lt_immed_pred(T c) : c(c) {}
+  int operator()(T a) const {return a < c;}
+  T c;
+};
 
 template <class T>
 std::vector<size_t> filter_lt_immed_helper(std::vector<T>& left,
                                            T right) {
-  std::vector<size_t> tmp(left.size()); // large enough size
-  size_t current = 0;
-  T* leftp = &left[0];
-  size_t* tmpp = &tmp[0];
-  size_t size = left.size();
-  for(size_t i = 0; i < size; i++) {
-    if(leftp[i] < right) tmpp[current++] = i;
-  }
-  std::vector<size_t> ret(current);
-  size_t* retp = &ret[0];
-  for(size_t i = 0; i < current; i++) retp[i] = tmpp[i];
-  return ret;
+  return find_condition(left, filter_lt_immed_pred<T>(right));
 }
+
+template <class T>
+struct filter_le_pred {
+  int operator()(T a, T b) const {return a <= b;}
+};
 
 template <class T>
 std::vector<size_t> filter_le_helper(std::vector<T>& left,
                                      std::vector<T>& right) {
-  std::vector<size_t> tmp(left.size()); // large enough size
-  size_t current = 0;
-  T* leftp = &left[0];
-  T* rightp = &right[0];
-  size_t* tmpp = &tmp[0];
-  size_t size = left.size();
-  for(size_t i = 0; i < size; i++) {
-    if(leftp[i] <= rightp[i]) tmpp[current++] = i;
-  }
-  std::vector<size_t> ret(current);
-  size_t* retp = &ret[0];
-  for(size_t i = 0; i < current; i++) retp[i] = tmpp[i];
-  return ret;
+  return find_condition_pair(left, right, filter_le_pred<T>());
 }
+
+template <class T>
+struct filter_le_immed_pred {
+  filter_le_immed_pred(T c) : c(c) {}
+  int operator()(T a) const {return a <= c;}
+  T c;
+};
 
 template <class T>
 std::vector<size_t> filter_le_immed_helper(std::vector<T>& left,
                                            T right) {
-  std::vector<size_t> tmp(left.size()); // large enough size
-  size_t current = 0;
-  T* leftp = &left[0];
-  size_t* tmpp = &tmp[0];
-  size_t size = left.size();
-  for(size_t i = 0; i < size; i++) {
-    if(leftp[i] <= right) tmpp[current++] = i;
-  }
-  std::vector<size_t> ret(current);
-  size_t* retp = &ret[0];
-  for(size_t i = 0; i < current; i++) retp[i] = tmpp[i];
-  return ret;
+  return find_condition(left, filter_le_immed_pred<T>(right));
 }
+
+template <class T>
+struct filter_gt_pred {
+  int operator()(T a, T b) const {return a > b;}
+};
 
 template <class T>
 std::vector<size_t> filter_gt_helper(std::vector<T>& left,
                                      std::vector<T>& right) {
-  std::vector<size_t> tmp(left.size()); // large enough size
-  size_t current = 0;
-  T* leftp = &left[0];
-  T* rightp = &right[0];
-  size_t* tmpp = &tmp[0];
-  size_t size = left.size();
-  for(size_t i = 0; i < size; i++) {
-    if(leftp[i] > rightp[i]) tmpp[current++] = i;
-  }
-  std::vector<size_t> ret(current);
-  size_t* retp = &ret[0];
-  for(size_t i = 0; i < current; i++) retp[i] = tmpp[i];
-  return ret;
+  return find_condition_pair(left, right, filter_gt_pred<T>());
 }
+
+template <class T>
+struct filter_gt_immed_pred {
+  filter_gt_immed_pred(T c) : c(c) {}
+  int operator()(T a) const {return a > c;}
+  T c;
+};
 
 template <class T>
 std::vector<size_t> filter_gt_immed_helper(std::vector<T>& left,
                                            T right) {
-  std::vector<size_t> tmp(left.size()); // large enough size
-  size_t current = 0;
-  T* leftp = &left[0];
-  size_t* tmpp = &tmp[0];
-  size_t size = left.size();
-  for(size_t i = 0; i < size; i++) {
-    if(leftp[i] > right) tmpp[current++] = i;
-  }
-  std::vector<size_t> ret(current);
-  size_t* retp = &ret[0];
-  for(size_t i = 0; i < current; i++) retp[i] = tmpp[i];
-  return ret;
+  return find_condition(left, filter_gt_immed_pred<T>(right));
 }
+
+template <class T>
+struct filter_ge_pred {
+  int operator()(T a, T b) const {return a >= b;}
+};
 
 template <class T>
 std::vector<size_t> filter_ge_helper(std::vector<T>& left,
                                      std::vector<T>& right) {
-  std::vector<size_t> tmp(left.size()); // large enough size
-  size_t current = 0;
-  T* leftp = &left[0];
-  T* rightp = &right[0];
-  size_t* tmpp = &tmp[0];
-  size_t size = left.size();
-  for(size_t i = 0; i < size; i++) {
-    if(leftp[i] >= rightp[i]) tmpp[current++] = i;
-  }
-  std::vector<size_t> ret(current);
-  size_t* retp = &ret[0];
-  for(size_t i = 0; i < current; i++) retp[i] = tmpp[i];
-  return ret;
+  return find_condition_pair(left, right, filter_ge_pred<T>());
 }
+
+template <class T>
+struct filter_ge_immed_pred {
+  filter_ge_immed_pred(T c) : c(c) {}
+  int operator()(T a) const {return a >= c;}
+  T c;
+};
 
 template <class T>
 std::vector<size_t> filter_ge_immed_helper(std::vector<T>& left,
                                            T right) {
-  std::vector<size_t> tmp(left.size()); // large enough size
-  size_t current = 0;
-  T* leftp = &left[0];
-  size_t* tmpp = &tmp[0];
-  size_t size = left.size();
-  for(size_t i = 0; i < size; i++) {
-    if(leftp[i] >= right) tmpp[current++] = i;
-  }
-  std::vector<size_t> ret(current);
-  size_t* retp = &ret[0];
-  for(size_t i = 0; i < current; i++) retp[i] = tmpp[i];
-  return ret;
+  return find_condition(left, filter_ge_immed_pred<T>(right));
 }
 
 template <class T>
@@ -1082,6 +1017,7 @@ dvector<std::string> typed_dfcolumn<T>::as_string() {
 template <class T>
 words dfcolumn_as_words_helper(std::vector<T>& v,
                                const std::vector<size_t>& nulls,
+                               size_t precision,
                                const std::string& nullstr) {
   auto nulls_size = nulls.size();
   auto nullsp = nulls.data();
@@ -1092,7 +1028,7 @@ words dfcolumn_as_words_helper(std::vector<T>& v,
   for(size_t i = 0; i < nulls_size; i++) {
     vp[nullsp[i]] = 0; // max is too long for creating words
   }
-  auto ws = number_to_words<T>(v);
+  auto ws = number_to_words<T>(v, precision);
 #pragma _NEC ivdep
 #pragma _NEC vovertake
 #pragma _NEC vob  
@@ -1127,12 +1063,17 @@ words dfcolumn_as_words_helper(std::vector<T>& v,
 }
 
 template <class T>
-node_local<words> typed_dfcolumn<T>::as_words(bool quote_escape, // not used
+node_local<words> typed_dfcolumn<T>::as_words(size_t precision,
+                                              const std::string& datetime_fmt, // not used
+                                              bool quote_escape, // not used
                                               const std::string& nullstr) {
   if(contain_nulls)
-    return val.map(dfcolumn_as_words_helper<T>, nulls, broadcast(nullstr));
+    return val.map(dfcolumn_as_words_helper<T>, nulls, broadcast(precision), 
+                   broadcast(nullstr));
   else 
-    return val.map(+[](const std::vector<T>& v){return number_to_words<T>(v);});
+    return val.map(+[](const std::vector<T>& v, size_t precision) {
+        return number_to_words<T>(v, precision);
+      }, broadcast(precision));
 }
 
 template <class T>
@@ -1523,6 +1464,206 @@ typed_dfcolumn<T>::bcast_join_eq
   auto left_idx_ret = make_node_local_allocate<std::vector<size_t>>();
   auto right_idx_ret = make_node_local_allocate<std::vector<size_t>>();
   left_non_null_val.mapv(equi_join<T>, left_non_null_idx,
+                         right_non_null_val_bcast, right_global_idx_bcast,
+                         left_idx_ret, right_idx_ret);
+  return std::make_pair(std::move(left_idx_ret), std::move(right_idx_ret));
+}
+
+template <class T>
+std::pair<node_local<std::vector<size_t>>,
+          node_local<std::vector<size_t>>>
+typed_dfcolumn<T>::bcast_join_lt
+(std::shared_ptr<dfcolumn>& right,
+ // might be filtered index
+ node_local<std::vector<size_t>>& left_full_local_idx, 
+ node_local<std::vector<size_t>>& right_full_local_idx) {
+  auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<T>>(right);
+  if(!right2)
+    throw std::runtime_error("bcast_join_lt: column types are different");
+  node_local<std::vector<size_t>> left_non_null_idx;
+  node_local<std::vector<T>> left_non_null_val;
+  if(contain_nulls) {
+    left_non_null_idx = make_node_local_allocate<std::vector<size_t>>();
+    left_non_null_val = val.map(extract_non_null<T>, left_full_local_idx,
+                                nulls, left_non_null_idx);
+  } else {
+    left_non_null_val = val.map(extract_helper2<T>, left_full_local_idx);
+    left_non_null_idx = std::move(left_full_local_idx);
+  }
+  auto right_non_null_idx = make_node_local_allocate<std::vector<size_t>>();
+  auto& right_val = right2->val;
+  auto& right_nulls = right2->nulls;
+  node_local<std::vector<T>> right_non_null_val;
+  node_local<std::vector<size_t>> right_global_idx;
+  if(right2->contain_nulls) {
+    right_non_null_val =
+      right_val.map(extract_non_null<T>, right_full_local_idx, right_nulls,
+                    right_non_null_idx);
+    right_global_idx = local_to_global_idx(right_non_null_idx);
+  } else {
+    right_non_null_val = right_val.map(extract_helper2<T>,
+                                       right_full_local_idx);
+    right_global_idx = local_to_global_idx(right_full_local_idx);
+  }
+  // TODO: write allreduce for dvector (for PoD) for better performance
+  // (also for outer, star_join)
+  auto right_non_null_val_bcast =
+    broadcast(right_non_null_val.template viewas_dvector<T>().gather());
+  auto right_global_idx_bcast =
+    broadcast(right_global_idx.template viewas_dvector<size_t>().gather());
+  auto left_idx_ret = make_node_local_allocate<std::vector<size_t>>();
+  auto right_idx_ret = make_node_local_allocate<std::vector<size_t>>();
+  left_non_null_val.mapv(lt_join<T>, left_non_null_idx,
+                         right_non_null_val_bcast, right_global_idx_bcast,
+                         left_idx_ret, right_idx_ret);
+  return std::make_pair(std::move(left_idx_ret), std::move(right_idx_ret));
+}
+
+template <class T>
+std::pair<node_local<std::vector<size_t>>,
+          node_local<std::vector<size_t>>>
+typed_dfcolumn<T>::bcast_join_le
+(std::shared_ptr<dfcolumn>& right,
+ // might be filtered index
+ node_local<std::vector<size_t>>& left_full_local_idx, 
+ node_local<std::vector<size_t>>& right_full_local_idx) {
+  auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<T>>(right);
+  if(!right2)
+    throw std::runtime_error("bcast_join_le: column types are different");
+  node_local<std::vector<size_t>> left_non_null_idx;
+  node_local<std::vector<T>> left_non_null_val;
+  if(contain_nulls) {
+    left_non_null_idx = make_node_local_allocate<std::vector<size_t>>();
+    left_non_null_val = val.map(extract_non_null<T>, left_full_local_idx,
+                                nulls, left_non_null_idx);
+  } else {
+    left_non_null_val = val.map(extract_helper2<T>, left_full_local_idx);
+    left_non_null_idx = std::move(left_full_local_idx);
+  }
+  auto right_non_null_idx = make_node_local_allocate<std::vector<size_t>>();
+  auto& right_val = right2->val;
+  auto& right_nulls = right2->nulls;
+  node_local<std::vector<T>> right_non_null_val;
+  node_local<std::vector<size_t>> right_global_idx;
+  if(right2->contain_nulls) {
+    right_non_null_val =
+      right_val.map(extract_non_null<T>, right_full_local_idx, right_nulls,
+                    right_non_null_idx);
+    right_global_idx = local_to_global_idx(right_non_null_idx);
+  } else {
+    right_non_null_val = right_val.map(extract_helper2<T>,
+                                       right_full_local_idx);
+    right_global_idx = local_to_global_idx(right_full_local_idx);
+  }
+  // TODO: write allreduce for dvector (for PoD) for better performance
+  // (also for outer, star_join)
+  auto right_non_null_val_bcast =
+    broadcast(right_non_null_val.template viewas_dvector<T>().gather());
+  auto right_global_idx_bcast =
+    broadcast(right_global_idx.template viewas_dvector<size_t>().gather());
+  auto left_idx_ret = make_node_local_allocate<std::vector<size_t>>();
+  auto right_idx_ret = make_node_local_allocate<std::vector<size_t>>();
+  left_non_null_val.mapv(le_join<T>, left_non_null_idx,
+                         right_non_null_val_bcast, right_global_idx_bcast,
+                         left_idx_ret, right_idx_ret);
+  return std::make_pair(std::move(left_idx_ret), std::move(right_idx_ret));
+}
+
+template <class T>
+std::pair<node_local<std::vector<size_t>>,
+          node_local<std::vector<size_t>>>
+typed_dfcolumn<T>::bcast_join_gt
+(std::shared_ptr<dfcolumn>& right,
+ // might be filtered index
+ node_local<std::vector<size_t>>& left_full_local_idx, 
+ node_local<std::vector<size_t>>& right_full_local_idx) {
+  auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<T>>(right);
+  if(!right2)
+    throw std::runtime_error("bcast_join_lt: column types are different");
+  node_local<std::vector<size_t>> left_non_null_idx;
+  node_local<std::vector<T>> left_non_null_val;
+  if(contain_nulls) {
+    left_non_null_idx = make_node_local_allocate<std::vector<size_t>>();
+    left_non_null_val = val.map(extract_non_null<T>, left_full_local_idx,
+                                nulls, left_non_null_idx);
+  } else {
+    left_non_null_val = val.map(extract_helper2<T>, left_full_local_idx);
+    left_non_null_idx = std::move(left_full_local_idx);
+  }
+  auto right_non_null_idx = make_node_local_allocate<std::vector<size_t>>();
+  auto& right_val = right2->val;
+  auto& right_nulls = right2->nulls;
+  node_local<std::vector<T>> right_non_null_val;
+  node_local<std::vector<size_t>> right_global_idx;
+  if(right2->contain_nulls) {
+    right_non_null_val =
+      right_val.map(extract_non_null<T>, right_full_local_idx, right_nulls,
+                    right_non_null_idx);
+    right_global_idx = local_to_global_idx(right_non_null_idx);
+  } else {
+    right_non_null_val = right_val.map(extract_helper2<T>,
+                                       right_full_local_idx);
+    right_global_idx = local_to_global_idx(right_full_local_idx);
+  }
+  // TODO: write allreduce for dvector (for PoD) for better performance
+  // (also for outer, star_join)
+  auto right_non_null_val_bcast =
+    broadcast(right_non_null_val.template viewas_dvector<T>().gather());
+  auto right_global_idx_bcast =
+    broadcast(right_global_idx.template viewas_dvector<size_t>().gather());
+  auto left_idx_ret = make_node_local_allocate<std::vector<size_t>>();
+  auto right_idx_ret = make_node_local_allocate<std::vector<size_t>>();
+  left_non_null_val.mapv(gt_join<T>, left_non_null_idx,
+                         right_non_null_val_bcast, right_global_idx_bcast,
+                         left_idx_ret, right_idx_ret);
+  return std::make_pair(std::move(left_idx_ret), std::move(right_idx_ret));
+}
+
+template <class T>
+std::pair<node_local<std::vector<size_t>>,
+          node_local<std::vector<size_t>>>
+typed_dfcolumn<T>::bcast_join_ge
+(std::shared_ptr<dfcolumn>& right,
+ // might be filtered index
+ node_local<std::vector<size_t>>& left_full_local_idx, 
+ node_local<std::vector<size_t>>& right_full_local_idx) {
+  auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<T>>(right);
+  if(!right2)
+    throw std::runtime_error("bcast_join_lt: column types are different");
+  node_local<std::vector<size_t>> left_non_null_idx;
+  node_local<std::vector<T>> left_non_null_val;
+  if(contain_nulls) {
+    left_non_null_idx = make_node_local_allocate<std::vector<size_t>>();
+    left_non_null_val = val.map(extract_non_null<T>, left_full_local_idx,
+                                nulls, left_non_null_idx);
+  } else {
+    left_non_null_val = val.map(extract_helper2<T>, left_full_local_idx);
+    left_non_null_idx = std::move(left_full_local_idx);
+  }
+  auto right_non_null_idx = make_node_local_allocate<std::vector<size_t>>();
+  auto& right_val = right2->val;
+  auto& right_nulls = right2->nulls;
+  node_local<std::vector<T>> right_non_null_val;
+  node_local<std::vector<size_t>> right_global_idx;
+  if(right2->contain_nulls) {
+    right_non_null_val =
+      right_val.map(extract_non_null<T>, right_full_local_idx, right_nulls,
+                    right_non_null_idx);
+    right_global_idx = local_to_global_idx(right_non_null_idx);
+  } else {
+    right_non_null_val = right_val.map(extract_helper2<T>,
+                                       right_full_local_idx);
+    right_global_idx = local_to_global_idx(right_full_local_idx);
+  }
+  // TODO: write allreduce for dvector (for PoD) for better performance
+  // (also for outer, star_join)
+  auto right_non_null_val_bcast =
+    broadcast(right_non_null_val.template viewas_dvector<T>().gather());
+  auto right_global_idx_bcast =
+    broadcast(right_global_idx.template viewas_dvector<size_t>().gather());
+  auto left_idx_ret = make_node_local_allocate<std::vector<size_t>>();
+  auto right_idx_ret = make_node_local_allocate<std::vector<size_t>>();
+  left_non_null_val.mapv(ge_join<T>, left_non_null_idx,
                          right_non_null_val_bcast, right_global_idx_bcast,
                          left_idx_ret, right_idx_ret);
   return std::make_pair(std::move(left_idx_ret), std::move(right_idx_ret));
@@ -2409,6 +2550,7 @@ T typed_dfcolumn<T>::min() {
 
 template <class T>
 void typed_dfcolumn<T>::debug_print() {
+  std::cout << "dtype: " << dtype() << std::endl;
   std::cout << "values: ";
   for(auto& i: val.gather()) {
     for(auto j: i) std::cout << j << " ";
@@ -2574,12 +2716,15 @@ typed_dfcolumn<T>::sort(node_local<std::vector<size_t>>& res_idx) {
   auto exchanged_idx = alltoall_exchange(part_idx);
   auto res_val = make_node_local_allocate<std::vector<T>>();
   res_idx = make_node_local_allocate<std::vector<size_t>>();
+  // exchanged_idx will be destructed by set_multimerge_pair
+  node_local<std::vector<std::vector<size_t>>> exnulls;
+  if(contain_nulls)
+    exnulls = nulls.map(global_extract_null_helper, exchanged_idx); 
   exchanged_val.mapv(set_multimerge_pair<T,size_t>, exchanged_idx,
                      res_val, res_idx);
   auto ret = std::make_shared<typed_dfcolumn<T>>();
   ret->val = std::move(res_val);
   if(contain_nulls) {
-    auto exnulls = nulls.map(global_extract_null_helper, exchanged_idx);
     auto exchanged_back_nulls = alltoall_exchange(exnulls);
     auto null_exists = make_node_local_allocate<int>();
     auto nullhashes = exchanged_back_nulls.map(create_null_hash_from_partition,
@@ -2684,12 +2829,15 @@ typed_dfcolumn<T>::sort_desc(node_local<std::vector<size_t>>& res_idx) {
   auto exchanged_idx = alltoall_exchange(part_idx);
   auto res_val = make_node_local_allocate<std::vector<T>>();
   res_idx = make_node_local_allocate<std::vector<size_t>>();
+  // exchanged_idx will be destructed by set_multimerge_pair
+  node_local<std::vector<std::vector<size_t>>> exnulls;
+  if(contain_nulls)
+    exnulls = nulls.map(global_extract_null_helper, exchanged_idx); 
   exchanged_val.mapv(set_multimerge_pair_desc<T,size_t>, exchanged_idx,
                      res_val, res_idx);
   auto ret = std::make_shared<typed_dfcolumn<T>>();
   ret->val = std::move(res_val);
   if(contain_nulls) {
-    auto exnulls = nulls.map(global_extract_null_helper, exchanged_idx);
     auto exchanged_back_nulls = alltoall_exchange(exnulls);
     auto null_exists = make_node_local_allocate<int>();
     auto nullhashes = exchanged_back_nulls.map(create_null_hash_from_partition,
@@ -2744,12 +2892,15 @@ typed_dfcolumn<T>::sort_with_idx(node_local<std::vector<size_t>>& idx,
   auto exchanged_idx = alltoall_exchange(part_idx);
   auto res_val = make_node_local_allocate<std::vector<T>>();
   res_idx = make_node_local_allocate<std::vector<size_t>>();
+  // exchanged_idx will be destructed by set_multimerge_pair
+  node_local<std::vector<std::vector<size_t>>> exnulls;
+  if(contain_nulls)
+    exnulls = nulls.map(global_extract_null_helper, exchanged_idx); 
   exchanged_val.mapv(set_multimerge_pair<T,size_t>, exchanged_idx,
                      res_val, res_idx);
   auto ret = std::make_shared<typed_dfcolumn<T>>();
   ret->val = std::move(res_val);
   if(contain_nulls) {
-    auto exnulls = nulls.map(global_extract_null_helper, exchanged_idx);
     auto exchanged_back_nulls = alltoall_exchange(exnulls);
     auto null_exists = make_node_local_allocate<int>();
     auto nullhashes = exchanged_back_nulls.map(create_null_hash_from_partition,
@@ -2804,12 +2955,15 @@ sort_with_idx_desc(node_local<std::vector<size_t>>& idx,
   auto exchanged_idx = alltoall_exchange(part_idx);
   auto res_val = make_node_local_allocate<std::vector<T>>();
   res_idx = make_node_local_allocate<std::vector<size_t>>();
+  // exchanged_idx will be destructed by set_multimerge_pair
+  node_local<std::vector<std::vector<size_t>>> exnulls;
+  if(contain_nulls)
+    exnulls = nulls.map(global_extract_null_helper, exchanged_idx); 
   exchanged_val.mapv(set_multimerge_pair_desc<T,size_t>, exchanged_idx,
                      res_val, res_idx);
   auto ret = std::make_shared<typed_dfcolumn<T>>();
   ret->val = std::move(res_val);
   if(contain_nulls) {
-    auto exnulls = nulls.map(global_extract_null_helper, exchanged_idx);
     auto exchanged_back_nulls = alltoall_exchange(exnulls);
     auto null_exists = make_node_local_allocate<int>();
     auto nullhashes = exchanged_back_nulls.map(create_null_hash_from_partition,
