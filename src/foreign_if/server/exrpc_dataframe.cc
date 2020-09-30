@@ -11,22 +11,22 @@ exrpc_ptr_t create_dataframe (std::vector<short>& types,
   for(size_t i=0; i<cols.size(); ++i) {
     switch(types[i]) {
       case INT:    { auto v1 = reinterpret_cast<dvector<int>*>(dvec_proxies[i]);
-                     dftblp->append_column(cols[i],std::move(*v1));
+                     dftblp->append_column(cols[i],std::move(*v1),true);
                      delete v1; break; }
       case LONG:   { auto v2 = reinterpret_cast<dvector<long>*>(dvec_proxies[i]);
-                     dftblp->append_column(cols[i],std::move(*v2));
+                     dftblp->append_column(cols[i],std::move(*v2),true);
                      delete v2; break; }
       case FLOAT:  { auto v3 = reinterpret_cast<dvector<float>*>(dvec_proxies[i]);
-                     dftblp->append_column(cols[i],std::move(*v3));
+                     dftblp->append_column(cols[i],std::move(*v3),true);
                      delete v3; break; }
       case DOUBLE: { auto v4 = reinterpret_cast<dvector<double>*>(dvec_proxies[i]);
-                     dftblp->append_column(cols[i],std::move(*v4));
+                     dftblp->append_column(cols[i],std::move(*v4),true);
                      delete v4; break; }
       case STRING: { auto v5 = reinterpret_cast<dvector<std::string>*>(dvec_proxies[i]);
-                     dftblp->append_column(cols[i],std::move(*v5));
+                     dftblp->append_column(cols[i],std::move(*v5),true);
                      delete v5; break; }
       case BOOL:   { auto v6 = reinterpret_cast<dvector<int>*>(dvec_proxies[i]);
-                     dftblp->append_column(cols[i],std::move(*v6));
+                     dftblp->append_column(cols[i],std::move(*v6),true);
                      delete v6; break; }
       default:     auto msg = "Unsupported datatype in dataframe creation: " + std::to_string(types[i]);
                    REPORT_ERROR(USER_ERROR,msg);
@@ -43,6 +43,8 @@ void show_dataframe(exrpc_ptr_t& df_proxy) {
 exrpc_ptr_t get_str_dfoperator(std::string& op1, std::string& op2,
                                short& op_id, bool& isImmed) {
   std::shared_ptr<dfoperator> *opt = NULL;
+  // op2 would be treated as pattern, instead of immediate value in case of LIKE/NLIKE
+  if(op_id == LIKE || op_id == NLIKE) isImmed = false;
   if(isImmed) {
     switch(op_id) {
       case EQ: opt = new std::shared_ptr<dfoperator>(eq_im<std::string>(op1,op2)); break;
@@ -55,6 +57,8 @@ exrpc_ptr_t get_str_dfoperator(std::string& op1, std::string& op2,
     switch(op_id) {
       case EQ: opt = new std::shared_ptr<dfoperator>(eq(op1,op2)); break;
       case NE: opt = new std::shared_ptr<dfoperator>(neq(op1,op2)); break;
+      case LIKE: opt = new std::shared_ptr<dfoperator>(is_like(op1,op2)); break;
+      case NLIKE: opt = new std::shared_ptr<dfoperator>(is_not_like(op1,op2)); break;
       default: REPORT_ERROR(USER_ERROR,
                "Unsupported filter operation on string type column is encountered!\n");
     }
@@ -129,25 +133,28 @@ exrpc_ptr_t sort_df(exrpc_ptr_t& df_proxy,
   return reinterpret_cast<exrpc_ptr_t> (ret);
 }
 
-exrpc_ptr_t join_df(exrpc_ptr_t& left_proxy, exrpc_ptr_t& right_proxy,
+exrpc_ptr_t join_df(exrpc_ptr_t& left_proxy, 
+                    exrpc_ptr_t& right_proxy,
                     exrpc_ptr_t& opt_proxy, 
-                    std::string& how, std::string& join_type) {
+                    std::string& how, 
+                    std::string& join_type) {
   auto& left = *reinterpret_cast<dftable_base*>(left_proxy);
   auto& right = *reinterpret_cast<dftable_base*>(right_proxy);
+
   auto& dfopt = *reinterpret_cast<std::shared_ptr<dfoperator>*>(opt_proxy);
   dftable_base *bptr = NULL;
   if (join_type == "bcast") {
     if (how == "inner") 
-       bptr = new bcast_joined_dftable(left.bcast_join(right,dfopt));
-    else if (how == "outer") 
-       bptr = new bcast_joined_dftable(left.outer_bcast_join(right,dfopt));
+      bptr = new bcast_joined_dftable(left.bcast_join(right,dfopt));
+    else if (how == "outer")
+      bptr = new bcast_joined_dftable(left.outer_bcast_join(right,dfopt));
     else REPORT_ERROR(USER_ERROR, "Unknown join operation!\n");
   }
   else if (join_type == "hash") {
     if (how == "inner") 
-       bptr = new hash_joined_dftable(left.hash_join(right,dfopt));
+      bptr = new hash_joined_dftable(left.hash_join(right,dfopt));
     else if (how == "outer") 
-       bptr = new hash_joined_dftable(left.outer_hash_join(right,dfopt));
+      bptr = new hash_joined_dftable(left.outer_hash_join(right,dfopt));
     else REPORT_ERROR(USER_ERROR, "Unknown join operation!\n");
   }
   else REPORT_ERROR(USER_ERROR, "Unknown join kind!\n");
@@ -482,4 +489,17 @@ void release_sparse_conversion_info(long& info_id) {
     model_table.erase(info_id);            // remove it's entry from model_table
   }
   else std::cout << "[warning] Request for already deleted info[" << info_id << "].\n";
+}
+
+// multi-eq dfopt
+exrpc_ptr_t frov_multi_eq_dfopt(std::vector<std::string>& left_cols, std::vector<std::string>& right_cols) {
+  std::shared_ptr<dfoperator> *opt = NULL;
+  checkAssumption(left_cols.size() == right_cols.size())
+  // single key join
+  if ( left_cols.size() == 1) {
+    opt = new std::shared_ptr<dfoperator>(eq(left_cols[0], right_cols[0]));
+  }
+  else opt = new std::shared_ptr<dfoperator>(multi_eq(left_cols, right_cols));
+  if (!opt) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed.\n");
+  return reinterpret_cast<exrpc_ptr_t> (opt);
 }
