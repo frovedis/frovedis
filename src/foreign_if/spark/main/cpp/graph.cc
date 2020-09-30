@@ -147,8 +147,8 @@ Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisBFS(JNIEnv *env, jclass this
     res = exrpc_async(fm_node, (frovedis_bfs<graph<DT1>,DT5>), f_dptr, vb).get();
   }
   catch(std::exception& e) { set_status(true,e.what()); }
-  checkAssumption(sz == (long)res.dist_nodes.size()); // check in case any size issue
-  env->SetLongArrayRegion(nodes_dist, 0, sz, (long*)res.dist_nodes.data());
+  checkAssumption(sz == (long)res.distances.size()); // check in case any size issue
+  env->SetLongArrayRegion(nodes_dist, 0, sz, (long*)res.distances.data());
   env->SetLongArrayRegion(nodes_in_which_cc, 0, sz, (long*)res.num_nodes_in_which_cc.data());
   std::vector<long> long_num_nodes_in_each_cc(res.num_nodes_in_each_cc.begin(), res.num_nodes_in_each_cc.end());
   //return long_num_nodes_in_each_cc;
