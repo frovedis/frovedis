@@ -3,10 +3,10 @@ grouped_df
 """
 #!/usr/bin/env python
 
-import numpy as np
-import pandas as pd
 import copy
 from ctypes import c_char_p
+import numpy as np
+import pandas as pd
 from ..exrpc import rpclib
 from ..exrpc.server import FrovedisServer
 from ..matrix.dtype import DTYPE
