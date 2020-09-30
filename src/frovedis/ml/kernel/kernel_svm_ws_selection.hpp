@@ -84,7 +84,8 @@ private:
           if (p_right == -1) break;
           i = f_idx2sort_ptr[p_right];
         }
-        if (p_right >= 0) {
+        //if (p_right >= 0) {
+        if (p_right >= 0 && n_selected < select_size) { // FIXED here...
           working_set_ptr[select_offset + n_selected] = i;
           n_selected++;
           ws_indicator_ptr[i] = 1;
