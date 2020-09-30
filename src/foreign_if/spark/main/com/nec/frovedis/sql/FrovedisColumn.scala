@@ -13,13 +13,14 @@ class FrovedisColumn extends java.io.Serializable {
     col_name = n
     isDesc = 0
   }
-  def >  (arg: Any) = new Expr(col_name, arg.toString(), OPTYPE.GT)
-  def >= (arg: Any) = new Expr(col_name, arg.toString(), OPTYPE.GE)
-  def <  (arg: Any) = new Expr(col_name, arg.toString(), OPTYPE.LT)
-  def <= (arg: Any) = new Expr(col_name, arg.toString(), OPTYPE.LE)
-  def ===(arg: Any) = new Expr(col_name, arg.toString(), OPTYPE.EQ)
-  def !==(arg: Any) = new Expr(col_name, arg.toString(), OPTYPE.NE)
-  //TODO: Add Unary not [def !(arg: Any)]
+  
+  def >  (arg: Any) = new Expr(col_name, arg.toString(), OPTYPE.GT, checkIsImmed(arg)) 
+  def >= (arg: Any) = new Expr(col_name, arg.toString(), OPTYPE.GE, checkIsImmed(arg))
+  def <  (arg: Any) = new Expr(col_name, arg.toString(), OPTYPE.LT, checkIsImmed(arg))
+  def <= (arg: Any) = new Expr(col_name, arg.toString(), OPTYPE.LE, checkIsImmed(arg))
+  def ===(arg: Any) = new Expr(col_name, arg.toString(), OPTYPE.EQ, checkIsImmed(arg))
+  def !==(arg: Any) = new Expr(col_name, arg.toString(), OPTYPE.NE, checkIsImmed(arg))
+  def like(pattern: String) = new Expr(col_name, pattern, OPTYPE.LIKE, true)
 
   def getIsDesc() = isDesc
   def setIsDesc(isDesc: Int): this.type = {
@@ -29,6 +30,10 @@ class FrovedisColumn extends java.io.Serializable {
   def asc(): this.type  = setIsDesc(0)
   def desc(): this.type = setIsDesc(1)
   override def toString() = col_name
+  private def checkIsImmed(arg: Any): Boolean = {
+    return !(arg.isInstanceOf[com.nec.frovedis.sql.FrovedisColumn] ||
+             arg.isInstanceOf[org.apache.spark.sql.ColumnName])
+  }
 }
 
 object implicits_ {
