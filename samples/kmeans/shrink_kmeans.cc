@@ -14,7 +14,7 @@ void do_kmeans(const string& input, bool dense, const string& output, int k,
       time_spent t(DEBUG);
       auto mat = make_rowmajor_matrix_loadbinary<double>(input);
       t.show("load matrix: ");
-      auto r = kmeans(mat, k, num_iteration, eps);
+      auto r = shrink::kmeans(mat, k, num_iteration, eps);
       t.show("kmeans time: ");
       r.transpose().savebinary(output);
       t.show("save centroid time: ");
@@ -22,7 +22,7 @@ void do_kmeans(const string& input, bool dense, const string& output, int k,
       time_spent t(DEBUG);
       auto mat = make_crs_matrix_loadbinary<double>(input);
       t.show("load matrix: ");
-      auto r = kmeans(std::move(mat), k, num_iteration, eps);
+      auto r = shrink::kmeans(std::move(mat), k, num_iteration, eps);
       t.show("kmeans time: ");
       r.transpose().savebinary(output);
       t.show("save centroid time: ");
@@ -32,7 +32,7 @@ void do_kmeans(const string& input, bool dense, const string& output, int k,
       time_spent t(DEBUG);
       auto mat = make_rowmajor_matrix_load<double>(input);
       t.show("load matrix: ");
-      auto r = kmeans(mat, k, num_iteration, eps);
+      auto r = shrink::kmeans(mat, k, num_iteration, eps);
       t.show("kmeans time: ");
       r.transpose().save(output);
       t.show("save model time: ");
@@ -40,7 +40,7 @@ void do_kmeans(const string& input, bool dense, const string& output, int k,
       time_spent t(DEBUG);
       auto mat = make_crs_matrix_load<double>(input);
       t.show("load matrix: ");
-      auto r = kmeans(std::move(mat), k, num_iteration, eps);
+      auto r = shrink::kmeans(std::move(mat), k, num_iteration, eps);
       t.show("kmeans time: ");
       r.transpose().save(output);
       t.show("save model time: ");
