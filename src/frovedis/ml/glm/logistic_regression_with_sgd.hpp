@@ -85,7 +85,7 @@ public:
   // --- dense data support --- 
   template <class T>
   static logistic_regression_model<T> train (
-    const colmajor_matrix<T>& data,
+    rowmajor_matrix<T>& data,
     dvector<T>& label,
     size_t numIteration=1000,
     double alpha=0.01,
@@ -97,7 +97,7 @@ public:
 
   template <class T>
   static logistic_regression_model<T> train (
-    rowmajor_matrix<T>& data,
+    const colmajor_matrix<T>& data,
     dvector<T>& label,
     size_t numIteration=1000,
     double alpha=0.01,
@@ -234,8 +234,8 @@ logistic_regression_with_sgd::train (rowmajor_matrix<T>& data,
                                      RegType regTyp,
                                      bool isIntercept,
                                      double convergenceTol) {
-  // rowmajor to const colmajor& implicit conversion would take place
-  return train<T>(data, label, numIteration, alpha, miniBatchFraction, 
+  return train<T>(colmajor_matrix<T>(data), label, 
+                  numIteration, alpha, miniBatchFraction, 
                   regParam, regTyp, isIntercept, convergenceTol); 
 }
 
