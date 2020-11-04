@@ -1,9 +1,10 @@
 #ifndef _KNN_SUPERVISED_HPP_
 #define _KNN_SUPERVISED_HPP_
 
-#include "frovedis/dataframe/dftable.hpp"
-#include "frovedis/dataframe/dfoperator.hpp"
+#include <frovedis/dataframe/dftable.hpp>
+#include <frovedis/dataframe/dfoperator.hpp>
 #include <frovedis/ml/neighbors/knn.hpp>
+#include <frovedis/ml/metrics.hpp>
 
 namespace frovedis {
 
@@ -22,12 +23,17 @@ encode_label(dvector<T>& label) {
 }
 
 template <class T>
-std::vector<T> get_uniq_labels(dvector<T>& label) {
-  dftable tmp;
-  tmp.append_column("labels",label);
-  std::vector<std::string> target = {std::string("labels")};
-  auto distinct = tmp.group_by(target).select(target);
-  return distinct.sort("labels").as_dvector<T>("labels").gather();
+void do_sort(std::vector<T>& vec) {
+  radix_sort(vec, false);
+}
+
+template <class T>
+std::vector<T> 
+get_uniq_labels(dvector<T>& label) {
+  return label.as_node_local()
+              .mapv(do_sort<T>)
+              .map(set_unique<T>)
+              .reduce(set_union<T>);
 }
 
 // --- Classifier ---
@@ -244,35 +250,11 @@ kneighbors_classifier<T>::predict_probability(rowmajor_matrix<T>& mat) {
 }
 
 template <class T>
-int calc_match_count(std::vector<T>& pred_label, 
-                     std::vector<T>& true_label) {
-  int matched = 0;
-  auto plblptr = pred_label.data();
-  auto tlblptr = true_label.data();
-  for(size_t i = 0; i < pred_label.size(); ++i) {
-    matched = matched + (plblptr[i] == tlblptr[i]);
-  }
-  return matched; 
-}
-
-template <class T>
-T sum_total (T x, T y) { return x + y; }
-
-template <class T>
 template <class I>
 float kneighbors_classifier<T>::score(rowmajor_matrix<T>& mat,
                                       dvector<T>& true_label) {
-  auto nsamples = mat.num_row;
-  if (nsamples != true_label.size()) 
-    REPORT_ERROR(USER_ERROR, "number of entries differ in input matrix and label!\n");
   auto pred_label = predict<I>(mat);
-  auto tot_matched =  pred_label.viewas_node_local()
-                                .map(calc_match_count<T>, 
-                                     true_label.viewas_node_local())
-                                .reduce(sum_total<int>);
-  //RLOG(DEBUG) << tot_matched << "/" << nsamples << " predicted results have been matched!\n";
-  RLOG(INFO) << tot_matched << "/" << nsamples << " predicted results have been matched!\n";
-  return (float) tot_matched / nsamples;
+  return accuracy_score(pred_label.gather(), true_label.gather());
 }
 
 // --- Regressor ---
@@ -360,69 +342,14 @@ kneighbors_regressor<T>::predict(rowmajor_matrix<T>& mat) {
                                 broadcast(observation_labels))
                            .template moveto_dvector<T>();
 }
-  
-template <class T>
-T calc_squared_error_diff(std::vector<T>& pred_label,
-                          std::vector<T>& true_label) {
-  T sq_error = 0.0;
-  auto plblptr = pred_label.data();
-  auto tlblptr = true_label.data();
-  for(size_t i = 0; i < pred_label.size(); ++i) {
-    auto error = tlblptr[i] - plblptr[i];
-    sq_error += (error * error);
-  }
-  return sq_error;
-}
-
-template <class T>
-T calc_vec_sum(const std::vector<T>& vec) {
-  T sum = 0;
-  auto vptr = vec.data();
-  for(size_t i = 0; i < vec.size(); ++i) sum += vptr[i];
-  return sum;
-}
-
-template <class T>
-T calc_squared_mean_error_diff(std::vector<T>& true_label,
-                               T nsamples) {
-  T lbl_sum = 0, sq_error = 0;
-  auto loc_lbl_sum = calc_vec_sum(true_label);
-  typed_allreduce(&loc_lbl_sum, &lbl_sum, 1, MPI_SUM, frovedis_comm_rpc);
-  auto true_label_mean = lbl_sum / nsamples;
-  auto tlblptr = true_label.data();
-  for(size_t i = 0; i < true_label.size(); ++i) {
-    auto error = tlblptr[i] - true_label_mean;
-    sq_error += (error * error);
-  }
-  return sq_error;
-}
 
 template <class T>
 template <class I>
 float kneighbors_regressor<T>::score(rowmajor_matrix<T>& mat,
                                      dvector<T>& true_label) {
-  auto nsamples = mat.num_row;
-  if (!nsamples ) return 0.0;
-  if (nsamples != true_label.size())
-    REPORT_ERROR(USER_ERROR, "number of entries differ in input matrix and label!\n");
   auto pred_label = predict<I>(mat);
-  auto u =  pred_label.viewas_node_local()
-                      .map(calc_squared_error_diff<T>,
-                           true_label.viewas_node_local())
-                      .reduce(sum_total<T>);
-/*
-  auto label_sum = true_label.viewas_node_local()
-                             .map(calc_vec_sum<T>)
-                             .reduce(sum_total<T>);
-  auto label_mean = label_sum / true_label.size();
-*/
-  auto v =  true_label.viewas_node_local()
-                      .map(calc_squared_mean_error_diff<T>,
-                           broadcast(true_label.size()))
-                      .reduce(sum_total<T>);
-  return  1 - u / v; 
+  return r2_score(pred_label.gather(), true_label.gather());
 }
 
 }
-
 #endif
