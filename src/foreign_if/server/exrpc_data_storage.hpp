@@ -41,24 +41,29 @@ void set_vector_data(std::vector<T>& vec,
 }
 
 template <class T>
+void do_sort(std::vector<T>& vec) {
+  radix_sort(vec, false);
+}
+
+template <class T>
+std::vector<T>
+get_unique(dvector<T>& dvec) {
+  return dvec.as_node_local()
+             .mapv(do_sort<T>)
+             .map(set_unique<T>)
+             .reduce(set_union<T>);
+}
+
+template <class T>
 int count_distinct(exrpc_ptr_t& dptr) {
   auto& dvec = *reinterpret_cast<dvector<T>*>(dptr);
-  dftable tmp;
-  tmp.append_column("dv",dvec);
-  std::vector<std::string> target = {std::string("dv")};
-  auto grouped = tmp.group_by(target);
-  int count = grouped.num_row();
-  return count;
+  return get_unique(dvec).size();
 }
 
 template <class T>
 std::vector<T> get_distinct_elements(exrpc_ptr_t& dptr) {
   auto& dvec = *reinterpret_cast<dvector<T>*>(dptr);
-  dftable tmp;
-  tmp.append_column("dv",dvec);
-  std::vector<std::string> target = {std::string("dv")};
-  auto distinct = tmp.group_by(target).select(target);
-  return distinct.sort("dv").as_dvector<T>("dv").gather();
+  return get_unique(dvec);
 }
 
 template <class T>
