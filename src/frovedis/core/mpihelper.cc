@@ -414,6 +414,21 @@ int typed_allgatherv<int64_t>(const int64_t* sendbuf, int sendcount,
                         comm);
 }
 
+template <>
+int typed_allgatherv<unsigned long>(
+                             const unsigned long* sendbuf, int sendcount,
+                             unsigned long* recvbuf, int *recvcounts,
+                             int *displs, MPI_Comm comm) {
+  return MPI_Allgatherv(static_cast<void*>(const_cast<unsigned long*>(sendbuf)),
+                        sendcount,
+                        MPI_INT64_T,
+                        static_cast<void*>(recvbuf),
+                        recvcounts,
+                        displs,
+                        MPI_INT64_T,
+                        comm);
+}
+
 /* // currently not used; leave for future use
 template <>
 int typed_gatherv<double>(const double* sendbuf, int sendcount, 
