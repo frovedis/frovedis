@@ -2,8 +2,8 @@
 #define _PARAM_T_
 
 #include <string>
-#include <frovedis/ml/macro.hpp>
 #include <boost/lexical_cast.hpp>
+#include <frovedis/ml/macro.hpp>
 
 #ifdef USE_BOOST
 #include <boost/variant.hpp>
@@ -44,29 +44,29 @@ struct param_t {
 
 struct param_t {
   param_t() {}
-  param_t(int t): tt(str(t)) {} 
+  param_t(int t): tt(STR(t)) {} 
   // {std::cout << "int: " << tt << std::endl;}
-  param_t(long t): tt(str(t)) {} 
+  param_t(long t): tt(STR(t)) {} 
   //  {std::cout << "long: " << tt << std::endl;}
-  param_t(float t): tt(str(t)) {} 
+  param_t(float t): tt(STR(t)) {} 
   // {std::cout << "float: " << tt << std::endl;}
-  param_t(double t): tt(str(t)) {} 
+  param_t(double t): tt(STR(t)) {} 
   // {std::cout << "double: " << tt << std::endl;}
-  param_t(unsigned int t): tt(str(t)) {} 
+  param_t(unsigned int t): tt(STR(t)) {} 
   // {std::cout << "ui: " << tt << std::endl;}
-  param_t(unsigned long t): tt(str(t)) {} 
+  param_t(unsigned long t): tt(STR(t)) {} 
   // {std::cout << "ul: " << tt << std::endl;}
-  param_t(long long t): tt(str(t)) {} 
+  param_t(long long t): tt(STR(t)) {} 
   // {std::cout << "ll: " << tt << std::endl;}
-  param_t(unsigned long long t): tt(str(t)) {} 
+  param_t(unsigned long long t): tt(STR(t)) {} 
   // {std::cout << "ull: " << tt << std::endl;}
   param_t(const char* t): tt(t) {} 
   // {std::cout << "const char*: " << tt << std::endl;}
   param_t(const std::string& t): tt(t) {} 
   // {std::cout << "str: " << tt << std::endl;}
-  param_t(char t): tt(str(t)) {} 
+  param_t(char t): tt(STR(t)) {} 
   // {std::cout << "char: " << tt << std::endl;}
-  param_t(bool t): tt(str(t)) {} 
+  param_t(bool t): tt(STR(t)) {} 
   // {std::cout << "bool: " << tt << std::endl;}
 
   template <class T>
