@@ -26,7 +26,7 @@ int main(int argc, char* argv[]) {
     std::map<std::string, std::vector<param_t>> params;
     params["max_iter"] = {100, 500, 1000};
     params["alpha"] = {0.1, 0.01, 0.001};
-    params["reg_type"] = {"zero", "l1", "l2"};
+    params["reg_type"] = {"ZERO", "L1", "L2"};
     params["fit_intercept"] = {true, false};
 
     // frovedis::grid_search_cv demo for logistic regression
