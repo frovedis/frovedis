@@ -12,15 +12,20 @@ void call_pagerank(const std::string& data_p,
                    bool if_prep,
                    double df, 
                    double epsilon, 
-                   size_t niter) {
+                   size_t niter,
+                   double thr) { 
   graph<T> gr;
   if(if_prep) gr = read_edgelist<T>(data_p);
   else {
     auto mat = make_crs_matrix_load<T>(data_p);
     gr = graph<T>(mat);
   }
-  auto res = gr.pagerank(df, epsilon, niter);
+  //gr.debug_print();
+  time_spent t(INFO);
+  auto res = gr.pagerank(df, epsilon, niter, thr);
+  t.show("pagerank computation time: ");
   make_dvector_scatter(res).saveline(out_p);
+  std::cout << "ranks: "; debug_print_vector(res, 5);
 }
 
 int main(int argc, char* argv[]){
@@ -35,6 +40,7 @@ int main(int argc, char* argv[]){
         ("output,o" , value<std::string>(), "output data path to save ranking scores")
         ("dfactor,d", value<double>(), "damping factor (default: 0.15)") 
         ("epsilon,e", value<double>(), "convergence threshold (default: 1E-4)")
+        ("threshold,l", value<double>(), "threshold forn shrink version (default: 0.4)")
         ("max_iter,k", value<size_t>(), "maximum no. of iterations (default: 100)") 
         ("verbose", "set loglevel to DEBUG")
         ("verbose2", "set loglevel to TRACE")
@@ -50,6 +56,7 @@ int main(int argc, char* argv[]){
     size_t niter = 100;
     double epsilon = 1e-4; 
     double df = 0.15;
+    double thr = 0.4;
 
     if(argmap.count("help")){
       std::cerr << opt << std::endl;
@@ -81,6 +88,9 @@ int main(int argc, char* argv[]){
     if(argmap.count("epsilon")){
        epsilon = argmap["epsilon"].as<double>();
     }
+    if(argmap.count("threshold")){
+       thr = argmap["threshold"].as<double>();
+    }
     if(argmap.count("max_iter")){
        niter = argmap["max_iter"].as<size_t>();
     }
@@ -93,13 +103,13 @@ int main(int argc, char* argv[]){
 
     try {
       if (dtype == "int") {
-        call_pagerank<int>(data_p, out_p, if_prep, df, epsilon, niter);
+        call_pagerank<int>(data_p, out_p, if_prep, df, epsilon, niter, thr);
       }      
       else if (dtype == "float") {
-        call_pagerank<float>(data_p, out_p, if_prep, df, epsilon, niter);
+        call_pagerank<float>(data_p, out_p, if_prep, df, epsilon, niter, thr);
       }      
       else if (dtype == "double") {
-        call_pagerank<double>(data_p, out_p, if_prep, df, epsilon, niter);
+        call_pagerank<double>(data_p, out_p, if_prep, df, epsilon, niter, thr);
       }      
       else {
         std::cerr << "Supported dtypes are only int, float and double!\n";

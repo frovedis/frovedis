@@ -17,7 +17,9 @@ void call_sssp(const std::string& data_p,
     auto mat = make_crs_matrix_load<T>(data_p);
     gr = graph<T>(mat);
   }
+  time_spent t(INFO);
   auto res = gr.single_source_shortest_path(source_vertex);
+  t.show("sssp computation time: ");
   res.save(out_p);
   res.debug_print(5);
 }
@@ -32,7 +34,7 @@ int main(int argc, char* argv[]){
         ("input,i" , value<std::string>(), "input data path containing either edgelist or adjacency matrix data") 
         ("dtype,t" , value<std::string>(), "input data type (int, float or double) [default: int]") 
         ("output,o" , value<std::string>(), "output data path to save cc results")
-        ("source,s", value<size_t>(), "source vertex id (default: 1)") 
+        ("source,s", value<size_t>(), "source vertex id [1 ~ nvert] (default: 1)") 
         ("verbose", "set loglevel to DEBUG")
         ("verbose2", "set loglevel to TRACE")
         ("prepare,p" , "whether to generate the CRS matrix from original edgelist file ");

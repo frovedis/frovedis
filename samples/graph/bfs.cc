@@ -11,14 +11,17 @@ void call_bfs(const std::string& data_p,
               const std::string& out_p,
               bool if_prep,
               size_t source_vertex,
-              int opt_level) {
+              int opt_level,
+              double threshold) {
   graph<T> gr;
   if(if_prep) gr = read_edgelist<T>(data_p);
   else {
     auto mat = make_crs_matrix_load<T>(data_p);
     gr = graph<T>(mat);
   }
-  auto res = gr.bfs(source_vertex, opt_level);
+  time_spent t(INFO);
+  auto res = gr.bfs(source_vertex, opt_level, threshold);
+  t.show("bfs computation time: ");
   res.save(out_p);
   res.debug_print(5);
 }
@@ -33,8 +36,9 @@ int main(int argc, char* argv[]){
         ("input,i" , value<std::string>(), "input data path containing either edgelist or adjacency matrix data") 
         ("dtype,t" , value<std::string>(), "input data type (int, float or double) [default: int]") 
         ("output,o" , value<std::string>(), "output data path to save cc results") 
-        ("source,s", value<size_t>(), "source vertex id (default: 1)") 
-        ("opt-level", value<int>(), "optimization level 0 or 1 (default: 1)") 
+        ("source,s", value<size_t>(), "source vertex id [1 ~ nvert] (default: 1)") 
+        ("opt-level", value<int>(), "optimization level 0, 1 or 2 (default: 1)") 
+        ("hyb-threshold", value<double>(), "threshold value for hybrid optimization [0.0 ~ 1.0] (default: 0.4)") 
         ("verbose", "set loglevel to DEBUG")
         ("verbose2", "set loglevel to TRACE")
         ("prepare,p" , "whether to generate the CRS matrix from original edgelist file ");
@@ -48,6 +52,7 @@ int main(int argc, char* argv[]){
     std::string data_p, out_p, dtype = "int";
     size_t source_vertex = 1;
     int opt_level = 1;
+    double threshold = 0.4;
     
     if(argmap.count("help")){
       std::cerr << opt << std::endl;
@@ -79,6 +84,9 @@ int main(int argc, char* argv[]){
     if(argmap.count("opt-level")){
        opt_level = argmap["opt-level"].as<int>();
     }
+    if(argmap.count("hyb-threshold")){
+       threshold = argmap["hyb-threshold"].as<double>();
+    }
     if(argmap.count("verbose")){
       set_loglevel(DEBUG);
     }
@@ -88,13 +96,16 @@ int main(int argc, char* argv[]){
     
     try {
       if (dtype == "int") {
-        call_bfs<int>(data_p, out_p, if_prep, source_vertex, opt_level);
+        call_bfs<int>(data_p, out_p, if_prep, source_vertex, 
+                      opt_level, threshold);
       }      
       else if (dtype == "float") {
-        call_bfs<float>(data_p, out_p, if_prep, source_vertex, opt_level);
+        call_bfs<float>(data_p, out_p, if_prep, source_vertex, 
+                        opt_level, threshold);
       }      
       else if (dtype == "double") {
-        call_bfs<double>(data_p, out_p, if_prep, source_vertex, opt_level);
+        call_bfs<double>(data_p, out_p, if_prep, source_vertex, 
+                         opt_level, threshold);
       }      
       else {
         std::cerr << "Supported dtypes are only int, float and double!\n";
