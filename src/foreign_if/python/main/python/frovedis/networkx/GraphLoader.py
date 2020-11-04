@@ -5,40 +5,90 @@ from scipy.sparse import coo_matrix
 import networkx as nx
 from .graph import Graph
 
-def custom_read_edgelist(path, comments='#', delimiter=None,
-                         create_using=None,\
-                         nodetype=None, data=True, \
-                         edgetype=None, encoding='utf-8'):
+def custom_read_edgelist(path, comments='#', delimiter=' ', \
+                         create_using=None, \
+                         nodetype=np.int64, data=True, \
+                         edgetype=np.int64, encoding='utf-8'):
     """
     DESC: Customized read_edgelist() to construct graph adjacency matrix
           in the form of scipy csr matrix directly from input file.
     PARAMS:    Same as in networkx.read_edgelist().
                nodetype, data, edgetype, encoding are not used.
     """
-    # TODO: support weight data to be loaded from file (if present)
-    mat = np.loadtxt(fname=path, comments=comments, \
-                     delimiter=delimiter, dtype=np.int64) #loads data as int64
-    rowid = mat[:, 0] - 1
-    colid = mat[:, 1] - 1
-    maxid = max(rowid.max(), colid.max())
-    num_vertices = maxid + 1
+    # checking number of columns in input file
+    import csv
+    fstr = open(path, 'r')
+    reader = csv.reader(fstr, delimiter=delimiter)
+    sample = next(reader)
+    while(sample[0][0] == comments): #skipping comments
+      sample = next(reader)
+    fstr.close()
+
+    ncol = len(sample)
+    if ncol == 2:
+      names = ['src', 'dst']
+    elif ncol == 3:
+      names = ['src', 'dst', 'wgt']
+    else: 
+      msg = "read_edgelist: Expected 2 or 3 columns in input file!\n"
+      msg = msg + str(ncol) + " column detected in first row: " + str(sample)
+      msg = msg + "\nPlease ensure if the specified delimiter '"
+      msg = msg + delimiter + "' is correct!"
+      raise ValueError(msg)
+
+    # loading data by excluding duplicate rows
+    import pandas as pd
+    df = pd.read_csv(path, sep=delimiter, comment=comments, \
+                     names = names, dtype = edgetype)
+
+    # converting to numpy array
+    mat = df.drop_duplicates().to_numpy()
     num_edges = mat.shape[0]
+
+    # checking whether data is 0-based or 1-based
+    tarr = mat[:, :2].flatten()
+    import sys
+    if sys.version_info[0] < 3:
+      min_id = long(tarr.min())
+      max_id = long(tarr.max())
+    else:
+      min_id = int(tarr.min())
+      max_id = int(tarr.max())
+    if min_id == 0:
+      rowid = mat[:, 0]
+      colid = mat[:, 1]
+      num_vertices = max_id + 1
+    elif min_id == 1:
+      rowid = mat[:, 0] - 1
+      colid = mat[:, 1] - 1
+      num_vertices = max_id
+    else:
+      raise ValueError("read_edgelist: Expected either 0-based or 1-based edgelist file!")
+
+    # extracting edge weight information (if available)
+    if ncol == 3: 
+      data = mat[:, 2]
+    else:
+      data = np.ones(num_edges)
+
+    # constructing sparse matrix structure
+    data = np.asarray(data, dtype = edgetype)
+    rowid = np.asarray(rowid, dtype = nodetype)
+    colid = np.asarray(colid, dtype = nodetype)
     shape = (num_vertices, num_vertices)
     if (isinstance(create_using, nx.classes.digraph.DiGraph)):
-        # TODO: support weight type to be specified
-        data = np.ones(num_edges)
         coo = coo_matrix((data, (rowid, colid)), shape=shape)
     else:
-        # TODO: support weight type to be specified
-        data = np.ones(num_edges*2)
+        data_ = np.concatenate((data, data))
         rowid_ = np.concatenate((rowid, colid))
         colid_ = np.concatenate((colid, rowid))
-        coo = coo_matrix((data, (rowid_, colid_)), shape=shape)
+        coo = coo_matrix((data_, (rowid_, colid_)), shape=shape)
     return coo.tocsr()
 
-
-def read_edgelist(path, comments='#', delimiter=None, create_using=None,\
-                  nodetype=None, data=True, edgetype=None, encoding='utf-8'):
+def read_edgelist(path, comments='#', delimiter=' ', \
+                  create_using=None,\
+                  nodetype=np.int64, data=True, \
+                  edgetype=np.int64, encoding='utf-8'):
     """
     DESC: Reads edgelist data from persistent storage.
     PARAMS:    path : file or string
