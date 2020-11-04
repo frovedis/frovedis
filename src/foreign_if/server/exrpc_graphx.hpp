@@ -59,7 +59,7 @@ exrpc_ptr_t copy_graph(exrpc_ptr_t& dptr) {
 template <class GRAPH>
 void show_graph(exrpc_ptr_t& dptr) {
   auto& graph = *reinterpret_cast<GRAPH*>(dptr);
-  graph.adj_mat.debug_print();
+  graph.debug_print();
 }
 
 template <class GRAPH>
@@ -115,14 +115,32 @@ frovedis_sssp(exrpc_ptr_t& dptr,
 }
 
 template <class GRAPH, class I>
-cc_result<I> 
-frovedis_bfs(exrpc_ptr_t& dptr, 
-             int& verbose) { 
+bfs_result<I>
+frovedis_bfs(exrpc_ptr_t& dptr,
+             long& source_vertex,
+             int& opt_level,
+             double& hyb_threshold,
+             int& verbose) {
   auto old_level = frovedis::get_loglevel();
   if (verbose == 1) frovedis::set_loglevel(frovedis::DEBUG);
   else if (verbose == 2) frovedis::set_loglevel(frovedis::TRACE);
   auto& graph = *reinterpret_cast<GRAPH*>(dptr);
-  auto ret = graph.connected_components();
+  auto ret = graph.bfs(source_vertex, opt_level, hyb_threshold);
+  frovedis::set_loglevel(old_level);
+  return ret;
+}
+
+template <class GRAPH, class I>
+cc_result<I> 
+frovedis_cc(exrpc_ptr_t& dptr,
+            int& opt_level,
+            double& hyb_threshold, 
+            int& verbose) { 
+  auto old_level = frovedis::get_loglevel();
+  if (verbose == 1) frovedis::set_loglevel(frovedis::DEBUG);
+  else if (verbose == 2) frovedis::set_loglevel(frovedis::TRACE);
+  auto& graph = *reinterpret_cast<GRAPH*>(dptr);
+  auto ret = graph.connected_components(opt_level, hyb_threshold);
   frovedis::set_loglevel(old_level);
   return ret;
 }
