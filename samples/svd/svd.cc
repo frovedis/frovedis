@@ -1,9 +1,6 @@
 #include <frovedis.hpp>
-#include <frovedis/matrix/ccs_matrix.hpp>
-#include <frovedis/matrix/colmajor_matrix.hpp>
-#include <frovedis/matrix/diag_matrix.hpp>
-#include <frovedis/matrix/sparse_svd.hpp>
 #include <frovedis/matrix/jds_crs_hybrid.hpp>
+#include <frovedis/matrix/sparse_svd.hpp>
 
 #include <boost/program_options.hpp>
 
@@ -60,10 +57,10 @@ int main(int argc, char* argv[]) {
   options_description opt("option");
   opt.add_options()
     ("help,h", "print help")
-    ("input,i", value<string>(), "input matrix")
-    ("u,u", value<string>(), "left singular vectors")
-    ("s,s", value<string>(), "singular values")
-    ("v,v", value<string>(), "right singular vectors")
+    ("input,i", value<string>(), "input sparse data matrix")
+    ("u,u", value<string>(), "left singular vectors to save")
+    ("s,s", value<string>(), "singular values to save")
+    ("v,v", value<string>(), "right singular vectors to save")
     ("k,k", value<int>(), "number of singular values to compute")
     ("verbose", "set loglevel DEBUG")
     ("verbose2", "set loglevel TRACE")
