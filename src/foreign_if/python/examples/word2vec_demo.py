@@ -25,7 +25,7 @@ wv.build_vocab_and_dump(textfile, encode, vocab, count)
 
 # ve task
 FrovedisServer.initialize(argvs[1])
-wv.fit(encode, vocab, weight)
+wv.fit(encode, count, weight)
 FrovedisServer.shut_down()
 
 #x86 task
