@@ -99,6 +99,9 @@ class Graph(object):
         #t1 = time.time()
         nx_smat = nx.to_scipy_sparse_matrix(nx_graph, format='csr') #TODO: use reimplemented version after result correctness
         #print("Graph.py -> nx.to_scipy_sparse_matrix: ", time.time() - t1)
+        # by default, edge data is loaded as float64
+        # and node data is loaded as int64
+        #TODO: support loading data as same dtype/itype in input nx-graph
         smat = FrovedisCRSMatrix(mat=nx_smat, dtype=np.float64, itype=np.int64)
         (host, port) = FrovedisServer.getServerInstance()
         self.fdata = rpclib.set_graph_data(host, port, smat.get())
@@ -116,7 +119,9 @@ class Graph(object):
         self.release()
         self.num_edges = len(smat.data) 
         self.num_vertices = smat.shape[0]
-        #TODO: support dtype: np.int32 as well for graphs with weight = 1
+        # by default, edge data is loaded as float64
+        # and node data is loaded as int64
+        #TODO: support loading data as same dtype/itype in input matrix
         fsmat = FrovedisCRSMatrix(mat=smat, dtype=np.float64, itype=np.int64)
         (host, port) = FrovedisServer.getServerInstance()
         self.fdata = rpclib.set_graph_data(host, port, fsmat.get())
