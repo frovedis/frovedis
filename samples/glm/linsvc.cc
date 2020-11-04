@@ -1,83 +1,96 @@
 #include <frovedis.hpp>
 #include <frovedis/ml/glm/svm_with_sgd.hpp>
-
+#include <frovedis/ml/glm/svm_with_lbfgs.hpp>
 #include <boost/program_options.hpp>
 
 using namespace boost;
 using namespace frovedis;
 using namespace std;
-
-double to_double(std::string& line) {
-  return boost::lexical_cast<double>(line);
+ 
+RegType getRegularizer(const std::string& rt) {
+  RegType ret = ZERO;
+  if (rt == "ZERO") ret = ZERO;
+  else if (rt == "L1") ret = L1;
+  else if (rt == "L2") ret = L2;
+  else REPORT_ERROR(USER_ERROR, std::string("supported regularizer is ") + 
+                    "ZERO, L1 and L2!\n");
+  return ret;
 }
 
-void do_train(const string& input, const string& label, const string& output,
-              size_t num_iteration, double alpha, double minibatch_fraction,
-              const string& regularizer, double regParam, bool intercept,
+template <class T>
+void do_train(const string& input, 
+              const string& label, 
+              const string& output,
+              const string& solver,
+              size_t num_iteration, 
+              double alpha, 
+              double minibatch_fraction,
+              size_t hist_size,
+              const string& regularizer, 
+              double regParam, bool intercept,
               double convTol, MatType mType, bool binary) {
 
-  RegType rt;
-  if(regularizer == "ZERO") {
-    rt = ZERO;
-  } else if (regularizer == "L1") {
-    rt = L1;
-  } else if (regularizer == "L2") {
-    rt = L2;
-  } else {
-    cerr << "invalid regularization type: " << regularizer << endl;
-    exit(1);
-  }
+  time_spent t(DEBUG);
+  crs_matrix<T> mat;
+  dvector<T> lbl;
+  svm_model<T> lm;
+
   if(binary) {
-    time_spent t(DEBUG);
-    auto mat = make_crs_matrix_loadbinary<double>(input);
+    mat = make_crs_matrix_loadbinary<T>(input);
     t.show("load matrix: ");
-    auto lb = make_dvector_loadbinary<double>(label);
+    lbl = make_dvector_loadbinary<T>(label);
     t.show("load label: ");
-    auto lm = svm_with_sgd::train(mat, lb, num_iteration, alpha,
-                                  minibatch_fraction, regParam,
-                                  rt, intercept, convTol, mType);
-    t.show("train time: ");
-    lm.savebinary(output);
-    t.show("save model time: ");
   } else {
-    time_spent t(DEBUG);
-    auto mat = make_crs_matrix_load<double>(input);
+    mat = make_crs_matrix_load<T>(input);
     t.show("load matrix: ");
-    auto lb = make_dvector_loadline(label).map(to_double);
+    lbl = make_dvector_loadline<T>(label);
     t.show("load label: ");
-    auto lm = svm_with_sgd::train(mat, lb, num_iteration, alpha,
-                                  minibatch_fraction, regParam,
-                                  rt, intercept, convTol, mType);
-    t.show("train time: ");
-    lm.save(output);
-    t.show("save model time: ");
   }
+ 
+  if (solver == "sgd") { 
+    lm = svm_with_sgd::train(std::move(mat), lbl, num_iteration, alpha,
+                             minibatch_fraction, 
+                             regParam, getRegularizer(regularizer),
+                             intercept, convTol, mType);
+  }
+  else if (solver == "lbfgs") { 
+    lm = svm_with_lbfgs::train(std::move(mat), lbl, num_iteration, alpha,
+                               hist_size, 
+                               regParam, getRegularizer(regularizer),
+                               intercept, convTol, mType);
+  }
+  else REPORT_ERROR(USER_ERROR, "supported solver is either sgd or lbfgs!\n");
+  t.show("train time: ");
+
+  if(binary) lm.savebinary(output);
+  else       lm.save(output);
+  t.show("save model time: ");
 }
 
-void do_predict(const string& input, const string& model, const string& output,
+template <class T>
+void do_predict(const string& input,
+                const string& model,
+                const string& output,
                 bool prob, bool binary) {
-  svm_model<double> lm;
+  time_spent t(DEBUG);
+  crs_matrix_local<T> mat;
+  svm_model<T> lm;
   if(binary) {
     lm.loadbinary(model);
-    auto mat = make_crs_matrix_local_loadbinary<double>(input);
-    if(prob) {
-      auto r = lm.predict_probability(mat);
-      make_dvector_scatter(r).savebinary(output);
-    } else {
-      auto r = lm.predict(mat);
-      make_dvector_scatter(r).savebinary(output);
-    }
+    t.show("load model: ");
+    mat = make_crs_matrix_local_loadbinary<T>(input);
+    t.show("load matrix: ");
   } else {
     lm.load(model);
-    auto mat = make_crs_matrix_local_load<double>(input);
-    if(prob) {
-      auto r = lm.predict_probability(mat);
-      make_dvector_scatter(r).saveline(output);
-    } else {
-      auto r = lm.predict(mat);
-      make_dvector_scatter(r).saveline(output);
-    }
+    t.show("load model: ");
+    mat = make_crs_matrix_local_load<T>(input);
+    t.show("load matrix: ");
   }
+  auto r = prob ? lm.predict_probability(mat) : lm.predict(mat);
+  t.show("prediction time: ");
+  if(binary) make_dvector_scatter(r).savebinary(output);
+  else       make_dvector_scatter(r).saveline(output);
+  t.show("save predicted result: ");
 }
 
 int main(int argc, char* argv[]) {
@@ -90,16 +103,19 @@ int main(int argc, char* argv[]) {
     ("help,h", "print help")
     ("predict,p", "predict mode")
     ("predict-probability,y", "probability-predict mode")
-    ("input,i", value<string>(), "input matrix")
+    ("input,i", value<string>(), "input sparse data matrix")
     ("ell", "assume ell storage of input training data matrix")
     ("crs", "assume crs storage of input training data matrix (default for X86)")
     ("hybrid", "assume jds-crs hybrid storage of input training data matrix (default for SX)")
     ("label,l", value<string>(), "input label (for train)")
     ("model,m", value<string>(), "input model (for predict)")
     ("output,o", value<string>(), "output model or predict result")
+    ("dtype", value<string>(), "target data type for input (double or float) (default: double)")
+    ("solver,s", value<string>(), "linear svm regression solver: sgd (only)")
     ("num-iteration,n", value<size_t>(), "number of iteration (default: 1000)")
     ("alpha,a", value<double>(), "learning rate (default: 0.01)")
     ("minibatch-fraction,f", value<double>(), "fraction rate for minibatch (default: 1.0)")
+    ("hist-size,h", value<size_t>(), "size of history vectors - applicable only for lbfgs solver (default: 10)")
     ("regularizer,r", value<string>(),
      "regularizer (ZERO (default), L1, or L2)")
     ("regularization-parameter,e", value<double>(), "regularization parameter (default: 0.01)")
@@ -120,12 +136,19 @@ int main(int argc, char* argv[]) {
   size_t num_iteration = 1000;
   double alpha = 0.01;
   double minibatch_fraction = 1.0;
+  size_t hist_size = 10;
   string regularizer = "ZERO";
   double regParam = 0.01;
   double convTol = 0.001;
   bool intercept = false;
   bool binary = false;
+#if defined(_SX) || defined(__ve__)
+  MatType mType = HYBRID;
+#else
   MatType mType = CRS;
+#endif
+  string solver = "sgd";
+  string dtype = "double";
   
   if(argmap.count("help")){
     cerr << opt << endl;
@@ -225,7 +248,33 @@ int main(int argc, char* argv[]) {
     set_loglevel(TRACE);
   }
 
-  if(ispredict) do_predict(input, model, output, predict_probability, binary);
-  else do_train(input, label, output, num_iteration, alpha, minibatch_fraction,
-                regularizer, regParam, intercept, convTol, mType, binary);
+  if(argmap.count("solver")){
+    solver = argmap["solver"].as<string>();
+  } 
+
+  if(argmap.count("dtype")){
+    dtype = argmap["dtype"].as<string>();
+  } 
+
+  if(argmap.count("hist-size")){
+    hist_size = argmap["hist-size"].as<size_t>();
+  }
+
+  if (dtype == "float") {
+    if(ispredict) do_predict<float>(input, model, output, 
+                                    predict_probability, binary);
+    else do_train<float>(input, label, output, solver, 
+                         num_iteration, alpha, minibatch_fraction, hist_size, 
+                         regularizer, regParam, intercept, convTol, 
+                         mType, binary);
+  }
+  else if (dtype == "double") {
+    if(ispredict) do_predict<double>(input, model, output, 
+                                     predict_probability, binary);
+    else do_train<double>(input, label, output, solver, 
+                          num_iteration, alpha, minibatch_fraction, hist_size,
+                          regularizer, regParam, intercept, convTol, 
+                          mType, binary);
+  }
+  else REPORT_ERROR(USER_ERROR, "supported dtype is either float or double!\n");
 }

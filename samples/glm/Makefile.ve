@@ -1,41 +1,25 @@
-TARGETS := lr_sgd lr_lbfgs reg_sgd reg_lbfgs lasso_sgd lasso_lbfgs ridge_sgd ridge_lbfgs linsvm_sgd linsvm_lbfgs lr_sgd_shrink
+TARGETS := lnr lasso ridge lr linsvc linsvr
 include ../Makefile.in.ve
 include ../Makefile.common
 
-TO_INSTALL := lasso_lbfgs.cc linsvm_sgd.cc lr_sgd_shrink.cc ridge_lbfgs.cc lasso_sgd.cc lr_lbfgs.cc reg_lbfgs.cc ridge_sgd.cc linsvm_lbfgs.cc lr_sgd.cc reg_sgd.cc
+TO_INSTALL := lnr.cc lasso.cc ridge.cc lr.cc linsvc.cc linsvr.cc
 DIR := glm
 ARCH := ve
 
-lr_sgd: lr_sgd.o
-	${LINK} -o lr_sgd lr_sgd.o ${LIBS}
+lnr: lnr.o
+	${LINK} -o lnr lnr.o ${LIBS}
 
-reg_sgd: reg_sgd.o
-	${LINK} -o reg_sgd reg_sgd.o ${LIBS}
+lasso: lasso.o
+	${LINK} -o lasso lasso.o ${LIBS}
 
-lasso_sgd: lasso_sgd.o
-	${LINK} -o lasso_sgd lasso_sgd.o ${LIBS}
+ridge: ridge.o
+	${LINK} -o ridge ridge.o ${LIBS}
 
-ridge_sgd: ridge_sgd.o
-	${LINK} -o ridge_sgd ridge_sgd.o ${LIBS}
+lr: lr.o
+	${LINK} -o lr lr.o ${LIBS}
 
-linsvm_sgd: linsvm_sgd.o
-	${LINK} -o linsvm_sgd linsvm_sgd.o ${LIBS}
+linsvc: linsvc.o
+	${LINK} -o linsvc linsvc.o ${LIBS}
 
-lr_lbfgs: lr_lbfgs.o
-	${LINK} -o lr_lbfgs lr_lbfgs.o ${LIBS}
-
-reg_lbfgs: reg_lbfgs.o
-	${LINK} -o reg_lbfgs reg_lbfgs.o ${LIBS}
-
-lasso_lbfgs: lasso_lbfgs.o
-	${LINK} -o lasso_lbfgs lasso_lbfgs.o ${LIBS}
-
-ridge_lbfgs: ridge_lbfgs.o
-	${LINK} -o ridge_lbfgs ridge_lbfgs.o ${LIBS}
-
-linsvm_lbfgs: linsvm_lbfgs.o
-	${LINK} -o linsvm_lbfgs linsvm_lbfgs.o ${LIBS}
-
-lr_sgd_shrink: lr_sgd_shrink.o
-	${LINK} -o lr_sgd_shrink lr_sgd_shrink.o ${LIBS}
-
+linsvr: linsvr.o
+	${LINK} -o linsvr linsvr.o ${LIBS}

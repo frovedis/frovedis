@@ -1,51 +1,32 @@
-TARGETS := lr_sgd lr_lbfgs reg_sgd reg_lbfgs lasso_sgd lasso_lbfgs ridge_sgd ridge_lbfgs linsvm_sgd linsvm_lbfgs lr_sgd_shrink
+TARGETS := lnr lasso ridge lr linsvc linsvr
 include ../Makefile.in.sx
 include ../Makefile.common
 
-TO_INSTALL := lasso_lbfgs.cc linsvm_sgd.cc lr_sgd_shrink.cc ridge_lbfgs.cc lasso_sgd.cc lr_lbfgs.cc reg_lbfgs.cc ridge_sgd.cc linsvm_lbfgs.cc lr_sgd.cc reg_sgd.cc
+TO_INSTALL := lnr.cc lasso.cc ridge.cc lr.cc linsvc.cc linsvr.cc
 DIR := glm
 ARCH := sx
 
-lr_sgd: lr_sgd.o
-	${CXX} -prelink ${CXXFLAGS} lr_sgd.o ${LIBS}
-	${MPICXX} ${CXXFLAGS} -o lr_sgd lr_sgd.o ${LIBS}
+lnr: lnr.o
+	${CXX} -prelink ${CXXFLAGS} lnr.o ${LIBS}
+	${MPICXX} ${CXXFLAGS} -o lnr lnr.o ${LIBS}
 
-reg_sgd: reg_sgd.o
-	${CXX} -prelink ${CXXFLAGS} reg_sgd.o ${LIBS}
-	${MPICXX} ${CXXFLAGS} -o reg_sgd reg_sgd.o ${LIBS}
+lasso: lasso.o
+	${CXX} -prelink ${CXXFLAGS} lasso.o ${LIBS}
+	${MPICXX} ${CXXFLAGS} -o lasso lasso.o ${LIBS}
 
-lasso_sgd: lasso_sgd.o
-	${CXX} -prelink ${CXXFLAGS} lasso_sgd.o ${LIBS}
-	${MPICXX} ${CXXFLAGS} -o lasso_sgd lasso_sgd.o ${LIBS}
+ridge: ridge.o
+	${CXX} -prelink ${CXXFLAGS} ridge.o ${LIBS}
+	${MPICXX} ${CXXFLAGS} -o ridge ridge.o ${LIBS}
 
-ridge_sgd: ridge_sgd.o
-	${CXX} -prelink ${CXXFLAGS} ridge_sgd.o ${LIBS}
-	${MPICXX} ${CXXFLAGS} -o ridge_sgd ridge_sgd.o ${LIBS}
+lr: lr.o
+	${CXX} -prelink ${CXXFLAGS} lr.o ${LIBS}
+	${MPICXX} ${CXXFLAGS} -o lr lr.o ${LIBS}
 
-linsvm_sgd: linsvm_sgd.o
-	${CXX} -prelink ${CXXFLAGS} linsvm_sgd.o ${LIBS}
-	${MPICXX} ${CXXFLAGS} -o linsvm_sgd linsvm_sgd.o ${LIBS}
+linsvc: linsvc.o
+	${CXX} -prelink ${CXXFLAGS} linsvc.o ${LIBS}
+	${MPICXX} ${CXXFLAGS} -o linsvc linsvc.o ${LIBS}
 
-lr_lbfgs: lr_lbfgs.o
-	${CXX} -prelink ${CXXFLAGS} lr_lbfgs.o ${LIBS}
-	${MPICXX} ${CXXFLAGS} -o lr_lbfgs lr_lbfgs.o ${LIBS}
+linsvr: linsvr.o
+	${CXX} -prelink ${CXXFLAGS} linsvr.o ${LIBS}
+	${MPICXX} ${CXXFLAGS} -o linsvr linsvr.o ${LIBS}
 
-reg_lbfgs: reg_lbfgs.o
-	${CXX} -prelink ${CXXFLAGS} reg_lbfgs.o ${LIBS}
-	${MPICXX} ${CXXFLAGS} -o reg_lbfgs reg_lbfgs.o ${LIBS}
-
-lasso_lbfgs: lasso_lbfgs.o
-	${CXX} -prelink ${CXXFLAGS} lasso_lbfgs.o ${LIBS}
-	${MPICXX} ${CXXFLAGS} -o lasso_lbfgs lasso_lbfgs.o ${LIBS}
-
-ridge_lbfgs: ridge_lbfgs.o
-	${CXX} -prelink ${CXXFLAGS} ridge_lbfgs.o ${LIBS}
-	${MPICXX} ${CXXFLAGS} -o ridge_lbfgs ridge_lbfgs.o ${LIBS}
-
-linsvm_lbfgs: linsvm_lbfgs.o
-	${CXX} -prelink ${CXXFLAGS} linsvm_lbfgs.o ${LIBS}
-	${MPICXX} ${CXXFLAGS} -o linsvm_lbfgs linsvm_lbfgs.o ${LIBS}
-
-lr_sgd_shrink: lr_sgd_shrink.o
-	${CXX} -prelink ${CXXFLAGS} lr_sgd_shrink.o ${LIBS}
-	${MPICXX} ${CXXFLAGS} -o lr_sgd_shrink lr_sgd_shrink.o ${LIBS}
