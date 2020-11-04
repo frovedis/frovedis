@@ -1,5 +1,6 @@
 #include <frovedis.hpp>
-#include <frovedis/matrix/dense_eigen.hpp>
+#include <frovedis/matrix/jds_crs_hybrid.hpp>
+#include <frovedis/matrix/shrink_sparse_eigen.hpp>
 #include <boost/program_options.hpp>
 
 using namespace boost;
@@ -12,22 +13,27 @@ using namespace std;
   s: k(<-m) x k(<-n)
   vt: k(<-n) x n / v: n x k
  */
-void do_dense_eigen_sym(const string& input_matrix, const string& d_file,
+void do_sparse_eigen_sym(const string& input_matrix, const string& d_file,
                          const string& v_file, string mode, int k,
                          bool binary) {
   time_spent t(DEBUG);
-  rowmajor_matrix<double> matrix;
+  crs_matrix<double> matrix;
   if(binary) {
-    matrix = make_rowmajor_matrix_loadbinary<double>(input_matrix);
+    matrix = make_crs_matrix_loadbinary<double>(input_matrix);
   } else {
-    matrix = make_rowmajor_matrix_load<double>(input_matrix);
+    matrix = make_crs_matrix_load<double>(input_matrix);
   }
   t.show("load time: ");
   colmajor_matrix<double> v;
   diag_matrix_local<double> d;
   time_spent t2(DEBUG), t3(DEBUG);
-  dense_eigen_sym<double>(matrix, d, v, mode, k); 
-  t2.show("dense_eigen_sym: ");
+#if defined(_SX) || defined(__ve__) 
+  shrink::sparse_eigen_sym<jds_crs_hybrid<double>, jds_crs_hybrid_local<double>>
+    (matrix, d, v, mode, k);
+#else
+  shrink::sparse_eigen_sym<double>(matrix, d, v, mode, k); 
+#endif
+  t2.show("sparse_eigen_sym: ");
   t3.show("total time w/o I/O: ");
   if(binary) {
     d.savebinary(d_file);
@@ -47,7 +53,7 @@ int main(int argc, char* argv[]) {
   options_description opt("option");
   opt.add_options()
     ("help,h", "print help")
-    ("input,i", value<string>(), "input dense data matrix")
+    ("input,i", value<string>(), "input sparse data matrix")
     ("d,d", value<string>(), "eigen values to save")
     ("v,v", value<string>(), "eigen vectors to save")
     ("k,k", value<int>(), "number of eigen values to compute")
@@ -120,5 +126,5 @@ int main(int argc, char* argv[]) {
     set_loglevel(TRACE);
   }
 
-  do_dense_eigen_sym(input, d, v, mode, k, binary);
+  do_sparse_eigen_sym(input, d, v, mode, k, binary);
 }

@@ -1,10 +1,13 @@
-TARGETS := eigen
+TARGETS := eigen shrink_eigen
 include ../Makefile.in.x86
 include ../Makefile.common
 
-TO_INSTALL := eigen.cc
+TO_INSTALL := eigen.cc shrink_eigen.cc
 DIR := eigen
 ARCH := x86
 
 eigen: eigen.o
 	${MPICXX} ${CXXFLAGS} -o eigen eigen.o ${LIBS}
+
+shrink_eigen: shrink_eigen.o
+	${MPICXX} ${CXXFLAGS} -o shrink_eigen shrink_eigen.o ${LIBS}

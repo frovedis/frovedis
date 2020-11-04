@@ -1,10 +1,13 @@
-TARGETS := eigen
+TARGETS := eigen shrink_eigen
 include ../Makefile.in.ve
 include ../Makefile.common
 
-TO_INSTALL := eigen.cc
+TO_INSTALL := eigen.cc shrink_eigen.cc
 DIR := eigen
 ARCH := ve
 
 eigen: eigen.o
 	${LINK} -o eigen eigen.o ${LIBS}
+
+shrink_eigen: shrink_eigen.o
+	${LINK} -o shrink_eigen shrink_eigen.o ${LIBS}
