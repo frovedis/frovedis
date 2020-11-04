@@ -1,5 +1,6 @@
 """ Pagerank.py """
 
+import sys
 import networkx as nx
 from ..exrpc.server import FrovedisServer
 from ..exrpc import rpclib
@@ -35,8 +36,8 @@ def pagerank(G, alpha=0.85, personalization=None, max_iter=100, tol=1.0e-6, \
         raise RuntimeError(excpt["info"])
     if movable:
         frov_gr.release()
-    # TODO: vertices ID based on input graph
     verts = {}
     for i in range(len(result)):
-        verts[i+1] = result[i]
+        if result[i] != sys.float_info.max:
+            verts[i+1] = result[i]
     return verts
