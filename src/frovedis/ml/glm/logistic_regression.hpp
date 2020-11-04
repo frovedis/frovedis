@@ -1,9 +1,10 @@
 #ifndef __LOG_REG__
 #define __LOG_REG__
 
-#include <frovedis/ml/macro.hpp>
 #include <frovedis/ml/metrics.hpp>
+#include <frovedis/ml/model_selection/param.hpp>
 #include <frovedis/ml/glm/logistic_regression_with_sgd.hpp>
+#include <frovedis/ml/glm/shrink_logistic_regression_with_sgd.hpp>
 #include <frovedis/ml/glm/logistic_regression_with_lbfgs.hpp>
 
 namespace frovedis {
@@ -18,7 +19,7 @@ struct logistic_regression {
                       double alpha = 0.01,
                       const std::string& solver = "sgd",
                       double reg_param = 0.01,
-                      const std::string& reg_type= "zero",
+                      const std::string& reg_type= "ZERO",
                       bool fit_intercept = false,
                       double mini_batch_fraction = 1.0,
                       int hs = 10,
@@ -36,36 +37,36 @@ struct logistic_regression {
   }
   logistic_regression<T>& 
   set_max_iter(int max_iter) {
-    std::string msg = "expected a positive max_iter; received: " + str(max_iter) + "\n";
+    std::string msg = "expected a positive max_iter; received: " + STR(max_iter) + "\n";
     require(max_iter > 0, msg);
     this->max_iter = max_iter;
     return *this;  
   }
   logistic_regression<T>& 
   set_alpha(double alpha) {
-    std::string msg = "expected a positive alpha (learning rate); received: " + str(alpha) + "\n";
+    std::string msg = "expected a positive alpha (learning rate); received: " + STR(alpha) + "\n";
     require(alpha > 0, msg);
     this->alpha = alpha;
     return *this;  
   }
   logistic_regression<T>& 
   set_solver(const std::string& solver) {
-    std::string msg = "expected sgd or lbfgs; received: " + solver + "\n";
-    require(solver == "sgd" || solver == "lbfgs", msg);
+    std::string msg = "expected sgd, shrink-sgd or lbfgs; received: " + solver + "\n";
+    require(solver == "sgd" || solver == "shrink-sgd" || solver == "lbfgs", msg);
     this->solver = solver;
     return *this;  
   }
   logistic_regression<T>& 
   set_reg_param(double reg_param) {
-    std::string msg = "expected a positive regularization parameter; received: " + str(reg_param) + "\n";
+    std::string msg = "expected a positive regularization parameter; received: " + STR(reg_param) + "\n";
     require(reg_param > 0, msg);
     this->reg_param = reg_param;
     return *this;  
   }
   logistic_regression<T>& 
   set_reg_type(const std::string& reg_type) {
-    std::string msg = "expected zero, l1 or l2; received: " + str(alpha) + "\n";
-    require(reg_type == "zero" || reg_type == "l1" || reg_type == "l2", msg);
+    std::string msg = "expected ZERO, L1 or L2; received: " + reg_type + "\n";
+    require(reg_type == "ZERO" || reg_type == "L1" || reg_type == "L2", msg);
     this->reg_type = reg_type;
     return *this;  
   }
@@ -76,21 +77,21 @@ struct logistic_regression {
   }
   logistic_regression<T>& 
   set_mini_batch_fraction(double mbf) {
-    std::string msg = "expected a positive mini-batch fraction; received: " + str(mbf) + "\n";
+    std::string msg = "expected a positive mini-batch fraction; received: " + STR(mbf) + "\n";
     require(mbf > 0, msg);
     this->mbf = mbf;
     return *this;  
   }
   logistic_regression<T>& 
   set_hist_size(int hs) {
-    std::string msg = "expected a positive history size; received: " + str(hs) + "\n";
+    std::string msg = "expected a positive history size; received: " + STR(hs) + "\n";
     require(hs > 0, msg);
     this->hist_size = hs;
     return *this;  
   }
   logistic_regression<T>& 
   set_tol(double tol) {
-    std::string msg = "expected a positive convergence tolerance; received: " + str(tol) + "\n";
+    std::string msg = "expected a positive convergence tolerance; received: " + STR(tol) + "\n";
     require(tol > 0, msg);
     this->tol = tol;
     return *this;  
@@ -148,9 +149,9 @@ struct logistic_regression {
 
   RegType get_regularizer() {
     RegType regularizer = ZERO;
-    if (reg_type == "zero") regularizer = ZERO;
-    else if (reg_type == "l1") regularizer = L1;
-    else if (reg_type == "l2") regularizer = L2;
+    if (reg_type == "ZERO") regularizer = ZERO;
+    else if (reg_type == "L1") regularizer = L1;
+    else if (reg_type == "L2") regularizer = L2;
     else REPORT_ERROR(USER_ERROR, "[logistic_regression] Unknown regularizer '" 
                                    + reg_type + "' is encountered!\n");
     return regularizer;
@@ -163,6 +164,11 @@ struct logistic_regression {
   fit(MATRIX& mat, dvector<T>& label) {
     if (solver == "sgd") {
       this->model = logistic_regression_with_sgd::train(
+                      mat, label, max_iter, alpha, mbf,
+                      reg_param, get_regularizer(), fit_intercept, tol);
+    }
+    else if (solver == "shrink-sgd") {
+      this->model = shrink::logistic_regression_with_sgd::train(
                       mat, label, max_iter, alpha, mbf,
                       reg_param, get_regularizer(), fit_intercept, tol);
     }
