@@ -15,7 +15,7 @@ extern "C" {
         case LONG:   count = exrpc_async(fm_node,count_distinct<long>,f_dptr).get(); break;
         case FLOAT:  count = exrpc_async(fm_node,count_distinct<float>,f_dptr).get(); break;
         case DOUBLE: count = exrpc_async(fm_node,count_distinct<double>,f_dptr).get(); break;
-        case STRING: count = exrpc_async(fm_node,count_distinct<std::string>,f_dptr).get(); break;
+        //case STRING: count = exrpc_async(fm_node,count_distinct<std::string>,f_dptr).get(); break;
         default:  REPORT_ERROR(USER_ERROR,
                 "Unknown type for frovedis dvector: " + std::to_string(vtype));
       }
