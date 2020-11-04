@@ -1,5 +1,5 @@
-#ifndef SPARSE_EIGEN_HPP
-#define SPARSE_EIGEN_HPP
+#ifndef SHRINK_SPARSE_EIGEN_HPP
+#define SHRINK_SPARSE_EIGEN_HPP
 
 #include <sstream>
 
@@ -11,6 +11,7 @@
 #include "shrink_matrix.hpp"
 
 namespace frovedis {
+namespace shrink {
 
 template <class REAL, class I, class SPARSE_MATRIX_LOCAL>
 void eigen_sym_mpi(SPARSE_MATRIX_LOCAL& mat,
@@ -205,7 +206,7 @@ void sparse_eigen_sym(crs_matrix<T,I,O>& mat,
     frovedis::time_spent t(DEBUG);
     auto tbl = shrink_column(mat);
     t.show("shrink_column: ");
-    mat.data.mapv(calc_eigen_sym<T,I,crs_matrix_local<T>>
+    mat.data.mapv(calc_eigen_sym<T,I,crs_matrix_local<T,I,O>>
                   (order, k, mat.num_row),
                   dtmp, v.data, tbl);
   }
@@ -239,5 +240,6 @@ void sparse_eigen_sym(crs_matrix<T,I,O>& mat,
   v.set_num(mat.num_row, k);
 }
 
+}
 }
 #endif

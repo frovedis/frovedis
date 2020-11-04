@@ -54,11 +54,11 @@ node_local<std::vector<I>> shrink_column(crs_matrix<T,I,O>& m) {
 }
 
 template <class I>
-node_local<std::vector<size_t>> 
+node_local<std::vector<I>> 
 partition_shrink_column(node_local<std::vector<I>>& shrink_table, size_t num_col) {
   auto shrink_tables = shrink_table.gather();
-  std::vector<size_t> cols(num_col);
-  size_t* colsp = &cols[0];
+  std::vector<I> cols(num_col);
+  I* colsp = &cols[0];
   for(size_t i = 0; i < shrink_tables.size(); i++) {
     auto& each_table = shrink_tables[i];
     I* each_tablep = &each_table[0];
@@ -76,7 +76,7 @@ partition_shrink_column(node_local<std::vector<I>>& shrink_table, size_t num_col
   }
   auto total = cols_sum[cols_sum.size() - 1];
   auto each = ceil_div(total, static_cast<size_t>(frovedis::get_nodesize()));
-  std::vector<size_t> ret_vec(frovedis::get_nodesize()+1);
+  std::vector<I> ret_vec(frovedis::get_nodesize()+1);
   ret_vec[0] = 0;
   auto prev_it = cols_sum.begin();
   for(size_t i = 1; i < ret_vec.size(); i++) {
@@ -230,7 +230,8 @@ size_t get_scatter_size_helper(shrink_vector_info<I>& i) {
 }
 
 template <class I>
-std::vector<I> get_scatter_size(node_local<shrink_vector_info<I>>& info){
+std::vector<size_t> 
+get_scatter_size(node_local<shrink_vector_info<I>>& info){
   return info.map(get_scatter_size_helper<I>).gather();
 }
 

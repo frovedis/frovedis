@@ -1,5 +1,5 @@
-#ifndef SPARSE_SVD_HPP
-#define SPARSE_SVD_HPP
+#ifndef SHRINK_SPARSE_SVD_HPP
+#define SHRINK_SPARSE_SVD_HPP
 
 #include <sstream>
 
@@ -11,6 +11,7 @@
 #include "shrink_matrix.hpp"
 
 namespace frovedis {
+namespace shrink {
 
 //-- These functions are workaround for ve vectorization compiler
 template <class REAL>
@@ -262,7 +263,7 @@ void sparse_svd(crs_matrix<T,I,O>& mat,
     // call_tranpose is defined in crs_matrix.hpp
     auto local_trans = mat.data.map(call_transpose<T,I,O>);
     t.show("local transpose: ");
-    mat.data.mapv(calc_svd<T,I,crs_matrix_local<T>>
+    mat.data.mapv(calc_svd<T,I,crs_matrix_local<T,I,O>>
                   (k, mat.num_row, mat.num_col),
                   u.data, stmp,v.data, tbl, local_trans);
   } else {
@@ -273,7 +274,7 @@ void sparse_svd(crs_matrix<T,I,O>& mat,
     t.show("shrink_column: ");
     auto local_trans = trans_mat.data.map(call_transpose<T,I,O>);
     t.show("local transpose: ");
-    trans_mat.data.mapv(calc_svd<T,I,crs_matrix_local<T>>
+    trans_mat.data.mapv(calc_svd<T,I,crs_matrix_local<T,I,O>>
                         (k, trans_mat.num_row, trans_mat.num_col),
                         v.data, stmp, u.data, tbl, local_trans);
   }
@@ -376,5 +377,6 @@ void sparse_svd(crs_matrix<T,I,O>&& mat,
   v.set_num(mat.num_col, k);
 }
 
+}
 }
 #endif
