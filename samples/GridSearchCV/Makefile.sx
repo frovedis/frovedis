@@ -1,11 +1,15 @@
-TARGETS := search_cv
+TARGETS := search_cv k_fold
 include ../Makefile.in.sx
 include ../Makefile.common
 
-TO_INSTALL := search_cv.cc
-DIR := search_cv
+TO_INSTALL := search_cv.cc k_fold.cc
+DIR := GridSearchCV
 ARCH := sx
 
 search_cv: search_cv.o
 	${CXX} -prelink ${CXXFLAGS} search_cv.o ${LIBS}
 	${MPICXX} ${CXXFLAGS} -o search_cv search_cv.o ${LIBS}
+
+k_fold: k_fold.o
+	${CXX} -prelink ${CXXFLAGS} k_fold.o ${LIBS}
+	${MPICXX} ${CXXFLAGS} -o k_fold k_fold.o ${LIBS}
