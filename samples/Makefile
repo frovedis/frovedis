@@ -21,6 +21,9 @@ all:
 	cd word2vec; make -f Makefile.${TARGET}
 	cd fp_growth; make -f Makefile.${TARGET} all
 	cd lda; make -f Makefile.${TARGET} all
+	cd nb; make -f Makefile.${TARGET} all
+	cd tsne; make -f Makefile.${TARGET} all
+	cd GridSearchCV; make -f Makefile.${TARGET} all
 ifeq (${TARGET},x86)
 	cd matrix_tools; make -f Makefile.${TARGET}
 	cd wikipedia2matrix; make -f Makefile.${TARGET}
@@ -50,6 +53,9 @@ install:
 	cd word2vec; make -f Makefile.${TARGET} install
 	cd fp_growth; make -f Makefile.${TARGET} install
 	cd lda; make -f Makefile.${TARGET} install
+	cd nb; make -f Makefile.${TARGET} install
+	cd tsne; make -f Makefile.${TARGET} install
+	cd GridSearchCV; make -f Makefile.${TARGET} install
 ifeq (${TARGET},x86)
 	cd matrix_tools; make -f Makefile.${TARGET} install
 	cd wikipedia2matrix; make -f Makefile.${TARGET} install
@@ -76,6 +82,9 @@ clean:
 	cd word2vec; make -f Makefile.${TARGET} clean
 	cd fp_growth; make -f Makefile.${TARGET} clean
 	cd lda; make -f Makefile.${TARGET} clean
+	cd nb; make -f Makefile.${TARGET} clean
+	cd tsne; make -f Makefile.${TARGET} clean
+	cd GridSearchCV; make -f Makefile.${TARGET} clean
 ifeq (${TARGET},x86)
 	cd matrix_tools; make -f Makefile.${TARGET} clean
 	cd wikipedia2matrix; make -f Makefile.${TARGET} clean
