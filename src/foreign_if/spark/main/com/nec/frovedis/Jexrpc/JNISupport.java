@@ -782,21 +782,31 @@ public class JNISupport {
   public static native DummyEdge[] getGraphEdgeData(Node master_node, long dptr);
   public static native double[] getGraphVertexData(Node master_node, long dptr);
   public static native DummyGraph callFrovedisPageRank(Node master_node, 
-                                                 long dptr,
-                                                 double epsilon, 
-                                                 double dfactor,
-                                                 int maxIter);
+                                                       long dptr,
+                                                       double epsilon, 
+                                                       double dfactor,
+                                                       int maxIter);
   public static native void callFrovedisSSSP(Node master_node,
-                                                     long dptr,
-                                                     double[] dist,
-                                                     long[] pred,
-                                                     long numVertices,
-                                                     long source_vertex);
-  public static native long[] callFrovedisBFS(Node master_node,
-                                                     long dptr,
-                                                     long[] nodes_in_which_cc,
-                                                     long[] dist,
-                                                     long numVertices);
+                                             long dptr,
+                                             double[] dist,
+                                             long[] pred,
+                                             long numVertices,
+                                             long source_vertex);
+  public static native void callFrovedisBFS(Node master_node,
+                                             long dptr,
+                                             long[] dist,
+                                             long[] pred,
+                                             long numVertices,
+                                             long source_vertex,
+                                             int opt_level,
+                                             double hyb_threshold);
+  public static native long[] callFrovedisCC(Node master_node,
+                                             long dptr,
+                                             long[] nodes_in_which_cc,
+                                             long[] dist,
+                                             long numVertices,
+                                             int opt_level,
+                                             double hyb_threshold);
   // --- LDA ---
   public static native DummyLDAModel callFrovedisLDA(Node master_node,
 					    long fdata, long[] doc_id,
