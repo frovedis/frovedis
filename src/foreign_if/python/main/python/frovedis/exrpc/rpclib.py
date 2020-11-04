@@ -1080,13 +1080,6 @@ svm_regressor_sgd.argtypes = [c_char_p, c_int, c_long, c_long, #host,port,X,y
                               c_int, c_int, c_int,             #loss, vb, mid
                               c_short, c_short, c_bool]        #dtype, itype, dense
 
-dt_train = LIB.dt_trainer
-dt_train.argtypes = [c_char_p, c_int, c_long,
-                     c_long, c_char_p, c_char_p,
-                     c_int, c_int, c_int, c_int,
-                     c_float, c_int, c_int,
-                     c_short, c_short, c_bool]
-
 nb_train = LIB.nb_trainer
 nb_train.argtypes = [c_char_p, c_int, c_long,
                      c_long, c_double, c_int, c_char_p, c_int,
@@ -1574,12 +1567,7 @@ compute_lda_transform.argtypes = [c_char_p, c_int,\
                                   c_short, c_short]
 compute_lda_transform.restype = py_object
 
-call_frovedis_pagerank = LIB.call_frovedis_pagerank
-call_frovedis_pagerank.argtypes = [c_char_p, c_int,\
-                                  c_long, c_double,\
-                                  c_double, c_int]
-call_frovedis_pagerank.restype = py_object
-
+# --- networkx (graph) APIs ---
 set_graph_data= LIB.set_graph_data
 set_graph_data.argtypes = [c_char_p, c_int,\
                            c_ulong]
@@ -1612,17 +1600,43 @@ copy_graph_py.argtypes = [c_char_p, c_int,\
                           c_ulong]
 copy_graph_py.restype = c_ulong
 
+call_frovedis_pagerank = LIB.call_frovedis_pagerank
+call_frovedis_pagerank.argtypes = [c_char_p, c_int,\
+                                  c_long, c_double,\
+                                  c_double, c_int]
+call_frovedis_pagerank.restype = py_object
+
 call_frovedis_sssp= LIB.call_frovedis_sssp
-call_frovedis_sssp.argtypes = [c_char_p, c_int,\
-                          c_ulong, \
-                          ndpointer(c_int, ndim=1,\
-                              flags="C_CONTIGUOUS"), \
-                          ndpointer(c_long, ndim=1,\
-                              flags="C_CONTIGUOUS"), \
-                          c_ulong, c_ulong]
+call_frovedis_sssp.argtypes = [c_char_p, c_int,            # host, port
+                               c_ulong,                    # graph
+                               ndpointer(c_double, ndim=1, # distance
+                                         flags="C_CONTIGUOUS"), 
+                               ndpointer(c_long, ndim=1,   # predecessor
+                                         flags="C_CONTIGUOUS"), 
+                               c_ulong, c_ulong]           # nvertices, source
 
+call_frovedis_bfs = LIB.call_frovedis_bfs
+call_frovedis_bfs.argtypes = [c_char_p, c_int,             # host, port
+                              c_ulong,                     # graph
+                              ndpointer(c_long, ndim=1,    # distance
+                                        flags="C_CONTIGUOUS"),
+                              ndpointer(c_long, ndim=1,    # predecessor
+                                        flags="C_CONTIGUOUS"), 
+                              c_ulong, c_ulong,            # nvertices, source
+                              c_int, c_double]             # opt-level, hyb-threshold
 
-#random forest trainer function
+call_frovedis_cc = LIB.call_frovedis_cc
+call_frovedis_cc.argtypes = [c_char_p, c_int,             # host, port
+                             c_ulong,                     # graph
+                             ndpointer(c_long, ndim=1,    # nodes_in_which_cc
+                                       flags="C_CONTIGUOUS"),
+                             ndpointer(c_long, ndim=1,    # nodes_dist
+                                       flags="C_CONTIGUOUS"),
+                             c_ulong,                     # nvertices
+                             c_int, c_double]             # opt-level, hyb-threshold
+call_frovedis_cc.restype = py_object
+
+# --- tree/ensemble APIs ---
 rf_train = LIB.rf_trainer
 rf_train.argtypes = [c_char_p, c_int, c_long,         #host,port,X
                      c_long, c_char_p, c_char_p,      #y,algo,criterion
@@ -1631,17 +1645,6 @@ rf_train.argtypes = [c_char_p, c_int, c_long,         #host,port,X
                      c_int, c_int, c_double, c_long,   #mx_bin ,min_sample_leaf,min_impurity_decrease,seed
                      c_int, c_int, c_short, c_short,  #vb,mid,dtype,itype
                      c_bool]                          #dense
-
-
-call_frovedis_bfs= LIB.call_frovedis_bfs
-call_frovedis_bfs.argtypes = [c_char_p, c_int,\
-                          c_ulong, \
-                          ndpointer(c_long, ndim=1,\
-                              flags="C_CONTIGUOUS"), \
-                          ndpointer(c_long, ndim=1,\
-                              flags="C_CONTIGUOUS"), \
-                          c_ulong]
-call_frovedis_bfs.restype = py_object
 
 gbt_train = LIB.gbt_trainer
 gbt_train.argtypes = [c_char_p, c_int, # host, port
@@ -1654,3 +1657,11 @@ gbt_train.argtypes = [c_char_p, c_int, # host, port
                      c_int, c_int, # verbose, mid
                      c_short, c_short, c_bool # dtype, itype, dense
                      ]
+
+dt_train = LIB.dt_trainer
+dt_train.argtypes = [c_char_p, c_int, c_long,
+                     c_long, c_char_p, c_char_p,
+                     c_int, c_int, c_int, c_int,
+                     c_float, c_int, c_int,
+                     c_short, c_short, c_bool]
+
