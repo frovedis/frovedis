@@ -83,7 +83,6 @@ public:
   );
 
   // --- dense support ---
-
   template <class T>
   static logistic_regression_model<T> train (
     rowmajor_matrix<T>& data,
@@ -229,8 +228,8 @@ logistic_regression_with_lbfgs::train (rowmajor_matrix<T>& data,
                                        RegType regTyp,
                                        bool isIntercept,
                                        double convergenceTol) {
-  // rowmajor to const colmajor& implicit conversion would take place
-  return train<T>(data, label, numIteration, alpha, hist_size, 
+  return train<T>(colmajor_matrix<T>(data), label, 
+                  numIteration, alpha, hist_size, 
                   regParam, regTyp, isIntercept, convergenceTol); 
 }
 
