@@ -605,12 +605,16 @@ size_t spmspv_impl_helper(T* mat_valp, I* mat_idxp, O* mat_offp,
                           T* retp) {
   size_t ii = 0;
   for(size_t i = 0; i < sv_size; i++) {
-    if(nnzp[i] > SPMSPV_VLEN) {
+//    if(nnzp[i] > SPMSPV_VLEN) {
+    if(true) { // it seems sort based method does not work well...
       auto off = mat_offp[sv_idxp[i]];
       auto valp = mat_valp + off;
       auto idxp = mat_idxp + off;
       auto scal = sv_valp[i];
       auto crnt_nnz = nnzp[i];
+#pragma _NEC vovertake
+#pragma _NEC vob
+#pragma _NEC ivdep
       for(size_t j = 0; j < crnt_nnz; j++) {
         retp[idxp[j]] = retp[idxp[j]] + scal * valp[j];
       }
