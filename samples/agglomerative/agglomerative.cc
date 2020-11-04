@@ -37,8 +37,8 @@ int main(int argc, char** argv) {
     ("input,i", value<std::string>(), "input dense matrix")
     ("model,m", value<std::string>(), "output model")
     ("label,o", value<std::string>(), "output label")
-    ("nclus,n", value<int>(), "number of clusters(default is 2)")
-    ("linkage,l", value<std::string>() , "linkage type")
+    ("nclus,n", value<int>(), "number of clusters (default: 2)")
+    ("linkage,l", value<std::string>() , "linkage type - supported: average, single, complete (default: average)")
     ("float,f", "for float type input")
     ("double,d","for double type input(default input type is double)")
     ("verbose", "set loglevel to DEBUG")
@@ -89,8 +89,6 @@ int main(int argc, char** argv) {
   
   if(argmap.count("linkage")){
     linkage = argmap["linkage"].as<std::string>();
-    if(linkage != "average")
-       REPORT_ERROR(USER_ERROR,"Only average linkage is supported!\n");    
   }
 
   if(argmap.count("verbose")) set_loglevel(DEBUG);
