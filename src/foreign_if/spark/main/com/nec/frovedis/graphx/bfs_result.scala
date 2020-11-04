@@ -1,43 +1,44 @@
 package com.nec.frovedis.graphx;
 
 class bfs_result extends java.io.Serializable {
-  var num_cc: Long = -1
+  var nodesDist: Array[Long]  = Array()
+  var nodesPred: Array[Long] = Array()
   var num_nodes: Long = -1
-  var nodes_dist: Array[Long] = Array()
-  var nodes_in_which_cc: Array[Long] = Array()
-  var num_nodes_in_each_cc: Array[Long] = Array()
+  var sourceVertex: Long = -1
 
-  def this(num_cc: Long, num_nodes: Long, nodes_dist: Array[Long], 
-          nodes_in_which_cc: Array[Long], num_nodes_in_each_cc: Array[Long]){
+  def this(pred: Array[Long], 
+           dist: Array[Long], 
+           num_nodes: Long, 
+           sourceVertex: Long){
     this()
-    this.num_cc = num_cc
+    this.nodesPred = pred            // 1-based
+    this.nodesDist = dist
     this.num_nodes = num_nodes
-    this.nodes_dist = nodes_dist
-    this.nodes_in_which_cc = nodes_in_which_cc
-    this.num_nodes_in_each_cc = num_nodes_in_each_cc
+    this.sourceVertex = sourceVertex // 1-based
   }
-  def print_summary(): Unit = {
-    println("*************SUMMARY***************")
-    println("Number of Connected Components = " + this.num_cc)
-
-    var num_cc_printed: Long = 20
-    if (this.num_cc < num_cc_printed) num_cc_printed = this.num_cc
-
-    println(
-        "Number of nodes in each connected component: (printing the first " 
-        + num_cc_printed + ")")
-    for(i <- 0 until num_cc_printed.toInt){
-        print(i + ":" + this.num_nodes_in_each_cc(i) + "\t")
+  def bfs_query(dest: Long): (Long, String) = {
+    if(dest < 1 || dest > this.num_nodes) 
+      return (-1, "ERROR: node does not exist!")
+    var pred: Long = this.nodesPred(dest.toInt - 1) // dest/pred is 1-based
+    var ret: (Long, String) = null
+    if (pred == this.sourceVertex) ret = (0L, this.sourceVertex.toString)
+    else if (pred == dest) ret = (this.nodesDist(dest.toInt - 1), 
+                                  "not reachable")
+    else {
+      var path: String = dest.toString + " <= "
+      while(pred != this.sourceVertex) {
+        path = path + pred.toString + " <= "
+        pred = this.nodesPred(pred.toInt - 1)
+      } 
+      path = path + this.sourceVertex.toString
+      ret = (this.nodesDist(dest.toInt - 1), path)
     }
-
-    println("\nNodes in which cc: ")
-    for(i <- 0 until this.num_nodes.toInt){
-        print(i + ":" + this.nodes_in_which_cc(i) + "\t")
-    }
-    println("\nNodes dist: ")
-    for(i <- 0 until this.num_nodes.toInt){
-        print(i + ":" + this.nodes_dist(i) + "\t")
-    }
-    println()
+    return ret
+  }
+  def bfs_query(dest_arr: Array[Long]): Array[(Long, String)] = {
+    var res_arr: Array[(Long, String)] = new Array(dest_arr.size.toInt)
+    for (i <- 0 until dest_arr.size.toInt)
+      res_arr(i) = bfs_query(dest_arr(i))
+    return res_arr
   }
 }

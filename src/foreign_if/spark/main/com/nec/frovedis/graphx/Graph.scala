@@ -10,6 +10,7 @@ import com.nec.frovedis.Jexrpc.{FrovedisServer, JNISupport}
 import com.nec.frovedis.Jgraph.DummyEdge;
 import com.nec.frovedis.exrpc.FrovedisSparseData
 
+// FIXME: Long to Int casting in Array construction, indexing etc.
 class Graph extends java.io.Serializable {
   protected var fdata: Long = -1
   var numEdges: Long = -1
@@ -63,28 +64,44 @@ class Graph extends java.io.Serializable {
     val vertRDD = context.parallelize(vertArr)
     return org.apache.spark.graphx.Graph(vertRDD, edgeRDD)
   }
-  def bfs(): com.nec.frovedis.graphx.bfs_result = {
-    //TODO: Need to discuss the cast from Long to Int
+  def connected_components(opt_level: Int = 2,
+                           hyb_threshold: Double = 0.4): 
+    com.nec.frovedis.graphx.cc_result = {
     val nodes_dist: Array[Long] = new Array(numVertices.toInt)
-    //TODO: Need to discuss the cast from Long to Int
     val nodes_in_which_cc: Array[Long] = new Array(numVertices.toInt)
     val fs = FrovedisServer.getServerInstance()
-    val num_nodes_in_each_cc = JNISupport.callFrovedisBFS(fs.master_node,
-                           this.get(), nodes_in_which_cc,
-                           nodes_dist, numVertices)
+    val root_with_cc_count = JNISupport.callFrovedisCC(fs.master_node,
+                             this.get(), nodes_in_which_cc,
+                             nodes_dist, numVertices, 
+                             opt_level, hyb_threshold)
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
-    val num_cc = num_nodes_in_each_cc.size
-    return new bfs_result(num_cc, numVertices, nodes_dist, 
-                          nodes_in_which_cc, num_nodes_in_each_cc)
+    val num_cc = root_with_cc_count.size / 2
+    return new cc_result(num_cc, numVertices, nodes_dist, 
+                         nodes_in_which_cc, root_with_cc_count)
+  }
+  def bfs(source_vertex: Long = 1,
+          opt_level: Int = 1,
+          hyb_threshold: Double = 0.4):
+    com.nec.frovedis.graphx.bfs_result = {
+    require(source_vertex >= 1 && source_vertex <= numVertices,
+    s"Source Vertex should range from 1 to ${numVertices}," +
+    " provided value is ${source_vertex}.")
+    val dist: Array[Long] = new Array(numVertices.toInt)
+    val pred: Array[Long] = new Array(numVertices.toInt)
+    val fs = FrovedisServer.getServerInstance()
+    JNISupport.callFrovedisBFS(fs.master_node,
+                   this.get(), dist, pred, numVertices, source_vertex,
+                   opt_level, hyb_threshold)
+    val info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
+    return new bfs_result(pred, dist, numVertices, source_vertex)
   }
   def sssp(source_vertex: Long = 1): com.nec.frovedis.graphx.sssp_result = {
-    require(source_vertex >= 0 && source_vertex < numVertices,
-    s"Source Vertex should range from 0 to ${numVertices - 1}," + 
+    require(source_vertex >= 1 && source_vertex <= numVertices,
+    s"Source Vertex should range from 1 to ${numVertices}," + 
     " provided value is ${source_vertex}.")
-    //TODO: Need to discuss the cast from Long to Int
     val dist: Array[Double] = new Array(numVertices.toInt) 
-    //TODO: Need to discuss the cast from Long to Int
     val pred: Array[Long] = new Array(numVertices.toInt) 
     val fs = FrovedisServer.getServerInstance()
     JNISupport.callFrovedisSSSP(fs.master_node,
