@@ -1,9 +1,6 @@
 #include <frovedis.hpp>
-#include <frovedis/matrix/ccs_matrix.hpp>
-#include <frovedis/matrix/colmajor_matrix.hpp>
-#include <frovedis/matrix/diag_matrix.hpp>
-#include <frovedis/matrix/shrink_sparse_svd.hpp>
 #include <frovedis/matrix/jds_crs_hybrid.hpp>
+#include <frovedis/matrix/shrink_sparse_svd.hpp>
 
 #include <boost/program_options.hpp>
 
@@ -32,10 +29,10 @@ void do_sparse_svd(const string& input_matrix, const string& u_file,
   diag_matrix_local<double> s;
   time_spent t2(DEBUG), t3(DEBUG);
 #if defined(_SX) || defined(__ve__) 
-  sparse_svd<jds_crs_hybrid<double>, jds_crs_hybrid_local<double>>
+  shrink::sparse_svd<jds_crs_hybrid<double>, jds_crs_hybrid_local<double>>
     (matrix, u, s, v, k);
 #else
-  sparse_svd<double>(matrix, u, s, v, k, false); 
+  shrink::sparse_svd<double>(matrix, u, s, v, k, false); 
 #endif
   t2.show("sparse_svd: ");
   t3.show("total time w/o I/O: ");
@@ -59,10 +56,10 @@ int main(int argc, char* argv[]) {
   options_description opt("option");
   opt.add_options()
     ("help,h", "print help")
-    ("input,i", value<string>(), "input matrix")
-    ("u,u", value<string>(), "left singular vectors")
-    ("s,s", value<string>(), "singular values")
-    ("v,v", value<string>(), "right singular vectors")
+    ("input,i", value<string>(), "input sparse data matrix")
+    ("u,u", value<string>(), "left singular vectors to save")
+    ("s,s", value<string>(), "singular values to save")
+    ("v,v", value<string>(), "right singular vectors to save")
     ("k,k", value<int>(), "number of singular values to compute")
     ("verbose", "set loglevel DEBUG")
     ("verbose2", "set loglevel TRACE")
