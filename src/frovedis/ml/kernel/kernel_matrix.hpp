@@ -78,8 +78,8 @@ void omp_parallel_gemm_T_N(int m, int n, int k, T* A, T* B, T* C)
       off += rem;
     }
 
-    char* TRANSA = "T";
-    char* TRANSB = "N";
+    char TRANSA = 'T';
+    char TRANSB = 'N';
     T alpha = 1;
     int lda = k;
     int ldb = k;
@@ -90,7 +90,7 @@ void omp_parallel_gemm_T_N(int m, int n, int k, T* A, T* B, T* C)
     T* XC = &C[off * m];
 
     if (len > 0) {
-      typed_gemm<T>(TRANSA, TRANSB, &m, &len, &k, 
+      typed_gemm<T>(&TRANSA, &TRANSB, &m, &len, &k, 
                     &alpha, A, &lda, XB, &ldb, &beta, XC, &ldc);
     }
   }  // omp parallel
