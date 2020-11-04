@@ -198,12 +198,11 @@ cc_scatter(ccs_matrix_local<T,I,O>& mat,
 
 template <class T, class I, class O>
 std::vector<I>
-store_neighbor_indices(ccs_matrix_local<T,I,O>& mat, 
-                       std::vector<I>& cur_frontier, //assuming it to be 1-based
-                       std::vector<int>& visited, 
-                       size_t myst,
-                       std::vector<I>& pred_tmp,
-                       int opt_level = 1) {
+store_neighbor_indices_0(ccs_matrix_local<T,I,O>& mat, 
+                         std::vector<I>& cur_frontier, //assuming it to be 1-based
+                         std::vector<int>& visited, 
+                         size_t myst,
+                         std::vector<I>& pred_tmp) {
   auto midxp = mat.idx.data();
   auto moffp = mat.off.data();
   auto valp = cur_frontier.data();
@@ -215,53 +214,128 @@ store_neighbor_indices(ccs_matrix_local<T,I,O>& mat,
     tot_targets += moffp[nodeid + 1] -  moffp[nodeid];
   }
 
-  size_t k = 0;
   std::vector<I> ret;
-  if (opt_level == 1) {
-    pred_tmp.resize(tot_targets); auto tpptr = pred_tmp.data();
-    ret.resize(tot_targets); auto tptr = ret.data();
-    for(size_t i = 0; i < cur_frontier.size(); ++i) {
-      auto nodeid = valp[i] - 1; //cur_frontier is 1-based
-      for(size_t j = moffp[nodeid]; j < moffp[nodeid + 1]; ++j) {
-        auto idx = midxp[j] + myst; // global rowid
-        tptr[k] = !visitedp[idx] * (idx + 1);
-        tpptr[k++] = !visitedp[idx] * (nodeid + 1);
+  if (tot_targets == 0)  return ret;
+
+  size_t k = 0;
+  std::vector<I> tmp_pred(tot_targets); auto tpptr = tmp_pred.data();
+  std::vector<I> tmp(tot_targets); auto tptr = tmp.data();
+  for (size_t i = 0; i < cur_frontier.size(); ++i) {
+  auto nodeid = valp[i] - 1; //cur_frontier is 1-based
+    for(size_t j = moffp[nodeid]; j < moffp[nodeid + 1]; ++j) {
+      auto idx = midxp[j] + myst; // global rowid
+      if (!visitedp[idx]) {
+        tptr[k] = idx + 1;
+        tpptr[k++] = nodeid + 1;
       }
-    }
-  } 
-  else if (opt_level == 0) {
-    std::vector<I> tmp_pred(tot_targets); auto tpptr = tmp_pred.data();
-    std::vector<I> tmp(tot_targets); auto tptr = tmp.data();
-    for (size_t i = 0; i < cur_frontier.size(); ++i) {
-      auto nodeid = valp[i] - 1; //cur_frontier is 1-based
-      for(size_t j = moffp[nodeid]; j < moffp[nodeid + 1]; ++j) {
-        auto idx = midxp[j] + myst; // global rowid
-        if (!visitedp[idx]) {
-          tptr[k] = idx + 1;
-          tpptr[k++] = nodeid + 1;
-        }
-      }
-    }
-    ret.resize(k); auto rptr = ret.data();
-    pred_tmp.resize(k); auto predp = pred_tmp.data();
-    for (size_t i = 0; i < k; ++i) {
-      rptr[i] = tptr[i];
-      predp[i] = tpptr[i];
     }
   }
-  else REPORT_ERROR(USER_ERROR, "Unknown optimization level encountered!\n");
+  ret.resize(k);      auto rptr = ret.data();
+  pred_tmp.resize(k); auto predp = pred_tmp.data();
+  for (size_t i = 0; i < k; ++i) {
+    rptr[i] = tptr[i];
+    predp[i] = tpptr[i];
+  }
   return ret;
 }
 
-//TODO: opt_level handling
 template <class T, class I, class O>
 std::vector<I>
-store_neighbor_indices(crs_matrix_local<T,I,O>& mat,
-                       std::vector<I>& cur_frontier, //assuming it to be 1-based
-                       std::vector<int>& visited,
-                       size_t myst,
-                       std::vector<I>& pred_tmp,
-                       int opt_level = 1) {
+store_neighbor_indices_1(ccs_matrix_local<T,I,O>& mat, 
+                         std::vector<I>& cur_frontier, //assuming it to be 1-based
+                         std::vector<int>& visited, 
+                         size_t myst,
+                         std::vector<I>& pred_tmp) {
+  auto midxp = mat.idx.data();
+  auto moffp = mat.off.data();
+  auto valp = cur_frontier.data();
+  auto visitedp = visited.data();
+
+  I tot_targets = 0;
+  for(size_t i = 0; i < cur_frontier.size(); ++i) {
+    auto nodeid = valp[i] - 1; //cur_frontier is 1-based
+    tot_targets += moffp[nodeid + 1] -  moffp[nodeid];
+  }
+
+  std::vector<I> ret;
+  if (tot_targets == 0)  return ret;
+
+  size_t k = 0;
+  ret.resize(tot_targets);      auto tptr = ret.data();
+  pred_tmp.resize(tot_targets); auto tpptr = pred_tmp.data();
+  for(size_t i = 0; i < cur_frontier.size(); ++i) {
+    auto nodeid = valp[i] - 1; //cur_frontier is 1-based
+    for(size_t j = moffp[nodeid]; j < moffp[nodeid + 1]; ++j) {
+      auto idx = midxp[j] + myst; // global rowid
+      tptr[k] = !visitedp[idx] * (idx + 1);
+      tpptr[k++] = !visitedp[idx] * (nodeid + 1);
+    }
+  }
+  return ret;
+}
+
+template <class T, class I, class O>
+std::vector<I>
+store_neighbor_indices_2(ccs_matrix_local<T,I,O>& mat, 
+                         std::vector<I>& cur_frontier, //assuming it to be 1-based
+                         std::vector<int>& visited, 
+                         size_t myst,
+                         std::vector<I>& pred_tmp,
+                         double threshold) {
+  auto midxp = mat.idx.data();
+  auto moffp = mat.off.data();
+  auto valp = cur_frontier.data();
+  auto visitedp = visited.data();
+
+  I tot_targets = 0;
+  for(size_t i = 0; i < cur_frontier.size(); ++i) {
+    auto nodeid = valp[i] - 1; //cur_frontier is 1-based
+    tot_targets += moffp[nodeid + 1] -  moffp[nodeid];
+  }
+
+  std::vector<I> ret;
+  if (tot_targets == 0)  return ret;
+
+  size_t k = 0;
+  size_t visited_count = 0;
+  ret.resize(tot_targets);      auto tptr = ret.data();
+  pred_tmp.resize(tot_targets); auto tpptr = pred_tmp.data();
+  for(size_t i = 0; i < cur_frontier.size(); ++i) {
+    auto nodeid = valp[i] - 1; //cur_frontier is 1-based
+    for(size_t j = moffp[nodeid]; j < moffp[nodeid + 1]; ++j) {
+      auto idx = midxp[j] + myst; // global rowid
+      visited_count += visitedp[idx];
+      tptr[k] = !visitedp[idx] * (idx + 1);
+      tpptr[k++] = !visitedp[idx] * (nodeid + 1);
+    }
+  }
+
+  auto ntargets = tot_targets - visited_count;
+  // simple heuristic to control sorting overhead in later steps, 
+  // based on given threshold
+  if (ntargets < tot_targets * threshold) {
+    k = 0;
+    std::vector<I> nzero_ret(ntargets); auto tptr2 = nzero_ret.data();
+    std::vector<I> tmp_pred(ntargets); auto tpptr2 = tmp_pred.data();
+    for (size_t i = 0; i < tot_targets; ++i) {
+      if (tptr[i]) {
+         tptr2[k] = tptr[i];
+         tpptr2[k++] = tpptr[i];
+      }
+    }
+    ret.swap(nzero_ret);
+    pred_tmp.swap(tmp_pred);
+  }
+  return ret;
+}
+
+template <class T, class I, class O>
+std::vector<I>
+store_neighbor_indices_0(crs_matrix_local<T,I,O>& mat,
+                         std::vector<I>& cur_frontier, //assuming it to be 1-based
+                         std::vector<int>& visited,
+                         size_t myst,
+                         std::vector<I>& pred_tmp) {
   auto nrow = mat.local_num_row;
   auto myend = myst + nrow - 1;
   auto midxp = mat.idx.data();
@@ -277,54 +351,138 @@ store_neighbor_indices(crs_matrix_local<T,I,O>& mat,
       tot_targets += moffp[nodeid - myst + 1] -  moffp[nodeid - myst];
     }
   }
+
   std::vector<I> ret;
-  if (tot_targets > 0)  return ret;
-  if (opt_level == 1){
-    // this if check will improve performance, 
-    // by avoiding unnecessary parsing of cur_frontier vector
-    size_t k = 0;
-    ret.resize(tot_targets); auto tptr = ret.data();
-    pred_tmp.resize(tot_targets); auto tpptr = pred_tmp.data();
-    for(size_t i = 0; i < cur_frontier.size(); ++i) {
-      auto nodeid = valp[i] - 1; //cur_frontier is 1-based
-      // for CRS: all frontier nodes are not available at all process
-      if (nodeid >= myst && nodeid <= myend) { 
-        for(size_t j = moffp[nodeid - myst]; j < moffp[nodeid - myst + 1]; ++j) {
-          auto idx = midxp[j];
-          tptr[k] = !visitedp[idx] * (idx + 1);
-          tpptr[k++] = !visitedp[idx] * (nodeid + 1);
+  if (tot_targets == 0)  return ret;
+
+  size_t k = 0;
+  std::vector<I> tmp(tot_targets); auto tptr = tmp.data();
+  std::vector<I> tmp_pred(tot_targets); auto tpptr = tmp_pred.data();
+  for(size_t i = 0; i < cur_frontier.size(); ++i) {
+    auto nodeid = valp[i] - 1; //cur_frontier is 1-based
+    // for CRS: all frontier nodes are not available at all process
+    if (nodeid >= myst && nodeid <= myend) { 
+      for(size_t j = moffp[nodeid - myst]; j < moffp[nodeid - myst + 1]; ++j) {
+        auto idx = midxp[j];
+        if (!visitedp[idx]){
+          tptr[k] = idx + 1;    
+          tpptr[k++] = nodeid + 1;
         }
       }
     }
   }
-  else if (opt_level == 0) {
-    // this if check will improve performance, 
-    // by avoiding unnecessary parsing of cur_frontier vector
-    size_t k = 0;
-    std::vector<I> tmp(tot_targets); auto tptr = tmp.data();
-    std::vector<I> tmp_pred(tot_targets); auto tpptr = tmp_pred.data();
-    for(size_t i = 0; i < cur_frontier.size(); ++i) {
-      auto nodeid = valp[i] - 1; //cur_frontier is 1-based
-      // for CRS: all frontier nodes are not available at all process
-      if (nodeid >= myst && nodeid <= myend) { 
-        for(size_t j = moffp[nodeid - myst]; j < moffp[nodeid - myst + 1]; ++j) {
-          auto idx = midxp[j];
-          if (!visitedp[idx]){
-            tptr[k] = idx + 1;    
-            tpptr[k++] = nodeid + 1;
-          }
-        }
+  ret.resize(k); auto rptr = ret.data();
+  pred_tmp.resize(k); auto predp = pred_tmp.data();
+  for (size_t i = 0; i < k; ++i){
+    rptr[i] = tptr[i];
+    predp[i] = tpptr[i];
+  }
+  return ret;
+}
+
+template <class T, class I, class O>
+std::vector<I>
+store_neighbor_indices_1(crs_matrix_local<T,I,O>& mat,
+                         std::vector<I>& cur_frontier, //assuming it to be 1-based
+                         std::vector<int>& visited,
+                         size_t myst,
+                         std::vector<I>& pred_tmp) {
+  auto nrow = mat.local_num_row;
+  auto myend = myst + nrow - 1;
+  auto midxp = mat.idx.data();
+  auto moffp = mat.off.data();
+  auto valp = cur_frontier.data();
+  auto visitedp = visited.data();
+
+  I tot_targets = 0;
+  for(size_t i = 0; i < cur_frontier.size(); ++i) {
+    auto nodeid = valp[i] - 1; //cur_frontier is 1-based
+    // for CRS: all frontier nodes are not available at all process
+    if (nodeid >= myst && nodeid <= myend) { 
+      tot_targets += moffp[nodeid - myst + 1] -  moffp[nodeid - myst];
+    }
+  }
+
+  std::vector<I> ret;
+  if (tot_targets == 0)  return ret;
+
+  size_t k = 0;
+  ret.resize(tot_targets); auto tptr = ret.data();
+  pred_tmp.resize(tot_targets); auto tpptr = pred_tmp.data();
+  for(size_t i = 0; i < cur_frontier.size(); ++i) {
+    auto nodeid = valp[i] - 1; //cur_frontier is 1-based
+    // for CRS: all frontier nodes are not available at all process
+    if (nodeid >= myst && nodeid <= myend) { 
+      for(size_t j = moffp[nodeid - myst]; j < moffp[nodeid - myst + 1]; ++j) {
+        auto idx = midxp[j];
+        tptr[k] = !visitedp[idx] * (idx + 1);
+        tpptr[k++] = !visitedp[idx] * (nodeid + 1);
       }
     }
-    ret.resize(k); auto rptr = ret.data();
-    pred_tmp.resize(k); auto predp = pred_tmp.data();
-    for (size_t i = 0; i < k; ++i){
-      rptr[i] = tptr[i];
-      predp[i] = tpptr[i];
-    }
-    
   }
-  else REPORT_ERROR(USER_ERROR, "Unknown optimization level encountered!\n");
+  return ret;
+}
+
+
+template <class T, class I, class O>
+std::vector<I>
+store_neighbor_indices_2(crs_matrix_local<T,I,O>& mat,
+                         std::vector<I>& cur_frontier, //assuming it to be 1-based
+                         std::vector<int>& visited,
+                         size_t myst,
+                         std::vector<I>& pred_tmp,
+                         double threshold) {
+  auto nrow = mat.local_num_row;
+  auto myend = myst + nrow - 1;
+  auto midxp = mat.idx.data();
+  auto moffp = mat.off.data();
+  auto valp = cur_frontier.data();
+  auto visitedp = visited.data();
+
+  I tot_targets = 0;
+  for(size_t i = 0; i < cur_frontier.size(); ++i) {
+    auto nodeid = valp[i] - 1; //cur_frontier is 1-based
+    // for CRS: all frontier nodes are not available at all process
+    if (nodeid >= myst && nodeid <= myend) { 
+      tot_targets += moffp[nodeid - myst + 1] -  moffp[nodeid - myst];
+    }
+  }
+
+  std::vector<I> ret;
+  if (tot_targets == 0)  return ret;
+
+  size_t k = 0;
+  size_t visited_count = 0;
+  ret.resize(tot_targets); auto tptr = ret.data();
+  pred_tmp.resize(tot_targets); auto tpptr = pred_tmp.data();
+  for(size_t i = 0; i < cur_frontier.size(); ++i) {
+    auto nodeid = valp[i] - 1; //cur_frontier is 1-based
+    // for CRS: all frontier nodes are not available at all process
+    if (nodeid >= myst && nodeid <= myend) { 
+      for(size_t j = moffp[nodeid - myst]; j < moffp[nodeid - myst + 1]; ++j) {
+        auto idx = midxp[j];
+        visited_count += visitedp[idx];
+        tptr[k] = !visitedp[idx] * (idx + 1);
+        tpptr[k++] = !visitedp[idx] * (nodeid + 1);
+      }
+    }
+  }
+  auto ntargets = tot_targets - visited_count;
+  // simple heuristic to control sorting overhead in later steps, 
+  // based on given threshold
+  if (ntargets < tot_targets * threshold) {
+    k = 0;
+    std::vector<I> nzero_ret(ntargets); auto tptr2 = nzero_ret.data();
+    std::vector<I> tmp_pred(ntargets); auto tpptr2 = tmp_pred.data();
+    for (size_t i = 0; i < tot_targets; ++i) {
+      if (tptr[i]) {
+         tptr2[k] = tptr[i];
+         tpptr2[k++] = tpptr[i];
+      }
+    }
+    ret.swap(nzero_ret);
+    pred_tmp.swap(tmp_pred);
+  }
   return ret;
 }
 
@@ -341,8 +499,9 @@ void get_unique_indices(std::vector<I>& front_tmp,
   auto unqCount = unq_idx.size() - 1;
   auto unq_idxp = unq_idx.data();
   if (front_tmpp[unq_idxp[0]] == 0 ) {
-    unqCount--; //ignoring zeros as they are already visited
-    unq_idxp++;
+    // ignoring zeros as they are already visited 
+    // (applicable only for opt_level: 1)
+    unqCount--; unq_idxp++;
   }
   front_next.resize(unqCount);
   pred_next.resize(unqCount);
@@ -362,20 +521,35 @@ cc_idxsort(MATRIX& mat,
            std::vector<int>& visited, 
            size_t myst,
            std::vector<I>& pred_next,
-           int opt_level = 1)  {
+           int opt_level = 1,
+           double threshold = 0.4) {
   auto myrank = get_selfid();
   std::vector<I> front_tmp, pred_tmp;
+
   time_spent spmv_t(TRACE), extract_t(TRACE);
   spmv_t.lap_start();
-  front_tmp = \
-    store_neighbor_indices(mat, cur_frontier, visited, myst, pred_tmp, opt_level);
+  switch(opt_level) {
+    case 0: front_tmp = store_neighbor_indices_0(mat, cur_frontier, visited, 
+                                                 myst, pred_tmp);
+            break;
+    case 1: front_tmp = store_neighbor_indices_1(mat, cur_frontier, visited, 
+                                                 myst, pred_tmp);
+            break;
+    case 2: front_tmp = store_neighbor_indices_2(mat, cur_frontier, visited, 
+                                                 myst, pred_tmp, threshold);
+            break;
+    default: REPORT_ERROR(USER_ERROR, 
+             "Supported opt-level is either 0, 1 or 2!\n");
+  }
   spmv_t.lap_stop();
+
   extract_t.lap_start();
   std::vector<I> front_next;
   get_unique_indices(front_tmp, pred_tmp, front_next, pred_next);
   extract_t.lap_stop();
+
   if(myrank == 0) {
-    spmv_t.show_lap("spmv time: ");
+    spmv_t.show_lap("neighbor store time: ");
     extract_t.show_lap("frontier extract time: ");
   }
   return front_next;
@@ -390,14 +564,16 @@ get_next_frontier(MATRIX& mat,
                   std::vector<int>& visited, 
                   size_t myst,
                   std::vector<I>& pred_next,
-                  int opt_level = 1) {
+                  int opt_level = 1,
+                  double threshold = 0.4) { // 40% seems to be a suitable candidate from experiment
   /*
    * TODO: add cc_scatter for MATRIX type: crs_matrix_local<T,I,O>   
   if(cur_frontier.size() >= HYB_THRESHOLD) 
     return cc_scatter(mat, cur_frontier, visited, myst);
   else
   */
-    return cc_idxsort<I, MATRIX>(mat, cur_frontier, visited, myst, pred_next, opt_level);
+    return cc_idxsort<I, MATRIX>(mat, cur_frontier, visited, 
+                                 myst, pred_next, opt_level, threshold);
 }
 
 template <class I, class MATRIX>
@@ -405,11 +581,11 @@ bfs_result<I> calc_bfs(MATRIX& mat,
                        size_t srcid,
                        bool is_direct, 
                        size_t myst,
+                       double threshold,
                        int opt_level = 1) {
   auto myrank = get_selfid();
   auto nvert = mat.local_num_col;
   std::vector<int> visited(nvert, 0);
-  auto visitedp = visited.data();
   // --- resultant values ---
   std::vector<I> nodes_dist(nvert, std::numeric_limits<I>::max());
   std::vector<I> pred_list(nvert);
@@ -442,7 +618,8 @@ bfs_result<I> calc_bfs(MATRIX& mat,
     auto nodes_next_loc = get_next_frontier<I, MATRIX>(mat, nodes_cur, 
                                                        visited, myst, 
                                                        pred_next_loc, 
-                                                       opt_level);
+                                                       opt_level,
+                                                       threshold);
     comp_t.lap_stop();
     // communication to gather frontiers from all processes
     comm_t.lap_start();
@@ -479,30 +656,44 @@ bfs_result<I> calc_bfs(MATRIX& mat,
 
 
 template <class I, class MATRIX>
-cc_result<I> calc_cc(MATRIX& mat, 
-                     bool is_direct, 
-                     size_t myst,
-                     int opt_level = 1) {
+cc_result<I> 
+calc_cc(MATRIX& mat, 
+        std::vector<size_t>& num_incoming,
+        std::vector<size_t>& num_outgoing,
+        bool is_direct, 
+        size_t myst,
+        double threshold = 0.4,
+        int opt_level = 1) {
   auto myrank = get_selfid();
   auto nvert = mat.local_num_col;
   std::vector<int> visited(nvert, 0); 
   auto visitedp = visited.data();
   // --- resultant values ---
   auto num_cc = 0;
-  std::vector<I> nodes_in_which_cc(nvert); 
-  std::vector<I> num_nodes_in_each_cc(nvert, 0); 
-  std::vector<I> root_in_each_cc(nvert, 0); 
-  std::vector<I> nodes_dist(nvert, std::numeric_limits<I>::max());
+  auto imax = std::numeric_limits<I>::max();
   std::vector<I> pred_list(nvert);
+  std::vector<I> nodes_dist(nvert);
+  std::vector<I> nodes_in_which_cc(nvert); 
   auto pred_listp = pred_list.data();
-  for (size_t i = 0; i < nvert; ++i) pred_listp[i] = i + 1;
-  auto nn_eachp = num_nodes_in_each_cc.data();
+  auto distp = nodes_dist.data();
+  auto whichp = nodes_in_which_cc.data();
+  for (size_t i = 0; i < nvert; ++i) {
+    pred_listp[i] = i + 1;
+    distp[i] = imax;
+    whichp[i] = imax; // non-existing node 
+  }
+  // root_in_each_cc, num_nodes_in_each_cc would be 
+  // resized based on calculated num_cc 
+  std::vector<I> num_nodes_in_each_cc(nvert); 
+  std::vector<I> root_in_each_cc(nvert); 
   auto root_eachp = root_in_each_cc.data();
+  auto nn_eachp = num_nodes_in_each_cc.data();
   // --- main loop ---
   time_spent comp_t(DEBUG), comm_t(DEBUG), update_t(DEBUG);
   time_spent trace_iter(TRACE);
   for(size_t i = 0; i < nvert; ++i) {
-    if(!visitedp[i]) {
+    if(check_if_exist(i, num_outgoing, num_incoming) && !visitedp[i]) {
+      if (num_outgoing[i] == 0) continue;
       auto srcid = i;
       I curlevel = 0;
       std::vector<I> nodes_next(1, srcid + 1);
@@ -518,7 +709,7 @@ cc_result<I> calc_cc(MATRIX& mat,
         //std::cout << "Node Cur = \n"; debug_print_vector(nodes_cur);
         //std::cout << "Pred Cur = \n"; debug_print_vector(pred_cur);
           
-        update_record_cc(visited, nodes_in_which_cc, srcid, 
+        update_record_cc(visited, nodes_in_which_cc, srcid + 1, 
                          nodes_dist, pred_list, curlevel, nodes_cur, pred_cur);
         nn_eachp[num_cc] += nodes_cur.size();
         curlevel++;
@@ -529,7 +720,8 @@ cc_result<I> calc_cc(MATRIX& mat,
         std::vector<I> pred_next_loc;
         auto nodes_next_loc = \
           get_next_frontier<I, MATRIX>(mat, nodes_cur, 
-                                       visited, myst, pred_next_loc, opt_level);
+                                       visited, myst, pred_next_loc, 
+                                       opt_level, threshold);
         comp_t.lap_stop();
         // communication to gather frontiers from all processes
         comm_t.lap_start();
@@ -575,37 +767,63 @@ cc_result<I> calc_cc(MATRIX& mat,
 template <class T, class I, class O>
 bfs_result<I> 
 bfs_impl(crs_matrix<T, I, O>& gr,
-         size_t srcid,
+         std::vector<size_t>& num_incoming,
+         std::vector<size_t>& num_outgoing,
+         size_t source_node,
+         double threshold = 0.4,
          bool is_direct = true,
          int opt_level = 1) {
-  auto nrows = gr.get_local_num_rows();
+  require(threshold >= 0.0 and threshold <= 1.0, 
+  "bfs: threshold should be within the range 0 to 1!\n");
   auto nvert = gr.num_col;
-  if (srcid < 1 || srcid > nvert)
-    REPORT_ERROR(USER_ERROR, "source index should be in between 1 and nvert!\n");
-  srcid = srcid - 1;
-  std::vector<int> sidx(nrows.size()); sidx[0] = 0;
-  for(size_t i = 1; i < nrows.size(); ++i) sidx[i] = sidx[i-1] + nrows[i-1];
+  require(source_node >= 1 && source_node <= nvert, 
+    std::string("bfs: target source node should be within the range 1 to ") 
+                + STR(nvert) +"!\n");
+  auto srcid = source_node - 1;
   bfs_result<I> res;
-  if (is_direct) {
-    time_spent ccs_t(DEBUG);
-    ccs_t.lap_start();
-    auto ccsmat = ccs_matrix<T,I,O>(gr);
-    ccs_t.lap_stop();
-    ccs_t.show_lap("ccs conv time: ");
-    res = ccsmat.data.map(calc_bfs<I, ccs_matrix_local<T,I,O>>, 
-                          broadcast(srcid),
-                          broadcast(is_direct),
-                          make_node_local_scatter(sidx),
-                          broadcast(opt_level))
-                     .get(0); // all process contains same result
+  require(check_if_exist(srcid, num_outgoing, num_incoming),  
+    std::string("bfs: source ") + STR(source_node) + 
+    std::string(" not found in input graph!\n"));
+  if(num_outgoing[srcid] == 0) {
+    // no outgoing edge: thus no destination is reachable from given source
+    std::vector<I> dist(nvert), pred(nvert);
+    auto distp = dist.data();
+    auto predp = pred.data();
+    auto imax = std::numeric_limits<I>::max();
+    for(size_t i = 0; i < nvert; ++i) {
+      predp[i] = i + 1;
+      distp[i] = imax;
+    }
+    distp[srcid] = 0;
+    res = bfs_result<I>(std::move(pred), std::move(dist));
   }
   else {
-    res = gr.data.map(calc_bfs<I, crs_matrix_local<T,I,O>>,
-                      broadcast(srcid),
-                      broadcast(is_direct),
-                      make_node_local_scatter(sidx),
-                      broadcast(opt_level))
-                 .get(0); // all process contains same result
+    auto nrows = gr.get_local_num_rows();
+    std::vector<int> sidx(nrows.size()); sidx[0] = 0;
+    for(size_t i = 1; i < nrows.size(); ++i) sidx[i] = sidx[i-1] + nrows[i-1];
+    if (is_direct) {
+      time_spent ccs_t(DEBUG);
+      ccs_t.lap_start();
+      auto ccsmat = ccs_matrix<T,I,O>(gr);
+      ccs_t.lap_stop();
+      ccs_t.show_lap("ccs conv time: ");
+      res = ccsmat.data.map(calc_bfs<I, ccs_matrix_local<T,I,O>>, 
+                            broadcast(srcid),
+                            broadcast(is_direct),
+                            make_node_local_scatter(sidx),
+                            broadcast(threshold),
+                            broadcast(opt_level))
+                       .get(0); // all process contains same result
+    }
+    else {
+      res = gr.data.map(calc_bfs<I, crs_matrix_local<T,I,O>>,
+                        broadcast(srcid),
+                        broadcast(is_direct),
+                        make_node_local_scatter(sidx),
+                        broadcast(threshold),
+                        broadcast(opt_level))
+                   .get(0); // all process contains same result
+    }
   }
   return res;
 }
@@ -615,8 +833,13 @@ bfs_impl(crs_matrix<T, I, O>& gr,
 template <class T, class I, class O>
 cc_result<I> 
 cc_impl(crs_matrix<T, I, O>& gr, 
+        std::vector<size_t>& num_incoming,
+        std::vector<size_t>& num_outgoing,
+        double threshold,
         bool is_direct = true,
-        int opt_level = 1) {
+        int opt_level = 2) {
+  require(threshold >= 0.0 and threshold <= 1.0, 
+  "connected_components: threshold should be within the range 0 to 1!\n");
   auto nrows = gr.get_local_num_rows();
   std::vector<int> sidx(nrows.size()); sidx[0] = 0;
   for(size_t i = 1; i < nrows.size(); ++i) sidx[i] = sidx[i-1] + nrows[i-1];
@@ -627,16 +850,22 @@ cc_impl(crs_matrix<T, I, O>& gr,
     auto ccsmat = ccs_matrix<T,I,O>(gr);
     ccs_t.lap_stop();
     ccs_t.show_lap("ccs conv time: ");
-    res = ccsmat.data.map(calc_cc<I, ccs_matrix_local<T,I,O>>, 
+    res = ccsmat.data.map(calc_cc<I, ccs_matrix_local<T,I,O>>,
+                          broadcast(num_incoming),
+                          broadcast(num_outgoing),
                           broadcast(is_direct),
                           make_node_local_scatter(sidx),
+                          broadcast(threshold),
                           broadcast(opt_level))
                      .get(0); // all process contains same result
   }
   else {
     res = gr.data.map(calc_cc<I, crs_matrix_local<T,I,O>>,
+                      broadcast(num_incoming),
+                      broadcast(num_outgoing),
                       broadcast(is_direct),
                       make_node_local_scatter(sidx),
+                      broadcast(threshold),
                       broadcast(opt_level))
                  .get(0); // all process contains same result
   }

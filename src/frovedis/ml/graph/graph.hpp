@@ -2,166 +2,167 @@
 #define _GRAPH_
 
 #include <frovedis/ml/utility/mattype.hpp>
+#include <frovedis/ml/graph/graph_common.hpp>
 #include <frovedis/ml/graph/opt_sssp.hpp>
 #include <frovedis/ml/graph/opt_pagerank.hpp>
+#include <frovedis/ml/graph/shrink_opt_pagerank.hpp>
 #include <frovedis/ml/graph/opt_connected_components.hpp>
 
 namespace frovedis {
 
-template <class T, class I, class O>
-std::vector<size_t> 
-get_outgoing_edges(crs_matrix_local<T,I,O>& mat) {
-  auto nrow = mat.local_num_row;
-  std::vector<size_t> num_out(nrow);
-  auto offptr = mat.off.data();
-  auto retptr = num_out.data();
-  for(size_t i = 0; i < nrow; ++i) {
-    retptr[i] = offptr[i+1] - offptr[i];
-  }
-  return num_out;
-}
-
-template <class T, class I, class O>
-size_t get_local_nnz(crs_matrix_local<T,I,O>& mat) {
-  return mat.val.size();
-}
-
-template <class T>
-T sum(T& a, T& b) { return a + b; }
-
-template <class T, class I, class O>
-void set_local_ncol(crs_matrix_local<T,I,O>& mat, size_t ncol) {
-  mat.local_num_col = ncol;
-}
-
-template <class T, class I, class O>
-void set_local_nrow(crs_matrix_local<T,I,O>& mat, size_t diff) {
-  // assigns empty rows to last process
-  if (get_selfid() == get_nodesize() - 1) {
-    auto offsz = mat.off.size();
-    auto offp = mat.off.data(); 
-    auto nnz = mat.off[offsz - 1];
-    std::vector<O> new_off(offsz + diff);
-    auto new_offsz = new_off.size();
-    auto newoffp = new_off.data();
-    for(size_t i = 0; i < offsz; ++i) newoffp[i] = offp[i];
-    for(size_t i = offsz; i < new_offsz; ++i) newoffp[i] = nnz;
-    mat.off.swap(new_off);
-    mat.local_num_row += diff;
-  }
-}
-
-template <class T, class I, class O>
-crs_matrix<T,I,O>
-check_input(crs_matrix<T,I,O>& mat) {
-  auto nrow = mat.num_row;
-  auto ncol = mat.num_col;
-  if (nrow == ncol) return mat;
-  else if(nrow > ncol) {
-    auto ret = mat;
-    ret.num_row = ret.num_col = nrow;
-    ret.data.mapv(set_local_ncol<T,I,O>, broadcast(nrow));
-    return ret;
-  }
-  else { // ncol > nrow
-    auto ret = mat;
-    auto diff = ncol - nrow;
-    ret.num_row = ret.num_col = ncol;
-    ret.data.mapv(set_local_nrow<T,I,O>, broadcast(diff));
-    return ret;
-  }
-}
-
-template <class T, class I, class O>
-int check_equal_helper(crs_matrix_local<T,I,O>& amat,
-                       crs_matrix_local<T,I,O>& bmat) {
-  return (amat.local_num_row == bmat.local_num_row && 
-          amat.local_num_col == bmat.local_num_col &&
-          amat.val == bmat.val && amat.idx == bmat.idx && amat.off == bmat.off);
-}
-
-template <class T, class I, class O>
-bool check_equal(crs_matrix<T,I,O>& amat,
-                 crs_matrix<T,I,O>& bmat) {
-  auto eq = amat.data.map(check_equal_helper<T,I,O>, bmat.data).gather();
-  for(auto each: eq) if (!each) return false;
-  return true;
-}
-
+//TODO: shrink vertices while constructing graph
 template <class T, class I = size_t, class O = size_t>
 struct graph {
   graph() {}
   graph(crs_matrix<T,I,O>& mat) {
     auto sqmat = check_input(mat);
-    num_vertices = sqmat.num_col;
-    num_edges = sqmat.data.map(get_local_nnz<T,I,O>)
-                          .reduce(sum<size_t>);
-    num_outgoing = sqmat.data.map(get_outgoing_edges<T,I,O>)
+    num_outgoing = sqmat.data.map(count_edges<T,I,O>)
                              .template moveto_dvector<size_t>()
                              .gather();
     adj_mat = sqmat.transpose(); // frovedis expects src nodes to be in columns
-    vertices.resize(num_vertices, 1.0); 
-    if (check_equal(sqmat, adj_mat)) is_direct = false;
-    else                             is_direct = true;
+    num_incoming = adj_mat.data.map(count_edges<T,I,O>)
+                               .template moveto_dvector<size_t>()
+                               .gather();
+    num_edges = vec_sum(num_outgoing);
+    num_vertices = adj_mat.num_col;
+    is_directed = has_direction(sqmat, adj_mat);
+    is_weighted = has_weight(adj_mat);
+    vertices.resize(num_vertices, 1.0); // used for pagerank 
   }
   graph(const graph& gr) {
     num_edges = gr.num_edges;
     num_vertices = gr.num_vertices;
+    num_incoming = gr.num_incoming;
     num_outgoing = gr.num_outgoing;
     adj_mat = gr.adj_mat;
-    is_direct = gr.is_direct;
     vertices = gr.vertices;
-  }  
-  sssp_result<T,I> single_source_shortest_path (size_t srcid) {
-    return sssp_bf_impl(adj_mat, srcid);
+    is_directed = gr.is_directed;
+    is_weighted = gr.is_weighted;
+  } 
+  void debug_print(size_t n = 0) {
+    std::cout << "is directed: " << is_directed << "\n";
+    std::cout << "is weighted: " << is_weighted << "\n";
+    std::cout << "in-degree: \n"; debug_print_vector(num_incoming, n);
+    std::cout << "out-degree: \n"; debug_print_vector(num_outgoing, n);
+    std::cout << "adjacency matrix: \n"; 
+    adj_mat.transpose().gather().debug_pretty_print();
+  } 
+  sssp_result<T,I> 
+  single_source_shortest_path (size_t source_node) {
+    sssp_result<T,I> ret;
+    if(!is_directed && !is_weighted) {
+      RLOG(DEBUG) << "sssp: undirected and unweighted graph is detected... calling bfs!\n";
+      auto bfs_res = bfs(source_node); // calling bfs for faster convergence
+      ret.predecessors.swap(bfs_res.predecessors);
+      ret.distances.resize(num_vertices); 
+      auto rdptr = ret.distances.data();     // T-type result
+      auto tptr = bfs_res.distances.data();  // I-type result
+      auto tmax = std::numeric_limits<T>::max();
+      auto imax = std::numeric_limits<I>::max();
+      for(size_t i = 0; i < num_vertices; ++i) {
+        if (tptr[i] == imax) rdptr[i] = tmax;
+        else rdptr[i] = static_cast<T>(tptr[i]);
+      }
+    }
+    else { // invokes bellman-ford implementation
+      ret = sssp_bf_impl(adj_mat, num_incoming, num_outgoing, source_node);
+    }
+    return ret;
   }
-  cc_result<I> connected_components(int opt_level = 1) {
-    return cc_impl(adj_mat, is_direct, opt_level);
+  cc_result<I> 
+  connected_components(int opt_level = 2, 
+                       double threshold = 0.4) {
+    require(!is_directed, 
+    "connected_components: currently supported for undirected graph only!\n"); 
+    return cc_impl(adj_mat, num_incoming, num_outgoing, 
+                   threshold, is_directed, opt_level);
   }
-  bfs_result<I> bfs(size_t source_node, int opt_level = 1) {
-    return bfs_impl(adj_mat, source_node, is_direct, opt_level);
+  bfs_result<I> 
+  bfs(size_t source_node, 
+      int opt_level = 1, 
+      double threshold = 0.4) {
+    return bfs_impl(adj_mat, num_incoming, num_outgoing, 
+                    source_node, threshold, is_directed, opt_level);
   }
   std::vector<double> 
   pagerank(double dfactor, 
            double epsilon, 
            size_t iter_max,
+           double threshold = 0.4,
 #if defined(_SX) || defined(__ve__)
            MatType mType = HYBRID) {
 #else
            MatType mType = CRS) {
 #endif
+    require(threshold >= 0.0 && threshold <= 1.0, 
+    "pagerank: threshold value should be in between 0 to 1!\n");
     crs_matrix<double,I,O> norm_mat;
-    return pagerank_v1(adj_mat, dfactor, epsilon, iter_max, 
-                       norm_mat, mType); 
+    std::vector<double> rank;
+    auto nodes_with_incoming_edges = count_non_zero(num_incoming);
+    if(nodes_with_incoming_edges <= num_vertices * threshold) {
+      RLOG(DEBUG) << "pagerank: " << nodes_with_incoming_edges << "/" 
+                  << num_vertices << " nodes with incoming edges are "
+                  << "detected! invoking shrink version\n";
+      rank = shrink::pagerank_v1(adj_mat, num_incoming, num_outgoing, 
+                                 dfactor, epsilon, iter_max,
+                                 norm_mat, mType); 
+    }
+    else {
+      rank = pagerank_v1(adj_mat, num_incoming, num_outgoing, 
+                         dfactor, epsilon, iter_max,
+                         norm_mat, mType); 
+    }
+    return rank;
   }
   graph<double,I,O>
   normalized_pagerank(double dfactor,
                       double epsilon,
                       size_t iter_max,
+                      double threshold = 0.4,
 #if defined(_SX) || defined(__ve__)
                       MatType mType = HYBRID) {
 #else
                       MatType mType = CRS) {
 #endif
+    require(threshold >= 0.0 && threshold <= 1.0, 
+    "pagerank: threshold value should be in between 0 to 1!\n");
     crs_matrix<double,I,O> norm_mat;
-    auto rank =  pagerank_v1(adj_mat, dfactor, epsilon, iter_max,
-                             norm_mat, mType);
+    std::vector<double> rank;
+    auto nodes_with_incoming_edges = count_non_zero(num_incoming);
+    if(nodes_with_incoming_edges <= num_vertices * threshold) {
+      RLOG(DEBUG) << "pagerank: " << nodes_with_incoming_edges << "/" 
+                  << num_vertices << " nodes with incoming edges are "
+                  << "detected! invoking shrink version\n";
+      rank = shrink::pagerank_v1(adj_mat, num_incoming, num_outgoing, 
+                                 dfactor, epsilon, iter_max,
+                                 norm_mat, mType); 
+    }
+    else {
+      rank = pagerank_v1(adj_mat, num_incoming, num_outgoing, 
+                         dfactor, epsilon, iter_max,
+                         norm_mat, mType); 
+    }
     graph<double,I,O> ret;
-    ret.adj_mat = norm_mat;
     ret.num_edges = num_edges;
     ret.num_vertices = num_vertices;
+    ret.num_incoming = num_incoming;
     ret.num_outgoing = num_outgoing;
-    ret.is_direct = is_direct;
-    ret.vertices = rank;
+    ret.is_directed = is_directed;
+    ret.is_weighted = is_weighted;
+    // pagerank results
+    ret.adj_mat = std::move(norm_mat);
+    ret.vertices.swap(rank);
     return ret;
   }
 
   crs_matrix<T,I,O> adj_mat;
-  std::vector<size_t> num_outgoing;
+  std::vector<size_t> num_outgoing, num_incoming;
   std::vector<double> vertices;
   size_t num_vertices, num_edges;
-  bool is_direct;
-  SERIALIZE(adj_mat, num_outgoing, vertices, num_vertices, num_edges, is_direct)
+  bool is_directed, is_weighted;
+  SERIALIZE(adj_mat, num_outgoing, num_incoming, vertices, 
+            num_vertices, num_edges, 
+            is_directed, is_weighted)
 };
 
 template <class T, class I = size_t, class O = size_t>

@@ -2,6 +2,7 @@
 #define	OPT_SSSP_HPP
 
 #include <frovedis/matrix/crs_matrix.hpp>
+#include "graph_common.hpp"
 
 namespace frovedis {
 
@@ -9,25 +10,25 @@ template <class T, class I>
 struct sssp_result {
   sssp_result() {}
   sssp_result(std::vector<T>& dist, std::vector<I>& pred) {
-    distance = dist;
-    predicator = pred;
+    distances = dist;
+    predecessors = pred;
   }
   sssp_result(std::vector<T>&& dist, std::vector<I>&& pred) {
-    distance.swap(dist);
-    predicator.swap(pred);
+    distances.swap(dist);
+    predecessors.swap(pred);
   }
   void debug_print(size_t n = 0) {
-    std::cout << "distances: "; debug_print_vector(distance, n);
-    std::cout << "predicators: "; debug_print_vector(predicator, n);
+    std::cout << "distancess: "; debug_print_vector(distances, n);
+    std::cout << "predecessorss: "; debug_print_vector(predecessors, n);
   }
   void save(const std::string& path) {
-    make_dvector_scatter(distance).saveline(path + "_distance");
-    make_dvector_scatter(predicator).saveline(path + "_predicator");
+    make_dvector_scatter(distances).saveline(path + "_distances");
+    make_dvector_scatter(predecessors).saveline(path + "_predecessors");
   }
   // TODO: add query()
-  std::vector<T> distance;
-  std::vector<I> predicator;
-  SERIALIZE(distance, predicator)
+  std::vector<T> distances;
+  std::vector<I> predecessors;
+  SERIALIZE(distances, predecessors)
 };
 
 template <class T, class I, class O>
@@ -111,7 +112,7 @@ compute_nextdist(crs_matrix_local<T, I, O>& mat,
         auto t_dist = tmpvalp[tmpoffp[i] + j];
         if(t_dist < nextdistp[target_dest]) {
           nextdistp[target_dest] = t_dist;
-          predp[target_dest] = src;
+          predp[target_dest] = src + 1; // 1-based predecessors id
         }
       }
     }
@@ -187,7 +188,7 @@ calc_sssp_bf(crs_matrix_local<T, I, O>& mat,
   auto countp = nrows_per_process.data();
   auto displp = stidx_per_process.data();
   pred.resize(nrow); auto predp = pred.data();
-  for(size_t i = 0; i < nrow; ++i) predp[i] = i + myst; // initializing predecessor
+  for(size_t i = 0; i < nrow; ++i) predp[i] = i + myst + 1; // initializing predecessor (1-based)
   while (step <= nvert) {
     time_spent t_iter(DEBUG), t_com(DEBUG);
     t_iter.lap_start();
@@ -217,30 +218,46 @@ calc_sssp_bf(crs_matrix_local<T, I, O>& mat,
 
 template <class T, class I, class O>
 sssp_result<T,I> 
-sssp_bf_impl(crs_matrix<T, I, O>& gr, size_t srcid) {
+sssp_bf_impl(crs_matrix<T, I, O>& gr, 
+             std::vector<size_t>& num_incoming,
+             std::vector<size_t>& num_outgoing,
+             size_t source_node) {
   //std::cout << "input adjacency matrix (src nodes in column): \n";
   //gr.debug_print(10);
-
   auto nvert = gr.num_col;
-  if (srcid >= nvert)
-    REPORT_ERROR(USER_ERROR, "source index should be in between 0 and nvert-1!\n");
+  require(source_node >= 1 && source_node <= nvert, 
+    std::string("sssp: target source node should be within the range 1 to ") 
+                + STR(nvert) +"!\n");
+  auto srcid = source_node - 1;
 
   // --- initialization step ---
-  auto Tmax = std::numeric_limits<T>::max();
+  std::vector<I> pred;
   std::vector<T> dist(nvert); auto distp = dist.data(); // output vector
+  auto Tmax = std::numeric_limits<T>::max();
   for(size_t i = 0; i < nvert; ++i) distp[i] = Tmax;
   dist[srcid] = 0;
-  // --- initialization related to distributed design ---
-  auto rowid = gr.data.map(compute_rowid<T,I,O>);
-  auto nrows = gr.data.map(get_local_nrows_int<T,I,O>).gather();
-  std::vector<int> sidx(nrows.size()); sidx[0] = 0;
-  for(size_t i = 1; i < nrows.size(); ++i) sidx[i] = sidx[i-1] + nrows[i-1];
-  auto pred_loc = make_node_local_allocate<std::vector<I>>();
-  // --- distributed computation step ---
-  dist = gr.data.map(calc_sssp_bf<T,I,O>,
-                     rowid, broadcast(dist), pred_loc,
-                     broadcast(nrows), broadcast(sidx)).get(0); // all processes have updated distance
-  auto pred = pred_loc.template moveto_dvector<I>().gather();
+  require(check_if_exist(srcid, num_outgoing, num_incoming),  
+    std::string("sssp: source ") + STR(source_node) + 
+    std::string(" not found in input graph!\n"));
+  if(num_outgoing[srcid] == 0) {
+    // no outgoing edge: thus no destination is reachable from given source
+    pred.resize(nvert);
+    auto predp = pred.data();
+    for(size_t i = 0; i < nvert; ++i) predp[i] = i + 1;
+  }
+  else {
+    // --- initialization related to distributed design ---
+    auto rowid = gr.data.map(compute_rowid<T,I,O>);
+    auto nrows = gr.data.map(get_local_nrows_int<T,I,O>).gather();
+    std::vector<int> sidx(nrows.size()); sidx[0] = 0;
+    for(size_t i = 1; i < nrows.size(); ++i) sidx[i] = sidx[i-1] + nrows[i-1];
+    auto pred_loc = make_node_local_allocate<std::vector<I>>();
+    // --- distributed computation step ---
+    dist = gr.data.map(calc_sssp_bf<T,I,O>,
+                       rowid, broadcast(dist), pred_loc,
+                       broadcast(nrows), broadcast(sidx)).get(0); // all processes have updated distance
+    pred = pred_loc.template moveto_dvector<I>().gather();
+  }
   return sssp_result<T,I>(dist, pred);
 }
 
