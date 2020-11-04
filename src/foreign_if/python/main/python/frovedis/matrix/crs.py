@@ -171,12 +171,13 @@ class FrovedisCRSMatrix(object):
         else:
             # loaded as user-given datatype
             mat = csr_matrix(np.asmatrix(inp), dtype=self.__dtype)
-        if not mat.has_sorted_indices:
-            mat.sort_indices() # sorting indices in ascending order, if not sorted
         return self.load_scipy_matrix(mat, dtype=dtype)
 
     def load_scipy_matrix(self, mat, dtype=None):
         self.release()
+        if not mat.has_sorted_indices:
+            #print("unsorted matrix detected")
+            mat.sort_indices() # sorting indices in ascending order, if not sorted
         if dtype is None: dtype = self.__dtype
         else: self.__dtype = dtype
         nelem = mat.data.size
