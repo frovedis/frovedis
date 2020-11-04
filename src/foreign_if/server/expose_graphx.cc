@@ -17,4 +17,5 @@ void expose_frovedis_graph_functions(){
   expose(frovedis_normalized_pagerank<graph<DT1>>);
   expose((frovedis_sssp<graph<DT1>,DT1,DT5>));
   expose((frovedis_bfs<graph<DT1>,DT5>));
+  expose((frovedis_cc<graph<DT1>,DT5>));
 }
