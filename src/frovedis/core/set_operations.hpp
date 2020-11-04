@@ -183,7 +183,6 @@ std::vector<T> set_unique(const T* keyp, size_t size) {
 
 template <class T>
 int set_is_unique(const T* keyp, size_t size) {
-  std::vector<size_t> ret;
   if(size == 0) {
     return true;
   } else {
@@ -1448,7 +1447,7 @@ void set_separate_vreg(const T* keyp, size_t* outp, size_t* out_idx,
                        size_t size, size_t each, size_t rest, T* current_key) {
 
   size_t out_idx_vreg[SET_VLEN_EACH];
-  size_t current_key_vreg[SET_VLEN_EACH];
+  T current_key_vreg[SET_VLEN_EACH];
 #pragma _NEC vreg(out_idx_vreg)
 #pragma _NEC vreg(current_key_vreg)
   for(size_t i = 0; i < SET_VLEN_EACH; i++){
@@ -1547,7 +1546,7 @@ void set_unique_vreg(const T* keyp, T* outp, size_t* out_idx,
                      size_t size, size_t each, size_t rest, T* current_key) {
 
   size_t out_idx_vreg[SET_VLEN_EACH];
-  size_t current_key_vreg[SET_VLEN_EACH];
+  T current_key_vreg[SET_VLEN_EACH];
 #pragma _NEC vreg(out_idx_vreg)
 #pragma _NEC vreg(current_key_vreg)
   for(size_t i = 0; i < SET_VLEN_EACH; i++){
@@ -1643,7 +1642,7 @@ std::vector<T> set_unique(const T* keyp, size_t size) {
 template <class T>
 int set_is_unique_vreg(const T* keyp, size_t size, size_t each, size_t rest,
                        T* current_key) {
-  size_t current_key_vreg[SET_VLEN_EACH];
+  T current_key_vreg[SET_VLEN_EACH];
 #pragma _NEC vreg(current_key_vreg)
   for(size_t i = 0; i < SET_VLEN_EACH; i++){
     current_key_vreg[i] = current_key[i];
