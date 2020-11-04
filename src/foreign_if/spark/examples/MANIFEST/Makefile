@@ -1,7 +1,7 @@
 include ../../../../../Makefile.in.x86
 #include ../Makefile.in.x86
 
-all: dtransfer.mf frov_mat.mf frov_df.mf pblas_scalapack.mf svd.mf pca.mf als.mf kmeans.mf lrm.mf lrsgd.mf nb.mf fm.mf dt.mf fp.mf ac.mf se.mf sc.mf w2v.mf page_rank.mf knn.mf knc.mf knr.mf sssp.mf bfs.mf dbscan.mf lda.mf rf.mf gbt.mf svr.mf
+all: dtransfer.mf frov_mat.mf frov_df.mf pblas_scalapack.mf svd.mf pca.mf als.mf kmeans.mf lrm.mf lrsgd.mf nb.mf fm.mf dt.mf fp.mf ac.mf se.mf sc.mf w2v.mf knn.mf knc.mf knr.mf page_rank.mf sssp.mf bfs.mf cc.mf dbscan.mf lda.mf rf.mf gbt.mf svr.mf
 
 append:
 	echo ${SPARK_HOME}/jars/*:${HDPATH} > tmp
@@ -108,6 +108,9 @@ bfs.mf: bfs.mf.tmpl append
 	cp bfs.mf.tmpl bfs.mf
 	cat append >> bfs.mf
 
+cc.mf: cc.mf.tmpl append
+	cp cc.mf.tmpl cc.mf
+	cat append >> cc.mf
 
 lda.mf: lda.mf.tmpl append
 	cp lda.mf.tmpl lda.mf
