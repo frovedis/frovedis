@@ -21,16 +21,8 @@ frov_graph = fnx.read_edgelist(fname, nodetype=np.int32, create_using=nx.DiGraph
 frov_graph.debug_print()
 
 #returns dict of lists containing shortest path from source to all other nodes
-path, dist = fnx.single_source_shortest_path(frov_graph, source, return_distance=True) 
-print("Frovedis sssp traversal path: ")
-print(path)
-print("Frovedis sssp traversal distance from source: ")
-print(dist)
-
-#nx_graph = nx.read_edgelist(fname, nodetype=np.int32)
-nx_graph = nx.read_edgelist(fname, nodetype=np.int32, create_using=nx.DiGraph())
-ret = nx.single_source_shortest_path(nx_graph, source) 
-print("Networkx sssp traversal path: ")
+ret = fnx.bfs(frov_graph, source) 
+print("Frovedis bfs traversal path: ")
 print(ret)
 
 frov_graph.release()

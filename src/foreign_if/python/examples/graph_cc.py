@@ -16,9 +16,10 @@ FrovedisServer.initialize(argvs[1])
 frov_graph = fnx.read_edgelist(fname, nodetype=np.int64)
 frov_graph.debug_print()
 
-#fnx.connected_components(frov_graph, print_summary=True)
-ret = fnx.connected_components(frov_graph)
-print(ret)
+ret = fnx.connected_components(frov_graph, print_summary=True)
+#ret = fnx.connected_components(frov_graph)
+for i in ret:
+  print(i)
 frov_graph.release()
 
 # Shutting down the Frovedis server

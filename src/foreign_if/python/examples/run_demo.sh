@@ -59,4 +59,5 @@ python LRGridSearchCV_demo.py "$COMMAND"
 # --- Graph Demo ---
 python graph_pagerank.py "$COMMAND"
 python graph_sssp.py "$COMMAND"
-python graph_conn_com.py "$COMMAND"
+python graph_bfs.py "$COMMAND"
+python graph_cc.py "$COMMAND"
