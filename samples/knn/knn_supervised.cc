@@ -112,9 +112,7 @@ int main(int argc, char** argv) {
     auto pred = obj.predict(data, save_proba);
     calc_knn.lap_stop();
     calc_knn.show_lap("total knn fit-predict time: ");
-
-    std::cout << "prediction: \n";
-    for(auto e: pred.gather()) std::cout << e << " "; std::cout << std::endl;
+    std::cout << "prediction: "; debug_print_vector(pred.gather());    
     std::cout << "score: " << obj.score(data, lbl) << std::endl;
   }
   else if (target == "regression") {
@@ -124,9 +122,7 @@ int main(int argc, char** argv) {
     auto pred = obj.predict(data);
     calc_knn.lap_stop();
     calc_knn.show_lap("total knn fit-predict time: ");
-
-    std::cout << "prediction: \n";
-    for(auto e: pred.gather()) std::cout << e << " "; std::cout << std::endl;
+    std::cout << "prediction: "; debug_print_vector(pred.gather());    
     std::cout << "score: " << obj.score(data, lbl) << std::endl;
   }
   else {
