@@ -837,13 +837,14 @@ void get_crs_DL_matrix_components(const char* host, int port,
     auto r = static_cast<size_t>(nrow);
     auto c = static_cast<size_t>(ncol);
     exrpc_ptr_t m = 0;
+    dummy_matrix dmat;
     try {
       m = exrpc_async(fm_node,(create_crs_data<DT4,DT4,DT5>),eps,r,c).get();
+      dmat = exrpc_async(fm_node,(to_dummy_matrix<S_MAT44,S_LMAT44>),m).get();
     }
     catch (std::exception& e) {
       set_status(true, e.what());
     }
-    auto dmat = exrpc_async(fm_node,(to_dummy_matrix<S_MAT44,S_LMAT44>),m).get();
     return to_py_dummy_matrix(dmat);
   }
 
@@ -858,13 +859,14 @@ void get_crs_DL_matrix_components(const char* host, int port,
     auto r = static_cast<size_t>(nrow);
     auto c = static_cast<size_t>(ncol);
     exrpc_ptr_t m = 0;
+    dummy_matrix dmat;
     try {
       m = exrpc_async(fm_node,(create_crs_data<DT4,DT5,DT5>),eps,r,c).get();
+      dmat = exrpc_async(fm_node,(to_dummy_matrix<S_MAT45,S_LMAT45>),m).get();
     }
     catch (std::exception& e) {
       set_status(true, e.what());
     }
-    auto dmat = exrpc_async(fm_node,(to_dummy_matrix<S_MAT45,S_LMAT45>),m).get();
     return to_py_dummy_matrix(dmat);
   }
 
@@ -879,13 +881,14 @@ void get_crs_DL_matrix_components(const char* host, int port,
     auto r = static_cast<size_t>(nrow);
     auto c = static_cast<size_t>(ncol);
     exrpc_ptr_t m = 0;
+    dummy_matrix dmat;
     try {
       m = exrpc_async(fm_node,(create_crs_data<DT3,DT4,DT5>),eps,r,c).get();
+      dmat = exrpc_async(fm_node,(to_dummy_matrix<S_MAT34,S_LMAT34>),m).get();
     }
     catch (std::exception& e) {
       set_status(true, e.what());
     }
-    auto dmat = exrpc_async(fm_node,(to_dummy_matrix<S_MAT34,S_LMAT34>),m).get();
     return to_py_dummy_matrix(dmat);
   }
 
@@ -900,13 +903,14 @@ void get_crs_DL_matrix_components(const char* host, int port,
     auto r = static_cast<size_t>(nrow);
     auto c = static_cast<size_t>(ncol);
     exrpc_ptr_t m = 0;
+    dummy_matrix dmat;
     try {
       m = exrpc_async(fm_node,(create_crs_data<DT3,DT5,DT5>),eps,r,c).get();
+      dmat = exrpc_async(fm_node,(to_dummy_matrix<S_MAT35,S_LMAT35>),m).get();
     }
     catch (std::exception& e) {
       set_status(true, e.what());
     }
-    auto dmat = exrpc_async(fm_node,(to_dummy_matrix<S_MAT35,S_LMAT35>),m).get();
     return to_py_dummy_matrix(dmat);
   }
 
@@ -921,13 +925,14 @@ void get_crs_DL_matrix_components(const char* host, int port,
     auto r = static_cast<size_t>(nrow);
     auto c = static_cast<size_t>(ncol);
     exrpc_ptr_t m = 0;
+    dummy_matrix dmat;
     try {
       m = exrpc_async(fm_node,(create_crs_data<DT2,DT4,DT5>),eps,r,c).get();
+      dmat = exrpc_async(fm_node,(to_dummy_matrix<S_MAT24,S_LMAT24>),m).get();
     }
     catch (std::exception& e) {
       set_status(true, e.what());
     }
-    auto dmat = exrpc_async(fm_node,(to_dummy_matrix<S_MAT24,S_LMAT24>),m).get();
     return to_py_dummy_matrix(dmat);
   }
 
@@ -942,13 +947,14 @@ void get_crs_DL_matrix_components(const char* host, int port,
     auto r = static_cast<size_t>(nrow);
     auto c = static_cast<size_t>(ncol);
     exrpc_ptr_t m = 0;
+    dummy_matrix dmat;
     try {
       m = exrpc_async(fm_node,(create_crs_data<DT2,DT5,DT5>),eps,r,c).get();
+      dmat = exrpc_async(fm_node,(to_dummy_matrix<S_MAT25,S_LMAT25>),m).get();
     }
     catch (std::exception& e) {
       set_status(true, e.what());
     }
-    auto dmat = exrpc_async(fm_node,(to_dummy_matrix<S_MAT25,S_LMAT25>),m).get();
     return to_py_dummy_matrix(dmat);
   } 
 
@@ -963,13 +969,14 @@ void get_crs_DL_matrix_components(const char* host, int port,
     auto r = static_cast<size_t>(nrow);
     auto c = static_cast<size_t>(ncol);
     exrpc_ptr_t m = 0;
+    dummy_matrix dmat;
     try {
       m = exrpc_async(fm_node,(create_crs_data<DT1,DT4,DT5>),eps,r,c).get();
+      dmat = exrpc_async(fm_node,(to_dummy_matrix<S_MAT14,S_LMAT14>),m).get();
     }
     catch (std::exception& e) {
       set_status(true, e.what());
     }
-    auto dmat = exrpc_async(fm_node,(to_dummy_matrix<S_MAT14,S_LMAT14>),m).get();
     return to_py_dummy_matrix(dmat);
   }
 
@@ -984,13 +991,14 @@ void get_crs_DL_matrix_components(const char* host, int port,
     auto r = static_cast<size_t>(nrow);
     auto c = static_cast<size_t>(ncol);
     exrpc_ptr_t m = 0;
+    dummy_matrix dmat;
     try {
       m = exrpc_async(fm_node,(create_crs_data<DT1,DT5,DT5>),eps,r,c).get();
+      dmat = exrpc_async(fm_node,(to_dummy_matrix<S_MAT15,S_LMAT15>),m).get();
     }
     catch (std::exception& e) {
       set_status(true, e.what());
     }
-    auto dmat = exrpc_async(fm_node,(to_dummy_matrix<S_MAT15,S_LMAT15>),m).get();
     return to_py_dummy_matrix(dmat);
   }
 

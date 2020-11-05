@@ -6,7 +6,13 @@ extern "C" {
   // --- Frovedis server Initialization, Finalization, Query ---
   PyObject* initialize_server(const char *cmd) {
     if(!cmd) REPORT_ERROR(USER_ERROR,"Invalid server command!!");
-    auto n = invoke_frovedis_server(cmd);
+    exrpc_node n;
+    try {
+      n = invoke_frovedis_server(cmd);
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
     auto host = n.hostname.c_str();
     auto port = n.rpcport; 
     return Py_BuildValue("{s:s, s:i}", "hostname", host, "rpcport", port); 
@@ -46,6 +52,11 @@ extern "C" {
   void finalize_server(const char* host, int port) {
     if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
     exrpc_node fm_node(host,port);
-    finalize_frovedis_server(fm_node);
+    try {
+      finalize_frovedis_server(fm_node);
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
   }
 }
