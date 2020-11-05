@@ -7,7 +7,11 @@ extern "C" {
 // returns the node information of Frovedis master node
 JNIEXPORT jobject JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getMasterInfo
   (JNIEnv *env, jclass thisCls, jstring cmd) {
-  auto n = invoke_frovedis_server(to_cstring(env,cmd)); 
+  exrpc_node n;
+  try {
+    n = invoke_frovedis_server(to_cstring(env,cmd)); 
+  }
+  catch(std::exception& e) { set_status(true,e.what()); }
   return frovedis_node_to_java_node(env, n);
 }
 
@@ -44,7 +48,10 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_finalizeFrovedisS
   (JNIEnv *env, jclass thisCls, jobject master_node) {
 
   auto fm_node = java_node_to_frovedis_node(env, master_node);
-  finalize_frovedis_server(fm_node);
+  try {
+    finalize_frovedis_server(fm_node);
+  }
+  catch(std::exception& e) { set_status(true,e.what()); }
 }
 
 }
