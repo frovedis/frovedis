@@ -334,7 +334,7 @@ class SVC(BaseEstimator):
             raise ValueError("validate: cache_size must be greater than 2!")
 
         if self.max_iter == -1:
-            self.max_iter = sys.maxint
+            self.max_iter = sys.maxsize
         elif self.max_iter <= 0:
             raise ValueError("validate: max_iter can either be -1 or positive!")
 
