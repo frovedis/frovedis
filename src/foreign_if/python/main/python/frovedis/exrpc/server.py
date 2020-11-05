@@ -14,7 +14,6 @@ class FrovedisServer(object):
 
     def __new__(cls):
         if FrovedisServer.__instance is None:
-            FrovedisServer.__instance = object.__new__(cls)
             n_init_server = rpclib.initialize_server(\
                             FrovedisServer.__cmd.encode('ascii'))
             excpt = rpclib.check_server_exception()
@@ -24,6 +23,7 @@ class FrovedisServer(object):
             #all rpc call
             host = (n_init_server['hostname']).encode('ascii')
             port = n_init_server['rpcport']
+            FrovedisServer.__instance = object.__new__(cls)
             FrovedisServer.__instance.mnode = node.exrpc_node(host, port)
             FrovedisServer.__instance.wsize = rpclib.get_worker_size(host, port)
             excpt = rpclib.check_server_exception()
