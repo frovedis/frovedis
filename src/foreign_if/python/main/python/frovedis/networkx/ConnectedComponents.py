@@ -55,7 +55,7 @@ def connected_components(G, opt_level=2, hyb_threshold=0.4,
            for i in range(0, len(root_with_cc_count), 2)}
     for i in range(0, nvert):
         cc_root = nodes_in_which_cc[i]
-        if cc_root != sys.maxint: 
+        if cc_root != sys.maxsize: 
             ret[cc_root].append(i + 1)
     etime = time.time()
     print("cc res conversion time: %.3f sec." % (etime - stime))
@@ -80,7 +80,7 @@ def show_cc_summary(root_with_cc_count,
     print("Nodes in which cc: (node_id:root_id)")
     count = 1 
     for i in range(num_vertices):
-        if nodes_in_which_cc[i] != sys.maxint: 
+        if nodes_in_which_cc[i] != sys.maxsize: 
             print("%d:%d  " % (i+1, nodes_in_which_cc[i]))
             count = count + 1
         if count > print_limit: 
@@ -90,7 +90,7 @@ def show_cc_summary(root_with_cc_count,
     print("Nodes dist: (node:level_from_root)")
     count = 1
     for i in range(num_vertices):
-        if nodes_dist[i] != sys.maxint: 
+        if nodes_dist[i] != sys.maxsize: 
             print("%d:%d  " % (i+1, nodes_dist[i]))
             count = count + 1
         if count > print_limit: 
