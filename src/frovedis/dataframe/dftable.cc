@@ -5,6 +5,7 @@
 #include "make_dftable_loadtext.hpp"
 #include "../text/char_int_conv.hpp"
 #include "../text/load_text.hpp"
+#include "../text/datetime_to_words.hpp"
 #include "../core/prefix_sum.hpp"
 
 #define GROUPED_DFTABLE_VLEN 256
@@ -343,13 +344,10 @@ dftable_base::group_by(const std::vector<std::string>& cols) {
       make_node_local_allocate<std::vector<std::vector<size_t>>>();
     merge_map.mapv
       (+[](std::vector<std::vector<size_t>>& merge_map,
-           std::vector<size_t> sizes) {
+           std::vector<size_t>& sizes) {
         merge_map.resize(sizes.size());
         for(size_t i = 0; i < sizes.size(); i++) {
-          auto size = sizes[i];
-          for(size_t j = 0; j < size; j++) {
-            merge_map[i].resize(size);
-          }
+          merge_map[i].resize(sizes[i]);
         }
       }, sizes);
     nodeid2.mapv(create_merge_map, split_idx2, merge_map);
@@ -860,6 +858,59 @@ dftable_base::to_crs_matrix_double(dftable_to_sparse_info& info) {
   return to_ell_matrix_double(info).to_crs_allow_zero();
 }
 
+// in typed_dfcolumn_string.cc
+std::vector<size_t>
+to_contiguous_idx(std::vector<size_t>& idx, std::vector<size_t>& sizes);
+
+// TODO: shrink unused dic
+dvector<size_t>
+dftable_base::to_dictionary_index(const std::string& col,
+                                  std::vector<std::string>& dic) {
+  auto c = column(col);
+  if(c->dtype() == "string") {
+    auto string_column =
+      std::dynamic_pointer_cast<typed_dfcolumn<std::string>>(c);
+    auto dicsizes =
+      string_column->dic_idx->viewas_dvector<std::string>().sizes();
+    dic = string_column->dic_idx->viewas_dvector<std::string>().gather();
+    return string_column->val.map(to_contiguous_idx, broadcast(dicsizes)).
+      moveto_dvector<size_t>();
+  } else if (c->dtype() == "dic_string") {
+    auto dic_string_column =
+      std::dynamic_pointer_cast<typed_dfcolumn<dic_string>>(c);
+    auto dict_words = dic_string_column->dic->get(0).decompress();
+    dic = words_to_vector_string(dict_words);
+    return dic_string_column->val.as_dvector<size_t>();
+  } else {
+    throw std::runtime_error
+      ("to_dictionary_index can be used only for string or dic_string column");
+  } 
+}
+
+dvector<size_t>
+dftable_base::to_dictionary_index(const std::string& col,
+                                  words& dic) {
+  auto c = column(col);
+  if(c->dtype() == "string") {
+    auto string_column =
+      std::dynamic_pointer_cast<typed_dfcolumn<std::string>>(c);
+    auto dicsizes =
+      string_column->dic_idx->viewas_dvector<std::string>().sizes();
+    auto sdic = string_column->dic_idx->viewas_dvector<std::string>().gather();
+    dic = vector_string_to_words(sdic);
+    return string_column->val.map(to_contiguous_idx, broadcast(dicsizes)).
+      moveto_dvector<size_t>();
+  } else if (c->dtype() == "dic_string") {
+    auto dic_string_column =
+      std::dynamic_pointer_cast<typed_dfcolumn<dic_string>>(c);
+    dic = dic_string_column->dic->get(0).decompress();
+    return dic_string_column->val.as_dvector<size_t>();
+  } else {
+    throw std::runtime_error
+      ("to_dictionary_index can be used only for string or dic_string column");
+  } 
+}
+
 std::shared_ptr<dfcolumn> dftable_base::column(const std::string& name) {
   auto ret = col.find(name);
   if(ret == col.end()) throw std::runtime_error("no such column: " + name);
@@ -1017,6 +1068,55 @@ dftable& dftable::append_rowid(const std::string& name, size_t offset) {
   return append_column(name, nl.template moveto_dvector<size_t>());
 }
 
+struct datetime_extract_helper {
+  datetime_extract_helper(){}
+  datetime_extract_helper(datetime_type type) : type(type) {}
+  std::vector<int> operator()(const std::vector<datetime_t>& d) {
+    if(type == datetime_type::year) return year_from_datetime(d);
+    else if(type == datetime_type::month) return month_from_datetime(d);
+    else if(type == datetime_type::day) return day_from_datetime(d);
+    else if(type == datetime_type::hour) return hour_from_datetime(d);
+    else if(type == datetime_type::minute) return minute_from_datetime(d);
+    else if(type == datetime_type::second) return second_from_datetime(d);
+    else throw std::runtime_error("unsupported datetime_type");
+  }
+  
+  datetime_type type;
+  SERIALIZE(type)
+};
+
+dftable& dftable::datetime_extract(datetime_type type,
+                                   const std::string& src_column,
+                                   const std::string& to_append_column) {
+  auto c = column(src_column);
+  if(c->dtype() != "datetime") {
+    throw std::runtime_error
+      ("datetime_extract can be used only for datetime column");
+  } else {
+    auto dt = c->as_dvector<datetime_t>();
+    auto ex = dt.moveto_node_local().map(datetime_extract_helper(type)).
+      moveto_dvector<int>();
+    append_column(to_append_column, ex);
+    return *this;
+  }
+}
+
+dftable& dftable::append_dictionary_index(const std::string& src_column,
+                                          const std::string& to_append_column,
+                                          std::vector<std::string>& dic) {
+  auto dv = to_dictionary_index(src_column, dic);
+  append_column(to_append_column, dv, true);
+  return *this;
+}
+
+dftable& dftable::append_dictionary_index(const std::string& src_column,
+                                          const std::string& to_append_column,
+                                          words& dic) {
+  auto dv = to_dictionary_index(src_column, dic);
+  append_column(to_append_column, dv, true);
+  return *this;
+}
+
 std::vector<std::pair<std::string, size_t>>
 add_contiguous_idx(std::vector<std::string>& vs, std::vector<size_t>& sizes) {
   int self = get_selfid();
@@ -1094,6 +1194,7 @@ void dftable::load(const std::string& input) {
   std::ifstream typestr;
   colstr.open(colfile.c_str());
   typestr.open(typefile.c_str());
+  if(!colstr || !typestr) throw std::runtime_error("no such table: " + input);
   std::vector<std::string> cols;
   std::vector<std::string> types;
   std::string tmp;
