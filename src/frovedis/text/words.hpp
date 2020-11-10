@@ -100,6 +100,20 @@ void remove_null(size_t* starts, size_t* lens, size_t& num_words);
 void remove_null(std::vector<size_t>& starts,
                  std::vector<size_t>& lens);
 
+void substr(size_t* starts, size_t* lens, size_t num_words,
+            size_t pos, size_t num);
+               
+void substr(std::vector<size_t>& starts,
+            std::vector<size_t>& lens,
+            size_t pos, size_t num);
+
+void substr(size_t* starts, size_t* lens, size_t num_words,
+            size_t pos);
+               
+void substr(std::vector<size_t>& starts,
+            std::vector<size_t>& lens,
+            size_t pos);
+
 // utility struct
 struct words {
   std::vector<int> chars;
@@ -127,6 +141,10 @@ struct words {
     {frovedis::trim_noalpha(chars, starts, lens);}
   void remove_null()
     {frovedis::remove_null(starts, lens);}
+  void substr(size_t pos, size_t num)
+    {frovedis::substr(starts, lens, pos, num);}
+  void substr(size_t pos)
+    {frovedis::substr(starts, lens, pos);}
 
   SERIALIZE(chars, starts, lens)
 };

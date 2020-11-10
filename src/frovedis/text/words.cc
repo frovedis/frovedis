@@ -627,6 +627,51 @@ void remove_null(vector<size_t>& starts,
   lens.swap(ret_lens);
 }
 
+struct words_substr_helper {
+  words_substr_helper(){}
+  words_substr_helper(size_t c) : c(c) {}
+  int operator()(size_t a) const {return a < c;}
+  size_t c;
+  SERIALIZE(c)
+};
+
+void substr(size_t* starts, size_t* lens, size_t num_words,
+            size_t pos, size_t num) {
+  auto fail = find_condition(lens, num_words, words_substr_helper(pos+num));
+  if(fail.size() != 0)
+    throw std::runtime_error("substr: pos + num is larger than length at: " +
+                             std::to_string(fail[0]));
+  for(size_t i = 0; i < num_words; i++) {
+    starts[i] += pos;
+    lens[i] = num;
+  }
+}
+
+void substr(size_t* starts, size_t* lens, size_t num_words,
+            size_t pos) {
+  auto fail = find_condition(lens, num_words, words_substr_helper(pos));
+  if(fail.size() != 0)
+    throw std::runtime_error("substr: pos is larger than length at: " +
+                             std::to_string(fail[0]));
+  for(size_t i = 0; i < num_words; i++) {
+    starts[i] += pos;
+    lens[i] -= pos;
+  }
+}
+
+void substr(std::vector<size_t>& starts,
+            std::vector<size_t>& lens,
+            size_t pos, size_t num) {
+  substr(starts.data(), lens.data(), starts.size(), pos, num);
+}
+              
+void substr(std::vector<size_t>& starts,
+            std::vector<size_t>& lens,
+            size_t pos) {
+  substr(starts.data(), lens.data(), starts.size(), pos);
+}
+
+
 words split_to_words(const std::vector<int>& v, const std::string& delims) {
   words ret;
   split_to_words(v, ret.starts, ret.lens, delims);
@@ -1310,7 +1355,7 @@ vector<string> words_to_vector_string(const words& ws) {
       }
     }
   }
-  for(size_t i = 0; i < WORDS_VECTOR_BLOCK; i++) {
+  for(size_t i = 0; i < rest; i++) {
     auto idx = num_block * WORDS_VECTOR_BLOCK + i;
     auto pos4 = posp[idx] * 4;
     auto crnt_strp = const_cast<char*>(strp[idx].data());
