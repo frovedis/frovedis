@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
-from frovedis.exrpc.server import FrovedisServer
-import numpy as np
 import sys
+import numpy as np
+from frovedis.exrpc.server import FrovedisServer
 
 # initializing the Frovedis server
 argvs = sys.argv
@@ -12,10 +12,8 @@ if (argc < 2):
     quit()
 FrovedisServer.initialize(argvs[1])
 
-
 from sklearn.datasets import load_boston
 mat, label = load_boston(return_X_y=True)
-
 
 from frovedis.mllib.linear_model import SGDRegressor
 lr = SGDRegressor(loss='epsilon_insensitive').fit(mat, label)

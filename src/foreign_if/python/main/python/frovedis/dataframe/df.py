@@ -9,7 +9,6 @@ from array import array
 import numpy as np
 import pandas as pd
 
-from .dfoperator import dfoperator
 from ..exrpc import rpclib
 from ..exrpc.server import FrovedisServer
 from ..matrix.dvector import FrovedisIntDvector, FrovedisLongDvector
@@ -22,10 +21,11 @@ from ..matrix.crs import FrovedisCRSMatrix
 from ..mllib.model_util import ModelID
 from .info import df_to_sparse_info
 from .frovedisColumn import FrovedisColumn
+from .dfoperator import dfoperator
 
-class FrovedisDataframe(object):
+class DataFrame(object):
     """
-    FrovedisDataframe
+    DataFrame
     """
 
     def __init__(self, df=None):
@@ -171,7 +171,7 @@ class FrovedisDataframe(object):
         """
         filter_frovedis_dataframe
         """
-        ret = FrovedisDataframe()
+        ret = DataFrame()
         ret.__cols = copy.deepcopy(self.__cols)
         ret.__types = copy.deepcopy(self.__types)
         for item in ret.__cols:
@@ -188,7 +188,7 @@ class FrovedisDataframe(object):
         """
         select_frovedis_dataframe
         """
-        ret = FrovedisDataframe()
+        ret = DataFrame()
         ret.__cols = copy.deepcopy(targets) #targets is a list
         ret.__types = [0]*len(targets)
         i = 0
@@ -257,7 +257,7 @@ class FrovedisDataframe(object):
                 raise TypeError("sort: Expected: digit|list; Received: ",
                                 type(ascending).__name__)
 
-        ret = FrovedisDataframe()
+        ret = DataFrame()
         ret.__cols = copy.deepcopy(self.__cols)
         ret.__types = copy.deepcopy(self.__types)
         for item in ret.__cols:
@@ -370,7 +370,7 @@ class FrovedisDataframe(object):
 
         if self.__fdata is None:
             raise ValueError("Operation on invalid frovedis dataframe!")
-        right = FrovedisDataframe.asDF(right)
+        right = DataFrame.asDF(right)
 
         # no of nulls
         n_nulls = sum(x is None for x in (on, right_on, left_on))
@@ -429,7 +429,7 @@ class FrovedisDataframe(object):
             if rsuf != '':
                 df_right = right.rename(renamed_right_cols)
 
-        ret = FrovedisDataframe()
+        ret = DataFrame()
         ret.__cols = df_left.__cols + df_right.__cols
         ret.__types = df_left.__types + df_right.__types
         for item in df_left.__cols:
@@ -484,7 +484,7 @@ class FrovedisDataframe(object):
             return self
         names = list(columns.keys())
         new_names = list(columns.values())
-        ret = FrovedisDataframe()
+        ret = DataFrame()
         ret.__cols = copy.deepcopy(self.__cols)
         ret.__types = copy.deepcopy(self.__types)
         for item in ret.__cols:
@@ -530,10 +530,10 @@ class FrovedisDataframe(object):
         """
         asDF
         """
-        if isinstance(df, FrovedisDataframe):
+        if isinstance(df, DataFrame):
             return df
         elif isinstance(df, pd.DataFrame):
-            return FrovedisDataframe(df)
+            return DataFrame(df)
         else: TypeError, "Invalid dataframe type is provided!"
 
     def min(self, columns):
@@ -949,7 +949,7 @@ class FrovedisDataframe(object):
             axis = 1
         elif axis == 0 or axis == 'index':
             raise ValueError("filter() on 'index' axis is not supported for"+
-                             " FrovedisDataframe!")
+                             "frovedis DataFrame!")
 
         if items is not None:
             targets = list(items)
@@ -978,3 +978,4 @@ class FrovedisDataframe(object):
     def __repr__(self):
         return self.__str__()
 
+FrovedisDataframe = DataFrame

@@ -1,12 +1,11 @@
 #!/usr/bin/env python
 
-from frovedis.exrpc.server import FrovedisServer
-from frovedis.ensemble import GradientBoostingClassifier
-from frovedis.ensemble import GradientBoostingRegressor
-
 import sys
 import numpy as np
 import pandas as pd
+from frovedis.exrpc.server import FrovedisServer
+from frovedis.mllib.ensemble import GradientBoostingClassifier
+from frovedis.mllib.ensemble import GradientBoostingRegressor
 
 # initializing the Frovedis server
 argvs = sys.argv

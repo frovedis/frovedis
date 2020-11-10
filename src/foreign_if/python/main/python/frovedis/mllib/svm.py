@@ -90,6 +90,9 @@ class LinearSVC(BaseEstimator):
         encoded_y, logic = y.encode(unique_labels, target, need_logic=True)
         self.label_map = logic
         (host, port) = FrovedisServer.getServerInstance()
+        if dense and X.get_mtype() != 'C':
+            raise TypeError("fit: please provide column-major points " +
+                            "for frovedis linear svm classifier!")
         if self.solver == 'sag':
             rpclib.svm_sgd(host, port, X.get(), encoded_y.get(), \
                            self.max_iter, self.lr_rate, \
@@ -353,9 +356,6 @@ class SVC(BaseEstimator):
             self.xvar = np.var(X)
         else:
             self.xvar = None
-            if(not isinstance(X, FrovedisRowmajorMatrix)):
-                raise TypeError("fit: SVC currently supports only Rowmajor" \
-                                + " Matrix as for Frovedis data!")
 
         train_data = FrovedisFeatureData(X, dense_kind='rowmajor')
         X = train_data.get()
@@ -397,6 +397,9 @@ class SVC(BaseEstimator):
             regType = 2
             icpt = True
             rparam = 1.0 / self.C
+            if dense and X.get_mtype() != 'C':
+                raise TypeError("fit: please provide column-major points " +
+                                "for frovedis svm with sgd classification!")
             rpclib.svm_sgd(host, port, X.get(), encoded_y.get(), \
                        self.max_iter, lrate, regType, rparam, icpt, \
                        self.tol, self.verbose, self.__mid, dtype, \
@@ -404,6 +407,9 @@ class SVC(BaseEstimator):
             self._coef = None
             self._intercept = None
         else:
+            if dense and X.get_mtype() != 'R':
+                raise TypeError("fit: please provide row-major points " +
+                                "for frovedis svc classification!")
             rpclib.frovedis_svc(host, port, X.get(), encoded_y.get(), \
                        self.tol, self.C, self.cache_size, self.max_iter, \
                        self.kernel.encode("ascii"), self.gamma, self.coef0, \
@@ -734,6 +740,9 @@ class LinearSVR(BaseEstimator):
 
         (host, port) = FrovedisServer.getServerInstance()
         if self.solver == 'sag':
+            if dense and X.get_mtype() != 'C':
+                raise TypeError("fit: please provide column-major points " +
+                                "for frovedis linear SVM regressor!")
             rpclib.svm_regressor_sgd(host, port, X.get(), y.get(), \
                                      self.max_iter, self.lr_rate, \
                                      self.epsilon, regTyp, rparam, \

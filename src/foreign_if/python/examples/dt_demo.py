@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 
-from frovedis.exrpc.server import FrovedisServer
-from frovedis.mllib.tree import DecisionTreeClassifier
-from frovedis.mllib.tree import DecisionTreeRegressor
 import sys
 import numpy as np
 import pandas as pd
+from frovedis.exrpc.server import FrovedisServer
+from frovedis.mllib.tree import DecisionTreeClassifier
+from frovedis.mllib.tree import DecisionTreeRegressor
 
 #Objective: Run without error
 

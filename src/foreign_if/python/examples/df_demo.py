@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 
-from frovedis.exrpc.server import FrovedisServer
-from frovedis.dataframe.df import FrovedisDataframe
 import sys
 import numpy as np
 import pandas as pd
+import frovedis.dataframe as fdf
+from frovedis.exrpc.server import FrovedisServer
 
 # initializing the Frovedis server
 argvs = sys.argv
@@ -27,8 +27,8 @@ countryDF = {
 
 pdf1 = pd.DataFrame(peopleDF)
 pdf2 = pd.DataFrame(countryDF)
-fdf1 = FrovedisDataframe(pdf1)
-fdf2 = FrovedisDataframe(pdf2)
+fdf1 = fdf.DataFrame(pdf1)
+fdf2 = fdf.DataFrame(pdf2)
 
 # displaying created frovedis dataframes
 fdf1.show()
@@ -107,9 +107,11 @@ data = {'one': [10, 12, 13, 15],
         'three': ['F', 'F', 'D', 'A'],
         'four': [0, 0, 1, 2]
        }
+
 pdf = pd.DataFrame(data)
 print(pdf.describe()); print("\n")
-df = FrovedisDataframe(pdf)
+
+df = fdf.DataFrame(pdf)
 print(df.describe()); print("\n") # prints count, mean, std, sum, min, max
 
 # matrix conversion demo

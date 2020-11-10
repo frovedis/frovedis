@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
-from ..exrpc.server import FrovedisServer
-from ..exrpc.rpclib import w2v_build_vocab_and_dump, w2v_train
-from ..exrpc.rpclib import w2v_save_model, check_server_exception
+from ...exrpc.server import FrovedisServer
+from ...exrpc.rpclib import w2v_build_vocab_and_dump, w2v_train
+from ...exrpc.rpclib import w2v_save_model, check_server_exception
 
 class Word2Vector:
     """ Python wrapper of Frovedis Word2Vector """

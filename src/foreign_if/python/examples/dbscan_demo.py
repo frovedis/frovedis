@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 
-from frovedis.exrpc.server import FrovedisServer
-from frovedis.mllib.cluster import DBSCAN
 import sys
 import numpy as np
+from frovedis.exrpc.server import FrovedisServer
+from frovedis.mllib.cluster import DBSCAN
 
 # initializing the Frovedis server
 argvs = sys.argv

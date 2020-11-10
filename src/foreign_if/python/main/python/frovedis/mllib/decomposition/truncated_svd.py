@@ -2,18 +2,18 @@
 
 #!/usr/bin/env python
 
-from ..exrpc.server import FrovedisServer
-from ..base import *
-from ..exrpc.rpclib import compute_truncated_svd, compute_var_sum
-from ..exrpc.rpclib import compute_svd_transform
-from ..exrpc.rpclib import compute_svd_self_transform
-from ..exrpc.rpclib import compute_svd_inverse_transform
-from ..exrpc.rpclib import check_server_exception
-from ..matrix.ml_data import FrovedisFeatureData
-from ..matrix.crs import FrovedisCRSMatrix
-from ..matrix.dense import FrovedisRowmajorMatrix, FrovedisColmajorMatrix
-from ..matrix.results import svdResult
-from ..matrix.dtype import TypeUtil
+from ...base import *
+from ...exrpc.server import FrovedisServer
+from ...exrpc.rpclib import compute_truncated_svd, compute_var_sum
+from ...exrpc.rpclib import compute_svd_transform
+from ...exrpc.rpclib import compute_svd_self_transform
+from ...exrpc.rpclib import compute_svd_inverse_transform
+from ...exrpc.rpclib import check_server_exception
+from ...matrix.ml_data import FrovedisFeatureData
+from ...matrix.crs import FrovedisCRSMatrix
+from ...matrix.dense import FrovedisRowmajorMatrix, FrovedisColmajorMatrix
+from ...matrix.results import svdResult
+from ...matrix.dtype import TypeUtil
 import numpy as np
 from scipy.sparse import issparse
 

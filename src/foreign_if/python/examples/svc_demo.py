@@ -2,8 +2,6 @@
 
 import sys
 import numpy as np
-#from sklearn.datasets import load_boston
-
 from frovedis.exrpc.server import FrovedisServer
 from frovedis.mllib.svm import SVC
 
@@ -15,7 +13,9 @@ if (argc < 2):
     quit()
 FrovedisServer.initialize(argvs[1])
 
+#from sklearn.datasets import load_boston
 #mat, lbl = load_boston(return_X_y=True)
+
 mat = np.array([[10, 0, 1, 0, 0, 1, 0],
                     [0, 1, 0, 1, 0, 1, 0],
                     [0, 1, 0, 0, 1, 0, 1],

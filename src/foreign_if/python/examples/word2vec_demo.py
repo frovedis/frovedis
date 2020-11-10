@@ -2,7 +2,7 @@
 
 import sys
 from frovedis.exrpc.server import FrovedisServer
-from frovedis.feature.w2v import Word2Vector
+from frovedis.mllib.feature import Word2Vector
 
 # initializing the Frovedis server
 argvs = sys.argv

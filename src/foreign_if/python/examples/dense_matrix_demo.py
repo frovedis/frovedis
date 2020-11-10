@@ -4,10 +4,10 @@
 # Other two matrices (FrovedisRowmajorMatrix, FrovedisColmajorMatrix)
 # also have similar APIs (except rich set of overloaded operators)
 
+import sys
 import numpy as np
 from frovedis.exrpc.server import *
 from frovedis.matrix.dense import *
-import sys
 
 # initializing the Frovedis server
 argvs = sys.argv

@@ -3,10 +3,8 @@
 import sys
 import numpy as np
 from sklearn.datasets import load_boston
-
 from frovedis.exrpc.server import FrovedisServer
 from frovedis.mllib.svm import LinearSVR as SVR
-#from sklearn.linear_model import SGDRegressor as SVR
 
 # initializing the Frovedis server
 argvs = sys.argv

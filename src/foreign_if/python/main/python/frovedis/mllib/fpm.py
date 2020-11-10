@@ -4,13 +4,12 @@ fpm.py
 
 #!/usr/bin/env python
 
-import pandas as pd
-from frovedis.exrpc.server import FrovedisServer
-from frovedis.dataframe.df import FrovedisDataframe
 from .model_util import *
 from ..exrpc import rpclib
-#from ..exrpc.server import *
 from ..matrix.dtype import DTYPE
+from frovedis.exrpc.server import FrovedisServer
+import pandas as pd
+import frovedis.dataframe as fpd
 
 class FPGrowth(object):
     """A python wrapper of Frovedis GPGrowth"""
@@ -36,7 +35,7 @@ class FPGrowth(object):
         item = np.asarray(item, dtype=np.int32)
         df_t = pd.DataFrame({'trans_id': tid, 'item': item}, \
                 columns=['trans_id', 'item'])
-        return FrovedisDataframe(df_t)
+        return fpd.DataFrame(df_t)
 
     def fit(self, data):
         """

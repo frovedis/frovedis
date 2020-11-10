@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
-import numpy as np
 import sys
+import numpy as np
 from scipy.sparse import csr_matrix
 from frovedis.matrix.ml_data import FrovedisLabeledPoint
 from frovedis.exrpc.server import FrovedisServer

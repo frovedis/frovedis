@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 
+import sys
 from frovedis.exrpc.server import FrovedisServer
 from frovedis.matrix.dvector import FrovedisDvector
-from frovedis.mllib.fpm import *
-import sys
+from frovedis.mllib.fpm import FPGrowth 
 
 # initializing the Frovedis server
 argvs = sys.argv

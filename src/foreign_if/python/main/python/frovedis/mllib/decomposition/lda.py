@@ -2,18 +2,18 @@
 
 #!/usr/bin/env python
 
-from ..exrpc.server import FrovedisServer
-from ..base import *
-from ..exrpc.rpclib import compute_lda_train, compute_lda_transform,\
-                           compute_lda_component, \
-			   check_server_exception
-from ..matrix.dense import FrovedisRowmajorMatrix
-from ..matrix.ml_data import FrovedisFeatureData
-from ..matrix.dtype import TypeUtil
-from ..mllib.model_util import M_KIND, ModelID, GLM
-import numpy as np
-import pickle
 import os
+import pickle
+import numpy as np
+from ...base import *
+from ...exrpc.server import FrovedisServer
+from ...exrpc.rpclib import compute_lda_train, compute_lda_transform,\
+                            compute_lda_component, \
+                            check_server_exception
+from ...matrix.dense import FrovedisRowmajorMatrix
+from ...matrix.ml_data import FrovedisFeatureData
+from ...matrix.dtype import TypeUtil
+from ..model_util import M_KIND, ModelID, GLM
 
 class LatentDirichletAllocation(BaseEstimator):
     """Topic modeling using LDA."""

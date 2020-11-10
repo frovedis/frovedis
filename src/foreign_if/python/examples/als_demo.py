@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 
+import sys
 from frovedis.exrpc.server import FrovedisServer
 from frovedis.matrix.crs import FrovedisCRSMatrix
 from frovedis.mllib.recommendation import ALS
-import sys
 
 # initializing the Frovedis server
 argvs = sys.argv

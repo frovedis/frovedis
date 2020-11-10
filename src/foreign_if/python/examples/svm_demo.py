@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 
+import sys
+import numpy as np
 from frovedis.exrpc.server import FrovedisServer
 from frovedis.matrix.crs import FrovedisCRSMatrix
 from frovedis.matrix.dvector import FrovedisDvector
 from frovedis.mllib.svm import LinearSVC
-import numpy as np
-import sys
 
 # initializing the Frovedis server
 argvs = sys.argv

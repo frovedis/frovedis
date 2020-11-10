@@ -1,11 +1,10 @@
 #!/usr/bin/env python
 
-from frovedis.exrpc.server import FrovedisServer
-from frovedis.ensemble.forest import RandomForestClassifier
-from frovedis.ensemble.forest import RandomForestRegressor
 import sys
 import numpy as np
-import pandas as pd
+from frovedis.exrpc.server import FrovedisServer
+from frovedis.mllib.ensemble import RandomForestClassifier
+from frovedis.mllib.ensemble import RandomForestRegressor
 
 #Objective: Run without error
 
@@ -18,10 +17,10 @@ if (argc < 2):
 FrovedisServer.initialize(argvs[1])
 
 mat = np.array([[10, 0, 1, 0, 0, 1, 0],
-                    [0, 1, 0, 1, 0, 1, 0],
-                    [0, 1, 0, 0, 1, 0, 1],
-                    [1, 0, 0, 1, 0, 1, 0]],dtype=np.float64)
-lbl = np.array([100, 500, 100, 600],dtype=np.float64) 
+                [0, 1, 0, 1, 0, 1, 0],
+                [0, 1, 0, 0, 1, 0, 1],
+                [1, 0, 0, 1, 0, 1, 0]], dtype=np.float64)
+lbl = np.array([100, 500, 100, 600], dtype=np.float64) 
 
 # fitting input matrix and label on DecisionTree Classifier object
 rfc1 = RandomForestClassifier(criterion='gini', max_depth=4,
@@ -49,12 +48,11 @@ rfr = rfr1.fit(mat,lbl)
 #rfr.debug_print()
 
 # predicting on train model
-print("predicting on  DecisionTree Regressor model: ")
+print("predicting on RandomForest Regressor model: ")
 rfrm =  rfr.predict(mat)
 print (rfrm)
-print("Root mean square for predicted DecisionTree Regressor model")
+print("Root mean square for predicted RandomForest Regressor model")
 print (rfr.score(mat,lbl))
-
 
 #clean-up
 rfc1.release()

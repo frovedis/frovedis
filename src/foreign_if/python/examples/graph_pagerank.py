@@ -1,6 +1,6 @@
 import sys
 import numpy as np
-import frovedis.networkx as fnx
+import frovedis.graph as fnx
 from frovedis.exrpc.server import FrovedisServer 
 
 # initializing the Frovedis server

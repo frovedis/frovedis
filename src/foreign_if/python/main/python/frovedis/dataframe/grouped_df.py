@@ -6,12 +6,11 @@ grouped_df
 import copy
 from ctypes import c_char_p
 import numpy as np
-import pandas as pd
 from ..exrpc import rpclib
 from ..exrpc.server import FrovedisServer
 from ..matrix.dtype import DTYPE
 from .frovedisColumn import FrovedisColumn
-from . import df
+from .df import DataFrame
 
 class FrovedisGroupedDataframe(object):
     """
@@ -159,7 +158,7 @@ class FrovedisGroupedDataframe(object):
 
         cols = self.__cols + agg_col_as
         types = self.__types + agg_col_as_types
-        return df.FrovedisDataframe().load_dummy(fdata, cols, types)
+        return DataFrame().load_dummy(fdata, cols, types)
 
     def __get_numeric_columns(self):
         """

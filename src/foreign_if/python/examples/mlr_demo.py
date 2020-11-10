@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 
+import sys
+import numpy as np
 from frovedis.exrpc.server import FrovedisServer
 from frovedis.matrix.dense import FrovedisRowmajorMatrix
-from frovedis.mllib.linear_model import *
-import numpy as np
-import sys
+from frovedis.mllib.linear_model import LogisticRegression 
 
 # initializing the Frovedis server
 argvs = sys.argv

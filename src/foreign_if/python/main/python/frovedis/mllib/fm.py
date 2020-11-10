@@ -6,13 +6,13 @@ fm.py: wrapper of frovedis Factorization Machine
 
 import os.path
 import pickle
-from .model_util import *
 from ..base import *
 from ..exrpc import rpclib
 from ..exrpc.server import FrovedisServer
 from ..matrix.ml_data import FrovedisLabeledPoint
 from ..matrix.dtype import TypeUtil
 from .metrics import *
+from .model_util import *
 
 # Factorization Machine Classifier class
 class FactorizationMachineClassifier(BaseEstimator):

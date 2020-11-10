@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 
-from frovedis.exrpc.server import *
-from frovedis.matrix.dense import FrovedisBlockcyclicMatrix
-from frovedis.matrix.wrapper import SCALAPACK
 import sys
 import numpy as np
+from frovedis.exrpc.server import FrovedisServer 
+from frovedis.matrix.dense import FrovedisBlockcyclicMatrix
+from frovedis.matrix.wrapper import SCALAPACK
 
 # initializing the Frovedis server
 argvs = sys.argv

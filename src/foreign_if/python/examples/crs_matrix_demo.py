@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 
+import sys
 import numpy as np
 from scipy.sparse import csr_matrix
 from frovedis.exrpc.server import *
 from frovedis.matrix.crs import FrovedisCRSMatrix 
-import sys
 
 # initializing the Frovedis server
 argvs = sys.argv

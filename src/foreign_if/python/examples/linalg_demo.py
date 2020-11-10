@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 
+import sys
 import numpy as np
 from frovedis.exrpc.server import FrovedisServer
 from frovedis.matrix.dense import FrovedisBlockcyclicMatrix
-import sys
 
 # initializing the Frovedis server
 argvs = sys.argv

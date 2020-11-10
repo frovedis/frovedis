@@ -1,9 +1,10 @@
-from frovedis.decomposition import LatentDirichletAllocation
+import sys
 import numpy as np
 from scipy.sparse import csr_matrix
 from frovedis.exrpc.server import *
 from frovedis.matrix.crs import FrovedisCRSMatrix
-import sys
+from frovedis.mllib.decomposition import LatentDirichletAllocation
+
 try:
     from sklearn.feature_extraction.text import CountVectorizer
 except:

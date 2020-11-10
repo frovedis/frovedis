@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
-from frovedis.exrpc.server import FrovedisServer
-import numpy as np
 import sys
+import numpy as np
+from frovedis.exrpc.server import FrovedisServer
 
 # initializing the Frovedis server
 argvs = sys.argv

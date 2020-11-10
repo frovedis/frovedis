@@ -1,18 +1,18 @@
+#!/usr/bin/env python
 """
-ensemble.py: wrapper of frovedis Random Forest (classifier and regressor)
+wrapper of frovedis Random Forest (classifier and regressor)
 """
 
-#!/usr/bin/env python
-import os.path
 import pickle
-from ..mllib.model_util import M_KIND, ModelID, GLM
-from ..base import *
-from ..exrpc import rpclib
-from ..exrpc.server import FrovedisServer
-from ..matrix.ml_data import FrovedisLabeledPoint
-from ..matrix.dtype import TypeUtil
-from ..mllib.metrics import accuracy_score, r2_score
+import os.path
 import numpy as np
+from ...base import *
+from ...exrpc import rpclib
+from ...exrpc.server import FrovedisServer
+from ...matrix.ml_data import FrovedisLabeledPoint
+from ...matrix.dtype import TypeUtil
+from ..metrics import accuracy_score, r2_score
+from ..model_util import M_KIND, ModelID, GLM
 
 #Random Forest Classifier Class
 class RandomForestClassifier(BaseEstimator):

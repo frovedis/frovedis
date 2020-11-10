@@ -1,19 +1,18 @@
-"""
-ensemble.py: wrapper of frovedis ensemble models - GBT
-"""
-
 # !/usr/bin/env python
-import os.path
-import pickle
-import numpy as np
-from ..exrpc import rpclib
-from ..base import *
-from ..exrpc.server import FrovedisServer
-from ..matrix.ml_data import FrovedisLabeledPoint
-from ..matrix.dtype import TypeUtil
-from ..mllib.metrics import accuracy_score, r2_score
-from ..mllib.model_util import M_KIND, ModelID, GLM
+"""
+ wrapper of frovedis ensemble models - GBT
+"""
 
+import pickle
+import os.path
+import numpy as np
+from ...base import *
+from ...exrpc import rpclib
+from ...exrpc.server import FrovedisServer
+from ...matrix.ml_data import FrovedisLabeledPoint
+from ...matrix.dtype import TypeUtil
+from ..metrics import accuracy_score, r2_score
+from ..model_util import M_KIND, ModelID, GLM
 
 class GradientBoostingClassifier(BaseEstimator):
     """A python wrapper of Frovedis Gradient boosted trees: classifier"""

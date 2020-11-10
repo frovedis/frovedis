@@ -2,8 +2,8 @@
 
 import sys
 import numpy as np
-from frovedis.mllib.neighbors import NearestNeighbors
 from frovedis.exrpc.server import FrovedisServer
+from frovedis.mllib.neighbors import NearestNeighbors
 
 # initializing the Frovedis server
 argvs = sys.argv
