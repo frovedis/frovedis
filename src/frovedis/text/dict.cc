@@ -236,7 +236,9 @@ void lexical_sort_compressed_words(const std::vector<uint64_t>& cwords,
   auto num_words_ = order.size();
   auto cwordsp = cwords.data();
   vector<uint64_t> buf(num_words_);
+  vector<uint64_t> buf2(num_words_);
   auto bufp = buf.data();
+  auto buf2p = buf2.data();
   vector<size_t> rev_order(num_words_);
   auto rev_orderp = rev_order.data();
   for(size_t i = 0; i < num_words_; i++) rev_orderp[i] = i;
@@ -254,6 +256,8 @@ void lexical_sort_compressed_words(const std::vector<uint64_t>& cwords,
     for(size_t i = 0; i < lenpos; i++) words_off += lens_num[i] * lens[i];
     auto crnt_wordsp = cwordsp + words_off;
     auto work_buf = bufp + num_words_ - work_size;
+    auto work_buf2 = buf2p + num_words_ - work_size;
+    auto work_rev_orderp = rev_orderp + num_words_ - work_size;
     auto crnt_work_buf = work_buf;
     for(size_t i = lenpos; i < lens_size; i++) {
       auto len = lens[i];
@@ -264,7 +268,13 @@ void lexical_sort_compressed_words(const std::vector<uint64_t>& cwords,
       crnt_work_buf += len_num;
       crnt_wordsp += len * len_num;
     }
-    radix_sort(work_buf, rev_orderp + num_words_ - work_size, work_size);
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+    for(size_t i = 0; i < work_size; i++) {
+      work_buf2[i] = work_buf[work_rev_orderp[i]-(num_words_-work_size)];
+    }
+    radix_sort(work_buf2, work_rev_orderp, work_size);
   }
   auto orderp = order.data();
 #pragma _NEC ivdep
