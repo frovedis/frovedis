@@ -252,10 +252,13 @@ void dvid_copy_helper(dvid_t& from, dvid_t& to) {
 
 template <class T>
 DVID<T> DVID<T>::copy() const {
-  RLOG(DEBUG) << "distributed variables are copied" << std::endl;
-  auto d = get_new_dvid();
-  bcast_rpc_oneway(dvid_copy_helper<T>, dvid, d);
-  return DVID<T>(d);
+  if(dvid == 0) return DVID<T>(0);
+  else {
+    RLOG(DEBUG) << "distributed variables are copied" << std::endl;
+    auto d = get_new_dvid();
+    bcast_rpc_oneway(dvid_copy_helper<T>, dvid, d);
+    return DVID<T>(d);
+  }
 }
 
 template <class T, class R, class F>
