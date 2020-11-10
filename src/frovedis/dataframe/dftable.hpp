@@ -25,6 +25,15 @@ class dfoperator;
 
 struct dftable_to_sparse_info;
 
+enum datetime_type {
+  year,
+  month,
+  day,
+  hour,
+  minute,
+  second
+};
+
 // same as dftable w/o its specific member functions
 class dftable_base {
 public:
@@ -108,6 +117,11 @@ public:
                        const std::vector<std::string>& cat,
                        dftable_to_sparse_info& info); 
   crs_matrix<double> to_crs_matrix_double(dftable_to_sparse_info& info);
+  // col should be string or dic_string
+  dvector<size_t> to_dictionary_index(const std::string& col,
+                                      std::vector<std::string>& dic);
+  dvector<size_t> to_dictionary_index(const std::string& col,
+                                      words& dic);
 
   // internally used methods, though they are public...
   // dfcolumn is only for implementation/debug, not for user's usage
@@ -227,7 +241,14 @@ public:
                  const std::string& c4, const std::string& c5,
                  const std::string& c6);
   dftable& append_rowid(const std::string& name, size_t offset = 0);
-
+  dftable& datetime_extract(datetime_type kind, const std::string& src_column,
+                            const std::string& to_append_column);
+  dftable& append_dictionary_index(const std::string& src_column,
+                                   const std::string& to_append_column,
+                                   std::vector<std::string>& dic);
+  dftable& append_dictionary_index(const std::string& src_column,
+                                   const std::string& to_append_column,
+                                   words& dic);
   void load(const std::string& input);
   void loadtext(const std::string& filename,
                 const std::vector<std::string>& types,
