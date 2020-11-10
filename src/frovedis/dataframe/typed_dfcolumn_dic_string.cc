@@ -724,6 +724,7 @@ size_t typed_dfcolumn<dic_string>::count() {
   } else return size;
 }
 
+// TODO: shrink unused dic
 void typed_dfcolumn<dic_string>::save(const std::string& file) {
   vector<size_t> new_starts; // not used
   auto to_save =
