@@ -2695,6 +2695,13 @@ void dfcolumn_sort_partition(std::vector<T>& val,
 template <class T>
 std::shared_ptr<dfcolumn>
 typed_dfcolumn<T>::sort(node_local<std::vector<size_t>>& res_idx) {
+  if(size() == 0) {
+    res_idx = make_node_local_allocate<std::vector<size_t>>();
+    auto ret = std::make_shared<typed_dfcolumn<T>>();
+    ret->val = make_node_local_allocate<std::vector<T>>();
+    ret->nulls = make_node_local_allocate<std::vector<size_t>>();
+    return ret;
+  }
   auto to_sort = val; // need to copy because of implace sort
   auto idx = make_node_local_allocate<std::vector<size_t>>();
   auto part_cand =
@@ -2808,6 +2815,13 @@ void dfcolumn_sort_partition_desc(std::vector<T>& val,
 template <class T>
 std::shared_ptr<dfcolumn>
 typed_dfcolumn<T>::sort_desc(node_local<std::vector<size_t>>& res_idx) {
+  if(size() == 0) {
+    res_idx = make_node_local_allocate<std::vector<size_t>>();
+    auto ret = std::make_shared<typed_dfcolumn<T>>();
+    ret->val = make_node_local_allocate<std::vector<T>>();
+    ret->nulls = make_node_local_allocate<std::vector<size_t>>();
+    return ret;
+  }
   auto to_sort = val; // need to copy because of implace sort
   auto idx = make_node_local_allocate<std::vector<size_t>>();
   auto part_cand =
@@ -2872,6 +2886,13 @@ template <class T>
 std::shared_ptr<dfcolumn>
 typed_dfcolumn<T>::sort_with_idx(node_local<std::vector<size_t>>& idx,
                                  node_local<std::vector<size_t>>& res_idx) {
+  if(size() == 0) {
+    res_idx = make_node_local_allocate<std::vector<size_t>>();
+    auto ret = std::make_shared<typed_dfcolumn<T>>();
+    ret->val = make_node_local_allocate<std::vector<T>>();
+    ret->nulls = make_node_local_allocate<std::vector<size_t>>();
+    return ret;
+  }
   auto to_sort = val; // need to copy because of implace sort
   auto part_cand =
     to_sort.map(dfcolumn_sort_with_idx_local<T>, idx).reduce(set_merge<T>);
@@ -2935,6 +2956,13 @@ template <class T>
 std::shared_ptr<dfcolumn> typed_dfcolumn<T>::
 sort_with_idx_desc(node_local<std::vector<size_t>>& idx,
                    node_local<std::vector<size_t>>& res_idx) {
+  if(size() == 0) {
+    res_idx = make_node_local_allocate<std::vector<size_t>>();
+    auto ret = std::make_shared<typed_dfcolumn<T>>();
+    ret->val = make_node_local_allocate<std::vector<T>>();
+    ret->nulls = make_node_local_allocate<std::vector<size_t>>();
+    return ret;
+  }
   auto to_sort = val; // need to copy because of implace sort
   auto part_cand = to_sort.map(dfcolumn_sort_with_idx_local_desc<T>, idx).
     reduce(set_merge_desc<T>);
