@@ -1,1 +1,1 @@
-from mllib.decomposition import *
+from .mllib.decomposition import *
