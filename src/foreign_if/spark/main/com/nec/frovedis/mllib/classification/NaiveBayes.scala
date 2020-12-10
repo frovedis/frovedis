@@ -10,9 +10,11 @@ import org.apache.spark.mllib.regression.LabeledPoint
 import org.apache.spark.mllib.linalg.Vector
 
 class NaiveBayes private(var lambda: Double,
-                         var modelType: String) {
+                         var modelType: String,
+                         var threshold: Double) {
 						 
-  def this() = this(1.0, "multinomial")
+  def this() = this(1.0, "multinomial", 0.0)
+
   def this(lambda: Double) = {
     this()
     setLambda(lambda)
@@ -36,6 +38,13 @@ class NaiveBayes private(var lambda: Double,
    
   def getModelType(): String = this.modelType
 
+  def setBinarize(thr: Double): NaiveBayes = {
+    this.threshold = thr
+    this
+  }
+
+  def getBinarize(): Double = this.threshold
+
   def run(data: RDD[LabeledPoint]): NaiveBayesModel = {
     val fdata = new FrovedisLabeledPoint(data)
     return run(fdata,true)
@@ -49,7 +58,8 @@ class NaiveBayes private(var lambda: Double,
           movable: Boolean): NaiveBayesModel =  {
     val model_id = ModelID.get()
     val fs = FrovedisServer.getServerInstance()
-    JNISupport.callFrovedisNBM(fs.master_node,fdata.get(),lambda,model_id,modelType,movable,
+    JNISupport.callFrovedisNBM(fs.master_node,fdata.get(),lambda,threshold,
+                               model_id,modelType,movable,
                                fdata.is_dense())
     val info = JNISupport.checkServerException();
     if (info != "") throw new java.rmi.ServerException(info);
