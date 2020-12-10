@@ -21,18 +21,30 @@ class FrovedisDvector:
     def load(self, inp, dtype=None):
         if isinstance(inp, dict):
             return self.load_dummy(inp)
+        if type(inp).__name__ == 'instance' or type(inp).__name__ == 'str':
+            raise TypeError(
+                "Unsupported input encountered: " + str(type(inp)))
+
+        shape = np.shape(inp)
+        if len(shape) == 1:
+            inp = np.ravel(inp)
+        elif len(shape) == 2 and shape[1] == 1: # column-vector
+            import warnings 
+            warnings.warn("A column-vector y was passed when a 1d array was"
+                          " expected. Please change the shape of y to "
+                          "(n_samples, ), for example using ravel().",
+                          UserWarning)
+            inp = np.ravel(inp)
         else:
-            if type(inp).__name__ == 'instance' or type(inp).__name__ == 'str':
-                raise TypeError(
-                    "Unsupported input encountered: " + str(type(inp)))
-            if dtype is None: dtype = self.__dtype
-            else:
-                self.__dtype = dtype
-            if self.__dtype is not None:
-                vec = np.asarray(inp, dtype=self.__dtype)
-            else:
-                vec = np.asarray(inp)
-            return self.load_numpy_array(vec, dtype=dtype)
+            raise ValueError("bad input shape {0}".format(shape))
+        
+        if dtype is not None: 
+            self.__dtype = dtype
+        if self.__dtype is not None:
+            vec = np.asarray(inp, dtype=self.__dtype)
+        else:
+            vec = np.asarray(inp)
+        return self.load_numpy_array(vec, dtype=self.__dtype)
 
     def load_numpy_array(self, vec, dtype=None):
         self.release()
@@ -140,8 +152,7 @@ class FrovedisDvector:
             ret.__size = self.__size
             if need_logic:
                 src = np.asarray(self.get_unique_elements(), dtype=self.__dtype)
-                target = np.empty(src.size, dtype=self.__dtype)
-                for i in range(0, src.size): target[i] = i
+                target = np.arange(src.size, dtype=self.__dtype)
                 logic = dict(zip(target, src))
                 return (ret, logic)
             else:
