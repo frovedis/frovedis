@@ -27,56 +27,6 @@ size_t get_max_index(const std::vector<T>& vec) {
   return max;
 }
 
-template <class T>
-void debug_pretty_print(const rowmajor_matrix_local<T>& mat, 
-                        size_t limit = 0) {
-  auto nrow = mat.local_num_row;
-  auto ncol = mat.local_num_col;
-  if(limit == 0 || nrow <= 2 * limit) {
-    for(size_t i = 0; i < nrow; ++i) {
-      for(size_t j = 0; j < ncol; ++j) {
-        std::cout << mat.val[i * ncol + j] << " ";
-      }
-      std::cout << std::endl;
-    }
-  }
-  else {
-    for(size_t i = 0; i < limit; ++i) {
-      for(size_t j = 0; j < ncol; ++j) {
-        std::cout << mat.val[i * ncol + j] << " ";
-      }
-      std::cout << std::endl;
-    }
-    std::cout << ":\n:\n";
-    for(size_t i = nrow - limit; i < nrow; ++i) {
-      for(size_t j = 0; j < ncol; ++j) {
-        std::cout << mat.val[i * ncol + j] << " ";
-      }
-      std::cout << std::endl;
-    }
-  }
-}
-
-template <class T>
-rowmajor_matrix_local<T>
-merge(const std::vector<rowmajor_matrix_local<T>>& vec) {
-  auto nmat = vec.size();
-  if(nmat == 0) return rowmajor_matrix_local<T>();
-  size_t nrow = 0;
-  size_t ncol = vec[0].local_num_col; // all matrix should have same ncol
-  for(size_t i = 0; i < nmat; ++i) nrow += vec[i].local_num_row;
-  rowmajor_matrix_local<T> ret(nrow, ncol);
-  auto rdata = ret.val.data();
-  size_t k = 0;
-  for(size_t i = 0; i < nmat; ++i) {
-    auto vdata = vec[i].val.data();
-    auto vsize = vec[i].val.size();
-    for(size_t j = 0; j < vsize; ++j) rdata[k + j] = vdata[j];
-    k += vsize; 
-  }
-  return ret;
-}
-
 template <class ESTIMATOR, class MATRIX, class T>
 void local_fit(ESTIMATOR& estimator,
                k_fold<MATRIX, T>& kf,
@@ -191,8 +141,8 @@ struct grid_search_cv {
   }
 
   void debug_print() {
-    std::cout << "\ntrain score: \n"; debug_pretty_print(train_score, 5);
-    std::cout << "\ntest score: \n";  debug_pretty_print(test_score, 5);
+    std::cout << "\ntrain score: \n"; train_score.debug_pretty_print(5);
+    std::cout << "\ntest score: \n";  test_score.debug_pretty_print(5);
     if(refit) std::cout << "\nbest_score: " << best_score << "\n";
   }
 
