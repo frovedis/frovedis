@@ -205,7 +205,7 @@ merge_frovedis_dataframe.restype = c_long
 rename_frovedis_dataframe = LIB.rename_frovedis_dataframe
 rename_frovedis_dataframe.argtypes = [c_char_p, c_int, c_long,
                                       POINTER(c_char_p), POINTER(c_char_p),\
-                                       c_int]
+                                      c_int, c_bool]
 rename_frovedis_dataframe.restype = c_long
 
 get_min_frovedis_dataframe = LIB.min_frovedis_dataframe
@@ -405,6 +405,21 @@ transpose_frovedis_sparse_matrix.argtypes = [c_char_p, c_int,\
                                             c_long, c_short, c_short]
 transpose_frovedis_sparse_matrix.restype = py_object
 
+csr_to_rowmajor_matrix = LIB.csr_to_rowmajor_matrix
+csr_to_rowmajor_matrix.argtypes = [c_char_p, #host 
+                                   c_int,    #port
+                                   c_long,   #data
+                                   c_short,  #dtype
+                                   c_short]  #itype
+csr_to_rowmajor_matrix.restype = py_object
+
+csr_to_colmajor_matrix = LIB.csr_to_colmajor_matrix
+csr_to_colmajor_matrix.argtypes = [c_char_p, #host
+                                   c_int,    #port
+                                   c_long,   #data
+                                   c_short,  #dtype
+                                   c_short]  #itype
+csr_to_colmajor_matrix.restype = py_object
 
 compute_spmv = LIB.compute_spmv
 compute_spmv.argtypes = [c_char_p, c_int, \
@@ -1082,8 +1097,9 @@ svm_regressor_sgd.argtypes = [c_char_p, c_int, c_long, c_long, #host,port,X,y
 
 nb_train = LIB.nb_trainer
 nb_train.argtypes = [c_char_p, c_int, c_long,
-                     c_long, c_double, c_int, c_char_p, c_int,
-                     c_short, c_short, c_bool]
+                     c_long, c_double, c_int, 
+                     c_char_p, c_double,
+                     c_int, c_short, c_short, c_bool]
 
 lnr_lapack = LIB.lnr_lapack
 lnr_lapack.argtypes = [c_char_p, c_int,  # host, port
@@ -1665,3 +1681,20 @@ dt_train.argtypes = [c_char_p, c_int, c_long,
                      c_float, c_int, c_int,
                      c_short, c_short, c_bool]
 
+# --- tsne api ---
+compute_tsne = LIB.compute_tsne
+compute_tsne.argtypes = [ c_char_p, #host
+                         c_int,  #port
+                         c_long, #data
+                         c_double,  #perplexity
+                         c_double, #early_exaggeration
+                         c_double, #min_grad_norm
+                         c_double, #learning_rate
+                         c_int, #n_components
+                         c_int, #n_iter
+                         c_int, #n_iter_without_progress
+                         c_char_p, #metric
+                         c_bool, #verbose
+                         c_short #dtype
+                       ]
+compute_tsne.restype = py_object
