@@ -9,9 +9,11 @@ class DFOperator extends java.io.Serializable {
     this()
     proxy = pro
   }
-  def this(e: Expr, cols: Array[String], types: Array[Short]) = {
+  
+  def this(e: Expr, cols: Array[String], types: Array[Short],
+          rsuf: String="") = {
     this()
-    proxy = e.get_proxy(cols,types)
+    proxy = e.get_proxy(cols, types, rsuf)
   }
 
   def release () : Unit = {
