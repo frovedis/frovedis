@@ -627,6 +627,74 @@ PyObject* transpose_frovedis_sparse_matrix(const char* host, int port,
     return to_py_dummy_matrix(ret);
   }
 
+/* crs_matrix to rowmajor_matrix*/
+PyObject* csr_to_rowmajor_matrix(const char* host, int port,
+                                 long dptr, short dtype, short itype) {
+    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
+    exrpc_node fm_node(host,port);
+    auto f_dptr = (exrpc_ptr_t) dptr;
+    dummy_matrix ret;
+    try {
+      if(itype == INT){
+         switch(dtype) {
+           case DOUBLE: ret = exrpc_async(fm_node,(to_rowmajor_matrix<DT1,S_MAT14>),f_dptr).get(); break;
+           case FLOAT:  ret = exrpc_async(fm_node,(to_rowmajor_matrix<DT2,S_MAT24>),f_dptr).get(); break;
+           case LONG:   ret = exrpc_async(fm_node,(to_rowmajor_matrix<DT3,S_MAT34>),f_dptr).get(); break;
+           case INT:    ret = exrpc_async(fm_node,(to_rowmajor_matrix<DT4,S_MAT44>),f_dptr).get(); break;
+           default :    REPORT_ERROR(USER_ERROR, "Unknown crs matrix index type is encountered!\n");
+         }
+      }
+      else if(itype == LONG){
+         switch(dtype) {
+           case DOUBLE: ret = exrpc_async(fm_node,(to_rowmajor_matrix<DT1,S_MAT15>),f_dptr).get(); break;
+           case FLOAT:  ret = exrpc_async(fm_node,(to_rowmajor_matrix<DT2,S_MAT25>),f_dptr).get(); break;
+           case LONG:   ret = exrpc_async(fm_node,(to_rowmajor_matrix<DT3,S_MAT35>),f_dptr).get(); break;
+           case INT:    ret = exrpc_async(fm_node,(to_rowmajor_matrix<DT4,S_MAT45>),f_dptr).get(); break;
+           default :    REPORT_ERROR(USER_ERROR, "Unknown crs matrix index type is encountered!\n");
+         }
+      }
+      else REPORT_ERROR(USER_ERROR, "Unknown crs matrix index type is encountered!\n");
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return to_py_dummy_matrix(ret);
+  }
+
+/* crs_matrix to colmajor_matrix*/
+PyObject* csr_to_colmajor_matrix(const char* host, int port,
+                                 long dptr, short dtype, short itype) {
+    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
+    exrpc_node fm_node(host,port);
+    auto f_dptr = (exrpc_ptr_t) dptr;
+    dummy_matrix ret;
+    try {
+      if(itype == INT){
+         switch(dtype) {
+           case DOUBLE: ret = exrpc_async(fm_node,(to_colmajor_matrix<DT1,S_MAT14>),f_dptr).get(); break;
+           case FLOAT:  ret = exrpc_async(fm_node,(to_colmajor_matrix<DT2,S_MAT24>),f_dptr).get(); break;
+           case LONG:   ret = exrpc_async(fm_node,(to_colmajor_matrix<DT3,S_MAT34>),f_dptr).get(); break;
+           case INT:    ret = exrpc_async(fm_node,(to_colmajor_matrix<DT4,S_MAT44>),f_dptr).get(); break;
+           default :    REPORT_ERROR(USER_ERROR, "Unknown crs matrix index type is encountered!\n");
+         }
+      }
+      else if(itype == LONG){
+         switch(dtype) {
+           case DOUBLE: ret = exrpc_async(fm_node,(to_colmajor_matrix<DT1,S_MAT15>),f_dptr).get(); break;
+           case FLOAT:  ret = exrpc_async(fm_node,(to_colmajor_matrix<DT2,S_MAT25>),f_dptr).get(); break;
+           case LONG:   ret = exrpc_async(fm_node,(to_colmajor_matrix<DT3,S_MAT35>),f_dptr).get(); break;
+           case INT:    ret = exrpc_async(fm_node,(to_colmajor_matrix<DT4,S_MAT45>),f_dptr).get(); break;
+           default :    REPORT_ERROR(USER_ERROR, "Unknown crs matrix index type is encountered!\n");
+         }
+      }
+      else REPORT_ERROR(USER_ERROR, "Unknown crs matrix index type is encountered!\n");
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return to_py_dummy_matrix(ret);
+  }
+
   PyObject* compute_spmv(const char* host, int port,
                          long dptr, long vptr, 
                          short dtype, short itype) {
