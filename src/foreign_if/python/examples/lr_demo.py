@@ -2,9 +2,9 @@
 
 import sys
 import numpy as np
-from frovedis.exrpc.server import FrovedisServer
-from frovedis.matrix.crs import FrovedisCRSMatrix
-from frovedis.matrix.dvector import FrovedisDvector
+np.set_printoptions(threshold=5)
+
+#from sklearn.linear_model import LogisticRegression 
 from frovedis.mllib.linear_model import LogisticRegression 
 
 # initializing the Frovedis server
@@ -13,10 +13,13 @@ argc = len(argvs)
 if (argc < 2):
     print ('Please give frovedis_server calling command as the first argument \n(e.g. "mpirun -np 2 -x /opt/nec/nosupport/frovedis/ve/bin/frovedis_server")')
     quit()
+
+from frovedis.exrpc.server import FrovedisServer
 FrovedisServer.initialize(argvs[1])
 
-mat = FrovedisCRSMatrix(dtype=np.float64).load("./input/libSVMFile.txt")
-lbl = [1,0,1,1,1,0,1,1]
+# classification data
+from sklearn.datasets import load_breast_cancer
+mat, lbl = load_breast_cancer(return_X_y=True)
 
 # fitting input matrix and label on logistic regression object
 lr = LogisticRegression(solver='lbfgs', C=1.0, verbose=0).fit(mat,lbl)
@@ -59,6 +62,5 @@ print(lr.intercept_)
 print("classes: ")
 print(lr.classes_)
 
-lr.release()
-
+#lr.release()
 FrovedisServer.shut_down()
