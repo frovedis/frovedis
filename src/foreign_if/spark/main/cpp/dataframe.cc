@@ -319,15 +319,18 @@ JNIEXPORT jobjectArray JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getFroved
 
 JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_renameFrovedisDataframe
   (JNIEnv *env, jclass thisCls, jobject master_node, jlong dftbl,
-   jobjectArray names, jobjectArray new_names, jint size) {
+   jobjectArray names, jobjectArray new_names, jint size,
+   jboolean needs_materialize) {
 
   auto fm_node = java_node_to_frovedis_node(env, master_node);
   auto df_proxy = static_cast<exrpc_ptr_t> (dftbl);
   auto cols = to_string_vector(env,names,size);
   auto new_cols = to_string_vector(env,new_names,size);
+  auto needs_materialize_ = (bool) needs_materialize;
   exrpc_ptr_t ret = 0;
   try {
-    ret = exrpc_async(fm_node,frovedis_df_rename,df_proxy,cols,new_cols).get();
+    ret = exrpc_async(fm_node,frovedis_df_rename,df_proxy,cols,
+                      new_cols,needs_materialize_).get();
   }
   catch(std::exception& e) { set_status(true,e.what()); }
   return (jlong) ret;
@@ -448,27 +451,20 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_releaseSparseConv
   catch(std::exception& e) { set_status(true,e.what()); }
 }
 
-// multi-eq join
-JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getMultiEqDfopt
+JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getCrossDfopt
                      (JNIEnv *env, jclass thisCls,
-                      jobject master_node,
-                      jobjectArray left_on,
-                      jobjectArray right_on,
-                      jlong sz) {
-  
+                      jobject master_node) {
+                       
   auto fm_node = java_node_to_frovedis_node(env, master_node);
-  auto left_cols = to_string_vector(env, left_on, sz);
-  auto right_cols = to_string_vector(env, right_on, sz);
-
+ 
   exrpc_ptr_t ret_proxy = 0;
   try {
-    ret_proxy = exrpc_async(fm_node, frov_multi_eq_dfopt, left_cols, right_cols).get();
+    ret_proxy = exrpc_async0(fm_node,frov_cross_join_dfopt).get();
   }
   catch (std::exception& e) {
     set_status(true, e.what());
   }
   return (jlong) ret_proxy;
 }
-
 
 }
