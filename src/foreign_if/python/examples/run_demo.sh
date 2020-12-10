@@ -23,6 +23,7 @@ python pblas_demo.py "$COMMAND"
 python scalapack_demo.py "$COMMAND"
 python truncated_svd_demo.py "$COMMAND"
 python pca_demo.py "$COMMAND"
+python tsne_demo.py "$COMMAND"
 
 # --- ML Demo ---
 python lr_demo.py "$COMMAND"
@@ -37,7 +38,7 @@ python svc_demo.py "$COMMAND"
 python dt_demo.py "$COMMAND"
 python rf_demo.py "$COMMAND"
 python gbt_demo.py "$COMMAND"
-python nbm_demo.py "$COMMAND"
+python naive_bayes_demo.py "$COMMAND"
 python fm_demo.py "$COMMAND"
 
 python kmeans_demo.py "$COMMAND"
