@@ -172,6 +172,26 @@ int get_local_nrows_int(crs_matrix_local<T,I,O>& mat) {
 }
 
 template <class T, class I, class O>
+int check_negative_cycle(crs_matrix_local<T, I, O>& mat,
+                         std::vector<I>& rowid,
+                         std::vector<T>& dist,
+                         size_t myst) {
+  auto nedges = mat.val.size();
+  auto mvalp = mat.val.data();
+  auto sidp = mat.idx.data();
+  auto didp = rowid.data();
+  auto distp = dist.data();
+  auto Tmax = std::numeric_limits<T>::max();
+  size_t i = 0;
+  for(i = 0; i < nedges; ++i) {
+    auto src = sidp[i];
+    auto dst = didp[i];
+    if(distp[src] != Tmax && ((distp[src] + mvalp[i]) < distp[dst + myst])) break;
+  }
+  return (i == nedges) ? 0 : 1;
+}
+
+template <class T, class I, class O>
 std::vector<T>
 calc_sssp_bf(crs_matrix_local<T, I, O>& mat,
              std::vector<I>& rowid,
@@ -213,6 +233,10 @@ calc_sssp_bf(crs_matrix_local<T, I, O>& mat,
     t_iter.lap_stop();
     if(myrank == 0) t_iter.show_lap("One iteration: ");
   }
+  int sum_neg = 0;
+  int is_neg = check_negative_cycle(mat, rowid, dist, myst);
+  typed_allreduce(&is_neg, &sum_neg, 1, MPI_SUM, frovedis_comm_rpc);
+  require(sum_neg == 0, "sssp: negative cost cycle is detected!");
   return dist;
 }
 
