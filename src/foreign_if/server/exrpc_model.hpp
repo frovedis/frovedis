@@ -659,8 +659,20 @@ dtm_predict_at_worker(MATRIX& data,
   if(!prob) return model.predict(data);
   else {
     auto tmp = model.predict_with_probability(data);
-    std::vector<T> ret(tmp.size());
-    for(size_t i = 0; i < tmp.size(); ++i) ret[i] = tmp[i].get_probability();
+    auto nsamples = tmp.size();
+    auto nclasses = 2; // supports only binary classification 
+    // TODO: raise exception if nclasses > 2
+    auto retsz =  nsamples * nclasses; 
+    std::vector<T> ret(retsz);
+    auto rptr = ret.data();
+    auto tptr = tmp.data();
+    for(size_t i = 0; i < nsamples; ++i) {
+      auto probability = tptr[i].get_probability();
+      auto pred_id = static_cast<int>(tptr[i].get_predict()); // 0 or 1
+      auto non_pred_id = !pred_id; // 1 or 0
+      rptr[i * 2 + pred_id] = probability;
+      rptr[i * 2 + non_pred_id] = static_cast<T>(1.0) - probability;
+    }
     return ret;
   }
 }
