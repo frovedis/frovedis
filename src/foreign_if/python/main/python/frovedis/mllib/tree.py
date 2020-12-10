@@ -60,7 +60,7 @@ class DecisionTreeRegressor(BaseEstimator):
         self.min_info_gain = min_info_gain
         self.max_bins = max_bins
         self.algo = "Regression"
-        self.n_classes_ = 0
+        self.n_classes_ = 0 
 
     #To validate the input parameters
     def validate(self):
@@ -80,9 +80,6 @@ class DecisionTreeRegressor(BaseEstimator):
             raise ValueError("Value of min_info_gain should be greater than 0")
         if self.max_bins < 0:
             raise ValueError("Value of max_bin should be greater than 0")
-        if self.n_classes_ < 0:
-            raise ValueError(\
-            "Value of number of classes should be +ve integer or zero!")
         if self.min_samples_leaf < 0:
             raise ValueError(\
             "Value of min_samples_leaf should be greater than 0!")
@@ -94,12 +91,14 @@ class DecisionTreeRegressor(BaseEstimator):
         """
         self.validate()
         self.release()
-        self.__mid = ModelID.get()
-        inp_data = FrovedisLabeledPoint(X, y)
-        (X, y) = inp_data.get()
+        inp_data = FrovedisLabeledPoint(X, y, \
+                   caller = "[" + self.__class__.__name__ + "] fit: ", \
+                   dense_kind='colmajor', densify=True)
+        X, y = inp_data.get()
         dtype = inp_data.get_dtype()
         itype = inp_data.get_itype()
         dense = inp_data.is_dense()
+        self.__mid = ModelID.get()
         self.__mdtype = dtype
         (host, port) = FrovedisServer.getServerInstance()
         rpclib.dt_train(host, port, X.get(), y.get(), \
@@ -269,9 +268,6 @@ class DecisionTreeClassifier(BaseEstimator):
         if self.min_samples_leaf < 0:
             raise ValueError(\
             "Value of min_samples_leaf should be greater than 0!")
-        if self.n_classes_ < 0:
-            raise ValueError(\
-            "Value of number of classes should be +ve integer or zero!")
 
     # Fit Decision Tree classifier according to X (input data), y (Label)
     def fit(self, X, y):
@@ -280,29 +276,24 @@ class DecisionTreeClassifier(BaseEstimator):
         """
         # release old model, if any
         self.release()
-        # perform the fit
-        self.__mid = ModelID.get()
-        inp_data = FrovedisLabeledPoint(X, y)
-        (X, y) = inp_data.get()
+        self.validate()
+        # for binary case: frovedis supports 0 and 1
+        inp_data = FrovedisLabeledPoint(X, y, \
+                   caller = "[" + self.__class__.__name__ + "] fit: ",\
+                   encode_label = True, binary_encoder=[0, 1], \
+                   dense_kind = 'colmajor', densify=True)
+        X, y, logic = inp_data.get()
+        self._classes = inp_data.get_distinct_labels()
+        self.n_classes_ = len(self._classes)
+        self.label_map = logic
         dtype = inp_data.get_dtype()
         itype = inp_data.get_itype()
         dense = inp_data.is_dense()
-        unique_labels = inp_data.get_distinct_labels()
-        self.n_classes_ = unique_labels.size
+        self.__mid = ModelID.get()
         self.__mdtype = dtype
-        # validate hyper-parameters
-        self.validate()
-        if self.n_classes_ > 2:
-            encoded_y, logic = y.encode(need_logic=True)
-        elif self.n_classes_ == 2:
-            target = [0, 1]
-            encoded_y, logic = y.encode(unique_labels, target, need_logic=True)
-        else:
-            raise ValueError(\
-                "fit: number of unique labels in y are less than 2")
-        self.label_map = logic
+
         (host, port) = FrovedisServer.getServerInstance()
-        rpclib.dt_train(host, port, X.get(), encoded_y.get(), \
+        rpclib.dt_train(host, port, X.get(), y.get(), \
                         self.algo.encode('ascii'), \
                         self.criterion.encode('ascii'),\
                         self.max_depth, self.n_classes_, \
@@ -314,6 +305,23 @@ class DecisionTreeClassifier(BaseEstimator):
             raise RuntimeError(excpt["info"])
         return self
 
+    @property
+    def classes_(self):
+        """classes_ getter"""
+        if self.__mid is not None:
+            if self._classes is None:
+                self._classes = np.sort(list(self.label_map.values()))
+            return self._classes
+        else:
+            raise AttributeError("attribute 'classes_' \
+               might have been released or called before fit")
+
+    @classes_.setter
+    def classes_(self, val):
+        """classes_ setter"""
+        raise AttributeError(\
+            "attribute 'classes_' of DecisionTreeClassifier object is not writable")
+
     # Perform classification on an array of test vectors X.
     def predict(self, X):
         """
@@ -322,9 +330,8 @@ class DecisionTreeClassifier(BaseEstimator):
         if self.__mid is not None:
             frov_pred = GLM.predict(X, self.__mid, self.__mkind, \
                                self.__mdtype, False)
-            new_pred = \
-            [self.label_map[frov_pred[i]] for i in range(0, len(frov_pred))]
-            return np.asarray(new_pred, dtype=np.int64)
+            return np.asarray([self.label_map[frov_pred[i]] \
+                       for i in range(0, len(frov_pred))])
         else:
             raise ValueError(\
             "predict is called before calling fit, or the model is released.")
@@ -337,15 +344,23 @@ class DecisionTreeClassifier(BaseEstimator):
         """
         if self.__mid is not None:
             if(self.n_classes_ > 2):
-                raise AttributeError("Frovedis DecisionTreeClassifier doesn't support" \
-                                     + " predict_proba() for multinomial classification!")
+                raise AttributeError("Frovedis DecisionTreeClassifier does" + \
+                " not support predict_proba() for multinomial classification!")
             pred = GLM.predict(X, self.__mid, self.__mkind, \
+                               self.__mdtype, False)
+            proba = GLM.predict(X, self.__mid, self.__mkind, \
                                self.__mdtype, True)
-            # TODO: Perform (1.0 - pred) from within frovedis library
-            return np.asarray(pred).reshape((len(pred), 1)) 
+            n = len(pred)
+            ret = np.empty((n, 2), dtype=np.float64)
+            # TODO: Perform (1.0 - pred) from within frovedis library itself
+            for i in range(0, n):
+                lblid = int(pred[i])
+                ret[i][lblid] = proba[i]
+                ret[i][1 ^ lblid] = 1.0 - proba[i]
+            return ret
         else:
-            raise ValueError(\
-            "predict is called before calling fit, or the model is released.")
+            raise ValueError("predict_proba is called before calling fit," + \
+                             " or the model is released.")
 
     # Load the model from a file
     def load(self, fname, dtype=None):
@@ -359,6 +374,7 @@ class DecisionTreeClassifier(BaseEstimator):
         target = open(fname+"/label_map", "rb")
         self.label_map = pickle.load(target)
         target.close()
+        self._classes = np.sort(list(self.label_map.values()))
         metadata = open(fname+"/metadata", "rb")
         self.n_classes_, self.__mkind, self.__mdtype = pickle.load(metadata)
         metadata.close()
@@ -379,7 +395,6 @@ class DecisionTreeClassifier(BaseEstimator):
         """
         if self.__mid is not None:
             return accuracy_score(y, self.predict(X))
-
 
     # Save model to a file
     def save(self, fname):
