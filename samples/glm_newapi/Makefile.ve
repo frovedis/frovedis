@@ -1,0 +1,25 @@
+TARGETS := lnr lasso ridge lr linsvc linsvr
+include ../Makefile.in.ve
+include ../Makefile.common
+
+TO_INSTALL := lnr.cc lasso.cc ridge.cc lr.cc linsvc.cc linsvr.cc
+DIR := glm
+ARCH := ve
+
+lnr: lnr.o
+	${LINK} -o lnr lnr.o ${LIBS}
+
+lasso: lasso.o
+	${LINK} -o lasso lasso.o ${LIBS}
+
+ridge: ridge.o
+	${LINK} -o ridge ridge.o ${LIBS}
+
+lr: lr.o
+	${LINK} -o lr lr.o ${LIBS}
+
+linsvc: linsvc.o
+	${LINK} -o linsvc linsvc.o ${LIBS}
+
+linsvr: linsvr.o
+	${LINK} -o linsvr linsvr.o ${LIBS}

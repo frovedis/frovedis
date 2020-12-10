@@ -1,0 +1,26 @@
+TARGETS := lr #lnr lasso ridge linsvc linsvr
+include ../Makefile.in.x86
+include ../Makefile.common
+
+TO_INSTALL := lnr.cc lasso.cc ridge.cc lr.cc linsvc.cc linsvr.cc
+DIR := glm
+ARCH := x86
+
+lnr: lnr.o
+	${MPICXX} ${CXXFLAGS} -o lnr lnr.o ${LIBS}
+
+lasso: lasso.o
+	${MPICXX} ${CXXFLAGS} -o lasso lasso.o ${LIBS}
+
+ridge: ridge.o
+	${MPICXX} ${CXXFLAGS} -o ridge ridge.o ${LIBS}
+
+lr: lr.o
+	${MPICXX} ${CXXFLAGS} -o lr lr.o ${LIBS}
+
+linsvc: linsvc.o
+	${MPICXX} ${CXXFLAGS} -o linsvc linsvc.o ${LIBS}
+
+linsvr: linsvr.o
+	${MPICXX} ${CXXFLAGS} -o linsvr linsvr.o ${LIBS}
+
