@@ -36,6 +36,7 @@ object M_KIND {
   val RFM: Short = 23
   val GBT: Short = 24
   val SVR: Short = 25
+  val KSVC: Short = 26
 }
 
 object ModelID {
