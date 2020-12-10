@@ -301,6 +301,70 @@ colmajor_matrix<T> operator*(const colmajor_matrix<T>& aa,
 }
 
 template <class T>
+colmajor_matrix_local<T>
+binarize(colmajor_matrix_local<T>& mat,
+         const T& threshold = 0) {
+  auto v = vector_binarize(mat.val, threshold);
+  colmajor_matrix_local<T> ret;
+  ret.val.swap(v);
+  ret.local_num_row = mat.local_num_row;
+  ret.local_num_col = mat.local_num_col;
+  return ret;
+}
+
+// if you need to invoke binarize() for local colmajor matrix from map(),
+// invoke this function. Otherwise function pointer resolution issue might occur.
+template <class T>
+colmajor_matrix_local<T>
+cmm_binarize(colmajor_matrix_local<T>& mat,
+             const T& threshold = 0) {
+  return binarize(mat, threshold);
+}
+
+template <class T>
+colmajor_matrix<T>
+binarize(colmajor_matrix<T>& mat, const T& threshold = 0) {
+  colmajor_matrix<T> ret(mat.data.map(cmm_binarize<T>, broadcast(threshold)));
+  ret.num_row = mat.num_row;
+  ret.num_col = mat.num_col;
+  return ret;
+}
+
+template <class T>
+T sum_of_elements(colmajor_matrix_local<T>& mat) {
+  return vector_sum(mat.val);
+}
+
+// if you need to invoke sum_of_elements() for local colmajor matrix from map(),
+// invoke this function. Otherwise function pointer resolution issue might occur.
+template <class T>
+T cmm_sum_of_elements(colmajor_matrix_local<T>& mat) {
+  return sum_of_elements(mat);
+}
+
+template <class T>
+T sum_of_elements(colmajor_matrix<T>& mat) {
+  return mat.data.map(cmm_sum_of_elements<T>).reduce(add<T>);
+}
+
+template <class T>
+T squared_sum_of_elements(colmajor_matrix_local<T>& mat) {
+  return vector_squared_sum(mat.val);
+}
+
+// if you need to invoke squared_sum_of_elements() for local colmajor matrix from map(),
+// invoke this function. Otherwise function pointer resolution issue might occur.
+template <class T>
+T cmm_squared_sum_of_elements(colmajor_matrix_local<T>& mat) {
+  return squared_sum_of_elements(mat);
+}
+
+template <class T>
+T squared_sum_of_elements(colmajor_matrix<T>& mat) {
+  return mat.data.map(cmm_squared_sum_of_elements<T>).reduce(add<T>);
+}
+
+template <class T>
 std::vector<T>
 sum_of_rows(colmajor_matrix_local<T>& mat) {
   auto nrow = mat.local_num_row;
@@ -312,6 +376,20 @@ sum_of_rows(colmajor_matrix_local<T>& mat) {
     for (size_t j = 0; j < nrow; ++j) retp[i] += mvalp[i * nrow + j];
   }
   return ret;
+}
+
+// if you need to invoke sum_of_rows() for local colmajor matrix from map(),
+// invoke this function. Otherwise function pointer resolution issue might occur.
+template <class T>
+std::vector<T>
+cmm_sum_of_rows(colmajor_matrix_local<T>& mat) {
+  return sum_of_rows(mat);
+}
+
+template <class T>
+std::vector<T>
+sum_of_rows(colmajor_matrix<T>& mat) {
+  return mat.data.map(cmm_sum_of_rows<T>).vector_sum();
 }
 
 template <class T>
@@ -330,8 +408,83 @@ squared_sum_of_rows(colmajor_matrix_local<T>& mat) {
   return ret;
 }
 
+// if you need to invoke squared_sum_of_rows() for local colmajor matrix from map(),
+// invoke this function. Otherwise function pointer resolution issue might occur.
 template <class T>
-void colmajor_sub_vector_row(colmajor_matrix_local<T>& m, std::vector<T>& v) {
+std::vector<T>
+cmm_squared_sum_of_rows(colmajor_matrix_local<T>& mat) {
+  return squared_sum_of_rows(mat);
+}
+
+template <class T>
+std::vector<T>
+squared_sum_of_rows(colmajor_matrix<T>& mat) {
+  return mat.data.map(cmm_squared_sum_of_rows<T>).vector_sum();
+}
+
+template <class T>
+std::vector<T>
+sum_of_cols(colmajor_matrix_local<T>& mat) {
+  auto nrow = mat.local_num_row;
+  auto ncol = mat.local_num_col;
+  std::vector<T> ret(nrow, 0);
+  auto retp = ret.data();
+  auto mvalp = mat.val.data();
+  for (size_t i = 0; i < ncol; ++i) {
+    for (size_t j = 0; j < nrow; ++j) retp[j] += mvalp[i * nrow + j];
+  }
+  return ret;
+}
+
+// if you need to invoke sum_of_cols() for local colmajor matrix from map(),
+// invoke this function. Otherwise function pointer resolution issue might occur.
+template <class T>
+std::vector<T>
+cmm_sum_of_cols(colmajor_matrix_local<T>& mat) {
+  return sum_of_cols(mat);
+}
+
+template <class T>
+std::vector<T>
+sum_of_cols(colmajor_matrix<T>& mat) {
+  return mat.data.map(cmm_sum_of_cols<T>)
+                  .template moveto_dvector<T>().gather();
+}
+
+template <class T>
+std::vector<T>
+squared_sum_of_cols(colmajor_matrix_local<T>& mat) {
+  auto nrow = mat.local_num_row;
+  auto ncol = mat.local_num_col;
+  std::vector<T> ret(nrow, 0);
+  auto retp = ret.data();
+  auto mvalp = mat.val.data();
+  for (size_t i = 0; i < ncol; ++i) {
+    for (size_t j = 0; j < nrow; ++j) {
+      retp[j] += (mvalp[i * nrow + j] * mvalp[i * nrow + j]);
+    }
+  }
+  return ret;
+}
+
+// if you need to invoke squared_sum_of_cols() for local colmajor matrix from map(),
+// invoke this function. Otherwise function pointer resolution issue might occur.
+template <class T>
+std::vector<T>
+cmm_squared_sum_of_cols(colmajor_matrix_local<T>& mat) {
+  return squared_sum_of_cols(mat);
+}
+
+template <class T>
+std::vector<T>
+squared_sum_of_cols(colmajor_matrix<T>& mat) {
+  return mat.data.map(cmm_squared_sum_of_cols<T>)
+                 .template moveto_dvector<T>().gather();
+}
+
+template <class T>
+void colmajor_sub_vector_row(colmajor_matrix_local<T>& m, 
+                                std::vector<T>& v) {
   size_t ncol = m.local_num_col;
   size_t nrow = m.local_num_row;
   if(ncol != v.size())
@@ -374,18 +527,30 @@ void scale_matrix(colmajor_matrix<T>& mat, std::vector<T>& vec) {
   mat.data.mapv(colmajor_mul_vector_row<T>, broadcast(vec));
 } 
 
-// TODO: Add axis parameter to support row-wise mean
 template <class T>
 std::vector<T>
-compute_mean(colmajor_matrix<T>& mat) { // column-wise mean
-  if(mat.num_row  == 0)
+compute_mean(colmajor_matrix_local<T>& mat, int axis = -1) {
+  auto nrow = mat.local_num_row;
+  auto ncol = mat.local_num_col;
+  if(nrow == 0)
     throw std::runtime_error("matrix with ZERO rows for mean computation!");
-  auto ret = mat.data.map(+[](colmajor_matrix_local<T>& m)
-                       {return sum_of_rows(m);}).vector_sum();
-  T to_mul = static_cast<T>(1)/static_cast<T>(mat.num_row); // for performance
-  auto retp = ret.data();
-  for(size_t i = 0; i < ret.size(); ++i) retp[i] *= to_mul; // average
-  return ret;
+  if (axis != 0 && axis != 1) return std::vector<T>(1, vector_mean(mat.val));
+  auto ret = (axis == 0) ? cmm_sum_of_rows(mat) : cmm_sum_of_cols(mat);
+  return (axis == 0) ? vector_divide(ret, (T)nrow) : vector_divide(ret, (T)ncol);
+}
+
+template <class T>
+std::vector<T>
+compute_mean(colmajor_matrix<T>& mat, int axis = -1) {
+  auto nrow = mat.num_row;
+  auto ncol = mat.num_col;
+  if(nrow == 0)
+    throw std::runtime_error("matrix with ZERO rows for mean computation!");
+  if (axis != 0 && axis != 1) {
+    return std::vector<T>(1, sum_of_elements(mat) / (nrow * ncol));
+  }
+  auto ret = (axis == 0) ? sum_of_rows(mat) : sum_of_cols(mat);
+  return (axis == 0) ? vector_divide(ret, (T)nrow) : vector_divide(ret, (T)ncol);
 }
 
 template <class T>
@@ -458,7 +623,7 @@ void standardize(colmajor_matrix<T>& mat,
 
 template <class T>
 void standardize(colmajor_matrix<T>& mat, bool sample_stddev = true) {
-  auto mean = compute_mean(mat); // column-wise mean
+  auto mean = compute_mean(mat, 0); // column-wise mean
   standardize(mat, mean, sample_stddev);
 }
 

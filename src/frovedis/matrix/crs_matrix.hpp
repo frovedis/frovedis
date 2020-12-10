@@ -1010,6 +1010,11 @@ size_t crs_get_local_num_col(crs_matrix_local<T,I,O>& mat) {
 }
 
 template <class T, class I, class O>
+size_t crs_get_local_active_elements(crs_matrix_local<T,I,O>& mat) {
+  return mat.val.size();
+}
+
+template <class T, class I, class O>
 std::vector<size_t> crs_matrix<T,I,O>::get_local_num_rows() {
   return data.map(crs_get_local_num_row<T,I,O>).gather();
 }
@@ -2383,13 +2388,78 @@ void rebalance_for_spmm(crs_matrix<T,I,O>& crs, shared_vector<T>& input,
     });
   crs.align_as(sizes);
 }
-
 #endif
 
 template <class T, class I, class O>
+crs_matrix_local<T,I,O>
+binarize(crs_matrix_local<T,I,O>& mat,
+         const T& threshold = 0) {
+  auto v = vector_binarize(mat.val, threshold);
+  crs_matrix_local<T,I,O> ret;
+  ret.val.swap(v);
+  ret.idx = mat.idx;
+  ret.off = mat.off;
+  ret.local_num_row = mat.local_num_row;
+  ret.local_num_col = mat.local_num_col;
+  return ret;
+}
+
+// if you need to invoke binarize() for local crs matrix from map(),
+// invoke this function. Otherwise function pointer resolution issue might occur.
+template <class T, class I, class O>
+crs_matrix_local<T,I,O>
+crs_binarize(crs_matrix_local<T,I,O>& mat,
+             const T& threshold = 0) {
+  return binarize(mat, threshold);
+}
+
+template <class T, class I, class O>
+crs_matrix<T,I,O>
+binarize(crs_matrix<T,I,O>& mat, const T& threshold = 0) {
+  crs_matrix<T,I,O> ret(mat.data.map(crs_binarize<T,I,O>, broadcast(threshold)));
+  ret.num_row = mat.num_row;
+  ret.num_col = mat.num_col;
+  return ret;
+}
+
+template <class T, class I, class O>
+T sum_of_elements(crs_matrix_local<T,I,O>& mat) {
+  return vector_sum(mat.val);
+}
+
+// if you need to invoke sum_of_elements() for local crs matrix from map(),
+// invoke this function. Otherwise function pointer resolution issue might occur.
+template <class T, class I, class O>
+T crs_sum_of_elements(crs_matrix_local<T,I,O>& mat) {
+  return sum_of_elements(mat);
+}
+
+template <class T, class I, class O>
+T sum_of_elements(crs_matrix<T,I,O>& mat) {
+  return mat.data.map(crs_sum_of_elements<T,I,O>).reduce(add<T>);
+}
+
+template <class T, class I, class O>
+T squared_sum_of_elements(crs_matrix_local<T,I,O>& mat) {
+  return vector_squared_sum(mat.val);
+}
+
+// if you need to invoke squared_sum_of_elements() for local crs matrix from map(),
+// invoke this function. Otherwise function pointer resolution issue might occur.
+template <class T, class I, class O>
+T crs_squared_sum_of_elements(crs_matrix_local<T,I,O>& mat) {
+  return squared_sum_of_elements(mat);
+}
+
+template <class T, class I, class O>
+T squared_sum_of_elements(crs_matrix<T,I,O>& mat) {
+  return mat.data.map(crs_squared_sum_of_elements<T,I,O>).reduce(add<T>);
+}
+
+template <class T, class I, class O>
 std::vector<T>
-sum_of_rows_helper(crs_matrix_local<T, I, O>& mat,
-                   std::vector<I>& count) {
+sum_of_rows(crs_matrix_local<T, I, O>& mat,
+            std::vector<I>& count) {
   auto nrow = mat.local_num_row;
   auto ncol = mat.local_num_col;
   std::vector<T> ret(ncol);
@@ -2411,18 +2481,44 @@ sum_of_rows_helper(crs_matrix_local<T, I, O>& mat,
 
 template <class T, class I, class O>
 std::vector<T>
+sum_of_rows(crs_matrix_local<T, I, O>& mat) {
+  std::vector<I> count;
+  return sum_of_rows(mat, count);
+}
+
+// if you need to invoke sum_of_rows() for local crs matrix from map(), 
+// invoke this function. Otherwise function pointer resolution issue might occur.
+template <class T, class I, class O>
+std::vector<T>
+crs_sum_of_rows(crs_matrix_local<T, I, O>& mat,
+                std::vector<I>& count) {
+  return sum_of_rows(mat, count);
+}
+
+template <class T, class I, class O>
+std::vector<T>
 sum_of_rows(crs_matrix<T, I, O>& mat,
             std::vector<I>& count) {
   auto lcount = make_node_local_allocate<std::vector<I>>();
-  auto sum = mat.data.map(sum_of_rows_helper<T,I,O>, lcount).vector_sum();
+  auto sum = mat.data.map(crs_sum_of_rows<T,I,O>, lcount)
+                     .vector_sum();
   count = lcount.vector_sum();
   return sum;
 }
 
 template <class T, class I, class O>
 std::vector<T>
-squared_sum_of_rows_helper(crs_matrix_local<T, I, O>& mat,
-                           std::vector<I>& count) {
+sum_of_rows(crs_matrix<T, I, O>& mat) {
+  auto lcount = make_node_local_allocate<std::vector<I>>();
+  auto sum = mat.data.map(crs_sum_of_rows<T,I,O>, lcount)
+                     .vector_sum();
+  return sum;
+}
+
+template <class T, class I, class O>
+std::vector<T>
+squared_sum_of_rows(crs_matrix_local<T, I, O>& mat,
+                    std::vector<I>& count) {
   auto nrow = mat.local_num_row;
   auto ncol = mat.local_num_col;
   std::vector<T> ret(ncol);
@@ -2444,12 +2540,170 @@ squared_sum_of_rows_helper(crs_matrix_local<T, I, O>& mat,
 
 template <class T, class I, class O>
 std::vector<T>
+squared_sum_of_rows(crs_matrix_local<T, I, O>& mat) {
+  std::vector<I> count;
+  return squared_sum_of_rows(mat, count);
+}
+
+// if you need to invoke squared_sum_of_rows() for local crs matrix from map(), 
+// invoke this function. Otherwise function pointer resolution issue might occur.
+template <class T, class I, class O>
+std::vector<T>
+crs_squared_sum_of_rows(crs_matrix_local<T, I, O>& mat,
+                        std::vector<I>& count) {
+  return squared_sum_of_rows(mat, count);
+}
+
+template <class T, class I, class O>
+std::vector<T>
 squared_sum_of_rows(crs_matrix<T, I, O>& mat,
                     std::vector<I>& count) {
   auto lcount = make_node_local_allocate<std::vector<I>>();
-  auto sqsum = mat.data.map(squared_sum_of_rows_helper<T,I,O>, lcount).vector_sum();
+  auto sqsum = mat.data.map(crs_squared_sum_of_rows<T,I,O>, lcount)
+                       .vector_sum();
   count = lcount.vector_sum();
   return sqsum;
+}
+
+template <class T, class I, class O>
+std::vector<T>
+squared_sum_of_rows(crs_matrix<T, I, O>& mat) {
+  auto lcount = make_node_local_allocate<std::vector<I>>();
+  auto sqsum = mat.data.map(crs_squared_sum_of_rows<T,I,O>, lcount)
+                       .vector_sum();
+  return sqsum;
+}
+
+template <class T, class I, class O>
+std::vector<T>
+sum_of_cols(crs_matrix_local<T,I,O>& mat,
+            std::vector<I>& count) {
+  auto nrow = mat.local_num_row;
+  std::vector<T> sum_vec(nrow, 0);
+  count.resize(nrow);
+  auto mvalp = mat.val.data();
+  auto moffp = mat.off.data();
+  auto sumvecp = sum_vec.data();
+  auto countp = count.data();
+  size_t maxlen = 0;
+  for (size_t i = 0; i < nrow; ++i) {
+    auto rowlen = moffp[i+1] - moffp[i];
+    if (rowlen > maxlen) maxlen = rowlen;
+    countp[i] = rowlen;
+  }
+
+  for (size_t i = 0; i < maxlen; ++i) { // iterates on columns (left -> right)
+    for (size_t j = 0; j < nrow; ++j) { // iterates on rows (top -> bottom)
+      int rem = moffp[j+1] - moffp[j] - i; 
+      if (rem > 0) {
+        auto idx = moffp[j] + i;
+        sumvecp[j] += mvalp[idx];
+      }
+    }
+  }
+  return sum_vec;
+}
+
+template <class T, class I, class O>
+std::vector<T>
+sum_of_cols(crs_matrix_local<T,I,O>& mat) {
+  std::vector<I> count;
+  return sum_of_cols(mat, count);
+}
+
+// if you need to invoke sum_of_cols() for local crs matrix from map(),
+// invoke this function. Otherwise function pointer resolution issue might occur.
+template <class T, class I, class O>
+std::vector<T>
+crs_sum_of_cols(crs_matrix_local<T, I, O>& mat,
+                std::vector<I>& count) {
+  return sum_of_cols(mat, count);
+}
+
+template <class T, class I, class O>
+std::vector<T>
+sum_of_cols(crs_matrix<T, I, O>& mat,
+            std::vector<I>& count) {
+  auto lcount = make_node_local_allocate<std::vector<I>>();
+  auto sum = mat.data.map(crs_sum_of_cols<T,I,O>, lcount)
+                     .template moveto_dvector<T>().gather();
+  count = lcount.template moveto_dvector<I>().gather();
+  return sum;
+}
+
+template <class T, class I, class O>
+std::vector<T>
+sum_of_cols(crs_matrix<T, I, O>& mat) {
+  auto lcount = make_node_local_allocate<std::vector<I>>();
+  auto sum = mat.data.map(crs_sum_of_cols<T,I,O>, lcount)
+                     .template moveto_dvector<T>().gather();
+  return sum;
+}
+
+template <class T, class I, class O>
+std::vector<T>
+squared_sum_of_cols(crs_matrix_local<T,I,O>& mat,
+                    std::vector<I>& count) {
+  auto nrow = mat.local_num_row;
+  std::vector<T> sum_vec(nrow, 0);
+  count.resize(nrow);
+  auto mvalp = mat.val.data();
+  auto moffp = mat.off.data();
+  auto sumvecp = sum_vec.data();
+  auto countp = count.data();
+  size_t maxlen = 0;
+  for (size_t i = 0; i < nrow; ++i) {
+    auto rowlen = moffp[i+1] - moffp[i];
+    if (rowlen > maxlen) maxlen = rowlen;
+    countp[i] = rowlen;
+  }
+
+  for (size_t i = 0; i < maxlen; ++i) { // iterates on columns (left -> right)
+    for (size_t j = 0; j < nrow; ++j) { // iterates on rows (top -> bottom)
+      int rem = moffp[j+1] - moffp[j] - i; 
+      if (rem > 0) {
+        auto idx = moffp[j] + i;
+        sumvecp[j] += mvalp[idx] * mvalp[idx];
+      }
+    }
+  }
+  return sum_vec;
+}
+
+template <class T, class I, class O>
+std::vector<T>
+squared_sum_of_cols(crs_matrix_local<T,I,O>& mat) {
+  std::vector<I> count;
+  return squared_sum_of_cols(mat, count);
+}
+
+// if you need to invoke squared_sum_of_cols() for local crs matrix from map(),
+// invoke this function. Otherwise function pointer resolution issue might occur.
+template <class T, class I, class O>
+std::vector<T>
+crs_squared_sum_of_cols(crs_matrix_local<T, I, O>& mat,
+                        std::vector<I>& count) {
+  return squared_sum_of_cols(mat, count);
+}
+
+template <class T, class I, class O>
+std::vector<T>
+squared_sum_of_cols(crs_matrix<T, I, O>& mat,
+                    std::vector<I>& count) {
+  auto lcount = make_node_local_allocate<std::vector<I>>();
+  auto sum = mat.data.map(crs_squared_sum_of_cols<T,I,O>, lcount)
+                     .template moveto_dvector<T>().gather();
+  count = lcount.template moveto_dvector<I>().gather();
+  return sum;
+}
+
+template <class T, class I, class O>
+std::vector<T>
+squared_sum_of_cols(crs_matrix<T, I, O>& mat) {
+  auto lcount = make_node_local_allocate<std::vector<I>>();
+  auto sum = mat.data.map(crs_squared_sum_of_cols<T,I,O>, lcount)
+                     .template moveto_dvector<T>().gather();
+  return sum;
 }
 
 template <class T, class I, class O>
@@ -2490,25 +2744,77 @@ void scale_matrix(crs_matrix<T, I, O>& mat,
 
 template <class T, class I, class O>
 std::vector<T>
+compute_mean(crs_matrix_local<T, I, O>& mat,
+             std::vector<I>& count,
+             int axis = -1,
+             bool with_nnz = false) {
+  auto ncol = mat.local_num_col;
+  auto nrow = mat.local_num_row;
+  if(nrow == 0)
+    throw std::runtime_error("matrix with ZERO rows for mean computation!");
+  if (axis != 0 && axis != 1) {
+    T mean = 0;
+    if(with_nnz) mean = vector_sum(mat.val) / mat.val.size();
+    else mean = vector_sum(mat.val) / (nrow * ncol);
+    return std::vector<T>(1, mean);
+  }
+  auto tmp = (axis == 0) ? crs_sum_of_rows(mat, count) : crs_sum_of_cols(mat, count);
+  auto tmpptr = tmp.data();
+  auto tmpsz = tmp.size();
+  // tmp will inplace be updated with mean
+  if(with_nnz) {
+    auto cptr = count.data();
+    for(size_t i = 0; i < tmpsz; ++i) {
+      if (cptr[i] != 0) tmpptr[i] /= cptr[i];
+    }
+  }
+  else {
+    tmp = (axis == 0) ? vector_divide(tmp, (T)nrow) : vector_divide(tmp, (T)ncol);
+  }
+  return tmp;
+}
+
+template <class T, class I, class O>
+std::vector<T>
+compute_mean(crs_matrix_local<T, I, O>& mat,
+             int axis = -1,
+             bool with_nnz = false) {
+  std::vector<I> count;
+  return compute_mean(mat, count, axis, with_nnz);
+}
+
+template <class T, class I, class O>
+std::vector<T>
 compute_mean(crs_matrix<T, I, O>& mat,
              std::vector<I>& count,
+             int axis = -1,
              bool with_nnz = false) {
   auto ncol = mat.num_col;
   auto nrow = mat.num_row;
   if(nrow == 0)
     throw std::runtime_error("matrix with ZERO rows for mean computation!");
-  auto tmp = sum_of_rows(mat, count);
+  if (axis != 0 && axis != 1) {
+    if (with_nnz) {
+      auto nnz = mat.data.map(crs_get_local_active_elements<T,I,O>)
+                         .reduce(add<size_t>);
+      return std::vector<T>(1, sum_of_elements(mat) / nnz);
+    }
+    else {
+      return std::vector<T>(1, sum_of_elements(mat) / (nrow * ncol));
+    }
+  }
+  auto tmp = (axis == 0) ? sum_of_rows(mat, count) : sum_of_cols(mat, count);
   auto tmpptr = tmp.data();
-  // tmp: sum of rows will inplace be updated with mean
+  auto tmpsz = tmp.size();
+  // tmp will inplace be updated with mean
   if(with_nnz) {
     auto cptr = count.data();
-    for(size_t i = 0; i < ncol; ++i) {
+    for(size_t i = 0; i < tmpsz; ++i) {
       if (cptr[i] != 0) tmpptr[i] /= cptr[i];
     }
   }
-  else{
-    T to_mult = static_cast<T>(1) / static_cast<T>(nrow);
-    for(size_t i = 0; i < ncol; ++i) tmpptr[i] *= to_mult;
+  else {
+    tmp = (axis == 0) ? vector_divide(tmp, (T)nrow) : vector_divide(tmp, (T)ncol);
   }
   return tmp;
 }
@@ -2516,9 +2822,10 @@ compute_mean(crs_matrix<T, I, O>& mat,
 template <class T, class I, class O>
 std::vector<T>
 compute_mean(crs_matrix<T, I, O>& mat,
+             int axis = -1,
              bool with_nnz = false) {
   std::vector<I> count;
-  return compute_mean(mat, count, with_nnz);
+  return compute_mean(mat, count, axis, with_nnz);
 }
 
 template <class T, class I, class O>
@@ -2588,7 +2895,7 @@ std::vector<T>
 compute_stddev(crs_matrix<T, I, O>& mat, 
                bool sample_stddev = true,
                bool with_nnz = false) {
-  auto mean = compute_mean(mat, with_nnz);
+  auto mean = compute_mean(mat, 0, with_nnz); // column-wise mean
   return compute_stddev(mat, mean, sample_stddev, with_nnz);
 }
 
@@ -2643,7 +2950,7 @@ template <class T, class I, class O>
 void standardize(crs_matrix<T, I, O>& mat,
                  bool sample_stddev = true,
                  bool with_nnz = false) {
-  auto mean = compute_mean(mat, with_nnz);
+  auto mean = compute_mean(mat, 0, with_nnz); // column-wise mean
   standardize(mat, mean, sample_stddev, with_nnz);
 }
 

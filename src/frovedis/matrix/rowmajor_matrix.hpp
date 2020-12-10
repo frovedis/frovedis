@@ -10,6 +10,7 @@
 #include "../core/dvector.hpp"
 #include "../core/mpihelper.hpp"
 #include "../core/partition_sort.hpp"
+#include "../core/vector_operations.hpp"
 #include "diag_matrix.hpp"
 #ifdef __ve__
 #include "../text/load_csv.hpp"
@@ -29,22 +30,6 @@ struct crs_matrix_local;
 
 template <class T, class I, class O>
 struct crs_matrix;
-
-template <class T>
-void debug_print_vector(const std::vector<T>& val, 
-                        size_t n = 0) {
-  if (n == 0 || val.size() < 2*n) {
-    for(auto i: val){ std::cout << i << " "; }
-    std::cout << std::endl;
-  }
-  else {
-    for(size_t i = 0; i < n; ++i){ std::cout << val[i] << " "; }
-    std::cout << " ... ";
-    auto size = val.size();
-    for(size_t i = size - n; i < size; ++i){ std::cout << val[i] << " "; }
-    std::cout << std::endl;
-  }
-}
 
 template <class T>
 struct rowmajor_matrix_local {
@@ -102,7 +87,8 @@ struct rowmajor_matrix_local {
   }
   template <class I = size_t, class O = size_t>
   crs_matrix_local<T,I,O> to_crs();
-  void debug_print(size_t n = 0);
+  void debug_print(size_t limit = 0);
+  void debug_pretty_print(size_t limit = 0);
   std::vector<T> get_row(size_t r) const;
   void save(const std::string& file);
   void clear() {
@@ -198,12 +184,41 @@ std::ostream& operator<<(std::ostream& str,
 }
 
 template <class T>
-void rowmajor_matrix_local<T>::debug_print(size_t n) {
+void rowmajor_matrix_local<T>::debug_print(size_t limit) {
   std::cout << "node = " << get_selfid()
             << ", local_num_row = " << local_num_row
             << ", local_num_col = " << local_num_col
             << ", val = ";
-  debug_print_vector(val, n);
+  debug_print_vector(val, limit);
+}
+
+template <class T>
+void rowmajor_matrix_local<T>::debug_pretty_print(size_t limit) {
+  auto nrow = local_num_row;
+  auto ncol = local_num_col;
+  if(limit == 0 || nrow <= 2 * limit) {
+    for(size_t i = 0; i < nrow; ++i) {
+      for(size_t j = 0; j < ncol; ++j) {
+        std::cout << val[i * ncol + j] << " ";
+      }
+      std::cout << std::endl;
+    }
+  }
+  else {
+    for(size_t i = 0; i < limit; ++i) {
+      for(size_t j = 0; j < ncol; ++j) {
+        std::cout << val[i * ncol + j] << " ";
+      }
+      std::cout << std::endl;
+    }
+    std::cout << ":\n:\n";
+    for(size_t i = nrow - limit; i < nrow; ++i) {
+      for(size_t j = 0; j < ncol; ++j) {
+        std::cout << val[i * ncol + j] << " ";
+      }
+      std::cout << std::endl;
+    }
+  }
 }
 
 template <class T>
@@ -406,7 +421,98 @@ std::vector<T> operator*(const rowmajor_matrix_local<T>& a,
 }
 
 template <class T>
-std::vector<T> sum_of_cols(const rowmajor_matrix_local<T>& m) {
+rowmajor_matrix_local<T> 
+binarize(rowmajor_matrix_local<T>& mat,
+         const T& threshold = 0) {
+  auto v = vector_binarize(mat.val, threshold);
+  rowmajor_matrix_local<T> ret;
+  ret.val.swap(v);
+  ret.local_num_row = mat.local_num_row;
+  ret.local_num_col = mat.local_num_col;
+  return ret;
+}
+
+// if you need to invoke binarize() for local rowmajor matrix from map(),
+// invoke this function. Otherwise function pointer resolution issue might occur.
+template <class T>
+rowmajor_matrix_local<T> 
+rmm_binarize(rowmajor_matrix_local<T>& mat, 
+             const T& threshold = 0) {
+  return binarize(mat, threshold);
+}
+
+template <class T>
+T sum_of_elements(rowmajor_matrix_local<T>& mat) {
+  return vector_sum(mat.val);
+}
+
+// if you need to invoke sum_of_elements() for local rowmajor matrix from map(),
+// invoke this function. Otherwise function pointer resolution issue might occur.
+template <class T>
+T rmm_sum_of_elements(rowmajor_matrix_local<T>& mat) {
+  return sum_of_elements(mat);
+}
+
+template <class T>
+T squared_sum_of_elements(rowmajor_matrix_local<T>& mat) {
+  return vector_squared_sum(mat.val);
+}
+
+// if you need to invoke squared_sum_of_elements() for local rowmajor matrix from map(),
+// invoke this function. Otherwise function pointer resolution issue might occur.
+template <class T>
+T rmm_squared_sum_of_elements(rowmajor_matrix_local<T>& mat) {
+  return squared_sum_of_elements(mat);
+}
+
+template <class T>
+std::vector<T> sum_of_rows(const rowmajor_matrix_local<T>& m) {
+  auto nrow = m.local_num_row;
+  auto ncol = m.local_num_col;
+  std::vector<T> ret(ncol,0);
+  T* retp = &ret[0];
+  const T* matp = &m.val[0];
+  for (size_t i = 0; i < nrow; ++i) {
+    for(size_t j = 0; j < ncol; ++j) retp[j] += matp[i * ncol + j];
+  }
+  return ret;
+}
+
+// if you need to invoke sum_of_rows() for local rowmajor matrix from map(),
+// invoke this function. Otherwise function pointer resolution issue might occur.
+template <class T>
+std::vector<T> 
+rmm_sum_of_rows(const rowmajor_matrix_local<T>& m) {
+  return sum_of_rows(m);
+}
+
+template <class T>
+std::vector<T> 
+squared_sum_of_rows(const rowmajor_matrix_local<T>& m) {
+  auto nrow = m.local_num_row;
+  auto ncol = m.local_num_col;
+  std::vector<T> ret(ncol,0);
+  T* retp = &ret[0];
+  const T* matp = &m.val[0];
+  for (size_t i = 0; i < nrow; ++i) {
+    for(size_t j = 0; j < ncol; ++j) {
+      retp[j] += (matp[i * ncol + j] * matp[i * ncol + j]);
+    }
+  }
+  return ret;
+}
+
+// if you need to invoke squared_sum_of_rows() for local rowmajor matrix from map(),
+// invoke this function. Otherwise function pointer resolution issue might occur.
+template <class T>
+std::vector<T> 
+rmm_squared_sum_of_rows(const rowmajor_matrix_local<T>& m) {
+  return squared_sum_of_rows(m);
+}
+
+template <class T>
+std::vector<T> 
+sum_of_cols(const rowmajor_matrix_local<T>& m) {
   auto nrow = m.local_num_row;
   auto ncol = m.local_num_col;
   std::vector<T> ret(nrow,0);
@@ -440,8 +546,17 @@ std::vector<T> sum_of_cols(const rowmajor_matrix_local<T>& m) {
   return ret;
 }
 
+// if you need to invoke sum_of_cols() for local rowmajor matrix from map(),
+// invoke this function. Otherwise function pointer resolution issue might occur.
 template <class T>
-std::vector<T> squared_sum_of_cols(const rowmajor_matrix_local<T>& m) {
+std::vector<T> 
+rmm_sum_of_cols(const rowmajor_matrix_local<T>& m) {
+  return sum_of_cols(m);
+}
+
+template <class T>
+std::vector<T> 
+squared_sum_of_cols(const rowmajor_matrix_local<T>& m) {
   auto nrow = m.local_num_row;
   auto ncol = m.local_num_col;
   std::vector<T> ret(nrow,0);
@@ -461,7 +576,7 @@ std::vector<T> squared_sum_of_cols(const rowmajor_matrix_local<T>& m) {
   else {
     for (size_t i=0; i<nrow; ++i) {
       for(size_t j = 0; j<ncol; ++j) {
-        retp[i] += (matp[i * ncol + j] * matp[i * ncol + j]); 
+        retp[i] += (matp[i * ncol + j] * matp[i * ncol + j]);
       }
     }
   }
@@ -475,34 +590,12 @@ std::vector<T> squared_sum_of_cols(const rowmajor_matrix_local<T>& m) {
   return ret;
 }
 
+// if you need to invoke squared_sum_of_cols() for local rowmajor matrix from map(),
+// invoke this function. Otherwise function pointer resolution issue might occur.
 template <class T>
-std::vector<T> sum_of_rows(const rowmajor_matrix_local<T>& m) {
-  auto nrow = m.local_num_row;
-  auto ncol = m.local_num_col;
-  std::vector<T> ret(ncol,0);
-  T* retp = &ret[0];
-  const T* matp = &m.val[0];
-  for (size_t i = 0; i < nrow; ++i) {
-    for(size_t j = 0; j < ncol; ++j) {
-      retp[j] += matp[i * ncol + j];
-    }
-  }
-  return ret;
-}
-
-template <class T>
-std::vector<T> squared_sum_of_rows(const rowmajor_matrix_local<T>& m) {
-  auto nrow = m.local_num_row;
-  auto ncol = m.local_num_col;
-  std::vector<T> ret(ncol,0);
-  T* retp = &ret[0];
-  const T* matp = &m.val[0];
-  for (size_t i = 0; i < nrow; ++i) {
-    for(size_t j = 0; j < ncol; ++j) {
-      retp[j] += (matp[i * ncol + j] * matp[i * ncol + j]);
-    }
-  }
-  return ret;
+std::vector<T> 
+rmm_squared_sum_of_cols(const rowmajor_matrix_local<T>& m) {
+  return squared_sum_of_cols(m);
 }
 
 template <class T>
@@ -1027,24 +1120,29 @@ get_scattered_rowmajor_matrices(rowmajor_matrix_local<T>& m) {
 }
 
 template <class T>
-rowmajor_matrix_local<T> rowmajor_matrix<T>::gather() {
-  auto locals = data.gather();
-  size_t num_row = 0;
-  for(auto& i: locals) num_row += i.local_num_row;
-  size_t num_col = locals[0].local_num_col;
-  rowmajor_matrix_local<T> ret(num_row, num_col);
-  T* datap = &ret.val[0];
-  size_t global_row = 0;
-  for(size_t n = 0; n < locals.size(); n++) {
-    for(size_t local_row = 0; local_row < locals[n].local_num_row;
-        local_row++, global_row++) {
-      T* local_datap = &locals[n].val[0];
-      for(size_t c = 0; c < num_col; c++) {
-        datap[global_row * num_col + c] = local_datap[local_row * num_col + c];
-      }
-    }
+rowmajor_matrix_local<T>
+merge(const std::vector<rowmajor_matrix_local<T>>& vec) {
+  auto nmat = vec.size();
+  if(nmat == 0) return rowmajor_matrix_local<T>();
+  size_t nrow = 0;
+  size_t ncol = vec[0].local_num_col; // all matrix should have same ncol
+  for(size_t i = 0; i < nmat; ++i) nrow += vec[i].local_num_row;
+  rowmajor_matrix_local<T> ret(nrow, ncol);
+  auto rdata = ret.val.data();
+  size_t k = 0;
+  for(size_t i = 0; i < nmat; ++i) {
+    auto vdata = vec[i].val.data();
+    auto vsize = vec[i].val.size();
+    for(size_t j = 0; j < vsize; ++j) rdata[k + j] = vdata[j];
+    k += vsize;
   }
   return ret;
+}
+
+template <class T>
+rowmajor_matrix_local<T> rowmajor_matrix<T>::gather() {
+  auto locals = data.gather();
+  return merge(locals);
 }
 
 template <class T>
@@ -1277,24 +1375,28 @@ void scale_matrix(rowmajor_matrix<T>& mat, std::vector<T>& vec) {
 
 template <class T>
 std::vector<T>
-compute_mean(rowmajor_matrix<T>& mat, int axis = 0) {
-  if(mat.num_row == 0)
+compute_mean(rowmajor_matrix_local<T>& mat, int axis = -1) {
+  auto nrow = mat.local_num_row;
+  auto ncol = mat.local_num_col;
+  if(nrow == 0)
     throw std::runtime_error("matrix with ZERO rows for mean computation!");
-  std::vector<T> tmp;
-  T to_mul;
-  if(axis == 0) { // column-wise mean
-    tmp = mat.data.map(+[](rowmajor_matrix_local<T>& m)
-                       {return sum_of_rows(m);}).vector_sum();
-    to_mul = static_cast<T>(1)/static_cast<T>(mat.num_row); // for performance
+  if (axis != 0 && axis != 1) return std::vector<T>(1, vector_mean(mat.val));
+  auto ret = (axis == 0) ? rmm_sum_of_rows(mat) : rmm_sum_of_cols(mat);
+  return (axis == 0) ? vector_divide(ret, (T)nrow) : vector_divide(ret, (T)ncol);
+}
+
+template <class T>
+std::vector<T>
+compute_mean(rowmajor_matrix<T>& mat, int axis = -1) {
+  auto nrow = mat.num_row;
+  auto ncol = mat.num_col;
+  if(nrow == 0)
+    throw std::runtime_error("matrix with ZERO rows for mean computation!");
+  if (axis != 0 && axis != 1) {
+    return std::vector<T>(1, sum_of_elements(mat) / (nrow * ncol));
   }
-  else { // row-wise mean
-    tmp = mat.data.map(+[](rowmajor_matrix_local<T>& m)
-                       {return sum_of_cols(m);}).vector_sum();
-    to_mul = static_cast<T>(1)/static_cast<T>(mat.num_col); // for performance
-  }
-  auto tmpp = tmp.data();
-  for(size_t i = 0; i < tmp.size(); ++i) tmpp[i] *= to_mul; // average
-  return tmp;
+  auto ret = (axis == 0) ? sum_of_rows(mat) : sum_of_cols(mat);
+  return (axis == 0) ? vector_divide(ret, (T)nrow) : vector_divide(ret, (T)ncol);
 }
 
 template <class T>
@@ -1394,7 +1496,8 @@ std::vector<T> variance_of_cols_helper(const rowmajor_matrix_local<T>& m,
 }
 
 template <class T>
-std::vector<T> variance(rowmajor_matrix<T>& mat, bool sample_variance = true) {
+std::vector<T> variance(rowmajor_matrix<T>& mat, 
+                        bool sample_variance = true) {
   if(mat.num_row < 2)
     throw std::runtime_error
       ("cannot call variance if number of row is 0 or 1");
@@ -1417,6 +1520,51 @@ std::vector<T> variance(rowmajor_matrix<T>& mat, bool sample_variance = true) {
   size_t size = sq.size();
   for(size_t i = 0; i < size; i++) sqp[i] *= to_mul2;
   return sq;
+}
+
+template <class T>
+rowmajor_matrix<T> 
+binarize(rowmajor_matrix<T>& mat, const T& threshold = 0) {
+  rowmajor_matrix<T> ret(mat.data.map(rmm_binarize<T>, broadcast(threshold)));
+  ret.num_row = mat.num_row;
+  ret.num_col = mat.num_col;
+  return ret;
+}
+
+template <class T>
+T sum_of_elements(rowmajor_matrix<T>& mat) {
+  return mat.data.map(rmm_sum_of_elements<T>).reduce(add<T>);
+}
+
+template <class T>
+T squared_sum_of_elements(rowmajor_matrix<T>& mat) {
+  return mat.data.map(rmm_squared_sum_of_elements<T>).reduce(add<T>);
+}
+
+template <class T>
+std::vector<T>
+sum_of_rows(rowmajor_matrix<T>& m) {
+  return m.data.map(rmm_sum_of_rows<T>).vector_sum();
+}
+
+template <class T>
+std::vector<T>
+squared_sum_of_rows(rowmajor_matrix<T>& m) {
+  return m.data.map(rmm_squared_sum_of_rows<T>).vector_sum();
+}
+
+template <class T>
+std::vector<T>
+sum_of_cols(rowmajor_matrix<T>& m) {
+  return m.data.map(rmm_sum_of_cols<T>)
+               .template moveto_dvector<T>().gather();
+}
+
+template <class T>
+std::vector<T>
+squared_sum_of_cols(rowmajor_matrix<T>& m) {
+  return m.data.map(rmm_squared_sum_of_cols<T>)
+               .template moveto_dvector<T>().gather();
 }
 
 }
