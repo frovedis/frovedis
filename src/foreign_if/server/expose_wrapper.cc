@@ -1,5 +1,6 @@
 #include "exrpc_svd.hpp"
 #include "exrpc_pca.hpp"
+#include "exrpc_tsne.hpp"
 #include "exrpc_pblas.hpp"
 #include "exrpc_scalapack.hpp"
 #include "short_hand_dense_type.hpp"
@@ -96,4 +97,7 @@ void expose_frovedis_wrapper_functions() {
   expose((frovedis_gesvd<DT1,C_LMAT1>));
   expose((frovedis_gesvd<DT1,B_MAT1>));
   expose((frovedis_gesvd<DT2,B_MAT2>));
+  // --- frovedis tsne ---
+  expose((frovedis_tsne<R_MAT1,DT1>));              // for python
+  expose((frovedis_tsne<R_MAT2,DT2>));              // for python
 }
