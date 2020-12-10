@@ -488,15 +488,6 @@ sum_of_cols_without_diagonal(rowmajor_matrix_local<T>& aff_loc,
   return con_vec;
 }
 
-template <class MATRIX>
-node_local<size_t> 
-get_start_indices(MATRIX& mat) {
-  auto nrows = mat.get_local_num_rows();
-  std::vector<size_t> sidx(nrows.size()); sidx[0] = 0;
-  for(size_t i=1; i<nrows.size(); ++i) sidx[i] = sidx[i-1] + nrows[i-1];
-  return make_node_local_scatter(sidx);
-}
-
 template <class T>
 lvec<T> construct_connectivity_diagonals(rowmajor_matrix<T>& mat,
                                          node_local<size_t>& myst) {
