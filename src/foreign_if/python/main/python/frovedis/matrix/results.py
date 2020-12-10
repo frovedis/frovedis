@@ -1,3 +1,6 @@
+"""
+Module for storing results
+"""
 #!/usr/bin/env python
 
 import os
@@ -6,8 +9,6 @@ from ..exrpc import rpclib
 from ..exrpc.server import FrovedisServer
 from .dense import FrovedisDenseMatrix
 from .vector import FrovedisVector
-from .dtype import TypeUtil
-
 
 class GetrfResult(object):
     """"A python container for holding pointers of Frovedis server side
@@ -595,4 +596,3 @@ class PcaResult(object):
     def _singular_values(self, val):
         raise AttributeError(\
         "attribute '_singular_values' of PcaResult object is not writable")
-
