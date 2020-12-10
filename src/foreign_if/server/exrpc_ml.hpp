@@ -743,7 +743,7 @@ void frovedis_fm(frovedis_mem_pair& mp, std::string& optimizer_name,
 
 template <class T, class MATRIX, class LOC_MATRIX>
 void frovedis_nb(frovedis_mem_pair& mp, std::string& model_type,
-                 double& lambda,
+                 double& lambda, double& binarize,
                  int& verbose, int& mid,
                  bool& isMovableInput=false) {
   register_for_train(mid);  // mark model 'mid' as "under training"
@@ -759,7 +759,7 @@ void frovedis_nb(frovedis_mem_pair& mp, std::string& model_type,
   if (model_type == "multinomial") 
     model = multinomial_nb<T,MATRIX,LOC_MATRIX>(mat,lbl,lambda);
   else if (model_type == "bernoulli") 
-    model = bernoulli_nb<T,MATRIX,LOC_MATRIX>(mat,lbl,lambda);
+    model = bernoulli_nb<T,MATRIX,LOC_MATRIX>(mat,lbl,lambda,binarize);
   else throw std::runtime_error("Unsupported naive bayes algorithm!\n");
   handle_trained_model<naive_bayes_model<T>>(mid, NBM, model);
 
