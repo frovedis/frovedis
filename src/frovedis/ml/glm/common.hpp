@@ -169,30 +169,6 @@ void get_weight_intercept(MODEL& m, std::vector<T>& v) {
   v[size] = m.intercept;
 }
 
-template <class T>
-void debug_vector_print(const std::vector<T>& vec) {
-  for(int i=0; i<vec.size(); i++) std::cout << " " << vec[i];
-  std::cout << std::endl;
-}
-
-template <class T>
-std::vector<T>
-operator-(const std::vector<T>& v1,
-          const std::vector<T>& v2) {
-  //debug_vector_print(v1);
-  //debug_vector_print(v2);
-  if (v1.size() != v2.size()) REPORT_ERROR(USER_ERROR,"incompatible vector size!\n");
-  size_t size = v1.size();
-  std::vector<T> ret(size);
-  const T* v1p = &v1[0];
-  const T* v2p = &v2[0];
-  T* retp = &ret[0];
-  for(size_t i=0; i<size; i++) {
-    retp[i] = v1p[i] - v2p[i];
-  }
-  return ret;
-}
-
 template <class T, class MODEL>
 inline bool is_converged(MODEL& prev_model,
                          MODEL& cur_model,
@@ -217,5 +193,4 @@ inline bool is_converged(MODEL& prev_model,
 }
 
 }
-
 #endif
