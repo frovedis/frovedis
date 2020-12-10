@@ -7,6 +7,7 @@
 #include "dummy_graph.hpp"
 #include "dummy_model.hpp"
 #include "pca_result.hpp"
+#include "tsne_result.hpp"
 #include "knn_result.hpp"
 #include "lda_result.hpp"
 #include "scalapack_result.hpp"
