@@ -119,21 +119,10 @@ template <class T>
 rowmajor_matrix <double>
 get_distribution_matrix(rowmajor_matrix<T>& m,
                         int axis = 1) {
-  rowmajor_matrix<double> ret;
-  if(axis) {
-    std::vector<T> (*sum_of_cols_T)(const rowmajor_matrix_local<T>&) =
-                                    sum_of_cols<T>;
-    auto sumcol = m.data.map(sum_of_cols_T);
-    ret.data = m.data.map(get_distribution_matrix_local<T>,
-                          sumcol, broadcast(axis));
-  }
-  else {
-    std::vector<T> (*sum_of_rows_T)(const rowmajor_matrix_local<T>&) =
-                                    sum_of_rows<T>;
-    auto sumrow = m.data.map(sum_of_rows_T).vector_sum();
-    ret.data = m.data.map(get_distribution_matrix_local<T>,
-                          broadcast(sumrow), broadcast(axis));
-  }
+  auto sum = (axis == 0) ? broadcast(sum_of_rows(m)) 
+                         : m.data.map(rmm_sum_of_cols<T>);
+  rowmajor_matrix<double> ret(m.data.map(get_distribution_matrix_local<T>,
+                                         sum, broadcast(axis)));
   ret.num_row = m.num_row;
   ret.num_col = m.num_col;
   return ret;
