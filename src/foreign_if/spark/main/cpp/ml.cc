@@ -5,7 +5,6 @@
 #include "exrpc_model.hpp"
 #include "short_hand_model_type.hpp"
 
-
 using namespace frovedis;
 
 extern "C" {
@@ -67,19 +66,54 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisLRLBF
   catch(std::exception& e) { set_status(true,e.what()); }
 }
 
+//--- SVM Kernel ---
+JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisKernelSVM
+  (JNIEnv *env, jclass thisCls, jobject master_node, jobject fdata,
+   jdouble C, jstring kernelType, jint degree, jdouble gamma, jdouble coef0,
+   jdouble tol, jint cache_size, jint maxIter, jint mid, 
+   jboolean movable, jboolean dense, jint nclasses) {
+
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto f_dptr = java_mempair_to_frovedis_mempair(env, fdata);
+  bool mvbl = (bool) movable;
+  auto kernel = to_cstring(env,kernelType);
+  bool isDense = (bool) dense;
+  int vb = 0; // no log (default)
+#ifdef _EXRPC_DEBUG_
+  std::cout << "Connecting to master node ("
+            << fm_node.hostname << "," << fm_node.rpcport
+            << ") to train frovedis SVM_LBFGS.\n";
+#endif
+
+  try {
+    if (nclasses > 2)
+      throw std::invalid_argument("Currently frovedis SVM Kernel supports only binary classification!\n");
+
+    if(isDense) {
+      exrpc_oneway(fm_node,(frovedis_svc<DT1,R_MAT1>),f_dptr,tol,C,cache_size,maxIter,
+                         kernel,gamma,coef0,degree,vb,mid,mvbl);
+    }
+    else REPORT_ERROR(USER_ERROR, "Frovedis doesn't support input sparse data for SVM Kernel!\n");
+  }
+  catch (std::exception& e) {
+    set_status(true, e.what());
+  }
+}
+
+
 // (2) --- Linear SVM ---
 // initiates the training call at Frovedis master node for SVMWithSGD
 JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisSVMSGD
   (JNIEnv *env, jclass thisCls, jobject master_node, jobject fdata, 
-   jint numIter, jdouble stepSize, jdouble mbf, 
-   jdouble regParam, jint mid, jboolean movable, jboolean dense) {
+   jint numIter, jdouble stepSize, jdouble mbf, jdouble regParam,
+   jint mid, jboolean movable, jboolean dense, jint nclasses) {
   
   auto fm_node = java_node_to_frovedis_node(env, master_node);
   auto f_dptr = java_mempair_to_frovedis_mempair(env, fdata);
   bool mvbl = (bool) movable;
   int rtype = 0; // ZERO (default)
   bool icpt = false; // default
-  double tol = 0.001; // default
+  double tol = 0.001; // default //TODO: send from spark side
   int vb = 0; // no log (default)
   bool isDense = (bool) dense;
 #ifdef _EXRPC_DEBUG_
@@ -88,10 +122,15 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisSVMSG
             << ") to train frovedis SVM_SGD.\n";
 #endif
   try {
+    if (nclasses > 2)
+      throw std::invalid_argument("Currently frovedis SVM with SGD supports only binary classification!\n");
+
     if(isDense)
-      exrpc_oneway(fm_node,(frovedis_svm_sgd<DT1,D_MAT1>),f_dptr,numIter,stepSize,mbf,rtype,regParam,icpt,tol,vb,mid,mvbl);
+      exrpc_oneway(fm_node,(frovedis_svm_sgd<DT1,D_MAT1>),f_dptr,numIter,
+                   stepSize,mbf,rtype,regParam,icpt,tol,vb,mid,mvbl);
     else
-      exrpc_oneway(fm_node,(frovedis_svm_sgd<DT1,S_MAT1>),f_dptr,numIter,stepSize,mbf,rtype,regParam,icpt,tol,vb,mid,mvbl);
+      exrpc_oneway(fm_node,(frovedis_svm_sgd<DT1,S_MAT1>),f_dptr,numIter,
+                   stepSize,mbf,rtype,regParam,icpt,tol,vb,mid,mvbl);
   }
   catch(std::exception& e) { set_status(true,e.what()); }
 }
@@ -564,7 +603,7 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisDT
 // calling frovedis server side Naive Bayes trainer
 JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisNBM
   (JNIEnv *env, jclass thisCls, jobject master_node, jobject fdata,
-   jdouble lambda, jint model_id, jstring modelType, 
+   jdouble lambda, jdouble threshold, jint model_id, jstring modelType, 
    jboolean movable, jboolean dense) {
 
   auto fm_node = java_node_to_frovedis_node(env, master_node);
@@ -575,9 +614,11 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisNBM
   auto mtype = to_cstring(env,modelType);
   try {
     if(isDense)
-      exrpc_oneway(fm_node,(frovedis_nb<DT1,D_MAT1,D_LMAT1>),f_dptr,mtype,lambda,vb,model_id,mvbl);
+      exrpc_oneway(fm_node,(frovedis_nb<DT1,D_MAT1,D_LMAT1>),f_dptr,
+                   mtype,lambda,threshold,vb,model_id,mvbl);
     else
-      exrpc_oneway(fm_node,(frovedis_nb<DT1,S_MAT1,S_LMAT1>),f_dptr,mtype,lambda,vb,model_id,mvbl);
+      exrpc_oneway(fm_node,(frovedis_nb<DT1,S_MAT1,S_LMAT1>),f_dptr,
+                   mtype,lambda,threshold,vb,model_id,mvbl);
   }
   catch(std::exception& e) { set_status(true,e.what()); }
 }
