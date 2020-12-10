@@ -199,7 +199,7 @@ struct logistic_regression {
     if(!is_fitted) REPORT_ERROR(USER_ERROR, 
                    "[logistic_regression] score is called before fit\n");
     auto pred_label = predict(mat);
-    return accuracy_score(pred_label, label.gather());
+    return accuracy_score(label.gather(), pred_label);
   }
 
   int max_iter, hist_size;
