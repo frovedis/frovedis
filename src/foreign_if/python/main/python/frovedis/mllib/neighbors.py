@@ -6,10 +6,9 @@ from .model_util import *
 from ..base import BaseEstimator
 from ..exrpc.server import FrovedisServer
 from ..exrpc import rpclib
-from ..matrix.ml_data import FrovedisFeatureData
 from ..matrix.dense import FrovedisRowmajorMatrix
-from ..matrix.dvector import FrovedisDvector
 from ..matrix.crs import FrovedisCRSMatrix
+from ..matrix.ml_data import FrovedisFeatureData, FrovedisLabeledPoint
 from ..matrix.dtype import DTYPE, TypeUtil
 import numpy as np
 
@@ -30,8 +29,8 @@ class NearestNeighbors(BaseEstimator):
         self.metric_params = metric_params
         self.n_jobs = n_jobs
         self.verbose = verbose
-        self.chunk_size = chunk_size
         # extra
+        self.chunk_size = chunk_size
         self._X = None
         self._X_movable = None
         self.__mid = None
@@ -45,28 +44,29 @@ class NearestNeighbors(BaseEstimator):
         supported_algorithms = ['brute']
         supported_metrics = ['euclidean', 'seuclidean']
         if self.algorithm not in supported_algorithms:
-            raise AttributeError("Frovedis currently supports following\
+            raise AttributeError("Frovedis KNN currently supports following\
                                 algorithms : \n", supported_algorithms,\
                                 "\n Given algorithm: ", self.algorithm,\
                                 "not supported \n")
         if self.metric not in supported_metrics:
-            raise AttributeError("Frovedis currently supports following\
+            raise AttributeError("Frovedis KNN currently supports following\
                                 metrics : \n", supported_metrics,\
                                 "\n Given metric: ", self.metric,\
                                 "not supported \n")
-
         self.release()
-        self.__mid = ModelID.get()
-        train_data = FrovedisFeatureData(X, dense_kind='rowmajor')
+        train_data = FrovedisFeatureData(X, dense_kind='rowmajor', \
+                       caller = "[" + self.__class__.__name__ + "] fit: ", \
+                       densify=True)
         self._X = train_data 
         self._X_movable = train_data.is_movable()
-        x = train_data.get()
+        X = train_data.get()
         dtype = train_data.get_dtype()
         itype = train_data.get_itype()
         dense = train_data.is_dense()
+        self.__mid = ModelID.get()
         self.__mdtype = dtype
         (host, port) = FrovedisServer.getServerInstance()
-        rpclib.knn_fit(host, port, x.get(), self.n_neighbors, self.radius,
+        rpclib.knn_fit(host, port, X.get(), self.n_neighbors, self.radius,
                        self.algorithm.encode("ascii"), 
                        self.metric.encode("ascii"), 
                        self.chunk_size,
@@ -83,18 +83,21 @@ class NearestNeighbors(BaseEstimator):
         if n_neighbors is None:
             n_neighbors = self.n_neighbors
         if X is None:
-            test_data = self._X
+            test_data = self._X # FrovedisFeatureData
         else:
-            test_data = FrovedisFeatureData(X, dense_kind='rowmajor')
-        x = test_data.get()
+            test_data = FrovedisFeatureData(X, dense_kind='rowmajor', \
+                          caller = "[" + self.__class__.__name__ + \
+                                   "] kneighbors: ", \
+                          densify=True)
+        X = test_data.get()
         dtype = test_data.get_dtype()
         if (dtype != self.__mdtype):
-            raise TypeError("kneighbors data dtype is different than fitted \
-            data dtype")
-        itype = test_data.get_itype()
+            raise TypeError("kneighbors data dtype is different than " + \
+                            "fitted data dtype")
+        itype = test_data.get_itype() #TODO: pass itype, dense to client cpp
         dense = test_data.is_dense()
         (host, port) = FrovedisServer.getServerInstance()
-        knn_res = rpclib.knn_kneighbors(host, port, x.get(), n_neighbors, 
+        knn_res = rpclib.knn_kneighbors(host, port, X.get(), n_neighbors, 
                                         self.__mid, 
                                         return_distance, dtype)
         excpt = rpclib.check_server_exception()
@@ -127,18 +130,21 @@ class NearestNeighbors(BaseEstimator):
         if n_neighbors is None:
             n_neighbors = self.n_neighbors
         if X is None:
-            test_data = self._X
+            test_data = self._X # FrovedisFeatureData
         else:
-            test_data = FrovedisFeatureData(X, dense_kind='rowmajor')
-        x = test_data.get()
+            test_data = FrovedisFeatureData(X, dense_kind='rowmajor', \
+                          caller = "[" + self.__class__.__name__ + \
+                                   "] kneighbors_graph: ", \
+                          densify=True)
+        X = test_data.get()
         dtype = test_data.get_dtype()
         if (dtype != self.__mdtype):
-            raise TypeError("kneighbors_graph data dtype is different than \
-                           fitted data dtype")
-        itype = test_data.get_itype()
+            raise TypeError("kneighbors_graph data dtype is different " + \
+                            "than fitted data dtype")
+        itype = test_data.get_itype() #TODO: pass itype, dense to client cpp
         dense = test_data.is_dense()
         (host, port) = FrovedisServer.getServerInstance()
-        graph = rpclib.knn_kneighbors_graph(host, port, x.get(), n_neighbors, 
+        graph = rpclib.knn_kneighbors_graph(host, port, X.get(), n_neighbors, 
                                             self.__mid, 
                                             mode.encode("ascii"), 
                                             dtype) #allow type, dense
@@ -160,18 +166,21 @@ class NearestNeighbors(BaseEstimator):
         if radius is None:
             radius = self.radius
         if X is None:
-            test_data = self._X
+            test_data = self._X # FrovedisFeatureData
         else:
-            test_data = FrovedisFeatureData(X, dense_kind='rowmajor')
-        x = test_data.get()
+            test_data = FrovedisFeatureData(X, dense_kind='rowmajor', \
+                          caller = "[" + self.__class__.__name__ + \
+                                   "] radius_neighbors: ", \
+                          densify=True)
+        X = test_data.get()
         dtype = test_data.get_dtype()
         if (dtype != self.__mdtype):
-            raise TypeError("radius_neighbors data dtype is different than\
-                           fitted data dtype")
+            raise TypeError("radius_neighbors data dtype is different " + \
+                            "than fitted data dtype")
         itype = test_data.get_itype()
         dense = test_data.is_dense()
         (host, port) = FrovedisServer.getServerInstance()
-        dmat = rpclib.knn_radius_neighbors(host, port, x.get(), radius, 
+        dmat = rpclib.knn_radius_neighbors(host, port, X.get(), radius, 
                                            self.__mid, 
                                            return_distance, dtype)
         excpt = rpclib.check_server_exception()
@@ -201,25 +210,27 @@ class NearestNeighbors(BaseEstimator):
         if radius is None:
             radius = self.radius
         if X is None:
-            test_data = self._X
+            test_data = self._X # FrovedisFeatureData
         else:
-            test_data = FrovedisFeatureData(X, dense_kind='rowmajor')
-        x = test_data.get()
+            test_data = FrovedisFeatureData(X, dense_kind='rowmajor', \
+                          caller = "[" + self.__class__.__name__ + \
+                                   "] radius_neighbors_graph: ", \
+                          densify=True)
+        X = test_data.get()
         dtype = test_data.get_dtype()
         if (dtype != self.__mdtype):
-            raise TypeError("radius_neighbors_graph data dtype is different\
-                           than fitted data dtype")
-        itype = test_data.get_itype()
+            raise TypeError("radius_neighbors_graph data dtype is " + \
+                            "different than fitted data dtype")
+        itype = test_data.get_itype() #TODO: pass itype, dense to cpp client
         dense = test_data.is_dense()
         (host, port) = FrovedisServer.getServerInstance()
-        dmat = rpclib.knn_radius_neighbors_graph(host, port, x.get(), radius, 
+        dmat = rpclib.knn_radius_neighbors_graph(host, port, X.get(), radius, 
                                                  self.__mid, 
                                                  mode.encode("ascii"), 
                                                  dtype)
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
             raise RuntimeError(excpt["info"])
-        #TODO: pass itype, dense
         ret = FrovedisCRSMatrix(mat=dmat, 
                                 dtype=TypeUtil.to_numpy_dtype(dtype), 
                                 itype=np.int64)
@@ -280,8 +291,8 @@ class KNeighborsClassifier(BaseEstimator):
         self.metric_params = metric_params
         self.n_jobs = n_jobs
         self.verbose = verbose
-        self.chunk_size = chunk_size
         # extra
+        self.chunk_size = chunk_size
         self._X = None
         self._X_movable = None
         self.__mid = None
@@ -295,31 +306,33 @@ class KNeighborsClassifier(BaseEstimator):
         supported_algorithms = ['brute']
         supported_metrics = ['euclidean', 'seuclidean']
         if self.algorithm not in supported_algorithms:
-            raise AttributeError("Frovedis currently supports following\
+            raise AttributeError("Frovedis KNN currently supports following\
                                 algorithms : \n", supported_algorithms,\
                                 "\n Given algorithm: ", self.algorithm,\
                                 "not supported \n")
         if self.metric not in supported_metrics:
-            raise AttributeError("Frovedis currently supports following\
+            raise AttributeError("Frovedis KNN currently supports following\
                                 metrics : \n", supported_metrics,\
                                 "\n Given metric: ", self.metric,\
                                 "not supported \n")
         self.release()
-        self.__mid = ModelID.get()
-        train_data = FrovedisFeatureData(X, dense_kind='rowmajor')
+        train_data = FrovedisLabeledPoint(X, y, \
+                   caller = "[" + self.__class__.__name__ + "] fit: ",\
+                   encode_label = True, binary_encoder=[0, 1], \
+                   dense_kind = 'rowmajor', densify=True)
         self._X = train_data 
         self._X_movable = train_data.is_movable()
-        x = train_data.get()
+        X, y, logic = train_data.get()
+        self._classes = train_data.get_distinct_labels()
+        self.n_classes = len(self._classes)
+        self.label_map = logic
         dtype = train_data.get_dtype()
         itype = train_data.get_itype()
         dense = train_data.is_dense()
-        y = FrovedisDvector.as_dvec(y,dtype=TypeUtil.to_numpy_dtype(dtype))
-        if (dtype != y.get_dtype()):
-            raise TypeError("fit: different dtypes are encountered for \
-                            X and y!")
+        self.__mid = ModelID.get()
         self.__mdtype = dtype
         (host, port) = FrovedisServer.getServerInstance()
-        rpclib.knc_fit(host, port, x.get(), y.get(), self.n_neighbors,
+        rpclib.knc_fit(host, port, X.get(), y.get(), self.n_neighbors,
                        self.algorithm.encode("ascii"), 
                        self.metric.encode("ascii"), 
                        self.chunk_size,
@@ -336,18 +349,22 @@ class KNeighborsClassifier(BaseEstimator):
         if n_neighbors is None:
             n_neighbors = self.n_neighbors
         if X is None:
-            test_data = self._X
+            test_data = self._X # FrovedisLabeledPoint
+            X = test_data.get()[0]
         else:
-            test_data = FrovedisFeatureData(X, dense_kind='rowmajor')
-        x = test_data.get()
+            test_data = FrovedisFeatureData(X, dense_kind='rowmajor', \
+                          caller = "[" + self.__class__.__name__ + \
+                                   "] kneighbors: ", \
+                          densify=True)
+            X = test_data.get()
         dtype = test_data.get_dtype()
         if (dtype != self.__mdtype):
-            raise TypeError("kneighbors data dtype is different than \
-                            fitted data dtype")
-        itype = test_data.get_itype()
+            raise TypeError("kneighbors data dtype is different than " + \
+                            "fitted data dtype")
+        itype = test_data.get_itype() #TODO: pass itype, dense to client cpp
         dense = test_data.is_dense()
         (host, port) = FrovedisServer.getServerInstance()
-        knn_res = rpclib.knc_kneighbors(host, port, x.get(), n_neighbors, 
+        knn_res = rpclib.knc_kneighbors(host, port, X.get(), n_neighbors, 
                                         self.__mid, 
                                         return_distance, dtype) 
         excpt = rpclib.check_server_exception()
@@ -379,18 +396,22 @@ class KNeighborsClassifier(BaseEstimator):
         if n_neighbors is None:
             n_neighbors = self.n_neighbors
         if X is None:
-            test_data = self._X
+            test_data = self._X # FrovedisLabeledPoint
+            X = test_data.get()[0]
         else:
-            test_data = FrovedisFeatureData(X, dense_kind='rowmajor')
-        x = test_data.get()
+            test_data = FrovedisFeatureData(X, dense_kind='rowmajor', \
+                          caller = "[" + self.__class__.__name__ + \
+                                   "] kneighbors_graph: ", \
+                          densify=True)
+            X = test_data.get()
         dtype = test_data.get_dtype()
         if (dtype != self.__mdtype):
-            raise TypeError("kneighbors_graph data dtype is different\
-                            than fitted data dtype")
-        itype = test_data.get_itype()
+            raise TypeError("kneighbors_graph data dtype is different " + \
+                            "than fitted data dtype")
+        itype = test_data.get_itype() #TODO: pass itype, dense to client cpp
         dense = test_data.is_dense()
         (host, port) = FrovedisServer.getServerInstance()
-        graph = rpclib.knc_kneighbors_graph(host, port, x.get(), n_neighbors, 
+        graph = rpclib.knc_kneighbors_graph(host, port, X.get(), n_neighbors, 
                                             self.__mid, 
                                             mode.encode("ascii"), 
                                             dtype) 
@@ -424,12 +445,15 @@ class KNeighborsClassifier(BaseEstimator):
         if self.__mid is None:
             raise ValueError( \
             "predict is called before calling fit, or the model is released.")
-        test_data = FrovedisFeatureData(X, dense_kind='rowmajor')
+        test_data = FrovedisFeatureData(X, dense_kind='rowmajor', \
+                          caller = "[" + self.__class__.__name__ + \
+                                   "] predict: ", \
+                          densify=True)
         X = test_data.get()
         dtype = test_data.get_dtype()
         if (dtype != self.__mdtype):
-            raise TypeError("predict data dtype is different than fitted \
-                            data dtype")
+            raise TypeError("predict data dtype is different than fitted " + \
+                            "data dtype")
         nsamples = test_data.numRows()
         (host, port) = FrovedisServer.getServerInstance()
         if dtype == DTYPE.FLOAT:
@@ -445,7 +469,8 @@ class KNeighborsClassifier(BaseEstimator):
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
             raise RuntimeError(excpt["info"])
-        return ret
+        return np.asarray([self.label_map[ret[i]] \
+                          for i in range(0, len(ret))])
 
     def predict_proba(self, X):
         """
@@ -454,19 +479,22 @@ class KNeighborsClassifier(BaseEstimator):
         if self.__mid is None:
             raise ValueError( \
             "predict is called before calling fit, or the model is released.")
-        test_data = FrovedisFeatureData(X, dense_kind='rowmajor')
+        test_data = FrovedisFeatureData(X, dense_kind='rowmajor', \
+                          caller = "[" + self.__class__.__name__ + \
+                                   "] predict_proba: ", \
+                          densify=True)
         X = test_data.get()
         dtype = test_data.get_dtype()
         if (dtype != self.__mdtype):
-            raise TypeError("predict_proba data dtype is different than \
-                             fitted data dtype")
+            raise TypeError("predict_proba data dtype is different than " + \
+                            "fitted data dtype")
         (host, port) = FrovedisServer.getServerInstance()
         dmat = rpclib.knc_predict_proba(host, port, X.get(), self.__mid, dtype) 
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
             raise RuntimeError(excpt["info"])
-        ret =FrovedisRowmajorMatrix(mat=dmat, 
-                                    dtype=TypeUtil.to_numpy_dtype(dtype))
+        ret = FrovedisRowmajorMatrix(mat=dmat, 
+                                     dtype=TypeUtil.to_numpy_dtype(dtype))
         if test_data.is_movable() and self._X_movable:
             return ret.to_numpy_array()
         else:
@@ -479,26 +507,42 @@ class KNeighborsClassifier(BaseEstimator):
         if self.__mid is None:
             raise ValueError( \
             "predict is called before calling fit, or the model is released.")
-        test_data = FrovedisFeatureData(X, dense_kind='rowmajor')
-        x = test_data.get()
+        test_data = FrovedisLabeledPoint(X, y, \
+                   caller = "[" + self.__class__.__name__ + "] score: ",\
+                   encode_label = True, binary_encoder=[0, 1], \
+                   dense_kind = 'rowmajor', densify=True)
+        X, y, logic = test_data.get()
         dtype = test_data.get_dtype()
-        if (dtype != self.__mdtype):
-            raise TypeError("score data dtype is different than fitted \
-                            data dtype")
-        itype = test_data.get_itype()
+        itype = test_data.get_itype() # TODO pass itype, dense to client cpp
         dense = test_data.is_dense()
-        y = FrovedisDvector.as_dvec(y,dtype=TypeUtil.to_numpy_dtype(dtype))
-        if (dtype != y.get_dtype()):
-            raise TypeError("score: different dtypes are encountered for \
-                            X and y!")
+        if (dtype != self.__mdtype):
+            raise TypeError("score data dtype is different than fitted " + \
+                            "data dtype")
         (host, port) = FrovedisServer.getServerInstance()
-        res = rpclib.knc_model_score(host, port, x.get(), y.get(), 
+        res = rpclib.knc_model_score(host, port, X.get(), y.get(), 
                                      self.__mid, dtype)
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
             raise RuntimeError(excpt["info"])
         return res
-    
+
+    @property
+    def classes_(self):
+        """classes_ getter"""
+        if self.__mid is not None:
+            if self._classes is None:
+                self._classes = np.sort(list(self.label_map.values()))
+            return self._classes
+        else:
+            raise AttributeError(\
+        "attribute 'classes_' might have been released or called before fit")
+
+    @classes_.setter
+    def classes_(self, val):
+        """classes_ setter"""
+        raise AttributeError(\
+            "attribute 'classes_' of KNeighborsClassifier object is not writable")
+
     def debug_print(self):
         """
         NAME: debug_print
@@ -539,8 +583,8 @@ class KNeighborsRegressor(BaseEstimator):
         self.metric_params = metric_params
         self.n_jobs = n_jobs
         self.verbose = verbose
-        self.chunk_size = chunk_size
         # extra
+        self.chunk_size = chunk_size
         self._X = None
         self._X_movable = None
         self.__mid = None
@@ -564,21 +608,20 @@ class KNeighborsRegressor(BaseEstimator):
                                 "\n Given metric: ", self.metric,\
                                 "not supported \n")
         self.release()
-        self.__mid = ModelID.get()
-        train_data = FrovedisFeatureData(X, dense_kind='rowmajor')
+        train_data = FrovedisLabeledPoint(X, y, \
+                   caller = "[" + self.__class__.__name__ + "] fit: ",\
+                   dense_kind = 'rowmajor', densify=True)
         self._X = train_data 
         self._X_movable = train_data.is_movable()
-        x = train_data.get()
+        X, y = train_data.get()
         dtype = train_data.get_dtype()
         itype = train_data.get_itype()
         dense = train_data.is_dense()
-        y = FrovedisDvector.as_dvec(y,dtype=TypeUtil.to_numpy_dtype(dtype))
-        if (dtype != y.get_dtype()):
-            raise TypeError("fit: different dtypes are encountered\
-                            for X and y!")
+        self.__mid = ModelID.get()
         self.__mdtype = dtype
+
         (host, port) = FrovedisServer.getServerInstance()
-        rpclib.knr_fit(host, port, x.get(), y.get(), self.n_neighbors,
+        rpclib.knr_fit(host, port, X.get(), y.get(), self.n_neighbors,
                        self.algorithm.encode("ascii"), 
                        self.metric.encode("ascii"), 
                        self.chunk_size,
@@ -595,18 +638,22 @@ class KNeighborsRegressor(BaseEstimator):
         if n_neighbors is None:
             n_neighbors = self.n_neighbors
         if X is None:
-            test_data = self._X
+            test_data = self._X # FrovedisLabeledPoint
+            X = test_data.get()[0]
         else:
-            test_data = FrovedisFeatureData(X, dense_kind='rowmajor')
-        x = test_data.get()
+            test_data = FrovedisFeatureData(X, dense_kind='rowmajor', \
+                          caller = "[" + self.__class__.__name__ + \
+                                   "] kneighbors: ", \
+                          densify=True)
+            X = test_data.get()
         dtype = test_data.get_dtype()
         if (dtype != self.__mdtype):
-            raise TypeError("kneighbors data dtype is different \
-                            than fitted data dtype")
-        itype = test_data.get_itype()
+            raise TypeError("kneighbors data dtype is different " + \
+                            "than fitted data dtype")
+        itype = test_data.get_itype() #TODO: pass itype, dense to client cpp
         dense = test_data.is_dense()
         (host, port) = FrovedisServer.getServerInstance()
-        knn_res = rpclib.knr_kneighbors(host, port, x.get(), n_neighbors, 
+        knn_res = rpclib.knr_kneighbors(host, port, X.get(), n_neighbors, 
                                         self.__mid, return_distance, dtype) 
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
@@ -637,18 +684,22 @@ class KNeighborsRegressor(BaseEstimator):
         if n_neighbors is None:
             n_neighbors = self.n_neighbors
         if X is None:
-            test_data = self._X
+            test_data = self._X # FrovedisLabeledPoint
+            X = test_data.get()[0]
         else:
-            test_data = FrovedisFeatureData(X, dense_kind='rowmajor')
-        x = test_data.get()
+            test_data = FrovedisFeatureData(X, dense_kind='rowmajor', \
+                          caller = "[" + self.__class__.__name__ + \
+                                   "] kneighbors_graph: ", \
+                          densify=True)
+            X = test_data.get()
         dtype = test_data.get_dtype()
         if (dtype != self.__mdtype):
-            raise TypeError("kneighbors_graph data dtype is \
-                            different than fitted data dtype")
-        itype = test_data.get_itype()
+            raise TypeError("kneighbors_graph data dtype is " + \
+                            "different than fitted data dtype")
+        itype = test_data.get_itype() #TODO: pass itype, dense to client cpp
         dense = test_data.is_dense()
         (host, port) = FrovedisServer.getServerInstance()
-        graph = rpclib.knr_kneighbors_graph(host, port, x.get(), n_neighbors, 
+        graph = rpclib.knr_kneighbors_graph(host, port, X.get(), n_neighbors, 
                                             self.__mid, 
                                             mode.encode("ascii"), 
                                             dtype) 
@@ -682,12 +733,15 @@ class KNeighborsRegressor(BaseEstimator):
         if self.__mid is None:
             raise ValueError( \
             "predict is called before calling fit, or the model is released.")
-        test_data = FrovedisFeatureData(X, dense_kind='rowmajor')
+        test_data = FrovedisFeatureData(X, dense_kind='rowmajor', \
+                          caller = "[" + self.__class__.__name__ + \
+                                   "] predict: ", \
+                          densify=True)
         X = test_data.get()
         dtype = test_data.get_dtype()
         if (dtype != self.__mdtype):
-            raise TypeError("predict data dtype is different\
-                            than fitted data dtype")
+            raise TypeError("predict data dtype is different " + \
+                            "than fitted data dtype")
         nsamples = test_data.numRows()
         (host, port) = FrovedisServer.getServerInstance()
         if dtype == DTYPE.FLOAT:
@@ -712,20 +766,18 @@ class KNeighborsRegressor(BaseEstimator):
         if self.__mid is None:
             raise ValueError( \
             "predict is called before calling fit, or the model is released.")
-        test_data = FrovedisFeatureData(X, dense_kind='rowmajor')
-        x = test_data.get()
+        test_data = FrovedisLabeledPoint(X, y, \
+                   caller = "[" + self.__class__.__name__ + "] score: ",\
+                   dense_kind = 'rowmajor', densify=True)
+        X, y = test_data.get()
         dtype = test_data.get_dtype()
-        if (dtype != self.__mdtype):
-            raise TypeError("score data dtype is different than \
-                            fitted data dtype")
-        itype = test_data.get_itype()
+        itype = test_data.get_itype() # TODO pass itype, dense to client cpp
         dense = test_data.is_dense()
-        y = FrovedisDvector.as_dvec(y,dtype=TypeUtil.to_numpy_dtype(dtype))
-        if (dtype != y.get_dtype()):
-            raise TypeError("score: different dtypes are encountered \
-                           for X and y!")
+        if (dtype != self.__mdtype):
+            raise TypeError("score data dtype is different than " + \
+                            "fitted data dtype")
         (host, port) = FrovedisServer.getServerInstance()
-        res = rpclib.knr_model_score(host, port, x.get(), y.get(), 
+        res = rpclib.knr_model_score(host, port, X.get(), y.get(), 
                                      self.__mid, dtype)
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
