@@ -1,43 +1,12 @@
 #ifndef _KNN_SUPERVISED_HPP_
 #define _KNN_SUPERVISED_HPP_
 
-#include <frovedis/dataframe/dftable.hpp>
-#include <frovedis/dataframe/dfoperator.hpp>
 #include <frovedis/ml/neighbors/knn.hpp>
 #include <frovedis/ml/metrics.hpp>
 
 namespace frovedis {
 
-template <class T>
-dvector<size_t> 
-encode_label(dvector<T>& label) {
-  dftable left;
-  left.append_column("labels", label);
-  std::vector<std::string> target = {std::string("labels")};
-  auto right = left.group_by(target).select(target)
-                   .rename("labels", "src")
-                   .sort("src")
-                   .append_rowid("target"); // zero based ids (col type: size_t)
-  auto joined = left.bcast_join(right, eq("labels", "src")); // encoding by joining
-  return joined.as_dvector<size_t>("target");
-}
-
-template <class T>
-void do_sort(std::vector<T>& vec) {
-  radix_sort(vec, false);
-}
-
-template <class T>
-std::vector<T> 
-get_uniq_labels(dvector<T>& label) {
-  return label.as_node_local()
-              .mapv(do_sort<T>)
-              .map(set_unique<T>)
-              .reduce(set_union<T>);
-}
-
 // --- Classifier ---
-
 template <class T>
 struct kneighbors_classifier {
   kneighbors_classifier(int k, const std::string& algo,
@@ -49,8 +18,8 @@ struct kneighbors_classifier {
     if (mat.num_row != label.size()) 
       REPORT_ERROR(USER_ERROR, "number of entries differ in input matrix and label!\n");
     observation_data = mat;
-    encoded_label = encode_label(label).gather();
-    uniq_labels = get_uniq_labels(label);
+    std::vector<size_t> u_ind, u_cnt;
+    uniq_labels = vector_unique(label.gather(), u_ind, encoded_label, u_cnt);
     nclasses = uniq_labels.size();
   }
 
@@ -107,6 +76,7 @@ get_count_matrix_helper(rowmajor_matrix_local<I>& model_indx,
   rowmajor_matrix_local<I> count(nrow, nclasses);
   auto indxptr = model_indx.val.data();
   auto countptr = count.val.data();
+  // FIXME: label might be same, ivdep might be destructive
   for(size_t j = 0; j < ncol; ++j) {
 #pragma _NEC ivdep
     for(size_t i = 0; i < nrow; ++i) {  // nodep since vectorization on i-direction
@@ -254,11 +224,10 @@ template <class I>
 float kneighbors_classifier<T>::score(rowmajor_matrix<T>& mat,
                                       dvector<T>& true_label) {
   auto pred_label = predict<I>(mat);
-  return accuracy_score(pred_label.gather(), true_label.gather());
+  return accuracy_score(true_label.gather(), pred_label.gather());
 }
 
 // --- Regressor ---
-
 template <class T>
 struct kneighbors_regressor {
   kneighbors_regressor(int k, const std::string& algo,
@@ -348,7 +317,7 @@ template <class I>
 float kneighbors_regressor<T>::score(rowmajor_matrix<T>& mat,
                                      dvector<T>& true_label) {
   auto pred_label = predict<I>(mat);
-  return r2_score(pred_label.gather(), true_label.gather());
+  return r2_score(true_label.gather(), pred_label.gather());
 }
 
 }
