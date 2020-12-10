@@ -69,21 +69,16 @@ struct naive_bayes_model {
     else return multinomial_compute_probability_matrix(testData);
   }
 
-  void debug_print() {
-    std::cout << "theta: ";  theta.debug_print();
-    std::cout << "pi: ";     
-    for(auto i: pi) std::cout << i << " "; std::cout << std::endl;
-    std::cout << "label: "; 
-    for(auto i: label) std::cout << i << " "; std::cout << std::endl;
-    std::cout << "class count: ";
-    for(auto i: cls_counts) std::cout << i << " "; std::cout << std::endl;
+  void debug_print(size_t limit = 5) {
+    std::cout << "theta: "; theta.debug_print(limit);
+    std::cout << "pi: "; debug_print_vector(pi, limit);
+    std::cout << "label: "; debug_print_vector(label, limit) ;
+    std::cout << "class count: "; debug_print_vector(cls_counts, limit);
     std::cout << "model_type: " << model_type << std::endl;
     if (model_type == "bernoulli") {
-      std::cout << "theta_minus_negtheta: ";  theta_minus_negtheta.debug_print();
-      std::cout << "negtheta_sum: ";  
-      for(auto i: negtheta_sum) std::cout << i << " "; std::cout << std::endl;
+      std::cout << "theta_minus_negtheta: "; theta_minus_negtheta.debug_print(limit);
+      std::cout << "negtheta_sum: "; debug_print_vector(negtheta_sum, limit);
     }
-    std::cout << std::endl;
   }
   void __create_dir_struct (const std::string& dir) {
     struct stat sb;
