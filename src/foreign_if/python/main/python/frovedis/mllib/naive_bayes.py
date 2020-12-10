@@ -66,10 +66,10 @@ class MultinomialNB(BaseEstimator):
         self.n_classes = unique_labels.size
         self.__mdtype = dtype
         (host, port) = FrovedisServer.getServerInstance()
-        rpclib.nb_train(host, port, data.get(),
-                        label.get(), self.alpha, self.__mid,
-                        self.Algo.encode('ascii'), self.verbose, dtype, \
-                        itype, dense)
+        rpclib.nb_train(host, port, data.get(), \
+                        label.get(), self.alpha, self.__mid, \
+                        self.Algo.encode('ascii'), 0.0, \
+                        self.verbose, dtype, itype, dense)
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
             raise RuntimeError(excpt["info"])
@@ -309,8 +309,8 @@ class GaussianNB(BaseEstimator):
         self.n_classes = unique_labels.size
         self.__mdtype = dtype
         (host, port) = FrovedisServer.getServerInstance()
-        rpclib.nb_train(host, port, data.get(),
-                        label.get(), self.alpha, self.__mid,
+        rpclib.nb_train(host, port, data.get(), \
+                        label.get(), self.alpha, self.__mid, \
                         self.Algo.encode('ascii'), \
                         self.verbose, dtype, itype, dense)
         excpt = rpclib.check_server_exception()
@@ -478,7 +478,6 @@ class BernoulliNB(BaseEstimator):
         """
         self.validate()
         self.release()
-        self.__mid = ModelID.get()
         inp_data = FrovedisLabeledPoint(X, y)
         (data, label) = inp_data.get()
         dtype = inp_data.get_dtype()
@@ -486,12 +485,13 @@ class BernoulliNB(BaseEstimator):
         dense = inp_data.is_dense()
         unique_labels = inp_data.get_distinct_labels()
         self.n_classes = unique_labels.size
+        self.__mid = ModelID.get()
         self.__mdtype = dtype
         (host, port) = FrovedisServer.getServerInstance()
-        rpclib.nb_train(host, port, data.get(),
-                        label.get(), self.alpha, self.__mid,
-                        self.Algo.encode('ascii'), self.verbose, dtype, itype, \
-                        dense)
+        rpclib.nb_train(host, port, data.get(), \
+                        label.get(), self.alpha, self.__mid, \
+                        self.Algo.encode('ascii'), self.binarize, \
+                        self.verbose, dtype, itype, dense)
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
             raise RuntimeError(excpt["info"])
