@@ -61,15 +61,20 @@ class LinearSVC(BaseEstimator):
         if self.C < 0:
             raise ValueError("fit: parameter C must be strictly positive!")
         self.release()
-        self.__mid = ModelID.get()
-        inp_data = FrovedisLabeledPoint(X, y)
-        (X, y) = inp_data.get()
+        # for binary case: frovedis supports -1 and 1
+        inp_data = FrovedisLabeledPoint(X, y, \
+                   caller = "[" + self.__class__.__name__ + "] fit: ",\
+                   encode_label = True, binary_encoder=[-1, 1], \
+                   dense_kind = 'colmajor', densify=False) 
+        X, y, logic = inp_data.get()
+        self._classes = inp_data.get_distinct_labels()
+        self.n_classes = len(self._classes)
+        self.label_map = logic
         dtype = inp_data.get_dtype()
         itype = inp_data.get_itype()
         dense = inp_data.is_dense()
+        self.__mid = ModelID.get()
         self.__mdtype = dtype
-        unique_labels = inp_data.get_distinct_labels()
-        self.n_classes = unique_labels.size
 
         if self.n_classes > 2:
             raise ValueError("fit: frovedis svm does not support multinomial\
@@ -85,23 +90,15 @@ class LinearSVC(BaseEstimator):
             raise ValueError("Unsupported penalty is provided: ", self.penalty)
         rparam = 1.0 / self.C
 
-        #Encoder
-        target = [-1, 1]
-        encoded_y, logic = y.encode(unique_labels, target, need_logic=True)
-        self.label_map = logic
         (host, port) = FrovedisServer.getServerInstance()
-        if dense and X.get_mtype() != 'C':
-            raise TypeError("fit: please provide column-major points " +
-                            "for frovedis linear svm classifier!")
         if self.solver == 'sag':
-            rpclib.svm_sgd(host, port, X.get(), encoded_y.get(), \
+            rpclib.svm_sgd(host, port, X.get(), y.get(), \
                            self.max_iter, self.lr_rate, \
                            regTyp, rparam, self.fit_intercept, \
                            self.tol, self.verbose, self.__mid, dtype, \
                            itype, dense)
-
         elif self.solver == 'lbfgs':
-            rpclib.svm_lbfgs(host, port, X.get(), encoded_y.get(), \
+            rpclib.svm_lbfgs(host, port, X.get(), y.get(), \
                              self.max_iter, self.lr_rate, \
                              regTyp, rparam, self.fit_intercept, \
                              self.tol, self.verbose, self.__mid, dtype, \
@@ -114,7 +111,6 @@ class LinearSVC(BaseEstimator):
             raise RuntimeError(excpt["info"])
         self._coef = None
         self._intercept = None
-        self._classes = None
         return self
 
     @property
@@ -170,8 +166,7 @@ class LinearSVC(BaseEstimator):
         """classes_ getter"""
         if self.__mid is not None:
             if self._classes is None:
-                self._classes = \
-                    np.asarray(list(self.label_map.values()), dtype=np.int64)
+                self._classes = np.sort(list(self.label_map.values()))
             return self._classes
         else:
             raise AttributeError(\
@@ -190,9 +185,8 @@ class LinearSVC(BaseEstimator):
         if self.__mid is not None:
             frov_pred = GLM.predict(X, self.__mid, self.__mkind, \
                                     self.__mdtype, False)
-            new_pred = \
-            [self.label_map[frov_pred[i]] for i in range(0, len(frov_pred))]
-            return np.asarray(new_pred, dtype=np.int64)
+            return np.asarray([self.label_map[frov_pred[i]] \
+                              for i in range(0, len(frov_pred))])
         else:
             raise ValueError( \
             "predict is called before calling fit, or the model is released.")
@@ -208,6 +202,7 @@ class LinearSVC(BaseEstimator):
         target = open(fname+"/label_map", "rb")
         self.label_map = pickle.load(target)
         target.close()
+        self._classes = np.sort(list(self.label_map.values()))
         metadata = open(fname+"/metadata", "rb")
         self.n_classes, self.__mkind, self.__mdtype = pickle.load(metadata)
         metadata.close()
@@ -307,13 +302,14 @@ class SVC(BaseEstimator):
             self.__mkind = M_KIND.SVM
         else:
             self.__mkind = M_KIND.KSVC
-        self.n_classes = None
         self._coef = None
         self._intercept = None
         self._support = None
         self._support_vectors = None
         self._classes = None
         self.label_map = None
+        self.n_classes = None
+        self.n_features = None
 
     def validate(self):
         """
@@ -346,34 +342,40 @@ class SVC(BaseEstimator):
         NAME: fit
         """
         self.release()
-        self.__mid = ModelID.get()
-        if(isinstance(y, FrovedisDvector)):
-            self.__ytype = TypeUtil.get_numpy_dtype(y.get_dtype())
-        else:
-            self.__ytype = np.asarray(y).dtype
+        self.validate()
 
-        if(not isinstance(X, (FrovedisDenseMatrix, FrovedisCRSMatrix))):
+        if not isinstance(X, (FrovedisDenseMatrix, FrovedisCRSMatrix)):
             self.xvar = np.var(X)
         else:
             self.xvar = None
 
-        train_data = FrovedisFeatureData(X, dense_kind='rowmajor')
-        X = train_data.get()
-        dtype = train_data.get_dtype()
-        itype = train_data.get_itype()
-        dense = train_data.is_dense()
-        y = FrovedisDvector.as_dvec(y,dtype=TypeUtil.to_numpy_dtype(dtype))
-        if (dtype != y.get_dtype()):
-            raise TypeError("fit: different dtypes are encountered for " \
-                            + "X and y!")
+        # for binary case: frovedis supports -1 and 1
+        if self.kernel == 'linear':
+            inp_data = FrovedisLabeledPoint(X, y, \
+                       caller = "[" + self.__class__.__name__ + \
+                                "]" + self.kernel + "-fit: ",\
+                       encode_label = True, binary_encoder=[-1, 1], \
+                       dense_kind = 'colmajor', densify=False) 
+        else:
+            inp_data = FrovedisLabeledPoint(X, y, \
+                       caller = "[" + self.__class__.__name__ + \
+                                "]" + self.kernel + "-fit: ",\
+                       encode_label = True, binary_encoder=[-1, 1], \
+                       dense_kind = 'rowmajor', densify=True)
+        X, y, logic = inp_data.get()
+        self._classes = inp_data.get_distinct_labels()
+        self.n_classes = len(self._classes)
+        self.label_map = logic
+        dtype = inp_data.get_dtype()
+        itype = inp_data.get_itype()
+        dense = inp_data.is_dense()
+        self.__mid = ModelID.get()
         self.__mdtype = dtype
-        self._classes = np.asarray(y.get_unique_elements())
-        self.n_features = train_data.numCols()
-        self.n_classes = self._classes.size
+        self.n_features = inp_data.numCols()
 
         if self.n_classes > 2:
             raise ValueError("fit: frovedis svc does not support multinomial " \
-                              + "data currently!")
+                              + "classification currently!")
 
         if(type(self.gamma).__name__ == 'float'): pass
         elif(self.gamma == "scale"):
@@ -386,31 +388,20 @@ class SVC(BaseEstimator):
         else:
             raise ValueError("fit: unsupported gamma is encountered!")
 
-        target = [-1, 1]
-        encoded_y, logic = y.encode(self._classes, target, need_logic=True)
-        self.label_map = logic
-        # validate hyper-parameters
-        self.validate()
         (host, port) = FrovedisServer.getServerInstance()
         if self.kernel == 'linear':
             lrate = 0.01
             regType = 2
             icpt = True
             rparam = 1.0 / self.C
-            if dense and X.get_mtype() != 'C':
-                raise TypeError("fit: please provide column-major points " +
-                                "for frovedis svm with sgd classification!")
-            rpclib.svm_sgd(host, port, X.get(), encoded_y.get(), \
+            rpclib.svm_sgd(host, port, X.get(), y.get(), \
                        self.max_iter, lrate, regType, rparam, icpt, \
                        self.tol, self.verbose, self.__mid, dtype, \
                        itype, dense)
             self._coef = None
             self._intercept = None
         else:
-            if dense and X.get_mtype() != 'R':
-                raise TypeError("fit: please provide row-major points " +
-                                "for frovedis svc classification!")
-            rpclib.frovedis_svc(host, port, X.get(), encoded_y.get(), \
+            rpclib.frovedis_svc(host, port, X.get(), y.get(), \
                        self.tol, self.C, self.cache_size, self.max_iter, \
                        self.kernel.encode("ascii"), self.gamma, self.coef0, \
                        self.degree, self.verbose, self.__mid, \
@@ -477,9 +468,8 @@ class SVC(BaseEstimator):
     def classes_(self):
         """classes_ getter"""
         if self.__mid is not None:
-            if self._classes is None: #COMMENT: confirm dtype of labels
-                self._classes = \
-                    np.asarray(list(self.label_map.values()), dtype=self.__ytype)
+            if self._classes is None: 
+                self._classes = np.sort(list(self.label_map.values()))
             return self._classes
         else:
             raise AttributeError(\
@@ -544,9 +534,8 @@ class SVC(BaseEstimator):
         if self.__mid is not None:
             frov_pred = GLM.predict(X, self.__mid, self.__mkind, \
                                     self.__mdtype, False)
-            new_pred = \
-            [self.label_map[frov_pred[i]] for i in range(0, len(frov_pred))]
-            return np.asarray(new_pred, dtype=self.__ytype)
+            return np.asarray([self.label_map[frov_pred[i]] \
+                              for i in range(0, len(frov_pred))])
         else:
             raise ValueError( \
             "predict is called before calling fit, or the model is released.")
@@ -585,6 +574,7 @@ class SVC(BaseEstimator):
         target = open(fname+"/label_map", "rb")
         self.label_map = pickle.load(target)
         target.close()
+        self._classes = np.sort(list(self.label_map.values()))
         metadata = open(fname+"/metadata", "rb")
         self.n_classes, self.__mkind, self.__mdtype = pickle.load(metadata)
         metadata.close()
@@ -638,6 +628,7 @@ class SVC(BaseEstimator):
             self._intercept = None
             self._classes = None
             self.n_classes = None
+            self.n_features = None
             self._support = None
             self._support_vectors = None
             self.label_map = None
@@ -711,15 +702,17 @@ class LinearSVR(BaseEstimator):
         """
         # release old model, if any
         self.release()
+        self.validate()
         # perform the fit
-        self.__mid = ModelID.get()
-        inp_data = FrovedisLabeledPoint(X, y)
+        inp_data = FrovedisLabeledPoint(X, y, \
+                   caller = "[" + self.__class__.__name__ + "] fit: ",\
+                   dense_kind = 'colmajor', densify=False) 
         (X, y) = inp_data.get()
         dtype = inp_data.get_dtype()
         itype = inp_data.get_itype()
         dense = inp_data.is_dense()
+        self.__mid = ModelID.get()
         self.__mdtype = dtype
-        self.validate()
 
         rparam = 1.0 / self.C
         if self.penalty == 'l1':
@@ -740,18 +733,15 @@ class LinearSVR(BaseEstimator):
 
         (host, port) = FrovedisServer.getServerInstance()
         if self.solver == 'sag':
-            if dense and X.get_mtype() != 'C':
-                raise TypeError("fit: please provide column-major points " +
-                                "for frovedis linear SVM regressor!")
             rpclib.svm_regressor_sgd(host, port, X.get(), y.get(), \
                                      self.max_iter, self.lr_rate, \
                                      self.epsilon, regTyp, rparam, \
                                      self.fit_intercept, self.tol, \
                                      intLoss, self.verbose, self.__mid, \
                                      dtype, itype, dense)
-
         elif self.solver == 'lbfgs':
-            raise ValueError("Currently LinearSVM Regressor doesn't support lbfgs solver!")
+            raise ValueError("fit: currently LinearSVM Regressor doesn't " + \
+                             "support lbfgs solver!")
         else:
             raise ValueError( \
               "Unknown solver %s for Linear SVM Regressor." % self.solver)
