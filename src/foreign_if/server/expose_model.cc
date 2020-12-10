@@ -184,11 +184,14 @@ void expose_frovedis_model_functions() {
   expose((get_intercept_as_vector<DT1,SVR1>));
   expose((get_intercept_as_vector<DT2,SVR2>));
   // --- frovedis SVM Kernel Model ---
+  expose(show_model<KSVC1>); //TODO: Python support to be added
+  expose(load_glm<KSVC1>); //spark
+  expose((single_generic_predict<DT1,R_LMAT1,KSVC1>));  // for spark
   expose(release_model<KSVC1>);
   expose(release_model<KSVC2>); // for python
   expose(save_model<KSVC1>);
   expose(save_model<KSVC2>);    // for python
-  expose(load_model<KSVC1>);
+  expose(load_model<KSVC1>); //TODO: replace in python then remove this and next call
   expose(load_model<KSVC2>);    // for python
   expose((ksvm_predict<DT1,R_MAT1,KSVC1>));  // for spark+python
   expose((ksvm_predict<DT2,R_MAT2,KSVC2>));  // for python
