@@ -23,7 +23,7 @@ struct graph {
     num_incoming = adj_mat.data.map(count_edges<T,I,O>)
                                .template moveto_dvector<size_t>()
                                .gather();
-    num_edges = vec_sum(num_outgoing);
+    num_edges = vector_sum(num_outgoing);
     num_vertices = adj_mat.num_col;
     is_directed = has_direction(sqmat, adj_mat);
     is_weighted = has_weight(adj_mat);
@@ -98,7 +98,7 @@ struct graph {
     "pagerank: threshold value should be in between 0 to 1!\n");
     crs_matrix<double,I,O> norm_mat;
     std::vector<double> rank;
-    auto nodes_with_incoming_edges = count_non_zero(num_incoming);
+    auto nodes_with_incoming_edges = vector_count_nonzero(num_incoming);
     if(nodes_with_incoming_edges <= num_vertices * threshold) {
       RLOG(DEBUG) << "pagerank: " << nodes_with_incoming_edges << "/" 
                   << num_vertices << " nodes with incoming edges are "
@@ -128,7 +128,7 @@ struct graph {
     "pagerank: threshold value should be in between 0 to 1!\n");
     crs_matrix<double,I,O> norm_mat;
     std::vector<double> rank;
-    auto nodes_with_incoming_edges = count_non_zero(num_incoming);
+    auto nodes_with_incoming_edges = vector_count_nonzero(num_incoming);
     if(nodes_with_incoming_edges <= num_vertices * threshold) {
       RLOG(DEBUG) << "pagerank: " << nodes_with_incoming_edges << "/" 
                   << num_vertices << " nodes with incoming edges are "
