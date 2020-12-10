@@ -13,8 +13,6 @@
 #include "frovedis/matrix/crs_matrix.hpp"
 #include "frovedis/matrix/diag_matrix.hpp"
 #include "frovedis/matrix/blockcyclic_matrix.hpp"
-#include "frovedis/dataframe/dftable.hpp"
-#include "frovedis/dataframe/dfoperator.hpp"
 #include "../exrpc/exrpc_expose.hpp"
 #include "frovedis_mem_pair.hpp"
 #include "dummy_matrix.hpp"
@@ -41,17 +39,9 @@ void set_vector_data(std::vector<T>& vec,
 }
 
 template <class T>
-void do_sort(std::vector<T>& vec) {
-  radix_sort(vec, false);
-}
-
-template <class T>
 std::vector<T>
 get_unique(dvector<T>& dvec) {
-  return dvec.as_node_local()
-             .mapv(do_sort<T>)
-             .map(set_unique<T>)
-             .reduce(set_union<T>);
+  return vector_unique(dvec.gather());
 }
 
 template <class T>
@@ -71,43 +61,24 @@ exrpc_ptr_t get_encoded_dvector(exrpc_ptr_t& dptr,
                                 std::vector<T>& src,
                                 std::vector<T>& target) {
   auto& dvec = *reinterpret_cast<dvector<T>*>(dptr);
+  std::vector<T> u_enc;
+  std::vector<size_t> u_ind, u_cnt;
+  auto unq = vector_unique<T,T>(dvec.gather(), u_ind, u_enc, u_cnt, target);
   // assumption: 'src' vector should contain all unique elements in dvector 'dvec'
-  dftable left, right;
-  left.append_column("labels", dvec);
-  right.append_column("src",make_dvector_scatter(src)); // original data, like {10, 20, 30, 40}
-  right.append_column("target",make_dvector_scatter(target)); // target data, like {0, 1, 2, 3}
-  auto joined = left.bcast_join(right, eq("labels", "src")); // encoding by joining
-  auto encoded = new dvector<T>(joined.as_dvector<T>("target")); // from stack to heap
-  return reinterpret_cast<exrpc_ptr_t>(encoded); // making a handle
+  checkAssumption(unq == src);
+  auto encoded = new dvector<T>(make_dvector_scatter(u_enc));
+  return reinterpret_cast<exrpc_ptr_t>(encoded); 
 }
-
-template <class T, class R>
-std::vector<R> cast_type(std::vector<T>& vec) {
-  std::vector<R> ret(vec.size());
-  auto vptr = vec.data();
-  auto rptr = ret.data();
-  for(size_t i = 0; i < vec.size(); ++i) {
-    rptr[i] = static_cast<R>(vptr[i]);
-  }
-  return ret;
-} 
 
 // sorted unique elements in input dvector will be encodes by {0, 1, 2, ...}
 template <class T>
 exrpc_ptr_t get_encoded_dvector_zero_based(exrpc_ptr_t& dptr) { 
   auto& dvec = *reinterpret_cast<dvector<T>*>(dptr);
-  dftable left;
-  left.append_column("labels", dvec);
-  std::vector<std::string> target = {std::string("labels")};
-  auto right = left.group_by(target).select(target)
-                   .rename("labels", "src")
-                   .sort("src")
-                   .append_rowid("target"); // zero based ids (col type: size_t)
-  auto joined = left.bcast_join(right, eq("labels", "src")); // encoding by joining
-  auto encoded = joined.as_dvector<size_t>("target"); 
-  // size_t type is casted as T and move casted data to heap from stack
-  auto casted_encoded_ptr = new dvector<T>(encoded.map_partitions(cast_type<size_t, T>));
-  return reinterpret_cast<exrpc_ptr_t>(casted_encoded_ptr); // making a handle
+  std::vector<T> u_enc;
+  std::vector<size_t> u_ind, u_cnt;
+  auto unq = vector_unique<T,T>(dvec.gather(), u_ind, u_enc, u_cnt);
+  auto encoded = new dvector<T>(make_dvector_scatter(u_enc));
+  return reinterpret_cast<exrpc_ptr_t>(encoded); 
 }
 
 template <class T>
@@ -492,12 +463,22 @@ std::vector<T> vec_to_array(exrpc_ptr_t& vptr) {
 // converts MATRIX to exrpc::rowmajor_matrix<T>
 template <class T, class MATRIX>
 dummy_matrix to_rowmajor_matrix(exrpc_ptr_t& d_ptr) {
-  auto matp = reinterpret_cast<MATRIX*>(d_ptr);
+  auto& mat = *reinterpret_cast<MATRIX*>(d_ptr);
   // MATRIX class should have to_rowmajor() method defined
-  auto rmat = matp->to_rowmajor(); 
-  auto rmatp = new rowmajor_matrix<T>(std::move(rmat));
+  auto rmatp = new rowmajor_matrix<T>(mat.to_rowmajor());
   if(!rmatp) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed!\n");
   return to_dummy_matrix<rowmajor_matrix<T>, rowmajor_matrix_local<T>>(rmatp);
+}
+
+// converts MATRIX to exrpc::colmajor_matrix<T>
+template <class T, class MATRIX>
+dummy_matrix to_colmajor_matrix(exrpc_ptr_t& d_ptr) {
+  auto& mat = *reinterpret_cast<MATRIX*>(d_ptr);
+  // MATRIX class should have to_rowmajor() method defined
+  auto colmat = colmajor_matrix<T>(mat.to_rowmajor());
+  auto cmatp = new colmajor_matrix<T>(std::move(colmat));
+  if(!cmatp) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed!\n");
+  return to_dummy_matrix<colmajor_matrix<T>, colmajor_matrix_local<T>>(cmatp);
 }
 
 // reurns the exrpc::pointer of the input local matrix
