@@ -124,6 +124,16 @@ extern "C" {
                          "noise", obj.noise);
   }
   
+  PyObject* to_py_tsne_result(const tsne_result& obj) {
+    long embedding_ptr = (long)obj.embedding_ptr; // rowmajor_matrix
+    return Py_BuildValue("{s:l, s:i, s:i, s:i, s:d}",
+                         "embedding_ptr", embedding_ptr,
+                         "n_samples",  obj.n_samples,
+                         "n_comps", obj.n_comps,
+                         "n_iter_", obj.n_iter_,
+                         "kl_divergence_", obj.kl_divergence_);
+  }
+
   PyObject* to_py_knn_result(const knn_result& obj,
                              char mtype) {
     if (mtype != 'R') 
