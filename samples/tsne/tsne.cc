@@ -1,7 +1,6 @@
 #include <frovedis.hpp>
 #include <frovedis/matrix/rowmajor_matrix.hpp>
 #include <frovedis/matrix/tsne.hpp>
-
 #include <boost/program_options.hpp>
 
 using namespace boost;
@@ -11,7 +10,7 @@ template <class T>
 void call_tsne(const std::string& data_p, const std::string& out_p, double perplexity,
                double early_exaggeration, double min_grad_norm, double learning_rate, 
                size_t n_components, size_t max_iter, size_t n_iter_without_progress, 
-               const std::string& metric, bool verbose) {
+               const std::string& metric, bool verbose) { 
   time_spent load_t(INFO);
   load_t.lap_start();
   auto mat = make_rowmajor_matrix_load<T>(data_p);
@@ -22,12 +21,27 @@ void call_tsne(const std::string& data_p, const std::string& out_p, double perpl
             << std::endl;
   time_spent tsne_t(INFO);
   tsne_t.lap_start();
-  auto Y_mat = tsne(mat, perplexity, early_exaggeration, min_grad_norm, 
-                    learning_rate, n_components, max_iter, 
-                    n_iter_without_progress, metric, verbose);
+
+  TSNE<T> t1;
+  t1.set_perplexity(perplexity).
+     set_early_exaggeration(early_exaggeration).
+     set_min_grad_norm(min_grad_norm).
+     set_learning_rate(learning_rate).
+     set_n_components(n_components).
+     set_n_iter(max_iter).
+     set_n_iter_without_progress(n_iter_without_progress).
+     set_metric(metric).
+     set_verbose(verbose); 
+
+  auto Y_mat = t1.fit_transform(mat); 
+  auto n_iter = t1.get_n_iter_();
+  auto kl_divergence = t1.get_kl_divergence_();
+
   tsne_t.lap_stop();
   tsne_t.show_lap("Overall computation time: ");
   Y_mat.save(out_p);
+  std::cout << "n_iter_ = " << n_iter << std::endl;
+  std::cout << "kl_divergence_ = " << kl_divergence << std::endl;
 }
 
 int main(int argc, char* argv[]) {
@@ -68,8 +82,6 @@ int main(int argc, char* argv[]) {
   size_t n_iter_without_progress = 300;
   std::string metric = "euclidean"; //possible values = ["euclidean", "precomputed"]
   bool verbose = false;
-
-  //////////////////////////   command options   ///////////////////////////
 
   if(argmap.count("help")){
     std::cerr << opt << std::endl;
@@ -120,7 +132,6 @@ int main(int argc, char* argv[]) {
     set_loglevel(DEBUG);
     verbose = true;
   }
-  /////////////////////////////////////////////////////////////////
 
   try {
     if (dtype == "float") {
