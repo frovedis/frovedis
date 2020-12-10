@@ -1,4 +1,5 @@
 #include <frovedis.hpp>
+#include <frovedis/matrix/crs_matrix.hpp>
 #include <frovedis/ml/nb/naive_bayes.hpp>
 #include <boost/program_options.hpp>
 
@@ -35,9 +36,8 @@ void do_nb_predict(MATRIX& mat,
   naive_bayes_model<T> model;
   model.load(modelfile);
 
-  std::vector<T> plbl;
   pred_t.lap_start();
-  plbl =  is_prob? model.predict_probability(mat) : model.predict(mat);
+  auto plbl =  is_prob? model.predict_probability(mat) : model.predict(mat);
   pred_t.lap_stop();
   pred_t.show_lap("total prediction time: ");
 
@@ -100,7 +100,16 @@ int main(int argc, char* argv[]) {
     exit(1);
   }
 
-  if(!ispredict) {
+  if(ispredict) {
+    if(argmap.count("model")){
+      model = argmap["model"].as<string>();
+    } else {
+      cerr << "model file is not specified" << endl;
+      cerr << opt << endl;
+      exit(1);
+    }
+  }
+  else {
     if(argmap.count("label")){
       label = argmap["label"].as<string>();
     } else {
@@ -173,12 +182,12 @@ int main(int argc, char* argv[]) {
         if(dtype == "float") { 
           auto mat = make_rowmajor_matrix_load<float>(input);
           auto lbl = make_dvector_loadline<float>(label);
-          do_nb_train<float> (mat, lbl, output, model_type, lambda);
+          do_nb_train(mat, lbl, output, model_type, lambda);
         }
         else if(dtype == "double") {
           auto mat = make_rowmajor_matrix_load<double>(input);
           auto lbl = make_dvector_loadline<double>(label);
-          do_nb_train<double> (mat, lbl, output, model_type, lambda);
+          do_nb_train(mat, lbl, output, model_type, lambda);
         }
         else REPORT_ERROR(USER_ERROR, "supported dtypes are float or double!\n");
       }
@@ -186,12 +195,12 @@ int main(int argc, char* argv[]) {
         if (dtype == "float") {
           auto mat = make_crs_matrix_load<float>(input);
           auto lbl = make_dvector_loadline<float>(label);
-          do_nb_train<float> (mat, lbl, output, model_type, lambda);
+          do_nb_train(mat, lbl, output, model_type, lambda);
         }
         else if(dtype == "double") {
           auto mat = make_crs_matrix_load<double>(input);
           auto lbl = make_dvector_loadline<double>(label);
-          do_nb_train<double> (mat, lbl, output, model_type, lambda);
+          do_nb_train(mat, lbl, output, model_type, lambda);
         }
         else REPORT_ERROR(USER_ERROR, "supported dtypes are float or double!\n");
       }
