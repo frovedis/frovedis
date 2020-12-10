@@ -29,6 +29,13 @@ fmat = FrovedisCRSMatrix(mat)
 # Viewing the created matrix (for debugging)
 fmat.debug_print()
 
+# sparse to dense conversion at server side
+print("crs -> rowmajor")
+fmat.to_frovedis_rowmajor_matrix().debug_print()
+
+print("crs -> colmajor")
+fmat.to_frovedis_colmajor_matrix().debug_print()
+
 # Saving the created matrix 
 fmat.save("./out/crs_3x3")
 
@@ -53,4 +60,3 @@ asmat.release()
 
 # Shutting down the Frovedis server
 FrovedisServer.shut_down()
-
