@@ -116,7 +116,6 @@ class Expr extends java.io.Serializable {
     else {
       val r1 = op1.toString()
       if( opt == OPTYPE.NOT ) return "(" + " " + get_opt(opt) + " " + r1 + " " + ")"
-
       val r2 = op2.toString()
       return "(" + r1 + " " + get_opt(opt) + " " + r2 + ")"
     }
