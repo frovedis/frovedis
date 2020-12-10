@@ -63,6 +63,9 @@ class KMeans(BaseEstimator):
         self.__mdtype = dtype
 
         (host, port) = FrovedisServer.getServerInstance()
+        if dense and X.get_mtype() != 'R':
+            raise TypeError("fit: please provide row-major points " +
+                            "for frovedis k-means clustering!")
         rpclib.kmeans_train(host, port, X.get(), self.n_clusters,\
                             self.max_iter, seed, eps, self.verbose, \
                             self.__mid, dtype, itype, dense)
@@ -226,6 +229,9 @@ class SpectralClustering(BaseEstimator):
         len_l = X.numRows()
         (host, port) = FrovedisServer.getServerInstance()
         ret = np.zeros(len_l, dtype=np.int32)
+        if dense and X.get_mtype() != 'R':
+            raise TypeError("fit: please provide row-major points " +
+                            "for frovedis spectral clustering!")
         rpclib.sca_train(host, port, X.get(), self.n_clusters, self.n_components,
                          self.n_iter, self.eps, self.gamma,
                          precomputed, self.norm_laplacian, self.mode,
@@ -383,6 +389,9 @@ class SpectralEmbedding(BaseEstimator):
         else:
             precomputed = False
         (host, port) = FrovedisServer.getServerInstance()
+        if dense and X.get_mtype() != 'R':
+            raise TypeError("fit: please provide row-major points " +
+                            "for frovedis spectral embedding!")
         rpclib.sea_train(host, port, X.get(),
                          self.n_components, self.gamma,
                          precomputed, self.norm_laplacian, self.mode,
@@ -530,6 +539,9 @@ class AgglomerativeClustering(BaseEstimator):
         nsamples = X.numRows()
         (host, port) = FrovedisServer.getServerInstance()
         ret = np.zeros(nsamples, dtype=np.int32)
+        if dense and X.get_mtype() != 'R':
+            raise TypeError("fit: please provide row-major points " +
+                            "for frovedis agglomerative clustering!")
         rpclib.aca_train(host, port, X.get(), self.n_clusters,
                          self.linkage.encode('ascii'), ret, nsamples, 
                          self.verbose, self.__mid,
@@ -714,6 +726,9 @@ class DBSCAN(BaseEstimator):
 
         (host, port) = FrovedisServer.getServerInstance()
         ret = np.zeros(n_samples, dtype=np.int32)
+        if dense and X.get_mtype() != 'R':
+            raise TypeError("fit: please provide row-major points " +
+                            "for frovedis dbscan clustering!")
         rpclib.dbscan_train(host, port, X.get(), self.eps, self.min_samples, \
                             ret, n_samples, self.verbose, self.__mid, dtype, \
                             itype, dense)
