@@ -6,6 +6,7 @@ from ..exrpc import rpclib
 from ..exrpc.server import FrovedisServer
 from .dtype import TypeUtil, DTYPE
 from .vector import FrovedisVector
+from .dense import FrovedisRowmajorMatrix, FrovedisColmajorMatrix
 
 class FrovedisCRSMatrix(object):
     """A python container for Frovedis server side crs_matrix"""
@@ -19,7 +20,37 @@ class FrovedisCRSMatrix(object):
         self.__active_elems = 0
         if mat is not None:
             self.load(mat, dtype=dtype)
-    
+
+    def to_frovedis_rowmajor_matrix(self):
+        """to_frovedis_rowmatrix"""
+        if self.__fdata is not None:
+            (host, port) = FrovedisServer.getServerInstance()
+            dmat = rpclib.csr_to_rowmajor_matrix(host, port,
+                                                 self.get(),
+                                                 self.get_dtype(),
+                                                 self.get_itype())
+            excpt = rpclib.check_server_exception()
+            if excpt["status"]:
+                raise RuntimeError(excpt["info"])
+            return FrovedisRowmajorMatrix(mat=dmat, dtype=self.__dtype)
+        else:
+            raise ValueError("Empty input matrix.") 
+
+    def to_frovedis_colmajor_matrix(self):
+        """to_frovedis_rowmatrix"""
+        if self.__fdata is not None:
+            (host, port) = FrovedisServer.getServerInstance()
+            dmat = rpclib.csr_to_colmajor_matrix(host, port,
+                                                 self.get(),
+                                                 self.get_dtype(),
+                                                 self.get_itype())
+            excpt = rpclib.check_server_exception()
+            if excpt["status"]:
+                raise RuntimeError(excpt["info"])
+            return FrovedisColmajorMatrix(mat=dmat, dtype=self.__dtype)
+        else:
+            raise ValueError("Empty input matrix.")
+ 
     def to_scipy_matrix(self):
         if self.__fdata is not None:
             crs_shape = [self.numRows(), self.numCols()]
