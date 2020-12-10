@@ -46,6 +46,10 @@ spark-submit --driver-java-options "-Djava.library.path=$LIBRARY_PATH" --jars $J
 echo -e "\n --- executing frovedis svm regression demo ---"
 spark-submit --driver-java-options "-Djava.library.path=$LIBRARY_PATH" --jars $JARS --conf spark.driver.memory=8g lib/spark2frovedis_svr.jar "$COMMAND"
 
+# --- SVM Kernel ---
+echo -e "\n --- executing frovedis svm kernel demo ---"
+spark-submit --driver-java-options "-Djava.library.path=$LIBRARY_PATH" --jars $JARS --conf spark.driver.memory=8g lib/spark2frovedis_svc.jar "$COMMAND"
+
 # --- Naive Bayes ---
 echo -e "\n --- executing frovedis naive bayes demo ---"
 spark-submit --driver-java-options "-Djava.library.path=$LIBRARY_PATH" --jars $JARS --conf spark.driver.memory=8g lib/spark2frovedis_nb.jar "$COMMAND"
