@@ -28,13 +28,14 @@ class DataFrame(object):
     DataFrame
     """
 
-    def __init__(self, df=None):
+    def __init__(self, df=None, needs_materalize=False):
         """
         __init__
         """
         self.__fdata = None
         self.__cols = None
         self.__types = None
+        self.__needs_materalize = needs_materalize
         if df is not None:
             self.load(df)
     def load_dummy(self, fdata, cols, types):
@@ -77,7 +78,7 @@ class DataFrame(object):
             self.__fdata = None
             self.__cols = None
             self.__types = None
-
+            self.__needs_materalize = False
     #def __del__(self):
     #    if FrovedisServer.isUP(): self.release()
 
@@ -171,7 +172,7 @@ class DataFrame(object):
         """
         filter_frovedis_dataframe
         """
-        ret = DataFrame()
+        ret = DataFrame(needs_materalize=True)
         ret.__cols = copy.deepcopy(self.__cols)
         ret.__types = copy.deepcopy(self.__types)
         for item in ret.__cols:
@@ -257,7 +258,7 @@ class DataFrame(object):
                 raise TypeError("sort: Expected: digit|list; Received: ",
                                 type(ascending).__name__)
 
-        ret = DataFrame()
+        ret = DataFrame(needs_materalize=True)
         ret.__cols = copy.deepcopy(self.__cols)
         ret.__types = copy.deepcopy(self.__types)
         for item in ret.__cols:
@@ -429,7 +430,7 @@ class DataFrame(object):
             if rsuf != '':
                 df_right = right.rename(renamed_right_cols)
 
-        ret = DataFrame()
+        ret = DataFrame(needs_materalize=True)
         ret.__cols = df_left.__cols + df_right.__cols
         ret.__types = df_left.__types + df_right.__types
         for item in df_left.__cols:
@@ -513,7 +514,7 @@ class DataFrame(object):
         (host, port) = FrovedisServer.getServerInstance()
         ret.__fdata = rpclib.rename_frovedis_dataframe(host, port, self.get(),
                                                        name_ptr, new_name_ptr,
-                                                       sz)
+                                                       sz, self.__needs_materalize)
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
             raise RuntimeError(excpt["info"])
