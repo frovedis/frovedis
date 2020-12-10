@@ -175,7 +175,8 @@ public class JNISupport {
                                              double miniBatchFraction,
                                              double regParam,
                                              int mid, boolean movable,
-                                             boolean isDense);
+                                             boolean isDense,
+                                             int ncls);
 
   public static native void callFrovedisSVMLBFGS(Node master_node,
                                                MemPair fdata,
@@ -199,6 +200,22 @@ public class JNISupport {
                                             double convergenceTol,
                                             int mid, boolean movable,
                                             boolean isDense);
+
+  // -------- SVM Kernel --------
+  public static native void callFrovedisKernelSVM(Node master_node,
+                                                  MemPair fdata,
+                                                  double C,
+                                                  String kernelType,
+                                                  int degree,
+                                                  double gamma,
+                                                  double coef0,
+                                                  double tol,
+                                                  int cacheSize,
+                                                  int maxIter,
+                                                  int mid, boolean movable,
+                                                  boolean isDense,
+                                                  int ncls);
+
 
   // -------- Linear Regression --------
   public static native void callFrovedisLNRSGD(Node master_node,
@@ -574,7 +591,8 @@ public class JNISupport {
                                          boolean movable);
 
   public static native void callFrovedisNBM(Node master_node, MemPair fdata,
-                                            double lambda, int model_id,
+                                            double lambda, double threshold, 
+                                            int model_id,
                                             String modelType, boolean movable,
                                             boolean isDense);
 
@@ -721,7 +739,8 @@ public class JNISupport {
   public static native long renameFrovedisDataframe(Node master_node,
                                                     long dproxy,
                                                     String[] name, String[] new_name,
-                                                    int size);
+                                                    int size,
+                                                    boolean needs_materialize);
   public static native long getFrovedisDFSize(Node master_node, long dproxy);
   public static native String[] getFrovedisDFCounts(Node master_node,
                                                     long dproxy, String[] cname,
@@ -761,9 +780,7 @@ public class JNISupport {
                                                  long info_id); 
   public static native DummyMatrix DFToCRSMatrixUsingInfo(Node master_node, long dproxy, 
                                                           long info_id);
-  public static native long getMultiEqDfopt(Node master_node, String left_on[],
-                                            String right_on[], long sz); 
-
+  public static native long getCrossDfopt(Node master_node);
 
   // --- dftable_to_sparse_info ---
   public static native void loadSparseConversionInfo(Node master_node,long info_id,String dirname);
