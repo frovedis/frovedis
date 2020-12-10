@@ -27,7 +27,7 @@ void preprocess_data(colmajor_matrix<T>& mat,
 
   // centerizing feature
   auto rmat = mat.to_rowmajor(); // to_rowmajor(): gather() is supported only on rowmajor_matrix<T> 
-  Amean = compute_mean(rmat);
+  Amean = compute_mean(rmat, 0); // column-wise mean
   centerize(rmat, Amean);
   Amat = colmajor_matrix_local<T>(rmat.gather());
   rmat.clear();
@@ -70,7 +70,7 @@ void preprocess_data(colmajor_matrix<T>& mat,
 
   // centerizing feature
   colmajor_matrix<T> copy_mat(mat);
-  Amean = compute_mean(copy_mat);
+  Amean = compute_mean(copy_mat, 0); // column-wise mean
   centerize(copy_mat, Amean);
   Amat = blockcyclic_matrix<T>(copy_mat);
   copy_mat.clear();
