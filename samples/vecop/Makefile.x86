@@ -1,0 +1,12 @@
+TARGETS := vecop matop
+include ../Makefile.in.x86
+include ../Makefile.common
+
+TO_INSTALL := vecop.cc matop.cc
+DIR := vecop
+ARCH := x86
+
+vecop: vecop.o
+	${MPICXX} ${CXXFLAGS} -o vecop vecop.o ${LIBS}
+matop: matop.o
+	${MPICXX} ${CXXFLAGS} -o matop matop.o ${LIBS}

@@ -1,0 +1,12 @@
+TARGETS := vecop matop
+include ../Makefile.in.icpc
+include ../Makefile.common
+
+TO_INSTALL := vecop.cc matop.cc
+DIR := vecop
+ARCH := icpc
+
+vecop: vecop.o
+	${LINK} -o vecop vecop.o ${LIBS}
+matop: matop.o
+	${LINK} -o matop matop.o ${LIBS}
