@@ -40,6 +40,17 @@ struct csvc_model {
   void savebinary(const std::string& path);
   void loadbinary(const std::string& path);
 
+  size_t get_num_features() {return n_features;}
+  size_t get_num_classes() {return 2;}
+  size_t get_threshold() {return 2;}
+
+  void debug_print() {
+    std::cout << "Support Vectors: \n";
+    sv.debug_print();
+    std::cout << "Support Vectors Coffecients: \n";
+    debug_print_vector(sv_coef);
+  }
+
   double tol;
   double C;
   int cache_size;
@@ -52,6 +63,7 @@ struct csvc_model {
   double rho;
   rowmajor_matrix_local<K> sv;
   std::vector<double> sv_coef;
+  size_t n_features;
 
   SERIALIZE(tol, C, cache_size, max_iter, kernel_ty, gamma, coef0, degree,
             rho, sv, sv_coef)
@@ -85,6 +97,7 @@ template <typename K>
 void csvc_model<K>::train(rowmajor_matrix_local<K>& data, std::vector<K>& label) {
   size_t data_size = data.local_num_row;
   size_t feature_size = data.local_num_col;
+  n_features = feature_size;
   if (data_size != label.size()) {
     throw std::runtime_error("Size of data and label are not matched");
   }
