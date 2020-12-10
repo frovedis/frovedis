@@ -331,10 +331,13 @@ frovedis_df_cnt(exrpc_ptr_t& df_proxy,
 
 exrpc_ptr_t frovedis_df_rename(exrpc_ptr_t& df_proxy,
                                std::vector<std::string>& cols,
-                               std::vector<std::string>& new_cols) {
+                               std::vector<std::string>& new_cols,
+                               bool& needs_materialize) {
   checkAssumption(cols.size() == new_cols.size());
   auto& df = *reinterpret_cast<dftable_base*>(df_proxy);
-  auto ret = new dftable(df); // copying dataframe
+  dftable* ret = NULL;
+  if(needs_materialize) ret = new dftable(df.materialize());
+  else ret = new dftable(df);
   if (!ret) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed.\n");
   for(size_t i=0; i<cols.size(); ++i) {
     ret->rename(cols[i], new_cols[i]);
@@ -500,6 +503,13 @@ exrpc_ptr_t frov_multi_eq_dfopt(std::vector<std::string>& left_cols, std::vector
     opt = new std::shared_ptr<dfoperator>(eq(left_cols[0], right_cols[0]));
   }
   else opt = new std::shared_ptr<dfoperator>(multi_eq(left_cols, right_cols));
+  if (!opt) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed.\n");
+  return reinterpret_cast<exrpc_ptr_t> (opt);
+}
+
+exrpc_ptr_t frov_cross_join_dfopt() {
+  std::shared_ptr<dfoperator> *opt = \
+   new std::shared_ptr<dfoperator>(frovedis::cross());
   if (!opt) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed.\n");
   return reinterpret_cast<exrpc_ptr_t> (opt);
 }
