@@ -5,6 +5,7 @@
 #include "short_hand_dense_type.hpp"
 #include "short_hand_sparse_type.hpp"
 #include "exrpc_pca.hpp"
+#include "exrpc_tsne.hpp"
 #include "exrpc_data_storage.hpp"
 extern "C" {
 
@@ -1002,5 +1003,50 @@ PyObject* pca_inverse_transform(const char* host, int port,
   }
   return to_py_dummy_matrix(res);  
 }
+
+  PyObject* compute_tsne(const char* host, int port,
+                         long dptr,
+                         double perplexity,
+                         double early_exaggeration,
+                         double min_grad_norm,
+                         double learning_rate,
+                         int ncomponents,
+                         int niter,
+                         int niter_without_progress,
+                         const char* metr,
+                         bool verbose,
+                         short dtype){
+    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
+    exrpc_node fm_node(host,port);
+    auto f_dptr = (exrpc_ptr_t) dptr;
+    std::string metric(metr);
+    size_t n_iter = (size_t)niter;
+    size_t n_iter_without_progress = (size_t)niter_without_progress;
+    size_t n_components = (size_t)ncomponents;
+
+    tsne_result res;
+    try {
+      switch(dtype) {
+        case FLOAT:
+          res = exrpc_async(fm_node, (frovedis_tsne<R_MAT2,DT2>), f_dptr, 
+                            perplexity, early_exaggeration, min_grad_norm, 
+                            learning_rate, n_components, n_iter, 
+                            n_iter_without_progress, metric, verbose).get();
+          break;
+        case DOUBLE:
+          res = exrpc_async(fm_node, (frovedis_tsne<R_MAT1,DT1>), f_dptr,
+                            perplexity, early_exaggeration, min_grad_norm, 
+                            learning_rate, n_components, n_iter, 
+                            n_iter_without_progress, metric, verbose).get();
+          break;
+        default: REPORT_ERROR(USER_ERROR,"Unsupported dtype for input dense matrix!\n");
+      }
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+
+    return to_py_tsne_result(res);
+  }
 
 }
