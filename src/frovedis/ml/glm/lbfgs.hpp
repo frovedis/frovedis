@@ -201,8 +201,8 @@ void lbfgs<T>::optimize(std::vector<T>& grad_vector,
   std::cout << model_hist.totActiveElements << " "
             << grad_hist.totActiveElements  << " " 
             << one_by_dot.totActiveElements << std::endl;
-  debug_vector_print(old_model);
-  debug_vector_print(old_gradient);
+  debug_print_vector(old_model, 10);
+  debug_print_vector(old_gradient, 10);
 #endif
 }
 
