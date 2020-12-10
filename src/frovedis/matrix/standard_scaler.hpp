@@ -34,7 +34,7 @@ standard_scaler<T>&
 standard_scaler<T>::fit(MATRIX& mat){
   if(mat.num_row < 2)
     throw std::runtime_error("fit: cannot standardize if number of row is 0 or 1");
-  if (with_mean || with_std) mean = compute_mean(mat);
+  if (with_mean || with_std) mean = compute_mean(mat, 0); // column-wise mean
   if (with_std) {
    auto copy_mat = mat;
    stddev = compute_stddev(copy_mat, mean, sample_stddev);
