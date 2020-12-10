@@ -128,8 +128,9 @@ object SVMWithSGD {
             miniBatchFraction: Double,
             isMovableInput: Boolean) : SVMModel = {
      val ncls = data.get_distinct_label_count().intValue
-     require(ncls == 2, s"Currently frovedis SVM supports only binary classification!")
-     val enc_ret = data.encode_labels(Array(-1.0, 1.0))
+     var enc_ret: (MemPair,  Map[Double, Double]) = null
+     if (ncls > 2) enc_ret = data.encode_labels()
+     else enc_ret = data.encode_labels(Array(-1.0, 1.0))
      val encoded_data = enc_ret._1
      val logic = enc_ret._2
 
@@ -137,7 +138,7 @@ object SVMWithSGD {
      val fs = FrovedisServer.getServerInstance()
      JNISupport.callFrovedisSVMSGD(fs.master_node,encoded_data,numIter,stepSize,
                                    miniBatchFraction,regParam,mid,isMovableInput,
-                                   data.is_dense())
+                                   data.is_dense(), ncls)
      val info = JNISupport.checkServerException()
      if (info != "") throw new java.rmi.ServerException(info)
      data.release_encoded_labels() // releasing encoded labels from server
