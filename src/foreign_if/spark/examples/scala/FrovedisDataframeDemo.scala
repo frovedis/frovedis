@@ -76,7 +76,7 @@ object FrovedisDataframeDemo {
        .select("EName","Age","CCode","Country").show()
 
     // multi-eq
-  	val country3 = Seq(
+    val country3 = Seq(
       (1, "USA", "A"),
       (2, "England", "B"),
       (3, "Japan", "C"),
@@ -100,13 +100,13 @@ object FrovedisDataframeDemo {
                                    $$"CCode" === $$"CCode"
                                    && $$"City" === $$"City")
     df_tmp.show()
+    
 
     //non-equi
-    val df_tmp2 = df_tmp.withColumnRenamed(Array("CCode", "City", "CName"),
-                                          Array("CCode2", "City2", "CName2"))
-    country_frov2.join(df_tmp2, $$"ElectricalRating" < $$"ElectricalRating")
-                 .select("City", "City2").show()    
+    country_frov2.join(country_frov1, $$"CCode" < $$"CCode").show()    
 
+    // self-join
+    country_frov2.join(country_frov2, $$"ElectricalRating" < $$"ElectricalRating").show()
 
     // groupBy demo
     df1.groupBy("Country").count().show()
@@ -162,7 +162,6 @@ object FrovedisDataframeDemo {
     country_frov1.release()
     country_frov2.release()
     df_tmp.release()
-    df_tmp2.release()
 
     FrovedisServer.shut_down()
     sc.stop()
