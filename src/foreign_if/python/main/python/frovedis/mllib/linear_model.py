@@ -62,19 +62,21 @@ class LogisticRegression(BaseEstimator):
         if self.C < 0:
             raise ValueError("fit: parameter C must be strictly positive!")
         self.release()
-        inp_data = FrovedisLabeledPoint(X, y)
-        (X, y) = inp_data.get()
+        # for binary case: frovedis supports -1 and 1
+        inp_data = FrovedisLabeledPoint(X, y, \
+                   caller = "[" + self.__class__.__name__ + "] fit: ",\
+                   encode_label = True, binary_encoder=[-1, 1], \
+                   dense_kind = 'colmajor', densify=False) 
+        X, y, logic = inp_data.get()
+        self._classes = inp_data.get_distinct_labels()
+        self.n_classes = len(self._classes)
+        self.label_map = logic
         dtype = inp_data.get_dtype()
         itype = inp_data.get_itype()
         dense = inp_data.is_dense()
-        unique_labels = inp_data.get_distinct_labels()
-        self.n_classes = unique_labels.size
         self.__mid = ModelID.get()
         self.__mdtype = dtype
 
-        if self.n_classes < 2:
-            raise ValueError("fit: number of unique " \
-                             + "labels in y are less than 2!")
         if self.multi_class == 'auto' or self.multi_class == 'ovr':
             if self.n_classes == 2:
                 isMult = False
@@ -104,21 +106,14 @@ class LogisticRegression(BaseEstimator):
             "Frovedis doesn't support solver %s for Logistic Regression " \
             + "currently." % self.solver)
 
-        if isMult:
-            encoded_y, logic = y.encode(need_logic=True)
-        else:
-            target = [-1, 1] # for binary case: frovedis supports -1 and 1
-            encoded_y, logic = y.encode(unique_labels, target, need_logic=True)
-        self.label_map = logic
-
         (host, port) = FrovedisServer.getServerInstance()
         if self.solver == 'sag':
-            rpclib.lr_sgd(host, port, X.get(), encoded_y.get(), self.max_iter, \
+            rpclib.lr_sgd(host, port, X.get(), y.get(), self.max_iter, \
                        self.lr_rate, regTyp, rparam, isMult, \
                        self.fit_intercept, self.tol, self.verbose, \
                        self.__mid, dtype, itype, dense)
         elif self.solver == 'lbfgs':
-            rpclib.lr_lbfgs(host, port, X.get(), encoded_y.get(), \
+            rpclib.lr_lbfgs(host, port, X.get(), y.get(), \
                           self.max_iter, self.lr_rate, regTyp, rparam, \
                           isMult, \
                           self.fit_intercept, self.tol, self.verbose, \
@@ -131,7 +126,6 @@ class LogisticRegression(BaseEstimator):
             raise RuntimeError(excpt["info"])
         self._coef = None
         self._intercept = None
-        self._classes = None
         return self
 
     @property
@@ -191,8 +185,7 @@ class LogisticRegression(BaseEstimator):
         """classes_ getter"""
         if self.__mid is not None:
             if self._classes is None:
-                self._classes = \
-                    np.asarray(list(self.label_map.values()), dtype=np.int64)
+                self._classes = np.sort(list(self.label_map.values()))
             return self._classes
         else:
             raise AttributeError("attribute 'classes_' \
@@ -211,9 +204,8 @@ class LogisticRegression(BaseEstimator):
         if self.__mid is not None:
             frov_pred = GLM.predict(X, self.__mid, self.__mkind, \
                                     self.__mdtype, False)
-            new_pred = \
-            [self.label_map[frov_pred[i]] for i in range(0, len(frov_pred))]
-            return np.asarray(new_pred, dtype=np.int64)
+            return np.asarray([self.label_map[frov_pred[i]] \
+                              for i in range(0, len(frov_pred))])
         else:
             raise ValueError( \
             "predict is called before calling fit, or the model is released.")
@@ -243,6 +235,7 @@ class LogisticRegression(BaseEstimator):
         target = open(fname+"/label_map", "rb")
         self.label_map = pickle.load(target)
         target.close()
+        self._classes = np.sort(list(self.label_map.values()))
         metadata = open(fname+"/metadata", "rb")
         self.n_classes, self.__mkind, self.__mdtype = pickle.load(metadata)
         metadata.close()
@@ -321,7 +314,7 @@ class LinearRegression(BaseEstimator):
     tol: Frovedis: 0.0001 (added)
     """
     def __init__(self, fit_intercept=True, normalize=False, copy_X=True,
-                 n_jobs=1, max_iter=1000, tol=0.0001, lr_rate=1e-8, 
+                 n_jobs=None, max_iter=1000, tol=0.0001, lr_rate=1e-8, 
                  solver=None, verbose=0):
         self.fit_intercept = fit_intercept
         self.normalize = normalize
@@ -344,33 +337,37 @@ class LinearRegression(BaseEstimator):
         NAME: fit
         """
         self.release()
-        self.__mid = ModelID.get()
-        inp_data = FrovedisLabeledPoint(X, y)
-        (X, y) = inp_data.get()
+        inp_data = FrovedisLabeledPoint(X, y, \
+                   caller = "[" + self.__class__.__name__ + "] fit: ",\
+                   dense_kind = 'colmajor', densify=False) 
+        X, y = inp_data.get()
         dtype = inp_data.get_dtype()
         itype = inp_data.get_itype()
         dense = inp_data.is_dense()
+        self.__mid = ModelID.get()
         self.__mdtype = dtype
 
         # select default solver, when None is given
         if self.solver is None:
             if dense:
-                self.solver = 'lapack' # ?gelsd for dense X
+                self._solver = 'lapack' # ?gelsd for dense X
             else:
-                self.solver = 'sag'    # SGDRegressor for sparse X
+                self._solver = 'sag'    # SGDRegressor for sparse X
+        else:
+            self._solver = self.solver
 
         (host, port) = FrovedisServer.getServerInstance()
-        if self.solver == 'sag':
+        if self._solver == 'sag':
             rpclib.lnr_sgd(host, port, X.get(), y.get(), \
                 self.max_iter, self.lr_rate, \
                 self.fit_intercept, self.tol, self.verbose, self.__mid, \
                 dtype, itype, dense)
-        elif self.solver == 'lbfgs':
+        elif self._solver == 'lbfgs':
             rpclib.lnr_lbfgs(host, port, X.get(), y.get(), \
                 self.max_iter, self.lr_rate, \
                 self.fit_intercept, self.tol, self.verbose, self.__mid, \
                 dtype, itype, dense)
-        elif self.solver == 'lapack':
+        elif self._solver == 'lapack':
             if not dense:
                 raise TypeError("lapack solver supports only dense feature data!")
             out = rpclib.lnr_lapack(host, port, X.get(), y.get(), \
@@ -380,7 +377,7 @@ class LinearRegression(BaseEstimator):
             self.singular_ = np.asarray(out[ : svalsize], \
                                 TypeUtil.to_numpy_dtype(dtype))
             self.rank_ = int(out[svalsize])
-        elif self.solver == 'scalapack':
+        elif self._solver == 'scalapack':
             if not dense:
                 raise TypeError("scalapack solver supports only dense feature data!")
             rpclib.lnr_scalapack(host, port, X.get(), y.get(), \
@@ -563,13 +560,16 @@ class Lasso(BaseEstimator):
         NAME: fit
         """
         self.release()
-        self.__mid = ModelID.get()
-        inp_data = FrovedisLabeledPoint(X, y)
+        inp_data = FrovedisLabeledPoint(X, y, \
+                   caller = "[" + self.__class__.__name__ + "] fit: ",\
+                   dense_kind = 'colmajor', densify=False) 
         (X, y) = inp_data.get()
         dtype = inp_data.get_dtype()
         itype = inp_data.get_itype()
         dense = inp_data.is_dense()
+        self.__mid = ModelID.get()
         self.__mdtype = dtype
+
         (host, port) = FrovedisServer.getServerInstance()
         if self.solver == 'sag':
             rpclib.lasso_sgd(host, port, X.get(), y.get(), \
@@ -753,12 +753,14 @@ class Ridge(BaseEstimator):
         NAME: fit
         """
         self.release()
-        self.__mid = ModelID.get()
-        inp_data = FrovedisLabeledPoint(X, y)
+        inp_data = FrovedisLabeledPoint(X, y, \
+                   caller = "[" + self.__class__.__name__ + "] fit: ",\
+                   dense_kind = 'colmajor', densify=False) 
         (X, y) = inp_data.get()
         dtype = inp_data.get_dtype()
         itype = inp_data.get_itype()
         dense = inp_data.is_dense()
+        self.__mid = ModelID.get()
         self.__mdtype = dtype
 
         sv = ['svd', 'cholesky', 'lsqr', 'sparse_cg']
@@ -981,17 +983,29 @@ class SGDClassifier(BaseEstimator):
               " However, learning_rate will be set to invscaling internally")
         if self.alpha < 0:
             raise ValueError("alpha must be >= 0")
-        inp_data = FrovedisLabeledPoint(X, y)
-        (X, y) = inp_data.get()
+
+        if self.loss == "squared_loss":
+            inp_data = FrovedisLabeledPoint(X, y, \
+                       caller = "[" + self.__class__.__name__ + "] fit: ",\
+                       dense_kind = 'colmajor', densify=False) 
+            X, y = inp_data.get()
+        else:
+            # for binary case: frovedis supports -1 and 1
+            inp_data = FrovedisLabeledPoint(X, y, \
+                       caller = "[" + self.__class__.__name__ + "] fit: ",\
+                       encode_label = True, binary_encoder=[-1, 1], \
+                       dense_kind = 'colmajor', densify=False) 
+            X, y, logic = inp_data.get()
+            self._classes = inp_data.get_distinct_labels()
+            self.n_classes = len(self._classes)
+            self.label_map = logic
         dtype = inp_data.get_dtype()
         itype = inp_data.get_itype()
         dense = inp_data.is_dense()
-        unique_labels = inp_data.get_distinct_labels()
-        self.n_classes = unique_labels.size
         self.__mid = ModelID.get()
         self.__mdtype = dtype
-        rparam = self.alpha
 
+        rparam = self.alpha
         if self.penalty == 'l1':
             regTyp = 1
         elif self.penalty == 'l2':
@@ -1007,49 +1021,36 @@ class SGDClassifier(BaseEstimator):
             if self.n_classes == 2:
                 isMult = False
                 self.__mkind = M_KIND.LRM
-                target = [-1, 1]
-                encoded_y, logic = \
-                     y.encode(unique_labels, target, need_logic=True)
-            elif self.n_classes > 2:
+            else:
                 isMult = True
                 self.__mkind = M_KIND.MLR
-                encoded_y, logic = y.encode(need_logic=True)
-            else:
-                raise ValueError(\
-                    "fit: number of unique labels in y are less than 2")
-            self.label_map = logic
-            rpclib.lr_sgd(host, port, X.get(), encoded_y.get(), self.max_iter, \
+            rpclib.lr_sgd(host, port, X.get(), y.get(), self.max_iter, \
                        self.eta0, regTyp, rparam, isMult, \
                        self.fit_intercept, self.tol, self.verbose,\
                        self.__mid, dtype, itype, dense)
         elif self.loss == "hinge":
             if self.n_classes != 2:
-                raise ValueError(\
-        "SGDClassifier: loss = 'hinge' supports only binary classification!")
+                raise ValueError("SGDClassifier: loss = 'hinge' supports" + \
+                                 " only binary classification!")
             self.__mkind = M_KIND.SVM
-            target = [-1, 1]
-            encoded_y, logic = y.encode(unique_labels, target, need_logic=True)
-            self.label_map = logic
-            rpclib.svm_sgd(host, port, X.get(), encoded_y.get(), \
+            rpclib.svm_sgd(host, port, X.get(), y.get(), \
                         self.max_iter, self.eta0, \
                         regTyp, rparam, self.fit_intercept, self.tol, \
                         self.verbose, self.__mid, dtype, itype, dense)
         elif self.loss == "squared_loss":
             self.__mkind = M_KIND.LNRM
-            self.n_classes = -1 # meaningless for regression case
             rpclib.lnr2_sgd(host, port, X.get(), y.get(), \
                         self.max_iter, self.eta0, \
                         regTyp, rparam, self.fit_intercept, self.tol, \
                         self.verbose, self.__mid, dtype, itype, dense)
         else:
-            raise ValueError("Supported loss are only logic and hinge!")
-
+            raise ValueError("SGDClassifier: supported losses are log, " + \
+                             "hinge and squared_loss only!")
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
             raise RuntimeError(excpt["info"])
         self._coef = None
         self._intercept = None
-        self._classes = None
         return self
 
     @property
@@ -1113,8 +1114,7 @@ class SGDClassifier(BaseEstimator):
                 raise AttributeError(\
                 "attribute 'classes_' is not available for squared_loss")
             if self._classes is None:
-                self._classes = \
-                    np.asarray(list(self.label_map.values()), dtype=np.int64)
+                self._classes = np.sort(list(self.label_map.values()))
             return self._classes
         else:
             raise AttributeError(\
@@ -1134,11 +1134,10 @@ class SGDClassifier(BaseEstimator):
             frov_pred = GLM.predict(X, self.__mid, self.__mkind, \
                                     self.__mdtype, False)
             if self.__mkind == M_KIND.LNRM:
-                return np.asarray(frov_pred, dtype=np.float64)
+                return np.asarray(frov_pred)
             else:
-                new_pred = \
-                [self.label_map[frov_pred[i]] for i in range(0, len(frov_pred))]
-                return np.asarray(new_pred, dtype=np.int64)
+                return np.asarray([self.label_map[frov_pred[i]] \
+                                  for i in range(0, len(frov_pred))])
         else:
             raise ValueError( \
             "predict is called before calling fit, or the model is released.")
@@ -1172,8 +1171,10 @@ class SGDClassifier(BaseEstimator):
             target = open(fname+"/label_map", "rb")
             self.label_map = pickle.load(target)
             target.close()
+            self._classes = np.sort(list(self.label_map.values()))
+            self.n_classes = len(self._classes)
         metadata = open(fname+"/metadata", "rb")
-        self.loss, self.n_classes, self.__mkind, self.__mdtype = \
+        self.loss, self.__mkind, self.__mdtype = \
             pickle.load(metadata)
         metadata.close()
         if dtype is not None:
@@ -1217,7 +1218,7 @@ class SGDClassifier(BaseEstimator):
                 target.close()
             metadata = open(fname+"/metadata", "wb")
             pickle.dump(\
-            (self.loss, self.n_classes, self.__mkind, self.__mdtype), metadata)
+            (self.loss, self.__mkind, self.__mdtype), metadata)
             metadata.close()
         else:
             raise AttributeError(\
@@ -1317,15 +1318,17 @@ class SGDRegressor(BaseEstimator):
         """
         # release old model, if any
         self.release()
+        self.validate()
         # perform the fit
-        inp_data = FrovedisLabeledPoint(X, y)
+        inp_data = FrovedisLabeledPoint(X, y, \
+                   caller = "[" + self.__class__.__name__ + "] fit: ",\
+                   dense_kind = 'colmajor', densify=False) 
         (X, y) = inp_data.get()
         dtype = inp_data.get_dtype()
         itype = inp_data.get_itype()
         dense = inp_data.is_dense()
         self.__mid = ModelID.get()
         self.__mdtype = dtype
-        self.validate()
 
         if self.penalty == 'l1':
             regTyp = 1
