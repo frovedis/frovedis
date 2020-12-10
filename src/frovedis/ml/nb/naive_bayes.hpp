@@ -4,7 +4,7 @@
 #include <algorithm>
 #include <frovedis/matrix/rowmajor_matrix.hpp>
 #include <frovedis/matrix/blas_wrapper.hpp>
-#include <frovedis/dataframe.hpp>
+#include <frovedis/matrix/matrix_operations.hpp>
 #include "nb_model.hpp"
 
 namespace frovedis {
@@ -14,25 +14,9 @@ dvector<size_t>
 get_class_counts (dvector<T>& label, 
                   std::vector<T>& uniq_labels, 
                   std::vector<size_t>& cls_counts) {
-  dftable tmp;
-  tmp.append_column("label",label);
-  //tmp.show();
-  std::vector<std::string> target = {"label"};
-  auto processed = tmp.group_by(target)
-                      .select(target, {count_as("label", "count")})
-                      .rename("label", "src")
-                      //.sort("src")
-                      .append_rowid("target") // zero based ids (col type: size_t)
-                      .select({"src", "target", "count"});
-  //processed.show();
-  uniq_labels = processed.template as_dvector<T>("src").gather(); 
-  cls_counts  = processed.template as_dvector<size_t>("count").gather(); 
-  auto joined = tmp.bcast_join(processed, eq("label", "src")); // encoding by joining
-  auto encoded_label = joined.template as_dvector<size_t>("target"); // zero based
-  //display<T>(uniq_labels);
-  //display<size_t>(cls_counts);
-  //display<size_t>(encoded_label);
-  return encoded_label;
+  std::vector<size_t> u_ind, u_enc;
+  uniq_labels = vector_unique(label.gather(), u_ind, u_enc, cls_counts);
+  return make_dvector_scatter(u_enc);
 }
 
 template <class T, class LOC_MATRIX>
@@ -186,11 +170,13 @@ multinomial_nb (rowmajor_matrix<T>& mat,
 
 template <class T, class MATRIX, class LOC_MATRIX>
 naive_bayes_model<T>
-bernoulli_nb (MATRIX& mat, dvector<T>& label, double lambda = 1.0) {
+bernoulli_nb (MATRIX& mat, dvector<T>& label, 
+              double lambda = 1.0, double binarize = 0.0) {
   std::vector<T> pi, uniq_labels;
   std::vector<size_t> cls_counts;
   rowmajor_matrix_local<T> theta;
-  naive_bayes_common<T,MATRIX,LOC_MATRIX>(mat,label,lambda,theta,pi,
+  auto bin_mat = matrix_binarize(mat, static_cast<T>(binarize));
+  naive_bayes_common<T,MATRIX,LOC_MATRIX>(bin_mat,label,lambda,theta,pi,
                                           uniq_labels,cls_counts,"bernoulli");
   return naive_bayes_model<T>(std::move(theta),std::move(pi),std::move(uniq_labels),
                               std::move(cls_counts),"bernoulli");
@@ -200,16 +186,20 @@ template <class T>
 naive_bayes_model<T>
 bernoulli_nb (crs_matrix<T>& mat, 
               dvector<T>& label, 
-              double lambda = 1.0) {
-  return bernoulli_nb<T, crs_matrix<T>, crs_matrix_local<T>>(mat, label, lambda);
+              double lambda = 1.0,
+              double binarize = 0.0) {
+  return bernoulli_nb<T, crs_matrix<T>, crs_matrix_local<T>>
+    (mat, label, lambda, binarize);
 }
 
 template <class T>
 naive_bayes_model<T>
 bernoulli_nb (rowmajor_matrix<T>& mat, 
               dvector<T>& label, 
-              double lambda = 1.0) {
-  return bernoulli_nb<T, rowmajor_matrix<T>, rowmajor_matrix_local<T>>(mat, label, lambda);
+              double lambda = 1.0,
+              double binarize = 0.0) {
+  return bernoulli_nb<T, rowmajor_matrix<T>, rowmajor_matrix_local<T>>
+    (mat, label, lambda, binarize);
 }
 
 } // end of namespace
