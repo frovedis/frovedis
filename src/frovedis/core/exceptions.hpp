@@ -40,5 +40,8 @@ void report_helper(bool info, bool to_throw, int id, std::string err_msg,
 #define checkAssumption(var) if (!(var))                        \
     REPORT_FATAL(frovedis::INTERNAL_ERROR,"Assumption Violated !!");
 
+#define STR(X) std::to_string(X)
+#define require(COND, MSG) if(!(COND)) REPORT_ERROR(USER_ERROR, MSG);
+
 }
 #endif
