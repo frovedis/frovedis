@@ -3,7 +3,7 @@
 
 #include <string>
 #include <boost/lexical_cast.hpp>
-#include <frovedis/ml/macro.hpp>
+#include <frovedis/core/exceptions.hpp>
 
 #ifdef USE_BOOST
 #include <boost/variant.hpp>
