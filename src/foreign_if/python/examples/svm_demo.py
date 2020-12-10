@@ -2,9 +2,9 @@
 
 import sys
 import numpy as np
-from frovedis.exrpc.server import FrovedisServer
-from frovedis.matrix.crs import FrovedisCRSMatrix
-from frovedis.matrix.dvector import FrovedisDvector
+np.set_printoptions(threshold=5)
+
+#from sklearn.svm import LinearSVC
 from frovedis.mllib.svm import LinearSVC
 
 # initializing the Frovedis server
@@ -13,10 +13,13 @@ argc = len(argvs)
 if (argc < 2):
     print ('Please give frovedis_server calling command as the first argument \n(e.g. "mpirun -np 2 -x /opt/nec/nosupport/frovedis/ve/bin/frovedis_server")')
     quit()
+
+from frovedis.exrpc.server import FrovedisServer
 FrovedisServer.initialize(argvs[1])
 
-mat = FrovedisCRSMatrix(dtype=np.float64).load("./input/libSVMFile.txt")
-lbl = FrovedisDvector([1,0,1,1,1,0,1,1],dtype=np.float64)
+# classification data
+from sklearn.datasets import load_breast_cancer
+mat, lbl = load_breast_cancer(return_X_y=True)
 
 # fitting input matrix and label on linear svm object
 svm = LinearSVC(solver='lbfgs',verbose=0).fit(mat,lbl)
