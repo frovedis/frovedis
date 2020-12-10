@@ -82,9 +82,10 @@ class LatentDirichletAllocation(BaseEstimator):
             fitting X on LDA model. """
         self.release()
         self.check_parameters()
-        #Frovedis currently supports only crs_matrix of itype=size_t
-        X1 = FrovedisFeatureData(X, is_dense=False, itype=np.int64, \
-                                 allow_int_dtype=True)
+        X1 = FrovedisFeatureData(X, itype=np.int64, allow_int_dtype=True)
+        if X1.is_dense():
+            raise TypeError("fit: Frovedis LDA currently supports only" + \
+                            " crs_matrix of itype=size_t")
         (host, port) = FrovedisServer.getServerInstance()
         input_a = X1.get() #get crs_matrix
         x_dtype = X1.get_dtype() #get dtype
@@ -118,8 +119,10 @@ class LatentDirichletAllocation(BaseEstimator):
         if self.__mid is None:
             raise AttributeError("Transform called before fit, or the model is released!")
         self.check_parameters()
-        X1 = FrovedisFeatureData(X, is_dense=False, itype=np.int64, \
-                                 allow_int_dtype=True)
+        X1 = FrovedisFeatureData(X, itype=np.int64, allow_int_dtype=True)
+        if X1.is_dense():
+            raise TypeError("transform: Frovedis LDA currently supports only" + \
+                            " crs_matrix of itype=size_t")
         input_a = X1.get() #get crs_matrix
         x_dtype = X1.get_dtype() #get dtype
         x_itype = X1.get_itype() #get itype
