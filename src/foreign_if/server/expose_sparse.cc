@@ -65,6 +65,22 @@ void expose_frovedis_sparse_matrix_functions() {
   expose((transpose_matrix<S_MAT25,S_LMAT25>));
   expose((transpose_matrix<S_MAT14,S_LMAT14>));
   expose((transpose_matrix<S_MAT15,S_LMAT15>));
+  expose((to_rowmajor_matrix<DT4,S_MAT44>));
+  expose((to_rowmajor_matrix<DT4,S_MAT45>));
+  expose((to_rowmajor_matrix<DT3,S_MAT34>));
+  expose((to_rowmajor_matrix<DT3,S_MAT35>));
+  expose((to_rowmajor_matrix<DT2,S_MAT24>));
+  expose((to_rowmajor_matrix<DT2,S_MAT25>));
+  expose((to_rowmajor_matrix<DT1,S_MAT14>));
+  expose((to_rowmajor_matrix<DT1,S_MAT15>));
+  expose((to_colmajor_matrix<DT4,S_MAT44>));
+  expose((to_colmajor_matrix<DT4,S_MAT45>));
+  expose((to_colmajor_matrix<DT3,S_MAT34>));
+  expose((to_colmajor_matrix<DT3,S_MAT35>));
+  expose((to_colmajor_matrix<DT2,S_MAT24>));
+  expose((to_colmajor_matrix<DT2,S_MAT25>));
+  expose((to_colmajor_matrix<DT1,S_MAT14>));
+  expose((to_colmajor_matrix<DT1,S_MAT15>));
   //expose((load_crs_matrix<DT3,DT4,DT5>)); // not supported
   //expose((load_crs_matrix<DT3,DT5,DT5>)); // not supported
   expose((load_crs_matrix<DT4,DT4,DT5>));
@@ -103,6 +119,8 @@ void expose_frovedis_sparse_matrix_functions() {
   expose(save_matrix<S_MAT45>);
   expose((get_global_data<S_MAT1,S_LMAT1>));
   expose((copy_matrix<S_MAT1,S_LMAT1>));
+  expose((to_rowmajor_matrix<DT1,S_MAT1>));
+
   // --- frovedis to_spark API --- 
   expose((get_all_nnz<DT1,DT5,DT5>));
   expose((get_all_nrow<DT1,DT5,DT5>));
