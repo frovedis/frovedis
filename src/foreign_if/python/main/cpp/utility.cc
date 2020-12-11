@@ -4,18 +4,18 @@ using namespace frovedis;
 
 extern "C" {
   // std::string => python string object
-  PyObject* to_python_string_object (std::string& val) {
+  PyObject* to_python_string_object (const std::string& val) {
     return Py_BuildValue("s",val.c_str());
   }
   // std::vector<std::string> => python List of strings
-  PyObject* to_python_string_list (std::vector<std::string>& val) {
+  PyObject* to_python_string_list (const std::vector<std::string>& val) {
     PyObject *PList = PyList_New(0);
     for(auto& each: val) PyList_Append(PList,Py_BuildValue("s",each.c_str()));
     return Py_BuildValue("O",PList);
   }
 
   // std::vector<std::string> => python List of doubles
-  PyObject* to_python_double_list_from_str_vector (std::vector<std::string>& val) {
+  PyObject* to_python_double_list_from_str_vector (const std::vector<std::string>& val) {
     PyObject *PList = PyList_New(0);
     for(auto& each: val) {
       auto val = std::stod(each);
@@ -25,21 +25,21 @@ extern "C" {
   }
 
   // std::vector<int> => python List of integers
-  PyObject* to_python_int_list (std::vector<int>& val) {
+  PyObject* to_python_int_list (const std::vector<int>& val) {
     PyObject *PList = PyList_New(0);
     for(auto& each: val) PyList_Append(PList,Py_BuildValue("i",each));
     return Py_BuildValue("O",PList);
   }
 
   // std::vector<long> => python List of long integers
-  PyObject* to_python_long_list (std::vector<long>& val) {
+  PyObject* to_python_long_list (const std::vector<long>& val) {
     PyObject *PList = PyList_New(0);
     for(auto& each: val) PyList_Append(PList,Py_BuildValue("l",each));
     return Py_BuildValue("O",PList);
   }
 
   // std::vector<size_t> => python List of long integers
-  PyObject* to_python_llong_list (std::vector<size_t>& val) {
+  PyObject* to_python_llong_list (const std::vector<size_t>& val) {
     PyObject *PList = PyList_New(0);
     for(auto& each: val) {
       auto leach = static_cast<long>(each);
@@ -49,14 +49,14 @@ extern "C" {
   }
 
   // std::vector<float> => python List of floats
-  PyObject* to_python_float_list (std::vector<float>& val) {
+  PyObject* to_python_float_list (const std::vector<float>& val) {
     PyObject *PList = PyList_New(0);
     for(auto& each: val) PyList_Append(PList,Py_BuildValue("f",each));
     return Py_BuildValue("O",PList);
   }
 
   // std::vector<double> => python List of doubles
-  PyObject* to_python_double_list (std::vector<double>& val) {
+  PyObject* to_python_double_list (const std::vector<double>& val) {
     PyObject *PList = PyList_New(0);
     for(auto& each: val) PyList_Append(PList,Py_BuildValue("d",each));
     return Py_BuildValue("O",PList);
