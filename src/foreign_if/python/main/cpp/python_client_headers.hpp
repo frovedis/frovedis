@@ -18,28 +18,28 @@ extern "C" {
   PyObject* check_server_exception();
 
   // std::string => python string object
-  PyObject* to_python_string_object (std::string& str);
+  PyObject* to_python_string_object (const std::string& str);
 
   // std::vector<std::string> => python List of strings
-  PyObject* to_python_string_list (std::vector<std::string>& v);
+  PyObject* to_python_string_list (const std::vector<std::string>& v);
 
   // std::vector<std::string> => python List of doubles
-  PyObject* to_python_double_list_from_str_vector (std::vector<std::string>& v);
+  PyObject* to_python_double_list_from_str_vector (const std::vector<std::string>& v);
 
   // std::vector<int> => python List of integers
-  PyObject* to_python_int_list (std::vector<int>& v);
+  PyObject* to_python_int_list (const std::vector<int>& v);
 
   // std::vector<long> => python List of long integers
-  PyObject* to_python_long_list (std::vector<long>& v);
+  PyObject* to_python_long_list (const std::vector<long>& v);
 
   // std::vector<size_t> => python List of long integers
-  PyObject* to_python_llong_list (std::vector<size_t>& v);
+  PyObject* to_python_llong_list (const std::vector<size_t>& v);
 
   // std::vector<float> => python List of floats
-  PyObject* to_python_float_list (std::vector<float>& v); 
+  PyObject* to_python_float_list (const std::vector<float>& v); 
 
   // std::vector<double> => python List of doubles
-  PyObject* to_python_double_list (std::vector<double>& v);
+  PyObject* to_python_double_list (const std::vector<double>& v);
 
   // --- Frovedis Data structure to Python Data structure ---
   PyObject* to_py_dummy_matrix(const dummy_matrix& m);
