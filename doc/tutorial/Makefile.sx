@@ -1,7 +1,0 @@
-include ../../Makefile.in.sx
-include Makefile.common
-
-install:
-	install -d ${INSTALLPATH}/doc/tutorial/src
-	cp tutorial.md tutorial.pdf ${INSTALLPATH}/doc/tutorial/
-	cd src; cat Makefile.each.sx | sed -e /^LIB/d | sed -e /^INCLUDES/d |sed -e s/^\#LIB/LIB/ |  sed -e s/^#INCLUDES/INCLUDES/g > tmp; cat Makefile.each.omp.sx | sed -e /^LIB/d | sed -e /^INCLUDES/d |sed -e s/^\#LIB/LIB/ |  sed -e s/^#INCLUDES/INCLUDES/g > tmp.omp; cp tmp ${INSTALLPATH}/doc/tutorial/src/Makefile.each; cp tmp.omp ${INSTALLPATH}/doc/tutorial/src/Makefile.each.omp; rm tmp tmp.omp; cp Makefile.in.sx exec_sx.sh make.sh make_clean.sh ${INSTALLPATH}/doc/tutorial/src/; tar cf - --exclude=.svn ./tut* | (cd ${INSTALLPATH}/doc/tutorial/src && tar xvf - --no-same-owner)
