@@ -1,6 +1,0 @@
-include ../../../Makefile.in.sx
-include Makefile.common
-
-libfrovedis_text.a: ${OBJS}
-	${CXX} -prelink ${OBJS} ${LIBS_COMMON}
-	${AR} r libfrovedis_text.a ${OBJS}

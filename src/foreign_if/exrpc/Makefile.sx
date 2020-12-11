@@ -1,8 +1,0 @@
-include ../../../Makefile.in.sx
-include Makefile.common
-
-CXXFLAGS := ${CXXFLAGS}
-
-libfrovedis_exrpc.a: ${OBJS}
-	${CXX} -prelink ${OBJS} -L../../frovedis/core -lfrovedis_core ${LIBS_COMMON}
-	${AR} r libfrovedis_exrpc.a ${OBJS}
