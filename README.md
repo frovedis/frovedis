@@ -4,6 +4,7 @@ FRamework Of VEctorized and DIStributed data analytics
 
 # 1. Introduction
 
+<img src="doc/misc/eval.png" align="right" width=360/>
 Frovedis is high-performance middleware for data analytics. It is
 written in C++ and utilizes MPI for communication between the servers.
 
@@ -22,8 +23,8 @@ run efficiently on other architectures like x86.
 
 The machine learning algorithm library performs really well on sparse
 datasets, especially on SX-Aurora TSUBASA. In the case of logistic
-regression, it performed 10x faster on x86, and 100x faster on
-SX-Aurora TSUBASA, compared to Spark on x86.
+regression, it performed more than 10x faster on x86, and more than
+100x faster on SX-Aurora TSUBASA, compared to Spark on x86.
 
 In addition, it provides Spark/Python interface that is mostly
 compatible with Spark MLlib and Python scikit-learn. If you are using
@@ -32,89 +33,30 @@ TSUBASA, Spark/Python runs on x86 side and the middleware runs on VE
 (Vector Engine); therefore, users can enjoy the high-performance
 without noticing the hardware details.
 
-
 # 2. Installation
 
-If you want prebuilt binary, please check "releases" 
-(https://github.com/frovedis/frovedis/releases), which includes
-rpm file. If your environment is supported, using rpm is the easiest
-way to install.
+If you want prebuilt binary, please check
+["releases"](https://github.com/frovedis/frovedis/releases),
+which includes rpm file. If your environment is supported, using rpm
+is the easiest way to install.
+
+***Plaese make sure if your hostname (which can be obtained by hostname
+command) is in /etc/hosts or registered in DNS to make it work correctly.***
 
 If you want to build the framework on SX-Aurora TSUBASA, we recommend
-to utilize our build tools (https://github.com/frovedis/packaging)
-together with VE version of boost (https://github.com/frovedis/boost-ve).
+to utilize our [build tools](https://github.com/frovedis/packaging)
+together with [VE version of boost](https://github.com/frovedis/boost-ve).
 Please follow the instructions in README.md of the build tools.
 
-On other platforms, please follow the instructions below.
-
-## 2.1. Environment
-
-The system depends on 
-
-- C++11 compiler
-- Boost library
-- MPI
-- Numerial libraries: LAPACK, BLAS, Parallel ARPACK, ScaLAPACK
-
-In Linux environment, it is easy to install them using package manager
-like apt or yum. 
-On SX-Aurora TSUBASA, numerical libraries and MPI are provided by the
-system. Boost library is provided separately. 
-
-Alternatively, the distribution contains BLAS, LAPACK, Parallel
-ARPACK, and ScaLAPACK source code. You can build them by yourself
-during the build process.
-
-## 2.2. Configuration and install
-
-First, please edit Makefile.conf in this directory to specify the
-architecture. If `TARGET := x86`, target architecture is Linux/x86.
-If `TARGET := sx`, target architecture is SX-ACE (cross compiler on Linux). 
-`TARGET := icpc` is for using Intel compiler on Linux (depends on OpenMPI).
-If `TARGET := ve`, target architecture is SX-Aurora TSUBASA (cross
-compiler on Linux). 
-
-If `BUILD_FOREIGN_IF := true`, foreign interface to Spark and Python
-will be compiled. The interface itself makes sense only on x86 (of
-course, the server can run on SX-ACE or VE of SX-Aurora TSUBASA,
-though). To build this, you need to install Spark and Java beforehand
-on x86. 
-
-Next, please edit Makefile.in.[x86, sx, icpc, ve]. You would want to
-change `INSTALLPATH`. You might need to change `LIBS_COMMON` if you
-use different Linux distribution where the library names are
-different. On SX-ACE or SX-Aurora TSUBASA, you would need to change
-`BOOST_INC` and `BOOST_LIB`, which will be defined after installing
-Boost.
-
-If you build foreign interface on x86, you also need to specify 
-JAVA_HOME, SCALA_HOME, SPARK_HOME, HDPATH (path for hadoop jar file),
-and PYTHON_INC in Makefile.in.x86 (even if TARGET is icpc, you need to
-edit Makefile.in.x86).
-
-After editing `Makefile.in.[x86, sx, icpc, ve]`, please type
-
-    $ make
-
-Then, libraries will be compiled.
-
-To copy the compiled libraries and headers to the specified directory,
-please type
-
-    $ make install
-
-If the specified directory is not your home directory, you might need
-to `sudo`. 
-
+On other platforms, please follow the [instructions](doc/misc/how_to_build.md).
 
 # 3. Getting started
 
-If you have installed Frovedis from prebuilt binary, you can find 
-/opt/nec/nosupport/frovedis/getting_started.md; please also refer to
-it. 
+Here, we assume that you have installed Frovedis from prebuilt binary.
+Please also refer to /opt/nec/nosupport/frovedis/getting_started.md.
 
-In this case, if you want to use VE version, you can set up your
-environment variables by
+If you want to use VE version, you can set up your environment
+variables by
 
     $ source /opt/nec/nosupport/frovedis/ve/bin/veenv.sh
 
@@ -122,13 +64,14 @@ If you want to use x86 version, please use following:
 
     $ source /opt/nec/nosupport/frovedis/x86/bin/x86env.sh
 
-In the case of prebuilt binary, `${INSTALLPATH}` is
+`${INSTALLPATH}` below is
 `/opt/nec/nosupport/frovedis/ve/` in the case of VE, and
 `/opt/nec/nosupport/frovedis/x86/` in the case of x86. 
 
 ## 3.1 C++ interface
 
-Tutorial is in `${INSTALLPATH}`/doc/tutorial/tutorial.[md,pdf]. 
+Tutorial is [here](doc/tutorial/tutorial.md) in source code tree and
+installed in `${INSTALLPATH}`/doc/tutorial/tutorial.[md,pdf]. 
 The directory also contains small programs that are explained in the
 tutorial. You can copy the source files into your home directory and
 compile them by yourself. The Makefile and Makefile.in.[x86, etc.]
@@ -138,34 +81,35 @@ You can re-use it for your own programs.
 
 The small programs in the tutorial directory looks like this:
 
-    #include <frovedis.hpp>
-    
-    int two_times(int i) {return i*2;}
-    
-    int main(int argc, char* argv[]){
-      frovedis::use_frovedis use(argc, argv);
-      
-      std::vector<int> v;
-      for(size_t i = 1; i <= 8; i++) v.push_back(i);
-      auto d1 = frovedis::make_dvector_scatter(v);
-      auto d2 = d1.map(two_times);
-      auto r = d2.gather();
-      for(auto i: r) std::cout << i << std::endl;
-    }
+```cpp
+#include <frovedis.hpp>
+
+int two_times(int i) {return i*2;}
+
+int main(int argc, char* argv[]){
+  frovedis::use_frovedis use(argc, argv);
+
+  std::vector<int> v = {1,2,3,4,5,6,7,8};
+  auto d1 = frovedis::make_dvector_scatter(v);
+  auto d2 = d1.map(two_times);
+  auto r = d2.gather();
+  for(auto i: r) std::cout << i << std::endl;
+}
+```
 
 This program creates distributed vector from std::vector, and doubles
 its elements in a distribited way; then gathers to std::vector again.
 As you can see, you can write distributed program quite easily and
 consicely compared to MPI program.
 
-In addition, there are also sample programs in `${INSTALLPATH}`/samples
-directory. You can also use them as reference when you write your own
-programs.
+In addition, there are also [sample programs](samples/) installed
+in `${INSTALLPATH}`/samples directory. You can also use them as
+reference when you write your own programs.
 
-Manuals are in `${INSTALLPATH}`/doc/manual/manual.pdf, which are more in
-detail than the tutorial. Manuals for `man` command is in
-`${INSTALLPATH}`/man; you can do like `man dvector` after setting the
-directory into your MANPATH.
+[Manuals](doc/manual/manual_cpp.md) are installed in
+`${INSTALLPATH}`/doc/manual/manual_cpp.[md,pdf], which are more in
+detail than the tutorial. Manuals for `man` command is also installed;
+you can do like `man dvector`.
 
 ## 3.2. Spark/Python interface
 
@@ -175,60 +119,88 @@ dataframe operations.
 
 This is implemented as a server; the server accepts RPC (remote
 procedure call) to provide the above functionalities from Spark or
-Python. The server can run on both x86 and VE.
+Python. The server can run on both VE and x86; if veenv.sh is
+sourced, VE version of the server is used, if x86env.sh is sourced,
+x86 version of the server is used.
 
-To run the server, the network should be configured properly.
-*Plaese make sure if your hostname (which can be obtained by hostname
-command) is in /etc/hosts or registered in DNS.*
-(myhostname in /etc/nsswitch.conf does not work for VE.)
+To use the functionalities, you just need to modify importing packages
+or modules and add few lines of codes from your Spark or Python
+scikit-learn program.
 
-Even if you want to use VE, you need to build x86 version, because it
-builds dynamic link libraries for Spark/Python interface.
+For example, in the case of Spark, if the original program is:
 
-Tutorial is in `${INSTALLPATH}`/doc/tutorial_spark/tutorial.[md,pdf],
-and `${INSTALLPATH}`/doc/tutorial_python/tutorial.[md,pdf].
- The directory also contains small programs that are explained in the
+    import org.apache.spark.mllib.classification.LogisticRegressionWithSGD
+    ...
+    val model = LogisticRegressionWithSGD.train(data)
+
+Then, the modified program is:
+
+    import com.nec.frovedis.mllib.classificaiton.LogisticRegressionWithSGD 
+    ...
+    FrovedisServer.initialize(...)
+    val model = LogisticRegressionWithSGD.train(data)
+    FrovedisServer.shut_down()
+
+Here, importing package is changed, and server initialization and
+shutdown is added. Other than that, you do not have to change the program.
+
+In the case of Python / scikit-learn, if the original program is:
+
+    from sklearn.linear_model import LogisticRegression
+    ...
+    clf = LogisticRegression(...).fit(X,y)
+
+Then, the modified program is:
+
+    from frovedis.mllib.linear_model import LogisticRegression
+    ...
+    FrovedisServer.initialize(...)
+    clf = LogisticRegression(...).fit(X,y)
+    FrovedisServer.shut_down()
+
+Similary, only importing module is changed and server initialization
+and shutdown is added. 
+
+Tutorial for spark is [here](doc/tutorial_spark/tutorial_spark.md) in
+source code tree and installed in
+`${INSTALLPATH}`/doc/tutorial_spark/tutorial.[md,pdf].
+Tutorial for python is [here](doc/tutorial_python/tutorial_python.md)
+and installed in `${INSTALLPATH}`/doc/tutorial_python/tutorial.[md,pdf].
+
+The directory also contains small programs that are explained in the
 tutorial. You can copy the source files into your home directory and
 run them by yourself. 
 
-If the insall path of x86 version is `${X86_INSTALLPATH}`, 
-`${X86_INSTALLPATH}`/foreign_if_demo/[spark,python] includes
-another demo.
+There are [other Spark demo programs](./src/foreign_if/spark/examples/) 
+installed in `${X86_INSTALLPATH}`/foreign_if_demo/spark, and
+[Python demo programs](./src/foreign_if/python/examples/) installed in 
+`${X86_INSTALLPATH}`/foreign_if_demo/spark, where `${X86_INSTALLPATH}`
+is `/opt/nec/nosupport/frovedis/x86/`.
 
-Please copy these directories into your home directory (since it
-creates files). The scripts ./foreign_if_demo/spark/run_demo.sh and 
-./foreign_if_demo/python/run_demo.sh run demos. 
+To try them, please copy these directories into your home directory
+(since it creates files). The scripts ./foreign_if_demo/spark/run_demo.sh 
+and ./foreign_if_demo/python/run_demo.sh run demos. 
 
-As for Spark, compiled jar files are used; as for Python, Python
-scripts are used. The server is invoked from the script and shutdown
-at the end of the program. 
+[Manuals for Spark](doc/manual/manual_spark.md) and
+[manuals for Python](doc/manual/manual_python.md) 
+are installed in
+`${INSTALLPATH}`/doc/manual/manual_spark.[md,pdf] and 
+`${INSTALLPATH}`/doc/manual/manual_python.[md,pdf]. 
+Manuals for `man` command is also installed;
+you can do like `man -s 3s logistic_regression` or 
+`man -s 3p logistic_regression`.
+Here, with `-s 3s` option, you can see Spark manual; 
+with `-s 3p` option, you can see Python manual. 
 
-To run the demo, you need to set following environment variables
-(if you are using prebuilt binary, veenv.sh or x86env.sh sets these
-variables): 
+# 4. Other documents
 
-    export INSTALLPATH=...
-    export FROVEDIS_SERVER=${INSTALLPATH}/bin/frovedis_server
-    export PYTHONPATH=${INSTALLPATH}/lib/python
-    export LD_LIBRARY_PATH=${INSTALLPATH}/lib
+Below links would be useful to understand the framework in more detail:
+- [List of ML algorithms](doc/misc/ml_algorithms.md)
+- [Notebooks for Jupyter with scikit-learn Interface](doc/notebook)
 
-`FROVEDIS_SERVER` is used in the both run_demo.sh scripts.
-`INSTALLPATH` is used to specify options in `spark-submit` in the
-script. `PYTHONPATH` is needed to load the interface library written
-in Python. `LD_LIBRARY_PATH` is used to load dynamic link library that
-is used in the Python library.
-
-You can modify the Spark programs and Python scripts; there is a
-Makefile to build jar file from Spark/Scala programs.
-
-
-# 4. License
+# 5. License
 
 License of this software is in LICENSE file. 
 
 This software includes third party software. The third_party directory
 includes third party software together with their licenses. 
-For convenience, src/frovedis/core and src/foreign_if/exrpc inclues a
-few third party files whose license is Boost Software License (shown
-in the header of the files), and src/frovedis/ml/w2v is based on the
-software whose license is Apache License Version 2.0. 
