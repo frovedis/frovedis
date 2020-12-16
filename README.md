@@ -4,7 +4,7 @@ FRamework Of VEctorized and DIStributed data analytics
 
 # 1. Introduction
 
-<img src="doc/misc/eval.png" align="right" width=360/>
+<img src="doc/misc/eval.png" align="right" width=400/>
 Frovedis is high-performance middleware for data analytics. It is
 written in C++ and utilizes MPI for communication between the servers.
 
