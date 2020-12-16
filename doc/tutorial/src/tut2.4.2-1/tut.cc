@@ -11,8 +11,7 @@ struct n_times {
 int main(int argc, char* argv[]){
   frovedis::use_frovedis use(argc, argv);
   
-  std::vector<int> v;
-  for(size_t i = 1; i <= 8; i++) v.push_back(i);
+  std::vector<int> v = {1,2,3,4,5,6,7,8};
   auto d1 = frovedis::make_dvector_scatter(v);
   auto d2 = d1.map<int>(n_times(3));
   auto r = d2.gather();

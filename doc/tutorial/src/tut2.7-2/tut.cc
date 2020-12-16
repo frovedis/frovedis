@@ -9,8 +9,7 @@ std::vector<int> two_times(const std::vector<int>& v) {
 int main(int argc, char* argv[]){
   frovedis::use_frovedis use(argc, argv);
 
-  std::vector<int> v;
-  for(size_t i = 1; i <= 8; i++) v.push_back(i);
+  std::vector<int> v = {1,2,3,4,5,6,7,8};
   auto d1 = frovedis::make_dvector_scatter(v);
   auto d2 = d1.as_node_local().map(two_times).moveto_dvector<int>();
   //auto d2 = d1.map_partitions(two_times);
