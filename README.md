@@ -72,12 +72,12 @@ If you want to use x86 version, please use following:
 
 Tutorial is [here](doc/tutorial/tutorial.md) in source code tree and
 installed in `${INSTALLPATH}`/doc/tutorial/tutorial.[md,pdf]. 
-The directory also contains small programs that are explained in the
-tutorial. You can copy the source files into your home directory and
-compile them by yourself. The Makefile and Makefile.in.[x86, etc.]
-contains configurations for compilation, like compilation options,
-path to include files, libraries, etc. 
-You can re-use it for your own programs.
+The directory also contains [small programs](doc/tutorial/src)
+that are explained in the tutorial. You can copy the source files into
+your home directory and compile them by yourself. The Makefile and
+Makefile.in.[x86, etc.] contains configurations for compilation, like
+compilation options, path to include files, libraries, etc. You can
+re-use it for your own programs.
 
 The small programs in the tutorial directory looks like this:
 
