@@ -63,6 +63,27 @@ extern "C" {
   }
 
   // --- Frovedis Data structure to Python Data structure ---
+  PyObject* to_py_bfs_result(const bfs_result<DT5>& result) {
+    return Py_BuildValue("{s:O, s:O, s:O}",
+                         "destids", to_python_llong_list(result.destids),
+                         "distances", to_python_llong_list(result.distances),
+                         "predecessors", to_python_llong_list(result.predecessors));
+  }
+
+  PyObject* to_py_sssp_result(const sssp_result<DT1,DT5>& result) {
+    return Py_BuildValue("{s:O, s:O, s:O}",
+                         "destids", to_python_llong_list(result.destids),
+                         "distances", to_python_double_list(result.distances),
+                         "predecessors", to_python_llong_list(result.predecessors));
+  }
+
+  PyObject* to_py_pagerank_result(const py_pagerank_result<double>& result) {
+    return Py_BuildValue("{s:O, s:O}",
+                         "nodeid", to_python_long_list(result.nodeid),
+                         "rank", to_python_double_list(result.rank));
+  }
+
+
   PyObject* to_py_dummy_matrix(const dummy_matrix& m) {
     return Py_BuildValue("{s:l, s:i, s:i, s:i}", 
                          "dptr", (long)m.mptr, 
@@ -85,7 +106,7 @@ extern "C" {
                          "vtype", (int)dv.dtype);
   }
 
-  PyObject* to_py_gesvd_result(const gesvd_result& obj,
+  PyObject* to_py_svd_result(const svd_result& obj,
                                char mtype, bool isU, bool isV) {
     auto mt = (mtype == 'C') ? "C" : "B";
     long uptr = isU ? (long)obj.umat_ptr : 0;
@@ -134,6 +155,13 @@ extern "C" {
                          "kl_divergence_", obj.kl_divergence_);
   }
 
+  PyObject* to_py_kmeans_result(const kmeans_result& result) {
+    return Py_BuildValue("{s:O, s:i, s:f}",
+                         "labels", to_python_int_list(result.label_),
+                         "n_iter", result.n_iter_,
+                         "inertia", result.inertia_);
+  }
+
   PyObject* to_py_knn_result(const knn_result& obj,
                              char mtype) {
     if (mtype != 'R') 
@@ -150,7 +178,7 @@ extern "C" {
                          "k", obj.k);
   }  
 
-  PyObject* to_py_getrf_result(const getrf_result& obj,char mtype) {
+  PyObject* to_py_lu_fact_result(const lu_fact_result& obj,char mtype) {
     auto mt = (mtype == 'C') ? "C" : "B";
     long dptr = (long)obj.ipiv_ptr;
     return Py_BuildValue("{s:s, s:l, s:i}", 
