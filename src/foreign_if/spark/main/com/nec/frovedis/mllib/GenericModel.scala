@@ -3,11 +3,11 @@ package com.nec.frovedis.mllib;
 import com.nec.frovedis.Jexrpc.{Node,FrovedisServer,JNISupport}
 import com.nec.frovedis.matrix.Utils._
 import com.nec.frovedis.matrix.ScalaCRS
+import com.nec.frovedis.exrpc.FrovedisSparseData
+import com.nec.frovedis.matrix.FrovedisRowmajorMatrix
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 import org.apache.spark.mllib.linalg.Vector
-import com.nec.frovedis.exrpc.FrovedisSparseData
-import com.nec.frovedis.matrix.FrovedisRowmajorMatrix
 
 object M_KIND {
   val GLM:    Short = 0
