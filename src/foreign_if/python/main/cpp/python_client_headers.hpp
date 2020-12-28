@@ -4,6 +4,7 @@
 #include <Python.h>
 #include <typeinfo>
 #include "exrpc_util_headers.hpp"
+#include "short_hand_sparse_type.hpp"
 
 // --- global exception tracking variables ---
 extern bool status;
@@ -42,14 +43,18 @@ extern "C" {
   PyObject* to_python_double_list (const std::vector<double>& v);
 
   // --- Frovedis Data structure to Python Data structure ---
+  PyObject* to_py_bfs_result(const bfs_result<DT5>& result);
+  PyObject* to_py_sssp_result(const sssp_result<DT1,DT5>& result);
+  PyObject* to_py_pagerank_result(const py_pagerank_result<double>& result);
   PyObject* to_py_dummy_matrix(const dummy_matrix& m);
   PyObject* to_py_mfm_info(const dummy_mfm& m);
   PyObject* to_py_dummy_vector(const dummy_vector& dv);
-  PyObject* to_py_gesvd_result(const gesvd_result& obj, char, bool, bool);
-  PyObject* to_py_getrf_result(const getrf_result& obj, char);
+  PyObject* to_py_svd_result(const svd_result& obj, char, bool, bool);
+  PyObject* to_py_lu_fact_result(const lu_fact_result& obj, char);
   PyObject* to_py_pca_result(const pca_result& obj, char);
   PyObject* to_py_tsne_result(const tsne_result& obj);
   PyObject* to_py_knn_result(const knn_result& obj, char);
+  PyObject* to_py_kmeans_result(const kmeans_result& obj);
   PyObject* to_py_dummy_lda_result(const dummy_lda_result& m);
   PyObject* to_py_dummy_graph(const dummy_graph& obj);
 
