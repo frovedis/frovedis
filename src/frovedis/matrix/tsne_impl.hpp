@@ -308,7 +308,6 @@ compute_conditional_probability(rowmajor_matrix<T>& mat,
                                      myst));
   probability_mat.num_row = affinity.num_row;
   probability_mat.num_col = affinity.num_col;
-
   // ** Symmetrizing Probability Matrix
   auto b_trans_prob_mat = probability_mat.transpose().data;
   auto sum_P = 2 * probability_mat.num_row;
@@ -411,22 +410,20 @@ void check_non_negative_mat(rowmajor_matrix<T>& mat) {
 
 template <class T>
 void check_finite_mat(rowmajor_matrix<T>& mat) {
-  bool res = mat.data.map(+[](rowmajor_matrix_local<T>& mat) -> bool {
-    bool result = true; 
-    for(size_t i = 0; i < mat.val.size(); i++){ 
-      if(!std::isfinite(mat.val[i])){result = false; break;}}
-    return result;}).reduce(add<bool>);
-  require(res, "invalid matrix: matrix should contain finite elements!!\n");
+  auto res = mat.data.map(+[](rowmajor_matrix_local<T>& mat) -> int {
+    return vector_count_infinite(mat.val) > 0;
+  }).reduce(add<int>);
+  require(res == 0, 
+  "invalid matrix: matrix should contain finite elements!!\n");
 }
 
 template <class T>
-void check_less_than_one_val(rowmajor_matrix<T>& mat) {
-  bool res = mat.data.map(+[](rowmajor_matrix_local<T>& mat) -> bool {
-    bool result = true; 
-    for(size_t i = 0; i < mat.val.size(); i++){ 
-      if(mat.val[i] > 1){result = false; break;}}
-    return result;}).reduce(add<bool>);
-  require(res, "invalid matrix: elements should be less than or equal to one!!\n");
+void check_probability_mat(rowmajor_matrix<T>& mat) {
+  auto res = mat.data.map(+[](rowmajor_matrix_local<T>& mat) -> int {
+    return vector_count_out_of_range(mat.val, (T)0.0, (T)1.0, true, true) > 0;
+  }).reduce(add<int>);
+  require(res == 0,
+  "invalid matrix: matrix should contain elements within range 0 to 1!!\n");
 }
 
 template <class T>
@@ -438,9 +435,8 @@ void validate_precomputed_distance_mat(rowmajor_matrix<T>& mat) {
 
 template <class T>
 void validate_probability_mat(rowmajor_matrix<T>& mat) {
-  check_non_negative_mat(mat);
   check_finite_mat(mat);
-  check_less_than_one_val(mat);
+  check_probability_mat(mat);
 }
 
 template <class T>
@@ -453,7 +449,9 @@ tsne(rowmajor_matrix<T>& mat,
      size_t desired_dimensions = 2,
      size_t n_iter = 1000,
      size_t n_iter_without_progress = 300,
-     std::string metric="euclidean",
+     const std::string& metric = "euclidean",
+     const std::string& method = "exact",
+     const std::string& init = "random",
      bool verbose = false,
      size_t &iter_cnt = 0,
      double &kldv = 0.0) {
@@ -470,6 +468,17 @@ tsne(rowmajor_matrix<T>& mat,
     time_spent t_calP(DEBUG), t_init(DEBUG), t_comp(DEBUG);
     time_spent t_qmat(DEBUG), t_gradmat(DEBUG), t_updateY(DEBUG); 
     t_calP.lap_start();
+    auto nrows = mat.get_local_num_rows();
+    auto blocks = get_block(mat.num_row);
+    bool realign_needed = false;
+    if (nrows != blocks) {
+      realign_needed = true;
+      mat.align_as(blocks);
+    }
+    require (method == "exact", 
+       "invalid method: Currently frovedis TSNE supports only 'exact' method!!\n");
+    require (init == "random",
+       "invalid init: Currently frovedis TSNE supports only 'random' init!!\n");
     if (metric == "precomputed") validate_precomputed_distance_mat<T>(mat);
     auto probability_mat = compute_conditional_probability<T>(mat, perplexity, metric);
     // Added assertions for P matrix
@@ -484,7 +493,8 @@ tsne(rowmajor_matrix<T>& mat,
 
     // Initialize necessary matrices
     t_init.lap_start();
-    auto Y_mat = initialize_y<T>(n_row, desired_dimensions);
+    rowmajor_matrix<T> Y_mat;
+    if (init == "random") Y_mat = initialize_y<T>(n_row, desired_dimensions);
     auto update_Y = init_matrix<T>(mat.get_local_num_rows(),
                                    n_row, desired_dimensions, (T) 0.0);
     auto gains = init_matrix<T>(mat.get_local_num_rows(),
@@ -495,7 +505,8 @@ tsne(rowmajor_matrix<T>& mat,
     //  Perform Gradient Descent with kullback-divergence cost function
     time_spent trace_iter(TRACE);
     t_comp.lap_start();
-    for(size_t i = 0; i < n_iter; i++) {
+    size_t i = 0;
+    for(i = 0; i < n_iter; i++) {
       check_convergence = (((i + 1) % N_ITER_CHECK) == 0) or (i == n_iter - 1);
 
       t_qmat.lap_start();
@@ -553,8 +564,6 @@ tsne(rowmajor_matrix<T>& mat,
                        << std::to_string(n_iter_progress_threshold)
                        << " episodes. Finished!\n";
           }
-          iter_cnt = i;
-          kldv = error;
           break;
         }
 
@@ -566,14 +575,16 @@ tsne(rowmajor_matrix<T>& mat,
                        << std::to_string(grad_norm)
                        << ". Finished!" << std::endl;
           }
-          iter_cnt = i;
-          kldv = error;
           break;
         }
       }
-      iter_cnt = i;
-      kldv = error;
       trace_iter.show("one iter: ");
+    }
+    kldv = error;
+    iter_cnt = i + 1;
+    if (realign_needed) {
+      Y_mat.align_as(nrows);
+      mat.align_as(nrows);
     }
     t_comp.lap_stop();
     t_comp.show_lap("tsne computation time: ");

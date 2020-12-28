@@ -16,6 +16,8 @@ struct TSNE {
        size_t n_iter = 1000,
        size_t n_iter_without_progress = 300,
        const std::string& metric="euclidean",
+       const std::string& method="exact",
+       const std::string& init="random",
        bool verbose = false) {
     this->perplexity = perplexity;
     this->early_exaggeration = early_exaggeration;
@@ -25,6 +27,8 @@ struct TSNE {
     this->n_iter = n_iter;
     this->n_iter_without_progress = n_iter_without_progress;
     this->metric = metric;
+    this->method = method;
+    this->init = init;
     this->verbose = verbose;
     this->is_fitted = false;
   }
@@ -80,6 +84,20 @@ struct TSNE {
     this->metric = metric;
     return *this;  
   }
+  TSNE<T>&
+  set_method(const std::string& method) {
+    std::string msg = "expected exact; received: " + method + "\n";
+    require(method == "exact", msg);
+    this->method = method;
+    return *this;
+  }
+  TSNE<T>&
+  set_init(const std::string& init) {
+    std::string msg = "expected random; received: " + init + "\n";
+    require(init == "random", msg);
+    this->init = init;
+    return *this;
+  }
   TSNE<T>& 
   set_verbose(bool verbose) {
     this->verbose = verbose;
@@ -125,6 +143,14 @@ struct TSNE {
         set_metric(val.get<std::string>());
         msg += "metric: " + val.tt + "; ";
       }
+      else if(param == "method") {
+        set_method(val.get<std::string>());
+        msg += "method: " + val.tt + "; ";
+      }
+      else if(param == "init") {
+        set_init(val.get<std::string>());
+        msg += "init: " + val.tt + "; ";
+      }
       else if(param == "verbose") { 
         set_verbose(val.get<bool>());
         msg += "verbose: " + val.tt + "; ";
@@ -161,7 +187,7 @@ struct TSNE {
     this->embedding_ = tsne(mat, perplexity, early_exaggeration, 
                     min_grad_norm, learning_rate, n_components, 
                     n_iter, n_iter_without_progress, metric, 
-                    verbose, iter_cnt, kl_div);
+                    method, init, verbose, iter_cnt, kl_div);
     this->n_iter_ = iter_cnt;
     this->kl_divergence_ = kl_div;
     this->is_fitted = true;
@@ -176,12 +202,12 @@ struct TSNE {
 
   double perplexity, early_exaggeration, min_grad_norm, learning_rate, kl_divergence_;
   size_t n_components, n_iter, n_iter_without_progress, n_iter_;
-  std::string metric;
+  std::string metric, method, init;
   bool verbose, is_fitted;
   rowmajor_matrix<T> embedding_;
   SERIALIZE(perplexity, early_exaggeration, min_grad_norm, learning_rate, 
-            n_components, n_iter, n_iter_without_progress, metric, verbose, 
-            embedding_, n_iter_, kl_divergence_, is_fitted); 
+            n_components, n_iter, n_iter_without_progress, metric, method,
+            init, verbose, embedding_, n_iter_, kl_divergence_, is_fitted); 
 };
 
 }
