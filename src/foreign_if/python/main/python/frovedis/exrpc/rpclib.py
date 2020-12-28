@@ -205,7 +205,7 @@ merge_frovedis_dataframe.restype = c_long
 rename_frovedis_dataframe = LIB.rename_frovedis_dataframe
 rename_frovedis_dataframe.argtypes = [c_char_p, c_int, c_long,
                                       POINTER(c_char_p), POINTER(c_char_p),\
-                                      c_int, c_bool]
+                                      c_int]
 rename_frovedis_dataframe.restype = c_long
 
 get_min_frovedis_dataframe = LIB.min_frovedis_dataframe
@@ -868,7 +868,6 @@ get_sem_embedding_matrix.restype = py_object
 
 
 # spectral clustering
-
 sca_train = LIB.sca_train
 sca_train.argtypes = [c_char_p, #host
                       c_int, #port
@@ -918,6 +917,12 @@ parallel_kmeans_predict.argtypes = [c_char_p, c_int, c_int,
                                     ndpointer(c_int, ndim=1,\
                                     flags="C_CONTIGUOUS"),\
                                     c_ulong, c_short, c_bool]
+
+kmeans_score = LIB.kmeans_score
+kmeans_score.argtypes = [c_char_p, c_int, c_int,
+                         c_short, c_long,
+                         c_short, c_bool]
+kmeans_score.restype = c_float
 
 als_float_predict = LIB.als_float_predict
 als_float_predict.argtypes = [c_char_p, c_int, c_int,\
@@ -1052,11 +1057,11 @@ encode_frovedis_double_dvector.argtypes = [c_char_p, c_int, c_long,  #host, port
 encode_frovedis_double_dvector.restype = c_long # out proxy
 
 lr_sgd = LIB.lr_sgd
-lr_sgd.argtypes = [c_char_p, c_int, c_long, c_long, #host,port,X,y
-                   c_int, c_double,                 #iter, lr_rate
-                   c_int, c_double, c_bool,         #rtype, rparam, is_mult
-                   c_bool, c_double, c_int, c_int,  #fit_icpt, tol, vb, mid
-                   c_short, c_short, c_bool]        #dtype, itype, dense
+lr_sgd.argtypes = [c_char_p, c_int, c_long, c_long,   #host,port,X,y
+                   c_int, c_double,                   #iter, lr_rate
+                   c_int, c_double, c_bool,           #rtype, rparam, is_mult
+                   c_bool, c_double, c_int, c_int,    #fit_icpt, tol, vb, mid
+                   c_short, c_short, c_bool, c_bool]  #dtype, itype, dense, shrinking
 
 lr_lbfgs = LIB.lr_lbfgs
 lr_lbfgs.argtypes = [c_char_p, c_int, c_long, c_long, #host,port,X,y
@@ -1165,7 +1170,8 @@ lnr2_sgd.argtypes = [c_char_p, c_int, c_long, c_long, #host,port,X,y
 kmeans_train = LIB.kmeans_train
 kmeans_train.argtypes = [c_char_p, c_int, c_long, c_int,
                          c_int, c_long, c_double, c_int, c_int,
-                         c_short, c_short, c_bool]
+                         c_short, c_short, c_bool, c_bool]
+kmeans_train.restype = py_object
 
 # als will always be trained with sparse data
 als_train = LIB.als_train
@@ -1288,7 +1294,7 @@ compute_var_sum.restype = c_double
 
 compute_truncated_svd = LIB.compute_truncated_svd
 compute_truncated_svd.argtypes = [c_char_p, c_int, c_long, c_int,
-                                  c_short, c_short, c_bool]
+                                  c_short, c_short, c_bool, c_bool]
 compute_truncated_svd.restype = py_object
 
 compute_svd_self_transform = LIB.compute_svd_self_transform
@@ -1619,27 +1625,30 @@ copy_graph_py.restype = c_ulong
 call_frovedis_pagerank = LIB.call_frovedis_pagerank
 call_frovedis_pagerank.argtypes = [c_char_p, c_int,\
                                   c_long, c_double,\
-                                  c_double, c_int]
-call_frovedis_pagerank.restype = py_object
+                                  c_double, c_int, c_int]
+call_frovedis_pagerank.restype = py_object                 # dist of lists
 
 call_frovedis_sssp= LIB.call_frovedis_sssp
 call_frovedis_sssp.argtypes = [c_char_p, c_int,            # host, port
                                c_ulong,                    # graph
-                               ndpointer(c_double, ndim=1, # distance
-                                         flags="C_CONTIGUOUS"), 
-                               ndpointer(c_long, ndim=1,   # predecessor
-                                         flags="C_CONTIGUOUS"), 
-                               c_ulong, c_ulong]           # nvertices, source
+                               c_ulong]                    # nvertices, source
+call_frovedis_sssp.restype = py_object                     # sssp result dict of lists
 
 call_frovedis_bfs = LIB.call_frovedis_bfs
 call_frovedis_bfs.argtypes = [c_char_p, c_int,             # host, port
                               c_ulong,                     # graph
-                              ndpointer(c_long, ndim=1,    # distance
-                                        flags="C_CONTIGUOUS"),
-                              ndpointer(c_long, ndim=1,    # predecessor
-                                        flags="C_CONTIGUOUS"), 
-                              c_ulong, c_ulong,            # nvertices, source
-                              c_int, c_double]             # opt-level, hyb-threshold
+                              c_ulong,                     # source
+                              c_int, c_double,             # opt-level, hyb-threshold
+                              c_ulong]                     # depth-limit
+call_frovedis_bfs.restype = py_object                      # bfs result dict of lists
+
+bfs_descendants_at_distance = LIB.bfs_descendants_at_distance
+bfs_descendants_at_distance.argtypes = [c_char_p, c_int,   # host, port
+                              c_ulong,                     # graph
+                              c_ulong,                     # source
+                              c_int, c_double,             # opt-level, hyb-threshold
+                              c_ulong]                     # depth-limit
+bfs_descendants_at_distance.restype = py_object            # python list
 
 call_frovedis_cc = LIB.call_frovedis_cc
 call_frovedis_cc.argtypes = [c_char_p, c_int,             # host, port
@@ -1694,6 +1703,8 @@ compute_tsne.argtypes = [ c_char_p, #host
                          c_int, #n_iter
                          c_int, #n_iter_without_progress
                          c_char_p, #metric
+                         c_char_p, #method
+                         c_char_p, #init
                          c_bool, #verbose
                          c_short #dtype
                        ]
