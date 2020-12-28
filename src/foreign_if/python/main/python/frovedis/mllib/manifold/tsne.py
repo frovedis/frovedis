@@ -125,13 +125,6 @@ class TSNE(BaseEstimator):
         """Private function to validate hyper parameters."""
         if self.n_iter < 250:
             raise ValueError("n_iter should be at least 250")
-        if self.method != 'exact':
-            raise ValueError("Currently Frovedis TSNE supports method = 'exact' only")
-        if self.init != 'random':
-            raise ValueError("Currently Frovedis TSNE supports init = 'random' only")
-        if self.metric not in ['euclidean', 'precomputed']:
-            raise ValueError("Currently Frovedis TSNE supports 'euclidean' and \
-                                            'precomputed' metric only")
         if self.n_components != 2:
             raise ValueError("Currently Frovedis TSNE supports n_components = 2")
         if self.perplexity < 0:
@@ -157,7 +150,10 @@ class TSNE(BaseEstimator):
         res = compute_tsne(host, port, input_x.get(), self.perplexity,
                            self.early_exaggeration, self.min_grad_norm,
                            self.learning_rate, self.n_components, self.n_iter,
-                           self.n_iter_without_progress, self.metric,
+                           self.n_iter_without_progress, 
+                           self.metric.encode('ascii'), 
+                           self.method.encode('ascii'),
+                           self.init.encode('ascii'), 
                            self.verbose, x_dtype)
         excpt = check_server_exception()
         if excpt["status"]:
