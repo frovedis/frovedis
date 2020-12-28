@@ -5,7 +5,7 @@ int main(int argc, char* argv[]){
   frovedis::use_frovedis use(argc, argv);
 
   auto t = frovedis::make_dftable_loadtext("./t.csv", 
-                                         {"int", "double", "string", "int"},
+                                         {"int", "double", "dic_string", "int"},
                                          {"c1", "c2", "c3", "c4"});
 
   std::cout << "c1 == c4" << std::endl;
@@ -59,12 +59,12 @@ int main(int argc, char* argv[]){
   std::cout << std::endl;
 
   std::cout << "c3 contains c" << std::endl;
-  auto tisreg = t.filter(frovedis::is_regex("c3",".*c"));
-  tisreg.show();
+  auto tislike = t.filter(frovedis::is_like("c3","%c"));
+  tislike.show();
   std::cout << std::endl;
   std::cout << "c3 does not contain c" << std::endl;
-  auto tisnotreg = t.filter(frovedis::is_not_regex("c3",".*c"));
-  tisnotreg.show();
+  auto tisnotlike = t.filter(frovedis::is_not_like("c3","%c"));
+  tisnotlike.show();
 
   std::cout << std::endl;
   std::cout << "(c1 == c4 || c2 <= 30.0) && c3 does not contain c" 
@@ -73,6 +73,6 @@ int main(int argc, char* argv[]){
                          (frovedis::or_op
                           (frovedis::eq("c1","c4"),
                            frovedis::le_im("c2",30.0)),
-                          frovedis::is_not_regex("c3",".*c")));
+                          frovedis::is_not_like("c3","%c")));
   tandor.show();
 }

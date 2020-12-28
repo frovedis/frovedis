@@ -6,7 +6,7 @@ This document is a tutorial of Frovedis.
 
 It provides 
 
-- Spark-like API (the core functinality of Frovedis)
+- Spark-like API (the core functionality of Frovedis)
 - Matrix library using above API
 - Machine learning algorithm library
 - Dataframe for preprocessing
@@ -24,22 +24,39 @@ From the following subsections, each functionalities will be explained
 together with examples.
 
 Please note that some of the functionalities are not vectorized;
-if you try Frovedis on SX-Aurora TSUBASA or SX-ACE, please check if
+if you try Frovedis on SX-Aurora TSUBASA, please check if
 the functionality you want to use is vectorized or not.
+
+## 1.1 Environment setup
+
+I assume that Frovedis is successfully installed using rpm file.
+
+If you want to try it on Vector Engine (VE) of SX-Aurora TSUBASA, 
+please set up your environment variables by
+
+    $ source /opt/nec/nosupport/frovedis/ve/bin/veenv.sh
+
+Then, copy the directory /opt/nec/nosupport/frovedis/ve/doc/tutorial/src
+to somewhere in your home directory. It contains the source code
+referred from the tutorial.
+
+
+If you want to try it on x86, please use following:
+
+    $ source /opt/nec/nosupport/frovedis/x86/bin/x86env.sh
+
+and use the directory /opt/nec/nosupport/frovedis/x86/doc/tutorial/src.
+
+${INSTALLPATH} is /opt/nec/nosupport/frovedis/ve/ in the case of VE, and 
+/opt/nec/nosupport/frovedis/x86/ in the case of x86.
 
 # 2. Frovedis core
 
 ## 2.1 Simple example
 
-Let’s start from a simple program. I assume that Frovedis is
-successfully installed. 
-
+Let’s start from a simple program. 
 Please go to the ./src/tut2.1 directory and type "make". 
-
-(The Makefile is a symblic link to ../Makefile.each. 
-If you are trying the tutorial in the source code tree,
-please make Makefile.each as a symblic link of Makefile.each.[x86, etc.]
-according to your architecture.)
+(The Makefile is a symbolic link to ../Makefile.each.)
 
 If the program is successfully compiled, a binary named "tut" is
 created. If you run the program like
@@ -133,7 +150,8 @@ other modules like matrix library or machine learning library, you
 need to add other include files.
 
 As for the library to link, they are in ${INSTALLPATH}/lib.
-You need to link at least libfrovedis_core.a (-lfrovedis_core). 
+You need to link at least libfrovedis_core.a (-lfrovedis_core). In the
+case of VE, you may also need to link libfrovedis_text.a.
 If you want to use matrix library, you need to link libfrovedis_matrix.a.
 If you want to use machine learning library, you need to link libfrovedis_ml.a.
 If you want to use dataframe library, you need to link libfrovedis_dataframe.a.
@@ -145,6 +163,9 @@ supports more (member) functions to write more interesting
 programs. From now on, I will explain these functionalities.
 In this section, I will explain functionalities related to
 dvector. 
+
+(If you are interested in vectorization, consider using node_local
+for data manipulation that is explained later.)
 
 dvector can be considered as the distributed version of vector.
 Memory management is similar to vector (RAII): when a dvector is
@@ -205,7 +226,7 @@ parallel using MPI-IO. So if you run the program in the distributed
 environment, please confirm that the file can be accessed by the worker.
 
 (If you are using NFS, there might be a problem when saving a file,
-because it does not support parallel write. If envirnment variable
+because it does not support parallel write. If environment variable
 `FROVEDIS_SEQUENTIAL_SAVE` is set to `true`, save is done sequentially
 to avoid this problem. This is set by default if you are using rpm
 distribution and using x86env.sh or veenv.sh to set environment.)
@@ -223,6 +244,9 @@ no template parameter, it loads the lines as string by default.
 If there is a type like int, double, etc. it parses the line and
 produces that type of dvector. The format of the data should be one
 data per each line. 
+
+In the case of VE, this is much faster than manually parsing the
+data, because vectorized parser is used internally.
 
 The function "make_dvector_loadline" and the member function
 "saveline" requires parsing or creating text. On the other hand, you
@@ -246,7 +270,7 @@ The option of od `-t x1` means that it shows the result per byte using
 hexadecimal. Here the stored data is 4 bytes int. So the first data is
 "01 00 00 00" that means 1.
 
-You always need `<int>` to make_dvector_loadbinary to specifiy the
+You always need `<int>` to make_dvector_loadbinary to specify the
 type of the loading data. 
 
     d2.savebinary("./result_binary");
@@ -270,8 +294,8 @@ samples/matrix_tools/. You can use `to_binary_vector` or
 In this section, I will explain map in more detail.
 
 So far, we have used a function as the argument of map. You can use
-a function object instead of a function. Please go to "src/tut2.4.2-1"
-and look at tut.cc.
+a function object instead of a function, which is recommended on VE
+for vectorization. Please go to "src/tut2.4.2-1" and look at tut.cc.
 
     struct n_times {
       n_times(){}
@@ -286,7 +310,8 @@ It has int n as the internal state, and operator() returns the
 argument * n. 
 
 The special thing of this function object is that it should be
-possible to serialize it with cereal (or boost::serialization).
+possible to serialize it with a serialization library called YAS (or
+cereal, or boost::serialization).
 Since it is tedious to write additional code for serialization,
 we provide macro for this purpose: in this case, with SERIALIZE(n).
 This macro can be used for multiple arguments, like SERIALIZE(n,
@@ -314,7 +339,7 @@ returning value can be inferred from the type of the pointer to the
 function, but in the case of function object, it is difficult. 
 Therefore, `<int>` needs to be added to map.
 
-(You might experiense weird compilation error when using this kind of
+(You might experience weird compilation error when using this kind of
 template parameter. This happens when the type of the variable (in
 this case d1) is *dependent type*; that is, it depends on template
 parameter and cannot be known by the compiler at the time of parsing. 
@@ -323,7 +348,7 @@ not. If this happens, please add `template` before map, like
 `d1.template map<int>(n_times(3))`)
 
 Using function object is a bit faster than using a function, because
-it can be inline-expanded. On SX, it might become much faster, because
+it can be inline-expanded. On VE, it might become much faster, because
 in the case of function pointer, the loop cannot be vectorized, but
 using function object makes it possible to vectorize the loop.
 
@@ -364,7 +389,7 @@ Please see "src/tut2.4.2-4/tut.cc".
 
     auto d2 = d1.map(+[](int i){return i*2;});
 
-Here, `[](int i){return i*2;}` is lambda expresson that doubles the
+Here, `[](int i){return i*2;}` is lambda expression that doubles the
 input. Since it does not capture any variables, it can be converted to
 function pointer. You can do it by adding `+` before the lambda
 expression; this is just a unary operator `+`, which can be used to
@@ -394,6 +419,8 @@ Output of the function should be `vector<T>`.
 Here, the output vectors are "flattened" into a `dvector<int>`; 
 the size of d2 is twice as large as d1.
 
+Please note that this member function is not vectorized.
+
 ### 2.4.4 filter
 
 You might want to select data that have some specific characteristics.
@@ -420,6 +447,8 @@ If you want to update the original data, instead of creating a new
 data, you can use inplace_filter. The example can be found in
 "src/tut2.4.4-2".
 
+Please note that this member function is not vectorized.
+
 ### 2.4.5 reduce
 
 If you want to sum up whole data of dvector, you can use reduce for
@@ -435,6 +464,9 @@ law, like min, max, multiply.
 
 This sums up all the elements of d1. The result should be 36 in this
 case. 
+
+To vectorize reduce, you need to use function object, and the
+operation should be easily vectorized like sum.
 
 ### 2.4.6 put/get
 
@@ -532,6 +564,10 @@ dunordered_map, which is a distributed version of unordered_map.
 In dunordered_map, each item (Key-Value pair) is distributed
 according to the hash value of Key. In addition, the Key should be
 unique just like unordered_map (not multimap). 
+
+Please note that dunordered_map are not vectorized. If you want to use
+vectorized version of similar functionality, consider using dataframe
+that is explained later.
 
 ### 2.5.1 Creation of dunordered_map from dvector
 
@@ -790,7 +826,7 @@ map_values: leftouter_map_values.
 
     auto d4 = z.leftouter_map_values(optional_sum);
 
-In this case, the third arrgument of the input function is
+In this case, the third argument of the input function is
 boost::optional<T>. All the entries of d1 is given to the function. If
 the key does not appear in d2, the third argument becomes empty, which
 can be tested using if. The function optional_sum is defined as follows:
@@ -824,8 +860,14 @@ update the "model" information and then gather the update of all
 workers. It is difficult to write such kind of programs using only
 dvectors and/or dunordered_map.
 
+In addition, local view of data distribution makes it much easier to
+vectorize the program.
+
 Therefore, we provide other kind of distributed variable: `node_local<T>`,
 which is a kind of "node local variable".
+This is the most basic data type of Frovedis; matrix library, machine
+learning library and dataframe library heavily depend on it.
+
 Please look at the example in "src/tut2.7-1".
 
     auto l1 = frovedis::make_node_local_broadcast(v);
@@ -841,7 +883,7 @@ argument of the input function is T itself; in this case, `vector<int>`.
 
 Here, the function "two_times" takes `vector<int>` and returns
 `vector<int>` whose items are doubled.
-On SX, this version of "two_times" would be better than dvector
+On VE, this version of "two_times" would be better than dvector
 version with function pointer, because the loop can be vectorized. 
 
 The type node_local also have a member function gather. The gathered
@@ -881,7 +923,7 @@ In addition, you can make dvector from `node_local<vector<T>>` using
 `as_dvector<T>()` (or `moveto_dvector<T>()` if you want to move. Note
 that `<T>` is required for template parameter deduction). 
 On the other hand, we do not provide a member function like
-asdunordered_map(), because it is not guaranteed that the source
+as_dunordered_map(), because it is not guaranteed that the source
 unordered_map is properly distributed.
 
 We have a kind of short cut member function called map_partitions for
@@ -924,14 +966,15 @@ argument is the contents of node_local. Using the dictionary the convert
 function converts the item into the price. Then the price is summed up
 in the next reduce. 
 
-map, mapv, map_values, etc. can take up to 5 node_local variables. 
+map, mapv, map_values, etc. can take up to 7 node_local variables. 
 
 ## 2.8 Using with MPI
 
+You can use MPI functionalities directly from your function.
 Since MPI is SPMD, you need to call the same function on all the
 workers to use MPI. To do this, we think it would be convenient to
 utilize map of node_local or map_partitions of dvector. Please look at
-theexample in "src/tut2.8".
+the example in "src/tut2.8".
 
     d1.mapv_partitions(mpi_func);
 
@@ -952,7 +995,7 @@ for both dense and sparse matrix.
 
 ## 3.1 Dense matrix
 
-As for dense matrix, we provide rowmajor matrix, columnmajor matirx,
+As for dense matrix, we provide rowmajor matrix, columnmajor matrix,
 and blockcyclic matrix; there are local version of rowmajor matrix and
 column major matrix.
 
@@ -963,15 +1006,14 @@ converted from rowmajor matrix.
 Local version of colmajor matrix supports linear algebra functionality
 backed by LAPACK and BLAS. 
 
-Similarly, distributed version of blockcyclic matrix supports linear
-algebra functionality backed by ScaLAPACK and PBLAS.
+Similarly, blockcyclic matrix supports linear algebra functionality
+backed by ScaLAPACK and PBLAS.
 
 ### 3.1.1 Rowmajor matrix
 
 Please look at "src/tut3.1.1-1/tut.cc". 
 This program multiplies loaded distributed matrix with a vector whose
-values are all 1. (You do not have to write this kind of program by
-youserself by using blockcyclic matrix.)
+values are all 1. 
 
 First, you need to include `<frovedis/matrix/rowmajor_matrix.hpp>`. 
 
@@ -1003,7 +1045,7 @@ Here, the matrix has the member `data` whose type is
 `node_local<rowmajor_matrix_local<T>>`. The type `rowmajor_matrix_local<T>`
 is local version of rowmajor matrix; distributed version of rowmajor
 matrix has node_local of local version of rowmajor matrix.
-Here, map of the node_local is called to calclate the matrix vector
+Here, map of the node_local is called to calculate the matrix vector
 multiplication in parallel.
 The member num_col, num_row, and data are public.
 
@@ -1091,7 +1133,9 @@ You can convert text matrix and binary matrix using
 `convert_endian_dense_matrix.sh`. 
 
 You can also use `operator<<` and `operator>>` to input and output the
-matrix in text format. You can also locally load `rowmajor_matrix_local`
+matrix in text format (this is slow on VE since it is not
+vectorized; make_rowmajor_matrix[_local]_load and save is
+vectorized). You can also locally load `rowmajor_matrix_local`
 using `make_rowmajor_matrix_local_load[binary]`. You can also save 
 `rowmajor_matrix_local` using save or savebinary member function.
 
@@ -1229,7 +1273,7 @@ of `dv` is `blockcyclic_matrix`.
 
     auto mv = m * dv;
 
-This is actually matrix matrix multiplication. In this case, it creats
+This is actually matrix matrix multiplication. In this case, it creates
 Nx1 matrix.
 
     mv.save("./result");
@@ -1310,6 +1354,8 @@ The result of the program should be:
     9
     4
 
+Loading and saving CRS matrix in text format is vectorized.
+
 Though this is our standard CRS format, we also support loading other
 formats. One is COO (Coordinate) format. That includes row and column
 index and its value, like:
@@ -1336,6 +1382,9 @@ machine learning, like:
 Also in this case, the indices are *1-based*. You can load the file by
 using make_crs_matrix_loadlibsvm(const std::string&, dvector<T>&). 
 The label data is returned in the second argument.
+
+Loading and saving COO and LibSVM format is not vectorized at this
+moment.  
 
 Next, please look at "src/tut3.2.1-2/tut.cc". 
 This program shows binary data load, which is quite similar to tut3.1.1-2.
@@ -1378,10 +1427,10 @@ You can convert text matrix and binary matrix using
 "samples/matrix_tools" directory. If you want to convert endian, you can use 
 `convert_endian_sparse_matrix.sh`. 
 
-You can also use `operator<<` to output the matrix in text format. You
-can also locally load `crs_matrix_local` using
-`make_crs_matrix_local_load[binary]`. You can also save 
-`crs_matrix_local` using savebinary member function.
+You can also use `operator<<` to output the matrix in text format
+(which is not vectorized). You can also locally load
+`crs_matrix_local` using `make_crs_matrix_local_load[binary]`. You can
+also save  `crs_matrix_local` using savebinary member function.
 
 ### 3.2.2 Other sparse matrix formats
 
@@ -1397,7 +1446,7 @@ you can create CCS format of the matrix.
 You can also create ELL, JDS, hybrid of JDS and CRS format of sparse
 matrix likewise, which are commented out in tut.cc.
 
-Operaot* is also defined for these formats. 
+Operator* is also defined for these formats. 
 
 The purpose of different formats is mostly for performance. For
 example, if number of non-zero of each row is small, using JDS would
@@ -1461,8 +1510,8 @@ singular value decomposition.
 # 4 Machine learning algorithms
 
 We are actively implementing machine learning algorithms. 
-Currently, following algorithms are implemented, but interface might
-change in the future.
+Part of the implemented algorithms are explained here; but interface
+might change in the future.
 
 ## 4.1 Generalized linear model
 
@@ -1703,7 +1752,7 @@ Please look at "src/tut4.4/tut.cc". By calling below function, you can train the
 `label` is training labels.  
 `batchsize_pernode` is the size of minibatch processed by one node (actual size is this value multiplied by the number of nodes).  
 
-Our implementation followed to [libFM](http://www.libfm.org/), so it is helpfull to refer that to understand the detail. You can acquire predictions from trained model by calling `fm_model::predict` method and calculate RMSE based on trained model and test data and labels with calling `fm_test` method.
+Our implementation followed to [libFM](http://www.libfm.org/), so it is helpful to refer that to understand the detail. You can acquire predictions from trained model by calling `fm_model::predict` method and calculate RMSE based on trained model and test data and labels with calling `fm_test` method.
 
 ## 4.5 Decision Trees
 
@@ -1780,7 +1829,7 @@ the first child node is the next place, otherwise the second child node.
 For example, when you look at the node &lt;1&gt; and
 if the condition "feature[2] < 1.92188" is false,
 the next place is the node &lt;3&gt;.
-The "IG" indicates the information gain with the spliting.
+The "IG" indicates the information gain with the splitting.
 
 A `predict` method of a tree model returns predicted results.
 If you need a probability of the prediction,
@@ -1909,7 +1958,7 @@ For regression GBTs, several types of loss functions are available:
 
 We provide word2vec algorithm. It is based on [Intel pWord2Vec](https://github.com/IntelLabs/pWord2Vec.git) implementation. We only support a variation of negative-sampling and skip-gram.
 
-There are 3 steps to make word embeddings from raw text. First is to create vocabulary by calling `w2v_build_vocab_and_dump(train_file, stream_file, vocab_file, vocab_count_file, min_count)` method. `train_file` is path for raw text in which words are separated by space, and sentences by newline. 2nd, 3rd, 4th arguements specifies paths for output file. `stream_file` is sequence of one-hot integers made by input text, `vocab_file` is mapping between one-hot id and words. `vocab_countf_file` is counts of each word appeared in input text. Words with total frequency lower than `min_count` is not included in vocabulary. We suggest to run this step on x86 due to inefficiency with vector engine.
+There are 3 steps to make word embeddings from raw text. First is to create vocabulary by calling `w2v_build_vocab_and_dump(train_file, stream_file, vocab_file, vocab_count_file, min_count)` method. `train_file` is path for raw text in which words are separated by space, and sentences by newline. 2nd, 3rd, 4th arguments specifies paths for output file. `stream_file` is sequence of one-hot integers made by input text, `vocab_file` is mapping between one-hot id and words. `vocab_count_file` is counts of each word appeared in input text. Words with total frequency lower than `min_count` is not included in vocabulary. We suggest to run this step on x86 due to inefficiency with vector engine.
 
 Second step is to train word2vec model. Take care the computation is performed with OpenMP, so appropriate numbers of MPI process and OpenMP should be determined for fast computation. The method for training is,
 
@@ -1918,7 +1967,7 @@ Second step is to train word2vec model. Take care the computation is performed w
         sample, negative, iter, alpha, model_sync_period, 
         min_sync_words, full_sync_times, message_size, num_threads);
 
-`nl_train_data`, `vacab_count` are data structure constructed before. `hidden_size` is dimension of embedding vector. `window` is the maximum lenght of current and predicted words in a sentence. `sample` is threshold to donwsample for high-frequency words. `negative` is the number for negative samples. `alpha` is initial learning rate. `num_threads` specifies the number of OpenMP threads used for inner-loop computation. Return value of this method is row major matrix in which each row specifies embedding vector of a word.
+`nl_train_data`, `vacab_count` are data structure constructed before. `hidden_size` is dimension of embedding vector. `window` is the maximum length of current and predicted words in a sentence. `sample` is threshold to donwsample for high-frequency words. `negative` is the number for negative samples. `alpha` is initial learning rate. `num_threads` specifies the number of OpenMP threads used for inner-loop computation. Return value of this method is row major matrix in which each row specifies embedding vector of a word.
 
 Third step is save result to file of specific format. It is done by calling `w2v_save_model(weight, vocab_file, word_vectors_file, binary, min_count)` method. `vocab_file` is path of file made in first step. `binary` switches binary of output, `word_vectors_file`.
 
@@ -1940,7 +1989,7 @@ train the local data; at the time of back propagation, the gradient
 calculated at each node is all-gathered, which takes place in the
 optimizer. 
 
-Please look at "src/tut4.7-1/tut.cc", which uses MLP (multy layer
+Please look at "src/tut4.7-1/tut.cc", which uses MLP (multi layer
 perceptron) to recognize hand written digit (MNIST). 
 
 To run the code, you need MNIST dataset. If you installed Frovedis
@@ -2016,13 +2065,13 @@ Please look at "src/tut4.8/tut.cc". You can initialize C-SVC model with paramete
         tol, C, cache_size, max_iter, kernel_ty_str, 
         gamma, coef0, degree);
 
-`tol` is tolerance for stopping criterion. `C` is regularization parameter for C-SVC. `cache_size` is cache size for internal kernel matrix which determines working set size. `kernel_ty_str` specifies the type of kernel function, chosen in one of "rbf", "poly", "sigmoid". `gamma` is coeficient of kernel functions. `coef0` is independent term in "poly" or "sigmoid" kernel functions. `degree` is degree of the "poly" kernel function.
+`tol` is tolerance for stopping criterion. `C` is regularization parameter for C-SVC. `cache_size` is cache size for internal kernel matrix which determines working set size. `kernel_ty_str` specifies the type of kernel function, chosen in one of "rbf", "poly", "sigmoid". `gamma` is coefficient of kernel functions. `coef0` is independent term in "poly" or "sigmoid" kernel functions. `degree` is degree of the "poly" kernel function.
 
 Then after you train model with given data and label as calling `model.train(train_x, train_y)`. Noted that values of label have to be +1 or -1.
 
 If you call `model2.predict(test_x)` after training the model, you get the classification result for given data. You can also give `batch_size` as its argument, by which the it splits the data into batches.  
 
-This model is implemented by using openmp parallelization. If you run the training with multiple MPI process, only one thread (master) actually works. So please be carefull not assign the multiple process on single node, because this causes work interference of openmp thread.
+This model is implemented by using OpenMP parallelization. If you run the training with multiple MPI process, only one thread (master) actually works. So please be careful not assign the multiple process on single node, because this causes work interference of OpenMP thread.
 
 
 # 5. Dataframe
@@ -2054,7 +2103,7 @@ which will be used to manipulate the table.
 The created table can be saved by the `save` member function. Here,
 the table is saved into directory "./t". It contains the saved
 dvectors of the columns (c1, c2, and c3). They are saved as binary
-format unless the type is std::string. The file `columns` contains
+format unless the type is string kind of types. The file `columns` contains
 the names of the columns. The file `types` contains the type names of
 the columns. The files like `c1_null` contains the information of the
 null data, which might be created by outer join. In this case, they
@@ -2069,7 +2118,7 @@ You can see if the table is correctly loaded by the show member function:
 
     t2.show();
 
-It should ouptut the result to standard out like
+It should output the result to standard out like
 
     c1	  c2	  c3
     1	  10	  a
@@ -2102,14 +2151,19 @@ float, double, and std::string.
 
 Internally, std::string is treated differently to get better
 performance. That is, a dictionary is created and the column contains
-the index to the dictionary. It might take some time to create the
-dictionary especially on a vector machine.
+the index to the dictionary. The column type is called `dic_string`.
+
+(There are other column type called `raw_string` and `string`. 
+`raw_string` does not use dictionary. If the contents of the string
+are different from each other, `raw_string` might be more efficient.
+`string` is similar to `dic_string` but less vectorized; kept for
+historical reasons.)
 
 You can create tables by loading from a text file. Please look at
 "src/tut5.1-2/tut.cc".
 
     auto t = frovedis::make_dftable_loadtext("./t.csv", 
-                                           {"int", "double", "string"},
+                                           {"int", "double", "dic_string"},
                                            {"c1", "c2", "c3"});
 
 This function creates dftable by loading a file "./t.csv". 
@@ -2118,7 +2172,7 @@ the names of the columns. Both are represented as
 `std::vector<std::string>`.
 
 Here, we assume that the columns are separated by comma. If you want
-to use a different separater, you can specify the separater as the
+to use a different separator, you can specify the separator as the
 extra argument of it.
 
 In addition, if the first line of the file is the name of the columns,
@@ -2131,36 +2185,32 @@ You can also save the table as text.
 
 The member function `savetext` saves the table as text. The value of
 each column is separated by comma by default. You can change the
-separater by giving the string as the second argument of savetext.
+separator by giving the string as argument of savetext. You can change
+other parameters like precision of floating point, date time format,
+if quotation is used or not, and string used to represent NULL. 
 
 It returns the `std::vector<std::pair<std::string, std::string>>` as
 the return value; the pair represents the column name and its type. 
-The return value is the same as that of `dtypes` member function.
 
-Lastly, you can create dftable from a dvector of tuple.
+The system can infer the type of the data when loading.
 Please look at "src/tut5.1-3/tut.cc".
-You need to include `frovedis/dataframe/make_dftable_dvector.hpp`
 
-    vector<tuple<int,double,string>>
-      v = {make_tuple(1,10.0,string("a")),make_tuple(2,20.0,string("b")),
-           make_tuple(3,30.0,string("c")),make_tuple(4,40.0,string("d")),
-           make_tuple(5,50.0,string("e")),make_tuple(6,60.0,string("f")),
-           make_tuple(7,70.0,string("g")),make_tuple(8,80.0,string("h"))};
-    auto d = frovedis::make_dvector_scatter(v);
+    auto t = frovedis::make_dftable_loadtext_infertype("./t.csv", 
+                                                       {"c1", "c2", "c3"});
 
-First, create a dvector of tuple. 
+In this case, type is not specified as the argument of the function.
+This function infers the type as long, double, or string.
 
-    auto t = frovedis::make_dftable_dvector(d,{"c1","c2","c3"});
+    for(auto i: t.dtypes()) std::cout << i.first << ":" << i.second << " ";
 
-Then, dftable is created by `make_dftable_dvector`. First argument is
-the dvector, and the second argument of the list of column names.
+The dtypes() member function returns the
+`std::vector<std::pair<std::string, std::string>>` as pair of the
+column name and its type. The result is:
 
-You can also create a dvector of tuple from dftable.
+    c1:long c2:long c3:dic_string
 
-    auto d2 = frovedis::dftable_to_dvector<int,double,string>(t);
-
-To use `dftable_to_dvector`, you need to include
-`frovedis/dataframe/dftable_to_dvector.hpp`.
+Note that the columns "c1" and "c2" are inferred as long (not double), 
+because they can be represented as long.
 
 ## 5.2 Select
 
@@ -2168,7 +2218,7 @@ Please look at "src/tut5.2/tut.cc".
 
     auto t2 = t.select({"c2","c3"});
 
-The select method selects only specified columuns. Here, actual copy
+The select method selects only specified columns. Here, actual copy
 does not happen. Columns are managed as `shared_ptr` in dftable and
 only `shared_ptr`s are copied. With the dataframe operations, columns
 are not destructively modified.
@@ -2189,7 +2239,7 @@ You can filter the rows by conditions. Please look at "src/tut5.3/tut.cc".
 
 You can specify the condition of filter as the argument of the filter
 member function of the dftable. In this case, it filters rows where
-the value of clumn c1 and c2 are the same. The type of the comparing
+the value of column c1 and c4 are the same. The type of the comparing
 columns should be the same. Otherwise an exception will be thrown.
 
 There are other operators like neq (not equal), lt (less than),
@@ -2199,25 +2249,23 @@ equal).
 If you want to compare with immediate values, you can use operator
 with "_im". 
 
-  auto teqim = t.filter(frovedis::eq_im("c2",30.0));
+    auto teqim = t.filter(frovedis::eq_im("c2",30.0));
 
 Again, the types of the comparing column and the immediate value
-should be the same. Please not the ".0" of the immediate value, which
+should be the same. Please note the ".0" of the immediate value, which
 makes the type of the immediate value as double.
 
-There are other other operators like neq_im, lt_im, le_im, gt_im,
-ge_im.
+There are other operators like neq_im, lt_im, le_im, gt_im, ge_im.
 
-If the type of the column is string, you can use regular expression as
-the operator.
+If the type of the column is `dic_string`, you can use `is_like`
+as the operator.
 
-  auto tisreg = t.filter(frovedis::is_regex("c3",".*c"));
+    auto tisreg = t.filter(frovedis::is_like("c3","%c"));
 
-The first argument of is_regex is the column name, and the second
-argument is the regular expression. The regular expression is
-processed by std::regex. In this case, the row with "c" matches with
-the regular expression. If you want to exlude the mached rows, you can
-use is_not_regex.
+The first argument of is_like is the column name, and the second
+argument is "like" of RDB; here "%" means wildcard character.
+In this case, the row with "c" matches. If you want to exclude the
+matched rows, you can use is_not_like.
 
 If you do outer join of two tables, it might create rows with null
 data. You can filter the row if it is null or not, by using is_null
@@ -2229,12 +2277,12 @@ You can also combine the conditions with and_op and or_op.
                            (frovedis::or_op
                             (frovedis::eq("c1","c4"),
                              frovedis::le_im("c2",30.0)),
-                             frovedis::is_not_regex("c3",".*c")));
+                             frovedis::is_not_like("c3","%c")));
 
 Actually, the type of the result of filter is filtered_dftable,
 not dftable. It includes the information selected rows as
-indices. When actual data is required (select, show, for example), the
-selected columns are actually created. This techniquie is called late
+indices. When actual data is required (by select, show, for example), the
+selected columns are actually created. This technique is called late
 materialization. Most of the case, you do not have to be aware of it.
 If you want to create dftable explicitly, you can use materialize()
 member function, which calls select of all the columns.
@@ -2247,7 +2295,7 @@ You can sort by a column by calling sort. Please look at
     auto t2 = t.sort("c2");
 
 This sort is stable sort. If you want to sort by multiple columns, you
-can just call sort again for other columns.
+can just call sort again for other columns, because the sort is stable.
 
     auto t3 = t2.sort("c1");
 
@@ -2268,7 +2316,7 @@ then sort by c1.
 
 If you want to sort descendant order, you can use sort_desc.
 
-Again, sort produces sorted_dftable, instead of sort. The other
+Again, sort produces sorted_dftable, instead of dftable. The other
 columns are materialized when it is required.
 
 You can call sort even when the table is filtered_table, like this.
@@ -2299,20 +2347,79 @@ the same. The result should be like:
     1     10     3     3     c
     5     50     3     3     c
 
-Note that there are two rows that have 2 in t2c1. Since there are tree
+Note that there are two rows that have 2 in t2c1. Since there are three
 rows that have 2 in t1c3, there are 6 rows that have 2 in either t1c2
 or t1c3 in the joined table.
 
 You can use bcast_join instead of hash_join. The result is the same
 (except the order of the rows), but bcast_join is implemented by
-broadcasting the right table (or column to join, to be exact) , which
+broadcasting the right table (or column to join, to be exact), which
 is faster especially when right table is small, but may consume larger
 memory if right table is large. In the case of hash_join, both tables
-(or columns) are partitioned by hash values.
+(or columns) are partitioned and distributed by hash values.
+
+In the case of bcast_join, you can specify multiple columns for join.
+
+    auto two_joined = t1.bcast_join
+      (t3, frovedis::and_op(frovedis::eq("t1c1", "t3c1"),
+                            frovedis::eq("t1c2", "t3c2")));
+
+In this case, t1 and t3 are joined where t1c1 of t1 and t3c1 of t3 are
+the same, and t1c2 of t1 and t3c2 of t3 are the same.
+The result should be like: 
+
+    t1c1    t1c2    t1c3    t3c1    t3c2
+    1       10      3       1       10
+    2       20      2       2       20
+    3       30      1       3       30
+
+This is the same as joining with one column and then filtering the table,
+but much efficient if the first join creates large number of rows.
+
+bcast_join also supports non-equi join like joining with less-than.
+
+    auto lt_joined = t1.bcast_join(t2, frovedis::lt("t1c1", "t2c1")); 
+
+In this case, t1 and t2 are joined where t1c1 of t1 is less than t2c1
+of t2. The result should be like: 
+
+    t1c1    t1c2    t1c3    t2c1    t2c2
+    1       10      3       2       b
+    1       10      3       2       d
+    1       10      3       3       c
+    2       20      2       3       c
+
+You can use lt, gt, le, and ge.
+
+Another type of join is cross join, where no condition is
+specified. This is also only supported by bcast_join. 
+
+    auto cross_joined = t2.bcast_join(t3, frovedis::cross()); 
+
+In this case, t2 and t3 are joined without condition. So the number of
+rows of the result is number of rows of t2 * number of rows of t3.
+The result should be like:
+
+    t2c1    t2c2    t3c1    t3c2
+    1       a       2       20
+    1       a       1       10
+    1       a       3       30
+    2       b       2       20
+    2       b       1       10
+    2       b       3       30
+    3       c       2       20
+    3       c       1       10
+    3       c       3       30
+    2       d       2       20
+    2       d       1       10
+    2       d       3       30
+
+As you can see, the size of the result becomes very large; so please
+avoid using this as far as possible for efficiency.
 
 Like in the case of sort, you can use filtered_dftable as the inputs.
 
-    auto filtered_t2 = t2.filter(frovedis::is_not_regex("t2c2","d"));
+    auto filtered_t2 = t2.filter(frovedis::is_not_like("t2c2","d"));
     auto filter_joined = t1.filter(frovedis::ge_im("t1c1", 2)).
       hash_join(filtered_t2,frovedis::eq("t1c3", "t2c1"));
 
@@ -2346,9 +2453,7 @@ You need to give vector of pointer to the tables as the first
 argument. This is because you can use the pointer to filtered_dftable,
 which is derived from dftable. The second argument is the vector of
 joining conditions.
-
 At this moment, star_join does not support outer join.
-In addition, these join operations only support equi join.
 
 
 ## 5.6 Group by
@@ -2362,7 +2467,7 @@ This groups the rows by the value of column c1. The returned type is
 grouped_dftable and it is a bit different from other tables.
 You need to explicitly call select to create dftable, and the select
 can only include column[s] that are used for grouping and/or
-aggretation of other column[s].
+aggregation of other column[s].
 
     auto grouped_sum = grouped.select("c1", frovedis::sum("c3"));
 
@@ -2395,7 +2500,7 @@ The result should look like
     3   50   2      25   30   20
 
 Type of sum, max, min is the the same as the type of the column.
-The type of avg is is double. If the type of the column does not
+The type of avg is double. If the type of the column does not
 support these operations (in the case of string), exception is
 thrown. The type of count is size_t.
 
@@ -2419,10 +2524,107 @@ The result should look like
     2   1   70   2      35   40   30
 
 
-## 5.7 Other operations
+## 5.7 Datetime
 
-There are other miscellaneous member funcitons in dftable.
+We support simple functionality of datetime type. It is internally
+represented as 64bit integer, which contains information of year,
+month, day, hour, minute, and second. The type of each value is
+`datetime_t`, while the type of the column is `datetime`. 
 Please look at "src/tut5.7/tut.cc".
+
+    auto t = frovedis::make_dftable_loadtext("./t.csv", 
+                                             {"int", "datetime:%Y-%m-%d"},
+                                             {"c1", "c2"});
+
+To load the datetime value from csv file, you can specify the type as
+like `datetime:%Y-%m-%d`; here, `%Y` is four digit year, `%m` is two
+digit month, `%d` is two digit day. You can also specify `%H` as two
+digit hour, `%M` as two digit minute, and `%S` as two digit second.
+
+Loaded data can be shown as:
+
+    c1      c2
+    1       2018-01-10
+    2       2018-03-13
+    3       2018-08-21
+    4       2018-02-01
+    5       2018-05-15
+    6       2018-07-09
+    7       2018-04-29
+    8       2018-06-17
+
+It is shown as `%Y-%m-%d` format by `show()`. You can change the format
+in the case of `savetext` by specifying the format as the argument.
+
+Since the internal data representation is just an integer, you can use
+the `datetime` column for operations like filter, sort, join, and
+group by. For example, filter can be done as follows:
+
+    auto date = frovedis::makedatetime(2018,5,1);
+    auto filtered = t.filter(frovedis::lt_im("c2", date));
+
+Here, `makedatetime` creates `datetime_t` type variable from the
+argument. In this case, `2018-05-01`. Hour, minute and second is 0 by
+default. The result should look like:
+
+    c1      c2
+    1       2018-01-10
+    2       2018-03-13
+    4       2018-02-01
+    7       2018-04-29
+
+You can extract year, month, day, etc. from the datatime column and
+append it as another column. For example,
+
+    t.datetime_extract(frovedis::datetime_type::month, "c2", "month");
+
+This extract month from and append it as column `month`. You can
+specify which part to extract by the first argument; it is enum type 
+and you can specify `year`, `month`, `day`, `hour`, `minute`, or
+`second`. Second argument is the datetime column and the third
+argument is the name of the column to append. The result should look
+like: 
+
+    c1      c2      month
+    1       2018-01-10      1
+    2       2018-03-13      3
+    3       2018-08-21      8
+    4       2018-02-01      2
+    5       2018-05-15      5
+    6       2018-07-09      7
+    7       2018-04-29      4
+    8       2018-06-17      6
+
+Users might want to work on datetime_t directly. 
+You can get `dvector<datetime_t>` by calling `as_dvector<datetime_t>`
+just like other types of column. You can append `dvector<datetime_t>`
+by calling `append_datetime_column`.
+
+The contents of the type `datetime_t` is `|0|Y|Y|m|d|H|M|S|`, here,
+each part represents 1 byte; second is first byte, minute is second
+byte, and so on.
+
+    auto dv = t.as_dvector<datetime_t>("c2");
+    dv.mapv(+[](datetime_t& d){d += ((datetime_t) 1 << (5*8));});
+    t.append_datetime_column("new_date", dv);
+
+This adds 1 to the year part (which is 40bit shifted part) and the
+dvector is added as a new column `new_date`. The result should look like:
+
+    c1      c2      month   new_date
+    1       2018-01-10      1       2019-01-10
+    2       2018-03-13      3       2019-03-13
+    3       2018-08-21      8       2019-08-21
+    4       2018-02-01      2       2019-02-01
+    5       2018-05-15      5       2019-05-15
+    6       2018-07-09      7       2019-07-09
+    7       2018-04-29      4       2019-04-29
+    8       2018-06-17      6       2019-06-17
+
+## 5.8 Other operations
+
+There are other miscellaneous member functions in dftable.
+Please look at "src/tut5.8/tut.cc".
 
 The member functions num_rows() and num_cols() returns the number of
 rows and columns respectively. The member function columns() returns
@@ -2453,7 +2655,7 @@ column.
     t.show();
 
 In this example, the function multiplies c1 and c2 and creates new
-column multiply. Here, you need to give the type of return value and
+column `multiply`. Here, you need to give the type of return value and
 the types of columns as the template arguments. The number of columns
 that can be provided is limited to 6 in the current implementation.
 
@@ -2468,35 +2670,3 @@ The result should be like:
     2   40  2018-07-09  80
     1   40  2018-04-29  40
     1   50  2018-06-17  50
-
-As the utility function, we provides a function that converts date
-time string into time_t, and a function that extracts year, month,
-etc. from time_t.
-
-    t.calc<time_t, std::string>("time_t", 
-                                frovedis::string_to_time("%Y-%m-%d"), "c3");
-    t.calc<int, time_t>("year", frovedis::time_extract(frovedis::MONTH), "time_t");
-    t.show();
-
-The function object string_to_time requires a format string that is
-used to convert the string into time_t. The conversion is implemented
-by strptime; please refer to the manual of strptime for format string.
-
-The function time_extract is implemented as localtime to create struct
-tm; then tm_sec, tm_min, etc. are extracted. Please also refer to the
-manual of localtime for the result.
-
-The result of the example should look like:
-
-    c1  c2  c3          multiply  time_t      month
-    1	30	2018-01-10	30        1515510000  0
-    3   20  2018-03-13  60        1520866800  2
-    3   30  2018-08-21  90        1534777200  7
-    2   20  2018-02-01  40        1517410800  1
-    2   30  2018-05-15  60        1526310000  4
-    2   40  2018-07-09  80        1531062000  6
-    1   40  2018-04-29  40        1524927600  3
-    1   50  2018-06-17  50        1529161200  5
-
-Because of the specification of struct tm, January is assigned to 0,
-etc.
