@@ -272,7 +272,7 @@ extern "C" {
   // To rename dataframe columns (returns new dataframe) 
   long rename_frovedis_dataframe(const char* host, int port, long proxy,
                                  const char** cols, const char ** new_cols, 
-                                 int size, bool needs_materialize){
+                                 int size){
     ASSERT_PTR(host);
     exrpc_node fm_node(host, port);
     auto df_proxy = static_cast<exrpc_ptr_t> (proxy);
@@ -284,7 +284,7 @@ extern "C" {
     exrpc_ptr_t ret_proxy = 0;
     try {
       ret_proxy = exrpc_async(fm_node,frovedis_df_rename,df_proxy,targets,
-                              new_targets,needs_materialize).get();
+                              new_targets).get();
     }
     catch (std::exception& e) {
       set_status(true, e.what());
