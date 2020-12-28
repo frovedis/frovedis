@@ -33,6 +33,9 @@ class FactorizationMachine private (val fm_config: FMConfig) {
   }
   def run(fdata: FrovedisLabeledPoint, 
           movable: Boolean): FactorizationMachineModel =  {
+    if (fdata.is_dense()) throw new IllegalArgumentException(
+        s"fit: Currently frovedis factorization machine " +
+        s"supports only sparse data!")
     fm_config.assertValid()
     val model_Id = ModelID.get()
     val fs = FrovedisServer.getServerInstance()
