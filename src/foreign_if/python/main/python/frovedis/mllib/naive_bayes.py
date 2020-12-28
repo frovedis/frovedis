@@ -54,28 +54,31 @@ class MultinomialNB(BaseEstimator):
         """
         NAME: fit
         """
-        self.validate()
         self.release()
-        self.__mid = ModelID.get()
-        inp_data = FrovedisLabeledPoint(X, y)
-        (data, label) = inp_data.get()
+        inp_data = FrovedisLabeledPoint(X, y, \
+                   caller = "[" + self.__class__.__name__ + "] fit: ",\
+                   encode_label = True, binary_encoder=[0, 1], \
+                   dense_kind = 'colmajor', densify=False)
+        X, y, logic = inp_data.get()
+        self._classes = inp_data.get_distinct_labels()
+        self.n_classes = len(self._classes)
+        self.n_features_ = inp_data.numCols()
+        self.label_map = logic
         dtype = inp_data.get_dtype()
         itype = inp_data.get_itype()
         dense = inp_data.is_dense()
-        unique_labels = inp_data.get_distinct_labels()
-        self.n_classes = unique_labels.size
+        self.validate()
         self.__mdtype = dtype
+        self.__mid = ModelID.get()
         (host, port) = FrovedisServer.getServerInstance()
-        rpclib.nb_train(host, port, data.get(), \
-                        label.get(), self.alpha, self.__mid, \
-                        self.Algo.encode('ascii'), 0.0, \
+        binarize = 0.0 # not applicable for multinomial NB
+        rpclib.nb_train(host, port, X.get(), \
+                        y.get(), self.alpha, self.__mid, \
+                        self.Algo.encode('ascii'), binarize, \
                         self.verbose, dtype, itype, dense)
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
             raise RuntimeError(excpt["info"])
-        self._class_log_prior = None
-        self._feature_log_prob = None
-        self._class_count = None
         return self
 
     @property
@@ -89,7 +92,7 @@ class MultinomialNB(BaseEstimator):
                 excpt = rpclib.check_server_exception()
                 if excpt["status"]:
                     raise RuntimeError(excpt["info"])
-                self._class_log_prior = np.asarray(clp)
+                self._class_log_prior = np.asarray(clp, dtype=np.float64)
             return self._class_log_prior
         else:
             raise AttributeError("attribute 'class_log_prior_' might have \
@@ -98,8 +101,8 @@ class MultinomialNB(BaseEstimator):
     @class_log_prior_.setter
     def class_log_prior_(self, val):
         """class_log_prior_ setter"""
-        raise AttributeError("attribute 'class_log_prior_' of Multinomial \
-                    NaiveBayes object is not writable")
+        raise AttributeError("attribute 'class_log_prior_' of "
+                             "MultinomialNB object is not writable")
 
     @property
     def feature_log_prob_(self):
@@ -112,17 +115,17 @@ class MultinomialNB(BaseEstimator):
                 excpt = rpclib.check_server_exception()
                 if excpt["status"]:
                     raise RuntimeError(excpt["info"])
-                self._feature_log_prob = np.asarray(tht)
+                self._feature_log_prob = np.asarray(tht, dtype=np.float64)
             return self._feature_log_prob
         else:
-            raise AttributeError("attribute 'feature_log_prob_' might have \
-                    been released or called before fit")
+            raise AttributeError("attribute 'feature_log_prob_' might have " \
+                                 "been released or called before fit")
 
     @feature_log_prob_.setter
     def feature_log_prob_(self, val):
         """feature_log_prob_ setter"""
-        raise AttributeError("attribute 'feature_log_prob_' of Multinomial \
-                    NaiveBayes object is not writable")
+        raise AttributeError("attribute 'feature_log_prob_' of MultinomialNB " \
+                             "object is not writable")
 
     @property
     def class_count_(self):
@@ -131,21 +134,38 @@ class MultinomialNB(BaseEstimator):
             if self._class_count is None:
                 (host, port) = FrovedisServer.getServerInstance()
                 ccnt = rpclib.get_cls_counts_vector(host, port, self.__mid, \
-                    self.__mkind, self.__mdtype)
+                                                    self.__mkind, self.__mdtype)
                 excpt = rpclib.check_server_exception()
                 if excpt["status"]:
                     raise RuntimeError(excpt["info"])
-                self._class_count = np.asarray(ccnt)
+                self._class_count = np.asarray(ccnt, dtype=np.float64)
             return self._class_count
         else:
-            raise AttributeError("attribute 'class_count_' might have been \
-                    released or called before fit")
+            raise AttributeError("attribute 'class_count_' might have been " \
+                                 "released or called before fit")
 
     @class_count_.setter
     def class_count_(self, val):
         """class_count_ setter"""
-        raise AttributeError("attribute 'class_count_' of Multinomial \
-                    NaiveBayes object is not writable")
+        raise AttributeError("attribute 'class_count_' of MultinomialNB " \
+                             "object is not writable")
+    @property
+    def classes_(self):
+        """classes_ getter"""
+        if self.__mid is not None:
+            if self._classes is None:
+                self._classes = np.sort(list(self.label_map.values()))
+            return self._classes
+        else:
+            raise AttributeError("attribute 'classes_' " \
+               "might have been released or called before fit")
+
+    @classes_.setter
+    def classes_(self, val):
+        """classes_ setter"""
+        raise AttributeError(\
+            "attribute 'classes_' of MultinomialNB "
+            "object is not writable")
 
     # Perform classification on an array of test vectors X.
     def predict(self, X):
@@ -153,13 +173,14 @@ class MultinomialNB(BaseEstimator):
         NAME: predict
         """
         if self.__mid is not None:
-            pred = GLM.predict( \
+            frov_pred = GLM.predict( \
                 X, self.__mid, self.__mkind, self.__mdtype, False)
-            return np.asarray(pred, dtype=np.int64)
+            return np.asarray([self.label_map[frov_pred[i]] \
+                              for i in range(0, len(frov_pred))])
         else:
             raise ValueError( \
-            "predict is called before calling fit, \
-            or the model is released.\n")
+            "predict is called before calling fit, " \
+            "or the model is released.\n")
 
     # Perform classification on an array and return probability estimates
     # for the test vector X.
@@ -172,10 +193,11 @@ class MultinomialNB(BaseEstimator):
                         self.__mdtype, True, self.n_classes)
             n_samples = len(proba) // self.n_classes
             shape = (n_samples, self.n_classes)
-            return np.asarray(proba).reshape(shape)
+            return np.asarray(proba, dtype=np.float64).reshape(shape)
         else:
             raise ValueError(\
-            "predict is called before calling fit, or the model is released.")
+            "predict_proba is called before calling fit, "
+            "or the model is released.")
 
     # calculate the mean accuracy on the given test data and labels.
     def score(self, X, y):
@@ -207,6 +229,10 @@ class MultinomialNB(BaseEstimator):
         metadata = open(fname+"/metadata", "rb")
         self.__mkind, self.__mdtype = pickle.load(metadata)
         metadata.close()
+        target = open(fname+"/label_map", "rb")
+        self.label_map = pickle.load(target)
+        target.close()
+        self._classes = np.sort(list(self.label_map.values()))
         if dtype is not None:
             mdt = TypeUtil.to_numpy_dtype(self.__mdtype)
             if dtype != mdt:
@@ -255,6 +281,10 @@ class MultinomialNB(BaseEstimator):
         if self.__mid is not None:
             GLM.release(self.__mid, self.__mkind, self.__mdtype)
             self.__mid = None
+            self._classes = None
+            self._class_log_prior = None
+            self._feature_log_prob = None
+            self._class_count = None
 
     # Check FrovedisServer is up then release
     def __del__(self):
@@ -299,23 +329,46 @@ class GaussianNB(BaseEstimator):
         """
         self.validate()
         self.release()
-        self.__mid = ModelID.get()
-        inp_data = FrovedisLabeledPoint(X, y)
-        (data, label) = inp_data.get()
+        inp_data = FrovedisLabeledPoint(X, y, \
+                   caller = "[" + self.__class__.__name__ + "] fit: ",\
+                   encode_label = True, binary_encoder=[0, 1], \
+                   dense_kind = 'colmajor', densify=False)
+        X, y, logic = inp_data.get()
+        self._classes = inp_data.get_distinct_labels()
+        self.n_classes = len(self._classes)
+        self.n_features_ = inp_data.numCols()
+        self.label_map = logic
         dtype = inp_data.get_dtype()
         itype = inp_data.get_itype()
         dense = inp_data.is_dense()
-        unique_labels = inp_data.get_distinct_labels()
-        self.n_classes = unique_labels.size
         self.__mdtype = dtype
+        self.__mid = ModelID.get()
         (host, port) = FrovedisServer.getServerInstance()
-        rpclib.nb_train(host, port, data.get(), \
-                        label.get(), self.alpha, self.__mid, \
+        rpclib.nb_train(host, port, X.get(), \
+                        y.get(), self.alpha, self.__mid, \
                         self.Algo.encode('ascii'), \
                         self.verbose, dtype, itype, dense)
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
             raise RuntimeError(excpt["info"])
+
+    @property
+    def classes_(self):
+        """classes_ getter"""
+        if self.__mid is not None:
+            if self._classes is None:
+                self._classes = np.sort(list(self.label_map.values()))
+            return self._classes
+        else:
+            raise AttributeError("attribute 'classes_' " \
+               "might have been released or called before fit")
+
+    @classes_.setter
+    def classes_(self, val):
+        """classes_ setter"""
+        raise AttributeError(\
+            "attribute 'classes_' of GaussianNB "
+            "object is not writable")
 
     # Perform classification on an array of test vectors X.
     def predict(self, X):
@@ -323,13 +376,14 @@ class GaussianNB(BaseEstimator):
         NAME: predict
         """
         if self.__mid is not None:
-            pred = GLM.predict(X, self.__mid, self.__mkind, self.__mdtype, \
-                               False)
-            return np.asarray(pred, dtype=np.int64)
+            frov_pred = GLM.predict(X, self.__mid, self.__mkind, \
+                                    self.__mdtype, False)
+            return np.asarray([self.label_map[frov_pred[i]] \
+                              for i in range(0, len(frov_pred))])
         else:
             raise ValueError( \
-            "predict is called before calling fit, \
-            or the model is released.")
+            "predict is called before calling fit, " \
+            "or the model is released.")
 
     # Perform classification on an array and return probability
     # estimates for the test vector X.
@@ -342,11 +396,11 @@ class GaussianNB(BaseEstimator):
                         self.__mdtype, True, self.n_classes)
             n_samples = len(proba) // self.n_classes
             shape = (n_samples, self.n_classes)
-            return np.asarray(proba).reshape(shape)
+            return np.asarray(proba, dtype=np.float64).reshape(shape)
         else:
             raise ValueError( \
-            "predict is called before calling fit, \
-            or the model is released.")
+            "predict_proba is called before calling fit, " \
+            "or the model is released.")
 
     # calculate the mean accuracy on the given test data and labels.
     def score(self, X, y):
@@ -378,6 +432,10 @@ class GaussianNB(BaseEstimator):
         metadata = open(fname+"/metadata", "rb")
         self.__mkind, self.__mdtype = pickle.load(metadata)
         metadata.close()
+        target = open(fname+"/label_map", "rb")
+        self.label_map = pickle.load(target)
+        target.close()
+        self._classes = np.sort(list(self.label_map.values()))
         if dtype is not None:
             mdt = TypeUtil.to_numpy_dtype(self.__mdtype)
             if dtype != mdt:
@@ -426,6 +484,10 @@ class GaussianNB(BaseEstimator):
         if self.__mid is not None:
             GLM.release(self.__mid, self.__mkind, self.__mdtype)
             self.__mid = None
+            self._classes = None
+            self._class_log_prior = None
+            self._feature_log_prob = None
+            self._class_count = None
 
     # Check FrovedisServer is up then release
     def __del__(self):
@@ -478,26 +540,28 @@ class BernoulliNB(BaseEstimator):
         """
         self.validate()
         self.release()
-        inp_data = FrovedisLabeledPoint(X, y)
-        (data, label) = inp_data.get()
+        inp_data = FrovedisLabeledPoint(X, y, \
+                   caller = "[" + self.__class__.__name__ + "] fit: ",\
+                   encode_label = True, binary_encoder=[0, 1], \
+                   dense_kind = 'colmajor', densify=False)
+        X, y, logic = inp_data.get()
+        self._classes = inp_data.get_distinct_labels()
+        self.n_classes = len(self._classes)
+        self.n_features_ = inp_data.numCols()
+        self.label_map = logic
         dtype = inp_data.get_dtype()
         itype = inp_data.get_itype()
         dense = inp_data.is_dense()
-        unique_labels = inp_data.get_distinct_labels()
-        self.n_classes = unique_labels.size
         self.__mid = ModelID.get()
         self.__mdtype = dtype
         (host, port) = FrovedisServer.getServerInstance()
-        rpclib.nb_train(host, port, data.get(), \
-                        label.get(), self.alpha, self.__mid, \
+        rpclib.nb_train(host, port, X.get(), \
+                        y.get(), self.alpha, self.__mid, \
                         self.Algo.encode('ascii'), self.binarize, \
                         self.verbose, dtype, itype, dense)
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
             raise RuntimeError(excpt["info"])
-        self._class_log_prior = None
-        self._feature_log_prob = None
-        self._class_count = None
         return self
 
     @property
@@ -511,17 +575,17 @@ class BernoulliNB(BaseEstimator):
                 excpt = rpclib.check_server_exception()
                 if excpt["status"]:
                     raise RuntimeError(excpt["info"])
-                self._class_log_prior = np.asarray(clp)
+                self._class_log_prior = np.asarray(clp, dtype=np.float64)
             return self._class_log_prior
         else:
-            raise AttributeError("attribute 'class_log_prior_' might have \
-                    been released or called before fit")
+            raise AttributeError("attribute 'class_log_prior_' might have " \
+                                 "been released or called before fit")
 
     @class_log_prior_.setter
     def class_log_prior_(self, val):
         """class_log_prior_ setter"""
-        raise AttributeError("attribute 'class_log_prior_' of Bernoulli \
-                    NaiveBayes object is not writable")
+        raise AttributeError("attribute 'class_log_prior_' of "
+                             "BernoulliNB object is not writable")
 
     @property
     def feature_log_prob_(self):
@@ -534,17 +598,17 @@ class BernoulliNB(BaseEstimator):
                 excpt = rpclib.check_server_exception()
                 if excpt["status"]:
                     raise RuntimeError(excpt["info"])
-                self._feature_log_prob = np.asarray(tht)
+                self._feature_log_prob = np.asarray(tht, dtype=np.float64)
             return self._feature_log_prob
         else:
-            raise AttributeError("attribute 'feature_log_prob_' might have \
-                    been released or called before fit")
+            raise AttributeError("attribute 'feature_log_prob_' might have " \
+                                 "been released or called before fit")
 
     @feature_log_prob_.setter
     def feature_log_prob_(self, val):
         """feature_log_prob_ setter"""
-        raise AttributeError("attribute 'feature_log_prob_' of Bernoulli \
-                    NaiveBayes object is not writable")
+        raise AttributeError("attribute 'feature_log_prob_' of " \
+                             "BernoulliNB object is not writable")
 
     @property
     def class_count_(self):
@@ -557,17 +621,36 @@ class BernoulliNB(BaseEstimator):
                 excpt = rpclib.check_server_exception()
                 if excpt["status"]:
                     raise RuntimeError(excpt["info"])
-                self._class_count = np.asarray(ccnt)
+                self._class_count = np.asarray(ccnt, dtype=np.float64)
             return self._class_count
         else:
-            raise AttributeError("attribute 'class_count_' might have been \
-                    released or called before fit")
+            raise AttributeError("attribute 'class_count_' might have been " \
+                                 "released or called before fit")
 
     @class_count_.setter
     def class_count_(self, val):
         """class_count_ setter"""
-        raise AttributeError("attribute 'class_count_' of Bernoulli \
-                    NaiveBayes object is not writable")
+        raise AttributeError("attribute 'class_count_' of "
+                             "BernoulliNB object is not writable")
+
+    @property
+    def classes_(self):
+        """classes_ getter"""
+        if self.__mid is not None:
+            if self._classes is None:
+                self._classes = np.sort(list(self.label_map.values()))
+            return self._classes
+        else:
+            raise AttributeError("attribute 'classes_' " \
+               "might have been released or called before fit")
+
+    @classes_.setter
+    def classes_(self, val):
+        """classes_ setter"""
+        raise AttributeError(\
+            "attribute 'classes_' of BernoulliNB "
+            "object is not writable")
+
 
     # Perform classification on an array of test vectors X.
     def predict(self, X):
@@ -575,13 +658,14 @@ class BernoulliNB(BaseEstimator):
         NAME: predict
         """
         if self.__mid is not None:
-            pred = GLM.predict(X, self.__mid, self.__mkind, \
+            frov_pred = GLM.predict(X, self.__mid, self.__mkind, \
                                self.__mdtype, False)
-            return np.asarray(pred, dtype=np.int64)
+            return np.asarray([self.label_map[frov_pred[i]] \
+                              for i in range(0, len(frov_pred))])            
         else:
             raise ValueError( \
-            "predict is called before calling fit, \
-             or the model is released.")
+            "predict is called before calling fit, " \
+            "or the model is released.")
 
     # Perform classification on an array and return probability estimates
     # for the test vector X.
@@ -594,10 +678,11 @@ class BernoulliNB(BaseEstimator):
                 self.__mdtype, True, self.n_classes)
             n_samples = len(proba) // self.n_classes
             shape = (n_samples, self.n_classes)
-            return np.asarray(proba).reshape(shape)
+            return np.asarray(proba, dtype=np.float64).reshape(shape)
         else:
             raise ValueError( \
-            "predict is called before calling fit, or the model is released.")
+            "predict_proba is called before calling fit, "
+            "or the model is released.")
 
     # calculate the mean accuracy on the given test data and labels.
     def score(self, X, y):
@@ -629,6 +714,10 @@ class BernoulliNB(BaseEstimator):
         metadata = open(fname+"/metadata", "rb")
         self.__mkind, self.__mdtype = pickle.load(metadata)
         metadata.close()
+        target = open(fname+"/label_map", "rb")
+        self.label_map = pickle.load(target)
+        target.close()
+        self._classes = np.sort(list(self.label_map.values()))
         if dtype is not None:
             mdt = TypeUtil.to_numpy_dtype(self.__mdtype)
             if dtype != mdt:
@@ -677,6 +766,10 @@ class BernoulliNB(BaseEstimator):
         if self.__mid is not None:
             GLM.release(self.__mid, self.__mkind, self.__mdtype)
             self.__mid = None
+            self._classes = None
+            self._class_log_prior = None
+            self._feature_log_prob = None
+            self._class_count = None
 
     # Check FrovedisServer is up then release
     def __del__(self):
