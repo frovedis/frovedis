@@ -19,10 +19,13 @@ test_mat = FrovedisCRSMatrix(dtype=np.float64).load("./input/kmeans_tdata.txt")
 
 # creating KMeans object
 kmeans = KMeans(n_clusters=2, verbose=0)
-
-# fitting the training matrix on KMEans object
 kmeans.fit(train_mat)
+
+print("train label: ")
+print(kmeans.fit_predict(train_mat))
 kmeans.debug_print()
+print("converged in %d iterations" % (kmeans.n_iter_))
+print("inertia: %.6f" % (kmeans.inertia_))
 
 # saving the trained model
 kmeans.save("./out/MyKMeansModel")
