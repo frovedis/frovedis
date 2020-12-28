@@ -1,0 +1,15 @@
+TARGETS := kmeans
+include ../Makefile.in.ve
+include ../Makefile.common
+
+TO_INSTALL := kmeans.cc
+DIR := kmeans_newapi
+ARCH := ve
+
+kmeans: kmeans.o
+	${LINK} -o kmeans kmeans.o ${LIBS}
+
+kmeans_jds: kmeans.cc
+	${MPICXX} -c ${CXXFLAGS} -DKMEANS_JDS kmeans.cc -o kmeans_jds.o
+	${LINK} -o kmeans_jds kmeans_jds.o ${LIBS}
+

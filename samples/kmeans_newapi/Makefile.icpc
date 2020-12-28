@@ -1,0 +1,15 @@
+TARGETS := kmeans
+include ../Makefile.in.icpc
+include ../Makefile.common
+
+TO_INSTALL := kmeans.cc
+DIR := kmeans_newapi
+ARCH := icpc
+
+kmeans: kmeans.o
+	${LINK} -o kmeans kmeans.o ${LIBS}
+
+kmeans_jds: kmeans.cc
+	icpc `${MPICXX} -showme:compile` -c ${CXXFLAGS} -DKMEANS_JDS kmeans.cc -o kmeans_jds.o
+	${LINK} -o kmeans_jds kmeans_jds.o ${LIBS}
+
