@@ -83,6 +83,29 @@ class FrovedisGroupedDataframe(object):
                 raise TypeError("Unsupported input type for aggregation")
         else:
             raise ValueError("Operation on invalid frovedis grouped dataframe!")
+    
+    def min(self, numeric_only=True, min_count=-1):
+        if numeric_only == False:
+            raise ValueError("min: Currently supported only for numeric columns!")
+        return self.agg("min")
+
+    def max(self, numeric_only=True, min_count=-1):
+        if numeric_only == False:
+            raise ValueError("max: Currently supported only for numeric columns!")
+        return self.agg("max")
+
+    def mean(self, numeric_only=True):
+        if numeric_only == False:
+            raise ValueError("mean: Currently supported only for numeric columns!")
+        return self.agg("mean")
+
+    def sum(self, numeric_only=True, min_count=0):
+        if numeric_only == False:
+            raise ValueError("sum: Currently supported only for numeric columns!")
+        return self.agg("sum")
+
+    def count(self, numeric_only=True):
+        return self.agg("count")    
 
     def __agg_with_list(self, func):
         """
@@ -110,15 +133,22 @@ class FrovedisGroupedDataframe(object):
             if col not in self.__dict__:
                 raise ValueError("No column named: ", col)
             else: tid = self.__dict__[col].dtype
-            for f in aggfuncs:
-                if tid == DTYPE.STRING and f != 'count':
-                    raise ValueError("Currently Frovedis doesn't support \
-                                      aggregator %s to be applied on \
-                                      string-typed column %s" %(f, col))
-                else:
+            if isinstance(aggfuncs, str):
+                aggfuncs = [aggfuncs]
+            if isinstance(aggfuncs, list):
+                params = {}
+                for f in aggfuncs:
+                    col_as = f + '_' + col
+                    params[col_as] = f
+                aggfuncs = params
+            if isinstance(aggfuncs, dict):
+                for new_col, f in aggfuncs.items():
+                    if tid == DTYPE.STRING and f != 'count':
+                        raise ValueError("Currently Frovedis doesn't support"
+                                         " aggregator %s to be applied on"
+                                         " string-typed column %s" %(f, col))
                     agg_func.append(f)
                     agg_col.append(col)
-                    new_col = f + '(' + col + ')'
                     agg_col_as.append(new_col)
                     if f == 'count':
                         col_as_tid = DTYPE.LONG

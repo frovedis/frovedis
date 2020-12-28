@@ -28,14 +28,13 @@ class DataFrame(object):
     DataFrame
     """
 
-    def __init__(self, df=None, needs_materalize=False):
+    def __init__(self, df=None):
         """
         __init__
         """
         self.__fdata = None
         self.__cols = None
         self.__types = None
-        self.__needs_materalize = needs_materalize
         if df is not None:
             self.load(df)
     def load_dummy(self, fdata, cols, types):
@@ -78,7 +77,7 @@ class DataFrame(object):
             self.__fdata = None
             self.__cols = None
             self.__types = None
-            self.__needs_materalize = False
+    
     #def __del__(self):
     #    if FrovedisServer.isUP(): self.release()
 
@@ -86,6 +85,8 @@ class DataFrame(object):
         """
         load
         """
+        if len(df) == 0:
+            raise ValueError("Cannot load an empty pandas dataframe (column types could not be deduced)")
         self.release()
         cols = df.columns
         size = len(cols)
@@ -101,12 +102,22 @@ class DataFrame(object):
         null_replacement['float32'] = np.finfo(np.float32).max
         null_replacement['int64'] = np.iinfo(np.int64).max
         null_replacement['int32'] = np.iinfo(np.int32).max
+        null_replacement['bool'] = np.iinfo(np.int32).max
+        null_replacement['bool_'] = np.iinfo(np.int32).max
         null_replacement['str'] = "NULL"
 
         for cname in cols:
-            val = df[cname]
-            vtype = type(val[0]).__name__
-            val = val.fillna(null_replacement[vtype])
+            val = df[cname].dropna().values  # first value can be NaN, so can't deduce type
+            if len(val) == 0:
+                # all NaN in val
+                vtype = 'int32'
+                val = np.full(len(df), np.iinfo(np.int32).max, dtype=np.int32)
+            else:
+                vtype = type(val[0]).__name__
+                if vtype not in null_replacement:
+                    raise TypeError("Unsupported column type in creation of "
+                                    "frovedis dataframe: ", vtype)
+                val = df[cname].fillna(null_replacement[vtype])
 
             if vtype == 'int32':
                 dt = DTYPE.INT
@@ -123,9 +134,12 @@ class DataFrame(object):
             elif vtype == 'str':
                 dt = DTYPE.STRING
                 tmp[idx] = FrovedisStringDvector(val)
+            elif vtype == 'bool' or vtype == 'bool_':
+                dt = DTYPE.BOOL
+                tmp[idx] = FrovedisIntDvector([int(i) for i in val])
             else:
-                raise TypeError("Unsupported column type in creation of \
-                                 frovedis dataframe: ", vtype)
+                raise TypeError("Unsupported column type in creation of "
+                                "frovedis dataframe: ", vtype)
             self.__types[idx] = dt
             dvec[idx] = tmp[idx].get()
             #For dataframe query purpose
@@ -172,7 +186,7 @@ class DataFrame(object):
         """
         filter_frovedis_dataframe
         """
-        ret = DataFrame(needs_materalize=True)
+        ret = DataFrame()
         ret.__cols = copy.deepcopy(self.__cols)
         ret.__types = copy.deepcopy(self.__types)
         for item in ret.__cols:
@@ -222,6 +236,21 @@ class DataFrame(object):
         """
         sort_values
         """
+        if na_position != "last":
+            if na_position == "first":
+                raise ValueError("Frovedis currently doesn't support"
+                                " na_position='first' !")
+            else:
+                raise ValueError("invalid na_position: '{}' ".format(na_position))
+
+        if axis not in (0, "index"):
+            if axis in (1, "columns"):
+                raise ValueError("Frovedis currently doesn't support sorting"
+                                " the axis = 1 !")
+            else:
+                raise ValueError("No axis named {} for frovedis dataframe !"
+                                .format(axis))
+
         if self.__fdata is None:
             raise ValueError("sort: Operation on invalid frovedis dataframe!")
         if type(by).__name__ == 'str':
@@ -247,7 +276,8 @@ class DataFrame(object):
             sort_order = np.asarray(orderlist, dtype=np.int32)
         elif type(ascending).__name__ == 'list':
             if len(ascending) != sz:
-                raise ValueError("sort: Length of by and ascending parameters are not matching!")
+                raise ValueError("sort: Length of by and ascending parameters"
+                                " are not matching!")
             sort_order = np.asarray(ascending, dtype=np.int32)
         else:
             dgt = str(ascending).isdigit()
@@ -258,7 +288,7 @@ class DataFrame(object):
                 raise TypeError("sort: Expected: digit|list; Received: ",
                                 type(ascending).__name__)
 
-        ret = DataFrame(needs_materalize=True)
+        ret = DataFrame()
         ret.__cols = copy.deepcopy(self.__cols)
         ret.__types = copy.deepcopy(self.__types)
         for item in ret.__cols:
@@ -430,7 +460,7 @@ class DataFrame(object):
             if rsuf != '':
                 df_right = right.rename(renamed_right_cols)
 
-        ret = DataFrame(needs_materalize=True)
+        ret = DataFrame()
         ret.__cols = df_left.__cols + df_right.__cols
         ret.__types = df_left.__types + df_right.__types
         for item in df_left.__cols:
@@ -514,7 +544,7 @@ class DataFrame(object):
         (host, port) = FrovedisServer.getServerInstance()
         ret.__fdata = rpclib.rename_frovedis_dataframe(host, port, self.get(),
                                                        name_ptr, new_name_ptr,
-                                                       sz, self.__needs_materalize)
+                                                       sz)
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
             raise RuntimeError(excpt["info"])
@@ -684,26 +714,26 @@ class DataFrame(object):
             tptr = type_arr.ctypes.data_as(POINTER(c_short))
         if name == 'min':
             if not types:
-                raise ValueError("type of target columns is missing for \
-                                  min calculation")
+                raise ValueError("type of target columns is missing for"
+                                 " min calculation")
             ret = rpclib.get_min_frovedis_dataframe(host, port, self.get(),
                                                     cols_ptr, tptr, sz)
         elif name == 'max':
             if not types:
-                raise ValueError("type of target columns is missing for \
-                                  max calculation")
+                raise ValueError("type of target columns is missing for"
+                                 " max calculation")
             ret = rpclib.get_max_frovedis_dataframe(host, port, self.get(),
                                                     cols_ptr, tptr, sz)
         elif name == 'sum':
             if not types:
-                raise ValueError("type of target columns is missing for \
-                                  sum calculation")
+                raise ValueError("type of target columns is missing for"
+                                 " sum calculation")
             ret = rpclib.get_sum_frovedis_dataframe(host, port, self.get(),
                                                     cols_ptr, tptr, sz)
         elif name == 'std':
             if not types:
-                raise ValueError("type of target columns is missing for \
-                                  std calculation")
+                raise ValueError("type of target columns is missing for "
+                                 " std calculation")
             ret = rpclib.get_std_frovedis_dataframe(host, port, self.get(),
                                                     cols_ptr, tptr, sz)
         elif name == 'avg':
@@ -787,9 +817,14 @@ class DataFrame(object):
         null_replacement[DTYPE.INT] = np.iinfo(np.int32).max
         null_replacement[DTYPE.STRING] = "NULL"
 
-        for i in range(0, sz):
-            res[cols[i]].replace(null_replacement[types[i]], np.nan, inplace=True)
+        int2bool = {0: False, 1: True, np.iinfo(np.int32).max: np.nan}
 
+        for i in range(0, sz):
+            if types[i] == DTYPE.BOOL:
+                res[cols[i]] = res[cols[i]].apply(lambda x: int2bool[x] )
+            else:
+                res[cols[i]].replace(null_replacement[types[i]], np.nan,
+                                    inplace=True)
         return res
 
     #default type: float
@@ -863,8 +898,8 @@ class DataFrame(object):
                 raise ValueError("No column named: ", item)
         for item in cat_cols: # implicit checks for iterable on 'cat_cols'
             if item not in t_cols:
-                raise ValueError("target column list doesn't contain \
-                                  categorical column: ", item)
+                raise ValueError("target column list doesn't contain"
+                                 " categorical column: ", item)
         sz1 = len(t_cols)
         cols = np.asarray(t_cols)
         cols_ptr = (c_char_p * sz1)()
@@ -910,8 +945,8 @@ class DataFrame(object):
         if self.__fdata is None:
             raise ValueError("Operation on invalid frovedis dataframe!")
         if info.get() is None:
-            raise ValueError("Operation on invalid frovedis dataframe \
-                              conversion info!")
+            raise ValueError("Operation on invalid frovedis dataframe"
+                             " conversion info!")
         (host, port) = FrovedisServer.getServerInstance()
         if dtype == np.float32:
             dmat = rpclib.df_to_crs_using_info(host, port, self.get(),
