@@ -198,7 +198,6 @@ class FrovedisDataFrame extends java.io.Serializable {
   protected var fdata: Long = -1
   protected var cols: Array[String] = null
   protected var types: Array[Short] = null
-  protected var needs_materialize: Boolean = false
 
   // creating a frovedis dataframe from a spark dataframe -> User API
   def this(df: DataFrame) = {
@@ -206,13 +205,11 @@ class FrovedisDataFrame extends java.io.Serializable {
     load (df)
   }
   // internally used, not for user
-  def this(proxy: Long, cc: Array[String], tt: Array[Short],
-           to_materialize: Boolean=false) = {
+  def this(proxy: Long, cc: Array[String], tt: Array[Short]) = {
     this()
     fdata = proxy
     cols = cc.clone()
     types = tt.clone()
-    needs_materialize = to_materialize
   }
   // to release a frovedis dataframe from frovedis server -> User API
   def release () : Unit = {
@@ -224,7 +221,6 @@ class FrovedisDataFrame extends java.io.Serializable {
       fdata = -1
       cols = null
       types = null
-      needs_materialize = false
     }
   }
   // to display contents of a frovedis dataframe from frovedis server -> User API
@@ -269,7 +265,7 @@ class FrovedisDataFrame extends java.io.Serializable {
     val proxy = JNISupport.filterFrovedisDataframe(fs.master_node,this.get(),opt.get())
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
-    val ret = new FrovedisDataFrame(proxy, cols, types, true)
+    val ret = new FrovedisDataFrame(proxy, cols, types)
     opt.release()
     return ret
   }
@@ -315,7 +311,7 @@ class FrovedisDataFrame extends java.io.Serializable {
                                                  targets,isDescArr,size)
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
-    return new FrovedisDataFrame(proxy, cols, types, true)
+    return new FrovedisDataFrame(proxy, cols, types)
   }
   def sort(c: FrovedisColumn*): FrovedisDataFrame = {
     if(fdata == -1) throw new IllegalArgumentException("Invalid Frovedis dataframe!")
@@ -412,7 +408,7 @@ class FrovedisDataFrame extends java.io.Serializable {
                 join_algo)
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
-    val ret = new FrovedisDataFrame(proxy, t_cols, t_types, true)
+    val ret = new FrovedisDataFrame(proxy, t_cols, t_types)
     opt.release()
     return ret
   }
@@ -593,7 +589,7 @@ class FrovedisDataFrame extends java.io.Serializable {
                 this.get(), df_right.get(), opt.get(), "inner",
                 "bcast")
     opt.release()
-    return new FrovedisDataFrame(proxy, t_cols, t_types, true) 
+    return new FrovedisDataFrame(proxy, t_cols, t_types) 
   }
   def crossJoin(df: FrovedisDataFrame): FrovedisDataFrame = {
     return crossJoin(df, "_right")
@@ -895,8 +891,7 @@ class FrovedisDataFrame extends java.io.Serializable {
     }
     val fs = FrovedisServer.getServerInstance()
     val proxy = JNISupport.renameFrovedisDataframe(fs.master_node, get(),
-                                                   name, new_name, size,
-                                                   needs_materialize)
+                                                   name, new_name, size)
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
     return new FrovedisDataFrame(proxy,new_cols,types)
