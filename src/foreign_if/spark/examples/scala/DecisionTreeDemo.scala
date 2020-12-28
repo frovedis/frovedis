@@ -35,13 +35,13 @@ object DecisionTreeDemo {
     m1.debug_print()
     val ftr = data.map(_.features)
     println("prediction on trained model: ")
-    m1.predict(ftr).collect.foreach(println) // prediction
+    m1.predict(ftr).collect().foreach(println) // prediction
 
     // -------- load/save --------
     m1.save(sc, "./out/DecisionTreeClassModel")
     val m2 = DecisionTreeModel.load(sc, "./out/DecisionTreeClassModel")
     println("prediction on loaded model: ")
-    m2.predict(ftr).collect.foreach(println) // prediction on loaded model
+    m2.predict(ftr).collect().foreach(println) // prediction on loaded model
 
     // -------- prediction --------
     val predictionAndLabel = data.map(p => (m2.predict(p.features), p.label))

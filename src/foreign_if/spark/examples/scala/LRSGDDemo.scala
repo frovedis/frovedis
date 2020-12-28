@@ -37,7 +37,7 @@ object LRSGDDemo {
     // prediction with multiple test inputs
     var tvec2 = binary_data.map(_.features)
     println("multi-input prediction made on binary model:")
-    m1.predict(tvec2).collect.foreach(println)
+    m1.predict(tvec2).collect().foreach(println)
     
     // save  model
     m1.save("./out/BinaryLogisticRegressionModel")
@@ -49,7 +49,7 @@ object LRSGDDemo {
     m2.debug_print()
     println("multi-input prediction made on multinomial model:")
     tvec2 = multi_data.map(_.features)
-    m2.predict(tvec2).collect.foreach(println)
+    m2.predict(tvec2).collect().foreach(println)
 
     // save  model
     m2.save("./out/MultinomialLogisticRegressionModel")

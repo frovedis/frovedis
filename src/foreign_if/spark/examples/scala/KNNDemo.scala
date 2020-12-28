@@ -54,9 +54,9 @@ object KNNDemo {
     var (dist2, ind2) = knn.kneighbors(s_data);
 
     println("Distance Row matrix: ")
-    dist2.rows.collect.foreach(println)
+    dist2.rows.collect().foreach(println)
     println("Indices Row matrix:")
-    ind2.rows.collect.foreach(println)
+    ind2.rows.collect().foreach(println)
     
     var graph2 = knn.kneighbors_graph(s_data)
     println("knn graph :")

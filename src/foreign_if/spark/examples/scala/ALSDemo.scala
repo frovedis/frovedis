@@ -38,7 +38,7 @@ object ALSDemo {
     println("multi-input prediction made on model:")
     m1.debug_print()
     val d = sc.parallelize(Array((1,2), (3,4), (4,1)))
-    m1.predict(d).collect.foreach(println)
+    m1.predict(d).collect().foreach(println)
 
     // saving model
     m1.save("./out/MyMFModel")

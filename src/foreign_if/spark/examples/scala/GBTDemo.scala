@@ -54,29 +54,26 @@ object GBTDemo {
     val test_data = sc.parallelize(data)
     println("Predicting on multiple test data (spark data)")
     val pred = model.predict(test_data)
-    pred.foreach(println)
+    pred.collect().foreach(println)
 
     val frov_test_data = new FrovedisRowmajorMatrix(test_data)
     println("Predicting on multiple test data (frovedis data)")
     val pred2 = model.predict(frov_test_data)
-    pred2.foreach(println)
+    pred2.collect().foreach(println)
 
-    
     model.save("./out/gbt")
     model.debug_print()
-    model.release()
     
     val model2 = GradientBoostedTreesModel.load("./out/gbt")
-    
     println("Loaded model: ")
     model2.debug_print()
 
     println("Predicting on loaded model")
     val pred3 = model2.predict(test_data)
-    pred3.foreach(println)
+    pred3.collect().foreach(println)
     
+    model.release()
     model2.release()
-   
     FrovedisServer.shut_down()
     sc.stop()
   }

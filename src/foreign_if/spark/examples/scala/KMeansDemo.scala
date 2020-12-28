@@ -37,7 +37,7 @@ object KMeansDemo {
     m1.debug_print()
     val test_data = sc.textFile("./input/kmeans_tdata.txt")
                       .map(s => Vectors.dense(s.split(' ').map(_.toDouble)))
-    m1.predict(test_data).collect.foreach(println)
+    m1.predict(test_data).collect().foreach(println)
 
     // saving model
     m1.save("./out/MyKMeansModel")

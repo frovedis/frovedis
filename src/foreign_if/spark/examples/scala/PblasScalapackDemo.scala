@@ -117,7 +117,7 @@ object PblasScalapackDemo {
     println("svec: ")
     sp.s.toArray.foreach(println)
     println("umat: ")
-    sp.U.rows.collect.foreach(println)
+    sp.U.rows.collect().foreach(println)
     println("vmat: ")
     sp.V.toArray.foreach(println)
 

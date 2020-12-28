@@ -65,9 +65,9 @@ object KNCDemo {
     var (dist2, ind2) = knc.kneighbors(s_data)
     
     println("Distance Row matrix: ")
-    dist2.rows.collect.foreach(println)
+    dist2.rows.collect().foreach(println)
     println("Indices Row matrix:")
-    ind2.rows.collect.foreach(println)
+    ind2.rows.collect().foreach(println)
 
     var pred2: Array[Double] = knc.predict(s_data)
     println("predicted output: ")
@@ -75,7 +75,7 @@ object KNCDemo {
 
     var pred_proba2 = knc.predict_proba(s_data)
     println("predict proba output: ")
-    pred_proba2.rows.collect.foreach(println)
+    pred_proba2.rows.collect().foreach(println)
 
     var score2 = knc.score(lbv)
     println("score: " + score)

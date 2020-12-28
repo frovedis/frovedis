@@ -35,7 +35,7 @@ object RFDemo {
     val zip1 = lbl zip data
     var lpv = zip1.map( a => LabeledPoint(a._1, a._2) ) // vector of LabeledPoint
     var d_lp: RDD[LabeledPoint] = sc.parallelize(lpv)  // distributed LabeledPoint
-    val f_lp = new FrovedisLabeledPoint(d_lp, true) // frovedis LabeledPoint
+    val f_lp = new FrovedisLabeledPoint(d_lp) // frovedis LabeledPoint
 
     val numClasses = 2
     val categoricalFeaturesInfo = Map[Int, Int]()
@@ -52,22 +52,17 @@ object RFDemo {
     //                                         maxDepth, maxBins, seed)
 
     var test_data = sc.parallelize(data)
-    println("Prediction with trained model: ")
+    println("prediction with trained model: ")
     val pred = model.predict(test_data)
-    pred.foreach(println)
-
-    var frov_test_data = new FrovedisRowmajorMatrix(test_data)
-    println("Prediction with trained model on frovedis data: ")
-    var pred2 = model.predict(frov_test_data)
-    pred2.foreach(println)
+    pred.collect().foreach(println)
 
     // --- save/load ---
     model.save(sc, "out/myRandomForestRegressionModel")
     val sameModel = RandomForestModel.load(sc, "out/myRandomForestRegressionModel")
 
-    println("Prediction with loaded model: ")
-    val pred3 = sameModel.predict(test_data)
-    pred3.foreach(println)
+    println("prediction with loaded model: ")
+    val pred2 = sameModel.predict(test_data)
+    pred2.collect().foreach(println)
 
     // -------- clean-up --------
     model.release()

@@ -37,7 +37,7 @@ object SVDDemo {
     println("svec: ")
     println(s1.toString)
     println("umat: ")
-    U1.rows.collect.foreach(println)
+    U1.rows.collect().foreach(println)
     println("vmat: ")
     println(V1.toString)
 
@@ -54,7 +54,7 @@ object SVDDemo {
     println("svec: ")
     println(s2.toString)
     println("umat: ")
-    U2.rows.collect.foreach(println)
+    U2.rows.collect().foreach(println)
     println("vmat: ")
     println(V2.toString)
     res.release()

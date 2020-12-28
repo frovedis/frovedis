@@ -64,9 +64,9 @@ object KNRDemo {
 
     var (dist2, ind2) = knr.kneighbors(s_data);
     println("Distance Row matrix: ")
-    dist2.rows.collect.foreach(println)
+    dist2.rows.collect().foreach(println)
     println("Indices Row matrix:")
-    ind2.rows.collect.foreach(println)
+    ind2.rows.collect().foreach(println)
 
     var pred2: Array[Double] = knr.predict(s_data)
     println("predicted output: ")
@@ -76,7 +76,6 @@ object KNRDemo {
     println("score: " + score)
 
     knr.release()
-    
     FrovedisServer.shut_down()
     sc.stop()
   }

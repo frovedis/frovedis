@@ -34,11 +34,9 @@ object SVMKernelDemo {
     val zip1 = lbl zip data
     var lpv = zip1.map( a => LabeledPoint(a._1, a._2) ) // vector of LabeledPoint
     var d_lp: RDD[LabeledPoint] = sc.parallelize(lpv)  // distributed LabeledPoint
-    val f_lp = new FrovedisLabeledPoint(d_lp, true) // frovedis LabeledPoint Row major for non-linear
-    //val f_lp = new FrovedisLabeledPoint(d_lp, false) // frovedis LabeledPoint Column major for linear
 
     val C = 1.0
-    val kernelType = "rbf" //poly, sigmoid, rbf, linear
+    val kernelType = "linear" //poly, sigmoid, rbf, linear
     val degree = 3
     val gamma = 0.1
     val coef0 = 0.0
@@ -47,51 +45,51 @@ object SVMKernelDemo {
     val maxIter = 100
 
     //val model = SVC.train(f_lp, C, kernelType, degree, gamma, coef0, tol, cacheSize, maxIter)
-    val model = new SVC().setKernelType(kernelType).run(f_lp)
+    val svc = new SVC().setKernelType(kernelType)
+                       .setC(C)
+                       .setDegree(degree)
+                       .setGamma(gamma)
+                       .setCoef0(coef0)
+                       .setTol(tol)
+                       .setCacheSize(cacheSize)
+                       .setMaxIter(maxIter)
+    val model = svc.run(d_lp)
 
-    println("--- DEBUG PRINT START ---")
+    // to train with alreday constructed frovedis server side data
+    //val f_lp = new FrovedisLabeledPoint(d_lp) // frovedis LabeledPoint 
+    //val model = svc.run(f_lp)
+
+    println("--- DEBUG PRINT MODEL ---")
     model.debug_print()
-    println("TO_STRING: ", model.toString())
-    println("--- DEBUG PRINT DONE ---")
 
     // --- vector ---
     var test_data = sc.parallelize(data)
-    println("Prediction with trained model on vector data...start ")
-    println("test_data: ", test_data.getClass)  
+    println("prediction with trained model on spark data: ")
     val pred = model.predict(test_data)
-    println("Prediction with trained model on vector data...done ")
-    println("pred: ", pred.getClass)
     pred.collect().foreach(println)
 
     // --- RMM ---
     var frov_test_data = new FrovedisRowmajorMatrix(test_data)
-    println("Prediction with trained model on frovedis data: ")
+    println("prediction with trained model on frovedis data: ")
     var pred2 = model.predict(frov_test_data)
     pred2.collect().foreach(println)
-
-    //// --- Sparse --- //
-    //var sp_data = new FrovedisSparseData(test_data)
-    //println("Prediction with trained model on frovedis sparse data: ")
-    //var pred_sp = model.predict(sp_data)
-    //pred_sp.foreach(println)
 
     // --- save/load ---
     println("Saving model...: ")
     model.save(sc, "out/SVCModel")
-    println("...done.")
     println("Loading model...: ")
     val sameModel = SVCModel.load("out/SVCModel")
-    println("...done.")
 
-    println("Prediction with loaded model: ")
+    println("prediction with loaded model: ")
     val pred3 = sameModel.predict(test_data)
     pred3.collect().foreach(println)
 
     // -------- clean-up --------
     println("--- CLEAN-UP ---")
     model.release()
-    //sameModel.release()
+    sameModel.release()
     FrovedisServer.shut_down()
     sc.stop()
   }
 }
+

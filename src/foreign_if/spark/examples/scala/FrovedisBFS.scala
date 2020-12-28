@@ -15,18 +15,18 @@ object FrovedisBFS {
     if(args.length != 0) FrovedisServer.initialize(args(0))
 
     val f1 = "input/urldata_sssp.dat"
-    val source_vertex = 1
+    val source_vertex = 50
     val frov_graph = com.nec.frovedis.graphx.GraphLoader.edgeListFile(sc, f1)
     val res = frov_graph.bfs(source_vertex)
 
     println("...............Frovedis BFS QUERY................")
-    val q = res.bfs_query(4)
+    val q = res.bfs_query(30)
     println("Dist: " + q._1)
     println("Path: " + q._2)
 
-    val arr: Array[Long] = Array(1,2,3,4,5)
-    val qs: Array[(Long, String)] = res.bfs_query(arr)
-    qs.foreach{ println }
+    val arr: Array[Long] = Array(10,20,30,40,50,6)
+    val query_res = res.bfs_query(arr)
+    arr.zip(query_res).map { case (x, y) => println(x + ":" + y) }
 
     FrovedisServer.shut_down()
   }
