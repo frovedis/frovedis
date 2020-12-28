@@ -28,7 +28,7 @@ svr = LinearSVR(loss='epsilon_insensitive', epsilon = 0.1,
 # predicting on loaded model
 print("predicting on trained model: ")
 print(svr.predict(mat))
-print("preduction score: %.2f" % svr.score(mat, lbl))
+print("prediction score: %.2f" % svr.score(mat, lbl))
 
 # saving the model
 svr.save("./out/SVRModel")
