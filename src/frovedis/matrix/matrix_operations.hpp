@@ -4,27 +4,18 @@
 /*
  *  This header contains frequently used matrix operations in ML algorithms
  *  similar to following numpy operations on 2D array
- *    numpy.sum(x) -> matrix_sum(x) [supports rowmajor, colmajor and crs (both local and distributed)]
- *    numpy.mean(x) -> matrix_mean(x) [supports rowmajor, colmajor and crs (both local and distributed)]
- *    numpy.sum(numpy_square(x)) -> matrix_squared_sum(x) [supports rowmajor, colmajor and crs (both local and distributed)]
+ *    numpy.sum(x, axis) -> matrix_sum(x, axis) [supports rowmajor, colmajor and crs (both local and distributed)]
+ *    numpy.mean(x, axis) -> matrix_mean(x, axis) [supports rowmajor, colmajor and crs (both local and distributed)]
+ *    numpy.sum(numpy_square(x, axis)) -> matrix_squared_sum(x, axis) [supports rowmajor, colmajor and crs (both local and distributed)]
+ *    numpy.argmin(x, axis) -> matrix_argmin(x, axis) [supports rowmajor, colmajor (both local and distributed)]
+ *    numpy.argmax(x, axis) -> matrix_argmax(x, axis) [supports rowmajor, colmajor (both local and distributed)]
+ *    numpy.amin(x, axis) -> matrix_amin(x, axis) [supports rowmajor, colmajor (both local and distributed)]
+ *    numpy.amax(x, axis) -> matrix_amax(x, axis) [supports rowmajor, colmajor (both local and distributed)]
  *    sklearn.preprocessing.binarize(x, thr) -> matrix_binarize(x, thr) [supports rowmajor, colmajor and crs (both local and distributed)]
  *
- *  Additionally supports:
- *    get_start_indices(m): return starting global indices for each local matrices [supports rowmajor, colmajor and crs (only distributed version)]
  */
 
 namespace frovedis {
-
-// must be invoked with distributed MATRIX (rowmajor, colmajor or crs)
-template <class MATRIX>
-node_local<size_t> 
-get_start_indices(MATRIX& mat) {
-  auto nrows = mat.get_local_num_rows();
-  std::vector<size_t> sidx(nrows.size()); sidx[0] = 0;
-  for(size_t i = 1; i < nrows.size(); ++i) 
-    sidx[i] = sidx[i - 1] + nrows[i - 1];
-  return make_node_local_scatter(sidx);
-}
 
 // similar to numpy.sum(m)
 template <class MATRIX>
@@ -56,6 +47,34 @@ template <class MATRIX>
 MATRIX matrix_binarize(MATRIX& mat, 
                        typename MATRIX::value_type threshold = 0) {
   return binarize(mat, threshold);
+}
+
+// similar to numpy.argmin(arr, axis)
+template <class MATRIX>
+std::vector<size_t>
+matrix_argmin(MATRIX& mat, int axis = -1) {
+  return get_values(argmin_pair(mat, axis));
+}
+
+// similar to numpy.amin(arr, axis)
+template <class MATRIX>
+std::vector<typename MATRIX::value_type>
+matrix_amin(MATRIX& mat, int axis = -1) {
+  return get_keys(argmin_pair(mat, axis));
+}
+
+// similar to numpy.argmax(arr, axis)
+template <class MATRIX>
+std::vector<size_t>
+matrix_argmax(MATRIX& mat, int axis = -1) {
+  return get_values(argmax_pair(mat, axis));
+}
+
+// similar to numpy.amax(arr, axis)
+template <class MATRIX>
+std::vector<typename MATRIX::value_type>
+matrix_amax(MATRIX& mat, int axis = -1) {
+  return get_keys(argmax_pair(mat, axis));
 }
 
 }
