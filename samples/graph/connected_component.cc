@@ -13,12 +13,13 @@ void call_cc(const std::string& data_p,
              int opt_level,
              double threshold) {
   graph<T> gr;
+  time_spent t(INFO);
   if(if_prep) gr = read_edgelist<T>(data_p);
   else {
     auto mat = make_crs_matrix_load<T>(data_p);
     gr = graph<T>(mat);
   }
-  time_spent t(INFO);
+  t.show("data loading time: ");
   auto res = gr.connected_components(opt_level, threshold);
   t.show("connected components computation time: ");
   res.save(out_p);

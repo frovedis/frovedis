@@ -15,13 +15,14 @@ void call_pagerank(const std::string& data_p,
                    size_t niter,
                    double thr) { 
   graph<T> gr;
+  time_spent t(INFO);
   if(if_prep) gr = read_edgelist<T>(data_p);
   else {
     auto mat = make_crs_matrix_load<T>(data_p);
     gr = graph<T>(mat);
   }
+  t.show("data loading time: ");
   //gr.debug_print();
-  time_spent t(INFO);
   auto res = gr.pagerank(df, epsilon, niter, thr);
   t.show("pagerank computation time: ");
   make_dvector_scatter(res).saveline(out_p);
