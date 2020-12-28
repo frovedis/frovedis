@@ -4,6 +4,7 @@ import com.nec.frovedis.Jexrpc.{FrovedisServer,JNISupport,MemPair}
 import com.nec.frovedis.Jmllib.DummyGLM
 import com.nec.frovedis.io.FrovedisIO
 import com.nec.frovedis.exrpc.FrovedisLabeledPoint
+import com.nec.frovedis.matrix.MAT_KIND
 import com.nec.frovedis.mllib.{M_KIND,ModelID}
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
@@ -365,6 +366,10 @@ class LinearSVR(var numIter: Int,
   }
 
   def run(data: FrovedisLabeledPoint, movable: Boolean): SVRModel = {
+    if (data.is_dense() && data.matType() != MAT_KIND.CMJR) 
+       throw new IllegalArgumentException(
+        s"fit: please provide column major "+
+        s"points as for dense data to frovedis linear svm regression!\n")
     val mid = ModelID.get()
     val fs = FrovedisServer.getServerInstance()
     JNISupport.callFrovedisSVR(fs.master_node,data.get(),numIter,stepSize,

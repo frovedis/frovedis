@@ -2,6 +2,7 @@ package com.nec.frovedis.mllib.regression;
 
 import com.nec.frovedis.Jexrpc.{FrovedisServer,JNISupport}
 import com.nec.frovedis.exrpc.FrovedisLabeledPoint
+import com.nec.frovedis.matrix.MAT_KIND
 import com.nec.frovedis.mllib.{M_KIND,ModelID}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.mllib.regression.LabeledPoint
@@ -60,13 +61,17 @@ object RidgeRegressionWithSGD {
             regParam: Double,
             miniBatchFraction: Double,
             isMovableInput: Boolean) : LinearRegressionModel = {
+     if (data.is_dense() && data.matType() != MAT_KIND.CMJR) 
+       throw new IllegalArgumentException(
+        s"fit: please provide column major "+
+        s"points as for dense data to frovedis ridge regression!\n")
      val mid = ModelID.get()
      val fs = FrovedisServer.getServerInstance()
-     JNISupport.callFrovedisRidgeSGD(fs.master_node,data.get(),numIter,stepSize,
-                                     miniBatchFraction,regParam,mid,isMovableInput,
-                                     data.is_dense())
-     val info = JNISupport.checkServerException();
-     if (info != "") throw new java.rmi.ServerException(info);
+     JNISupport.callFrovedisRidgeSGD(fs.master_node,data.get(),numIter,
+                                     stepSize,miniBatchFraction,regParam,
+                                     mid,isMovableInput,data.is_dense())
+     val info = JNISupport.checkServerException()
+     if (info != "") throw new java.rmi.ServerException(info)
      val numFeatures = data.numCols()
      return new LinearRegressionModel(mid,M_KIND.LNRM,numFeatures)
   }
@@ -146,13 +151,17 @@ object RidgeRegressionWithLBFGS {
             regParam: Double,
             histSize: Int,
             isMovableInput: Boolean) : LinearRegressionModel = {
+     if (data.is_dense() && data.matType() != MAT_KIND.CMJR) 
+       throw new IllegalArgumentException(
+        s"fit: please provide column major "+
+        s"points as for dense data to frovedis ridge regression!\n")
      val mid = ModelID.get()
      val fs = FrovedisServer.getServerInstance()
-     JNISupport.callFrovedisRidgeLBFGS(fs.master_node,data.get(),numIter,stepSize,
-                                     histSize,regParam,mid,isMovableInput,
-                                     data.is_dense())
-     val info = JNISupport.checkServerException();
-     if (info != "") throw new java.rmi.ServerException(info);
+     JNISupport.callFrovedisRidgeLBFGS(fs.master_node,data.get(),numIter,
+                                       stepSize,histSize,regParam,mid,
+                                       isMovableInput,data.is_dense())
+     val info = JNISupport.checkServerException()
+     if (info != "") throw new java.rmi.ServerException(info)
      val numFeatures = data.numCols()
      return new LinearRegressionModel(mid,M_KIND.LNRM,numFeatures)
   }

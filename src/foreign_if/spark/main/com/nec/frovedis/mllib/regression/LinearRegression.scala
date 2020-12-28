@@ -3,6 +3,7 @@ package com.nec.frovedis.mllib.regression;
 import com.nec.frovedis.Jexrpc.{FrovedisServer,JNISupport}
 import com.nec.frovedis.Jmllib.DummyGLM
 import com.nec.frovedis.exrpc.FrovedisLabeledPoint
+import com.nec.frovedis.matrix.MAT_KIND
 import com.nec.frovedis.mllib.{M_KIND,ModelID}
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
@@ -31,8 +32,8 @@ object LinearRegressionModel {  // companion object (for static members)
     // load a LinearRegressionModel from the 'path' 
     // and register it with 'model_id' at Frovedis server
     val ret = JNISupport.loadFrovedisGLM(fs.master_node,model_id,M_KIND.LNRM,path)
-    val info = JNISupport.checkServerException();
-    if (info != "") throw new java.rmi.ServerException(info);
+    val info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
     return new LinearRegressionModel(ret)
   }
 }
@@ -82,12 +83,17 @@ object LinearRegressionWithSGD {
             stepSize: Double,
             miniBatchFraction: Double,
             isMovableInput: Boolean) : LinearRegressionModel = {
+     if (data.is_dense() && data.matType() != MAT_KIND.CMJR) 
+       throw new IllegalArgumentException(
+        s"fit: please provide column major "+
+        s"points as for dense data to frovedis linear regression!\n")
      val mid = ModelID.get()
      val fs = FrovedisServer.getServerInstance()
      JNISupport.callFrovedisLNRSGD(fs.master_node,data.get(),numIter,stepSize,
-                                 miniBatchFraction,mid,isMovableInput,data.is_dense())
-     val info = JNISupport.checkServerException();
-     if (info != "") throw new java.rmi.ServerException(info);
+                                   miniBatchFraction,mid,isMovableInput,
+                                   data.is_dense())
+     val info = JNISupport.checkServerException()
+     if (info != "") throw new java.rmi.ServerException(info)
      val numFeatures = data.numCols()
      return new LinearRegressionModel(mid,M_KIND.LNRM,numFeatures)
   }
@@ -150,12 +156,18 @@ object LinearRegressionWithLBFGS {
             stepSize: Double,
             histSize: Int,
             isMovableInput: Boolean) : LinearRegressionModel = {
+     if (data.is_dense() && data.matType() != MAT_KIND.CMJR) 
+       throw new IllegalArgumentException(
+        s"fit: please provide column major "+
+        s"points as for dense data to frovedis linear regression!\n")
      val mid = ModelID.get()
      val fs = FrovedisServer.getServerInstance()
-     JNISupport.callFrovedisLNRLBFGS(fs.master_node,data.get(),numIter,stepSize,
-                                   histSize,mid,isMovableInput, data.is_dense())
-     val info = JNISupport.checkServerException();
-     if (info != "") throw new java.rmi.ServerException(info);
+     JNISupport.callFrovedisLNRLBFGS(fs.master_node,data.get(),numIter,
+                                     stepSize,
+                                     histSize,mid,isMovableInput,
+                                     data.is_dense())
+     val info = JNISupport.checkServerException()
+     if (info != "") throw new java.rmi.ServerException(info)
      val numFeatures = data.numCols()
      return new LinearRegressionModel(mid,M_KIND.LNRM,numFeatures)
   }
