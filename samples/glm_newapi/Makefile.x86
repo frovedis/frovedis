@@ -1,9 +1,9 @@
-TARGETS := lr #lnr lasso ridge linsvc linsvr
+TARGETS := lr lnr linsvc linsvr ridge lasso
 include ../Makefile.in.x86
 include ../Makefile.common
 
 TO_INSTALL := lnr.cc lasso.cc ridge.cc lr.cc linsvc.cc linsvr.cc
-DIR := glm
+DIR := glm_newapi
 ARCH := x86
 
 lnr: lnr.o

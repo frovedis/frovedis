@@ -3,7 +3,7 @@ include ../Makefile.in.icpc
 include ../Makefile.common
 
 TO_INSTALL := lnr.cc lasso.cc ridge.cc lr.cc linsvc.cc linsvr.cc
-DIR := glm
+DIR := glm_newapi
 ARCH := icpc
 
 lnr: lnr.o
