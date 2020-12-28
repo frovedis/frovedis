@@ -110,7 +110,8 @@ pagerank_v1(crs_matrix<T,I,O>& A,
             double dfactor, 
             double epsilon, 
             size_t max_iter,
-            crs_matrix<double,I,O>& norm_mat, 
+            crs_matrix<double,I,O>& norm_mat,
+            size_t& num_active_nodes, 
             MatType matformat) {
   require(epsilon > 0,
   "pagerank: expected a positive epsilon!\n");
@@ -126,7 +127,7 @@ pagerank_v1(crs_matrix<T,I,O>& A,
   size_t num_nodes = A.num_row;
   auto inptr = num_incoming.data();
   auto outptr = num_outgoing.data();
-  size_t num_active_nodes = 0;
+  num_active_nodes = 0;
   for(size_t i = 0; i < num_nodes; ++i) {
     num_active_nodes += (inptr[i] != 0 || outptr[i] != 0);
   }
