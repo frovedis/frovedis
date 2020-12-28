@@ -29,23 +29,27 @@ extern "C" {
 
   PyObject* call_frovedis_pagerank(const char* host, int port, long proxy,
                                   double epsilon, double dfactor,
-                                  int max_iter){
+                                  int max_iter, int verbose){
     ASSERT_PTR(host);
     exrpc_node fm_node(host, port);
     auto f_dptr = static_cast<exrpc_ptr_t> (proxy);
-    int vb = 0; //no log (default=0)
-    std::vector<double> result;
+    set_verbose_level(verbose);
+    py_pagerank_result<double> result;
+    time_spent t(DEBUG);
     try{
       result = exrpc_async(fm_node, frovedis_pagerank<graph<DT1>>, f_dptr,
-                       epsilon, dfactor, max_iter, vb).get();
+                       epsilon, dfactor, max_iter, verbose).get();
     }
     catch(std::exception& e) { set_status(true,e.what()); }
-    return to_python_double_list(result);
+    t.show("PR training: ");
+    auto ret = to_py_pagerank_result(result);
+    t.show("res conv: ");
+    reset_verbose_level();
+    return ret;
   }
 
-  void call_frovedis_sssp(const char* host, int port, long proxy,
-                          double* dist, long* pred, 
-                          long num_vertices, long source){
+  PyObject* call_frovedis_sssp(const char* host, int port, 
+                               long proxy, long source){
     ASSERT_PTR(host);
     exrpc_node fm_node(host, port);
     auto f_dptr = static_cast<exrpc_ptr_t> (proxy);
@@ -53,23 +57,15 @@ extern "C" {
     sssp_result<DT1,DT5> result;
     try{
       result = exrpc_async(fm_node, (frovedis_sssp<graph<DT1>,DT1,DT5>), f_dptr,
-                       source, vb).get();
+                           source, vb).get();
     }
     catch(std::exception& e) { set_status(true,e.what()); }
-    checkAssumption(result.distances.size() == num_vertices);
-    checkAssumption(result.predecessors.size() == num_vertices);
-    auto resdistp = result.distances.data();
-    auto respredp = result.predecessors.data();
-    for(size_t i = 0; i < num_vertices; ++i) {
-      dist[i] = resdistp[i];
-      pred[i] = (long) respredp[i];
-    }
+    return to_py_sssp_result(result);
   }
 
-  void call_frovedis_bfs(const char* host, int port, long proxy,
-                         long* dist, long* pred,
-                         long num_vertices, long source,
-                         int opt_level, double hyb_threshold) {
+  PyObject* call_frovedis_bfs(const char* host, int port, long proxy,
+                              long source, int opt_level, double hyb_threshold,
+                              long depth_limit) {
     ASSERT_PTR(host);
     exrpc_node fm_node(host, port);
     auto f_dptr = static_cast<exrpc_ptr_t> (proxy);
@@ -77,19 +73,34 @@ extern "C" {
     bfs_result<DT5> result;
     try{
       result = exrpc_async(fm_node, (frovedis_bfs<graph<DT1>,DT5>), f_dptr,
-                       source, opt_level, hyb_threshold, vb).get();
+                       source, opt_level, hyb_threshold, depth_limit, vb).get();
     }
     catch(std::exception& e) { set_status(true,e.what()); }
-    checkAssumption(result.distances.size() == num_vertices);
-    checkAssumption(result.predecessors.size() == num_vertices);
-    auto resdistp = result.distances.data();
-    auto respredp = result.predecessors.data();
-    auto lmax = std::numeric_limits<long>::max();
-    auto uimax = std::numeric_limits<size_t>::max();
-    for(size_t i = 0; i < num_vertices; ++i) {
-      dist[i] = (resdistp[i] == uimax) ? lmax : (long) resdistp[i];
-      pred[i] = (long) respredp[i];
+    return to_py_bfs_result(result);
+  }
+
+  PyObject* bfs_descendants_at_distance(const char* host, int port, long proxy,
+                              long source, int opt_level, double hyb_threshold,
+                              long distance) {
+    ASSERT_PTR(host);
+    exrpc_node fm_node(host, port);
+    auto f_dptr = static_cast<exrpc_ptr_t> (proxy);
+    int vb = 0; //no log (default=0)
+    bfs_result<DT5> result;
+    try{
+      result = exrpc_async(fm_node, (frovedis_bfs<graph<DT1>,DT5>), f_dptr,
+                       source, opt_level, hyb_threshold, distance, vb).get();
     }
+    catch(std::exception& e) { set_status(true,e.what()); }
+    auto depth = result.depth;
+    auto retsz = depth == distance ? result.n_leaf_nodes : 0;
+    std::vector<long> ret(retsz); auto retp = ret.data();
+    auto n_nodes = result.destids.size();
+    auto destidp = result.destids.data();
+    auto tmp = n_nodes - retsz;
+    for(size_t i = 0; i < retsz; ++i) 
+      retp[i] = static_cast<long>(destidp[i + tmp]);
+    return to_python_long_list(ret); 
   }
 
   PyObject* call_frovedis_cc(const char* host, int port, long proxy,
