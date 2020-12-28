@@ -35,12 +35,12 @@ If you want to use vector engine (VE), please do:
 Main purpose of the script is to set environment variables like
 SCALA_HOME, SPARK_HOME, SPARK_SUBMIT_OPTIONS. 
 It also switches `mpirun` to call (x86 or ve). If you did not source
-MPI set up script for VE, veenv.sh also source it internally.
+MPI set up script for VE, `veenv.sh` also source it internally.
 
 Scala and Spark is installed together with the Frovedis rpm;
 above environment variables point to them. If you want to use your own
 Scala and/or Spark, please change these environment variables and/or
-x86env.sh/veenv.sh scripts. (The Spark interface can be seen as the
+`x86env.sh`/`veenv.sh` scripts. (The Spark interface can be seen as the
 application of Spark, so it does not depend on the Spark version
 ideally.)
 Java virtual machine (openjdk) should have been installed together
@@ -134,7 +134,7 @@ specifying command line option appropriately.
 
 The last argument of `mpirun` is the binary to execute. Here, the path
 of the binary is obtained from the environment variable
-`FROVEDIS_SERVER`, which is set in x86env.sh or veenv.sh.
+`FROVEDIS_SERVER`, which is set in `x86env.sh` or `veenv.sh`.
 
 In the program, loaded data is parsed and given to
 LogisticRegressionWithSGD. The call is the same as Spark. Within the
@@ -206,12 +206,16 @@ Zeppelin. At the last line, please add "LR.main(Array(""))" like
 spark-shell case. Then, you can run the paragraph.
 
 If it does not work, please make sure that environment variables are
-properly set by x86env.sh or veenv.sh *before* starting the zeppelin
+properly set by `x86env.sh` or `veenv.sh` *before* starting the zeppelin
 daemon.
     
 The frovedis server will be terminated when the interpreter exits.
 If it is not terminated because of abnormal termination, please kill the
-server manually by calling command like `pkill mpi`. 
+server manually by calling command like `pkill mpi`. In the case of
+VE, you can check if the server is running or not by
+`/opt/nec/ve/bin/ps -elf`, for example (or `$ VE_NODE_NUMBER=0
+/opt/nec/ve/bin/top`, where you can change the VE node number by the
+environment variable).
 
 # 4. Machine learning algorithms
 
@@ -228,9 +232,14 @@ At this moment, we support following algorithms:
 - `mllib.regression.RidgerRegressionWithLBFGS`
 - `mllib.regression.LassoWithSGD`
 - `mllib.regression.LassoWithLBFGS`
-- `mllib.clustering.KMeans`
 - `mllib.tree.DecisionTree`
+- `mllib.tree.RandomForest`
+- `mllib.tree.GradientBoostedTrees`
+- `mllib.clustering.KMeans`
+- `mllib.clustering.LDA`
 - `mllib.recommendation.ALS`
+- `mllib.fpm.FPGrowth`
+- `mllib.feature.Word2Vec`
 
 Please add `com.nec.frovedis.` to import these packages.
 (In the case of original Spark, `org.apache.spark.` is added to import
@@ -248,7 +257,27 @@ The result can be converted to Spark data using to_spark_result().
 
 Other than Spark algorithms, we support following algorithms. 
 
+- `mllib.clustering.AgglomerativeClustering`
+- `mllib.clustering.DBSCAN`
+- `mllib.clustering.SpectralClustering`
+- `mllib.clustering.SpectralEmbedding`
+- `mllib.classification.SVC` (Kernel SVM)
+- `mllib.regression.SVMRegressionWithSGD`
+- `mllib.neighbors.KNeighborsClassifier`
+- `mllib.neighbors.NearestNeighbors`
+- `mllib.neighbors.KNeighborsRegressor`
 - `mllib.fm.FactorizationMachine`
+- `mllib.manifold.TSNE`
+
+In addition, following graph algorithms are supported. The interface
+is almost the same as graphx.
+
+- `bfs`
+- `connected_components`
+- `pageRank`
+- `sssp`
+
+Graph can be loaded by `com.nec.frovedis.graphx.GraphLoader.edgeListFile`. 
 
 You can use both dense and sparse matrix as the input of machine
 learning just like Spark. It is automatically sent to Frovedis
@@ -669,7 +698,7 @@ result should be the same.
 
 Manuals are in `../manual` directory.
 In addition to PDF file, you can also use `man` command (MANPATH is
-set in x86env.sh or veenv.sh). For python interface, the section is
+set in `x86env.sh` or `veenv.sh`). For python interface, the section is
 `3s` (same name of the manual may exist in section `3` or `3p`.), so
 you can run like `man -s 3s logistic_regression`. 
 Currently, there are following manual entries: 
@@ -690,7 +719,6 @@ Currently, there are following manual entries:
 - `blockcyclic_matrix`
 - `scalapack_wrapper`
 - `pblas_wrapper`
-- `arpack_wrapper`
 - `getrf_result`
 - `gesvd_result`
 
