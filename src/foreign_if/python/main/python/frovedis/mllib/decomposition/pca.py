@@ -58,7 +58,9 @@ class PCA(BaseEstimator):
                              "with svd_solver='%s'"
                              % (self.n_components, self.svd_solver))
 
-        inp_data = FrovedisFeatureData(X, dense_kind='rowmajor')
+        inp_data = FrovedisFeatureData(X, \
+                     caller = "[" + self.__class__.__name__ + "] fit: ",\
+                     dense_kind='rowmajor', densify=True)
         self.n_samples_ = inp_data.numRows()
         self.n_features_ = inp_data.numCols()
         # handling n_components == None case with arpack solver
