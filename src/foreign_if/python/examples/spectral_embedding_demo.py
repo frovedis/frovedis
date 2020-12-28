@@ -4,7 +4,8 @@ import sys
 import numpy as np
 from frovedis.exrpc.server import FrovedisServer
 from frovedis.matrix.dense import FrovedisRowmajorMatrix
-from frovedis.mllib.cluster import SpectralEmbedding, KMeans
+from frovedis.mllib.manifold import SpectralEmbedding
+from frovedis.mllib.cluster import KMeans
 
 # initializing the Frovedis server
 argvs = sys.argv
@@ -24,15 +25,16 @@ sem.fit(train_mat)
 sem.debug_print()
 
 #extracting the embedding matrix from created model
-embed = sem.get_embedding_matrix()
+embed = sem.embedding_
 #embed.debug_print()
 
 #calling kmeans on spectral embed to assign cluster
 kmeans = KMeans(n_clusters=2, max_iter=100)
-print("label: ", kmeans.fit(embed).predict(embed)) #kind of fit_predict(embed)
+print("kmeans predicted label: ") 
+print(kmeans.fit(embed).predict(embed)) #kind of fit_predict(embed)
 
 # extracting the affinity matrix from created model
-aff = sem.get_affinity_matrix()
+aff = sem.affinity_matrix_
 #aff.debug_print()
 
 # fitting the precomputed affinity matrix for new model creation

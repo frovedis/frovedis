@@ -24,7 +24,7 @@ spec.fit(train_mat)
 spec.debug_print()
 
 # extracting the affinity matrix from created model
-aff = spec.get_affinity_matrix()
+aff = spec.affinity_matrix_
 #aff.debug_print()
 
 # fitting the precomputed affinity matrix for new model creation
