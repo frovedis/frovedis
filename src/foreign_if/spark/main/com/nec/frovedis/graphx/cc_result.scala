@@ -1,5 +1,7 @@
 package com.nec.frovedis.graphx;
 
+import scala.util.control.Breaks._
+
 class cc_result extends java.io.Serializable {
   var num_cc: Long = -1
   var num_nodes: Long = -1
@@ -19,7 +21,7 @@ class cc_result extends java.io.Serializable {
     this.root_with_cc_count = root_with_cc_count  // root: 1-based
   }
   def print_summary(print_limit: Int = 5): Unit = {
-    println("*************SUMMARY***************")
+    println("-------- CC SUMMARY --------")
     println("Number of connected components = " + num_cc)
 
     var num_cc_printed: Int = scala.math.min(print_limit, num_cc.toInt)
@@ -30,17 +32,36 @@ class cc_result extends java.io.Serializable {
     }
     if(num_cc > print_limit) println("...")
 
+    var count: Long = 1
     println("\nNodes in which cc: (node_id:root_id)")
-    for(i <- 0 until scala.math.min(print_limit, num_nodes.toInt)) {
-      print((i+1) + ":" + nodes_in_which_cc(i) + "\t")
+    breakable {
+      for(i <- 0 until num_nodes.toInt) {
+        if (nodes_in_which_cc(i) != Long.MaxValue) { // skipping null vertices
+          print((i+1) + ":" + nodes_in_which_cc(i) + "\t")
+          count += 1
+        }
+        if (count > print_limit) {
+          println("...") 
+          break
+        }
+      }
     }
-    if(num_nodes > print_limit) println("...")
 
+    count = 1
     println("\nNodes dist: (node:level_from_root)")
-    for(i <- 0 until scala.math.min(print_limit, num_nodes.toInt)) {
-      print((i+1) + ":" + nodes_dist(i) + "\t")
+    breakable { 
+      for(i <- 0 until num_nodes.toInt) {
+        if (nodes_dist(i) != Long.MaxValue) { // skipping null vertices
+          print((i+1) + ":" + nodes_dist(i) + "\t")
+          count += 1
+        }
+        if (count > print_limit) {
+          println("...") 
+          break
+        }
+      }
     }
-    if(num_nodes > print_limit) println("...")
+
     println()
   }
 }

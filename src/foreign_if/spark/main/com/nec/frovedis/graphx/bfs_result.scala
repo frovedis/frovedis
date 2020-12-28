@@ -1,44 +1,39 @@
 package com.nec.frovedis.graphx;
 
 class bfs_result extends java.io.Serializable {
-  var nodesDist: Array[Long]  = Array()
-  var nodesPred: Array[Long] = Array()
-  var num_nodes: Long = -1
   var sourceVertex: Long = -1
+  var dest_to_pred: Map[Long, Long] = Map()
+  var dest_to_dist: Map[Long, Long] = Map()
 
-  def this(pred: Array[Long], 
+  def this(destid: Array[Long],
            dist: Array[Long], 
-           num_nodes: Long, 
-           sourceVertex: Long){
+           pred: Array[Long], 
+           src: Long){
     this()
-    this.nodesPred = pred            // 1-based
-    this.nodesDist = dist
-    this.num_nodes = num_nodes
-    this.sourceVertex = sourceVertex // 1-based
+    sourceVertex = src    // 1-based
+    dest_to_pred = (destid zip pred).toMap
+    dest_to_dist = (destid zip dist).toMap
   }
   def bfs_query(dest: Long): (Long, String) = {
-    if(dest < 1 || dest > this.num_nodes) 
-      return (-1, "ERROR: node does not exist!")
-    var pred: Long = this.nodesPred(dest.toInt - 1) // dest/pred is 1-based
+    if(!(dest_to_pred.contains(dest))) return (-1, "ERROR: Not rechable!")
     var ret: (Long, String) = null
-    if (pred == this.sourceVertex) ret = (0L, this.sourceVertex.toString)
-    else if (pred == dest) ret = (this.nodesDist(dest.toInt - 1), 
-                                  "not reachable")
+    if (dest == sourceVertex) ret = (0L, sourceVertex.toString)
     else {
-      var path: String = dest.toString + " <= "
-      while(pred != this.sourceVertex) {
+      var path = dest.toString + " <= "
+      var pred = dest_to_pred(dest) 
+      while(pred != sourceVertex) {
         path = path + pred.toString + " <= "
-        pred = this.nodesPred(pred.toInt - 1)
+        pred = dest_to_pred(pred)
       } 
-      path = path + this.sourceVertex.toString
-      ret = (this.nodesDist(dest.toInt - 1), path)
+      path = path + sourceVertex.toString
+      ret = (dest_to_dist(dest), path)
     }
     return ret
   }
   def bfs_query(dest_arr: Array[Long]): Array[(Long, String)] = {
-    var res_arr: Array[(Long, String)] = new Array(dest_arr.size.toInt)
-    for (i <- 0 until dest_arr.size.toInt)
-      res_arr(i) = bfs_query(dest_arr(i))
+    val sz = dest_arr.size.toInt
+    var res_arr: Array[(Long, String)] = new Array(sz)
+    for (i <- 0 until sz) res_arr(i) = bfs_query(dest_arr(i))
     return res_arr
   }
 }

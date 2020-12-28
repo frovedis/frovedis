@@ -82,33 +82,25 @@ class Graph extends java.io.Serializable {
   }
   def bfs(source_vertex: Long = 1,
           opt_level: Int = 1,
-          hyb_threshold: Double = 0.4):
+          hyb_threshold: Double = 0.4,
+          depth_limit: Long = Long.MaxValue):
     com.nec.frovedis.graphx.bfs_result = {
-    require(source_vertex >= 1 && source_vertex <= numVertices,
-    s"Source Vertex should range from 1 to ${numVertices}," +
-    " provided value is ${source_vertex}.")
-    val dist: Array[Long] = new Array(numVertices.toInt)
-    val pred: Array[Long] = new Array(numVertices.toInt)
+    require(depth_limit >= 0, s"depth_limit should be a positive integer!")
     val fs = FrovedisServer.getServerInstance()
-    JNISupport.callFrovedisBFS(fs.master_node,
-                   this.get(), dist, pred, numVertices, source_vertex,
-                   opt_level, hyb_threshold)
+    val result = JNISupport.callFrovedisBFS(fs.master_node,
+                   this.get(), source_vertex,
+                   opt_level, hyb_threshold, depth_limit)
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
-    return new bfs_result(pred, dist, numVertices, source_vertex)
+    return result
   }
   def sssp(source_vertex: Long = 1): com.nec.frovedis.graphx.sssp_result = {
-    require(source_vertex >= 1 && source_vertex <= numVertices,
-    s"Source Vertex should range from 1 to ${numVertices}," + 
-    " provided value is ${source_vertex}.")
-    val dist: Array[Double] = new Array(numVertices.toInt) 
-    val pred: Array[Long] = new Array(numVertices.toInt) 
     val fs = FrovedisServer.getServerInstance()
-    JNISupport.callFrovedisSSSP(fs.master_node,
-                   this.get(), dist, pred, numVertices, source_vertex)
+    val result = JNISupport.callFrovedisSSSP(fs.master_node,
+                            this.get(), source_vertex)
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
-    return new sssp_result(pred, dist, numVertices, source_vertex)
+    return result
   }
   def pageRank(tol: Double, 
                resetProb: Double = 0.15, 
