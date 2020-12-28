@@ -319,18 +319,15 @@ JNIEXPORT jobjectArray JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getFroved
 
 JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_renameFrovedisDataframe
   (JNIEnv *env, jclass thisCls, jobject master_node, jlong dftbl,
-   jobjectArray names, jobjectArray new_names, jint size,
-   jboolean needs_materialize) {
+   jobjectArray names, jobjectArray new_names, jint size) {
 
   auto fm_node = java_node_to_frovedis_node(env, master_node);
   auto df_proxy = static_cast<exrpc_ptr_t> (dftbl);
   auto cols = to_string_vector(env,names,size);
   auto new_cols = to_string_vector(env,new_names,size);
-  auto needs_materialize_ = (bool) needs_materialize;
   exrpc_ptr_t ret = 0;
   try {
-    ret = exrpc_async(fm_node,frovedis_df_rename,df_proxy,cols,
-                      new_cols,needs_materialize_).get();
+    ret = exrpc_async(fm_node,frovedis_df_rename,df_proxy,cols,new_cols).get();
   }
   catch(std::exception& e) { set_status(true,e.what()); }
   return (jlong) ret;
