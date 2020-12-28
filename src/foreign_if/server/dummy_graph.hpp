@@ -36,5 +36,36 @@ dummy_graph to_dummy_graph(graph<T>* gptr) {
   return dummy_graph(gptr_, nEdges, nNodes, gptr->vertices);
 }
 
+template <class T>
+struct py_pagerank_result {
+  py_pagerank_result() {}
+  py_pagerank_result(std::vector<T>& result, // might be moved
+                     size_t num_active_node) {
+    nodeid.resize(num_active_node); auto nptr = nodeid.data();
+    if (num_active_node != result.size()) {
+      auto index = vector_find_not_tmax(result);
+      //std::cout << num_active_node << " "  << result.size() 
+      //          << " " << index.size() << std::endl;
+      auto iptr = index.data();
+      auto resptr = result.data();
+      rank.resize(num_active_node); auto rptr = rank.data();
+      for(size_t i = 0; i < num_active_node; ++i) {
+        auto id = iptr[i]; 
+        nptr[i] = static_cast<long>(id + 1); // 1-based
+        rptr[i] = resptr[id];
+      }
+    }
+    else {
+      rank.swap(result);
+      for(size_t i = 0; i < num_active_node; ++i) {
+        nptr[i] = static_cast<long>(i + 1); // 1-based
+      }
+    }
+  }
+  std::vector<long> nodeid;
+  std::vector<T> rank; 
+  SERIALIZE(nodeid, rank)
+};
+
 }
 #endif
