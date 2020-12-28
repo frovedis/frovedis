@@ -1,5 +1,6 @@
 #include "exrpc_svd.hpp"
 #include "exrpc_pca.hpp"
+#include "exrpc_tsne.hpp"
 #include "exrpc_pblas.hpp"
 #include "exrpc_scalapack.hpp"
 #include "short_hand_dense_type.hpp"
@@ -13,25 +14,29 @@ extern "C" {
 // to compute SVD of a given sparse matrix 
 JNIEXPORT jobject JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_computeSVD
   (JNIEnv *env, jclass thisCls, jobject master_node, 
-   jlong fdata, jint k, jboolean isDense, jboolean movable) {
+   jlong fdata, jint k, jboolean isDense, 
+   jboolean movable, jboolean use_shrink) {
 
   auto fm_node = java_node_to_frovedis_node(env, master_node);
   auto f_dptr = (exrpc_ptr_t) fdata;
   bool mvbl = (bool) movable;
   bool dense = (bool) isDense;
+  bool shrink = (bool) use_shrink;
 #ifdef _EXRPC_DEBUG_
   std::cout << "Connecting to master node ("
             << fm_node.hostname << "," << fm_node.rpcport
             << ") to compute truncated svd.\n";
 #endif
-  gesvd_result res;
+  svd_result res;
   bool rearrange_out = true;
   try{
     if(dense){
-      res = exrpc_async(fm_node,(frovedis_dense_truncated_svd<R_MAT1,DT1>),f_dptr,k,mvbl,rearrange_out).get();
+      res = exrpc_async(fm_node,(frovedis_dense_truncated_svd<R_MAT1,DT1>),
+                        f_dptr,k,mvbl,rearrange_out).get();
     }
     else {
-      res = exrpc_async(fm_node,(frovedis_sparse_truncated_svd<S_MAT1,DT1>),f_dptr,k,mvbl,rearrange_out).get();
+      res = exrpc_async(fm_node,(frovedis_sparse_truncated_svd<S_MAT1,DT1>),
+                        f_dptr,k,shrink,mvbl,rearrange_out).get();
     }
   }
   catch(std::exception& e) { set_status(true,e.what()); }
@@ -87,7 +92,7 @@ JNIEXPORT jobject JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getSVDResultFr
   auto sfl = to_cstring(env,s_file);
   auto ufl = isU ? to_cstring(env,u_file) : "";
   auto vfl = isV ? to_cstring(env,v_file) : "";
-  gesvd_result ret;
+  svd_result ret;
   try {
     switch(mtype) {
       case CMJR: ret = exrpc_async(fm_node,load_cmm_svd_results<DT1>,sfl,ufl,vfl,isU,isV,bin).get(); break;
@@ -378,7 +383,7 @@ JNIEXPORT jobject JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getrf
             << fm_node.hostname << "," << fm_node.rpcport
             << ") to invoke frovedis::getrf().\n";
 #endif
-  getrf_result ret;
+  lu_fact_result ret;
   try {
     switch(mtype) {
       case CMJR: ret = exrpc_async(fm_node,(frovedis_getrf<DT1,C_LMAT1,std::vector<int>>),f_mptr).get(); break;
@@ -506,7 +511,7 @@ JNIEXPORT jobject JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_gesvd
             << fm_node.hostname << "," << fm_node.rpcport
             << ") to invoke frovedis::gesvd().\n";
 #endif
-  gesvd_result ret;
+  svd_result ret;
   try {
     switch(mtype) {
       case CMJR: ret = exrpc_async(fm_node,(frovedis_gesvd<DT1,C_LMAT1>),f_mptr,isU,isV).get(); break;
@@ -516,6 +521,41 @@ JNIEXPORT jobject JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_gesvd
   }
   catch(std::exception& e) { set_status(true,e.what()); }
   return to_jDummyGesvdResult(env,ret,mtype,isU,isV);
+}
+
+// to compute TSNE of a given dense matrix (rowmajor)
+JNIEXPORT jobject JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_computeTSNE
+  (JNIEnv *env, jclass thisCls, jobject master_node,
+   jlong fdata, jdouble perplexity, jdouble early_exaggeration,
+   jdouble min_grad_norm, jdouble learning_rate, jint ncomponents,
+   jint niter, jint niter_without_progress, jstring metric,
+   jstring method, jstring init, jboolean verbose) {
+
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto f_dptr = (exrpc_ptr_t) fdata;
+  size_t n_iter = (size_t)niter;
+  size_t n_iter_without_progress = (size_t)niter_without_progress;
+  size_t n_components = (size_t)ncomponents;
+  auto metric_ = to_cstring(env,metric);  
+  auto method_ = to_cstring(env,method);
+  auto init_ = to_cstring(env,init);
+  auto verbose_ = (bool) verbose;
+
+#ifdef _EXRPC_DEBUG_
+  std::cout << "Connecting to master node ("
+            << fm_node.hostname << "," << fm_node.rpcport
+            << ") to compute TSNE.\n";
+#endif
+  tsne_result res;
+  try{
+       res = exrpc_async(fm_node, (frovedis_tsne<R_MAT1,DT1>), f_dptr,
+                         perplexity, early_exaggeration, min_grad_norm, 
+                         learning_rate, n_components, n_iter, 
+                         n_iter_without_progress, metric_, method_, init_, 
+                         verbose_).get();
+  }
+  catch(std::exception& e) { set_status(true,e.what()); }
+  return to_jDummyTSNEResult(env, res);
 }
 
 } 
