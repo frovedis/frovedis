@@ -6,9 +6,10 @@
 #include "frovedis/matrix/jds_crs_hybrid.hpp"
 #include "frovedis/matrix/truncated_svd.hpp"
 #include "frovedis/matrix/sparse_svd.hpp"
-#include "../exrpc/exrpc_expose.hpp"
+#include "frovedis/matrix/shrink_sparse_svd.hpp"
 #include "exrpc_data_storage.hpp"
-#include "scalapack_result.hpp"
+#include "ml_result.hpp"
+#include "../exrpc/exrpc_expose.hpp"
 
 using namespace frovedis;
 
@@ -64,7 +65,7 @@ void rearrange_svd_output(diag_matrix_local<T>& s,
 }
 
 template <class MATRIX, class T>
-gesvd_result frovedis_dense_truncated_svd(exrpc_ptr_t& data_ptr, int& k, 
+svd_result frovedis_dense_truncated_svd(exrpc_ptr_t& data_ptr, int& k, 
                                           bool& isMovableInput=false,
                                           bool& rearrange_out=true) {
   MATRIX& mat = *reinterpret_cast<MATRIX*>(data_ptr);      
@@ -80,31 +81,44 @@ gesvd_result frovedis_dense_truncated_svd(exrpc_ptr_t& data_ptr, int& k,
   auto svecp = reinterpret_cast<exrpc_ptr_t>(new std::vector<T>(std::move(s.val)));
   auto umatp = reinterpret_cast<exrpc_ptr_t>(new colmajor_matrix<T>(std::move(u)));
   auto vmatp = reinterpret_cast<exrpc_ptr_t>(new colmajor_matrix<T>(std::move(v)));
-  return gesvd_result(svecp,umatp,vmatp,m,n,k,info);
+  return svd_result(svecp,umatp,vmatp,m,n,k,info);
 }
 
 template <class MATRIX, class T, class I = size_t>
-gesvd_result frovedis_sparse_truncated_svd(exrpc_ptr_t& data_ptr, int& k, 
-                                           bool& isMovableInput=false,
-                                           bool& rearrange_out=true) {
+svd_result 
+frovedis_sparse_truncated_svd(exrpc_ptr_t& data_ptr, int& k,
+                              bool& use_shrink=false, 
+                              bool& isMovableInput=false,
+                              bool& rearrange_out=true) {
   MATRIX& mat = *reinterpret_cast<MATRIX*>(data_ptr);      
   int m = mat.num_row;
   int n = mat.num_col;
   int info = 0; // currently frovedisi svd doesn't return any return status
   colmajor_matrix<T> u, v;
   diag_matrix_local<T> s;
+  if(use_shrink) {
 #if defined(_SX) || defined(__ve__)
-  frovedis::sparse_svd<jds_crs_hybrid<T,I>,jds_crs_hybrid_local<T,I>>(mat,u,s,v,k);
+    frovedis::sparse_svd<jds_crs_hybrid<T,I>,
+                         jds_crs_hybrid_local<T,I>>(mat,u,s,v,k);
 #else
-  frovedis::sparse_svd(mat,u,s,v,k);
+    frovedis::sparse_svd(mat,u,s,v,k);
 #endif
+  }
+  else {
+#if defined(_SX) || defined(__ve__)
+    frovedis::shrink::sparse_svd<jds_crs_hybrid<T,I>,
+                                 jds_crs_hybrid_local<T,I>>(mat,u,s,v,k);
+#else
+    frovedis::shrink::sparse_svd(mat,u,s,v,k);
+#endif
+  }
   // if input is movable, destroying Frovedis side data after computation is done.
   if (isMovableInput)  mat.clear(); 
   if(rearrange_out) rearrange_svd_output(s, u, v);
   auto svecp = reinterpret_cast<exrpc_ptr_t>(new std::vector<T>(std::move(s.val)));
   auto umatp = reinterpret_cast<exrpc_ptr_t>(new colmajor_matrix<T>(std::move(u)));
   auto vmatp = reinterpret_cast<exrpc_ptr_t>(new colmajor_matrix<T>(std::move(v)));
-  return gesvd_result(svecp,umatp,vmatp,m,n,k,info);
+  return svd_result(svecp,umatp,vmatp,m,n,k,info);
 }
 
 template <class MATRIX, class T>
@@ -167,11 +181,12 @@ frovedis_svd_inv_transform(exrpc_ptr_t& data_ptr,
 // u_file/v_file is loaded as colmajor_matrix<T> (lapack/arpack)
 // if wantU/wantV is true, else they are ignored
 template <class T>
-gesvd_result load_cmm_svd_results(std::string& s_file,
-                                  std::string& u_file,
-                                  std::string& v_file,
-                                  bool& wantU, bool& wantV,
-                                  bool& isbinary) {
+svd_result load_cmm_svd_results(std::string& s_file,
+                                std::string& u_file,
+                                std::string& v_file,
+                                bool& wantU, 
+                                bool& wantV,
+                                bool& isbinary) {
   diag_matrix_local<T> s;
   if(isbinary) s = make_diag_matrix_local_loadbinary<T>(s_file);
   else s = make_diag_matrix_local_load<T>(s_file);
@@ -190,18 +205,18 @@ gesvd_result load_cmm_svd_results(std::string& s_file,
     n = tmp.nrow;  
   }
   // "info"(0) is insignificant while loading svd result
-  return gesvd_result(svecp_,umatp_,vmatp_,m,n,k,0);
+  return svd_result(svecp_,umatp_,vmatp_,m,n,k,0);
 }
 
 // loads svd result from files
 // u_file/v_file is loaded as blockcyclic_matrix<T>(scalapack)
 // if wantU/wantV is true, else they are ignored
 template <class T>
-gesvd_result load_bcm_svd_results(std::string& s_file,
-                                  std::string& u_file,
-                                  std::string& v_file,
-                                  bool& wantU, bool& wantV,
-                                  bool& isbinary) {
+svd_result load_bcm_svd_results(std::string& s_file,
+                                std::string& u_file,
+                                std::string& v_file,
+                                bool& wantU, bool& wantV,
+                                bool& isbinary) {
   diag_matrix_local<T> s;
   if(isbinary) s = make_diag_matrix_local_loadbinary<T>(s_file);
   else s = make_diag_matrix_local_load<T>(s_file);
@@ -220,7 +235,7 @@ gesvd_result load_bcm_svd_results(std::string& s_file,
     n = tmp.nrow; 
   }
   // "info"(0) is insignificant while loading svd result
-  return gesvd_result(svecp_,umatp_,vmatp_,m,n,k,0);
+  return svd_result(svecp_,umatp_,vmatp_,m,n,k,0);
 }
 
 #endif

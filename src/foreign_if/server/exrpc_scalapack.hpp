@@ -3,7 +3,7 @@
 
 #include "frovedis/matrix/lapack_wrapper.hpp"
 #include "frovedis/matrix/scalapack_wrapper.hpp"
-#include "scalapack_result.hpp"
+#include "ml_result.hpp"
 #include "../exrpc/exrpc_expose.hpp"
 
 using namespace frovedis;
@@ -13,14 +13,14 @@ using namespace frovedis;
 // MATRIX: blockcyclic_matrix<T> => SCALAPACK version would be called
 
 template <class T, class MATRIX, class IPIV>
-getrf_result
+lu_fact_result
 frovedis_getrf(exrpc_ptr_t& mptr) { 
   auto m = reinterpret_cast<MATRIX*>(mptr);
   MATRIX &mm = *m;
   IPIV ff;
   auto info = frovedis::getrf<T>(mm,ff);
   auto ipivp = reinterpret_cast<exrpc_ptr_t>(new IPIV(std::move(ff)));
-  return getrf_result(ipivp,info);
+  return lu_fact_result(ipivp,info);
 }
 
 template <class T, class MATRIX, class IPIV>
@@ -72,7 +72,7 @@ int frovedis_gels(exrpc_ptr_t& mptrA,
 }
 
 template <class T, class MATRIX>
-gesvd_result
+svd_result
 frovedis_gesvd(exrpc_ptr_t& mptr,
              bool& wantU,
              bool& wantV) {
@@ -120,7 +120,7 @@ frovedis_gesvd(exrpc_ptr_t& mptr,
   auto svecp = reinterpret_cast<exrpc_ptr_t>(new std::vector<T>(std::move(ss)));
   auto umatp = wantU ? reinterpret_cast<exrpc_ptr_t>(umat) : -1;
   auto vmatp = wantV ? reinterpret_cast<exrpc_ptr_t>(vmat) : -1;
-  return gesvd_result(svecp,umatp,vmatp,m,n,k,info);
+  return svd_result(svecp,umatp,vmatp,m,n,k,info);
 }
 
 #endif
