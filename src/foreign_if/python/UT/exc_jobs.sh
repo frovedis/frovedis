@@ -4,7 +4,7 @@ export PYTHONPATH=../main/python:$PYTHONPATH
 export LD_LIBRARY_PATH=../lib:$LD_LIBRARY_PATH
 
 #list of source targets
-src=( nb dt fm )
+src=( nb dt fm bfs cc pagerank sssp tsne )
 
 #list of target frovedis worker nodes to test with
 frov_worker=( 1 2 4 )
@@ -37,7 +37,11 @@ for each in "${src[@]}"; do
       CMD="mpirun -np $k ../../server/frovedis_server"
       python $i "$CMD" >${out} 2>${err}
       grep "Passed" $out >& /dev/null
-      if [ $? -eq 0 ]; then stat="Passed"
+      pass_stat=$? 
+      grep "Exception" $out >& /dev/null
+      excp_stat=$? 
+      if [ $pass_stat -eq 0 ]; then stat="Passed"
+      elif [ $excp_stat -eq 0 ]; then stat="Exception"
       else stat="Failed"
       fi
       echo "$each, $name, $k, $stat" >> ${REPORT}
