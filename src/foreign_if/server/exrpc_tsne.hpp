@@ -4,7 +4,7 @@
 #include "frovedis.hpp"
 #include "frovedis/matrix/tsne.hpp"
 #include "../exrpc/exrpc_expose.hpp"
-#include "tsne_result.hpp"
+#include "ml_result.hpp"
 
 using namespace frovedis;
 
@@ -19,6 +19,8 @@ tsne_result frovedis_tsne(exrpc_ptr_t& data_ptr,
                           size_t& n_iter = 1000,
                           size_t& n_iter_without_progress = 300,
                           std::string& metric = "euclidean",
+                          std::string& method = "exact",
+                          std::string& init = "random",
                           bool& verbose = false) {
   MATRIX& mat = *reinterpret_cast<MATRIX*>(data_ptr);
   // output attributes
@@ -29,8 +31,8 @@ tsne_result frovedis_tsne(exrpc_ptr_t& data_ptr,
   // calling frovedis::tsne(...)
   auto res = tsne(mat, perplexity, early_exaggeration,
                   min_grad_norm, learning_rate, n_components,
-                  n_iter, n_iter_without_progress, metric,
-                  verbose, iter_cnt, kl_div);
+                  n_iter, n_iter_without_progress, metric, method,
+                  init, verbose, iter_cnt, kl_div);
   auto embeddings = new rowmajor_matrix<T>(std::move(res));
 
 #ifdef _EXRPC_DEBUG_
