@@ -5,10 +5,12 @@ import com.nec.frovedis.Jmatrix.DummyMatrix
 import com.nec.frovedis.matrix.Utils._
 import com.nec.frovedis.matrix.ScalaCRS
 import com.nec.frovedis.matrix.MAT_KIND
+import com.nec.frovedis.matrix.FrovedisRowmajorMatrix
 import org.apache.spark.rdd.RDD
 import org.apache.spark.SparkContext
 import org.apache.spark.mllib.linalg.{Matrices, Vector}
 import org.apache.spark.mllib.recommendation.Rating
+
 
 class FrovedisSparseData extends java.io.Serializable {
   protected var fdata : Long = -1
@@ -48,6 +50,17 @@ class FrovedisSparseData extends java.io.Serializable {
     val ctxt: SparkContext = SparkContext.getOrCreate()
     return to_spark_sparse_matrix(ctxt)
   }
+
+  def to_frovedis_rowmajor_matrix() : FrovedisRowmajorMatrix = {
+    if(fdata == -1) return null
+    val fs = FrovedisServer.getServerInstance()
+    /* convert crs to rowmajor matrix */
+    val rmat = JNISupport.crsToFrovedisRowmajorMatrix(fs.master_node, fdata)
+    var info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
+    return new FrovedisRowmajorMatrix(rmat)
+  }
+
   def to_spark_sparse_matrix(ctxt: SparkContext) : RDD[Vector] = {
     if(fdata == -1) return null    
     val fs = FrovedisServer.getServerInstance()
