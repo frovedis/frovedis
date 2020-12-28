@@ -10,8 +10,8 @@ Frovedis is a MPI library that provides
 - Machine learning algorithm library
 - Dataframe for preprocessing
 
-The Python interface wraps these functionalities can make it possible
-to call from Python script. Since the library is optimized for
+The Python interface wraps these functionalities and makes it possible
+to call them from Python script. Since the library is optimized for
 SX-Aurora TSUBASA, you can utilize vector architecture without being
 aware of it. You can use it also on x86 servers.
 
@@ -32,34 +32,51 @@ If you want to use vector engine (VE), please do:
 
     $ source /opt/nec/nosupport/frovedis/ve/bin/veenv.sh
 
-Main purpose of the script is to set PYTHONPATH and LD_LIBRARY_PATH.
+Main purpose of the script is to set `PYTHONPATH` and `LD_LIBRARY_PATH`.
 It also switches `mpirun` to call (x86 or ve). If you did not source
-MPI set up script for VE, veenv.sh also source it internally.
+MPI set up script for VE, `veenv.sh` also source it internally.
 
-Supported Python version is 2.7, which is installed in CentOS/RedHat
-by default. Since our wrapper is just a Python library and shared
-library, you can use tools like virtualenv, Jupyter, etc. together
-with the wrapper.
+We tested the wrapper using Python version 2.7 and version 3.6. 
+Python version 2.7 is installed in CentOS/RedHat7 by default; Python
+version 3.6 can be installed using software collection on
+CentOS/RedHat7 and installed in CentOS/RedHat8 by default.
+
+Since our wrapper is just a Python library and shared library, you can
+use tools like virtualenv, Jupyter, etc. together with the wrapper.
 
 In this tutorial, we use python with virtualenv, because scikit-learn
 cannot be installed by yum, and using pip for system installed Python
 is a bit dangerous (virtualenv and pip will be installed together
 with Frovedis by yum).
 
-Please create your environment by virtualenv and install scikit-learn:
+First, please create your environment.
+In the case of Python 2.7: 
 
     $ virtualenv frovedis_tutorial
+
+In the case of Python 3:
+
+    $ python3 -m venv frovedis_tutorial
+
+If you want to use Python version 3.6 on CentOS/RedHat7, please
+install it from software collection and enable it as follows:
+
+    $ sudo yum install centos-release-scl
+    $ sudo yum install rh-python36
+    $ scl enable rh-python36 bash
+
+Then, please activate the environment and install scikit-learn:
+
 	$ source frovedis_tutorial/bin/activate
     (frovedis_tutorial) $ pip install scikit-learn
 
-Installing scikit-learn is for tutorial purpose. If you want to use
-only Frovedis, you do not have to install scikit-learn.
+(Installing scikit-learn is for tutorial purpose. If you want to use
+only Frovedis, you do not have to install scikit-learn.)
 
 If you want to run the tutorials on jupyter-notebook in the virtual
-environment, you might need to run following:
+environment, you need to run following:
 
-    (frovedis_tutorial) $ pip install jupyter ipython ipykernel
-    (frovedis_tutorial) $ ipython kernel install --user --name=frovedis_tutorial
+    (frovedis_tutorial) $ pip install jupyter
 
 If you run jupyter notebook server on a server machine and run your
 browser on a client machine, following setting would need to be added
@@ -75,9 +92,8 @@ Then, you can run
     (frovedis_tutorial) $ jupyter-notebook
 
 and access the server with the token printed by the command.
-Please change kernel to frovedis_tutorial at the kernel tab. 
 
-In addition, please copy the src directory to somewhere you have write
+In addition, please copy the `./src` directory to somewhere you have write
 permission, because it will create files.
 
 # 3. Simple example
@@ -115,7 +131,7 @@ specifying command line option appropriately.
 
 The last argument of `mpirun` is the binary to execute. Here, the path
 of the binary is obtained from the environment variable
-`FROVEDIS_SERVER`, which is set in x86env.sh or veenv.sh.
+`FROVEDIS_SERVER`, which is set in `x86env.sh` or `veenv.sh`.
 
 The LogisticRegression call is the same as scikit-learn. Within the
 call, the data in Python interpreter is sent to frovedis_server and
@@ -143,23 +159,49 @@ than scikit-learn. This is because the size of the data is very small
 
 The frovedis server will be terminated when the interpreter exits.
 If it is not terminated because of abnormal termination, please kill the
-server manually by calling command like `pkill mpi`. 
+server manually by calling command like `pkill mpi`. In the case of
+VE, you can check if the server is running or not by
+`/opt/nec/ve/bin/ps -elf`, for example (or `$ VE_NODE_NUMBER=0
+/opt/nec/ve/bin/top`, where you can change the VE node number by the
+environment variable).
+
+You can also refer to the [notebooks](https://github.com/frovedis/frovedis/tree/master/doc/notebook) installed in
+`${INSTALLPATH}/doc/notebook`.
+
 
 # 4. Machine learning algorithms
 
-At this moment, we support following algorithms:
+At this moment, we support following algorithms (sklearn is link to
+scikit-learn manual):
 
-- `linear_model.LogisticRegression`
-- `linear_model.LinearRegression`
-- `linear_model.Lasso`
-- `linear_model.Ridge`
-- `svm.LinearSVC`
-- `cluster.KMeans`
-- `tree.DecisionTreeRegressor`
-- `tree.DecisionTreeClassifier`
-- `naive_bayes.MultinomialNB`
-- `naive_bayes.BernoulliNB`
-- `decomposition.TruncatedSVD`
+- `linear_model.LogisticRegression`([sklearn](https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.LogisticRegression.html))
+- `linear_model.LinearRegression`([sklearn](https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.LinearRegression.html))
+- `linear_model.Ridge`([sklearn](https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.Ridge.html))
+- `linear_model.Lasso`([sklearn](https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.Lasso.html))
+- `linear_model.SGDClassifier`([sklearn](https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.SGDClassifier.html))
+- `linear_model.SGDRegressor`([sklearn](https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.SGDRegressor.html))
+- `svm.LinearSVC`([sklearn](https://scikit-learn.org/stable/modules/generated/sklearn.svm.LinearSVC.html))
+- `svm.LinearSVR`([sklearn](https://scikit-learn.org/stable/modules/generated/sklearn.svm.LinearSVR.html))
+- `svm.SVC`([sklearn](https://scikit-learn.org/stable/modules/generated/sklearn.svm.SVC.html))
+- `tree.DecisionTreeClassifier`([sklearn](https://scikit-learn.org/stable/modules/generated/sklearn.tree.DecisionTreeClassifier.html))
+- `tree.DecisionTreeRegressor`([sklearn](https://scikit-learn.org/stable/modules/generated/sklearn.tree.DecisionTreeRegressor.html))
+- `ensemble.RandomForestClassifier`([sklearn](https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.RandomForestClassifier.html))
+- `ensemble.RandomForestRegressor`([sklearn](https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.RandomForestRegressor.html))
+- `ensemble.GradientBoostingClassifier`([sklearn](https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.GradientBoostingClassifier.html))
+- `ensemble.GradientBoostingRegressor`([sklearn](https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.GradientBoostingRegressor.html))
+- `neighbors.KNeighborsClassifier`([sklearn](https://scikit-learn.org/stable/modules/generated/sklearn.neighbors.KNeighborsClassifier.html))
+- `neighbors.KneighborsRegressor`([sklearn](https://scikit-learn.org/stable/modules/generated/sklearn.neighbors.KNeighborsRegressor.html))
+- `neighbors.NearestNeighbors`([sklearn](https://scikit-learn.org/stable/modules/generated/sklearn.neighbors.NearestNeighbors.html))
+- `naive_bayes.MultinomialNB`([sklearn](https://scikit-learn.org/stable/modules/generated/sklearn.naive_bayes.MultinomialNB.html))
+- `naive_bayes.BernoulliNB`([sklearn](https://scikit-learn.org/stable/modules/generated/sklearn.naive_bayes.BernoulliNB.html))
+- `cluster.KMeans`([sklearn](https://scikit-learn.org/stable/modules/generated/sklearn.cluster.KMeans.html))
+- `cluster.AgglomerativeClustering`([sklearn](https://scikit-learn.org/stable/modules/generated/sklearn.cluster.AgglomerativeClustering.html))
+- `cluster.DBSCAN`([sklearn](https://scikit-learn.org/stable/modules/generated/sklearn.cluster.DBSCAN.html))
+- `cluster.SpectralClustering`([sklearn](https://scikit-learn.org/stable/modules/generated/sklearn.cluster.SpectralClustering.html))
+- `manifold.SpectralEmbedding`([sklearn](https://scikit-learn.org/stable/modules/generated/sklearn.manifold.SpectralEmbedding.html))
+- `manifold.TSNE`([sklearn](https://scikit-learn.org/stable/modules/generated/sklearn.manifold.TSNE.html))
+- `decomposition.TruncatedSVD`([sklearn](https://scikit-learn.org/stable/modules/generated/sklearn.decomposition.TruncatedSVD.html))
+- `decomposition.PCA`([sklearn](https://scikit-learn.org/stable/modules/generated/sklearn.decomposition.PCA.html))
 
 Please add `frovedis.mllib.` to import these modules.
 (In the case of scikit-learn, `sklearn.` is added to import them.)
@@ -167,8 +209,23 @@ The interface is almost the same as scikit-learn.
 
 Other than scikit-learn algorithms, we support following algorithms. 
 
-- `fm.FactorizationMachineClassifier`
-- `recommendation.ALS`
+- `frovedis.mllib.fm.FactorizationMachineClassifier`
+- `frovedis.mllib.recommendation.ALS`
+- `frovedis.mllib.fpm.FPGrowth`
+- `frovedis.mllib.decomposition.LatentDirichletAllocation`
+- `frovedis.mllib.feature.Word2Vector`
+
+In addition, following graph algorithms are supported. The interface
+is almost the same as networkx.
+
+- `frovedis.graph.pagerank`
+- `frovedis.graph.connected_components`
+- `frovedis.graph.single_source_shortest_path`
+- `frovedis.graph.bfs_edges`
+- `frovedis.graph.bfs_tree`
+- `frovedis.graph.bfs_predecessors`
+- `frovedis.graph.bfs_successors`
+- `frovedis.graph.descendants_at_distance`
 
 You can use both dense and sparse matrix as the input of machine
 learning just like scikit-learn. It is automatically sent to Frovedis
@@ -395,7 +452,7 @@ Last example is singular value decomposition (SVD) by `gesvd`. Unlike
     svd = SCALAPACK.gesvd(bcm)
 
 Calling `gesvd(bcm)` creates an object `svd` that contains result.
-The `to_numpy_resuts()` function extracts left singular vectors
+The `to_numpy_results()` function extracts left singular vectors
 (umat), singular values (svec), and right singular vectors (vmat). 
 
     (umat,svec,vmat) = svd.to_numpy_results()
@@ -727,7 +784,7 @@ The data structure `info` can be saved and loaded to a file.
 
 Manuals are in `../manual` directory.
 In addition to PDF file, you can also use `man` command (MANPATH is
-set in x86env.sh or veenv.sh). For python interface, the section is
+set in `x86env.sh` or `veenv.sh`). For python interface, the section is
 `3p` (same name of the manual may exist in section `3` or `3s`.), so
 you can run like `man -s 3p logistic_regression`. 
 Currently, there are following manual entries: 
@@ -744,7 +801,6 @@ Currently, there are following manual entries:
 - `blockcyclic_matrix`
 - `scalapack_wrapper`
 - `pblas_wrapper`
-- `arpack_wrapper`
 - `getrf_result`
 - `gesvd_result`
 
