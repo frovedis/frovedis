@@ -757,7 +757,7 @@ class KNeighborsRegressor(BaseEstimator):
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
             raise RuntimeError(excpt["info"])
-        return ret
+        return np.asarray(ret, dtype=np.float64)
 
     def score(self, X, y, sample_weight=None):
         """
