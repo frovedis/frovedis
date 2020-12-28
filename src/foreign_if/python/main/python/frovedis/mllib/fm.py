@@ -101,15 +101,21 @@ class FactorizationMachineClassifier(BaseEstimator):
         """
         self.validate()
         self.release()
-        self.__mid = ModelID.get()
-        inp_data = FrovedisLabeledPoint(X, y)
-        (X, y) = inp_data.get()
+        inp_data = FrovedisLabeledPoint(X, y, \
+                   caller = "[" + self.__class__.__name__ + "] fit: ",\
+                   encode_label = True, binary_encoder=[-1, 1], \
+                   dense_kind = 'colmajor', densify=False)
+        X, y, logic = inp_data.get()
+        self._classes = inp_data.get_distinct_labels()
+        self.n_classes = len(self._classes)
+        self.label_map = logic
         dtype = inp_data.get_dtype()
         itype = inp_data.get_itype()
         dense = inp_data.is_dense()
-        self.__mdtype = dtype
         if dense:
             raise TypeError("Expected sparse matrix data for training!")
+        self.__mdtype = dtype
+        self.__mid = ModelID.get()
         (host, port) = FrovedisServer.getServerInstance()
         rpclib.fm_train(host, port, X.get(),
                         y.get(), self.init_stdev, self.iteration,
@@ -132,11 +138,32 @@ class FactorizationMachineClassifier(BaseEstimator):
         NAME: predict
         """
         if self.__mid is not None:
-            return GLM.predict(X, self.__mid, self.__mkind, \
-                self.__mdtype, False)
+            pred = GLM.predict(X, self.__mid, self.__mkind, \
+                               self.__mdtype, False)
+            return np.asarray([self.label_map[pred[i]] \
+                              for i in range(0, len(pred))])
         else:
             raise ValueError( \
             "predict is called before calling fit, or the model is released.")
+
+    @property
+    def classes_(self):
+        """classes_ getter"""
+        if self.__mid is not None:
+            if self._classes is None:
+                self._classes = np.sort(list(self.label_map.values()))
+            return self._classes
+        else:
+            raise AttributeError("attribute 'classes_'" \
+               " might have been released or called before fit")
+
+    @classes_.setter
+    def classes_(self, val):
+        """classes_ setter"""
+        raise AttributeError(\
+            "attribute 'classes_' of FactorizationMachineClassifier "
+            "object is not writable")
+
 
     # Load the model from a file
     def load(self, fname, dtype=None):
@@ -147,6 +174,10 @@ class FactorizationMachineClassifier(BaseEstimator):
             raise ValueError(\
                 "the model with name %s does not exist!" % fname)
         self.release()
+        target = open(fname+"/label_map", "rb")
+        self.label_map = pickle.load(target)
+        target.close()
+        self._classes = np.sort(list(self.label_map.values()))
         metadata = open(fname+"/metadata", "rb")
         self.__mkind, self.__mdtype = pickle.load(metadata)
         metadata.close()
@@ -180,12 +211,15 @@ class FactorizationMachineClassifier(BaseEstimator):
             else:
                 os.makedirs(fname)
             GLM.save(self.__mid, self.__mkind, self.__mdtype, fname+"/model")
+            target = open(fname+"/label_map", "wb")
+            pickle.dump(self.label_map, target)
+            target.close()
             metadata = open(fname+"/metadata", "wb")
             pickle.dump((self.__mkind, self.__mdtype), metadata)
             metadata.close()
         else:
-            raise ValueError("save: the requested model might have \
-                been released!")
+            raise ValueError("save: either called before fit or the "
+                             "requested model might have been released!")
 
     # Show the model
     def debug_print(self):
@@ -203,6 +237,7 @@ class FactorizationMachineClassifier(BaseEstimator):
         if self.__mid is not None:
             GLM.release(self.__mid, self.__mkind, self.__mdtype)
             self.__mid = None
+            self._classes = None
 
     # Check FrovedisServer is up then release
     def __del__(self):
@@ -295,17 +330,19 @@ class FactorizationMachineRegressor(BaseEstimator):
         """
         NAME: fit
         """
-        self.validate()
         self.release()
-        self.__mid = ModelID.get()
-        inp_data = FrovedisLabeledPoint(X, y)
+        inp_data = FrovedisLabeledPoint(X, y, \
+                   caller = "[" + self.__class__.__name__ + "] fit: ",\
+                   dense_kind = 'colmajor', densify=False)
         (X, y) = inp_data.get()
         dtype = inp_data.get_dtype()
         itype = inp_data.get_itype()
         dense = inp_data.is_dense()
-        self.__mdtype = dtype
         if dense:
             raise TypeError("Expected Sparse matrix data for training!")
+        self.validate()
+        self.__mdtype = dtype
+        self.__mid = ModelID.get()
         (host, port) = FrovedisServer.getServerInstance()
         rpclib.fm_train(host, port, X.get(),
                         y.get(), self.init_stdev, self.iteration,
@@ -327,8 +364,9 @@ class FactorizationMachineRegressor(BaseEstimator):
         NAME: predict
         """
         if self.__mid is not None:
-            return GLM.predict(X, self.__mid, self.__mkind, \
-                self.__mdtype, False)
+            ret = GLM.predict(X, self.__mid, self.__mkind, \
+                              self.__mdtype, False)
+            return np.asarray(ret, dtype=np.float64)
         else:
             raise ValueError( \
             "predict is called before calling fit, or the model is released.")

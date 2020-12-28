@@ -23,12 +23,13 @@ class LogisticRegression(BaseEstimator):
     max_iter: Frovedis: 1000, Sklearn: 100
     solver: Frovedis: sag (SGD), Sklearn: lbfgs
     lr_rate: Frovedis: 0.01 (added)
+    use_shrink: Frovedis: false (added)
     """
     def __init__(self, penalty='none', dual=False, tol=1e-4, C=1.0,
                  fit_intercept=True, intercept_scaling=1, class_weight=None,
                  random_state=None, solver='sag', max_iter=1000,
                  multi_class='auto', verbose=0, warm_start=False,
-                 n_jobs=1, l1_ratio=None, lr_rate=0.01):
+                 n_jobs=1, l1_ratio=None, lr_rate=0.01, use_shrink=False):
         self.penalty = penalty
         self.dual = dual
         self.tol = tol
@@ -46,6 +47,7 @@ class LogisticRegression(BaseEstimator):
         self.l1_ratio = l1_ratio
         # extra
         self.lr_rate = lr_rate
+        self.use_shrink = use_shrink
         self.__mid = None
         self.__mdtype = None
         self.__mkind = None
@@ -76,6 +78,10 @@ class LogisticRegression(BaseEstimator):
         dense = inp_data.is_dense()
         self.__mid = ModelID.get()
         self.__mdtype = dtype
+
+        if dense and self.use_shrink:
+            raise ValueError("fit: use_shrink is applicable only for " \
+                             + "sparse data!")
 
         if self.multi_class == 'auto' or self.multi_class == 'ovr':
             if self.n_classes == 2:
@@ -111,7 +117,7 @@ class LogisticRegression(BaseEstimator):
             rpclib.lr_sgd(host, port, X.get(), y.get(), self.max_iter, \
                        self.lr_rate, regTyp, rparam, isMult, \
                        self.fit_intercept, self.tol, self.verbose, \
-                       self.__mid, dtype, itype, dense)
+                       self.__mid, dtype, itype, dense, self.use_shrink)
         elif self.solver == 'lbfgs':
             rpclib.lr_lbfgs(host, port, X.get(), y.get(), \
                           self.max_iter, self.lr_rate, regTyp, rparam, \
@@ -188,8 +194,8 @@ class LogisticRegression(BaseEstimator):
                 self._classes = np.sort(list(self.label_map.values()))
             return self._classes
         else:
-            raise AttributeError("attribute 'classes_' \
-               might have been released or called before fit")
+            raise AttributeError("attribute 'classes_'" \
+               "might have been released or called before fit")
 
     @classes_.setter
     def classes_(self, val):
@@ -219,7 +225,7 @@ class LogisticRegression(BaseEstimator):
                                 self.__mdtype, True, self.n_classes)
             n_samples = len(proba) // self.n_classes
             shape = (n_samples, self.n_classes)
-            return np.asarray(proba).reshape(shape)
+            return np.asarray(proba, dtype=np.float64).reshape(shape)
         else:
             raise ValueError( \
             "predict is called before calling fit, or the model is released.")
@@ -455,8 +461,9 @@ class LinearRegression(BaseEstimator):
         NAME: predict
         """
         if self.__mid is not None:
-            return GLM.predict(X, self.__mid, self.__mkind, \
-                self.__mdtype, False)
+            ret = GLM.predict(X, self.__mid, self.__mkind, \
+                              self.__mdtype, False)
+            return np.asarray(ret, dtype = np.float64)
         else:
             raise ValueError( \
             "predict is called before calling fit, or the model is released.")
@@ -644,8 +651,9 @@ class Lasso(BaseEstimator):
         NAME: predict
         """
         if self.__mid is not None:
-            return GLM.predict(X, self.__mid, self.__mkind, \
-                self.__mdtype, False)
+            ret = GLM.predict(X, self.__mid, self.__mkind, \
+                              self.__mdtype, False)
+            return np.asarray(ret, dtype = np.float64)
         else:
             raise ValueError( \
             "predict is called before calling fit, or the model is released.")
@@ -844,8 +852,9 @@ class Ridge(BaseEstimator):
         NAME: predict
         """
         if self.__mid is not None:
-            return GLM.predict(X, self.__mid, self.__mkind, \
-                self.__mdtype, False)
+            ret = GLM.predict(X, self.__mid, self.__mkind, \
+                              self.__mdtype, False)
+            return np.asarray(ret, dtype = np.float64)
         else:
             raise ValueError( \
             "predict is called before calling fit, or the model is released.")
@@ -1134,7 +1143,7 @@ class SGDClassifier(BaseEstimator):
             frov_pred = GLM.predict(X, self.__mid, self.__mkind, \
                                     self.__mdtype, False)
             if self.__mkind == M_KIND.LNRM:
-                return np.asarray(frov_pred)
+                return np.asarray(frov_pred, dtype=np.float64)
             else:
                 return np.asarray([self.label_map[frov_pred[i]] \
                                   for i in range(0, len(frov_pred))])
@@ -1154,7 +1163,7 @@ class SGDClassifier(BaseEstimator):
                                self.__mdtype, True, self.n_classes)
             n_samples = len(proba) // self.n_classes
             shape = (n_samples, self.n_classes)
-            return np.asarray(proba).reshape(shape)
+            return np.asarray(proba, dtype=np.float64).reshape(shape)
         else:
             raise ValueError( \
             "predict is called before calling fit, or the model is released.")
@@ -1427,8 +1436,9 @@ class SGDRegressor(BaseEstimator):
         NAME: predict for SGDRegressor
         """
         if self.__mid is not None:
-            return GLM.predict(X, self.__mid, self.__mkind, \
-                               self.__mdtype, False)
+            ret = GLM.predict(X, self.__mid, self.__mkind, \
+                              self.__mdtype, False)
+            return np.asarray(ret, dtype=np.float64)
         else:
             raise ValueError( \
             "predict is called before calling fit, or the model is released.")
