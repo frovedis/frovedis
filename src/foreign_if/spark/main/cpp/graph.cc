@@ -115,11 +115,9 @@ Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisPageRank(JNIEnv *env, jclass
   return to_jDummyGraph(env, ret);
 }
 
-JNIEXPORT void JNICALL
+JNIEXPORT jobject JNICALL
 Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisSSSP(JNIEnv *env, jclass thisCls,
-  jobject master_node, jlong fdata,
-  jdoubleArray dist_arr, jlongArray pred_arr, jlong sz,
-  jlong source_vertex) {
+  jobject master_node, jlong fdata, jlong source_vertex) {
   auto fm_node = java_node_to_frovedis_node(env, master_node);
   auto f_dptr = static_cast<exrpc_ptr_t> (fdata);
   int vb = 0; // no log (default)
@@ -129,52 +127,60 @@ Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisSSSP(JNIEnv *env, jclass thi
                       source_vertex, vb).get();
   }
   catch(std::exception& e) { set_status(true,e.what()); }
-  checkAssumption(sz == (long)res.distances.size()); // check in case any size issue
-  env->SetDoubleArrayRegion(dist_arr, 0, sz, res.distances.data());
-  env->SetLongArrayRegion(pred_arr, 0, sz,(long*) res.predecessors.data());
+  return to_jSSSP_Result(env, res, source_vertex);
 }
 
-JNIEXPORT void JNICALL
+JNIEXPORT jobject JNICALL
 Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisBFS(JNIEnv *env, jclass thisCls,
   jobject master_node, jlong fdata,
-  jlongArray dist_arr, jlongArray pred_arr, jlong sz,
-  jlong source_vertex, jint opt_level, jdouble hyb_threshold) {
+  jlong source_vertex, jint opt_level, jdouble hyb_threshold, jlong depth_limit) {
   auto fm_node = java_node_to_frovedis_node(env, master_node);
   auto f_dptr = static_cast<exrpc_ptr_t> (fdata);
   int vb = 0; // no log (default)
   bfs_result<DT5> res;
   try {
     res = exrpc_async(fm_node, (frovedis_bfs<graph<DT1>,DT5>), f_dptr,
-                      source_vertex, opt_level, hyb_threshold, vb).get();
+                      source_vertex, opt_level, hyb_threshold, depth_limit, 
+                      vb).get();
   }
   catch(std::exception& e) { set_status(true,e.what()); }
-  checkAssumption(sz == (long)res.distances.size()); // check in case any size issue
-  env->SetLongArrayRegion(dist_arr, 0, sz, (long*) res.distances.data());
-  env->SetLongArrayRegion(pred_arr, 0, sz, (long*) res.predecessors.data());
+  return to_jBFS_Result(env, res, source_vertex);
 }
 
 JNIEXPORT jlongArray JNICALL
 Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisCC(JNIEnv *env, jclass thisCls,
   jobject master_node, jlong fdata,
   jlongArray nodes_in_which_cc,
-  jlongArray nodes_dist, jlong sz, 
+  jlongArray nodes_dist, jlong num_vertices, 
   jint opt_level, jdouble hyb_threshold) {
   auto fm_node = java_node_to_frovedis_node(env, master_node);
   auto f_dptr = static_cast<exrpc_ptr_t> (fdata);
   int vb = 0; // no log (default)
-  cc_result<DT5> res;
+  cc_result<DT5> result;
   try {
-    res = exrpc_async(fm_node, (frovedis_cc<graph<DT1>,DT5>), f_dptr, 
+    result = exrpc_async(fm_node, (frovedis_cc<graph<DT1>,DT5>), f_dptr, 
                       opt_level, hyb_threshold, vb).get();
   }
   catch(std::exception& e) { set_status(true,e.what()); }
-  checkAssumption(sz == (long)res.distances.size()); // check in case any size issue
-  env->SetLongArrayRegion(nodes_dist, 0, sz, (long*)res.distances.data());
-  env->SetLongArrayRegion(nodes_in_which_cc, 0, sz, (long*)res.num_nodes_in_which_cc.data());
-  std::vector<long> ret(2 * res.num_cc);
-  for(size_t i = 0; i < res.num_cc; ++i) {
-    ret[2 * i] = res.root_in_each_cc[i];
-    ret[2 * i + 1] = res.num_nodes_in_each_cc[i];
+  checkAssumption(result.distances.size() == num_vertices);
+  checkAssumption(result.num_nodes_in_which_cc.size() == num_vertices);
+  auto resdistp = result.distances.data();
+  auto reswhichp = result.num_nodes_in_which_cc.data();
+  auto lmax = std::numeric_limits<long>::max();
+  auto uimax = std::numeric_limits<size_t>::max();
+  std::vector<long> tmpdist(num_vertices), tmpwhich(num_vertices);
+  auto tmpdistp = tmpdist.data();
+  auto tmpwhichp = tmpwhich.data();
+  for(size_t i = 0; i < num_vertices; ++i){
+    tmpdistp[i] = (resdistp[i] == uimax) ? lmax : (long) resdistp[i];
+    tmpwhichp[i] = (reswhichp[i] == uimax) ? lmax : (long) reswhichp[i];
+  }
+  env->SetLongArrayRegion(nodes_dist, 0, num_vertices, tmpdistp);
+  env->SetLongArrayRegion(nodes_in_which_cc, 0, num_vertices, tmpwhichp);
+  std::vector<long> ret(2 * result.num_cc); auto retp = ret.data();
+  for(size_t i = 0; i < result.num_cc; ++i) {
+    retp[2 * i] = result.root_in_each_cc[i];
+    retp[2 * i + 1] = result.num_nodes_in_each_cc[i];
   }
   return to_jlongArray(env, ret);
 }
