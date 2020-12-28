@@ -3,7 +3,7 @@ include ../Makefile.in.x86
 include ../Makefile.common
 
 TO_INSTALL := vecop.cc matop.cc
-DIR := vecop
+DIR := vector_matrix_operations
 ARCH := x86
 
 vecop: vecop.o

@@ -72,6 +72,7 @@ int main(int argc, char* argv[]) {
     auto vunq = vector_unique(vec);
     t.show("vector_unique: ");
 
+    // only for vector<int>
     //auto vbincnt = vector_bincount(vec);
     //t.show("vector_bincount: ");
 
@@ -96,6 +97,9 @@ int main(int argc, char* argv[]) {
     auto vnnz = vector_count_nonzero(vec); 
     t.show("vector_count_nonzero: ");
 
+    auto index = vector_find_nonzero(vec);
+    t.show("vector_find_nonzero: ");
+
     auto vbin = vector_binarize(vec, 4.0);
     t.show("vector_binarize: ");
 
@@ -117,7 +121,6 @@ int main(int argc, char* argv[]) {
     auto vfull = vector_full<int>(1000, 5.0);
     t.show("vector_full: ");
 
-/*
     std::cout << "-------- results -------- \n";   
     show("data: ", vec);
     show("data + data: ", vsum);
@@ -144,6 +147,7 @@ int main(int argc, char* argv[]) {
     show("argmax(data): ", vmaxid);
     show("amax(data): ", vmax);
     show("count_nonzero(data): ", vnnz);
+    show("vector_find nonzero index: ", index); 
     show("binarize(data, 4): ", vbin);
     show("clip(data, 2, 5): ", vclip);
     show("take(data[0 : N): ", vtake);
@@ -151,7 +155,6 @@ int main(int argc, char* argv[]) {
     show("zeros(1000): ", vzeros);
     show("ones(1000): ", vones);
     show("full(1000, 5): ", vfull);
-*/
   } 
   catch(std::exception& e) {
     std::cout <<  "exception caught: " << e.what() << std::endl;
