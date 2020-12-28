@@ -100,7 +100,7 @@ void set_local_nrow(crs_matrix_local<T,I,O>& mat, size_t diff) {
 
 template <class T, class I, class O>
 crs_matrix<T,I,O>
-check_input(crs_matrix<T,I,O>& mat) {
+check_input(const crs_matrix<T,I,O>& mat) {
   auto nrow = mat.num_row;
   auto ncol = mat.num_col;
   if (nrow == ncol) return mat;
