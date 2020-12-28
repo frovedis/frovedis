@@ -244,7 +244,7 @@ construct_distance_matrix(rowmajor_matrix<T>& x_mat,
   std::string dist_metric = metric; // removing const-ness
   rowmajor_matrix<T> dist_mat;
 
-  time_spent calc_dist(INFO);
+  time_spent calc_dist(DEBUG);
   calc_dist.lap_start();
   // a simple heuristic to decide which matrix to broadcast
   if (nsamples/100 <= nquery) {
