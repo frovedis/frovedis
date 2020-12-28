@@ -98,31 +98,27 @@ class GradientBoostingClassifier(BaseEstimator):
         if self.max_bins < 0:
             raise ValueError("Value of max_bin should be greater than 0")
 
-        if self.n_classes_ < 0:
-            raise ValueError("Value of number of classes should be +ve integer"
-                             " or zero!")
-
         if self.random_state is None:
             self.random_state = -1
 
         if(isinstance(self.max_features, int)):
             self.feature_subset_strategy = "customrate"
-            self.feature_subset_rate = (self.max_features*1.0)/self.n_features
+            self.feature_subset_rate = (self.max_features*1.0)/self.n_features_
         elif(isinstance(self.max_features, float)):
             self.feature_subset_strategy = "customrate"
             self.feature_subset_rate = self.max_features
         elif(self.max_features is None):
             self.feature_subset_strategy = "all"
-            self.feature_subset_rate = self.n_features
+            self.feature_subset_rate = self.n_features_
         elif(self.max_features == "auto"):
             self.feature_subset_strategy = "auto"
-            self.feature_subset_rate = np.sqrt(self.n_features)
+            self.feature_subset_rate = np.sqrt(self.n_features_)
         elif(self.max_features == "sqrt"):
             self.feature_subset_strategy = "sqrt"
-            self.feature_subset_rate = np.sqrt(self.n_features)
+            self.feature_subset_rate = np.sqrt(self.n_features_)
         elif(self.max_features == "log2"):
             self.feature_subset_strategy = "log2"
-            self.feature_subset_rate = np.log2(self.n_features)
+            self.feature_subset_rate = np.log2(self.n_features_)
         else:
             raise ValueError("validate: unsupported max_features is encountered!")
 
@@ -135,34 +131,27 @@ class GradientBoostingClassifier(BaseEstimator):
         NAME: fit
         fit for Gradient Boost Classifier
         """
-        # release old model, if any
         self.release()
         # perform the fit
-        self.__mid = ModelID.get()
-        inp_data = FrovedisLabeledPoint(X, y)
-        (X, y) = inp_data.get()
+        inp_data = FrovedisLabeledPoint(X, y, \
+                   caller = "[" + self.__class__.__name__ + "] fit: ",\
+                   encode_label = True, binary_encoder=[-1, 1], \
+                   dense_kind = 'colmajor', densify=True)
+        X, y, logic = inp_data.get()
+        self._classes = inp_data.get_distinct_labels()
+        self.n_classes_ = len(self._classes)
+        self.n_features_ = inp_data.numCols()
+        self.label_map = logic
         dtype = inp_data.get_dtype()
         itype = inp_data.get_itype()
         dense = inp_data.is_dense()
-        unique_labels = inp_data.get_distinct_labels()
-        self.n_features = inp_data.numCols()
-        self.n_classes_ = unique_labels.size
-        self.classes_ = unique_labels
         self.n_estimators_ = self.n_estimators # TODO: confirm whether frovedis supports n_iter_no_change
-        self.__mdtype = dtype
-        if self.n_classes_ > 2:
-            encoded_y, logic = y.encode(need_logic=True)
-        elif self.n_classes_ == 2:
-            target = [-1, 1]
-            encoded_y, logic = y.encode(unique_labels, target, need_logic=True)
-        else:
-            raise ValueError("fit: number of unique labels in y are "
-                             "less than 2")
-        self.label_map = logic
-
         self.validate()
+        self.__mdtype = dtype
+        self.__mid = ModelID.get()
+
         (host, port) = FrovedisServer.getServerInstance()
-        rpclib.gbt_train(host, port, X.get(), encoded_y.get(),
+        rpclib.gbt_train(host, port, X.get(), y.get(),
                          self.algo.encode('ascii'),
                          self.loss_map[self.loss].encode('ascii'),
                          self.criterion.lower().encode('ascii'),
@@ -192,12 +181,29 @@ class GradientBoostingClassifier(BaseEstimator):
         if self.__mid is not None:
             frov_pred = GLM.predict(X, self.__mid, self.__mkind, self.__mdtype,
                                     False)
-            new_pred = [self.label_map[frov_pred[i]]
-                        for i in range(0, len(frov_pred))]
-            return np.asarray(new_pred, dtype=np.int64)
+            return np.asarray([self.label_map[frov_pred[i]] \
+                              for i in range(0, len(frov_pred))])
         else:
             raise ValueError("predict is called before calling fit, or the "
                              "model is released.")
+
+    @property
+    def classes_(self):
+        """classes_ getter"""
+        if self.__mid is not None:
+            if self._classes is None:
+                self._classes = np.sort(list(self.label_map.values()))
+            return self._classes
+        else:
+            raise AttributeError("attribute 'classes_' \
+               might have been released or called before fit")
+
+    @classes_.setter
+    def classes_(self, val):
+        """classes_ setter"""
+        raise AttributeError(\
+            "attribute 'classes_' of GradientBoostingClassifier "
+            "object is not writable")
 
     def load(self, fname, dtype=None):
         """
@@ -210,6 +216,7 @@ class GradientBoostingClassifier(BaseEstimator):
         target = open(fname + "/label_map", "rb")
         self.label_map = pickle.load(target)
         target.close()
+        self._classes = np.sort(list(self.label_map.values()))
         metadata = open(fname + "/metadata", "rb")
         self.n_classes_, self.__mkind, self.__mdtype = pickle.load(metadata)
         metadata.close()
@@ -271,6 +278,7 @@ class GradientBoostingClassifier(BaseEstimator):
             GLM.release(self.__mid, self.__mkind, self.__mdtype)
             self.__mid = None
             self.__mdtype = None
+            self._classes = None
             self.label_map = None
             self.n_classes_ = None
 
@@ -368,22 +376,22 @@ class GradientBoostingRegressor(BaseEstimator):
 
         if(isinstance(self.max_features, int)):
             self.feature_subset_strategy = "customrate"
-            self.feature_subset_rate = (self.max_features*1.0)/self.n_features
+            self.feature_subset_rate = (self.max_features*1.0)/self.n_features_
         elif(isinstance(self.max_features, float)):
             self.feature_subset_strategy = "customrate"
             self.feature_subset_rate = self.max_features
         elif(self.max_features is None):
             self.feature_subset_strategy = "all"
-            self.feature_subset_rate = self.n_features
+            self.feature_subset_rate = self.n_features_
         elif(self.max_features == "auto"):
             self.feature_subset_strategy = "auto"
-            self.feature_subset_rate = np.sqrt(self.n_features)
+            self.feature_subset_rate = np.sqrt(self.n_features_)
         elif(self.max_features == "sqrt"):
             self.feature_subset_strategy = "sqrt"
-            self.feature_subset_rate = np.sqrt(self.n_features)
+            self.feature_subset_rate = np.sqrt(self.n_features_)
         elif(self.max_features == "log2"):
             self.feature_subset_strategy = "log2"
-            self.feature_subset_rate = np.log2(self.n_features)
+            self.feature_subset_rate = np.log2(self.n_features_)
         else:
             raise ValueError("validate: unsupported max_features is encountered!")
 
@@ -398,17 +406,18 @@ class GradientBoostingRegressor(BaseEstimator):
         """
         # release old model, if any
         self.release()
-        # perform the fit
-        self.__mid = ModelID.get()
-        inp_data = FrovedisLabeledPoint(X, y)
+        inp_data = FrovedisLabeledPoint(X, y, \
+                   caller = "[" + self.__class__.__name__ + "] fit: ",\
+                   dense_kind = 'colmajor', densify=True)
         (X, y) = inp_data.get()
         dtype = inp_data.get_dtype()
         itype = inp_data.get_itype()
         dense = inp_data.is_dense()
         self.n_estimators_ = self.n_estimators # TODO: confirm whether frovedis supports n_iter_no_change
-        self.__mdtype = dtype
-        self.n_features = inp_data.numCols()
+        self.n_features_ = inp_data.numCols()
         self.validate()
+        self.__mdtype = dtype
+        self.__mid = ModelID.get()
         (host, port) = FrovedisServer.getServerInstance()
         rpclib.gbt_train(host, port, X.get(), y.get(),
                          self.algo.encode('ascii'),
@@ -510,7 +519,6 @@ class GradientBoostingRegressor(BaseEstimator):
             GLM.release(self.__mid, self.__mkind, self.__mdtype)
             self.__mid = None
             self.__mdtype = None
-            self.label_map = None
 
     def __del__(self):
         """
