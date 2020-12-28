@@ -23,10 +23,13 @@ extern "C" {
 
   jobject frovedis_dummyGLM_to_java_dummyGLM(JNIEnv *, dummy_glm&);
   jobject to_jDummyGraph(JNIEnv *, dummy_graph&);
+  jobject to_jBFS_Result(JNIEnv *, bfs_result<size_t>&, long);
+  jobject to_jSSSP_Result(JNIEnv *, sssp_result<double,size_t>&, long);
   jobject to_jDummyMatrix(JNIEnv *, dummy_matrix&, short );
-  jobject to_jDummyGetrfResult(JNIEnv *, getrf_result&, short);
-  jobject to_jDummyGesvdResult(JNIEnv *, gesvd_result&, short, bool, bool);
+  jobject to_jDummyGetrfResult(JNIEnv *, lu_fact_result&, short);
+  jobject to_jDummyGesvdResult(JNIEnv *, svd_result&, short, bool, bool);
   jobject to_jDummyPCAResult(JNIEnv *, pca_result&, short);
+  jobject to_jDummyTSNEResult(JNIEnv *, tsne_result&); //tsne
   jobject to_jDummyKNNResult(JNIEnv *env, knn_result&); //knn
   frovedis_mem_pair java_mempair_to_frovedis_mempair(JNIEnv *, jobject&);
   jobject frovedis_mempair_to_java_mempair(JNIEnv *, frovedis_mem_pair& );
@@ -42,6 +45,7 @@ extern "C" {
   // ml etc.
   jlongArray to_jlongArray(JNIEnv *, std::vector<exrpc_ptr_t>&);
   jlongArray to_jlongArray2(JNIEnv *, std::vector<long>&);
+  jlongArray to_jlongArray3(JNIEnv *, std::vector<size_t>&);
   jdoubleArray to_jdoubleArray(JNIEnv *, std::vector<double>&);
   jfloatArray to_jfloatArray(JNIEnv *, std::vector<float>&);
   jintArray to_jintArray(JNIEnv *, std::vector<int>&);
