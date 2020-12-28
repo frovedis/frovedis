@@ -263,7 +263,7 @@ extern "C" {
     if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
     exrpc_node fm_node(host,port);
     auto m = (exrpc_ptr_t) mptr;
-    getrf_result ret;
+    lu_fact_result ret;
     try {
       switch(dtype) {
         case FLOAT:  
@@ -278,7 +278,7 @@ extern "C" {
     catch (std::exception& e) {
       set_status(true, e.what());
     }
-    return to_py_getrf_result(ret,'B');
+    return to_py_lu_fact_result(ret,'B');
   }
 
   int pgetri(const char* host, int port, 
@@ -384,7 +384,7 @@ extern "C" {
     if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
     exrpc_node fm_node(host,port);
     auto m = (exrpc_ptr_t) mptr;
-    gesvd_result ret;
+    svd_result ret;
     try {
       switch(dtype) {
         case FLOAT:  
@@ -399,7 +399,7 @@ extern "C" {
     catch (std::exception& e) {
       set_status(true, e.what());
     }
-    return to_py_gesvd_result(ret,'B',isU,isV);
+    return to_py_svd_result(ret,'B',isU,isV);
   }
 
   // computes sum of variance in col direction of input matrix
@@ -430,7 +430,7 @@ extern "C" {
   PyObject* compute_truncated_svd(const char* host, int port, 
                                   long mptr, int k,
                                   short dtype, short itype,
-                                  bool isDense) {
+                                  bool isDense, bool shrink) {
     if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
     exrpc_node fm_node(host,port);
     auto m = (exrpc_ptr_t) mptr;
@@ -438,43 +438,53 @@ extern "C" {
     bool wantV = true;
     bool mvbl = false;
     char mtype = 'C';
-    gesvd_result ret;
+    svd_result ret;
     try {
       if(isDense) { 
         switch(dtype) {
           case FLOAT: 
-            ret = exrpc_async(fm_node,(frovedis_dense_truncated_svd<R_MAT2,DT2>),m,k,mvbl,true).get(); 
+            ret = exrpc_async(fm_node,(frovedis_dense_truncated_svd<R_MAT2,DT2>),
+                              m,k,mvbl,true).get(); 
             break;
           case DOUBLE: 
-            ret = exrpc_async(fm_node,(frovedis_dense_truncated_svd<R_MAT1,DT1>),m,k,mvbl,true).get(); 
+            ret = exrpc_async(fm_node,(frovedis_dense_truncated_svd<R_MAT1,DT1>),
+                              m,k,mvbl,true).get(); 
             break;
-          default: REPORT_ERROR(USER_ERROR,"Unsupported dtype for input dense matrix!\n");
+          default: REPORT_ERROR(USER_ERROR,
+                   "Unsupported dtype for input dense matrix!\n");
         }
       }
       else {
         switch(dtype) {
           case FLOAT: 
             if (itype == INT) 
-              ret = exrpc_async(fm_node,(frovedis_sparse_truncated_svd<S_MAT24,DT2,DT4>),m,k,mvbl,true).get();
+              ret = exrpc_async(fm_node,(frovedis_sparse_truncated_svd<S_MAT24,DT2,DT4>),
+                                m,k,shrink,mvbl,true).get();
             else if (itype == LONG) 
-              ret = exrpc_async(fm_node,(frovedis_sparse_truncated_svd<S_MAT25,DT2,DT5>),m,k,mvbl,true).get();
-            else REPORT_ERROR(USER_ERROR,"Unsupported itype for input sparse matrix!\n");
+              ret = exrpc_async(fm_node,(frovedis_sparse_truncated_svd<S_MAT25,DT2,DT5>),
+                                m,k,shrink,mvbl,true).get();
+            else REPORT_ERROR(USER_ERROR,
+                 "Unsupported itype for input sparse matrix!\n");
             break;
           case DOUBLE: 
             if (itype == INT) 
-              ret = exrpc_async(fm_node,(frovedis_sparse_truncated_svd<S_MAT14,DT1,DT4>),m,k,mvbl,true).get();
+              ret = exrpc_async(fm_node,(frovedis_sparse_truncated_svd<S_MAT14,DT1,DT4>),
+                                m,k,shrink,mvbl,true).get();
             else if (itype == LONG) 
-              ret = exrpc_async(fm_node,(frovedis_sparse_truncated_svd<S_MAT15,DT1,DT5>),m,k,mvbl,true).get();
-            else REPORT_ERROR(USER_ERROR,"Unsupported itype for input sparse matrix!\n");
+              ret = exrpc_async(fm_node,(frovedis_sparse_truncated_svd<S_MAT15,DT1,DT5>),
+                                m,k,shrink,mvbl,true).get();
+            else REPORT_ERROR(USER_ERROR,
+                 "Unsupported itype for input sparse matrix!\n");
             break;
-          default: REPORT_ERROR(USER_ERROR,"Unsupported dtype for input sparse matrix!\n");
+          default: REPORT_ERROR(USER_ERROR,
+                   "Unsupported dtype for input sparse matrix!\n");
         }
       }
     }
     catch (std::exception& e) {
       set_status(true, e.what());
     }
-    return to_py_gesvd_result(ret,mtype,wantU,wantV);
+    return to_py_svd_result(ret,mtype,wantU,wantV);
   }
 
   PyObject* compute_svd_self_transform(const char* host, int port,
@@ -864,7 +874,7 @@ extern "C" {
     std::string sfl(spath);
     std::string ufl(upath);
     std::string vfl(vpath);
-    gesvd_result ret;
+    svd_result ret;
     try {
       if(dtype == 'D') {
         switch(mtype) {
@@ -885,7 +895,7 @@ extern "C" {
     catch (std::exception& e) {
       set_status(true, e.what());
     }
-    return to_py_gesvd_result(ret,mtype,isU,isV);    
+    return to_py_svd_result(ret,mtype,isU,isV);    
   }
 
 
@@ -1014,12 +1024,16 @@ PyObject* pca_inverse_transform(const char* host, int port,
                          int niter,
                          int niter_without_progress,
                          const char* metr,
+                         const char* meth,
+                         const char* ini,
                          bool verbose,
                          short dtype){
     if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
     exrpc_node fm_node(host,port);
     auto f_dptr = (exrpc_ptr_t) dptr;
     std::string metric(metr);
+    std::string method(meth);
+    std::string init(ini);
     size_t n_iter = (size_t)niter;
     size_t n_iter_without_progress = (size_t)niter_without_progress;
     size_t n_components = (size_t)ncomponents;
@@ -1031,13 +1045,15 @@ PyObject* pca_inverse_transform(const char* host, int port,
           res = exrpc_async(fm_node, (frovedis_tsne<R_MAT2,DT2>), f_dptr, 
                             perplexity, early_exaggeration, min_grad_norm, 
                             learning_rate, n_components, n_iter, 
-                            n_iter_without_progress, metric, verbose).get();
+                            n_iter_without_progress, metric, method, init, 
+                            verbose).get();
           break;
         case DOUBLE:
           res = exrpc_async(fm_node, (frovedis_tsne<R_MAT1,DT1>), f_dptr,
                             perplexity, early_exaggeration, min_grad_norm, 
                             learning_rate, n_components, n_iter, 
-                            n_iter_without_progress, metric, verbose).get();
+                            n_iter_without_progress, metric, method, init, 
+                            verbose).get();
           break;
         default: REPORT_ERROR(USER_ERROR,"Unsupported dtype for input dense matrix!\n");
       }
