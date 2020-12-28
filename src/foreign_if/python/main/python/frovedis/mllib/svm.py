@@ -515,7 +515,9 @@ class SVC(BaseEstimator):
                 excpt = rpclib.check_server_exception()
                 if excpt["status"]:
                     raise RuntimeError(excpt["info"])
-                self._support_vectors = np.asarray(sup_vec, dtype=np.float64)
+                n_sv = len(sup_vec) // self.n_features
+                self._support_vectors = np.asarray(sup_vec, dtype=np.float64) \
+                                          .reshape(n_sv, self.n_features)
             return self._support_vectors
         else:
             raise AttributeError("attribute 'support_vectors_' might have been \
