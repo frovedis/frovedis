@@ -25,14 +25,14 @@ mat, lbl = load_breast_cancer(return_X_y=True)
 svm = LinearSVC(solver='lbfgs',verbose=0).fit(mat,lbl)
 
 # predicting on loaded model
-print("predicting on lbfgs svm regression model: ")
+print("predicting on lbfgs svm classification model: ")
 print(svm.predict(mat))
 
 # fitting input matrix and label on linear svm object
 svm = LinearSVC(solver='sag',verbose=0).fit(mat,lbl)
 
 # predicting on loaded model
-print("predicting on sgd svm regression model: ")
+print("predicting on sgd svm classification model: ")
 print(svm.predict(mat))
 
 # saving the model
