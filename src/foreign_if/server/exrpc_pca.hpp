@@ -4,7 +4,7 @@
 #include "frovedis.hpp"
 #include "frovedis/matrix/pca.hpp"
 #include "../exrpc/exrpc_expose.hpp"
-#include "pca_result.hpp"
+#include "ml_result.hpp"
 
 using namespace frovedis;
 
