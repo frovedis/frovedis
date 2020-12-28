@@ -12,6 +12,9 @@ import com.nec.frovedis.Jmllib.IntDoublePair;
 import com.nec.frovedis.Jmllib.DummyLDAResult;
 import com.nec.frovedis.Jmllib.DummyLDAModel;
 import com.nec.frovedis.Jmllib.DummyKNNResult;
+import com.nec.frovedis.graphx.bfs_result;
+import com.nec.frovedis.graphx.sssp_result;
+import com.nec.frovedis.Jmllib.DummyTSNEResult;
 
 public class JNISupport {
  
@@ -57,6 +60,9 @@ public class JNISupport {
   public static native long loadFrovedisWorkerVectorStringData(Node t_node, 
                                                              String val[], 
                                                              int size);
+  public static native DummyMatrix crsToFrovedisRowmajorMatrix(Node master_node,
+                                                               long fdata);
+
   public static native long loadFrovedisWorkerData(Node t_node, 
                                                  long nrows, long ncols,
                                                  int off[], 
@@ -128,7 +134,8 @@ public class JNISupport {
                                               boolean icpt,
                                               double tol,
                                               int mid, boolean movable,
-                                              boolean isDense);
+                                              boolean isDense,
+                                              boolean use_shrink);
 
   public static native void callFrovedisLRLBFGS(Node master_node,
                                                 MemPair fdata,
@@ -185,7 +192,8 @@ public class JNISupport {
                                                int histSize,
                                                double regParam,
                                                int mid, boolean movable,
-                                               boolean isDense);
+                                               boolean isDense,
+                                               int ncls);
   // -------- Linear SVM Regression --------
   public static native void callFrovedisSVR(Node master_node,
                                             MemPair fdata,
@@ -297,7 +305,8 @@ public class JNISupport {
                                              double epsilon,
                                              int mid, 
                                              boolean movable,
-                                             boolean isDense);
+                                             boolean isDense,
+                                             boolean use_shrink);
  
   public static native void callFrovedisACA(Node master_node,
                                             long fdata,
@@ -474,12 +483,29 @@ public class JNISupport {
                                                 long fdata,
                                                 int k,
                                                 boolean movable);
+
+  // -------- Compute TSNE -------
+  public static native DummyTSNEResult computeTSNE(Node master_node,
+                                                   long fdata,
+                                                   double perplexity,
+                                                   double early_exaggeration,
+                                                   double min_grad_norm,
+                                                   double learning_rate,
+                                                   int ncomponents,
+                                                   int niter,
+                                                   int niter_without_progress,
+                                                   String metric,
+                                                   String method,
+                                                   String init,
+                                                   boolean verbose); 
+
   // -------- Compute SVD --------
   public static native DummyGesvdResult computeSVD(Node master_node,
                                                    long fdata,
                                                    int k,
                                                    boolean isDense,
-                                                   boolean movable);
+                                                   boolean movable,
+                                                   boolean use_shrink);
   public static native DummyGesvdResult getSVDResultFromFiles(Node master_node,
                                                               short mtype,
                                                               String s_file,
@@ -504,15 +530,11 @@ public class JNISupport {
                                                  int off[], int idx[],
                                                  double val[]);
   // [KMM] for multiple test vectors (prediction done in parallel in Frovedis worker nodes)
-  public static native int[] doParallelKMMPredict(Node t_node, long mptr, short mkind,
-                                                  long nrows, long ncols,
-                                                  int off[], int idx[],
-                                                  double val[]);
+  public static native int[] doParallelKMMPredict(Node t_node, long tptr, 
+                                                  int mid, boolean dense);
   // [KMM] for single test vector (prediction done in master node)
-  public static native int doSingleKMMPredict(Node master_node, int mid, short mkind,
-                                              long nrows, long ncols,
-                                              int off[], int idx[],
-                                              double val[]);
+  public static native int doSingleKMMPredict(Node master_node, long tptr, 
+                                              int mid, boolean dense);
   // [MFM] for multiple test vectors (prediction done in parallel in Frovedis worker nodes)
   public static native double[] doParallelALSPredict(Node t_node, long mptr, short mkind,
                                                      int uids[], int pids[]);
@@ -739,8 +761,7 @@ public class JNISupport {
   public static native long renameFrovedisDataframe(Node master_node,
                                                     long dproxy,
                                                     String[] name, String[] new_name,
-                                                    int size,
-                                                    boolean needs_materialize);
+                                                    int size);
   public static native long getFrovedisDFSize(Node master_node, long dproxy);
   public static native String[] getFrovedisDFCounts(Node master_node,
                                                     long dproxy, String[] cname,
@@ -803,20 +824,15 @@ public class JNISupport {
                                                        double epsilon, 
                                                        double dfactor,
                                                        int maxIter);
-  public static native void callFrovedisSSSP(Node master_node,
+  public static native sssp_result callFrovedisSSSP(Node master_node,
                                              long dptr,
-                                             double[] dist,
-                                             long[] pred,
-                                             long numVertices,
                                              long source_vertex);
-  public static native void callFrovedisBFS(Node master_node,
+  public static native bfs_result callFrovedisBFS(Node master_node,
                                              long dptr,
-                                             long[] dist,
-                                             long[] pred,
-                                             long numVertices,
                                              long source_vertex,
                                              int opt_level,
-                                             double hyb_threshold);
+                                             double hyb_threshold,
+                                             long depth_limit);
   public static native long[] callFrovedisCC(Node master_node,
                                              long dptr,
                                              long[] nodes_in_which_cc,
