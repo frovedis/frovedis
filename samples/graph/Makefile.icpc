@@ -1,24 +1,24 @@
 TARGETS := bfs connected_component sssp pagerank convert_to_one_base_edgelist
-include ../Makefile.in.x86
+include ../Makefile.in.icpc
 include ../Makefile.common
 
 TO_INSTALL := bfs.cc connected_component.cc sssp.cc pagerank.cc
 DIR := graph
-ARCH := x86
+ARCH := icpc
 
 # graph algorithm demo
 bfs: bfs.o
-	${MPICXX} ${CXXFLAGS} -o bfs bfs.o ${LIBS}
+	${LINK} -o bfs bfs.o ${LIBS}
 
 connected_component: connected_component.o
-	${MPICXX} ${CXXFLAGS} -o connected_component connected_component.o ${LIBS}
+	${LINK} -o connected_component connected_component.o ${LIBS}
 
 sssp: sssp.o
-	${MPICXX} ${CXXFLAGS} -o sssp sssp.o ${LIBS}
+	${LINK} -o sssp sssp.o ${LIBS}
 
 pagerank: pagerank.o
-	${MPICXX} ${CXXFLAGS} -o pagerank pagerank.o ${LIBS}
+	${LINK} -o pagerank pagerank.o ${LIBS}
 
 # tool to convert edgelist file to 1-based edgelist file 
 convert_to_one_base_edgelist: convert_to_one_base_edgelist.o
-	${MPICXX} ${CXXFLAGS} -o convert_to_one_base_edgelist convert_to_one_base_edgelist.o ${LIBS}
+	${LINK} -o convert_to_one_base_edgelist convert_to_one_base_edgelist.o ${LIBS}

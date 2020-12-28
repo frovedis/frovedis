@@ -19,7 +19,6 @@ sssp: sssp.o
 pagerank: pagerank.o
 	${LINK} -o pagerank pagerank.o ${LIBS}
 
-# currently frovedis supports only 1-based edgelist data
 # tool to convert edgelist file to 1-based edgelist file 
 convert_to_one_base_edgelist: convert_to_one_base_edgelist.o
 	${LINK} -o convert_to_one_base_edgelist convert_to_one_base_edgelist.o ${LIBS}
