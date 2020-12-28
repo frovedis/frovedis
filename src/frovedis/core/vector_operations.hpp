@@ -7,8 +7,8 @@
 #include "exceptions.hpp"
 #include "set_operations.hpp"
 #include "mpihelper.hpp"
-
-#define NOVEC_LEN 5
+#include "conditions_for_find.hpp"
+#include "../text/find_condition.hpp"
 
 /*
  *  This header contains frequently used vector operations in ML algorithms
@@ -51,14 +51,97 @@
  *  Additionally contains:
  *    debug_print_vector(x, n) - to print fist n and last n elements in vector x
  *    do_allgather(x) - returns gathered vector from all process (must be called by all process from worker side)
+ *    count operations for: zero, nonzero, positive, negative, finite, boundary etc.
+ *    find index operations for: zero, nonzero, positive, negative, Tmax, Tmin, binary etc.
+ *    make_key_value_pair(key, val): returns vector<key, val>
+ *    vector_min_pair(x, y): reduction by min for two vector of pairs<T,I>, returns pair vector containing minimums
+ *    vector_min_index(x, y): reduction by min for two vector of pairs<T,I>, returns vector of min indices
+ *    vector_min_value(x, y): reduction by min for two vector of pairs<T,I>, returns vector of min values
+ *    vector_max_pair(x, y): reduction by max for two vector of pairs<T,I>, returns pair vector containing maximums
+ *    vector_max_index(x, y): reduction by max for two vector of pairs<T,I>, returns vector of max indices
+ *    vector_max_value(x, y): reduction by max for two vector of pairs<T,I>, returns vector of max values
  *
  */
 
 namespace frovedis {
 
-// similar to numpy.bincount()
+// regarding find functions - uses loop-raked find_condition() defined in text module
+template <class T, class F>
 std::vector<size_t>
-vector_bincount(const std::vector<int>& vec); // defined in vector_operations.cc
+vector_find_condition(const std::vector<T>& vec, 
+                      const F& cond) {
+  return find_condition(vec.data(), vec.size(), cond); // defined in text module
+}
+
+template <class T>
+std::vector<size_t>
+vector_find_nonzero(const std::vector<T>& vec) {
+  if (vec.size() == 0) return std::vector<size_t>();
+  else return vector_find_condition(vec, is_nonzero<T>()); 
+}
+
+template <class T>
+std::vector<size_t>
+vector_find_zero(const std::vector<T>& vec) {
+  if (vec.size() == 0) return std::vector<size_t>();
+  else return vector_find_condition(vec, is_zero<T>()); 
+}
+
+template <class T>
+std::vector<size_t>
+vector_find_one(const std::vector<T>& vec) {
+  if (vec.size() == 0) return std::vector<size_t>();
+  else return vector_find_condition(vec, is_one<T>()); 
+}
+
+template <class T>
+std::vector<size_t>
+vector_find_positive(const std::vector<T>& vec) {
+  if (vec.size() == 0) return std::vector<size_t>();
+  else return vector_find_condition(vec, is_positive<T>()); 
+}
+
+template <class T>
+std::vector<size_t>
+vector_find_negative(const std::vector<T>& vec) {
+  if (vec.size() == 0) return std::vector<size_t>();
+  else return vector_find_condition(vec, is_negative<T>()); 
+}
+
+template <class T>
+std::vector<size_t>
+vector_find_tmax(const std::vector<T>& vec) {
+  if (vec.size() == 0) return std::vector<size_t>();
+  else return vector_find_condition(vec, is_tmax<T>()); 
+}
+
+template <class T>
+std::vector<size_t>
+vector_find_not_tmax(const std::vector<T>& vec) {
+  if (vec.size() == 0) return std::vector<size_t>();
+  else return vector_find_condition(vec, is_not_tmax<T>()); 
+}
+
+template <class T>
+std::vector<size_t>
+vector_find_tmin(const std::vector<T>& vec) {
+  if (vec.size() == 0) return std::vector<size_t>();
+  else return vector_find_condition(vec, is_tmin<T>()); 
+}
+
+template <class T>
+std::vector<size_t>
+vector_find_not_tmin(const std::vector<T>& vec) {
+  if (vec.size() == 0) return std::vector<size_t>();
+  else return vector_find_condition(vec, is_not_tmin<T>()); 
+}
+
+template <class T>
+std::vector<size_t>
+vector_find_binary(const std::vector<T>& vec) {
+  if (vec.size() == 0) return std::vector<size_t>();
+  else return vector_find_condition(vec, is_binary<T>()); 
+}
 
 // * if limit = 0, it prints all elements in the input vector.
 // * if limit = x and size of vector is more than twice of x, 
@@ -278,6 +361,35 @@ size_t vector_count_negatives(const std::vector<T>& vec) {
   return count;
 }
 
+template <class T>
+size_t vector_count_infinite(const std::vector<T>& vec) {
+  auto vecsz = vec.size();
+  auto vptr = vec.data();
+  size_t count = 0;
+  for(size_t i = 0; i < vecsz; ++i) count += !std::isfinite(vptr[i]);
+  return count;
+}
+
+template <class T>
+size_t vector_count_out_of_range(const std::vector<T>& vec,
+                                 const T& lb, 
+                                 const T& ub,
+                                 bool is_lb_inclusive=false,
+                                 bool is_ub_inclusive=false) {
+  auto vecsz = vec.size();
+  auto vptr = vec.data();
+  size_t count = 0;
+  if (is_lb_inclusive && is_ub_inclusive)
+    for(size_t i = 0; i < vecsz; ++i) count += (vptr[i] < lb || vptr[i] > ub);
+  else if (is_lb_inclusive && !is_ub_inclusive)
+    for(size_t i = 0; i < vecsz; ++i) count += (vptr[i] < lb || vptr[i] >= ub);
+  else if (is_ub_inclusive && !is_lb_inclusive)
+    for(size_t i = 0; i < vecsz; ++i) count += (vptr[i] <= lb || vptr[i] > ub);
+  else
+    for(size_t i = 0; i < vecsz; ++i) count += (vptr[i] <= lb || vptr[i] >= ub);
+  return count;  
+}
+
 // similar to numpy.zeros()
 template <class T>
 std::vector<T> 
@@ -446,6 +558,26 @@ std::vector<T>
 vector_unique(const std::vector<T>& vec,
               bool positive_only = false) {
   return set_unique(vector_sort(vec, positive_only));
+}
+
+// similar to numpy.bincount()
+template <class I>
+std::vector<size_t>
+vector_bincount(const std::vector<I>& vec) { // must be of integer type: int, short, long, size_t etc.
+  auto vecsz = vec.size();
+  if (vecsz == 0) return std::vector<size_t>(); // quick return
+  auto negatives = vector_count_negatives(vec);
+  require(negatives == 0, "bincount: negative element is detected!\n");
+  std::vector<size_t> uidx, uinv, ucnt;
+  auto unq = vector_unique(vec, uidx, uinv, ucnt);
+  auto unqsz = unq.size();
+  auto uptr = unq.data();
+  auto cntptr = ucnt.data();
+  auto max = uptr[unqsz - 1]; // unq is a sorted array, last elem should be max
+  std::vector<size_t> ret(max + 1, 0);
+  auto rptr = ret.data();
+  for(size_t i = 0; i < unqsz; ++i) rptr[uptr[i]] = cntptr[i];
+  return ret;
 }
 
 // similar to numpy.log()
@@ -810,6 +942,129 @@ vector_binarize(const std::vector<T>& vec,
   auto retp = ret.data();
   for(size_t i = 0; i < vecsz; ++i) retp[i] = (vecp[i] <= threshold) ? 0 : 1;
   return ret;
+}
+
+template<class T, class I>
+std::vector<T>
+get_keys(const std::vector<std::pair<T, I>>& key_val_pair) {
+  auto sz = key_val_pair.size();
+  std::vector<T> ret(sz);
+  auto retp = ret.data();
+  auto inputp = key_val_pair.data();
+  for(size_t i = 0; i < sz; ++i) retp[i] = inputp[i].first;
+  return ret;
+}
+
+template<class T, class I>
+std::vector<I>
+get_values(const std::vector<std::pair<T, I>>& key_val_pair) {
+  auto sz = key_val_pair.size();
+  std::vector<I> ret(sz);
+  auto retp = ret.data();
+  auto inputp = key_val_pair.data();
+  for(size_t i = 0; i < sz; ++i) retp[i] = inputp[i].second;
+  return ret;
+}
+
+template<class T, class I>
+std::vector<std::pair<T, I>>
+make_key_value_pair(const std::vector<T>& key,
+                    const std::vector<I>& val) {
+  if(key.size() != val.size())
+    REPORT_ERROR(USER_ERROR, "key and val size mismatch");
+  std::vector<std::pair<T, I>> ret(key.size());
+  auto ret_ptr = ret.data();
+  auto key_ptr = key.data();
+  auto val_ptr = val.data();
+  for(size_t i = 0; i < key.size(); i++) {
+    ret_ptr[i].first = key_ptr[i];
+    ret_ptr[i].second = val_ptr[i];
+  }
+  return ret;
+}
+
+template <class T, class I>
+std::vector<std::pair<T, I>>
+vector_min_pair(const std::vector<std::pair<T, I>>& t1,
+                const std::vector<std::pair<T, I>>& t2) {
+  if(t1.size() != t2.size())
+    REPORT_ERROR(USER_ERROR, "vectors size do not match");
+  auto sz = t1.size();
+  std::vector<std::pair<T, I>> res(sz);
+  auto res_ptr = res.data();
+  for(size_t i = 0; i < sz; ++i)
+    res_ptr[i] = t1[i].first <= t2[i].first ? t1[i] : t2[i];
+  return res;
+}
+
+template <class T, class I>
+std::vector<I>
+vector_min_index(const std::vector<std::pair<T, I>>& t1,
+                 const std::vector<std::pair<T, I>>& t2) {
+  if(t1.size() != t2.size())
+    REPORT_ERROR(USER_ERROR, "vectors size do not match");
+  auto sz = t1.size();
+  std::vector<I> res(sz);
+  auto res_ptr = res.data();
+  for(size_t i = 0; i < sz; ++i)
+    res_ptr[i] = t1[i].first <= t2[i].first ? t1[i].second : t2[i].second;
+  return res;
+}
+
+template <class T, class I>
+std::vector<T>
+vector_min_value(const std::vector<std::pair<T, I>>& t1,
+                 const std::vector<std::pair<T, I>>& t2) {
+  if(t1.size() != t2.size())
+    REPORT_ERROR(USER_ERROR, "vectors size do not match");
+  auto sz = t1.size();
+  std::vector<T> res(sz);
+  auto res_ptr = res.data();
+  for(size_t i = 0; i < sz; ++i)
+    res_ptr[i] = t1[i].first <= t2[i].first ? t1[i].first : t2[i].first;
+  return res;
+}
+
+template <class T, class I>
+std::vector<std::pair<T, I>>
+vector_max_pair(const std::vector<std::pair<T, I>>& t1,
+                const std::vector<std::pair<T, I>>& t2) {
+  if(t1.size() != t2.size())
+    REPORT_ERROR(USER_ERROR, "vectors size do not match");
+  auto sz = t1.size();
+  std::vector<std::pair<T, I>> res(sz);
+  auto res_ptr = res.data();
+  for(size_t i = 0; i < sz; ++i)
+    res_ptr[i] = t1[i].first >= t2[i].first ? t1[i] : t2[i];
+  return res;
+}
+
+template <class T, class I>
+std::vector<I>
+vector_max_index(const std::vector<std::pair<T, I>>& t1,
+                 const std::vector<std::pair<T, I>>& t2) {
+  if(t1.size() != t2.size())
+    REPORT_ERROR(USER_ERROR, "vectors size do not match");
+  auto sz = t1.size();
+  std::vector<I> res(sz);
+  auto res_ptr = res.data();
+  for(size_t i = 0; i < sz; ++i)
+    res_ptr[i] = t1[i].first >= t2[i].first ? t1[i].second : t2[i].second;
+  return res;
+}
+
+template <class T, class I>
+std::vector<T>
+vector_max_value(const std::vector<std::pair<T, I>>& t1,
+                 const std::vector<std::pair<T, I>>& t2) {
+  if(t1.size() != t2.size())
+    REPORT_ERROR(USER_ERROR, "vectors size do not match");
+  auto sz = t1.size();
+  std::vector<T> res(sz);
+  auto res_ptr = res.data();
+  for(size_t i = 0; i < sz; ++i)
+    res_ptr[i] = t1[i].first >= t2[i].first ? t1[i].first : t2[i].first;
+  return res;
 }
   
 }

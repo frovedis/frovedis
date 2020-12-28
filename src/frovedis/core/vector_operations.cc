@@ -30,23 +30,4 @@ int vector_squared_sum(const std::vector<int>& vec) {
   return sqsum;
 }
 
-// similar to numpy.bincount()
-std::vector<size_t>
-vector_bincount(const std::vector<int>& vec) {
-  auto vecsz = vec.size();
-  if (vecsz == 0) return std::vector<size_t>(); // quick return
-  auto negatives = vector_count_negatives(vec);
-  require(negatives == 0, "bincount: negative element is detected!\n");
-  std::vector<size_t> uidx, uinv, ucnt;
-  auto unq = vector_unique(vec, uidx, uinv, ucnt);
-  auto unqsz = unq.size();
-  auto uptr = unq.data();
-  auto cntptr = ucnt.data();
-  auto max = uptr[unqsz - 1]; // unq is a sorted array, last elem should be max
-  std::vector<size_t> ret(max + 1, 0);
-  auto rptr = ret.data();
-  for(size_t i = 0; i < unqsz; ++i) rptr[uptr[i]] = cntptr[i];
-  return ret;
-}
-
 }
