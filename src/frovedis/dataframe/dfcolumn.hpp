@@ -6,6 +6,7 @@
 #include <tuple>
 #include "../core/dvector.hpp"
 #include "../core/dunordered_map.hpp"
+#include "../core/vector_operations.hpp"
 #include "hashtable.hpp"
 #include "join.hpp"
 #include "../text/dict.hpp"
@@ -1445,16 +1446,9 @@ std::vector<T> flatten(const std::vector<std::vector<T>>& v) {
 }
 
 template <class T>
-struct is_null_like {
- int operator()(const T& val) const {
-   return val == std::numeric_limits<T>::max();
- }
-};
-
-template <class T>
 std::vector<size_t>
 get_null_like_positions (std::vector<T>& col) {
-  return find_condition(col, is_null_like<T>());
+  return vector_find_tmax(col);
 }
 
 template <>
