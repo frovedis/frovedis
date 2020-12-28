@@ -144,6 +144,25 @@ JNIEXPORT jobject JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getFrovedisRow
   return to_jDummyMatrix(env,ret,RMJR); //returned object is rowmajor matrix
 }
 
+// converts crs to rowmajor_matrix type and return its memory head
+JNIEXPORT jobject JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_crsToFrovedisRowmajorMatrix
+  (JNIEnv *env, jclass thisCls, jobject master_node, jlong fdata) {
+
+  auto fm_node = java_node_to_frovedis_node(env,master_node);
+  auto f_dptr = (exrpc_ptr_t) fdata;
+#ifdef _EXRPC_DEBUG_
+  std::cout << "Connecting to master node ("
+            << fm_node.hostname << "," << fm_node.rpcport
+            << ") to convert crs to rowmajor_matrix type.\n";
+#endif
+  dummy_matrix ret;
+  try {
+    ret = exrpc_async(fm_node,(to_rowmajor_matrix<DT1,S_MAT15>),f_dptr).get();
+  }
+  catch(std::exception& e) { set_status(true,e.what()); }
+  return to_jDummyMatrix(env,ret,RMJR); //returned object is rowmajor matrix
+}
+
 // returns an array containing memory heads of the romajwor_matrix_locals
 JNIEXPORT jlongArray JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getAllLocalPointers
   (JNIEnv *env, jclass thisCls, jobject master_node, 
