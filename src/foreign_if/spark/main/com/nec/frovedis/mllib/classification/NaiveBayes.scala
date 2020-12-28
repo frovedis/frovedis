@@ -1,6 +1,7 @@
 package com.nec.frovedis.mllib.classification
 
 import com.nec.frovedis.matrix.Utils._
+import com.nec.frovedis.matrix.MAT_KIND
 import com.nec.frovedis.Jexrpc.{Node,FrovedisServer,JNISupport}
 import com.nec.frovedis.exrpc.FrovedisLabeledPoint
 import com.nec.frovedis.mllib.{M_KIND,ModelID,GenericModelWithPredict}
@@ -14,7 +15,6 @@ class NaiveBayes private(var lambda: Double,
                          var threshold: Double) {
 						 
   def this() = this(1.0, "multinomial", 0.0)
-
   def this(lambda: Double) = {
     this()
     setLambda(lambda)
@@ -56,13 +56,18 @@ class NaiveBayes private(var lambda: Double,
 
   def run(fdata: FrovedisLabeledPoint,
           movable: Boolean): NaiveBayesModel =  {
+    if (fdata.is_dense() && fdata.matType() != MAT_KIND.CMJR) { 
+       throw new IllegalArgumentException(
+        s"run: please provide column major "+
+        s"points as for dense data to frovedis naive bayes!\n")
+    }
     val model_id = ModelID.get()
     val fs = FrovedisServer.getServerInstance()
     JNISupport.callFrovedisNBM(fs.master_node,fdata.get(),lambda,threshold,
                                model_id,modelType,movable,
                                fdata.is_dense())
-    val info = JNISupport.checkServerException();
-    if (info != "") throw new java.rmi.ServerException(info);
+    val info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
     return new NaiveBayesModel (model_id,modelType)
   }  
 }
