@@ -9,10 +9,6 @@
 
 namespace frovedis {
 
-template <class MATRIX, class MODEL, class T>
-std::vector<T> 
-parallel_predict(MATRIX& mat, MODEL& model) { return model.predict(mat); }
-
 template <class T>
 struct logistic_regression {
   logistic_regression(int max_iter = 1000,
@@ -98,7 +94,7 @@ struct logistic_regression {
   }
 
   // frovedis::grid_sdearch_cv compatible setter
-  logistic_regression& 
+  logistic_regression<T>& 
   set_params(std::vector<std::pair<std::string, param_t>>& data) {
     std::string msg = "";
     for (auto& e: data) {
@@ -199,7 +195,7 @@ struct logistic_regression {
     if(!is_fitted) REPORT_ERROR(USER_ERROR, 
                    "[logistic_regression] score is called before fit\n");
     auto pred_label = predict(mat);
-    return accuracy_score(label.gather(), pred_label);
+    return accuracy_score(pred_label, label.gather());
   }
 
   int max_iter, hist_size;
