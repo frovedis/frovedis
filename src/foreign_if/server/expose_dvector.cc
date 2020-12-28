@@ -8,7 +8,6 @@ void expose_frovedis_dvector_functions() {
   expose(count_distinct<long>);
   expose(count_distinct<float>);
   expose(count_distinct<double>);
-  //expose(count_distinct<std::string>);
   expose(get_distinct_elements<int>);
   expose(get_distinct_elements<long>);
   expose(get_distinct_elements<float>);
