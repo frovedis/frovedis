@@ -34,7 +34,7 @@
 #include "dummy_model.hpp"
 #include "dummy_matrix.hpp"
 #include "model_tracker.hpp"
-#include "knn_result.hpp"
+#include "ml_result.hpp"
 #include "lda_result.hpp"
 #include "frovedis_mem_pair.hpp"
 
@@ -290,60 +290,36 @@ recommend_products(int& mid, int& uid, int& num) {
 }
 
 // --- Prediction related functions on kmeans model ---
-// multiple inputs: prediction done in parallel in worker nodes
 template <class MATRIX, class MODEL>
 std::vector<int> 
-parallel_kmm_predict(MATRIX& data, exrpc_ptr_t& mp) {
-  auto mptr = reinterpret_cast<MODEL*>(mp);
-  MODEL& kmeans_model = *mptr; // centroid
-#ifdef _EXRPC_DEBUG_
-  std::cout << "Connected with worker[" << get_selfid()
-            << "] to perform parallel prediction with model:\n";
-  mptr->debug_print();
-  std::cout << "with test data: \n";
-  data.debug_print();
-#endif
-  auto ret = frovedis::kmeans_assign_cluster(data,kmeans_model);
-#ifdef _EXRPC_DEBUG_
-  std::cout << "[worker" << get_selfid()
-            << "]: prediction done...deleting local model.\n";
-#endif
-  // after prediction broadcasted models will be freed from worker nodes.
-  delete mptr;
-  return ret;
+kmeans_predict(exrpc_ptr_t& mat_ptr, int& mid) {
+  MATRIX& mat = *reinterpret_cast<MATRIX*> (mat_ptr);
+  MODEL& est = *get_model_ptr<MODEL>(mid);
+  return est.predict(mat);
 }
 
-template <class L_MATRIX, class MODEL>
-std::vector<int> 
-predict_kmm_by_worker(L_MATRIX& mat, MODEL& model) {
-  return frovedis::kmeans_assign_cluster(mat,model);
-}
-
-template <class MATRIX, class L_MATRIX, class MODEL>
-std::vector<int> pkp2(exrpc_ptr_t& mat_ptr, int& mid) {
-  auto mat_ptr_ = reinterpret_cast<MATRIX*> (mat_ptr);
-  auto model_ptr = get_model_ptr<MODEL>(mid);
-  MATRIX& mat = *mat_ptr_;
-  MODEL& model = *model_ptr;
-  auto bmodel = model.broadcast(); // for performance
-  return mat.data.map(predict_kmm_by_worker<L_MATRIX,MODEL>,bmodel)
-                      .template moveto_dvector<int>().gather();
+template <class MATRIX, class MODEL>
+float kmeans_score(exrpc_ptr_t& mat_ptr, int& mid) {
+  MATRIX& mat = *reinterpret_cast<MATRIX*> (mat_ptr);
+  MODEL& est = *get_model_ptr<MODEL>(mid);
+  return est.score(mat);
 }
 
 // single input: prediction done in master node
 template <class MATRIX, class MODEL>
-int single_kmm_predict(MATRIX& data, int& mid) {
-  auto mptr = get_model_ptr<MODEL>(mid);
-  MODEL& kmeans_model = *mptr; // centroid
+int single_kmm_predict(exrpc_ptr_t& f_dptr, int& mid) {
+  MATRIX& data = *reinterpret_cast<MATRIX*>(f_dptr);
+  MODEL& est = *get_model_ptr<MODEL>(mid);
 #ifdef _EXRPC_DEBUG_
   std::cout << "Connected with master node to perform single prediction with model:\n";
-  mptr->debug_print();
+  est.debug_print(10);
   std::cout << "with test data: \n";
-  data.debug_print();
+  data.debug_print(10);
 #endif
   // frovedis::kmeans_assign_cluster returns std::vector<int>.
   // In single input prediction case, a vector of single 'int' type data only [0]
-  return frovedis::kmeans_assign_cluster(data,kmeans_model)[0];
+  auto centroid = est.cluster_centers_();
+  return kmeans_assign_cluster(data, centroid)[0];
 }
 
 // --- KNN related functions ---
@@ -539,17 +515,18 @@ dummy_mfm load_mfm(int& mid, MODEL_KIND& mkind, std::string& path) {
 
 // loads frovedis kmeans model (rowmajor_matrix_local<T>) from the specified file
 template <class T>
-size_t load_kmm(int& mid, MODEL_KIND& mkind, std::string& path) {
-  auto mat = frovedis::make_rowmajor_matrix_local_loadbinary<T>(path); 
-  auto mptr = new rowmajor_matrix_local<T>(std::move(mat));
-  if(!mptr) REPORT_ERROR(INTERNAL_ERROR,"memory allocation failed!\n");
+size_t load_kmm(int& mid, MODEL_KIND& mkind, 
+                std::string& path) {
+  auto est = new KMeans<T>(2); // k default 2, TODO: load from metadata
+  est->loadbinary(path);
+  if(!est) REPORT_ERROR(INTERNAL_ERROR,"memory allocation failed!\n");
 #ifdef _EXRPC_DEBUG_
   std::cout << "[load_kmm]: model loading finished...printing:\n";
-  mptr->debug_print();
+  est->debug_print();
 #endif
-  auto k = mptr->local_num_col; // second dim of centroid
-  auto mptr_ = reinterpret_cast<exrpc_ptr_t>(mptr);
-  register_model(mid,mkind,mptr_);
+  auto k = est->cluster_centers_().local_num_col; // second dim of centroid
+  auto estptr_ = reinterpret_cast<exrpc_ptr_t>(est);
+  register_model(mid, mkind, estptr_);
   return k;
 }
 
@@ -1097,19 +1074,10 @@ std::vector<T> get_support_vector(int& mid) {
   return model.sv.val;
 }
 
-template <class T, class MODEL>
-std::vector<T> get_support_idx(int& mid) {
+template <class MODEL>
+std::vector<size_t> get_support_idx(int& mid) {
   auto& model = *get_model_ptr<MODEL>(mid);
-  auto vsize = model.sv.val.size();
-  std::vector<T> temp(vsize);
-  auto tptr = temp.data();
-  auto vptr = model.sv.val.data();
-  size_t k = 0;
-  for(size_t i = 0; i < vsize; ++i) if(vptr[i] != 0) tptr[k++] = i;
-  std::vector<T> idx(k);
-  auto iptr = idx.data();
-  for(size_t i = 0; i < k; ++i) iptr[i] = tptr[i];
-  return idx;
+  return model.sv_index;
 }
 
 #endif 
