@@ -14,26 +14,73 @@ namespace frovedis {
 template <class I>
 struct bfs_result {
   bfs_result() {}
-  bfs_result(std::vector<I>& pred_list,
-             std::vector<I>& dist) {
-    predecessors = pred_list; 
+  bfs_result(size_t leaf_nodes,
+             const std::vector<I>& dest,
+             const std::vector<I>& pred,
+             const std::vector<I>& dist) { // copy constructor
+    checkAssumption(dist.size() > 0);
+    auto n_nodes_visited = dist.size();
+    depth = dist[n_nodes_visited - 1];
+    n_leaf_nodes = leaf_nodes;
+    destids = dest;
+    predecessors = pred;
     distances = dist;
   }
-  bfs_result(std::vector<I>&& pred_list,
-             std::vector<I>&& dist) {
-    predecessors.swap(pred_list);
+  bfs_result(size_t leaf_nodes,
+             std::vector<I>&& dest,
+             std::vector<I>&& pred,
+             std::vector<I>&& dist) { // move constructor
+    checkAssumption(dist.size() > 0);
+    auto n_nodes_visited = dist.size();
+    depth = dist[n_nodes_visited - 1];
+    n_leaf_nodes = leaf_nodes;
+    destids.swap(dest);
+    predecessors.swap(pred);
     distances.swap(dist);
   }
+  // constructor for extraction 
+  bfs_result(size_t n_nodes_visited,
+             size_t leaf_nodes,
+             const std::vector<I>& pred,
+             std::vector<I>& dist) { // sorted in-place and reused
+    checkAssumption(n_nodes_visited > 0);
+    auto nvert = pred.size();
+    auto pos = vector_arrange<I>(nvert);
+    radix_sort(dist, pos, true); // to maintain traversal order
+    auto pos_p = pos.data();
+    auto dist_p = dist.data();
+    auto pred_p = pred.data();
+    destids.resize(n_nodes_visited);
+    distances.resize(n_nodes_visited);
+    predecessors.resize(n_nodes_visited);
+    auto destid_p = destids.data();
+    auto distances_p = distances.data();
+    auto predecessors_p = predecessors.data();
+    for (size_t i = 0; i < n_nodes_visited; ++i) {
+      auto id = pos_p[i];
+      destid_p[i] = id + 1;       //1-based
+      distances_p[i] = dist_p[i]; // sorted in-place
+      predecessors_p[i] = pred_p[id];
+    }
+    n_leaf_nodes = leaf_nodes;
+    depth = dist[n_nodes_visited - 1];
+  }
   void debug_print(size_t n = 0) {
+    std::cout << "traversed depth in bfs tree: " << depth << std::endl;
+    std::cout << "no. of nodes in bfs tree: " << destids.size() << std::endl;
+    std::cout << "no. of leaf nodes in bfs tree: " << n_leaf_nodes << std::endl;
+    std::cout << "destination ids: "; debug_print_vector(destids, n);
     std::cout << "predecessors: "; debug_print_vector(predecessors, n);
     std::cout << "distances: "; debug_print_vector(distances, n);
   }
   void save(const std::string& path) {
+    make_dvector_scatter(destids).saveline(path + "_destids");
     make_dvector_scatter(predecessors).saveline(path + "_predecessors");
     make_dvector_scatter(distances).saveline(path + "_distances");
   }
-  std::vector<I> predecessors, distances;
-  SERIALIZE(predecessors, distances)
+  std::vector<I> destids, predecessors, distances;
+  size_t n_leaf_nodes, depth;
+  SERIALIZE(destids, predecessors, distances, depth, n_leaf_nodes)
 };
 
 template <class I>
@@ -121,8 +168,9 @@ void update_record_bfs(std::vector<int>& visited,
   auto predp = pred_list.data();
   auto curp = nodes_cur.data();
   auto pred_curp = pred_cur.data();
+  auto level_size = nodes_cur.size();
 
-  for(size_t i = 0; i < nodes_cur.size(); ++i) {
+  for(size_t i = 0; i < level_size; ++i) {
     auto curidx = curp[i] - 1; //node_cur is 1-based
     visitedp[curidx] = 1;
     distp[curidx] = curlevel;
@@ -144,8 +192,9 @@ void update_record_cc(std::vector<int>& visited,
   auto predp = pred_list.data();
   auto curp = nodes_cur.data();
   auto pred_curp = pred_cur.data();
+  auto level_size = nodes_cur.size();
 
-  for(size_t i = 0; i < nodes_cur.size(); ++i) {
+  for(size_t i = 0; i < level_size; ++i) {
     auto curidx = curp[i] - 1; //node_cur is 1-based
     visitedp[curidx] = 1;
     which_ccp[curidx] = rootid;
@@ -582,7 +631,8 @@ bfs_result<I> calc_bfs(MATRIX& mat,
                        bool is_direct, 
                        size_t myst,
                        double threshold,
-                       int opt_level = 1) {
+                       int opt_level = 1,
+                       size_t depth_limit = std::numeric_limits<size_t>::max()) {
   auto myrank = get_selfid();
   auto nvert = mat.local_num_col;
   std::vector<int> visited(nvert, 0);
@@ -592,14 +642,18 @@ bfs_result<I> calc_bfs(MATRIX& mat,
   auto pred_listp = pred_list.data();
   for (size_t i = 0; i < nvert; ++i) pred_listp[i] = i + 1;
   // --- main loop ---
-  time_spent comp_t(DEBUG), comm_t(DEBUG), update_t(DEBUG);
-  time_spent trace_iter(TRACE);
   I curlevel = 0;
+  size_t n_nodes_visited = 0;
+  size_t leaf_nodes = 0;
   std::vector<I> nodes_next(1, srcid + 1);
   std::vector<I> nodes_cur;
   std::vector<I> pred_next(1, srcid + 1);
   std::vector<I> pred_cur;
+  time_spent comp_t(DEBUG), comm_t(DEBUG), update_t(DEBUG);
+  time_spent trace_iter(TRACE);
   while (nodes_next.size() > 0) {
+    leaf_nodes = nodes_next.size(); 
+    n_nodes_visited += leaf_nodes;
     // updated records 
     update_t.lap_start();
     nodes_cur.swap(nodes_next); // avoids copying
@@ -610,8 +664,8 @@ bfs_result<I> calc_bfs(MATRIX& mat,
 
     update_record_bfs(visited, nodes_dist, curlevel, pred_list, 
                       nodes_cur, pred_cur); 
-    curlevel++;
     update_t.lap_stop();
+    if (curlevel == depth_limit) break;
     // computes frontier list level-wise (bfs)
     comp_t.lap_start();
     std::vector<I> pred_next_loc;
@@ -639,19 +693,17 @@ bfs_result<I> calc_bfs(MATRIX& mat,
       pred_next.swap(unq_pred_next);
       comp_t.lap_stop();
     }
-
     trace_iter.show("one iter: ");
+    curlevel++;
     //debug_print_vector(nodes_next);
   }
-  //debug_print_vector(pred_list);
-  //debug_print_vector(nodes_dist);
   if(myrank == 0) {
     comp_t.show_lap("calculation time: ");
     update_t.show_lap("record update time: ");
     comm_t.show_lap("communication time: ");
   }
-  return bfs_result<I>(std::move(pred_list), 
-                      std::move(nodes_dist));
+  return bfs_result<I>(n_nodes_visited, leaf_nodes,  
+                       pred_list, nodes_dist);
 }
 
 
@@ -772,7 +824,8 @@ bfs_impl(crs_matrix<T, I, O>& gr,
          size_t source_node,
          double threshold = 0.4,
          bool is_direct = true,
-         int opt_level = 1) {
+         int opt_level = 1,
+         size_t depth_limit = std::numeric_limits<size_t>::max()) {
   require(threshold >= 0.0 and threshold <= 1.0, 
   "bfs: threshold should be within the range 0 to 1!\n");
   auto nvert = gr.num_col;
@@ -786,16 +839,10 @@ bfs_impl(crs_matrix<T, I, O>& gr,
     std::string(" not found in input graph!\n"));
   if(num_outgoing[srcid] == 0) {
     // no outgoing edge: thus no destination is reachable from given source
-    std::vector<I> dist(nvert), pred(nvert);
-    auto distp = dist.data();
-    auto predp = pred.data();
-    auto imax = std::numeric_limits<I>::max();
-    for(size_t i = 0; i < nvert; ++i) {
-      predp[i] = i + 1;
-      distp[i] = imax;
-    }
-    distp[srcid] = 0;
-    res = bfs_result<I>(std::move(pred), std::move(dist));
+    res = bfs_result<I>(1,                              // root itself is the leaf node 
+                        std::vector<I>(1, source_node), // destid
+                        std::vector<I>(1, source_node), // pred
+                        std::vector<I>(1, 0));          // dist
   }
   else {
     auto nrows = gr.get_local_num_rows();
@@ -812,7 +859,8 @@ bfs_impl(crs_matrix<T, I, O>& gr,
                             broadcast(is_direct),
                             make_node_local_scatter(sidx),
                             broadcast(threshold),
-                            broadcast(opt_level))
+                            broadcast(opt_level),
+                            broadcast(depth_limit))
                        .get(0); // all process contains same result
     }
     else {
@@ -821,7 +869,8 @@ bfs_impl(crs_matrix<T, I, O>& gr,
                         broadcast(is_direct),
                         make_node_local_scatter(sidx),
                         broadcast(threshold),
-                        broadcast(opt_level))
+                        broadcast(opt_level),
+                        broadcast(depth_limit))
                    .get(0); // all process contains same result
     }
   }
