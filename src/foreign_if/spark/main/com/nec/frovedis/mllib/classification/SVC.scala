@@ -416,20 +416,21 @@ class SVC(var C: Double,
             val rparam = 1.0 / C
             val mbf = 1.0
             JNISupport.callFrovedisSVMSGD(fs.master_node,encoded_data,maxIter,
-                                   stepSize,mbf,rparam,mid, movable,
-                                   data.is_dense(), numClasses)
+                                          stepSize,mbf,rparam,mid,movable,
+                                          data.is_dense(),numClasses)
             m_kind = M_KIND.SVM
         } else {
             require (data.matType() == MAT_KIND.RMJR, 
                      s"run: please provide row major points "+
                      s"for non-linear SVM!\n" )
             JNISupport.callFrovedisKernelSVM(fs.master_node,encoded_data,C,
-                                        kernelType,degree,gamma,coef0,tol,
-                                        cacheSize,maxIter,mid, movable,
-                                        data.is_dense(), numClasses)
+                                             kernelType,degree,gamma,coef0,tol,
+                                             cacheSize,maxIter,mid,movable,
+                                             data.is_dense(),numClasses)
         }
         val info = JNISupport.checkServerException()
         if (info != "") throw new java.rmi.ServerException(info)
+        data.release_encoded_labels() // deleting encoded labels from server
         return new SVCModel(mid, m_kind, numFeatures, numClasses, logic)
     }
 }
