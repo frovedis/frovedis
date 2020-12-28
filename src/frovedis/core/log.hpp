@@ -22,5 +22,9 @@ extern log_level log_reporting_level;
 log_level set_loglevel(log_level);
 log_level get_loglevel();
 
+extern log_level old_verbose_level;
+void set_verbose_level(int verbose);
+void reset_verbose_level();
+
 }
 #endif
