@@ -2,6 +2,7 @@
 #define _KERNEL_SVM_MODEL_HPP_
 
 
+#include "../../core/vector_operations.hpp"
 #include "../../matrix/rowmajor_matrix.hpp"
 #include "kernel_svm_solver.hpp"
 #include "kernel_archive.hpp"
@@ -45,10 +46,12 @@ struct csvc_model {
   size_t get_threshold() {return 2;}
 
   void debug_print() {
-    std::cout << "Support Vectors: \n";
+    std::cout << "support vectors: \n";
     sv.debug_print();
-    std::cout << "Support Vectors Coffecients: \n";
-    debug_print_vector(sv_coef);
+    std::cout << "support vector coffecients: \n";
+    debug_print_vector(sv_coef, 10);
+    std::cout << "support vector indices: \n";
+    debug_print_vector(sv_index, 10);
   }
 
   double tol;
@@ -63,10 +66,11 @@ struct csvc_model {
   double rho;
   rowmajor_matrix_local<K> sv;
   std::vector<double> sv_coef;
+  std::vector<size_t> sv_index;
   size_t n_features;
 
   SERIALIZE(tol, C, cache_size, max_iter, kernel_ty, gamma, coef0, degree,
-            rho, sv, sv_coef)
+            rho, sv, sv_coef, sv_index)
 };
 
 template <typename K>
@@ -129,26 +133,24 @@ void csvc_model<K>::train(rowmajor_matrix_local<K>& data, std::vector<K>& label)
   solver.solve(data, y, alpha, rho, f_val, tol, C, C, ws_size, max_iter, kernel_ty, gamma, coef0, degree);
   LOG(DEBUG) << "rho = " << rho << std::endl;
 
-  std::vector<size_t> sv_index(data_size);
-  size_t cur = 0;
-  for (size_t i = 0; i < data_size; i++) {
-    int is_sv = (alpha[i] != 0);
-    if (is_sv) {
-      sv_index[cur] = i;
-      cur++;
-    }    
-  }
-  size_t sv_size = cur;
+  sv_index = vector_find_nonzero(alpha);
+  size_t sv_size = sv_index.size();
   LOG(DEBUG) << "number of support vectors = " << sv_size << std::endl;
 
   sv = rowmajor_matrix_local<K>(sv_size, feature_size);
   sv_coef = std::vector<double>(sv_size);
+  auto alpha_p = alpha.data();
+  auto coef_p = sv_coef.data();
+  auto index_p = sv_index.data();
+  auto y_p = y.data();
   for (size_t i = 0; i < sv_size; i++) {
-    sv_coef[i] = alpha[sv_index[i]] * y[sv_index[i]];
+    coef_p[i] = alpha_p[index_p[i]] * y_p[index_p[i]];
   }
+  auto sv_val_p = sv.val.data();
+  auto data_val_p = data.val.data();
   for (size_t i = 0; i < sv_size; i++) {
     for (size_t j = 0; j < feature_size; j++) {
-      sv.val[j + i * feature_size] = data.val[j + sv_index[i] * feature_size];
+      sv_val_p[j + i * feature_size] = data_val_p[j + index_p[i] * feature_size];
     }
   }
 }
@@ -208,7 +210,6 @@ template <typename K>
 rowmajor_matrix_local<K>
 csvc_model<K>::compute_probability_matrix(rowmajor_matrix_local<K>& data) {
   auto tmp = predict_values(data);
-  //std::cout << "predict_values: \n";  debug_print_vector(tmp,10);
   auto nsamples = tmp.size();
   size_t nclasses = 2;  //Currently support only binomial case
   rowmajor_matrix_local<K> ret(nsamples, nclasses);
@@ -217,8 +218,8 @@ csvc_model<K>::compute_probability_matrix(rowmajor_matrix_local<K>& data) {
   for(size_t i = 0; i < nsamples; ++i) {
     K prob_1 = 1.0 / (1.0 + exp(-tmpp[i]));
     K prob_0 = 1.0 - prob_1;
-    retp[i * nclasses + 0] = prob_0;
-    retp[i * nclasses + 1] = prob_1;
+    retp[i * nclasses + 0] = prob_1;
+    retp[i * nclasses + 1] = prob_0;
   }
   return ret;
 }
