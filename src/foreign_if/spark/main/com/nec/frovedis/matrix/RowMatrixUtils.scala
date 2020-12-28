@@ -11,31 +11,39 @@ import org.apache.spark.mllib.linalg.SingularValueDecomposition
 
 object SVD {
   def compute(data: FrovedisSparseData, 
-              k: Int): GesvdResult = {
-    return computeImpl(data,k,false)
+              k: Int,
+              use_shrink: Boolean): GesvdResult = {
+    val movable = false // user given frovedis data
+    return computeImpl(data, k, use_shrink, movable)
   }
   def compute(data: FrovedisRowmajorMatrix, 
-              k: Int): GesvdResult = {
-    return computeImpl(data,k,false)
+              k: Int,
+              use_shrink: Boolean): GesvdResult = {
+    val movable = false // user given frovedis data
+    return computeImpl(data, k, use_shrink, movable)
   }
   def computeImpl(data: FrovedisSparseData,
                   k: Int,
+                  use_shrink: Boolean,
                   inputMovable: Boolean): GesvdResult = {
-    val fs = FrovedisServer.getServerInstance()
     val isDense = false
-    val res = JNISupport.computeSVD(fs.master_node,data.get(),k,isDense,inputMovable)
-    val info = JNISupport.checkServerException();
-    if (info != "") throw new java.rmi.ServerException(info);
+    val fs = FrovedisServer.getServerInstance()
+    val res = JNISupport.computeSVD(fs.master_node,data.get(),
+                                    k,isDense,inputMovable,use_shrink)
+    val info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
     return new GesvdResult(res)
   }
   def computeImpl(data: FrovedisRowmajorMatrix,
                   k: Int,
+                  use_shrink: Boolean,
                   inputMovable: Boolean): GesvdResult = {
-    val fs = FrovedisServer.getServerInstance()
     val isDense = true
-    val res = JNISupport.computeSVD(fs.master_node,data.get(),k,isDense,inputMovable)
-    val info = JNISupport.checkServerException();
-    if (info != "") throw new java.rmi.ServerException(info);
+    val fs = FrovedisServer.getServerInstance()
+    val res = JNISupport.computeSVD(fs.master_node,data.get(),
+                                    k,isDense,inputMovable,use_shrink)
+    val info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
     return new GesvdResult(res)
   }
 }
@@ -60,17 +68,18 @@ object PCA {
 
 object RowMatrixUtils extends java.io.Serializable {
   implicit class RowMatrixPlus(data: RowMatrix) {
-    def computeSVDUsingFrovedis(k: Int): GesvdResult = {
+    def computeSVDUsingFrovedis(k: Int, 
+                                use_shrink: Boolean = false): GesvdResult = {
       val rddData = data.rows
       // judging type of Vector
       val isDense = rddData.first.getClass.toString() matches ".*DenseVector*."
       if(isDense) {
         val fdata = new FrovedisRowmajorMatrix(rddData)
-        return SVD.computeImpl(fdata,k,true)
+        return SVD.computeImpl(fdata,k,use_shrink,true)
       }
       else {
         val fdata = new FrovedisSparseData(rddData)
-        return SVD.computeImpl(fdata,k,true)
+        return SVD.computeImpl(fdata,k,use_shrink,true)
       }
     }
     def computePrincipalComponentsUsingFrovedis(k: Int): FrovedisPCAModel = {
@@ -85,12 +94,16 @@ object RowMatrixUtils extends java.io.Serializable {
       return PCA.computeImpl(fdata,k,true,true)
     }
   }
-  def computeSVD(data: RowMatrix, k: Int): GesvdResult = {
-    return data.computeSVDUsingFrovedis(k)
+
+  def computeSVD(data: RowMatrix, k: Int,
+                 use_shrink: Boolean = false): GesvdResult = {
+    return data.computeSVDUsingFrovedis(k, use_shrink)
   }
+
   def computePrincipalComponents(data: RowMatrix, k: Int): FrovedisPCAModel = {
     return data.computePrincipalComponentsUsingFrovedis(k)
   }
+
   def computePrincipalComponentsAndExplainedVariance(data: RowMatrix, k: Int): 
     FrovedisPCAModel = {
     return data.computePrincipalComponentsAndExplainedVarianceUsingFrovedis(k)
