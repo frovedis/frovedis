@@ -394,6 +394,7 @@ dftable dftable_base::tail(size_t limit) {
 void show_impl(bool with_index, size_t start_idx, bool with_column_name,
                words& table_words, std::vector<std::string>& cols) {
   auto num_col = cols.size();
+  if (num_col == 0) return;
   auto num_words = table_words.starts.size();
   auto num_row = num_words / num_col;
   if(num_words % num_col != 0)
@@ -2445,6 +2446,98 @@ dftable& dftable::append_raw_string_column(const std::string& name,
   col.insert(std::make_pair(name, c));
   col_order.push_back(name);
   return *this;
+}
+
+dftable_base* dftable_base::clone() {
+  return new dftable_base(*this);
+}
+
+dftable_base* dftable::clone() {
+  return new dftable(*this);
+}
+
+dftable_base* sorted_dftable::clone() {
+  return new sorted_dftable(*this);
+}
+
+dftable_base* hash_joined_dftable::clone() {
+  return new hash_joined_dftable(*this);
+}
+
+dftable_base* bcast_joined_dftable::clone() {
+  return new bcast_joined_dftable(*this);
+}
+
+dftable_base* star_joined_dftable::clone() {
+  return new star_joined_dftable(*this);
+}
+
+dftable_base* filtered_dftable::clone() {
+  return new filtered_dftable(*this);
+}
+
+dftable_base* dftable_base::rename_cols(const std::string& name,
+                                        const std::string& name2){
+  rename_impl(name, name2, col, col_order);
+  return this;
+}
+
+dftable_base* dftable::rename_cols(const std::string& name,
+                                   const std::string& name2){
+  rename_impl(name, name2, col, col_order);
+  return this;
+}
+
+dftable_base* sorted_dftable::rename_cols(const std::string& name,
+                                          const std::string& name2){
+  rename_impl(name, name2, col, col_order);
+  return this;
+}
+
+dftable_base* hash_joined_dftable::rename_cols(const std::string& name,
+                                               const std::string& name2){
+  bool in_left = col.find(name) != col.end();
+  bool in_right = right.col.find(name) != right.col.end();
+
+  if (in_left) rename_impl(name, name2, col, col_order);
+  else if (in_right) rename_impl(name, name2, right.col, right.col_order);
+  else throw std::runtime_error("no such column: " + name);
+
+  return this;
+}
+
+dftable_base* bcast_joined_dftable::rename_cols(const std::string& name,
+                                                const std::string& name2){
+  bool in_left = col.find(name) != col.end();
+  bool in_right = right.col.find(name) != right.col.end();
+
+  if (in_left) rename_impl(name, name2, col, col_order);
+  else if (in_right) rename_impl(name, name2, right.col, right.col_order);
+  else throw std::runtime_error("no such column: " + name);
+  return this;
+}
+
+dftable_base* star_joined_dftable::rename_cols(const std::string& name,
+                                               const std::string& name2){
+  bool found = col.find(name) != col.end();
+  if (found) rename_impl(name, name2, col, col_order);
+  else {
+    for(size_t i = 0; i < rights.size(); i++) {
+      found = rights[i].col.find(name) != rights[i].col.end();
+      if(found) {
+        rename_impl(name, name2, rights[i].col, rights[i].col_order);
+        break;
+      } 
+    }
+    if (!found) throw std::runtime_error("no such column: " + name);
+  }
+  return this;
+}
+
+dftable_base* filtered_dftable::rename_cols(const std::string& name,
+                                            const std::string& name2){
+  rename_impl(name, name2, col, col_order);
+  return this;
 }
 
 }

@@ -130,6 +130,9 @@ public:
   virtual node_local<std::vector<size_t>> get_local_index();
   virtual bool is_right_joinable() {return true;}
   virtual void debug_print();
+  virtual dftable_base* clone();
+  virtual dftable_base* rename_cols(const std::string& name,
+                                    const std::string& name2);
 protected:
   std::map<std::string, std::shared_ptr<dfcolumn>> col;
   std::vector<std::string> col_order; // order of cols, though redundant...
@@ -262,6 +265,9 @@ public:
                 const std::string& nullstr = "NULL",
                 bool is_crlf = false);
   virtual bool is_right_joinable() {return true;}
+  virtual dftable_base* clone();
+  virtual dftable_base* rename_cols(const std::string& name,
+                                    const std::string& name2);
 
   friend filtered_dftable;
   friend sorted_dftable;
@@ -641,6 +647,9 @@ public:
   }
   virtual bool is_right_joinable() {return false;}
   virtual void debug_print();
+  virtual dftable_base* clone();
+  virtual dftable_base* rename_cols(const std::string& name,
+                                    const std::string& name2);
 
   dftable append_rowid(const std::string& name, size_t offset = 0);
 private:
@@ -719,6 +728,9 @@ public:
   }
   virtual bool is_right_joinable() {return false;}
   virtual void debug_print();
+  virtual dftable_base* clone();
+  virtual dftable_base* rename_cols(const std::string& name,
+                                    const std::string& name2);
 
   dftable append_rowid(const std::string& name, size_t offset = 0);
 private:
@@ -789,6 +801,9 @@ public:
   }
   virtual bool is_right_joinable() {return false;}
   virtual void debug_print();
+  virtual dftable_base* clone();
+  virtual dftable_base* rename_cols(const std::string& name,
+                                    const std::string& name2);
 
   dftable append_rowid(const std::string& name, size_t offset = 0);
   bcast_joined_dftable& inplace_filter(const std::shared_ptr<dfoperator>& op);
@@ -857,6 +872,9 @@ public:
   }
   virtual bool is_right_joinable() {return false;}
   virtual void debug_print();
+  virtual dftable_base* clone();
+  virtual dftable_base* rename_cols(const std::string& name,
+                                    const std::string& name2);
 
   dftable append_rowid(const std::string& name, size_t offset = 0);
 private:
