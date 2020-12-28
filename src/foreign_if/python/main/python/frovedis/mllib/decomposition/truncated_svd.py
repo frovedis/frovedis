@@ -21,12 +21,13 @@ class TruncatedSVD(BaseEstimator):
     """Dimensionality reduction using truncated SVD (aka LSA)."""
 
     def __init__(self, n_components=2, algorithm="arpack", n_iter=5,
-                 random_state=None, tol=0.):
+                 random_state=None, tol=0., use_shrink=False):
         self.algorithm = algorithm
         self.n_components = n_components
         self.n_iter = n_iter
         self.random_state = random_state
         self.tol = tol
+        self.use_shrink = use_shrink
         self.svd_res_ = None
         self.var_sum = None
         self._components = None
@@ -60,15 +61,21 @@ class TruncatedSVD(BaseEstimator):
         else:
             self.var_sum = np.var(X, axis=0).sum()
         # if X is not a sparse data, it would be converted as rowmajor matrix
-        inp_data = FrovedisFeatureData(X, dense_kind='rowmajor')
+        inp_data = FrovedisFeatureData(X, \
+                     caller = "[" + self.__class__.__name__ + "] fit: ",\
+                     dense_kind='rowmajor', densify=False)
         X = inp_data.get()
         x_dtype = inp_data.get_dtype()
         x_itype = inp_data.get_itype()
         dense = inp_data.is_dense()
         self.__mdtype = x_dtype
+        if dense and self.use_shrink:
+            raise ValueError("fit: use_shrink is applicable only for " \
+                             + "sparse data!")
+
         res = compute_truncated_svd(host, port, X.get(),
                                     self.n_components,
-                                    x_dtype, x_itype, dense)
+                                    x_dtype, x_itype, dense, self.use_shrink)
         excpt = check_server_exception()
         if excpt["status"]:
             raise RuntimeError(excpt["info"])
@@ -175,8 +182,8 @@ class TruncatedSVD(BaseEstimator):
     @components_.setter
     def components_(self, val):
         """components_ setter"""
-        raise AttributeError("attribute 'components_' of TruncatedSVD object \
-                              is not writable")
+        raise AttributeError("attribute 'components_' of TruncatedSVD " + \
+                             "object is not writable")
 
     @property
     def singular_values_(self):
@@ -188,8 +195,8 @@ class TruncatedSVD(BaseEstimator):
     @singular_values_.setter
     def singular_values_(self, val):
         """singular_values_ setter"""
-        raise AttributeError("attribute 'singular_values_' of TruncatedSVD \
-                                object is not writable")
+        raise AttributeError("attribute 'singular_values_' of TruncatedSVD " +\
+                             "object is not writable")
 
     @property
     def explained_variance_(self):
@@ -201,17 +208,17 @@ class TruncatedSVD(BaseEstimator):
     @explained_variance_.setter
     def explained_variance_(self, val):
         """explained_variance_ setter"""
-        raise AttributeError("attribute 'explained_variance_' \
-                                of TruncatedSVD object is not writable")
+        raise AttributeError("attribute 'explained_variance_' " + \
+                             "of TruncatedSVD object is not writable")
 
     @property
     def explained_variance_ratio_(self):
         """ retuns the output singular explained_variance_ratio in
         case input is python data or scipy sparse matrix"""
         if self.var_sum is None:
-            raise ValueError("explained_variance_ratio_: can be \
-              obtained only when input is numpy data or scipy sparse data or \
-              FrovedisRowmajorMatrix")
+            raise ValueError("explained_variance_ratio_: can be " + \
+              "obtained only when input is numpy data or scipy sparse " + \
+              "data or FrovedisRowmajorMatrix")
         elif self._explained_variance_ratio is None:
             self.__set_results()
         return self._explained_variance_ratio
@@ -219,5 +226,5 @@ class TruncatedSVD(BaseEstimator):
     @explained_variance_ratio_.setter
     def explained_variance_ratio_(self, val):
         """explained_variance_ratio_ setter"""
-        raise AttributeError("attribute 'explained_variance_ratio_' of \
-                              TruncatedSVD object is not writable")
+        raise AttributeError("attribute 'explained_variance_ratio_' of " + \
+                             "TruncatedSVD object is not writable")
