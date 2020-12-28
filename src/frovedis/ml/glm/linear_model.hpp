@@ -14,6 +14,10 @@
 
 namespace frovedis {
 
+template <class MATRIX, class MODEL, class T>
+std::vector<T>
+parallel_predict(MATRIX& mat, MODEL& model) { return model.predict(mat); }
+
 template <class T> struct linear_regression_model; // forward declaration
 
 template <class T, class MODEL>
