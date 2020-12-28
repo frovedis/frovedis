@@ -10,7 +10,8 @@ template <class T>
 void call_tsne(const std::string& data_p, const std::string& out_p, double perplexity,
                double early_exaggeration, double min_grad_norm, double learning_rate, 
                size_t n_components, size_t max_iter, size_t n_iter_without_progress, 
-               const std::string& metric, bool verbose) { 
+               const std::string& metric, const std::string& method, 
+               const std::string& init, bool verbose) { 
   time_spent load_t(INFO);
   load_t.lap_start();
   auto mat = make_rowmajor_matrix_load<T>(data_p);
@@ -31,6 +32,8 @@ void call_tsne(const std::string& data_p, const std::string& out_p, double perpl
      set_n_iter(max_iter).
      set_n_iter_without_progress(n_iter_without_progress).
      set_metric(metric).
+     set_method(method).
+     set_init(init).
      set_verbose(verbose); 
 
   auto Y_mat = t1.fit_transform(mat); 
@@ -63,6 +66,8 @@ int main(int argc, char* argv[]) {
       ("n_components,n", value<size_t>(), "dimension of the embedded space (default: 2)")
       ("niter_without_progress", value<size_t>(), "maximum number of iterations without progress before we abort the optimization (default: 300)")
       ("metric,m" , value<std::string>(), "the metric (euclidean or precomputed) to use when calculating distance (default: euclidean)")
+      ("method" , value<std::string>(), "the method (exact) to use for TSNE computation (default: exact)")
+      ("init" , value<std::string>(), "the init (random) to use for initializing Y mat (default: random)")
       ("verbose", "set loglevel to DEBUG");
 
   variables_map argmap;
@@ -81,6 +86,8 @@ int main(int argc, char* argv[]) {
   size_t n_components = 2;
   size_t n_iter_without_progress = 300;
   std::string metric = "euclidean"; //possible values = ["euclidean", "precomputed"]
+  std::string method = "exact"; //possible values = ["exact"]
+  std::string init = "random"; //possible values = ["random"]
   bool verbose = false;
 
   if(argmap.count("help")){
@@ -128,6 +135,12 @@ int main(int argc, char* argv[]) {
   if(argmap.count("metric")){
     metric = argmap["metric"].as<std::string>();
   }  
+  if(argmap.count("method")){
+    method = argmap["method"].as<std::string>();
+  }
+  if(argmap.count("init")){
+    init = argmap["init"].as<std::string>();
+  }
   if(argmap.count("verbose")){
     set_loglevel(DEBUG);
     verbose = true;
@@ -137,12 +150,12 @@ int main(int argc, char* argv[]) {
     if (dtype == "float") {
       call_tsne<float>(data_p, out_p, perplexity, early_exaggeration, min_grad_norm, 
                        learning_rate, n_components, max_iter, 
-                       n_iter_without_progress, metric, verbose);
+                       n_iter_without_progress, metric, method, init, verbose);
     }
     else if (dtype == "double") {
       call_tsne<double>(data_p, out_p, perplexity, early_exaggeration, min_grad_norm, 
                         learning_rate, n_components, max_iter, 
-                        n_iter_without_progress, metric, verbose);
+                        n_iter_without_progress, metric, method, init, verbose);
     }
     else {
       std::cerr << "Supported dtypes are only float and double!\n";
