@@ -1,16 +1,13 @@
-TARGETS := kmeans shrink_kmeans
+TARGETS := kmeans
 include ../Makefile.in.ve
 include ../Makefile.common
 
-TO_INSTALL := kmeans.cc shrink_kmeans.cc
+TO_INSTALL := kmeans.cc
 DIR := kmeans
 ARCH := ve
 
 kmeans: kmeans.o
 	${LINK} -o kmeans kmeans.o ${LIBS}
-
-shrink_kmeans: shrink_kmeans.o
-	${LINK} -o shrink_kmeans shrink_kmeans.o ${LIBS}
 
 kmeans_jds: kmeans.cc
 	${MPICXX} -c ${CXXFLAGS} -DKMEANS_JDS kmeans.cc -o kmeans_jds.o
