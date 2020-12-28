@@ -84,7 +84,7 @@ jobject to_jDummyGraph(JNIEnv *env, dummy_graph& obj) {
 }
 
 
-jobject to_jDummyGetrfResult(JNIEnv *env, getrf_result& obj, short mtype) {
+jobject to_jDummyGetrfResult(JNIEnv *env, lu_fact_result& obj, short mtype) {
   jclass rfCls = env->FindClass(JRE_PATH_DummyGetrfResult);
   if (rfCls == NULL) REPORT_ERROR(INTERNAL_ERROR, "DummyGetrfResult class not found in JRE\n");
   jmethodID rfConst = env->GetMethodID(rfCls, "<init>", "(JIS)V");
@@ -95,7 +95,7 @@ jobject to_jDummyGetrfResult(JNIEnv *env, getrf_result& obj, short mtype) {
   return newRF;
 }
 
-jobject to_jDummyGesvdResult(JNIEnv *env, gesvd_result& obj, short mtype,
+jobject to_jDummyGesvdResult(JNIEnv *env, svd_result& obj, short mtype,
                              bool wantU, bool wantV) {
   jclass svdCls = env->FindClass(JRE_PATH_DummyGesvdResult);
   if (svdCls == NULL) REPORT_ERROR(INTERNAL_ERROR, "DummyGesvdResult class not found in JRE\n");
@@ -122,6 +122,19 @@ jobject to_jDummyPCAResult(JNIEnv *env, pca_result& obj, short mtype) {
                                mtype,  varp, obj.n_components);
   if (newPCA == NULL) REPORT_ERROR(INTERNAL_ERROR, "DummyPCAResult object creation failed\n");
   return newPCA;
+}
+
+jobject to_jDummyTSNEResult(JNIEnv *env, tsne_result& obj) {
+  jclass tsneCls = env->FindClass(JRE_PATH_DummyTSNEResult);
+  if (tsneCls == NULL) REPORT_ERROR(INTERNAL_ERROR, "DummyTSNEResult class not found in JRE\n");
+  jmethodID tsneConst = env->GetMethodID(tsneCls, "<init>", "(JIIID)V");
+  if (tsneConst == NULL) REPORT_ERROR(INTERNAL_ERROR, "DummyTSNEResult(JIIID) not found in JRE\n");
+  long embedmatp = static_cast<long>(obj.embedding_ptr);
+  auto newTSNE = env->NewObject(tsneCls, tsneConst,
+                                embedmatp, obj.n_samples, obj.n_comps,
+                                obj.n_iter_, obj.kl_divergence_);
+  if (newTSNE == NULL) REPORT_ERROR(INTERNAL_ERROR, "DummyTSNEResult object creation failed\n");
+  return newTSNE;
 }
 
 jobject to_jDummyKNNResult(JNIEnv *env, knn_result& obj) {
@@ -195,7 +208,7 @@ get_frovedis_double_crs_matrix_local(JNIEnv *env, jlong nrows, jlong ncols,
 jlongArray to_jlongArray(JNIEnv *env, std::vector<exrpc_ptr_t>& eps) {
   size_t sz = eps.size();
   std::vector<long> l_eps(sz);
-  for(size_t i=0; i<sz; ++i) l_eps[i] = (long) eps[i];
+  for(size_t i=0; i<sz; ++i) l_eps[i] = static_cast<long>(eps[i]);
   jlong* arr = &l_eps[0];
   jlongArray ret = env->NewLongArray(sz);
   if(ret == NULL) REPORT_ERROR(INTERNAL_ERROR, "New jlongArray allocation failed.\n");
@@ -212,7 +225,19 @@ jlongArray to_jlongArray2(JNIEnv *env, std::vector<long>& eps) {
   env->SetLongArrayRegion(ret, 0, sz, arr);
   return ret;
 }
- 
+
+// conversion std::vector<size_t> => jlongArray
+jlongArray to_jlongArray3(JNIEnv *env, std::vector<size_t>& eps) {
+  size_t sz = eps.size();
+  std::vector<long> eps_l(sz);
+  for(size_t i=0; i<sz; ++i) eps_l[i] = static_cast<long>(eps[i]);
+  jlong* arr = &eps_l[0];
+  jlongArray ret = env->NewLongArray(sz);
+  if(ret == NULL) REPORT_ERROR(INTERNAL_ERROR, "New jlongArray allocation failed.\n");
+  env->SetLongArrayRegion(ret, 0, sz, arr);
+  return ret;
+}
+
 // conversion std::vector<double> => jdoubleArray
 jdoubleArray to_jdoubleArray(JNIEnv *env, std::vector<double>& pd) {
   jdouble* arr = &pd[0];
@@ -452,5 +477,32 @@ jobject to_jDummyLDAModel(JNIEnv *env, dummy_lda_model& obj) {
   return newDummyModel;
 }
 
+jobject to_jBFS_Result (JNIEnv *env, 
+  bfs_result<size_t>& result, long source_vertex) {
+  jclass bfsCls = env->FindClass(JRE_PATH_bfs_result);
+  if (bfsCls == NULL) REPORT_ERROR(INTERNAL_ERROR, "bfs_result class not found in JRE\n");
+  jmethodID bfsConst = env->GetMethodID(bfsCls, "<init>", "([J[J[JJ)V");
+  if (bfsConst == NULL) REPORT_ERROR(INTERNAL_ERROR, "bfs_result constructor not found in JRE\n");
+  jlongArray destids = to_jlongArray3(env, result.destids);
+  jlongArray distances = to_jlongArray3(env, result.distances);
+  jlongArray predecessors = to_jlongArray3(env, result.predecessors);
+  auto ret = env->NewObject(bfsCls, bfsConst, destids, distances, predecessors, source_vertex);
+  if (ret == NULL) REPORT_ERROR(INTERNAL_ERROR, "bfs_result object creation failed\n");
+  return ret;
+}
+
+jobject to_jSSSP_Result (JNIEnv *env,
+  sssp_result<double,size_t>& result, long source_vertex) {
+  jclass ssspCls = env->FindClass(JRE_PATH_sssp_result);
+  if (ssspCls == NULL) REPORT_ERROR(INTERNAL_ERROR, "sssp_result class not found in JRE\n");
+  jmethodID ssspConst = env->GetMethodID(ssspCls, "<init>", "([J[D[JJ)V");
+  if (ssspConst == NULL) REPORT_ERROR(INTERNAL_ERROR, "sssp_result constructor not found in JRE\n");
+  jlongArray destids = to_jlongArray3(env, result.destids);
+  jdoubleArray distances = to_jdoubleArray(env, result.distances);
+  jlongArray predecessors = to_jlongArray3(env, result.predecessors);
+  auto ret = env->NewObject(ssspCls, ssspConst, destids, distances, predecessors, source_vertex);
+  if (ret == NULL) REPORT_ERROR(INTERNAL_ERROR, "sssp_result object creation failed\n");
+  return ret;
+}
 
 }
