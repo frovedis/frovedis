@@ -15,7 +15,7 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisLRSGD
   (JNIEnv *env, jclass thisCls, jobject master_node, jobject fdata, 
    jint numIter, jdouble stepSize, jdouble mbf, jint rtype, 
    jdouble regParam, jboolean isMult, jboolean fit_intercept,
-   jdouble tol, jint mid, jboolean movable, jboolean dense) {
+   jdouble tol, jint mid, jboolean movable, jboolean dense, jboolean shrink) {
   
   auto fm_node = java_node_to_frovedis_node(env, master_node);
   auto f_dptr = java_mempair_to_frovedis_mempair(env, fdata);
@@ -23,6 +23,7 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisLRSGD
   bool icpt = (bool) fit_intercept;
   bool mvbl = (bool) movable;
   bool isDense = (bool) dense;
+  bool use_shrink = (bool) shrink;
   int vb = 0; // no log (default)
 #ifdef _EXRPC_DEBUG_
   std::cout << "Connecting to master node (" 
@@ -31,9 +32,18 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisLRSGD
 #endif
   try{
     if(isDense) 
-      exrpc_oneway(fm_node,(frovedis_lr_sgd<DT1,D_MAT1>),f_dptr,numIter,stepSize,mbf,rtype,regParam,mult,icpt,tol,vb,mid,mvbl);
-    else
-      exrpc_oneway(fm_node,(frovedis_lr_sgd<DT1,S_MAT1>),f_dptr,numIter,stepSize,mbf,rtype,regParam,mult,icpt,tol,vb,mid,mvbl);
+      exrpc_oneway(fm_node,(frovedis_lr_sgd<DT1,D_MAT1>),f_dptr,numIter,
+                   stepSize,mbf,rtype,regParam,mult,icpt,tol,vb,mid,mvbl);
+    else {
+      if (use_shrink) {
+         exrpc_oneway(fm_node,(frovedis_lr_shrink_sgd<DT1,S_MAT1>),f_dptr,numIter,
+                      stepSize,mbf,rtype,regParam,mult,icpt,tol,vb,mid,mvbl);
+      }
+      else {
+         exrpc_oneway(fm_node,(frovedis_lr_sgd<DT1,S_MAT1>),f_dptr,numIter,
+                      stepSize,mbf,rtype,regParam,mult,icpt,tol,vb,mid,mvbl);
+      }
+    }
   }
   catch(std::exception& e) { set_status(true,e.what()); }
 }
@@ -59,9 +69,11 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisLRLBF
 #endif
   try {
     if (isDense)
-      exrpc_oneway(fm_node,(frovedis_lr_lbfgs<DT1,D_MAT1>),f_dptr,numIter,stepSize,histSize,rtype,regParam,mult,icpt,tol,vb,mid,mvbl);
+      exrpc_oneway(fm_node,(frovedis_lr_lbfgs<DT1,D_MAT1>),f_dptr,numIter,
+                   stepSize,histSize,rtype,regParam,mult,icpt,tol,vb,mid,mvbl);
     else
-      exrpc_oneway(fm_node,(frovedis_lr_lbfgs<DT1,S_MAT1>),f_dptr,numIter,stepSize,histSize,rtype,regParam,mult,icpt,tol,vb,mid,mvbl);
+      exrpc_oneway(fm_node,(frovedis_lr_lbfgs<DT1,S_MAT1>),f_dptr,numIter,
+                   stepSize,histSize,rtype,regParam,mult,icpt,tol,vb,mid,mvbl);
   } 
   catch(std::exception& e) { set_status(true,e.what()); }
 }
@@ -82,7 +94,7 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisKerne
 #ifdef _EXRPC_DEBUG_
   std::cout << "Connecting to master node ("
             << fm_node.hostname << "," << fm_node.rpcport
-            << ") to train frovedis SVM_LBFGS.\n";
+            << ") to train frovedis SVM kernel.\n";
 #endif
 
   try {
@@ -91,7 +103,7 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisKerne
 
     if(isDense) {
       exrpc_oneway(fm_node,(frovedis_svc<DT1,R_MAT1>),f_dptr,tol,C,cache_size,maxIter,
-                         kernel,gamma,coef0,degree,vb,mid,mvbl);
+                   kernel,gamma,coef0,degree,vb,mid,mvbl);
     }
     else REPORT_ERROR(USER_ERROR, "Frovedis doesn't support input sparse data for SVM Kernel!\n");
   }
@@ -99,7 +111,6 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisKerne
     set_status(true, e.what());
   }
 }
-
 
 // (2) --- Linear SVM ---
 // initiates the training call at Frovedis master node for SVMWithSGD
@@ -139,7 +150,8 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisSVMSG
 JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisSVMLBFGS
   (JNIEnv *env, jclass thisCls, jobject master_node, jobject fdata,
    jint numIter, jdouble stepSize, jint histSize,
-   jdouble regParam, jint mid, jboolean movable, jboolean dense) {
+   jdouble regParam, jint mid, jboolean movable, 
+   jboolean dense, jint nclasses) {
 
   auto fm_node = java_node_to_frovedis_node(env, master_node);
   auto f_dptr = java_mempair_to_frovedis_mempair(env, fdata);
@@ -155,10 +167,15 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisSVMLB
             << ") to train frovedis SVM_LBFGS.\n";
 #endif
   try {
+    if (nclasses > 2)
+      throw std::invalid_argument("Currently frovedis SVM with LBFGS supports only binary classification!\n");
+
     if(isDense)
-      exrpc_oneway(fm_node,(frovedis_svm_lbfgs<DT1,D_MAT1>),f_dptr,numIter,stepSize,histSize,rtype,regParam,icpt,tol,vb,mid,mvbl);
+      exrpc_oneway(fm_node,(frovedis_svm_lbfgs<DT1,D_MAT1>),f_dptr,numIter,
+                   stepSize,histSize,rtype,regParam,icpt,tol,vb,mid,mvbl);
     else
-      exrpc_oneway(fm_node,(frovedis_svm_lbfgs<DT1,S_MAT1>),f_dptr,numIter,stepSize,histSize,rtype,regParam,icpt,tol,vb,mid,mvbl);
+      exrpc_oneway(fm_node,(frovedis_svm_lbfgs<DT1,S_MAT1>),f_dptr,numIter,
+                   stepSize,histSize,rtype,regParam,icpt,tol,vb,mid,mvbl);
   }
   catch(std::exception& e) { set_status(true,e.what()); }
 }
@@ -196,9 +213,11 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisSVR
 #endif
   try {
     if(isDense)
-      exrpc_oneway(fm_node,(frovedis_svm_regressor_sgd<DT1,D_MAT1>),f_dptr,numIter,stepSize,mbf,rtype,regParam,icpt,tol,eps,loss,vb,mid,mvbl);
+      exrpc_oneway(fm_node,(frovedis_svm_regressor_sgd<DT1,D_MAT1>),f_dptr,numIter,
+                   stepSize,mbf,rtype,regParam,icpt,tol,eps,loss,vb,mid,mvbl);
     else
-      exrpc_oneway(fm_node,(frovedis_svm_regressor_sgd<DT1,S_MAT1>),f_dptr,numIter,stepSize,mbf,rtype,regParam,icpt,tol,eps,loss,vb,mid,mvbl);
+      exrpc_oneway(fm_node,(frovedis_svm_regressor_sgd<DT1,S_MAT1>),f_dptr,numIter,
+                   stepSize,mbf,rtype,regParam,icpt,tol,eps,loss,vb,mid,mvbl);
   }
   catch(std::exception& e) { set_status(true,e.what()); }
 }
@@ -224,9 +243,11 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisLNRSG
 #endif
   try {
     if(isDense)
-      exrpc_oneway(fm_node,(frovedis_lnr_sgd<DT1,D_MAT1>),f_dptr,numIter,stepSize,mbf,icpt,tol,vb,mid,mvbl);
+      exrpc_oneway(fm_node,(frovedis_lnr_sgd<DT1,D_MAT1>),f_dptr,numIter,
+                   stepSize,mbf,icpt,tol,vb,mid,mvbl);
     else
-      exrpc_oneway(fm_node,(frovedis_lnr_sgd<DT1,S_MAT1>),f_dptr,numIter,stepSize,mbf,icpt,tol,vb,mid,mvbl);
+      exrpc_oneway(fm_node,(frovedis_lnr_sgd<DT1,S_MAT1>),f_dptr,numIter,
+                   stepSize,mbf,icpt,tol,vb,mid,mvbl);
   }
   catch(std::exception& e) { set_status(true,e.what()); }
 }
@@ -251,9 +272,11 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisLNRLB
 #endif 
   try {
     if(isDense)
-      exrpc_oneway(fm_node,(frovedis_lnr_lbfgs<DT1,D_MAT1>),f_dptr,numIter,stepSize,histSize,icpt,tol,vb,mid,mvbl);
+      exrpc_oneway(fm_node,(frovedis_lnr_lbfgs<DT1,D_MAT1>),f_dptr,numIter,
+                   stepSize,histSize,icpt,tol,vb,mid,mvbl);
     else
-      exrpc_oneway(fm_node,(frovedis_lnr_lbfgs<DT1,S_MAT1>),f_dptr,numIter,stepSize,histSize,icpt,tol,vb,mid,mvbl);
+      exrpc_oneway(fm_node,(frovedis_lnr_lbfgs<DT1,S_MAT1>),f_dptr,numIter,
+                   stepSize,histSize,icpt,tol,vb,mid,mvbl);
   }
   catch(std::exception& e) { set_status(true,e.what()); }
 }
@@ -279,9 +302,11 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisLasso
 #endif
   try {
     if(isDense)
-      exrpc_oneway(fm_node,(frovedis_lasso_sgd<DT1,D_MAT1>),f_dptr,numIter,stepSize,mbf,regParam,icpt,tol,vb,mid,mvbl);
+      exrpc_oneway(fm_node,(frovedis_lasso_sgd<DT1,D_MAT1>),f_dptr,numIter,
+                   stepSize,mbf,regParam,icpt,tol,vb,mid,mvbl);
     else
-      exrpc_oneway(fm_node,(frovedis_lasso_sgd<DT1,S_MAT1>),f_dptr,numIter,stepSize,mbf,regParam,icpt,tol,vb,mid,mvbl);
+      exrpc_oneway(fm_node,(frovedis_lasso_sgd<DT1,S_MAT1>),f_dptr,numIter,
+                   stepSize,mbf,regParam,icpt,tol,vb,mid,mvbl);
   }
   catch(std::exception& e) { set_status(true,e.what()); }
 }
@@ -306,9 +331,11 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisLasso
 #endif
   try {
     if(isDense)
-      exrpc_oneway(fm_node,(frovedis_lasso_lbfgs<DT1,D_MAT1>),f_dptr,numIter,stepSize,histSize,regParam,icpt,tol,vb,mid,mvbl);
+      exrpc_oneway(fm_node,(frovedis_lasso_lbfgs<DT1,D_MAT1>),f_dptr,numIter,
+                   stepSize,histSize,regParam,icpt,tol,vb,mid,mvbl);
     else
-      exrpc_oneway(fm_node,(frovedis_lasso_lbfgs<DT1,S_MAT1>),f_dptr,numIter,stepSize,histSize,regParam,icpt,tol,vb,mid,mvbl);
+      exrpc_oneway(fm_node,(frovedis_lasso_lbfgs<DT1,S_MAT1>),f_dptr,numIter,
+                   stepSize,histSize,regParam,icpt,tol,vb,mid,mvbl);
   }
   catch(std::exception& e) { set_status(true,e.what()); }
 }
@@ -334,9 +361,11 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisRidge
 #endif
   try {
     if(isDense)
-      exrpc_oneway(fm_node,(frovedis_ridge_sgd<DT1,D_MAT1>),f_dptr,numIter,stepSize,mbf,regParam,icpt,tol,vb,mid,mvbl);
+      exrpc_oneway(fm_node,(frovedis_ridge_sgd<DT1,D_MAT1>),f_dptr,numIter,
+                   stepSize,mbf,regParam,icpt,tol,vb,mid,mvbl);
     else
-      exrpc_oneway(fm_node,(frovedis_ridge_sgd<DT1,S_MAT1>),f_dptr,numIter,stepSize,mbf,regParam,icpt,tol,vb,mid,mvbl);
+      exrpc_oneway(fm_node,(frovedis_ridge_sgd<DT1,S_MAT1>),f_dptr,numIter,
+                   stepSize,mbf,regParam,icpt,tol,vb,mid,mvbl);
   }
   catch(std::exception& e) { set_status(true,e.what()); }
 }
@@ -361,9 +390,11 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisRidge
 #endif
   try {
     if(isDense)
-      exrpc_oneway(fm_node,(frovedis_ridge_lbfgs<DT1,D_MAT1>),f_dptr,numIter,stepSize,histSize,regParam,icpt,tol,vb,mid,mvbl);
+      exrpc_oneway(fm_node,(frovedis_ridge_lbfgs<DT1,D_MAT1>),f_dptr,numIter,
+                   stepSize,histSize,regParam,icpt,tol,vb,mid,mvbl);
     else
-      exrpc_oneway(fm_node,(frovedis_ridge_lbfgs<DT1,S_MAT1>),f_dptr,numIter,stepSize,histSize,regParam,icpt,tol,vb,mid,mvbl);
+      exrpc_oneway(fm_node,(frovedis_ridge_lbfgs<DT1,S_MAT1>),f_dptr,numIter,
+                   stepSize,histSize,regParam,icpt,tol,vb,mid,mvbl);
   }
   catch(std::exception& e) { set_status(true,e.what()); }
 }
@@ -385,7 +416,8 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisMFUsi
             << ") to train frovedis MatrixFactorization using ALS.\n";
 #endif
   try {
-    exrpc_oneway(fm_node,(frovedis_mf_als<DT1,S_MAT1>),f_dptr,rank,numIter,alpha,regParam,seed,vb,mid,mvbl);
+    exrpc_oneway(fm_node,(frovedis_mf_als<DT1,S_MAT1>),f_dptr,rank,
+                 numIter,alpha,regParam,seed,vb,mid,mvbl);
   }
   catch(std::exception& e) { set_status(true,e.what()); }
 }
@@ -395,25 +427,33 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisMFUsi
 JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisKMeans
   (JNIEnv *env, jclass thisCls, jobject master_node, jlong fdata,
    jint k, jint numIter, jlong seed, jdouble epsilon,
-   jint mid, jboolean movable, jboolean dense) {
+   jint mid, jboolean movable, jboolean dense, jboolean use_shrink) {
 
   auto fm_node = java_node_to_frovedis_node(env, master_node);
   auto f_dptr = (exrpc_ptr_t) fdata;
   bool mvbl = (bool) movable;
   int vb = 0; // no log (default)
   bool isDense = (bool) dense;
+  bool shrink = (bool) use_shrink;
 #ifdef _EXRPC_DEBUG_
   std::cout << "Connecting to master node ("
             << fm_node.hostname << "," << fm_node.rpcport
             << ") to train frovedis KMeans.\n";
 #endif
+  kmeans_result ret;
   try {
-    if(isDense) // kmeans accepts rowmajor matrix as for dense data
-      exrpc_oneway(fm_node,(frovedis_kmeans<DT1,R_MAT1>),f_dptr,k,numIter,seed,epsilon,vb,mid,mvbl);
-    else
-      exrpc_oneway(fm_node,(frovedis_kmeans<DT1,S_MAT1>),f_dptr,k,numIter,seed,epsilon,vb,mid,mvbl);
+    if(isDense) { // kmeans accepts rowmajor matrix as for dense data
+      ret = exrpc_async(fm_node,(frovedis_kmeans<DT1,R_MAT1>),f_dptr,k,
+                        numIter,seed,epsilon,vb,mid,shrink,mvbl).get();
+    }
+    else {
+      ret = exrpc_async(fm_node,(frovedis_kmeans<DT1,S_MAT1>),f_dptr,k,
+                        numIter,seed,epsilon,vb,mid,shrink,mvbl).get();
+    }
   }
   catch(std::exception& e) { set_status(true,e.what()); }
+  std::cout << "frovedis kmeans converged in " << ret.n_iter_ 
+            << "steps! inertia: " << ret.inertia_ << "\n";
 }
 
 // (8) --- Agglomerative Clustering ---
@@ -628,7 +668,7 @@ jobjectArray to_FrovedisSparkArray(JNIEnv *env,
              std::vector<std::pair<std::vector<int>,long>>& fs) {
   jclass item_cls = env->FindClass(JRE_PATH_DummyFreqItemset);
   if (item_cls == NULL) REPORT_ERROR(INTERNAL_ERROR, "DummyFreqItemset class not found in path!\n");
-  jmethodID constructor = env->GetMethodID(item_cls, "<init>", "([i;J)V");
+  jmethodID constructor = env->GetMethodID(item_cls, "<init>", "([IJ)V");
   jobjectArray ret = env->NewObjectArray(fs.size(), item_cls, NULL);
   if (ret == NULL) REPORT_ERROR(INTERNAL_ERROR, "New DummyFreqItemset Array allocation failed!\n");
   for(int j=0; j<fs.size(); j++) {
