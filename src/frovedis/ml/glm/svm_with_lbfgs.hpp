@@ -85,6 +85,18 @@ public:
   // --- dense support ---
   template <class T>
   static svm_model<T> train (
+    rowmajor_matrix<T>& data,
+    dvector<T>& label,
+    size_t numIteration=1000,
+    double alpha=0.01,
+    size_t hist_size=10,
+    double regParam=0.01,
+    RegType regTyp=ZERO,
+    bool isIntercept=false,
+    double convergenceTol=0.001);
+
+  template <class T>
+  static svm_model<T> train (
     const colmajor_matrix<T>& data,
     dvector<T>& label,
     size_t numIteration=1000, 
@@ -206,6 +218,22 @@ svm_with_lbfgs::train (crs_matrix<T,I,O>& data,
 }
 
 // --- main api with dense data support ---
+template <class T>
+svm_model<T>
+svm_with_lbfgs::train (rowmajor_matrix<T>& data,
+                       dvector<T>& label,
+                       size_t numIteration,
+                       double alpha,
+                       size_t hist_size,
+                       double regParam,
+                       RegType regTyp,
+                       bool isIntercept,
+                       double convergenceTol) {
+  return train<T>(colmajor_matrix<T>(data),label,
+                  numIteration,alpha,hist_size,
+                  regParam,regTyp,isIntercept,convergenceTol);
+}
+
 template <class T>
 svm_model<T>
 svm_with_lbfgs::train (const colmajor_matrix<T>& data,

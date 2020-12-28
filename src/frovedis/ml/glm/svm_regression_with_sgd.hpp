@@ -98,6 +98,20 @@ public:
   // --- dense support ---
   template <class T>
   static linear_regression_model<T> train (
+    rowmajor_matrix<T>& data,
+    dvector<T>& label,
+    size_t numIteration=1000,
+    double alpha=0.01,
+    double miniBatchFraction=1.0,
+    double regParam=0.01,
+    RegType regTyp=ZERO,
+    bool isIntercept=false,
+    double convergenceTol=0.001,
+    double epsilon=0.0,
+    SVRLossType lossType=EPS);
+
+  template <class T>
+  static linear_regression_model<T> train (
     const colmajor_matrix<T>& data,
     dvector<T>& label,
     size_t numIteration=1000, 
@@ -266,6 +280,24 @@ svm_regression_with_sgd::train (crs_matrix<T,I,O>& data,
 
 template <class T>
 linear_regression_model<T>
+svm_regression_with_sgd::train (rowmajor_matrix<T>& data,
+                                dvector<T>& label,
+                                size_t numIteration,
+                                double alpha,
+                                double miniBatchFraction,
+                                double regParam,
+                                RegType regTyp,
+                                bool isIntercept,
+                                double convergenceTol,
+                                double epsilon,
+                                SVRLossType lossType) {
+  return train<T>(colmajor_matrix<T>(data),label,
+                  numIteration,alpha,miniBatchFraction,regParam,regTyp,
+                  isIntercept,convergenceTol,epsilon,lossType);
+}
+
+template <class T>
+linear_regression_model<T>
 svm_regression_with_sgd::train (const colmajor_matrix<T>& data,
                                 dvector<T>& label,
                                 size_t numIteration,
@@ -279,8 +311,9 @@ svm_regression_with_sgd::train (const colmajor_matrix<T>& data,
                                 SVRLossType lossType) {
   size_t numFeatures = data.num_col;
   linear_regression_model<T> initModel(numFeatures);
-  return train<T>(data,label,initModel,numIteration,alpha,miniBatchFraction,
-                  regParam,regTyp,isIntercept,convergenceTol,epsilon,lossType);
+  return train<T>(data,label,initModel,numIteration,
+		  alpha,miniBatchFraction,regParam,regTyp,
+		  isIntercept,convergenceTol,epsilon,lossType);
 }
 
 // --- main api with dense data support ---

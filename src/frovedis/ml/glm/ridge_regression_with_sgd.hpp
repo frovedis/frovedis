@@ -81,6 +81,17 @@ public:
   // --- dense support ---
   template <class T>
   static linear_regression_model<T> train (
+    rowmajor_matrix<T>& data,
+    dvector<T>& label,
+    size_t numIteration=1000,
+    double alpha=0.01,
+    double miniBatchFraction=1.0,
+    double regParam=0.01,
+    bool isIntercept=false,
+    double convergenceTol=0.001);
+
+  template <class T>
+  static linear_regression_model<T> train (
     const colmajor_matrix<T>& data,
     dvector<T>& label,
     size_t numIteration=1000, 
@@ -179,6 +190,20 @@ ridge_regression_with_sgd::train (crs_matrix<T,I,O>& data,
                                   linear_gradient<T>, l2_regularizer<T>>
          (data,label,initModel,grad,rType,numIteration,alpha,
           isIntercept,convergenceTol,mType,inputMovable);
+}
+template <class T>
+linear_regression_model<T>
+ridge_regression_with_sgd::train (rowmajor_matrix<T>& data,
+                                  dvector<T>& label,
+                                  size_t numIteration,
+                                  double alpha,
+                                  double miniBatchFraction,
+                                  double regParam,
+                                  bool isIntercept,
+                                  double convergenceTol) {
+  return train<T>(colmajor_matrix<T>(data),label,
+                  numIteration,alpha,miniBatchFraction,
+                  regParam,isIntercept,convergenceTol);
 }
 
 template <class T>
