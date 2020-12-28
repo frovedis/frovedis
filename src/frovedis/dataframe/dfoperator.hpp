@@ -589,6 +589,9 @@ public:
   }
   virtual std::shared_ptr<dfcolumn> column(const std::string& name);
   virtual void debug_print();
+  virtual dftable_base* clone();
+  virtual dftable_base* rename_cols(const std::string& name,
+                                    const std::string& name2);
 private:
   node_local<std::vector<size_t>> filtered_idx;
 };
