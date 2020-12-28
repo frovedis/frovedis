@@ -3,7 +3,7 @@ package com.nec.frovedis.mllib.classification;
 import com.nec.frovedis.Jexrpc.{FrovedisServer,JNISupport,MemPair}
 import com.nec.frovedis.Jmllib.DummyGLM
 import com.nec.frovedis.io.FrovedisIO
-import com.nec.frovedis.matrix.ENUM
+import com.nec.frovedis.matrix.{ENUM, MAT_KIND}
 import com.nec.frovedis.matrix.FrovedisRowmajorMatrix
 import com.nec.frovedis.exrpc.FrovedisSparseData
 import com.nec.frovedis.exrpc.FrovedisLabeledPoint
@@ -127,6 +127,11 @@ object SVMWithSGD {
             regParam: Double,
             miniBatchFraction: Double,
             isMovableInput: Boolean) : SVMModel = {
+     if (data.is_dense() && data.matType() != MAT_KIND.CMJR) { 
+        throw new IllegalArgumentException(
+         s"train: please provide column major "+
+         s"points as for dense data to frovedis linear svm classifier!\n")
+     }
      val ncls = data.get_distinct_label_count().intValue
      var enc_ret: (MemPair,  Map[Double, Double]) = null
      if (ncls > 2) enc_ret = data.encode_labels()
@@ -136,15 +141,17 @@ object SVMWithSGD {
 
      val mid = ModelID.get()
      val fs = FrovedisServer.getServerInstance()
-     JNISupport.callFrovedisSVMSGD(fs.master_node,encoded_data,numIter,stepSize,
-                                   miniBatchFraction,regParam,mid,isMovableInput,
+     JNISupport.callFrovedisSVMSGD(fs.master_node, encoded_data,
+                                   numIter, stepSize,
+                                   miniBatchFraction, regParam,
+                                   mid, isMovableInput,
                                    data.is_dense(), ncls)
      val info = JNISupport.checkServerException()
      if (info != "") throw new java.rmi.ServerException(info)
-     data.release_encoded_labels() // releasing encoded labels from server
      val numFeatures = data.numCols()
      val numClasses = ncls.intValue
      val threshold = 0.0 // default
+     data.release_encoded_labels() // releasing encoded labels from server
      return new SVMModel(mid,M_KIND.SVM,numFeatures,numClasses,threshold,logic)
   }
 
@@ -223,23 +230,28 @@ object SVMWithLBFGS {
             regParam: Double,
             histSize: Int,
             isMovableInput: Boolean) : SVMModel = {
+     if (data.is_dense() && data.matType() != MAT_KIND.CMJR) { 
+        throw new IllegalArgumentException(
+         s"train: please provide column major "+
+         s"points as for dense data to frovedis linear svm classifier!\n")
+     }
      val ncls = data.get_distinct_label_count().intValue
-     require(ncls == 2, s"Currently frovedis SVM supports only binary classification!")
      val enc_ret = data.encode_labels(Array(-1.0, 1.0))
      val encoded_data = enc_ret._1
      val logic = enc_ret._2
 
      val mid = ModelID.get()
      val fs = FrovedisServer.getServerInstance()
-     JNISupport.callFrovedisSVMLBFGS(fs.master_node,encoded_data,numIter,stepSize,
-                                   histSize,regParam,mid,isMovableInput,
-                                   data.is_dense())
+     JNISupport.callFrovedisSVMLBFGS(fs.master_node, encoded_data, 
+                                     numIter, stepSize,
+                                     histSize, regParam, mid, isMovableInput,
+                                     data.is_dense(), ncls)
      val info = JNISupport.checkServerException()
      if (info != "") throw new java.rmi.ServerException(info)
-     data.release_encoded_labels() // releasing encoded labels from server
      val numFeatures = data.numCols()
      val numClasses = ncls.intValue
      val threshold = 0.0 // default
+     data.release_encoded_labels() // releasing encoded labels from server
      return new SVMModel(mid,M_KIND.SVM,numFeatures,numClasses,threshold,logic)
   }
 
