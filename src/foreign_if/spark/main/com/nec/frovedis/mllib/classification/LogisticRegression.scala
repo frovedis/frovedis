@@ -3,7 +3,7 @@ package com.nec.frovedis.mllib.classification;
 import com.nec.frovedis.Jexrpc.{FrovedisServer,JNISupport,MemPair}
 import com.nec.frovedis.Jmllib.DummyGLM
 import com.nec.frovedis.io.FrovedisIO
-import com.nec.frovedis.matrix.ENUM
+import com.nec.frovedis.matrix.{ENUM, MAT_KIND}
 import com.nec.frovedis.matrix.FrovedisRowmajorMatrix
 import com.nec.frovedis.exrpc.FrovedisSparseData
 import com.nec.frovedis.exrpc.FrovedisLabeledPoint
@@ -99,6 +99,7 @@ class LogisticRegression(sol: String = "sgd") {
   protected var stepSize: Double = 0.01
   protected var miniBatchFraction: Double = 1.0
   protected var histSize: Int = 10
+  protected var use_shrink: Boolean = false
   
   def setRegParam(rprm: Double) = { 
     this.regParam = rprm
@@ -140,6 +141,10 @@ class LogisticRegression(sol: String = "sgd") {
     this.fitIntercept = icpt
     this
   } 
+  def setUseShrink(shrink: Boolean) = {
+    this.use_shrink = shrink
+    this
+  }
   def setFamily(family: String) = {
     val allowed = Array("auto", "binomial", "multinomial")
     val check = allowed.contains(family)
@@ -184,8 +189,9 @@ class LogisticRegression(sol: String = "sgd") {
               "\n regularization type: " + this.regType +
               "\n regularization parameter: " + this.regParam +
               "\n threshold: " + this.threshold +
-              "\n fit intercept: " + this.fitIntercept +
               "\n convergence tolerance: " + this.tol +
+              "\n fit intercept: " + this.fitIntercept +
+              "\n use shrink: " + this.use_shrink +
               "\n elastic net parameter: " + this.elasticNetParam
     if (solver == "sgd") str += "\n mini-batch fraction: " + this.miniBatchFraction
     else if (solver == "lbfgs") str += "\n history size: " + this.histSize
@@ -201,6 +207,13 @@ class LogisticRegression(sol: String = "sgd") {
   }
   def fit(data: FrovedisLabeledPoint,
           inputMovable: Boolean): LogisticRegressionModel = {
+    if (data.is_dense() && use_shrink)
+      throw new IllegalArgumentException(
+      s"fit: use_shrink is supported only for sparse data!\n")
+    if (data.is_dense() && data.matType() != MAT_KIND.CMJR) 
+       throw new IllegalArgumentException(
+        s"fit: please provide column major "+
+        s"points as for dense data to frovedis logictic regression!\n")
     val ncls = data.get_distinct_label_count().intValue
     if (this.family == "auto") {
       if (ncls > 2) this.family = "multinomial"
@@ -228,7 +241,7 @@ class LogisticRegression(sol: String = "sgd") {
       JNISupport.callFrovedisLRSGD(fs.master_node,encoded_data,maxIter,stepSize,
                                    miniBatchFraction,regT,regParam,isMult,
                                    fitIntercept,tol,
-                                   mid,inputMovable,data.is_dense())
+                                   mid,inputMovable,data.is_dense(),use_shrink)
     else if(solver == "lbfgs")
       JNISupport.callFrovedisLRLBFGS(fs.master_node,encoded_data,maxIter,stepSize,
                                      histSize,regT,regParam,isMult,
@@ -237,8 +250,8 @@ class LogisticRegression(sol: String = "sgd") {
     else throw new IllegalArgumentException("Currently supported solvers are: sgd/lbfgs\n")
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
-    data.release_encoded_labels() // deleting encoded labels from server
     val numFeatures = data.numCols()
+    data.release_encoded_labels() // deleting encoded labels from server
     return new LogisticRegressionModel(mid,mkind,numFeatures,ncls,threshold,logic)
   }
 }
@@ -274,6 +287,10 @@ class LogisticRegressionWithSGD extends LogisticRegression("sgd") {
   }
   override def setFitIntercept(icpt: Boolean) = {
     super.setFitIntercept(icpt)
+    this
+  }
+  override def setUseShrink(shrink: Boolean) = {
+    super.setUseShrink(shrink)
     this
   }
   override def setFamily(family: String) = {
@@ -323,6 +340,10 @@ class LogisticRegressionWithLBFGS extends LogisticRegression("lbfgs") {
   }
   override def setFitIntercept(icpt: Boolean) = {
     super.setFitIntercept(icpt)
+    this
+  }
+  override def setUseShrink(shrink: Boolean) = {
+    super.setUseShrink(shrink)
     this
   }
   override def setFamily(family: String) = {
