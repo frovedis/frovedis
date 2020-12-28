@@ -889,9 +889,12 @@ extern "C" {
             else REPORT_ERROR(USER_ERROR, "Unsupported itype for sparse data!\n");
             break;
           }
-          case RFM:  REPORT_ERROR(USER_ERROR, "currently Frovedis doesn't support sparse test data for Random Forest prediction!\n");
-          case GBT:  REPORT_ERROR(USER_ERROR, "currently Frovedis doesn't support sparse test data for GBT prediction!\n");
-          case KSVC:  REPORT_ERROR(USER_ERROR, "currently Frovedis doesn't support sparse test data for SVM Kernel prediction!\n");
+          case RFM:  REPORT_ERROR(USER_ERROR, 
+                     "currently Frovedis doesn't support sparse test data for Random Forest prediction!\n");
+          case GBT:  REPORT_ERROR(USER_ERROR, 
+                     "currently Frovedis doesn't support sparse test data for GBT prediction!\n");
+          case KSVC: REPORT_ERROR(USER_ERROR, 
+                     "currently Frovedis doesn't support sparse test data for SVM Kernel prediction!\n");
           default:   REPORT_ERROR(USER_ERROR, "Unknown model kind is encountered!\n");
         }
       }
@@ -906,7 +909,8 @@ extern "C" {
 
   void parallel_kmeans_predict(const char* host, int port,
                                int mid, short mdtype, 
-                               long dptr, int* ret, ulong len, short itype , bool isDense) {
+                               long dptr, int* ret, ulong len, 
+                               short itype , bool isDense) {
     if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
     exrpc_node fm_node(host,port);
     auto f_dptr = (exrpc_ptr_t) dptr;
@@ -915,10 +919,10 @@ extern "C" {
       if(isDense){
         switch(mdtype) {
           case FLOAT:
-            pred = exrpc_async(fm_node,(pkp2<R_MAT2,R_LMAT2,KMM2>),f_dptr,mid).get();
+            pred = exrpc_async(fm_node,(kmeans_predict<R_MAT2,KMM2>),f_dptr,mid).get();
             break;
           case DOUBLE:
-            pred = exrpc_async(fm_node,(pkp2<R_MAT1,R_LMAT1,KMM1>),f_dptr,mid).get();
+            pred = exrpc_async(fm_node,(kmeans_predict<R_MAT1,KMM1>),f_dptr,mid).get();
             break;
           default: REPORT_ERROR(USER_ERROR, "model dtype can be either float or double!\n");
          }
@@ -927,10 +931,10 @@ extern "C" {
         if(mdtype == FLOAT){
           switch(itype) {
             case INT:  
-              pred = exrpc_async(fm_node,(pkp2<S_MAT24,S_LMAT24,KMM2>),f_dptr,mid).get();
+              pred = exrpc_async(fm_node,(kmeans_predict<S_MAT24,KMM2>),f_dptr,mid).get();
               break;
             case LONG: 
-              pred = exrpc_async(fm_node,(pkp2<S_MAT25,S_LMAT25,KMM2>),f_dptr,mid).get();
+              pred = exrpc_async(fm_node,(kmeans_predict<S_MAT25,KMM2>),f_dptr,mid).get();
               break;
             default: REPORT_ERROR(USER_ERROR, "model itype can be either int or long!\n");
           }
@@ -938,10 +942,10 @@ extern "C" {
         else if(mdtype == DOUBLE){
           switch(itype) {
             case INT:
-               pred = exrpc_async(fm_node,(pkp2<S_MAT14,S_LMAT14,KMM1>),f_dptr,mid).get();
+               pred = exrpc_async(fm_node,(kmeans_predict<S_MAT14,KMM1>),f_dptr,mid).get();
                break;
             case LONG:
-               pred = exrpc_async(fm_node,(pkp2<S_MAT15,S_LMAT15,KMM1>),f_dptr,mid).get();
+               pred = exrpc_async(fm_node,(kmeans_predict<S_MAT15,KMM1>),f_dptr,mid).get();
                break;
             default: REPORT_ERROR(USER_ERROR, "model itype can be either int or long!\n");
            }
@@ -950,11 +954,62 @@ extern "C" {
       }
       auto sz = pred.size();
       checkAssumption(len == sz);
-      for(size_t i=0; i<sz; ++i) ret[i] = pred[i];
+      for(size_t i = 0; i < sz; ++i) ret[i] = pred[i];
     }  
     catch (std::exception& e) {
       set_status(true, e.what());
     } 
+  }
+
+  float kmeans_score(const char* host, int port,
+                     int mid, short mdtype,
+                     long dptr, short itype, bool isDense) {
+    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
+    exrpc_node fm_node(host, port);
+    auto f_dptr = (exrpc_ptr_t) dptr;
+    float score = 0.0;
+    try {
+      if(isDense){
+        switch(mdtype) {
+          case FLOAT:
+            score = exrpc_async(fm_node,(kmeans_score<R_MAT2,KMM2>),f_dptr,mid).get();
+            break;
+          case DOUBLE:
+            score = exrpc_async(fm_node,(kmeans_score<R_MAT1,KMM1>),f_dptr,mid).get();
+            break;
+          default: REPORT_ERROR(USER_ERROR, "model dtype can be either float or double!\n");
+         }
+      }
+      else {
+        if(mdtype == FLOAT){
+          switch(itype) {
+            case INT:
+              score = exrpc_async(fm_node,(kmeans_score<S_MAT24,KMM2>),f_dptr,mid).get();
+              break;
+            case LONG:
+              score = exrpc_async(fm_node,(kmeans_score<S_MAT25,KMM2>),f_dptr,mid).get();
+              break;
+            default: REPORT_ERROR(USER_ERROR, "model itype can be either int or long!\n");
+          }
+        }
+        else if(mdtype == DOUBLE){
+          switch(itype) {
+            case INT:
+               score = exrpc_async(fm_node,(kmeans_score<S_MAT14,KMM1>),f_dptr,mid).get();
+               break;
+            case LONG:
+               score = exrpc_async(fm_node,(kmeans_score<S_MAT15,KMM1>),f_dptr,mid).get();
+               break;
+            default: REPORT_ERROR(USER_ERROR, "model itype can be either int or long!\n");
+           }
+         }
+        else REPORT_ERROR(USER_ERROR, "model dtype can be either float or double!\n");
+      }
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return score;
   }
 
   void als_float_predict(const char* host, int port, int mid, 
@@ -1577,13 +1632,13 @@ void fpgrowth_rules(const char* host, int port,
     try {
       if (mdtype == FLOAT) {
         switch(mkind) {
-          case KSVC: ret = exrpc_async(fm_node, (get_support_idx<DT5,KSVC2>), mid).get(); break;
+          case KSVC: ret = exrpc_async(fm_node, (get_support_idx<KSVC2>), mid).get(); break;
           default: REPORT_ERROR(USER_ERROR, "Unknown model for support index extraction!\n");
         }
       }
       else if (mdtype == DOUBLE) {
         switch(mkind) {
-          case KSVC: ret = exrpc_async(fm_node, (get_support_idx<DT5,KSVC1>), mid).get(); break;
+          case KSVC: ret = exrpc_async(fm_node, (get_support_idx<KSVC1>), mid).get(); break;
           default: REPORT_ERROR(USER_ERROR, "Unknown model for support index extraction!\n");
         }
       }
