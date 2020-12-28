@@ -2,6 +2,7 @@ package com.nec.frovedis.mllib.tree;
 
 import com.nec.frovedis.Jexrpc.{FrovedisServer,JNISupport,MemPair}
 import com.nec.frovedis.exrpc.FrovedisLabeledPoint
+import com.nec.frovedis.matrix.MAT_KIND
 import com.nec.frovedis.mllib.{M_KIND,ModelID}
 import org.apache.spark.mllib.tree.configuration.{Algo, FeatureType}
 import org.apache.spark.mllib.regression.LabeledPoint
@@ -138,7 +139,10 @@ class RandomForest private(val strategy: Strategy, var numTrees: Int,
   }
 
   def run(fdata: FrovedisLabeledPoint, movable: Boolean): RandomForestModel = {
-    val model_id = ModelID.get()
+    if (fdata.is_dense() && fdata.matType() != MAT_KIND.CMJR) 
+       throw new IllegalArgumentException(
+        s"fit: please provide column major "+
+        s"points as for dense data to frovedis random forest!\n")
     val keys = strategy.getCategoricalFeaturesInfo().keys.toArray
     val values = strategy.getCategoricalFeaturesInfo().values.toArray
     val size = keys.size
@@ -153,6 +157,7 @@ class RandomForest private(val strategy: Strategy, var numTrees: Int,
       logic = enc_ret._2
     }
     assertValid()
+    val model_id = ModelID.get()
     val impt = Impurities.toString(getImpurity())
     val fs = FrovedisServer.getServerInstance()
     JNISupport.callFrovedisRF(fs.master_node,encoded_data,
@@ -170,7 +175,7 @@ class RandomForest private(val strategy: Strategy, var numTrees: Int,
                              fdata.is_dense())       
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
-    fdata.release_encoded_labels()
+    if (algo == "Classification") fdata.release_encoded_labels()
     return new RandomForestModel (model_id, logic)
   }
 }

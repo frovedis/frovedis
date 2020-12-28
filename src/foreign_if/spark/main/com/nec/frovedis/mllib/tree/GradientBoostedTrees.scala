@@ -2,6 +2,7 @@ package com.nec.frovedis.mllib.tree;
 
 import com.nec.frovedis.Jexrpc.{FrovedisServer,JNISupport,MemPair}
 import com.nec.frovedis.exrpc.FrovedisLabeledPoint
+import com.nec.frovedis.matrix.MAT_KIND
 import com.nec.frovedis.mllib.{M_KIND,ModelID}
 import com.nec.frovedis.mllib.tree.{Losses=> FrovLosses}
 import org.apache.spark.mllib.regression.LabeledPoint
@@ -188,7 +189,10 @@ class GradientBoostedTrees private(val boostingStrategy: BoostingStrategy,
   }
 
   def run(fdata: FrovedisLabeledPoint, movable: Boolean): GradientBoostedTreesModel = {
-    val model_id = ModelID.get()
+    if (fdata.is_dense() && fdata.matType() != MAT_KIND.CMJR) 
+       throw new IllegalArgumentException(
+        s"fit: please provide column major "+
+        s"points as for dense data to frovedis GBTree!\n")
     val keys = boostingStrategy.getTreeStrategy.getCategoricalFeaturesInfo()
                               .keys.toArray
     val values = boostingStrategy.getTreeStrategy.getCategoricalFeaturesInfo()
@@ -207,6 +211,7 @@ class GradientBoostedTrees private(val boostingStrategy: BoostingStrategy,
       logic = enc_ret._2
     }
     assertValid()
+    val model_id = ModelID.get()
     val loss = FrovLosses.toString(boostingStrategy.getLoss)
     val fs = FrovedisServer.getServerInstance()     
     JNISupport.callFrovedisGbtFit(fs.master_node,
@@ -232,7 +237,7 @@ class GradientBoostedTrees private(val boostingStrategy: BoostingStrategy,
                                   fdata.is_dense())
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
-    fdata.release_encoded_labels()
+    if (algo == "Classification") fdata.release_encoded_labels()
     return new GradientBoostedTreesModel(model_id, logic)
   }
 }
