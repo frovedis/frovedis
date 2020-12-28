@@ -1,8 +1,7 @@
 #!/bin/bash
 
 #list of source targets
-src=( nb fm dt lr svm lnr ridge lasso kmeans )
-
+src=( nb fm dt lr svm lnr ridge lasso kmeans tsne )
 #list of target frovedis worker nodes to test with
 frov_worker=( 1 2 4 )
 
