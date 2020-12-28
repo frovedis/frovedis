@@ -115,8 +115,7 @@ std::vector<std::string> frovedis_df_max(exrpc_ptr_t& df_proxy,
 
 exrpc_ptr_t frovedis_df_rename(exrpc_ptr_t& df_proxy,
                                std::vector<std::string>& cols,
-                               std::vector<std::string>& new_cols,
-                               bool& needs_materialize);
+                               std::vector<std::string>& new_cols);
 
 std::vector<int> get_df_int_col(exrpc_ptr_t& df_proxy,
                                 std::string& cname);
