@@ -1567,5 +1567,385 @@ squared_sum_of_cols(rowmajor_matrix<T>& m) {
                .template moveto_dvector<T>().gather();
 }
 
+template <class T>
+std::vector <std::pair<T, size_t>>
+min_of_elements(rowmajor_matrix_local<T>& mat,
+                size_t start = 0) {
+  auto global_min_index = vector_argmin(mat.val);
+  auto global_min = mat.val[global_min_index];
+  std::vector<std::pair<T, size_t>> ret(1);
+  ret[0] = std::make_pair(global_min, global_min_index + start);
+  return ret;
+}
+
+template <class T>
+std::vector<std::pair<T, size_t>>
+max_of_elements(rowmajor_matrix_local<T>& mat,
+                size_t start = 0) {
+  auto global_max_index = vector_argmax(mat.val);
+  auto global_max = mat.val[global_max_index];
+  std::vector<std::pair<T, size_t>> ret(1);
+  ret[0] = std::make_pair(global_max, global_max_index + start);
+  return ret;
+}
+
+template <class T>
+std::vector<std::pair<T, size_t>>
+min_of_rows(rowmajor_matrix_local<T>& mat,
+            size_t start_index = 0) {
+  auto mat_ptr = mat.val.data();
+  int nrow = mat.local_num_row;
+  int ncol = mat.local_num_col;
+  T min = std::numeric_limits<T>::max();
+  std::pair<T, size_t> p(min, 0);
+  std::vector<std::pair<T, size_t>> res(ncol);
+  auto res_ptr = res.data();
+
+  for(size_t j = 0; j < ncol; ++j) res_ptr[j] = p;
+
+#if defined(_SX) || defined(__ve__)
+  if(nrow > ncol)  { //Iterate top-down
+    for(size_t j = 0; j < ncol; ++j) {
+      for(size_t i = 0; i < nrow; ++i) {
+        auto index = ncol * i + j;
+        if(mat_ptr[index] < res_ptr[j].first) {
+          res_ptr[j].first = mat_ptr[index];
+          res_ptr[j].second = i + start_index;
+        }
+      }
+    }
+  }
+  else { //Iterate left-right
+    for(size_t i = 0; i < nrow; ++i) {
+      for(size_t j = 0; j < ncol; ++j) {
+        auto index = ncol * i + j;
+        if(mat_ptr[index] < res_ptr[j].first) {
+          res_ptr[j].first = mat_ptr[index];
+          res_ptr[j].second = i + start_index;
+        }
+      }
+    }
+  }
+#else //Iterate left-right
+  for(size_t i = 0; i < nrow; ++i) {
+    for(size_t j = 0; j < ncol; ++j) {
+      auto index = ncol * i + j;
+      if(mat_ptr[index] < res_ptr[j].first) {
+        res_ptr[j].first = mat_ptr[index];
+        res_ptr[j].second = i + start_index;
+      }
+    }
+  }
+#endif
+  return res;
+}
+
+template <class T>
+std::vector<std::pair<T, size_t>>
+max_of_rows(rowmajor_matrix_local<T>& mat,
+            size_t start_index = 0) {
+  auto mat_ptr = mat.val.data();
+  int nrow = mat.local_num_row;
+  int ncol = mat.local_num_col;
+  T max = std::numeric_limits<T>::min();
+  std::pair<T, size_t> p(max, 0);
+  std::vector<std::pair<T, size_t>> res(ncol);
+  auto res_ptr = res.data();
+
+  for(size_t j = 0; j < ncol; ++j) res_ptr[j] = p;
+
+#if defined(_SX) || defined(__ve__)
+  if(nrow > ncol)  { //Iterate top-down
+    for(size_t j = 0; j < ncol; ++j) {
+      for(size_t i = 0; i < nrow; ++i) {
+        auto index = ncol * i + j;
+        if(mat_ptr[index] > res_ptr[j].first) {
+          res_ptr[j].first = mat_ptr[index];
+          res_ptr[j].second = i + start_index;
+        }
+      }
+    }
+  }
+  else { //Iterate left-right
+    for(size_t i = 0; i < nrow; ++i) {
+      for(size_t j = 0; j < ncol; ++j) {
+        auto index = ncol * i + j;
+        if(mat_ptr[index] > res_ptr[j].first) {
+          res_ptr[j].first = mat_ptr[index];
+          res_ptr[j].second = i + start_index;
+        }
+      }
+    }
+  }
+#else //Iterate left-right
+  for(size_t i = 0; i < nrow; ++i) {
+    for(size_t j = 0; j < ncol; ++j) {
+      auto index = ncol * i + j;
+        if(mat_ptr[index] > res_ptr[j].first) {
+          res_ptr[j].first = mat_ptr[index];
+          res_ptr[j].second = i + start_index;
+        }
+    }
+  }
+#endif
+  return res;
+}
+
+template <class T>
+std::vector<T>
+min_of_cols(rowmajor_matrix_local<T>& mat,
+            std::vector<size_t>& pos) {
+  auto mat_ptr = mat.val.data();
+  int nrow = mat.local_num_row;
+  int ncol = mat.local_num_col;
+  T min = std::numeric_limits<T>::max();
+  std::vector<T> res(nrow);
+  auto res_ptr = res.data();
+  pos.resize(nrow);
+  auto pos_ptr = pos.data();
+
+  for(size_t i = 0; i < nrow; ++i) res_ptr[i] = min;
+
+#if defined(_SX) || defined(__ve__)
+  if(nrow > ncol) { //Iterate top-down
+    for(size_t j = 0; j < ncol; ++j) {
+      for(size_t i = 0; i < nrow; ++i) {
+        auto index = ncol * i + j;
+          if(mat_ptr[index] < res_ptr[i]) {
+            res_ptr[i] = mat_ptr[index];
+            pos_ptr[i] = j;
+          }
+        }
+      }
+  }
+  else { //Iterate left-right
+    for(size_t i = 0; i < nrow; ++i) {
+      for(size_t j = 0; j < ncol; ++j) {
+        auto index = ncol * i + j;
+          if(mat_ptr[index] < res_ptr[i]) {
+            res_ptr[i] = mat_ptr[index];
+            pos_ptr[i] = j;
+          }
+        }
+    }
+  }
+#else // Iterate left right
+  for(size_t i = 0; i < nrow; ++i) {
+    for(size_t j = 0; j < ncol; ++j) {
+      auto index = ncol * i + j;
+        if(mat_ptr[index] < res_ptr[i]) {
+          res_ptr[i] = mat_ptr[index];
+          pos_ptr[i] = j;
+        }
+    }
+  }
+#endif
+  return res;
+}
+
+template <class T>
+std::vector<T>
+max_of_cols(rowmajor_matrix_local<T>& mat,
+            std::vector<size_t>& pos) {
+  auto mat_ptr = mat.val.data();
+  int nrow = mat.local_num_row;
+  int ncol = mat.local_num_col;
+  T max = std::numeric_limits<T>::min();
+  std::vector<T> res(nrow);
+  auto res_ptr = res.data();
+  pos.resize(nrow);
+  auto pos_ptr = pos.data();
+
+  for(size_t i = 0; i < nrow; ++i) res_ptr[i] = max;
+
+#if defined(_SX) || defined(__ve__)
+  if(nrow > ncol) { //Iterate top-down
+    for(size_t j = 0; j < ncol; ++j) {
+      for(size_t i = 0; i < nrow; ++i) {
+        auto index = ncol * i + j;
+          if(mat_ptr[index] > res_ptr[i]) {
+            res_ptr[i] = mat_ptr[index];
+            pos_ptr[i] = j;
+          }
+        }
+      }
+  }
+  else { //Iterate left-right
+    for(size_t i = 0; i < nrow; ++i) {
+      for(size_t j = 0; j < ncol; ++j) {
+        auto index = ncol * i + j;
+          if(mat_ptr[index] > res_ptr[i]) {
+            res_ptr[i] = mat_ptr[index];
+            pos_ptr[i] = j;
+          }
+        }
+    }
+  }
+#else // Iterate left right
+  for(size_t i = 0; i < nrow; ++i) {
+    for(size_t j = 0; j < ncol; ++j) {
+      auto index = ncol * i + j;
+        if(mat_ptr[index] > res_ptr[i]) {
+          res_ptr[i] = mat_ptr[index];
+          pos_ptr[i] = j;
+        }
+    }
+  }
+#endif
+  return res;
+}
+
+// when calling from map, use these functions to avoid function pointer issue
+template <class T>
+std::vector<std::pair<T, size_t>>
+rmm_max_of_elements(rowmajor_matrix_local<T>& mat,
+                    size_t start = 0) {
+  return max_of_elements(mat, start);
+
+}
+
+template <class T>
+std::vector<std::pair<T, size_t>>
+rmm_min_of_elements(rowmajor_matrix_local<T>& mat,
+                    size_t start = 0) {
+  return min_of_elements(mat, start);
+
+}
+
+template <class T>
+std::vector<std::pair<T, size_t>>
+rmm_max_of_rows(rowmajor_matrix_local<T>& mat,
+                size_t start_index = 0) {
+  return max_of_rows(mat, start_index);
+}
+
+template <class T>
+std::vector<std::pair<T, size_t>>
+rmm_min_of_rows(rowmajor_matrix_local<T>& mat,
+                size_t start_index = 0) {
+  return min_of_rows(mat, start_index);
+}
+
+template <class T>
+std::vector<T>
+rmm_max_of_cols(rowmajor_matrix_local<T>& mat,
+                std::vector<size_t>& pos) {
+  return max_of_cols(mat, pos);
+}
+
+template <class T>
+std::vector<T>
+rmm_min_of_cols(rowmajor_matrix_local<T>& mat,
+                std::vector<size_t>& pos) {
+  return min_of_cols(mat, pos);
+}
+
+// get number of elements of local matrix
+template <class LMATRIX>
+size_t get_num_elements(LMATRIX& mat) { return mat.val.size(); }
+
+// must be invoked with distributed MATRIX (rowmajor, colmajor or crs)
+template <class MATRIX>
+node_local<size_t>
+get_start_indices(MATRIX& mat) {
+  auto nrows = mat.get_local_num_rows();
+  std::vector<size_t> sidx(nrows.size()); sidx[0] = 0;
+  for(size_t i = 1; i < nrows.size(); ++i)
+    sidx[i] = sidx[i - 1] + nrows[i - 1];
+  return make_node_local_scatter(sidx);
+}
+
+// must be invoked with distributed MATRIX (rowmajor or crs) // not applicable for colmajor
+template <class MATRIX>
+node_local<size_t>
+get_global_indices(MATRIX& mat) {
+  auto nelem = mat.data.map(get_num_elements<typename MATRIX::local_mat_type>)
+                  .gather();
+  std::vector<size_t> sidx(nelem.size()); sidx[0] = 0;
+  for(size_t i = 1; i < nelem.size(); ++i)
+    sidx[i] = sidx[i - 1] + nelem[i-1];
+  return make_node_local_scatter(sidx);
+}
+
+template <class T>
+std::vector<std::pair<T, size_t>>
+argmin_pair(rowmajor_matrix<T>& mat, 
+            int axis = -1) {
+  std::vector<std::pair<T, size_t>> ret;
+  if(axis == 0) {
+    auto start = get_start_indices(mat);
+    auto mv = mat.data.map(rmm_min_of_rows<T>, start);
+    ret = mv.reduce(vector_min_pair<T, size_t>);
+  }
+  else if(axis == 1) {
+    auto p_local = make_node_local_allocate<std::vector<size_t>>();
+    auto v = mat.data.map(rmm_min_of_cols<T>, p_local);
+    auto pos = p_local.template moveto_dvector<size_t>().gather();
+    auto val = v.template moveto_dvector<T>().gather();
+    ret = make_key_value_pair(val, pos);
+  }
+  else {
+    auto start = get_global_indices(mat);
+    auto mv = mat.data.map(rmm_min_of_elements<T>, start);
+    ret = mv.reduce(vector_min_pair<T, size_t>);
+  }
+  return ret;
+}
+
+template <class T>
+std::vector<std::pair<T, size_t>>
+argmax_pair(rowmajor_matrix<T>& mat, 
+            int axis = -1) {
+  std::vector<std::pair<T, size_t>> ret;
+  if(axis == 0) {
+    auto start = get_start_indices(mat);
+    auto mv = mat.data.map(rmm_max_of_rows<T>, start);
+    ret = mv.reduce(vector_max_pair<T, size_t>);
+  }
+  else if(axis == 1) {
+    auto p_local = make_node_local_allocate<std::vector<size_t>>();
+    auto v = mat.data.map(rmm_max_of_cols<T>, p_local);
+    auto val = v.template moveto_dvector<T>().gather();
+    auto pos = p_local.template moveto_dvector<size_t>().gather();
+    ret = make_key_value_pair(val, pos);
+  }
+  else {
+    auto start = get_global_indices(mat);
+    auto mv = mat.data.map(rmm_max_of_elements<T>, start);
+    ret = mv.reduce(vector_max_pair<T, size_t>);
+  }
+  return ret;
+}
+
+template <class T>
+std::vector<std::pair<T, size_t>>
+argmin_pair(rowmajor_matrix_local<T>& mat, 
+            int axis = -1) {
+  std::vector<std::pair<T, size_t>> ret;
+  if (axis == 0) ret = min_of_rows(mat);
+  else if (axis == 1) {
+    std::vector<size_t> pos;
+    auto v = min_of_cols(mat, pos);
+    ret = make_key_value_pair(v, pos);
+  }
+  else ret = min_of_elements(mat);
+  return ret;
+}
+
+template <class T>
+std::vector<std::pair<T, size_t>>
+argmax_pair(rowmajor_matrix_local<T>& mat,
+            int axis = -1) {
+  std::vector<std::pair<T, size_t>> ret;
+  if (axis == 0) ret = max_of_rows(mat);
+  else if (axis == 1) {
+    std::vector<size_t> pos;
+    auto v = max_of_cols(mat, pos);
+    ret = make_key_value_pair(v, pos);
+  }
+  else ret = max_of_elements(mat);
+  return ret;
+}
+
 }
 #endif
