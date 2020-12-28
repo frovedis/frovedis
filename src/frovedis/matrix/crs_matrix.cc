@@ -20,31 +20,13 @@ int strtox<int>(char* s, char** next) {
 
 #ifdef __ve__
 
-struct is_zero {
-  int operator()(size_t a) const {return a == 0;}
-};
-
-struct is_not_lf {
-  int operator()(int a) const {return a != '\n';}
-};
-
-struct is_not_zero {
-  int operator()(size_t a) const {return a != 0;}
-};
-
-
-struct is_colon {
-  int operator()(int a) const {return a == ':';}
-};
-
-
 void crs_matrix_split_val_idx(const std::vector<int>& v,
                               std::vector<size_t>& starts, // -> idx
                               std::vector<size_t>& lens, // -> idx
                               std::vector<size_t>& val_starts,
                               std::vector<size_t>& val_lens,
                               std::vector<size_t>& line_starts) { // -> off
-  auto zero_lens = find_condition(lens, is_zero());
+  auto zero_lens = vector_find_zero(lens); 
   auto zero_lens_size = zero_lens.size();
   if(zero_lens_size != 0) {
     // zero len should be null line; check for fail safe
@@ -62,14 +44,14 @@ void crs_matrix_split_val_idx(const std::vector<int>& v,
     for(size_t i = 0; i < zero_lens_pos_size; i++) { 
       zero_lens_posp[i] = startsp[zero_lens_shiftp[i]]-1;
     }
-    auto not_lf = find_condition_index(v, zero_lens_pos, is_not_lf());
+    auto not_lf = find_condition_index(v, zero_lens_pos, is_not_lf<int>());
     // though internal or tailing space is detected,
     // heading space of a line is not detected (except 1st line)
     if(not_lf.size() != 0 || (zero_lens[0] == 0 && v[0] == ' '))
       throw std::runtime_error
         ("crs_matrix: format error. please check if there is no tailing space");
 
-    auto not_zero_lens = find_condition(lens, is_not_zero());
+    auto not_zero_lens = vector_find_nonzero(lens);
     auto not_zero_lensp = not_zero_lens.data();
     auto not_zero_lens_size = not_zero_lens.size();
     std::vector<size_t> new_starts(not_zero_lens_size);
@@ -105,7 +87,7 @@ void crs_matrix_split_val_idx(const std::vector<int>& v,
     }
   }
 
-  auto colon = find_condition(v, is_colon());
+  auto colon = find_condition(v, is_colon<int>());
   auto colonp = colon.data();
   auto size = starts.size();
   val_starts.resize(size);

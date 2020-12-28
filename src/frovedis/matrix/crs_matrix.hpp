@@ -450,10 +450,6 @@ std::ostream& operator<<(std::ostream& str, crs_matrix_local<T,I,O>& mat) {
 }
 
 #ifdef __ve__
-struct crs_is_zero {
-  int operator()(size_t a) const {return a == 0;}
-};
-
 template <class T, class I, class O>
 std::vector<char> crs_matrix_local_to_string(const crs_matrix_local<T,I,O>& m) {
   auto size = m.idx.size();
@@ -489,7 +485,7 @@ std::vector<char> crs_matrix_local_to_string(const crs_matrix_local<T,I,O>& m) {
   for(size_t i = 0; i < off_size - 1; i++) {
     row_nnzp[i] = offp[i+1] - offp[i];
   }
-  auto zeros = find_condition(row_nnz, crs_is_zero());
+  auto zeros = vector_find_zero(row_nnz); 
   auto zeros_size = zeros.size();
   if(zeros_size != 0) {
 #pragma _NEC ivdep
