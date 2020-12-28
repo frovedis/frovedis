@@ -114,8 +114,8 @@ object ALS {
     JNISupport.callFrovedisMFUsingALS(fs.master_node,data.get(),rank,
                                     iterations,alpha,lambda,seed,
                                     mid,isMovableInput)
-    val info = JNISupport.checkServerException();
-    if (info != "") throw new java.rmi.ServerException(info);
+    val info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
     return new MatrixFactorizationModel(mid,M_KIND.MFM,rank)
   }
 
