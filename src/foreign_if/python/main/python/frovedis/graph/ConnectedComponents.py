@@ -1,14 +1,16 @@
 """ ConnectedComponents.py """
 
 import sys
+import time
 import numpy as np
 import networkx as nx
-from .graph import Graph
-
 from ..exrpc.server import FrovedisServer
 from ..exrpc import rpclib
+from .graph import Graph
+from .g_validate import validate_graph 
 
-def connected_components(G, opt_level=2, hyb_threshold=0.4, 
+def connected_components(G, opt_level=2, hyb_threshold=0.4,
+                         verbose=0, 
                          print_summary=False,
                          print_limit=5):
     """
@@ -16,24 +18,20 @@ def connected_components(G, opt_level=2, hyb_threshold=0.4,
     PARAM:  G: frovedis/networkx graph object
             opt_level: int (0, 1 or 2) (default: 2)
             hyb_threshold: double (0.0 ~ 1.0) (default: 0.4)
+            verbose: int (0 or 1) (default: 0)
             print_summary: whether to print summary of connected components
             print_limit: the maximum number of nodes info to be printed
     RETURN: A dictionary with keys as root-nodeid for each component,
             and values as list of pairs of nodeid with its distance
             from root of the component to which the node belongs
     """
-    if isinstance(G, nx.classes.graph.Graph):
-        G = Graph(nx_graph=G) #convert to frov graph
-        inp_movable = True
-    else:
-        inp_movable = False
-
+    G, inp_movable = validate_graph(G)
     nvert = G.num_vertices
     (host, port) = FrovedisServer.getServerInstance()
     # graph.py: node data is loaded as int64
     nodes_dist = np.empty(nvert, dtype=np.int64) # actually levels (I-type)
     nodes_in_which_cc = np.empty(nvert, dtype=np.int64)
-    import time
+
     stime = time.time()
     root_with_cc_count = rpclib.call_frovedis_cc(host, port,\
                                     G.get(), nodes_in_which_cc,\
@@ -42,11 +40,12 @@ def connected_components(G, opt_level=2, hyb_threshold=0.4,
     excpt = rpclib.check_server_exception()
     if excpt["status"]:
         raise RuntimeError(excpt["info"])
-    etime = time.time()
-    print("cc computation time: %.3f sec." % (etime - stime))
     if inp_movable:
         G.release()
-    import time
+    etime = time.time()
+    if verbose: 
+        print("cc computation time: %.3f sec." % (etime - stime))
+
     stime = time.time()
     if print_summary:
         show_cc_summary(root_with_cc_count, nodes_in_which_cc, \
@@ -58,7 +57,8 @@ def connected_components(G, opt_level=2, hyb_threshold=0.4,
         if cc_root != sys.maxsize: 
             ret[cc_root].append(i + 1)
     etime = time.time()
-    print("cc res conversion time: %.3f sec." % (etime - stime))
+    if verbose:
+        print("cc res conversion time: %.3f sec." % (etime - stime))
     for i in sorted(ret.values()):
         yield set(i)
 

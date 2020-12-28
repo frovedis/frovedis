@@ -1,13 +1,15 @@
 """ Pagerank.py """
 
 import sys
+import time
 import networkx as nx
 from ..exrpc.server import FrovedisServer
 from ..exrpc import rpclib
 from .graph import Graph
+from .g_validate import validate_graph 
 
 def pagerank(G, alpha=0.85, personalization=None, max_iter=100, tol=1.0e-6, \
-        nstart=None, weight='weight', dangling=None):
+        nstart=None, weight='weight', dangling=None, verbose=0):
     """
     DESC: Calls frovedis pagerank
     PARAM:  Frovedis graph -> G
@@ -20,24 +22,18 @@ def pagerank(G, alpha=0.85, personalization=None, max_iter=100, tol=1.0e-6, \
             dict -> dangling -> None
     RETURN: dict of ranks
     """
-    if isinstance(G, nx.classes.graph.Graph):
-        frov_gr = Graph(nx_graph=G)
-        movable = True
-    elif isinstance(G, Graph):
-        frov_gr = G
-        movable = False
-    else:
-        raise TypeError("Requires networkx graph or frovedis graph, but provided type is: ", type(G))
+    G, inp_movable = validate_graph(G)
     (host, port) = FrovedisServer.getServerInstance()
     result = rpclib.call_frovedis_pagerank(host, port,\
-                frov_gr.get(), tol, alpha, max_iter)
+                G.get(), tol, alpha, max_iter, verbose)
     excpt = rpclib.check_server_exception()
     if excpt["status"]:
         raise RuntimeError(excpt["info"])
-    if movable:
-        frov_gr.release()
-    verts = {}
-    for i in range(len(result)):
-        if result[i] != sys.float_info.max:
-            verts[i+1] = result[i]
-    return verts
+    if inp_movable:
+        G.release()
+    stime = time.time()
+    ret = dict(zip(result['nodeid'], result['rank']))
+    etime = time.time()
+    if verbose:
+        print("pagerank result dictionary conversion time: %.3f sec." % (etime - stime))
+    return ret
