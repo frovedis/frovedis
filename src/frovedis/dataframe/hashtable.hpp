@@ -7,7 +7,7 @@
 #include "../core/set_operations.hpp"
 #include "../core/radix_sort.hpp"
 #include "../core/lower_bound.hpp"
-#include "../text/find_condition.hpp"
+#include "../core/vector_operations.hpp"
 
 #if defined(_SX) || defined(__ve__) // might be used in x86
 #define FIND_MISS_VLEN 1024
@@ -1578,14 +1578,10 @@ unique_hashtable<K,V>::check_existence(const std::vector<K>& k) {
   return ret;
 }
 
-struct hashtable_is_filled {
-  int operator()(int c) const {return (c == 1);}
-};
-
 template <class K, class V> 
 std::vector<K>
 unique_hashtable<K,V>::all_keys() {
-  auto hit = find_condition(is_filled, hashtable_is_filled());
+  auto hit = vector_find_one(is_filled);
   auto hit_size = hit.size();
   auto conflict_key_size = conflict_key.size();
   auto ret_size = hit_size + conflict_key_size;
