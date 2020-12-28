@@ -125,7 +125,6 @@ JNIEXPORT jlongArray JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_broadcast2A
   try {
     switch(mkind) {
       case MFM:    eps = exrpc_async(fm_node,(bcast_model_to_workers<DT1,MFM1>),mid).get(); break;
-      case KMEANS: eps = exrpc_async(fm_node,(bcast_model_to_workers<DT1,KMM1>),mid).get(); break;
       default:     REPORT_ERROR(USER_ERROR,"Unknown Model Kind is encountered!\n");
     }
     // converting eps to jlongArray
@@ -369,22 +368,47 @@ JNIEXPORT jobjectArray JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_recommend
   return to_jIntDoublePairArray(env, ret); 
 }
 
+// for single test input: prediction on trained kmm is carried out in master node
+JNIEXPORT jint JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_doSingleKMMPredict
+  (JNIEnv *env, jclass thisCls, jobject master_node, 
+   jlong mptr, jint mid, jboolean dense) {
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto f_dptr = (exrpc_ptr_t) mptr;
+  bool isDense = (bool) dense;
+#ifdef _EXRPC_DEBUG_
+  std::cout << "Connecting to master node (" 
+            << fm_node.hostname << "," << fm_node.rpcport 
+            << ") to perform single kmeans prediction.\n";
+#endif
+  int ret = 0;
+  try {
+   if (isDense)
+     ret = exrpc_async(fm_node,(single_kmm_predict<R_LMAT1,KMM1>),f_dptr,mid).get();
+   else
+     ret = exrpc_async(fm_node,(single_kmm_predict<S_LMAT1,KMM1>),f_dptr,mid).get();
+  }
+  catch(std::exception& e) { set_status(true,e.what()); }
+  return ret;
+}
+
 // for multiple test inputs: prediction is carried out in parallel in Frovedis worker nodes
 JNIEXPORT jintArray JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_doParallelKMMPredict
-  (JNIEnv *env, jclass thisCls, jobject worker_node, jlong mptr, jshort mkind, 
-   jlong nrows, jlong ncols, jintArray off, jintArray idx, jdoubleArray val) {
-
-  auto crs_loc = get_frovedis_double_crs_matrix_local(env,nrows,ncols,off,idx,val);
-  auto fw_node = java_node_to_frovedis_node(env, worker_node);
-  auto mptr_ = (exrpc_ptr_t) mptr;
+  (JNIEnv *env, jclass thisCls, jobject worker_node, 
+   jlong mptr, jint mid, jboolean dense) {
+  auto fm_node = java_node_to_frovedis_node(env, worker_node);
+  auto f_dptr = (exrpc_ptr_t) mptr;
+  bool isDense = (bool) dense;
 #ifdef _EXRPC_DEBUG_
-  std::cout << "Connecting to worker node (" 
-            << fw_node.hostname << "," << fw_node.rpcport 
-            << ") to perform multiple prediction in parallel.\n";
+  std::cout << "Connecting to master node (" 
+            << fm_node.hostname << "," << fm_node.rpcport 
+            << ") to perform multiple kmeans prediction in parallel.\n";
 #endif
   std::vector<int> pd;
   try {
-    pd = exrpc_async(fw_node,(parallel_kmm_predict<S_LMAT1,KMM1>),crs_loc,mptr_).get(); 
+    if (isDense)
+      pd = exrpc_async(fm_node,(kmeans_predict<R_MAT1,KMM1>),f_dptr,mid).get(); 
+    else 
+      pd = exrpc_async(fm_node,(kmeans_predict<S_MAT1,KMM1>),f_dptr,mid).get(); 
   }
   catch(std::exception& e) { set_status(true,e.what()); }
   return to_jintArray(env, pd);
@@ -424,26 +448,6 @@ JNIEXPORT jobject JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getSEMEmbeddin
   }
   catch(std::exception& e) { set_status(true,e.what()); }
   return to_jDummyMatrix(env,ret,RMJR);
-}
-
-// for single test input: prediction on trained kmm is carried out in master node
-JNIEXPORT jint JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_doSingleKMMPredict
-  (JNIEnv *env, jclass thisCls, jobject master_node, jint mid, jshort mkind, 
-   jlong nrows, jlong ncols, jintArray off, jintArray idx, jdoubleArray val) {
-
-  auto crs_loc = get_frovedis_double_crs_matrix_local(env,nrows,ncols,off,idx,val);
-  auto fm_node = java_node_to_frovedis_node(env, master_node);
-#ifdef _EXRPC_DEBUG_
-  std::cout << "Connecting to master node (" 
-            << fm_node.hostname << "," << fm_node.rpcport 
-            << ") to perform single prediction.\n";
-#endif
-  int ret = 0;
-  try {
-    ret = exrpc_async(fm_node,(single_kmm_predict<S_LMAT1,KMM1>),crs_loc,mid).get();
-  }
-  catch(std::exception& e) { set_status(true,e.what()); }
-  return ret;
 }
 
 JNIEXPORT jobject JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getW2VWeightPointer
