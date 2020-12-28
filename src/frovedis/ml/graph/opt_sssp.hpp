@@ -9,26 +9,56 @@ namespace frovedis {
 template <class T, class I>
 struct sssp_result {
   sssp_result() {}
-  sssp_result(std::vector<T>& dist, std::vector<I>& pred) {
-    distances = dist;
+  sssp_result(const std::vector<I>& dest,
+              const std::vector<I>& pred,
+              const std::vector<T>& dist) {
+    destids = dest;
     predecessors = pred;
+    distances = dist;
   }
-  sssp_result(std::vector<T>&& dist, std::vector<I>&& pred) {
-    distances.swap(dist);
+  sssp_result(std::vector<I>&& dest,
+              std::vector<I>&& pred,
+              std::vector<T>&& dist) {
+    destids.swap(dest);
     predecessors.swap(pred);
+    distances.swap(dist);
+  }
+  sssp_result(std::vector<I>& pred,
+              std::vector<T>& dist) {
+    checkAssumption(dist.size() > 0);
+    auto index = vector_find_not_tmax(dist);
+    auto n_nodes_visited = index.size();
+    auto index_p = index.data();
+    auto dist_p = dist.data();
+    auto pred_p = pred.data();
+    destids.resize(n_nodes_visited);
+    distances.resize(n_nodes_visited);
+    predecessors.resize(n_nodes_visited);
+    auto destid_p = destids.data();
+    auto distances_p = distances.data();
+    auto predecessors_p = predecessors.data();
+    for (size_t i = 0; i < n_nodes_visited; ++i) {
+      auto id = index_p[i];
+      destid_p[i] = id + 1; //1-based
+      distances_p[i] = dist_p[id];
+      predecessors_p[i] = pred_p[id];
+    }
   }
   void debug_print(size_t n = 0) {
+    std::cout << "destination ids: "; debug_print_vector(destids, n);
     std::cout << "distancess: "; debug_print_vector(distances, n);
     std::cout << "predecessorss: "; debug_print_vector(predecessors, n);
   }
   void save(const std::string& path) {
+    make_dvector_scatter(destids).saveline(path + "_destids");
     make_dvector_scatter(distances).saveline(path + "_distances");
     make_dvector_scatter(predecessors).saveline(path + "_predecessors");
   }
   // TODO: add query()
+  std::vector<I> destids;
   std::vector<T> distances;
   std::vector<I> predecessors;
-  SERIALIZE(distances, predecessors)
+  SERIALIZE(destids, distances, predecessors)
 };
 
 template <class T, class I, class O>
@@ -255,21 +285,20 @@ sssp_bf_impl(crs_matrix<T, I, O>& gr,
   auto srcid = source_node - 1;
 
   // --- initialization step ---
-  std::vector<I> pred;
-  std::vector<T> dist(nvert); auto distp = dist.data(); // output vector
-  auto Tmax = std::numeric_limits<T>::max();
-  for(size_t i = 0; i < nvert; ++i) distp[i] = Tmax;
-  dist[srcid] = 0;
   require(check_if_exist(srcid, num_outgoing, num_incoming),  
     std::string("sssp: source ") + STR(source_node) + 
     std::string(" not found in input graph!\n"));
   if(num_outgoing[srcid] == 0) {
     // no outgoing edge: thus no destination is reachable from given source
-    pred.resize(nvert);
-    auto predp = pred.data();
-    for(size_t i = 0; i < nvert; ++i) predp[i] = i + 1;
+    return sssp_result<T,I>(std::vector<I>(1, source_node), // destid
+                            std::vector<I>(1, source_node), // pred
+                            std::vector<T>(1, 0));          // dist
   }
   else {
+    std::vector<T> dist(nvert); auto distp = dist.data(); // output vector
+    auto Tmax = std::numeric_limits<T>::max();
+    for(size_t i = 0; i < nvert; ++i) distp[i] = Tmax;
+    dist[srcid] = 0;
     // --- initialization related to distributed design ---
     auto rowid = gr.data.map(compute_rowid<T,I,O>);
     auto nrows = gr.data.map(get_local_nrows_int<T,I,O>).gather();
@@ -280,9 +309,9 @@ sssp_bf_impl(crs_matrix<T, I, O>& gr,
     dist = gr.data.map(calc_sssp_bf<T,I,O>,
                        rowid, broadcast(dist), pred_loc,
                        broadcast(nrows), broadcast(sidx)).get(0); // all processes have updated distance
-    pred = pred_loc.template moveto_dvector<I>().gather();
+    auto pred = pred_loc.template moveto_dvector<I>().gather();
+    return sssp_result<T,I>(pred, dist);
   }
-  return sssp_result<T,I>(dist, pred);
 }
 
 }
