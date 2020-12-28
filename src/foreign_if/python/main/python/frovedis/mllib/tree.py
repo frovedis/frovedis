@@ -89,7 +89,6 @@ class DecisionTreeRegressor(BaseEstimator):
         """
         NAME: fit
         """
-        self.validate()
         self.release()
         inp_data = FrovedisLabeledPoint(X, y, \
                    caller = "[" + self.__class__.__name__ + "] fit: ", \
@@ -98,6 +97,8 @@ class DecisionTreeRegressor(BaseEstimator):
         dtype = inp_data.get_dtype()
         itype = inp_data.get_itype()
         dense = inp_data.is_dense()
+        self.n_features_ = inp_data.numCols()
+        self.validate()
         self.__mid = ModelID.get()
         self.__mdtype = dtype
         (host, port) = FrovedisServer.getServerInstance()
@@ -119,8 +120,9 @@ class DecisionTreeRegressor(BaseEstimator):
         NAME: predict
         """
         if self.__mid is not None:
-            return GLM.predict(X, self.__mid, self.__mkind,\
-                               self.__mdtype, False)
+            ret = GLM.predict(X, self.__mid, self.__mkind,\
+                              self.__mdtype, False)
+            return np.asarray(ret, dtype=np.float64)
         else:
             raise ValueError(\
             "predict is called before calling fit, or the model is released.")
@@ -274,9 +276,7 @@ class DecisionTreeClassifier(BaseEstimator):
         """
         NAME: fit
         """
-        # release old model, if any
         self.release()
-        self.validate()
         # for binary case: frovedis supports 0 and 1
         inp_data = FrovedisLabeledPoint(X, y, \
                    caller = "[" + self.__class__.__name__ + "] fit: ",\
@@ -285,10 +285,12 @@ class DecisionTreeClassifier(BaseEstimator):
         X, y, logic = inp_data.get()
         self._classes = inp_data.get_distinct_labels()
         self.n_classes_ = len(self._classes)
+        self.n_features_ = inp_data.numCols()
         self.label_map = logic
         dtype = inp_data.get_dtype()
         itype = inp_data.get_itype()
         dense = inp_data.is_dense()
+        self.validate()
         self.__mid = ModelID.get()
         self.__mdtype = dtype
 
