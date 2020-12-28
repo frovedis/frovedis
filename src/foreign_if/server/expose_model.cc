@@ -185,20 +185,20 @@ void expose_frovedis_model_functions() {
   expose((get_intercept_as_vector<DT2,SVR2>));
   // --- frovedis SVM Kernel Model ---
   expose(show_model<KSVC1>); //TODO: Python support to be added
-  expose(load_glm<KSVC1>); //spark
-  expose((single_generic_predict<DT1,R_LMAT1,KSVC1>));  // for spark
   expose(release_model<KSVC1>);
   expose(release_model<KSVC2>); // for python
   expose(save_model<KSVC1>);
   expose(save_model<KSVC2>);    // for python
+  expose(load_glm<KSVC1>); //spark
   expose(load_model<KSVC1>); //TODO: replace in python then remove this and next call
   expose(load_model<KSVC2>);    // for python
   expose((ksvm_predict<DT1,R_MAT1,KSVC1>));  // for spark+python
   expose((ksvm_predict<DT2,R_MAT2,KSVC2>));  // for python
+  expose((single_generic_predict<DT1,R_LMAT1,KSVC1>));  // for spark
   expose((get_support_vector<DT1,KSVC1>));
   expose((get_support_vector<DT2,KSVC2>));
-  expose((get_support_idx<DT5,KSVC1>));
-  expose((get_support_idx<DT5,KSVC2>));
+  expose((get_support_idx<KSVC1>));
+  expose((get_support_idx<KSVC2>));
   // --- frovedis MatrixFactorizationModel ---
   expose(show_model<MFM1>);
   expose(release_model<MFM1>);
@@ -219,22 +219,27 @@ void expose_frovedis_model_functions() {
   expose(recommend_products<DT2>);   // for python
   // --- frovedis kmeans model (rowmajor_matrix_local<T>) ---
   expose(show_model<KMM1>);
-  expose(release_model<KMM1>);
-  expose(save_model<KMM1>);
-  expose(load_kmm<DT1>);
   expose(show_model<KMM2>);    // for python
+  expose(release_model<KMM1>);
   expose(release_model<KMM2>); // for python
+  expose(save_model<KMM1>);
   expose(save_model<KMM2>);    // for python
+  expose(load_kmm<DT1>);
   expose(load_kmm<DT2>);       // for python
-  expose((bcast_model_to_workers<DT1,KMM1>));
   expose((single_kmm_predict<S_LMAT1,KMM1>));
-  expose((parallel_kmm_predict<S_LMAT1,KMM1>));
-  expose((pkp2<R_MAT1,R_LMAT1,KMM1>));   
-  expose((pkp2<R_MAT2,R_LMAT2,KMM2>));   // for python
-  expose((pkp2<S_MAT14,S_LMAT14,KMM1>)); 
-  expose((pkp2<S_MAT15,S_LMAT15,KMM1>)); // for python
-  expose((pkp2<S_MAT24,S_LMAT24,KMM2>)); // for python
-  expose((pkp2<S_MAT25,S_LMAT25,KMM2>)); // for python
+  expose((single_kmm_predict<R_LMAT1,KMM1>));
+  expose((kmeans_predict<R_MAT1,KMM1>));   
+  expose((kmeans_predict<R_MAT2,KMM2>));   // for python
+  expose((kmeans_predict<S_MAT14,KMM1>)); 
+  expose((kmeans_predict<S_MAT15,KMM1>)); // for python
+  expose((kmeans_predict<S_MAT24,KMM2>)); // for python
+  expose((kmeans_predict<S_MAT25,KMM2>)); // for python
+  expose((kmeans_score<R_MAT1,KMM1>));
+  expose((kmeans_score<R_MAT2,KMM2>));   // for python
+  expose((kmeans_score<S_MAT14,KMM1>));
+  expose((kmeans_score<S_MAT15,KMM1>)); // for python
+  expose((kmeans_score<S_MAT24,KMM2>)); // for python
+  expose((kmeans_score<S_MAT25,KMM2>)); // for python
   // ---frovedis spectral embedding
   expose(release_model<SEM1>);
   expose(save_model<SEM1>);
