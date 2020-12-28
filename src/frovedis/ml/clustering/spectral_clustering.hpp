@@ -19,17 +19,10 @@ compute_spectral_cluster(rowmajor_matrix<T>& mat, // affinity matrix
                          bool drop_first = false) {
   auto embed = compute_spectral_embedding(mat,n_comp,norm_laplacian,drop_first,mode);
   time_spent kmeans_t(DEBUG);
-  kmeans_t.lap_start();
-  auto centroid = kmeans(embed,ncluster,niter,eps);
-  kmeans_t.lap_stop();
-  //std::cout << "centroid: \n"; centroid.debug_print(10);
-  if(SAVE) centroid.save("./dump/centroid");
-  kmeans_t.lap_start();
-  auto bcentroid = broadcast(centroid);
-  auto labels = embed.data.map(kmeans_assign_cluster<T>, bcentroid)
-                          .template moveto_dvector<int>().gather();
-  kmeans_t.lap_stop();
-  kmeans_t.show_lap("kmeans time: ");
+  auto clsf = KMeans<T>(ncluster).set_max_iter(niter).set_eps(eps);
+  auto labels = clsf.fit_predict(embed);
+  kmeans_t.show("kmeans time: ");
+  if(SAVE) clsf.cluster_centers_().save("./dump/centroid");
   return labels;
 }
 
