@@ -69,7 +69,7 @@ void release_graph(exrpc_ptr_t& dptr) {
 }
 
 template <class GRAPH>
-std::vector<double> 
+py_pagerank_result<double> 
 frovedis_pagerank(exrpc_ptr_t& dptr, 
                   double& epsilon, 
                   double& dfactor,
@@ -79,9 +79,10 @@ frovedis_pagerank(exrpc_ptr_t& dptr,
   if (verbose == 1) frovedis::set_loglevel(frovedis::DEBUG);
   else if (verbose == 2) frovedis::set_loglevel(frovedis::TRACE);
   auto& graph = *reinterpret_cast<GRAPH*>(dptr);
-  auto rank = graph.pagerank(dfactor, epsilon, max_iter);
+  size_t num_active_nodes = 0;
+  auto rank = graph.pagerank(dfactor, epsilon, max_iter, num_active_nodes);
   frovedis::set_loglevel(old_level);
-  return rank;
+  return py_pagerank_result<double>(rank, num_active_nodes);
 }
 
 template <class GRAPH> 
@@ -120,12 +121,13 @@ frovedis_bfs(exrpc_ptr_t& dptr,
              long& source_vertex,
              int& opt_level,
              double& hyb_threshold,
+             long& depth_limit,
              int& verbose) {
   auto old_level = frovedis::get_loglevel();
   if (verbose == 1) frovedis::set_loglevel(frovedis::DEBUG);
   else if (verbose == 2) frovedis::set_loglevel(frovedis::TRACE);
   auto& graph = *reinterpret_cast<GRAPH*>(dptr);
-  auto ret = graph.bfs(source_vertex, opt_level, hyb_threshold);
+  auto ret = graph.bfs(source_vertex, opt_level, hyb_threshold, depth_limit);
   frovedis::set_loglevel(old_level);
   return ret;
 }
