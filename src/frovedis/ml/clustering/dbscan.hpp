@@ -17,9 +17,9 @@ public:
     d_core_flgs = calc_core_flgs(min_pts);
     d_core_graph = calc_core_graph();
     cluster();
-  };
-  std::vector<int> labels() {return clustered_labels;};
-  dbscan(double eps, int min_pts) : eps(eps), min_pts(min_pts) {};
+  }
+  std::vector<int> labels() {return clustered_labels;}
+  dbscan(double eps, int min_pts) : eps(eps), min_pts(min_pts) {}
 
 private:
   template<typename T>
