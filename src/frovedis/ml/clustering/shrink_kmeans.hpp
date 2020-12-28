@@ -3,7 +3,7 @@
 
 #include "../../matrix/shrink_matrix.hpp"
 #include "kmeans_utils.hpp"
-#include "kmeans.hpp" // resuses dense implementation
+#include "kmeans_impl.hpp" // resuses dense implementation
 
 namespace frovedis {
 namespace shrink {
@@ -178,7 +178,8 @@ calc_new_centroid(rowmajor_matrix<T>& sum, std::vector<size_t>& occurrence,
 
 template <class T, class I, class O>
 rowmajor_matrix_local<T> kmeans_impl(crs_matrix<T,I,O>& samples, int k,
-                                     int iter, double eps, long seed = 0) {
+                                     int iter, double eps, long seed = 0,
+                                     int& n_iter_ = 0) {
   time_spent t(TRACE);
   size_t dim = samples.num_col;
   std::vector<T> norm(k);
@@ -219,7 +220,8 @@ rowmajor_matrix_local<T> kmeans_impl(crs_matrix<T,I,O>& samples, int k,
     bcasttime.lap_stop();
     t.show("bcast centroid: ");
     disttime.lap_start();
-    mat.data.mapv(kmeans_calc_sum<T,I,O>, samples.data, bcentroid, bnorm, doccurrence, dsum);
+    mat.data.mapv(kmeans_calc_sum<T,I,O>, samples.data, bcentroid, bnorm, 
+                  doccurrence, dsum);
     disttime.lap_stop();
     t.show("calc_sum map: ");
     vecsumtime.lap_start();
@@ -252,28 +254,51 @@ rowmajor_matrix_local<T> kmeans_impl(crs_matrix<T,I,O>& samples, int k,
   disttime.show_lap("distributed computation time: ");
   vecsumtime.show_lap("vector sum time: ");
   nextcentroidtime.show_lap("calculate next centroid time: ");
+  n_iter_ = i + 1;
   return centroid.gather();
 }
 
 template <class T, class I, class O>
 rowmajor_matrix_local<T> kmeans(crs_matrix<T,I,O>& samples, int k, int iter,
+                                double eps, long seed, int& n_iter_) {
+  return frovedis::shrink::kmeans_impl(samples, k, iter, eps, seed, n_iter_);
+}
+
+template <class T, class I, class O>
+rowmajor_matrix_local<T> kmeans(crs_matrix<T,I,O>&& samples, int k, int iter,
+                                double eps, long seed, int& n_iter_) {
+  return frovedis::shrink::kmeans_impl(samples, k, iter, eps, seed, n_iter_);
+}
+
+template <class T>
+rowmajor_matrix_local<T> kmeans(rowmajor_matrix<T>& samples, int k, int iter,
+                                double eps, long seed, int& n_iter_) {
+  std::string msg = "shrink version is supported only for sparse data!\n";
+  msg += "dense data is detected! by-passing the call to non-shrink version!.\n";
+  REPORT_WARNING(WARNING_MESSAGE, msg);
+  return frovedis::kmeans_impl(samples, k, iter, eps, seed, n_iter_);
+}
+
+// for backward compatibility with previously released shrink::kmeans APIs
+template <class T, class I, class O>
+rowmajor_matrix_local<T> kmeans(crs_matrix<T,I,O>& samples, int k, int iter,
                                 double eps, long seed = 0) {
-  return frovedis::shrink::kmeans_impl(samples, k, iter, eps, seed);
+  int n_iter_ = 0;
+  return frovedis::shrink::kmeans_impl(samples, k, iter, eps, seed, n_iter_);
 }
 
 template <class T, class I, class O>
 rowmajor_matrix_local<T> kmeans(crs_matrix<T,I,O>&& samples, int k, int iter,
                                 double eps, long seed = 0) {
-  return frovedis::shrink::kmeans_impl(samples, k, iter, eps, seed);
+  int n_iter_ = 0;
+  return frovedis::shrink::kmeans_impl(samples, k, iter, eps, seed, n_iter_);
 }
 
 template <class T>
 rowmajor_matrix_local<T> kmeans(rowmajor_matrix<T>& samples, int k, int iter,
                                 double eps, long seed = 0) {
-  std::string msg = "shrink version is supported only for sparse data!\n";
-  msg += "dense data is detected! by-passing the call to non-shrink version!.\n";
-  REPORT_WARNING(WARNING_MESSAGE, msg);
-  return frovedis::kmeans_impl(samples, k, iter, eps, seed);
+  int n_iter_ = 0;
+  return frovedis::shrink::kmeans(samples, k, iter, eps, seed, n_iter_);
 }
 
 } // end of namespace shrink
