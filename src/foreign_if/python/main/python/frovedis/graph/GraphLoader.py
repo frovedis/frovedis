@@ -54,16 +54,15 @@ def custom_read_edgelist(path, comments='#', delimiter=' ', \
     else:
       min_id = int(tarr.min())
       max_id = int(tarr.max())
+
     if min_id == 0:
       rowid = mat[:, 0]
       colid = mat[:, 1]
       num_vertices = max_id + 1
-    elif min_id == 1:
+    else:
       rowid = mat[:, 0] - 1
       colid = mat[:, 1] - 1
       num_vertices = max_id
-    else:
-      raise ValueError("read_edgelist: Expected either 0-based or 1-based edgelist file!")
 
     # extracting edge weight information (if available)
     if ncol == 3: 
