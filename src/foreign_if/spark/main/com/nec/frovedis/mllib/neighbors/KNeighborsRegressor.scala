@@ -2,6 +2,7 @@ package com.nec.frovedis.mllib.neighbors;
 
 import com.nec.frovedis.Jexrpc.{FrovedisServer,JNISupport}
 import com.nec.frovedis.exrpc.FrovedisSparseData
+import com.nec.frovedis.matrix.MAT_KIND
 import com.nec.frovedis.matrix.FrovedisRowmajorMatrix
 import com.nec.frovedis.mllib.{M_KIND,ModelID,GenericModel}
 import org.apache.spark.rdd.RDD
@@ -64,6 +65,10 @@ class KNeighborsRegressor(var nNeighbors: Int,
 
   def run(data: FrovedisLabeledPoint,
           movable: Boolean): this.type = {
+    if (data.is_dense() && data.matType() != MAT_KIND.RMJR) 
+       throw new IllegalArgumentException(
+        s"fit: please provide row-major "+
+        s"points as for dense data to frovedis kneighbor regressor!\n")
     release()
     this.mid = ModelID.get()
     val fs = FrovedisServer.getServerInstance()

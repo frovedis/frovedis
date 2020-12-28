@@ -2,6 +2,7 @@ package com.nec.frovedis.mllib.neighbors;
 
 import com.nec.frovedis.Jexrpc.{FrovedisServer, JNISupport}
 import com.nec.frovedis.exrpc.FrovedisSparseData
+import com.nec.frovedis.matrix.MAT_KIND
 import com.nec.frovedis.matrix.FrovedisRowmajorMatrix
 import com.nec.frovedis.mllib.{M_KIND, ModelID}
 import com.nec.frovedis.Jmllib.DummyKNNResult
@@ -63,6 +64,10 @@ class KNeighborsClassifier(var nNeighbors: Int,
 
   def run(data: FrovedisLabeledPoint,
           movable: Boolean): this.type = {
+    if (data.is_dense() && data.matType() != MAT_KIND.RMJR) 
+       throw new IllegalArgumentException(
+        s"fit: please provide row-major "+
+        s"points as for dense data to frovedis kneighbor classifier!\n")
     release() // releasing previous algorithm object, if any
     this.mid = ModelID.get()
     val fs = FrovedisServer.getServerInstance()
