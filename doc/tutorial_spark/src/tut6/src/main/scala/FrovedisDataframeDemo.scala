@@ -1,6 +1,7 @@
 import com.nec.frovedis.Jexrpc.FrovedisServer
 import com.nec.frovedis.sql.FrovedisDataFrame
 import com.nec.frovedis.sql.implicits_._
+import com.nec.frovedis.sql.functions._
 import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.sql.SparkSession
 
@@ -53,20 +54,20 @@ object FrovedisDataframeDemo extends Serializable {
     df1.sort($$"Age").show()
 
     // join demo
-    df1.join(df2, df1("Country") === df2("CName"),"outer","hash")
+    df1.join(df2, df1("Country") === df2("CName"))
        .select("EName","Age","CCode","CName").show()
 
     // change column name
     // df1.withColumnRenamed("Country", "Cname").show()
 
     // combined operation demo
-    df1.join(df2, df1("Country") === df2("CName"),"outer","hash")
+    df1.join(df2, df1("Country") === df2("CName"))
        .select("EName","Age","CCode","CName")
        .when($$"Age" > 19)
        .sort($$"CCode", $$"Age").show()
 
     // groupBy demo
-    df1.groupBy("Country").select("Country").show()
+    df1.groupBy("Country").agg(max("Age").as("max_age")).show()
 
     // miscellaneous
     println("Total rows: " + df1.count())

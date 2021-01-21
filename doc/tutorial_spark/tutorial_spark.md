@@ -540,17 +540,18 @@ Output should be like:
 
 Join can be done like this:
 
-    df1.join(df2, df1("Country") === df2("CName"),"outer","hash")
+    df1.join(df2, df1("Country") === df2("CName"))
        .select("EName","Age","CCode","CName").show()
 
-
 It produces output like:
-    EName	Age	CCode	CName
-    Tanaka	27	03	Japan
-    Raul	19	04	France
-    Yuta	31	03	Japan
-    Michael	29	01	USA
-    Andy	30	02	England
+
+    EName   Age     CCode   CName
+    Michael 29      01      USA
+    Andy    30      02      England
+    Tanaka  27      03      Japan
+    Raul    19      04      France
+    Yuta    31      03      Japan
+
 
 To join tables, it is required that the column names are unique in the
 current implementation. If you want rename the column, you can do like
@@ -562,18 +563,30 @@ this:
 You can chain operations. Here, join, select, filter, and sort are
 chained.
 
-    df1.join(df2, df1("Country") === df2("CName"),"outer","hash")
+    df1.join(df2, df1("Country") === df2("CName"))
        .select("EName","Age","CCode","CName")
        .when($$"Age" > 19)
        .sort($$"CCode", $$"Age").show()
 
 It produces output like:
 
-    EName	Age	CCode	CName
-    Michael	29	01	USA
-    Andy	30	02	England
-    Tanaka	27	03	Japan
-    Yuta	31	03	Japan
+    EName   Age     CCode   CName
+    Michael 29      01      USA
+    Andy    30      02      England
+    Tanaka  27      03      Japan
+    Yuta    31      03      Japan
+
+You can also use groupBy.
+
+    df1.groupBy("Country").agg(max("Age").as("max_age")).show()
+
+It produces output like:
+
+    Country max_age
+    England 30
+    Japan   31
+    France  19
+    USA     29
 
 You can get the statistics of the columns like min, max, sum, avg,
 std, and count by calling like `min("Age")`. Like Spark DataFrame,
