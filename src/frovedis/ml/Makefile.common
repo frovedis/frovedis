@@ -19,6 +19,8 @@ targets: ${TARGETS}
 install: ${TARGETS}
 	install -d ${INSTALLPATH}/lib/
 	cp libfrovedis_ml.a ${INSTALLPATH}/lib/libfrovedis_ml.a
+	install -d ${INSTALLPATH}/include/frovedis/ml/
+	cp metrics.hpp ${INSTALLPATH}/include/frovedis/ml/
 	install -d ${INSTALLPATH}/include/frovedis/ml/glm
 	cp glm/*.hpp ${INSTALLPATH}/include/frovedis/ml/glm
 	install -d ${INSTALLPATH}/include/frovedis/ml/recommendation
@@ -47,7 +49,7 @@ ifeq (${IS_VE},true)
 	cp dnn/vednn/libvednn_sequential.a ${INSTALLPATH}/lib
 endif
 	install -d ${INSTALLPATH}/include/frovedis/ml/graph
-	cp graph/*.hpp graph/set_operations.incl1 graph/set_operations.incl2 ${INSTALLPATH}/include/frovedis/ml/graph
+	cp graph/*.hpp ${INSTALLPATH}/include/frovedis/ml/graph
 	install -d ${INSTALLPATH}/include/frovedis/ml/lda
 	cp lda/*.hpp ${INSTALLPATH}/include/frovedis/ml/lda
 	install -d ${INSTALLPATH}/include/frovedis/ml/fpm
@@ -56,6 +58,8 @@ endif
 	cp neighbors/*.hpp ${INSTALLPATH}/include/frovedis/ml/neighbors
 	install -d ${INSTALLPATH}/include/frovedis/ml/kernel
 	cp kernel/*.hpp ${INSTALLPATH}/include/frovedis/ml/kernel
+	install -d ${INSTALLPATH}/include/frovedis/ml/model_selection
+	cp model_selection/*.hpp model_selection/*.incl ${INSTALLPATH}/include/frovedis/ml/model_selection
 
 optimizer.o: optimizer.cc
 
