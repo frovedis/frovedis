@@ -246,15 +246,17 @@ vector<string> get_names(const words& ws, const vector<size_t>& line_starts) {
   }
 }
 
-dftable make_dftable_loadtext(const string& filename,
-                              const vector<string>& types,
-                              const vector<string>& names,
-                              int separator,
-                              const string& nullstr,
-                              bool is_crlf) {
+dftable make_dftable_loadtext_helper(const string& filename,
+                                     const vector<string>& types,
+                                     const vector<string>& names,
+                                     int separator,
+                                     const string& nullstr,
+                                     bool is_crlf,
+                                     ssize_t start, ssize_t& end) {
   time_spent t(DEBUG);
   auto line_starts_byword = make_node_local_allocate<std::vector<size_t>>();
-  auto ws = load_csv(filename, line_starts_byword, is_crlf, false, separator);
+  auto ws = load_csv_separate(filename, line_starts_byword, start, end,
+                              is_crlf, false, separator);
   t.show("make_dftable_loadtext::load_csv: ");
   auto num_cols = types.size();
   if(names.size() != num_cols)
@@ -271,12 +273,66 @@ dftable make_dftable_loadtext(const string& filename,
 
 dftable make_dftable_loadtext(const string& filename,
                               const vector<string>& types,
+                              const vector<string>& names,
                               int separator,
                               const string& nullstr,
-                              bool is_crlf) {
+                              bool is_crlf,
+                              bool to_separate,
+                              bool to_keep_order,
+                              double separate_mb) {
+  if(to_separate) {
+    int fd = ::open(filename.c_str(), O_RDONLY);
+    if(fd == -1) {
+      throw std::runtime_error("open failed: " + std::string(strerror(errno)));
+    }
+    struct stat sb;
+    if(stat(filename.c_str(), &sb) != 0) {
+      ::close(fd);
+      throw std::runtime_error("stat failed: " + std::string(strerror(errno)));
+    }
+    auto to_read = sb.st_size;
+    ::close(fd);
+    ssize_t separate_size = separate_mb * 1024 * 1024;
+    ssize_t end;
+    dftable df;
+    std::vector<dftable> dfs;
+    int i = 0;
+    time_spent t(DEBUG);
+    for(ssize_t start = 0; start < to_read; start = end, i++) {
+      end = start + separate_size;
+      if(i == 0) {
+        df = make_dftable_loadtext_helper(filename, types, names, separator,
+                                          nullstr, is_crlf, start, end);
+      } else {
+        auto t = make_dftable_loadtext_helper(filename, types, names, separator,
+                                              nullstr, is_crlf, start, end);
+        dfs.push_back(t);
+      }
+    }
+    t.show("make_dftable_loadtext: load separated df: ");
+    auto ret = df.union_tables(dfs, to_keep_order);
+    t.show("make_dftable_loadtext: union tables: ");
+    return ret;
+  } else {
+    ssize_t end = -1;
+    return make_dftable_loadtext_helper(filename, types, names, separator,
+                                        nullstr, is_crlf, 0, end);
+  }
+}
+
+dftable make_dftable_loadtext_helper2(const string& filename,
+                                      const vector<string>& types,
+                                      vector<string>& names,
+                                      int separator,
+                                      const string& nullstr,
+                                      bool is_crlf,
+                                      ssize_t& end) {
+  time_spent t(DEBUG);
   auto line_starts_byword = make_node_local_allocate<std::vector<size_t>>();
-  auto ws = load_csv(filename, line_starts_byword, is_crlf, false, separator);
-  auto names = ws.map(get_names, line_starts_byword).get(0);
+  auto ws = load_csv_separate(filename, line_starts_byword, 0, end,
+                              is_crlf, false, separator);
+  t.show("make_dftable_loadtext::load_csv: ");
+  names = ws.map(get_names, line_starts_byword).get(0);
   auto num_cols = types.size();
   if(names.size() != num_cols)
     throw runtime_error("invalid number of colums, types, or names");
@@ -284,8 +340,60 @@ dftable make_dftable_loadtext(const string& filename,
   for(size_t i = 0; i < num_cols; i++) {
     auto col = parse_words(ws, line_starts_byword, types[i], i, nullstr, true);
     ret.append_column(names[i], col);
+    t.show(std::string("make_dftable_loadtext::parse_words, ")
+           + names[i] + ": ");
   }
   return ret;
+}
+
+dftable make_dftable_loadtext(const string& filename,
+                              const vector<string>& types,
+                              int separator,
+                              const string& nullstr,
+                              bool is_crlf,
+                              bool to_separate,
+                              bool to_keep_order,
+                              double separate_mb) {
+  if(to_separate) {
+    int fd = ::open(filename.c_str(), O_RDONLY);
+    if(fd == -1) {
+      throw std::runtime_error("open failed: " + std::string(strerror(errno)));
+    }
+    struct stat sb;
+    if(stat(filename.c_str(), &sb) != 0) {
+      ::close(fd);
+      throw std::runtime_error("stat failed: " + std::string(strerror(errno)));
+    }
+    auto to_read = sb.st_size;
+    ::close(fd);
+    ssize_t separate_size = separate_mb * 1024 * 1024;
+    ssize_t end;
+    dftable df;
+    std::vector<dftable> dfs;
+    int i = 0;
+    time_spent t(DEBUG);
+    std::vector<std::string> names;
+    for(ssize_t start = 0; start < to_read; start = end, i++) {
+      end = start + separate_size;
+      if(i == 0) {
+        df = make_dftable_loadtext_helper2(filename, types, names, separator,
+                                           nullstr, is_crlf, end);
+      } else {
+        auto t = make_dftable_loadtext_helper(filename, types, names, separator,
+                                              nullstr, is_crlf, start, end);
+        dfs.push_back(t);
+      }
+    }
+    t.show("make_dftable_loadtext: load separated df: ");
+    auto ret = df.union_tables(dfs, to_keep_order);
+    t.show("make_dftable_loadtext: union tables: ");
+    return ret;
+  } else {
+    ssize_t end = -1;
+    std::vector<std::string> names;
+    return make_dftable_loadtext_helper2(filename, types, names, separator,
+                                         nullstr, is_crlf, end);
+  }
 }
 
 inferred_dtype infer_dtype_loadtext(words& ws,
@@ -361,15 +469,18 @@ inferred_dtype reduce_inferred_dtype(inferred_dtype a, inferred_dtype b) {
   } else return inferred_dtype::inferred_dtype_string;
 }
 
-dftable make_dftable_loadtext_infertype(const string& filename,
-                                        const vector<string>& names,
-                                        int separator,
-                                        const string& nullstr,
-                                        size_t rows_to_see,
-                                        bool is_crlf) {
+dftable make_dftable_loadtext_helper3(const string& filename,
+                                      vector<string>& types,
+                                      const vector<string>& names,
+                                      int separator,
+                                      const string& nullstr,
+                                      size_t rows_to_see,
+                                      bool is_crlf,
+                                      ssize_t& end) {
   time_spent t(DEBUG);
   auto line_starts_byword = make_node_local_allocate<std::vector<size_t>>();
-  auto ws = load_csv(filename, line_starts_byword, is_crlf, false, separator);
+  auto ws = load_csv_separate(filename, line_starts_byword, 0, end,
+                              is_crlf, false, separator);
   t.show("make_dftable_loadtext::load_csv: ");
   auto num_cols = names.size();
   dftable ret;
@@ -386,20 +497,79 @@ dftable make_dftable_loadtext_infertype(const string& filename,
     else stype = "dic_string";
     auto col = parse_words(ws, line_starts_byword, stype, i, nullstr, false);
     ret.append_column(names[i], col);
+    types.push_back(stype);
     t.show(std::string("make_dftable_loadtext::parse_words, ")
            + names[i] + ": ");
   }
   return ret;
 }
 
+
 dftable make_dftable_loadtext_infertype(const string& filename,
+                                        const vector<string>& names,
                                         int separator,
                                         const string& nullstr,
                                         size_t rows_to_see,
-                                        bool is_crlf) {
+                                        bool is_crlf,
+                                        bool to_separate,
+                                        bool to_keep_order,
+                                        double separate_mb) {
+  if(to_separate) {
+    int fd = ::open(filename.c_str(), O_RDONLY);
+    if(fd == -1) {
+      throw std::runtime_error("open failed: " + std::string(strerror(errno)));
+    }
+    struct stat sb;
+    if(stat(filename.c_str(), &sb) != 0) {
+      ::close(fd);
+      throw std::runtime_error("stat failed: " + std::string(strerror(errno)));
+    }
+    auto to_read = sb.st_size;
+    ::close(fd);
+    ssize_t separate_size = separate_mb * 1024 * 1024;
+    ssize_t end;
+    dftable df;
+    std::vector<dftable> dfs;
+    int i = 0;
+    std::vector<string> types;
+    time_spent t(DEBUG);
+    for(ssize_t start = 0; start < to_read; start = end, i++) {
+      end = start + separate_size;
+      if(i == 0) {
+        df = make_dftable_loadtext_helper3(filename, types, names, separator,
+                                           nullstr, rows_to_see, is_crlf, end);
+      } else {
+        auto t = make_dftable_loadtext_helper(filename, types, names, separator,
+                                              nullstr, is_crlf, start, end);
+        dfs.push_back(t);
+      }
+    }
+    t.show("make_dftable_loadtext: load separated df: ");
+    auto ret = df.union_tables(dfs, to_keep_order);
+    t.show("make_dftable_loadtext: union tables: ");
+    return ret;
+  } else {
+    ssize_t end = -1;
+    std::vector<string> types;
+    return make_dftable_loadtext_helper3(filename, types, names, separator,
+                                         nullstr, is_crlf, 0, end);
+  }
+}
+
+dftable make_dftable_loadtext_helper4(const string& filename,
+                                      vector<string>& types,
+                                      vector<string>& names,
+                                      int separator,
+                                      const string& nullstr,
+                                      size_t rows_to_see,
+                                      bool is_crlf,
+                                      ssize_t& end) {
+  time_spent t(DEBUG);
   auto line_starts_byword = make_node_local_allocate<std::vector<size_t>>();
-  auto ws = load_csv(filename, line_starts_byword, is_crlf, false, separator);
-  auto names = ws.map(get_names, line_starts_byword).get(0);
+  auto ws = load_csv_separate(filename, line_starts_byword, 0, end,
+                              is_crlf, false, separator);
+  t.show("make_dftable_loadtext::load_csv: ");
+  names = ws.map(get_names, line_starts_byword).get(0);
   auto num_cols = names.size();
   dftable ret;
   auto brows_to_see = broadcast(rows_to_see);
@@ -413,12 +583,65 @@ dftable make_dftable_loadtext_infertype(const string& filename,
     if(type == inferred_dtype::inferred_dtype_int) stype = "long";
     else if(type == inferred_dtype::inferred_dtype_float) stype = "double";
     else stype = "dic_string";
+    types.push_back(stype);
     auto col = parse_words(ws, line_starts_byword, stype, i, nullstr, true);
     ret.append_column(names[i], col);
+    t.show(std::string("make_dftable_loadtext::parse_words, ")
+           + names[i] + ": ");
   }
   return ret;
 }
 
-
+dftable make_dftable_loadtext_infertype(const string& filename,
+                                        int separator,
+                                        const string& nullstr,
+                                        size_t rows_to_see,
+                                        bool is_crlf,
+                                        bool to_separate,
+                                        bool to_keep_order,
+                                        double separate_mb) {
+  if(to_separate) {
+    int fd = ::open(filename.c_str(), O_RDONLY);
+    if(fd == -1) {
+      throw std::runtime_error("open failed: " + std::string(strerror(errno)));
+    }
+    struct stat sb;
+    if(stat(filename.c_str(), &sb) != 0) {
+      ::close(fd);
+      throw std::runtime_error("stat failed: " + std::string(strerror(errno)));
+    }
+    auto to_read = sb.st_size;
+    ::close(fd);
+    ssize_t separate_size = separate_mb * 1024 * 1024;
+    ssize_t end;
+    dftable df;
+    std::vector<dftable> dfs;
+    int i = 0;
+    std::vector<string> types;
+    vector<string> names;
+    time_spent t(DEBUG);
+    for(ssize_t start = 0; start < to_read; start = end, i++) {
+      end = start + separate_size;
+      if(i == 0) {
+        df = make_dftable_loadtext_helper4(filename, types, names, separator,
+                                           nullstr, rows_to_see, is_crlf, end);
+      } else {
+        auto t = make_dftable_loadtext_helper(filename, types, names, separator,
+                                              nullstr, is_crlf, start, end);
+        dfs.push_back(t);
+      }
+    }
+    t.show("make_dftable_loadtext: load separated df: ");
+    auto ret = df.union_tables(dfs, to_keep_order);
+    t.show("make_dftable_loadtext: union tables: ");
+    return ret;
+  } else {
+    ssize_t end = -1;
+    std::vector<string> types;
+    std::vector<string> names;
+    return make_dftable_loadtext_helper4(filename, types, names, separator,
+                                         nullstr, is_crlf, 0, end);
+  }
+}
 
 }

@@ -10,29 +10,41 @@ namespace frovedis {
 
 dftable make_dftable_loadtext(const std::string& filename,
                               const std::vector<std::string>& types,
-                              int separator = ',',
-                              const std::string& nullstr = "NULL",
-                              bool is_crlf = false);
-
-dftable make_dftable_loadtext(const std::string& filename,
-                              const std::vector<std::string>& types,
                               const std::vector<std::string>& names,
                               int separator = ',',
                               const std::string& nullstr = "NULL",
-                              bool is_crlf = false);
+                              bool is_crlf = false, 
+                              bool to_separate = true,
+                              bool to_keep_order = true,
+                              double separate_mb = 1024);
 
-dftable make_dftable_loadtext_infertype(const std::string& filename,
-                                        int separator = ',',
-                                        const std::string& nullstr = "NULL",
-                                        size_t rows_to_see = 1024,
-                                        bool is_crlf = false);
+dftable make_dftable_loadtext(const std::string& filename,
+                              const std::vector<std::string>& types,
+                              int separator = ',',
+                              const std::string& nullstr = "NULL",
+                              bool is_crlf = false,
+                              bool to_separate = true,
+                              bool to_keep_order = true,
+                              double separate_mb = 1024);
 
 dftable make_dftable_loadtext_infertype(const std::string& filename,
                                         const std::vector<std::string>& names,
                                         int separator = ',',
                                         const std::string& nullstr = "NULL",
                                         size_t rows_to_see = 1024,
-                                        bool is_crlf = false);
+                                        bool is_crlf = false,
+                                        bool to_separate = true,
+                                        bool to_keep_order = true,
+                                        double separate_mb = 1024);
+
+dftable make_dftable_loadtext_infertype(const std::string& filename,
+                                        int separator = ',',
+                                        const std::string& nullstr = "NULL",
+                                        size_t rows_to_see = 1024,
+                                        bool is_crlf = false,
+                                        bool to_separate = true,
+                                        bool to_keep_order = true,
+                                        double separate_mb = 1024);
 
 std::vector<size_t> extract_nulls(std::vector<int>& chars,
                                   std::vector<size_t>& starts,
