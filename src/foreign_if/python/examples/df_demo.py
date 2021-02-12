@@ -48,6 +48,8 @@ fdf1.sort_values("Age",ascending=1).show() # single column
 fdf1.sort_values(["Country", "Age"], ascending=[0,1]).show() # multiple column
 
 # groupby demo
+fdf1.groupby('Country')['Country'].show()
+ 
 fdf1.groupby('Country').agg({'Age': ['max','min','mean'], 
                              'Ename': ['count']}).show()
 
