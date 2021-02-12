@@ -136,11 +136,9 @@ struct dfoperator_eq_immed : public dfoperator {
   dfoperator_eq_immed(const std::string& left, const T& right) :
     left(left), right(right) {}
   virtual node_local<std::vector<size_t>> filter(dftable_base& t) const {
-    auto left_column =
-      std::dynamic_pointer_cast<typed_dfcolumn<T>>(t.column(left));
-    if(!left_column)
-      throw std::runtime_error("dfoperator_eq_immed: column type is different");
-    return left_column->filter_eq_immed(right);
+    std::shared_ptr<dfscalar> right_scalar =
+      std::make_shared<typed_dfscalar<T>>(right);
+    return t.column(left)->filter_eq_immed(right_scalar);
   }
   virtual node_local<std::vector<size_t>> not_filter(dftable_base& t) const;
   std::string left;
@@ -152,12 +150,9 @@ struct dfoperator_neq_immed : public dfoperator {
   dfoperator_neq_immed(const std::string& left, const T& right) :
     left(left), right(right) {}
   virtual node_local<std::vector<size_t>> filter(dftable_base& t) const {
-    auto left_column =
-      std::dynamic_pointer_cast<typed_dfcolumn<T>>(t.column(left));
-    if(!left_column)
-      throw std::runtime_error
-        ("dfoperator_neq_immed: column type is different");
-    return left_column->filter_neq_immed(right);
+    std::shared_ptr<dfscalar> right_scalar =
+      std::make_shared<typed_dfscalar<T>>(right);
+    return t.column(left)->filter_neq_immed(right_scalar);
   }
   virtual node_local<std::vector<size_t>> not_filter(dftable_base& t) const {
     return dfoperator_eq_immed<T>(left, right).filter(t);
@@ -171,15 +166,6 @@ node_local<std::vector<size_t>>
 dfoperator_eq_immed<T>::not_filter(dftable_base& t) const {
   return dfoperator_neq_immed<T>(left, right).filter(t);
 }
-
-// --- specialized to handle string-typed columns ---
-template <>
-node_local<std::vector<size_t>> 
-dfoperator_eq_immed<std::string>::filter(dftable_base& t) const; 
-
-template <>
-node_local<std::vector<size_t>> 
-dfoperator_neq_immed<std::string>::filter(dftable_base& t) const; 
 
 struct dfoperator_lt : public dfoperator {
   dfoperator_lt(const std::string& left, const std::string& right) :
@@ -286,11 +272,9 @@ struct dfoperator_lt_immed : public dfoperator {
   dfoperator_lt_immed(const std::string& left, const T& right) :
     left(left), right(right) {}
   virtual node_local<std::vector<size_t>> filter(dftable_base& t) const {
-    auto left_column =
-      std::dynamic_pointer_cast<typed_dfcolumn<T>>(t.column(left));
-    if(!left_column)
-      throw std::runtime_error("dfoperator_lt_immed: column type is different");
-    return left_column->filter_lt_immed(right);
+    std::shared_ptr<dfscalar> right_scalar =
+      std::make_shared<typed_dfscalar<T>>(right);
+    return t.column(left)->filter_lt_immed(right_scalar);
   }
   virtual node_local<std::vector<size_t>> not_filter(dftable_base& t) const;
   std::string left;
@@ -302,11 +286,9 @@ struct dfoperator_ge_immed : public dfoperator {
   dfoperator_ge_immed(const std::string& left, const T& right) :
     left(left), right(right) {}
   virtual node_local<std::vector<size_t>> filter(dftable_base& t) const {
-    auto left_column =
-      std::dynamic_pointer_cast<typed_dfcolumn<T>>(t.column(left));
-    if(!left_column)
-      throw std::runtime_error("dfoperator_ge_immed: column type is different");
-    return left_column->filter_ge_immed(right);
+    std::shared_ptr<dfscalar> right_scalar =
+      std::make_shared<typed_dfscalar<T>>(right);
+    return t.column(left)->filter_ge_immed(right_scalar);
   }
   virtual node_local<std::vector<size_t>> not_filter(dftable_base& t) const {
     return dfoperator_lt_immed<T>(left, right).filter(t);
@@ -326,11 +308,9 @@ struct dfoperator_le_immed : public dfoperator {
   dfoperator_le_immed(const std::string& left, const T& right) :
     left(left), right(right) {}
   virtual node_local<std::vector<size_t>> filter(dftable_base& t) const {
-    auto left_column =
-      std::dynamic_pointer_cast<typed_dfcolumn<T>>(t.column(left));
-    if(!left_column)
-      std::runtime_error("dfoperator_le_immed: column type is different");
-    return left_column->filter_le_immed(right);
+    std::shared_ptr<dfscalar> right_scalar =
+      std::make_shared<typed_dfscalar<T>>(right);
+    return t.column(left)->filter_le_immed(right_scalar);
   }
   virtual node_local<std::vector<size_t>> not_filter(dftable_base& t) const;
   std::string left;
@@ -342,11 +322,9 @@ struct dfoperator_gt_immed : public dfoperator {
   dfoperator_gt_immed(const std::string& left, const T& right) :
     left(left), right(right) {}
   virtual node_local<std::vector<size_t>> filter(dftable_base& t) const {
-    auto left_column =
-      std::dynamic_pointer_cast<typed_dfcolumn<T>>(t.column(left));
-    if(!left_column)
-      throw std::runtime_error("dfoperator_gt_immed: column type is different");
-    return left_column->filter_gt_immed(right);
+    std::shared_ptr<dfscalar> right_scalar =
+      std::make_shared<typed_dfscalar<T>>(right);
+    return t.column(left)->filter_gt_immed(right_scalar);
   }
   virtual node_local<std::vector<size_t>> not_filter(dftable_base& t) const {
     return dfoperator_le_immed<T>(left, right).filter(t);
@@ -592,6 +570,8 @@ public:
   virtual dftable_base* clone();
   virtual dftable_base* rename_cols(const std::string& name,
                                     const std::string& name2);
+  filtered_dftable& drop(const std::string& name);
+  filtered_dftable& rename(const std::string& name, const std::string& name2);
 private:
   node_local<std::vector<size_t>> filtered_idx;
 };
