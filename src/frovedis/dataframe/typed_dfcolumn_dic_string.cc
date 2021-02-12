@@ -583,7 +583,7 @@ typed_dfcolumn<dic_string>::filter_eq(std::shared_ptr<dfcolumn>& right) {
   auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<dic_string>>(right);
   if(!right2) throw std::runtime_error("filter_eq: column types are different");
   auto rightval = equal_prepare(right2);
-  auto filtered_idx = val.map(filter_eq_helper<size_t>, rightval);
+  auto filtered_idx = val.map(filter_eq_helper<size_t, size_t>, rightval);
   if(contain_nulls)
     return filtered_idx.map(set_difference<size_t>, nulls);
   else return filtered_idx;
@@ -595,14 +595,17 @@ typed_dfcolumn<dic_string>::filter_neq(std::shared_ptr<dfcolumn>& right) {
   auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<dic_string>>(right);
   if(!right2) throw std::runtime_error("filter_eq: column types are different");
   auto rightval = equal_prepare(right2);
-  auto filtered_idx = val.map(filter_neq_helper<size_t>, rightval);
+  auto filtered_idx = val.map(filter_neq_helper<size_t, size_t>, rightval);
   if(contain_nulls)
     return filtered_idx.map(set_difference<size_t>, nulls);
   else return filtered_idx;
 }
 
 node_local<std::vector<size_t>>
-typed_dfcolumn<dic_string>::filter_eq_immed(const std::string& right) {
+typed_dfcolumn<dic_string>::filter_eq_immed(std::shared_ptr<dfscalar>& right) {
+  auto right2 = std::dynamic_pointer_cast<typed_dfscalar<std::string>>(right);
+  if(!right2) throw std::runtime_error("filter string column with non string");
+  auto rightval = right2->val;
   return val.map
     (+[](std::vector<size_t>& val, const dict& dic, 
          const std::string& right, const std::vector<size_t>& nulls,
@@ -614,18 +617,22 @@ typed_dfcolumn<dic_string>::filter_eq_immed(const std::string& right) {
       auto right_cword = make_compressed_words(right_word);
       auto lookedup = dic.lookup(right_cword);
       if(lookedup[0] != numeric_limits<size_t>::max()) {
-        auto filtered_idx = filter_eq_immed_helper<size_t>(val, lookedup[0]);
+        auto filtered_idx =
+          filter_eq_immed_helper<size_t,size_t>(val, lookedup[0]);
         if(contain_nulls) return set_difference(filtered_idx, nulls);
         else return filtered_idx;
       }
       else {
         return std::vector<size_t>();
       }
-    }, *dic, broadcast(right), nulls, broadcast(contain_nulls));
+    }, *dic, broadcast(rightval), nulls, broadcast(contain_nulls));
 }
 
 node_local<std::vector<size_t>>
-typed_dfcolumn<dic_string>::filter_neq_immed(const std::string& right) {
+typed_dfcolumn<dic_string>::filter_neq_immed(std::shared_ptr<dfscalar>& right) {
+  auto right2 = std::dynamic_pointer_cast<typed_dfscalar<std::string>>(right);
+  if(!right2) throw std::runtime_error("filter string column with non string");
+  auto rightval = right2->val;
   return val.map
     (+[](std::vector<size_t>& val, const dict& dic, 
          const std::string& right, const std::vector<size_t>& nulls,
@@ -637,14 +644,15 @@ typed_dfcolumn<dic_string>::filter_neq_immed(const std::string& right) {
       auto right_cword = make_compressed_words(right_word);
       auto lookedup = dic.lookup(right_cword);
       if(lookedup[0] != numeric_limits<size_t>::max()) {
-        auto filtered_idx = filter_neq_immed_helper<size_t>(val, lookedup[0]);
+        auto filtered_idx =
+          filter_neq_immed_helper<size_t,size_t>(val, lookedup[0]);
         if(contain_nulls) return set_difference(filtered_idx, nulls);
         else return filtered_idx;
       }
       else {
         return std::vector<size_t>();
       }
-    }, *dic, broadcast(right), nulls, broadcast(contain_nulls));
+    }, *dic, broadcast(rightval), nulls, broadcast(contain_nulls));
 }
 
 node_local<std::vector<size_t>> typed_dfcolumn<dic_string>::get_local_index() {
@@ -897,6 +905,210 @@ size_t typed_dfcolumn<dic_string>::size() {
 
 std::vector<size_t> typed_dfcolumn<dic_string>::sizes() {
   return val.template viewas_dvector<size_t>().sizes();
+}
+
+dict union_columns_dic_string_create_dic(std::vector<dict*>& dic_colsp) {
+  auto dic_colsp_size = dic_colsp.size();
+  if(dic_colsp_size == 0) return dict();
+  else if(dic_colsp_size == 1) return *dic_colsp[0];
+  else if(dic_colsp_size == 2) {
+    return merge_dict(*dic_colsp[0], *dic_colsp[1]);
+  } else {
+    auto left_size = ceil_div(dic_colsp_size, size_t(2));
+    auto right_size = dic_colsp_size - left_size;
+    vector<dict*> left(left_size);
+    vector<dict*> right(right_size);
+    for(size_t i = 0; i < left_size; i++) {
+      left[i] = dic_colsp[i];
+    }
+    for(size_t i = 0; i < right_size; i++) {
+      right[i] = dic_colsp[left_size + i];
+    }
+    auto left_merged = union_columns_dic_string_create_dic(left);
+    auto right_merged = union_columns_dic_string_create_dic(right);
+    return merge_dict(left_merged, right_merged);
+  }
+}
+
+// same as string, but copied to avoid confusion
+void union_columns_dic_string_resize_newval
+(std::vector<size_t>& newval, std::vector<std::vector<size_t>*>& val_colsp) {
+  auto cols_size = val_colsp.size();
+  std::vector<size_t> val_sizes(cols_size);
+  auto val_colspp = val_colsp.data();
+  auto val_sizesp = val_sizes.data();
+  for(size_t i = 0; i < cols_size; i++) {
+    val_sizesp[i] = val_colspp[i]->size();
+  }
+  size_t total_val_size = 0;
+  for(size_t i = 0; i < cols_size; i++) {
+    total_val_size += val_sizesp[i];
+  }
+  newval.resize(total_val_size);
+}
+
+node_local<vector<size_t>>
+union_columns_dic_string_prepare(dict& local_newdic,
+                                 std::shared_ptr<node_local<dict>>& dic,
+                                 node_local<std::vector<size_t>>& val) {
+  auto local_dic = dic->get(0);
+  compressed_words to_lookup;
+  auto num_words = local_dic.num_words();
+  to_lookup.cwords.swap(local_dic.cwords);
+  to_lookup.lens.swap(local_dic.lens);
+  to_lookup.lens_num.swap(local_dic.lens_num);
+  to_lookup.order.resize(num_words);
+  auto orderp = to_lookup.order.data();
+  for(size_t i = 0; i < num_words; i++) orderp[i] = i;
+  auto trans_table = broadcast(local_newdic.lookup(to_lookup));
+  return val.map(dic_string_equal_prepare_helper, trans_table);
+}
+
+// same as string, but copied to avoid confusion
+void union_columns_dic_string_update_nulls
+(std::vector<size_t>& newnulls,
+ std::vector<std::vector<size_t>*>& val_colsp,
+ std::vector<std::vector<size_t>*>& nulls_colsp) {
+
+  auto cols_size = val_colsp.size();
+  std::vector<size_t> val_sizes(cols_size);
+  auto val_colspp = val_colsp.data();
+  auto val_sizesp = val_sizes.data();
+  for(size_t i = 0; i < cols_size; i++) {
+    val_sizesp[i] = val_colspp[i]->size();
+  }
+  std::vector<size_t> nulls_sizes(cols_size);
+  auto nulls_colspp = nulls_colsp.data();
+  auto nulls_sizesp = nulls_sizes.data();
+  for(size_t i = 0; i < cols_size; i++) {
+    nulls_sizesp[i] = nulls_colspp[i]->size();
+  }
+  size_t total_nulls_size = 0;
+  for(size_t i = 0; i < cols_size; i++) {
+    total_nulls_size += nulls_sizesp[i];
+  }
+  newnulls.resize(total_nulls_size);
+  auto crnt_newnullsp = newnulls.data();
+  auto crnt_shift = 0;
+  for(size_t i = 0; i < cols_size; i++) {
+    auto nulls_size = nulls_sizesp[i];
+    auto nullsp = nulls_colspp[i]->data();
+    for(size_t j = 0; j < nulls_size; j++) {
+      crnt_newnullsp[j] = nullsp[j] + crnt_shift;
+    }
+    crnt_shift += val_sizesp[i];
+    crnt_newnullsp += nulls_size;
+  }
+}
+
+std::shared_ptr<dfcolumn>
+typed_dfcolumn<dic_string>::union_columns
+(const std::vector<std::shared_ptr<dfcolumn>>& cols) {
+  auto cols_size = cols.size();
+  if(cols_size == 0) {
+    return std::make_shared<typed_dfcolumn<dic_string>>(dic, val, nulls);
+  }
+  std::vector<std::shared_ptr<typed_dfcolumn<dic_string>>> rights(cols_size);
+  for(size_t i = 0; i < cols_size; i++) {
+    rights[i] = std::dynamic_pointer_cast<typed_dfcolumn<dic_string>>(cols[i]);
+    if(!rights[i]) throw std::runtime_error("union_columns: different type");
+  }
+  auto val_colsp =
+    make_node_local_allocate<std::vector<std::vector<size_t>*>>();
+  auto nulls_colsp =
+    make_node_local_allocate<std::vector<std::vector<size_t>*>>();
+  auto dic_colsp =
+    make_node_local_allocate<std::vector<dict*>>();
+  val.mapv(+[](std::vector<size_t>& val,
+               std::vector<std::vector<size_t>*>& val_colsp)
+           {val_colsp.push_back(&val);}, val_colsp);
+  nulls.mapv(+[](std::vector<size_t>& nulls,
+                 std::vector<std::vector<size_t>*>& nulls_colsp)
+             {nulls_colsp.push_back(&nulls);}, nulls_colsp);
+  dic->mapv(+[](dict& dic, std::vector<dict*>& dic_colsp)
+            {dic_colsp.push_back(&dic);}, dic_colsp);
+  for(size_t i = 0; i < cols_size; i++) {
+    rights[i]->val.mapv(+[](std::vector<size_t>& val,
+                            std::vector<std::vector<size_t>*>& val_colsp)
+                        {val_colsp.push_back(&val);}, val_colsp);
+    rights[i]->nulls.mapv(+[](std::vector<size_t>& nulls,
+                              std::vector<std::vector<size_t>*>& nulls_colsp)
+                          {nulls_colsp.push_back(&nulls);}, nulls_colsp);
+    rights[i]->dic->mapv(+[](dict& dic, std::vector<dict*>& dic_colsp)
+                         {dic_colsp.push_back(&dic);}, dic_colsp);
+  }
+  auto newval = make_node_local_allocate<std::vector<size_t>>();
+  auto newnulls = make_node_local_allocate<std::vector<size_t>>();
+  auto newdic = std::make_shared<node_local<dict>>
+    (dic_colsp.map(union_columns_dic_string_create_dic));
+              
+  newval.mapv(union_columns_dic_string_resize_newval, val_colsp);
+  auto crnt_pos = broadcast(size_t(0));
+  auto local_newdic = newdic->get(0);
+  {
+    auto crnt_newval = union_columns_dic_string_prepare(local_newdic, dic, val);
+    newval.mapv
+      (+[](std::vector<size_t>& newval, std::vector<size_t>& val, size_t& pos) {
+        auto crnt_newvalp = newval.data() + pos;
+        auto valp = val.data();
+        auto val_size = val.size();
+        for(size_t i = 0; i < val_size; i++) {crnt_newvalp[i] = valp[i];}
+        pos += val_size;
+      }, crnt_newval, crnt_pos);
+  }
+  for(size_t i = 0; i < cols_size; i++) {
+    auto crnt_newval = union_columns_dic_string_prepare
+      (local_newdic, rights[i]->dic, rights[i]->val);
+    newval.mapv
+      (+[](std::vector<size_t>& newval, std::vector<size_t>& val, size_t& pos) {
+        auto crnt_newvalp = newval.data() + pos;
+        auto valp = val.data();
+        auto val_size = val.size();
+        for(size_t i = 0; i < val_size; i++) {crnt_newvalp[i] = valp[i];}
+        pos += val_size;
+      }, crnt_newval, crnt_pos);
+  }
+  newnulls.mapv(union_columns_dic_string_update_nulls, val_colsp, nulls_colsp);
+  return std::make_shared<typed_dfcolumn<dic_string>>
+    (std::move(newdic), std::move(newval), std::move(newnulls));
+}
+
+// same as equal_prepare; argument is not shared_ptr
+node_local<vector<size_t>>
+typed_dfcolumn<dic_string>::
+equal_prepare_multi_join(typed_dfcolumn<dic_string>& right) {
+  auto left_local_dic = dic->get(0);
+  auto right_local_dic = right.dic->get(0);
+  compressed_words to_lookup;
+  auto right_num_words = right_local_dic.num_words();
+  to_lookup.cwords.swap(right_local_dic.cwords);
+  to_lookup.lens.swap(right_local_dic.lens);
+  to_lookup.lens_num.swap(right_local_dic.lens_num);
+  to_lookup.order.resize(right_num_words);
+  auto orderp = to_lookup.order.data();
+  for(size_t i = 0; i < right_num_words; i++) orderp[i] = i;
+  auto trans_table = broadcast(left_local_dic.lookup(to_lookup));
+  return right.val.map(dic_string_equal_prepare_helper, trans_table);
+}
+
+node_local<std::vector<size_t>>
+typed_dfcolumn<dic_string>::calc_hash_base_multi_join
+(std::shared_ptr<dfcolumn>& left) {
+  auto left2 = std::dynamic_pointer_cast<typed_dfcolumn<dic_string>>(left);
+  if(!left2)
+    throw std::runtime_error("multi_join: column types are different");
+  auto thisval = left2->equal_prepare_multi_join(*this);
+  return thisval.map(calc_hash_base_helper<size_t>);
+}
+
+void typed_dfcolumn<dic_string>::calc_hash_base_multi_join
+(node_local<std::vector<size_t>>& hash_base, int shift,
+ std::shared_ptr<dfcolumn>& left) {
+  auto left2 = std::dynamic_pointer_cast<typed_dfcolumn<dic_string>>(left);
+  if(!left2)
+    throw std::runtime_error("multi_join: column types are different");
+  auto thisval = left2->equal_prepare_multi_join(*this);
+  thisval.mapv(calc_hash_base_helper2<size_t>(shift), hash_base);
 }
 
 }
