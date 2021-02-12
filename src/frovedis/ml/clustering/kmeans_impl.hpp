@@ -143,11 +143,12 @@ void kmeans_calc_sum_rowmajor(rowmajor_matrix_local<T>& mat,
 }
 
 template <class T, class I, class O>
-rowmajor_matrix_local<T> kmeans_impl(crs_matrix<T,I,O>& samples, int k,
-                                     int iter, double eps, long seed = 0,
-                                     int& n_iter_ = 0) {
+rowmajor_matrix_local<T> 
+kmeans_impl(crs_matrix<T,I,O>& samples, int k,
+            int iter, double eps, 
+            int& n_iter_) {
   time_spent t(TRACE);
-  auto centroid = get_random_rows(samples, k, seed);
+  auto centroid = get_random_rows(samples, k);
   size_t dim = samples.num_col;
   t.show("create initial centroid: ");
 #ifdef KMEANS_HYBRID
@@ -192,32 +193,30 @@ rowmajor_matrix_local<T> kmeans_impl(crs_matrix<T,I,O>& samples, int k,
     auto next_centroid = calc_new_centroid(sum, occurrence, dim);
     nextcentroidtime.lap_stop();
     t.show("calc next centroid: ");
-    if(is_diff_centroid(next_centroid, centroid, eps))
-      centroid = next_centroid;
-    else {
-      RLOG(DEBUG) << "converged. total num iteration: " << i << std::endl;
-      return next_centroid;
-    }
+    auto diff = is_diff_centroid(next_centroid, centroid, eps);
+    centroid = std::move(next_centroid);
     t.show("diff centroid: ");
     t2.show("one iteration: ");
+    if (!diff) break;
   }
-  RLOG(DEBUG) << "total num iteration: " << iter << std::endl;
+  n_iter_ = i + 1;
+  RLOG(DEBUG) << "converged in n_iter_: " << n_iter_ << std::endl;
   bcasttime.show_lap("broadcast centroid time: ");
   normtime.show_lap("normalize centroid time: ");
   disttime.show_lap("distributed computation time: ");
   vecsumtime.show_lap("vector sum time: ");
   nextcentroidtime.show_lap("calculate next centroid time: ");
-  n_iter_ = i + 1;
   return centroid;
 }
 
 // TODO: mostly the same as the sparse version; use same code
 template <class T>
-rowmajor_matrix_local<T> kmeans_impl(rowmajor_matrix<T>& mat, int k,
-                                     int iter, double eps, long seed = 0,
-                                     int& n_iter_ = 0) {
+rowmajor_matrix_local<T> 
+kmeans_impl(rowmajor_matrix<T>& mat, int k,
+            int iter, double eps, 
+            int& n_iter_) {
   time_spent t(TRACE);
-  auto centroid = get_random_rows(mat, k, seed);
+  auto centroid = get_random_rows(mat, k);
   size_t dim = mat.num_col;
   t.show("create initial centroid: ");
   time_spent t2(TRACE);
@@ -251,195 +250,194 @@ rowmajor_matrix_local<T> kmeans_impl(rowmajor_matrix<T>& mat, int k,
     auto next_centroid = calc_new_centroid(sum, occurrence, dim);
     nextcentroidtime.lap_stop();
     t.show("calc next centroid: ");
-    if(is_diff_centroid(next_centroid, centroid, eps))
-      centroid = next_centroid;
-    else {
-      RLOG(DEBUG) << "converged. total num iteration: " << i << std::endl;
-      return next_centroid;
-    }
+    auto diff = is_diff_centroid(next_centroid, centroid, eps);
+    centroid = std::move(next_centroid);
     t.show("diff centroid: ");
     t2.show("one iteration: ");
+    if (!diff) break;
   }
-  RLOG(DEBUG) << "total num iteration: " << iter << std::endl;
+  n_iter_ = i + 1;
+  RLOG(DEBUG) << "converged in n_iter_: " << n_iter_ << std::endl;
   bcasttime.show_lap("broadcast centroid time: ");
   normtime.show_lap("normalize centroid time: ");
   disttime.show_lap("distributed computation time: ");
   vecsumtime.show_lap("vector sum time: ");
   nextcentroidtime.show_lap("calculate next centroid time: ");
-  n_iter_ = i + 1;
   return centroid;
 }
 
-template <class T, class I, class O>
-rowmajor_matrix_local<T> kmeans(crs_matrix<T,I,O>& samples, int k, int iter,
-                                double eps, long seed, int& n_iter_) {
-  return kmeans_impl(samples, k, iter, eps, seed, n_iter_);
+// MATRIX: any LOCAL matrix which supports operator* with rowmajor_matrix_local<T>
+template <class MATRIX, class T>
+rowmajor_matrix_local<T>
+kmeans_partial_transform(MATRIX& mat,
+                         rowmajor_matrix_local<T>& centroid) {
+  time_spent t(DEBUG);
+  auto prod = mat * centroid;
+  t.show(" calc gemm/spmm: ");
+  std::vector<T> norm;
+  calc_norm_local(centroid, norm);
+  t.show(" calc norm: ");
+  norm_minus_product(norm, prod.val, prod.local_num_col, prod.local_num_row);
+  t.show(" norm minus product: ");
+  return prod; // 0.5 * b2 - ab
 }
 
-template <class T, class I, class O>
-rowmajor_matrix_local<T> kmeans(crs_matrix<T,I,O>&& samples, int k, int iter,
-                                double eps, long seed, int& n_iter_) {
-  return kmeans_impl(samples, k, iter, eps, seed, n_iter_);
+// MATRIX: any LOCAL matrix which supports operator* with rowmajor_matrix_local<T>
+template <class MATRIX, class T>
+rowmajor_matrix_local<T>
+kmeans_transform(MATRIX& mat,
+                 rowmajor_matrix_local<T>& centroid) {
+  time_spent t(DEBUG);
+  auto prod = mat * centroid;
+  t.show(" calc gemm/spmm: ");
+  std::vector<T> norm;
+  calc_norm_local(centroid, norm);
+  t.show(" calc norm: ");
+  auto a2 = matrix_squared_sum(mat, 1); 
+  t.show(" calc a2: ");
+  calc_sq_euclidean_distance(a2, norm, prod.val, 
+                             prod.local_num_col, prod.local_num_row);
+  vector_sqrt_inplace(prod.val); // for eqclidean distance
+  t.show(" calc euclidean distance: ");
+  return prod; 
 }
 
-template <class T>
-rowmajor_matrix_local<T> kmeans(rowmajor_matrix<T>& samples, int k, int iter,
-                                double eps, long seed, int& n_iter_) {
-  return kmeans_impl(samples, k, iter, eps, seed, n_iter_);
+// MATRIX: any DISTRIBUTED matrix whose local version supports 
+// operator* with rowmajor_matrix_local<T>
+template <class MATRIX, class T>
+rowmajor_matrix<T>
+parallel_kmeans_transform(
+  MATRIX& mat,
+  rowmajor_matrix_local<T>& centroid) {
+  rowmajor_matrix<T> ret(mat.data.map(kmeans_transform
+                                      <typename MATRIX::local_mat_type, T>,
+                                      frovedis::broadcast(centroid)));
+  ret.num_row = mat.num_row;
+  ret.num_col = centroid.local_num_col;
+  return ret;
+}
+
+// MATRIX: any LOCAL matrix which supports operator* with rowmajor_matrix_local<T>
+template <class MATRIX, class T>
+std::vector<int> 
+kmeans_assign_cluster(MATRIX& mat,
+                      rowmajor_matrix_local<T>& centroid,
+                      float& inertia,
+                      bool need_inertia = true) {
+  auto prod = kmeans_partial_transform(mat, centroid);
+  time_spent t(DEBUG);
+  auto nsamples = prod.local_num_row;
+  std::vector<int> minloc(nsamples);
+  std::vector<T> minval(nsamples);
+  calc_minloc(minloc, minval, prod.val, prod.local_num_col, nsamples);
+  t.show(" calc minloc: ");
+  if (need_inertia) {
+    inertia = 0.0;
+    auto a2 = matrix_squared_sum(mat, 1);
+    auto a2p = a2.data();
+    auto minvalp = minval.data();
+    // minvalp[r] = 0.5 * b2 - ab
+    // 2 * minvalp[r] = b2 - 2ab
+    // a2 + b2 - 2ab = a2 + 2 * minvalp[r]
+    for(size_t r = 0; r < nsamples; r++) inertia += a2p[r] + 2 * minvalp[r];
+    t.show(" calc inertia: ");
+  }
+  return minloc;
 }
 
 // for backward compatibility with previously released kmeans APIs
-template <class T, class I, class O>
-rowmajor_matrix_local<T> kmeans(crs_matrix<T,I,O>& samples, int k, int iter,
-                                double eps, long seed = 0) {
+template <class MATRIX, class T>
+std::vector<int> 
+kmeans_assign_cluster(MATRIX& mat,
+                      rowmajor_matrix_local<T>& centroid) {
+  float inertia = 0.0f;
+  bool need_inertia = false;
+  return kmeans_assign_cluster(mat, centroid, inertia, need_inertia);
+}
+
+// for calling from inside map - used in parallel_kmeans_assign_cluster
+template <class MATRIX, class T>
+std::vector<int> 
+invoke_kmeans_assign_cluster(MATRIX& mat,
+                             rowmajor_matrix_local<T>& centroid,
+                             float& inertia,
+                             bool need_inertia = true) {
+  return kmeans_assign_cluster(mat, centroid, inertia, need_inertia);
+}
+
+// MATRIX: any DISTRIBUTED matrix whose local version supports 
+// operator* with rowmajor_matrix_local<T>
+template <class MATRIX, class T>
+std::vector<int>
+parallel_kmeans_assign_cluster(
+  MATRIX& mat,
+  rowmajor_matrix_local<T>& centroid,
+  float& inertia,
+  bool need_inertia = true) {
+  auto l_inertia = make_node_local_allocate<float>();
+  auto lbl =  mat.data.map(invoke_kmeans_assign_cluster
+                           <typename MATRIX::local_mat_type, T>,
+                           broadcast(centroid),
+                           l_inertia, broadcast(need_inertia))
+                      .template moveto_dvector<int>()
+                      .gather();
+  if (need_inertia) inertia = l_inertia.reduce(add<float>);
+  return lbl;
+}
+
+// for backward compatibility with previously released kmeans APIs
+template <class MATRIX, class T>
+std::vector<int>
+parallel_kmeans_assign_cluster(
+  MATRIX& mat,
+  rowmajor_matrix_local<T>& centroid) {
+  float inertia = 0.0f;
+  bool need_inertia = false;
+  return parallel_kmeans_assign_cluster(mat, centroid, inertia, need_inertia);
+}
+
+// MATRIX: any matrix which supports operator* with rowmajor_matrix_local<T>
+template <class MATRIX>
+rowmajor_matrix_local<typename MATRIX::value_type> 
+kmeans(MATRIX& samples, int k, int iter,
+       double eps, long seed, int n_init, 
+       int& n_iter_, float& inertia,
+       std::vector<int>& labels) {
+  auto nsamples = samples.num_row;
+  std::string msg = "kmeans: n_samples=" + STR(nsamples) +
+                    " must be >= n_clusters=" + STR(k);
+  require(nsamples >= k, msg);
+  n_iter_ = 0;
+  inertia = 0.0f;
+  srand48(seed);
+  auto centroid = kmeans_impl(samples, k, iter, eps, n_iter_);
+  labels = parallel_kmeans_assign_cluster(samples, centroid, inertia);
+  for (size_t i = 1; i < n_init; ++i) {
+    int t_n_iter = 0;
+    float t_inertia = 0.0f;
+    auto t_centroid = kmeans_impl(samples, k, iter, eps, t_n_iter);
+    auto t_labels = parallel_kmeans_assign_cluster(samples, t_centroid, 
+                                                   t_inertia);
+    if (t_inertia < inertia) {
+      inertia = t_inertia;
+      n_iter_ = t_n_iter;
+      labels.swap(t_labels);
+      centroid = std::move(t_centroid);
+    }
+  }
+  return centroid;
+}
+
+// for backward compatibility with previously released kmeans APIs
+template <class MATRIX>
+rowmajor_matrix_local<typename MATRIX::value_type> 
+kmeans(MATRIX& samples, int k, int iter,
+       double eps, long seed = 0, int n_init = 1) {
   int n_iter_ = 0;
-  return kmeans_impl(samples, k, iter, eps, seed, n_iter_);
-}
-
-template <class T, class I, class O>
-rowmajor_matrix_local<T> kmeans(crs_matrix<T,I,O>&& samples, int k, int iter,
-                                double eps, long seed = 0) {
-  int n_iter_ = 0;
-  return kmeans_impl(samples, k, iter, eps, seed, n_iter_);
-}
-
-template <class T>
-rowmajor_matrix_local<T> kmeans(rowmajor_matrix<T>& samples, int k, int iter,
-                                double eps, long seed = 0) {
-  int n_iter_ = 0;
-  return kmeans_impl(samples, k, iter, eps, seed, n_iter_);
-}
-
-// used for assigning data to cluster
-template <class T, class I, class O>
-std::vector<int> kmeans_assign_cluster(crs_matrix_local<T,I,O>& mat,
-                                       rowmajor_matrix_local<T>& centroid,
-                                       T& inertia,
-                                       bool need_inertia = true) {
-  time_spent t(DEBUG);
-  auto prod = mat * centroid;
-  t.show(" spmm: ");
-  size_t num_centroids = prod.local_num_col;
-  size_t num_samples = prod.local_num_row;
-  std::vector<T> norm;
-  calc_norm_local(centroid, norm);
-  T* normp = &norm[0];
-  std::vector<int> minloc(num_samples);
-  T* prodvalp = &prod.val[0];
-  int* minlocp = &minloc[0];
-  for(size_t c = 0; c < num_centroids; c++) {
-#pragma cdir nodep
-#pragma _NEC ivdep
-    for(size_t r = 0; r < num_samples; r++) {
-      prodvalp[num_centroids * r + c] =
-        normp[c] - prodvalp[num_centroids * r + c];
-    }
-  }
-  t.show(" norm minus product: ");
-  auto Tmax = std::numeric_limits<T>::max();
-  std::vector<T> minval(num_samples);
-  auto minvalp = minval.data();
-  for(size_t r = 0; r < num_samples; r++) {
-    minvalp[r] = Tmax;
-    minlocp[r] = INT_MAX;
-  }
-  for(size_t c = 0; c < num_centroids; c++) {
-    for(size_t r = 0; r < num_samples; r++) {
-      if(prodvalp[num_centroids * r + c] < minvalp[r]) {
-        minvalp[r] = prodvalp[num_centroids * r + c];
-        minlocp[r] = c;
-      }
-    }
-  }
-  for(size_t r = 0; r < num_samples; r++) {
-    if (minlocp[r] == INT_MAX)
-      REPORT_ERROR(USER_ERROR, "Please check input matrix: it seems to have invalid entry!\n");
-  }
-  t.show(" calc minloc: ");
-  if (need_inertia) {
-    inertia = 0.0;
-    auto a2 = matrix_squared_sum(mat, 1); 
-    auto a2p = a2.data();
-    // minvalp[r] = 0.5 * b2 - ab 
-    // 2 * minvalp[r] = b2 - 2ab
-    // a2 + b2 - 2ab = a2 + 2 * minvalp[r]
-    for(size_t r = 0; r < num_samples; r++) inertia += a2p[r] + 2 * minvalp[r];
-    t.show(" calc inertia: ");
-  }
-  return minloc;
-}
-
-template <class T>
-std::vector<int> kmeans_assign_cluster(rowmajor_matrix_local<T>& mat,
-                                       rowmajor_matrix_local<T>& centroid,
-                                       T& inertia,
-                                       bool need_inertia = true) {
-  time_spent t(DEBUG);
-  auto prod = mat * centroid;
-  t.show(" gemm: ");
-  size_t num_centroids = prod.local_num_col;
-  size_t num_samples = prod.local_num_row;
-  std::vector<T> norm;
-  calc_norm_local(centroid, norm);
-  T* normp = &norm[0];
-  std::vector<int> minloc(num_samples);
-  T* prodvalp = &prod.val[0];
-  int* minlocp = &minloc[0];
-  for(size_t c = 0; c < num_centroids; c++) {
-#pragma cdir nodep
-#pragma _NEC ivdep
-    for(size_t r = 0; r < num_samples; r++) {
-      prodvalp[num_centroids * r + c] =
-        normp[c] - prodvalp[num_centroids * r + c];
-    }
-  }
-  t.show(" norm minus product: ");
-  auto Tmax = std::numeric_limits<T>::max();
-  std::vector<T> minval(num_samples);
-  auto minvalp = minval.data();
-  for(size_t r = 0; r < num_samples; r++) {
-    minvalp[r] = Tmax;
-    minlocp[r] = INT_MAX;
-  }
-  for(size_t c = 0; c < num_centroids; c++) {
-    for(size_t r = 0; r < num_samples; r++) {
-      if(prodvalp[num_centroids * r + c] < minvalp[r]) {
-        minvalp[r] = prodvalp[num_centroids * r + c];
-        minlocp[r] = c;
-      }
-    }
-  }
-  for(size_t r = 0; r < num_samples; r++) {
-    if (minlocp[r] == INT_MAX)
-      REPORT_ERROR(USER_ERROR, "Please check input matrix: it seems to have invalid entry!\n");
-  }
-  t.show(" calc minloc: ");
-  if (need_inertia) {
-    inertia = 0.0;
-    auto a2 = matrix_squared_sum(mat, 1); 
-    auto a2p = a2.data();
-    // minvalp[r] = 0.5 * b2 - ab 
-    // 2 * minvalp[r] = b2 - 2ab
-    // a2 + b2 - 2ab = a2 + 2 * minvalp[r]
-    for(size_t r = 0; r < num_samples; r++) inertia += a2p[r] + 2 * minvalp[r];
-    t.show(" calc inertia: ");
-  }
-  return minloc;
-}
-
-// for backward compatibility with previously released kmeans_assign_cluster APIs
-template <class T, class I, class O>
-std::vector<int> kmeans_assign_cluster(crs_matrix_local<T,I,O>& mat,
-                                       rowmajor_matrix_local<T>& centroid) {
-  T inertia = 0.0;
-  return kmeans_assign_cluster(mat, centroid, inertia, false);
-}
-
-template <class T>
-std::vector<int> kmeans_assign_cluster(rowmajor_matrix_local<T>& mat,
-                                       rowmajor_matrix_local<T>& centroid) {
-  T inertia = 0.0;
-  return kmeans_assign_cluster(mat, centroid, inertia, false);
+  float inertia = 0.0f;
+  std::vector<int> labels;
+  return kmeans(samples, k, iter, eps, seed, n_init, 
+                n_iter_, inertia, labels);
 }
 
 }
