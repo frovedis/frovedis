@@ -408,8 +408,8 @@ std::vector<size_t> find_condition_pointer(T** vpp,
   }
 }
 
-template <class T, class F>
-std::vector<size_t> find_condition_pair(const T* lp, const T* rp,
+template <class T, class U, class F>
+std::vector<size_t> find_condition_pair(const T* lp, const U* rp,
                                         size_t size, const F& condition) {
   if(size == 0) {
     return std::vector<size_t>();
@@ -537,9 +537,9 @@ std::vector<size_t> find_condition_pair(const T* lp, const T* rp,
   }
 }
 
-template <class T, class F>
+template <class T, class U, class F>
 std::vector<size_t> find_condition_pair(const std::vector<T>& v1,
-                                        const std::vector<T>& v2,
+                                        const std::vector<U>& v2,
                                         const F& condition) {
   auto size = v1.size();
   if(size != v2.size())
