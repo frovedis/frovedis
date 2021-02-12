@@ -78,13 +78,23 @@ struct kmeans_result {
   kmeans_result() {}
   kmeans_result(const std::vector<int>& label, 
                 const int n_iter, 
-                const float inertia):
-    label_(label), n_iter_(n_iter), inertia_(inertia) {}
+                const float inertia,
+                const int n_clusters,
+                exrpc_ptr_t trans_mat_ptr,
+                size_t trans_mat_nsamples):
+    label_(label), n_iter_(n_iter), inertia_(inertia),
+    n_clusters_(n_clusters), 
+    trans_mat_ptr(trans_mat_ptr),
+    trans_mat_nsamples(trans_mat_nsamples) {}
 
   std::vector<int> label_;
   int n_iter_;
   float inertia_;
-  SERIALIZE(label_, n_iter_, inertia_)
+  int n_clusters_;
+  exrpc_ptr_t trans_mat_ptr;
+  size_t trans_mat_nsamples;
+  SERIALIZE(label_, n_iter_, inertia_, n_clusters_, 
+            trans_mat_ptr, trans_mat_nsamples)
 };
 
 }
