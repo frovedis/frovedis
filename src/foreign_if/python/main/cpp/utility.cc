@@ -156,10 +156,13 @@ extern "C" {
   }
 
   PyObject* to_py_kmeans_result(const kmeans_result& result) {
-    return Py_BuildValue("{s:O, s:i, s:f}",
+    return Py_BuildValue("{s:O, s:i, s:f, s:i, s:l, s:i}",
                          "labels", to_python_int_list(result.label_),
                          "n_iter", result.n_iter_,
-                         "inertia", result.inertia_);
+                         "inertia", result.inertia_,
+                         "n_clusters", result.n_clusters_,
+                         "mptr", result.trans_mat_ptr,
+                         "n_samples", result.trans_mat_nsamples);
   }
 
   PyObject* to_py_knn_result(const knn_result& obj,
