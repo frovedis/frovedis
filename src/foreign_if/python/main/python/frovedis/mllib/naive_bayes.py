@@ -115,7 +115,13 @@ class MultinomialNB(BaseEstimator):
                 excpt = rpclib.check_server_exception()
                 if excpt["status"]:
                     raise RuntimeError(excpt["info"])
-                self._feature_log_prob = np.asarray(tht, dtype=np.float64)
+                dbl_tht = np.asarray(tht, dtype=np.float64)
+                if len(dbl_tht) != self.n_classes * self.n_features_:
+                    raise RuntimeError("feature_log_prob_: size differs " + \
+                                       "in attribute extraction; report bug!")
+                self._feature_log_prob = dbl_tht.reshape(self.n_features_, \
+                                                         self.n_classes) \
+                                        .transpose() # TODO: modify in library
             return self._feature_log_prob
         else:
             raise AttributeError("attribute 'feature_log_prob_' might have " \
@@ -598,7 +604,13 @@ class BernoulliNB(BaseEstimator):
                 excpt = rpclib.check_server_exception()
                 if excpt["status"]:
                     raise RuntimeError(excpt["info"])
-                self._feature_log_prob = np.asarray(tht, dtype=np.float64)
+                dbl_tht = np.asarray(tht, dtype=np.float64)
+                if len(dbl_tht) != self.n_classes * self.n_features_:
+                    raise RuntimeError("feature_log_prob_: size differs " + \
+                                       "in attribute extraction; report bug!")
+                self._feature_log_prob = dbl_tht.reshape(self.n_features_, \
+                                                         self.n_classes) \
+                                        .transpose() # TODO: modify in library
             return self._feature_log_prob
         else:
             raise AttributeError("attribute 'feature_log_prob_' might have " \
