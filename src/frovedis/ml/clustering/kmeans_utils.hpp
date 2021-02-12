@@ -22,10 +22,9 @@
 namespace frovedis {
 
 template <class T, class I, class O>
-rowmajor_matrix_local<T> get_random_rows(crs_matrix<T,I,O>& mat, int k,
-                                         long seed) {
+rowmajor_matrix_local<T> 
+get_random_rows(crs_matrix<T,I,O>& mat, int k) {
   rowmajor_matrix_local<T> ret(mat.num_col, k);
-  srand48(seed);
   for(int i = 0; i < k; i++) {
     int pos = static_cast<int>(drand48() * (mat.num_row - 1));
     auto sv = mat.get_row(pos);
@@ -41,13 +40,19 @@ rowmajor_matrix_local<T> get_random_rows(crs_matrix<T,I,O>& mat, int k,
   return ret;
 }
 
+template <class T, class I, class O>
+rowmajor_matrix_local<T> 
+get_random_rows(crs_matrix<T,I,O>& mat, int k, long seed) {
+  srand48(seed);
+  return get_random_rows(mat, k);
+}
+
 template <class T>
-rowmajor_matrix_local<T> get_random_rows(rowmajor_matrix<T>& mat, int k,
-                                         long seed) {
+rowmajor_matrix_local<T> 
+get_random_rows(rowmajor_matrix<T>& mat, int k) {
   size_t num_col = mat.num_col;
   size_t num_row = mat.num_row;
   rowmajor_matrix_local<T> ret(num_col, k); // transposed
-  srand48(seed);
   for(int i = 0; i < k; i++) {
     int pos = static_cast<int>(drand48() * (num_row - 1));
     auto v = mat.get_row(pos);
@@ -58,6 +63,13 @@ rowmajor_matrix_local<T> get_random_rows(rowmajor_matrix<T>& mat, int k,
     }
   }
   return ret;
+}
+
+template <class T>
+rowmajor_matrix_local<T> 
+get_random_rows(rowmajor_matrix<T>& mat, int k, long seed) {
+  srand48(seed);
+  return get_random_rows(mat, k);
 }
 
 template <class T>
@@ -152,44 +164,30 @@ std::vector<T> calc_norm(node_local<rowmajor_matrix_local<T>>& bcentroid,
 }
 
 template <class T>
-bool is_diff_centroid(rowmajor_matrix_local<T>& a,
-                      rowmajor_matrix_local<T>& b, double eps) {
-  if(a.val.size() != b.val.size()) return true;
-  else {
-    double error = 0;
-    auto avalp = a.val.data();
-    auto bvalp = b.val.data();
-    for(size_t i = 0; i < a.val.size(); i++) {
-      error += (avalp[i] - bvalp[i]) * (avalp[i] - bvalp[i]);
-    }
-    if(error > eps) return true;
-    else return false;
-  }
+T calc_centroid_diff(rowmajor_matrix_local<T>& a,
+                     rowmajor_matrix_local<T>& b) {
+  return vector_ssd(a.val, b.val);
 }
 
 template <class T>
-double is_diff_centroid_helper(rowmajor_matrix_local<T>& a,
-                               rowmajor_matrix_local<T>& b) {
-  double error = 0;
-  auto avalp = a.val.data();
-  auto bvalp = b.val.data();
-  for(size_t i = 0; i < a.val.size(); i++) {
-    error += (avalp[i] - bvalp[i]) * (avalp[i] - bvalp[i]);
-  }
-  return error;
+bool is_diff_centroid(rowmajor_matrix_local<T>& a,
+                      rowmajor_matrix_local<T>& b, 
+                      double eps) {
+  if(a.val.size() != b.val.size()) 
+    return true;
+  else 
+    return calc_centroid_diff(a, b) > eps;
 }
 
 template <class T>
 bool is_diff_centroid(rowmajor_matrix<T>& a,
-                      rowmajor_matrix<T>& b, double eps) {
+                      rowmajor_matrix<T>& b, 
+                      double eps) {
   if(a.num_col != b.num_col) return true;
   else {
-    auto diff = a.data.map(is_diff_centroid_helper<T>, b.data).gather();
-    double error = 0;
-    auto diffp = diff.data();
-    for(size_t i = 0; i < diff.size(); i++) {error += diffp[i];}
-    if(error > eps) return true;
-    else return false;
+    auto error = a.data.map(calc_centroid_diff<T>, b.data)
+                       .reduce(add<T>);
+    return error > eps;
   }
 }
 
@@ -255,12 +253,78 @@ void norm_minus_product(std::vector<T>& norm, std::vector<T>& prodval,
 }                        
 
 template <class T>
-void calc_minloc(std::vector<int>& minloc, std::vector<T>& prodval,
+void calc_sq_euclidean_distance(std::vector<T>& a2, 
+                                std::vector<T>& norm, 
+                                std::vector<T>& prodval,
+                                size_t num_centroids, 
+                                size_t num_samples) {
+  auto a2p = a2.data();           // a2
+  auto normp = norm.data();       // 0.5 * b2
+  auto prodvalp = prodval.data(); // ab
+  // computes: a2 + 2.0 * (0.5 * b2 - ab) -> a2 + b2 - 2ab
+#ifdef __ve__
+  size_t c = 0;
+  for(; c+7 < num_centroids; c+=8) {
+#pragma cdir nodep
+#pragma _NEC ivdep
+    for(size_t r = 0; r < num_samples; r++) {
+      prodvalp[num_centroids * r + c] =
+        a2p[r] + 2.0 * (normp[c] - prodvalp[num_centroids * r + c]);
+      prodvalp[num_centroids * r + c + 1] =
+        a2p[r] + 2.0 * (normp[c+1] - prodvalp[num_centroids * r + c + 1]);
+      prodvalp[num_centroids * r + c + 2] =
+        a2p[r] + 2.0 * (normp[c+2] - prodvalp[num_centroids * r + c + 2]);
+      prodvalp[num_centroids * r + c + 3] =
+        a2p[r] + 2.0 * (normp[c+3] - prodvalp[num_centroids * r + c + 3]);
+      prodvalp[num_centroids * r + c + 4] =
+        a2p[r] + 2.0 * (normp[c+4] - prodvalp[num_centroids * r + c + 4]);
+      prodvalp[num_centroids * r + c + 5] =
+        a2p[r] + 2.0 * (normp[c+5] - prodvalp[num_centroids * r + c + 5]);
+      prodvalp[num_centroids * r + c + 6] =
+        a2p[r] + 2.0 * (normp[c+6] - prodvalp[num_centroids * r + c + 6]);
+      prodvalp[num_centroids * r + c + 7] =
+        a2p[r] + 2.0 * (normp[c+7] - prodvalp[num_centroids * r + c + 7]);
+    }
+  }
+  for(; c+3 < num_centroids; c+=4) {
+#pragma cdir nodep
+#pragma _NEC ivdep
+    for(size_t r = 0; r < num_samples; r++) {
+      prodvalp[num_centroids * r + c] =
+        a2p[r] + 2.0 * (normp[c] - prodvalp[num_centroids * r + c]);
+      prodvalp[num_centroids * r + c + 1] =
+        a2p[r] + 2.0 * (normp[c+1] - prodvalp[num_centroids * r + c + 1]);
+      prodvalp[num_centroids * r + c + 2] =
+        a2p[r] + 2.0 * (normp[c+2] - prodvalp[num_centroids * r + c + 2]);
+      prodvalp[num_centroids * r + c + 3] =
+        a2p[r] + 2.0 * (normp[c+3] - prodvalp[num_centroids * r + c + 3]);
+    }
+  }
+  for(; c < num_centroids; c++) {
+#pragma cdir nodep
+#pragma _NEC ivdep
+    for(size_t r = 0; r < num_samples; r++) {
+      prodvalp[num_centroids * r + c] =
+        a2p[r] + 2.0 * (normp[c] - prodvalp[num_centroids * r + c]);
+    }
+  }
+#else
+  for(size_t r = 0; r < num_samples; r++) {
+    for(size_t c = 0; c < num_centroids; c++) {
+      prodvalp[num_centroids * r + c] =
+        a2p[r] + 2.0 * (normp[c] - prodvalp[num_centroids * r + c]);
+    }
+  }
+#endif
+}
+
+template <class T>
+void calc_minloc(std::vector<int>& minloc, std::vector<T>& minval,
+                 std::vector<T>& prodval,
                  size_t num_centroids, size_t num_samples) {
   auto minlocp = minloc.data();
-  auto prodvalp = prodval.data();
-  std::vector<T> minval(num_samples);
   auto minvalp = minval.data();
+  auto prodvalp = prodval.data();
   auto Tmax = std::numeric_limits<T>::max();
   for(size_t r = 0; r < num_samples; r++) {
     minvalp[r] = Tmax;
@@ -355,6 +419,14 @@ void calc_minloc(std::vector<int>& minloc, std::vector<T>& prodval,
       REPORT_ERROR(USER_ERROR, "Please check input matrix: it seems to have invalid entry!\n");
   }
   // segfault might occur if not checked above case
+}
+
+template <class T>
+void calc_minloc(std::vector<int>& minloc, 
+                 std::vector<T>& prodval,
+                 size_t num_centroids, size_t num_samples) {
+  std::vector<T> minval(num_samples);
+  calc_minloc(minloc, minval, prodval, num_centroids, num_samples);
 }
 
 inline
