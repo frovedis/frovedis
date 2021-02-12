@@ -389,6 +389,30 @@ load_csv(const std::string& path,
   return lv.map(parse_csv, start, line_starts_byword, broadcast(separator));
 }
 
+node_local<words>
+load_csv_separate(const std::string& path,
+                  node_local<std::vector<size_t>>& line_starts_byword,
+                  ssize_t start_pos, ssize_t& end_pos,
+                  bool is_crlf,
+                  bool to_skip_head,
+                  int separator) {
+  auto start = make_node_local_allocate<vector<size_t>>();
+  node_local<vector<int>> lv;
+  if(is_crlf) {
+    auto len = make_node_local_allocate<vector<size_t>>();
+    auto start_tmp = make_node_local_allocate<vector<size_t>>();
+    auto lv_tmp = load_text_separate(path, "\r\n", start_tmp, len,
+                                     start_pos, end_pos);
+    lv = lv_tmp.map(concat_docs, start_tmp, len, broadcast('\n'), start);
+  } else {
+    auto len = make_node_local_allocate<vector<size_t>>();
+    lv = load_text_separate(path, "\n", start, len, start_pos, end_pos);
+    lv.mapv(normalize_tail);
+  }
+  if(to_skip_head) start.mapv(skip_head);
+  return lv.map(parse_csv, start, line_starts_byword, broadcast(separator));
+}
+
 words
 load_csv_local(const std::string& path,
                std::vector<size_t>& line_starts_byword,
@@ -446,6 +470,32 @@ load_simple_csv(const std::string& path,
   } else {
     auto len = make_node_local_allocate<vector<size_t>>();
     lv = load_text(path, "\n", start, len);
+    lv.mapv(normalize_tail);
+  }
+  if(to_skip_head) start.mapv(skip_head);
+  auto ret = lv.map(split_simple_csv, start, broadcast(separator));
+  line_starts_byword = start.map(convert_line_starts, ret);
+  return ret;
+}
+
+node_local<words>
+load_simple_csv_separate(const std::string& path,
+                         node_local<std::vector<size_t>>& line_starts_byword,
+                         ssize_t start_pos, ssize_t& end_pos,
+                         bool is_crlf,
+                         bool to_skip_head,
+                         int separator) {
+  auto start = make_node_local_allocate<vector<size_t>>();
+  node_local<vector<int>> lv;
+  if(is_crlf) {
+    auto len = make_node_local_allocate<vector<size_t>>();
+    auto start_tmp = make_node_local_allocate<vector<size_t>>();
+    auto lv_tmp = load_text_separate(path, "\r\n", start_tmp, len,
+                                     start_pos, end_pos);
+    lv = lv_tmp.map(concat_docs, start_tmp, len, broadcast('\n'), start);
+  } else {
+    auto len = make_node_local_allocate<vector<size_t>>();
+    lv = load_text_separate(path, "\n", start, len, start_pos, end_pos);
     lv.mapv(normalize_tail);
   }
   if(to_skip_head) start.mapv(skip_head);
