@@ -1006,6 +1006,11 @@ class DataFrame(object):
 
         return self.select_frovedis_dataframe(targets)
 
+    def apply(self, func, axis=0, raw=False, \
+              result_type=None, args=(), **kwds):
+        return self.to_panda_dataframe()\
+                   .apply(func, axis, raw, result_type, args)
+
     def __str__(self):
         #TODO: fixme to return df as a string
         self.show()
