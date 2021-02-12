@@ -26,6 +26,13 @@ load_text(const std::string& path,
           node_local<std::vector<size_t>>& sep,
           node_local<std::vector<size_t>>& len);
 
+node_local<std::vector<int>>
+load_text_separate(const std::string& path,
+                   const std::string& delim,
+                   node_local<std::vector<size_t>>& sep,
+                   node_local<std::vector<size_t>>& len,
+                   ssize_t start, ssize_t& end); // end is input/output
+
 std::vector<int>
 load_text_local(const std::string& path,
                 const std::string& delim,

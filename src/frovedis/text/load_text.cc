@@ -8,9 +8,11 @@ namespace frovedis {
 struct load_text_helper {
   load_text_helper(){}
   load_text_helper(const string& path,
-                   const string& delim) :
-    path(path), delim(delim) {}
-  void operator()(vector<int>& ret, vector<size_t>& sep, vector<size_t>& len) {
+                   const string& delim,
+                   ssize_t start) :
+    path(path), delim(delim), start(start) {}
+  void operator()(vector<int>& ret, vector<size_t>& sep, vector<size_t>& len,
+                  ssize_t& rend) {
     MPI_File fh;
     time_spent t(DEBUG);
     int r = MPI_File_open(frovedis_comm_rpc, const_cast<char*>(path.c_str()),
@@ -22,18 +24,29 @@ struct load_text_helper {
     if(r != 0) throw runtime_error("error in MPI_File_get_size");
     size_t nodes = get_nodesize();
     int self = get_selfid();
-    size_t each_size = ceil_div(file_size, nodes);
+    bool read_until_middle;
+    ssize_t end;
+    if(rend == -1 || rend >= file_size) {
+      read_until_middle = false; end = file_size;
+    } else {
+      read_until_middle = true; end = rend; 
+    }
+    if(start < 0 || start > file_size)
+      throw runtime_error("load_text_helper: start position is invalid");
+    size_t read_file_size = end - start;
+    size_t each_size = ceil_div(read_file_size, nodes);
     size_t delim_len = delim.size();
     if(each_size < delim_len)
       throw runtime_error("delimiter size is larger than each part");
     size_t myoff, myend;
-    if(self == 0) myoff = 0;
-    else myoff = min(each_size * self - (delim_len-1), file_size);
-    if(self == nodes - 1) myend = file_size;
-    else myend = min(each_size * (self + 1), file_size);
+    if(self == 0) myoff = start;
+    else myoff = min(each_size * self - (delim_len-1) + start, size_t(end));
+    if(self == nodes - 1) myend = end;
+    else myend = min(each_size * (self + 1) + start, size_t(end));
     size_t mysize = myend - myoff;
     char datarep[] = "native";
-    MPI_File_set_view(fh, myoff, MPI_CHAR, MPI_CHAR, datarep, MPI_INFO_NULL);
+    MPI_File_set_view(fh, myoff, MPI_CHAR, MPI_CHAR, datarep,
+                      MPI_INFO_NULL);
 
     MPI_Status st;
     string buf;
@@ -204,6 +217,12 @@ struct load_text_helper {
         } else if(ret_size == 0) {
           sep.resize(0);
           len.resize(0);
+        } else if(read_until_middle) {
+          auto to_truncate = ret.size() - sepp[sep_size - 1];
+          rend -= to_truncate;
+          ret.resize(ret.size() - to_truncate);
+          len.pop_back();
+          sep.pop_back();
         }
       }
     }
@@ -211,16 +230,33 @@ struct load_text_helper {
   }
   string path;
   string delim;
-  SERIALIZE(path, delim)
+  ssize_t start;
+  SERIALIZE(path, delim, start)
 };
 
 // sep: start of the item
 node_local<vector<int>>
 load_text(const string& path, const string& delim,
           node_local<vector<size_t>>& sep,
-          node_local<vector<size_t>>& len){
+          node_local<vector<size_t>>& len) {
   auto ret = make_node_local_allocate<vector<int>>();
-  ret.mapv(load_text_helper(path, delim), sep, len);
+  auto bend = broadcast(ssize_t(-1)); // dummy
+  ret.mapv(load_text_helper(path, delim, 0), sep, len, bend);
+  return ret;
+}
+
+node_local<vector<int>>
+load_text_separate(const string& path, const string& delim,
+                   node_local<vector<size_t>>& sep,
+                   node_local<vector<size_t>>& len,
+                   ssize_t start, ssize_t& end){
+  auto ret = make_node_local_allocate<vector<int>>();
+  auto bend = broadcast(end);
+  ret.mapv(load_text_helper(path, delim, start), sep, len, bend);
+  auto newend = bend.gather();
+  for(size_t i = 0; i < newend.size(); i++) {
+    if(newend[i] != end) {end = newend[i]; break;}
+  }
   return ret;
 }
 
