@@ -6,6 +6,8 @@ cluster.py: module containing wrapper for kmeans, dbscan, agglomerative
 
 import os.path
 import pickle
+import numpy as np
+import numbers
 from .model_util import *
 from ..base import *
 from ..exrpc.server import FrovedisServer
@@ -13,7 +15,6 @@ from ..exrpc import rpclib
 from ..matrix.ml_data import FrovedisFeatureData
 from ..matrix.dense import FrovedisRowmajorMatrix
 from ..matrix.dtype import TypeUtil
-import numpy as np
 
 def clustering_score(labels_true, labels_pred):
   try:
@@ -26,7 +27,7 @@ class KMeans(BaseEstimator):
     """
     A python wrapper of Frovedis kmeans
     """
-    def __init__(self, n_clusters=8, init='k-means++', n_init=10,
+    def __init__(self, n_clusters=8, init='random', n_init=10,
                  max_iter=300, tol=1e-4, precompute_distances='auto',
                  verbose=0, random_state=None, copy_x=True,
                  n_jobs=1, algorithm='auto', use_shrink=False):
@@ -46,100 +47,211 @@ class KMeans(BaseEstimator):
         self.__mid = None
         self.__mdtype = None
         self.__mkind = M_KIND.KMEANS
+        self._cluster_centers = None
 
-    def fit(self, X, y=None, sample_weight=None):
-        """Compute k-means clustering."""
-        self.release()
-        seed = 0
-        if self.random_state is not None:
-            seed = self.random_state
+    def validate(self):
+        """validates hyper parameters"""
+        if self.n_init is None:
+            self.n_init = 10
+        if self.n_init < 1:
+            raise ValueError("fit: n_init must be a positive integer!")
+
+        if isinstance(self.random_state, numbers.Number):
+            if sys.version_info[0] < 3:
+                self.seed = long(self.random_state)
+            else:
+                self.seed = int(self.random_state)
+        else:
+            self.seed = 0
+
+        supported_init = ['random']
+        if self.init not in supported_init:
+            raise ValueError("fit: frovedis currently doesn't support " +
+                             "init = %s" % self.init)
+
+        if self.algorithm == 'auto':
+            self.algorithm = 'full'
+        supported_algorithm = ['full']
+        if self.algorithm not in supported_algorithm:
+            raise ValueError("fit: frovedis currently doesn't support " +
+                             "algorithm = %s" % self.algorithm)
+
+    def check_input(self, X, F):
+        """checks input X"""
         # if X is not a sparse data, it would be loaded as rowmajor matrix
         inp_data = FrovedisFeatureData(X, \
-                     caller = "[" + self.__class__.__name__ + "] fit: ",\
-                     dense_kind='rowmajor', densify=False)
+                   caller = "[" + self.__class__.__name__ + "] " + F + ": ",\
+                   dense_kind='rowmajor', densify=False)
         X = inp_data.get()
         dtype = inp_data.get_dtype()
         itype = inp_data.get_itype()
         dense = inp_data.is_dense()
+        nsamples = inp_data.numRows()
+        nfeatures = inp_data.numCols()
+        movable = inp_data.is_movable()
         if dense and self.use_shrink:
-            raise ValueError("fit: use_shrink is applicable only for " \
+            raise ValueError(F + ": use_shrink is applicable only for " \
                              + "sparse data!")
+        if self.n_clusters is None:
+            self.n_clusters = min(8, nsamples)
+        if self.n_clusters < 1 or self.n_clusters > nsamples:
+            raise ValueError("fit: n_samples=%d must be >= n_clusters=%d." % \
+                              (nsamples, self.n_clusters))
+        return X, dtype, itype, dense, nsamples, nfeatures, movable
+
+    def fit(self, X, y=None, sample_weight=None):
+        """Compute k-means clustering."""
+        self.release()
+        self.validate()
+        X, dtype, itype, dense, \
+        nsamples, nfeatures, movable = self.check_input(X, "fit")
+        self.n_samples = nsamples
+        self.n_features = nfeatures
         self.__mdtype = dtype
         self.__mid = ModelID.get()
-
         (host, port) = FrovedisServer.getServerInstance()
-        ret = rpclib.kmeans_train(host, port, X.get(), self.n_clusters,\
-                            self.max_iter, seed, self.tol, self.verbose, \
+        ret = rpclib.kmeans_fit(host, port, X.get(), self.n_clusters,\
+                            self.max_iter, self.n_init, \
+                            self.tol, self.seed, self.verbose, \
                             self.__mid, dtype, itype, dense, self.use_shrink)
-        self.labels_ = np.asarray(ret["labels"])
-        self.inertia_ = ret["inertia"]
-        self.n_iter_ = ret["n_iter"]
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
             raise RuntimeError(excpt["info"])
+        self.labels_ = np.asarray(ret["labels"])
+        self.inertia_ = ret["inertia"]
+        self.n_iter_ = ret["n_iter"]
+        self.n_clusters_ = ret["n_clusters"]
         return self
 
-    def predict(self, X, sample_weight=None):
-        """Predict the closest cluster each sample in X belongs to."""
-        if self.__mid is not None:
-            # if X is not a sparse data, it would be loaded as
-            #rowmajor matrix
-            inp_data = FrovedisFeatureData(X, \
-                         caller = "[" + self.__class__.__name__ + "] fit: ",\
-                         dense_kind='rowmajor', densify=False)
-            X = inp_data.get()
-            dtype = inp_data.get_dtype()
-            itype = inp_data.get_itype()
-            dense = inp_data.is_dense()
-            if dtype != self.__mdtype:
-                raise TypeError( \
-                "Input test data dtype is different than model dtype!")
-            (host, port) = FrovedisServer.getServerInstance()
-            len_l = X.numRows()
-            ret = np.zeros(len_l, dtype=np.int32)
-            rpclib.parallel_kmeans_predict(host, port, self.__mid,
-                                           self.__mdtype, X.get(),
-                                           ret, len_l, itype, dense)
-            excpt = rpclib.check_server_exception()
-            if excpt["status"]:
-                raise RuntimeError(excpt["info"])
-            return ret
-        else:
-            raise ValueError( \
-            "predict is called before calling fit, or the model is released.")
-
     def fit_predict(self, X, y=None, sample_weight=None):
-        """Compute cluster centers and predict cluster index for each sample"""
+        """
+        computes cluster centers and predicts cluster index for each sample.
+        """
         self.fit(X, y, sample_weight)
         return self.labels_
 
+    def fit_transform(self, X, y=None, sample_weight=None):
+        """
+        computes clustering and transform X to cluster-distance space.
+        """
+        self.release()
+        self.validate()
+        X, dtype, itype, dense, \
+        nsamples, nfeatures, movable = self.check_input(X, "fit_transform")
+        self.n_samples = nsamples
+        self.n_features = nfeatures
+        self.__mdtype = dtype
+        self.__mid = ModelID.get()
+        (host, port) = FrovedisServer.getServerInstance()
+        ret = rpclib.kmeans_fit_transform(host, port, X.get(), \
+                            self.n_clusters, \
+                            self.max_iter, self.n_init, \
+                            self.tol, self.seed, self.verbose, \
+                            self.__mid, dtype, itype, dense, self.use_shrink)
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
+        self.labels_ = np.asarray(ret["labels"])
+        self.inertia_ = ret["inertia"]
+        self.n_iter_ = ret["n_iter"]
+        self.n_clusters_ = ret["n_clusters"]
+        trans_mat = {'dptr': ret["mptr"],
+                     'nrow': ret["n_samples"],
+                     'ncol': ret["n_clusters"]}
+        ret = FrovedisRowmajorMatrix(mat=trans_mat, \
+                                     dtype=TypeUtil.to_numpy_dtype(dtype))
+        if movable:
+            return ret.to_numpy_array()
+        else:
+            return ret
+
+    def transform(self, X):
+        """transforms X to a cluster-distance space."""
+        if self.__mid is None:
+            raise ValueError( \
+            "transform: is called before calling fit, or the model is released.")
+        X, dtype, itype, dense, \
+        nsamples, nfeatures, movable = self.check_input(X, "transform")
+        if dtype != self.__mdtype:
+            raise TypeError( \
+            "transform: datatype of X is different than model dtype!")
+        (host, port) = FrovedisServer.getServerInstance()
+        trans_mat = rpclib.kmeans_transform(host, port, \
+                            self.__mid, self.__mdtype, \
+                            X.get(), itype, dense)
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
+        ret = FrovedisRowmajorMatrix(mat=trans_mat, \
+                                     dtype=TypeUtil.to_numpy_dtype(dtype))
+        if movable:
+            return ret.to_numpy_array()
+        else:
+            return ret
+
+    def predict(self, X, sample_weight=None):
+        """Predict the closest cluster each sample in X belongs to."""
+        if self.__mid is None:
+            raise ValueError( \
+            "predict: is called before calling fit, or the model is released.")
+        X, dtype, itype, dense, \
+        nsamples, nfeatures, movable = self.check_input(X, "predict")
+        if dtype != self.__mdtype:
+            raise TypeError( \
+            "predict: datatype of X is different than model dtype!")
+        (host, port) = FrovedisServer.getServerInstance()
+        len_l = X.numRows()
+        ret = np.zeros(len_l, dtype=np.int32)
+        rpclib.parallel_kmeans_predict(host, port, self.__mid,
+                                       self.__mdtype, X.get(),
+                                       ret, len_l, itype, dense)
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
+        return ret
+
     def score(self, X, y=None, sample_weight=None):
         """Opposite of the value of X on the K-means objective."""
-        if self.__mid is not None:
-            # if X is not a sparse data, it would be loaded as
-            # rowmajor matrix
-            inp_data = FrovedisFeatureData(X, \
-                         caller = "[" + self.__class__.__name__ + "] fit: ",\
-                         dense_kind='rowmajor', densify=False)
-            X = inp_data.get()
-            dtype = inp_data.get_dtype()
-            itype = inp_data.get_itype()
-            dense = inp_data.is_dense()
-            if dtype != self.__mdtype:
-                raise TypeError( \
-                "Input test data dtype is different than model dtype!")
+        if self.__mid is None:
+            raise ValueError( \
+            "score: is called before calling fit, or the model is released.")
+        X, dtype, itype, dense, \
+        nsamples, nfeatures, movable = self.check_input(X, "score")
+        if dtype != self.__mdtype:
+            raise TypeError( \
+            "Input test data dtype is different than model dtype!")
+        (host, port) = FrovedisServer.getServerInstance()
+        ret = rpclib.kmeans_score(host, port, \
+                                  self.__mid, self.__mdtype, \
+                                  X.get(), itype, dense)
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
+        return ret
+
+    @property
+    def cluster_centers_(self):
+        """returns centroid points"""
+        if self.__mid is None:
+            raise ValueError("cluster_centers_: is called before fit/load")
+
+        if self._cluster_centers is None:
             (host, port) = FrovedisServer.getServerInstance()
-            inertia = rpclib.kmeans_score(host, port, self.__mid, \
-                                          self.__mdtype, X.get(), \
-                                          itype, dense)
+            center = rpclib.get_kmeans_centroid(host, port, self.__mid, \
+                                                self.__mdtype)
             excpt = rpclib.check_server_exception()
             if excpt["status"]:
                 raise RuntimeError(excpt["info"])
-            return -inertia
+            center = np.asarray(center)
+            self._cluster_centers = center.reshape(self.n_clusters_, \
+                                                   self.n_features)
+        return self._cluster_centers
 
-        else:
-            raise ValueError( \
-            "score is called before calling fit, or the model is released.")
+    @cluster_centers_.setter
+    def cluster_centers_(self, val):
+        """Setter method for cluster_centers_ """
+        raise AttributeError(\
+        "attribute 'cluster_centers_' of KMeans is not writable")
 
     def load(self, fname, dtype=None):
         """
@@ -150,7 +262,8 @@ class KMeans(BaseEstimator):
                 "the model with name %s does not exist!" % fname)
         self.release()
         metadata = open(fname+"/metadata", "rb")
-        self.n_clusters, self.__mkind, self.__mdtype = pickle.load(metadata)
+        self.n_clusters_, self.n_features, \
+        self.__mkind, self.__mdtype = pickle.load(metadata)
         metadata.close()
         if dtype is not None:
             mdt = TypeUtil.to_numpy_dtype(self.__mdtype)
@@ -166,20 +279,19 @@ class KMeans(BaseEstimator):
         """
         NAME: save
         """
-        if self.__mid is not None:
-            if os.path.exists(fname):
-                raise ValueError(\
-                    "another model with %s name already exists!" % fname)
-            else:
-                os.makedirs(fname)
-            GLM.save(self.__mid, self.__mkind, self.__mdtype, fname+"/model")
-            metadata = open(fname+"/metadata", "wb")
-            pickle.dump((self.n_clusters, self.__mkind, self.__mdtype), \
-                        metadata)
-            metadata.close()
-        else:
+        if self.__mid is None:
             raise ValueError(\
-                "save: the requested model might have been released!")
+            "save: is called before calling fit, or the model is released!")
+        if os.path.exists(fname):
+            raise ValueError(\
+            "another model with %s name already exists!" % fname)
+        else:
+            os.makedirs(fname)
+        GLM.save(self.__mid, self.__mkind, self.__mdtype, fname+"/model")
+        metadata = open(fname+"/metadata", "wb")
+        pickle.dump((self.n_clusters_, self.n_features, \
+                     self.__mkind, self.__mdtype), metadata)
+        metadata.close()
 
     def debug_print(self):
         """
@@ -195,6 +307,11 @@ class KMeans(BaseEstimator):
         if self.__mid is not None:
             GLM.release(self.__mid, self.__mkind, self.__mdtype)
             self.__mid = None
+            self._cluster_centers = None
+            self.labels_ = None
+            self.inertia_ = None
+            self.n_iter_ = None
+            self.n_clusters_ = None
 
     def __del__(self):
         """
@@ -400,7 +517,8 @@ class AgglomerativeClustering(BaseEstimator):
     """
     def __init__(self, n_clusters=2, affinity='euclidean', memory=None,
                  connectivity=None, compute_full_tree='auto',
-                 linkage='average', pooling_func='deprecated', verbose=0):
+                 linkage='average', distance_threshold=None,
+                 compute_distances=False, verbose=0):
         self.n_clusters = n_clusters
         self.affinity = affinity
         self.memory = memory
@@ -408,7 +526,7 @@ class AgglomerativeClustering(BaseEstimator):
         self.compute_full_tree = compute_full_tree
         self.linkage = linkage
         self.verbose = verbose
-        self.pooling_func = pooling_func
+        self.threshold = distance_threshold
         # extra
         self.__mid = None
         self.__mdtype = None
@@ -425,6 +543,8 @@ class AgglomerativeClustering(BaseEstimator):
         if self.linkage not in supported_linkages:
             raise ValueError("linkage: Frovedis doesn't support the "\
                               + "given linkage!")
+        if self.threshold is None:
+            self.threshold = 0.0
         inp_data = FrovedisFeatureData(X, \
                      caller = "[" + self.__class__.__name__ + "] fit: ",\
                      dense_kind='rowmajor', densify=True)
@@ -432,21 +552,129 @@ class AgglomerativeClustering(BaseEstimator):
         dtype = inp_data.get_dtype()
         itype = inp_data.get_itype()
         dense = inp_data.is_dense()
+        self.movable = inp_data.is_movable()
         self.__mid = ModelID.get()
         self.__mdtype = dtype
         nsamples = X.numRows()
         (host, port) = FrovedisServer.getServerInstance()
-        ret = np.zeros(nsamples, dtype=np.int32)
+        ret = np.zeros(nsamples, dtype=np.int64)
         rpclib.aca_train(host, port, X.get(), self.n_clusters,
-                         self.linkage.encode('ascii'), ret, nsamples, 
+                         self.linkage.encode('ascii'), self.threshold, ret, nsamples, 
                          self.verbose, self.__mid,
                          dtype, itype, dense)
-        self.labels_ = ret.astype(np.int64)
+        self.labels_ = ret#.astype(np.int64)
+        self._children = None
+        self._n_connected_components = None
+        self._distances = None
+        self._n_clusters = None
         self.__nsamples = nsamples
+        self.n_leaves_ = nsamples
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
             raise RuntimeError(excpt["info"])
         return self
+
+    @property
+    def children_(self):
+        """
+        NAME: get_children
+        """
+        if self.__mid is None:
+            raise ValueError("children_ is called before fit/load")
+
+        if self._children is None:
+            (host, port) = FrovedisServer.getServerInstance()
+            children_vector = rpclib.get_acm_children(host, port, self.__mid, \
+                                                  self.__mdtype)
+            excpt = rpclib.check_server_exception()
+            if excpt["status"]:
+                raise RuntimeError(excpt["info"])
+  
+            nchildren = len(children_vector) // 2
+            shape = (nchildren, 2)
+            #sklearn returns children as int32, where it is a candidate to be int64
+            self._children = np.asarray(children_vector).reshape(shape)#.astype(np.int32)
+        return self._children
+
+    @children_.setter
+    def children_(self, val):
+        """Setter method for children_ """
+        raise AttributeError(\
+        "attribute 'children_' of AgglomerativeClustering is not writable")
+
+
+    @property
+    def n_connected_components_(self):
+        """
+        NAME: get_n_connected_components
+        """
+        if self.__mid is None:
+            raise ValueError("n_connected_components_ is called before fit/load")
+
+        if self._n_connected_components is None:
+            (host, port) = FrovedisServer.getServerInstance()
+            ncc = rpclib.get_acm_n_components(host, port, self.__mid, \
+                                                  self.__mdtype)
+            excpt = rpclib.check_server_exception()
+            if excpt["status"]:
+                raise RuntimeError(excpt["info"])            
+            self._n_connected_components = ncc            
+        return self._n_connected_components
+
+    @n_connected_components_.setter
+    def n_connected_components_(self, val):
+        """Setter method for n_connected_components_ """
+        raise AttributeError(\
+        "attribute 'n_connected_components_' of AgglomerativeClustering is not writable")
+
+    @property
+    def distances_(self):
+        """
+        NAME: get_distances
+        """
+        if self.__mid is None:
+            raise ValueError("children_ is called before fit/load")
+
+        if self._distances is None:
+            (host, port) = FrovedisServer.getServerInstance()
+            dist = rpclib.get_acm_distances(host, port, self.__mid, \
+                                                  self.__mdtype)
+            excpt = rpclib.check_server_exception()
+            if excpt["status"]:
+                raise RuntimeError(excpt["info"])             
+            self._distances = np.asarray(dist, dtype=np.float64) #sklearn return type is float64            
+        return self._distances
+
+    @distances_.setter
+    def distances_(self, val):
+        """Setter method for distances_ """
+        raise AttributeError(\
+        "attribute 'distances_' of AgglomerativeClustering is not writable")        
+
+    @property
+    def n_clusters_(self):
+        """
+        NAME: get_n_clusters
+        """
+        if self.__mid is None:
+            raise ValueError("n_clusters_ is called before fit/load")
+
+        if self._n_clusters is None:
+            (host, port) = FrovedisServer.getServerInstance()
+            nclusters = rpclib.get_acm_n_clusters(host, port, self.__mid, \
+                                                  self.__mdtype)
+            excpt = rpclib.check_server_exception()
+            if excpt["status"]:
+                raise RuntimeError(excpt["info"])                
+            self._n_clusters = nclusters            
+        return self._n_clusters
+
+    @n_clusters_.setter
+    def n_clusters_(self, val):
+        """Setter method for distances_ """
+        raise AttributeError(\
+        "attribute 'n_clusters_' of AgglomerativeClustering is not writable") 
+
 
     def fit_predict(self, X, y=None):
         """
@@ -456,7 +684,7 @@ class AgglomerativeClustering(BaseEstimator):
         return self.labels_
 
     # added for predicting with different nclusters on same model
-    def predict(self, ncluster=None):
+    def reassign(self, ncluster=None):
         """
         recomputes cluster indices when input 'ncluster' is different 
         than self.n_clusters
@@ -466,19 +694,21 @@ class AgglomerativeClustering(BaseEstimator):
                 raise ValueError("predict: ncluster must be a positive integer!")
             self.n_clusters = ncluster
             (host, port) = FrovedisServer.getServerInstance()
-            ret = np.zeros(self.__nsamples, dtype=np.int32)
+            ret = np.zeros(self.__nsamples, dtype=np.int64)
             rpclib.acm_predict(host, port, self.__mid, self.__mdtype,
                                self.n_clusters, ret, self.__nsamples)
             excpt = rpclib.check_server_exception()
             if excpt["status"]:
                 raise RuntimeError(excpt["info"])
-            self.labels_ = ret.astype(np.int64)
+            self.labels_ = ret#.astype(np.int64)
         return self.labels_
+
     
     def score(self, X, y, sample_weight=None):
         """uses scikit-learn homogeneity_score for scoring"""
         if self.__mid is not None:
             return clustering_score(y, self.fit_predict(X, y))
+
 
     def __str__(self):
         """
@@ -497,7 +727,8 @@ class AgglomerativeClustering(BaseEstimator):
                 "the model with name %s does not exist!" % fname)
         self.release()
         metadata = open(fname+"/metadata", "rb")
-        self.n_clusters, self.__mkind, self.__mdtype = pickle.load(metadata)
+        self.n_clusters, self.__nsamples, self.__mkind,\
+                         self.__mdtype = pickle.load(metadata)
         metadata.close()
         if dtype is not None:
             mdt = TypeUtil.to_numpy_dtype(self.__mdtype)
@@ -508,19 +739,15 @@ class AgglomerativeClustering(BaseEstimator):
         self.__mid = ModelID.get()
         (host, port) = FrovedisServer.getServerInstance()
         model_file = fname + "/model"
-        self.__nsamples = rpclib.load_frovedis_acm(host, port, self.__mid, \
-                                self.__mdtype, model_file.encode('ascii'))
-        excpt = rpclib.check_server_exception()
-        if excpt["status"]:
-            raise RuntimeError(excpt["info"])
         # get labels
-        ret = np.zeros(self.__nsamples, dtype=np.int32)
-        rpclib.acm_predict(host, port, self.__mid, self.__mdtype,
-                           self.n_clusters, ret, self.__nsamples)
+        ret = np.zeros(self.__nsamples, dtype=np.int64)
+        rpclib.load_frovedis_acm(host, port, self.__mid, \
+                                 self.__mdtype, model_file.encode('ascii'),\
+                                 ret, self.__nsamples)
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
             raise RuntimeError(excpt["info"])
-        self.labels_ = ret.astype(np.int64)
+        self.labels_ = ret#.astype(np.int64)
         return self
 
     def save(self, fname):
@@ -535,7 +762,7 @@ class AgglomerativeClustering(BaseEstimator):
                 os.makedirs(fname)
             GLM.save(self.__mid, self.__mkind, self.__mdtype, fname+"/model")
             metadata = open(fname+"/metadata", "wb")
-            pickle.dump((self.n_clusters, self.__mkind, \
+            pickle.dump((self.n_clusters, self.__nsamples, self.__mkind, \
                 self.__mdtype), metadata)
             metadata.close()
         else:
@@ -570,7 +797,7 @@ class DBSCAN(BaseEstimator):
     A python wrapper of Frovedis dbcsan
     """
     def __init__(self, eps=0.5, min_samples=5, metric='euclidean', 
-                 metric_params=None, algorithm='brute', leaf_size=30, 
+                 metric_params=None, algorithm='auto', leaf_size=30, 
                  p=None, n_jobs=None, verbose=0):
         self.eps = eps
         self.min_samples = min_samples
@@ -587,22 +814,10 @@ class DBSCAN(BaseEstimator):
         self.__mkind = M_KIND.DBSCAN 
         self._labels = None
 
-    def fit(self, X, y=None):
+    def validate(self):
         """
-        DESC: fit method for dbscan
+        DESC: validates hyper-parameters for dbscan
         """
-        self.release()
-        # Currently Frovedis DBSCAN does not support sparse data, 
-        # it would be loaded as rowmajor matrix
-        inp_data = FrovedisFeatureData(X, \
-                     caller = "[" + self.__class__.__name__ + "] fit: ",\
-                     dense_kind='rowmajor', densify=True)
-        X = inp_data.get()
-        dtype = inp_data.get_dtype()
-        itype = inp_data.get_itype()
-        dense = inp_data.is_dense()
-        n_samples = X.numRows()
-
         if self.eps <= 0:
             raise ValueError(\
                 "Invalid parameter value passed for eps")
@@ -613,10 +828,30 @@ class DBSCAN(BaseEstimator):
             raise ValueError(\
                 "Currently Frovedis DBSCAN does not support %s metric!" \
                 % self.metric)
-        if self.algorithm is not "brute":
+        if self.algorithm == "auto":
+            self.algorithm = "brute"
+        supported_algorithms = ["brute"]
+        if self.algorithm not in supported_algorithms:
             raise ValueError(\
                 "Currently Frovedis DBSCAN does not support %s algorithm!" \
                 % self.algorithm)
+
+    def fit(self, X, y=None):
+        """
+        DESC: fit method for dbscan
+        """
+        self.release()
+        self.validate()
+        # Currently Frovedis DBSCAN does not support sparse data, 
+        # it would be loaded as rowmajor matrix
+        inp_data = FrovedisFeatureData(X, \
+                     caller = "[" + self.__class__.__name__ + "] fit: ",\
+                     dense_kind='rowmajor', densify=True)
+        X = inp_data.get()
+        dtype = inp_data.get_dtype()
+        itype = inp_data.get_itype()
+        dense = inp_data.is_dense()
+        n_samples = X.numRows()
 
         self.__mdtype = dtype
         self.__mid = ModelID.get()
