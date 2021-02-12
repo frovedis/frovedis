@@ -333,6 +333,20 @@ JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_renameFrovedisDa
   return (jlong) ret;
 }
 
+JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_selectFrovedisGroupedData
+  (JNIEnv *env, jclass thisCls, jobject master_node, jlong gdftable, 
+   jobjectArray cols, jint sz) {
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto proxy = static_cast<exrpc_ptr_t> (gdftable);
+  auto tcols = to_string_vector(env, cols, sz);
+  exrpc_ptr_t ret = 0;
+  try {
+    ret = exrpc_async(fm_node,frovedis_gdf_select,proxy,tcols).get();
+  }
+  catch(std::exception& e) { set_status(true,e.what()); }
+  return (jlong) ret;
+}
+
 JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_aggrFrovedisDataframe
   (JNIEnv *env, jclass thisCls, jobject master_node, jlong gdftable, 
    jobjectArray gCols, jint sz1, jobjectArray aFuncs, 
