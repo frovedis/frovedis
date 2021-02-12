@@ -35,17 +35,17 @@ struct nearest_neighbors {
     bool need_distance = true; // need correct distance for graph creation
     auto model = kneighbors<I>(enquiry_data, k, need_distance);
     auto nsamples = observation_data.num_row;
-    return model.create_graph(mode, nsamples); 
+    return model.template create_graph<O>(mode, nsamples); 
   }
 
   template <class I = size_t, class O = size_t>
   crs_matrix<T, I, O>
   radius_neighbors(rowmajor_matrix<T>& enquiry_data,
-                   float rad = 0,
-                   bool need_distance = true) {
+                   float rad = 0) {
     if (rad == 0) rad = radius;
-    return knn_radius<T,I>(observation_data, enquiry_data,
-                           rad, algorithm, metric, need_distance, chunk_size);
+    std::string mode = "distance"; // mode is always distance for radius_neighbors
+    return knn_radius<T,I,O>(observation_data, enquiry_data,
+                             rad, algorithm, metric, mode); 
   }
 
   template <class I = size_t, class O = size_t>
@@ -53,9 +53,9 @@ struct nearest_neighbors {
   radius_neighbors_graph(rowmajor_matrix<T>& enquiry_data,
                          float rad = 0,
                          const std::string& mode = "connectivity") {
-    bool need_distance = true; // need correct distance for graph creation
-    auto radius_model = radius_neighbors<I>(enquiry_data, rad, need_distance);
-    return create_radius_graph(radius_model, mode);
+    if (rad == 0) rad = radius;
+    return knn_radius<T,I,O>(observation_data, enquiry_data,
+                             rad, algorithm, metric, mode); 
   }
 
   int n_neighbors;
@@ -68,5 +68,4 @@ struct nearest_neighbors {
 };
 
 }
-
 #endif
