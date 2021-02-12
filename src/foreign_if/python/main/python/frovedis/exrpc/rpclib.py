@@ -190,6 +190,11 @@ group_frovedis_dataframe.argtypes = [c_char_p, c_int, c_long, \
                                      POINTER(c_char_p), c_int]
 group_frovedis_dataframe.restype = c_long
 
+select_grouped_dataframe = LIB.select_grouped_dataframe
+select_grouped_dataframe.argtypes = [c_char_p, c_int, c_long,
+                                     POINTER(c_char_p), c_ulong]
+select_grouped_dataframe.restype = c_long
+
 agg_grouped_dataframe = LIB.agg_grouped_dataframe
 agg_grouped_dataframe.argtypes = [c_char_p, c_int, c_long,
                                   POINTER(c_char_p), c_ulong,
@@ -828,7 +833,7 @@ parallel_double_glm_predict.argtypes = [c_char_p, c_int, c_int, c_short, c_long,
 aca_train = LIB.aca_train
 aca_train.argtypes = [c_char_p, c_int, c_long, # host, port, data_proxy
                       c_int, c_char_p, # n_cluster, linkage
-                      ndpointer(c_int, ndim=1, flags="C_CONTIGUOUS"), c_long,\
+                      c_double, ndpointer(c_long, ndim=1, flags="C_CONTIGUOUS"), c_long,\
                       #ret, ret_size
                       c_int, c_int, # verbose, mid
                       c_short, c_short, c_bool] #dtype, itype, dense
@@ -837,8 +842,24 @@ acm_predict = LIB.acm_predict
 acm_predict.argtypes = [c_char_p, c_int, #host, port
                         c_int, c_short,  #mid, mtype
                         c_int,           #ncluster
-                        ndpointer(c_int, ndim=1, flags="C_CONTIGUOUS"), c_long]\
+                        ndpointer(c_long, ndim=1, flags="C_CONTIGUOUS"), c_long]\
                         #ret, ret_size
+
+get_acm_children = LIB.get_acm_children_vector
+get_acm_children.argtypes = [c_char_p, c_int, c_int, c_short]
+get_acm_children.restype = py_object
+
+get_acm_distances = LIB.get_acm_distances_vector
+get_acm_distances.argtypes = [c_char_p, c_int, c_int, c_short]
+get_acm_distances.restype = py_object
+
+get_acm_n_components = LIB.get_acm_n_connected_components
+get_acm_n_components.argtypes = [c_char_p, c_int, c_int, c_short]
+get_acm_n_components.restype = c_int
+
+get_acm_n_clusters = LIB.get_acm_no_clusters
+get_acm_n_clusters.argtypes = [c_char_p, c_int, c_int, c_short]
+get_acm_n_clusters.restype = c_int
 
 # spectral embedding
 sea_train = LIB.sea_train
@@ -910,20 +931,6 @@ dbscan_train.argtypes = [c_char_p, #host
                          c_bool #dense
                         ]
 
-# kmeans predict returns int always:
-parallel_kmeans_predict = LIB.parallel_kmeans_predict
-parallel_kmeans_predict.argtypes = [c_char_p, c_int, c_int,
-                                    c_short, c_long,
-                                    ndpointer(c_int, ndim=1,\
-                                    flags="C_CONTIGUOUS"),\
-                                    c_ulong, c_short, c_bool]
-
-kmeans_score = LIB.kmeans_score
-kmeans_score.argtypes = [c_char_p, c_int, c_int,
-                         c_short, c_long,
-                         c_short, c_bool]
-kmeans_score.restype = c_float
-
 als_float_predict = LIB.als_float_predict
 als_float_predict.argtypes = [c_char_p, c_int, c_int,\
                         ndpointer(c_int, ndim=1, flags="C_CONTIGUOUS"),\
@@ -977,8 +984,8 @@ load_frovedis_scm.restype = py_object
 
 #load acm
 load_frovedis_acm = LIB.load_frovedis_acm
-load_frovedis_acm.argtypes = [c_char_p, c_int, c_int, c_short, c_char_p]
-load_frovedis_acm.restype = c_int
+load_frovedis_acm.argtypes = [c_char_p, c_int, c_int, c_short, c_char_p, \
+                              ndpointer(c_long, ndim=1, flags="C_CONTIGUOUS"), c_long]
 
 load_frovedis_mfm = LIB.load_frovedis_mfm
 load_frovedis_mfm.argtypes = [c_char_p, c_int, c_int, c_short, c_char_p]
@@ -1167,11 +1174,47 @@ lnr2_sgd.argtypes = [c_char_p, c_int, c_long, c_long, #host,port,X,y
                      c_bool, c_double, c_int, c_int,  #fit_icpt, tol, vb, mid
                      c_short, c_short, c_bool]        #dtype, itype, dense
 
-kmeans_train = LIB.kmeans_train
-kmeans_train.argtypes = [c_char_p, c_int, c_long, c_int,
-                         c_int, c_long, c_double, c_int, c_int,
-                         c_short, c_short, c_bool, c_bool]
-kmeans_train.restype = py_object
+# kmeans :
+kmeans_fit = LIB.kmeans_fit
+kmeans_fit.argtypes = [c_char_p, c_int, c_long, c_int, #host, port, dptr, k
+                       c_int, c_int, c_double,c_long, #max_iter,n_init,tol,seed
+                       c_int, c_int,                   #verbose, mid
+                       c_short, c_short, c_bool,       #dtype, itype, dense, 
+                       c_bool]                         #use_shrink
+kmeans_fit.restype = py_object
+
+kmeans_fit_transform = LIB.kmeans_fit_transform
+kmeans_fit_transform.argtypes = [c_char_p, c_int,      #host, port
+                       c_long, c_int,                  #dptr, k
+                       c_int, c_int, c_double,c_long, #max_iter,n_init,tol,seed
+                       c_int, c_int,                   #verbose, mid
+                       c_short, c_short, c_bool,       #dtype, itype, dense, 
+                       c_bool]                         #use_shrink
+kmeans_fit_transform.restype = py_object
+
+kmeans_transform = LIB.kmeans_transform
+kmeans_transform.argtypes = [c_char_p, c_int,          #host, port
+                             c_int, c_short,           #mid, mdtype
+                             c_long, c_short, c_bool]  #dptr, itype, dense
+kmeans_transform.restype = py_object
+
+get_kmeans_centroid = LIB.get_kmeans_centroid
+get_kmeans_centroid.argtypes = [c_char_p, c_int,  #host, port
+                                c_int, c_short]   #mid, mdtype
+get_kmeans_centroid.restype = py_object           #centroid as 1D python list
+
+parallel_kmeans_predict = LIB.parallel_kmeans_predict
+parallel_kmeans_predict.argtypes = [c_char_p, c_int, c_int,
+                                    c_short, c_long,
+                                    ndpointer(c_int, ndim=1,\
+                                    flags="C_CONTIGUOUS"),\
+                                    c_ulong, c_short, c_bool]
+
+kmeans_score = LIB.kmeans_score
+kmeans_score.argtypes = [c_char_p, c_int,         #host, port
+                         c_int, c_short,          #mid, mdtype
+                         c_long, c_short, c_bool] #dptr, itype, dense
+kmeans_score.restype = c_float
 
 # als will always be trained with sparse data
 als_train = LIB.als_train
@@ -1530,7 +1573,7 @@ knn_kneighbors_graph.restype = py_object
 knn_radius_neighbors = LIB.knn_radius_neighbors
 knn_radius_neighbors.argtypes = [ c_char_p, c_int, #host ,port
                                   c_long, c_float, c_int, #data, radius, mid
-                                  c_bool, c_short  #need_distance, dtype
+                                  c_short  #dtype
                                 ]
 knn_radius_neighbors.restype = py_object
 
