@@ -4,9 +4,10 @@
 int main(int argc, char* argv[]){
   frovedis::use_frovedis use(argc, argv);
 
-  auto t = frovedis::make_dftable_loadtext("./t.csv", 
-                                         {"int", "double", "dic_string", "int"},
-                                         {"c1", "c2", "c3", "c4"});
+  auto t =
+    frovedis::make_dftable_loadtext("./t.csv", 
+                                    {"int","double","dic_string","double"},
+                                    {"c1","c2","c3","c4"});
 
   std::cout << "c1 == c4" << std::endl;
   auto teq = t.filter(frovedis::eq("c1","c4"));
