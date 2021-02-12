@@ -209,7 +209,7 @@ read_edgelist(const std::string& filename,
   if(withWeight) weight = vector_astype<T>(sorted_df.as_dvector<double>("wgt")
                                                     .gather());
   else weight = vector_ones<T>(rowid.size());
-  auto off = prefix_sum(vector_bincount(rowid));
+  auto off = prefix_sum(vector_bincount<O>(rowid));
   auto nrow = off.size();
   crs_matrix_local<T,I,O> adj_mat;
   adj_mat.local_num_row = nrow;
@@ -222,7 +222,6 @@ read_edgelist(const std::string& filename,
   for(size_t i = 0; i < nrow; ++i) matoffp[i+1] = offp[i];
   return graph<T,I,O>(make_crs_matrix_scatter(adj_mat));
 }
-#endif
 
 }
 #endif
