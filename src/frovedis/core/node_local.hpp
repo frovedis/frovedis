@@ -21,7 +21,7 @@ public:
     dvid(std::move(dvid_)), is_view(is_view_)  {}
   node_local(const node_local<T>& src) :
     dvid(src.dvid.copy()), is_view(false)  {}
-  node_local(node_local<T>&& src) {
+  node_local(node_local<T>&& src) : is_view(false) {
     std::swap(dvid, src.dvid);
     std::swap(is_view, src.is_view);
   }
