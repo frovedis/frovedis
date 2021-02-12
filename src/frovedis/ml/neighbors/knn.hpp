@@ -346,70 +346,6 @@ knn_model<T, I> knn(rowmajor_matrix<T>& mat,
   return knn(mat, mat, k, algorithm, metric, need_distance, chunk_size);
 }
 
-struct find_radius_neighbor {
-  find_radius_neighbor() {}
-  find_radius_neighbor(float rad, size_t ns):
-    radius(rad), nsamples(ns) {}
-
-  template <class T, class I, class O>
-  void operator()(rowmajor_matrix_local<T>& dist_mat,
-                  crs_matrix_local<T,I,O>& ret) {
-    auto nrow = dist_mat.local_num_row;
-    auto ncol = dist_mat.local_num_col;
-    auto dmatptr = dist_mat.val.data();
-    size_t count = 0;
-    // counting number of in-radius elements for getting size of val/idx of ret
-    for(size_t i = 0; i < nrow * ncol; ++i) {
-      if (dmatptr[i] <= radius) { // && dmatptr[i] != 0) {
-        count++;
-      }
-    }
-    ret.val.resize(count);
-    ret.idx.resize(count);
-    ret.off.resize(nrow + 1);
-    ret.off[0] = 0;
-    ret.local_num_row = nrow;
-    ret.local_num_col = nsamples;
-    auto retvalptr = ret.val.data();
-    auto retidxptr = ret.idx.data();
-    auto retoffptr = ret.off.data();
-    size_t curidx = 0;
-    for(size_t i = 0; i < nrow; ++i) {
-      for(size_t j = 0; j < ncol; ++j) {
-        auto dist = dmatptr[i * ncol + j];
-        if (dist <= radius) { // && dist != 0) {
-          retvalptr[curidx] = dist;
-          retidxptr[curidx] = j;
-          curidx++;
-        }
-      }
-      retoffptr[i+1] = curidx;
-    }
-  }
-  float radius;
-  size_t nsamples;
-  SERIALIZE(radius, nsamples)
-};
-
-template <class T, class I, class O>
-void convert_to_connectivity_graph(crs_matrix_local<T,I,O>& mat) {
-  auto vptr = mat.val.data();
-  for(size_t i = 0; i < mat.val.size(); ++i) vptr[i] = 1.0; // means connected
-}
-
-template <class T, class I, class O>
-crs_matrix<T,I,O>
-create_radius_graph(crs_matrix<T,I,O>& mat, const std::string& mode) {
-  crs_matrix<T,I,O> ret;
-  if (mode == "distance") ret = mat;
-  else if (mode == "connectivity") { // copy mat and replace distnace values with 1.0
-    ret = mat;
-    ret.data.mapv(convert_to_connectivity_graph<T,I,O>);
-  }
-  else REPORT_ERROR(USER_ERROR, "Unknown mode is encountered for graph creation!\n");
-  return ret;
-}
-
 template <class T, class I = size_t, class O = size_t>
 crs_matrix<T, I, O> 
 knn_radius(rowmajor_matrix<T>& x_mat,
@@ -417,11 +353,7 @@ knn_radius(rowmajor_matrix<T>& x_mat,
            float radius,
            const std::string& algorithm = "brute",
            const std::string& metric = "euclidean",
-           bool need_distance = false,
-           float chunk_size = 1.0) {
-  auto nsamples = x_mat.num_row;
-  auto nquery   = y_mat.num_row;
-
+           const std::string& mode = "distance") {
   if (radius <= 0)
     REPORT_ERROR(USER_ERROR, "Input radius should be a positive number!\n");
 
@@ -433,18 +365,20 @@ knn_radius(rowmajor_matrix<T>& x_mat,
     REPORT_ERROR(USER_ERROR,
       "Currently frovedis knn supports only euclidean/seuclidean distance!\n");
 
+  if (mode != "distance" && mode != "connectivity")
+    REPORT_ERROR(USER_ERROR,
+      "Currently frovedis knn supports only distance or connectivity as for mode of radius_graph!");
+
+  bool need_distance = true; // needs correct distance for checking within radius
   auto dist_mat = construct_distance_matrix(x_mat, y_mat, metric, need_distance);
 #ifdef DEBUG_SAVE
   dist_mat.save("unsorted_distance_matrix");
 #endif
 
-  crs_matrix<T,I,O> knn_radius_model;
-  knn_radius_model.data = make_node_local_allocate<crs_matrix_local<T,I,O>>();
-  dist_mat.data.mapv(find_radius_neighbor(radius, nsamples),
-                     knn_radius_model.data);
-  knn_radius_model.num_row = nquery;
-  knn_radius_model.num_col = nsamples;
-  return knn_radius_model;
+  bool include_self = true;
+  bool need_weight = (mode == "distance");
+  return construct_connectivity_graph<T,T,I,O>(dist_mat, radius, 
+                                               include_self, need_weight);
 }
 
 }
