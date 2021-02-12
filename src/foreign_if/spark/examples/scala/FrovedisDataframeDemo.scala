@@ -109,6 +109,7 @@ object FrovedisDataframeDemo {
     country_frov2.join(country_frov2, $$"ElectricalRating" < $$"ElectricalRating").show()
 
     // groupBy demo
+    df1.groupBy("Country").select("Country").show()
     df1.groupBy("Country").count().show()
     val gdf = df1.groupBy("Country").agg(max("Age").as("max_age"),
                                          min("Age").as("min_age"),
