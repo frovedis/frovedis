@@ -30,4 +30,22 @@ int vector_squared_sum(const std::vector<int>& vec) {
   return sqsum;
 }
 
+// similar to numpy.sqrt(x) for integral x
+std::vector<double>
+integral_vector_sqrt(const std::vector<int>& vec) {
+  auto vecsz = vec.size();
+  auto vecp = vec.data();
+  std::vector<double> ret(vecsz);
+  auto retp = ret.data();
+  for(size_t i = 0; i < vecsz; ++i) {
+    retp[i] = (vecp[i] == 0) ? 0.0 : std::sqrt(vecp[i]);
+  }
+  return ret;
+}
+
+template <>
+size_t vector_count_negatives(const std::vector<size_t>& vec) {
+  return 0; // vector of size_t (unsigned) should have all elements >= 0
+}
+
 }
