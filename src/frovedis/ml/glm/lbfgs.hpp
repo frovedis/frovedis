@@ -1,7 +1,6 @@
 #ifndef _LBFGS_HPP_
 #define _LBFGS_HPP_
 
-#include "../../matrix/pblas_wrapper.hpp"
 #include "../../matrix/cir_array_list.hpp"
 
 namespace frovedis {
@@ -10,14 +9,15 @@ template <class T>
 struct lbfgs {
   explicit lbfgs(double al=0.01, size_t size=10, bool intercpt=false): 
     alpha(al), isIntercept(intercpt), 
-    one_by_dot(size), model_hist(size), grad_hist(size)
-      { old_model.resize(1); old_gradient.resize(1); checkAssumption(al>0.0 && size>0); }
+    rho(size), model_hist(size), grad_hist(size) {
+      checkAssumption(al > 0.0); 
+  }
   lbfgs(const lbfgs& opt) {
     alpha = opt.alpha;
     isIntercept = opt.isIntercept;
     old_model = opt.old_model;
     old_gradient = opt.old_gradient;
-    one_by_dot = opt.one_by_dot;
+    rho = opt.rho;
     model_hist = opt.model_hist;
     grad_hist = opt.grad_hist;
   }
@@ -26,7 +26,7 @@ struct lbfgs {
     isIntercept = opt.isIntercept;
     old_model.swap(opt.old_model);
     old_gradient.swap(opt.old_gradient);
-    one_by_dot = std::move(opt.one_by_dot);
+    rho = std::move(opt.rho);
     model_hist = std::move(opt.model_hist);
     grad_hist = std::move(opt.grad_hist);
     opt.clear();
@@ -36,7 +36,7 @@ struct lbfgs {
     isIntercept = opt.isIntercept;
     old_model = opt.old_model;
     old_gradient = opt.old_gradient;
-    one_by_dot = opt.one_by_dot;
+    rho = opt.rho;
     model_hist = opt.model_hist;
     grad_hist = opt.grad_hist;
     return *this;
@@ -46,7 +46,7 @@ struct lbfgs {
     isIntercept = opt.isIntercept;
     old_model.swap(opt.old_model);
     old_gradient.swap(opt.old_gradient);
-    one_by_dot = std::move(opt.one_by_dot);
+    rho = std::move(opt.rho);
     model_hist = std::move(opt.model_hist);
     grad_hist = std::move(opt.grad_hist);
     opt.clear();
@@ -55,100 +55,77 @@ struct lbfgs {
   void clear() {
     alpha = 0.0; isIntercept = false;
     old_model.clear();  old_gradient.clear(); 
-    one_by_dot.clear();
+    rho.clear();
     model_hist.clear(); grad_hist.clear();
   }
  
   std::vector<T> compute_hkgk(const std::vector<T>& grad_vector);
 
   template <class MODEL, class REGULARIZER>
-  void update_model(MODEL& model, const std::vector<T>& hkgk,
-                    REGULARIZER& rType);
+  void update_model(MODEL& model, 
+                    const std::vector<T>& hkgk,
+                    REGULARIZER& rType,
+                    size_t iterCount);
 
   template <class MODEL>
-  void update_history(const MODEL& cur_model, std::vector<T>& cur_gradient,
+  void update_history(const MODEL& cur_model, 
+                      std::vector<T>& cur_gradient,
                       size_t iterCount);
 
   template <class MODEL, class REGULARIZER>
-  void optimize(std::vector<T>& grad_vector, MODEL& model,
+  void optimize(std::vector<T>& grad_vector, 
+                MODEL& model,
                 size_t iterCount,
                 REGULARIZER& rType);
 
   double alpha;
   bool isIntercept;
   std::vector<T> old_model, old_gradient;
-  cir_array_list<T> one_by_dot;
-  cir_array_list<blockcyclic_matrix<T>> model_hist, grad_hist;
+  cir_array_list<T> rho;
+  cir_array_list<std::vector<T>> model_hist, grad_hist;
   SERIALIZE(alpha,isIntercept,old_model,old_gradient,
-            one_by_dot,model_hist,grad_hist)
+            rho,model_hist,grad_hist)
 };
 
+// https://en.wikipedia.org/wiki/Limited-memory_BFGS#Algorithm
+// https://github.com/scipy/scipy/blob/v1.6.0/scipy/optimize/lbfgsb.py#L458
 template <class T>
 std::vector<T>
 lbfgs<T>::compute_hkgk(const std::vector<T>& grad_vector) {
-  checkAssumption(grad_vector.size() > 0);
-  //size_t n_elem = model_hist.totActiveElements;
+  //checkAssumption(grad_vector.size() > 0);
   int n_elem = model_hist.totActiveElements;
-  // quick return, if there are no history records
-  if (!n_elem) return grad_vector; 
-
-  std::vector<T> ai(n_elem,0);
-  T* aip = &ai[0];
-  blockcyclic_matrix<T> tmp_vec;
-  blockcyclic_matrix<T> dist_q(grad_vector); // (lvalue) vec -> bcm
-  // This scaling won't be required, since model update formula
-  // takes care of this negative move (Wn+1 := Wn - HKGKn)
-  // scal<T>(dist_q,-1.0); // q := -grad_vector
-
-  // buggy: as 'size_t' will cause an infinite loop
-  //for(size_t i = n_elem-1; i>=0; i--) {
-  for(int i = n_elem-1; i>=0; i--) {
-    tmp_vec = model_hist[i];         // tmp_vec := Si (copy op=)
-    scal<T>(tmp_vec,one_by_dot[i]);  // Si*Pi (scaled_model)
-    aip[i] = dot<T>(tmp_vec,dist_q); // Ai := Si*Pi.q   
-    tmp_vec = grad_hist[i];          // tmp_vec := Yi (copy op=)
-    scal<T>(tmp_vec,-aip[i]);        // Yi*(-Ai) (scaled_grad)
-    geadd<T>(tmp_vec,dist_q);        // q := q - Yi*Ai
+  if (n_elem == 0) return grad_vector; 
+  auto q = grad_vector;
+  std::vector<T> al(n_elem);
+  for(int i = n_elem - 1; i >= 0; --i) {
+    al[i] = rho[i] * vector_dot(model_hist[i], q);
+    q = q - (grad_hist[i] * al[i]);
   }
-  
-  // potentially buggy: as 'i' will always be >=0, if it is 'size_t'
-  //size_t i = n_elem - 1; // k-1
   int i = n_elem - 1; // k-1
-  checkAssumption(i>=0);
-  auto one_by_yk_sqr = 1/dot<T>(grad_hist[i],grad_hist[i]); // (1/Yk-1.Yk-1)
-  tmp_vec = model_hist[i]; // tmp_vec := Sk-1 (copy op=)
-  scal<T>(tmp_vec,one_by_yk_sqr); // Sk-1*(1/Yk-1.Yk-1)
-  auto tmp = dot<T>(tmp_vec,grad_hist[i]); // Sk-1*(1/Yk-1.Yk-1).Yk-1
-  scal<T>(dist_q,tmp); //q := (Sk-1.Yk-1/Yk-1.Yk-1)*q 
-
-  //for(size_t i=0; i<n_elem; i++) {
-  for(int i=0; i<n_elem; i++) {
-    tmp_vec = grad_hist[i];             // tmp_vec := Yi (copy op=)
-    scal<T>(tmp_vec,one_by_dot[i]);     // Yi*Pi (scaled_grad)
-    auto beta = dot<T>(tmp_vec,dist_q); // Beta := Yi*Pi.q 
-    tmp_vec = model_hist[i];            // tmp_vec := Si (copy op=)
-    scal<T>(tmp_vec,aip[i]-beta);       // Si*(Ai-Beta) (scaled_model)
-    geadd<T>(tmp_vec,dist_q);           // q := q + Si*(Ai-Beta)
+  auto yk = rho[i] * vector_dot(grad_hist[i], grad_hist[i]);
+  auto z = q * (static_cast<T>(1.0) / yk); // this scaling is not used in sklearn
+  for(int i = 0; i < n_elem; ++i) {
+    auto beta = rho[i] * vector_dot(grad_hist[i], z);
+    z = z + (model_hist[i] * (al[i] - beta));
   }
-
-  return dist_q.to_vector();
+  return z;
 }
 
 template <class T>
 template <class MODEL, class REGULARIZER>
 void lbfgs<T>::update_model(MODEL& model,
                             const std::vector<T>& hkgk,
-                            REGULARIZER& rType) {
-  T* weightp = &model.weight[0];
-  const T* hkgkp = &hkgk[0];
-  size_t n = model.weight.size();
-  for(size_t i=0; i<n; i++) {
-    weightp[i] -= alpha * hkgkp[i];
-  }
+                            REGULARIZER& rType,
+                            size_t iterCount) {
+  auto weightp = model.weight.data();
+  auto hkgkp = hkgk.data();
+  size_t nftr = model.weight.size();
+  T reducedAlpha = alpha / sqrt(iterCount);
+  for(size_t i = 0; i < nftr; ++i) weightp[i] -= reducedAlpha * hkgkp[i];
 
   // Updating bias (n+1 th) term of the model
   // n+1 th dimension of hkgk vector is for bias term 
-  if(isIntercept) model.intercept -= alpha * hkgkp[n]; 
+  if(isIntercept) model.intercept -= reducedAlpha * hkgkp[nftr]; 
 
   // Regularizing model (if required)
   rType.regularize(model.weight);
@@ -164,18 +141,15 @@ void lbfgs<T>::update_history(const MODEL& cur_model,
   if (iterCount != 1) { //no history in first iteration
     auto model_diff = cur_model_vec - old_model;
     auto grad_diff  = cur_gradient - old_gradient;
-    static std::vector<T> ZERO(grad_diff.size(),0);
-    if (grad_diff == ZERO) 
+    if (vector_count_nonzero(grad_diff) == 0) // all zeros 
       REPORT_INFO("No change in gradient, hence skipping history update!\n");
     else { 
-      auto dist_model_diff = vec_to_bcm<T>(model_diff);   // Si
-      auto dist_grad_diff  = vec_to_bcm<T>(grad_diff);    // Yi
-      T dotval = dot<T>(dist_model_diff,dist_grad_diff);  // Si.Yi
-      if(dotval > 0.0) {      // mandatory condition for history update
-        T val = 1 / dotval;   // Pi := 1/Si.Yi
-        one_by_dot.push_back(val);
-        model_hist.push_back(std::move(dist_model_diff));
-        grad_hist.push_back(std::move(dist_grad_diff));
+      T dotval = vector_dot(model_diff, grad_diff);
+      if(dotval > 0.0) {      // mandatory curvature condition for history update
+        T one_by_dotval = static_cast<T>(1.0) / dotval;   // Pi := 1/Si.Yi
+        rho.push_back(one_by_dotval);
+        model_hist.push_back(std::move(model_diff));
+        grad_hist.push_back(std::move(grad_diff));
       }
     }
   }
@@ -192,7 +166,7 @@ void lbfgs<T>::optimize(std::vector<T>& grad_vector,
   frovedis::time_spent t(TRACE);
   std::vector<T> hkgk = compute_hkgk(grad_vector);
   t.show("compute hkgk: ");
-  update_model(model,hkgk,rType); // in-place model update using computed hkgk
+  update_model(model,hkgk,rType,iterCount); // in-place model update using computed hkgk
   t.show("update model: ");
   update_history(model,grad_vector,iterCount); // 'model' is updated model
   t.show("update history: ");
@@ -200,12 +174,11 @@ void lbfgs<T>::optimize(std::vector<T>& grad_vector,
   std::cout << "iteration: " << iterCount << std::endl;
   std::cout << model_hist.totActiveElements << " "
             << grad_hist.totActiveElements  << " " 
-            << one_by_dot.totActiveElements << std::endl;
+            << rho.totActiveElements << std::endl;
   debug_print_vector(old_model, 10);
   debug_print_vector(old_gradient, 10);
 #endif
 }
 
 }
-
 #endif

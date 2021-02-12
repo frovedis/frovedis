@@ -163,11 +163,7 @@ gradient_descent::compute_gradient(
   T& bias, double& loss) {
   auto wtx = compute_wtx<T>(data, model);
   auto dloss = gradient.compute_dloss(target, wtx, loss);
-  if(isIntercept) {
-    bias = 0.0;
-    auto dlossp = dloss.data();
-    for(size_t i = 0; i < dloss.size(); i++) bias += dlossp[i];
-  }
+  if(isIntercept) bias = vector_sum(dloss);
   auto grad_vector = trans_mv(data, dloss);
   //auto gradv = grad_vector.data();
   //double one_by_nsamples = 1.0 / data.local_num_row;
@@ -196,11 +192,7 @@ gradient_descent::compute_gradient(
   T& bias, double& loss) {
   auto wtx = compute_wtx<T>(data, model);
   auto dloss = gradient.compute_dloss(target, wtx, loss);
-  if(isIntercept) {
-    bias = 0.0;
-    auto dlossp = dloss.data();
-    for(size_t i = 0; i < dloss.size(); i++) bias += dlossp[i];
-  }
+  if(isIntercept) bias = vector_sum(dloss);
   auto grad_vector = trans * dloss;
   //auto gradv = grad_vector.data();
   //double one_by_nsamples = 1.0 / data.local_num_row;
@@ -237,7 +229,7 @@ inline void gradient_descent::update_model(MODEL& model,
                                            const std::vector<T>& grad_vector,
                                            size_t iterCount,
                                            T bias) {
-  T reducedAlpha = alpha/sqrt(iterCount);
+  T reducedAlpha = alpha / sqrt(iterCount);
   size_t n = model.weight.size();
   auto weightp = model.weight.data();
   auto gradp = grad_vector.data();

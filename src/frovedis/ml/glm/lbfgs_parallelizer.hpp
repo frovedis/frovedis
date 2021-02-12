@@ -51,8 +51,7 @@ struct lbfgs_dtrain_with_trans {
 
 struct lbfgs_parallelizer {
   lbfgs_parallelizer(): hist_size(10) {}
-  lbfgs_parallelizer(size_t hsize): hist_size(hsize)
-    { checkAssumption(hsize > 0); }
+  lbfgs_parallelizer(size_t hsize): hist_size(hsize) {}
 
   template <class T, class MODEL, class GRADIENT, class REGULARIZER>
   MODEL parallelize (colmajor_matrix<T>& data,
@@ -253,7 +252,7 @@ MODEL lbfgs_parallelizer::parallelize(colmajor_matrix<T>& data,
 
   time_spent t0(DEBUG);
   auto sizes = data.get_local_num_rows(); 
-  label.align_as(sizes);
+  if(label.sizes() != sizes) label.align_as(sizes);
   auto nloc_label = label.viewas_node_local();
   t0.show("label resize & nloc: ");
 
@@ -295,7 +294,7 @@ MODEL lbfgs_parallelizer::parallelize(crs_matrix<T,I,O>& data,
 
   time_spent t0(DEBUG);
   auto sizes = data.get_local_num_rows(); 
-  label.align_as(sizes);
+  if(label.sizes() != sizes) label.align_as(sizes);
   auto nloc_label = label.viewas_node_local();
   t0.show("label resize & nloc: ");
 
@@ -340,5 +339,4 @@ MODEL lbfgs_parallelizer::parallelize(crs_matrix<T,I,O>& data,
 }
 
 }
-
 #endif
