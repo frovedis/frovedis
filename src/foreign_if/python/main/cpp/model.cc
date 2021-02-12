@@ -340,16 +340,16 @@ extern "C" {
 
   void acm_predict(const char* host, int port,
                    int mid, short mdtype, int ncluster, 
-                   int* ret, long ret_len) {
+                   long* ret, long ret_len) {
     if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
     exrpc_node fm_node(host,port);
     std::vector<int> label;
     try {
       switch(mdtype) {
         case FLOAT:
-          label = exrpc_async(fm_node,frovedis_acm_pred<DT2>,mid,ncluster).get(); break;
+          label = exrpc_async(fm_node,frovedis_acm_reassign<DT2>,mid,ncluster).get(); break;
         case DOUBLE:
-          label = exrpc_async(fm_node,frovedis_acm_pred<DT1>,mid,ncluster).get(); break;
+          label = exrpc_async(fm_node,frovedis_acm_reassign<DT1>,mid,ncluster).get(); break;
         default: REPORT_ERROR(USER_ERROR,"model dtype can either be float or double!\n");
       }
     }
@@ -357,31 +357,121 @@ extern "C" {
       set_status(true, e.what());
     }
     checkAssumption(label.size() == ret_len);
-    for(size_t i = 0; i < ret_len; ++i) ret[i] = label[i];
+    for(size_t i = 0; i < ret_len; ++i) ret[i] = static_cast<long>(label[i]);
   }
 
-  int load_frovedis_acm(const char* host, int port,
-                         int mid, short mdtype, const char* path) {
+  void load_frovedis_acm(const char* host, int port,
+                         int mid, short mdtype, const char* path,
+                         long* ret, long ret_len) {
     ASSERT_PTR(path);
     if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
     exrpc_node fm_node(host,port);
     std::string fs_path(path);
-    int nsamples = 0;
+    std::vector<int> labels;
     try {
       switch(mdtype) {
         case FLOAT:
-          nsamples = exrpc_async(fm_node,load_acm<DT2>,mid,fs_path).get(); break;
+          labels = exrpc_async(fm_node,load_acm<ACM2>,mid,fs_path).get(); break;
         case DOUBLE:
-          nsamples = exrpc_async(fm_node,load_acm<DT1>,mid,fs_path).get(); break;
+          labels = exrpc_async(fm_node,load_acm<ACM1>,mid,fs_path).get(); break;
         default: REPORT_ERROR(USER_ERROR,"model dtype can either be float or double!\n");
       }
     }
     catch (std::exception& e) {
       set_status(true, e.what());
     }
-    return nsamples;
+    checkAssumption(labels.size() == ret_len);
+    for(size_t i = 0; i < ret_len; ++i) ret[i] = static_cast<long>(labels[i]);
   }
 
+  PyObject* get_acm_children_vector(const char* host, int port,
+                                    int mid, short mdtype) {
+    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
+    exrpc_node fm_node(host,port);
+    std::vector<size_t> children_vector;
+    try {
+      switch(mdtype) {
+        case FLOAT:
+          children_vector = exrpc_async(fm_node,get_acm_children<DT2>,mid).get(); break;
+        case DOUBLE:
+          children_vector = exrpc_async(fm_node,get_acm_children<DT1>,mid).get(); break;
+        default: REPORT_ERROR(USER_ERROR,"model dtype can either be float or double!\n");
+      }
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+     
+    return to_python_llong_list(children_vector);  
+  }
+
+  PyObject* get_acm_distances_vector(const char* host, int port,
+                                     int mid, short mdtype) {
+    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
+    exrpc_node fm_node(host,port);
+    PyObject* ret_ptr = NULL;
+    try {
+      if(mdtype == FLOAT) {
+        std::vector<float> distance_vector;
+        distance_vector = exrpc_async(fm_node,get_acm_distances<DT2>,mid).get();  
+        ret_ptr = to_python_float_list(distance_vector);
+      }             
+      else if(mdtype == DOUBLE) {
+        std::vector<double> distance_vector;
+        distance_vector = exrpc_async(fm_node,get_acm_distances<DT1>,mid).get();
+        ret_ptr =  to_python_double_list(distance_vector); 
+      }
+      else REPORT_ERROR(USER_ERROR,"model dtype can either be float or double!\n");      
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }     
+    return ret_ptr; 
+  }    
+
+  int get_acm_n_connected_components(const char* host, int port,
+                                     int mid, short mdtype) {
+    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
+    exrpc_node fm_node(host,port);
+    int ncc = 0;
+    try {
+      switch(mdtype) {
+        case FLOAT:
+          ncc = exrpc_async(fm_node,get_acm_n_components<DT2>,mid).get(); break;          
+        case DOUBLE:
+          ncc = exrpc_async(fm_node,get_acm_n_components<DT1>,mid).get(); break;         
+        default: REPORT_ERROR(USER_ERROR,"model dtype can either be float or double!\n");
+      }
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+     
+    return ncc;
+  }
+
+  int get_acm_no_clusters(const char* host, int port,
+                          int mid, short mdtype) {
+    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
+    exrpc_node fm_node(host,port);
+    int nc = 0;
+    try {
+      switch(mdtype) {
+        case FLOAT:
+          nc = exrpc_async(fm_node,get_acm_n_clusters<DT2>,mid).get(); break;          
+        case DOUBLE:
+          nc = exrpc_async(fm_node,get_acm_n_clusters<DT1>,mid).get(); break;         
+        default: REPORT_ERROR(USER_ERROR,"model dtype can either be float or double!\n");
+      }
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+     
+    return nc;
+  }     
+    
+    
   PyObject* get_scm_aff_matrix(const char* host, int port,
                                int mid, short mdtype) {
     if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
@@ -919,10 +1009,12 @@ extern "C" {
       if(isDense){
         switch(mdtype) {
           case FLOAT:
-            pred = exrpc_async(fm_node,(kmeans_predict<R_MAT2,KMM2>),f_dptr,mid).get();
+            pred = exrpc_async(fm_node,(frovedis_kmeans_predict<R_MAT2,KMM2>),
+                               f_dptr,mid).get();
             break;
           case DOUBLE:
-            pred = exrpc_async(fm_node,(kmeans_predict<R_MAT1,KMM1>),f_dptr,mid).get();
+            pred = exrpc_async(fm_node,(frovedis_kmeans_predict<R_MAT1,KMM1>),
+                               f_dptr,mid).get();
             break;
           default: REPORT_ERROR(USER_ERROR, "model dtype can be either float or double!\n");
          }
@@ -931,10 +1023,12 @@ extern "C" {
         if(mdtype == FLOAT){
           switch(itype) {
             case INT:  
-              pred = exrpc_async(fm_node,(kmeans_predict<S_MAT24,KMM2>),f_dptr,mid).get();
+              pred = exrpc_async(fm_node,(frovedis_kmeans_predict<S_MAT24,KMM2>),
+                                 f_dptr,mid).get();
               break;
             case LONG: 
-              pred = exrpc_async(fm_node,(kmeans_predict<S_MAT25,KMM2>),f_dptr,mid).get();
+              pred = exrpc_async(fm_node,(frovedis_kmeans_predict<S_MAT25,KMM2>),
+                                 f_dptr,mid).get();
               break;
             default: REPORT_ERROR(USER_ERROR, "model itype can be either int or long!\n");
           }
@@ -942,10 +1036,12 @@ extern "C" {
         else if(mdtype == DOUBLE){
           switch(itype) {
             case INT:
-               pred = exrpc_async(fm_node,(kmeans_predict<S_MAT14,KMM1>),f_dptr,mid).get();
+               pred = exrpc_async(fm_node,(frovedis_kmeans_predict<S_MAT14,KMM1>),
+                                  f_dptr,mid).get();
                break;
             case LONG:
-               pred = exrpc_async(fm_node,(kmeans_predict<S_MAT15,KMM1>),f_dptr,mid).get();
+               pred = exrpc_async(fm_node,(frovedis_kmeans_predict<S_MAT15,KMM1>),
+                                  f_dptr,mid).get();
                break;
             default: REPORT_ERROR(USER_ERROR, "model itype can be either int or long!\n");
            }
@@ -972,22 +1068,26 @@ extern "C" {
       if(isDense){
         switch(mdtype) {
           case FLOAT:
-            score = exrpc_async(fm_node,(kmeans_score<R_MAT2,KMM2>),f_dptr,mid).get();
+            score = exrpc_async(fm_node,(frovedis_kmeans_score<R_MAT2,KMM2>),
+                                f_dptr,mid).get();
             break;
           case DOUBLE:
-            score = exrpc_async(fm_node,(kmeans_score<R_MAT1,KMM1>),f_dptr,mid).get();
+            score = exrpc_async(fm_node,(frovedis_kmeans_score<R_MAT1,KMM1>),
+                                f_dptr,mid).get();
             break;
           default: REPORT_ERROR(USER_ERROR, "model dtype can be either float or double!\n");
          }
       }
       else {
-        if(mdtype == FLOAT){
+        if(mdtype == FLOAT) {
           switch(itype) {
             case INT:
-              score = exrpc_async(fm_node,(kmeans_score<S_MAT24,KMM2>),f_dptr,mid).get();
+              score = exrpc_async(fm_node,(frovedis_kmeans_score<S_MAT24,KMM2>),
+                                  f_dptr,mid).get();
               break;
             case LONG:
-              score = exrpc_async(fm_node,(kmeans_score<S_MAT25,KMM2>),f_dptr,mid).get();
+              score = exrpc_async(fm_node,(frovedis_kmeans_score<S_MAT25,KMM2>),
+                                  f_dptr,mid).get();
               break;
             default: REPORT_ERROR(USER_ERROR, "model itype can be either int or long!\n");
           }
@@ -995,10 +1095,12 @@ extern "C" {
         else if(mdtype == DOUBLE){
           switch(itype) {
             case INT:
-               score = exrpc_async(fm_node,(kmeans_score<S_MAT14,KMM1>),f_dptr,mid).get();
+               score = exrpc_async(fm_node,(frovedis_kmeans_score<S_MAT14,KMM1>),
+                                   f_dptr,mid).get();
                break;
             case LONG:
-               score = exrpc_async(fm_node,(kmeans_score<S_MAT15,KMM1>),f_dptr,mid).get();
+               score = exrpc_async(fm_node,(frovedis_kmeans_score<S_MAT15,KMM1>),
+                                   f_dptr,mid).get();
                break;
             default: REPORT_ERROR(USER_ERROR, "model itype can be either int or long!\n");
            }
@@ -1010,6 +1112,91 @@ extern "C" {
       set_status(true, e.what());
     }
     return score;
+  }
+
+  PyObject* kmeans_transform(const char* host, int port,
+                             int mid, short mdtype,
+                             long dptr, short itype, bool isDense) {
+    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
+    exrpc_node fm_node(host, port);
+    auto f_dptr = (exrpc_ptr_t) dptr;
+    dummy_matrix dmat;
+    try {
+      if(isDense){
+        switch(mdtype) {
+          case FLOAT:
+            dmat = exrpc_async(fm_node,(frovedis_kmeans_transform<DT2,R_MAT2,KMM2>),
+                               f_dptr,mid).get();
+            break;
+          case DOUBLE:
+            dmat = exrpc_async(fm_node,(frovedis_kmeans_transform<DT1,R_MAT1,KMM1>),
+                               f_dptr,mid).get();
+            break;
+          default: REPORT_ERROR(USER_ERROR, "model dtype can be either float or double!\n");
+         }
+      }
+      else {
+        if(mdtype == FLOAT){
+          switch(itype) {
+            case INT:
+              dmat = exrpc_async(fm_node,(frovedis_kmeans_transform<DT2,S_MAT24,KMM2>),
+                                 f_dptr,mid).get();
+              break;
+            case LONG:
+              dmat = exrpc_async(fm_node,(frovedis_kmeans_transform<DT2,S_MAT25,KMM2>),
+                                 f_dptr,mid).get();
+              break;
+            default: REPORT_ERROR(USER_ERROR, "model itype can be either int or long!\n");
+          }
+        }
+        else if(mdtype == DOUBLE){
+          switch(itype) {
+            case INT:
+               dmat = exrpc_async(fm_node,(frovedis_kmeans_transform<DT1,S_MAT14,KMM1>),
+                                  f_dptr,mid).get();
+               break;
+            case LONG:
+               dmat = exrpc_async(fm_node,(frovedis_kmeans_transform<DT1,S_MAT15,KMM1>),
+                                  f_dptr,mid).get();
+               break;
+            default: REPORT_ERROR(USER_ERROR, "model itype can be either int or long!\n");
+           }
+         }
+        else REPORT_ERROR(USER_ERROR, "model dtype can be either float or double!\n");
+      }
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return to_py_dummy_matrix(dmat);
+  }
+
+  PyObject* get_kmeans_centroid(const char* host, int port,
+                                int mid, short mdtype) {
+    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
+    exrpc_node fm_node(host, port);
+    PyObject* ret = NULL;
+    try {
+      switch(mdtype) {
+        case FLOAT: {
+          auto center = exrpc_async(fm_node,(frovedis_kmeans_centroid<DT2,KMM2>),
+                                    mid).get();
+          ret = to_python_float_list(center);
+          break;
+        }
+        case DOUBLE: {
+          auto center = exrpc_async(fm_node,(frovedis_kmeans_centroid<DT1,KMM1>),
+                                    mid).get();
+          ret = to_python_double_list(center);
+          break;
+        }
+        default: REPORT_ERROR(USER_ERROR, "model dtype can be either float or double!\n");
+      }
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return ret;
   }
 
   void als_float_predict(const char* host, int port, int mid, 
@@ -1292,7 +1479,7 @@ extern "C" {
 
   PyObject* knn_radius_neighbors(const char* host, int port,
                                  long tptr, float radius, int mid,
-                                 bool need_distance, short dtype) { // itype, dense
+                                 short dtype) { // itype, dense
       if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
       exrpc_node fm_node(host,port);
       auto test_dptr = (exrpc_ptr_t) tptr;
@@ -1301,11 +1488,11 @@ extern "C" {
         switch(dtype) {
           case FLOAT:
             dmat = exrpc_async(fm_node, (frovedis_radius_neighbors<DT5,R_MAT2,KNN2,S_MAT25,S_LMAT25>), test_dptr, 
-                              mid, radius, need_distance ).get();
+                              mid, radius).get();
             break;
           case DOUBLE:
             dmat = exrpc_async(fm_node, (frovedis_radius_neighbors<DT5,R_MAT1,KNN1,S_MAT15,S_LMAT15>), test_dptr, 
-                              mid, radius, need_distance ).get();
+                              mid, radius).get();
             break;
           default: REPORT_ERROR(USER_ERROR,"Unsupported dtype for input dense matrix!\n");
         }
