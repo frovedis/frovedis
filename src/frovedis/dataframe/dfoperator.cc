@@ -81,54 +81,6 @@ not_op(const std::shared_ptr<dfoperator>& op) {
   return std::make_shared<dfoperator_not>(op);
 }
 
-template <>
-node_local<std::vector<size_t>>
-dfoperator_eq_immed<std::string>::filter(dftable_base& t) const {
-  auto tcol = t.column(left);
-  if (tcol->dtype() == "string") {
-    auto left_column =
-      std::dynamic_pointer_cast<typed_dfcolumn<std::string>>(tcol);
-    return left_column->filter_eq_immed(right);
-  }
-  else if (tcol->dtype() == "dic_string") {
-    auto left_column =
-      std::dynamic_pointer_cast<typed_dfcolumn<dic_string>>(tcol);
-    return left_column->filter_eq_immed(right);
-  }
-  else if (tcol->dtype() == "raw_string") {
-    auto left_column =
-      std::dynamic_pointer_cast<typed_dfcolumn<raw_string>>(tcol);
-    return left_column->filter_eq_immed(right);
-  }
-  else {
-    throw std::runtime_error("dfoperator_eq_immed: non-string column is specified with string target!");
-  }
-}
-
-template <>
-node_local<std::vector<size_t>>
-dfoperator_neq_immed<std::string>::filter(dftable_base& t) const {
-  auto tcol = t.column(left);
-  if (tcol->dtype() == "string") {
-    auto left_column =
-      std::dynamic_pointer_cast<typed_dfcolumn<std::string>>(tcol);
-    return left_column->filter_neq_immed(right);
-  }
-  else if (tcol->dtype() == "dic_string") {
-    auto left_column =
-      std::dynamic_pointer_cast<typed_dfcolumn<dic_string>>(tcol);
-    return left_column->filter_neq_immed(right);
-  }
-  else if (tcol->dtype() == "raw_string") {
-    auto left_column =
-      std::dynamic_pointer_cast<typed_dfcolumn<raw_string>>(tcol);
-    return left_column->filter_neq_immed(right);
-  }
-  else {
-    throw std::runtime_error("dfoperator_neq_immed: non-string column is specified with string target!");
-  }
-}
-
 // ---------- filter of all kinds of tables ----------
 
 filtered_dftable dftable_base::filter(const std::shared_ptr<dfoperator>& op) {
@@ -279,13 +231,16 @@ dfoperator_multi_eq::hash_join
     // TODO: even in the case of filtered_dftable, calculate all hash values,
     // which can be avoided...
     auto left_hash_base = left_pcols[0]->calc_hash_base();
-    auto right_hash_base = right_pcols[0]->calc_hash_base();
+    // to convert index for string and dic_string
+    auto right_hash_base =
+      right_pcols[0]->calc_hash_base_multi_join(left_pcols[0]);
     // 52 is fraction of double, size_t might be 32bit...
     int bit_len = std::min(sizeof(size_t) * 8, size_t(52));
     int shift = bit_len / size;
     for(size_t i = 1; i < size; i++) {
       left_pcols[i]->calc_hash_base(left_hash_base, shift);
-      right_pcols[i]->calc_hash_base(right_hash_base, shift);
+      right_pcols[i]->
+        calc_hash_base_multi_join(right_hash_base, shift, left_pcols[i]);
     }
     auto left_nulls = left_pcols[0]->get_nulls();
     auto right_nulls = right_pcols[0]->get_nulls();
@@ -365,13 +320,16 @@ dfoperator_multi_eq::bcast_join
     // TODO: even in the case of filtered_dftable, calculate all hash values,
     // which can be avoided...
     auto left_hash_base = left_pcols[0]->calc_hash_base();
-    auto right_hash_base = right_pcols[0]->calc_hash_base();
+    // to convert index for string and dic_string
+    auto right_hash_base =
+      right_pcols[0]->calc_hash_base_multi_join(left_pcols[0]);
     // 52 is fraction of double, size_t might be 32bit...
     int bit_len = std::min(sizeof(size_t) * 8, size_t(52));
     int shift = bit_len / size;
     for(size_t i = 1; i < size; i++) {
       left_pcols[i]->calc_hash_base(left_hash_base, shift);
-      right_pcols[i]->calc_hash_base(right_hash_base, shift);
+      right_pcols[i]->
+        calc_hash_base_multi_join(right_hash_base, shift, left_pcols[i]);
     }
     auto left_nulls = left_pcols[0]->get_nulls();
     auto right_nulls = right_pcols[0]->get_nulls();
