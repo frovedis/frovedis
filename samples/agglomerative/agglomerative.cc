@@ -6,14 +6,14 @@ using namespace boost;
 using namespace frovedis;
 
 template <class T>
-void agglomerative_clustering(const std::string& input_file, 
-                              int& ncluster, 
+void do_agglomerative_clustering(const std::string& input_file, 
+                              int ncluster, T threshold, 
                               const std::string& link,
                               const std::string& model_file,
-                              const std::string& label_file) {
+                              const std::string& label_file) {  
   time_spent data_load(INFO), train(INFO);
   data_load.lap_start();
-  auto mat = make_rowmajor_matrix_load<T>(input_file);
+  auto mat = make_rowmajor_matrix_load<T>(input_file);  
   data_load.lap_stop();
   data_load.show_lap("data loading time: ");
   train.lap_start();
@@ -21,7 +21,7 @@ void agglomerative_clustering(const std::string& input_file,
   train.lap_stop();
   train.show_lap("training time: ");
   model.save(model_file);
-  auto ret = agglomerative_assign_cluster<T>(model, ncluster);
+  auto ret = agglomerative_assign_cluster<T>(model, ncluster, threshold, ncluster);
   make_dvector_scatter(ret).saveline(label_file);
 }
 
@@ -41,6 +41,7 @@ int main(int argc, char** argv) {
     ("linkage,l", value<std::string>() , "linkage type - supported: average, single, complete (default: average)")
     ("float,f", "for float type input")
     ("double,d","for double type input(default input type is double)")
+    ("threshold,t","threshold distance above which points will not be clustered (default: 0)")      
     ("verbose", "set loglevel to DEBUG")
     ("verbose2", "set loglevel to TRACE")
     ("clustering_verbose", "set loglevel to INFO (default loglevel is INFO)");
@@ -53,7 +54,8 @@ int main(int argc, char** argv) {
   std::string input, output_m, output_l;
   std::string linkage = "average";
   int nclus = 2;
-  
+  float threshold = 0;
+    
   if(argmap.count("help")){
     std::cerr << opt << std::endl;
     exit(1);
@@ -86,7 +88,11 @@ int main(int argc, char** argv) {
   if(argmap.count("nclus")){
     nclus = argmap["nclus"].as<int>();
   }
-  
+
+  if(argmap.count("threshold")){
+    threshold = argmap["threshold"].as<float>();
+  }    
+    
   if(argmap.count("linkage")){
     linkage = argmap["linkage"].as<std::string>();
   }
@@ -96,10 +102,10 @@ int main(int argc, char** argv) {
   if(argmap.count("clustering_verbose")) set_loglevel(INFO);
 
   if(argmap.count("float")) 
-    agglomerative_clustering<float>(input,nclus,linkage,output_m,output_l);
+    do_agglomerative_clustering<float>(input,nclus,threshold,linkage,output_m,output_l);
   else
-    agglomerative_clustering<double>(input,nclus,linkage,output_m,output_l);
-
+    do_agglomerative_clustering<double>(input,nclus,threshold,linkage,output_m,output_l);
+    
   return 0;
 }
 
