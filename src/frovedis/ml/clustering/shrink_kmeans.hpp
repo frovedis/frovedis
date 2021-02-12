@@ -9,10 +9,10 @@ namespace frovedis {
 namespace shrink {
 
 template <class T, class I, class O>
-rowmajor_matrix_local<T> get_random_rows(crs_matrix<T,I,O>& mat, int k,
-                                         long seed, std::vector<T>& norm) {
+rowmajor_matrix_local<T> 
+get_random_rows(crs_matrix<T,I,O>& mat, int k,
+                std::vector<T>& norm) {
   rowmajor_matrix_local<T> ret(mat.num_col, k);
-  srand48(seed);
   for(int i = 0; i < k; i++) {
     int pos = static_cast<int>(drand48() * (mat.num_row - 1));
     auto sv = mat.get_row(pos);
@@ -177,13 +177,14 @@ calc_new_centroid(rowmajor_matrix<T>& sum, std::vector<size_t>& occurrence,
 }
 
 template <class T, class I, class O>
-rowmajor_matrix_local<T> kmeans_impl(crs_matrix<T,I,O>& samples, int k,
-                                     int iter, double eps, long seed = 0,
-                                     int& n_iter_ = 0) {
+rowmajor_matrix_local<T> 
+kmeans_impl(crs_matrix<T,I,O>& samples, int k,
+            int iter, double eps,
+            int& n_iter_) {
   time_spent t(TRACE);
   size_t dim = samples.num_col;
   std::vector<T> norm(k);
-  auto lcentroid = get_random_rows(samples, k, seed, norm);
+  auto lcentroid = get_random_rows(samples, k, norm);
   auto tbl = shrink_column(samples);
   t.show("shrink_colum: ");
   auto info = prepare_shrink_comm(tbl, samples);
@@ -238,67 +239,76 @@ rowmajor_matrix_local<T> kmeans_impl(crs_matrix<T,I,O>& samples, int k,
     bnorm = broadcast(norm_tmp.vector_sum());
     normtime.lap_stop();
     t.show("bcast norm: ");
-    if(is_diff_centroid(next_centroid, centroid, eps))
-      centroid = next_centroid;
-    else {
-      RLOG(DEBUG) << "converged at iteration: " << i << std::endl;
-      centroid = next_centroid;
-      break;
-    }
+    auto diff = is_diff_centroid(next_centroid, centroid, eps);
+    centroid = std::move(next_centroid);
     t.show("diff centroid: ");
     t2.show("one iteration: ");
+    if (!diff) break;
   }
-  RLOG(DEBUG) << "total num iteration: " << i << std::endl;
+  n_iter_ = i + 1;
+  RLOG(DEBUG) << "converged in n_iter_: " << n_iter_ << std::endl;
   bcasttime.show_lap("broadcast centroid time: ");
   normtime.show_lap("normalize centroid time: ");
   disttime.show_lap("distributed computation time: ");
   vecsumtime.show_lap("vector sum time: ");
   nextcentroidtime.show_lap("calculate next centroid time: ");
-  n_iter_ = i + 1;
   return centroid.gather();
 }
 
-template <class T, class I, class O>
-rowmajor_matrix_local<T> kmeans(crs_matrix<T,I,O>& samples, int k, int iter,
-                                double eps, long seed, int& n_iter_) {
-  return frovedis::shrink::kmeans_impl(samples, k, iter, eps, seed, n_iter_);
-}
-
-template <class T, class I, class O>
-rowmajor_matrix_local<T> kmeans(crs_matrix<T,I,O>&& samples, int k, int iter,
-                                double eps, long seed, int& n_iter_) {
-  return frovedis::shrink::kmeans_impl(samples, k, iter, eps, seed, n_iter_);
-}
-
+// reuses dense version defined in kmeans_impl.hpp
 template <class T>
-rowmajor_matrix_local<T> kmeans(rowmajor_matrix<T>& samples, int k, int iter,
-                                double eps, long seed, int& n_iter_) {
+rowmajor_matrix_local<T> 
+kmeans_impl(rowmajor_matrix<T>& samples, int k,
+            int iter, double eps,
+            int& n_iter_) {
   std::string msg = "shrink version is supported only for sparse data!\n";
-  msg += "dense data is detected! by-passing the call to non-shrink version!.\n";
+  msg += "dense data is detected! by-passing the call to non-shrink version!\n";
   REPORT_WARNING(WARNING_MESSAGE, msg);
-  return frovedis::kmeans_impl(samples, k, iter, eps, seed, n_iter_);
+  return frovedis::kmeans_impl(samples, k, iter, eps, n_iter_);
+}
+
+template <class MATRIX>
+rowmajor_matrix_local<typename MATRIX::value_type>
+kmeans(MATRIX& samples, int k, int iter,
+       double eps, long seed, int n_init,
+       int& n_iter_, float& inertia,
+       std::vector<int>& labels) {
+  auto nsamples = samples.num_row;
+  std::string msg = "kmeans: n_samples=" + STR(nsamples) +
+                    " must be >= n_clusters=" + STR(k);
+  require(nsamples >= k, msg);
+  n_iter_ = 0;
+  inertia = 0.0f;
+  srand48(seed);
+  auto centroid = frovedis::shrink::kmeans_impl(samples, k, iter, eps, n_iter_);
+  labels = parallel_kmeans_assign_cluster(samples, centroid, inertia);
+  for (size_t i = 1; i < n_init; ++i) {
+    int t_n_iter = 0;
+    float t_inertia = 0.0f;
+    auto t_centroid = frovedis::shrink::kmeans_impl(samples, k, iter, 
+                                                    eps, t_n_iter);
+    auto t_labels = parallel_kmeans_assign_cluster(samples, t_centroid,
+                                                   t_inertia);
+    if (t_inertia < inertia) {
+      inertia = t_inertia;
+      n_iter_ = t_n_iter;
+      labels.swap(t_labels);
+      centroid = std::move(t_centroid);
+    }
+  }
+  return centroid;
 }
 
 // for backward compatibility with previously released shrink::kmeans APIs
-template <class T, class I, class O>
-rowmajor_matrix_local<T> kmeans(crs_matrix<T,I,O>& samples, int k, int iter,
-                                double eps, long seed = 0) {
+template <class MATRIX>
+rowmajor_matrix_local<typename MATRIX::value_type>
+kmeans(MATRIX& samples, int k, int iter,
+       double eps, long seed = 0, int n_init = 1) {
   int n_iter_ = 0;
-  return frovedis::shrink::kmeans_impl(samples, k, iter, eps, seed, n_iter_);
-}
-
-template <class T, class I, class O>
-rowmajor_matrix_local<T> kmeans(crs_matrix<T,I,O>&& samples, int k, int iter,
-                                double eps, long seed = 0) {
-  int n_iter_ = 0;
-  return frovedis::shrink::kmeans_impl(samples, k, iter, eps, seed, n_iter_);
-}
-
-template <class T>
-rowmajor_matrix_local<T> kmeans(rowmajor_matrix<T>& samples, int k, int iter,
-                                double eps, long seed = 0) {
-  int n_iter_ = 0;
-  return frovedis::shrink::kmeans(samples, k, iter, eps, seed, n_iter_);
+  float inertia = 0.0f;
+  std::vector<int> labels;
+  return frovedis::shrink::kmeans(samples, k, iter, eps, seed, n_init,
+                                  n_iter_, inertia, labels);
 }
 
 } // end of namespace shrink
