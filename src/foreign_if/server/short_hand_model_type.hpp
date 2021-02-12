@@ -37,8 +37,8 @@ namespace frovedis {
   typedef spectral_embedding_model<DT2> SEM2;
   typedef spectral_clustering_model<DT1> SCM1;
   typedef spectral_clustering_model<DT2> SCM2;
-  typedef rowmajor_matrix_local<DT1> ACM1;
-  typedef rowmajor_matrix_local<DT2> ACM2;
+  typedef agglomerative_clustering<DT1> ACM1;
+  typedef agglomerative_clustering<DT1> ACM2;
   typedef rowmajor_matrix_local<DT1> W2V1;
   typedef rowmajor_matrix_local<DT2> W2V2;
   typedef dbscan DBSCAN1; // dbscan structure is typeless...
