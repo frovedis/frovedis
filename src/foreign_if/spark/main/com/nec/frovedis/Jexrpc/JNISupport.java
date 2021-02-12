@@ -318,7 +318,7 @@ public class JNISupport {
   public static native int[] FrovedisACMPredict(Node master_node,
                                                 int mid, int ncluster);
 
-  public static native int loadFrovedisACM (Node master_node, 
+  public static native int[] loadFrovedisACM (Node master_node, 
                                              int mid, String path);
 
   public static native int[] callFrovedisSCA(Node master_node,
@@ -392,7 +392,6 @@ public class JNISupport {
                                                       long tptr,
                                                       float radius,
                                                       int mid,
-                                                      boolean needDistance,
                                                       boolean dense);
 
   public static native DummyMatrix knnRadiusNeighborsGraph(Node master_node,
@@ -785,6 +784,9 @@ public class JNISupport {
                                                   long dproxy, String[] cname,
                                                   short[] tids,
                                                   int size);
+  public static native long selectFrovedisGroupedData(Node master_node,
+                                                  long dproxy,
+                                                  String[] cols, int sz);
   public static native long aggrFrovedisDataframe(Node master_node,
                                                   long dproxy,
                                                   String[] gCols, int sz1,
