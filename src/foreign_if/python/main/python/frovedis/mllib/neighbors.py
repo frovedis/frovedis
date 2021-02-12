@@ -17,7 +17,7 @@ class NearestNeighbors(BaseEstimator):
     A python wrapper of Frovedis Nearest  Neigbors
     """
     def __init__(self, n_neighbors=5, radius=1.0,
-                 algorithm='brute', leaf_size=30, metric='euclidean',
+                 algorithm='auto', leaf_size=30, metric='euclidean',
                  p=2, metric_params=None, n_jobs=None, verbose=0,
                  chunk_size=1.0):
         self.n_neighbors = n_neighbors
@@ -41,6 +41,8 @@ class NearestNeighbors(BaseEstimator):
         """
         fit for Nearest Neighbors
         """
+        if self.algorithm == "auto":
+            self.algorithm = "brute"
         supported_algorithms = ['brute']
         supported_metrics = ['euclidean', 'seuclidean']
         if self.algorithm not in supported_algorithms:
@@ -182,7 +184,7 @@ class NearestNeighbors(BaseEstimator):
         (host, port) = FrovedisServer.getServerInstance()
         dmat = rpclib.knn_radius_neighbors(host, port, X.get(), radius, 
                                            self.__mid, 
-                                           return_distance, dtype)
+                                           dtype)
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
             raise RuntimeError(excpt["info"])
@@ -191,14 +193,17 @@ class NearestNeighbors(BaseEstimator):
                                  itype=np.int64)
         if test_data.is_movable() and self._X_movable:
             csr_mat = fmat.to_scipy_matrix()
-            dist = []
-            ind = []
-            for i in range(csr_mat.shape[0]):
-                dist.append(csr_mat[i].data)
-                ind.append(csr_mat[i].indices)
             if return_distance:
+                dist = []
+                ind = []
+                for i in range(csr_mat.shape[0]):
+                    dist.append(csr_mat[i].data)
+                    ind.append(csr_mat[i].indices)
                 return dist, ind
             else:
+                ind = []
+                for i in range(csr_mat.shape[0]):
+                    ind.append(csr_mat[i].indices)
                 return ind
         else:
             return fmat
@@ -279,7 +284,7 @@ class KNeighborsClassifier(BaseEstimator):
     """
     A python wrapper of KNeigborsClassifiers
     """
-    def __init__(self, n_neighbors=5, weights='uniform', algorithm='brute',
+    def __init__(self, n_neighbors=5, weights='uniform', algorithm='auto',
                  leaf_size=30, p=2, metric='euclidean', metric_params=None, 
                  n_jobs=None, verbose=0, chunk_size=1.0):
         self.n_neighbors = n_neighbors
@@ -303,6 +308,8 @@ class KNeighborsClassifier(BaseEstimator):
         """
         fit for Nearest Neighbors
         """
+        if self.algorithm == "auto":
+            self.algorithm = "brute"
         supported_algorithms = ['brute']
         supported_metrics = ['euclidean', 'seuclidean']
         if self.algorithm not in supported_algorithms:
@@ -571,7 +578,7 @@ class KNeighborsRegressor(BaseEstimator):
     """
     A python wrapper of Kneigbors Regressor
     """
-    def __init__(self, n_neighbors=5, weights='uniform', algorithm='brute',
+    def __init__(self, n_neighbors=5, weights='uniform', algorithm='auto',
                  leaf_size=30, p=2, metric='euclidean', metric_params=None, 
                  n_jobs=None, verbose=0, chunk_size=1.0):
         self.n_neighbors = n_neighbors
@@ -595,6 +602,8 @@ class KNeighborsRegressor(BaseEstimator):
         """
         fit for KNeighborsRegressor
         """
+        if self.algorithm == "auto":
+            self.algorithm = "brute"
         supported_algorithms = ['brute']
         supported_metrics = ['euclidean', 'seuclidean']
         if self.algorithm not in supported_algorithms:
