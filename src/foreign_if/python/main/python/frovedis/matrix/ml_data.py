@@ -270,10 +270,6 @@ class FrovedisLabeledPoint:
         """get_distinct_label_count"""
         return self.unique_elements.size
 
-    def __del__(self):
-        if FrovedisServer.isUP():
-            self.release()
-
 class FrovedisFeatureData:
     """A python container for frovedis side data for unsupervised
     ML algorithms"""
@@ -429,6 +425,3 @@ class FrovedisFeatureData:
         """is_dense"""
         return self.__isDense
 
-    def __del__(self):
-        if FrovedisServer.isUP():
-            self.release()
