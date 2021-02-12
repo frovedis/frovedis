@@ -213,24 +213,24 @@ JNIEXPORT jintArray JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_FrovedisACMP
   auto fm_node = java_node_to_frovedis_node(env, master_node);
   std::vector<int> ret;
   try {
-    ret = exrpc_async(fm_node,frovedis_acm_pred<DT1>,mid,ncluster).get();
+    ret = exrpc_async(fm_node,frovedis_acm_reassign<DT1>,mid,ncluster).get();
   }
   catch(std::exception& e) { set_status(true,e.what()); }
   return to_jintArray(env,ret);
 }
 
 // loads the acm from the specified file
-JNIEXPORT int JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_loadFrovedisACM
+JNIEXPORT jintArray JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_loadFrovedisACM
   (JNIEnv *env, jclass thisCls, jobject master_node, jint mid, jstring path) {
 
   auto fs_path = to_cstring(env,path);
   auto fm_node = java_node_to_frovedis_node(env, master_node);
-  int nsamples = 0;
+  std::vector<int> ret;
   try {
-    nsamples = exrpc_async(fm_node,load_acm<DT1>,mid,fs_path).get();
+    ret = exrpc_async(fm_node,load_acm<ACM1>,mid,fs_path).get();
   }
   catch(std::exception& e) { set_status(true,e.what()); }
-  return nsamples;
+  return to_jintArray(env,ret);
 }
 
 // loads the glm from the specified file 
@@ -406,9 +406,9 @@ JNIEXPORT jintArray JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_doParallelKM
   std::vector<int> pd;
   try {
     if (isDense)
-      pd = exrpc_async(fm_node,(kmeans_predict<R_MAT1,KMM1>),f_dptr,mid).get(); 
+      pd = exrpc_async(fm_node,(frovedis_kmeans_predict<R_MAT1,KMM1>),f_dptr,mid).get(); 
     else 
-      pd = exrpc_async(fm_node,(kmeans_predict<S_MAT1,KMM1>),f_dptr,mid).get(); 
+      pd = exrpc_async(fm_node,(frovedis_kmeans_predict<S_MAT1,KMM1>),f_dptr,mid).get(); 
   }
   catch(std::exception& e) { set_status(true,e.what()); }
   return to_jintArray(env, pd);
@@ -545,16 +545,15 @@ Java_com_nec_frovedis_Jexrpc_JNISupport_knnKneighborsGraph
 JNIEXPORT jobject JNICALL
 Java_com_nec_frovedis_Jexrpc_JNISupport_knnRadiusNeighbors
 (JNIEnv *env, jclass thisCls, jobject master_node, jlong tptr,
-  jfloat radius, jint mid, jboolean needDistance, jboolean dense) { 
+  jfloat radius, jint mid, jboolean dense) { 
   auto fm_node = java_node_to_frovedis_node(env, master_node);
   auto test_dptr = (exrpc_ptr_t) tptr;
-  bool need_distance = (bool) needDistance;
   bool isDense = (bool) dense;
   dummy_matrix dmat;
   try {
     if (isDense){
       dmat = exrpc_async(fm_node, (frovedis_radius_neighbors<DT5,R_MAT1,KNN1,S_MAT15,S_LMAT15>),
-                                  test_dptr, mid, radius, need_distance).get();  
+                                  test_dptr, mid, radius).get();  
     }
     else REPORT_ERROR(USER_ERROR, 
          "Frovedis K-Nearest Neighbor doesn't support sparse input at "
@@ -572,7 +571,7 @@ Java_com_nec_frovedis_Jexrpc_JNISupport_knnRadiusNeighborsGraph
   jfloat radius, jint mid, jstring mode, jboolean dense) {
   auto fm_node = java_node_to_frovedis_node(env, master_node);
   auto test_dptr = (exrpc_ptr_t) tptr;
-  auto mode_ = to_cstring(env,mode);
+  auto mode_ = to_cstring(env, mode);
   bool isDense = (bool) dense;
   dummy_matrix dmat;
   try {
