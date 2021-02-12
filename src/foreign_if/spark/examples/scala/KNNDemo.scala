@@ -41,11 +41,13 @@ object KNNDemo {
     println("knn graph :")
     graph.debug_print()
 
-    var radius_neighbors = knn.radius_neighbors(fdata, 2.0F, true) // crs matrix
+    // returns graph with distance (weighted)
+    var radius_neighbors = knn.radius_neighbors(fdata, 2.0F)
     println("radius_neighbors: ")
     radius_neighbors.debug_print()
 
-    var radius_neighbors_graph = knn.radius_neighbors_graph(fdata, 2.0F, "connectivity") // crs matrix
+    // returns graph with connectivity links (unweighted)
+    var radius_neighbors_graph = knn.radius_neighbors_graph(fdata, 2.0F, "connectivity")
     println("radius_neighbors_graph: ")
     radius_neighbors_graph.debug_print()
 
@@ -62,11 +64,13 @@ object KNNDemo {
     println("knn graph :")
     graph2.foreach(println)
 
-    var radius_neighbors2 = knn.radius_neighbors(s_data, 2.0F, true) // crs matrix
+    // returns graph with distance (weighted)
+    var radius_neighbors2 = knn.radius_neighbors(s_data, 2.0F)
     println("radius_neighbors: ")
     radius_neighbors2.debug_print()
 
-    var radius_neighbors_graph2 = knn.radius_neighbors_graph(s_data, 2.0F, "connectivity") // crs matrix
+    // returns graph with connectivity links (unweighted)
+    var radius_neighbors_graph2 = knn.radius_neighbors_graph(s_data, 2.0F, "connectivity") 
     println("radius_neighbors_graph: ")
     radius_neighbors_graph2.foreach(println)
 
