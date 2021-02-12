@@ -3,8 +3,8 @@
 import sys
 import numpy as np
 from frovedis.exrpc.server import FrovedisServer
-from frovedis.matrix.crs import FrovedisCRSMatrix
 from frovedis.mllib.cluster import KMeans
+#from sklearn.cluster import KMeans
 
 # initializing the Frovedis server
 argvs = sys.argv
@@ -14,18 +14,18 @@ if (argc < 2):
     quit()
 FrovedisServer.initialize(argvs[1])
 
-train_mat = FrovedisCRSMatrix(dtype=np.float64).load("./input/kmeans_data.txt")
-test_mat = FrovedisCRSMatrix(dtype=np.float64).load("./input/kmeans_tdata.txt")
+train_mat = np.loadtxt("./input/kmeans_data.txt")
+test_mat  = np.loadtxt("./input/kmeans_tdata.txt")
 
 # creating KMeans object
-kmeans = KMeans(n_clusters=2, verbose=0)
-kmeans.fit(train_mat)
-
+kmeans = KMeans(n_clusters=2, n_init=1)
 print("train label: ")
 print(kmeans.fit_predict(train_mat))
-kmeans.debug_print()
 print("converged in %d iterations" % (kmeans.n_iter_))
 print("inertia: %.6f" % (kmeans.inertia_))
+
+print("cluster_centers: ")
+print(kmeans.cluster_centers_)
 
 # saving the trained model
 kmeans.save("./out/MyKMeansModel")
@@ -35,6 +35,9 @@ kmeans.release()
 kmeans.load("./out/MyKMeansModel",dtype=np.float64)
 
 # predicting with test data on loaded model
+print("transformed test mat: ")
+print(kmeans.transform(test_mat))
+print("test label: ")
 print(kmeans.predict(test_mat))
 
 kmeans.release()
