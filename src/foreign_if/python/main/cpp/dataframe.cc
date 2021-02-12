@@ -225,6 +225,22 @@ extern "C" {
     return (static_cast<long>(ret_proxy));
   }
    
+  // To perform select on grouped dftable 
+  long select_grouped_dataframe(const char* host, int port, long proxy, 
+                                const char** cols, ulong sz) {
+    ASSERT_PTR(host); 
+    exrpc_node fm_node(host, port);
+    auto df_proxy = static_cast<exrpc_ptr_t> (proxy);
+    std::vector<std::string> tcols(sz);
+    for(size_t i = 0; i < sz; ++i) tcols[i] = std::string(cols[i]);
+    exrpc_ptr_t ret = 0;
+    try {
+      ret = exrpc_async(fm_node,frovedis_gdf_select,df_proxy,tcols).get();
+    }
+    catch(std::exception& e) { set_status(true,e.what()); }
+    return (static_cast<long>(ret));
+  }
+
   // To perform aggregation on grouped dftable 
   long agg_grouped_dataframe(const char* host, int port, long proxy, 
                              const char** cols, ulong sz1,
@@ -235,18 +251,19 @@ extern "C" {
     auto df_proxy = static_cast<exrpc_ptr_t> (proxy);
     std::vector<std::string> grp_cols(sz1);
     std::vector<std::string> s_agg_func(sz2), s_agg_col(sz2), s_agg_col_as(sz2);
-    for(size_t i=0; i<sz1; ++i) grp_cols[i] = std::string(cols[i]);
-    for(size_t i=0; i<sz2; ++i) s_agg_func[i] = std::string(agg_func[i]);
-    for(size_t i=0; i<sz2; ++i) s_agg_col[i] = std::string(agg_col[i]);
-    for(size_t i=0; i<sz2; ++i) s_agg_col_as[i] = std::string(agg_col_as[i]);
-    exrpc_ptr_t ret_proxy = 0;
+    for(size_t i = 0; i < sz1; ++i) grp_cols[i] = std::string(cols[i]);
+    for(size_t i = 0; i < sz2; ++i) {
+      s_agg_func[i] = std::string(agg_func[i]);
+      s_agg_col[i] = std::string(agg_col[i]);
+      s_agg_col_as[i] = std::string(agg_col_as[i]);
+    }
+    exrpc_ptr_t ret = 0;
     try {
-      ret_proxy = exrpc_async(fm_node,frovedis_gdf_aggr,df_proxy,grp_cols,s_agg_func,s_agg_col,s_agg_col_as).get();
+      ret = exrpc_async(fm_node,frovedis_gdf_aggr,df_proxy,grp_cols,
+                        s_agg_func,s_agg_col,s_agg_col_as).get();
     }
-    catch (std::exception& e) {
-      set_status(true, e.what());
-    }
-    return (static_cast<long>(ret_proxy));
+    catch(std::exception& e) { set_status(true,e.what()); }
+    return (static_cast<long>(ret));
   }
 
   // To perform join operation 
