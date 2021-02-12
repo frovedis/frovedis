@@ -85,11 +85,32 @@ class FrovedisGroupedDF extends java.io.Serializable {
     val tot_types = this.groupedTypes ++ aggAsTypes
     return new FrovedisDataFrame(proxy,tot_cols,tot_types)
   }
+  def select(targets: Array[String]): FrovedisDataFrame = {
+    val size = targets.length
+    val types = new Array[Short](size)
+    for (i <- 0 to (size-1)) types(i) = getColumnType(targets(i))
+    val fs = FrovedisServer.getServerInstance()
+    val proxy = JNISupport.selectFrovedisGroupedData(fs.master_node,get(),
+                                                     targets, size)
+    val info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
+    return new FrovedisDataFrame(proxy,targets,types)
+  }
+  // Usage: df.select("colA")
+  // Usage: df.select("colA", "colB") ... any number of column names
+  def select(must: String, optional: String*): FrovedisDataFrame = {
+    val all = (Array(must) ++ optional).toArray.map(x => x.toString)
+    return select(all)
+  }
+  // Usage: df.select($$"colA", $$"colB")
+  def select(c: FrovedisColumn*): FrovedisDataFrame = {
+    val all = c.toArray.map(x => x.toString)
+    return select(all)
+  }
   def agg(x: FrovedisAggr, y: FrovedisAggr*): FrovedisDataFrame = {
     val arr = (Array(x) ++ y).toArray
     return agg(arr)
   }
-
   // --- count ---
   def count(): FrovedisDataFrame = {
     val fagg_arg = functions.count(groupedCols(0)).as("count")
