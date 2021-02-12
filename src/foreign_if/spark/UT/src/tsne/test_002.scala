@@ -19,10 +19,10 @@ object GenericTest {
     if(args.length != 0) FrovedisServer.initialize(args(0))
 
     // -------- create dense data --------
-    val vec1 = Vectors.sparse(1, Array(1), Array(1.0))
-    val vec2 = Vectors.sparse(3, Array(1,2,3), Array(1.0,1.0,1.0))
-    val vec3 = Vectors.sparse(2, Array(0,2), Array(1.0,1.0))
-    val vec4 = Vectors.sparse(3, Array(0,1,2), Array(1.0,1.0,1.0))
+    val vec1 = Vectors.sparse(4, Array(1), Array(1.0))
+    val vec2 = Vectors.sparse(4, Array(1,2,3), Array(1.0,1.0,1.0))
+    val vec3 = Vectors.sparse(4, Array(0,2), Array(1.0,1.0))
+    val vec4 = Vectors.sparse(4, Array(0,1,2), Array(1.0,1.0,1.0))
     val vec5 = Vectors.sparse(4, Array(0,1,2,3), Array(1.0,1.0,1.0,1.0))
 
     val sp_data = sc.parallelize(Array(vec1, vec2, vec3, vec4, vec5))
