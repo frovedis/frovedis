@@ -97,6 +97,8 @@ struct rowmajor_matrix_local {
     local_num_col = 0;
   }
   void savebinary(const std::string&);
+  template <class U>
+  rowmajor_matrix_local<U> astype();    
   rowmajor_matrix_local<T> transpose() const;
   rowmajor_matrix_local<T> pow_val(T exponent) const;
   node_local<rowmajor_matrix_local<T>> broadcast(); // for performance
@@ -108,6 +110,15 @@ struct rowmajor_matrix_local {
   typedef T value_type;
 };
 
+template <class T>
+template <class U>
+rowmajor_matrix_local<U> rowmajor_matrix_local<T>::astype() {
+  rowmajor_matrix_local<U> ret;
+  ret.val = vector_astype<U>(val);
+  ret.set_local_num(local_num_row, local_num_col);  
+  return ret;    
+}    
+    
 template <class T>
 std::vector<T> rowmajor_matrix_local<T>::get_row(size_t k) const {
   std::vector<T> r(local_num_col);
@@ -1947,5 +1958,70 @@ argmax_pair(rowmajor_matrix_local<T>& mat,
   return ret;
 }
 
+       
+template <class T>    
+rowmajor_matrix_local<T> extract_cols(rowmajor_matrix_local<T>& mat, size_t start, size_t end) {
+  if(get_selfid() == 0) {  
+    std::string msg1 = "start column index must be less than end column index";                     
+    require(end > start, msg1);
+    std::string msg2 = "given indices are out of range";                                               
+    require(start >= 0 && end <= mat.local_num_col, msg2);
+  }    
+  auto ret_ncol = end - start;
+  auto nrow = mat.local_num_row;
+  auto ncol = mat.local_num_col;
+  rowmajor_matrix_local<T> ret(nrow, ret_ncol); 
+  auto sptr = mat.val.data() + start;
+  auto dptr = ret.val.data();
+  auto c = 0;
+  for(; c+7 < ret_ncol; c += 8) {    
+    for(size_t r = 0; r < nrow; r++) { 
+      dptr[r * ret_ncol + c] = sptr[r * ncol + c];    
+      dptr[r * ret_ncol + c + 1] = sptr[r * ncol + c + 1];
+      dptr[r * ret_ncol + c + 2] = sptr[r * ncol + c + 2];
+      dptr[r * ret_ncol + c + 3] = sptr[r * ncol + c + 3];
+      dptr[r * ret_ncol + c + 4] = sptr[r * ncol + c + 4];
+      dptr[r * ret_ncol + c + 5] = sptr[r * ncol + c + 5];
+      dptr[r * ret_ncol + c + 6] = sptr[r * ncol + c + 6];
+      dptr[r * ret_ncol + c + 7] = sptr[r * ncol + c + 7];
+    }
+  }
+  for(; c+3 < ret_ncol; c += 4) {    
+    for(size_t r=0; r < nrow; r++) { 
+      dptr[r * ret_ncol + c] = sptr[r * ncol + c];    
+      dptr[r * ret_ncol + c + 1] = sptr[r * ncol + c + 1];
+      dptr[r * ret_ncol + c + 2] = sptr[r * ncol + c + 2];
+      dptr[r * ret_ncol + c + 3] = sptr[r * ncol + c + 3];
+    }
+  }
+  for(; c+1 < ret_ncol; c += 2) {    
+    for(size_t r=0; r < nrow; r++) { 
+      dptr[r * ret_ncol + c] = sptr[r * ncol + c];    
+      dptr[r * ret_ncol + c + 1] = sptr[r * ncol + c + 1];
+    }
+  }
+  for(; c < ret_ncol; c++) {    
+    for(size_t r=0; r < nrow; r++) { 
+      dptr[r * ret_ncol + c] = sptr[r * ncol + c];
+    }
+  }
+
+  return ret;  
+}
+
+template <class T>    
+rowmajor_matrix_local<T> rmm_extract_cols(rowmajor_matrix_local<T>& mat, size_t start, size_t end) {
+  return extract_cols(mat, start, end);  
+}    
+
+template <class T>    
+rowmajor_matrix<T> extract_cols(rowmajor_matrix<T>& mat, size_t start, size_t end) {   
+  rowmajor_matrix<T> ret(mat.data.map(rmm_extract_cols<T>, broadcast(start), broadcast(end)));
+  ret.num_row = mat.num_row;
+  ret.num_col = end - start; 
+  return ret;
+} 
+    
+    
 }
 #endif
