@@ -20,7 +20,7 @@
 #define FIND_MISS_THR 1
 #define FIND_MISS_ALIGN_SIZE 1
 #endif
-#define HASH_TABLE_SIZE_MULT 5
+#define HASH_TABLE_SIZE_MULT 3
 
 namespace frovedis {
 
