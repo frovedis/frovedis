@@ -292,17 +292,34 @@ recommend_products(int& mid, int& uid, int& num) {
 // --- Prediction related functions on kmeans model ---
 template <class MATRIX, class MODEL>
 std::vector<int> 
-kmeans_predict(exrpc_ptr_t& mat_ptr, int& mid) {
+frovedis_kmeans_predict(exrpc_ptr_t& mat_ptr, int& mid) {
   MATRIX& mat = *reinterpret_cast<MATRIX*> (mat_ptr);
   MODEL& est = *get_model_ptr<MODEL>(mid);
   return est.predict(mat);
 }
 
 template <class MATRIX, class MODEL>
-float kmeans_score(exrpc_ptr_t& mat_ptr, int& mid) {
+float frovedis_kmeans_score(exrpc_ptr_t& mat_ptr, int& mid) {
   MATRIX& mat = *reinterpret_cast<MATRIX*> (mat_ptr);
   MODEL& est = *get_model_ptr<MODEL>(mid);
   return est.score(mat);
+}
+
+template <class T, class MATRIX, class MODEL>
+dummy_matrix 
+frovedis_kmeans_transform(exrpc_ptr_t& mat_ptr, int& mid) {
+  MATRIX& mat = *reinterpret_cast<MATRIX*> (mat_ptr);
+  MODEL& est = *get_model_ptr<MODEL>(mid);
+  auto retp = new rowmajor_matrix<T>(est.transform(mat));
+  return to_dummy_matrix<rowmajor_matrix<T>,
+                         rowmajor_matrix_local<T>>(retp);
+}
+
+template <class T, class MODEL>
+std::vector<T> 
+frovedis_kmeans_centroid(int& mid) {
+  MODEL& est = *get_model_ptr<MODEL>(mid);
+  return est.cluster_centers_().transpose().val;
 }
 
 // single input: prediction done in master node
@@ -391,10 +408,10 @@ dummy_matrix frovedis_kneighbors_graph(exrpc_ptr_t& mat_ptr, int& mid,
 template <class I, class MATRIX, class ALGO,
           class OUTMAT, class OUTMAT_LOC>
 dummy_matrix frovedis_radius_neighbors(exrpc_ptr_t& mat_ptr, int& mid, 
-                                       float& radius, bool& need_distance) {
+                                       float& radius) { 
   auto& mat = *reinterpret_cast<MATRIX*> (mat_ptr);
   auto& obj = *get_model_ptr<ALGO>(mid);
-  auto ret = new OUTMAT(obj.template radius_neighbors<I>(mat, radius, need_distance));
+  auto ret = new OUTMAT(obj.template radius_neighbors<I>(mat, radius));
   return to_dummy_matrix<OUTMAT,OUTMAT_LOC>(ret);
 }
 
@@ -552,16 +569,15 @@ std::string load_nbm(int& mid, MODEL_KIND& mkind, std::string& path) {
   return mtype;
 }
 
-// load for agglomerative_model (rowmajor_matrix_local<T>)
-template <class T>
-int load_acm(int& mid, std::string& path) {
-  auto mptr = new rowmajor_matrix_local<T>();
+template <class MODEL>
+std::vector<int> load_acm(int& mid, std::string& path) {
+  auto mptr = new MODEL();
   if(!mptr) REPORT_ERROR(INTERNAL_ERROR,"memory allocation failed!\n");
-  *mptr = make_rowmajor_matrix_local_loadbinary<T>(path); // for faster loading
-  auto nsamples = mptr->local_num_row + 1;
+  mptr->loadbinary(path); // for faster loading
+  auto labels = mptr->labels_();
   auto mptr_ = reinterpret_cast<exrpc_ptr_t>(mptr);
   register_model(mid,ACM,mptr_);
-  return nsamples;
+  return labels;
 }
 
 // load for spectral_clustering_model returns an std::vector<int>
@@ -592,9 +608,35 @@ void save_fmm(int& mid, std::string& path) {
 
 template <class T>
 std::vector<int>
-frovedis_acm_pred(int& mid, int& ncluster) {
-  auto& tree = *get_model_ptr<rowmajor_matrix_local<T>>(mid);
-  return agglomerative_assign_cluster(tree, ncluster);
+frovedis_acm_reassign(int& mid, int& ncluster) {
+  auto& agg_est = *get_model_ptr<agglomerative_clustering<T>>(mid);
+  return agg_est.reassign(ncluster);
+}
+
+template <class T>
+std::vector<size_t>
+get_acm_children(int& mid) {
+  auto& agg_est = *get_model_ptr<agglomerative_clustering<T>>(mid);
+  return agg_est.children_().val;
+}
+
+template <class T>
+std::vector<T>
+get_acm_distances(int& mid) {
+  auto& agg_est = *get_model_ptr<agglomerative_clustering<T>>(mid);
+  return agg_est.distances_();
+}
+
+template <class T>
+int get_acm_n_components(int& mid) {
+  auto& agg_est = *get_model_ptr<agglomerative_clustering<T>>(mid);
+  return agg_est.n_connected_components_();
+}
+
+template <class T>
+int get_acm_n_clusters(int& mid) {
+  auto& agg_est = *get_model_ptr<agglomerative_clustering<T>>(mid);
+  return agg_est.n_clusters_();
 }
 
 template <class T>
