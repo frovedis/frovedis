@@ -108,7 +108,7 @@ object AgglomerativeModel {
   def load(path: String): AgglomerativeModel = {
     val model_id = ModelID.get()
     val fs = FrovedisServer.getServerInstance()
-    val nsamples = JNISupport.loadFrovedisACM(fs.master_node,model_id,path)
+    val labels = JNISupport.loadFrovedisACM(fs.master_node,model_id,path)
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
     return new AgglomerativeModel(model_id)
