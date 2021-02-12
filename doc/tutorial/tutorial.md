@@ -2240,7 +2240,8 @@ You can filter the rows by conditions. Please look at "src/tut5.3/tut.cc".
 You can specify the condition of filter as the argument of the filter
 member function of the dftable. In this case, it filters rows where
 the value of column c1 and c4 are the same. The type of the comparing
-columns should be the same. Otherwise an exception will be thrown.
+columns are converted in C++ manner if they are numeric types; here c1
+is `int` and c4 is `double`.
 
 There are other operators like neq (not equal), lt (less than),
 le (less than or equal), gt (greater than), ge (greater than or
@@ -2250,10 +2251,6 @@ If you want to compare with immediate values, you can use operator
 with "_im". 
 
     auto teqim = t.filter(frovedis::eq_im("c2",30.0));
-
-Again, the types of the comparing column and the immediate value
-should be the same. Please note the ".0" of the immediate value, which
-makes the type of the immediate value as double.
 
 There are other operators like neq_im, lt_im, le_im, gt_im, ge_im.
 
@@ -2652,21 +2649,31 @@ column.
     };
 
     t.calc<double, int, double>("multiply", multiply(), "c1", "c2");
-    t.show();
 
 In this example, the function multiplies c1 and c2 and creates new
 column `multiply`. Here, you need to give the type of return value and
 the types of columns as the template arguments. The number of columns
 that can be provided is limited to 6 in the current implementation.
 
+There are another way of calling a function.
+
+    t.call_function(frovedis::add_col_as("c1","c2","add"));
+
+In this case, only predefined functions can be called. Here,
+`add_col_as` adds columns `c1` and `c2` and result is appended as
+column `add`. If you use `add_col("c1","c2")`, column name
+is set as `(c1+c2)`. You can add immediate value like `add_im("c1", 1.2)`.
+There are other functions like sub, mul, fdiv, idiv, mod and abs.
+Here, fdiv returns `double` and idiv returns `long`.
+
 The result should be like:
 
-    c1  c2  c3          multiply
-    1   30  2018-01-10  30
-    3   20  2018-03-13  60
-    3   30  2018-08-21  90
-    2   20  2018-02-01  40
-    2   30  2018-05-15  60
-    2   40  2018-07-09  80
-    1   40  2018-04-29  40
-    1   50  2018-06-17  50
+    c1	c2	multiply	add
+    1	30	30	31
+    3	20	60	23
+    3	30	90	33
+    2	20	40	22
+    2	30	60	32
+    2	40	80	42
+    1	40	40	41
+    1	50	50	51
