@@ -15,6 +15,9 @@
  *  similar to following numpy operations on 1D array
  *    numpy.sum(x) -> vector_sum(x)
  *    numpy.square(x) -> vector_square(x)
+ *    numpy.sqrt(x) -> vector_sqrt(x) for non-integral x 
+ *                  -> vector_sqrt_inplace(x) to perform sqrt inplace for non-integral x (returns void)
+ *                  -> integral_vector_sqrt(x) for integral x (returns vector<double>)
  *    numpy.mean(x) -> vector_mean(x)
  *    numpy.sort(x) -> vector_sort(x)
  *    numpy.count_nonzero(x) -> vector_count_nonzero(x)
@@ -52,7 +55,9 @@
  *    debug_print_vector(x, n) - to print fist n and last n elements in vector x
  *    do_allgather(x) - returns gathered vector from all process (must be called by all process from worker side)
  *    count operations for: zero, nonzero, positive, negative, finite, boundary etc.
- *    find index operations for: zero, nonzero, positive, negative, Tmax, Tmin, binary etc.
+ *    find index operations for: zero, nonzero, one, positive, negative, Tmax, Tmin, gt, ge, lt, le, eq, neq etc.
+ *    	e.g., vector_find_zero(vec)  -> returns index having zeros in vec
+ *    	      vector_find_ge(vec, 5) -> returns index having values >= 5
  *    make_key_value_pair(key, val): returns vector<key, val>
  *    vector_min_pair(x, y): reduction by min for two vector of pairs<T,I>, returns pair vector containing minimums
  *    vector_min_index(x, y): reduction by min for two vector of pairs<T,I>, returns vector of min indices
@@ -143,6 +148,88 @@ vector_find_binary(const std::vector<T>& vec) {
   else return vector_find_condition(vec, is_binary<T>()); 
 }
 
+template <class T>
+std::vector<size_t>
+vector_find_ge(const std::vector<T>& vec, const T& threshold) {
+  if (vec.size() == 0) return std::vector<size_t>();
+  else return vector_find_condition(vec, is_ge<T>(threshold));
+}
+
+template <class T>
+std::vector<size_t>
+vector_find_ge_and_neq(const std::vector<T>& vec, 
+                       const T& threshold,
+                       const T& threshold2) {
+  if (vec.size() == 0) return std::vector<size_t>();
+  else return vector_find_condition(vec, is_ge_and_neq<T>(threshold, 
+                                                          threshold2));
+}
+
+template <class T>
+std::vector<size_t>
+vector_find_gt(const std::vector<T>& vec, const T& threshold) {
+  if (vec.size() == 0) return std::vector<size_t>();
+  else return vector_find_condition(vec, is_gt<T>(threshold));
+}
+
+template <class T>
+std::vector<size_t>
+vector_find_gt_and_neq(const std::vector<T>& vec, 
+                       const T& threshold,
+                       const T& threshold2) {
+  if (vec.size() == 0) return std::vector<size_t>();
+  else return vector_find_condition(vec, is_gt_and_neq<T>(threshold,
+                                                          threshold2));
+}
+
+template <class T>
+std::vector<size_t>
+vector_find_le(const std::vector<T>& vec, const T& threshold) {
+  if (vec.size() == 0) return std::vector<size_t>();
+  else return vector_find_condition(vec, is_le<T>(threshold));
+}
+
+template <class T>
+std::vector<size_t>
+vector_find_le_and_neq(const std::vector<T>& vec, 
+                       const T& threshold,
+                       const T& threshold2) {
+  if (vec.size() == 0) return std::vector<size_t>();
+  else return vector_find_condition(vec, is_le_and_neq<T>(threshold, 
+                                                          threshold2));
+}
+
+template <class T>
+std::vector<size_t>
+vector_find_lt(const std::vector<T>& vec, const T& threshold) {
+  if (vec.size() == 0) return std::vector<size_t>();
+  else return vector_find_condition(vec, is_lt<T>(threshold));
+}
+
+template <class T>
+std::vector<size_t>
+vector_find_lt_and_neq(const std::vector<T>& vec, 
+                       const T& threshold,
+                       const T& threshold2) {
+  if (vec.size() == 0) return std::vector<size_t>();
+  else return vector_find_condition(vec, is_lt_and_neq<T>(threshold,
+                                                          threshold2));
+}
+
+template <class T>
+std::vector<size_t>
+vector_find_eq(const std::vector<T>& vec, const T& threshold) {
+  if (vec.size() == 0) return std::vector<size_t>();
+  else return vector_find_condition(vec, is_eq<T>(threshold));
+}
+
+template <class T>
+std::vector<size_t>
+vector_find_neq(const std::vector<T>& vec, const T& threshold) {
+  if (vec.size() == 0) return std::vector<size_t>();
+  else return vector_find_condition(vec, is_neq<T>(threshold));
+}
+
 // * if limit = 0, it prints all elements in the input vector.
 // * if limit = x and size of vector is more than twice of x, 
 // then it prints first "x" and last "x" elements in the input vector.
@@ -218,6 +305,29 @@ vector_square(const std::vector<T>& vec) {
   auto retp = ret.data();
   for(size_t i = 0; i < vecsz; ++i) retp[i] = vecp[i] * vecp[i];
   return ret;
+}
+
+// similar to numpy.sqrt(x) for non-integral x
+template <class T>
+std::vector<T>
+vector_sqrt(const std::vector<T>& vec) {
+  auto vecsz = vec.size();
+  auto vecp = vec.data();
+  std::vector<T> ret(vecsz);
+  auto retp = ret.data();
+  for(size_t i = 0; i < vecsz; ++i) {
+    retp[i] = (vecp[i] == 0) ? 0 : std::sqrt(vecp[i]);
+  }
+  return ret;
+}
+
+template <class T>
+void vector_sqrt_inplace(std::vector<T>& vec) {
+  auto vecsz = vec.size();
+  auto vecp = vec.data();
+  for(size_t i = 0; i < vecsz; ++i) {
+    vecp[i] = (vecp[i] == 0) ? 0 : std::sqrt(vecp[i]);
+  }
 }
 
 // similar to numpy.dot(x,x) or numpy.sum(numpy.square(x))
@@ -360,6 +470,10 @@ size_t vector_count_negatives(const std::vector<T>& vec) {
   for(size_t i = 0; i < vecsz; ++i) count += vptr[i] < 0;
   return count;
 }
+
+// defined in vector_operations.cc
+template <>
+size_t vector_count_negatives(const std::vector<size_t>& vec);
 
 template <class T>
 size_t vector_count_infinite(const std::vector<T>& vec) {
@@ -561,11 +675,11 @@ vector_unique(const std::vector<T>& vec,
 }
 
 // similar to numpy.bincount()
-template <class I>
-std::vector<size_t>
+template <class R, class I>
+std::vector<R> // 'R' can be int, size_t etc...
 vector_bincount(const std::vector<I>& vec) { // must be of integer type: int, short, long, size_t etc.
   auto vecsz = vec.size();
-  if (vecsz == 0) return std::vector<size_t>(); // quick return
+  if (vecsz == 0) return std::vector<R>(); // quick return
   auto negatives = vector_count_negatives(vec);
   require(negatives == 0, "bincount: negative element is detected!\n");
   std::vector<size_t> uidx, uinv, ucnt;
@@ -574,9 +688,12 @@ vector_bincount(const std::vector<I>& vec) { // must be of integer type: int, sh
   auto uptr = unq.data();
   auto cntptr = ucnt.data();
   auto max = uptr[unqsz - 1]; // unq is a sorted array, last elem should be max
-  std::vector<size_t> ret(max + 1, 0);
+  std::vector<R> ret(max + 1, 0);
   auto rptr = ret.data();
-  for(size_t i = 0; i < unqsz; ++i) rptr[uptr[i]] = cntptr[i];
+  if (std::is_same<R, size_t>::value)
+    for(size_t i = 0; i < unqsz; ++i) rptr[uptr[i]] = cntptr[i];
+  else 
+    for(size_t i = 0; i < unqsz; ++i) rptr[uptr[i]] = static_cast<R>(cntptr[i]);
   return ret;
 }
 
@@ -913,21 +1030,24 @@ vector_clip(const std::vector<T>& vec,
   return ret;
 }
 
-// similar to numpy.take()
-template <class T>
-std::vector<T>
+// similar to np.take(vec, idx)
+template <class R, class T>
+std::vector<R>
 vector_take(const std::vector<T>& vec,
             const std::vector<size_t>& idx) {
   auto vsz = vec.size();
   require(vsz > 0, "vector_take: input vector is empty!");
-  require(idx[vector_argmax(idx)] < vsz, 
+  require(idx[vector_argmax(idx)] < vsz,
   "vector_take: idx contains index which is larger than input vector size!");
   auto sz = idx.size();
-  std::vector<T> ret(sz);
+  std::vector<R> ret(sz);
   auto vecp = vec.data();
   auto idxp = idx.data();
   auto retp = ret.data();
-  for(size_t i = 0; i < sz; ++i) retp[i] = vecp[idxp[i]];
+  if (std::is_same<R,T>::value)
+    for(size_t i = 0; i < sz; ++i) retp[i] = vecp[idxp[i]];
+  else
+    for(size_t i = 0; i < sz; ++i) retp[i] = static_cast<R>(vecp[idxp[i]]);
   return ret;
 }
 
