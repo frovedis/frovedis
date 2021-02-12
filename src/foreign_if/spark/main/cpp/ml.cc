@@ -435,6 +435,7 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisKMean
   int vb = 0; // no log (default)
   bool isDense = (bool) dense;
   bool shrink = (bool) use_shrink;
+  int n_init = 1; // FIXME: send from spark side
 #ifdef _EXRPC_DEBUG_
   std::cout << "Connecting to master node ("
             << fm_node.hostname << "," << fm_node.rpcport
@@ -443,17 +444,17 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisKMean
   kmeans_result ret;
   try {
     if(isDense) { // kmeans accepts rowmajor matrix as for dense data
-      ret = exrpc_async(fm_node,(frovedis_kmeans<DT1,R_MAT1>),f_dptr,k,
-                        numIter,seed,epsilon,vb,mid,shrink,mvbl).get();
+      ret = exrpc_async(fm_node,(frovedis_kmeans_fit<DT1,R_MAT1>),f_dptr,k,
+                        numIter,n_init,epsilon,seed,vb,mid,shrink,mvbl).get();
     }
     else {
-      ret = exrpc_async(fm_node,(frovedis_kmeans<DT1,S_MAT1>),f_dptr,k,
-                        numIter,seed,epsilon,vb,mid,shrink,mvbl).get();
+      ret = exrpc_async(fm_node,(frovedis_kmeans_fit<DT1,S_MAT1>),f_dptr,k,
+                        numIter,n_init,epsilon,seed,vb,mid,shrink,mvbl).get();
     }
   }
   catch(std::exception& e) { set_status(true,e.what()); }
   std::cout << "frovedis kmeans converged in " << ret.n_iter_ 
-            << "steps! inertia: " << ret.inertia_ << "\n";
+            << " steps! inertia: " << ret.inertia_ << "\n";
 }
 
 // (8) --- Agglomerative Clustering ---
@@ -467,6 +468,8 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisACA
   int vb = 0; // no log (default)
   bool isDense = (bool) dense;
   auto link = to_cstring(env,linkage);
+  double thr = 0.0; //(TODO: Send from spark scala side)
+  int ncls = 2; // TODO: Send from spark scala side
 #ifdef _EXRPC_DEBUG_
   std::cout << "Connecting to master node ("
             << fm_node.hostname << "," << fm_node.rpcport
@@ -474,7 +477,7 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisACA
 #endif
   try {
     if(isDense) { // agglomerative clustering accepts rowmajor matrix as for dense data
-      exrpc_oneway(fm_node,(frovedis_aca2<DT1,R_MAT1>),f_dptr,mid,link,vb,mvbl);
+      auto lbl = exrpc_async(fm_node,(frovedis_aca<DT1,R_MAT1>),f_dptr,mid,link,ncls,thr,vb,mvbl).get();
     }
     else REPORT_ERROR(USER_ERROR, 
          "Frovedis agglomerative clustering doesn't accept sparse input at this moment.\n");
