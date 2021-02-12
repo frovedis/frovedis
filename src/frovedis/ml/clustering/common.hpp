@@ -625,6 +625,70 @@ construct_embed_matrix(rowmajor_matrix<T>& eig_vec,
   ret.num_col = eig_vec.num_col;
   return ret;
 }
+template <class R, class T, class I = size_t, class O = size_t>
+crs_matrix_local<R,I,O>
+construct_connectivity_graph_helper(rowmajor_matrix_local<T>& dmat,
+                                    double eps,
+                                    bool to_include_self = true,
+                                    bool needs_weight = false) {
+  auto nrow = dmat.local_num_row;
+  auto ncol = dmat.local_num_col;
+  std::vector<size_t> oneD_indx;
+  if (to_include_self) oneD_indx = vector_find_le(dmat.val, (T) eps);
+  else oneD_indx = vector_find_le_and_neq(dmat.val, (T) eps, (T) 0);
+  auto count = oneD_indx.size();
+  std::vector<I> index(count);
+  auto idxp = index.data();
+  auto gidxp = oneD_indx.data();
+  std::vector<O> retoff;
+  if (to_include_self) {
+    for(size_t i = 0; i < count; ++i) idxp[i] = gidxp[i] / ncol; // 0-based row-index
+    // every row would have at least one entry (since it includes self)
+    // hence, only set_separate() would produce required offset for resultant graph
+    if (std::is_same<O, size_t>::value)  retoff = set_separate(index);
+    else retoff = vector_astype<O>(set_separate(index));
+    for(size_t i = 0; i < count; ++i) {
+       idxp[i] = gidxp[i] - (idxp[i] * ncol); // col-index [same as gidxp[i] % ncol]
+    }
+  }
+  else {
+    // making 1-based row index to avoid adding 0 at beginining of bincount result
+    for(size_t i = 0; i < count; ++i) idxp[i] = 1 + (gidxp[i] / ncol); // 1-based row-index
+    retoff = prefix_sum(vector_bincount<O>(index));
+    for(size_t i = 0; i < count; ++i) {
+      idxp[i] = gidxp[i] - ((idxp[i] - 1) * ncol); // col-index [same as gidxp[i] % ncol]
+    }
+  }
+  crs_matrix_local<R,I,O> ret;
+  if (needs_weight) {
+    ret.val = vector_take<R>(dmat.val, oneD_indx);
+  }
+  else {
+    oneD_indx.clear(); // 1-D index is no longer needed, hence freed
+    ret.val = vector_ones<R>(count);
+  }
+  ret.idx.swap(index);
+  ret.off.swap(retoff);
+  ret.local_num_row = nrow;
+  ret.local_num_col = ncol;
+  return ret;
+}
+
+template <class R, class T, class I = size_t, class O = size_t>
+crs_matrix<R,I,O>
+construct_connectivity_graph(rowmajor_matrix<T>& dmat,
+                             double eps,
+                             bool to_include_self = true,
+                             bool needs_weight = false) {
+  if (dmat.num_row != dmat.num_col)
+    REPORT_ERROR(USER_ERROR, "input distance matrix is not a square matrix!\n");
+  crs_matrix<R,I,O> ret(dmat.data.map(construct_connectivity_graph_helper<R,T,I,O>,
+                                      broadcast(eps),
+                                      broadcast(to_include_self),
+                                      broadcast(needs_weight)));
+  ret.num_row = ret.num_col = dmat.num_row; // square matrix
+  return ret;
+}
 
 } // end of namespace
 
