@@ -545,15 +545,17 @@ void frovedis_mf_als(exrpc_ptr_t& data_ptr, int& rank, int& numIter,
 
 template <class T, class MATRIX>
 kmeans_result 
-frovedis_kmeans(exrpc_ptr_t& data_ptr, int& k, 
-                int& numIter, long& seed,
-                double& epsilon, int& verbose, int& mid,
-                bool& use_shrink=false,
-                bool& isMovableInput=false) {
+frovedis_kmeans_fit(exrpc_ptr_t& data_ptr, int& k, 
+                    int& numIter, int& numInit,
+                    double& epsilon, long& seed,
+                    int& verbose, int& mid,
+                    bool& use_shrink=false,
+                    bool& isMovableInput=false) {
   register_for_train(mid);   // mark model 'mid' as "under training"
   MATRIX& mat = *reinterpret_cast<MATRIX*>(data_ptr);  // training input data holder
   set_verbose_level(verbose);
   auto est = KMeans<T>(k).set_max_iter(numIter)
+                         .set_n_init(numInit)
                          .set_eps(epsilon)
                          .set_seed(seed)
                          .set_use_shrink(use_shrink);
@@ -561,7 +563,36 @@ frovedis_kmeans(exrpc_ptr_t& data_ptr, int& k,
   if (isMovableInput) mat.clear(); 
   reset_verbose_level();
   auto ret = kmeans_result(est.labels_(), est.n_iter_(), 
-                           (float) est.inertia_());
+                           est.inertia_(),
+                           est.n_clusters_(), 0, 0);
+  handle_trained_model<KMeans<T>>(mid, KMEANS, est);
+  return ret;
+}
+
+template <class T, class MATRIX>
+kmeans_result
+frovedis_kmeans_fit_transform(exrpc_ptr_t& data_ptr, int& k,
+                              int& numIter, int& numInit,
+                              double& epsilon, long& seed,
+                              int& verbose, int& mid,
+                              bool& use_shrink=false,
+                              bool& isMovableInput=false) {
+  register_for_train(mid);   // mark model 'mid' as "under training"
+  MATRIX& mat = *reinterpret_cast<MATRIX*>(data_ptr);  // training input data holder
+  set_verbose_level(verbose);
+  auto est = KMeans<T>(k).set_max_iter(numIter)
+                         .set_n_init(numInit)
+                         .set_eps(epsilon)
+                         .set_seed(seed)
+                         .set_use_shrink(use_shrink);
+  auto trans_matp = new rowmajor_matrix<T>(est.fit_transform(mat));
+  auto trans_matptr = reinterpret_cast<exrpc_ptr_t>(trans_matp);
+  if (isMovableInput) mat.clear();
+  reset_verbose_level();
+  auto ret = kmeans_result(est.labels_(), est.n_iter_(),
+                           est.inertia_(),
+                           est.n_clusters_(), 
+                           trans_matptr, mat.num_row);
   handle_trained_model<KMeans<T>>(mid, KMEANS, est);
   return ret;
 }
@@ -639,37 +670,19 @@ template <class T, class MATRIX>
 std::vector<int> 
 frovedis_aca(exrpc_ptr_t& data_ptr, int& mid, 
              std::string& linkage, 
-             int& ncluster,
+             int& ncluster, T& threshold,
              int& verbose, bool& isMovableInput=false) {
   register_for_train(mid);   // mark model 'mid' as "under training"
   MATRIX& mat = *reinterpret_cast<MATRIX*>(data_ptr);  // training input data holder
-  auto old_level = frovedis::get_loglevel();
-  if (verbose == 1) frovedis::set_loglevel(frovedis::DEBUG);
-  else if (verbose == 2) frovedis::set_loglevel(frovedis::TRACE);
-  auto model = agglomerative_training(mat,linkage);
-  auto label = agglomerative_assign_cluster(model,ncluster);
+  set_verbose_level(verbose);  
+  auto agg_est = agglomerative_clustering<T>(ncluster).set_linkage(linkage)
+                                                      .set_threshold(threshold);
+  auto label = agg_est.fit_predict(mat);                                              
   // if input is movable, destroying Frovedis side data after training is done.
   if (isMovableInput)  mat.clear();
-  frovedis::set_loglevel(old_level);
-  handle_trained_model<rowmajor_matrix_local<T>>(mid,ACM,model);
+  reset_verbose_level();
+  handle_trained_model<agglomerative_clustering<T>>(mid, ACM, agg_est);
   return label;
-}
-
-// only fit
-template <class T, class MATRIX>
-void frovedis_aca2(exrpc_ptr_t& data_ptr, int& mid,
-                   std::string& linkage,
-                   int& verbose, bool& isMovableInput=false) {
-  register_for_train(mid);   // mark model 'mid' as "under training"
-  MATRIX& mat = *reinterpret_cast<MATRIX*>(data_ptr);  // training input data holder
-  auto old_level = frovedis::get_loglevel();
-  if (verbose == 1) frovedis::set_loglevel(frovedis::DEBUG);
-  else if (verbose == 2) frovedis::set_loglevel(frovedis::TRACE);
-  auto model = agglomerative_training(mat,linkage);
-  // if input is movable, destroying Frovedis side data after training is done.
-  if (isMovableInput)  mat.clear();
-  frovedis::set_loglevel(old_level);
-  handle_trained_model<rowmajor_matrix_local<T>>(mid,ACM,model);
 }
 
 // DBSCAN fit-predict
@@ -704,11 +717,9 @@ frovedis_sca(exrpc_ptr_t& data_ptr, int& ncluster,
   auto old_level = frovedis::get_loglevel();
   if (verbose == 1) frovedis::set_loglevel(frovedis::DEBUG);
   else if (verbose == 2) frovedis::set_loglevel(frovedis::TRACE);
-  auto model = frovedis::spectral_clustering(mat,ncluster,component,
+  auto model = frovedis::spectral_clustering_impl(mat,ncluster,component,
                                              iteration,eps,nlaplacian,
-                                             pre,drop_first,gamma,mode);
-  // if input is movable, destroying Frovedis side data after training is done.
-  if (isMovableInput)  mat.clear();
+                                             pre,drop_first,gamma,mode,isMovableInput);
   frovedis::set_loglevel(old_level);
   auto m = model.labels;
   handle_trained_model<spectral_clustering_model<T>>(mid,SCM,model);
