@@ -1,6 +1,5 @@
 #include <frovedis.hpp>
 #include <frovedis/dataframe.hpp>
-#include <frovedis/dataframe/time_extract.hpp>
 
 struct multiply {
   double operator()(int a, double b){return a * b;}
@@ -33,6 +32,6 @@ int main(int argc, char* argv[]){
   std::cout << std::endl;
 
   t.calc<double, int, double>("multiply", multiply(), "c1", "c2");
+  t.call_function(frovedis::add_col_as("c1","c2","add"));
   t.show();
-  std::cout << std::endl;
 }
