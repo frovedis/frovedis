@@ -228,18 +228,26 @@ void expose_frovedis_model_functions() {
   expose(load_kmm<DT2>);       // for python
   expose((single_kmm_predict<S_LMAT1,KMM1>));
   expose((single_kmm_predict<R_LMAT1,KMM1>));
-  expose((kmeans_predict<R_MAT1,KMM1>));   
-  expose((kmeans_predict<R_MAT2,KMM2>));   // for python
-  expose((kmeans_predict<S_MAT14,KMM1>)); 
-  expose((kmeans_predict<S_MAT15,KMM1>)); // for python
-  expose((kmeans_predict<S_MAT24,KMM2>)); // for python
-  expose((kmeans_predict<S_MAT25,KMM2>)); // for python
-  expose((kmeans_score<R_MAT1,KMM1>));
-  expose((kmeans_score<R_MAT2,KMM2>));   // for python
-  expose((kmeans_score<S_MAT14,KMM1>));
-  expose((kmeans_score<S_MAT15,KMM1>)); // for python
-  expose((kmeans_score<S_MAT24,KMM2>)); // for python
-  expose((kmeans_score<S_MAT25,KMM2>)); // for python
+  expose((frovedis_kmeans_predict<R_MAT1,KMM1>));   
+  expose((frovedis_kmeans_predict<R_MAT2,KMM2>));   // for python
+  expose((frovedis_kmeans_predict<S_MAT14,KMM1>)); 
+  expose((frovedis_kmeans_predict<S_MAT15,KMM1>)); // for python
+  expose((frovedis_kmeans_predict<S_MAT24,KMM2>)); // for python
+  expose((frovedis_kmeans_predict<S_MAT25,KMM2>)); // for python
+  expose((frovedis_kmeans_score<R_MAT1,KMM1>));
+  expose((frovedis_kmeans_score<R_MAT2,KMM2>));   // for python
+  expose((frovedis_kmeans_score<S_MAT14,KMM1>));
+  expose((frovedis_kmeans_score<S_MAT15,KMM1>));  // for python
+  expose((frovedis_kmeans_score<S_MAT24,KMM2>));  // for python
+  expose((frovedis_kmeans_score<S_MAT25,KMM2>));  // for python
+  expose((frovedis_kmeans_transform<DT1,R_MAT1,KMM1>));
+  expose((frovedis_kmeans_transform<DT2,R_MAT2,KMM2>));   // for python
+  expose((frovedis_kmeans_transform<DT1,S_MAT14,KMM1>));
+  expose((frovedis_kmeans_transform<DT1,S_MAT15,KMM1>));  // for python
+  expose((frovedis_kmeans_transform<DT2,S_MAT24,KMM2>));  // for python
+  expose((frovedis_kmeans_transform<DT2,S_MAT25,KMM2>));  // for python
+  expose((frovedis_kmeans_centroid<DT1,KMM1>));
+  expose((frovedis_kmeans_centroid<DT2,KMM2>));   // for python
   // ---frovedis spectral embedding
   expose(release_model<SEM1>);
   expose(save_model<SEM1>);
@@ -268,13 +276,21 @@ void expose_frovedis_model_functions() {
   expose(release_model<ACM1>);
   expose(save_model<ACM1>);
   expose(show_model<ACM1>);
-  expose(load_acm<DT1>);
-  expose(frovedis_acm_pred<DT1>);     
+  expose(load_acm<ACM1>);
+  expose(frovedis_acm_reassign<DT1>);
+  expose(get_acm_children<DT1>);
+  expose(get_acm_distances<DT1>);
+  expose(get_acm_n_components<DT1>);
+  expose(get_acm_n_clusters<DT1>);
   expose(release_model<ACM2>);           // for python
   expose(save_model<ACM2>);              // for python
   expose(show_model<ACM2>);              // for python
-  expose(load_acm<DT2>);                 // for python
-  expose(frovedis_acm_pred<DT2>);        // for python
+  expose(load_acm<ACM2>);                 // for python
+  expose(frovedis_acm_reassign<DT2>);    // for python
+  expose(get_acm_children<DT2>);         // for python
+  expose(get_acm_distances<DT2>);        // for python
+  expose(get_acm_n_components<DT2>);     // for python
+  expose(get_acm_n_clusters<DT2>);       // for python  
   // --- frovedis word2vector model
   expose(release_model<W2V2>);
   expose(get_w2v_weight_ptr<DT2>);
