@@ -1787,7 +1787,10 @@ void set_multimerge_pair(std::vector<std::vector<T>>& key,
                          std::vector<T>& out_key,
                          std::vector<K>& out_val) {
   size_t part_size = key.size();
-  if(part_size == 1 || part_size == 0) {
+  if(part_size == 0) {
+    out_key = std::vector<T>();
+    out_val = std::vector<K>();
+  } else if(part_size == 1) {
     out_key.swap(key[0]);
     out_val.swap(val[0]);
   } else if(part_size == 2) {
@@ -1824,7 +1827,10 @@ void set_multimerge_pair_desc(std::vector<std::vector<T>>& key,
                               std::vector<T>& out_key,
                               std::vector<K>& out_val) {
   size_t part_size = key.size();
-  if(part_size == 1 || part_size == 0) {
+  if(part_size == 0) {
+    out_key = std::vector<T>();
+    out_val = std::vector<K>();
+  } else if(part_size == 1) {
     out_key.swap(key[0]);
     out_val.swap(val[0]);
   } else if(part_size == 2) {
