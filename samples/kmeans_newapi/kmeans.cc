@@ -8,52 +8,59 @@ using namespace std;
 
 void do_kmeans(const string& input, bool dense, 
                const string& output, int k,
-               int num_iteration, double eps, long seed, 
+               int n_init, int num_iteration, 
+               double eps, long seed,
                bool binary, bool shrink) {
 
-  time_spent t(DEBUG);
+  rowmajor_matrix<double> transformed;
   auto km = KMeans<double>(k).set_max_iter(num_iteration)
+                             .set_n_init(n_init)
                              .set_eps(eps)
                              .set_seed(seed)
                              .set_use_shrink(shrink);
+  time_spent t(DEBUG);
   if(binary) {
     if(dense) {
       auto mat = make_rowmajor_matrix_loadbinary<double>(input);
       t.show("load matrix: ");
-      km.fit(mat);
-      t.show("kmeans time: ");
+      transformed = km.fit_transform(mat);
+      t.show("kmeans fit_transform time: ");
     } else {
       auto mat = make_crs_matrix_loadbinary<double>(input);
       t.show("load matrix: ");
-      km.fit(mat);
-      t.show("kmeans time: ");
+      transformed = km.fit_transform(mat);
+      t.show("kmeans fit_transform time: ");
     }
     km.cluster_centers_().transpose().savebinary(output + "_centroid");
     make_dvector_scatter(km.labels_()).savebinary(output + "_labels");
+    transformed.savebinary(output + "_trans_mat");
     t.show("save result time: ");
   } else {
     if(dense) {
       auto mat = make_rowmajor_matrix_load<double>(input);
       t.show("load matrix: ");
-      km.fit(mat);
-      t.show("kmeans time: ");
+      transformed = km.fit_transform(mat);
+      t.show("kmeans fit_transform time: ");
     } else {
       time_spent t(DEBUG);
       auto mat = make_crs_matrix_load<double>(input);
       t.show("load matrix: ");
-      km.fit(mat);
-      t.show("kmeans time: ");
+      transformed = km.fit_transform(mat);
+      t.show("kmeans fit_transform time: ");
     }
     km.cluster_centers_().transpose().save(output + "_centroid");
     make_dvector_scatter(km.labels_()).saveline(output + "_labels");
+    transformed.save(output + "_trans_mat");
     t.show("save result time: ");
   }
+  std::cout << "converged in: " << km.n_iter_() << " iterations!\n";
+  std::cout << "inertia: " << km.inertia_() << std::endl;
 }
 
 void do_assign(const string& input, bool dense, 
                const string& input_centroid,
                const string& output, bool binary) {
-  double score = 0.0;
+  float score = 0.0;
   if(binary) {
     if(dense) {
       time_spent t(DEBUG);
@@ -103,7 +110,7 @@ void do_assign(const string& input, bool dense,
       t.show("prediction save time: ");
     }
   }
-  std::cout << "prediction score: " << score << std::endl;
+  std::cout << "prediction score: " << -1.0 * score << std::endl;
 }
 
 int main(int argc, char* argv[]) {
@@ -119,12 +126,13 @@ int main(int argc, char* argv[]) {
     ("centroid,c", value<string>(), "input centroid for assignment")
     ("output,o", value<string>(), "output centroids or cluster")
     ("k,k", value<int>(), "number of clusters")
-    ("num-iteration,n", value<int>(), "number of max iteration")
-    ("eps,e", value<double>(), "epsilon to stop the iteration")
-    ("seed,r", value<long>(), "seed for init randomizer")
-    ("sparse,s", "use sparse matrix [default]")
+    ("num-init,t", value<int>(), "number of time for running with different centroid seeds (default: 1)")
+    ("num-iteration,n", value<int>(), "maximum number of iteration (default: 300)")
+    ("eps,e", value<double>(), "epsilon to stop the iteration (default: 0.0001)")
+    ("seed,r", value<long>(), "seed for init randomizer (default: 0)")
+    ("sparse,s", "use sparse matrix (default)")
     ("dense,d", "use dense matrix")
-    ("use-shrink", "whether to use shrinking for sparse data [default: false]")
+    ("use-shrink", "whether to use shrinking for sparse data (default: false)")
     ("verbose", "set loglevel to DEBUG")
     ("verbose2", "set loglevel to TRACE")
     ("binary,b", "use binary input/output");
@@ -136,8 +144,8 @@ int main(int argc, char* argv[]) {
 
   string input, output, input_centroid;
   int k = 0;
-  int num_iteration = 100;
-  double eps = 0.01;
+  int num_iteration = 300, n_init = 1;
+  double eps = 0.0001;
   long seed = 0;
   bool shrink = false;
   bool assign = false;
@@ -193,6 +201,10 @@ int main(int argc, char* argv[]) {
     num_iteration = argmap["num-iteration"].as<int>();
   }
 
+  if(argmap.count("num-init")){
+    n_init = argmap["num-init"].as<int>();
+  }
+
   if(argmap.count("epsilon")){
     eps = argmap["epsilon"].as<double>();
   }
@@ -226,5 +238,6 @@ int main(int argc, char* argv[]) {
   }
 
   if(assign) do_assign(input, dense, input_centroid, output, binary);
-  else do_kmeans(input, dense, output, k, num_iteration, eps, seed, binary, shrink);
+  else do_kmeans(input, dense, output, k, n_init, num_iteration, eps, 
+                 seed, binary, shrink);
 }
