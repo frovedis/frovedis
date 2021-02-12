@@ -14,7 +14,7 @@ if (argc < 2):
     quit()
 FrovedisServer.initialize(argvs[1])
 
-train_mat = FrovedisRowmajorMatrix(dtype=np.float64).load("./input/spectral_data.txt")
+train_mat = np.loadtxt("./input/spectral_data.txt")
 
 # creating spectral agglomerative object
 n_clusters = 2
@@ -22,11 +22,16 @@ acm = AgglomerativeClustering(n_clusters=n_clusters)
 
 # fitting the training matrix on agglomerative clustering object
 acm.fit(train_mat)
-print('\nconstructed dendogram of diemnsion: (%d, 4)' % (train_mat.numRows()-1))
-acm.debug_print() # prints dendogram 
+acm.debug_print() # prints dendrogram 
 
 # printing clustered labels
-print('\ncomputed labels for %d clusters: %s' % (n_clusters, str(acm.labels_)))
+print('computed labels for %d clusters: %s' % (n_clusters, str(acm.labels_)))
+print('children:')
+print(acm.children_)
+print('distances:')
+print(acm.distances_)
+print('no. of connected components: %d'% (acm.n_connected_components_))
+print('no. of leaves: %d'% (acm.n_leaves_))
 
 # saving the trained model
 acm.save("./out/MyAcmClusteringModel")
@@ -38,7 +43,7 @@ acm.load("./out/MyAcmClusteringModel",dtype=np.float64)
 # printing relabeling for new n_clusters 
 # on loaded model (on previously fitted matrix)
 n_clusters = 3
-new_labels = acm.predict(n_clusters)
+new_labels = acm.reassign(n_clusters)
 print('\nrecomputed labels for %d clusters: %s' % (n_clusters, str(new_labels)))
 
 acm.release()
