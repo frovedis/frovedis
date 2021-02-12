@@ -577,6 +577,8 @@ class Lasso(BaseEstimator):
         self.__mid = ModelID.get()
         self.__mdtype = dtype
 
+        if self.max_iter is None:
+            self.max_iter = 1000
         (host, port) = FrovedisServer.getServerInstance()
         if self.solver == 'sag':
             rpclib.lasso_sgd(host, port, X.get(), y.get(), \
@@ -737,7 +739,7 @@ class Ridge(BaseEstimator):
     # defaults are as per Frovedis
     # lr_rate: Frovedis: 0.01 (added)
     def __init__(self, alpha=0.01, fit_intercept=True, normalize=False,
-                 copy_X=True, max_iter=1000, tol=1e-3, solver='sag',
+                 copy_X=True, max_iter=None, tol=1e-3, solver='auto',
                  random_state=None, lr_rate=1e-8, verbose=0):
         self.alpha = alpha
         self.fit_intercept = fit_intercept
@@ -776,6 +778,8 @@ class Ridge(BaseEstimator):
             raise ValueError( \
             "Frovedis doesn't support solver %s for Ridge \
             Regression currently." % self.solver)
+        if self.max_iter is None:
+            self.max_iter = 1000
         (host, port) = FrovedisServer.getServerInstance()
         if self.solver == 'sag' or self.solver == 'auto':
             rpclib.ridge_sgd(host, port, X.get(), y.get(), \
@@ -822,7 +826,7 @@ class Ridge(BaseEstimator):
     def coef_(self, val):
         """coef_ setter"""
         raise AttributeError(\
-            "attribute 'coef_' of LassoRegression object is not writable")
+            "attribute 'coef_' of Ridge regression object is not writable")
 
     @property
     def intercept_(self):
@@ -845,7 +849,7 @@ class Ridge(BaseEstimator):
     def intercept_(self, val):
         """intercept_ setter"""
         raise AttributeError(\
-            "attribute 'intercept_' of LassoRegression object is not writable")
+            "attribute 'intercept_' of Ridge regression object is not writable")
 
     def predict(self, X):
         """
