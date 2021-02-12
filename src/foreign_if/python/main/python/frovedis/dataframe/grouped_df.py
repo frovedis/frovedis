@@ -62,6 +62,38 @@ class FrovedisGroupedDataframe(object):
     #def __del__(self):
     #  if FrovedisServer.isUP(): self.release()
 
+    def __getitem__(self, target):
+        """  __getitem__  """
+        if self.__fdata is not None:
+            if isinstance(target, str):
+                return self.__select_gdf([target])
+            elif isinstance(target, list):
+                return self.__select_gdf(target)
+            else:
+                raise TypeError("Unsupported indexing input type!")
+        else:
+            raise ValueError("Operation on invalid frovedis grouped dataframe!")
+
+    def __select_gdf(self, cols):
+        """ To select grouped columns """
+        sz = len(cols)
+        types = [0] * sz
+        for i in range(sz):
+            col = cols[i]
+            if col not in self.__dict__:
+                raise ValueError("No column named: ", col)
+            types[i] = self.__dict__[col].dtype
+        tcols = np.asarray(cols)
+        tcols_arr = (c_char_p * sz)()
+        tcols_arr[:] = np.array([e.encode('ascii') for e in tcols.T])
+        (host, port) = FrovedisServer.getServerInstance()
+        fdata = rpclib.select_grouped_dataframe(host, port, self.__fdata,
+                                                tcols_arr, sz)
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
+        return DataFrame().load_dummy(fdata, cols, types)
+
     def agg(self, func, *args, **kwargs):
         """
         agg
