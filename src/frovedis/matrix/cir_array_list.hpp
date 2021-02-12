@@ -15,7 +15,6 @@ struct cir_array_list {
     rear(-1), front(-1), totActiveElements(0), len(size) 
       { val.resize(size); }
   cir_array_list(const cir_array_list& l) {
-    val.resize(l.val.size());
     val = l.val;
     rear  = l.rear;
     front = l.front;
@@ -31,7 +30,6 @@ struct cir_array_list {
     l.reset();
   }
   cir_array_list& operator=(const cir_array_list& l) {
-    val.resize(l.val.size());
     val = l.val;
     rear  = l.rear;
     front = l.front;
@@ -49,18 +47,16 @@ struct cir_array_list {
     return *this;
   }
   bool isFull() const {
-    if(totActiveElements == len) return true;
-    else return false;
+    return (totActiveElements == len);
   }
   bool isEmpty() const {
-    if(totActiveElements == 0) return true;
-    else return false;
+    return (totActiveElements == 0);
   }
   size_t size() const { 
     return len; 
   }
   void debug_print() const {
-    for (size_t i = 0; i<totActiveElements; i++) 
+    for (size_t i = 0; i < totActiveElements; ++i) 
       std::cout << operator[](i) << " ";
     std::cout << std::endl;
   }
@@ -80,7 +76,7 @@ struct cir_array_list {
     else {
       front = (front+1) % len;
     }
-    totActiveElements = (totActiveElements < len) ? totActiveElements+1 : len;
+    totActiveElements = (totActiveElements < len) ? totActiveElements + 1 : len;
   }
 
   // inserts data after last active element in the list (at front)
