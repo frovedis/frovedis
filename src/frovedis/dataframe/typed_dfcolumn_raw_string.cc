@@ -141,6 +141,23 @@ filter_not_like(const std::string& pattern, int wild_card) {
   }
 }
 
+// TODO: efficient implementation of filter_[n]eq_immed
+node_local<std::vector<size_t>>
+typed_dfcolumn<raw_string>::filter_eq_immed(std::shared_ptr<dfscalar>& right) {
+  auto right2 = std::dynamic_pointer_cast<typed_dfscalar<std::string>>(right);
+  if(!right2)
+    throw std::runtime_error("filter raw_string with non string");
+  return filter_like(right2->val,0);
+}
+
+node_local<std::vector<size_t>>
+typed_dfcolumn<raw_string>::filter_neq_immed(std::shared_ptr<dfscalar>& right) {
+  auto right2 = std::dynamic_pointer_cast<typed_dfscalar<std::string>>(right);
+  if(!right2)
+    throw std::runtime_error("filter raw_string with non string");
+  return filter_not_like(right2->val,0);
+}
+
 node_local<std::vector<size_t>>
 typed_dfcolumn<raw_string>::filter_is_null() {return nulls;}
 
@@ -421,6 +438,112 @@ size_t typed_dfcolumn<raw_string>::size() {
 std::vector<size_t> typed_dfcolumn<raw_string>::sizes() {
   return comp_words.map(+[](const compressed_words& cws)
                         {return cws.num_words();}).gather();
+}
+
+compressed_words
+merge_multi_compressed_words_ptr(vector<compressed_words*>& vcws) {
+  auto vcws_size = vcws.size();
+  if(vcws_size == 0) {
+    return compressed_words();
+  } else if(vcws_size == 1) {
+    return *vcws[0];
+  } else if(vcws_size == 2) {
+    auto r = merge_compressed_words(*vcws[0], *vcws[1]);
+    return r;
+  } else {
+    auto left_size = ceil_div(vcws_size, size_t(2));
+    auto right_size = vcws_size - left_size;
+    vector<compressed_words*> left(left_size);
+    vector<compressed_words*> right(right_size);
+    for(size_t i = 0; i < left_size; i++) {
+      left[i] = vcws[i];
+    }
+    for(size_t i = 0; i < right_size; i++) {
+      right[i] = vcws[left_size + i];
+    }
+    auto left_merged = merge_multi_compressed_words_ptr(left);
+    auto right_merged = merge_multi_compressed_words_ptr(right);
+    auto r = merge_compressed_words(left_merged, right_merged);
+    return r;
+  }
+}
+
+void union_columns_raw_string_helper
+(compressed_words& newcomp_words,
+ std::vector<size_t>& newnulls,
+ std::vector<compressed_words*>& comp_words_colsp,
+ std::vector<std::vector<size_t>*>& nulls_colsp) {
+
+  newcomp_words = merge_multi_compressed_words_ptr(comp_words_colsp);
+  auto cols_size = comp_words_colsp.size();
+  std::vector<size_t> val_sizes(cols_size);
+  auto comp_words_colspp = comp_words_colsp.data();
+  auto val_sizesp = val_sizes.data();
+  for(size_t i = 0; i < cols_size; i++) {
+    val_sizesp[i] = comp_words_colspp[i]->num_words();
+  }
+  std::vector<size_t> nulls_sizes(cols_size);
+  auto nulls_colspp = nulls_colsp.data();
+  auto nulls_sizesp = nulls_sizes.data();
+  for(size_t i = 0; i < cols_size; i++) {
+    nulls_sizesp[i] = nulls_colspp[i]->size();
+  }
+  size_t total_nulls_size = 0;
+  for(size_t i = 0; i < cols_size; i++) {
+    total_nulls_size += nulls_sizesp[i];
+  }
+  newnulls.resize(total_nulls_size);
+  auto crnt_newnullsp = newnulls.data();
+  auto crnt_shift = 0;
+  for(size_t i = 0; i < cols_size; i++) {
+    auto nulls_size = nulls_sizesp[i];
+    auto nullsp = nulls_colspp[i]->data();
+    for(size_t j = 0; j < nulls_size; j++) {
+      crnt_newnullsp[j] = nullsp[j] + crnt_shift;
+    }
+    crnt_shift += val_sizesp[i];
+    crnt_newnullsp += nulls_size;
+  }
+}
+
+
+std::shared_ptr<dfcolumn>
+typed_dfcolumn<raw_string>::union_columns
+(const std::vector<std::shared_ptr<dfcolumn>>& cols) {
+  auto cols_size = cols.size();
+  if(cols_size == 0) {
+    return std::make_shared<typed_dfcolumn<raw_string>>(comp_words, nulls);
+  }
+  std::vector<std::shared_ptr<typed_dfcolumn<raw_string>>> rights(cols_size);
+  for(size_t i = 0; i < cols_size; i++) {
+    rights[i] = std::dynamic_pointer_cast<typed_dfcolumn<raw_string>>(cols[i]);
+    if(!rights[i]) throw std::runtime_error("union_columns: different type");
+  }
+  auto comp_words_colsp =
+    make_node_local_allocate<std::vector<compressed_words*>>();
+  auto nulls_colsp =
+    make_node_local_allocate<std::vector<std::vector<size_t>*>>();
+  comp_words.mapv(+[](compressed_words& comp_words,
+                      std::vector<compressed_words*>& comp_words_colsp)
+                  {comp_words_colsp.push_back(&comp_words);}, comp_words_colsp);
+  nulls.mapv(+[](std::vector<size_t>& nulls,
+                 std::vector<std::vector<size_t>*>& nulls_colsp)
+             {nulls_colsp.push_back(&nulls);}, nulls_colsp);
+  for(size_t i = 0; i < cols_size; i++) {
+    rights[i]->comp_words.
+      mapv(+[](compressed_words& comp_words,
+               std::vector<compressed_words*>& comp_words_colsp)
+           {comp_words_colsp.push_back(&comp_words);}, comp_words_colsp);
+    rights[i]->nulls.mapv(+[](std::vector<size_t>& nulls,
+                              std::vector<std::vector<size_t>*>& nulls_colsp)
+                          {nulls_colsp.push_back(&nulls);}, nulls_colsp);
+  }
+  auto newcomp_words = make_node_local_allocate<compressed_words>();
+  auto newnulls = make_node_local_allocate<std::vector<size_t>>();
+  newcomp_words.mapv(union_columns_raw_string_helper, newnulls,
+                     comp_words_colsp, nulls_colsp);
+  return std::make_shared<typed_dfcolumn<raw_string>>
+    (std::move(newcomp_words), std::move(newnulls));
 }
 
 }
