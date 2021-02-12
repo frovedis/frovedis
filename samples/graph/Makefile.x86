@@ -2,7 +2,7 @@ TARGETS := bfs connected_component sssp pagerank convert_to_one_base_edgelist
 include ../Makefile.in.x86
 include ../Makefile.common
 
-TO_INSTALL := bfs.cc connected_component.cc sssp.cc pagerank.cc
+TO_INSTALL := bfs.cc connected_component.cc sssp.cc pagerank.cc convert_to_one_base_edgelist.cc
 DIR := graph
 ARCH := x86
 
