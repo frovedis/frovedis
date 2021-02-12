@@ -8,14 +8,15 @@ using namespace std;
 
 void do_kmeans(const string& input, bool dense, 
                const string& output, int k,
-               int num_iteration, double eps, long seed, 
+               int n_init, int num_iteration, 
+               double eps, long seed, 
                bool binary, bool shrink) {
   if(binary) {
     if(dense) {
       time_spent t(DEBUG);
       auto mat = make_rowmajor_matrix_loadbinary<double>(input);
       t.show("load matrix: ");
-      auto r = kmeans(mat, k, num_iteration, eps, seed);
+      auto r = kmeans(mat, k, num_iteration, eps, seed, n_init);
       t.show("kmeans time: ");
       r.transpose().savebinary(output);
       t.show("save centroid time: ");
@@ -25,10 +26,10 @@ void do_kmeans(const string& input, bool dense,
       t.show("load matrix: ");
       rowmajor_matrix_local<double> r;
       if (shrink)
-        r = frovedis::shrink::kmeans(std::move(mat), k, num_iteration, 
-                                     eps, seed);
+        r = frovedis::shrink::kmeans(mat, k, num_iteration, 
+                                     eps, seed, n_init);
       else
-        r = kmeans(mat, k, num_iteration, eps, seed);
+        r = kmeans(mat, k, num_iteration, eps, seed, n_init);
       t.show("kmeans time: ");
       r.transpose().savebinary(output);
       t.show("save centroid time: ");
@@ -38,7 +39,7 @@ void do_kmeans(const string& input, bool dense,
       time_spent t(DEBUG);
       auto mat = make_rowmajor_matrix_load<double>(input);
       t.show("load matrix: ");
-      auto r = kmeans(mat, k, num_iteration, eps, seed);
+      auto r = kmeans(mat, k, num_iteration, eps, seed, n_init);
       t.show("kmeans time: ");
       r.transpose().save(output);
       t.show("save model time: ");
@@ -48,10 +49,10 @@ void do_kmeans(const string& input, bool dense,
       t.show("load matrix: ");
       rowmajor_matrix_local<double> r;
       if (shrink)
-        r = frovedis::shrink::kmeans(std::move(mat), k, num_iteration, 
-                                     eps, seed);
+        r = frovedis::shrink::kmeans(mat, k, num_iteration, 
+                                     eps, seed, n_init);
       else
-        r = kmeans(mat, k, num_iteration, eps, seed);
+        r = kmeans(mat, k, num_iteration, eps, seed, n_init);
       t.show("kmeans time: ");
       r.transpose().save(output);
       t.show("save model time: ");
@@ -62,7 +63,7 @@ void do_kmeans(const string& input, bool dense,
 void do_assign(const string& input, bool dense, 
                const string& input_centroid,
                const string& output, bool binary) {
-  double score = 0.0;
+  float score = 0.0f;
   if(binary) {
     if(dense) {
       time_spent t(DEBUG);
@@ -112,7 +113,7 @@ void do_assign(const string& input, bool dense,
       t.show("prediction save time: ");
     }
   }
-  std::cout << "prediction score: " << score << std::endl;
+  std::cout << "prediction score: " << -1.0f * score << std::endl;
 }
 
 int main(int argc, char* argv[]) {
@@ -128,12 +129,13 @@ int main(int argc, char* argv[]) {
     ("centroid,c", value<string>(), "input centroid for assignment")
     ("output,o", value<string>(), "output centroids or cluster")
     ("k,k", value<int>(), "number of clusters")
-    ("num-iteration,n", value<int>(), "number of max iteration")
-    ("eps,e", value<double>(), "epsilon to stop the iteration")
-    ("seed,r", value<long>(), "seed for init randomizer")
-    ("sparse,s", "use sparse matrix [default]")
+    ("num-init,t", value<int>(), "number of time for running with different centroid seeds (default: 1)")
+    ("num-iteration,n", value<int>(), "maximum number of iteration (default: 300)")
+    ("eps,e", value<double>(), "epsilon to stop the iteration (default: 0.0001)")
+    ("seed,r", value<long>(), "seed for init randomizer (default: 0)")
+    ("sparse,s", "use sparse matrix (default)")
     ("dense,d", "use dense matrix")
-    ("use-shrink", "whether to use shrinking for sparse data [default: false]")
+    ("use-shrink", "whether to use shrinking for sparse data (default: false)")
     ("verbose", "set loglevel to DEBUG")
     ("verbose2", "set loglevel to TRACE")
     ("binary,b", "use binary input/output");
@@ -145,8 +147,8 @@ int main(int argc, char* argv[]) {
 
   string input, output, input_centroid;
   int k = 0;
-  int num_iteration = 100;
-  double eps = 0.01;
+  int num_iteration = 300, n_init = 1;
+  double eps = 0.0001;
   long seed = 0;
   bool shrink = false;
   bool assign = false;
@@ -202,6 +204,10 @@ int main(int argc, char* argv[]) {
     num_iteration = argmap["num-iteration"].as<int>();
   }
 
+  if(argmap.count("num-init")){
+    n_init = argmap["num-init"].as<int>();
+  }
+
   if(argmap.count("epsilon")){
     eps = argmap["epsilon"].as<double>();
   }
@@ -235,5 +241,6 @@ int main(int argc, char* argv[]) {
   }
 
   if(assign) do_assign(input, dense, input_centroid, output, binary);
-  else do_kmeans(input, dense, output, k, num_iteration, eps, seed, binary, shrink);
+  else do_kmeans(input, dense, output, k, n_init, num_iteration, eps, 
+                 seed, binary, shrink);
 }
