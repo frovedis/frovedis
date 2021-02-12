@@ -7,6 +7,7 @@
 #include "../text/load_text.hpp"
 #include "../text/datetime_to_words.hpp"
 #include "../core/prefix_sum.hpp"
+#include "dffunction.hpp"
 
 #define GROUPED_DFTABLE_VLEN 256
 
@@ -934,7 +935,7 @@ void dftable_base::debug_print() {
 
 // ---------- for dftable ----------
 
-// might be reused for other type of tables (currently not)
+// reused for other type of tables
 void drop_impl(const std::string& name,
                std::map<std::string, std::shared_ptr<dfcolumn>>& col,
                std::vector<std::string>& col_order) {
@@ -1391,6 +1392,214 @@ void dftable::loadtext(const std::string& filename,
   *this = std::move(ret);
 }
 
+dftable& dftable::call_function(const std::shared_ptr<dffunction>& func) {
+  auto as = func->as();
+  if(col.find(as) != col.end())
+    throw std::runtime_error("call_function: same column name already exists");
+  auto c = func->execute(*this);
+  append_column(as, c);
+  return *this;
+}
+
+dftable& dftable::type_cast(const std::string& from_name,
+                            const std::string& to_name,
+                            const std::string& to_type) {
+  auto c = column(from_name);
+  auto new_column = c->type_cast(to_type);
+  append_column(to_name, new_column);
+  return *this;
+}
+
+void
+union_tables_create_global_idx_helper(std::vector<size_t>& ret,
+                                      size_t start_idx,
+                                      size_t end_idx,
+                                      size_t start_pos_in_idx,
+                                      size_t end_pos_in_idx,
+                                      std::vector<size_t>& flat_num_rows,
+                                      size_t each) {
+  size_t node_size = get_nodesize();
+  auto flat_num_rows_size = flat_num_rows.size();
+  auto flat_num_rowsp = flat_num_rows.data();
+  size_t table_size = flat_num_rows_size / node_size;
+
+  std::vector<size_t> flat_num_rows_trans(flat_num_rows_size);
+  auto flat_num_rows_transp = flat_num_rows_trans.data();
+  for(size_t i = 0; i < node_size; i++) {
+    for(size_t j = 0; j < table_size; j++) {
+      flat_num_rows_transp[i * table_size + j] =
+        flat_num_rows[j * node_size + i];
+    }
+  }
+
+  std::vector<size_t> colpx_flat_num_rows_trans(flat_num_rows_size);
+  auto colpx_flat_num_rows_transp = colpx_flat_num_rows_trans.data();
+  for(size_t i = 0; i < node_size; i++) {
+    prefix_sum(flat_num_rows_transp + i * table_size,
+               colpx_flat_num_rows_transp + i * table_size + 1,
+               table_size - 1); // exclusive scan
+  }
+  
+  size_t ret_size;
+  if(end_idx < flat_num_rows_size) ret_size = each;
+  else { // even start_idx == flat_num_rows_size, same
+    ret_size = 0;
+    for(size_t i = start_idx; i < end_idx; i++) {
+      ret_size += flat_num_rowsp[i];
+    }
+    ret_size -= start_pos_in_idx;
+  }
+  ret.resize(ret_size);
+  auto crnt_retp = ret.data();
+  if(start_idx < flat_num_rows_size) {
+    size_t crnt_rank = start_idx % node_size;
+    size_t crnt_table = start_idx / node_size;
+    size_t crnt_size = flat_num_rowsp[start_idx] - start_pos_in_idx;
+    size_t nodeinfo = crnt_rank << DFNODESHIFT;
+    size_t col_pos =
+      colpx_flat_num_rows_transp[crnt_rank * table_size + crnt_table];
+    auto to_add = col_pos + start_pos_in_idx + nodeinfo;
+    for(size_t i = 0; i < crnt_size; i++) {
+      crnt_retp[i] = i + to_add;
+    }
+    crnt_retp += crnt_size;
+    for(size_t i = start_idx + 1; i < end_idx; i++) {
+      crnt_rank = i % node_size;
+      crnt_table = i / node_size;
+      crnt_size = flat_num_rowsp[i];
+      nodeinfo = crnt_rank << DFNODESHIFT;
+      col_pos = colpx_flat_num_rows_transp[crnt_rank * table_size + crnt_table];
+      to_add = col_pos + nodeinfo;
+      for(size_t j = 0; j < crnt_size; j++) {
+        crnt_retp[j] = j + to_add;
+      }
+      crnt_retp += crnt_size;
+    }
+    if(end_idx < flat_num_rows_size) {
+      crnt_rank = end_idx % node_size;
+      crnt_table = end_idx / node_size;
+      crnt_size = end_pos_in_idx;
+      nodeinfo = crnt_rank << DFNODESHIFT;
+      col_pos = colpx_flat_num_rows_transp[crnt_rank * table_size + crnt_table];
+      to_add = col_pos + nodeinfo;
+      for(size_t i = 0; i < crnt_size; i++) {
+        crnt_retp[i] = i + to_add;
+      }
+    }
+  }
+}
+
+node_local<std::vector<size_t>>
+union_tables_create_global_idx
+(const std::vector<std::vector<size_t>>& num_rows, size_t table_size) {
+  size_t node_size = get_nodesize();
+  std::vector<size_t> flat_num_rows(table_size * node_size);
+  auto crnt_flat_num_rowsp = flat_num_rows.data();
+  for(size_t i = 0; i < table_size; i++) {
+    auto crnt_num_rowsp = num_rows[i].data();
+    for(size_t j = 0; j < node_size; j++) {
+      crnt_flat_num_rowsp[j] = crnt_num_rowsp[j];
+    }
+    crnt_flat_num_rowsp += node_size;
+  }
+  auto px_flat_num_rows = prefix_sum(flat_num_rows);
+  auto total = px_flat_num_rows[px_flat_num_rows.size() - 1];
+  auto each = ceil_div(total, node_size);
+  std::vector<size_t> to_find(node_size-1);
+  auto to_findp = to_find.data();
+  for(size_t i = 1; i < node_size; i++) to_findp[i-1] = each * i;
+  auto found = lower_bound(px_flat_num_rows, to_find);
+  auto foundp = found.data();
+  std::vector<size_t> start_idx(node_size), end_idx(node_size);
+  std::vector<size_t> start_pos_in_idx(node_size), end_pos_in_idx(node_size);
+  auto start_idxp = start_idx.data();
+  auto end_idxp = end_idx.data();
+  auto start_pos_in_idxp = start_pos_in_idx.data();
+  auto end_pos_in_idxp = end_pos_in_idx.data();
+  auto px_flat_num_rowsp = px_flat_num_rows.data();
+  auto px_flat_num_rows_size = px_flat_num_rows.size();
+  auto flat_num_rowsp = flat_num_rows.data();
+  for(size_t i = 0; i < node_size-1; i++) {
+    end_idx[i] = foundp[i]; // might be end()
+    if(foundp[i] < px_flat_num_rows_size) {
+      auto diff = px_flat_num_rowsp[foundp[i]] - to_findp[i]; // always >= 0
+      end_pos_in_idxp[i] = flat_num_rowsp[foundp[i]] - diff;
+    } 
+  }
+  end_idx[node_size-1] = px_flat_num_rows_size;
+  for(size_t i = 1; i < node_size; i++) {
+    start_idxp[i] = end_idxp[i-1];
+    start_pos_in_idxp[i] = end_pos_in_idxp[i-1];
+  }
+  auto nl_start_idx = make_node_local_scatter(start_idx);
+  auto nl_end_idx = make_node_local_scatter(end_idx);
+  auto nl_start_pos_in_idx = make_node_local_scatter(start_pos_in_idx);
+  auto nl_end_pos_in_idx = make_node_local_scatter(end_pos_in_idx);
+  auto b_flat_num_rows = broadcast(flat_num_rows);
+  auto r = make_node_local_allocate<std::vector<size_t>>();
+  r.mapv(union_tables_create_global_idx_helper,
+         nl_start_idx, nl_end_idx, nl_start_pos_in_idx, nl_end_pos_in_idx,
+         b_flat_num_rows, broadcast(each));
+  return r;
+}
+
+dftable dftable::union_tables(std::vector<dftable>& ts, bool keep_order) {
+  time_spent t(DEBUG);
+  auto table_size = ts.size();
+  if(table_size == 0) return *this;
+  dftable r;
+  std::vector<std::vector<size_t>> num_rows;
+  if(keep_order) { // keep the num_row information before dropping columns
+    if(col_order.size() != 0) {
+      num_rows.push_back(column(col_order[0])->sizes());
+    }
+    for(size_t i = 0; i < table_size; i++) {
+      if(ts[i].col_order.size() != 0) {
+        num_rows.push_back(ts[i].column(ts[i].col_order[0])->sizes());
+      }
+    }
+  }
+  auto colnames = col_order; // to prepare for drop
+  auto colnames_size = colnames.size();
+  for(size_t i = 0; i < colnames_size; i++) {
+    auto colname = colnames[i];
+    auto col = column(colname);
+    std::vector<std::shared_ptr<dfcolumn>> to_union;
+    for(size_t j = 0; j < table_size; j++) {
+      to_union.push_back(ts[j].column(colname));
+    }
+    auto newcolumn = col->union_columns(to_union);
+    drop(colname);
+    for(size_t j = 0; j < table_size; j++) {
+      ts[j].drop(colname);
+    }
+    r.append_column(colname, newcolumn);
+    t.show("union_tables: union columns: " + colname + ": ");
+  }
+  if(keep_order) {
+    dftable r2;
+    // + 1 for this
+    auto global_idx = union_tables_create_global_idx(num_rows, table_size + 1);
+    sorted_dftable sorted_df(r, std::move(global_idx));
+    {dftable tmp; std::swap(r, tmp);} // clear r
+    t.show("union_tables: create sorted_dftable: ");
+    for(size_t i = 0; i < colnames_size; i++) {
+      auto colname = colnames[i];
+      auto sorted_col = sorted_df.select({colname}).column(colname);
+      r2.append_column(colname, sorted_col);
+      sorted_df.drop(colname);
+    }
+    t.show("union_tables: materialize: ");
+    return r2;
+  } else {
+    return r;
+  }
+}
+
+dftable dftable::distinct() {
+  return group_by(columns()).select(columns());
+}
+
 // ---------- for sorted_dftable ----------
 
 dftable sorted_dftable::select(const std::vector<std::string>& cols) {
@@ -1500,24 +1709,6 @@ void sorted_dftable::debug_print() {
   std::cout << "sorted_column: " << column_name << std::endl;
   dftable_base::debug_print();
 }
-
-/*
-sorted_dftable& sorted_dftable::drop(const std::string& name) {
-  if(name == column_name) {
-    column_name = "";
-    sorted_column = std::shared_ptr<dfcolumn>();
-  }
-  drop_impl(name, col, col_order);
-  return *this;
-}
-
-sorted_dftable& sorted_dftable::rename(const std::string& name,
-                                       const std::string& name2) {
-  rename_impl(name, name2, col, col_order);
-  if(name == column_name) column_name = name2;
-  return *this;
-}
-*/
 
 dftable sorted_dftable::append_rowid(const std::string& name,
                                      size_t offset) {
@@ -2146,6 +2337,8 @@ dftable& dftable::append_column(const std::string& name,
   return *this;
 }
 
+// ---------- other functions ----------
+
 template <>
 dftable& dftable::append_column(const std::string& name,
                                 dvector<std::string>&& d,
@@ -2491,7 +2684,14 @@ dftable_base* dftable::rename_cols(const std::string& name,
 dftable_base* sorted_dftable::rename_cols(const std::string& name,
                                           const std::string& name2){
   rename_impl(name, name2, col, col_order);
+  if(name == column_name) column_name = name2;
   return this;
+}
+
+sorted_dftable& sorted_dftable::rename(const std::string& name,
+                                       const std::string& name2) {
+  rename_cols(name, name2);
+  return *this;
 }
 
 dftable_base* hash_joined_dftable::rename_cols(const std::string& name,
@@ -2506,6 +2706,12 @@ dftable_base* hash_joined_dftable::rename_cols(const std::string& name,
   return this;
 }
 
+hash_joined_dftable& hash_joined_dftable::rename(const std::string& name,
+                                                 const std::string& name2){
+  rename_cols(name, name2);
+  return *this;
+}
+
 dftable_base* bcast_joined_dftable::rename_cols(const std::string& name,
                                                 const std::string& name2){
   bool in_left = col.find(name) != col.end();
@@ -2515,6 +2721,12 @@ dftable_base* bcast_joined_dftable::rename_cols(const std::string& name,
   else if (in_right) rename_impl(name, name2, right.col, right.col_order);
   else throw std::runtime_error("no such column: " + name);
   return this;
+}
+
+bcast_joined_dftable& bcast_joined_dftable::rename(const std::string& name,
+                                                   const std::string& name2){
+  rename_cols(name, name2);
+  return *this;
 }
 
 dftable_base* star_joined_dftable::rename_cols(const std::string& name,
@@ -2534,10 +2746,67 @@ dftable_base* star_joined_dftable::rename_cols(const std::string& name,
   return this;
 }
 
+star_joined_dftable& star_joined_dftable::rename(const std::string& name,
+                                                 const std::string& name2){
+  rename_cols(name, name2);
+  return *this;
+}
+
 dftable_base* filtered_dftable::rename_cols(const std::string& name,
                                             const std::string& name2){
   rename_impl(name, name2, col, col_order);
   return this;
+}
+
+filtered_dftable& filtered_dftable::rename(const std::string& name,
+                                           const std::string& name2){
+  rename_cols(name, name2);
+  return *this;
+}
+
+sorted_dftable& sorted_dftable::drop(const std::string& name) {
+  if(name == column_name) {
+    column_name = "";
+    sorted_column = std::shared_ptr<dfcolumn>();
+  }
+  drop_impl(name, col, col_order);
+  return *this;
+}
+
+hash_joined_dftable& hash_joined_dftable::drop(const std::string& name) {
+  bool in_left = col.find(name) != col.end();
+  bool in_right = right.col.find(name) != right.col.end();
+
+  if (in_left) drop_impl(name, col, col_order);
+  else if (in_right) drop_impl(name, right.col, right.col_order);
+  else throw std::runtime_error("no such column: " + name);
+  return *this;
+}
+
+bcast_joined_dftable& bcast_joined_dftable::drop(const std::string& name) {
+  bool in_left = col.find(name) != col.end();
+  bool in_right = right.col.find(name) != right.col.end();
+
+  if (in_left) drop_impl(name, col, col_order);
+  else if (in_right) drop_impl(name, right.col, right.col_order);
+  else throw std::runtime_error("no such column: " + name);
+  return *this;
+}
+
+star_joined_dftable& star_joined_dftable::drop(const std::string& name) {
+  bool found = col.find(name) != col.end();
+  if (found) drop_impl(name, col, col_order);
+  else {
+    for(size_t i = 0; i < rights.size(); i++) {
+      found = rights[i].col.find(name) != rights[i].col.end();
+      if(found) {
+        drop_impl(name, rights[i].col, rights[i].col_order);
+        break;
+      } 
+    }
+    if (!found) throw std::runtime_error("no such column: " + name);
+  }
+  return *this;
 }
 
 }
