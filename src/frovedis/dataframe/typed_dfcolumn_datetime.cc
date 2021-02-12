@@ -467,5 +467,175 @@ typed_dfcolumn<datetime>::tail(size_t limit) {
   return ret;
 }
 
+std::shared_ptr<dfcolumn>
+typed_dfcolumn<datetime>::union_columns
+(const std::vector<std::shared_ptr<dfcolumn>>& cols) {
+  auto cols_size = cols.size();
+  if(cols_size == 0) {
+    return std::make_shared<typed_dfcolumn<datetime>>(val, nulls);
+  }
+  std::vector<std::shared_ptr<typed_dfcolumn<datetime>>> rights(cols_size);
+  for(size_t i = 0; i < cols_size; i++) {
+    rights[i] = std::dynamic_pointer_cast<typed_dfcolumn<datetime>>(cols[i]);
+    if(!rights[i]) throw std::runtime_error("union_columns: different type");
+  }
+  auto val_colsp =
+    make_node_local_allocate<std::vector<std::vector<datetime_t>*>>();
+  auto nulls_colsp =
+    make_node_local_allocate<std::vector<std::vector<size_t>*>>();
+  val.mapv(+[](std::vector<datetime_t>& val,
+               std::vector<std::vector<datetime_t>*>& val_colsp)
+           {val_colsp.push_back(&val);}, val_colsp);
+  nulls.mapv(+[](std::vector<size_t>& nulls,
+                 std::vector<std::vector<size_t>*>& nulls_colsp)
+             {nulls_colsp.push_back(&nulls);}, nulls_colsp);
+  for(size_t i = 0; i < cols_size; i++) {
+    rights[i]->val.mapv(+[](std::vector<datetime_t>& val,
+                            std::vector<std::vector<datetime_t>*>& val_colsp)
+                        {val_colsp.push_back(&val);}, val_colsp);
+    rights[i]->nulls.mapv(+[](std::vector<size_t>& nulls,
+                              std::vector<std::vector<size_t>*>& nulls_colsp)
+                          {nulls_colsp.push_back(&nulls);}, nulls_colsp);
+  }
+  auto newval = make_node_local_allocate<std::vector<datetime_t>>();
+  auto newnulls = make_node_local_allocate<std::vector<size_t>>();
+  newval.mapv(union_columns_helper<datetime_t>,
+              newnulls, val_colsp, nulls_colsp);
+  return std::make_shared<typed_dfcolumn<datetime>>(std::move(newval),
+                                                    std::move(newnulls));
+}
+
+node_local<std::vector<size_t>>
+typed_dfcolumn<datetime>::filter_eq(std::shared_ptr<dfcolumn>& right) {
+  auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<datetime>>(right);
+  if(!right2) throw std::runtime_error("filter_eq: column types are different");
+  auto filtered_idx = val.map(filter_eq_helper<datetime_t, datetime_t>,
+                              right2->val);
+  if(contain_nulls)
+    return filtered_idx.map(set_difference<size_t>, nulls);
+  else return filtered_idx;
+}
+
+node_local<std::vector<size_t>>
+typed_dfcolumn<datetime>::filter_eq_immed(std::shared_ptr<dfscalar>& right) {
+  auto right2 = std::dynamic_pointer_cast<typed_dfscalar<datetime_t>>(right);
+  if(!right2) throw std::runtime_error("filter_eq_immed: types are different");
+  auto filtered_idx = val.map(filter_eq_immed_helper<datetime_t, datetime_t>,
+                              broadcast(right2->val));
+  if(contain_nulls)
+    return filtered_idx.map(set_difference<size_t>, nulls);
+  else return filtered_idx;
+}
+
+node_local<std::vector<size_t>>
+typed_dfcolumn<datetime>::filter_neq(std::shared_ptr<dfcolumn>& right) {
+  auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<datetime>>(right);
+  if(!right2) 
+    throw std::runtime_error("filter_neq: column types are different");
+  auto filtered_idx = val.map(filter_neq_helper<datetime_t, datetime_t>,
+                              right2->val);
+  if(contain_nulls)
+    return filtered_idx.map(set_difference<size_t>, nulls);
+  else return filtered_idx;
+}
+
+node_local<std::vector<size_t>>
+typed_dfcolumn<datetime>::filter_neq_immed(std::shared_ptr<dfscalar>& right) {
+  auto right2 = std::dynamic_pointer_cast<typed_dfscalar<datetime_t>>(right);
+  if(!right2) throw std::runtime_error("filter_neq_immed: types are different");
+  auto filtered_idx = val.map(filter_neq_immed_helper<datetime_t, datetime_t>,
+                              broadcast(right2->val));
+  if(contain_nulls)
+    return filtered_idx.map(set_difference<size_t>, nulls);
+  else return filtered_idx;
+}
+
+node_local<std::vector<size_t>>
+typed_dfcolumn<datetime>::filter_lt(std::shared_ptr<dfcolumn>& right) {
+  auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<datetime>>(right);
+  if(!right2) throw std::runtime_error("filter_lt: column types are different");
+  auto filtered_idx = val.map(filter_lt_helper<datetime_t, datetime_t>,
+                              right2->val);
+  if(contain_nulls)
+    return filtered_idx.map(set_difference<size_t>, nulls);
+  else return filtered_idx;
+}
+
+node_local<std::vector<size_t>>
+typed_dfcolumn<datetime>::filter_lt_immed(std::shared_ptr<dfscalar>& right) {
+  auto right2 = std::dynamic_pointer_cast<typed_dfscalar<datetime_t>>(right);
+  if(!right2) throw std::runtime_error("filter_lt_immed: types are different");
+  auto filtered_idx = val.map(filter_lt_immed_helper<datetime_t, datetime_t>,
+                              broadcast(right2->val));
+  if(contain_nulls)
+    return filtered_idx.map(set_difference<size_t>, nulls);
+  else return filtered_idx;
+}
+
+node_local<std::vector<size_t>>
+typed_dfcolumn<datetime>::filter_le(std::shared_ptr<dfcolumn>& right) {
+  auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<datetime>>(right);
+  if(!right2) throw std::runtime_error("filter_le: column types are different");
+  auto filtered_idx = val.map(filter_le_helper<datetime_t, datetime_t>,
+                              right2->val);
+  if(contain_nulls)
+    return filtered_idx.map(set_difference<size_t>, nulls);
+  else return filtered_idx;
+}
+
+node_local<std::vector<size_t>>
+typed_dfcolumn<datetime>::filter_le_immed(std::shared_ptr<dfscalar>& right) {
+  auto right2 = std::dynamic_pointer_cast<typed_dfscalar<datetime_t>>(right);
+  if(!right2) throw std::runtime_error("filter_le_immed: types are different");
+  auto filtered_idx = val.map(filter_le_immed_helper<datetime_t, datetime_t>,
+                              broadcast(right2->val));
+  if(contain_nulls)
+    return filtered_idx.map(set_difference<size_t>, nulls);
+  else return filtered_idx;
+}
+
+node_local<std::vector<size_t>>
+typed_dfcolumn<datetime>::filter_gt(std::shared_ptr<dfcolumn>& right) {
+  auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<datetime>>(right);
+  if(!right2) throw std::runtime_error("filter_gt: column types are different");
+  auto filtered_idx = val.map(filter_gt_helper<datetime_t, datetime_t>,
+                              right2->val);
+  if(contain_nulls)
+    return filtered_idx.map(set_difference<size_t>, nulls);
+  else return filtered_idx;
+}
+
+node_local<std::vector<size_t>>
+typed_dfcolumn<datetime>::filter_gt_immed(std::shared_ptr<dfscalar>& right) {
+  auto right2 = std::dynamic_pointer_cast<typed_dfscalar<datetime_t>>(right);
+  if(!right2) throw std::runtime_error("filter_gt_immed: types are different");
+  auto filtered_idx = val.map(filter_gt_immed_helper<datetime_t, datetime_t>,
+                              broadcast(right2->val));
+  if(contain_nulls)
+    return filtered_idx.map(set_difference<size_t>, nulls);
+  else return filtered_idx;
+}
+
+node_local<std::vector<size_t>>
+typed_dfcolumn<datetime>::filter_ge(std::shared_ptr<dfcolumn>& right) {
+  auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<datetime>>(right);
+  if(!right2) throw std::runtime_error("filter_ge: column types are different");
+  auto filtered_idx = val.map(filter_ge_helper<datetime_t, datetime_t>,
+                              right2->val);
+  if(contain_nulls)
+    return filtered_idx.map(set_difference<size_t>, nulls);
+  else return filtered_idx;
+}
+
+node_local<std::vector<size_t>>
+typed_dfcolumn<datetime>::filter_ge_immed(std::shared_ptr<dfscalar>& right) {
+  auto right2 = std::dynamic_pointer_cast<typed_dfscalar<datetime_t>>(right);
+  if(!right2) throw std::runtime_error("filter_ge_immed: types are different");
+  auto filtered_idx = val.map(filter_ge_immed_helper<datetime_t, datetime_t>,
+                              broadcast(right2->val));
+  if(contain_nulls)
+    return filtered_idx.map(set_difference<size_t>, nulls);
+  else return filtered_idx;
+}
 
 }
