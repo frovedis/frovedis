@@ -41,7 +41,7 @@ struct kneighbors_classifier {
     auto need_distance = (mode == std::string("distance"));
     auto model = kneighbors<I>(enquiry_data, k, need_distance);
     auto nsamples = observation_data.num_row;
-    return model.create_graph(mode, nsamples);
+    return model.template create_graph<O>(mode, nsamples);
   }
 
   template <class I = size_t>
@@ -259,7 +259,7 @@ struct kneighbors_regressor {
     auto need_distance = (mode == std::string("distance"));
     auto model = kneighbors<I>(enquiry_data, k, need_distance);
     auto nsamples = observation_data.num_row;
-    return model.create_graph(mode, nsamples);
+    return model.template create_graph<O>(mode, nsamples);
   }
 
   template <class I = size_t>
