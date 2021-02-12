@@ -11,6 +11,7 @@
 #include "join.hpp"
 #include "../text/dict.hpp"
 #include "../text/parsedatetime.hpp"
+#include "dfscalar.hpp"
 
 #define DFNODESHIFT 48 // used to concatenate node id and local index
 
@@ -30,15 +31,43 @@ public:
   virtual node_local<std::vector<size_t>>
   filter_eq(std::shared_ptr<dfcolumn>& right) = 0;
   virtual node_local<std::vector<size_t>>
+  filter_eq_immed(std::shared_ptr<dfscalar>& right) = 0;
+  virtual node_local<std::vector<size_t>>
   filter_neq(std::shared_ptr<dfcolumn>& right) = 0;
   virtual node_local<std::vector<size_t>>
-  filter_lt(std::shared_ptr<dfcolumn>& right) = 0;
+  filter_neq_immed(std::shared_ptr<dfscalar>& right) = 0;
   virtual node_local<std::vector<size_t>>
-  filter_le(std::shared_ptr<dfcolumn>& right) = 0;
+  filter_lt(std::shared_ptr<dfcolumn>& right) {
+    throw std::runtime_error("filter_lt is not supported for this type");
+  }
   virtual node_local<std::vector<size_t>>
-  filter_gt(std::shared_ptr<dfcolumn>& right) = 0;
+  filter_lt_immed(std::shared_ptr<dfscalar>& right) {
+    throw std::runtime_error("filter_lt_immed is not supported for this type");
+  }
   virtual node_local<std::vector<size_t>>
-  filter_ge(std::shared_ptr<dfcolumn>& right) = 0;
+  filter_le(std::shared_ptr<dfcolumn>& right) {
+    throw std::runtime_error("filter_le is not supported for this type");
+  }
+  virtual node_local<std::vector<size_t>>
+  filter_le_immed(std::shared_ptr<dfscalar>& right) {
+    throw std::runtime_error("filter_le_immed is not supported for this type");
+  }
+  virtual node_local<std::vector<size_t>>
+  filter_gt(std::shared_ptr<dfcolumn>& right) {
+    throw std::runtime_error("filter_gt is not supported for this type");
+  }
+  virtual node_local<std::vector<size_t>>
+  filter_gt_immed(std::shared_ptr<dfscalar>& right) {
+    throw std::runtime_error("filter_gt_immed is not supported for this type");
+  }
+  virtual node_local<std::vector<size_t>>
+  filter_ge(std::shared_ptr<dfcolumn>& right) {
+    throw std::runtime_error("filter_ge is not supported for this type");
+  }
+  virtual node_local<std::vector<size_t>>
+  filter_ge_immed(std::shared_ptr<dfscalar>& right) {
+    throw std::runtime_error("filter_ge_immed is not supported for this type");
+  }
   virtual node_local<std::vector<size_t>>
   filter_is_null() = 0;
   virtual node_local<std::vector<size_t>>
@@ -134,6 +163,11 @@ public:
   virtual std::shared_ptr<dfcolumn> 
   multi_group_by_exchange(node_local<std::vector<std::vector<size_t>>>&
                           hash_divide) = 0;
+  virtual node_local<std::vector<size_t>>
+  calc_hash_base_multi_join(std::shared_ptr<dfcolumn>& left) = 0;
+  virtual void
+  calc_hash_base_multi_join(node_local<std::vector<size_t>>& hash, int shift,
+                            std::shared_ptr<dfcolumn>& left) = 0;
   // for grouped_dftable
   virtual std::shared_ptr<dfcolumn>
   sum(node_local<std::vector<size_t>>& local_grouped_idx,
@@ -175,6 +209,61 @@ public:
   // cast to float/double; throw exception when string 
   virtual dvector<float> as_dvector_float() = 0; 
   virtual dvector<double> as_dvector_double() = 0;
+  virtual std::shared_ptr<dfcolumn> type_cast(const std::string& to_type) {
+    throw std::runtime_error("type_cast is not supported for this type");
+  }
+  virtual std::shared_ptr<dfcolumn>
+  add(const std::shared_ptr<dfcolumn>& right) {
+    throw std::runtime_error("add is not supported for this type");
+  }
+  virtual std::shared_ptr<dfcolumn>
+  add_im(const std::shared_ptr<dfscalar>& right) {
+    throw std::runtime_error("add_im is not supported for this type");
+  }
+  virtual std::shared_ptr<dfcolumn>
+  sub(const std::shared_ptr<dfcolumn>& right) {
+    throw std::runtime_error("sub is not supported for this type");
+  }
+  virtual std::shared_ptr<dfcolumn>
+  sub_im(const std::shared_ptr<dfscalar>& right) {
+    throw std::runtime_error("sub_im is not supported for this type");
+  }
+  virtual std::shared_ptr<dfcolumn>
+  mul(const std::shared_ptr<dfcolumn>& right) {
+    throw std::runtime_error("mul is not supported for this type");
+  }
+  virtual std::shared_ptr<dfcolumn>
+  mul_im(const std::shared_ptr<dfscalar>& right) {
+    throw std::runtime_error("mul_im is not supported for this type");
+  }
+  virtual std::shared_ptr<dfcolumn>
+  fdiv(const std::shared_ptr<dfcolumn>& right) {
+    throw std::runtime_error("fdiv is not supported for this type");
+  }
+  virtual std::shared_ptr<dfcolumn>
+  fdiv_im(const std::shared_ptr<dfscalar>& right) {
+    throw std::runtime_error("fdiv_im is not supported for this type");
+  }
+  virtual std::shared_ptr<dfcolumn>
+  idiv(const std::shared_ptr<dfcolumn>& right) {
+    throw std::runtime_error("idiv is not supported for this type");
+  }
+  virtual std::shared_ptr<dfcolumn>
+  idiv_im(const std::shared_ptr<dfscalar>& right) {
+    throw std::runtime_error("idiv_im is not supported for this type");
+  }
+  virtual std::shared_ptr<dfcolumn>
+  mod(const std::shared_ptr<dfcolumn>& right) {
+    throw std::runtime_error("mod is not supported for this type");
+  }
+  virtual std::shared_ptr<dfcolumn>
+  mod_im(const std::shared_ptr<dfscalar>& right) {
+    throw std::runtime_error("mod_im is not supported for this type");
+  }
+  virtual std::shared_ptr<dfcolumn>
+  abs() {throw std::runtime_error("abs is not supported for this type");}
+  virtual std::shared_ptr<dfcolumn>
+  union_columns(const std::vector<std::shared_ptr<dfcolumn>>& cols) = 0;
   virtual std::shared_ptr<dfcolumn> head(size_t limit) = 0;
   virtual std::shared_ptr<dfcolumn> tail(size_t limit) = 0;
   virtual bool is_string() {return false;}
@@ -202,6 +291,11 @@ public:
     val(std::move(val)), nulls(std::move(nulls)) {
     contain_nulls_check();
   }
+  typed_dfcolumn(node_local<std::vector<T>>&& val, 
+                 node_local<std::vector<size_t>>& nulls) :
+    val(std::move(val)), nulls(nulls) {
+    contain_nulls_check();
+  }
   typed_dfcolumn(node_local<std::vector<T>>& val, 
                  node_local<std::vector<size_t>>& nulls) :
     val(val), nulls(nulls) {
@@ -216,28 +310,28 @@ public:
                                      const std::string& nullstr = "NULL");
   virtual node_local<std::vector<size_t>>
   filter_eq(std::shared_ptr<dfcolumn>& right);
-  node_local<std::vector<size_t>>
-  filter_eq_immed(const T& right);
+  virtual node_local<std::vector<size_t>>
+  filter_eq_immed(std::shared_ptr<dfscalar>& right);
   virtual node_local<std::vector<size_t>>
   filter_neq(std::shared_ptr<dfcolumn>& right);
-  node_local<std::vector<size_t>>
-  filter_neq_immed(const T& right);
+  virtual node_local<std::vector<size_t>>
+  filter_neq_immed(std::shared_ptr<dfscalar>& right);
   virtual node_local<std::vector<size_t>>
   filter_lt(std::shared_ptr<dfcolumn>& right);
-  node_local<std::vector<size_t>>
-  filter_lt_immed(const T& right);
+  virtual node_local<std::vector<size_t>>
+  filter_lt_immed(std::shared_ptr<dfscalar>& right);
   virtual node_local<std::vector<size_t>>
   filter_le(std::shared_ptr<dfcolumn>& right);
-  node_local<std::vector<size_t>>
-  filter_le_immed(const T& right);
+  virtual node_local<std::vector<size_t>>
+  filter_le_immed(std::shared_ptr<dfscalar>& right);
   virtual node_local<std::vector<size_t>>
   filter_gt(std::shared_ptr<dfcolumn>& right);
-  node_local<std::vector<size_t>>
-  filter_gt_immed(const T& right);
+  virtual node_local<std::vector<size_t>>
+  filter_gt_immed(std::shared_ptr<dfscalar>& right);
   virtual node_local<std::vector<size_t>>
   filter_ge(std::shared_ptr<dfcolumn>& right);
-  node_local<std::vector<size_t>>
-  filter_ge_immed(const T& right);
+  virtual node_local<std::vector<size_t>>
+  filter_ge_immed(std::shared_ptr<dfscalar>& right);
   virtual node_local<std::vector<size_t>>
   filter_is_null();
   virtual node_local<std::vector<size_t>>
@@ -329,6 +423,11 @@ public:
   calc_hash_base();
   virtual void
   calc_hash_base(node_local<std::vector<size_t>>& hash, int shift);
+  virtual node_local<std::vector<size_t>>
+  calc_hash_base_multi_join(std::shared_ptr<dfcolumn>& left);
+  virtual void
+  calc_hash_base_multi_join(node_local<std::vector<size_t>>& hash, int shift,
+                            std::shared_ptr<dfcolumn>& left);
   virtual std::shared_ptr<dfcolumn> 
   multi_group_by_exchange(node_local<std::vector<std::vector<size_t>>>&
                           hash_divide);
@@ -369,11 +468,73 @@ public:
   T min();
   virtual dvector<float> as_dvector_float(); 
   virtual dvector<double> as_dvector_double();
+  virtual std::shared_ptr<dfcolumn> type_cast(const std::string& to_type);
+
+  virtual std::shared_ptr<dfcolumn> add(const std::shared_ptr<dfcolumn>& right);
+  template <class U>
+  std::shared_ptr<dfcolumn>
+  typed_add(const std::shared_ptr<typed_dfcolumn<U>>& right);
+  virtual std::shared_ptr<dfcolumn>
+  add_im(const std::shared_ptr<dfscalar>& right);
+  template <class U>
+  std::shared_ptr<dfcolumn>
+  typed_add_im(const std::shared_ptr<typed_dfscalar<U>>& right);
+  virtual std::shared_ptr<dfcolumn> sub(const std::shared_ptr<dfcolumn>& right);
+  template <class U>
+  std::shared_ptr<dfcolumn>
+  typed_sub(const std::shared_ptr<typed_dfcolumn<U>>& right);
+  virtual std::shared_ptr<dfcolumn>
+  sub_im(const std::shared_ptr<dfscalar>& right);
+  template <class U>
+  std::shared_ptr<dfcolumn>
+  typed_sub_im(const std::shared_ptr<typed_dfscalar<U>>& right);
+  virtual std::shared_ptr<dfcolumn> mul(const std::shared_ptr<dfcolumn>& right);
+  template <class U>
+  std::shared_ptr<dfcolumn>
+  typed_mul(const std::shared_ptr<typed_dfcolumn<U>>& right);
+  virtual std::shared_ptr<dfcolumn>
+  mul_im(const std::shared_ptr<dfscalar>& right);
+  template <class U>
+  std::shared_ptr<dfcolumn>
+  typed_mul_im(const std::shared_ptr<typed_dfscalar<U>>& right);
+  virtual std::shared_ptr<dfcolumn>
+  fdiv(const std::shared_ptr<dfcolumn>& right);
+  template <class U>
+  std::shared_ptr<dfcolumn>
+  typed_fdiv(const std::shared_ptr<typed_dfcolumn<U>>& right);
+  virtual std::shared_ptr<dfcolumn>
+  fdiv_im(const std::shared_ptr<dfscalar>& right);
+  template <class U>
+  std::shared_ptr<dfcolumn>
+  typed_fdiv_im(const std::shared_ptr<typed_dfscalar<U>>& right);
+  virtual std::shared_ptr<dfcolumn> 
+  idiv(const std::shared_ptr<dfcolumn>& right);
+  template <class U>
+  std::shared_ptr<dfcolumn>
+  typed_idiv(const std::shared_ptr<typed_dfcolumn<U>>& right);
+  virtual std::shared_ptr<dfcolumn>
+  idiv_im(const std::shared_ptr<dfscalar>& right);
+  template <class U>
+  std::shared_ptr<dfcolumn>
+  typed_idiv_im(const std::shared_ptr<typed_dfscalar<U>>& right);
+  virtual std::shared_ptr<dfcolumn> mod(const std::shared_ptr<dfcolumn>& right);
+  template <class U>
+  std::shared_ptr<dfcolumn>
+  typed_mod(const std::shared_ptr<typed_dfcolumn<U>>& right);
+  virtual std::shared_ptr<dfcolumn>
+  mod_im(const std::shared_ptr<dfscalar>& right);
+  template <class U>
+  std::shared_ptr<dfcolumn>
+  typed_mod_im(const std::shared_ptr<typed_dfscalar<U>>& right);
+
+  virtual std::shared_ptr<dfcolumn> abs();
   virtual void debug_print();
   virtual std::string dtype() const;
   virtual void save(const std::string& file);
   virtual std::shared_ptr<dfcolumn> head(size_t limit);
   virtual std::shared_ptr<dfcolumn> tail(size_t limit);
+  virtual std::shared_ptr<dfcolumn> 
+  union_columns(const std::vector<std::shared_ptr<dfcolumn>>& cols);
   virtual void contain_nulls_check();
   node_local<std::vector<T>>& get_val(){return val;}
   virtual node_local<std::vector<size_t>> get_nulls(){return nulls;}
@@ -410,32 +571,36 @@ public:
     init(dv); nulls = std::move(nulls_); contain_nulls_check();
     if(contain_nulls) nulls.mapv(reset_null_val<size_t>, val);
   }
+  typed_dfcolumn(node_local<std::vector<std::size_t>>&& val_,
+                 node_local<std::vector<size_t>>&& nulls_,
+                 std::shared_ptr<dunordered_map<std::string, size_t>>&& dic_,
+                 std::shared_ptr<node_local<std::vector<std::string>>>&&
+                 dic_idx_) {
+    val = std::move(val_); nulls = std::move(nulls_);
+    dic = std::move(dic_); dic_idx = std::move(dic_idx_);
+    contain_nulls_check();
+    if(contain_nulls) nulls.mapv(reset_null_val<size_t>, val);
+  }
+  typed_dfcolumn(node_local<std::vector<std::size_t>>& val_,
+                 node_local<std::vector<size_t>>& nulls_,
+                 std::shared_ptr<dunordered_map<std::string, size_t>>& dic_,
+                 std::shared_ptr<node_local<std::vector<std::string>>>&
+                 dic_idx_) {
+    val = val_; nulls = nulls_;
+    dic = dic_; dic_idx = dic_idx_;
+    contain_nulls_check();
+    if(contain_nulls) nulls.mapv(reset_null_val<size_t>, val);
+  }
   virtual size_t size();
   virtual std::vector<size_t> sizes();
   virtual node_local<std::vector<size_t>>
   filter_eq(std::shared_ptr<dfcolumn>& right);
-  node_local<std::vector<size_t>>
-  filter_eq_immed(const std::string& right);
+  virtual node_local<std::vector<size_t>>
+  filter_eq_immed(std::shared_ptr<dfscalar>& right);
   virtual node_local<std::vector<size_t>>
   filter_neq(std::shared_ptr<dfcolumn>& right);
-  node_local<std::vector<size_t>>
-  filter_neq_immed(const std::string& right);
   virtual node_local<std::vector<size_t>>
-  filter_lt(std::shared_ptr<dfcolumn>& right) {
-    throw std::runtime_error("filtering with lt for string");
-  }
-  virtual node_local<std::vector<size_t>>
-  filter_le(std::shared_ptr<dfcolumn>& right) {
-    throw std::runtime_error("filtering with le for string");
-  }
-  virtual node_local<std::vector<size_t>>
-  filter_gt(std::shared_ptr<dfcolumn>& right) {
-    throw std::runtime_error("filtering with gt for string");
-  }
-  virtual node_local<std::vector<size_t>>
-  filter_ge(std::shared_ptr<dfcolumn>& right) {
-    throw std::runtime_error("filtering with ge for string");
-  }
+  filter_neq_immed(std::shared_ptr<dfscalar>& right);
   virtual node_local<std::vector<size_t>>
   filter_is_null();
   virtual node_local<std::vector<size_t>>
@@ -544,6 +709,11 @@ public:
   calc_hash_base();
   virtual void
   calc_hash_base(node_local<std::vector<size_t>>& hash, int shift);
+  virtual node_local<std::vector<size_t>>
+  calc_hash_base_multi_join(std::shared_ptr<dfcolumn>& left);
+  virtual void
+  calc_hash_base_multi_join(node_local<std::vector<size_t>>& hash, int shift,
+                            std::shared_ptr<dfcolumn>& left);
   virtual std::shared_ptr<dfcolumn> 
   multi_group_by_exchange(node_local<std::vector<std::vector<size_t>>>&
                           hash_divide);
@@ -611,9 +781,13 @@ public:
   typed_dfcolumn<size_t> sort_prepare();
   node_local<std::vector<size_t>> equal_prepare
   (std::shared_ptr<typed_dfcolumn<std::string>>&);
+  node_local<std::vector<size_t>>
+  equal_prepare_multi_join(typed_dfcolumn<std::string>& right);
   virtual void contain_nulls_check();
   virtual std::shared_ptr<dfcolumn> head(size_t limit);
   virtual std::shared_ptr<dfcolumn> tail(size_t limit);
+  virtual std::shared_ptr<dfcolumn> 
+  union_columns(const std::vector<std::shared_ptr<dfcolumn>>& cols);
   // string -> idx; shared between columns
   std::shared_ptr<dunordered_map<std::string, size_t>> dic;
   // idx -> string; shared between columns
@@ -648,32 +822,26 @@ public:
                  node_local<std::vector<size_t>>&& nulls)
     : nulls(std::move(nulls))
     {init_compressed(ws, false); contain_nulls_check();}
+  typed_dfcolumn(std::shared_ptr<node_local<dict>>& dic,
+                 node_local<std::vector<size_t>>& val,
+                 node_local<std::vector<size_t>>& nulls)
+    : dic(dic), val(val), nulls(nulls) {contain_nulls_check();}
+  typed_dfcolumn(std::shared_ptr<node_local<dict>>&& dic,
+                 node_local<std::vector<size_t>>&& val,
+                 node_local<std::vector<size_t>>&& nulls)
+    : dic(std::move(dic)), val(std::move(val)), nulls(std::move(nulls))
+    {contain_nulls_check();}
+
   virtual size_t size(); 
   virtual std::vector<size_t> sizes(); 
   virtual node_local<std::vector<size_t>>
   filter_eq(std::shared_ptr<dfcolumn>& right);
-  node_local<std::vector<size_t>>
-  filter_eq_immed(const std::string& right);
+  virtual node_local<std::vector<size_t>>
+  filter_eq_immed(std::shared_ptr<dfscalar>& right);
   virtual node_local<std::vector<size_t>>
   filter_neq(std::shared_ptr<dfcolumn>& right);
-  node_local<std::vector<size_t>>
-  filter_neq_immed(const std::string& right);
   virtual node_local<std::vector<size_t>>
-  filter_lt(std::shared_ptr<dfcolumn>& right) {
-    throw std::runtime_error("filtering with lt for dic_string");
-  }
-  virtual node_local<std::vector<size_t>>
-  filter_le(std::shared_ptr<dfcolumn>& right) {
-    throw std::runtime_error("filtering with le for dic_string");
-  }
-  virtual node_local<std::vector<size_t>>
-  filter_gt(std::shared_ptr<dfcolumn>& right) {
-    throw std::runtime_error("filtering with gt for dic_string");
-  }
-  virtual node_local<std::vector<size_t>>
-  filter_ge(std::shared_ptr<dfcolumn>& right) {
-    throw std::runtime_error("filtering with ge for dic_string");
-  }
+  filter_neq_immed(std::shared_ptr<dfscalar>& right);
   virtual node_local<std::vector<size_t>>
   filter_is_null();
   virtual node_local<std::vector<size_t>>
@@ -786,6 +954,11 @@ public:
   calc_hash_base();
   virtual void
   calc_hash_base(node_local<std::vector<size_t>>& hash, int shift);
+  virtual node_local<std::vector<size_t>>
+  calc_hash_base_multi_join(std::shared_ptr<dfcolumn>& left);
+  virtual void
+  calc_hash_base_multi_join(node_local<std::vector<size_t>>& hash, int shift,
+                            std::shared_ptr<dfcolumn>& left);
   virtual std::shared_ptr<dfcolumn> 
   multi_group_by_exchange(node_local<std::vector<std::vector<size_t>>>&
                           hash_divide);
@@ -855,9 +1028,13 @@ public:
   typed_dfcolumn<size_t> sort_prepare();
   node_local<std::vector<size_t>> equal_prepare
   (std::shared_ptr<typed_dfcolumn<dic_string>>&);
+  node_local<std::vector<size_t>>
+  equal_prepare_multi_join(typed_dfcolumn<dic_string>& right);
   virtual void contain_nulls_check();
   virtual std::shared_ptr<dfcolumn> head(size_t limit);
   virtual std::shared_ptr<dfcolumn> tail(size_t limit);
+  virtual std::shared_ptr<dfcolumn> 
+  union_columns(const std::vector<std::shared_ptr<dfcolumn>>& cols);
   // dictionary is shared between columns; all node have the same dic
   std::shared_ptr<node_local<dict>> dic;
   node_local<std::vector<size_t>> val;
@@ -896,31 +1073,14 @@ public:
   filter_eq(std::shared_ptr<dfcolumn>& right) {
     throw std::runtime_error("filtering with eq for raw_string");
   }
-  // TODO: efficient implementation of filter_[n]eq_immed
-  node_local<std::vector<size_t>>
-  filter_eq_immed(const std::string& right) {return filter_like(right,0);}
+  virtual node_local<std::vector<size_t>>
+  filter_eq_immed(std::shared_ptr<dfscalar>& right);
   virtual node_local<std::vector<size_t>>
   filter_neq(std::shared_ptr<dfcolumn>& right) {
     throw std::runtime_error("filtering with neq for raw_string");
   }
-  node_local<std::vector<size_t>>
-  filter_neq_immed(const std::string& right) {return filter_not_like(right,0);}
   virtual node_local<std::vector<size_t>>
-  filter_lt(std::shared_ptr<dfcolumn>& right) {
-    throw std::runtime_error("filtering with lt for raw_string");
-  }
-  virtual node_local<std::vector<size_t>>
-  filter_le(std::shared_ptr<dfcolumn>& right) {
-    throw std::runtime_error("filtering with le for raw_string");
-  }
-  virtual node_local<std::vector<size_t>>
-  filter_gt(std::shared_ptr<dfcolumn>& right) {
-    throw std::runtime_error("filtering with gt for raw_string");
-  }
-  virtual node_local<std::vector<size_t>>
-  filter_ge(std::shared_ptr<dfcolumn>& right) {
-    throw std::runtime_error("filtering with ge for raw_string");
-  }
+  filter_neq_immed(std::shared_ptr<dfscalar>& right);
   virtual node_local<std::vector<size_t>>
   filter_is_null();
   virtual node_local<std::vector<size_t>>
@@ -1065,6 +1225,15 @@ public:
   calc_hash_base(node_local<std::vector<size_t>>& hash, int shift) {
     throw std::runtime_error("group_by is not defined for raw_string");
   }
+  virtual node_local<std::vector<size_t>>
+  calc_hash_base_multi_join(std::shared_ptr<dfcolumn>& left) {
+    throw std::runtime_error("join is not defined for raw_string");
+  }
+  virtual void
+  calc_hash_base_multi_join(node_local<std::vector<size_t>>& hash, int shift,
+                            std::shared_ptr<dfcolumn>& left) {
+    throw std::runtime_error("join is not defined for raw_string");
+  }
   virtual std::shared_ptr<dfcolumn> 
   multi_group_by_exchange(node_local<std::vector<std::vector<size_t>>>&
                           hash_divide) {
@@ -1147,6 +1316,8 @@ public:
   virtual void contain_nulls_check();
   virtual std::shared_ptr<dfcolumn> head(size_t limit);
   virtual std::shared_ptr<dfcolumn> tail(size_t limit);
+  virtual std::shared_ptr<dfcolumn>
+  union_columns(const std::vector<std::shared_ptr<dfcolumn>>& cols);
   void align_as(const std::vector<size_t>&);
   node_local<compressed_words> comp_words;
   node_local<std::vector<size_t>> nulls;
@@ -1173,6 +1344,30 @@ public:
                                      const std::string& datetime_fmt="%Y-%m-%d",
                                      bool escape = true,
                                      const std::string& nullstr = "NULL");
+  virtual node_local<std::vector<size_t>>
+  filter_eq(std::shared_ptr<dfcolumn>& right);
+  virtual node_local<std::vector<size_t>>
+  filter_eq_immed(std::shared_ptr<dfscalar>& right);
+  virtual node_local<std::vector<size_t>>
+  filter_neq(std::shared_ptr<dfcolumn>& right);
+  virtual node_local<std::vector<size_t>>
+  filter_neq_immed(std::shared_ptr<dfscalar>& right);
+  virtual node_local<std::vector<size_t>>
+  filter_lt(std::shared_ptr<dfcolumn>& right);
+  virtual node_local<std::vector<size_t>>
+  filter_lt_immed(std::shared_ptr<dfscalar>& right);
+  virtual node_local<std::vector<size_t>>
+  filter_le(std::shared_ptr<dfcolumn>& right);
+  virtual node_local<std::vector<size_t>>
+  filter_le_immed(std::shared_ptr<dfscalar>& right);
+  virtual node_local<std::vector<size_t>>
+  filter_gt(std::shared_ptr<dfcolumn>& right);
+  virtual node_local<std::vector<size_t>>
+  filter_gt_immed(std::shared_ptr<dfscalar>& right);
+  virtual node_local<std::vector<size_t>>
+  filter_ge(std::shared_ptr<dfcolumn>& right);
+  virtual node_local<std::vector<size_t>>
+  filter_ge_immed(std::shared_ptr<dfscalar>& right);
   // need to define member functions that returns typed_dfcolumn<datetime>
   virtual std::shared_ptr<dfcolumn>
   extract(node_local<std::vector<size_t>>& idx);
@@ -1233,6 +1428,8 @@ public:
   virtual void debug_print();
   virtual std::shared_ptr<dfcolumn> head(size_t limit);
   virtual std::shared_ptr<dfcolumn> tail(size_t limit);
+  virtual std::shared_ptr<dfcolumn>
+  union_columns(const std::vector<std::shared_ptr<dfcolumn>>& cols);
   virtual std::string dtype() const {return std::string("datetime");}
 };
 
