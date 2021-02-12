@@ -25,6 +25,8 @@ class dfoperator;
 
 struct dftable_to_sparse_info;
 
+struct dffunction;
+
 enum datetime_type {
   year,
   month,
@@ -252,6 +254,8 @@ public:
   dftable& append_dictionary_index(const std::string& src_column,
                                    const std::string& to_append_column,
                                    words& dic);
+  // similar to calc, but calc is more efficient if the func becomes complex
+  dftable& call_function(const std::shared_ptr<dffunction>& func);
   void load(const std::string& input);
   void loadtext(const std::string& filename,
                 const std::vector<std::string>& types,
@@ -265,6 +269,13 @@ public:
                 const std::string& nullstr = "NULL",
                 bool is_crlf = false);
   virtual bool is_right_joinable() {return true;}
+  dftable& type_cast(const std::string& from_name,
+                     const std::string& to_name,
+                     const std::string& to_type);
+  dftable union_tables(std::vector<dftable>& ts, bool keep_order = false);
+  dftable union_table(dftable& t, bool keep_order = false)
+    {std::vector<dftable> ts = {t}; return union_tables(ts, keep_order);}
+  dftable distinct();
   virtual dftable_base* clone();
   virtual dftable_base* rename_cols(const std::string& name,
                                     const std::string& name2);
@@ -625,6 +636,14 @@ public:
     exchanged_idx = exchange_partitioned_index(partitioned_idx);
     is_cachable = !table.raw_column(column_name)->is_string();
   }
+  sorted_dftable(dftable_base& table,
+                 node_local<std::vector<size_t>>&& global_idx_) :
+    dftable_base(table), global_idx(std::move(global_idx_)) {
+    auto partitioned_idx = partition_global_index_bynode(global_idx);
+    to_store_idx = make_to_store_idx(partitioned_idx, global_idx);
+    exchanged_idx = exchange_partitioned_index(partitioned_idx);
+    is_cachable = false;
+  }
   virtual dftable select(const std::vector<std::string>& cols);
   virtual filtered_dftable filter(const std::shared_ptr<dfoperator>& op);
   virtual sorted_dftable sort(const std::string& name);
@@ -652,6 +671,8 @@ public:
                                     const std::string& name2);
 
   dftable append_rowid(const std::string& name, size_t offset = 0);
+  sorted_dftable& drop(const std::string& name);
+  sorted_dftable& rename(const std::string& name, const std::string& name2);
 private:
   node_local<std::vector<size_t>> global_idx;
   std::string column_name;
@@ -733,6 +754,9 @@ public:
                                     const std::string& name2);
 
   dftable append_rowid(const std::string& name, size_t offset = 0);
+  hash_joined_dftable& drop(const std::string& name);
+  hash_joined_dftable& rename(const std::string& name,
+                              const std::string& name2);
 private:
   // left table is base class; if the input is filtered_dftable, sliced
   bool is_outer;
@@ -806,6 +830,9 @@ public:
                                     const std::string& name2);
 
   dftable append_rowid(const std::string& name, size_t offset = 0);
+  bcast_joined_dftable& drop(const std::string& name);
+  bcast_joined_dftable& rename(const std::string& name,
+                               const std::string& name2);
   bcast_joined_dftable& inplace_filter(const std::shared_ptr<dfoperator>& op);
   // inplace_filter_pre is used in joining with dfoperator_and
   // - it does not update right_to_store_idx and right_exchanged_idx
@@ -877,6 +904,9 @@ public:
                                     const std::string& name2);
 
   dftable append_rowid(const std::string& name, size_t offset = 0);
+  star_joined_dftable& drop(const std::string& name);
+  star_joined_dftable& rename(const std::string& name,
+                              const std::string& name2);
 private:
   // left table is base class; if the input is filtered_dftable, sliced
   std::vector<dftable_base> rights; // if the input is filtered_dftable, sliced
