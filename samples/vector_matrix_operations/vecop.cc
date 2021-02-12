@@ -73,7 +73,7 @@ int main(int argc, char* argv[]) {
     t.show("vector_unique: ");
 
     // only for vector<int>
-    //auto vbincnt = vector_bincount(vec);
+    //auto vbincnt = vector_bincount<size_t>(vec);
     //t.show("vector_bincount: ");
 
     auto vlog = vector_log(vec);
@@ -106,10 +106,10 @@ int main(int argc, char* argv[]) {
     auto vclip = vector_clip(vec, 2.0, 5.0);
     t.show("vector_clip: ");
 
-    auto vtake = vector_take(vec, vector_arrange<size_t>(vec.size()));
+    auto vtake = vector_take<double>(vec, vector_arrange<size_t>(vec.size()));
     t.show("vector_take: ");
 
-    auto vcast = vector_astype<double>(vec); 
+    auto vcast = vector_astype<int>(vec); 
     t.show("vector_astype: ");
 
     auto vzeros = vector_zeros<int>(1000);
