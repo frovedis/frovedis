@@ -733,11 +733,11 @@ extern "C" {
   }
 
   // --- (6) Kmeans ---
-  PyObject* kmeans_train(const char* host, int port, long xptr, int k,
-                         int iter, long seed, double eps,
-                         int vb, int mid, 
-                         short dtype, short itype, 
-                         bool dense, bool shrink) {
+  PyObject* kmeans_fit(const char* host, int port, long xptr, int k,
+                       int iter, int n_init, double eps, long seed,
+                       int vb, int mid, 
+                       short dtype, short itype, 
+                       bool dense, bool shrink) {
     if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
     exrpc_node fm_node(host,port);
     auto f_xptr = (exrpc_ptr_t) xptr;
@@ -747,12 +747,12 @@ extern "C" {
       if(dense) {
         switch(dtype) {
           case FLOAT: 
-            ret = exrpc_async(fm_node,(frovedis_kmeans<DT2,R_MAT2>),
-                              f_xptr,k,iter,seed,eps,vb,mid,shrink,mvbl).get();
+            ret = exrpc_async(fm_node,(frovedis_kmeans_fit<DT2,R_MAT2>),
+                              f_xptr,k,iter,n_init,eps,seed,vb,mid,shrink,mvbl).get();
             break;
           case DOUBLE: 
-            ret = exrpc_async(fm_node,(frovedis_kmeans<DT1,R_MAT1>),
-                              f_xptr,k,iter,seed,eps,vb,mid,shrink,mvbl).get();
+            ret = exrpc_async(fm_node,(frovedis_kmeans_fit<DT1,R_MAT1>),
+                              f_xptr,k,iter,n_init,eps,seed,vb,mid,shrink,mvbl).get();
             break;
           default: REPORT_ERROR(USER_ERROR, 
                    "Unsupported dtype of input dense data for training!\n");
@@ -762,21 +762,21 @@ extern "C" {
         switch(dtype) {
           case FLOAT: 
             if(itype == INT) 
-              ret = exrpc_async(fm_node,(frovedis_kmeans<DT2,S_MAT24>),
-                                f_xptr,k,iter,seed,eps,vb,mid,shrink,mvbl).get();
+              ret = exrpc_async(fm_node,(frovedis_kmeans_fit<DT2,S_MAT24>),
+                                f_xptr,k,iter,n_init,eps,seed,vb,mid,shrink,mvbl).get();
             else if(itype == LONG) 
-              ret = exrpc_async(fm_node,(frovedis_kmeans<DT2,S_MAT25>),
-                                f_xptr,k,iter,seed,eps,vb,mid,shrink,mvbl).get();
+              ret = exrpc_async(fm_node,(frovedis_kmeans_fit<DT2,S_MAT25>),
+                                f_xptr,k,iter,n_init,eps,seed,vb,mid,shrink,mvbl).get();
             else REPORT_ERROR(USER_ERROR, 
                               "Unsupported itype of input sparse data for training!\n");
             break;
           case DOUBLE: 
             if(itype == INT) 
-              ret = exrpc_async(fm_node,(frovedis_kmeans<DT1,S_MAT14>),
-                                f_xptr,k,iter,seed,eps,vb,mid,shrink,mvbl).get();
+              ret = exrpc_async(fm_node,(frovedis_kmeans_fit<DT1,S_MAT14>),
+                                f_xptr,k,iter,n_init,eps,seed,vb,mid,shrink,mvbl).get();
             else if(itype == LONG) 
-              ret = exrpc_async(fm_node,(frovedis_kmeans<DT1,S_MAT15>),
-                                f_xptr,k,iter,seed,eps,vb,mid,shrink,mvbl).get();
+              ret = exrpc_async(fm_node,(frovedis_kmeans_fit<DT1,S_MAT15>),
+                                f_xptr,k,iter,n_init,eps,seed,vb,mid,shrink,mvbl).get();
             else REPORT_ERROR(USER_ERROR, 
                  "Unsupported itype of input sparse data for training!\n");
             break;
@@ -788,34 +788,90 @@ extern "C" {
     catch (std::exception& e) {
       set_status(true, e.what());
     }
-    std::cout << "frovedis kmeans converged in " << ret.n_iter_ << " steps!\n";
+    return to_py_kmeans_result(ret);
+  }
+
+  PyObject* kmeans_fit_transform(const char* host, int port, 
+                                 long xptr, int k,
+                                 int iter, int n_init, double eps, long seed,
+                                 int vb, int mid,
+                                 short dtype, short itype,
+                                 bool dense, bool shrink) {
+    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
+    exrpc_node fm_node(host,port);
+    auto f_xptr = (exrpc_ptr_t) xptr;
+    bool mvbl = false; // auto-managed at python side
+    kmeans_result ret;
+    try {
+      if(dense) {
+        switch(dtype) {
+          case FLOAT:
+            ret = exrpc_async(fm_node,(frovedis_kmeans_fit_transform<DT2,R_MAT2>),
+                              f_xptr,k,iter,n_init,eps,seed,vb,mid,shrink,mvbl).get();
+            break;
+          case DOUBLE:
+            ret = exrpc_async(fm_node,(frovedis_kmeans_fit_transform<DT1,R_MAT1>),
+                              f_xptr,k,iter,n_init,eps,seed,vb,mid,shrink,mvbl).get();
+            break;
+          default: REPORT_ERROR(USER_ERROR,
+                   "Unsupported dtype of input dense data for training!\n");
+        }
+      }
+      else {
+        switch(dtype) {
+          case FLOAT:
+            if(itype == INT)
+              ret = exrpc_async(fm_node,(frovedis_kmeans_fit_transform<DT2,S_MAT24>),
+                                f_xptr,k,iter,n_init,eps,seed,vb,mid,shrink,mvbl).get();
+            else if(itype == LONG)
+              ret = exrpc_async(fm_node,(frovedis_kmeans_fit_transform<DT2,S_MAT25>),
+                                f_xptr,k,iter,n_init,eps,seed,vb,mid,shrink,mvbl).get();
+            else REPORT_ERROR(USER_ERROR,
+                              "Unsupported itype of input sparse data for training!\n");
+            break;
+          case DOUBLE:
+            if(itype == INT)
+              ret = exrpc_async(fm_node,(frovedis_kmeans_fit_transform<DT1,S_MAT14>),
+                                f_xptr,k,iter,n_init,eps,seed,vb,mid,shrink,mvbl).get();
+            else if(itype == LONG)
+              ret = exrpc_async(fm_node,(frovedis_kmeans_fit_transform<DT1,S_MAT15>),
+                                f_xptr,k,iter,n_init,eps,seed,vb,mid,shrink,mvbl).get();
+            else REPORT_ERROR(USER_ERROR,
+                 "Unsupported itype of input sparse data for training!\n");
+            break;
+          default: REPORT_ERROR(USER_ERROR,
+                   "Unsupported dtype of input sparse data for training!\n");
+        }
+      }
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
     return to_py_kmeans_result(ret);
   }
 
   // (7) --- Agglomerative Clustering ---
   void aca_train(const char* host, int port, long xptr, int k, 
-                 const char* linkage,
-                 int* ret, long len,
+                 const char* linkage, double threshold,
+                 long* ret, long len,
                  int vb, int mid, 
                  short dtype, short itype, bool dense) {
-    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
-    //std::cout<<"Ml.cc start\n\n";
+    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");   
     exrpc_node fm_node(host,port);
     auto f_xptr = (exrpc_ptr_t) xptr;
     bool mvbl = false; // auto-managed at python side
     std::string linkages = linkage;
-    //std::cout<<"ML.cc linkage = "<<linkages;
     std::vector<int> pred;
     try {
       if(dense) {
         switch(dtype) {
           case FLOAT:
             pred = exrpc_async(fm_node,(frovedis_aca<DT2,R_MAT2>),
-                               f_xptr,mid,linkages,k,vb,mvbl).get();
+                               f_xptr,mid,linkages,k,(float)threshold,vb,mvbl).get();
             break;
           case DOUBLE: 
             pred = exrpc_async(fm_node,(frovedis_aca<DT1,R_MAT1>),
-                               f_xptr,mid,linkages,k,vb,mvbl).get();
+                               f_xptr,mid,linkages,k,threshold,vb,mvbl).get();
             break;
           default: REPORT_ERROR(USER_ERROR, 
                    "Unsupported dtype of input dense data for training!\n");
@@ -825,7 +881,7 @@ extern "C" {
             "Frovedis doesn't support input sparse data for agglomerative clustering!\n");
       auto sz = pred.size();
       checkAssumption(len == sz);
-      for(size_t i=0; i<sz; ++i) {ret[i] = pred[i];}
+      for(size_t i=0; i<sz; ++i) {ret[i] = static_cast<long>(pred[i]);}
     }
     catch (std::exception& e) {
       set_status(true, e.what());
@@ -964,10 +1020,11 @@ extern "C" {
           break;
         case DOUBLE:
           if(itype == INT) 
-            exrpc_oneway(fm_node,(frovedis_mf_als<DT1,S_MAT14>),f_dptr,rank,iter,al,rprm,seed,vb,mid,mvbl);
+            exrpc_oneway(fm_node,(frovedis_mf_als<DT1,S_MAT14>),f_dptr,rank,
+                         iter,al,rprm,seed,vb,mid,mvbl);
           else if(itype == LONG) 
-            exrpc_oneway(fm_node,(frovedis_mf_als<DT1,S_MAT15>),f_dptr,
-                         rank,iter,al,rprm,seed,vb,mid,mvbl);
+            exrpc_oneway(fm_node,(frovedis_mf_als<DT1,S_MAT15>),f_dptr,rank,
+                         iter,al,rprm,seed,vb,mid,mvbl);
           else REPORT_ERROR(USER_ERROR, 
                "Unsupported itype of input sparse data for training!\n");
           break;
