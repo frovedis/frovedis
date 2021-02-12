@@ -1,0 +1,10 @@
+TARGETS := agglomerative
+include ../Makefile.in.icpc
+include ../Makefile.common
+
+TO_INSTALL := agglomerative.cc
+DIR := agglomerative
+ARCH := icpc
+
+agglomerative: agglomerative.o
+	${LINK} -o agglomerative agglomerative.o ${LIBS}
