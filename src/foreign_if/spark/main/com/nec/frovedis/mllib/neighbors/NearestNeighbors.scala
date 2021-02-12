@@ -228,20 +228,19 @@ class NearestNeighbors(var nNeighbors: Int,
   }
 
   def radius_neighbors(X: RDD[Vector], 
-                       radius: Float = this.radius,
-                       returnDistance: Boolean = true): 
+                       radius: Float = this.radius):
     FrovedisSparseData = {
     require(mid > 0, "radius_neighbors() is called before fitting data using run()")
     val isDense = X.first.getClass.toString() matches ".*DenseVector*."
     if (isDense) {
       val fdata = new FrovedisRowmajorMatrix(X)
-      val neighbors = radius_neighbors(fdata, radius, returnDistance)
+      val neighbors = radius_neighbors(fdata, radius)
       fdata.release() // release intermediate matrix
       return neighbors
     }
     else {
       val fdata = new FrovedisSparseData(X)
-      val neighbors = radius_neighbors(fdata, radius, returnDistance)
+      val neighbors = radius_neighbors(fdata, radius)
       fdata.release() // release intermediate matrix
       return neighbors
     }
@@ -249,12 +248,11 @@ class NearestNeighbors(var nNeighbors: Int,
 
   // dense radius_neighbors
   def radius_neighbors(X: FrovedisRowmajorMatrix, 
-                       radius: Float,
-                       returnDistance: Boolean): FrovedisSparseData = {
+                       radius: Float): FrovedisSparseData = {
     require(mid > 0, "radius_neighbors() is called before fitting data using run()")
     val fs = FrovedisServer.getServerInstance()
     val dmat = JNISupport.knnRadiusNeighbors(fs.master_node, X.get(), 
-                          radius, mid, returnDistance, true) //dummy mat: crs 
+                          radius, mid, true) //dummy mat: crs 
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
     val ret = new FrovedisSparseData(dmat)
@@ -263,12 +261,11 @@ class NearestNeighbors(var nNeighbors: Int,
 
   // sparse radius_neighbors
   def radius_neighbors(X: FrovedisSparseData, 
-                       radius: Float,
-                       returnDistance: Boolean): FrovedisSparseData = {
+                       radius: Float): FrovedisSparseData = {
     require(mid > 0, "radius_neighbors() is called before fitting data using run()")
     val fs = FrovedisServer.getServerInstance()
     val dmat = JNISupport.knnRadiusNeighbors(fs.master_node, X.get(), 
-                          radius, mid, returnDistance, false) //dummy mat: crs 
+                          radius, mid, false) //dummy mat: crs 
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
     val ret = new FrovedisSparseData(dmat)
