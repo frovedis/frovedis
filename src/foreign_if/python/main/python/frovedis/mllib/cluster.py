@@ -813,6 +813,11 @@ class DBSCAN(BaseEstimator):
         self.__mdtype = None
         self.__mkind = M_KIND.DBSCAN 
         self._labels = None
+        self._core_sample_indices = None
+        self._components = None
+        self.n_samples = None
+        self.n_features = None
+        self.movable = None
 
     def validate(self):
         """
@@ -836,7 +841,35 @@ class DBSCAN(BaseEstimator):
                 "Currently Frovedis DBSCAN does not support %s algorithm!" \
                 % self.algorithm)
 
-    def fit(self, X, y=None):
+    def check_input(self, X, F):
+        """checks input X"""
+        # Currently Frovedis DBSCAN does not support sparse data,
+        # it would be loaded as rowmajor matrix
+        inp_data = FrovedisFeatureData(X, \
+                   caller = "[" + self.__class__.__name__ + "] " + F + ": ",\
+                   dense_kind='rowmajor', densify=True)
+        X = inp_data.get()
+        dtype = inp_data.get_dtype()
+        itype = inp_data.get_itype()
+        dense = inp_data.is_dense()
+        nsamples = inp_data.numRows()
+        nfeatures = inp_data.numCols()
+        movable = inp_data.is_movable()
+        return X, dtype, itype, dense, nsamples, nfeatures, movable
+
+    def check_sample_weight(self, sample_weight):
+        if sample_weight is None:
+            sample_weight = np.array([])
+        elif isinstance(sample_weight, numbers.Number):
+            sample_weight = np.full(self.n_samples, sample_weight, dtype=np.float64)
+        else:
+            sample_weight = np.ravel(sample_weight)
+            if len(sample_weight) != self.n_samples:
+                 raise ValueError("sample_weight.shape == {}, expected {}!"\
+                       .format(sample_weight.shape, (n_samples,)))
+        return np.asarray(sample_weight, dtype = np.float64)
+
+    def fit(self, X, y=None, sample_weight=None):
         """
         DESC: fit method for dbscan
         """
@@ -844,33 +877,35 @@ class DBSCAN(BaseEstimator):
         self.validate()
         # Currently Frovedis DBSCAN does not support sparse data, 
         # it would be loaded as rowmajor matrix
-        inp_data = FrovedisFeatureData(X, \
-                     caller = "[" + self.__class__.__name__ + "] fit: ",\
-                     dense_kind='rowmajor', densify=True)
-        X = inp_data.get()
-        dtype = inp_data.get_dtype()
-        itype = inp_data.get_itype()
-        dense = inp_data.is_dense()
-        n_samples = X.numRows()
-
+        X, dtype, itype, dense, \
+        n_samples, n_features, movable = self.check_input(X, "fit")
+        self.n_samples = n_samples
+        self.n_features = n_features
         self.__mdtype = dtype
         self.__mid = ModelID.get()
+        self.movable = movable
+        
+        sample_weight = self.check_sample_weight(sample_weight)
+
         (host, port) = FrovedisServer.getServerInstance()
         ret = np.zeros(n_samples, dtype=np.int32)
-        rpclib.dbscan_train(host, port, X.get(), self.eps, self.min_samples, \
+        rpclib.dbscan_train(host, port, X.get(), sample_weight, \
+                            len(sample_weight), self.eps, self.min_samples, \
                             ret, n_samples, self.verbose, self.__mid, dtype, \
                             itype, dense)
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
             raise RuntimeError(excpt["info"])
-        self._labels = ret.astype(np.int64)
+        self._labels = ret
+        self._core_sample_indices = None
+        self._components = None
         return self
 
-    def fit_predict(self, X):
+    def fit_predict(self, X, sample_weight=None):
         """
         NAME: fit_predict
         """
-        self.fit(X)
+        self.fit(X, sample_weight = sample_weight)
         return self._labels
 
     def score(self, X, y, sample_weight=None):
@@ -887,6 +922,10 @@ class DBSCAN(BaseEstimator):
             #print (self.__mid, " model is released")
             self.__mid = None
             self._labels= None
+            self.n_samples = None
+            self.n_features = None
+            self._core_sample_indices = None
+            self._components = None
 
     @property
     def labels_(self):
@@ -903,4 +942,55 @@ class DBSCAN(BaseEstimator):
         """labels_ setter"""
         raise AttributeError(\
             "attribute 'labels_' of DBSCAN object is not writable")
+
+    @property
+    def core_sample_indices_(self):
+        """core_sample_indices_ getter"""
+        if self.__mid is not None:
+            if self._core_sample_indices is None:
+                (host, port) = FrovedisServer.getServerInstance()
+                core_sample_indices = rpclib.get_dbscan_core_sample_indices(host, port, self.__mid, \
+                       self.__mkind, self.__mdtype)
+                excpt = rpclib.check_server_exception()
+                if excpt["status"]:
+                    raise RuntimeError(excpt["info"])
+                self._core_sample_indices = np.asarray(core_sample_indices)
+            return self._core_sample_indices
+        else:
+            raise AttributeError(\
+            "attribute 'core_sample_indices_' might have been released or called before fit")
+
+    @core_sample_indices_.setter
+    def core_sample_indices_(self, val):
+        """core_sample_indices_ setter"""
+        raise AttributeError(\
+            "attribute 'core_sample_indices_' of DBSCAN object is not writable")
+
+    @property
+    def components_(self):
+        """components_ getter"""
+        if self.__mid is not None:
+            if self._components is None:
+                (host, port) = FrovedisServer.getServerInstance()
+                dmat = rpclib.get_dbscan_components(host, port, self.__mid, \
+                                                    self.__mkind, self.__mdtype)
+                excpt = rpclib.check_server_exception()
+                if excpt["status"]:
+                    raise RuntimeError(excpt["info"])
+                components = FrovedisRowmajorMatrix(mat=dmat, \
+                             dtype=TypeUtil.to_numpy_dtype(self.__mdtype))
+                if self.movable:
+                    self._components = components.to_numpy_array()
+                else:
+                    self._components = components
+            return self._components
+        else:
+            raise AttributeError(\
+            "attribute 'components_' might have been released or called before fit")
+
+    @components_.setter
+    def components_(self, val):
+        """components_ setter"""
+        raise AttributeError(\
+            "attribute 'components_' of DBSCAN object is not writable")
 
