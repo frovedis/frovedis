@@ -1122,4 +1122,18 @@ std::vector<size_t> get_support_idx(int& mid) {
   return model.sv_index;
 }
 
+template <class MODEL>
+std::vector<size_t> get_dbscan_core_sample_indices(int& mid) {
+  auto& model = *get_model_ptr<MODEL>(mid);
+  return model.core_sample_indices_();
+}
+
+template <class MODEL, class T>
+dummy_matrix get_dbscan_components(int& mid) {
+  auto& model = *get_model_ptr<MODEL>(mid);
+  auto retptr = new rowmajor_matrix<T>(model.components_());
+  return to_dummy_matrix<rowmajor_matrix<T>,
+                         rowmajor_matrix_local<T>>(retptr);
+}
+
 #endif 
