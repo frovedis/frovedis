@@ -118,16 +118,42 @@ rowmajor_matrix_local<U> rowmajor_matrix_local<T>::astype() {
   ret.set_local_num(local_num_row, local_num_col);  
   return ret;    
 }    
-    
+
 template <class T>
-std::vector<T> rowmajor_matrix_local<T>::get_row(size_t k) const {
-  std::vector<T> r(local_num_col);
+void get_row_impl(const std::vector<T>& matval,
+                  size_t local_num_row,
+                  size_t local_num_col,
+                  size_t k,
+                  T* outp) {
   if(k > local_num_row) throw std::runtime_error("get_row: invalid position");
-  const T* valp_off = val.data() + local_num_col * k;
-  T* rp = r.data();
-  for(size_t i = 0; i < local_num_col; i++) rp[i] = valp_off[i];
+  const T* valp_off = matval.data() + local_num_col * k;
+  for(size_t i = 0; i < local_num_col; i++) outp[i] = valp_off[i];
+}
+
+template <class T>
+std::vector<T>
+rowmajor_matrix_local<T>::get_row(size_t k) const {
+  std::vector<T> r(local_num_col);
+  get_row_impl(val, local_num_row, local_num_col, k, r.data());
   return r;
 }
+
+template <class T>
+rowmajor_matrix_local<T>
+extract_rows(rowmajor_matrix_local<T>& mat,
+             std::vector<size_t>& rowids) {
+  auto n = rowids.size();
+  auto nrow = mat.local_num_row;
+  auto ncol = mat.local_num_col;
+  rowmajor_matrix_local<T> ret(n, ncol);
+  auto rowidp = rowids.data();
+  for (size_t i = 0; i < n; ++i) {
+    auto outp = ret.val.data() + i * ncol;
+    get_row_impl(mat.val, nrow, ncol, rowidp[i], outp);
+  }
+  return ret;
+}
+
 
 template <class T>
 struct rowmajor_matrix_broadcast_helper {
@@ -2022,6 +2048,24 @@ rowmajor_matrix<T> extract_cols(rowmajor_matrix<T>& mat, size_t start, size_t en
   return ret;
 } 
     
+template <class T>
+rowmajor_matrix_local<T>
+rmm_extract_rows(rowmajor_matrix_local<T>& mat,
+                 std::vector<size_t>& rowids) {
+  return extract_rows(mat, rowids);
+}
+
+inline size_t count_sizes(std::vector<size_t>& vec) { return vec.size(); }
+
+template <class T>
+rowmajor_matrix<T>
+extract_rows(rowmajor_matrix<T>& mat,
+             node_local<std::vector<size_t>>& rowids) {
+  rowmajor_matrix<T> ret = mat.data.map(rmm_extract_rows<T>, rowids);
+  ret.num_row = rowids.map(count_sizes).reduce(add<size_t>);
+  ret.num_col = mat.num_col;
+  return ret;
+}
     
 }
 #endif
