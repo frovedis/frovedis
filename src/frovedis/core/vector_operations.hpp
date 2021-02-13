@@ -454,6 +454,21 @@ size_t vector_count_nonzero(const std::vector<T>& vec) {
 }
 
 template <class T>
+size_t vector_count_equal(const std::vector<T>& vec, const T& val) {
+  size_t count = 0;
+  auto size = vec.size();
+  auto vptr = vec.data();
+  for(size_t i = 0; i < size; ++i) count += vptr[i] == val;
+  return count;
+}
+
+template <class T>
+int vector_is_uniform(const std::vector<T>& vec) {
+  if (vec.size() == 0) return true;
+  else return vector_count_equal(vec, vec[0]) == vec.size();
+}
+
+template <class T>
 size_t vector_count_positives(const std::vector<T>& vec) {
   auto vecsz = vec.size();
   auto vptr = vec.data();
