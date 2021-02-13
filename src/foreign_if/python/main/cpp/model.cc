@@ -85,7 +85,7 @@ extern "C" {
           case ACM:    exrpc_oneway(fm_node,release_model<ACM2>,mid); break;
           case SEM:    exrpc_oneway(fm_node,release_model<SEM2>,mid); break;
           case SCM:    exrpc_oneway(fm_node,release_model<SCM2>,mid); break;
-          case DBSCAN: exrpc_oneway(fm_node,release_model<DBSCAN1>,mid); break; // not template based
+          case DBSCAN: exrpc_oneway(fm_node,release_model<DBSCAN2>,mid); break; 
           case DTM:    exrpc_oneway(fm_node,release_model<DTM2>,mid); break;
           case FPM:    exrpc_oneway(fm_node,release_model<FPM1>,mid); break; // not template based
           case FPR:    exrpc_oneway(fm_node, release_model<FPR1>, mid); break;
@@ -113,7 +113,7 @@ extern "C" {
           case ACM:    exrpc_oneway(fm_node,release_model<ACM1>,mid); break;
           case SEM:    exrpc_oneway(fm_node,release_model<SEM1>,mid); break;
           case SCM:    exrpc_oneway(fm_node,release_model<SCM1>,mid); break;
-          case DBSCAN: exrpc_oneway(fm_node,release_model<DBSCAN1>,mid); break; // not template based
+          case DBSCAN: exrpc_oneway(fm_node,release_model<DBSCAN1>,mid); break; 
           case FPM:    exrpc_oneway(fm_node,release_model<FPM1>,mid); break; // not template based
           case FPR:    exrpc_oneway(fm_node, release_model<FPR1>, mid); break;
           case FMM:    exrpc_oneway(fm_node,release_model<FMM1>,mid); break;
@@ -1835,6 +1835,46 @@ void fpgrowth_rules(const char* host, int port,
       set_status(true, e.what());
     }
     return to_python_llong_list(ret);
+  }
+
+  PyObject* get_frovedis_dbscan_core_sample_indices(const char* host, int port,
+                                     int mid, short mkind,
+                                     short mdtype) {
+    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
+    exrpc_node fm_node(host, port);
+    std::vector<size_t> ret;
+    try {
+      if (mdtype == FLOAT) {
+        ret = exrpc_async(fm_node, (get_dbscan_core_sample_indices<DBSCAN2>), mid).get();        
+      }
+      else if (mdtype == DOUBLE) {
+        ret = exrpc_async(fm_node, (get_dbscan_core_sample_indices<DBSCAN1>), mid).get();
+      }
+      else REPORT_ERROR(USER_ERROR,"model dtype can either be float or double!\n");
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return to_python_llong_list(ret);
+  }
+
+  PyObject* get_frovedis_dbscan_components(const char* host, int port,
+                                     int mid, short mkind,
+                                     short mdtype) {
+    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
+    exrpc_node fm_node(host, port);
+    dummy_matrix ret;
+    try {
+      if (mdtype == FLOAT)
+        ret = exrpc_async(fm_node, (get_dbscan_components<DBSCAN2, DT2>), mid).get();        
+      else if (mdtype == DOUBLE)
+        ret = exrpc_async(fm_node, (get_dbscan_components<DBSCAN1, DT1>), mid).get();
+      else REPORT_ERROR(USER_ERROR,"model dtype can either be float or double!\n");
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return to_py_dummy_matrix(ret);
   }
 
 }
