@@ -299,6 +299,11 @@ void expose_frovedis_model_functions() {
   expose(save_w2v_model<DT2>);
   // ---frovedis dbscan
   expose(release_model<DBSCAN1>);
+  expose(release_model<DBSCAN2>);
+  expose((get_dbscan_core_sample_indices<DBSCAN1>));
+  expose((get_dbscan_core_sample_indices<DBSCAN2>));
+  expose((get_dbscan_components<DBSCAN1, DT1>));
+  expose((get_dbscan_components<DBSCAN2, DT2>));
   // knn -Nearest Neigbors ( NN )
   expose((frovedis_kneighbors<DT1,DT4,R_MAT1,KNN1>));   
   expose((frovedis_kneighbors<DT2,DT4,R_MAT2,KNN2>));   
