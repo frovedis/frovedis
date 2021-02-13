@@ -62,8 +62,9 @@ object PblasScalapackDemo extends Serializable {
     bvec2.release()
    
     // --- loading matrix from file --- 
-    println("\nloading blockcyclic matrix from file: ./input/mat_3x3")
-    bmat2.load(input + "mat_3x3") // matrix can directly be loaded from text file
+    println("\nloading blockcyclic matrix from file: mat_3x3")
+    val input_noschema = sys.env("INSTALLPATH") + "/x86/doc/tutorial_spark/src/tut5-3/"
+    bmat2.load(input_noschema + "mat_3x3") // matrix can directly be loaded from text file
     println("printing loaded blockcyclic matrix:")
     bmat2.debug_print() 
     println("printing loaded blockcyclic matrix in rowmajor order:")
@@ -80,8 +81,8 @@ object PblasScalapackDemo extends Serializable {
     bmat2.release()
 
     // --- gesvd ---
-    println("\nloading blockcyclic matrix from file: ./input/svd_input_4x4")
-    bmat2.load(input + "/svd_input_4x4") 
+    println("\nloading blockcyclic matrix from file: svd_input_4x4")
+    bmat2.load(input_noschema + "/svd_input_4x4") 
     println("printing loaded blockcyclic matrix in rowmajor order:")
     bmat2.get_rowmajor_view()
     val svd_ret = ScaLAPACK.gesvd(bmat2) // want both U and V, along with s
