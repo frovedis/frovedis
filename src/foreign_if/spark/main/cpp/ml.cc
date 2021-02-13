@@ -768,7 +768,8 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisW2V
 // (16) --- DBSCAN ---
 JNIEXPORT jintArray JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisDBSCAN
   (JNIEnv *env, jclass thisCls, jobject master_node, jlong fdata, jdouble eps,
-   jint min_samples, jint mid, jboolean isDense) {
+   jint min_samples, jint mid, jboolean isDense, jdoubleArray sample_weight,
+   jlong sample_weight_length) {
 
   auto fm_node = java_node_to_frovedis_node(env, master_node);
   auto f_dptr = (exrpc_ptr_t) fdata;
@@ -779,9 +780,11 @@ JNIEXPORT jintArray JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedis
             << ") to train frovedis DBSCAN.\n";
 #endif
   std::vector<int> ret;
+  std::vector<double> sw_vec = to_double_vector(env, 
+                               sample_weight, sample_weight_length);
   try {
     if(isDense){ // dbscan accepts rowmajor matrix for dense data
-      ret = exrpc_async(fm_node,(frovedis_dbscan<DT1,R_MAT1>),f_dptr,eps,min_samples,vb,mid).get();
+      ret = exrpc_async(fm_node,(frovedis_dbscan<DT1,R_MAT1>),f_dptr,sw_vec,eps,min_samples,vb,mid).get();
     }
     else REPORT_ERROR(USER_ERROR,
          "Frovedis DBSCAN doesn't accept sparse input at this moment.\n");
