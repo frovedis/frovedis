@@ -11,9 +11,10 @@ import org.apache.spark.SparkContext
 class DBSCAN(var eps: Double,
              var min_samples: Int,
              var metric: String,
-             var algorithm: String) extends java.io.Serializable {
+             var algorithm: String,
+             var sample_weight: Array[Double]) extends java.io.Serializable {
   private var mid: Int = 0
-  def this() = this(0.5, 5, "euclidean", "brute")
+  def this() = this(0.5, 5, "euclidean", "brute", Array.empty[Double])
 
   def setEps(eps: Double): this.type = {
     require(eps > 0.0 ,
@@ -43,6 +44,12 @@ class DBSCAN(var eps: Double,
     this
   }
 
+  def setSampleWeight(sample_weight: Array[Double]): this.type = {
+    this.sample_weight = sample_weight
+    this
+  }
+
+
   def run(data: RDD[Vector]): Array[Int] = {
     val isDense = data.first.getClass.toString() matches ".*DenseVector*."
     if (isDense) {
@@ -63,11 +70,14 @@ class DBSCAN(var eps: Double,
           movable: Boolean): Array[Int] = {
     this.mid = ModelID.get()
     val isDense: Boolean = false
+    val sample_weight_length = sample_weight.length
     val fs = FrovedisServer.getServerInstance()
     val ret = JNISupport.callFrovedisDBSCAN(fs.master_node,
                                             data.get(),
                                             eps,min_samples,
-                                            mid,isDense)
+                                            mid,isDense,
+                                            sample_weight,
+                                            sample_weight_length)
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
     return ret
@@ -81,11 +91,14 @@ class DBSCAN(var eps: Double,
           movable: Boolean): Array[Int] = {
     this.mid = ModelID.get()
     val isDense : Boolean = true
+    val sample_weight_length = sample_weight.length
     val fs = FrovedisServer.getServerInstance()
     val ret = JNISupport.callFrovedisDBSCAN(fs.master_node,
                                             data.get(),
                                             eps,min_samples,
-                                            mid,isDense)
+                                            mid,isDense,
+                                            sample_weight,
+                                            sample_weight_length)
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
     return ret
@@ -107,31 +120,40 @@ object DBSCAN{
             eps: Double, 
             min_samples: Int,
             metric: String,
-            algorithm: String): Array[Int] = {
+            algorithm: String,
+            sample_weight: Array[Double]): Array[Int] = {
      return new DBSCAN()
                .setEps(eps)
                .setMinSamples(min_samples)
                .setMetric(metric)
                .setAlgorithm(algorithm)
+               .setSampleWeight(sample_weight)
                .run(data)
   }
 
   def train(data: RDD[Vector] , 
             eps: Double, 
             min_samples: Int,
+            metric: String,
+            algorithm: String): Array[Int] = {
+    return train(data,eps,min_samples,metric,algorithm,Array.empty[Double])
+  }
+  def train(data: RDD[Vector] , 
+            eps: Double, 
+            min_samples: Int,
             metric: String): Array[Int] = {
-    return train(data,eps,min_samples,metric,"brute")
+    return train(data,eps,min_samples,metric,"brute",Array.empty[Double])
   }
 
   def train(data: RDD[Vector] , 
             eps: Double, 
             min_samples: Int): Array[Int] = {
-    return train(data,eps,min_samples,"euclidean","brute")
+    return train(data,eps,min_samples,"euclidean","brute",Array.empty[Double])
   }
 
   def train(data: RDD[Vector] ,
             eps: Double): Array[Int] = {
-    return train(data,eps,5,"euclidean","brute")
+    return train(data,eps,5,"euclidean","brute",Array.empty[Double])
   }
 
   // --- SparseData Train ---
@@ -139,31 +161,34 @@ object DBSCAN{
             eps: Double, 
             min_samples: Int,
             metric: String,
-            algorithm: String): Array[Int] = {
+            algorithm: String,
+            sample_weight: Array[Double]): Array[Int] = {
     return new DBSCAN()
             .setEps(eps)
             .setMinSamples(min_samples)
             .setMetric(metric)
             .setAlgorithm(algorithm)
+            .setSampleWeight(sample_weight)
             .run(data)
   }
 
   def train(data: FrovedisSparseData,
             eps: Double,
             min_samples: Int,
-            metric: String): Array[Int] = {
-    return train(data,eps,min_samples,metric,"brute")
+            metric: String,
+            algorithm: String): Array[Int] = {
+    return train(data,eps,min_samples,metric,algorithm,Array.empty[Double])
   }
 
   def train(data: FrovedisSparseData,
             eps: Double,
             min_samples: Int): Array[Int] = {
-    return train(data,eps,min_samples,"euclidean","brute")
+    return train(data,eps,min_samples,"euclidean","brute",Array.empty[Double])
   }
 
   def train(data: FrovedisSparseData,
             eps: Double): Array[Int] = {
-    return train(data,eps,5,"euclidean","brute")
+    return train(data,eps,5,"euclidean","brute",Array.empty[Double])
   }
 
   // --- RowmajorData Train --- 
@@ -171,28 +196,37 @@ object DBSCAN{
             eps: Double, 
             min_samples: Int,
             metric: String,
-            algorithm: String): Array[Int] = {
+            algorithm: String,
+            sample_weight: Array[Double]): Array[Int] = {
     return new DBSCAN()
             .setEps(eps)
             .setMinSamples(min_samples)
             .setMetric(metric)
             .setAlgorithm(algorithm)
+            .setSampleWeight(sample_weight)
             .run(data)
   }
   def train(data: FrovedisRowmajorMatrix,
             eps: Double,
             min_samples: Int,
+            metric: String,
+            algorithm: String): Array[Int] = {
+    return train(data,eps,min_samples,metric,algorithm,Array.empty[Double])
+  }
+  def train(data: FrovedisRowmajorMatrix,
+            eps: Double,
+            min_samples: Int,
             metric: String): Array[Int] = {
-    return train(data,eps,min_samples,metric,"brute")
+    return train(data,eps,min_samples,metric,"brute",Array.empty[Double])
   }
   def train(data: FrovedisRowmajorMatrix,
             eps: Double,
             min_samples: Int): Array[Int] = {
-    return train(data,eps,min_samples,"euclidean","brute")
+    return train(data,eps,min_samples,"euclidean","brute",Array.empty[Double])
   }
   def train(data: FrovedisRowmajorMatrix,
             eps: Double): Array[Int] = {
-    return train(data,eps,5,"euclidean","brute")
+    return train(data,eps,5,"euclidean","brute",Array.empty[Double])
   }
 }
 
