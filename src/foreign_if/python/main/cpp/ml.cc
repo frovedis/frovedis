@@ -965,8 +965,10 @@ extern "C" {
   }
 
   // --- (10) DBSCAN ---
-  void dbscan_train(const char* host, int port, long xptr, double eps,
-                    int min_pts, int* ret, long len, int vb, int mid, 
+  void dbscan_train(const char* host, int port, long xptr, 
+                    double* sample_weight_ptr, long sample_weight_len,
+                    double eps, int min_pts,
+                    int* ret, long len, int vb, int mid, 
                     short dtype, short itype, bool dense) {
     if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
     exrpc_node fm_node(host,port);
@@ -976,12 +978,22 @@ extern "C" {
       if(dense) {
         switch(dtype) {
           case FLOAT:
+            {
+            std::vector<DT2> sample_weight(sample_weight_len);
+            for(long i=0; i<sample_weight_len; i++) 
+              sample_weight[i] = sample_weight_ptr[i];
             pred = exrpc_async(fm_node,(frovedis_dbscan<DT2,R_MAT2>),
-                               f_xptr,eps,min_pts,vb,mid).get();
+                               f_xptr,sample_weight,eps,min_pts,vb,mid).get();
+            }
             break;
           case DOUBLE:
+            {
+            std::vector<DT1> sample_weight(sample_weight_len);
+            for(long i=0; i<sample_weight_len; i++) 
+              sample_weight[i] = sample_weight_ptr[i];
             pred = exrpc_async(fm_node,(frovedis_dbscan<DT1,R_MAT1>),
-                               f_xptr,eps,min_pts,vb,mid).get();
+                               f_xptr,sample_weight,eps,min_pts,vb,mid).get();
+            }
             break;
           default: REPORT_ERROR(USER_ERROR, 
                    "Unsupported dtype of input dense data for training!\n");
