@@ -689,6 +689,7 @@ frovedis_aca(exrpc_ptr_t& data_ptr, int& mid,
 template <class T, class MATRIX>
 std::vector<int>
 frovedis_dbscan(exrpc_ptr_t& data_ptr,
+                std::vector<T>& sample_weight,
                 double& eps, int& min_pts,
                 int& verbose, int& mid) {
   register_for_train(mid);   // mark model 'mid' as "under training"
@@ -696,11 +697,14 @@ frovedis_dbscan(exrpc_ptr_t& data_ptr,
   auto old_level = frovedis::get_loglevel();
   if (verbose == 1) frovedis::set_loglevel(frovedis::DEBUG);
   else if (verbose == 2) frovedis::set_loglevel(frovedis::TRACE);
-  auto dbm = dbscan(eps, min_pts);
-  dbm.fit(mat);
+  auto dbm = dbscan<T>(eps, min_pts);
+  if(sample_weight.size())
+    dbm.fit(mat, sample_weight);
+  else
+    dbm.fit(mat);
   auto label = dbm.labels();
   frovedis::set_loglevel(old_level);
-  handle_trained_model<dbscan>(mid,DBSCAN,dbm);
+  handle_trained_model<dbscan<T>>(mid,DBSCAN,dbm);
   return label;
 }
 
