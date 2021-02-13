@@ -920,6 +920,8 @@ dbscan_train = LIB.dbscan_train
 dbscan_train.argtypes = [c_char_p, #host
                          c_int, #port
                          c_long,#data
+                         ndpointer(c_double, ndim=1, flags="C_CONTIGUOUS"),#sample_weight
+                         c_long,#sample_weight length
                          c_double, #eps
                          c_int, #min_pts
                          ndpointer(c_int, ndim=1, flags="C_CONTIGUOUS"),#labels
@@ -930,6 +932,15 @@ dbscan_train.argtypes = [c_char_p, #host
                          c_short, #itype
                          c_bool #dense
                         ]
+
+get_dbscan_core_sample_indices = LIB.get_frovedis_dbscan_core_sample_indices
+get_dbscan_core_sample_indices.argtypes = [c_char_p, c_int, c_int, c_short, c_short]
+get_dbscan_core_sample_indices.restype = py_object
+
+
+get_dbscan_components = LIB.get_frovedis_dbscan_components
+get_dbscan_components.argtypes = [c_char_p, c_int, c_int, c_short, c_short]
+get_dbscan_components.restype = py_object
 
 als_float_predict = LIB.als_float_predict
 als_float_predict.argtypes = [c_char_p, c_int, c_int,\
