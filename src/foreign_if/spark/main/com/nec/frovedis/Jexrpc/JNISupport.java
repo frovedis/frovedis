@@ -361,7 +361,9 @@ public class JNISupport {
                                                double eps,
                                                int min_samples,
                                                int mid,
-                                               boolean dense);
+                                               boolean dense,
+                                               double[] sample_weight,
+                                               long sample_weight_length);
 
   // ---------------------KNN----------------------------------  
   public static native void callFrovedisKnnFit(Node master_node,
