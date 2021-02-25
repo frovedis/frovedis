@@ -54,5 +54,61 @@ struct dummy_vector {
   SERIALIZE(vptr, size, dtype)
 };
 
+struct dummy_dftable {
+  dummy_dftable() {}
+  dummy_dftable(exrpc_ptr_t dfptr_,
+                size_t nrow_,
+                std::vector<std::string>& names_,
+                std::vector<std::string>& types_): 
+                dfptr(dfptr_), nrow(nrow_), names(names_), types(types_) {}
+  exrpc_ptr_t dfptr;
+  size_t nrow;
+  std::vector<std::string> names, types;
+  SERIALIZE(dfptr, nrow, names, types)
+};
+
+struct csv_config {
+  csv_config() {}
+  csv_config(int sep, 
+             const std::string& nullstr,
+             const std::string& comment,
+             size_t rows_to_see, 
+             double separate_mb,
+             bool to_separate,
+             bool add_index, 
+             bool verbose,
+             bool mangle_dupe_cols) {
+    this->separator = sep;
+    this->nullstr = nullstr;
+    this->comment = comment;
+    this->rows_to_see = rows_to_see;
+    this->separate_mb = separate_mb;
+    this->to_separate = to_separate;
+    this->add_index = add_index;
+    this->verbose_level = verbose ? 1 : 0;
+    this->mangle_dupe_cols = mangle_dupe_cols;
+  }
+  void debug_print() const {
+    std::cout << "sep: " << separator << "; "
+              << "nullstr: " << nullstr << "; "
+              << "comment: " << comment << "; "
+              << "rows_to_see: " << rows_to_see << "; "
+              << "separate_mb: " << separate_mb << "; "
+              << "to_separate: " << to_separate << "; "
+              << "add_index: " << add_index << "; "
+              << "verbose_level: " << verbose_level << "; "
+              << "mangle_dupe_cols: " << mangle_dupe_cols << std::endl;
+  } 
+  int separator;
+  std::string nullstr, comment;
+  size_t rows_to_see;
+  double separate_mb;
+  bool to_separate, add_index;
+  int verbose_level;
+  bool mangle_dupe_cols;
+  SERIALIZE(separator, nullstr, comment, rows_to_see, separate_mb, 
+            to_separate, add_index, verbose_level, mangle_dupe_cols)
+};
+
 }
 #endif
