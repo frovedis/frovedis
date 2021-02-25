@@ -8,6 +8,7 @@
 
 namespace frovedis {
 
+// case 1. all column names and types are provided
 dftable make_dftable_loadtext(const std::string& filename,
                               const std::vector<std::string>& types,
                               const std::vector<std::string>& names,
@@ -16,8 +17,11 @@ dftable make_dftable_loadtext(const std::string& filename,
                               bool is_crlf = false, 
                               bool to_separate = true,
                               bool to_keep_order = true,
-                              double separate_mb = 1024);
+                              double separate_mb = 1024,
+                              const std::vector<int>& usecols = std::vector<int>(),
+                              bool mangle_dupe_cols = true);
 
+// case 2. all column types are provided, names are to be extracted from header row
 dftable make_dftable_loadtext(const std::string& filename,
                               const std::vector<std::string>& types,
                               int separator = ',',
@@ -25,8 +29,11 @@ dftable make_dftable_loadtext(const std::string& filename,
                               bool is_crlf = false,
                               bool to_separate = true,
                               bool to_keep_order = true,
-                              double separate_mb = 1024);
+                              double separate_mb = 1024,
+                              const std::vector<int>& usecols = std::vector<int>(),
+                              bool mangle_dupe_cols = true);
 
+// case 3. all column names are provided, types are to be inferrred
 dftable make_dftable_loadtext_infertype(const std::string& filename,
                                         const std::vector<std::string>& names,
                                         int separator = ',',
@@ -35,8 +42,11 @@ dftable make_dftable_loadtext_infertype(const std::string& filename,
                                         bool is_crlf = false,
                                         bool to_separate = true,
                                         bool to_keep_order = true,
-                                        double separate_mb = 1024);
+                                        double separate_mb = 1024,
+                                        const std::vector<int>& usecols = std::vector<int>(),
+                                        bool mangle_dupe_cols = true);
 
+// case 4. both column names and types are to be inferrred
 dftable make_dftable_loadtext_infertype(const std::string& filename,
                                         int separator = ',',
                                         const std::string& nullstr = "NULL",
@@ -44,7 +54,39 @@ dftable make_dftable_loadtext_infertype(const std::string& filename,
                                         bool is_crlf = false,
                                         bool to_separate = true,
                                         bool to_keep_order = true,
-                                        double separate_mb = 1024);
+                                        double separate_mb = 1024,
+                                        const std::vector<int>& usecols = std::vector<int>(),
+                                        bool mangle_dupe_cols = true);
+
+// case 5. all column names and types for few columns are provided in type_map; 
+// columns for which type is not in the type_map, would be inferred.
+dftable make_dftable_loadtext_infertype(const std::string& filename,
+                                        const std::vector<std::string>& names,
+                                        std::map<std::string, std::string>& type_map,
+                                        int separator = ',',
+                                        const std::string& nullstr = "NULL",
+                                        size_t rows_to_see = 1024,
+                                        bool is_crlf = false,
+                                        bool to_separate = true,
+                                        bool to_keep_order = true,
+                                        double separate_mb = 1024,
+                                        const std::vector<int>& usecols = std::vector<int>(),
+                                        bool mangle_dupe_cols = true);
+
+// case 6. column names are to be extracted from header row;
+// types for few columns (assumed to be in header) are provided in type_map; 
+// columns for which type is not in the type_map, would be inferred.
+dftable make_dftable_loadtext_infertype(const std::string& filename,
+                                        std::map<std::string, std::string>& type_map,
+                                        int separator = ',',
+                                        const std::string& nullstr = "NULL",
+                                        size_t rows_to_see = 1024,
+                                        bool is_crlf = false,
+                                        bool to_separate = true,
+                                        bool to_keep_order = true,
+                                        double separate_mb = 1024,
+                                        const std::vector<int>& usecols = std::vector<int>(),
+                                        bool mangle_dupe_cols = true);
 
 std::vector<size_t> extract_nulls(std::vector<int>& chars,
                                   std::vector<size_t>& starts,
