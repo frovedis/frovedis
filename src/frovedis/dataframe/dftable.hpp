@@ -279,7 +279,17 @@ public:
   virtual dftable_base* clone();
   virtual dftable_base* rename_cols(const std::string& name,
                                     const std::string& name2);
-
+  dftable& add_index_column(const std::string& name,
+                           size_t offset=0){
+    this->append_rowid(name, offset);
+    auto cols = columns();
+    auto sz = cols.size();
+    for (size_t i = sz - 1; i > 0; --i) cols[i] = cols[i - 1];
+    cols[0] = name;
+    this->col_order.swap(cols);
+    return *this;
+  }
+  
   friend filtered_dftable;
   friend sorted_dftable;
   friend hash_joined_dftable;
