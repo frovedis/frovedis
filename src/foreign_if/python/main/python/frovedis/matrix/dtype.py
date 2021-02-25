@@ -2,7 +2,13 @@
 #!/usr/bin/env python
 
 import numpy as np
+from ctypes import c_char_p
 
+def get_string_array_pointer(str_vec):
+    str_vec = np.asarray(str_vec)
+    str_ptr = (c_char_p * len(str_vec))()
+    str_ptr[:] = np.array([e.encode('ascii') for e in str_vec.T])
+    return str_ptr
 
 class DTYPE:
     """A python container for data types enumerator"""
@@ -12,6 +18,7 @@ class DTYPE:
     DOUBLE = 4
     STRING = 5
     BOOL = 6
+    ULONG = 7
 
 
 class TypeUtil:
@@ -30,6 +37,8 @@ class TypeUtil:
             return DTYPE.BOOL
         elif dtype == np.dtype(str) or dtype.char == 'S' or dtype.char == 'U':
             return DTYPE.STRING
+        elif dtype == np.uint:
+            return DTYPE.ULONG
         else:
             raise TypeError("Unsupported numpy dtype: ", dtype)
 
@@ -48,5 +57,7 @@ class TypeUtil:
             return np.bool
         elif dtype == DTYPE.STRING:
             return np.dtype(str)
+        elif dtype == DTYPE.ULONG:
+            return np.uint
         else:
             raise TypeError("Unknown numpy type for the given TID: ", dtype)
