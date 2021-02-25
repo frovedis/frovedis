@@ -209,12 +209,51 @@ extern "C" {
                          "nNodes", num_vertices);
   }
 
+  PyObject* to_py_dummy_df(const dummy_dftable& obj) {
+    return Py_BuildValue("{s:l, s:l, s:O, s:O}", 
+                        "dfptr", (long)obj.dfptr, 
+                        "nrow",  (long)obj.nrow,
+                        "names", to_python_string_list(obj.names), 
+                        "types", to_python_string_list(obj.types));
+  }
 
   // converison : const char** => std::vector<std::string>
   std::vector<std::string> 
   to_string_vector(const char** data, ulong sz) {
     std::vector<std::string> vec(sz);
     for(size_t i=0; i<sz; ++i) vec[i] = std::string(data[i]);
+    return vec;
+  }
+
+  // converison : int* (pointer-to-int-array) => std::vector<int>
+  std::vector<int> 
+  to_int_vector(int* data, ulong sz) {
+    std::vector<int> vec(sz);
+    for(size_t i = 0; i < sz; ++i) vec[i] = data[i];
+    return vec;
+  }
+
+  // converison : long* (pointer-to-long-array) => std::vector<long>
+  std::vector<long> 
+  to_long_vector(long* data, ulong sz) {
+    std::vector<long> vec(sz);
+    for(size_t i = 0; i < sz; ++i) vec[i] = data[i];
+    return vec;
+  }
+
+  // converison : float* (pointer-to-float-array) => std::vector<float>
+  std::vector<float> 
+  to_float_vector(float* data, ulong sz) {
+    std::vector<float> vec(sz);
+    for(size_t i = 0; i < sz; ++i) vec[i] = data[i];
+    return vec;
+  }
+
+  // converison : double* (pointer-to-double-array) => std::vector<double>
+  std::vector<double> 
+  to_double_vector(double* data, ulong sz) {
+    std::vector<double> vec(sz);
+    for(size_t i = 0; i < sz; ++i) vec[i] = data[i];
     return vec;
   }
 }
