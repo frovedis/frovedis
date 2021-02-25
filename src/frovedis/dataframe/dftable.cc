@@ -974,6 +974,8 @@ dftable& dftable::rename(const std::string& name, const std::string& name2) {
 
 dftable& dftable::append_column(const std::string& name,
                                 const std::shared_ptr<dfcolumn>& c) {
+  if(col.find(name) != col.end())
+    throw std::runtime_error("append_column: same column name already exists");
   if(col.size() == 0) row_size = c->size();
   else if(c->size() != row_size)
     throw std::runtime_error("different size of columns");
