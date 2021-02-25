@@ -531,35 +531,50 @@ class AgglomerativeClustering(BaseEstimator):
         self.__mid = None
         self.__mdtype = None
         self.__mkind = M_KIND.ACM
-        self.__nsamples = None
         self.labels_ = None
+        self.n_samples = None
+        self.n_features = None
+        self.movable = None
 
-    def fit(self, X, y=None):
-        """
-        NAME: fit
-        """
-        self.release()
+    def check_input(self, X, F):
+        inp_data = FrovedisFeatureData(X, \
+                     caller = "[" + self.__class__.__name__ + "] "+ F +": ",\
+                     dense_kind='rowmajor', densify=True)
+        X = inp_data.get()        
+        dtype = inp_data.get_dtype()
+        itype = inp_data.get_itype()
+        dense = inp_data.is_dense()
+        nsamples = inp_data.numRows()
+        nfeatures = inp_data.numCols()
+        movable = inp_data.is_movable()
+        return X, dtype, itype, dense, nsamples, nfeatures, movable    
+        
+    def validate(self):
         supported_linkages = {'average', 'complete', 'single'}
         if self.linkage not in supported_linkages:
             raise ValueError("linkage: Frovedis doesn't support the "\
                               + "given linkage!")
         if self.threshold is None:
             self.threshold = 0.0
-        inp_data = FrovedisFeatureData(X, \
-                     caller = "[" + self.__class__.__name__ + "] fit: ",\
-                     dense_kind='rowmajor', densify=True)
-        X = inp_data.get()
-        dtype = inp_data.get_dtype()
-        itype = inp_data.get_itype()
-        dense = inp_data.is_dense()
-        self.movable = inp_data.is_movable()
+        
+    def fit(self, X, y=None):
+        """
+        NAME: fit
+        """
+        self.release()
+        self.validate()
+        X, dtype, itype, dense, nsamples, \
+        nfeatures, movable = self.check_input(X, "fit")
+        self.n_samples = nsamples
+        self.n_features = nfeatures
+        self.movable = movable
         self.__mid = ModelID.get()
         self.__mdtype = dtype
-        nsamples = X.numRows()
         (host, port) = FrovedisServer.getServerInstance()
         ret = np.zeros(nsamples, dtype=np.int64)
         rpclib.aca_train(host, port, X.get(), self.n_clusters,
-                         self.linkage.encode('ascii'), self.threshold, ret, nsamples, 
+                         self.linkage.encode('ascii'), 
+                         self.threshold, ret, nsamples, 
                          self.verbose, self.__mid,
                          dtype, itype, dense)
         self.labels_ = ret#.astype(np.int64)
@@ -567,8 +582,7 @@ class AgglomerativeClustering(BaseEstimator):
         self._n_connected_components = None
         self._distances = None
         self._n_clusters = None
-        self.__nsamples = nsamples
-        self.n_leaves_ = nsamples
+        self.n_leaves_ = self.n_samples
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
             raise RuntimeError(excpt["info"])
@@ -592,8 +606,10 @@ class AgglomerativeClustering(BaseEstimator):
   
             nchildren = len(children_vector) // 2
             shape = (nchildren, 2)
-            #sklearn returns children as int32, where it is a candidate to be int64
-            self._children = np.asarray(children_vector).reshape(shape)#.astype(np.int32)
+            # sklearn returns children as int32, 
+            # where it is a candidate to be int64
+            self._children = np.asarray(children_vector)\
+                               .reshape(shape) #.astype(np.int32)
         return self._children
 
     @children_.setter
@@ -601,7 +617,6 @@ class AgglomerativeClustering(BaseEstimator):
         """Setter method for children_ """
         raise AttributeError(\
         "attribute 'children_' of AgglomerativeClustering is not writable")
-
 
     @property
     def n_connected_components_(self):
@@ -694,9 +709,9 @@ class AgglomerativeClustering(BaseEstimator):
                 raise ValueError("predict: ncluster must be a positive integer!")
             self.n_clusters = ncluster
             (host, port) = FrovedisServer.getServerInstance()
-            ret = np.zeros(self.__nsamples, dtype=np.int64)
+            ret = np.zeros(self.n_samples, dtype=np.int64)
             rpclib.acm_predict(host, port, self.__mid, self.__mdtype,
-                               self.n_clusters, ret, self.__nsamples)
+                               self.n_clusters, ret, self.n_samples)
             excpt = rpclib.check_server_exception()
             if excpt["status"]:
                 raise RuntimeError(excpt["info"])
@@ -727,7 +742,7 @@ class AgglomerativeClustering(BaseEstimator):
                 "the model with name %s does not exist!" % fname)
         self.release()
         metadata = open(fname+"/metadata", "rb")
-        self.n_clusters, self.__nsamples, self.__mkind,\
+        self.n_clusters, self.n_samples, self.__mkind,\
                          self.__mdtype = pickle.load(metadata)
         metadata.close()
         if dtype is not None:
@@ -740,10 +755,10 @@ class AgglomerativeClustering(BaseEstimator):
         (host, port) = FrovedisServer.getServerInstance()
         model_file = fname + "/model"
         # get labels
-        ret = np.zeros(self.__nsamples, dtype=np.int64)
+        ret = np.zeros(self.n_samples, dtype=np.int64)
         rpclib.load_frovedis_acm(host, port, self.__mid, \
                                  self.__mdtype, model_file.encode('ascii'),\
-                                 ret, self.__nsamples)
+                                 ret, self.n_samples)
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
             raise RuntimeError(excpt["info"])
@@ -762,7 +777,7 @@ class AgglomerativeClustering(BaseEstimator):
                 os.makedirs(fname)
             GLM.save(self.__mid, self.__mkind, self.__mdtype, fname+"/model")
             metadata = open(fname+"/metadata", "wb")
-            pickle.dump((self.n_clusters, self.__nsamples, self.__mkind, \
+            pickle.dump((self.n_clusters, self.n_samples, self.__mkind, \
                 self.__mdtype), metadata)
             metadata.close()
         else:
@@ -784,6 +799,11 @@ class AgglomerativeClustering(BaseEstimator):
             GLM.release(self.__mid, self.__mkind, self.__mdtype)
             self.__mid = None
             self.labels_ = None
+            self.n_leaves_ = None
+            self._children = None
+            self._n_connected_components = None
+            self._distances = None
+            self._n_clusters = None            
 
     def __del__(self):
         """
@@ -859,15 +879,15 @@ class DBSCAN(BaseEstimator):
 
     def check_sample_weight(self, sample_weight):
         if sample_weight is None:
-            sample_weight = np.array([])
+            weight = np.array([], dtype=np.float64)
         elif isinstance(sample_weight, numbers.Number):
-            sample_weight = np.full(self.n_samples, sample_weight, dtype=np.float64)
+            weight = np.full(self.n_samples, sample_weight, dtype=np.float64)
         else:
-            sample_weight = np.ravel(sample_weight)
-            if len(sample_weight) != self.n_samples:
+            weight = np.ravel(sample_weight)
+            if len(weight) != self.n_samples:
                  raise ValueError("sample_weight.shape == {}, expected {}!"\
                        .format(sample_weight.shape, (n_samples,)))
-        return np.asarray(sample_weight, dtype = np.float64)
+        return np.asarray(weight, dtype=np.float64)
 
     def fit(self, X, y=None, sample_weight=None):
         """
