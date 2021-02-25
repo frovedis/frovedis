@@ -51,4 +51,6 @@ void expose_frovedis_dataframe_functions() {
   expose(release_sparse_conversion_info);
   expose(frov_multi_eq_dfopt);
   expose(frov_cross_join_dfopt);
+  expose(frov_load_dataframe_from_csv);
+  expose(get_dataframe_length);
 }
