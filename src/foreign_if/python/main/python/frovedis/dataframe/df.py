@@ -14,7 +14,7 @@ from ..exrpc.server import FrovedisServer
 from ..matrix.dvector import FrovedisIntDvector, FrovedisLongDvector
 from ..matrix.dvector import FrovedisFloatDvector, FrovedisDoubleDvector
 from ..matrix.dvector import FrovedisStringDvector
-from ..matrix.dtype import DTYPE
+from ..matrix.dtype import DTYPE, TypeUtil, get_string_array_pointer
 from ..matrix.dense import FrovedisRowmajorMatrix
 from ..matrix.dense import FrovedisColmajorMatrix
 from ..matrix.crs import FrovedisCRSMatrix
@@ -22,6 +22,179 @@ from ..mllib.model_util import ModelID
 from .info import df_to_sparse_info
 from .frovedisColumn import FrovedisColumn
 from .dfoperator import dfoperator
+
+def get_string_typename(numpy_type):
+    numpy_to_string_type = { np.int32: "int",
+                             np.int64: "long",
+                             np.float32: "float",
+                             np.float64: "double",
+                             np.str: "dic_string"}
+    if numpy_type not in numpy_to_string_type:
+        raise TypeError("data type '{0}'' not understood\n"
+                        .format(numpy_type))
+    return numpy_to_string_type[numpy_type]
+
+
+def read_csv(filepath_or_buffer, sep=',', delimiter=None,
+             header="infer", names=None, index_col=None,
+             usecols=None, squeeze=False, prefix=None, 
+             mangle_dupe_cols=True, dtype=None, na_values=None,
+             verbose=False, comment=None, low_memory=True,
+             rows_to_see=1024, separate_mb=1024): #added parameters
+
+    #TODO: support index_col parameter (currently gets ignored)
+    if comment is not None:
+      if isinstance(comment, str):
+          if len(comment) != 1:
+              raise ValueError("read_csv: comment should be either " +\
+                               "a string of unit length or None!")
+      # TODO: remove the below error when "comment" support would be added in Frovedis
+      raise ValueError("read_csv: Frovedis currently doesn't support parameter comment!")
+    else:
+        comment=""
+    
+    if delimiter is None:
+        delimiter = sep
+    
+    if len(delimiter) != 1:
+        raise ValueError("read_csv: Frovedis currently supports only single "
+                         "character delimiters!")
+
+    if not isinstance(verbose, bool):
+        raise ValueError("read_csv: Frovedis doesn't support "
+                         "verbose={0}!".format(verbose))
+
+    if not isinstance(mangle_dupe_cols, bool):
+        raise ValueError("read_csv: Frovedis doesn't support "
+                         "mangle_dupe_cols={0}!".format(mangle_dupe_cols))
+
+    if na_values is None:
+        na_values = "NULL"
+    elif not isinstance(na_values, str):
+        raise ValueError("read_csv: Expected a string or None value "
+                         "as for parameter 'na_values'!")
+    
+    if header not in ("infer", 0, None):
+        raise ValueError("read_csv: Frovedis doesn't support "
+                         "header={0}!".format(header))
+
+    import csv
+    with open(filepath_or_buffer) as f:
+        reader = csv.reader(f, delimiter=delimiter)
+        row1 = next(reader)
+        ncols = len(row1)
+
+    if ncols == 0:
+        raise ValueError("read_csv: Frovedis currently doesn't support "
+                         "blank line at beginning!")
+
+    add_index = True
+    if usecols is not None:
+        if all(isinstance(e, int) for e in usecols):
+            usecols = np.asarray(usecols, dtype=np.int32)
+            if np.min(usecols) < 0 or np.max(usecols) >= ncols:
+                raise ValueError("read_csv: usecols index is out-of-bound!")
+        else:
+            raise ValueError("read_csv: currently Frovedis supports only ids " +\
+                             "for usecols parameter!")
+    else:
+        usecols = np.empty(0, dtype=np.int32)
+     
+    if names is None:
+        if header is None:
+            if prefix is None:
+                names = [str(i) for i in range(0, ncols)]
+            elif isinstance(prefix, str):
+                names = [prefix + str(i) for i in range(0, ncols)]
+            else:
+                raise ValueError("read_csv: Frovedis doesn't support "
+                                 "prefix={0}!".format(prefix))
+        else: 
+            names = [] #to be infered from 0th line in input csv file
+    else:
+        if len(usecols) > 0:
+            if len(names) == ncols:
+                pass
+            elif len(names) == len(usecols):
+                # if names is given, frovedis expects all column names to be 
+                # provided. thus populating dummy names for those columns 
+                # which are not in usecols
+                tnames = ["_c_" + str(i) for i in range(0, ncols)]
+                for i in range(len(usecols)):
+                    cid = usecols[i]
+                    tnames[cid] = names[i]
+                names = tnames
+            else:
+                raise ValueError("read_csv: Passed header names mismatches usecols")
+        else:
+            if len(names) == ncols - 1:
+               names = ["index"] + names
+               add_index = False
+            elif len(names) > ncols:
+               names = names[:ncols] # TODO: support pandas like NaN cols
+            elif len(names) < ncols - 1:
+                raise ValueError("read_csv: Frovedis currently doesn't support "
+                                 "multi-level index loading!")
+
+    types = []
+    partial_type_info = False
+    if dtype is None:
+        dtype = {}
+        types = []
+    elif isinstance(dtype, dict):
+        if not names:
+            partial_type_info = True
+        elif not set(names).issubset(set(dtype.keys())):
+            partial_type_info = True
+        else:
+            types = [get_string_typename(dtype[e]) for e in names]
+    else:
+        raise ValueError("read_csv: Invalid type for dtype : {0}".format(type(dtype)))
+
+    name_arr = get_string_array_pointer(names)
+    type_arr = get_string_array_pointer(types)
+
+    # for partial_type_info
+    dtype_keys = []
+    dtype_vals = []
+    if partial_type_info:
+        dtype_keys = list(dtype.keys())
+        dtype_vals = [ get_string_typename(e) for e in dtype.values()]
+    dtype_keys_arr = get_string_array_pointer(dtype_keys)
+    dtype_vals_arr = get_string_array_pointer(dtype_vals)
+
+    (host, port) = FrovedisServer.getServerInstance()
+    dummy_df = rpclib.load_dataframe_from_csv(host, port, 
+                                           filepath_or_buffer.encode('ascii'),
+                                           type_arr, name_arr,
+                                           len(type_arr), len(name_arr),
+                                           delimiter.encode('ascii'),
+                                           na_values.encode("ascii"),
+                                           comment.encode("ascii"),
+                                           rows_to_see, separate_mb,
+                                           partial_type_info,
+                                           dtype_keys_arr, dtype_vals_arr,
+                                           len(dtype), low_memory, add_index,
+                                           usecols, len(usecols),
+                                           verbose, mangle_dupe_cols)
+    excpt = rpclib.check_server_exception()
+    if excpt["status"]:
+        raise RuntimeError(excpt["info"])
+
+    names = dummy_df["names"]
+    string_to_short_dtypes = {"int": DTYPE.INT,
+                              "long": DTYPE.LONG,
+                              "float": DTYPE.FLOAT,
+                              "double": DTYPE.DOUBLE,
+                              "dic_string": DTYPE.STRING,
+                              "unsigned long": DTYPE.ULONG}
+    types = [string_to_short_dtypes[e] for e in dummy_df["types"]]
+    res = FrovedisDataframe().load_dummy(dummy_df["dfptr"], \
+                                         names[1:], types[1:])
+    #TODO: handle index/num_row setting inside load_dummy()
+    res.index = FrovedisColumn(names[0], types[0]) #setting index
+    res.num_row = dummy_df["nrow"]
+    return res
 
 class DataFrame(object):
     """
@@ -37,6 +210,7 @@ class DataFrame(object):
         self.__types = None
         if df is not None:
             self.load(df)
+
     def load_dummy(self, fdata, cols, types):
         """
         load_dummy
@@ -81,20 +255,44 @@ class DataFrame(object):
     #def __del__(self):
     #    if FrovedisServer.isUP(): self.release()
 
+    #def __del__(self):
+    #    if FrovedisServer.isUP(): self.release()
+
+    def __len__(self):
+        """
+        to be invoked by len() method
+        """
+        #TODO: set this parameter always
+        if "num_row" not in self.__dict__:
+            (host, port) = FrovedisServer.getServerInstance()
+            self.num_row = rpclib.get_frovedis_dataframe_length(host, port, \
+                                                                self.__fdata)
+            excpt = rpclib.check_server_exception()
+            if excpt["status"]:
+                raise RuntimeError(excpt["info"])
+        return int(self.num_row)
+
     def load(self, df):
         """
         load
         """
         if len(df) == 0:
-            raise ValueError("Cannot load an empty pandas dataframe (column types could not be deduced)")
+            raise ValueError("Cannot load an empty pandas dataframe " +\
+                             "(column types could not be deduced)")
+        if isinstance(df.index, pd.MultiIndex):
+            raise ValueError("Cannot load a pandas dataframe " +\
+                             "with multi level index")
+
         self.release()
-        cols = df.columns
+        self.num_row = len(df)
+        cols = df.columns.tolist()
+        self.__cols = cols
+        indx_name = df.index.name if df.index.name is not None else "index"
+        cols = [indx_name] + cols
         size = len(cols)
-        self.__cols = cols.tolist()
-        self.__types = [0]*size
-        tmp = [None]*size
-        dvec = [0]*size
-        idx = 0
+        types = [0] * size
+        tmp = [None] * size
+        dvec = [0] * size
 
         # null replacements
         null_replacement = {}
@@ -106,19 +304,22 @@ class DataFrame(object):
         null_replacement['bool_'] = np.iinfo(np.int32).max
         null_replacement['str'] = "NULL"
 
-        for cname in cols:
-            val = df[cname].dropna().values  # first value can be NaN, so can't deduce type
-            if len(val) == 0:
-                # all NaN in val
+        for idx in range(0, size):
+            cname = cols[idx]
+            if idx == 0:
+                col_vec = df.index
+                valid_idx = 0  # assuming df.index[0] is not null
+            else:
+                col_vec = df[cname]
+                # first value can be NaN, so can't deduce type
+                valid_idx = col_vec.first_valid_index()
+
+            if valid_idx is None:  # all NaN in col_vec
                 vtype = 'int32'
                 val = np.full(len(df), np.iinfo(np.int32).max, dtype=np.int32)
             else:
-                vtype = type(val[0]).__name__
-                if vtype not in null_replacement:
-                    raise TypeError("Unsupported column type in creation of "
-                                    "frovedis dataframe: ", vtype)
-                val = df[cname].fillna(null_replacement[vtype])
-
+                vtype = type(col_vec.values[valid_idx]).__name__
+                val = col_vec.fillna(null_replacement[vtype])
             if vtype == 'int32':
                 dt = DTYPE.INT
                 tmp[idx] = FrovedisIntDvector(val)
@@ -131,28 +332,28 @@ class DataFrame(object):
             elif vtype == 'float64':
                 dt = DTYPE.DOUBLE
                 tmp[idx] = FrovedisDoubleDvector(val)
-            elif vtype == 'str':
+            elif vtype == 'str' or vtype == 'str_':
                 dt = DTYPE.STRING
                 tmp[idx] = FrovedisStringDvector(val)
             elif vtype == 'bool' or vtype == 'bool_':
                 dt = DTYPE.BOOL
                 tmp[idx] = FrovedisIntDvector([int(i) for i in val])
             else:
-                raise TypeError("Unsupported column type in creation of "
-                                "frovedis dataframe: ", vtype)
-            self.__types[idx] = dt
+                raise TypeError("Unsupported column type in creation of \
+                                 frovedis dataframe: ", vtype)
+            types[idx] = dt
             dvec[idx] = tmp[idx].get()
-            #For dataframe query purpose
-            self.__dict__[cname] = FrovedisColumn(cname, dt)
-            idx = idx + 1
+            if idx == 0:
+                self.index = FrovedisColumn(cname, dt)   
+            else:
+                self.__dict__[cname] = FrovedisColumn(cname, dt) #For query purpose
 
-        cols_a = np.asarray(self.__cols)
-        col_names = (c_char_p * size)()
-        col_names[:] = [e.encode('ascii') for e in cols_a.T]
+        col_names = get_string_array_pointer(cols)
         dvec_arr = np.asarray(dvec, dtype=c_long)
         dptr = dvec_arr.ctypes.data_as(POINTER(c_long))
-        type_arr = np.asarray(self.__types, dtype=c_short)
+        type_arr = np.asarray(types, dtype=c_short)
         tptr = type_arr.ctypes.data_as(POINTER(c_short))
+        self.__types = types[1:]
 
         (host, port) = FrovedisServer.getServerInstance()
         self.__fdata = rpclib.create_frovedis_dataframe(host, port, tptr,
@@ -167,7 +368,7 @@ class DataFrame(object):
         """
         if self.__fdata is not None:
             if isinstance(target, str):
-                return self.select_frovedis_dataframe([target])
+               return self.select_frovedis_dataframe([target])
             elif isinstance(target, list):
                 return self.select_frovedis_dataframe(target)
             elif isinstance(target, dfoperator):
@@ -391,6 +592,13 @@ class DataFrame(object):
         dfopt = dfoperator(dfopt_proxy)
         return (df_right, dfopt, renamed_key, right_on)
 
+    def __get_frovedis_how(self, how):
+        pandas_to_frov_how = { "left": "outer",
+                               "inner": "inner" }
+        if how not in pandas_to_frov_how:
+            raise ValueError("Frovedis currently doesn't support how={0}!".format(how))
+        return pandas_to_frov_how[how]
+
     def merge(self, right, on=None, how='inner', left_on=None, right_on=None,
               left_index=False, right_index=False, sort=False,
               suffixes=('_x', '_y'), copy=True,
@@ -402,6 +610,12 @@ class DataFrame(object):
         if self.__fdata is None:
             raise ValueError("Operation on invalid frovedis dataframe!")
         right = DataFrame.asDF(right)
+
+        # index rename for right
+        right = right.rename({right.index.name: right.index.name + "_right"})
+
+        # right.index.name = right.index.name + "_right"
+        #right.index = FrovedisColumn(right.index.name + "_right", right.index.dtype) #doesnt do renaming on server side
 
         # no of nulls
         n_nulls = sum(x is None for x in (on, right_on, left_on))
@@ -468,11 +682,13 @@ class DataFrame(object):
         for item in df_right.__cols:
             ret.__dict__[item] = df_right.__dict__[item]
 
+        frov_how = self.__get_frovedis_how(how)
+
         (host, port) = FrovedisServer.getServerInstance()
         ret.__fdata = \
                     rpclib.merge_frovedis_dataframe(host, port, df_left.get(),
                                                     df_right.get(), dfopt.get(),
-                                                    how.encode('ascii'),
+                                                    frov_how.encode('ascii'),
                                                     join_type.encode('ascii'))
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
@@ -521,10 +737,18 @@ class DataFrame(object):
         for item in ret.__cols:
             ret.__dict__[item] = self.__dict__[item]
 
+        # add index
+        ret.__dict__["index"] = self.__dict__["index"]
+
         for i in range(0, len(names)):
             item = names[i]
             new_item = new_names[i]
-            if item not in ret.__cols:
+
+            # addin case for index
+            if item == self.index.name:
+                del ret.__dict__[item]
+                ret.__dict__["index"] = FrovedisColumn(new_item, self.index.dtype)
+            elif item not in ret.__cols:
                 raise ValueError("No column named: ", item)
             else:
                 idx = ret.__cols.index(item)
@@ -567,113 +791,6 @@ class DataFrame(object):
             return DataFrame(df)
         else: TypeError, "Invalid dataframe type is provided!"
 
-    def min(self, columns):
-        """
-        min
-        """
-        if self.__fdata is None:
-            raise ValueError("Operation on invalid frovedis dataframe!")
-        vtype = type(columns).__name__
-        if vtype == 'str':
-            by = [columns]
-        elif vtype == 'list':
-            by = columns
-        else:
-            raise TypeError("Expected: string|list; Received: ", vtype)
-        types = self.__get_column_types(by)
-        if DTYPE.STRING in types:
-            raise ValueError("Non-numeric column given in min calculation!")
-        return self.__get_stat('min', by, types)
-
-    def max(self, columns):
-        """
-        max
-        """
-        if self.__fdata is None:
-            raise ValueError("Operation on invalid frovedis dataframe!")
-        vtype = type(columns).__name__
-        if vtype == 'str':
-            by = [columns]
-        elif vtype == 'list':
-            by = columns
-        else:
-            raise TypeError("Expected: string|list; Received: ", vtype)
-        types = self.__get_column_types(by)
-        if DTYPE.STRING in types:
-            raise ValueError("Non-numeric column given in max calculation!")
-        return self.__get_stat('max', by, types)
-
-    def sum(self, columns):
-        """
-        sum
-        """
-        if self.__fdata is None:
-            raise ValueError("Operation on invalid frovedis dataframe!")
-        vtype = type(columns).__name__
-        if vtype == 'str':
-            by = [columns]
-        elif vtype == 'list':
-            by = columns
-        else:
-            raise TypeError("Expected: string|list; Received: ", vtype)
-        types = self.__get_column_types(by)
-        if DTYPE.STRING in types:
-            raise ValueError("Non-numeric column given in sum calculation!")
-        return self.__get_stat('sum', by, types)
-
-    def std(self, columns):
-        """
-        std
-        """
-        if self.__fdata is None:
-            raise ValueError("Operation on invalid frovedis dataframe!")
-        vtype = type(columns).__name__
-        if vtype == 'str':
-            by = [columns]
-        elif vtype == 'list':
-            by = columns
-        else: raise TypeError("Expected: string|list; Received: ", vtype)
-        types = self.__get_column_types(by)
-        if DTYPE.STRING in types:
-            raise ValueError("Non-numeric column given in std calculation!")
-        return self.__get_stat('std', by, types)
-
-    def avg(self, columns):
-        """
-        avg
-        """
-        if self.__fdata is None:
-            raise ValueError("Operation on invalid frovedis dataframe!")
-        vtype = type(columns).__name__
-        if vtype == 'str':
-            by = [columns]
-        elif vtype == 'list':
-            by = columns
-        else:
-            raise TypeError("Expected: string|list; Received: ", vtype)
-        types = self.__get_column_types(by)
-        if DTYPE.STRING in types:
-            raise ValueError("Non-numeric column given in avg calculation!")
-        return self.__get_stat('avg', by)
-
-    def count(self, columns=None):
-        """
-        count
-        """
-        if self.__fdata is None:
-            raise ValueError("Operation on invalid frovedis dataframe!")
-        # count of all columns
-        if columns is None:
-            return self.__get_stat('count', self.__cols)
-        vtype = type(columns).__name__
-        if vtype == 'str':
-            by = [columns]
-        elif vtype == 'list':
-            by = columns
-        else:
-            raise TypeError("Expected: None|string|list; Received: ", vtype)
-        return self.__get_stat('count', by)
-
     def __get_column_types(self, columns):
         """
         __get_column_types
@@ -699,9 +816,9 @@ class DataFrame(object):
         """
         if len(columns) == 0:
             return []
-        if type(types).__name__ == 'list' and len(columns) != len(types):
+        if isinstance(types, list) and len(columns) != len(types):
             raise ValueError("Size of inputs doesn't match!")
-        if type(name).__name__ != 'str':
+        if not isinstance(name, str):
             raise TypeError("Expected: string; Received: ", type(name).__name__)
         (host, port) = FrovedisServer.getServerInstance()
         sz = len(columns)
@@ -736,7 +853,7 @@ class DataFrame(object):
                                  " std calculation")
             ret = rpclib.get_std_frovedis_dataframe(host, port, self.get(),
                                                     cols_ptr, tptr, sz)
-        elif name == 'avg':
+        elif name == 'avg' or name == 'mean':
             ret = rpclib.get_avg_frovedis_dataframe(host, port, self.get(),
                                                     cols_ptr, sz)
         elif name == 'count':
@@ -749,13 +866,40 @@ class DataFrame(object):
             raise RuntimeError(excpt["info"])
         return ret
 
+    def __get_stat_wrapper(self, func_name, columns):
+        if self.__fdata is None:
+            raise ValueError("Operation on invalid frovedis dataframe!")
+        if isinstance(columns, str):
+            columns = [columns]
+        elif isinstance(columns, list):
+            pass
+        else:
+            raise TypeError("Expected: string|list; Received: ", type(columns))
+        
+        types = self.__get_column_types(columns)
+        if func_name == "count":
+            return self.__get_stat('count', columns, types)
+
+        numeric_cols = []
+        numeric_cols_types = []
+        for i in range(len(columns)):
+            if types[i] != DTYPE.STRING:
+                numeric_cols.append(columns[i])
+                numeric_cols_types.append(types[i])
+
+        ret = self.__get_stat(func_name, numeric_cols, numeric_cols_types)
+        result_dict = dict(zip(numeric_cols, ret))
+        final_res = [result_dict.get(col, np.nan) for col in columns]
+        return final_res
+
     def __get_numeric_columns(self):
         """
         __get_numeric_columns
         """
         cols = []
+        non_numeric_types = [DTYPE.STRING, DTYPE.BOOL]
         for i in range(0, len(self.__cols)):
-            if self.__types[i] != DTYPE.STRING:
+            if self.__types[i] not in non_numeric_types:
                 cols.append(self.__cols[i])
         return cols
 
@@ -764,27 +908,75 @@ class DataFrame(object):
         describe
         """
         cols = self.__get_numeric_columns()
-        count = self.count(cols)
-        mean = self.avg(cols)
-        std = self.std(cols)
-        total = self.sum(cols)
-        minimum = self.min(cols)
-        maximum = self.max(cols)
         index = ['count', 'mean', 'std', 'sum', 'min', 'max']
-        sz = len(count) # all length should be same
-        data = {}
-        for i in range(0, sz):
-            cc = cols[i]
-            val = []
-            val.append(count[i])
-            val.append(mean[i])
-            val.append(std[i])
-            val.append(total[i])
-            val.append(minimum[i])
-            val.append(maximum[i])
-            data[cc] = val
-        #print(data)
-        return pd.DataFrame(data, index=index)
+        return self.__agg_impl(cols, index)
+
+    def __agg_impl(self, cols, index):
+        """
+        agg impl
+        """
+        func_ret = []
+        for ind in index:
+            func_ret.append(self.__get_stat_wrapper(ind, cols))
+        ret = pd.DataFrame(func_ret, index=index, columns=cols)
+
+        ncols = len(cols)
+        types = self.__get_column_types(cols)
+        has_max = 'max' in ret.index
+        has_min = 'min' in ret.index
+        # agg func list has std, avg/mean, then dtype = float64
+        if ("mean" in index) or ("avg" in index) or ("std" in index):
+            rtypes = [np.float64] * ncols
+        else:
+            rtypes = [np.int32 if x == DTYPE.BOOL \
+                      else TypeUtil.to_numpy_dtype(x) for x in types]
+        # here we are type-casting column one-by-one.
+        # since some pandas version has issue in casting all
+        # target columns with dictionary input for astype()
+        # REF: https://github.com/pandas-dev/pandas/issues/21445
+        for i in range(0, ncols):
+            ret[cols[i]] = ret[cols[i]].astype(rtypes[i])
+            # special treatement for bool columns
+            if types[i] == DTYPE.BOOL:
+                if has_max:
+                    tmp = ret[cols[i]]['max']
+                    ret[cols[i]]['max'] = True if tmp == 1 else False
+                if has_min:
+                    tmp = ret[cols[i]]['min']
+                    ret[cols[i]]['min'] = True if tmp == 1 else False
+        return ret 
+
+    def agg(self, func):
+        if isinstance(func, str):
+            return self.__agg_list([func]).transpose()[func]
+        elif isinstance(func, list):
+            return self.__agg_list(func)
+        elif isinstance(func, dict):
+            return self.__agg_dict(func)
+        else:
+            raise ValueError("Unsupported 'func' type : {0}".format(type(func)))
+
+    def __agg_list(self, func):
+        return self.__agg_impl(cols=self.columns, index=func)
+
+    def __agg_dict(self, func_dict):
+        from itertools import chain 
+        func_dict = dict(func_dict)
+        for col in func_dict:
+            if isinstance(func_dict[col], str):
+                func_dict[col] = [func_dict[col]]
+
+        all_cols = list(func_dict.keys())
+        all_funcs = list(set(chain.from_iterable(func_dict.values())))
+
+        df_all_res = self.__agg_impl(cols=all_cols, index=all_funcs)
+        data_dict = {col: {} for col in all_cols}
+
+        for col in func_dict:
+            for func in func_dict[col]:
+                data_dict[col][func] = df_all_res[col][func]
+
+        return pd.DataFrame(data_dict)
 
     def to_panda_dataframe(self):
         """
@@ -792,39 +984,42 @@ class DataFrame(object):
         """
         if self.__fdata is None:
             raise ValueError("Operation on invalid frovedis dataframe!")
-        cols = self.__cols
-        types = self.__types
-        sz = len(cols) # lengths of cols and types are same
-        data = {}
+        has_index = "index" in self.__dict__
+        cols = copy.deepcopy(self.__cols)
+        types = copy.deepcopy(self.__types)
+        if has_index:
+            cols.append(self.index.name)
+            types.append(self.index.dtype)
+
+        # null replacements
+        null_replacement = {}
+        null_replacement[DTYPE.DOUBLE] = np.finfo(np.float64).max
+        null_replacement[DTYPE.FLOAT] = np.finfo(np.float32).max
+        null_replacement[DTYPE.ULONG] = np.iinfo(np.int64).max
+        null_replacement[DTYPE.LONG] = np.iinfo(np.int64).max
+        null_replacement[DTYPE.INT] = np.iinfo(np.int32).max
+        null_replacement[DTYPE.STRING] = "NULL"
+        int2bool = {0: False, 1: True, np.iinfo(np.int32).max: np.nan}
+
+        res = pd.DataFrame()
         (host, port) = FrovedisServer.getServerInstance()
-        for i in range(0, sz):
+
+        for i in range(0, len(cols)):
             col_val = rpclib.get_frovedis_col(host, port, self.get(),
                                               cols[i].encode('ascii'),
                                               types[i])
             excpt = rpclib.check_server_exception()
             if excpt["status"]:
                 raise RuntimeError(excpt["info"])
-            data[cols[i]] = np.asarray(col_val)
 
-        #print(data)
-        res = pd.DataFrame(data)
-
-        # null replacements
-        null_replacement = {}
-        null_replacement[DTYPE.DOUBLE] = np.finfo(np.float64).max
-        null_replacement[DTYPE.FLOAT] = np.finfo(np.float32).max
-        null_replacement[DTYPE.LONG] = np.iinfo(np.int64).max
-        null_replacement[DTYPE.INT] = np.iinfo(np.int32).max
-        null_replacement[DTYPE.STRING] = "NULL"
-
-        int2bool = {0: False, 1: True, np.iinfo(np.int32).max: np.nan}
-
-        for i in range(0, sz):
             if types[i] == DTYPE.BOOL:
-                res[cols[i]] = res[cols[i]].apply(lambda x: int2bool[x] )
+                res[cols[i]] = [int2bool[x] for x in col_val]
             else:
-                res[cols[i]].replace(null_replacement[types[i]], np.nan,
-                                    inplace=True)
+                null_val = null_replacement[types[i]]
+                res[cols[i]] = [np.nan if x == null_val else x for x in col_val]
+
+        if has_index:
+            res.set_index(self.index.name, inplace=True)
         return res
 
     #default type: float
