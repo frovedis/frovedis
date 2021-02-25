@@ -16,16 +16,18 @@ int main(int argc, char** argv) {
   bool norm_laplacian = true;
   bool precomputed = false;
   bool drop_first = false;
+  int mode = 1;  
 
   time_spent train(INFO);
   train.lap_start();
-  auto label = spectral_clustering(mat,k,n_comp,niter,eps,
-               norm_laplacian,precomputed,drop_first,gamma);
+  auto model = spectral_clustering_train(std::move(mat),k,n_comp,niter,eps,
+               norm_laplacian,precomputed,gamma,mode,drop_first);  
   train.lap_stop();
   train.show_lap("training time: ");
 
-  //std::cout << "\ncluster output: \n";
-  //for(auto e: label) std::cout << e << " "; std::cout << std::endl;
+  auto label = model.labels;
+  std::cout << "\ncluster output: \n";
+  for(auto e: label) std::cout << e << " "; std::cout << std::endl;
   return 0;
 }
 
