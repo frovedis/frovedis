@@ -20,6 +20,21 @@ class FrovedisColumn(object):
         self.__dtype = dtype
 
     @property
+    def name(self):
+        """
+        name
+        """
+        return self.__colName
+
+    @name.setter
+    def name(self, value):
+        """
+        name
+        """
+        raise AttributeError("attribute 'name' of FrovedisColumn object"
+                            " is not writable!")
+
+    @property
     def colName(self):
         """
         colName
@@ -31,7 +46,8 @@ class FrovedisColumn(object):
         """
         colName
         """
-        self.__colName = value
+        raise AttributeError("attribute 'colName' of FrovedisColumn object"
+                            " is not writable!")
 
     @property
     def dtype(self):
@@ -45,7 +61,8 @@ class FrovedisColumn(object):
         """
         dtype
         """
-        self.__dtype = value
+        raise AttributeError("attribute 'dtype' of FrovedisColumn object"
+                            " is not writable!")
 
     def __lt__(self, other):
         """
