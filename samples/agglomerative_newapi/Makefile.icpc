@@ -3,7 +3,7 @@ include ../Makefile.in.icpc
 include ../Makefile.common
 
 TO_INSTALL := agglomerative.cc
-DIR := agglomerative
+DIR := agglomerative_newapi
 ARCH := icpc
 
 agglomerative: agglomerative.o

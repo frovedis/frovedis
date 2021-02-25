@@ -3,7 +3,7 @@ include ../Makefile.in.x86
 include ../Makefile.common
 
 TO_INSTALL := agglomerative.cc
-DIR := agglomerative
+DIR := agglomerative_newapi
 ARCH := x86
 
 agglomerative: agglomerative.o

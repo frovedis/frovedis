@@ -3,7 +3,7 @@ include ../Makefile.in.ve
 include ../Makefile.common
 
 TO_INSTALL := agglomerative.cc
-DIR := agglomerative
+DIR := agglomerative_newapi
 ARCH := ve
 
 agglomerative: agglomerative.o
