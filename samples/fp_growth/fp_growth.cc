@@ -25,7 +25,7 @@ int main(int argc, char** argv) {
   double support = 0.2;
 
   grow.lap_start();
-  auto model = grow_fp_tree(t, support, conf);
+  auto model = grow_fp_tree(t, support);
   grow.lap_stop();
   grow.show_lap("grow_fp_tree: ");
   model.debug_print();
