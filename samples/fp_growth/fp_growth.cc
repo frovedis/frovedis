@@ -23,17 +23,18 @@ int main(int argc, char** argv) {
   time_spent grow(INFO), tree(INFO);
   double conf = 0.5;
   double support = 0.2;
+
   grow.lap_start();
-  auto model = grow_fp_tree(t,support);
-  model.debug_print();
+  auto model = grow_fp_tree(t, support, conf);
   grow.lap_stop();
   grow.show_lap("grow_fp_tree: ");
+  model.debug_print();
 
   tree.lap_start();
   auto rule = model.generate_rules(conf);
-  rule.debug_print();
   tree.lap_stop();
   tree.show_lap("generate_rules: ");
+  rule.debug_print();
 
   return 0;
 }
