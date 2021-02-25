@@ -3,6 +3,8 @@
 import sys
 import numpy as np
 from frovedis.exrpc.server import FrovedisServer
+
+#from sklearn.cluster import DBSCAN
 from frovedis.mllib.cluster import DBSCAN
 
 # initializing the Frovedis server
@@ -14,16 +16,11 @@ if (argc < 2):
 FrovedisServer.initialize(argvs[1])
 
 # creating dbscan object
-dbm = DBSCAN(eps=3, metric='euclidean', verbose=0)
+dbm = DBSCAN(eps=5, min_samples=2)
 
 # fitting the training matrix on dbscan object
 tmat = np.loadtxt("./input/knn_data.txt")
-tmat = np.asarray(tmat, dtype=np.float64)
-dbm.fit(tmat)
-
-lbl = dbm.labels_
-print ("fit_predict: ", dbm.fit_predict(tmat))
-print ("Labels: ", lbl)
+print ("lables: ", dbm.fit_predict(tmat))
 
 dbm.release()
 FrovedisServer.shut_down()
