@@ -98,6 +98,7 @@ class LinearSVC(BaseEstimator):
                            self.tol, self.verbose, self.__mid, dtype, \
                            itype, dense)
         elif self.solver == 'lbfgs':
+            regTyp = 2 #lbfgs supports only l2 regularization
             rpclib.svm_lbfgs(host, port, X.get(), y.get(), \
                              self.max_iter, self.lr_rate, \
                              regTyp, rparam, self.fit_intercept, \
