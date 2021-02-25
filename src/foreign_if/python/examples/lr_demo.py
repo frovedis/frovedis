@@ -22,7 +22,7 @@ from sklearn.datasets import load_breast_cancer
 mat, lbl = load_breast_cancer(return_X_y=True)
 
 # fitting input matrix and label on logistic regression object
-lr = LogisticRegression(solver='lbfgs', C=1.0, verbose=0).fit(mat,lbl)
+lr = LogisticRegression(solver='lbfgs').fit(mat,lbl)
 
 # predicting on loaded model
 print("predicting on lbfgs logistic regression model: ")
@@ -30,7 +30,7 @@ print(lr.predict(mat))
 print("score: %.2f " % (lr.score(mat, lbl)))
 
 # fitting input matrix and label on logistic regression object
-lr = LogisticRegression(solver='sag', C=1.0, verbose=0).fit(mat,lbl)
+lr = LogisticRegression(solver='sag').fit(mat,lbl)
 
 # predicting on loaded model
 print("predicting on sag logistic regression model: ")
@@ -47,6 +47,7 @@ print(lr.intercept_)
 print("classes: ")
 print(lr.classes_)
 
+'''
 # saving the model
 lr.save("./out/LRModel")
 
@@ -61,6 +62,6 @@ print(lr.intercept_)
 
 print("classes: ")
 print(lr.classes_)
-
+'''
 #lr.release()
 FrovedisServer.shut_down()
