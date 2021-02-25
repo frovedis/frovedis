@@ -244,44 +244,54 @@ construct_distance_matrix(rowmajor_matrix<T>& x_mat,
   std::string dist_metric = metric; // removing const-ness
   rowmajor_matrix<T> dist_mat;
 
-  time_spent calc_dist(DEBUG);
-  calc_dist.lap_start();
-  // a simple heuristic to decide which matrix to broadcast
-  if (nsamples/100 <= nquery) {
-    auto g_x_mat = x_mat.gather();
+  try {
+    time_spent calc_dist(DEBUG);
+    calc_dist.lap_start();
+    // a simple heuristic to decide which matrix to broadcast
+    if (nsamples/100 <= nquery) {
+      auto g_x_mat = x_mat.gather();
 #ifdef NEED_TRANS_FOR_MULT
-    auto b_mat = broadcast(g_x_mat.transpose());
-    auto trans_b = true;
+      auto b_mat = broadcast(g_x_mat.transpose());
+      auto trans_b = true;
 #else
-    auto b_mat = broadcast(g_x_mat);
-    auto trans_b = false;
+      auto b_mat = broadcast(g_x_mat);
+      auto trans_b = false;
 #endif
-    g_x_mat.clear(); // releasing memory for gathered data
-    auto loc_dist_mat = y_mat.data.map(compute_dist(dist_metric,
-                                       trans_b,need_distance), b_mat);
-    dist_mat.data = std::move(loc_dist_mat);
-    dist_mat.num_row = nquery;
-    dist_mat.num_col = nsamples; // no tranpose required, since Y * Xt is performed
-  }
-  else { // nsamples >> nquery (more than 100 times)
-    auto g_y_mat = y_mat.gather();
+      g_x_mat.clear(); // releasing memory for gathered data
+      auto loc_dist_mat = y_mat.data.map(compute_dist(dist_metric,
+                                         trans_b,need_distance), b_mat);
+      dist_mat.data = std::move(loc_dist_mat);
+      dist_mat.num_row = nquery;
+      dist_mat.num_col = nsamples; // no tranpose required, since Y * Xt is performed
+    }
+    else { // nsamples >> nquery (more than 100 times)
+      auto g_y_mat = y_mat.gather();
 #ifdef NEED_TRANS_FOR_MULT
-    auto b_mat = broadcast(g_y_mat.transpose());
-    auto trans_b = true;
+      auto b_mat = broadcast(g_y_mat.transpose());
+      auto trans_b = true;
 #else
-    auto b_mat = broadcast(g_y_mat);
-    auto trans_b = false;
+      auto b_mat = broadcast(g_y_mat);
+      auto trans_b = false;
 #endif
-    g_y_mat.clear(); // releasing memory for gathered data
-    auto loc_dist_mat = x_mat.data.map(compute_dist(dist_metric,
-                                       trans_b,need_distance), b_mat);
-    rowmajor_matrix<T> tmp_dist_mat(std::move(loc_dist_mat));
-    tmp_dist_mat.num_row = nsamples;
-    tmp_dist_mat.num_col = nquery;
-    dist_mat = tmp_dist_mat.transpose(); // transpose is needed, since X * Yt is performed
+      g_y_mat.clear(); // releasing memory for gathered data
+      auto loc_dist_mat = x_mat.data.map(compute_dist(dist_metric,
+                                         trans_b,need_distance), b_mat);
+      rowmajor_matrix<T> tmp_dist_mat(std::move(loc_dist_mat));
+      tmp_dist_mat.num_row = nsamples;
+      tmp_dist_mat.num_col = nquery;
+      dist_mat = tmp_dist_mat.transpose(); // transpose is needed, since X * Yt is performed
+    }
+    calc_dist.lap_stop();
+    calc_dist.show_lap("dist calculation: ");
   }
-  calc_dist.lap_stop();
-  calc_dist.show_lap("dist calculation: ");
+  catch(std::exception& excpt) {
+    double reqsz = nsamples * nquery * sizeof(T);
+    auto reqsz_gb = reqsz / 1024.0 / 1024.0 / 1024.0;
+    std::string msg = "out-of-memory error occured while computing distance matrix!";
+    msg += "\nrequired memory size for the target distance matrix: ";
+    msg += std::to_string(reqsz_gb) + " GB\n";
+    REPORT_ERROR(INTERNAL_ERROR, msg);
+  }
   return dist_mat;
 }
 
@@ -339,9 +349,20 @@ construct_distance_matrix(node_local<rowmajor_matrix_local<T>>& mat,
   for(size_t i=1; i<nrows.size(); ++i) sidx[i] = sidx[i-1] + nrows[i-1];
   auto myst = make_node_local_scatter(sidx);
   auto mysz = make_node_local_scatter(nrows);
-  rowmajor_matrix<T> dist_mat(mat.map(construct_distance_matrix_helper<T>,
-                              sum_sq_col,myst,mysz,broadcast(is_sq_euclidian)));
-  dist_mat.num_row = dist_mat.num_col = nrow;
+  rowmajor_matrix<T> dist_mat;
+  try {
+    dist_mat.data = mat.map(construct_distance_matrix_helper<T>,
+                            sum_sq_col,myst,mysz,broadcast(is_sq_euclidian));
+    dist_mat.num_row = dist_mat.num_col = nrow;
+  }
+  catch(std::exception& excpt) {
+    double reqsz = nrow * nrow * sizeof(T);
+    auto reqsz_gb = reqsz / 1024.0 / 1024.0 / 1024.0;
+    std::string msg = "out-of-memory error occured while computing distance matrix!";
+    msg += "\nrequired memory size for the target distance matrix: ";
+    msg += std::to_string(reqsz_gb) + " GB\n";
+    REPORT_ERROR(INTERNAL_ERROR, msg);
+  }
   return dist_mat;
 }
 
