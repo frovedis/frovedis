@@ -1,0 +1,10 @@
+TARGETS := spectral
+include ../Makefile.in.ve
+include ../Makefile.common
+
+TO_INSTALL := spectral.cc
+DIR := spectral_newapi
+ARCH := ve
+
+spectral: spectral.o
+	${LINK} -o spectral spectral.o ${LIBS}
