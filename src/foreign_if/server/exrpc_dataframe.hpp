@@ -174,6 +174,15 @@ void save_sparse_conversion_info(long& info_id, std::string&);
 void release_sparse_conversion_info(long& info_id);
 exrpc_ptr_t frov_multi_eq_dfopt(std::vector<std::string>& left_cols, 
                                 std::vector<std::string>& right_cols);
-
 exrpc_ptr_t frov_cross_join_dfopt();
+
+dummy_dftable frov_load_dataframe_from_csv(std::string& filename,
+                                          std::vector<std::string>& types,
+                                          std::vector<std::string>& names,
+                                          bool& partial_type_info, 
+                                          std::map<std::string, std::string>& type_map,
+                                          std::vector<int>& usecols,
+                                          csv_config& config);
+size_t get_dataframe_length(exrpc_ptr_t& df_proxy);
+
 #endif

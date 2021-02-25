@@ -225,6 +225,7 @@ frovedis_df_sum(exrpc_ptr_t& df_proxy,
   std::vector<std::string> ret(cols.size());
   for (size_t i=0; i<cols.size(); ++i) { 
     switch(types[i]) {
+      case BOOL:
       case INT:  ret[i] = std::to_string(df.sum<int>(cols[i])); break;
       case LONG:  ret[i] = std::to_string(df.sum<long>(cols[i])); break;
       case FLOAT:  ret[i] = std::to_string(df.sum<float>(cols[i])); break;
@@ -243,6 +244,7 @@ frovedis_df_min(exrpc_ptr_t& df_proxy,
   std::vector<std::string> ret(cols.size());
   for (size_t i=0; i<cols.size(); ++i) { 
     switch(types[i]) {
+      case BOOL:
       case INT:  ret[i] = std::to_string(df.min<int>(cols[i])); break;
       case LONG:  ret[i] = std::to_string(df.min<long>(cols[i])); break;
       case FLOAT:  ret[i] = std::to_string(df.min<float>(cols[i])); break;
@@ -261,6 +263,7 @@ frovedis_df_max(exrpc_ptr_t& df_proxy,
   std::vector<std::string> ret(cols.size());
   for (size_t i=0; i<cols.size(); ++i) { 
     switch(types[i]) {
+      case BOOL:
       case INT:  ret[i] = std::to_string(df.max<int>(cols[i])); break;
       case LONG:  ret[i] = std::to_string(df.max<long>(cols[i])); break;
       case FLOAT:  ret[i] = std::to_string(df.max<float>(cols[i])); break;
@@ -318,6 +321,7 @@ frovedis_df_std(exrpc_ptr_t& df_proxy,
   std::vector<std::string> ret(cols.size());
   for (size_t i=0; i<cols.size(); ++i) {
     switch(types[i]) {
+      case BOOL:
       case INT:     ret[i] = std::to_string(get_std<int>(df,cols[i])); break;
       case LONG:    ret[i] = std::to_string(get_std<long>(df,cols[i])); break;
       case FLOAT:   ret[i] = std::to_string(get_std<float>(df,cols[i])); break;
@@ -519,4 +523,97 @@ exrpc_ptr_t frov_cross_join_dfopt() {
    new std::shared_ptr<dfoperator>(frovedis::cross());
   if (!opt) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed.\n");
   return reinterpret_cast<exrpc_ptr_t> (opt);
+}
+
+dummy_dftable 
+frov_load_dataframe_from_csv(std::string& filename,
+                             std::vector<std::string>& types,
+                             std::vector<std::string>& names,
+                             bool& partial_type_info, 
+                             std::map<std::string, std::string>& type_map,
+                             std::vector<int>& usecols,
+                             csv_config& config) {
+  //config.debug_print();
+  auto separator = config.separator;
+  auto nullstr = config.nullstr;
+  auto comment = config.comment;
+  auto rows_to_see = config.rows_to_see;
+  auto separate_mb = config.separate_mb;
+  auto to_separate = config.to_separate;
+  auto add_index = config.add_index;
+  auto verbose_level = config.verbose_level;
+  auto mangle_dupe_cols = config.mangle_dupe_cols;
+
+  bool is_crlf = false;
+  bool to_keep_order = true;
+  set_verbose_level(verbose_level); 
+  dftable *dftblp = NULL;
+
+  if (partial_type_info){
+    if ( names.empty() ) {
+      dftblp = new dftable(make_dftable_loadtext_infertype(filename, type_map,
+                                                           separator, nullstr,
+                                                           rows_to_see, is_crlf,
+                                                           to_separate, to_keep_order, 
+                                                           separate_mb, usecols,
+                                                           mangle_dupe_cols));
+    }
+    else {
+      dftblp = new dftable(make_dftable_loadtext_infertype(filename, names, type_map,
+                                                           separator, nullstr,
+                                                           rows_to_see, is_crlf,
+                                                           to_separate, to_keep_order, 
+                                                           separate_mb, usecols,
+                                                           mangle_dupe_cols));
+
+    }
+  }
+  else { 
+    if (!names.empty() && !types.empty()) {
+      dftblp = new dftable(make_dftable_loadtext(filename, types, names,
+                                                 separator, nullstr,
+                                                 is_crlf, to_separate, 
+                                                 to_keep_order,
+                                                 separate_mb, usecols, 
+                                                 mangle_dupe_cols));
+
+    }
+    else if(!names.empty()) {
+      dftblp = new dftable(make_dftable_loadtext_infertype(filename, names,
+                                                           separator, nullstr,
+                                                           rows_to_see, is_crlf,
+                                                           to_separate, to_keep_order,
+                                                           separate_mb, usecols,
+                                                           mangle_dupe_cols));
+
+    }
+    else {
+      dftblp = new dftable(make_dftable_loadtext_infertype(filename, separator,
+                                                           nullstr, rows_to_see,
+                                                           is_crlf, to_separate,
+                                                           to_keep_order, 
+                                                           separate_mb, usecols,
+                                                           mangle_dupe_cols));
+    }
+  }
+
+  if (add_index) dftblp->add_index_column("index");
+  //dftblp->show();
+  auto data_types = dftblp->dtypes();
+  auto sz = data_types.size();
+  auto nrow = dftblp->num_row();
+
+  std::vector<std::string> df_names(sz), df_types(sz);
+  for(size_t i = 0; i < sz; i++) {
+    df_names[i] = data_types[i].first;
+    df_types[i] = data_types[i].second;
+  }
+  reset_verbose_level();
+  return dummy_dftable(reinterpret_cast<exrpc_ptr_t>(dftblp),
+                       nrow, df_names, df_types);
+}
+
+size_t get_dataframe_length(exrpc_ptr_t& df_proxy) {
+  auto dftblp = reinterpret_cast<dftable_base*>(df_proxy);
+  return dftblp->num_row();
 }
