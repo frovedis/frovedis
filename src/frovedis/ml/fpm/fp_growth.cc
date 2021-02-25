@@ -1,4 +1,3 @@
-//#include <algorithm>
 #include <sys/sysinfo.h>
 #include "fp_growth.hpp"
 
@@ -150,16 +149,23 @@ namespace frovedis {
                                            .select({"trans_id","item_base","item","rank"})
                                            .sort("trans_id");
     free_df(ordered_itemset);
-    auto join_df = generate_tables(combination,support);
-    for(auto& each: join_df) { // parsing all joined dftables
-      auto cols = each.columns();    
-      auto tcols = get_target_columns(cols);  
-      auto fitem = each.group_by(tcols)
-                       .select(tcols, {count_as(tcols[tcols.size()-1],"count")})
-                       .filter(ge_im("count",support))
-                       .materialize();
-      if(fitem.num_row()) freq_itemsets.push_back(fitem);
+    try {
+      auto join_df = generate_tables(combination,support);
+      for(auto& each: join_df) { // parsing all joined dftables
+        auto cols = each.columns();    
+        auto tcols = get_target_columns(cols);  
+        auto fitem = each.group_by(tcols)
+                         .select(tcols, {count_as(tcols[tcols.size()-1],"count")})
+                         .filter(ge_im("count",support))
+                         .materialize();
+        if(fitem.num_row()) freq_itemsets.push_back(fitem);
+      }
+    }
+    catch(std::exception& excpt) {
+      REPORT_ERROR(INTERNAL_ERROR, 
+      "out-of-memory error occured during fp-tree construction!\n");
     }
     return fp_growth_model(freq_itemsets); 
   }
+
 }
