@@ -22,6 +22,8 @@
  *    numpy.sort(x) -> vector_sort(x)
  *    numpy.count_nonzero(x) -> vector_count_nonzero(x)
  *      additionally available: vector_count_positives(x) and vector_count_negatives(x)
+ *      also available: vector_count_equal(x, k) -> countys no. of elements in x is equal to k
+ *                      vector_is_uniform(x) -> if all elements in x are of same value
  *    numpy.zeros(sz) -> vector_zeros(sz)
  *    numpy.ones(sz) -> vector_ones(sz)
  *    numpy.full(sz, val) [numpy.ndarray.fill(val)] -> vector_full(sz, val)
@@ -426,18 +428,20 @@ template <class T>
 std::vector<T> 
 vector_sort(const std::vector<T>& vec,
             bool positive_only = false) {
+  if (vec.empty()) return std::vector<T>();
   auto copy_vec = vec; // copying, since radix_sort operates inplace
   radix_sort(copy_vec, positive_only);
   return copy_vec;
 }
 
-template <class T>
+template <class T, class I>
 std::vector<T> 
 vector_sort(const std::vector<T>& vec,
-            std::vector<size_t>& pos,
+            std::vector<I>& pos,
             bool positive_only = false) {
+  if (vec.empty()) return std::vector<T>();
   auto copy_vec = vec; // copying, since radix_sort operates inplace
-  pos = vector_arrange<size_t>(vec.size());
+  pos = vector_arrange<I>(vec.size());
   radix_sort(copy_vec, pos, positive_only);
   return copy_vec;
 }
