@@ -94,5 +94,37 @@ spectral_clustering_impl(rowmajor_matrix<T>& mat,
   return model;
 }
 
+template <class T>
+spectral_clustering_model<T>
+spectral_clustering_train(rowmajor_matrix<T>& mat,
+                          int ncluster = 2,
+                          int n_comp = 2,
+                          int niter = 100,
+                          double eps = 0.01,
+                          bool norm_laplacian = true,
+                          bool precomputed = false,
+                          bool drop_first = false,
+                          double gamma = 1.0,
+                          int mode = 1) {
+  return spectral_clustering_impl(mat,ncluster,n_comp,niter,eps,
+                                  norm_laplacian,precomputed,gamma,mode,drop_first,false);
+}
+
+template <class T>
+spectral_clustering_model<T>
+spectral_clustering_train(rowmajor_matrix<T>&& mat,
+                          int ncluster = 2,
+                          int n_comp = 2,
+                          int niter = 100,
+                          double eps = 0.01,
+                          bool norm_laplacian = true,
+                          bool precomputed = false,
+                          bool drop_first = false,
+                          double gamma = 1.0,
+                          int mode = 1) {
+  return spectral_clustering_impl(mat,ncluster,n_comp,niter,eps,
+                                  norm_laplacian,precomputed,gamma,mode,drop_first,true);
+}
+
 }
 #endif

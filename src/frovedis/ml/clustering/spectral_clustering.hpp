@@ -17,7 +17,6 @@ namespace frovedis {
                         bool precomputed = false,
                         bool drop_first = false,
                         int mode = 1) {
-
       this->n_clusters = n_clusters;
       this->n_comp = n_comp;
       this->n_iter = n_iter;
