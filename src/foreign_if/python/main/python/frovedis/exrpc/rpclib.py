@@ -8,7 +8,8 @@ rpclib.py
 
 import numpy as np
 from ctypes import c_char_p, c_int, c_ulong, c_short, c_float, c_double,\
-                   c_long, c_bool, c_char, c_void_p, CDLL, py_object, POINTER
+                   c_long, c_bool, c_char, c_void_p, CDLL, py_object, POINTER,\
+                   c_size_t
 from numpy.ctypeslib import ndpointer
 from scipy.sparse.csr import csr_matrix
 
@@ -283,6 +284,26 @@ get_multi_eq_dfopt.argtypes = [c_char_p, c_int, # host, port
                                POINTER(c_char_p), # right_on
                                c_ulong] # size
 get_multi_eq_dfopt.restype = c_long
+
+load_dataframe_from_csv = LIB.load_dataframe_from_csv
+load_dataframe_from_csv.argtypes = [c_char_p, c_int, # host, port
+                                   c_char_p, #filename
+                                   POINTER(c_char_p), POINTER(c_char_p), # types, names
+                                   c_ulong, c_ulong, # types_size, names_size
+                                   c_char, c_char_p, c_char_p, #seperator, nullstr, comments
+                                   c_size_t, c_double, #rows_to_see, seperate_mb
+                                   c_bool, #partial_type_info
+                                   POINTER(c_char_p), POINTER(c_char_p), # dtype_keys, dtype_vals
+                                   c_ulong, c_bool, c_bool, # dtypes_dict_size, low_memory, add_index
+                                   ndpointer(c_int, ndim=1, flags="C_CONTIGUOUS"), #usecols-id
+                                   c_ulong,        # usecols-len
+                                   c_bool, c_bool] # verbose, mangle_dupe_cols
+load_dataframe_from_csv.restype = py_object
+
+get_frovedis_dataframe_length = LIB.get_frovedis_dataframe_length
+get_frovedis_dataframe_length.argtypes = [c_char_p, c_int, # host, port
+                                          c_long]          # proxy
+get_frovedis_dataframe_length.restype = c_long
 
 # --- Frovedis dftable_to_sparse_info ---
 load_dftable_to_sparse_info = LIB.load_dftable_to_sparse_info
