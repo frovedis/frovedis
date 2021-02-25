@@ -226,9 +226,10 @@ class FrovedisGroupedDataframe(object):
         """
         __get_numeric_columns
         """
+        non_numeric_types = [DTYPE.STRING]
         cols = []
         for i in range(0, len(self.__p_cols)):
-            if self.__p_types[i] != DTYPE.STRING:
+            if self.__p_types[i] not in non_numeric_types:
                 cols.append(self.__p_cols[i])
         return cols
 
@@ -236,9 +237,10 @@ class FrovedisGroupedDataframe(object):
         """
         __get_non_numeric_columns
         """
+        non_numeric_types = [DTYPE.STRING]
         cols = []
         for i in range(0, len(self.__p_cols)):
-            if self.__p_types[i] == DTYPE.STRING:
+            if self.__p_types[i] in non_numeric_types:
                 cols.append(self.__p_cols[i])
         return cols
 
