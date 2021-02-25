@@ -22,18 +22,12 @@ from sklearn.datasets import load_breast_cancer
 mat, lbl = load_breast_cancer(return_X_y=True)
 
 # fitting input matrix and label on linear svm object
-svm = LinearSVC(solver='lbfgs',verbose=0).fit(mat,lbl)
-
-# predicting on loaded model
-print("predicting on lbfgs svm classification model: ")
-print(svm.predict(mat))
-
-# fitting input matrix and label on linear svm object
-svm = LinearSVC(solver='sag',verbose=0).fit(mat,lbl)
+svm = LinearSVC(solver='sag').fit(mat,lbl)
 
 # predicting on loaded model
 print("predicting on sgd svm classification model: ")
 print(svm.predict(mat))
+print("score: %.2f " % (svm.score(mat, lbl)))
 
 # saving the model
 svm.save("./out/SVMModel")
