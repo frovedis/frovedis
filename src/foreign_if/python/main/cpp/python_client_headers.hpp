@@ -57,12 +57,17 @@ extern "C" {
   PyObject* to_py_kmeans_result(const kmeans_result& obj);
   PyObject* to_py_dummy_lda_result(const dummy_lda_result& m);
   PyObject* to_py_dummy_graph(const dummy_graph& obj);
+  PyObject* to_py_dummy_df(const dummy_dftable& obj);
 
   // --- server info ---
   std::vector<exrpc_node> get_worker_nodes(exrpc_node& fm_node);
 
   // conversion
   std::vector<std::string> to_string_vector(const char** data, ulong sz);
+  std::vector<int> to_int_vector(int* data, ulong sz);
+  std::vector<long> to_long_vector(long* data, ulong sz);
+  std::vector<float> to_float_vector(float* data, ulong sz);
+  std::vector<double> to_double_vector(double* data, ulong sz);
 }
 
 #endif
