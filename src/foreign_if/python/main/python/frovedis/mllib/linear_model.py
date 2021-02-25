@@ -25,9 +25,9 @@ class LogisticRegression(BaseEstimator):
     lr_rate: Frovedis: 0.01 (added)
     use_shrink: Frovedis: false (added)
     """
-    def __init__(self, penalty='none', dual=False, tol=1e-4, C=1.0,
+    def __init__(self, penalty='l2', dual=False, tol=1e-4, C=1.0,
                  fit_intercept=True, intercept_scaling=1, class_weight=None,
-                 random_state=None, solver='sag', max_iter=1000,
+                 random_state=None, solver='lbfgs', max_iter=1000,
                  multi_class='auto', verbose=0, warm_start=False,
                  n_jobs=1, l1_ratio=None, lr_rate=0.01, use_shrink=False):
         self.penalty = penalty
@@ -79,6 +79,15 @@ class LogisticRegression(BaseEstimator):
         self.__mid = ModelID.get()
         self.__mdtype = dtype
 
+        if dense: 
+            if self.use_shrink:
+                raise ValueError("fit: use_shrink is applicable only for " \
+                                 + "sparse data!")
+        else:
+            if self.solver == "lbfgs":
+                raise ValueError("fit: use_shrink is applicable only for " \
+                                 + "sgd solver!")
+
         if dense and self.use_shrink:
             raise ValueError("fit: use_shrink is applicable only for " \
                              + "sparse data!")
@@ -119,6 +128,7 @@ class LogisticRegression(BaseEstimator):
                        self.fit_intercept, self.tol, self.verbose, \
                        self.__mid, dtype, itype, dense, self.use_shrink)
         elif self.solver == 'lbfgs':
+            regTyp = 2 #lbfgs supports only l2 regularization
             rpclib.lr_lbfgs(host, port, X.get(), y.get(), \
                           self.max_iter, self.lr_rate, regTyp, rparam, \
                           isMult, \
