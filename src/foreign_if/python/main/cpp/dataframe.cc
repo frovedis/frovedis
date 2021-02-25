@@ -328,7 +328,7 @@ extern "C" {
     catch (std::exception& e) {
       set_status(true, e.what());
     }
-    return to_python_double_list_from_str_vector(ret);
+    return to_python_string_list(ret);
   }
 
   PyObject* max_frovedis_dataframe(const char* host, int port, long proxy,
@@ -350,7 +350,7 @@ extern "C" {
     catch (std::exception& e) {
       set_status(true, e.what());
     }
-    return to_python_double_list_from_str_vector(ret);
+    return to_python_string_list(ret);
   }
 
   PyObject* sum_frovedis_dataframe(const char* host, int port, long proxy,
@@ -372,7 +372,7 @@ extern "C" {
     catch (std::exception& e) {
       set_status(true, e.what());
     }
-    return to_python_double_list_from_str_vector(ret);
+    return to_python_string_list(ret);
   }
 
   PyObject* avg_frovedis_dataframe(const char* host, int port, long proxy,
@@ -391,7 +391,7 @@ extern "C" {
     catch (std::exception& e) {
       set_status(true, e.what());
     }
-    return to_python_double_list_from_str_vector(ret);
+    return to_python_string_list(ret);
   }
 
   PyObject* cnt_frovedis_dataframe(const char* host, int port, long proxy,
@@ -410,7 +410,7 @@ extern "C" {
     catch (std::exception& e) {
       set_status(true, e.what());
     }
-    return to_python_double_list_from_str_vector(ret);
+    return to_python_string_list(ret);
   }
 
   PyObject* std_frovedis_dataframe(const char* host, int port, long proxy,
@@ -432,7 +432,7 @@ extern "C" {
     catch (std::exception& e) {
       set_status(true, e.what());
     }
-    return to_python_double_list_from_str_vector(ret);
+    return to_python_string_list(ret);
   }
 
   PyObject* get_frovedis_col(const char* host, int port, long proxy,
@@ -444,6 +444,7 @@ extern "C" {
     PyObject* ret = NULL;
     try {
       switch (tid) {
+        case BOOL:
         case INT: { 
           auto int_col = exrpc_async(fm_node,get_df_int_col,f_dptr,cname).get();
           ret = to_python_int_list(int_col); 
@@ -619,4 +620,68 @@ extern "C" {
     }
     return (static_cast<long>(ret_proxy));
   }
+
+  PyObject* load_dataframe_from_csv(const char* host, int port,
+                                   const char* filename,
+                                   const char** types, const char** names,
+                                   ulong types_size, ulong names_size,
+                                   char sep, const char* nullstr,
+                                   const char* comment,
+                                   size_t rows_to_see, double separate_mb,
+                                   bool partial_type_info,
+                                   const char** dtype_keys_arr, 
+                                   const char** dtype_vals_arr,
+                                   ulong dtypes_dict_size, 
+                                   bool to_separate, bool add_index,
+                                   int* usecols, ulong usecols_len,
+                                   bool verbose, bool mangle_dupe_cols) {
+    ASSERT_PTR(host);
+ 
+    std::vector<std::string> col_types, col_names;
+    if (names_size > 0) col_names = to_string_vector(names, names_size);
+    if (types_size > 0) col_types = to_string_vector(types, types_size);
+
+    std::map<std::string, std::string> type_map;
+    if (partial_type_info) {
+      auto dtype_keys = to_string_vector(dtype_keys_arr, dtypes_dict_size);
+      auto dtype_vals = to_string_vector(dtype_vals_arr, dtypes_dict_size);
+      for (size_t i = 0; i < dtype_keys.size(); i++) type_map[dtype_keys[i]] = dtype_vals[i];
+    }
+
+    auto filename_ = std::string(filename);
+    auto usecols_vec = to_int_vector(usecols, usecols_len);
+    csv_config conf((int)sep, nullstr, comment, rows_to_see, 
+                    separate_mb, to_separate, add_index, 
+                    verbose, mangle_dupe_cols);
+
+    dummy_dftable res;
+    exrpc_node fm_node(host, port);
+    try {
+      res = exrpc_async(fm_node, frov_load_dataframe_from_csv, filename_,
+                        col_types, col_names, 
+                        partial_type_info, type_map, 
+                        usecols_vec,
+                        conf). get();
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return to_py_dummy_df(res);
+  }
+
+  long get_frovedis_dataframe_length(const char* host, int port, 
+                                     long fdata) {
+    ASSERT_PTR(host);
+    exrpc_node fm_node(host, port);
+    auto fproxy = static_cast<exrpc_ptr_t>(fdata);
+    size_t len = 0;
+    try {
+      len = exrpc_async(fm_node, get_dataframe_length, fproxy).get();
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return (long) len;
+  }
+
 }
