@@ -1,8 +1,9 @@
 #ifndef _FP_GROWTH_MODEL_
 #define _FP_GROWTH_MODEL_
 
+#define FP_DEBUG
+
 #include <frovedis/dataframe.hpp>
-#include <typeinfo>
 
 namespace frovedis {
   struct association_rule{
@@ -33,6 +34,9 @@ namespace frovedis {
   
   dftable create_antacedent(dftable, int);
   dftable calculate_confidence(dftable&, dftable&, double);
+  association_rule 
+  generate_association_rules(std::vector<dftable>& freq_itemsets,
+                             double con);
 }
 
 #endif

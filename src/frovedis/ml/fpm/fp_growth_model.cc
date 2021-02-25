@@ -1,10 +1,6 @@
-#include <frovedis.hpp>
-#include <frovedis/dataframe.hpp>
-
 #include "fp_growth_model.hpp"
-#include "fp_growth.hpp"
 
-namespace frovedis{
+namespace frovedis {
 
   void association_rule::debug_print() {
     for(auto& r: rule) r.show();
@@ -54,7 +50,7 @@ namespace frovedis{
       df.rename(col_name[j],"consequent");
       df.rename("count","union_count");
       int k = 1;
-      for(int i=0; i < col_name.size()-1; i++){
+      for(size_t i = 0; i < col_name.size()-1; i++){
         if(i != j){
           auto new_name = "antacedent" + std::to_string(k++);
           df.rename(col_name[i],new_name);
@@ -65,32 +61,55 @@ namespace frovedis{
       cols_list.push_back("union_count");
       return df.select(cols_list);
   }  
+
+  struct diff {
+    double operator()(size_t a, size_t b) {
+      return static_cast<double>(a) / static_cast<double>(b);
+    }
+    SERIALIZE_NONE
+  };
+
   dftable calculate_confidence(dftable& pre, dftable& post, double con){
     auto pre_col = pre.columns();
     auto post_col = post.columns();
     auto col_list1 = post_col;
-	//will contain all antacedants, consequent, union_count and count
-    col_list1.push_back("count"); 
+    col_list1.push_back("count"); //will contain all antacedants, consequent, union_count and count
     auto col_list2 = post_col;
     col_list2.pop_back(); //popping union_counts
-	// will conatin all antacedants, consequent and confidence
-    col_list2.push_back("confidence"); 
-    auto iter = pre.num_col()-1;
-    auto result = pre.bcast_join(post,eq(pre_col[0],post_col[0])).materialize();
-    if(iter > 1){
-      auto fdf = result.filter(eq(pre_col[1],post_col[1]));
-      free_df(result);
-      for(int i = 2; i < iter; ++i){
-        fdf = fdf.filter(eq(pre_col[i], post_col[i]));
-      }
-      result = fdf.materialize();
-    }  
+    col_list2.push_back("confidence"); // will conatin all antacedants, consequent and confidence
+    auto iter = pre.num_col() - 1;
+    std::vector<std::string> opt_left(iter), opt_right(iter);
+    for (size_t i = 0; i < iter; ++i){
+      opt_left[i] = pre_col[i];
+      opt_right[i] = post_col[i];
+    }
+    auto result = pre.bcast_join(post,multi_eq(opt_left, opt_right));
     return result.select(col_list1)
-                .calc<double,size_t,size_t>(std::string("confidence"),ratio_op(),
-                                            std::string("union_count"),
-                                            std::string("count"))
-                .filter(ge_im("confidence",con))
-                .select(col_list2);
+                 .calc<double,size_t,size_t>(std::string("confidence"), diff(),
+                                             std::string("union_count"),
+                                             std::string("count"))
+                 .filter(ge_im("confidence",con))
+                 .select(col_list2);
+  }
+
+  association_rule
+  generate_association_rules(std::vector<dftable>& freq_itemsets,
+                             double con) {
+    std::vector<dftable> ass_rule;
+#ifdef FP_DEBUG
+    std::cout << "NUM FREQ ITEM SETS: " << freq_itemsets.size() << std::endl;
+    std::cout << "FREQ ITEM SETS:\n";
+    for(dftable& i: freq_itemsets)  i.show();
+#endif
+    for(size_t i = 1; i < freq_itemsets.size(); ++i) {
+       //freq-itemset 1 will not be considered
+       auto n = freq_itemsets[i].num_col();
+       for(size_t j = 0; j < n - 1; j++) {
+         auto res =  create_antacedent(freq_itemsets[i], j);
+         auto res_con = calculate_confidence(freq_itemsets[i-1],res,con);
+         if(res_con.num_row()) ass_rule.push_back(res_con);
+       }
+    }
+    return association_rule(ass_rule);
   }
 }
-
