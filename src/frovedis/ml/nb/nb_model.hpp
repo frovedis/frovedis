@@ -207,8 +207,8 @@ struct naive_bayes_model {
     auto pip = pi.data();
     auto negtheta_sump = negtheta_sum.data();
     for(size_t i = 0; i < nrow; ++i) {
-      for(size_t j=0; j < ncol; ++j) {
-        rvalp[i * ncol + j] += pip[i] + negtheta_sump[i];
+      for(size_t j = 0; j < ncol; ++j) {
+        rvalp[i * ncol + j] += pip[j] + negtheta_sump[i];
       }
     }
     return r;
@@ -274,7 +274,7 @@ struct naive_bayes_model {
     // computation of axpy for each rows manually (for performance)
     for(size_t i = 0; i < nrow; ++i) {
       for(size_t j = 0; j < ncol; ++j) {
-        rvalp[i * ncol + j] += pip[i];
+        rvalp[i * ncol + j] += pip[j];
       }
     }
     return r;
