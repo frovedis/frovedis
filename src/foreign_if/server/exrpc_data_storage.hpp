@@ -63,7 +63,7 @@ exrpc_ptr_t get_encoded_dvector(exrpc_ptr_t& dptr,
   auto& dvec = *reinterpret_cast<dvector<T>*>(dptr);
   std::vector<T> u_enc;
   std::vector<size_t> u_ind, u_cnt;
-  auto unq = vector_unique<T,T>(dvec.gather(), u_ind, u_enc, u_cnt, target);
+  auto unq = vector_unique(dvec.gather(), u_ind, u_enc, u_cnt, target);
   // assumption: 'src' vector should contain all unique elements in dvector 'dvec'
   checkAssumption(unq == src);
   auto encoded = new dvector<T>(make_dvector_scatter(u_enc));
@@ -76,7 +76,7 @@ exrpc_ptr_t get_encoded_dvector_zero_based(exrpc_ptr_t& dptr) {
   auto& dvec = *reinterpret_cast<dvector<T>*>(dptr);
   std::vector<T> u_enc;
   std::vector<size_t> u_ind, u_cnt;
-  auto unq = vector_unique<T,T>(dvec.gather(), u_ind, u_enc, u_cnt);
+  auto unq = vector_unique(dvec.gather(), u_ind, u_enc, u_cnt);
   auto encoded = new dvector<T>(make_dvector_scatter(u_enc));
   return reinterpret_cast<exrpc_ptr_t>(encoded); 
 }
