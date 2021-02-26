@@ -550,15 +550,145 @@ vector_full(const size_t& size, const T& val) {
   return ret;
 }
 
+template <class I, class W>
+std::vector<I> 
+encode_unique_elements_impl(std::vector<size_t>& sorted_indices,
+                            std::vector<size_t>& unique_sep,
+                            std::vector<I>& inverse_target,
+                            std::vector<W>& sample_weight,
+                            std::vector<W>& unique_weight_sum) {
+  auto count = unique_sep.size() - 1;
+  auto nelem = sorted_indices.size();
+
+  if(inverse_target.empty()) 
+    inverse_target = vector_arrange<I>(count); // for zero-based encoding
+  require(inverse_target.size() == count, 
+  std::string("vector_unique: size of inverse_target differs with no. of ") +
+  std::string("unique samples in input vector!\n"));
+
+  if(sample_weight.empty())
+    sample_weight = vector_ones<W>(nelem); // simple count
+  require(sample_weight.size() == nelem,
+  std::string("vector_unique: size of sample_weight differs with no. of ") +
+  std::string("samples in input vector!\n"));
+  
+  //inputs 
+  auto indp = sorted_indices.data();
+  auto sepvalp = unique_sep.data();
+  auto targetp = inverse_target.data();
+  auto weightp = sample_weight.data();
+
+  // outputs
+  std::vector<I> unique_inverse(nelem);
+  unique_weight_sum.resize(count);
+  auto unqinvp = unique_inverse.data();
+  auto unqwgtp = unique_weight_sum.data();
+
+  for(size_t i = 0; i < count; ++i) {
+    W weight_sum = 0;
+    I enc_val = targetp[i];
+    size_t j = sepvalp[i];
+    for(; (j+7) < sepvalp[i + 1]; j += 8) { 
+      auto idx0 = indp[j + 0];
+      auto idx1 = indp[j + 1];
+      auto idx2 = indp[j + 2];
+      auto idx3 = indp[j + 3];
+      auto idx4 = indp[j + 4];
+      auto idx5 = indp[j + 5];
+      auto idx6 = indp[j + 6];
+      auto idx7 = indp[j + 7];
+      unqinvp[idx0] = unqinvp[idx1] = unqinvp[idx2] = enc_val;
+      unqinvp[idx3] = unqinvp[idx4] = unqinvp[idx5] = enc_val;
+      unqinvp[idx6] = unqinvp[idx7] = enc_val;
+      weight_sum += weightp[idx0] + weightp[idx1] + weightp[idx2] +
+                    weightp[idx3] + weightp[idx4] + weightp[idx5] +
+                    weightp[idx6] + weightp[idx7];
+    }
+    // expanded till length-7 to avoid performance issue with tiny vector loop length
+    if ((j + 6) < sepvalp[i + 1]) {
+      auto idx0 = indp[j + 0];
+      auto idx1 = indp[j + 1];
+      auto idx2 = indp[j + 2];
+      auto idx3 = indp[j + 3];
+      auto idx4 = indp[j + 4];
+      auto idx5 = indp[j + 5];
+      auto idx6 = indp[j + 6];
+      unqinvp[idx0] = unqinvp[idx1] = unqinvp[idx2] = enc_val;
+      unqinvp[idx3] = unqinvp[idx4] = unqinvp[idx5] = enc_val;
+      unqinvp[idx6] = enc_val;
+      weight_sum += weightp[idx0] + weightp[idx1] + weightp[idx2] +
+                    weightp[idx3] + weightp[idx4] + weightp[idx5] +
+                    weightp[idx6];
+    }
+    else if ((j + 5) < sepvalp[i + 1]) {
+      auto idx0 = indp[j + 0];
+      auto idx1 = indp[j + 1];
+      auto idx2 = indp[j + 2];
+      auto idx3 = indp[j + 3];
+      auto idx4 = indp[j + 4];
+      auto idx5 = indp[j + 5];
+      unqinvp[idx0] = unqinvp[idx1] = unqinvp[idx2] = enc_val;
+      unqinvp[idx3] = unqinvp[idx4] = unqinvp[idx5] = enc_val;
+      weight_sum += weightp[idx0] + weightp[idx1] + weightp[idx2] +
+                    weightp[idx3] + weightp[idx4] + weightp[idx5];
+    }
+    else if ((j + 4) < sepvalp[i + 1]) {
+      auto idx0 = indp[j + 0];
+      auto idx1 = indp[j + 1];
+      auto idx2 = indp[j + 2];
+      auto idx3 = indp[j + 3];
+      auto idx4 = indp[j + 4];
+      unqinvp[idx0] = unqinvp[idx1] = unqinvp[idx2] = enc_val;
+      unqinvp[idx3] = unqinvp[idx4] = enc_val;
+      weight_sum += weightp[idx0] + weightp[idx1] + weightp[idx2] +
+                    weightp[idx3] + weightp[idx4];
+    }
+    else if ((j + 3) < sepvalp[i + 1]) {
+      auto idx0 = indp[j + 0];
+      auto idx1 = indp[j + 1];
+      auto idx2 = indp[j + 2];
+      auto idx3 = indp[j + 3];
+      unqinvp[idx0] = unqinvp[idx1] = unqinvp[idx2] = enc_val;
+      unqinvp[idx3] = enc_val;
+      weight_sum += weightp[idx0] + weightp[idx1] + weightp[idx2] +
+                    weightp[idx3];
+    }
+    else if ((j + 2) < sepvalp[i + 1]) {
+      auto idx0 = indp[j + 0];
+      auto idx1 = indp[j + 1];
+      auto idx2 = indp[j + 2];
+      unqinvp[idx0] = unqinvp[idx1] = unqinvp[idx2] = enc_val;
+      weight_sum += weightp[idx0] + weightp[idx1] + weightp[idx2];
+    }
+    else if ((j + 1) < sepvalp[i + 1]) {
+      auto idx0 = indp[j + 0];
+      auto idx1 = indp[j + 1];
+      unqinvp[idx0] = unqinvp[idx1] = enc_val;
+      weight_sum += weightp[idx0] + weightp[idx1];
+    }
+    else if ((j + 0) < sepvalp[i + 1]) {
+      auto idx0 = indp[j + 0];
+      unqinvp[idx0] = enc_val;
+      weight_sum += weightp[idx0];
+    }
+    // else -> all targets have already been covered in unrolled for-loop
+    unqwgtp[i] = weight_sum;
+  }
+  return unique_inverse;
+}
+
 // similar to numpy.unique()
-template <class T, class I = size_t>
+template <class T, class I, class W>
 std::vector<T>
 vector_unique(const std::vector<T>& vec,
               std::vector<size_t>& unique_indices,
               std::vector<I>& unique_inverse,
               std::vector<size_t>& unique_counts,
               std::vector<I>& inverse_target,
-              bool positive_only = false) {
+              std::vector<W>& sample_weight,
+              std::vector<W>& unique_weight_sum,
+              bool positive_only = false,
+              bool need_inverse = true) {
   auto vecsz = vec.size();
   if (vecsz == 0) return std::vector<T>(); // quick return
   std::vector<size_t> indices;
@@ -568,12 +698,10 @@ vector_unique(const std::vector<T>& vec,
   std::vector<T> unique(count);
   unique_indices.resize(count);
   unique_counts.resize(count);
-  unique_inverse.resize(vecsz);
   auto sepvalp = sep.data();
   auto unqvalp = unique.data();
   auto unqindp = unique_indices.data();
   auto unqcntp = unique_counts.data();
-  auto unqinvp = unique_inverse.data();
   auto vecp = sorted.data();
   auto indp = indices.data();
   for(size_t i = 0; i < count; ++i) {
@@ -581,109 +709,75 @@ vector_unique(const std::vector<T>& vec,
     unqindp[i] = indp[sepvalp[i]];
     unqcntp[i] = sepvalp[i + 1] - sepvalp[i];
   }
-  if(inverse_target.size() == 0) 
-    inverse_target = vector_arrange<I>(count); // for zero-based encoding
-  auto tptr = inverse_target.data();
-  require(inverse_target.size() == count, 
-  std::string("vector_unique: size of inverse_target differs with no. of ") +
-  std::string("unique labels in input vector!\n"));
-
-  for(size_t i = 0; i < count; ++i) {
-    // expanded till 10 to avoid performance issue with tiny vector loop length
-    if (unqcntp[i] == 1) {
-      unqinvp[indp[sepvalp[i]]] = tptr[i];
-    }
-    else if (unqcntp[i] == 2) {
-      unqinvp[indp[sepvalp[i]]] = tptr[i];
-      unqinvp[indp[sepvalp[i] + 1]] = tptr[i];
-    }
-    else if (unqcntp[i] == 3) {
-      unqinvp[indp[sepvalp[i]]] = tptr[i];
-      unqinvp[indp[sepvalp[i] + 1]] = tptr[i];
-      unqinvp[indp[sepvalp[i] + 2]] = tptr[i];
-    }
-    else if (unqcntp[i] == 4) {
-      unqinvp[indp[sepvalp[i]]] = tptr[i];
-      unqinvp[indp[sepvalp[i] + 1]] = tptr[i];
-      unqinvp[indp[sepvalp[i] + 2]] = tptr[i];
-      unqinvp[indp[sepvalp[i] + 3]] = tptr[i];
-    }
-    else if (unqcntp[i] == 5) {
-      unqinvp[indp[sepvalp[i]]] = tptr[i];
-      unqinvp[indp[sepvalp[i] + 1]] = tptr[i];
-      unqinvp[indp[sepvalp[i] + 2]] = tptr[i];
-      unqinvp[indp[sepvalp[i] + 3]] = tptr[i];
-      unqinvp[indp[sepvalp[i] + 4]] = tptr[i];
-    }
-    else if (unqcntp[i] == 6) {
-      unqinvp[indp[sepvalp[i]]] = tptr[i];
-      unqinvp[indp[sepvalp[i] + 1]] = tptr[i];
-      unqinvp[indp[sepvalp[i] + 2]] = tptr[i];
-      unqinvp[indp[sepvalp[i] + 3]] = tptr[i];
-      unqinvp[indp[sepvalp[i] + 4]] = tptr[i];
-      unqinvp[indp[sepvalp[i] + 5]] = tptr[i];
-    }
-    else if (unqcntp[i] == 7) {
-      unqinvp[indp[sepvalp[i]]] = tptr[i];
-      unqinvp[indp[sepvalp[i] + 1]] = tptr[i];
-      unqinvp[indp[sepvalp[i] + 2]] = tptr[i];
-      unqinvp[indp[sepvalp[i] + 3]] = tptr[i];
-      unqinvp[indp[sepvalp[i] + 4]] = tptr[i];
-      unqinvp[indp[sepvalp[i] + 5]] = tptr[i];
-      unqinvp[indp[sepvalp[i] + 6]] = tptr[i];
-    }
-    else if (unqcntp[i] == 8) {
-      unqinvp[indp[sepvalp[i]]] = tptr[i];
-      unqinvp[indp[sepvalp[i] + 1]] = tptr[i];
-      unqinvp[indp[sepvalp[i] + 2]] = tptr[i];
-      unqinvp[indp[sepvalp[i] + 3]] = tptr[i];
-      unqinvp[indp[sepvalp[i] + 4]] = tptr[i];
-      unqinvp[indp[sepvalp[i] + 5]] = tptr[i];
-      unqinvp[indp[sepvalp[i] + 6]] = tptr[i];
-      unqinvp[indp[sepvalp[i] + 7]] = tptr[i];
-    }
-    else if (unqcntp[i] == 9) {
-      unqinvp[indp[sepvalp[i]]] = tptr[i];
-      unqinvp[indp[sepvalp[i] + 1]] = tptr[i];
-      unqinvp[indp[sepvalp[i] + 2]] = tptr[i];
-      unqinvp[indp[sepvalp[i] + 3]] = tptr[i];
-      unqinvp[indp[sepvalp[i] + 4]] = tptr[i];
-      unqinvp[indp[sepvalp[i] + 5]] = tptr[i];
-      unqinvp[indp[sepvalp[i] + 6]] = tptr[i];
-      unqinvp[indp[sepvalp[i] + 7]] = tptr[i];
-      unqinvp[indp[sepvalp[i] + 8]] = tptr[i];
-    }
-    else if (unqcntp[i] == 10) {
-      unqinvp[indp[sepvalp[i]]] = tptr[i];
-      unqinvp[indp[sepvalp[i] + 1]] = tptr[i];
-      unqinvp[indp[sepvalp[i] + 2]] = tptr[i];
-      unqinvp[indp[sepvalp[i] + 3]] = tptr[i];
-      unqinvp[indp[sepvalp[i] + 4]] = tptr[i];
-      unqinvp[indp[sepvalp[i] + 5]] = tptr[i];
-      unqinvp[indp[sepvalp[i] + 6]] = tptr[i];
-      unqinvp[indp[sepvalp[i] + 7]] = tptr[i];
-      unqinvp[indp[sepvalp[i] + 8]] = tptr[i];
-      unqinvp[indp[sepvalp[i] + 9]] = tptr[i];
-    }
-    else {
-      for(size_t j = sepvalp[i]; j < sepvalp[i + 1]; ++j) 
-        unqinvp[indp[j]] = tptr[i];
-    } 
+  if (need_inverse) {
+    unique_inverse = encode_unique_elements_impl(indices, sep, 
+                     inverse_target, sample_weight, unique_weight_sum);
   }
   return unique;
 }
 
-template <class T, class I = size_t>
+template <class T, class I, class W>
+std::vector<T>
+vector_unique(const std::vector<T>& vec,
+              std::vector<size_t>& unique_indices,
+              std::vector<I>& unique_inverse,
+              std::vector<size_t>& unique_counts,
+              std::vector<W>& sample_weight,
+              std::vector<W>& unique_weight_sum,
+              bool positive_only = false) {
+  std::vector<I> inverse_target; // for zero-based encoding
+  bool need_inverse = true;
+  return vector_unique(vec, unique_indices,
+                       unique_inverse, unique_counts,
+                       inverse_target, sample_weight, unique_weight_sum,
+                       positive_only, need_inverse);
+}
+
+template <class T, class I>
+std::vector<T>
+vector_unique(const std::vector<T>& vec,
+              std::vector<size_t>& unique_indices,
+              std::vector<I>& unique_inverse,
+              std::vector<size_t>& unique_counts,
+              std::vector<I>& inverse_target, // when encoding target is specified
+              bool positive_only = false) {
+  std::vector<int> sample_weight, unique_weight_sum; // will be ignored
+  bool need_inverse = true;
+  return vector_unique(vec, unique_indices,
+                       unique_inverse, unique_counts,
+                       inverse_target, sample_weight, unique_weight_sum,
+                       positive_only, need_inverse);
+}
+
+template <class T, class I>
 std::vector<T>
 vector_unique(const std::vector<T>& vec,
               std::vector<size_t>& unique_indices,
               std::vector<I>& unique_inverse,
               std::vector<size_t>& unique_counts,
               bool positive_only = false) {
-  std::vector<I> inverse_target;
-  return vector_unique(vec, unique_indices, 
-                       unique_inverse, unique_counts, 
-                       inverse_target, positive_only);
+  std::vector<I> inverse_target; // for zero-based encoding
+  std::vector<int> sample_weight, unique_weight_sum; // will be ignored
+  bool need_inverse = true;
+  return vector_unique(vec, unique_indices,
+                       unique_inverse, unique_counts,
+                       inverse_target, sample_weight, unique_weight_sum,
+                       positive_only, need_inverse);
+}
+
+template <class T>
+std::vector<T>
+vector_unique(const std::vector<T>& vec,
+              std::vector<size_t>& unique_indices,
+              std::vector<size_t>& unique_counts,
+              bool positive_only = false) {
+  std::vector<int> inverse_target, unique_inverse; // will be ignored
+  std::vector<int> sample_weight, unique_weight_sum; // will be ignored
+  bool need_inverse = false;
+  return vector_unique(vec, unique_indices,
+                       unique_inverse, unique_counts,
+                       inverse_target, sample_weight, unique_weight_sum,
+                       positive_only, need_inverse);
 }
 
 template <class T>
@@ -701,8 +795,9 @@ vector_bincount(const std::vector<I>& vec) { // must be of integer type: int, sh
   if (vecsz == 0) return std::vector<R>(); // quick return
   auto negatives = vector_count_negatives(vec);
   require(negatives == 0, "bincount: negative element is detected!\n");
-  std::vector<size_t> uidx, uinv, ucnt;
-  auto unq = vector_unique(vec, uidx, uinv, ucnt);
+  std::vector<size_t> uidx, ucnt;
+  bool positive_only = true;
+  auto unq = vector_unique(vec, uidx, ucnt, positive_only);
   auto unqsz = unq.size();
   auto uptr = unq.data();
   auto cntptr = ucnt.data();
@@ -1204,6 +1299,24 @@ vector_max_value(const std::vector<std::pair<T, I>>& t1,
   for(size_t i = 0; i < sz; ++i)
     res_ptr[i] = t1[i].first >= t2[i].first ? t1[i].first : t2[i].first;
   return res;
+}
+
+template <class T>
+T vector_logsumexp_impl(const T* datap,
+                        size_t size, size_t stride) {
+  auto maxval = std::numeric_limits<T>::min();
+  for(size_t i = 0; i < size; ++i) {
+    if(datap[i * stride] > maxval) maxval = datap[i * stride];
+  }
+  T lse = 0;
+  for(size_t i = 0; i < size; ++i) lse += exp(datap[i * stride] - maxval);
+  return maxval + log(lse);
+}
+
+// T: must be non-integral type
+template <class T>
+T vector_logsumexp(const std::vector<T>& vec) {
+  return vector_logsumexp_impl(vec.data(), vec.size(), 1);
 }
   
 }
