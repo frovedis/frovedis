@@ -329,8 +329,8 @@ float entropy_helper(const std::vector<T>& lbl_cnt) {
 template <class T>
 float entropy(const std::vector<T>& lbl) {
   if (lbl.size() == 0) return 1.0;
-  std::vector<size_t> ind, idx, cnt;
-  auto unq = vector_unique(lbl, ind, idx, cnt); 
+  std::vector<size_t> ind, cnt;
+  auto unq = vector_unique(lbl, ind, cnt); 
   return entropy_helper(cnt); // needed only count of unique labels for entropy
 }
 
@@ -398,6 +398,8 @@ float accuracy_score(const std::vector<T>& true_label,
 }
 
 // ref: https://github.com/scikit-learn/scikit-learn/blob/0fb307bf3/sklearn/metrics/cluster/_supervised.py#L247
+// T: must be integral type: int, long, size_t etc.
+// floating point like 1.0, 2.0 is also OK, but 1.5, 2.2 etc. are nlot allowed!
 template <class T>
 std::vector<float> 
 get_supervised_clustering_score(const std::vector<T>& true_label,
