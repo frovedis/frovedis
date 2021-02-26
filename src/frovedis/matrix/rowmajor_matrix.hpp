@@ -1983,10 +1983,11 @@ argmax_pair(rowmajor_matrix_local<T>& mat,
   else ret = max_of_elements(mat);
   return ret;
 }
-
        
 template <class T>    
-rowmajor_matrix_local<T> extract_cols(rowmajor_matrix_local<T>& mat, size_t start, size_t end) {
+rowmajor_matrix_local<T> 
+extract_cols(rowmajor_matrix_local<T>& mat, 
+             size_t start, size_t end) {
   if(get_selfid() == 0) {  
     std::string msg1 = "start column index must be less than end column index";                     
     require(end > start, msg1);
@@ -2036,13 +2037,18 @@ rowmajor_matrix_local<T> extract_cols(rowmajor_matrix_local<T>& mat, size_t star
 }
 
 template <class T>    
-rowmajor_matrix_local<T> rmm_extract_cols(rowmajor_matrix_local<T>& mat, size_t start, size_t end) {
+rowmajor_matrix_local<T> 
+rmm_extract_cols(rowmajor_matrix_local<T>& mat, 
+                 size_t start, size_t end) {
   return extract_cols(mat, start, end);  
 }    
 
 template <class T>    
-rowmajor_matrix<T> extract_cols(rowmajor_matrix<T>& mat, size_t start, size_t end) {   
-  rowmajor_matrix<T> ret(mat.data.map(rmm_extract_cols<T>, broadcast(start), broadcast(end)));
+rowmajor_matrix<T> 
+extract_cols(rowmajor_matrix<T>& mat, 
+             size_t start, size_t end) {   
+  rowmajor_matrix<T> ret(mat.data.map(rmm_extract_cols<T>, 
+                         broadcast(start), broadcast(end)));
   ret.num_row = mat.num_row;
   ret.num_col = end - start; 
   return ret;
@@ -2066,6 +2072,78 @@ extract_rows(rowmajor_matrix<T>& mat,
   ret.num_col = mat.num_col;
   return ret;
 }
-    
+
+// vectorization on left-right direction (ncol > nrow)
+template <class T>
+std::vector<T>
+rmm_logsumexp_vector_x_axis(rowmajor_matrix_local<T>& mat, 
+                            int axis = -1) {
+  std::vector<T> ret;
+  auto nrow = mat.local_num_row;
+  auto ncol = mat.local_num_col;
+  auto mvalp = mat.val.data();
+  if (axis == -1) ret.push_back(vector_logsumexp(mat.val));
+  else if (axis == 1) {
+    ret.resize(nrow); auto rptr = ret.data();
+    for(size_t i = 0; i < nrow; ++i) 
+      rptr[i] = vector_logsumexp_impl(mvalp + i * ncol, ncol, 1);
+  }
+  else if (axis == 0) {
+    ret.resize(ncol); auto rptr = ret.data();
+    for(size_t i = 0; i < ncol; ++i) 
+      rptr[i] = vector_logsumexp_impl(mvalp + i, nrow, ncol);
+  }
+  else REPORT_ERROR(USER_ERROR, "logsumexp: supported axis is 0, 1 or -1\n");
+  return ret;
+}    
+
+// vectorization on top-bottom direction (nrow > ncol)
+template <class T>
+std::vector<T>
+rmm_logsumexp_vector_y_axis(rowmajor_matrix_local<T>& mat, 
+                            int axis = -1) {
+  std::vector<T> ret;
+  auto nrow = mat.local_num_row;
+  auto ncol = mat.local_num_col;
+  auto mvalp = mat.val.data();
+  if (axis == -1) ret.push_back(vector_logsumexp(mat.val));
+  else {
+    auto max = matrix_amax(mat, axis); auto maxp = max.data();
+    if (axis == 1) {
+      ret.resize(nrow, 0); auto rptr = ret.data();
+#pragma _NEC nointerchange
+      for(size_t j = 0; j < ncol; ++j) {
+        for(size_t i = 0; i < nrow; ++i) {
+          rptr[i] += exp(mvalp[i * ncol + j] - maxp[i]);
+        }
+      }
+      for(size_t i = 0; i < nrow; ++i) rptr[i] = maxp[i] + log(rptr[i]);
+    }
+    else if (axis == 0) {
+      ret.resize(ncol); auto rptr = ret.data();
+#pragma _NEC nointerchange
+      for(size_t j = 0; j < ncol; ++j) {
+        T lse = 0;
+        for(size_t i = 0; i < nrow; ++i) {
+          lse += exp(mvalp[i * ncol + j] - maxp[j]);
+        }
+        rptr[j] = maxp[j] + log(lse);
+      }
+    }
+    else REPORT_ERROR(USER_ERROR, "logsumexp: supported axis is 0, 1 or -1\n");
+  }
+  return ret;
+}    
+
+template <class T>
+std::vector<T>
+logsumexp(rowmajor_matrix_local<T>& mat, 
+          int axis = -1) {
+  auto nrow = mat.local_num_row;
+  auto ncol = mat.local_num_col;
+  if(nrow > ncol) return rmm_logsumexp_vector_y_axis(mat, axis);
+  else            return rmm_logsumexp_vector_x_axis(mat, axis);
+}
+
 }
 #endif

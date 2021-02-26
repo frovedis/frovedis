@@ -12,6 +12,7 @@
  *    numpy.amin(x, axis) -> matrix_amin(x, axis) [supports rowmajor, colmajor (both local and distributed)]
  *    numpy.amax(x, axis) -> matrix_amax(x, axis) [supports rowmajor, colmajor (both local and distributed)]
  *    sklearn.preprocessing.binarize(x, thr) -> matrix_binarize(x, thr) [supports rowmajor, colmajor and crs (both local and distributed)]
+ *    scipy.misc.logsumexp(x, axis) -> matrix_logsumexp(x, axis) [currently supports only rowmajor local version]
  *
  */
 
@@ -75,6 +76,13 @@ template <class MATRIX>
 std::vector<typename MATRIX::value_type>
 matrix_amax(MATRIX& mat, int axis = -1) {
   return get_keys(argmax_pair(mat, axis));
+}
+
+// similar to scipy.misc.logsumexp(arr, axis)
+template <class MATRIX>
+std::vector<typename MATRIX::value_type>
+matrix_logsumexp(MATRIX& mat, int axis = -1) {
+  return logsumexp(mat, axis);
 }
 
 }
