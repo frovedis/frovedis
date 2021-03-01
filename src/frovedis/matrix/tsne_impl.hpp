@@ -58,7 +58,7 @@ compute_gaussian_kernel(const rowmajor_matrix_local<T>& mat,
         // Compute Gaussian kernel row
         double sum_P = 0.0;
         double entropy = 0.0;
-        T t_max = std::numeric_limits<T>::min();
+        T t_max = std::numeric_limits<T>::lowest();
         for(size_t c = 0; c < ncol; c++) {
           if (r + myst != c) {
             auto tmp = -betap[r] * mvalp[r * ncol + c];
