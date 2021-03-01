@@ -886,7 +886,7 @@ class DBSCAN(BaseEstimator):
             weight = np.ravel(sample_weight)
             if len(weight) != self.n_samples:
                  raise ValueError("sample_weight.shape == {}, expected {}!"\
-                       .format(sample_weight.shape, (n_samples,)))
+                       .format(sample_weight.shape, (self.n_samples,)))
         return np.asarray(weight, dtype=np.float64)
 
     def fit(self, X, y=None, sample_weight=None):
