@@ -12,9 +12,13 @@ import org.apache.spark.mllib.linalg.Vector
 
 class NaiveBayes private(var lambda: Double,
                          var modelType: String,
-                         var threshold: Double) {
+                         var threshold: Double,
+                         var fit_prior: Boolean,
+                         var class_prior: Array[Double],
+                         var sample_weight: Array[Double]) {
 						 
-  def this() = this(1.0, "multinomial", 0.0)
+  def this() = this(1.0, "multinomial", 0.0, true, Array.empty[Double], 
+                    Array.empty[Double])
   def this(lambda: Double) = {
     this()
     setLambda(lambda)
@@ -45,6 +49,21 @@ class NaiveBayes private(var lambda: Double,
 
   def getBinarize(): Double = this.threshold
 
+  def setFitPrior(fir_prior: Double): NaiveBayes = {
+    this.fit_prior = fit_prior
+    this
+  }
+
+  def setClassPrior(class_prior: Array[Double]): NaiveBayes = {
+    this.class_prior = class_prior
+    this
+  }
+
+  def setSampleWeight(sample_weight: Array[Double]): NaiveBayes = {
+    this.sample_weight = sample_weight
+    this
+  }
+
   def run(data: RDD[LabeledPoint]): NaiveBayesModel = {
     val fdata = new FrovedisLabeledPoint(data)
     return run(fdata,true)
@@ -63,7 +82,12 @@ class NaiveBayes private(var lambda: Double,
     }
     val model_id = ModelID.get()
     val fs = FrovedisServer.getServerInstance()
-    JNISupport.callFrovedisNBM(fs.master_node,fdata.get(),lambda,threshold,
+    val sample_weight_length = sample_weight.length
+    val class_prior_length = class_prior.length
+    JNISupport.callFrovedisNBM(fs.master_node,fdata.get(),lambda,
+                               threshold,
+                               fit_prior, class_prior, class_prior_length,
+                               sample_weight, sample_weight_length,
                                model_id,modelType,movable,
                                fdata.is_dense())
     val info = JNISupport.checkServerException()
