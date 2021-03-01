@@ -16,17 +16,6 @@ int get_ngroups(T ncomb, T nproc, T min_proc_per_group) {
   else return std::min(ncomb, ceil_div(nproc, min_proc_per_group));
 }
 
-template <class T>
-size_t get_max_index(const std::vector<T>& vec) {
-  auto vecp = vec.data();
-  auto size = vec.size();
-  size_t max = 0;
-  for(size_t i = 1; i < size; ++i) {
-    if(vecp[i] > vecp[max]) max = i;
-  }
-  return max;
-}
-
 template <class ESTIMATOR, class MATRIX, class T>
 void local_fit(ESTIMATOR& estimator,
                k_fold<MATRIX, T>& kf,
@@ -181,7 +170,7 @@ struct grid_search_cv {
     auto ncomb = score.size();
     for(size_t i = 0; i < ncomb; ++i) scorep[i] *= one_by_nsplit;
     // returns index of best params (for which mean test_split_score is maximum)
-    auto index = get_max_index(score);
+    auto index = vector_argmax(score);
     best_params = param_list[index];
     if(refit) {
       best_estimator = estimator.set_params(best_params)
