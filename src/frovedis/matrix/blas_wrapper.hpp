@@ -329,6 +329,14 @@ namespace frovedis {
     return mat.to_rowmajor() * inMat2;
   }
 
+  template <class T>
+  rowmajor_matrix_local<T> 
+  operator* (const rowmajor_matrix_local<T>& inMat1,
+             const colmajor_matrix_local<T>& inMat2){
+    auto& mat = const_cast<colmajor_matrix_local<T>&>(inMat2);
+    return inMat1 * mat.to_rowmajor();
+  }
+
   // This routine can be used to perform the below operation:
   //   (*) colmajor_matrix_local * colmajor_matrix_local
   template <class T>
