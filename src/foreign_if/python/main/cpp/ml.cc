@@ -979,18 +979,16 @@ extern "C" {
         switch(dtype) {
           case FLOAT:
             {
-            std::vector<DT2> sample_weight(sample_weight_len);
-            for(long i=0; i<sample_weight_len; i++) 
-              sample_weight[i] = sample_weight_ptr[i];
+            auto sample_weight = double_to_float_vector(sample_weight_ptr,
+                                                  sample_weight_len);
             pred = exrpc_async(fm_node,(frovedis_dbscan<DT2,R_MAT2>),
                                f_xptr,sample_weight,eps,min_pts,vb,mid).get();
             }
             break;
           case DOUBLE:
             {
-            std::vector<DT1> sample_weight(sample_weight_len);
-            for(long i=0; i<sample_weight_len; i++) 
-              sample_weight[i] = sample_weight_ptr[i];
+            auto sample_weight = to_double_vector(sample_weight_ptr,
+                                                  sample_weight_len);
             pred = exrpc_async(fm_node,(frovedis_dbscan<DT1,R_MAT1>),
                                f_xptr,sample_weight,eps,min_pts,vb,mid).get();
             }
@@ -1051,7 +1049,10 @@ extern "C" {
 
   // --- (12) Naive Bayes ---
   void nb_trainer(const char* host, int port, long xptr,
-                 long yptr, double alpha, int mid,
+                 long yptr, double alpha, bool fit_prior, 
+                 double* class_prior_ptr, long len_class_prior, 
+                 double* sample_weight_ptr, long len_sample_weight,
+                 int mid,
                  const char* algo, double binarize, int verbose, 
 		 short dtype, short itype, bool dense) {
     if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
@@ -1065,12 +1066,26 @@ extern "C" {
       if(dense) {
         switch(dtype) {
           case FLOAT:
-            exrpc_oneway(fm_node,(frovedis_nb<DT2,D_MAT2,D_LMAT2>),
-                         f_dptr,algos,alpha,binarize,verbose,mid,mvbl);
+            {
+              auto class_prior = double_to_float_vector(class_prior_ptr,
+                                                        len_class_prior);
+              auto sample_weight = double_to_float_vector(sample_weight_ptr,
+                                                          len_sample_weight);
+              exrpc_oneway(fm_node,(frovedis_nb<DT2,D_MAT2,D_LMAT2>),
+                           f_dptr,algos,alpha,fit_prior,class_prior,sample_weight,
+                           binarize,verbose,mid,mvbl);
+            }
             break;
           case DOUBLE:
-            exrpc_oneway(fm_node,(frovedis_nb<DT1,D_MAT1,D_LMAT1>),
-                         f_dptr,algos,alpha,binarize,verbose,mid,mvbl);
+            {
+              auto class_prior = to_double_vector(class_prior_ptr,
+                                                  len_class_prior);
+              auto sample_weight = to_double_vector(sample_weight_ptr,
+                                                    len_sample_weight);
+              exrpc_oneway(fm_node,(frovedis_nb<DT1,D_MAT1,D_LMAT1>),
+                           f_dptr,algos,alpha,fit_prior,class_prior, sample_weight,
+                           binarize,verbose,mid,mvbl);
+            }
             break;
           default: REPORT_ERROR(USER_ERROR, 
                    "Unsupported dtype of input dense data for training!\n");
@@ -1079,24 +1094,40 @@ extern "C" {
       else {
         switch(dtype) {
           case FLOAT:
-            if(itype == INT)
-              exrpc_oneway(fm_node,(frovedis_nb<DT2,S_MAT24,S_LMAT24>),
-                           f_dptr,algos,alpha,binarize,verbose,mid,mvbl);
-            else if(itype == LONG)
-              exrpc_oneway(fm_node,(frovedis_nb<DT2,S_MAT25,S_LMAT25>),
-                           f_dptr,algos,alpha,binarize,verbose,mid,mvbl);
-            else REPORT_ERROR(USER_ERROR, 
-                 "Unsupported itype of input sparse data for training!\n");
+            {
+              auto class_prior = double_to_float_vector(class_prior_ptr,
+                                                        len_class_prior);
+              auto sample_weight = double_to_float_vector(sample_weight_ptr,
+                                                          len_sample_weight);
+              if(itype == INT)
+                exrpc_oneway(fm_node,(frovedis_nb<DT2,S_MAT24,S_LMAT24>),
+                             f_dptr,algos,alpha,fit_prior,class_prior,sample_weight,
+                             binarize,verbose,mid,mvbl);
+              else if(itype == LONG)
+                exrpc_oneway(fm_node,(frovedis_nb<DT2,S_MAT25,S_LMAT25>),
+                             f_dptr,algos,alpha,fit_prior,class_prior,sample_weight,
+                             binarize,verbose,mid,mvbl);
+              else REPORT_ERROR(USER_ERROR, 
+                   "Unsupported itype of input sparse data for training!\n");
+            }
             break;
           case DOUBLE:
-            if(itype == INT)
-              exrpc_oneway(fm_node,(frovedis_nb<DT1,S_MAT14,S_LMAT14>),
-                           f_dptr,algos,alpha,binarize,verbose,mid,mvbl);
-            else if(itype == LONG)
-              exrpc_oneway(fm_node,(frovedis_nb<DT1,S_MAT15,S_LMAT15>),
-                           f_dptr,algos,alpha,binarize,verbose,mid,mvbl);
-            else REPORT_ERROR(USER_ERROR, 
-                 "Unsupported itype of input sparse data for training!\n");
+            {
+              auto class_prior = to_double_vector(class_prior_ptr,
+                                                  len_class_prior);
+              auto sample_weight = to_double_vector(sample_weight_ptr,
+                                                    len_sample_weight);
+              if(itype == INT)
+                exrpc_oneway(fm_node,(frovedis_nb<DT1,S_MAT14,S_LMAT14>),
+                             f_dptr,algos,alpha,fit_prior,class_prior,sample_weight,
+                             binarize,verbose,mid,mvbl);
+              else if(itype == LONG)
+                exrpc_oneway(fm_node,(frovedis_nb<DT1,S_MAT15,S_LMAT15>),
+                             f_dptr,algos,alpha,fit_prior,class_prior,sample_weight,
+                             binarize,verbose,mid,mvbl);
+              else REPORT_ERROR(USER_ERROR, 
+                   "Unsupported itype of input sparse data for training!\n");
+            }
             break;
           default: REPORT_ERROR(USER_ERROR, 
                    "Unsupported dtype of input sparse data for training!\n");
