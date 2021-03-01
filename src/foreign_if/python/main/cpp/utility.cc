@@ -256,4 +256,12 @@ extern "C" {
     for(size_t i = 0; i < sz; ++i) vec[i] = data[i];
     return vec;
   }
+
+  // converison : double* (pointer-to-double-array) => std::vector<float>
+  std::vector<float> 
+  double_to_float_vector(double* data, ulong sz) {
+    std::vector<float> vec(sz);
+    for(size_t i = 0; i < sz; ++i) vec[i] = static_cast<float>(data[i]);
+    return vec;
+  }
 }
