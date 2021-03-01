@@ -1684,7 +1684,7 @@ max_of_rows(rowmajor_matrix_local<T>& mat,
   auto mat_ptr = mat.val.data();
   int nrow = mat.local_num_row;
   int ncol = mat.local_num_col;
-  T max = std::numeric_limits<T>::min();
+  T max = std::numeric_limits<T>::lowest();
   std::pair<T, size_t> p(max, 0);
   std::vector<std::pair<T, size_t>> res(ncol);
   auto res_ptr = res.data();
@@ -1787,7 +1787,7 @@ max_of_cols(rowmajor_matrix_local<T>& mat,
   auto mat_ptr = mat.val.data();
   int nrow = mat.local_num_row;
   int ncol = mat.local_num_col;
-  T max = std::numeric_limits<T>::min();
+  T max = std::numeric_limits<T>::lowest();
   std::vector<T> res(nrow);
   auto res_ptr = res.data();
   pos.resize(nrow);
