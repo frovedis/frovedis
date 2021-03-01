@@ -68,6 +68,7 @@ extern "C" {
   std::vector<long> to_long_vector(long* data, ulong sz);
   std::vector<float> to_float_vector(float* data, ulong sz);
   std::vector<double> to_double_vector(double* data, ulong sz);
+  std::vector<float> double_to_float_vector(double* data, ulong sz);
 }
 
 #endif
