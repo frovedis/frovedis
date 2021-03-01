@@ -14,6 +14,7 @@ from ..matrix.ml_data import FrovedisLabeledPoint
 from ..matrix.dtype import TypeUtil
 from .metrics import *
 import numpy as np
+import numbers
 
 # NaiveBayes multinomial class
 class MultinomialNB(BaseEstimator):
@@ -40,6 +41,10 @@ class MultinomialNB(BaseEstimator):
         self._feature_log_prob = None
         self._class_log_prior = None
         self._class_count = None
+        self._feature_count = None
+        self.n_samples = None
+        self._coef = None
+        self._intercept = None
 
     def validate(self):
         """
@@ -48,13 +53,8 @@ class MultinomialNB(BaseEstimator):
         if self.alpha < 0:
             raise ValueError("alpha should be greater than or equal to 1")
 
-    # Fit NaiveBayes multinomial classifier according to X (input data),
-    # y (Label).
-    def fit(self, X, y):
-        """
-        NAME: fit
-        """
-        self.release()
+    def check_input(self, X, y, F):
+        """checks input X"""
         inp_data = FrovedisLabeledPoint(X, y, \
                    caller = "[" + self.__class__.__name__ + "] fit: ",\
                    encode_label = True, binary_encoder=[0, 1], \
@@ -63,19 +63,62 @@ class MultinomialNB(BaseEstimator):
         self._classes = inp_data.get_distinct_labels()
         self.n_classes = len(self._classes)
         self.n_features_ = inp_data.numCols()
+        self.n_samples = inp_data.numRows()
         self.label_map = logic
         dtype = inp_data.get_dtype()
         itype = inp_data.get_itype()
         dense = inp_data.is_dense()
+        return X, y, dtype, itype, dense
+
+    def check_sample_weight(self, sample_weight):
+        if sample_weight is None:
+            sample_weight = np.array([])
+        elif isinstance(sample_weight, numbers.Number):
+            sample_weight = np.full(self.n_samples, sample_weight, dtype=np.float64)
+        else:
+            sample_weight = np.ravel(sample_weight)
+            if len(sample_weight) != self.n_samples:
+                 raise ValueError("sample_weight.shape == {}, expected {}!"\
+                       .format(sample_weight.shape, (self.n_samples,)))
+        return np.asarray(sample_weight, dtype = np.float64)
+
+    def check_class_prior(self):
+        if self.class_prior == None:
+            class_prior = np.array([])
+        elif isinstance(self.class_prior, numbers.Number):
+            class_prior = np.full(self.n_classes, self.class_prior, dtype=np.float64)
+        else:
+            class_prior = np.ravel(self.class_prior)
+            if len(class_prior) != self.n_classes:
+                raise ValueError("Number of priors must match number of" \
+                                 " classes.")
+        return np.asarray(class_prior, dtype = np.float64)
+
+
+    # Fit NaiveBayes multinomial classifier according to X (input data),
+    # y (Label).
+    def fit(self, X, y, sample_weight = None):
+        """
+        NAME: fit
+        """
+        self.release()
         self.validate()
+        X, y, dtype, itype, dense = self.check_input(X, y, "fit")
         self.__mdtype = dtype
         self.__mid = ModelID.get()
         (host, port) = FrovedisServer.getServerInstance()
         binarize = 0.0 # not applicable for multinomial NB
+       
+        sample_weight = self.check_sample_weight(sample_weight)
+        class_prior = self.check_class_prior()
+
         rpclib.nb_train(host, port, X.get(), \
-                        y.get(), self.alpha, self.__mid, \
-                        self.Algo.encode('ascii'), binarize, \
+                        y.get(), self.alpha, self.fit_prior, \
+                        class_prior, len(class_prior), \
+                        sample_weight, len(sample_weight), \
+                        self.__mid, self.Algo.encode('ascii'), binarize, \
                         self.verbose, dtype, itype, dense)
+        
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
             raise RuntimeError(excpt["info"])
@@ -119,9 +162,8 @@ class MultinomialNB(BaseEstimator):
                 if len(dbl_tht) != self.n_classes * self.n_features_:
                     raise RuntimeError("feature_log_prob_: size differs " + \
                                        "in attribute extraction; report bug!")
-                self._feature_log_prob = dbl_tht.reshape(self.n_features_, \
-                                                         self.n_classes) \
-                                        .transpose() # TODO: modify in library
+                self._feature_log_prob = dbl_tht.reshape(self.n_classes, \
+                                                        self.n_features_)
             return self._feature_log_prob
         else:
             raise AttributeError("attribute 'feature_log_prob_' might have " \
@@ -173,6 +215,68 @@ class MultinomialNB(BaseEstimator):
             "attribute 'classes_' of MultinomialNB "
             "object is not writable")
 
+    @property
+    def feature_count_(self):
+        """feature_count_ getter"""
+        if self.__mid is not None:
+            if self._feature_count is None:
+                (host, port) = FrovedisServer.getServerInstance()
+                fcp = rpclib.get_feature_count(host, port, self.__mid, \
+                      self.__mkind, self.__mdtype)
+                excpt = rpclib.check_server_exception()
+                if excpt["status"]:
+                    raise RuntimeError(excpt["info"])
+                self._feature_count = np.asarray(fcp, dtype=np.float64). \
+                                      reshape(self.n_classes, self.n_features_)
+            return self._feature_count
+        else:
+            raise AttributeError("attribute 'feature_count_' might have \
+                    been released or called before fit")
+
+    @feature_count_.setter
+    def feature_count_(self, val):
+        """feature_count_ setter"""
+        raise AttributeError("attribute 'feature_count_' of "
+                             "MultinomialNB object is not writable")
+
+    @property
+    def coef_(self):
+        """coef_ getter"""
+        if self.__mid is not None:
+            if self._coef is None:
+                self._coef = (self.feature_log_prob_[1:] \
+                if self.n_classes == 2 else self.feature_log_prob_)
+            return self._coef
+        else:
+            raise AttributeError("attribute 'coef_' " \
+               "might have been released or called before fit")
+
+    @coef_.setter
+    def coef_(self, val):
+        """coef_ setter"""
+        raise AttributeError(\
+            "attribute 'coef_' of MultinomialNB "
+            "object is not writable")
+
+    @property
+    def intercept_(self):
+        """intercept_ getter"""
+        if self.__mid is not None:
+            if self._intercept is None:
+                self._intercept = (self.class_log_prior_[1:] \
+                if self.n_classes == 2 else self.class_log_prior_)
+            return self._intercept
+        else:
+            raise AttributeError("attribute 'intercept_' " \
+               "might have been released or called before fit")
+
+    @intercept_.setter
+    def intercept_(self, val):
+        """intercept_ setter"""
+        raise AttributeError(\
+            "attribute 'intercept_' of MultinomialNB "
+            "object is not writable")
+
     # Perform classification on an array of test vectors X.
     def predict(self, X):
         """
@@ -206,12 +310,13 @@ class MultinomialNB(BaseEstimator):
             "or the model is released.")
 
     # calculate the mean accuracy on the given test data and labels.
-    def score(self, X, y):
+    def score(self, X, y, sample_weight = None):
         """
         NAME: score
         """
         if self.__mid is not None:
-            return accuracy_score(y, self.predict(X))
+            sample_weight = self.check_sample_weight(sample_weight)
+            return accuracy_score(y, self.predict(X), sample_weight = sample_weight)
 
     # Show the model
     def debug_print(self):
@@ -291,6 +396,9 @@ class MultinomialNB(BaseEstimator):
             self._class_log_prior = None
             self._feature_log_prob = None
             self._class_count = None
+            self._feature_count = None
+            self._coef = None
+            self._intercept = None
 
     # Check FrovedisServer is up then release
     def __del__(self):
@@ -530,6 +638,9 @@ class BernoulliNB(BaseEstimator):
         self._feature_log_prob = None
         self._class_log_prior = None
         self._class_count = None
+        self._feature_count = None
+        self._coef = None
+        self._intercept = None
 
     def validate(self):
         """
@@ -538,14 +649,8 @@ class BernoulliNB(BaseEstimator):
         if self.alpha < 0:
             raise ValueError("alpha should be greater than or equal to 1")
 
-    # Fit NaiveBayes bernoulli classifier according to X (input data),
-    # y (Label).
-    def fit(self, X, y):
-        """
-        NAME: fit
-        """
-        self.validate()
-        self.release()
+    def check_input(self, X, y, F):
+        """checks input X"""
         inp_data = FrovedisLabeledPoint(X, y, \
                    caller = "[" + self.__class__.__name__ + "] fit: ",\
                    encode_label = True, binary_encoder=[0, 1], \
@@ -554,16 +659,58 @@ class BernoulliNB(BaseEstimator):
         self._classes = inp_data.get_distinct_labels()
         self.n_classes = len(self._classes)
         self.n_features_ = inp_data.numCols()
+        self.n_samples = inp_data.numRows()
         self.label_map = logic
         dtype = inp_data.get_dtype()
         itype = inp_data.get_itype()
         dense = inp_data.is_dense()
+        return X, y, dtype, itype, dense
+
+    def check_sample_weight(self, sample_weight):
+        if sample_weight is None:
+            sample_weight = np.array([])
+        elif isinstance(sample_weight, numbers.Number):
+            sample_weight = np.full(self.n_samples, sample_weight, dtype=np.float64)
+        else:
+            sample_weight = np.ravel(sample_weight)
+            if len(sample_weight) != self.n_samples:
+                 raise ValueError("sample_weight.shape == {}, expected {}!"\
+                       .format(sample_weight.shape, (self.n_samples,)))
+        return np.asarray(sample_weight, dtype = np.float64)
+
+    def check_class_prior(self):
+        if self.class_prior == None:
+            class_prior = np.array([])
+        elif isinstance(self.class_prior, numbers.Number):
+            class_prior = np.full(self.n_classes, self.class_prior, dtype=np.float64)
+        else:
+            class_prior = np.ravel(self.class_prior)
+            if len(class_prior) != self.n_classes:
+                raise ValueError("Number of priors must match number of" \
+                                 " classes.")
+        return np.asarray(class_prior, dtype = np.float64)
+
+    # Fit NaiveBayes bernoulli classifier according to X (input data),
+    # y (Label).
+    def fit(self, X, y, sample_weight = None):
+        """
+        NAME: fit
+        """
+        self.validate()
+        self.release()
+        X, y, dtype, itype, dense = self.check_input(X, y, "fit")
         self.__mid = ModelID.get()
         self.__mdtype = dtype
         (host, port) = FrovedisServer.getServerInstance()
+
+        sample_weight = self.check_sample_weight(sample_weight)
+        class_prior= self.check_class_prior()
+
         rpclib.nb_train(host, port, X.get(), \
-                        y.get(), self.alpha, self.__mid, \
-                        self.Algo.encode('ascii'), self.binarize, \
+                        y.get(), self.alpha, self.fit_prior, \
+                        class_prior, len(class_prior), \
+                        sample_weight, len(sample_weight), \
+                        self.__mid, self.Algo.encode('ascii'), self.binarize, \
                         self.verbose, dtype, itype, dense)
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
@@ -608,9 +755,8 @@ class BernoulliNB(BaseEstimator):
                 if len(dbl_tht) != self.n_classes * self.n_features_:
                     raise RuntimeError("feature_log_prob_: size differs " + \
                                        "in attribute extraction; report bug!")
-                self._feature_log_prob = dbl_tht.reshape(self.n_features_, \
-                                                         self.n_classes) \
-                                        .transpose() # TODO: modify in library
+                self._feature_log_prob = dbl_tht.reshape(self.n_classes, \
+                                                        self.n_features_)
             return self._feature_log_prob
         else:
             raise AttributeError("attribute 'feature_log_prob_' might have " \
@@ -663,6 +809,67 @@ class BernoulliNB(BaseEstimator):
             "attribute 'classes_' of BernoulliNB "
             "object is not writable")
 
+    @property
+    def feature_count_(self):
+        """feature_count_ getter"""
+        if self.__mid is not None:
+            if self._feature_count is None:
+                (host, port) = FrovedisServer.getServerInstance()
+                fcp = rpclib.get_feature_count(host, port, self.__mid, \
+                      self.__mkind, self.__mdtype)
+                excpt = rpclib.check_server_exception()
+                if excpt["status"]:
+                    raise RuntimeError(excpt["info"])
+                self._feature_count = np.asarray(fcp, dtype=np.float64). \
+                                      reshape(self.n_classes, self.n_features_)
+            return self._feature_count
+        else:
+            raise AttributeError("attribute 'feature_count_' might have \
+                    been released or called before fit")
+
+    @feature_count_.setter
+    def feature_count_(self, val):
+        """feature_count_ setter"""
+        raise AttributeError("attribute 'feature_count_' of "
+                             "BernoulliNB object is not writable")
+
+    @property
+    def coef_(self):
+        """coef_ getter"""
+        if self.__mid is not None:
+            if self._coef is None:
+                self._coef = (self.feature_log_prob_[1:] \
+                if self.n_classes == 2 else self.feature_log_prob_)
+            return self._coef
+        else:
+            raise AttributeError("attribute 'coef_' " \
+               "might have been released or called before fit")
+
+    @coef_.setter
+    def coef_(self, val):
+        """coef_ setter"""
+        raise AttributeError(\
+            "attribute 'coef_' of BernoulliNB "
+            "object is not writable")
+
+    @property
+    def intercept_(self):
+        """intercept_ getter"""
+        if self.__mid is not None:
+            if self._intercept is None:
+                self._intercept = (self.class_log_prior_[1:] \
+                if self.n_classes == 2 else self.class_log_prior_)
+            return self._intercept
+        else:
+            raise AttributeError("attribute 'intercept_' " \
+               "might have been released or called before fit")
+
+    @intercept_.setter
+    def intercept_(self, val):
+        """intercept_ setter"""
+        raise AttributeError(\
+            "attribute 'intercept_' of BernoulliNB "
+            "object is not writable")
 
     # Perform classification on an array of test vectors X.
     def predict(self, X):
@@ -697,12 +904,13 @@ class BernoulliNB(BaseEstimator):
             "or the model is released.")
 
     # calculate the mean accuracy on the given test data and labels.
-    def score(self, X, y):
+    def score(self, X, y, sample_weight = None):
         """
         NAME: score
         """
         if self.__mid is not None:
-            return accuracy_score(y, self.predict(X))
+            sample_weight = self.check_sample_weight(sample_weight)
+            return accuracy_score(y, self.predict(X), sample_weight = sample_weight)
 
     # Show the model
     def debug_print(self):
@@ -782,6 +990,9 @@ class BernoulliNB(BaseEstimator):
             self._class_log_prior = None
             self._feature_log_prob = None
             self._class_count = None
+            self._feature_count = None
+            self._coef = None
+            self._intercept = None
 
     # Check FrovedisServer is up then release
     def __del__(self):
