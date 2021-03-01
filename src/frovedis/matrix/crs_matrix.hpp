@@ -2012,6 +2012,78 @@ operator*(const crs_matrix_local<T,I,O>& mat,
   return ret;
 }
 
+#if defined(_SX) || defined(__ve__)
+template <class T, class I, class O>
+rowmajor_matrix_local<T>
+operator*(const rowmajor_matrix_local<T>& mat1,
+          const crs_matrix_local<T,I,O>& mat2) {
+  if(mat1.local_num_col != mat2.local_num_row)
+    throw std::runtime_error("invalid size for matrix multiplication");
+  rowmajor_matrix_local<T> ret(mat1.local_num_row, mat2.local_num_col);
+  T* retvalp = &ret.val[0];
+
+  const T* valp = &mat2.val[0];
+  const I* idxp = &mat2.idx[0];
+  const O* offp = &mat2.off[0];
+
+  const T* vvalp = &mat1.val[0];
+  size_t num_col2 = mat2.local_num_col;
+  size_t num_col1 = mat1.local_num_col;
+  size_t num_row2 = mat2.local_num_row;
+  size_t num_row1 = mat1.local_num_row;
+  for(size_t r2 = 0; r2 < num_row2; ++r2) {
+    if(num_row1 > (offp[r2 + 1] - offp[r2])) {
+      for(O c = offp[r2]; c < offp[r2 + 1]; ++c) {
+        #pragma _NEC ivdep
+        for(size_t r1 = 0; r1 < num_row1; ++r1) {
+          auto id = idxp[c];
+          retvalp[r1 * num_col2 + id] += vvalp[r1 * num_col1 + r2] * valp[c];
+        }
+      }
+    }
+    else {
+      for(size_t r1 = 0; r1 < num_row1; ++r1) {
+        #pragma _NEC nointerchange
+        #pragma _NEC ivdep
+        for(O c = offp[r2]; c < offp[r2 + 1]; ++c) {
+          retvalp[r1 * num_col2 + idxp[c]] += vvalp[r1 * num_col1 + r2] * valp[c];
+        }
+      }
+    }
+  }
+  return ret;
+}
+#else
+template <class T, class I, class O>
+rowmajor_matrix_local<T>
+operator*(const rowmajor_matrix_local<T>& mat1,
+          const crs_matrix_local<T,I,O>& mat2) {
+  if(mat1.local_num_col != mat2.local_num_row)
+    throw std::runtime_error("invalid size for matrix multiplication");
+  rowmajor_matrix_local<T> ret(mat1.local_num_row, mat2.local_num_col);
+  T* retvalp = &ret.val[0];
+
+  const T* valp = &mat2.val[0];
+  const I* idxp = &mat2.idx[0];
+  const O* offp = &mat2.off[0];
+
+  const T* vvalp = &mat1.val[0];
+  size_t num_col2 = mat2.local_num_col;
+  size_t num_col1 = mat1.local_num_col;
+  size_t num_row2 = mat2.local_num_row;
+  size_t num_row1 = mat1.local_num_row;
+  for(size_t r2 = 0; r2 < num_row2; ++r2) {
+    for(O c = offp[r2]; c < offp[r2 + 1]; ++c) {
+      for(size_t r1 = 0; r1 < num_row1; ++r1) {
+        retvalp[r1 * num_col2 + idxp[c]] += vvalp[r1 * num_col1 + r2] * valp[c];
+      }
+    }
+  }
+  return ret;
+}
+#endif
+
+
 template <class T, class I, class O>
 rowmajor_matrix_local<T> 
 call_crs_rowmajor_mm(const crs_matrix_local<T,I,O>& crs_locmat,
