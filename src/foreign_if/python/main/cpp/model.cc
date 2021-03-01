@@ -670,6 +670,37 @@ extern "C" {
     return ret_ptr;
   }
 
+  PyObject* get_frovedis_feature_count(const char* host, int port,
+                                   int mid, short mkind,
+                                   short mdtype) {
+    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
+    exrpc_node fm_node(host, port);
+    PyObject* ret_ptr = NULL;
+    try {
+      if (mdtype == FLOAT) {
+        std::vector<float> ret;
+        switch(mkind) {
+          case NBM: ret = exrpc_async(fm_node, (get_feature_count<DT2,NBM2>), mid).get(); break;
+          default: REPORT_ERROR(USER_ERROR, "Unknown model for feature_count extraction!\n");
+        }
+        ret_ptr = to_python_float_list(ret);
+      }
+      else if (mdtype == DOUBLE) {
+        std::vector<double> ret;
+        switch(mkind) {
+          case NBM: ret = exrpc_async(fm_node, (get_feature_count<DT1,NBM1>), mid).get(); break;
+          default: REPORT_ERROR(USER_ERROR, "Unknown model for feature_count extraction!\n");
+        }
+        ret_ptr = to_python_double_list(ret);
+      }
+      else REPORT_ERROR(USER_ERROR,"model dtype can either be float or double!\n");
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return ret_ptr;
+  }
+
   PyObject* get_frovedis_theta_vector(const char* host, int port,
                                       int mid, short mkind,
                                       short mdtype) {
@@ -706,26 +737,30 @@ extern "C" {
                                            short mdtype) {
     if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
     exrpc_node fm_node(host, port);
-    std::vector<size_t> ret;
+    PyObject* ret_ptr = NULL;
     try {
       if (mdtype == FLOAT) {
+        std::vector<float> ret;
         switch(mkind) {
-          case NBM: ret = exrpc_async(fm_node, (get_cls_counts_vector<DT5,NBM2>), mid).get(); break;
+          case NBM: ret = exrpc_async(fm_node, (get_cls_counts_vector<DT2,NBM2>), mid).get(); break;
           default: REPORT_ERROR(USER_ERROR, "Unknown model for class_count vector extraction!\n");
         }
+        ret_ptr = to_python_float_list(ret);
       }
       else if (mdtype == DOUBLE) {
+        std::vector<double> ret;
         switch(mkind) {
-          case NBM: ret = exrpc_async(fm_node, (get_cls_counts_vector<DT5,NBM1>), mid).get(); break;
+          case NBM: ret = exrpc_async(fm_node, (get_cls_counts_vector<DT1,NBM1>), mid).get(); break;
           default: REPORT_ERROR(USER_ERROR, "Unknown model for class_count vector extraction!\n");
         }
+        ret_ptr = to_python_double_list(ret);
       }
       else REPORT_ERROR(USER_ERROR,"model dtype can either be float or double!\n");
     }
     catch (std::exception& e) {
       set_status(true, e.what());
     }
-    return to_python_llong_list(ret);
+    return ret_ptr;
   }
 
  void parallel_float_glm_predict(const char* host, int port,
