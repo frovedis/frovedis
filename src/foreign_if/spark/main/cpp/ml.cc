@@ -646,7 +646,9 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisDT
 // calling frovedis server side Naive Bayes trainer
 JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisNBM
   (JNIEnv *env, jclass thisCls, jobject master_node, jobject fdata,
-   jdouble lambda, jdouble threshold, jint model_id, jstring modelType, 
+   jdouble lambda, jdouble threshold, jboolean fit_prior,
+    jdoubleArray class_prior, jlong class_prior_length, 
+   jdoubleArray sample_weight, jlong sample_weight_length, jint model_id, jstring modelType, 
    jboolean movable, jboolean dense) {
 
   auto fm_node = java_node_to_frovedis_node(env, master_node);
@@ -655,13 +657,21 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisNBM
   bool isDense = (bool) dense;
   int vb = 0; // no log (default)
   auto mtype = to_cstring(env,modelType);
+  std::vector<double> clp_vec = to_double_vector(env,
+                                class_prior, class_prior_length);
+  std::vector<double> sw_vec = to_double_vector(env,
+                               sample_weight, sample_weight_length);
+  bool fp = (bool) fit_prior;
   try {
     if(isDense)
       exrpc_oneway(fm_node,(frovedis_nb<DT1,D_MAT1,D_LMAT1>),f_dptr,
-                   mtype,lambda,threshold,vb,model_id,mvbl);
+                   mtype,lambda, fp, clp_vec, sw_vec, 
+                   threshold,vb,model_id,mvbl);
     else
       exrpc_oneway(fm_node,(frovedis_nb<DT1,S_MAT1,S_LMAT1>),f_dptr,
-                   mtype,lambda,threshold,vb,model_id,mvbl);
+                   mtype,lambda, fp, clp_vec, sw_vec,
+                   threshold,vb,model_id,mvbl);
+   
   }
   catch(std::exception& e) { set_status(true,e.what()); }
 }
