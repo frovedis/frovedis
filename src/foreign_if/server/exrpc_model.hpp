@@ -797,6 +797,12 @@ std::vector<T> get_pi_vector(int& mid) {
 }
 
 template <class T, class MODEL>
+std::vector<T> get_feature_count(int& mid) {
+  auto& model = *get_model_ptr<MODEL>(mid);
+  return model.feature_count;
+}
+
+template <class T, class MODEL>
 std::vector<T> get_theta_vector(int& mid) {
   auto& model = *get_model_ptr<MODEL>(mid);
   return model.theta.val;
