@@ -1039,6 +1039,10 @@ get_pi_vector = LIB.get_frovedis_pi_vector
 get_pi_vector.argtypes = [c_char_p, c_int, c_int, c_short, c_short]
 get_pi_vector.restype = py_object
 
+get_feature_count = LIB.get_frovedis_feature_count
+get_feature_count.argtypes = [c_char_p, c_int, c_int, c_short, c_short]
+get_feature_count.restype = py_object
+
 get_theta_vector = LIB.get_frovedis_theta_vector
 get_theta_vector.argtypes = [c_char_p, c_int, c_int, c_short, c_short]
 get_theta_vector.restype = py_object
@@ -1141,8 +1145,12 @@ svm_regressor_sgd.argtypes = [c_char_p, c_int, c_long, c_long, #host,port,X,y
 
 nb_train = LIB.nb_trainer
 nb_train.argtypes = [c_char_p, c_int, c_long,
-                     c_long, c_double, c_int, 
-                     c_char_p, c_double,
+                     c_long, c_double, c_bool,
+                     ndpointer(c_double, ndim=1, flags="C_CONTIGUOUS"),#class_prior
+                     c_long,#lenght of class_prior
+                     ndpointer(c_double, ndim=1, flags="C_CONTIGUOUS"),#sample_weight
+                     c_long,#sample_weight length
+                     c_int, c_char_p, c_double,
                      c_int, c_short, c_short, c_bool]
 
 lnr_lapack = LIB.lnr_lapack
