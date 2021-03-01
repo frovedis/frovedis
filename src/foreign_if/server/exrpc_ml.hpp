@@ -807,27 +807,29 @@ void frovedis_fm(frovedis_mem_pair& mp, std::string& optimizer_name,
 
 template <class T, class MATRIX, class LOC_MATRIX>
 void frovedis_nb(frovedis_mem_pair& mp, std::string& model_type,
-                 double& lambda, double& binarize,
+                 double& lambda, bool& fit_prior,
+                 std::vector<T>& class_prior,
+                 std::vector<T>& sample_weight,
+                 double& binarize,
                  int& verbose, int& mid,
                  bool& isMovableInput=false) {
+
   register_for_train(mid);  // mark model 'mid' as "under training"
   // extracting input data
   MATRIX& mat = *reinterpret_cast<MATRIX*>(mp.first());
   dvector<T>& lbl = *reinterpret_cast<dvector<T>*>(mp.second());
 
-  auto old_level = frovedis::get_loglevel();
-  if (verbose == 1) frovedis::set_loglevel(frovedis::DEBUG);
-  else if (verbose == 2) frovedis::set_loglevel(frovedis::TRACE);
-
+  set_verbose_level(verbose);
   naive_bayes_model<T> model;
   if (model_type == "multinomial") 
-    model = multinomial_nb<T,MATRIX,LOC_MATRIX>(mat,lbl,lambda);
+    model = multinomial_nb(mat,lbl,lambda,fit_prior,
+                           class_prior,sample_weight);
   else if (model_type == "bernoulli") 
-    model = bernoulli_nb<T,MATRIX,LOC_MATRIX>(mat,lbl,lambda,binarize);
+    model = bernoulli_nb(mat,lbl,lambda,binarize,fit_prior,
+                         class_prior,sample_weight);
   else throw std::runtime_error("Unsupported naive bayes algorithm!\n");
   handle_trained_model<naive_bayes_model<T>>(mid, NBM, model);
-
-  frovedis::set_loglevel(old_level);
+  reset_verbose_level();
   if (isMovableInput) {
     mat.clear();
     lbl.mapv_partitions(clear_lbl_data<T>);
