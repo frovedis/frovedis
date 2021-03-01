@@ -52,6 +52,9 @@
  *    numpy.clip(x, min, max) -> vector_clip(x, min, max)
  *    numpy.take(x, idx) -> vector_take(x, idx)
  *    sklearn.preprocessing.binarize(x, thr) -> vector_binarize(x, thr)
+ *    scipy.misc.logsumexp(x) -> vector_logsumexp(x)
+ *    numpy.exp(x) -> vector_exp(x) [to perform exp() on non-integral vector x]
+ *                 -> vector_exp_inplace(x) [to perform exp() in-place on non-integral vector x]
  *
  *  Additionally contains:
  *    debug_print_vector(x, n) - to print fist n and last n elements in vector x
@@ -551,12 +554,58 @@ vector_full(const size_t& size, const T& val) {
 }
 
 template <class I, class W>
+W encode_unique_elements_impl(size_t* sepvalp, I* targetp, size_t i, // input
+                              size_t* indp, W* weightp, // input
+                              I* unqinvp) { // output
+  W weight_sum = 0; // return value
+  I enc_val = targetp[i];
+  size_t j = sepvalp[i];
+  auto nelem = sepvalp[i + 1] - sepvalp[i];
+  // loop-expand till length-4 to reduce short loop-length vector performance issue
+  if (nelem == 1) {
+    auto idx0 = indp[j + 0];
+    unqinvp[idx0] = enc_val;
+    weight_sum += weightp[idx0];
+  }
+  else if (nelem == 2) {
+    auto idx0 = indp[j + 0];
+    auto idx1 = indp[j + 1];
+    unqinvp[idx0] = unqinvp[idx1] = enc_val;
+    weight_sum += weightp[idx0] + weightp[idx1];
+  }
+  else if (nelem == 3) {
+    auto idx0 = indp[j + 0];
+    auto idx1 = indp[j + 1];
+    auto idx2 = indp[j + 2];
+    unqinvp[idx0] = unqinvp[idx1] = unqinvp[idx2] = enc_val;
+    weight_sum += weightp[idx0] + weightp[idx1] + weightp[idx2];
+  }
+  else if (nelem == 4) {
+    auto idx0 = indp[j + 0];
+    auto idx1 = indp[j + 1];
+    auto idx2 = indp[j + 2];
+    auto idx3 = indp[j + 3];
+    unqinvp[idx0] = unqinvp[idx1] = enc_val;
+    unqinvp[idx2] = unqinvp[idx3] = enc_val;
+    weight_sum += weightp[idx0] + weightp[idx1] + weightp[idx2] + weightp[idx3];
+  }
+  else {
+    for(; j < sepvalp[i + 1]; ++j) { 
+      auto idx = indp[j];
+      unqinvp[idx] = enc_val;
+      weight_sum += weightp[idx];
+    }
+  }
+  return weight_sum;
+}
+
+template <class I, class W>
 std::vector<I> 
-encode_unique_elements_impl(std::vector<size_t>& sorted_indices,
-                            std::vector<size_t>& unique_sep,
-                            std::vector<I>& inverse_target,
-                            std::vector<W>& sample_weight,
-                            std::vector<W>& unique_weight_sum) {
+encode_unique_elements(std::vector<size_t>& sorted_indices,
+                       std::vector<size_t>& unique_sep,
+                       std::vector<I>& inverse_target,
+                       std::vector<W>& sample_weight,
+                       std::vector<W>& unique_weight_sum) {
   auto count = unique_sep.size() - 1;
   auto nelem = sorted_indices.size();
 
@@ -584,95 +633,31 @@ encode_unique_elements_impl(std::vector<size_t>& sorted_indices,
   auto unqinvp = unique_inverse.data();
   auto unqwgtp = unique_weight_sum.data();
 
-  for(size_t i = 0; i < count; ++i) {
-    W weight_sum = 0;
-    I enc_val = targetp[i];
-    size_t j = sepvalp[i];
-    for(; (j+7) < sepvalp[i + 1]; j += 8) { 
-      auto idx0 = indp[j + 0];
-      auto idx1 = indp[j + 1];
-      auto idx2 = indp[j + 2];
-      auto idx3 = indp[j + 3];
-      auto idx4 = indp[j + 4];
-      auto idx5 = indp[j + 5];
-      auto idx6 = indp[j + 6];
-      auto idx7 = indp[j + 7];
-      unqinvp[idx0] = unqinvp[idx1] = unqinvp[idx2] = enc_val;
-      unqinvp[idx3] = unqinvp[idx4] = unqinvp[idx5] = enc_val;
-      unqinvp[idx6] = unqinvp[idx7] = enc_val;
-      weight_sum += weightp[idx0] + weightp[idx1] + weightp[idx2] +
-                    weightp[idx3] + weightp[idx4] + weightp[idx5] +
-                    weightp[idx6] + weightp[idx7];
+  // expanded till length-4 to avoid performance issue with tiny vector loop length
+  if (count == 1) {
+    auto enc_val = targetp[0];
+    auto weight_sum = 0;
+    for(size_t i = 0; i < nelem; ++i) {
+      unqinvp[i] = enc_val;
+      weight_sum += weightp[i];
     }
-    // expanded till length-7 to avoid performance issue with tiny vector loop length
-    if ((j + 6) < sepvalp[i + 1]) {
-      auto idx0 = indp[j + 0];
-      auto idx1 = indp[j + 1];
-      auto idx2 = indp[j + 2];
-      auto idx3 = indp[j + 3];
-      auto idx4 = indp[j + 4];
-      auto idx5 = indp[j + 5];
-      auto idx6 = indp[j + 6];
-      unqinvp[idx0] = unqinvp[idx1] = unqinvp[idx2] = enc_val;
-      unqinvp[idx3] = unqinvp[idx4] = unqinvp[idx5] = enc_val;
-      unqinvp[idx6] = enc_val;
-      weight_sum += weightp[idx0] + weightp[idx1] + weightp[idx2] +
-                    weightp[idx3] + weightp[idx4] + weightp[idx5] +
-                    weightp[idx6];
+    unqwgtp[0] = weight_sum;
+  }
+  else if (count == 2) { // expanded for binary-label case
+    size_t i = 0;
+    unqwgtp[0] = encode_unique_elements_impl(sepvalp, targetp, i,
+                                             indp, weightp, 
+                                             unqinvp);
+    unqwgtp[1] = encode_unique_elements_impl(sepvalp, targetp, i + 1,
+                                             indp, weightp, 
+                                             unqinvp);
+  }
+  else { // multi-label case
+    for(size_t i = 0; i < count; ++i) {
+      unqwgtp[i] = encode_unique_elements_impl(sepvalp, targetp, i,
+                                               indp, weightp, 
+                                               unqinvp);
     }
-    else if ((j + 5) < sepvalp[i + 1]) {
-      auto idx0 = indp[j + 0];
-      auto idx1 = indp[j + 1];
-      auto idx2 = indp[j + 2];
-      auto idx3 = indp[j + 3];
-      auto idx4 = indp[j + 4];
-      auto idx5 = indp[j + 5];
-      unqinvp[idx0] = unqinvp[idx1] = unqinvp[idx2] = enc_val;
-      unqinvp[idx3] = unqinvp[idx4] = unqinvp[idx5] = enc_val;
-      weight_sum += weightp[idx0] + weightp[idx1] + weightp[idx2] +
-                    weightp[idx3] + weightp[idx4] + weightp[idx5];
-    }
-    else if ((j + 4) < sepvalp[i + 1]) {
-      auto idx0 = indp[j + 0];
-      auto idx1 = indp[j + 1];
-      auto idx2 = indp[j + 2];
-      auto idx3 = indp[j + 3];
-      auto idx4 = indp[j + 4];
-      unqinvp[idx0] = unqinvp[idx1] = unqinvp[idx2] = enc_val;
-      unqinvp[idx3] = unqinvp[idx4] = enc_val;
-      weight_sum += weightp[idx0] + weightp[idx1] + weightp[idx2] +
-                    weightp[idx3] + weightp[idx4];
-    }
-    else if ((j + 3) < sepvalp[i + 1]) {
-      auto idx0 = indp[j + 0];
-      auto idx1 = indp[j + 1];
-      auto idx2 = indp[j + 2];
-      auto idx3 = indp[j + 3];
-      unqinvp[idx0] = unqinvp[idx1] = unqinvp[idx2] = enc_val;
-      unqinvp[idx3] = enc_val;
-      weight_sum += weightp[idx0] + weightp[idx1] + weightp[idx2] +
-                    weightp[idx3];
-    }
-    else if ((j + 2) < sepvalp[i + 1]) {
-      auto idx0 = indp[j + 0];
-      auto idx1 = indp[j + 1];
-      auto idx2 = indp[j + 2];
-      unqinvp[idx0] = unqinvp[idx1] = unqinvp[idx2] = enc_val;
-      weight_sum += weightp[idx0] + weightp[idx1] + weightp[idx2];
-    }
-    else if ((j + 1) < sepvalp[i + 1]) {
-      auto idx0 = indp[j + 0];
-      auto idx1 = indp[j + 1];
-      unqinvp[idx0] = unqinvp[idx1] = enc_val;
-      weight_sum += weightp[idx0] + weightp[idx1];
-    }
-    else if ((j + 0) < sepvalp[i + 1]) {
-      auto idx0 = indp[j + 0];
-      unqinvp[idx0] = enc_val;
-      weight_sum += weightp[idx0];
-    }
-    // else -> all targets have already been covered in unrolled for-loop
-    unqwgtp[i] = weight_sum;
   }
   return unique_inverse;
 }
@@ -710,7 +695,7 @@ vector_unique(const std::vector<T>& vec,
     unqcntp[i] = sepvalp[i + 1] - sepvalp[i];
   }
   if (need_inverse) {
-    unique_inverse = encode_unique_elements_impl(indices, sep, 
+    unique_inverse = encode_unique_elements(indices, sep, 
                      inverse_target, sample_weight, unique_weight_sum);
   }
   return unique;
@@ -1086,7 +1071,7 @@ size_t vector_argmax(const std::vector<T>& vec) {
   require(vecsz > 0, "vector_argmax: input vector is empty!");
   auto vecp = vec.data();
   size_t maxindx = 0;
-  T max = std::numeric_limits<T>::min();
+  T max = std::numeric_limits<T>::lowest();
   for(size_t i = 0; i < vecsz; ++i) {
     if (vecp[i] > max) {
       max = vecp[i];
@@ -1304,7 +1289,7 @@ vector_max_value(const std::vector<std::pair<T, I>>& t1,
 template <class T>
 T vector_logsumexp_impl(const T* datap,
                         size_t size, size_t stride) {
-  auto maxval = std::numeric_limits<T>::min();
+  auto maxval = std::numeric_limits<T>::lowest();
   for(size_t i = 0; i < size; ++i) {
     if(datap[i * stride] > maxval) maxval = datap[i * stride];
   }
@@ -1313,10 +1298,31 @@ T vector_logsumexp_impl(const T* datap,
   return maxval + log(lse);
 }
 
+// similar to scipy.misc.logsumexp(x)
 // T: must be non-integral type
 template <class T>
 T vector_logsumexp(const std::vector<T>& vec) {
   return vector_logsumexp_impl(vec.data(), vec.size(), 1);
+}
+
+// similar to np.exp(x)
+// T: must be non-integral type
+template <class T>
+std::vector<T>
+vector_exp(const std::vector<T>& vec) {
+  auto vecsz = vec.size();
+  std::vector<T> ret(vecsz);
+  auto vecp = vec.data();
+  auto retp = ret.data();
+  for(size_t i = 0; i < vecsz; ++i) retp[i] = exp(vecp[i]);
+  return ret;
+}
+
+template <class T>
+void vector_exp_inplace(std::vector<T>& vec) {
+  auto vecsz = vec.size();
+  auto vecp = vec.data();
+  for(size_t i = 0; i < vecsz; ++i) vecp[i] = exp(vecp[i]);
 }
   
 }
