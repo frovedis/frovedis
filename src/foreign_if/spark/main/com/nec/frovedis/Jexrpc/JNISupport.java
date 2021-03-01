@@ -614,7 +614,13 @@ public class JNISupport {
                                          boolean movable);
 
   public static native void callFrovedisNBM(Node master_node, MemPair fdata,
-                                            double lambda, double threshold, 
+                                            double lambda, 
+                                            double threshold, 
+                                            boolean fit_prior,
+                                            double[] class_prior, 
+                                            long class_prior_length,
+                                            double[] sample_weight, 
+                                            long sample_weight_length,
                                             int model_id,
                                             String modelType, boolean movable,
                                             boolean isDense);
