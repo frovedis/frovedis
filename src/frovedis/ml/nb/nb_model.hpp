@@ -22,9 +22,11 @@ struct naive_bayes_model {
   naive_bayes_model() {}
 
   naive_bayes_model(const rowmajor_matrix_local<T>& th,
-                    const std::vector<T>& p, const std::vector<T>& l,
+                    const std::vector<T>& p, 
+                    const std::vector<T>& l,
                     const std::vector<T>& cc,
-                    const std::vector<T>& fc, const std::string& mtype,
+                    const std::vector<T>& fc, 
+                    const std::string& mtype,
                     double b = 0.0) {
     pi = p;
     label = l;
@@ -32,15 +34,17 @@ struct naive_bayes_model {
     theta = th;
     feature_count = fc;
     model_type = mtype;
-    if (mtype == "bernoulli") compute_param();
     binarize = b;
+    if (mtype == "bernoulli") compute_param();
   }
 
   // for performance
   naive_bayes_model(rowmajor_matrix_local<T>&& th,
-                    std::vector<T>&& p, std::vector<T>&& l,
+                    std::vector<T>&& p, 
+                    std::vector<T>&& l,
                     std::vector<T>&& cc,
-                    std::vector<T>&& fc, const std::string& mtype,
+                    std::vector<T>&& fc, 
+                    const std::string& mtype,
                     double b = 0.0) {
     pi.swap(p);
     label.swap(l);
@@ -48,8 +52,8 @@ struct naive_bayes_model {
     theta = th; 
     feature_count.swap(fc);
     model_type = mtype;
-    if (mtype == "bernoulli") compute_param();
     binarize = b;
+    if (mtype == "bernoulli") compute_param();
   }
 
   template <class MATRIX>
@@ -111,113 +115,75 @@ struct naive_bayes_model {
   }
   
   void debug_print(size_t limit = 5) {
+    std::cout << "\nmodel_type: " << model_type << std::endl;
+    std::cout << "binarize: " << binarize << std::endl;
+    std::cout << "feature_count: "; debug_print_vector(feature_count, limit);
     std::cout << "theta: "; theta.debug_print(limit);
     std::cout << "pi: "; debug_print_vector(pi, limit);
     std::cout << "label: "; debug_print_vector(label, limit) ;
     std::cout << "class count: "; debug_print_vector(cls_counts, limit);
-    std::cout << "model_type: " << model_type << std::endl;
-    std::cout << "feature_count: "; debug_print_vector(feature_count, limit);
     if (model_type == "bernoulli") {
       std::cout << "theta_minus_negtheta: "; theta_minus_negtheta.debug_print(limit);
       std::cout << "negtheta_sum: "; debug_print_vector(negtheta_sum, limit);
-      std::cout << "binarize: " << binarize;
     }
   }
-  void __create_dir_struct (const std::string& dir) {
-    struct stat sb;
-    if(stat(dir.c_str(), &sb) != 0) { // no file/directory
-      mode_t mode = S_IRWXU | S_IRWXG | S_IRWXO; // man 2 stat
-      if(mkdir(dir.c_str(), mode) != 0) {
-        perror("mkdir failed:");
-        throw std::runtime_error("mkdir failed");
-      }
-    } else if(!S_ISDIR(sb.st_mode)) {
-      throw std::runtime_error(dir + " is not a directory");
+  void clear() {
+    theta.clear(); feature_count.clear(); pi.clear();
+    label.clear(); cls_counts.clear();
+    if (model_type == "bernoulli") {
+      theta_minus_negtheta.clear(); negtheta_sum.clear();
     }
+    model_type = ""; binarize = 0.0;
   }
   void save (const std::string& dir) {
-    __create_dir_struct(dir);
-    std::string theta_file = dir + "/theta";
-    theta.save(theta_file); //theta: rowmajor_matrix_local<T>
-    std::string pi_file = dir + "/pi";
-    std::string label_file = dir + "/label";
-    std::string count_file = dir + "/cls_count";
+    require(!directory_exists(dir), 
+    "save: a directory with same name already exists!\n");
+    make_directory(dir);
+    theta.save(dir + "/theta"); //theta: rowmajor_matrix_local<T>
+    make_dvector_scatter(feature_count).saveline(dir + "/feature_count");
+    make_dvector_scatter(pi).saveline(dir + "/pi");
+    make_dvector_scatter(label).saveline(dir + "/label");
+    make_dvector_scatter(cls_counts).saveline(dir + "/cls_count");
     std::string type_file = dir + "/type";
-    std::string fc_file = dir + "/feature_count";
-    std::string binarize_file = dir + "/binarize";
-    std::ofstream pi_str, label_str, count_str, type_str, fc_str, binarize_str;
-    pi_str.exceptions(std::ofstream::failbit | std::ofstream::badbit);
-    label_str.exceptions(std::ofstream::failbit | std::ofstream::badbit);
+    std::ofstream type_str;
     type_str.exceptions(std::ofstream::failbit | std::ofstream::badbit);
-    pi_str.open(pi_file.c_str()); for(auto& e: pi) pi_str << e << std::endl;
-    label_str.open(label_file.c_str()); for(auto& e: label) label_str << e << std::endl;
-    count_str.open(count_file.c_str()); for(auto& e: cls_counts) count_str << e << std::endl;
-    type_str.open(type_file.c_str()); type_str << model_type << std::endl;
-    fc_str.open(fc_file.c_str()); for(auto& e: feature_count) fc_str << e << std::endl;
-    if (model_type == "bernoulli")
-      binarize_str.open(binarize_file.c_str()); binarize_str << binarize << std::endl;
+    type_str.open(type_file.c_str()); 
+    type_str << model_type << "\n" << binarize << std::endl;
   }
   void savebinary (const std::string& dir) {
-    __create_dir_struct(dir);
-    std::string theta_dir = dir + "/theta";
-    theta.savebinary(theta_dir); //theta: rowmajor_matrix_local<T>
-    std::string pi_file = dir + "/pi";
-    std::string label_file = dir + "/label";
-    std::string count_file = dir + "/cls_count";
+    require(!directory_exists(dir), 
+    "save: a directory with same name already exists!\n");
+    make_directory(dir);
+    theta.savebinary(dir + "/theta"); //theta: rowmajor_matrix_local<T>
+    make_dvector_scatter(feature_count).savebinary(dir + "/feature_count");
+    make_dvector_scatter(pi).savebinary(dir + "/pi");
+    make_dvector_scatter(label).savebinary(dir + "/label");
+    make_dvector_scatter(cls_counts).savebinary(dir + "/cls_count");
     std::string type_file = dir + "/type";
-    std::string fc_file = dir + "/feature_count";
-    std::string binarize_file = dir + "/binarize";
-    make_dvector_scatter(pi).savebinary(pi_file);
-    make_dvector_scatter(label).savebinary(label_file);
-    make_dvector_scatter(cls_counts).savebinary(count_file);
-    make_dvector_scatter(feature_count).savebinary(fc_file);
-    std::ofstream type_str, binarize_str;
+    std::ofstream type_str;
     type_str.exceptions(std::ofstream::failbit | std::ofstream::badbit);
-    type_str.open(type_file.c_str()); type_str << model_type << std::endl;
-    if (model_type == "bernoulli")
-      binarize_str.open(binarize_file.c_str()); binarize_str << binarize << std::endl;
+    type_str.open(type_file.c_str()); 
+    type_str << model_type << "\n" << binarize << std::endl;
   }
   void load (const std::string& dir) {
-    std::string theta_file = dir + "/theta";
-    theta = make_rowmajor_matrix_local_load<T>(theta_file);
-    std::string pi_file = dir + "/pi";
-    std::string label_file = dir + "/label";
-    std::string count_file = dir + "/cls_count";
+    theta = make_rowmajor_matrix_local_load<T>(dir + "/theta");
+    feature_count = make_dvector_loadline<T>(dir + "/feature_count").gather();
+    pi = make_dvector_loadline<T>(dir + "/pi").gather();
+    label = make_dvector_loadline<T>(dir + "/label").gather();
+    cls_counts = make_dvector_loadline<T>(dir + "/cls_count").gather();
     std::string type_file = dir + "/type";
-    std::ifstream pi_str(pi_file.c_str());
-    std::string fc_file = dir + "/feature_count";
-    std::string binarize_file = dir + "/binarize";
-    pi.clear(); for(T x; pi_str >> x;) pi.push_back(x);
-    std::ifstream label_str(label_file.c_str());
-    label.clear(); for(T x; label_str >> x;) label.push_back(x);
-    std::ifstream count_str(count_file.c_str());
-    cls_counts.clear(); for(size_t x; count_str >> x;) cls_counts.push_back(x);
-    std::ifstream fc_str(fc_file.c_str());
-    feature_count.clear(); for(T x; fc_str >> x;) feature_count.push_back(x);
-    std::ifstream type_str(type_file.c_str()); type_str >> model_type;
-    if (model_type == "bernoulli") {
-      std::ifstream binarize_str(binarize_file.c_str()); binarize_str >> binarize;
-      compute_param();
-    }
+    std::ifstream type_str(type_file.c_str()); type_str >> model_type >> binarize;
+    if (model_type == "bernoulli") compute_param(); 
   }
   void loadbinary (const std::string& dir) {
-    std::string theta_dir = dir + "/theta";
-    theta = make_rowmajor_matrix_local_loadbinary<T>(theta_dir);
-    std::string pi_file = dir + "/pi";
-    std::string label_file = dir + "/label";
-    std::string count_file = dir + "/cls_count";
+    theta = make_rowmajor_matrix_local_loadbinary<T>(dir + "/theta");
+    feature_count = make_dvector_loadbinary<T>(dir + "/feature_count").gather();
+    pi = make_dvector_loadbinary<T>(dir + "/pi").gather();
+    label = make_dvector_loadbinary<T>(dir + "/label").gather();
+    cls_counts = make_dvector_loadbinary<T>(dir + "/cls_count").gather();
     std::string type_file = dir + "/type";
-    std::string fc_file = dir + "/feature_count";
-    std::string binarize_file = dir + "/binarize";
-    pi = make_dvector_loadbinary<T>(pi_file).gather();
-    label = make_dvector_loadbinary<T>(label_file).gather();
-    cls_counts = make_dvector_loadbinary<T>(count_file).gather();
-    feature_count = make_dvector_loadbinary<T>(fc_file).gather();
-    std::ifstream type_str(type_file.c_str()); type_str >> model_type;
-    if (model_type == "bernoulli") {
-      std::ifstream binarize_str(binarize_file.c_str()); binarize_str >> binarize;
-      compute_param();
-    }
+    std::ifstream type_str(type_file.c_str()); type_str >> model_type >> binarize;
+    if (model_type == "bernoulli") compute_param(); 
   }
 
   node_local<naive_bayes_model<T>> broadcast();  // for performance
@@ -300,23 +266,23 @@ struct naive_bayes_model {
 template <class T>
 struct nb_model_bcast_helper {
   nb_model_bcast_helper() {}
-  nb_model_bcast_helper(std::string& mt): model_type(mt) {}
+  nb_model_bcast_helper(std::string& mt, double bin): 
+    model_type(mt), binarize(bin) {}
   naive_bayes_model<T> operator()(rowmajor_matrix_local<T>& theta,
                          std::vector<T>& pi,
                          std::vector<T>& label,
                          std::vector<T>& cls_counts,
-                         std::vector<T>& feature_count,
-                         double binarize) {
+                         std::vector<T>& feature_count) {
     return naive_bayes_model<T>(std::move(theta),
                                 std::move(pi),
                                 std::move(label),
                                 std::move(cls_counts),
                                 std::move(feature_count),
-                                model_type,
-                                binarize);
+                                model_type, binarize);
   }
   std::string model_type;
-  SERIALIZE(model_type)
+  double binarize;
+  SERIALIZE(model_type, binarize)
 };
 
 template <class T>
@@ -327,8 +293,8 @@ naive_bayes_model<T>::broadcast() {
   auto blb = frovedis::broadcast(label);
   auto bcc = frovedis::broadcast(cls_counts);
   auto bfc = frovedis::broadcast(feature_count);
-  auto bbinarize = frovedis::broadcast(binarize);
-  return bth.map(nb_model_bcast_helper<T>(model_type),bpi,blb,bcc,bfc,bbinarize);
+  return bth.map(nb_model_bcast_helper<T>(model_type, binarize),
+                 bpi, blb, bcc, bfc);
 }
 
 }
