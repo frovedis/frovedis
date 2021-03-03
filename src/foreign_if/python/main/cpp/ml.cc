@@ -1071,7 +1071,7 @@ extern "C" {
                                                         len_class_prior);
               auto sample_weight = double_to_float_vector(sample_weight_ptr,
                                                           len_sample_weight);
-              exrpc_oneway(fm_node,(frovedis_nb<DT2,D_MAT2,D_LMAT2>),
+              exrpc_oneway(fm_node,(frovedis_nb<DT2,R_MAT2>),
                            f_dptr,algos,alpha,fit_prior,class_prior,sample_weight,
                            binarize,verbose,mid,mvbl);
             }
@@ -1082,7 +1082,7 @@ extern "C" {
                                                   len_class_prior);
               auto sample_weight = to_double_vector(sample_weight_ptr,
                                                     len_sample_weight);
-              exrpc_oneway(fm_node,(frovedis_nb<DT1,D_MAT1,D_LMAT1>),
+              exrpc_oneway(fm_node,(frovedis_nb<DT1,R_MAT1>),
                            f_dptr,algos,alpha,fit_prior,class_prior, sample_weight,
                            binarize,verbose,mid,mvbl);
             }
@@ -1100,11 +1100,11 @@ extern "C" {
               auto sample_weight = double_to_float_vector(sample_weight_ptr,
                                                           len_sample_weight);
               if(itype == INT)
-                exrpc_oneway(fm_node,(frovedis_nb<DT2,S_MAT24,S_LMAT24>),
+                exrpc_oneway(fm_node,(frovedis_nb<DT2,S_MAT24>),
                              f_dptr,algos,alpha,fit_prior,class_prior,sample_weight,
                              binarize,verbose,mid,mvbl);
               else if(itype == LONG)
-                exrpc_oneway(fm_node,(frovedis_nb<DT2,S_MAT25,S_LMAT25>),
+                exrpc_oneway(fm_node,(frovedis_nb<DT2,S_MAT25>),
                              f_dptr,algos,alpha,fit_prior,class_prior,sample_weight,
                              binarize,verbose,mid,mvbl);
               else REPORT_ERROR(USER_ERROR, 
@@ -1118,11 +1118,11 @@ extern "C" {
               auto sample_weight = to_double_vector(sample_weight_ptr,
                                                     len_sample_weight);
               if(itype == INT)
-                exrpc_oneway(fm_node,(frovedis_nb<DT1,S_MAT14,S_LMAT14>),
+                exrpc_oneway(fm_node,(frovedis_nb<DT1,S_MAT14>),
                              f_dptr,algos,alpha,fit_prior,class_prior,sample_weight,
                              binarize,verbose,mid,mvbl);
               else if(itype == LONG)
-                exrpc_oneway(fm_node,(frovedis_nb<DT1,S_MAT15,S_LMAT15>),
+                exrpc_oneway(fm_node,(frovedis_nb<DT1,S_MAT15>),
                              f_dptr,algos,alpha,fit_prior,class_prior,sample_weight,
                              binarize,verbose,mid,mvbl);
               else REPORT_ERROR(USER_ERROR, 
@@ -1294,16 +1294,16 @@ extern "C" {
     }
   }
 
-  void w2v_train(const char* host, int port,
-                 const char* encode, const char* weight,
+  PyObject* w2v_train(const char* host, int port,
+                 const char* encode,
                  const char* count, int hiddenSize, int window,
                  float thr, int neg, int niter, float lr,
                  float syncPeriod, int syncWords, 
                  int syncTimes, int msgsz, int nthread) {
-    ASSERT_PTR(weight); ASSERT_PTR(encode); ASSERT_PTR(count);
+    ASSERT_PTR(encode); ASSERT_PTR(count);
     if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
     exrpc_node fm_node(host,port);
-    std::string enc(encode), cnt(count), wght(weight);
+    std::string enc(encode), cnt(count);
 
     int are_supposed_parameters =    \
        hiddenSize <= 512 &&          \
@@ -1325,27 +1325,14 @@ extern "C" {
        lr, syncPeriod, syncWords, syncTimes, 
        msgsz, nthread
     };
-
+    std::vector<float> res;
     try {
-      exrpc_oneway(fm_node,frovedis_w2v_train,enc,wght,cnt,config);
+      res = exrpc_async(fm_node,frovedis_w2v_train,enc,cnt,config).get();
     }
     catch (std::exception& e) {
       set_status(true, e.what());
     }
-  }
-
-  void w2v_save_model(const char* weight, const char* vocab,
-                      const char* out, int minCount,
-                      bool isBinary) {
-    ASSERT_PTR(weight); ASSERT_PTR(vocab); ASSERT_PTR(out); 
-    std::string wght(weight), voc(vocab), output(out);
-    // x86 side model saving
-    try {
-      w2v::save_model(wght, voc, out, minCount, isBinary);
-    }
-    catch (std::exception& e) {
-      set_status(true, e.what());
-    }
+    return to_python_float_list(res);
   }
 
   // --- (17) K-Nearest Neighbor (KNN) ---
