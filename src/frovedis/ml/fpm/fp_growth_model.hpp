@@ -26,12 +26,13 @@ namespace frovedis {
     void debug_print();
     size_t get_count();
     size_t get_depth();
+    void clear();
     std::vector<dftable> get_frequent_itemset();
     association_rule generate_rules(double confidence);
-    void load (const std::string& fname);
-    void loadbinary (const std::string& fname);
-    void save (const std::string& fname);
-    void savebinary (const std::string& fname);
+    void load (const std::string& dir);
+    void loadbinary (const std::string& dir);
+    void save (const std::string& dir);
+    void savebinary (const std::string& dir);
 
     std::vector<dftable> item, tree_info;
     SERIALIZE(item, tree_info)
@@ -42,8 +43,14 @@ namespace frovedis {
   association_rule 
   generate_association_rules(std::vector<dftable>& freq_itemsets,
                              double con);
+  void free_df(dftable_base&);
+
+  template <class T>
+  void show(const std::string& msg,
+            const std::vector<T>& vec,
+            const int& limit = 10) {
+    std::cout << msg; debug_print_vector(vec, limit);
+  }
+
 }
-
 #endif
-
-
