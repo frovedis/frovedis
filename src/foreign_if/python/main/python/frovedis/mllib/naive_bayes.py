@@ -58,7 +58,7 @@ class MultinomialNB(BaseEstimator):
         inp_data = FrovedisLabeledPoint(X, y, \
                    caller = "[" + self.__class__.__name__ + "] fit: ",\
                    encode_label = True, binary_encoder=[0, 1], \
-                   dense_kind = 'colmajor', densify=False)
+                   dense_kind = 'rowmajor', densify=False)
         X, y, logic = inp_data.get()
         self._classes = inp_data.get_distinct_labels()
         self.n_classes = len(self._classes)
@@ -377,6 +377,9 @@ class MultinomialNB(BaseEstimator):
             else:
                 os.makedirs(fname)
             GLM.save(self.__mid, self.__mkind, self.__mdtype, fname+"/model")
+            target = open(fname+"/label_map", "wb")
+            pickle.dump(self.label_map, target)
+            target.close()
             metadata = open(fname+"/metadata", "wb")
             pickle.dump((self.__mkind, self.__mdtype), metadata)
             metadata.close()
@@ -446,7 +449,7 @@ class GaussianNB(BaseEstimator):
         inp_data = FrovedisLabeledPoint(X, y, \
                    caller = "[" + self.__class__.__name__ + "] fit: ",\
                    encode_label = True, binary_encoder=[0, 1], \
-                   dense_kind = 'colmajor', densify=False)
+                   dense_kind = 'rowmajor', densify=False)
         X, y, logic = inp_data.get()
         self._classes = inp_data.get_distinct_labels()
         self.n_classes = len(self._classes)
@@ -583,6 +586,9 @@ class GaussianNB(BaseEstimator):
             else:
                 os.makedirs(fname)
             GLM.save(self.__mid, self.__mkind, self.__mdtype, fname+"/model")
+            target = open(fname+"/label_map", "wb")
+            pickle.dump(self.label_map, target)
+            target.close()
             metadata = open(fname+"/metadata", "wb")
             pickle.dump((self.__mkind, self.__mdtype), metadata)
             metadata.close()
@@ -654,7 +660,7 @@ class BernoulliNB(BaseEstimator):
         inp_data = FrovedisLabeledPoint(X, y, \
                    caller = "[" + self.__class__.__name__ + "] fit: ",\
                    encode_label = True, binary_encoder=[0, 1], \
-                   dense_kind = 'colmajor', densify=False)
+                   dense_kind = 'rowmajor', densify=False)
         X, y, logic = inp_data.get()
         self._classes = inp_data.get_distinct_labels()
         self.n_classes = len(self._classes)
@@ -971,6 +977,9 @@ class BernoulliNB(BaseEstimator):
             else:
                 os.makedirs(fname)
             GLM.save(self.__mid, self.__mkind, self.__mdtype, fname+"/model")
+            target = open(fname+"/label_map", "wb")
+            pickle.dump(self.label_map, target)
+            target.close()
             metadata = open(fname+"/metadata", "wb")
             pickle.dump((self.__mkind, self.__mdtype), metadata)
             metadata.close()
