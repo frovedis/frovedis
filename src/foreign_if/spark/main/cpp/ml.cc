@@ -664,11 +664,11 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisNBM
   bool fp = (bool) fit_prior;
   try {
     if(isDense)
-      exrpc_oneway(fm_node,(frovedis_nb<DT1,D_MAT1,D_LMAT1>),f_dptr,
+      exrpc_oneway(fm_node,(frovedis_nb<DT1,R_MAT1>),f_dptr,
                    mtype,lambda, fp, clp_vec, sw_vec, 
                    threshold,vb,model_id,mvbl);
     else
-      exrpc_oneway(fm_node,(frovedis_nb<DT1,S_MAT1,S_LMAT1>),f_dptr,
+      exrpc_oneway(fm_node,(frovedis_nb<DT1,S_MAT1>),f_dptr,
                    mtype,lambda, fp, clp_vec, sw_vec,
                    threshold,vb,model_id,mvbl);
    
