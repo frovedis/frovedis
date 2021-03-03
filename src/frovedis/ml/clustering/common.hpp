@@ -285,12 +285,16 @@ construct_distance_matrix(rowmajor_matrix<T>& x_mat,
     calc_dist.show_lap("dist calculation: ");
   }
   catch(std::exception& excpt) {
-    double reqsz = nsamples * nquery * sizeof(T);
-    auto reqsz_gb = reqsz / 1024.0 / 1024.0 / 1024.0;
-    std::string msg = "out-of-memory error occured while computing distance matrix!";
-    msg += "\nrequired memory size for the target distance matrix: ";
-    msg += std::to_string(reqsz_gb) + " GB\n";
-    REPORT_ERROR(INTERNAL_ERROR, msg);
+    std::string msg = excpt.what();
+    if(msg.find("bad_alloc") != std::string::npos ) {
+      double reqsz = nsamples * nquery * sizeof(T);
+      auto reqsz_gb = reqsz / 1024.0 / 1024.0 / 1024.0;
+      std::string e = "out-of-memory error occured while computing distance matrix!";
+      e += "\nrequired memory size for the target distance matrix: ";
+      e += std::to_string(reqsz_gb) + " GB\n";
+      REPORT_ERROR(INTERNAL_ERROR, e);
+    }
+    else REPORT_ERROR(INTERNAL_ERROR, msg);
   }
   return dist_mat;
 }
@@ -356,12 +360,16 @@ construct_distance_matrix(node_local<rowmajor_matrix_local<T>>& mat,
     dist_mat.num_row = dist_mat.num_col = nrow;
   }
   catch(std::exception& excpt) {
-    double reqsz = nrow * nrow * sizeof(T);
-    auto reqsz_gb = reqsz / 1024.0 / 1024.0 / 1024.0;
-    std::string msg = "out-of-memory error occured while computing distance matrix!";
-    msg += "\nrequired memory size for the target distance matrix: ";
-    msg += std::to_string(reqsz_gb) + " GB\n";
-    REPORT_ERROR(INTERNAL_ERROR, msg);
+    std::string msg = excpt.what();
+    if(msg.find("bad_alloc") != std::string::npos ) {
+      double reqsz = nrow * nrow * sizeof(T);
+      auto reqsz_gb = reqsz / 1024.0 / 1024.0 / 1024.0;
+      std::string e = "out-of-memory error occured while computing distance matrix!";
+      e += "\nrequired memory size for the target distance matrix: ";
+      e += std::to_string(reqsz_gb) + " GB\n";
+      REPORT_ERROR(INTERNAL_ERROR, e);
+    }
+    else REPORT_ERROR(INTERNAL_ERROR, msg);
   }
   return dist_mat;
 }
