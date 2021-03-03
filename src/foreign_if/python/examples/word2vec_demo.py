@@ -15,10 +15,10 @@ FrovedisServer.initialize(argvs[1])
 
 data = [["cat", "say", "meow"], ["dog", "say", "woof"]]
 
-### Generate embeddings using build_vocab_and_dump and fit
+### Generate embeddings using build_vocab and train
 wv_model = Word2Vec(minCount=1)
-wv_model.build_vocab_and_dump(data) # Using corpus data
-wv_model.fit(data) # Using corpus data
+wv_model.build_vocab(data) # Using corpus data
+wv_model.train(data) # Using corpus data
 print(wv_model.wv)
 
 ### You can also perform the same in one step as follows(using constructor)
@@ -35,11 +35,11 @@ except:
     print("### gensim is not available... so skipping " +
           "demo gensim related functionalities")
 
-### Generate document embeddings using fit-transform()
+### Generate document embeddings using fit_transform()
 textfile = "./input/text8-10k"
 model = "text_model.txt"
 wv_model = Word2Vec(minCount=1)
-embeddings = wv_model.build_vocab_and_dump(corpusFile=textfile).\
+embeddings = wv_model.build_vocab(corpusFile=textfile).\
                       fit_transform(corpusFile=textfile)
 print(embeddings)
 ### Above embedding can be used for further downstream tasks like classification, clustering etc
