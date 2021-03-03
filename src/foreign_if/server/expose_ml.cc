@@ -15,11 +15,11 @@ RegType get_regularizer(int regType) {
   return rtype;
 }
 
-void frovedis_w2v_train(std::string& encode,
-                        std::string& weight,
-                        std::string& count,
-                        w2v::train_config& config) {
-  w2v::train_each(encode, count, weight, config);
+std::vector<float> 
+frovedis_w2v_train(std::string& encode,
+                   std::string& count,
+                   w2v::train_config& config) {
+  return w2v::train_each_impl(encode, count, config);
 }
 
 void expose_frovedis_ml_functions() {
@@ -79,13 +79,13 @@ void expose_frovedis_ml_functions() {
   expose((frovedis_dt<DT1,D_MAT1>));   // both spark and python case
   expose((frovedis_dt<DT2,D_MAT2>));   // python case
   // (4) naive bayes
-  expose((frovedis_nb<DT1,D_MAT1,D_LMAT1>));   // both spark and python case
-  expose((frovedis_nb<DT2,D_MAT2,D_LMAT2>));   // python case
-  expose((frovedis_nb<DT1,S_MAT1,S_LMAT1>));   // spark case
-  expose((frovedis_nb<DT1,S_MAT14,S_LMAT14>)); // python case
-  expose((frovedis_nb<DT1,S_MAT15,S_LMAT15>)); // python case
-  expose((frovedis_nb<DT2,S_MAT24,S_LMAT24>)); // python case
-  expose((frovedis_nb<DT2,S_MAT25,S_LMAT25>)); // python case
+  expose((frovedis_nb<DT1,R_MAT1>));           // both spark and python case
+  expose((frovedis_nb<DT2,R_MAT2>));           // python case
+  expose((frovedis_nb<DT1,S_MAT1>));           // spark case
+  expose((frovedis_nb<DT1,S_MAT14>));          // python case
+  expose((frovedis_nb<DT1,S_MAT15>));          // python case
+  expose((frovedis_nb<DT2,S_MAT24>));          // python case
+  expose((frovedis_nb<DT2,S_MAT25>));          // python case
   // (5) linear regression
   expose((frovedis_lnr_lbfgs<DT1,D_MAT1>));    // both spark and python case
   expose((frovedis_lnr_lbfgs<DT2,D_MAT2>));    // python case
