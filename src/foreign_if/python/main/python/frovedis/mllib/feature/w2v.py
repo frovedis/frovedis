@@ -71,6 +71,13 @@ class Word2Vec:
             raise TypeError("You can't pass a generator as the sentences "+\
                             "argument. Try a sequence.")
 
+    def build_vocab(self, corpusIterable=None, corpusFile=None, \
+                    outDirPath=None, update=False):
+        """ function to build vocabulary from input data file
+            and dump into provided output files """
+        return self.build_vocab_and_dump(corpusIterable, corpusFile, \
+                                         outDirPath, update)
+
     def build_vocab_and_dump(self, corpusIterable=None, corpusFile=None, \
                              outDirPath=None, update=False):
         """ function to build vocabulary from input data file
@@ -118,6 +125,10 @@ class Word2Vec:
         gensim_w2v = KeyedVectors(self.hiddenSize)
         gensim_w2v.add(vocabList, weights)
         return gensim_w2v
+
+    def train(self, corpusIterable=None, corpusFile=None):
+        """ function to train the w2v model on input vocab """
+        return self.fit(corpusIterable, corpusFile)
 
     def fit(self, corpusIterable=None, corpusFile=None):
         """ function to train the w2v model on input vocab """
