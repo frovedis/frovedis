@@ -4,6 +4,7 @@
 #include <sys/time.h>
 #include <sys/stat.h>
 #include <mpi.h>
+#include <dirent.h>
 
 namespace frovedis {
 
@@ -41,5 +42,19 @@ bool directory_exists(const std::string& path) {
   struct stat sb;
   return (stat(path.c_str(), &sb) == 0) && S_ISDIR(sb.st_mode);
 }
+
+int count_non_hidden_files(const std::string& dir) {
+  if(!directory_exists(dir))
+    throw std::runtime_error("count_non_hidden_files: directory does not exist!\n");
+  int count = 0;
+  auto dp = opendir(dir.c_str());
+  struct dirent *cur;
+  if (dp != NULL) {
+    while (cur = readdir(dp)) if (cur->d_name[0] != '.') ++count;
+  }
+  closedir(dp);
+  return count;
+}
+
 
 }
