@@ -168,7 +168,7 @@ dvector<T> dftable_base::as_dvector(const std::string name) {
 class dftable : public dftable_base {
 public:
   virtual ~dftable(){}
-  dftable(){}
+  dftable() { row_size = 0; }
   dftable(dftable_base& b) : dftable_base(b) {}
   dftable(dftable_base&& b) : dftable_base(std::move(b)) {}
   dftable& drop(const std::string& name);
