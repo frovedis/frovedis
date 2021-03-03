@@ -293,7 +293,7 @@ dftable make_dftable_loadtext_helper(const string& filename,
   auto num_cols = types.size();
   if(names.size() != num_cols)
     throw runtime_error("invalid number of colums, types, or names");
-  std::vector<std::string> cnames = names;
+  auto& cnames = const_cast<vector<string>&> (names);
   if (mangle_dupe_cols) cnames = mangle_duplicate_column_names(names); 
   dftable ret;
   auto sorted_colid = vector_sort(usecols);
@@ -381,7 +381,7 @@ dftable make_dftable_loadtext_helper2(const string& filename,
   auto num_cols = types.size();
   if(names.size() != num_cols)
     throw runtime_error("invalid number of colums, types, or names");
-  std::vector<std::string> cnames = names;
+  auto& cnames = const_cast<vector<string>&> (names);
   if (mangle_dupe_cols) cnames = mangle_duplicate_column_names(names); 
   dftable ret;
   auto sorted_colid = vector_sort(usecols);
@@ -541,7 +541,7 @@ dftable make_dftable_loadtext_helper3(const string& filename,
                               is_crlf, false, separator);
   t.show("make_dftable_loadtext::load_csv: ");
   auto num_cols = names.size();
-  std::vector<std::string> cnames = names;
+  auto& cnames = const_cast<vector<string>&> (names);
   if (mangle_dupe_cols) cnames = mangle_duplicate_column_names(names); 
   dftable ret;
   auto brows_to_see = broadcast(rows_to_see);
@@ -586,7 +586,7 @@ dftable make_dftable_loadtext_helper3_partial(const string& filename,
                               is_crlf, false, separator);
   t.show("make_dftable_loadtext::load_csv: ");
   auto num_cols = names.size();
-  std::vector<std::string> cnames = names;
+  auto& cnames = const_cast<vector<string>&> (names);
   if (mangle_dupe_cols) cnames = mangle_duplicate_column_names(names); 
   dftable ret;
   auto brows_to_see = broadcast(rows_to_see);
@@ -748,7 +748,7 @@ dftable make_dftable_loadtext_helper4(const string& filename,
   t.show("make_dftable_loadtext::load_csv: ");
   names = ws.map(get_names, line_starts_byword).get(0);
   auto num_cols = names.size();
-  std::vector<std::string> cnames = names;
+  auto& cnames = const_cast<vector<string>&> (names);
   if (mangle_dupe_cols) cnames = mangle_duplicate_column_names(names); 
   dftable ret;
   auto brows_to_see = broadcast(rows_to_see);
@@ -793,7 +793,7 @@ dftable make_dftable_loadtext_helper4_partial(const string& filename,
   t.show("make_dftable_loadtext::load_csv: ");
   names = ws.map(get_names, line_starts_byword).get(0);
   auto num_cols = names.size();
-  std::vector<std::string> cnames = names;
+  auto& cnames = const_cast<vector<string>&> (names);
   if (mangle_dupe_cols) cnames = mangle_duplicate_column_names(names); 
   dftable ret;
   auto brows_to_see = broadcast(rows_to_see);
