@@ -9,8 +9,8 @@ namespace frovedis {
     // cid_ in c2 => cid_prev in c1
     auto c1 = cur_info.columns(); // cid_prev, item_N+1, cid
     auto c2 = old_info.columns(); // item, item1, ..., itemN, cid_
-    //std::cout << "cur: "; debug_print_vector(c1);
-    //std::cout << "old: "; debug_print_vector(c2);
+    //show("cur: ", c1);
+    //show("old: ", c2);
     auto c1sz = c1.size();
     auto c2sz = c2.size();
     auto retsz = (c1sz - 1) + (c2sz - 1); // removing cid_ from both old and cid_prev from cur
@@ -25,8 +25,8 @@ namespace frovedis {
   get_item_columns(dftable& item, dftable& tinfo) {
     auto c1 = item.columns();  // cid, item_N+1, count
     auto c2 = tinfo.columns(); // item, item1, ..., itemN, cid_
-    //std::cout << "item: "; debug_print_vector(c1);
-    //std::cout << "info: "; debug_print_vector(c2);
+    //show("item: ", c1);
+    //show("info: ", c2);
     auto c1sz = c1.size();
     auto c2sz = c2.size();
     auto retsz = (c1sz - 1) + (c2sz - 1); // removing cid_ from tinfo and cid from item
@@ -41,7 +41,10 @@ namespace frovedis {
                           dftable& tree_info, 
                           dftable& old_info) {
     if(tree_info.num_row()) {
-      if (!old_info.num_row()) old_info = tree_info.rename("cid", "cid_");
+      if (!old_info.num_row()) {
+        old_info = tree_info;
+        old_info.rename("cid", "cid_");
+      }
       else {
         auto merged_info = tree_info.bcast_join(old_info, eq("cid_prev", "cid_"))
                                     .select(get_info_columns(tree_info, old_info));
@@ -71,10 +74,11 @@ namespace frovedis {
 
   std::vector<dftable> 
   fp_growth_model::get_frequent_itemset() {
-    std::vector<dftable> ret; 
+    auto depth = get_depth();
+    std::vector<dftable> ret(depth); 
     dftable old_info;
-    for (size_t i = 0; i < item.size(); ++i) {
-      ret.push_back(decompress_impl(item[i], tree_info[i], old_info));
+    for (size_t i = 0; i < depth; ++i) {
+      ret[i] = decompress_impl(item[i], tree_info[i], old_info);
     }
     return ret;
   }
@@ -133,12 +137,14 @@ namespace frovedis {
         names.push_back(tmp);
         std::getline(schema_str, tmp); types.push_back(tmp);
       }
-      //std::cout << "names: "; debug_print_vector(names);
-      //std::cout << "types: "; debug_print_vector(types);
+#ifdef FP_DEBUG
+      show("names: ", names);
+      show("types: ", types);
+#endif
       tree_item[i] = make_dftable_loadtext(tree_data, types, names, ' ');
       tree_info[i] = dftable(); // empty info (since decompressed tree is saved)
     }
-    *this = fp_growth_model(tree_item, tree_info);
+    *this = fp_growth_model(std::move(tree_item), std::move(tree_info));
   }
   void fp_growth_model::loadbinary (const std::string& dir) {
     load(dir); // for wrapper

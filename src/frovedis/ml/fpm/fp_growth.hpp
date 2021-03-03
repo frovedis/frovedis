@@ -6,7 +6,7 @@
 namespace frovedis {
   fp_growth_model
   grow_fp_tree(dftable& df, double min_support, 
-               bool to_compression_out = false,
+               int compression_point = 4,
                int mem_opt_level = 0);
 
   template <class T>
@@ -17,4 +17,5 @@ namespace frovedis {
   std::vector<std::pair<std::vector<T>,std::pair<T, double>>>
   frovedis_to_spark_ass_rule(std::vector<dftable>& freq);
 } 
+
 #endif

@@ -1,4 +1,3 @@
-#include <sys/sysinfo.h>
 #include "fp_growth.hpp"
 
 namespace frovedis {
@@ -20,13 +19,16 @@ dftable copy_and_rename_df(dftable& df, int iter) {
   return copy_df;
 }
 
-dftable fp_growth_self_join(dftable& df, int iter, bool to_compress_out) {
+dftable fp_growth_self_join(dftable& df, int iter, 
+                            int compression_point) {
   auto copy_df = copy_and_rename_df(df, iter);
   auto cols_left  = df.columns();
   auto cols_right = copy_df.columns();
   auto ncol = cols_left.size();
   std::vector<std::string> opt_left, opt_right;
-  if ((iter < 3) || (!to_compress_out)) {
+  if (iter <= compression_point) { 
+    // <= because till compression_point, there will be all columns 
+    // in input df for fp_growth_self_join(...)
     opt_left.resize(iter);
     opt_right.resize(iter);
     for (size_t i = 0 ; i < iter; i++) {
@@ -35,11 +37,11 @@ dftable fp_growth_self_join(dftable& df, int iter, bool to_compress_out) {
     }
   }
   else {
-    opt_left = {cols_left[0], cols_left[1]}; 
-    opt_right = {cols_right[0], cols_right[1]}; 
+    opt_left = {cols_left[0], cols_left[1]};    // trans_id, cid
+    opt_right = {cols_right[0], cols_right[1]}; // trans_id_, cid_
   }
   auto filtered_df = df.bcast_join(copy_df, multi_eq(opt_left, opt_right))
-                       .filter(gt(cols_left[ncol-1], cols_right[ncol-1])); //.materialize();
+                       .filter(gt(cols_left[ncol-1], cols_right[ncol-1]));
   free_df(copy_df);
   std::vector<std::string> select_targets(ncol + 1);
   for(size_t i = 0; i < ncol - 1; ++i) select_targets[i] = cols_left[i];
@@ -57,36 +59,53 @@ get_target_cols(std::vector<std::string>& cols) {
   return target_cols;
 }
 
-void compress_dftable(dftable& input, int niter, 
-                      dftable& compressed_info) {
-  if (niter < 2) return;
-  auto cols = input.columns();
-  if (niter > 2) { //already a compressed table with 'cid' column
-    input.rename(cols[1], cols[1] + "_prev"); // cid -> cid_prev
-    cols[1] = cols[1] + "_prev";
+std::vector<std::string>
+rename_compression_input(dftable& input, 
+                         const std::vector<std::string>& cols) {
+  auto ncol = cols.size();
+  std::vector<std::string> ret(ncol);
+  for(size_t i = 0; i < ncol; ++i) {
+    ret[i] = cols[i] + "_";
+    input.rename(cols[i], ret[i]); // renamed in-place
   }
-  auto n_cols = cols.size();
-  auto c1 = cols[1]; // item
-  auto c2 = cols[2]; // item1
-  auto c1_ = c1 + "_"; // for renaming
-  auto c2_ = c2 + "_"; // for renaming
-  auto tid = cols[0]; // tid
-  auto item = cols[n_cols - 2]; //item2
-  auto rank = cols[n_cols - 1]; //rank
-  compressed_info = input.group_by({c1, c2}).select({c1, c2}).append_rowid("cid");
-  input.rename(c1, c1_).rename(c2, c2_);
-  input = input.bcast_join(compressed_info, multi_eq({c1_, c2_}, {c1, c2}))
+  return ret;
+}
+
+void compress_dftable(dftable& input, int niter, 
+                      int compression_point,
+                      dftable& compressed_info) {
+  if (niter < compression_point) return; // no compression - quick return
+  auto cols = input.columns();
+  auto ncol = cols.size();
+  std::vector<std::string> targets;
+  if (niter == compression_point) {
+    targets.resize(compression_point);
+    for(int i = 0; i < compression_point; ++i) targets[i] = cols[i + 1];
+  }
+  else { // already a compressed table having "cid" column
+    input.rename(cols[1], cols[1] + "_prev"); // cid -> cid_prev
+    targets.resize(2);
+    targets[0] = cols[1] + "_prev";
+    targets[1] = cols[2];
+  }
+  compressed_info = input.group_by(targets)
+                         .select(targets).append_rowid("cid");
+  auto tid = cols[0];         // trans_id
+  auto item = cols[ncol - 2]; // itemK
+  auto rank = cols[ncol - 1]; // rank
+  auto renamed_cols = rename_compression_input(input, targets);
+  input = input.bcast_join(compressed_info, multi_eq(renamed_cols, targets))
                .select({tid, "cid", item, rank});
 }
 
 fp_growth_model 
 generate_tables(dftable& item_count, 
                 dftable& df, size_t support,
-                bool to_compress_out,
+                int compression_point = 4,
                 int mem_opt_level = 0) {
   /*
    * This function attempts to generate all possible frequent itemsets
-   * by performing self join on input 'df' till the resultant join table 
+   * by performing self-join on input 'df' till the resultant joined table 
    * becomes empty. The table structure can be visualized as follows:
    *
    * iter 0: tid item rank 
@@ -96,14 +115,16 @@ generate_tables(dftable& item_count,
    * iter 4: tid item item1 item2 item3 item4 rank
    * :
    *
-   * if to_compress_out = true, then the above tables will be compressed 
-   * from iteration 2 as follows:
+   * the above trees will be compressed from ith iteration point,
+   * where "i" equals to user given compression_point (by default = 4). 
+   * For example, if compression_point = 2, then the above trees 
+   * will be compressed from iteration 2 as follows:
    *
    * iter 0: tid item rank       (tree_info: empty)
    * iter 1: tid item item1 rank (tree_info: empty)
    * iter 2: tid cid item2 rank  (tree_info: cid -> item item1)
-   * iter 3: tid cid item3 rank  (tree_info: cid -> item item1 item2)
-   * iter 4: tid cid item4 rank  (tree_info: cid -> item item1 item2 item3)
+   * iter 3: tid cid item3 rank  (tree_info: cid -> cid_prev item2 -> item item1 item2)
+   * iter 4: tid cid item4 rank  (tree_info: cid -> cid_prev item3 -> item item1 item2 item3)
    * :
    *
    */
@@ -112,16 +133,18 @@ generate_tables(dftable& item_count,
   std::vector<dftable> tree, tree_info;
   tree.push_back(std::move(item_count));
   tree_info.push_back(std::move(compressed_info));
+
   time_spent gen_t(DEBUG);
   while (true) {
     niter++;
-    df = fp_growth_self_join(df, niter, to_compress_out);
-    if (to_compress_out) compress_dftable(df, niter, compressed_info);
+    df = fp_growth_self_join(df, niter, compression_point);
+
+    // df would be compressed in-place if niter >= compression_point
+    compress_dftable(df, niter, compression_point, compressed_info);
     
     auto cols = df.columns();
     std::vector<std::string> tcols = get_target_cols(cols);
     auto combination = df.group_by(tcols)
-                         //.select(tcols, {count_as(tcols[0], "count")})
                          .select(tcols, {count_as(tcols[tcols.size() - 1], "count")})
                          .filter(ge_im("count", support)).materialize();
     if(combination.num_row()) {
@@ -133,8 +156,9 @@ generate_tables(dftable& item_count,
           df.rename(tcols[i], opt_right[i]);
         }
         df = df.bcast_join(combination, multi_eq(opt_right, tcols)).select(cols);
-        if ((niter > 1) && (to_compress_out)) {
-          auto rem = combination.group_by({"cid"}).select({"cid"}).rename("cid", "cid_rem");
+        if (niter >= compression_point) {
+          auto rem = combination.group_by({"cid"}).select({"cid"})
+                                .rename("cid", "cid_rem");
           auto info_cols = compressed_info.columns();
           compressed_info = compressed_info.bcast_join(rem, eq("cid", "cid_rem"))
                                            .select(info_cols);
@@ -146,13 +170,13 @@ generate_tables(dftable& item_count,
     } 
     else  break;
   }
-  return fp_growth_model(tree, tree_info);
+  return fp_growth_model(std::move(tree), std::move(tree_info));
 }
 
 fp_growth_model 
 grow_fp_tree(dftable& t, 
              double min_support,
-             bool to_compress_out,
+             int compression_point,
              int mem_opt_level) { 
   auto col_list = t.columns();
 
@@ -169,6 +193,12 @@ grow_fp_tree(dftable& t,
 
   require (min_support > 0.0 && min_support <= 1.0,  
            "support value must be within the range of range 0 to 1.");
+
+  require(compression_point >= 2, 
+  "minimum allowed value for compression_point is 2.\n");
+
+  require(mem_opt_level == 0 || mem_opt_level == 1,
+  "supported mem_opt_level is either 0 or 1.\n");
 
   // ensuring that each transaction has unique item (no repetition)
   auto is_unique = t.group_by({"trans_id", "item"})
@@ -202,20 +232,15 @@ grow_fp_tree(dftable& t,
   fp_growth_model m;
   try {
     m = generate_tables(item_count, ordered_itemset, 
-                        support, to_compress_out, mem_opt_level);
+                        support, compression_point, mem_opt_level);
   }
   catch(std::exception& excpt) {
     std::string msg = excpt.what();
     if(msg.find("bad_alloc") != std::string::npos ) {
       std::string e = "out-of-memory error occured during fp-tree construction!\n";
-      if (to_compress_out) {
-        if (min_support < 1.0) e += "retry with higher min support value.\n";
-        REPORT_ERROR(INTERNAL_ERROR, e);
-      }
-      else {
-        e += "retry by setting to_compression_out = 'true'.\n";
-        REPORT_ERROR(INTERNAL_ERROR, e);
-      }
+      if (mem_opt_level == 0) e += "retry by setting mem_opt_level = 1.\n";
+      if (min_support < 1.0) e += "retry with higher min support value.\n";
+      REPORT_ERROR(INTERNAL_ERROR, e);
     }
     else REPORT_ERROR(INTERNAL_ERROR, msg);
   }

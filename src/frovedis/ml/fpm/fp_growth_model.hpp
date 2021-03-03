@@ -20,13 +20,18 @@ namespace frovedis {
   
   struct fp_growth_model {
     fp_growth_model() {}
-    fp_growth_model(std::vector<dftable>& fp_tree,
-                    std::vector<dftable>& tree_info): 
-                    item(fp_tree), tree_info(tree_info)  {}
+    fp_growth_model(const std::vector<dftable>& fp_tree,
+                    const std::vector<dftable>& t_info): 
+      item(fp_tree), tree_info(t_info)  {}
+    fp_growth_model(std::vector<dftable>&& fp_tree,
+                    std::vector<dftable>&& t_info) {
+      item.swap(fp_tree); 
+      tree_info.swap(t_info);
+    }
+    void clear();
     void debug_print();
     size_t get_count();
     size_t get_depth();
-    void clear();
     std::vector<dftable> get_frequent_itemset();
     association_rule generate_rules(double confidence);
     void load (const std::string& dir);
