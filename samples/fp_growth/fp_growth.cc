@@ -17,6 +17,7 @@ int main(int argc, char* argv[]){
         ("output,o" , value<std::string>(), "output path for saving model.") 
         ("min-support,s", value<double>(), "minimal support level of the frequent pattern. [default: 0.2]") 
         ("conf,c", value<double>(), "confidence value for rule mining [default: 0.5]")
+        ("item-dtype", value<std::string>(), "how to load item column from input data (as int, long, string etc.) [default: int]") 
         ("compression-point", value<int>(), "ith point from which trees will be compressed (>=2) [default: 4]") 
         ("mem-opt-level", value<int>(), "memory opt level to use (either 0 or 1) [default: 0]") 
         ("verbose", "set loglevel to DEBUG")
@@ -27,7 +28,7 @@ int main(int argc, char* argv[]){
           run(), argmap);
     notify(argmap);                
                 
-    std::string data_p, out_p;
+    std::string data_p, out_p, item_dtype = "int";
     double min_support = 0.2, conf = 0.5;
     int compression_point = 4;
     int mem_opt_level = 0;
@@ -62,6 +63,10 @@ int main(int argc, char* argv[]){
        conf = argmap["conf"].as<double>();
     }
 
+    if(argmap.count("item-dtype")){
+      item_dtype = argmap["item-dtype"].as<std::string>();
+    }    
+
     if(argmap.count("compression-point")){
        compression_point = argmap["compression-point"].as<int>();
     }
@@ -80,7 +85,7 @@ int main(int argc, char* argv[]){
     
     try {
       auto t = make_dftable_loadtext(data_p, 
-                                 {"int", "int"}, 
+                                 {"int", item_dtype}, 
                                  {"trans_id", "item"});
       time_spent grow(INFO), tree(INFO);
       grow.lap_start();
