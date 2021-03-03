@@ -15,9 +15,9 @@ int main(int argc, char* argv[]){
         ("help,h", "produce help message")
         ("input,i" , value<std::string>(), "input data path containing transaction dataframe.") 
         ("output,o" , value<std::string>(), "output path for saving model.") 
-        ("min-support,s", value<double>(), "minimum support value [default: 0.2]") //TODO: rephrase the user message
+        ("min-support,s", value<double>(), "minimal support level of the frequent pattern. [default: 0.2]") 
         ("conf,c", value<double>(), "confidence value for rule mining [default: 0.5]")
-        ("to-compress", value<bool>(), "whether to compress fp trees [default: false]") 
+        ("compression-point", value<int>(), "ith point from which trees will be compressed (>=2) [default: 4]") 
         ("mem-opt-level", value<int>(), "memory opt level to use (either 0 or 1) [default: 0]") 
         ("verbose", "set loglevel to DEBUG")
         ("verbose2", "set loglevel to TRACE");
@@ -28,8 +28,8 @@ int main(int argc, char* argv[]){
     notify(argmap);                
                 
     std::string data_p, out_p;
-    double min_sup = 0.2, conf = 0.5;
-    bool to_compression_out = 0;
+    double min_support = 0.2, conf = 0.5;
+    int compression_point = 4;
     int mem_opt_level = 0;
     
     if(argmap.count("help")){
@@ -55,15 +55,15 @@ int main(int argc, char* argv[]){
     }
 
     if(argmap.count("min-support")){
-       min_sup = argmap["min-support"].as<double>();
+       min_support = argmap["min-support"].as<double>();
     }
 
     if(argmap.count("conf")){
        conf = argmap["conf"].as<double>();
     }
 
-    if(argmap.count("to-compress")){
-       to_compression_out = argmap["to-compress"].as<bool>();
+    if(argmap.count("compression-point")){
+       compression_point = argmap["compression-point"].as<int>();
     }
 
     if(argmap.count("mem-opt-level")){
@@ -84,7 +84,7 @@ int main(int argc, char* argv[]){
                                  {"trans_id", "item"});
       time_spent grow(INFO), tree(INFO);
       grow.lap_start();
-      auto model = grow_fp_tree(t, min_sup, to_compression_out, mem_opt_level);
+      auto model = grow_fp_tree(t, min_support, compression_point, mem_opt_level);
       grow.lap_stop();
       grow.show_lap("grow_fp_tree: ");
 
