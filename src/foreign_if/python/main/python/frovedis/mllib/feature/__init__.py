@@ -1,3 +1,3 @@
-from .w2v import Word2Vector
+from .w2v import Word2Vec
 
-__all__ = ["Word2Vector"]
+__all__ = ["Word2Vec"]
