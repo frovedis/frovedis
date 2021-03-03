@@ -2,30 +2,8 @@
 
 namespace frovedis {
 
-  void association_rule::debug_print() {
-    for(auto& r: rule) r.show();
-  }
-  
-  void association_rule::save (const std::string& fname) {
-    std::cout << "save request for fp-growth model with fname: " << fname << std::endl;
-  }
-  
-  void association_rule::savebinary (const std::string& fname) {
-    std::cout << "savebinary request for fp-growth model with fname: " << fname << std::endl;
-  }
-  
-  void association_rule::load (const std::string& fname) {
-    std::cout << "load request for fp-growth model with fname: " << fname << std::endl;
-  }
-  
-  void association_rule::loadbinary (const std::string& fname) {
-    std::cout << "loadbinary request for fp-growth model with fname: " << fname << std::endl;
-  }
-  
-  association_rule fp_growth_model::generate_rules(double con){
-    return generate_association_rules(item,con);
-  }
-  
+  void free_df(dftable_base& df) { dftable tmp; df = tmp; }
+
   std::vector<std::string> 
   get_info_columns(dftable& cur_info, dftable& old_info) {
     // cid_ in c2 => cid_prev in c1
@@ -75,7 +53,15 @@ namespace frovedis {
     else return item;
   }
 
-  size_t fp_growth_model::get_depth () { return item.size() + 1; }
+  void fp_growth_model::clear () { 
+    for(size_t i = 0; i < item.size(); ++i) {
+      free_df(item[i]); free_df(tree_info[i]);
+    }
+    item.clear();
+    tree_info.clear();
+  }
+
+  size_t fp_growth_model::get_depth () { return item.size(); }
 
   size_t fp_growth_model::get_count() { 
     size_t count = 0;
@@ -113,20 +99,49 @@ namespace frovedis {
     std::string sep = " ";
     dftable old_info;
     for (size_t i = 0; i < item.size(); ++i) {
-      auto fname = dir + "/tree_" + std::to_string(i);
+      auto part_dname = dir + "/tree_" + std::to_string(i);
+      make_directory(part_dname);
+      auto tree_data = part_dname + "/data";
+      auto tree_schema = part_dname + "/schema";
       auto fis = decompress_impl(item[i], tree_info[i], old_info);
-      fis.savetext(fname, precision, datetime_fmt, sep);
+      auto dt = fis.savetext(tree_data, precision, datetime_fmt, sep);
+
+      std::ofstream schema_str;
+      schema_str.exceptions(std::ofstream::failbit | std::ofstream::badbit);
+      schema_str.open(tree_schema.c_str());
+      for(auto& e: dt) schema_str << e.first << "\n" << e.second << "\n";
     }
   }
 
-  void fp_growth_model::savebinary (const std::string& fname) {
-    std::cout << "savebinary request for fp-growth model with fname: " << fname << std::endl;
+  void fp_growth_model::savebinary (const std::string& dir) {
+    save(dir); // for wrapper
   }
-  void fp_growth_model::load (const std::string& fname) {
-    std::cout << "load request for fp-growth model with fname: " << fname << std::endl;
+
+  void fp_growth_model::load (const std::string& dir) {
+    require(directory_exists(dir), "load: directory does not exist!\n");
+    auto depth = count_non_hidden_files(dir);
+    RLOG(INFO) << "load: tree-depth found: " << depth << std::endl;
+    clear();
+    std::string tmp;
+    std::vector<dftable> tree_item(depth), tree_info(depth);
+    for(size_t i = 0; i < depth; ++i) {
+      auto tree_data = dir + "/tree_" + std::to_string(i) + "/data";
+      auto tree_schema = dir + "/tree_" + std::to_string(i) + "/schema";
+      std::ifstream schema_str(tree_schema.c_str()); 
+      std::vector<std::string> types, names;
+      while(std::getline(schema_str, tmp)) {
+        names.push_back(tmp);
+        std::getline(schema_str, tmp); types.push_back(tmp);
+      }
+      //std::cout << "names: "; debug_print_vector(names);
+      //std::cout << "types: "; debug_print_vector(types);
+      tree_item[i] = make_dftable_loadtext(tree_data, types, names, ' ');
+      tree_info[i] = dftable(); // empty info (since decompressed tree is saved)
+    }
+    *this = fp_growth_model(tree_item, tree_info);
   }
-  void fp_growth_model::loadbinary (const std::string& fname) {
-    std::cout << "loadbinary request for fp-growth model with fname: " << fname << std::endl;
+  void fp_growth_model::loadbinary (const std::string& dir) {
+    load(dir); // for wrapper
   }
   
   //pass-by-value to avoid changes in input dftable
@@ -145,8 +160,9 @@ namespace frovedis {
       }
       cols_list.push_back("consequent");
       cols_list.push_back("union_count");
-      std::cout << " --- ANT::Cols list:" << std::endl;
-      for (auto col: cols_list) std::cout << col << std::endl;
+#ifdef FP_DEBUG
+      show("ANT::Cols list: ", cols_list);
+#endif
       return df.select(cols_list);
   }
   
@@ -159,11 +175,7 @@ namespace frovedis {
 
   dftable calculate_confidence(dftable& pre, dftable& post, double con){
     auto pre_col = pre.columns();
-    std::cout << "Pre col:" << std::endl;
-    for (auto col: pre_col) std::cout << col << std::endl;
     auto post_col = post.columns();
-    std::cout << "Post col:" << std::endl;
-    for (auto col: post_col) std::cout << col << std::endl;
     auto col_list1 = post_col;
     //will contain all antacedants, consequent, union_count and count
     col_list1.push_back("count"); 
@@ -172,23 +184,21 @@ namespace frovedis {
     // will conatin all antacedants, consequent and confidence
     col_list2.push_back("confidence"); 
     auto iter = pre.num_col()-1;
-    std::cout << "Col list1:" << std::endl;
-    for (auto col: col_list1) std::cout << col << std::endl;
-    std::cout << "Col list2:" << std::endl;
-    for (auto col: col_list2) std::cout << col << std::endl;
     std::vector<std::string> opt_left(iter), opt_right(iter);
     for (size_t i = 0; i < iter; ++i){
       opt_left[i] = pre_col[i];
       opt_right[i] = post_col[i];
     }
-    std::cout << "Opt left:" << std::endl;
-    for (auto col: opt_left) std::cout << col << std::endl;
-    std::cout << "Opt right:" << std::endl;
-    for (auto col: opt_right) std::cout << col << std::endl;
-    std::cout << " ------ Pre ---" << std::endl;
-    pre.show();
-    std::cout << " ------ Post ---" << std::endl;
-    post.show();
+#ifdef FP_DEBUG
+    show("pre-col: ", pre_col);
+    show("post-col: ", post_col);
+    show("col-list1: ", col_list1);
+    show("col-list2: ", col_list2);
+    show("opt-left: ", opt_left);
+    show("opt-right: ", opt_right);
+    std::cout << " ------ Pre ---" << std::endl;   pre.show();
+    std::cout << " ------ Post ---" << std::endl;  post.show();
+#endif
     auto result = pre.bcast_join(post,multi_eq(opt_left, opt_right));
     return result.select(col_list1)
                  .calc<double,size_t,size_t>(std::string("confidence"),diff(),
@@ -213,12 +223,37 @@ namespace frovedis {
        for(size_t j = 0; j < n - 1; j++) {
          auto res =  create_antacedent(freq_itemsets[i], j);
          auto res_con = calculate_confidence(freq_itemsets[i-1],res,con);
-         std::cout << "--- res_con: " << std::endl;
-         res_con.show();
+#ifdef FP_DEBUG
+         std::cout << "--- res_con: " << std::endl; res_con.show();
+#endif
          if(res_con.num_row()) ass_rule.push_back(res_con);
        }
     }
     return association_rule(ass_rule);
   }
 
+  void association_rule::debug_print() {
+    for(auto& r: rule) r.show();
+  }
+  
+  void association_rule::save (const std::string& fname) {
+    std::cout << "save request for fp-growth model with fname: " << fname << std::endl;
+  }
+  
+  void association_rule::savebinary (const std::string& fname) {
+    std::cout << "savebinary request for fp-growth model with fname: " << fname << std::endl;
+  }
+  
+  void association_rule::load (const std::string& fname) {
+    std::cout << "load request for fp-growth model with fname: " << fname << std::endl;
+  }
+  
+  void association_rule::loadbinary (const std::string& fname) {
+    std::cout << "loadbinary request for fp-growth model with fname: " << fname << std::endl;
+  }
+  
+  association_rule fp_growth_model::generate_rules(double con){
+    return generate_association_rules(item,con);
+  }
+  
 }
