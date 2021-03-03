@@ -5,8 +5,8 @@
 
 namespace frovedis {
   fp_growth_model
-  grow_fp_tree(dftable& df, double min_support);
-  //grow_fp_tree(dftable& df, double min_support, double conf);
+  grow_fp_tree(dftable& df, double min_support, 
+               bool to_compression_out = true);
 
   template <class T>
   std::vector<std::pair<std::vector<T>, long>>

@@ -1,7 +1,7 @@
 #ifndef _FP_GROWTH_MODEL_
 #define _FP_GROWTH_MODEL_
 
-#define FP_DEBUG
+//#define FP_DEBUG
 
 #include <frovedis/dataframe.hpp>
 
@@ -20,16 +20,21 @@ namespace frovedis {
   
   struct fp_growth_model {
     fp_growth_model() {}
-    fp_growth_model(std::vector<dftable>& it ): item(it)  {}
+    fp_growth_model(std::vector<dftable>& fp_tree,
+                    std::vector<dftable>& tree_info): 
+                    item(fp_tree), tree_info(tree_info)  {}
     void debug_print();
+    size_t get_count();
+    size_t get_depth();
     std::vector<dftable> get_frequent_itemset();
     association_rule generate_rules(double confidence);
     void load (const std::string& fname);
     void loadbinary (const std::string& fname);
     void save (const std::string& fname);
     void savebinary (const std::string& fname);
-    std::vector<dftable> item;
-    SERIALIZE(item)
+
+    std::vector<dftable> item, tree_info;
+    SERIALIZE(item, tree_info)
   };
   
   dftable create_antacedent(dftable, int);
