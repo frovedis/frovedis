@@ -47,7 +47,13 @@ mat =([[1,2,3,4],
 mat = preprocess_data("./input/groceries.csv")
 #print(mat)
 model = FPGrowth(minSupport = 0.05).fit(mat)
+
+model.save("./out/FPModel") #saving the model
+model.release()
+
+model.load("./out/FPModel") #loading the saved model
 model.debug_print()
+
 
 model.generate_rules(0.05).debug_print()
 model.generate_rules(0.2).debug_print()
@@ -55,4 +61,3 @@ model.generate_rules(0.9).debug_print()
 
 model.release()
 FrovedisServer.shut_down()
-
