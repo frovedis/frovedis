@@ -3,8 +3,6 @@
 
 namespace frovedis {
 
-void free_df(dftable_base& df) { dftable tmp; df = tmp; }
-
 dftable copy_and_rename_df(dftable& df, int iter) {
   auto copy_df = df;
   auto cols = df.columns();
@@ -84,7 +82,8 @@ void compress_dftable(dftable& input, int niter,
 fp_growth_model 
 generate_tables(dftable& item_count, 
                 dftable& df, size_t support,
-                bool to_compress_out) {
+                bool to_compress_out,
+                int mem_opt_level = 0) {
   /*
    * This function attempts to generate all possible frequent itemsets
    * by performing self join on input 'df' till the resultant join table 
@@ -113,6 +112,7 @@ generate_tables(dftable& item_count,
   std::vector<dftable> tree, tree_info;
   tree.push_back(std::move(item_count));
   tree_info.push_back(std::move(compressed_info));
+  time_spent gen_t(DEBUG);
   while (true) {
     niter++;
     df = fp_growth_self_join(df, niter, to_compress_out);
@@ -125,21 +125,24 @@ generate_tables(dftable& item_count,
                          .select(tcols, {count_as(tcols[tcols.size() - 1], "count")})
                          .filter(ge_im("count", support)).materialize();
     if(combination.num_row()) {
-      auto sz = tcols.size();
-      std::vector<std::string> opt_right(sz);
-      for (size_t i = 0; i < sz; ++i) {
-        opt_right[i] = tcols[i] + "_new";
-        df.rename(tcols[i], opt_right[i]);
-      }
-      df = df.bcast_join(combination, multi_eq(opt_right, tcols)).select(cols);
-      if ((niter > 1) && (to_compress_out)) {
-        auto rem = combination.group_by({"cid"}).select({"cid"}).rename("cid", "cid_rem");
-        auto info_cols = compressed_info.columns();
-        compressed_info = compressed_info.bcast_join(rem, eq("cid", "cid_rem"))
-                                         .select(info_cols);
+      if (mem_opt_level == 1) { // further optimizing tree only when level is set to 1
+        auto sz = tcols.size();
+        std::vector<std::string> opt_right(sz);
+        for (size_t i = 0; i < sz; ++i) {
+          opt_right[i] = tcols[i] + "_new";
+          df.rename(tcols[i], opt_right[i]);
+        }
+        df = df.bcast_join(combination, multi_eq(opt_right, tcols)).select(cols);
+        if ((niter > 1) && (to_compress_out)) {
+          auto rem = combination.group_by({"cid"}).select({"cid"}).rename("cid", "cid_rem");
+          auto info_cols = compressed_info.columns();
+          compressed_info = compressed_info.bcast_join(rem, eq("cid", "cid_rem"))
+                                           .select(info_cols);
+        }
       }
       tree.push_back(std::move(combination));
       tree_info.push_back(std::move(compressed_info));
+      gen_t.show(std::string("  niter-") + std::to_string(niter) + ": ");
     } 
     else  break;
   }
@@ -149,7 +152,8 @@ generate_tables(dftable& item_count,
 fp_growth_model 
 grow_fp_tree(dftable& t, 
              double min_support,
-             bool to_compress_out) { 
+             bool to_compress_out,
+             int mem_opt_level) { 
   auto col_list = t.columns();
 
   if (col_list.size() == 2) {
@@ -178,23 +182,27 @@ grow_fp_tree(dftable& t,
   auto n_trans = t.group_by({"trans_id"}).num_row();
   size_t support = ceil(n_trans * min_support);
 
+  time_spent fp_t(DEBUG);
   // getting the frequent item names with their frequency rank in order
   auto item_count = t.group_by({"item"})
                      .select({"item"},{count_as("item","count")})
                      .filter(ge_im("count",support))
                      .sort_desc("count")
                      .append_rowid("rank");
+  fp_t.show("item-count: ");
  
   // getting the ordered item set
   auto ordered_itemset = t.bcast_join(item_count.rename("item", "item_join"), 
                                       eq("item","item_join"))
                           .select({"trans_id","item","rank"});
+  item_count.rename("item_join", "item") // renaming back
+            .drop("rank");  // rank is no longer required in item_count
+  fp_t.show("ordered-itemset: ");
 
-
-  item_count.drop("rank");  // rank is no longer required in item_count
   fp_growth_model m;
   try {
-    m = generate_tables(item_count, ordered_itemset, support, to_compress_out);
+    m = generate_tables(item_count, ordered_itemset, 
+                        support, to_compress_out, mem_opt_level);
   }
   catch(std::exception& excpt) {
     std::string msg = excpt.what();
@@ -211,6 +219,7 @@ grow_fp_tree(dftable& t,
     }
     else REPORT_ERROR(INTERNAL_ERROR, msg);
   }
+  fp_t.show("generate-trees: ");
   return m;
 }
 
