@@ -6,6 +6,7 @@
 #include "../core/upper_bound.hpp"
 #include "../core/prefix_sum.hpp"
 #include "find_condition.hpp"
+#include "char_int_conv.hpp"
 #include <stdexcept>
 
 using namespace std;
@@ -1365,6 +1366,247 @@ vector<string> words_to_vector_string(const words& ws) {
     }
   }
   return str;
+}
+
+void search(const std::vector<int>& chars,
+            const std::vector<size_t>& starts,
+            const std::vector<size_t>& lens,
+            const std::string& to_search,
+            std::vector<size_t>& idx,
+            std::vector<size_t>& pos) {
+  auto to_search_size = to_search.size();
+  if(to_search_size == 0) {
+    idx.resize(0);
+    pos.resize(0);
+    return;
+  }
+  auto starts_size = starts.size();
+  auto startsp = starts.data();
+  auto lensp = lens.data();
+  std::vector<size_t> crnt_pos(starts_size), crnt_lens(starts_size);
+  std::vector<size_t> crnt_idx(starts_size);
+  auto crnt_posp = crnt_pos.data();
+  auto crnt_lensp = crnt_lens.data();
+  auto crnt_idxp = crnt_idx.data();
+  for(size_t i = 0; i < starts_size; i++) {
+    crnt_posp[i] = startsp[i];
+    crnt_lensp[i] = lensp[i];
+    crnt_idxp[i] = i;
+  }
+  // size of to_search is guarantted not to be zero
+  int crnt_char = static_cast<int>(to_search[0]);
+  advance_until_char_like(chars, starts, lens, crnt_pos, crnt_lens,
+                          crnt_idx, crnt_char);
+  for(size_t i = 1; i < to_search_size; i++) {
+    crnt_char = static_cast<int>(to_search[i]);
+    advance_char_like(chars, crnt_pos, crnt_lens, crnt_idx, crnt_char);
+  }
+  crnt_posp = crnt_pos.data();
+  auto crnt_posp_size = crnt_pos.size();
+  crnt_idxp = crnt_idx.data();
+  for(size_t i = 0; i < crnt_posp_size; i++) {
+    crnt_posp[i] -= (to_search_size + startsp[crnt_idxp[i]]);
+  }
+  idx.swap(crnt_idx);
+  pos.swap(crnt_pos);
+}
+
+void search(const words& w, const std::string& to_search,
+            std::vector<size_t>& idx, std::vector<size_t>& pos) {
+  search(w.chars, w.starts, w.lens, to_search, idx, pos);
+}
+
+void replace(const std::vector<int>& chars,
+             const std::vector<size_t>& starts,
+             const std::vector<size_t>& lens,
+             std::vector<int>& ret_chars,
+             std::vector<size_t>& ret_starts,
+             std::vector<size_t>& ret_lens,
+             const std::string& from,
+             const std::string& to) {
+  std::vector<size_t> idx, pos;
+  search(chars, starts, lens, from, idx, pos);
+
+  auto sep_idx = set_separate(idx);
+  auto sep_idx_size = sep_idx.size();
+  std::vector<size_t> num_occurrence(sep_idx_size-1);
+  auto num_occurrence_size = num_occurrence.size();
+  auto sep_idxp = sep_idx.data();
+  auto num_occurrencep = num_occurrence.data();
+  for(size_t i = 0; i < num_occurrence_size; i++) {
+    num_occurrencep[i] = sep_idxp[i+1] - sep_idxp[i];
+  }
+  auto starts_size = starts.size();
+  std::vector<size_t> all_num_occurrence(starts_size);
+  auto all_num_occurrencep = all_num_occurrence.data();
+  auto idxp = idx.data();
+#pragma _NEC ivdep
+  for(size_t i = 0; i < num_occurrence_size; i++) {
+    all_num_occurrencep[idxp[sep_idxp[i]]] = num_occurrencep[i];
+  }
+  auto pfx_all_num_occurrence = prefix_sum(all_num_occurrence);
+  auto total_occurrence = pfx_all_num_occurrence[starts_size-1];
+  std::vector<size_t> starts_work(starts_size + total_occurrence * 2);
+  auto starts_work_size = starts_work.size();
+  std::vector<size_t> lens_work(starts_work_size);
+  std::vector<size_t> original_starts_idx(starts_size);
+  auto original_starts_idxp = original_starts_idx.data();
+  auto pfx_all_num_occurrencep = pfx_all_num_occurrence.data();
+  for(size_t i = 1; i < starts_size; i++) {
+    original_starts_idxp[i] = i + pfx_all_num_occurrencep[i-1] * 2;
+  }
+  auto starts_workp = starts_work.data();
+  auto lens_workp = lens_work.data();
+  auto startsp = starts.data();
+  auto lensp = lens.data();
+#pragma _NEC ivdep
+  for(size_t i = 0; i < starts_size; i++) {
+    starts_workp[original_starts_idxp[i]] = startsp[i];
+    lens_workp[original_starts_idxp[i]] = lensp[i];
+  }
+
+  auto chars_size = chars.size();
+  auto to_int = char_to_int(to);
+  auto to_int_size = to_int.size();
+  std::vector<int> chars_work(chars_size + to_int_size);
+  auto chars_workp = chars_work.data();
+  auto charsp = chars.data();
+  for(size_t i = 0; i < chars_size; i++) {
+    chars_workp[i] = charsp[i];
+  }
+  auto to_intp = to_int.data();
+  for(size_t i = 0; i < to_int_size; i++) {
+    chars_workp[chars_size + i] = to_intp[i];
+  }
+  auto to_start = chars_size;
+  auto to_size = to_int_size;
+  auto from_size = from.size();
+
+  std::vector<size_t> search_idx(sep_idx_size - 1);
+  auto search_idx_size = search_idx.size();
+  auto search_idxp = search_idx.data();
+  for(size_t i = 0; i < search_idx_size; i++) {
+    search_idxp[i] = sep_idxp[i];
+  }
+  std::vector<size_t> original_num_occurrence(num_occurrence_size);
+  auto original_num_occurrencep = original_num_occurrence.data();
+  for(size_t i = 0; i < num_occurrence_size; i++) {
+    original_num_occurrencep[i] = num_occurrencep[i];
+  }
+  // separate 1st iteration: num_occurence is always greater than 0
+  auto posp = pos.data();
+#pragma _NEC ivdep  
+  for(size_t i = 0; i < search_idx_size; i++) {
+    auto search_pos = search_idxp[i];
+    auto crnt_word = idxp[search_pos];
+    auto crnt_pos = posp[search_pos];
+    auto work_idx = original_starts_idxp[crnt_word];
+    lens_workp[work_idx] = crnt_pos;
+    starts_workp[work_idx+1] = to_start;
+    lens_workp[work_idx+1] = to_size;
+    starts_workp[work_idx+2] = startsp[crnt_word] + crnt_pos + from_size;
+  }
+  for(size_t i = 0; i < num_occurrence_size; i++) {num_occurrencep[i]--;}
+  auto non_zero = find_condition(num_occurrence, is_not_zero_like());
+  auto zero = find_condition(num_occurrence, is_zero_like());
+  auto zero_size = zero.size();
+  auto zerop = zero.data();
+  for(size_t i = 0; i < zero_size; i++) {
+    auto search_pos = search_idxp[zerop[i]];
+    auto crnt_word = idxp[search_pos];
+    auto crnt_pos = posp[search_pos];
+    auto work_idx = original_starts_idxp[crnt_word];
+    lens_workp[work_idx+2] = lensp[crnt_word] - crnt_pos - from_size;
+  }
+  {
+    auto non_zero_size = non_zero.size();
+    std::vector<size_t> new_num_occurrence(non_zero_size);
+    std::vector<size_t> new_search_idx(non_zero_size);
+    auto new_num_occurrencep = new_num_occurrence.data();
+    auto new_search_idxp = new_search_idx.data();
+    auto non_zerop = non_zero.data();
+#pragma _NEC ivdep
+    for(size_t i = 0; i < non_zero_size; i++) {
+      new_num_occurrencep[i] = num_occurrencep[non_zerop[i]];
+      new_search_idxp[i] = search_idxp[non_zerop[i]] + 1;
+    }
+    num_occurrence.swap(new_num_occurrence);
+    search_idx.swap(new_search_idx);
+  }
+  size_t iter = 1;
+  while(true) {
+    search_idx_size = search_idx.size();
+    search_idxp = search_idx.data();
+    num_occurrence_size = num_occurrence.size();
+    num_occurrencep = num_occurrence.data();
+    if(search_idx_size == 0) break;
+#pragma _NEC ivdep  
+    for(size_t i = 0; i < search_idx_size; i++) {
+      auto search_pos = search_idxp[i];
+      auto crnt_word = idxp[search_pos];
+      auto crnt_pos = posp[search_pos];
+      auto work_idx = original_starts_idxp[crnt_word] + iter * 2;
+      lens_workp[work_idx] = crnt_pos - posp[search_pos-1] - from_size;
+      starts_workp[work_idx+1] = to_start;
+      lens_workp[work_idx+1] = to_size;
+      starts_workp[work_idx+2] = startsp[crnt_word] + crnt_pos + from_size;
+    }
+    for(size_t i = 0; i < num_occurrence_size; i++) {num_occurrencep[i]--;}
+    auto non_zero = find_condition(num_occurrence, is_not_zero_like());
+    auto zero = find_condition(num_occurrence, is_zero_like());
+    auto zero_size = zero.size();
+    auto zerop = zero.data();
+#pragma _NEC ivdep  
+    for(size_t i = 0; i < zero_size; i++) {
+      auto search_pos = search_idxp[zerop[i]];
+      auto crnt_word = idxp[search_pos];
+      auto crnt_pos = posp[search_pos];
+      auto work_idx = original_starts_idxp[crnt_word] + iter * 2;
+      lens_workp[work_idx+2] = lensp[crnt_word] - crnt_pos - from_size;
+    }
+    {
+      auto non_zero_size = non_zero.size();
+      std::vector<size_t> new_num_occurrence(non_zero_size);
+      std::vector<size_t> new_search_idx(non_zero_size);
+      auto new_num_occurrencep = new_num_occurrence.data();
+      auto new_search_idxp = new_search_idx.data();
+      auto non_zerop = non_zero.data();
+#pragma _NEC ivdep
+      for(size_t i = 0; i < non_zero_size; i++) {
+        new_num_occurrencep[i] = num_occurrencep[non_zerop[i]];
+        new_search_idxp[i] = search_idxp[non_zerop[i]] + 1;
+      }
+      num_occurrence.swap(new_num_occurrence);
+      search_idx.swap(new_search_idx);
+    }
+    iter++;
+  }
+  std::vector<size_t> new_starts;
+  ret_chars = concat_words(chars_work, starts_work, lens_work, "", new_starts);
+  ret_starts.resize(starts_size);
+  auto ret_startsp = ret_starts.data();
+  auto new_startsp = new_starts.data();
+#pragma _NEC ivdep  
+  for(size_t i = 0; i < starts_size; i++) {
+    ret_startsp[i] = new_startsp[original_starts_idxp[i]];
+  }
+  ret_lens.resize(starts_size);
+  auto ret_lensp = ret_lens.data();
+  for(size_t i = 0; i < starts_size; i++) {
+    ret_lensp[i] = lensp[i];
+  }
+  // might be negative
+  ssize_t size_diff = (ssize_t)to_size - (ssize_t)from_size; 
+#pragma _NEC ivdep
+  for(size_t i = 0; i < sep_idx_size-1; i++) {
+    ret_lensp[idxp[sep_idxp[i]]] += size_diff * original_num_occurrencep[i];
+  }
+}
+
+words replace(const words& w, const std::string& from, const std::string& to) {
+  words ret;
+  replace(w.chars, w.starts, w.lens, ret.chars, ret.starts, ret.lens, from, to);
+  return ret;
 }
 
 }

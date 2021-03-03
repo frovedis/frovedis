@@ -114,6 +114,27 @@ void substr(std::vector<size_t>& starts,
             std::vector<size_t>& lens,
             size_t pos);
 
+/*
+  idx: index of words that contains the string
+  pos: position inside of the word
+  if there are multiple occurrence in one word, same index is used.
+  e.g. words: {"abracadabra", "abra"}, to_search: "bra"
+  => idx: {0,0,1}, pos: {1,8,1}
+*/
+void search(const std::vector<int>& chars,
+            const std::vector<size_t>& starts,
+            const std::vector<size_t>& lens,
+            const std::string& to_search,
+            std::vector<size_t>& idx, std::vector<size_t>& pos);
+void replace(const std::vector<int>& chars,
+             const std::vector<size_t>& starts,
+             const std::vector<size_t>& lens,
+             std::vector<int>& ret_chars,
+             std::vector<size_t>& ret_starts,
+             std::vector<size_t>& ret_lens,
+             const std::string& from,
+             const std::string& to);
+
 // utility struct
 struct words {
   std::vector<int> chars;
@@ -145,6 +166,15 @@ struct words {
     {frovedis::substr(starts, lens, pos, num);}
   void substr(size_t pos)
     {frovedis::substr(starts, lens, pos);}
+  void replace(const std::string& from, const std::string& to) { // destructive
+    std::vector<int> ret_chars;
+    std::vector<size_t> ret_starts, ret_lens;
+    frovedis::replace(chars, starts, lens, ret_chars, ret_starts, ret_lens,
+                      from, to);
+    chars.swap(ret_chars);
+    starts.swap(ret_starts);
+    lens.swap(ret_lens);
+  }
 
   SERIALIZE(chars, starts, lens)
 };
@@ -184,6 +214,10 @@ void quote_and_escape(words& ws);
 
 words vector_string_to_words(const std::vector<std::string>& str);
 std::vector<std::string> words_to_vector_string(const words& ws);
+
+void search(const words& w, const std::string& to_search,
+            std::vector<size_t>& idx, std::vector<size_t>& pos);
+words replace(const words& w, const std::string& from, const std::string& to);
 
 }
 #endif
