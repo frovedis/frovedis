@@ -1292,16 +1292,12 @@ w2v_build_vocab_and_dump.argtypes = [c_char_p, c_char_p, #text, encode
 
 w2v_train = LIB.w2v_train
 w2v_train.argtypes = [c_char_p, c_int,              #host, port
-                      c_char_p, c_char_p, c_char_p, #encode, weight, count
+                      c_char_p, c_char_p,           #encode, count
                       c_int, c_int, c_float, c_int, #hidden, window, thr, neg
                       c_int, c_float, c_float,      #iter, lr, syncperiod
                       c_int, c_int,                 #syncWords, syncTimes,
                       c_int, c_int]                 #msgSize, nthreads
-
-w2v_save_model = LIB.w2v_save_model
-w2v_save_model.argtypes = [c_char_p, c_char_p,  #weight, vocab
-                           c_char_p, c_int,     #out, minCount
-                           c_bool]              #binary
+w2v_train.restype = py_object
 
 # --- Frovedis PBLAS Wrappers ---
 pswap = LIB.pswap
