@@ -53,10 +53,9 @@ using namespace frovedis;
 // --- defined in expose_ml.cc ---
 RegType get_regularizer(int regType);
 
-void frovedis_w2v_train(std::string& encode,
-                        std::string& weight,
-                        std::string& count,
-                        w2v::train_config& config);
+std::vector<float> frovedis_w2v_train(std::string& encode,
+                                      std::string& count,
+                                      w2v::train_config& config);
 // -------------------------------
 
 // --- Handling of Training input/output ---
@@ -805,7 +804,7 @@ void frovedis_fm(frovedis_mem_pair& mp, std::string& optimizer_name,
   }
 }
 
-template <class T, class MATRIX, class LOC_MATRIX>
+template <class T, class MATRIX>
 void frovedis_nb(frovedis_mem_pair& mp, std::string& model_type,
                  double& lambda, bool& fit_prior,
                  std::vector<T>& class_prior,
