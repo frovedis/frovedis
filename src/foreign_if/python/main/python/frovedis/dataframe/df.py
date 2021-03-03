@@ -308,7 +308,7 @@ class DataFrame(object):
             cname = cols[idx]
             if idx == 0:
                 col_vec = df.index
-                valid_idx = 0  # assuming df.index[0] is not null
+                valid_idx = df.index[0] # assuming df.index[0] is not null
             else:
                 col_vec = df[cname]
                 # first value can be NaN, so can't deduce type
@@ -318,6 +318,7 @@ class DataFrame(object):
                 vtype = 'int32'
                 val = np.full(len(df), np.iinfo(np.int32).max, dtype=np.int32)
             else:
+                valid_idx = df.index.get_loc(valid_idx)
                 vtype = type(col_vec.values[valid_idx]).__name__
                 val = col_vec.fillna(null_replacement[vtype])
             if vtype == 'int32':
