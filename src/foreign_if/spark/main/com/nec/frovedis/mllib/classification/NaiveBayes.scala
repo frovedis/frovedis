@@ -65,19 +65,20 @@ class NaiveBayes private(var lambda: Double,
   }
 
   def run(data: RDD[LabeledPoint]): NaiveBayesModel = {
-    val fdata = new FrovedisLabeledPoint(data)
-    return run(fdata,true)
+    val need_rowmajor = true
+    val fdata = new FrovedisLabeledPoint(data, need_rowmajor)
+    return run(fdata, true)
   }
 
   def run(fdata: FrovedisLabeledPoint): NaiveBayesModel =  {
-     return run(fdata,false)
+     return run(fdata, false)
   }  
 
   def run(fdata: FrovedisLabeledPoint,
           movable: Boolean): NaiveBayesModel =  {
-    if (fdata.is_dense() && fdata.matType() != MAT_KIND.CMJR) { 
+    if (fdata.is_dense() && fdata.matType() != MAT_KIND.RMJR) { 
        throw new IllegalArgumentException(
-        s"run: please provide column major "+
+        s"run: please provide row major "+
         s"points as for dense data to frovedis naive bayes!\n")
     }
     val model_id = ModelID.get()
