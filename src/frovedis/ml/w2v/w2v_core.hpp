@@ -59,6 +59,12 @@ void train_each(
     std::string& _weight_file_str,
     train_config& _config
 );
+
+std::vector<float> train_each_impl(
+    std::string& _train_file_str,
+    std::string& _vocab_count_file_str,
+    train_config& _config
+);
     
 }  // namespace w2v
 

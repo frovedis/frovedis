@@ -1033,4 +1033,55 @@ void train_each(std::string &_train_file_str,
   }
 }
 
+std::vector<float> train_each_impl(std::string &_train_file_str,
+                           std::string &_vocab_count_file_str,
+                           train_config &_config) {
+
+#ifdef W2V_USE_MPI
+  MPI_Comm_size(frovedis::frovedis_comm_rpc, &num_procs);
+  MPI_Comm_rank(frovedis::frovedis_comm_rpc, &my_rank);
+#else
+  num_procs = 1;
+  my_rank = 0;
+#endif
+
+  std::vector<int> _train_data;
+  if (my_rank == 0) {
+    _train_data = read_vector_from_binary_file<int>(_train_file_str);
+    train_words = _train_data.size();
+  }
+
+#ifdef W2V_USE_MPI
+  MPI_Bcast(&train_words, 1, MPI_LONG_LONG, 0, frovedis::frovedis_comm_rpc);
+
+  ulonglong step =
+      train_words / num_procs + (train_words / num_procs > 0 ? 1 : 0);
+  std::vector<int> counts(num_procs);
+  std::vector<int> displs(num_procs);
+  for (size_t i = 0; i < num_procs; i++) {
+    displs[i] = (i * step <= train_words) ? i * step : train_words;
+    counts[i] = ((i + 1) * step <= train_words)
+                    ? step
+                    : std::max(train_words - displs[i], (ulonglong)0);
+  }
+
+  std::vector<int> _proc_train_data(counts[my_rank]);
+
+  MPI_Scatterv(_train_data.data(), counts.data(), displs.data(), MPI_INT,
+               _proc_train_data.data(), counts[my_rank], MPI_INT, 0,
+               frovedis::frovedis_comm_rpc);
+  proc_train_words = counts[my_rank];
+  // release
+  std::vector<int>().swap(_train_data);
+#else
+  proc_train_words = _train_data.size();
+  std::vector<int> &_proc_train_data = _train_data;
+#endif
+
+  std::vector<int> _vocab_count =
+      read_vector_from_binary_file<int>(_vocab_count_file_str);
+
+  return train_each(_proc_train_data, _vocab_count, _config);
+}
+
 } // namespace w2v
