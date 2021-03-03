@@ -17,7 +17,8 @@ int main(int argc, char* argv[]){
         ("output,o" , value<std::string>(), "output path for saving model.") 
         ("min-support,s", value<double>(), "minimum support value [default: 0.2]") //TODO: rephrase the user message
         ("conf,c", value<double>(), "confidence value for rule mining [default: 0.5]")
-        ("to-compress", value<bool>(), "whether to compress fp trees [default: true]") 
+        ("to-compress", value<bool>(), "whether to compress fp trees [default: false]") 
+        ("mem-opt-level", value<int>(), "memory opt level to use (either 0 or 1) [default: 0]") 
         ("verbose", "set loglevel to DEBUG")
         ("verbose2", "set loglevel to TRACE");
                 
@@ -28,7 +29,8 @@ int main(int argc, char* argv[]){
                 
     std::string data_p, out_p;
     double min_sup = 0.2, conf = 0.5;
-    bool to_compression_out = 1;
+    bool to_compression_out = 0;
+    int mem_opt_level = 0;
     
     if(argmap.count("help")){
       std::cerr << opt << std::endl;
@@ -64,6 +66,10 @@ int main(int argc, char* argv[]){
        to_compression_out = argmap["to-compress"].as<bool>();
     }
 
+    if(argmap.count("mem-opt-level")){
+       mem_opt_level = argmap["mem-opt-level"].as<int>();
+    }
+
     if(argmap.count("verbose")){
       set_loglevel(DEBUG);
     }
@@ -78,14 +84,16 @@ int main(int argc, char* argv[]){
                                  {"trans_id", "item"});
       time_spent grow(INFO), tree(INFO);
       grow.lap_start();
-      auto model = grow_fp_tree(t, min_sup, to_compression_out);
+      auto model = grow_fp_tree(t, min_sup, to_compression_out, mem_opt_level);
       grow.lap_stop();
       grow.show_lap("grow_fp_tree: ");
 
       std::cout << "tree-depth: " << model.get_depth() 
                 << "; FIS-count: " << model.get_count() << std::endl;
-      //model.debug_print();
       model.save(out_p);
+
+      //model.load(out_p);
+      //model.debug_print();
 
       /*
        * needs to be fixed
