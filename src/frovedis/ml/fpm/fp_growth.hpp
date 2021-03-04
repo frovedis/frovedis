@@ -5,7 +5,8 @@
 
 namespace frovedis {
   fp_growth_model
-  grow_fp_tree(dftable& df, double min_support, 
+  grow_fp_tree(dftable& df, double min_support,
+               int tree_depth = std::numeric_limits<int>::max(), 
                int compression_point = 4,
                int mem_opt_level = 0);
 

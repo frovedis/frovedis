@@ -118,7 +118,15 @@ namespace frovedis {
   }
 
   void fp_growth_model::savebinary (const std::string& dir) {
-    save(dir); // for wrapper
+    require(!directory_exists(dir),
+    "save: a directory with same name already exists!\n");
+    make_directory(dir);
+    dftable old_info;
+    for (size_t i = 0; i < item.size(); ++i) {
+      auto part_dname = dir + "/tree_" + std::to_string(i);
+      auto fis = decompress_impl(item[i], tree_info[i], old_info);
+      fis.save(part_dname);
+    }
   }
 
   void fp_growth_model::load (const std::string& dir) {
@@ -137,17 +145,27 @@ namespace frovedis {
         names.push_back(tmp);
         std::getline(schema_str, tmp); types.push_back(tmp);
       }
-#ifdef FP_DEBUG
-      show("names: ", names);
-      show("types: ", types);
-#endif
+      //show("names: ", names);
+      //show("types: ", types);
       tree_item[i] = make_dftable_loadtext(tree_data, types, names, ' ');
       tree_info[i] = dftable(); // empty info (since decompressed tree is saved)
     }
     *this = fp_growth_model(std::move(tree_item), std::move(tree_info));
   }
+
   void fp_growth_model::loadbinary (const std::string& dir) {
-    load(dir); // for wrapper
+    require(directory_exists(dir), "load: directory does not exist!\n");
+    auto depth = count_non_hidden_files(dir);
+    RLOG(INFO) << "load: tree-depth found: " << depth << std::endl;
+    clear();
+    std::vector<dftable> tree_item(depth), tree_info(depth);
+    for(size_t i = 0; i < depth; ++i) {
+      auto tree_dir = dir + "/tree_" + std::to_string(i);
+      tree_item[i] = dftable();
+      tree_item[i].load(tree_dir);
+      tree_info[i] = dftable(); // empty info (since decompressed tree is saved)
+    }
+    *this = fp_growth_model(std::move(tree_item), std::move(tree_info));
   }
   
   //pass-by-value to avoid changes in input dftable

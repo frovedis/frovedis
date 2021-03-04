@@ -101,12 +101,14 @@ void compress_dftable(dftable& input, int niter,
 fp_growth_model 
 generate_tables(dftable& item_count, 
                 dftable& df, size_t support,
+                int tree_depth,
                 int compression_point = 4,
                 int mem_opt_level = 0) {
   /*
    * This function attempts to generate all possible frequent itemsets
    * by performing self-join on input 'df' till the resultant joined table 
-   * becomes empty. The table structure can be visualized as follows:
+   * becomes empty or tree is constructed till specified 'tree_depth'. 
+   * The tree schemas can be visualized as follows:
    *
    * iter 0: tid item rank 
    * iter 1: tid item item1 rank
@@ -128,15 +130,13 @@ generate_tables(dftable& item_count,
    * :
    *
    */
-  int niter = 0;
   dftable compressed_info;
   std::vector<dftable> tree, tree_info;
-  tree.push_back(std::move(item_count));
+  tree.push_back(std::move(item_count)); // depth-0
   tree_info.push_back(std::move(compressed_info));
 
   time_spent gen_t(DEBUG);
-  while (true) {
-    niter++;
+  for (int niter = 1; niter < tree_depth; ++niter) {
     df = fp_growth_self_join(df, niter, compression_point);
 
     // df would be compressed in-place if niter >= compression_point
@@ -147,28 +147,26 @@ generate_tables(dftable& item_count,
     auto combination = df.group_by(tcols)
                          .select(tcols, {count_as(tcols[tcols.size() - 1], "count")})
                          .filter(ge_im("count", support)).materialize();
-    if(combination.num_row()) {
-      if (mem_opt_level == 1) { // further optimizing tree only when level is set to 1
-        auto sz = tcols.size();
-        std::vector<std::string> opt_right(sz);
-        for (size_t i = 0; i < sz; ++i) {
-          opt_right[i] = tcols[i] + "_new";
-          df.rename(tcols[i], opt_right[i]);
-        }
-        df = df.bcast_join(combination, multi_eq(opt_right, tcols)).select(cols);
-        if (niter >= compression_point) {
-          auto rem = combination.group_by({"cid"}).select({"cid"})
-                                .rename("cid", "cid_rem");
-          auto info_cols = compressed_info.columns();
-          compressed_info = compressed_info.bcast_join(rem, eq("cid", "cid_rem"))
-                                           .select(info_cols);
-        }
+    if(!combination.num_row()) break; // no further depth is possible
+    if (mem_opt_level == 1) { // further optimizing tree only when level is set to 1
+      auto sz = tcols.size();
+      std::vector<std::string> opt_right(sz);
+      for (size_t i = 0; i < sz; ++i) {
+        opt_right[i] = tcols[i] + "_new";
+        df.rename(tcols[i], opt_right[i]);
       }
-      tree.push_back(std::move(combination));
-      tree_info.push_back(std::move(compressed_info));
-      gen_t.show(std::string("  niter-") + std::to_string(niter) + ": ");
-    } 
-    else  break;
+      df = df.bcast_join(combination, multi_eq(opt_right, tcols)).select(cols);
+      if (niter >= compression_point) {
+        auto rem = combination.group_by({"cid"}).select({"cid"})
+                              .rename("cid", "cid_rem");
+        auto info_cols = compressed_info.columns();
+        compressed_info = compressed_info.bcast_join(rem, eq("cid", "cid_rem"))
+                                         .select(info_cols);
+      }
+    }
+    tree.push_back(std::move(combination));
+    tree_info.push_back(std::move(compressed_info));
+    gen_t.show(std::string("  niter-") + std::to_string(niter) + ": ");
   }
   return fp_growth_model(std::move(tree), std::move(tree_info));
 }
@@ -176,6 +174,7 @@ generate_tables(dftable& item_count,
 fp_growth_model 
 grow_fp_tree(dftable& t, 
              double min_support,
+             int tree_depth,
              int compression_point,
              int mem_opt_level) { 
   auto col_list = t.columns();
@@ -194,8 +193,11 @@ grow_fp_tree(dftable& t,
   require (min_support > 0.0 && min_support <= 1.0,  
            "support value must be within the range of range 0 to 1.");
 
+  require(tree_depth >= 1, 
+  "minimum allowed value for 'tree_depth' is 1.\n"); // at-least item-count table
+
   require(compression_point >= 2, 
-  "minimum allowed value for compression_point is 2.\n");
+  "minimum allowed value for 'compression_point' is 2.\n");
 
   require(mem_opt_level == 0 || mem_opt_level == 1,
   "supported mem_opt_level is either 0 or 1.\n");
@@ -232,7 +234,8 @@ grow_fp_tree(dftable& t,
   fp_growth_model m;
   try {
     m = generate_tables(item_count, ordered_itemset, 
-                        support, compression_point, mem_opt_level);
+                        support, tree_depth,
+                        compression_point, mem_opt_level);
   }
   catch(std::exception& excpt) {
     std::string msg = excpt.what();
