@@ -31,8 +31,8 @@ class FPGrowth(object):
                 tid.append(cur_id)
                 item.append(trans_it)
             cur_id = cur_id + 1
-        tid = np.asarray(tid, dtype=np.int32)
-        item = np.asarray(item, dtype=np.int32)
+        #tid = np.asarray(tid, dtype=np.int32)
+        #item = np.asarray(item, dtype=np.int32)
         df_t = pd.DataFrame({'trans_id': tid, 'item': item}, \
                 columns=['trans_id', 'item'])
         return fpd.DataFrame(df_t)
