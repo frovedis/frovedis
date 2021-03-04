@@ -6,7 +6,7 @@ int main(int argc, char* argv[]) {
 
   auto m = frovedis::make_rowmajor_matrix_load<double>("./train.mat");
 
-  auto dbscan = frovedis::dbscan(0.5, 5);
+  auto dbscan = frovedis::dbscan<double>(0.5, 5);
   dbscan.fit(m);
   auto labels = dbscan.labels();
 
