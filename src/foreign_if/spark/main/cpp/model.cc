@@ -158,15 +158,27 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_setFrovedisGLMThr
   catch(std::exception& e) { set_status(true,e.what()); }
 }
  
+JNIEXPORT int JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_loadFPGrowthModel
+  (JNIEnv *env, jclass thisCls, jobject master_node, 
+   jint mid, jstring path) {
+  auto fs_path = to_cstring(env,path);
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  int fis_cnt = 0;
+  try {
+    fis_cnt = exrpc_async(fm_node,load_fpm<FPM1>,mid,FPM,fs_path).get(); 
+  }
+  catch(std::exception& e) { set_status(true,e.what()); }
+  return fis_cnt;
+}
 
 // loads frovedis generic models
 JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_loadFrovedisModel
-  (JNIEnv *env, jclass thisCls, jobject master_node, jint mid, jshort mkind, jstring path) {
+  (JNIEnv *env, jclass thisCls, jobject master_node, 
+   jint mid, jshort mkind, jstring path) {
   auto fs_path = to_cstring(env,path);
   auto fm_node = java_node_to_frovedis_node(env, master_node);
   try {
     switch(mkind) {
-      case FPM:  exrpc_oneway(fm_node,load_model<FPM1>,mid,FPM,fs_path); break;
       case FPR:  exrpc_oneway(fm_node,load_model<FPR1>,mid,FPM,fs_path); break;
       case FMM:  REPORT_ERROR(USER_ERROR,"currently Frovedis fm_model can't be loaded!\n"); 
       case DTM:  exrpc_oneway(fm_node,load_model<DTM1>,mid,DTM,fs_path); break;
