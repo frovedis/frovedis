@@ -243,7 +243,6 @@ extern "C" {
           case SEM:    exrpc_oneway(fm_node,load_model<SEM2>,mid,SEM,fs_path); break;
           case DTM:    exrpc_oneway(fm_node,load_model<DTM2>,mid,DTM,fs_path); break;
           case FMM:    REPORT_ERROR(USER_ERROR,"currently frovedis fm_model can't be loaded!");
-          case FPM:    exrpc_oneway(fm_node,load_model<FPM1>,mid,FPM,fs_path); break; // not template based
           case FPR:  exrpc_oneway(fm_node,load_model<FPR1>,mid,FPM,fs_path); break;
           case RFM:    exrpc_oneway(fm_node,load_model<RFM2>,mid,RFM,fs_path); break;
           case GBT:    exrpc_oneway(fm_node,load_model<GBT2>,mid,GBT,fs_path); break;
@@ -263,7 +262,6 @@ extern "C" {
           case DTM:    exrpc_oneway(fm_node,load_model<DTM1>,mid,DTM,fs_path); break;
           case FPR:    exrpc_oneway(fm_node,load_model<FPR1>,mid,FPM,fs_path); break;
           case FMM:    REPORT_ERROR(USER_ERROR,"currently frovedis fm_model can't be loaded!");
-          case FPM:    exrpc_oneway(fm_node,load_model<FPM1>,mid,FPM,fs_path); break; // not template based
           case RFM:    exrpc_oneway(fm_node,load_model<RFM1>,mid,RFM,fs_path); break;
           case GBT:    exrpc_oneway(fm_node,load_model<GBT1>,mid,GBT,fs_path); break;
           default:   REPORT_ERROR(USER_ERROR,"Unknown Model Kind is encountered!\n");
@@ -288,6 +286,23 @@ extern "C" {
     catch (std::exception& e) {
       set_status(true, e.what());
     }
+  }
+
+  int load_fp_model(const char* host, int port, 
+                    int mid, short mkind, 
+                    const char* path) {
+    ASSERT_PTR(path);
+    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
+    exrpc_node fm_node(host,port);
+    std::string fs_path(path);
+    int fis_cnt = 0;
+    try {
+      fis_cnt = exrpc_async(fm_node,load_fpm<FPM1>,mid,FPM,fs_path).get();
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return fis_cnt;
   }
 
   PyObject* load_frovedis_nbm(const char* host, int port,
