@@ -706,18 +706,22 @@ JNIEXPORT jobjectArray JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_toSparkFP
   return to_FrovedisSparkArray(env,vec);
 }
 
-JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisFPM
+JNIEXPORT int JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisFPM
   (JNIEnv *env, jclass thisCls, jobject master_node, jlong fdata,
-   jdouble minSupport, jint mid, jboolean movable) {
-
+   jdouble min_support, jint depth, jint c_point,
+   jint opt_level, jint mid, jboolean movable) {
   auto fm_node = java_node_to_frovedis_node(env, master_node);
   auto f_dptr = static_cast<exrpc_ptr_t> (fdata);
   bool mvbl = (bool) movable;
   int vb = 0; // no log (default)
+  int fis_cnt = 0; // output
   try {
-    exrpc_oneway(fm_node,frovedis_fp_growth<dftable>,f_dptr,minSupport,vb,mid,mvbl);
+    fis_cnt = exrpc_async(fm_node, frovedis_fp_growth<dftable>, 
+                          f_dptr, min_support, depth, c_point, opt_level, 
+                          vb, mid, mvbl).get();
   }
   catch(std::exception& e) { set_status(true,e.what()); }
+  return fis_cnt;
 }
 
 // generate association rule
