@@ -576,26 +576,29 @@ public class JNISupport {
                                          int mid, short mkind, String path);
   public static native void saveFrovedisModel(Node master_node, int mid, 
                                             short mkind, String path);
-
-  // new APIS
-  public static native DummyFreqItemset[] toSparkFPM(Node master_node,
-                                                     int mid);
-
-  public static native void callFrovedisFPM(Node master_node,
-                                          long fdata,
-                                          double minSupport,
-                                          int model_Id, boolean movable);
-
-  public static native void callFrovedisFPMR(Node master_node,
-                                        
-                                          double minConfidence,
-                                          int model_Id ,  int model_Idr);
-  
-
   public static native void loadFrovedisModel(Node master_node,
                                           int model_Id, 
                                           short mkind,  
                                           String path);
+  
+  public static native DummyFreqItemset[] toSparkFPM(Node master_node,
+                                                     int mid);
+
+  public static native int callFrovedisFPM(Node master_node,
+                                           long fdata,
+                                           double min_support,
+                                           int depth, int c_point, 
+                                           int opt_level,
+                                           int model_Id, boolean movable);
+
+  public static native void callFrovedisFPMR(Node master_node,
+                                             double minConfidence,
+                                             int model_Id ,  
+                                             int model_Idr);
+  
+  public static native int loadFPGrowthModel(Node master_node,
+                                             int model_Id, 
+                                             String path);
 
   public static native void callFrovedisFM(Node master_node,
                                          MemPair fdata, double init_stdev,
