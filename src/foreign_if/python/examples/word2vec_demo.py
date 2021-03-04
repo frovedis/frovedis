@@ -29,11 +29,11 @@ print(wv_model.wv)
 try:
     wv = wv_model.to_gensim_model()
     print(wv)
-    print('Similarity of {} with {} is {}'.format(\
+    print('similarity of {} with {} is {}'.format(\
            "cat", "dog", wv.similarity("cat", "dog")))
 except:
     print("### gensim is not available... so skipping " +
-          "demo gensim related functionalities")
+          "demo for gensim related functionalities")
 
 ### Generate document embeddings using fit_transform()
 textfile = "./input/text8-10k"
