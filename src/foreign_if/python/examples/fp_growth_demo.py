@@ -34,7 +34,8 @@ def preprocess_data(fname):
     for ilist in df.values.tolist():
         item = [itm for itm in ilist if str(itm) != 'nan']
         item_list.append(item)
-    item_list = encode_data(item_list)
+    #encoding to numeric value is suggested for better performance, it is optional though...
+    #item_list = encode_data(item_list) 
     return item_list
 
 '''
