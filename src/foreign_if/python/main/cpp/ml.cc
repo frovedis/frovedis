@@ -1250,20 +1250,24 @@ extern "C" {
   }
 
   // --- (15) FP Growth ---
-  void fpgrowth_trainer(const char* host, int port, long fdata, 
-                        int mid, double minSupport, int verbose) {
+  int fpgrowth_trainer(const char* host, int port, long fdata, 
+                        int mid, double min_support, int depth, 
+                        int c_point, int opt_level, int verbose) {
     if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
-    //std::cout<<"Inside fpgrowth_trainer: --------------- \n";
-    exrpc_node fm_node(host,port);
+    exrpc_node fm_node(host, port);
     auto f_dptr = (exrpc_ptr_t) (fdata);
     bool mvbl = false; // auto-managed at python side
     int vb = verbose; // no log (default)
+    int fis_cnt = 0; // output
     try {
-      exrpc_oneway(fm_node, frovedis_fp_growth<dftable>, f_dptr, minSupport, vb, mid, mvbl);
+      fis_cnt = exrpc_async(fm_node, frovedis_fp_growth<dftable>, 
+                            f_dptr, min_support, depth, c_point, opt_level, 
+                            vb, mid, mvbl).get();
     }
     catch (std::exception& e) {
       set_status(true, e.what());
     }
+    return fis_cnt;
   }
 
   void fpgrowth_fpr(const char* host, int port,
