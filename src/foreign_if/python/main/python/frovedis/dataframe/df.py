@@ -22,6 +22,10 @@ from ..mllib.model_util import ModelID
 from .info import df_to_sparse_info
 from .frovedisColumn import FrovedisColumn
 from .dfoperator import dfoperator
+from ..utils import deprecated
+
+import warnings
+from pandas.core.common import SettingWithCopyWarning
 
 def get_string_typename(numpy_type):
     numpy_to_string_type = { np.int32: "int",
@@ -935,6 +939,7 @@ class DataFrame(object):
         # since some pandas version has issue in casting all
         # target columns with dictionary input for astype()
         # REF: https://github.com/pandas-dev/pandas/issues/21445
+        warnings.simplefilter(action="ignore", category=SettingWithCopyWarning)
         for i in range(0, ncols):
             ret[cols[i]] = ret[cols[i]].astype(rtypes[i])
             # special treatement for bool columns
@@ -945,6 +950,7 @@ class DataFrame(object):
                 if has_min:
                     tmp = ret[cols[i]]['min']
                     ret[cols[i]]['min'] = True if tmp == 1 else False
+        warnings.simplefilter(action="default", category=SettingWithCopyWarning)
         return ret 
 
     def agg(self, func):
@@ -979,9 +985,9 @@ class DataFrame(object):
 
         return pd.DataFrame(data_dict)
 
-    def to_panda_dataframe(self):
+    def to_pandas_dataframe(self):
         """
-        to_panda_dataframe
+        returns a pandas dataframe object from frovedis dataframe
         """
         if self.__fdata is None:
             raise ValueError("Operation on invalid frovedis dataframe!")
@@ -1022,6 +1028,10 @@ class DataFrame(object):
         if has_index:
             res.set_index(self.index.name, inplace=True)
         return res
+
+    @deprecated("Use to_pandas_dataframe() instead!\n")
+    def to_panda_dataframe(self):
+        return self.to_pandas_dataframe()
 
     #default type: float
     def to_frovedis_rowmajor_matrix(self, t_cols, dtype=np.float32):
@@ -1204,7 +1214,7 @@ class DataFrame(object):
 
     def apply(self, func, axis=0, raw=False, \
               result_type=None, args=(), **kwds):
-        return self.to_panda_dataframe()\
+        return self.to_pandas_dataframe()\
                    .apply(func, axis, raw, result_type, args)
 
     def __str__(self):
