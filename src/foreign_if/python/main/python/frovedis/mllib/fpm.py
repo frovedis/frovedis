@@ -4,48 +4,91 @@ fpm.py
 
 #!/usr/bin/env python
 
-from .model_util import *
 from ..exrpc import rpclib
+from ..exrpc.server import FrovedisServer
 from ..matrix.dtype import DTYPE
-from frovedis.exrpc.server import FrovedisServer
+from .model_util import *
+
+import numpy as np
+from collections import Iterable
 import pandas as pd
 import frovedis.dataframe as fpd
 
 class FPGrowth(object):
-    """A python wrapper of Frovedis GPGrowth"""
-    def __init__(self, minSupport=0.3, verbose=0):
+    """A python wrapper of Frovedis FP-Growth"""
+    def __init__(self, minSupport=0.3, verbose=0, 
+                 encode_string_input=False):
         self.minSupport = minSupport
         self.verbose = verbose
+        self.encode_string_input = encode_string_input
         self.__mid = None
         self.__mkind = M_KIND.FPM
 
-    def __convert_to_df(self, data):
+    def __encode_input(self, data):
+        import itertools
+        unq = np.unique(list(itertools.chain.from_iterable(data)))
+        int_id = np.arange(1, len(unq) + 1, 1, dtype=np.int32)
+        transmap = dict(zip(unq, int_id))
+        ret = []
+        for e in data:
+            enc = [transmap[i] for i in e]
+            ret.append(enc)
+        self.encode_logic = transmap
+        #print("### encoding logic: ")
+        #print(transmap)
+        return ret
+
+    def __convert_iterable(self, data):
         """
-        NAME: __convert_to_df
+        converts an iterable to frovedis DataFrame
         """
         tid = []
         item = []
-        cur_id = 0
+        cur_id = 1
+        #print("### iterable data: ")
+        #print(data)
+        if self.encode_string_input: 
+            data = self.__encode_input(data)
+            #print("### encoded iterable data: ")
+            #print(data)
         for trans in data: # for each transaction in data
             for trans_it in trans: # for each item in each transaction
                 tid.append(cur_id)
                 item.append(trans_it)
             cur_id = cur_id + 1
-        #tid = np.asarray(tid, dtype=np.int32)
-        #item = np.asarray(item, dtype=np.int32)
         df_t = pd.DataFrame({'trans_id': tid, 'item': item}, \
-                columns=['trans_id', 'item'])
+                            columns=['trans_id', 'item'])
+        #print("### converted pandas dataframe: ")
+        #print(df_t)
         return fpd.DataFrame(df_t)
+
+    def __convert_pandas_df(self, data):
+        """
+        converts a pandas DataFrame to frovedis DataFrame
+        """
+        item_list = []
+        for ilist in data.values.tolist():
+            item = [itm for itm in ilist if str(itm) != 'nan']
+            item_list.append(item)
+        return self.__convert_iterable(item_list)
 
     def fit(self, data):
         """
         NAME: fit
         """
         if self.minSupport < 0:
-            raise ValueError("Negative minsupport factor!")
+            raise ValueError("fit: negative minsupport factor is not allowed!")
+        if isinstance(data, pd.DataFrame):
+            f_df = self.__convert_pandas_df(data)
+        elif isinstance(data, fpd.DataFrame):
+            f_df = data
+        elif isinstance(data, Iterable):
+            f_df = self.__convert_iterable(data)
+        else:
+            raise ValueError("fit: only dataframe and iterable " + 
+                             "inputs are supported!\n")
         self.release()
         self.__mid = ModelID.get()
-        f_df = self.__convert_to_df(data)
         (host, port) = FrovedisServer.getServerInstance()
         rpclib.fpgrowth_trainer(host, port, f_df.get(), self.__mid, \
             self.minSupport, self.verbose)
