@@ -90,8 +90,8 @@ joined = fdf1.merge(pdf2, left_on="Country", right_on="Cname")
 joined.show()
 
 # conversion demo
-print(fdf1.to_panda_dataframe()); print("\n")
-print(joined.to_panda_dataframe()); print("\n")
+print(fdf1.to_pandas_dataframe()); print("\n")
+print(joined.to_pandas_dataframe()); print("\n")
 joined.release()
 
 # miscellaneous
