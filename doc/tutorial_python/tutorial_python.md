@@ -202,6 +202,7 @@ scikit-learn manual):
 - `manifold.TSNE`([sklearn](https://scikit-learn.org/stable/modules/generated/sklearn.manifold.TSNE.html))
 - `decomposition.TruncatedSVD`([sklearn](https://scikit-learn.org/stable/modules/generated/sklearn.decomposition.TruncatedSVD.html))
 - `decomposition.PCA`([sklearn](https://scikit-learn.org/stable/modules/generated/sklearn.decomposition.PCA.html))
+- `decomposition.LatentDirichletAllocation`([sklearn](https://scikit-learn.org/stable/modules/generated/sklearn.decomposition.LatentDirichletAllocation.html))
 
 Please add `frovedis.mllib.` to import these modules.
 (In the case of scikit-learn, `sklearn.` is added to import them.)
@@ -212,8 +213,7 @@ Other than scikit-learn algorithms, we support following algorithms.
 - `frovedis.mllib.fm.FactorizationMachineClassifier`
 - `frovedis.mllib.recommendation.ALS`
 - `frovedis.mllib.fpm.FPGrowth`
-- `frovedis.mllib.decomposition.LatentDirichletAllocation`
-- `frovedis.mllib.feature.Word2Vector`
+- `frovedis.mllib.feature.Word2Vec`
 
 In addition, following graph algorithms are supported. The interface
 is almost the same as networkx.
@@ -513,18 +513,18 @@ To show the contents of FrovedisDataframe, you can use show():
 
 They should produce output like:
 
-    Age     Country Ename
-    29      USA     Michael
-    30      England Andy
-    27      Japan   Tanaka
-    19      France  Raul
-    31      Japan   Yuta
-    
-    Ccode   Country
-    1       USA
-    2       England
-    3       Japan
-    4       France
+	index	Ename	Age	Country
+	0	Michael	29	USA
+	1	Andy	30	England
+	2	Tanaka	27	Japan
+	3	Raul	19	France
+	4	Yuta	31	Japan
+
+	index	Ccode	Country
+	0	1	USA
+	1	2	England
+	2	3	Japan
+	3	4	France
 
 To select columns, you can write like:
 
@@ -545,9 +545,9 @@ To filter the rows, you can write like:
 
 It should produce output like:
 
-    Age     Country Ename
-    27      Japan   Tanaka
-    31      Japan   Yuta
+	index	Ename	Age	Country
+	2	Tanaka	27	Japan
+	4	Yuta	31	Japan
 
 To sort the rows, you can write like:
 
@@ -556,12 +556,12 @@ To sort the rows, you can write like:
 Since `ascending=False`, it is sorted in descending order of Age.
 Output should be like:
 
-    Age     Country Ename
-    31      Japan   Yuta
-    30      England Andy
-    29      USA     Michael
-    27      Japan   Tanaka
-    19      France  Raul
+	index	Ename	Age	Country
+	4	Yuta	31	Japan
+	1	Andy	30	England
+	0	Michael	29	USA
+	2	Tanaka	27	Japan
+	3	Raul	19	France
 
 You can specify multiple columns for sorting.
 
@@ -570,12 +570,12 @@ You can specify multiple columns for sorting.
 This sorts the rows by Country, and then by Age in the same Country
 name. The output should be like:
 
-    Age     Country Ename
-    30      England Andy
-    19      France  Raul
-    27      Japan   Tanaka
-    31      Japan   Yuta
-    29      USA     Michael
+	index	Ename	Age	Country
+	1	Andy	30	England
+	3	Raul	19	France
+	2	Tanaka	27	Japan
+	4	Yuta	31	Japan
+	0	Michael	29	USA
 
 Please note that the rows whose Country is Japan is sorted by Age.
 
@@ -587,11 +587,11 @@ aggregate the value like:
 
 It should produce output like:
 
-    Country count(Ename)    max(Age)        min(Age)        mean(Age)
-    USA     1       29      29      29
-    England 1       30      30      30
-    Japan   2       31      27      29
-    France  1       19      19      19
+	Country	max_Age	min_Age	mean_Age	count_Ename
+	England	30	30	30	1
+	Japan	31	27	29	2
+	France	19	19	19	1
+	USA    	29	29	29	1
 
 To join (or merge in Pandas term) tables, it is required that the
 column names are unique in the current implementation. So first we
@@ -605,12 +605,12 @@ Then, join like this:
 
 It produces output like:
 
-    Age     Country Ename   Ccode   Cname
-    29      USA     Michael 1       USA
-    30      England Andy    2       England
-    27      Japan   Tanaka  3       Japan
-    19      France  Raul    4       France
-    31      Japan   Yuta    3       Japan
+	index	Ename	Age	Country	index_right	Ccode	Cname
+	0	Michael	29	USA	0	1	USA
+	1	Andy	30	England	1	2	England
+	2	Tanaka	27	Japan	2	3	Japan
+	3	Raul	19	France	3	4	France
+	4	Yuta	31	Japan	2	3	Japan
 
 You can chain operations. Here, join, sort, and select are chained.
 
@@ -627,26 +627,12 @@ It produces output like:
     31      Yuta    Japan
 
 You can get the statistics of the columns like min, max, sum, avg,
-std, and count by calling like `min("Age")`. Like Pandas DataFrame,
-you can also call `describe()` to see all these information.
+std, and count by calling `describe()` to see all these information.
 
-    print ("min(Age): {}".format(fdf1.min("Age")))
-    print ("max(Age): {}".format(fdf1.max("Age")))
-    print ("sum(Age): {}".format(fdf1.sum("Age")))
-    print ("avg(Age): {}".format(fdf1.avg("Age")))
-    print ("std(Age): {}".format(fdf1.std("Age")))
-    print ("count(Age): {}".format(fdf1.count("Age")))
-    print ("describe: ")
+    print (fdf1.describe())
 
 This prints like:
 
-    min(Age): [19.0]
-    max(Age): [31.0]
-    sum(Age): [136.0]
-    avg(Age): [27.2]
-    std(Age): [4.816638]
-    count(Age): [5.0]
-    describe:
                   Age
     count    5.000000
     mean    27.200000
@@ -664,7 +650,7 @@ convert to Pandas DataFrame or use Pandas DataFrame together.
 Here, Frovedis DataFrame is joined with Pandas DataFrame. The output
 should be the same as previous join.
 
-You can convert Frovedis DataFrame using `to_panda_dataframe()`.
+You can convert Frovedis DataFrame using `to_pandas_dataframe()`.
 
 Frovedis DataFrame can be converted to matrix. Please see
 "src/tut6-2/tut.py". 
