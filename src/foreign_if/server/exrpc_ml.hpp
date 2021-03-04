@@ -836,37 +836,32 @@ void frovedis_nb(frovedis_mem_pair& mp, std::string& model_type,
 }
 
 template <class DATA>
-void frovedis_fp_growth(exrpc_ptr_t& dptr, double& min_support,
+int frovedis_fp_growth(exrpc_ptr_t& dptr, double& min_support,
+                        int& tree_depth, int& compression_point,
+                        int& mem_opt_level,
                         int& verbose, int& mid,
                         bool& isMovableInput=false) {
   register_for_train(mid);  // mark model 'mid' as "under training"
-  // extracting input data
   auto dfptr = reinterpret_cast<DATA*>(dptr);
   DATA& db = *dfptr;
   
-  auto old_level = frovedis::get_loglevel();
-  if (verbose == 1) frovedis::set_loglevel(frovedis::DEBUG);
-  else if (verbose == 2) frovedis::set_loglevel(frovedis::TRACE);
- 
-  auto model = grow_fp_tree(db, min_support); 
-  handle_trained_model<fp_growth_model>(mid, FPM, model);
-  
-  frovedis::set_loglevel(old_level);
+  set_verbose_level(verbose);
+  auto model = grow_fp_tree(db, min_support, tree_depth, 
+                            compression_point, mem_opt_level); 
+  auto fis_count = model.get_count();
+  reset_verbose_level();
   if (isMovableInput) delete dfptr;
-
+  handle_trained_model<fp_growth_model>(mid, FPM, model);
+  return fis_count;
 }
 
-
-
 template <class MODEL>
-void frovedis_fpr( double& min_confidence,
-                         int& mid , int& midr) {
+void frovedis_fpr(double& min_confidence,
+                  int& mid , int& midr) {
  register_for_train(midr);  // mark model 'mid' as "under training"
-  
  auto mptr = get_model_ptr<fp_growth_model>(mid);
  auto rul =  mptr->generate_rules(min_confidence);
  handle_trained_model<association_rule>(midr, FPR, rul);
-
 }
 
 template<class T>
