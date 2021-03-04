@@ -71,7 +71,7 @@ void expose_frovedis_model_functions() {
   expose(show_model<FPM1>);
   expose(release_model<FPM1>);
   expose(save_model<FPM1>);
-  expose(load_model<FPM1>); // void returning
+  expose(load_fpm<FPM1>);      // returns fis_count (int)
   expose(show_model<FPR1>);
   expose(release_model<FPR1>);
   expose(save_model<FPR1>);
