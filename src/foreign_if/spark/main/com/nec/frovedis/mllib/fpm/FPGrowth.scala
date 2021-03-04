@@ -13,11 +13,15 @@ import org.apache.spark.sql.DataFrame
 import org.apache.spark.mllib.fpm.FPGrowth.FreqItemset
 import org.apache.spark.mllib.fpm.AssociationRules.Rule
 
+// newly added parameters: treeDepth, compression_point, memOptLevel
 class FPGrowth  private (var minSupport: Double,
-                         var numPartitions: Int) 
+                         var numPartitions: Int,
+                         var treeDepth: Int,
+                         var compressionPoint: Int,
+                         var memOptLevel: Int) 
   extends java.io.Serializable {
  
-  def this() = this(0.3, 1)
+  def this() = this(0.3, 1, Int.MaxValue, 4, 0)
 
   def setMinSupport(minSupport: Double): this.type = {
     require(minSupport >= 0.0 && minSupport <= 1.0,
@@ -25,13 +29,31 @@ class FPGrowth  private (var minSupport: Double,
     this.minSupport = minSupport
     this
   }
+  def setTreeDepth(treeDepth: Int): this.type = {
+    require(treeDepth >= 1,
+      s"treeDepth value must be >= 1, but got ${treeDepth}")
+    this.treeDepth = treeDepth
+    this
+  }
+  def setCompressionPoint(compressionPoint: Int): this.type = {
+    require(compressionPoint >= 2,
+      s"compressionPoint value must be >= 2, but got ${compressionPoint}")
+    this.compressionPoint = compressionPoint
+    this
+  }
+  def setMemOptLevel(memOptLevel: Int): this.type = {
+    require(memOptLevel == 0 || memOptLevel == 1,
+      s"memOptLevel value must be 0 or 1, but got ${memOptLevel}")
+    this.memOptLevel = memOptLevel
+    this
+  }
   def setNumPartitions(numPartitions: Int): this.type = {
     require(numPartitions > 0,
       s"Number of partitions must be positive but got ${numPartitions}")
     this.numPartitions = numPartitions
     this
-   }
-  private  def get_table(data: Iterator[(Array[Int],Long)]): Iterator[(Int,Int)] = {
+  }
+  private def get_table(data: Iterator[(Array[Int],Long)]): Iterator[(Int,Int)] = {
     val darr = data.toArray
     var ret = new ArrayBuffer[(Int,Int)]()
     for (i <- 0 to (darr.length-1)) {
@@ -60,48 +82,98 @@ class FPGrowth  private (var minSupport: Double,
   def run(fdata:FrovedisDataFrame, movable : Boolean ): FPGrowthModel = {
     val model_Id = ModelID.get()
     val fs = FrovedisServer.getServerInstance()
-    JNISupport.callFrovedisFPM(fs.master_node, fdata.get(),
-                               minSupport,model_Id,movable)
+    val fis_cnt = JNISupport.callFrovedisFPM(fs.master_node, fdata.get(),
+                               minSupport, treeDepth, compressionPoint,
+                               memOptLevel, model_Id, movable)
     val info = JNISupport.checkServerException();
     if (info != "") throw new java.rmi.ServerException(info);
-    return new FPGrowthModel(model_Id)
+    return new FPGrowthModel(model_Id, fis_cnt)
   }
 }
 
 object FPGrowth {
   def train(data: RDD[Array[Int]],
             minSupport: Double,
-           numPartitions: Int): FPGrowthModel = {
+            numPartitions: Int,
+            treeDepth: Int,
+            compressionPoint: Int,
+            memOptLevel: Int): FPGrowthModel = {
     return new FPGrowth().setMinSupport(minSupport)
                          .setNumPartitions(numPartitions)
+                         .setTreeDepth(treeDepth)
+                         .setCompressionPoint(compressionPoint)
+                         .setMemOptLevel(memOptLevel)
                          .run(data)
   }
   def train(data: RDD[Array[Int]],
+            minSupport: Double,
+            numPartitions: Int,
+            treeDepth: Int,
+            compressionPoint: Int): FPGrowthModel = {
+    return train(data, minSupport, numPartitions, treeDepth, compressionPoint, 0)
+  }
+  def train(data: RDD[Array[Int]],
+            minSupport: Double,
+            numPartitions: Int,
+            treeDepth: Int): FPGrowthModel = {
+    return train(data, minSupport, numPartitions, treeDepth, 4, 0)
+  }
+  def train(data: RDD[Array[Int]],
+            minSupport: Double,
+            numPartitions: Int): FPGrowthModel = {
+    return train(data, minSupport, numPartitions, Int.MaxValue, 4, 0)
+  }
+  def train(data: RDD[Array[Int]],
             minSupport: Double): FPGrowthModel =  {
-    return train(data,minSupport,1)
+    return train(data, minSupport, 1, Int.MaxValue, 4, 0)
   }
   def train(data: RDD[Array[Int]]): FPGrowthModel =  {
-    return train(data, 0.3, 1)
+    return train(data, 0.3, 1, Int.MaxValue, 4, 0)
+  }
+
+  // --- frovedis input ---
+  def train(data: FrovedisDataFrame,
+            minSupport: Double,
+            numPartitions: Int,
+            treeDepth: Int,
+            compressionPoint: Int,
+            memOptLevel: Int): FPGrowthModel = {
+    return new FPGrowth().setMinSupport(minSupport)
+                         .setNumPartitions(numPartitions)
+                         .setTreeDepth(treeDepth)
+                         .setCompressionPoint(compressionPoint)
+                         .setMemOptLevel(memOptLevel)
+                         .run(data)
+  }
+  def train(data: FrovedisDataFrame,
+            minSupport: Double,
+            numPartitions: Int,
+            treeDepth: Int,
+            compressionPoint: Int): FPGrowthModel = {
+    return train(data, minSupport, numPartitions, treeDepth, compressionPoint, 0)
+  }
+  def train(data: FrovedisDataFrame,
+            minSupport: Double,
+            numPartitions: Int,
+            treeDepth: Int): FPGrowthModel = {
+    return train(data, minSupport, numPartitions, treeDepth, 4, 0)
   }
   def train(data: FrovedisDataFrame,
             minSupport: Double,
             numPartitions: Int): FPGrowthModel = {
-    return new FPGrowth().setMinSupport(minSupport)
-                         .setNumPartitions(numPartitions)
-                         .run(data)
+    return train(data, minSupport, numPartitions, Int.MaxValue, 4, 0)
   }
   def train(data: FrovedisDataFrame,
             minSupport: Double): FPGrowthModel =  {
-    return train(data,minSupport,1)
+    return train(data, minSupport, 1, Int.MaxValue, 4, 0)
   }
   def train(data: FrovedisDataFrame): FPGrowthModel =  {
-    return train(data,0.3,1)
+    return train(data, 0.3, 1, Int.MaxValue, 4, 0)
   }
 }
 
-class FPGrowthModel (val model_Id: Int) 
+class FPGrowthModel (val model_Id: Int, val fis_count: Int) 
     extends GenericModel(model_Id, M_KIND.FPM) {
- 
   def generateAssociationRules(minConfidence: Double): FPGrowthRule = {
     val model_Idr = ModelID.get()
     val fs = FrovedisServer.getServerInstance()
@@ -131,13 +203,13 @@ object FPGrowthModel{
   def load(path: String): FPGrowthModel = {
     val model_Id = ModelID.get()
     val fs = FrovedisServer.getServerInstance()
-    JNISupport.loadFrovedisModel(fs.master_node,model_Id,M_KIND.FPM,path)
+    val fis_cnt = JNISupport.loadFPGrowthModel(fs.master_node, 
+                  model_Id, path)
     val info = JNISupport.checkServerException();
     if (info != "") throw new java.rmi.ServerException(info);
-    return new FPGrowthModel( model_Id)
+    return new FPGrowthModel(model_Id, fis_cnt)
   }
 }
-
 
 class FPGrowthRule (val model_Id: Int ) 
                    extends GenericModel(model_Id, M_KIND.FPR) { 
