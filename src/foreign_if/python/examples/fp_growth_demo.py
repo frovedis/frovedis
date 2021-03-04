@@ -1,11 +1,8 @@
 #!/usr/bin/env python
 
 import sys
-import numpy as np
 import pandas as pd
-
 from frovedis.exrpc.server import FrovedisServer
-from frovedis.matrix.dvector import FrovedisDvector
 from frovedis.mllib.fpm import FPGrowth 
 
 # initializing the Frovedis server
@@ -16,49 +13,32 @@ if (argc < 2):
     quit()
 FrovedisServer.initialize(argvs[1])
 
-def encode_data(data):
-    import itertools
-    unq = np.unique(list(itertools.chain.from_iterable(data)))
-    id = np.arange(1, len(unq) + 1, 1)
-    transmap = dict(zip(unq, id))
-    ret = []
-    for e in data:
-        enc = [int(transmap[i]) for i in e]
-        ret.append(enc)
-    return ret
-
-def preprocess_data(fname):
-    df = pd.read_csv(fname)
-    df = df.drop(['Item(s)'], axis=1) #.sample(n=100)
-    item_list = []
-    for ilist in df.values.tolist():
-        item = [itm for itm in ilist if str(itm) != 'nan']
-        item_list.append(item)
-    #encoding to numeric value is suggested for better performance, it is optional though...
-    #item_list = encode_data(item_list) 
-    return item_list
-
 '''
-mat =([[1,2,3,4],
-       [1,3,2,5],
-       [2,3,4,5],
-       [1,2,4,5]])
+data = [[1,4],
+        [1,3,2,5],
+        [1],
+        [1,2,5]]
 '''
+data = pd.read_csv("./input/groceries.csv").drop(['Item(s)'], axis=1)
+#print(data)
 
-mat = preprocess_data("./input/groceries.csv")
-#print(mat)
-model = FPGrowth(minSupport = 0.05).fit(mat)
+# groceries data contains non-numeric (string) items
+# encoding to numeric value is suggested for 
+# better performance, it is optional though...
+fpm = FPGrowth(minSupport = 0.05)#, encode_string_input = True)
 
-model.save("./out/FPModel") #saving the model
-model.release()
-
-model.load("./out/FPModel") #loading the saved model
+model = fpm.fit(data)
+print("frequent item sets: ")
 model.debug_print()
 
+model.save("./out/FPModel") # saving the model
+model.release() # releasing model from memory after saving into files
 
+model.load("./out/FPModel") # loading the saved model for rule mining
 model.generate_rules(0.05).debug_print()
 model.generate_rules(0.2).debug_print()
 model.generate_rules(0.9).debug_print()
 
+# server clean-up
 model.release()
 FrovedisServer.shut_down()
