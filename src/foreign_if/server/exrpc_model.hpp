@@ -547,7 +547,7 @@ size_t load_kmm(int& mid, MODEL_KIND& mkind,
   return k;
 }
 
-// generic model loading for dftdfp_growth_model.
+// generic model loading 
 template <class MODEL>
 void load_model(int& mid, MODEL_KIND& mkind, std::string& path) {
   auto mptr = new MODEL();
@@ -555,6 +555,18 @@ void load_model(int& mid, MODEL_KIND& mkind, std::string& path) {
   mptr->loadbinary(path); // for faster loading
   auto mptr_ = reinterpret_cast<exrpc_ptr_t>(mptr);
   register_model(mid,mkind,mptr_);
+}
+
+// load for fp_growth_model returns FIS count
+template <class MODEL>
+int load_fpm(int& mid, MODEL_KIND& mkind, std::string& path) {
+  auto mptr = new MODEL();
+  if(!mptr) REPORT_ERROR(INTERNAL_ERROR,"memory allocation failed!\n");
+  mptr->loadbinary(path); // for faster loading
+  auto fis_cnt = mptr->get_count();
+  auto mptr_ = reinterpret_cast<exrpc_ptr_t>(mptr);
+  register_model(mid,mkind,mptr_);
+  return fis_cnt;
 }
 
 // load for naive_bayes_model returns a string
