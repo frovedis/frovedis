@@ -85,7 +85,7 @@ joined.show()
 
 # conversion
 print ("* convert Frovedis DataFrame to Pandas DataFrame")
-print (fdf1.to_panda_dataframe())
+print (fdf1.to_pandas_dataframe())
 print ("\n")
 
 FrovedisServer.shut_down()
