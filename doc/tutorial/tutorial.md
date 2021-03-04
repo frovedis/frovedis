@@ -1688,7 +1688,7 @@ dimension of the sample is large.
 
 Please look at "src/tut4.3-2/tut.cc", which looks like this:
 
-    auto dbscan = frovedis::dbscan(0.5, 5);
+    auto dbscan = frovedis::dbscan<double>(0.5, 5);
     dbscan.fit(m);
     auto labels = dbscan.labels();
 
