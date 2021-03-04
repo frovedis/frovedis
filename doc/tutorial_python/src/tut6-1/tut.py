@@ -66,13 +66,6 @@ fdf1.merge(fdf3, left_on="Country", right_on="Cname") \
     .sort("Age")[["Age", "Ename", "Country"]].show()
 
 # column statistics
-print ("* column statistics")
-print ("min(Age): {}".format(fdf1.min("Age")))
-print ("max(Age): {}".format(fdf1.max("Age")))
-print ("sum(Age): {}".format(fdf1.sum("Age")))
-print ("avg(Age): {}".format(fdf1.avg("Age")))
-print ("std(Age): {}".format(fdf1.std("Age")))
-print ("count(Age): {}".format(fdf1.count("Age")))
 print ("describe: ")
 print (fdf1.describe())
 print ("\n")
