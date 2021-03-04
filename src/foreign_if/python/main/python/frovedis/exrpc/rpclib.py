@@ -1001,6 +1001,7 @@ release_frovedis_model.argtypes = [c_char_p, c_int, c_int, c_short, c_short]
 show_frovedis_model = LIB.show_frovedis_model
 show_frovedis_model.argtypes = [c_char_p, c_int, c_int, c_short, c_short]
 
+
 load_frovedis_model = LIB.load_frovedis_model
 load_frovedis_model.argtypes = [c_char_p, c_int, c_int, c_short, c_short,\
                                 c_char_p]
@@ -1263,7 +1264,15 @@ als_train.argtypes = [c_char_p, c_int, c_long, c_int, c_int,
                       c_short, c_short]
 #fp growth functions
 fpgrowth_trainer = LIB.fpgrowth_trainer
-fpgrowth_trainer.argtypes = [c_char_p, c_int, c_long, c_int, c_double, c_int]
+fpgrowth_trainer.argtypes = [c_char_p, c_int, c_long, # host, port, fdata
+                             c_int, c_double, c_int,  # mid, min_support, depth
+                             c_int, c_int, c_int]     # c-point, opt-level, verbose
+fpgrowth_trainer.restype = c_int
+
+load_fp_model = LIB.load_fp_model
+load_fp_model.argtypes = [c_char_p, c_int, c_int, # host, port, mid
+                          c_short, c_char_p]      # mkind, fname
+load_fp_model.restype = c_int
 
 
 #fpgrowth_freq_items = lib.fpgrowth_freq_items
