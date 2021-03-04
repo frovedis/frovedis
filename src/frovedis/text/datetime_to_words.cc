@@ -102,6 +102,30 @@ datetime_to_words_fill_helper(int* charsp, size_t entry_size,
   }
 }
 
+words make_abbmonth_words(int* value, size_t size) {
+  vector<string> months = {"Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                           "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
+  words ret;
+  ret.chars.resize(3 * 12);
+  ret.starts.resize(size);
+  ret.lens.resize(size);
+  auto charsp = ret.chars.data();
+  auto startsp = ret.starts.data();
+  auto lensp = ret.lens.data();
+  vector<vector<int>> months_int(12);
+  for(int i = 0; i < 12; i++) {
+    auto mon = char_to_int(months[i]);
+    charsp[i * 3] = mon[0];
+    charsp[i * 3 + 1] = mon[1];
+    charsp[i * 3 + 2] = mon[2];
+  }
+  for(size_t i = 0; i < size; i++) lensp[i] = 3;
+  for(size_t i = 0; i < size; i++) {
+    startsp[i] = (value[i] - 1) * 3;
+  }
+  return ret;
+}
+
 void datetime_to_words(const datetime_t* srcp, size_t src_size,
                        int* charsp, size_t entry_size,
                        const std::string& format) {
@@ -109,16 +133,29 @@ void datetime_to_words(const datetime_t* srcp, size_t src_size,
   std::vector<size_t> fill_last_pos(src_size);
   auto valuep = value.data();
   auto yearpos = format.find("%Y");
+  auto abbmonthpos = format.find("%b");
   if(yearpos != string::npos) {
+    auto pos = yearpos;
+    if(pos > abbmonthpos) pos += 1;
     size_t fill_last_pos = yearpos + 3;
     year_from_datetime(srcp, src_size, valuep);
     auto value_words = int_to_words(valuep, src_size);
     datetime_to_words_fill_helper(charsp, entry_size, src_size, fill_last_pos,
                                   value_words, 4);
   }
+  if(abbmonthpos != string::npos) {
+    auto pos = abbmonthpos;
+    if(pos > yearpos) pos += 2;
+    size_t fill_last_pos = pos + 2;
+    month_from_datetime(srcp, src_size, valuep);
+    auto value_words = make_abbmonth_words(valuep, src_size);
+    datetime_to_words_fill_helper(charsp, entry_size, src_size, fill_last_pos,
+                                  value_words, 3);
+  }
   auto pos = format.find("%m");
   if(pos != string::npos) {
     if(pos > yearpos) pos += 2;
+    if(pos > abbmonthpos) pos += 1;
     size_t fill_last_pos = pos + 1;
     month_from_datetime(srcp, src_size, valuep);
     auto value_words = int_to_words(valuep, src_size);
@@ -128,6 +165,7 @@ void datetime_to_words(const datetime_t* srcp, size_t src_size,
   pos = format.find("%d");
   if(pos != string::npos) {
     if(pos > yearpos) pos += 2;
+    if(pos > abbmonthpos) pos += 1;
     size_t fill_last_pos = pos + 1;
     day_from_datetime(srcp, src_size, valuep);
     auto value_words = int_to_words(valuep, src_size);
@@ -137,6 +175,7 @@ void datetime_to_words(const datetime_t* srcp, size_t src_size,
   pos = format.find("%H");
   if(pos != string::npos) {
     if(pos > yearpos) pos += 2;
+    if(pos > abbmonthpos) pos += 1;
     size_t fill_last_pos = pos + 1;
     hour_from_datetime(srcp, src_size, valuep);
     auto value_words = int_to_words(valuep, src_size);
@@ -146,6 +185,7 @@ void datetime_to_words(const datetime_t* srcp, size_t src_size,
   pos = format.find("%M");
   if(pos != string::npos) {
     if(pos > yearpos) pos += 2;
+    if(pos > abbmonthpos) pos += 1;
     size_t fill_last_pos = pos + 1;
     minute_from_datetime(srcp, src_size, valuep);
     auto value_words = int_to_words(valuep, src_size);
@@ -155,6 +195,7 @@ void datetime_to_words(const datetime_t* srcp, size_t src_size,
   pos = format.find("%S");
   if(pos != string::npos) {
     if(pos > yearpos) pos += 2;
+    if(pos > abbmonthpos) pos += 1;
     size_t fill_last_pos = pos + 1;
     second_from_datetime(srcp, src_size, valuep);
     auto value_words = int_to_words(valuep, src_size);
@@ -168,6 +209,8 @@ words datetime_to_words(const datetime_t* srcp, size_t src_size,
   auto mod_format = format;
   auto pos = mod_format.find("%Y");
   if(pos != string::npos) mod_format = mod_format.replace(pos, 2, "0000");
+  pos = mod_format.find("%b");
+  if(pos != string::npos) mod_format = mod_format.replace(pos, 2, "   ");
   pos = mod_format.find("%m");
   if(pos != string::npos) mod_format = mod_format.replace(pos, 2, "00");
   pos = mod_format.find("%d");
@@ -189,7 +232,7 @@ words datetime_to_words(const datetime_t* srcp, size_t src_size,
   auto lensp = ret.lens.data();
   auto intformat = char_to_int(mod_format);
   auto intformatp = intformat.data();
-  // TODO: short vector length?
+#pragma _NEC select_vector
   for(size_t i = 0; i < src_size; i++) {
     for(size_t j = 0; j < mod_format_size; j++) {
       charsp[i * mod_format_size + j] = intformatp[j];

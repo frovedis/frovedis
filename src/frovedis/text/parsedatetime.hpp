@@ -8,6 +8,7 @@ typedef uint64_t datetime_t;
 
 /*
   only supports %Y(year), %m(month), %d(day), %H(hour), %M(minute), %S(second)
+  and %b(abbreviated month name: Jan, Feb...)
   result is 64bit unsigned integer.
   each bytes are: |0|Y|Y|m|d|H|M|S|
   This is similar to Oracle's DATETIME format
@@ -15,10 +16,6 @@ typedef uint64_t datetime_t;
 */
 
 namespace frovedis {
-
-void parsedatetime(const int* charsp, const size_t* startsp,
-                   const size_t* lensp, size_t num_words,
-                   const std::string& format, datetime_t* retp);
 
 std::vector<datetime_t>
 parsedatetime(const std::vector<int>& chars,
