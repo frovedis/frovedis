@@ -38,6 +38,7 @@
  *    numpy.negative(x) -> vector_negative(x) or -x
  *    numpy.dot(x, y) or blas.dot(x, y) -> vector_dot(x, y) 
  *    numpy.dot(x, x) or numpy.sum(numpy_square(x)) -> vector_squared_sum(x)
+ *    numpy.linalg.norm(x) -> vector_norm(x) [for euclidean norm of vector, x]
  *    numpy.sum(numpy_square(x - y)) -> vector_ssd(x, y) [sum squared difference]
  *    numpy.sum(numpy_square(x - numpy.mean(x)) -> vector_ssmd(x) [sum squared mean difference]
  *    numpy.sum(x * scalar) -> vector_scaled_sum(x, scala)
@@ -337,30 +338,47 @@ void vector_sqrt_inplace(std::vector<T>& vec) {
 
 // similar to numpy.dot(x,x) or numpy.sum(numpy.square(x))
 template <class T>
-T vector_squared_sum(const std::vector<T>& vec) {
+T vector_squared_sum_impl(const std::vector<T>& vec, T& maxval) {
   auto sz = vec.size();
-  if (sz == 0) return static_cast<T>(0);
+  if (sz == 0) { maxval = 0; return static_cast<T>(0); }
   auto vptr = vec.data();
   // overflow handling
-  auto maxval = std::abs(vptr[0]);
+  maxval = std::abs(vptr[0]);
   T zero = static_cast<T>(0);
   for(size_t i = 0; i < sz; ++i) {
     auto absval = vptr[i] * ((vptr[i] >= zero) - (vptr[i] < zero));
     if (absval > maxval) maxval = absval;
   }
+  if (maxval == 0) return 0;
   auto one_by_max = static_cast<T>(1.0) / maxval;
   T sqsum = 0.0;
   for(size_t i = 0; i < sz; ++i) {
     auto tmp = vptr[i] * one_by_max; // dividing with max to avoid overflow!
     sqsum += tmp * tmp;
   }
-  return sqsum * maxval * maxval;
+  return sqsum;
 }
 
-// similar to numpy.mean(x)
+// similar to numpy.dot(x,x) or numpy.sum(numpy.square(x))
+template <class T>
+T vector_squared_sum(const std::vector<T>& vec) {
+  T maxval = 0;
+  auto sqsum_part = vector_squared_sum_impl(vec, maxval);
+  return sqsum_part * maxval * maxval;
+}
+
 template <>
 int vector_squared_sum(const std::vector<int>& vec); // defined in vector_operations.cc
 
+// similar to numpy.linalg.norm(x) -> returns euclidean norm of input vector, x
+template <class T>
+T vector_norm(const std::vector<T>& vec) {
+  T maxval = 0;
+  auto sqsum_part = vector_squared_sum_impl(vec, maxval);
+  return std::sqrt(sqsum_part) * maxval;
+}
+
+// similar to numpy.mean(x)
 template <class T>
 double vector_mean(const std::vector<T>& vec) {
   return static_cast<double>(vector_sum(vec)) / vec.size();
@@ -1159,7 +1177,7 @@ vector_binarize(const std::vector<T>& vec,
   std::vector<T> ret(vecsz);
   auto vecp = vec.data();
   auto retp = ret.data();
-  for(size_t i = 0; i < vecsz; ++i) retp[i] = (vecp[i] <= threshold) ? 0 : 1;
+  for(size_t i = 0; i < vecsz; ++i) retp[i] = vecp[i] > threshold;
   return ret;
 }
 
