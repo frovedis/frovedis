@@ -129,6 +129,9 @@ int main(int argc, char* argv[]) {
     else if (mattype == "rowmajor-local") {
       auto m = make_rowmajor_matrix_local_load<TYPE>(fname);
       invoke_matrix_operations(m);
+      show("logsumexp(0): ", matrix_logsumexp(m, 0));
+      show("logsumexp(1): ", matrix_logsumexp(m, 1));
+      show("logsumexp(-1): ", matrix_logsumexp(m, -1));
     }
     else if (mattype == "colmajor") {
       auto m = colmajor_matrix<TYPE>(make_rowmajor_matrix_load<TYPE>(fname));
