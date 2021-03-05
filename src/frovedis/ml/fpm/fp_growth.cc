@@ -241,8 +241,9 @@ grow_fp_tree(dftable& t,
     std::string msg = excpt.what();
     if(msg.find("bad_alloc") != std::string::npos ) {
       std::string e = "out-of-memory error occured during fp-tree construction!\n";
-      if (mem_opt_level == 0) e += "retry by setting mem_opt_level = 1.\n";
-      if (min_support < 1.0) e += "retry with higher min support value.\n";
+      e += "retry with smaller tree_depth value.\n";
+      if (min_support < 1.0) e += "or with higher min_support value.\n";
+      if (mem_opt_level == 0) e += "or by setting mem_opt_level = 1.\n";
       REPORT_ERROR(INTERNAL_ERROR, e);
     }
     else REPORT_ERROR(INTERNAL_ERROR, msg);

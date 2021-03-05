@@ -50,6 +50,7 @@ namespace frovedis {
                              double con);
   void free_df(dftable_base&);
 
+  // show() for debugging...
   template <class T>
   void show(const std::string& msg,
             const std::vector<T>& vec,
