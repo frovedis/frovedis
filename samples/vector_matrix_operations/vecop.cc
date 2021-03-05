@@ -54,6 +54,9 @@ int main(int argc, char* argv[]) {
     auto vsqsum = vector_squared_sum(vec);
     t.show("vector_squared_sum: ");
 
+    auto vnorm = vector_norm(vec);
+    t.show("vector_norm: ");
+
     auto vdot = vector_dot(vec,  vec);
     t.show("vector_dot: ");
 
@@ -69,8 +72,16 @@ int main(int argc, char* argv[]) {
     auto vsort = vector_sort(vec);
     t.show("vector_sort: ");
 
-    auto vunq = vector_unique(vec);
+    std::vector<size_t> uind, uinv, ucnt;
+    auto vunq = vector_unique(vec, uind, uinv, ucnt); // for numpy-like unique
+    //auto vunq = vector_unique(vec); // for only unique
     t.show("vector_unique: ");
+    /*
+    show("unique-sample: ", vunq);
+    show("unique-count: ", ucnt);
+    show("unique-index: ", uind);
+    show("unique-inverse: ", uinv);
+    */
 
     // only for vector<int>
     //auto vbincnt = vector_bincount<size_t>(vec);
@@ -81,6 +92,12 @@ int main(int argc, char* argv[]) {
 
     auto vnlog = vector_negative_log(vec); // -vector_log(vec)
     t.show("vector_negative_log: ");
+
+    auto vexp = vector_exp(vec);
+    t.show("vector_exp: ");
+
+    auto vlogsumexp = vector_logsumexp(vec);
+    t.show("vector_logsumexp: ");
 
     auto vminid = vector_argmin(vec); 
     t.show("vector_argmin: ");
@@ -133,6 +150,7 @@ int main(int argc, char* argv[]) {
     show("mean(data): ", vmean);
     show("scaled-sum(data, 2): ", vscalsum);
     show("squared_sum(data): ", vsqsum);
+    show("euclidean-norm(data): ", vnorm);
     show("(dot) data . data: ", vdot);
     show("sum-squared-diff(data, 2*data): ", vssd);
     show("sum-squared-mean-diff(data): ", vssmd);
@@ -142,6 +160,8 @@ int main(int argc, char* argv[]) {
     //show("bincount(data): ", vbincnt);
     show("log(data): ", vlog);
     show("-log(data): ", vnlog);
+    show("exp(data): ", vexp);
+    show("logsumexp(data): ", vlogsumexp);
     show("argmin(data): ", vminid);
     show("amin(data): ", vmin);
     show("argmax(data): ", vmaxid);
