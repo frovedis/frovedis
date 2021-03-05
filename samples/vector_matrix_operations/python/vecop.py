@@ -1,6 +1,7 @@
 import sys
 import time
 import numpy as np
+import scipy
 from sklearn import preprocessing as pp
 
 def show(msg, X):
@@ -53,6 +54,9 @@ t.show("np.scaled_sum: ")
 vsqsum = np.sum(np.square(vec))
 t.show("np.squared_sum: ")
 
+vnorm = np.linalg.norm(vec)
+t.show("np.linalg.norm: ")
+
 vdot = np.dot(vec,  vec)
 t.show("np.dot: ")
 
@@ -68,7 +72,7 @@ t.show("np.axpy: ")
 vsort = np.sort(vec)
 t.show("np.sort: ")
 
-vunq = np.unique(vec)
+vunq, uinv = np.unique(vec, return_inverse=True)
 t.show("np.unique: ")
 
 #vbincnt = np.bincount(vec)
@@ -79,6 +83,12 @@ t.show("np.log: ")
 
 vnlog = -np.log(vec)
 t.show("np.negative_log: ")
+
+vexp = np.exp(vec)
+t.show("np.exp: ")
+
+vlogsumexp = scipy.special.logsumexp(vec)
+t.show("scipy.special.logsumexp: ")
 
 vminid = np.argmin(vec) 
 t.show("np.argmin: ")
@@ -96,7 +106,7 @@ vnnz = np.count_nonzero(vec)
 t.show("np.count_nonzero: ")
 
 vbin = pp.binarize(vec.reshape(1,-1), 4) 
-t.show("np.binarize: ")
+t.show("sklearn.preprocessing.binarize: ")
 
 vclip = np.clip(vec, 2, 5) 
 t.show("np.clip: ")
@@ -116,7 +126,7 @@ t.show("np.ones: ")
 vfull = np.full(1000, 5, dtype=np.int32)
 t.show("np.full: ")
 
-'''
+#'''
 print("-------- results --------")
 show("data: ", vec)
 show("data + data: ", vsum) 
@@ -129,6 +139,7 @@ show("sum(data): ", vreducesum)
 show("mean(data): ", vmean)
 show("scaled-sum(data, 2): ", vscalsum)
 show("squared_sum(data): ", vsqsum)
+show("norm(data): ", vnorm)
 show("(dot) data . data: ", vdot)
 show("sum-squared-diff(data, 2*data): ", vssd)
 show("sum-squared-mean-diff(data): ", vssmd)
@@ -138,6 +149,8 @@ show("unique(data): ", vunq)
 #show("bincount(data): ", vbincnt)
 show("log(data): ", vlog)
 show("-log(data): ", vnlog)
+show("exp(data): ", vexp)
+show("logsumexp(data): ", vlogsumexp)
 show("argmin(data): ", vminid)
 show("argmax(data): ", vmaxid)
 show("amin(data): ", vmin)
@@ -150,4 +163,4 @@ show("astype<double>(data): ", vcast)
 show("zeros(1000): ", vzeros)
 show("ones(1000): ", vones)
 show("full(1000, 5): ", vfull)
-'''
+#'''
