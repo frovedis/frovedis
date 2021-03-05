@@ -6,6 +6,7 @@ linear_model.py: wrapper of frovedis Logistic Regression, Linear Regression,
 #!/usr/bin/env python
 import os.path
 import pickle
+import warnings
 from .model_util import *
 from .metrics import *
 from ..base import BaseEstimator
@@ -104,6 +105,11 @@ class LogisticRegression(BaseEstimator):
             self.__mkind = M_KIND.MLR
         else:
             raise ValueError("Unknown multi_class: %s!" % self.multi_class)
+
+        if isMult:
+            self.solver = 'sag' #only sag solver supports multinomial currently
+            warnings.warn("fit: multinomial classification problem is " + 
+                          "detected... switching solver to 'sag'.\n")
 
         if self.penalty == 'l1':
             regTyp = 1
