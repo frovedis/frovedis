@@ -32,7 +32,10 @@ def get_names(fname):
     names = ["item_" + str(i) for i in range(max_ncol)]
     return names
 
-data = pd.read_csv("./input/retail.dat", sep = " ", names = get_names("./input/retail.dat"))
+data = pd.read_csv("./input/retail.dat", sep = " ", 
+       names = get_names("./input/retail.dat"), # variable no. of fields in each line, hence col-names are provided
+       engine = 'python') # older pandas version has some parsing issue with c-engine
+
 #data = pd.read_csv("./input/groceries.csv").drop(['Item(s)'], axis=1)
 
 fpm = FPGrowth(min_support = 0.05, tree_depth=10, 
