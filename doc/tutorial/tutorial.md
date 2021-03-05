@@ -2466,7 +2466,7 @@ You need to explicitly call select to create dftable, and the select
 can only include column[s] that are used for grouping and/or
 aggregation of other column[s].
 
-    auto grouped_sum = grouped.select("c1", frovedis::sum("c3"));
+    auto grouped_sum = grouped.select({"c1"}, {frovedis::sum("c3")});
 
 In this case, first argument of select is the column that is used for
 grouping, and the second argument specifies the sum of the column c3.
@@ -2482,7 +2482,7 @@ specify the name by using sum_as.
 In addition, You can specify multiple aggregations as the second
 argument of select.
 
-    auto aggregated = grouped.select("c1", 
+    auto aggregated = grouped.select({"c1"}, 
                                      {frovedis::sum_as("c3","sum"),
                                       frovedis::count_as("c3","count"),
                                       frovedis::avg_as("c3","avg"),
