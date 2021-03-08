@@ -1342,6 +1342,22 @@ void vector_exp_inplace(std::vector<T>& vec) {
   auto vecp = vec.data();
   for(size_t i = 0; i < vecsz; ++i) vecp[i] = exp(vecp[i]);
 }
+
+template <class T>
+int vector_is_same_impl(const T* vptr1, 
+                        const T* vptr2, 
+                        size_t sz1, size_t sz2) {
+  if (sz1 != sz2) return 0;
+  size_t count = 0;
+  for(size_t i = 0; i < sz1; ++i) count += (vptr1[i] == vptr2[i]);
+  return count == sz1;
+}
+
+template <class T>
+int vector_is_same(const std::vector<T>& v1,
+                   const std::vector<T>& v2) {
+  return vector_is_same_impl(v1.data(), v2.data(), v1.size(), v2.size());
+}
   
 }
 #endif
