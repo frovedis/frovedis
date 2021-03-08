@@ -591,13 +591,14 @@ public class JNISupport {
                                            int opt_level,
                                            int model_Id, boolean movable);
 
-  public static native void callFrovedisFPMR(Node master_node,
-                                             double minConfidence,
-                                             int model_Id ,  
-                                             int model_Idr);
+  public static native int callFrovedisFPMR(Node master_node,
+                                            double minConfidence,
+                                            int model_Id ,  
+                                            int model_Idr);
   
   public static native int loadFPGrowthModel(Node master_node,
-                                             int model_Id, 
+                                             int model_Id,
+                                             short mkind, 
                                              String path);
 
   public static native void callFrovedisFM(Node master_node,
