@@ -177,6 +177,11 @@ grow_fp_tree(dftable& t,
              int tree_depth,
              int compression_point,
              int mem_opt_level) { 
+  RLOG(INFO) << "fp-growth hyper-parameters:: "
+             << "min_support: " << min_support
+             << "; tree_depth: " << tree_depth
+             << "; compression_point: " << compression_point
+             << "; mem_opt_level: " << mem_opt_level << std::endl; 
   auto col_list = t.columns();
 
   if (col_list.size() == 2) {
