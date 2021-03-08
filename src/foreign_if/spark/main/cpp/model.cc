@@ -160,15 +160,22 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_setFrovedisGLMThr
  
 JNIEXPORT int JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_loadFPGrowthModel
   (JNIEnv *env, jclass thisCls, jobject master_node, 
-   jint mid, jstring path) {
+   jint mid, jshort mkind, jstring path) {
   auto fs_path = to_cstring(env,path);
   auto fm_node = java_node_to_frovedis_node(env, master_node);
-  int fis_cnt = 0;
+  int cnt = 0;
   try {
-    fis_cnt = exrpc_async(fm_node,load_fpm<FPM1>,mid,FPM,fs_path).get(); 
+    switch(mkind) {
+      case FPM:  cnt = exrpc_async(fm_node,load_fpm<FPM1>,
+                       mid,FPM,fs_path).get(); break;
+      case FPR:  cnt = exrpc_async(fm_node,load_fpm<FPR1>,
+                       mid,FPR,fs_path).get(); break;
+      default:   REPORT_ERROR(USER_ERROR, 
+                 "Unknown FP-model kind is encountered!\n");
+    }
   }
   catch(std::exception& e) { set_status(true,e.what()); }
-  return fis_cnt;
+  return cnt;
 }
 
 // loads frovedis generic models
