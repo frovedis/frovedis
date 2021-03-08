@@ -28,7 +28,7 @@ extern "C" {
           //case DBSCAN: exrpc_oneway(fm_node,show_model<DBM2>,mid); break; 
           case DTM:    exrpc_oneway(fm_node,show_model<DTM2>,mid); break;
           case FPM:    exrpc_oneway(fm_node,show_model<FPM1>,mid); break; // not template based
-          case FPR:    exrpc_oneway(fm_node, show_model<FPR1>, mid); break;
+          case FPR:    exrpc_oneway(fm_node, show_model<FPR1>,mid); break; // not template based
           case FMM:    REPORT_ERROR(USER_ERROR,"currently Frovedis fm_model can't be displayed!");
           case NBM:    exrpc_oneway(fm_node,show_model<NBM2>,mid); break;
           case RFM:    exrpc_oneway(fm_node,show_model<RFM2>,mid); break;
@@ -52,7 +52,7 @@ extern "C" {
           //case DBSCAN: exrpc_oneway(fm_node,show_model<DBM1>,mid); break; 
           case DTM:    exrpc_oneway(fm_node,show_model<DTM1>,mid); break;
           case FPM:    exrpc_oneway(fm_node,show_model<FPM1>,mid); break; // not template based
-          case FPR:    exrpc_oneway(fm_node, show_model<FPR1>, mid); break;
+          case FPR:    exrpc_oneway(fm_node, show_model<FPR1>,mid); break; // not template based
           case FMM:    REPORT_ERROR(USER_ERROR,"currently Frovedis fm_model can't be displayed!");
           case NBM:    exrpc_oneway(fm_node,show_model<NBM1>,mid); break;
           case RFM:    exrpc_oneway(fm_node,show_model<RFM1>,mid); break;
@@ -88,7 +88,7 @@ extern "C" {
           case DBSCAN: exrpc_oneway(fm_node,release_model<DBSCAN2>,mid); break; 
           case DTM:    exrpc_oneway(fm_node,release_model<DTM2>,mid); break;
           case FPM:    exrpc_oneway(fm_node,release_model<FPM1>,mid); break; // not template based
-          case FPR:    exrpc_oneway(fm_node, release_model<FPR1>, mid); break;
+          case FPR:    exrpc_oneway(fm_node, release_model<FPR1>,mid); break; // not template based
           case FMM:    exrpc_oneway(fm_node,release_model<FMM2>,mid); break;
           case NBM:    exrpc_oneway(fm_node,release_model<NBM2>,mid); break;
           case KNN:    exrpc_oneway(fm_node,release_model<KNN2>,mid); break;
@@ -115,7 +115,7 @@ extern "C" {
           case SCM:    exrpc_oneway(fm_node,release_model<SCM1>,mid); break;
           case DBSCAN: exrpc_oneway(fm_node,release_model<DBSCAN1>,mid); break; 
           case FPM:    exrpc_oneway(fm_node,release_model<FPM1>,mid); break; // not template based
-          case FPR:    exrpc_oneway(fm_node, release_model<FPR1>, mid); break;
+          case FPR:    exrpc_oneway(fm_node, release_model<FPR1>,mid); break; // not template based
           case FMM:    exrpc_oneway(fm_node,release_model<FMM1>,mid); break;
           case NBM:    exrpc_oneway(fm_node,release_model<NBM1>,mid); break;
           case KNN:    exrpc_oneway(fm_node,release_model<KNN1>,mid); break;
@@ -170,7 +170,7 @@ extern "C" {
           case SCM:    exrpc_oneway(fm_node,save_model<SCM2>,mid,fs_path); break;
           case DTM:    exrpc_oneway(fm_node,save_model<DTM2>,mid,fs_path); break;
           case FPM:    exrpc_oneway(fm_node,save_model<FPM1>,mid,fs_path); break; // not template based
-          case FPR:    exrpc_oneway(fm_node,save_model<FPR1>,mid,fs_path); break;
+          case FPR:    exrpc_oneway(fm_node,save_model<FPR1>,mid,fs_path); break; // not template based
           case FMM:    exrpc_oneway(fm_node,save_fmm<DT2>,mid,fs_path); break;
           case NBM:    exrpc_oneway(fm_node,save_model<NBM2>,mid,fs_path); break;
           case RFM:    exrpc_oneway(fm_node,save_model<RFM2>,mid,fs_path); break;
@@ -192,8 +192,8 @@ extern "C" {
           case SEM:    exrpc_oneway(fm_node,save_model<SEM1>,mid,fs_path); break;
           case SCM:    exrpc_oneway(fm_node,save_model<SCM1>,mid,fs_path); break;
           case DTM:    exrpc_oneway(fm_node,save_model<DTM1>,mid,fs_path); break;
-          case FPR:    exrpc_oneway(fm_node,save_model<FPR1>,mid,fs_path); break;
           case FPM:    exrpc_oneway(fm_node,save_model<FPM1>,mid,fs_path); break; // not template based
+          case FPR:    exrpc_oneway(fm_node,save_model<FPR1>,mid,fs_path); break; // not template based
           case FMM:    exrpc_oneway(fm_node,save_fmm<DT1>,mid,fs_path); break;
           case NBM:    exrpc_oneway(fm_node,save_model<NBM1>,mid,fs_path); break;
           case RFM:    exrpc_oneway(fm_node,save_model<RFM1>,mid,fs_path); break;
@@ -295,14 +295,21 @@ extern "C" {
     if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
     exrpc_node fm_node(host,port);
     std::string fs_path(path);
-    int fis_cnt = 0;
+    int cnt = 0;
     try {
-      fis_cnt = exrpc_async(fm_node,load_fpm<FPM1>,mid,FPM,fs_path).get();
+      switch(mkind) {
+        case FPM: cnt = exrpc_async(fm_node,load_fpm<FPM1>,
+                        mid,FPM,fs_path).get(); break;
+        case FPR: cnt = exrpc_async(fm_node,load_fpm<FPR1>,
+                        mid,FPR,fs_path).get(); break;
+        default:  REPORT_ERROR(USER_ERROR,
+                  "Unknown FP-model kind for is encountered!\n");
+      }
     }
     catch (std::exception& e) {
       set_status(true, e.what());
     }
-    return fis_cnt;
+    return cnt;
   }
 
   PyObject* load_frovedis_nbm(const char* host, int port,
