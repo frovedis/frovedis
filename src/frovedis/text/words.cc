@@ -1609,4 +1609,129 @@ words replace(const words& w, const std::string& from, const std::string& to) {
   return ret;
 }
 
+void prepend(const std::vector<int>& chars,
+             const std::vector<size_t>& starts,
+             const std::vector<size_t>& lens,
+             std::vector<int>& ret_chars,
+             std::vector<size_t>& ret_starts,
+             std::vector<size_t>& ret_lens,
+             const std::string& to_prepend) {
+  auto to_prepend_size = to_prepend.size();
+  auto new_chars = concat_words(chars, starts, lens, to_prepend, ret_starts);
+  auto new_chars_size = new_chars.size();
+  ret_chars.resize(new_chars_size);
+  auto ret_charsp = ret_chars.data();
+  auto new_charsp = new_chars.data();
+  for(size_t i = 0; i < new_chars_size - to_prepend_size; i++) {
+    ret_charsp[i + to_prepend_size] = new_charsp[i];
+  }
+  for(size_t i = 0; i < to_prepend_size; i++) {
+    ret_charsp[i] = new_charsp[new_chars_size - to_prepend_size + i];
+  }
+  auto lens_size = lens.size();
+  ret_lens.resize(lens_size);
+  auto ret_lensp = ret_lens.data();
+  auto lensp = lens.data();
+  for(size_t i = 0; i < lens_size; i++) {
+    ret_lensp[i] = lensp[i] + to_prepend_size;
+  }
+}
+
+words prepend(const words& w, const std::string& to_prepend) {
+  words ret;
+  prepend(w.chars, w.starts, w.lens, ret.chars, ret.starts, ret.lens, to_prepend);
+  return ret;
+}
+
+void append(const std::vector<int>& chars,
+             const std::vector<size_t>& starts,
+             const std::vector<size_t>& lens,
+             std::vector<int>& ret_chars,
+             std::vector<size_t>& ret_starts,
+             std::vector<size_t>& ret_lens,
+             const std::string& to_append) {
+  auto to_append_size = to_append.size();
+  ret_chars = concat_words(chars, starts, lens, to_append, ret_starts);
+  auto lens_size = lens.size();
+  ret_lens.resize(lens_size);
+  auto ret_lensp = ret_lens.data();
+  auto lensp = lens.data();
+  for(size_t i = 0; i < lens_size; i++) {
+    ret_lensp[i] = lensp[i] + to_append_size;
+  }
+}
+
+words append(const words& w, const std::string& to_append) {
+  words ret;
+  append(w.chars, w.starts, w.lens, ret.chars, ret.starts, ret.lens, to_append);
+  return ret;
+}
+
+words horizontal_concat_words(std::vector<words>& vec_words) {
+  if(vec_words.size() == 0) return words();
+  auto num_words = vec_words[0].starts.size();
+  auto vec_words_size = vec_words.size();
+  for(size_t i = 1; i < vec_words_size; i++) {
+    if(vec_words[i].starts.size() != num_words)
+      throw std::runtime_error
+        ("horizontal_concat_words: different number of words");
+  }
+  std::vector<size_t> each_chars_size(vec_words_size);
+  auto each_chars_sizep = each_chars_size.data();
+  for(size_t i = 0; i < vec_words_size; i++) {
+    each_chars_sizep[i] = vec_words[i].chars.size();
+  }
+  std::vector<size_t> pfx_chars_size(vec_words_size+1); // to make it exclusive
+  auto pfx_chars_sizep = pfx_chars_size.data();
+  prefix_sum(each_chars_sizep, pfx_chars_sizep+1, vec_words_size);
+  size_t concat_chars_size = pfx_chars_size[vec_words_size];
+
+  std::vector<int> concat_chars(concat_chars_size);
+  auto concat_charsp = concat_chars.data();
+  for(size_t i = 0; i < vec_words_size; i++) {
+    auto crnt_charsp = vec_words[i].chars.data();
+    auto crnt_chars_size = vec_words[i].chars.size();
+    auto crnt_concat_charsp = concat_charsp + pfx_chars_sizep[i];
+    for(size_t j = 0; j < crnt_chars_size; j++) {
+      crnt_concat_charsp[j] = crnt_charsp[j];
+    }
+  }
+
+  words ret;
+  std::vector<size_t> new_starts;
+  {
+    words tmp;
+    tmp.starts.resize(num_words * vec_words_size);
+    tmp.lens.resize(num_words * vec_words_size);
+    tmp.chars.swap(concat_chars);
+    auto tmp_startsp = tmp.starts.data();
+    auto tmp_lensp = tmp.lens.data();
+    for(size_t i = 0; i < vec_words_size; i++) {
+      auto crnt_startsp = vec_words[i].starts.data();
+      auto crnt_lensp = vec_words[i].lens.data();
+      auto starts_shift = pfx_chars_sizep[i];
+      for(size_t j = 0; j < num_words; j++) {
+        tmp_startsp[vec_words_size * j + i] = crnt_startsp[j] + starts_shift;
+        tmp_lensp[vec_words_size * j + i] = crnt_lensp[j];
+      }
+    }
+    ret.chars = concat_words(tmp, "", new_starts);
+  }
+  ret.starts.resize(num_words);
+  ret.lens.resize(num_words);
+  auto ret_startsp = ret.starts.data();
+  auto new_startsp = new_starts.data();
+  for(size_t i = 0; i < num_words; i++) {
+    ret_startsp[i] = new_startsp[i * vec_words_size];
+  }
+  auto ret_lensp = ret.lens.data();
+  for(size_t i = 0; i < vec_words_size; i++) {
+    auto crnt_lensp = vec_words[i].lens.data();
+    for(size_t j = 0; j < num_words; j++) {
+      ret_lensp[j] += crnt_lensp[j];
+    }
+  }
+  return ret;
+}
+
 }

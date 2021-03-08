@@ -134,6 +134,20 @@ void replace(const std::vector<int>& chars,
              std::vector<size_t>& ret_lens,
              const std::string& from,
              const std::string& to);
+void prepend(const std::vector<int>& chars,
+             const std::vector<size_t>& starts,
+             const std::vector<size_t>& lens,
+             std::vector<int>& ret_chars,
+             std::vector<size_t>& ret_starts,
+             std::vector<size_t>& ret_lens,
+             const std::string& to_prepend);
+void append(const std::vector<int>& chars,
+            const std::vector<size_t>& starts,
+            const std::vector<size_t>& lens,
+            std::vector<int>& ret_chars,
+            std::vector<size_t>& ret_starts,
+            std::vector<size_t>& ret_lens,
+            const std::string& to_append);
 
 // utility struct
 struct words {
@@ -171,6 +185,24 @@ struct words {
     std::vector<size_t> ret_starts, ret_lens;
     frovedis::replace(chars, starts, lens, ret_chars, ret_starts, ret_lens,
                       from, to);
+    chars.swap(ret_chars);
+    starts.swap(ret_starts);
+    lens.swap(ret_lens);
+  }
+  void prepend(const std::string& to_prepend) { // destructive
+    std::vector<int> ret_chars;
+    std::vector<size_t> ret_starts, ret_lens;
+    frovedis::prepend(chars, starts, lens, ret_chars, ret_starts, ret_lens,
+                      to_prepend);
+    chars.swap(ret_chars);
+    starts.swap(ret_starts);
+    lens.swap(ret_lens);
+  }
+  void append(const std::string& to_append) { // destructive
+    std::vector<int> ret_chars;
+    std::vector<size_t> ret_starts, ret_lens;
+    frovedis::append(chars, starts, lens, ret_chars, ret_starts, ret_lens,
+                      to_append);
     chars.swap(ret_chars);
     starts.swap(ret_starts);
     lens.swap(ret_lens);
@@ -218,6 +250,9 @@ std::vector<std::string> words_to_vector_string(const words& ws);
 void search(const words& w, const std::string& to_search,
             std::vector<size_t>& idx, std::vector<size_t>& pos);
 words replace(const words& w, const std::string& from, const std::string& to);
+words prepend(const words& w, const std::string& to_prepend);
+words append(const words& w, const std::string& to_append);
+words horizontal_concat_words(std::vector<words>& vec_words);
 
 }
 #endif
