@@ -3022,5 +3022,46 @@ void standardize(crs_matrix<T, I, O>& mat,
   standardize(mat, mean, sample_stddev, with_nnz);
 }
 
+template <class T, class I, class O>
+std::vector<size_t> 
+group_identical_rows(crs_matrix_local<T,I,O>& mat, 
+                     std::vector<size_t>& sep) {
+  auto valp = mat.val.data();
+  auto idxp = mat.idx.data();
+  auto offp = mat.off.data();
+  size_t nrow = mat.local_num_row;
+  std::vector<size_t> group_idx(nrow);
+  if (nrow == 0) return group_idx;
+  auto gptr = group_idx.data();
+  for(size_t i = 0; i < nrow; ++i) gptr[i] = i;
+  for(size_t i = 0; i < nrow - 1; ++i) {
+    if (gptr[i] == i) { // not visited
+      auto i_width = offp[i + 1] - offp[i];
+      for(size_t j = i + 1; j < nrow; ++j) {
+        if(gptr[j] == j) { // not already visited
+          auto j_width = offp[j + 1] - offp[j];
+          auto same_val = vector_is_same_impl(valp + offp[i], valp+ offp[j],
+                                              i_width, j_width);
+          auto same_idx = vector_is_same_impl(idxp + offp[i], idxp + offp[j],
+                                              i_width, j_width);
+          if (same_val && same_idx) gptr[j] = i; 
+        }
+      }
+    } 
+  }
+  auto pos = vector_arrange<size_t>(nrow);
+  radix_sort(group_idx, pos, true);
+  sep = set_separate(group_idx);
+  return pos; 
+}
+
+template <class T, class I, class O>
+std::vector<size_t> 
+group_identical_rows(crs_matrix<T,I,O>& mat, 
+                     std::vector<size_t>& sep) {
+  auto lmat = mat.gather();
+  return group_identical_rows(lmat, sep);
+}
+
 }
 #endif
