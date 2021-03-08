@@ -123,11 +123,11 @@ class FPGrowth(object):
         """
         midr = ModelID.get()
         (host, port) = FrovedisServer.getServerInstance()
-        rpclib.fpgrowth_fpr(host, port, self.__mid, midr, confidence)
+        count = rpclib.fpgrowth_fpr(host, port, self.__mid, midr, confidence)
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
             raise RuntimeError(excpt["info"])
-        return Fp_rules(midr)
+        return FPRules(midr, count)
 
     def load(self, fname):
         """
@@ -148,16 +148,14 @@ class FPGrowth(object):
         NAME: save
         """
         if self.__mid is not None:
-            GLM.save(self.__mid, self.__mkind,
-                     DTYPE.DOUBLE, fname)
+            GLM.save(self.__mid, self.__mkind, DTYPE.DOUBLE, fname)
 
     def debug_print(self):
         """
         NAME: debug_print
         """
         if self.__mid is not None:
-            GLM.debug_print(self.__mid, self.__mkind,
-                            DTYPE.DOUBLE)
+            GLM.debug_print(self.__mid, self.__mkind, DTYPE.DOUBLE)
 
     def release(self):
         """
@@ -176,18 +174,56 @@ class FPGrowth(object):
         if FrovedisServer.isUP():
             self.release()
 
-class Fp_rules(object):
+class FPRules(object):
     """
-    Fp_rules
+    FPRules
     """
-    def __init__(self, mid=None):
+    def __init__(self, mid=None, count=None):
         self.__mkind = M_KIND.FPR
         self.__mid = mid
+        self.count = count
+
+    def load(self, fname):
+        """
+        NAME: load
+        """
+        self.release()
+        self.__mid = ModelID.get()
+        (host, port) = FrovedisServer.getServerInstance()
+        self.count = rpclib.load_fp_model(host, port, self.__mid, \
+                              self.__mkind, fname.encode('ascii'))
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
+        return self
+
+    def save(self, fname):
+        """
+        NAME: save
+        """
+        if self.__mid is not None:
+            GLM.save(self.__mid, self.__mkind, DTYPE.DOUBLE, fname)
 
     def debug_print(self):
         """
         NAME: debug_print
         """
         if self.__mid is not None:
-            GLM.debug_print(self.__mid, self.__mkind,
-                            DTYPE.DOUBLE)
+            GLM.debug_print(self.__mid, self.__mkind, DTYPE.DOUBLE)
+
+    def release(self):
+        """
+        NAME: release
+        """
+        if self.__mid is not None:
+            GLM.release(self.__mid, self.__mkind, DTYPE.DOUBLE)
+            self.__mid = None
+            self.count = None
+
+    def __del__(self):
+        """
+        NAME: __del__
+        """
+        if FrovedisServer.isUP():
+            self.release()
+
