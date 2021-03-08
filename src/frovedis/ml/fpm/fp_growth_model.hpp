@@ -8,12 +8,16 @@
 namespace frovedis {
   struct association_rule{
     association_rule() {}
-    association_rule(std::vector<dftable>& rs): rule(rs){}
+    association_rule(const std::vector<dftable>& rs): rule(rs) {}
+    association_rule(std::vector<dftable>&& rs) { rule.swap(rs); }
+    void clear();
     void debug_print();
-    void save (const std::string& fname);
-    void savebinary (const std::string& fname);
-    void load (const std::string& fname);
-    void loadbinary (const std::string& fname);
+    size_t get_count();
+    size_t get_depth();
+    void save (const std::string& dir);
+    void savebinary (const std::string& dir);
+    void load (const std::string& dir);
+    void loadbinary (const std::string& dir);
     std::vector<dftable> rule;
     SERIALIZE(rule)
   };
@@ -22,7 +26,7 @@ namespace frovedis {
     fp_growth_model() {}
     fp_growth_model(const std::vector<dftable>& fp_tree,
                     const std::vector<dftable>& t_info): 
-      item(fp_tree), tree_info(t_info)  {}
+      item(fp_tree), tree_info(t_info) {}
     fp_growth_model(std::vector<dftable>&& fp_tree,
                     std::vector<dftable>&& t_info) {
       item.swap(fp_tree); 
@@ -43,11 +47,6 @@ namespace frovedis {
     SERIALIZE(item, tree_info)
   };
   
-  dftable create_antacedent(dftable, int);
-  dftable calculate_confidence(dftable&, dftable&, double);
-  association_rule 
-  generate_association_rules(std::vector<dftable>& freq_itemsets,
-                             double con);
   void free_df(dftable_base&);
 
   // show() for debugging...
