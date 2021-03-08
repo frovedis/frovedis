@@ -177,15 +177,14 @@ class FPGrowthModel (val model_Id: Int, val fis_count: Int)
   def generateAssociationRules(minConfidence: Double): FPGrowthRule = {
     val model_Idr = ModelID.get()
     val fs = FrovedisServer.getServerInstance()
-    JNISupport.callFrovedisFPMR(fs.master_node, 
-                               minConfidence,model_Id,model_Idr)
+    val count = JNISupport.callFrovedisFPMR(fs.master_node, 
+                minConfidence, model_Id, model_Idr)
     val info = JNISupport.checkServerException();
     if (info != "") throw new java.rmi.ServerException(info);
-    return new FPGrowthRule(model_Idr)
+    return new FPGrowthRule(model_Idr, count)
   }
-  
   def generateAssociationRules(): FPGrowthRule = {
-     return  generateAssociationRules(0.8)
+    return generateAssociationRules(0.8)
   }  
   def to_spark_model(sc:SparkContext): org.apache.spark.mllib.fpm.FPGrowthModel[Int] = {
     val fs = FrovedisServer.getServerInstance();
@@ -204,14 +203,14 @@ object FPGrowthModel{
     val model_Id = ModelID.get()
     val fs = FrovedisServer.getServerInstance()
     val fis_cnt = JNISupport.loadFPGrowthModel(fs.master_node, 
-                  model_Id, path)
+                  model_Id, M_KIND.FPM, path)
     val info = JNISupport.checkServerException();
     if (info != "") throw new java.rmi.ServerException(info);
     return new FPGrowthModel(model_Id, fis_cnt)
   }
 }
 
-class FPGrowthRule (val model_Id: Int ) 
+class FPGrowthRule (val model_Id: Int, val count: Int) 
                    extends GenericModel(model_Id, M_KIND.FPR) { 
 }
 
@@ -220,10 +219,11 @@ object FPGrowthRule {
   def load(path: String): FPGrowthRule = {
     val model_Id = ModelID.get()
     val fs = FrovedisServer.getServerInstance()
-    JNISupport.loadFrovedisModel(fs.master_node,model_Id,M_KIND.FPR,path)
+    val cnt = JNISupport.loadFPGrowthModel(fs.master_node, 
+                                model_Id, M_KIND.FPR, path)
     val info = JNISupport.checkServerException();
     if (info != "") throw new java.rmi.ServerException(info);
-    return new FPGrowthRule(model_Id)
+    return new FPGrowthRule(model_Id, cnt)
   }
 } 
 
