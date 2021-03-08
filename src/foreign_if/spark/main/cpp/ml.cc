@@ -725,15 +725,17 @@ JNIEXPORT int JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisFPM
 }
 
 // generate association rule
-JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisFPMR
+JNIEXPORT int JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisFPMR
   (JNIEnv *env, jclass thisCls, jobject master_node ,
    jdouble minConfidence, jint mid , jint midr) {
-
   auto fm_node = java_node_to_frovedis_node(env, master_node);
+  int count = 0;
   try {
-    exrpc_oneway(fm_node,frovedis_fpr<fp_growth_model>,minConfidence,mid,midr);
+    count = exrpc_async(fm_node, frovedis_fpr<fp_growth_model>, 
+                        minConfidence, mid, midr).get();
   }
   catch(std::exception& e) { set_status(true,e.what()); }
+  return count;
 }
 
 // (15) --- Word2Vector ---
