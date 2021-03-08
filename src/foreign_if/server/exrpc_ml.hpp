@@ -856,12 +856,14 @@ int frovedis_fp_growth(exrpc_ptr_t& dptr, double& min_support,
 }
 
 template <class MODEL>
-void frovedis_fpr(double& min_confidence,
-                  int& mid , int& midr) {
- register_for_train(midr);  // mark model 'mid' as "under training"
- auto mptr = get_model_ptr<fp_growth_model>(mid);
- auto rul =  mptr->generate_rules(min_confidence);
- handle_trained_model<association_rule>(midr, FPR, rul);
+int frovedis_fpr(double& min_confidence,
+                 int& mid , int& midr) {
+  register_for_train(midr);  // mark model 'mid' as "under training"
+  auto mptr = get_model_ptr<fp_growth_model>(mid);
+  auto rule =  mptr->generate_rules(min_confidence);
+  auto count = rule.get_count();
+  handle_trained_model<association_rule>(midr, FPR, rule);
+  return count;
 }
 
 template<class T>
