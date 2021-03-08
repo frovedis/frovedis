@@ -1270,16 +1270,19 @@ extern "C" {
     return fis_cnt;
   }
 
-  void fpgrowth_fpr(const char* host, int port,
-                        int mid, int midr, double con) {
+  int fpgrowth_fpr(const char* host, int port,
+                   int mid, int midr, double conf) {
     if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
     exrpc_node fm_node(host,port);
+    int count = 0;
     try {
-      exrpc_oneway(fm_node, frovedis_fpr<fp_growth_model>,con, mid, midr);
+      count = exrpc_async(fm_node, frovedis_fpr<fp_growth_model>, 
+                          conf, mid, midr).get();
     }
     catch (std::exception& e) {
       set_status(true, e.what());
     }
+    return count;
   }
 
   // --- (16) Word2Vector ---
