@@ -224,27 +224,33 @@ public:
                          const std::shared_ptr<dfcolumn>& c);
   // do not support NULL items
   template <class R, class T1, class F>
-  dftable& calc(const std::string& r, F f, const std::string& c1);
+  dftable& calc(const std::string& r, F f, const std::string& c1,
+                bool check_null_like = false);
   template <class R, class T1, class T2, class F>
   dftable&  calc(const std::string& r, F f, const std::string& c1,
-                 const std::string& c2);
+                 const std::string& c2,  
+                 bool check_null_like = false);
   template <class R, class T1, class T2, class T3, class F>
   dftable&  calc(const std::string& r, F f, const std::string& c1,
-                 const std::string& c2, const std::string& c3);
+                 const std::string& c2, const std::string& c3,
+                 bool check_null_like = false);
   template <class R, class T1, class T2, class T3, class T4, class F>
   dftable&  calc(const std::string& r, F f, const std::string& c1,
                  const std::string& c2, const std::string& c3,
-                 const std::string& c4);
+                 const std::string& c4,  
+                 bool check_null_like = false);
   template <class R, class T1, class T2, class T3, class T4, class T5, class F>
   dftable&  calc(const std::string& r, F f, const std::string& c1,
                  const std::string& c2, const std::string& c3,
-                 const std::string& c4, const std::string& c5);
+                 const std::string& c4, const std::string& c5,
+                 bool check_null_like = false);
   template <class R, class T1, class T2, class T3, class T4, class T5,
             class T6, class F>
   dftable&  calc(const std::string& r, F f, const std::string& c1,
                  const std::string& c2, const std::string& c3,
                  const std::string& c4, const std::string& c5,
-                 const std::string& c6);
+                 const std::string& c6,
+                 bool check_null_like = false);
   dftable& append_rowid(const std::string& name, size_t offset = 0);
   dftable& datetime_extract(datetime_type kind, const std::string& src_column,
                             const std::string& to_append_column);
@@ -279,16 +285,15 @@ public:
   virtual dftable_base* clone();
   virtual dftable_base* rename_cols(const std::string& name,
                                     const std::string& name2);
-  dftable& add_index_column(const std::string& name,
-                           size_t offset=0){
-    this->append_rowid(name, offset);
-    auto cols = columns();
-    auto sz = cols.size();
-    for (size_t i = sz - 1; i > 0; --i) cols[i] = cols[i - 1];
-    cols[0] = name;
-    this->col_order.swap(cols);
-    return *this;
-  }
+
+  // change internal data to save memory
+  // so returns dftable& instead of dftable; cannot make it virtual
+  dftable& align_as(const std::vector<size_t>& sizes);
+  dftable& align_block();
+
+  dftable& add_index(const std::string& name, size_t offset=0);
+  dftable& set_index(const std::string& name);
+  dftable& set_col_order(std::vector<std::string>& new_col_order);
   
   friend filtered_dftable;
   friend sorted_dftable;
@@ -403,7 +408,8 @@ struct calc_helper1 {
 
 template <class R, class T1, class F>
 dftable& dftable::calc(const std::string& name, F f,
-                       const std::string& c1) {
+                       const std::string& c1, 
+                       bool check_null_like) {
   auto tc1 = std::dynamic_pointer_cast<typed_dfcolumn<T1>>(column(c1));
   if(!tc1)
     throw std::runtime_error
@@ -411,7 +417,7 @@ dftable& dftable::calc(const std::string& name, F f,
   auto&& val1 = tc1->get_val();
   auto r = val1.template map<std::vector<R>>
     (calc_helper1<R,T1,F>(f));
-  return append_column(name, r.template moveto_dvector<R>());
+  return append_column(name, r.template moveto_dvector<R>(), check_null_like);
 }
 
 template <class R, class T1, class T2, class F>
@@ -435,7 +441,8 @@ struct calc_helper2 {
 
 template <class R, class T1, class T2, class F>
 dftable& dftable::calc(const std::string& name, F f,
-                       const std::string& c1, const std::string& c2) {
+                       const std::string& c1, const std::string& c2,
+                       bool check_null_like) {
   auto tc1 = std::dynamic_pointer_cast<typed_dfcolumn<T1>>(column(c1));
   auto tc2 = std::dynamic_pointer_cast<typed_dfcolumn<T2>>(column(c2));
   if(!tc1 || !tc2)
@@ -446,7 +453,7 @@ dftable& dftable::calc(const std::string& name, F f,
   auto r = val1.template map<std::vector<R>>
     (calc_helper2<R,T1,T2,F>(f),
      val2);
-  return append_column(name, r.template moveto_dvector<R>());
+  return append_column(name, r.template moveto_dvector<R>(), check_null_like);
 }
 
 template <class R, class T1, class T2, class T3, class F>
@@ -473,7 +480,8 @@ struct calc_helper3 {
 template <class R, class T1, class T2, class T3, class F>
 dftable& dftable::calc(const std::string& name, F f,
                        const std::string& c1, const std::string& c2,
-                       const std::string& c3) {
+                       const std::string& c3,
+                       bool check_null_like) {
   auto tc1 = std::dynamic_pointer_cast<typed_dfcolumn<T1>>(column(c1));
   auto tc2 = std::dynamic_pointer_cast<typed_dfcolumn<T2>>(column(c2));
   auto tc3 = std::dynamic_pointer_cast<typed_dfcolumn<T3>>(column(c3));
@@ -486,7 +494,7 @@ dftable& dftable::calc(const std::string& name, F f,
   auto r = val1.template map<std::vector<R>>
     (calc_helper3<R,T1,T2,T3,F>(f),
      val2, val3);
-  return append_column(name, r.template moveto_dvector<R>());
+  return append_column(name, r.template moveto_dvector<R>(), check_null_like);
 }
 
 template <class R, class T1, class T2, class T3, class T4, class F>
@@ -514,7 +522,8 @@ struct calc_helper4 {
 template <class R, class T1, class T2, class T3, class T4, class F>
 dftable&  dftable::calc(const std::string& name, F f,
                         const std::string& c1, const std::string& c2,
-                        const std::string& c3, const std::string& c4) {
+                        const std::string& c3, const std::string& c4,
+                        bool check_null_like) {
   auto tc1 = std::dynamic_pointer_cast<typed_dfcolumn<T1>>(column(c1));
   auto tc2 = std::dynamic_pointer_cast<typed_dfcolumn<T2>>(column(c2));
   auto tc3 = std::dynamic_pointer_cast<typed_dfcolumn<T3>>(column(c3));
@@ -529,7 +538,7 @@ dftable&  dftable::calc(const std::string& name, F f,
   auto r = val1.template map<std::vector<R>>
     (calc_helper4<R,T1,T2,T3,T4,F>(f),
      val2, val3, val4);
-  return append_column(name, r.template moveto_dvector<R>());
+  return append_column(name, r.template moveto_dvector<R>(), check_null_like);
 }
 
 template <class R, class T1, class T2, class T3, class T4, class T5, class F>
@@ -560,7 +569,8 @@ template <class R, class T1, class T2, class T3, class T4, class T5, class F>
 dftable& dftable::calc(const std::string& name, F f,
                    const std::string& c1, const std::string& c2,
                    const std::string& c3, const std::string& c4,
-                   const std::string& c5) {
+                   const std::string& c5,
+                   bool check_null_like) {
   auto tc1 = std::dynamic_pointer_cast<typed_dfcolumn<T1>>(column(c1));
   auto tc2 = std::dynamic_pointer_cast<typed_dfcolumn<T2>>(column(c2));
   auto tc3 = std::dynamic_pointer_cast<typed_dfcolumn<T3>>(column(c3));
@@ -577,7 +587,7 @@ dftable& dftable::calc(const std::string& name, F f,
   auto r = val1.template map<std::vector<R>>
     (calc_helper5<R,T1,T2,T3,T4,T5,F>(f),
      val2, val3, val4, val5);
-  return append_column(name, r.template moveto_dvector<R>());
+  return append_column(name, r.template moveto_dvector<R>(), check_null_like);
 }
 
 template <class R, class T1, class T2, class T3, class T4, class T5,
@@ -611,7 +621,8 @@ template <class R, class T1, class T2, class T3, class T4, class T5,
 dftable& dftable::calc(const std::string& name, F f,
                        const std::string& c1, const std::string& c2,
                        const std::string& c3, const std::string& c4,
-                       const std::string& c5, const std::string& c6) {
+                       const std::string& c5, const std::string& c6,
+                       bool check_null_like) {
   auto tc1 = std::dynamic_pointer_cast<typed_dfcolumn<T1>>(column(c1));
   auto tc2 = std::dynamic_pointer_cast<typed_dfcolumn<T2>>(column(c2));
   auto tc3 = std::dynamic_pointer_cast<typed_dfcolumn<T3>>(column(c3));
@@ -630,7 +641,7 @@ dftable& dftable::calc(const std::string& name, F f,
   auto r = val1.template map<std::vector<R>>
     (calc_helper6<R,T1,T2,T3,T4,T5,T6,F>(f),
      val2, val3, val4, val5, val6);
-  return append_column(name, r.template moveto_dvector<R>());
+  return append_column(name, r.template moveto_dvector<R>(), check_null_like);
 }
 
 class sorted_dftable : public dftable_base {
