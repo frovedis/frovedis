@@ -12,15 +12,16 @@ dftable copy_and_rename_df(dftable& df, int iter) {
     new_name = cols[i] + "_";
     copy_df.rename(cols[i], new_name);
   }
-  new_name = "item" + std::to_string(iter);
+  new_name = "item" + STR(iter);
   copy_df.rename(cols[ncol-2], new_name);
-  new_name = "rank" + std::to_string(iter);
+  new_name = "rank" + STR(iter);
   copy_df.rename(cols[ncol-1], new_name);
   return copy_df;
 }
 
 dftable fp_growth_self_join(dftable& df, int iter, 
-                            int compression_point) {
+                            int compression_point,
+                            int nproc) {
   auto copy_df = copy_and_rename_df(df, iter);
   auto cols_left  = df.columns();
   auto cols_right = copy_df.columns();
@@ -47,8 +48,9 @@ dftable fp_growth_self_join(dftable& df, int iter,
   for(size_t i = 0; i < ncol - 1; ++i) select_targets[i] = cols_left[i];
   select_targets[ncol - 1] = cols_right[ncol - 2];
   select_targets[ncol] = cols_right[ncol - 1];
-  return filtered_df.select(select_targets)
-                    .rename(select_targets[ncol], "rank");
+  auto ret = filtered_df.select(select_targets)
+                        .rename(select_targets[ncol], "rank");
+  return (nproc > 1) ? ret.align_block() : ret;
 }
 
 std::vector<std::string> 
@@ -101,6 +103,7 @@ void compress_dftable(dftable& input, int niter,
 fp_growth_model 
 generate_tables(dftable& item_count, 
                 dftable& df, size_t support,
+                size_t n_trans,
                 int tree_depth,
                 int compression_point = 4,
                 int mem_opt_level = 0) {
@@ -134,10 +137,11 @@ generate_tables(dftable& item_count,
   std::vector<dftable> tree, tree_info;
   tree.push_back(std::move(item_count)); // depth-0
   tree_info.push_back(std::move(compressed_info));
+  auto nproc = get_nodesize();
 
   time_spent gen_t(DEBUG);
   for (int niter = 1; niter < tree_depth; ++niter) {
-    df = fp_growth_self_join(df, niter, compression_point);
+    df = fp_growth_self_join(df, niter, compression_point, nproc);
 
     // df would be compressed in-place if niter >= compression_point
     compress_dftable(df, niter, compression_point, compressed_info);
@@ -146,7 +150,9 @@ generate_tables(dftable& item_count,
     std::vector<std::string> tcols = get_target_cols(cols);
     auto combination = df.group_by(tcols)
                          .select(tcols, {count_as(tcols[tcols.size() - 1], "count")})
-                         .filter(ge_im("count", support)).materialize();
+                         .filter(ge_im("count", support))
+                         .materialize();
+    if(nproc > 1) combination.align_block();
     if(!combination.num_row()) break; // no further depth is possible
     if (mem_opt_level == 1) { // further optimizing tree only when level is set to 1
       auto sz = tcols.size();
@@ -156,19 +162,21 @@ generate_tables(dftable& item_count,
         df.rename(tcols[i], opt_right[i]);
       }
       df = df.bcast_join(combination, multi_eq(opt_right, tcols)).select(cols);
+      if(nproc > 1) df.align_block();
       if (niter >= compression_point) {
         auto rem = combination.group_by({"cid"}).select({"cid"})
                               .rename("cid", "cid_rem");
         auto info_cols = compressed_info.columns();
         compressed_info = compressed_info.bcast_join(rem, eq("cid", "cid_rem"))
                                          .select(info_cols);
+        if(nproc > 1) compressed_info.align_block();
       }
     }
     tree.push_back(std::move(combination));
     tree_info.push_back(std::move(compressed_info));
-    gen_t.show(std::string("  niter-") + std::to_string(niter) + ": ");
+    gen_t.show(std::string("  niter-") + STR(niter) + ": ");
   }
-  return fp_growth_model(std::move(tree), std::move(tree_info));
+  return fp_growth_model(n_trans, std::move(tree), std::move(tree_info));
 }
 
 fp_growth_model 
@@ -195,7 +203,7 @@ grow_fp_tree(dftable& t,
   else REPORT_ERROR(USER_ERROR,
   "number of column must be two (trans_id, item) or three (index, trans_id, item)");
 
-  require (min_support > 0.0 && min_support <= 1.0,  
+  require (min_support >= 0.0 && min_support <= 1.0,  
            "support value must be within the range of range 0 to 1.");
 
   require(tree_depth >= 1, 
@@ -239,7 +247,7 @@ grow_fp_tree(dftable& t,
   fp_growth_model m;
   try {
     m = generate_tables(item_count, ordered_itemset, 
-                        support, tree_depth,
+                        support, n_trans, tree_depth,
                         compression_point, mem_opt_level);
   }
   catch(std::exception& excpt) {
