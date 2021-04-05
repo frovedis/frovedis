@@ -36,11 +36,17 @@ extern "C" {
   // std::vector<size_t> => python List of long integers
   PyObject* to_python_llong_list (const std::vector<size_t>& v);
 
+  // std::vector<unsigned long> => python List of long integers
+  PyObject* to_python_ulong_list (const std::vector<unsigned long>& v);
+
   // std::vector<float> => python List of floats
   PyObject* to_python_float_list (const std::vector<float>& v); 
 
   // std::vector<double> => python List of doubles
   PyObject* to_python_double_list (const std::vector<double>& v);
+
+  // std::vector<dummy_dftable> => python List of dummy_dftable (dict)
+  PyObject* to_py_dataframe_list(const std::vector<dummy_dftable>& v);
 
   // --- Frovedis Data structure to Python Data structure ---
   PyObject* to_py_bfs_result(const bfs_result<DT5>& result);
