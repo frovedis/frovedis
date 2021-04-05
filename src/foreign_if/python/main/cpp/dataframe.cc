@@ -453,6 +453,10 @@ extern "C" {
           auto long_col = exrpc_async(fm_node,get_df_long_col,f_dptr,cname).get();
           ret = to_python_long_list(long_col); 
         } break;
+        case ULONG: {
+          auto ulong_col = exrpc_async(fm_node,get_df_ulong_col,f_dptr,cname).get();
+          ret = to_python_ulong_list(ulong_col); 
+        } break;
         case FLOAT: {
           auto float_col = exrpc_async(fm_node,get_df_float_col,f_dptr,cname).get();
           ret = to_python_float_list(float_col); 
@@ -634,12 +638,15 @@ extern "C" {
                                    ulong dtypes_dict_size, 
                                    bool to_separate, bool add_index,
                                    int* usecols, ulong usecols_len,
-                                   bool verbose, bool mangle_dupe_cols) {
+                                   bool verbose, bool mangle_dupe_cols,
+                                   int index_col, const char** bool_cols,
+                                   ulong bool_cols_size) {
     ASSERT_PTR(host);
  
-    std::vector<std::string> col_types, col_names;
+    std::vector<std::string> col_types, col_names, bool_col_vec;
     if (names_size > 0) col_names = to_string_vector(names, names_size);
     if (types_size > 0) col_types = to_string_vector(types, types_size);
+    if (bool_cols_size > 0) bool_col_vec = to_string_vector(bool_cols, bool_cols_size);
 
     std::map<std::string, std::string> type_map;
     if (partial_type_info) {
@@ -652,16 +659,14 @@ extern "C" {
     auto usecols_vec = to_int_vector(usecols, usecols_len);
     csv_config conf((int)sep, nullstr, comment, rows_to_see, 
                     separate_mb, to_separate, add_index, 
-                    verbose, mangle_dupe_cols);
+                    verbose, mangle_dupe_cols, index_col);
 
     dummy_dftable res;
     exrpc_node fm_node(host, port);
     try {
       res = exrpc_async(fm_node, frov_load_dataframe_from_csv, filename_,
-                        col_types, col_names, 
-                        partial_type_info, type_map, 
-                        usecols_vec,
-                        conf). get();
+                        col_types, col_names, partial_type_info, type_map, 
+                        usecols_vec, bool_col_vec, conf). get();
     }
     catch (std::exception& e) {
       set_status(true, e.what());
@@ -682,6 +687,64 @@ extern "C" {
       set_status(true, e.what());
     }
     return (long) len;
+  }
+
+  PyObject* df_convert_dicstring_to_bool(const char* host, int port,
+                                        long proxy, const char **col_names,
+                                        ulong sz, const char* nullstr,
+                                        bool need_materialize) {
+    ASSERT_PTR(host);
+    auto df_proxy = static_cast<exrpc_ptr_t>(proxy);
+    auto col_names_ = to_string_vector(col_names, sz);
+    auto nullstr_ = std::string(nullstr);
+    exrpc_node fm_node(host,port);
+    dummy_dftable res;
+    try {
+      res = exrpc_async(fm_node, frov_df_convert_dicstring_to_bool, df_proxy,
+                       col_names_, nullstr_, need_materialize).get();
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return to_py_dummy_df(res);
+  }
+
+  PyObject* df_append_column(const char* host, int port,  long proxy,
+                            const char* col_name, short type, long dvec,
+                            int position, bool need_materialize,
+                            bool drop_old) {
+    ASSERT_PTR(host);
+    auto df_proxy = static_cast<exrpc_ptr_t>(proxy);
+    auto dvec_proxy = static_cast<exrpc_ptr_t>(dvec);
+    auto col_name_ = std::string(col_name);
+    exrpc_node fm_node(host,port);
+    dummy_dftable res;
+    try {
+      res = exrpc_async(fm_node, frov_df_append_column, df_proxy, col_name_,
+                      type, dvec_proxy, position, need_materialize,
+                      drop_old).get();
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return to_py_dummy_df(res);
+  }
+
+  PyObject* df_add_index(const char* host, int port, long proxy,
+                        const char* name, bool need_materialize) {
+    ASSERT_PTR(host); 
+    exrpc_node fm_node(host, port);
+    auto df_proxy = static_cast<exrpc_ptr_t> (proxy);
+    std::string name_(name);
+    dummy_dftable res;
+    try {
+      res = exrpc_async(fm_node, frov_df_add_index, df_proxy, name_,
+                      need_materialize).get();
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return to_py_dummy_df(res);
   }
 
 }
