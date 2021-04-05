@@ -1725,6 +1725,33 @@ This method performs clustering based art2a method. `data` is samples to be clus
 
 Return value is weight matrix of final clusters and its assignment of each sample. Cluster assignment is represented as vector with the number of all samples, and its element is the row index of weight matrix.  
 
+### 4.3.4 gmm
+We provide clustering algorithm again using gmm(Gaussian mixtute model).
+
+Please look at "src/tut4.3-4/tut.cc". The structure is mostly the same as previous example; it only takes the matrix dataset, not label.
+The data "./train.mat" is synthesized data.
+
+    auto gmm_model =
+        frovedis::gmm(Data, k, num_iteration, eps);
+
+By calling `frovedis::gmm(samples, k, num_iteration, eps)`, you can get the means, covariance matrixes and mixing coefficients of each cluster. Here, k is the number of cluster.
+Also, mixing coefficient means the ratio of data to all the data that belongs to a cluster.
+
+The type of means and mixing coefficients is `rowmajor_matrix_local.`, where each column shows each mean vector and mixing coefficient. So in the program, the matrix is transposed and saved. 
+
+The type of the covariance matrixes is also `rowmajor_matrix_local.`, where each column for each number of dimensions shows a covariance matrix of one cluster. So, the matrix is saved without transposing. 
+
+The means, covariance matrixes and mixing coefficient can be used to predict what percentage of the data belongs to each cluster and assign data to the closest centroid by calling `gmm_assign_cluster`. The result of predict should be like:
+    
+    0 1 0
+    1 0 2.53201e-214
+    0 0 1
+In the above example,the data is displayed vertically and the probabilities of belonging to each cluster are displayed horizontally.
+The result of assigning data to each cluster is as follows:
+
+    1
+    0
+    2
 
 ## 4.4 Factorization Machine
 
