@@ -144,7 +144,7 @@ class LogisticRegression(sol: String = "sgd") {
   def setUseShrink(shrink: Boolean) = {
     this.use_shrink = shrink
     this
-  }
+  }											
   def setFamily(family: String) = {
     val allowed = Array("auto", "binomial", "multinomial")
     val check = allowed.contains(family)
@@ -200,13 +200,22 @@ class LogisticRegression(sol: String = "sgd") {
   }
   def fit(data: RDD[LabeledPoint]): LogisticRegressionModel = {
     val fdata = new FrovedisLabeledPoint(data) // Spark Data => Frovedis Data
-    return fit(fdata, true)
+    return fit(fdata, true, Array.empty[Double])
   }
   def fit(data: FrovedisLabeledPoint): LogisticRegressionModel = {
-    return fit(data, false)
+    return fit(data, false, Array.empty[Double])
   }
+  def fit(data: RDD[LabeledPoint], sample_weight: Array[Double]): LogisticRegressionModel = {
+    val fdata = new FrovedisLabeledPoint(data) // Spark Data => Frovedis Data
+    return fit(fdata, true, sample_weight)
+  }
+  def fit(data: FrovedisLabeledPoint, sample_weight: Array[Double]): LogisticRegressionModel = {
+    return fit(data, false, sample_weight)
+  }
+
   def fit(data: FrovedisLabeledPoint,
-          inputMovable: Boolean): LogisticRegressionModel = {
+          inputMovable: Boolean,
+          sample_weight: Array[Double]): LogisticRegressionModel = {
     if (data.is_dense() && use_shrink)
       throw new IllegalArgumentException(
       s"fit: use_shrink is supported only for sparse data!\n")
@@ -236,17 +245,20 @@ class LogisticRegression(sol: String = "sgd") {
     if(regType == "l1") regT = 1
     else if(regType == "l2") regT = 2
     val mid = ModelID.get()
+    val sample_weight_length = sample_weight.length
     val fs = FrovedisServer.getServerInstance()
     if (solver == "sgd")
       JNISupport.callFrovedisLRSGD(fs.master_node,encoded_data,maxIter,stepSize,
                                    miniBatchFraction,regT,regParam,isMult,
                                    fitIntercept,tol,
-                                   mid,inputMovable,data.is_dense(),use_shrink)
+                                   mid,inputMovable,data.is_dense(),use_shrink,
+                                   sample_weight, sample_weight_length)
     else if(solver == "lbfgs")
       JNISupport.callFrovedisLRLBFGS(fs.master_node,encoded_data,maxIter,stepSize,
                                      histSize,regT,regParam,isMult,
                                      fitIntercept,tol,
-                                     mid,inputMovable,data.is_dense())
+                                     mid,inputMovable,data.is_dense(),
+                                     sample_weight, sample_weight_length)
     else throw new IllegalArgumentException("Currently supported solvers are: sgd/lbfgs\n")
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
@@ -370,31 +382,39 @@ object LogisticRegressionWithSGD {
             numIter: Int,
             stepSize: Double,
             miniBatchFraction: Double,
-            regParam: Double) : LogisticRegressionModel = {
+            regParam: Double,
+            sample_weight: Array[Double]) : LogisticRegressionModel = {
      return new LogisticRegression().setMaxIter(numIter)
                                     .setStepSize(stepSize)
                                     .setMiniBatchFraction(miniBatchFraction)
                                     .setRegParam(regParam)
                                     .setSolver("sgd")
-                                    .fit(data)
+                                    .fit(data, sample_weight)
+  }
+  def train(data: RDD[LabeledPoint],
+            numIter: Int,
+            stepSize: Double,
+            miniBatchFraction: Double,
+            regParam: Double) : LogisticRegressionModel = {
+     return train(data, numIter, stepSize, miniBatchFraction, regParam, Array.empty[Double])
   }
   def train(data: RDD[LabeledPoint],
             numIter: Int,
             stepSize: Double,
             miniBatchFraction: Double) : LogisticRegressionModel = {
-     return train(data, numIter, stepSize, miniBatchFraction, 0.01)
+     return train(data, numIter, stepSize, miniBatchFraction, 0.01, Array.empty[Double])
   }
   def train(data: RDD[LabeledPoint],
             numIter: Int,
             stepSize: Double) : LogisticRegressionModel = {
-     return train(data, numIter, stepSize, 1.0, 0.01)
+     return train(data, numIter, stepSize, 1.0, 0.01, Array.empty[Double])
   }
   def train(data: RDD[LabeledPoint],
             numIter: Int) : LogisticRegressionModel = {
-     return train(data, numIter, 0.01, 1.0, 0.01)
+     return train(data, numIter, 0.01, 1.0, 0.01, Array.empty[Double])
   }
   def train(data: RDD[LabeledPoint]) : LogisticRegressionModel = {
-     return train(data, 1000, 0.01, 1.0, 0.01)
+     return train(data, 1000, 0.01, 1.0, 0.01, Array.empty[Double])
   }
 
   // User needs to convert the Spark data into Frovedis Data by himself before 
@@ -405,38 +425,50 @@ object LogisticRegressionWithSGD {
             stepSize: Double,
             miniBatchFraction: Double,
             regParam: Double,
-            isMovableInput: Boolean) : LogisticRegressionModel = {
+            isMovableInput: Boolean,
+            sample_weight: Array[Double]) : LogisticRegressionModel = {
      return new LogisticRegression().setMaxIter(numIter)
                                     .setStepSize(stepSize)
                                     .setMiniBatchFraction(miniBatchFraction)
                                     .setRegParam(regParam)
                                     .setSolver("sgd")
-                                    .fit(data,isMovableInput)
+                                    .fit(data,isMovableInput, sample_weight)
+  }
+  def train(data: FrovedisLabeledPoint,
+            numIter: Int,
+            stepSize: Double,
+            miniBatchFraction: Double,
+            regParam: Double,
+            isMovableInput: Boolean) : LogisticRegressionModel = {
+     return train(data, numIter, stepSize, miniBatchFraction, regParam, 
+                  isMovableInput, Array.empty[Double])
   }
   def train(data: FrovedisLabeledPoint,
             numIter: Int,
             stepSize: Double,
             miniBatchFraction: Double,
             regParam: Double) : LogisticRegressionModel = {
-     return train(data, numIter, stepSize, miniBatchFraction, regParam, false)
+     return train(data, numIter, stepSize, miniBatchFraction, regParam, 
+                  false, Array.empty[Double])
   }
   def train(data: FrovedisLabeledPoint,
             numIter: Int,
             stepSize: Double,
             miniBatchFraction: Double) : LogisticRegressionModel = {
-     return train(data, numIter, stepSize, miniBatchFraction, 0.01, false)
+     return train(data, numIter, stepSize, miniBatchFraction, 0.01, 
+                  false, Array.empty[Double])
   }
   def train(data: FrovedisLabeledPoint,
             numIter: Int,
             stepSize: Double) : LogisticRegressionModel = {
-     return train(data, numIter, stepSize, 1.0, 0.01, false)
+     return train(data, numIter, stepSize, 1.0, 0.01, false, Array.empty[Double])
   }
   def train(data: FrovedisLabeledPoint,
             numIter: Int) : LogisticRegressionModel = {
-     return train(data, numIter, 0.01, 1.0, 0.01, false)
+     return train(data, numIter, 0.01, 1.0, 0.01, false, Array.empty[Double])
   }
   def train(data: FrovedisLabeledPoint) : LogisticRegressionModel = {
-     return train(data, 1000, 0.01, 1.0, 0.01, false)
+     return train(data, 1000, 0.01, 1.0, 0.01, false, Array.empty[Double])
   }
 }
 
@@ -448,31 +480,40 @@ object LogisticRegressionWithLBFGS {
             numIter: Int,
             stepSize: Double,
             histSize: Int,
-            regParam: Double) : LogisticRegressionModel = {
+            regParam: Double,
+            sample_weight: Array[Double]) : LogisticRegressionModel = {
      return new LogisticRegression().setMaxIter(numIter)
                                     .setStepSize(stepSize)
                                     .setHistSize(histSize)
                                     .setRegParam(regParam)
                                     .setSolver("lbfgs")
-                                    .fit(data)
+                                    .fit(data, sample_weight)
   }
   def train(data: RDD[LabeledPoint],
             numIter: Int,
             stepSize: Double,
+            histSize: Int,
+            regParam: Double) : LogisticRegressionModel = {
+     return train(data, numIter, stepSize, histSize, regParam, Array.empty[Double])
+  }
+
+  def train(data: RDD[LabeledPoint],
+            numIter: Int,
+            stepSize: Double,
             histSize: Int) : LogisticRegressionModel = {
-     return train(data, numIter, stepSize, histSize, 0.01)
+     return train(data, numIter, stepSize, histSize, 0.01, Array.empty[Double])
   }
   def train(data: RDD[LabeledPoint],
             numIter: Int,
             stepSize: Double) : LogisticRegressionModel = {
-     return train(data, numIter, stepSize, 10, 0.01)
+     return train(data, numIter, stepSize, 10, 0.01, Array.empty[Double])
   }
   def train(data: RDD[LabeledPoint],
             numIter: Int) : LogisticRegressionModel = {
-     return train(data, numIter, 0.01, 10, 0.01)
+     return train(data, numIter, 0.01, 10, 0.01, Array.empty[Double])
   }
   def train(data: RDD[LabeledPoint]) : LogisticRegressionModel = {
-     return train(data, 1000, 0.01, 10, 0.01)
+     return train(data, 1000, 0.01, 10, 0.01, Array.empty[Double])
   }
 
   // User needs to convert the Spark data into Frovedis Data by himself before 
@@ -483,37 +524,47 @@ object LogisticRegressionWithLBFGS {
             stepSize: Double,
             histSize: Int,
             regParam: Double,
-            isMovableInput: Boolean) : LogisticRegressionModel = {
+            isMovableInput: Boolean,
+            sample_weight: Array[Double]) : LogisticRegressionModel = {
      return new LogisticRegression().setMaxIter(numIter)
                                     .setStepSize(stepSize)
                                     .setHistSize(histSize)
                                     .setRegParam(regParam)
                                     .setSolver("lbfgs")
-                                    .fit(data,isMovableInput)
+                                    .fit(data,isMovableInput, sample_weight)
   }
   def train(data: FrovedisLabeledPoint,
             numIter: Int,
             stepSize: Double,
             histSize: Int,
+            regParam: Double,
+            isMovableInput: Boolean) : LogisticRegressionModel = {
+     return train(data, numIter, stepSize, histSize, regParam, isMovableInput, Array.empty[Double])
+  }
+
+  def train(data: FrovedisLabeledPoint,
+            numIter: Int,
+            stepSize: Double,
+            histSize: Int,
             regParam: Double) : LogisticRegressionModel = {
-     return train(data, numIter, stepSize, histSize, regParam, false)
+     return train(data, numIter, stepSize, histSize, regParam, false, Array.empty[Double])
   }
   def train(data: FrovedisLabeledPoint,
             numIter: Int,
             stepSize: Double,
             histSize: Int) : LogisticRegressionModel = {
-     return train(data, numIter, stepSize, histSize, 0.01, false)
+     return train(data, numIter, stepSize, histSize, 0.01, false, Array.empty[Double])
   }
   def train(data: FrovedisLabeledPoint,
             numIter: Int,
             stepSize: Double) : LogisticRegressionModel = {
-     return train(data, numIter, stepSize, 10, 0.01, false)
+     return train(data, numIter, stepSize, 10, 0.01, false, Array.empty[Double])
   }
   def train(data: FrovedisLabeledPoint,
             numIter: Int) : LogisticRegressionModel = {
-     return train(data, numIter, 0.01, 10, 0.01, false)
+     return train(data, numIter, 0.01, 10, 0.01, false, Array.empty[Double])
   }
   def train(data: FrovedisLabeledPoint) : LogisticRegressionModel = {
-     return train(data, 1000, 0.01, 10, 0.01, false)
+     return train(data, 1000, 0.01, 10, 0.01, false, Array.empty[Double])
   }
 }
