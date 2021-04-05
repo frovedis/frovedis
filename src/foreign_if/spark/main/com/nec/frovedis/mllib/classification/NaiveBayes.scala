@@ -14,11 +14,9 @@ class NaiveBayes private(var lambda: Double,
                          var modelType: String,
                          var threshold: Double,
                          var fit_prior: Boolean,
-                         var class_prior: Array[Double],
-                         var sample_weight: Array[Double]) {
+                         var class_prior: Array[Double]) {
 						 
-  def this() = this(1.0, "multinomial", 0.0, true, Array.empty[Double], 
-                    Array.empty[Double])
+  def this() = this(1.0, "multinomial", 0.0, true, Array.empty[Double])
   def this(lambda: Double) = {
     this()
     setLambda(lambda)
@@ -59,23 +57,18 @@ class NaiveBayes private(var lambda: Double,
     this
   }
 
-  def setSampleWeight(sample_weight: Array[Double]): NaiveBayes = {
-    this.sample_weight = sample_weight
-    this
-  }
-
-  def run(data: RDD[LabeledPoint]): NaiveBayesModel = {
+  def run(data: RDD[LabeledPoint], sample_weight: Array[Double]): NaiveBayesModel = {
     val need_rowmajor = true
     val fdata = new FrovedisLabeledPoint(data, need_rowmajor)
-    return run(fdata, true)
+    return run(fdata, true, sample_weight)
   }
 
-  def run(fdata: FrovedisLabeledPoint): NaiveBayesModel =  {
-     return run(fdata, false)
+  def run(fdata: FrovedisLabeledPoint, sample_weight: Array[Double]): NaiveBayesModel =  {
+     return run(fdata, false, sample_weight)
   }  
 
   def run(fdata: FrovedisLabeledPoint,
-          movable: Boolean): NaiveBayesModel =  {
+          movable: Boolean, sample_weight: Array[Double]): NaiveBayesModel =  {
     if (fdata.is_dense() && fdata.matType() != MAT_KIND.RMJR) { 
        throw new IllegalArgumentException(
         s"run: please provide row major "+
@@ -100,27 +93,40 @@ class NaiveBayes private(var lambda: Double,
 object NaiveBayes {
   def train(data: RDD[LabeledPoint], 
             lambda: Double, 
-            modelType: String): NaiveBayesModel = {
-    return new NaiveBayes(lambda).setModelType(modelType).run(data)
+            modelType: String,
+            sample_weight: Array[Double]): NaiveBayesModel = {
+    return new NaiveBayes(lambda).setModelType(modelType).run(data, sample_weight)
   } 
+ 
   def train(data:RDD[LabeledPoint], 
+            lambda: Double,
+            modelType: String): NaiveBayesModel =  {
+    return train(data, lambda, modelType, Array.empty[Double])
+  }
+ def train(data:RDD[LabeledPoint], 
             lambda: Double): NaiveBayesModel =  {
-    return train(data, lambda, "multinomial")
+    return train(data, lambda, "multinomial", Array.empty[Double])
   }
   def train(data: RDD[LabeledPoint]): NaiveBayesModel =  {
-    return train(data, 1.0, "multinomial")
+    return train(data, 1.0, "multinomial", Array.empty[Double])
   }
   def train(fdata: FrovedisLabeledPoint,
             lambda: Double,
-            modelType: String): NaiveBayesModel =  {
-    return new NaiveBayes(lambda).setModelType(modelType).run(fdata)
+            modelType: String,
+            sample_weight: Array[Double]): NaiveBayesModel =  {
+    return new NaiveBayes(lambda).setModelType(modelType).run(fdata, sample_weight)
+  }
+  def train(fdata: FrovedisLabeledPoint,
+            lambda: Double,
+            modelType: String): NaiveBayesModel = {
+    return train(fdata, lambda, modelType, Array.empty[Double])
   }
   def train(fdata: FrovedisLabeledPoint,
             lambda: Double): NaiveBayesModel = {
-    return train(fdata, lambda, "multinomial")
+    return train(fdata, lambda, "multinomial", Array.empty[Double])
   }
   def train(fdata: FrovedisLabeledPoint): NaiveBayesModel = {
-    return train(fdata, 1.0, "multinomial")
+    return train(fdata, 1.0, "multinomial", Array.empty[Double])
   } 
 }
 
