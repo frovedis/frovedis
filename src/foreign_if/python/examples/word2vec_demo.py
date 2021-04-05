@@ -3,6 +3,8 @@
 import sys
 from frovedis.exrpc.server import FrovedisServer
 from frovedis.mllib import Word2Vec
+import numpy as np
+np.set_printoptions(threshold=10)
 
 # initializing the Frovedis server
 argvs = sys.argv
@@ -25,19 +27,17 @@ print(wv_model.wv)
 wv_model = Word2Vec(sentences=data, minCount=1) # Using corpus data
 print(wv_model.wv)
 
-### Get gensim like wv attribute for frovedis word2vec model
+### gensim needs to be installed in order to use 
+### gensim-like functionalities on word2vec model (similarity etc.)
 try:
-    wv = wv_model.to_gensim_model()
-    print(wv)
     print('similarity of {} with {} is {}'.format(\
-           "cat", "dog", wv.similarity("cat", "dog")))
-except:
-    print("### gensim is not available... so skipping " +
-          "demo for gensim related functionalities")
+           "cat", "dog", wv_model.wv.similarity("cat", "dog")))
+except AttributeError as err:
+    print(err)
 
 ### Generate document embeddings using fit_transform()
 textfile = "./input/text8-10k"
-model = "text_model.txt"
+model = "./out/text_model.txt"
 wv_model = Word2Vec(minCount=1)
 embeddings = wv_model.build_vocab(corpusFile=textfile).\
                       fit_transform(corpusFile=textfile)
