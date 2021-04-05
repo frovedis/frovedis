@@ -4,8 +4,6 @@
 #include <frovedis/core/vector_operations.hpp>
 #include <frovedis/matrix/crs_matrix.hpp>
 
-#define WEIGHT_VLEN 1024
-
 namespace frovedis {
 
 template <class T>
@@ -15,28 +13,10 @@ bool check_if_exist(size_t srcid,
   return (num_incoming[srcid] != 0 || num_outgoing[srcid] != 0);
 }
 
-template <class T>
-int is_weighted_sum_helper(std::vector<T>& vec) {
-  auto size = vec.size();
-  for(size_t j = 0; j < size; j += WEIGHT_VLEN) {
-    T sum = 0;
-    auto vptr = vec.data() + j;
-    auto remaining = size - j;
-    if (remaining >= WEIGHT_VLEN) {
-      for(size_t i = 0; i < WEIGHT_VLEN; ++i) sum += vptr[i];
-      if (sum != WEIGHT_VLEN) return true;
-    }
-    else {
-      for(size_t i = 0; i < remaining; ++i) sum += vptr[i];
-      if (sum != remaining) return true;
-    }
-  }
-  return false;
-}
-
 template <class T, class I, class O>
-int has_weight_helper(crs_matrix_local<T,I,O>& mat) {
-  return is_weighted_sum_helper(mat.val);
+int has_weight_helper(const crs_matrix_local<T,I,O>& mat) {
+  if (mat.val.empty()) return 0;
+  return (mat.val[0] != 1.0) || !vector_is_uniform(mat.val);
 }
 
 template <class T, class I, class O>
@@ -47,12 +27,20 @@ bool has_weight(crs_matrix<T,I,O>& mat) {
 }
 
 template <class T, class I, class O>
-int check_equal_helper(crs_matrix_local<T,I,O>& amat,
-                       crs_matrix_local<T,I,O>& bmat) {
+int check_equal_helper(const crs_matrix_local<T,I,O>& amat,
+                       const crs_matrix_local<T,I,O>& bmat) {
+  /*
   return (amat.local_num_row == bmat.local_num_row &&
           amat.local_num_col == bmat.local_num_col &&
           amat.val == bmat.val && amat.idx == bmat.idx &&
           amat.off == bmat.off);
+  */
+  auto same_dim = (amat.local_num_row == bmat.local_num_row &&
+                   amat.local_num_col == bmat.local_num_col);
+  auto same_data = vector_is_same(amat.val, bmat.val) &&
+                   vector_is_same(amat.idx, bmat.idx) &&
+                   vector_is_same(amat.off, bmat.off);
+  return same_dim && same_data;
 }
 
 template <class T, class I, class O>
@@ -65,14 +53,12 @@ bool has_direction(crs_matrix<T,I,O>& amat,
 
 template <class T, class I, class O>
 std::vector<size_t>
-count_edges(crs_matrix_local<T,I,O>& mat) {
+count_edges(const crs_matrix_local<T,I,O>& mat) {
   auto nrow = mat.local_num_row;
   std::vector<size_t> num_out(nrow);
   auto offptr = mat.off.data();
   auto retptr = num_out.data();
-  for(size_t i = 0; i < nrow; ++i) {
-    retptr[i] = offptr[i+1] - offptr[i];
-  }
+  for(size_t i = 0; i < nrow; ++i) retptr[i] = offptr[i + 1] - offptr[i];
   return num_out;
 }
 
