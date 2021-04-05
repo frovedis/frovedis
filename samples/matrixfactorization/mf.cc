@@ -17,15 +17,19 @@ ostream& operator<<(ostream& os, const pair<size_t, double>& d) {
 
 void do_train(const string& input, const string& output, int num_iteration,
               int factor, double alpha, double regParam, int seed, 
-              bool binary) {
+              bool binary, double sf) {
   if(seed == -1) seed = abs(rand());
   crs_matrix<double> data;
+  time_spent t(INFO);
   if(binary) data = make_crs_matrix_loadbinary<double>(input);
   else data = make_crs_matrix_load<double>(input);
+  t.show("data load time: ");
   auto mfm = matrix_factorization_using_als::train(data, factor, num_iteration,
-                                                   alpha, regParam,  seed);
+                                                   alpha, regParam, seed, sf);
+  t.show("train time: ");
   if(binary) mfm.savebinary(output);
   else mfm.save(output);
+  t.show("model save time: ");
 }
 
 void do_predict(const string& input, const string& output,
@@ -67,6 +71,7 @@ int main(int argc, char* argv[]) {
     ("alpha,a", value<double>(), "learning rate")
     ("regularization-parameter,e", value<double>(), "regularization parameter")
     ("seed,s", value<int>(), "random seed (default 0; if -1, random)")
+    ("similarity-factor", value<double>(), "similarity factor (default 1.0)")
     ("recommend-products,r", value<int>(),
      "recommend products for specified user")
     ("recommend-users,u", value<int>(),
@@ -92,6 +97,7 @@ int main(int argc, char* argv[]) {
   int user_for_recommend = -1;
   int num_recommend = 10;
   bool binary = false;
+  double sf = 0.1;
   
   if(argmap.count("help")){
     cerr << opt << endl;
@@ -130,6 +136,10 @@ int main(int argc, char* argv[]) {
 
   if(argmap.count("regularization-parameter")){
     regParam = argmap["regularization-parameter"].as<double>();
+  }
+
+  if(argmap.count("similarity-factor")){
+    sf = argmap["similarity-factor"].as<double>();
   }
 
   if(argmap.count("seed")){
@@ -178,6 +188,6 @@ int main(int argc, char* argv[]) {
                num_recommend, binary);
   } else {
     do_train(input, output, num_iteration, factor, alpha, 
-             regParam, seed, binary);
+             regParam, seed, binary, sf);
   }
 }
