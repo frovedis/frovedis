@@ -91,31 +91,39 @@ object SVMWithSGD {
             numIter: Int,
             stepSize: Double,
             regParam: Double,
-            miniBatchFraction: Double) : SVMModel = { 
+            miniBatchFraction: Double,
+            sample_weight: Array[Double]) : SVMModel = { 
      val fdata = new FrovedisLabeledPoint(data) // Spark Data => Frovedis Data 
-     return train(fdata, numIter, stepSize, regParam, miniBatchFraction, true)
+     return train(fdata, numIter, stepSize, regParam, miniBatchFraction, true, sample_weight)
+  }
+  def train(data: RDD[LabeledPoint],
+            numIter: Int,
+            stepSize: Double,
+            regParam: Double,
+            miniBatchFraction: Double) : SVMModel = {
+     return train(data, numIter, stepSize, regParam, miniBatchFraction, Array.empty[Double])
   }
 
   def train(data: RDD[LabeledPoint],
             numIter: Int,
             stepSize: Double,
             regParam: Double) : SVMModel = {
-     return train(data, numIter, stepSize, regParam, 1.0)
+     return train(data, numIter, stepSize, regParam, 1.0, Array.empty[Double])
   }
 
   def train(data: RDD[LabeledPoint],
             numIter: Int,
             stepSize: Double) : SVMModel = {
-     return train(data, numIter, stepSize, 0.01, 1.0)
+     return train(data, numIter, stepSize, 0.01, 1.0, Array.empty[Double])
   }
 
   def train(data: RDD[LabeledPoint],
             numIter: Int) : SVMModel = {
-     return train(data, numIter, 0.01, 0.01, 1.0)
+     return train(data, numIter, 0.01, 0.01, 1.0, Array.empty[Double])
   }
 
   def train(data: RDD[LabeledPoint]) : SVMModel = {
-     return train(data, 1000, 0.01, 0.01, 1.0)
+     return train(data, 1000, 0.01, 0.01, 1.0, Array.empty[Double])
   }
 
   // User needs to convert the Spark data into Frovedis Data by himself before 
@@ -126,7 +134,8 @@ object SVMWithSGD {
             stepSize: Double,
             regParam: Double,
             miniBatchFraction: Double,
-            isMovableInput: Boolean) : SVMModel = {
+            isMovableInput: Boolean,
+            sample_weight: Array[Double]) : SVMModel = {
      if (data.is_dense() && data.matType() != MAT_KIND.CMJR) { 
         throw new IllegalArgumentException(
          s"train: please provide column major "+
@@ -138,6 +147,7 @@ object SVMWithSGD {
      else enc_ret = data.encode_labels(Array(-1.0, 1.0))
      val encoded_data = enc_ret._1
      val logic = enc_ret._2
+     val sample_weight_length = sample_weight.length
 
      val mid = ModelID.get()
      val fs = FrovedisServer.getServerInstance()
@@ -145,7 +155,8 @@ object SVMWithSGD {
                                    numIter, stepSize,
                                    miniBatchFraction, regParam,
                                    mid, isMovableInput,
-                                   data.is_dense(), ncls)
+                                   data.is_dense(), ncls, sample_weight,
+                                   sample_weight_length)
      val info = JNISupport.checkServerException()
      if (info != "") throw new java.rmi.ServerException(info)
      val numFeatures = data.numCols()
@@ -154,35 +165,43 @@ object SVMWithSGD {
      data.release_encoded_labels() // releasing encoded labels from server
      return new SVMModel(mid,M_KIND.SVM,numFeatures,numClasses,threshold,logic)
   }
+  def train(data: FrovedisLabeledPoint,
+            numIter: Int,
+            stepSize: Double,
+            regParam: Double,
+            miniBatchFraction: Double,
+            isMovableInput: Boolean) : SVMModel = {
+     return train(data, numIter, stepSize, regParam, miniBatchFraction, isMovableInput, Array.empty[Double])
+  }
 
   def train(data: FrovedisLabeledPoint,
             numIter: Int,
             stepSize: Double,
             regParam: Double,
             miniBatchFraction: Double) : SVMModel = {
-     return train(data, numIter, stepSize, regParam, miniBatchFraction, false)
+     return train(data, numIter, stepSize, regParam, miniBatchFraction, false, Array.empty[Double])
   }
 
   def train(data: FrovedisLabeledPoint,
             numIter: Int,
             stepSize: Double,
             regParam: Double) : SVMModel = {
-     return train(data, numIter, stepSize, regParam, 1.0, false)
+     return train(data, numIter, stepSize, regParam, 1.0, false, Array.empty[Double])
   }
 
   def train(data: FrovedisLabeledPoint,
             numIter: Int,
             stepSize: Double) : SVMModel = {
-     return train(data, numIter, stepSize, 0.01, 1.0, false)
+     return train(data, numIter, stepSize, 0.01, 1.0, false, Array.empty[Double])
   }
 
   def train(data: FrovedisLabeledPoint,
             numIter: Int) : SVMModel = {
-     return train(data, numIter, 0.01, 0.01, 1.0, false)
+     return train(data, numIter, 0.01, 0.01, 1.0, false, Array.empty[Double])
   }
 
   def train(data: FrovedisLabeledPoint) : SVMModel = {
-     return train(data, 1000, 0.01, 0.01, 1.0, false)
+     return train(data, 1000, 0.01, 0.01, 1.0, false, Array.empty[Double])
   }
 }
 
@@ -194,31 +213,39 @@ object SVMWithLBFGS {
             numIter: Int,
             stepSize: Double,
             regParam: Double,
-            histSize: Int) : SVMModel = {
+            histSize: Int,
+            sample_weight: Array[Double]) : SVMModel = {
      val fdata = new FrovedisLabeledPoint(data) // Spark Data => Frovedis Data 
-     return train(fdata, numIter, stepSize, regParam, histSize, true)
+     return train(fdata, numIter, stepSize, regParam, histSize, true, sample_weight)
+  }
+  def train(data: RDD[LabeledPoint],
+            numIter: Int,
+            stepSize: Double,
+            regParam: Double,
+            histSize: Int) : SVMModel = {
+     return train(data, numIter, stepSize, regParam, histSize, Array.empty[Double])
   }
 
   def train(data: RDD[LabeledPoint],
             numIter: Int,
             stepSize: Double,
             regParam: Double) : SVMModel = {
-     return train(data, numIter, stepSize, regParam, 10)
+     return train(data, numIter, stepSize, regParam, 10, Array.empty[Double])
   }
 
   def train(data: RDD[LabeledPoint],
             numIter: Int,
             stepSize: Double) : SVMModel = {
-     return train(data, numIter, stepSize, 0.01, 10)
+     return train(data, numIter, stepSize, 0.01, 10, Array.empty[Double])
   }
 
   def train(data: RDD[LabeledPoint],
             numIter: Int) : SVMModel = {
-     return train(data, numIter, 0.01, 0.01, 10)
+     return train(data, numIter, 0.01, 0.01, 10, Array.empty[Double])
   }
 
   def train(data: RDD[LabeledPoint]) : SVMModel = {
-     return train(data, 1000, 0.01, 0.01, 10)
+     return train(data, 1000, 0.01, 0.01, 10, Array.empty[Double])
   }
 
   // User needs to convert the Spark data into Frovedis Data by himself before 
@@ -229,7 +256,8 @@ object SVMWithLBFGS {
             stepSize: Double,
             regParam: Double,
             histSize: Int,
-            isMovableInput: Boolean) : SVMModel = {
+            isMovableInput: Boolean,
+            sample_weight: Array[Double]) : SVMModel = {
      if (data.is_dense() && data.matType() != MAT_KIND.CMJR) { 
         throw new IllegalArgumentException(
          s"train: please provide column major "+
@@ -239,13 +267,15 @@ object SVMWithLBFGS {
      val enc_ret = data.encode_labels(Array(-1.0, 1.0))
      val encoded_data = enc_ret._1
      val logic = enc_ret._2
+     val sample_weight_length = sample_weight.length
 
      val mid = ModelID.get()
      val fs = FrovedisServer.getServerInstance()
      JNISupport.callFrovedisSVMLBFGS(fs.master_node, encoded_data, 
                                      numIter, stepSize,
                                      histSize, regParam, mid, isMovableInput,
-                                     data.is_dense(), ncls)
+                                     data.is_dense(), ncls, sample_weight,
+                                     sample_weight_length)
      val info = JNISupport.checkServerException()
      if (info != "") throw new java.rmi.ServerException(info)
      val numFeatures = data.numCols()
@@ -254,34 +284,42 @@ object SVMWithLBFGS {
      data.release_encoded_labels() // releasing encoded labels from server
      return new SVMModel(mid,M_KIND.SVM,numFeatures,numClasses,threshold,logic)
   }
+  def train(data: FrovedisLabeledPoint,
+            numIter: Int,
+            stepSize: Double,
+            regParam: Double,
+            histSize: Int,
+           isMovableInput: Boolean) : SVMModel = {
+     return train(data, numIter, stepSize, regParam, histSize, isMovableInput, Array.empty[Double])
+  }
 
   def train(data: FrovedisLabeledPoint,
             numIter: Int,
             stepSize: Double,
             regParam: Double,
             histSize: Int) : SVMModel = {
-     return train(data, numIter, stepSize, regParam, histSize, false)
+     return train(data, numIter, stepSize, regParam, histSize, false, Array.empty[Double])
   }
 
   def train(data: FrovedisLabeledPoint,
             numIter: Int,
             stepSize: Double,
             regParam: Double) : SVMModel = {
-     return train(data, numIter, stepSize, regParam, 10, false)
+     return train(data, numIter, stepSize, regParam, 10, false, Array.empty[Double])
   }
 
   def train(data: FrovedisLabeledPoint,
             numIter: Int,
             stepSize: Double) : SVMModel = {
-     return train(data, numIter, stepSize, 0.01, 10, false)
+     return train(data, numIter, stepSize, 0.01, 10, false, Array.empty[Double])
   }
 
   def train(data: FrovedisLabeledPoint,
             numIter: Int) : SVMModel = {
-     return train(data, numIter, 0.01, 0.01, 10, false)
+     return train(data, numIter, 0.01, 0.01, 10, false, Array.empty[Double])
   }
 
   def train(data: FrovedisLabeledPoint) : SVMModel = {
-     return train(data, 1000, 0.01, 0.01, 10, false)
+     return train(data, 1000, 0.01, 0.01, 10, false, Array.empty[Double])
   }
 }
