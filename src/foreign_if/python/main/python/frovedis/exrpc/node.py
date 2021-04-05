@@ -13,11 +13,18 @@ class exrpc_node:
         self.__hostname = hostname
         self.__rpcport = rpcport
 
+    def __str__(self):
+        """
+        to_string()
+        """
+        return "Hostname: " + self.__hostname.decode('ascii') + \
+               ", Port: " + str(self.__rpcport)
+
     def display(self):
         """
         display
         """
-        print("Hostname: ",self.__hostname, ", Port: ",str(self.__rpcport))
+        print(str(self))
 
     def get_host(self):
         """
