@@ -55,10 +55,24 @@ object SVMRegressionWithSGD {
             loss: String,
             eps: Double,
             isIntercept: Boolean,
-            convergenceTol: Double) : SVRModel = { 
+            convergenceTol: Double, 
+            sample_weight: Array[Double]) : SVRModel = { 
      val fdata = new FrovedisLabeledPoint(data) // Spark Data => Frovedis Data 
      return train(fdata, numIter, stepSize, regParam, regType, 
-                  miniBatchFraction, loss, eps, isIntercept, convergenceTol, true)
+                  miniBatchFraction, loss, eps, isIntercept, convergenceTol, true, sample_weight)
+  }
+  def train(data: RDD[LabeledPoint],
+            numIter: Int,
+            stepSize: Double,
+            regParam: Double,
+            regType: String,
+            miniBatchFraction: Double,
+            loss: String,
+            eps: Double,
+            isIntercept: Boolean,
+            convergenceTol: Double) : SVRModel = {
+     return train(data, numIter, stepSize, regParam, regType, 
+                  miniBatchFraction, loss, eps, isIntercept, convergenceTol, Array.empty[Double])
   }
 
   def train(data: RDD[LabeledPoint],
@@ -71,7 +85,7 @@ object SVMRegressionWithSGD {
             eps: Double,
             isIntercept: Boolean) : SVRModel = {
      return train(data, numIter, stepSize, regParam, regType, 
-                  miniBatchFraction, loss, eps, isIntercept, 0.001)
+                  miniBatchFraction, loss, eps, isIntercept, 0.001, Array.empty[Double])
   }
 
   def train(data: RDD[LabeledPoint],
@@ -83,7 +97,7 @@ object SVMRegressionWithSGD {
             loss: String,
             eps: Double) : SVRModel = {
      return train(data, numIter, stepSize, regParam, regType, 
-                  miniBatchFraction, loss, eps, false, 0.001)
+                  miniBatchFraction, loss, eps, false, 0.001, Array.empty[Double])
   }
 
   def train(data: RDD[LabeledPoint],
@@ -94,7 +108,7 @@ object SVMRegressionWithSGD {
             miniBatchFraction: Double,
             loss: String) : SVRModel = {
      return train(data, numIter, stepSize, regParam, regType, 
-                  miniBatchFraction, loss, 0.0, false, 0.001)
+                  miniBatchFraction, loss, 0.0, false, 0.001, Array.empty[Double])
   }
 
   def train(data: RDD[LabeledPoint],
@@ -104,7 +118,7 @@ object SVMRegressionWithSGD {
             regType: String,
             miniBatchFraction: Double) : SVRModel = {
      return train(data, numIter, stepSize, regParam, regType, 
-                  miniBatchFraction, "epsilon_insensitive", 0.0, false, 0.001)
+                  miniBatchFraction, "epsilon_insensitive", 0.0, false, 0.001, Array.empty[Double])
   }
 
   def train(data: RDD[LabeledPoint],
@@ -113,7 +127,7 @@ object SVMRegressionWithSGD {
             regParam: Double,
             regType: String) : SVRModel = {
      return train(data, numIter, stepSize, regParam, regType, 1.0, 
-                  "epsilon_insensitive", 0.0, false, 0.001)
+                  "epsilon_insensitive", 0.0, false, 0.001, Array.empty[Double])
   }
 
   def train(data: RDD[LabeledPoint],
@@ -121,25 +135,25 @@ object SVMRegressionWithSGD {
             stepSize: Double,
             regParam: Double) : SVRModel = {
      return train(data, numIter, stepSize, regParam, "ZERO", 1.0, 
-                  "epsilon_insensitive", 0.0, false, 0.001)
+                  "epsilon_insensitive", 0.0, false, 0.001, Array.empty[Double])
   }
 
   def train(data: RDD[LabeledPoint],
             numIter: Int,
             stepSize: Double) : SVRModel = {
      return train(data, numIter, stepSize, 0.01, "ZERO", 1.0, 
-                  "epsilon_insensitive", 0.0, false, 0.001)
+                  "epsilon_insensitive", 0.0, false, 0.001, Array.empty[Double])
   }
 
   def train(data: RDD[LabeledPoint],
             numIter: Int) : SVRModel = {
      return train(data, numIter, 0.01, 0.01, "ZERO", 1.0, 
-                  "epsilon_insensitive", 0.0, false, 0.001)
+                  "epsilon_insensitive", 0.0, false, 0.001, Array.empty[Double])
   }
 
   def train(data: RDD[LabeledPoint]) : SVRModel = {
      return train(data, 1000, 0.01, 0.01, "ZERO", 1.0, 
-                  "epsilon_insensitive", 0.0, false, 0.001)
+                  "epsilon_insensitive", 0.0, false, 0.001, Array.empty[Double])
   }
 
   // User needs to convert the Spark data into Frovedis Data by himself before 
@@ -155,7 +169,8 @@ object SVMRegressionWithSGD {
             eps: Double,
             isIntercept: Boolean,
             convergenceTol: Double,
-            isMovableInput: Boolean) : SVRModel = {
+            isMovableInput: Boolean,
+            sample_weight: Array[Double]) : SVRModel = {
     return new LinearSVR().setNumIter(numIter)
                           .setStepSize(stepSize)
                           .setRegParam(regParam)
@@ -165,7 +180,21 @@ object SVMRegressionWithSGD {
                           .setEps(eps)
                           .setIsIntercept(isIntercept)
                           .setConvergenceTol(convergenceTol)
-                          .run(data, isMovableInput)
+                          .run(data, isMovableInput, sample_weight)
+  }
+  def train(data: FrovedisLabeledPoint,
+            numIter: Int,
+            stepSize: Double,
+            regParam: Double,
+            regType: String,
+            miniBatchFraction: Double,
+            loss: String,
+            eps: Double,
+            isIntercept: Boolean,
+            convergenceTol: Double,
+            isMovableInput: Boolean) : SVRModel = {
+     return train(data, numIter, stepSize, regParam, regType, miniBatchFraction, 
+                  loss, eps, isIntercept, convergenceTol, isMovableInput, Array.empty[Double])
   }
 
   def train(data: FrovedisLabeledPoint,
@@ -179,7 +208,7 @@ object SVMRegressionWithSGD {
             isIntercept: Boolean,
             convergenceTol: Double) : SVRModel = {
      return train(data, numIter, stepSize, regParam, regType, miniBatchFraction, 
-                  loss, eps, isIntercept, convergenceTol, false)
+                  loss, eps, isIntercept, convergenceTol, false, Array.empty[Double])
   }
 
   def train(data: FrovedisLabeledPoint,
@@ -192,7 +221,7 @@ object SVMRegressionWithSGD {
             eps: Double,
             isIntercept: Boolean) : SVRModel = {
      return train(data, numIter, stepSize, regParam, regType, miniBatchFraction, 
-                  loss, eps, isIntercept, 0.001, false)
+                  loss, eps, isIntercept, 0.001, false, Array.empty[Double])
   }
 
   def train(data: FrovedisLabeledPoint,
@@ -204,7 +233,7 @@ object SVMRegressionWithSGD {
             loss: String,
             eps: Double) : SVRModel = {
      return train(data, numIter, stepSize, regParam, regType, miniBatchFraction, 
-                  loss, eps, false, 0.001, false)
+                  loss, eps, false, 0.001, false, Array.empty[Double])
   }
 
   def train(data: FrovedisLabeledPoint,
@@ -215,7 +244,7 @@ object SVMRegressionWithSGD {
             miniBatchFraction: Double,
             loss: String) : SVRModel = {
      return train(data, numIter, stepSize, regParam, regType, miniBatchFraction, 
-                  loss, 0.0, false, 0.001, false)
+                  loss, 0.0, false, 0.001, false, Array.empty[Double])
   }
 
   def train(data: FrovedisLabeledPoint,
@@ -225,7 +254,7 @@ object SVMRegressionWithSGD {
             regType: String,
             miniBatchFraction: Double) : SVRModel = {
      return train(data, numIter, stepSize, regParam, regType, miniBatchFraction, 
-                  "epsilon_insensitive", 0.0, false, 0.001, false)
+                  "epsilon_insensitive", 0.0, false, 0.001, false, Array.empty[Double])
   }
 
   def train(data: FrovedisLabeledPoint,
@@ -234,7 +263,7 @@ object SVMRegressionWithSGD {
             regParam: Double,
             regType: String) : SVRModel = {
      return train(data, numIter, stepSize, regParam, regType, 1.0, 
-                  "epsilon_insensitive", 0.0, false, 0.001, false)
+                  "epsilon_insensitive", 0.0, false, 0.001, false, Array.empty[Double])
   }
 
   def train(data: FrovedisLabeledPoint,
@@ -242,25 +271,25 @@ object SVMRegressionWithSGD {
             stepSize: Double,
             regParam: Double) : SVRModel = {
      return train(data, numIter, stepSize, regParam, "ZERO", 1.0, 
-                  "epsilon_insensitive", 0.0, false, 0.001, false)
+                  "epsilon_insensitive", 0.0, false, 0.001, false, Array.empty[Double])
   }
 
   def train(data: FrovedisLabeledPoint,
             numIter: Int,
             stepSize: Double) : SVRModel = {
      return train(data, numIter, stepSize, 0.01, "ZERO", 1.0, 
-                  "epsilon_insensitive", 0.0, false, 0.001, false)
+                  "epsilon_insensitive", 0.0, false, 0.001, false, Array.empty[Double])
   }
 
   def train(data: FrovedisLabeledPoint,
             numIter: Int) : SVRModel = {
      return train(data, numIter, 0.01, 0.01, "ZERO", 1.0, 
-                  "epsilon_insensitive", 0.0, false, 0.001, false)
+                  "epsilon_insensitive", 0.0, false, 0.001, false, Array.empty[Double])
   }
 
   def train(data: FrovedisLabeledPoint) : SVRModel = {
      return train(data, 1000, 0.01, 0.01, "ZERO", 1.0, 
-                  "epsilon_insensitive", 0.0, false, 0.001, false)
+                  "epsilon_insensitive", 0.0, false, 0.001, false, Array.empty[Double])
   }
 }
 
@@ -358,24 +387,38 @@ class LinearSVR(var numIter: Int,
 
   def run(input: RDD[LabeledPoint]): SVRModel= {
     val fdata = new FrovedisLabeledPoint(input)
-    return run(fdata, true)
+    return run(fdata, true, Array.empty[Double])
   }
 
   def run(fdata: FrovedisLabeledPoint): SVRModel= {
-    return run(fdata, false)
+    return run(fdata, false, Array.empty[Double])
   }
 
-  def run(data: FrovedisLabeledPoint, movable: Boolean): SVRModel = {
+  def run(input: RDD[LabeledPoint],
+          sample_weight: Array[Double]): SVRModel= {
+    val fdata = new FrovedisLabeledPoint(input)
+    return run(fdata, true, sample_weight)
+  }
+
+  def run(fdata: FrovedisLabeledPoint,
+          sample_weight: Array[Double]): SVRModel= {
+    return run(fdata, false, sample_weight)
+  }
+
+  def run(data: FrovedisLabeledPoint, movable: Boolean,
+          sample_weight: Array[Double]): SVRModel = {
     if (data.is_dense() && data.matType() != MAT_KIND.CMJR) 
        throw new IllegalArgumentException(
         s"fit: please provide column major "+
         s"points as for dense data to frovedis linear svm regression!\n")
     val mid = ModelID.get()
+    val sample_weight_length = sample_weight.length
+
     val fs = FrovedisServer.getServerInstance()
     JNISupport.callFrovedisSVR(fs.master_node,data.get(),numIter,stepSize,
                                miniBatchFraction,regParam,regType,loss,
                                eps,isIntercept,convergenceTol,
-                               mid,movable,data.is_dense())
+                               mid,movable,data.is_dense(),sample_weight, sample_weight_length)
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
     val numFeatures = data.numCols()

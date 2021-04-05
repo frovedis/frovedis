@@ -55,24 +55,32 @@ object LinearRegressionWithSGD {
   def train(data: RDD[LabeledPoint],
             numIter: Int,
             stepSize: Double,
-            miniBatchFraction: Double) : LinearRegressionModel = { 
+            miniBatchFraction: Double, 
+            sample_weight: Array[Double]) : LinearRegressionModel = { 
      val fdata = new FrovedisLabeledPoint(data) // Spark Data => Frovedis Data 
-     return train(fdata, numIter, stepSize, miniBatchFraction, true)
+     return train(fdata, numIter, stepSize, miniBatchFraction, true, sample_weight)
+  }
+
+  def train(data: RDD[LabeledPoint],
+            numIter: Int,
+            stepSize: Double,
+            miniBatchFraction: Double) : LinearRegressionModel = {
+     return train(data, numIter, stepSize, miniBatchFraction, Array.empty[Double])
   }
 
   def train(data: RDD[LabeledPoint],
             numIter: Int,
             stepSize: Double) : LinearRegressionModel = {
-     return train(data, numIter, stepSize, 1.0)
+     return train(data, numIter, stepSize, 1.0, Array.empty[Double])
   }
 
   def train(data: RDD[LabeledPoint],
             numIter: Int) : LinearRegressionModel = {
-     return train(data, numIter, 0.01, 1.0)
+     return train(data, numIter, 0.01, 1.0, Array.empty[Double])
   }
 
   def train(data: RDD[LabeledPoint]) : LinearRegressionModel = {
-     return train(data, 1000, 0.01, 1.0)
+     return train(data, 1000, 0.01, 1.0, Array.empty[Double])
   }
 
   // User needs to convert the Spark data into Frovedis Data by himself before 
@@ -82,16 +90,18 @@ object LinearRegressionWithSGD {
             numIter: Int,
             stepSize: Double,
             miniBatchFraction: Double,
-            isMovableInput: Boolean) : LinearRegressionModel = {
+            isMovableInput: Boolean,
+            sample_weight: Array[Double]) : LinearRegressionModel = {
      if (data.is_dense() && data.matType() != MAT_KIND.CMJR) 
        throw new IllegalArgumentException(
         s"fit: please provide column major "+
         s"points as for dense data to frovedis linear regression!\n")
      val mid = ModelID.get()
+     val sample_weight_length = sample_weight.length
      val fs = FrovedisServer.getServerInstance()
      JNISupport.callFrovedisLNRSGD(fs.master_node,data.get(),numIter,stepSize,
                                    miniBatchFraction,mid,isMovableInput,
-                                   data.is_dense())
+                                   data.is_dense(), sample_weight, sample_weight_length)
      val info = JNISupport.checkServerException()
      if (info != "") throw new java.rmi.ServerException(info)
      val numFeatures = data.numCols()
@@ -101,23 +111,33 @@ object LinearRegressionWithSGD {
   def train(data: FrovedisLabeledPoint,
             numIter: Int,
             stepSize: Double,
+            miniBatchFraction: Double,
+            isMovableInput: Boolean) : LinearRegressionModel = {
+     return train(data, numIter, stepSize, miniBatchFraction, 
+                  isMovableInput, Array.empty[Double])
+  }
+
+
+  def train(data: FrovedisLabeledPoint,
+            numIter: Int,
+            stepSize: Double,
             miniBatchFraction: Double) : LinearRegressionModel = {
-     return train(data, numIter, stepSize, miniBatchFraction, false)
+     return train(data, numIter, stepSize, miniBatchFraction, false, Array.empty[Double])
   }
 
   def train(data: FrovedisLabeledPoint,
             numIter: Int,
             stepSize: Double) : LinearRegressionModel = {
-     return train(data, numIter, stepSize, 1.0, false)
+     return train(data, numIter, stepSize, 1.0, false, Array.empty[Double])
   }
 
   def train(data: FrovedisLabeledPoint,
             numIter: Int) : LinearRegressionModel = {
-     return train(data, numIter, 0.01, 1.0, false)
+     return train(data, numIter, 0.01, 1.0, false, Array.empty[Double])
   }
 
   def train(data: FrovedisLabeledPoint) : LinearRegressionModel = {
-     return train(data, 1000, 0.01, 1.0, false)
+     return train(data, 1000, 0.01, 1.0, false, Array.empty[Double])
   }
 }
 
@@ -125,27 +145,37 @@ object LinearRegressionWithLBFGS {
   // Kind of shortcut Spark-like interface for Spark user.
   // Spark data will get converted to Frovedis data and will be freed
   // from Frovedis side memory implicitly, once the training is completed.
+
+  def train(data: RDD[LabeledPoint],
+            numIter: Int,
+            stepSize: Double,
+            histSize: Int,
+            sample_weight: Array[Double]) : LinearRegressionModel = {
+     val fdata = new FrovedisLabeledPoint(data) // Spark Data => Frovedis Data 
+     return train(fdata, numIter, stepSize, histSize, true, sample_weight)
+  }
+
   def train(data: RDD[LabeledPoint],
             numIter: Int,
             stepSize: Double,
             histSize: Int) : LinearRegressionModel = {
-     val fdata = new FrovedisLabeledPoint(data) // Spark Data => Frovedis Data 
-     return train(fdata, numIter, stepSize, histSize, true)
+     return train(data, numIter, stepSize, histSize, Array.empty[Double])
   }
+
 
   def train(data: RDD[LabeledPoint],
             numIter: Int,
             stepSize: Double) : LinearRegressionModel = {
-     return train(data, numIter, stepSize, 10)
+     return train(data, numIter, stepSize, 10, Array.empty[Double])
   }
 
   def train(data: RDD[LabeledPoint],
             numIter: Int) : LinearRegressionModel = {
-     return train(data, numIter, 0.01, 10)
+     return train(data, numIter, 0.01, 10, Array.empty[Double])
   }
 
   def train(data: RDD[LabeledPoint]) : LinearRegressionModel = {
-     return train(data, 1000, 0.01, 10)
+     return train(data, 1000, 0.01, 10, Array.empty[Double])
   }
 
   // User needs to convert the Spark data into Frovedis Data by himself before 
@@ -155,17 +185,20 @@ object LinearRegressionWithLBFGS {
             numIter: Int,
             stepSize: Double,
             histSize: Int,
-            isMovableInput: Boolean) : LinearRegressionModel = {
+            isMovableInput: Boolean,
+            sample_weight: Array[Double]) : LinearRegressionModel = {
      if (data.is_dense() && data.matType() != MAT_KIND.CMJR) 
        throw new IllegalArgumentException(
         s"fit: please provide column major "+
         s"points as for dense data to frovedis linear regression!\n")
      val mid = ModelID.get()
+     val sample_weight_length = sample_weight.length
      val fs = FrovedisServer.getServerInstance()
      JNISupport.callFrovedisLNRLBFGS(fs.master_node,data.get(),numIter,
                                      stepSize,
                                      histSize,mid,isMovableInput,
-                                     data.is_dense())
+                                     data.is_dense(), sample_weight,
+                                     sample_weight_length)
      val info = JNISupport.checkServerException()
      if (info != "") throw new java.rmi.ServerException(info)
      val numFeatures = data.numCols()
@@ -175,22 +208,31 @@ object LinearRegressionWithLBFGS {
   def train(data: FrovedisLabeledPoint,
             numIter: Int,
             stepSize: Double,
+            histSize: Int,
+            isMovableInput: Boolean) : LinearRegressionModel = {
+     return train(data, numIter, stepSize, histSize, 
+                  isMovableInput, Array.empty[Double])
+  }
+
+  def train(data: FrovedisLabeledPoint,
+            numIter: Int,
+            stepSize: Double,
             histSize: Int) : LinearRegressionModel = {
-     return train(data, numIter, stepSize, histSize, false)
+     return train(data, numIter, stepSize, histSize, false, Array.empty[Double])
   }
 
   def train(data: FrovedisLabeledPoint,
             numIter: Int,
             stepSize: Double) : LinearRegressionModel = {
-     return train(data, numIter, stepSize, 10, false)
+     return train(data, numIter, stepSize, 10, false, Array.empty[Double])
   }
 
   def train(data: FrovedisLabeledPoint,
             numIter: Int) : LinearRegressionModel = {
-     return train(data, numIter, 0.01, 10, false)
+     return train(data, numIter, 0.01, 10, false, Array.empty[Double])
   }
 
   def train(data: FrovedisLabeledPoint) : LinearRegressionModel = {
-     return train(data, 1000, 0.01, 10, false)
+     return train(data, 1000, 0.01, 10, false, Array.empty[Double])
   }
 }
