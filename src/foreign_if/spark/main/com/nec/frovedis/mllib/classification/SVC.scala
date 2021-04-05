@@ -111,7 +111,8 @@ object SVC {
             coef0: Double,
             tol: Double,
             cacheSize: Int,
-            maxIter: Int) : SVCModel = { 
+            maxIter: Int,
+            sample_weight: Array[Double]) : SVCModel = { 
      return new SVC().setC(C)
                      .setKernelType(kernelType)
                      .setDegree(degree)
@@ -120,7 +121,20 @@ object SVC {
                      .setTol(tol)
                      .setCacheSize(cacheSize)
                      .setMaxIter(maxIter)
-                     .run(data)
+                     .run(data, sample_weight)
+  }
+
+  def train(data: RDD[LabeledPoint],
+            C: Double,
+            kernelType: String,
+            degree: Int,
+            gamma: Double,
+            coef0: Double,
+            tol: Double,
+            cacheSize: Int,
+            maxIter: Int) : SVCModel = {
+     return train(data, C, kernelType, degree, 
+                  gamma, coef0, tol, cacheSize, maxIter, Array.empty[Double])
   }
 
   def train(data: RDD[LabeledPoint],
@@ -132,7 +146,7 @@ object SVC {
             tol: Double,
             cacheSize: Int) : SVCModel = {
      return train(data, C, kernelType, degree, 
-                  gamma, coef0, tol, cacheSize, 100)
+                  gamma, coef0, tol, cacheSize, 100, Array.empty[Double])
   }
 
   def train(data: RDD[LabeledPoint],
@@ -142,7 +156,8 @@ object SVC {
             gamma: Double,
             coef0: Double,
             tol: Double) : SVCModel = {
-     return train(data, C, kernelType, degree, gamma, coef0, tol, 128, 100)
+     return train(data, C, kernelType, degree, gamma, 
+                  coef0, tol, 128, 100, Array.empty[Double])
   }
 
   def train(data: RDD[LabeledPoint],
@@ -151,7 +166,8 @@ object SVC {
             degree: Int,
             gamma: Double,
             coef0: Double) : SVCModel = {
-     return train(data, C, kernelType, degree, gamma, coef0, 0.001, 128, 100)
+     return train(data, C, kernelType, degree, gamma, 
+                  coef0, 0.001, 128, 100, Array.empty[Double])
   }
 
   def train(data: RDD[LabeledPoint],
@@ -159,29 +175,32 @@ object SVC {
             kernelType: String,
             degree: Int,
             gamma: Double) : SVCModel = {
-     return train(data, C, kernelType, degree, gamma, 0.0, 0.001, 128, 100)
+     return train(data, C, kernelType, degree, gamma, 
+                  0.0, 0.001, 128, 100, Array.empty[Double])
   }
 
   def train(data: RDD[LabeledPoint],
             C: Double,
             kernelType: String,
             degree: Int) : SVCModel = {
-     return train(data, C, kernelType, degree, 0.1, 0.0, 0.001, 128, 100)
+     return train(data, C, kernelType, degree, 0.1, 
+                  0.0, 0.001, 128, 100, Array.empty[Double])
   }
 
   def train(data: RDD[LabeledPoint],
             C: Double,
             kernelType: String) : SVCModel = {
-     return train(data, C, kernelType, 3, 0.1, 0.0, 0.001, 128, 100)
+     return train(data, C, kernelType, 3, 0.1,
+                   0.0, 0.001, 128, 100, Array.empty[Double])
   }
 
   def train(data: RDD[LabeledPoint],
             C: Double) : SVCModel = {
-     return train(data, C, "rbf", 3, 0.1, 0.0, 0.001, 128, 100)
+     return train(data, C, "rbf", 3, 0.1, 0.0, 0.001, 128, 100, Array.empty[Double])
   }
 
   def train(data: RDD[LabeledPoint]) : SVCModel = {
-     return train(data, 1.0, "rbf", 3, 0.1, 0.0, 0.001, 128, 100)
+     return train(data, 1.0, "rbf", 3, 0.1, 0.0, 0.001, 128, 100, Array.empty[Double])
   }
 
   // User needs to convert the Spark data into Frovedis Data by himself before 
@@ -196,7 +215,8 @@ object SVC {
             coef0: Double,
             tol: Double,
             cacheSize: Int,
-            maxIter: Int) : SVCModel = {
+            maxIter: Int,
+            sample_weight: Array[Double]) : SVCModel = {
      return new SVC().setC(C)
                      .setKernelType(kernelType)
                      .setDegree(degree)
@@ -205,7 +225,20 @@ object SVC {
                      .setTol(tol)
                      .setCacheSize(cacheSize)
                      .setMaxIter(maxIter)
-                     .run(data)
+                     .run(data, sample_weight)
+  }
+
+  def train(data: FrovedisLabeledPoint,
+            C: Double,
+            kernelType: String,
+            degree: Int,
+            gamma: Double,
+            coef0: Double,
+            tol: Double,
+            cacheSize: Int,
+            maxIter: Int) : SVCModel = {
+        return train(data, C, kernelType, degree, gamma, coef0, 
+                     tol, cacheSize, maxIter, Array.empty[Double])
   }
 
   def train(data: FrovedisLabeledPoint,
@@ -217,7 +250,7 @@ object SVC {
             tol: Double,
             cacheSize: Int) : SVCModel = {
         return train(data, C, kernelType, degree, gamma, coef0, 
-                     tol, cacheSize, 100)
+                     tol, cacheSize, 100, Array.empty[Double])
   }
 
   def train(data: FrovedisLabeledPoint,
@@ -228,7 +261,7 @@ object SVC {
             coef0: Double,
             tol: Double) : SVCModel = {
         return train(data, C, kernelType, degree, gamma, coef0, 
-                     tol, 128, 100)
+                     tol, 128, 100, Array.empty[Double])
   }
 
   def train(data: FrovedisLabeledPoint,
@@ -238,7 +271,7 @@ object SVC {
             gamma: Double,
             coef0: Double) : SVCModel = {
         return train(data, C, kernelType, degree, gamma, 
-                     coef0, 0.001, 128, 100)
+                     coef0, 0.001, 128, 100, Array.empty[Double])
   }
 
   def train(data: FrovedisLabeledPoint,
@@ -247,7 +280,7 @@ object SVC {
             degree: Int,
             gamma: Double) : SVCModel = {
         return train(data, C, kernelType, degree, gamma, 
-                     0.0, 0.001, 128, 100)
+                     0.0, 0.001, 128, 100, Array.empty[Double])
   }
 
   def train(data: FrovedisLabeledPoint,
@@ -255,22 +288,25 @@ object SVC {
             kernelType: String,
             degree: Int) : SVCModel = {
         return train(data, C, kernelType, degree, 0.1, 
-                     0.0, 0.001, 128, 100)
+                     0.0, 0.001, 128, 100, Array.empty[Double])
   }
 
   def train(data: FrovedisLabeledPoint,
             C: Double,
             kernelType: String) : SVCModel = {
-        return train(data, C, kernelType, 3, 0.1, 0.0, 0.001, 128, 100)
+        return train(data, C, kernelType, 3, 0.1, 
+                     0.0, 0.001, 128, 100, Array.empty[Double])
   }
 
   def train(data: FrovedisLabeledPoint,
             C: Double) : SVCModel = {
-        return train(data, C, "rbf", 3, 0.1, 0.0, 0.001, 128, 100)
+        return train(data, C, "rbf", 3, 0.1,
+                     0.0, 0.001, 128, 100, Array.empty[Double])
   }
 
   def train(data: FrovedisLabeledPoint) : SVCModel = {
-        return train(data, 1.0, "rbf", 3, 0.1, 0.0, 0.001, 128, 100)
+        return train(data, 1.0, "rbf", 3, 0.1,
+                     0.0, 0.001, 128, 100, Array.empty[Double])
   }
 
 }
@@ -389,15 +425,27 @@ class SVC(var C: Double,
         var need_rowMajor = false 
         if (kernelType != "linear") need_rowMajor = true
         val fdata = new FrovedisLabeledPoint(input, need_rowMajor)
-        return run_impl(fdata, true)
+        return run_impl(fdata, true, Array.empty[Double])
     }
 
     def run(fdata: FrovedisLabeledPoint): SVCModel= {
-        return run_impl(fdata, false)
+        return run_impl(fdata, false, Array.empty[Double])
+    }
+
+    def run(input: RDD[LabeledPoint], sample_weight: Array[Double]): SVCModel= {
+        var need_rowMajor = false 
+        if (kernelType != "linear") need_rowMajor = true
+        val fdata = new FrovedisLabeledPoint(input, need_rowMajor)
+        return run_impl(fdata, true, sample_weight)
+    }
+
+    def run(fdata: FrovedisLabeledPoint, sample_weight: Array[Double]): SVCModel= {
+        return run_impl(fdata, false, sample_weight)
     }
 
     private def run_impl(data: FrovedisLabeledPoint, 
-                         movable: Boolean): SVCModel = {
+                         movable: Boolean,
+                         sample_weight: Array[Double]): SVCModel = {
         assertValid()
         val numClasses = data.get_distinct_label_count().intValue
         val numFeatures = data.numCols()
@@ -409,6 +457,7 @@ class SVC(var C: Double,
         val logic = enc_ret._2
         val fs = FrovedisServer.getServerInstance()
         var m_kind = M_KIND.KSVC
+        val sample_weight_length = sample_weight.length
         if(kernelType == "linear") {
             require (data.matType() == MAT_KIND.CMJR, 
                      s"run: please provide column major "+
@@ -417,7 +466,9 @@ class SVC(var C: Double,
             val mbf = 1.0
             JNISupport.callFrovedisSVMSGD(fs.master_node,encoded_data,maxIter,
                                           stepSize,mbf,rparam,mid,movable,
-                                          data.is_dense(),numClasses)
+                                          data.is_dense(),numClasses,
+                                          sample_weight,
+                                          sample_weight_length)
             m_kind = M_KIND.SVM
         } else {
             require (data.matType() == MAT_KIND.RMJR, 
