@@ -73,7 +73,8 @@ enum DTYPE {
   FLOAT = 3,
   DOUBLE = 4,
   STRING = 5,
-  BOOL = 6
+  BOOL = 6,
+  ULONG = 7
 };
 
 enum OPTYPE {
@@ -104,6 +105,7 @@ bool is_under_training(int mid);
 void finalize_model_table();
 void finalize_trackers();
 void cleanup_frovedis_server();
+int get_numeric_dtype(const std::string& dt);
 
 // retuns the model head for the requested registered model id
 template <class M>
