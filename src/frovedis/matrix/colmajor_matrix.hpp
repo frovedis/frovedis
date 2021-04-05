@@ -527,13 +527,78 @@ void scale_matrix(colmajor_matrix<T>& mat, std::vector<T>& vec) {
   mat.data.mapv(colmajor_mul_vector_row<T>, broadcast(vec));
 } 
 
+template<class T>
+colmajor_matrix_local<T> scale_cmm_matrix_impl(colmajor_matrix_local<T>& mat,
+                         int axis, const std::vector<T> &vect) {
+  auto nrow = mat.local_num_row;
+  auto ncol = mat.local_num_col;
+  colmajor_matrix_local<T> ret(nrow, ncol);
+  auto vp = vect.data();
+  auto matp = mat.val.data();
+  auto retp = ret.val.data();
+  if(axis == 1) {
+   require(vect.size() == ncol,
+    "vector size does not match with number of cols in matrix");
+    for(size_t i = 0; i < ncol; ++i) {
+      for(size_t j = 0; j < nrow; ++j) {
+        retp[i * nrow + j] = matp[i * nrow + j] * vp[i];
+      }
+    }
+  }
+  else {
+    require(vect.size() == nrow,
+     "vector size does not match with number of rows in matrix");
+    for(size_t i = 0; i < ncol; ++i) {
+      for(size_t j = 0; j < nrow; ++j) {
+        retp[i * nrow + j] = matp[i * nrow + j] * vp[j];
+      }
+    }
+  }
+  return ret;
+}
+
+template<class T>
+colmajor_matrix<T> scale_cmm_matrix(colmajor_matrix<T>& mat,
+                                    int axis, const std::vector<T>& vect) {
+  colmajor_matrix_local<T> (*f)(colmajor_matrix_local<T>&,
+                            int, const std::vector<T>&) = scale_cmm_matrix_impl;
+  auto nrow = mat.num_row;
+  auto ncol = mat.num_col;
+  colmajor_matrix<T> ret;
+  if(axis == 1) {
+    ret = colmajor_matrix<T>(mat.data.map(f, broadcast(axis),
+                             broadcast(vect)));
+  }
+  else {
+    auto nvect = make_dvector_scatter(vect, mat.get_local_num_rows()).
+                                      moveto_node_local();
+    ret =  colmajor_matrix<T>(mat.data.map(f,
+                              broadcast(axis),  nvect));
+  }
+  ret.set_num(nrow, ncol);
+  return ret;
+}
+
 template <class T>
 std::vector<T>
-compute_mean(colmajor_matrix_local<T>& mat, int axis = -1) {
+compute_mean(colmajor_matrix_local<T>& mat, int axis = -1,
+             const std::vector<T> &sample_weight = std::vector<T>()) {
   auto nrow = mat.local_num_row;
   auto ncol = mat.local_num_col;
   if(nrow == 0)
     throw std::runtime_error("matrix with ZERO rows for mean computation!");
+  bool sw_present  = (!sample_weight.empty() && !(vector_is_uniform(sample_weight) &&
+                       sample_weight[0] == 1));
+  if(sw_present) {
+    auto sw_mat = scale_cmm_matrix_impl(mat, axis, sample_weight);
+    auto sw_sum  = vector_sum(sample_weight);
+    if (axis != 0 && axis != 1) {
+      return std::vector<T>(1, vector_sum(sw_mat.val) / sw_sum);
+    }
+    auto ret = (axis == 0) ? cmm_sum_of_rows(sw_mat) : cmm_sum_of_cols(sw_mat);
+    return (axis == 0) ? vector_divide(ret, (T)sw_sum) :
+                         vector_divide(ret, (T)sw_sum);
+  }
   if (axis != 0 && axis != 1) return std::vector<T>(1, vector_mean(mat.val));
   auto ret = (axis == 0) ? cmm_sum_of_rows(mat) : cmm_sum_of_cols(mat);
   return (axis == 0) ? vector_divide(ret, (T)nrow) : vector_divide(ret, (T)ncol);
@@ -541,11 +606,22 @@ compute_mean(colmajor_matrix_local<T>& mat, int axis = -1) {
 
 template <class T>
 std::vector<T>
-compute_mean(colmajor_matrix<T>& mat, int axis = -1) {
+compute_mean(colmajor_matrix<T>& mat, int axis = -1, 
+             const std::vector<T> &sample_weight = std::vector<T>()) {
   auto nrow = mat.num_row;
   auto ncol = mat.num_col;
   if(nrow == 0)
     throw std::runtime_error("matrix with ZERO rows for mean computation!");
+  bool sw_present  = (!sample_weight.empty() && !(vector_is_uniform(sample_weight) &&
+                       sample_weight[0] == 1));
+  if(sw_present) {
+    auto sw_mat = scale_cmm_matrix<T>(mat, axis, sample_weight);
+    auto sw_sum  = vector_sum(sample_weight);
+     if (axis != 0 && axis != 1)
+      return std::vector<T>(1, sum_of_elements(sw_mat) / (sw_sum));
+    auto ret = (axis == 0) ? sum_of_rows(sw_mat) : sum_of_cols(sw_mat);
+    return (axis == 0) ? vector_divide(ret, sw_sum) : vector_divide(ret, sw_sum);
+  }
   if (axis != 0 && axis != 1) {
     return std::vector<T>(1, sum_of_elements(mat) / (nrow * ncol));
   }
