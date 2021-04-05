@@ -1602,6 +1602,147 @@ dftable dftable::distinct() {
   return group_by(columns()).select(columns());
 }
 
+std::vector<size_t>
+align_as_create_global_idx_helper(const std::vector<size_t>& dstsizes,
+                                  const std::vector<size_t>& srcsizes) {
+  size_t self = get_selfid();
+  size_t node_size = get_nodesize();
+  auto srcsizesp = srcsizes.data();
+  auto dstsizesp = dstsizes.data();
+  std::vector<size_t> pfx_srcsizes(node_size+1);
+  std::vector<size_t> pfx_dstsizes(node_size+1);
+  auto pfx_srcsizesp = pfx_srcsizes.data();
+  auto pfx_dstsizesp = pfx_dstsizes.data();
+  prefix_sum(srcsizesp, pfx_srcsizesp+1, node_size);
+  prefix_sum(dstsizesp, pfx_dstsizesp+1, node_size);
+  size_t dst_global_start = pfx_dstsizesp[self];
+  size_t dst_global_end = pfx_dstsizesp[self+1];
+  std::vector<size_t> ret(dstsizes[self]);
+  auto retp = ret.data();
+  auto crnt_retp = retp;
+  for(size_t i = 0; i < node_size; i++) {
+    size_t src_global_start = pfx_srcsizesp[i];
+    size_t src_global_end = pfx_srcsizesp[i+1];
+    size_t nodeinfo = i << DFNODESHIFT;
+    if(dst_global_start < src_global_start &&
+       dst_global_end < src_global_start) {
+      ;
+    } else if(dst_global_start < src_global_start &&
+              dst_global_end >= src_global_start &&
+              dst_global_end < src_global_end) {
+      size_t size = dst_global_end - src_global_start;
+      for(size_t j = 0; j < size; j++) {
+        crnt_retp[j] = nodeinfo + j;
+      }
+      crnt_retp += size;
+    } else if(dst_global_start < src_global_start &&
+              dst_global_end >= src_global_end) {
+      size_t size = src_global_end - src_global_start;
+      for(size_t j = 0; j < size; j++) {
+        crnt_retp[j] = nodeinfo + j;
+      }
+      crnt_retp += size;
+    } else if(dst_global_start >= src_global_start &&
+              dst_global_start < src_global_end &&
+              dst_global_end >= src_global_start &&
+              dst_global_end < src_global_end) {
+      size_t shift = dst_global_start - src_global_start;
+      size_t  size = dst_global_end - dst_global_start;
+      for(size_t j = 0; j < size; j++) {
+        crnt_retp[j] = nodeinfo + j + shift;
+      }
+      crnt_retp += size;
+    } else if(dst_global_start >= src_global_start &&
+              dst_global_start < src_global_end &&
+              dst_global_end >= src_global_end) {
+      size_t shift = dst_global_start - src_global_start;
+      size_t size = src_global_end - dst_global_start;
+      for(size_t j = 0; j < size; j++) {
+        crnt_retp[j] = nodeinfo + j + shift;
+      }
+      crnt_retp += size;
+    } else if(dst_global_start >= src_global_end &&
+              dst_global_end >= src_global_end) {
+      ;
+    } else {
+      throw
+        std::runtime_error
+        ("internal error in align_as_create_global_idx_helper");
+    }
+  }
+  return ret;
+}
+
+node_local<std::vector<size_t>>
+align_as_create_global_idx(const std::vector<size_t>& sizes,
+                           const std::vector<size_t>& org_sizes) {
+  auto bsizes = broadcast(sizes);
+  auto borg_sizes = broadcast(org_sizes);
+  return bsizes.map(align_as_create_global_idx_helper, borg_sizes);
+}
+
+dftable& dftable::align_as(const std::vector<size_t>& sizes) {
+  if(col.size() == 0) {
+    return *this;
+  } else {
+    dftable ret;
+    auto org_sizes = column(col_order[0])->sizes();
+    auto sorted_df = sorted_dftable
+      (*this,align_as_create_global_idx(sizes, org_sizes));
+    auto colnames = col_order;
+    auto colnames_size = colnames.size();
+    for(size_t i = 0; i < colnames_size; i++) {
+      auto colname = colnames[i];
+      auto sorted_col = sorted_df.select({colname}).column(colname);
+      ret.append_column(colname, sorted_col);
+      sorted_df.drop(colname);
+      drop(colname);
+    }
+    col.swap(ret.col);
+    col_order.swap(ret.col_order);
+    return *this;
+  }
+}
+
+dftable& dftable::align_block() {
+  size_t sz = num_row();
+  size_t nodesize = get_nodesize();
+  std::vector<size_t> block_size(nodesize);
+  size_t each = ceil_div(sz, nodesize);
+  for(size_t i = 0; i < nodesize; i++) {
+    if(sz > each) {
+      block_size[i] = each;
+      sz -= each;
+    } else {
+      block_size[i] = sz;
+      break;
+    }
+  }
+  return align_as(block_size);
+}
+
+dftable& dftable::add_index(const std::string& name,
+                            size_t offset){
+  append_rowid(name, offset);
+  vector_right_shift_inplace(col_order, num_col() - 1);
+  return *this;
+}
+
+dftable& dftable::set_index(const std::string& name){
+  auto cols = columns();
+  auto find_it = std::find (cols.begin(), cols.end(), name);
+  require(find_it != cols.end(), "set_index: given column doesn’t exist!\n");
+  auto find_index = find_it - cols.begin();
+  vector_right_shift_inplace(col_order, find_index);
+  return *this;
+}
+
+dftable& dftable::set_col_order(std::vector<std::string>& new_col_order){
+  assert(col_order.size() == new_col_order.size());
+  this->col_order.swap(new_col_order);
+  return *this;
+}
+
 // ---------- for sorted_dftable ----------
 
 dftable sorted_dftable::select(const std::vector<std::string>& cols) {
