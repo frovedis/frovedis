@@ -1,4 +1,5 @@
 #include "exrpc_dataframe.hpp"
+#include <boost/algorithm/string.hpp>
 
 using namespace frovedis;
 
@@ -230,6 +231,7 @@ frovedis_df_sum(exrpc_ptr_t& df_proxy,
       case LONG:  ret[i] = std::to_string(df.sum<long>(cols[i])); break;
       case FLOAT:  ret[i] = std::to_string(df.sum<float>(cols[i])); break;
       case DOUBLE:  ret[i] = std::to_string(df.sum<double>(cols[i])); break;
+      case ULONG:  ret[i] = std::to_string(df.sum<unsigned long>(cols[i])); break;
       default: REPORT_ERROR(USER_ERROR, "sum on non-numeric column!\n");
     }
   }
@@ -249,6 +251,7 @@ frovedis_df_min(exrpc_ptr_t& df_proxy,
       case LONG:  ret[i] = std::to_string(df.min<long>(cols[i])); break;
       case FLOAT:  ret[i] = std::to_string(df.min<float>(cols[i])); break;
       case DOUBLE:  ret[i] = std::to_string(df.min<double>(cols[i])); break;
+      case ULONG:  ret[i] = std::to_string(df.min<unsigned long>(cols[i])); break;
       default: REPORT_ERROR(USER_ERROR, "min on non-numeric column!\n");
     }
   }
@@ -268,6 +271,7 @@ frovedis_df_max(exrpc_ptr_t& df_proxy,
       case LONG:  ret[i] = std::to_string(df.max<long>(cols[i])); break;
       case FLOAT:  ret[i] = std::to_string(df.max<float>(cols[i])); break;
       case DOUBLE:  ret[i] = std::to_string(df.max<double>(cols[i])); break;
+      case ULONG:  ret[i] = std::to_string(df.max<unsigned long>(cols[i])); break;
       default: REPORT_ERROR(USER_ERROR, "max on non-numeric column!\n");
     }
   }
@@ -326,6 +330,7 @@ frovedis_df_std(exrpc_ptr_t& df_proxy,
       case LONG:    ret[i] = std::to_string(get_std<long>(df,cols[i])); break;
       case FLOAT:   ret[i] = std::to_string(get_std<float>(df,cols[i])); break;
       case DOUBLE:  ret[i] = std::to_string(get_std<double>(df,cols[i])); break;
+      case ULONG:  ret[i] = std::to_string(get_std<unsigned long>(df,cols[i])); break;
       default: REPORT_ERROR(USER_ERROR, "std on non-numeric column!\n");
     }
   }
@@ -366,6 +371,13 @@ std::vector<long> get_df_long_col(exrpc_ptr_t& df_proxy,
                                   std::string& cname) {
   auto& df = *reinterpret_cast<dftable_base*>(df_proxy);
   return df.as_dvector<long>(cname).gather();
+}
+
+std::vector<unsigned long> 
+get_df_ulong_col(exrpc_ptr_t& df_proxy, 
+                 std::string& cname) {
+  auto& df = *reinterpret_cast<dftable_base*>(df_proxy);
+  return df.as_dvector<unsigned long>(cname).gather();
 }
 
 std::vector<float> get_df_float_col(exrpc_ptr_t& df_proxy, 
@@ -525,6 +537,51 @@ exrpc_ptr_t frov_cross_join_dfopt() {
   return reinterpret_cast<exrpc_ptr_t> (opt);
 }
 
+std::vector<int>
+dicstring_id_to_bool(std::vector<size_t>& vec, std::vector<int>& bool_val_map){
+  auto sz = vec.size();
+  std::vector<int> ret(sz);
+  for(size_t i=0; i<sz; i++) ret[i] = bool_val_map[vec[i]];
+  return ret;
+}
+
+void convert_bool_column_dictring(dftable& df, const std::string& col_name,
+                                  const std::string& nullstr){
+
+  auto typed_dfcol = std::dynamic_pointer_cast<typed_dfcolumn<dic_string>>(df.column(col_name));
+
+  auto nl_dict = *typed_dfcol->dic;
+  auto dict1 = nl_dict.get(0);
+
+  auto nwords = dict1.num_words();
+  std::vector<size_t> indices1(nwords);
+  for(size_t i=0; i<nwords; i++) indices1[i] = i;
+  auto all_words = dict1.index_to_words(indices1);
+  auto str_vec = words_to_vector_string(all_words);
+
+  std::vector<int> bool_val_map(nwords);
+  auto nullstr_lower = boost::algorithm::to_lower_copy(nullstr);
+  auto int_max = std::numeric_limits<int>::max();
+
+  for(size_t i=0; i<nwords; i++) {
+    boost::algorithm::to_lower(str_vec[i]);
+    if(str_vec[i] == "true") bool_val_map[i] = 1;
+    else if (str_vec[i] == "false") bool_val_map[i] = 0;
+    else if (str_vec[i] == nullstr_lower) bool_val_map[i] = int_max;
+    else {
+      std::string msg = "parse-error: invalid value " + str_vec[i] + " for boolean conversion!\n";
+      REPORT_ERROR(USER_ERROR, msg);
+    }
+  }
+
+  auto new_dvec = typed_dfcol->val
+                            .map(dicstring_id_to_bool, broadcast(bool_val_map))
+                            .as_dvector<int>();
+  auto original_col_order = df.columns();
+  df.drop(col_name).append_column(col_name, new_dvec, true);
+  df.set_col_order(original_col_order);
+}
+
 dummy_dftable 
 frov_load_dataframe_from_csv(std::string& filename,
                              std::vector<std::string>& types,
@@ -532,6 +589,7 @@ frov_load_dataframe_from_csv(std::string& filename,
                              bool& partial_type_info, 
                              std::map<std::string, std::string>& type_map,
                              std::vector<int>& usecols,
+                             std::vector<std::string>& bool_cols,
                              csv_config& config) {
   //config.debug_print();
   auto separator = config.separator;
@@ -543,6 +601,7 @@ frov_load_dataframe_from_csv(std::string& filename,
   auto add_index = config.add_index;
   auto verbose_level = config.verbose_level;
   auto mangle_dupe_cols = config.mangle_dupe_cols;
+  auto index_col = config.index_col;
 
   bool is_crlf = false;
   bool to_keep_order = true;
@@ -569,51 +628,168 @@ frov_load_dataframe_from_csv(std::string& filename,
     }
   }
   else { 
-    if (!names.empty() && !types.empty()) {
-      dftblp = new dftable(make_dftable_loadtext(filename, types, names,
-                                                 separator, nullstr,
-                                                 is_crlf, to_separate, 
-                                                 to_keep_order,
-                                                 separate_mb, usecols, 
-                                                 mangle_dupe_cols));
-
-    }
-    else if(!names.empty()) {
-      dftblp = new dftable(make_dftable_loadtext_infertype(filename, names,
-                                                           separator, nullstr,
-                                                           rows_to_see, is_crlf,
-                                                           to_separate, to_keep_order,
-                                                           separate_mb, usecols,
-                                                           mangle_dupe_cols));
-
+    if ( !types.empty() ) {
+      if ( !names.empty() ) {
+        dftblp = new dftable(make_dftable_loadtext(filename, types, names,
+                                                  separator, nullstr,
+                                                  is_crlf, to_separate, 
+                                                  to_keep_order,
+                                                  separate_mb, usecols, 
+                                                  mangle_dupe_cols));
+      }
+      else {
+        dftblp = new dftable(make_dftable_loadtext(filename, types,
+                                                  separator, nullstr,
+                                                  is_crlf, to_separate, 
+                                                  to_keep_order,
+                                                  separate_mb, usecols, 
+                                                  mangle_dupe_cols));
+      }
     }
     else {
-      dftblp = new dftable(make_dftable_loadtext_infertype(filename, separator,
-                                                           nullstr, rows_to_see,
-                                                           is_crlf, to_separate,
-                                                           to_keep_order, 
-                                                           separate_mb, usecols,
-                                                           mangle_dupe_cols));
+      if ( !names.empty() ) {
+        dftblp = new dftable(make_dftable_loadtext_infertype(filename, names,
+                                                            separator, nullstr,
+                                                            rows_to_see, is_crlf,
+                                                            to_separate, to_keep_order,
+                                                            separate_mb, usecols,
+                                                            mangle_dupe_cols));
+
+      }
+      else {
+        dftblp = new dftable(make_dftable_loadtext_infertype(filename,
+                                                            separator, nullstr,
+                                                            rows_to_see, is_crlf,
+                                                            to_separate, to_keep_order,
+                                                            separate_mb, usecols,
+                                                            mangle_dupe_cols));
+      }
     }
   }
 
-  if (add_index) dftblp->add_index_column("index");
-  //dftblp->show();
-  auto data_types = dftblp->dtypes();
-  auto sz = data_types.size();
-  auto nrow = dftblp->num_row();
+  if (!dftblp) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed.\n");
 
-  std::vector<std::string> df_names(sz), df_types(sz);
-  for(size_t i = 0; i < sz; i++) {
-    df_names[i] = data_types[i].first;
-    df_types[i] = data_types[i].second;
+  if ( !bool_cols.empty()){
+    auto cols = dftblp->columns();
+    for (auto& e: bool_cols){
+      auto it = std::find (cols.begin(), cols.end(), e);
+      if (it != cols.end()) {
+        convert_bool_column_dictring(*dftblp, e, nullstr);
+      }
+    }
   }
+
+  if (index_col >= 0) {
+    auto cols = dftblp->columns();
+    dftblp->set_index(cols[index_col]);
+  }
+  else if (add_index) dftblp->add_index("index");
   reset_verbose_level();
-  return dummy_dftable(reinterpret_cast<exrpc_ptr_t>(dftblp),
-                       nrow, df_names, df_types);
+  return to_dummy_dftable(dftblp);
 }
 
 size_t get_dataframe_length(exrpc_ptr_t& df_proxy) {
   auto dftblp = reinterpret_cast<dftable_base*>(df_proxy);
   return dftblp->num_row();
+}
+
+dummy_dftable
+frov_df_convert_dicstring_to_bool(exrpc_ptr_t& df_proxy,
+                                std::vector<std::string>& col_names,
+                                std::string& nullstr, bool& need_materialize) {
+  dftable* dftblp = NULL;
+  if (need_materialize) {
+    auto dftblp_ = reinterpret_cast<dftable_base*>(df_proxy);
+    dftblp = new dftable(dftblp_->materialize());
+  }
+  else dftblp = reinterpret_cast<dftable*>(df_proxy);
+
+  if (!dftblp) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed.\n");
+  
+  auto cols = dftblp->columns();
+  for (auto& e: col_names){
+    auto it = std::find (cols.begin(), cols.end(), e);
+    if (it != cols.end()) {
+      convert_bool_column_dictring(*dftblp, e, nullstr);
+    }
+    else REPORT_ERROR(USER_ERROR, "frov_df_convert_dicstring_to_bool: given"
+                                  " column does not exist!\n");
+  }
+  return to_dummy_dftable(dftblp);
+}
+
+dummy_dftable
+frov_df_append_column(exrpc_ptr_t& df_proxy, std::string& col_name,
+                    short& type, exrpc_ptr_t& dvec_proxy, int& position,
+                    bool& need_materialize, bool& drop_old) {
+  dftable* dftblp = NULL;
+  if (df_proxy == -1) { // empty dataframe
+    dftblp = new dftable();
+  }
+  else if (need_materialize) {
+    auto dftblp_ = reinterpret_cast<dftable_base*>(df_proxy);
+    dftblp = new dftable(dftblp_->materialize());
+  }
+  else dftblp = reinterpret_cast<dftable*>(df_proxy);
+
+  if (!dftblp) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed.\n");
+
+  auto df_col_order = dftblp->columns(); // original col_order
+  auto sz = df_col_order.size();
+
+  if (drop_old) dftblp->drop(col_name);
+
+  switch(type) {
+    case INT:    { auto v1 = reinterpret_cast<dvector<int>*>(dvec_proxy);
+                   dftblp->append_column(col_name,std::move(*v1),true);
+                   delete v1; break; }
+    case LONG:   { auto v2 = reinterpret_cast<dvector<long>*>(dvec_proxy);
+                   dftblp->append_column(col_name,std::move(*v2),true);
+                   delete v2; break; }
+    case FLOAT:  { auto v3 = reinterpret_cast<dvector<float>*>(dvec_proxy);
+                   dftblp->append_column(col_name,std::move(*v3),true);
+                   delete v3; break; }
+    case DOUBLE: { auto v4 = reinterpret_cast<dvector<double>*>(dvec_proxy);
+                   dftblp->append_column(col_name,std::move(*v4),true);
+                   delete v4; break; }
+    case STRING: { auto v5 = reinterpret_cast<dvector<std::string>*>(dvec_proxy);
+                   dftblp->append_column(col_name,std::move(*v5),true);
+                   delete v5; break; }
+    case BOOL:   { auto v6 = reinterpret_cast<dvector<int>*>(dvec_proxy);
+                   dftblp->append_column(col_name,std::move(*v6),true);
+                   delete v6; break; }
+    default:     auto msg = "frov_df_append_column: Unsupported datatype for append_column: "
+                            + std::to_string(type);
+                 REPORT_ERROR(USER_ERROR,msg);
+  }
+
+  if (drop_old) dftblp->set_col_order(df_col_order);
+
+  if (df_proxy == -1) dftblp->add_index("index");
+
+  if (position != -1 ) {
+    int actual_pos = position + 1;
+    if (actual_pos != sz) {
+      checkAssumption(actual_pos > 0 && actual_pos < sz);
+      df_col_order.insert(df_col_order.begin() + actual_pos, 1, col_name);
+      dftblp->set_col_order(df_col_order);
+    }
+  }
+  return to_dummy_dftable(dftblp);
+}
+
+dummy_dftable
+frov_df_add_index(exrpc_ptr_t& df_proxy, std::string& name,
+                  bool& need_materialize) {
+  dftable* dftblp = NULL;
+  if (need_materialize) {
+    auto dftblp_ = reinterpret_cast<dftable_base*>(df_proxy);
+    dftblp = new dftable(dftblp_->materialize());
+  }
+  else dftblp = reinterpret_cast<dftable*>(df_proxy);
+
+  if (!dftblp) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed.\n");
+  
+  dftblp->add_index(name);
+  return to_dummy_dftable(dftblp);
 }
