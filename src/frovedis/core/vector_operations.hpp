@@ -10,6 +10,9 @@
 #include "conditions_for_find.hpp"
 #include "../text/find_condition.hpp"
 
+#define OP_VLEN 1024
+#define NOVEC_LEN 20
+
 /*
  *  This header contains frequently used vector operations in ML algorithms
  *  similar to following numpy operations on 1D array
@@ -71,6 +74,9 @@
  *    vector_max_pair(x, y): reduction by max for two vector of pairs<T,I>, returns pair vector containing maximums
  *    vector_max_index(x, y): reduction by max for two vector of pairs<T,I>, returns vector of max indices
  *    vector_max_value(x, y): reduction by max for two vector of pairs<T,I>, returns vector of max values
+ *    vector_right_shift(x, tid): right-shift by 1 position for all elements from 0th index to 'tid-1'th index;
+ *                                place value in 'tid'th index at 0.
+ *    vector_right_shift_inplace(x, tid): inplace version of the above to shift elements in input 'x' itself.
  *
  */
 
@@ -254,6 +260,14 @@ void debug_print_vector(const std::vector<T>& vec,
     for(size_t i = size - limit; i < size; ++i) std::cout << vec[i] << " ";
     std::cout << std::endl;
   }
+}
+
+// show() for debugging with tagged (named) vector...
+template <class T>
+void show(const std::string& msg,
+          const std::vector<T>& vec,
+          const int& limit = 10) {
+  std::cout << msg; debug_print_vector(vec, limit);
 }
 
 // must be called from local process (worker)
@@ -485,12 +499,6 @@ size_t vector_count_equal(const std::vector<T>& vec, const T& val) {
   auto vptr = vec.data();
   for(size_t i = 0; i < size; ++i) count += vptr[i] == val;
   return count;
-}
-
-template <class T>
-int vector_is_uniform(const std::vector<T>& vec) {
-  if (vec.size() == 0) return true;
-  else return vector_count_equal(vec, vec[0]) == vec.size();
 }
 
 template <class T>
@@ -1344,13 +1352,31 @@ void vector_exp_inplace(std::vector<T>& vec) {
 }
 
 template <class T>
-int vector_is_same_impl(const T* vptr1, 
-                        const T* vptr2, 
+int vector_is_same_impl(const T* vptr1,
+                        const T* vptr2,
                         size_t sz1, size_t sz2) {
-  if (sz1 != sz2) return 0;
-  size_t count = 0;
+  if (sz1 != sz2) return false;
+  size_t st = 0, end = OP_VLEN, count = 0;
+  /*
   for(size_t i = 0; i < sz1; ++i) count += (vptr1[i] == vptr2[i]);
   return count == sz1;
+  */
+  for(; end < sz1; end += OP_VLEN) {
+    count = 0;
+    for(size_t i = st; i < end; ++i) count += (vptr1[i] == vptr2[i]);
+    if (count != OP_VLEN) return false; // kind of break (but checked after OP_VLEN steps for ve performance)
+    st = end;
+  }
+  count = 0;
+  auto rem = sz1 - st;
+  if (rem > NOVEC_LEN) {
+    for(size_t i = st; i < sz1; ++i) count += (vptr1[i] == vptr2[i]);
+  }
+  else { // short-loop
+    #pragma _NEC novector
+    for(size_t i = st; i < sz1; ++i) count += (vptr1[i] == vptr2[i]);
+  }
+  return count == rem;
 }
 
 template <class T>
@@ -1359,5 +1385,63 @@ int vector_is_same(const std::vector<T>& v1,
   return vector_is_same_impl(v1.data(), v2.data(), v1.size(), v2.size());
 }
   
+template <class T>
+int vector_is_uniform_impl(const T* vptr, size_t vsz) {
+  if (vsz == 0) return true;
+  T first_val = vptr[0];
+  size_t st = 0, end = OP_VLEN, count = 0;
+  /*
+  for(size_t i = 0; i < vsz; ++i) count += (vptr[i] == first_val);
+  return count == vsz;
+  */
+  for(; end < vsz; end += OP_VLEN) {
+    count = 0;
+    for(size_t i = st; i < end; ++i) count += (vptr[i] == first_val);
+    if (count != OP_VLEN) return false; // kind of break (but checked after OP_VLEN steps for ve performance)
+    st = end;
+  }
+  count = 0;
+  auto rem = vsz - st;
+  if (rem > NOVEC_LEN) {
+    for(size_t i = st; i < vsz; ++i) count += (vptr[i] == first_val);
+  }
+  else { // short-loop
+    #pragma _NEC novector
+    for(size_t i = st; i < vsz; ++i) count += (vptr[i] == first_val);
+  }
+  return count == rem;
+}
+
+template <class T>
+int vector_is_uniform(const std::vector<T>& vec) {
+  return vector_is_uniform_impl(vec.data(), vec.size());
+}
+
+template <class T>
+std::vector<T>
+vector_right_shift(const std::vector<T>& vec, size_t tid) {
+  auto vsz = vec.size();
+  if (vsz == 0) return std::vector<T>();
+  require(tid < vsz, "invalid tid for shift operation is provided!\n");
+  std::vector<T> ret(vsz);
+  auto vecp = vec.data();
+  auto retp = ret.data();
+  retp[0] = vecp[tid];
+  for(size_t i = tid; i > 0; --i) retp[i] = vecp[i - 1];   // right-shift
+  for(size_t i = tid + 1; i < vsz; ++i) retp[i] = vecp[i]; // simple copy
+  return ret;
+}
+
+template <class T>
+void vector_right_shift_inplace(std::vector<T>& vec, size_t tid) {
+  auto vsz = vec.size();
+  if (vsz == 0) return;
+  require(tid < vsz, "invalid tid for shift operation is provided!\n");
+  auto vecp = vec.data();
+  auto tmp = vecp[tid];
+  for(size_t i = tid; i > 0; --i) vecp[i] = vecp[i - 1]; // right-shift
+  vecp[0] = tmp;
+}
+
 }
 #endif
