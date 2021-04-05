@@ -17,10 +17,11 @@ import numpy as np
 class ALS(BaseEstimator):
     """A python wrapper of Frovedis ALS"""
     def __init__(self, max_iter=100, alpha=0.01, regParam=0.01,
-                 seed=0, verbose=0):
+                 similarity_factor = 0.1, seed=0, verbose=0):
         self.max_iter = max_iter
         self.alpha = alpha
         self.regParam = regParam
+        self.sim_factor = similarity_factor
         self.seed = seed
         self.verbose = verbose
         # extra
@@ -49,13 +50,15 @@ class ALS(BaseEstimator):
             "Expected training sparse data itype to be either int or long!")
         if rank <= 0:
             raise ValueError("Rank must be a possitive integer")
+        if not (self.sim_factor >= 0.0 and self.sim_factor <= 1.0):
+            raise ValueError("Similarity factor must be in between 0.0 and 1.0")            
         self.rank = rank
         self.nrow = X.numRows()
         self.ncol = X.numCols()
         self.__mid = ModelID.get()
         (host, port) = FrovedisServer.getServerInstance()
         rpclib.als_train(host, port, X.get(), rank, self.max_iter, self.alpha,
-                         self.regParam, self.seed, self.verbose,
+                         self.regParam, self.sim_factor, self.seed, self.verbose,
                          self.__mid, dtype, itype)
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
