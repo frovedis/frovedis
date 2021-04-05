@@ -1,0 +1,10 @@
+TARGETS := gmm
+include ../Makefile.in.ve
+include ../Makefile.common
+
+TO_INSTALL := gmm.cc
+DIR := gmm
+ARCH := ve
+
+gmm: gmm.o
+	${LINK} -o gmm gmm.o ${LIBS}

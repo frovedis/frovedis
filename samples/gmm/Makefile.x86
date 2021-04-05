@@ -1,0 +1,10 @@
+TARGETS := gmm
+include ../Makefile.in.x86
+include ../Makefile.common
+
+TO_INSTALL := gmm.cc
+DIR := gmm
+ARCH := x86
+
+gmm: gmm.o
+	${MPICXX} ${CXXFLAGS} -o gmm gmm.o ${LIBS}

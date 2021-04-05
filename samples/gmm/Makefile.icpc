@@ -1,0 +1,10 @@
+TARGETS := gmm
+include ../Makefile.in.icpc
+include ../Makefile.common
+
+TO_INSTALL := gmm.cc
+DIR := gmm
+ARCH := icpc
+
+gmm: gmm.o
+	${LINK} -o gmm gmm.o ${LIBS}
