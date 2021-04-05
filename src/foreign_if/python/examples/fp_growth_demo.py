@@ -38,28 +38,47 @@ data = pd.read_csv("./input/retail.dat", sep = " ",
 
 #data = pd.read_csv("./input/groceries.csv").drop(['Item(s)'], axis=1)
 
-fpm = FPGrowth(min_support = 0.05, tree_depth=10, 
-               compression_point=4, mem_opt_level=1)
+fpm = FPGrowth(minSupport=0.001, minConfidence=0.05,
+               compression_point=4, mem_opt_level=1) #memory optimization parameters
 
 # groceries data contains non-numeric (string) items
 # encoding to numeric value is suggested by uncommenting below 
 # for better performance, it is optional though...
 #fpm.encode_string_input = True
 
-model = fpm.fit(data)
-print("frequent item count: %d" % (model.fis_count))
-print("frequent item sets: ")
-model.debug_print()
+import time
+t1 = time.time()
+fpm.fit(data)
+t2 = time.time()
+print ("frequent itemsets generation time: %.4f sec" % (t2 - t1))
 
-model.save("./out/FPModel") # saving the model
-model.release() # releasing model from memory after saving into files
+t1 = time.time()
+rule = fpm.generate_rules() # can accept new minConfidence
+t2 = time.time()
+print ("rules generation time: %.4f sec" % (t2 - t1))
 
-model.load("./out/FPModel") # loading the saved model for rule mining
-print("frequent item count in loaded model: %d" % (model.fis_count))
-model.generate_rules(0.05).debug_print()
-model.generate_rules(0.2).debug_print()
-model.generate_rules(0.9).debug_print()
+# for pyspark like output
+print("frequent itemsets: ")
+print(fpm.freqItemsets)
+print("frequent itemsets count: %d" % (fpm.count))
+
+print("association rules: ")
+print(fpm.associationRules)
+print("association rules count: %d" % (rule.count))
+
+# for save/load/release/print 
+# server-side in-memory frequent items and rules structures
+fpm.save("./out/FPModel") # saving the model
+fpm.release() # releasing model from memory after saving into files
+fpm.load("./out/FPModel") # loading the saved model
+fpm.debug_print() # for printing in memory frequent itemsets in server side
+
+rule.save("./out/FPRule") # saving the rules
+rule.release() # releasing rule from memory after saving into files
+rule.load("./out/FPRule") #loading the saved rules
+rule.debug_print() # for printing in memory rules in server side
 
 # server clean-up
-model.release()
+fpm.release()
+rule.release()
 FrovedisServer.shut_down()
