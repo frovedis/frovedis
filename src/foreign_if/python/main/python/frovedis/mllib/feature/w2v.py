@@ -1,12 +1,69 @@
 """Frovedis word2vec python module"""
-#!/usr/bin/env python
+
 import os
+import fnmatch
 from types import GeneratorType
 import numpy as np
 from collections import Iterable
 from ...exrpc.server import FrovedisServer
 from ...exrpc.rpclib import w2v_build_vocab_and_dump, w2v_train
 from ...exrpc.rpclib import check_server_exception
+
+class w2v_result(object):
+    """ contains python dictionary having word2vec result """
+    def __init__(self, res, hiddenSize):
+        self.result = res
+        self.hiddenSize = hiddenSize
+        self.gensim_result = None
+
+    def keys(self):
+        return self.result.keys()
+
+    def values(self):
+        return self.result.values()
+
+    def items(self):
+        return self.result.items()
+
+    def __getitem__(self, ind):
+        return self.result[ind]
+
+    def __setitem__(self, ind, val):
+        self.result[ind] = val
+
+    @property
+    def gensim_wv(self):
+        """ function to convert self.result attribute to gensim wv"""
+        if self.gensim_result is None:
+            vocabList = list(self.keys())
+            weights = list(self.values())
+            from gensim.models import KeyedVectors
+            gensim_w2v = KeyedVectors(self.hiddenSize)
+            gensim_w2v.add_vectors(vocabList, weights)
+            self.gensim_result = gensim_w2v
+        return self.gensim_result
+
+    def __getattr__(self, attr):
+        #print(attr)
+        if attr not in self.__dict__:
+            try:
+                wv = self.gensim_wv
+            except:
+                raise AttributeError("%s: gensim needs to be installed to " \
+                                     "use this attribute\n" % attr)
+            ret = getattr(wv, attr, None)
+            if ret is None:
+                raise AttributeError("no such attribute, %s for frovedis " \
+                                     "Word2Vec is found!\n" % attr)
+            return ret
+        else:
+            return self.__dict__[attr]
+
+    def __str__(self):
+        return str(self.result)
+
+    def __repr__(self):
+        return repr(self.result)
 
 class Word2Vec:
     """ Python wrapper of Frovedis Word2Vec """
@@ -15,7 +72,7 @@ class Word2Vec:
                  hiddenSize=100, learningRate=0.025, n_iter=1, minCount=5,
                  window=5, threshold=1e-3, negative=5, modelSyncPeriod=0.1,
                  minSyncWords=1024, fullSyncTimes=0, messageSize=1024,
-                 numThreads=8):
+                 numThreads=None):
         self.hiddenSize = hiddenSize
         self.learningRate = learningRate
         self.n_iter = n_iter
@@ -28,8 +85,9 @@ class Word2Vec:
         self.fullSyncTimes = fullSyncTimes
         self.messageSize = messageSize
         self.numThreads = numThreads
-
+        # extra
         self.wv = None
+        self.wpath = "frovedis-warehouse/w2v"
         self.outDirPath = None
         self.__encodePath = None
         self.__vocabPath = None
@@ -45,11 +103,10 @@ class Word2Vec:
 
     def _write_to_file(self, corpusIterable):
         """ function to writes corpusIterable data to corpusFile"""
-        corpusFile = ".temp_w2v_inp.txt"
+        corpusFile = self.outDirPath + "/dumped_iterable.txt"
         with open(corpusFile, "w") as opfile:
             for line in corpusIterable:
                 opfile.write(" ".join(line) + "\n")
-        self.__is_in_memory_input = True
         return corpusFile
 
     def _check_corpus_sanity(self, corpusIterable=None,
@@ -84,16 +141,22 @@ class Word2Vec:
             and dump into provided output files """
         self._check_corpus_sanity(corpusIterable, corpusFile)
         if corpusIterable is not None:
-            corpusFile = self._write_to_file(corpusIterable)
+            self.__is_in_memory_input = True
         if self.outDirPath is not None and not update:
-            raise RuntimeError("cannot sort vocabulary after model weights"+\
-                               " already initialized.")
+            raise AttributeError("build_vocab: cannot sort vocabulary after "\
+                                 "model weights already initialized!\n")
         if outDirPath is None:
             if self.__is_in_memory_input:
-                self.outDirPath = "w2v_result"
+                if not os.path.exists(self.wpath):
+                    os.makedirs(self.wpath)
+                    file_cnt = 0
+                else:
+                    file_cnt = len(fnmatch.filter(os.listdir(self.wpath), \
+                                                  'res_t*'))
+                self.outDirPath = self.wpath + "/res_t" + str(file_cnt + 1)
             else:
-                self.outDirPath = os.path.basename(corpusFile)\
-                                     .split('.')[0] + "_result"
+                input_basename = os.path.basename(corpusFile).split('.')[0]
+                self.outDirPath = self.wpath + "/res_" + input_basename
         else:
             self.outDirPath = outDirPath
         if not os.path.exists(self.outDirPath):
@@ -101,6 +164,9 @@ class Word2Vec:
         self.__encodePath = os.path.join(self.outDirPath, "encode.bin")
         self.__vocabPath = os.path.join(self.outDirPath, "vocab.txt")
         self.__vocabCountPath = os.path.join(self.outDirPath, "vocab_count.bin")
+
+        if self.__is_in_memory_input:
+            corpusFile = self._write_to_file(corpusIterable)
 
         w2v_build_vocab_and_dump(corpusFile.encode("ascii"),
                                  self.__encodePath.encode("ascii"),
@@ -110,20 +176,21 @@ class Word2Vec:
         excpt = check_server_exception()
         if excpt["status"]:
             raise RuntimeError(excpt["info"])
-        if self.__is_in_memory_input:
-            os.remove(corpusFile)
+
         vocabList = np.loadtxt(self.__vocabPath, usecols=(0,), dtype=str)
+        self.vocabSize = len(vocabList)
         initWeight = np.zeros(shape=self.hiddenSize)
-        self.wv = dict.fromkeys(vocabList, initWeight)
+        self.wv = w2v_result(dict.fromkeys(vocabList, initWeight), 
+                             self.hiddenSize)
         return self
 
     def to_gensim_model(self):
-        """ function to convert wv attribut in gensim wv"""
-        from gensim.models import KeyedVectors
+        """ function to convert wv attribute to gensim wv"""
         vocabList = list(self.wv.keys())
         weights = list(self.wv.values())
+        from gensim.models import KeyedVectors
         gensim_w2v = KeyedVectors(self.hiddenSize)
-        gensim_w2v.add(vocabList, weights)
+        gensim_w2v.add_vectors(vocabList, weights)
         return gensim_w2v
 
     def train(self, corpusIterable=None, corpusFile=None):
@@ -133,9 +200,17 @@ class Word2Vec:
     def fit(self, corpusIterable=None, corpusFile=None):
         """ function to train the w2v model on input vocab """
         if self.outDirPath is None:
-            raise RuntimeError("you must first build vocabulary before "+\
-                               "calling fit")
+            raise AttributeError("fit: you must first build vocabulary " 
+                                 "before calling fit!\n")
         self._check_corpus_sanity(corpusIterable, corpusFile)
+        if self.numThreads is None:
+            if 'VE_OMP_NUM_THREADS' in os.environ:
+                nthreads = int(os.environ['VE_OMP_NUM_THREADS'])
+            else:
+                nthreads = 1
+        else:
+            nthreads = self.numThreads
+
         (host, port) = FrovedisServer.getServerInstance()
         res = w2v_train(host, port, self.__encodePath.encode("ascii"),
                   self.__vocabCountPath.encode("ascii"),
@@ -144,14 +219,18 @@ class Word2Vec:
                   self.n_iter, self.learningRate,
                   self.modelSyncPeriod,
                   self.minSyncWords, self.fullSyncTimes,
-                  self.messageSize, self.numThreads)
+                  self.messageSize, nthreads)
         excpt = check_server_exception()
         if excpt["status"]:
             raise RuntimeError(excpt["info"])
-        self.vocabSize = len(res) // self.hiddenSize
+
+        vocabSize = len(res) // self.hiddenSize
+        if vocabSize != self.vocabSize:
+            raise RuntimeError("fit: error in vocabsize, report bug!\n")
+
         vocab = np.loadtxt(self.__vocabPath, usecols=(0,), dtype=str)
-        weight_vector = list(np.asarray(res).reshape(self.vocabSize, \
-                                                     self.hiddenSize))
+        weight_vector = np.asarray(res).reshape(self.vocabSize, \
+                                                self.hiddenSize)
         for ind in range(len(vocab)):
             self.wv[vocab[ind]] = weight_vector[ind]
         return self
@@ -167,10 +246,10 @@ class Word2Vec:
             for key, val in self.wv.items():
                 ofile.write(key + " " + str(val)[1:-1]+"\n")
 
-    def save(self, modelPath=None, binary=False):
+    def save(self, modelPath, binary=False):
         """ function to save the output w2v model """
         if self.wv is None:
-            raise Exception("save called before training")
+            raise AttributeError("save called before training!\n")
         if modelPath is None:
             if binary:
                 modelPath = os.path.join(self.outDirPath, "model.bin")
@@ -193,7 +272,7 @@ class Word2Vec:
     def transform(self, corpusIterable=None, corpusFile=None, func=None):
         """ function to tranform document text to word2vec embeddings"""
         if self.wv is None:
-            raise Exception("tranform called before training")
+            raise AttributeError("tranform called before training!\n")
         self._check_corpus_sanity(corpusIterable, corpusFile)
         if corpusIterable is not None:
             corpusFile = self._write_to_file(corpusIterable)
