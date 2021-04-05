@@ -8,7 +8,10 @@ std::vector<float>
 frovedis_w2v_train(std::string& encode,
                    std::string& count,
                    w2v::train_config& config) {
-  return w2v::train_each_impl(encode, count, config);
+  auto b_encode = broadcast(encode);
+  auto wgt = b_encode.map(w2v::train_each_impl, broadcast(count), 
+                          broadcast(config));
+  return wgt.get(0);
 }
 
 void expose_frovedis_NL_functions() {
