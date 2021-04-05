@@ -43,7 +43,17 @@ extern "C" {
     PyObject *PList = PyList_New(0);
     for(auto& each: val) {
       auto leach = static_cast<long>(each);
-      PyList_Append(PList,Py_BuildValue("l",leach));
+      PyList_Append(PList,Py_BuildValue("l",leach)); // FIXME
+    }
+    return Py_BuildValue("O",PList);
+  }
+
+  // std::vector<unsigned long> => python List of long integers
+  PyObject* to_python_ulong_list (const std::vector<unsigned long>& val) {
+    PyObject *PList = PyList_New(0);
+    for(auto& each: val) {
+      auto leach = static_cast<long>(each);
+      PyList_Append(PList,Py_BuildValue("l",leach)); // FIXME
     }
     return Py_BuildValue("O",PList);
   }
@@ -59,6 +69,21 @@ extern "C" {
   PyObject* to_python_double_list (const std::vector<double>& val) {
     PyObject *PList = PyList_New(0);
     for(auto& each: val) PyList_Append(PList,Py_BuildValue("d",each));
+    return Py_BuildValue("O",PList);
+  }
+
+  PyObject* to_py_dummy_df(const dummy_dftable& obj) {
+    return Py_BuildValue("{s:l, s:l, s:O, s:O}", 
+                        "dfptr", (long)obj.dfptr, 
+                        "nrow",  (long)obj.nrow,
+                        "names", to_python_string_list(obj.names), 
+                        "types", to_python_int_list(obj.types));
+  }
+
+  // std::vector<dummy_dftable> => python List of dummy_dftable (dict)
+  PyObject* to_py_dataframe_list (const std::vector<dummy_dftable>& val) {
+    PyObject *PList = PyList_New(0);
+    for(auto& each: val) PyList_Append(PList, to_py_dummy_df(each));
     return Py_BuildValue("O",PList);
   }
 
@@ -207,14 +232,6 @@ extern "C" {
                          "dptr", dptr,
                          "nEdges", num_edges,
                          "nNodes", num_vertices);
-  }
-
-  PyObject* to_py_dummy_df(const dummy_dftable& obj) {
-    return Py_BuildValue("{s:l, s:l, s:O, s:O}", 
-                        "dfptr", (long)obj.dfptr, 
-                        "nrow",  (long)obj.nrow,
-                        "names", to_python_string_list(obj.names), 
-                        "types", to_python_string_list(obj.types));
   }
 
   // converison : const char** => std::vector<std::string>
