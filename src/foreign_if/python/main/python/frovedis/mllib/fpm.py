@@ -2,35 +2,74 @@
 fpm.py
 """
 
-#!/usr/bin/env python
-
+from collections import Iterable
+import numpy as np
+import pandas as pd
+import frovedis.dataframe as fpd
 from ..exrpc import rpclib
-from ..exrpc.server import FrovedisServer
+from ..exrpc.server import FrovedisServer, check_server_state
 from ..matrix.dtype import DTYPE
 from .model_util import *
 
-import numpy as np
-from collections import Iterable
-import pandas as pd
-import frovedis.dataframe as fpd
+def merge_and_append_fis(append_buf, merge_target):
+    """Merge fis"""
+    m_lst = []
+    for each in merge_target.values.tolist():
+        items = each[:-1]
+        freq = each[-1]
+        m_lst.append([items, freq])
+    m_df = pd.DataFrame(m_lst, columns=['items', 'freq'])
+    return append_buf.append(m_df)
+
+def merge_and_append_rules(append_buf, merge_target):
+    """Merge rules"""
+    m_lst = []
+    for each in merge_target.values.tolist():
+        antecedents = each[:-5]
+        consequent = [each[-5]]
+        confidence = each[-4]
+        lift = each[-3]
+        support = each[-2]
+        conviction = each[-1]
+
+        m_lst.append([antecedents, consequent, confidence,
+                      lift, support, conviction])
+    m_df = pd.DataFrame(m_lst, columns=['antecedent', 'consequent', \
+                                        'confidence', 'lift', 'support', \
+                                        'conviction'])
+    return append_buf.append(m_df)
 
 class FPGrowth(object):
     """A python wrapper of Frovedis FP-Growth"""
-    def __init__(self, min_support=0.3, tree_depth=None,
-                 compression_point=4, mem_opt_level=0,
-                 verbose=0, 
-                 encode_string_input=False):
-        self.min_support = min_support
+    def __init__(self, minSupport=0.3, minConfidence=0.8,
+                 itemsCol='items', predictionCol='prediction', #not used in frovedis
+                 numPartitions=None, # not used in frovedis
+                 tree_depth=None, #added parameter to limit tree construction till a certain depth
+                 compression_point=4, mem_opt_level=0, # for memory optimizations
+                 verbose=0,
+                 encode_string_input=False): #whether to encode non-numeric items
+        self.minSupport = minSupport
+        self.minConfidence = minConfidence
+        self.itemsCol = itemsCol
+        self.predictionCol = predictionCol
+        self.numPartitions = numPartitions
+        # --- added parameters in frovedis ---
         self.tree_depth = tree_depth
         self.compression_point = compression_point
         self.mem_opt_level = mem_opt_level
         self.verbose = verbose
         self.encode_string_input = encode_string_input
-        self.__mid = None
         self.__mkind = M_KIND.FPM
+        # --- post training available attributes ---
+        self.__mid = None
+        self.__sid = None
+        self.__fis = None
+        self.__rule = None
+        self.count = None
         self.encode_logic = None
 
     def __encode_input(self, data):
+        """Encode input"""
         import itertools
         unq = np.unique(list(itertools.chain.from_iterable(data)))
         int_id = np.arange(1, len(unq) + 1, 1, dtype=np.int32)
@@ -53,7 +92,7 @@ class FPGrowth(object):
         cur_id = 1
         #print("### iterable data: ")
         #print(data)
-        if self.encode_string_input: 
+        if self.encode_string_input:
             data = self.__encode_input(data)
             #print("### encoded iterable data: ")
             #print(data)
@@ -70,20 +109,29 @@ class FPGrowth(object):
 
     def __convert_pandas_df(self, data):
         """
-        converts a pandas DataFrame to frovedis DataFrame
+        converts a pandas DataFrame (having multiple columns containing items)
+        to frovedis DataFrame
         """
         item_list = []
-        for ilist in data.values.tolist():
-            item = [itm for itm in ilist if str(itm) != 'nan']
-            item_list.append(item)
+        if len(data.columns) > 2:
+            for ilist in data.values.tolist():
+                item = [itm for itm in ilist if str(itm) != 'nan']
+                item_list.append(item)
+        elif len(data.columns) == 2:
+            item_list = data[data.columns[1]].tolist()
+        else: #unsupported pandas format
+            raise ValueError("fit: unsupported pandas dataframe received!\n")
         return self.__convert_iterable(item_list)
 
     def __check_input(self, data):
-        if self.min_support < 0 or self.min_support > 1:
-            raise ValueError("fit: min_support value must be within 0 to 1.\n")
+        """Check input"""
+        if self.minSupport < 0 or self.minSupport > 1:
+            raise ValueError("fit: minSupport value must be within 0 to 1.\n")
+        if self.minConfidence < 0 or self.minConfidence > 1:
+            raise ValueError("fit: minConfidence value must be within 0 to 1.\n")
         if self.tree_depth is None:
             self.tree_depth = np.iinfo(np.int32).max
-        if self.tree_depth < 1:
+        elif self.tree_depth < 1:
             raise ValueError("fit: tree_depth value must be >= 1.\n")
         if self.compression_point < 2:
             raise ValueError("fit: compression_point value must be >= 2.\n")
@@ -96,7 +144,7 @@ class FPGrowth(object):
         elif isinstance(data, Iterable):
             f_df = self.__convert_iterable(data)
         else:
-            raise ValueError("fit: only dataframe and iterable " + 
+            raise ValueError("fit: only dataframe and iterable " +
                              "inputs are supported!\n")
         return f_df
 
@@ -107,36 +155,95 @@ class FPGrowth(object):
         f_df = self.__check_input(data)
         self.release()
         self.__mid = ModelID.get()
+        self.__sid = FrovedisServer.getID()
         (host, port) = FrovedisServer.getServerInstance()
-        self.fis_count = rpclib.fpgrowth_trainer(host, port, \
+        self.count = rpclib.fpgrowth_generate_fis(host, port, \
             f_df.get(), self.__mid, \
-            self.min_support, self.tree_depth, self.compression_point, \
+            self.minSupport, self.tree_depth, self.compression_point, \
             self.mem_opt_level, self.verbose)
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
             raise RuntimeError(excpt["info"])
+        # self.__fis would be set when freqItemsets would be requested
+        self.__fis = None
+        # self.__rule would be set when associationRules would be requested or
+        # generate_rules() would be called
+        self.__rule = None
         return self
 
-    def generate_rules(self, confidence=0.8):
+    def generate_rules(self, confidence=None):
         """
         NAME: generate_rules
         """
-        midr = ModelID.get()
+        if self.__mid is None:
+            raise AttributeError("generate_rules: attribute is not " + \
+                                 "available before fit!\n")
+        check_server_state(self.__sid, self.__class__.__name__)
+        rule_mid = ModelID.get()
+        if confidence is None:  # to use confidence provided during init()
+            confidence = self.minConfidence
         (host, port) = FrovedisServer.getServerInstance()
-        count = rpclib.fpgrowth_fpr(host, port, self.__mid, midr, confidence)
+        rule_count = rpclib.fpgrowth_generate_rules(host, port, self.__mid, \
+                                                    rule_mid, confidence)
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
             raise RuntimeError(excpt["info"])
-        return FPRules(midr, count)
+        self.__rule = FPRules(rule_mid, rule_count)
+        return self.__rule
+
+    @property
+    def freqItemsets(self):
+        """freqItemsets getter"""
+        if self.__mid is None:
+            raise valueError("freqItemsets: attribute is not " +
+                             "available before fit!\n")
+        if self.__fis is None:
+            check_server_state(self.__sid, self.__class__.__name__)
+            (host, port) = FrovedisServer.getServerInstance()
+            ldf = rpclib.get_fpgrowth_fis(host, port, self.__mid)
+            excpt = rpclib.check_server_exception()
+            if excpt["status"]:
+                raise RuntimeError(excpt["info"])
+
+            fis = pd.DataFrame()
+            for each in ldf:
+                res = fpd.DataFrame().load_dummy(each["dfptr"], \
+                                       each["names"], each["types"])
+                fis = merge_and_append_fis(fis, res.to_pandas_dataframe())
+            self.__fis = fis.reset_index(drop=True)
+        return self.__fis
+
+    @freqItemsets.setter
+    def freqItemsets(self, val):
+        """freqItemsets setter"""
+        raise AttributeError(\
+            "attribute 'freqItemsets' of FPGrowth object is not writable")
+
+    @property
+    def associationRules(self):
+        """associationRules getter"""
+        if self.__mid is None:
+            raise AttributeError("freqItemsets: attribute is not " + \
+                                 "available before fit!\n")
+        if self.__rule is None: # generate_rules() is not called explicitly
+            self.generate_rules() # uses confidence provided during init()
+        return self.__rule.get_association_rules()
+
+    @associationRules.setter
+    def associationRules(self, val):
+        """associationRules setter"""
+        raise AttributeError(\
+            "attribute 'associationRules' of FPGrowth object is not writable")
 
     def load(self, fname):
         """
         NAME: load
         """
         self.release()
-        self.__mid = ModelID.get()
         (host, port) = FrovedisServer.getServerInstance()
-        self.fis_count = rpclib.load_fp_model(host, port, self.__mid, 
+        self.__mid = ModelID.get()
+        self.__sid = FrovedisServer.getID()
+        self.count = rpclib.load_fp_model(host, port, self.__mid, \
                          self.__mkind, fname.encode('ascii'))
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
@@ -148,6 +255,7 @@ class FPGrowth(object):
         NAME: save
         """
         if self.__mid is not None:
+            check_server_state(self.__sid, self.__class__.__name__)
             GLM.save(self.__mid, self.__mkind, DTYPE.DOUBLE, fname)
 
     def debug_print(self):
@@ -155,33 +263,39 @@ class FPGrowth(object):
         NAME: debug_print
         """
         if self.__mid is not None:
+            check_server_state(self.__sid, self.__class__.__name__)
             GLM.debug_print(self.__mid, self.__mkind, DTYPE.DOUBLE)
-
+                
     def release(self):
         """
         NAME: release
         """
         if self.__mid is not None:
-            GLM.release(self.__mid, self.__mkind, DTYPE.DOUBLE)
-            self.__mid = None
-            self.encode_logic = None
-            self.fis_count = None
+            if FrovedisServer.isUP(self.__sid):
+                GLM.release(self.__mid, self.__mkind, DTYPE.DOUBLE)
+        self.__mid = None
+        self.__sid = None
+        self.encode_logic = None
+        self.count = None
+        self.__fis = None
+        self.__rule = None
 
     def __del__(self):
         """
         NAME: __del__
         """
-        if FrovedisServer.isUP():
-            self.release()
+        self.release()
 
 class FPRules(object):
     """
     FPRules
     """
     def __init__(self, mid=None, count=None):
-        self.__mkind = M_KIND.FPR
         self.__mid = mid
         self.count = count
+        self.__sid = FrovedisServer.getID()
+        self.__mkind = M_KIND.FPR
+        self.__rule = None
 
     def load(self, fname):
         """
@@ -189,6 +303,7 @@ class FPRules(object):
         """
         self.release()
         self.__mid = ModelID.get()
+        self.__sid = FrovedisServer.getID()
         (host, port) = FrovedisServer.getServerInstance()
         self.count = rpclib.load_fp_model(host, port, self.__mid, \
                               self.__mkind, fname.encode('ascii'))
@@ -202,13 +317,36 @@ class FPRules(object):
         NAME: save
         """
         if self.__mid is not None:
+            check_server_state(self.__sid, self.__class__.__name__)
             GLM.save(self.__mid, self.__mkind, DTYPE.DOUBLE, fname)
+
+    def get_association_rules(self):
+        """associationRules getter helper"""
+        if self.__mid is None:
+            raise AttributeError("associationRules: attribute is not " +
+                                 "available before fit!\n")
+        if self.__rule is None:
+            check_server_state(self.__sid, self.__class__.__name__)
+            (host, port) = FrovedisServer.getServerInstance()
+            ldf = rpclib.get_association_rules(host, port, self.__mid)
+            excpt = rpclib.check_server_exception()
+            if excpt["status"]:
+                raise RuntimeError(excpt["info"])
+
+            rules = pd.DataFrame()
+            for each in ldf:
+                res = fpd.DataFrame().load_dummy(each["dfptr"], \
+                                       each["names"], each["types"])
+                rules = merge_and_append_rules(rules, res.to_pandas_dataframe())
+            self.__rule = rules.reset_index(drop=True)
+        return self.__rule
 
     def debug_print(self):
         """
         NAME: debug_print
         """
         if self.__mid is not None:
+            check_server_state(self.__sid, self.__class__.__name__)
             GLM.debug_print(self.__mid, self.__mkind, DTYPE.DOUBLE)
 
     def release(self):
@@ -216,14 +354,15 @@ class FPRules(object):
         NAME: release
         """
         if self.__mid is not None:
-            GLM.release(self.__mid, self.__mkind, DTYPE.DOUBLE)
-            self.__mid = None
-            self.count = None
+            if FrovedisServer.isUP(self.__sid):
+                GLM.release(self.__mid, self.__mkind, DTYPE.DOUBLE)
+        self.__mid = None
+        self.__sid = None
+        self.__rule = None
+        self.count = None
 
     def __del__(self):
         """
         NAME: __del__
         """
-        if FrovedisServer.isUP():
-            self.release()
-
+        self.release()
