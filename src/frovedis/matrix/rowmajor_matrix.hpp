@@ -120,40 +120,61 @@ rowmajor_matrix_local<U> rowmajor_matrix_local<T>::astype() {
 }    
 
 template <class T>
-void get_row_impl(const std::vector<T>& matval,
-                  size_t local_num_row,
-                  size_t local_num_col,
-                  size_t k,
-                  T* outp) {
-  if(k > local_num_row) throw std::runtime_error("get_row: invalid position");
-  const T* valp_off = matval.data() + local_num_col * k;
-  for(size_t i = 0; i < local_num_col; i++) outp[i] = valp_off[i];
+void get_row_impl(const T* inp_buf,
+                  size_t buf_size,
+                  T* out_buf,
+                  size_t out_stride) {
+  for(size_t i = 0; i < buf_size; ++i) out_buf[i * out_stride] = inp_buf[i];
 }
 
 template <class T>
 std::vector<T>
 rowmajor_matrix_local<T>::get_row(size_t k) const {
-  std::vector<T> r(local_num_col);
-  get_row_impl(val, local_num_row, local_num_col, k, r.data());
+  if (k >= local_num_row) throw std::runtime_error("get_row: invalid position");
+  auto inp_buf = val.data() + local_num_col * k;
+  std::vector<T> r(local_num_col); auto out_buf = r.data();
+  get_row_impl(inp_buf, local_num_col, out_buf, 1);
   return r;
 }
 
 template <class T>
 rowmajor_matrix_local<T>
 extract_rows(rowmajor_matrix_local<T>& mat,
-             std::vector<size_t>& rowids) {
+             const std::vector<size_t>& rowids,
+             bool need_transpose = false) {
   auto n = rowids.size();
+  auto rowidp = rowids.data();
   auto nrow = mat.local_num_row;
   auto ncol = mat.local_num_col;
-  rowmajor_matrix_local<T> ret(n, ncol);
-  auto rowidp = rowids.data();
-  for (size_t i = 0; i < n; ++i) {
-    auto outp = ret.val.data() + i * ncol;
-    get_row_impl(mat.val, nrow, ncol, rowidp[i], outp);
+  size_t count_invalid = 0;
+  for (size_t i = 0; i < n; ++i) count_invalid += (rowidp[i] >= nrow) ;
+  if (count_invalid) throw std::runtime_error("extract_rows: invalid position");
+
+  std::vector<T> out(n * ncol);
+  auto rvalp = out.data();
+  auto mvalp = mat.val.data();
+  rowmajor_matrix_local<T> ret;
+
+  if (!need_transpose) {
+    for (size_t i = 0; i < n; ++i) {
+      auto inp_buf = mvalp + rowidp[i] * ncol;
+      auto out_buf = rvalp + i * ncol;
+      get_row_impl(inp_buf, ncol, out_buf, 1);
+    }
+    ret.val.swap(out);
+    ret.set_local_num(n, ncol);
+  }
+  else {
+    for (size_t i = 0; i < n; ++i) {
+      auto inp_buf = mvalp + rowidp[i] * ncol;
+      auto out_buf = rvalp + i;
+      get_row_impl(inp_buf, ncol, out_buf, n);
+    }
+    ret.val.swap(out);
+    ret.set_local_num(ncol, n);
   }
   return ret;
 }
-
 
 template <class T>
 struct rowmajor_matrix_broadcast_helper {
@@ -1410,28 +1431,105 @@ void scale_matrix(rowmajor_matrix<T>& mat, std::vector<T>& vec) {
   mat.data.mapv(mul_vector_row<T>, broadcast(vec));
 } 
 
-template <class T>
-std::vector<T>
-compute_mean(rowmajor_matrix_local<T>& mat, int axis = -1) {
+template<class T>
+rowmajor_matrix_local<T> scale_rmm_matrix_impl(rowmajor_matrix_local<T>& mat,
+                                int axis, const std::vector<T>& vect) {
   auto nrow = mat.local_num_row;
   auto ncol = mat.local_num_col;
-  if(nrow == 0)
-    throw std::runtime_error("matrix with ZERO rows for mean computation!");
-  if (axis != 0 && axis != 1) return std::vector<T>(1, vector_mean(mat.val));
-  auto ret = (axis == 0) ? rmm_sum_of_rows(mat) : rmm_sum_of_cols(mat);
-  return (axis == 0) ? vector_divide(ret, (T)nrow) : vector_divide(ret, (T)ncol);
+  rowmajor_matrix_local<T> ret(nrow, ncol); 
+  auto vp = vect.data();
+  auto retp = ret.val.data();
+  auto matp = mat.val.data();
+  if(axis == 1) {  
+   require(vect.size() == ncol,
+    "vector size does not match with number of cols in matrix");
+   for(size_t j = 0; j < ncol; ++j) {
+      for(size_t i = 0; i < nrow; ++i) {
+        retp[i * ncol + j] = matp[i * ncol + j] * vp[j];
+      }
+    }
+  }
+  else{
+    require(vect.size() == nrow,
+     "vector size does not match with number of rows in matrix");
+    for(size_t j = 0; j < ncol; ++j) {
+      for(size_t i = 0; i < nrow; ++i) {
+        retp[i * ncol + j] = matp[i * ncol + j] * vp[i];
+      }
+    }
+  }
+  return ret;
+}
+
+template<class T>
+rowmajor_matrix<T> scale_rmm_matrix(rowmajor_matrix<T>& mat,
+                                 int axis, const std::vector<T>& vect) {
+  rowmajor_matrix_local<T> (*f)(rowmajor_matrix_local<T>&,
+                            int, const std::vector<T>&) = scale_rmm_matrix_impl;
+  auto nrow = mat.num_row;
+  auto ncol = mat.num_col;
+  rowmajor_matrix<T> ret;
+  if(axis == 1) {
+    ret = rowmajor_matrix<T>(mat.data.map(f, broadcast(axis), 
+                              broadcast(vect)));
+  }
+  else { 
+    auto nvect = make_dvector_scatter(vect, mat.get_local_num_rows()).
+                                      moveto_node_local();
+    ret = rowmajor_matrix<T>(mat.data.map(f, 
+                              broadcast(axis),  nvect));
+  }
+  ret.set_num(nrow, ncol);
+  return ret;
 }
 
 template <class T>
 std::vector<T>
-compute_mean(rowmajor_matrix<T>& mat, int axis = -1) {
+compute_mean(rowmajor_matrix_local<T>& mat, int axis = -1,
+             const std::vector<T>& sample_weight = std::vector<T>()) {
+  auto nrow = mat.local_num_row;
+  auto ncol = mat.local_num_col;
+  if(nrow == 0)
+    throw std::runtime_error("matrix with ZERO rows for mean computation!");
+  bool sw_present  = (!sample_weight.empty() && !(vector_is_uniform(sample_weight) &&
+                       sample_weight[0] == 1));
+  if(sw_present) { 
+    auto sw_mat = scale_rmm_matrix_impl(mat, axis, sample_weight);
+    auto sw_sum  = vector_sum(sample_weight);
+    if (axis != 0 && axis != 1) {
+      return std::vector<T>(1, vector_sum(sw_mat.val) / sw_sum);
+    }
+    auto ret = (axis == 0) ? rmm_sum_of_rows(sw_mat) : rmm_sum_of_cols(sw_mat);
+    return (axis == 0) ? vector_divide(ret, (T)sw_sum) : 
+                         vector_divide(ret, (T)sw_sum);
+  }
+  if (axis != 0 && axis != 1)
+    return std::vector<T>(1, vector_mean(mat.val));
+  auto ret = (axis == 0) ? rmm_sum_of_rows(mat) : rmm_sum_of_cols(mat);
+  return (axis == 0) ? vector_divide(ret, (T)nrow) : 
+                       vector_divide(ret, (T)ncol);
+}
+
+template <class T>
+std::vector<T>
+compute_mean(rowmajor_matrix<T>& mat, int axis = -1,
+             const std::vector<T>& sample_weight = std::vector<T>()) {
   auto nrow = mat.num_row;
   auto ncol = mat.num_col;
   if(nrow == 0)
     throw std::runtime_error("matrix with ZERO rows for mean computation!");
-  if (axis != 0 && axis != 1) {
-    return std::vector<T>(1, sum_of_elements(mat) / (nrow * ncol));
+  bool sw_present  = (!sample_weight.empty() && !(vector_is_uniform(sample_weight) &&
+                       sample_weight[0] == 1));
+  if(sw_present) { 
+    auto sw_mat = scale_rmm_matrix<T>(mat, axis, sample_weight);
+    auto sw_sum  = vector_sum(sample_weight);
+    if (axis != 0 && axis != 1)
+      return std::vector<T>(1, sum_of_elements(sw_mat) / (sw_sum));
+    auto ret = (axis == 0) ? sum_of_rows(sw_mat) : sum_of_cols(sw_mat);
+    return (axis == 0) ? vector_divide(ret, sw_sum) : vector_divide(ret, sw_sum);
   }
+  if (axis != 0 && axis != 1)
+      return std::vector<T>(1, sum_of_elements(mat) / (nrow * ncol));
   auto ret = (axis == 0) ? sum_of_rows(mat) : sum_of_cols(mat);
   return (axis == 0) ? vector_divide(ret, (T)nrow) : vector_divide(ret, (T)ncol);
 }
@@ -2057,20 +2155,59 @@ extract_cols(rowmajor_matrix<T>& mat,
 template <class T>
 rowmajor_matrix_local<T>
 rmm_extract_rows(rowmajor_matrix_local<T>& mat,
-                 std::vector<size_t>& rowids) {
+                 const std::vector<size_t>& rowids) {
   return extract_rows(mat, rowids);
 }
 
 inline size_t count_sizes(std::vector<size_t>& vec) { return vec.size(); }
 
+template <class MATRIX, class I>
+lvec<I> align_global_index(MATRIX& mat,
+                           const std::vector<I>& gidx) { // assumes to be sorted
+  auto nrows = mat.get_local_num_rows();
+  auto nproc = nrows.size();
+  std::vector<size_t> myst(nproc); myst[0] = 0;
+  auto mystp = myst.data();
+  for(size_t i = 1; i < nproc; ++i) mystp[i] = mystp[i - 1] + nrows[i - 1];
+
+  std::vector<I> search_target(nproc); auto sptr = search_target.data();
+  for(size_t i = 0; i < nproc - 1; ++i) sptr[i] = mystp[i + 1]; // next-start
+  sptr[nproc - 1] = mat.num_row;
+
+  std::vector<size_t> lb(nproc + 1); lb[0] = 0;
+  auto lbptr = lb.data();
+  auto gptr = gidx.data();
+  lower_bound(gptr, gidx.size(), sptr, nproc, lbptr + 1);
+
+  std::vector<std::vector<I>> ret(nproc);
+  for(size_t i = 0; i < nproc; ++i) {
+    auto sz = lbptr[i + 1] - lbptr[i];
+    ret[i].resize(sz);
+    auto tptr = ret[i].data();
+    for(size_t j = 0; j < sz; ++j) tptr[j] = gptr[j] - mystp[i];
+    gptr += sz; // move gptr pointer 'sz' step ahead...
+  }
+  return make_node_local_scatter(ret);
+}
+
 template <class T>
 rowmajor_matrix<T>
 extract_rows(rowmajor_matrix<T>& mat,
-             node_local<std::vector<size_t>>& rowids) {
-  rowmajor_matrix<T> ret = mat.data.map(rmm_extract_rows<T>, rowids);
+             lvec<size_t>& rowids,
+             bool need_transpose = false) {
+  rowmajor_matrix<T> ret = mat.data.map(rmm_extract_rows<T>, rowids); 
   ret.num_row = rowids.map(count_sizes).reduce(add<size_t>);
   ret.num_col = mat.num_col;
-  return ret;
+  return need_transpose ? ret.transpose() : ret;
+}
+
+template <class T>
+rowmajor_matrix<T>
+extract_rows(rowmajor_matrix<T>& mat,
+             const std::vector<size_t>& rowids, // must be sorted
+             bool need_transpose = false) {
+  auto loc_ids = align_global_index(mat, rowids);
+  return extract_rows(mat, loc_ids, need_transpose);
 }
 
 // vectorization on left-right direction (ncol > nrow)
