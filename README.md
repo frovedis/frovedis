@@ -196,6 +196,7 @@ with `-s 3p` option, you can see Python manual.
 
 Below links would be useful to understand the framework in more detail:
 - [List of ML algorithms](doc/misc/ml_algorithms.md)
+- [Sample notebooks for Jupyter with scikit-learn interface](doc/notebook)
 
 # 5. License
 
