@@ -1,8 +1,10 @@
+#include <cmath>
 #include "fp_growth_model.hpp"
 
 namespace frovedis {
 
   void free_df(dftable_base& df) { dftable tmp; df = tmp; }
+  int len (size_t num) { return num == 0 ? 1 : trunc(log10(num)) + 1; } 
 
   std::vector<std::string> 
   get_info_columns(dftable& cur_info, dftable& old_info) {
@@ -62,6 +64,8 @@ namespace frovedis {
     }
     item.clear();
     tree_info.clear();
+    free_df(item_support);
+    n_trans = 0;
   }
 
   size_t fp_growth_model::get_depth () { return item.size(); }
@@ -84,14 +88,17 @@ namespace frovedis {
   }
 
   void fp_growth_model::debug_print() {
+    if (item_support.num_row()) {
+      std::cout << "--- item_support ---\n"; 
+      item_support.show(); std::cout << std::endl;
+    }
     for (size_t i = 0; i < item.size(); ++i) {
       std::cout << "--- tree[" << i << "] ---\n";
-      item[i].show(); 
-      std::cout << std::endl;
+      item[i].show(); std::cout << std::endl;
       std::cout << "--- tree_info[" << i << "] ---\n";
-      tree_info[i].show();
-      std::cout << std::endl;
+      tree_info[i].show(); std::cout << std::endl;
     }
+    std::cout << "total #FIS: " << get_count() << "\n";
   }
  
   void fp_growth_model::save (const std::string& dir) {
@@ -102,8 +109,9 @@ namespace frovedis {
     std::string datetime_fmt = "%Y-%m-%d";
     std::string sep = " ";
     dftable old_info;
-    for (size_t i = 0; i < item.size(); ++i) {
-      auto part_dname = dir + "/tree_" + std::to_string(i);
+    auto depth = item.size();
+    for (size_t i = 0; i < depth; ++i) {
+      auto part_dname = dir + "/tree_" + STR(i, len(depth));
       make_directory(part_dname);
       auto tree_data = part_dname + "/data";
       auto tree_schema = part_dname + "/schema";
@@ -115,6 +123,11 @@ namespace frovedis {
       schema_str.open(tree_schema.c_str());
       for(auto& e: dt) schema_str << e.first << "\n" << e.second << "\n";
     }
+    std::string metadata = dir + "/metadata";
+    std::ofstream mdstr;
+    mdstr.exceptions(std::ofstream::failbit | std::ofstream::badbit);
+    mdstr.open(metadata.c_str());
+    mdstr << n_trans << "\n" << get_count() << std::endl;    
   }
 
   void fp_growth_model::savebinary (const std::string& dir) {
@@ -122,23 +135,28 @@ namespace frovedis {
     "save: a directory with same name already exists!\n");
     make_directory(dir);
     dftable old_info;
-    for (size_t i = 0; i < item.size(); ++i) {
-      auto part_dname = dir + "/tree_" + std::to_string(i);
+    auto depth = item.size();
+    for (size_t i = 0; i < depth; ++i) {
+      auto part_dname = dir + "/tree_" + STR(i, len(depth));
       auto fis = decompress_impl(item[i], tree_info[i], old_info);
       fis.save(part_dname);
     }
+    std::string metadata = dir + "/metadata";
+    std::ofstream mdstr;
+    mdstr.exceptions(std::ofstream::failbit | std::ofstream::badbit);
+    mdstr.open(metadata.c_str());
+    mdstr << n_trans << "\n" << get_count() << std::endl;    
   }
 
   void fp_growth_model::load (const std::string& dir) {
     require(directory_exists(dir), "load: directory does not exist!\n");
-    auto depth = count_non_hidden_files(dir);
-    RLOG(INFO) << "load: tree-depth found: " << depth << std::endl;
+    auto depth = count_non_hidden_files(dir) - 1; // -1 for metadata
     clear();
     std::string tmp;
     std::vector<dftable> tree_item(depth), tree_info(depth);
     for(size_t i = 0; i < depth; ++i) {
-      auto tree_data = dir + "/tree_" + std::to_string(i) + "/data";
-      auto tree_schema = dir + "/tree_" + std::to_string(i) + "/schema";
+      auto tree_data = dir + "/tree_" + STR(i, len(depth)) + "/data";
+      auto tree_schema = dir + "/tree_" + STR(i, len(depth)) + "/schema";
       std::ifstream schema_str(tree_schema.c_str()); 
       std::vector<std::string> types, names;
       while(std::getline(schema_str, tmp)) {
@@ -150,127 +168,250 @@ namespace frovedis {
       tree_item[i] = make_dftable_loadtext(tree_data, types, names, ' ');
       tree_info[i] = dftable(); // empty info (since decompressed tree is saved)
     }
-    *this = fp_growth_model(std::move(tree_item), std::move(tree_info));
+    size_t count = 0;
+    std::string metadata = dir + "/metadata";
+    std::ifstream mdstr(metadata.c_str()); mdstr >> n_trans >> count;    
+    RLOG(INFO) << "load: tree-depth found: " << depth 
+               << "; #FIS: " << count << std::endl;
+    *this = fp_growth_model(n_trans, std::move(tree_item), 
+                            std::move(tree_info));
   }
 
   void fp_growth_model::loadbinary (const std::string& dir) {
     require(directory_exists(dir), "load: directory does not exist!\n");
-    auto depth = count_non_hidden_files(dir);
-    RLOG(INFO) << "load: tree-depth found: " << depth << std::endl;
+    auto depth = count_non_hidden_files(dir) - 1; // -1 for metadata
     clear();
     std::vector<dftable> tree_item(depth), tree_info(depth);
     for(size_t i = 0; i < depth; ++i) {
-      auto tree_dir = dir + "/tree_" + std::to_string(i);
+      auto tree_dir = dir + "/tree_" + STR(i, len(depth));
       tree_item[i] = dftable();
       tree_item[i].load(tree_dir);
       tree_info[i] = dftable(); // empty info (since decompressed tree is saved)
     }
-    *this = fp_growth_model(std::move(tree_item), std::move(tree_info));
+    size_t count = 0;
+    std::string metadata = dir + "/metadata";
+    std::ifstream mdstr(metadata.c_str()); mdstr >> n_trans >> count;    
+    RLOG(INFO) << "load: tree-depth found: " << depth 
+               << "; #FIS: " << count << std::endl;
+    *this = fp_growth_model(n_trans, std::move(tree_item), 
+                            std::move(tree_info));
   }
-  
-  struct diff {
-    double operator()(size_t a, size_t b) { 
-      return static_cast<double>(a) / static_cast<double>(b);
+
+  struct conf_helper {
+    double operator()(size_t ucnt, size_t cnt) { 
+      return static_cast<double>(ucnt) / static_cast<double>(cnt);
     }
     SERIALIZE_NONE
   };
 
-  void calculate_confidence(dftable& pre, dftable& post,
-                            double conf, int depth_level,
-                            std::vector<dftable>& result) {
+  struct lift_helper_check_divzero {
+    double operator()(double conf, double consequentSupport) { 
+      if (consequentSupport == 0.0) return std::numeric_limits<double>::max();
+      else return conf / consequentSupport;
+    }
+    SERIALIZE_NONE
+  };
+
+  struct lift_helper {
+    double operator()(double conf, double consequentSupport) { 
+      return conf / consequentSupport;
+    }
+    SERIALIZE_NONE
+  };
+
+  struct support_helper {
+    support_helper() {}
+    support_helper(size_t n): n_trans(n) {}
+    double operator()(size_t ucnt) { 
+      return static_cast<double>(ucnt) / static_cast<double>(n_trans);
+    }
+    size_t n_trans;
+    SERIALIZE(n_trans)
+  };
+
+  struct conviction_helper {
+    double operator()(double consequentSupport, double conf) { 
+      if (conf == 1.0) return std::numeric_limits<double>::max();
+      return ((1.0 - consequentSupport) / (1.0 - conf));
+    }
+    SERIALIZE_NONE
+  };
+
+  void swap_col_names(dftable& df, 
+                      const std::string& c1, 
+                      const std::string& c2) {
+    // assumes c1 and c2 are existing columns
+    df.rename(c1, "tmp")  // c1, c2 -> tmp, c2
+      .rename(c2, c1)     // tmp, c2 -> tmp, c1
+      .rename("tmp", c2);  // tmp, c1 -> c2, c1
+  }
+
+  dftable join_pre_post(dftable& pre, dftable& post,
+                        const std::vector<std::string>& opt_left,
+                        const std::vector<std::string>& opt_right,
+                        const std::vector<std::string>& select_targets) {
+    dftable ret;
+    if(post.num_row() > pre.num_row()) {
+      // std::cout << "join: " << post.num_row() << " x " << pre.num_row() << "\n";
+      ret = post.bcast_join(pre, multi_eq(opt_right, opt_left))
+                .select(select_targets);
+    }
+    else {
+      // std::cout << "join: " << pre.num_row() << " x " << post.num_row() << "\n";
+      ret = pre.bcast_join(post, multi_eq(opt_left, opt_right))
+               .select(select_targets);
+    }
+    return ret;
+  }
+
+  // https://en.wikipedia.org/wiki/Association_rule_learning#Confidence
+  filtered_dftable 
+  calculate_confidence(dftable& rule,
+                       double min_confidence,
+                       std::string& confidence, 
+                       std::string& union_count,
+                       std::string& count) {
+    // adding confidence column in rule: confidence = union_count / count
+    rule.calc<double,size_t,size_t>(confidence, conf_helper(),
+                                    union_count, count); 
+    return rule.filter(ge_im(confidence, min_confidence)); 
+  }
+
+  // https://en.wikipedia.org/wiki/Association_rule_learning#Lift
+  dftable calculate_other_measures(filtered_dftable& with_conf,
+                                   dftable& item_support,
+                                   const std::shared_ptr<dfoperator>& opt,
+                                   std::vector<std::string> select_targets,
+                                   std::string& lift,
+                                   std::string& confidence,
+                                   std::string& cons_support,
+                                   std::string& support,
+                                   std::string& union_count,
+                                   size_t n_trans,
+                                   std::string& conviction, 
+                                   bool check_divzero) {
+    dftable ret; // ant1, ..., antN, consequent, union_count, confidence, cons_support
+    ret = with_conf.bcast_join(item_support, opt).select(select_targets);
+    // adding 'lift' column in ret: lift = confidence / cons_support
+    if (check_divzero) {
+      ret.calc<double,double,double>(lift, lift_helper_check_divzero(),
+                                     confidence, cons_support, true); 
+    }
+    else {
+      ret.calc<double,double,double>(lift, lift_helper(), 
+                                     confidence, cons_support);
+    }
+    // adding 'support' column in ret: support = union_count / n_trans
+    ret.calc<double,size_t>(support, support_helper(n_trans), union_count);
+    // adding 'conviction' column in ret: conviction = (1 - cons_support) / (1 - confidence)
+    ret.calc<double,double,double>(conviction, conviction_helper(),
+                                   cons_support, confidence, true);
+    ret.drop(union_count).drop(cons_support); // ant1, ..., antN, consequent, confidence, lift, support, conviction
+    return ret;
+  }
+    
+  void generate_association_rules_helper(dftable& pre, dftable& post,
+                                         double min_conf, int depth_level,
+                                         dftable& item_support, 
+                                         size_t n_trans,
+                                         bool check_divzero,
+                                         std::vector<dftable>& result) {
     std::string count = "count";
     std::string union_count = "union_count";
     std::string consequent = "consequent";
     std::string confidence = "confidence";
-    std::string antacedent = "antacedent";
+    std::string antecedent = "antecedent";
+    std::string lift = "lift";
+    std::string support = "support";
+    std::string conviction = "conviction";
+    std::string cons_support = "item_support";
     auto pre_col = pre.columns();
     auto post_col = post.columns();
     auto iter = pre_col.size() - 1;
     auto post_ncol = post_col.size();
     std::vector<std::string> opt_left(iter), opt_right(iter);
-    std::vector<std::string> targets1(post_ncol + 1), targets2(post_ncol);
+    std::vector<std::string> targets1(post_ncol + 1); 
+    std::vector<std::string> targets2(post_ncol + 2); 
     for(size_t i = 0; i < iter; ++i) {
       opt_left[i] = pre_col[i];
-      auto ant_name = antacedent + std::to_string(i+1);
+      auto ant_name = antecedent + STR(i + 1);
       opt_right[i] = targets1[i] = targets2[i] = ant_name;
     }
     targets1[iter] = targets2[iter] = consequent; // ant1, ... antN, consequent
     targets1[iter + 1] = union_count; 
     targets1[iter + 2] = count;      // + union_count, count
-    targets2[iter + 1] = confidence; // + confidence
-#ifdef FP_DEBUG
-    show("opt-left: ", opt_left);
-    show("opt-right: ", opt_right);
-    show("select-targets1: ", targets1);
-    show("select-targets2: ", targets2);
-#endif
+    targets2[iter + 1] = union_count; 
+    targets2[iter + 2] = confidence; 
+    targets2[iter + 3] = cons_support; // + union_count, confidence, cons_support
+    #ifdef FP_DLOG
+      show("opt-left: ", opt_left);
+      show("opt-right: ", opt_right);
+      show("select-targets1: ", targets1);
+      show("select-targets2: ", targets2);
+    #endif
 
+    // renaming post for mining
+    post.rename(post_col[0], consequent); // item -> consequent
+    // item1 -> antecedent1; item2 -> antecedent2, ...
+    for (size_t i = 1; i < post_ncol - 1; ++i) {
+      post.rename(post_col[i], antecedent + STR(i));
+    }
     post.rename(post_col[post_ncol - 1], union_count); // count -> union_count
-    auto tmp_post_col = post.columns();
+
     for(size_t i = 0; i < post_ncol - 1; ++i) {
-      if (i == 0) {
-        size_t k = 1;
-        for (size_t j = 0; j < post_ncol - 1; ++j) {
-          if (i == j) post.rename(tmp_post_col[j], consequent); 
-          else post.rename(tmp_post_col[j], antacedent + std::to_string(k++));
-        }
-      }
-      else { // swap name of ith column with i-1th column
-        auto t1 = tmp_post_col[i];
-        auto t2 = tmp_post_col[i - 1];
-        post.rename(t2, "tmp");
-        post.rename(t1, t2); // consequent
-        post.rename("tmp", t1);
-      }
-      tmp_post_col = post.columns(); // renamed columns
-#ifdef FP_DEBUG
-      show("pre-col: ", pre_col);
-      show("post-col: ", tmp_post_col);
-      std::cout << " ------ Pre ---" << std::endl;   pre.show();
-      std::cout << " ------ Post ---" << std::endl;  post.show();
-#endif
-      dftable rule;
-      if(post.num_row() > pre.num_row()) {
-        // std::cout << "join: " << post.num_row() << " x " << pre.num_row() << "\n";
-        rule = post.bcast_join(pre, multi_eq(opt_right, opt_left))
-                   .select(targets1); // ant1, ..., antN, consequent, union_count, count
-      }
-      else {
-        // std::cout << "join: " << pre.num_row() << " x " << post.num_row() << "\n";
-        rule = pre.bcast_join(post, multi_eq(opt_left, opt_right))
-                  .select(targets1); // ant1, ..., antN, consequent, union_count, count
-      }
-      rule = rule.calc<double,size_t,size_t>(confidence, diff(),
-                                             union_count, count)
-                 .filter(ge_im(confidence, conf))
-                 .select(targets2); // ant1, ..., antN, consequent, confidence
-#ifdef FP_DEBUG
-         std::cout << "--- [depth: " << depth_level 
-                   << "; iter: " << i << "] rule --- \n";
-         rule.show();
-#endif
+      if(i != 0) swap_col_names(post, consequent, antecedent + STR(i));
+      // rule: ant1, ..., antN, consequent, union_count, count
+      auto rule = join_pre_post(pre, post, opt_left, opt_right, targets1);
+      // with_conf: ant1, ..., antN, consequent, union_count, count, confidence
+      auto with_conf = calculate_confidence(rule, min_conf, confidence,
+                                            union_count, count);
+      // rule: ant1, ..., antN, consequent, confidence, lift, support, conviction
+      rule = calculate_other_measures(with_conf, item_support,
+                                      eq(consequent, "item"), targets2,
+                                      lift, confidence, cons_support,
+                                      support, union_count, n_trans, 
+                                      conviction, check_divzero);
+      #ifdef FP_DLOG
+        std::cout << "--- [depth: " << depth_level 
+                  << "; iter: " << i 
+                  << "] rule --- \n"; rule.show();
+        std::cout << " --- Pre ---\n";   pre.show();
+        std::cout << " --- Post ---\n";  post.show();
+      #endif
       if (rule.num_row()) result.push_back(std::move(rule));
     }
+
+    // post is renaming back to original names
+    auto tmp_post_col = post.columns(); // renamed col names
     for(size_t i = 0; i < post_ncol; ++i) {
-      post.rename(tmp_post_col[i], post_col[i]); // rename-back to original
+      post.rename(tmp_post_col[i], post_col[i]);
     }
   }
 
   association_rule
   generate_association_rules(std::vector<dftable>& item,
                              std::vector<dftable>& tree_info,
-                             double conf) {
-    require(conf >= 0.0 && conf <= 1.0, 
-    "generate_rules: confidence should be in between 0 to 1.\n");
+                             dftable& item_support,
+                             double min_conf,
+                             size_t n_trans) {
+    require(min_conf >= 0.0 && min_conf <= 1.0, 
+    "generate_rules: min-confidence should be in between 0 to 1.\n");
     std::vector<dftable> rules;
     auto depth = item.size();
     if (depth <= 1) return rules;
     try {
+      // divzero might occur when some item has 
+      // very less ocuurence (C) in high no. of transactions (N)
+      // and provided min-support is also very small (maybe zero)
+      // C << N (C / N can be close to zero or zero)
+      auto check_divzero = item_support.min<double>("item_support") == 0.0;
       dftable old_info;
       auto pre_fis = decompress_impl(item[0], tree_info[0], old_info);
       for(size_t i = 1; i < depth; ++i) {
         auto post_fis = decompress_impl(item[i], tree_info[i], old_info);
-        calculate_confidence(pre_fis, post_fis, conf, i, rules);
+        generate_association_rules_helper(pre_fis, post_fis, min_conf, i, 
+                                          item_support, n_trans,
+                                          check_divzero, rules);
         pre_fis = std::move(post_fis);
       }
     }
@@ -278,7 +419,7 @@ namespace frovedis {
       std::string msg = excpt.what();
       if(msg.find("bad_alloc") != std::string::npos ) {
         std::string e = "out-of-memory error occured during rule mining!\n";
-        e += "retry building tree with higher min_suuport value.\n";
+        e += "retry building tree with higher min_support value.\n";
         REPORT_ERROR(INTERNAL_ERROR, e);
       }
       else REPORT_ERROR(INTERNAL_ERROR, msg);
@@ -286,8 +427,25 @@ namespace frovedis {
     return association_rule(rules);
   }
 
-  association_rule fp_growth_model::generate_rules(double conf) {
-    return generate_association_rules(item, tree_info, conf);
+  dftable& fp_growth_model::get_item_support() {
+    require(!item.empty(), 
+    "get_item_support: attribute is available only after fit!\n");
+    if(item_support.num_row() == 0) { // first-time computation only
+      item_support = item[0];
+      item_support.calc<double,size_t>("item_support", 
+                                       support_helper(n_trans),
+                                       "count") // item_support = count / n_trans
+                  .drop("count");
+    }
+    return item_support; // item, item_support
+  }
+
+  association_rule fp_growth_model::generate_rules(double min_conf) {
+    require(!item.empty(), 
+    "generate_rules: can be called only after fit!\n");
+    auto item_support = get_item_support();
+    return generate_association_rules(item, tree_info, item_support, 
+                                      min_conf, n_trans);
   }
  
   void association_rule::clear () {
@@ -306,8 +464,7 @@ namespace frovedis {
   void association_rule::debug_print() {
     for(size_t i = 0; i < rule.size(); ++i) {
       std::cout << "--- rule[" << i << "] ---\n";
-      rule[i].show(); 
-      std::cout << std::endl;
+      rule[i].show(); std::cout << std::endl; 
     }
   }
   
@@ -318,8 +475,9 @@ namespace frovedis {
     size_t precision = 6;
     std::string datetime_fmt = "%Y-%m-%d";
     std::string sep = " ";
-    for (size_t i = 0; i < rule.size(); ++i) {
-      auto part_dname = dir + "/rule_" + std::to_string(i);
+    auto rule_depth = rule.size();
+    for (size_t i = 0; i < rule_depth; ++i) {
+      auto part_dname = dir + "/rule_" + STR(i, len(rule_depth));
       make_directory(part_dname);
       auto rule_data = part_dname + "/data";
       auto rule_schema = part_dname + "/schema";
@@ -336,8 +494,9 @@ namespace frovedis {
     require(!directory_exists(dir),
     "save: a directory with same name already exists!\n");
     make_directory(dir);
-    for (size_t i = 0; i < rule.size(); ++i) {
-      auto part_dname = dir + "/rule_" + std::to_string(i);
+    auto rule_depth = rule.size();
+    for (size_t i = 0; i < rule_depth; ++i) {
+      auto part_dname = dir + "/rule_" + STR(i, len(rule_depth));
       rule[i].save(part_dname);
     }
   }
@@ -349,8 +508,8 @@ namespace frovedis {
     clear();  this->rule.resize(depth);
     std::string tmp;
     for(size_t i = 0; i < depth; ++i) {
-      auto rule_data = dir + "/rule_" + std::to_string(i) + "/data";
-      auto rule_schema = dir + "/rule_" + std::to_string(i) + "/schema";
+      auto rule_data = dir + "/rule_" + STR(i, len(depth)) + "/data";
+      auto rule_schema = dir + "/rule_" + STR(i, len(depth)) + "/schema";
       std::ifstream schema_str(rule_schema.c_str());
       std::vector<std::string> types, names;
       while(std::getline(schema_str, tmp)) {
@@ -369,7 +528,7 @@ namespace frovedis {
     RLOG(INFO) << "load: set of rules found: " << depth << std::endl;
     clear();  this->rule.resize(depth);
     for(size_t i = 0; i < depth; ++i) {
-      auto rule_dir = dir + "/rule_" + std::to_string(i);
+      auto rule_dir = dir + "/rule_" + STR(i, len(depth));
       rule[i] = dftable();
       rule[i].load(rule_dir);
     }
