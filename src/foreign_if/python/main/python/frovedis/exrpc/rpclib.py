@@ -277,7 +277,6 @@ df_to_crs_using_info.argtypes = [c_char_p, c_int, c_long,  #host, port, proxy
 df_to_crs_using_info.restype = py_object
 
 # multi_eq df opt
-
 get_multi_eq_dfopt = LIB.get_multi_eq_dfopt
 get_multi_eq_dfopt.argtypes = [c_char_p, c_int, # host, port
                                POINTER(c_char_p), # left_on
@@ -297,13 +296,32 @@ load_dataframe_from_csv.argtypes = [c_char_p, c_int, # host, port
                                    c_ulong, c_bool, c_bool, # dtypes_dict_size, low_memory, add_index
                                    ndpointer(c_int, ndim=1, flags="C_CONTIGUOUS"), #usecols-id
                                    c_ulong,        # usecols-len
-                                   c_bool, c_bool] # verbose, mangle_dupe_cols
+                                   c_bool, c_bool, # verbose, mangle_dupe_cols
+                                   c_int, POINTER(c_char_p), c_ulong] # index_col, bool_cols, bool_cols_len
 load_dataframe_from_csv.restype = py_object
 
 get_frovedis_dataframe_length = LIB.get_frovedis_dataframe_length
 get_frovedis_dataframe_length.argtypes = [c_char_p, c_int, # host, port
                                           c_long]          # proxy
 get_frovedis_dataframe_length.restype = c_long
+
+df_convert_dicstring_to_bool = LIB.df_convert_dicstring_to_bool
+df_convert_dicstring_to_bool.argtypes = [c_char_p, c_int, c_long, # host, port, df_proxy
+                                        POINTER(c_char_p), c_ulong, # col_names, sz,
+                                        c_char_p, c_bool] # nullstr, need_materialize
+df_convert_dicstring_to_bool.restype = py_object
+
+df_append_column = LIB.df_append_column
+df_append_column.argtypes = [c_char_p, c_int, c_long, # host, port, df_proxy
+                            c_char_p, c_short, c_long,  # col_name, type, dvec
+                            c_int, c_bool, c_bool] # position, need_materialize, drop_old
+df_append_column.restype = py_object
+
+df_add_index = LIB.df_add_index
+df_add_index.argtypes = [c_char_p, c_int, # host, port
+                        c_long, c_char_p, # proxy, name
+                        c_bool] # need_materialize
+df_add_index.restype = py_object
 
 # --- Frovedis dftable_to_sparse_info ---
 load_dftable_to_sparse_info = LIB.load_dftable_to_sparse_info
@@ -320,7 +338,6 @@ release_dftable_to_sparse_info.argtypes = [c_char_p, c_int, c_long]  #host,\
 
 # --- Frovedis sparse matrices ---
 # create from scipy matrix
-
 create_frovedis_crs_II_matrix = LIB.create_frovedis_crs_II_matrix
 create_frovedis_crs_II_matrix.argtypes = [c_char_p, c_int,
                                           c_ulong, c_ulong,
@@ -836,231 +853,7 @@ D2D_cast_and_copy_array.argtypes = [\
                                 ndpointer(c_double, ndim=1, flags="C_CONTIGUOUS"),\
                                 c_ulong]
 
-# --- Frovedis ML Models ---
-
-parallel_float_glm_predict = LIB.parallel_float_glm_predict
-parallel_float_glm_predict.argtypes = [c_char_p, c_int, c_int, c_short, c_long,\
-                                 ndpointer(c_float, ndim=1,\
-                                 flags="C_CONTIGUOUS"),\
-                                 c_ulong, c_bool, c_short, c_bool]
-
-parallel_double_glm_predict = LIB.parallel_double_glm_predict
-parallel_double_glm_predict.argtypes = [c_char_p, c_int, c_int, c_short, c_long,\
-                                 ndpointer(c_double, ndim=1,\
-                                 flags="C_CONTIGUOUS"),\
-                                 c_ulong, c_bool, c_short, c_bool]
-
-# agglomerative
-aca_train = LIB.aca_train
-aca_train.argtypes = [c_char_p, c_int, c_long, # host, port, data_proxy
-                      c_int, c_char_p, # n_cluster, linkage
-                      c_double, ndpointer(c_long, ndim=1, flags="C_CONTIGUOUS"), c_long,\
-                      #ret, ret_size
-                      c_int, c_int, # verbose, mid
-                      c_short, c_short, c_bool] #dtype, itype, dense
-
-acm_predict = LIB.acm_predict
-acm_predict.argtypes = [c_char_p, c_int, #host, port
-                        c_int, c_short,  #mid, mtype
-                        c_int,           #ncluster
-                        ndpointer(c_long, ndim=1, flags="C_CONTIGUOUS"), c_long]\
-                        #ret, ret_size
-
-get_acm_children = LIB.get_acm_children_vector
-get_acm_children.argtypes = [c_char_p, c_int, c_int, c_short]
-get_acm_children.restype = py_object
-
-get_acm_distances = LIB.get_acm_distances_vector
-get_acm_distances.argtypes = [c_char_p, c_int, c_int, c_short]
-get_acm_distances.restype = py_object
-
-get_acm_n_components = LIB.get_acm_n_connected_components
-get_acm_n_components.argtypes = [c_char_p, c_int, c_int, c_short]
-get_acm_n_components.restype = c_int
-
-get_acm_n_clusters = LIB.get_acm_no_clusters
-get_acm_n_clusters.argtypes = [c_char_p, c_int, c_int, c_short]
-get_acm_n_clusters.restype = c_int
-
-# spectral embedding
-sea_train = LIB.sea_train
-sea_train.argtypes = [c_char_p, #host
-                      c_int,  #port
-                      c_long,#data
-                      c_int, #n_components
-                      c_double,#gamma
-                      c_bool, #precomputed
-                      c_bool, #norm_laplacian
-                      c_int, #mode
-                      c_bool, #drop_first
-                      c_int, #verbose
-                      c_int, #mid
-                      c_short, #dtype
-                      c_short,#itype
-                      c_bool #dense
-                     ]
-
-get_sem_affinity_matrix = LIB.get_sem_aff_matrix
-get_sem_affinity_matrix.argtypes = [c_char_p, c_int, c_int, c_short]
-get_sem_affinity_matrix.restype = py_object
-
-get_sem_embedding_matrix = LIB.get_sem_embed_matrix
-get_sem_embedding_matrix.argtypes = [c_char_p, c_int, c_int, c_short]
-get_sem_embedding_matrix.restype = py_object
-
-
-# spectral clustering
-sca_train = LIB.sca_train
-sca_train.argtypes = [c_char_p, #host
-                      c_int, #port
-                      c_long,#data
-                      c_int, #n_clusters
-                      c_int, #n_comp
-                      c_int, #n_iter
-                      c_double, #eps
-                      c_double,#gamma
-                      c_bool, #precomputed
-                      c_bool, #norm_laplacian
-                      c_int, #mode
-                      c_bool, #drop_first
-                      ndpointer(c_int, ndim=1, flags="C_CONTIGUOUS"),#labels
-                      c_long, #labels array length
-                      c_int, #verbose
-                      c_int, #mid
-                      c_short, #dtype
-                      c_short, #itype
-                      c_bool #dense
-                     ]
-
-get_scm_affinity_matrix = LIB.get_scm_aff_matrix
-get_scm_affinity_matrix.argtypes = [c_char_p, c_int, c_int, c_short]
-get_scm_affinity_matrix.restype = py_object
-
-#DBSCAN
-dbscan_train = LIB.dbscan_train
-dbscan_train.argtypes = [c_char_p, #host
-                         c_int, #port
-                         c_long,#data
-                         ndpointer(c_double, ndim=1, flags="C_CONTIGUOUS"),#sample_weight
-                         c_long,#sample_weight length
-                         c_double, #eps
-                         c_int, #min_pts
-                         ndpointer(c_int, ndim=1, flags="C_CONTIGUOUS"),#labels
-                         c_long, #labels array length
-                         c_int, #verbose
-                         c_int, #mid
-                         c_short, #dtype
-                         c_short, #itype
-                         c_bool #dense
-                        ]
-
-get_dbscan_core_sample_indices = LIB.get_frovedis_dbscan_core_sample_indices
-get_dbscan_core_sample_indices.argtypes = [c_char_p, c_int, c_int, c_short, c_short]
-get_dbscan_core_sample_indices.restype = py_object
-
-
-get_dbscan_components = LIB.get_frovedis_dbscan_components
-get_dbscan_components.argtypes = [c_char_p, c_int, c_int, c_short, c_short]
-get_dbscan_components.restype = py_object
-
-als_float_predict = LIB.als_float_predict
-als_float_predict.argtypes = [c_char_p, c_int, c_int,\
-                        ndpointer(c_int, ndim=1, flags="C_CONTIGUOUS"),\
-                        ndpointer(c_float, ndim=1, flags="C_CONTIGUOUS"),\
-                        c_ulong]
-
-als_double_predict = LIB.als_double_predict
-als_double_predict.argtypes = [c_char_p, c_int, c_int,\
-                        ndpointer(c_int, ndim=1, flags="C_CONTIGUOUS"),\
-                        ndpointer(c_double, ndim=1, flags="C_CONTIGUOUS"),\
-                        c_ulong]
-
-als_float_rec_users = LIB.als_float_rec_users
-als_float_rec_users.argtypes = [c_char_p, c_int, c_int, c_int, c_int,\
-                          ndpointer(c_int, ndim=1, flags="C_CONTIGUOUS"),\
-                          ndpointer(c_float, ndim=1, flags="C_CONTIGUOUS")]
-
-als_double_rec_users = LIB.als_double_rec_users
-als_double_rec_users.argtypes = [c_char_p, c_int, c_int, c_int, c_int,\
-                          ndpointer(c_int, ndim=1, flags="C_CONTIGUOUS"),\
-                          ndpointer(c_double, ndim=1, flags="C_CONTIGUOUS")]
-
-als_float_rec_prods = LIB.als_float_rec_prods
-als_float_rec_prods.argtypes = [c_char_p, c_int, c_int, c_int, c_int,\
-                          ndpointer(c_int, ndim=1, flags="C_CONTIGUOUS"),\
-                          ndpointer(c_float, ndim=1, flags="C_CONTIGUOUS")]
-
-als_double_rec_prods = LIB.als_double_rec_prods
-als_double_rec_prods.argtypes = [c_char_p, c_int, c_int, c_int, c_int,\
-                          ndpointer(c_int, ndim=1, flags="C_CONTIGUOUS"),\
-                          ndpointer(c_double, ndim=1, flags="C_CONTIGUOUS")]
-
-release_frovedis_model = LIB.release_frovedis_model
-release_frovedis_model.argtypes = [c_char_p, c_int, c_int, c_short, c_short]
-
-show_frovedis_model = LIB.show_frovedis_model
-show_frovedis_model.argtypes = [c_char_p, c_int, c_int, c_short, c_short]
-
-
-load_frovedis_model = LIB.load_frovedis_model
-load_frovedis_model.argtypes = [c_char_p, c_int, c_int, c_short, c_short,\
-                                c_char_p]
-
-load_frovedis_nbm = LIB.load_frovedis_nbm
-load_frovedis_nbm.argtypes = [c_char_p, c_int, c_int, c_short, c_char_p]
-load_frovedis_nbm.restype = py_object
-
-# load scm
-load_frovedis_scm = LIB.load_frovedis_scm
-load_frovedis_scm.argtypes = [c_char_p, c_int, c_int, c_short, c_char_p]
-load_frovedis_scm.restype = py_object
-
-#load acm
-load_frovedis_acm = LIB.load_frovedis_acm
-load_frovedis_acm.argtypes = [c_char_p, c_int, c_int, c_short, c_char_p, \
-                              ndpointer(c_long, ndim=1, flags="C_CONTIGUOUS"), c_long]
-
-load_frovedis_mfm = LIB.load_frovedis_mfm
-load_frovedis_mfm.argtypes = [c_char_p, c_int, c_int, c_short, c_char_p]
-load_frovedis_mfm.restype = py_object
-
-save_frovedis_model = LIB.save_frovedis_model
-save_frovedis_model.argtypes = [c_char_p, c_int, c_int, c_short, c_short,\
-                                c_char_p]
-
-get_weight_vector = LIB.get_frovedis_weight_vector
-get_weight_vector.argtypes = [c_char_p, c_int, c_int, c_short, c_short]
-get_weight_vector.restype = py_object
-
-get_intercept_vector = LIB.get_frovedis_intercept_vector
-get_intercept_vector.argtypes = [c_char_p, c_int, c_int, c_short, c_short]
-get_intercept_vector.restype = py_object
-
-get_pi_vector = LIB.get_frovedis_pi_vector
-get_pi_vector.argtypes = [c_char_p, c_int, c_int, c_short, c_short]
-get_pi_vector.restype = py_object
-
-get_feature_count = LIB.get_frovedis_feature_count
-get_feature_count.argtypes = [c_char_p, c_int, c_int, c_short, c_short]
-get_feature_count.restype = py_object
-
-get_theta_vector = LIB.get_frovedis_theta_vector
-get_theta_vector.argtypes = [c_char_p, c_int, c_int, c_short, c_short]
-get_theta_vector.restype = py_object
-
-get_cls_counts_vector = LIB.get_frovedis_cls_counts_vector
-get_cls_counts_vector.argtypes = [c_char_p, c_int, c_int, c_short, c_short]
-get_cls_counts_vector.restype = py_object
-
-get_support_idx = LIB.get_frovedis_support_idx
-get_support_idx.argtypes = [c_char_p, c_int, c_int, c_short, c_short]
-get_support_idx.restype = py_object
-
-get_support_vector = LIB.get_frovedis_support_vector
-get_support_vector.argtypes = [c_char_p, c_int, c_int, c_short, c_short]
-get_support_vector.restype = py_object
-
-# --- Frovedis ML Trainers ---
+# --- Frovedis ML data preparation ---
 distinct_count = LIB.get_distinct_count
 distinct_count.argtypes = [c_char_p, c_int, c_long, c_short] #host, port,\
                            #proxy, dtype
@@ -1100,136 +893,58 @@ encode_frovedis_double_dvector.argtypes = [c_char_p, c_int, c_long,  #host, port
                                            c_long] # size
 encode_frovedis_double_dvector.restype = c_long # out proxy
 
-lr_sgd = LIB.lr_sgd
-lr_sgd.argtypes = [c_char_p, c_int, c_long, c_long,   #host,port,X,y
-                   c_int, c_double,                   #iter, lr_rate
-                   c_int, c_double, c_bool,           #rtype, rparam, is_mult
-                   c_bool, c_double, c_int, c_int,    #fit_icpt, tol, vb, mid
-                   c_short, c_short, c_bool, c_bool]  #dtype, itype, dense, shrinking
+# --- generic model functions ---
+show_frovedis_model = LIB.show_frovedis_model
+show_frovedis_model.argtypes = [c_char_p, c_int, c_int, c_short, c_short]
 
-lr_lbfgs = LIB.lr_lbfgs
-lr_lbfgs.argtypes = [c_char_p, c_int, c_long, c_long, #host,port,X,y
-                     c_int, c_double,                 #iter, lr_rate
-                     c_int, c_double, c_bool,         #rtype, rparam, is_mult
-                     c_bool, c_double, c_int, c_int,  #fit_icpt, tol, vb, mid
-                     c_short, c_short, c_bool]        #dtype, itype, dense
+load_frovedis_model = LIB.load_frovedis_model
+load_frovedis_model.argtypes = [c_char_p, c_int, c_int, c_short, c_short,\
+                                c_char_p]
 
-svm_sgd = LIB.svm_sgd
-svm_sgd.argtypes = [c_char_p, c_int, c_long, c_long, #host,port,X,y
-                    c_int, c_double,                 #iter, lr_rate
-                    c_int, c_double,                 #rtype, rparam
-                    c_bool, c_double, c_int, c_int,  #fit_icpt, tol, vb, mid
-                    c_short, c_short, c_bool]        #dtype, itype, dense
+save_frovedis_model = LIB.save_frovedis_model
+save_frovedis_model.argtypes = [c_char_p, c_int, c_int, c_short, c_short,\
+                                c_char_p]
 
-svm_lbfgs = LIB.svm_lbfgs
-svm_lbfgs.argtypes = [c_char_p, c_int, c_long, c_long, #host,port,X,y
-                      c_int, c_double,                 #iter, lr_rate
-                      c_int, c_double,                 #rtype, rparam
-                      c_bool, c_double, c_int, c_int,  #fit_icpt, tol, vb, mid
-                      c_short, c_short, c_bool]        #dtype, itype, dense
+release_frovedis_model = LIB.release_frovedis_model
+release_frovedis_model.argtypes = [c_char_p, c_int, c_int, c_short, c_short]
 
-frovedis_svc = LIB.frovedis_svc
-frovedis_svc.argtypes = [c_char_p, c_int, c_long, c_long,  #host,port,X,y
-                         c_double, c_double, c_int, c_int, #tol, C, cache, max_itr
-                         c_char_p, c_double, c_double,     #kernel, gamma, coef
-                         c_int, c_int, c_int,              #degree, vb, mid
-                         c_short, c_short, c_bool]         #dtype, itype, dense
+get_weight_vector = LIB.get_frovedis_weight_vector
+get_weight_vector.argtypes = [c_char_p, c_int, c_int, c_short, c_short]
+get_weight_vector.restype = py_object
 
-svm_regressor_sgd = LIB.svm_regressor_sgd
-svm_regressor_sgd.argtypes = [c_char_p, c_int, c_long, c_long, #host,port,X,y
-                              c_int, c_double,                 #iter, lr_rate
-                              c_double,                        #eps
-                              c_int, c_double,                 #rtype, rparam
-                              c_bool, c_double,                #fit_icpt, tol
-                              c_int, c_int, c_int,             #loss, vb, mid
-                              c_short, c_short, c_bool]        #dtype, itype, dense
+get_intercept_vector = LIB.get_frovedis_intercept_vector
+get_intercept_vector.argtypes = [c_char_p, c_int, c_int, c_short, c_short]
+get_intercept_vector.restype = py_object
 
-nb_train = LIB.nb_trainer
-nb_train.argtypes = [c_char_p, c_int, c_long,
-                     c_long, c_double, c_bool,
-                     ndpointer(c_double, ndim=1, flags="C_CONTIGUOUS"),#class_prior
-                     c_long,#lenght of class_prior
-                     ndpointer(c_double, ndim=1, flags="C_CONTIGUOUS"),#sample_weight
-                     c_long,#sample_weight length
-                     c_int, c_char_p, c_double,
-                     c_int, c_short, c_short, c_bool]
+parallel_float_glm_predict = LIB.parallel_float_glm_predict
+parallel_float_glm_predict.argtypes = [c_char_p, c_int, c_int, c_short, c_long,\
+                                 ndpointer(c_float, ndim=1,\
+                                 flags="C_CONTIGUOUS"),\
+                                 c_ulong, c_bool, c_short, c_bool]
 
-lnr_lapack = LIB.lnr_lapack
-lnr_lapack.argtypes = [c_char_p, c_int,  # host, port
-                       c_long, c_long,   # X, y
-                       c_bool, c_int,  # fit_icpt, vb
-                       c_int, c_short]   # mid, dtype
-lnr_lapack.restype = py_object
+parallel_double_glm_predict = LIB.parallel_double_glm_predict
+parallel_double_glm_predict.argtypes = [c_char_p, c_int, c_int, c_short, c_long,\
+                                 ndpointer(c_double, ndim=1,\
+                                 flags="C_CONTIGUOUS"),\
+                                 c_ulong, c_bool, c_short, c_bool]
 
-lnr_scalapack = LIB.lnr_scalapack
-lnr_scalapack.argtypes = [c_char_p, c_int,  # host, port
-                          c_long, c_long,   # X, y
-                          c_bool, c_int,  # fit_icpt, vb
-                          c_int, c_short]   # mid, dtype
+# --- clustering APIs --- 
 
-lnr_sgd = LIB.lnr_sgd
-lnr_sgd.argtypes = [c_char_p, c_int, c_long, c_long, #host,port,X,y
-                    c_int, c_double,                 #iter, lr_rate
-                    c_bool, c_double, c_int, c_int,  #fit_icpt, tol, vb, mid
-                    c_short, c_short, c_bool]        #dtype, itype, dense
-
-lnr_lbfgs = LIB.lnr_lbfgs
-lnr_lbfgs.argtypes = [c_char_p, c_int, c_long, c_long, #host,port,X,y
-                      c_int, c_double,                 #iter, lr_rate
-                      c_bool, c_double, c_int, c_int,  #fit_icpt, tol, vb, mid
-                      c_short, c_short, c_bool]        #dtype, itype, dense
-
-lasso_sgd = LIB.lasso_sgd
-lasso_sgd.argtypes = [c_char_p, c_int, c_long, c_long, #host,port,X,y
-                      c_int, c_double,                 #iter, lr_rate
-                      c_double,                        #regparam
-                      c_bool, c_double, c_int, c_int,  #fit_icpt, tol, vb, mid
-                      c_short, c_short, c_bool]        #dtype, itype, dense
-
-lasso_lbfgs = LIB.lasso_lbfgs
-lasso_lbfgs.argtypes = [c_char_p, c_int, c_long, c_long, #host,port,X,y
-                        c_int, c_double,                 #iter, lr_rate
-                        c_double,                        #regparam
-                        c_bool, c_double, c_int, c_int,  #fit_icpt, tol, vb, mid
-                        c_short, c_short, c_bool]        #dtype, itype, dense
-
-ridge_sgd = LIB.ridge_sgd
-ridge_sgd.argtypes = [c_char_p, c_int, c_long, c_long, #host,port,X,y
-                      c_int, c_double,                 #iter, lr_rate
-                      c_double,                        #regparam
-                      c_bool, c_double, c_int, c_int,  #fit_icpt, tol, vb, mid
-                      c_short, c_short, c_bool]        #dtype, itype, dense
-
-ridge_lbfgs = LIB.ridge_lbfgs
-ridge_lbfgs.argtypes = [c_char_p, c_int, c_long, c_long, #host,port,X,y
-                        c_int, c_double,                 #iter, lr_rate
-                        c_double,                        #regparam
-                        c_bool, c_double, c_int, c_int,  #fit_icpt, tol, vb, mid
-                        c_short, c_short, c_bool]        #dtype, itype, dense
-
-# For SGDClassifier with "squared_loss"
-lnr2_sgd = LIB.lnr2_sgd
-lnr2_sgd.argtypes = [c_char_p, c_int, c_long, c_long, #host,port,X,y
-                     c_int, c_double,                 #iter, lr_rate
-                     c_int, c_double,                 #rtype, rparam
-                     c_bool, c_double, c_int, c_int,  #fit_icpt, tol, vb, mid
-                     c_short, c_short, c_bool]        #dtype, itype, dense
-
-# kmeans :
+# 1. KMeans
 kmeans_fit = LIB.kmeans_fit
 kmeans_fit.argtypes = [c_char_p, c_int, c_long, c_int, #host, port, dptr, k
-                       c_int, c_int, c_double,c_long, #max_iter,n_init,tol,seed
+                       c_int, c_int, c_double,c_long,  #max_iter,n_init,tol,seed
                        c_int, c_int,                   #verbose, mid
-                       c_short, c_short, c_bool,       #dtype, itype, dense, 
+                       c_short, c_short, c_bool,       #dtype, itype, dense,
                        c_bool]                         #use_shrink
 kmeans_fit.restype = py_object
 
 kmeans_fit_transform = LIB.kmeans_fit_transform
 kmeans_fit_transform.argtypes = [c_char_p, c_int,      #host, port
                        c_long, c_int,                  #dptr, k
-                       c_int, c_int, c_double,c_long, #max_iter,n_init,tol,seed
+                       c_int, c_int, c_double,c_long,  #max_iter,n_init,tol,seed
                        c_int, c_int,                   #verbose, mid
-                       c_short, c_short, c_bool,       #dtype, itype, dense, 
+                       c_short, c_short, c_bool,       #dtype, itype, dense,
                        c_bool]                         #use_shrink
 kmeans_fit_transform.restype = py_object
 
@@ -1257,33 +972,373 @@ kmeans_score.argtypes = [c_char_p, c_int,         #host, port
                          c_long, c_short, c_bool] #dptr, itype, dense
 kmeans_score.restype = c_float
 
+# 2. Agglomerative
+aca_train = LIB.aca_train
+aca_train.argtypes = [c_char_p, c_int, c_long, # host, port, data_proxy
+                      c_int, c_char_p, # n_cluster, linkage
+                      c_double, ndpointer(c_long, ndim=1, flags="C_CONTIGUOUS"), c_long,\
+                      #ret, ret_size
+                      c_int, c_int, # verbose, mid
+                      c_short, c_short, c_bool] #dtype, itype, dense
+
+acm_predict = LIB.acm_predict
+acm_predict.argtypes = [c_char_p, c_int, #host, port
+                        c_int, c_short,  #mid, mtype
+                        c_int,           #ncluster
+                        ndpointer(c_long, ndim=1, flags="C_CONTIGUOUS"), c_long]\
+                        #ret, ret_size
+
+get_acm_children = LIB.get_acm_children_vector
+get_acm_children.argtypes = [c_char_p, c_int, c_int, c_short]
+get_acm_children.restype = py_object
+
+get_acm_distances = LIB.get_acm_distances_vector
+get_acm_distances.argtypes = [c_char_p, c_int, c_int, c_short]
+get_acm_distances.restype = py_object
+
+get_acm_n_components = LIB.get_acm_n_connected_components
+get_acm_n_components.argtypes = [c_char_p, c_int, c_int, c_short]
+get_acm_n_components.restype = c_int
+
+get_acm_n_clusters = LIB.get_acm_no_clusters
+get_acm_n_clusters.argtypes = [c_char_p, c_int, c_int, c_short]
+get_acm_n_clusters.restype = c_int
+
+load_frovedis_acm = LIB.load_frovedis_acm
+load_frovedis_acm.argtypes = [c_char_p, c_int, c_int, c_short, c_char_p, \
+                              ndpointer(c_long, ndim=1, flags="C_CONTIGUOUS"), c_long]
+
+# 3. spectral clustering
+sca_train = LIB.sca_train
+sca_train.argtypes = [c_char_p, #host
+                      c_int, #port
+                      c_long,#data
+                      c_int, #n_clusters
+                      c_int, #n_comp
+                      c_int, #n_iter
+                      c_double, #eps
+                      c_double,#gamma
+                      c_bool, #precomputed
+                      c_bool, #norm_laplacian
+                      c_int, #mode
+                      c_bool, #drop_first
+                      ndpointer(c_int, ndim=1, flags="C_CONTIGUOUS"),#labels
+                      c_long, #labels array length
+                      c_int, #verbose
+                      c_int, #mid
+                      c_short, #dtype
+                      c_short, #itype
+                      c_bool #dense
+                     ]
+
+get_scm_affinity_matrix = LIB.get_scm_aff_matrix
+get_scm_affinity_matrix.argtypes = [c_char_p, c_int, c_int, c_short]
+get_scm_affinity_matrix.restype = py_object
+
+load_frovedis_scm = LIB.load_frovedis_scm
+load_frovedis_scm.argtypes = [c_char_p, c_int, c_int, c_short, c_char_p]
+load_frovedis_scm.restype = py_object
+
+# 4. DBSCAN
+dbscan_train = LIB.dbscan_train
+dbscan_train.argtypes = [c_char_p, #host
+                         c_int, #port
+                         c_long,#data
+                         ndpointer(c_double, ndim=1, flags="C_CONTIGUOUS"),#sample_weight
+                         c_long,#sample_weight length
+                         c_double, #eps
+                         c_int, #min_pts
+                         ndpointer(c_long, ndim=1, flags="C_CONTIGUOUS"),#labels
+                         c_long, #labels array length
+                         c_int, #verbose
+                         c_int, #mid
+                         c_short, #dtype
+                         c_short, #itype
+                         c_bool #dense
+                        ]
+
+get_dbscan_core_sample_indices = LIB.get_frovedis_dbscan_core_sample_indices
+get_dbscan_core_sample_indices.argtypes = [c_char_p, c_int, c_int, c_short, c_short]
+get_dbscan_core_sample_indices.restype = py_object
+
+get_dbscan_components = LIB.get_frovedis_dbscan_components
+get_dbscan_components.argtypes = [c_char_p, c_int, c_int, c_short, c_short]
+get_dbscan_components.restype = py_object
+
+# --- classification APIs ---
+
+# 1. Logistic Regression
+lr_sgd = LIB.lr_sgd
+lr_sgd.argtypes = [c_char_p, c_int, c_long, c_long,   #host,port,X,y
+                   ndpointer(c_double, ndim=1, flags="C_CONTIGUOUS"),#sample_weight
+                   c_long,#sample_weight length
+                   c_int, c_double,                   #iter, lr_rate
+                   c_int, c_double, c_bool,           #rtype, rparam, is_mult
+                   c_bool, c_double, c_int, c_int,    #fit_icpt, tol, vb, mid
+                   c_short, c_short, c_bool, c_bool]  #dtype, itype, dense, shrinking
+lr_sgd.restype = c_int #n_iter
+
+lr_lbfgs = LIB.lr_lbfgs
+lr_lbfgs.argtypes = [c_char_p, c_int, c_long, c_long, #host,port,X,y
+                     ndpointer(c_double, ndim=1, flags="C_CONTIGUOUS"),#sample_weight
+                     c_long,#sample_weight length
+                     c_int, c_double,                 #iter, lr_rate
+                     c_int, c_double, c_bool,         #rtype, rparam, is_mult
+                     c_bool, c_double, c_int, c_int,  #fit_icpt, tol, vb, mid
+                     c_short, c_short, c_bool]        #dtype, itype, dense
+lr_lbfgs.restype = c_int #n_iter
+
+# 2. Linear SVM Classification
+svm_sgd = LIB.svm_sgd
+svm_sgd.argtypes = [c_char_p, c_int, c_long, c_long, #host,port,X,y
+                    ndpointer(c_double, ndim=1, flags="C_CONTIGUOUS"),#sample_weight
+                    c_long,#sample_weight length
+                    c_int, c_double,                 #iter, lr_rate
+                    c_int, c_double,                 #rtype, rparam
+                    c_bool, c_double, c_int, c_int,  #fit_icpt, tol, vb, mid
+                    c_short, c_short, c_bool]        #dtype, itype, dense
+svm_sgd.restype = c_int #n_iter
+
+svm_lbfgs = LIB.svm_lbfgs
+svm_lbfgs.argtypes = [c_char_p, c_int, c_long, c_long, #host,port,X,y
+                      ndpointer(c_double, ndim=1, flags="C_CONTIGUOUS"),#sample_weight
+                      c_long,#sample_weight length
+                      c_int, c_double,                 #iter, lr_rate
+                      c_int, c_double,                 #rtype, rparam
+                      c_bool, c_double, c_int, c_int,  #fit_icpt, tol, vb, mid
+                      c_short, c_short, c_bool]        #dtype, itype, dense
+svm_lbfgs.restype = c_int #n_iter
+
+# 3. Kernel SVM Classification
+frovedis_svc = LIB.frovedis_svc
+frovedis_svc.argtypes = [c_char_p, c_int, c_long, c_long,  #host,port,X,y
+                         c_double, c_double, c_int, c_int, #tol, C, cache, max_itr
+                         c_char_p, c_double, c_double,     #kernel, gamma, coef
+                         c_int, c_int, c_int,              #degree, vb, mid
+                         c_short, c_short, c_bool]         #dtype, itype, dense
+
+get_support_idx = LIB.get_frovedis_support_idx
+get_support_idx.argtypes = [c_char_p, c_int, c_int, c_short, c_short]
+get_support_idx.restype = py_object
+
+get_support_vector = LIB.get_frovedis_support_vector
+get_support_vector.argtypes = [c_char_p, c_int, c_int, c_short, c_short]
+get_support_vector.restype = py_object
+
+# 4. Naive Bayes
+nb_train = LIB.nb_trainer
+nb_train.argtypes = [c_char_p, c_int, c_long,
+                     c_long, c_double, c_bool,
+                     ndpointer(c_double, ndim=1, flags="C_CONTIGUOUS"),#class_prior
+                     c_long,#lenght of class_prior
+                     ndpointer(c_double, ndim=1, flags="C_CONTIGUOUS"),#sample_weight
+                     c_long,#sample_weight length
+                     c_int, c_char_p, c_double,
+                     c_int, c_short, c_short, c_bool]
+
+load_frovedis_nbm = LIB.load_frovedis_nbm
+load_frovedis_nbm.argtypes = [c_char_p, c_int, c_int, c_short, c_char_p]
+load_frovedis_nbm.restype = py_object
+
+get_pi_vector = LIB.get_frovedis_pi_vector
+get_pi_vector.argtypes = [c_char_p, c_int, c_int, c_short, c_short]
+get_pi_vector.restype = py_object
+
+get_feature_count = LIB.get_frovedis_feature_count
+get_feature_count.argtypes = [c_char_p, c_int, c_int, c_short, c_short]
+get_feature_count.restype = py_object
+
+get_theta_vector = LIB.get_frovedis_theta_vector
+get_theta_vector.argtypes = [c_char_p, c_int, c_int, c_short, c_short]
+get_theta_vector.restype = py_object
+
+get_cls_counts_vector = LIB.get_frovedis_cls_counts_vector
+get_cls_counts_vector.argtypes = [c_char_p, c_int, c_int, c_short, c_short]
+get_cls_counts_vector.restype = py_object
+
+# --- regression APIs ---
+
+# 1. Linear Regression
+lnr_lapack = LIB.lnr_lapack
+lnr_lapack.argtypes = [c_char_p, c_int,  # host, port
+                       c_long, c_long,   # X, y
+                       ndpointer(c_double, ndim=1, flags="C_CONTIGUOUS"),#sample_weight
+                       c_long,#sample_weight length
+                       c_bool, c_int,  # fit_icpt, vb
+                       c_int, c_short]   # mid, dtype
+lnr_lapack.restype = py_object
+
+lnr_scalapack = LIB.lnr_scalapack
+lnr_scalapack.argtypes = [c_char_p, c_int,  # host, port
+                          c_long, c_long,   # X, y
+                          ndpointer(c_double, ndim=1, flags="C_CONTIGUOUS"),#sample_weight
+                          c_long,#sample_weight length
+                          c_bool, c_int,  # fit_icpt, vb
+                          c_int, c_short]   # mid, dtype
+
+lnr_sgd = LIB.lnr_sgd
+lnr_sgd.argtypes = [c_char_p, c_int, c_long, c_long, #host,port,X,y
+                    ndpointer(c_double, ndim=1, flags="C_CONTIGUOUS"),#sample_weight
+                    c_long,#sample_weight length
+                    c_int, c_double,                 #iter, lr_rate
+                    c_bool, c_double, c_int, c_int,  #fit_icpt, tol, vb, mid
+                    c_short, c_short, c_bool]        #dtype, itype, dense
+lnr_sgd.restype = c_int #n_iter
+
+lnr_lbfgs = LIB.lnr_lbfgs
+lnr_lbfgs.argtypes = [c_char_p, c_int, c_long, c_long, #host,port,X,y
+                      ndpointer(c_double, ndim=1, flags="C_CONTIGUOUS"),#sample_weight
+                      c_long,#sample_weight length
+                      c_int, c_double,                 #iter, lr_rate
+                      c_bool, c_double, c_int, c_int,  #fit_icpt, tol, vb, mid
+                      c_short, c_short, c_bool]        #dtype, itype, dense
+lnr_lbfgs.restype = c_int #n_iter
+
+# 2. Lasso Regression (L2)
+lasso_sgd = LIB.lasso_sgd
+lasso_sgd.argtypes = [c_char_p, c_int, c_long, c_long, #host,port,X,y
+                      ndpointer(c_double, ndim=1, flags="C_CONTIGUOUS"),#sample_weight
+                      c_long,#sample_weight length
+                      c_int, c_double,                 #iter, lr_rate
+                      c_double,                        #regparam
+                      c_bool, c_double, c_int, c_int,  #fit_icpt, tol, vb, mid
+                      c_short, c_short, c_bool]        #dtype, itype, dense
+lasso_sgd.restype = c_int #n_iter
+
+lasso_lbfgs = LIB.lasso_lbfgs
+lasso_lbfgs.argtypes = [c_char_p, c_int, c_long, c_long, #host,port,X,y
+                        ndpointer(c_double, ndim=1, flags="C_CONTIGUOUS"),#sample_weight
+                        c_long,#sample_weight length
+                        c_int, c_double,                 #iter, lr_rate
+                        c_double,                        #regparam
+                        c_bool, c_double, c_int, c_int,  #fit_icpt, tol, vb, mid
+                        c_short, c_short, c_bool]        #dtype, itype, dense
+lasso_lbfgs.restype = c_int #n_iter
+
+# 3. Ridge Regression (L1)
+ridge_sgd = LIB.ridge_sgd
+ridge_sgd.argtypes = [c_char_p, c_int, c_long, c_long, #host,port,X,y
+                      ndpointer(c_double, ndim=1, flags="C_CONTIGUOUS"),#sample_weight
+                      c_long,#sample_weight length
+                      c_int, c_double,                 #iter, lr_rate
+                      c_double,                        #regparam
+                      c_bool, c_double, c_int, c_int,  #fit_icpt, tol, vb, mid
+                      c_short, c_short, c_bool]        #dtype, itype, dense
+ridge_sgd.restype = c_int #n_iter
+
+ridge_lbfgs = LIB.ridge_lbfgs
+ridge_lbfgs.argtypes = [c_char_p, c_int, c_long, c_long, #host,port,X,y
+                        ndpointer(c_double, ndim=1, flags="C_CONTIGUOUS"),#sample_weight
+                        c_long,#sample_weight length
+                        c_int, c_double,                 #iter, lr_rate
+                        c_double,                        #regparam
+                        c_bool, c_double, c_int, c_int,  #fit_icpt, tol, vb, mid
+                        c_short, c_short, c_bool]        #dtype, itype, dense
+ridge_lbfgs.restype = c_int #n_iter
+
+# 4. SGDRegressor: SGDClassifier with "squared_loss"
+lnr2_sgd = LIB.lnr2_sgd
+lnr2_sgd.argtypes = [c_char_p, c_int, c_long, c_long, #host,port,X,y
+                     ndpointer(c_double, ndim=1, flags="C_CONTIGUOUS"),#sample_weight
+                     c_long,#sample_weight length
+                     c_int, c_double,                 #iter, lr_rate
+                     c_int, c_double,                 #rtype, rparam
+                     c_bool, c_double, c_int, c_int,  #fit_icpt, tol, vb, mid
+                     c_short, c_short, c_bool]        #dtype, itype, dense
+lnr2_sgd.restype = c_int #n_iter
+
+# 5. Linear SVM Regression
+svm_regressor_sgd = LIB.svm_regressor_sgd
+svm_regressor_sgd.argtypes = [c_char_p, c_int, c_long, c_long, #host,port,X,y
+                              ndpointer(c_double, ndim=1, flags="C_CONTIGUOUS"),#sample_weight
+                              c_long,#sample_weight length
+                              c_int, c_double,                 #iter, lr_rate
+                              c_double,                        #eps
+                              c_int, c_double,                 #rtype, rparam
+                              c_bool, c_double,                #fit_icpt, tol
+                              c_int, c_int, c_int,             #loss, vb, mid
+                              c_short, c_short, c_bool]        #dtype, itype, dense
+svm_regressor_sgd.restype = c_int #n_iter
+
+# --- tree/ensemble APIs ---
+
+# 1. Decision Tree
+dt_train = LIB.dt_trainer
+dt_train.argtypes = [c_char_p, c_int, c_long,
+                     c_long, c_char_p, c_char_p,
+                     c_int, c_int, c_int, c_int,
+                     c_float, c_int, c_int,
+                     c_short, c_short, c_bool]
+
+
+# 2. Random Forest
+rf_train = LIB.rf_trainer
+rf_train.argtypes = [c_char_p, c_int, c_long,         #host,port,X
+                     c_long, c_char_p, c_char_p,      #y,algo,criterion
+                     c_int, c_int, c_int, c_char_p,   #n_est,max_dep,n_cl,feature_subset_strat
+                     c_double, #feature_subset_rate
+                     c_int, c_int, c_double, c_long,   #mx_bin ,min_sample_leaf,min_impurity_decrease,seed
+                     c_int, c_int, c_short, c_short,  #vb,mid,dtype,itype
+                     c_bool]                          #dense
+
+# 3. GBDT
+gbt_train = LIB.gbt_trainer
+gbt_train.argtypes = [c_char_p, c_int, # host, port
+                     c_long, c_long, # xptr, yptr
+                     c_char_p, c_char_p, c_char_p, # algo, loss, impurity
+                     c_double, c_int, c_double, # learning_rate, max_depth, min_impurity_decrease
+                     c_int, c_double, c_int, # seed, tol, max_bins
+                     c_double, c_char_p, c_double, #subsampling rate, strategy, subset_features
+                     c_int, c_int, # n_estimators, nclasses
+                     c_int, c_int, # verbose, mid
+                     c_short, c_short, c_bool # dtype, itype, dense
+                     ]
+
+# --- recommendation APIs ---
+
+# 1. ALS
 # als will always be trained with sparse data
 als_train = LIB.als_train
 als_train.argtypes = [c_char_p, c_int, c_long, c_int, c_int,
-                      c_double, c_double, c_long, c_int, c_int,
+                      c_double, c_double, c_double, c_long, c_int, c_int,
                       c_short, c_short]
-#fp growth functions
-fpgrowth_trainer = LIB.fpgrowth_trainer
-fpgrowth_trainer.argtypes = [c_char_p, c_int, c_long, # host, port, fdata
-                             c_int, c_double, c_int,  # mid, min_support, depth
-                             c_int, c_int, c_int]     # c-point, opt-level, verbose
-fpgrowth_trainer.restype = c_int
+als_float_predict = LIB.als_float_predict
+als_float_predict.argtypes = [c_char_p, c_int, c_int,\
+                        ndpointer(c_int, ndim=1, flags="C_CONTIGUOUS"),\
+                        ndpointer(c_float, ndim=1, flags="C_CONTIGUOUS"),\
+                        c_ulong]
 
-load_fp_model = LIB.load_fp_model
-load_fp_model.argtypes = [c_char_p, c_int, c_int, # host, port, mid
-                          c_short, c_char_p]      # mkind, fname
-load_fp_model.restype = c_int
+als_double_predict = LIB.als_double_predict
+als_double_predict.argtypes = [c_char_p, c_int, c_int,\
+                        ndpointer(c_int, ndim=1, flags="C_CONTIGUOUS"),\
+                        ndpointer(c_double, ndim=1, flags="C_CONTIGUOUS"),\
+                        c_ulong]
 
+als_float_rec_users = LIB.als_float_rec_users
+als_float_rec_users.argtypes = [c_char_p, c_int, c_int, c_int, c_int,\
+                          ndpointer(c_int, ndim=1, flags="C_CONTIGUOUS"),\
+                          ndpointer(c_float, ndim=1, flags="C_CONTIGUOUS")]
 
-#fpgrowth_freq_items = lib.fpgrowth_freq_items
-#fpgrowth_freq_items.argtypes = [c_char_p, c_int, c_int]
+als_double_rec_users = LIB.als_double_rec_users
+als_double_rec_users.argtypes = [c_char_p, c_int, c_int, c_int, c_int,\
+                          ndpointer(c_int, ndim=1, flags="C_CONTIGUOUS"),\
+                          ndpointer(c_double, ndim=1, flags="C_CONTIGUOUS")]
 
-#fpgrowth_rules = lib.fpgrowth_rules
-#fpgrowth_rules.argtypes = [c_char_p, c_int, c_int, c_double]
+als_float_rec_prods = LIB.als_float_rec_prods
+als_float_rec_prods.argtypes = [c_char_p, c_int, c_int, c_int, c_int,\
+                          ndpointer(c_int, ndim=1, flags="C_CONTIGUOUS"),\
+                          ndpointer(c_float, ndim=1, flags="C_CONTIGUOUS")]
 
-fpgrowth_fpr = LIB.fpgrowth_fpr
-fpgrowth_fpr.argtypes = [c_char_p, c_int, c_int, c_int, c_double]
+als_double_rec_prods = LIB.als_double_rec_prods
+als_double_rec_prods.argtypes = [c_char_p, c_int, c_int, c_int, c_int,\
+                          ndpointer(c_int, ndim=1, flags="C_CONTIGUOUS"),\
+                          ndpointer(c_double, ndim=1, flags="C_CONTIGUOUS")]
 
+load_frovedis_mfm = LIB.load_frovedis_mfm
+load_frovedis_mfm.argtypes = [c_char_p, c_int, c_int, c_short, c_char_p]
+load_frovedis_mfm.restype = py_object
+
+# 2. Factorization Machines (currently supports classification and regression)
 fm_train = LIB.fm_trainer
 fm_train.argtypes = [c_char_p, c_int,
                      c_long, c_long,
@@ -1294,6 +1349,38 @@ fm_train.argtypes = [c_char_p, c_int,
                      c_int, c_int, c_bool, c_int,
                      c_short, c_short]
 
+# --- pattern mining APIs ---
+
+# 1. FP Growth
+fpgrowth_generate_fis = LIB.fpgrowth_generate_fis
+fpgrowth_generate_fis.argtypes = [c_char_p, c_int, c_long, # host, port, fdata
+                                  c_int, c_double,  # mid, minSupport
+                                  c_int, c_int,     # tree_depth, c-point
+                                  c_int, c_int]     # opt-level, verbose
+fpgrowth_generate_fis.restype = c_int # returns fis count as int
+
+get_fpgrowth_fis = LIB.fpgrowth_freq_items
+get_fpgrowth_fis.argtypes = [c_char_p, c_int, c_int] #host, port, mid
+get_fpgrowth_fis.restype = py_object
+
+fpgrowth_generate_rules = LIB.fpgrowth_generate_rules
+fpgrowth_generate_rules.argtypes = [c_char_p, c_int, # host, port,
+                                    c_int, c_int,    # model-mid, rule-mid
+                                    c_double]        # minConfidence
+fpgrowth_generate_rules.restype = c_int # returns rules count as int
+
+get_association_rules = LIB.fpgrowth_rules
+get_association_rules.argtypes = [c_char_p, c_int, c_int] #host, port, mid
+get_association_rules.restype = py_object
+
+load_fp_model = LIB.load_fp_model
+load_fp_model.argtypes = [c_char_p, c_int, c_int, # host, port, mid
+                          c_short, c_char_p]      # mkind, fname
+load_fp_model.restype = c_int  # returns fis/rule (depends on mkind) count as int
+
+# --- natual language APIs ---
+
+# 1. Word2Vec
 w2v_build_vocab_and_dump = LIB.w2v_build_vocab_and_dump
 w2v_build_vocab_and_dump.argtypes = [c_char_p, c_char_p, #text, encode
                                      c_char_p, c_char_p, #vocab, count
@@ -1372,8 +1459,9 @@ pgesvd = LIB.pgesvd
 pgesvd.argtypes = [c_char_p, c_int, c_long, c_bool, c_bool, c_short]
 pgesvd.restype = py_object
 
-# --- Frovedis ARPACK Wrappers ---
+# --- decomposition APIs ---
 
+# 1. SVD
 compute_var_sum = LIB.sum_of_variance
 compute_var_sum.argtypes = [c_char_p, c_int, # host, port
                             c_long, c_bool,  # mptr, sample_variance
@@ -1406,7 +1494,7 @@ compute_svd_inverse_transform.argtypes = [c_char_p, c_int,  # host, port
                                           c_long]           # comp_ptr
 compute_svd_inverse_transform.restype = py_object
 
-# --- Scalapack Results ---
+# svd result structures
 release_ipiv = LIB.release_ipiv
 release_ipiv.argtypes = [c_char_p, c_int, c_char, c_long]
 
@@ -1420,7 +1508,7 @@ get_svd_results_from_file.argtypes = [c_char_p, c_int,
                                       c_bool, c_bool, c_bool, c_char, c_char]
 get_svd_results_from_file.restype = py_object
 
-
+# 2. PCA
 compute_pca = LIB.compute_pca
 compute_pca.argtypes = [ c_char_p, #host
                          c_int,  #port
@@ -1433,7 +1521,105 @@ compute_pca.argtypes = [ c_char_p, #host
                        ]
 compute_pca.restype = py_object
 
-# knn - Nearest Neighbors
+pca_transform = LIB.pca_transform
+pca_transform.argtypes = [ c_char_p, #host
+                           c_int,  #port
+                           c_long, #data
+                           c_long, #pca _directions
+                           c_long, #explained variance
+                           c_long, #mean
+                           c_short, #dtype
+                           c_bool #whiten
+                         ]
+pca_transform.restype = py_object
+
+pca_inverse_transform = LIB.pca_inverse_transform
+pca_inverse_transform.argtypes = [ c_char_p, #host
+                                   c_int,  #port
+                                   c_long, #data
+                                   c_long, #pca _directions
+                                   c_long, #explained variance
+                                   c_long, #mean
+                                   c_short, #dtype
+                                   c_bool #whiten
+                                 ]
+pca_inverse_transform.restype = py_object
+
+# 3. LDA
+compute_lda_train = LIB.compute_lda_train
+compute_lda_train.argtypes = [c_char_p, c_int,\
+                              c_ulong, c_double,\
+                              c_double, c_int,\
+                              c_int, c_char_p,\
+                              c_int, c_int,\
+                              c_short, c_short,\
+                              c_int, c_int]
+
+compute_lda_transform = LIB.compute_lda_transform
+compute_lda_transform.argtypes = [c_char_p, c_int,\
+                                  c_ulong, c_double,\
+                                  c_double, c_int,\
+                                  c_char_p,\
+                                  c_int, c_int,\
+                                  c_short, c_short]
+compute_lda_transform.restype = py_object
+
+compute_lda_component = LIB.compute_lda_component
+compute_lda_component.argtypes = [c_char_p, c_int,\
+                                  c_int, c_short]
+compute_lda_component.restype = py_object
+
+# --- manifold APIs ---
+
+# 1. TSNE
+compute_tsne = LIB.compute_tsne
+compute_tsne.argtypes = [ c_char_p, #host
+                         c_int,  #port
+                         c_long, #data
+                         c_double,  #perplexity
+                         c_double, #early_exaggeration
+                         c_double, #min_grad_norm
+                         c_double, #learning_rate
+                         c_int, #n_components
+                         c_int, #n_iter
+                         c_int, #n_iter_without_progress
+                         c_char_p, #metric
+                         c_char_p, #method
+                         c_char_p, #init
+                         c_bool, #verbose
+                         c_short #dtype
+                       ]
+compute_tsne.restype = py_object
+
+# 2. spectral embedding
+sea_train = LIB.sea_train
+sea_train.argtypes = [c_char_p, #host
+                      c_int,  #port
+                      c_long,#data
+                      c_int, #n_components
+                      c_double,#gamma
+                      c_bool, #precomputed
+                      c_bool, #norm_laplacian
+                      c_int, #mode
+                      c_bool, #drop_first
+                      c_int, #verbose
+                      c_int, #mid
+                      c_short, #dtype
+                      c_short,#itype
+                      c_bool #dense
+                     ]
+
+get_sem_affinity_matrix = LIB.get_sem_aff_matrix
+get_sem_affinity_matrix.argtypes = [c_char_p, c_int, c_int, c_short]
+get_sem_affinity_matrix.restype = py_object
+
+get_sem_embedding_matrix = LIB.get_sem_embed_matrix
+get_sem_embedding_matrix.argtypes = [c_char_p, c_int, c_int, c_short]
+get_sem_embedding_matrix.restype = py_object
+
+# --- neighbor APIs ---
+
+# 1. KNN - with both regressor and classifier
 knn_fit = LIB.knn_fit
 knn_fit.argtypes = [  c_char_p, #host
                       c_int,  #port
@@ -1629,55 +1815,9 @@ knn_radius_neighbors_graph.argtypes = [ c_char_p, c_int, #host ,port
                                       ]
 knn_radius_neighbors_graph.restype = py_object
 
-pca_transform = LIB.pca_transform
-pca_transform.argtypes = [ c_char_p, #host
-                           c_int,  #port
-                           c_long, #data
-                           c_long, #pca _directions
-                           c_long, #explained variance
-                           c_long, #mean
-                           c_short, #dtype
-                           c_bool #whiten
-                         ]
-pca_transform.restype = py_object
-
-pca_inverse_transform = LIB.pca_inverse_transform
-pca_inverse_transform.argtypes = [ c_char_p, #host
-                                   c_int,  #port
-                                   c_long, #data
-                                   c_long, #pca _directions
-                                   c_long, #explained variance
-                                   c_long, #mean
-                                   c_short, #dtype
-                                   c_bool #whiten
-                                 ]
-pca_inverse_transform.restype = py_object
-
-compute_lda_component = LIB.compute_lda_component
-compute_lda_component.argtypes = [c_char_p, c_int,\
-                                  c_int, c_short]
-compute_lda_component.restype = py_object
-
-
-compute_lda_train = LIB.compute_lda_train
-compute_lda_train.argtypes = [c_char_p, c_int,\
-                              c_ulong, c_double,\
-                              c_double, c_int,\
-                              c_int, c_char_p,\
-                              c_int, c_int,\
-                              c_short, c_short,\
-                              c_int, c_int]
-
-compute_lda_transform = LIB.compute_lda_transform
-compute_lda_transform.argtypes = [c_char_p, c_int,\
-                                  c_ulong, c_double,\
-                                  c_double, c_int,\
-                                  c_char_p,\
-                                  c_int, c_int,\
-                                  c_short, c_short]
-compute_lda_transform.restype = py_object
-
 # --- networkx (graph) APIs ---
+
+# 1. common graph functionalities
 set_graph_data= LIB.set_graph_data
 set_graph_data.argtypes = [c_char_p, c_int,\
                            c_ulong]
@@ -1710,18 +1850,21 @@ copy_graph_py.argtypes = [c_char_p, c_int,\
                           c_ulong]
 copy_graph_py.restype = c_ulong
 
+# 2. PageRank
 call_frovedis_pagerank = LIB.call_frovedis_pagerank
 call_frovedis_pagerank.argtypes = [c_char_p, c_int,\
                                   c_long, c_double,\
                                   c_double, c_int, c_int]
 call_frovedis_pagerank.restype = py_object                 # dist of lists
 
+# 3. Single Source Shortest Path (bellman-ford)
 call_frovedis_sssp= LIB.call_frovedis_sssp
 call_frovedis_sssp.argtypes = [c_char_p, c_int,            # host, port
                                c_ulong,                    # graph
                                c_ulong]                    # nvertices, source
 call_frovedis_sssp.restype = py_object                     # sssp result dict of lists
 
+# 4. BFS
 call_frovedis_bfs = LIB.call_frovedis_bfs
 call_frovedis_bfs.argtypes = [c_char_p, c_int,             # host, port
                               c_ulong,                     # graph
@@ -1738,6 +1881,7 @@ bfs_descendants_at_distance.argtypes = [c_char_p, c_int,   # host, port
                               c_ulong]                     # depth-limit
 bfs_descendants_at_distance.restype = py_object            # python list
 
+# 5. Connected Components (Weekly)
 call_frovedis_cc = LIB.call_frovedis_cc
 call_frovedis_cc.argtypes = [c_char_p, c_int,             # host, port
                              c_ulong,                     # graph
@@ -1749,51 +1893,3 @@ call_frovedis_cc.argtypes = [c_char_p, c_int,             # host, port
                              c_int, c_double]             # opt-level, hyb-threshold
 call_frovedis_cc.restype = py_object
 
-# --- tree/ensemble APIs ---
-rf_train = LIB.rf_trainer
-rf_train.argtypes = [c_char_p, c_int, c_long,         #host,port,X
-                     c_long, c_char_p, c_char_p,      #y,algo,criterion
-                     c_int, c_int, c_int, c_char_p,   #n_est,max_dep,n_cl,feature_subset_strat
-                     c_double, #feature_subset_rate
-                     c_int, c_int, c_double, c_long,   #mx_bin ,min_sample_leaf,min_impurity_decrease,seed
-                     c_int, c_int, c_short, c_short,  #vb,mid,dtype,itype
-                     c_bool]                          #dense
-
-gbt_train = LIB.gbt_trainer
-gbt_train.argtypes = [c_char_p, c_int, # host, port
-                     c_long, c_long, # xptr, yptr
-                     c_char_p, c_char_p, c_char_p, # algo, loss, impurity
-                     c_double, c_int, c_double, # learning_rate, max_depth, min_impurity_decrease
-                     c_int, c_double, c_int, # seed, tol, max_bins
-                     c_double, c_char_p, c_double, #subsampling rate, strategy, subset_features
-                     c_int, c_int, # n_estimators, nclasses 
-                     c_int, c_int, # verbose, mid
-                     c_short, c_short, c_bool # dtype, itype, dense
-                     ]
-
-dt_train = LIB.dt_trainer
-dt_train.argtypes = [c_char_p, c_int, c_long,
-                     c_long, c_char_p, c_char_p,
-                     c_int, c_int, c_int, c_int,
-                     c_float, c_int, c_int,
-                     c_short, c_short, c_bool]
-
-# --- tsne api ---
-compute_tsne = LIB.compute_tsne
-compute_tsne.argtypes = [ c_char_p, #host
-                         c_int,  #port
-                         c_long, #data
-                         c_double,  #perplexity
-                         c_double, #early_exaggeration
-                         c_double, #min_grad_norm
-                         c_double, #learning_rate
-                         c_int, #n_components
-                         c_int, #n_iter
-                         c_int, #n_iter_without_progress
-                         c_char_p, #metric
-                         c_char_p, #method
-                         c_char_p, #init
-                         c_bool, #verbose
-                         c_short #dtype
-                       ]
-compute_tsne.restype = py_object
