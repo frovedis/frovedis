@@ -78,9 +78,10 @@ inline void handle_trained_model(int mid, MODEL_KIND mkind, MODEL& model) {
 
 // --- Frovedis ML Trainer Calls ---
 template <class T, class MATRIX>
-void frovedis_lr_sgd(frovedis_mem_pair& mp, int& numIter, double& stepSize, 
+size_t frovedis_lr_sgd(frovedis_mem_pair& mp, int& numIter, double& stepSize, 
                      double& mbf, int& regType, double& regParam, bool& isMult, 
-                     bool& isIntercept, double& tol, int& verbose, int& mid, 
+                     bool& isIntercept, double& tol, int& verbose, int& mid,
+                     std::vector<T>& sample_weight, 
                      bool& isMovableInput=false) {
   register_for_train(mid);  // mark model 'mid' as "under training"
   // extracting input data
@@ -90,17 +91,20 @@ void frovedis_lr_sgd(frovedis_mem_pair& mp, int& numIter, double& stepSize,
   auto old_level = frovedis::get_loglevel();
   if (verbose == 1) frovedis::set_loglevel(frovedis::DEBUG);
   else if (verbose == 2) frovedis::set_loglevel(frovedis::TRACE);
-
+  size_t n_iter = 0;
   if (!isMult) {
     logistic_regression_model<T> m;      // trained output model holder
     if (isMovableInput) {
       m = logistic_regression_with_sgd::train(std::move(mat), lbl,
+                                        sample_weight, n_iter,
                                         numIter, stepSize, mbf,
                                         regParam, get_regularizer(regType),
                                         isIntercept, tol);
       lbl.mapv_partitions(clear_lbl_data<T>); 
     }
-    else m = logistic_regression_with_sgd::train(mat, lbl, numIter, 
+    else m = logistic_regression_with_sgd::train(mat, lbl, 
+                                           sample_weight, n_iter,
+                                           numIter, 
                                            stepSize, mbf,
                                            regParam, get_regularizer(regType),
                                            isIntercept, tol);
@@ -108,6 +112,7 @@ void frovedis_lr_sgd(frovedis_mem_pair& mp, int& numIter, double& stepSize,
   } 
   else {
     auto m = multinomial_logistic_regression::train(mat, lbl, 
+                                           sample_weight, n_iter,
                                            numIter, stepSize,
                                            regParam, get_regularizer(regType),
                                            isIntercept, tol);
@@ -118,14 +123,17 @@ void frovedis_lr_sgd(frovedis_mem_pair& mp, int& numIter, double& stepSize,
     handle_trained_model<multinomial_logistic_regression_model<T>>(mid, MLR, m);
   }
   frovedis::set_loglevel(old_level);
+  return n_iter;
 }
 
 template <class T, class MATRIX>
-void frovedis_lr_shrink_sgd(frovedis_mem_pair& mp, int& numIter, 
+size_t frovedis_lr_shrink_sgd(frovedis_mem_pair& mp, int& numIter, 
                             double& stepSize, double& mbf, int& regType, 
                             double& regParam, bool &isMult, 
                             bool& isIntercept, double& tol, int& verbose, 
-                            int& mid, bool& isMovableInput=false) {
+                            int& mid, 
+                            std::vector<T>& sample_weight, 
+                            bool& isMovableInput=false) {
   if(isMult) REPORT_ERROR(USER_ERROR, 
     std::string("Currently frovedis logistic regression with ") +
     "shrink-sgd solver supports only binary classification!\n");
@@ -138,27 +146,31 @@ void frovedis_lr_shrink_sgd(frovedis_mem_pair& mp, int& numIter,
   auto old_level = frovedis::get_loglevel();
   if (verbose == 1) frovedis::set_loglevel(frovedis::DEBUG);
   else if (verbose == 2) frovedis::set_loglevel(frovedis::TRACE);
-
+  size_t n_iter = 0;
   logistic_regression_model<T> m;
   if (isMovableInput) {
     m = shrink::logistic_regression_with_sgd::train(std::move(mat), lbl,
+                                            sample_weight, n_iter,
                                             numIter, stepSize, mbf,
                                             regParam, get_regularizer(regType),
                                             isIntercept, tol);
     lbl.mapv_partitions(clear_lbl_data<T>);
   }
   else m = shrink::logistic_regression_with_sgd::train(mat,lbl,
+                                            sample_weight, n_iter,
                                             numIter,stepSize, mbf,
                                             regParam, get_regularizer(regType),
                                             isIntercept, tol);
   handle_trained_model<logistic_regression_model<T>>(mid, LRM, m);
   frovedis::set_loglevel(old_level);
+  return n_iter;
 }
 
 template <class T, class MATRIX>
-void frovedis_lr_lbfgs(frovedis_mem_pair& mp, int& numIter, double& stepSize, 
+size_t frovedis_lr_lbfgs(frovedis_mem_pair& mp, int& numIter, double& stepSize, 
                        int& histSize, int& regType, double& regParam, bool& isMult,
                        bool& isIntercept, double& tol, int& verbose, int& mid,
+                       std::vector<T>& sample_weight, 
                        bool& isMovableInput=false) {
   if(isMult) REPORT_ERROR(USER_ERROR, 
     std::string("Currently frovedis logistic regression with ") +
@@ -173,9 +185,10 @@ void frovedis_lr_lbfgs(frovedis_mem_pair& mp, int& numIter, double& stepSize,
   auto old_level = frovedis::get_loglevel();
   if (verbose == 1) frovedis::set_loglevel(frovedis::DEBUG);
   else if (verbose == 2) frovedis::set_loglevel(frovedis::TRACE);
-
+  size_t n_iter = 0;
   if (isMovableInput) {
     m = logistic_regression_with_lbfgs::train(std::move(mat), lbl, 
+                                        sample_weight, n_iter,
                                         numIter, stepSize, histSize,
                                         regParam, get_regularizer(regType),
                                         isIntercept, tol);
@@ -183,17 +196,20 @@ void frovedis_lr_lbfgs(frovedis_mem_pair& mp, int& numIter, double& stepSize,
     lbl.mapv_partitions(clear_lbl_data<T>);
   }
   else m = logistic_regression_with_lbfgs::train(mat, lbl, 
+                                           sample_weight, n_iter,
                                            numIter, stepSize, histSize,
                                            regParam, get_regularizer(regType),
                                            isIntercept, tol);
   frovedis::set_loglevel(old_level);
   handle_trained_model<logistic_regression_model<T>>(mid, LRM, m);
+  return n_iter;
 }
 
 template <class T, class MATRIX>
-void frovedis_svm_sgd(frovedis_mem_pair& mp, int& numIter, double& stepSize, 
+size_t frovedis_svm_sgd(frovedis_mem_pair& mp, int& numIter, double& stepSize, 
                       double& mbf, int& regType, double& regParam, 
                       bool& isIntercept, double& tol, int& verbose, int& mid,
+                      std::vector<T>& sample_weight, 
                       bool& isMovableInput=false) {
   register_for_train(mid);  // mark model 'mid' as "under training"
   // extracting input data
@@ -204,24 +220,29 @@ void frovedis_svm_sgd(frovedis_mem_pair& mp, int& numIter, double& stepSize,
   auto old_level = frovedis::get_loglevel();
   if (verbose == 1) frovedis::set_loglevel(frovedis::DEBUG);
   else if (verbose == 2) frovedis::set_loglevel(frovedis::TRACE);
-
+ 
+  size_t n_iter = 0;
   if (isMovableInput) {
-    m = svm_with_sgd::train(std::move(mat), lbl, numIter, stepSize, mbf,
+    m = svm_with_sgd::train(std::move(mat), lbl, sample_weight, n_iter, 
+                            numIter, stepSize, mbf,
                             regParam, get_regularizer(regType), 
                             isIntercept, tol);
     lbl.mapv_partitions(clear_lbl_data<T>); 
   }
-  else m = svm_with_sgd::train(mat, lbl, numIter, stepSize, mbf,
+  else m = svm_with_sgd::train(mat, lbl, sample_weight, n_iter,
+                               numIter, stepSize, mbf,
                                regParam, get_regularizer(regType), 
                                isIntercept, tol);
   frovedis::set_loglevel(old_level);
   handle_trained_model<svm_model<T>>(mid, SVM, m);
+  return n_iter;
 }
 
 template <class T, class MATRIX>
-void frovedis_svm_lbfgs(frovedis_mem_pair& mp, int& numIter, double& stepSize, 
+size_t frovedis_svm_lbfgs(frovedis_mem_pair& mp, int& numIter, double& stepSize, 
                         int& histSize, int& regType, double& regParam, 
                         bool& isIntercept, double& tol, int& verbose, int& mid,
+                        std::vector<T>& sample_weight, 
                         bool& isMovableInput=false) {
   register_for_train(mid);  // mark model 'mid' as "under training"
   // extracting input data
@@ -233,36 +254,42 @@ void frovedis_svm_lbfgs(frovedis_mem_pair& mp, int& numIter, double& stepSize,
   if (verbose == 1) frovedis::set_loglevel(frovedis::DEBUG);
   else if (verbose == 2) frovedis::set_loglevel(frovedis::TRACE);
 
+  size_t n_iter = 0;
   if (isMovableInput) {
-    m = svm_with_lbfgs::train(std::move(mat), lbl,
+    m = svm_with_lbfgs::train(std::move(mat), lbl, sample_weight, n_iter,
                               numIter, stepSize, histSize,
                               regParam, get_regularizer(regType), 
                               isIntercept, tol);
     mat.clear();
     lbl.mapv_partitions(clear_lbl_data<T>);
   }
-  else m = svm_with_lbfgs::train(mat, lbl, 
+  else m = svm_with_lbfgs::train(mat, lbl, sample_weight, n_iter, 
                                  numIter, stepSize, histSize,
                                  regParam, get_regularizer(regType), 
                                  isIntercept, tol);
   frovedis::set_loglevel(old_level);
   handle_trained_model<svm_model<T>>(mid, SVM, m);
+  return n_iter;
 }
 
 template <class T, class MATRIX>
-void frovedis_svm_regressor_sgd(frovedis_mem_pair& mp, 
+size_t frovedis_svm_regressor_sgd(frovedis_mem_pair& mp, 
                                 int& numIter, double& alpha,
                                 double& mbf, int& regType, double& regParam, 
                                 bool& isIntercept,
-                                double& tol, double& eps, 
+                                std::pair<double,double>& tol_eps,
                                 int& intLoss, int& verbose,
-                                int& mid, bool& isMovableInput=false) {
+                                int& mid,
+                                std::vector<T>& sample_weight, 
+                                bool& isMovableInput=false) {
   register_for_train(mid);  // mark model 'mid' as "under training"
   // extracting input data
   MATRIX& mat = *reinterpret_cast<MATRIX*>(mp.first());
   dvector<T>& lbl = *reinterpret_cast<dvector<T>*>(mp.second());
   linear_regression_model<T> m;  // trained output model holder
 
+  double tol = tol_eps.first;
+  double eps = tol_eps.second;
   auto old_level = frovedis::get_loglevel();
   if (verbose == 1) frovedis::set_loglevel(frovedis::DEBUG);
   else if (verbose == 2) frovedis::set_loglevel(frovedis::TRACE);
@@ -272,19 +299,21 @@ void frovedis_svm_regressor_sgd(frovedis_mem_pair& mp,
   else if (intLoss == 2) loss = SQEPS;
   else REPORT_ERROR(USER_ERROR, "Unsupported loss for SVM Regressor!\n"); 
 
+  size_t n_iter = 0;
   if (isMovableInput) {
-    m = svm_regression_with_sgd::train(std::move(mat), lbl, 
+    m = svm_regression_with_sgd::train(std::move(mat), lbl, sample_weight, n_iter, 
                                        numIter, alpha, mbf,
                                        regParam, get_regularizer(regType), 
                                        isIntercept, tol, eps, loss);
     lbl.mapv_partitions(clear_lbl_data<T>);
   }
-  else m = svm_regression_with_sgd::train(mat, lbl, 
+  else m = svm_regression_with_sgd::train(mat, lbl, sample_weight, n_iter, 
                                           numIter, alpha, mbf,
                                           regParam, get_regularizer(regType), 
                                           isIntercept, tol, eps, loss);
   frovedis::set_loglevel(old_level);
   handle_trained_model<linear_regression_model<T>>(mid, SVR, m);
+  return n_iter;
 }
 
 template <class T, class MATRIX>
@@ -320,6 +349,7 @@ template <class T, class MATRIX>
 std::vector<T> 
 frovedis_lnr_lapack(frovedis_mem_pair& mp,
                     bool& isIntercept, int& verbose, int& mid,
+                    std::vector<T>& sample_weight, 
                     bool& isMovableInput=false) {
   register_for_train(mid);  // mark model 'mid' as "under training"
   // extracting input data
@@ -333,7 +363,8 @@ frovedis_lnr_lapack(frovedis_mem_pair& mp,
   int rank;
   std::vector<T> sval;
   auto m = linear_regression_with_lapack(*matptr, *lblptr, 
-                                         rank, sval, isIntercept);
+                                         rank, sval, sample_weight, 
+                                         isIntercept);
   sval.push_back(static_cast<T>(rank));
   if (isMovableInput) {
     delete matptr; delete lblptr;
@@ -346,6 +377,7 @@ frovedis_lnr_lapack(frovedis_mem_pair& mp,
 template <class T, class MATRIX>
 void frovedis_lnr_scalapack(frovedis_mem_pair& mp,
                             bool& isIntercept, int& verbose, int& mid,
+                            std::vector<T>& sample_weight, 
                             bool& isMovableInput=false) {
   register_for_train(mid);  // mark model 'mid' as "under training"
   // extracting input data
@@ -356,7 +388,8 @@ void frovedis_lnr_scalapack(frovedis_mem_pair& mp,
   if (verbose == 1) frovedis::set_loglevel(frovedis::DEBUG);
   else if (verbose == 2) frovedis::set_loglevel(frovedis::TRACE);
 
-  auto m = linear_regression_with_scalapack(*matptr, *lblptr, isIntercept); 
+  auto m = linear_regression_with_scalapack(*matptr, *lblptr, 
+                                            sample_weight, isIntercept); 
   if (isMovableInput) {
     delete matptr; delete lblptr;
   }
@@ -365,9 +398,10 @@ void frovedis_lnr_scalapack(frovedis_mem_pair& mp,
 }
 
 template <class T, class MATRIX>
-void frovedis_lnr_sgd(frovedis_mem_pair& mp, int& numIter, double& stepSize, 
+size_t frovedis_lnr_sgd(frovedis_mem_pair& mp, int& numIter, double& stepSize, 
                       double& mbf,
                       bool& isIntercept, double& tol, int& verbose, int& mid, 
+                      std::vector<T>& sample_weight, 
                       bool& isMovableInput=false) {
   register_for_train(mid);  // mark model 'mid' as "under training"
   // extracting input data
@@ -378,22 +412,27 @@ void frovedis_lnr_sgd(frovedis_mem_pair& mp, int& numIter, double& stepSize,
   auto old_level = frovedis::get_loglevel();
   if (verbose == 1) frovedis::set_loglevel(frovedis::DEBUG);
   else if (verbose == 2) frovedis::set_loglevel(frovedis::TRACE);
-
+  
+  size_t n_iter = 0;
   if (isMovableInput) {
-    m = linear_regression_with_sgd::train(std::move(mat),lbl,numIter,stepSize,
+    m = linear_regression_with_sgd::train(std::move(mat),lbl,sample_weight,n_iter,
+                                          numIter,stepSize,
                                           mbf,isIntercept,tol);
     lbl.mapv_partitions(clear_lbl_data<T>); 
   }
-  else m = linear_regression_with_sgd::train(mat,lbl,numIter,stepSize,
+  else m = linear_regression_with_sgd::train(mat,lbl,sample_weight,n_iter,
+                                             numIter,stepSize,
                                              mbf,isIntercept,tol);
   frovedis::set_loglevel(old_level);
   handle_trained_model<linear_regression_model<T>>(mid, LNRM, m);
+  return n_iter;
 }
 
 template <class T, class MATRIX>
-void frovedis_lnr_lbfgs(frovedis_mem_pair& mp, int& numIter, double& stepSize, 
+size_t frovedis_lnr_lbfgs(frovedis_mem_pair& mp, int& numIter, double& stepSize, 
                         int& histSize,
                         bool& isIntercept, double& tol, int& verbose, int& mid, 
+                        std::vector<T>& sample_weight, 
                         bool& isMovableInput=false) {
   register_for_train(mid);  // mark model 'mid' as "under training"
   // extracting input data
@@ -404,23 +443,28 @@ void frovedis_lnr_lbfgs(frovedis_mem_pair& mp, int& numIter, double& stepSize,
   auto old_level = frovedis::get_loglevel();
   if (verbose == 1) frovedis::set_loglevel(frovedis::DEBUG);
   else if (verbose == 2) frovedis::set_loglevel(frovedis::TRACE);
-
+  
+  size_t n_iter = 0;
   if (isMovableInput) {
-    m = linear_regression_with_lbfgs::train(std::move(mat),lbl,numIter,stepSize,
+    m = linear_regression_with_lbfgs::train(std::move(mat),lbl,
+                                            sample_weight,n_iter,numIter,stepSize,
                                             histSize,isIntercept,tol);
     mat.clear();
     lbl.mapv_partitions(clear_lbl_data<T>);
   }
-  else m = linear_regression_with_lbfgs::train(mat,lbl,numIter,stepSize,
+  else m = linear_regression_with_lbfgs::train(mat,lbl,
+                                               sample_weight,n_iter,numIter,stepSize,
                                                histSize,isIntercept,tol);
   frovedis::set_loglevel(old_level);
   handle_trained_model<linear_regression_model<T>>(mid, LNRM, m);
+  return n_iter;
 }
 
 template <class T, class MATRIX>
-void frovedis_lasso_sgd(frovedis_mem_pair& mp, int& numIter, double& stepSize, 
+size_t frovedis_lasso_sgd(frovedis_mem_pair& mp, int& numIter, double& stepSize, 
                         double& mbf, double& regParam,
                         bool& isIntercept, double& tol, int& verbose, int& mid, 
+                        std::vector<T>& sample_weight, 
                         bool& isMovableInput=false) {
   register_for_train(mid);  // mark model 'mid' as "under training"
   // extracting input data
@@ -432,21 +476,24 @@ void frovedis_lasso_sgd(frovedis_mem_pair& mp, int& numIter, double& stepSize,
   if (verbose == 1) frovedis::set_loglevel(frovedis::DEBUG);
   else if (verbose == 2) frovedis::set_loglevel(frovedis::TRACE);
 
+  size_t n_iter = 0;
   if (isMovableInput) {
-    m = lasso_with_sgd::train(std::move(mat),lbl,numIter,stepSize,
-                              mbf,regParam,isIntercept,tol);
+    m = lasso_with_sgd::train(std::move(mat),lbl,sample_weight,n_iter,numIter,
+                              stepSize,mbf,regParam,isIntercept,tol);
     lbl.mapv_partitions(clear_lbl_data<T>); 
   }
-  else m = lasso_with_sgd::train(mat,lbl,numIter,stepSize,
+  else m = lasso_with_sgd::train(mat,lbl,sample_weight,n_iter,numIter,stepSize,
                                  mbf,regParam,isIntercept,tol);
   frovedis::set_loglevel(old_level);
   handle_trained_model<linear_regression_model<T>>(mid, LNRM, m);
+  return n_iter;
 }
 
 template <class T, class MATRIX>
-void frovedis_lasso_lbfgs(frovedis_mem_pair& mp, int& numIter, double& stepSize, 
+size_t frovedis_lasso_lbfgs(frovedis_mem_pair& mp, int& numIter, double& stepSize, 
                           int& histSize, double& regParam,
                           bool& isIntercept, double& tol, int& verbose, int& mid, 
+                          std::vector<T>& sample_weight, 
                           bool& isMovableInput=false) {
   register_for_train(mid);  // mark model 'mid' as "under training"
   // extracting input data
@@ -458,22 +505,25 @@ void frovedis_lasso_lbfgs(frovedis_mem_pair& mp, int& numIter, double& stepSize,
   if (verbose == 1) frovedis::set_loglevel(frovedis::DEBUG);
   else if (verbose == 2) frovedis::set_loglevel(frovedis::TRACE);
 
+  size_t n_iter = 0;
   if (isMovableInput) {
-    m = lasso_with_lbfgs::train(std::move(mat),lbl,numIter,stepSize,
-                                histSize,regParam,isIntercept,tol);
+    m = lasso_with_lbfgs::train(std::move(mat),lbl,sample_weight,n_iter,numIter,
+                                stepSize,histSize,regParam,isIntercept,tol);
     mat.clear();
     lbl.mapv_partitions(clear_lbl_data<T>);
   }
-  else m = lasso_with_lbfgs::train(mat,lbl,numIter,stepSize,
+  else m = lasso_with_lbfgs::train(mat,lbl,sample_weight,n_iter,numIter,stepSize,
                                    histSize,regParam,isIntercept,tol);
   frovedis::set_loglevel(old_level);
   handle_trained_model<linear_regression_model<T>>(mid, LNRM, m);
+  return n_iter;
 }
 
 template <class T, class MATRIX>
-void frovedis_ridge_sgd(frovedis_mem_pair& mp, int& numIter, double& stepSize, 
+size_t frovedis_ridge_sgd(frovedis_mem_pair& mp, int& numIter, double& stepSize, 
                         double& mbf, double& regParam, 
                         bool& isIntercept, double& tol, int& verbose, int& mid,
+                        std::vector<T>& sample_weight, 
                         bool& isMovableInput=false) {
   register_for_train(mid);  // mark model 'mid' as "under training"
   // extracting input data
@@ -484,22 +534,27 @@ void frovedis_ridge_sgd(frovedis_mem_pair& mp, int& numIter, double& stepSize,
   auto old_level = frovedis::get_loglevel();
   if (verbose == 1) frovedis::set_loglevel(frovedis::DEBUG);
   else if (verbose == 2) frovedis::set_loglevel(frovedis::TRACE);
+  size_t n_iter = 0;
 
   if (isMovableInput) {
-    m = ridge_regression_with_sgd::train(std::move(mat),lbl,numIter,stepSize,
+    m = ridge_regression_with_sgd::train(std::move(mat),lbl,sample_weight,n_iter,
+                                         numIter,stepSize,
                                          mbf,regParam,isIntercept,tol);
     lbl.mapv_partitions(clear_lbl_data<T>); 
   }
-  else m = ridge_regression_with_sgd::train(mat,lbl,numIter,stepSize,
+  else m = ridge_regression_with_sgd::train(mat,lbl,sample_weight,n_iter,
+                                            numIter,stepSize,
                                             mbf,regParam,isIntercept,tol);
   frovedis::set_loglevel(old_level);
   handle_trained_model<linear_regression_model<T>>(mid, LNRM, m);
+  return n_iter;
 }
 
 template <class T, class MATRIX>
-void frovedis_ridge_lbfgs(frovedis_mem_pair& mp, int& numIter, double& stepSize, 
+size_t frovedis_ridge_lbfgs(frovedis_mem_pair& mp, int& numIter, double& stepSize, 
                           int& histSize, double& regParam,
                           bool& isIntercept, double& tol, int& verbose, int& mid,
+                          std::vector<T>& sample_weight, 
                           bool& isMovableInput=false) {
   register_for_train(mid);  // mark model 'mid' as "under training"
   // extracting input data
@@ -511,21 +566,25 @@ void frovedis_ridge_lbfgs(frovedis_mem_pair& mp, int& numIter, double& stepSize,
   if (verbose == 1) frovedis::set_loglevel(frovedis::DEBUG);
   else if (verbose == 2) frovedis::set_loglevel(frovedis::TRACE);
 
+  size_t n_iter = 0;
   if (isMovableInput) {
-    m = ridge_regression_with_lbfgs::train(std::move(mat),lbl,numIter,stepSize,
+    m = ridge_regression_with_lbfgs::train(std::move(mat),lbl,sample_weight,n_iter,
+                                           numIter,stepSize,
                                            histSize,regParam,isIntercept,tol);
     mat.clear();
     lbl.mapv_partitions(clear_lbl_data<T>);
   }
-  else m = ridge_regression_with_lbfgs::train(mat,lbl,numIter,stepSize,
+  else m = ridge_regression_with_lbfgs::train(mat,lbl,sample_weight,n_iter,
+                                              numIter,stepSize,
                                               histSize,regParam,isIntercept,tol);
   frovedis::set_loglevel(old_level);
   handle_trained_model<linear_regression_model<T>>(mid, LNRM, m);
+  return n_iter;
 }
 
 template <class T, class MATRIX>
 void frovedis_mf_als(exrpc_ptr_t& data_ptr, int& rank, int& numIter, 
-                     double& alpha, double& regParam, 
+                     double& alpha, double& regParam, double& sim_factor, 
                      long& seed, int& verbose, int& mid, 
                      bool& isMovableInput=false) {
   register_for_train(mid);   // mark model 'mid' as "under training"
@@ -533,9 +592,8 @@ void frovedis_mf_als(exrpc_ptr_t& data_ptr, int& rank, int& numIter,
   auto old_level = frovedis::get_loglevel();
   if (verbose == 1) frovedis::set_loglevel(frovedis::DEBUG);
   else if (verbose == 2) frovedis::set_loglevel(frovedis::TRACE);
-
   auto m = matrix_factorization_using_als::train(mat,rank,numIter,
-                                                 alpha,regParam,seed);
+                                                 alpha,regParam,seed,sim_factor);
   // if input is movable, destroying Frovedis side data after training is done.
   if (isMovableInput)  mat.clear(); 
   frovedis::set_loglevel(old_level);
@@ -864,6 +922,34 @@ int frovedis_fpr(double& min_confidence,
   auto count = rule.get_count();
   handle_trained_model<association_rule>(midr, FPR, rule);
   return count;
+}
+
+template <class MODEL>
+std::vector<dummy_dftable>
+frovedis_fp_fis(int& mid) {
+  auto mptr = get_model_ptr<MODEL>(mid);
+  auto depth = mptr->get_depth();
+  auto fis =  mptr->get_frequent_itemset();
+  std::vector<dummy_dftable> ret(depth);
+  for(size_t i = 0; i < depth; ++i) {
+    auto fisp = new dftable(fis[i]);
+    ret[i] = to_dummy_dftable(fisp);
+  }
+  return ret;
+}
+
+template <class MODEL>
+std::vector<dummy_dftable>
+frovedis_fp_rules(int& mid) {
+  auto mptr = get_model_ptr<MODEL>(mid);
+  auto depth = mptr->get_depth();
+  auto rules =  mptr->rule;
+  std::vector<dummy_dftable> ret(depth);
+  for(size_t i = 0; i < depth; ++i) {
+    auto rulep = new dftable(rules[i]);
+    ret[i] = to_dummy_dftable(rulep);
+  }
+  return ret;
 }
 
 template<class T>
