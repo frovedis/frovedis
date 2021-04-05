@@ -9,6 +9,8 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <string.h>
+#include <sstream>
+#include <iomanip>
 
 #define SIZEOF_INT8 1
 #define SIZEOF_INT16 2
@@ -178,6 +180,12 @@ inline float myexp(float _Left) {
 }
 #endif
 
+template <class T> 
+std::string STR(T number, int width = 0) {
+  std::stringstream ss;
+  ss << std::setw(width) << std::setfill('0') << number;
+  return ss.str();
+}
 
 }
 
