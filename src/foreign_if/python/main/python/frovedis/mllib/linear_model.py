@@ -7,10 +7,10 @@ linear_model.py: wrapper of frovedis Logistic Regression, Linear Regression,
 import os.path
 import pickle
 import warnings
+import numbers
 from .model_util import *
 from .metrics import *
 from ..base import BaseEstimator
-from ..exrpc import rpclib
 from ..exrpc import rpclib
 from ..exrpc.server import FrovedisServer
 from ..matrix.ml_data import FrovedisLabeledPoint
@@ -57,6 +57,38 @@ class LogisticRegression(BaseEstimator):
         self._classes = None
         self._intercept = None
         self._coef = None
+        self._n_iter = None
+        self.n_samples = None
+
+    def check_input(self, X, y, F):
+        """checks input X"""
+        inp_data = FrovedisLabeledPoint(X, y, \
+                   caller = "[" + self.__class__.__name__ + "] " + F + ": ",\
+                   encode_label = True, binary_encoder=[-1, 1], \
+                   dense_kind = 'colmajor', densify=False)
+
+        X, y, logic = inp_data.get()
+        self._classes = inp_data.get_distinct_labels()
+        self.n_classes = len(self._classes)
+        self.n_samples = inp_data.numRows()
+        self.label_map = logic
+        dtype = inp_data.get_dtype()
+        itype = inp_data.get_itype()
+        dense = inp_data.is_dense()
+        return X, y, dtype, itype, dense
+
+    def check_sample_weight(self, sample_weight):
+        """checks input X and y"""
+        if sample_weight is None:
+            weight = np.array([], dtype=np.float64)
+        elif isinstance(sample_weight, numbers.Number):
+            weight = np.full(self.n_samples, sample_weight, dtype=np.float64)
+        else:
+            weight = np.ravel(sample_weight)
+            if len(weight) != self.n_samples:
+                raise ValueError("sample_weight.shape == {}, expected {}!"\
+                       .format(sample_weight.shape, (self.n_samples,)))
+        return np.asarray(weight, dtype=np.float64)
 
     def fit(self, X, y, sample_weight=None):
         """
@@ -66,32 +98,18 @@ class LogisticRegression(BaseEstimator):
             raise ValueError("fit: parameter C must be strictly positive!")
         self.release()
         # for binary case: frovedis supports -1 and 1
-        inp_data = FrovedisLabeledPoint(X, y, \
-                   caller = "[" + self.__class__.__name__ + "] fit: ",\
-                   encode_label = True, binary_encoder=[-1, 1], \
-                   dense_kind = 'colmajor', densify=False) 
-        X, y, logic = inp_data.get()
-        self._classes = inp_data.get_distinct_labels()
-        self.n_classes = len(self._classes)
-        self.label_map = logic
-        dtype = inp_data.get_dtype()
-        itype = inp_data.get_itype()
-        dense = inp_data.is_dense()
+        X, y, dtype, itype, dense = self.check_input(X, y, "fit")
         self.__mid = ModelID.get()
         self.__mdtype = dtype
-
-        if dense: 
-            if self.use_shrink:
-                raise ValueError("fit: use_shrink is applicable only for " \
-                                 + "sparse data!")
-        else:
-            if self.solver == "lbfgs":
-                raise ValueError("fit: use_shrink is applicable only for " \
-                                 + "sgd solver!")
 
         if dense and self.use_shrink:
             raise ValueError("fit: use_shrink is applicable only for " \
                              + "sparse data!")
+
+        if self.use_shrink:
+            if self.solver == "lbfgs":
+                raise ValueError("fit: use_shrink is applicable only for " \
+                                 + "sgd solver!")
 
         if self.multi_class == 'auto' or self.multi_class == 'ovr':
             if self.n_classes == 2:
@@ -108,7 +126,7 @@ class LogisticRegression(BaseEstimator):
 
         if isMult:
             self.solver = 'sag' #only sag solver supports multinomial currently
-            warnings.warn("fit: multinomial classification problem is " + 
+            warnings.warn("fit: multinomial classification problem is " +
                           "detected... switching solver to 'sag'.\n")
 
         if self.penalty == 'l1':
@@ -126,20 +144,22 @@ class LogisticRegression(BaseEstimator):
             raise ValueError( \
             "Frovedis doesn't support solver %s for Logistic Regression " \
             + "currently." % self.solver)
-
+        sample_weight = self.check_sample_weight(sample_weight)
         (host, port) = FrovedisServer.getServerInstance()
         if self.solver == 'sag':
-            rpclib.lr_sgd(host, port, X.get(), y.get(), self.max_iter, \
-                       self.lr_rate, regTyp, rparam, isMult, \
-                       self.fit_intercept, self.tol, self.verbose, \
-                       self.__mid, dtype, itype, dense, self.use_shrink)
+            n_iter = rpclib.lr_sgd(host, port, X.get(), y.get(), \
+                           sample_weight, len(sample_weight), self.max_iter, \
+                           self.lr_rate, regTyp, rparam, isMult, \
+                           self.fit_intercept, self.tol, self.verbose, \
+                           self.__mid, dtype, itype, dense, self.use_shrink)
         elif self.solver == 'lbfgs':
             regTyp = 2 #lbfgs supports only l2 regularization
-            rpclib.lr_lbfgs(host, port, X.get(), y.get(), \
-                          self.max_iter, self.lr_rate, regTyp, rparam, \
-                          isMult, \
-                          self.fit_intercept, self.tol, self.verbose, \
-                          self.__mid, dtype, itype, dense)
+            n_iter = rpclib.lr_lbfgs(host, port, X.get(), y.get(), \
+                           sample_weight, len(sample_weight), \
+                           self.max_iter, self.lr_rate, regTyp, rparam, \
+                           isMult, \
+                           self.fit_intercept, self.tol, self.verbose, \
+                           self.__mid, dtype, itype, dense)
         else:
             raise ValueError( \
                 "Unknown solver %s for Logistic Regression." % self.solver)
@@ -148,30 +168,30 @@ class LogisticRegression(BaseEstimator):
             raise RuntimeError(excpt["info"])
         self._coef = None
         self._intercept = None
+        self._n_iter = n_iter
         return self
 
     @property
     def coef_(self):
         """coef_ getter"""
-        if self.__mid is not None:
-            if self._coef is None:
-                (host, port) = FrovedisServer.getServerInstance()
-                wgt = rpclib.get_weight_vector(host, port, self.__mid, \
-                    self.__mkind, self.__mdtype)
-                excpt = rpclib.check_server_exception()
-                if excpt["status"]:
-                    raise RuntimeError(excpt["info"])
-                if self.__mkind == M_KIND.LRM:
-                    n_features = len(wgt)
-                    shape = (1, n_features)
-                else:
-                    n_features = len(wgt) // self.n_classes
-                    shape = (self.n_classes, n_features)
-                self._coef = np.asarray(wgt).reshape(shape)
-            return self._coef
-        else:
+        if self.__mid is None:
             raise AttributeError(\
             "attribute 'coef_' might have been released or called before fit")
+        if self._coef is None:
+            (host, port) = FrovedisServer.getServerInstance()
+            wgt = rpclib.get_weight_vector(host, port, self.__mid, \
+                self.__mkind, self.__mdtype)
+            excpt = rpclib.check_server_exception()
+            if excpt["status"]:
+                raise RuntimeError(excpt["info"])
+            if self.__mkind == M_KIND.LRM:
+                n_features = len(wgt)
+                shape = (1, n_features)
+            else:
+                n_features = len(wgt) // self.n_classes
+                shape = (self.n_classes, n_features)
+            self._coef = np.asarray(wgt).reshape(shape)
+        return self._coef
 
     @coef_.setter
     def coef_(self, val):
@@ -182,19 +202,18 @@ class LogisticRegression(BaseEstimator):
     @property
     def intercept_(self):
         """intercept getter"""
-        if self.__mid is not None:
-            if self._intercept is None:
-                (host, port) = FrovedisServer.getServerInstance()
-                icpt = rpclib.get_intercept_vector(host, port, self.__mid, \
-                    self.__mkind, self.__mdtype)
-                excpt = rpclib.check_server_exception()
-                if excpt["status"]:
-                    raise RuntimeError(excpt["info"])
-                self._intercept = np.asarray(icpt)
-            return self._intercept
-        else:
+        if self.__mid is None:
             raise AttributeError(\
-       "attribute 'intercept_' might have been released or called before fit")
+            "attribute 'intercept_' might have been released or called before fit")
+        if self._intercept is None:
+            (host, port) = FrovedisServer.getServerInstance()
+            icpt = rpclib.get_intercept_vector(host, port, self.__mid, \
+                self.__mkind, self.__mdtype)
+            excpt = rpclib.check_server_exception()
+            if excpt["status"]:
+                raise RuntimeError(excpt["info"])
+            self._intercept = np.asarray(icpt)
+        return self._intercept
 
     @intercept_.setter
     def intercept_(self, val):
@@ -205,13 +224,12 @@ class LogisticRegression(BaseEstimator):
     @property
     def classes_(self):
         """classes_ getter"""
-        if self.__mid is not None:
-            if self._classes is None:
-                self._classes = np.sort(list(self.label_map.values()))
-            return self._classes
-        else:
+        if self.__mid is None:
             raise AttributeError("attribute 'classes_'" \
                "might have been released or called before fit")
+        if self._classes is None:
+            self._classes = np.sort(list(self.label_map.values()))
+        return self._classes
 
     @classes_.setter
     def classes_(self, val):
@@ -223,28 +241,40 @@ class LogisticRegression(BaseEstimator):
         """
         NAME: predict
         """
-        if self.__mid is not None:
-            frov_pred = GLM.predict(X, self.__mid, self.__mkind, \
-                                    self.__mdtype, False)
-            return np.asarray([self.label_map[frov_pred[i]] \
-                              for i in range(0, len(frov_pred))])
-        else:
+        if self.__mid is None:
             raise ValueError( \
             "predict is called before calling fit, or the model is released.")
+        frov_pred = GLM.predict(X, self.__mid, self.__mkind, \
+                                self.__mdtype, False)
+        return np.asarray([self.label_map[frov_pred[i]] \
+                          for i in range(0, len(frov_pred))])
 
     def predict_proba(self, X):
         """
         NAME: predict_proba
         """
-        if self.__mid is not None:
-            proba = GLM.predict(X, self.__mid, self.__mkind, \
-                                self.__mdtype, True, self.n_classes)
-            n_samples = len(proba) // self.n_classes
-            shape = (n_samples, self.n_classes)
-            return np.asarray(proba, dtype=np.float64).reshape(shape)
-        else:
+        if self.__mid is None:
             raise ValueError( \
             "predict is called before calling fit, or the model is released.")
+        proba = GLM.predict(X, self.__mid, self.__mkind, \
+                            self.__mdtype, True, self.n_classes)
+        n_samples = len(proba) // self.n_classes
+        shape = (n_samples, self.n_classes)
+        return np.asarray(proba, dtype=np.float64).reshape(shape)
+
+    @property
+    def n_iter_(self):
+        """n_iter_ getter"""
+        if self.__mid is None:
+            raise AttributeError("attribute 'n_iter_'" \
+               "might have been released or called before fit")
+        return self._n_iter
+
+    @n_iter_.setter
+    def n_iter_(self, val):
+        """n_iter_ setter"""
+        raise AttributeError(\
+            "attribute 'n_iter_' of LogisticRegression object is not writable")
 
     def load(self, fname, dtype=None):
         """
@@ -276,32 +306,29 @@ class LogisticRegression(BaseEstimator):
         """
         NAME: score
         """
-        if self.__mid is not None:
-            return accuracy_score(y, self.predict(X))
-        else:
+        if self.__mid is None:
             raise ValueError( \
                 "score is called before calling fit, or the model is released.")
+        return accuracy_score(y, self.predict(X))
 
     def save(self, fname):
         """
         NAME: save
         """
-        if self.__mid is not None:
-            if os.path.exists(fname):
-                raise ValueError(\
-                    "another model with %s name already exists!" % fname)
-            else:
-                os.makedirs(fname)
-            GLM.save(self.__mid, self.__mkind, self.__mdtype, fname+"/model")
-            target = open(fname+"/label_map", "wb")
-            pickle.dump(self.label_map, target)
-            target.close()
-            metadata = open(fname+"/metadata", "wb")
-            pickle.dump((self.n_classes, self.__mkind, self.__mdtype), metadata)
-            metadata.close()
-        else:
+        if self.__mid is None:
             raise AttributeError(\
                 "save: requested model might have been released!")
+        if os.path.exists(fname):
+            raise ValueError(\
+                "another model with %s name already exists!" % fname)
+        os.makedirs(fname)
+        GLM.save(self.__mid, self.__mkind, self.__mdtype, fname+"/model")
+        target = open(fname+"/label_map", "wb")
+        pickle.dump(self.label_map, target)
+        target.close()
+        metadata = open(fname+"/metadata", "wb")
+        pickle.dump((self.n_classes, self.__mkind, self.__mdtype), metadata)
+        metadata.close()
 
     def debug_print(self):
         """
@@ -320,6 +347,8 @@ class LogisticRegression(BaseEstimator):
             self._coef = None
             self._intercept = None
             self._classes = None
+            self._n_iter = None
+            self.n_samples = None
 
     def __del__(self):
         """
@@ -336,7 +365,7 @@ class LinearRegression(BaseEstimator):
     tol: Frovedis: 0.0001 (added)
     """
     def __init__(self, fit_intercept=True, normalize=False, copy_X=True,
-                 n_jobs=None, max_iter=1000, tol=0.0001, lr_rate=1e-8, 
+                 n_jobs=None, max_iter=1000, tol=0.0001, lr_rate=1e-8,
                  solver=None, verbose=0):
         self.fit_intercept = fit_intercept
         self.normalize = normalize
@@ -353,56 +382,85 @@ class LinearRegression(BaseEstimator):
         self.__mkind = M_KIND.LNRM
         self._intercept = None
         self._coef = None
+        self.n_samples = None
+        self._n_iter = None
+        self.singular_ = None
+        self.rank_ = None
+
+    def check_input(self, X, y, F):
+        """checks input X"""
+        inp_data = FrovedisLabeledPoint(X, y, \
+                   caller = "[" + self.__class__.__name__ + "] " + F + ": ",\
+                   dense_kind = 'colmajor', densify=False)
+
+        X, y = inp_data.get()
+        self.n_samples = inp_data.numRows()
+        itype = inp_data.get_itype()
+        dense = inp_data.is_dense()
+        dtype = inp_data.get_dtype()
+        return X, y, dtype, itype, dense
+
+    def check_sample_weight(self, sample_weight):
+        """checks input X and y"""
+        if sample_weight is None:
+            weight = np.array([], dtype=np.float64)
+        elif isinstance(sample_weight, numbers.Number):
+            weight = np.full(self.n_samples, sample_weight, dtype=np.float64)
+        else:
+            weight = np.ravel(sample_weight)
+            if len(weight) != self.n_samples:
+                raise ValueError("sample_weight.shape == {}, expected {}!"\
+                       .format(sample_weight.shape, (self.n_samples,)))
+        return np.asarray(weight, dtype=np.float64)
 
     def fit(self, X, y, sample_weight=None):
         """
         NAME: fit
         """
         self.release()
-        inp_data = FrovedisLabeledPoint(X, y, \
-                   caller = "[" + self.__class__.__name__ + "] fit: ",\
-                   dense_kind = 'colmajor', densify=False) 
-        X, y = inp_data.get()
-        dtype = inp_data.get_dtype()
-        itype = inp_data.get_itype()
-        dense = inp_data.is_dense()
+        X, y, dtype, itype, dense = self.check_input(X, y, "fit")
         self.__mid = ModelID.get()
         self.__mdtype = dtype
 
         # select default solver, when None is given
         if self.solver is None:
             if dense:
-                self._solver = 'lapack' # ?gelsd for dense X
+                self.solver = 'lapack' # ?gelsd for dense X
             else:
-                self._solver = 'sag'    # SGDRegressor for sparse X
+                self.solver = 'sag'    # SGDRegressor for sparse X
         else:
-            self._solver = self.solver
+            self.solver = self.solver
 
+        sample_weight = self.check_sample_weight(sample_weight)
         (host, port) = FrovedisServer.getServerInstance()
-        if self._solver == 'sag':
-            rpclib.lnr_sgd(host, port, X.get(), y.get(), \
-                self.max_iter, self.lr_rate, \
-                self.fit_intercept, self.tol, self.verbose, self.__mid, \
-                dtype, itype, dense)
-        elif self._solver == 'lbfgs':
-            rpclib.lnr_lbfgs(host, port, X.get(), y.get(), \
-                self.max_iter, self.lr_rate, \
-                self.fit_intercept, self.tol, self.verbose, self.__mid, \
-                dtype, itype, dense)
-        elif self._solver == 'lapack':
+        if self.solver == 'sag':
+            self._n_iter = rpclib.lnr_sgd(host, port, X.get(), y.get(), \
+                           sample_weight, len(sample_weight), \
+                           self.max_iter, self.lr_rate, \
+                           self.fit_intercept, self.tol, self.verbose, self.__mid, \
+                           dtype, itype, dense)
+        elif self.solver == 'lbfgs':
+            self._n_iter = rpclib.lnr_lbfgs(host, port, X.get(), y.get(), \
+                           sample_weight, len(sample_weight), \
+                           self.max_iter, self.lr_rate, \
+                           self.fit_intercept, self.tol, self.verbose, self.__mid, \
+                           dtype, itype, dense)
+        elif self.solver == 'lapack':
             if not dense:
                 raise TypeError("lapack solver supports only dense feature data!")
             out = rpclib.lnr_lapack(host, port, X.get(), y.get(), \
+                              sample_weight, len(sample_weight), \
                               self.fit_intercept, self.verbose, self.__mid, \
                               dtype)
             svalsize = len(out) - 1
             self.singular_ = np.asarray(out[ : svalsize], \
                                 TypeUtil.to_numpy_dtype(dtype))
             self.rank_ = int(out[svalsize])
-        elif self._solver == 'scalapack':
+        elif self.solver == 'scalapack':
             if not dense:
                 raise TypeError("scalapack solver supports only dense feature data!")
             rpclib.lnr_scalapack(host, port, X.get(), y.get(), \
+                                 sample_weight, len(sample_weight), \
                                  self.fit_intercept, self.verbose, self.__mid, \
                                  dtype)
         else:
@@ -418,19 +476,18 @@ class LinearRegression(BaseEstimator):
     @property
     def coef_(self):
         """coef_ getter"""
-        if self.__mid is not None:
-            if self._coef is None:
-                (host, port) = FrovedisServer.getServerInstance()
-                wgt = rpclib.get_weight_vector(host, port, self.__mid, \
-                    self.__mkind, self.__mdtype)
-                excpt = rpclib.check_server_exception()
-                if excpt["status"]:
-                    raise RuntimeError(excpt["info"])
-                self._coef = np.asarray(wgt)
-            return self._coef
-        else:
+        if self.__mid is None:
             raise AttributeError("attribute 'coef_' \
                might have been released or called before fit")
+        if self._coef is None:
+            (host, port) = FrovedisServer.getServerInstance()
+            wgt = rpclib.get_weight_vector(host, port, self.__mid, \
+                self.__mkind, self.__mdtype)
+            excpt = rpclib.check_server_exception()
+            if excpt["status"]:
+                raise RuntimeError(excpt["info"])
+            self._coef = np.asarray(wgt)
+        return self._coef
 
     @coef_.setter
     def coef_(self, val):
@@ -441,19 +498,18 @@ class LinearRegression(BaseEstimator):
     @property
     def intercept_(self):
         """intercept_ getter"""
-        if self.__mid is not None:
-            if self._intercept is None:
-                (host, port) = FrovedisServer.getServerInstance()
-                icpt = rpclib.get_intercept_vector(host, port, self.__mid, \
-                    self.__mkind, self.__mdtype)
-                excpt = rpclib.check_server_exception()
-                if excpt["status"]:
-                    raise RuntimeError(excpt["info"])
-                self._intercept = icpt
-            return self._intercept
-        else:
+        if self.__mid is None:
             raise AttributeError("attribute 'intercept_' \
                might have been released or called before fit")
+        if self._intercept is None:
+            (host, port) = FrovedisServer.getServerInstance()
+            icpt = rpclib.get_intercept_vector(host, port, self.__mid, \
+                self.__mkind, self.__mdtype)
+            excpt = rpclib.check_server_exception()
+            if excpt["status"]:
+                raise RuntimeError(excpt["info"])
+            self._intercept = icpt
+        return self._intercept
 
     @intercept_.setter
     def intercept_(self, val):
@@ -466,23 +522,38 @@ class LinearRegression(BaseEstimator):
         """
         NAME: score
         """
-        if self.__mid is not None:
-            return r2_score(y, self.predict(X))
-        else:
+        if self.__mid is None:
             raise ValueError( \
                 "score is called before calling fit, or the model is released.")
+        return r2_score(y, self.predict(X))
 
     def predict(self, X):
         """
         NAME: predict
         """
-        if self.__mid is not None:
-            ret = GLM.predict(X, self.__mid, self.__mkind, \
-                              self.__mdtype, False)
-            return np.asarray(ret, dtype = np.float64)
-        else:
+        if self.__mid is None:
             raise ValueError( \
             "predict is called before calling fit, or the model is released.")
+        ret = GLM.predict(X, self.__mid, self.__mkind, \
+                          self.__mdtype, False)
+        return np.asarray(ret, dtype = np.float64)
+
+    @property
+    def n_iter_(self):
+        """n_iter_ getter"""
+        if  self.__mid is None:
+            raise AttributeError("attribute 'n_iter_'" \
+               "might have been released or called before fit")
+        if self.solver != 'sag' and self.solver != 'lbfgs':
+            raise AttributeError("n_iter_ is supported for only solvers = [sag, lbfgs]!")
+        return self._n_iter
+
+    @n_iter_.setter
+    def n_iter_(self, val):
+        """n_iter_ setter"""
+        raise AttributeError(\
+            "attribute 'n_iter_' of LinearRegression object is not writable")
+
 
     def load(self, fname, dtype=None):
         """
@@ -509,19 +580,17 @@ class LinearRegression(BaseEstimator):
         """
         NAME: save
         """
-        if self.__mid is not None:
-            if os.path.exists(fname):
-                raise ValueError(\
-                    "another model with %s name already exists!" % fname)
-            else:
-                os.makedirs(fname)
-            GLM.save(self.__mid, self.__mkind, self.__mdtype, fname+"/model")
-            metadata = open(fname+"/metadata", "wb")
-            pickle.dump((self.__mkind, self.__mdtype), metadata)
-            metadata.close()
-        else:
+        if self.__mid is None:
             raise ValueError(\
                 "save: the requested model might have been released!")
+        if os.path.exists(fname):
+            raise ValueError(\
+                "another model with %s name already exists!" % fname)
+        os.makedirs(fname)
+        GLM.save(self.__mid, self.__mkind, self.__mdtype, fname+"/model")
+        metadata = open(fname+"/metadata", "wb")
+        pickle.dump((self.__mkind, self.__mdtype), metadata)
+        metadata.close()
 
     def debug_print(self):
         """
@@ -539,6 +608,8 @@ class LinearRegression(BaseEstimator):
             self.__mid = None
             self._coef = None
             self._intercept = None
+            self.n_samples = None
+            self._n_iter = None
 
     def __del__(self):
         """
@@ -577,37 +648,61 @@ class Lasso(BaseEstimator):
         self.__mkind = M_KIND.LNRM
         self._coef = None
         self._intercept = None
+        self.n_samples = None
+        self._n_iter = None
+
+    def check_input(self, X, y, F):
+        """checks input X"""
+        inp_data = FrovedisLabeledPoint(X, y, \
+                   caller = "[" + self.__class__.__name__ + "] " + F + ": ",\
+                   dense_kind = 'colmajor', densify=False)
+
+        X, y = inp_data.get()
+        self.n_samples = inp_data.numRows()
+        dtype = inp_data.get_dtype()
+        itype = inp_data.get_itype()
+        dense = inp_data.is_dense()
+        return X, y, dtype, itype, dense
+
+    def check_sample_weight(self, sample_weight):
+        """checks input X and y"""
+        if sample_weight is None:
+            weight = np.array([], dtype=np.float64)
+        elif isinstance(sample_weight, numbers.Number):
+            weight = np.full(self.n_samples, sample_weight, dtype=np.float64)
+        else:
+            weight = np.ravel(sample_weight)
+            if len(weight) != self.n_samples:
+                raise ValueError("sample_weight.shape == {}, expected {}!"\
+                       .format(sample_weight.shape, (self.n_samples,)))
+        return np.asarray(weight, dtype=np.float64)
 
     def fit(self, X, y, sample_weight=None):
         """
         NAME: fit
         """
         self.release()
-        inp_data = FrovedisLabeledPoint(X, y, \
-                   caller = "[" + self.__class__.__name__ + "] fit: ",\
-                   dense_kind = 'colmajor', densify=False) 
-        (X, y) = inp_data.get()
-        dtype = inp_data.get_dtype()
-        itype = inp_data.get_itype()
-        dense = inp_data.is_dense()
+        X, y, dtype, itype, dense = self.check_input(X, y, "fit")
         self.__mid = ModelID.get()
         self.__mdtype = dtype
 
         if self.max_iter is None:
             self.max_iter = 1000
+
+        sample_weight = self.check_sample_weight(sample_weight)
         (host, port) = FrovedisServer.getServerInstance()
         if self.solver == 'sag':
-            rpclib.lasso_sgd(host, port, X.get(), y.get(), \
-                    self.max_iter, self.lr_rate, \
-                    self.alpha, \
-                    self.fit_intercept, self.tol, \
-                    self.verbose, self.__mid, dtype, itype, dense)
+            n_iter = rpclib.lasso_sgd(host, port, X.get(), y.get(), \
+                           sample_weight, len(sample_weight), \
+                           self.max_iter, self.lr_rate, \
+                           self.alpha, self.fit_intercept, self.tol, \
+                           self.verbose, self.__mid, dtype, itype, dense)
         elif self.solver == 'lbfgs':
-            rpclib.lasso_lbfgs(host, port, X.get(), y.get(), \
-                    self.max_iter, self.lr_rate, \
-                    self.alpha, \
-                    self.fit_intercept, self.tol,\
-                    self.verbose, self.__mid, dtype, itype, dense)
+            n_iter = rpclib.lasso_lbfgs(host, port, X.get(), y.get(), \
+                           sample_weight, len(sample_weight), \
+                           self.max_iter, self.lr_rate, \
+                           self.alpha, self.fit_intercept, self.tol,\
+                           self.verbose, self.__mid, dtype, itype, dense)
         else:
             raise ValueError( \
             "Unknown solver %s for Lasso Regression." % self.solver)
@@ -616,24 +711,24 @@ class Lasso(BaseEstimator):
             raise RuntimeError(excpt["info"])
         self._coef = None
         self._intercept = None
+        self._n_iter = n_iter
         return self
 
     @property
     def coef_(self):
         """coef_ getter"""
-        if self.__mid is not None:
-            if self._coef is None:
-                (host, port) = FrovedisServer.getServerInstance()
-                wgt = rpclib.get_weight_vector(host, port, self.__mid, \
-                    self.__mkind, self.__mdtype)
-                excpt = rpclib.check_server_exception()
-                if excpt["status"]:
-                    raise RuntimeError(excpt["info"])
-                self._coef = np.asarray(wgt)
-            return self._coef
-        else:
+        if self.__mid is None:
             raise AttributeError(\
             "attribute 'coef_' might have been released or called before fit")
+        if self._coef is None:
+            (host, port) = FrovedisServer.getServerInstance()
+            wgt = rpclib.get_weight_vector(host, port, self.__mid, \
+                self.__mkind, self.__mdtype)
+            excpt = rpclib.check_server_exception()
+            if excpt["status"]:
+                raise RuntimeError(excpt["info"])
+            self._coef = np.asarray(wgt)
+        return self._coef
 
     @coef_.setter
     def coef_(self, val):
@@ -644,19 +739,18 @@ class Lasso(BaseEstimator):
     @property
     def intercept_(self):
         """intercept_ getter"""
-        if self.__mid is not None:
-            if self._intercept is None:
-                (host, port) = FrovedisServer.getServerInstance()
-                icpt = rpclib.get_intercept_vector(host, port, self.__mid, \
-                    self.__mkind, self.__mdtype)
-                excpt = rpclib.check_server_exception()
-                if excpt["status"]:
-                    raise RuntimeError(excpt["info"])
-                self._intercept = icpt
-            return self._intercept
-        else:
+        if self.__mid is None:
             raise AttributeError(\
-        "attribute 'intercept_' might have been released or called before fit")
+            "attribute 'intercept_' might have been released or called before fit")
+        if self._intercept is None:
+            (host, port) = FrovedisServer.getServerInstance()
+            icpt = rpclib.get_intercept_vector(host, port, self.__mid, \
+                self.__mkind, self.__mdtype)
+            excpt = rpclib.check_server_exception()
+            if excpt["status"]:
+                raise RuntimeError(excpt["info"])
+            self._intercept = icpt
+        return self._intercept
 
     @intercept_.setter
     def intercept_(self, val):
@@ -668,13 +762,12 @@ class Lasso(BaseEstimator):
         """
         NAME: predict
         """
-        if self.__mid is not None:
-            ret = GLM.predict(X, self.__mid, self.__mkind, \
-                              self.__mdtype, False)
-            return np.asarray(ret, dtype = np.float64)
-        else:
+        if self.__mid is None:
             raise ValueError( \
             "predict is called before calling fit, or the model is released.")
+        ret = GLM.predict(X, self.__mid, self.__mkind, \
+                          self.__mdtype, False)
+        return np.asarray(ret, dtype = np.float64)
 
     def load(self, fname, dtype=None):
         """
@@ -702,29 +795,40 @@ class Lasso(BaseEstimator):
         """
         NAME: score
         """
-        if self.__mid is not None:
-            return r2_score(y, self.predict(X))
-        else:
+        if self.__mid is None:
             raise ValueError( \
                 "score is called before calling fit, or the model is released.")
+        return r2_score(y, self.predict(X))
+
+    @property
+    def n_iter_(self):
+        """n_iter_ getter"""
+        if self.__mid is None:
+            raise AttributeError("attribute 'n_iter_'" \
+               "might have been released or called before fit")
+        return self._n_iter
+
+    @n_iter_.setter
+    def n_iter_(self, val):
+        """n_iter_ setter"""
+        raise AttributeError(\
+            "attribute 'n_iter_' of Lasso Regression object is not writable")
 
     def save(self, fname):
         """
         NAME: save
         """
-        if self.__mid is not None:
-            if os.path.exists(fname):
-                raise ValueError(\
-                    "another model with %s name already exists!" % fname)
-            else:
-                os.makedirs(fname)
-            GLM.save(self.__mid, self.__mkind, self.__mdtype, fname+"/model")
-            metadata = open(fname+"/metadata", "wb")
-            pickle.dump((self.__mkind, self.__mdtype), metadata)
-            metadata.close()
-        else:
+        if self.__mid is None:
             raise ValueError(\
                 "save: the requested model might have been released!")
+        if os.path.exists(fname):
+            raise ValueError(\
+                "another model with %s name already exists!" % fname)
+        os.makedirs(fname)
+        GLM.save(self.__mid, self.__mkind, self.__mdtype, fname+"/model")
+        metadata = open(fname+"/metadata", "wb")
+        pickle.dump((self.__mkind, self.__mdtype), metadata)
+        metadata.close()
 
     def debug_print(self):
         """
@@ -742,6 +846,8 @@ class Lasso(BaseEstimator):
             self.__mid = None
             self._coef = None
             self._intercept = None
+            self._n_iter = None
+            self.n_samples = None
 
     def __del__(self):
         """
@@ -773,22 +879,44 @@ class Ridge(BaseEstimator):
         self.__mkind = M_KIND.LNRM
         self._coef = None
         self._intercept = None
+        self.n_samples = None
+        self._n_iter = None
+
+    def check_input(self, X, y, F):
+        """checks input X"""
+        inp_data = FrovedisLabeledPoint(X, y, \
+                   caller = "[" + self.__class__.__name__ + "] " + F + ": ",\
+                   dense_kind = 'colmajor', densify=False)
+
+        X, y = inp_data.get()
+        self.n_samples = inp_data.numRows()
+        dtype = inp_data.get_dtype()
+        itype = inp_data.get_itype()
+        dense = inp_data.is_dense()
+        return X, y, dtype, itype, dense
+
+    def check_sample_weight(self, sample_weight):
+        """checks input X and y"""
+        if sample_weight is None:
+            weight = np.array([], dtype=np.float64)
+        elif isinstance(sample_weight, numbers.Number):
+            weight = np.ones(self.n_samples, dtype=np.float64)
+        else:
+            weight = np.ravel(sample_weight)
+            if len(weight) != self.n_samples:
+                raise ValueError("sample_weight.shape == {}, expected {}!"\
+                       .format(sample_weight.shape, (self.n_samples,)))
+        return np.asarray(weight, dtype=np.float64)
+
 
     def fit(self, X, y, sample_weight=None):
         """
         NAME: fit
         """
         self.release()
-        inp_data = FrovedisLabeledPoint(X, y, \
-                   caller = "[" + self.__class__.__name__ + "] fit: ",\
-                   dense_kind = 'colmajor', densify=False) 
-        (X, y) = inp_data.get()
-        dtype = inp_data.get_dtype()
-        itype = inp_data.get_itype()
-        dense = inp_data.is_dense()
+        X, y, dtype, itype, dense = self.check_input(X, y, "fit")
         self.__mid = ModelID.get()
         self.__mdtype = dtype
-
         sv = ['svd', 'cholesky', 'lsqr', 'sparse_cg']
         if self.solver in sv:
             raise ValueError( \
@@ -796,21 +924,22 @@ class Ridge(BaseEstimator):
             Regression currently." % self.solver)
         if self.max_iter is None:
             self.max_iter = 1000
+        sample_weight = self.check_sample_weight(sample_weight)
         (host, port) = FrovedisServer.getServerInstance()
         if self.solver == 'sag' or self.solver == 'auto':
-            rpclib.ridge_sgd(host, port, X.get(), y.get(), \
-                            self.max_iter, self.lr_rate, \
-                            self.alpha, \
-                            self.fit_intercept, self.tol, \
-                            self.verbose, self.__mid, \
-                            dtype, itype, dense)
+            n_iter = rpclib.ridge_sgd(host, port, X.get(), y.get(), \
+                           sample_weight, len(sample_weight), \
+                           self.max_iter, self.lr_rate, \
+                           self.alpha, self.fit_intercept, self.tol, \
+                           self.verbose, self.__mid, \
+                           dtype, itype, dense)
         elif self.solver == 'lbfgs':
-            rpclib.ridge_lbfgs(host, port, X.get(), y.get(), \
-                              self.max_iter, self.lr_rate, \
-                              self.alpha, \
-                              self.fit_intercept, self.tol, \
-                              self.verbose, self.__mid, \
-                              dtype, itype, dense)
+            n_iter = rpclib.ridge_lbfgs(host, port, X.get(), y.get(), \
+                           sample_weight, len(sample_weight), \
+                           self.max_iter, self.lr_rate, \
+                           self.alpha, self.fit_intercept, self.tol, \
+                           self.verbose, self.__mid, \
+                           dtype, itype, dense)
         else:
             raise ValueError( \
             "Unknown solver %s for Ridge Regression." % self.solver)
@@ -819,24 +948,24 @@ class Ridge(BaseEstimator):
             raise RuntimeError(excpt["info"])
         self._coef = None
         self._intercept = None
+        self._n_iter = n_iter
         return self
 
     @property
     def coef_(self):
         """coef_ getter"""
-        if self.__mid is not None:
-            if self._coef is None:
-                (host, port) = FrovedisServer.getServerInstance()
-                wgt = rpclib.get_weight_vector(host, port, self.__mid, \
-                    self.__mkind, self.__mdtype)
-                excpt = rpclib.check_server_exception()
-                if excpt["status"]:
-                    raise RuntimeError(excpt["info"])
-                self._coef = np.asarray(wgt)
-            return self._coef
-        else:
+        if self.__mid is None:
             raise AttributeError(\
             "attribute 'coef_' might have been released or called before fit")
+        if self._coef is None:
+            (host, port) = FrovedisServer.getServerInstance()
+            wgt = rpclib.get_weight_vector(host, port, self.__mid, \
+                self.__mkind, self.__mdtype)
+            excpt = rpclib.check_server_exception()
+            if excpt["status"]:
+                raise RuntimeError(excpt["info"])
+            self._coef = np.asarray(wgt)
+        return self._coef
 
     @coef_.setter
     def coef_(self, val):
@@ -847,19 +976,18 @@ class Ridge(BaseEstimator):
     @property
     def intercept_(self):
         """intercept_ getter"""
-        if self.__mid is not None:
-            if self._intercept is None:
-                (host, port) = FrovedisServer.getServerInstance()
-                icpt = rpclib.get_intercept_vector(host, port, self.__mid, \
-                    self.__mkind, self.__mdtype)
-                excpt = rpclib.check_server_exception()
-                if excpt["status"]:
-                    raise RuntimeError(excpt["info"])
-                self._intercept = icpt
-            return self._intercept
-        else:
+        if self.__mid is None:
             raise AttributeError("attribute 'intercept_'\
                 might have been released or called before fit")
+        if self._intercept is None:
+            (host, port) = FrovedisServer.getServerInstance()
+            icpt = rpclib.get_intercept_vector(host, port, self.__mid, \
+                self.__mkind, self.__mdtype)
+            excpt = rpclib.check_server_exception()
+            if excpt["status"]:
+                raise RuntimeError(excpt["info"])
+            self._intercept = icpt
+        return self._intercept
 
     @intercept_.setter
     def intercept_(self, val):
@@ -871,13 +999,26 @@ class Ridge(BaseEstimator):
         """
         NAME: predict
         """
-        if self.__mid is not None:
-            ret = GLM.predict(X, self.__mid, self.__mkind, \
-                              self.__mdtype, False)
-            return np.asarray(ret, dtype = np.float64)
-        else:
+        if self.__mid is None:
             raise ValueError( \
             "predict is called before calling fit, or the model is released.")
+        ret = GLM.predict(X, self.__mid, self.__mkind, \
+                          self.__mdtype, False)
+        return np.asarray(ret, dtype = np.float64)
+
+    @property
+    def n_iter_(self):
+        """n_iter_ getter"""
+        if self.__mid is None:
+            raise AttributeError("attribute 'n_iter_'" \
+               "might have been released or called before fit")
+        return self._n_iter
+
+    @n_iter_.setter
+    def n_iter_(self, val):
+        """n_iter_ setter"""
+        raise AttributeError(\
+            "attribute 'n_iter_' of Ridge Regression object is not writable")
 
     def load(self, fname, dtype=None):
         """
@@ -905,29 +1046,26 @@ class Ridge(BaseEstimator):
         """
         NAME: score
         """
-        if self.__mid is not None:
-            return r2_score(y, self.predict(X))
-        else:
+        if self.__mid is None:
             raise ValueError( \
                 "score is called before calling fit, or the model is released.")
+        return r2_score(y, self.predict(X))
 
     def save(self, fname):
         """
         NAME: save
         """
-        if self.__mid is not None:
-            if os.path.exists(fname):
-                raise ValueError(\
-                    "another model with %s name already exists!" % fname)
-            else:
-                os.makedirs(fname)
-            GLM.save(self.__mid, self.__mkind, self.__mdtype, fname+"/model")
-            metadata = open(fname+"/metadata", "wb")
-            pickle.dump((self.__mkind, self.__mdtype), metadata)
-            metadata.close()
-        else:
+        if self.__mid is None:
             raise ValueError(\
                 "save: the requested model might have been released!")
+        if os.path.exists(fname):
+            raise ValueError(\
+                "another model with %s name already exists!" % fname)
+        os.makedirs(fname)
+        GLM.save(self.__mid, self.__mkind, self.__mdtype, fname+"/model")
+        metadata = open(fname+"/metadata", "wb")
+        pickle.dump((self.__mkind, self.__mdtype), metadata)
+        metadata.close()
 
     def debug_print(self):
         """
@@ -945,6 +1083,8 @@ class Ridge(BaseEstimator):
             self.__mid = None
             self._coef = None
             self._intercept = None
+            self._n_iter = None
+            self.n_samples = None
 
     def __del__(self):
         """
@@ -994,14 +1134,11 @@ class SGDClassifier(BaseEstimator):
         self._classes = None
         self._intercept = None
         self._coef = None
+        self._n_iter = None
+        self.n_samples = None
 
-    def fit(self, X, y, coef_init=None, intercept_init=None, \
-            sample_weight=None):
-        """
-        Fit method for SGDclassifier
-        """
-        self.release()
-        import warnings
+    def validate(self):
+        """validates hyper parameters"""
         if self.power_t != 0.5:
             warnings.warn(\
                 " Parameter power_t has been set to" + str(self.power_t) + \
@@ -1013,24 +1150,51 @@ class SGDClassifier(BaseEstimator):
         if self.alpha < 0:
             raise ValueError("alpha must be >= 0")
 
+    def check_input(self, X, y, F):
+        """checks input X"""
         if self.loss == "squared_loss":
             inp_data = FrovedisLabeledPoint(X, y, \
-                       caller = "[" + self.__class__.__name__ + "] fit: ",\
-                       dense_kind = 'colmajor', densify=False) 
+                       caller = "[" + self.__class__.__name__ + "] " + F  + ": ",\
+                       dense_kind = 'colmajor', densify=False)
             X, y = inp_data.get()
         else:
             # for binary case: frovedis supports -1 and 1
             inp_data = FrovedisLabeledPoint(X, y, \
-                       caller = "[" + self.__class__.__name__ + "] fit: ",\
+                       caller = "[" + self.__class__.__name__ + "] " + F + ": ",\
                        encode_label = True, binary_encoder=[-1, 1], \
-                       dense_kind = 'colmajor', densify=False) 
+                       dense_kind = 'colmajor', densify=False)
             X, y, logic = inp_data.get()
             self._classes = inp_data.get_distinct_labels()
             self.n_classes = len(self._classes)
             self.label_map = logic
+        self.n_samples = inp_data.numRows()
         dtype = inp_data.get_dtype()
         itype = inp_data.get_itype()
         dense = inp_data.is_dense()
+        return X, y, dtype, itype, dense
+
+    def check_sample_weight(self, sample_weight):
+        """checks input X and y"""
+        if sample_weight is None:
+            weight = np.array([], dtype=np.float64)
+        elif isinstance(sample_weight, numbers.Number):
+            weight = np.ones(self.n_samples, dtype=np.float64)
+        else:
+            weight = np.ravel(sample_weight)
+            if len(weight) != self.n_samples:
+                raise ValueError("sample_weight.shape == {}, expected {}!"\
+                       .format(sample_weight.shape, (self.n_samples,)))
+        return np.asarray(weight, dtype=np.float64)
+
+    def fit(self, X, y, coef_init=None, intercept_init=None, \
+            sample_weight=None):
+        """
+        Fit method for SGDclassifier
+        """
+        self.release()
+        self.validate()
+
+        X, y, dtype, itype, dense = self.check_input(X, y, "fit")
         self.__mid = ModelID.get()
         self.__mdtype = dtype
 
@@ -1045,6 +1209,8 @@ class SGDClassifier(BaseEstimator):
             raise ValueError( \
                 "Unsupported penalty is provided: ", self.penalty)
 
+        sample_weight = self.check_sample_weight(sample_weight)
+
         (host, port) = FrovedisServer.getServerInstance()
         if self.loss == "log":
             if self.n_classes == 2:
@@ -1053,25 +1219,29 @@ class SGDClassifier(BaseEstimator):
             else:
                 isMult = True
                 self.__mkind = M_KIND.MLR
-            rpclib.lr_sgd(host, port, X.get(), y.get(), self.max_iter, \
-                       self.eta0, regTyp, rparam, isMult, \
-                       self.fit_intercept, self.tol, self.verbose,\
-                       self.__mid, dtype, itype, dense)
+            n_iter = rpclib.lr_sgd(host, port, X.get(), y.get(),
+                            sample_weight, len(sample_weight), \
+                            self.max_iter, self.eta0, \
+                            regTyp, rparam, isMult, \
+                            self.fit_intercept, self.tol, self.verbose,\
+                            self.__mid, dtype, itype, dense, False)
         elif self.loss == "hinge":
             if self.n_classes != 2:
                 raise ValueError("SGDClassifier: loss = 'hinge' supports" + \
                                  " only binary classification!")
             self.__mkind = M_KIND.SVM
-            rpclib.svm_sgd(host, port, X.get(), y.get(), \
-                        self.max_iter, self.eta0, \
-                        regTyp, rparam, self.fit_intercept, self.tol, \
-                        self.verbose, self.__mid, dtype, itype, dense)
+            n_iter = rpclib.svm_sgd(host, port, X.get(), y.get(), \
+                            sample_weight, len(sample_weight), \
+                            self.max_iter, self.eta0, \
+                            regTyp, rparam, self.fit_intercept, self.tol, \
+                            self.verbose, self.__mid, dtype, itype, dense)
         elif self.loss == "squared_loss":
             self.__mkind = M_KIND.LNRM
-            rpclib.lnr2_sgd(host, port, X.get(), y.get(), \
-                        self.max_iter, self.eta0, \
-                        regTyp, rparam, self.fit_intercept, self.tol, \
-                        self.verbose, self.__mid, dtype, itype, dense)
+            n_iter = rpclib.lnr2_sgd(host, port, X.get(), y.get(), \
+                            sample_weight, len(sample_weight), \
+                            self.max_iter, self.eta0, \
+                            regTyp, rparam, self.fit_intercept, self.tol, \
+                            self.verbose, self.__mid, dtype, itype, dense)
         else:
             raise ValueError("SGDClassifier: supported losses are log, " + \
                              "hinge and squared_loss only!")
@@ -1080,31 +1250,31 @@ class SGDClassifier(BaseEstimator):
             raise RuntimeError(excpt["info"])
         self._coef = None
         self._intercept = None
+        self._n_iter = n_iter
         return self
 
     @property
     def coef_(self):
         """coef_ getter"""
-        if self.__mid is not None:
-            if self._coef is None:
-                (host, port) = FrovedisServer.getServerInstance()
-                wgt = rpclib.get_weight_vector(host, port, self.__mid, \
-                    self.__mkind, self.__mdtype)
-                excpt = rpclib.check_server_exception()
-                if excpt["status"]:
-                    raise RuntimeError(excpt["info"])
-                if self.__mkind == M_KIND.LRM or self.__mkind == M_KIND.SVM \
-                    or self.__mkind == M_KIND.LNRM:
-                    n_features = len(wgt)
-                    shape = (1, n_features)
-                else: # MLR case
-                    n_features = len(wgt) // self.n_classes
-                    shape = (self.n_classes, n_features)
-                self._coef = np.asarray(wgt).reshape(shape)
-            return self._coef
-        else:
+        if self.__mid is None:
             raise AttributeError(\
             "attribute 'coef_' might have been released or called before fit")
+        if self._coef is None:
+            (host, port) = FrovedisServer.getServerInstance()
+            wgt = rpclib.get_weight_vector(host, port, self.__mid, \
+                self.__mkind, self.__mdtype)
+            excpt = rpclib.check_server_exception()
+            if excpt["status"]:
+                raise RuntimeError(excpt["info"])
+            if self.__mkind == M_KIND.LRM or self.__mkind == M_KIND.SVM \
+                or self.__mkind == M_KIND.LNRM:
+                n_features = len(wgt)
+                shape = (1, n_features)
+            else: # MLR case
+                n_features = len(wgt) // self.n_classes
+                shape = (self.n_classes, n_features)
+            self._coef = np.asarray(wgt).reshape(shape)
+        return self._coef
 
     @coef_.setter
     def coef_(self, val):
@@ -1115,19 +1285,18 @@ class SGDClassifier(BaseEstimator):
     @property
     def intercept_(self):
         """intercept_ getter"""
-        if self.__mid is not None:
-            if self._intercept is None:
-                (host, port) = FrovedisServer.getServerInstance()
-                icpt = rpclib.get_intercept_vector(host, port, self.__mid, \
-                    self.__mkind, self.__mdtype)
-                excpt = rpclib.check_server_exception()
-                if excpt["status"]:
-                    raise RuntimeError(excpt["info"])
-                self._intercept = np.asarray(icpt)
-            return self._intercept
-        else:
+        if self.__mid is None:
             raise AttributeError(\
-        "attribute 'intercept_' might have been released or called before fit")
+            "attribute 'intercept_' might have been released or called before fit")
+        if self._intercept is None:
+            (host, port) = FrovedisServer.getServerInstance()
+            icpt = rpclib.get_intercept_vector(host, port, self.__mid, \
+                self.__mkind, self.__mdtype)
+            excpt = rpclib.check_server_exception()
+            if excpt["status"]:
+                raise RuntimeError(excpt["info"])
+            self._intercept = np.asarray(icpt)
+        return self._intercept
 
     @intercept_.setter
     def intercept_(self, val):
@@ -1138,16 +1307,15 @@ class SGDClassifier(BaseEstimator):
     @property
     def classes_(self):
         """classes_ getter"""
-        if self.__mid is not None:
-            if self.__mkind == M_KIND.LNRM:
-                raise AttributeError(\
-                "attribute 'classes_' is not available for squared_loss")
-            if self._classes is None:
-                self._classes = np.sort(list(self.label_map.values()))
-            return self._classes
-        else:
+        if self.__mid is None:
             raise AttributeError(\
-        "attribute 'classes_' might have been released or called before fit")
+            "attribute 'classes_' might have been released or called before fit")
+        if self.__mkind == M_KIND.LNRM:
+            raise AttributeError(\
+            "attribute 'classes_' is not available for squared_loss")
+        if self._classes is None:
+            self._classes = np.sort(list(self.label_map.values()))
+        return self._classes
 
     @classes_.setter
     def classes_(self, val):
@@ -1159,34 +1327,46 @@ class SGDClassifier(BaseEstimator):
         """
         NAME: predict for SGD classifier
         """
-        if self.__mid is not None:
-            frov_pred = GLM.predict(X, self.__mid, self.__mkind, \
-                                    self.__mdtype, False)
-            if self.__mkind == M_KIND.LNRM:
-                return np.asarray(frov_pred, dtype=np.float64)
-            else:
-                return np.asarray([self.label_map[frov_pred[i]] \
-                                  for i in range(0, len(frov_pred))])
-        else:
+        if self.__mid is None:
             raise ValueError( \
             "predict is called before calling fit, or the model is released.")
+        frov_pred = GLM.predict(X, self.__mid, self.__mkind, \
+                                self.__mdtype, False)
+        if self.__mkind == M_KIND.LNRM:
+            return np.asarray(frov_pred, dtype=np.float64)
+        return np.asarray([self.label_map[frov_pred[i]] \
+                          for i in range(0, len(frov_pred))])
 
     def predict_proba(self, X):
         """
         NAME: predict_proba
         """
-        if self.__mid is not None:
-            if self.__mkind == M_KIND.LNRM or self.__mkind == M_KIND.SVM:
-                raise AttributeError(\
-                "attribute 'predict_proba' is not available for [squared/hinge]_loss")
-            proba = GLM.predict(X, self.__mid, self.__mkind, \
-                               self.__mdtype, True, self.n_classes)
-            n_samples = len(proba) // self.n_classes
-            shape = (n_samples, self.n_classes)
-            return np.asarray(proba, dtype=np.float64).reshape(shape)
-        else:
+        if self.__mid is None:
             raise ValueError( \
             "predict is called before calling fit, or the model is released.")
+        if self.__mkind == M_KIND.LNRM or self.__mkind == M_KIND.SVM:
+            raise AttributeError(\
+            "attribute 'predict_proba' is not available for [squared/hinge]_loss")
+        proba = GLM.predict(X, self.__mid, self.__mkind, \
+                           self.__mdtype, True, self.n_classes)
+        n_samples = len(proba) // self.n_classes
+        shape = (n_samples, self.n_classes)
+        return np.asarray(proba, dtype=np.float64).reshape(shape)
+
+    @property
+    def n_iter_(self):
+        """n_iter_ getter"""
+        if self.__mid is None:
+            raise AttributeError("attribute 'n_iter_'" \
+               "might have been released or called before fit")
+        return self._n_iter
+
+    @n_iter_.setter
+    def n_iter_(self, val):
+        """n_iter_ setter"""
+        raise AttributeError(\
+            "attribute 'n_iter_' of SGDClassifier  object is not writable")
+
 
     def load(self, fname, dtype=None):
         """
@@ -1221,37 +1401,33 @@ class SGDClassifier(BaseEstimator):
         """
         NAME: score
         """
-        if self.__mid is not None:
-            if self.__mkind == M_KIND.LNRM: 
-                return r2_score(y, self.predict(X))
-            else:
-                return accuracy_score(y, self.predict(X))
-        else:
+        if self.__mid is None:
             raise ValueError( \
                 "score is called before calling fit, or the model is released.")
+        if self.__mkind == M_KIND.LNRM:
+            return r2_score(y, self.predict(X))
+        return accuracy_score(y, self.predict(X))
 
     def save(self, fname):
         """
         NAME: save
         """
-        if self.__mid is not None:
-            if os.path.exists(fname):
-                raise ValueError(\
-                    "another model with %s name already exists!" % fname)
-            else:
-                os.makedirs(fname)
-            GLM.save(self.__mid, self.__mkind, self.__mdtype, fname+"/model")
-            if self.__mkind != M_KIND.LNRM:
-                target = open(fname+"/label_map", "wb")
-                pickle.dump(self.label_map, target)
-                target.close()
-            metadata = open(fname+"/metadata", "wb")
-            pickle.dump(\
-            (self.loss, self.__mkind, self.__mdtype), metadata)
-            metadata.close()
-        else:
+        if self.__mid is None:
             raise AttributeError(\
                 "save: requested model might have been released!")
+        if os.path.exists(fname):
+            raise ValueError(\
+                "another model with %s name already exists!" % fname)
+        os.makedirs(fname)
+        GLM.save(self.__mid, self.__mkind, self.__mdtype, fname+"/model")
+        if self.__mkind != M_KIND.LNRM:
+            target = open(fname+"/label_map", "wb")
+            pickle.dump(self.label_map, target)
+            target.close()
+        metadata = open(fname+"/metadata", "wb")
+        pickle.dump(\
+        (self.loss, self.__mkind, self.__mdtype), metadata)
+        metadata.close()
 
     def debug_print(self):
         """
@@ -1270,6 +1446,8 @@ class SGDClassifier(BaseEstimator):
             self._coef = None
             self._intercept = None
             self._classes = None
+            self._n_iter = None
+            self.n_samples = None
 
     def __del__(self):
         """
@@ -1312,12 +1490,40 @@ class SGDRegressor(BaseEstimator):
         self.__mkind = None
         self._intercept = None
         self._coef = None
+        self.n_samples = None
+        self._n_iter = None
+
+    def check_input(self, X, y, F):
+        """checks input X"""
+        inp_data = FrovedisLabeledPoint(X, y, \
+                   caller = "[" + self.__class__.__name__ + "] " + F + ": ",\
+                   dense_kind = 'colmajor', densify=False)
+
+        X, y = inp_data.get()
+        self.n_samples = inp_data.numRows()
+        dtype = inp_data.get_dtype()
+        itype = inp_data.get_itype()
+        dense = inp_data.is_dense()
+        return X, y, dtype, itype, dense
+
+    def check_sample_weight(self, sample_weight):
+        """checks input X and y"""
+        if sample_weight is None:
+            weight = np.array([], dtype=np.float64)
+        elif isinstance(sample_weight, numbers.Number):
+            weight = np.full(self.n_samples, sample_weight, dtype=np.float64)
+        else:
+            weight = np.ravel(sample_weight)
+            if len(weight) != self.n_samples:
+                raise ValueError("sample_weight.shape == {}, expected {}!"\
+                       .format(sample_weight.shape, (self.n_samples,)))
+        return np.asarray(weight, dtype=np.float64)
+
 
     def validate(self):
         """
         NAME: validate
         """
-        import warnings
         if self.tol < 0:
             raise ValueError("fit: tol parameter must be zero or positive!")
 
@@ -1349,13 +1555,7 @@ class SGDRegressor(BaseEstimator):
         self.release()
         self.validate()
         # perform the fit
-        inp_data = FrovedisLabeledPoint(X, y, \
-                   caller = "[" + self.__class__.__name__ + "] fit: ",\
-                   dense_kind = 'colmajor', densify=False) 
-        (X, y) = inp_data.get()
-        dtype = inp_data.get_dtype()
-        itype = inp_data.get_itype()
-        dense = inp_data.is_dense()
+        X, y, dtype, itype, dense = self.check_input(X, y, "fit")
         self.__mid = ModelID.get()
         self.__mdtype = dtype
 
@@ -1369,30 +1569,33 @@ class SGDRegressor(BaseEstimator):
             raise ValueError( \
                 "Unsupported penalty is provided: ", self.penalty)
 
-        svrloss = {'epsilon_insensitive': 1, 
+        svrloss = {'epsilon_insensitive': 1,
                    'squared_epsilon_insensitive': 2}
 
         lnrloss = {'squared_loss': 1}
- 
+
+        sample_weight = self.check_sample_weight(sample_weight)
         (host, port) = FrovedisServer.getServerInstance()
-        if (self.loss in list(svrloss.keys())): 
+        if (self.loss in list(svrloss.keys())):
             self.__mkind = M_KIND.SVR
             intLoss = svrloss[self.loss]
             if self.epsilon < 0:
                 raise ValueError("fit: epsilon parameter must be zero or positive!")
-            rpclib.svm_regressor_sgd(host, port, X.get(), y.get(), \
-                                     self.max_iter, self.eta0, \
-                                     self.epsilon, regTyp, self.alpha, \
-                                     self.fit_intercept, self.tol, \
-                                     intLoss, self.verbose, \
-                                     self.__mid, dtype, itype, dense)
+            n_iter = rpclib.svm_regressor_sgd(host, port, X.get(), y.get(), \
+                                              sample_weight, len(sample_weight), \
+                                              self.max_iter, self.eta0, \
+                                              self.epsilon, regTyp, self.alpha, \
+                                              self.fit_intercept, self.tol, \
+                                              intLoss, self.verbose, \
+                                              self.__mid, dtype, itype, dense)
         elif self.loss in list(lnrloss.keys()):
             self.__mkind = M_KIND.LNRM
-            rpclib.lnr2_sgd(host, port, X.get(), y.get(), \
-                            self.max_iter, self.eta0, \
-                            regTyp, self.alpha, \
-                            self.fit_intercept, self.tol, \
-                            self.verbose, self.__mid, dtype, itype, dense)
+            n_iter = rpclib.lnr2_sgd(host, port, X.get(), y.get(), \
+                                     sample_weight, len(sample_weight), \
+                                     self.max_iter, self.eta0, \
+                                     regTyp, self.alpha, \
+                                     self.fit_intercept, self.tol, \
+                                     self.verbose, self.__mid, dtype, itype, dense)
         else:
             raise ValueError(\
              "Supported losses are epsilon_insensitive, " \
@@ -1403,24 +1606,24 @@ class SGDRegressor(BaseEstimator):
             raise RuntimeError(excpt["info"])
         self._coef = None
         self._intercept = None
+        self._n_iter = n_iter
         return self
 
     @property
     def coef_(self):
         """coef_ getter"""
-        if self.__mid is not None:
-            if self._coef is None:
-                (host, port) = FrovedisServer.getServerInstance()
-                wgt = rpclib.get_weight_vector(host, port, self.__mid, \
-                    self.__mkind, self.__mdtype)
-                excpt = rpclib.check_server_exception()
-                if excpt["status"]:
-                    raise RuntimeError(excpt["info"])
-                self._coef = np.asarray(wgt)
-            return self._coef
-        else:
+        if self.__mid is None:
             raise AttributeError(\
             "attribute 'coef_' might have been released or called before fit")
+        if self._coef is None:
+            (host, port) = FrovedisServer.getServerInstance()
+            wgt = rpclib.get_weight_vector(host, port, self.__mid, \
+                self.__mkind, self.__mdtype)
+            excpt = rpclib.check_server_exception()
+            if excpt["status"]:
+                raise RuntimeError(excpt["info"])
+            self._coef = np.asarray(wgt)
+        return self._coef
 
     @coef_.setter
     def coef_(self, val):
@@ -1431,19 +1634,18 @@ class SGDRegressor(BaseEstimator):
     @property
     def intercept_(self):
         """intercept_ getter"""
-        if self.__mid is not None:
-            if self._intercept is None:
-                (host, port) = FrovedisServer.getServerInstance()
-                icpt = rpclib.get_intercept_vector(host, port, self.__mid, \
-                    self.__mkind, self.__mdtype)
-                excpt = rpclib.check_server_exception()
-                if excpt["status"]:
-                    raise RuntimeError(excpt["info"])
-                self._intercept = np.asarray(icpt)
-            return self._intercept
-        else:
+        if self.__mid is None:
             raise AttributeError(\
-        "attribute 'intercept_' might have been released or called before fit")
+            "attribute 'intercept_' might have been released or called before fit")
+        if self._intercept is None:
+            (host, port) = FrovedisServer.getServerInstance()
+            icpt = rpclib.get_intercept_vector(host, port, self.__mid, \
+                self.__mkind, self.__mdtype)
+            excpt = rpclib.check_server_exception()
+            if excpt["status"]:
+                raise RuntimeError(excpt["info"])
+            self._intercept = np.asarray(icpt)
+        return self._intercept
 
     @intercept_.setter
     def intercept_(self, val):
@@ -1455,13 +1657,26 @@ class SGDRegressor(BaseEstimator):
         """
         NAME: predict for SGDRegressor
         """
-        if self.__mid is not None:
-            ret = GLM.predict(X, self.__mid, self.__mkind, \
-                              self.__mdtype, False)
-            return np.asarray(ret, dtype=np.float64)
-        else:
+        if self.__mid is None:
             raise ValueError( \
             "predict is called before calling fit, or the model is released.")
+        ret = GLM.predict(X, self.__mid, self.__mkind, \
+                          self.__mdtype, False)
+        return np.asarray(ret, dtype=np.float64)
+
+    @property
+    def n_iter_(self):
+        """n_iter_ getter"""
+        if self.__mid is None:
+            raise AttributeError("attribute 'n_iter_'" \
+               "might have been released or called before fit")
+        return self._n_iter
+
+    @n_iter_.setter
+    def n_iter_(self, val):
+        """n_iter_ setter"""
+        raise AttributeError(\
+            "attribute 'n_iter_' of SGDRegressor object is not writable")
 
     def load(self, fname, dtype=None):
         """
@@ -1488,27 +1703,27 @@ class SGDRegressor(BaseEstimator):
         """
         NAME: save
         """
-        if self.__mid is not None:
-            if os.path.exists(fname):
-                raise ValueError(\
-                    "another model with %s name already exists!" % fname)
-            else:
-                os.makedirs(fname)
-            GLM.save(self.__mid, self.__mkind, self.__mdtype, fname+"/model")
-            metadata = open(fname+"/metadata", "wb")
-            pickle.dump(\
-            (self.loss, self.__mkind, self.__mdtype), metadata)
-            metadata.close()
-        else:
+        if self.__mid is None:
             raise AttributeError(\
                 "save: requested model might have been released!")
+        if os.path.exists(fname):
+            raise ValueError(\
+                "another model with %s name already exists!" % fname)
+        os.makedirs(fname)
+        GLM.save(self.__mid, self.__mkind, self.__mdtype, fname+"/model")
+        metadata = open(fname+"/metadata", "wb")
+        pickle.dump(\
+        (self.loss, self.__mkind, self.__mdtype), metadata)
+        metadata.close()
 
     def score(self, X, y):
         """
         NAME: score
         """
-        if self.__mid is not None:
-            return r2_score(y, self.predict(X))
+        if self.__mid is None:
+            raise ValueError( \
+                "score is called before calling fit, or the model is released.")
+        return r2_score(y, self.predict(X))
 
     def debug_print(self):
         """
@@ -1526,6 +1741,8 @@ class SGDRegressor(BaseEstimator):
             self.__mid = None
             self._coef = None
             self._intercept = None
+            self._n_iter = None
+            self.n_samples = None
 
     def __del__(self):
         """
@@ -1533,4 +1750,3 @@ class SGDRegressor(BaseEstimator):
         """
         if FrovedisServer.isUP():
             self.release()
-
