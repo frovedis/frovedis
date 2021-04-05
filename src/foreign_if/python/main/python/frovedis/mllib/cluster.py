@@ -4,6 +4,7 @@ cluster.py: module containing wrapper for kmeans, dbscan, agglomerative
 """
 #!/usr/bin/env python
 
+import sys
 import os.path
 import pickle
 import numpy as np
@@ -908,7 +909,7 @@ class DBSCAN(BaseEstimator):
         sample_weight = self.check_sample_weight(sample_weight)
 
         (host, port) = FrovedisServer.getServerInstance()
-        ret = np.zeros(n_samples, dtype=np.int32)
+        ret = np.zeros(n_samples, dtype=np.int64)
         rpclib.dbscan_train(host, port, X.get(), sample_weight, \
                             len(sample_weight), self.eps, self.min_samples, \
                             ret, n_samples, self.verbose, self.__mid, dtype, \
