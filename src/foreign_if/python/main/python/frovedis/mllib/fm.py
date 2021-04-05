@@ -8,7 +8,7 @@ import os.path
 import pickle
 from ..base import *
 from ..exrpc import rpclib
-from ..exrpc.server import FrovedisServer
+from ..exrpc.server import FrovedisServer, check_server_state
 from ..matrix.ml_data import FrovedisLabeledPoint
 from ..matrix.dtype import TypeUtil
 from .metrics import *
@@ -58,6 +58,7 @@ class FactorizationMachineClassifier(BaseEstimator):
         self.verbose = verbose
         # extra
         self.__mid = None
+        self.__sid = None
         self.__mdtype = None
         self.__mkind = M_KIND.FMM
         self.isregressor = False
@@ -113,9 +114,10 @@ class FactorizationMachineClassifier(BaseEstimator):
         itype = inp_data.get_itype()
         dense = inp_data.is_dense()
         if dense:
-            raise TypeError("Expected sparse matrix data for training!")
+            raise TypeError("fit: expected sparse matrix data for training!")
         self.__mdtype = dtype
         self.__mid = ModelID.get()
+        self.__sid = FrovedisServer.getID()
         (host, port) = FrovedisServer.getServerInstance()
         rpclib.fm_train(host, port, X.get(),
                         y.get(), self.init_stdev, self.iteration,
@@ -137,25 +139,24 @@ class FactorizationMachineClassifier(BaseEstimator):
         """
         NAME: predict
         """
-        if self.__mid is not None:
-            pred = GLM.predict(X, self.__mid, self.__mkind, \
-                               self.__mdtype, False)
-            return np.asarray([self.label_map[pred[i]] \
-                              for i in range(0, len(pred))])
-        else:
-            raise ValueError( \
+        if self.__mid is None:
+            raise AttributeError( \
             "predict is called before calling fit, or the model is released.")
+        check_server_state(self.__sid, self.__class__.__name__)
+        pred = GLM.predict(X, self.__mid, self.__mkind, \
+                           self.__mdtype, False)
+        return np.asarray([self.label_map[pred[i]] \
+                          for i in range(0, len(pred))])
 
     @property
     def classes_(self):
         """classes_ getter"""
-        if self.__mid is not None:
-            if self._classes is None:
-                self._classes = np.sort(list(self.label_map.values()))
-            return self._classes
-        else:
+        if self.__mid is None:
             raise AttributeError("attribute 'classes_'" \
                " might have been released or called before fit")
+        if self._classes is None:
+            self._classes = np.sort(list(self.label_map.values()))
+        return self._classes
 
     @classes_.setter
     def classes_(self, val):
@@ -163,7 +164,6 @@ class FactorizationMachineClassifier(BaseEstimator):
         raise AttributeError(\
             "attribute 'classes_' of FactorizationMachineClassifier "
             "object is not writable")
-
 
     # Load the model from a file
     def load(self, fname, dtype=None):
@@ -174,52 +174,53 @@ class FactorizationMachineClassifier(BaseEstimator):
             raise ValueError(\
                 "the model with name %s does not exist!" % fname)
         self.release()
-        target = open(fname+"/label_map", "rb")
+        target = open(fname + "/label_map", "rb")
         self.label_map = pickle.load(target)
         target.close()
         self._classes = np.sort(list(self.label_map.values()))
-        metadata = open(fname+"/metadata", "rb")
+        metadata = open(fname + "/metadata", "rb")
         self.__mkind, self.__mdtype = pickle.load(metadata)
         metadata.close()
         if dtype is not None:
             mdt = TypeUtil.to_numpy_dtype(self.__mdtype)
             if dtype != mdt:
-                raise ValueError("load: type mismatches detected!" + \
+                raise TypeError("load: type mismatches detected! " + \
                                  "expected type: " + str(mdt) + \
                                  "; given type: " + str(dtype))
         self.__mid = ModelID.get()
-        GLM.load(self.__mid, self.__mkind, self.__mdtype, fname+"/model")
+        self.__sid = FrovedisServer.getID()
+        GLM.load(self.__mid, self.__mkind, self.__mdtype, fname + "/model")
         return self
 
     # calculate the mean accuracy on the given test data and labels.
-    def score(self, X, y):
+    def score(self, X, y, sample_weight=None):
         """
         NAME: score
         """
-        if self.__mid is not None:
-            return accuracy_score(y, self.predict(X))
+        return accuracy_score(y, self.predict(X), sample_weight=sample_weight)
 
     # Save model to a file
     def save(self, fname):
         """
         NAME: save
         """
-        if self.__mid is not None:
-            if os.path.exists(fname):
-                raise ValueError(\
-                    "another model with %s name already exists!" % fname)
-            else:
-                os.makedirs(fname)
-            GLM.save(self.__mid, self.__mkind, self.__mdtype, fname+"/model")
-            target = open(fname+"/label_map", "wb")
-            pickle.dump(self.label_map, target)
-            target.close()
-            metadata = open(fname+"/metadata", "wb")
-            pickle.dump((self.__mkind, self.__mdtype), metadata)
-            metadata.close()
+        if self.__mid is None:
+            raise AttributeError("save: either called before fit or the "
+                                 "requested model might have been released!")
+
+        check_server_state(self.__sid, self.__class__.__name__)
+        if os.path.exists(fname):
+            raise ValueError(\
+                "another model with %s name already exists!" % fname)
         else:
-            raise ValueError("save: either called before fit or the "
-                             "requested model might have been released!")
+            os.makedirs(fname)
+        GLM.save(self.__mid, self.__mkind, self.__mdtype, fname + "/model")
+        target = open(fname + "/label_map", "wb")
+        pickle.dump(self.label_map, target)
+        target.close()
+        metadata = open(fname + "/metadata", "wb")
+        pickle.dump((self.__mkind, self.__mdtype), metadata)
+        metadata.close()
 
     # Show the model
     def debug_print(self):
@@ -227,6 +228,7 @@ class FactorizationMachineClassifier(BaseEstimator):
         NAME: debug_print
         """
         if self.__mid is not None:
+            check_server_state(self.__sid, self.__class__.__name__)
             GLM.debug_print(self.__mid, self.__mkind, self.__mdtype)
 
     # Release the model-id to generate new model-id
@@ -235,17 +237,19 @@ class FactorizationMachineClassifier(BaseEstimator):
         NAME: release
         """
         if self.__mid is not None:
-            GLM.release(self.__mid, self.__mkind, self.__mdtype)
-            self.__mid = None
-            self._classes = None
+            if FrovedisServer.isUP(self.__sid):
+                GLM.release(self.__mid, self.__mkind, self.__mdtype)
+        self.__mid = None
+        self.__sid = None
+        self._classes = None
+        self.label_map = None
 
     # Check FrovedisServer is up then release
     def __del__(self):
         """
         NAME: __del__
         """
-        if FrovedisServer.isUP():
-            self.release()
+        self.release()
 
 # Factorization Machine Regressor class
 class FactorizationMachineRegressor(BaseEstimator):
@@ -290,6 +294,7 @@ class FactorizationMachineRegressor(BaseEstimator):
         self.verbose = verbose
         # extra
         self.__mid = None
+        self.__sid = None
         self.__mdtype = None
         self.__mkind = M_KIND.FMM
         self.isregressor = True
@@ -339,10 +344,11 @@ class FactorizationMachineRegressor(BaseEstimator):
         itype = inp_data.get_itype()
         dense = inp_data.is_dense()
         if dense:
-            raise TypeError("Expected Sparse matrix data for training!")
+            raise TypeError("fit: expected Sparse matrix data for training!")
         self.validate()
         self.__mdtype = dtype
         self.__mid = ModelID.get()
+        self.__sid = FrovedisServer.getID()
         (host, port) = FrovedisServer.getServerInstance()
         rpclib.fm_train(host, port, X.get(),
                         y.get(), self.init_stdev, self.iteration,
@@ -363,13 +369,12 @@ class FactorizationMachineRegressor(BaseEstimator):
         """
         NAME: predict
         """
-        if self.__mid is not None:
-            ret = GLM.predict(X, self.__mid, self.__mkind, \
-                              self.__mdtype, False)
-            return np.asarray(ret, dtype=np.float64)
-        else:
-            raise ValueError( \
+        if self.__mid is None:
+            raise AttributeError( \
             "predict is called before calling fit, or the model is released.")
+        check_server_state(self.__sid, self.__class__.__name__)
+        ret = GLM.predict(X, self.__mid, self.__mkind, self.__mdtype, False)
+        return np.asarray(ret, dtype=np.float64)
 
     # Load the model from a file
     def load(self, fname, dtype=None):
@@ -380,17 +385,18 @@ class FactorizationMachineRegressor(BaseEstimator):
             raise ValueError(\
                 "the model with name %s does not exist!" % fname)
         self.release()
-        metadata = open(fname+"/metadata", "rb")
+        metadata = open(fname + "/metadata", "rb")
         self.__mkind, self.__mdtype = pickle.load(metadata)
         metadata.close()
         if dtype is not None:
             mdt = TypeUtil.to_numpy_dtype(self.__mdtype)
             if dtype != mdt:
-                raise ValueError("load: type mismatches detected!" + \
+                raise TypeError("load: type mismatches detected! " + \
                                  "expected type: " + str(mdt) + \
                                  "; given type: " + str(dtype))
         self.__mid = ModelID.get()
-        GLM.load(self.__mid, self.__mkind, self.__mdtype, fname+"/model")
+        self.__sid = FrovedisServer.getID()
+        GLM.load(self.__mid, self.__mkind, self.__mdtype, fname + "/model")
         return self
 
     # Save model to a file
@@ -398,27 +404,26 @@ class FactorizationMachineRegressor(BaseEstimator):
         """
         NAME: save
         """
-        if self.__mid is not None:
-            if os.path.exists(fname):
-                raise ValueError(\
-                    "another model with %s name already exists!" % fname)
-            else:
-                os.makedirs(fname)
-            GLM.save(self.__mid, self.__mkind, self.__mdtype, fname+"/model")
-            metadata = open(fname+"/metadata", "wb")
-            pickle.dump((self.__mkind, self.__mdtype), metadata)
-            metadata.close()
+        if self.__mid is None:
+            raise AttributeError("save: either called before fit or the "
+                                 "requested model might have been released!")
+        check_server_state(self.__sid, self.__class__.__name__)
+        if os.path.exists(fname):
+            raise ValueError(\
+                "another model with %s name already exists!" % fname)
         else:
-            raise ValueError("save: the requested model might have been \
-                released!")
+            os.makedirs(fname)
+        GLM.save(self.__mid, self.__mkind, self.__mdtype, fname + "/model")
+        metadata = open(fname + "/metadata", "wb")
+        pickle.dump((self.__mkind, self.__mdtype), metadata)
+        metadata.close()
 
     # calculate the root mean square value on the given test data and labels.
-    def score(self, X, y):
+    def score(self, X, y, sample_weight=None):
         """
         NAME: score
         """
-        if self.__mid is not None:
-            return r2_score(y, self.predict(X))
+        return r2_score(y, self.predict(X), sample_weight=sample_weight)
 
     # Show the model
     def debug_print(self):
@@ -426,6 +431,7 @@ class FactorizationMachineRegressor(BaseEstimator):
         NAME: debug_print
         """
         if self.__mid is not None:
+            check_server_state(self.__sid, self.__class__.__name__)
             GLM.debug_print(self.__mid, self.__mkind, self.__mdtype)
 
     # Release the model-id to generate new model-id
@@ -434,13 +440,15 @@ class FactorizationMachineRegressor(BaseEstimator):
         NAME: release
         """
         if self.__mid is not None:
-            GLM.release(self.__mid, self.__mkind, self.__mdtype)
-            self.__mid = None
+            if FrovedisServer.isUP(self.__sid):
+                GLM.release(self.__mid, self.__mkind, self.__mdtype)
+        self.__mid = None
+        self.__sid = None
 
     # Check FrovedisServer is up then release
     def __del__(self):
         """
         NAME: __del__
         """
-        if FrovedisServer.isUP():
-            self.release()
+        self.release()
+
