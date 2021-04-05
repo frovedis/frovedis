@@ -11,10 +11,9 @@ import org.apache.spark.SparkContext
 class DBSCAN(var eps: Double,
              var min_samples: Int,
              var metric: String,
-             var algorithm: String,
-             var sample_weight: Array[Double]) extends java.io.Serializable {
+             var algorithm: String) extends java.io.Serializable {
   private var mid: Int = 0
-  def this() = this(0.5, 5, "euclidean", "brute", Array.empty[Double])
+  def this() = this(0.5, 5, "euclidean", "brute")
 
   def setEps(eps: Double): this.type = {
     require(eps > 0.0 ,
@@ -43,31 +42,42 @@ class DBSCAN(var eps: Double,
     this.algorithm = algorithm
     this
   }
-
-  def setSampleWeight(sample_weight: Array[Double]): this.type = {
-    this.sample_weight = sample_weight
-    this
-  }
-
-
   def run(data: RDD[Vector]): Array[Int] = {
     val isDense = data.first.getClass.toString() matches ".*DenseVector*."
     if (isDense) {
       val fdata = new FrovedisRowmajorMatrix(data)
-      return run(fdata, true)
+      return run(fdata, true, Array.empty[Double])
     }
     else {
       val fdata = new FrovedisSparseData(data)
-      return run(fdata, true)
+      return run(fdata, true, Array.empty[Double])
     }
   } 
 
   def run(data: FrovedisSparseData): Array[Int] = {
-    return run(data, false)
+    return run(data, false, Array.empty[Double])
+  }
+
+  def run(data: RDD[Vector], 
+          sample_weight: Array[Double]): Array[Int] = {
+    val isDense = data.first.getClass.toString() matches ".*DenseVector*."
+    if (isDense) {
+      val fdata = new FrovedisRowmajorMatrix(data)
+      return run(fdata, true, sample_weight)
+    }
+    else {
+      val fdata = new FrovedisSparseData(data)
+      return run(fdata, true, sample_weight)
+    }
+  } 
+  def run(data: FrovedisSparseData, 
+          sample_weight: Array[Double]): Array[Int] = {
+    return run(data, false, sample_weight)
   }
 
   def run(data: FrovedisSparseData,
-          movable: Boolean): Array[Int] = {
+          movable: Boolean, 
+          sample_weight: Array[Double]): Array[Int] = {
     this.mid = ModelID.get()
     val isDense: Boolean = false
     val sample_weight_length = sample_weight.length
@@ -82,13 +92,18 @@ class DBSCAN(var eps: Double,
     if (info != "") throw new java.rmi.ServerException(info)
     return ret
   }
-
   def run(data: FrovedisRowmajorMatrix): Array[Int] = {
-    return run(data, false)
+    return run(data, false, Array.empty[Double])
+  }
+
+  def run(data: FrovedisRowmajorMatrix, 
+          sample_weight: Array[Double]): Array[Int] = {
+    return run(data, false, sample_weight)
   }
 
   def run(data: FrovedisRowmajorMatrix,
-          movable: Boolean): Array[Int] = {
+          movable: Boolean,
+          sample_weight: Array[Double]): Array[Int] = {
     this.mid = ModelID.get()
     val isDense : Boolean = true
     val sample_weight_length = sample_weight.length
@@ -127,8 +142,7 @@ object DBSCAN{
                .setMinSamples(min_samples)
                .setMetric(metric)
                .setAlgorithm(algorithm)
-               .setSampleWeight(sample_weight)
-               .run(data)
+               .run(data, sample_weight)
   }
 
   def train(data: RDD[Vector] , 
@@ -168,8 +182,7 @@ object DBSCAN{
             .setMinSamples(min_samples)
             .setMetric(metric)
             .setAlgorithm(algorithm)
-            .setSampleWeight(sample_weight)
-            .run(data)
+            .run(data, sample_weight)
   }
 
   def train(data: FrovedisSparseData,
@@ -203,8 +216,7 @@ object DBSCAN{
             .setMinSamples(min_samples)
             .setMetric(metric)
             .setAlgorithm(algorithm)
-            .setSampleWeight(sample_weight)
-            .run(data)
+            .run(data, sample_weight)
   }
   def train(data: FrovedisRowmajorMatrix,
             eps: Double,
