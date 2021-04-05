@@ -25,10 +25,20 @@ object ALS {
             iterations: Int,
             lambda: Double,
             alpha: Double,
+            sim_factor: Double,                    
             seed: Long): MatrixFactorizationModel = {
     val fdata = new FrovedisSparseData()
     fdata.loadcoo(ratings) // Spark Rating Data (coo) => Frovedis crs Data
-    return trainImplicit(fdata, rank, iterations, lambda, alpha, seed, true);
+    return trainImplicit(fdata, rank, iterations, lambda, alpha, sim_factor, seed, true);
+  }
+
+  def trainImplicit(ratings: RDD[Rating],
+            rank: Int,
+            iterations: Int,
+            lambda: Double,        
+            alpha: Double,
+            sim_factor: Double): MatrixFactorizationModel = {
+    return trainImplicit(ratings, rank, iterations, lambda, alpha, sim_factor, 0);
   }
 
   def trainImplicit(ratings: RDD[Rating],
@@ -36,27 +46,27 @@ object ALS {
             iterations: Int,
             lambda: Double,
             alpha: Double): MatrixFactorizationModel = {
-    return trainImplicit(ratings, rank, iterations, lambda, alpha, 0);
+    return trainImplicit(ratings, rank, iterations, lambda, alpha, 0.1, 0);
   }
 
   def trainImplicit(ratings: RDD[Rating],
             rank: Int,
             iterations: Int,
             lambda: Double): MatrixFactorizationModel = {
-    return trainImplicit(ratings, rank, iterations, lambda, 0.01, 0);
+    return trainImplicit(ratings, rank, iterations, lambda, 0.01, 0.1, 0);
   }
 
   def trainImplicit(ratings: RDD[Rating],
             rank: Int,
             iterations: Int): MatrixFactorizationModel = {
-    return trainImplicit(ratings, rank, iterations, 0.01, 0.01, 0);
+    return trainImplicit(ratings, rank, iterations, 0.01, 0.01, 0.1, 0);
   }
 
   def trainImplicit(ratings: RDD[Rating],
             rank: Int): MatrixFactorizationModel = {
-    return trainImplicit(ratings, rank, 100, 0.01, 0.01, 0);
-  }
-
+    return trainImplicit(ratings, rank, 100, 0.01, 0.01, 0.1, 0);
+  }    
+    
 /*
   // Kind of shortcut Spark-like interface for Spark user. Instead of "Rating" (coo),
   // it accepts "Vector" (crs) type input data (actually SparseVector).
@@ -107,12 +117,13 @@ object ALS {
             iterations: Int,
             lambda: Double,
             alpha: Double,
+            sim_factor: Double,        
             seed: Long,
             isMovableInput: Boolean): MatrixFactorizationModel = {
     val mid = ModelID.get()
     val fs = FrovedisServer.getServerInstance()
     JNISupport.callFrovedisMFUsingALS(fs.master_node,data.get(),rank,
-                                    iterations,alpha,lambda,seed,
+                                    iterations,alpha,sim_factor,lambda,seed,
                                     mid,isMovableInput)
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
@@ -124,33 +135,43 @@ object ALS {
             iterations: Int,
             lambda: Double,
             alpha: Double,
+            sim_factor: Double,        
             seed: Long): MatrixFactorizationModel = {
-    return trainImplicit(data, rank, iterations, lambda, alpha, seed, false);
+    return trainImplicit(data, rank, iterations, lambda, alpha, sim_factor, seed, false);
   }
  
   def trainImplicit(data: FrovedisSparseData,
             rank: Int,
             iterations: Int,
             lambda: Double,
+            alpha: Double,
+            sim_factor: Double): MatrixFactorizationModel = {
+    return trainImplicit(data, rank, iterations, lambda, alpha, sim_factor, 0, false);
+  } 
+
+  def trainImplicit(data: FrovedisSparseData,
+            rank: Int,
+            iterations: Int,
+            lambda: Double,
             alpha: Double): MatrixFactorizationModel = {
-    return trainImplicit(data, rank, iterations, lambda, alpha, 0, false);
+    return trainImplicit(data, rank, iterations, lambda, alpha, 0.1, 0, false);
   } 
 
   def trainImplicit(data: FrovedisSparseData,
             rank: Int,
             iterations: Int,
             lambda: Double): MatrixFactorizationModel = {
-    return trainImplicit(data, rank, iterations, lambda, 0.01, 0, false);
+    return trainImplicit(data, rank, iterations, lambda, 0.01, 0.1, 0, false);
   } 
 
   def trainImplicit(data: FrovedisSparseData,
             rank: Int,
             iterations: Int): MatrixFactorizationModel = {
-    return trainImplicit(data, rank, iterations, 0.01, 0.01, 0, false);
-  } 
-
+    return trainImplicit(data, rank, iterations, 0.01, 0.01, 0.1, 0, false);
+  }
+    
   def trainImplicit(data: FrovedisSparseData,
             rank: Int): MatrixFactorizationModel = {
-    return trainImplicit(data, rank, 100, 0.01, 0.01, 0, false);
-  } 
+    return trainImplicit(data, rank, 100, 0.01, 0.01, 0.1, 0, false);
+  }    
 }
