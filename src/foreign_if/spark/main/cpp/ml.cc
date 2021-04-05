@@ -11,11 +11,12 @@ extern "C" {
 
 // (1) --- Logistic Regression ---
 // initiates the training call at Frovedis master node for LogisticRegressionWithSGD
-JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisLRSGD
+JNIEXPORT int JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisLRSGD
   (JNIEnv *env, jclass thisCls, jobject master_node, jobject fdata, 
    jint numIter, jdouble stepSize, jdouble mbf, jint rtype, 
    jdouble regParam, jboolean isMult, jboolean fit_intercept,
-   jdouble tol, jint mid, jboolean movable, jboolean dense, jboolean shrink) {
+   jdouble tol, jint mid, jboolean movable, jboolean dense, jboolean shrink, 
+   jdoubleArray sample_weight_ptr, jlong sample_weight_length) {
   
   auto fm_node = java_node_to_frovedis_node(env, master_node);
   auto f_dptr = java_mempair_to_frovedis_mempair(env, fdata);
@@ -25,35 +26,40 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisLRSGD
   bool isDense = (bool) dense;
   bool use_shrink = (bool) shrink;
   int vb = 0; // no log (default)
+  size_t n_iter = 0;
 #ifdef _EXRPC_DEBUG_
   std::cout << "Connecting to master node (" 
             << fm_node.hostname << "," << fm_node.rpcport 
             << ") to train frovedis LR_SGD.\n";
 #endif
   try{
+    std::vector<double> sample_weight = to_double_vector(env, 
+                                      sample_weight_ptr, sample_weight_length);
     if(isDense) 
-      exrpc_oneway(fm_node,(frovedis_lr_sgd<DT1,D_MAT1>),f_dptr,numIter,
-                   stepSize,mbf,rtype,regParam,mult,icpt,tol,vb,mid,mvbl);
+      n_iter = exrpc_async(fm_node,(frovedis_lr_sgd<DT1,D_MAT1>),f_dptr,numIter,
+                   stepSize,mbf,rtype,regParam,mult,icpt,tol,vb,mid,sample_weight,mvbl).get();
     else {
       if (use_shrink) {
-         exrpc_oneway(fm_node,(frovedis_lr_shrink_sgd<DT1,S_MAT1>),f_dptr,numIter,
-                      stepSize,mbf,rtype,regParam,mult,icpt,tol,vb,mid,mvbl);
+         n_iter = exrpc_async(fm_node,(frovedis_lr_shrink_sgd<DT1,S_MAT1>),f_dptr,numIter,
+                         stepSize,mbf,rtype,regParam,mult,icpt,tol,vb,mid,sample_weight,mvbl).get();
       }
       else {
-         exrpc_oneway(fm_node,(frovedis_lr_sgd<DT1,S_MAT1>),f_dptr,numIter,
-                      stepSize,mbf,rtype,regParam,mult,icpt,tol,vb,mid,mvbl);
+        n_iter = exrpc_async(fm_node,(frovedis_lr_sgd<DT1,S_MAT1>),f_dptr,numIter,
+                        stepSize,mbf,rtype,regParam,mult,icpt,tol,vb,mid,sample_weight,mvbl).get();
       }
     }
   }
   catch(std::exception& e) { set_status(true,e.what()); }
+  return static_cast<int>(n_iter);
 }
 
 // initiates the training call at Frovedis master node for LogisticRegressionWithLBFGS
-JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisLRLBFGS
+JNIEXPORT int JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisLRLBFGS
   (JNIEnv *env, jclass thisCls, jobject master_node, jobject fdata,
    jint numIter, jdouble stepSize, jint histSize, jint rtype,
    jdouble regParam, jboolean isMult, jboolean fit_intercept,
-   jdouble tol, jint mid, jboolean movable, jboolean dense) {
+   jdouble tol, jint mid, jboolean movable, jboolean dense, 
+   jdoubleArray sample_weight_ptr, jlong sample_weight_length) {
 
   auto fm_node = java_node_to_frovedis_node(env, master_node);
   auto f_dptr = java_mempair_to_frovedis_mempair(env, fdata);
@@ -62,20 +68,24 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisLRLBF
   bool icpt = (bool) fit_intercept;
   bool isDense = (bool) dense;
   int vb = 0; // no log (default)
+  size_t n_iter = 0;
 #ifdef _EXRPC_DEBUG_
   std::cout << "Connecting to master node ("
             << fm_node.hostname << "," << fm_node.rpcport
             << ") to train frovedis LR_LBFGS.\n";
 #endif
   try {
+    std::vector<double> sample_weight = to_double_vector(env, 
+                                      sample_weight_ptr, sample_weight_length);
     if (isDense)
-      exrpc_oneway(fm_node,(frovedis_lr_lbfgs<DT1,D_MAT1>),f_dptr,numIter,
-                   stepSize,histSize,rtype,regParam,mult,icpt,tol,vb,mid,mvbl);
+      n_iter = exrpc_async(fm_node,(frovedis_lr_lbfgs<DT1,D_MAT1>),f_dptr,numIter,
+                   stepSize,histSize,rtype,regParam,mult,icpt,tol,vb,mid,sample_weight,mvbl).get();
     else
-      exrpc_oneway(fm_node,(frovedis_lr_lbfgs<DT1,S_MAT1>),f_dptr,numIter,
-                   stepSize,histSize,rtype,regParam,mult,icpt,tol,vb,mid,mvbl);
+      n_iter = exrpc_async(fm_node,(frovedis_lr_lbfgs<DT1,S_MAT1>),f_dptr,numIter,
+                   stepSize,histSize,rtype,regParam,mult,icpt,tol,vb,mid,sample_weight,mvbl).get();
   } 
   catch(std::exception& e) { set_status(true,e.what()); }
+  return static_cast<int>(n_iter);
 }
 
 //--- SVM Kernel ---
@@ -114,10 +124,11 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisKerne
 
 // (2) --- Linear SVM ---
 // initiates the training call at Frovedis master node for SVMWithSGD
-JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisSVMSGD
+JNIEXPORT int JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisSVMSGD
   (JNIEnv *env, jclass thisCls, jobject master_node, jobject fdata, 
    jint numIter, jdouble stepSize, jdouble mbf, jdouble regParam,
-   jint mid, jboolean movable, jboolean dense, jint nclasses) {
+   jint mid, jboolean movable, jboolean dense, jint nclasses, 
+   jdoubleArray sample_weight_ptr, jlong sample_weight_length) {
   
   auto fm_node = java_node_to_frovedis_node(env, master_node);
   auto f_dptr = java_mempair_to_frovedis_mempair(env, fdata);
@@ -127,31 +138,36 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisSVMSG
   double tol = 0.001; // default //TODO: send from spark side
   int vb = 0; // no log (default)
   bool isDense = (bool) dense;
+  size_t n_iter = 0;
 #ifdef _EXRPC_DEBUG_
   std::cout << "Connecting to master node (" 
             << fm_node.hostname << "," << fm_node.rpcport 
             << ") to train frovedis SVM_SGD.\n";
 #endif
   try {
+    std::vector<double> sample_weight = to_double_vector(env, 
+                                      sample_weight_ptr, sample_weight_length);
     if (nclasses > 2)
       throw std::invalid_argument("Currently frovedis SVM with SGD supports only binary classification!\n");
 
     if(isDense)
-      exrpc_oneway(fm_node,(frovedis_svm_sgd<DT1,D_MAT1>),f_dptr,numIter,
-                   stepSize,mbf,rtype,regParam,icpt,tol,vb,mid,mvbl);
+      n_iter = exrpc_async(fm_node,(frovedis_svm_sgd<DT1,D_MAT1>),f_dptr,numIter,
+                   stepSize,mbf,rtype,regParam,icpt,tol,vb,mid,sample_weight,mvbl).get();
     else
-      exrpc_oneway(fm_node,(frovedis_svm_sgd<DT1,S_MAT1>),f_dptr,numIter,
-                   stepSize,mbf,rtype,regParam,icpt,tol,vb,mid,mvbl);
+      n_iter = exrpc_async(fm_node,(frovedis_svm_sgd<DT1,S_MAT1>),f_dptr,numIter,
+                   stepSize,mbf,rtype,regParam,icpt,tol,vb,mid,sample_weight,mvbl).get();
   }
   catch(std::exception& e) { set_status(true,e.what()); }
+  return static_cast<int>(n_iter);
 }
 
 // initiates the training call at Frovedis master node for SVMWithLBFGS
-JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisSVMLBFGS
+JNIEXPORT int JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisSVMLBFGS
   (JNIEnv *env, jclass thisCls, jobject master_node, jobject fdata,
    jint numIter, jdouble stepSize, jint histSize,
    jdouble regParam, jint mid, jboolean movable, 
-   jboolean dense, jint nclasses) {
+   jboolean dense, jint nclasses, 
+   jdoubleArray sample_weight_ptr, jlong sample_weight_length) {
 
   auto fm_node = java_node_to_frovedis_node(env, master_node);
   auto f_dptr = java_mempair_to_frovedis_mempair(env, fdata);
@@ -161,32 +177,37 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisSVMLB
   double tol = 0.001; // default
   int vb = 0; // no log (default)
   bool isDense = (bool) dense;
+  size_t n_iter = 0;
 #ifdef _EXRPC_DEBUG_
   std::cout << "Connecting to master node ("
             << fm_node.hostname << "," << fm_node.rpcport
             << ") to train frovedis SVM_LBFGS.\n";
 #endif
   try {
+    std::vector<double> sample_weight = to_double_vector(env, 
+                                      sample_weight_ptr, sample_weight_length);
     if (nclasses > 2)
       throw std::invalid_argument("Currently frovedis SVM with LBFGS supports only binary classification!\n");
 
     if(isDense)
-      exrpc_oneway(fm_node,(frovedis_svm_lbfgs<DT1,D_MAT1>),f_dptr,numIter,
-                   stepSize,histSize,rtype,regParam,icpt,tol,vb,mid,mvbl);
+      n_iter = exrpc_async(fm_node,(frovedis_svm_lbfgs<DT1,D_MAT1>),f_dptr,numIter,
+                   stepSize,histSize,rtype,regParam,icpt,tol,vb,mid,sample_weight,mvbl).get();
     else
-      exrpc_oneway(fm_node,(frovedis_svm_lbfgs<DT1,S_MAT1>),f_dptr,numIter,
-                   stepSize,histSize,rtype,regParam,icpt,tol,vb,mid,mvbl);
+      n_iter = exrpc_async(fm_node,(frovedis_svm_lbfgs<DT1,S_MAT1>),f_dptr,numIter,
+                   stepSize,histSize,rtype,regParam,icpt,tol,vb,mid,sample_weight,mvbl).get();
   }
   catch(std::exception& e) { set_status(true,e.what()); }
+  return static_cast<int>(n_iter);
 }
 
 // initiates the training call at Frovedis master node for SVMRegressionWithSGD and LinearSVR
-JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisSVR
+JNIEXPORT int JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisSVR
   (JNIEnv *env, jclass thisCls, jobject master_node, jobject fdata,
    jint numIter, jdouble stepSize, jdouble mbf,
    jdouble regParam, jstring regType, jstring lossName,
    jdouble eps, jboolean isIntercept, jdouble tol,
-   jint mid, jboolean movable, jboolean dense) {
+   jint mid, jboolean movable, jboolean dense, 
+   jdoubleArray sample_weight_ptr, jlong sample_weight_length) {
 
   auto fm_node = java_node_to_frovedis_node(env, master_node);
   auto f_dptr = java_mempair_to_frovedis_mempair(env, fdata);
@@ -205,6 +226,7 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisSVR
   if (lossType == "epsilon_insensitive")  loss = 1;
   else if (lossType == "squared_epsilon_insensitive") loss = 2;
   else REPORT_ERROR(USER_ERROR, "Unsupported loss type is provided!\n");
+  size_t n_iter = 0;
 
 #ifdef _EXRPC_DEBUG_
   std::cout << "Connecting to master node ("
@@ -212,22 +234,27 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisSVR
             << ") to train frovedis Linear SVM Regression.\n";
 #endif
   try {
+    std::vector<double> sample_weight = to_double_vector(env, 
+                                      sample_weight_ptr, sample_weight_length);
     if(isDense)
-      exrpc_oneway(fm_node,(frovedis_svm_regressor_sgd<DT1,D_MAT1>),f_dptr,numIter,
-                   stepSize,mbf,rtype,regParam,icpt,tol,eps,loss,vb,mid,mvbl);
+      n_iter = exrpc_async(fm_node,(frovedis_svm_regressor_sgd<DT1,D_MAT1>),f_dptr,numIter,
+                   stepSize,mbf,rtype,regParam,icpt,std::make_pair(tol,eps),
+                   loss,vb,mid,sample_weight,mvbl).get();
     else
-      exrpc_oneway(fm_node,(frovedis_svm_regressor_sgd<DT1,S_MAT1>),f_dptr,numIter,
-                   stepSize,mbf,rtype,regParam,icpt,tol,eps,loss,vb,mid,mvbl);
+      n_iter = exrpc_async(fm_node,(frovedis_svm_regressor_sgd<DT1,S_MAT1>),f_dptr,numIter,
+                   stepSize,mbf,rtype,regParam,icpt,std::make_pair(tol,eps),loss,vb,mid,sample_weight,mvbl).get();
   }
   catch(std::exception& e) { set_status(true,e.what()); }
+  return static_cast<int>(n_iter);
 }
 
 // (3) --- Linear Regression ---
 // initiates the training call at Frovedis master node for LinearRegressionWithSGD
-JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisLNRSGD
+JNIEXPORT int JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisLNRSGD
   (JNIEnv *env, jclass thisCls, jobject master_node, jobject fdata, 
    jint numIter, jdouble stepSize, jdouble mbf, 
-   jint mid, jboolean movable, jboolean dense) {
+   jint mid, jboolean movable, jboolean dense, 
+   jdoubleArray sample_weight_ptr, jlong sample_weight_length) {
   
   auto fm_node = java_node_to_frovedis_node(env, master_node);
   auto f_dptr = java_mempair_to_frovedis_mempair(env, fdata);
@@ -236,27 +263,32 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisLNRSG
   int vb = 0; // no log (default)
   double tol = 0.001; // default (TODO: send from spark client)
   bool isDense = (bool) dense;
+  size_t n_iter = 0;
 #ifdef _EXRPC_DEBUG_
   std::cout << "Connecting to master node (" 
             << fm_node.hostname << "," << fm_node.rpcport 
             << ") to train frovedis LNR_SGD.\n";
 #endif
   try {
+    std::vector<double> sample_weight = to_double_vector(env, 
+                                      sample_weight_ptr, sample_weight_length);
     if(isDense)
-      exrpc_oneway(fm_node,(frovedis_lnr_sgd<DT1,D_MAT1>),f_dptr,numIter,
-                   stepSize,mbf,icpt,tol,vb,mid,mvbl);
+      n_iter = exrpc_async(fm_node,(frovedis_lnr_sgd<DT1,D_MAT1>),f_dptr,numIter,
+                   stepSize,mbf,icpt,tol,vb,mid,sample_weight,mvbl).get();
     else
-      exrpc_oneway(fm_node,(frovedis_lnr_sgd<DT1,S_MAT1>),f_dptr,numIter,
-                   stepSize,mbf,icpt,tol,vb,mid,mvbl);
+      n_iter = exrpc_async(fm_node,(frovedis_lnr_sgd<DT1,S_MAT1>),f_dptr,numIter,
+                   stepSize,mbf,icpt,tol,vb,mid,sample_weight,mvbl).get();
   }
   catch(std::exception& e) { set_status(true,e.what()); }
+  return static_cast<int>(n_iter);
 }
 
 // initiates the training call at Frovedis master node for LinearRegressionWithLBFGS
-JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisLNRLBFGS
+JNIEXPORT int JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisLNRLBFGS
   (JNIEnv *env, jclass thisCls, jobject master_node, jobject fdata,
    jint numIter, jdouble stepSize, jint histSize,
-   jint mid, jboolean movable, jboolean dense) {
+   jint mid, jboolean movable, jboolean dense, 
+   jdoubleArray sample_weight_ptr, jlong sample_weight_length) {
 
   auto fm_node = java_node_to_frovedis_node(env, master_node);
   auto f_dptr = java_mempair_to_frovedis_mempair(env, fdata);
@@ -265,28 +297,33 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisLNRLB
   int vb = 0; // no log (default)
   double tol = 0.001; // default (TODO: send from spark client)
   bool isDense = (bool) dense;
+  size_t n_iter = 0;
 #ifdef _EXRPC_DEBUG_
   std::cout << "Connecting to master node ("
             << fm_node.hostname << "," << fm_node.rpcport
             << ") to train frovedis LNR_LBFGS.\n";
 #endif 
   try {
+    std::vector<double> sample_weight = to_double_vector(env, 
+                                      sample_weight_ptr, sample_weight_length);
     if(isDense)
-      exrpc_oneway(fm_node,(frovedis_lnr_lbfgs<DT1,D_MAT1>),f_dptr,numIter,
-                   stepSize,histSize,icpt,tol,vb,mid,mvbl);
+      n_iter = exrpc_async(fm_node,(frovedis_lnr_lbfgs<DT1,D_MAT1>),f_dptr,numIter,
+                   stepSize,histSize,icpt,tol,vb,mid,sample_weight,mvbl).get();
     else
-      exrpc_oneway(fm_node,(frovedis_lnr_lbfgs<DT1,S_MAT1>),f_dptr,numIter,
-                   stepSize,histSize,icpt,tol,vb,mid,mvbl);
+      n_iter = exrpc_async(fm_node,(frovedis_lnr_lbfgs<DT1,S_MAT1>),f_dptr,numIter,
+                   stepSize,histSize,icpt,tol,vb,mid,sample_weight,mvbl).get();
   }
   catch(std::exception& e) { set_status(true,e.what()); }
+  return static_cast<int>(n_iter);
 }
 
 // (4) --- Lasso Regression ---
 // initiates the training call at Frovedis master node for LassoWithSGD
-JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisLassoSGD
+JNIEXPORT int JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisLassoSGD
   (JNIEnv *env, jclass thisCls, jobject master_node, jobject fdata, 
    jint numIter, jdouble stepSize, jdouble mbf, 
-   jdouble regParam, jint mid, jboolean movable, jboolean dense) {
+   jdouble regParam, jint mid, jboolean movable, jboolean dense, 
+   jdoubleArray sample_weight_ptr, jlong sample_weight_length) {
   
   auto fm_node = java_node_to_frovedis_node(env, master_node);
   auto f_dptr = java_mempair_to_frovedis_mempair(env, fdata);
@@ -295,27 +332,32 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisLasso
   double tol = 0.001; // default
   int vb = 0; // no log (default)
   bool isDense = (bool) dense;
+  size_t n_iter = 0;
 #ifdef _EXRPC_DEBUG_
   std::cout << "Connecting to master node (" 
             << fm_node.hostname << "," << fm_node.rpcport 
             << ") to train frovedis Lasso_SGD.\n";
 #endif
   try {
+    std::vector<double> sample_weight = to_double_vector(env, 
+                                      sample_weight_ptr, sample_weight_length);
     if(isDense)
-      exrpc_oneway(fm_node,(frovedis_lasso_sgd<DT1,D_MAT1>),f_dptr,numIter,
-                   stepSize,mbf,regParam,icpt,tol,vb,mid,mvbl);
+      n_iter = exrpc_async(fm_node,(frovedis_lasso_sgd<DT1,D_MAT1>),f_dptr,numIter,
+                   stepSize,mbf,regParam,icpt,tol,vb,mid,sample_weight,mvbl).get();
     else
-      exrpc_oneway(fm_node,(frovedis_lasso_sgd<DT1,S_MAT1>),f_dptr,numIter,
-                   stepSize,mbf,regParam,icpt,tol,vb,mid,mvbl);
+      n_iter = exrpc_async(fm_node,(frovedis_lasso_sgd<DT1,S_MAT1>),f_dptr,numIter,
+                   stepSize,mbf,regParam,icpt,tol,vb,mid,sample_weight,mvbl).get();
   }
   catch(std::exception& e) { set_status(true,e.what()); }
+  return static_cast<int>(n_iter);
 }
 
 // initiates the training call at Frovedis master node for LassoWithLBFGS
-JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisLassoLBFGS
+JNIEXPORT int JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisLassoLBFGS
   (JNIEnv *env, jclass thisCls, jobject master_node, jobject fdata,
    jint numIter, jdouble stepSize, jint histSize,
-   jdouble regParam, jint mid, jboolean movable, jboolean dense) {
+   jdouble regParam, jint mid, jboolean movable, jboolean dense, 
+   jdoubleArray sample_weight_ptr, jlong sample_weight_length) {
 
   auto fm_node = java_node_to_frovedis_node(env, master_node);
   auto f_dptr = java_mempair_to_frovedis_mempair(env, fdata);
@@ -324,28 +366,33 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisLasso
   double tol = 0.001; // default
   int vb = 0; // no log (default)
   bool isDense = (bool) dense;
+  size_t n_iter = 0;
 #ifdef _EXRPC_DEBUG_
   std::cout << "Connecting to master node ("
             << fm_node.hostname << "," << fm_node.rpcport
             << ") to train frovedis Lasso_LBFGS.\n";
 #endif
   try {
+    std::vector<double> sample_weight = to_double_vector(env, 
+                                      sample_weight_ptr, sample_weight_length);
     if(isDense)
-      exrpc_oneway(fm_node,(frovedis_lasso_lbfgs<DT1,D_MAT1>),f_dptr,numIter,
-                   stepSize,histSize,regParam,icpt,tol,vb,mid,mvbl);
+      n_iter = exrpc_async(fm_node,(frovedis_lasso_lbfgs<DT1,D_MAT1>),f_dptr,numIter,
+                   stepSize,histSize,regParam,icpt,tol,vb,mid,sample_weight,mvbl).get();
     else
-      exrpc_oneway(fm_node,(frovedis_lasso_lbfgs<DT1,S_MAT1>),f_dptr,numIter,
-                   stepSize,histSize,regParam,icpt,tol,vb,mid,mvbl);
+      n_iter = exrpc_async(fm_node,(frovedis_lasso_lbfgs<DT1,S_MAT1>),f_dptr,numIter,
+                   stepSize,histSize,regParam,icpt,tol,vb,mid,sample_weight,mvbl).get();
   }
   catch(std::exception& e) { set_status(true,e.what()); }
+  return static_cast<int>(n_iter);
 }
 
 // (5) --- Ridge Regression ---
 // initiates the training call at Frovedis master node for RidgeRegressionWithSGD
-JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisRidgeSGD
+JNIEXPORT int JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisRidgeSGD
   (JNIEnv *env, jclass thisCls, jobject master_node, jobject fdata, 
    jint numIter, jdouble stepSize, jdouble mbf, 
-   jdouble regParam, jint mid, jboolean movable, jboolean dense) {
+   jdouble regParam, jint mid, jboolean movable, jboolean dense, 
+   jdoubleArray sample_weight_ptr, jlong sample_weight_length) {
   
   auto fm_node = java_node_to_frovedis_node(env, master_node);
   auto f_dptr = java_mempair_to_frovedis_mempair(env, fdata);
@@ -354,27 +401,32 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisRidge
   double tol = 0.001; // default
   int vb = 0; // no log (default)
   bool isDense = (bool) dense;
+  size_t n_iter = 0;
 #ifdef _EXRPC_DEBUG_
   std::cout << "Connecting to master node (" 
             << fm_node.hostname << "," << fm_node.rpcport 
             << ") to train frovedis Ridge_SGD.\n";
 #endif
   try {
+    std::vector<double> sample_weight = to_double_vector(env, 
+                                      sample_weight_ptr, sample_weight_length);
     if(isDense)
-      exrpc_oneway(fm_node,(frovedis_ridge_sgd<DT1,D_MAT1>),f_dptr,numIter,
-                   stepSize,mbf,regParam,icpt,tol,vb,mid,mvbl);
+      n_iter = exrpc_async(fm_node,(frovedis_ridge_sgd<DT1,D_MAT1>),f_dptr,numIter,
+                   stepSize,mbf,regParam,icpt,tol,vb,mid,sample_weight,mvbl).get();
     else
-      exrpc_oneway(fm_node,(frovedis_ridge_sgd<DT1,S_MAT1>),f_dptr,numIter,
-                   stepSize,mbf,regParam,icpt,tol,vb,mid,mvbl);
+      n_iter = exrpc_async(fm_node,(frovedis_ridge_sgd<DT1,S_MAT1>),f_dptr,numIter,
+                   stepSize,mbf,regParam,icpt,tol,vb,mid,sample_weight,mvbl).get();
   }
   catch(std::exception& e) { set_status(true,e.what()); }
+  return static_cast<int>(n_iter);
 }
 
 // initiates the training call at Frovedis master node for RidgeRegressionWithLBFGS
-JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisRidgeLBFGS
+JNIEXPORT int JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisRidgeLBFGS
   (JNIEnv *env, jclass thisCls, jobject master_node, jobject fdata,
    jint numIter, jdouble stepSize, jint histSize,
-   jdouble regParam, jint mid, jboolean movable, jboolean dense) {
+   jdouble regParam, jint mid, jboolean movable, jboolean dense, 
+   jdoubleArray sample_weight_ptr, jlong sample_weight_length) {
 
   auto fm_node = java_node_to_frovedis_node(env, master_node);
   auto f_dptr = java_mempair_to_frovedis_mempair(env, fdata);
@@ -383,27 +435,31 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisRidge
   double tol = 0.001; // default
   int vb = 0; // no log (default)
   bool isDense = (bool) dense;
+  size_t n_iter = 0;
 #ifdef _EXRPC_DEBUG_
   std::cout << "Connecting to master node ("
             << fm_node.hostname << "," << fm_node.rpcport
             << ") to train frovedis Ridge_LBFGS.\n";
 #endif
   try {
+    std::vector<double> sample_weight = to_double_vector(env, 
+                                      sample_weight_ptr, sample_weight_length);
     if(isDense)
-      exrpc_oneway(fm_node,(frovedis_ridge_lbfgs<DT1,D_MAT1>),f_dptr,numIter,
-                   stepSize,histSize,regParam,icpt,tol,vb,mid,mvbl);
+      n_iter = exrpc_async(fm_node,(frovedis_ridge_lbfgs<DT1,D_MAT1>),f_dptr,numIter,
+                   stepSize,histSize,regParam,icpt,tol,vb,mid,sample_weight,mvbl).get();
     else
-      exrpc_oneway(fm_node,(frovedis_ridge_lbfgs<DT1,S_MAT1>),f_dptr,numIter,
-                   stepSize,histSize,regParam,icpt,tol,vb,mid,mvbl);
+      n_iter = exrpc_async(fm_node,(frovedis_ridge_lbfgs<DT1,S_MAT1>),f_dptr,numIter,
+                   stepSize,histSize,regParam,icpt,tol,vb,mid,sample_weight,mvbl).get();
   }
   catch(std::exception& e) { set_status(true,e.what()); }
+  return static_cast<int>(n_iter);
 }
 
 // (6) --- Matrix Factoriztion using ALS ---
 // initiates the training call at Frovedis master node for MatrixFactorizationUsingALS 
 JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisMFUsingALS
   (JNIEnv *env, jclass thisCls, jobject master_node, jlong fdata,
-   jint rank, jint numIter, jdouble alpha, jdouble regParam,
+   jint rank, jint numIter, jdouble alpha, jdouble sim_factor, jdouble regParam,
    jlong seed, jint mid, jboolean movable) {
 
   auto fm_node = java_node_to_frovedis_node(env, master_node);
@@ -417,7 +473,7 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisMFUsi
 #endif
   try {
     exrpc_oneway(fm_node,(frovedis_mf_als<DT1,S_MAT1>),f_dptr,rank,
-                 numIter,alpha,regParam,seed,vb,mid,mvbl);
+                 numIter,alpha,regParam,sim_factor,seed,vb,mid,mvbl);
   }
   catch(std::exception& e) { set_status(true,e.what()); }
 }
