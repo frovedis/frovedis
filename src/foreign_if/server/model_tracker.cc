@@ -89,4 +89,14 @@ void cleanup_frovedis_server() {
   finalize_trackers();
 }
 
+int get_numeric_dtype(const std::string& dt) {
+  if (dt == "int") return INT; 
+  else if (dt == "long") return LONG; 
+  else if (dt == "float") return FLOAT; 
+  else if (dt == "double") return DOUBLE; 
+  else if (dt == "dic_string") return STRING; 
+  else if (dt == "unsigned long") return ULONG;
+  else throw std::runtime_error(dt + ": unsupported dtype encountered!\n");
+}
+
 }
