@@ -123,7 +123,7 @@ public class JNISupport {
   public static native void cleanUPFrovedisServer(Node master_node);
 
   // -------- Logistic Regression --------
-  public static native void callFrovedisLRSGD(Node master_node,
+  public static native int callFrovedisLRSGD(Node master_node,
                                               MemPair fdata,
                                               int numIter, 
                                               double stepSize,
@@ -135,9 +135,11 @@ public class JNISupport {
                                               double tol,
                                               int mid, boolean movable,
                                               boolean isDense,
-                                              boolean use_shrink);
+                                              boolean use_shrink,
+                                              double[] sample_weight,
+                                              long sample_weight_length);
 
-  public static native void callFrovedisLRLBFGS(Node master_node,
+  public static native int callFrovedisLRLBFGS(Node master_node,
                                                 MemPair fdata,
                                                 int numIter, 
                                                 double stepSize,
@@ -148,7 +150,9 @@ public class JNISupport {
                                                 boolean icpt,
                                                 double tol,
                                                 int mid, boolean movable,
-                                                boolean isDense);
+                                                boolean isDense,
+                                                double[] sample_weight,
+                                                long sample_weight_length);
 
 // -------- Word2Vector --------
   public static native void callFrovedisW2V(Node master_node,
@@ -175,7 +179,7 @@ public class JNISupport {
                                          String path);
 
   // -------- Linear SVM Classification --------
-  public static native void callFrovedisSVMSGD(Node master_node,
+  public static native int callFrovedisSVMSGD(Node master_node,
                                              MemPair fdata,
                                              int numIter,
                                              double stepSize,
@@ -183,9 +187,11 @@ public class JNISupport {
                                              double regParam,
                                              int mid, boolean movable,
                                              boolean isDense,
-                                             int ncls);
+                                             int ncls,
+                                             double[] sample_weight,
+                                             long sample_weight_length);
 
-  public static native void callFrovedisSVMLBFGS(Node master_node,
+  public static native int callFrovedisSVMLBFGS(Node master_node,
                                                MemPair fdata,
                                                int numIter,
                                                double stepSize,
@@ -193,9 +199,11 @@ public class JNISupport {
                                                double regParam,
                                                int mid, boolean movable,
                                                boolean isDense,
-                                               int ncls);
+                                               int ncls,
+                                               double[] sample_weight,
+                                               long sample_weight_length);
   // -------- Linear SVM Regression --------
-  public static native void callFrovedisSVR(Node master_node,
+  public static native int callFrovedisSVR(Node master_node,
                                             MemPair fdata,
                                             int numIter,
                                             double stepSize,
@@ -207,7 +215,9 @@ public class JNISupport {
                                             boolean isIntercept,
                                             double convergenceTol,
                                             int mid, boolean movable,
-                                            boolean isDense);
+                                            boolean isDense,
+                                            double[] sample_weight,
+                                            long sample_weight_length);
 
   // -------- SVM Kernel --------
   public static native void callFrovedisKernelSVM(Node master_node,
@@ -226,26 +236,30 @@ public class JNISupport {
 
 
   // -------- Linear Regression --------
-  public static native void callFrovedisLNRSGD(Node master_node,
+  public static native int callFrovedisLNRSGD(Node master_node,
                                              MemPair fdata,
                                              int numIter,
                                              double stepSize,
                                              double miniBatchFraction,
                                              int mid, 
                                              boolean movable,
-                                             boolean isDense);
+                                             boolean isDense,
+                                             double[] sample_weight,
+                                             long sample_weight_length);
 
-  public static native void callFrovedisLNRLBFGS(Node master_node,
+  public static native int callFrovedisLNRLBFGS(Node master_node,
                                                MemPair fdata,
                                                int numIter,
                                                double stepSize,
                                                int histSize,
                                                int mid, 
                                                boolean movable,
-                                               boolean isDense);
+                                               boolean isDense,
+                                               double[] sample_weight,
+                                               long sample_weight_length);
 
   // -------- Lasso Regression --------
-  public static native void callFrovedisLassoSGD(Node master_node,
+  public static native int callFrovedisLassoSGD(Node master_node,
                                                MemPair fdata,
                                                int numIter,
                                                double stepSize,
@@ -253,9 +267,11 @@ public class JNISupport {
                                                double regParam,
                                                int mid, 
                                                boolean movable,
-                                               boolean isDense);
+                                               boolean isDense,
+                                               double[] sample_weight,
+                                               long sample_weight_length);
 
-  public static native void callFrovedisLassoLBFGS(Node master_node,
+  public static native int callFrovedisLassoLBFGS(Node master_node,
                                                  MemPair fdata,
                                                  int numIter,
                                                  double stepSize,
@@ -263,10 +279,12 @@ public class JNISupport {
                                                  double regParam,
                                                  int mid, 
                                                  boolean movable,
-                                                 boolean isDense);
+                                                 boolean isDense,
+                                                 double[] sample_weight,
+                                                 long sample_weight_length);
   
   // -------- Ridge Regression --------
-  public static native void callFrovedisRidgeSGD(Node master_node,
+  public static native int callFrovedisRidgeSGD(Node master_node,
                                                MemPair fdata,
                                                int numIter,
                                                double stepSize,
@@ -274,9 +292,11 @@ public class JNISupport {
                                                double regParam,
                                                int mid, 
                                                boolean movable,
-                                               boolean isDense);
+                                               boolean isDense,
+                                               double[] sample_weight,
+                                               long sample_weight_length);
 
-  public static native void callFrovedisRidgeLBFGS(Node master_node,
+  public static native int callFrovedisRidgeLBFGS(Node master_node,
                                                  MemPair fdata,
                                                  int numIter,
                                                  double stepSize,
@@ -284,7 +304,9 @@ public class JNISupport {
                                                  double regParam,
                                                  int mid, 
                                                  boolean movable,
-                                                 boolean isDense);
+                                                 boolean isDense,
+                                                 double[] sample_weight,
+                                                 long sample_weight_length);
 
   // -------- Matrix Factorization Using ALS --------
   public static native void callFrovedisMFUsingALS(Node master_node,
@@ -292,6 +314,7 @@ public class JNISupport {
                                                  int rank,
                                                  int numIter,
                                                  double alpha,
+                                                 double sim_factor,
                                                  double lambda,
                                                  long seed,
                                                  int mid, boolean movable);
