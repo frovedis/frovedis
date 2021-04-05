@@ -1315,6 +1315,9 @@ unique_hashtable<K,V>::unique_hashtable(const std::vector<K>& k,
       conflict_valp[i] = valp[missedp[i]];
     }
     radix_sort(conflict_key, conflict_val);
+    // we need to check uniqueness again, because missed values might have 
+    // duplicated values, which is not captured in find_miss_unique_check!
+    if(!set_is_unique(conflict_key)) is_unique_ok = false;
   } 
 }
 
