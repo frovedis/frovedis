@@ -28,11 +28,17 @@ import warnings
 from pandas.core.common import SettingWithCopyWarning
 
 def get_string_typename(numpy_type):
-    numpy_to_string_type = { np.int32: "int",
-                             np.int64: "long",
-                             np.float32: "float",
-                             np.float64: "double",
-                             np.str: "dic_string"}
+    """
+    return frovedis types from numpy types
+    """
+    numpy_to_string_type = { "int32": "int",
+                             "int64": "long",
+                             "float32": "float",
+                             "float64": "double",
+                             "str": "dic_string",
+                             "string": "dic_string",
+                             "bool": "dic_string",
+                             "uint64": "unsigned long"}
     if numpy_type not in numpy_to_string_type:
         raise TypeError("data type '{0}'' not understood\n"
                         .format(numpy_type))
@@ -44,22 +50,25 @@ def read_csv(filepath_or_buffer, sep=',', delimiter=None,
              usecols=None, squeeze=False, prefix=None, 
              mangle_dupe_cols=True, dtype=None, na_values=None,
              verbose=False, comment=None, low_memory=True,
-             rows_to_see=1024, separate_mb=1024): #added parameters
+             rows_to_see=1024, separate_mb=1024):
+    """
+    loads frovedis dataframe from csv file
+    """
 
     #TODO: support index_col parameter (currently gets ignored)
     if comment is not None:
-      if isinstance(comment, str):
-          if len(comment) != 1:
-              raise ValueError("read_csv: comment should be either " +\
-                               "a string of unit length or None!")
-      # TODO: remove the below error when "comment" support would be added in Frovedis
-      raise ValueError("read_csv: Frovedis currently doesn't support parameter comment!")
+        if isinstance(comment, str):
+            if len(comment) != 1:
+                raise ValueError("read_csv: comment should be either " +\
+                                "a string of unit length or None!")
+        # TODO: remove the below error when "comment" support would be added in Frovedis
+        raise ValueError("read_csv: Frovedis currently doesn't support parameter comment!")
     else:
         comment=""
-    
+
     if delimiter is None:
         delimiter = sep
-    
+
     if len(delimiter) != 1:
         raise ValueError("read_csv: Frovedis currently supports only single "
                          "character delimiters!")
@@ -71,13 +80,16 @@ def read_csv(filepath_or_buffer, sep=',', delimiter=None,
     if not isinstance(mangle_dupe_cols, bool):
         raise ValueError("read_csv: Frovedis doesn't support "
                          "mangle_dupe_cols={0}!".format(mangle_dupe_cols))
+    if names:
+        if len(np.unique(names)) != len(names):
+            raise ValueError("read_csv: Duplicate names are not allowed.")
 
     if na_values is None:
         na_values = "NULL"
     elif not isinstance(na_values, str):
         raise ValueError("read_csv: Expected a string or None value "
                          "as for parameter 'na_values'!")
-    
+        
     if header not in ("infer", 0, None):
         raise ValueError("read_csv: Frovedis doesn't support "
                          "header={0}!".format(header))
@@ -91,6 +103,9 @@ def read_csv(filepath_or_buffer, sep=',', delimiter=None,
     if ncols == 0:
         raise ValueError("read_csv: Frovedis currently doesn't support "
                          "blank line at beginning!")
+
+    if dtype and isinstance(dtype, dict):
+        dtype = {key: np.dtype(value).name for (key,value) in dtype.items()}
 
     add_index = True
     if usecols is not None:
@@ -139,7 +154,33 @@ def read_csv(filepath_or_buffer, sep=',', delimiter=None,
             elif len(names) < ncols - 1:
                 raise ValueError("read_csv: Frovedis currently doesn't support "
                                  "multi-level index loading!")
+    index_col_no = -1
+    if index_col is None:
+        pass
+    elif isinstance(index_col, bool):
+        if index_col:
+            raise ValueError("read_csv: The value of index_col couldn't be 'True'")
+        else:
+            # dont use 1st col as index
+            if names[0] == "index":
+                names = names[1:]
+                add_index = True
+    elif isinstance(index_col, int):
+        if index_col < 0 or index_col > (ncols -1 ):
+            raise ValueError("read_csv: The value for 'index_col' is invalid!")
+        index_col_no = index_col
+        if names == []:
+            add_index = False
+        elif names[0] == "index":
+            names = names[1:]
+            add_index = False
+            if len(names) == ncols - 1:
+                names.insert(index_col, "index") 
+                #inserted in names, so this is parsed as well   
+    else:
+        raise ValueError("read_csv: Frovedis currently supports only bool and int types for index_col !")
 
+    single_dtype = None
     types = []
     partial_type_info = False
     if dtype is None:
@@ -153,51 +194,67 @@ def read_csv(filepath_or_buffer, sep=',', delimiter=None,
         else:
             types = [get_string_typename(dtype[e]) for e in names]
     else:
-        raise ValueError("read_csv: Invalid type for dtype : {0}".format(type(dtype)))
+        # single_dtype
+        single_dtype = np.dtype(dtype).name #raise exception if dtype not valid
+        if names:
+            n = len(names)
+        else:
+            n = ncols
+        types = [get_string_typename(single_dtype)] * n
+
+    bool_cols = []
+    if isinstance(dtype, dict) :
+        bool_cols = [ k for k in dtype if dtype[k] == 'bool' ]
 
     name_arr = get_string_array_pointer(names)
     type_arr = get_string_array_pointer(types)
+    bool_cols_arr = get_string_array_pointer(bool_cols)
 
     # for partial_type_info
     dtype_keys = []
     dtype_vals = []
     if partial_type_info:
         dtype_keys = list(dtype.keys())
-        dtype_vals = [ get_string_typename(e) for e in dtype.values()]
+        dtype_vals = [get_string_typename(e) for e in dtype.values()]
     dtype_keys_arr = get_string_array_pointer(dtype_keys)
     dtype_vals_arr = get_string_array_pointer(dtype_vals)
 
     (host, port) = FrovedisServer.getServerInstance()
     dummy_df = rpclib.load_dataframe_from_csv(host, port, 
-                                           filepath_or_buffer.encode('ascii'),
-                                           type_arr, name_arr,
-                                           len(type_arr), len(name_arr),
-                                           delimiter.encode('ascii'),
-                                           na_values.encode("ascii"),
-                                           comment.encode("ascii"),
-                                           rows_to_see, separate_mb,
-                                           partial_type_info,
-                                           dtype_keys_arr, dtype_vals_arr,
-                                           len(dtype), low_memory, add_index,
-                                           usecols, len(usecols),
-                                           verbose, mangle_dupe_cols)
+                                            filepath_or_buffer.encode('ascii'),
+                                            type_arr, name_arr,
+                                            len(type_arr), len(name_arr),
+                                            delimiter.encode('ascii'),
+                                            na_values.encode("ascii"),
+                                            comment.encode("ascii"),
+                                            rows_to_see, separate_mb,
+                                            partial_type_info,
+                                            dtype_keys_arr, dtype_vals_arr,
+                                            len(dtype_keys), low_memory, add_index,
+                                            usecols, len(usecols),
+                                            verbose, mangle_dupe_cols, index_col_no,
+                                            bool_cols_arr, len(bool_cols_arr))
     excpt = rpclib.check_server_exception()
     if excpt["status"]:
         raise RuntimeError(excpt["info"])
 
     names = dummy_df["names"]
-    string_to_short_dtypes = {"int": DTYPE.INT,
-                              "long": DTYPE.LONG,
-                              "float": DTYPE.FLOAT,
-                              "double": DTYPE.DOUBLE,
-                              "dic_string": DTYPE.STRING,
-                              "unsigned long": DTYPE.ULONG}
-    types = [string_to_short_dtypes[e] for e in dummy_df["types"]]
+    types = dummy_df["types"]
+
+    if len(bool_cols) > 0:
+        for i in range( len(names) ):
+            if names[i] in bool_cols:
+                types[i] = DTYPE.BOOL
+
     res = FrovedisDataframe().load_dummy(dummy_df["dfptr"], \
                                          names[1:], types[1:])
     #TODO: handle index/num_row setting inside load_dummy()
     res.index = FrovedisColumn(names[0], types[0]) #setting index
     res.num_row = dummy_df["nrow"]
+
+    if single_dtype == 'bool':
+        res = res.convert_dicstring_to_bool(res.columns, na_values)
+
     return res
 
 class DataFrame(object):
@@ -205,13 +262,15 @@ class DataFrame(object):
     DataFrame
     """
 
-    def __init__(self, df=None):
+    def __init__(self, df=None, need_materialize=False):
         """
         __init__
         """
         self.__fdata = None
         self.__cols = None
         self.__types = None
+        self.__need_materialize = need_materialize
+        self.index = None
         if df is not None:
             self.load(df)
 
@@ -275,6 +334,17 @@ class DataFrame(object):
             if excpt["status"]:
                 raise RuntimeError(excpt["info"])
         return int(self.num_row)
+
+    @property
+    def count(self):
+        """return num_row in input df"""
+        return len(self)
+
+    @count.setter
+    def count(self, val):
+        """count setter"""
+        raise AttributeError(\
+            "attribute 'count' of DataFrame object is not writable")
 
     def load(self, df):
         """
@@ -392,7 +462,7 @@ class DataFrame(object):
         """
         filter_frovedis_dataframe
         """
-        ret = DataFrame()
+        ret = DataFrame(need_materialize = True)
         ret.__cols = copy.deepcopy(self.__cols)
         ret.__types = copy.deepcopy(self.__types)
         for item in ret.__cols:
@@ -494,7 +564,7 @@ class DataFrame(object):
                 raise TypeError("sort: Expected: digit|list; Received: ",
                                 type(ascending).__name__)
 
-        ret = DataFrame()
+        ret = DataFrame(need_materialize = True)
         ret.__cols = copy.deepcopy(self.__cols)
         ret.__types = copy.deepcopy(self.__types)
         for item in ret.__cols:
@@ -617,10 +687,8 @@ class DataFrame(object):
         right = DataFrame.asDF(right)
 
         # index rename for right
-        right = right.rename({right.index.name: right.index.name + "_right"})
-
-        # right.index.name = right.index.name + "_right"
-        #right.index = FrovedisColumn(right.index.name + "_right", right.index.dtype) #doesnt do renaming on server side
+        if right.index is not None:
+            right = right.rename({right.index.name: right.index.name + "_right"})
 
         # no of nulls
         n_nulls = sum(x is None for x in (on, right_on, left_on))
@@ -679,7 +747,7 @@ class DataFrame(object):
             if rsuf != '':
                 df_right = right.rename(renamed_right_cols)
 
-        ret = DataFrame()
+        ret = DataFrame(need_materialize = True)
         ret.__cols = df_left.__cols + df_right.__cols
         ret.__types = df_left.__types + df_right.__types
         for item in df_left.__cols:
@@ -703,9 +771,11 @@ class DataFrame(object):
             targets = list(ret.__cols)
             for key in renamed_keys:
                 targets.remove(key)
-            return ret.select_frovedis_dataframe(targets)
+            res = ret.select_frovedis_dataframe(targets)
         else:
-            return ret
+            res = ret.select_frovedis_dataframe(ret.columns)
+
+        return res.__add_index("index")
 
     # exception at frovedis server: same key is not
     # currently supported by frovedis
@@ -742,15 +812,18 @@ class DataFrame(object):
         for item in ret.__cols:
             ret.__dict__[item] = self.__dict__[item]
 
+        has_index = self.index is not None
+
         # add index
-        ret.__dict__["index"] = self.__dict__["index"]
+        if has_index:
+            ret.__dict__["index"] = self.__dict__["index"]
 
         for i in range(0, len(names)):
             item = names[i]
             new_item = new_names[i]
 
-            # addin case for index
-            if item == self.index.name:
+            # adding case for index
+            if has_index and item == self.index.name:
                 del ret.__dict__[item]
                 ret.__dict__["index"] = FrovedisColumn(new_item, self.index.dtype)
             elif item not in ret.__cols:
@@ -1216,6 +1289,234 @@ class DataFrame(object):
               result_type=None, args=(), **kwds):
         return self.to_pandas_dataframe()\
                    .apply(func, axis, raw, result_type, args)
+
+    def convert_dicstring_to_bool(self, col_names, nullstr):
+        """ converts dicstring columns to bool"""
+        curr_types = self.__get_column_types(col_names)
+        for t in curr_types:
+            if t != DTYPE.STRING:
+                raise TypeError("convert_dicstring_to_bool: Conversion to "
+                               "boolean is supported for string columns only!")
+
+        name_arr = get_string_array_pointer(col_names)
+        (host, port) = FrovedisServer.getServerInstance()
+        dummy_df = rpclib.df_convert_dicstring_to_bool(host, port, self.get(),
+                                                       name_arr, len(name_arr),
+                                                       nullstr.encode("ascii"),
+                                                       self.__need_materialize)
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
+
+        names = dummy_df["names"]
+        types = dummy_df["types"]
+
+        for i in range( len(names) ):
+            if names[i] in col_names:
+                types[i] = DTYPE.BOOL
+
+        self.load_dummy(dummy_df["dfptr"], names[1:], types[1:])
+        self.index = FrovedisColumn(names[0], types[0]) #setting index
+        self.num_row = dummy_df["nrow"]
+        
+        return self
+
+    def __get_dvec(self, dtype, val):
+        """
+        get dvector from numpy array
+        """
+        dvec_constructor_map = { DTYPE.INT: FrovedisIntDvector,
+                                 DTYPE.LONG: FrovedisLongDvector,
+                                 DTYPE.FLOAT: FrovedisFloatDvector,
+                                 DTYPE.DOUBLE: FrovedisDoubleDvector,
+                                 DTYPE.STRING: FrovedisStringDvector,
+                                 DTYPE.BOOL: FrovedisIntDvector
+                                }
+        if dtype not in dvec_constructor_map:
+            raise ValueError("Unsupported dtype for creating dvector: {0}!\n"
+                            .format(dtype))
+        if dtype == DTYPE.BOOL:
+            val = np.array(val).astype(np.int32)
+        res = dvec_constructor_map[dtype](val)
+        
+        return res
+
+    def __append_column(self, col_name, data_type, data, position=None,
+                    drop_old=False):
+        if position is None:
+            pos = -1
+        elif isinstance(position, int):
+            if position < 0 or position > (len(self.columns)):
+                raise ValueError("Invalid position for appending column : {} !"
+                                .format(position))
+            pos = position
+        else:
+            raise TypeError("Invalid type for position, for appending "
+                           "column: {} !".format(position))
+
+        # null replacements
+        null_replacement = {}
+        null_replacement['float64'] = np.finfo(np.float64).max
+        null_replacement['float32'] = np.finfo(np.float32).max
+        null_replacement['int64'] = np.iinfo(np.int64).max
+        null_replacement['int32'] = np.iinfo(np.int32).max
+        null_replacement['bool'] = np.iinfo(np.int32).max
+        null_replacement['bool_'] = np.iinfo(np.int32).max
+        null_replacement['str'] = "NULL"
+
+        #replacing None with np.nan
+        data = np.array(list(map(lambda x: np.nan if x==None else x, data)))
+        if data_type.char in ("U", "S"):
+            data = np.array(list(map(lambda x: null_replacement["str"] \
+                                    if x=="nan" else x, data)))
+        else:
+            nan_idx = np.isnan(data)
+            data[nan_idx] = null_replacement[data_type.name]
+
+        data_type = TypeUtil.to_id_dtype(data_type)
+        dvec = self.__get_dvec(data_type, data)
+        (host, port) = FrovedisServer.getServerInstance()
+        df_proxy = -1
+        if self.__fdata:
+            df_proxy = self.get()
+        dummy_df = rpclib.df_append_column(host, port, df_proxy,
+                                           col_name.encode("ascii"),
+                                           data_type, dvec.get(),
+                                           pos, self.__need_materialize,
+                                           drop_old)
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
+
+        names = dummy_df["names"]
+        types = dummy_df["types"]
+
+        self.load_dummy(dummy_df["dfptr"], names[1:], types[1:])
+        self.index = FrovedisColumn(names[0], types[0]) #setting index
+        self.num_row = dummy_df["nrow"]
+
+        return self
+
+    def __get_dtype_name(self, arr):
+        if arr.dtype.name != 'object':
+            if arr.dtype.char in ("U", "S"):
+                return "str"
+            else:
+                return arr.dtype.name
+
+        # if dtype is object
+        arr_without_nan = np.array(list(filter(lambda x: x == x, arr)))
+        if arr_without_nan.dtype.name != 'object':
+            if arr_without_nan.dtype.char in ("U", "S"):
+                return "str"
+            else:
+                return arr_without_nan.dtype.name
+        elif all(isinstance(e, str) for e in arr_without_nan):
+            return "str"
+        else:
+            # mixed dtypes
+            raise ValueError("Cannot convert the values for the given data! ",
+                            arr)
+
+        return res
+
+    def __setitem__(self, key, value):
+        """
+        Interface for appending column into DataFrame
+        """
+        if not isinstance(key, str):
+            raise ValueError("__setitem__: Column name must be specified as "
+                            "string only!")
+
+        if np.isscalar(value):
+            if self.__fdata is None:
+                raise ValueError("__setitem__: Frovedis currently doesn't "
+                                "support adding column with scalar values "
+                                "on empty dataframe!")
+            n = len(self)
+            value = [value] * n
+
+        if not isinstance(value, (list, tuple, range, pd.Series, np.ndarray)):
+            raise ValueError("__setitem__: Given column data type '{}' is "
+                            "not supported!".format(type(value)))
+
+
+        col_data = np.array(value)
+        col_dtype = self.__get_dtype_name(col_data)
+
+        drop_old = False
+        if self.__fdata and key in self.columns:
+            drop_old = True
+
+        self = self.__append_column(key, np.dtype(col_dtype), col_data, None,
+                                drop_old)
+
+        return self
+
+    def insert(self, loc, column, value, allow_duplicates=False):
+        """
+        Insert column into DataFrame at specified location.
+        """
+        if allow_duplicates == True:
+            raise ValueError("insert: Frovedis does not support duplicate "
+                            "column names !")
+
+        if np.isscalar(value):
+            if self.__fdata is None:
+                raise ValueError("insert: Frovedis currently doesn't "
+                                "support adding column with scalar values "
+                                "on empty dataframe!")
+            n = len(self)
+            value = [value] * n
+
+        if not isinstance(value, (list, tuple, range, pd.Series, np.ndarray)):
+            raise ValueError("insert: Given column data type '{}' is not "
+                            "supported!".format(type(value)))
+        col_data = np.array(value)
+        col_dtype = self.__get_dtype_name(col_data)
+
+        #insert in empty df, allowed loc = 0 only
+        if self.__fdata is None:
+            if loc != 0:
+                raise IndexError("insert: index '{}' is out of bounds for the "
+                                "given dataframe!".format(loc))
+            self = self.__append_column(column, np.dtype(col_dtype), col_data)
+        else:
+            if column in self.columns:
+                raise ValueError("insert: The given column '{}' already exists !"
+                                .format(column))
+            self = self.__append_column(column, np.dtype(col_dtype), col_data,
+                                       loc)
+
+    def __add_index(self, name):
+        (host, port) = FrovedisServer.getServerInstance()
+        proxy = -1 # set for empty df
+        if self.__fdata:
+            proxy = self.get()
+
+        dummy_df = rpclib.df_add_index(host, port, proxy,
+                                    name.encode("ascii"),
+                                    self.__need_materialize)
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
+        names = dummy_df["names"]
+        types = dummy_df["types"]
+
+        self.load_dummy(dummy_df["dfptr"], names[1:], types[1:])
+        self.index = FrovedisColumn(names[0], types[0]) #setting index
+        self.num_row = dummy_df["nrow"]
+
+        return self
+
+    def __setattr__(self, key, value):
+        if key in self.__dict__:
+            if self.__cols and key in self.__cols:
+                self[key] = value
+            else:
+                self.__dict__[key] = value
+        else:
+            self.__dict__[key] = value
 
     def __str__(self):
         #TODO: fixme to return df as a string
