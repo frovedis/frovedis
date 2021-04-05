@@ -2,15 +2,41 @@
 server.py
 """
 
-#!/usr/bin/env python
-
 from . import node, rpclib
+
+class ServerID(object):
+    """A python container for generating IDs for frovedis server"""
+    __initial = 0
+    __id = __initial
+    # A threshold value, assuming it is safe to re-iterate
+    # server ID after reaching this value
+    __max_id = (1 << 31)
+
+    @staticmethod
+    def get():
+        """
+        NAME: get
+        """
+        ServerID.__id = (ServerID.__id + 1) % ServerID.__max_id
+        if ServerID.__id == 0:
+            ServerID.__id = ServerID.__initial + 1
+        return ServerID.__id
+
+def explain(server_inst):
+    """ to_string() for server instance """
+    if server_inst is not None:
+        return "[ID: " + str(server_inst.sid) + "] Master node (" + \
+               str(server_inst.mnode) + ") has been initialized with " + \
+               str(server_inst.wsize) + " workers."
+    else: 
+        return "No active server is found!!";
+
 class FrovedisServer(object):
     """A singleton implementation to store Frovedis server information"""
 
-    __instance = None
-    __cmd = "mpirun -np 1 /opt/nec/nosupport/frovedis/ve/bin/frovedis_server"
     #default command
+    __cmd = "mpirun -np 1 /opt/nec/nosupport/frovedis/ve/bin/frovedis_server"
+    __instance = None
 
     def __new__(cls):
         if FrovedisServer.__instance is None:
@@ -26,6 +52,7 @@ class FrovedisServer(object):
             FrovedisServer.__instance = object.__new__(cls)
             FrovedisServer.__instance.mnode = node.exrpc_node(host, port)
             FrovedisServer.__instance.wsize = rpclib.get_worker_size(host, port)
+            FrovedisServer.__instance.sid = ServerID.get()
             excpt = rpclib.check_server_exception()
             if excpt["status"]:
                 raise RuntimeError(excpt["info"])
@@ -41,20 +68,20 @@ class FrovedisServer(object):
 
     @classmethod
     def initialize(cls, command):
-        """
-        initialized
+        """ 
+        to initialize a new server (if no server is running) 
+        with specified command
         """
         if FrovedisServer.__instance is None:
             FrovedisServer.__cmd = command
-        #else:
-        #   print("Frovedis server is already initialized!!")
-        cls.getServerInstance()
+            cls.getServerInstance()
+        else:
+            print("Frovedis server is already initialized!!")
+        return explain(FrovedisServer.__instance)
 
     @classmethod
     def shut_down(cls):
-        """
-        shut_down
-        """
+        """ to shut_down the current server """
         if FrovedisServer.__instance is not None:
             (host, port) = cls.getServerInstance()
             rpclib.clean_server(host, port)
@@ -69,22 +96,39 @@ class FrovedisServer(object):
         #else:
         #    print("No server to finalize!")
 
-    def display(self):
-        """
-        display
-        """
-        self.mnode.display()
-        print("Frovedis master has ",str(self.wsize)," workers.")
+    @classmethod
+    def display(cls):
+        """ to display server information"""
+        print(explain(FrovedisServer.__instance))
 
     @classmethod
-    def isUP(cls):
+    def getID(cls):
+        """ to get id of the current server """
+        return FrovedisServer.__instance.sid
+
+    @classmethod
+    def isUP(cls, server_id=None):
+        """ 
+        to confirm if the current server or 
+        the specified server with given id is UP 
         """
-        isUP
-        """
-        if FrovedisServer.__instance is None:
-            return False
+        if FrovedisServer.__instance is not None:
+            if server_id is None: # query made for existing server
+                return True
+            else:  # query made for some specific server
+                return server_id == FrovedisServer.getID()
         else: 
-            return True
+            return False
+
+
+def check_server_state(server_id, inst_class_name):
+    if not FrovedisServer.isUP(server_id):
+        raise RuntimeError("frovedis server (ID: %d) associated with target "\
+                           "'%s' object could not be reached!\n"\
+                           "In case it has already been shut-down, "\
+                           "you would need to re-fit the object.\n" \
+                           % (server_id, inst_class_name))
+
 
 # ensuring Frovedis Server will  definitely shut-down on termination of
 # a python program which will import this module.
