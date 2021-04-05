@@ -123,6 +123,10 @@ std::vector<int> get_df_int_col(exrpc_ptr_t& df_proxy,
 std::vector<long> get_df_long_col(exrpc_ptr_t& df_proxy,
                                   std::string& cname);
 
+std::vector<unsigned long> 
+get_df_ulong_col(exrpc_ptr_t& df_proxy,
+                 std::string& cname);
+
 std::vector<double> get_df_double_col(exrpc_ptr_t& df_proxy,
                                       std::string& cname);
 
@@ -182,7 +186,24 @@ dummy_dftable frov_load_dataframe_from_csv(std::string& filename,
                                           bool& partial_type_info, 
                                           std::map<std::string, std::string>& type_map,
                                           std::vector<int>& usecols,
+                                          std::vector<std::string>& bool_cols,
                                           csv_config& config);
 size_t get_dataframe_length(exrpc_ptr_t& df_proxy);
+
+dummy_dftable
+frov_df_convert_dicstring_to_bool(exrpc_ptr_t& df_proxy,
+                                 std::vector<std::string>& col_names,
+                                 std::string& nullstr,bool& need_materialize);
+
+dummy_dftable
+frov_df_append_column(exrpc_ptr_t& df_proxy, std::string& col_name,
+                    short& type, exrpc_ptr_t& dvec_proxy, int& position,
+                    bool& need_materialize, bool& drop_old);
+
+dummy_dftable
+frov_df_add_index(exrpc_ptr_t& df_proxy, std::string& name,
+                bool& need_materialize);
+
+
 
 #endif
