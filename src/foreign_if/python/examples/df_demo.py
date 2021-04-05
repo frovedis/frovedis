@@ -102,6 +102,11 @@ print ("std(Age): ", fdf1.agg({"Age": ["std"]})); print("\n")
 print ("count(Country): ", fdf1.agg({"Country": ["count"]})) ; print("\n")
 print ("sum(isMale): ", fdf1.agg({"isMale": ["sum"]})) ;  print("\n")
 
+# append column
+fdf4 = fdf.DataFrame(pdf1)
+fdf4["Score"] = [9.2, 8.1, 7.8, 9.5, 6.8]
+fdf4.show()
+
 # read_csv demo
 df = fdf.read_csv("./input/numbers.csv", names=['one', 'two', 'three', 'four'])
 df.show()
