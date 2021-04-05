@@ -1,6 +1,8 @@
 #ifndef _DUMMY_MATRIX_HPP_
 #define _DUMMY_MATRIX_HPP_
 
+#include "model_tracker.hpp"
+
 namespace frovedis {
 struct dummy_matrix {
   dummy_matrix() {}
@@ -59,13 +61,29 @@ struct dummy_dftable {
   dummy_dftable(exrpc_ptr_t dfptr_,
                 size_t nrow_,
                 std::vector<std::string>& names_,
-                std::vector<std::string>& types_): 
+                std::vector<int>& types_): 
                 dfptr(dfptr_), nrow(nrow_), names(names_), types(types_) {}
   exrpc_ptr_t dfptr;
   size_t nrow;
-  std::vector<std::string> names, types;
+  std::vector<std::string> names;
+  std::vector<int> types;
   SERIALIZE(dfptr, nrow, names, types)
 };
+
+template <class DF>
+dummy_dftable to_dummy_dftable(DF* df) {
+  auto data_types = df->dtypes();
+  auto nrow = df->num_row();
+  auto sz = data_types.size();
+  std::vector<std::string> df_names(sz); 
+  std::vector<int> df_types(sz);
+  for(size_t i = 0; i < sz; i++) {
+    df_names[i] = data_types[i].first;
+    df_types[i] = get_numeric_dtype(data_types[i].second);
+  }
+  return dummy_dftable(reinterpret_cast<exrpc_ptr_t>(df),
+                       nrow, df_names, df_types);
+}
 
 struct csv_config {
   csv_config() {}
@@ -77,7 +95,8 @@ struct csv_config {
              bool to_separate,
              bool add_index, 
              bool verbose,
-             bool mangle_dupe_cols) {
+             bool mangle_dupe_cols,
+             int index_col) {
     this->separator = sep;
     this->nullstr = nullstr;
     this->comment = comment;
@@ -87,6 +106,7 @@ struct csv_config {
     this->add_index = add_index;
     this->verbose_level = verbose ? 1 : 0;
     this->mangle_dupe_cols = mangle_dupe_cols;
+    this->index_col = index_col;
   }
   void debug_print() const {
     std::cout << "sep: " << separator << "; "
@@ -97,9 +117,10 @@ struct csv_config {
               << "to_separate: " << to_separate << "; "
               << "add_index: " << add_index << "; "
               << "verbose_level: " << verbose_level << "; "
-              << "mangle_dupe_cols: " << mangle_dupe_cols << std::endl;
+              << "mangle_dupe_cols: " << mangle_dupe_cols << "; "
+              << "index_col: " << index_col << std::endl;
   } 
-  int separator;
+  int separator, index_col;
   std::string nullstr, comment;
   size_t rows_to_see;
   double separate_mb;
@@ -107,7 +128,8 @@ struct csv_config {
   int verbose_level;
   bool mangle_dupe_cols;
   SERIALIZE(separator, nullstr, comment, rows_to_see, separate_mb, 
-            to_separate, add_index, verbose_level, mangle_dupe_cols)
+            to_separate, add_index, verbose_level, mangle_dupe_cols,
+            index_col)
 };
 
 }
