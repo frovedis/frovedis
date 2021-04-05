@@ -16,7 +16,7 @@ int main(int argc, char* argv[]){
         ("input,i" , value<std::string>(), "input data path containing transaction dataframe.") 
         ("output,o" , value<std::string>(), "output path for saving model.") 
         ("min-support,s", value<double>(), "minimal support level of the frequent pattern. [default: 0.2]") 
-        ("conf,c", value<double>(), "confidence value for rule mining [default: 0.5]")
+        ("min-confidence,c", value<double>(), "minimum confidence value for rule mining [default: 0.5]")
         ("tid-dtype", value<std::string>(), "how to load tid column (0th) from input data (as int, long etc.) [default: int]") 
         ("item-dtype", value<std::string>(), "how to load item column (1st) from input data (as int, long, string etc.) [default: int]") 
         ("tree-depth", value<int>(), "required depth till which tree needs to be constructed (>=1) [default: INT_MAX]") 
@@ -62,8 +62,8 @@ int main(int argc, char* argv[]){
        min_support = argmap["min-support"].as<double>();
     }
 
-    if(argmap.count("conf")){
-       conf = argmap["conf"].as<double>();
+    if(argmap.count("min-confidence")){
+       conf = argmap["min-confidence"].as<double>();
     }
 
     if(argmap.count("tid-dtype")){
@@ -98,29 +98,27 @@ int main(int argc, char* argv[]){
       auto t = make_dftable_loadtext(data_p, 
                                  {tid_dtype, item_dtype}, 
                                  {"trans_id", "item"});
-      time_spent grow(INFO), tree(INFO);
-      grow.lap_start();
+      time_spent t_tree(INFO), t_rule(INFO);
+      t_tree.lap_start();
       auto model = grow_fp_tree(t, min_support, tree_depth, 
                                 compression_point, mem_opt_level);
-      grow.lap_stop();
-      grow.show_lap("grow_fp_tree: ");
-
+      t_tree.lap_stop();
+      t_tree.show_lap("generate freq-itemsets: ");
+      //model.debug_print();
       std::cout << "tree-depth: " << model.get_depth() 
                 << "; FIS-count: " << model.get_count() << std::endl;
-      model.save(out_p);
 
-      //model.load(out_p);
-      //model.debug_print();
-
-      /*
-       * needs to be fixed
-       *
-      tree.lap_start();
+      t_rule.lap_start();
       auto rule = model.generate_rules(conf);
-      rule.debug_print();
-      tree.lap_stop();
-      tree.show_lap("generate_rules: ");
-      */
+      t_rule.lap_stop();
+      t_rule.show_lap("generate_rules: ");
+      //rule.debug_print();
+      std::cout << "rule-count: " << rule.get_count() << std::endl;
+
+      make_directory(out_p);
+      rule.save(out_p + "/rule");
+      model.save(out_p + "/model");
+      return 0;
     }
     catch (std::exception& e) {
       std::cout << "exception caught: " << e.what() << std::endl; 
