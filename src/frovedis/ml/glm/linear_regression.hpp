@@ -25,6 +25,7 @@ struct linear_regression {
     this->hist_size = hs;
     this->tol = convergence_tol;
     this->is_fitted = false;
+    this->n_iter_ = 0;
   }
   linear_regression<T>& 
   set_max_iter(int max_iter) {
@@ -120,19 +121,24 @@ struct linear_regression {
   //         and crs matrix as for sparse data
   template <class MATRIX>
   linear_regression& 
-  fit(MATRIX& mat, dvector<T>& label) {
+  fit(MATRIX& mat, dvector<T>& label,
+    const std::vector<T> &sample_weight = std::vector<T>()) {
+
+    size_t n_iter;
+
     if (solver == "sgd") {
       this->model = linear_regression_with_sgd::train(
-                      mat, label, max_iter, alpha, mbf,
+                      mat, label, sample_weight, n_iter, max_iter, alpha, mbf,
                       fit_intercept, tol);
     }
     else if (solver == "lbfgs") {
       this->model = linear_regression_with_lbfgs::train(
-                      mat, label, max_iter, alpha, hist_size,
+                      mat, label, sample_weight, n_iter, max_iter, alpha, hist_size,
                       fit_intercept, tol);
     }
     else REPORT_ERROR(USER_ERROR, "Unknown solver is encountered!\n");
     this->is_fitted = true;
+    this->n_iter_ = n_iter;
     return *this;
   }
 
@@ -162,9 +168,10 @@ struct linear_regression {
   bool fit_intercept;
   linear_regression_model<T> model;
   bool is_fitted;
+  size_t n_iter_;
   SERIALIZE(max_iter, hist_size, alpha, mbf, tol, 
             solver,
-            fit_intercept, model, is_fitted); 
+            fit_intercept, model, is_fitted, n_iter_); 
 };
 
 }

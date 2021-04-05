@@ -29,6 +29,7 @@ struct softmax_gradient_descent {
   compute_gradient(
     DATA_MATRIX& data,
     std::vector<T>& target,
+    std::vector<T>& sample_weight,
     rowmajor_matrix_local<T>& weight,
     std::vector<T>& icpt);
 
@@ -38,6 +39,7 @@ struct softmax_gradient_descent {
     DATA_MATRIX& data,
     TRANS_MATRIX& trans,
     std::vector<T>& target,
+    std::vector<T>& sample_weight,
     rowmajor_matrix_local<T>& weight,
     std::vector<T>& icpt);
 
@@ -53,7 +55,8 @@ struct softmax_gradient_descent {
   
   template <class T>
   void compute_error_inplace(std::vector<T>& label, 
-                             rowmajor_matrix_local<T>& softmax_mat);
+                             rowmajor_matrix_local<T>& softmax_mat,
+                             std::vector<T>& sample_weight);
 
   bool isIntercept;
   SERIALIZE(isIntercept)
@@ -98,6 +101,7 @@ rowmajor_matrix_local<T>
 softmax_gradient_descent::compute_gradient(
   DATA_MATRIX& data,
   std::vector<T>& target,
+  std::vector<T>& sample_weight,
   rowmajor_matrix_local<T>& weight,
   std::vector<T>& icpt) {
   
@@ -106,7 +110,7 @@ softmax_gradient_descent::compute_gradient(
   //std::cout <<"compute_gradient|wtx: "; wtx.debug_print(); 
   auto softmax_mat = compute_softmax_probability<T>(wtx);
   //std::cout <<"compute_gradient|softmax_mat: "; softmax_mat.debug_print(); 
-  compute_error_inplace<T>(target,softmax_mat);
+  compute_error_inplace<T>(target,softmax_mat,sample_weight);
   //std::cout <<"compute_gradient|label-softmax_mat: "; softmax_mat.debug_print(); 
   auto grad_mat = trans_mm(data, softmax_mat);   
   return grad_mat;
@@ -118,13 +122,14 @@ softmax_gradient_descent::compute_gradient(
   DATA_MATRIX& data,
   TRANS_MATRIX& trans,
   std::vector<T>& target,
+  std::vector<T>& sample_weight,
   rowmajor_matrix_local<T>& weight,
   std::vector<T>& icpt) {
   auto wtx = compute_wtx<T>(data,weight,icpt);
   //std::cout <<"compute_gradient|wtx: "; wtx.debug_print(); 
   auto softmax_mat = compute_softmax_probability<T>(wtx);
   //std::cout <<"compute_gradient|softmax_mat: "; softmax_mat.debug_print(); 
-  compute_error_inplace<T>(target,softmax_mat);
+  compute_error_inplace<T>(target,softmax_mat,sample_weight);
   //std::cout <<"compute_gradient|label-softmax_mat: "; softmax_mat.debug_print(); 
   auto grad_mat = trans * softmax_mat;
   return grad_mat;
@@ -212,16 +217,19 @@ softmax_gradient_descent::compute_softmax_probability (
 template <class T>
 void softmax_gradient_descent::compute_error_inplace (
   std::vector<T>& label, 
-  rowmajor_matrix_local<T>& softmax_mat) {
+  rowmajor_matrix_local<T>& softmax_mat, 
+  std::vector<T>& sample_weight) {
   auto nsamples = softmax_mat.local_num_row;
   auto nclasses = softmax_mat.local_num_col;
   T *smatp = &softmax_mat.val[0];
   auto labelp = label.data();
+  auto swp = sample_weight.data();
 #pragma _NEC nointerchange
   for(size_t j = 0; j < nclasses; ++j) {
     for(size_t i = 0; i < nsamples; ++i) {
       //smatp[i*nclasses+j] = labelp[i] - smatp[i*nclasses+j];
       smatp[i*nclasses+j] -= (labelp[i] == j); // error = proba - actual
+      smatp[i*nclasses+j] *= swp[i];
     }
   }
 }

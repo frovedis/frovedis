@@ -30,6 +30,7 @@ struct linear_svm_regressor {
     this->loss_type = loss_type;
     this->tol = convergence_tol;
     this->is_fitted = false;
+    this->n_iter_ = 0;
   }
   linear_svm_regressor<T>& 
   set_max_iter(int max_iter) {
@@ -178,15 +179,18 @@ struct linear_svm_regressor {
   //         and crs matrix as for sparse data
   template <class MATRIX>
   linear_svm_regressor& 
-  fit(MATRIX& mat, dvector<T>& label) {
+  fit(MATRIX& mat, dvector<T>& label
+      const std::vector<T> &sample_weight = std::vector<T>()) {
+    size_t n_iter;
     if (solver == "sgd") {
       this->model = svm_regression_with_sgd::train(
-                      mat, label, max_iter, alpha, mbf,
+                      mat, label, sample_weight, n_iter, max_iter, alpha, mbf,
                       reg_param, get_regularizer(), fit_intercept, 
                       tol, epsilon, get_loss());
     }
     else REPORT_ERROR(USER_ERROR, "Unknown solver is encountered!\n");
     this->is_fitted = true;
+    this->n_iter_ = n_iter;
     return *this;
   }
 
@@ -216,9 +220,10 @@ struct linear_svm_regressor {
   bool fit_intercept;
   linear_regression_model<T> model;
   bool is_fitted;
+  size_t n_iter_;
   SERIALIZE(max_iter, epsilon, alpha, mbf, tol, 
             reg_param, reg_type, loss_type, solver,
-            fit_intercept, model, is_fitted); 
+            fit_intercept, model, is_fitted, n_iter_); 
 };
 
 }

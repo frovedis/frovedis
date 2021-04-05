@@ -16,10 +16,11 @@ struct lbfgs_dtrain {
   std::vector<T> 
   operator()(DATA_MATRIX& data,
              std::vector<T>& label,
+             std::vector<T>& sample_weight,
              MODEL& model,
              GRADIENT& loss) {
     gradient_descent gd(alpha, isIntercept);
-    return gd.compute_gradient<T>(data,model,label,loss);
+    return gd.compute_gradient<T>(data,model,label,sample_weight,loss);
   }
 
   double alpha;
@@ -38,10 +39,11 @@ struct lbfgs_dtrain_with_trans {
   operator()(DATA_MATRIX& data,
              TRANS_MATRIX& trans,
              std::vector<T>& label,
+             std::vector<T>& sample_weight,
              MODEL& model,
              GRADIENT& loss) {
     gradient_descent gd(alpha, isIntercept);
-    return gd.compute_gradient<T>(data,trans,model,label,loss);
+    return gd.compute_gradient<T>(data,trans,model,label,sample_weight,loss);
   }
 
   double alpha;
@@ -57,6 +59,8 @@ struct lbfgs_parallelizer {
   MODEL parallelize (colmajor_matrix<T>& data,
                      dvector<T>& label,
                      MODEL& initModel,
+                     std::vector<T>& sample_weight,
+                     size_t& n_iter,
                      size_t numIteration,
                      double alpha,
                      double regParam,
@@ -68,6 +72,8 @@ struct lbfgs_parallelizer {
   MODEL parallelize (crs_matrix<T,I,O>& data,
                      dvector<T>& label,
                      MODEL& initModel,
+                     std::vector<T>& sample_weight,
+                     size_t& n_iter,
                      size_t numIteration,
                      double alpha,
                      double regParam,
@@ -82,6 +88,8 @@ struct lbfgs_parallelizer {
   void do_train (node_local<DATA_MATRIX>& data,
                  lvec<T>& label,
                  MODEL& initModel,
+                 lvec<T>& sample_weight,
+                 size_t& n_iter,
                  size_t numIteration,
                  double alpha,
                  double regParam,
@@ -94,6 +102,8 @@ struct lbfgs_parallelizer {
                  node_local<TRANS_MATRIX>& transData,
                  lvec<T>& label,
                  MODEL& initModel,
+                 lvec<T>& sample_weight,
+                 size_t& n_iter,
                  size_t numIteration,
                  double alpha,
                  double regParam,
@@ -147,6 +157,8 @@ void lbfgs_parallelizer::do_train(node_local<DATA_MATRIX>& data,
                                   node_local<TRANS_MATRIX>& transData,
                                   lvec<T>& label,
                                   MODEL& initModel,
+                                  lvec<T>& sample_weight,
+                                  size_t& n_iter,
                                   size_t numIteration,
                                   double alpha,
                                   double regParam,
@@ -158,7 +170,8 @@ void lbfgs_parallelizer::do_train(node_local<DATA_MATRIX>& data,
   auto distLoss = make_node_local_allocate<GRADIENT>();
 
   // -------- main loop --------
-  for(size_t i = 1; i <= numIteration; i++) {
+  size_t i;
+  for(i = 1; i <= numIteration; i++) {
     frovedis::time_spent t3(TRACE);
     auto distModel = initModel.broadcast();
     t3.show("broadcast: ");
@@ -166,7 +179,7 @@ void lbfgs_parallelizer::do_train(node_local<DATA_MATRIX>& data,
     // work_at_worker
     auto grad_vector_part = data.template map<std::vector<T>>
                             (lbfgs_dtrain_with_trans<T>(alpha,isIntercept),
-                             transData,label,distModel,distLoss);
+                             transData,label,sample_weight,distModel,distLoss);
     t3.show("Dtrain: ");
 
     // work_at_master
@@ -179,6 +192,7 @@ void lbfgs_parallelizer::do_train(node_local<DATA_MATRIX>& data,
     std::string msg = "[Iteration: " + ITOS(i) + "] elapsed-time: ";
     t.show(msg);
   }
+  i = n_iter;
   t2.show("whole iteration: ");
 }
 
@@ -187,6 +201,8 @@ template <class T, class DATA_MATRIX,
 void lbfgs_parallelizer::do_train(node_local<DATA_MATRIX>& data,
                                   lvec<T>& label,
                                   MODEL& initModel,
+                                  lvec<T>& sample_weight,
+                                  size_t& n_iter,
                                   size_t numIteration,
                                   double alpha,
                                   double regParam,
@@ -198,7 +214,8 @@ void lbfgs_parallelizer::do_train(node_local<DATA_MATRIX>& data,
   auto distLoss = make_node_local_allocate<GRADIENT>();
 
   // -------- main loop --------
-  for(size_t i = 1; i <= numIteration; i++) {
+  size_t i;
+  for(i = 1; i <= numIteration; i++) {
     frovedis::time_spent t3(TRACE);
     auto distModel = initModel.broadcast();
     t3.show("broadcast: ");
@@ -206,7 +223,7 @@ void lbfgs_parallelizer::do_train(node_local<DATA_MATRIX>& data,
     // work_at_worker
     auto grad_vector_part = data.template map<std::vector<T>>
                             (lbfgs_dtrain<T>(alpha,isIntercept),
-                             label,distModel,distLoss);
+                             label,sample_weight,distModel,distLoss);
     t3.show("Dtrain: ");
 
     // work_at_master
@@ -219,6 +236,7 @@ void lbfgs_parallelizer::do_train(node_local<DATA_MATRIX>& data,
     std::string msg = "[Iteration: " + ITOS(i) + "] elapsed-time: ";
     t.show(msg);
   }
+  n_iter = i;
   t2.show("whole iteration: ");
 }
 
@@ -227,6 +245,8 @@ template <class T, class MODEL, class GRADIENT, class REGULARIZER>
 MODEL lbfgs_parallelizer::parallelize(colmajor_matrix<T>& data,
                                       dvector<T>& label,
                                       MODEL& initModel,
+                                      std::vector<T>& sample_weight,
+                                      size_t& n_iter,
                                       size_t numIteration,
                                       double alpha,
                                       double regParam,
@@ -256,8 +276,10 @@ MODEL lbfgs_parallelizer::parallelize(colmajor_matrix<T>& data,
   auto nloc_label = label.viewas_node_local();
   t0.show("label resize & nloc: ");
 
+  auto nsample_weight = make_dvector_scatter(sample_weight, sizes).moveto_node_local();
+
   do_train<T,colmajor_matrix_local<T>,MODEL,GRADIENT,REGULARIZER> 
-            (data.data,nloc_label,trainedModel,
+            (data.data,nloc_label,trainedModel,nsample_weight,n_iter,
              numIteration,alpha,regParam,isIntercept,convergenceTol);
   return trainedModel;
 }
@@ -267,6 +289,8 @@ template <class T, class I, class O, class MODEL,
 MODEL lbfgs_parallelizer::parallelize(crs_matrix<T,I,O>& data,
                                       dvector<T>& label,
                                       MODEL& initModel,
+                                      std::vector<T>& sample_weight,
+                                      size_t& n_iter,
                                       size_t numIteration,
                                       double alpha,
                                       double regParam,
@@ -298,13 +322,15 @@ MODEL lbfgs_parallelizer::parallelize(crs_matrix<T,I,O>& data,
   auto nloc_label = label.viewas_node_local();
   t0.show("label resize & nloc: ");
 
+  auto nsample_weight = make_dvector_scatter(sample_weight, sizes).moveto_node_local();
+
   // -------- selection of input matrix structure --------
   if (mType == CRS) {
     auto trans_crs = data.data.map(to_trans_crs_data<T,I,O>);
     t0.show("to trans crs: ");
     do_train<T,crs_matrix_local<T,I,O>,crs_matrix_local<T,I,O>,
              MODEL,GRADIENT,REGULARIZER> 
-            (data.data,trans_crs,nloc_label,trainedModel,
+            (data.data,trans_crs,nloc_label,trainedModel,nsample_weight,n_iter,
              numIteration,alpha,regParam,isIntercept,convergenceTol);
   }
   else if (mType == HYBRID) {
@@ -318,7 +344,7 @@ MODEL lbfgs_parallelizer::parallelize(crs_matrix<T,I,O>& data,
     }
     do_train<T,jds_crs_hybrid_local<T,I,O>,jds_crs_hybrid_local<T,I,O>,
              MODEL,GRADIENT,REGULARIZER>
-            (jds_crs,trans_jds_crs,nloc_label,trainedModel,
+            (jds_crs,trans_jds_crs,nloc_label,trainedModel,nsample_weight,n_iter,
              numIteration,alpha,regParam,isIntercept,convergenceTol);
   }
   else if (mType == ELL) {
@@ -329,7 +355,7 @@ MODEL lbfgs_parallelizer::parallelize(crs_matrix<T,I,O>& data,
       t0.show("clear crs data: ");
     }
     do_train<T,ell_matrix_local<T,I>,MODEL,GRADIENT,REGULARIZER>
-            (ell,nloc_label,trainedModel,
+            (ell,nloc_label,trainedModel,nsample_weight,n_iter,
              numIteration,alpha,regParam,isIntercept,convergenceTol);
   }
   else

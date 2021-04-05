@@ -28,6 +28,32 @@
 
 namespace frovedis {
 
+template<class GRADIENT, class REGULARIZER>
+struct sgd_config {
+  sgd_config() {
+    numIteration = 1000;
+    alpha = 0.01;
+    convergenceTol = 0.001;
+    isIntercept = false;
+    numSamples = 0;
+  }
+  sgd_config(size_t niter, double lr,
+             double tol, bool icpt, size_t numSamples, GRADIENT& grad,
+             REGULARIZER& rType):
+    numIteration(niter), alpha(lr),
+    convergenceTol(tol), isIntercept(icpt), numSamples(numSamples),
+    grad(grad), rType(rType) {}
+
+  size_t numIteration;
+  double alpha, convergenceTol;
+  bool isIntercept;
+  size_t numSamples;
+  GRADIENT grad;
+  REGULARIZER rType;
+  SERIALIZE(numIteration, alpha, convergenceTol, isIntercept, numSamples,
+            grad, rType)
+};
+
 template <class T>
 std::vector<sliced_colmajor_matrix_local<T>>
 divide_data_to_minibatch_colmajor(colmajor_matrix_local<T>& data,
@@ -114,6 +140,31 @@ divide_label_to_minibatch(std::vector<T>& label,
     cnt += size;
   }
   return ret; 
+}
+
+template <class T>
+std::vector<std::vector<T>>
+divide_sample_weight_to_minibatch(std::vector<T>& sample_weight,
+                          double miniBatchFraction) {
+  size_t numSamples = sample_weight.size();
+  size_t tmp = static_cast<size_t>(ceil(numSamples * miniBatchFraction));
+  size_t tmp2 = ceil_div<size_t>(tmp, LR_VLEN) * LR_VLEN;
+  size_t miniBatchSize = tmp2 < numSamples ? tmp2 : numSamples;
+  size_t numBatches = ceil_div(numSamples, miniBatchSize);
+  std::vector<std::vector<T>> ret(numBatches);
+  T* swp = &sample_weight[0];
+  size_t cnt = 0;
+  for(size_t i = 0; i < numBatches; i++) {
+    size_t tmp = numSamples - i * miniBatchSize;
+    size_t size = (tmp >= miniBatchSize) ? miniBatchSize : tmp;
+    ret[i].resize(size);
+    T* retp = &ret[i][0];
+    for(size_t j = 0; j < size; j++) {
+      retp[j] = swp[cnt+j];
+    }
+    cnt += size;
+  }
+  return ret;
 }
 
 template <class T>

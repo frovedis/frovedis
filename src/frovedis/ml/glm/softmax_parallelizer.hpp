@@ -16,9 +16,10 @@ struct multinomial_dtrain {
   rowmajor_matrix_local<T> 
   operator()(DATA_MATRIX& data,
              std::vector<T>& label,
+             std::vector<T>& sample_weight,
              MODEL& model) {
     softmax_gradient_descent gd(isIntercept);
-    auto grad_mat = gd.compute_gradient<T>(data,label,
+    auto grad_mat = gd.compute_gradient<T>(data,label,sample_weight,
                     model.weight,model.intercept);
     return grad_mat;
   }
@@ -37,9 +38,10 @@ struct multinomial_dtrain_with_trans {
   operator()(DATA_MATRIX& data,
              TRANS_MATRIX& trans,
              std::vector<T>& label,
+             std::vector<T>& sample_weight,
              MODEL& model) {
     softmax_gradient_descent gd(isIntercept);
-    auto grad_mat = gd.compute_gradient<T>(data,trans,label,
+    auto grad_mat = gd.compute_gradient<T>(data,trans,label,sample_weight,
                     model.weight,model.intercept);
     return grad_mat;
   }
@@ -56,6 +58,8 @@ struct softmax_parallelizer {
   MODEL parallelize(crs_matrix<T,I,O>& data,
                     dvector<T>& label,
                     MODEL& initModel,
+                    std::vector<T>& sample_weight,
+                    size_t& n_iter,
                     size_t numIteration,
                     double alpha,
                     double regParam,
@@ -68,11 +72,14 @@ struct softmax_parallelizer {
   MODEL parallelize(colmajor_matrix<T>& data,
                     dvector<T>& label,
                     MODEL& initModel,
+                    std::vector<T>& sample_weight,
+                    size_t& n_iter,
                     size_t numIteration,
                     double alpha,
                     double regParam,
                     bool isIntercept,
                     double convergenceTol);
+
 
   private:
   template <class T, class DATA_MATRIX, 
@@ -80,6 +87,8 @@ struct softmax_parallelizer {
   void do_train(node_local<DATA_MATRIX>& data,
                 node_local<std::vector<T>>& label,
                 MODEL& initModel,
+                node_local<std::vector<T>>& sample_weight,
+                size_t& n_iter,
                 size_t numIteration,
                 double alpha,
                 double regParam,
@@ -92,6 +101,8 @@ struct softmax_parallelizer {
                 node_local<TRANS_MATRIX>& transData,
                 node_local<std::vector<T>>& label,
                 MODEL& initModel,
+                node_local<std::vector<T>>& sample_weight,
+                size_t& n_iter,
                 size_t numIteration,
                 double alpha,
                 double regParam,
@@ -195,6 +206,8 @@ void softmax_parallelizer::do_train(node_local<DATA_MATRIX>& data,
                                 node_local<TRANS_MATRIX>& transData,
                                 node_local<std::vector<T>>& label,
                                 MODEL& initModel,
+                                node_local<std::vector<T>>& sample_weight,
+                                size_t& n_iter,
                                 size_t numIteration,
                                 double alpha,
                                 double regParam,
@@ -205,12 +218,13 @@ void softmax_parallelizer::do_train(node_local<DATA_MATRIX>& data,
   auto nclasses = initModel.nclasses;
   
   // -------- main loop --------
-  for(size_t i = 1; i <= numIteration; i++) {
+  size_t i;
+  for(i = 1; i <= numIteration; i++) {
     auto distModel = initModel.broadcast();
 
     // work_at_worker
     auto locgrad = data.map(multinomial_dtrain_with_trans<T>(isIntercept),
-                     transData,label,distModel);
+                     transData,label,sample_weight,distModel);
 
     // work_at_master
     auto glob_grad = get_global_gradient(locgrad,nfeatures,nclasses);
@@ -221,6 +235,7 @@ void softmax_parallelizer::do_train(node_local<DATA_MATRIX>& data,
     if(conv) break;
 #endif
   }
+  n_iter = i;
 }
 
 
@@ -229,6 +244,8 @@ template <class T, class DATA_MATRIX,
 void softmax_parallelizer::do_train(node_local<DATA_MATRIX>& data,
                                 node_local<std::vector<T>>& label,
                                 MODEL& initModel,
+                                node_local<std::vector<T>>& sample_weight,
+                                size_t& n_iter,
                                 size_t numIteration,
                                 double alpha,
                                 double regParam,
@@ -239,11 +256,12 @@ void softmax_parallelizer::do_train(node_local<DATA_MATRIX>& data,
   auto nclasses = initModel.nclasses;
   
   // -------- main loop --------
-  for(size_t i = 1; i <= numIteration; i++) {
+  size_t i;
+  for(i = 1; i <= numIteration; i++) {
     auto distModel = initModel.broadcast();
 
     // work_at_worker
-    auto locgrad = data.map(multinomial_dtrain<T>(isIntercept),label,distModel);
+    auto locgrad = data.map(multinomial_dtrain<T>(isIntercept),label,sample_weight,distModel);
 
     // work_at_master
     auto glob_grad = get_global_gradient(locgrad,nfeatures,nclasses);
@@ -254,6 +272,7 @@ void softmax_parallelizer::do_train(node_local<DATA_MATRIX>& data,
     if(conv) break;
 #endif
   }
+  n_iter = i;
 }
 
 template <class T, class I, class O, 
@@ -261,6 +280,8 @@ template <class T, class I, class O,
 MODEL softmax_parallelizer::parallelize(crs_matrix<T,I,O>& data,
                                     dvector<T>& label,
                                     MODEL& initModel,
+                                    std::vector<T>& sample_weight,
+                                    size_t& n_iter,
                                     size_t numIteration,
                                     double alpha,
                                     double regParam,
@@ -293,14 +314,16 @@ MODEL softmax_parallelizer::parallelize(crs_matrix<T,I,O>& data,
   auto nloc_label = label.viewas_node_local();
   t0.show("label resize & nloc: ");
 
+  auto nsample_weight = make_dvector_scatter(sample_weight, sizes).moveto_node_local();
+
   // -------- selection of input matrix structure --------
   if (mType == CRS) {
     auto trans_crs_vec = data.data.map(to_trans_crs_data<T,I,O>);
     t0.show("to trans crs: ");
     do_train<T,crs_matrix_local<T,I,O>,crs_matrix_local<T,I,O>,
              MODEL,REGULARIZER>
-                (data.data,trans_crs_vec,nloc_label,trainedModel,
-                 numIteration,alpha,regParam,isIntercept,convergenceTol);
+               (data.data,trans_crs_vec,nloc_label,trainedModel,nsample_weight,
+                n_iter,numIteration,alpha,regParam,isIntercept,convergenceTol);
   }
   
   else if (mType == HYBRID) {
@@ -312,7 +335,8 @@ MODEL softmax_parallelizer::parallelize(crs_matrix<T,I,O>& data,
     do_train<T,jds_crs_hybrid_local<T,I,O>,jds_crs_hybrid_local<T,I,O>,
              MODEL,REGULARIZER>
                 (jds_crs_vec,trans_jds_crs_vec,nloc_label,trainedModel,
-                 numIteration,alpha,regParam,isIntercept,convergenceTol);
+                 nsample_weight,n_iter,numIteration,alpha,regParam,
+                 isIntercept,convergenceTol);
   }
  /*
   * TODO: ell_matrix_local<T,I> * rowmajor_matrix_local<T>
@@ -341,6 +365,8 @@ template <class T, class MODEL, class REGULARIZER>
 MODEL softmax_parallelizer::parallelize(colmajor_matrix<T>& data,
                                     dvector<T>& label,
                                     MODEL& initModel,
+                                    std::vector<T>& sample_weight,
+                                    size_t& n_iter,
                                     size_t numIteration,
                                     double alpha,
                                     double regParam,
@@ -371,12 +397,14 @@ MODEL softmax_parallelizer::parallelize(colmajor_matrix<T>& data,
   auto nloc_label = label.viewas_node_local();
   t0.show("label resize & nloc: ");
  
+  auto nsample_weight = make_dvector_scatter(sample_weight, sizes).moveto_node_local();
+
   auto rmat = data.to_rowmajor();
   auto t_rmat_data = rmat.data.map(to_trans_rowmajor<T>);
   do_train<T,rowmajor_matrix_local<T>,rowmajor_matrix_local<T>,
            MODEL,REGULARIZER>
-         (rmat.data, t_rmat_data, nloc_label, trainedModel,
-          numIteration, alpha, regParam, isIntercept, convergenceTol);
+         (rmat.data, t_rmat_data, nloc_label, trainedModel, nsample_weight,
+          n_iter, numIteration, alpha, regParam, isIntercept, convergenceTol);
 
   return trainedModel;
 }

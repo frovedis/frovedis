@@ -37,6 +37,7 @@ public:
     std::vector<DATA_MATRIX>& data, 
     std::vector<TRANS_MATRIX>& trans,
     std::vector<std::vector<T>>& target,
+    std::vector<std::vector<T>>& sample_weight,
     MODEL& model,
     GRADIENT& gradient,
     size_t iterCount,
@@ -46,6 +47,7 @@ public:
   void optimize(
     std::vector<DATA_MATRIX>& data, 
     std::vector<std::vector<T>>& target,
+    std::vector<std::vector<T>>& sample_weight,
     MODEL& model,
     GRADIENT& gradient,
     size_t iterCount,
@@ -57,6 +59,7 @@ public:
     DATA_MATRIX& data,
     MODEL& model,    
     std::vector<T>& target,
+    std::vector<T>& sample_weight,
     GRADIENT& gradient,
     T& bias, double& loss);
 
@@ -66,10 +69,11 @@ public:
     DATA_MATRIX& data,
     MODEL& model,    
     std::vector<T>& target,
+    std::vector<T>& sample_weight,
     GRADIENT& gradient) {
     T bias = 0.0;
     double loss = 0.0;
-    auto v = compute_gradient(data, model, target, gradient, bias, loss);
+    auto v = compute_gradient(data, model, target, sample_weight, gradient, bias, loss);
     v.push_back(bias);
     return v;
   }
@@ -82,6 +86,7 @@ public:
     TRANS_MATRIX& trans,
     MODEL& model,    
     std::vector<T>& target,
+    std::vector<T>& sample_weight,
     GRADIENT& gradient,
     T& bias, double& loss);
 
@@ -93,10 +98,11 @@ public:
     TRANS_MATRIX& trans,
     MODEL& model,    
     std::vector<T>& target,
+    std::vector<T>& sample_weight,
     GRADIENT& gradient) {
     T bias = 0.0; 
     double loss = 0.0;
-    auto v = compute_gradient(data, trans, model, target, gradient, bias, loss);
+    auto v = compute_gradient(data, trans, model, target, sample_weight, gradient, bias, loss);
     v.push_back(bias);
     return v;
   }
@@ -123,6 +129,7 @@ void gradient_descent::optimize(
   std::vector<DATA_MATRIX>& data, 
   std::vector<TRANS_MATRIX>& trans,
   std::vector<std::vector<T>>& target,
+  std::vector<std::vector<T>>& sample_weight,
   MODEL& model,
   GRADIENT& gradient,
   size_t iterCount,
@@ -131,7 +138,7 @@ void gradient_descent::optimize(
   loss = 0.0;
   for(size_t i = 0; i < data.size(); i++) {
     auto grad_vector = compute_gradient<T>(data[i], trans[i], model, target[i], 
-                                           gradient, bias, loss);
+                                           sample_weight[i], gradient, bias, loss);
     update_model<T>(model, grad_vector, iterCount, bias);
   }
 }
@@ -140,6 +147,7 @@ template <class T, class DATA_MATRIX, class MODEL, class GRADIENT>
 void gradient_descent::optimize(
   std::vector<DATA_MATRIX>& data, 
   std::vector<std::vector<T>>& target,
+  std::vector<std::vector<T>>& sample_weight,
   MODEL& model,
   GRADIENT& gradient,
   size_t iterCount,
@@ -148,7 +156,7 @@ void gradient_descent::optimize(
   loss = 0.0;
   for(size_t i = 0; i < data.size(); i++) {
     auto grad_vector = compute_gradient<T>(data[i], model, target[i], 
-                                           gradient, bias, loss);
+                                           sample_weight[i], gradient, bias, loss);
     update_model<T>(model, grad_vector, iterCount, bias);
   }
 }
@@ -159,10 +167,12 @@ gradient_descent::compute_gradient(
   DATA_MATRIX& data,
   MODEL& model,    
   std::vector<T>& target,
+  std::vector<T>& sample_weight,
   GRADIENT& gradient, 
   T& bias, double& loss) {
   auto wtx = compute_wtx<T>(data, model);
-  auto dloss = gradient.compute_dloss(target, wtx, loss);
+  auto dloss = gradient.compute_dloss(target, wtx, loss) * sample_weight;
+   
   if(isIntercept) bias = vector_sum(dloss);
   auto grad_vector = trans_mv(data, dloss);
   //auto gradv = grad_vector.data();
@@ -188,10 +198,11 @@ gradient_descent::compute_gradient(
   TRANS_MATRIX& trans,
   MODEL& model,    
   std::vector<T>& target,
+  std::vector<T>& sample_weight,
   GRADIENT& gradient,
   T& bias, double& loss) {
   auto wtx = compute_wtx<T>(data, model);
-  auto dloss = gradient.compute_dloss(target, wtx, loss);
+  auto dloss = gradient.compute_dloss(target, wtx, loss) * sample_weight;
   if(isIntercept) bias = vector_sum(dloss);
   auto grad_vector = trans * dloss;
   //auto gradv = grad_vector.data();

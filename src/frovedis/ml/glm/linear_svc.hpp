@@ -29,6 +29,7 @@ struct linear_svm_classifier {
     this->hist_size = hs;
     this->tol = convergence_tol;
     this->is_fitted = false;
+    this->n_iter_ = 0;
   }
   linear_svm_classifier<T>& 
   set_max_iter(int max_iter) {
@@ -156,15 +157,17 @@ struct linear_svm_classifier {
   //         and crs matrix as for sparse data
   template <class MATRIX>
   linear_svm_classifier& 
-  fit(MATRIX& mat, dvector<T>& label) {
+  fit(MATRIX& mat, dvector<T>& label, 
+      const std::vector<T>& sample_weight = std::vector<T>()) {
+    size_t n_iter;
     if (solver == "sgd") {
       this->model = svm_with_sgd::train(
-                      mat, label, max_iter, alpha, mbf,
+                      mat, label, sample_weight, n_iter, max_iter, alpha, mbf,
                       reg_param, get_regularizer(), fit_intercept, tol);
     }
     else if (solver == "lbfgs") {
       this->model = svm_with_lbfgs::train(
-                      mat, label, max_iter, alpha, hist_size,
+                      mat, label, sample_weight, n_iter, max_iter, alpha, hist_size,
                       reg_param, get_regularizer(), fit_intercept, tol);
     }
     else REPORT_ERROR(USER_ERROR, "Unknown solver is encountered!\n");
@@ -198,9 +201,10 @@ struct linear_svm_classifier {
   bool fit_intercept;
   svm_model<T> model;
   bool is_fitted;
+  size_t n_iter_ = 0;
   SERIALIZE(max_iter, hist_size, alpha, mbf, tol, 
             reg_param, reg_type, solver,
-            fit_intercept, model, is_fitted); 
+            fit_intercept, model, is_fitted, n_iter_); 
 };
 
 }
