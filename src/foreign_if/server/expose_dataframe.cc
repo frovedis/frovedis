@@ -33,6 +33,7 @@ void expose_frovedis_dataframe_functions() {
   expose(frovedis_df_rename);
   expose(get_df_int_col);
   expose(get_df_long_col);
+  expose(get_df_ulong_col);
   expose(get_df_float_col);
   expose(get_df_double_col);
   expose(get_df_string_col);
@@ -53,4 +54,7 @@ void expose_frovedis_dataframe_functions() {
   expose(frov_cross_join_dfopt);
   expose(frov_load_dataframe_from_csv);
   expose(get_dataframe_length);
+  expose(frov_df_convert_dicstring_to_bool);
+  expose(frov_df_append_column);
+  expose(frov_df_add_index);
 }
