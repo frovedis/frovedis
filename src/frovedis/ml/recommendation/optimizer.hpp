@@ -24,12 +24,16 @@ public:
   optimize (crs_matrix_local<T,I,O> &data, std::vector<T> &inMat);
 
   template <class T, class I, class O>
+  std::vector<T> 
+  optimize (crs_matrix_local<T,I,O> &data, std::vector<T> &inMat,
+            std::vector<I>& required_ids);
+
+  template <class T, class I, class O>
   void compute_model_row (const T *inMat, 
                           const T *regMtM, 
                           T *outVec, 
                           crs_matrix_local<T,I,O>& data,
-                          size_t current_row,
-                          size_t inRows);
+                          I current_row);
 
   SERIALIZE(factor, alpha, regParam)
 };
@@ -106,16 +110,7 @@ void solve_matrix_equation (T *A, int orderA, T *B) {
   int *IPIV = new int[orderA];
   LDA = orderA;
   LDB = orderA;
-  /*
-    convert row major to column major
-    TODO: make the whole program column major to remove this transpose
-   */
-  T *transA = new T[orderA*orderA];
-  for(int i = 0; i < orderA; i++)
-#pragma cdir on_adb(A)
-#pragma cdir on_adb(transA)
-    for(int j = 0; j < orderA; j++)
-      transA[j*orderA+i] = A[i*orderA+j];
+
 #if (defined(_SX) || defined(__ve__)) && defined(USE_ASL)
   int ierr = als_typed_bgmsl(A, orderA, orderA, B, IPIV);
   if(ierr != 0 && ierr != 1000) {
@@ -124,54 +119,82 @@ void solve_matrix_equation (T *A, int orderA, T *B) {
   }
 #else
   int nColsB = 1;
-  als_typed_gesv<T>(&orderA, &nColsB, transA, &LDA, IPIV, B, &LDB,
+  als_typed_gesv<T>(&orderA, &nColsB, A, &LDA, IPIV, B, &LDB,
                     &INFO);
   if(INFO) REPORT_ERROR(INTERNAL_ERROR,"Lapack Driver Routine Failed\n");
 #endif
     
-  delete[] transA;
   delete[] IPIV;
 }
 
-//-------------------------------------------------------------------
-// Function to optimize the target model 
-//-------------------------------------------------------------------
-template <class T, class I, class O>
-std::vector<T> 
-optimizer::optimize(crs_matrix_local<T,I,O>& data,
-                    std::vector<T>& inMat) {
-  // Calculating number of rows in inMat
-  size_t inRows = inMat.size() / factor;
-  // number of rows in outMat
-  size_t outRows = data.local_num_row;
-  std::vector<T> outMat(outRows * factor);
-  /*
-    Computation of (Mt * M + (regParam*I))
-   */
-  T *regularizedMtM = new T[inRows*factor];
+/*
+  Computation of (Mt * M + (regParam*I))
+ */
+template <class T>
+std::vector<T>
+compute_regularizedMtM(std::vector<T>& inMat, 
+                       size_t factor, double regParam) {
   char transN = 'N';
   char transT = 'T';
   T gemm_alpha = 1.0; 
   T beta = 0.0;
   int ifactor = factor;
-  int iinRows = inRows;
+  int inRows = inMat.size() / factor;
+  std::vector<T> regularizedMtM(factor * factor);
+  auto rptr = regularizedMtM.data();
   // currently, matrix is row major, but gemm assumes column major
   // utilizes the fact that At * Bt = (B * A)t
-  als_typed_gemm<T>(&transN, &transT, &ifactor, &ifactor, &iinRows,
-                    &gemm_alpha, &inMat[0], &ifactor,&inMat[0],
-                    &ifactor, &beta, regularizedMtM, &ifactor);
-  for (size_t i = 0; i < factor; i++) {	
-    regularizedMtM[i*factor+i] += regParam;    // (MtM + (regParam*I))
+  als_typed_gemm<T>(&transN, &transT, &ifactor, &ifactor, &inRows,
+                    &gemm_alpha, &inMat[0], &ifactor, &inMat[0],
+                    &ifactor, &beta, rptr, &ifactor);
+  // (MtM + (regParam*I))
+  for (size_t i = 0; i < factor; i++) rptr[i * factor + i] += regParam;
+    
+  /*
+   - For avoiding later transpose
+   - Transposing since this will be used in GEMM (C = beta.C + alphaA.B)
+  */
+  std::vector<T> trans_regularizedMtM(factor * factor);
+  auto trptr = trans_regularizedMtM.data();
+  for (size_t i = 0; i < factor; i++) {
+    for (size_t j = 0; j < factor; j++) {
+      trptr[j * factor + i] = rptr[i * factor + j];      
+    }
   }    
-  // This loop will compute each row of X or Y matrix 
-  for (size_t i = 0; i < outRows; i++) {
-     /*   This function will compute outMat, by solving 
-      *   the equation = inv(Mt*M + Mt*(C-I)*M + regParam*I) * (Mt*C*P)
-      */
-    compute_model_row(&inMat[0], regularizedMtM, &outMat[i*factor],
-                      data, i, inRows);  
+  return trans_regularizedMtM;
+}    
+
+/*   
+ * This function will compute outMat, by solving 
+ * the equation = inv(Mt*M + Mt*(C-I)*M + regParam*I) * (Mt*C*P)
+ * for each row in outMat
+*/
+template <class T, class I, class O>
+std::vector<T> 
+optimizer::optimize(crs_matrix_local<T,I,O>& data,
+                    std::vector<T>& inMat) {
+  auto regularizedMtM = compute_regularizedMtM(inMat, factor, regParam);
+  auto rptr = regularizedMtM.data();
+  size_t outRows = data.local_num_row;
+  std::vector<T> outMat(outRows * factor);
+  for (I i = 0; i < outRows; i++) {
+    compute_model_row(&inMat[0], rptr, &outMat[i * factor], data, i);  
   }
-  delete[] regularizedMtM;
+  return outMat;
+}
+
+template <class T, class I, class O>
+std::vector<T>
+optimizer::optimize(crs_matrix_local<T,I,O>& data,
+                    std::vector<T>& inMat,
+                    std::vector<I>& required_ids) {
+  auto regularizedMtM = compute_regularizedMtM(inMat, factor, regParam);
+  auto rptr = regularizedMtM.data();
+  size_t outRows = data.local_num_row;  
+  std::vector<T> outMat(outRows * factor);
+  for (I i = 0; i < required_ids.size(); i++) {
+    compute_model_row(&inMat[0], rptr, &outMat[required_ids[i] * factor], data, required_ids[i]);  
+  }
   return outMat;
 }
 
@@ -180,8 +203,7 @@ void optimizer::compute_model_row(const T *Mp,
                                   const T *regMtMp,
                                   T *outVec,
                                   crs_matrix_local<T,I,O>& data,
-                                  size_t current_row,
-                                  size_t inRows) {
+                                  I current_row) {
   ASSERT_PTR(Mp && regMtMp && outVec);
 
   size_t width = data.off[current_row+1] - data.off[current_row];
@@ -191,30 +213,23 @@ void optimizer::compute_model_row(const T *Mp,
   std::vector<T> transM_CminusI(factor*width);
   T* transM_CminusIp = &transM_CminusI[0];
 
-  std::vector<T> A(factor*factor);
-  std::vector<T> B(factor, 0);
-  T* Ap = &A[0];
-  T* Bp = &B[0];
-
-  /*
-    A = MtM + regParam*I
-  */
+  std::vector<T> A(factor * factor); auto Ap = A.data();
 #pragma cdir on_adb(Ap)
-  for(size_t i = 0; i < A.size(); i++) {
-    Ap[i] = regMtMp[i];
-  }
+  for(size_t i = 0; i < A.size(); i++) Ap[i] = regMtMp[i]; // A = MtM + regParam*I
+
   /*
      create M' (compressed M)
    */
   std::vector<T> Mcmp(width * factor);
   T* Mcmpp = &Mcmp[0];
-  for(size_t j = 0; j < width; j++) {
-    size_t pos = posBaseAddr[j];
+  for(size_t i = 0; i < factor; i++) {
 #pragma cdir on_adb(Mcmpp)
-    for(size_t i = 0; i < factor; i++) {
-      Mcmpp[j * factor + i] = Mp[pos * factor + i];
+    for(size_t j = 0; j < width; j++) {
+      size_t pos = posBaseAddr[j];  
+      Mcmpp[i * width + j] = Mp[pos * factor + i];
     }
   }
+    
   /*
     create Mt' * (C-I)', and B = Mt' * C' * p'
     (use M' instead of Mt')
@@ -222,14 +237,13 @@ void optimizer::compute_model_row(const T *Mp,
   for(size_t j = 0; j < width; j++) {
 #pragma cdir on_adb(Mcmpp)
 #pragma cdir on_adb(transM_CminusIp)
-#pragma cdir on_adb(Bp)
+#pragma cdir on_adb(outVec)
     for(size_t i = 0; i < factor; i++) {
-      transM_CminusIp[i * width + j] =
-        Mcmpp[j * factor + i] * valBaseAddr[j] * alpha;
-      Bp[i] += Mcmpp[j * factor + i] * (1 + alpha * valBaseAddr[j]); 
+      transM_CminusIp[j * factor + i] =
+        Mcmpp[i * width + j] * valBaseAddr[j] * alpha;
+      outVec[i] += Mcmpp[i * width + j] * (1 + alpha * valBaseAddr[j]); 
     }
-  }
-  /*
+  }  /*
     create (Mt' * (C-I)' * M') + (MtM + regParam*I)
   */
   /* // changed to use gemm
@@ -271,12 +285,11 @@ void optimizer::compute_model_row(const T *Mp,
   int iwidth = width;
   if(width > 0)
     als_typed_gemm<T>(&transN, &transN, &ifactor, &ifactor, &iwidth,
-                      &gemm_alpha, Mcmpp, &ifactor, transM_CminusIp,
+                      &gemm_alpha, transM_CminusIp, &ifactor, Mcmpp,
                       &iwidth, &beta, Ap, &ifactor);
 #endif
-  solve_matrix_equation(Ap,factor,Bp); 
-#pragma cdir on_adb(Bp)
-  for(size_t i = 0; i < factor; i++) outVec[i] = Bp[i];
+
+  solve_matrix_equation(Ap, factor, outVec);
 }
 
 }
