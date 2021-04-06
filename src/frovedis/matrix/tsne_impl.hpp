@@ -51,25 +51,17 @@ compute_gaussian_kernel(const rowmajor_matrix_local<T>& mat,
   auto max_betap = max_beta.data();
  
   // Compute the Gaussian kernel row by row
+  // Ref: https://github.com/scikit-learn/scikit-learn/blob/
+  //      95119c13af77c76e150b753485c662b7c52a41a2/sklearn/manifold/_utils.pyx#L73
   for(size_t iter = 0; iter < GK_N_ITER; iter++) {
-    // Iterate until we found a good perplexity
+    // iterate until we found a good perplexity
     for(size_t r = 0; r < nrow; r++) {
       if (conv_statusp[r] == 0) {
-        // Compute Gaussian kernel row
-        double sum_P = 0.0;
-        double entropy = 0.0;
-        T t_max = std::numeric_limits<T>::lowest();
-        for(size_t c = 0; c < ncol; c++) {
-          if (r + myst != c) {
-            auto tmp = -betap[r] * mvalp[r * ncol + c];
-            if (tmp > t_max) t_max = tmp;
-            retp[r * ncol + c] = tmp;
-          }
-        }
+        T sum_P = 0.0;
         for(size_t c = 0; c < ncol; c++) {
           if (r + myst != c) {
             size_t ind = r * ncol + c; 
-            retp[ind] = exp(retp[ind] - t_max);
+            retp[ind] = exp(-mvalp[ind] * betap[r]);
             sum_P += retp[ind];
           }
         }
@@ -83,20 +75,20 @@ compute_gaussian_kernel(const rowmajor_matrix_local<T>& mat,
             sum_disti_Pi += mvalp[ind] * retp[ind];
           }
         }
-        entropy = log(sum_P) + betap[r] * sum_disti_Pi;
-        // Evaluate whether the entropy is within the tolerance level
-        double entropy_diff = entropy - log(perplexity);
-        if(fabs(entropy_diff) <= TOLERANCE) conv_statusp[r] = 1;
-        if(entropy_diff > 0) {
+        auto entropy = log(sum_P) + betap[r] * sum_disti_Pi;
+        auto entropy_diff = entropy - log(perplexity);
+        // evaluate whether the entropy is within the tolerance level
+        if (fabs(entropy_diff) <= TOLERANCE) conv_statusp[r] = 1;
+        if (entropy_diff > 0) {
           min_betap[r] = betap[r];
-          if(max_betap[r] == std::numeric_limits<T>::infinity())
+          if (max_betap[r] == std::numeric_limits<T>::infinity())
             betap[r] *= 2.0;
           else
             betap[r] = (betap[r] + max_betap[r]) / 2.0;
         }
         else {
           max_betap[r] = betap[r];
-          if(min_betap[r] == -std::numeric_limits<T>::infinity())
+          if (min_betap[r] == -std::numeric_limits<T>::infinity())
             betap[r] /= 2.0;
           else
             betap[r] = (betap[r] + min_betap[r]) / 2.0;
