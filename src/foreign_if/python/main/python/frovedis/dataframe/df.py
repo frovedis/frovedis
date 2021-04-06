@@ -274,6 +274,12 @@ class DataFrame(object):
         if df is not None:
             self.load(df)
 
+    def has_index(self):
+        """
+        has_index
+        """
+        return self.index is not None
+
     def load_dummy(self, fdata, cols, types):
         """
         load_dummy
@@ -812,10 +818,8 @@ class DataFrame(object):
         for item in ret.__cols:
             ret.__dict__[item] = self.__dict__[item]
 
-        has_index = self.index is not None
-
         # add index
-        if has_index:
+        if self.has_index():
             ret.__dict__["index"] = self.__dict__["index"]
 
         for i in range(0, len(names)):
@@ -823,7 +827,7 @@ class DataFrame(object):
             new_item = new_names[i]
 
             # adding case for index
-            if has_index and item == self.index.name:
+            if self.has_index() and item == self.index.name:
                 del ret.__dict__[item]
                 ret.__dict__["index"] = FrovedisColumn(new_item, self.index.dtype)
             elif item not in ret.__cols:
@@ -1064,10 +1068,9 @@ class DataFrame(object):
         """
         if self.__fdata is None:
             raise ValueError("Operation on invalid frovedis dataframe!")
-        has_index = "index" in self.__dict__
         cols = copy.deepcopy(self.__cols)
         types = copy.deepcopy(self.__types)
-        if has_index:
+        if self.has_index():
             cols.append(self.index.name)
             types.append(self.index.dtype)
 
@@ -1098,7 +1101,7 @@ class DataFrame(object):
                 null_val = null_replacement[types[i]]
                 res[cols[i]] = [np.nan if x == null_val else x for x in col_val]
 
-        if has_index:
+        if self.has_index():
             res.set_index(self.index.name, inplace=True)
         return res
 
