@@ -154,12 +154,18 @@ struct logistic_regression {
     return regularizer;
   }
 
+  template <class MATRIX>
+  logistic_regression&
+  fit(MATRIX& mat, dvector<T>& label) {
+    std::vector<T> sample_weight;
+    return fit(mat, label, sample_weight);
+  }
   // MATRIX: can accept both rowmajor and colmajor matrices as for dense data; 
   //         and crs matrix as for sparse data
   template <class MATRIX>
   logistic_regression& 
   fit(MATRIX& mat, dvector<T>& label,
-      const std::vector<T>& sample_weight = std::vector<T>()) {
+      std::vector<T>& sample_weight) {
 
     size_t n_iter = 0;
 
