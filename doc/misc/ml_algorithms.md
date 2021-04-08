@@ -31,10 +31,11 @@ card/node, unless otherwise specified.
 <tr><td>Spectral Clustering</td> <td>Only dense</td> </tr>
 <tr><td>Agglomerative Clustering</td> <td>Only dense</td> </tr>
 <tr><td>DBSCAN</td> <td>Only dense</td> </tr>
+<tr><td>Gaussian Mixture Model</td> <td>Only dense, Only C++</td> </tr>
 <tr><td>ART-2A</td> <td>Only C++</td> </tr>
 <tr><td rowspan="5">Preprocess</td>
 <td>Singular Value Decomposition</td> <td></td> </tr>
-<tr><td>Eigen Value Decomposition</td> <td></td> </tr>
+<tr><td>Eigen Value Decomposition</td> <td>Only C++</td> </tr>
 <tr><td>Principal Component Analysis</td> <td>Only dense</td> </tr>
 <tr><td>Spectral Embedding</td> <td>Only dense</td> </tr>
 <tr><td>T-SNE</td> <td>Only dense</td> </tr>
