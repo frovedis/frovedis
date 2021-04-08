@@ -1506,21 +1506,33 @@ extern "C" {
   }
 
   // --- (14) Decision Tree ---
+  std::unordered_map<size_t,size_t>
+  get_kv_pair(int* cat_keys, int* cat_vals, ulong size) {
+    auto keys = to_int_vector(cat_keys, size);
+    auto vals = to_int_vector(cat_vals, size);
+    std::unordered_map<size_t,size_t> ret;
+    for (size_t i = 0; i < size; ++i) {
+      auto k = static_cast<size_t> (keys[i]);
+      auto v = static_cast<size_t> (vals[i]);
+      ret[k] = v;
+    }
+    return ret;
+  }
+
   void dt_trainer(const char* host, int port, long xptr,
                   long yptr, char* algo, char* impurity,
                   int max_depth, int num_classes, int max_bins,
                   int min_instance, double min_info_gain,
                   int verbose, int mid, 
+                  int* cat_keys, int* cat_vals, ulong size,
                   short dtype, short itype, bool dense) {
-    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
+    if(!host) REPORT_ERROR(USER_ERROR, "Invalid hostname!!");
     exrpc_node fm_node(host,port);
     auto f_xptr = (exrpc_ptr_t) xptr;
     auto f_yptr = (exrpc_ptr_t) yptr;
     auto f_dptr = frovedis_mem_pair(f_xptr,f_yptr);
     auto algorithm = tree::algorithm::Regression;
-    if(std::string(algo) == "Classification") 
-      algorithm = tree::algorithm::Classification;
-    else algorithm = tree::algorithm::Regression;
+    if(std::string(algo) == "Classification") algorithm = tree::algorithm::Classification;
     auto imp = std::string(impurity);
     auto impt = tree::impurity_type::Default;
     if (imp == "DEFAULT")  impt = tree::impurity_type::Default;
@@ -1528,6 +1540,7 @@ extern "C" {
     else if (imp == "ENTROPY")  impt = tree::impurity_type::Entropy;
     else if (imp == "MSE") impt = tree::impurity_type::Variance;
     else REPORT_ERROR(USER_ERROR, "Unsupported impurity is provided!\n");
+    auto cat_info = get_kv_pair(cat_keys, cat_vals, size);
     bool mvbl = false; // auto-managed at python side
     try {
       if(dense) {
@@ -1539,9 +1552,9 @@ extern "C" {
                   max_depth, num_classes, max_bins,
                   tree::quantile_strategy::ApproxHist,
                   tree::categorize_strategy::Single,
-                  std::unordered_map<size_t,size_t>(),
-                  min_instance, min_info_gain_cp);
-            exrpc_oneway(fm_node,(frovedis_dt<DT2,D_MAT2>),f_dptr,float_str,verbose,mid,mvbl); 
+                  cat_info, min_instance, min_info_gain_cp);
+            exrpc_oneway(fm_node,(frovedis_dt<DT2,D_MAT2>),f_dptr,
+                         float_str,verbose,mid,mvbl); 
             break;
           }
           case DOUBLE: {
@@ -1550,9 +1563,9 @@ extern "C" {
                   max_depth, num_classes, max_bins,
                   tree::quantile_strategy::ApproxHist,
                   tree::categorize_strategy::Single,
-                  std::unordered_map<size_t,size_t>(),
-                  min_instance, min_info_gain);
-            exrpc_oneway(fm_node,(frovedis_dt<DT1,D_MAT1>),f_dptr,double_str,verbose,mid,mvbl);
+                  cat_info, min_instance, min_info_gain);
+            exrpc_oneway(fm_node,(frovedis_dt<DT1,D_MAT1>),f_dptr,
+                         double_str,verbose,mid,mvbl);
             break;
           }
           default: REPORT_ERROR(USER_ERROR, "Unsupported dtype of input dense data for training!\n");
