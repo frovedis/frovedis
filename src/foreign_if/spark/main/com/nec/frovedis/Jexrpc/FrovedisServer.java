@@ -37,7 +37,7 @@ public class FrovedisServer implements java.io.Serializable {
   // different command other than the default one.
   public static FrovedisServer initialize(String cmd) throws ServerException {
       if(!instantiated) command = cmd;
-      else System.out.println("Frovedis server is already initialized!!");
+      else System.out.println("FrovedisServer is already initialized!!");
       return createOrGetServer();
   }
   public static void shut_down() throws ServerException{
@@ -53,15 +53,19 @@ public class FrovedisServer implements java.io.Serializable {
     }
   }
   public static void display() throws ServerException {
-    if(instantiated) System.out.println(getServerInstance().toString());
-    else System.out.println("No server to display!\n");
+    System.out.println(getServerInstance().toString());
   }
   @Override
   public String toString() { 
-    if(instantiated) 
-      return "Master Node (" + master_node.get_host() + "," + 
-              master_node.get_port() + ") has " + worker_size + " workers.\n";
-    else return "Server not found";
+    if(instantiated) {
+      String withmsg = "with " + worker_size + " MPI process";
+      if (worker_size > 1)  withmsg += "es.\n";
+      else                  withmsg += ".\n";
+      return "FrovedisServer (Hostname: " + master_node.get_host() + 
+             ", Port: " + master_node.get_port() + 
+             ") has been initialized " + withmsg;
+    }
+    else return "No active server is found!!";
   }
 	/*
   @Override
