@@ -683,7 +683,7 @@ void group_by_vector_max_helper
     auto current = val_idx_stop[i] - val_idx[i];
     if(max_size < current) max_size = current;
   }
-  auto min = std::numeric_limits<T>::min();
+  auto min = std::numeric_limits<T>::lowest();
   for(size_t i = 0; i < GROUPBY_VLEN; i++) current_val[i] = min; // max
 
   auto shift_split_idxp = split_idxp + 1;
@@ -723,7 +723,7 @@ max_helper(std::vector<T>& org_val,
   T* org_valp = org_val.data();
   size_t* nullsp = nulls.data();
   size_t nullssize = nulls.size();
-  auto min = std::numeric_limits<T>::min();
+  auto min = std::numeric_limits<T>::lowest();
 #pragma cdir nodep
 #pragma _NEC ivdep
   for(size_t i = 0; i < nullssize; i++) {
@@ -749,7 +749,7 @@ max_helper(std::vector<T>& org_val,
     for(size_t i = 0; i < splitsize-1; i++) {
       start = end;
       end = idx_splitp[i+1];
-      T max = std::numeric_limits<T>::min();
+      T max = std::numeric_limits<T>::lowest();
       for(size_t j = start; j < end; j++) {
         if(max < valp[j]) max = valp[j];
       }
@@ -764,7 +764,7 @@ max_helper(std::vector<T>& org_val,
   for(size_t i = 0; i < splitsize-1; i++) {
     start = end;
     end = idx_splitp[i+1];
-    T max = std::numeric_limits<T>::min();
+    T max = std::numeric_limits<T>::lowest();
     for(size_t j = start; j < end; j++) {
       if(max < valp[j]) max = valp[j];
     }
@@ -968,13 +968,13 @@ T max_helper2(std::vector<T>& val,
   size_t nullssize = nulls.size();
   T* valp = &val[0];
   size_t* nullsp = &nulls[0];
-  T min = std::numeric_limits<T>::min();
+  T min = std::numeric_limits<T>::lowest();
 #pragma cdir nodep
 #pragma _NEC ivdep
   for(size_t i = 0; i < nullssize; i++) {
     valp[nullsp[i]] = min;
   }
-  T current_max = std::numeric_limits<T>::min();
+  T current_max = std::numeric_limits<T>::lowest();
   for(size_t i = 0; i < valsize; i++) {
     if(current_max < valp[i]) current_max = valp[i];
   }
@@ -2783,7 +2783,7 @@ typed_dfcolumn<T>::max
          size_t row_size) {
       std::vector<T> newval(row_size);
       auto newvalp = newval.data();
-      auto min = std::numeric_limits<T>::min();
+      auto min = std::numeric_limits<T>::lowest();
       for(size_t i = 0; i < row_size; i++) {
         newvalp[i] = min;
       }
@@ -2805,7 +2805,7 @@ typed_dfcolumn<T>::max
   ret->val = std::move(newval);
   if(contain_nulls) {
     ret->nulls = ret->val.map(+[](std::vector<T>& val) {
-        auto nulls = find_value(val, std::numeric_limits<T>::min());
+        auto nulls = find_value(val, std::numeric_limits<T>::lowest());
         auto valp = val.data();
         auto nullsp = nulls.data();
         auto size = nulls.size();
@@ -2903,7 +2903,7 @@ T typed_dfcolumn<T>::max() {
   auto maxs = val.map(max_helper2<T>, nulls).gather();
   T* maxsp = &maxs[0];
   size_t size = maxs.size();
-  T current_max = std::numeric_limits<T>::min();
+  T current_max = std::numeric_limits<T>::lowest();
   for(size_t i = 0; i < size; i++) {
     if(current_max < maxsp[i]) current_max = maxsp[i];
   }
