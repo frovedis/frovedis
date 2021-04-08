@@ -11,11 +11,14 @@
 #include <unistd.h>
 #include <errno.h>
 #include <algorithm>
+#include <unistd.h>
 
 #ifndef NO_PROGRAM_OPTION
 #include <boost/program_options.hpp>
 #endif
 #include <boost/lexical_cast.hpp>
+#include <boost/algorithm/string/classification.hpp>
+#include <boost/algorithm/string/split.hpp>
 
 namespace frovedis {
 
@@ -376,32 +379,47 @@ exrpc_node invoke_frovedis_server(const std::string& command) {
   std::string total_command = command +
     " -h " + hostname + " -p " + boost::lexical_cast<std::string>(port) + " &";
 #endif
-  if(::system(total_command.c_str()) == -1) {
+  pid_t pid;
+  if((pid = fork()) < 0) {
     throw std::runtime_error
-      (std::string("invoke_frovedis_server: error in system: ") +
+      (std::string("invoke_frovedis_server: error in fork: ") +
        + strerror(errno));
+  } else if(pid == 0) { // child process
+    std::vector<std::string> args;
+    boost::algorithm::split(args, total_command, boost::is_any_of(" "));
+    auto args_size = args.size();
+    std::vector<char*> argv(args_size+1);
+    for(size_t i = 0; i < args_size; i++) {
+      argv[i] = const_cast<char*>(args[i].c_str());
+    }
+    execvp(argv[0], argv.data());
+    return exrpc_node(); // for disabling warning
+  } else {
+    int new_sockfd;
+    bool is_ok = handle_exrpc_accept(sockfd, 5, new_sockfd);
+    ::close(sockfd);
+    if(is_ok) {
+      int port;
+      size_t server_name_size;
+      std::string server_name;
+      myread(new_sockfd, (char*)&port, sizeof(port));
+      myread(new_sockfd, (char*)&server_name_size, sizeof(server_name_size));
+      server_name.resize(server_name_size);
+      char* server_namep = const_cast<char*>(server_name.c_str());
+      myread(new_sockfd, server_namep, server_name_size);
+      exrpc_node server_node;
+      server_node.hostname = server_name;
+      server_node.rpcport = port;
+      char ack = 1;
+      mywrite(new_sockfd, &ack, 1);
+      return server_node;
+      // new_sockfd is left untouched; will send RST when client aborts
+    } else {
+      auto kill_cmd = std::string("kill -s INT ") + std::to_string(pid);
+      ::system(kill_cmd.c_str());
+      throw std::runtime_error(std::string("invoke_frovedis_server: timeout.\n 1) check if the server invocation command is correct.\n 2) check if the hostname is in /etc/hosts or DNS.\n 3) confirm other processes are not running on the same VE."));
+    }
   }
-  int new_sockfd;
-  bool is_ok = handle_exrpc_accept(sockfd, 5, new_sockfd);
-  ::close(sockfd);
-  if(is_ok) {
-    int port;
-    size_t server_name_size;
-    std::string server_name;
-    myread(new_sockfd, (char*)&port, sizeof(port));
-    myread(new_sockfd, (char*)&server_name_size, sizeof(server_name_size));
-    server_name.resize(server_name_size);
-    char* server_namep = const_cast<char*>(server_name.c_str());
-    myread(new_sockfd, server_namep, server_name_size);
-    exrpc_node server_node;
-    server_node.hostname = server_name;
-    server_node.rpcport = port;
-    char ack = 1;
-    mywrite(new_sockfd, &ack, 1);
-    return server_node;
-    // new_sockfd is left untouched; will send RST when client aborts
-  }
-  else throw std::runtime_error(std::string("invoke_frovedis_server: timeout (check server invocation command and if the hostname is in /etc/hosts or DNS)"));
 }
 
 void init_frovedis_server(int argc, char* argv[]) {
