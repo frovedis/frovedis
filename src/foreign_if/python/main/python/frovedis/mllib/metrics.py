@@ -4,46 +4,64 @@ metrics.py
 
 #!/usr/bin/env python
 
+import warnings
 import numpy as np
 
 # simple implementation of r2_score and accuracy_score for the systems
 # without scikit-learn installed support
+def check_targets(y_true, y_pred, sample_weight=None):
+    y_true = np.asarray(y_true)
+    y_pred = np.asarray(y_pred)
+    if len(y_true) != len(y_pred):
+        raise ValueError("input lengths are not matched!")
+    if sample_weight is not None:
+        sample_weight = np.asarray(sample_weight)
+        if len(y_true) != len(sample_weight):
+            raise ValueError(\
+            "sample_weight length is different than input labels!")
+    return y_true, y_pred, sample_weight
+
+def weighted_sum(score, sample_weight, normalize=False):
+    if normalize:
+        return np.average(score, weights=sample_weight)
+    elif sample_weight is not None:
+        return np.dot(sample_score, sample_weight)
+    else:
+        return sample_score.sum()
+
+def accuracy_score(y_true, y_pred, normalize=True, sample_weight=None):
+    """
+    NAME: accuracy_score
+    """
+    if len(y_true) == 0:
+        return 0.
+    y_true, y_pred, sample_weight = \
+    check_targets(y_true, y_pred, sample_weight)
+    score = (y_true == y_pred)
+    return weighted_sum(score, sample_weight, normalize)
+
 def r2_score(y_true, y_pred,
              sample_weight=None,
              multioutput="uniform_average"):
     """
     NAME: r2_score
     """
-    y_true = np.asarray(y_true)
-    y_pred = np.asarray(y_pred)
-    if len(y_true) == 0:
-        return 0.
-    if len(y_true) != len(y_pred):
-        raise ValueError("input lengths are not matched!")
-    tot = numerator = denominator = 0.
-    for i in range(0, len(y_true)):
-        numerator = numerator + ((y_true[i] - y_pred[i]) ** 2)
-        tot = tot + y_true[i]
-    avg = tot / len(y_true)
-    for i in range(0, len(y_true)):
-        denominator = denominator + ((y_true[i] - avg) ** 2)
+    y_true, y_pred, sample_weight = \
+    check_targets(y_true, y_pred, sample_weight)
+
+    if len(y_true) < 2:
+        msg = "R^2 score is not well-defined with less than two samples."
+        warnings.warn(msg, UndefinedMetricWarning)
+        return float('nan')
+
+    weight = 1. if sample_weight is None else np.asarray(sample_weight)
+    numerator = (weight * (y_true - y_pred) ** 2).sum(axis=0, \
+                                                      dtype=np.float64)
+    denominator = (weight * (y_true - np.average( \
+        y_true, axis=0, weights=sample_weight)) ** 2).sum(axis=0, \
+                                                          dtype=np.float64)
 
     if numerator != 0. and denominator != 0.:
-        return 1 - (float(numerator) / denominator)
+        return 1.0 - (float(numerator) / denominator)
     else:
         return 0.
-
-def accuracy_score(y_true, y_pred, normalize=True, sample_weight=None):
-    """
-    NAME: accuracy_score
-    """
-    y_true = np.asarray(y_true)
-    y_pred = np.asarray(y_pred)
-    if len(y_true) == 0:
-        return 0.
-    if len(y_true) != len(y_pred):
-        raise ValueError("input lengths are not matched!")
-    accuracy = 0
-    for i in range(0, len(y_true)):
-        accuracy = accuracy + (y_true[i] == y_pred[i])
-    return float(accuracy) / len(y_true)
