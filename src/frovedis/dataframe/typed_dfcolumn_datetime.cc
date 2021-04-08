@@ -336,7 +336,7 @@ typed_dfcolumn<datetime>::max
          size_t row_size) {
       std::vector<datetime_t> newval(row_size);
       auto newvalp = newval.data();
-      auto min = std::numeric_limits<datetime_t>::min();
+      auto min = std::numeric_limits<datetime_t>::lowest();
       for(size_t i = 0; i < row_size; i++) {
         newvalp[i] = min;
       }
@@ -358,7 +358,7 @@ typed_dfcolumn<datetime>::max
   ret->val = std::move(newval);
   if(contain_nulls) {
     ret->nulls = ret->val.map(+[](std::vector<datetime_t>& val) {
-        auto nulls = find_value(val, std::numeric_limits<datetime_t>::min());
+        auto nulls = find_value(val, std::numeric_limits<datetime_t>::lowest());
         auto valp = val.data();
         auto nullsp = nulls.data();
         auto size = nulls.size();
