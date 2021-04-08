@@ -108,7 +108,8 @@ class FactorizationMachineClassifier(BaseEstimator):
                    dense_kind = 'colmajor', densify=False)
         X, y, logic = inp_data.get()
         self._classes = inp_data.get_distinct_labels()
-        self.n_classes = len(self._classes)
+        self.n_classes_ = len(self._classes)
+        self.n_features_ = inp_data.numCols()
         self.label_map = logic
         dtype = inp_data.get_dtype()
         itype = inp_data.get_itype()
@@ -116,9 +117,9 @@ class FactorizationMachineClassifier(BaseEstimator):
         if dense:
             raise TypeError("fit: expected sparse matrix data for training!")
         self.__mdtype = dtype
+        (host, port) = FrovedisServer.getServerInstance()
         self.__mid = ModelID.get()
         self.__sid = FrovedisServer.getID()
-        (host, port) = FrovedisServer.getServerInstance()
         rpclib.fm_train(host, port, X.get(),
                         y.get(), self.init_stdev, self.iteration,
                         self.init_learn_rate, self.optimizer.encode('ascii'),
@@ -188,8 +189,8 @@ class FactorizationMachineClassifier(BaseEstimator):
                                  "expected type: " + str(mdt) + \
                                  "; given type: " + str(dtype))
         self.__mid = ModelID.get()
-        self.__sid = FrovedisServer.getID()
         GLM.load(self.__mid, self.__mkind, self.__mdtype, fname + "/model")
+        self.__sid = FrovedisServer.getID()
         return self
 
     # calculate the mean accuracy on the given test data and labels.
@@ -243,6 +244,7 @@ class FactorizationMachineClassifier(BaseEstimator):
         self.__sid = None
         self._classes = None
         self.label_map = None
+        self.n_classes_ = self.n_features_ = None
 
     # Check FrovedisServer is up then release
     def __del__(self):
@@ -340,6 +342,7 @@ class FactorizationMachineRegressor(BaseEstimator):
                    caller = "[" + self.__class__.__name__ + "] fit: ",\
                    dense_kind = 'colmajor', densify=False)
         (X, y) = inp_data.get()
+        self.n_features_ = inp_data.numCols()
         dtype = inp_data.get_dtype()
         itype = inp_data.get_itype()
         dense = inp_data.is_dense()
@@ -347,9 +350,9 @@ class FactorizationMachineRegressor(BaseEstimator):
             raise TypeError("fit: expected Sparse matrix data for training!")
         self.validate()
         self.__mdtype = dtype
+        (host, port) = FrovedisServer.getServerInstance()
         self.__mid = ModelID.get()
         self.__sid = FrovedisServer.getID()
-        (host, port) = FrovedisServer.getServerInstance()
         rpclib.fm_train(host, port, X.get(),
                         y.get(), self.init_stdev, self.iteration,
                         self.init_learn_rate, self.optimizer.encode('ascii'),
@@ -395,8 +398,8 @@ class FactorizationMachineRegressor(BaseEstimator):
                                  "expected type: " + str(mdt) + \
                                  "; given type: " + str(dtype))
         self.__mid = ModelID.get()
-        self.__sid = FrovedisServer.getID()
         GLM.load(self.__mid, self.__mkind, self.__mdtype, fname + "/model")
+        self.__sid = FrovedisServer.getID()
         return self
 
     # Save model to a file
@@ -444,6 +447,7 @@ class FactorizationMachineRegressor(BaseEstimator):
                 GLM.release(self.__mid, self.__mkind, self.__mdtype)
         self.__mid = None
         self.__sid = None
+        self.n_features_ = None
 
     # Check FrovedisServer is up then release
     def __del__(self):
