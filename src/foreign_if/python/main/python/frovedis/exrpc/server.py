@@ -25,9 +25,13 @@ class ServerID(object):
 def explain(server_inst):
     """ to_string() for server instance """
     if server_inst is not None:
-        return "[ID: " + str(server_inst.sid) + "] Master node (" + \
-               str(server_inst.mnode) + ") has been initialized with " + \
-               str(server_inst.wsize) + " workers."
+        withmsg = "with " + str(server_inst.wsize) + " MPI process"
+        if server_inst.wsize > 1:
+            withmsg += "es."
+        else:
+            withmsg += "."
+        return "[ID: " + str(server_inst.sid) + "] FrovedisServer (" + \
+               str(server_inst.mnode) + ") has been initialized " + withmsg
     else: 
         return "No active server is found!!";
 
@@ -76,7 +80,7 @@ class FrovedisServer(object):
             FrovedisServer.__cmd = command
             cls.getServerInstance()
         else:
-            print("Frovedis server is already initialized!!")
+            print("FrovedisServer is already initialized!!")
         return explain(FrovedisServer.__instance)
 
     @classmethod
@@ -123,7 +127,7 @@ class FrovedisServer(object):
 
 def check_server_state(server_id, inst_class_name):
     if not FrovedisServer.isUP(server_id):
-        raise RuntimeError("frovedis server (ID: %d) associated with target "\
+        raise RuntimeError("FrovedisServer (ID: %d) associated with target "\
                            "'%s' object could not be reached!\n"\
                            "In case it has already been shut-down, "\
                            "you would need to re-fit the object.\n" \
