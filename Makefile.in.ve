@@ -13,10 +13,10 @@ INSTALLPATH := /opt/nec/nosupport/frovedis/ve
 CXX := nc++
 MPICXX := mpinc++
 AR := nar
-CXXFLAGS_COMMON := -O4 -fno-defer-inline-template-instantiation -finline-functions -D_MPIPP_INCLUDE -I${BOOST_INC} -I${NLC_INC} -fdiag-vector=2 -msched-block
+CXXFLAGS_COMMON := -O4 -fno-defer-inline-template-instantiation -finline-functions -Wno-unknown-pragma -D_MPIPP_INCLUDE -I${BOOST_INC} -I${NLC_INC} -fdiag-vector=2 -msched-block
 
-LINK :=	nfort -cxxlib -static
-MPI_LINK = $(shell mpinc++ -show | cut -d" " -f 2-)
+LINK :=	nfort -cxxlib -static -mno-create-threads-at-startup
+MPI_LINK = $(shell mpinc++ -static -show | cut -d" " -f 2-)
 
 LIBS_COMMON := -L${NLC_LIB} -lparpack -lscalapack -llapack -lcblas -lblas_sequential -lasl_sequential -L${BOOST_LIB} -lboost_program_options -lboost_serialization -lboost_system  ${MPI_LINK} 
 
