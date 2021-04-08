@@ -154,9 +154,9 @@ class FPGrowth(object):
         """
         f_df = self.__check_input(data)
         self.release()
+        (host, port) = FrovedisServer.getServerInstance()
         self.__mid = ModelID.get()
         self.__sid = FrovedisServer.getID()
-        (host, port) = FrovedisServer.getServerInstance()
         self.count = rpclib.fpgrowth_generate_fis(host, port, \
             f_df.get(), self.__mid, \
             self.minSupport, self.tree_depth, self.compression_point, \
