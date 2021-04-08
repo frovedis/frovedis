@@ -1264,12 +1264,14 @@ svm_regressor_sgd.restype = c_int #n_iter
 
 # 1. Decision Tree
 dt_train = LIB.dt_trainer
-dt_train.argtypes = [c_char_p, c_int, c_long,
-                     c_long, c_char_p, c_char_p,
-                     c_int, c_int, c_int, c_int,
-                     c_float, c_int, c_int,
-                     c_short, c_short, c_bool]
-
+dt_train.argtypes = [c_char_p, c_int, c_long,    # host, port, X_proxy 
+                     c_long, c_char_p, c_char_p, # y_proxy, algo, criterion
+                     c_int, c_int, c_int, c_int, # depth, ncls, bins, min-leaf
+                     c_float, c_int, c_int,    # impurity-dec, verbose, mid
+                     ndpointer(c_int, ndim=1, flags="C_CONTIGUOUS"), # cat-key
+                     ndpointer(c_int, ndim=1, flags="C_CONTIGUOUS"), # cat-val
+                     c_ulong, # info-dict-size
+                     c_short, c_short, c_bool] # dtype, itype, dense
 
 # 2. Random Forest
 rf_train = LIB.rf_trainer
