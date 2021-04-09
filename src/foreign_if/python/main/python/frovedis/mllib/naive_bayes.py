@@ -310,13 +310,11 @@ class MultinomialNB(BaseEstimator):
             "or the model is released.")
 
     # calculate the mean accuracy on the given test data and labels.
-    def score(self, X, y, sample_weight = None):
+    def score(self, X, y, sample_weight=None):
         """
         NAME: score
         """
-        if self.__mid is not None:
-            sample_weight = self.check_sample_weight(sample_weight)
-            return accuracy_score(y, self.predict(X), sample_weight = sample_weight)
+        return accuracy_score(y, self.predict(X), sample_weight=sample_weight)
 
     # Show the model
     def debug_print(self):
@@ -520,12 +518,11 @@ class GaussianNB(BaseEstimator):
             "or the model is released.")
 
     # calculate the mean accuracy on the given test data and labels.
-    def score(self, X, y):
+    def score(self, X, y, sample_weight=None):
         """
         NAME: score
         """
-        if self.__mid is not None:
-            return accuracy_score(y, self.predict(X))
+        return accuracy_score(y, self.predict(X), sample_weight=sample_weight)
 
     # Show the model
     def debug_print(self):
@@ -910,13 +907,11 @@ class BernoulliNB(BaseEstimator):
             "or the model is released.")
 
     # calculate the mean accuracy on the given test data and labels.
-    def score(self, X, y, sample_weight = None):
+    def score(self, X, y, sample_weight=None):
         """
         NAME: score
         """
-        if self.__mid is not None:
-            sample_weight = self.check_sample_weight(sample_weight)
-            return accuracy_score(y, self.predict(X), sample_weight = sample_weight)
+        return accuracy_score(y, self.predict(X), sample_weight=sample_weight)
 
     # Show the model
     def debug_print(self):

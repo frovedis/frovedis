@@ -276,12 +276,11 @@ class LinearSVC(BaseEstimator):
             raise AttributeError(\
                     "save: requested model might have been released!")
 
-    def score(self, X, y):
+    def score(self, X, y, sample_weight=None):
         """
         NAME: score
         """
-        if self.__mid is not None:
-            return accuracy_score(y, self.predict(X))
+        return accuracy_score(y, self.predict(X), sample_weight=sample_weight)
 
     def debug_print(self):
         """
@@ -679,12 +678,11 @@ class SVC(BaseEstimator):
             raise AttributeError(\
                     "save: requested model might have been released!")
 
-    def score(self, X, y):
+    def score(self, X, y, sample_weight=None):
         """
         NAME: score
         """
-        if self.__mid is not None:
-            return accuracy_score(y, self.predict(X))
+        return accuracy_score(y, self.predict(X), sample_weight=sample_weight)
 
     def release(self):
         """
@@ -959,12 +957,11 @@ class LinearSVR(BaseEstimator):
             raise AttributeError(\
                     "save: requested model might have been released!")
 
-    def score(self, X, y):
+    def score(self, X, y, sample_weight=None):
         """
         NAME: score
         """
-        if self.__mid is not None:
-            return r2_score(y, self.predict(X))
+        return r2_score(y, self.predict(X), sample_weight=sample_weight)
 
     def debug_print(self):
         """

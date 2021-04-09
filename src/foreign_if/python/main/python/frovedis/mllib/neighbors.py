@@ -507,6 +507,7 @@ class KNeighborsClassifier(BaseEstimator):
         else:
             return ret
 
+    # TODO: support sample_weight
     def score(self, X, y, sample_weight=None):
         """
         NAME: score function for KNeighbors Regressor
@@ -768,6 +769,7 @@ class KNeighborsRegressor(BaseEstimator):
             raise RuntimeError(excpt["info"])
         return np.asarray(ret, dtype=np.float64)
 
+    # TODO: support sample_weight
     def score(self, X, y, sample_weight=None):
         """
         NAME: score function for KNeighbors Regressor
