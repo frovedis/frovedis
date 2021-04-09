@@ -16,7 +16,7 @@ FrovedisServer.initialize(argvs[1])
 mat = FrovedisCRSMatrix().load("./input/libSVMFile.txt")
 
 # fitting the input matrix on a ALS object
-als = ALS().fit(mat,rank=4)
+als = ALS(rank=4).fit(mat)
 
 # ids (userId or prodId)  start with 0
 print (als.predict([(1,1), (0,1), (2,3), (3,1)]))
