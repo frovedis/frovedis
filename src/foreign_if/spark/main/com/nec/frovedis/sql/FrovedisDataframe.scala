@@ -102,96 +102,6 @@ object DFConverter {
     val ctxt = SparkContext.getOrCreate()
     return spark.createDataFrame(ctxt.parallelize(row), schema)
   }
-  def setEachIntPartition(nid: Int, 
-                          wnode: Node,
-                          dptr: Long): Iterator[Int] = {
-    val lvec = JNISupport.getLocalIntVector(wnode,dptr)
-    val info = JNISupport.checkServerException()
-    if (info != "") throw new java.rmi.ServerException(info)
-    return lvec.toIterator
-  }
-  def to_Int_RDD(proxy: Long, cname: String,
-                 dummy: RDD[Boolean],
-                 mnode: Node, nodes: Array[Node]): RDD[Int] = {
-    val eps = JNISupport.getLocalIntColumnPointers(mnode, proxy, cname)
-    val info = JNISupport.checkServerException()
-    if (info != "") throw new java.rmi.ServerException(info)
-    val ret = dummy.mapPartitionsWithIndex((i,x) =>
-                    setEachIntPartition(i,nodes(i),eps(i)))
-    return ret
-  }
-  def setEachLongPartition(nid: Int, 
-                          wnode: Node,
-                          dptr: Long): Iterator[Long] = {
-    val lvec = JNISupport.getLocalLongVector(wnode,dptr)
-    val info = JNISupport.checkServerException()
-    if (info != "") throw new java.rmi.ServerException(info)
-    return lvec.toIterator
-  }
-  def to_Long_RDD(proxy: Long, cname: String,
-                 dummy: RDD[Boolean],
-                 mnode: Node, nodes: Array[Node]): RDD[Long] = {
-    val eps = JNISupport.getLocalLongColumnPointers(mnode, proxy, cname)
-    val info = JNISupport.checkServerException()
-    if (info != "") throw new java.rmi.ServerException(info)
-    val ret = dummy.mapPartitionsWithIndex((i,x) =>
-                    setEachLongPartition(i,nodes(i),eps(i)))
-    return ret
-  }
-  def setEachFloatPartition(nid: Int, 
-                          wnode: Node,
-                          dptr: Long): Iterator[Float] = {
-    val lvec = JNISupport.getLocalFloatVector(wnode,dptr)
-    val info = JNISupport.checkServerException()
-    if (info != "") throw new java.rmi.ServerException(info)
-    return lvec.toIterator
-  }
-  def to_Float_RDD(proxy: Long, cname: String,
-                 dummy: RDD[Boolean],
-                 mnode: Node, nodes: Array[Node]): RDD[Float] = {
-    val eps = JNISupport.getLocalFloatColumnPointers(mnode, proxy, cname)
-    val info = JNISupport.checkServerException()
-    if (info != "") throw new java.rmi.ServerException(info)
-    val ret = dummy.mapPartitionsWithIndex((i,x) =>
-                    setEachFloatPartition(i,nodes(i),eps(i)))
-    return ret
-  }
-  def setEachDoublePartition(nid: Int, 
-                          wnode: Node,
-                          dptr: Long): Iterator[Double] = {
-    val lvec = JNISupport.getLocalDoubleVector(wnode,dptr)
-    val info = JNISupport.checkServerException()
-    if (info != "") throw new java.rmi.ServerException(info)
-    return lvec.toIterator
-  }
-  def to_Double_RDD(proxy: Long, cname: String,
-                 dummy: RDD[Boolean],
-                 mnode: Node, nodes: Array[Node]): RDD[Double] = {
-    val eps = JNISupport.getLocalDoubleColumnPointers(mnode, proxy, cname)
-    val info = JNISupport.checkServerException()
-    if (info != "") throw new java.rmi.ServerException(info)
-    val ret = dummy.mapPartitionsWithIndex((i,x) =>
-                    setEachDoublePartition(i,nodes(i),eps(i)))
-    return ret
-  }
-  def setEachStringPartition(nid: Int, 
-                          wnode: Node,
-                          dptr: Long): Iterator[String] = {
-    val lvec = JNISupport.getLocalStringVector(wnode,dptr)
-    val info = JNISupport.checkServerException()
-    if (info != "") throw new java.rmi.ServerException(info)
-    return lvec.toIterator
-  }
-  def to_String_RDD(proxy: Long, cname: String,
-                 dummy: RDD[Boolean],
-                 mnode: Node, nodes: Array[Node]): RDD[String] = {
-    val eps = JNISupport.getLocalStringColumnPointers(mnode, proxy, cname)
-    val info = JNISupport.checkServerException()
-    if (info != "") throw new java.rmi.ServerException(info)
-    val ret = dummy.mapPartitionsWithIndex((i,x) =>
-                    setEachStringPartition(i,nodes(i),eps(i)))
-    return ret
-  }
 }
 
 class FrovedisDataFrame extends java.io.Serializable {
@@ -613,24 +523,24 @@ class FrovedisDataFrame extends java.io.Serializable {
   def to_spark_DF(context: SparkContext): DataFrame = {
     if(fdata == -1)  throw new IllegalArgumentException("Invalid Frovedis Dataframe!\n")
     val size = cols.size
-    val fs = FrovedisServer.getServerInstance()
-    val mnode = fs.master_node
-    val wnodes = JNISupport.getWorkerInfo(mnode)
-    val info = JNISupport.checkServerException()
-    if (info != "") throw new java.rmi.ServerException(info)
-    val tmp = new Array[Boolean](wnodes.size)
-    val dummy = context.parallelize(tmp,wnodes.size)
     var ret = new Array[Any](size)
-    for (i <- 0 to (size-1)) {
+    val fs = FrovedisServer.getServerInstance()
+    for (i <- 0 until size) {
       val tid = types(i)
       val cname = cols(i)
+      val cptr = JNISupport.getDFColumnPointer(fs.master_node, fdata, cname, tid)
+      var info = JNISupport.checkServerException()
+      if (info != "") throw new java.rmi.ServerException(info)
       ret(i) =  tid match {
-        case DTYPE.INT    => DFConverter.to_Int_RDD(get(),cname,dummy,mnode,wnodes) 
-        case DTYPE.LONG   => DFConverter.to_Long_RDD(get(),cname,dummy,mnode,wnodes) 
-        case DTYPE.FLOAT  => DFConverter.to_Float_RDD(get(),cname,dummy,mnode,wnodes) 
-        case DTYPE.DOUBLE => DFConverter.to_Double_RDD(get(),cname,dummy,mnode,wnodes) 
-        case DTYPE.STRING => DFConverter.to_String_RDD(get(),cname,dummy,mnode,wnodes) 
+        case DTYPE.INT    => IntDvector.to_RDD(cptr)
+        case DTYPE.LONG   => LongDvector.to_RDD(cptr)
+        case DTYPE.FLOAT  => FloatDvector.to_RDD(cptr)
+        case DTYPE.DOUBLE => DoubleDvector.to_RDD(cptr)
+        case DTYPE.STRING => StringDvector.to_RDD(cptr)
       }
+      JNISupport.releaseDFColumnPointer(fs.master_node, cptr, tid)
+      info = JNISupport.checkServerException()
+      if (info != "") throw new java.rmi.ServerException(info)
     }
     val spark = SparkSession.builder().getOrCreate()
     import spark.implicits._
