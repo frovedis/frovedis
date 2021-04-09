@@ -739,26 +739,20 @@ public class JNISupport {
                                                 int uniq_cnt);
   public static native void releaseFrovedisDvector(Node master_node, long dptr);
 
+  public static native long[] getLocalVectorPointers(Node master_node, long dptr,
+                                                     short dtype);
+  public static native int[] getFrovedisWorkerIntVector(Node t_node, long dptr);
+  public static native long[] getFrovedisWorkerLongVector(Node t_node, long dptr);
+  public static native float[] getFrovedisWorkerFloatVector(Node t_node, long dptr);
+  public static native double[] getFrovedisWorkerDoubleVector(Node t_node, long dptr);
+  public static native String[] getFrovedisWorkerStringVector(Node t_node, long dptr);
+  public static native int[] getFrovedisWorkerBoolVector(Node t_node, long dptr); // TODO
+
   // frovedis dataframe column extraction
-  public static native long[] getLocalIntColumnPointers(Node master_node,
-                                                       long proxy, String cname);
-  public static native int[] getLocalIntVector(Node wnode, long dptr);
-
-  public static native long[] getLocalLongColumnPointers(Node master_node,
-                                                        long proxy, String cname);
-  public static native long[] getLocalLongVector(Node wnode, long dptr);
-
-  public static native long[] getLocalFloatColumnPointers(Node master_node,
-                                                         long proxy, String cname);
-  public static native float[] getLocalFloatVector(Node wnode, long dptr);
-
-  public static native long[] getLocalDoubleColumnPointers(Node master_node,
-                                                          long proxy, String cname);
-  public static native double[] getLocalDoubleVector(Node wnode, long dptr);
-
-  public static native long[] getLocalStringColumnPointers(Node master_node,
-                                                           long proxy, String cname);
-  public static native String[] getLocalStringVector(Node wnode, long dptr);
+  public static native long getDFColumnPointer(Node master_node, long dptr, 
+                                               String cname, short tid);
+  public static native void releaseDFColumnPointer(Node master_node, 
+                                                   long cptr, short tid);
 
   public static native long createFrovedisDataframe(Node master_node,
                                                   short dtypes[],
