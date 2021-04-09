@@ -18,8 +18,6 @@
 */
 namespace frovedis {
 
-enum { NONE = 0xDEAD }; 
-
 enum MODEL_KIND {
   GLM = 0,
   LRM,
@@ -100,6 +98,7 @@ void register_model(int mid, MODEL_KIND m, exrpc_ptr_t mptr);
 void register_for_train(int mid);
 void unregister_from_train(int mid);
 bool is_deleted(int mid);
+bool is_registered_model(int mid);
 bool is_under_training(int mid);
 
 void finalize_model_table();

@@ -52,6 +52,10 @@ bool is_deleted(int mid) {
   return (deleted_model_tracker.find(mid) != deleted_model_tracker.end());
 }
 
+// checks if  model with given mid is alreday registered (a pre-trained model)
+bool is_registered_model(int mid) {
+  return (model_table.find(mid) != model_table.end());
+}
 
 // deletes all in-memory Frovedis models 
 void finalize_model_table() {
