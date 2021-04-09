@@ -2,7 +2,6 @@
 #define _LR_SOFTMAX_HPP_
 
 #include "softmax_parallelizer.hpp"
-#include "../../dataframe.hpp"
 
 namespace frovedis {
 
@@ -165,11 +164,7 @@ public:
 
 template <class T>
 size_t compute_nclasses (dvector<T>& label) {
-  dftable tmp;
-  tmp.append_column("label",label);
-  std::vector<std::string> target = {std::string("label")};
-  auto grouped = tmp.group_by(target);
-  return grouped.num_row();
+  return vector_unique(label.gather()).size();
 }
 
 template <class T, class I, class O>
