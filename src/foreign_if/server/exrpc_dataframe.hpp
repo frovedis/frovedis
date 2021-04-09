@@ -204,6 +204,12 @@ dummy_dftable
 frov_df_add_index(exrpc_ptr_t& df_proxy, std::string& name,
                 bool& need_materialize);
 
-
+template <class T>
+exrpc_ptr_t get_df_column_pointer(exrpc_ptr_t& df_proxy, 
+                                  std::string& cname) {
+  auto& df = *reinterpret_cast<dftable_base*>(df_proxy);
+  auto cptr = new dvector<T>(df.as_dvector<T>(cname));
+  return reinterpret_cast<exrpc_ptr_t>(cptr);
+}
 
 #endif

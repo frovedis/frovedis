@@ -57,4 +57,9 @@ void expose_frovedis_dataframe_functions() {
   expose(frov_df_convert_dicstring_to_bool);
   expose(frov_df_append_column);
   expose(frov_df_add_index);
+  expose(get_df_column_pointer<int>);
+  expose(get_df_column_pointer<long>);
+  expose(get_df_column_pointer<float>);
+  expose(get_df_column_pointer<double>);
+  expose(get_df_column_pointer<std::string>);
 }

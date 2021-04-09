@@ -167,6 +167,13 @@ void show_glm_data(frovedis_mem_pair& mp) {
   show_dvector<T>(dptr);
 }
 
+
+// returns local chunk of dvector (node_local<std::vector<T>>) 
+template <class T>
+std::vector<T> get_local_vector(exrpc_ptr_t& d_ptr) {
+  return *reinterpret_cast<std::vector<T>*>(d_ptr);
+}
+
 // returns a memptr pointing to the head of created dvector
 template <class T>
 exrpc_ptr_t create_and_set_dvector(std::vector<exrpc_ptr_t>& dvec_eps) {
@@ -483,7 +490,7 @@ dummy_matrix to_colmajor_matrix(exrpc_ptr_t& d_ptr) {
 
 // reurns the exrpc::pointer of the input local matrix
 template <class LOC_MATRIX>
-exrpc_ptr_t get_local_pointer(LOC_MATRIX& lm) {
+exrpc_ptr_t get_all_local_pointers_helper(LOC_MATRIX& lm) {
   auto matp = &lm;
   return reinterpret_cast<exrpc_ptr_t>(matp);
 }
@@ -493,7 +500,23 @@ template <class MATRIX, class LOC_MATRIX>
 std::vector<exrpc_ptr_t>
 get_all_local_pointers(exrpc_ptr_t& d_ptr) {
   auto matp = reinterpret_cast<MATRIX*>(d_ptr);
-  return matp->data.map(get_local_pointer<LOC_MATRIX>).gather();
+  return matp->data.map(get_all_local_pointers_helper<LOC_MATRIX>).gather();
+}
+
+// reurns the exrpc::pointer of the input local vector of a dvector
+template <class T>
+exrpc_ptr_t get_dvector_local_pointers_helper(std::vector<T>& lvec) {
+  auto vecp = &lvec;
+  return reinterpret_cast<exrpc_ptr_t>(vecp);
+}
+
+// returns all the local data pointers of the input dvector data
+template <class T>
+std::vector<exrpc_ptr_t>
+get_dvector_local_pointers(exrpc_ptr_t& d_ptr) {
+  auto& dvec = *reinterpret_cast<dvector<T>*>(d_ptr); // CAUTION: not copying here
+  return dvec.viewas_node_local()
+             .map(get_dvector_local_pointers_helper<T>).gather();
 }
 
 // converts MATRIX to rowmajor_matrix<T> and returns all its local data pointers
@@ -624,5 +647,7 @@ get_all_nrow(exrpc_ptr_t& d_ptr) {
   auto& mat = *reinterpret_cast<crs_matrix<T,I,O>*>(d_ptr);
   return mat.get_local_num_rows();
 }
+
+
 
 #endif

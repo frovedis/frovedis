@@ -70,4 +70,15 @@ void expose_frovedis_dvector_functions() {
   expose((release_data<std::vector<float>>));  // FrovedisVector + SVAL/SVEC
   expose((release_data<std::vector<double>>)); // FrovedisVector + SVAL/SVEC/EIGVAL
   expose((release_data<std::vector<std::string>>));  // FrovedisVector
+  // dvector to spark RDD
+  expose(get_dvector_local_pointers<int>);
+  expose(get_dvector_local_pointers<long>);
+  expose(get_dvector_local_pointers<float>);
+  expose(get_dvector_local_pointers<double>);
+  expose(get_dvector_local_pointers<std::string>);
+  expose(get_local_vector<int>);
+  expose(get_local_vector<long>);
+  expose(get_local_vector<float>);
+  expose(get_local_vector<double>);
+  expose(get_local_vector<std::string>);
 }
