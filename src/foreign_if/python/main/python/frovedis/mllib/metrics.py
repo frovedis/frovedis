@@ -5,6 +5,7 @@ metrics.py
 #!/usr/bin/env python
 
 import warnings
+import numbers
 import numpy as np
 
 # simple implementation of r2_score and accuracy_score for the systems
@@ -15,7 +16,10 @@ def check_targets(y_true, y_pred, sample_weight=None):
     if len(y_true) != len(y_pred):
         raise ValueError("input lengths are not matched!")
     if sample_weight is not None:
-        sample_weight = np.asarray(sample_weight)
+        if isinstance(sample_weight, numbers.Number):
+            sample_weight = np.full(len(y_true), sample_weight, dtype=np.float64)
+        else: # array-like
+            sample_weight = np.asarray(sample_weight)
         if len(y_true) != len(sample_weight):
             raise ValueError(\
             "sample_weight length is different than input labels!")
