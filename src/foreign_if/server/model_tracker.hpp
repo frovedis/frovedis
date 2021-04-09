@@ -18,6 +18,8 @@
 */
 namespace frovedis {
 
+enum { NONE = 0xDEAD };
+
 enum MODEL_KIND {
   GLM = 0,
   LRM,
