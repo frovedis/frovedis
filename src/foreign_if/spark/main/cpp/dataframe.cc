@@ -478,4 +478,47 @@ JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getCrossDfopt
   return (jlong) ret_proxy;
 }
 
+JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getDFColumnPointer
+  (JNIEnv *env, jclass thisCls, jobject master_node, 
+   jlong df_proxy, jstring col_name, jshort tid) {
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto df = (exrpc_ptr_t) df_proxy;
+  auto cname = to_cstring(env, col_name);
+  exrpc_ptr_t ret = 0;
+  try {
+    switch(tid) {
+      case INT:    ret = exrpc_async(fm_node, get_df_column_pointer<int>, df, cname).get(); break;
+      case LONG:   ret = exrpc_async(fm_node, get_df_column_pointer<long>, df, cname).get(); break;
+      case FLOAT:  ret = exrpc_async(fm_node, get_df_column_pointer<float>, df, cname).get(); break;
+      case DOUBLE: ret = exrpc_async(fm_node, get_df_column_pointer<double>, df, cname).get(); break;
+      case STRING: ret = exrpc_async(fm_node, get_df_column_pointer<std::string>, df, cname).get(); break;
+      case BOOL:   ret = exrpc_async(fm_node, get_df_column_pointer<int>, df, cname).get(); break;
+      default:     REPORT_ERROR(USER_ERROR, 
+                   "Unsupported datatype is encountered in df column extraction!\n");
+    }
+  }
+  catch(std::exception& e) { set_status(true,e.what()); }
+  return (jlong) ret;
+}
+
+JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_releaseDFColumnPointer
+  (JNIEnv *env, jclass thisCls, jobject master_node, 
+   jlong dptr, jshort tid) {
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto f_dptr = (exrpc_ptr_t) dptr;
+  try {
+     switch(tid) {
+       case INT:    exrpc_oneway(fm_node, release_dvector<int>, f_dptr); break;
+       case LONG:   exrpc_oneway(fm_node, release_dvector<long>, f_dptr); break;
+       case FLOAT:  exrpc_oneway(fm_node, release_dvector<float>, f_dptr); break;
+       case DOUBLE: exrpc_oneway(fm_node, release_dvector<double>, f_dptr); break;
+       case STRING: exrpc_oneway(fm_node, release_dvector<std::string>, f_dptr); break;
+       case BOOL:   exrpc_oneway(fm_node, release_dvector<int>, f_dptr); break;
+       default:     REPORT_ERROR(USER_ERROR, 
+                    "Unsupported datatype is encountered in df column destruction!\n");
+     }
+  }
+  catch(std::exception& e) { set_status(true,e.what()); }
+}
+
 }

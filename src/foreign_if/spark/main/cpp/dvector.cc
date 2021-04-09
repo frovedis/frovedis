@@ -167,4 +167,105 @@ JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getEncodedDvecto
   return (jlong) res_ptr;
 }
 
+JNIEXPORT jlongArray JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getLocalVectorPointers
+  (JNIEnv *env, jclass thisCls, jobject master_node, 
+   jlong dptr, jshort dtype) {
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto f_dptr = (exrpc_ptr_t) dptr;
+  std::vector<exrpc_ptr_t> eps;
+  try {
+    switch(dtype) {
+      case INT:    eps = exrpc_async(fm_node, get_dvector_local_pointers<int>, f_dptr).get(); break;
+      case LONG:   eps = exrpc_async(fm_node, get_dvector_local_pointers<long>, f_dptr).get(); break;
+      case FLOAT:  eps = exrpc_async(fm_node, get_dvector_local_pointers<float>, f_dptr).get(); break;
+      case DOUBLE: eps = exrpc_async(fm_node, get_dvector_local_pointers<double>, f_dptr).get(); break;
+      case STRING: eps = exrpc_async(fm_node, get_dvector_local_pointers<std::string>, f_dptr).get(); break;
+      case BOOL:   eps = exrpc_async(fm_node, get_dvector_local_pointers<int>, f_dptr).get(); break;
+      default:     REPORT_ERROR(USER_ERROR, 
+                   "Unsupported datatype is encountered in dvector to RDD conversion!\n");
+    }
+  }
+  catch(std::exception& e) { set_status(true,e.what()); }
+  return to_jlongArray(env, eps);
+}
+
+JNIEXPORT jintArray JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getFrovedisWorkerIntVector
+  (JNIEnv *env, jclass thisCls, jobject worker_node, 
+   jlong dptr) {
+  auto fw_node = java_node_to_frovedis_node(env, worker_node);
+  auto f_dptr = (exrpc_ptr_t) dptr;
+  std::vector<int> ret;
+  try {
+    ret = exrpc_async(fw_node, get_local_vector<int>, f_dptr).get();
+  }
+  catch(std::exception& e) { set_status(true, e.what()); }
+  return to_jintArray(env, ret);
+}
+
+JNIEXPORT jlongArray JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getFrovedisWorkerLongVector
+  (JNIEnv *env, jclass thisCls, jobject worker_node, 
+   jlong dptr) {
+  auto fw_node = java_node_to_frovedis_node(env, worker_node);
+  auto f_dptr = (exrpc_ptr_t) dptr;
+  std::vector<long> ret;
+  try {
+    ret = exrpc_async(fw_node, get_local_vector<long>, f_dptr).get();
+  }
+  catch(std::exception& e) { set_status(true, e.what()); }
+  return to_jlongArray2(env, ret);
+}
+
+JNIEXPORT jfloatArray JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getFrovedisWorkerFloatVector
+  (JNIEnv *env, jclass thisCls, jobject worker_node, 
+   jlong dptr) {
+  auto fw_node = java_node_to_frovedis_node(env, worker_node);
+  auto f_dptr = (exrpc_ptr_t) dptr;
+  std::vector<float> ret;
+  try {
+    ret = exrpc_async(fw_node, get_local_vector<float>, f_dptr).get();
+  }
+  catch(std::exception& e) { set_status(true, e.what()); }
+  return to_jfloatArray(env, ret);
+}
+
+JNIEXPORT jdoubleArray JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getFrovedisWorkerDoubleVector
+  (JNIEnv *env, jclass thisCls, jobject worker_node, 
+   jlong dptr) {
+  auto fw_node = java_node_to_frovedis_node(env, worker_node);
+  auto f_dptr = (exrpc_ptr_t) dptr;
+  std::vector<double> ret;
+  try {
+    ret = exrpc_async(fw_node, get_local_vector<double>, f_dptr).get();
+  }
+  catch(std::exception& e) { set_status(true, e.what()); }
+  return to_jdoubleArray(env, ret);
+}
+
+JNIEXPORT jobjectArray JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getFrovedisWorkerStringVector
+  (JNIEnv *env, jclass thisCls, jobject worker_node, 
+   jlong dptr) {
+  auto fw_node = java_node_to_frovedis_node(env, worker_node);
+  auto f_dptr = (exrpc_ptr_t) dptr;
+  std::vector<std::string> ret;
+  try {
+    ret = exrpc_async(fw_node, get_local_vector<std::string>, f_dptr).get();
+  }
+  catch(std::exception& e) { set_status(true, e.what()); }
+  return to_jStringArray(env, ret);
+}
+
+// actually int array containing 0s and 1s
+JNIEXPORT jintArray JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getFrovedisWorkerBoolVector
+  (JNIEnv *env, jclass thisCls, jobject worker_node, 
+   jlong dptr) {
+  auto fw_node = java_node_to_frovedis_node(env, worker_node);
+  auto f_dptr = (exrpc_ptr_t) dptr;
+  std::vector<int> ret;
+  try {
+    ret = exrpc_async(fw_node, get_local_vector<int>, f_dptr).get();
+  }
+  catch(std::exception& e) { set_status(true, e.what()); }
+  return to_jintArray(env, ret);
+}
+
 }
