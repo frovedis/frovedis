@@ -4,8 +4,11 @@ import sys
 import numpy as np
 import pandas as pd
 from frovedis.exrpc.server import FrovedisServer
+
 from frovedis.mllib.ensemble import GradientBoostingClassifier
 from frovedis.mllib.ensemble import GradientBoostingRegressor
+#from sklearn.ensemble import GradientBoostingClassifier
+#from sklearn.ensemble import GradientBoostingRegressor
 
 # initializing the Frovedis server
 argvs = sys.argv
@@ -16,23 +19,21 @@ if (argc < 2):
 FrovedisServer.initialize(argvs[1])
 
 
-X = np.array([[0, 0], [1, 1]], dtype= np.float64)
-Y = np.array([0, 1])
+mat = np.array([[10, 0, 1, 0, 0, 1, 0],
+                [0, 1, 0, 1, 0, 1, 0],
+                [0, 1, 0, 0, 1, 0, 1],
+                [1, 0, 0, 1, 0, 1, 0]])
+lbl = np.array([1, 0, 1, 0])
 
 gbt = GradientBoostingClassifier(n_estimators=2)
-
 print("fitting GradientBoostingClassifier on the data")
-gbt = gbt.fit(X,Y)
-
-
-x_test = np.array([[2., 2.]], dtype=np.float64)
-pred = gbt.predict(x_test)
+gbt = gbt.fit(mat, lbl)
 
 print("predict output for GradientBoostingClassifier:")
+pred = gbt.predict(mat)
 print(pred)
 
-print("score for GradientBoostingClassifier:")
-print(gbt.score(x_test, [1]))
+print("score for GradientBoostingClassifier: %.3f" % gbt.score(mat, lbl))
 
 gbt.save("./out/gbt1")
 gbt.release()
@@ -40,23 +41,16 @@ gbt.load("./out/gbt1")
 gbt.debug_print()
 gbt.release()
 
-
-X2 = np.array([[0, 1], [2, 1]], dtype= np.float64)
-Y2 = np.array([7.8, 4.6])
-
 gbt2 = GradientBoostingRegressor(n_estimators=2)
 print("fitting GradientBoostingRegressor on the data")
-gbt2 = gbt2.fit(X2,Y2)
-
-x_test2 = np.array([[1., 2.]], dtype=np.float64)
-pred2 = gbt2.predict(x_test2)
+lbl2 = np.array([1.2,0.3,1.1,1.9])
+gbt2 = gbt2.fit(mat, lbl2)
 
 print("predict output for GradientBoostingRegressor:")
+pred2 = gbt2.predict(mat)
 print(pred2)
 
-
-print("score for GradientBoostingRegressor:")
-print(gbt2.score(x_test, [1]))
+print("score for GradientBoostingRegressor: %.3f" % gbt2.score(mat, lbl2))
 
 gbt2.save("./out/gbt2")
 gbt2.release()
@@ -65,4 +59,3 @@ gbt2.debug_print()
 gbt2.release()
 
 FrovedisServer.shut_down()
-
