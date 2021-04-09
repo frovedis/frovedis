@@ -28,6 +28,7 @@ install:
 	cd doc/tutorial_python; make -f Makefile.${TARGET} install
 	cd doc/tutorial_spark; make -f Makefile.${TARGET} install
 	cd doc/manual; make install
+	cd doc/notebook; make install
 ifeq (${BUILD_FOREIGN_IF},true)
 	cd src/foreign_if; make install
 endif
