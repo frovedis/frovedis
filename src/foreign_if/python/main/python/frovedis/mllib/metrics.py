@@ -55,7 +55,7 @@ def r2_score(y_true, y_pred,
 
     if len(y_true) < 2:
         msg = "R^2 score is not well-defined with less than two samples."
-        warnings.warn(msg, UndefinedMetricWarning)
+        warnings.warn(msg, RuntimeWarning)
         return float('nan')
 
     weight = 1. if sample_weight is None else np.asarray(sample_weight)
@@ -64,8 +64,8 @@ def r2_score(y_true, y_pred,
     denominator = (weight * (y_true - np.average( \
         y_true, axis=0, weights=sample_weight)) ** 2).sum(axis=0, \
                                                           dtype=np.float64)
-
-    if numerator != 0. and denominator != 0.:
-        return 1.0 - (float(numerator) / denominator)
+   
+    if denominator == 0.0: # to avoid inf
+        return 0.0
     else:
-        return 0.
+        return 1.0 - (float(numerator) / denominator)
