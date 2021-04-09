@@ -211,6 +211,7 @@ class KMeans(BaseEstimator):
             raise RuntimeError(excpt["info"])
         return ret
 
+    # TODO: support sample_weight
     def score(self, X, y=None, sample_weight=None):
         """Opposite of the value of X on the K-means objective."""
         if self.__mid is None:
