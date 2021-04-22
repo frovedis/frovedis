@@ -2,6 +2,7 @@
 server.py
 """
 
+import warnings
 from . import node, rpclib
 
 class ServerID(object):
@@ -39,7 +40,8 @@ class FrovedisServer(object):
     """A singleton implementation to store Frovedis server information"""
 
     #default command
-    __cmd = "mpirun -np 1 /opt/nec/nosupport/frovedis/ve/bin/frovedis_server"
+    __cmd = "/opt/nec/ve/bin/mpirun -np 1 " + \
+            "/opt/nec/nosupport/frovedis/ve/bin/frovedis_server"
     __instance = None
 
     def __new__(cls):
@@ -108,6 +110,11 @@ class FrovedisServer(object):
     @classmethod
     def getID(cls):
         """ to get id of the current server """
+        if FrovedisServer.__instance is None:
+            warnings.warn("FrovedisServer is not initialized, hence "
+                          "initializing the server with default command!",
+                          category=UserWarning)
+            FrovedisServer.getServerInstance()
         return FrovedisServer.__instance.sid
 
     @classmethod
@@ -116,13 +123,13 @@ class FrovedisServer(object):
         to confirm if the current server or 
         the specified server with given id is UP 
         """
-        if FrovedisServer.__instance is not None:
+        if FrovedisServer.__instance is None:
+            return False
+        else: 
             if server_id is None: # query made for existing server
                 return True
             else:  # query made for some specific server
                 return server_id == FrovedisServer.getID()
-        else: 
-            return False
 
 
 def check_server_state(server_id, inst_class_name):
@@ -132,7 +139,35 @@ def check_server_state(server_id, inst_class_name):
                            "In case it has already been shut-down, "\
                            "you would need to re-fit the object.\n" \
                            % (server_id, inst_class_name))
+    return True
 
+# decorator functions used for setting/checking server association
+def set_association(func):
+    def set_assoc_wrapper(*args, **kwargs):
+        obj = args[0] # args[0] of func() must be self
+        obj.__sid = FrovedisServer.getID()
+        return func(*args, **kwargs)
+    return set_assoc_wrapper
+
+def check_association(func):
+    def check_assoc_wrapper(*args, **kwargs):
+        obj = args[0] # args[0] of func() must be self
+        if not obj.is_fitted():
+            raise AttributeError(func.__name__ + ": is called before fit or" \
+                              " the model might have already been released!")
+        check_server_state(obj.__sid, obj.__class__.__name__)
+        return func(*args, **kwargs)
+    return check_assoc_wrapper
+
+def do_if_active_association(func):
+    def do_if_active_assoc_wrapper(*args, **kwargs):
+        obj = args[0] # args[0] of func() must be self
+        if obj.is_fitted():
+            if FrovedisServer.isUP(obj.__sid):
+                return func(*args, **kwargs)
+            #else:
+            #    print("no active server found associated with caller object!")
+    return do_if_active_assoc_wrapper
 
 # ensuring Frovedis Server will  definitely shut-down on termination of
 # a python program which will import this module.
