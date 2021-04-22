@@ -57,15 +57,15 @@ object IntDvector {
   }
   def to_RDD(proxy: Long): RDD[Int] = {
     val fs = FrovedisServer.getServerInstance()
-    val nodes = JNISupport.getWorkerInfo(fs.master_node) // native call
-    var info = JNISupport.checkServerException()
-    if (info != "") throw new java.rmi.ServerException(info)
     val eps = JNISupport.getLocalVectorPointers(fs.master_node, proxy, DTYPE.INT)
-    info = JNISupport.checkServerException()
+    var info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
     val dummy = new Array[Boolean](eps.size)
     val ctxt = SparkContext.getOrCreate()
-    val dist_dummy = ctxt.parallelize(dummy,eps.size)
+    val dist_dummy = ctxt.parallelize(dummy, eps.size)
+    val nodes = JNISupport.getWorkerInfo(fs.master_node) // native call
+    info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
     val ret = dist_dummy.mapPartitionsWithIndex((i,x) =>
                     setEachPartition(i,nodes(i),eps(i))).cache()
     return ret
@@ -111,15 +111,15 @@ object LongDvector {
   }
   def to_RDD(proxy: Long): RDD[Long] = {
     val fs = FrovedisServer.getServerInstance()
-    val nodes = JNISupport.getWorkerInfo(fs.master_node) // native call
-    var info = JNISupport.checkServerException()
-    if (info != "") throw new java.rmi.ServerException(info)
     val eps = JNISupport.getLocalVectorPointers(fs.master_node, proxy, DTYPE.LONG)
-    info = JNISupport.checkServerException()
+    var info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
     val dummy = new Array[Boolean](eps.size)
     val ctxt = SparkContext.getOrCreate()
-    val dist_dummy = ctxt.parallelize(dummy,eps.size)
+    val dist_dummy = ctxt.parallelize(dummy, eps.size)
+    val nodes = JNISupport.getWorkerInfo(fs.master_node) // native call
+    info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
     val ret = dist_dummy.mapPartitionsWithIndex((i,x) =>
                     setEachPartition(i,nodes(i),eps(i))).cache()
     return ret
@@ -165,15 +165,15 @@ object FloatDvector {
   }
   def to_RDD(proxy: Long): RDD[Float] = {
     val fs = FrovedisServer.getServerInstance()
-    val nodes = JNISupport.getWorkerInfo(fs.master_node) // native call
-    var info = JNISupport.checkServerException()
-    if (info != "") throw new java.rmi.ServerException(info)
     val eps = JNISupport.getLocalVectorPointers(fs.master_node, proxy, DTYPE.FLOAT)
-    info = JNISupport.checkServerException()
+    var info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
     val dummy = new Array[Boolean](eps.size)
     val ctxt = SparkContext.getOrCreate()
-    val dist_dummy = ctxt.parallelize(dummy,eps.size)
+    val dist_dummy = ctxt.parallelize(dummy, eps.size)
+    val nodes = JNISupport.getWorkerInfo(fs.master_node) // native call
+    info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
     val ret = dist_dummy.mapPartitionsWithIndex((i,x) =>
                     setEachPartition(i,nodes(i),eps(i))).cache()
     return ret
@@ -219,15 +219,15 @@ object DoubleDvector {
   }
   def to_RDD(proxy: Long): RDD[Double] = {
     val fs = FrovedisServer.getServerInstance()
-    val nodes = JNISupport.getWorkerInfo(fs.master_node) // native call
-    var info = JNISupport.checkServerException()
-    if (info != "") throw new java.rmi.ServerException(info)
     val eps = JNISupport.getLocalVectorPointers(fs.master_node, proxy, DTYPE.DOUBLE)
-    info = JNISupport.checkServerException()
+    var info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
     val dummy = new Array[Boolean](eps.size)
     val ctxt = SparkContext.getOrCreate()
-    val dist_dummy = ctxt.parallelize(dummy,eps.size)
+    val dist_dummy = ctxt.parallelize(dummy, eps.size)
+    val nodes = JNISupport.getWorkerInfo(fs.master_node) // native call
+    info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
     val ret = dist_dummy.mapPartitionsWithIndex((i,x) =>
                     setEachPartition(i,nodes(i),eps(i))).cache()
     return ret
@@ -273,15 +273,15 @@ object StringDvector {
   }
   def to_RDD(proxy: Long): RDD[String] = {
     val fs = FrovedisServer.getServerInstance()
-    val nodes = JNISupport.getWorkerInfo(fs.master_node) // native call
-    var info = JNISupport.checkServerException()
-    if (info != "") throw new java.rmi.ServerException(info)
     val eps = JNISupport.getLocalVectorPointers(fs.master_node, proxy, DTYPE.STRING)
-    info = JNISupport.checkServerException()
+    var info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
     val dummy = new Array[Boolean](eps.size)
     val ctxt = SparkContext.getOrCreate()
-    val dist_dummy = ctxt.parallelize(dummy,eps.size)
+    val dist_dummy = ctxt.parallelize(dummy, eps.size)
+    val nodes = JNISupport.getWorkerInfo(fs.master_node) // native call
+    info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
     val ret = dist_dummy.mapPartitionsWithIndex((i,x) =>
                     setEachPartition(i,nodes(i),eps(i))).cache()
     return ret
@@ -330,15 +330,15 @@ object BoolDvector {
   }
   def to_RDD(proxy: Long): RDD[Boolean] = {
     val fs = FrovedisServer.getServerInstance()
-    val nodes = JNISupport.getWorkerInfo(fs.master_node) // native call
-    var info = JNISupport.checkServerException()
-    if (info != "") throw new java.rmi.ServerException(info)
     val eps = JNISupport.getLocalVectorPointers(fs.master_node, proxy, DTYPE.BOOL)
-    info = JNISupport.checkServerException()
+    var info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
     val dummy = new Array[Boolean](eps.size)
     val ctxt = SparkContext.getOrCreate()
-    val dist_dummy = ctxt.parallelize(dummy,eps.size)
+    val dist_dummy = ctxt.parallelize(dummy, eps.size)
+    val nodes = JNISupport.getWorkerInfo(fs.master_node) // native call
+    info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
     val ret = dist_dummy.mapPartitionsWithIndex((i,x) =>
                     setEachPartition(i,nodes(i),eps(i))).cache()
     return ret
