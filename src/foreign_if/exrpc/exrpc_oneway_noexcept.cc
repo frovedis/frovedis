@@ -7,7 +7,12 @@ void send_exrpcreq_oneway_noexcept(exrpc_node& n, const std::string& funcname,
                                    const std::string& serialized_arg) {
   int sockfd = send_exrpcreq(exrpc_type::exrpc_oneway_noexcept_type, n,
                              funcname, serialized_arg);
-  ::close(sockfd);
+  auto it = send_connection_lock.find(sockfd);
+  if(it == send_connection_lock.end()) {
+    throw std::runtime_error("internal error in send_exrpc_oneway");
+  } else {
+    pthread_mutex_unlock(it->second);
+  }
 }
 
 void exrpc_function_oneway_noexcept(exrpc_node& n, std::string fn,

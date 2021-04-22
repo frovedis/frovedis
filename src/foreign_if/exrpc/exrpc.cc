@@ -11,7 +11,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <algorithm>
-#include <unistd.h>
+#include <string.h>
 
 #ifndef NO_PROGRAM_OPTION
 #include <boost/program_options.hpp>
@@ -22,8 +22,23 @@
 
 namespace frovedis {
 
+#define MAX_CONNECTION 65536
+static int crnt_connection = 0;
+static pthread_mutex_t send_lock[MAX_CONNECTION] = {PTHREAD_MUTEX_INITIALIZER};
+static pthread_mutex_t send_management_lock = PTHREAD_MUTEX_INITIALIZER;
+
 static int watch_sockfd;
-static int is_rank0 = 0;
+static std::unordered_map<exrpc_node, int> send_connection_pool;
+// need to be exposed to exrpc_result and send_exrpcreq_oneway
+std::unordered_map<int, pthread_mutex_t*> send_connection_lock;
+  
+static std::vector<int> recv_connection_pool;
+static int listen_port_pool = 0;
+static int listen_fd_pool = -1;
+
+bool operator==(const exrpc_node& lhs, const exrpc_node& rhs) {
+  return lhs.hostname == rhs.hostname && lhs.rpcport == rhs.rpcport;
+}
 
 void mywrite(int fd, const char* write_data, size_t to_write) {
   while(to_write > 0) {
@@ -94,48 +109,34 @@ int handle_exrpc_listen(int& port) {
   return sockfd;
 }
 
-bool handle_exrpc_accept(int sockfd, int timeout, int& new_sockfd) {
+int handle_exrpc_listen_pooled(int& port) {
+  if(listen_port_pool != 0) {
+    port = listen_port_pool;
+    return listen_fd_pool;
+  } else {
+    listen_fd_pool = handle_exrpc_listen(port);
+    listen_port_pool = port;
+    return listen_fd_pool;
+  }
+}
+
+bool handle_exrpc_accept_by_client(int sockfd, int timeout, int& new_sockfd) {
   struct sockaddr_in writer_addr;
   socklen_t writer_len = sizeof(writer_addr);
-  if(is_rank0 == false) {
-    if(timeout != 0) {
-      fd_set rfds;
-      FD_ZERO(&rfds);
-      FD_SET(sockfd, &rfds);
-      struct timeval tv;
-      tv.tv_sec = timeout;
-      tv.tv_usec = 0;
-      int retval = select(sockfd+1, &rfds, NULL, NULL, &tv);
-      if(retval == -1)
-        throw std::runtime_error
-          (std::string("handle_exrpc_accept: error in select: ") +
-           strerror(errno));
-      else if(retval == 0) return false; // timeout
-    } 
-  } else { // is_rank0 == true; check connection to client
+  if(timeout != 0) {
     fd_set rfds;
     FD_ZERO(&rfds);
     FD_SET(sockfd, &rfds);
-    FD_SET(watch_sockfd, &rfds);
-    int maxfd = std::max(sockfd, watch_sockfd);
-    int retval;
-    if(timeout == 0) {
-      retval = select(maxfd+1, &rfds, NULL, NULL, NULL);
-    } else {
-      struct timeval tv;
-      tv.tv_sec = timeout;
-      tv.tv_usec = 0;
-      retval = select(maxfd+1, &rfds, NULL, NULL, &tv);
-    }
+    struct timeval tv;
+    tv.tv_sec = timeout;
+    tv.tv_usec = 0;
+    int retval = select(sockfd+1, &rfds, NULL, NULL, &tv);
     if(retval == -1)
       throw std::runtime_error
         (std::string("handle_exrpc_accept: error in select: ") +
          strerror(errno));
     else if(retval == 0) return false; // timeout
-    else if(FD_ISSET(watch_sockfd, &rfds)) {
-      return false; // connection to client is closed
-    }
-  }
+  } 
   if((new_sockfd = ::accept(sockfd, (struct sockaddr *)&writer_addr,
                             &writer_len)) < 0) {
     ::close(sockfd);
@@ -143,6 +144,113 @@ bool handle_exrpc_accept(int sockfd, int timeout, int& new_sockfd) {
       (std::string("handle_exrpc_accept: error in accept: ") + strerror(errno));
   }
   return true;
+}
+
+bool handle_exrpc_accept_pooled(int sockfd, int& new_sockfd, bool from_driver) {
+  struct sockaddr_in writer_addr;
+  socklen_t writer_len = sizeof(writer_addr);
+  if(from_driver) {
+    fd_set rfds;
+    FD_ZERO(&rfds);
+    FD_SET(watch_sockfd, &rfds);
+    FD_SET(sockfd, &rfds);
+    int maxfd = std::max(watch_sockfd, sockfd);
+    for(size_t i = 0; i < recv_connection_pool.size(); i++) {
+      auto crntfd = recv_connection_pool[i];
+      FD_SET(crntfd, &rfds);
+      if(crntfd > maxfd) maxfd = crntfd;
+    }
+    int retval;
+    retval = select(maxfd+1, &rfds, NULL, NULL, NULL);
+    if(retval == -1) {
+      throw std::runtime_error
+        (std::string("handle_exrpc_accept: error in select: ") +
+         strerror(errno));
+    } else if(FD_ISSET(watch_sockfd, &rfds)) {
+      return false; // connection to client is closed
+    } else if(FD_ISSET(sockfd, &rfds)) {
+      if((new_sockfd = ::accept(sockfd, (struct sockaddr *)&writer_addr,
+                                &writer_len)) < 0) {
+        ::close(sockfd);
+        throw std::runtime_error
+          (std::string("handle_exrpc_accept: error in accept: ") +
+           strerror(errno));
+      }
+      int one = 1;
+      if(setsockopt(new_sockfd, SOL_TCP, TCP_NODELAY, &one, sizeof(one))
+         != 0) {
+        throw std::runtime_error
+          (std::string("handle_exrpc_accept_pooled: error in setsockopt: ") +
+           strerror(errno));
+      }
+      recv_connection_pool.push_back(new_sockfd);
+      return true;
+    } else {
+      for(size_t i = 0; i < recv_connection_pool.size(); i++) {
+        auto crntfd = recv_connection_pool[i];
+        if(FD_ISSET(crntfd, &rfds)) {
+          new_sockfd = crntfd;
+          return true;
+        }
+      }
+      return false; // should not happen
+    }
+  } else { // worker; client availability is not checked
+    if(recv_connection_pool.size() == 0) { // pool is empty
+      if((new_sockfd = ::accept(sockfd, (struct sockaddr *)&writer_addr,
+                                &writer_len)) < 0) {
+        ::close(sockfd);
+        throw std::runtime_error
+          (std::string("handle_exrpc_accept: error in accept: ") +
+           strerror(errno));
+      }
+      recv_connection_pool.push_back(new_sockfd);
+      return true;
+    } else { // check if pooled connection is used with select
+      fd_set rfds;
+      FD_ZERO(&rfds);
+      FD_SET(sockfd, &rfds); // sockfd should be same as listen_fd_pool
+      int maxfd = sockfd;
+      for(size_t i = 0; i < recv_connection_pool.size(); i++) {
+        auto crntfd = recv_connection_pool[i];
+        FD_SET(crntfd, &rfds);
+        if(crntfd > maxfd) maxfd = crntfd;
+      }
+      int retval;
+      retval = select(maxfd+1, &rfds, NULL, NULL, NULL);
+      if(retval == -1) {
+        throw std::runtime_error
+          (std::string("handle_exrpc_accept: error in select: ") +
+           strerror(errno));
+      } else if(FD_ISSET(sockfd, &rfds)) {
+        if((new_sockfd = ::accept(sockfd, (struct sockaddr *)&writer_addr,
+                                  &writer_len)) < 0) {
+          ::close(sockfd);
+          throw std::runtime_error
+            (std::string("handle_exrpc_accept: error in accept: ") +
+             strerror(errno));
+        }
+        int one = 1;
+        if(setsockopt(new_sockfd, SOL_TCP, TCP_NODELAY, &one, sizeof(one))
+           != 0) {
+          throw std::runtime_error
+            (std::string("handle_exrpc_accept_pooled: error in setsockopt: ") +
+             strerror(errno));
+        }
+        recv_connection_pool.push_back(new_sockfd);
+        return true;
+      } else {
+        for(size_t i = 0; i < recv_connection_pool.size(); i++) {
+          auto crntfd = recv_connection_pool[i];
+          if(FD_ISSET(crntfd, &rfds)) {
+            new_sockfd = crntfd;
+            return true;
+          }
+        }
+        return false; // should not happen
+      }
+    }
+  }
 }
 
 int handle_exrpc_connect(const std::string& hostname, int rpcport) {
@@ -190,9 +298,40 @@ int handle_exrpc_connect(const std::string& hostname, int rpcport) {
   return sockfd;
 }
 
+int handle_exrpc_connect_pooled(const std::string& hostname, int rpcport) {
+  pthread_mutex_lock(&send_management_lock);
+  auto n = exrpc_node(hostname, rpcport);
+  auto it = send_connection_pool.find(n);
+  if(it != send_connection_pool.end()) {
+    pthread_mutex_unlock(&send_management_lock);
+    auto fd = it->second;
+    auto it2 = send_connection_lock.find(fd);
+    if(it2 == send_connection_lock.end()) {
+      throw std::runtime_error("internal error in handle_exrpc_connect_pooled");
+    } else {
+      pthread_mutex_lock(it2->second);
+      return it->second;
+    }
+  } else {
+    auto fd = handle_exrpc_connect(hostname, rpcport);
+    pthread_mutex_t* mylock = send_lock + crnt_connection;
+    send_connection_lock.insert(std::make_pair(fd, mylock));
+    crnt_connection++;
+    send_connection_pool.insert(std::make_pair(n, fd));
+    pthread_mutex_unlock(&send_management_lock);
+    if(crnt_connection > MAX_CONNECTION)
+      throw std::runtime_error
+        ("handle_exrpc_connect_pooled: too many connections");
+    pthread_mutex_lock(mylock);
+    return fd;
+  }
+  // connection locks are unlocked at exrpc_oneway.cc, exrpc_oneway_noexcept.cc,
+  // exrpc_result.hpp, and send_exrpc_finish function.
+}
+
 int send_exrpcreq(exrpc_type type, exrpc_node& n, const std::string& funcname,
                   const std::string& serialized_arg) {
-  int sockfd = handle_exrpc_connect(n.hostname, n.rpcport);
+  int sockfd = handle_exrpc_connect_pooled(n.hostname, n.rpcport);
   exrpc_header hdr;
   hdr.type = type;
   hdr.funcname = funcname;
@@ -204,16 +343,33 @@ int send_exrpcreq(exrpc_type type, exrpc_node& n, const std::string& funcname,
   PORTABLE_OSTREAM_TO_STRING(result, serialized_hdr);
   uint32_t hdr_size = serialized_hdr.size();
   uint32_t hdr_size_nw = htonl(hdr_size);
-  mywrite(sockfd, reinterpret_cast<char*>(&hdr_size_nw), sizeof(hdr_size_nw));
-  mywrite(sockfd, serialized_hdr.c_str(), hdr_size);
-  mywrite(sockfd, serialized_arg.c_str(), serialized_arg.size());
+  if(serialized_arg.size() < 65536) {
+    size_t send_size = sizeof(hdr_size_nw) + hdr_size + serialized_arg.size();
+    std::vector<char> buffer(send_size);
+    auto bufferp = buffer.data();
+    memcpy(bufferp, reinterpret_cast<char*>(&hdr_size_nw), sizeof(hdr_size_nw));
+    bufferp += sizeof(hdr_size_nw);
+    memcpy(bufferp, serialized_hdr.c_str(), hdr_size);
+    bufferp += hdr_size;
+    memcpy(bufferp, serialized_arg.c_str(), serialized_arg.size());
+    mywrite(sockfd, buffer.data(), send_size);
+  } else {
+    mywrite(sockfd, reinterpret_cast<char*>(&hdr_size_nw), sizeof(hdr_size_nw));
+    mywrite(sockfd, serialized_hdr.c_str(), hdr_size);
+    mywrite(sockfd, serialized_arg.c_str(), serialized_arg.size());
+  }
   return sockfd;
 }
 
 void send_exrpc_finish(exrpc_node& n) {
-  int sockfd = send_exrpcreq(exrpc_type::exrpc_finalize_type, n,
-                             std::string(""), std::string(""));
-  ::close(sockfd);
+  auto sockfd = send_exrpcreq(exrpc_type::exrpc_finalize_type, n,
+                              std::string(""), std::string(""));
+  auto it = send_connection_lock.find(sockfd);
+  if(it == send_connection_lock.end()) {
+    throw std::runtime_error("internal error in send_exrpc_finish");
+  } else {
+    pthread_mutex_unlock(it->second);
+  }
 }
 
 void inform_no_exposed_function(int fd, const std::string& funcname) {
@@ -263,7 +419,6 @@ bool handle_exrpc_process(int new_sockfd) {
         exception_caught = true;
         what = e.what();
       }
-      mywrite(new_sockfd, &exception_caught, 1); // should be 1
       std::string resultstr;
       if(!exception_caught) {
         PORTABLE_OSTREAM_TO_STRING(result, tmp);
@@ -272,9 +427,23 @@ bool handle_exrpc_process(int new_sockfd) {
       else resultstr = what;
       exrpc_count_t send_data_size = resultstr.size();
       exrpc_count_t send_data_size_nw = myhtonll(send_data_size);
-      mywrite(new_sockfd, reinterpret_cast<char*>(&send_data_size_nw),
-              sizeof(send_data_size_nw));
-      mywrite(new_sockfd, resultstr.c_str(), resultstr.size());
+      if(resultstr.size() < 65536) {
+        size_t send_size = 1 + sizeof(send_data_size_nw) + resultstr.size();
+        std::vector<char> buffer(send_size);
+        auto bufferp = buffer.data();
+        memcpy(bufferp, &exception_caught, 1);
+        bufferp += 1;
+        memcpy(bufferp, reinterpret_cast<char*>(&send_data_size_nw),
+               sizeof(send_data_size_nw));
+        bufferp += sizeof(send_data_size_nw);
+        memcpy(bufferp, resultstr.c_str(), resultstr.size());
+        mywrite(new_sockfd, buffer.data(), send_size);
+      } else {
+        mywrite(new_sockfd, &exception_caught, 1); // should be 1
+        mywrite(new_sockfd, reinterpret_cast<char*>(&send_data_size_nw),
+                sizeof(send_data_size_nw));
+        mywrite(new_sockfd, resultstr.c_str(), resultstr.size());
+      }
       return true;
     }
   } else if(hdr.type == exrpc_type::exrpc_oneway_type) {
@@ -322,17 +491,15 @@ bool handle_exrpc_process(int new_sockfd) {
       return true;
     }
   } else {
+    // TODO: close pooled socket of workers?
     return false;
   }
 }
 
-bool handle_exrpc_onereq(int sockfd, int timeout) {
+bool handle_exrpc_onereq(int sockfd, bool from_driver) {
   int new_sockfd;
-  auto r = handle_exrpc_accept(sockfd, timeout, new_sockfd);
-  if(r) {
-    r = handle_exrpc_process(new_sockfd);
-    ::close(new_sockfd);
-  }
+  auto r = handle_exrpc_accept_pooled(sockfd, new_sockfd, from_driver);
+  if(r) r = handle_exrpc_process(new_sockfd);
   return r;
 }
 
@@ -396,7 +563,7 @@ exrpc_node invoke_frovedis_server(const std::string& command) {
     return exrpc_node(); // for disabling warning
   } else {
     int new_sockfd;
-    bool is_ok = handle_exrpc_accept(sockfd, 5, new_sockfd);
+    bool is_ok = handle_exrpc_accept_by_client(sockfd, 5, new_sockfd);
     ::close(sockfd);
     if(is_ok) {
       int port;
@@ -478,7 +645,6 @@ void init_frovedis_server(int argc, char* argv[]) {
   try {
     // watch_sockfd is static variable
     watch_sockfd = handle_exrpc_connect(client_hostname, client_port);
-    is_rank0 = true;
     accept_sockfd = handle_exrpc_listen(port);
     auto server_name = get_server_name();
     auto server_name_size = server_name.size();
@@ -506,7 +672,7 @@ void init_frovedis_server(int argc, char* argv[]) {
               << e.what() << std::endl;
     exit(1);
   }
-  while(handle_exrpc_onereq(accept_sockfd, 0));
+  while(handle_exrpc_onereq(accept_sockfd, true));
   ::close(accept_sockfd);
 }
 
@@ -516,7 +682,7 @@ void finalize_frovedis_server(exrpc_node& n){
 
 void prepare_parallel_exrpc_worker(exrpc_info& i) {
   int port = 0;
-  i.sockfd = handle_exrpc_listen(port);
+  i.sockfd = handle_exrpc_listen_pooled(port);
   char hostname[1024];
   if(gethostname(hostname, 1024) == -1) {
     throw std::runtime_error
@@ -570,8 +736,7 @@ get_parallel_exrpc_nodes(exrpc_node& n, exptr<node_local<exrpc_info>>& info) {
 }
 
 void wait_parallel_exrpc_server_helper(exrpc_info& i) {
-  handle_exrpc_onereq(i.sockfd);
-  ::close(i.sockfd);
+  handle_exrpc_onereq(i.sockfd, false);
 }
 
 void wait_parallel_exrpc_server(exptr<node_local<exrpc_info>>& info) {

@@ -36,17 +36,21 @@ T exrpc_result<T>::get() {
     buf.resize(count);
     char* recv_data = &buf[0];
     myread(sockfd, recv_data, count);
+    auto it = send_connection_lock.find(sockfd);
+    if(it == send_connection_lock.end()) {
+      throw std::runtime_error("internal error in get");
+    } else {
+      pthread_mutex_unlock(it->second);
+    }
     if(!caught_exception) {
       STRING_TO_PORTABLE_ISTREAM(ss, buf);
       my_portable_iarchive ar(ss);
       T ret;
       ar & ret;
       get_done = true;
-      ::close(sockfd);
       return ret;
     } else {
       get_done = true;
-      ::close(sockfd);
 #ifdef CLIENT_DONOT_THROW_EXCEPTION_AND_PRINT
       std::cout << "Error occurred at frovedis_server: " << std::endl;
       std::cout << buf << std::endl;

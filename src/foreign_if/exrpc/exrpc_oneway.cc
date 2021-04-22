@@ -17,7 +17,12 @@ void send_exrpcreq_oneway(exrpc_node& n, const std::string& funcname,
     buf.resize(count);
     char* recv_data = &buf[0];
     myread(sockfd, recv_data, count);
-    ::close(sockfd);
+    auto it = send_connection_lock.find(sockfd);
+    if(it == send_connection_lock.end()) {
+      throw std::runtime_error("internal error in send_exrpc_oneway");
+    } else {
+      pthread_mutex_unlock(it->second);
+    }
 #ifdef CLIENT_DONOT_THROW_EXCEPTION_AND_PRINT
     std::cout << "Error occurred at frovedis_server: " << std::endl;
     std::cout << buf << std::endl;
@@ -25,7 +30,12 @@ void send_exrpcreq_oneway(exrpc_node& n, const std::string& funcname,
     throw std::runtime_error(buf);
 #endif
   } else {
-    ::close(sockfd);
+    auto it = send_connection_lock.find(sockfd);
+    if(it == send_connection_lock.end()) {
+      throw std::runtime_error("internal error in send_exrpc_oneway");
+    } else {
+      pthread_mutex_unlock(it->second);
+    }
   }
 }
 

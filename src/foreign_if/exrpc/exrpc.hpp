@@ -29,6 +29,8 @@
 #include <boost/serialization/utility.hpp>
 #endif
 
+#include <pthread.h>
+
 #if defined(USE_YAS_FOR_EXRPC)
 namespace frovedis{
 typedef yas::mem_istream my_portable_istream;
@@ -80,6 +82,8 @@ struct exrpc_node {
   SERIALIZE(hostname, rpcport)
 };
 
+bool operator==(const exrpc_node& lhs, const exrpc_node& rhs);
+
 enum exrpc_type {
   exrpc_async_type,
   exrpc_oneway_type,
@@ -103,10 +107,13 @@ void myread(int fd, char* read_data, size_t to_read);
 void send_exrpc_finish(exrpc_node&);
 
 int handle_exrpc_listen(int& port);
-bool handle_exrpc_accept(int sockfd, int timeout, int& new_sockfd);
+int handle_exrpc_listen_pooled();
+bool handle_exrpc_accept_by_client(int sockfd, int timeout, int& new_sockfd);
+bool handle_exrpc_accept_pooled(int sockfd, int& new_sockfd, bool from_driver);
 int handle_exrpc_connect(const std::string& hostname, int rpcport);
+int handle_exrpc_connect_pooled(const std::string& hostname, int rpcport);
 bool handle_exrpc_process(int new_sockfd);
-bool handle_exrpc_onereq(int sockfd, int timeout = 0);
+bool handle_exrpc_onereq(int sockfd, bool from_driver);
 
 exrpc_node invoke_frovedis_server(const std::string& command);
 void init_frovedis_server(int argc, char* argv[]);
@@ -170,5 +177,26 @@ inline uint64_t myntohll(uint64_t a){
   return myhtonll(a);
 }
 
+// for connection pooling (fd->lock)
+extern std::unordered_map<int, pthread_mutex_t*> send_connection_lock;
+
 }
+
+namespace std {
+// for string exrpc_node to unordered_map
+// see https://odan3240.hatenablog.com/entry/2016/03/31/223906
+template <>
+struct hash<frovedis::exrpc_node> {
+  size_t operator()(const frovedis::exrpc_node &n) const {
+    size_t seed = 0;
+    auto hostname_hash = hash<std::string>()(n.hostname);
+    auto rpcport_hash = hash<int>()(n.rpcport);
+
+    seed ^= hostname_hash + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+    seed ^= rpcport_hash + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+    return seed;
+  }
+};
+}
+
 #endif
