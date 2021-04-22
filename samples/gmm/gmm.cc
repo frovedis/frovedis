@@ -6,12 +6,13 @@ using namespace boost;
 using namespace frovedis;
 using namespace std;
 
+template <class T>
 void do_gmm(const string& input, const string& output, int k, int n_init,
             int num_iteration, double eps, bool switch_init, long seed,
             bool binary) {
   if (binary) {
     time_spent t(DEBUG);
-    auto mat = make_rowmajor_matrix_loadbinary<double>(input);
+    auto mat = make_rowmajor_matrix_loadbinary<T>(input);
     t.show("load matrix: ");
     auto gmm_model =
         frovedis::gmm(mat, k, num_iteration, eps, switch_init, seed);
@@ -23,7 +24,7 @@ void do_gmm(const string& input, const string& output, int k, int n_init,
 
   } else {
     time_spent t(DEBUG);
-    auto mat = make_rowmajor_matrix_load<double>(input);
+    auto mat = make_rowmajor_matrix_load<T>(input);
     t.show("load matrix: ");
     auto gmm_model =
         frovedis::gmm(mat, k, num_iteration, eps, switch_init, seed);
@@ -31,23 +32,23 @@ void do_gmm(const string& input, const string& output, int k, int n_init,
     LOG(DEBUG) << "number of loops until convergence: " << gmm_model.loops
                << std::endl;
     LOG(DEBUG) << "likelihood: " << gmm_model.likelihood << std::endl;
-
     gmm_model.save(output);
   }
 }
 
+template <class T>
 void do_assign(const string& input, const string& input_cluster,
                const string& output, int k, bool binary) {
   if (binary) {
     time_spent t(DEBUG);
-    auto mat = make_rowmajor_matrix_local_load<double>(input);
+    auto mat = make_rowmajor_matrix_local_load<T>(input);
     t.show("load matrix: ");
     auto gmm_cluster = frovedis::gmm_assign_cluster(mat, k, input_cluster);
     t.show("gmm time: ");
     gmm_cluster.savebinary(output);
   } else {
     time_spent t(DEBUG);
-    auto mat = make_rowmajor_matrix_local_load<double>(input);
+    auto mat = make_rowmajor_matrix_local_load<T>(input);
     t.show("load matrix: ");
     auto gmm_cluster = frovedis::gmm_assign_cluster(mat, k, input_cluster);
     t.show("gmm time: ");
@@ -70,9 +71,11 @@ int main(int argc, char* argv[]) {
     ("k,k", value<int>(), "number of clusters")
     ("num-init,t", value<int>(),"number of time for running with different centroid seeds (default: 1)")
     ("num-iteration,n", value<int>(),"maximum number of iteration (default: 300)")
-    ("eps,e", value<double>(),"epsilon to stop the iteration (default: 0.0001)")
+    ("eps,e", value<double>(),"epsilon to stop the iteration (default: 0.01)")
     ("swicth_init,s", value<bool>(), "kmeans(0) or random(1) (default: 0)")
-    ("seed,r", value<long>(), "seed for init randomizer (default: 0)")
+    ("seed,r", value<long>(), "seed for init randomizer (default: 123)")
+    ("float", "for float type input")
+    ("double","for double type input (default)")
     ("verbose", "set loglevel to DEBUG")
     ("verbose2", "set loglevel to TRACE")
     ("binary,b", "use binary input/output");
@@ -90,6 +93,7 @@ int main(int argc, char* argv[]) {
   bool assign = false;
   bool binary = false;
   bool switch_init = 0;
+
   if (argmap.count("help")) {
     cerr << opt << endl;
     exit(1);
@@ -147,7 +151,7 @@ int main(int argc, char* argv[]) {
     eps = argmap["epsilon"].as<double>();
   }
   if (argmap.count("switch_init")) {
-    eps = argmap["switch_init"].as<bool>();
+    switch_init = argmap["switch_init"].as<bool>();
   }
 
   if (argmap.count("seed")) {
@@ -163,9 +167,18 @@ int main(int argc, char* argv[]) {
     set_loglevel(TRACE);
   }
 
-  if (assign)
-    do_assign(input, input_cluster, output, k, binary);
-  else
-    do_gmm(input, output, k, n_init, num_iteration, eps, switch_init, seed,
-           binary);
+  if (assign) {
+    if(argmap.count("double")) 
+      do_assign<double>(input, input_cluster, output, k, binary);
+    else 
+      do_assign<float>(input, input_cluster, output, k, binary);
+  }
+  else {
+    if(argmap.count("double")) 
+      do_gmm<double>(input, output, k, n_init, num_iteration, 
+                     eps, switch_init, seed, binary);
+    else 
+      do_gmm<float>(input, output, k, n_init, num_iteration, 
+                    eps, switch_init, seed, binary);
+  }
 }
