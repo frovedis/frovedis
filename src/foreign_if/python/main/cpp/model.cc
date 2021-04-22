@@ -237,7 +237,7 @@ extern "C" {
           case LRM:    exrpc_async(fm_node,load_glm<LRM2>,mid,LRM,fs_path).get(); break;
           case SVM:    exrpc_async(fm_node,load_glm<SVM2>,mid,SVM,fs_path).get(); break;
           case SVR:    exrpc_async(fm_node,load_lnrm<DT2>,mid,SVR,fs_path).get(); break;
-          case KSVC:   exrpc_async(fm_node,load_model<KSVC2>,mid,KSVC,fs_path); break; 
+          case KSVC:   exrpc_oneway(fm_node,load_model<KSVC2>,mid,KSVC,fs_path); break; 
           case LNRM:   exrpc_async(fm_node,load_lnrm<DT2>,mid,LNRM,fs_path).get(); break;
           case KMEANS: exrpc_async(fm_node,load_kmm<DT2>,mid,KMEANS,fs_path).get(); break;
           case SEM:    exrpc_oneway(fm_node,load_model<SEM2>,mid,SEM,fs_path); break;
@@ -255,7 +255,7 @@ extern "C" {
           case LRM:    exrpc_async(fm_node,load_glm<LRM1>,mid,LRM,fs_path).get(); break;; 
           case SVM:    exrpc_async(fm_node,load_glm<SVM1>,mid,SVM,fs_path).get(); break;
           case SVR:    exrpc_async(fm_node,load_lnrm<DT1>,mid,SVR,fs_path).get(); break;
-          case KSVC:   exrpc_async(fm_node,load_model<KSVC1>,mid,KSVC,fs_path); break; 
+          case KSVC:   exrpc_oneway(fm_node,load_model<KSVC1>,mid,KSVC,fs_path); break; 
           case LNRM:   exrpc_async(fm_node,load_lnrm<DT1>,mid,LNRM,fs_path).get(); break;
           case KMEANS: exrpc_async(fm_node,load_kmm<DT1>,mid,KMEANS,fs_path).get(); break;
           case SEM:    exrpc_oneway(fm_node,load_model<SEM1>,mid,SEM,fs_path); break;
