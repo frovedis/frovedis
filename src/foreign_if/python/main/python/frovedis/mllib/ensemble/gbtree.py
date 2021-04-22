@@ -8,7 +8,7 @@ import os.path
 import numpy as np
 from ...base import *
 from ...exrpc import rpclib
-from ...exrpc.server import FrovedisServer
+from ...exrpc.server import FrovedisServer, check_server_state
 from ...matrix.ml_data import FrovedisLabeledPoint
 from ...matrix.dtype import TypeUtil
 from ..metrics import accuracy_score, r2_score
@@ -149,7 +149,6 @@ class GradientBoostingClassifier(BaseEstimator):
         self.validate()
         self.__mdtype = dtype
         self.__mid = ModelID.get()
-
         (host, port) = FrovedisServer.getServerInstance()
         rpclib.gbt_train(host, port, X.get(), y.get(),
                          self.algo.encode('ascii'),

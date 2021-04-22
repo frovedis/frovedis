@@ -7,7 +7,8 @@ import numpy as np
 import pandas as pd
 import frovedis.dataframe as fpd
 from ..exrpc import rpclib
-from ..exrpc.server import FrovedisServer, check_server_state
+from ..exrpc.server import FrovedisServer, set_association, \
+                           check_association, do_if_active_association
 from ..matrix.dtype import DTYPE
 from .model_util import *
 
@@ -62,7 +63,6 @@ class FPGrowth(object):
         self.__mkind = M_KIND.FPM
         # --- post training available attributes ---
         self.__mid = None
-        self.__sid = None
         self.__fis = None
         self.__rule = None
         self.count = None
@@ -148,6 +148,7 @@ class FPGrowth(object):
                              "inputs are supported!\n")
         return f_df
 
+    @set_association
     def fit(self, data):
         """
         NAME: fit
@@ -156,7 +157,6 @@ class FPGrowth(object):
         self.release()
         (host, port) = FrovedisServer.getServerInstance()
         self.__mid = ModelID.get()
-        self.__sid = FrovedisServer.getID()
         self.count = rpclib.fpgrowth_generate_fis(host, port, \
             f_df.get(), self.__mid, \
             self.minSupport, self.tree_depth, self.compression_point, \
@@ -171,14 +171,11 @@ class FPGrowth(object):
         self.__rule = None
         return self
 
+    @check_association
     def generate_rules(self, confidence=None):
         """
         NAME: generate_rules
         """
-        if self.__mid is None:
-            raise AttributeError("generate_rules: attribute is not " + \
-                                 "available before fit!\n")
-        check_server_state(self.__sid, self.__class__.__name__)
         rule_mid = ModelID.get()
         if confidence is None:  # to use confidence provided during init()
             confidence = self.minConfidence
@@ -192,13 +189,10 @@ class FPGrowth(object):
         return self.__rule
 
     @property
+    @check_association
     def freqItemsets(self):
         """freqItemsets getter"""
-        if self.__mid is None:
-            raise valueError("freqItemsets: attribute is not " +
-                             "available before fit!\n")
         if self.__fis is None:
-            check_server_state(self.__sid, self.__class__.__name__)
             (host, port) = FrovedisServer.getServerInstance()
             ldf = rpclib.get_fpgrowth_fis(host, port, self.__mid)
             excpt = rpclib.check_server_exception()
@@ -220,11 +214,9 @@ class FPGrowth(object):
             "attribute 'freqItemsets' of FPGrowth object is not writable")
 
     @property
+    @check_association
     def associationRules(self):
         """associationRules getter"""
-        if self.__mid is None:
-            raise AttributeError("freqItemsets: attribute is not " + \
-                                 "available before fit!\n")
         if self.__rule is None: # generate_rules() is not called explicitly
             self.generate_rules() # uses confidence provided during init()
         return self.__rule.get_association_rules()
@@ -235,6 +227,7 @@ class FPGrowth(object):
         raise AttributeError(\
             "attribute 'associationRules' of FPGrowth object is not writable")
 
+    @set_association
     def load(self, fname):
         """
         NAME: load
@@ -242,7 +235,6 @@ class FPGrowth(object):
         self.release()
         (host, port) = FrovedisServer.getServerInstance()
         self.__mid = ModelID.get()
-        self.__sid = FrovedisServer.getID()
         self.count = rpclib.load_fp_model(host, port, self.__mid, \
                          self.__mkind, fname.encode('ascii'))
         excpt = rpclib.check_server_exception()
@@ -250,35 +242,37 @@ class FPGrowth(object):
             raise RuntimeError(excpt["info"])
         return self
 
+    @check_association
     def save(self, fname):
         """
         NAME: save
         """
-        if self.__mid is not None:
-            check_server_state(self.__sid, self.__class__.__name__)
-            GLM.save(self.__mid, self.__mkind, DTYPE.DOUBLE, fname)
+        GLM.save(self.__mid, self.__mkind, DTYPE.DOUBLE, fname)
 
+    @check_association
     def debug_print(self):
         """
         NAME: debug_print
         """
-        if self.__mid is not None:
-            check_server_state(self.__sid, self.__class__.__name__)
-            GLM.debug_print(self.__mid, self.__mkind, DTYPE.DOUBLE)
+        GLM.debug_print(self.__mid, self.__mkind, DTYPE.DOUBLE)
                 
     def release(self):
         """
-        NAME: release
+        resets after-fit populated attributes to None
         """
-        if self.__mid is not None:
-            if FrovedisServer.isUP(self.__sid):
-                GLM.release(self.__mid, self.__mkind, DTYPE.DOUBLE)
+        self.__release_server_heap()
         self.__mid = None
-        self.__sid = None
         self.encode_logic = None
         self.count = None
         self.__fis = None
         self.__rule = None
+
+    @do_if_active_association
+    def __release_server_heap(self):
+        """
+        to release model pointer from server heap
+        """
+        GLM.release(self.__mid, self.__mkind, DTYPE.DOUBLE)
 
     def __del__(self):
         """
@@ -286,24 +280,28 @@ class FPGrowth(object):
         """
         self.release()
 
+    def is_fitted(self):
+        """ function to confirm if the model is already fitted """
+        return self.__mid is not None
+
 class FPRules(object):
     """
     FPRules
     """
+    @set_association
     def __init__(self, mid=None, count=None):
         self.__mid = mid
         self.count = count
-        self.__sid = FrovedisServer.getID()
         self.__mkind = M_KIND.FPR
         self.__rule = None
 
+    @set_association
     def load(self, fname):
         """
         NAME: load
         """
         self.release()
         self.__mid = ModelID.get()
-        self.__sid = FrovedisServer.getID()
         (host, port) = FrovedisServer.getServerInstance()
         self.count = rpclib.load_fp_model(host, port, self.__mid, \
                               self.__mkind, fname.encode('ascii'))
@@ -312,21 +310,17 @@ class FPRules(object):
             raise RuntimeError(excpt["info"])
         return self
 
+    @check_association
     def save(self, fname):
         """
         NAME: save
         """
-        if self.__mid is not None:
-            check_server_state(self.__sid, self.__class__.__name__)
-            GLM.save(self.__mid, self.__mkind, DTYPE.DOUBLE, fname)
+        GLM.save(self.__mid, self.__mkind, DTYPE.DOUBLE, fname)
 
+    @check_association
     def get_association_rules(self):
         """associationRules getter helper"""
-        if self.__mid is None:
-            raise AttributeError("associationRules: attribute is not " +
-                                 "available before fit!\n")
         if self.__rule is None:
-            check_server_state(self.__sid, self.__class__.__name__)
             (host, port) = FrovedisServer.getServerInstance()
             ldf = rpclib.get_association_rules(host, port, self.__mid)
             excpt = rpclib.check_server_exception()
@@ -341,28 +335,36 @@ class FPRules(object):
             self.__rule = rules.reset_index(drop=True)
         return self.__rule
 
+    @check_association
     def debug_print(self):
         """
         NAME: debug_print
         """
-        if self.__mid is not None:
-            check_server_state(self.__sid, self.__class__.__name__)
-            GLM.debug_print(self.__mid, self.__mkind, DTYPE.DOUBLE)
+        GLM.debug_print(self.__mid, self.__mkind, DTYPE.DOUBLE)
 
     def release(self):
         """
-        NAME: release
+        resets after-fit populated attributes to None
         """
-        if self.__mid is not None:
-            if FrovedisServer.isUP(self.__sid):
-                GLM.release(self.__mid, self.__mkind, DTYPE.DOUBLE)
+        self.__release_server_heap()
         self.__mid = None
-        self.__sid = None
         self.__rule = None
         self.count = None
+
+    @do_if_active_association
+    def __release_server_heap(self):
+        """
+        to release model pointer from server heap
+        """
+        GLM.release(self.__mid, self.__mkind, DTYPE.DOUBLE)
 
     def __del__(self):
         """
         NAME: __del__
         """
         self.release()
+
+    def is_fitted(self):
+        """ function to confirm if the model is already fitted """
+        return self.__mid is not None
+

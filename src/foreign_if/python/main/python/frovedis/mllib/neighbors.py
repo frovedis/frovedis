@@ -1,10 +1,13 @@
-#!/usr/bin/env python
-
+"""
+neighbors.py: wrapper of KNN related algorithms
+"""
 import os.path
 import pickle
 from .model_util import *
 from ..base import BaseEstimator
 from ..exrpc.server import FrovedisServer
+from ..exrpc.server import FrovedisServer, set_association, \
+                           check_association, do_if_active_association
 from ..exrpc import rpclib
 from ..matrix.dense import FrovedisRowmajorMatrix
 from ..matrix.crs import FrovedisCRSMatrix
@@ -37,6 +40,7 @@ class NearestNeighbors(BaseEstimator):
         self.__mdtype = None
         self.__mkind = M_KIND.KNN
 
+    @set_association
     def fit(self, X, y=None):
         """
         fit for Nearest Neighbors
@@ -79,9 +83,8 @@ class NearestNeighbors(BaseEstimator):
             raise RuntimeError(excpt["info"])
         return self
 
+    @check_association
     def kneighbors(self, X=None, n_neighbors=None, return_distance=True):
-        if self.__mid is None:
-            raise AttributeError("kneighbors called before fit")
         if n_neighbors is None:
             n_neighbors = self.n_neighbors
         if X is None:
@@ -126,9 +129,8 @@ class NearestNeighbors(BaseEstimator):
             else:
                 return indices
  
+    @check_association
     def kneighbors_graph(self, X=None, n_neighbors=None, mode="connectivity"):
-        if self.__mid is None:
-            raise AttributeError("kneighbors_graph called before fit")
         if n_neighbors is None:
             n_neighbors = self.n_neighbors
         if X is None:
@@ -161,10 +163,9 @@ class NearestNeighbors(BaseEstimator):
         else: 
             return ret
 
+    @check_association
     def radius_neighbors(self, X=None, radius=None, return_distance=True):
         """Finds the neighbors within a given radius of a point or points."""
-        if self.__mid is None:
-            raise AttributeError("radius_neighbors called before fit")
         if radius is None:
             radius = self.radius
         if X is None:
@@ -208,10 +209,9 @@ class NearestNeighbors(BaseEstimator):
         else:
             return fmat
 
+    @check_association
     def radius_neighbors_graph(self, X=None, radius=None, mode='connectivity'):
         """Computes the radius neighbor graph"""
-        if self.__mid is None:
-            raise AttributeError("radius_neighbors_graph called before fit")
         if radius is None:
             radius = self.radius
         if X is None:
@@ -244,41 +244,54 @@ class NearestNeighbors(BaseEstimator):
         else:
             return ret
 
+    #@check_association
     def save(self, fname):
         """
         NAME: save
         """
-        pass
+        raise AttributeError("save: not supported for NearestNeighbors!")
 
+    #@set_association
     def load(self, fname):
         """
         NAME: load
         """
-        pass
+        raise AttributeError("load: not supported for NearestNeighbors!")
 
+    #@check_association
     def debug_print(self):
         """
         NAME: debug_print
         """
-        pass
+        raise AttributeError("debug_print: not supported for " \
+                             "NearestNeighbors!")
 
     def release(self):
         """
-        NAME: release
+        resets after-fit populated attributes to None
         """
-        if self.__mid is not None:
-            GLM.release(self.__mid, self.__mkind, self.__mdtype)
-            self._X = None
-            self._X_movable = None
-            self.__mid = None
-            self.__mdtype = None
+        self.__release_server_heap()
+        self._X = None
+        self._X_movable = None
+        self.__mid = None
+        self.__mdtype = None
+
+    @do_if_active_association
+    def __release_server_heap(self):
+        """
+        to release model pointer from server heap
+        """
+        GLM.release(self.__mid, self.__mkind, self.__mdtype)
 
     def __del__(self):
         """
-        NAME: __del__
+        destructs the python object
         """
-        if FrovedisServer.isUP():
-            self.release()
+        self.release()
+
+    def is_fitted(self):
+        """ function to confirm if the model is already fitted """
+        return self.__mid is not None
 
 class KNeighborsClassifier(BaseEstimator):
     """
@@ -304,6 +317,7 @@ class KNeighborsClassifier(BaseEstimator):
         self.__mdtype = None
         self.__mkind = M_KIND.KNC
 
+    @set_association
     def fit(self, X, y):
         """
         fit for Nearest Neighbors
@@ -350,9 +364,8 @@ class KNeighborsClassifier(BaseEstimator):
             raise RuntimeError(excpt["info"])
         return self
 
+    @check_association
     def kneighbors(self, X=None, n_neighbors=None, return_distance=True):
-        if self.__mid is None:
-            raise AttributeError("kneighbors called before fit")
         if n_neighbors is None:
             n_neighbors = self.n_neighbors
         if X is None:
@@ -396,10 +409,9 @@ class KNeighborsClassifier(BaseEstimator):
                 return distances, indices
             else:
                 return indices
- 
+
+    @check_association 
     def kneighbors_graph(self, X=None, n_neighbors=None, mode="connectivity"):
-        if self.__mid is None:
-            raise AttributeError("kneighbors_graph called before fit")
         if n_neighbors is None:
             n_neighbors = self.n_neighbors
         if X is None:
@@ -433,25 +445,25 @@ class KNeighborsClassifier(BaseEstimator):
         else:
             return ret
 
+    #@check_association
     def save(self, fname):
         """
         NAME: save
         """
-        pass
+        raise AttributeError("save: not supported for KNeighborsClassifier!")
 
+    #@set_association
     def load(self, fname):
         """
         NAME: load
         """
-        pass
+        raise AttributeError("load: not supported for KNeighborsClassifier!")
  
+    @check_association
     def predict(self, X, save_proba=False):
         """
         NAME: predict for KNeighbors classifier
         """
-        if self.__mid is None:
-            raise ValueError( \
-            "predict is called before calling fit, or the model is released.")
         test_data = FrovedisFeatureData(X, dense_kind='rowmajor', \
                           caller = "[" + self.__class__.__name__ + \
                                    "] predict: ", \
@@ -479,13 +491,11 @@ class KNeighborsClassifier(BaseEstimator):
         return np.asarray([self.label_map[ret[i]] \
                           for i in range(0, len(ret))])
 
+    @check_association
     def predict_proba(self, X):
         """
         NAME: predict_proba
         """
-        if self.__mid is None:
-            raise ValueError( \
-            "predict is called before calling fit, or the model is released.")
         test_data = FrovedisFeatureData(X, dense_kind='rowmajor', \
                           caller = "[" + self.__class__.__name__ + \
                                    "] predict_proba: ", \
@@ -496,7 +506,7 @@ class KNeighborsClassifier(BaseEstimator):
             raise TypeError("predict_proba data dtype is different than " + \
                             "fitted data dtype")
         (host, port) = FrovedisServer.getServerInstance()
-        dmat = rpclib.knc_predict_proba(host, port, X.get(), self.__mid, dtype) 
+        dmat = rpclib.knc_predict_proba(host, port, X.get(), self.__mid, dtype)
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
             raise RuntimeError(excpt["info"])
@@ -508,13 +518,11 @@ class KNeighborsClassifier(BaseEstimator):
             return ret
 
     # TODO: support sample_weight
+    @check_association
     def score(self, X, y, sample_weight=None):
         """
         NAME: score function for KNeighbors Regressor
         """
-        if self.__mid is None:
-            raise ValueError( \
-            "predict is called before calling fit, or the model is released.")
         test_data = FrovedisLabeledPoint(X, y, \
                    caller = "[" + self.__class__.__name__ + "] score: ",\
                    encode_label = True, binary_encoder=[0, 1], \
@@ -535,15 +543,12 @@ class KNeighborsClassifier(BaseEstimator):
         return res
 
     @property
+    @check_association
     def classes_(self):
         """classes_ getter"""
-        if self.__mid is not None:
-            if self._classes is None:
-                self._classes = np.sort(list(self.label_map.values()))
-            return self._classes
-        else:
-            raise AttributeError(\
-        "attribute 'classes_' might have been released or called before fit")
+        if self._classes is None:
+            self._classes = np.sort(list(self.label_map.values()))
+        return self._classes
 
     @classes_.setter
     def classes_(self, val):
@@ -551,29 +556,40 @@ class KNeighborsClassifier(BaseEstimator):
         raise AttributeError(\
             "attribute 'classes_' of KNeighborsClassifier object is not writable")
 
+    #@check_association
     def debug_print(self):
         """
         NAME: debug_print
         """
-        pass
+        raise AttributeError("debug_print: not supported for " \
+                             "KNeighborsClassifier!")
 
     def release(self):
         """
-        NAME: release
+        resets after-fit populated attributes to None
         """
-        if self.__mid is not None:
-            GLM.release(self.__mid, self.__mkind, self.__mdtype)
-            self._X = None
-            self._X_movable = None
-            self.__mid = None
-            self.__mdtype = None
+        self.__release_server_heap()
+        self._X = None
+        self._X_movable = None
+        self.__mid = None
+        self.__mdtype = None
+
+   @do_if_active_association
+    def __release_server_heap(self):
+        """
+        to release model pointer from server heap
+        """
+        GLM.release(self.__mid, self.__mkind, self.__mdtype)
 
     def __del__(self):
         """
-        NAME: __del__
+        destructs the python object
         """
-        if FrovedisServer.isUP():
-            self.release()
+        self.release()
+
+    def is_fitted(self):
+        """ function to confirm if the model is already fitted """
+        return self.__mid is not None
 
 class KNeighborsRegressor(BaseEstimator):
     """
@@ -599,6 +615,7 @@ class KNeighborsRegressor(BaseEstimator):
         self.__mdtype = None
         self.__mkind = M_KIND.KNR
 
+    @set_association
     def fit(self, X, y):
         """
         fit for KNeighborsRegressor
@@ -642,9 +659,8 @@ class KNeighborsRegressor(BaseEstimator):
             raise RuntimeError(excpt["info"])
         return self
 
+    @check_association
     def kneighbors(self, X=None, n_neighbors=None, return_distance=True):
-        if self.__mid is None:
-            raise AttributeError("kneighbors called before fit")
         if n_neighbors is None:
             n_neighbors = self.n_neighbors
         if X is None:
@@ -688,9 +704,8 @@ class KNeighborsRegressor(BaseEstimator):
             else:
                 return indices
  
+    @check_association
     def kneighbors_graph(self, X=None, n_neighbors=None, mode="connectivity"):
-        if self.__mid is None:
-            raise AttributeError("kneighbors_graph called before fit")
         if n_neighbors is None:
             n_neighbors = self.n_neighbors
         if X is None:
@@ -724,25 +739,25 @@ class KNeighborsRegressor(BaseEstimator):
         else:
             return ret
 
+    #@check_association
     def save(self, fname):
         """
         NAME: save
         """
-        pass
+        raise AttributeError("save: not supported for KNeighborsRegressor!")
 
+    #@set_association
     def load(self, fname):
         """
         NAME: load
         """
-        pass
+        raise AttributeError("load: not supported for KNeighborsRegressor!")
 
+    @check_association
     def predict(self, X):
         """
         NAME: predict for KNeighbors Regressor
         """
-        if self.__mid is None:
-            raise ValueError( \
-            "predict is called before calling fit, or the model is released.")
         test_data = FrovedisFeatureData(X, dense_kind='rowmajor', \
                           caller = "[" + self.__class__.__name__ + \
                                    "] predict: ", \
@@ -770,13 +785,11 @@ class KNeighborsRegressor(BaseEstimator):
         return np.asarray(ret, dtype=np.float64)
 
     # TODO: support sample_weight
+    @check_association
     def score(self, X, y, sample_weight=None):
         """
         NAME: score function for KNeighbors Regressor
         """
-        if self.__mid is None:
-            raise ValueError( \
-            "predict is called before calling fit, or the model is released.")
         test_data = FrovedisLabeledPoint(X, y, \
                    caller = "[" + self.__class__.__name__ + "] score: ",\
                    dense_kind = 'rowmajor', densify=True)
@@ -794,27 +807,39 @@ class KNeighborsRegressor(BaseEstimator):
         if excpt["status"]:
             raise RuntimeError(excpt["info"])
         return res
-  
+ 
+    #@check_association
     def debug_print(self):
         """
         NAME: debug_print
         """
-        pass
+        raise AttributeError("debug_print: not supported for " \
+                             "KNeighborsRegressor!")
 
     def release(self):
         """
-        NAME: release
+        resets after-fit populated attributes to None
         """
-        if self.__mid is not None:
-            GLM.release(self.__mid, self.__mkind, self.__mdtype)
-            self._X = None
-            self._X_movable = None
-            self.__mid = None
-            self.__mdtype = None
+        self.__release_server_heap()
+        self._X = None
+        self._X_movable = None
+        self.__mid = None
+        self.__mdtype = None
+
+    @do_if_active_association
+    def __release_server_heap(self):
+        """
+        to release model pointer from server heap
+        """
+        GLM.release(self.__mid, self.__mkind, self.__mdtype)
 
     def __del__(self):
         """
-        NAME: __del__
+        destructs the python object
         """
-        if FrovedisServer.isUP():
-            self.release()
+        self.release()
+
+    def is_fitted(self):
+        """ function to confirm if the model is already fitted """
+        return self.__mid is not None
+

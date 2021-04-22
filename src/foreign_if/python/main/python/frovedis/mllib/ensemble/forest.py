@@ -8,7 +8,7 @@ import os.path
 import numpy as np
 from ...base import *
 from ...exrpc import rpclib
-from ...exrpc.server import FrovedisServer
+from ...exrpc.server import FrovedisServer, check_server_state
 from ...matrix.ml_data import FrovedisLabeledPoint
 from ...matrix.dtype import TypeUtil
 from ..metrics import accuracy_score, r2_score
@@ -350,20 +350,20 @@ class RandomForestRegressor(BaseEstimator):
 
         if self.min_impurity_decrease < 0:
             raise ValueError(\
-            "Value of min_impurity_decrease should be greater than 0")
+            "Value of min_impurity_decrease should be greater than 0!")
         
         if self.max_bins < 0:
-            raise ValueError("Value of max_bin should be greater than 0")
+            raise ValueError("Value of max_bin should be greater than 0!")
 
         if self.min_samples_leaf < 0:
             raise ValueError(\
             "Value of min_samples_leaf should be greater than 0!")
+        if(isinstance(self.min_samples_leaf, float)):
+            self.min_samples_leaf = \
+            int(np.ceil(self.min_samples_split * self.n_samples_))
 
         if self.random_state is None:
             self.random_state = -1
-
-        if(isinstance(self.min_samples_leaf, float)):
-            self.min_samples_leaf = int(np.ceil(self.min_samples_split * self.n_samples_))
 
         if(isinstance(self.max_features, int)):
             self.feature_subset_strategy = "customrate"

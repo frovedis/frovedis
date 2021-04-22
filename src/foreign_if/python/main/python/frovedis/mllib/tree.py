@@ -2,20 +2,19 @@
 tree.py: wrapper of frovedis decistion tree (classifier and regressor)
 """
 
-#!/usr/bin/env python
 import os.path
 import pickle
 import numpy as np
 import numbers
 from ..base import *
 from ..exrpc import rpclib
-from ..exrpc.server import FrovedisServer, check_server_state
+from ..exrpc.server import FrovedisServer, set_association, \
+                           check_association, do_if_active_association
 from ..matrix.ml_data import FrovedisLabeledPoint
 from ..matrix.dtype import TypeUtil
 from .metrics import *
 from .model_util import *
 
-# Decision Tree Regressor Class
 class DecisionTreeRegressor(BaseEstimator):
     """A python wrapper of Frovedis Decision Tree Regressor
     parameter                   :   default value
@@ -52,7 +51,6 @@ class DecisionTreeRegressor(BaseEstimator):
         self.ccp_alpha = ccp_alpha
         # extra
         self.__mid = None
-        self.__sid = None
         self.__mdtype = None
         self.__mkind = M_KIND.DTM
         # Frovedis side parameters
@@ -62,11 +60,8 @@ class DecisionTreeRegressor(BaseEstimator):
         self.algo = "Regression"
         self.n_classes_ = 0 
 
-    #To validate the input parameters
     def validate(self):
-        """
-        NAME: validate
-        """
+        """ to validate the input parameters used for fit at server side"""
         self.criterion = self.criterion.upper()
         if self.criterion != "MSE":
             raise ValueError("Invalid criterion for Decision Tree Regressor!")
@@ -96,10 +91,11 @@ class DecisionTreeRegressor(BaseEstimator):
             self.min_samples_leaf = \
             int(ceil(self.min_samples_leaf * self.n_samples_))
 
-    # Fit Decision Tree Regressor according to X (input data), y (Label)
+    @set_association
     def fit(self, X, y):
         """
-        NAME: fit
+        fits a Decision Tree Regressor according 
+        to X (input data), y (Label)
         """
         self.release()
         inp_data = FrovedisLabeledPoint(X, y, \
@@ -111,6 +107,7 @@ class DecisionTreeRegressor(BaseEstimator):
         dense = inp_data.is_dense()
         self.n_samples_ = inp_data.numRows()
         self.n_features_ = inp_data.numCols()
+        self.__mid = ModelID.get()
         self.__mdtype = dtype
         self.validate()
         info_keys = np.asarray(list(self.categorical_info.keys()), \
@@ -118,8 +115,6 @@ class DecisionTreeRegressor(BaseEstimator):
         info_vals = np.asarray(list(self.categorical_info.values()), \
                                dtype=np.int32)
         (host, port) = FrovedisServer.getServerInstance()
-        self.__mid = ModelID.get()
-        self.__sid = FrovedisServer.getID()
         rpclib.dt_train(host, port, X.get(), y.get(), \
                         self.algo.encode('ascii'), \
                         self.criterion.encode('ascii'),\
@@ -133,22 +128,18 @@ class DecisionTreeRegressor(BaseEstimator):
             raise RuntimeError(excpt["info"])
         return self
 
-    # Perform prediction on an array of test vectors X.
+    @check_association
     def predict(self, X):
         """
-        NAME: predict
+        performs prediction on an array of test vectors X.
         """
-        if self.__mid is None:
-            raise ValueError(\
-            "predict is called before calling fit, or the model is released.")
-        check_server_state(self.__sid, self.__class__.__name__)
         ret = GLM.predict(X, self.__mid, self.__mkind, self.__mdtype, False)
         return np.asarray(ret, dtype=np.float64)
 
-    # Load the model from a file
+    @set_association
     def load(self, fname, dtype=None):
         """
-        NAME: load
+        loads the model from a file
         """
         if not os.path.exists(fname):
             raise ValueError(\
@@ -165,64 +156,62 @@ class DecisionTreeRegressor(BaseEstimator):
                                  "; given type: " + str(dtype))
         self.__mid = ModelID.get()
         GLM.load(self.__mid, self.__mkind, self.__mdtype, fname + "/model")
-        self.__sid = FrovedisServer.getID()
         return self
 
-    # Save model to a file
+    @check_association
     def save(self, fname):
         """
-        NAME: save
+        saves the model to a file
         """
-        if self.__mid is None:
-            raise ValueError(\
-                "save: the requested model might have been released!")
         if os.path.exists(fname):
             raise ValueError(\
                 "another model with %s name already exists!" % fname)
         else:
             os.makedirs(fname)
-        check_server_state(self.__sid, self.__class__.__name__)
         GLM.save(self.__mid, self.__mkind, self.__mdtype, fname + "/model")
         metadata = open(fname + "/metadata", "wb")
         pickle.dump((self.__mkind, self.__mdtype), metadata)
         metadata.close()
 
-    # calculate the root mean square value on the given test data and labels.
     def score(self, X, y, sample_weight=None):
         """
-        NAME: score
+        calculates the root mean square value 
+        on the given test data and labels.
         """
         return r2_score(y, self.predict(X), sample_weight=sample_weight)
 
-    # Show the model
+    @check_association
     def debug_print(self):
         """
-        NAME: debug_print
+        displays the model contents for debug purposes
         """
-        if self.__mid is not None:
-            check_server_state(self.__sid, self.__class__.__name__)
-            GLM.debug_print(self.__mid, self.__mkind, self.__mdtype)
+        GLM.debug_print(self.__mid, self.__mkind, self.__mdtype)
 
-    # Release the model-id to generate new model-id
     def release(self):
         """
-        NAME: release
+        resets after-fit populated attributes to None
         """
-        if self.__mid is not None:
-            if FrovedisServer.isUP(self.__sid):
-                GLM.release(self.__mid, self.__mkind, self.__mdtype)
+        self.__release_server_heap()
         self.__mid = None
-        self.__sid = None
         self.n_samples_ = self.n_features_ = None
 
-    # Check FrovedisServer is up then release
+    @do_if_active_association
+    def __release_server_heap(self):
+        """
+        to release model pointer from server heap
+        """
+        GLM.release(self.__mid, self.__mkind, self.__mdtype)
+
     def __del__(self):
         """
-        NAME: __del__
+        destructs the object
         """
         self.release()
 
-# Decision Tree Classifier Class
+    def is_fitted(self):
+        """ function to confirm if the model is already fitted """
+        return self.__mid is not None
+
 class DecisionTreeClassifier(BaseEstimator):
     """A python wrapper of Frovedis Decision Tree Classifier
     parameter   		:   default value
@@ -259,7 +248,6 @@ class DecisionTreeClassifier(BaseEstimator):
         self.ccp_alpha = ccp_alpha
         # extra
         self.__mid = None
-        self.__sid = None
         self.__mdtype = None
         self.__mkind = M_KIND.DTM
         self.label_map = None
@@ -274,7 +262,7 @@ class DecisionTreeClassifier(BaseEstimator):
 
     def validate(self):
         """
-        NAME: validate
+        to validate input parameters used for fit at server side
         """
         self.criterion = self.criterion.upper()
         if self.criterion != "GINI" and self.criterion != "ENTROPY":
@@ -305,10 +293,11 @@ class DecisionTreeClassifier(BaseEstimator):
             self.min_samples_leaf = \
             int(ceil(self.min_samples_leaf * self.n_samples_))
 
-    # Fit Decision Tree classifier according to X (input data), y (Label)
+    @set_association
     def fit(self, X, y):
         """
-        NAME: fit
+        fits a Decision Tree classifier 
+        according to X (input data), y (Label)
         """
         self.release()
         # for binary case: frovedis supports 0 and 1
@@ -333,7 +322,6 @@ class DecisionTreeClassifier(BaseEstimator):
                                dtype=np.int32)
         (host, port) = FrovedisServer.getServerInstance()
         self.__mid = ModelID.get()
-        self.__sid = FrovedisServer.getID()
         rpclib.dt_train(host, port, X.get(), y.get(), \
                         self.algo.encode('ascii'), \
                         self.criterion.encode('ascii'),\
@@ -363,44 +351,36 @@ class DecisionTreeClassifier(BaseEstimator):
         raise AttributeError(\
             "attribute 'classes_' of DecisionTreeClassifier object is not writable")
 
-    # Perform classification on an array of test vectors X.
+    @check_association
     def predict(self, X):
         """
-        NAME: predict
+        performs classification on an array of test vectors X.
         """
-        if self.__mid is None:
-            raise ValueError(\
-            "predict is called before calling fit, or the model is released.")
-        check_server_state(self.__sid, self.__class__.__name__)
         frov_pred = GLM.predict(X, self.__mid, self.__mkind, \
                            self.__mdtype, False)
         return np.asarray([self.label_map[frov_pred[i]] \
                    for i in range(0, len(frov_pred))])
 
-    # Perform classification on an array and return probability
-    # estimates for the test vector X.
+    @check_association
     def predict_proba(self, X):
         """
-        NAME: predict_proba
+        performs classification on an array and return probability
+        estimates for the test vector X. 
         """
-        if self.__mid is None:
-            raise ValueError("predict_proba is called before calling fit," \
-                             " or the model is released!")
         if(self.n_classes_ > 2):
             raise AttributeError("Frovedis DecisionTreeClassifier currently" \
             " does not support predict_proba() for" 
             " multinomial classification!")
-        check_server_state(self.__sid, self.__class__.__name__)
         proba = GLM.predict(X, self.__mid, self.__mkind, \
                             self.__mdtype, True, self.n_classes_)
         n_samples = len(proba) // self.n_classes_
         shape = (n_samples, self.n_classes_)
         return np.asarray(proba).reshape(shape)
 
-    # Load the model from a file
+    @set_association
     def load(self, fname, dtype=None):
         """
-        NAME: load
+        loads the model from a file
         """
         if not os.path.exists(fname):
             raise ValueError(\
@@ -421,30 +401,24 @@ class DecisionTreeClassifier(BaseEstimator):
                                  "; given type: " + str(dtype))
         self.__mid = ModelID.get()
         GLM.load(self.__mid, self.__mkind, self.__mdtype, fname + "/model")
-        self.__sid = FrovedisServer.getID()
         return self
 
-    # calculate the mean accuracy on the given test data and labels.
     def score(self, X, y, sample_weight=None):
         """
-        NAME: score
+        calculates the mean accuracy on the given test data and labels.
         """
         return accuracy_score(y, self.predict(X), sample_weight=sample_weight)
 
-    # Save model to a file
+    @check_association
     def save(self, fname):
         """
-        NAME: save
+        saves the model to a file
         """
-        if self.__mid is None:
-            raise AttributeError(\
-                "save: requested model might have been released!")
         if os.path.exists(fname):
             raise ValueError(\
                 "another model with %s name already exists!" % fname)
         else:
             os.makedirs(fname)
-        check_server_state(self.__sid, self.__class__.__name__)
         GLM.save(self.__mid, self.__mkind, self.__mdtype, fname + "/model")
         target = open(fname + "/label_map", "wb")
         pickle.dump(self.label_map, target)
@@ -454,33 +428,36 @@ class DecisionTreeClassifier(BaseEstimator):
             self.__mdtype), metadata)
         metadata.close()
 
-    # Show the model
+    @check_association
     def debug_print(self):
         """
-        NAME: debug_print
+        displays the model content for debug purposes
         """
-        if self.__mid is not None:
-            check_server_state(self.__sid, self.__class__.__name__)
-            GLM.debug_print(self.__mid, self.__mkind, self.__mdtype)
+        GLM.debug_print(self.__mid, self.__mkind, self.__mdtype)
 
-    # Release the model-id to generate new model-id
     def release(self):
         """
-        NAME: release
+        resets after-fit populated attributes to None
         """
-        if self.__mid is not None:
-            if FrovedisServer.isUP(self.__sid):
-                GLM.release(self.__mid, self.__mkind, self.__mdtype)
+        self.__release_server_heap()
         self.__mid = None
-        self.__sid = None
         self.label_map = None
         self._classes = None
         self.n_classes_ = self.n_samples_ = self.n_features_ = None
 
-    # Check FrovedisServer is up then release
+    @do_if_active_association
+    def __release_server_heap(self):
+        """
+        to release model pointer from server heap
+        """
+        GLM.release(self.__mid, self.__mkind, self.__mdtype)
+
     def __del__(self):
         """
         NAME: __del__
         """
         self.release()
 
+    def is_fitted(self):
+        """ function to confirm if the model is already fitted """
+        return self.__mid is not None

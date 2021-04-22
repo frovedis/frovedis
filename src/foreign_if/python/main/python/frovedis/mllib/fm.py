@@ -2,19 +2,17 @@
 fm.py: wrapper of frovedis Factorization Machine
 """
 
-#!/usr/bin/env python
-
 import os.path
 import pickle
 from ..base import *
 from ..exrpc import rpclib
-from ..exrpc.server import FrovedisServer, check_server_state
+from ..exrpc.server import FrovedisServer, set_association, \
+                           check_association, do_if_active_association
 from ..matrix.ml_data import FrovedisLabeledPoint
 from ..matrix.dtype import TypeUtil
 from .metrics import *
 from .model_util import *
 
-# Factorization Machine Classifier class
 class FactorizationMachineClassifier(BaseEstimator):
     """
     A python wrapper of Frovedis Factorization Machine Classifier
@@ -58,7 +56,6 @@ class FactorizationMachineClassifier(BaseEstimator):
         self.verbose = verbose
         # extra
         self.__mid = None
-        self.__sid = None
         self.__mdtype = None
         self.__mkind = M_KIND.FMM
         self.isregressor = False
@@ -94,11 +91,11 @@ class FactorizationMachineClassifier(BaseEstimator):
         elif self.verbose < 0:
             raise ValueError("verbose should be positive")
 
-    # Fit Factorization Machine classifier according to
-    #  X (input data), y (Label)
+    @set_association
     def fit(self, X, y, sample_weight=None):
         """
-        NAME: fit
+        fits a Factorization Machine classifier 
+        according to X (input data), y (Label)
         """
         self.validate()
         self.release()
@@ -119,7 +116,6 @@ class FactorizationMachineClassifier(BaseEstimator):
         self.__mdtype = dtype
         (host, port) = FrovedisServer.getServerInstance()
         self.__mid = ModelID.get()
-        self.__sid = FrovedisServer.getID()
         rpclib.fm_train(host, port, X.get(),
                         y.get(), self.init_stdev, self.iteration,
                         self.init_learn_rate, self.optimizer.encode('ascii'),
@@ -135,15 +131,11 @@ class FactorizationMachineClassifier(BaseEstimator):
             raise RuntimeError(excpt["info"])
         return self
 
-    # Perform classification on an array of test vectors X.
+    @check_association
     def predict(self, X):
         """
-        NAME: predict
+        performs classification on an array of test vectors X.
         """
-        if self.__mid is None:
-            raise AttributeError( \
-            "predict is called before calling fit, or the model is released.")
-        check_server_state(self.__sid, self.__class__.__name__)
         pred = GLM.predict(X, self.__mid, self.__mkind, \
                            self.__mdtype, False)
         return np.asarray([self.label_map[pred[i]] \
@@ -166,10 +158,10 @@ class FactorizationMachineClassifier(BaseEstimator):
             "attribute 'classes_' of FactorizationMachineClassifier "
             "object is not writable")
 
-    # Load the model from a file
+    @set_association
     def load(self, fname, dtype=None):
         """
-        NAME: load
+        loads the model from a file
         """
         if not os.path.exists(fname):
             raise ValueError(\
@@ -190,26 +182,19 @@ class FactorizationMachineClassifier(BaseEstimator):
                                  "; given type: " + str(dtype))
         self.__mid = ModelID.get()
         GLM.load(self.__mid, self.__mkind, self.__mdtype, fname + "/model")
-        self.__sid = FrovedisServer.getID()
         return self
 
-    # calculate the mean accuracy on the given test data and labels.
     def score(self, X, y, sample_weight=None):
         """
-        NAME: score
+        calculates the mean accuracy on the given test data and labels.
         """
         return accuracy_score(y, self.predict(X), sample_weight=sample_weight)
 
-    # Save model to a file
+    @check_association
     def save(self, fname):
         """
-        NAME: save
+        saves model to a file
         """
-        if self.__mid is None:
-            raise AttributeError("save: either called before fit or the "
-                                 "requested model might have been released!")
-
-        check_server_state(self.__sid, self.__class__.__name__)
         if os.path.exists(fname):
             raise ValueError(\
                 "another model with %s name already exists!" % fname)
@@ -223,37 +208,40 @@ class FactorizationMachineClassifier(BaseEstimator):
         pickle.dump((self.__mkind, self.__mdtype), metadata)
         metadata.close()
 
-    # Show the model
+    @check_association
     def debug_print(self):
         """
-        NAME: debug_print
+        displays the model content for debug purposes 
         """
-        if self.__mid is not None:
-            check_server_state(self.__sid, self.__class__.__name__)
-            GLM.debug_print(self.__mid, self.__mkind, self.__mdtype)
+        GLM.debug_print(self.__mid, self.__mkind, self.__mdtype)
 
-    # Release the model-id to generate new model-id
     def release(self):
         """
-        NAME: release
+        resets after-fit populated attributes to None
         """
-        if self.__mid is not None:
-            if FrovedisServer.isUP(self.__sid):
-                GLM.release(self.__mid, self.__mkind, self.__mdtype)
+        self.__release_server_heap()
         self.__mid = None
-        self.__sid = None
         self._classes = None
         self.label_map = None
         self.n_classes_ = self.n_features_ = None
 
-    # Check FrovedisServer is up then release
+    @do_if_active_association
+    def __release_server_heap(self):
+        """
+        to release model pointer from server heap
+        """
+        GLM.release(self.__mid, self.__mkind, self.__mdtype)
+
     def __del__(self):
         """
-        NAME: __del__
+        destructs FM classifier object 
         """
         self.release()
 
-# Factorization Machine Regressor class
+    def is_fitted(self):
+        """ function to confirm if the model is already fitted """
+        return self.__mid is not None
+
 class FactorizationMachineRegressor(BaseEstimator):
     """
     A python wrapper of Frovedis Factorization Machine Regressor
@@ -296,7 +284,6 @@ class FactorizationMachineRegressor(BaseEstimator):
         self.verbose = verbose
         # extra
         self.__mid = None
-        self.__sid = None
         self.__mdtype = None
         self.__mkind = M_KIND.FMM
         self.isregressor = True
@@ -331,11 +318,11 @@ class FactorizationMachineRegressor(BaseEstimator):
         elif self.verbose < 0:
             raise ValueError("verbose should be positive")
 
-    # Fit Factorization Machine Regressor according to
-    #  X (input data), y (Label)
+    @set_association
     def fit(self, X, y, sample_weight=None):
         """
-        NAME: fit
+        fits a Factorization Machine Regressor 
+        according to X (input data), y (Label)
         """
         self.release()
         inp_data = FrovedisLabeledPoint(X, y, \
@@ -352,7 +339,6 @@ class FactorizationMachineRegressor(BaseEstimator):
         self.__mdtype = dtype
         (host, port) = FrovedisServer.getServerInstance()
         self.__mid = ModelID.get()
-        self.__sid = FrovedisServer.getID()
         rpclib.fm_train(host, port, X.get(),
                         y.get(), self.init_stdev, self.iteration,
                         self.init_learn_rate, self.optimizer.encode('ascii'),
@@ -367,22 +353,18 @@ class FactorizationMachineRegressor(BaseEstimator):
             raise RuntimeError(excpt["info"])
         return self
 
-    # Perform regression on an array of test vectors X.
+    @check_association
     def predict(self, X):
         """
-        NAME: predict
+        performs regression on an array of test vectors X.
         """
-        if self.__mid is None:
-            raise AttributeError( \
-            "predict is called before calling fit, or the model is released.")
-        check_server_state(self.__sid, self.__class__.__name__)
         ret = GLM.predict(X, self.__mid, self.__mkind, self.__mdtype, False)
         return np.asarray(ret, dtype=np.float64)
 
-    # Load the model from a file
+    @set_association
     def load(self, fname, dtype=None):
         """
-        NAME: load
+        loads the model from a file
         """
         if not os.path.exists(fname):
             raise ValueError(\
@@ -399,18 +381,13 @@ class FactorizationMachineRegressor(BaseEstimator):
                                  "; given type: " + str(dtype))
         self.__mid = ModelID.get()
         GLM.load(self.__mid, self.__mkind, self.__mdtype, fname + "/model")
-        self.__sid = FrovedisServer.getID()
         return self
 
-    # Save model to a file
+    @check_association
     def save(self, fname):
         """
-        NAME: save
+        saves the model to a file
         """
-        if self.__mid is None:
-            raise AttributeError("save: either called before fit or the "
-                                 "requested model might have been released!")
-        check_server_state(self.__sid, self.__class__.__name__)
         if os.path.exists(fname):
             raise ValueError(\
                 "another model with %s name already exists!" % fname)
@@ -421,38 +398,43 @@ class FactorizationMachineRegressor(BaseEstimator):
         pickle.dump((self.__mkind, self.__mdtype), metadata)
         metadata.close()
 
-    # calculate the root mean square value on the given test data and labels.
     def score(self, X, y, sample_weight=None):
         """
-        NAME: score
+        calculates the root mean square value 
+        on the given test data and labels.
         """
         return r2_score(y, self.predict(X), sample_weight=sample_weight)
 
-    # Show the model
+    @check_association
     def debug_print(self):
         """
-        NAME: debug_print
+        displays the model content for debug purposes
         """
-        if self.__mid is not None:
-            check_server_state(self.__sid, self.__class__.__name__)
-            GLM.debug_print(self.__mid, self.__mkind, self.__mdtype)
+        GLM.debug_print(self.__mid, self.__mkind, self.__mdtype)
 
-    # Release the model-id to generate new model-id
     def release(self):
         """
-        NAME: release
+        resets after-fit populated attributes to None
         """
-        if self.__mid is not None:
-            if FrovedisServer.isUP(self.__sid):
-                GLM.release(self.__mid, self.__mkind, self.__mdtype)
+        self.__release_server_heap()
         self.__mid = None
-        self.__sid = None
         self.n_features_ = None
 
-    # Check FrovedisServer is up then release
+    @do_if_active_association
+    def __release_server_heap(self):
+        """
+        to release model pointer from server heap
+        """
+        GLM.release(self.__mid, self.__mkind, self.__mdtype)
+
     def __del__(self):
         """
-        NAME: __del__
+        destructs FM Regressor object 
         """
         self.release()
+
+    def is_fitted(self):
+        """ function to confirm if the model is already fitted """
+        return self.__mid is not None
+
 

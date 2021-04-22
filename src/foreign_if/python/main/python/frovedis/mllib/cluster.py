@@ -2,20 +2,20 @@
 cluster.py: module containing wrapper for kmeans, dbscan, agglomerative
             and spectral clustering
 """
-#!/usr/bin/env python
 
 import sys
 import os.path
 import pickle
 import numpy as np
 import numbers
-from .model_util import *
 from ..base import *
-from ..exrpc.server import FrovedisServer
 from ..exrpc import rpclib
+from ..exrpc.server import FrovedisServer, set_association, \
+                           check_association, do_if_active_association
 from ..matrix.ml_data import FrovedisFeatureData
 from ..matrix.dense import FrovedisRowmajorMatrix
 from ..matrix.dtype import TypeUtil
+from .model_util import *
 
 def clustering_score(labels_true, labels_pred):
   try:
@@ -51,7 +51,7 @@ class KMeans(BaseEstimator):
         self._cluster_centers = None
 
     def validate(self):
-        """validates hyper parameters"""
+        """ validates hyper parameters """
         if self.n_init is None:
             self.n_init = 10
         if self.n_init < 1:
@@ -100,6 +100,7 @@ class KMeans(BaseEstimator):
                               (nsamples, self.n_clusters))
         return X, dtype, itype, dense, nsamples, nfeatures, movable
 
+    @set_association
     def fit(self, X, y=None, sample_weight=None):
         """Compute k-means clustering."""
         self.release()
@@ -131,6 +132,7 @@ class KMeans(BaseEstimator):
         self.fit(X, y, sample_weight)
         return self.labels_
 
+    @set_association
     def fit_transform(self, X, y=None, sample_weight=None):
         """
         computes clustering and transform X to cluster-distance space.
@@ -166,11 +168,9 @@ class KMeans(BaseEstimator):
         else:
             return ret
 
+    @check_association
     def transform(self, X):
         """transforms X to a cluster-distance space."""
-        if self.__mid is None:
-            raise ValueError( \
-            "transform: is called before calling fit, or the model is released.")
         X, dtype, itype, dense, \
         nsamples, nfeatures, movable = self.check_input(X, "transform")
         if dtype != self.__mdtype:
@@ -190,11 +190,9 @@ class KMeans(BaseEstimator):
         else:
             return ret
 
+    @check_association
     def predict(self, X, sample_weight=None):
         """Predict the closest cluster each sample in X belongs to."""
-        if self.__mid is None:
-            raise ValueError( \
-            "predict: is called before calling fit, or the model is released.")
         X, dtype, itype, dense, \
         nsamples, nfeatures, movable = self.check_input(X, "predict")
         if dtype != self.__mdtype:
@@ -212,11 +210,9 @@ class KMeans(BaseEstimator):
         return ret
 
     # TODO: support sample_weight
+    @check_association
     def score(self, X, y=None, sample_weight=None):
         """Opposite of the value of X on the K-means objective."""
-        if self.__mid is None:
-            raise ValueError( \
-            "score: is called before calling fit, or the model is released.")
         X, dtype, itype, dense, \
         nsamples, nfeatures, movable = self.check_input(X, "score")
         if dtype != self.__mdtype:
@@ -232,11 +228,9 @@ class KMeans(BaseEstimator):
         return ret
 
     @property
+    @check_association
     def cluster_centers_(self):
         """returns centroid points"""
-        if self.__mid is None:
-            raise ValueError("cluster_centers_: is called before fit/load")
-
         if self._cluster_centers is None:
             (host, port) = FrovedisServer.getServerInstance()
             center = rpclib.get_kmeans_centroid(host, port, self.__mid, \
@@ -255,6 +249,7 @@ class KMeans(BaseEstimator):
         raise AttributeError(\
         "attribute 'cluster_centers_' of KMeans is not writable")
 
+    @set_association
     def load(self, fname, dtype=None):
         """
         NAME: load
@@ -277,50 +272,57 @@ class KMeans(BaseEstimator):
         GLM.load(self.__mid, self.__mkind, self.__mdtype, fname+"/model")
         return self
 
+    @check_association
     def save(self, fname):
         """
         NAME: save
         """
-        if self.__mid is None:
-            raise ValueError(\
-            "save: is called before calling fit, or the model is released!")
         if os.path.exists(fname):
             raise ValueError(\
             "another model with %s name already exists!" % fname)
         else:
             os.makedirs(fname)
-        GLM.save(self.__mid, self.__mkind, self.__mdtype, fname+"/model")
-        metadata = open(fname+"/metadata", "wb")
+        GLM.save(self.__mid, self.__mkind, self.__mdtype, fname + "/model")
+        metadata = open(fname + "/metadata", "wb")
         pickle.dump((self.n_clusters_, self.n_features, \
                      self.__mkind, self.__mdtype), metadata)
         metadata.close()
 
+    @check_association
     def debug_print(self):
         """
         NAME: debug_print
         """
-        if self.__mid is not None:
-            GLM.debug_print(self.__mid, self.__mkind, self.__mdtype)
+        GLM.debug_print(self.__mid, self.__mkind, self.__mdtype)
 
     def release(self):
         """
-        NAME: release
+        resets after-fit populated attributes to None
         """
-        if self.__mid is not None:
-            GLM.release(self.__mid, self.__mkind, self.__mdtype)
-            self.__mid = None
-            self._cluster_centers = None
-            self.labels_ = None
-            self.inertia_ = None
-            self.n_iter_ = None
-            self.n_clusters_ = None
+        self.__release_server_heap()
+        self.__mid = None
+        self._cluster_centers = None
+        self.labels_ = None
+        self.inertia_ = None
+        self.n_iter_ = None
+        self.n_clusters_ = None
+
+    @do_if_active_association
+    def __release_server_heap(self):
+        """
+        to release model pointer from server heap
+        """
+        GLM.release(self.__mid, self.__mkind, self.__mdtype)
 
     def __del__(self):
         """
         NAME: __del__
         """
-        if FrovedisServer.isUP():
-            self.release()
+        self.release()
+
+    def is_fitted(self):
+        """ function to confirm if the model is already fitted """
+        return self.__mid is not None
 
 class SpectralClustering(BaseEstimator):
     """
@@ -358,6 +360,7 @@ class SpectralClustering(BaseEstimator):
         self.drop_first = drop_first
         self.labels_ = None
 
+    @set_association
     def fit(self, X, y=None):
         """
         NAME: fit
@@ -402,8 +405,7 @@ class SpectralClustering(BaseEstimator):
 
     def score(self, X, y, sample_weight=None):
         """uses scikit-learn homogeneity_score for scoring"""
-        if self.__mid is not None:
-            return clustering_score(y, self.fit_predict(X, y))
+        return clustering_score(y, self.fit_predict(X, y))
 
     def __str__(self):
         """
@@ -411,6 +413,7 @@ class SpectralClustering(BaseEstimator):
         """
         return str(self.get_params())
 
+    @set_association
     def load(self, fname, dtype=None):
         """
         NAME: load
@@ -421,14 +424,14 @@ class SpectralClustering(BaseEstimator):
             raise ValueError(\
                 "the model with name %s does not exist!" % fname)
         self.release()
-        metadata = open(fname+"/metadata", "rb")
+        metadata = open(fname + "/metadata", "rb")
         self.n_clusters, self.n_components, self.__mkind, self.__mdtype = \
             pickle.load(metadata)
         metadata.close()
         if dtype is not None:
             mdt = TypeUtil.to_numpy_dtype(self.__mdtype)
             if dtype != mdt:
-                raise ValueError("load: type mismatches detected!" + \
+                raise ValueError("load: type mismatches detected! " + \
                                  "expected type: " + str(mdt) + \
                                  "; given type: " + str(dtype))
         self.__mid = ModelID.get()
@@ -442,13 +445,11 @@ class SpectralClustering(BaseEstimator):
         return self
 
     @property
+    @check_association
     def affinity_matrix_(self):
         """
         NAME: get_affinity_matrix
         """
-        if self.__mid is None:
-            raise ValueError("affinity_matrix_ is called before fit/load")
-
         if self._affinity is None:
             (host, port) = FrovedisServer.getServerInstance()
             dmat = rpclib.get_scm_affinity_matrix(host, port, self.__mid, \
@@ -470,48 +471,54 @@ class SpectralClustering(BaseEstimator):
         raise AttributeError(\
         "attribute 'affinity_matrix_' of SpectralClustering is not writable")
 
+    @check_association
     def save(self, fname):
         """
         NAME: save
         """
-        if self.__mid is not None:
-            if os.path.exists(fname):
-                raise ValueError(\
-                    "another model with %s name already exists!" % fname)
-            else:
-                os.makedirs(fname)
-            GLM.save(self.__mid, self.__mkind, self.__mdtype, fname+"/model")
-            metadata = open(fname+"/metadata", "wb")
-            pickle.dump((self.n_clusters, self.n_components, \
-                self.__mkind, self.__mdtype), metadata)
-            metadata.close()
-        else:
+        if os.path.exists(fname):
             raise ValueError(\
-                "save: the requested model might have been released!")
+                "another model with %s name already exists!" % fname)
+        else:
+            os.makedirs(fname)
+        GLM.save(self.__mid, self.__mkind, self.__mdtype, fname + "/model")
+        metadata = open(fname + "/metadata", "wb")
+        pickle.dump((self.n_clusters, self.n_components, \
+            self.__mkind, self.__mdtype), metadata)
+        metadata.close()
 
+    @check_association
     def debug_print(self):
         """
         NAME: debug_print
         """
-        if self.__mid is not None:
-            GLM.debug_print(self.__mid, self.__mkind, self.__mdtype)
+        GLM.debug_print(self.__mid, self.__mkind, self.__mdtype)
 
     def release(self):
         """
-        NAME: release
+        resets after-fit populated attributes to None
         """
-        if self.__mid is not None:
-            GLM.release(self.__mid, self.__mkind, self.__mdtype)
-            self.__mid = None
-            self.labels_ = None
-            self._affinity = None
+        self.__release_server_heap()
+        self.__mid = None
+        self.labels_ = None
+        self._affinity = None
+
+    @do_if_active_association
+    def __release_server_heap(self):
+        """
+        to release model pointer from server heap
+        """
+        GLM.release(self.__mid, self.__mkind, self.__mdtype)
 
     def __del__(self):
         """
         NAME: __del__
         """
-        if FrovedisServer.isUP():
-            self.release()
+        self.release()
+
+    def is_fitted(self):
+        """ function to confirm if the model is already fitted """
+        return self.__mid is not None
 
 class AgglomerativeClustering(BaseEstimator):
     """
@@ -559,6 +566,7 @@ class AgglomerativeClustering(BaseEstimator):
         if self.threshold is None:
             self.threshold = 0.0
         
+    @set_association
     def fit(self, X, y=None):
         """
         NAME: fit
@@ -590,14 +598,19 @@ class AgglomerativeClustering(BaseEstimator):
             raise RuntimeError(excpt["info"])
         return self
 
+    def fit_predict(self, X, y=None):
+        """
+        NAME: fit_predict
+        """
+        self.fit(X, y)
+        return self.labels_
+
     @property
+    @check_association
     def children_(self):
         """
         NAME: get_children
         """
-        if self.__mid is None:
-            raise ValueError("children_ is called before fit/load")
-
         if self._children is None:
             (host, port) = FrovedisServer.getServerInstance()
             children_vector = rpclib.get_acm_children(host, port, self.__mid, \
@@ -621,13 +634,11 @@ class AgglomerativeClustering(BaseEstimator):
         "attribute 'children_' of AgglomerativeClustering is not writable")
 
     @property
+    @check_association
     def n_connected_components_(self):
         """
         NAME: get_n_connected_components
         """
-        if self.__mid is None:
-            raise ValueError("n_connected_components_ is called before fit/load")
-
         if self._n_connected_components is None:
             (host, port) = FrovedisServer.getServerInstance()
             ncc = rpclib.get_acm_n_components(host, port, self.__mid, \
@@ -645,13 +656,11 @@ class AgglomerativeClustering(BaseEstimator):
         "attribute 'n_connected_components_' of AgglomerativeClustering is not writable")
 
     @property
+    @check_association
     def distances_(self):
         """
         NAME: get_distances
         """
-        if self.__mid is None:
-            raise ValueError("children_ is called before fit/load")
-
         if self._distances is None:
             (host, port) = FrovedisServer.getServerInstance()
             dist = rpclib.get_acm_distances(host, port, self.__mid, \
@@ -669,13 +678,11 @@ class AgglomerativeClustering(BaseEstimator):
         "attribute 'distances_' of AgglomerativeClustering is not writable")        
 
     @property
+    @check_association
     def n_clusters_(self):
         """
         NAME: get_n_clusters
         """
-        if self.__mid is None:
-            raise ValueError("n_clusters_ is called before fit/load")
-
         if self._n_clusters is None:
             (host, port) = FrovedisServer.getServerInstance()
             nclusters = rpclib.get_acm_n_clusters(host, port, self.__mid, \
@@ -692,15 +699,8 @@ class AgglomerativeClustering(BaseEstimator):
         raise AttributeError(\
         "attribute 'n_clusters_' of AgglomerativeClustering is not writable") 
 
-
-    def fit_predict(self, X, y=None):
-        """
-        NAME: fit_predict
-        """
-        self.fit(X, y)
-        return self.labels_
-
     # added for predicting with different nclusters on same model
+    @check_association
     def reassign(self, ncluster=None):
         """
         recomputes cluster indices when input 'ncluster' is different 
@@ -723,9 +723,7 @@ class AgglomerativeClustering(BaseEstimator):
     
     def score(self, X, y, sample_weight=None):
         """uses scikit-learn homogeneity_score for scoring"""
-        if self.__mid is not None:
-            return clustering_score(y, self.fit_predict(X, y))
-
+        return clustering_score(y, self.fit_predict(X, y))
 
     def __str__(self):
         """
@@ -733,6 +731,7 @@ class AgglomerativeClustering(BaseEstimator):
         """
         return str(self.get_params())
    
+    @set_association
     def load(self, fname, dtype=None):
         """
         NAME: load
@@ -743,14 +742,14 @@ class AgglomerativeClustering(BaseEstimator):
             raise ValueError(\
                 "the model with name %s does not exist!" % fname)
         self.release()
-        metadata = open(fname+"/metadata", "rb")
+        metadata = open(fname + "/metadata", "rb")
         self.n_clusters, self.n_samples, self.__mkind,\
                          self.__mdtype = pickle.load(metadata)
         metadata.close()
         if dtype is not None:
             mdt = TypeUtil.to_numpy_dtype(self.__mdtype)
             if dtype != mdt:
-                raise ValueError("load: type mismatches detected!" + \
+                raise ValueError("load: type mismatches detected! " + \
                                  "expected type: " + str(mdt) + \
                                  "; given type: " + str(dtype))
         self.__mid = ModelID.get()
@@ -767,52 +766,58 @@ class AgglomerativeClustering(BaseEstimator):
         self.labels_ = ret#.astype(np.int64)
         return self
 
+    @check_association
     def save(self, fname):
         """
         NAME: save
         """
-        if self.__mid is not None:
-            if os.path.exists(fname):
-                raise ValueError(\
-                    "another model with %s name already exists!" % fname)
-            else:
-                os.makedirs(fname)
-            GLM.save(self.__mid, self.__mkind, self.__mdtype, fname+"/model")
-            metadata = open(fname+"/metadata", "wb")
-            pickle.dump((self.n_clusters, self.n_samples, self.__mkind, \
-                self.__mdtype), metadata)
-            metadata.close()
-        else:
+        if os.path.exists(fname):
             raise ValueError(\
-                "save: the requested model might have been released!")
+                "another model with %s name already exists!" % fname)
+        else:
+            os.makedirs(fname)
+        GLM.save(self.__mid, self.__mkind, self.__mdtype, fname + "/model")
+        metadata = open(fname + "/metadata", "wb")
+        pickle.dump((self.n_clusters, self.n_samples, self.__mkind, \
+            self.__mdtype), metadata)
+        metadata.close()
 
+    @check_association
     def debug_print(self):
         """
         NAME: debug_print
         """
-        if self.__mid is not None:
-            GLM.debug_print(self.__mid, self.__mkind, self.__mdtype)
+        GLM.debug_print(self.__mid, self.__mkind, self.__mdtype)
 
     def release(self):
         """
-        NAME: release
+        resets after-fit populated attributes to None
         """
-        if self.__mid is not None:
-            GLM.release(self.__mid, self.__mkind, self.__mdtype)
-            self.__mid = None
-            self.labels_ = None
-            self.n_leaves_ = None
-            self._children = None
-            self._n_connected_components = None
-            self._distances = None
-            self._n_clusters = None            
+        self.__release_server_heap()
+        self.__mid = None
+        self.labels_ = None
+        self.n_leaves_ = None
+        self._children = None
+        self._n_connected_components = None
+        self._distances = None
+        self._n_clusters = None            
+
+    @do_if_active_association
+    def __release_server_heap(self):
+        """
+        to release model pointer from server heap
+        """
+        GLM.release(self.__mid, self.__mkind, self.__mdtype)
 
     def __del__(self):
         """
         NAME: __del__
         """
-        if FrovedisServer.isUP():
-            self.release()
+        self.release()
+
+    def is_fitted(self):
+        """ function to confirm if the model is already fitted """
+        return self.__mid is not None
 
 class DBSCAN(BaseEstimator):
     """
@@ -891,6 +896,7 @@ class DBSCAN(BaseEstimator):
                        .format(sample_weight.shape, (self.n_samples,)))
         return np.asarray(weight, dtype=np.float64)
 
+    @set_association
     def fit(self, X, y=None, sample_weight=None):
         """
         DESC: fit method for dbscan
@@ -906,9 +912,7 @@ class DBSCAN(BaseEstimator):
         self.__mdtype = dtype
         self.__mid = ModelID.get()
         self.movable = movable
-        
         sample_weight = self.check_sample_weight(sample_weight)
-
         (host, port) = FrovedisServer.getServerInstance()
         ret = np.zeros(n_samples, dtype=np.int64)
         rpclib.dbscan_train(host, port, X.get(), sample_weight, \
@@ -932,32 +936,15 @@ class DBSCAN(BaseEstimator):
 
     def score(self, X, y, sample_weight=None):
         """uses scikit-learn homogeneity_score for scoring"""
-        if self.__mid is not None:
-            return clustering_score(y, self.fit_predict(X))
-
-    def release(self):
-        """
-        NAME: release
-        """
-        if self.__mid is not None:
-            GLM.release(self.__mid, self.__mkind, self.__mdtype)
-            #print (self.__mid, " model is released")
-            self.__mid = None
-            self._labels= None
-            self.n_samples = None
-            self.n_features = None
-            self._core_sample_indices = None
-            self._components = None
+        return clustering_score(y, self.fit_predict(X))
 
     @property
     def labels_(self):
         """labels_ getter"""
-        if self.__mid is not None:
-            if self._labels is not None:
-                return self._labels
-        else:
+        if self.__mid is None:
             raise AttributeError(\
             "attribute 'labels_' might have been released or called before fit")
+        return self._labels
 
     @labels_.setter
     def labels_(self, val):
@@ -966,21 +953,19 @@ class DBSCAN(BaseEstimator):
             "attribute 'labels_' of DBSCAN object is not writable")
 
     @property
+    @check_association
     def core_sample_indices_(self):
         """core_sample_indices_ getter"""
-        if self.__mid is not None:
-            if self._core_sample_indices is None:
-                (host, port) = FrovedisServer.getServerInstance()
-                core_sample_indices = rpclib.get_dbscan_core_sample_indices(host, port, self.__mid, \
-                       self.__mkind, self.__mdtype)
-                excpt = rpclib.check_server_exception()
-                if excpt["status"]:
-                    raise RuntimeError(excpt["info"])
-                self._core_sample_indices = np.asarray(core_sample_indices)
-            return self._core_sample_indices
-        else:
-            raise AttributeError(\
-            "attribute 'core_sample_indices_' might have been released or called before fit")
+        if self._core_sample_indices is None:
+            (host, port) = FrovedisServer.getServerInstance()
+            core_sample_indices = rpclib.get_dbscan_core_sample_indices(\
+                                  host, port, self.__mid, \
+                                  self.__mkind, self.__mdtype)
+            excpt = rpclib.check_server_exception()
+            if excpt["status"]:
+                raise RuntimeError(excpt["info"])
+            self._core_sample_indices = np.asarray(core_sample_indices)
+        return self._core_sample_indices
 
     @core_sample_indices_.setter
     def core_sample_indices_(self, val):
@@ -989,26 +974,23 @@ class DBSCAN(BaseEstimator):
             "attribute 'core_sample_indices_' of DBSCAN object is not writable")
 
     @property
+    @check_association
     def components_(self):
         """components_ getter"""
-        if self.__mid is not None:
-            if self._components is None:
-                (host, port) = FrovedisServer.getServerInstance()
-                dmat = rpclib.get_dbscan_components(host, port, self.__mid, \
-                                                    self.__mkind, self.__mdtype)
-                excpt = rpclib.check_server_exception()
-                if excpt["status"]:
-                    raise RuntimeError(excpt["info"])
-                components = FrovedisRowmajorMatrix(mat=dmat, \
-                             dtype=TypeUtil.to_numpy_dtype(self.__mdtype))
-                if self.movable:
-                    self._components = components.to_numpy_array()
-                else:
-                    self._components = components
-            return self._components
-        else:
-            raise AttributeError(\
-            "attribute 'components_' might have been released or called before fit")
+        if self._components is None:
+            (host, port) = FrovedisServer.getServerInstance()
+            dmat = rpclib.get_dbscan_components(host, port, self.__mid, \
+                                           self.__mkind, self.__mdtype)
+            excpt = rpclib.check_server_exception()
+            if excpt["status"]:
+                raise RuntimeError(excpt["info"])
+            components = FrovedisRowmajorMatrix(mat=dmat, \
+                         dtype=TypeUtil.to_numpy_dtype(self.__mdtype))
+            if self.movable:
+                self._components = components.to_numpy_array()
+            else:
+                self._components = components
+        return self._components
 
     @components_.setter
     def components_(self, val):
@@ -1016,3 +998,31 @@ class DBSCAN(BaseEstimator):
         raise AttributeError(\
             "attribute 'components_' of DBSCAN object is not writable")
 
+    def release(self):
+        """
+        resets after-fit populated attributes to None
+        """
+        self.__release_server_heap()
+        self.__mid = None
+        self._labels= None
+        self.n_samples = None
+        self.n_features = None
+        self._core_sample_indices = None
+        self._components = None
+
+    @do_if_active_association
+    def __release_server_heap(self):
+        """
+        to release model pointer from server heap
+        """
+        GLM.release(self.__mid, self.__mkind, self.__mdtype)
+
+    def __del__(self):
+        """
+        NAME: __del__
+        """
+        self.release()
+
+    def is_fitted(self):
+        """ function to confirm if the model is already fitted """
+        return self.__mid is not None
