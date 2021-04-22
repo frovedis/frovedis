@@ -106,7 +106,7 @@ struct gmm_cluster {
 
 template <typename T>
 gmm_model<T> gmm(frovedis::rowmajor_matrix<T> Data, int CNT, int loopmax,
-                 T epsilon, bool switch_init = 0, long seed = 123) {
+                 double epsilon, bool switch_init = 0, long seed = 123) {
   int Dim = Data.num_col;
   int Num = Data.num_row;
   frovedis::colmajor_matrix<T> X1(Data);
@@ -192,7 +192,7 @@ gmm_model<T> gmm(frovedis::rowmajor_matrix<T> Data, int CNT, int loopmax,
     lognew = partial_log.reduce(my_sum<T>);
     lognew /= Num;
     if (abs(logold - lognew) < epsilon) {
-      auto r_arrval = r_arr.template as_dvector<double>().gather();
+      auto r_arrval = r_arr.template as_dvector<T>().gather();
       frovedis::rowmajor_matrix_local<T> clu_save(CNT, Num);
       for (int k = 0; k < CNT; k++) {
         for (int n = 0; n < Num; n++) {
@@ -204,7 +204,7 @@ gmm_model<T> gmm(frovedis::rowmajor_matrix<T> Data, int CNT, int loopmax,
     } else {
       logold = lognew;
       if (loop == loopmax - 1) {
-        auto r_arrval = r_arr.template as_dvector<double>().gather();
+        auto r_arrval = r_arr.template as_dvector<T>().gather();
         frovedis::rowmajor_matrix_local<T> clu_save(CNT, Num);
         for (int k = 0; k < CNT; k++) {
           for (int n = 0; n < Num; n++) {
@@ -332,6 +332,9 @@ std::vector<T> E_step(frovedis::colmajor_matrix_local<T> &Data, int K,
   for (int k = 0; k < CNT; k++) {
     for (int dd = 0; dd < Dim * Dim; dd++) {
       covl.val[dd] = cov.val[Dim * Dim * k + dd];
+    }
+    for (int dd = 0; dd < Dim * Dim; dd = dd + 1 + Dim) {
+      covl.val[dd] += std::pow(10, -6);
     }
     frovedis::getrf<T>(covl, ipiv);
     Det = 1.0;
@@ -498,6 +501,9 @@ gmm_cluster<T> gmm_assign_cluster(frovedis::rowmajor_matrix_local<T> &NewData,
   for (int k = 0; k < CNT; k++) {
     for (int dd = 0; dd < Dim * Dim; dd++) {
       covl.val[dd] = cov.val[Dim * Dim * k + dd];
+    }
+    for (int dd = 0; dd < Dim * Dim; dd = dd + 1 + Dim) {
+      covl.val[dd] += std::pow(10, -6);
     }
     frovedis::getrf<T>(covl, ipiv);
     Det = 1.0;
