@@ -42,7 +42,7 @@ def custom_read_edgelist(path, comments='#', delimiter=' ', \
                      names = names, dtype = edgetype)
 
     # converting to numpy array
-    mat = df.drop_duplicates().to_numpy()
+    mat = df.drop_duplicates().values
     num_edges = mat.shape[0]
 
     # checking whether data is 0-based or 1-based
