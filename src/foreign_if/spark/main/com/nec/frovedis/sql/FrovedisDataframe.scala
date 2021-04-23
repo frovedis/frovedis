@@ -17,6 +17,7 @@ import org.apache.spark.sql.Row
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.DataFrame
 import scala.collection.mutable.ArrayBuffer
+import scala.collection.mutable.ListBuffer
 
 object TMAPPER {
   val func2id = Map("sum" -> DTYPE.NONE, "max" -> DTYPE.NONE, "min" -> DTYPE.NONE,
@@ -514,16 +515,44 @@ class FrovedisDataFrame extends java.io.Serializable {
   def crossJoin(df: DataFrame): FrovedisDataFrame = {
     return crossJoin(df, "_right")
   }
+  
+  def int2bool(a: Any): Any = {
+    if (a == Int.MaxValue) return null
+    if (a == 1) return true
+    else return false
+  }
 
+  def combinePartitionsAsRow(arg0: Iterator[Row],
+                            arg1: Iterator[Row]): Iterator[Row] = {
+      var arr1 = arg0.toArray
+      var arr2 = arg1.toArray
+      var sz = arr1.size
 
-/** 
-  * TODO: difficulty in implementation due to 
-  * datatype dependency of the dataframe columns and 
-  * number of candidates for zipping
-  def to_spark_DF(context: SparkContext): DataFrame = {
+      var arr3 = new Array[Row](sz)
+      for (i <- 0 until sz) {
+          arr3(i) = Row.merge(arr1(i), arr2(i))
+      }
+      return arr3.toIterator
+  }
+
+  def combine2RowRddsPartition(rdd1: RDD[Row], rdd2: RDD[Row]): RDD[Row] = {
+      var resRdd = rdd1.zipPartitions(rdd2)(combinePartitionsAsRow)
+      return resRdd
+  }
+
+  def combine_rows_as_partitions(arr: Seq[RDD[Any]]): RDD[Row] = {
+      var cols_row = arr.map(r1 => r1.map(x=> Row(x)))
+      var resRdd = cols_row.reduce(combine2RowRddsPartition)
+      return resRdd
+  }
+
+  def to_spark_DF(): DataFrame = {
+    val spark = SparkSession.builder().getOrCreate()
+    if (this.columns.size == 0) return spark.emptyDataFrame
+
     if(fdata == -1)  throw new IllegalArgumentException("Invalid Frovedis Dataframe!\n")
     val size = cols.size
-    var ret = new Array[Any](size)
+    var ret_lb = ListBuffer[RDD[_]]()
     val fs = FrovedisServer.getServerInstance()
     for (i <- 0 until size) {
       val tid = types(i)
@@ -531,34 +560,59 @@ class FrovedisDataFrame extends java.io.Serializable {
       val cptr = JNISupport.getDFColumnPointer(fs.master_node, fdata, cname, tid)
       var info = JNISupport.checkServerException()
       if (info != "") throw new java.rmi.ServerException(info)
-      ret(i) =  tid match {
+      var col_rdd =  tid match {
         case DTYPE.INT    => IntDvector.to_RDD(cptr)
         case DTYPE.LONG   => LongDvector.to_RDD(cptr)
         case DTYPE.FLOAT  => FloatDvector.to_RDD(cptr)
         case DTYPE.DOUBLE => DoubleDvector.to_RDD(cptr)
         case DTYPE.STRING => StringDvector.to_RDD(cptr)
+        case DTYPE.BOOL => IntDvector.to_RDD(cptr)
+        case _  => throw new IllegalArgumentException("to_spark_DF: Invalid " +
+                                                    "datatype encountered: %s !\n"
+                                                    .format(tid))
       }
+      val len = col_rdd.count
       JNISupport.releaseDFColumnPointer(fs.master_node, cptr, tid)
       info = JNISupport.checkServerException()
       if (info != "") throw new java.rmi.ServerException(info)
+      ret_lb += col_rdd
     }
-    val spark = SparkSession.builder().getOrCreate()
-    import spark.implicits._
-    return size match {
-      case 1 => ret(0).toDF(cols(0)) 
-      case 2 => ret(0).zip(ret(1)).toDF(cols(0),cols(1))
-      case 3 => ret(0) zip ret(1) zip ret(2) map {
-                  case ((a,b),c) => (a,b,c)
-                }.toDF(cols(0),cols(1),cols(2))
-      case 4 => ret(0) zip ret(1) zip ret(2) zip ret(3) map {
-                  case (((a,b),c),d) => (a,b,c,d)
-                }.toDF(cols(0),cols(1),cols(2),cols(3))
-      case 5 => ret(0) zip ret(1) zip ret(2) zip ret(3) zip ret(4) map {
-                  case ((((a,b),c),d),e) => (a,b,c,d,e)
-                }.toDF(cols(0),cols(1),cols(2),cols(3),cols(4))
+    var ret = ret_lb.toArray.asInstanceOf[Array[RDD[Any]]]
+    //TODO: directly create array instead of list buffer
+
+    val maxValueMap = Map(DTYPE.INT -> Int.MaxValue, DTYPE.LONG -> Long.MaxValue,
+                      DTYPE.FLOAT -> Float.MaxValue, DTYPE.DOUBLE -> Double.MaxValue,
+                      DTYPE.STRING -> "NULL", DTYPE.BOOL -> Int.MaxValue)
+
+    for (i <- 0 until ret.size) {
+      if (types(i) == DTYPE.BOOL ) ret(i) = ret(i).map(x => int2bool(x))
+      else ret(i) = ret(i).map(x => { if (x == maxValueMap(types(i))) null else x})
     }
+
+    val ncols = cols.size
+    var df_schema = ListBuffer[StructField]()
+
+    for (i <- 0 to (ncols-1)) {
+      val tid = types(i)
+      val cname = cols(i)
+      var col_field =  tid match {
+        case DTYPE.INT    => StructField(cname, IntegerType, true)
+        case DTYPE.LONG   => StructField(cname, LongType, true)
+        case DTYPE.FLOAT  => StructField(cname, FloatType, true)
+        case DTYPE.DOUBLE => StructField(cname, DoubleType, true)
+        case DTYPE.STRING => StructField(cname, StringType, true)
+        case DTYPE.BOOL => StructField(cname, BooleanType, true)
+        case _  => throw new IllegalArgumentException("to_spark_DF: Invalid " +
+                                                    "datatype encountered: %s !\n"
+                                                    .format(tid))
+      }
+      df_schema += col_field
+    }
+
+    val resRdd = combine_rows_as_partitions(ret.toSeq)
+    val res_df = spark.createDataFrame(resRdd, StructType(df_schema.toArray))
+    return res_df
   }
-*/
 
   private def get_types(): Array[String] = {
     val size = types.size
