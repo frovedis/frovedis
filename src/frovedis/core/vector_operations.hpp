@@ -985,7 +985,7 @@ T vector_dot(const std::vector<T>& v1,
   checkAssumption(vecsz == v2.size());
   auto v1p = v1.data();
   auto v2p = v2.data();
-  auto ret = 0;
+  T ret = 0;
   for(size_t i = 0; i < vecsz; ++i) ret += v1p[i] * v2p[i];
   return ret;
 }
