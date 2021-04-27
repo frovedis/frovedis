@@ -40,6 +40,7 @@ class M_KIND(object):
     GBT = 24
     SVR = 25
     KSVC = 26
+    GMM = 27
 
 class ModelID(object):
     """A python container for generating model IDs for ML"""
