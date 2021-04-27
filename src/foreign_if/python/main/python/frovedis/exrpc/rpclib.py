@@ -1065,6 +1065,46 @@ get_dbscan_components = LIB.get_frovedis_dbscan_components
 get_dbscan_components.argtypes = [c_char_p, c_int, c_int, c_short, c_short]
 get_dbscan_components.restype = py_object
 
+
+#Gaussian Mixture
+gmm_train = LIB.gmm_train
+gmm_train.argtypes = [c_char_p, c_int, c_long, # host, port, data_proxy
+                      c_int, c_char_p, # n_components, covariance type 
+                      c_double, c_int , c_int, #tol, max_iter, n_init
+                      c_char_p, c_long, c_int, # init_param, seed, verbose
+                      c_int, c_short, c_short, c_bool] #mid, dtype, itype, dense
+
+gmm_predict = LIB.gmm_predict
+gmm_predict.argtypes = [c_char_p, c_int, c_int,
+                        c_short, c_long,
+                        ndpointer(c_long, ndim=1,\
+                        flags="C_CONTIGUOUS"),\
+                        c_ulong]
+
+gmm_predict_proba = LIB.gmm_predict_proba
+gmm_predict_proba.argtypes = [c_char_p, c_int, c_int,
+                              c_short, c_long]
+
+get_gmm_weights = LIB.get_gmm_weights_vector
+get_gmm_weights.argtypes = [c_char_p, c_int, c_int, c_short]
+get_gmm_weights.restype = py_object
+
+get_gmm_covariances = LIB.get_gmm_covariances_vector
+get_gmm_covariances.argtypes = [c_char_p, c_int, c_int, c_short]
+get_gmm_covariances.restype = py_object
+
+get_gmm_means = LIB.get_gmm_means_vector
+get_gmm_means.argtypes = [c_char_p, c_int, c_int, c_short]
+get_gmm_means.restype = py_object
+
+get_gmm_converged = LIB.get_gmm_converged_bool
+get_gmm_converged.argtypes = [c_char_p, c_int, c_int, c_short]
+get_gmm_converged.restype = c_bool
+
+get_gmm_lower_bound = LIB.get_gmm_lower_bound_val
+get_gmm_lower_bound.argtypes = [c_char_p, c_int, c_int, c_short]
+get_gmm_lower_bound.restype = c_double
+
 # --- classification APIs ---
 
 # 1. Logistic Regression
