@@ -48,6 +48,7 @@ python unsupervised_knn_demo.py "$COMMAND"
 python agglomerative_clustering_demo.py "$COMMAND"
 python spectral_clustering_demo.py "$COMMAND"
 python spectral_embedding_demo.py "$COMMAND"
+python gmm_demo.py "$COMMAND"
 
 python als_demo.py "$COMMAND"
 python fp_growth_demo.py "$COMMAND"
