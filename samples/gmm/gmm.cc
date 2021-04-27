@@ -7,19 +7,21 @@ using namespace frovedis;
 using namespace std;
 
 template <class T>
-void do_gmm(const string& input, const string& output, int k, int n_init,
-            int num_iteration, double eps, bool switch_init, long seed,
-            bool binary) {
+void do_gmm(const string& input, const string& output, int k, 
+            const string& cov_type, const string& init_params, 
+            bool switch_init, int n_init, int num_iteration, 
+            double eps, long seed, bool binary) {
   if (binary) {
     time_spent t(DEBUG);
     auto mat = make_rowmajor_matrix_loadbinary<T>(input);
     t.show("load matrix: ");
     auto gmm_model =
-        frovedis::gmm(mat, k, num_iteration, eps, switch_init, seed);
+        frovedis::gaussian_mixture<T>(k, cov_type, eps, num_iteration, init_params, seed);
+    gmm_model.fit(mat);
     t.show("train: ");
-    LOG(DEBUG) << "number of loops until convergence: " << gmm_model.loops
+    LOG(DEBUG) << "number of loops until convergence: " << gmm_model.n_iter_()
                << std::endl;
-    LOG(DEBUG) << "likelihood: " << gmm_model.likelihood << std::endl;
+    LOG(DEBUG) << "likelihood: " << gmm_model.lower_bound_() << std::endl;
     gmm_model.savebinary(output);
 
   } else {
@@ -27,13 +29,14 @@ void do_gmm(const string& input, const string& output, int k, int n_init,
     auto mat = make_rowmajor_matrix_load<T>(input);
     t.show("load matrix: ");
     auto gmm_model =
-        frovedis::gmm(mat, k, num_iteration, eps, switch_init, seed);
+        frovedis::gaussian_mixture<T>(k, cov_type, eps, num_iteration, init_params, seed);
+    gmm_model.fit(mat);
     t.show("gmm time: ");
-    LOG(DEBUG) << "number of loops until convergence: " << gmm_model.loops
+    LOG(DEBUG) << "number of loops until convergence: " << gmm_model.n_iter_()
                << std::endl;
-    LOG(DEBUG) << "likelihood: " << gmm_model.likelihood << std::endl;
-    gmm_model.save(output);
-  }
+    LOG(DEBUG) << "likelihood: " << gmm_model.lower_bound_() << std::endl;
+    gmm_model.save(output);      
+  }    
 }
 
 template <class T>
@@ -41,16 +44,28 @@ void do_assign(const string& input, const string& input_cluster,
                const string& output, int k, bool binary) {
   if (binary) {
     time_spent t(DEBUG);
-    auto mat = make_rowmajor_matrix_local_load<T>(input);
+    auto mat = make_rowmajor_matrix_local_loadbinary<double>(input);
     t.show("load matrix: ");
-    auto gmm_cluster = frovedis::gmm_assign_cluster(mat, k, input_cluster);
+    auto means = make_rowmajor_matrix_local_loadbinary<double>(input_cluster + "/model");
+    t.show("load means: ");  
+    auto cov = make_rowmajor_matrix_local_loadbinary<double>(input_cluster + "/model_cov");
+    t.show("load covariances: ");  
+    auto weights = make_rowmajor_matrix_local_loadbinary<double>(input_cluster + "/model_pi");
+    t.show("load weights: ");  
+    auto gmm_cluster = frovedis::gmm_assign_cluster(mat, k, means, cov, weights);
     t.show("gmm time: ");
     gmm_cluster.savebinary(output);
   } else {
     time_spent t(DEBUG);
-    auto mat = make_rowmajor_matrix_local_load<T>(input);
+    auto mat = make_rowmajor_matrix_local_load<double>(input);
     t.show("load matrix: ");
-    auto gmm_cluster = frovedis::gmm_assign_cluster(mat, k, input_cluster);
+    auto means = make_rowmajor_matrix_local_load<double>(input_cluster + "/model");
+    t.show("load means: ");  
+    auto cov = make_rowmajor_matrix_local_load<double>(input_cluster + "/model_cov");
+    t.show("load covariances: ");  
+    auto weights = make_rowmajor_matrix_local_load<double>(input_cluster + "/model_pi");
+    t.show("load weights: ");  
+    auto gmm_cluster = frovedis::gmm_assign_cluster(mat, k, means, cov, weights);
     t.show("gmm time: ");
     gmm_cluster.save(output);
   }
@@ -69,10 +84,12 @@ int main(int argc, char* argv[]) {
     ("cluster,c", value<string>(), "input model,cov,pi for assignment")
     ("output,o", value<string>(), "output centroids or cluster")
     ("k,k", value<int>(), "number of clusters")
+    ("cov-type,cov", value<string>(), "covariance type (default: full)")  
     ("num-init,t", value<int>(),"number of time for running with different centroid seeds (default: 1)")
     ("num-iteration,n", value<int>(),"maximum number of iteration (default: 300)")
-    ("eps,e", value<double>(),"epsilon to stop the iteration (default: 0.01)")
-    ("swicth_init,s", value<bool>(), "kmeans(0) or random(1) (default: 0)")
+    ("eps,e", value<double>(),"epsilon to stop the iteration (default: 0.001)")
+    ("switch_init,s", value<bool>(), "kmeans(0) or random(1) (default: 0)")
+    ("init-params,p", value<string>(), "initialization method (default: kmeans)")  
     ("seed,r", value<long>(), "seed for init randomizer (default: 123)")
     ("float", "for float type input")
     ("double","for double type input (default)")
@@ -86,9 +103,10 @@ int main(int argc, char* argv[]) {
   notify(argmap);
 
   string input, output, input_cluster;
+  string cov_type = "full", init_params = "kmeans";  
   int k = 0;
   int num_iteration = 300, n_init = 1;
-  double eps = 0.01;
+  double eps = 0.001;
   long seed = 123;
   bool assign = false;
   bool binary = false;
@@ -139,6 +157,14 @@ int main(int argc, char* argv[]) {
     }
   }
 
+  if(argmap.count("cov-type")) {
+    cov_type = argmap["cov-type"].as<string>();
+  }
+    
+  if(argmap.count("init-params")){
+    init_params = argmap["init-params"].as<string>();
+  }    
+    
   if (argmap.count("num-iteration")) {
     num_iteration = argmap["num-iteration"].as<int>();
   }
@@ -175,10 +201,10 @@ int main(int argc, char* argv[]) {
   }
   else {
     if(argmap.count("double")) 
-      do_gmm<double>(input, output, k, n_init, num_iteration, 
-                     eps, switch_init, seed, binary);
+      do_gmm<double>(input, output, k, cov_type, init_params, 
+                     switch_init, n_init, num_iteration, eps, seed, binary);
     else 
-      do_gmm<float>(input, output, k, n_init, num_iteration, 
-                    eps, switch_init, seed, binary);
+      do_gmm<float>(input, output, k, cov_type, init_params, 
+                    switch_init, n_init, num_iteration, eps, seed, binary);
   }
 }
