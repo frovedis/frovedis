@@ -47,7 +47,8 @@ enum MODEL_KIND {
   RFM,
   GBT,
   SVR,
-  KSVC
+  KSVC,
+  GMM  
 };
 
 enum MAT_KIND {

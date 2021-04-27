@@ -29,6 +29,8 @@
 #include "frovedis/ml/clustering/spectral_clustering.hpp"
 #include "frovedis/ml/clustering/spectral_embedding.hpp"
 #include "frovedis/ml/clustering/kmeans.hpp"
+#include "frovedis/ml/clustering/dbscan.hpp"
+#include "frovedis/ml/clustering/gmm.hpp"
 #include "frovedis/ml/tree/tree.hpp"
 #include "frovedis/ml/fm/main.hpp"
 #include "frovedis/ml/w2v/word2vec.hpp"
@@ -36,7 +38,6 @@
 #include "frovedis/ml/fpm/fp_growth.hpp"
 #include "frovedis/dataframe.hpp"
 #include "frovedis/dataframe/dftable_to_dvector.hpp"
-#include "frovedis/ml/clustering/dbscan.hpp"
 #include "frovedis/ml/neighbors/knn_unsupervised.hpp"
 #include "frovedis/ml/neighbors/knn_supervised.hpp"
 #include "frovedis/ml/lda/lda_cgs.hpp"
@@ -803,6 +804,31 @@ void frovedis_sea(exrpc_ptr_t& data_ptr, int& component,
   if (isMovableInput)  mat.clear();
   frovedis::set_loglevel(old_level);
   handle_trained_model<spectral_embedding_model<T>>(mid,SEM,m);
+}
+
+template <class T, class MATRIX>
+int frovedis_gmm(exrpc_ptr_t& data_ptr, int& mid, 
+                 int& k, std::string& cov_type,
+                 T& tol, int& max_iter, int& n_init,
+                 std::string& init_params, long& seed,
+                 int& verbose, bool& isMovableInput=false) {
+  register_for_train(mid);   // mark model 'mid' as "under training"
+  MATRIX& mat = *reinterpret_cast<MATRIX*>(data_ptr);  // training input data holder
+  set_verbose_level(verbose);
+  if (verbose == 1) frovedis::set_loglevel(frovedis::DEBUG);
+  else if (verbose == 2) frovedis::set_loglevel(frovedis::TRACE);
+  auto gmm_model = gaussian_mixture<T>().set_n_components(k)
+                                        .set_covariance_type(cov_type)
+                                        .set_tol(tol)
+                                        .set_max_iter(max_iter)
+                                        .set_init_params(init_params)
+                                        .set_random_state(seed);
+    
+  gmm_model.fit(mat);
+  int niter = gmm_model.n_iter_();
+  reset_verbose_level();
+  handle_trained_model<gaussian_mixture<T>>(mid, GMM, gmm_model);    
+  return niter;
 }
 
 template <class T, class MATRIX>

@@ -3,6 +3,7 @@
 
 #include <frovedis/ml/neighbors/knn_unsupervised.hpp>
 #include <frovedis/ml/neighbors/knn_supervised.hpp>
+#include <frovedis/ml/clustering/gmm.hpp>
 #include <frovedis/ml/tree/ensemble_model.hpp>
 #include "frovedis/ml/kernel/kernel_svm.hpp"
 #include "short_hand_dtype.hpp"
@@ -43,6 +44,8 @@ namespace frovedis {
   typedef rowmajor_matrix_local<DT2> W2V2;
   typedef dbscan<DT1> DBSCAN1;
   typedef dbscan<DT2> DBSCAN2;
+  typedef gaussian_mixture<DT1> GMM1;
+  typedef gaussian_mixture<DT2> GMM2;    
   typedef nearest_neighbors<DT1> KNN1;
   typedef nearest_neighbors<DT2> KNN2;
   typedef kneighbors_classifier<DT1> KNC1;

@@ -292,7 +292,31 @@ void expose_frovedis_model_functions() {
   expose(get_acm_children<DT2>);         // for python
   expose(get_acm_distances<DT2>);        // for python
   expose(get_acm_n_components<DT2>);     // for python
-  expose(get_acm_n_clusters<DT2>);       // for python  
+  expose(get_acm_n_clusters<DT2>);       // for python
+  // --- frovedis gaussian mixture model
+  expose(release_model<GMM1>);
+  expose(save_model<GMM1>);  
+  expose(show_model<GMM1>);
+  expose(load_model<GMM1>);  
+  expose(release_model<GMM2>);
+  expose(save_model<GMM2>);  
+  expose(show_model<GMM2>);
+  expose(load_model<GMM2>);  
+  expose((frovedis_gmm_predict<R_MAT1,GMM1>));
+  expose((frovedis_gmm_predict<R_MAT2,GMM2>));
+  expose((frovedis_gmm_predict_proba<DT1,R_MAT1,GMM1>));
+  expose((frovedis_gmm_predict_proba<DT2,R_MAT2,GMM2>));    
+  expose(get_gmm_weights<DT1>);         // for python
+  expose(get_gmm_means<DT1>);           // for python
+  expose(get_gmm_covariances<DT1>);     // for python
+  expose(get_gmm_lower_bound<DT1>);     // for python
+  expose(get_gmm_converged<DT1>);       // for python
+  //--  
+  expose(get_gmm_weights<DT2>);         // for python
+  expose(get_gmm_means<DT2>);           // for python
+  expose(get_gmm_covariances<DT2>);     // for python
+  expose(get_gmm_lower_bound<DT2>);     // for python
+  expose(get_gmm_converged<DT2>);       // for python    
   // --- frovedis word2vector model
   expose(release_model<W2V2>);
   expose(get_w2v_weight_ptr<DT2>);

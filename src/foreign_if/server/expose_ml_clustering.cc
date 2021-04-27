@@ -33,5 +33,8 @@ void expose_frovedis_clustering_functions() {
   // (5) dbscan
   expose((frovedis_dbscan<DT1,R_MAT1>)); // python case (fit-predict)
   expose((frovedis_dbscan<DT2,R_MAT2>)); // python case (fit-predict)
+  // (6) gaussian mixture
+  expose((frovedis_gmm<DT1,R_MAT1>)); // python case
+  expose((frovedis_gmm<DT2,R_MAT2>)); // python case   
 }
 

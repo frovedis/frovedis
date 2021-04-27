@@ -18,6 +18,7 @@
 #include "frovedis/ml/clustering/agglomerative.hpp"
 #include "frovedis/ml/clustering/spectral_clustering_model.hpp"
 #include "frovedis/ml/clustering/spectral_embedding_model.hpp"
+#include "frovedis/ml/clustering/gmm.hpp"
 #include "frovedis/ml/tree/tree_model.hpp"
 #include "frovedis/ml/tree/ensemble_model.hpp"
 #include "frovedis/ml/fm/model.hpp"
@@ -649,6 +650,57 @@ template <class T>
 int get_acm_n_clusters(int& mid) {
   auto& agg_est = *get_model_ptr<agglomerative_clustering<T>>(mid);
   return agg_est.n_clusters_();
+}
+
+// --- Prediction related functions on gmm model ---
+template <class MATRIX, class MODEL>
+std::vector<int> 
+frovedis_gmm_predict(exrpc_ptr_t& mat_ptr, int& mid) {
+  MATRIX& mat = *reinterpret_cast<MATRIX*> (mat_ptr);
+  MODEL& est = *get_model_ptr<MODEL>(mid);
+  return est.predict(mat);
+}
+
+template <class T, class MATRIX, class MODEL>
+std::vector<T> 
+frovedis_gmm_predict_proba(exrpc_ptr_t& mat_ptr, int& mid) {
+  MATRIX& mat = *reinterpret_cast<MATRIX*> (mat_ptr);
+  MODEL& est = *get_model_ptr<MODEL>(mid);
+  return est.predict_proba(mat).val;
+}
+
+// --- gmm model attributes -- //
+template <class T>
+std::vector<T>
+get_gmm_weights(int& mid) {
+  auto& gmm_model = *get_model_ptr<gaussian_mixture<T>>(mid);
+  return gmm_model.weights_().val;
+}
+
+template <class T>
+std::vector<T>
+get_gmm_means(int& mid) {
+  auto& gmm_model = *get_model_ptr<gaussian_mixture<T>>(mid);
+  return gmm_model.means_().val;
+}
+
+template <class T>
+std::vector<T>
+get_gmm_covariances(int& mid) {
+  auto& gmm_model = *get_model_ptr<gaussian_mixture<T>>(mid);
+  return gmm_model.covariances_().val;
+}
+
+template <class T>
+T get_gmm_lower_bound(int& mid) {
+  auto& gmm_model = *get_model_ptr<gaussian_mixture<T>>(mid);
+  return gmm_model.lower_bound_();
+}
+
+template <class T>
+bool get_gmm_converged(int& mid) {
+  auto& gmm_model = *get_model_ptr<gaussian_mixture<T>>(mid);
+  return gmm_model.converged_();
 }
 
 template <class T>
