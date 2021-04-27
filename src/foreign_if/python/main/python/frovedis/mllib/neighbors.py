@@ -574,7 +574,7 @@ class KNeighborsClassifier(BaseEstimator):
         self.__mid = None
         self.__mdtype = None
 
-   @do_if_active_association
+    @do_if_active_association
     def __release_server_heap(self):
         """
         to release model pointer from server heap
