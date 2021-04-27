@@ -1324,6 +1324,45 @@ extern "C" {
     }
   }
 
+  // --- (..) Gaussian Mixture ---
+  int gmm_train(const char* host, int port, long xptr, int k, 
+                 const char* covariance_type, double tol,
+                 int max_iter, int n_init, const char* init_params, 
+                 long seed, int vb, int mid, 
+                 short dtype, short itype, bool dense) {
+    if(!host) REPORT_ERROR(USER_ERROR, "Invalid hostname!!");
+    exrpc_node fm_node(host, port);
+    auto f_xptr = (exrpc_ptr_t) xptr;
+    bool mvbl = false; // auto-managed at python side
+    std::string cov_type = covariance_type;
+    std::string param_type = init_params;
+    int n_iter = 0;
+    try {
+      if(dense) {
+        switch(dtype) {
+          case FLOAT:
+            n_iter = exrpc_async(fm_node,(frovedis_gmm<DT2,R_MAT2>),
+                                 f_xptr,mid,k,cov_type,(float)tol,max_iter,
+                                 n_init,param_type,seed,vb,mvbl).get();  
+            break;
+          case DOUBLE:
+            n_iter = exrpc_async(fm_node,(frovedis_gmm<DT1,R_MAT1>),
+                                 f_xptr,mid,k,cov_type,tol,max_iter,
+                                 n_init,param_type,seed,vb,mvbl).get();  
+            break;
+          default: REPORT_ERROR(USER_ERROR, 
+                   "Unsupported dtype of input dense data for training!\n");
+        }
+      }
+      else  REPORT_ERROR(USER_ERROR, 
+            "Frovedis doesn't support input sparse data for gmm clustering!\n");
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return n_iter; 
+  }    
+    
   // --- (11) Matrix Factorization using ALS ---
   void als_train(const char* host, int port, long dptr, int rank,
                  int iter, double al, double rprm, double sf, long seed,
