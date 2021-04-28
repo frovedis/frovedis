@@ -571,7 +571,7 @@ extern "C" {
     }  
     return ret_ptr;  
   }    
-    
+     
   PyObject* get_gmm_weights_vector(const char* host, int port,
                                     int mid, short mdtype) {
     if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
@@ -682,8 +682,29 @@ extern "C" {
       set_status(true, e.what());
     }     
     return lower_bound;  
-  }      
-    
+  }
+
+  double get_gmm_score_val(const char* host, int port,
+                            int mid, short mdtype, long dptr) {
+    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
+    exrpc_node fm_node(host,port);
+    auto f_dptr = (exrpc_ptr_t) dptr;  
+    double score = 0;
+    try {
+      switch(mdtype) {
+        case FLOAT:
+          score = exrpc_async(fm_node,(get_gmm_score<DT2,R_MAT2,GMM2>),f_dptr,mid).get(); break;
+        case DOUBLE:
+          score = exrpc_async(fm_node,(get_gmm_score<DT1,R_MAT1,GMM1>),f_dptr,mid).get(); break;
+        default: REPORT_ERROR(USER_ERROR,"model dtype can either be float or double!\n");
+      }
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }     
+    return score;  
+  }     
+
     
   PyObject* get_sem_aff_matrix(const char* host, int port,
                                 int mid, short mdtype) {

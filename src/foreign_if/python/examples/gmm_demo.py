@@ -23,6 +23,8 @@ print("Fit and Predict:\n", gmm_model.fit_predict(train_mat))
 
 #print(gmm_model.predict(train_mat))
 
+print("Score:\n",gmm_model.score(train_mat))
+
 #Weights of each components
 print("Weights:\n",gmm_model.weights_)
 

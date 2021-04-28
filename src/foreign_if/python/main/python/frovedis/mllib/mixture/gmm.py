@@ -5,7 +5,8 @@ import numpy as np
 import numbers
 from ..model_util import *
 from ...base import *
-from ...exrpc.server import FrovedisServer
+from ...exrpc.server import FrovedisServer, set_association, \
+                           check_association, do_if_active_association
 from ...exrpc import rpclib
 from ...matrix.ml_data import FrovedisFeatureData
 from ...matrix.dense import FrovedisRowmajorMatrix
@@ -33,11 +34,12 @@ class GaussianMixture(BaseEstimator):
         self.__mid = None
         self.__mdtype = None
         self.__mkind = M_KIND.GMM
-        self.n_features = None
         self._weights = None
         self._means = None
         self._covariances = None
         self._converged = None
+        self.n_samples = None
+        self.n_features = None
         self.movable = None        
 
     def check_input(self, X, F):
@@ -74,30 +76,25 @@ class GaussianMixture(BaseEstimator):
             raise ValueError("covariance_type: Frovedis doesn't support the "\
                               + "given covariance type!")            
  
+    @set_association
     def fit(self, X, y=None):
         self.release()
         self.validate()    
         X, dtype, itype, dense, nsamples, \
         nfeatures, movable = self.check_input(X, "fit")
+        self.n_samples = nsamples
         self.n_features = nfeatures
         self.movable = movable
         self.__mdtype = dtype
         self.__mid = ModelID.get()
         (host, port) = FrovedisServer.getServerInstance()
-        #Train and save the model
-        niter = rpclib.gmm_train(host, port, X.get(), self.n_components,
-                                 self.cov_type.encode('ascii'), 
-                                 self.tol, self.max_iter, self.n_init,
-                                 self.init_params.encode('ascii'), 
-                                 self.seed, self.verbose, 
-                                 self.__mid, dtype, itype, dense)
-        
-        self._weights = None
-        self._means = None
-        self._covariances = None
-        self._converged = None
-        self.n_iter_ = niter
-        self._lower_bound = None
+        self.n_iter_ = rpclib.gmm_train(host, port, X.get(), \
+                                        self.n_components, \
+                                        self.cov_type.encode('ascii'), \
+                                        self.tol, self.max_iter, self.n_init, \
+                                        self.init_params.encode('ascii'), \
+                                        self.seed, self.verbose, \
+                                        self.__mid, dtype, itype, dense)
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
             raise RuntimeError(excpt["info"])
@@ -105,14 +102,11 @@ class GaussianMixture(BaseEstimator):
 
     def fit_predict(self, X, y=None):
         self.fit(X)
-        labels = self.predict(X)        
-        return labels
+        return self.predict(X)        
         
+    @check_association
     def predict(self, X):
         """Predict the labels each sample in X belong to."""
-        if self.__mid is None:
-            raise ValueError( \
-            "predict: is called before calling fit, or the model is released.")
         X, dtype, itype, dense, \
         nsamples, nfeatures, movable = self.check_input(X, "predict")
         if self.n_features != nfeatures:
@@ -122,7 +116,7 @@ class GaussianMixture(BaseEstimator):
             raise TypeError( \
             "predict: datatype of X is different than model dtype!")
         (host, port) = FrovedisServer.getServerInstance()
-        ret = np.zeros(nsamples, dtype=np.int64)
+        ret = np.zeros(nsamples, dtype = np.int64)
         rpclib.gmm_predict(host, port, self.__mid,
                            self.__mdtype, X.get(),
                            ret, nsamples)
@@ -131,11 +125,9 @@ class GaussianMixture(BaseEstimator):
             raise RuntimeError(excpt["info"])
         return ret        
         
+    @check_association
     def predict_proba(self, X):
         """Predict the probabilty of each component given X."""
-        if self.__mid is None:
-            raise ValueError( \
-            "predict: is called before calling fit, or the model is released.")
         X, dtype, itype, dense, \
         nsamples, nfeatures, movable = self.check_input(X, "predict")
         if self.n_features != nfeatures:
@@ -148,29 +140,48 @@ class GaussianMixture(BaseEstimator):
         prob_vector = rpclib.gmm_predict_proba(host, port, self.__mid,
                                                self.__mdtype, X.get())
         shape = (nsamples, self.n_components)
-        prob = np.asarray(prob_vector, dtype=np.float64).reshape(shape)
+        prob = np.asarray(prob_vector, dtype = np.float64).reshape(shape)
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
             raise RuntimeError(excpt["info"])
         return prob
         
     def sample(self, n_samples=1):
-        pass
+        raise NotImplementedError(\
+        "sample: currently frovedis doesn't support!")
         
-    def score(self, X, y=None):
-        pass
+    @check_association
+    def score(self, X, y=None): #TODO: link from server
+        """Compute the weighted log probabilities for each sample"""
+        if self.__mid is None:
+            raise ValueError( \
+            "predict: is called before calling fit, or the model is released.")
+        X, dtype, itype, dense, \
+        nsamples, nfeatures, movable = self.check_input(X, "predict")
+        if self.n_features != nfeatures:
+            raise ValueError( \
+            "predict: given features do not match with current model")        
+        if dtype != self.__mdtype:
+            raise TypeError( \
+            "predict: datatype of X is different than model dtype!")
+        (host, port) = FrovedisServer.getServerInstance()
+        score_val = rpclib.get_gmm_score(host, port, self.__mid,
+                                         self.__mdtype, X.get())
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])                                         
+        return score_val 
 
     def score_samples(self, X):
-        pass    
+        raise NotImplementedError(\
+        "score_samples: currently frovedis doesn't support!")
              
     @property
+    @check_association
     def weights_(self):
         """
         NAME: get_weights
         """
-        if self.__mid is None:
-            raise ValueError("weights_ is called before fit/load")
-
         if self._weights is None:
             (host, port) = FrovedisServer.getServerInstance()
             weights_vector = rpclib.get_gmm_weights(host, port, self.__mid, \
@@ -178,25 +189,21 @@ class GaussianMixture(BaseEstimator):
             excpt = rpclib.check_server_exception()
             if excpt["status"]:
                 raise RuntimeError(excpt["info"])
-  
             self._weights = np.asarray(weights_vector, dtype=np.float64)
-            
         return self._weights
 
     @weights_.setter
     def weights_(self, val):
-        #Setter method for weights_
+        """Setter method for weights_"""
         raise AttributeError(\
         "attribute 'weights_' of Gaussian Mixture is not writable")
 
     @property
+    @check_association
     def covariances_(self):
         """
         NAME: get_covariances
         """
-        if self.__mid is None:
-            raise ValueError("covariances_ is called before fit/load")
-
         if self._covariances is None:
             (host, port) = FrovedisServer.getServerInstance()
             covariance_vector = rpclib.get_gmm_covariances(host, port, self.__mid, \
@@ -207,23 +214,20 @@ class GaussianMixture(BaseEstimator):
             shape = (self.n_components, self.n_features, self.n_features)            
             self._covariances = np.asarray(covariance_vector, dtype = np.float64)\
                                   .reshape(shape)
-            
         return self._covariances
 
     @covariances_.setter
     def covariances_(self, val):
-        #Setter method for covariances_
+        """Setter method for covariances_"""
         raise AttributeError(\
         "attribute 'covariances_' of Gaussian Mixture is not writable")
 
     @property
+    @check_association
     def means_(self):
         """
         NAME: get_means
         """
-        if self.__mid is None:
-            raise ValueError("means_ is called before fit/load")
-
         if self._means is None:
             (host, port) = FrovedisServer.getServerInstance()
             means_vector = rpclib.get_gmm_means(host, port, self.__mid, \
@@ -231,20 +235,19 @@ class GaussianMixture(BaseEstimator):
             excpt = rpclib.check_server_exception()
             if excpt["status"]:
                 raise RuntimeError(excpt["info"])
-            
             shape = (self.n_components, self.n_features)            
             self._means = np.asarray(means_vector, dtype = np.float64)\
                                   .reshape(shape)
-            
         return self._means
 
     @means_.setter
     def means_(self, val):
-        #Setter method for covariances_
+        """Setter method for covariances_"""
         raise AttributeError(\
         "attribute 'means_' of Gaussian Mixture is not writable")        
 
     @property
+    @check_association
     def converged_(self):
         """
         NAME: get_converged
@@ -253,7 +256,14 @@ class GaussianMixture(BaseEstimator):
             raise ValueError("converged_ is called before fit/load")
 
         if self._converged is None:
-            self._converged = self.n_iter_ < self.max_iter
+            (host, port) = FrovedisServer.getServerInstance()
+            converged = rpclib.get_gmm_converged(host, port, self.__mid, \
+                                                self.__mdtype)
+            excpt = rpclib.check_server_exception()
+            if excpt["status"]:
+                raise RuntimeError(excpt["info"])
+  
+            self._converged = converged
             
         return self._converged
 
@@ -263,15 +273,12 @@ class GaussianMixture(BaseEstimator):
         raise AttributeError(\
         "attribute 'converged_' of Gaussian Mixture is not writable")
         
-
     @property
+    @check_association
     def lower_bound_(self):
         """
         NAME: get_lower_bound
         """
-        if self.__mid is None:
-            raise ValueError("lower_bound_ is called before fit/load")
-            
         if self._lower_bound is None:
             (host, port) = FrovedisServer.getServerInstance()
             lb = rpclib.get_gmm_lower_bound(host, port, self.__mid, \
@@ -279,17 +286,16 @@ class GaussianMixture(BaseEstimator):
             excpt = rpclib.check_server_exception()
             if excpt["status"]:
                 raise RuntimeError(excpt["info"])
-  
             self._lower_bound = lb
-            
         return self._lower_bound
 
     @lower_bound_.setter
     def lower_bound_(self, val):
-        #Setter method for lower_bound_
+        """Setter method for lower_bound_"""
         raise AttributeError(\
         "attribute 'lower_bound_' of Gaussian Mixture is not writable")
 
+    @set_association
     def load(self, fname, dtype=None):
         """
         NAME: load
@@ -300,7 +306,7 @@ class GaussianMixture(BaseEstimator):
             raise ValueError(\
                 "the model with name %s does not exist!" % fname)
         self.release()
-        metadata = open(fname+"/metadata", "rb")
+        metadata = open(fname + "/metadata", "rb")
         self.n_components, self.n_features, self._converged, \
         self.n_iter_, self._lower_bound, self.__mkind,\
                          self.__mdtype = pickle.load(metadata)
@@ -308,58 +314,65 @@ class GaussianMixture(BaseEstimator):
         if dtype is not None:
             mdt = TypeUtil.to_numpy_dtype(self.__mdtype)
             if dtype != mdt:
-                raise ValueError("load: type mismatches detected!" + \
+                raise ValueError("load: type mismatches detected! " + \
                                  "expected type: " + str(mdt) + \
                                  "; given type: " + str(dtype))
         self.__mid = ModelID.get()
-        GLM.load(self.__mid, self.__mkind, self.__mdtype, fname+"/model")
+        GLM.load(self.__mid, self.__mkind, self.__mdtype, fname + "/model")
         return self        
         
+    @check_association
     def save(self, fname):
         """
         NAME: save
         """
-        if self.__mid is not None:
-            if os.path.exists(fname):
-                raise ValueError(\
-                    "another model with %s name already exists!" % fname)
-            else:
-                os.makedirs(fname)
-            GLM.save(self.__mid, self.__mkind, self.__mdtype, fname+"/model")
-            metadata = open(fname+"/metadata", "wb")
-            pickle.dump((self.n_components, self.n_features, 
-                         self.converged_, self.n_iter_, self.lower_bound_, \
-                         self.__mkind, self.__mdtype), metadata)
-            metadata.close()
-        else:
+        if os.path.exists(fname):
             raise ValueError(\
-                "save: the requested model might have been released!")        
+                "another model with %s name already exists!" % fname)
+        else:
+            os.makedirs(fname)
+        GLM.save(self.__mid, self.__mkind, self.__mdtype, fname + "/model")
+        metadata = open(fname + "/metadata", "wb")
+        pickle.dump((self.n_components, self.n_features, 
+                     self.converged_, self.n_iter_, self.lower_bound_, \
+                     self.__mkind, self.__mdtype), metadata)
+        metadata.close()
 
+    @check_association
     def debug_print(self):
         """
         NAME: debug_print
         """
-        if self.__mid is not None:
-            GLM.debug_print(self.__mid, self.__mkind, self.__mdtype)        
+        GLM.debug_print(self.__mid, self.__mkind, self.__mdtype)        
         
-    
     def release(self):
         """
-        NAME: release
+        resets after-fit populated attributes to None
         """
-        if self.__mid is not None:
-            GLM.release(self.__mid, self.__mkind, self.__mdtype)
-            self.__mid = None
-            self._weights = None
-            self._means = None
-            self._covariances = None
-            self._converged = None
-            self.n_iter_ = None
-            self._lower_bound = None        
+        self.__release_server_heap()
+        self.__mid = None
+        self._weights = None
+        self._means = None
+        self._covariances = None
+        self._converged = None
+        self.n_iter_ = None
+        self._lower_bound = None
+        self.n_samples = self.n_features = None
+
+    @do_if_active_association
+    def __release_server_heap(self):
+        """
+        to release model pointer from server heap
+        """
+        GLM.release(self.__mid, self.__mkind, self.__mdtype)
 
     def __del__(self):
         """
         NAME: __del__
         """
-        if FrovedisServer.isUP():
-            self.release()        
+        self.release()
+
+    def is_fitted(self):
+        """ function to confirm if the model is already fitted """
+        return self.__mid is not None
+

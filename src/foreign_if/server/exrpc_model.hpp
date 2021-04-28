@@ -703,6 +703,13 @@ bool get_gmm_converged(int& mid) {
   return gmm_model.converged_();
 }
 
+template <class T, class MATRIX, class MODEL>
+T get_gmm_score(exrpc_ptr_t& mat_ptr, int& mid) {
+  MATRIX& mat = *reinterpret_cast<MATRIX*> (mat_ptr);
+  MODEL& est = *get_model_ptr<MODEL>(mid);
+  return est.score(mat);
+}
+
 template <class T>
 dummy_matrix get_scm_affinity_matrix(int& mid) {
   auto& model = *get_model_ptr<spectral_clustering_model<T>>(mid);

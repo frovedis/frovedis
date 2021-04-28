@@ -1105,6 +1105,11 @@ get_gmm_lower_bound = LIB.get_gmm_lower_bound_val
 get_gmm_lower_bound.argtypes = [c_char_p, c_int, c_int, c_short]
 get_gmm_lower_bound.restype = c_double
 
+get_gmm_score = LIB.get_gmm_score_val
+get_gmm_score.argtypes = [c_char_p, c_int, c_int,
+                              c_short, c_long]
+get_gmm_score.restype = c_double
+
 # --- classification APIs ---
 
 # 1. Logistic Regression

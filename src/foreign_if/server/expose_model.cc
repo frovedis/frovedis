@@ -311,12 +311,14 @@ void expose_frovedis_model_functions() {
   expose(get_gmm_covariances<DT1>);     // for python
   expose(get_gmm_lower_bound<DT1>);     // for python
   expose(get_gmm_converged<DT1>);       // for python
+  expose((get_gmm_score<DT1,R_MAT1,GMM1>)); // for python  
   //--  
   expose(get_gmm_weights<DT2>);         // for python
   expose(get_gmm_means<DT2>);           // for python
   expose(get_gmm_covariances<DT2>);     // for python
   expose(get_gmm_lower_bound<DT2>);     // for python
-  expose(get_gmm_converged<DT2>);       // for python    
+  expose(get_gmm_converged<DT2>);       // for python
+  expose((get_gmm_score<DT2,R_MAT2,GMM2>)); // for python  
   // --- frovedis word2vector model
   expose(release_model<W2V2>);
   expose(get_w2v_weight_ptr<DT2>);
