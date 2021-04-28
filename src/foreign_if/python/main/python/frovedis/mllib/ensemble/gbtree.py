@@ -1,4 +1,3 @@
-# !/usr/bin/env python
 """
  wrapper of frovedis ensemble models - GBT
 """
@@ -8,7 +7,8 @@ import os.path
 import numpy as np
 from ...base import *
 from ...exrpc import rpclib
-from ...exrpc.server import FrovedisServer, check_server_state
+from ...exrpc.server import FrovedisServer, set_association, \
+                            check_association, do_if_active_association
 from ...matrix.ml_data import FrovedisLabeledPoint
 from ...matrix.dtype import TypeUtil
 from ..metrics import accuracy_score, r2_score
@@ -126,10 +126,10 @@ class GradientBoostingClassifier(BaseEstimator):
         self.loss_map = {"deviance": "logloss", "exponential": "exponential",
                          "default": "default"}
 
+    @set_association
     def fit(self, X, y):
         """
-        NAME: fit
-        fit for Gradient Boost Classifier
+        fits for Gradient Boost Classifier
         """
         self.release()
         # perform the fit
@@ -140,6 +140,7 @@ class GradientBoostingClassifier(BaseEstimator):
         X, y, logic = inp_data.get()
         self._classes = inp_data.get_distinct_labels()
         self.n_classes_ = len(self._classes)
+        self.n_samples_ = inp_data.numRows()
         self.n_features_ = inp_data.numCols()
         self.label_map = logic
         dtype = inp_data.get_dtype()
@@ -172,30 +173,25 @@ class GradientBoostingClassifier(BaseEstimator):
             raise RuntimeError(excpt["info"])
         return self
 
+    @check_association
     def predict(self, X):
         """
-        NAME: predict
-        Perform classification on an array of test vectors X.
+        performs classification on an array of test vectors X.
         """
-        if self.__mid is not None:
-            frov_pred = GLM.predict(X, self.__mid, self.__mkind, self.__mdtype,
-                                    False)
-            return np.asarray([self.label_map[frov_pred[i]] \
-                              for i in range(0, len(frov_pred))])
-        else:
-            raise ValueError("predict is called before calling fit, or the "
-                             "model is released.")
+        frov_pred = GLM.predict(X, self.__mid, self.__mkind, self.__mdtype, \
+                                False)
+        return np.asarray([self.label_map[frov_pred[i]] \
+                          for i in range(0, len(frov_pred))])
 
     @property
     def classes_(self):
         """classes_ getter"""
-        if self.__mid is not None:
-            if self._classes is None:
-                self._classes = np.sort(list(self.label_map.values()))
-            return self._classes
-        else:
+        if not self.is_fitted():
             raise AttributeError("attribute 'classes_' \
                might have been released or called before fit")
+        if self._classes is None:
+            self._classes = np.sort(list(self.label_map.values()))
+        return self._classes
 
     @classes_.setter
     def classes_(self, val):
@@ -204,6 +200,7 @@ class GradientBoostingClassifier(BaseEstimator):
             "attribute 'classes_' of GradientBoostingClassifier "
             "object is not writable")
 
+    @set_association
     def load(self, fname, dtype=None):
         """
         NAME: load
@@ -222,73 +219,73 @@ class GradientBoostingClassifier(BaseEstimator):
         if dtype is not None:
             mdt = TypeUtil.to_numpy_dtype(self.__mdtype)
             if dtype != mdt:
-                raise ValueError("load: type mismatches detected!" +
+                raise ValueError("load: type mismatches detected! " +
                                  "expected type: " + str(mdt) +
                                  "; given type: " + str(dtype))
         self.__mid = ModelID.get()
         GLM.load(self.__mid, self.__mkind, self.__mdtype, fname + "/model")
         return self
 
-    def score(self, X, y):
+    def score(self, X, y, sample_weight=None):
         """
-        NAME: score
         check the accuracy for the model
         """
-        if self.__mid is not None:
-            return accuracy_score(y, self.predict(X))
+        return accuracy_score(y, self.predict(X), sample_weight=sample_weight)
 
+    @check_association
     def save(self, fname):
         """
-        NAME: save
-        Save model to a file
+        saves the model to a file
         """
-        if self.__mid is not None:
-            if os.path.exists(fname):
-                raise ValueError("another model with %s name already"
-                                 " exists!" % fname)
-            else:
-                os.makedirs(fname)
-            GLM.save(self.__mid, self.__mkind, self.__mdtype, fname + "/model")
-            target = open(fname + "/label_map", "wb")
-            pickle.dump(self.label_map, target)
-            target.close()
-            metadata = open(fname + "/metadata", "wb")
-            pickle.dump((self.n_classes_, self.__mkind,
-                         self.__mdtype), metadata)
-            metadata.close()
+        if os.path.exists(fname):
+            raise ValueError("another model with %s name already"
+                             " exists!" % fname)
         else:
-            raise AttributeError("save: requested model might have "
-                                 "been released!")
+            os.makedirs(fname)
+        GLM.save(self.__mid, self.__mkind, self.__mdtype, fname + "/model")
+        target = open(fname + "/label_map", "wb")
+        pickle.dump(self.label_map, target)
+        target.close()
+        metadata = open(fname + "/metadata", "wb")
+        pickle.dump((self.n_classes_, self.__mkind,
+                     self.__mdtype), metadata)
+        metadata.close()
 
+    @check_association
     def debug_print(self):
         """
-        NAME: debug_print
-        Show the model
+        shows the model
         """
-        if self.__mid is not None:
-            GLM.debug_print(self.__mid, self.__mkind, self.__mdtype)
+        GLM.debug_print(self.__mid, self.__mkind, self.__mdtype)
 
     def release(self):
         """
-        NAME: release
-        Release the model-id to generate new model-id
+        resets after-fit populated attributes to None
         """
-        if self.__mid is not None:
-            GLM.release(self.__mid, self.__mkind, self.__mdtype)
-            self.__mid = None
-            self.__mdtype = None
-            self._classes = None
-            self.label_map = None
-            self.n_classes_ = None
+        self.__release_server_heap()
+        self.__mid = None
+        self.__mdtype = None
+        self._classes = None
+        self.label_map = None
+        self.n_classes_ = None
+        self.n_samples_ = self.n_features_ = None
+
+    @do_if_active_association
+    def __release_server_heap(self):
+        """
+        to release model pointer from server heap
+        """
+        GLM.release(self.__mid, self.__mkind, self.__mdtype)
 
     def __del__(self):
         """
         NAME: __del__
-        Check FrovedisServer is up then release
         """
-        if FrovedisServer.isUP():
-            self.release()
+        self.release()
 
+    def is_fitted(self):
+        """ function to confirm if the model is already fitted """
+        return self.__mid is not None
 
 class GradientBoostingRegressor(BaseEstimator):
     """A python wrapper of Frovedis Gradient boosted trees: regressor"""
@@ -398,9 +395,9 @@ class GradientBoostingRegressor(BaseEstimator):
         self.loss_map = {"ls": "leastsquareserror", "lad": "leastabsoluteerror",
                          "default": "default"}
 
+    @set_association
     def fit(self, X, y):
         """
-        NAME: fit
         fit for Gradient Boost Classifier
         """
         # release old model, if any
@@ -413,6 +410,7 @@ class GradientBoostingRegressor(BaseEstimator):
         itype = inp_data.get_itype()
         dense = inp_data.is_dense()
         self.n_estimators_ = self.n_estimators # TODO: confirm whether frovedis supports n_iter_no_change
+        self.n_samples_ = inp_data.numRows()
         self.n_features_ = inp_data.numCols()
         self.validate()
         self.__mdtype = dtype
@@ -439,23 +437,19 @@ class GradientBoostingRegressor(BaseEstimator):
             raise RuntimeError(excpt["info"])
         return self
 
+    @check_association
     def predict(self, X):
         """
-        NAME: predict
-        Perform classification on an array of test vectors X.
+        performs prediction on an array of test vectors X.
         """
-        if self.__mid is not None:
-            frov_pred = GLM.predict(X, self.__mid, self.__mkind, self.__mdtype,
-                                    False)
-            return np.asarray(frov_pred, dtype=np.float64)
-        else:
-            raise ValueError("predict is called before calling fit, or the "
-                             "model is released.")
+        frov_pred = GLM.predict(X, self.__mid, self.__mkind, self.__mdtype, \
+                                False)
+        return np.asarray(frov_pred, dtype = np.float64)
 
+    @set_association
     def load(self, fname, dtype=None):
         """
-        NAME: load
-        Load the model from a file
+        loads the model from a file
         """
         if not os.path.exists(fname):
             raise ValueError("the model with name %s does not exist!" % fname)
@@ -466,64 +460,65 @@ class GradientBoostingRegressor(BaseEstimator):
         if dtype is not None:
             mdt = TypeUtil.to_numpy_dtype(self.__mdtype)
             if dtype != mdt:
-                raise ValueError("load: type mismatches detected!" +
+                raise ValueError("load: type mismatches detected! " +
                                  "expected type: " + str(mdt) +
                                  "; given type: " + str(dtype))
         self.__mid = ModelID.get()
         GLM.load(self.__mid, self.__mkind, self.__mdtype, fname + "/model")
         return self
 
-    def score(self, X, y):
+    def score(self, X, y, sample_weight=None):
         """
-        NAME: score
         check the r2 score for the model
         """
-        if self.__mid is not None:
-            return r2_score(y, self.predict(X))
+        return r2_score(y, self.predict(X), sample_weight=sample_weight)
 
+    @check_association
     def save(self, fname):
         """
-        NAME: save
-        Save model to a file
+        saves model to a file
         """
-        if self.__mid is not None:
-            if os.path.exists(fname):
-                raise ValueError("another model with %s name already"
-                                 " exists!" % fname)
-            else:
-                os.makedirs(fname)
-            GLM.save(self.__mid, self.__mkind, self.__mdtype, fname + "/model")
-            metadata = open(fname + "/metadata", "wb")
-            pickle.dump((self.__mkind,
-                         self.__mdtype), metadata)
-            metadata.close()
+        if os.path.exists(fname):
+            raise ValueError("another model with %s name already"
+                             " exists!" % fname)
         else:
-            raise AttributeError("save: requested model might have "
-                                 "been released!")
+            os.makedirs(fname)
+        GLM.save(self.__mid, self.__mkind, self.__mdtype, fname + "/model")
+        metadata = open(fname + "/metadata", "wb")
+        pickle.dump((self.__mkind,
+                     self.__mdtype), metadata)
+        metadata.close()
 
+    @check_association
     def debug_print(self):
         """
-        NAME: debug_print
-        Show the model
+        shows the model
         """
-        if self.__mid is not None:
-            GLM.debug_print(self.__mid, self.__mkind, self.__mdtype)
+        GLM.debug_print(self.__mid, self.__mkind, self.__mdtype)
 
     def release(self):
         """
-        NAME: release
-        Release the model-id to generate new model-id
+        resets after-fit populated attributes to None
         """
-        if self.__mid is not None:
-            GLM.release(self.__mid, self.__mkind, self.__mdtype)
-            self.__mid = None
-            self.__mdtype = None
+        self.__release_server_heap()
+        self.__mid = None
+        self.__mdtype = None
+        self.n_samples_ = self.n_features_ = None
+
+    @do_if_active_association
+    def __release_server_heap(self):
+        """
+        to release model pointer from server heap
+        """
+        GLM.release(self.__mid, self.__mkind, self.__mdtype)
 
     def __del__(self):
         """
         NAME: __del__
-        Check FrovedisServer is up then release
         """
-        if FrovedisServer.isUP():
-            self.release()
+        self.release()
+
+    def is_fitted(self):
+        """ function to confirm if the model is already fitted """
+        return self.__mid is not None
 
