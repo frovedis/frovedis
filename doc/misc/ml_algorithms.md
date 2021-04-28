@@ -6,7 +6,7 @@ card/node, unless otherwise specified.
 
 <table>
 <tr><th>Category</th> <th>Algorithm</th> <th>Comment</th> </tr>
-<tr> <td rowspan="19">Classification / Regression</td>
+<tr> <td rowspan="20">Classification / Regression</td>
 <td>Logistic Regression</td> <td></td> </tr>
 <tr><td>Multinomial Logistic Regression</td> <td></td> </tr>
 <tr><td>Linear Regression</td> <td></td> </tr>
@@ -26,12 +26,13 @@ card/node, unless otherwise specified.
 <tr><td>Unsupervised Nearest Neighbor</td> <td>Only dense</td> </tr>
 <tr><td>Multinomial Naive Bayes</td> <td></td> </tr>
 <tr><td>Bernoulli Naive Bayes</td> <td></td> </tr>
-<tr><td rowspan="5">Clustering</td>
+<tr><td>Factorization Machines</td> <td></td> </tr>
+<tr><td rowspan="6">Clustering</td>
 <td>K-means</td> <td></td> </tr>
 <tr><td>Spectral Clustering</td> <td>Only dense</td> </tr>
 <tr><td>Agglomerative Clustering</td> <td>Only dense</td> </tr>
 <tr><td>DBSCAN</td> <td>Only dense</td> </tr>
-<tr><td>Gaussian Mixture Model</td> <td>Only dense, Only C++</td> </tr>
+<tr><td>Gaussian Mixture Model</td> <td>Only dense</td> </tr>
 <tr><td>ART-2A</td> <td>Only C++</td> </tr>
 <tr><td rowspan="5">Preprocess</td>
 <td>Singular Value Decomposition</td> <td></td> </tr>
@@ -39,10 +40,8 @@ card/node, unless otherwise specified.
 <tr><td>Principal Component Analysis</td> <td>Only dense</td> </tr>
 <tr><td>Spectral Embedding</td> <td>Only dense</td> </tr>
 <tr><td>T-SNE</td> <td>Only dense</td> </tr>
-<tr><td rowspan="2">Recommendation</td>
-<td>ALS</td> <td></td> </tr>
-<tr><td>Factorization Machines</td> <td>[*2]</td> </tr>
-<tr><td>Basket Analysis</td> <td>FP Growth</td> </tr>
+<tr><td>Recommendation</td> <td>ALS</td> <td></td> </tr>
+<tr><td>Basket Analysis</td> <td>FP Growth</td> <td></td> </tr>
 <tr><td rowspan="2">Natural Language</td>
 <td>word2vec</td> <td>[*2]</td> </tr>
 <tr><td>Latent Dirichlet Allocation</td> <td></td> </tr>
