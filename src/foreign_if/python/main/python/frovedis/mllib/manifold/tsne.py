@@ -1,5 +1,4 @@
 """ This is the exact t-SNE implementation """
-#!/usr/bin/env python
 
 from ...base import BaseEstimator
 from ...exrpc.server import FrovedisServer

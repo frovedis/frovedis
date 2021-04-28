@@ -2,13 +2,13 @@
 main/python/frovedis/mllib/manifold/_spectral_embedding.py: 
 module containing wrapper for spectral embedding
 """
-#!/usr/bin/env python
 
 import os.path
 import pickle
 from ..model_util import *
 from ...base import *
-from ...exrpc.server import FrovedisServer
+from ...exrpc.server import FrovedisServer, set_association, \
+                           check_association, do_if_active_association
 from ...exrpc import rpclib
 from ...matrix.ml_data import FrovedisFeatureData
 from ...matrix.dense import FrovedisRowmajorMatrix
@@ -38,6 +38,7 @@ class SpectralEmbedding(BaseEstimator):
         self.mode = mode
         self.drop_first = drop_first
 
+    @set_association
     def fit(self, X, y=None):
         """
         NAME: fit
@@ -68,8 +69,6 @@ class SpectralEmbedding(BaseEstimator):
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
             raise RuntimeError(excpt["info"])
-        self._affinity = None
-        self._embedding = None
         return self
 
     def __str__(self):
@@ -79,13 +78,11 @@ class SpectralEmbedding(BaseEstimator):
         return str(self.get_params())
 
     @property
+    @check_association
     def affinity_matrix_(self):
         """
         NAME: get_affinity_matrix
         """
-        if self.__mid is None:
-            raise ValueError("affinity_matrix_ is called before fit")
-
         if self._affinity is None:
             (host, port) = FrovedisServer.getServerInstance()
             dmat = rpclib.get_sem_affinity_matrix(host, port, self.__mid, \
@@ -108,13 +105,11 @@ class SpectralEmbedding(BaseEstimator):
         "attribute 'affinity_matrix_' of SpectralEmbedding is not writable")
 
     @property
+    @check_association
     def embedding_(self):
         """
         NAME: get_embedding_matrix
         """
-        if self.__mid is None:
-            raise ValueError("embedding_ is called before fit")
-
         if self._embedding is None:
             (host, port) = FrovedisServer.getServerInstance()
             dmat = rpclib.get_sem_embedding_matrix(host, port, self.__mid, \
@@ -136,6 +131,7 @@ class SpectralEmbedding(BaseEstimator):
         raise AttributeError(\
         "attribute 'embedding_' of SpectralEmbedding is not writable")
 
+    @set_association
     def load(self, fname, dtype=None):
         """
         NAME: load
@@ -144,59 +140,65 @@ class SpectralEmbedding(BaseEstimator):
             raise ValueError(\
                 "the model with name %s does not exist!" % fname)
         self.release()
-        metadata = open(fname+"/metadata", "rb")
+        metadata = open(fname + "/metadata", "rb")
         self.n_components, self.__mkind, self.__mdtype = pickle.load(metadata)
         metadata.close()
         if dtype is not None:
             mdt = TypeUtil.to_numpy_dtype(self.__mdtype)
             if dtype != mdt:
-                raise ValueError("load: type mismatches detected!" + \
+                raise ValueError("load: type mismatches detected! " + \
                                  "expected type: " + str(mdt) + \
                                  "; given type: " + str(dtype))
         self.__mid = ModelID.get()
-        GLM.load(self.__mid, self.__mkind, self.__mdtype, fname+"/model")
+        GLM.load(self.__mid, self.__mkind, self.__mdtype, fname + "/model")
         return self
 
+    @check_association
     def save(self, fname):
         """
         NAME: save
         """
-        if self.__mid is not None:
-            if os.path.exists(fname):
-                raise ValueError(\
-                    "another model with %s name already exists!" % fname)
-            else:
-                os.makedirs(fname)
-            GLM.save(self.__mid, self.__mkind, self.__mdtype, fname+"/model")
-            metadata = open(fname+"/metadata", "wb")
-            pickle.dump((self.n_components, self.__mkind, \
-                self.__mdtype), metadata)
-            metadata.close()
-        else:
+        if os.path.exists(fname):
             raise ValueError(\
-                "save: the requested model might have been released!")
+                "another model with %s name already exists!" % fname)
+        else:
+            os.makedirs(fname)
+        GLM.save(self.__mid, self.__mkind, self.__mdtype, fname + "/model")
+        metadata = open(fname + "/metadata", "wb")
+        pickle.dump((self.n_components, self.__mkind, \
+            self.__mdtype), metadata)
+        metadata.close()
 
+    @check_association
     def debug_print(self):
         """
         NAME: debug_print
         """
-        if self.__mid is not None:
-            GLM.debug_print(self.__mid, self.__mkind, self.__mdtype)
+        GLM.debug_print(self.__mid, self.__mkind, self.__mdtype)
 
     def release(self):
         """
-        NAME: release
+        resets after-fit populated attributes to None
         """
-        if self.__mid is not None:
-            GLM.release(self.__mid, self.__mkind, self.__mdtype)
-            self.__mid = None
-            self._affinity = None
-            self._embedding = None
+        self.__release_server_heap()
+        self.__mid = None
+        self._affinity = None
+        self._embedding = None
+
+    @do_if_active_association
+    def __release_server_heap(self):
+        """
+        to release model pointer from server heap
+        """
+        GLM.release(self.__mid, self.__mkind, self.__mdtype)
 
     def __del__(self):
         """
         NAME: __del__
         """
-        if FrovedisServer.isUP():
-            self.release()
+        self.release()
+
+    def is_fitted(self):
+        """ function to confirm if the model is already fitted """
+        return self.__mid is not None
 
