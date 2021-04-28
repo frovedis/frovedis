@@ -9,65 +9,61 @@ using namespace std;
 template <class T>
 void do_gmm(const string& input, const string& output, int k, 
             const string& cov_type, const string& init_params, 
-            bool switch_init, int n_init, int num_iteration, 
+            int n_init, int num_iteration, 
             double eps, long seed, bool binary) {
+  rowmajor_matrix<T> mat;
+  time_spent t(DEBUG);
   if (binary) {
-    time_spent t(DEBUG);
-    auto mat = make_rowmajor_matrix_loadbinary<T>(input);
+    mat = make_rowmajor_matrix_loadbinary<T>(input);
     t.show("load matrix: ");
-    auto gmm_model =
-        frovedis::gaussian_mixture<T>(k, cov_type, eps, num_iteration, init_params, seed);
-    gmm_model.fit(mat);
-    t.show("train: ");
-    LOG(DEBUG) << "number of loops until convergence: " << gmm_model.n_iter_()
-               << std::endl;
-    LOG(DEBUG) << "likelihood: " << gmm_model.lower_bound_() << std::endl;
-    gmm_model.savebinary(output);
-
   } else {
-    time_spent t(DEBUG);
-    auto mat = make_rowmajor_matrix_load<T>(input);
+    mat = make_rowmajor_matrix_load<T>(input);
     t.show("load matrix: ");
-    auto gmm_model =
-        frovedis::gaussian_mixture<T>(k, cov_type, eps, num_iteration, init_params, seed);
-    gmm_model.fit(mat);
-    t.show("gmm time: ");
-    LOG(DEBUG) << "number of loops until convergence: " << gmm_model.n_iter_()
-               << std::endl;
-    LOG(DEBUG) << "likelihood: " << gmm_model.lower_bound_() << std::endl;
-    gmm_model.save(output);      
-  }    
+  }
+  auto gmm_model = frovedis::gaussian_mixture<T>(k, cov_type, 
+                   eps, num_iteration, init_params, seed);
+  gmm_model.fit(mat);
+  t.show("train: ");
+  LOG(DEBUG) << "number of loops until convergence: " << gmm_model.n_iter_()
+             << std::endl;
+  LOG(DEBUG) << "likelihood: " << gmm_model.lower_bound_() << std::endl;
+  binary ? gmm_model.savebinary(output) : gmm_model.save(output);
+  t.show("model save: ");
 }
 
 template <class T>
 void do_assign(const string& input, const string& input_cluster,
                const string& output, int k, bool binary) {
+  auto gmm_model = frovedis::gaussian_mixture<T>(k);
+  if (!directory_exists(output)) make_directory(output);
   if (binary) {
     time_spent t(DEBUG);
-    auto mat = make_rowmajor_matrix_local_loadbinary<double>(input);
+    auto mat = make_rowmajor_matrix_loadbinary<T>(input);
     t.show("load matrix: ");
-    auto means = make_rowmajor_matrix_local_loadbinary<double>(input_cluster + "/model");
-    t.show("load means: ");  
-    auto cov = make_rowmajor_matrix_local_loadbinary<double>(input_cluster + "/model_cov");
-    t.show("load covariances: ");  
-    auto weights = make_rowmajor_matrix_local_loadbinary<double>(input_cluster + "/model_pi");
-    t.show("load weights: ");  
-    auto gmm_cluster = frovedis::gmm_assign_cluster(mat, k, means, cov, weights);
-    t.show("gmm time: ");
-    gmm_cluster.savebinary(output);
+    gmm_model.loadbinary(input_cluster);  
+    t.show("load model: ");  
+    auto pred = gmm_model.predict(mat);
+    auto prob = gmm_model.predict_proba(mat);
+    t.show("prediction time: ");
+    auto score = gmm_model.score(mat); 
+    std::cout << "score: " << score << std::endl;
+    make_dvector_scatter(pred).savebinary(output + "/prediction");
+    prob.savebinary(output + "/probability");
+    t.show("prediction save: ");
   } else {
     time_spent t(DEBUG);
-    auto mat = make_rowmajor_matrix_local_load<double>(input);
+    auto mat = make_rowmajor_matrix_load<T>(input);
     t.show("load matrix: ");
-    auto means = make_rowmajor_matrix_local_load<double>(input_cluster + "/model");
-    t.show("load means: ");  
-    auto cov = make_rowmajor_matrix_local_load<double>(input_cluster + "/model_cov");
-    t.show("load covariances: ");  
-    auto weights = make_rowmajor_matrix_local_load<double>(input_cluster + "/model_pi");
-    t.show("load weights: ");  
-    auto gmm_cluster = frovedis::gmm_assign_cluster(mat, k, means, cov, weights);
-    t.show("gmm time: ");
-    gmm_cluster.save(output);
+    gmm_model.load(input_cluster);  
+    t.show("load model: ");  
+    auto pred = gmm_model.predict(mat);
+    auto prob = gmm_model.predict_proba(mat);
+    t.show("prediction time: ");
+    auto score = gmm_model.score(mat); 
+    std::cout << "score: " << score << std::endl;
+    make_dvector_scatter(pred).saveline(output + "/predict");
+    prob.save(output + "/predict_prob");
+    t.show("prediction save: ");
   }
 }
 
@@ -84,12 +80,11 @@ int main(int argc, char* argv[]) {
     ("cluster,c", value<string>(), "input model,cov,pi for assignment")
     ("output,o", value<string>(), "output centroids or cluster")
     ("k,k", value<int>(), "number of clusters")
-    ("cov-type,cov", value<string>(), "covariance type (default: full)")  
+    ("cov-type,v", value<string>(), "covariance type (default: full)")  
     ("num-init,t", value<int>(),"number of time for running with different centroid seeds (default: 1)")
     ("num-iteration,n", value<int>(),"maximum number of iteration (default: 300)")
     ("eps,e", value<double>(),"epsilon to stop the iteration (default: 0.001)")
-    ("switch_init,s", value<bool>(), "kmeans(0) or random(1) (default: 0)")
-    ("init-params,p", value<string>(), "initialization method (default: kmeans)")  
+    ("init-params,p", value<string>(), "initialization method [kmeans or random] (default: kmeans)")  
     ("seed,r", value<long>(), "seed for init randomizer (default: 123)")
     ("float", "for float type input")
     ("double","for double type input (default)")
@@ -110,7 +105,6 @@ int main(int argc, char* argv[]) {
   long seed = 123;
   bool assign = false;
   bool binary = false;
-  bool switch_init = 0;
 
   if (argmap.count("help")) {
     cerr << opt << endl;
@@ -176,9 +170,6 @@ int main(int argc, char* argv[]) {
   if (argmap.count("epsilon")) {
     eps = argmap["epsilon"].as<double>();
   }
-  if (argmap.count("switch_init")) {
-    switch_init = argmap["switch_init"].as<bool>();
-  }
 
   if (argmap.count("seed")) {
     seed = argmap["seed"].as<long>();
@@ -202,9 +193,9 @@ int main(int argc, char* argv[]) {
   else {
     if(argmap.count("double")) 
       do_gmm<double>(input, output, k, cov_type, init_params, 
-                     switch_init, n_init, num_iteration, eps, seed, binary);
+                     n_init, num_iteration, eps, seed, binary);
     else 
       do_gmm<float>(input, output, k, cov_type, init_params, 
-                    switch_init, n_init, num_iteration, eps, seed, binary);
+                    n_init, num_iteration, eps, seed, binary);
   }
 }
