@@ -4,9 +4,32 @@
 #include <frovedis/ml/model_selection/param.hpp>
 #include <frovedis/ml/clustering/gmm_impl.hpp>
 
-
 namespace frovedis {
     
+  template <class LOC_MATRIX, class T>
+  std::vector<int>
+  parallel_gmm_predict(LOC_MATRIX& lmat,
+                       int n_components,
+                       rowmajor_matrix_local<T>& means,
+                       rowmajor_matrix_local<T>& covariance,
+                       rowmajor_matrix_local<T>& pi) {
+    auto gmm_pred = gmm_assign_cluster(lmat, n_components, 
+                                       means, covariance, pi);           
+    return gmm_pred.predict.val;
+  }
+
+  template <class LOC_MATRIX, class T>
+  rowmajor_matrix_local<T>
+  parallel_gmm_predict_proba(LOC_MATRIX& lmat,
+                             int n_components,
+                             rowmajor_matrix_local<T>& means,
+                             rowmajor_matrix_local<T>& covariance,
+                             rowmajor_matrix_local<T>& pi) {
+    auto gmm_pred = gmm_assign_cluster(lmat, n_components, 
+                                       means, covariance, pi);           
+    return gmm_pred.predict_prob.transpose();
+  }
+
   template <class T> 
   struct gaussian_mixture {
     gaussian_mixture(int n_components = 1,
@@ -131,27 +154,24 @@ namespace frovedis {
     }
     
     template <class MATRIX>
-    std::vector<int>
-    fit_predict(const MATRIX& mat,
-                const dvector<int>& label = dvector<int>()) { // ignored
-      fit(mat, label);
-      auto mat_local = mat.gather();  
-      auto gmm_cluster = gmm_assign_cluster(mat_local, n_components, 
-                                            model.model, model.covariance, 
-                                            model.pi);
-      return gmm_cluster.predict.val;        
-    }
-
-    template <class MATRIX>
     std::vector<int> 
     predict(MATRIX& mat) {
       if(!is_fitted) REPORT_ERROR(USER_ERROR,
        "[Gaussian Mixture] prediction is called before fit\n");
-      auto mat_local = mat.gather();  
-      auto gmm_pred = gmm_assign_cluster(mat_local, n_components, 
-                                            model.model, model.covariance, 
-                                            model.pi);           
-      return gmm_pred.predict.val;
+      return mat.data.map(parallel_gmm_predict
+                          <typename MATRIX::local_mat_type, T>,
+                          broadcast(n_components), 
+                          broadcast(model.model), 
+                          broadcast(model.covariance),
+                          broadcast(model.pi))
+                     .template moveto_dvector<int>().gather();
+    }
+
+    template <class MATRIX>
+    std::vector<int>
+    fit_predict(const MATRIX& mat,
+                const dvector<int>& label = dvector<int>()) { // ignored
+      return fit(mat, label).predict(mat);
     }
 
     template <class MATRIX>
@@ -159,11 +179,13 @@ namespace frovedis {
     predict_proba(MATRIX& mat) { 
       if(!is_fitted) REPORT_ERROR(USER_ERROR,
        "[Gaussian Mixture] prediction is called before fit\n");
-      auto mat_local = mat.gather();   
-      auto gmm_pred = gmm_assign_cluster(mat_local, n_components, 
-                                            model.model, model.covariance, 
-                                            model.pi);  
-      return gmm_pred.predict_prob;          
+      auto rvec = mat.data.map(parallel_gmm_predict_proba
+                          <typename MATRIX::local_mat_type, T>,
+                          broadcast(n_components), 
+                          broadcast(model.model), 
+                          broadcast(model.covariance),
+                          broadcast(model.pi)).gather();
+      return merge(rvec);
     }
   
     rowmajor_matrix_local<T> weights_() {
@@ -222,6 +244,9 @@ namespace frovedis {
       is_fitted = true;      
       // TODO: load other metadata
     }
+
+    template <class MATRIX>
+    double score(MATRIX& mat) { return gmm_score(mat, n_components); }
 
     private:
       int n_components;

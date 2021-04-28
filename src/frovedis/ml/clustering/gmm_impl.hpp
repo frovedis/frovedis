@@ -71,30 +71,28 @@ struct gmm_model {
   int Number;
   void save(const std::string &path) {
     frovedis::make_directory(path);
-    cluster.transpose().save(path + "/model_cluster");
-    model.transpose().save(path + "/model");
+    //model.transpose().save(path + "/model_means");
+    model.save(path + "/model_means");
     covariance.save(path + "/model_cov");
     pi.save(path + "/model_pi");
   }
     
   void savebinary(const std::string &path) {
     frovedis::make_directory(path);
-    frovedis::make_directory(path + "/model");
-    frovedis::make_directory(path + "/model_cov");
-    frovedis::make_directory(path + "/model_pi");
-    model.transpose().savebinary(path + "/model");
+    //model.transpose().savebinary(path + "/model_means");
+    model.savebinary(path + "/model_means");
     covariance.savebinary(path + "/model_cov");
     pi.savebinary(path + "/model_pi");
   }
     
   void load(const std::string &path) {
-    model = make_rowmajor_matrix_local_load<T>(path + "/model");
+    model = make_rowmajor_matrix_local_load<T>(path + "/model_means");
     covariance = make_rowmajor_matrix_local_load<T>(path + "/model_cov");
     pi = make_rowmajor_matrix_local_load<T>(path + "/model_pi");          
   }
     
   void loadbinary(const std::string &path) {
-    model = make_rowmajor_matrix_local_loadbinary<T>(path + "/model");
+    model = make_rowmajor_matrix_local_loadbinary<T>(path + "/model_means");
     covariance = make_rowmajor_matrix_local_loadbinary<T>(path + "/model_cov");
     pi = make_rowmajor_matrix_local_loadbinary<T>(path + "/model_pi");      
   }
@@ -120,12 +118,21 @@ struct gmm_cluster {
   }
   void savebinary(const std::string &path) {
     frovedis::make_directory(path);
-    frovedis::make_directory(path + "/predict");
-    frovedis::make_directory(path + "/predict_prob");
     predict.transpose().savebinary(path + "/predict");
     predict_prob.transpose().savebinary(path + "/predict_prob");
   }
 };
+
+template <typename T>
+double gmm_score(frovedis::rowmajor_matrix<T> Data, int CNT) {
+  frovedis::colmajor_matrix<T> X1(Data);
+  auto p_CNT = frovedis::make_node_local_broadcast(CNT);
+  int Num = Data.num_row;
+  auto p_MD = X1.data.map(make_gdp<T>, p_CNT);
+  auto partial_log = X1.data.map(likelihood<T>, p_MD, p_CNT);
+  auto ret = partial_log.reduce(my_sum<T>);
+  return ret / static_cast<double>(Num);
+}
 
 template <typename T>
 gmm_model<T> gmm(frovedis::rowmajor_matrix<T> Data, int CNT, int loopmax,
@@ -158,7 +165,7 @@ gmm_model<T> gmm(frovedis::rowmajor_matrix<T> Data, int CNT, int loopmax,
     }
     auto assigned = parallel_kmeans_assign_cluster(Data, mu_kmeans);
     for (int n = 0; n < Num; n++) {
-      Pi_arr.val[assigned[n]] += 1;
+      Pi_arr.val[assigned[n]] += 1; // TODO: use vector_bincount here to vectorize this count
       r_arrl[n * CNT + assigned[n]] = 1;
     }
     for (int k = 0; k < CNT; k++) {
@@ -265,12 +272,18 @@ gmm_model<T> gmm(frovedis::rowmajor_matrix<T> Data, int CNT, int loopmax,
       }
     }
   }
+/*
   frovedis::rowmajor_matrix_local<T> mu_save(Dim, CNT);
   for (int k = 0; k < CNT; k++) {
     for (int d = 0; d < Dim; d++) {
       mu_save.val[d * CNT + k] = ml.val[k * Dim + d];
     }
   }
+*/
+  frovedis::rowmajor_matrix_local<T> mu_save;    
+  mu_save.val.swap(ml.val);
+  mu_save.set_local_num(CNT, Dim);
+
   frovedis::rowmajor_matrix_local<T> cov_save(CNT, Dim * Dim);
   for (int k = 0; k < CNT; k++) {
     for (int d0 = 0; d0 < Dim; d0++) {
@@ -280,10 +293,10 @@ gmm_model<T> gmm(frovedis::rowmajor_matrix<T> Data, int CNT, int loopmax,
       }
     }
   }
-  frovedis::rowmajor_matrix_local<T> pi_save(CNT, 1);
-  for (int k = 0; k < CNT; k++) {
-    pi_save.val[k] = Pi_arr.val[k];
-  }
+  frovedis::rowmajor_matrix_local<T> pi_save;
+  pi_save.val.swap(Pi_arr.val);
+  pi_save.set_local_num(CNT, 1);
+
   ret.model = mu_save;
   ret.covariance = cov_save;
   ret.pi = pi_save;
