@@ -3,6 +3,7 @@ import numpy as np
 from frovedis.exrpc.server import FrovedisServer
 from frovedis.matrix.dense import FrovedisRowmajorMatrix
 from frovedis.mllib.mixture import GaussianMixture
+#from sklearn.mixture import GaussianMixture
 
 # initializing the Frovedis server
 argvs = sys.argv
@@ -12,44 +13,58 @@ if (argc < 2):
     quit()
 FrovedisServer.initialize(argvs[1])
 
-train_mat = np.loadtxt("./input/gmm_data.txt")
+train_mat = np.loadtxt("./input/gmm_data.txt", dtype=np.int32)
 
 # creating spectral agglomerative object
-n_components = 2
-gmm_model = GaussianMixture(n_components=n_components)
+gmm_model = GaussianMixture(n_components=2)
 
 # fitting the training matrix on gaussian mixture object
-print("Fit and Predict:\n", gmm_model.fit_predict(train_mat))
-
+print("fit and predict on train_mat: ") 
+print(gmm_model.fit_predict(train_mat))
 #print(gmm_model.predict(train_mat))
 
-print("Score:\n",gmm_model.score(train_mat))
+print("score_samples: ")
+print(gmm_model.score_samples(train_mat))
+
+print("score: %.3f" % (gmm_model.score(train_mat)))
+print("aic: %.3f" % (gmm_model.aic(train_mat)))
+print("bic: %.3f" % (gmm_model.bic(train_mat)))
+print(type(gmm_model.score(train_mat)))
 
 #Weights of each components
-print("Weights:\n",gmm_model.weights_)
+print("weights: ")
+print(gmm_model.weights_)
 
 #Covariance of each components
-print("Covariances:\n",gmm_model.covariances_)
+print("covariances: ")
+print(gmm_model.covariances_)
 
 #Mean of each components
-print("Means:\n",gmm_model.means_)
+print("means: ")
+print(gmm_model.means_)
 
 #Whether convergence was reached
-print("Converged: ", gmm_model.converged_)
+print("converged: ")
+print(gmm_model.converged_)
 
 #No. of steps required to reach convergence
-print("Iterations to converge: ", gmm_model.n_iter_)
+print("iterations at which it is converged: %d" % (gmm_model.n_iter_))
 
 #Lower bound value on the log-likelihood
-print("Likelihood: ", gmm_model.lower_bound_)
+print("likelihood: %.3f" % (gmm_model.lower_bound_))
 
+#save the model contents and release
 gmm_model.save("./out/MyGmmModel")
 gmm_model.release()
 
 #load the saved model
 gmm_model.load("./out/MyGmmModel")
-print("Prediction on loaded model:\n", gmm_model.predict(train_mat))
+print("display content of loaded model for debug purposes: ")
+gmm_model.debug_print()
+
+print("prediction on loaded model: ") 
+print(gmm_model.predict(train_mat))
+
+#clean-up
 gmm_model.release()
 FrovedisServer.shut_down()
-
-
