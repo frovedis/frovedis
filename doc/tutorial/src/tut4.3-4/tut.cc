@@ -12,6 +12,8 @@ int main(int argc, char* argv[]) {
   const std::string& path = "./model";
   gmm_model.save(path);
   auto mat = frovedis::make_rowmajor_matrix_local_load<double>("./test.mat");
-  auto gmm_cluster = frovedis::gmm_assign_cluster(mat, k, path);
+  auto gmm_cluster = frovedis::gmm_assign_cluster(mat, k, gmm_model.model,
+                                                  gmm_model.covariance,
+                                                  gmm_model.pi);
   gmm_cluster.save("./result");
 }
