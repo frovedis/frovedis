@@ -32,7 +32,7 @@ card/node, unless otherwise specified.
 <tr><td>Spectral Clustering</td> <td>Only dense</td> </tr>
 <tr><td>Agglomerative Clustering</td> <td>Only dense</td> </tr>
 <tr><td>DBSCAN</td> <td>Only dense</td> </tr>
-<tr><td>Gaussian Mixture Model</td> <td>Only dense</td> </tr>
+<tr><td>Gaussian Mixture Model</td> <td>Only dense, C++ and python</td> </tr>
 <tr><td>ART-2A</td> <td>Only C++</td> </tr>
 <tr><td rowspan="5">Preprocess</td>
 <td>Singular Value Decomposition</td> <td></td> </tr>
