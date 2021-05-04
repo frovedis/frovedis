@@ -1,5 +1,4 @@
 """ml_data.py"""
-#!/usr/bin/env python
 
 import numpy as np
 import pandas as pd
@@ -258,6 +257,10 @@ class FrovedisLabeledPoint:
         """numCols"""
         return self.__num_col
 
+    @property
+    def shape(self):
+        return (self.numRows(), self.numCols())
+
     def is_dense(self):
         """is_dense"""
         return self.__isDense
@@ -420,6 +423,10 @@ class FrovedisFeatureData:
     def numCols(self):
         """numCols"""
         return self.__num_col
+
+    @property
+    def shape(self):
+        return (self.numRows(), self.numCols())
 
     def is_dense(self):
         """is_dense"""

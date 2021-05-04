@@ -1066,7 +1066,7 @@ get_dbscan_components.argtypes = [c_char_p, c_int, c_int, c_short, c_short]
 get_dbscan_components.restype = py_object
 
 
-#Gaussian Mixture
+# 5. Gaussian Mixture
 gmm_train = LIB.gmm_train
 gmm_train.argtypes = [c_char_p, c_int, c_long, # host, port, data_proxy
                       c_int, c_char_p, # n_components, covariance type 
@@ -1109,6 +1109,11 @@ get_gmm_score = LIB.get_gmm_score_val
 get_gmm_score.argtypes = [c_char_p, c_int, c_int,
                               c_short, c_long]
 get_gmm_score.restype = c_double
+
+get_gmm_score_samples = LIB.get_gmm_score_samples_vec
+get_gmm_score_samples.argtypes = [c_char_p, c_int, c_int,
+                              c_short, c_long]
+get_gmm_score_samples.restype = py_object
 
 # --- classification APIs ---
 

@@ -24,7 +24,7 @@ class GaussianMixture(BaseEstimator):
                  verbose=0, verbose_interval=10):
                  
         self.n_components = n_components
-        self.cov_type = covariance_type
+        self.covariance_type = covariance_type
         self.tol = tol
         self.max_iter = max_iter 
         self.n_init = n_init
@@ -72,7 +72,7 @@ class GaussianMixture(BaseEstimator):
             raise ValueError("init_params: GMM doesn't support the "\
                               + "given init type!")
                               
-        if(self.cov_type not in ['full']):
+        if(self.covariance_type not in ['full']):
             raise ValueError("covariance_type: Frovedis doesn't support the "\
                               + "given covariance type!")            
  
@@ -90,7 +90,7 @@ class GaussianMixture(BaseEstimator):
         (host, port) = FrovedisServer.getServerInstance()
         self.n_iter_ = rpclib.gmm_train(host, port, X.get(), \
                                         self.n_components, \
-                                        self.cov_type.encode('ascii'), \
+                                        self.covariance_type.encode('ascii'), \
                                         self.tol, self.max_iter, self.n_init, \
                                         self.init_params.encode('ascii'), \
                                         self.seed, self.verbose, \
@@ -132,7 +132,7 @@ class GaussianMixture(BaseEstimator):
         nsamples, nfeatures, movable = self.check_input(X, "predict")
         if self.n_features != nfeatures:
             raise ValueError( \
-            "predict: given features do not match with current model")        
+            "predict: given features do not match with current model")
         if dtype != self.__mdtype:
             raise TypeError( \
             "predict: datatype of X is different than model dtype!")
@@ -151,31 +151,43 @@ class GaussianMixture(BaseEstimator):
         "sample: currently frovedis doesn't support!")
         
     @check_association
-    def score(self, X, y=None): #TODO: link from server
+    def score(self, X, y=None): 
         """Compute the weighted log probabilities for each sample"""
-        if self.__mid is None:
-            raise ValueError( \
-            "predict: is called before calling fit, or the model is released.")
         X, dtype, itype, dense, \
-        nsamples, nfeatures, movable = self.check_input(X, "predict")
+        nsamples, nfeatures, movable = self.check_input(X, "score")
         if self.n_features != nfeatures:
             raise ValueError( \
-            "predict: given features do not match with current model")        
+            "score: given features do not match with current model")        
         if dtype != self.__mdtype:
             raise TypeError( \
-            "predict: datatype of X is different than model dtype!")
+            "score: datatype of X is different than model dtype!")
         (host, port) = FrovedisServer.getServerInstance()
         score_val = rpclib.get_gmm_score(host, port, self.__mid,
                                          self.__mdtype, X.get())
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
             raise RuntimeError(excpt["info"])                                         
-        return score_val 
+        return np.dtype('float64').type(score_val)
 
+    @check_association
     def score_samples(self, X):
-        raise NotImplementedError(\
-        "score_samples: currently frovedis doesn't support!")
-             
+        """Compute the average weighted log probabilities for all samples"""
+        X, dtype, itype, dense, \
+        nsamples, nfeatures, movable = self.check_input(X, "score_samples")
+        if self.n_features != nfeatures:
+            raise ValueError( \
+            "score_samples: given features do not match with current model")
+        if dtype != self.__mdtype:
+            raise TypeError( \
+            "score_samples: datatype of X is different than model dtype!")
+        (host, port) = FrovedisServer.getServerInstance()
+        scores = rpclib.get_gmm_score_samples(host, port, self.__mid, \
+                                              self.__mdtype, X.get())
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])                                         
+        return np.asarray(scores, dtype=np.float64)
+
     @property
     @check_association
     def weights_(self):
@@ -252,9 +264,6 @@ class GaussianMixture(BaseEstimator):
         """
         NAME: get_converged
         """
-        if self.__mid is None:
-            raise ValueError("converged_ is called before fit/load")
-
         if self._converged is None:
             (host, port) = FrovedisServer.getServerInstance()
             converged = rpclib.get_gmm_converged(host, port, self.__mid, \
@@ -262,9 +271,7 @@ class GaussianMixture(BaseEstimator):
             excpt = rpclib.check_server_exception()
             if excpt["status"]:
                 raise RuntimeError(excpt["info"])
-  
             self._converged = converged
-            
         return self._converged
 
     @converged_.setter
@@ -337,6 +344,35 @@ class GaussianMixture(BaseEstimator):
                      self.converged_, self.n_iter_, self.lower_bound_, \
                      self.__mkind, self.__mdtype), metadata)
         metadata.close()
+
+    def _n_parameters(self):
+        """Return the number of free parameters in the model."""
+        _, n_features = self.means_.shape
+        if self.covariance_type == 'full':
+            cov_params = self.n_components * n_features * (n_features + 1) / 2.
+        elif self.covariance_type == 'diag':
+            cov_params = self.n_components * n_features
+        elif self.covariance_type == 'tied':
+            cov_params = n_features * (n_features + 1) / 2.
+        elif self.covariance_type == 'spherical':
+            cov_params = self.n_components
+        mean_params = n_features * self.n_components
+        return int(cov_params + mean_params + self.n_components - 1)
+
+    def bic(self, X):
+        """
+        Bayesian information criterion for 
+        the current model on the input X.
+        """
+        return (-2 * self.score(X) * X.shape[0] +
+                self._n_parameters() * np.log(X.shape[0]))
+
+    def aic(self, X):
+        """
+        Akaike information criterion for 
+        the current model on the input X.
+        """
+        return -2 * self.score(X) * X.shape[0] + 2 * self._n_parameters()
 
     @check_association
     def debug_print(self):

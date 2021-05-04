@@ -246,14 +246,14 @@ extern "C" {
           case KSVC:   exrpc_oneway(fm_node,load_model<KSVC2>,mid,KSVC,fs_path); break; 
           case LNRM:   exrpc_async(fm_node,load_lnrm<DT2>,mid,LNRM,fs_path).get(); break;
           case KMEANS: exrpc_async(fm_node,load_kmm<DT2>,mid,KMEANS,fs_path).get(); break;
-          case GMM:    exrpc_async(fm_node,load_model<GMM2>,mid,GMM,fs_path); break;      
+          case GMM:    exrpc_oneway(fm_node,load_model<GMM2>,mid,GMM,fs_path); break;      
           case SEM:    exrpc_oneway(fm_node,load_model<SEM2>,mid,SEM,fs_path); break;
           case DTM:    exrpc_oneway(fm_node,load_model<DTM2>,mid,DTM,fs_path); break;
           case FMM:    REPORT_ERROR(USER_ERROR,"currently frovedis fm_model can't be loaded!");
-          case FPR:  exrpc_oneway(fm_node,load_model<FPR1>,mid,FPM,fs_path); break;
+          case FPR:    exrpc_oneway(fm_node,load_model<FPR1>,mid,FPM,fs_path); break;
           case RFM:    exrpc_oneway(fm_node,load_model<RFM2>,mid,RFM,fs_path); break;
           case GBT:    exrpc_oneway(fm_node,load_model<GBT2>,mid,GBT,fs_path); break;
-          default:   REPORT_ERROR(USER_ERROR,"Unknown Model Kind is encountered!\n");
+          default:     REPORT_ERROR(USER_ERROR,"Unknown Model Kind is encountered!\n");
         }
       }
       else if (mdtype == DOUBLE) {
@@ -265,7 +265,7 @@ extern "C" {
           case KSVC:   exrpc_oneway(fm_node,load_model<KSVC1>,mid,KSVC,fs_path); break; 
           case LNRM:   exrpc_async(fm_node,load_lnrm<DT1>,mid,LNRM,fs_path).get(); break;
           case KMEANS: exrpc_async(fm_node,load_kmm<DT1>,mid,KMEANS,fs_path).get(); break;
-          case GMM:    exrpc_async(fm_node,load_model<GMM1>,mid,GMM,fs_path); break;      
+          case GMM:    exrpc_oneway(fm_node,load_model<GMM1>,mid,GMM,fs_path); break;      
           case SEM:    exrpc_oneway(fm_node,load_model<SEM1>,mid,SEM,fs_path); break;
           case DTM:    exrpc_oneway(fm_node,load_model<DTM1>,mid,DTM,fs_path); break;
           case FPR:    exrpc_oneway(fm_node,load_model<FPR1>,mid,FPM,fs_path); break;
@@ -693,9 +693,11 @@ extern "C" {
     try {
       switch(mdtype) {
         case FLOAT:
-          score = exrpc_async(fm_node,(get_gmm_score<DT2,R_MAT2,GMM2>),f_dptr,mid).get(); break;
+          score = exrpc_async(fm_node,(get_gmm_score<DT2,R_MAT2,GMM2>),
+                              f_dptr,mid).get(); break;
         case DOUBLE:
-          score = exrpc_async(fm_node,(get_gmm_score<DT1,R_MAT1,GMM1>),f_dptr,mid).get(); break;
+          score = exrpc_async(fm_node,(get_gmm_score<DT1,R_MAT1,GMM1>),
+                              f_dptr,mid).get(); break;
         default: REPORT_ERROR(USER_ERROR,"model dtype can either be float or double!\n");
       }
     }
@@ -704,6 +706,36 @@ extern "C" {
     }     
     return score;  
   }     
+
+  PyObject* get_gmm_score_samples_vec(const char* host, int port,
+                                      int mid, short mdtype, long dptr) {
+    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
+    exrpc_node fm_node(host,port);
+    auto f_dptr = (exrpc_ptr_t) dptr;
+    PyObject* ret = NULL;
+    try {
+      switch(mdtype) {
+        case FLOAT: {
+          auto scores = exrpc_async(fm_node,(get_gmm_score_samples<DT2,R_MAT2,GMM2>),
+                                   f_dptr,mid).get(); 
+          ret = to_python_float_list(scores);
+          break;
+        }
+        case DOUBLE: {
+          auto scores = exrpc_async(fm_node,(get_gmm_score_samples<DT1,R_MAT1,GMM1>),
+                                    f_dptr,mid).get(); 
+          ret = to_python_double_list(scores);
+          break;
+        }
+        default: REPORT_ERROR(USER_ERROR, 
+                 "model dtype can either be float or double!\n");
+      }
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return ret;
+  }
 
     
   PyObject* get_sem_aff_matrix(const char* host, int port,
