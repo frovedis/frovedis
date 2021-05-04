@@ -34,7 +34,7 @@ namespace frovedis {
   struct gaussian_mixture {
     gaussian_mixture(int n_components = 1,
                      const std::string& covariance_type = "full",
-                     T tol = 0.001,
+                     double tol = 0.001,
                      int max_iter = 100,
                      const std::string& init_params = "kmeans",
                      long random_state = 0) {
@@ -66,7 +66,7 @@ namespace frovedis {
     }
 
     gaussian_mixture<T>& 
-    set_tol(T tol) { // tol >= 0.0 && tol <= 1.0
+    set_tol(double tol) { // tol >= 0.0 && tol <= 1.0
       std::string msg = "expected tol within the range of 0.0 to 1.0; received: " 
                          + STR(tol) + "\n";
       require(tol >= 0.0 && tol <= 1.0, msg);
@@ -115,7 +115,7 @@ namespace frovedis {
           msg += "covariance_type: " + val.tt + "; ";
         }
         else if(param == "tol") {
-          set_tol(val.get<T>());
+          set_tol(val.get<double>());
           msg += "tol: " + val.tt + "; ";
         }
         else if(param == "max_iter") {
@@ -234,31 +234,43 @@ namespace frovedis {
     }
 
     void loadbinary(const std::string& fname) {
-      model.loadbinary(fname);    
+      model.loadbinary(fname); 
+      n_components = model.pi.local_num_row; 
       is_fitted = true;
       // TODO: load other metadata
     }
 
     void load(const std::string& fname) {
-      model.load(fname);        
+      model.load(fname);  
+      n_components = model.pi.local_num_row; 
       is_fitted = true;      
       // TODO: load other metadata
     }
 
     template <class MATRIX>
-    double score(MATRIX& mat) { return gmm_score(mat, n_components); }
+    double score(const MATRIX& mat) { 
+      require(is_fitted, "score() is called before fit()"); 
+      return gmm_score(mat, model, n_components); 
+    }
+
+    template <class MATRIX>
+    std::vector<T> 
+    score_samples(const MATRIX& mat) { 
+      require(is_fitted, "score_samples() is called before fit()"); 
+      return gmm_score_samples(mat, model, n_components); 
+    }
 
     private:
       int n_components;
       std::string covariance_type;
-      T tol;
+      double tol;
       int max_iter;
       std::string init_params;
       long random_state;      
       bool is_fitted;
       gmm_model<T> model;
       SERIALIZE(n_components, covariance_type, tol, max_iter,
-                init_params, random_state, is_fitted, model);    
+                init_params, random_state, is_fitted, model) 
   };
 }
 

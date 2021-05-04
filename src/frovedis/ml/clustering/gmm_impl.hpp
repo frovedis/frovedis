@@ -41,8 +41,11 @@ std::vector<T> M_step_cov(frovedis::colmajor_matrix_local<T> &Data, int K,
                           std::vector<T> &r_arr);
 
 template <typename T>
-T likelihood(frovedis::colmajor_matrix_local<T> &Data,
-             frovedis::colmajor_matrix_local<T> &MD, int K);
+T likelihood(frovedis::colmajor_matrix_local<T>& MD);
+
+template <typename T>
+std::vector<T> 
+likelihood_samples(frovedis::colmajor_matrix_local<T>& MD);
 
 template <typename T>
 frovedis::colmajor_matrix_local<T> make_gdp(
@@ -124,14 +127,63 @@ struct gmm_cluster {
 };
 
 template <typename T>
-double gmm_score(frovedis::rowmajor_matrix<T> Data, int CNT) {
-  frovedis::colmajor_matrix<T> X1(Data);
+void prepare_data(const frovedis::rowmajor_matrix_local<T>& input_mu,
+                  const frovedis::rowmajor_matrix_local<T>& input_cov,
+                  const frovedis::rowmajor_matrix_local<T>& input_pi,
+                  int Dim, 
+                  int CNT,
+                  frovedis::colmajor_matrix_local<T>& mu,
+                  frovedis::colmajor_matrix_local<T>& cov,
+                  frovedis::colmajor_matrix_local<T>& Pi_arr) {
+  Pi_arr = frovedis::colmajor_matrix_local<T>(input_pi);
+  // TODO: improve performance here...
+  frovedis::colmajor_matrix_local<T> mul(input_mu);
+  mu = frovedis::colmajor_matrix_local<T>(Dim, CNT);
+  for (int k = 0; k < CNT; k++) {
+    for (int d = 0; d < Dim; d++) {
+      mu.val[k * Dim + d] = mul.val[d * CNT + k];
+    }
+  }
+
+  // TODO: improve performance here...
+  frovedis::colmajor_matrix_local<T> covll(input_cov);
+  cov = frovedis::colmajor_matrix_local<T>(Dim * Dim, CNT);
+  for (int k = 0; k < CNT; k++) {
+    for (int d1 = 0; d1 < Dim; d1++) {
+      for (int d2 = 0; d2 < Dim; d2++) {
+        cov.val[k * Dim * Dim + d1 * Dim + d2] =
+            covll.val[d2 * Dim * CNT + d1 * CNT + k];
+      }
+    }
+  }
+}
+
+template <typename T>
+std::vector<T> 
+gmm_score_samples(const frovedis::rowmajor_matrix<T> Data, 
+                  const gmm_model<T>& model, 
+                  int CNT) {
+  int Dim = Data.num_col;
+  frovedis::colmajor_matrix<T> X(Data);
+  frovedis::colmajor_matrix_local<T> mu, cov, pi;
+  prepare_data(model.model, model.covariance, model.pi, Dim, CNT,
+               mu, cov, pi);
   auto p_CNT = frovedis::make_node_local_broadcast(CNT);
-  int Num = Data.num_row;
-  auto p_MD = X1.data.map(make_gdp<T>, p_CNT);
-  auto partial_log = X1.data.map(likelihood<T>, p_MD, p_CNT);
-  auto ret = partial_log.reduce(my_sum<T>);
-  return ret / static_cast<double>(Num);
+  auto p_MD = X.data.map(make_gdp<T>, p_CNT);
+  auto r_arr = X.data.map(E_step<T>, p_CNT, broadcast(mu), 
+                          broadcast(cov), broadcast(pi), 
+                          p_MD);
+  return p_MD.map(likelihood_samples<T>)
+             .template moveto_dvector<T>()
+             .gather();
+}
+
+template <typename T>
+double gmm_score(const frovedis::rowmajor_matrix<T> Data, 
+                 const gmm_model<T>& model, 
+                 int CNT) {
+  return static_cast<double>(
+         vector_mean(gmm_score_samples(Data, model, CNT)));
 }
 
 template <typename T>
@@ -218,8 +270,7 @@ gmm_model<T> gmm(frovedis::rowmajor_matrix<T> Data, int CNT, int loopmax,
     auto cov = broadcast(covl);
     auto V_Pi = broadcast(Pi_arr);
     auto r_arr = X.map(E_step<T>, p_CNT, mu, cov, V_Pi, p_MD);
-    auto partial_log = X.map(likelihood<T>, p_MD, p_CNT);
-    lognew = partial_log.reduce(my_sum<T>);
+    lognew = p_MD.map(likelihood<T>).reduce(add<T>);
     lognew /= Num;
     if (abs(logold - lognew) < epsilon) {
       auto r_arrval = r_arr.template as_dvector<T>().gather();
@@ -428,24 +479,28 @@ std::vector<T> E_step(frovedis::colmajor_matrix_local<T> &Data, int K,
 }
 
 template <typename T>
-T likelihood(frovedis::colmajor_matrix_local<T> &Data,
-             frovedis::colmajor_matrix_local<T> &MD, int CNT) {
-  int Num = Data.local_num_row;
-  T likelihoodsum;
-  T expmax;
-  T logsum = 0.0;
+std::vector<T> 
+likelihood_samples(frovedis::colmajor_matrix_local<T>& MD) {
+  int CNT = MD.local_num_col;
+  int Num = MD.local_num_row;
+  std::vector<T> ret(Num);
+  auto mvalp = MD.val.data();
+  auto retp = ret.data();
   for (int n = 0; n < Num; n++) {
-    expmax = MD.val[0 * Num + n];
+    auto maxval = MD.val[0 * Num + n];
     for (int k = 1; k < CNT; k++) {
-      expmax = std::max(expmax, MD.val[k * Num + n]);
+      if (mvalp[k * Num + n] > maxval) maxval = mvalp[k * Num + n];
     }
-    likelihoodsum = 0.0;
-    for (int k = 0; k < CNT; k++) {
-      likelihoodsum += exp(MD.val[k * Num + n] - expmax);
-    }
-    logsum += log(likelihoodsum) + expmax;
+    T sumexp = 0.0;
+    for (int k = 0; k < CNT; k++) sumexp += exp(mvalp[k * Num + n] - maxval);
+    retp[n] = log(sumexp) + maxval;
   }
-  return logsum;
+  return ret;
+}
+
+template <typename T>
+T likelihood(frovedis::colmajor_matrix_local<T>& MD) {
+  return vector_sum(likelihood_samples(MD));
 }
 
 template <typename T>
@@ -496,38 +551,22 @@ std::vector<T> M_step_cov(frovedis::colmajor_matrix_local<T> &Data, int CNT,
 }
 
 template <typename T>
-gmm_cluster<T> gmm_assign_cluster(frovedis::rowmajor_matrix_local<T> NewData, int K,
-                                  frovedis::rowmajor_matrix_local<T> input_mu, 
-                                  frovedis::rowmajor_matrix_local<T> input_cov,
-                                  frovedis::rowmajor_matrix_local<T> input_pi) {
-  
+gmm_cluster<T> gmm_assign_cluster(const frovedis::rowmajor_matrix_local<T>& NewData, 
+                                  int K,
+                                  const frovedis::rowmajor_matrix_local<T>& input_mu, 
+                                  const frovedis::rowmajor_matrix_local<T>& input_cov,
+                                  const frovedis::rowmajor_matrix_local<T>& input_pi) {
+  int CNT = K;
+  int Dim = NewData.local_num_col;
+  int Num = NewData.local_num_row;
   frovedis::colmajor_matrix_local<T> Data(NewData);
-  frovedis::colmajor_matrix_local<T> mul(input_mu);
-  frovedis::colmajor_matrix_local<T> covll(input_cov);
-  frovedis::colmajor_matrix_local<T> Pi_arr(input_pi);
+  frovedis::colmajor_matrix_local<T> mu, cov, Pi_arr;
+  prepare_data(input_mu, input_cov, input_pi, Dim, CNT,
+               mu, cov, Pi_arr);
     
   gmm_cluster<T> ret;
-  int CNT = K;
-  int Dim = Data.local_num_col;
-  int Num = Data.local_num_row;
   std::vector<int> ipiv(Dim);
   std::vector<T> Vec(Dim * Num);
-  frovedis::colmajor_matrix_local<T> mu(Dim, CNT);
-
-  for (int k = 0; k < CNT; k++) {
-    for (int d = 0; d < Dim; d++) {
-      mu.val[k * Dim + d] = mul.val[d * CNT + k];
-    }
-  }
-  frovedis::colmajor_matrix_local<T> cov(Dim * Dim, CNT);
-  for (int k = 0; k < CNT; k++) {
-    for (int d1 = 0; d1 < Dim; d1++) {
-      for (int d2 = 0; d2 < Dim; d2++) {
-        cov.val[k * Dim * Dim + d1 * Dim + d2] =
-            covll.val[d2 * Dim * CNT + d1 * CNT + k];
-      }
-    }
-  }
   std::vector<T> r_arr(CNT * Num);
   std::vector<T> IP(CNT * Num);
   std::vector<T> Pi_arr_Sum(Num);
