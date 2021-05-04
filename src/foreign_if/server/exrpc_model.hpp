@@ -704,10 +704,18 @@ bool get_gmm_converged(int& mid) {
 }
 
 template <class T, class MATRIX, class MODEL>
-T get_gmm_score(exrpc_ptr_t& mat_ptr, int& mid) {
+double get_gmm_score(exrpc_ptr_t& mat_ptr, int& mid) {
   MATRIX& mat = *reinterpret_cast<MATRIX*> (mat_ptr);
   MODEL& est = *get_model_ptr<MODEL>(mid);
   return est.score(mat);
+}
+
+template <class T, class MATRIX, class MODEL>
+std::vector<T> 
+get_gmm_score_samples(exrpc_ptr_t& mat_ptr, int& mid) {
+  MATRIX& mat = *reinterpret_cast<MATRIX*> (mat_ptr);
+  MODEL& est = *get_model_ptr<MODEL>(mid);
+  return est.score_samples(mat);
 }
 
 template <class T>
