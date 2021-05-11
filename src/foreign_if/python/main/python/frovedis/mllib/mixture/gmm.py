@@ -1,15 +1,19 @@
+"""
+gmm.py: module containing wrapper for GaussianMixture
+"""
+#!/usr/bin/env python
+
 import sys
 import os.path
 import pickle
-import numpy as np
 import numbers
-from ..model_util import *
-from ...base import *
+import numpy as np
+from ..model_util import M_KIND, GLM, ModelID
+from ...base import BaseEstimator
 from ...exrpc.server import FrovedisServer, set_association, \
                            check_association, do_if_active_association
 from ...exrpc import rpclib
 from ...matrix.ml_data import FrovedisFeatureData
-from ...matrix.dense import FrovedisRowmajorMatrix
 from ...matrix.dtype import TypeUtil
 
 
@@ -22,38 +26,42 @@ class GaussianMixture(BaseEstimator):
                  weights_init=None, means_init=None, precisions_init=None,
                  random_state=None, warm_start=False,
                  verbose=0, verbose_interval=10):
-                 
+
         self.n_components = n_components
         self.covariance_type = covariance_type
         self.tol = tol
-        self.max_iter = max_iter 
+        self.max_iter = max_iter
         self.n_init = n_init
         self.init_params = init_params
         self.random_state = random_state
-        self.verbose = verbose        
+        self.verbose = verbose
         self.__mid = None
         self.__mdtype = None
         self.__mkind = M_KIND.GMM
+        self.n_iter_ = None
+        self._lower_bound = None
         self._weights = None
         self._means = None
         self._covariances = None
         self._converged = None
+        self.seed = None
         self.n_samples = None
         self.n_features = None
-        self.movable = None        
+        self.movable = None
 
     def check_input(self, X, F):
+        """validates input and get its attributes"""
         inp_data = FrovedisFeatureData(X, \
                      caller = "[" + self.__class__.__name__ + "] "+ F +": ",\
                      dense_kind='rowmajor', densify=True)
-        X = inp_data.get()        
+        X = inp_data.get()
         dtype = inp_data.get_dtype()
         itype = inp_data.get_itype()
         dense = inp_data.is_dense()
         nsamples = inp_data.numRows()
-        nfeatures = inp_data.numCols()        
+        nfeatures = inp_data.numCols()
         movable = inp_data.is_movable()
-        return X, dtype, itype, dense, nsamples, nfeatures, movable    
+        return X, dtype, itype, dense, nsamples, nfeatures, movable
 
     def validate(self):
         """validates hyper parameters"""
@@ -67,19 +75,20 @@ class GaussianMixture(BaseEstimator):
             else:
                 self.seed = int(self.random_state)
         else:
-            self.seed = 0            
+            self.seed = 0
         if(self.init_params not in ['kmeans', 'random']):
             raise ValueError("init_params: GMM doesn't support the "\
                               + "given init type!")
-                              
-        if(self.covariance_type not in ['full']):
+
+        if self.covariance_type not in ['full']:
             raise ValueError("covariance_type: Frovedis doesn't support the "\
-                              + "given covariance type!")            
- 
+                              + "given covariance type!")
+
     @set_association
     def fit(self, X, y=None):
+        """Estimate model parameters"""
         self.release()
-        self.validate()    
+        self.validate()
         X, dtype, itype, dense, nsamples, \
         nfeatures, movable = self.check_input(X, "fit")
         self.n_samples = nsamples
@@ -98,12 +107,13 @@ class GaussianMixture(BaseEstimator):
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
             raise RuntimeError(excpt["info"])
-        return self 
+        return self
 
     def fit_predict(self, X, y=None):
+        """Estimate and predict labels for X"""
         self.fit(X)
-        return self.predict(X)        
-        
+        return self.predict(X)
+
     @check_association
     def predict(self, X):
         """Predict the labels each sample in X belong to."""
@@ -111,7 +121,7 @@ class GaussianMixture(BaseEstimator):
         nsamples, nfeatures, movable = self.check_input(X, "predict")
         if self.n_features != nfeatures:
             raise ValueError( \
-            "predict: given features do not match with current model")        
+            "predict: given features do not match with current model")
         if dtype != self.__mdtype:
             raise TypeError( \
             "predict: datatype of X is different than model dtype!")
@@ -123,8 +133,8 @@ class GaussianMixture(BaseEstimator):
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
             raise RuntimeError(excpt["info"])
-        return ret        
-        
+        return ret
+
     @check_association
     def predict_proba(self, X):
         """Predict the probabilty of each component given X."""
@@ -145,19 +155,20 @@ class GaussianMixture(BaseEstimator):
         if excpt["status"]:
             raise RuntimeError(excpt["info"])
         return prob
-        
+
     def sample(self, n_samples=1):
+        """Generate random samples from the fitted Gaussian distribution"""
         raise NotImplementedError(\
         "sample: currently frovedis doesn't support!")
-        
+
     @check_association
-    def score(self, X, y=None): 
+    def score(self, X, y=None):
         """Compute the weighted log probabilities for each sample"""
         X, dtype, itype, dense, \
         nsamples, nfeatures, movable = self.check_input(X, "score")
         if self.n_features != nfeatures:
             raise ValueError( \
-            "score: given features do not match with current model")        
+            "score: given features do not match with current model")
         if dtype != self.__mdtype:
             raise TypeError( \
             "score: datatype of X is different than model dtype!")
@@ -166,7 +177,7 @@ class GaussianMixture(BaseEstimator):
                                          self.__mdtype, X.get())
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
-            raise RuntimeError(excpt["info"])                                         
+            raise RuntimeError(excpt["info"])
         return np.dtype('float64').type(score_val)
 
     @check_association
@@ -185,7 +196,7 @@ class GaussianMixture(BaseEstimator):
                                               self.__mdtype, X.get())
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
-            raise RuntimeError(excpt["info"])                                         
+            raise RuntimeError(excpt["info"])
         return np.asarray(scores, dtype=np.float64)
 
     @property
@@ -223,7 +234,7 @@ class GaussianMixture(BaseEstimator):
             excpt = rpclib.check_server_exception()
             if excpt["status"]:
                 raise RuntimeError(excpt["info"])
-            shape = (self.n_components, self.n_features, self.n_features)            
+            shape = (self.n_components, self.n_features, self.n_features)
             self._covariances = np.asarray(covariance_vector, dtype = np.float64)\
                                   .reshape(shape)
         return self._covariances
@@ -247,7 +258,7 @@ class GaussianMixture(BaseEstimator):
             excpt = rpclib.check_server_exception()
             if excpt["status"]:
                 raise RuntimeError(excpt["info"])
-            shape = (self.n_components, self.n_features)            
+            shape = (self.n_components, self.n_features)
             self._means = np.asarray(means_vector, dtype = np.float64)\
                                   .reshape(shape)
         return self._means
@@ -256,7 +267,7 @@ class GaussianMixture(BaseEstimator):
     def means_(self, val):
         """Setter method for covariances_"""
         raise AttributeError(\
-        "attribute 'means_' of Gaussian Mixture is not writable")        
+        "attribute 'means_' of Gaussian Mixture is not writable")
 
     @property
     @check_association
@@ -279,7 +290,7 @@ class GaussianMixture(BaseEstimator):
         #Setter method for converged_
         raise AttributeError(\
         "attribute 'converged_' of Gaussian Mixture is not writable")
-        
+
     @property
     @check_association
     def lower_bound_(self):
@@ -288,12 +299,12 @@ class GaussianMixture(BaseEstimator):
         """
         if self._lower_bound is None:
             (host, port) = FrovedisServer.getServerInstance()
-            lb = rpclib.get_gmm_lower_bound(host, port, self.__mid, \
+            lower_bound = rpclib.get_gmm_lower_bound(host, port, self.__mid, \
                                                 self.__mdtype)
             excpt = rpclib.check_server_exception()
             if excpt["status"]:
                 raise RuntimeError(excpt["info"])
-            self._lower_bound = lb
+            self._lower_bound = lower_bound
         return self._lower_bound
 
     @lower_bound_.setter
@@ -307,7 +318,7 @@ class GaussianMixture(BaseEstimator):
         """
         NAME: load
         """
-        if isinstance(fname, str) == False:
+        if not isinstance(fname, str):
             raise TypeError("Expected: String, Got: " + str(type(fname)))
         if not os.path.exists(fname):
             raise ValueError(\
@@ -326,8 +337,8 @@ class GaussianMixture(BaseEstimator):
                                  "; given type: " + str(dtype))
         self.__mid = ModelID.get()
         GLM.load(self.__mid, self.__mkind, self.__mdtype, fname + "/model")
-        return self        
-        
+        return self
+
     @check_association
     def save(self, fname):
         """
@@ -340,7 +351,7 @@ class GaussianMixture(BaseEstimator):
             os.makedirs(fname)
         GLM.save(self.__mid, self.__mkind, self.__mdtype, fname + "/model")
         metadata = open(fname + "/metadata", "wb")
-        pickle.dump((self.n_components, self.n_features, 
+        pickle.dump((self.n_components, self.n_features,
                      self.converged_, self.n_iter_, self.lower_bound_, \
                      self.__mkind, self.__mdtype), metadata)
         metadata.close()
@@ -361,7 +372,7 @@ class GaussianMixture(BaseEstimator):
 
     def bic(self, X):
         """
-        Bayesian information criterion for 
+        Bayesian information criterion for
         the current model on the input X.
         """
         return (-2 * self.score(X) * X.shape[0] +
@@ -369,7 +380,7 @@ class GaussianMixture(BaseEstimator):
 
     def aic(self, X):
         """
-        Akaike information criterion for 
+        Akaike information criterion for
         the current model on the input X.
         """
         return -2 * self.score(X) * X.shape[0] + 2 * self._n_parameters()
@@ -379,8 +390,8 @@ class GaussianMixture(BaseEstimator):
         """
         NAME: debug_print
         """
-        GLM.debug_print(self.__mid, self.__mkind, self.__mdtype)        
-        
+        GLM.debug_print(self.__mid, self.__mkind, self.__mdtype)
+
     def release(self):
         """
         resets after-fit populated attributes to None
@@ -411,4 +422,4 @@ class GaussianMixture(BaseEstimator):
     def is_fitted(self):
         """ function to confirm if the model is already fitted """
         return self.__mid is not None
-
+    

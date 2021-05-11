@@ -11,12 +11,12 @@ from ..exrpc import rpclib
 from ..exrpc.server import FrovedisServer, set_association, \
                            check_association, do_if_active_association
 from ..matrix.crs import FrovedisCRSMatrix
-from ..matrix.dtype import DTYPE
-from .model_util import *
+from ..matrix.dtype import DTYPE, TypeUtil
+from .model_util import M_KIND, ModelID, GLM
 
 class ALS(BaseEstimator):
     """A python wrapper of Frovedis ALS"""
-    def __init__(self, rank=None, max_iter=100, alpha=0.01, 
+    def __init__(self, rank=None, max_iter=100, alpha=0.01,
                  reg_param=0.01, similarity_factor=0.1,
                  seed=0, verbose=0):
         self.rank = rank
@@ -44,18 +44,18 @@ class ALS(BaseEstimator):
         itype = X.get_itype()
         self.n_samples_ = X.numRows()
         self.n_features_ = X.numCols()
-        if dtype != DTYPE.FLOAT and dtype != DTYPE.DOUBLE:
+        if dtype not in [DTYPE.FLOAT, DTYPE.DOUBLE]:
             raise TypeError( \
             "fit: expected training data either of float or double type!")
         else:
             self.__mdtype = dtype
-        if itype != DTYPE.INT and itype != DTYPE.LONG:
-            raise TypeError("fit: expected training sparse data " 
+        if itype not in [DTYPE.INT, DTYPE.LONG]:
+            raise TypeError("fit: expected training sparse data "
                             "itype to be either int or long!")
         if not (self.sim_factor >= 0.0 and self.sim_factor <= 1.0):
             raise ValueError(\
             "fit: similarity factor must be in between 0.0 and 1.0!")
-        if self.rank is None: 
+        if self.rank is None:
             self.rank = min(256, min(self.n_samples_, self.n_features_))
         if self.rank <= 0:
             raise ValueError("fit: rank must be a possitive integer!")
@@ -205,7 +205,7 @@ class ALS(BaseEstimator):
         """
         self.__release_server_heap()
         self.__mid = None
-        self.n_samples_ = None 
+        self.n_samples_ = None
         self.n_features_ = None
 
     @do_if_active_association
@@ -224,4 +224,3 @@ class ALS(BaseEstimator):
     def is_fitted(self):
         """ function to confirm if the model is already fitted """
         return self.__mid is not None
-
