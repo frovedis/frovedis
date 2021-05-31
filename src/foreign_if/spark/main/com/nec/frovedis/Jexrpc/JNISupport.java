@@ -123,10 +123,11 @@ public class JNISupport {
   public static native void cleanUPFrovedisServer(Node master_node);
 
   // -------- Logistic Regression --------
-  public static native int callFrovedisLRSGD(Node master_node,
+  public static native int callFrovedisLR(Node master_node,
                                               MemPair fdata,
                                               int numIter, 
                                               double stepSize,
+                                              int histSize,
                                               double miniBatchFraction,
                                               int regType,
                                               double regParam, 
@@ -137,22 +138,9 @@ public class JNISupport {
                                               boolean isDense,
                                               boolean use_shrink,
                                               double[] sample_weight,
-                                              long sample_weight_length);
-
-  public static native int callFrovedisLRLBFGS(Node master_node,
-                                                MemPair fdata,
-                                                int numIter, 
-                                                double stepSize,
-                                                int histSize,
-                                                int regType,
-                                                double regParam, 
-                                                boolean isMult, 
-                                                boolean icpt,
-                                                double tol,
-                                                int mid, boolean movable,
-                                                boolean isDense,
-                                                double[] sample_weight,
-                                                long sample_weight_length);
+                                              long sample_weight_length,
+                                              String solver,
+                                              boolean warm_start);
 
 // -------- Word2Vector --------
   public static native void callFrovedisW2V(Node master_node,
@@ -179,29 +167,21 @@ public class JNISupport {
                                          String path);
 
   // -------- Linear SVM Classification --------
-  public static native int callFrovedisSVMSGD(Node master_node,
+  public static native int callFrovedisSVM(Node master_node,
                                              MemPair fdata,
                                              int numIter,
                                              double stepSize,
+                                             int histSize,
                                              double miniBatchFraction,
                                              double regParam,
                                              int mid, boolean movable,
                                              boolean isDense,
                                              int ncls,
                                              double[] sample_weight,
-                                             long sample_weight_length);
+                                             long sample_weight_length,
+                                             String solver,
+                                             boolean warm_start);
 
-  public static native int callFrovedisSVMLBFGS(Node master_node,
-                                               MemPair fdata,
-                                               int numIter,
-                                               double stepSize,
-                                               int histSize,
-                                               double regParam,
-                                               int mid, boolean movable,
-                                               boolean isDense,
-                                               int ncls,
-                                               double[] sample_weight,
-                                               long sample_weight_length);
   // -------- Linear SVM Regression --------
   public static native int callFrovedisSVR(Node master_node,
                                             MemPair fdata,
@@ -217,7 +197,9 @@ public class JNISupport {
                                             int mid, boolean movable,
                                             boolean isDense,
                                             double[] sample_weight,
-                                            long sample_weight_length);
+                                            long sample_weight_length,
+                                            String solver,
+                                            boolean warm_start);
 
   // -------- SVM Kernel --------
   public static native void callFrovedisKernelSVM(Node master_node,
@@ -259,54 +241,36 @@ public class JNISupport {
                                                long sample_weight_length);
 
   // -------- Lasso Regression --------
-  public static native int callFrovedisLassoSGD(Node master_node,
+  public static native int callFrovedisLasso(Node master_node,
                                                MemPair fdata,
                                                int numIter,
                                                double stepSize,
+                                               int histSize,
                                                double miniBatchFraction,
                                                double regParam,
                                                int mid, 
                                                boolean movable,
                                                boolean isDense,
                                                double[] sample_weight,
-                                               long sample_weight_length);
-
-  public static native int callFrovedisLassoLBFGS(Node master_node,
-                                                 MemPair fdata,
-                                                 int numIter,
-                                                 double stepSize,
-                                                 int histSize,
-                                                 double regParam,
-                                                 int mid, 
-                                                 boolean movable,
-                                                 boolean isDense,
-                                                 double[] sample_weight,
-                                                 long sample_weight_length);
+                                               long sample_weight_length,
+                                               String solver,
+                                               boolean warm_start);
   
   // -------- Ridge Regression --------
-  public static native int callFrovedisRidgeSGD(Node master_node,
+  public static native int callFrovedisRidge(Node master_node,
                                                MemPair fdata,
                                                int numIter,
                                                double stepSize,
+                                               int histSize,
                                                double miniBatchFraction,
                                                double regParam,
                                                int mid, 
                                                boolean movable,
                                                boolean isDense,
                                                double[] sample_weight,
-                                               long sample_weight_length);
-
-  public static native int callFrovedisRidgeLBFGS(Node master_node,
-                                                 MemPair fdata,
-                                                 int numIter,
-                                                 double stepSize,
-                                                 int histSize,
-                                                 double regParam,
-                                                 int mid, 
-                                                 boolean movable,
-                                                 boolean isDense,
-                                                 double[] sample_weight,
-                                                 long sample_weight_length);
+                                               long sample_weight_length,
+                                               String solver,
+                                               boolean warm_start);
 
   // -------- Matrix Factorization Using ALS --------
   public static native void callFrovedisMFUsingALS(Node master_node,
@@ -388,6 +352,24 @@ public class JNISupport {
                                                double[] sample_weight,
                                                long sample_weight_length);
 
+  public static native int callFrovedisGMM(Node master_node,
+                                           long fdata, int k,
+                                           String cov_type,
+                                           double tol, 
+                                           int maxIter,
+                                           String init_type,
+                                           long seed,
+                                           int mid,
+                                           boolean dense,
+                                           boolean movable);
+      
+  public static native double[] getGMMMeans (Node master_node, 
+                                                int mid);
+  public static native double[] getGMMWeights (Node master_node, 
+                                                  int mid);
+  public static native double[] getGMMSigma (Node master_node, 
+                                                int mid);
+                                              
   // ---------------------KNN----------------------------------  
   public static native void callFrovedisKnnFit(Node master_node,
                                             long xptr,
@@ -404,27 +386,31 @@ public class JNISupport {
                                                     int k,
                                                     int mid,
                                                     boolean needDistance,
-                                                    boolean dense);
+                                                    boolean dense,
+                                                    boolean mdense);
 
   public static native DummyMatrix knnKneighborsGraph(Node master_node,
                                                       long tptr,
                                                       int k,
                                                       int mid,
                                                       String mode,
-                                                      boolean dense);
+                                                      boolean dense,
+                                                      boolean mdense);
 
   public static native DummyMatrix knnRadiusNeighbors(Node master_node,
                                                       long tptr,
                                                       float radius,
                                                       int mid,
-                                                      boolean dense);
+                                                      boolean dense,
+                                                      boolean mdense);
 
   public static native DummyMatrix knnRadiusNeighborsGraph(Node master_node,
                                                           long tptr,
                                                           float radius,
                                                           int mid,
                                                           String mode,
-                                                          boolean dense);
+                                                          boolean dense,
+                                                          boolean mdense);
   // ---------------------KNC----------------------------------  
   public static native void callFrovedisKncFit(Node master_node,
                                             MemPair fdata,
@@ -440,31 +426,36 @@ public class JNISupport {
                                                     int k,
                                                     int mid,
                                                     boolean needDistance,
-                                                    boolean dense);
+                                                    boolean dense,
+                                                    boolean mdense);
 
   public static native DummyMatrix kncKneighborsGraph(Node master_node,
                                                       long tptr,
                                                       int k,
                                                       int mid,
                                                       String mode,
-                                                      boolean dense);
+                                                      boolean dense,
+                                                      boolean mdense);
 
   public static native double[] kncDoublePredict(Node master_node,
                                                  long tptr,
                                                  int mid,
                                                  boolean saveProba,
-                                                 boolean dense);
+                                                 boolean dense,
+                                                 boolean mdense);
 
   public static native DummyMatrix kncPredictProba(Node master_node,
                                                 long tptr,
                                                 int mid,
-                                                boolean dense);
+                                                boolean dense,
+                                                boolean mdense);
 
   public static native float kncModelScore(Node master_node,
                                           long xptr,
                                           long yptr,
                                           int mid,
-                                          boolean dense);
+                                          boolean dense,
+                                          boolean mdense);
 
   // ---------------------KNR----------------------------------  
   public static native void callFrovedisKnrFit(Node master_node,
@@ -481,25 +472,29 @@ public class JNISupport {
                                                     int k,
                                                     int mid,
                                                     boolean needDistance,
-                                                    boolean dense);
+                                                    boolean dense,
+                                                    boolean mdense);
 
   public static native DummyMatrix knrKneighborsGraph(Node master_node,
                                                       long tptr,
                                                       int k,
                                                       int mid,
                                                       String mode,
-                                                      boolean dense);
+                                                      boolean dense,
+                                                      boolean mdense);
   
   public static native double[] knrDoublePredict(Node master_node,
                                                  long tptr,
                                                  int mid,
-                                                 boolean dense);
+                                                 boolean dense,
+                                                 boolean mdense);
 
   public static native float knrModelScore(Node master_node,
                                           long xptr,
                                           long yptr,
                                           int mid,
-                                          boolean dense);
+                                          boolean dense,
+                                          boolean mdense);
 
 
   // -------- Compute PCA --------
@@ -541,6 +536,8 @@ public class JNISupport {
   // -------- Frovedis Model Operations --------
   public static native void showFrovedisModel(Node master_node, int mid, short mkind);
   public static native void releaseFrovedisModel(Node master_node, int mid, short mkind);
+  public static native void releaseFrovedisModelKNN(Node master_node, int mid, short mkind,
+                                                 boolean dense);
   public static native long[] broadcast2AllWorkers(Node master_node, int mid, short mkind);
 
   // [GLM] for multiple test vectors (prediction done in parallel in Frovedis worker nodes)
@@ -555,9 +552,15 @@ public class JNISupport {
                                                  double val[]);
   // [KMM] for multiple test vectors (prediction done in parallel in Frovedis worker nodes)
   public static native int[] doParallelKMMPredict(Node t_node, long tptr, 
-                                                  int mid, boolean dense);
+                                                  int mid, boolean dense);    
   // [KMM] for single test vector (prediction done in master node)
   public static native int doSingleKMMPredict(Node master_node, long tptr, 
+                                              int mid, boolean dense);
+  // [GMM] for multiple test vectors (prediction done in parallel in Frovedis worker nodes)
+  public static native int[] doParallelGMMPredict(Node t_node, long tptr, 
+                                                  int mid, boolean dense);
+  // [GMM] for single test vector (prediction done in master node)
+  public static native int doSingleGMMPredict(Node master_node, long tptr, 
                                               int mid, boolean dense);
   // [MFM] for multiple test vectors (prediction done in parallel in Frovedis worker nodes)
   public static native double[] doParallelALSPredict(Node t_node, long mptr, short mkind,
@@ -811,7 +814,6 @@ public class JNISupport {
                                                   int size);
   public static native String[] getFrovedisDFStds(Node master_node,
                                                   long dproxy, String[] cname,
-                                                  short[] tids,
                                                   int size);
   public static native long selectFrovedisGroupedData(Node master_node,
                                                   long dproxy,
