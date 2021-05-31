@@ -87,6 +87,9 @@ spark-submit --driver-java-options "-Djava.library.path=$LIBRARY_PATH" --jars $J
 echo -e "\n --- executing frovedis dbscan demo ---"
 spark-submit --driver-java-options "-Djava.library.path=$LIBRARY_PATH" --jars $JARS --conf spark.driver.memory=8g lib/frovedis_dbscan.jar "$COMMAND"
 
+echo -e "\n --- executing frovedis gmm demo ---"
+spark-submit --driver-java-options "-Djava.library.path=$LIBRARY_PATH" --jars $JARS --conf spark.driver.memory=8g lib/frovedis_gmm.jar "$COMMAND"
+
 # --- Neighbors ---
 echo -e "\n --- executing knn demo ---"
 spark-submit --driver-java-options "-Djava.library.path=$LIBRARY_PATH" --jars $JARS --conf spark.driver.memory=8g lib/spark2frovedis_knn.jar "$COMMAND"

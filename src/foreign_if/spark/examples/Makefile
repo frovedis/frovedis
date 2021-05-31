@@ -23,6 +23,7 @@ all:
 	${SCALA_HOME}/bin/scalac -cp "${SPARK_HOME}/jars/*:${HDPATH}:${CLIENT_JAR}" -sourcepath . -d bin scala/KMeansDemo.scala
 	${SCALA_HOME}/bin/scalac -cp "${SPARK_HOME}/jars/*:${HDPATH}:${CLIENT_JAR}" -sourcepath . -d bin scala/ACDemo.scala
 	${SCALA_HOME}/bin/scalac -cp "${SPARK_HOME}/jars/*:${HDPATH}:${CLIENT_JAR}" -sourcepath . -d bin scala/SCADemo.scala
+	${SCALA_HOME}/bin/scalac -cp "${SPARK_HOME}/jars/*:${HDPATH}:${CLIENT_JAR}" -sourcepath . -d bin scala/GMMDemo.scala
 	${SCALA_HOME}/bin/scalac -cp "${SPARK_HOME}/jars/*:${HDPATH}:${CLIENT_JAR}" -sourcepath . -d bin scala/SEADemo.scala
 	${SCALA_HOME}/bin/scalac -cp "${SPARK_HOME}/jars/*:${HDPATH}:${CLIENT_JAR}" -sourcepath . -d bin scala/FPGrowthDemo.scala
 	${SCALA_HOME}/bin/scalac -cp "${SPARK_HOME}/jars/*:${HDPATH}:${CLIENT_JAR}" -sourcepath . -d bin scala/Word2VectorDemo.scala
@@ -62,6 +63,7 @@ all:
 	cd bin; ${JAVA_HOME}/bin/jar -cfm ../lib/spark2frovedis_w2v.jar ../MANIFEST/w2v.mf test/scala/Word2VecDemo*
 	cd bin; ${JAVA_HOME}/bin/jar -cfm ../lib/frovedis_pagerank.jar ../MANIFEST/page_rank.mf test/scala/FrovedisPageRank*
 	cd bin; ${JAVA_HOME}/bin/jar -cfm ../lib/frovedis_dbscan.jar ../MANIFEST/dbscan.mf test/scala/DBSCANDemo*
+	cd bin; ${JAVA_HOME}/bin/jar -cfm ../lib/frovedis_gmm.jar ../MANIFEST/gmm.mf test/scala/GMMDemo*    
 	cd bin; ${JAVA_HOME}/bin/jar -cfm ../lib/spark2frovedis_knn.jar ../MANIFEST/knn.mf test/scala/KNNDemo*
 	cd bin; ${JAVA_HOME}/bin/jar -cfm ../lib/spark2frovedis_knc.jar ../MANIFEST/knc.mf test/scala/KNCDemo*
 	cd bin; ${JAVA_HOME}/bin/jar -cfm ../lib/spark2frovedis_knr.jar ../MANIFEST/knr.mf test/scala/KNRDemo*
