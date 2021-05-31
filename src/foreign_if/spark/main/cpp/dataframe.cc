@@ -303,15 +303,14 @@ JNIEXPORT jobjectArray JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getFroved
 
 JNIEXPORT jobjectArray JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getFrovedisDFStds
   (JNIEnv *env, jclass thisCls, jobject master_node, jlong dftbl,
-   jobjectArray target, jshortArray tid, jint size) {
+   jobjectArray target, jint size) {
 
   auto fm_node = java_node_to_frovedis_node(env, master_node);
   auto df_proxy = static_cast<exrpc_ptr_t> (dftbl);
   auto cols = to_string_vector(env,target,size);
-  auto tids = to_short_vector(env,tid,size);
   std::vector<std::string> ret;
   try {
-    ret = exrpc_async(fm_node,frovedis_df_std,df_proxy,cols,tids).get();
+    ret = exrpc_async(fm_node,frovedis_df_std,df_proxy,cols).get();
   }
   catch(std::exception& e) { set_status(true,e.what()); }
   return to_jStringArray(env,ret);
@@ -325,9 +324,11 @@ JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_renameFrovedisDa
   auto df_proxy = static_cast<exrpc_ptr_t> (dftbl);
   auto cols = to_string_vector(env,names,size);
   auto new_cols = to_string_vector(env,new_names,size);
+  bool inplace = false; // spark withColumnRenamed is not inplace operation
   exrpc_ptr_t ret = 0;
   try {
-    ret = exrpc_async(fm_node,frovedis_df_rename,df_proxy,cols,new_cols).get();
+    ret = exrpc_async(fm_node, frovedis_df_rename, df_proxy, 
+                      cols, new_cols, inplace).get();
   }
   catch(std::exception& e) { set_status(true,e.what()); }
   return (jlong) ret;
