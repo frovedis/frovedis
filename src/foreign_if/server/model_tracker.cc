@@ -65,7 +65,7 @@ void finalize_model_table() {
 
   for(auto m: model_table) {
     switch(m.second.first) {
-      case LRM:    delete reinterpret_cast<logistic_regression_model<double>*>(m.second.second); break;
+      case LR:     delete reinterpret_cast<logistic_regression<double>*>(m.second.second); break;
       case SVM:    delete reinterpret_cast<svm_model<double>*>(m.second.second); break;
       case LNRM:   delete reinterpret_cast<linear_regression_model<double>*>(m.second.second); break;
       case MFM:    delete reinterpret_cast<matrix_factorization_model<double>*>(m.second.second); break;
@@ -77,7 +77,7 @@ void finalize_model_table() {
       default: REPORT_ERROR(INTERNAL_ERROR,"Unknown Model Kind is encountered!\n");
     }
   }
-*/ 
+*/
   model_table.erase(model_table.begin(), model_table.end()); 
 }
 

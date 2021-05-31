@@ -18,11 +18,9 @@
 */
 namespace frovedis {
 
-enum { NONE = 0xDEAD };
-
 enum MODEL_KIND {
   GLM = 0,
-  LRM,
+  LR,
   SVM,
   LNRM,
   MFM,
@@ -36,7 +34,6 @@ enum MODEL_KIND {
   SCM,
   SEM,
   SPARSE_CONV_INFO,
-  MLR,
   W2V,
   DBSCAN,
   KNN,
@@ -48,7 +45,9 @@ enum MODEL_KIND {
   GBT,
   SVR,
   KSVC,
-  GMM  
+  RR,
+  LSR,
+  GMM
 };
 
 enum MAT_KIND {
