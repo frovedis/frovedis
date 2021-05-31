@@ -17,6 +17,9 @@ exrpc_ptr_t create_dataframe (std::vector<short>& types,
       case LONG:   { auto v2 = reinterpret_cast<dvector<long>*>(dvec_proxies[i]);
                      dftblp->append_column(cols[i],std::move(*v2),true);
                      delete v2; break; }
+      case ULONG:  { auto v2 = reinterpret_cast<dvector<unsigned long>*>(dvec_proxies[i]);
+                     dftblp->append_column(cols[i],std::move(*v2),true);
+                     delete v2; break; }
       case FLOAT:  { auto v3 = reinterpret_cast<dvector<float>*>(dvec_proxies[i]);
                      dftblp->append_column(cols[i],std::move(*v3),true);
                      delete v3; break; }
@@ -96,7 +99,6 @@ exrpc_ptr_t get_dfNOToperator(exrpc_ptr_t& opt_proxy) {
   return reinterpret_cast<exrpc_ptr_t> (not_opt_ptr);
 }
 
-
 exrpc_ptr_t filter_df(exrpc_ptr_t& df_proxy,
                       exrpc_ptr_t& opt_proxy) {
   auto& dftbl = *reinterpret_cast<dftable_base*>(df_proxy);
@@ -112,6 +114,20 @@ exrpc_ptr_t select_df(exrpc_ptr_t& df_proxy,
   auto s_df_ptr = new dftable(dftbl.select(cols));
   if (!s_df_ptr) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed.\n");
   return reinterpret_cast<exrpc_ptr_t> (s_df_ptr);
+}
+
+exrpc_ptr_t isnull_df(exrpc_ptr_t& df_proxy,
+                      std::vector<std::string>& cols) {
+  auto& dftbl = *reinterpret_cast<dftable_base*>(df_proxy);
+  auto r_df_ptr = new dftable(dftbl.isnull(cols));
+  if (!r_df_ptr) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed.\n");
+  return reinterpret_cast<exrpc_ptr_t> (r_df_ptr);
+}
+
+void drop_df_cols(exrpc_ptr_t& df_proxy,
+                  std::vector<std::string>& cols) {
+  auto& dftbl = *reinterpret_cast<dftable_base*>(df_proxy);
+  dftbl.drop_cols(cols);
 }
 
 exrpc_ptr_t sort_df(exrpc_ptr_t& df_proxy,
@@ -289,50 +305,13 @@ frovedis_df_avg(exrpc_ptr_t& df_proxy,
   return ret;
 }
 
-template <class T>
-double calc_part_std(std::vector<T>& data, double mean) {
-  double sum = 0;
-  for(size_t i=0; i<data.size(); ++i) {
-    auto diff = data[i] - mean;
-    auto sqr = diff * diff;
-    sum += sqr;
-  }
-  //std::cout << "[" << get_selfid() << "]: " << sum << std::endl;
-  return sum;
-}
-
-double sum(double a, double b) { return a + b; }
-
-template <class T>
-double get_std(dftable_base& df, const std::string& name) {
-  auto tc1 = std::dynamic_pointer_cast<typed_dfcolumn<T>>(df.column(name));
-  if(!tc1)
-    throw std::runtime_error
-      ("get_std: column type is different from specified type");
-  auto size = df.count(name);
-  double mean = df.avg(name);
-  auto&& val1 = tc1->get_val();
-  double ret = val1.map(calc_part_std<T>,broadcast(mean)).reduce(sum);
-  //std::cout << ret << std::endl;
-  return std::sqrt(ret/(size-1));
-}
-
 std::vector<std::string>
 frovedis_df_std(exrpc_ptr_t& df_proxy,
-                 std::vector<std::string>& cols,
-                 std::vector<short>& types) {
+                 std::vector<std::string>& cols) {
   auto& df = *reinterpret_cast<dftable_base*>(df_proxy);
   std::vector<std::string> ret(cols.size());
   for (size_t i=0; i<cols.size(); ++i) {
-    switch(types[i]) {
-      case BOOL:
-      case INT:     ret[i] = std::to_string(get_std<int>(df,cols[i])); break;
-      case LONG:    ret[i] = std::to_string(get_std<long>(df,cols[i])); break;
-      case FLOAT:   ret[i] = std::to_string(get_std<float>(df,cols[i])); break;
-      case DOUBLE:  ret[i] = std::to_string(get_std<double>(df,cols[i])); break;
-      case ULONG:  ret[i] = std::to_string(get_std<unsigned long>(df,cols[i])); break;
-      default: REPORT_ERROR(USER_ERROR, "std on non-numeric column!\n");
-    }
+    ret[i] = std::to_string(df.std(cols[i]));
   }
   return ret;
 }
@@ -350,52 +329,63 @@ frovedis_df_cnt(exrpc_ptr_t& df_proxy,
 
 exrpc_ptr_t frovedis_df_rename(exrpc_ptr_t& df_proxy,
                                std::vector<std::string>& cols,
-                               std::vector<std::string>& new_cols) {
+                               std::vector<std::string>& new_cols,
+                               bool& inplace) {
   checkAssumption(cols.size() == new_cols.size());
-  auto& df = *reinterpret_cast<dftable_base*>(df_proxy);
-  dftable_base* ret = df.clone();
-  if (!ret) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed.\n");
-  for(size_t i=0; i<cols.size(); ++i) {
+  dftable_base* ret = reinterpret_cast<dftable_base*>(df_proxy);
+  if (!inplace) ret = ret->clone();
+  for(size_t i = 0; i < cols.size(); ++i) {
     ret->rename_cols(cols[i], new_cols[i]);
   }
   return reinterpret_cast<exrpc_ptr_t> (ret);
 }
 
-std::vector<int> get_df_int_col(exrpc_ptr_t& df_proxy, 
+dummy_vector get_df_int_col(exrpc_ptr_t& df_proxy, 
                                 std::string& cname) {
   auto& df = *reinterpret_cast<dftable_base*>(df_proxy);
-  return df.as_dvector<int>(cname).gather();
+  auto vecp = new dvector<int>(df.as_dvector<int>(cname));
+  auto vecp_ = reinterpret_cast<exrpc_ptr_t>(vecp);
+  return dummy_vector(vecp_, vecp->size(), INT);
 }
 
-std::vector<long> get_df_long_col(exrpc_ptr_t& df_proxy, 
-                                  std::string& cname) {
+dummy_vector get_df_long_col(exrpc_ptr_t& df_proxy, 
+                             std::string& cname) {
   auto& df = *reinterpret_cast<dftable_base*>(df_proxy);
-  return df.as_dvector<long>(cname).gather();
+  auto vecp = new dvector<long>(df.as_dvector<long>(cname));
+  auto vecp_ = reinterpret_cast<exrpc_ptr_t>(vecp);
+  return dummy_vector(vecp_, vecp->size(), LONG);
 }
 
-std::vector<unsigned long> 
-get_df_ulong_col(exrpc_ptr_t& df_proxy, 
-                 std::string& cname) {
+dummy_vector get_df_ulong_col(exrpc_ptr_t& df_proxy, 
+                              std::string& cname) {
   auto& df = *reinterpret_cast<dftable_base*>(df_proxy);
-  return df.as_dvector<unsigned long>(cname).gather();
+  auto vecp = new dvector<unsigned long>(df.as_dvector<unsigned long>(cname));
+  auto vecp_ = reinterpret_cast<exrpc_ptr_t>(vecp);
+  return dummy_vector(vecp_, vecp->size(), ULONG);
 }
 
-std::vector<float> get_df_float_col(exrpc_ptr_t& df_proxy, 
-                                    std::string& cname) {
+dummy_vector get_df_float_col(exrpc_ptr_t& df_proxy, 
+                              std::string& cname) {
   auto& df = *reinterpret_cast<dftable_base*>(df_proxy);
-  return df.as_dvector<float>(cname).gather();
+  auto vecp = new dvector<float>(df.as_dvector<float>(cname));
+  auto vecp_ = reinterpret_cast<exrpc_ptr_t>(vecp);
+  return dummy_vector(vecp_, vecp->size(), FLOAT);
 }
 
-std::vector<double> get_df_double_col(exrpc_ptr_t& df_proxy, 
-                                      std::string& cname) {
+dummy_vector get_df_double_col(exrpc_ptr_t& df_proxy, 
+                               std::string& cname) {
   auto& df = *reinterpret_cast<dftable_base*>(df_proxy);
-  return df.as_dvector<double>(cname).gather();
+  auto vecp = new dvector<double>(df.as_dvector<double>(cname));
+  auto vecp_ = reinterpret_cast<exrpc_ptr_t>(vecp);
+  return dummy_vector(vecp_, vecp->size(), DOUBLE);
 }
 
-std::vector<std::string> 
-get_df_string_col(exrpc_ptr_t& df_proxy, std::string& cname) {
+dummy_vector get_df_string_col(exrpc_ptr_t& df_proxy, 
+                               std::string& cname) {
   auto& df = *reinterpret_cast<dftable_base*>(df_proxy);
-  return df.as_dvector<std::string>(cname).gather();
+  auto vecp = new dvector<std::string>(df.as_dvector<std::string>(cname));
+  auto vecp_ = reinterpret_cast<exrpc_ptr_t>(vecp);
+  return dummy_vector(vecp_, vecp->size(), STRING);
 }
 
 dummy_matrix df_to_colmajor_float(exrpc_ptr_t& df_proxy,
@@ -731,7 +721,6 @@ frov_df_append_column(exrpc_ptr_t& df_proxy, std::string& col_name,
     dftblp = new dftable(dftblp_->materialize());
   }
   else dftblp = reinterpret_cast<dftable*>(df_proxy);
-
   if (!dftblp) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed.\n");
 
   auto df_col_order = dftblp->columns(); // original col_order
@@ -744,6 +733,9 @@ frov_df_append_column(exrpc_ptr_t& df_proxy, std::string& col_name,
                    dftblp->append_column(col_name,std::move(*v1),true);
                    delete v1; break; }
     case LONG:   { auto v2 = reinterpret_cast<dvector<long>*>(dvec_proxy);
+                   dftblp->append_column(col_name,std::move(*v2),true);
+                   delete v2; break; }
+    case ULONG:  { auto v2 = reinterpret_cast<dvector<unsigned long>*>(dvec_proxy);
                    dftblp->append_column(col_name,std::move(*v2),true);
                    delete v2; break; }
     case FLOAT:  { auto v3 = reinterpret_cast<dvector<float>*>(dvec_proxy);
@@ -764,16 +756,12 @@ frov_df_append_column(exrpc_ptr_t& df_proxy, std::string& col_name,
   }
 
   if (drop_old) dftblp->set_col_order(df_col_order);
-
   if (df_proxy == -1) dftblp->add_index("index");
-
-  if (position != -1 ) {
-    int actual_pos = position + 1;
-    if (actual_pos != sz) {
-      checkAssumption(actual_pos > 0 && actual_pos < sz);
-      df_col_order.insert(df_col_order.begin() + actual_pos, 1, col_name);
-      dftblp->set_col_order(df_col_order);
-    }
+  if (position != -1 and position != sz) {
+    // position can be zero if index column is not present
+    checkAssumption(position >= 0 && position < sz); 
+    df_col_order.insert(df_col_order.begin() + position, 1, col_name);
+    dftblp->set_col_order(df_col_order);
   }
   return to_dummy_dftable(dftblp);
 }
@@ -787,9 +775,179 @@ frov_df_add_index(exrpc_ptr_t& df_proxy, std::string& name,
     dftblp = new dftable(dftblp_->materialize());
   }
   else dftblp = reinterpret_cast<dftable*>(df_proxy);
-
   if (!dftblp) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed.\n");
-  
   dftblp->add_index(name);
+  return to_dummy_dftable(dftblp);
+}
+
+dummy_dftable
+frov_df_reset_index(exrpc_ptr_t& df_proxy, 
+                    bool& drop, 
+                    bool& need_materialize) {
+  dftable* dftblp = NULL;
+  if (need_materialize) {
+    auto dftblp_ = reinterpret_cast<dftable_base*>(df_proxy);
+    dftblp = new dftable(dftblp_->materialize());
+  }
+  else dftblp = reinterpret_cast<dftable*>(df_proxy);
+  if (!dftblp) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed.\n");
+  auto cols = dftblp->columns();
+  checkAssumption(cols.size() > 0);
+
+  if (drop) {
+    dftblp->drop(cols[0]); // dropping existing index-column
+    dftblp->add_index("index");
+  }
+  else {
+    if (cols[0] == "label_0")
+      REPORT_ERROR(USER_ERROR, 
+      "reset_index: exceeds maximum no. of index resetting!\n");
+    std::string new_index_col;
+    if (cols[0] == "index") {
+      // renaming it as "index_col", since having column name as "index"
+      // would cause issues in python wrapper -> self.index would be ambiguous
+      dftblp->rename("index", "index_col");
+      new_index_col = "label_0"; // as in pandas
+    }
+    else if (cols[0] == "index_col") new_index_col = "label_0"; // as in pandas
+    else                             new_index_col = "index_col"; 
+    dftblp->add_index(new_index_col);
+  }
+  return to_dummy_dftable(dftblp);
+}
+
+dummy_dftable
+frov_df_drop_duplicates(exrpc_ptr_t& df_proxy, 
+                        std::vector<std::string>& cols,
+                        std::string& keep,
+                        bool& need_materialize) {
+  dftable* dftblp = NULL;
+  if (need_materialize) {
+    auto dftblp_ = reinterpret_cast<dftable_base*>(df_proxy);
+    dftblp = new dftable(dftblp_->materialize());
+  }
+  else dftblp = reinterpret_cast<dftable*>(df_proxy);
+  if (!dftblp) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed.\n");
+  auto retp = new dftable(dftblp->drop_duplicates(cols, keep));
+  return to_dummy_dftable(retp);
+}
+
+template <class T>
+bool check_unique_column_hepler(std::vector<T> vec){
+  int check = 1;
+    auto values = std::vector<size_t>(vec.size(), 0); // dummy vector
+    auto htable_obj = unique_hashtable<T, size_t>(vec, values, check);
+    return check != 0;
+}
+
+bool check_unique_column(dftable& df, std::string col_name) {
+    auto df_col = df.column(col_name);
+    auto col_type = df_col->dtype();
+    bool res = true;
+
+    switch(get_numeric_dtype(col_type)) {
+      case INT:    { auto vec = df_col->as_dvector<int>().gather();
+                    res = check_unique_column_hepler(vec);
+                    break; }
+
+      case LONG:   { auto vec = df_col->as_dvector<long>().gather();
+                     res = check_unique_column_hepler(vec);
+                     break; }
+      
+      case FLOAT:  { auto vec = df_col->as_dvector<float>().gather();
+                     res = check_unique_column_hepler(vec);
+                     break; }
+
+      case DOUBLE: { auto vec = df_col->as_dvector<double>().gather();
+                     res = check_unique_column_hepler(vec);
+                     break; }
+
+      case STRING: { auto typed_dfcol = std::dynamic_pointer_cast<typed_dfcolumn<dic_string>>(df_col);
+                     auto nl_ids = typed_dfcol->val; // node_local < vec<size_t> >
+                     auto vec = nl_ids.as_dvector<size_t>().gather();
+                     res = check_unique_column_hepler(vec);
+                     break;}
+
+      case ULONG:  { auto vec = df_col->as_dvector<ulong>().gather();
+                     res = check_unique_column_hepler(vec);
+                     break; }
+
+      default:     REPORT_ERROR(USER_ERROR,
+                   " check_unique_column: Invalid type for uniqueness check!\n");
+    }
+
+    return res;
+}
+
+dummy_dftable
+frov_df_set_index(exrpc_ptr_t& df_proxy, 
+                  std::string& cur_index_name, // existing index column
+                  std::string& new_index_name, // existing column to be set as index
+                  bool& verify_integrity,
+                  bool& need_materialize) {
+  dftable* dftblp = NULL;
+  if (need_materialize) {
+    auto dftblp_ = reinterpret_cast<dftable_base*>(df_proxy);
+    dftblp = new dftable(dftblp_->materialize());
+  }
+  else dftblp = reinterpret_cast<dftable*>(df_proxy);
+  if (!dftblp) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed.\n");
+  if(verify_integrity and !(dftblp->column(new_index_name)->is_unique()))
+    REPORT_ERROR(USER_ERROR, 
+    "set_index: given column '" + new_index_name + 
+    "' does not contain unique values!");
+  if (cur_index_name != "") dftblp->drop(cur_index_name); //if self.has_index() is True
+  dftblp->set_index(new_index_name);
+  return to_dummy_dftable(dftblp);
+}
+
+dummy_dftable
+frov_df_union(exrpc_ptr_t& df_proxy, std::vector<exrpc_ptr_t>& proxies,
+            bool& ignore_index, bool& verify_integrity, bool& sort) {
+  dftable* base_dftblp = NULL;
+  auto base_dftblp_ = reinterpret_cast<dftable_base*>(df_proxy);
+  if(base_dftblp_-> need_materialize()) {
+    base_dftblp = new dftable(base_dftblp_->materialize());
+  }
+  else base_dftblp = reinterpret_cast<dftable*>(df_proxy);
+  if (!base_dftblp) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed.\n");
+
+  auto sz = proxies.size();
+  std::vector<dftable*> other_dfs(sz);
+  
+  for(size_t i=0; i<sz; i++){
+    dftable* dftblp = NULL;
+    auto dftblp_ = reinterpret_cast<dftable_base*>(proxies[i]);
+    if(dftblp_-> need_materialize()) {
+      dftblp = new dftable(dftblp_->materialize());
+    }
+    else dftblp = reinterpret_cast<dftable*>(proxies[i]);
+    if (!dftblp) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed.\n");
+    other_dfs[i] = dftblp;
+  }
+  
+  auto union_df = new dftable(base_dftblp->union_tables(other_dfs));
+
+  if ( !ignore_index && verify_integrity ) {
+    bool is_uniq = union_df->column("tmp_index")->is_unique();
+    if ( !is_uniq )
+      REPORT_ERROR(USER_ERROR,"Indexes have overlapping values!\n");
+  }
+
+  return to_dummy_dftable(union_df);
+}
+
+dummy_dftable
+frov_df_set_col_order(exrpc_ptr_t& df_proxy,
+                    std::vector<std::string>& new_cols) {
+  dftable* dftblp = NULL;
+  auto dftblp_ = reinterpret_cast<dftable_base*>(df_proxy);
+  if(dftblp_-> need_materialize()) {
+    dftblp = new dftable(dftblp_->materialize());
+  }
+  else dftblp = reinterpret_cast<dftable*>(df_proxy);
+  if (!dftblp) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed.\n");
+  dftblp->set_col_order(new_cols);
+  
   return to_dummy_dftable(dftblp);
 }
