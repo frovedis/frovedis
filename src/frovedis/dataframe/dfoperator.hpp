@@ -568,6 +568,7 @@ public:
   virtual std::shared_ptr<dfcolumn> column(const std::string& name);
   virtual void debug_print();
   virtual dftable_base* clone();
+  virtual dftable_base* drop_cols(const std::vector<std::string>& cols);
   virtual dftable_base* rename_cols(const std::string& name,
                                     const std::string& name2);
   filtered_dftable& drop(const std::string& name);
@@ -690,6 +691,17 @@ struct dfoperator_cross : public dfoperator {
 };
 
 std::shared_ptr<dfoperator> cross();
+
+template <class T>
+dftable dftable_base::drop_rows(const std::string& index_col,
+                                const std::vector<T>& targets) {
+  auto &left = *this;
+  dftable right;
+  right.append_column("r_key", make_dvector_scatter(targets));
+  return left.outer_bcast_join(right, eq(index_col, "r_key"))
+             .filter(is_null("r_key"))
+             .select(left.columns());
+}
 
 }
 #endif
