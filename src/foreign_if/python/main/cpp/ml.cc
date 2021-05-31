@@ -986,7 +986,7 @@ extern "C" {
   }
 
   // --- (..) Gaussian Mixture ---
-  int gmm_train(const char* host, int port, long xptr, int k, 
+  PyObject* gmm_train(const char* host, int port, long xptr, int k, 
                  const char* covariance_type, double tol,
                  int max_iter, int n_init, const char* init_params, 
                  long seed, int vb, int mid, 
@@ -997,17 +997,17 @@ extern "C" {
     bool mvbl = false; // auto-managed at python side
     std::string cov_type = covariance_type;
     std::string param_type = init_params;
-    int n_iter = 0;
+    gmm_result ret;
     try {
       if(dense) {
         switch(dtype) {
           case FLOAT:
-            n_iter = exrpc_async(fm_node,(frovedis_gmm<DT2,R_MAT2>),
+            ret = exrpc_async(fm_node,(frovedis_gmm<DT2,R_MAT2>),
                                  f_xptr,mid,k,cov_type,(float)tol,max_iter,
                                  n_init,param_type,seed,vb,mvbl).get();  
             break;
           case DOUBLE:
-            n_iter = exrpc_async(fm_node,(frovedis_gmm<DT1,R_MAT1>),
+            ret = exrpc_async(fm_node,(frovedis_gmm<DT1,R_MAT1>),
                                  f_xptr,mid,k,cov_type,tol,max_iter,
                                  n_init,param_type,seed,vb,mvbl).get();  
             break;
@@ -1021,7 +1021,7 @@ extern "C" {
     catch (std::exception& e) {
       set_status(true, e.what());
     }
-    return n_iter; 
+    return to_py_gmm_result(ret); 
   }    
     
   // --- (11) Matrix Factorization using ALS ---
