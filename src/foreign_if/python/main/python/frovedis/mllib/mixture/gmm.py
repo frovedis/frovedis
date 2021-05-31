@@ -97,7 +97,7 @@ class GaussianMixture(BaseEstimator):
         self.__mdtype = dtype
         self.__mid = ModelID.get()
         (host, port) = FrovedisServer.getServerInstance()
-        self.n_iter_ = rpclib.gmm_train(host, port, X.get(), \
+        ret = rpclib.gmm_train(host, port, X.get(), \
                                         self.n_components, \
                                         self.covariance_type.encode('ascii'), \
                                         self.tol, self.max_iter, self.n_init, \
@@ -106,7 +106,8 @@ class GaussianMixture(BaseEstimator):
                                         self.__mid, dtype, itype, dense)
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
-            raise RuntimeError(excpt["info"])
+            raise RuntimeError(excpt["info"])    
+        self.n_iter_ = ret["n_iter"]
         return self
 
     def fit_predict(self, X, y=None):
