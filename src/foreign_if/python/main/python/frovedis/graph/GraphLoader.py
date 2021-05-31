@@ -21,20 +21,20 @@ def custom_read_edgelist(path, comments='#', delimiter=' ', \
     reader = csv.reader(fstr, delimiter=delimiter)
     sample = next(reader)
     while(sample[0][0] == comments): #skipping comments
-      sample = next(reader)
+        sample = next(reader)
     fstr.close()
 
     ncol = len(sample)
     if ncol == 2:
-      names = ['src', 'dst']
+        names = ['src', 'dst']
     elif ncol == 3:
-      names = ['src', 'dst', 'wgt']
+        names = ['src', 'dst', 'wgt']
     else: 
-      msg = "read_edgelist: Expected 2 or 3 columns in input file!\n"
-      msg = msg + str(ncol) + " column detected in first row: " + str(sample)
-      msg = msg + "\nPlease ensure if the specified delimiter '"
-      msg = msg + delimiter + "' is correct!"
-      raise ValueError(msg)
+        msg = "read_edgelist: Expected 2 or 3 columns in input file!\n"
+        msg = msg + str(ncol) + " column detected in first row: " + str(sample)
+        msg = msg + "\nPlease ensure if the specified delimiter '"
+        msg = msg + delimiter + "' is correct!"
+        raise ValueError(msg)
 
     # loading data by excluding duplicate rows
     import pandas as pd
@@ -49,33 +49,33 @@ def custom_read_edgelist(path, comments='#', delimiter=' ', \
     tarr = mat[:, :2].flatten()
     import sys
     if sys.version_info[0] < 3:
-      min_id = long(tarr.min())
-      max_id = long(tarr.max())
+        min_id = long(tarr.min())
+        max_id = long(tarr.max())
     else:
-      min_id = int(tarr.min())
-      max_id = int(tarr.max())
+        min_id = int(tarr.min())
+        max_id = int(tarr.max())
 
     if min_id == 0:
-      rowid = mat[:, 0]
-      colid = mat[:, 1]
-      num_vertices = max_id + 1
+        rowid = mat[:, 0]
+        colid = mat[:, 1]
+        num_vertices = max_id + 1
     else:
-      rowid = mat[:, 0] - 1
-      colid = mat[:, 1] - 1
-      num_vertices = max_id
+        rowid = mat[:, 0] - 1
+        colid = mat[:, 1] - 1
+        num_vertices = max_id
 
     # extracting edge weight information (if available)
-    if ncol == 3: 
-      data = mat[:, 2]
+    if ncol == 3:
+        data = mat[:, 2]
     else:
-      data = np.ones(num_edges)
+        data = np.ones(num_edges)
 
     # constructing sparse matrix structure
     data = np.asarray(data, dtype = edgetype)
     rowid = np.asarray(rowid, dtype = nodetype)
     colid = np.asarray(colid, dtype = nodetype)
     shape = (num_vertices, num_vertices)
-    if (isinstance(create_using, nx.classes.digraph.DiGraph)):
+    if isinstance(create_using, nx.classes.digraph.DiGraph):
         coo = coo_matrix((data, (rowid, colid)), shape=shape)
     else:
         data_ = np.concatenate((data, data))
@@ -120,4 +120,3 @@ def read_edgelist(path, comments='#', delimiter=' ', \
     smat = custom_read_edgelist(path, comments, delimiter, create_using, \
                                 nodetype, data, edgetype, encoding)
     return Graph(nx_graph=smat)
-

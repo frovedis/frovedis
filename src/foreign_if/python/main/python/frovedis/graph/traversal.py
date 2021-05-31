@@ -16,7 +16,7 @@ def generate_traversal_path(result, source):
 
     for k in destid:
         if k == source: # currently only possible for source node 
-              ret[k] = [source]
+            ret[k] = [source]
         else:
             path = []
             pred = dest_to_pred[k]
