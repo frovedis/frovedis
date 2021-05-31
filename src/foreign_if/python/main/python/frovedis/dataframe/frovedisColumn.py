@@ -5,6 +5,7 @@ frovedis_column.py
 
 from ..exrpc import rpclib
 from ..exrpc.server import FrovedisServer
+from ..matrix.dtype import TypeUtil
 from .dfoperator import dfoperator
 from .optype import *
 
@@ -18,6 +19,15 @@ class FrovedisColumn(object):
         """
         self.__colName = colName
         self.__dtype = dtype
+
+    def __str__(self):
+        """ to-string """
+        return "name: " + self.__colName + "; dtype: " + \
+               str(TypeUtil.to_numpy_dtype(self.__dtype))
+
+    def __repr__(self):
+        """ REPR """
+        return str(self)
 
     @property
     def name(self):
