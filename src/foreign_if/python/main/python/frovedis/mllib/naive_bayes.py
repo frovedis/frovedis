@@ -74,8 +74,8 @@ class MultinomialNB(BaseEstimator):
         else:
             sample_weight = np.ravel(sample_weight)
             if len(sample_weight) != self.n_samples:
-                 raise ValueError("sample_weight.shape == {}, expected {}!"\
-                       .format(sample_weight.shape, (self.n_samples,)))
+                raise ValueError("sample_weight.shape == {}, expected {}!"\
+                      .format(sample_weight.shape, (self.n_samples,)))
         return np.asarray(sample_weight, dtype = np.float64)
 
     def check_class_prior(self):
@@ -630,8 +630,8 @@ class BernoulliNB(BaseEstimator):
         else:
             sample_weight = np.ravel(sample_weight)
             if len(sample_weight) != self.n_samples:
-                 raise ValueError("sample_weight.shape == {}, expected {}!"\
-                       .format(sample_weight.shape, (self.n_samples,)))
+                raise ValueError("sample_weight.shape == {}, expected {}!"\
+                      .format(sample_weight.shape, (self.n_samples,)))
         return np.asarray(sample_weight, dtype = np.float64)
 
     def check_class_prior(self):
