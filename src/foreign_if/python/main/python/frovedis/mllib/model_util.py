@@ -14,7 +14,7 @@ from ..matrix.dense import FrovedisRowmajorMatrix
 class M_KIND(object):
     """A python enumerator for wrapping model kinds"""
     GLM = 0
-    LRM = 1
+    LR = 1
     SVM = 2
     LNRM = 3
     MFM = 4
@@ -28,19 +28,20 @@ class M_KIND(object):
     SCM = 12
     SEM = 13
     SPARSE_CONV_INFO = 14
-    MLR = 15
-    W2V = 16
-    DBSCAN = 17
-    KNN = 18
-    KNC = 19
-    KNR = 20
-    LDA = 21
-    LDASP = 22 #for spark
-    RFM = 23
-    GBT = 24
-    SVR = 25
-    KSVC = 26
-    GMM = 27
+    W2V = 15
+    DBSCAN = 16
+    KNN = 17
+    KNC = 18
+    KNR = 19
+    LDA = 20
+    LDASP = 21 #for spark
+    RFM = 22
+    GBT = 23
+    SVR = 24
+    KSVC = 25
+    RR = 26
+    LSR = 27
+    GMM = 28
 
 class ModelID(object):
     """A python container for generating model IDs for ML"""
@@ -102,14 +103,15 @@ class GLM(object):
         return ret
 
     @staticmethod
-    def release(mid, mkind, mdtype):
+    def release(mid, mkind, mdtype, itype = 0, dense = True):
         """
         NAME: release
         """
         if mdtype is None:
             raise ValueError("model for release is typeless!")
         (host, port) = FrovedisServer.getServerInstance()
-        rpclib.release_frovedis_model(host, port, mid, mkind, mdtype)
+        rpclib.release_frovedis_model(host, port, mid, mkind, mdtype,\
+                                      itype, dense)
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
             raise RuntimeError(excpt["info"])
