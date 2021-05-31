@@ -6,18 +6,22 @@ using namespace frovedis;
 void expose_frovedis_dvector_functions() {
   expose(count_distinct<int>);
   expose(count_distinct<long>);
+  expose(count_distinct<unsigned long>);
   expose(count_distinct<float>);
   expose(count_distinct<double>);
   expose(get_distinct_elements<int>);
   expose(get_distinct_elements<long>);
+  expose(get_distinct_elements<unsigned long>);
   expose(get_distinct_elements<float>);
   expose(get_distinct_elements<double>);
   expose(get_encoded_dvector<int>);
   expose(get_encoded_dvector<long>);
+  expose(get_encoded_dvector<unsigned long>);
   expose(get_encoded_dvector<float>);
   expose(get_encoded_dvector<double>);
   expose(get_encoded_dvector_zero_based<int>);
   expose(get_encoded_dvector_zero_based<long>);
+  expose(get_encoded_dvector_zero_based<unsigned long>);
   expose(get_encoded_dvector_zero_based<float>);
   expose(get_encoded_dvector_zero_based<double>);
   // --- frovedis dvector for labels ---
@@ -28,21 +32,25 @@ void expose_frovedis_dvector_functions() {
   // --- frovedis typed dvector for dataframes ---
   expose((load_local_data<std::vector<int>>));
   expose((load_local_data<std::vector<long>>));
+  expose((load_local_data<std::vector<unsigned long>>));
   expose((load_local_data<std::vector<float>>));
   expose((load_local_data<std::vector<double>>));
   expose((load_local_data<std::vector<std::string>>));
   expose(create_and_set_dvector<int>);
   expose(create_and_set_dvector<long>);
+  expose(create_and_set_dvector<unsigned long>);
   expose(create_and_set_dvector<float>);
   expose(create_and_set_dvector<double>);
   expose(create_and_set_dvector<std::string>);
   expose(show_dvector<int>);
   expose(show_dvector<long>);
+  expose(show_dvector<unsigned long>);
   expose(show_dvector<float>);
   expose(show_dvector<double>);
   expose(show_dvector<std::string>);
   expose(release_dvector<int>);
   expose(release_dvector<long>);
+  expose(release_dvector<unsigned long>);
   expose(release_dvector<float>);
   expose(release_dvector<double>);
   expose(release_dvector<std::string>);
@@ -70,14 +78,16 @@ void expose_frovedis_dvector_functions() {
   expose((release_data<std::vector<float>>));  // FrovedisVector + SVAL/SVEC
   expose((release_data<std::vector<double>>)); // FrovedisVector + SVAL/SVEC/EIGVAL
   expose((release_data<std::vector<std::string>>));  // FrovedisVector
-  // dvector to spark RDD
+  // dvector to spark RDD or python numpy array
   expose(get_dvector_local_pointers<int>);
   expose(get_dvector_local_pointers<long>);
+  expose(get_dvector_local_pointers<unsigned long>);
   expose(get_dvector_local_pointers<float>);
   expose(get_dvector_local_pointers<double>);
   expose(get_dvector_local_pointers<std::string>);
   expose(get_local_vector<int>);
   expose(get_local_vector<long>);
+  expose(get_local_vector<unsigned long>);
   expose(get_local_vector<float>);
   expose(get_local_vector<double>);
   expose(get_local_vector<std::string>);
