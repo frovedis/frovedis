@@ -11,7 +11,8 @@ namespace frovedis {
 template <typename T>
 class dbscan_impl {
 public:
-  void fit(rowmajor_matrix<T>& vector_set) {
+  template <class MATRIX>    
+  void fit(MATRIX& vector_set) {
     num_row = vector_set.num_row;
     d_graph = calc_graph(vector_set, eps);
     d_core_flgs = calc_core_flgs(min_pts, (T) 1.0);
@@ -20,7 +21,8 @@ public:
     cluster();
   }
 
-  void fit(rowmajor_matrix<T>& vector_set, std::vector<T>& sample_weight) {
+  template <class MATRIX>    
+  void fit(MATRIX& vector_set, std::vector<T>& sample_weight) {
     num_row = vector_set.num_row;
     require(sample_weight.size() == num_row,
     "sample_weight size does not match with number of samples in input data");
@@ -34,16 +36,18 @@ public:
     cluster();
   }
   std::vector<int> labels() {return clustered_labels;}
-  dbscan_impl(double eps=0.5, int min_pts=5) : eps(eps), min_pts(min_pts) {}
+  dbscan_impl(double eps=0.5, int min_pts=5) : 
+             eps(eps), min_pts(min_pts) {}
   std::vector<size_t> core_sample_indices_() {return core_sample_indices;}
   rowmajor_matrix<T> components_() { return components; }
 
 private:
-  node_local<crs_matrix_local<int>> calc_graph(rowmajor_matrix<T>& vector_set,
+  template <class MATRIX>    
+  node_local<crs_matrix_local<int>> calc_graph(MATRIX& vector_set,
                                                double eps) {
     auto g_vector_set = get_global_data(vector_set);
     // get distance matrix
-    auto dist_m = construct_distance_matrix(g_vector_set, true);
+    auto dist_m = construct_distance_matrix<T>(g_vector_set, true);
     auto ret = construct_connectivity_graph<int>(dist_m, eps);
     return ret.data;
   }
@@ -229,9 +233,19 @@ private:
     other_labeling();
   };
 
-  void set_components(rowmajor_matrix<T>& vector_set) {
+  template <class I, class O>
+  rowmajor_matrix<T> get_rowmajor(crs_matrix<T,I,O>&& mat) {
+    return mat.to_rowmajor();
+  }
+
+  rowmajor_matrix<T> get_rowmajor(rowmajor_matrix<T>&& mat) {
+    return mat;
+  }
+
+  template <class MATRIX>    
+  void set_components(MATRIX& vector_set) {
     auto rowids = d_core_flgs.viewas_node_local().map(vector_find_one<int>);
-    components = extract_rows(vector_set, rowids);
+    components = get_rowmajor(extract_rows(vector_set, rowids));
     auto myst = get_start_indices(vector_set);
 
     auto convert_local_to_global = +[](std::vector<size_t>& vec, size_t myst) {
