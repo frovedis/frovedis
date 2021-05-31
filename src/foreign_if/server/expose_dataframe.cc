@@ -11,6 +11,7 @@ void expose_frovedis_dataframe_functions() {
   expose(show_dataframe);
   expose(get_dfoperator<int>);
   expose(get_dfoperator<long>);
+  expose(get_dfoperator<unsigned long>);
   expose(get_dfoperator<float>);
   expose(get_dfoperator<double>);
   expose(get_str_dfoperator);
@@ -20,6 +21,14 @@ void expose_frovedis_dataframe_functions() {
   expose((release_data<std::shared_ptr<dfoperator>>));
   expose(filter_df);
   expose(select_df);
+  expose(isnull_df);
+  expose(drop_df_cols);
+  expose(drop_df_rows<int>);
+  expose(drop_df_rows<long>);
+  expose(drop_df_rows<unsigned long>);
+  expose(drop_df_rows<float>);
+  expose(drop_df_rows<double>);
+  expose(drop_df_rows<std::string>);
   expose(sort_df);
   expose(join_df);
   expose(group_by_df);
@@ -57,9 +66,20 @@ void expose_frovedis_dataframe_functions() {
   expose(frov_df_convert_dicstring_to_bool);
   expose(frov_df_append_column);
   expose(frov_df_add_index);
-  expose(get_df_column_pointer<int>);
-  expose(get_df_column_pointer<long>);
-  expose(get_df_column_pointer<float>);
-  expose(get_df_column_pointer<double>);
-  expose(get_df_column_pointer<std::string>);
+  expose(frov_df_reset_index);
+  expose(frov_df_set_index);
+  expose(frov_df_drop_duplicates);
+  expose(get_df_column_pointer<int>);          // for spark
+  expose(get_df_column_pointer<long>);         // for spark
+  expose(get_df_column_pointer<float>);        // for spark
+  expose(get_df_column_pointer<double>);       // for spark
+  expose(get_df_column_pointer<std::string>);  // for spark
+  expose(frov_df_copy_index<int>);
+  expose(frov_df_copy_index<long>);
+  expose(frov_df_copy_index<unsigned long>);
+  expose(frov_df_copy_index<float>);
+  expose(frov_df_copy_index<double>);
+  expose(frov_df_copy_index<std::string>);
+  expose(frov_df_union);
+  expose(frov_df_set_col_order);
 }
