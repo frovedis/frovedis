@@ -287,7 +287,7 @@ compute_conditional_probability(rowmajor_matrix<T>& mat,
   if (metric == "euclidean") {
     // ** Compute Euclidean distances
     auto gdata = get_global_data(mat);
-    affinity = construct_distance_matrix(gdata, true, true);
+    affinity = construct_distance_matrix<T>(gdata, true, true);
   }
   else if (metric == "precomputed") affinity = mat;
   else    REPORT_ERROR(USER_ERROR, "invalid metric parameter value!!\n");
@@ -353,7 +353,7 @@ template <class T>
 rowmajor_matrix<T>
 compute_low_dimensional_probabilities(rowmajor_matrix<T>& Y_mat) {
   auto y_local_data = get_global_data(Y_mat);
-  auto Q_mat = construct_distance_matrix(y_local_data, true, true);
+  auto Q_mat = construct_distance_matrix<T>(y_local_data, true, true);
   Q_mat.data.mapv(compute_low_dimensional_affinity<T>);
   return Q_mat;
 }
