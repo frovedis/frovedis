@@ -45,6 +45,7 @@ public:
   virtual std::vector<std::string> columns() const;
   virtual std::vector<std::pair<std::string, std::string>> dtypes();
   virtual dftable select(const std::vector<std::string>& cols);
+  virtual dftable isnull(const std::vector<std::string>& cols);
   virtual dftable materialize();
   virtual filtered_dftable filter(const std::shared_ptr<dfoperator>& op);
   virtual sorted_dftable sort(const std::string& name);
@@ -65,6 +66,7 @@ public:
   size_t count(const std::string& name);
   template <class T> T sum(const std::string& name);
   double avg(const std::string& name);
+  double std(const std::string& name);
   template <class T> T max(const std::string& name);
   template <class T> T min(const std::string& name);
   template <class T> dvector<T> as_dvector(const std::string name);
@@ -133,8 +135,14 @@ public:
   virtual bool is_right_joinable() {return true;}
   virtual void debug_print();
   virtual dftable_base* clone();
+  virtual dftable_base* drop_cols(const std::vector<std::string>& cols);
   virtual dftable_base* rename_cols(const std::string& name,
                                     const std::string& name2);
+  virtual bool need_materialize() {return true;}
+  template <class T>
+  dftable drop_rows(const std::string& index_col,
+                    const std::vector<T>& targets); // defined in dfoperator.hpp
+
 protected:
   std::map<std::string, std::shared_ptr<dfcolumn>> col;
   std::vector<std::string> col_order; // order of cols, though redundant...
@@ -278,13 +286,28 @@ public:
   dftable& type_cast(const std::string& from_name,
                      const std::string& to_name,
                      const std::string& to_type);
-  dftable union_tables(std::vector<dftable>& ts, bool keep_order = false);
-  dftable union_table(dftable& t, bool keep_order = false)
-    {std::vector<dftable> ts = {t}; return union_tables(ts, keep_order);}
+  dftable union_tables(std::vector<dftable *>& ts, bool keep_order = false,
+                       bool keep_dftable = true);
+  dftable union_tables(std::vector<dftable>& ts, bool keep_order = false,
+                       bool keep_dftable = true) {
+    auto sz = ts.size();
+    std::vector<dftable *> tsp(sz);
+    for(size_t i = 0; i < sz; ++i) tsp[i] = &ts[i];
+    return union_tables(tsp, keep_order, keep_dftable);
+  }
+  dftable union_table(dftable& t, bool keep_order = false,
+                      bool keep_dftable = true) {
+    std::vector<dftable> ts = {t};
+    return union_tables(ts, keep_order, keep_dftable);
+  }
   dftable distinct();
+  dftable drop_duplicates(const std::vector<std::string>& cols, 
+                          const std::string& keep = "first");
   virtual dftable_base* clone();
+  virtual dftable_base* drop_cols(const std::vector<std::string>& cols);
   virtual dftable_base* rename_cols(const std::string& name,
                                     const std::string& name2);
+  virtual bool need_materialize() {return false;}
 
   // change internal data to save memory
   // so returns dftable& instead of dftable; cannot make it virtual
@@ -688,6 +711,7 @@ public:
   virtual bool is_right_joinable() {return false;}
   virtual void debug_print();
   virtual dftable_base* clone();
+  virtual dftable_base* drop_cols(const std::vector<std::string>& cols);
   virtual dftable_base* rename_cols(const std::string& name,
                                     const std::string& name2);
 
@@ -771,6 +795,7 @@ public:
   virtual bool is_right_joinable() {return false;}
   virtual void debug_print();
   virtual dftable_base* clone();
+  virtual dftable_base* drop_cols(const std::vector<std::string>& cols);
   virtual dftable_base* rename_cols(const std::string& name,
                                     const std::string& name2);
 
@@ -847,6 +872,7 @@ public:
   virtual bool is_right_joinable() {return false;}
   virtual void debug_print();
   virtual dftable_base* clone();
+  virtual dftable_base* drop_cols(const std::vector<std::string>& cols);
   virtual dftable_base* rename_cols(const std::string& name,
                                     const std::string& name2);
 
@@ -921,6 +947,7 @@ public:
   virtual bool is_right_joinable() {return false;}
   virtual void debug_print();
   virtual dftable_base* clone();
+  virtual dftable_base* drop_cols(const std::vector<std::string>& cols);
   virtual dftable_base* rename_cols(const std::string& name,
                                     const std::string& name2);
 
