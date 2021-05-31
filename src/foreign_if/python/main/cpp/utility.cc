@@ -258,6 +258,14 @@ extern "C" {
     return vec;
   }
 
+  // converison : ulong* (pointer-to-unsigned-long-array) => std::vector<unsigned long>
+  std::vector<unsigned long> 
+  to_ulong_vector(unsigned long* data, ulong sz) {
+    std::vector<unsigned long> vec(sz);
+    for(size_t i = 0; i < sz; ++i) vec[i] = data[i];
+    return vec;
+  }
+
   // converison : float* (pointer-to-float-array) => std::vector<float>
   std::vector<float> 
   to_float_vector(float* data, ulong sz) {
@@ -281,4 +289,22 @@ extern "C" {
     for(size_t i = 0; i < sz; ++i) vec[i] = static_cast<float>(data[i]);
     return vec;
   }
+
+  void get_exrpc_result(std::vector<frovedis::exrpc_ptr_t>& eps,
+                        std::vector<frovedis::exrpc_result
+                        <frovedis::exrpc_ptr_t>>& res,
+                        size_t wsize) {
+    size_t i = 0;
+    try {
+      for(; i < wsize; ++i) eps[i] = res[i].get();
+    } catch(std::exception& e) {
+      set_status(true,e.what());
+      try { // consume other result
+        for(; i < wsize; ++i) eps[i] = res[i].get();
+      } catch (std::exception& e) {
+        ; // already get the exception
+      }
+    }
+  }
+
 }
