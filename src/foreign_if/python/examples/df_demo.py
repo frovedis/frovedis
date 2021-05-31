@@ -96,11 +96,11 @@ joined.release()
 
 # miscellaneous
 # all column count, sum, max, mkin for all columns
-print ("all count: ", fdf1.agg(["count", "sum", "max", "min"])) 
+print ("all count: \n", fdf1.agg(["count", "sum", "max", "min"])) 
 # column specific agg operations 
-print ("std(Age): ", fdf1.agg({"Age": ["std"]})); print("\n")
-print ("count(Country): ", fdf1.agg({"Country": ["count"]})) ; print("\n")
-print ("sum(isMale): ", fdf1.agg({"isMale": ["sum"]})) ;  print("\n")
+print ("std(Age): \n", fdf1.agg({"Age": ["std"]})); print("\n")
+print ("count(Country): \n", fdf1.agg({"Country": ["count"]})) ; print("\n")
+print ("sum(isMale): \n", fdf1.agg({"isMale": ["sum"]})) ;  print("\n")
 
 # append column
 fdf4 = fdf.DataFrame(pdf1)
@@ -136,6 +136,8 @@ crs_mat2.release()
 info.save("./out/info")
 info.release()
 
+print(fdf1.drop(columns=["Age"]))
+print(fdf1.isnull().to_pandas_dataframe())
 fdf1.release()
 fdf2.release()
 
