@@ -325,6 +325,7 @@ void expose_frovedis_model_functions() {
   expose((single_gmm_predict<R_LMAT1,GMM1>));  
   expose((frovedis_gmm_predict<R_MAT1,GMM1>));
   expose((frovedis_gmm_predict<R_MAT2,GMM2>));
+  expose((single_gmm_predict_proba<DT1,R_LMAT1,GMM1>));  
   expose((frovedis_gmm_predict_proba<DT1,R_MAT1,GMM1>));
   expose((frovedis_gmm_predict_proba<DT2,R_MAT2,GMM2>));    
   expose(get_gmm_weights<DT1>);         // for python
