@@ -40,16 +40,51 @@ dftable dftable_base::select(const std::vector<std::string>& cols) {
 
 dftable dftable_base::materialize(){return select(columns());}
 
+std::vector<int> 
+construct_isnull_column(size_t size, 
+                        const std::vector<size_t>& nullpos) {
+  auto ret = vector_zeros<int>(size);
+  auto rptr = ret.data();
+  auto nptr = nullpos.data();
+  auto nullsz = nullpos.size();
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+  for(size_t i = 0; i < nullsz; ++i) rptr[nptr[i]] = 1;
+  return ret;
+}
+
+dftable dftable_base::isnull(const std::vector<std::string>& cols) {
+  dftable ret;
+  for (auto& c: cols) {
+    auto dfcol = column(c);
+    auto sizes = make_node_local_scatter(dfcol->sizes());
+    auto nullpos = dfcol->get_nulls();
+    auto isnull_col = sizes.map(construct_isnull_column, nullpos)
+                           .moveto_dvector<int>();
+    ret.append_column(c, std::move(isnull_col));
+  }
+  return ret;
+}
+
 sorted_dftable dftable_base::sort(const std::string& name) {
   node_local<std::vector<size_t>> idx;
-  auto sorted_column = column(name)->sort(idx);
-  return sorted_dftable(*this, std::move(idx), name, std::move(sorted_column));
+  auto to_sort_column = column(name);
+  auto sorted_column = to_sort_column->sort(idx);
+  if(to_sort_column->if_contain_nulls())
+    return sorted_dftable(*this, std::move(idx));
+  else
+    return sorted_dftable(*this, std::move(idx), name, std::move(sorted_column));
 }
 
 sorted_dftable dftable_base::sort_desc(const std::string& name) {
   node_local<std::vector<size_t>> idx;
-  auto sorted_column = column(name)->sort_desc(idx);
-  return sorted_dftable(*this, std::move(idx), name, std::move(sorted_column));
+  auto to_sort_column = column(name);
+  auto sorted_column = to_sort_column->sort_desc(idx);
+  if(to_sort_column->if_contain_nulls())
+    return sorted_dftable(*this, std::move(idx));
+  else
+    return sorted_dftable(*this, std::move(idx), name, std::move(sorted_column));
 }
 
 void join_column_name_check(const std::map<std::string,
@@ -461,6 +496,10 @@ size_t dftable_base::count(const std::string& name) {
 
 double dftable_base::avg(const std::string& name) {
   return column(name)->avg();
+}
+
+double dftable_base::std(const std::string& name) {
+  return column(name)->std();
 }
 
 std::shared_ptr<dfcolumn> dftable_base::raw_column(const std::string& name) {
@@ -944,9 +983,19 @@ void drop_impl(const std::string& name,
                   col_order.end());
 }
 
+dftable_base* dftable_base::drop_cols(const std::vector<std::string>& cols) { 
+  for(auto& c: cols) drop_impl(c, col, col_order);
+  return this;
+}
+
 dftable& dftable::drop(const std::string& name) {
   drop_impl(name, col, col_order);
   return *this;
+}
+
+dftable_base* dftable::drop_cols(const std::vector<std::string>& cols) { 
+  for(auto& c: cols) drop(c);
+  return this;
 }
 
 void rename_impl(const std::string& name, const std::string& name2,
@@ -1545,7 +1594,8 @@ union_tables_create_global_idx
   return r;
 }
 
-dftable dftable::union_tables(std::vector<dftable>& ts, bool keep_order) {
+dftable dftable::union_tables(std::vector<dftable *>& ts, bool keep_order,
+                              bool keep_dftable) {
   time_spent t(DEBUG);
   auto table_size = ts.size();
   if(table_size == 0) return *this;
@@ -1556,8 +1606,8 @@ dftable dftable::union_tables(std::vector<dftable>& ts, bool keep_order) {
       num_rows.push_back(column(col_order[0])->sizes());
     }
     for(size_t i = 0; i < table_size; i++) {
-      if(ts[i].col_order.size() != 0) {
-        num_rows.push_back(ts[i].column(ts[i].col_order[0])->sizes());
+      if(ts[i]->col_order.size() != 0) {
+        num_rows.push_back(ts[i]->column(ts[i]->col_order[0])->sizes());
       }
     }
   }
@@ -1568,12 +1618,12 @@ dftable dftable::union_tables(std::vector<dftable>& ts, bool keep_order) {
     auto col = column(colname);
     std::vector<std::shared_ptr<dfcolumn>> to_union;
     for(size_t j = 0; j < table_size; j++) {
-      to_union.push_back(ts[j].column(colname));
+      to_union.push_back(ts[j]->column(colname));
     }
     auto newcolumn = col->union_columns(to_union);
-    drop(colname);
+    if(!keep_dftable) drop(colname);
     for(size_t j = 0; j < table_size; j++) {
-      ts[j].drop(colname);
+      if(!keep_dftable) ts[j]->drop(colname);
     }
     r.append_column(colname, newcolumn);
     t.show("union_tables: union columns: " + colname + ": ");
@@ -1600,6 +1650,27 @@ dftable dftable::union_tables(std::vector<dftable>& ts, bool keep_order) {
 
 dftable dftable::distinct() {
   return group_by(columns()).select(columns());
+}
+
+dftable dftable::drop_duplicates(const std::vector<std::string>& cols,
+                                 const std::string& keep) {
+  if(keep != "first" and keep != "last") 
+    REPORT_ERROR(USER_ERROR, 
+       "drop_duplicates: either first or last value can be kept!\n");
+
+  // assuming these names can not be in this->columns()
+  std::string tmpid = "tmp_index_", r_key = "t_join_r_key_";
+  std::shared_ptr<dfaggregator> agg;
+  if (keep == "first") agg = min_as(tmpid, r_key); 
+  else                 agg = max_as(tmpid, r_key); 
+
+  auto& left = append_rowid(tmpid); // adding int index to self
+  auto right = left.group_by(cols).select(cols, {agg});
+  // rename for join
+  for(size_t i = 0; i < cols.size(); ++i) right.rename(cols[i], cols[i] + "_");
+  auto ret = left.bcast_join(right, eq(tmpid, r_key));
+  left.drop(tmpid); // dropping tmpid from self
+  return ret.select(left.columns());
 }
 
 std::vector<size_t>
@@ -1757,14 +1828,24 @@ dftable sorted_dftable::select(const std::vector<std::string>& cols) {
 
 sorted_dftable sorted_dftable::sort(const std::string& name) {
   node_local<std::vector<size_t>> idx;
-  auto sorted_column = column(name)->sort_with_idx(global_idx, idx);
-  return sorted_dftable(*this, std::move(idx), name, std::move(sorted_column));
+  auto to_sort_column = column(name);
+  auto sorted_column = to_sort_column->sort_with_idx(global_idx, idx);
+  if(to_sort_column->if_contain_nulls())
+    return sorted_dftable(*this, std::move(idx));
+  else
+    return sorted_dftable(*this, std::move(idx), name,
+                          std::move(sorted_column));
 }
 
 sorted_dftable sorted_dftable::sort_desc(const std::string& name) {
   node_local<std::vector<size_t>> idx;
-  auto sorted_column = column(name)->sort_with_idx_desc(global_idx, idx);
-  return sorted_dftable(*this, std::move(idx), name, std::move(sorted_column));
+  auto to_sort_column = column(name);
+  auto sorted_column = to_sort_column->sort_with_idx_desc(global_idx, idx);
+  if(to_sort_column->if_contain_nulls())
+    return sorted_dftable(*this, std::move(idx));
+  else
+    return sorted_dftable(*this, std::move(idx), name,
+                          std::move(sorted_column));
 }
 
 hash_joined_dftable
@@ -2916,6 +2997,11 @@ sorted_dftable& sorted_dftable::drop(const std::string& name) {
   return *this;
 }
 
+dftable_base* sorted_dftable::drop_cols(const std::vector<std::string>& cols) {
+  for(auto& c: cols) drop(c);
+  return this;
+}
+
 hash_joined_dftable& hash_joined_dftable::drop(const std::string& name) {
   bool in_left = col.find(name) != col.end();
   bool in_right = right.col.find(name) != right.col.end();
@@ -2926,6 +3012,11 @@ hash_joined_dftable& hash_joined_dftable::drop(const std::string& name) {
   return *this;
 }
 
+dftable_base* hash_joined_dftable::drop_cols(const std::vector<std::string>& cols) {
+  for(auto& c: cols) drop(c);
+  return this;
+}
+
 bcast_joined_dftable& bcast_joined_dftable::drop(const std::string& name) {
   bool in_left = col.find(name) != col.end();
   bool in_right = right.col.find(name) != right.col.end();
@@ -2934,6 +3025,11 @@ bcast_joined_dftable& bcast_joined_dftable::drop(const std::string& name) {
   else if (in_right) drop_impl(name, right.col, right.col_order);
   else throw std::runtime_error("no such column: " + name);
   return *this;
+}
+
+dftable_base* bcast_joined_dftable::drop_cols(const std::vector<std::string>& cols) {
+  for(auto& c: cols) drop(c);
+  return this;
 }
 
 star_joined_dftable& star_joined_dftable::drop(const std::string& name) {
@@ -2950,6 +3046,11 @@ star_joined_dftable& star_joined_dftable::drop(const std::string& name) {
     if (!found) throw std::runtime_error("no such column: " + name);
   }
   return *this;
+}
+
+dftable_base* star_joined_dftable::drop_cols(const std::vector<std::string>& cols) {
+  for(auto& c: cols) drop(c);
+  return this;
 }
 
 }
