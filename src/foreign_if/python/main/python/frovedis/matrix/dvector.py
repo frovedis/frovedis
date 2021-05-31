@@ -1,15 +1,18 @@
-#!/usr/bin/env python
+"""
+dvector.py: contains the implementation of frovedis distributed vector
+"""
 
 from ..exrpc import rpclib
 from ..exrpc.server import FrovedisServer
-from .dtype import TypeUtil, DTYPE
-from ctypes import c_char_p, c_int, c_long, c_float, c_double, POINTER
+from .dtype import TypeUtil, DTYPE, get_string_array_pointer
+from ctypes import c_char_p, c_int, c_long, c_ulong, c_float, c_double, POINTER
 import numpy as np
 
-
 class FrovedisDvector:
-    """A python container for holding Frovedis server side
-    dvector<double> pointers"""
+    """
+    A python container for holding Frovedis server side
+    dvector<double> pointers
+    """
 
     def __init__(self, vec=None, dtype=None):  # constructor
         self.__dtype = dtype
@@ -49,8 +52,8 @@ class FrovedisDvector:
     def load_numpy_array(self, vec, dtype=None):
         self.release()
         if vec.ndim > 1:
-            raise ValueError(
-                "Input dimension is more than 1 (Expect: Array, Got: Matrix)")
+            raise ValueError(\
+            "Input dimension is more than 1 (Expected: Array, Got: Matrix)")
         if dtype is None: dtype = self.__dtype
         else: self.__dtype = dtype
         if self.__dtype is None:
@@ -67,6 +70,9 @@ class FrovedisDvector:
         elif data_type == DTYPE.LONG:
             dvec = rpclib.create_frovedis_long_dvector(host, port, data_vector,
                                                        data_size)
+        elif data_type == DTYPE.ULONG:
+            dvec = rpclib.create_frovedis_ulong_dvector(host, port, data_vector,
+                                                        data_size)
         elif data_type == DTYPE.FLOAT:
             dvec = rpclib.create_frovedis_float_dvector(host, port,
                                                         data_vector, data_size)
@@ -75,9 +81,7 @@ class FrovedisDvector:
                                                          data_vector,
                                                          data_size)
         elif data_type == DTYPE.STRING:
-            ptr_arr = (c_char_p * data_size)()
-            data_vector = np.array([e.encode('ascii') for e in data_vector])
-            ptr_arr[:] = data_vector
+            ptr_arr = get_string_array_pointer(data_vector)
             dvec = rpclib.create_frovedis_string_dvector(host, port, ptr_arr,
                                                          data_size)
         else:
@@ -99,6 +103,15 @@ class FrovedisDvector:
             raise TypeError("[INTERNAL ERROR] Invalid input encountered.")
         return self
 
+    def reset(self):
+        """ 
+        to reset the instance members. It expects user program will explicitly
+        free dvector memory from server heap
+        """
+        self.__fdata = None
+        self.__dtype = None
+        self.__size = 0
+        
     def release(self):
         if self.__fdata is not None:
             (host, port) = FrovedisServer.getServerInstance()
@@ -119,6 +132,10 @@ class FrovedisDvector:
             excpt = rpclib.check_server_exception()
             if excpt["status"]:
                 raise RuntimeError(excpt["info"])
+            if self.get_dtype() == DTYPE.STRING:
+                print("dtype: string")
+            else:
+                print("dtype: %s" % TypeUtil.to_numpy_dtype(self.get_dtype()))
 
     def get(self):
         return self.__fdata
@@ -129,8 +146,10 @@ class FrovedisDvector:
     def get_dtype(self):
         return TypeUtil.to_id_dtype(self.__dtype)
 
-    # def __del__(cls): # destructor
-    #   if FrovedisServer.isUP(): cls.release()
+    def __del__(self): 
+        """ destructs a dvector object from server heap """
+        if FrovedisServer.isUP(): 
+            self.release()
 
     def encode(self, src=None, target=None, need_logic=False):
         if src is None and target is None:
@@ -180,6 +199,12 @@ class FrovedisDvector:
                 proxy = rpclib.encode_frovedis_long_dvector(host, port,
                                                             self.get(),
                                                             sptr, tptr, sz)
+            elif dt == DTYPE.ULONG:
+                sptr = src.ctypes.data_as(POINTER(c_ulong))
+                tptr = target.ctypes.data_as(POINTER(c_ulong))
+                proxy = rpclib.encode_frovedis_ulong_dvector(host, port,
+                                                             self.get(),
+                                                             sptr, tptr, sz)
             elif dt == DTYPE.FLOAT:
                 sptr = src.ctypes.data_as(POINTER(c_float))
                 tptr = target.ctypes.data_as(POINTER(c_float))
@@ -217,6 +242,16 @@ class FrovedisDvector:
                 raise RuntimeError(excpt["info"])
             return ret
 
+    def to_numpy_array(self):
+        if self.__fdata:
+            (host, port) = FrovedisServer.getServerInstance()
+            ret = rpclib.dvector_to_numpy_array(host, port, \
+                    self.get(), self.get_dtype(), self.size())
+            excpt = rpclib.check_server_exception()
+            if excpt["status"]:
+                raise RuntimeError(excpt["info"])
+            return np.asarray(ret)
+
     @staticmethod
     def as_dvec(vec, dtype=None, retIsConverted=False):
         if isinstance(vec, FrovedisDvector):
@@ -232,8 +267,6 @@ class FrovedisIntDvector(FrovedisDvector):
 
     def __init__(self, vec=None):
         FrovedisDvector.__init__(self, vec=vec, dtype=np.int32)
-        if vec is not None:
-            self.load(vec)
 
     @staticmethod
     def as_dvec(vec):
@@ -242,14 +275,11 @@ class FrovedisIntDvector(FrovedisDvector):
         else:
             return FrovedisIntDvector(vec)
 
-
 class FrovedisLongDvector(FrovedisDvector):
     """ A python Container handles long integer type dvector"""
 
     def __init__(self, vec=None):
         FrovedisDvector.__init__(self, vec=vec, dtype=np.int64)
-        if vec is not None:
-            self.load(vec)
 
     @staticmethod
     def as_dvec(vec):
@@ -259,14 +289,25 @@ class FrovedisLongDvector(FrovedisDvector):
         else:
             return FrovedisLongDvector(vec)
 
+class FrovedisULongDvector(FrovedisDvector):
+    """ A python Container handles unsigned long (size_t) type dvector"""
+
+    def __init__(self, vec=None):
+        FrovedisDvector.__init__(self, vec=vec, dtype=np.uint)
+
+    @staticmethod
+    def as_dvec(vec):
+        """as_dvec"""
+        if isinstance(vec, FrovedisULongDvector):
+            return vec
+        else:
+            return FrovedisULongDvector(vec)
 
 class FrovedisFloatDvector(FrovedisDvector):
     """A Python container contains float type dvector"""
 
     def __init__(self, vec=None):
         FrovedisDvector.__init__(self, vec=vec, dtype=np.float32)
-        if vec is not None:
-            self.load(vec)
 
     @staticmethod
     def as_dvec(vec):
@@ -276,14 +317,11 @@ class FrovedisFloatDvector(FrovedisDvector):
         else:
             return FrovedisFloatDvector(vec)
 
-
 class FrovedisDoubleDvector(FrovedisDvector):
     """A python Container handles double type dvector"""
 
     def __init__(self, vec=None):
         FrovedisDvector.__init__(self, vec=vec, dtype=np.float64)
-        if vec is not None:
-            self.load(vec)
 
     @staticmethod
     def as_dvec(vec):
@@ -293,14 +331,11 @@ class FrovedisDoubleDvector(FrovedisDvector):
         else:
             return FrovedisDoubleDvector(vec)
 
-
 class FrovedisStringDvector(FrovedisDvector):
     """A python Container handles string type dvector"""
 
     def __init__(self, vec=None):
         FrovedisDvector.__init__(self, vec=vec, dtype=np.dtype(str))
-        if vec is not None:
-            self.load(vec)
 
     @staticmethod
     def as_dvec(vec):
