@@ -832,53 +832,6 @@ frov_df_drop_duplicates(exrpc_ptr_t& df_proxy,
   return to_dummy_dftable(retp);
 }
 
-template <class T>
-bool check_unique_column_hepler(std::vector<T> vec){
-  int check = 1;
-    auto values = std::vector<size_t>(vec.size(), 0); // dummy vector
-    auto htable_obj = unique_hashtable<T, size_t>(vec, values, check);
-    return check != 0;
-}
-
-bool check_unique_column(dftable& df, std::string col_name) {
-    auto df_col = df.column(col_name);
-    auto col_type = df_col->dtype();
-    bool res = true;
-
-    switch(get_numeric_dtype(col_type)) {
-      case INT:    { auto vec = df_col->as_dvector<int>().gather();
-                    res = check_unique_column_hepler(vec);
-                    break; }
-
-      case LONG:   { auto vec = df_col->as_dvector<long>().gather();
-                     res = check_unique_column_hepler(vec);
-                     break; }
-      
-      case FLOAT:  { auto vec = df_col->as_dvector<float>().gather();
-                     res = check_unique_column_hepler(vec);
-                     break; }
-
-      case DOUBLE: { auto vec = df_col->as_dvector<double>().gather();
-                     res = check_unique_column_hepler(vec);
-                     break; }
-
-      case STRING: { auto typed_dfcol = std::dynamic_pointer_cast<typed_dfcolumn<dic_string>>(df_col);
-                     auto nl_ids = typed_dfcol->val; // node_local < vec<size_t> >
-                     auto vec = nl_ids.as_dvector<size_t>().gather();
-                     res = check_unique_column_hepler(vec);
-                     break;}
-
-      case ULONG:  { auto vec = df_col->as_dvector<ulong>().gather();
-                     res = check_unique_column_hepler(vec);
-                     break; }
-
-      default:     REPORT_ERROR(USER_ERROR,
-                   " check_unique_column: Invalid type for uniqueness check!\n");
-    }
-
-    return res;
-}
-
 dummy_dftable
 frov_df_set_index(exrpc_ptr_t& df_proxy, 
                   std::string& cur_index_name, // existing index column
@@ -933,7 +886,6 @@ frov_df_union(exrpc_ptr_t& df_proxy, std::vector<exrpc_ptr_t>& proxies,
     if ( !is_uniq )
       REPORT_ERROR(USER_ERROR,"Indexes have overlapping values!\n");
   }
-
   return to_dummy_dftable(union_df);
 }
 
@@ -948,6 +900,26 @@ frov_df_set_col_order(exrpc_ptr_t& df_proxy,
   else dftblp = reinterpret_cast<dftable*>(df_proxy);
   if (!dftblp) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed.\n");
   dftblp->set_col_order(new_cols);
-  
+  return to_dummy_dftable(dftblp);
+}
+
+dummy_dftable
+frov_df_astype(exrpc_ptr_t& df_proxy,
+               std::vector<std::string>& cols,
+               std::vector<short>& types) {
+  dftable* dftblp = NULL;
+  auto base_dftblp = reinterpret_cast<dftable_base*>(df_proxy);
+  if(base_dftblp->need_materialize())
+    dftblp = new dftable(base_dftblp->materialize());
+  else  dftblp = reinterpret_cast<dftable*>(df_proxy);
+  if (!dftblp) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed.\n");
+
+  checkAssumption(cols.size() == types.size());
+  for (size_t i = 0; i < cols.size(); ++i) {
+    auto c = cols[i];
+    dftblp->rename(c, c + "__temp");
+    dftblp->type_cast(c + "__temp", c, get_string_dtype(types[i]));
+    dftblp->drop(c + "__temp"); 
+  }
   return to_dummy_dftable(dftblp);
 }

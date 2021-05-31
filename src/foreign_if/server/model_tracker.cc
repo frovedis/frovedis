@@ -103,4 +103,14 @@ int get_numeric_dtype(const std::string& dt) {
   else throw std::runtime_error(dt + ": unsupported dtype encountered!\n");
 }
 
+std::string get_string_dtype(short dt) {
+  if (dt == INT) return "int"; 
+  else if (dt == LONG) return "long"; 
+  else if (dt == FLOAT) return "float"; 
+  else if (dt == DOUBLE) return "double"; 
+  else if (dt == STRING) return "dic_string"; 
+  else if (dt == ULONG) return "unsigned long";
+  else throw std::runtime_error(STR(dt) + ": unsupported dtype encountered!\n");
+}
+
 }

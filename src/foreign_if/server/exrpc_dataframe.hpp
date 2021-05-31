@@ -226,6 +226,15 @@ dummy_dftable
 frov_df_union(exrpc_ptr_t& df_proxy, std::vector<exrpc_ptr_t>& proxies,
               bool& ignore_index, bool& verify_integrity, bool& sort);
 
+dummy_dftable
+frov_df_astype(exrpc_ptr_t& df_proxy,
+               std::vector<std::string>& cols,
+               std::vector<short>& types);
+
+dummy_dftable
+frov_df_set_col_order(exrpc_ptr_t& df_proxy,
+                      std::vector<std::string>& new_cols);
+
 template <class T>
 exrpc_ptr_t get_df_column_pointer(exrpc_ptr_t& df_proxy, 
                                   std::string& cname) {
@@ -252,9 +261,5 @@ frov_df_copy_index(exrpc_ptr_t& to_df,
   to_df_p->set_index(cname);
   return to_dummy_dftable(to_df_p);
 }
-
-dummy_dftable
-frov_df_set_col_order(exrpc_ptr_t& df_proxy,
-                    std::vector<std::string>& new_cols);
 
 #endif
