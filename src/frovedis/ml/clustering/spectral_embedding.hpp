@@ -138,7 +138,7 @@ spectral_embedding_impl(rowmajor_matrix<T>& mat,
     auto gdata = get_global_data(mat);
     if(input_movable) mat.clear();
     aff_t.lap_start();
-    affinity = construct_distance_matrix(gdata,true); //locally created "gdata" is movable
+    affinity = construct_distance_matrix<T>(gdata,true); //locally created "gdata" is movable
     aff_t.lap_stop();
     if(SAVE) affinity.save("./dump/distance");
     aff_t.lap_start();
