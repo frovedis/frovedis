@@ -135,15 +135,25 @@ local_to_global_idx(node_local<std::vector<size_t>>& local_idx);
 sorted_dftable filtered_dftable::sort(const std::string& name) {
   auto global_idx = local_to_global_idx(filtered_idx);
   node_local<std::vector<size_t>> idx;
+  auto to_sort_column = column(name);
   auto sorted_column = column(name)->sort_with_idx(global_idx, idx);
-  return sorted_dftable(*this, std::move(idx), name, std::move(sorted_column));
+  if(to_sort_column->if_contain_nulls())
+    return sorted_dftable(*this, std::move(idx));
+  else
+    return sorted_dftable(*this, std::move(idx), name,
+                          std::move(sorted_column));
 }
 
 sorted_dftable filtered_dftable::sort_desc(const std::string& name) {
   auto global_idx = local_to_global_idx(filtered_idx);
   node_local<std::vector<size_t>> idx;
+  auto to_sort_column = column(name);
   auto sorted_column = column(name)->sort_with_idx_desc(global_idx, idx);
-  return sorted_dftable(*this, std::move(idx), name, std::move(sorted_column));
+  if(to_sort_column->if_contain_nulls())
+    return sorted_dftable(*this, std::move(idx));
+  else
+    return sorted_dftable(*this, std::move(idx), name,
+                          std::move(sorted_column));
 }
 
 size_t filtered_dftable::num_row() {
@@ -489,5 +499,18 @@ dfoperator_and::bcast_join(dftable_base& left, dftable_base& right,
   idx_pair.second = std::move(joined_table.get_right_idx());
   return idx_pair;
 }
+
+filtered_dftable& filtered_dftable::drop(const std::string& name) {
+  col.erase(name);
+  col_order.erase(std::remove(col_order.begin(), col_order.end(), name),
+                  col_order.end());
+  return *this;
+}
+
+dftable_base* filtered_dftable::drop_cols(const std::vector<std::string>& cols) {
+  for(auto& c: cols) drop(c);
+  return this;
+}
+
 
 }
