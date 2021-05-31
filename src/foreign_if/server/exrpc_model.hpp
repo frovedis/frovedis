@@ -129,6 +129,25 @@ T single_generic_predict(exrpc_ptr_t& f_dptr, int& mid) {
   return ret;
 }
 
+//For: LNR (spark only)
+template <class T, class MATRIX, class MODEL>
+T single_lnrm_predict(exrpc_ptr_t& f_dptr, int& mid) {
+  auto matptr = reinterpret_cast<MATRIX*>(f_dptr);
+  MATRIX& mat = *matptr;
+  MODEL& est = *get_model_ptr<MODEL>(mid);
+#ifdef _EXRPC_DEBUG_
+  std::cout << "Connected with master node to perform single generic prediction with model:\n";
+  est.debug_print();
+  std::cout << "with test data: \n";
+  mat.debug_print();
+#endif
+  // predict returns std::vector<T>. 
+  // In single input prediction case, a vector of single 'T' type data only [0]
+  auto ret = est.model.predict(mat)[0];
+  delete matptr; // it is internally created at spark side predict(Vector)
+  return ret;
+}
+
 template <class T, class MATRIX, class MODEL>
 std::vector<T> 
 parallel_predict_at_worker(MATRIX& data, MODEL& model) {
@@ -161,58 +180,36 @@ parallel_generic_predict(exrpc_ptr_t& mat_ptr, int& mid, bool& prob) {
 }
 
 // --- Prediction related functions on glm ---
-template <class T, class L_MATRIX, class MODEL>
-std::vector<T> 
-predict_lrm_at_worker(L_MATRIX& mat, MODEL& model, bool& prob) {
-  if (mat.local_num_row < 1) return std::vector<T>();
-  if(prob) return model.compute_probability_matrix(mat).val;
-  else {
-    // for spark: if threshold is cleared, it will always return raw probability values
-    auto thr = model.get_threshold();
-    if (thr == NONE) return model.predict_probability(mat);
-    else             return model.predict(mat);
-  }
-}
 
 // multiple inputs: prediction done in parallel in worker nodes
-template <class T, class MATRIX, class L_MATRIX, class MODEL>
+template <class T, class MATRIX, class MODEL>
 std::vector<T> 
 parallel_lrm_predict(exrpc_ptr_t& mat_ptr, int& mid, bool& prob) {  
   MATRIX& mat = *reinterpret_cast<MATRIX*> (mat_ptr);
   MODEL& model = *get_model_ptr<MODEL>(mid);
-  auto bmodel = model.broadcast(); 
-  return mat.data.map(predict_lrm_at_worker<T,L_MATRIX,MODEL>,
-                      bmodel, broadcast(prob))
-                 .template moveto_dvector<T>().gather();
+  if(prob) return model.compute_probability_matrix(mat).val;
+  else return model.predict(mat);
 }
 
-template <class T, class MATRIX, class L_MATRIX>
+template <class T, class MATRIX, class L_MATRIX, class MODEL>
 std::vector<T>
 parallel_lnrm_predict(exrpc_ptr_t& mat_ptr, int& mid, bool& prob) {
   MATRIX& mat = *reinterpret_cast<MATRIX*> (mat_ptr);
-  auto& model = *get_model_ptr<linear_regression_model<T>>(mid);
-  auto bmodel = model.broadcast();
+  auto& model = *get_model_ptr<MODEL>(mid);
   std::vector<T> ret;
   if(prob) REPORT_ERROR(USER_ERROR, "predict_proba: not applicable for regression model!\n");
-  else ret = mat.data.map(parallel_predict_at_worker<T,L_MATRIX,
-                          linear_regression_model<T>>,
-                          bmodel)
-                     .template moveto_dvector<T>().gather();
+  else ret = model.predict(mat);
   return ret;
 }
 
-template <class T, class MATRIX, class L_MATRIX>
+template <class T, class MATRIX, class L_MATRIX, class MODEL>
 std::vector<T>
 parallel_svm_predict(exrpc_ptr_t& mat_ptr, int& mid, bool& prob) {
   MATRIX& mat = *reinterpret_cast<MATRIX*> (mat_ptr);
-  auto& model = *get_model_ptr<svm_model<T>>(mid);
-  auto bmodel = model.broadcast();
+  auto& model = *get_model_ptr<MODEL>(mid);
   std::vector<T> ret;
   if(prob) REPORT_ERROR(USER_ERROR, "predict_proba: not applicable for svm model!\n");
-  else ret = mat.data.map(parallel_predict_at_worker<T,L_MATRIX,
-                          svm_model<T>>,
-                          bmodel)
-                     .template moveto_dvector<T>().gather();
+  else ret = model.predict(mat);
   return ret;
 }
 
@@ -221,17 +218,16 @@ template <class T, class MATRIX, class MODEL>
 T single_glm_predict(exrpc_ptr_t& f_dptr, int& mid) {
   auto matptr = reinterpret_cast<MATRIX*>(f_dptr);
   MATRIX& mat = *matptr;
-  MODEL& model = *get_model_ptr<MODEL>(mid);
+  MODEL& est = *get_model_ptr<MODEL>(mid);
 #ifdef _EXRPC_DEBUG_
   std::cout << "Connected with master node to perform single glm prediction with model:\n";
-  model.debug_print();
+  est.debug_print();
   std::cout << "with test data: \n";
   mat.debug_print();
 #endif
-  auto thr = model.get_threshold();
-  // predict/predictProbability returns std::vector<T>. 
-  // In single input prediction case, a vector of single 'T' type data only [0]
-  auto ret = (thr == NONE) ? model.predict_probability(mat)[0] : model.predict(mat)[0];
+  T ret = 0;
+  if(est.is_mult) ret = est.model_mult.predict(mat)[0];
+  else ret = est.model_bin.predict(mat)[0];
   delete matptr; // it is internally created at spark side predict(Vector)
   return ret;
 }
@@ -498,9 +494,9 @@ dummy_glm load_glm(int& mid, MODEL_KIND& mkind, std::string& path) {
   return dummy_glm(mid,mkind,nftr,ncls,thr);
 }
 
-template <class T>
+template <class MODEL>
 dummy_glm load_lnrm(int& mid, MODEL_KIND& mkind, std::string& path) {
-  auto mptr = new linear_regression_model<T>();
+  auto mptr = new MODEL();
   if(!mptr) REPORT_ERROR(INTERNAL_ERROR,"memory allocation failed!\n");
   mptr->loadbinary(path); // for faster loading
 #ifdef _EXRPC_DEBUG_
@@ -660,6 +656,28 @@ frovedis_gmm_predict(exrpc_ptr_t& mat_ptr, int& mid) {
   MODEL& est = *get_model_ptr<MODEL>(mid);
   return est.predict(mat);
 }
+
+// single input: prediction done in master node
+template <class MATRIX, class MODEL>
+int single_gmm_predict(exrpc_ptr_t& f_dptr, int& mid) {
+  MATRIX& data = *reinterpret_cast<MATRIX*>(f_dptr);
+  MODEL& est = *get_model_ptr<MODEL>(mid);
+#ifdef _EXRPC_DEBUG_
+  std::cout << "Connected with master node to perform single prediction with model:\n";
+  est.debug_print(10);
+  std::cout << "with test data: \n";
+  data.debug_print(10);
+#endif
+  // frovedis::gmm_assign_cluster returns a struct with predict (LOCAL RMJOR MAT)
+  // In single input prediction case, a vector of single 'int' type data only [0]
+  auto weights = est.weights_();
+  auto k = weights.val.size();
+  auto means = est.means_();
+  auto cov = est.covariances_();
+  return gmm_assign_cluster(data, k, means, 
+                            cov, weights).predict.val[0];
+}
+
 
 template <class T, class MATRIX, class MODEL>
 std::vector<T> 
@@ -848,25 +866,19 @@ template <class T, class MODEL>
 std::vector<T> get_weight_vector(int& mid) {
   auto& model = *get_model_ptr<MODEL>(mid);
   std::vector<T> ret;
-  return model.weight;
-}
-
-template <class T, class MODEL>
-std::vector<T> get_weight_as_vector(int& mid) {
-  auto& model = *get_model_ptr<MODEL>(mid);
-  return model.weight.val;
+  return model.get_weight();
 }
 
 template <class T, class MODEL>
 std::vector<T> get_intercept_as_vector(int& mid) {
   auto& model = *get_model_ptr<MODEL>(mid);
-  return std::vector<T>({model.intercept}); // intercept is a scalar quantity for other linear models
+  return model.get_intercept(); // intercept is a scalar quantity for other linear models
 }
 
 template <class T, class MODEL>
 std::vector<T> get_intercept_vector(int& mid) {
   auto& model = *get_model_ptr<MODEL>(mid);
-  return model.intercept; 
+  return model.get_intercept(); 
 }
 
 template <class T, class MODEL>
