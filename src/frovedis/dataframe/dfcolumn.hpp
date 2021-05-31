@@ -202,6 +202,7 @@ public:
   // for whole column
   virtual size_t count() = 0; // exclude null
   template <class T> T sum();
+  virtual double std() = 0;
   virtual double avg() = 0;
   template <class T> T max();
   template <class T> T min();
@@ -271,6 +272,8 @@ public:
   virtual void save(const std::string& file) = 0;
   virtual void contain_nulls_check() = 0;
   virtual node_local<std::vector<size_t>> get_nulls() = 0;
+  virtual bool if_contain_nulls() = 0;
+  virtual bool is_unique() = 0;
 };
 
 template <class T>
@@ -464,6 +467,7 @@ public:
   virtual size_t count();
   T sum();
   virtual double avg();
+  virtual double std();
   T max();
   T min();
   virtual dvector<float> as_dvector_float(); 
@@ -541,6 +545,8 @@ public:
   node_local<std::vector<T>> val;
   node_local<std::vector<size_t>> nulls;
   bool contain_nulls;
+  virtual bool if_contain_nulls(){return contain_nulls;}
+  virtual bool is_unique();
 };
 
 template <class T>
@@ -762,6 +768,9 @@ public:
   virtual double avg() {
     throw std::runtime_error("avg of string is not defined");
   }
+  virtual double std() {
+    throw std::runtime_error("std of string is not defined");
+  }
   std::string max() {
     throw std::runtime_error("max of string is not defined");
   }
@@ -795,6 +804,8 @@ public:
   node_local<std::vector<size_t>> val;
   node_local<std::vector<size_t>> nulls;
   bool contain_nulls;
+  virtual bool if_contain_nulls(){return contain_nulls;}
+  virtual bool is_unique();
 };
 
 struct dic_string {}; // for tag
@@ -1007,6 +1018,9 @@ public:
   virtual double avg() {
     throw std::runtime_error("avg of dic_string is not defined");
   }
+  virtual double std() {
+    throw std::runtime_error("std of dic_string is not defined");
+  }
   dic_string max() {
     throw std::runtime_error("max of dic_string is not defined");
   }
@@ -1040,6 +1054,8 @@ public:
   node_local<std::vector<size_t>> val;
   node_local<std::vector<size_t>> nulls;
   bool contain_nulls;
+  virtual bool if_contain_nulls(){return contain_nulls;}
+  virtual bool is_unique();
 };
 
 struct raw_string {}; // for tag
@@ -1286,6 +1302,9 @@ public:
   virtual double avg() {
     throw std::runtime_error("avg of raw_string is not defined");
   }
+  virtual double std() {
+    throw std::runtime_error("std of raw_string is not defined");
+  }
   raw_string max() {
     throw std::runtime_error("max of raw_string is not defined");
   }
@@ -1322,6 +1341,10 @@ public:
   node_local<compressed_words> comp_words;
   node_local<std::vector<size_t>> nulls;
   bool contain_nulls;
+  virtual bool if_contain_nulls(){return contain_nulls;}
+  virtual bool is_unique() {
+    throw std::runtime_error("is_unique is not defined for raw_string");
+  }
 };
 
 struct datetime {}; // for tag
