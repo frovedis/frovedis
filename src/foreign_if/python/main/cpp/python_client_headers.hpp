@@ -72,9 +72,17 @@ extern "C" {
   std::vector<std::string> to_string_vector(const char** data, ulong sz);
   std::vector<int> to_int_vector(int* data, ulong sz);
   std::vector<long> to_long_vector(long* data, ulong sz);
+  std::vector<unsigned long> to_ulong_vector(unsigned long* data, ulong sz);
   std::vector<float> to_float_vector(float* data, ulong sz);
   std::vector<double> to_double_vector(double* data, ulong sz);
   std::vector<float> double_to_float_vector(double* data, ulong sz);
+
+  // parallel data transfer
+  void get_exrpc_result(std::vector<frovedis::exrpc_ptr_t>& eps,
+                        std::vector<frovedis::exrpc_result
+                        <frovedis::exrpc_ptr_t>>& res,
+                        size_t wsize);
+
 }
 
 #endif
