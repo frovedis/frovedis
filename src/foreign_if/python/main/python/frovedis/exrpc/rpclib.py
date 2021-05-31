@@ -240,6 +240,12 @@ df_copy_index.argtypes = [c_char_p, c_int, c_long, c_long,
                           c_char_p, c_bool, c_short]
 df_copy_index.restype = py_object
 
+df_astype = LIB.df_astype
+df_astype.argtypes = [c_char_p, c_int, c_long, 
+                      POINTER(c_char_p),
+                      POINTER(c_short), c_ulong]
+df_astype.restype = py_object
+
 select_frovedis_dataframe = LIB.select_frovedis_dataframe
 select_frovedis_dataframe.argtypes = [c_char_p, c_int, c_long, \
                                       POINTER(c_char_p), c_ulong]
@@ -399,6 +405,13 @@ df_union.argtypes = [c_char_p, c_int, # host, port
                     c_int, c_bool, # size, ignore_index
                     c_bool, c_bool] # verify_integrity, sort
 df_union.restype = py_object
+
+df_union2 = LIB.df_union2
+df_union2.argtypes = [c_char_p, c_int, # host, port
+                      c_long, POINTER(c_long), # df_proxy, proxies
+                      c_ulong, POINTER(c_char_p), # size, names
+                      c_ulong, c_bool] # names_size, verify_integrity
+df_union2.restype = py_object
 
 df_set_col_order = LIB.df_set_col_order
 df_set_col_order.argtypes = [c_char_p, c_int, # host, port
@@ -1169,6 +1182,7 @@ gmm_train.argtypes = [c_char_p, c_int, c_long, # host, port, data_proxy
                       c_double, c_int , c_int, #tol, max_iter, n_init
                       c_char_p, c_long, c_int, # init_param, seed, verbose
                       c_int, c_short, c_short, c_bool] #mid, dtype, itype, dense
+gmm_train.restype = py_object
 
 gmm_predict = LIB.gmm_predict
 gmm_predict.argtypes = [c_char_p, c_int, c_int,
