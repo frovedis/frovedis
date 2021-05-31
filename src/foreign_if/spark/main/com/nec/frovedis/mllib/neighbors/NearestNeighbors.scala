@@ -16,6 +16,8 @@ class NearestNeighbors(var nNeighbors: Int,
                        var metric: String,
                        var chunkSize: Float) extends java.io.Serializable {
   private var mid: Int = 0 
+  private var mdense: Boolean = false
+
   def this() = this(5, 1.0F, "brute", "euclidean", 1.0F)
 
   def setNNeighbors(nNeighbors: Int): this.type = {
@@ -82,10 +84,11 @@ class NearestNeighbors(var nNeighbors: Int,
     release() // releasing old model (if any)
     this.mid = ModelID.get()
     val fs = FrovedisServer.getServerInstance()
+    mdense = true
     JNISupport.callFrovedisKnnFit(fs.master_node,
                                data.get(), nNeighbors,
                                radius, algorithm, metric,
-                               chunkSize, mid, true)
+                               chunkSize, mid, mdense)
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
     return this
@@ -99,7 +102,7 @@ class NearestNeighbors(var nNeighbors: Int,
     JNISupport.callFrovedisKnnFit(fs.master_node,
                                data.get(), nNeighbors,
                                radius, algorithm, metric,
-                               chunkSize, mid, false)
+                               chunkSize, mid, mdense)
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
     return this
@@ -142,7 +145,7 @@ class NearestNeighbors(var nNeighbors: Int,
     require(mid > 0, "kneighbors() is called before fitting data using run()")
     val fs = FrovedisServer.getServerInstance()
     val knn_res = JNISupport.knnKneighbors(fs.master_node, X.get(), nNeighbors,
-                                           mid, returnDistance, true)
+                                           mid, returnDistance, true, mdense)
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
     val distances = new FrovedisRowmajorMatrix(knn_res.distances_ptr, 
@@ -165,7 +168,7 @@ class NearestNeighbors(var nNeighbors: Int,
     require(mid > 0, "kneighbors() is called before fitting data using run()")
     val fs = FrovedisServer.getServerInstance()
     val knn_res = JNISupport.knnKneighbors(fs.master_node, X.get(), nNeighbors,
-                                           mid, returnDistance, false)
+                                           mid, returnDistance, false, mdense)
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
     val distances = new FrovedisRowmajorMatrix(knn_res.distances_ptr, 
@@ -206,7 +209,7 @@ class NearestNeighbors(var nNeighbors: Int,
     require(mid > 0, "kneighbors_graph() is called before fitting data using run()")
     val fs = FrovedisServer.getServerInstance()
     val graph = JNISupport.knnKneighborsGraph(fs.master_node, X.get(), 
-                              nNeighbors, mid, mode, true) //dummy mat: crs 
+                              nNeighbors, mid, mode, true, mdense) //dummy mat: crs 
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
     val ret = new FrovedisSparseData(graph)
@@ -220,7 +223,7 @@ class NearestNeighbors(var nNeighbors: Int,
     require(mid > 0, "kneighbors_graph() is called before fitting data using run()")
     val fs = FrovedisServer.getServerInstance()
     val graph = JNISupport.knnKneighborsGraph(fs.master_node, X.get(), 
-                              nNeighbors, mid, mode, false) //dummy mat: crs 
+                              nNeighbors, mid, mode, false, mdense) //dummy mat: crs 
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
     val ret = new FrovedisSparseData(graph)
@@ -252,7 +255,7 @@ class NearestNeighbors(var nNeighbors: Int,
     require(mid > 0, "radius_neighbors() is called before fitting data using run()")
     val fs = FrovedisServer.getServerInstance()
     val dmat = JNISupport.knnRadiusNeighbors(fs.master_node, X.get(), 
-                          radius, mid, true) //dummy mat: crs 
+                          radius, mid, true, mdense) //dummy mat: crs 
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
     val ret = new FrovedisSparseData(dmat)
@@ -265,7 +268,7 @@ class NearestNeighbors(var nNeighbors: Int,
     require(mid > 0, "radius_neighbors() is called before fitting data using run()")
     val fs = FrovedisServer.getServerInstance()
     val dmat = JNISupport.knnRadiusNeighbors(fs.master_node, X.get(), 
-                          radius, mid, false) //dummy mat: crs 
+                          radius, mid, false, mdense) //dummy mat: crs 
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
     val ret = new FrovedisSparseData(dmat)
@@ -300,7 +303,7 @@ class NearestNeighbors(var nNeighbors: Int,
                      "using run()")
     val fs = FrovedisServer.getServerInstance()
     val graph = JNISupport.knnRadiusNeighborsGraph(fs.master_node, X.get(), 
-                                       radius, mid, mode, true) //dummy mat: crs 
+                                       radius, mid, mode, true, mdense) //dummy mat: crs 
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
     val ret = new FrovedisSparseData(graph)
@@ -315,7 +318,7 @@ class NearestNeighbors(var nNeighbors: Int,
                      "using run()")
     val fs = FrovedisServer.getServerInstance()
     val graph = JNISupport.knnRadiusNeighborsGraph(fs.master_node, X.get(), 
-                                       radius, mid, mode, false) //dummy mat: crs 
+                                       radius, mid, mode, false, mdense) //dummy mat: crs 
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
     val ret = new FrovedisSparseData(graph)
@@ -325,7 +328,7 @@ class NearestNeighbors(var nNeighbors: Int,
   def release(): Unit = {
     if (mid != 0) {
       val fs = FrovedisServer.getServerInstance()
-      JNISupport.releaseFrovedisModel(fs.master_node, mid, M_KIND.KNN)
+      JNISupport.releaseFrovedisModelKNN(fs.master_node, mid, M_KIND.KNN, mdense)
       val info = JNISupport.checkServerException()
       if (info != "") throw new java.rmi.ServerException(info)
     }

@@ -19,6 +19,8 @@ class KNeighborsClassifier(var nNeighbors: Int,
                            var metric: String,
                            var chunkSize: Float) extends java.io.Serializable {
   private var mid: Int = 0
+  private var mdense: Boolean = false
+
   def this() = this(5, "brute", "euclidean", 1.0F)
 
   def setNNeighbors(nNeighbors: Int): this.type = {
@@ -71,10 +73,11 @@ class KNeighborsClassifier(var nNeighbors: Int,
     release() // releasing previous algorithm object, if any
     this.mid = ModelID.get()
     val fs = FrovedisServer.getServerInstance()
+    mdense = data.is_dense()
     JNISupport.callFrovedisKncFit(fs.master_node,
                                   data.get(), nNeighbors,
                                   algorithm, metric,
-                                  chunkSize, mid, data.is_dense())
+                                  chunkSize, mid, mdense)
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
     return this
@@ -118,7 +121,7 @@ class KNeighborsClassifier(var nNeighbors: Int,
     require(mid > 0, "kneighbors() is called before fitting data using run()")
     val fs = FrovedisServer.getServerInstance()
     val knn_res = JNISupport.kncKneighbors(fs.master_node, X.get(), nNeighbors,
-                                           mid, returnDistance, true) 
+                                           mid, returnDistance, true, mdense) 
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
     val distances = new FrovedisRowmajorMatrix(knn_res.distances_ptr,
@@ -141,7 +144,7 @@ class KNeighborsClassifier(var nNeighbors: Int,
     require(mid > 0, "kneighbors() is called before fitting data using run()")
     val fs = FrovedisServer.getServerInstance()
     val knn_res = JNISupport.kncKneighbors(fs.master_node, X.get(), nNeighbors,
-                                           mid, returnDistance, false) 
+                                           mid, returnDistance, false, mdense) 
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
     val distances = new FrovedisRowmajorMatrix(knn_res.distances_ptr,
@@ -182,7 +185,7 @@ class KNeighborsClassifier(var nNeighbors: Int,
     require(mid > 0, "kneighbors_graph() is called before fitting data using run()")
     val fs = FrovedisServer.getServerInstance()
     var graph = JNISupport.kncKneighborsGraph(fs.master_node, X.get(),
-                                              nNeighbors, mid, mode, true) //dummy mat: crs 
+                                              nNeighbors, mid, mode, true, mdense) //dummy mat: crs 
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
     val ret = new FrovedisSparseData(graph)
@@ -196,7 +199,7 @@ class KNeighborsClassifier(var nNeighbors: Int,
     require(mid > 0, "kneighbors_graph() is called before fitting data using run()")
     val fs = FrovedisServer.getServerInstance()
     val graph = JNISupport.kncKneighborsGraph(fs.master_node, X.get(),
-                                              nNeighbors, mid, mode, false) //dummy mat: crs 
+                                              nNeighbors, mid, mode, false, mdense) //dummy mat: crs 
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
     val ret = new FrovedisSparseData(graph)
@@ -227,7 +230,7 @@ class KNeighborsClassifier(var nNeighbors: Int,
     require(mid > 0, "predict() is called before fitting data using run()")
     val fs = FrovedisServer.getServerInstance()
     val res: Array[Double] = JNISupport.kncDoublePredict(fs.master_node, X.get(),
-                              mid, saveProba, true) // double array
+                              mid, saveProba, true, mdense) // double array
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
     return res
@@ -242,7 +245,7 @@ class KNeighborsClassifier(var nNeighbors: Int,
     require(mid > 0, "predict() is called before fitting data using run()")
     val fs = FrovedisServer.getServerInstance()
     val res: Array[Double] = JNISupport.kncDoublePredict(fs.master_node, X.get(),
-                              mid, saveProba, false) // double array
+                              mid, saveProba, false, mdense) // double array
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
     return res
@@ -274,7 +277,7 @@ class KNeighborsClassifier(var nNeighbors: Int,
   def predict_proba(X: FrovedisRowmajorMatrix): FrovedisRowmajorMatrix = {
     require(mid > 0, "predict_proba() is called before fitting data using run()")
     val fs = FrovedisServer.getServerInstance()
-    val dmat = JNISupport.kncPredictProba(fs.master_node, X.get(), mid, true)
+    val dmat = JNISupport.kncPredictProba(fs.master_node, X.get(), mid, true, mdense)
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
     val ret = new FrovedisRowmajorMatrix(dmat)
@@ -285,7 +288,7 @@ class KNeighborsClassifier(var nNeighbors: Int,
   def predict_proba(X: FrovedisSparseData): FrovedisRowmajorMatrix = {
     require(mid > 0, "predict_proba() is called before fitting data using run()")
     val fs = FrovedisServer.getServerInstance()
-    val dmat = JNISupport.kncPredictProba(fs.master_node, X.get(), mid, false)
+    val dmat = JNISupport.kncPredictProba(fs.master_node, X.get(), mid, false, mdense)
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
     val ret = new FrovedisRowmajorMatrix(dmat)
@@ -318,7 +321,7 @@ class KNeighborsClassifier(var nNeighbors: Int,
     require(mid > 0, "score() is called before fitting data using run()")
     val fs = FrovedisServer.getServerInstance()
     val res = JNISupport.kncModelScore(fs.master_node,
-                                       data.get(), labelPtr, mid, true)
+                                       data.get(), labelPtr, mid, true, mdense)
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
     return res
@@ -330,7 +333,7 @@ class KNeighborsClassifier(var nNeighbors: Int,
     require(mid > 0, "score() is called before fitting data using run()")
     val fs = FrovedisServer.getServerInstance()
     val res = JNISupport.kncModelScore(fs.master_node,
-                                       data.get(), labelPtr, mid, false)
+                                       data.get(), labelPtr, mid, false, mdense)
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
     return res
@@ -339,7 +342,7 @@ class KNeighborsClassifier(var nNeighbors: Int,
   def release(): Unit = {
     if (mid != 0) {
       val fs = FrovedisServer.getServerInstance()
-      JNISupport.releaseFrovedisModel(fs.master_node, mid, M_KIND.KNC)
+      JNISupport.releaseFrovedisModelKNN(fs.master_node, mid, M_KIND.KNC, mdense)
       val info = JNISupport.checkServerException()
       if (info != "") throw new java.rmi.ServerException(info)
     }
