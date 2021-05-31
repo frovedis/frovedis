@@ -107,7 +107,7 @@ int main(int argc, char** argv) {
   time_spent calc_knn(INFO);
   if (target == "classification") {
     calc_knn.lap_start();
-    kneighbors_classifier<double> obj(k, algorithm, metric, chunk_size);
+    kneighbors_classifier<double, rowmajor_matrix<double>> obj(k, algorithm, metric, chunk_size);
     obj.fit(data, lbl);
     auto pred = obj.predict(data, save_proba);
     calc_knn.lap_stop();
@@ -117,7 +117,7 @@ int main(int argc, char** argv) {
   }
   else if (target == "regression") {
     calc_knn.lap_start();
-    kneighbors_regressor<double> obj(k, algorithm, metric, chunk_size);
+    kneighbors_regressor<double, rowmajor_matrix<double>> obj(k, algorithm, metric, chunk_size);
     obj.fit(data, lbl);
     auto pred = obj.predict(data);
     calc_knn.lap_stop();

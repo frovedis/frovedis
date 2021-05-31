@@ -84,7 +84,7 @@ int main(int argc, char** argv) {
 
   time_spent calc_knn(INFO);
   calc_knn.lap_start();
-  nearest_neighbors<double> obj(k, radius, algorithm, metric, chunk_size);
+  nearest_neighbors<double, rowmajor_matrix<double>> obj(k, radius, algorithm, metric, chunk_size);
   obj.fit(data);
   auto knn_graph = obj.kneighbors_graph(data, k, mode);
   calc_knn.lap_stop();
