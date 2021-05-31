@@ -742,21 +742,17 @@ class FrovedisDataFrame extends java.io.Serializable {
     val all = cname.toArray.map(x => x.toString)
     return max(all)
   }
-  def std(cname: Array[String],
-          tids: Array[Short]): Array[String] = {
+  def std(cname: Array[String]): Array[String] = {
     if(fdata == -1)  throw new IllegalArgumentException("Invalid Frovedis Dataframe!\n")
-    if (tids contains DTYPE.STRING)
-      throw new IllegalArgumentException("String-typed column given for std!\n")
+    val tids = getColumnTypes(cname) // throws exception, if colname not found
+    if (tids contains DTYPE.STRING) 
+      throw new IllegalArgumentException("String-typed column given for avg!\n") 
     val size = cname.length
     val fs = FrovedisServer.getServerInstance()
-    val ret = JNISupport.getFrovedisDFStds(fs.master_node,get(),cname,tids,size)
+    val ret = JNISupport.getFrovedisDFStds(fs.master_node,get(),cname,size)
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
     else return ret
-  }
-  def std(cname: Array[String]): Array[String] = {
-    val tt = getColumnTypes(cname) // throws exception, if colname not found
-    return std(cname, tt)
   }
   def std(cname: String*): Array[String] = {
     val all = cname.toArray.map(x => x.toString)
@@ -813,7 +809,7 @@ class FrovedisDataFrame extends java.io.Serializable {
     val counts = Array("count") ++ count(targets)
     val totals = Array("sum") ++ sum(targets,tids)
     val avgs = Array("mean") ++ avg(targets)
-    val stds = Array("stddev") ++ std(targets,tids)
+    val stds = Array("stddev") ++ std(targets)
     val mins = Array("min") ++ min(targets,tids)
     val maxs = Array("max") ++ max(targets,tids)
     /* --- debug prints ---
