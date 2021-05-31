@@ -78,6 +78,19 @@ exrpc_ptr_t get_dfNOToperator(exrpc_ptr_t& opt_proxy);
 exrpc_ptr_t filter_df(exrpc_ptr_t& df_proxy, exrpc_ptr_t& opt_proxy);
 
 exrpc_ptr_t select_df(exrpc_ptr_t& df_proxy, std::vector<std::string>& cols);
+exrpc_ptr_t isnull_df(exrpc_ptr_t& df_proxy, std::vector<std::string>& cols);
+void drop_df_cols(exrpc_ptr_t& df_proxy, std::vector<std::string>& cols);
+
+template <class T>
+dummy_dftable 
+drop_df_rows(exrpc_ptr_t& df_proxy,
+             std::string& cname,
+             std::vector<T>& rowids) {
+  auto& dftbl = *reinterpret_cast<dftable_base*>(df_proxy);
+  auto retp = new dftable(dftbl.drop_rows(cname, rowids));
+  if (!retp) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed.\n");
+  return to_dummy_dftable(retp);
+}
 
 exrpc_ptr_t sort_df(exrpc_ptr_t& df_proxy, 
                     std::vector<std::string>& cols, 
@@ -99,8 +112,7 @@ std::vector<std::string> frovedis_df_avg(exrpc_ptr_t& df_proxy,
                                          std::vector<std::string>& cols);
 
 std::vector<std::string> frovedis_df_std(exrpc_ptr_t& df_proxy,
-                                         std::vector<std::string>& cols,
-                                         std::vector<short>& types);
+                                         std::vector<std::string>& cols);
 
 std::vector<std::string> frovedis_df_cnt(exrpc_ptr_t& df_proxy,
                                          std::vector<std::string>& cols);
@@ -115,26 +127,15 @@ std::vector<std::string> frovedis_df_max(exrpc_ptr_t& df_proxy,
 
 exrpc_ptr_t frovedis_df_rename(exrpc_ptr_t& df_proxy,
                                std::vector<std::string>& cols,
-                               std::vector<std::string>& new_cols);
+                               std::vector<std::string>& new_cols,
+                               bool& inplace);
 
-std::vector<int> get_df_int_col(exrpc_ptr_t& df_proxy,
-                                std::string& cname);
-
-std::vector<long> get_df_long_col(exrpc_ptr_t& df_proxy,
-                                  std::string& cname);
-
-std::vector<unsigned long> 
-get_df_ulong_col(exrpc_ptr_t& df_proxy,
-                 std::string& cname);
-
-std::vector<double> get_df_double_col(exrpc_ptr_t& df_proxy,
-                                      std::string& cname);
-
-std::vector<float> get_df_float_col(exrpc_ptr_t& df_proxy,
-                                    std::string& cname);
-
-std::vector<std::string> 
-get_df_string_col(exrpc_ptr_t& df_proxy, std::string& cname);
+dummy_vector get_df_int_col(exrpc_ptr_t& df_proxy, std::string& cname);
+dummy_vector get_df_long_col(exrpc_ptr_t& df_proxy, std::string& cname);
+dummy_vector get_df_ulong_col(exrpc_ptr_t& df_proxy, std::string& cname);
+dummy_vector get_df_float_col(exrpc_ptr_t& df_proxy, std::string& cname);
+dummy_vector get_df_double_col(exrpc_ptr_t& df_proxy, std::string& cname);
+dummy_vector get_df_string_col(exrpc_ptr_t& df_proxy, std::string& cname);
 
 exrpc_ptr_t frovedis_gdf_select(exrpc_ptr_t& df_proxy, 
                                 std::vector<std::string>& tcols);
@@ -202,7 +203,28 @@ frov_df_append_column(exrpc_ptr_t& df_proxy, std::string& col_name,
 
 dummy_dftable
 frov_df_add_index(exrpc_ptr_t& df_proxy, std::string& name,
-                bool& need_materialize);
+                  bool& need_materialize);
+
+dummy_dftable 
+frov_df_reset_index(exrpc_ptr_t& df_proxy, bool& drop,
+                    bool& need_materialize);
+
+dummy_dftable
+frov_df_set_index(exrpc_ptr_t& df_proxy, 
+                  std::string& cur_index_name, // existing index column
+                  std::string& new_index_name, // existing column to be set as index
+                  bool& verify_integrity,
+                  bool& need_materialize);
+
+dummy_dftable
+frov_df_drop_duplicates(exrpc_ptr_t& df_proxy, 
+                        std::vector<std::string>& cols,
+                        std::string& keep,
+                        bool& need_materialize);
+
+dummy_dftable
+frov_df_union(exrpc_ptr_t& df_proxy, std::vector<exrpc_ptr_t>& proxies,
+              bool& ignore_index, bool& verify_integrity, bool& sort);
 
 template <class T>
 exrpc_ptr_t get_df_column_pointer(exrpc_ptr_t& df_proxy, 
@@ -211,5 +233,28 @@ exrpc_ptr_t get_df_column_pointer(exrpc_ptr_t& df_proxy,
   auto cptr = new dvector<T>(df.as_dvector<T>(cname));
   return reinterpret_cast<exrpc_ptr_t>(cptr);
 }
+
+template <class T>
+dummy_dftable 
+frov_df_copy_index(exrpc_ptr_t& to_df, 
+                   exrpc_ptr_t& from_df,
+                   std::string& cname, 
+                   bool& need_materialize) { 
+  dftable* to_df_p = NULL;
+  if (need_materialize) {
+    auto dftblp_ = reinterpret_cast<dftable_base*>(to_df);
+    to_df_p = new dftable(dftblp_->materialize());
+  }
+  else to_df_p = reinterpret_cast<dftable*>(to_df);
+  if (!to_df_p) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed.\n");
+  auto from_df_p = reinterpret_cast<dftable_base*>(from_df);
+  to_df_p->append_column(cname, from_df_p->as_dvector<T>(cname));
+  to_df_p->set_index(cname);
+  return to_dummy_dftable(to_df_p);
+}
+
+dummy_dftable
+frov_df_set_col_order(exrpc_ptr_t& df_proxy,
+                    std::vector<std::string>& new_cols);
 
 #endif
