@@ -815,6 +815,29 @@ extern "C" {
     return to_py_dummy_df(res);
   }
 
+  PyObject* df_astype(const char* host, int port, 
+                      long df,  
+                      const char** cols, short* types,
+                      ulong size) {
+    ASSERT_PTR(host);
+    exrpc_node fm_node(host, port);
+    auto df_proxy = static_cast<exrpc_ptr_t> (df);
+    std::vector<std::string> cc(size);
+    std::vector<short> tt(size);
+    for(size_t i = 0; i < size; ++i) {
+       cc[i] = std::string(cols[i]);
+       tt[i] = types[i];
+    }
+    dummy_dftable res;
+    try {
+      res = exrpc_async(fm_node, frov_df_astype, df_proxy, cc, tt).get();
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return to_py_dummy_df(res);
+  }
+
   void drop_frovedis_dataframe_columns(const char* host, int port, long proxy,
                                        const char** cols, ulong sz) {
     ASSERT_PTR(host);
@@ -986,6 +1009,29 @@ extern "C" {
     try {
       res = exrpc_async(fm_node, frov_df_union, df_proxy_, proxies_,
                       ignore_index, verify_integrity, sort).get();
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return to_py_dummy_df(res);
+  }
+
+ PyObject* df_union2(const char* host, int port, long df_proxy,
+                     long* proxies, ulong size, 
+                     const char** names, ulong names_size, 
+                     bool verify_integrity) {
+    ASSERT_PTR(host);
+    exrpc_node fm_node(host, port);
+    auto df_proxy_ = static_cast<exrpc_ptr_t> (df_proxy);
+    auto names_ = to_string_vector(names, names_size);
+    std::vector<exrpc_ptr_t> proxies_(size);
+    for(size_t i = 0; i < size; ++i) {
+      proxies_[i] = static_cast<exrpc_ptr_t>(proxies[i]);
+    }
+    dummy_dftable res;
+    try {
+      res = exrpc_async(fm_node, frov_df_union2, df_proxy_, proxies_,
+                        names_, verify_integrity).get();
     }
     catch (std::exception& e) {
       set_status(true, e.what());
