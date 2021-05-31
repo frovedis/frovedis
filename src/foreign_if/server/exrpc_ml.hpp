@@ -530,7 +530,7 @@ void frovedis_sea(exrpc_ptr_t& data_ptr, int& component,
 }
 
 template <class T, class MATRIX>
-int frovedis_gmm(exrpc_ptr_t& data_ptr, int& mid, 
+gmm_result frovedis_gmm(exrpc_ptr_t& data_ptr, int& mid, 
                  int& k, std::string& cov_type,
                  T& tol, int& max_iter, int& n_init,
                  std::string& init_params, long& seed,
@@ -547,10 +547,10 @@ int frovedis_gmm(exrpc_ptr_t& data_ptr, int& mid,
                                         .set_random_state(seed);
     
   gmm_model.fit(mat);
-  int niter = gmm_model.n_iter_();
+  auto ret = gmm_result(gmm_model.n_iter_(), gmm_model.lower_bound_());
   reset_verbose_level();
   handle_trained_model<gaussian_mixture<T>>(mid, GMM, gmm_model);    
-  return niter;
+  return ret;
 }
 
 template <class T, class MATRIX>
