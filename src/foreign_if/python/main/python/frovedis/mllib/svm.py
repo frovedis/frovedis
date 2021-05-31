@@ -28,7 +28,7 @@ class LinearSVC(BaseEstimator):
                  C=1.0, multi_class='ovr', fit_intercept=True,
                  intercept_scaling=1, class_weight=None, verbose=0,
                  random_state=None, max_iter=1000,
-                 lr_rate=0.01, solver='sag'):
+                 lr_rate=0.01, solver='sag', warm_start = False):
         self.penalty = penalty
         self.loss = loss
         self.dual = dual
@@ -41,10 +41,11 @@ class LinearSVC(BaseEstimator):
         self.verbose = verbose
         self.random_state = random_state
         self.max_iter = max_iter
+        self.warm_start = warm_start
         # extra
         self.lr_rate = lr_rate
         self.solver = solver
-        self.__mid = None
+        self.__mid = ModelID.get()
         self.__mdtype = None
         self.__mkind = M_KIND.SVM
         self.n_classes = None
@@ -55,6 +56,7 @@ class LinearSVC(BaseEstimator):
         self._n_iter = None
         self.n_samples = None
         self.n_features = None
+        self.isFitted = None
 
     def check_input(self, X, y, F):
         """checks input X and y"""
@@ -62,6 +64,7 @@ class LinearSVC(BaseEstimator):
                    caller = "[" + self.__class__.__name__ + "] " + F + ": ",\
                    encode_label = True, binary_encoder=[-1, 1], \
                    dense_kind = 'colmajor', densify=False)
+
         X, y, logic = inp_data.get()
         self._classes = inp_data.get_distinct_labels()
         self.n_classes = len(self._classes)
@@ -95,10 +98,9 @@ class LinearSVC(BaseEstimator):
             raise ValueError("fit: frovedis svm supports only hinge loss!")
         if self.C < 0:
             raise ValueError("fit: parameter C must be strictly positive!")
-        self.release()
+        self.reset_metadata()
         # for binary case: frovedis supports -1 and 1
         X, y, dtype, itype, dense = self.check_input(X, y, "fit")
-        self.__mid = ModelID.get()
         self.__mdtype = dtype
 
         if self.n_classes > 2:
@@ -117,30 +119,28 @@ class LinearSVC(BaseEstimator):
 
         sample_weight = self.check_sample_weight(sample_weight)
         (host, port) = FrovedisServer.getServerInstance()
-        if self.solver == 'sag':
-            n_iter = rpclib.svm_sgd(host, port, X.get(), y.get(), \
-                            sample_weight, len(sample_weight), \
-                            self.max_iter, self.lr_rate, \
-                            regTyp, rparam, self.fit_intercept, \
-                            self.tol, self.verbose, self.__mid, dtype, \
-                            itype, dense)
-        elif self.solver == 'lbfgs':
-            regTyp = 2 #lbfgs supports only l2 regularization
-            n_iter = rpclib.svm_lbfgs(host, port, X.get(), y.get(), \
-                            sample_weight, len(sample_weight), \
-                            self.max_iter, self.lr_rate, \
-                            regTyp, rparam, self.fit_intercept, \
-                            self.tol, self.verbose, self.__mid, dtype, \
-                            itype, dense)
-        else:
+        supported_solver = ['sgd', 'lbfgs']
+        solver = self.solver
+        if solver == 'sag':
+            solver = 'sgd'
+        if solver not in supported_solver:
             raise ValueError( \
-              "Unknown solver %s for Linear SVM." % self.solver)
+            "Unknown solver %s for Linear SVM." % solver)
+        if solver == 'lbfgs':
+            regTyp = 2 #lbfgs supports only l2 regularization
+        n_iter = rpclib.svm(host, port, X.get(), y.get(), \
+                        sample_weight, len(sample_weight), \
+                        self.max_iter, self.lr_rate, \
+                        regTyp, rparam, self.fit_intercept, \
+                        self.tol, self.verbose, self.__mid, dtype, \
+                        itype, dense, solver.encode('ascii'), self.warm_start)
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
             raise RuntimeError(excpt["info"])
         self._coef = None
         self._intercept = None
         self._n_iter = n_iter
+        self.isFitted = True
         return self
 
     @property
@@ -188,7 +188,7 @@ class LinearSVC(BaseEstimator):
     @property
     def classes_(self):
         """classes_ getter"""
-        if self.__mid is None:
+        if not self.is_fitted():
             raise AttributeError(\
             "attribute 'classes_' might have been released or called before fit")
         if self._classes is None:
@@ -214,7 +214,7 @@ class LinearSVC(BaseEstimator):
     @property
     def n_iter_(self):
         """n_iter_ getter"""
-        if self.__mid is None:
+        if not self.is_fitted():
             raise AttributeError("attribute 'n_iter_'" \
                "might have been released or called before fit")
         return self._n_iter
@@ -233,7 +233,7 @@ class LinearSVC(BaseEstimator):
         if not os.path.exists(fname):
             raise ValueError(\
                 "the model with name %s does not exist!" % fname)
-        self.release()
+        self.reset_metadata()
         target = open(fname + "/label_map", "rb")
         self.label_map = pickle.load(target)
         target.close()
@@ -247,8 +247,8 @@ class LinearSVC(BaseEstimator):
                 raise ValueError("load: type mismatches detected!" + \
                                  "expected type: " + str(mdt) + \
                                  "; given type: " + str(dtype))
-        self.__mid = ModelID.get()
         GLM.load(self.__mid, self.__mkind, self.__mdtype, fname + "/model")
+        self.isFitted = True
         return self
 
     @check_association
@@ -259,8 +259,7 @@ class LinearSVC(BaseEstimator):
         if os.path.exists(fname):
             raise ValueError(\
                 "another model with %s name already exists!" % fname)
-        else:
-            os.makedirs(fname)
+        os.makedirs(fname)
         GLM.save(self.__mid, self.__mkind, self.__mdtype, fname + "/model")
         target = open(fname + "/label_map", "wb")
         pickle.dump(self.label_map, target)
@@ -283,19 +282,25 @@ class LinearSVC(BaseEstimator):
         """
         GLM.debug_print(self.__mid, self.__mkind, self.__mdtype)
 
-    def release(self):
+    def reset_metadata(self):
         """
         resets after-fit populated attributes to None
         """
-        self.__release_server_heap()
-        self.__mid = None
         self._coef = None
         self._intercept = None
         self.label_map = None
         self._classes = None
         self._n_iter = None
         self.n_samples = None
+        self.isFitted = None
         self.n_features = None
+
+    def release(self):
+        """
+        resets after-fit populated attributes to None
+        """
+        self.__release_server_heap()
+        self.reset_metadata()
 
     @do_if_active_association
     def __release_server_heap(self):
@@ -308,11 +313,11 @@ class LinearSVC(BaseEstimator):
         """
         NAME: __del__
         """
-        self.release()
+        self.reset_metadata()
 
     def is_fitted(self):
         """ function to confirm if the model is already fitted """
-        return self.__mid is not None
+        return self.isFitted
 
 class SVC(BaseEstimator):
     """A python wrapper of Frovedis SVM Kernel Classifier"""
@@ -440,8 +445,8 @@ class SVC(BaseEstimator):
             raise ValueError("fit: frovedis svc does not support multinomial " \
                               + "classification currently!")
 
-        if(type(self.gamma).__name__ == 'float'): pass
-        elif(self.gamma == "scale"):
+        if type(self.gamma).__name__ == 'float': pass
+        elif self.gamma == "scale":
             if self.xvar is None :
                 raise ValueError("fit: gamma = scale is supported only for python data!")
             self.gamma = 1.0 / (self.n_features * self.xvar)
@@ -659,8 +664,7 @@ class SVC(BaseEstimator):
         if os.path.exists(fname):
             raise ValueError(\
                 "another model with %s name already exists!" % fname)
-        else:
-            os.makedirs(fname)
+        os.makedirs(fname)
         GLM.save(self.__mid, self.__mkind, self.__mdtype, fname + "/model")
         target = open(fname + "/label_map", "wb")
         pickle.dump(self.label_map, target)
@@ -722,7 +726,7 @@ class LinearSVR(BaseEstimator):
                  intercept_scaling=1, dual=True, verbose=0,
                  random_state=None, max_iter=1000,
                  penalty='l2',
-                 lr_rate=0.01, solver='sag'):
+                 lr_rate=0.01, solver='sag', warm_start = False):
         self.penalty = penalty
         self.epsilon = epsilon
         self.tol = tol
@@ -734,10 +738,11 @@ class LinearSVR(BaseEstimator):
         self.verbose = verbose
         self.random_state = random_state
         self.max_iter = max_iter
+        self.warm_start = warm_start
         # extra
         self.lr_rate = lr_rate
         self.solver = solver
-        self.__mid = None
+        self.__mid = ModelID.get()
         self.__mdtype = None
         self.__mkind = M_KIND.SVR
         self._coef = None
@@ -745,6 +750,7 @@ class LinearSVR(BaseEstimator):
         self.n_samples = None
         self.n_features = None
         self._n_iter = None
+        self.isFitted = None
 
     def check_input(self, X, y, F):
         """checks input X"""
@@ -804,11 +810,10 @@ class LinearSVR(BaseEstimator):
         NAME: fit
         """
         # release old model, if any
-        self.release()
+        self.reset_metadata()
         self.validate()
         # perform the fit
         X, y, dtype, itype, dense = self.check_input(X, y, "fit")
-        self.__mid = ModelID.get()
         self.__mdtype = dtype
 
         rparam = 1.0 / self.C
@@ -830,14 +835,16 @@ class LinearSVR(BaseEstimator):
 
         sample_weight = self.check_sample_weight(sample_weight)
         (host, port) = FrovedisServer.getServerInstance()
+
         if self.solver == 'sag':
-            n_iter = rpclib.svm_regressor_sgd(host, port, X.get(), y.get(), \
-                                              sample_weight, len(sample_weight), \
-                                              self.max_iter, self.lr_rate, \
-                                              self.epsilon, regTyp, rparam, \
-                                              self.fit_intercept, self.tol, \
-                                              intLoss, self.verbose, self.__mid, \
-                                              dtype, itype, dense)
+            n_iter = rpclib.svm_regressor(host, port, X.get(), y.get(), \
+                                          sample_weight, len(sample_weight), \
+                                          self.max_iter, self.lr_rate, \
+                                          self.epsilon, regTyp, rparam, \
+                                          self.fit_intercept, self.tol, \
+                                          intLoss, self.verbose, self.__mid, \
+                                          dtype, itype, dense, \
+                                          'sgd'.encode('ascii'), self.warm_start)
         elif self.solver == 'lbfgs':
             raise ValueError("fit: currently LinearSVM Regressor doesn't " + \
                              "support lbfgs solver!")
@@ -850,6 +857,7 @@ class LinearSVR(BaseEstimator):
         self._coef = None
         self._intercept = None
         self._n_iter = n_iter
+        self.isFitted = True
         return self
 
     @property
@@ -906,7 +914,7 @@ class LinearSVR(BaseEstimator):
     @property
     def n_iter_(self):
         """n_iter_ getter"""
-        if self.__mid is None:
+        if not self.is_fitted():
             raise AttributeError("attribute 'n_iter_'" \
                "might have been released or called before fit")
         return self._n_iter
@@ -925,7 +933,7 @@ class LinearSVR(BaseEstimator):
         if not os.path.exists(fname):
             raise ValueError(\
                 "the model with name %s does not exist!" % fname)
-        self.release()
+        self.reset_metadata()
         metadata = open(fname + "/metadata", "rb")
         self.__mkind, self.__mdtype = pickle.load(metadata)
         metadata.close()
@@ -935,8 +943,8 @@ class LinearSVR(BaseEstimator):
                 raise ValueError("load: type mismatches detected! " + \
                                  "expected type: " + str(mdt) + \
                                  "; given type: " + str(dtype))
-        self.__mid = ModelID.get()
         GLM.load(self.__mid, self.__mkind, self.__mdtype, fname + "/model")
+        self.isFitted = True
         return self
 
     @check_association
@@ -947,8 +955,7 @@ class LinearSVR(BaseEstimator):
         if os.path.exists(fname):
             raise ValueError(\
                 "another model with %s name already exists!" % fname)
-        else:
-            os.makedirs(fname)
+        os.makedirs(fname)
         GLM.save(self.__mid, self.__mkind, self.__mdtype, fname + "/model")
         metadata = open(fname + "/metadata", "wb")
         pickle.dump((self.__mkind, self.__mdtype), metadata)
@@ -967,17 +974,23 @@ class LinearSVR(BaseEstimator):
         """
         GLM.debug_print(self.__mid, self.__mkind, self.__mdtype)
 
-    def release(self):
+    def reset_metadata(self):
         """
         resets after-fit populated attributes to None
         """
-        self.__release_server_heap()
-        self.__mid = None
         self._coef = None
         self._intercept = None
         self._n_iter = None
         self.n_samples = None
         self.n_features = None
+        self.isFitted = None
+
+    def release(self):
+        """
+        resets after-fit populated attributes to None
+        """
+        self.__release_server_heap()
+        self.reset_metadata()
 
     @do_if_active_association
     def __release_server_heap(self):
@@ -990,9 +1003,8 @@ class LinearSVR(BaseEstimator):
         """
         NAME: __del__
         """
-        self.release()
+        self.reset_metadata()
 
     def is_fitted(self):
         """ function to confirm if the model is already fitted """
-        return self.__mid is not None
-
+        return self.isFitted
