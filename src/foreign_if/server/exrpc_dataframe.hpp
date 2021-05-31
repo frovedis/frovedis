@@ -227,6 +227,12 @@ frov_df_union(exrpc_ptr_t& df_proxy, std::vector<exrpc_ptr_t>& proxies,
               bool& ignore_index, bool& verify_integrity, bool& sort);
 
 dummy_dftable
+frov_df_union2(exrpc_ptr_t& df_proxy, 
+               std::vector<exrpc_ptr_t>& proxies,
+               std::vector<std::string>& names, 
+               bool& verify_integrity);
+
+dummy_dftable
 frov_df_astype(exrpc_ptr_t& df_proxy,
                std::vector<std::string>& cols,
                std::vector<short>& types);
