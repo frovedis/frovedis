@@ -6,8 +6,11 @@
 #include <algorithm>
 #include <malloc.h>
 #include <iostream>
+#include <sys/types.h>
+#include <unistd.h>
 #include "mpi_rpc.hpp"
 #include "mpihelper.hpp"
+#include "utility.hpp"
 
 using namespace std;
 
@@ -37,6 +40,8 @@ std::vector<int> frovedis_shm_comm_size_stack;
 std::vector<MPI_Comm> frovedis_shmroot_comm_stack;
 std::vector<int> frovedis_shmroot_self_rank_stack;
 std::vector<int> frovedis_shmroot_comm_size_stack;
+
+std::string frovedis_tmpdir;
 
 #ifdef USE_THREAD
 pthread_mutex_t mpi_tag_lock = PTHREAD_MUTEX_INITIALIZER;
@@ -195,6 +200,7 @@ bool handle_one_req() {
 
 void handle_req() {
   while (handle_one_bcast_req());
+  remove_directory(frovedis_tmpdir);
   MPI_Finalize();
   exit(0);
 }
@@ -405,6 +411,14 @@ void initfrovedis(int argc, char* argv[]) {
   mallopt(M_TRIM_THRESHOLD,-1);
 #endif
 
+  auto pidstr = std::to_string(getpid());
+  auto tmpdir = getenv("FROVEDIS_TMPDIR");
+  if(tmpdir != NULL) {
+    frovedis_tmpdir = std::string(tmpdir) + "/" + pidstr;
+  } else {
+    frovedis_tmpdir = std::string("/var/tmp/frovedis/") + pidstr;
+  }
+
   if(frovedis_self_rank != 0) {
     handle_req();
   }
@@ -413,6 +427,7 @@ void initfrovedis(int argc, char* argv[]) {
 void finalizefrovedis(int code) {
   std::vector<std::string> dummy;
   send_bcast_rpcreq(rpc_type::finalize_type, 0, 0, "", dummy);
+  remove_directory(frovedis_tmpdir);
   MPI_Finalize();
   exit(code);
 }

@@ -66,6 +66,7 @@ private:
 void make_directory(const std::string&);
 bool directory_exists(const std::string&);
 int count_non_hidden_files(const std::string&);
+int remove_directory(const std::string&);
 
 template <class T>
 std::string get_type_name() {

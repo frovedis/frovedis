@@ -92,6 +92,8 @@ extern std::vector<MPI_Comm> frovedis_shmroot_comm_stack;
 extern std::vector<int> frovedis_shmroot_self_rank_stack;
 extern std::vector<int> frovedis_shmroot_comm_size_stack;
 
+extern std::string frovedis_tmpdir;
+
 #ifdef USE_THREAD
 extern pthread_mutex_t mpi_tag_lock;
 #endif
