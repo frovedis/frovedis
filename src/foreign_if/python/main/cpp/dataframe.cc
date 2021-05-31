@@ -6,7 +6,8 @@ extern "C" {
 
   // To create dataframe from dvector proxies
   long create_frovedis_dataframe(const char* host, int port, short* types,
-                                 const char** col_name, long* dvec, int size){
+                                 const char** col_name, 
+                                 long* dvec, ulong size) {
     ASSERT_PTR(host); 
     std::vector<short> col_types(size);
     std::vector<exrpc_ptr_t> dvec_arr(size);
@@ -14,12 +15,12 @@ extern "C" {
     for(size_t i = 0; i < size; ++i) {
       dvec_arr[i] = static_cast<exrpc_ptr_t>(dvec[i]);
     }
-    std::vector<std::string> col_names(size);
-    for(int i = 0 ; i < size ; ++i) col_names[i] = col_name[i];
+    auto col_names = to_string_vector(col_name, size);
     exrpc_node fm_node(host,port);
     exrpc_ptr_t df_proxy = 0;
     try {
-      df_proxy = exrpc_async(fm_node,create_dataframe,col_types,col_names,dvec_arr).get();
+      df_proxy = exrpc_async(fm_node, create_dataframe, col_types, \
+                             col_names, dvec_arr).get();
     }
     catch (std::exception& e) {
       set_status(true, e.what());
@@ -52,19 +53,28 @@ extern "C" {
     try {
       switch(dtype) {
         case INT:
-          ret_proxy = exrpc_async(fm_node,get_dfoperator<int>,opd1,opd2,opt,isImmed).get();
+          ret_proxy = exrpc_async(fm_node, get_dfoperator<int>,
+                                  opd1, opd2, opt, isImmed).get();
           break;
         case LONG:
-          ret_proxy = exrpc_async(fm_node,get_dfoperator<long>,opd1,opd2,opt,isImmed).get();
+          ret_proxy = exrpc_async(fm_node, get_dfoperator<long>,
+                                  opd1, opd2, opt, isImmed).get();
+          break;
+        case ULONG:
+          ret_proxy = exrpc_async(fm_node, get_dfoperator<unsigned long>,
+                                  opd1, opd2, opt, isImmed).get();
           break;
         case FLOAT:
-          ret_proxy = exrpc_async(fm_node, get_dfoperator<float>,opd1,opd2,opt,isImmed).get();
+          ret_proxy = exrpc_async(fm_node, get_dfoperator<float>,
+                                  opd1, opd2, opt, isImmed).get();
           break;
         case DOUBLE:
-          ret_proxy = exrpc_async(fm_node, get_dfoperator<double>,opd1,opd2,opt,isImmed).get();
+          ret_proxy = exrpc_async(fm_node, get_dfoperator<double>,
+                                  opd1, opd2, opt, isImmed).get();
           break;
         case STRING:
-          ret_proxy = exrpc_async(fm_node, get_str_dfoperator, opd1,opd2,opt,isImmed).get();
+          ret_proxy = exrpc_async(fm_node, get_str_dfoperator, 
+                                  opd1, opd2, opt, isImmed).get();
           break;
         default: REPORT_ERROR(USER_ERROR,"Unknown type is encountered!\n");  
       }
@@ -168,15 +178,31 @@ extern "C" {
  
   // To select requested columns from given dataframe
   long select_frovedis_dataframe(const char* host, int port, long proxy, 
-                               const char **cols, int size){
+                               const char **cols, ulong size) {
     ASSERT_PTR(host); 
     exrpc_node fm_node(host, port);
     auto df_proxy = static_cast<exrpc_ptr_t> (proxy);
-    std::vector<std::string> targets(size);
-    for(size_t i=0; i<size; ++i) targets[i] = std::string(cols[i]); 
+    auto targets = to_string_vector(cols, size);
     exrpc_ptr_t ret_proxy = 0;
     try {
-      ret_proxy = exrpc_async(fm_node,select_df,df_proxy,targets).get();
+      ret_proxy = exrpc_async(fm_node, select_df, df_proxy, targets).get();
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return (static_cast<long>(ret_proxy));
+  }
+   
+  // To find missing values in given columns of the input dataframe
+  long isnull_frovedis_dataframe(const char* host, int port, long proxy, 
+                                 const char **cols, ulong size) {
+    ASSERT_PTR(host); 
+    exrpc_node fm_node(host, port);
+    auto df_proxy = static_cast<exrpc_ptr_t> (proxy);
+    auto targets = to_string_vector(cols, size);
+    exrpc_ptr_t ret_proxy = 0;
+    try {
+      ret_proxy = exrpc_async(fm_node, isnull_df, df_proxy, targets).get();
     }
     catch (std::exception& e) {
       set_status(true, e.what());
@@ -209,15 +235,14 @@ extern "C" {
 
   // To perform groupBy based on given columns 
   long group_frovedis_dataframe(const char* host, int port, long proxy, 
-                                const char** cols, int size){
+                                const char** cols, ulong size) {
     ASSERT_PTR(host); 
     exrpc_node fm_node(host, port);
     auto df_proxy = static_cast<exrpc_ptr_t> (proxy);
-    std::vector<std::string> targets(size);
-    for(size_t i=0; i<size; ++i) targets[i] = std::string(cols[i]);
+    auto targets = to_string_vector(cols, size);
     exrpc_ptr_t ret_proxy = 0;
     try {
-      ret_proxy = exrpc_async(fm_node,group_by_df,df_proxy,targets).get();
+      ret_proxy = exrpc_async(fm_node, group_by_df, df_proxy, targets).get();
     }
     catch (std::exception& e) {
       set_status(true, e.what());
@@ -231,8 +256,7 @@ extern "C" {
     ASSERT_PTR(host); 
     exrpc_node fm_node(host, port);
     auto df_proxy = static_cast<exrpc_ptr_t> (proxy);
-    std::vector<std::string> tcols(sz);
-    for(size_t i = 0; i < sz; ++i) tcols[i] = std::string(cols[i]);
+    auto tcols = to_string_vector(cols, sz);
     exrpc_ptr_t ret = 0;
     try {
       ret = exrpc_async(fm_node,frovedis_gdf_select,df_proxy,tcols).get();
@@ -249,14 +273,10 @@ extern "C" {
     ASSERT_PTR(host); 
     exrpc_node fm_node(host, port);
     auto df_proxy = static_cast<exrpc_ptr_t> (proxy);
-    std::vector<std::string> grp_cols(sz1);
-    std::vector<std::string> s_agg_func(sz2), s_agg_col(sz2), s_agg_col_as(sz2);
-    for(size_t i = 0; i < sz1; ++i) grp_cols[i] = std::string(cols[i]);
-    for(size_t i = 0; i < sz2; ++i) {
-      s_agg_func[i] = std::string(agg_func[i]);
-      s_agg_col[i] = std::string(agg_col[i]);
-      s_agg_col_as[i] = std::string(agg_col_as[i]);
-    }
+    auto grp_cols = to_string_vector(cols, sz1);
+    auto s_agg_func = to_string_vector(agg_func, sz2);
+    auto s_agg_col = to_string_vector(agg_col, sz2);
+    auto s_agg_col_as = to_string_vector(agg_col_as, sz2);
     exrpc_ptr_t ret = 0;
     try {
       ret = exrpc_async(fm_node,frovedis_gdf_aggr,df_proxy,grp_cols,
@@ -288,20 +308,17 @@ extern "C" {
 
   // To rename dataframe columns (returns new dataframe) 
   long rename_frovedis_dataframe(const char* host, int port, long proxy,
-                                 const char** cols, const char ** new_cols, 
-                                 int size){
+                                 const char** cols, const char** new_cols, 
+                                 ulong size, bool inplace) {
     ASSERT_PTR(host);
     exrpc_node fm_node(host, port);
     auto df_proxy = static_cast<exrpc_ptr_t> (proxy);
-    std::vector<std::string> targets(size), new_targets(size);
-    for(size_t i=0; i<size; ++i) { 
-       targets[i] = std::string(cols[i]);
-       new_targets[i] = std::string(new_cols[i]);
-    }
+    auto targets = to_string_vector(cols, size);
+    auto new_targets = to_string_vector(new_cols, size);
     exrpc_ptr_t ret_proxy = 0;
     try {
-      ret_proxy = exrpc_async(fm_node,frovedis_df_rename,df_proxy,targets,
-                              new_targets).get();
+      ret_proxy = exrpc_async(fm_node, frovedis_df_rename, df_proxy, 
+                              targets, new_targets, inplace).get();
     }
     catch (std::exception& e) {
       set_status(true, e.what());
@@ -376,14 +393,11 @@ extern "C" {
   }
 
   PyObject* avg_frovedis_dataframe(const char* host, int port, long proxy,
-                                   const char** cols, int size){
+                                   const char** cols, ulong size){
     ASSERT_PTR(host);
     exrpc_node fm_node(host, port);
     auto df_proxy = static_cast<exrpc_ptr_t> (proxy);
-    std::vector<std::string> cc(size);
-    for(size_t i=0; i<size; ++i) {
-       cc[i] = std::string(cols[i]);
-    }
+    auto cc = to_string_vector(cols, size);
     std::vector<std::string> ret;
     try {
       ret = exrpc_async(fm_node,frovedis_df_avg,df_proxy,cc).get();
@@ -395,14 +409,11 @@ extern "C" {
   }
 
   PyObject* cnt_frovedis_dataframe(const char* host, int port, long proxy,
-                                   const char** cols, int size){
+                                   const char** cols, ulong size){
     ASSERT_PTR(host);
     exrpc_node fm_node(host, port);
     auto df_proxy = static_cast<exrpc_ptr_t> (proxy);
-    std::vector<std::string> cc(size);
-    for(size_t i=0; i<size; ++i) {
-       cc[i] = std::string(cols[i]);
-    }
+    auto cc = to_string_vector(cols, size);
     std::vector<std::string> ret;
     try {
       ret = exrpc_async(fm_node,frovedis_df_cnt,df_proxy,cc).get();
@@ -414,20 +425,14 @@ extern "C" {
   }
 
   PyObject* std_frovedis_dataframe(const char* host, int port, long proxy,
-                                   const char** cols, short* types,
-                                   int size){
+                                   const char** cols, ulong size) {
     ASSERT_PTR(host);
     exrpc_node fm_node(host, port);
     auto df_proxy = static_cast<exrpc_ptr_t> (proxy);
-    std::vector<std::string> cc(size);
-    std::vector<short> tt(size);
-    for(size_t i=0; i<size; ++i) {
-       cc[i] = std::string(cols[i]);
-       tt[i] = types[i];
-    }
+    auto cc = to_string_vector(cols, size);
     std::vector<std::string> ret;
     try {
-      ret = exrpc_async(fm_node,frovedis_df_std,df_proxy,cc,tt).get();
+      ret = exrpc_async(fm_node,frovedis_df_std,df_proxy,cc).get();
     }
     catch (std::exception& e) {
       set_status(true, e.what());
@@ -441,51 +446,39 @@ extern "C" {
     exrpc_node fm_node(host, port);
     auto f_dptr = static_cast<exrpc_ptr_t> (proxy);
     auto cname = std::string(col_name);
-    PyObject* ret = NULL;
+    dummy_vector dvec;
     try {
       switch (tid) {
         case BOOL:
-        case INT: { 
-          auto int_col = exrpc_async(fm_node,get_df_int_col,f_dptr,cname).get();
-          ret = to_python_int_list(int_col); 
-        } break;
-        case LONG: {
-          auto long_col = exrpc_async(fm_node,get_df_long_col,f_dptr,cname).get();
-          ret = to_python_long_list(long_col); 
-        } break;
-        case ULONG: {
-          auto ulong_col = exrpc_async(fm_node,get_df_ulong_col,f_dptr,cname).get();
-          ret = to_python_ulong_list(ulong_col); 
-        } break;
-        case FLOAT: {
-          auto float_col = exrpc_async(fm_node,get_df_float_col,f_dptr,cname).get();
-          ret = to_python_float_list(float_col); 
-        } break;
-        case DOUBLE: {
-          auto double_col = exrpc_async(fm_node,get_df_double_col,f_dptr,cname).get();
-          ret = to_python_double_list(double_col); 
-        } break;
-        case STRING: {
-          auto string_col = exrpc_async(fm_node,get_df_string_col,f_dptr,cname).get();
-          ret = to_python_string_list(string_col); 
-        } break;
-        default:  REPORT_ERROR(USER_ERROR,"Unknown type for frovedis dataframe!");
+        case INT:    dvec = exrpc_async(fm_node, get_df_int_col, 
+                                        f_dptr, cname).get(); break;
+        case LONG:   dvec = exrpc_async(fm_node, get_df_long_col, 
+                                        f_dptr, cname).get(); break;
+        case ULONG:  dvec = exrpc_async(fm_node, get_df_ulong_col, 
+                                        f_dptr, cname).get(); break;
+        case FLOAT:  dvec = exrpc_async(fm_node, get_df_float_col, 
+                                        f_dptr, cname).get(); break;
+        case DOUBLE: dvec = exrpc_async(fm_node, get_df_double_col, 
+                                        f_dptr, cname).get(); break;
+        case STRING: dvec = exrpc_async(fm_node, get_df_string_col,
+                                        f_dptr, cname).get(); break;
+        default:     REPORT_ERROR(USER_ERROR, 
+                     "Unknown type for frovedis dataframe: " + std::to_string(tid));
       }
     }
     catch (std::exception& e) {
       set_status(true, e.what());
     }  
-    return ret;
+    return to_py_dummy_vector(dvec);
   }
 
   PyObject* df_to_rowmajor(const char* host, int port, long proxy,
-                           const char** cols, int size, 
+                           const char** cols, ulong size, 
                            short dtype) {
     ASSERT_PTR(host);
     exrpc_node fm_node(host, port);
     auto df_proxy = static_cast<exrpc_ptr_t> (proxy);
-    std::vector<std::string> cc(size);
-    for(size_t i = 0; i < size; ++i) cc[i] = std::string(cols[i]);
+    auto cc = to_string_vector(cols, size);
     dummy_matrix dmat;
     try {
       switch(dtype) {
@@ -502,13 +495,12 @@ extern "C" {
   }
 
   PyObject* df_to_colmajor(const char* host, int port, long proxy,
-                           const char** cols, int size, 
+                           const char** cols, ulong size, 
                            short dtype) {
     ASSERT_PTR(host);
     exrpc_node fm_node(host, port);
     auto df_proxy = static_cast<exrpc_ptr_t> (proxy);
-    std::vector<std::string> cc(size);
-    for(size_t i = 0; i < size; ++i) cc[i] = std::string(cols[i]);
+    auto cc = to_string_vector(cols, size);
     dummy_matrix dmat;
     try {
       switch(dtype) {
@@ -525,15 +517,14 @@ extern "C" {
   }
 
   PyObject* df_to_crs(const char* host, int port, long proxy,
-                      const char** cols, int size1,
-                      const char** cat_cols, int size2,
+                      const char** cols, ulong size1,
+                      const char** cat_cols, ulong size2,
                       long info_id, short dtype) {
     ASSERT_PTR(host);
     exrpc_node fm_node(host, port);
     auto df_proxy = static_cast<exrpc_ptr_t> (proxy);
-    std::vector<std::string> cc1(size1), cc2(size2);
-    for(size_t i = 0; i < size1; ++i) cc1[i] = std::string(cols[i]);
-    for(size_t i = 0; i < size2; ++i) cc2[i] = std::string(cat_cols[i]);
+    auto cc1 = to_string_vector(cols, size1);
+    auto cc2 = to_string_vector(cat_cols, size2);
     dummy_matrix dmat;
     try {
       switch(dtype) {
@@ -731,7 +722,7 @@ extern "C" {
   }
 
   PyObject* df_add_index(const char* host, int port, long proxy,
-                        const char* name, bool need_materialize) {
+                         const char* name, bool need_materialize) {
     ASSERT_PTR(host); 
     exrpc_node fm_node(host, port);
     auto df_proxy = static_cast<exrpc_ptr_t> (proxy);
@@ -740,6 +731,279 @@ extern "C" {
     try {
       res = exrpc_async(fm_node, frov_df_add_index, df_proxy, name_,
                       need_materialize).get();
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return to_py_dummy_df(res);
+  }
+
+  PyObject* df_reset_index(const char* host, int port, 
+                           long proxy, bool drop, bool need_materialize) {
+    ASSERT_PTR(host);
+    exrpc_node fm_node(host, port);
+    auto df_proxy = static_cast<exrpc_ptr_t> (proxy);
+    dummy_dftable res;
+    try {
+      res = exrpc_async(fm_node, frov_df_reset_index, 
+                        df_proxy, drop, need_materialize).get();
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return to_py_dummy_df(res);
+  }
+
+  PyObject* df_set_index(const char* host, int port, long proxy,
+                         const char* cur_ind_name, 
+                         const char* new_ind_name,
+                         bool verify_integrity,
+                         bool need_materialize) {
+    ASSERT_PTR(host);
+    exrpc_node fm_node(host, port);
+    auto df_proxy = static_cast<exrpc_ptr_t> (proxy);
+    std::string cur_index_name(cur_ind_name), new_index_name(new_ind_name);
+    dummy_dftable res;
+    try {
+      res = exrpc_async(fm_node, frov_df_set_index,
+                        df_proxy, cur_index_name, new_index_name,
+                        verify_integrity, need_materialize).get();
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return to_py_dummy_df(res);
+  }
+
+  PyObject* df_copy_index(const char* host, int port, 
+                          long to_df, long from_df, 
+                          const char* i_col, bool need_materialize,
+                          short dtype) {
+    ASSERT_PTR(host);
+    exrpc_node fm_node(host, port);
+    auto to_df_ = static_cast<exrpc_ptr_t> (to_df);
+    auto from_df_ = static_cast<exrpc_ptr_t> (from_df);
+    std::string index_col(i_col);
+    dummy_dftable res;
+    try {
+      switch(dtype) {
+        case INT:    res = exrpc_async(fm_node, frov_df_copy_index<int>, 
+                                       to_df_, from_df_, index_col, 
+                                       need_materialize).get(); break;
+        case LONG:   res = exrpc_async(fm_node, frov_df_copy_index<long>, 
+                                       to_df_, from_df_, index_col, 
+                                       need_materialize).get(); break;
+        case ULONG:  res = exrpc_async(fm_node, frov_df_copy_index<unsigned long>, 
+                                       to_df_, from_df_, index_col, 
+                                       need_materialize).get(); break;
+        case FLOAT:  res = exrpc_async(fm_node, frov_df_copy_index<float>, 
+                                       to_df_, from_df_, index_col, 
+                                       need_materialize).get(); break;
+        case DOUBLE: res = exrpc_async(fm_node, frov_df_copy_index<double>, 
+                                       to_df_, from_df_, index_col, 
+                                       need_materialize).get(); break;
+        case STRING: res = exrpc_async(fm_node, frov_df_copy_index<std::string>, 
+                                       to_df_, from_df_, index_col, 
+                                       need_materialize).get(); break;
+        default: REPORT_ERROR(USER_ERROR, 
+                 "Unsupported dtype for index column is encountered!\n");
+      }
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return to_py_dummy_df(res);
+  }
+
+  void drop_frovedis_dataframe_columns(const char* host, int port, long proxy,
+                                       const char** cols, ulong sz) {
+    ASSERT_PTR(host);
+    exrpc_node fm_node(host, port);
+    auto df_proxy = static_cast<exrpc_ptr_t> (proxy);
+    auto tcols = to_string_vector(cols, sz);
+    try {
+      exrpc_oneway(fm_node, drop_df_cols, df_proxy, tcols);
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+  }
+
+  PyObject* drop_frovedis_duplicate_rows(const char* host, int port, 
+                                         long proxy,
+                                         const char** cols, ulong sz,
+                                         const char* keep,
+                                         bool need_materialize) {
+    ASSERT_PTR(host);
+    exrpc_node fm_node(host, port);
+    auto df_proxy = static_cast<exrpc_ptr_t> (proxy);
+    auto tcols = to_string_vector(cols, sz);
+    std::string keep_str(keep);
+    dummy_dftable ret;
+    try {
+      ret = exrpc_async(fm_node, frov_df_drop_duplicates, 
+                        df_proxy, tcols, keep_str, need_materialize).get();
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return to_py_dummy_df(ret);
+  }
+
+  PyObject* drop_frovedis_dataframe_rows_int(const char* host, int port, 
+                                             long proxy,
+                                             int* cols, ulong sz,
+                                             const char* index_cname) {
+    ASSERT_PTR(host);
+    exrpc_node fm_node(host, port);
+    auto df_proxy = static_cast<exrpc_ptr_t> (proxy);
+    auto tcols = to_int_vector(cols, sz);
+    std::string ind_name(index_cname);
+    dummy_dftable ret;
+    try {
+      ret = exrpc_async(fm_node, drop_df_rows<int>, 
+                        df_proxy, ind_name, tcols).get(); 
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return to_py_dummy_df(ret);
+  }
+
+  PyObject* drop_frovedis_dataframe_rows_long(const char* host, int port, 
+                                              long proxy,
+                                              long* cols, ulong sz,
+                                              const char* index_cname) {
+    ASSERT_PTR(host);
+    exrpc_node fm_node(host, port);
+    auto df_proxy = static_cast<exrpc_ptr_t> (proxy);
+    auto tcols = to_long_vector(cols, sz);
+    std::string ind_name(index_cname);
+    dummy_dftable ret;
+    try {
+      ret = exrpc_async(fm_node, drop_df_rows<long>, 
+                        df_proxy, ind_name, tcols).get(); 
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return to_py_dummy_df(ret);
+  }
+
+  PyObject* drop_frovedis_dataframe_rows_ulong(const char* host, int port, 
+                                               long proxy,
+                                               ulong* cols, ulong sz,
+                                               const char* index_cname) {
+    ASSERT_PTR(host);
+    exrpc_node fm_node(host, port);
+    auto df_proxy = static_cast<exrpc_ptr_t> (proxy);
+    auto tcols = to_ulong_vector(cols, sz);
+    std::string ind_name(index_cname);
+    dummy_dftable ret;
+    try {
+      ret = exrpc_async(fm_node, drop_df_rows<unsigned long>, 
+                        df_proxy, ind_name, tcols).get(); 
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return to_py_dummy_df(ret);
+  }
+
+  PyObject* drop_frovedis_dataframe_rows_float(const char* host, int port, 
+                                               long proxy,
+                                               float* cols, ulong sz,
+                                               const char* index_cname) {
+    ASSERT_PTR(host);
+    exrpc_node fm_node(host, port);
+    auto df_proxy = static_cast<exrpc_ptr_t> (proxy);
+    auto tcols = to_float_vector(cols, sz);
+    std::string ind_name(index_cname);
+    dummy_dftable ret;
+    try {
+      ret = exrpc_async(fm_node, drop_df_rows<float>, 
+                        df_proxy, ind_name, tcols).get(); 
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return to_py_dummy_df(ret);
+  }
+
+  PyObject* drop_frovedis_dataframe_rows_double(const char* host, int port, 
+                                                long proxy,
+                                                double* cols, ulong sz,
+                                                const char* index_cname) {
+    ASSERT_PTR(host);
+    exrpc_node fm_node(host, port);
+    auto df_proxy = static_cast<exrpc_ptr_t> (proxy);
+    auto tcols = to_double_vector(cols, sz);
+    std::string ind_name(index_cname);
+    dummy_dftable ret;
+    try {
+      ret = exrpc_async(fm_node, drop_df_rows<double>, 
+                        df_proxy, ind_name, tcols).get(); 
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return to_py_dummy_df(ret);
+  }
+
+  PyObject* drop_frovedis_dataframe_rows_str(const char* host, int port, 
+                                             long proxy,
+                                             const char** cols, ulong sz,
+                                             const char* index_cname) {
+    ASSERT_PTR(host);
+    exrpc_node fm_node(host, port);
+    auto df_proxy = static_cast<exrpc_ptr_t> (proxy);
+    auto tcols = to_string_vector(cols, sz);
+    std::string ind_name(index_cname);
+    dummy_dftable ret;
+    try {
+      ret = exrpc_async(fm_node, drop_df_rows<std::string>, 
+                        df_proxy, ind_name, tcols).get(); 
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return to_py_dummy_df(ret);
+  }
+
+  PyObject* df_union(const char* host, int port, long df_proxy,
+                    long* proxies, int size, bool ignore_index,
+                    bool verify_integrity, bool sort) {
+    ASSERT_PTR(host);
+    exrpc_node fm_node(host, port);
+    auto df_proxy_ = static_cast<exrpc_ptr_t> (df_proxy);
+
+    std::vector<exrpc_ptr_t> proxies_(size);
+    for(size_t i = 0; i < size; ++i) {
+      proxies_[i] = static_cast<exrpc_ptr_t>(proxies[i]);
+    }
+
+    dummy_dftable res;
+    try {
+      res = exrpc_async(fm_node, frov_df_union, df_proxy_, proxies_,
+                      ignore_index, verify_integrity, sort).get();
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return to_py_dummy_df(res);
+  }
+
+  PyObject* df_set_col_order(const char* host, int port, long df_proxy,
+                            const char** new_cols, ulong sz) {
+    ASSERT_PTR(host);
+    exrpc_node fm_node(host, port);
+    auto df_proxy_ = static_cast<exrpc_ptr_t> (df_proxy);
+    auto new_cols_ = to_string_vector(new_cols, sz);
+
+    dummy_dftable res;
+    try {
+      res = exrpc_async(fm_node, frov_df_set_col_order, df_proxy_,
+                       new_cols_).get();
     }
     catch (std::exception& e) {
       set_status(true, e.what());
