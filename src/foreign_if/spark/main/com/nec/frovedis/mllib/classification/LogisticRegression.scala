@@ -61,8 +61,7 @@ object LogisticRegressionModel {  // companion object (for static members)
     val fs = FrovedisServer.getServerInstance()
     // load a LogisticRegressionModel from the 'path'
     // and register it with 'model_id' at Frovedis server
-    var kind = M_KIND.LRM
-    if(isMultinomial) kind = M_KIND.MLR
+    var kind = M_KIND.LR
     val ret = JNISupport.loadFrovedisGLM(fs.master_node,
                                          model_id, kind, path + "/model")
     val info = JNISupport.checkServerException()
@@ -229,10 +228,9 @@ class LogisticRegression(sol: String = "sgd") {
       else          this.family = "binomial"
     }
     var isMult = false
-    var mkind = M_KIND.LRM
+    var mkind = M_KIND.LR
     if (this.family == "multinomial") { 
       isMult = true
-      mkind = M_KIND.MLR
     }
 
     var enc_ret: (MemPair,  Map[Double, Double]) = null
@@ -247,19 +245,14 @@ class LogisticRegression(sol: String = "sgd") {
     val mid = ModelID.get()
     val sample_weight_length = sample_weight.length
     val fs = FrovedisServer.getServerInstance()
-    if (solver == "sgd")
-      JNISupport.callFrovedisLRSGD(fs.master_node,encoded_data,maxIter,stepSize,
-                                   miniBatchFraction,regT,regParam,isMult,
-                                   fitIntercept,tol,
-                                   mid,inputMovable,data.is_dense(),use_shrink,
-                                   sample_weight, sample_weight_length)
-    else if(solver == "lbfgs")
-      JNISupport.callFrovedisLRLBFGS(fs.master_node,encoded_data,maxIter,stepSize,
-                                     histSize,regT,regParam,isMult,
-                                     fitIntercept,tol,
-                                     mid,inputMovable,data.is_dense(),
-                                     sample_weight, sample_weight_length)
-    else throw new IllegalArgumentException("Currently supported solvers are: sgd/lbfgs\n")
+    if (solver != "sgd" && solver != "lbfgs") 
+      throw new IllegalArgumentException("Currently supported solvers are: sgd/lbfgs\n")
+
+    JNISupport.callFrovedisLR(fs.master_node,encoded_data,maxIter,stepSize,
+                                 histSize,miniBatchFraction,regT,regParam,isMult,
+                                 fitIntercept,tol,
+                                 mid,inputMovable,data.is_dense(),use_shrink,
+                                 sample_weight, sample_weight_length,solver,false)
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
     val numFeatures = data.numCols()

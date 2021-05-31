@@ -464,11 +464,11 @@ class SVC(var C: Double,
                      s"points for linear SVM!\n" )
             val rparam = 1.0 / C
             val mbf = 1.0
-            JNISupport.callFrovedisSVMSGD(fs.master_node,encoded_data,maxIter,
-                                          stepSize,mbf,rparam,mid,movable,
+            JNISupport.callFrovedisSVM(fs.master_node,encoded_data,maxIter,
+                                          stepSize,10,mbf,rparam,mid,movable,
                                           data.is_dense(),numClasses,
                                           sample_weight,
-                                          sample_weight_length)
+                                          sample_weight_length, "sgd", false)
             m_kind = M_KIND.SVM
         } else {
             require (data.matType() == MAT_KIND.RMJR, 
