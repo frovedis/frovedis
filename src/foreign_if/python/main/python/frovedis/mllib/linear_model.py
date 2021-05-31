@@ -49,7 +49,7 @@ class LogisticRegression(BaseEstimator):
         # extra
         self.lr_rate = lr_rate
         self.use_shrink = use_shrink
-        self.__mid = None
+        self.__mid = ModelID.get()
         self.__mdtype = None
         self.__mkind = None
         self.label_map = None
@@ -60,6 +60,8 @@ class LogisticRegression(BaseEstimator):
         self._n_iter = None
         self.n_samples = None
         self.n_features = None
+        self.isMult = None
+        self.isFitted = False
 
     def check_input(self, X, y, F):
         """checks input X"""
@@ -68,6 +70,7 @@ class LogisticRegression(BaseEstimator):
                    caller = "[" + self.__class__.__name__ + "] " + F + ": ",\
                    encode_label = True, binary_encoder=[-1, 1], \
                    dense_kind = 'colmajor', densify=False)
+
         X, y, logic = inp_data.get()
         self._classes = inp_data.get_distinct_labels()
         self.n_classes = len(self._classes)
@@ -86,9 +89,8 @@ class LogisticRegression(BaseEstimator):
         """
         if self.C < 0:
             raise ValueError("fit: parameter C must be strictly positive!")
-        self.release()
+        self.reset_metadata()
         X, y, dtype, itype, dense = self.check_input(X, y, "fit")
-        self.__mid = ModelID.get()
         self.__mdtype = dtype
 
         if dense and self.use_shrink:
@@ -100,16 +102,14 @@ class LogisticRegression(BaseEstimator):
                 raise ValueError("fit: use_shrink is applicable only for " \
                                  + "sgd solver!")
 
+        self.__mkind = M_KIND.LR
         if self.multi_class == 'auto' or self.multi_class == 'ovr':
             if self.n_classes == 2:
                 isMult = False
-                self.__mkind = M_KIND.LRM
             else:
                 isMult = True
-                self.__mkind = M_KIND.MLR
         elif self.multi_class == 'multinomial':
             isMult = True # even for binary data
-            self.__mkind = M_KIND.MLR
         else:
             raise ValueError("Unknown multi_class: %s!" % self.multi_class)
 
@@ -128,34 +128,31 @@ class LogisticRegression(BaseEstimator):
             raise ValueError("Unsupported penalty is provided: ", self.penalty)
 
         rparam = 1.0 / self.C
-        sv = ['newton-cg', 'liblinear', 'saga']
-        if self.solver in sv:
-            raise ValueError( \
-            "Frovedis doesn't support solver %s for Logistic Regression " \
-            + "currently." % self.solver)
         sample_weight = check_sample_weight(self, sample_weight)
         (host, port) = FrovedisServer.getServerInstance()
-        if self.solver == 'sag':
-            n_iter = rpclib.lr_sgd(host, port, X.get(), y.get(), \
-                           sample_weight, len(sample_weight), self.max_iter, \
-                           self.lr_rate, regTyp, rparam, isMult, \
-                           self.fit_intercept, self.tol, self.verbose, \
-                           self.__mid, dtype, itype, dense, self.use_shrink)
-        elif self.solver == 'lbfgs':
-            regTyp = 2 #lbfgs supports only l2 regularization
-            n_iter = rpclib.lr_lbfgs(host, port, X.get(), y.get(), \
-                           sample_weight, len(sample_weight), \
-                           self.max_iter, self.lr_rate, regTyp, rparam, \
-                           isMult, \
-                           self.fit_intercept, self.tol, self.verbose, \
-                           self.__mid, dtype, itype, dense)
-        else:
+        supported_solver = ['sgd', 'lbfgs']
+        solver = self.solver
+        if solver == 'sag':
+            solver = 'sgd'
+        if solver not in supported_solver:
             raise ValueError( \
-                "Unknown solver %s for Logistic Regression." % self.solver)
+                "Unknown solver %s for Logistic Regression." % solver)
+        n_iter = rpclib.lr(host, port, X.get(), y.get(), \
+                       sample_weight, len(sample_weight), self.max_iter, \
+                       self.lr_rate, regTyp, rparam, isMult, \
+                       self.fit_intercept, self.tol, self.verbose, \
+                       self.__mid, dtype, itype, dense, \
+                       solver.encode('ascii'), \
+                       self.use_shrink, self.warm_start)
+
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
             raise RuntimeError(excpt["info"])
-        self._n_iter = n_iter
+        self._coef = None
+        self._intercept = None
+        self._n_iter = np.asarray([n_iter], dtype = np.int32)
+        self.isMult = isMult
+        self.isFitted = True
         return self
 
     @property
@@ -169,7 +166,7 @@ class LogisticRegression(BaseEstimator):
             excpt = rpclib.check_server_exception()
             if excpt["status"]:
                 raise RuntimeError(excpt["info"])
-            if self.__mkind == M_KIND.LRM:
+            if not self.isMult:
                 n_features = len(wgt)
                 shape = (1, n_features)
             else:
@@ -270,7 +267,7 @@ class LogisticRegression(BaseEstimator):
         if not os.path.exists(fname):
             raise ValueError(\
                 "the model with name %s does not exist!" % fname)
-        self.release()
+        self.reset_metadata()
         target = open(fname + "/label_map", "rb")
         self.label_map = pickle.load(target)
         target.close()
@@ -284,8 +281,8 @@ class LogisticRegression(BaseEstimator):
                 raise ValueError("load: type mismatches detected! " + \
                                  "expected type: " + str(mdt) + \
                                  "; given type: " + str(dtype))
-        self.__mid = ModelID.get()
-        GLM.load(self.__mid, self.__mkind, self.__mdtype, fname + "/model")
+        GLM.load(self.__mid, self.__mkind, self.__mdtype, fname+"/model")
+        self.isFitted = True
         return self
 
     @check_association
@@ -312,18 +309,27 @@ class LogisticRegression(BaseEstimator):
         """
         GLM.debug_print(self.__mid, self.__mkind, self.__mdtype)
 
-    def release(self):
+    def reset_metadata(self):
         """
         resets after-fit populated attributes to None
         """
-        self.__release_server_heap()
-        self.__mid = None
         self._coef = None
         self._intercept = None
         self._classes = None
         self._n_iter = None
         self.n_samples = None
+        self.isMult = None
+        self.isFitted = False
         self.n_features = None
+        self.n_classes = None # check if release is merged
+        self.label_map = None
+
+    def release(self):
+        """
+        resets after-fit populated attributes to None
+        """
+        self.__release_server_heap()
+        self.reset_metadata()
 
     @do_if_active_association
     def __release_server_heap(self):
@@ -336,34 +342,35 @@ class LogisticRegression(BaseEstimator):
         """
         destructs the python object
         """
-        self.release()
+        self.reset_metadata()
 
     def is_fitted(self):
         """ function to confirm if the model is already fitted """
-        return self.__mid is not None
+        return self.isFitted
 
 class LinearRegression(BaseEstimator):
     """A python wrapper of Frovedis Linear Regression
     max_iter: Frovedis: 1000 (added)
-    solver: Frovedis: None (default value is chosen 
+    solver: Frovedis: None (default value is chosen
             based on training matrix type) (added)
     lr_rate: Frovedis: 0.01 (added)
     tol: Frovedis: 0.0001 (added)
     """
     def __init__(self, fit_intercept=True, normalize=False, copy_X=True,
                  n_jobs=None, max_iter=1000, tol=0.0001, lr_rate=1e-8,
-                 solver=None, verbose=0):
+                 solver=None, verbose=0, warm_start = False):
         self.fit_intercept = fit_intercept
         self.normalize = normalize
         self.copy_X = copy_X
         self.n_jobs = n_jobs
+        self.warm_start = warm_start
         # extra
         self.max_iter = max_iter
         self.tol = tol
         self.lr_rate = lr_rate
         self.solver = solver
         self.verbose = verbose
-        self.__mid = None
+        self.__mid = ModelID.get()
         self.__mdtype = None
         self.__mkind = M_KIND.LNRM
         self._intercept = None
@@ -373,12 +380,14 @@ class LinearRegression(BaseEstimator):
         self._n_iter = None
         self.singular_ = None
         self.rank_ = None
+        self.isFitted = None
 
     def check_input(self, X, y, F):
         """checks input X"""
         inp_data = FrovedisLabeledPoint(X, y, \
                    caller = "[" + self.__class__.__name__ + "] " + F + ": ",\
                    dense_kind = 'colmajor', densify=False)
+
         X, y = inp_data.get()
         self.n_samples = inp_data.numRows()
         self.n_features = inp_data.numCols()
@@ -392,9 +401,8 @@ class LinearRegression(BaseEstimator):
         """
         NAME: fit
         """
-        self.release()
+        self.reset_metadata()
         X, y, dtype, itype, dense = self.check_input(X, y, "fit")
-        self.__mid = ModelID.get()
         self.__mdtype = dtype
 
         # select default solver, when None is given
@@ -408,21 +416,20 @@ class LinearRegression(BaseEstimator):
 
         sample_weight = check_sample_weight(self, sample_weight)
         (host, port) = FrovedisServer.getServerInstance()
-        if self.solver == 'sag':
-            self._n_iter = rpclib.lnr_sgd(host, port, X.get(), y.get(), \
+        if self.solver in ['sag', 'lbfgs']:
+            solver = self.solver
+            if solver == 'sag':
+                solver = 'sgd'
+            self._n_iter = rpclib.lnr(host, port, X.get(), y.get(), \
                            sample_weight, len(sample_weight), \
                            self.max_iter, self.lr_rate, \
                            self.fit_intercept, self.tol, self.verbose, self.__mid, \
-                           dtype, itype, dense)
-        elif self.solver == 'lbfgs':
-            self._n_iter = rpclib.lnr_lbfgs(host, port, X.get(), y.get(), \
-                           sample_weight, len(sample_weight), \
-                           self.max_iter, self.lr_rate, \
-                           self.fit_intercept, self.tol, self.verbose, self.__mid, \
-                           dtype, itype, dense)
+                           dtype, itype, dense, solver.encode('ascii'), self.warm_start)
         elif self.solver == 'lapack':
             if not dense:
                 raise TypeError("lapack solver supports only dense feature data!")
+            if self.warm_start:
+                raise TypeError("lapack solver does not support warm_start!")
             out = rpclib.lnr_lapack(host, port, X.get(), y.get(), \
                               sample_weight, len(sample_weight), \
                               self.fit_intercept, self.verbose, self.__mid, \
@@ -434,6 +441,8 @@ class LinearRegression(BaseEstimator):
         elif self.solver == 'scalapack':
             if not dense:
                 raise TypeError("scalapack solver supports only dense feature data!")
+            if self.warm_start:
+                raise TypeError("scalapack solver does not support warm_start!")
             rpclib.lnr_scalapack(host, port, X.get(), y.get(), \
                                  sample_weight, len(sample_weight), \
                                  self.fit_intercept, self.verbose, self.__mid, \
@@ -444,6 +453,9 @@ class LinearRegression(BaseEstimator):
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
             raise RuntimeError(excpt["info"])
+        self._coef = None
+        self._intercept = None
+        self.isFitted = True
         return self
 
     @property
@@ -489,7 +501,7 @@ class LinearRegression(BaseEstimator):
     @property
     def n_iter_(self):
         """n_iter_ getter"""
-        if not self.is_fitted():
+        if  not self.is_fitted():
             raise AttributeError("attribute 'n_iter_'" \
                "might have been released or called before fit")
         return self._n_iter
@@ -524,7 +536,7 @@ class LinearRegression(BaseEstimator):
         if not os.path.exists(fname):
             raise ValueError(\
                 "the model with name %s does not exist!" % fname)
-        self.release()
+        self.reset_metadata()
         metadata = open(fname + "/metadata", "rb")
         self.__mkind, self.__mdtype = pickle.load(metadata)
         metadata.close()
@@ -534,8 +546,8 @@ class LinearRegression(BaseEstimator):
                 raise ValueError("load: type mismatches detected! " + \
                                  "expected type: " + str(mdt) + \
                                  "; given type: " + str(dtype))
-        self.__mid = ModelID.get()
-        GLM.load(self.__mid, self.__mkind, self.__mdtype, fname + "/model")
+        GLM.load(self.__mid, self.__mkind, self.__mdtype, fname+"/model")
+        self.isFitted = True
         return self
 
     @check_association
@@ -559,19 +571,23 @@ class LinearRegression(BaseEstimator):
         """
         GLM.debug_print(self.__mid, self.__mkind, self.__mdtype)
 
+    def reset_metadata(self):
+        """
+        resets after-fit populated attributes to None
+        """
+        self._coef = None
+        self._intercept = None
+        self.n_samples = None
+        self._n_iter = None
+        self.isFitted = None
+        self.n_features = None
+
     def release(self):
         """
         resets after-fit populated attributes to None
         """
         self.__release_server_heap()
-        self.__mid = None
-        self._coef = None
-        self._intercept = None
-        self._n_iter = None
-        self.singular_ = None
-        self.rank_ = None
-        self.n_samples = None
-        self.n_features = None
+        self.reset_metadata()
 
     @do_if_active_association
     def __release_server_heap(self):
@@ -584,11 +600,11 @@ class LinearRegression(BaseEstimator):
         """
         destructs the python object
         """
-        self.release()
+        self.reset_metadata()
 
     def is_fitted(self):
         """ function to confirm if the model is already fitted """
-        return self.__mid is not None
+        return self.isFitted
 
 class Lasso(BaseEstimator):
     """A python wrapper of Frovedis Lasso Regression"""
@@ -615,20 +631,22 @@ class Lasso(BaseEstimator):
         self.lr_rate = lr_rate
         self.verbose = verbose
         self.solver = solver
-        self.__mid = None
+        self.__mid = ModelID.get()
         self.__mdtype = None
-        self.__mkind = M_KIND.LNRM
+        self.__mkind = M_KIND.LSR
         self._coef = None
         self._intercept = None
         self.n_samples = None
         self.n_features = None
         self._n_iter = None
+        self.isFitted = None
 
     def check_input(self, X, y, F):
         """checks input X"""
         inp_data = FrovedisLabeledPoint(X, y, \
                    caller = "[" + self.__class__.__name__ + "] " + F + ": ",\
                    dense_kind = 'colmajor', densify=False)
+
         X, y = inp_data.get()
         self.n_samples = inp_data.numRows()
         self.n_features = inp_data.numCols()
@@ -642,9 +660,8 @@ class Lasso(BaseEstimator):
         """
         NAME: fit
         """
-        self.release()
+        self.reset_metadata()
         X, y, dtype, itype, dense = self.check_input(X, y, "fit")
-        self.__mid = ModelID.get()
         self.__mdtype = dtype
 
         if self.max_iter is None:
@@ -652,25 +669,26 @@ class Lasso(BaseEstimator):
 
         sample_weight = check_sample_weight(self, sample_weight)
         (host, port) = FrovedisServer.getServerInstance()
-        if self.solver == 'sag':
-            n_iter = rpclib.lasso_sgd(host, port, X.get(), y.get(), \
-                           sample_weight, len(sample_weight), \
-                           self.max_iter, self.lr_rate, \
-                           self.alpha, self.fit_intercept, self.tol, \
-                           self.verbose, self.__mid, dtype, itype, dense)
-        elif self.solver == 'lbfgs':
-            n_iter = rpclib.lasso_lbfgs(host, port, X.get(), y.get(), \
-                           sample_weight, len(sample_weight), \
-                           self.max_iter, self.lr_rate, \
-                           self.alpha, self.fit_intercept, self.tol,\
-                           self.verbose, self.__mid, dtype, itype, dense)
-        else:
+        supported_solver = ['sgd', 'lbfgs']
+        solver = self.solver
+        if solver == 'sag':
+            solver = 'sgd'
+        if solver not in supported_solver:
             raise ValueError( \
-            "Unknown solver %s for Lasso Regression." % self.solver)
+            "Unknown solver %s for Lasso Regression." % solver)
+        n_iter = rpclib.lasso(host, port, X.get(), y.get(), \
+                       sample_weight, len(sample_weight), \
+                       self.max_iter, self.lr_rate, \
+                       self.alpha, self.fit_intercept, self.tol, \
+                       self.verbose, self.__mid, dtype, itype, dense, \
+                       solver.encode('ascii'), self.warm_start)
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
             raise RuntimeError(excpt["info"])
+        self._coef = None
+        self._intercept = None
         self._n_iter = n_iter
+        self.isFitted = True
         return self
 
     @property
@@ -751,7 +769,7 @@ class Lasso(BaseEstimator):
         if not os.path.exists(fname):
             raise ValueError(\
                 "the model with name %s does not exist!" % fname)
-        self.release()
+        self.reset_metadata()
         metadata = open(fname + "/metadata", "rb")
         self.__mkind, self.__mdtype = pickle.load(metadata)
         metadata.close()
@@ -761,8 +779,8 @@ class Lasso(BaseEstimator):
                 raise ValueError("load: type mismatches detected! " + \
                                  "expected type: " + str(mdt) + \
                                  "; given type: " + str(dtype))
-        self.__mid = ModelID.get()
-        GLM.load(self.__mid, self.__mkind, self.__mdtype, fname + "/model")
+        GLM.load(self.__mid, self.__mkind, self.__mdtype, fname+"/model")
+        self.isFitted = True
         return self
 
     @check_association
@@ -786,17 +804,23 @@ class Lasso(BaseEstimator):
         """
         GLM.debug_print(self.__mid, self.__mkind, self.__mdtype)
 
+    def reset_metadata(self):
+        """
+        resets after-fit populated attributes to None
+        """
+        self._coef = None
+        self._intercept = None
+        self._n_iter = None
+        self.n_samples = None
+        self.isFitted = None
+        self.n_features = None
+
     def release(self):
         """
         resets after-fit populated attributes to None
         """
         self.__release_server_heap()
-        self.__mid = None
-        self._coef = None
-        self._intercept = None
-        self._n_iter = None
-        self.n_samples = None
-        self.n_features = None
+        self.reset_metadata()
 
     @do_if_active_association
     def __release_server_heap(self):
@@ -809,11 +833,11 @@ class Lasso(BaseEstimator):
         """
         destructs the python object
         """
-        self.release()
+        self.reset_metadata()
 
     def is_fitted(self):
         """ function to confirm if the model is already fitted """
-        return self.__mid is not None
+        return self.isFitted
 
 class Ridge(BaseEstimator):
     """A python wrapper of Frovedis Ridge Regression"""
@@ -821,7 +845,8 @@ class Ridge(BaseEstimator):
     # lr_rate: Frovedis: 0.01 (added)
     def __init__(self, alpha=0.01, fit_intercept=True, normalize=False,
                  copy_X=True, max_iter=None, tol=1e-3, solver='auto',
-                 random_state=None, lr_rate=1e-8, verbose=0):
+                 random_state=None, lr_rate=1e-8, verbose=0,
+                 warm_start = False):
         self.alpha = alpha
         self.fit_intercept = fit_intercept
         self.normalize = normalize
@@ -830,23 +855,26 @@ class Ridge(BaseEstimator):
         self.tol = tol
         self.solver = solver
         self.random_state = random_state
+        self.warm_start = warm_start
         # extra
         self.lr_rate = lr_rate
         self.verbose = verbose
-        self.__mid = None
+        self.__mid = ModelID.get()
         self.__mdtype = None
-        self.__mkind = M_KIND.LNRM
+        self.__mkind = M_KIND.RR
         self._coef = None
         self._intercept = None
         self.n_samples = None
         self.n_features = None
         self._n_iter = None
+        self.isFitted = False
 
     def check_input(self, X, y, F):
         """checks input X"""
         inp_data = FrovedisLabeledPoint(X, y, \
                    caller = "[" + self.__class__.__name__ + "] " + F + ": ",\
                    dense_kind = 'colmajor', densify=False)
+
         X, y = inp_data.get()
         self.n_samples = inp_data.numRows()
         self.n_features = inp_data.numCols()
@@ -860,9 +888,8 @@ class Ridge(BaseEstimator):
         """
         NAME: fit
         """
-        self.release()
+        self.reset_metadata()
         X, y, dtype, itype, dense = self.check_input(X, y, "fit")
-        self.__mid = ModelID.get()
         self.__mdtype = dtype
         sv = ['svd', 'cholesky', 'lsqr', 'sparse_cg']
         if self.solver in sv:
@@ -873,27 +900,27 @@ class Ridge(BaseEstimator):
             self.max_iter = 1000
         sample_weight = check_sample_weight(self, sample_weight)
         (host, port) = FrovedisServer.getServerInstance()
-        if self.solver == 'sag' or self.solver == 'auto':
-            n_iter = rpclib.ridge_sgd(host, port, X.get(), y.get(), \
-                           sample_weight, len(sample_weight), \
-                           self.max_iter, self.lr_rate, \
-                           self.alpha, self.fit_intercept, self.tol, \
-                           self.verbose, self.__mid, \
-                           dtype, itype, dense)
-        elif self.solver == 'lbfgs':
-            n_iter = rpclib.ridge_lbfgs(host, port, X.get(), y.get(), \
-                           sample_weight, len(sample_weight), \
-                           self.max_iter, self.lr_rate, \
-                           self.alpha, self.fit_intercept, self.tol, \
-                           self.verbose, self.__mid, \
-                           dtype, itype, dense)
-        else:
+        supported_solver = ['sgd', 'lbfgs']
+        solver = self.solver
+        if solver in ['sag', 'auto']:
+            solver = 'sgd'
+        if solver not in supported_solver:
             raise ValueError( \
-            "Unknown solver %s for Ridge Regression." % self.solver)
+            "Unknown solver %s for Ridge Regression." % solver)
+        n_iter = rpclib.ridge(host, port, X.get(), y.get(), \
+                       sample_weight, len(sample_weight), \
+                       self.max_iter, self.lr_rate, \
+                       self.alpha, self.fit_intercept, self.tol, \
+                       self.verbose, self.__mid, \
+                       dtype, itype, dense, solver.encode('ascii'),
+                       self.warm_start)
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
             raise RuntimeError(excpt["info"])
-        self._n_iter = n_iter
+        self._coef = None
+        self._intercept = None
+        self._n_iter = np.asarray([n_iter], dtype = np.int32)
+        self.isFitted = True
         return self
 
     @property
@@ -974,7 +1001,7 @@ class Ridge(BaseEstimator):
         if not os.path.exists(fname):
             raise ValueError(\
                 "the model with name %s does not exist!" % fname)
-        self.release()
+        self.reset_metadata()
         metadata = open(fname + "/metadata", "rb")
         self.__mkind, self.__mdtype = pickle.load(metadata)
         metadata.close()
@@ -984,8 +1011,8 @@ class Ridge(BaseEstimator):
                 raise ValueError("load: type mismatches detected! " + \
                                  "expected type: " + str(mdt) + \
                                  "; given type: " + str(dtype))
-        self.__mid = ModelID.get()
-        GLM.load(self.__mid, self.__mkind, self.__mdtype, fname + "/model")
+        GLM.load(self.__mid, self.__mkind, self.__mdtype, fname+"/model")
+        self.isFitted = True
         return self
 
     @check_association
@@ -1009,17 +1036,23 @@ class Ridge(BaseEstimator):
         """
         GLM.debug_print(self.__mid, self.__mkind, self.__mdtype)
 
+    def reset_metadata(self):
+        """
+        resets after-fit populated attributes to None
+        """
+        self._coef = None
+        self._intercept = None
+        self._n_iter = None
+        self.n_samples = None
+        self.isFitted = False
+        self.n_features = None
+
     def release(self):
         """
         resets after-fit populated attributes to None
         """
         self.__release_server_heap()
-        self.__mid = None
-        self._coef = None
-        self._intercept = None
-        self._n_iter = None
-        self.n_samples = None
-        self.n_features = None
+        self.reset_metadata()
 
     @do_if_active_association
     def __release_server_heap(self):
@@ -1032,11 +1065,11 @@ class Ridge(BaseEstimator):
         """
         destructs the python object
         """
-        self.release()
+        self.reset_metadata()
 
     def is_fitted(self):
         """ function to confirm if the model is already fitted """
-        return self.__mid is not None
+        return self.isFitted
 
 class SGDClassifier(BaseEstimator):
     """
@@ -1071,7 +1104,7 @@ class SGDClassifier(BaseEstimator):
         self.warm_start = warm_start
         self.average = average
         # extra
-        self.__mid = None
+        self.__mid = ModelID.get()
         self.__mdtype = None
         self.__mkind = None
         self.label_map = None
@@ -1082,6 +1115,8 @@ class SGDClassifier(BaseEstimator):
         self._n_iter = None
         self.n_samples = None
         self.n_features = None
+        self.isFitted = None
+        self.is_mult = None
 
     def validate(self):
         """validates hyper parameters"""
@@ -1126,11 +1161,10 @@ class SGDClassifier(BaseEstimator):
         """
         Fit method for SGDclassifier
         """
-        self.release()
+        self.reset_metadata()
         self.validate()
 
         X, y, dtype, itype, dense = self.check_input(X, y, "fit")
-        self.__mid = ModelID.get()
         self.__mdtype = dtype
 
         rparam = self.alpha
@@ -1147,42 +1181,48 @@ class SGDClassifier(BaseEstimator):
         sample_weight = check_sample_weight(self, sample_weight)
         (host, port) = FrovedisServer.getServerInstance()
         if self.loss == "log":
+            self.__mkind = M_KIND.LR
             if self.n_classes == 2:
-                isMult = False
-                self.__mkind = M_KIND.LRM
+                self.is_mult = False
             else:
-                isMult = True
-                self.__mkind = M_KIND.MLR
-            n_iter = rpclib.lr_sgd(host, port, X.get(), y.get(),
+                self.is_mult = True
+            n_iter = rpclib.lr(host, port, X.get(), y.get(),
                             sample_weight, len(sample_weight), \
                             self.max_iter, self.eta0, \
-                            regTyp, rparam, isMult, \
-                            self.fit_intercept, self.tol, self.verbose,\
-                            self.__mid, dtype, itype, dense, False)
+                            regTyp, rparam, self.is_mult, \
+                            self.fit_intercept, self.tol, self.verbose, \
+                            self.__mid, dtype, itype, dense, "sgd".encode('ascii'), False, \
+                            self.warm_start)
         elif self.loss == "hinge":
             if self.n_classes != 2:
                 raise ValueError("SGDClassifier: loss = 'hinge' supports" + \
                                  " only binary classification!")
             self.__mkind = M_KIND.SVM
-            n_iter = rpclib.svm_sgd(host, port, X.get(), y.get(), \
+            n_iter = rpclib.svm(host, port, X.get(), y.get(), \
                             sample_weight, len(sample_weight), \
                             self.max_iter, self.eta0, \
                             regTyp, rparam, self.fit_intercept, self.tol, \
-                            self.verbose, self.__mid, dtype, itype, dense)
+                            self.verbose, self.__mid, dtype, itype, dense, \
+                            'sgd'.encode('ascii'), self.warm_start)
         elif self.loss == "squared_loss":
-            self.__mkind = M_KIND.LNRM
+            model_kind = [M_KIND.LNRM, M_KIND.LSR, M_KIND.RR]
+            self.__mkind = model_kind[regTyp]
             n_iter = rpclib.lnr2_sgd(host, port, X.get(), y.get(), \
                             sample_weight, len(sample_weight), \
                             self.max_iter, self.eta0, \
                             regTyp, rparam, self.fit_intercept, self.tol, \
-                            self.verbose, self.__mid, dtype, itype, dense)
+                            self.verbose, self.__mid, dtype, itype, dense, \
+                            self.warm_start)
         else:
             raise ValueError("SGDClassifier: supported losses are log, " + \
                              "hinge and squared_loss only!")
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
             raise RuntimeError(excpt["info"])
+        self._coef = None
+        self._intercept = None
         self._n_iter = n_iter
+        self.isFitted = True
         return self
 
     @property
@@ -1196,8 +1236,7 @@ class SGDClassifier(BaseEstimator):
             excpt = rpclib.check_server_exception()
             if excpt["status"]:
                 raise RuntimeError(excpt["info"])
-            if self.__mkind == M_KIND.LRM or self.__mkind == M_KIND.SVM \
-                or self.__mkind == M_KIND.LNRM:
+            if not self.is_mult:
                 n_features = len(wgt)
                 shape = (1, n_features)
             else: # MLR case
@@ -1254,7 +1293,7 @@ class SGDClassifier(BaseEstimator):
     @property
     def n_iter_(self):
         """n_iter_ getter"""
-        if not self.is_fitted():
+        if self.__mid is None:
             raise AttributeError("attribute 'n_iter_'" \
                "might have been released or called before fit")
         return self._n_iter
@@ -1265,14 +1304,13 @@ class SGDClassifier(BaseEstimator):
         raise AttributeError(\
             "attribute 'n_iter_' of SGDClassifier  object is not writable")
 
-    @check_association
     def predict(self, X):
         """
         NAME: predict for SGD classifier
         """
         frov_pred = GLM.predict(X, self.__mid, self.__mkind, \
                                 self.__mdtype, False)
-        if self.__mkind == M_KIND.LNRM:
+        if self.__mkind in [M_KIND.LNRM, M_KIND.LSR, M_KIND.RR]:
             return np.asarray(frov_pred, dtype=np.float64)
         else:
             return np.asarray([self.label_map[frov_pred[i]] \
@@ -1297,7 +1335,7 @@ class SGDClassifier(BaseEstimator):
         """
         NAME: score
         """
-        if self.__mkind == M_KIND.LNRM:
+        if self.__mkind in [M_KIND.LNRM, M_KIND.LSR, M_KIND.RR]:
             return r2_score(y, self.predict(X), sample_weight=sample_weight)
         else:
             return accuracy_score(y, self.predict(X), sample_weight=sample_weight)
@@ -1310,8 +1348,8 @@ class SGDClassifier(BaseEstimator):
         if not os.path.exists(fname):
             raise ValueError(\
                 "the model with name %s does not exist!" % fname)
-        self.release()
-        if self.__mkind != M_KIND.LNRM:
+        self.reset_metadata()
+        if self.__mkind not in [M_KIND.LNRM, M_KIND.LSR, M_KIND.RR]:
             target = open(fname + "/label_map", "rb")
             self.label_map = pickle.load(target)
             target.close()
@@ -1327,8 +1365,8 @@ class SGDClassifier(BaseEstimator):
                 raise ValueError("load: type mismatches detected! " + \
                                  "expected type: " + str(mdt) + \
                                  "; given type: " + str(dtype))
-        self.__mid = ModelID.get()
-        GLM.load(self.__mid, self.__mkind, self.__mdtype, fname + "/model")
+        GLM.load(self.__mid, self.__mkind, self.__mdtype, fname+"/model")
+        self.isFitted = True
         return self
 
     @check_association
@@ -1357,18 +1395,25 @@ class SGDClassifier(BaseEstimator):
         """
         GLM.debug_print(self.__mid, self.__mkind, self.__mdtype)
 
-    def release(self):
+    def reset_metadata(self):
         """
         resets after-fit populated attributes to None
         """
-        self.__release_server_heap()
-        self.__mid = None
         self._coef = None
         self._intercept = None
         self._classes = None
         self._n_iter = None
         self.n_samples = None
+        self.isFitted = None
+        self.is_mult = None
         self.n_features = None
+
+    def release(self):
+        """
+        resets after-fit populated attributes to None
+        """
+        self.__release_server_heap()
+        self.reset_metadata()
 
     @do_if_active_association
     def __release_server_heap(self):
@@ -1381,12 +1426,11 @@ class SGDClassifier(BaseEstimator):
         """
         NAME: __del__
         """
-        self.release()
+        self.reset_metadata()
 
     def is_fitted(self):
         """ function to confirm if the model is already fitted """
-        return self.__mid is not None
-
+        return self.isFitted
 
 class SGDRegressor(BaseEstimator):
     """
@@ -1417,20 +1461,22 @@ class SGDRegressor(BaseEstimator):
         self.warm_start = warm_start
         self.average = average
         # extra
-        self.__mid = None
+        self.__mid = ModelID.get()
         self.__mdtype = None
         self.__mkind = None
         self._intercept = None
         self._coef = None
-        self._n_iter = None
         self.n_samples = None
+        self._n_iter = None
         self.n_features = None
+        self.isFitted = None
 
     def check_input(self, X, y, F):
         """checks input X"""
         inp_data = FrovedisLabeledPoint(X, y, \
                    caller = "[" + self.__class__.__name__ + "] " + F + ": ",\
                    dense_kind = 'colmajor', densify=False)
+
         X, y = inp_data.get()
         self.n_samples = inp_data.numRows()
         self.n_features = inp_data.numCols()
@@ -1471,11 +1517,10 @@ class SGDRegressor(BaseEstimator):
         Fit method for SGDRegressor
         """
         # release old model, if any
-        self.release()
+        self.reset_metadata()
         self.validate()
         # perform the fit
         X, y, dtype, itype, dense = self.check_input(X, y, "fit")
-        self.__mid = ModelID.get()
         self.__mdtype = dtype
 
         if self.penalty == 'l1':
@@ -1500,21 +1545,24 @@ class SGDRegressor(BaseEstimator):
             intLoss = svrloss[self.loss]
             if self.epsilon < 0:
                 raise ValueError("fit: epsilon parameter must be zero or positive!")
-            n_iter = rpclib.svm_regressor_sgd(host, port, X.get(), y.get(), \
-                                              sample_weight, len(sample_weight), \
-                                              self.max_iter, self.eta0, \
-                                              self.epsilon, regTyp, self.alpha, \
-                                              self.fit_intercept, self.tol, \
-                                              intLoss, self.verbose, \
-                                              self.__mid, dtype, itype, dense)
+            n_iter = rpclib.svm_regressor(host, port, X.get(), y.get(), \
+                                          sample_weight, len(sample_weight), \
+                                          self.max_iter, self.eta0, \
+                                          self.epsilon, regTyp, self.alpha, \
+                                          self.fit_intercept, self.tol, \
+                                          intLoss, self.verbose, \
+                                          self.__mid, dtype, itype, dense, \
+                                          "sgd".encode('ascii'), self.warm_start)
         elif self.loss in list(lnrloss.keys()):
-            self.__mkind = M_KIND.LNRM
+            model_kind = [M_KIND.LNRM, M_KIND.LSR, M_KIND.RR]
+            self.__mkind = model_kind[regTyp]
             n_iter = rpclib.lnr2_sgd(host, port, X.get(), y.get(), \
                                      sample_weight, len(sample_weight), \
                                      self.max_iter, self.eta0, \
                                      regTyp, self.alpha, \
                                      self.fit_intercept, self.tol, \
-                                     self.verbose, self.__mid, dtype, itype, dense)
+                                     self.verbose, self.__mid, dtype, itype, dense, \
+                                     "sgd".encode('ascii'), self.warm_start)
         else:
             raise ValueError(\
              "fit: supported losses are epsilon_insensitive, " \
@@ -1523,7 +1571,10 @@ class SGDRegressor(BaseEstimator):
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
             raise RuntimeError(excpt["info"])
+        self._coef = None
+        self._intercept = None
         self._n_iter = n_iter
+        self.isFitted = True
         return self
 
     @property
@@ -1603,7 +1654,7 @@ class SGDRegressor(BaseEstimator):
         if not os.path.exists(fname):
             raise ValueError(\
                 "the model with name %s does not exist!" % fname)
-        self.release()
+        self.reset_metadata()
         metadata = open(fname + "/metadata", "rb")
         self.loss, self.__mkind, self.__mdtype = pickle.load(metadata)
         metadata.close()
@@ -1613,8 +1664,8 @@ class SGDRegressor(BaseEstimator):
                 raise ValueError("load: type mismatches detected! " + \
                                  "expected type: " + str(mdt) + \
                                  "; given type: " + str(dtype))
-        self.__mid = ModelID.get()
-        GLM.load(self.__mid, self.__mkind, self.__mdtype, fname + "/model")
+        GLM.load(self.__mid, self.__mkind, self.__mdtype, fname+"/model")
+        self.isFitted = True
         return self
 
     @check_association
@@ -1639,17 +1690,23 @@ class SGDRegressor(BaseEstimator):
         """
         GLM.debug_print(self.__mid, self.__mkind, self.__mdtype)
 
+    def reset_metadata(self):
+        """
+        resets after-fit populated attributes to None
+        """
+        self._coef = None
+        self._intercept = None
+        self._n_iter = None
+        self.n_samples = None
+        self.isFitted = None
+        self.n_features = None
+
     def release(self):
         """
         resets after-fit populated attributes to None
         """
         self.__release_server_heap()
-        self.__mid = None
-        self._coef = None
-        self._intercept = None
-        self._n_iter = None
-        self.n_samples = None
-        self.n_features = None
+        self.reset_metadata()
 
     @do_if_active_association
     def __release_server_heap(self):
@@ -1662,9 +1719,8 @@ class SGDRegressor(BaseEstimator):
         """
         NAME: __del__
         """
-        self.release()
+        self.reset_metadata()
 
     def is_fitted(self):
         """ function to confirm if the model is already fitted """
-        return self.__mid is not None
-
+        return self.isFitted
