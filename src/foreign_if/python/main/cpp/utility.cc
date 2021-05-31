@@ -190,6 +190,12 @@ extern "C" {
                          "n_samples", result.trans_mat_nsamples);
   }
 
+  PyObject* to_py_gmm_result(const gmm_result& result) {
+    return Py_BuildValue("{s:i, s:d}",
+                         "n_iter", result.n_iter_,
+                         "likelihood", result.likelihood_);
+  } 
+
   PyObject* to_py_knn_result(const knn_result& obj,
                              char mtype) {
     if (mtype != 'R') 
