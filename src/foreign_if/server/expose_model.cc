@@ -77,67 +77,87 @@ void expose_frovedis_model_functions() {
   expose(save_model<FPR1>);
   expose(load_fpm<FPR1>);    // returns rule_count (int)
   // expose(get_fis<FPM1>);  
-  // --- frovedis LogisticRegressionModel ---
-  expose(show_model<LRM1>);
-  expose(show_model<LRM2>);    // for python
-  expose(release_model<LRM1>);
-  expose(release_model<LRM2>); // for python
-  expose(save_model<LRM1>);
-  expose(save_model<LRM2>);    // for python
-  expose(load_glm<LRM1>);
-  expose(load_glm<LRM2>);      // for python
-  expose((set_glm_threshold<DT1,LRM1>));                      // for spark
-  expose((single_glm_predict<DT1,R_LMAT1,LRM1>));             // for spark
-  expose((single_glm_predict<DT1,S_LMAT1,LRM1>));             // for spark
-  expose((parallel_lrm_predict<DT1,R_MAT1,R_LMAT1,LRM1>));    // for spark+python
-  expose((parallel_lrm_predict<DT2,R_MAT2,R_LMAT2,LRM2>));    // for python
-  expose((parallel_lrm_predict<DT1,S_MAT14,S_LMAT14,LRM1>));  // for python
-  expose((parallel_lrm_predict<DT1,S_MAT15,S_LMAT15,LRM1>));  // for spark+python
-  expose((parallel_lrm_predict<DT2,S_MAT24,S_LMAT24,LRM2>));  // for python
-  expose((parallel_lrm_predict<DT2,S_MAT25,S_LMAT25,LRM2>));  // for python
-  expose((get_weight_vector<DT1,LRM1>));
-  expose((get_weight_vector<DT2,LRM2>));
-  expose((get_intercept_as_vector<DT1,LRM1>));
-  expose((get_intercept_as_vector<DT2,LRM2>));
-  // --- frovedis MultinomialLogisticRegressionModel ---
-  expose(show_model<MLR1>);
-  expose(show_model<MLR2>);
-  expose(save_model<MLR1>);
-  expose(save_model<MLR2>);
-  expose(release_model<MLR1>);
-  expose(release_model<MLR2>);
-  expose(load_glm<MLR1>);
-  expose(load_glm<MLR2>);
-  expose((set_glm_threshold<DT1,MLR1>));                      // for spark
-  expose((single_glm_predict<DT1,R_LMAT1,MLR1>));             // for spark
-  expose((single_glm_predict<DT1,S_LMAT1,MLR1>));             // for spark
-  expose((parallel_lrm_predict<DT1,R_MAT1,R_LMAT1,MLR1>));    // for spark+python
-  expose((parallel_lrm_predict<DT2,R_MAT2,R_LMAT2,MLR2>));    // for python
-  expose((parallel_lrm_predict<DT1,S_MAT14,S_LMAT14,MLR1>));  // for python
-  expose((parallel_lrm_predict<DT1,S_MAT15,S_LMAT15,MLR1>));  // for spark+python
-  expose((parallel_lrm_predict<DT2,S_MAT24,S_LMAT24,MLR2>));  // for python
-  expose((parallel_lrm_predict<DT2,S_MAT25,S_LMAT25,MLR2>));  // for python
-  expose((get_weight_as_vector<DT1,MLR1>));
-  expose((get_weight_as_vector<DT2,MLR2>));
-  expose((get_intercept_vector<DT1,MLR1>));
-  expose((get_intercept_vector<DT2,MLR2>));
+  // --- frovedis LogisticRegression ---
+  expose(show_model<LR1>);
+  expose(show_model<LR2>);    // for python
+  expose(release_model<LR1>);
+  expose(release_model<LR2>); // for python
+  expose(save_model<LR1>);
+  expose(save_model<LR2>);    // for python
+  expose(load_glm<LR1>);
+  expose(load_glm<LR2>);      // for python
+  expose((set_glm_threshold<DT1,LR1>));                      // for spark
+  expose((single_glm_predict<DT1,R_LMAT1,LR1>));             // for spark
+  expose((single_glm_predict<DT1,S_LMAT1,LR1>));             // for spark
+  expose((parallel_lrm_predict<DT1,R_MAT1,LR1>));    // for spark+python
+  expose((parallel_lrm_predict<DT2,R_MAT2,LR2>));    // for python
+  expose((parallel_lrm_predict<DT1,S_MAT14,LR1>));  // for python
+  expose((parallel_lrm_predict<DT1,S_MAT15,LR1>));  // for spark+python
+  expose((parallel_lrm_predict<DT2,S_MAT24,LR2>));  // for python
+  expose((parallel_lrm_predict<DT2,S_MAT25,LR2>));  // for python
+  expose((get_weight_vector<DT1,LR1>));
+  expose((get_weight_vector<DT2,LR2>));
+  expose((get_intercept_as_vector<DT1,LR1>));
+  expose((get_intercept_as_vector<DT2,LR2>));
+  // --- frovedis RidgeRegression
+  expose(show_model<RR1>);
+  expose(release_model<RR1>);
+  expose(save_model<RR1>);
+  expose(load_lnrm<RR1>);
+  expose(show_model<RR2>);    // for python
+  expose(release_model<RR2>); // for python
+  expose(save_model<RR2>);    // for python
+  expose(load_lnrm<RR2>);       // for python
+  expose((single_lnrm_predict<DT1,R_LMAT1,RR1>));    // for spark
+  expose((single_lnrm_predict<DT1,S_LMAT1,RR1>));    // for spark
+  expose((parallel_lnrm_predict<DT1,R_MAT1,R_LMAT1,RR1>));    // for spark+python
+  expose((parallel_lnrm_predict<DT2,R_MAT2,R_LMAT2,RR2>));    // for python
+  expose((parallel_lnrm_predict<DT1,S_MAT14,S_LMAT14,RR1>));  // for python
+  expose((parallel_lnrm_predict<DT1,S_MAT15,S_LMAT15,RR1>));  // for spark+python
+  expose((parallel_lnrm_predict<DT2,S_MAT24,S_LMAT24,RR2>));  // for python
+  expose((parallel_lnrm_predict<DT2,S_MAT25,S_LMAT25,RR2>));  // for python
+  expose((get_weight_vector<DT1,RR1>));
+  expose((get_weight_vector<DT2,RR2>));
+  expose((get_intercept_as_vector<DT1,RR1>));
+  expose((get_intercept_as_vector<DT2,RR2>));
+  // --- frovedis LassoRegression
+  expose(show_model<LSR1>);
+  expose(release_model<LSR1>);
+  expose(save_model<LSR1>);
+  expose(load_lnrm<LSR1>);
+  expose(show_model<LSR2>);    // for python
+  expose(release_model<LSR2>); // for python
+  expose(save_model<LSR2>);    // for python
+  expose(load_lnrm<LSR2>);       // for python
+  expose((single_lnrm_predict<DT1,R_LMAT1,LSR1>));    // for spark
+  expose((single_lnrm_predict<DT1,S_LMAT1,LSR1>));    // for spark
+  expose((parallel_lnrm_predict<DT1,R_MAT1,R_LMAT1,LSR1>));    // for spark+python
+  expose((parallel_lnrm_predict<DT2,R_MAT2,R_LMAT2,LSR2>));    // for python
+  expose((parallel_lnrm_predict<DT1,S_MAT14,S_LMAT14,LSR1>));  // for python
+  expose((parallel_lnrm_predict<DT1,S_MAT15,S_LMAT15,LSR1>));  // for spark+python
+  expose((parallel_lnrm_predict<DT2,S_MAT24,S_LMAT24,LSR2>));  // for python
+  expose((parallel_lnrm_predict<DT2,S_MAT25,S_LMAT25,LSR2>));  // for python
+  expose((get_weight_vector<DT1,LSR1>));
+  expose((get_weight_vector<DT2,LSR2>));
+  expose((get_intercept_as_vector<DT1,LSR1>));
+  expose((get_intercept_as_vector<DT2,LSR2>));
   // --- frovedis LinearRegressionModel ---
   expose(show_model<LNRM1>);
   expose(release_model<LNRM1>);
   expose(save_model<LNRM1>);
-  expose(load_lnrm<DT1>);
+  expose(load_lnrm<LNRM1>);
   expose(show_model<LNRM2>);    // for python
   expose(release_model<LNRM2>); // for python
   expose(save_model<LNRM2>);    // for python
-  expose(load_lnrm<DT2>);       // for python
-  expose((single_generic_predict<DT1,R_LMAT1,LNRM1>));    // for spark
-  expose((single_generic_predict<DT1,S_LMAT1,LNRM1>));    // for spark
-  expose((parallel_lnrm_predict<DT1,R_MAT1,R_LMAT1>));    // for spark+python
-  expose((parallel_lnrm_predict<DT2,R_MAT2,R_LMAT2>));    // for python
-  expose((parallel_lnrm_predict<DT1,S_MAT14,S_LMAT14>));  // for python
-  expose((parallel_lnrm_predict<DT1,S_MAT15,S_LMAT15>));  // for spark+python
-  expose((parallel_lnrm_predict<DT2,S_MAT24,S_LMAT24>));  // for python
-  expose((parallel_lnrm_predict<DT2,S_MAT25,S_LMAT25>));  // for python
+  expose(load_lnrm<LNRM2>);       // for python
+  expose((single_lnrm_predict<DT1,R_LMAT1,LNRM1>));    // for spark
+  expose((single_lnrm_predict<DT1,S_LMAT1,LNRM1>));    // for spark
+  expose((parallel_lnrm_predict<DT1,R_MAT1,R_LMAT1,LNRM1>));    // for spark+python
+  expose((parallel_lnrm_predict<DT2,R_MAT2,R_LMAT2,LNRM2>));    // for python
+  expose((parallel_lnrm_predict<DT1,S_MAT14,S_LMAT14,LNRM1>));  // for python
+  expose((parallel_lnrm_predict<DT1,S_MAT15,S_LMAT15,LNRM1>));  // for spark+python
+  expose((parallel_lnrm_predict<DT2,S_MAT24,S_LMAT24,LNRM2>));  // for python
+  expose((parallel_lnrm_predict<DT2,S_MAT25,S_LMAT25,LNRM2>));  // for python
   expose((get_weight_vector<DT1,LNRM1>));
   expose((get_weight_vector<DT2,LNRM2>));
   expose((get_intercept_as_vector<DT1,LNRM1>));
@@ -154,12 +174,12 @@ void expose_frovedis_model_functions() {
   expose((set_glm_threshold<DT1,SVM1>));                // for spark
   expose((single_glm_predict<DT1,R_LMAT1,SVM1>));       // for spark
   expose((single_glm_predict<DT1,S_LMAT1,SVM1>));       // for spark
-  expose((parallel_svm_predict<DT1,R_MAT1,R_LMAT1>));   // for spark+python
-  expose((parallel_svm_predict<DT2,R_MAT2,R_LMAT2>));   // for python
-  expose((parallel_svm_predict<DT1,S_MAT14,S_LMAT14>)); // for python
-  expose((parallel_svm_predict<DT1,S_MAT15,S_LMAT15>)); // for spark+python
-  expose((parallel_svm_predict<DT2,S_MAT24,S_LMAT24>)); // for python
-  expose((parallel_svm_predict<DT2,S_MAT25,S_LMAT25>)); // for python
+  expose((parallel_svm_predict<DT1,R_MAT1,R_LMAT1,SVM1>));   // for spark+python
+  expose((parallel_svm_predict<DT2,R_MAT2,R_LMAT2,SVM2>));   // for python
+  expose((parallel_svm_predict<DT1,S_MAT14,S_LMAT14,SVM1>)); // for python
+  expose((parallel_svm_predict<DT1,S_MAT15,S_LMAT15,SVM1>)); // for spark+python
+  expose((parallel_svm_predict<DT2,S_MAT24,S_LMAT24,SVM2>)); // for python
+  expose((parallel_svm_predict<DT2,S_MAT25,S_LMAT25,SVM2>)); // for python
   expose((get_weight_vector<DT1,SVM1>));
   expose((get_weight_vector<DT2,SVM2>));
   expose((get_intercept_as_vector<DT1,SVM1>));
@@ -168,19 +188,19 @@ void expose_frovedis_model_functions() {
   expose(show_model<SVR1>);
   expose(release_model<SVR1>);
   expose(save_model<SVR1>);
-  expose(load_lnrm<DT1>);
+  expose(load_lnrm<SVR1>);
   expose(show_model<SVR2>);    // for python
   expose(release_model<SVR2>); // for python
   expose(save_model<SVR2>);    // for python
-  expose(load_lnrm<DT2>);      // for python
-  expose((single_generic_predict<DT1,R_LMAT1,SVR1>));    // for spark
-  expose((single_generic_predict<DT1,S_LMAT1,SVR1>));    // for spark
-  expose((parallel_lnrm_predict<DT1,R_MAT1,R_LMAT1>));   // for spark+python
-  expose((parallel_lnrm_predict<DT2,R_MAT2,R_LMAT2>));   // for python
-  expose((parallel_lnrm_predict<DT1,S_MAT14,S_LMAT14>)); // for python
-  expose((parallel_lnrm_predict<DT1,S_MAT15,S_LMAT15>)); // for spark+python
-  expose((parallel_lnrm_predict<DT2,S_MAT24,S_LMAT24>)); // for python
-  expose((parallel_lnrm_predict<DT2,S_MAT25,S_LMAT25>)); // for python
+  expose(load_lnrm<SVR2>);      // for python
+  expose((single_lnrm_predict<DT1,R_LMAT1,SVR1>));    // for spark
+  expose((single_lnrm_predict<DT1,S_LMAT1,SVR1>));    // for spark
+  expose((parallel_lnrm_predict<DT1,R_MAT1,R_LMAT1,SVR1>));   // for spark+python
+  expose((parallel_lnrm_predict<DT2,R_MAT2,R_LMAT2,SVR2>));   // for python
+  expose((parallel_lnrm_predict<DT1,S_MAT14,S_LMAT14,SVR1>)); // for python
+  expose((parallel_lnrm_predict<DT1,S_MAT15,S_LMAT15,SVR1>)); // for spark+python
+  expose((parallel_lnrm_predict<DT2,S_MAT24,S_LMAT24,SVR2>)); // for python
+  expose((parallel_lnrm_predict<DT2,S_MAT25,S_LMAT25,SVR2>)); // for python
   expose((get_weight_vector<DT1,SVR1>));
   expose((get_weight_vector<DT2,SVR2>));
   expose((get_intercept_as_vector<DT1,SVR1>));
@@ -301,7 +321,8 @@ void expose_frovedis_model_functions() {
   expose(release_model<GMM2>);
   expose(save_model<GMM2>);  
   expose(show_model<GMM2>);
-  expose(load_model<GMM2>);  
+  expose(load_model<GMM2>);
+  expose((single_gmm_predict<R_LMAT1,GMM1>));  
   expose((frovedis_gmm_predict<R_MAT1,GMM1>));
   expose((frovedis_gmm_predict<R_MAT2,GMM2>));
   expose((frovedis_gmm_predict_proba<DT1,R_MAT1,GMM1>));
@@ -335,77 +356,296 @@ void expose_frovedis_model_functions() {
   expose((get_dbscan_components<DBSCAN1, DT1>));
   expose((get_dbscan_components<DBSCAN2, DT2>));
   // knn -Nearest Neigbors ( NN )
-  expose((frovedis_kneighbors<DT1,DT4,R_MAT1,KNN1>));   
-  expose((frovedis_kneighbors<DT2,DT4,R_MAT2,KNN2>));   
-  expose((frovedis_kneighbors<DT1,DT5,R_MAT1,KNN1>));   
-  expose((frovedis_kneighbors<DT2,DT5,R_MAT2,KNN2>));
-  expose((frovedis_kneighbors_spark<DT1,DT5,R_MAT1,KNN1>)); // for spark
-  expose((frovedis_kneighbors_graph<DT4,R_MAT1,KNN1,S_MAT14,S_LMAT14>));
-  expose((frovedis_kneighbors_graph<DT4,R_MAT2,KNN2,S_MAT24,S_LMAT24>));
-  expose((frovedis_kneighbors_graph<DT5,R_MAT1,KNN1,S_MAT15,S_LMAT15>));
-  expose((frovedis_kneighbors_graph<DT5,R_MAT2,KNN2,S_MAT25,S_LMAT25>));
-  expose((frovedis_radius_neighbors<DT4,R_MAT1,KNN1,S_MAT14,S_LMAT14>));   
-  expose((frovedis_radius_neighbors<DT4,R_MAT2,KNN2,S_MAT24,S_LMAT24>));   
-  expose((frovedis_radius_neighbors<DT5,R_MAT1,KNN1,S_MAT15,S_LMAT15>));   
-  expose((frovedis_radius_neighbors<DT5,R_MAT2,KNN2,S_MAT25,S_LMAT25>));   
-  expose((frovedis_radius_neighbors_graph<DT4,R_MAT1,KNN1,S_MAT14,S_LMAT14>));
-  expose((frovedis_radius_neighbors_graph<DT4,R_MAT2,KNN2,S_MAT24,S_LMAT24>));
-  expose((frovedis_radius_neighbors_graph<DT5,R_MAT1,KNN1,S_MAT15,S_LMAT15>));
-  expose((frovedis_radius_neighbors_graph<DT5,R_MAT2,KNN2,S_MAT25,S_LMAT25>));
+  expose((frovedis_kneighbors<DT1,DT4,R_MAT1,KNNR1>));   
+  expose((frovedis_kneighbors<DT2,DT4,R_MAT2,KNNR2>));   
+  expose((frovedis_kneighbors<DT1,DT5,R_MAT1,KNNR1>));   
+  expose((frovedis_kneighbors<DT2,DT5,R_MAT2,KNNR2>));
+
+  expose((frovedis_kneighbors<DT1,DT5,S_MAT14,KNNR1>));   
+  expose((frovedis_kneighbors<DT2,DT5,S_MAT24,KNNR2>));   
+  expose((frovedis_kneighbors<DT1,DT5,S_MAT15,KNNR1>));   
+  expose((frovedis_kneighbors<DT2,DT5,S_MAT25,KNNR2>));
+
+  expose((frovedis_kneighbors<DT1,DT5,R_MAT1,KNNS14>));   
+  expose((frovedis_kneighbors<DT2,DT5,R_MAT2,KNNS24>));   
+  expose((frovedis_kneighbors<DT1,DT5,R_MAT1,KNNS15>));   
+  expose((frovedis_kneighbors<DT2,DT5,R_MAT2,KNNS25>));
+
+  expose((frovedis_kneighbors<DT1,DT5,S_MAT14,KNNS14>));   
+  expose((frovedis_kneighbors<DT2,DT5,S_MAT24,KNNS24>));   
+  expose((frovedis_kneighbors<DT1,DT5,S_MAT15,KNNS15>));   
+  expose((frovedis_kneighbors<DT2,DT5,S_MAT25,KNNS25>));
+  expose((frovedis_kneighbors_spark<DT1,DT5,R_MAT1,KNNR1>)); // for spark
+  expose((frovedis_kneighbors_spark<DT1,DT5,S_MAT15,KNNR1>)); // for spark
+  expose((frovedis_kneighbors_spark<DT1,DT5,R_MAT1,KNNS15>)); // for spark
+  expose((frovedis_kneighbors_spark<DT1,DT5,S_MAT15,KNNS15>)); // for spark
+  expose((frovedis_kneighbors_graph<DT4,R_MAT1,KNNR1,S_MAT14,S_LMAT14>));
+  expose((frovedis_kneighbors_graph<DT4,R_MAT2,KNNR2,S_MAT24,S_LMAT24>));
+  expose((frovedis_kneighbors_graph<DT5,R_MAT1,KNNR1,S_MAT15,S_LMAT15>));
+  expose((frovedis_kneighbors_graph<DT5,R_MAT2,KNNR2,S_MAT25,S_LMAT25>));
+
+  expose((frovedis_kneighbors_graph<DT5,S_MAT14,KNNR1,S_MAT15,S_LMAT15>));
+  expose((frovedis_kneighbors_graph<DT5,S_MAT24,KNNR2,S_MAT25,S_LMAT25>));
+  expose((frovedis_kneighbors_graph<DT5,S_MAT15,KNNR1,S_MAT15,S_LMAT15>));
+  expose((frovedis_kneighbors_graph<DT5,S_MAT25,KNNR2,S_MAT25,S_LMAT25>));
+
+  expose((frovedis_kneighbors_graph<DT5,R_MAT1,KNNS14,S_MAT15,S_LMAT15>));
+  expose((frovedis_kneighbors_graph<DT5,R_MAT2,KNNS24,S_MAT25,S_LMAT25>));
+  expose((frovedis_kneighbors_graph<DT5,R_MAT1,KNNS15,S_MAT15,S_LMAT15>));
+  expose((frovedis_kneighbors_graph<DT5,R_MAT2,KNNS25,S_MAT25,S_LMAT25>));
+
+  expose((frovedis_kneighbors_graph<DT5,S_MAT14,KNNS14,S_MAT15,S_LMAT15>));
+  expose((frovedis_kneighbors_graph<DT5,S_MAT24,KNNS24,S_MAT25,S_LMAT25>));
+  expose((frovedis_kneighbors_graph<DT5,S_MAT15,KNNS15,S_MAT15,S_LMAT15>));
+  expose((frovedis_kneighbors_graph<DT5,S_MAT25,KNNS25,S_MAT25,S_LMAT25>));
+
+  expose((frovedis_radius_neighbors<DT4,R_MAT1,KNNR1,S_MAT14,S_LMAT14>));   
+  expose((frovedis_radius_neighbors<DT4,R_MAT2,KNNR2,S_MAT24,S_LMAT24>));   
+  expose((frovedis_radius_neighbors<DT5,R_MAT1,KNNR1,S_MAT15,S_LMAT15>));   
+  expose((frovedis_radius_neighbors<DT5,R_MAT2,KNNR2,S_MAT25,S_LMAT25>));   
+
+  expose((frovedis_radius_neighbors<DT5,S_MAT14,KNNR1,S_MAT15,S_LMAT15>));   
+  expose((frovedis_radius_neighbors<DT5,S_MAT24,KNNR2,S_MAT25,S_LMAT25>));   
+  expose((frovedis_radius_neighbors<DT5,S_MAT15,KNNR1,S_MAT15,S_LMAT15>));   
+  expose((frovedis_radius_neighbors<DT5,S_MAT25,KNNR2,S_MAT25,S_LMAT25>));   
+
+  expose((frovedis_radius_neighbors<DT5,R_MAT1,KNNS14,S_MAT15,S_LMAT15>));   
+  expose((frovedis_radius_neighbors<DT5,R_MAT2,KNNS24,S_MAT25,S_LMAT25>));   
+  expose((frovedis_radius_neighbors<DT5,R_MAT1,KNNS15,S_MAT15,S_LMAT15>));   
+  expose((frovedis_radius_neighbors<DT5,R_MAT2,KNNS25,S_MAT25,S_LMAT25>));   
+
+  expose((frovedis_radius_neighbors<DT5,S_MAT14,KNNS14,S_MAT15,S_LMAT15>));   
+  expose((frovedis_radius_neighbors<DT5,S_MAT24,KNNS24,S_MAT25,S_LMAT25>));   
+  expose((frovedis_radius_neighbors<DT5,S_MAT15,KNNS15,S_MAT15,S_LMAT15>));   
+  expose((frovedis_radius_neighbors<DT5,S_MAT25,KNNS25,S_MAT25,S_LMAT25>));   
+
+  expose((frovedis_radius_neighbors_graph<DT4,R_MAT1,KNNR1,S_MAT14,S_LMAT14>));
+  expose((frovedis_radius_neighbors_graph<DT4,R_MAT2,KNNR2,S_MAT24,S_LMAT24>));
+  expose((frovedis_radius_neighbors_graph<DT5,R_MAT1,KNNR1,S_MAT15,S_LMAT15>));
+  expose((frovedis_radius_neighbors_graph<DT5,R_MAT2,KNNR2,S_MAT25,S_LMAT25>));
+
+  expose((frovedis_radius_neighbors_graph<DT5,S_MAT14,KNNR1,S_MAT15,S_LMAT15>));
+  expose((frovedis_radius_neighbors_graph<DT5,S_MAT24,KNNR2,S_MAT25,S_LMAT25>));
+  expose((frovedis_radius_neighbors_graph<DT5,S_MAT15,KNNR1,S_MAT15,S_LMAT15>));
+  expose((frovedis_radius_neighbors_graph<DT5,S_MAT25,KNNR2,S_MAT25,S_LMAT25>));
+
+  expose((frovedis_radius_neighbors_graph<DT5,R_MAT1,KNNS14,S_MAT15,S_LMAT15>));
+  expose((frovedis_radius_neighbors_graph<DT5,R_MAT2,KNNS24,S_MAT25,S_LMAT25>));
+  expose((frovedis_radius_neighbors_graph<DT5,R_MAT1,KNNS15,S_MAT15,S_LMAT15>));
+  expose((frovedis_radius_neighbors_graph<DT5,R_MAT2,KNNS25,S_MAT25,S_LMAT25>));
+
+  expose((frovedis_radius_neighbors_graph<DT5,S_MAT14,KNNS14,S_MAT15,S_LMAT15>));
+  expose((frovedis_radius_neighbors_graph<DT5,S_MAT24,KNNS24,S_MAT25,S_LMAT25>));
+  expose((frovedis_radius_neighbors_graph<DT5,S_MAT15,KNNS15,S_MAT15,S_LMAT15>));
+  expose((frovedis_radius_neighbors_graph<DT5,S_MAT25,KNNS25,S_MAT25,S_LMAT25>));
+
   // knc
-  expose((frovedis_kneighbors<DT1,DT4,R_MAT1,KNC1>));
-  expose((frovedis_kneighbors<DT2,DT4,R_MAT2,KNC2>));
-  expose((frovedis_kneighbors<DT1,DT5,R_MAT1,KNC1>));
-  expose((frovedis_kneighbors<DT2,DT5,R_MAT2,KNC2>));
-  expose((frovedis_kneighbors_spark<DT1,DT5,R_MAT1,KNC1>)); // for spark
+  expose((frovedis_kneighbors<DT1,DT4,R_MAT1,KNCR1>));
+  expose((frovedis_kneighbors<DT2,DT4,R_MAT2,KNCR2>));
+  expose((frovedis_kneighbors<DT1,DT5,R_MAT1,KNCR1>));
+  expose((frovedis_kneighbors<DT2,DT5,R_MAT2,KNCR2>));
+
+  expose((frovedis_kneighbors<DT1,DT5,S_MAT14,KNCR1>));
+  expose((frovedis_kneighbors<DT2,DT5,S_MAT24,KNCR2>));
+  expose((frovedis_kneighbors<DT1,DT5,S_MAT15,KNCR1>));
+  expose((frovedis_kneighbors<DT2,DT5,S_MAT25,KNCR2>));
+
+  expose((frovedis_kneighbors<DT1,DT5,R_MAT1,KNCS14>));
+  expose((frovedis_kneighbors<DT2,DT5,R_MAT2,KNCS24>));
+  expose((frovedis_kneighbors<DT1,DT5,R_MAT1,KNCS15>));
+  expose((frovedis_kneighbors<DT2,DT5,R_MAT2,KNCS25>));
+
+  expose((frovedis_kneighbors<DT1,DT5,S_MAT14,KNCS14>));
+  expose((frovedis_kneighbors<DT2,DT5,S_MAT24,KNCS24>));
+  expose((frovedis_kneighbors<DT1,DT5,S_MAT15,KNCS15>));
+  expose((frovedis_kneighbors<DT2,DT5,S_MAT25,KNCS25>));
+  expose((frovedis_kneighbors_spark<DT1,DT5,R_MAT1,KNCR1>)); // for spark
+  expose((frovedis_kneighbors_spark<DT1,DT5,R_MAT1,KNCS15>)); // for spark
+  expose((frovedis_kneighbors_spark<DT1,DT5,S_MAT15,KNCR1>)); // for spark
+  expose((frovedis_kneighbors_spark<DT1,DT5,S_MAT15,KNCS15>)); // for spark
   // knc - graph
-  expose((frovedis_kneighbors_graph<DT4,R_MAT1,KNC1,S_MAT14,S_LMAT14>));
-  expose((frovedis_kneighbors_graph<DT4,R_MAT2,KNC2,S_MAT24,S_LMAT24>));
-  expose((frovedis_kneighbors_graph<DT5,R_MAT1,KNC1,S_MAT15,S_LMAT15>));
-  expose((frovedis_kneighbors_graph<DT5,R_MAT2,KNC2,S_MAT25,S_LMAT25>));
+  expose((frovedis_kneighbors_graph<DT4,R_MAT1,KNCR1,S_MAT14,S_LMAT14>));
+  expose((frovedis_kneighbors_graph<DT4,R_MAT2,KNCR2,S_MAT24,S_LMAT24>));
+  expose((frovedis_kneighbors_graph<DT5,R_MAT1,KNCR1,S_MAT15,S_LMAT15>));
+  expose((frovedis_kneighbors_graph<DT5,R_MAT2,KNCR2,S_MAT25,S_LMAT25>));
+
+  expose((frovedis_kneighbors_graph<DT5,S_MAT14,KNCR1,S_MAT15,S_LMAT15>));
+  expose((frovedis_kneighbors_graph<DT5,S_MAT24,KNCR2,S_MAT25,S_LMAT25>));
+  expose((frovedis_kneighbors_graph<DT5,S_MAT15,KNCR1,S_MAT15,S_LMAT15>));
+  expose((frovedis_kneighbors_graph<DT5,S_MAT25,KNCR2,S_MAT25,S_LMAT25>));
+
+  expose((frovedis_kneighbors_graph<DT5,R_MAT1,KNCS14,S_MAT15,S_LMAT15>));
+  expose((frovedis_kneighbors_graph<DT5,R_MAT2,KNCS24,S_MAT25,S_LMAT25>));
+  expose((frovedis_kneighbors_graph<DT5,R_MAT1,KNCS15,S_MAT15,S_LMAT15>));
+  expose((frovedis_kneighbors_graph<DT5,R_MAT2,KNCS25,S_MAT25,S_LMAT25>));
+
+  expose((frovedis_kneighbors_graph<DT5,S_MAT14,KNCS14,S_MAT15,S_LMAT15>));
+  expose((frovedis_kneighbors_graph<DT5,S_MAT24,KNCS24,S_MAT25,S_LMAT25>));
+  expose((frovedis_kneighbors_graph<DT5,S_MAT15,KNCS15,S_MAT15,S_LMAT15>));
+  expose((frovedis_kneighbors_graph<DT5,S_MAT25,KNCS25,S_MAT25,S_LMAT25>));
   // knc - predict
-  expose((frovedis_knc_predict<DT1,DT4,R_MAT1,KNC1>));
-  expose((frovedis_knc_predict<DT2,DT4,R_MAT2,KNC2>));
-  expose((frovedis_knc_predict<DT1,DT5,R_MAT1,KNC1>));
-  expose((frovedis_knc_predict<DT2,DT5,R_MAT2,KNC2>));
+  expose((frovedis_knc_predict<DT1,DT4,R_MAT1,KNCR1>));
+  expose((frovedis_knc_predict<DT2,DT4,R_MAT2,KNCR2>));
+  expose((frovedis_knc_predict<DT1,DT5,R_MAT1,KNCR1>));
+  expose((frovedis_knc_predict<DT2,DT5,R_MAT2,KNCR2>));
+
+  expose((frovedis_knc_predict<DT1,DT5,S_MAT14,KNCR1>));
+  expose((frovedis_knc_predict<DT2,DT5,S_MAT24,KNCR2>));
+  expose((frovedis_knc_predict<DT1,DT5,S_MAT15,KNCR1>));
+  expose((frovedis_knc_predict<DT2,DT5,S_MAT25,KNCR2>));
+
+  expose((frovedis_knc_predict<DT1,DT5,R_MAT1,KNCS14>));
+  expose((frovedis_knc_predict<DT2,DT5,R_MAT2,KNCS24>));
+  expose((frovedis_knc_predict<DT1,DT5,R_MAT1,KNCS15>));
+  expose((frovedis_knc_predict<DT2,DT5,R_MAT2,KNCS25>));
+
+  expose((frovedis_knc_predict<DT1,DT5,S_MAT14,KNCS14>));
+  expose((frovedis_knc_predict<DT2,DT5,S_MAT24,KNCS24>));
+  expose((frovedis_knc_predict<DT1,DT5,S_MAT15,KNCS15>));
+  expose((frovedis_knc_predict<DT2,DT5,S_MAT25,KNCS25>));
   //knc - predict_proba
-  expose((frovedis_knc_predict_proba<DT4,R_MAT1,KNC1,R_MAT1,R_LMAT1>));
-  expose((frovedis_knc_predict_proba<DT4,R_MAT2,KNC2,R_MAT2,R_LMAT2>));
-  expose((frovedis_knc_predict_proba<DT5,R_MAT1,KNC1,R_MAT1,R_LMAT1>));
-  expose((frovedis_knc_predict_proba<DT5,R_MAT2,KNC2,R_MAT2,R_LMAT2>));
+  expose((frovedis_knc_predict_proba<DT4,R_MAT1,KNCR1,R_MAT1,R_LMAT1>));
+  expose((frovedis_knc_predict_proba<DT4,R_MAT2,KNCR2,R_MAT2,R_LMAT2>));
+  expose((frovedis_knc_predict_proba<DT5,R_MAT1,KNCR1,R_MAT1,R_LMAT1>));
+  expose((frovedis_knc_predict_proba<DT5,R_MAT2,KNCR2,R_MAT2,R_LMAT2>));
+
+  expose((frovedis_knc_predict_proba<DT5,S_MAT14,KNCR1,R_MAT1,R_LMAT1>));
+  expose((frovedis_knc_predict_proba<DT5,S_MAT24,KNCR2,R_MAT2,R_LMAT2>));
+  expose((frovedis_knc_predict_proba<DT5,S_MAT15,KNCR1,R_MAT1,R_LMAT1>));
+  expose((frovedis_knc_predict_proba<DT5,S_MAT25,KNCR2,R_MAT2,R_LMAT2>));
+
+  expose((frovedis_knc_predict_proba<DT5,R_MAT1,KNCS14,R_MAT1,R_LMAT1>));
+  expose((frovedis_knc_predict_proba<DT5,R_MAT2,KNCS24,R_MAT2,R_LMAT2>));
+  expose((frovedis_knc_predict_proba<DT5,R_MAT1,KNCS15,R_MAT1,R_LMAT1>));
+  expose((frovedis_knc_predict_proba<DT5,R_MAT2,KNCS25,R_MAT2,R_LMAT2>));
+
+  expose((frovedis_knc_predict_proba<DT5,S_MAT14,KNCS14,R_MAT1,R_LMAT1>));
+  expose((frovedis_knc_predict_proba<DT5,S_MAT24,KNCS24,R_MAT2,R_LMAT2>));
+  expose((frovedis_knc_predict_proba<DT5,S_MAT15,KNCS15,R_MAT1,R_LMAT1>));
+  expose((frovedis_knc_predict_proba<DT5,S_MAT25,KNCS25,R_MAT2,R_LMAT2>));
   // knc -score
-  expose((frovedis_model_score<DT1,DT4,R_MAT1,KNC1>));
-  expose((frovedis_model_score<DT2,DT4,R_MAT2,KNC2>));
-  expose((frovedis_model_score<DT1,DT5,R_MAT1,KNC1>));
-  expose((frovedis_model_score<DT2,DT5,R_MAT2,KNC2>));
+  expose((frovedis_model_score<DT1,DT4,R_MAT1,KNCR1>));
+  expose((frovedis_model_score<DT2,DT4,R_MAT2,KNCR2>));
+  expose((frovedis_model_score<DT1,DT5,R_MAT1,KNCR1>));
+  expose((frovedis_model_score<DT2,DT5,R_MAT2,KNCR2>));
+
+  expose((frovedis_model_score<DT1,DT5,S_MAT14,KNCR1>));
+  expose((frovedis_model_score<DT2,DT5,S_MAT24,KNCR2>));
+  expose((frovedis_model_score<DT1,DT5,S_MAT15,KNCR1>));
+  expose((frovedis_model_score<DT2,DT5,S_MAT25,KNCR2>));
+
+  expose((frovedis_model_score<DT1,DT5,R_MAT1,KNCS14>));
+  expose((frovedis_model_score<DT2,DT5,R_MAT2,KNCS24>));
+  expose((frovedis_model_score<DT1,DT5,R_MAT1,KNCS15>));
+  expose((frovedis_model_score<DT2,DT5,R_MAT2,KNCS25>));
+
+  expose((frovedis_model_score<DT1,DT5,S_MAT14,KNCS14>));
+  expose((frovedis_model_score<DT2,DT5,S_MAT24,KNCS24>));
+  expose((frovedis_model_score<DT1,DT5,S_MAT15,KNCS15>));
+  expose((frovedis_model_score<DT2,DT5,S_MAT25,KNCS25>));
   //knr
-  expose((frovedis_kneighbors<DT1,DT4,R_MAT1,KNR1>));
-  expose((frovedis_kneighbors<DT2,DT4,R_MAT2,KNR2>));
-  expose((frovedis_kneighbors<DT1,DT5,R_MAT1,KNR1>));
-  expose((frovedis_kneighbors<DT2,DT5,R_MAT2,KNR2>));
-  expose((frovedis_kneighbors_spark<DT1,DT5,R_MAT1,KNR1>)); // for spark
+  expose((frovedis_kneighbors<DT1,DT4,R_MAT1,KNRR1>));
+  expose((frovedis_kneighbors<DT2,DT4,R_MAT2,KNRR2>));
+  expose((frovedis_kneighbors<DT1,DT5,R_MAT1,KNRR1>));
+  expose((frovedis_kneighbors<DT2,DT5,R_MAT2,KNRR2>));
+
+  expose((frovedis_kneighbors<DT1,DT5,S_MAT14,KNRR1>));
+  expose((frovedis_kneighbors<DT2,DT5,S_MAT24,KNRR2>));
+  expose((frovedis_kneighbors<DT1,DT5,S_MAT15,KNRR1>));
+  expose((frovedis_kneighbors<DT2,DT5,S_MAT25,KNRR2>));
+
+  expose((frovedis_kneighbors<DT1,DT5,R_MAT1,KNRS14>));
+  expose((frovedis_kneighbors<DT2,DT5,R_MAT2,KNRS24>));
+  expose((frovedis_kneighbors<DT1,DT5,R_MAT1,KNRS15>));
+  expose((frovedis_kneighbors<DT2,DT5,R_MAT2,KNRS25>));
+
+  expose((frovedis_kneighbors<DT1,DT5,S_MAT14,KNRS14>));
+  expose((frovedis_kneighbors<DT2,DT5,S_MAT24,KNRS24>));
+  expose((frovedis_kneighbors<DT1,DT5,S_MAT15,KNRS15>));
+  expose((frovedis_kneighbors<DT2,DT5,S_MAT25,KNRS25>));
+  expose((frovedis_kneighbors_spark<DT1,DT5,R_MAT1,KNRR1>)); // for spark
+  expose((frovedis_kneighbors_spark<DT1,DT5,S_MAT1,KNRR1>)); // for spark
+  expose((frovedis_kneighbors_spark<DT1,DT5,R_MAT1,KNRS15>)); // for spark
+  expose((frovedis_kneighbors_spark<DT1,DT5,S_MAT1,KNRS15>)); // for spark
   // knr - graph
-  expose((frovedis_kneighbors_graph<DT4,R_MAT1,KNR1,S_MAT14,S_LMAT14>));
-  expose((frovedis_kneighbors_graph<DT4,R_MAT2,KNR2,S_MAT24,S_LMAT24>));
-  expose((frovedis_kneighbors_graph<DT5,R_MAT1,KNR1,S_MAT15,S_LMAT15>));
-  expose((frovedis_kneighbors_graph<DT5,R_MAT2,KNR2,S_MAT25,S_LMAT25>));
+  expose((frovedis_kneighbors_graph<DT4,R_MAT1,KNRR1,S_MAT14,S_LMAT14>));
+  expose((frovedis_kneighbors_graph<DT4,R_MAT2,KNRR2,S_MAT24,S_LMAT24>));
+  expose((frovedis_kneighbors_graph<DT5,R_MAT1,KNRR1,S_MAT15,S_LMAT15>));
+  expose((frovedis_kneighbors_graph<DT5,R_MAT2,KNRR2,S_MAT25,S_LMAT25>));
+
+  expose((frovedis_kneighbors_graph<DT5,S_MAT14,KNRR1,S_MAT15,S_LMAT15>));
+  expose((frovedis_kneighbors_graph<DT5,S_MAT24,KNRR2,S_MAT25,S_LMAT25>));
+  expose((frovedis_kneighbors_graph<DT5,S_MAT15,KNRR1,S_MAT15,S_LMAT15>));
+  expose((frovedis_kneighbors_graph<DT5,S_MAT25,KNRR2,S_MAT25,S_LMAT25>));
+
+  expose((frovedis_kneighbors_graph<DT5,R_MAT1,KNRS14,S_MAT15,S_LMAT15>));
+  expose((frovedis_kneighbors_graph<DT5,R_MAT2,KNRS24,S_MAT25,S_LMAT25>));
+  expose((frovedis_kneighbors_graph<DT5,R_MAT1,KNRS15,S_MAT15,S_LMAT15>));
+  expose((frovedis_kneighbors_graph<DT5,R_MAT2,KNRS25,S_MAT25,S_LMAT25>));
+
+  expose((frovedis_kneighbors_graph<DT5,S_MAT14,KNRS14,S_MAT15,S_LMAT15>));
+  expose((frovedis_kneighbors_graph<DT5,S_MAT24,KNRS24,S_MAT25,S_LMAT25>));
+  expose((frovedis_kneighbors_graph<DT5,S_MAT15,KNRS15,S_MAT15,S_LMAT15>));
+  expose((frovedis_kneighbors_graph<DT5,S_MAT25,KNRS25,S_MAT25,S_LMAT25>));
   // knr - predict
-  expose((frovedis_knr_predict<DT1,DT4,R_MAT1,KNR1>));
-  expose((frovedis_knr_predict<DT2,DT4,R_MAT2,KNR2>));
-  expose((frovedis_knr_predict<DT1,DT5,R_MAT1,KNR1>));
-  expose((frovedis_knr_predict<DT2,DT5,R_MAT2,KNR2>));
+  expose((frovedis_knr_predict<DT1,DT4,R_MAT1,KNRR1>));
+  expose((frovedis_knr_predict<DT2,DT4,R_MAT2,KNRR2>));
+  expose((frovedis_knr_predict<DT1,DT5,R_MAT1,KNRR1>));
+  expose((frovedis_knr_predict<DT2,DT5,R_MAT2,KNRR2>));
+
+  expose((frovedis_knr_predict<DT1,DT5,S_MAT14,KNRR1>));
+  expose((frovedis_knr_predict<DT2,DT5,S_MAT24,KNRR2>));
+  expose((frovedis_knr_predict<DT1,DT5,S_MAT15,KNRR1>));
+  expose((frovedis_knr_predict<DT2,DT5,S_MAT25,KNRR2>));
+
+  expose((frovedis_knr_predict<DT1,DT5,R_MAT1,KNRS14>));
+  expose((frovedis_knr_predict<DT2,DT5,R_MAT2,KNRS24>));
+  expose((frovedis_knr_predict<DT1,DT5,R_MAT1,KNRS15>));
+  expose((frovedis_knr_predict<DT2,DT5,R_MAT2,KNRS25>));
+
+  expose((frovedis_knr_predict<DT1,DT5,S_MAT14,KNRS14>));
+  expose((frovedis_knr_predict<DT2,DT5,S_MAT24,KNRS24>));
+  expose((frovedis_knr_predict<DT1,DT5,S_MAT15,KNRS15>));
+  expose((frovedis_knr_predict<DT2,DT5,S_MAT25,KNRS25>));
   // knr -score
-  expose((frovedis_model_score<DT1,DT4,R_MAT1,KNR1>));
-  expose((frovedis_model_score<DT2,DT4,R_MAT2,KNR2>));
-  expose((frovedis_model_score<DT1,DT5,R_MAT1,KNR1>));
-  expose((frovedis_model_score<DT2,DT5,R_MAT2,KNR2>));
+  expose((frovedis_model_score<DT1,DT4,R_MAT1,KNRR1>));
+  expose((frovedis_model_score<DT2,DT4,R_MAT2,KNRR2>));
+  expose((frovedis_model_score<DT1,DT5,R_MAT1,KNRR1>));
+  expose((frovedis_model_score<DT2,DT5,R_MAT2,KNRR2>));
+
+  expose((frovedis_model_score<DT1,DT5,S_MAT14,KNRR1>));
+  expose((frovedis_model_score<DT2,DT5,S_MAT24,KNRR2>));
+  expose((frovedis_model_score<DT1,DT5,S_MAT15,KNRR1>));
+  expose((frovedis_model_score<DT2,DT5,S_MAT25,KNRR2>));
+
+  expose((frovedis_model_score<DT1,DT5,R_MAT1,KNRS14>));
+  expose((frovedis_model_score<DT2,DT5,R_MAT2,KNRS24>));
+  expose((frovedis_model_score<DT1,DT5,R_MAT1,KNRS15>));
+  expose((frovedis_model_score<DT2,DT5,R_MAT2,KNRS25>));
+
+  expose((frovedis_model_score<DT1,DT5,S_MAT14,KNRS14>));
+  expose((frovedis_model_score<DT2,DT5,S_MAT24,KNRS24>));
+  expose((frovedis_model_score<DT1,DT5,S_MAT15,KNRS15>));
+  expose((frovedis_model_score<DT2,DT5,S_MAT25,KNRS25>));
   // release knn algo models
-  expose(release_model<KNN1>);
-  expose(release_model<KNR1>);
-  expose(release_model<KNC1>);
-  expose(release_model<KNN2>);
-  expose(release_model<KNR2>);
-  expose(release_model<KNC2>);
+  expose(release_model<KNNR1>);
+  expose(release_model<KNRR1>);
+  expose(release_model<KNCR1>);
+  expose(release_model<KNNR2>);
+  expose(release_model<KNRR2>);
+  expose(release_model<KNCR2>);
+  expose(release_model<KNNS14>);
+  expose(release_model<KNNS15>);
+  expose(release_model<KNRS14>);
+  expose(release_model<KNRS15>);
+  expose(release_model<KNCS14>);
+  expose(release_model<KNCS15>);
+  expose(release_model<KNNS24>);
+  expose(release_model<KNNS25>);
+  expose(release_model<KNRS24>);
+  expose(release_model<KNRS25>);
+  expose(release_model<KNCS24>);
+  expose(release_model<KNCS25>);
   // --- frovedis Latent Dirichlet Allocation
   expose((frovedis_lda_transform<DT4,S_MAT45,LDA4>));
   expose((frovedis_lda_transform<DT3,S_MAT35,LDA3>));
