@@ -91,23 +91,6 @@ std::vector<frovedis::crs_matrix_local<T,size_t,size_t>>
   return vret;
 }
 
-void get_exrpc_result(std::vector<frovedis::exrpc_ptr_t>& eps,
-                      std::vector<frovedis::exrpc_result
-                      <frovedis::exrpc_ptr_t>>& res,
-                      size_t wsize) {
-  size_t i = 0;
-  try {
-    for(; i < wsize; ++i) eps[i] = res[i].get();
-  } catch(std::exception& e) {
-    set_status(true,e.what());
-    try { // consume other result
-      for(; i < wsize; ++i) eps[i] = res[i].get();
-    } catch (std::exception& e) {
-      ; // already get the exception
-    }
-  }
-}
-
 template <class T>
 std::vector<rowmajor_matrix_local<T>>
 prepare_scattered_rowmajor_matrices(T* valp, size_t nrow, size_t ncol,
