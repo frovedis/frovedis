@@ -1234,15 +1234,15 @@ extern "C" {
     auto algorithm = tree::algorithm::Regression;
     if(std::string(algo) == "Classification") algorithm = tree::algorithm::Classification;
     auto imp = std::string(impurity);
-    auto impt = tree::impurity_type::Default;
-    if (imp == "DEFAULT")  impt = tree::impurity_type::Default;
-    else if (imp == "GINI")  impt = tree::impurity_type::Gini;
-    else if (imp == "ENTROPY")  impt = tree::impurity_type::Entropy;
-    else if (imp == "MSE") impt = tree::impurity_type::Variance;
-    else REPORT_ERROR(USER_ERROR, "Unsupported impurity is provided!\n");
     auto cat_info = get_kv_pair(cat_keys, cat_vals, size);
     bool mvbl = false; // auto-managed at python side
     try {
+      auto impt = tree::impurity_type::Default;
+      if (imp == "DEFAULT")  impt = tree::impurity_type::Default;
+      else if (imp == "GINI")  impt = tree::impurity_type::Gini;
+      else if (imp == "ENTROPY")  impt = tree::impurity_type::Entropy;
+      else if (imp == "MSE") impt = tree::impurity_type::Variance;
+      else REPORT_ERROR(USER_ERROR, "Unsupported impurity is provided!\n");
       if(dense) {
         switch(dtype) {
           case FLOAT: { 
@@ -1721,10 +1721,10 @@ extern "C" {
     auto feature_subset_strategy_ = std::string(feature_subset_strategy);
     auto loss_ = std::string(loss);
     bool mvbl = false; // auto-managed at python side
-    if (nclasses > 2) 
-      REPORT_ERROR(USER_ERROR, 
-      "Currently frovedis GBTClassifier supports only binary classification!\n");
     try {
+      if (nclasses > 2) 
+        REPORT_ERROR(USER_ERROR, 
+        "Currently frovedis GBTClassifier supports only binary classification!\n");
       if(dense) {
         switch(dtype) {
           case FLOAT: { 
