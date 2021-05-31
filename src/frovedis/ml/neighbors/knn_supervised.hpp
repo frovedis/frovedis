@@ -7,13 +7,13 @@
 namespace frovedis {
 
 // --- Classifier ---
-template <class T>
+template <class T, class MATRIX1>
 struct kneighbors_classifier {
   kneighbors_classifier(int k, const std::string& algo,
                         const std::string& met, float c_sz):
     n_neighbors(k), algorithm(algo), metric(met), chunk_size(c_sz) {}
   
-  void fit(rowmajor_matrix<T>& mat,
+  void fit(MATRIX1& mat,
            dvector<T>& label) { // can support any values for input label
     if (mat.num_row != label.size()) 
       REPORT_ERROR(USER_ERROR, "number of entries differ in input matrix and label!\n");
@@ -23,9 +23,9 @@ struct kneighbors_classifier {
     nclasses = uniq_labels.size();
   }
 
-  template <class I = size_t>
+  template <class I = size_t, class MATRIX2 = rowmajor_matrix<T>>
   knn_model<T,I>
-  kneighbors(rowmajor_matrix<T>& enquiry_data, 
+  kneighbors(MATRIX2& enquiry_data, 
              int k = 0, 
              bool need_distance = true) {
     if (k == 0) k = n_neighbors;
@@ -33,9 +33,9 @@ struct kneighbors_classifier {
                     k, algorithm, metric, need_distance, chunk_size);
   }
 
-  template <class I = size_t, class O = size_t>
+  template <class I = size_t, class O = size_t, class MATRIX2 = rowmajor_matrix<T>>
   crs_matrix<T, I, O>
-  kneighbors_graph(rowmajor_matrix<T>& enquiry_data,
+  kneighbors_graph(MATRIX2& enquiry_data,
                    int k = 0,
                    const std::string& mode = "connectivity") {
     auto need_distance = (mode == std::string("distance"));
@@ -44,21 +44,21 @@ struct kneighbors_classifier {
     return model.template create_graph<O>(mode, nsamples);
   }
 
-  template <class I = size_t>
-  dvector<T> predict(rowmajor_matrix<T>& mat, 
+  template <class I = size_t, class MATRIX2 = rowmajor_matrix<T>>
+  dvector<T> predict(MATRIX2& mat, 
                      bool save_proba = false);
 
-  template <class I = size_t>
-  rowmajor_matrix<T> predict_probability(rowmajor_matrix<T>& mat);
+  template <class I = size_t, class MATRIX2 = rowmajor_matrix<T>>
+  rowmajor_matrix<T> predict_probability(MATRIX2& mat);
 
-  template <class I = size_t>
-  float score(rowmajor_matrix<T>& mat, dvector<T>& true_label);
+  template <class I = size_t, class MATRIX2 = rowmajor_matrix<T>>
+  float score(MATRIX2& mat, dvector<T>& true_label);
  
   int n_neighbors;
   std::string algorithm;
   std::string metric;
   float chunk_size;
-  rowmajor_matrix<T> observation_data;
+  MATRIX1 observation_data;
   std::vector<size_t> encoded_label;
   std::vector<T> uniq_labels;
   int nclasses;
@@ -168,10 +168,10 @@ predict_from_proba(rowmajor_matrix_local<T>& proba_mat,
   return pred;
 }
 
-template <class T>
-template <class I>
+template <class T, class MATRIX1>
+template <class I, class MATRIX2>
 dvector<T> 
-kneighbors_classifier<T>::predict(rowmajor_matrix<T>& mat,
+kneighbors_classifier<T, MATRIX1>::predict(MATRIX2& mat,
                                   bool save_proba) {
 #ifdef MAJORITY_VOTE
   auto k = n_neighbors;
@@ -204,10 +204,10 @@ predict_probability_local(rowmajor_matrix_local<I>& count,
   return pred;
 }
 
-template <class T>
-template <class I>
+template <class T, class MATRIX1>
+template <class I, class MATRIX2>
 rowmajor_matrix<T> 
-kneighbors_classifier<T>::predict_probability(rowmajor_matrix<T>& mat) {
+kneighbors_classifier<T, MATRIX1>::predict_probability(MATRIX2& mat) {
   auto k = n_neighbors;
   auto need_distance = false;
   auto model = kneighbors<I>(mat, k, need_distance);
@@ -219,31 +219,31 @@ kneighbors_classifier<T>::predict_probability(rowmajor_matrix<T>& mat) {
   return pred;
 }
 
-template <class T>
-template <class I>
-float kneighbors_classifier<T>::score(rowmajor_matrix<T>& mat,
+template <class T, class MATRIX1>
+template <class I, class MATRIX2>
+float kneighbors_classifier<T, MATRIX1>::score(MATRIX2& mat,
                                       dvector<T>& true_label) {
   auto pred_label = predict<I>(mat);
   return accuracy_score(true_label.gather(), pred_label.gather());
 }
 
 // --- Regressor ---
-template <class T>
+template <class T, class MATRIX1>
 struct kneighbors_regressor {
   kneighbors_regressor(int k, const std::string& algo,
                        const std::string& met, float c_sz):
     n_neighbors(k), algorithm(algo), metric(met), chunk_size(c_sz) {}
 
-  void fit(rowmajor_matrix<T>& mat, dvector<T>& label) { 
+  void fit(MATRIX1& mat, dvector<T>& label) { 
     if (mat.num_row != label.size())
       REPORT_ERROR(USER_ERROR, "number of entries differ in input matrix and label!\n");
     observation_data = mat;
     observation_labels = label.gather();
   }
 
-  template <class I = size_t>
+  template <class I = size_t, class MATRIX2 = rowmajor_matrix<T>>
   knn_model<T,I>
-  kneighbors(rowmajor_matrix<T>& enquiry_data,
+  kneighbors(MATRIX2& enquiry_data,
              int k = 0,
              bool need_distance = true) {
     if (k == 0) k = n_neighbors;
@@ -251,9 +251,9 @@ struct kneighbors_regressor {
                     k, algorithm, metric, need_distance, chunk_size);
   }
 
-  template <class I = size_t, class O = size_t>
+  template <class I = size_t, class O = size_t, class MATRIX2 = rowmajor_matrix<T>>
   crs_matrix<T, I, O>
-  kneighbors_graph(rowmajor_matrix<T>& enquiry_data,
+  kneighbors_graph(MATRIX2& enquiry_data,
                    int k = 0,
                    const std::string& mode = "connectivity") {
     auto need_distance = (mode == std::string("distance"));
@@ -262,17 +262,17 @@ struct kneighbors_regressor {
     return model.template create_graph<O>(mode, nsamples);
   }
 
-  template <class I = size_t>
-  dvector<T> predict(rowmajor_matrix<T>& mat);
+  template <class I = size_t, class MATRIX2 = rowmajor_matrix<T>>
+  dvector<T> predict(MATRIX2& mat);
 
-  template <class I = size_t>
-  float score(rowmajor_matrix<T>& mat, dvector<T>& true_label);
+  template <class I = size_t, class MATRIX2 = rowmajor_matrix<T>>
+  float score(MATRIX2& mat, dvector<T>& true_label);
 
   int n_neighbors;
   std::string algorithm;
   std::string metric;
   float chunk_size;
-  rowmajor_matrix<T> observation_data;
+  MATRIX1 observation_data;
   std::vector<T> observation_labels;
   SERIALIZE(n_neighbors, algorithm, metric, chunk_size,
             observation_data, observation_labels);
@@ -300,10 +300,10 @@ std::vector<T> predict_from_mean(rowmajor_matrix_local<I>& model_indx,
   return pred;
 }
 
-template <class T>
-template <class I>
+template <class T, class MATRIX1>
+template <class I, class MATRIX2>
 dvector<T> 
-kneighbors_regressor<T>::predict(rowmajor_matrix<T>& mat) {
+kneighbors_regressor<T, MATRIX1>::predict(MATRIX2& mat) {
   auto k = n_neighbors;
   auto need_distance = false;
   auto model = kneighbors<I>(mat, k, need_distance);
@@ -312,9 +312,9 @@ kneighbors_regressor<T>::predict(rowmajor_matrix<T>& mat) {
                            .template moveto_dvector<T>();
 }
 
-template <class T>
-template <class I>
-float kneighbors_regressor<T>::score(rowmajor_matrix<T>& mat,
+template <class T, class MATRIX1>
+template <class I, class MATRIX2>
+float kneighbors_regressor<T, MATRIX1>::score(MATRIX2& mat,
                                      dvector<T>& true_label) {
   auto pred_label = predict<I>(mat);
   return r2_score(true_label.gather(), pred_label.gather());

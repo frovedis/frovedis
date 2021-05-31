@@ -290,9 +290,11 @@ struct find_kneighbor {
   SERIALIZE(k, need_distance, chunk_size)
 };
 
-template <class T, class I = size_t>
-knn_model<T, I> knn(rowmajor_matrix<T>& x_mat,
-                    rowmajor_matrix<T>& y_mat,
+template <class T, class I = size_t, 
+          class MATRIX1 = rowmajor_matrix<T>,
+          class MATRIX2 = rowmajor_matrix<T>>
+knn_model<T, I> knn(MATRIX1& x_mat,
+                    MATRIX2& y_mat,
                     int k,
                     const std::string& algorithm = "brute",
                     const std::string& metric = "euclidean",
@@ -312,8 +314,7 @@ knn_model<T, I> knn(rowmajor_matrix<T>& x_mat,
   if (metric != "euclidean" && metric != "seuclidean")
     REPORT_ERROR(USER_ERROR, 
       "Currently frovedis knn supports only euclidean/seuclidean distance!\n");
-
-  auto dist_mat = construct_distance_matrix(x_mat, y_mat, metric, need_distance);
+  auto dist_mat = construct_distance_matrix<T>(x_mat, y_mat, metric, need_distance);
 #ifdef DEBUG_SAVE
   dist_mat.save("unsorted_distance_matrix");
 #endif
@@ -336,8 +337,9 @@ knn_model<T, I> knn(rowmajor_matrix<T>& x_mat,
   return ret;
 }
 
-template <class T, class I = size_t>
-knn_model<T, I> knn(rowmajor_matrix<T>& mat,
+template <class T, class I = size_t, 
+          class MATRIX = rowmajor_matrix<T>>
+knn_model<T, I> knn(MATRIX& mat,
                     int k,
                     const std::string& algorithm = "brute",
                     const std::string& metric = "euclidean",
@@ -346,10 +348,12 @@ knn_model<T, I> knn(rowmajor_matrix<T>& mat,
   return knn(mat, mat, k, algorithm, metric, need_distance, chunk_size);
 }
 
-template <class T, class I = size_t, class O = size_t>
+template <class T, class I = size_t, class O = size_t, 
+          class MATRIX1 = rowmajor_matrix<T>,
+          class MATRIX2 = rowmajor_matrix<T>>
 crs_matrix<T, I, O> 
-knn_radius(rowmajor_matrix<T>& x_mat,
-           rowmajor_matrix<T>& y_mat,
+knn_radius(MATRIX1& x_mat,
+           MATRIX2& y_mat,
            float radius,
            const std::string& algorithm = "brute",
            const std::string& metric = "euclidean",
@@ -370,7 +374,7 @@ knn_radius(rowmajor_matrix<T>& x_mat,
       "Currently frovedis knn supports only distance or connectivity as for mode of radius_graph!");
 
   bool need_distance = true; // needs correct distance for checking within radius
-  auto dist_mat = construct_distance_matrix(x_mat, y_mat, metric, need_distance);
+  auto dist_mat = construct_distance_matrix<T>(x_mat, y_mat, metric, need_distance);
 #ifdef DEBUG_SAVE
   dist_mat.save("unsorted_distance_matrix");
 #endif

@@ -6,20 +6,20 @@
 namespace frovedis {
 
 // sklearn-like interface
-template <class T>
+template <class T, class MATRIX1>
 struct nearest_neighbors {
   nearest_neighbors(int k, float rad, const std::string& algo,
                     const std::string& met, float c_sz):
     n_neighbors(k), radius(rad), algorithm(algo), metric(met), 
     chunk_size(c_sz) {}
   
-  void fit(rowmajor_matrix<T>& mat) {
+  void fit(MATRIX1& mat) {
     observation_data = mat;
   }
 
-  template <class I = size_t>
+  template <class I = size_t, class MATRIX2 = rowmajor_matrix<T>>
   knn_model<T,I>
-  kneighbors(rowmajor_matrix<T>& enquiry_data, 
+  kneighbors(MATRIX2& enquiry_data, 
              int k = 0, 
              bool need_distance = true) {
     if (k == 0) k = n_neighbors;
@@ -27,9 +27,9 @@ struct nearest_neighbors {
                     k, algorithm, metric, need_distance, chunk_size);
   }
 
-  template <class I = size_t, class O = size_t>
+  template <class I = size_t, class O = size_t, class MATRIX2 = rowmajor_matrix<T>>
   crs_matrix<T, I, O>
-  kneighbors_graph(rowmajor_matrix<T>& enquiry_data,
+  kneighbors_graph(MATRIX2& enquiry_data,
                    int k = 0,
                    const std::string& mode = "connectivity") {
     bool need_distance = true; // need correct distance for graph creation
@@ -38,9 +38,9 @@ struct nearest_neighbors {
     return model.template create_graph<O>(mode, nsamples); 
   }
 
-  template <class I = size_t, class O = size_t>
+  template <class I = size_t, class O = size_t, class MATRIX2 = rowmajor_matrix<T>>
   crs_matrix<T, I, O>
-  radius_neighbors(rowmajor_matrix<T>& enquiry_data,
+  radius_neighbors(MATRIX2& enquiry_data,
                    float rad = 0) {
     if (rad == 0) rad = radius;
     std::string mode = "distance"; // mode is always distance for radius_neighbors
@@ -48,9 +48,9 @@ struct nearest_neighbors {
                              rad, algorithm, metric, mode); 
   }
 
-  template <class I = size_t, class O = size_t>
+  template <class I = size_t, class O = size_t, class MATRIX2 = rowmajor_matrix<T>>
   crs_matrix<T, I, O>
-  radius_neighbors_graph(rowmajor_matrix<T>& enquiry_data,
+  radius_neighbors_graph(MATRIX2& enquiry_data,
                          float rad = 0,
                          const std::string& mode = "connectivity") {
     if (rad == 0) rad = radius;
@@ -63,7 +63,7 @@ struct nearest_neighbors {
   std::string algorithm;
   std::string metric;
   float chunk_size;
-  rowmajor_matrix<T> observation_data;
+  MATRIX1 observation_data;
   SERIALIZE(n_neighbors, radius, algorithm, metric, chunk_size, observation_data)
 };
 
