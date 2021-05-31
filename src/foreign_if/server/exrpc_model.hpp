@@ -687,6 +687,28 @@ frovedis_gmm_predict_proba(exrpc_ptr_t& mat_ptr, int& mid) {
   return est.predict_proba(mat).val;
 }
 
+// single input: prediction done in master node
+template <class T, class MATRIX, class MODEL>
+std::vector<T>
+single_gmm_predict_proba(exrpc_ptr_t& f_dptr, int& mid) {
+  MATRIX& data = *reinterpret_cast<MATRIX*>(f_dptr);
+  MODEL& est = *get_model_ptr<MODEL>(mid);
+#ifdef _EXRPC_DEBUG_
+  std::cout << "Connected with master node to perform single prediction with model:\n";
+  est.debug_print(10);
+  std::cout << "with test data: \n";
+  data.debug_print(10);
+#endif
+  // frovedis::gmm_assign_cluster returns a struct with predict_prob (LOCAL RMJOR MAT)
+  auto weights = est.weights_();
+  auto k = weights.val.size();
+  auto means = est.means_();
+  auto cov = est.covariances_();
+  return gmm_assign_cluster(data, k, means, 
+                            cov, weights).predict_prob.val;
+}
+
+
 // --- gmm model attributes -- //
 template <class T>
 std::vector<T>
