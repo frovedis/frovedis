@@ -8,7 +8,7 @@ from ctypes import c_char_p
 import numpy as np
 from ..exrpc import rpclib
 from ..exrpc.server import FrovedisServer
-from ..matrix.dtype import DTYPE
+from ..matrix.dtype import DTYPE, get_string_array_pointer
 from .frovedisColumn import FrovedisColumn
 from .df import DataFrame
 
@@ -78,21 +78,25 @@ class FrovedisGroupedDataframe(object):
         """ To select grouped columns """
         sz = len(cols)
         types = [0] * sz
-        for i in range(sz):
-            col = cols[i]
-            if col not in self.__dict__:
-                raise ValueError("No column named: ", col)
-            types[i] = self.__dict__[col].dtype
-        tcols = np.asarray(cols)
-        tcols_arr = (c_char_p * sz)()
-        tcols_arr[:] = np.array([e.encode('ascii') for e in tcols.T])
+        i = 0
+        for item in cols:
+            if item not in self.__dict__:
+                raise ValueError("No column named: %s" % (item))
+            types[i] = self.__dict__[item].dtype
+            i = i + 1
+        tcols_arr = get_string_array_pointer(cols)
         (host, port) = FrovedisServer.getServerInstance()
-        fdata = rpclib.select_grouped_dataframe(host, port, self.__fdata,
+        fdata = rpclib.select_grouped_dataframe(host, port, self.get(),
                                                 tcols_arr, sz)
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
             raise RuntimeError(excpt["info"])
-        return DataFrame().load_dummy(fdata, cols, types)
+        ret = DataFrame().load_dummy(fdata, cols, types)
+        if (len(self.__cols) > 1): #TODO: support multi-level index
+            ret.add_index("index") # not similar to pandas behavior though...
+        else:
+            ret.set_index(keys=self.__cols, drop=True, inplace=True)
+        return ret
 
     def agg(self, func, *args, **kwargs):
         """
@@ -163,7 +167,7 @@ class FrovedisGroupedDataframe(object):
         agg_col_as_types = []
         for col, aggfuncs in func.items():
             if col not in self.__dict__:
-                raise ValueError("No column named: ", col)
+                raise ValueError("agg: No column named: ", col)
             else: tid = self.__dict__[col].dtype
             if isinstance(aggfuncs, str):
                 aggfuncs = [aggfuncs]
@@ -183,7 +187,7 @@ class FrovedisGroupedDataframe(object):
                     agg_col.append(col)
                     agg_col_as.append(new_col)
                     if f == 'count':
-                        col_as_tid = DTYPE.LONG
+                        col_as_tid = DTYPE.ULONG
                     elif f == 'mean':
                         col_as_tid = DTYPE.DOUBLE
                     else:
@@ -193,21 +197,12 @@ class FrovedisGroupedDataframe(object):
         #print(agg_col)
         #print(agg_col_as)
         #print(agg_col_as_types)
-        g_cols = np.asarray(self.__cols)
-        sz1 = g_cols.size
-        g_cols_arr = (c_char_p * sz1)()
-        g_cols_arr[:] = np.array([e.encode('ascii') for e in g_cols.T])
-
-        a_func = np.asarray(agg_func)
-        a_col = np.asarray(agg_col)
-        a_col_as = np.asarray(agg_col_as)
-        sz2 = a_func.size
-        a_func_arr = (c_char_p * sz2)()
-        a_col_arr = (c_char_p * sz2)()
-        a_col_as_arr = (c_char_p * sz2)()
-        a_func_arr[:] = np.array([e.encode('ascii') for e in a_func.T])
-        a_col_arr[:] = np.array([e.encode('ascii') for e in a_col.T])
-        a_col_as_arr[:] = np.array([e.encode('ascii') for e in a_col_as.T])
+        sz1 = len(self.__cols) 
+        sz2 = len(agg_func) 
+        g_cols_arr = get_string_array_pointer(self.__cols)
+        a_func_arr = get_string_array_pointer(agg_func)
+        a_col_arr = get_string_array_pointer(agg_col)
+        a_col_as_arr = get_string_array_pointer(agg_col_as)
 
         (host, port) = FrovedisServer.getServerInstance()
         fdata = rpclib.agg_grouped_dataframe(host, port, self.__fdata,
@@ -220,7 +215,12 @@ class FrovedisGroupedDataframe(object):
 
         cols = self.__cols + agg_col_as
         types = self.__types + agg_col_as_types
-        return DataFrame().load_dummy(fdata, cols, types)
+        ret = DataFrame().load_dummy(fdata, cols, types)
+        if (len(self.__cols) > 1): #TODO: support multi-level index
+            ret.add_index("index")
+        else:
+            ret.set_index(keys=self.__cols, drop=True, inplace=True)
+        return ret
 
     def __get_numeric_columns(self):
         """
@@ -228,9 +228,13 @@ class FrovedisGroupedDataframe(object):
         """
         non_numeric_types = [DTYPE.STRING]
         cols = []
-        for i in range(0, len(self.__p_cols)):
-            if self.__p_types[i] not in non_numeric_types:
-                cols.append(self.__p_cols[i])
+        non_grouped_cols = [x for x in self.__p_cols if x not in self.__cols]
+        #for i in range(0, len(self.__p_cols)):
+        #    if self.__p_types[i] not in non_numeric_types:
+        #        cols.append(self.__p_cols[i])
+        for col in non_grouped_cols:
+            if self.__dict__[col].dtype not in non_numeric_types:
+                cols.append(col)
         return cols
 
     def __get_non_numeric_columns(self):
@@ -239,9 +243,13 @@ class FrovedisGroupedDataframe(object):
         """
         non_numeric_types = [DTYPE.STRING]
         cols = []
-        for i in range(0, len(self.__p_cols)):
-            if self.__p_types[i] in non_numeric_types:
-                cols.append(self.__p_cols[i])
+        non_grouped_cols = [x for x in self.__p_cols if x not in self.__cols]
+        #for i in range(0, len(self.__p_cols)):
+        #    if self.__p_types[i] not in non_numeric_types:
+        #        cols.append(self.__p_cols[i])
+        for col in non_grouped_cols:
+            if self.__dict__[col].dtype in non_numeric_types:
+                cols.append(col)
         return cols
 
     def get(self):
