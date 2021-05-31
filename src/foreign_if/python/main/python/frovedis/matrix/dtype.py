@@ -66,6 +66,6 @@ def get_result_type(arr_of_dtypes):
     if sz == 0: 
         raise ValueError("empty array of dtypes is provided!")
     restype = arr_of_dtypes[0]
-    for i in range(1, sz):
+    for i in range(0, sz):
         restype = np.result_type(restype, arr_of_dtypes[i])
     return restype
