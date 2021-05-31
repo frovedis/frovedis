@@ -6,38 +6,54 @@
 extern "C" {
 
   // --- (1) Logistic Regression ---
-  int lr_sgd(const char* host, int port, long xptr, long yptr,
+  int lr(const char* host, int port, long xptr, long yptr,
               double* sample_weight_ptr, long sample_weight_len,
               int iter, double al, int rtype, double rprm, 
               bool mult, bool icpt, double tol,
               int vb, int mid, short dtype, short itype, 
-              bool dense, bool shrink) {
+              bool dense, const char* solver,
+              bool shrink, bool warm_start) {
     if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
     exrpc_node fm_node(host,port);
     auto f_xptr = (exrpc_ptr_t) xptr;
     auto f_yptr = (exrpc_ptr_t) yptr;
     auto f_dptr = frovedis_mem_pair(f_xptr,f_yptr);
+    int hs = 10;
     double mbf = 1.0;   // default
     bool mvbl = false; // auto-managed at python side
-    size_t n_iter = 0; 
+    size_t n_iter = 0;
+
+    glm_config config;
+    config.set_max_iter(iter).
+           set_alpha(al).
+           set_solver(solver).
+           set_intercept(icpt).
+           set_mini_batch_fraction(mbf).
+           set_tol(tol).
+           set_warm_start(warm_start).
+           set_reg_param(rprm).
+           set_reg_type(get_regularizer_type(rtype)).
+           set_is_mult(mult).
+           set_hist_size(hs);
+
+    if(shrink) config.set_solver("shrink-sgd");
     try {
-    if(!shrink) {
       if(dense) {
         switch(dtype) {
           case FLOAT:
           {   
             auto sample_weight = double_to_float_vector(sample_weight_ptr,
                                                   sample_weight_len);
-	    n_iter = exrpc_async(fm_node,(frovedis_lr_sgd<DT2,D_MAT2>),f_dptr,iter,al,
-                         mbf,rtype,rprm,mult,icpt,tol,vb,mid,sample_weight,mvbl).get(); 
+	    n_iter = exrpc_async(fm_node,(frovedis_lr<DT2,D_MAT2>),f_dptr,
+                                 config, vb, mid, sample_weight, mvbl).get(); 
             break;
           }
           case DOUBLE: 
           {
             auto sample_weight = to_double_vector(sample_weight_ptr,
                                                   sample_weight_len);
-	    n_iter = exrpc_async(fm_node,(frovedis_lr_sgd<DT1,D_MAT1>),f_dptr,iter,al,
-                         mbf,rtype,rprm,mult,icpt,tol,vb,mid,sample_weight,mvbl).get(); 
+	    n_iter = exrpc_async(fm_node,(frovedis_lr<DT1,D_MAT1>),f_dptr,
+                                 config, vb, mid, sample_weight, mvbl).get(); 
             break;
           }
           default: REPORT_ERROR(USER_ERROR, 
@@ -51,11 +67,11 @@ extern "C" {
             auto sample_weight = double_to_float_vector(sample_weight_ptr,
                                                   sample_weight_len);
             if(itype == INT) 
-              n_iter = exrpc_async(fm_node,(frovedis_lr_sgd<DT2,S_MAT24>),f_dptr,iter,al,
-                           mbf,rtype,rprm,mult,icpt,tol,vb,mid,sample_weight,mvbl).get();
+              n_iter = exrpc_async(fm_node,(frovedis_lr<DT2,S_MAT24>),f_dptr,
+                                   config, vb, mid, sample_weight, mvbl).get();
             else if(itype == LONG) 
-              n_iter = exrpc_async(fm_node,(frovedis_lr_sgd<DT2,S_MAT25>),f_dptr,iter,al,
-                           mbf,rtype,rprm,mult,icpt,tol,vb,mid,sample_weight,mvbl).get();        
+              n_iter = exrpc_async(fm_node,(frovedis_lr<DT2,S_MAT25>),f_dptr,
+                                   config, vb, mid, sample_weight, mvbl).get();        
             else REPORT_ERROR(USER_ERROR, 
                  "Unsupported itype of input sparse data for training!\n");
             break;
@@ -65,152 +81,17 @@ extern "C" {
             auto sample_weight = to_double_vector(sample_weight_ptr,
                                                   sample_weight_len);
             if(itype == INT) 
-             n_iter = exrpc_async(fm_node,(frovedis_lr_sgd<DT1,S_MAT14>),f_dptr,iter,al,
-                           mbf,rtype,rprm,mult,icpt,tol,vb,mid,sample_weight,mvbl).get();
+             n_iter = exrpc_async(fm_node,(frovedis_lr<DT1,S_MAT14>),f_dptr,
+                                           config, vb, mid, sample_weight, mvbl).get();
             else if(itype == LONG) 
-              n_iter = exrpc_async(fm_node,(frovedis_lr_sgd<DT1,S_MAT15>),f_dptr,iter,al,
-                           mbf,rtype,rprm,mult,icpt,tol,vb,mid,sample_weight,mvbl).get();        
+              n_iter = exrpc_async(fm_node,(frovedis_lr<DT1,S_MAT15>),f_dptr,
+                                   config, vb, mid, sample_weight, mvbl).get();        
             else REPORT_ERROR(USER_ERROR, 
                  "Unsupported itype of input sparse data for training!\n");
             break;
           }
           default: REPORT_ERROR(USER_ERROR, 
                    "Unsupported dtype of input sparse data for training!\n");
-        }
-      }
-    }
-    else {
-      if(dense) {
-        switch(dtype) {
-          case FLOAT:  
-          {
-            auto sample_weight = double_to_float_vector(sample_weight_ptr,
-                                                  sample_weight_len);
-	    n_iter = exrpc_async(fm_node,(frovedis_lr_shrink_sgd<DT2,D_MAT2>),f_dptr,iter,al,
-                         mbf,rtype,rprm,mult,icpt,tol,vb,mid,sample_weight,mvbl).get(); 
-            break;
-          }
-          case DOUBLE: 
-          {
-            auto sample_weight = to_double_vector(sample_weight_ptr,
-                                                  sample_weight_len);
-	    n_iter = exrpc_async(fm_node,(frovedis_lr_shrink_sgd<DT1,D_MAT1>),f_dptr,iter,al,
-                         mbf,rtype,rprm,mult,icpt,tol,vb,mid,sample_weight,mvbl).get(); 
-            break;
-          }
-          default: REPORT_ERROR(USER_ERROR, 
-                   "Unsupported dtype of input dense data for training!\n");
-        }
-      }
-      else {
-        switch(dtype) {
-          case FLOAT: 
-          {
-            auto sample_weight = double_to_float_vector(sample_weight_ptr,
-                                                  sample_weight_len);
-            if(itype == INT) 
-              n_iter = exrpc_async(fm_node,(frovedis_lr_shrink_sgd<DT2,S_MAT24>),f_dptr,iter,al,
-                           mbf,rtype,rprm,mult,icpt,tol,vb,mid,sample_weight,mvbl).get();
-            else if(itype == LONG) 
-              n_iter = exrpc_async(fm_node,(frovedis_lr_shrink_sgd<DT2,S_MAT25>),f_dptr,iter,al,
-                           mbf,rtype,rprm,mult,icpt,tol,vb,mid,sample_weight,mvbl).get();        
-            else REPORT_ERROR(USER_ERROR, 
-                 "Unsupported itype of input sparse data for training!\n");
-            break;
-          }
-          case DOUBLE:
-          { 
-            auto sample_weight = to_double_vector(sample_weight_ptr,
-                                                  sample_weight_len);
-            if(itype == INT) 
-              n_iter = exrpc_async(fm_node,(frovedis_lr_shrink_sgd<DT1,S_MAT14>),f_dptr,iter,al,
-                           mbf,rtype,rprm,mult,icpt,tol,vb,mid,sample_weight,mvbl).get();
-            else if(itype == LONG) 
-              n_iter = exrpc_async(fm_node,(frovedis_lr_shrink_sgd<DT1,S_MAT15>),f_dptr,iter,al,
-                           mbf,rtype,rprm,mult,icpt,tol,vb,mid,sample_weight,mvbl).get();        
-            else REPORT_ERROR(USER_ERROR, 
-                 "Unsupported itype of input sparse data for training!\n");
-            break;
-          }
-          default: REPORT_ERROR(USER_ERROR, 
-                   "Unsupported dtype of input sparse data for training!\n");
-        }
-      }
-    }
-    }
-    catch (std::exception& e) {
-      set_status(true, e.what());
-    }
-    return static_cast<int>(n_iter); 
-  }
-
-  int lr_lbfgs(const char* host, int port, long xptr, long yptr,
-                double* sample_weight_ptr, long sample_weight_len,
-                int iter, double al, int rtype, double rprm, 
-                bool mult, bool icpt, double tol,
-                int vb, int mid, short dtype, short itype, bool dense) {
-    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
-    exrpc_node fm_node(host,port);
-    auto f_xptr = (exrpc_ptr_t) xptr;
-    auto f_yptr = (exrpc_ptr_t) yptr;
-    auto f_dptr = frovedis_mem_pair(f_xptr,f_yptr);
-    int hs = 10;   // default
-    bool mvbl = false; // auto-managed at python side
-    size_t n_iter = 0; 
-    try {
-      if(dense) {
-        switch(dtype) {
-          case FLOAT:
-          {
-            auto sample_weight = double_to_float_vector(sample_weight_ptr,
-                                                  sample_weight_len);
-            n_iter = exrpc_async(fm_node,(frovedis_lr_lbfgs<DT2,D_MAT2>),f_dptr,iter,al,
-                         hs,rtype,rprm,mult,icpt,tol,vb,mid,sample_weight,mvbl).get();
-            break;
-          }
-          case DOUBLE:
-          {
-            auto sample_weight = to_double_vector(sample_weight_ptr,
-                                                  sample_weight_len);
-            n_iter = exrpc_async(fm_node,(frovedis_lr_lbfgs<DT1,D_MAT1>),f_dptr,iter,al,
-                         hs,rtype,rprm,mult,icpt,tol,vb,mid,sample_weight,mvbl).get();
-            break;
-          }
-          default: REPORT_ERROR(USER_ERROR, 
-                   "Unsupported dtype of input dense data for training!\n");
-        }
-      }
-      else {
-        switch(dtype) {
-          case FLOAT:
-          {
-            auto sample_weight = double_to_float_vector(sample_weight_ptr,
-                                                  sample_weight_len);
-            if(itype == INT)
-              n_iter = exrpc_async(fm_node,(frovedis_lr_lbfgs<DT2,S_MAT24>),f_dptr,iter,al,
-                           hs,rtype,rprm,mult,icpt,tol,vb,mid,sample_weight,mvbl).get();
-            else if(itype == LONG)
-              n_iter = exrpc_async(fm_node,(frovedis_lr_lbfgs<DT2,S_MAT25>),f_dptr,iter,al,
-                           hs,rtype,rprm,mult,icpt,tol,vb,mid,sample_weight,mvbl).get();
-            else REPORT_ERROR(USER_ERROR, 
-                 "Unsupported itype of input sparse data for training!\n");
-            break;
-          }
-          case DOUBLE:
-          {
-            auto sample_weight = to_double_vector(sample_weight_ptr,
-                                                  sample_weight_len);
-            if(itype == INT)
-              n_iter = exrpc_async(fm_node,(frovedis_lr_lbfgs<DT1,S_MAT14>),f_dptr,iter,al,
-                           hs,rtype,rprm,mult,icpt,tol,vb,mid,sample_weight,mvbl).get();
-            else if(itype == LONG)
-              n_iter = exrpc_async(fm_node,(frovedis_lr_lbfgs<DT1,S_MAT15>),f_dptr,iter,al,
-                           hs,rtype,rprm,mult,icpt,tol,vb,mid,sample_weight,mvbl).get();
-            else REPORT_ERROR(USER_ERROR, 
-                 "Unsupported itype of input sparse data for training!\n");
-            break;
-          }
-          default: REPORT_ERROR(USER_ERROR, "Unsupported dtype of input sparse data for training!\n");
         }
       }
     }
@@ -221,20 +102,33 @@ extern "C" {
   }
 
   // --- (2) Linear SVM ---
-  int svm_sgd(const char* host, int port, long xptr, long yptr,
-               double* sample_weight_ptr, long sample_weight_len,
-               int iter, double al, 
-               int rtype, double rprm, 
-               bool icpt, double tol, int vb, int mid, 
-               short dtype, short itype, bool dense) {
+  int svm(const char* host, int port, long xptr, long yptr,
+          double* sample_weight_ptr, long sample_weight_len,
+          int iter, double al, 
+          int rtype, double rprm, 
+          bool icpt, double tol, int vb, int mid, 
+          short dtype, short itype, bool dense,
+          const char* solver, bool warm_start) {
     if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
     exrpc_node fm_node(host,port);
     auto f_xptr = (exrpc_ptr_t) xptr;
     auto f_yptr = (exrpc_ptr_t) yptr;
     auto f_dptr = frovedis_mem_pair(f_xptr,f_yptr);
+    int hs = 10;   // default
     double mbf = 1.0;   // default
     bool mvbl = false; // auto-managed at python side
-    size_t n_iter = 0; 
+    size_t n_iter = 0;
+    glm_config config;
+    config.set_max_iter(iter).
+           set_alpha(al).
+           set_solver(solver).
+           set_intercept(icpt).
+           set_mini_batch_fraction(mbf).
+           set_tol(tol).
+           set_warm_start(warm_start).
+           set_reg_param(rprm).
+           set_reg_type(get_regularizer_type(rtype)).
+           set_hist_size(hs); 
     try {
       if(dense) {
         switch(dtype) {
@@ -242,18 +136,16 @@ extern "C" {
           {
             auto sample_weight = double_to_float_vector(sample_weight_ptr,
                                                         sample_weight_len);
-            n_iter = exrpc_async(fm_node,(frovedis_svm_sgd<DT2,D_MAT2>),f_dptr,
-                     iter,al,mbf,rtype,rprm,icpt,tol,vb,mid,sample_weight,
-                     mvbl).get();
+            n_iter = exrpc_async(fm_node,(frovedis_svm<DT2,D_MAT2>),f_dptr,
+                     config,vb,mid,sample_weight,mvbl).get();
             break;
           }
           case DOUBLE:
           {
             auto sample_weight = to_double_vector(sample_weight_ptr,
                                                   sample_weight_len);
-            n_iter = exrpc_async(fm_node,(frovedis_svm_sgd<DT1,D_MAT1>),f_dptr,
-                     iter,al,mbf,rtype,rprm,icpt,tol,vb,mid,sample_weight,
-                     mvbl).get();
+            n_iter = exrpc_async(fm_node,(frovedis_svm<DT1,D_MAT1>),f_dptr,
+                     config,vb,mid,sample_weight,mvbl).get();
             break;
           }
           default: REPORT_ERROR(USER_ERROR, "Unsupported dtype of input dense data for training!\n");
@@ -266,13 +158,11 @@ extern "C" {
             auto sample_weight = double_to_float_vector(sample_weight_ptr,
                                                         sample_weight_len);
             if(itype == INT)
-              n_iter = exrpc_async(fm_node,(frovedis_svm_sgd<DT2,S_MAT24>),f_dptr,
-                       iter,al,mbf,rtype,rprm,icpt,tol,vb,mid,sample_weight,
-                       mvbl).get();
+              n_iter = exrpc_async(fm_node,(frovedis_svm<DT2,S_MAT24>),f_dptr,
+                       config,vb,mid,sample_weight,mvbl).get();
             else if(itype == LONG)
-              n_iter = exrpc_async(fm_node,(frovedis_svm_sgd<DT2,S_MAT25>),f_dptr,
-                       iter,al,mbf,rtype,rprm,icpt,tol,vb,mid,sample_weight,
-                       mvbl).get();
+              n_iter = exrpc_async(fm_node,(frovedis_svm<DT2,S_MAT25>),f_dptr,
+                       config,vb,mid,sample_weight,mvbl).get();
             else REPORT_ERROR(USER_ERROR, "Unsupported itype of input sparse data for training!\n");
             break;
           }
@@ -281,13 +171,11 @@ extern "C" {
             auto sample_weight = to_double_vector(sample_weight_ptr,
                                                   sample_weight_len);
             if(itype == INT)
-              n_iter = exrpc_async(fm_node,(frovedis_svm_sgd<DT1,S_MAT14>),f_dptr,
-                       iter,al,mbf,rtype,rprm,icpt,tol,vb,mid,sample_weight,
-                       mvbl).get();
+              n_iter = exrpc_async(fm_node,(frovedis_svm<DT1,S_MAT14>),f_dptr,
+                       config,vb,mid,sample_weight,mvbl).get();
             else if(itype == LONG)
-              n_iter = exrpc_async(fm_node,(frovedis_svm_sgd<DT1,S_MAT15>),f_dptr,
-                       iter,al,mbf,rtype,rprm,icpt,tol,vb,mid,sample_weight,
-                       mvbl).get();
+              n_iter = exrpc_async(fm_node,(frovedis_svm<DT1,S_MAT15>),f_dptr,
+                       config,vb,mid,sample_weight,mvbl).get();
             else REPORT_ERROR(USER_ERROR, "Unsupported itype of input sparse data for training!\n");
             break;
           }
@@ -301,93 +189,14 @@ extern "C" {
     return static_cast<int>(n_iter); 
   }
 
-  int svm_lbfgs(const char* host, int port, long xptr, long yptr,
-                double* sample_weight_ptr, long sample_weight_len,
-                int iter, double al, 
-                int rtype, double rprm, 
-                bool icpt, double tol, int vb, int mid, 
-                short dtype, short itype, bool dense) {
-    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
-    exrpc_node fm_node(host,port);
-    auto f_xptr = (exrpc_ptr_t) xptr;
-    auto f_yptr = (exrpc_ptr_t) yptr;
-    auto f_dptr = frovedis_mem_pair(f_xptr,f_yptr);
-    int hs = 10;   // default
-    bool mvbl = false; // auto-managed at python side
-    size_t n_iter = 0; 
-    try {
-      if(dense) {
-        switch(dtype) {
-          case FLOAT:
-          {
-            auto sample_weight = double_to_float_vector(sample_weight_ptr,
-                                                        sample_weight_len);
-            n_iter = exrpc_async(fm_node,(frovedis_svm_lbfgs<DT2,D_MAT2>),
-                     f_dptr,iter,al,hs,rtype,rprm,icpt,tol,vb,mid,sample_weight,
-                     mvbl).get();
-            break;
-          }
-          case DOUBLE:
-          {
-            auto sample_weight = to_double_vector(sample_weight_ptr,
-                                                  sample_weight_len);
-            n_iter = exrpc_async(fm_node,(frovedis_svm_lbfgs<DT1,D_MAT1>),
-                     f_dptr,iter,al,hs,rtype,rprm,icpt,tol,vb,mid,
-                     sample_weight,mvbl).get();
-            break;
-          }
-          default: REPORT_ERROR(USER_ERROR, "Unsupported dtype of input dense data for training!\n");
-        }
-      }
-      else {
-        switch(dtype) {
-          case FLOAT:
-          {
-            auto sample_weight = double_to_float_vector(sample_weight_ptr,
-                                                        sample_weight_len);
-            if(itype == INT)
-              n_iter = exrpc_async(fm_node,(frovedis_svm_lbfgs<DT2,S_MAT24>),
-                       f_dptr,iter,al,hs,rtype,rprm,icpt,tol,vb,mid,
-                       sample_weight,mvbl).get();
-            else if(itype == LONG)
-              n_iter = exrpc_async(fm_node,(frovedis_svm_lbfgs<DT2,S_MAT25>),
-                       f_dptr,iter,al,hs,rtype,rprm,icpt,tol,vb,mid,
-                       sample_weight,mvbl).get();
-            else REPORT_ERROR(USER_ERROR, "Unsupported itype of input sparse data for training!\n");
-            break;
-          }
-          case DOUBLE:
-          {
-            auto sample_weight = to_double_vector(sample_weight_ptr,
-                                                  sample_weight_len);
-            if(itype == INT)
-              n_iter = exrpc_async(fm_node,(frovedis_svm_lbfgs<DT1,S_MAT14>),
-                       f_dptr,iter,al,hs,rtype,rprm,icpt,tol,vb,mid,
-                       sample_weight,mvbl).get();
-            else if(itype == LONG)
-              n_iter = exrpc_async(fm_node,(frovedis_svm_lbfgs<DT1,S_MAT15>),
-                       f_dptr,iter,al,hs,rtype,rprm,icpt,tol,vb,mid,
-                       sample_weight,mvbl).get();
-            else REPORT_ERROR(USER_ERROR, "Unsupported itype of input sparse data for training!\n");
-            break;
-          }
-          default: REPORT_ERROR(USER_ERROR, "Unsupported dtype of input sparse data for training!\n");
-        }
-      }
-    }
-    catch (std::exception& e) {
-      set_status(true, e.what());
-    }
-    return static_cast<int>(n_iter); 
-  }
-
   // --- Linear SVM Regressor ---
-  int svm_regressor_sgd(const char* host, int port, long xptr, long yptr,
-                        double* sample_weight_ptr, long sample_weight_len,
-                        int iter, double alpha, double eps, 
-                        int rtype, double rprm,
-                        bool icpt, double tol, int intLoss, int vb, int mid,
-                        short dtype, short itype, bool dense) {
+  int svm_regressor(const char* host, int port, long xptr, long yptr,
+                    double* sample_weight_ptr, long sample_weight_len,
+                    int iter, double alpha, double eps, 
+                    int rtype, double rprm,
+                    bool icpt, double tol, int intLoss, int vb, int mid,
+                    short dtype, short itype, bool dense,
+                    const char* solver, bool warm_start) {
     if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
     exrpc_node fm_node(host,port);
     auto f_xptr = (exrpc_ptr_t) xptr;
@@ -396,6 +205,22 @@ extern "C" {
     double mbf = 1.0;   // default
     bool mvbl = false; // auto-managed at python side
     size_t n_iter = 0; 
+    std::string loss;
+    if(intLoss == 1) loss = "EPS";
+    else if (intLoss == 2) loss = "SQEPS";
+    else REPORT_ERROR(USER_ERROR, "Unsupported loss for SVM Regressor!\n");
+    glm_config config;
+    config.set_max_iter(iter).
+           set_alpha(alpha).
+           set_solver(solver).
+           set_intercept(icpt).
+           set_mini_batch_fraction(mbf).
+           set_tol(tol).
+           set_warm_start(warm_start).
+           set_reg_param(rprm).
+           set_reg_type(get_regularizer_type(rtype)).
+           set_loss_type(loss).
+           set_epsilon(eps);
     try {
       if(dense) {
         switch(dtype) {
@@ -403,18 +228,16 @@ extern "C" {
           {
             auto sample_weight = double_to_float_vector(sample_weight_ptr,
                                                         sample_weight_len);
-            n_iter = exrpc_async(fm_node,(frovedis_svm_regressor_sgd<DT2,D_MAT2>),
-                     f_dptr,iter,alpha,mbf,rtype,rprm,icpt,std::make_pair(tol,eps),intLoss,vb,mid,
-                     sample_weight,mvbl).get();
+            n_iter = exrpc_async(fm_node,(frovedis_svm_regressor<DT2,D_MAT2>),
+                     f_dptr,config,vb,mid,sample_weight,mvbl).get();
             break;
           }
           case DOUBLE:
           {
             auto sample_weight = to_double_vector(sample_weight_ptr,
                                                   sample_weight_len);
-            n_iter = exrpc_async(fm_node,(frovedis_svm_regressor_sgd<DT1,D_MAT1>),
-                     f_dptr,iter,alpha,mbf,rtype,rprm,icpt,std::make_pair(tol,eps),intLoss,vb,mid,
-                     sample_weight,mvbl).get();
+            n_iter = exrpc_async(fm_node,(frovedis_svm_regressor<DT1,D_MAT1>),
+                     f_dptr,config,vb,mid,sample_weight,mvbl).get();
             break;
           }
           default: REPORT_ERROR(USER_ERROR, "Unsupported dtype of input dense data for training!\n");
@@ -427,13 +250,11 @@ extern "C" {
             auto sample_weight = double_to_float_vector(sample_weight_ptr,
                                                         sample_weight_len);
             if(itype == INT)
-              n_iter = exrpc_async(fm_node,(frovedis_svm_regressor_sgd<DT2,S_MAT24>),
-                       f_dptr,iter,alpha,mbf,rtype,rprm,icpt,std::make_pair(tol,eps),intLoss,vb,mid,
-                       sample_weight,mvbl).get();
+              n_iter = exrpc_async(fm_node,(frovedis_svm_regressor<DT2,S_MAT24>),
+                       f_dptr,config,vb,mid,sample_weight,mvbl).get();
             else if(itype == LONG)
-              n_iter = exrpc_async(fm_node,(frovedis_svm_regressor_sgd<DT2,S_MAT25>),
-                       f_dptr,iter,alpha,mbf,rtype,rprm,icpt,std::make_pair(tol,eps),intLoss,vb,mid,
-                       sample_weight,mvbl).get();
+              n_iter = exrpc_async(fm_node,(frovedis_svm_regressor<DT2,S_MAT25>),
+                       f_dptr,config,vb,mid,sample_weight,mvbl).get();
             else REPORT_ERROR(USER_ERROR, "Unsupported itype of input sparse data for training!\n");
             break;
           }
@@ -442,13 +263,11 @@ extern "C" {
             auto sample_weight = to_double_vector(sample_weight_ptr,
                                                   sample_weight_len);
             if(itype == INT)
-              n_iter = exrpc_async(fm_node,(frovedis_svm_regressor_sgd<DT1,S_MAT14>),
-                       f_dptr,iter,alpha,mbf,rtype,rprm,icpt,std::make_pair(tol,eps),intLoss,vb,mid,
-                       sample_weight,mvbl).get();
+              n_iter = exrpc_async(fm_node,(frovedis_svm_regressor<DT1,S_MAT14>),
+                       f_dptr,config,vb,mid,sample_weight,mvbl).get();
             else if(itype == LONG)
-              n_iter = exrpc_async(fm_node,(frovedis_svm_regressor_sgd<DT1,S_MAT15>),
-                       f_dptr,iter,alpha,mbf,rtype,rprm,icpt,std::make_pair(tol,eps),intLoss,vb,mid,
-                        sample_weight,mvbl).get();
+              n_iter = exrpc_async(fm_node,(frovedis_svm_regressor<DT1,S_MAT15>),
+                       f_dptr,config,vb,mid,sample_weight,mvbl).get();
             else REPORT_ERROR(USER_ERROR, "Unsupported itype of input sparse data for training!\n");
             break;
           }
@@ -547,7 +366,7 @@ extern "C" {
     try {
       switch(dtype) {
         case FLOAT:
-        {   
+        {
           auto sample_weight = double_to_float_vector(sample_weight_ptr,
                                                       sample_weight_len);
           exrpc_oneway(fm_node,(frovedis_lnr_scalapack<DT2,D_MAT2>),
@@ -555,7 +374,7 @@ extern "C" {
           break;
         }
         case DOUBLE:
-        {   
+        {
           auto sample_weight = to_double_vector(sample_weight_ptr,
                                                 sample_weight_len);
           exrpc_oneway(fm_node,(frovedis_lnr_scalapack<DT1,D_MAT1>),
@@ -570,92 +389,30 @@ extern "C" {
     }
   }
 
-  int lnr_sgd(const char* host, int port, long xptr, long yptr,
+  int lnr(const char* host, int port, long xptr, long yptr,
                double* sample_weight_ptr, long sample_weight_len,
                int iter, double al,
                bool icpt, double tol, int vb, int mid, 
-               short dtype, short itype, bool dense) {
-    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
-    exrpc_node fm_node(host,port);
-    auto f_xptr = (exrpc_ptr_t) xptr;
-    auto f_yptr = (exrpc_ptr_t) yptr;
-    auto f_dptr = frovedis_mem_pair(f_xptr,f_yptr);
-    double mbf = 1.0;  // default
-    bool mvbl = false;  // auto-managed at python side
-    size_t n_iter = 0;
-    try {
-      if(dense) {
-        switch(dtype) {
-          case FLOAT:
-          {
-            auto sample_weight = double_to_float_vector(sample_weight_ptr,
-                                                        sample_weight_len);
-            n_iter = exrpc_async(fm_node,(frovedis_lnr_sgd<DT2,D_MAT2>),f_dptr,
-                     iter,al,mbf,icpt,tol,vb,mid,sample_weight,mvbl).get();
-            break;
-          }
-          case DOUBLE:
-          {
-            auto sample_weight = to_double_vector(sample_weight_ptr,
-                                                  sample_weight_len);
-            n_iter = exrpc_async(fm_node,(frovedis_lnr_sgd<DT1,D_MAT1>),f_dptr,
-                     iter,al,mbf,icpt,tol,vb,mid,sample_weight,mvbl).get();
-            break;
-          }
-          default: REPORT_ERROR(USER_ERROR, "Unsupported dtype of input dense data for training!\n");
-        }
-      }
-      else {
-        switch(dtype) {
-          case FLOAT:
-          {
-            auto sample_weight = double_to_float_vector(sample_weight_ptr,
-                                                        sample_weight_len);
-            if(itype == INT)
-              n_iter = exrpc_async(fm_node,(frovedis_lnr_sgd<DT2,S_MAT24>),f_dptr,
-                       iter,al,mbf,icpt,tol,vb,mid,sample_weight,mvbl).get();
-            else if(itype == LONG)
-              n_iter = exrpc_async(fm_node,(frovedis_lnr_sgd<DT2,S_MAT25>),f_dptr,
-                       iter,al,mbf,icpt,tol,vb,mid,sample_weight,mvbl).get();
-            else REPORT_ERROR(USER_ERROR, "Unsupported itype of input sparse data for training!\n");
-            break;
-          }
-          case DOUBLE:
-          {
-            auto sample_weight = to_double_vector(sample_weight_ptr,
-                                                  sample_weight_len);
-            if(itype == INT)
-              n_iter = exrpc_async(fm_node,(frovedis_lnr_sgd<DT1,S_MAT14>),f_dptr,
-                       iter,al,mbf,icpt,tol,vb,mid,sample_weight,mvbl).get();
-            else if(itype == LONG)
-              n_iter = exrpc_async(fm_node,(frovedis_lnr_sgd<DT1,S_MAT15>),f_dptr,
-                       iter,al,mbf,icpt,tol,vb,mid,sample_weight,mvbl).get();
-            else REPORT_ERROR(USER_ERROR, "Unsupported itype of input sparse data for training!\n");
-            break;
-          }
-          default: REPORT_ERROR(USER_ERROR, "Unsupported dtype of input sparse data for training!\n");
-        }
-      }
-    }
-    catch (std::exception& e) {
-      set_status(true, e.what());
-    }
-    return static_cast<int>(n_iter);
-  }
-
-  int lnr_lbfgs(const char* host, int port, long xptr, long yptr,
-                 double* sample_weight_ptr, long sample_weight_len,
-                 int iter, double al,
-                 bool icpt, double tol, int vb, int mid, 
-                 short dtype, short itype, bool dense) {
+               short dtype, short itype, bool dense,
+               const char* solver, bool warm_start) {
     if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
     exrpc_node fm_node(host,port);
     auto f_xptr = (exrpc_ptr_t) xptr;
     auto f_yptr = (exrpc_ptr_t) yptr;
     auto f_dptr = frovedis_mem_pair(f_xptr,f_yptr);
     int hs = 10;  // default
-    bool mvbl = false; // auto-managed at python side
+    double mbf = 1.0;  // default
+    bool mvbl = false;  // auto-managed at python side
     size_t n_iter = 0;
+    glm_config config;
+    config.set_max_iter(iter).
+           set_alpha(al).
+           set_solver(solver).
+           set_intercept(icpt).
+           set_mini_batch_fraction(mbf).
+           set_tol(tol).
+           set_warm_start(warm_start).
+           set_hist_size(hs);
     try {
       if(dense) {
         switch(dtype) {
@@ -663,16 +420,16 @@ extern "C" {
           {
             auto sample_weight = double_to_float_vector(sample_weight_ptr,
                                                         sample_weight_len);
-            n_iter = exrpc_async(fm_node,(frovedis_lnr_lbfgs<DT2,D_MAT2>),f_dptr,
-                     iter,al,hs,icpt,tol,vb,mid,sample_weight,mvbl).get();
+            n_iter = exrpc_async(fm_node,(frovedis_lnr<DT2,D_MAT2>),f_dptr,
+                     config,vb,mid,sample_weight,mvbl).get();
             break;
           }
           case DOUBLE:
           {
             auto sample_weight = to_double_vector(sample_weight_ptr,
                                                   sample_weight_len);
-            n_iter = exrpc_async(fm_node,(frovedis_lnr_lbfgs<DT1,D_MAT1>),f_dptr,
-                     iter,al,hs,icpt,tol,vb,mid,sample_weight,mvbl).get();
+            n_iter = exrpc_async(fm_node,(frovedis_lnr<DT1,D_MAT1>),f_dptr,
+                     config,vb,mid,sample_weight,mvbl).get();
             break;
           }
           default: REPORT_ERROR(USER_ERROR, "Unsupported dtype of input dense data for training!\n");
@@ -685,13 +442,11 @@ extern "C" {
             auto sample_weight = double_to_float_vector(sample_weight_ptr,
                                                         sample_weight_len);
             if(itype == INT)
-              n_iter = exrpc_async(fm_node,(frovedis_lnr_lbfgs<DT2,S_MAT24>),
-                       f_dptr,iter,al,hs,icpt,tol,vb,mid,
-                       sample_weight,mvbl).get();
+              n_iter = exrpc_async(fm_node,(frovedis_lnr<DT2,S_MAT24>),f_dptr,
+                       config,vb,mid,sample_weight,mvbl).get();
             else if(itype == LONG)
-              n_iter = exrpc_async(fm_node,(frovedis_lnr_lbfgs<DT2,S_MAT25>),
-                       f_dptr,iter,al,hs,icpt,tol,vb,mid,
-                       sample_weight,mvbl).get();
+              n_iter = exrpc_async(fm_node,(frovedis_lnr<DT2,S_MAT25>),f_dptr,
+                       config,vb,mid,sample_weight,mvbl).get();
             else REPORT_ERROR(USER_ERROR, "Unsupported itype of input sparse data for training!\n");
             break;
           }
@@ -700,13 +455,11 @@ extern "C" {
             auto sample_weight = to_double_vector(sample_weight_ptr,
                                                   sample_weight_len);
             if(itype == INT)
-              n_iter = exrpc_async(fm_node,(frovedis_lnr_lbfgs<DT1,S_MAT14>),
-                       f_dptr,iter,al,hs,icpt,tol,vb,mid,
-                       sample_weight,mvbl).get();
+              n_iter = exrpc_async(fm_node,(frovedis_lnr<DT1,S_MAT14>),f_dptr,
+                       config,vb,mid,sample_weight,mvbl).get();
             else if(itype == LONG)
-              n_iter = exrpc_async(fm_node,(frovedis_lnr_lbfgs<DT1,S_MAT15>),
-                       f_dptr,iter,al,hs,icpt,tol,vb,mid,
-                       sample_weight,mvbl).get();
+              n_iter = exrpc_async(fm_node,(frovedis_lnr<DT1,S_MAT15>),f_dptr,
+                       config,vb,mid,sample_weight,mvbl).get();
             else REPORT_ERROR(USER_ERROR, "Unsupported itype of input sparse data for training!\n");
             break;
           }
@@ -721,92 +474,32 @@ extern "C" {
   }
 
   // --- (4) Lasso Regression ---
-  int lasso_sgd(const char* host, int port, long xptr, long yptr,
+  int lasso(const char* host, int port, long xptr, long yptr,
                  double* sample_weight_ptr, long sample_weight_len,
                  int iter, double al, double rprm, 
                  bool icpt, double tol,
-                 int vb, int mid, short dtype, short itype, bool dense) {
-    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
-    exrpc_node fm_node(host,port);
-    auto f_xptr = (exrpc_ptr_t) xptr;
-    auto f_yptr = (exrpc_ptr_t) yptr;
-    auto f_dptr = frovedis_mem_pair(f_xptr,f_yptr);
-    double mbf = 1.0;   // default
-    bool mvbl = false; // auto-managed at python side
-    size_t n_iter = 0;
-    try {
-      if(dense) {
-        switch(dtype) {
-          case FLOAT:
-          {   
-            auto sample_weight = double_to_float_vector(sample_weight_ptr,
-                                                  sample_weight_len);
-	    n_iter = exrpc_async(fm_node,(frovedis_lasso_sgd<DT2,D_MAT2>),f_dptr,iter,al,
-                         mbf,rprm,icpt,tol,vb,mid,sample_weight,mvbl).get(); 
-            break;
-          }
-          case DOUBLE:
-          {   
-            auto sample_weight = to_double_vector(sample_weight_ptr,
-                                                  sample_weight_len);
-	    n_iter = exrpc_async(fm_node,(frovedis_lasso_sgd<DT1,D_MAT1>),f_dptr,iter,al,
-                         mbf,rprm,icpt,tol,vb,mid,sample_weight,mvbl).get(); 
-            break;
-          }
-          default: REPORT_ERROR(USER_ERROR, "Unsupported dtype of input dense data for training!\n");
-        }
-      }
-      else {
-        switch(dtype) {
-          case FLOAT:
-          {   
-            auto sample_weight = double_to_float_vector(sample_weight_ptr,
-                                                  sample_weight_len);
-            if(itype == INT)
-	      n_iter = exrpc_async(fm_node,(frovedis_lasso_sgd<DT2,S_MAT24>),f_dptr,iter,al,
-                         mbf,rprm,icpt,tol,vb,mid,sample_weight,mvbl).get(); 
-            else if(itype == LONG)
-	      n_iter = exrpc_async(fm_node,(frovedis_lasso_sgd<DT2,S_MAT25>),f_dptr,iter,al,
-                         mbf,rprm,icpt,tol,vb,mid,sample_weight,mvbl).get(); 
-            else REPORT_ERROR(USER_ERROR, "Unsupported itype of input sparse data for training!\n");
-            break;
-          }
-          case DOUBLE:
-          {   
-            auto sample_weight = to_double_vector(sample_weight_ptr,
-                                                  sample_weight_len);
-            if(itype == INT)
-	      n_iter = exrpc_async(fm_node,(frovedis_lasso_sgd<DT1,S_MAT14>),f_dptr,iter,al,
-                         mbf,rprm,icpt,tol,vb,mid,sample_weight,mvbl).get(); 
-            else if(itype == LONG)
-	      n_iter = exrpc_async(fm_node,(frovedis_lasso_sgd<DT1,S_MAT15>),f_dptr,iter,al,
-                         mbf,rprm,icpt,tol,vb,mid,sample_weight,mvbl).get(); 
-            else REPORT_ERROR(USER_ERROR, "Unsupported itype of input sparse data for training!\n");
-            break;
-          }
-          default: REPORT_ERROR(USER_ERROR, "Unsupported dtype of input sparse data for training!\n");
-        }
-      }
-    }
-    catch (std::exception& e) {
-      set_status(true, e.what());
-    }
-    return static_cast<int>(n_iter); 
-  }
-
-  int lasso_lbfgs(const char* host, int port, long xptr, long yptr,
-                  double* sample_weight_ptr, long sample_weight_len,
-                  int iter, double al, double rprm, 
-                  bool icpt, double tol,
-                  int vb, int mid, short dtype, short itype, bool dense) {
+                 int vb, int mid, short dtype, short itype, bool dense,
+                 const char* solver, bool warm_start) {
     if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
     exrpc_node fm_node(host,port);
     auto f_xptr = (exrpc_ptr_t) xptr;
     auto f_yptr = (exrpc_ptr_t) yptr;
     auto f_dptr = frovedis_mem_pair(f_xptr,f_yptr);
     int hs = 10;   // default
+    double mbf = 1.0;   // default
     bool mvbl = false; // auto-managed at python side
     size_t n_iter = 0;
+
+    glm_config config;
+    config.set_max_iter(iter).
+           set_alpha(al).
+           set_solver(solver).
+           set_intercept(icpt).
+           set_mini_batch_fraction(mbf).
+           set_tol(tol).
+           set_warm_start(warm_start).
+           set_reg_param(rprm).
+           set_hist_size(hs);
     try {
       if(dense) {
         switch(dtype) {
@@ -814,16 +507,16 @@ extern "C" {
           {   
             auto sample_weight = double_to_float_vector(sample_weight_ptr,
                                                   sample_weight_len);
-	    n_iter = exrpc_async(fm_node,(frovedis_lasso_lbfgs<DT2,D_MAT2>),f_dptr,iter,al,
-                         hs,rprm,icpt,tol,vb,mid,sample_weight,mvbl).get(); 
+	    n_iter = exrpc_async(fm_node,(frovedis_lasso<DT2,D_MAT2>),f_dptr,
+                         config,vb,mid,sample_weight,mvbl).get(); 
             break;
           }
           case DOUBLE:
           {   
             auto sample_weight = to_double_vector(sample_weight_ptr,
                                                   sample_weight_len);
-	    n_iter = exrpc_async(fm_node,(frovedis_lasso_lbfgs<DT1,D_MAT1>),f_dptr,iter,al,
-                         hs,rprm,icpt,tol,vb,mid,sample_weight,mvbl).get(); 
+	    n_iter = exrpc_async(fm_node,(frovedis_lasso<DT1,D_MAT1>),f_dptr,
+                         config,vb,mid,sample_weight,mvbl).get(); 
             break;
           }
           default: REPORT_ERROR(USER_ERROR, "Unsupported dtype of input dense data for training!\n");
@@ -836,11 +529,11 @@ extern "C" {
             auto sample_weight = double_to_float_vector(sample_weight_ptr,
                                                   sample_weight_len);
             if(itype == INT)
-	      n_iter = exrpc_async(fm_node,(frovedis_lasso_lbfgs<DT2,S_MAT24>),f_dptr,iter,al,
-                         hs,rprm,icpt,tol,vb,mid,sample_weight,mvbl).get(); 
+	      n_iter = exrpc_async(fm_node,(frovedis_lasso<DT2,S_MAT24>),f_dptr,
+                         config,vb,mid,sample_weight,mvbl).get(); 
             else if(itype == LONG)
-	      n_iter = exrpc_async(fm_node,(frovedis_lasso_lbfgs<DT2,S_MAT25>),f_dptr,iter,al,
-                         hs,rprm,icpt,tol,vb,mid,sample_weight,mvbl).get(); 
+	      n_iter = exrpc_async(fm_node,(frovedis_lasso<DT2,S_MAT25>),f_dptr,
+                         config,vb,mid,sample_weight,mvbl).get(); 
             else REPORT_ERROR(USER_ERROR, "Unsupported itype of input sparse data for training!\n");
             break;
           }
@@ -849,11 +542,11 @@ extern "C" {
             auto sample_weight = to_double_vector(sample_weight_ptr,
                                                   sample_weight_len);
             if(itype == INT)
-	      n_iter = exrpc_async(fm_node,(frovedis_lasso_lbfgs<DT1,S_MAT14>),f_dptr,iter,al,
-                         hs,rprm,icpt,tol,vb,mid,sample_weight,mvbl).get(); 
+	      n_iter = exrpc_async(fm_node,(frovedis_lasso<DT1,S_MAT14>),f_dptr,
+                         config,vb,mid,sample_weight,mvbl).get(); 
             else if(itype == LONG)
-	      n_iter = exrpc_async(fm_node,(frovedis_lasso_lbfgs<DT1,S_MAT15>),f_dptr,iter,al,
-                         hs,rprm,icpt,tol,vb,mid,sample_weight,mvbl).get(); 
+	      n_iter = exrpc_async(fm_node,(frovedis_lasso<DT1,S_MAT15>),f_dptr,
+                         config,vb,mid,sample_weight,mvbl).get(); 
             else REPORT_ERROR(USER_ERROR, "Unsupported itype of input sparse data for training!\n");
             break;
           }
@@ -868,11 +561,12 @@ extern "C" {
   }
 
   // --- (5) Ridge Regression ---
-  int ridge_sgd(const char* host, int port, long xptr, long yptr,
+  int ridge(const char* host, int port, long xptr, long yptr,
                  double* sample_weight_ptr, long sample_weight_len,
                  int iter, double al, double rprm,
                  bool icpt, double tol,
-                 int vb, int mid, short dtype, short itype, bool dense) {
+                 int vb, int mid, short dtype, short itype, bool dense,
+                 const char* solver, bool warm_start) {
     if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
     exrpc_node fm_node(host,port);
     auto f_xptr = (exrpc_ptr_t) xptr;
@@ -880,7 +574,18 @@ extern "C" {
     auto f_dptr = frovedis_mem_pair(f_xptr,f_yptr);
     double mbf = 1.0;   // default
     bool mvbl = false; // auto-managed at python side
+    int hs = 10;   // default
     size_t n_iter = 0;
+    glm_config config;
+    config.set_max_iter(iter).
+           set_alpha(al).
+           set_solver(solver).
+           set_intercept(icpt).
+           set_mini_batch_fraction(mbf).
+           set_tol(tol).
+           set_warm_start(warm_start).
+           set_reg_param(rprm).
+           set_hist_size(hs);
     try {
       if(dense) {
         switch(dtype) {
@@ -888,16 +593,16 @@ extern "C" {
           {   
             auto sample_weight = double_to_float_vector(sample_weight_ptr,
                                                   sample_weight_len);
-            n_iter = exrpc_async(fm_node,(frovedis_ridge_sgd<DT2,D_MAT2>),
-                     f_dptr,iter,al,mbf,rprm,icpt,tol,vb,mid,sample_weight,mvbl).get();
+            n_iter = exrpc_async(fm_node,(frovedis_ridge<DT2,D_MAT2>),
+                     f_dptr,config,vb,mid,sample_weight,mvbl).get();
             break;
           }
           case DOUBLE:
           {   
             auto sample_weight = to_double_vector(sample_weight_ptr,
                                                   sample_weight_len);
-            n_iter = exrpc_async(fm_node,(frovedis_ridge_sgd<DT1,D_MAT1>),
-                     f_dptr,iter,al,mbf,rprm,icpt,tol,vb,mid,sample_weight,mvbl).get();
+            n_iter = exrpc_async(fm_node,(frovedis_ridge<DT1,D_MAT1>),
+                     f_dptr,config,vb,mid,sample_weight,mvbl).get();
             break;
           }
           default: REPORT_ERROR(USER_ERROR, "Unsupported dtype of input dense data for training!\n");
@@ -910,11 +615,11 @@ extern "C" {
             auto sample_weight = double_to_float_vector(sample_weight_ptr,
                                                   sample_weight_len);
             if(itype == INT)
-              n_iter = exrpc_async(fm_node,(frovedis_ridge_sgd<DT2,S_MAT24>),
-                       f_dptr,iter,al,mbf,rprm,icpt,tol,vb,mid,sample_weight,mvbl).get();
+              n_iter = exrpc_async(fm_node,(frovedis_ridge<DT2,S_MAT24>),
+                       f_dptr,config,vb,mid,sample_weight,mvbl).get();
             else if(itype == LONG)
-              n_iter = exrpc_async(fm_node,(frovedis_ridge_sgd<DT2,S_MAT25>),
-                       f_dptr,iter,al,mbf,rprm,icpt,tol,vb,mid,sample_weight,mvbl).get();
+              n_iter = exrpc_async(fm_node,(frovedis_ridge<DT2,S_MAT25>),
+                       f_dptr,config,vb,mid,sample_weight,mvbl).get();
             else REPORT_ERROR(USER_ERROR, "Unsupported itype of input sparse data for training!\n");
             break;
           }
@@ -923,92 +628,15 @@ extern "C" {
             auto sample_weight = to_double_vector(sample_weight_ptr,
                                                   sample_weight_len);
             if(itype == INT)
-              n_iter = exrpc_async(fm_node,(frovedis_ridge_sgd<DT1,S_MAT14>),
-                       f_dptr,iter,al,mbf,rprm,icpt,tol,vb,mid,sample_weight,mvbl).get();
+              n_iter = exrpc_async(fm_node,(frovedis_ridge<DT1,S_MAT14>),
+                       f_dptr,config,vb,mid,sample_weight,mvbl).get();
             else if(itype == LONG)
-              n_iter = exrpc_async(fm_node,(frovedis_ridge_sgd<DT1,S_MAT15>),
-                       f_dptr,iter,al,mbf,rprm,icpt,tol,vb,mid,sample_weight,mvbl).get();
+              n_iter = exrpc_async(fm_node,(frovedis_ridge<DT1,S_MAT15>),
+                       f_dptr,config,vb,mid,sample_weight,mvbl).get();
             else REPORT_ERROR(USER_ERROR, "Unsupported itype of input sparse data for training!\n");
             break;
           }
           default: REPORT_ERROR(USER_ERROR, "Unsupported dtype of input sparse data for training!\n");
-        }
-      }
-    }
-    catch (std::exception& e) {
-      set_status(true, e.what());
-    }
-    return static_cast<int>(n_iter); 
-  }
-
-  int ridge_lbfgs(const char* host, int port, long xptr, long yptr,
-                  double* sample_weight_ptr, long sample_weight_len,
-                  int iter, double al, double rprm, 
-                  bool icpt, double tol,
-                  int vb, int mid, short dtype, short itype, bool dense) {
-    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
-    exrpc_node fm_node(host,port);
-    auto f_xptr = (exrpc_ptr_t) xptr;
-    auto f_yptr = (exrpc_ptr_t) yptr;
-    auto f_dptr = frovedis_mem_pair(f_xptr,f_yptr);
-    int hs = 10;   // default
-    bool mvbl = false; // auto-managed at python side
-    size_t n_iter = 0;
-    try {
-      if(dense) {
-        switch(dtype) {
-          case FLOAT:
-          {   
-            auto sample_weight = double_to_float_vector(sample_weight_ptr,
-                                                  sample_weight_len);
-            n_iter = exrpc_async(fm_node,(frovedis_ridge_lbfgs<DT2,D_MAT2>),
-                     f_dptr,iter,al,hs,rprm,icpt,tol,vb,mid,sample_weight,mvbl).get();
-            break;
-          }
-          case DOUBLE:
-          {   
-            auto sample_weight = to_double_vector(sample_weight_ptr,
-                                                  sample_weight_len);
-            n_iter = exrpc_async(fm_node,(frovedis_ridge_lbfgs<DT1,D_MAT1>),
-                     f_dptr,iter,al,hs,rprm,icpt,tol,vb,mid,sample_weight,mvbl).get();
-            break;
-          }
-          default: REPORT_ERROR(USER_ERROR, 
-                   "Unsupported dtype of input dense data for training!\n");
-        }
-      }
-      else {
-        switch(dtype) {
-          case FLOAT:
-          {   
-            auto sample_weight = double_to_float_vector(sample_weight_ptr,
-                                                  sample_weight_len);
-            if(itype == INT)
-              n_iter = exrpc_async(fm_node,(frovedis_ridge_lbfgs<DT2,S_MAT24>),
-                       f_dptr,iter,al,hs,rprm,icpt,tol,vb,mid,sample_weight,mvbl).get();
-            else if(itype == LONG)
-              n_iter = exrpc_async(fm_node,(frovedis_ridge_lbfgs<DT2,S_MAT25>),
-                       f_dptr,iter,al,hs,rprm,icpt,tol,vb,mid,sample_weight,mvbl).get();
-            else REPORT_ERROR(USER_ERROR, 
-                 "Unsupported itype of input sparse data for training!\n");
-            break;
-          }
-          case DOUBLE:
-          {   
-            auto sample_weight = to_double_vector(sample_weight_ptr,
-                                                  sample_weight_len);
-            if(itype == INT)
-              n_iter = exrpc_async(fm_node,(frovedis_ridge_lbfgs<DT1,S_MAT14>),
-                       f_dptr,iter,al,hs,rprm,icpt,tol,vb,mid,sample_weight,mvbl).get();
-            else if(itype == LONG)
-              n_iter = exrpc_async(fm_node,(frovedis_ridge_lbfgs<DT1,S_MAT15>),
-                       f_dptr,iter,al,hs,rprm,icpt,tol,vb,mid,sample_weight,mvbl).get();
-            else REPORT_ERROR(USER_ERROR, 
-                 "Unsupported itype of input sparse data for training!\n");
-            break;
-          }
-          default: REPORT_ERROR(USER_ERROR, 
-                   "Unsupported dtype of input sparse data for training!\n");
         }
       }
     }
@@ -1024,23 +652,24 @@ extern "C" {
                int iter, double al,
                int rtype, double rprm,
                bool icpt, double tol, int vb, int mid,
-               short dtype, short itype, bool dense) {
+               short dtype, short itype, bool dense,
+               bool warm_start) {
     size_t n_iter = 0;
     switch(rtype) {
-      case 0: n_iter = lnr_sgd(host, port, xptr, yptr,
+      case 0: n_iter = lnr(host, port, xptr, yptr,
                         sample_weight_ptr, sample_weight_len,
-                        iter, al, icpt, 
-                        tol, vb, mid, dtype, itype, dense);
+                        iter, al, icpt, tol, vb, mid, 
+                        dtype, itype, dense, "sgd", warm_start);
               break;
-      case 1: n_iter = lasso_sgd(host, port, xptr, yptr, 
+      case 1: n_iter = lasso(host, port, xptr, yptr, 
                         sample_weight_ptr, sample_weight_len,
-                        iter, al, rprm, 
-                        icpt, tol, vb, mid, dtype, itype, dense);
+                        iter, al, rprm, icpt, tol, vb, mid, 
+                        dtype, itype, dense, "sgd", warm_start);
               break;
-      case 2: n_iter = ridge_sgd(host, port, xptr, yptr, 
+      case 2: n_iter = ridge(host, port, xptr, yptr, 
                         sample_weight_ptr, sample_weight_len,
-                        iter, al, rprm, 
-                        icpt, tol, vb, mid, dtype, itype, dense);
+                        iter, al, rprm, icpt, tol, vb, mid, 
+                        dtype, itype, dense, "sgd", warm_start);
               break;
       default: REPORT_ERROR(USER_ERROR, 
                "Unsupported regularization type is encountered!\n");
@@ -1313,8 +942,40 @@ extern "C" {
                    "Unsupported dtype of input dense data for training!\n");
         }
       }
-      else REPORT_ERROR(USER_ERROR, 
-           "Frovedis doesn't support input sparse data for DBSCAN!\n");
+      else {
+        switch(dtype) {
+          case FLOAT: 
+            {
+            auto sample_weight = double_to_float_vector(sample_weight_ptr,
+                                                  sample_weight_len);
+            if(itype == INT) 
+              pred = exrpc_async(fm_node,(frovedis_dbscan<DT2,S_MAT24>),
+                                 f_xptr,sample_weight,eps,min_pts,vb,mid).get();
+            else if(itype == LONG) 
+              pred = exrpc_async(fm_node,(frovedis_dbscan<DT2,S_MAT25>),
+                                 f_xptr,sample_weight,eps,min_pts,vb,mid).get();
+            else REPORT_ERROR(USER_ERROR, 
+                 "Unsupported itype of input sparse data for training!\n");
+            break;
+          }
+          case DOUBLE: 
+          {
+            auto sample_weight = to_double_vector(sample_weight_ptr,
+                                                  sample_weight_len);
+            if(itype == INT) 
+              pred = exrpc_async(fm_node,(frovedis_dbscan<DT1,S_MAT14>),
+                                 f_xptr,sample_weight,eps,min_pts,vb,mid).get();
+            else if(itype == LONG) 
+              pred = exrpc_async(fm_node,(frovedis_dbscan<DT1,S_MAT15>),
+                                 f_xptr,sample_weight,eps,min_pts,vb,mid).get();
+            else REPORT_ERROR(USER_ERROR, 
+                 "Unsupported itype of input sparse data for training!\n");
+            break;
+          }
+          default: REPORT_ERROR(USER_ERROR, 
+                   "Unsupported dtype of input sparse data for training!\n");
+        }
+      }
       auto sz = pred.size();
       checkAssumption(len == sz);
       for(size_t i = 0; i < sz; ++i) ret[i] = static_cast<long>(pred[i]);
@@ -1763,7 +1424,29 @@ extern "C" {
         }
       }
       else{
-        REPORT_ERROR(USER_ERROR, "frovedis Nearest Neighbors currently supports only dense data. \n");
+        switch(dtype) {
+          case FLOAT:
+            if(itype == INT) 
+              exrpc_oneway(fm_node,(frovedis_knn<DT2,S_MAT24>), f_xptr, k, radius,
+                           algorithm_, metric_, chunk_size, vb, mid);
+            else if(itype == LONG) 
+              exrpc_oneway(fm_node,(frovedis_knn<DT2,S_MAT25>), f_xptr, k, radius,
+                           algorithm_, metric_, chunk_size, vb, mid);
+            else REPORT_ERROR(USER_ERROR, 
+                 "Unsupported itype of input sparse data for training!\n");
+            break;
+          case DOUBLE: 
+            if(itype == INT)
+              exrpc_oneway(fm_node,(frovedis_knn<DT1,S_MAT14>), f_xptr, k, radius,
+                           algorithm_, metric_, chunk_size, vb, mid);
+            else if(itype == LONG)
+              exrpc_oneway(fm_node,(frovedis_knn<DT1,S_MAT15>), f_xptr, k, radius,
+                           algorithm_, metric_, chunk_size, vb, mid);
+            else REPORT_ERROR(USER_ERROR, 
+                 "Unsupported itype of input sparse data for training!\n");
+            break;
+          default: REPORT_ERROR(USER_ERROR, "Unsupported dtype of input sparse data for training!\n");
+        }
       } 
     }
     catch (std::exception& e) {
@@ -1799,7 +1482,29 @@ extern "C" {
         }
       }
       else{
-        REPORT_ERROR(USER_ERROR, "frovedis Nearest Neighbors currently supports only dense data. \n");
+        switch(dtype) {
+          case FLOAT:
+            if(itype == INT) 
+              exrpc_oneway(fm_node,(frovedis_knc<DT2,S_MAT24>), f_dptr, k,
+                           algorithm_, metric_, chunk_size, vb, mid);
+            else if(itype == LONG) 
+              exrpc_oneway(fm_node,(frovedis_knc<DT2,S_MAT25>), f_dptr, k,
+                           algorithm_, metric_, chunk_size, vb, mid);
+            else REPORT_ERROR(USER_ERROR, 
+                 "Unsupported itype of input sparse data for training!\n");
+            break;
+          case DOUBLE: 
+            if(itype == INT)
+              exrpc_oneway(fm_node,(frovedis_knc<DT1,S_MAT14>), f_dptr, k,
+                           algorithm_, metric_, chunk_size, vb, mid);
+            else if(itype == LONG)
+              exrpc_oneway(fm_node,(frovedis_knc<DT1,S_MAT15>), f_dptr, k,
+                           algorithm_, metric_, chunk_size, vb, mid);
+            else REPORT_ERROR(USER_ERROR, 
+                 "Unsupported itype of input sparse data for training!\n");
+            break;
+          default: REPORT_ERROR(USER_ERROR, "Unsupported dtype of input sparse data for training!\n");
+        }
       } 
     }
     catch (std::exception& e) {
@@ -1835,7 +1540,29 @@ extern "C" {
         }
       }
       else{
-        REPORT_ERROR(USER_ERROR, "frovedis Nearest Neighbors currently supports only dense data. \n");
+        switch(dtype) {
+          case FLOAT:
+            if(itype == INT) 
+              exrpc_oneway(fm_node,(frovedis_knr<DT2,S_MAT24>), f_dptr, k,
+                           algorithm_, metric_, chunk_size, vb, mid);
+            else if(itype == LONG) 
+              exrpc_oneway(fm_node,(frovedis_knr<DT2,S_MAT25>), f_dptr, k,
+                           algorithm_, metric_, chunk_size, vb, mid);
+            else REPORT_ERROR(USER_ERROR, 
+                 "Unsupported itype of input sparse data for training!\n");
+            break;
+          case DOUBLE: 
+            if(itype == INT)
+              exrpc_oneway(fm_node,(frovedis_knr<DT1,S_MAT14>), f_dptr, k,
+                           algorithm_, metric_, chunk_size, vb, mid);
+            else if(itype == LONG)
+              exrpc_oneway(fm_node,(frovedis_knr<DT1,S_MAT15>), f_dptr, k,
+                           algorithm_, metric_, chunk_size, vb, mid);
+            else REPORT_ERROR(USER_ERROR, 
+                 "Unsupported itype of input sparse data for training!\n");
+            break;
+          default: REPORT_ERROR(USER_ERROR, "Unsupported dtype of input sparse data for training!\n");
+        }
       } 
     }
     catch (std::exception& e) {
