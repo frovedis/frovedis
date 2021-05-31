@@ -575,19 +575,19 @@ dvector<std::string> dfcolumn::as_dvector() {
   std::string nullstr = "NULL";
   if (dtype() == "string") {
     auto& typed_col = dynamic_cast<typed_dfcolumn<std::string>&>(*this);
-    ret = typed_col.get_val().template as_dvector<std::string>();
+    ret = typed_col.get_val().as_dvector<std::string>();
   }
   else if (dtype() == "dic_string") {
     auto& typed_col = dynamic_cast<typed_dfcolumn<dic_string>&>(*this);
     ret = typed_col.as_words().map(words_to_string_vector, 
                                    get_nulls(), broadcast(nullstr))
-                              .template as_dvector<std::string>();
+                              .as_dvector<std::string>();
   }
   else if (dtype() == "raw_string") {
     auto& typed_col = dynamic_cast<typed_dfcolumn<raw_string>&>(*this);
     ret = typed_col.as_words().map(words_to_string_vector,
                                    get_nulls(), broadcast(nullstr))
-                              .template as_dvector<std::string>();
+                              .as_dvector<std::string>();
   }
   else {
     throw std::runtime_error("as_dvector<std::string>: non-string column is specified with string target!");
