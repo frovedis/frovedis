@@ -112,23 +112,16 @@ typed_dfcolumn<datetime>::sort(node_local<std::vector<size_t>>& res_idx) {
   auto exchanged_idx = alltoall_exchange(part_idx);
   auto res_val = make_node_local_allocate<std::vector<datetime_t>>();
   res_idx = make_node_local_allocate<std::vector<size_t>>();
-  // exchanged_idx will be destructed by set_multimerge_pair
-  node_local<std::vector<std::vector<size_t>>> exnulls;
-  if(contain_nulls)
-    exnulls = nulls.map(global_extract_null_helper, exchanged_idx); 
   exchanged_val.mapv(set_multimerge_pair<datetime_t,size_t>, exchanged_idx,
                      res_val, res_idx);
   auto ret = std::make_shared<typed_dfcolumn<datetime>>();
-  ret->val = std::move(res_val);
   if(contain_nulls) {
-    auto exchanged_back_nulls = alltoall_exchange(exnulls);
-    auto null_exists = make_node_local_allocate<int>();
-    auto nullhashes = exchanged_back_nulls.map(create_null_hash_from_partition,
-                                               null_exists);
-    ret->nulls = nullhashes.map(global_extract_null_helper2, res_idx,
-                                null_exists);
-    ret->contain_nulls_check();
+    // if contain_nulls, sorted column is not reused,
+    // since calculating null posistion is not trivial
+    ret->val = make_node_local_allocate<std::vector<datetime_t>>();
+    ret->nulls = make_node_local_allocate<std::vector<size_t>>();
   } else {
+    ret->val = std::move(res_val);
     ret->nulls = make_node_local_allocate<std::vector<size_t>>();
   }
   return ret;
@@ -159,23 +152,16 @@ typed_dfcolumn<datetime>::sort_desc(node_local<std::vector<size_t>>& res_idx) {
   auto exchanged_idx = alltoall_exchange(part_idx);
   auto res_val = make_node_local_allocate<std::vector<datetime_t>>();
   res_idx = make_node_local_allocate<std::vector<size_t>>();
-  // exchanged_idx will be destructed by set_multimerge_pair
-  node_local<std::vector<std::vector<size_t>>> exnulls;
-  if(contain_nulls)
-    exnulls = nulls.map(global_extract_null_helper, exchanged_idx); 
   exchanged_val.mapv(set_multimerge_pair_desc<datetime_t,size_t>, exchanged_idx,
                      res_val, res_idx);
   auto ret = std::make_shared<typed_dfcolumn<datetime>>();
-  ret->val = std::move(res_val);
   if(contain_nulls) {
-    auto exchanged_back_nulls = alltoall_exchange(exnulls);
-    auto null_exists = make_node_local_allocate<int>();
-    auto nullhashes = exchanged_back_nulls.map(create_null_hash_from_partition,
-                                               null_exists);
-    ret->nulls = nullhashes.map(global_extract_null_helper2, res_idx,
-                                null_exists);
-    ret->contain_nulls_check();
+    // if contain_nulls, sorted column is not reused,
+    // since calculating null posistion is not trivial
+    ret->val = make_node_local_allocate<std::vector<datetime_t>>();
+    ret->nulls = make_node_local_allocate<std::vector<size_t>>();
   } else {
+    ret->val = std::move(res_val);
     ret->nulls = make_node_local_allocate<std::vector<size_t>>();
   }
   return ret;
@@ -206,23 +192,16 @@ sort_with_idx(node_local<std::vector<size_t>>& idx,
   auto exchanged_idx = alltoall_exchange(part_idx);
   auto res_val = make_node_local_allocate<std::vector<datetime_t>>();
   res_idx = make_node_local_allocate<std::vector<size_t>>();
-  // exchanged_idx will be destructed by set_multimerge_pair
-  node_local<std::vector<std::vector<size_t>>> exnulls;
-  if(contain_nulls)
-    exnulls = nulls.map(global_extract_null_helper, exchanged_idx); 
   exchanged_val.mapv(set_multimerge_pair<datetime_t,size_t>, exchanged_idx,
                      res_val, res_idx);
   auto ret = std::make_shared<typed_dfcolumn<datetime>>();
-  ret->val = std::move(res_val);
   if(contain_nulls) {
-    auto exchanged_back_nulls = alltoall_exchange(exnulls);
-    auto null_exists = make_node_local_allocate<int>();
-    auto nullhashes = exchanged_back_nulls.map(create_null_hash_from_partition,
-                                               null_exists);
-    ret->nulls = nullhashes.map(global_extract_null_helper2, res_idx,
-                                null_exists);
-    ret->contain_nulls_check();
+    // if contain_nulls, sorted column is not reused,
+    // since calculating null posistion is not trivial
+    ret->val = make_node_local_allocate<std::vector<datetime_t>>();
+    ret->nulls = make_node_local_allocate<std::vector<size_t>>();
   } else {
+    ret->val = std::move(res_val);
     ret->nulls = make_node_local_allocate<std::vector<size_t>>();
   }
   return ret;
@@ -253,23 +232,16 @@ sort_with_idx_desc(node_local<std::vector<size_t>>& idx,
   auto exchanged_idx = alltoall_exchange(part_idx);
   auto res_val = make_node_local_allocate<std::vector<datetime_t>>();
   res_idx = make_node_local_allocate<std::vector<size_t>>();
-  // exchanged_idx will be destructed by set_multimerge_pair
-  node_local<std::vector<std::vector<size_t>>> exnulls;
-  if(contain_nulls)
-    exnulls = nulls.map(global_extract_null_helper, exchanged_idx); 
   exchanged_val.mapv(set_multimerge_pair_desc<datetime_t,size_t>, exchanged_idx,
                      res_val, res_idx);
   auto ret = std::make_shared<typed_dfcolumn<datetime>>();
-  ret->val = std::move(res_val);
   if(contain_nulls) {
-    auto exchanged_back_nulls = alltoall_exchange(exnulls);
-    auto null_exists = make_node_local_allocate<int>();
-    auto nullhashes = exchanged_back_nulls.map(create_null_hash_from_partition,
-                                               null_exists);
-    ret->nulls = nullhashes.map(global_extract_null_helper2, res_idx,
-                                null_exists);
-    ret->contain_nulls_check();
+    // if contain_nulls, sorted column is not reused,
+    // since calculating null posistion is not trivial
+    ret->val = make_node_local_allocate<std::vector<datetime_t>>();
+    ret->nulls = make_node_local_allocate<std::vector<size_t>>();
   } else {
+    ret->val = std::move(res_val);
     ret->nulls = make_node_local_allocate<std::vector<size_t>>();
   }
   return ret;

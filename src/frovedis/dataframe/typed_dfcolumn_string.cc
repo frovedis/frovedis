@@ -250,7 +250,7 @@ typed_dfcolumn<string>::
 sort_with_idx_desc(node_local<vector<size_t>>& idx,
                    node_local<vector<size_t>>& res_idx) {
   auto tmpcol = sort_prepare();
-  return tmpcol.sort_with_idx_desc(idx,res_idx);
+  return tmpcol.sort_with_idx_desc(idx, res_idx);
 }
 
 void create_string_trans_table(my_map<string,size_t>& leftdic,
@@ -1366,4 +1366,11 @@ void typed_dfcolumn<string>::calc_hash_base_multi_join
   auto thisval = left2->equal_prepare_multi_join(*this);
   thisval.mapv(calc_hash_base_helper2<size_t>(shift), hash_base);
 }
+
+bool typed_dfcolumn<string>::is_unique() {
+  auto& typed_col = dynamic_cast<typed_dfcolumn<string>&>(*this);
+  auto key = typed_col.val.viewas_dvector<size_t>().gather();
+  return vector_is_unique(key);
+}
+
 }

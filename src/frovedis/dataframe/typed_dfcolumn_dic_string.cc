@@ -515,7 +515,7 @@ typed_dfcolumn<dic_string>::sort_desc(node_local<vector<size_t>>& idx) {
 
 shared_ptr<dfcolumn>
 typed_dfcolumn<dic_string>::sort_with_idx(node_local<vector<size_t>>& idx,
-                                      node_local<vector<size_t>>& res_idx) {
+                                          node_local<vector<size_t>>& res_idx) {
   auto tmpcol = sort_prepare();
   return tmpcol.sort_with_idx(idx, res_idx);
 }
@@ -525,7 +525,7 @@ typed_dfcolumn<dic_string>::
 sort_with_idx_desc(node_local<vector<size_t>>& idx,
                    node_local<vector<size_t>>& res_idx) {
   auto tmpcol = sort_prepare();
-  return tmpcol.sort_with_idx_desc(idx,res_idx);
+  return tmpcol.sort_with_idx_desc(idx, res_idx);
 }
 
 
@@ -1109,6 +1109,12 @@ void typed_dfcolumn<dic_string>::calc_hash_base_multi_join
     throw std::runtime_error("multi_join: column types are different");
   auto thisval = left2->equal_prepare_multi_join(*this);
   thisval.mapv(calc_hash_base_helper2<size_t>(shift), hash_base);
+}
+
+bool typed_dfcolumn<dic_string>::is_unique() {
+  auto& typed_col = dynamic_cast<typed_dfcolumn<dic_string>&>(*this);
+  auto key = typed_col.val.viewas_dvector<size_t>().gather();
+  return vector_is_unique(key);
 }
 
 }
