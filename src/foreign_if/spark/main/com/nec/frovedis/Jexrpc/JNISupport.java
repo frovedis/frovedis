@@ -352,7 +352,7 @@ public class JNISupport {
                                                double[] sample_weight,
                                                long sample_weight_length);
 
-  public static native int callFrovedisGMM(Node master_node,
+  public static native IntDoublePair callFrovedisGMM(Node master_node,
                                            long fdata, int k,
                                            String cov_type,
                                            double tol, 
@@ -562,6 +562,12 @@ public class JNISupport {
   // [GMM] for single test vector (prediction done in master node)
   public static native int doSingleGMMPredict(Node master_node, long tptr, 
                                               int mid, boolean dense);
+  // [GMM] for multiple test vectors (prediction done in parallel in Frovedis worker nodes)
+  public static native double[] doParallelGMMPredictProba(Node t_node, long tptr, 
+                                                       int mid, boolean dense);
+  // [GMM] for single test vector (prediction done in master node)
+  public static native double[] doSingleGMMPredictProba(Node master_node, long tptr, 
+                                                   int mid, boolean dense);
   // [MFM] for multiple test vectors (prediction done in parallel in Frovedis worker nodes)
   public static native double[] doParallelALSPredict(Node t_node, long mptr, short mkind,
                                                      int uids[], int pids[]);
