@@ -11,7 +11,7 @@ import org.apache.spark.mllib.linalg.Vector
 
 object M_KIND {
   val GLM:    Short = 0
-  val LRM:    Short = 1
+  val LR:    Short = 1
   val SVM:    Short = 2
   val LNRM:   Short = 3
   val MFM:    Short = 4
@@ -25,18 +25,20 @@ object M_KIND {
   val SCM:    Short = 12
   val SEM:    Short = 13
   val SPARSE_CONV_INFO: Short = 14
-  val MLR: Short = 15
-  val W2V: Short = 16
-  val DBSCAN: Short = 17
-  val KNN: Short = 18
-  val KNC: Short = 19
-  val KNR: Short = 20
-  val LDA: Short = 21
-  val LDASP: Short = 22
-  val RFM: Short = 23
-  val GBT: Short = 24
-  val SVR: Short = 25
-  val KSVC: Short = 26
+  val W2V: Short = 15
+  val DBSCAN: Short = 16
+  val KNN: Short = 17
+  val KNC: Short = 18
+  val KNR: Short = 19
+  val LDA: Short = 20
+  val LDASP: Short = 21
+  val RFM: Short = 22
+  val GBT: Short = 23
+  val SVR: Short = 24
+  val KSVC: Short = 25
+  val RR: Short = 26
+  val LSR: Short = 27
+  val GMM: Short = 28  
 }
 
 object ModelID {
