@@ -9,13 +9,14 @@ from .graph import Graph
 from .g_validate import *
 
 def generate_traversal_path(result, source):
+    """Generates traversal path"""
     ret = {}
     destid = result['destids']
     pred = result['predecessors']
     dest_to_pred = dict(zip(destid, pred))
 
     for k in destid:
-        if k == source: # currently only possible for source node 
+        if k == source: # currently only possible for source node
             ret[k] = [source]
         else:
             path = []
@@ -49,7 +50,7 @@ def bfs_impl(G, source, depth_limit=None, opt_level=1, hyb_threshold=0.4,
     if inp_movable:
         G.release()
     etime = time.time()
-    if verbose: 
+    if verbose:
         print("bfs computation time: %.3f sec." % (etime - stime))
     return res
 
@@ -57,17 +58,17 @@ def bfs(G, source, depth_limit=None, opt_level=1, hyb_threshold=0.4, \
         verbose=0):
     """
     DESC:   Computes bfs traversal path of a graph
-    PARAM:  G: frovedis/networkx graph object 
-            source: int (1 ~ G.num_vertices) 
+    PARAM:  G: frovedis/networkx graph object
+            source: int (1 ~ G.num_vertices)
             opt_level: int (0, 1 or 2) (default: 1)
             hyb_threshold: double (0.0 ~ 1.0) (default: 0.4)
             depth_limit: long (default: long max)
-    RETURN: A dictionary with keys as destination node-id 
+    RETURN: A dictionary with keys as destination node-id
             and values as correspondingb traversal path from the source.
             In case any node in input graph not reachable from the source,
             it would not be included in the resultant dictionary.
     """
-    bfsres = bfs_impl(G, source, depth_limit=depth_limit, 
+    bfsres = bfs_impl(G, source, depth_limit=depth_limit,
                       opt_level=opt_level, hyb_threshold=hyb_threshold,
                       verbose=verbose)
     stime = time.time()
@@ -82,7 +83,7 @@ def descendants_at_distance(G, source, distance, opt_level=1, \
     """
      --- wrapper for networkx descendants_at_distance ---
     """
-    G, inp_movable, depth = validate_bfs(G, source, distance)
+    G, inp_movable, _ = validate_bfs(G, source, distance) #'depth' not used
     (host, port) = FrovedisServer.getServerInstance()
     stime = time.time()
     res = rpclib.bfs_descendants_at_distance(host, port, G.get(), source, \
@@ -94,7 +95,7 @@ def descendants_at_distance(G, source, distance, opt_level=1, \
     if inp_movable:
         G.release()
     etime = time.time()
-    if verbose: 
+    if verbose:
         print("bfs descendants_at_distance computation time: %.3f " + \
               "sec." % (etime - stime))
     return set(res)
@@ -104,15 +105,15 @@ def bfs_edges(G, source, reverse=False, depth_limit=None, sort_neighbors=None,
     """
      --- wrapper for networkx bfs_edges ---
     """
-    # TODO: confirm functionality of reverse and sort_neighbors 
+    # TODO: confirm functionality of reverse and sort_neighbors
     if reverse:
         raise NotImplementedError("reverse = True is currently " + \
                                   "not supported!")
     if sort_neighbors is not None:
         raise NotImplementedError("sort_neighbors is currently " + \
                                   "not supported!")
-    bfsres = bfs_impl(G, source, depth_limit=depth_limit, 
-                      opt_level=opt_level, hyb_threshold=hyb_threshold, 
+    bfsres = bfs_impl(G, source, depth_limit=depth_limit,
+                      opt_level=opt_level, hyb_threshold=hyb_threshold,
                       verbose=verbose)
     dest = bfsres["destids"]
     pred = bfsres["predecessors"]
@@ -126,7 +127,7 @@ def bfs_tree(G, source, reverse=False, depth_limit=None, sort_neighbors=None,
     """
     ret = nx.DiGraph()
     ret.add_node(source)
-    edges = bfs_edges(G, source, reverse=reverse, 
+    edges = bfs_edges(G, source, reverse=reverse,
                       depth_limit=depth_limit,
                       sort_neighbors=sort_neighbors,
                       opt_level=opt_level, hyb_threshold=hyb_threshold,
@@ -160,17 +161,17 @@ def bfs_successors(G, source, depth_limit=None, sort_neighbors=None,
         yield (parent, children)
         children = [c]
         parent = p
-    yield (parent, children)    
+    yield (parent, children)
 
 def single_source_shortest_path(G, source, return_distance=False, verbose=0):
     """
     DESC:   Computes single source shortest path of a graph
-    PARAM:  G: frovedis/networkx graph object 
-            source: int (1 ~ G.num_vertices) 
+    PARAM:  G: frovedis/networkx graph object
+            source: int (1 ~ G.num_vertices)
             return_distance: bool (whether to return distance information)
-    RETURN: If return_distance is True, then it returns 
-            a tuple of dictionaries (x, y). 
-            Where keys in "x" are the destination node-ids and 
+    RETURN: If return_distance is True, then it returns
+            a tuple of dictionaries (x, y).
+            Where keys in "x" are the destination node-ids and
             values are the corresponding travsersal path from the source node.
             And keys in "y" are the destination node-ids and
             values are the corresponding shortest distance from the source node.
@@ -178,7 +179,7 @@ def single_source_shortest_path(G, source, return_distance=False, verbose=0):
             If return_distance is False, then it returns only
             the traversal path, "x".
 
-            In case a node in input graph is not reachable from the source, 
+            In case a node in input graph is not reachable from the source,
             it would not be included in the results.
     """
     G, inp_movable = validate_traversal(G, source)
@@ -207,4 +208,3 @@ def single_source_shortest_path(G, source, return_distance=False, verbose=0):
     if verbose:
         print("sssp res conversion time: %.3f sec." % (etime - stime))
     return ret
-

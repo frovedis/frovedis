@@ -1,5 +1,8 @@
 """GraphLoader.py"""
 
+import sys
+import csv
+import pandas as pd
 import numpy as np
 from scipy.sparse import coo_matrix
 import networkx as nx
@@ -16,11 +19,10 @@ def custom_read_edgelist(path, comments='#', delimiter=' ', \
                nodetype, data, edgetype, encoding are not used.
     """
     # checking number of columns in input file
-    import csv
     fstr = open(path, 'r')
     reader = csv.reader(fstr, delimiter=delimiter)
     sample = next(reader)
-    while(sample[0][0] == comments): #skipping comments
+    while sample[0][0] == comments: #skipping comments
         sample = next(reader)
     fstr.close()
 
@@ -29,7 +31,7 @@ def custom_read_edgelist(path, comments='#', delimiter=' ', \
         names = ['src', 'dst']
     elif ncol == 3:
         names = ['src', 'dst', 'wgt']
-    else: 
+    else:
         msg = "read_edgelist: Expected 2 or 3 columns in input file!\n"
         msg = msg + str(ncol) + " column detected in first row: " + str(sample)
         msg = msg + "\nPlease ensure if the specified delimiter '"
@@ -37,7 +39,6 @@ def custom_read_edgelist(path, comments='#', delimiter=' ', \
         raise ValueError(msg)
 
     # loading data by excluding duplicate rows
-    import pandas as pd
     df = pd.read_csv(path, sep=delimiter, comment=comments, \
                      names = names, dtype = edgetype)
 
@@ -47,10 +48,9 @@ def custom_read_edgelist(path, comments='#', delimiter=' ', \
 
     # checking whether data is 0-based or 1-based
     tarr = mat[:, :2].flatten()
-    import sys
     if sys.version_info[0] < 3:
-        min_id = long(tarr.min())
-        max_id = long(tarr.max())
+        min_id = long(tarr.min()) #'long' should be replaced with 'int',
+        max_id = long(tarr.max()) #'int' gives same behaviour as 'long' in py3.
     else:
         min_id = int(tarr.min())
         max_id = int(tarr.max())

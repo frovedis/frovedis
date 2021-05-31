@@ -6,7 +6,7 @@ import networkx as nx
 from ..exrpc.server import FrovedisServer
 from ..exrpc import rpclib
 from .graph import Graph
-from .g_validate import validate_graph 
+from .g_validate import validate_graph
 
 def pagerank(G, alpha=0.85, personalization=None, max_iter=100, tol=1.0e-6, \
         nstart=None, weight='weight', dangling=None, verbose=0):

@@ -9,8 +9,8 @@ from .traversal import bfs, bfs_edges, descendants_at_distance
 from .traversal import bfs_tree, bfs_predecessors, bfs_successors
 
 __all__ = ["Graph", "to_scipy_sparse_matrix", "read_edgelist",
-           "pagerank", 
+           "pagerank",
            "connected_components",
-           "single_source_shortest_path", 
+           "single_source_shortest_path",
            "bfs", "bfs_edges", "descendants_at_distance",
            "bfs_tree", "bfs_predecessors", "bfs_successors"]

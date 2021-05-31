@@ -40,4 +40,3 @@ def validate_bfs(G, source, depth_limit=None):
         raise ValueError("depth limit %d should be a positive integer." \
                          % depth_limit)
     return G, inp_movable, depth
-

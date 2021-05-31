@@ -7,10 +7,10 @@ import networkx as nx
 from ..exrpc.server import FrovedisServer
 from ..exrpc import rpclib
 from .graph import Graph
-from .g_validate import validate_graph 
+from .g_validate import validate_graph
 
 def connected_components(G, opt_level=2, hyb_threshold=0.4,
-                         verbose=0, 
+                         verbose=0,
                          print_summary=False,
                          print_limit=5):
     """
@@ -43,7 +43,7 @@ def connected_components(G, opt_level=2, hyb_threshold=0.4,
     if inp_movable:
         G.release()
     etime = time.time()
-    if verbose: 
+    if verbose:
         print("cc computation time: %.3f sec." % (etime - stime))
 
     stime = time.time()
@@ -54,7 +54,7 @@ def connected_components(G, opt_level=2, hyb_threshold=0.4,
            for i in range(0, len(root_with_cc_count), 2)}
     for i in range(0, nvert):
         cc_root = nodes_in_which_cc[i]
-        if cc_root != sys.maxsize: 
+        if cc_root != sys.maxsize:
             ret[cc_root].append(i + 1)
     etime = time.time()
     if verbose:
@@ -62,9 +62,10 @@ def connected_components(G, opt_level=2, hyb_threshold=0.4,
     for i in sorted(ret.values()):
         yield set(i)
 
-def show_cc_summary(root_with_cc_count, 
+def show_cc_summary(root_with_cc_count,
                     nodes_in_which_cc, nodes_dist,
                     num_vertices, print_limit):
+    """Connected Component Summary"""
     num_cc = len(root_with_cc_count) // 2
     print("Number of connected components: %d" % num_cc)
 
@@ -74,25 +75,25 @@ def show_cc_summary(root_with_cc_count,
     for i in range(0, 2 * num_cc_printed, 2):
         print("%d:%d  " % (root_with_cc_count[i], \
                            root_with_cc_count[i + 1]))
-    if num_cc > print_limit: 
+    if num_cc > print_limit:
         print("...")
 
     print("Nodes in which cc: (node_id:root_id)")
-    count = 1 
+    count = 1
     for i in range(num_vertices):
-        if nodes_in_which_cc[i] != sys.maxsize: 
+        if nodes_in_which_cc[i] != sys.maxsize:
             print("%d:%d  " % (i+1, nodes_in_which_cc[i]))
             count = count + 1
-        if count > print_limit: 
+        if count > print_limit:
             print("...")
             break
 
     print("Nodes dist: (node:level_from_root)")
     count = 1
     for i in range(num_vertices):
-        if nodes_dist[i] != sys.maxsize: 
+        if nodes_dist[i] != sys.maxsize:
             print("%d:%d  " % (i+1, nodes_dist[i]))
             count = count + 1
-        if count > print_limit: 
+        if count > print_limit:
             print("...")
             break

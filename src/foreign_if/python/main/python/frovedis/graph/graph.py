@@ -36,9 +36,9 @@ def to_scipy_sparse_matrix(nx_graph, format='csr'):
 
     #stime = time.time()
     ctr = 0
-    for i in range(len(edges)):
+    for i in range(len(edges)): #consider-using-enumerate
         vec = edges[i]
-        for j in range(len(vec)):
+        for j in range(len(vec)): #consider-using-enumerate
             indices[ctr + j] = vec[j] - 1
         ctr = ctr + len(vec)
         indptr[i + 1] = ctr
@@ -81,12 +81,12 @@ class Graph(object):
         if issparse(nx_graph):  # any sparse matrix
             mat = nx_graph.tocsr()
             self.load_csr(mat)
-        elif isinstance(nx_graph, nx.classes.graph.Graph):  
+        elif isinstance(nx_graph, nx.classes.graph.Graph):
             self.load(nx_graph)
         elif nx_graph is not None:
             raise ValueError("Graph: Supported types are networkx graph or scipy sparse matrices!")
 
-    def load(self, nx_graph): 
+    def load(self, nx_graph):
         """
         DESC: load a networkx graph to create a frovedis graph
         PARAM: nx_graph
@@ -97,7 +97,8 @@ class Graph(object):
         self.num_vertices = nx_graph.number_of_nodes()
         #import time
         #t1 = time.time()
-        nx_smat = nx.to_scipy_sparse_matrix(nx_graph, format='csr') #TODO: use reimplemented version after result correctness
+        #TODO: use reimplemented version after result correctness
+        nx_smat = nx.to_scipy_sparse_matrix(nx_graph, format='csr')
         #print("Graph.py -> nx.to_scipy_sparse_matrix: ", time.time() - t1)
         # by default, edge data is loaded as float64
         # and node data is loaded as int64
@@ -110,14 +111,14 @@ class Graph(object):
             raise RuntimeError(excpt["info"])
         return self
 
-    def load_csr(self, smat): 
+    def load_csr(self, smat):
         """
-        DESC: loads Frovedis graph from a scipy csr_matrix 
-        PARAM: any sparse matrix 
+        DESC: loads Frovedis graph from a scipy csr_matrix
+        PARAM: any sparse matrix
         RETURN: self
         """
         self.release()
-        self.num_edges = len(smat.data) 
+        self.num_edges = len(smat.data)
         self.num_vertices = smat.shape[0]
         # by default, edge data is loaded as float64
         # and node data is loaded as int64
@@ -136,7 +137,7 @@ class Graph(object):
         PARAM: None
         RETURN: None
         """
-        if self.fdata != None:
+        if self.fdata != None: #Consider using 'is not'
             print("Num of edges: ", self.num_edges)
             print("Num of vertices: ", self.num_vertices)
             (host, port) = FrovedisServer.getServerInstance()
@@ -151,7 +152,7 @@ class Graph(object):
         PARAM: None
         RETURN: None
         """
-        if self.fdata != None:
+        if self.fdata != None: #Consider using 'is not'
             (host, port) = FrovedisServer.getServerInstance()
             rpclib.release_graph_py(host, port, self.get())
             excpt = rpclib.check_server_exception()
@@ -191,7 +192,7 @@ class Graph(object):
         PARAM: string-> file path
         RETURN: None
         """
-        if self.fdata != None:
+        if self.fdata != None: #Consider using 'is not'
             if os.path.exists(fname):
                 raise ValueError(\
                     "another graph object with %s name already exists!" % fname)
@@ -268,4 +269,3 @@ class Graph(object):
     def __del__(self):
         if FrovedisServer.isUP():
             self.release()
-
