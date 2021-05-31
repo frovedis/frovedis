@@ -96,6 +96,17 @@ struct kmeans_result {
   SERIALIZE(label_, n_iter_, inertia_, n_clusters_, 
             trans_mat_ptr, trans_mat_nsamples)
 };
+    
+struct gmm_result {
+  gmm_result() {}
+  gmm_result(const int n_iter, 
+             const double likelihood): 
+             n_iter_(n_iter), 
+             likelihood_(likelihood){}
+  int n_iter_;
+  double likelihood_;
+  SERIALIZE(n_iter_, likelihood_);
+};
 
 }
 #endif
