@@ -275,20 +275,20 @@ def dot(a, b, out=None):
         a_isRowvec, a_isNmat = check_if_vec(a)
         b_isRowvec, b_isNmat = check_if_vec(b)
         if a_isRowvec and b_isNmat:
-             a, cv1, isM1, a_ndim = get_computation_matrix(a, copy_bcm=False, \
-                                                       check_col_vector=True, \
-                                                       return_ndim=True,      \
-                                                       isVector=True)
-             b, cv2, isM2, b_ndim = get_computation_matrix(b, copy_bcm=False, \
-                                                       check_col_vector=True, \
-                                                       return_ndim=True)
+            a, cv1, isM1, a_ndim = get_computation_matrix(a, copy_bcm=False, \
+                                                      check_col_vector=True, \
+                                                      return_ndim=True,      \
+                                                      isVector=True)
+            b, cv2, isM2, b_ndim = get_computation_matrix(b, copy_bcm=False, \
+                                                      check_col_vector=True, \
+                                                      return_ndim=True)
         else: 
-             a, cv1, isM1, a_ndim = get_computation_matrix(a, copy_bcm=False, \
-                                                       check_col_vector=True, \
-                                                       return_ndim=True)
-             b, cv2, isM2, b_ndim = get_computation_matrix(b, copy_bcm=False, \
-                                                       check_col_vector=True, \
-                                                       return_ndim=True)
+            a, cv1, isM1, a_ndim = get_computation_matrix(a, copy_bcm=False, \
+                                                      check_col_vector=True, \
+                                                      return_ndim=True)
+            b, cv2, isM2, b_ndim = get_computation_matrix(b, copy_bcm=False, \
+                                                      check_col_vector=True, \
+                                                      return_ndim=True)
         if a.get_dtype() != b.get_dtype():
             raise TypeError("dot: dtype of a and b are not compatible!")
 
@@ -318,9 +318,9 @@ def dot(a, b, out=None):
                 return handle_dot_output(a, b, c, cv1, cv2, out, isM1 or isM2,\
                                          toFlatten=True)
             else:
-               c = PBLAS.gemm(a, b)
-               return handle_dot_output(a, b, c, cv1, cv2, out, isM1 or isM2,\
-                                        toFlatten=True)  
+                c = PBLAS.gemm(a, b)
+                return handle_dot_output(a, b, c, cv1, cv2, out, isM1 or isM2,\
+                                         toFlatten=True)  
             #raise ValueError("dot: vector-matrix multiplication is not \
             #    supported!")
 
