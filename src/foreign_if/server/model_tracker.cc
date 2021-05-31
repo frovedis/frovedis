@@ -95,6 +95,7 @@ void cleanup_frovedis_server() {
 
 int get_numeric_dtype(const std::string& dt) {
   if (dt == "int") return INT; 
+  else if (dt == "boolean") return BOOL; 
   else if (dt == "long") return LONG; 
   else if (dt == "float") return FLOAT; 
   else if (dt == "double") return DOUBLE; 
@@ -105,6 +106,7 @@ int get_numeric_dtype(const std::string& dt) {
 
 std::string get_string_dtype(short dt) {
   if (dt == INT) return "int"; 
+  else if (dt == BOOL) return "int"; 
   else if (dt == LONG) return "long"; 
   else if (dt == FLOAT) return "float"; 
   else if (dt == DOUBLE) return "double"; 
