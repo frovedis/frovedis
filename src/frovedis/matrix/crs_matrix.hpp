@@ -2112,6 +2112,33 @@ std::vector<T> call_crs_mv(const crs_matrix_local<T,I,O>& mat,
   return mat * v;
 }
 
+// outputs dense matrix after multiplication
+template <class T, class I, class O>
+rowmajor_matrix_local<T>
+crs_mm(const crs_matrix_local<T,I,O>& mat1,
+       const crs_matrix_local<T,I,O>& mat2) {
+  if(mat1.local_num_col != mat2.local_num_row)
+    throw std::runtime_error("invalid size for matrix multiplication");
+  rowmajor_matrix_local<T> ret(mat1.local_num_row, mat2.local_num_col);
+  const T* valp1 = &mat1.val[0];
+  const I* idxp1 = &mat1.idx[0];
+  const O* offp1 = &mat1.off[0];
+  const T* valp2 = &mat2.val[0];
+  const I* idxp2 = &mat2.idx[0];
+  const O* offp2 = &mat2.off[0];
+  auto retp = ret.val.data();
+
+  for(size_t r1 = 0; r1 < mat1.local_num_row; ++r1) {
+    for(O c1 = offp1[r1]; c1 < offp1[r1 + 1]; ++c1) {
+      #pragma _NEC ivdep
+      for(O c2 = offp2[idxp1[c1]]; c2 < offp2[idxp1[c1] + 1]; ++c2) {
+        retp[r1 * mat2.local_num_col + idxp2[c2]] += valp1[c1] * valp2[c2];
+      }
+    }
+  }
+  return ret;
+}
+
 #ifdef SPARSE_MV_USE_ALLREDUCE
 template <class T>
 struct call_allgatherv {
@@ -3061,6 +3088,71 @@ group_identical_rows(crs_matrix<T,I,O>& mat,
                      std::vector<size_t>& sep) {
   auto lmat = mat.gather();
   return group_identical_rows(lmat, sep);
+}
+
+// used for sampling random rows: kmeans-like initialization of centroids
+template <class T, class I, class O>
+crs_matrix_local<T,I,O>
+extract_rows(crs_matrix_local<T,I,O>& mat,
+             const std::vector<size_t>& rowids) {
+  auto n = rowids.size();
+  auto rowidp = rowids.data();
+  auto nrow = mat.local_num_row;
+  auto ncol = mat.local_num_col;
+  size_t count_invalid = 0;
+  for (size_t i = 0; i < n; ++i) count_invalid += (rowidp[i] >= nrow) ;
+  if (count_invalid) throw std::runtime_error("extract_rows: invalid position");
+
+  size_t num_elements = 0;
+  auto offp = &mat.off[0];
+  auto idxp = &mat.idx[0];
+  auto valp = &mat.val[0];
+  for(size_t i = 0; i < n; ++i)
+    num_elements += offp[rowidp[i] + 1] - offp[rowidp[i]];
+  crs_matrix_local<T,I,O> ret(n, ncol);
+  ret.val.resize(num_elements);
+  ret.idx.resize(num_elements);
+  ret.off.resize(n+1);
+  auto roffp = &ret.off[0];
+  auto ridxp = &ret.idx[0];
+  auto rvalp = &ret.val[0];
+  size_t counter = 0;
+  for(size_t i = 0; i < n; ++i) {
+    for(O o = offp[rowidp[i]]; o < offp[rowidp[i]+1]; ++o) {
+      ridxp[counter] = idxp[o];
+      rvalp[counter] = valp[o];
+      ++counter;
+    }
+    roffp[i+1] = counter;
+  }
+  return ret;
+}
+
+template <class T, class I, class O>
+crs_matrix_local<T,I,O>
+crs_extract_rows(crs_matrix_local<T,I,O>& mat,
+                 const std::vector<size_t>& rowids) {
+  return extract_rows(mat, rowids);
+}
+
+template <class T, class I, class O>
+crs_matrix<T,I,O>
+extract_rows(crs_matrix<T,I,O>& mat,
+             lvec<size_t>& rowids,
+             bool need_transpose = false) {
+  crs_matrix<T,I,O> ret = mat.data.map(crs_extract_rows<T,I,O>, rowids); 
+  ret.num_row = rowids.map(count_sizes).reduce(add<size_t>);
+  ret.num_col = mat.num_col;
+  return need_transpose ? ret.transpose() : ret;
+}
+
+template <class T, class I, class O>
+crs_matrix<T, I, O>
+extract_rows(crs_matrix<T,I,O>& mat,
+             const std::vector<size_t>& rowids, // must be sorted
+             bool need_transpose = false) {
+  auto loc_ids = align_global_index(mat, rowids);
+  return extract_rows(mat, loc_ids, need_transpose);
 }
 
 }
