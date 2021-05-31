@@ -16,7 +16,7 @@ class GaussianMixture(var k: Int,
                       var maxIterations: Int,
                       var initParams: String,
                       var seed: Long) extends java.io.Serializable {
-  def this() = this(2, "full", 0.01, 100, "kmeans", new Random().nextLong())
+  def this() = this(2, "full", 0.01, 100, "kmeans", new Random().nextLong().abs)
 
   def setK(k: Int): this.type = {
     require(k > 0 ,
@@ -64,7 +64,7 @@ class GaussianMixture(var k: Int,
   def getInitParams: String = initParams
 
   def setSeed(seed: Long): this.type = {
-    this.seed = seed
+    this.seed = seed.abs
     this
   }
 
@@ -91,7 +91,7 @@ class GaussianMixture(var k: Int,
     val isDense = false
     val mid = ModelID.get()
     val fs = FrovedisServer.getServerInstance()
-    //NOTE: This returns no. of iters used for convergence
+    //NOTE: This returns no. of iters, lower_bound used for convergence
     val ret =  JNISupport.callFrovedisGMM(fs.master_node,
                                           data.get(), k,
                                           covarianceType,
@@ -100,9 +100,11 @@ class GaussianMixture(var k: Int,
                                           initParams, seed, mid,
                                           isDense, movable)
     val info = JNISupport.checkServerException()
-    if (info != "") throw new java.rmi.ServerException(info)
-    println("GMM Model converged in " + ret + " iterations")
-    return new GaussianMixtureModel(mid)
+    if (info != "") throw new java.rmi.ServerException(info)  
+    val niters = ret.getKey() // number if iterations in convergence
+    val lb = ret.getValue() // lower_bound (log_likelihood)
+    return new GaussianMixtureModel(mid).setIters(niters)
+                                        .setLowerBound(lb)
   }
 
   def run(data: FrovedisRowmajorMatrix): GaussianMixtureModel = {
@@ -114,7 +116,7 @@ class GaussianMixture(var k: Int,
     val isDense = true
     val mid = ModelID.get()
     val fs = FrovedisServer.getServerInstance()
-    //NOTE: This returns no. of iters used for convergence
+    //NOTE: This returns no. of iters, lower_bound used for convergence
     val ret =  JNISupport.callFrovedisGMM(fs.master_node,
                                           data.get(), k,
                                           covarianceType,
@@ -124,7 +126,9 @@ class GaussianMixture(var k: Int,
                                           isDense, movable)
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
-    println("GMM Model converged in " + ret + " iterations")
-    return new GaussianMixtureModel(mid)
+    val niters = ret.getKey() // number if iterations in convergence
+    val lb = ret.getValue() // lower_bound (log_likelihood)
+    return new GaussianMixtureModel(mid).setIters(niters)
+                                        .setLowerBound(lb)
   }
 }

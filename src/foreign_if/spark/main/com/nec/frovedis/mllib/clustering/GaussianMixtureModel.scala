@@ -29,6 +29,30 @@ class GaussianMixtureModel(modelId: Int)
 
   //Model means
   private var _means:Array[Double] = null
+                               
+  //Model niter
+  private var _niter:Int = 0
+  def n_iter:Int = getIters()
+  def setIters(iter: Int): this.type = {
+    _niter = iter
+    this
+  }
+  private def getIters():Int = {
+    require(this.mid > 0, "n_iter is called before training")
+    _niter
+  }
+                               
+  //Model lowerbound
+  private var _lower_bound:Double = 0.0
+  def lower_bound:Double = getLowerBound()
+  def setLowerBound(lb: Double): this.type = {
+    _lower_bound = lb
+    this
+  }
+  private def getLowerBound():Double = {
+    require(this.mid > 0, "lower bound is called before training")
+    _lower_bound
+  }
 
   def predict(X: Vector): Int = {
     require(this.mid > 0, "predict() is called before training ")
@@ -96,13 +120,100 @@ class GaussianMixtureModel(modelId: Int)
     val fs = FrovedisServer.getServerInstance()
     val isDense = false
     val res = JNISupport.doParallelGMMPredict(fs.master_node, X.get(),
-                                            this.mid, isDense)
+                                              this.mid, isDense)
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
     val context = SparkContext.getOrCreate()
     return context.parallelize(res)
   }
 
+  def predictSoft(X: Vector): Array[Double] = {
+    require(this.mid > 0, "predict() is called before training ")
+    var dproxy: Long = -1
+    val fs = FrovedisServer.getServerInstance()
+    val isDense = X.getClass.toString() matches ".*DenseVector*."
+    if (isDense) {
+      val nrow: Long = 1
+      val ncol: Long = X.size
+      val rmjr_arr = X.toArray
+      dproxy = JNISupport.loadFrovedisWorkerRmajorData(fs.master_node, nrow,
+                                                       ncol, rmjr_arr)
+      val info = JNISupport.checkServerException()
+      if (info != "") throw new java.rmi.ServerException(info)
+    }
+    else {
+      val scalaCRS = new ScalaCRS(Array(X))
+      dproxy = JNISupport.loadFrovedisWorkerData(fs.master_node,
+                                                 scalaCRS.nrows,
+                                                 scalaCRS.ncols,
+                                                 scalaCRS.off,
+                                                 scalaCRS.idx,
+                                                 scalaCRS.data)
+      val info = JNISupport.checkServerException()
+      if (info != "") throw new java.rmi.ServerException(info)
+    }
+    val pred = JNISupport.doSingleGMMPredictProba(fs.master_node, dproxy,
+                                                  this.mid, isDense)
+    val info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
+    return pred
+
+  }
+
+  def predictSoft(X: RDD[Vector]): RDD[Array[Double]] = {
+    require(this.mid > 0, "predict() is called before training ")
+    val isDense = X.first.getClass.toString() matches ".*DenseVector*."
+    if (isDense) {
+      val fdata = new FrovedisRowmajorMatrix(X)
+      val res = predictSoft(fdata)
+      fdata.release()
+      return res
+    }
+    else {
+      val fdata = new FrovedisSparseData(X)
+      val res = predictSoft(fdata)
+      fdata.release()
+      return res
+    }
+  }
+
+  def predictSoft(X: FrovedisRowmajorMatrix): RDD[Array[Double]] = {
+    require(this.mid > 0, "predict() is called before training ")
+    val fs = FrovedisServer.getServerInstance()
+    val isDense = true
+    val res = JNISupport.doParallelGMMPredictProba(fs.master_node, X.get(),
+                                                   this.mid, isDense)
+    val info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
+    //NOTE: scala for loops doesn't support Long types
+    val sz = X.numRows().asInstanceOf[Int]  
+    val probs = new Array[Array[Double]](sz)
+    for(i <- 0 until sz) {
+      val prob = res.slice(i*k, (i+1)*k)
+      probs(i) = prob  
+    }  
+    val context = SparkContext.getOrCreate()
+    return context.parallelize(probs)
+  }
+
+  def predictSoft(X: FrovedisSparseData): RDD[Array[Double]] = {
+    require(this.mid > 0, "predict() is called before training ")
+    val fs = FrovedisServer.getServerInstance()
+    val isDense = false
+    val res = JNISupport.doParallelGMMPredictProba(fs.master_node, X.get(),
+                                            this.mid, isDense)
+    val info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
+    //NOTE: scala for loops doesn't support Long types
+    val sz = X.numRows().asInstanceOf[Int]  
+    val probs = new Array[Array[Double]](sz)
+    for(i <- 0 until sz) {
+      val prob = res.slice(i*k, (i+1)*k)
+      probs(i) = prob  
+    }  
+    val context = SparkContext.getOrCreate()
+    return context.parallelize(probs)
+  }
 
   private def getMeans(): Array[Double] = {
     if(_means == null) {
