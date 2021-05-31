@@ -147,9 +147,8 @@ frovedis_mem_pair load_local_glm_data(MATRIX& mat, std::vector<T>& vec) {
 template <class T>
 void show_dvector(exrpc_ptr_t& vptr) {
   auto vecp = reinterpret_cast<dvector<T>*>(vptr);
-  std::cout << "dvector(size: " << vecp->size() << "):\n";
-  auto vv = vecp->gather();
-  for(auto& v : vv) std::cout << " " << v; std::cout << std::endl;
+  std::cout << "dvector(size: " << vecp->size() << "): \n";
+  debug_print_vector(vecp->gather());
 }
 
 // prints frovedis data for debugging purpose
@@ -503,7 +502,7 @@ get_all_local_pointers(exrpc_ptr_t& d_ptr) {
   return matp->data.map(get_all_local_pointers_helper<LOC_MATRIX>).gather();
 }
 
-// reurns the exrpc::pointer of the input local vector of a dvector
+// returns the exrpc::pointer of the input local vector of a dvector
 template <class T>
 exrpc_ptr_t get_dvector_local_pointers_helper(std::vector<T>& lvec) {
   auto vecp = &lvec;
