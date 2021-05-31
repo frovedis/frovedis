@@ -3,6 +3,7 @@
 
 #include <math.h>
 #include <frovedis/matrix/blas_wrapper.hpp>
+#include <frovedis/matrix/spgemm.hpp>
 
 #define COMPUTE_ONLY_B2_FOR_PARTIAL_DISTANCE
 //#define NEED_TRANS_FOR_MULT
@@ -54,64 +55,176 @@ get_global_data(rowmajor_matrix<T>& mat) { // mat.gather()
   return ret;
 }
 
-template <class T>
-std::vector<T>
-alloc_vector(size_t size, bool incremental = false) {
-  std::vector<T> ret(size, 0);
-  auto rptr = ret.data();
-  if(incremental) for(size_t i = 0; i < size; ++i) rptr[i] = i;
+template <class T, class I, class O>
+crs_matrix_local<T,I,O>
+get_global_data(crs_matrix<T,I,O>& mat) { 
+  auto g_data = mat.data.gather();
+  auto nrows = g_data[0].local_num_row;
+  auto ncols = g_data[0].local_num_col;
+  size_t n_elements = g_data[0].off[nrows];
+  for(size_t i=1; i<g_data.size(); ++i) {
+    nrows += g_data[i].local_num_row;
+    n_elements += g_data[i].off[g_data[i].local_num_row];
+  }
+  crs_matrix_local<T,I,O> ret(nrows, ncols);
+  ret.off.resize(nrows + 1);
+  ret.val.resize(n_elements);
+  ret.idx.resize(n_elements);
+  auto roffp = &ret.off[0];
+  auto rvalp = &ret.val[0];
+  auto ridxp = &ret.idx[0];
+  size_t k = 0, counter = 0;
+  for(size_t i=0; i<g_data.size(); ++i) {
+    auto offp = &g_data[i].off[0];
+    auto valp = &g_data[i].val[0];
+    auto idxp = &g_data[i].idx[0];
+    auto size = g_data[i].local_num_row;
+    for(size_t j = 0; j < size; ++j)  {
+      for(O o = offp[j]; o < offp[j + 1]; ++o) {
+        rvalp[counter] = valp[o];
+        ridxp[counter++] = idxp[o];
+      }
+      roffp[k + j + 1] = counter;
+    }
+    k += size;
+  }
   return ret;
 }
 
 template <class T>
+std::vector<T>
+alloc_vector(size_t size, bool incremental = false) {
+  return incremental ? vector_arrange<T>(size) : vector_zeros<T>(size);
+}
+
+template <class T>
 void display(std::vector<T>& vec) {
-  for(auto i: vec) std::cout << i << " "; std::cout << std::endl;
+  debug_print_vector(vec);
+}
+
+template <class T, class I, class O>
+rowmajor_matrix_local<T>
+mult_a_with_trans_b (crs_matrix_local<T,I,O>& a,
+                     crs_matrix_local<T,I,O>& b,
+                     bool needs_transpose = false, 
+                     bool use_spgemm = false) {
+  auto& trans_b = b; //assuming b is already a transposed matrix
+  if(needs_transpose) trans_b = b.transpose();
+  if(use_spgemm) return spgemm(a, trans_b).to_rowmajor();
+  else           return crs_mm(a, trans_b); 
+}
+
+template <class T, class I, class O>
+rowmajor_matrix_local<T>
+mult_a_with_trans_b (crs_matrix_local<T,I,O>& a,
+                     rowmajor_matrix_local<T>& b,
+                     bool needs_transpose = false,
+                     bool use_spgemm = false) { //Meanigless for this function, just kept for interface unifomity
+  if(!needs_transpose) return a * b; //assuming b is already a transposed matrix
+  auto num_row1 = a.local_num_row;
+  auto num_row2 = b.local_num_row;
+  auto num_col1 = a.local_num_col;
+  auto num_col2 = b.local_num_col;
+  if(num_col1 != num_col2)
+    throw std::runtime_error("invalid size for matrix multiplication");
+  rowmajor_matrix_local<T> ret(num_row1, num_row2);
+
+  const T* valp1 = &a.val[0];
+  const I* idxp1 = &a.idx[0];
+  const O* offp1 = &a.off[0];
+
+  auto retp = ret.val.data();
+  auto bp = b.val.data();
+  for(size_t r1 = 0; r1 < num_row1; ++r1) {
+    for(size_t r2 = 0; r2 < num_row2; ++r2) {
+      for(O c1 = offp1[r1]; c1 < offp1[r1 + 1]; ++c1) {
+        retp[r1 * num_row2 + r2] += valp1[c1] * bp[r2 * num_col2 + idxp1[c1]];
+      }
+    }
+  }
+  return ret;
+}
+
+template <class T, class I, class O>
+rowmajor_matrix_local<T>
+mult_a_with_trans_b (rowmajor_matrix_local<T>& a,
+                     crs_matrix_local<T,I,O>& b,
+                     bool needs_transpose = false,
+                     bool use_spgemm = false) { //Meanigless for this function, just kept for interface unifomity
+  if(!needs_transpose) return a * b; //assuming b is already a transposed matrix
+  auto num_row1 = a.local_num_row;
+  auto num_row2 = b.local_num_row;
+  auto num_col1 = a.local_num_col;
+  auto num_col2 = b.local_num_col;
+  if(num_col1 != num_col2)
+    throw std::runtime_error("invalid size for matrix multiplication");
+  rowmajor_matrix_local<T> ret(num_row1, num_row2);
+
+  const T* valp2 = &b.val[0];
+  const I* idxp2 = &b.idx[0];
+  const O* offp2 = &b.off[0];
+
+  auto retp = ret.val.data();
+  auto ap = a.val.data();
+  for(size_t r1 = 0; r1 < num_row1; ++r1) {
+    for(size_t r2 = 0; r2 < num_row2; ++r2) {
+      for(O c2 = offp2[r2]; c2 < offp2[r2 + 1]; ++c2) {
+        retp[r1 * num_row2 + r2] += valp2[c2] * ap[r1 * num_col1 + idxp2[c2]];
+      }
+    }
+  }
+  return ret;
 }
 
 template <class T>
 rowmajor_matrix_local<T>
 mult_a_with_trans_b (rowmajor_matrix_local<T>& a,
-                     rowmajor_matrix_local<T>& b) {
-    auto a_nrow = a.local_num_row;
-    auto b_nrow = b.local_num_row;
-    auto a_ncol = a.local_num_col;
-    auto b_ncol = a.local_num_col;
+                     rowmajor_matrix_local<T>& b,
+                     bool needs_transpose = false,
+                     bool use_spgemm = false) { //Meanigless for this function, just kept for interface unifomity
+  if(!needs_transpose) return a * b; //assuming b is already a transposed matrix
+  auto a_nrow = a.local_num_row;
+  auto b_nrow = b.local_num_row;
+  auto a_ncol = a.local_num_col;
+  auto b_ncol = a.local_num_col;
 
-    sliced_colmajor_matrix_local<T> sm1;
-    sm1.ldm = a.local_num_col;
-    sm1.data = a.val.data();
-    sm1.local_num_row = a_ncol;
-    sm1.local_num_col = a_nrow;
+  sliced_colmajor_matrix_local<T> sm1;
+  sm1.ldm = a.local_num_col;
+  sm1.data = a.val.data();
+  sm1.local_num_row = a_ncol;
+  sm1.local_num_col = a_nrow;
 
-    sliced_colmajor_matrix_local<T> sm2;
-    sm2.ldm = b.local_num_col;
-    sm2.data = b.val.data();
-    sm2.local_num_row = b_ncol;
-    sm2.local_num_col = b_nrow;
+  sliced_colmajor_matrix_local<T> sm2;
+  sm2.ldm = b.local_num_col;
+  sm2.data = b.val.data();
+  sm2.local_num_row = b_ncol;
+  sm2.local_num_col = b_nrow;
 
-    rowmajor_matrix_local<T> ret(a_nrow, b_nrow); // ret = a * trans(b)
-    sliced_colmajor_matrix_local<T> sm3;
-    sm3.ldm = b_nrow;
-    sm3.data = ret.val.data();
-    sm3.local_num_row = b_nrow;
-    sm3.local_num_col = a_nrow;
-    gemm<T>(sm2, sm1, sm3, 'T', 'N');
-    return ret;
+  rowmajor_matrix_local<T> ret(a_nrow, b_nrow); // ret = a * trans(b)
+  sliced_colmajor_matrix_local<T> sm3;
+  sm3.ldm = b_nrow;
+  sm3.data = ret.val.data();
+  sm3.local_num_row = b_nrow;
+  sm3.local_num_col = a_nrow;
+  gemm<T>(sm2, sm1, sm3, 'T', 'N');
+  return ret;
 }
 
+template <class T>
 struct compute_dist {
   compute_dist() {}
   compute_dist(std::string& metric, bool is_trans_b,
-               bool need_distance) {
+               bool need_distance, bool use_spgemm = false) {
     this->metric = metric;
     this->is_trans_b = is_trans_b;
     this->need_distance = need_distance;
+    this->use_spgemm = use_spgemm;
   }
 
-  template <class T>
+  template <class MATRIX1, class MATRIX2>
   rowmajor_matrix_local<T>
-  operator()(rowmajor_matrix_local<T>& a,
-             rowmajor_matrix_local<T>& b) {
+  operator()(MATRIX1& a,
+             MATRIX2& b) {
     if (!a.local_num_row || !b.local_num_row) return std::vector<T>();
     std::vector<T> a2, b2;
     const T *a2ptr, *b2ptr;
@@ -133,9 +246,7 @@ struct compute_dist {
       b2ptr = b2.data();
     }
 #endif
-    rowmajor_matrix_local<T> ab;
-    if (is_trans_b) ab = a * b;
-    else ab = mult_a_with_trans_b(a, b); // without physical transpose
+    auto ab = mult_a_with_trans_b(a, b, !is_trans_b, use_spgemm);
     auto abptr = ab.val.data();
     auto nrow = ab.local_num_row;
     auto ncol = ab.local_num_col;
@@ -225,20 +336,21 @@ struct compute_dist {
     return ab;
   }
   std::string metric;
-  bool is_trans_b, need_distance;
-  SERIALIZE(metric, is_trans_b, need_distance)
+  bool is_trans_b, need_distance, use_spgemm;
+  SERIALIZE(metric, is_trans_b, need_distance, use_spgemm)
 };
 
 // construct distance of points in x_mat from the points in y_mat
 // output: y_mat.num_row * x_mat.num_row
 // rows: <y1, y2, ..., yn>
 // cols: <x1, x2, ..., xn>
-template <class T>
+template <class T, class M1, class M2>
 rowmajor_matrix<T>
-construct_distance_matrix(rowmajor_matrix<T>& x_mat,
-                          rowmajor_matrix<T>& y_mat,
+construct_distance_matrix(M1& x_mat,
+                          M2& y_mat,
                           const std::string& metric,
-                          bool need_distance = true) {
+                          bool need_distance = true,
+                          bool use_spgemm = false) {
   auto nsamples = x_mat.num_row;
   auto nquery   = y_mat.num_row;
   std::string dist_metric = metric; // removing const-ness
@@ -258,8 +370,9 @@ construct_distance_matrix(rowmajor_matrix<T>& x_mat,
       auto trans_b = false;
 #endif
       g_x_mat.clear(); // releasing memory for gathered data
-      auto loc_dist_mat = y_mat.data.map(compute_dist(dist_metric,
-                                         trans_b,need_distance), b_mat);
+      auto loc_dist_mat = y_mat.data.map(compute_dist<T>(dist_metric,
+                                         trans_b,need_distance,
+                                         use_spgemm), b_mat);
       dist_mat.data = std::move(loc_dist_mat);
       dist_mat.num_row = nquery;
       dist_mat.num_col = nsamples; // no tranpose required, since Y * Xt is performed
@@ -274,8 +387,9 @@ construct_distance_matrix(rowmajor_matrix<T>& x_mat,
       auto trans_b = false;
 #endif
       g_y_mat.clear(); // releasing memory for gathered data
-      auto loc_dist_mat = x_mat.data.map(compute_dist(dist_metric,
-                                         trans_b,need_distance), b_mat);
+      auto loc_dist_mat = x_mat.data.map(compute_dist<T>(dist_metric,
+                                         trans_b,need_distance,
+                                         use_spgemm), b_mat);
       rowmajor_matrix<T> tmp_dist_mat(std::move(loc_dist_mat));
       tmp_dist_mat.num_row = nsamples;
       tmp_dist_mat.num_col = nquery;
@@ -299,19 +413,61 @@ construct_distance_matrix(rowmajor_matrix<T>& x_mat,
   return dist_mat;
 }
 
+template<class T>
+rowmajor_matrix_local<T> 
+twice_a_b_transpose(rowmajor_matrix_local<T>& mat, size_t myst, size_t myend, 
+                    bool use_spgemm) { //Meanigless for this function, just kept for interface unifomity
+  return mult_sliceA_trans_sliceB<T>(mat, myst, myend, 0, 
+                                     mat.local_num_row -1 , 2.0, 1.0);
+}
+
+template<class T, class I, class O>
+rowmajor_matrix_local<T> 
+twice_a_b_transpose(crs_matrix_local<T,I,O>& mat, size_t myst, size_t myend, 
+                    bool use_spgemm = false) { 
+  auto nrow = myend - myst + 1;
+  auto ncol = mat.local_num_col;
+  crs_matrix_local<T,I,O> mat_sliced(nrow, ncol);
+  size_t num_elements = mat.off[myend + 1] - mat.off[myst];
+  mat_sliced.off.resize(nrow + 1);
+  mat_sliced.val.resize(num_elements);
+  mat_sliced.idx.resize(num_elements);
+  auto offp1 = &mat.off[myst];
+  auto valp1 = &mat.val[offp1[0]];
+  auto idxp1 = &mat.idx[offp1[0]];
+
+  auto offp2 = &mat_sliced.off[0];
+  auto valp2 = &mat_sliced.val[0];
+  auto idxp2 = &mat_sliced.idx[0];
+  auto n = offp1[0];
+  for(size_t i = 0; i <= nrow; ++i) 
+    offp2[i] = offp1[i] - n;
+
+  for(size_t i = 0; i < num_elements; ++i) {
+    valp2[i] = valp1[i];
+    idxp2[i] = idxp1[i];
+  }
+  auto ab = mult_a_with_trans_b(mat_sliced, mat, true, use_spgemm); 
+  auto valp = ab.val.data();
+  auto size = ab.val.size();
+  for(size_t i = 0; i < size; ++i) valp[i] *= 2.0;
+  return ab;
+}
+
 // construction of distance matrix in distributed way using gemm
-template <class T>
+template <class T, class MATRIX>
 rowmajor_matrix_local<T>
-construct_distance_matrix_helper(rowmajor_matrix_local<T>& mat,
+construct_distance_matrix_helper(MATRIX& mat,
                                  std::vector<T>& sum_sq_col,
                                  size_t myst, size_t mysize,
-                                 bool is_sq_euclidian = false) {
+                                 bool is_sq_euclidian = false,
+                                 bool use_spgemm = false) {
   auto nrow = mat.local_num_row;
   // returning empty matrix for process not owning any data
   if(!mysize) return rowmajor_matrix_local<T>(0,nrow); 
   auto myend = myst + mysize - 1;
   sum_sq_col = squared_sum_of_cols(mat); // A^2 or ^B2
-  auto twice_ab = mult_sliceA_trans_sliceB<T>(mat,myst,myend,0,nrow-1,2.0,1.0);
+  auto twice_ab = twice_a_b_transpose<T>(mat,myst,myend,use_spgemm);
   T *a2_ptr = sum_sq_col.data(); // a2_ptr
   T *twoab_ptr = twice_ab.val.data();
   auto dm_nrow = twice_ab.local_num_row;
@@ -341,12 +497,13 @@ construct_distance_matrix_helper(rowmajor_matrix_local<T>& mat,
   return twice_ab; // in-place updated with distance
 }
 
-template <class T>
+template <class T, class MATRIX>
 rowmajor_matrix<T>
-construct_distance_matrix(node_local<rowmajor_matrix_local<T>>& mat,
+construct_distance_matrix(node_local<MATRIX>& mat,
                           lvec<T>& sum_sq_col,
                           size_t nrow,
-                          bool is_sq_euclidian = false) {
+                          bool is_sq_euclidian = false,
+                          bool use_spgemm = false) {
   // load distribution
   auto nrows = get_block(nrow);
   std::vector<size_t> sidx(nrows.size(),0);
@@ -355,8 +512,9 @@ construct_distance_matrix(node_local<rowmajor_matrix_local<T>>& mat,
   auto mysz = make_node_local_scatter(nrows);
   rowmajor_matrix<T> dist_mat;
   try {
-    dist_mat.data = mat.map(construct_distance_matrix_helper<T>,
-                            sum_sq_col,myst,mysz,broadcast(is_sq_euclidian));
+    dist_mat.data = mat.map(construct_distance_matrix_helper<T, MATRIX>,
+                            sum_sq_col,myst,mysz,broadcast(is_sq_euclidian),
+                            broadcast(use_spgemm));
     dist_mat.num_row = dist_mat.num_col = nrow;
   }
   catch(std::exception& excpt) {
@@ -374,25 +532,29 @@ construct_distance_matrix(node_local<rowmajor_matrix_local<T>>& mat,
   return dist_mat;
 }
 
-template <class T>
+template <class T, class MATRIX>
 rowmajor_matrix<T>
-construct_distance_matrix(rowmajor_matrix_local<T>& mat,
+construct_distance_matrix(MATRIX& mat,
                           lvec<T>& sum_sq_col,
                           bool input_movable = false,
-                          bool is_sq_euclidian = false) {
+                          bool is_sq_euclidian = false,
+                          bool use_spgemm = false) {
   auto nrow = mat.local_num_row;
   auto bdata = broadcast(mat);
   if(input_movable) mat.clear(); // clear rvalue input matrix, after broadcast
-  return construct_distance_matrix(bdata, sum_sq_col, nrow, is_sq_euclidian);
+  return construct_distance_matrix(bdata, sum_sq_col, nrow, is_sq_euclidian,
+                                   use_spgemm);
 }
 
-template <class T>
+template <class T, class MATRIX>
 rowmajor_matrix<T>
-construct_distance_matrix(rowmajor_matrix_local<T>& mat,
+construct_distance_matrix(MATRIX& mat,
                           bool input_movable = false,
-                          bool is_sq_euclidian = false) {
+                          bool is_sq_euclidian = false,
+                          bool use_spgemm = false) {
   auto sum_sq_col = make_node_local_allocate<std::vector<T>>();
-  return construct_distance_matrix(mat, sum_sq_col, input_movable, is_sq_euclidian);
+  return construct_distance_matrix(mat, sum_sq_col, input_movable, is_sq_euclidian,
+                                   use_spgemm);
 }
 
 // constructing only the upper-triangle of the symmetric distance matrix
@@ -415,6 +577,7 @@ construct_condensed_distance_matrix_helper(rowmajor_matrix_local<T>& mat,
   auto myend = myst + mysz - 1;
   auto sum_sq_col = squared_sum_of_cols(mat); // A^2 or ^B2
   //std::cout << "[rank: " << get_selfid() << "] myst: " << myst << ", myend: " << myend << std::endl;
+  
   auto twice_ab = mult_sliceA_trans_sliceB<T>(mat,myst,myend,0,nrow-1,2.0,1.0);
   auto a2_ptr = sum_sq_col.data(); // a2_ptr
   auto twoab_ptr = twice_ab.val.data();
