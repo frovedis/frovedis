@@ -962,6 +962,33 @@ T sum_helper2(std::vector<T>& val,
 }
 
 template <class T>
+double mean_helper2(std::vector<T>& val,
+                    std::vector<size_t>& nulls,
+                    double mean) {
+  size_t valsize = val.size();
+  size_t nullssize = nulls.size();
+  T* valp = &val[0];
+  size_t* nullsp = &nulls[0];
+#pragma cdir nodep
+#pragma _NEC ivdep
+  for(size_t i = 0; i < nullssize; i++) {
+    valp[nullsp[i]] = mean; // mean - mean would become zero in error calculation
+  }
+  double total = 0;
+  for(size_t i = 0; i < valsize; i++) {
+    total += (valp[i] - mean) * (valp[i] - mean);
+  }
+  T max = std::numeric_limits<T>::max();
+#pragma cdir nodep
+#pragma _NEC ivdep
+  for(size_t i = 0; i < nullssize; i++) {
+    valp[nullsp[i]] = max;
+  }
+  return total;
+}
+
+
+template <class T>
 T max_helper2(std::vector<T>& val,
               std::vector<size_t>& nulls) {
   size_t valsize = val.size();
@@ -2899,6 +2926,15 @@ double typed_dfcolumn<T>::avg() {
 }
 
 template <class T>
+double typed_dfcolumn<T>::std() {
+  size_t size = count();
+  double mean = avg();
+  auto ssdm = val.map(mean_helper2<T>, nulls, broadcast(mean))
+                 .reduce(frovedis::add<double>);
+  return std::sqrt(ssdm / static_cast<double>(size - 1));
+}
+
+template <class T>
 T typed_dfcolumn<T>::max() {
   auto maxs = val.map(max_helper2<T>, nulls).gather();
   T* maxsp = &maxs[0];
@@ -3097,23 +3133,16 @@ typed_dfcolumn<T>::sort(node_local<std::vector<size_t>>& res_idx) {
   auto exchanged_idx = alltoall_exchange(part_idx);
   auto res_val = make_node_local_allocate<std::vector<T>>();
   res_idx = make_node_local_allocate<std::vector<size_t>>();
-  // exchanged_idx will be destructed by set_multimerge_pair
-  node_local<std::vector<std::vector<size_t>>> exnulls;
-  if(contain_nulls)
-    exnulls = nulls.map(global_extract_null_helper, exchanged_idx); 
   exchanged_val.mapv(set_multimerge_pair<T,size_t>, exchanged_idx,
                      res_val, res_idx);
   auto ret = std::make_shared<typed_dfcolumn<T>>();
-  ret->val = std::move(res_val);
   if(contain_nulls) {
-    auto exchanged_back_nulls = alltoall_exchange(exnulls);
-    auto null_exists = make_node_local_allocate<int>();
-    auto nullhashes = exchanged_back_nulls.map(create_null_hash_from_partition,
-                                               null_exists);
-    ret->nulls = nullhashes.map(global_extract_null_helper2, res_idx,
-                                null_exists);
-    ret->contain_nulls_check();
+    // if contain_nulls, sorted column is not reused,
+    // since calculating null posistion is not trivial
+    ret->val = make_node_local_allocate<std::vector<T>>();
+    ret->nulls = make_node_local_allocate<std::vector<size_t>>();
   } else {
+    ret->val = std::move(res_val);
     ret->nulls = make_node_local_allocate<std::vector<size_t>>();
   }
   return ret;
@@ -3217,23 +3246,16 @@ typed_dfcolumn<T>::sort_desc(node_local<std::vector<size_t>>& res_idx) {
   auto exchanged_idx = alltoall_exchange(part_idx);
   auto res_val = make_node_local_allocate<std::vector<T>>();
   res_idx = make_node_local_allocate<std::vector<size_t>>();
-  // exchanged_idx will be destructed by set_multimerge_pair
-  node_local<std::vector<std::vector<size_t>>> exnulls;
-  if(contain_nulls)
-    exnulls = nulls.map(global_extract_null_helper, exchanged_idx); 
   exchanged_val.mapv(set_multimerge_pair_desc<T,size_t>, exchanged_idx,
                      res_val, res_idx);
   auto ret = std::make_shared<typed_dfcolumn<T>>();
-  ret->val = std::move(res_val);
   if(contain_nulls) {
-    auto exchanged_back_nulls = alltoall_exchange(exnulls);
-    auto null_exists = make_node_local_allocate<int>();
-    auto nullhashes = exchanged_back_nulls.map(create_null_hash_from_partition,
-                                               null_exists);
-    ret->nulls = nullhashes.map(global_extract_null_helper2, res_idx,
-                                null_exists);
-    ret->contain_nulls_check();
+    // if contain_nulls, sorted column is not reused,
+    // since calculating null posistion is not trivial
+    ret->val = make_node_local_allocate<std::vector<T>>();
+    ret->nulls = make_node_local_allocate<std::vector<size_t>>();
   } else {
+    ret->val = std::move(res_val);
     ret->nulls = make_node_local_allocate<std::vector<size_t>>();
   }
   return ret;
@@ -3287,23 +3309,16 @@ typed_dfcolumn<T>::sort_with_idx(node_local<std::vector<size_t>>& idx,
   auto exchanged_idx = alltoall_exchange(part_idx);
   auto res_val = make_node_local_allocate<std::vector<T>>();
   res_idx = make_node_local_allocate<std::vector<size_t>>();
-  // exchanged_idx will be destructed by set_multimerge_pair
-  node_local<std::vector<std::vector<size_t>>> exnulls;
-  if(contain_nulls)
-    exnulls = nulls.map(global_extract_null_helper, exchanged_idx); 
   exchanged_val.mapv(set_multimerge_pair<T,size_t>, exchanged_idx,
                      res_val, res_idx);
   auto ret = std::make_shared<typed_dfcolumn<T>>();
-  ret->val = std::move(res_val);
   if(contain_nulls) {
-    auto exchanged_back_nulls = alltoall_exchange(exnulls);
-    auto null_exists = make_node_local_allocate<int>();
-    auto nullhashes = exchanged_back_nulls.map(create_null_hash_from_partition,
-                                               null_exists);
-    ret->nulls = nullhashes.map(global_extract_null_helper2, res_idx,
-                                null_exists);
-    ret->contain_nulls_check();
+    // if contain_nulls, sorted column is not reused,
+    // since calculating null posistion is not trivial
+    ret->val = make_node_local_allocate<std::vector<T>>();
+    ret->nulls = make_node_local_allocate<std::vector<size_t>>();
   } else {
+    ret->val = std::move(res_val);
     ret->nulls = make_node_local_allocate<std::vector<size_t>>();
   }
   return ret;
@@ -3357,23 +3372,16 @@ sort_with_idx_desc(node_local<std::vector<size_t>>& idx,
   auto exchanged_idx = alltoall_exchange(part_idx);
   auto res_val = make_node_local_allocate<std::vector<T>>();
   res_idx = make_node_local_allocate<std::vector<size_t>>();
-  // exchanged_idx will be destructed by set_multimerge_pair
-  node_local<std::vector<std::vector<size_t>>> exnulls;
-  if(contain_nulls)
-    exnulls = nulls.map(global_extract_null_helper, exchanged_idx); 
   exchanged_val.mapv(set_multimerge_pair_desc<T,size_t>, exchanged_idx,
                      res_val, res_idx);
   auto ret = std::make_shared<typed_dfcolumn<T>>();
-  ret->val = std::move(res_val);
   if(contain_nulls) {
-    auto exchanged_back_nulls = alltoall_exchange(exnulls);
-    auto null_exists = make_node_local_allocate<int>();
-    auto nullhashes = exchanged_back_nulls.map(create_null_hash_from_partition,
-                                               null_exists);
-    ret->nulls = nullhashes.map(global_extract_null_helper2, res_idx,
-                                null_exists);
-    ret->contain_nulls_check();
+    // if contain_nulls, sorted column is not reused
+    // since calculating null posistion is not trivial
+    ret->val = make_node_local_allocate<std::vector<T>>();
+    ret->nulls = make_node_local_allocate<std::vector<size_t>>();
   } else {
+    ret->val = std::move(res_val);
     ret->nulls = make_node_local_allocate<std::vector<size_t>>();
   }
   return ret;
@@ -4458,6 +4466,21 @@ typed_dfcolumn<T>::union_columns
   newval.mapv(union_columns_helper<T>, newnulls, val_colsp, nulls_colsp);
   return std::make_shared<typed_dfcolumn<T>>(std::move(newval),
                                              std::move(newnulls));
+}
+
+template <class T>
+bool vector_is_unique(const std::vector<T>& vec) {
+  int unq = 0;
+  auto dummy = vector_zeros<int>(vec.size()); 
+  unique_hashtable<T,int> obj(vec, dummy, unq);
+  return unq == 1;
+}
+
+template <class T>
+bool typed_dfcolumn<T>::is_unique() {
+  auto& typed_col = dynamic_cast<typed_dfcolumn<T>&>(*this);
+  auto key = typed_col.get_val().template viewas_dvector<T>().gather();
+  return vector_is_unique(key);
 }
 
 }
