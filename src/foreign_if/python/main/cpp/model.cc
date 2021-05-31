@@ -14,11 +14,12 @@ extern "C" {
     try {
       if (mdtype == FLOAT) {
         switch(mkind) {
-          case LRM:    exrpc_oneway(fm_node,show_model<LRM2>,mid); break;
-          case MLR:    exrpc_oneway(fm_node,show_model<MLR2>,mid); break;
+          case LR:    exrpc_oneway(fm_node,show_model<LR2>,mid); break;
           case SVM:    exrpc_oneway(fm_node,show_model<SVM2>,mid); break;
           case SVR:    exrpc_oneway(fm_node,show_model<SVR2>,mid); break;
           //case KSVC:   exrpc_oneway(fm_node,show_model<KSVC2>,mid); break;
+          case RR:   exrpc_oneway(fm_node,show_model<RR2>,mid); break;
+          case LSR:   exrpc_oneway(fm_node,show_model<LSR2>,mid); break;
           case LNRM:   exrpc_oneway(fm_node,show_model<LNRM2>,mid); break;
           case MFM:    exrpc_oneway(fm_node,show_model<MFM2>,mid); break;
           case KMEANS: exrpc_oneway(fm_node,show_model<KMM2>,mid); break;
@@ -39,11 +40,12 @@ extern "C" {
       }
       else if (mdtype == DOUBLE) {
         switch(mkind) {
-          case LRM:    exrpc_oneway(fm_node,show_model<LRM1>,mid); break;
-          case MLR:    exrpc_oneway(fm_node,show_model<MLR1>,mid); break;
+          case LR:    exrpc_oneway(fm_node,show_model<LR1>,mid); break;
           case SVM:    exrpc_oneway(fm_node,show_model<SVM1>,mid); break;
           case SVR:    exrpc_oneway(fm_node,show_model<SVR1>,mid); break;
           //case KSVC:   exrpc_oneway(fm_node,show_model<KSVC1>,mid); break;
+          case RR:   exrpc_oneway(fm_node,show_model<RR1>,mid); break;
+          case LSR:   exrpc_oneway(fm_node,show_model<LSR1>,mid); break;
           case LNRM:   exrpc_oneway(fm_node,show_model<LNRM1>,mid); break;
           case MFM:    exrpc_oneway(fm_node,show_model<MFM1>,mid); break;
           case KMEANS: exrpc_oneway(fm_node,show_model<KMM1>,mid); break;
@@ -70,17 +72,19 @@ extern "C" {
   }
 
   void release_frovedis_model(const char* host, int port, 
-                              int mid, short mkind, short mdtype) {
+                              int mid, short mkind, short mdtype, 
+                              short itype, bool dense) {
     if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
     exrpc_node fm_node(host,port);
     try {
       if (mdtype == FLOAT) {
         switch(mkind) {
-          case LRM:    exrpc_oneway(fm_node,release_model<LRM2>,mid); break;
-          case MLR:    exrpc_oneway(fm_node,release_model<MLR2>,mid); break;
+          case LR:    exrpc_oneway(fm_node,release_model<LR2>,mid); break;
           case SVM:    exrpc_oneway(fm_node,release_model<SVM2>,mid); break;
           case SVR:    exrpc_oneway(fm_node,release_model<SVR2>,mid); break;
           case KSVC:   exrpc_oneway(fm_node,release_model<KSVC2>,mid); break;
+          case RR:   exrpc_oneway(fm_node,release_model<RR2>,mid);break;
+          case LSR:   exrpc_oneway(fm_node,release_model<LSR2>,mid);break;
           case LNRM:   exrpc_oneway(fm_node,release_model<LNRM2>,mid);break;
           case MFM:    exrpc_oneway(fm_node,release_model<MFM2>,mid); break;
           case KMEANS: exrpc_oneway(fm_node,release_model<KMM2>,mid); break;
@@ -94,9 +98,39 @@ extern "C" {
           case FPR:    exrpc_oneway(fm_node, release_model<FPR1>,mid); break; // not template based
           case FMM:    exrpc_oneway(fm_node,release_model<FMM2>,mid); break;
           case NBM:    exrpc_oneway(fm_node,release_model<NBM2>,mid); break;
-          case KNN:    exrpc_oneway(fm_node,release_model<KNN2>,mid); break;
-          case KNR:    exrpc_oneway(fm_node,release_model<KNR2>,mid); break;
-          case KNC:    exrpc_oneway(fm_node,release_model<KNC2>,mid); break;
+          case KNN: 
+            if(dense) {   
+              exrpc_oneway(fm_node,release_model<KNNR2>,mid); 
+            }
+            else {
+              if(itype == INT) 
+                exrpc_oneway(fm_node,release_model<KNNS24>,mid); 
+              else if(itype == LONG) 
+                exrpc_oneway(fm_node,release_model<KNNS25>,mid); 
+            }
+            break;
+          case KNR:
+            if(dense) {   
+              exrpc_oneway(fm_node,release_model<KNRR2>,mid); 
+            }
+            else {
+              if(itype == INT) 
+                exrpc_oneway(fm_node,release_model<KNRS24>,mid); 
+              else if(itype == LONG) 
+                exrpc_oneway(fm_node,release_model<KNRS25>,mid); 
+            }
+            break;
+          case KNC:   
+            if(dense) {   
+              exrpc_oneway(fm_node,release_model<KNCR2>,mid); 
+            }
+            else {
+              if(itype == INT) 
+                exrpc_oneway(fm_node,release_model<KNCS24>,mid); 
+              else if(itype == LONG) 
+                exrpc_oneway(fm_node,release_model<KNCS25>,mid); 
+            }
+            break;
           case RFM:    exrpc_oneway(fm_node,release_model<RFM2>,mid); break;
           case GBT:    exrpc_oneway(fm_node,release_model<GBT2>,mid); break;      
           default:     REPORT_ERROR(USER_ERROR,"Unknown Model Kind is encountered!\n");
@@ -104,11 +138,12 @@ extern "C" {
       }
       else if (mdtype == DOUBLE) {
         switch(mkind) {
-          case LRM:    exrpc_oneway(fm_node,release_model<LRM1>,mid); break;
-          case MLR:    exrpc_oneway(fm_node,release_model<MLR1>,mid); break;
+          case LR:    exrpc_oneway(fm_node,release_model<LR1>,mid); break;
           case SVM:    exrpc_oneway(fm_node,release_model<SVM1>,mid); break;
           case SVR:    exrpc_oneway(fm_node,release_model<SVR1>,mid); break;
           case KSVC:   exrpc_oneway(fm_node,release_model<KSVC1>,mid); break;
+          case RR:   exrpc_oneway(fm_node,release_model<RR1>,mid);break;
+          case LSR:   exrpc_oneway(fm_node,release_model<LSR1>,mid);break;
           case LNRM:   exrpc_oneway(fm_node,release_model<LNRM1>,mid);break;
           case MFM:    exrpc_oneway(fm_node,release_model<MFM1>,mid); break;
           case DTM:    exrpc_oneway(fm_node,release_model<DTM1>,mid); break;
@@ -122,9 +157,40 @@ extern "C" {
           case FPR:    exrpc_oneway(fm_node, release_model<FPR1>,mid); break; // not template based
           case FMM:    exrpc_oneway(fm_node,release_model<FMM1>,mid); break;
           case NBM:    exrpc_oneway(fm_node,release_model<NBM1>,mid); break;
-          case KNN:    exrpc_oneway(fm_node,release_model<KNN1>,mid); break;
-          case KNR:    exrpc_oneway(fm_node,release_model<KNR1>,mid); break;
-          case KNC:    exrpc_oneway(fm_node,release_model<KNC1>,mid); break;
+          case KNN: 
+            if(dense) {   
+              exrpc_oneway(fm_node,release_model<KNNR1>,mid); 
+            }
+            else {
+              if(itype == INT) 
+                exrpc_oneway(fm_node,release_model<KNNS14>,mid); 
+              else if(itype == LONG) 
+                exrpc_oneway(fm_node,release_model<KNNS15>,mid); 
+            }
+            break;
+          case KNR:
+            if(dense) {   
+              exrpc_oneway(fm_node,release_model<KNRR1>,mid); 
+            }
+            else {
+              if(itype == INT) 
+                exrpc_oneway(fm_node,release_model<KNRS14>,mid); 
+              else if(itype == LONG) 
+                exrpc_oneway(fm_node,release_model<KNRS15>,mid); 
+            }
+            break;
+
+          case KNC: 
+            if(dense) {   
+              exrpc_oneway(fm_node,release_model<KNCR1>,mid); 
+            }
+            else {
+              if(itype == INT) 
+                exrpc_oneway(fm_node,release_model<KNCS14>,mid); 
+              else if(itype == LONG) 
+                exrpc_oneway(fm_node,release_model<KNCS15>,mid); 
+            }
+            break;
           case RFM:    exrpc_oneway(fm_node,release_model<RFM1>,mid); break;
           case GBT:    exrpc_oneway(fm_node,release_model<GBT1>,mid); break;                
           default:     REPORT_ERROR(USER_ERROR,"Unknown Model Kind is encountered!\n");
@@ -161,11 +227,12 @@ extern "C" {
     try {
       if (mdtype == FLOAT) {
         switch(mkind) {
-          case LRM:    exrpc_oneway(fm_node,save_model<LRM2>,mid,fs_path); break;
-          case MLR:    exrpc_oneway(fm_node,save_model<MLR2>,mid,fs_path); break;
+          case LR:    exrpc_oneway(fm_node,save_model<LR2>,mid,fs_path); break;
           case SVM:    exrpc_oneway(fm_node,save_model<SVM2>,mid,fs_path); break;
           case SVR:    exrpc_oneway(fm_node,save_model<SVR2>,mid,fs_path); break;
           case KSVC:   exrpc_oneway(fm_node,save_model<KSVC2>,mid,fs_path); break;
+          case RR:   exrpc_oneway(fm_node,save_model<RR2>,mid,fs_path); break;
+          case LSR:   exrpc_oneway(fm_node,save_model<LSR2>,mid,fs_path); break;
           case LNRM:   exrpc_oneway(fm_node,save_model<LNRM2>,mid,fs_path); break;
           case MFM:    exrpc_oneway(fm_node,save_model<MFM2>,mid,fs_path); break;
           case KMEANS: exrpc_oneway(fm_node,save_model<KMM2>,mid,fs_path); break;
@@ -185,11 +252,12 @@ extern "C" {
       }
       else if (mdtype == DOUBLE) {
         switch(mkind) {
-          case LRM:    exrpc_oneway(fm_node,save_model<LRM1>,mid,fs_path); break;
-          case MLR:    exrpc_oneway(fm_node,save_model<MLR1>,mid,fs_path); break;
+          case LR:    exrpc_oneway(fm_node,save_model<LR1>,mid,fs_path); break;
           case SVM:    exrpc_oneway(fm_node,save_model<SVM1>,mid,fs_path); break;
           case SVR:    exrpc_oneway(fm_node,save_model<SVR1>,mid,fs_path); break;
           case KSVC:   exrpc_oneway(fm_node,save_model<KSVC1>,mid,fs_path); break;
+          case RR:   exrpc_oneway(fm_node,save_model<RR1>,mid,fs_path); break;
+          case LSR:   exrpc_oneway(fm_node,save_model<LSR1>,mid,fs_path); break;
           case LNRM:   exrpc_oneway(fm_node,save_model<LNRM1>,mid,fs_path); break;
           case MFM:    exrpc_oneway(fm_node,save_model<MFM1>,mid,fs_path); break;
           case KMEANS: exrpc_oneway(fm_node,save_model<KMM1>,mid,fs_path); break;
@@ -239,12 +307,13 @@ extern "C" {
     try {
       if (mdtype == FLOAT) {
         switch(mkind) {
-          case MLR:    exrpc_async(fm_node,load_glm<MLR2>,mid,MLR,fs_path).get(); break;
-          case LRM:    exrpc_async(fm_node,load_glm<LRM2>,mid,LRM,fs_path).get(); break;
+          case LR:    exrpc_async(fm_node,load_glm<LR2>,mid,LR,fs_path).get(); break;
           case SVM:    exrpc_async(fm_node,load_glm<SVM2>,mid,SVM,fs_path).get(); break;
-          case SVR:    exrpc_async(fm_node,load_lnrm<DT2>,mid,SVR,fs_path).get(); break;
+          case SVR:    exrpc_async(fm_node,load_lnrm<SVR2>,mid,SVR,fs_path).get(); break;
           case KSVC:   exrpc_oneway(fm_node,load_model<KSVC2>,mid,KSVC,fs_path); break; 
-          case LNRM:   exrpc_async(fm_node,load_lnrm<DT2>,mid,LNRM,fs_path).get(); break;
+          case RR:   exrpc_async(fm_node,load_lnrm<RR2>,mid,RR,fs_path).get(); break;
+          case LSR:   exrpc_async(fm_node,load_lnrm<LSR2>,mid,LSR,fs_path).get(); break;
+          case LNRM:   exrpc_async(fm_node,load_lnrm<LNRM1>,mid,LNRM,fs_path).get(); break;
           case KMEANS: exrpc_async(fm_node,load_kmm<DT2>,mid,KMEANS,fs_path).get(); break;
           case GMM:    exrpc_oneway(fm_node,load_model<GMM2>,mid,GMM,fs_path); break;      
           case SEM:    exrpc_oneway(fm_node,load_model<SEM2>,mid,SEM,fs_path); break;
@@ -258,12 +327,13 @@ extern "C" {
       }
       else if (mdtype == DOUBLE) {
         switch(mkind) {
-          case MLR:    exrpc_async(fm_node,load_glm<MLR1>,mid,MLR,fs_path).get(); break;
-          case LRM:    exrpc_async(fm_node,load_glm<LRM1>,mid,LRM,fs_path).get(); break;; 
+          case LR:    exrpc_async(fm_node,load_glm<LR1>,mid,LR,fs_path).get(); break;; 
           case SVM:    exrpc_async(fm_node,load_glm<SVM1>,mid,SVM,fs_path).get(); break;
-          case SVR:    exrpc_async(fm_node,load_lnrm<DT1>,mid,SVR,fs_path).get(); break;
+          case SVR:    exrpc_async(fm_node,load_lnrm<SVR1>,mid,SVR,fs_path).get(); break;
           case KSVC:   exrpc_oneway(fm_node,load_model<KSVC1>,mid,KSVC,fs_path); break; 
-          case LNRM:   exrpc_async(fm_node,load_lnrm<DT1>,mid,LNRM,fs_path).get(); break;
+          case RR:   exrpc_async(fm_node,load_lnrm<RR1>,mid,RR,fs_path).get(); break;
+          case LSR:   exrpc_async(fm_node,load_lnrm<LSR1>,mid,LSR,fs_path).get(); break;
+          case LNRM:   exrpc_async(fm_node,load_lnrm<LNRM1>,mid,LNRM,fs_path).get(); break;
           case KMEANS: exrpc_async(fm_node,load_kmm<DT1>,mid,KMEANS,fs_path).get(); break;
           case GMM:    exrpc_oneway(fm_node,load_model<GMM1>,mid,GMM,fs_path); break;      
           case SEM:    exrpc_oneway(fm_node,load_model<SEM1>,mid,SEM,fs_path); break;
@@ -815,11 +885,12 @@ extern "C" {
       if (mdtype == FLOAT) {
         std::vector<float> ret;
         switch(mkind) {
-          case LRM:  ret = exrpc_async(fm_node, (get_weight_vector<DT2,LRM2>), mid).get(); break;
-          case MLR:  ret = exrpc_async(fm_node, (get_weight_as_vector<DT2,MLR2>), mid).get(); break;
-          case LNRM: ret = exrpc_async(fm_node, (get_weight_vector<DT2,LNRM2>), mid).get(); break;
+          case LR:  ret = exrpc_async(fm_node, (get_weight_vector<DT2,LR2>), mid).get(); break;
+          case RR:  ret = exrpc_async(fm_node, (get_weight_vector<DT2,RR2>), mid).get(); break;
+          case LSR:  ret = exrpc_async(fm_node, (get_weight_vector<DT2,LSR2>), mid).get(); break;
           case SVM:  ret = exrpc_async(fm_node, (get_weight_vector<DT2,SVM2>), mid).get(); break;
           case SVR:  ret = exrpc_async(fm_node, (get_weight_vector<DT2,SVR2>), mid).get(); break;
+          case LNRM: ret = exrpc_async(fm_node, (get_weight_vector<DT2,LNRM2>), mid).get(); break;
           default: REPORT_ERROR(USER_ERROR, "Unknown model for weight vector extraction!\n");
         }
         ret_ptr = to_python_float_list(ret);
@@ -827,11 +898,12 @@ extern "C" {
       else if (mdtype == DOUBLE) {
         std::vector<double> ret;
         switch(mkind) {
-          case LRM:  ret = exrpc_async(fm_node, (get_weight_vector<DT1,LRM1>), mid).get(); break;
-          case MLR:  ret = exrpc_async(fm_node, (get_weight_as_vector<DT1,MLR1>), mid).get(); break;
-          case LNRM: ret = exrpc_async(fm_node, (get_weight_vector<DT1,LNRM1>), mid).get(); break;
+          case LR:  ret = exrpc_async(fm_node, (get_weight_vector<DT1,LR1>), mid).get(); break;
+          case RR:  ret = exrpc_async(fm_node, (get_weight_vector<DT1,RR1>), mid).get(); break;
+          case LSR:  ret = exrpc_async(fm_node, (get_weight_vector<DT1,LSR1>), mid).get(); break;
           case SVM:  ret = exrpc_async(fm_node, (get_weight_vector<DT1,SVM1>), mid).get(); break;
           case SVR:  ret = exrpc_async(fm_node, (get_weight_vector<DT1,SVR1>), mid).get(); break;
+          case LNRM: ret = exrpc_async(fm_node, (get_weight_vector<DT1,LNRM1>), mid).get(); break;
           default: REPORT_ERROR(USER_ERROR, "Unknown model for weight vector extraction!\n");
         }
         ret_ptr = to_python_double_list(ret);
@@ -854,11 +926,12 @@ extern "C" {
       if (mdtype == FLOAT) {
         std::vector<float> ret;
         switch(mkind) {
-          case LRM:  ret = exrpc_async(fm_node, (get_intercept_as_vector<DT2,LRM2>), mid).get(); break;
-          case MLR:  ret = exrpc_async(fm_node, (get_intercept_vector<DT2,MLR2>), mid).get(); break;
-          case LNRM: ret = exrpc_async(fm_node, (get_intercept_as_vector<DT2,LNRM2>), mid).get(); break;
+          case LR:  ret = exrpc_async(fm_node, (get_intercept_as_vector<DT2,LR2>), mid).get(); break;
+          case RR:  ret = exrpc_async(fm_node, (get_intercept_as_vector<DT2,RR2>), mid).get(); break;
+          case LSR:  ret = exrpc_async(fm_node, (get_intercept_as_vector<DT2,LSR2>), mid).get(); break;
           case SVM:  ret = exrpc_async(fm_node, (get_intercept_as_vector<DT2,SVM2>), mid).get(); break;
           case SVR:  ret = exrpc_async(fm_node, (get_intercept_as_vector<DT2,SVR2>), mid).get(); break;
+          case LNRM: ret = exrpc_async(fm_node, (get_intercept_as_vector<DT2,LNRM2>), mid).get(); break;
           default: REPORT_ERROR(USER_ERROR, "Unknown model for intercept vector extraction!\n");
         }
         ret_ptr = to_python_float_list(ret);
@@ -866,11 +939,12 @@ extern "C" {
       else if (mdtype == DOUBLE) {
         std::vector<double> ret;
         switch(mkind) {
-          case LRM:  ret = exrpc_async(fm_node, (get_intercept_as_vector<DT1,LRM1>), mid).get(); break;
-          case MLR:  ret = exrpc_async(fm_node, (get_intercept_vector<DT1,MLR1>), mid).get(); break;
-          case LNRM: ret = exrpc_async(fm_node, (get_intercept_as_vector<DT1,LNRM1>), mid).get(); break;
+          case LR:  ret = exrpc_async(fm_node, (get_intercept_as_vector<DT1,LR1>), mid).get(); break;
+          case RR:  ret = exrpc_async(fm_node, (get_intercept_as_vector<DT1,RR1>), mid).get(); break;
+          case LSR:  ret = exrpc_async(fm_node, (get_intercept_as_vector<DT1,LSR1>), mid).get(); break;
           case SVM:  ret = exrpc_async(fm_node, (get_intercept_as_vector<DT1,SVM1>), mid).get(); break;
           case SVR:  ret = exrpc_async(fm_node, (get_intercept_as_vector<DT1,SVR1>), mid).get(); break;
+          case LNRM: ret = exrpc_async(fm_node, (get_intercept_as_vector<DT1,LNRM1>), mid).get(); break;
           default: REPORT_ERROR(USER_ERROR, "Unknown model for intercept vector extraction!\n");
         }
         ret_ptr = to_python_double_list(ret);
@@ -1019,18 +1093,20 @@ extern "C" {
     try {
       if(isDense) {
         switch(mkind) {
-          case LRM:  pred = exrpc_async(fm_node,(parallel_lrm_predict<DT2,R_MAT2,R_LMAT2,LRM2>),
+          case LR:  pred = exrpc_async(fm_node,(parallel_lrm_predict<DT2,R_MAT2,LR2>),
                                         f_dptr,mid,prob).get(); break;
-          case MLR:  pred = exrpc_async(fm_node,(parallel_lrm_predict<DT2,R_MAT2,R_LMAT2,MLR2>),
+          case SVM:  pred = exrpc_async(fm_node,(parallel_svm_predict<DT2,R_MAT2,R_LMAT2,SVM2>),
                                         f_dptr,mid,prob).get(); break;
-          case SVM:  pred = exrpc_async(fm_node,(parallel_svm_predict<DT2,R_MAT2,R_LMAT2>),
-                                        f_dptr,mid,prob).get(); break;
-          case SVR:  pred = exrpc_async(fm_node,(parallel_lnrm_predict<DT2,R_MAT2,R_LMAT2>),
+          case SVR:  pred = exrpc_async(fm_node,(parallel_lnrm_predict<DT2,R_MAT2,R_LMAT2,SVR2>),
                                         f_dptr,mid,prob).get(); break;
           case KSVC:  pred = exrpc_async(fm_node,(ksvm_predict<DT2,R_MAT2,KSVC2>),
                                         f_dptr,mid,prob).get(); break;
-          case LNRM: pred = exrpc_async(fm_node,(parallel_lnrm_predict<DT2,R_MAT2,R_LMAT2>),
+          case RR: pred = exrpc_async(fm_node,(parallel_lnrm_predict<DT2,R_MAT2,R_LMAT2,RR2>),
                                         f_dptr,mid,prob).get(); break;
+          case LSR: pred = exrpc_async(fm_node,(parallel_lnrm_predict<DT2,R_MAT2,R_LMAT2,LSR2>),
+                                        f_dptr,mid,prob).get(); break;
+          case LNRM: pred = exrpc_async(fm_node,(parallel_lnrm_predict<DT2,R_MAT2,R_LMAT2,LNRM2>),
+                                       f_dptr,mid,prob).get(); break;
           case DTM:  pred = exrpc_async(fm_node,(parallel_dtm_predict<DT2,R_MAT2,R_LMAT2>),
                                         f_dptr,mid,prob).get(); break;
           case FMM:  REPORT_ERROR(USER_ERROR, "currently Frovedis doesn't support dense test data for FM!\n");
@@ -1045,52 +1121,62 @@ extern "C" {
       }
       else {
         switch(mkind) {
-          case LRM: { 
+          case LR: { 
             if(itype == INT)
-              pred = exrpc_async(fm_node,(parallel_lrm_predict<DT2,S_MAT24,S_LMAT24,LRM2>),
+              pred = exrpc_async(fm_node,(parallel_lrm_predict<DT2,S_MAT24,LR2>),
                                  f_dptr,mid,prob).get(); 
             else if(itype == LONG)
-              pred = exrpc_async(fm_node,(parallel_lrm_predict<DT2,S_MAT25,S_LMAT25,LRM2>),
+              pred = exrpc_async(fm_node,(parallel_lrm_predict<DT2,S_MAT25,LR2>),
                                  f_dptr,mid,prob).get(); 
-            else REPORT_ERROR(USER_ERROR, "Unsupported itype for sparse data!\n");
-            break;
-          }
-          case MLR: {
-            if(itype == INT)
-              pred = exrpc_async(fm_node,(parallel_lrm_predict<DT2,S_MAT24,S_LMAT24,MLR2>),
-                                 f_dptr,mid,prob).get();
-            else if(itype == LONG)
-              pred = exrpc_async(fm_node,(parallel_lrm_predict<DT2,S_MAT25,S_LMAT25,MLR2>),
-                                 f_dptr,mid,prob).get();
             else REPORT_ERROR(USER_ERROR, "Unsupported itype for sparse data!\n");
             break;
           }
           case SVM: {
             if(itype == INT)
-              pred = exrpc_async(fm_node,(parallel_svm_predict<DT2,S_MAT24,S_LMAT24>),
+              pred = exrpc_async(fm_node,(parallel_svm_predict<DT2,S_MAT24,S_LMAT24,SVM2>),
                                  f_dptr,mid,prob).get(); 
             else if(itype == LONG)
-              pred = exrpc_async(fm_node,(parallel_svm_predict<DT2,S_MAT25,S_LMAT25>),
+              pred = exrpc_async(fm_node,(parallel_svm_predict<DT2,S_MAT25,S_LMAT25,SVM2>),
                                  f_dptr,mid,prob).get();
             else REPORT_ERROR(USER_ERROR, "Unsupported itype for sparse data!\n");
             break;
           }
           case SVR: {
             if(itype == INT)
-              pred = exrpc_async(fm_node,(parallel_lnrm_predict<DT2,S_MAT24,S_LMAT24>),
+              pred = exrpc_async(fm_node,(parallel_lnrm_predict<DT2,S_MAT24,S_LMAT24,SVR2>),
                                  f_dptr,mid,prob).get();
             else if(itype == LONG)
-              pred = exrpc_async(fm_node,(parallel_lnrm_predict<DT2,S_MAT25,S_LMAT25>),
+              pred = exrpc_async(fm_node,(parallel_lnrm_predict<DT2,S_MAT25,S_LMAT25,SVR2>),
                                  f_dptr,mid,prob).get();
+            else REPORT_ERROR(USER_ERROR, "Unsupported itype for sparse data!\n");
+            break;
+          }
+          case RR: {
+            if(itype == INT)
+               pred = exrpc_async(fm_node,(parallel_lnrm_predict<DT2,S_MAT24,S_LMAT24,RR2>),
+                                  f_dptr,mid,prob).get(); 
+            else if(itype == LONG)
+               pred = exrpc_async(fm_node,(parallel_lnrm_predict<DT2,S_MAT25,S_LMAT25,RR2>),
+                                  f_dptr,mid,prob).get(); 
+            else REPORT_ERROR(USER_ERROR, "Unsupported itype for sparse data!\n");
+            break;
+          }
+          case LSR: {
+            if(itype == INT)
+               pred = exrpc_async(fm_node,(parallel_lnrm_predict<DT2,S_MAT24,S_LMAT24,LSR2>),
+                                  f_dptr,mid,prob).get(); 
+            else if(itype == LONG)
+               pred = exrpc_async(fm_node,(parallel_lnrm_predict<DT2,S_MAT25,S_LMAT25,LSR2>),
+                                  f_dptr,mid,prob).get(); 
             else REPORT_ERROR(USER_ERROR, "Unsupported itype for sparse data!\n");
             break;
           }
           case LNRM: {
             if(itype == INT)
-               pred = exrpc_async(fm_node,(parallel_lnrm_predict<DT2,S_MAT24,S_LMAT24>),
+               pred = exrpc_async(fm_node,(parallel_lnrm_predict<DT2,S_MAT24,S_LMAT24,LNRM2>),
                                   f_dptr,mid,prob).get(); 
             else if(itype == LONG)
-               pred = exrpc_async(fm_node,(parallel_lnrm_predict<DT2,S_MAT25,S_LMAT25>),
+               pred = exrpc_async(fm_node,(parallel_lnrm_predict<DT2,S_MAT25,S_LMAT25,LNRM2>),
                                   f_dptr,mid,prob).get(); 
             else REPORT_ERROR(USER_ERROR, "Unsupported itype for sparse data!\n");
             break;
@@ -1148,21 +1234,22 @@ extern "C" {
     exrpc_node fm_node(host,port);
     auto f_dptr = (exrpc_ptr_t) dptr;
     std::vector<double> pred;
-     
     try {
       if(isDense) {
         switch(mkind) {
-          case LRM:  pred = exrpc_async(fm_node,(parallel_lrm_predict<DT1,R_MAT1,R_LMAT1,LRM1>),
+          case LR:  pred = exrpc_async(fm_node,(parallel_lrm_predict<DT1,R_MAT1,LR1>),
                                         f_dptr,mid,prob).get(); break;
-          case MLR:  pred = exrpc_async(fm_node,(parallel_lrm_predict<DT1,R_MAT1,R_LMAT1,MLR1>),
+          case SVM:  pred = exrpc_async(fm_node,(parallel_svm_predict<DT1,R_MAT1,R_LMAT1,SVM1>),
                                         f_dptr,mid,prob).get(); break;
-          case SVM:  pred = exrpc_async(fm_node,(parallel_svm_predict<DT1,R_MAT1,R_LMAT1>),
-                                        f_dptr,mid,prob).get(); break;
-          case SVR:  pred = exrpc_async(fm_node,(parallel_lnrm_predict<DT1,R_MAT1,R_LMAT1>),
+          case SVR:  pred = exrpc_async(fm_node,(parallel_lnrm_predict<DT1,R_MAT1,R_LMAT1,SVR1>),
                                         f_dptr,mid,prob).get(); break;
           case KSVC:  pred = exrpc_async(fm_node,(ksvm_predict<DT1,R_MAT1,KSVC1>),
                                         f_dptr,mid,prob).get(); break;
-          case LNRM: pred = exrpc_async(fm_node,(parallel_lnrm_predict<DT1,R_MAT1,R_LMAT1>),
+          case RR: pred = exrpc_async(fm_node,(parallel_lnrm_predict<DT1,R_MAT1,R_LMAT1,RR1>),
+                                       f_dptr,mid,prob).get(); break;
+          case LSR: pred = exrpc_async(fm_node,(parallel_lnrm_predict<DT1,R_MAT1,R_LMAT1,LSR1>),
+                                       f_dptr,mid,prob).get(); break;
+          case LNRM: pred = exrpc_async(fm_node,(parallel_lnrm_predict<DT1,R_MAT1,R_LMAT1,LNRM1>),
                                         f_dptr,mid,prob).get(); break;
           case DTM:  pred = exrpc_async(fm_node,(parallel_dtm_predict<DT1,R_MAT1,R_LMAT1>),
                                         f_dptr,mid,prob).get(); break;
@@ -1178,52 +1265,62 @@ extern "C" {
       }
       else {
         switch(mkind) {
-          case LRM: {
+          case LR: {
             if(itype == INT)
-              pred = exrpc_async(fm_node,(parallel_lrm_predict<DT1,S_MAT14,S_LMAT14,LRM1>),
+              pred = exrpc_async(fm_node,(parallel_lrm_predict<DT1,S_MAT14,LR1>),
                                  f_dptr,mid,prob).get();
             else if(itype == LONG)
-              pred = exrpc_async(fm_node,(parallel_lrm_predict<DT1,S_MAT15,S_LMAT15,LRM1>),
-                                 f_dptr,mid,prob).get();
-            else REPORT_ERROR(USER_ERROR, "Unsupported itype for sparse data!\n");
-            break;
-          }
-          case MLR: {
-            if(itype == INT)
-              pred = exrpc_async(fm_node,(parallel_lrm_predict<DT1,S_MAT14,S_LMAT14,MLR1>),
-                                 f_dptr,mid,prob).get();
-            else if(itype == LONG)
-              pred = exrpc_async(fm_node,(parallel_lrm_predict<DT1,S_MAT15,S_LMAT15,MLR1>),
+              pred = exrpc_async(fm_node,(parallel_lrm_predict<DT1,S_MAT15,LR1>),
                                  f_dptr,mid,prob).get();
             else REPORT_ERROR(USER_ERROR, "Unsupported itype for sparse data!\n");
             break;
           }
           case SVM: {
             if(itype == INT)
-              pred = exrpc_async(fm_node,(parallel_svm_predict<DT1,S_MAT14,S_LMAT14>),
+              pred = exrpc_async(fm_node,(parallel_svm_predict<DT1,S_MAT14,S_LMAT14,SVM1>),
                                  f_dptr,mid,prob).get();
             else if(itype == LONG)
-              pred = exrpc_async(fm_node,(parallel_svm_predict<DT1,S_MAT15,S_LMAT15>),
+              pred = exrpc_async(fm_node,(parallel_svm_predict<DT1,S_MAT15,S_LMAT15,SVM1>),
                                  f_dptr,mid,prob).get();
             else REPORT_ERROR(USER_ERROR, "Unsupported itype for sparse data!\n");
             break;
           }
           case SVR: {
             if(itype == INT)
-              pred = exrpc_async(fm_node,(parallel_lnrm_predict<DT1,S_MAT14,S_LMAT14>),
+              pred = exrpc_async(fm_node,(parallel_lnrm_predict<DT1,S_MAT14,S_LMAT14,SVR1>),
                                  f_dptr,mid,prob).get();
             else if(itype == LONG)
-              pred = exrpc_async(fm_node,(parallel_lnrm_predict<DT1,S_MAT15,S_LMAT15>),
+              pred = exrpc_async(fm_node,(parallel_lnrm_predict<DT1,S_MAT15,S_LMAT15,SVR1>),
                                  f_dptr,mid,prob).get();
+            else REPORT_ERROR(USER_ERROR, "Unsupported itype for sparse data!\n");
+            break;
+          }
+          case RR: {
+            if(itype == INT)
+               pred = exrpc_async(fm_node,(parallel_lnrm_predict<DT1,S_MAT14,S_LMAT14,RR1>),
+                                  f_dptr,mid,prob).get();
+            else if(itype == LONG)
+               pred = exrpc_async(fm_node,(parallel_lnrm_predict<DT1,S_MAT15,S_LMAT15,RR1>),
+                                  f_dptr,mid,prob).get();
+            else REPORT_ERROR(USER_ERROR, "Unsupported itype for sparse data!\n");
+            break;
+          }
+          case LSR: {
+            if(itype == INT)
+               pred = exrpc_async(fm_node,(parallel_lnrm_predict<DT1,S_MAT14,S_LMAT14,LSR1>),
+                                  f_dptr,mid,prob).get();
+            else if(itype == LONG)
+               pred = exrpc_async(fm_node,(parallel_lnrm_predict<DT1,S_MAT15,S_LMAT15,LSR1>),
+                                  f_dptr,mid,prob).get();
             else REPORT_ERROR(USER_ERROR, "Unsupported itype for sparse data!\n");
             break;
           }
           case LNRM: {
             if(itype == INT)
-               pred = exrpc_async(fm_node,(parallel_lnrm_predict<DT1,S_MAT14,S_LMAT14>),
+               pred = exrpc_async(fm_node,(parallel_lnrm_predict<DT1,S_MAT14,S_LMAT14,LNRM1>),
                                   f_dptr,mid,prob).get();
             else if(itype == LONG)
-               pred = exrpc_async(fm_node,(parallel_lnrm_predict<DT1,S_MAT15,S_LMAT15>),
+               pred = exrpc_async(fm_node,(parallel_lnrm_predict<DT1,S_MAT15,S_LMAT15,LNRM1>),
                                   f_dptr,mid,prob).get();
             else REPORT_ERROR(USER_ERROR, "Unsupported itype for sparse data!\n");
             break;
@@ -1588,22 +1685,102 @@ extern "C" {
 
   PyObject* knn_kneighbors(const char* host, int port,
                            long tptr, int k, int mid,
-                           bool need_distance, short dtype) { // short itype, bool dense
+                           bool need_distance, short dtype, 
+                           short itype, bool dense,
+                           short modelitype, bool modeldense) {
       if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
       exrpc_node fm_node(host,port);
       auto test_dptr = (exrpc_ptr_t) tptr;
       knn_result res;
       try {
-        switch(dtype) {
-          case FLOAT:
-            res = exrpc_async(fm_node, (frovedis_kneighbors<DT2,DT5,R_MAT2,KNN2>), test_dptr, 
-                              mid, k, need_distance ).get();
-            break;
-          case DOUBLE:
-            res = exrpc_async(fm_node, (frovedis_kneighbors<DT1,DT5,R_MAT1,KNN1>), test_dptr, 
-                              mid, k, need_distance ).get();
-            break;
-          default: REPORT_ERROR(USER_ERROR,"Unsupported dtype for input dense matrix!\n");
+        if(dense && modeldense) {
+          switch(dtype) {
+            case FLOAT:
+              res = exrpc_async(fm_node, (frovedis_kneighbors<DT2,DT5,R_MAT2,KNNR2>), test_dptr, 
+                                mid, k, need_distance ).get();
+              break;
+            case DOUBLE:
+              res = exrpc_async(fm_node, (frovedis_kneighbors<DT1,DT5,R_MAT1,KNNR1>), test_dptr, 
+                                mid, k, need_distance ).get();
+              break;
+            default: REPORT_ERROR(USER_ERROR,"Unsupported dtype for input dense matrix!\n");
+          }
+        }
+        else if(dense && !modeldense) {
+          switch(dtype) {
+            case FLOAT:
+              if(modelitype == INT)
+                res = exrpc_async(fm_node, (frovedis_kneighbors<DT2,DT5,R_MAT2,KNNS24>), test_dptr,
+                                   mid, k, need_distance).get();
+              else if(modelitype == LONG)
+                res = exrpc_async(fm_node, (frovedis_kneighbors<DT2,DT5,R_MAT2,KNNS25>), test_dptr,
+                                   mid, k, need_distance).get();
+              else REPORT_ERROR(USER_ERROR,
+                 "Unsupported itype of input sparse data!\n");
+              break;
+            case DOUBLE:
+              if(modelitype == INT)
+                res = exrpc_async(fm_node, (frovedis_kneighbors<DT1,DT5,R_MAT1,KNNS14>), test_dptr,
+                                   mid, k, need_distance).get();
+              else if(modelitype == LONG)
+                res = exrpc_async(fm_node, (frovedis_kneighbors<DT1,DT5,R_MAT1,KNNS15>), test_dptr,
+                                   mid, k, need_distance).get();
+              else REPORT_ERROR(USER_ERROR,
+                 "Unsupported itype of input sparse data!\n");
+              break;
+            default: REPORT_ERROR(USER_ERROR,"Unsupported dtype for input sparse matrix!\n");
+          }
+        }
+
+        else if(!dense && modeldense) {
+          switch(dtype) {
+            case FLOAT:
+              if(itype == INT)
+                res = exrpc_async(fm_node, (frovedis_kneighbors<DT2,DT5,S_MAT24,KNNR2>), test_dptr,
+                                   mid, k, need_distance).get();
+              else if(itype == LONG)
+                res = exrpc_async(fm_node, (frovedis_kneighbors<DT2,DT5,S_MAT25,KNNR2>), test_dptr,
+                                   mid, k, need_distance).get();
+              else REPORT_ERROR(USER_ERROR,
+                 "Unsupported itype of input sparse data!\n");
+              break;
+            case DOUBLE:
+              if(itype == INT)
+                res = exrpc_async(fm_node, (frovedis_kneighbors<DT1,DT5,S_MAT14,KNNR1>), test_dptr,
+                                   mid, k, need_distance).get();
+              else if(itype == LONG)
+                res = exrpc_async(fm_node, (frovedis_kneighbors<DT1,DT5,S_MAT15,KNNR1>), test_dptr,
+                                   mid, k, need_distance).get();
+              else REPORT_ERROR(USER_ERROR,
+                 "Unsupported itype of input sparse data!\n");
+              break;
+            default: REPORT_ERROR(USER_ERROR,"Unsupported dtype for input dense matrix!\n");
+          }
+        }
+        else {
+           switch(dtype) {
+            case FLOAT:
+              if(itype == INT)
+                res = exrpc_async(fm_node, (frovedis_kneighbors<DT2,DT5,S_MAT24,KNNS24>), test_dptr, 
+                                mid, k, need_distance ).get();
+              else if(itype == LONG)
+                res = exrpc_async(fm_node, (frovedis_kneighbors<DT2,DT5,S_MAT25,KNNS25>), test_dptr, 
+                                mid, k, need_distance ).get();
+              else REPORT_ERROR(USER_ERROR,
+                 "Unsupported itype of input sparse data!\n");
+              break;
+            case DOUBLE:
+              if(itype == INT)
+                res = exrpc_async(fm_node, (frovedis_kneighbors<DT1,DT5,S_MAT14,KNNS14>), test_dptr, 
+                                mid, k, need_distance ).get();
+              else if(itype == LONG)
+                res = exrpc_async(fm_node, (frovedis_kneighbors<DT1,DT5,S_MAT15,KNNS15>), test_dptr, 
+                                mid, k, need_distance ).get();
+              else REPORT_ERROR(USER_ERROR,
+                 "Unsupported itype of input sparse data!\n");
+              break;
+            default: REPORT_ERROR(USER_ERROR,"Unsupported dtype for input sparse matrix!\n");
+          }
         }
       }
       catch (std::exception& e) {
@@ -1617,22 +1794,101 @@ extern "C" {
   // knc
   PyObject* knc_kneighbors(const char* host, int port,
                            long tptr, int k, int mid,
-                           bool need_distance, short dtype) { 
+                           bool need_distance, short dtype, 
+                           short itype, bool dense,
+                           short modelitype, bool modeldense) { 
       if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
       exrpc_node fm_node(host,port);
       auto test_dptr = (exrpc_ptr_t) tptr;
       knn_result res;
       try {
-        switch(dtype) {
-          case FLOAT:
-            res = exrpc_async(fm_node, (frovedis_kneighbors<DT2,DT5,R_MAT2,KNC2>), test_dptr, 
-                              mid, k, need_distance ).get();
-            break;
-          case DOUBLE:
-            res = exrpc_async(fm_node, (frovedis_kneighbors<DT1,DT5,R_MAT1,KNC1>), test_dptr, 
-                              mid, k, need_distance ).get();
-            break;
-          default: REPORT_ERROR(USER_ERROR,"Unsupported dtype for input dense matrix!\n");
+        if(dense && modeldense) {
+          switch(dtype) {
+            case FLOAT:
+              res = exrpc_async(fm_node, (frovedis_kneighbors<DT2,DT5,R_MAT2,KNCR2>), test_dptr, 
+                                mid, k, need_distance ).get();
+              break;
+            case DOUBLE:
+              res = exrpc_async(fm_node, (frovedis_kneighbors<DT1,DT5,R_MAT1,KNCR1>), test_dptr, 
+                                mid, k, need_distance ).get();
+              break;
+            default: REPORT_ERROR(USER_ERROR,"Unsupported dtype for input dense matrix!\n");
+          }
+        }
+        else if(dense && !modeldense) {
+          switch(dtype) {
+            case FLOAT:
+              if(modelitype == INT)
+                res = exrpc_async(fm_node, (frovedis_kneighbors<DT2,DT5,R_MAT2,KNCS24>), test_dptr, 
+                                  mid, k, need_distance ).get();
+              else if(modelitype == LONG)
+                res = exrpc_async(fm_node, (frovedis_kneighbors<DT2,DT5,R_MAT2,KNCS25>), test_dptr, 
+                                  mid, k, need_distance ).get();
+              else REPORT_ERROR(USER_ERROR,
+                 "Unsupported itype of input sparse data!\n");
+              break;
+            case DOUBLE:
+              if(modelitype == INT)
+                res = exrpc_async(fm_node, (frovedis_kneighbors<DT1,DT5,R_MAT1,KNCS14>), test_dptr, 
+                                  mid, k, need_distance ).get();
+              else if(modelitype == LONG)
+                res = exrpc_async(fm_node, (frovedis_kneighbors<DT1,DT5,R_MAT1,KNCS15>), test_dptr, 
+                                  mid, k, need_distance ).get();
+              else REPORT_ERROR(USER_ERROR,
+                 "Unsupported itype of input sparse data!\n");
+              break;
+            default: REPORT_ERROR(USER_ERROR,"Unsupported dtype for input dense matrix!\n");
+          }
+        }
+        else if(!dense && modeldense) {
+          switch(dtype) {
+            case FLOAT:
+              if(itype == INT)
+                res = exrpc_async(fm_node, (frovedis_kneighbors<DT2,DT5,S_MAT24,KNCR2>), test_dptr, 
+                                  mid, k, need_distance ).get();
+              else if(itype == LONG)
+                res = exrpc_async(fm_node, (frovedis_kneighbors<DT2,DT5,S_MAT25,KNCR2>), test_dptr, 
+                                  mid, k, need_distance ).get();
+              else REPORT_ERROR(USER_ERROR,
+                 "Unsupported itype of input sparse data!\n");
+              break;
+            case DOUBLE:
+              if(itype == INT)
+                res = exrpc_async(fm_node, (frovedis_kneighbors<DT1,DT5,S_MAT14,KNCR1>), test_dptr, 
+                                  mid, k, need_distance ).get();
+              else if(itype == LONG)
+                res = exrpc_async(fm_node, (frovedis_kneighbors<DT1,DT5,S_MAT15,KNCR1>), test_dptr, 
+                                  mid, k, need_distance ).get();
+              else REPORT_ERROR(USER_ERROR,
+                 "Unsupported itype of input sparse data!\n");
+              break;
+            default: REPORT_ERROR(USER_ERROR,"Unsupported dtype for input sparse matrix!\n");
+          }
+        }
+        else {
+          switch(dtype) {
+            case FLOAT:
+              if(itype == INT)
+                res = exrpc_async(fm_node, (frovedis_kneighbors<DT2,DT5,S_MAT24,KNCS24>), test_dptr, 
+                                  mid, k, need_distance ).get();
+              else if(itype == LONG)
+                res = exrpc_async(fm_node, (frovedis_kneighbors<DT2,DT5,S_MAT25,KNCS25>), test_dptr, 
+                                  mid, k, need_distance ).get();
+              else REPORT_ERROR(USER_ERROR,
+                 "Unsupported itype of input sparse data!\n");
+              break;
+            case DOUBLE:
+              if(itype == INT)
+                res = exrpc_async(fm_node, (frovedis_kneighbors<DT1,DT5,S_MAT14,KNCS14>), test_dptr, 
+                                  mid, k, need_distance ).get();
+              else if(itype == LONG)
+                res = exrpc_async(fm_node, (frovedis_kneighbors<DT1,DT5,S_MAT15,KNCS15>), test_dptr, 
+                                  mid, k, need_distance ).get();
+              else REPORT_ERROR(USER_ERROR,
+                 "Unsupported itype of input sparse data!\n");
+              break;
+            default: REPORT_ERROR(USER_ERROR,"Unsupported dtype for input sparse matrix!\n");
+          }
         }
       }
       catch (std::exception& e) {
@@ -1646,22 +1902,101 @@ extern "C" {
   // knr
   PyObject* knr_kneighbors(const char* host, int port,
                            long tptr, int k, int mid,
-                           bool need_distance, short dtype) { 
+                           bool need_distance, short dtype, 
+                           short itype, bool dense,
+                           short modelitype, bool modeldense) { 
       if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
       exrpc_node fm_node(host,port);
       auto test_dptr = (exrpc_ptr_t) tptr;
       knn_result res;
       try {
-        switch(dtype) {
-          case FLOAT:
-            res = exrpc_async(fm_node, (frovedis_kneighbors<DT2,DT5,R_MAT2,KNR2>), test_dptr, 
-                              mid, k, need_distance ).get();
-            break;
-          case DOUBLE:
-            res = exrpc_async(fm_node, (frovedis_kneighbors<DT1,DT5,R_MAT1,KNR1>), test_dptr, 
-                              mid, k, need_distance ).get();
-            break;
-          default: REPORT_ERROR(USER_ERROR,"Unsupported dtype for input dense matrix!\n");
+        if(dense && modeldense) {
+          switch(dtype) {
+            case FLOAT:
+              res = exrpc_async(fm_node, (frovedis_kneighbors<DT2,DT5,R_MAT2,KNRR2>), test_dptr, 
+                                mid, k, need_distance ).get();
+              break;
+            case DOUBLE:
+              res = exrpc_async(fm_node, (frovedis_kneighbors<DT1,DT5,R_MAT1,KNRR1>), test_dptr, 
+                                mid, k, need_distance ).get();
+              break;
+            default: REPORT_ERROR(USER_ERROR,"Unsupported dtype for input dense matrix!\n");
+          }
+        }
+        else if(dense && !modeldense) {
+          switch(dtype) {
+            case FLOAT:
+              if(modelitype == INT)
+                res = exrpc_async(fm_node, (frovedis_kneighbors<DT2,DT5,R_MAT2,KNRS24>), test_dptr, 
+                                  mid, k, need_distance ).get();
+              else if(modelitype == LONG)
+                res = exrpc_async(fm_node, (frovedis_kneighbors<DT2,DT5,R_MAT2,KNRS25>), test_dptr, 
+                                  mid, k, need_distance ).get();
+              else REPORT_ERROR(USER_ERROR,
+                 "Unsupported itype of input sparse data!\n");
+              break;
+            case DOUBLE:
+              if(modelitype == INT)
+                res = exrpc_async(fm_node, (frovedis_kneighbors<DT1,DT5,R_MAT1,KNRS14>), test_dptr, 
+                                  mid, k, need_distance ).get();
+              else if(modelitype == LONG)
+                res = exrpc_async(fm_node, (frovedis_kneighbors<DT1,DT5,R_MAT1,KNRS15>), test_dptr, 
+                                  mid, k, need_distance ).get();
+              else REPORT_ERROR(USER_ERROR,
+                 "Unsupported itype of input sparse data!\n");
+              break;
+            default: REPORT_ERROR(USER_ERROR,"Unsupported dtype for input dense matrix!\n");
+          }
+        }
+        else if(!dense && modeldense) {
+          switch(dtype) {
+            case FLOAT:
+              if(itype == INT)
+                res = exrpc_async(fm_node, (frovedis_kneighbors<DT2,DT5,S_MAT24,KNRR2>), test_dptr, 
+                                  mid, k, need_distance ).get();
+              else if(itype == LONG)
+                res = exrpc_async(fm_node, (frovedis_kneighbors<DT2,DT5,S_MAT25,KNRR2>), test_dptr, 
+                                  mid, k, need_distance ).get();
+              else REPORT_ERROR(USER_ERROR,
+                 "Unsupported itype of input sparse data!\n");
+              break;
+            case DOUBLE:
+              if(itype == INT)
+                res = exrpc_async(fm_node, (frovedis_kneighbors<DT1,DT5,S_MAT14,KNRR1>), test_dptr, 
+                                  mid, k, need_distance ).get();
+              else if(itype == LONG)
+                res = exrpc_async(fm_node, (frovedis_kneighbors<DT1,DT5,S_MAT15,KNRR1>), test_dptr, 
+                                  mid, k, need_distance ).get();
+              else REPORT_ERROR(USER_ERROR,
+                 "Unsupported itype of input sparse data!\n");
+              break;
+            default: REPORT_ERROR(USER_ERROR,"Unsupported dtype for input sparse matrix!\n");
+          }
+        }
+        else {
+          switch(dtype) {
+            case FLOAT:
+              if(itype == INT)
+                res = exrpc_async(fm_node, (frovedis_kneighbors<DT2,DT5,S_MAT24,KNRS24>), test_dptr, 
+                                  mid, k, need_distance ).get();
+              else if(itype == LONG)
+                res = exrpc_async(fm_node, (frovedis_kneighbors<DT2,DT5,S_MAT25,KNRS25>), test_dptr, 
+                                  mid, k, need_distance ).get();
+              else REPORT_ERROR(USER_ERROR,
+                 "Unsupported itype of input sparse data!\n");
+              break;
+            case DOUBLE:
+              if(itype == INT)
+                res = exrpc_async(fm_node, (frovedis_kneighbors<DT1,DT5,S_MAT14,KNRS14>), test_dptr, 
+                                  mid, k, need_distance ).get();
+              else if(itype == LONG)
+                res = exrpc_async(fm_node, (frovedis_kneighbors<DT1,DT5,S_MAT15,KNRS15>), test_dptr, 
+                                  mid, k, need_distance ).get();
+              else REPORT_ERROR(USER_ERROR,
+                 "Unsupported itype of input sparse data!\n");
+              break;
+            default: REPORT_ERROR(USER_ERROR,"Unsupported dtype for input sparse matrix!\n");
+          }
         }
       }
       catch (std::exception& e) {
@@ -1675,23 +2010,102 @@ extern "C" {
 
   PyObject* knn_kneighbors_graph(const char* host, int port,
                                  long tptr, int k, int mid,
-                                 const char* mode, short dtype) { // itype, dense
+                                 const char* mode, short dtype, 
+                                 short itype, bool dense,
+                                 short modelitype, bool modeldense) { 
       if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
       exrpc_node fm_node(host,port);
       auto test_dptr = (exrpc_ptr_t) tptr;
       std::string mode_ = mode;
       dummy_matrix dmat;
       try {
-        switch(dtype) {
-          case FLOAT:
-            dmat = exrpc_async(fm_node, (frovedis_kneighbors_graph<DT5,R_MAT2,KNN2,S_MAT25,S_LMAT25>), test_dptr, 
-                              mid, k, mode_).get();
-            break;
-          case DOUBLE:
-            dmat = exrpc_async(fm_node, (frovedis_kneighbors_graph<DT5,R_MAT1,KNN1,S_MAT15,S_LMAT15>), test_dptr, 
-                              mid, k, mode_).get();
-            break;
-          default: REPORT_ERROR(USER_ERROR,"Unsupported dtype for input dense matrix!\n");
+        if(dense && modeldense) {
+          switch(dtype) {
+            case FLOAT:
+              dmat = exrpc_async(fm_node, (frovedis_kneighbors_graph<DT5,R_MAT2,KNNR2,S_MAT25,S_LMAT25>), test_dptr, 
+                                 mid, k, mode_).get();
+              break;
+            case DOUBLE:
+              dmat = exrpc_async(fm_node, (frovedis_kneighbors_graph<DT5,R_MAT1,KNNR1,S_MAT15,S_LMAT15>), test_dptr, 
+                                 mid, k, mode_).get();
+              break;
+            default: REPORT_ERROR(USER_ERROR,"Unsupported dtype for input dense matrix!\n");
+          }
+        }
+        else if(dense && !modeldense) {
+          switch(dtype) {
+            case FLOAT:
+              if(modelitype == INT)
+                dmat = exrpc_async(fm_node, (frovedis_kneighbors_graph<DT5,R_MAT2,KNNS24,S_MAT25,S_LMAT25>), test_dptr, 
+                                   mid, k, mode_).get();
+              else if(modelitype == LONG)
+                dmat = exrpc_async(fm_node, (frovedis_kneighbors_graph<DT5,R_MAT2,KNNS25,S_MAT25,S_LMAT25>), test_dptr, 
+                                   mid, k, mode_).get();
+              else REPORT_ERROR(USER_ERROR,
+                 "Unsupported itype of input sparse data!\n");
+              break;
+            case DOUBLE:
+              if(modelitype == INT)
+                dmat = exrpc_async(fm_node, (frovedis_kneighbors_graph<DT5,R_MAT1,KNNS14,S_MAT15,S_LMAT15>), test_dptr, 
+                                   mid, k, mode_).get();
+              else if(modelitype == LONG)
+                dmat = exrpc_async(fm_node, (frovedis_kneighbors_graph<DT5,R_MAT1,KNNS15,S_MAT15,S_LMAT15>), test_dptr, 
+                                   mid, k, mode_).get();
+              else REPORT_ERROR(USER_ERROR,
+                 "Unsupported itype of input sparse data!\n");
+              break;
+            default: REPORT_ERROR(USER_ERROR,"Unsupported dtype for input dense matrix!\n");
+          }
+        }
+        else if(!dense && modeldense) {
+          switch(dtype) {
+            case FLOAT:
+              if(itype == INT)
+                dmat = exrpc_async(fm_node, (frovedis_kneighbors_graph<DT5,S_MAT24,KNNR2,S_MAT25,S_LMAT25>), test_dptr, 
+                                   mid, k, mode_).get();
+              else if(itype == LONG)
+                dmat = exrpc_async(fm_node, (frovedis_kneighbors_graph<DT5,S_MAT25,KNNR2,S_MAT25,S_LMAT25>), test_dptr, 
+                                   mid, k, mode_).get();
+              else REPORT_ERROR(USER_ERROR,
+                 "Unsupported itype of input sparse data!\n");
+              break;
+            case DOUBLE:
+              if(itype == INT)
+                dmat = exrpc_async(fm_node, (frovedis_kneighbors_graph<DT5,S_MAT14,KNNR1,S_MAT15,S_LMAT15>), test_dptr, 
+                                   mid, k, mode_).get();
+              else if(itype == LONG)
+                dmat = exrpc_async(fm_node, (frovedis_kneighbors_graph<DT5,S_MAT15,KNNR1,S_MAT15,S_LMAT15>), test_dptr, 
+                                   mid, k, mode_).get();
+              else REPORT_ERROR(USER_ERROR,
+                 "Unsupported itype of input sparse data!\n");
+              break;
+            default: REPORT_ERROR(USER_ERROR,"Unsupported dtype for input sparse matrix!\n");
+          }
+        }
+        else {
+          switch(dtype) {
+            case FLOAT:
+              if(itype == INT)
+                dmat = exrpc_async(fm_node, (frovedis_kneighbors_graph<DT5,S_MAT24,KNNS24,S_MAT25,S_LMAT25>), test_dptr, 
+                                   mid, k, mode_).get();
+              else if(itype == LONG)
+                dmat = exrpc_async(fm_node, (frovedis_kneighbors_graph<DT5,S_MAT25,KNNS25,S_MAT25,S_LMAT25>), test_dptr, 
+                                   mid, k, mode_).get();
+              else REPORT_ERROR(USER_ERROR,
+                 "Unsupported itype of input sparse data!\n");
+              break;
+            case DOUBLE:
+              if(itype == INT)
+                dmat = exrpc_async(fm_node, (frovedis_kneighbors_graph<DT5,S_MAT14,KNNS14,S_MAT15,S_LMAT15>), test_dptr, 
+                                   mid, k, mode_).get();
+              else if(itype == LONG)
+                dmat = exrpc_async(fm_node, (frovedis_kneighbors_graph<DT5,S_MAT15,KNNS15,S_MAT15,S_LMAT15>), test_dptr, 
+                                   mid, k, mode_).get();
+              else REPORT_ERROR(USER_ERROR,
+                 "Unsupported itype of input sparse data!\n");
+              break;
+            default: REPORT_ERROR(USER_ERROR,"Unsupported dtype for input sparse matrix!\n");
+          }
         }
       }
       catch (std::exception& e) {
@@ -1703,23 +2117,102 @@ extern "C" {
   // knc
   PyObject* knc_kneighbors_graph(const char* host, int port,
                                  long tptr, int k, int mid,
-                                 const char* mode, short dtype) { 
+                                 const char* mode, short dtype, 
+                                 short itype, bool dense,
+                                 short modelitype, bool modeldense) { 
       if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
       exrpc_node fm_node(host,port);
       auto test_dptr = (exrpc_ptr_t) tptr;
       std::string mode_ = mode;
       dummy_matrix dmat;
       try {
-        switch(dtype) {
-          case FLOAT:
-            dmat = exrpc_async(fm_node, (frovedis_kneighbors_graph<DT5,R_MAT2,KNC2,S_MAT25,S_LMAT25>), test_dptr, 
-                              mid, k, mode_).get();
-            break;
-          case DOUBLE:
-            dmat = exrpc_async(fm_node, (frovedis_kneighbors_graph<DT5,R_MAT1,KNC1,S_MAT15,S_LMAT15>), test_dptr, 
-                              mid, k, mode_).get();
-            break;
-          default: REPORT_ERROR(USER_ERROR,"Unsupported dtype for input dense matrix!\n");
+        if(dense && modeldense) {
+          switch(dtype) {
+            case FLOAT:
+              dmat = exrpc_async(fm_node, (frovedis_kneighbors_graph<DT5,R_MAT2,KNCR2,S_MAT25,S_LMAT25>), test_dptr, 
+                                 mid, k, mode_).get();
+              break;
+            case DOUBLE:
+              dmat = exrpc_async(fm_node, (frovedis_kneighbors_graph<DT5,R_MAT1,KNCR1,S_MAT15,S_LMAT15>), test_dptr, 
+                                 mid, k, mode_).get();
+              break;
+            default: REPORT_ERROR(USER_ERROR,"Unsupported dtype for input dense matrix!\n");
+          }
+        }
+        else if(dense && !modeldense) {
+          switch(dtype) {
+            case FLOAT:
+              if(modelitype == INT)
+                dmat = exrpc_async(fm_node, (frovedis_kneighbors_graph<DT5,R_MAT2,KNCS24,S_MAT25,S_LMAT25>), test_dptr, 
+                                   mid, k, mode_).get();
+              else if(modelitype == LONG)
+                dmat = exrpc_async(fm_node, (frovedis_kneighbors_graph<DT5,R_MAT2,KNCS25,S_MAT25,S_LMAT25>), test_dptr, 
+                                   mid, k, mode_).get();
+              else REPORT_ERROR(USER_ERROR,
+                 "Unsupported itype of input sparse data!\n");
+              break;
+            case DOUBLE:
+              if(modelitype == INT)
+                dmat = exrpc_async(fm_node, (frovedis_kneighbors_graph<DT5,R_MAT1,KNCS14,S_MAT15,S_LMAT15>), test_dptr, 
+                                   mid, k, mode_).get();
+              else if(modelitype == LONG)
+                dmat = exrpc_async(fm_node, (frovedis_kneighbors_graph<DT5,R_MAT1,KNCS15,S_MAT15,S_LMAT15>), test_dptr, 
+                                   mid, k, mode_).get();
+              else REPORT_ERROR(USER_ERROR,
+                 "Unsupported itype of input sparse data!\n");
+              break;
+            default: REPORT_ERROR(USER_ERROR,"Unsupported dtype for input dense matrix!\n");
+          }
+        }
+        else if(!dense && modeldense) {
+          switch(dtype) {
+            case FLOAT:
+              if(itype == INT)
+                dmat = exrpc_async(fm_node, (frovedis_kneighbors_graph<DT5,S_MAT24,KNCR2,S_MAT25,S_LMAT25>), test_dptr, 
+                                   mid, k, mode_).get();
+              else if(itype == LONG)
+                dmat = exrpc_async(fm_node, (frovedis_kneighbors_graph<DT5,S_MAT25,KNCR2,S_MAT25,S_LMAT25>), test_dptr, 
+                                   mid, k, mode_).get();
+              else REPORT_ERROR(USER_ERROR,
+                 "Unsupported itype of input sparse data!\n");
+              break;
+            case DOUBLE:
+              if(itype == INT)
+                dmat = exrpc_async(fm_node, (frovedis_kneighbors_graph<DT5,S_MAT14,KNCR1,S_MAT15,S_LMAT15>), test_dptr, 
+                                   mid, k, mode_).get();
+              else if(itype == LONG)
+                dmat = exrpc_async(fm_node, (frovedis_kneighbors_graph<DT5,S_MAT15,KNCR1,S_MAT15,S_LMAT15>), test_dptr, 
+                                   mid, k, mode_).get();
+              else REPORT_ERROR(USER_ERROR,
+                 "Unsupported itype of input sparse data!\n");
+              break;
+            default: REPORT_ERROR(USER_ERROR,"Unsupported dtype for input sparse matrix!\n");
+          }
+        }
+        else {
+          switch(dtype) {
+            case FLOAT:
+              if(itype == INT)
+                dmat = exrpc_async(fm_node, (frovedis_kneighbors_graph<DT5,S_MAT24,KNCS24,S_MAT25,S_LMAT25>), test_dptr, 
+                                   mid, k, mode_).get();
+              else if(itype == LONG)
+                dmat = exrpc_async(fm_node, (frovedis_kneighbors_graph<DT5,S_MAT25,KNCS25,S_MAT25,S_LMAT25>), test_dptr, 
+                                   mid, k, mode_).get();
+              else REPORT_ERROR(USER_ERROR,
+                 "Unsupported itype of input sparse data!\n");
+              break;
+            case DOUBLE:
+              if(itype == INT)
+                dmat = exrpc_async(fm_node, (frovedis_kneighbors_graph<DT5,S_MAT14,KNCS14,S_MAT15,S_LMAT15>), test_dptr, 
+                                   mid, k, mode_).get();
+              else if(itype == LONG)
+                dmat = exrpc_async(fm_node, (frovedis_kneighbors_graph<DT5,S_MAT15,KNCS15,S_MAT15,S_LMAT15>), test_dptr, 
+                                   mid, k, mode_).get();
+              else REPORT_ERROR(USER_ERROR,
+                 "Unsupported itype of input sparse data!\n");
+              break;
+            default: REPORT_ERROR(USER_ERROR,"Unsupported dtype for input sparse matrix!\n");
+          }
         }
       }
       catch (std::exception& e) {
@@ -1731,23 +2224,102 @@ extern "C" {
   // knr
   PyObject* knr_kneighbors_graph(const char* host, int port,
                                  long tptr, int k, int mid,
-                                 const char* mode, short dtype) {
+                                 const char* mode, short dtype, 
+                                 short itype, bool dense,
+                                 short modelitype, bool modeldense) {
       if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
       exrpc_node fm_node(host,port);
       auto test_dptr = (exrpc_ptr_t) tptr;
       std::string mode_ = mode;
       dummy_matrix dmat;
       try {
-        switch(dtype) {
-          case FLOAT:
-            dmat = exrpc_async(fm_node, (frovedis_kneighbors_graph<DT5,R_MAT2,KNR2,S_MAT25,S_LMAT25>), test_dptr, 
-                              mid, k, mode_).get();
-            break;
-          case DOUBLE:
-            dmat = exrpc_async(fm_node, (frovedis_kneighbors_graph<DT5,R_MAT1,KNR1,S_MAT15,S_LMAT15>), test_dptr, 
-                              mid, k, mode_).get();
-            break;
-          default: REPORT_ERROR(USER_ERROR,"Unsupported dtype for input dense matrix!\n");
+        if(dense && modeldense) {
+          switch(dtype) {
+            case FLOAT:
+              dmat = exrpc_async(fm_node, (frovedis_kneighbors_graph<DT5,R_MAT2,KNRR2,S_MAT25,S_LMAT25>), test_dptr, 
+                                 mid, k, mode_).get();
+              break;
+            case DOUBLE:
+              dmat = exrpc_async(fm_node, (frovedis_kneighbors_graph<DT5,R_MAT1,KNRR1,S_MAT15,S_LMAT15>), test_dptr, 
+                                 mid, k, mode_).get();
+              break;
+            default: REPORT_ERROR(USER_ERROR,"Unsupported dtype for input dense matrix!\n");
+          }
+        }
+        else if(dense && !modeldense) {
+          switch(dtype) {
+            case FLOAT:
+              if(modelitype == INT)
+                dmat = exrpc_async(fm_node, (frovedis_kneighbors_graph<DT5,R_MAT2,KNRS24,S_MAT25,S_LMAT25>), test_dptr, 
+                                   mid, k, mode_).get();
+              else if(modelitype == LONG)
+                dmat = exrpc_async(fm_node, (frovedis_kneighbors_graph<DT5,R_MAT2,KNRS25,S_MAT25,S_LMAT25>), test_dptr, 
+                                   mid, k, mode_).get();
+              else REPORT_ERROR(USER_ERROR,
+                 "Unsupported itype of input sparse data!\n");
+              break;
+            case DOUBLE:
+              if(modelitype == INT)
+                dmat = exrpc_async(fm_node, (frovedis_kneighbors_graph<DT5,R_MAT1,KNRS14,S_MAT15,S_LMAT15>), test_dptr, 
+                                   mid, k, mode_).get();
+              else if(modelitype == LONG)
+                dmat = exrpc_async(fm_node, (frovedis_kneighbors_graph<DT5,R_MAT1,KNRS15,S_MAT15,S_LMAT15>), test_dptr, 
+                                   mid, k, mode_).get();
+              else REPORT_ERROR(USER_ERROR,
+                 "Unsupported itype of input sparse data!\n");
+              break;
+            default: REPORT_ERROR(USER_ERROR,"Unsupported dtype for input dense matrix!\n");
+          }
+        }
+        else if(!dense && modeldense) {
+          switch(dtype) {
+            case FLOAT:
+              if(itype == INT)
+                dmat = exrpc_async(fm_node, (frovedis_kneighbors_graph<DT5,S_MAT24,KNRR2,S_MAT25,S_LMAT25>), test_dptr, 
+                                   mid, k, mode_).get();
+              else if(itype == LONG)
+                dmat = exrpc_async(fm_node, (frovedis_kneighbors_graph<DT5,S_MAT25,KNRR2,S_MAT25,S_LMAT25>), test_dptr, 
+                                   mid, k, mode_).get();
+              else REPORT_ERROR(USER_ERROR,
+                 "Unsupported itype of input sparse data!\n");
+              break;
+            case DOUBLE:
+              if(itype == INT)
+                dmat = exrpc_async(fm_node, (frovedis_kneighbors_graph<DT5,S_MAT14,KNRR1,S_MAT15,S_LMAT15>), test_dptr, 
+                                   mid, k, mode_).get();
+              else if(itype == LONG)
+                dmat = exrpc_async(fm_node, (frovedis_kneighbors_graph<DT5,S_MAT15,KNRR1,S_MAT15,S_LMAT15>), test_dptr, 
+                                   mid, k, mode_).get();
+              else REPORT_ERROR(USER_ERROR,
+                 "Unsupported itype of input sparse data!\n");
+              break;
+            default: REPORT_ERROR(USER_ERROR,"Unsupported dtype for input sparse matrix!\n");
+          }
+        }
+        else {
+          switch(dtype) {
+            case FLOAT:
+              if(itype == INT)
+                dmat = exrpc_async(fm_node, (frovedis_kneighbors_graph<DT5,S_MAT24,KNRS24,S_MAT25,S_LMAT25>), test_dptr, 
+                                   mid, k, mode_).get();
+              else if(itype == LONG)
+                dmat = exrpc_async(fm_node, (frovedis_kneighbors_graph<DT5,S_MAT25,KNRS25,S_MAT25,S_LMAT25>), test_dptr, 
+                                   mid, k, mode_).get();
+              else REPORT_ERROR(USER_ERROR,
+                 "Unsupported itype of input sparse data!\n");
+              break;
+            case DOUBLE:
+              if(itype == INT)
+                dmat = exrpc_async(fm_node, (frovedis_kneighbors_graph<DT5,S_MAT14,KNRS14,S_MAT15,S_LMAT15>), test_dptr, 
+                                   mid, k, mode_).get();
+              else if(itype == LONG)
+                dmat = exrpc_async(fm_node, (frovedis_kneighbors_graph<DT5,S_MAT15,KNRS15,S_MAT15,S_LMAT15>), test_dptr, 
+                                   mid, k, mode_).get();
+              else REPORT_ERROR(USER_ERROR,
+                 "Unsupported itype of input sparse data!\n");
+              break;
+            default: REPORT_ERROR(USER_ERROR,"Unsupported dtype for input sparse matrix!\n");
+          }
         }
       }
       catch (std::exception& e) {
@@ -1758,22 +2330,102 @@ extern "C" {
 
   PyObject* knn_radius_neighbors(const char* host, int port,
                                  long tptr, float radius, int mid,
-                                 short dtype) { // itype, dense
+                                 short dtype, 
+                                 short itype, bool dense,
+                                 short modelitype, bool modeldense) {
       if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
       exrpc_node fm_node(host,port);
       auto test_dptr = (exrpc_ptr_t) tptr;
       dummy_matrix dmat;
       try {
-        switch(dtype) {
-          case FLOAT:
-            dmat = exrpc_async(fm_node, (frovedis_radius_neighbors<DT5,R_MAT2,KNN2,S_MAT25,S_LMAT25>), test_dptr, 
-                              mid, radius).get();
-            break;
-          case DOUBLE:
-            dmat = exrpc_async(fm_node, (frovedis_radius_neighbors<DT5,R_MAT1,KNN1,S_MAT15,S_LMAT15>), test_dptr, 
-                              mid, radius).get();
-            break;
-          default: REPORT_ERROR(USER_ERROR,"Unsupported dtype for input dense matrix!\n");
+        if(dense && modeldense) {
+          switch(dtype) {
+            case FLOAT:
+              dmat = exrpc_async(fm_node, (frovedis_radius_neighbors<DT5,R_MAT2,KNNR2,S_MAT25,S_LMAT25>), test_dptr, 
+                                 mid, radius).get();
+              break;
+            case DOUBLE:
+              dmat = exrpc_async(fm_node, (frovedis_radius_neighbors<DT5,R_MAT1,KNNR1,S_MAT15,S_LMAT15>), test_dptr, 
+                                 mid, radius).get();
+              break;
+            default: REPORT_ERROR(USER_ERROR,"Unsupported dtype for input dense matrix!\n");
+          }
+        }
+        else if(dense && !modeldense) {
+          switch(dtype) {
+            case FLOAT:
+              if(modelitype == INT)
+                dmat = exrpc_async(fm_node, (frovedis_radius_neighbors<DT5,R_MAT2,KNNS24,S_MAT25,S_LMAT25>), test_dptr,
+                                 mid, radius).get();                
+              else if(modelitype == LONG)
+                dmat = exrpc_async(fm_node, (frovedis_radius_neighbors<DT5,R_MAT2,KNNS25,S_MAT25,S_LMAT25>), test_dptr,
+                                 mid, radius).get();                
+              else REPORT_ERROR(USER_ERROR,
+                 "Unsupported itype of input sparse data!\n");
+              break;
+            case DOUBLE:
+              if(modelitype == INT)
+                dmat = exrpc_async(fm_node, (frovedis_radius_neighbors<DT5,R_MAT1,KNNS14,S_MAT15,S_LMAT15>), test_dptr,
+                                 mid, radius).get();                
+              else if(modelitype == LONG)
+                dmat = exrpc_async(fm_node, (frovedis_radius_neighbors<DT5,R_MAT1,KNNS15,S_MAT15,S_LMAT15>), test_dptr,
+                                 mid, radius).get();                
+              else REPORT_ERROR(USER_ERROR,
+                 "Unsupported itype of input sparse data!\n");
+              break;
+            default: REPORT_ERROR(USER_ERROR,"Unsupported dtype for input dense matrix!\n");
+          }
+        }
+        else if(!dense && modeldense) {
+          switch(dtype) {
+            case FLOAT:
+              if(itype == INT)
+                dmat = exrpc_async(fm_node, (frovedis_radius_neighbors<DT5,S_MAT24,KNNR2,S_MAT25,S_LMAT25>), test_dptr,
+                                 mid, radius).get();                
+              else if(itype == LONG)
+                dmat = exrpc_async(fm_node, (frovedis_radius_neighbors<DT5,S_MAT25,KNNR2,S_MAT25,S_LMAT25>), test_dptr,
+                                 mid, radius).get();                
+              else REPORT_ERROR(USER_ERROR,
+                 "Unsupported itype of input sparse data!\n");
+              break;
+            case DOUBLE:
+              if(itype == INT)
+                dmat = exrpc_async(fm_node, (frovedis_radius_neighbors<DT5,S_MAT14,KNNR1,S_MAT15,S_LMAT15>), test_dptr,
+                                 mid, radius).get();                
+              else if(itype == LONG)
+                dmat = exrpc_async(fm_node, (frovedis_radius_neighbors<DT5,S_MAT15,KNNR1,S_MAT15,S_LMAT15>), test_dptr,
+                                 mid, radius).get();                
+              else REPORT_ERROR(USER_ERROR,
+                 "Unsupported itype of input sparse data!\n");
+              break;
+            default: REPORT_ERROR(USER_ERROR,"Unsupported dtype for input sparse matrix!\n");
+          }
+        }
+        else {
+           switch(dtype) {
+            case FLOAT:
+              if(itype == INT)
+                dmat = exrpc_async(fm_node, (frovedis_radius_neighbors<DT5,S_MAT24,KNNS24,S_MAT25,S_LMAT25>), test_dptr, 
+                                   mid, radius).get();
+              else if(itype == LONG)
+                dmat = exrpc_async(fm_node, (frovedis_radius_neighbors<DT5,S_MAT25,KNNS25,S_MAT25,S_LMAT25>), test_dptr, 
+                                   mid, radius).get();
+              else REPORT_ERROR(USER_ERROR,
+                 "Unsupported itype of input sparse data!\n");
+              break;
+            case DOUBLE:
+              if(itype == INT)
+                dmat = exrpc_async(fm_node, (frovedis_radius_neighbors<DT5,S_MAT14,KNNS14,S_MAT15,S_LMAT15>), test_dptr, 
+                                   mid, radius).get();
+              else if(itype == LONG)
+                dmat = exrpc_async(fm_node, (frovedis_radius_neighbors<DT5,S_MAT15,KNNS15,S_MAT15,S_LMAT15>), test_dptr, 
+                                   mid, radius).get();
+              else REPORT_ERROR(USER_ERROR,
+                 "Unsupported itype of input sparse data!\n");
+              break;
+            default: REPORT_ERROR(USER_ERROR,"Unsupported dtype for input sparse matrix!\n");
+          }
+
         }
       }
       catch (std::exception& e) {
@@ -1784,23 +2436,103 @@ extern "C" {
 
   PyObject* knn_radius_neighbors_graph(const char* host, int port,
                                        long tptr, float radius, int mid,
-                                       const char* mode, short dtype) { // itype, dense
+                                       const char* mode, short dtype, 
+                                       short itype, bool dense,
+                                       short modelitype, bool modeldense) {
       if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
       exrpc_node fm_node(host,port);
       auto test_dptr = (exrpc_ptr_t) tptr;
       std::string mode_ = mode;
       dummy_matrix dmat;
       try {
-        switch(dtype) {
-          case FLOAT:
-            dmat = exrpc_async(fm_node, (frovedis_radius_neighbors_graph<DT5,R_MAT2,KNN2,S_MAT25,S_LMAT25>), test_dptr, 
-                              mid, radius, mode_).get();
-            break;
-          case DOUBLE:
-            dmat = exrpc_async(fm_node, (frovedis_radius_neighbors_graph<DT5,R_MAT1,KNN1,S_MAT15,S_LMAT15>), test_dptr, 
-                              mid, radius, mode_ ).get();
-            break;
-          default: REPORT_ERROR(USER_ERROR,"Unsupported dtype for input dense matrix!\n");
+        if(dense && modeldense) {
+          switch(dtype) {
+            case FLOAT:
+              dmat = exrpc_async(fm_node, (frovedis_radius_neighbors_graph<DT5,R_MAT2,KNNR2,S_MAT25,S_LMAT25>),
+                                 test_dptr, mid, radius, mode_).get();
+              break;
+            case DOUBLE:
+              dmat = exrpc_async(fm_node, (frovedis_radius_neighbors_graph<DT5,R_MAT1,KNNR1,S_MAT15,S_LMAT15>), 
+                                 test_dptr, mid, radius, mode_).get();
+              break;
+            default: REPORT_ERROR(USER_ERROR,"Unsupported dtype for input dense matrix!\n");
+          }
+        }
+        else if(dense && !modeldense) {
+          switch(dtype) {
+            case FLOAT:
+              if(modelitype == INT)
+                dmat = exrpc_async(fm_node, (frovedis_radius_neighbors_graph<DT5,R_MAT2,KNNS24,S_MAT25,S_LMAT25>),
+                                   test_dptr, mid, radius, mode_).get();
+              else if(modelitype == LONG)
+                dmat = exrpc_async(fm_node, (frovedis_radius_neighbors_graph<DT5,R_MAT2,KNNS25,S_MAT25,S_LMAT25>),
+                                   test_dptr, mid, radius, mode_).get();
+              else REPORT_ERROR(USER_ERROR,
+                 "Unsupported itype of input sparse data!\n");
+              break;
+            case DOUBLE:
+              if(modelitype == INT)
+                dmat = exrpc_async(fm_node, (frovedis_radius_neighbors_graph<DT5,R_MAT1,KNNS14,S_MAT15,S_LMAT15>),
+                                   test_dptr, mid, radius, mode_).get();
+              else if(modelitype == LONG)
+                dmat = exrpc_async(fm_node, (frovedis_radius_neighbors_graph<DT5,R_MAT1,KNNS15,S_MAT15,S_LMAT15>),
+                                   test_dptr, mid, radius, mode_).get();
+              else REPORT_ERROR(USER_ERROR,
+                 "Unsupported itype of input sparse data!\n");
+              break;
+            default: REPORT_ERROR(USER_ERROR,"Unsupported dtype for input dense matrix!\n");
+          }
+        }
+        else if(!dense && modeldense) {
+          switch(dtype) {
+            case FLOAT:
+              if(itype == INT)
+                dmat = exrpc_async(fm_node, (frovedis_radius_neighbors_graph<DT5,S_MAT24,KNNR2,S_MAT25,S_LMAT25>),
+                                   test_dptr, mid, radius, mode_).get();
+              else if(itype == LONG)
+                dmat = exrpc_async(fm_node, (frovedis_radius_neighbors_graph<DT5,S_MAT25,KNNR2,S_MAT25,S_LMAT25>),
+                                   test_dptr, mid, radius, mode_).get();
+              else REPORT_ERROR(USER_ERROR,
+                 "Unsupported itype of input sparse data!\n");
+              break;
+            case DOUBLE:
+              if(itype == INT)
+                dmat = exrpc_async(fm_node, (frovedis_radius_neighbors_graph<DT5,S_MAT14,KNNR1,S_MAT15,S_LMAT15>),
+                                   test_dptr, mid, radius, mode_).get();
+              else if(itype == LONG)
+                dmat = exrpc_async(fm_node, (frovedis_radius_neighbors_graph<DT5,S_MAT15,KNNR1,S_MAT15,S_LMAT15>),
+                                   test_dptr, mid, radius, mode_).get();
+              else REPORT_ERROR(USER_ERROR,
+                 "Unsupported itype of input sparse data!\n");
+              break;
+            default: REPORT_ERROR(USER_ERROR,"Unsupported dtype for input sparse matrix!\n");
+          }
+        }
+        else {
+           switch(dtype) {
+            case FLOAT:
+              if(itype == INT)
+                dmat = exrpc_async(fm_node, (frovedis_radius_neighbors_graph<DT5,S_MAT24,KNNS24,S_MAT25,S_LMAT25>),
+                                   test_dptr, mid, radius, mode_).get();
+              else if(itype == LONG)
+                dmat = exrpc_async(fm_node, (frovedis_radius_neighbors_graph<DT5,S_MAT25,KNNS25,S_MAT25,S_LMAT25>),
+                                   test_dptr, mid, radius, mode_).get();
+              else REPORT_ERROR(USER_ERROR,
+                 "Unsupported itype of input sparse data!\n");
+              break;
+            case DOUBLE:
+              if(itype == INT)
+                dmat = exrpc_async(fm_node, (frovedis_radius_neighbors_graph<DT5,S_MAT14,KNNS14,S_MAT15,S_LMAT15>),
+                                   test_dptr, mid, radius, mode_).get();
+              else if(itype == LONG)
+                dmat = exrpc_async(fm_node, (frovedis_radius_neighbors_graph<DT5,S_MAT15,KNNS15,S_MAT15,S_LMAT15>),
+                                   test_dptr, mid, radius, mode_).get();
+              else REPORT_ERROR(USER_ERROR,
+                 "Unsupported itype of input sparse data!\n");
+              break;
+            default: REPORT_ERROR(USER_ERROR,"Unsupported dtype for input sparse matrix!\n");
+          }
+
         }
       }
       catch (std::exception& e) {
@@ -1812,13 +2544,47 @@ extern "C" {
   // knc and knr predict
   void knc_double_predict(const char* host, int port, long tptr,
                           int mid, bool save_proba, 
-                          double* ret, long ret_len) {
+                          double* ret, long ret_len, 
+                          short itype, bool dense,
+                          short modelitype, bool modeldense) {
     if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
     exrpc_node fm_node(host,port);
     auto test_dptr = (exrpc_ptr_t) tptr;
     std::vector<double> label;
     try {
-      label = exrpc_async(fm_node, (frovedis_knc_predict<DT1,DT5,R_MAT1,KNC1>), test_dptr, mid, save_proba).get(); 
+      if(dense && modeldense) {
+        label = exrpc_async(fm_node, (frovedis_knc_predict<DT1,DT5,R_MAT1,KNCR1>), test_dptr, mid, save_proba).get(); 
+      }
+      else if(dense && !modeldense){
+        if(modelitype == INT)
+          label = exrpc_async(fm_node, (frovedis_knc_predict<DT1,DT5,R_MAT1,KNCS14>),
+                  test_dptr, mid, save_proba).get(); 
+        else if(modelitype == LONG)
+          label = exrpc_async(fm_node, (frovedis_knc_predict<DT1,DT5,R_MAT1,KNCS15>),
+                  test_dptr, mid, save_proba).get(); 
+        else REPORT_ERROR(USER_ERROR,
+             "Unsupported itype of input dense matrix!\n");
+      }
+      else if(!dense && modeldense){
+        if(itype == INT)
+          label = exrpc_async(fm_node, (frovedis_knc_predict<DT1,DT5,S_MAT14,KNCR1>),
+                  test_dptr, mid, save_proba).get(); 
+        else if(itype == LONG)
+          label = exrpc_async(fm_node, (frovedis_knc_predict<DT1,DT5,S_MAT15,KNCR1>),
+                  test_dptr, mid, save_proba).get(); 
+        else REPORT_ERROR(USER_ERROR,
+             "Unsupported itype of input sparse matrix!\n");
+      }
+      else {
+        if(itype == INT)
+          label = exrpc_async(fm_node, (frovedis_knc_predict<DT1,DT5,S_MAT14,KNCS14>),
+                  test_dptr, mid, save_proba).get(); 
+        else if(itype == LONG)
+          label = exrpc_async(fm_node, (frovedis_knc_predict<DT1,DT5,S_MAT15,KNCS15>),
+                  test_dptr, mid, save_proba).get(); 
+        else REPORT_ERROR(USER_ERROR,
+             "Unsupported itype of input sparse matrix!\n");
+      }
     }
     catch (std::exception& e) {
       set_status(true, e.what());
@@ -1829,13 +2595,41 @@ extern "C" {
 
   void knc_float_predict(const char* host, int port, long tptr,
                          int mid, bool save_proba, 
-                         float* ret, long ret_len) {
+                         float* ret, long ret_len, 
+                         short itype, bool dense,
+                         short modelitype, bool modeldense) {
     if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
     exrpc_node fm_node(host,port);
     auto test_dptr = (exrpc_ptr_t) tptr;
     std::vector<float> label;
     try {
-      label = exrpc_async(fm_node, (frovedis_knc_predict<DT2,DT5,R_MAT2,KNC2>), test_dptr, mid, save_proba).get(); 
+      if(dense && modeldense) {
+        label = exrpc_async(fm_node, (frovedis_knc_predict<DT2,DT5,R_MAT2,KNCR2>), test_dptr, mid, save_proba).get(); 
+      }
+      else if(!dense && modeldense){
+        if(itype == INT)
+          label = exrpc_async(fm_node, (frovedis_knc_predict<DT2,DT5,S_MAT24,KNCR2>), test_dptr, mid, save_proba).get(); 
+        else if(itype == LONG)
+          label = exrpc_async(fm_node, (frovedis_knc_predict<DT2,DT5,S_MAT25,KNCR2>), test_dptr, mid, save_proba).get(); 
+        else REPORT_ERROR(USER_ERROR,
+             "Unsupported itype of input dense matrix!\n");
+      }
+      else if(dense && !modeldense){
+        if(modelitype == INT)
+          label = exrpc_async(fm_node, (frovedis_knc_predict<DT2,DT5,R_MAT2,KNCS24>), test_dptr, mid, save_proba).get(); 
+        else if(modelitype == LONG)
+          label = exrpc_async(fm_node, (frovedis_knc_predict<DT2,DT5,R_MAT2,KNCS25>), test_dptr, mid, save_proba).get(); 
+        else REPORT_ERROR(USER_ERROR,
+             "Unsupported itype of input sparse matrix!\n");
+      }
+      else {
+        if(itype == INT)
+          label = exrpc_async(fm_node, (frovedis_knc_predict<DT2,DT5,S_MAT24,KNCS24>), test_dptr, mid, save_proba).get(); 
+        else if(itype == LONG)
+          label = exrpc_async(fm_node, (frovedis_knc_predict<DT2,DT5,S_MAT25,KNCS25>), test_dptr, mid, save_proba).get(); 
+        else REPORT_ERROR(USER_ERROR,
+             "Unsupported itype of input sparse matrix!\n");
+      }
     }
     catch (std::exception& e) {
       set_status(true, e.what());
@@ -1845,13 +2639,41 @@ extern "C" {
   }
 
   void knr_double_predict(const char* host, int port, long tptr,
-                          int mid, double* ret, long ret_len) {
+                          int mid, double* ret, long ret_len, 
+                          short itype, bool dense,
+                          short modelitype, bool modeldense) {
     if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
     exrpc_node fm_node(host,port);
     auto test_dptr = (exrpc_ptr_t) tptr;
     std::vector<double> label;
     try {
-      label = exrpc_async(fm_node, (frovedis_knr_predict<DT1,DT5,R_MAT1,KNR1>), test_dptr, mid).get();
+      if(dense && modeldense) {
+        label = exrpc_async(fm_node, (frovedis_knr_predict<DT1,DT5,R_MAT1,KNRR1>), test_dptr, mid).get(); 
+      }
+      else if(!dense && modeldense){
+        if(itype == INT)
+          label = exrpc_async(fm_node, (frovedis_knr_predict<DT1,DT5,S_MAT14,KNRR1>), test_dptr, mid).get(); 
+        else if(itype == LONG)
+          label = exrpc_async(fm_node, (frovedis_knr_predict<DT1,DT5,S_MAT15,KNRR1>), test_dptr, mid).get(); 
+        else REPORT_ERROR(USER_ERROR,
+             "Unsupported itype of input sparse matrix!\n");
+      }
+      else if(dense && !modeldense){
+        if(modelitype == INT)
+          label = exrpc_async(fm_node, (frovedis_knr_predict<DT1,DT5,R_MAT1,KNRS14>), test_dptr, mid).get(); 
+        else if(modelitype == LONG)
+          label = exrpc_async(fm_node, (frovedis_knr_predict<DT1,DT5,R_MAT1,KNRS15>), test_dptr, mid).get(); 
+        else REPORT_ERROR(USER_ERROR,
+             "Unsupported itype of input sparse matrix!\n");
+      }
+      else {
+        if(itype == INT)
+          label = exrpc_async(fm_node, (frovedis_knr_predict<DT1,DT5,S_MAT14,KNRS14>), test_dptr, mid).get(); 
+        else if(itype == LONG)
+          label = exrpc_async(fm_node, (frovedis_knr_predict<DT1,DT5,S_MAT15,KNRS15>), test_dptr, mid).get(); 
+        else REPORT_ERROR(USER_ERROR,
+             "Unsupported itype of input sparse matrix!\n");
+      }
     }
     catch (std::exception& e) {
       set_status(true, e.what());
@@ -1861,13 +2683,41 @@ extern "C" {
   }
 
   void knr_float_predict(const char* host, int port, long tptr,
-                         int mid, float* ret, long ret_len) {
+                         int mid, float* ret, long ret_len, 
+                         short itype, bool dense,
+                         short modelitype, bool modeldense) {
     if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
     exrpc_node fm_node(host,port);
     auto test_dptr = (exrpc_ptr_t) tptr;
     std::vector<float> label;
     try {
-      label = exrpc_async(fm_node, (frovedis_knr_predict<DT2,DT5,R_MAT2,KNR2>), test_dptr, mid).get();
+      if(dense && modeldense) {
+        label = exrpc_async(fm_node, (frovedis_knr_predict<DT2,DT5,R_MAT2,KNRR2>), test_dptr, mid).get(); 
+      }
+      else if(!dense && modeldense){
+        if(itype == INT)
+          label = exrpc_async(fm_node, (frovedis_knr_predict<DT2,DT5,S_MAT24,KNRR2>), test_dptr, mid).get(); 
+        else if(itype == LONG)
+          label = exrpc_async(fm_node, (frovedis_knr_predict<DT2,DT5,S_MAT25,KNRR2>), test_dptr, mid).get(); 
+        else REPORT_ERROR(USER_ERROR,
+             "Unsupported itype of input sparse matrix!\n");
+      }
+      else if(dense && !modeldense){
+        if(modelitype == INT)
+          label = exrpc_async(fm_node, (frovedis_knr_predict<DT2,DT5,R_MAT2,KNRS24>), test_dptr, mid).get(); 
+        else if(modelitype == LONG)
+          label = exrpc_async(fm_node, (frovedis_knr_predict<DT2,DT5,R_MAT2,KNRS25>), test_dptr, mid).get(); 
+        else REPORT_ERROR(USER_ERROR,
+             "Unsupported itype of input sparse matrix!\n");
+      }
+      else if(!dense && modeldense){
+        if(itype == INT)
+          label = exrpc_async(fm_node, (frovedis_knr_predict<DT2,DT5,S_MAT24,KNRS24>), test_dptr, mid).get(); 
+        else if(itype == LONG)
+          label = exrpc_async(fm_node, (frovedis_knr_predict<DT2,DT5,S_MAT25,KNRS25>), test_dptr, mid).get(); 
+        else REPORT_ERROR(USER_ERROR,
+             "Unsupported itype of input sparse matrix!\n");
+      }
     }
     catch (std::exception& e) {
       set_status(true, e.what());
@@ -1878,22 +2728,101 @@ extern "C" {
 
   // knc predict proba
   PyObject* knc_predict_proba(const char* host, int port,
-                              long tptr, int mid, short dtype) {
+                              long tptr, int mid, short dtype, 
+                              short itype, bool dense,
+                              short modelitype, bool modeldense) {
       if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
       exrpc_node fm_node(host,port);
       auto test_dptr = (exrpc_ptr_t) tptr;
       dummy_matrix dmat;
       try {
-        switch(dtype) {
-          case FLOAT:
-            dmat = exrpc_async(fm_node, (frovedis_knc_predict_proba<DT5,R_MAT2,KNC2,R_MAT2,R_LMAT2>), 
-                               test_dptr, mid).get();
-            break;
-          case DOUBLE:
-            dmat = exrpc_async(fm_node, (frovedis_knc_predict_proba<DT5,R_MAT1,KNC1,R_MAT1,R_LMAT1>), 
-                               test_dptr, mid).get();
-            break;
-          default: REPORT_ERROR(USER_ERROR,"Unsupported dtype for input dense matrix!\n");
+        if(dense && modeldense) {
+          switch(dtype) {
+            case FLOAT:
+              dmat = exrpc_async(fm_node, (frovedis_knc_predict_proba<DT5,R_MAT2,KNCR2,R_MAT2,R_LMAT2>), 
+                                 test_dptr, mid).get();
+              break;
+            case DOUBLE:
+              dmat = exrpc_async(fm_node, (frovedis_knc_predict_proba<DT5,R_MAT1,KNCR1,R_MAT1,R_LMAT1>), 
+                                 test_dptr, mid).get();
+              break;
+            default: REPORT_ERROR(USER_ERROR,"Unsupported dtype for input dense matrix!\n");
+          }
+        }
+        else if(dense && !modeldense) {
+          switch(dtype) {
+            case FLOAT:
+              if(modelitype == INT)
+                dmat = exrpc_async(fm_node, (frovedis_knc_predict_proba<DT5,R_MAT2,KNCS24,R_MAT2,R_LMAT2>), 
+                                   test_dptr, mid).get();
+              else if(modelitype == LONG)
+                dmat = exrpc_async(fm_node, (frovedis_knc_predict_proba<DT5,R_MAT2,KNCS25,R_MAT2,R_LMAT2>), 
+                                   test_dptr, mid).get();
+              else REPORT_ERROR(USER_ERROR,
+                 "Unsupported itype of input sparse data!\n");
+              break;
+            case DOUBLE:
+              if(modelitype == INT)
+                dmat = exrpc_async(fm_node, (frovedis_knc_predict_proba<DT5,R_MAT1,KNCS14,R_MAT1,R_LMAT1>), 
+                                   test_dptr, mid).get();
+              else if(modelitype == LONG)
+                dmat = exrpc_async(fm_node, (frovedis_knc_predict_proba<DT5,R_MAT1,KNCS15,R_MAT1,R_LMAT1>), 
+                                   test_dptr, mid).get();
+              else REPORT_ERROR(USER_ERROR,
+                 "Unsupported itype of input sparse data!\n");
+              break;
+            default: REPORT_ERROR(USER_ERROR,"Unsupported dtype for input dense matrix!\n");
+          }
+        }
+        else if(!dense && modeldense) {
+          switch(dtype) {
+            case FLOAT:
+              if(itype == INT)
+                dmat = exrpc_async(fm_node, (frovedis_knc_predict_proba<DT5,S_MAT24,KNCR2,R_MAT2,R_LMAT2>), 
+                                   test_dptr, mid).get();
+              else if(itype == LONG)
+                dmat = exrpc_async(fm_node, (frovedis_knc_predict_proba<DT5,S_MAT25,KNCR2,R_MAT2,R_LMAT2>), 
+                                   test_dptr, mid).get();
+              else REPORT_ERROR(USER_ERROR,
+                 "Unsupported itype of input sparse data!\n");
+              break;
+            case DOUBLE:
+              if(itype == INT)
+                dmat = exrpc_async(fm_node, (frovedis_knc_predict_proba<DT5,S_MAT14,KNCR1,R_MAT1,R_LMAT1>), 
+                                   test_dptr, mid).get();
+              else if(itype == LONG)
+                dmat = exrpc_async(fm_node, (frovedis_knc_predict_proba<DT5,S_MAT15,KNCR1,R_MAT1,R_LMAT1>), 
+                                   test_dptr, mid).get();
+              else REPORT_ERROR(USER_ERROR,
+                 "Unsupported itype of input sparse data!\n");
+              break;
+            default: REPORT_ERROR(USER_ERROR,"Unsupported dtype for input sparse matrix!\n");
+          }
+        }
+        else {
+          switch(dtype) {
+            case FLOAT:
+              if(itype == INT)
+              dmat = exrpc_async(fm_node, (frovedis_knc_predict_proba<DT5,S_MAT24,KNCS24,R_MAT2,R_LMAT2>), 
+                                 test_dptr, mid).get();
+              else if(itype == LONG)
+              dmat = exrpc_async(fm_node, (frovedis_knc_predict_proba<DT5,S_MAT25,KNCS25,R_MAT2,R_LMAT2>), 
+                                 test_dptr, mid).get();
+              else REPORT_ERROR(USER_ERROR,
+                 "Unsupported itype of input sparse data!\n");
+              break;
+            case DOUBLE:
+              if(itype == INT)
+              dmat = exrpc_async(fm_node, (frovedis_knc_predict_proba<DT5,S_MAT14,KNCS14,R_MAT1,R_LMAT1>), 
+                                 test_dptr, mid).get();
+              else if(itype == LONG)
+              dmat = exrpc_async(fm_node, (frovedis_knc_predict_proba<DT5,S_MAT15,KNCS15,R_MAT1,R_LMAT1>), 
+                                 test_dptr, mid).get();
+              else REPORT_ERROR(USER_ERROR,
+                 "Unsupported itype of input sparse data!\n");
+              break;
+            default: REPORT_ERROR(USER_ERROR,"Unsupported dtype for input sparse matrix!\n");
+          }
         }
       }
       catch (std::exception& e) {
@@ -1903,21 +2832,88 @@ extern "C" {
     }
 
   float knr_model_score(const char* host, int port, long xptr,
-                        long yptr, int mid, short dtype){
+                        long yptr, int mid, short dtype, 
+                        short itype, bool dense,
+                        short modelitype, bool modeldense){
     if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
     exrpc_node fm_node(host,port);
     auto mptr = (exrpc_ptr_t) xptr;
     auto lblptr = (exrpc_ptr_t) yptr;
     float res = 0.0;
     try {
-      switch(dtype) {
-        case FLOAT:
-          res = exrpc_async(fm_node, (frovedis_model_score<DT2,DT5,R_MAT2,KNR2>), mptr, lblptr, mid).get();
-          break;
-        case DOUBLE:
-          res = exrpc_async(fm_node, (frovedis_model_score<DT1,DT5,R_MAT1,KNR1>), mptr, lblptr, mid).get();
-          break;
-        default: REPORT_ERROR(USER_ERROR,"Unsupported dtype for input dense matrix!\n");
+      if(dense && modeldense) {
+        switch(dtype) {
+          case FLOAT:
+            res = exrpc_async(fm_node, (frovedis_model_score<DT2,DT5,R_MAT2,KNRR2>), mptr, lblptr, mid).get();
+            break;
+          case DOUBLE:
+            res = exrpc_async(fm_node, (frovedis_model_score<DT1,DT5,R_MAT1,KNRR1>), mptr, lblptr, mid).get();
+            break;
+          default: REPORT_ERROR(USER_ERROR,"Unsupported dtype for input dense matrix!\n");
+        }
+      }
+      else  if(dense && ! modeldense){
+        switch(dtype) {
+          case FLOAT:
+            if(modelitype == INT)
+            res = exrpc_async(fm_node, (frovedis_model_score<DT2,DT5,R_MAT2,KNRS24>), mptr, lblptr, mid).get();
+            else if(modelitype == LONG)
+            res = exrpc_async(fm_node, (frovedis_model_score<DT2,DT5,R_MAT2,KNRS25>), mptr, lblptr, mid).get();
+            else REPORT_ERROR(USER_ERROR,
+                 "Unsupported itype of input sparse data!\n");
+            break;
+          case DOUBLE:
+            if(modelitype == INT)
+            res = exrpc_async(fm_node, (frovedis_model_score<DT1,DT5,R_MAT1,KNRS14>), mptr, lblptr, mid).get();
+            else if(modelitype == LONG)
+            res = exrpc_async(fm_node, (frovedis_model_score<DT1,DT5,R_MAT1,KNRS15>), mptr, lblptr, mid).get();
+            else REPORT_ERROR(USER_ERROR,
+                 "Unsupported itype of input sparse data!\n");
+            break;
+          default: REPORT_ERROR(USER_ERROR,"Unsupported dtype for input sparse matrix!\n");
+        }
+      }
+      else if(!dense && modeldense){
+        switch(dtype) {
+          case FLOAT:
+            if(itype == INT)
+            res = exrpc_async(fm_node, (frovedis_model_score<DT2,DT5,S_MAT24,KNRR2>), mptr, lblptr, mid).get();
+            else if(itype == LONG)
+            res = exrpc_async(fm_node, (frovedis_model_score<DT2,DT5,S_MAT25,KNRR2>), mptr, lblptr, mid).get();
+            else REPORT_ERROR(USER_ERROR,
+                 "Unsupported itype of input sparse data!\n");
+            break;
+          case DOUBLE:
+            if(itype == INT)
+            res = exrpc_async(fm_node, (frovedis_model_score<DT1,DT5,S_MAT14,KNRR1>), mptr, lblptr, mid).get();
+            else if(itype == LONG)
+            res = exrpc_async(fm_node, (frovedis_model_score<DT1,DT5,S_MAT15,KNRR1>), mptr, lblptr, mid).get();
+            else REPORT_ERROR(USER_ERROR,
+                 "Unsupported itype of input sparse data!\n");
+            break;
+          default: REPORT_ERROR(USER_ERROR,"Unsupported dtype for input sparse matrix!\n");
+        }
+      }
+      else {
+        switch(dtype) {
+          case FLOAT:
+            if(itype == INT)
+            res = exrpc_async(fm_node, (frovedis_model_score<DT2,DT5,S_MAT24,KNRS24>), mptr, lblptr, mid).get();
+            else if(itype == LONG)
+            res = exrpc_async(fm_node, (frovedis_model_score<DT2,DT5,S_MAT25,KNRS25>), mptr, lblptr, mid).get();
+            else REPORT_ERROR(USER_ERROR,
+                 "Unsupported itype of input sparse data!\n");
+            break;
+          case DOUBLE:
+            if(itype == INT)
+            res = exrpc_async(fm_node, (frovedis_model_score<DT1,DT5,S_MAT14,KNRS14>), mptr, lblptr, mid).get();
+            else if(itype == LONG)
+            res = exrpc_async(fm_node, (frovedis_model_score<DT1,DT5,S_MAT15,KNRS15>), mptr, lblptr, mid).get();
+            else REPORT_ERROR(USER_ERROR,
+                 "Unsupported itype of input sparse data!\n");
+            break;
+          default: REPORT_ERROR(USER_ERROR,"Unsupported dtype for input sparse matrix!\n");
+        }
       }
     }
     catch (std::exception& e) {
@@ -1927,21 +2923,88 @@ extern "C" {
   }
 
   float knc_model_score(const char* host, int port, long xptr,
-                    long yptr, int mid, short dtype){
+                    long yptr, int mid, short dtype, 
+                    short itype, bool dense,
+                    short modelitype, bool modeldense){
     if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
     exrpc_node fm_node(host,port);
     auto mptr = (exrpc_ptr_t) xptr;
     auto lblptr = (exrpc_ptr_t) yptr;
     float res = 0 ;
     try {
-      switch(dtype) {
-        case FLOAT:
-          res = exrpc_async(fm_node, (frovedis_model_score<DT2,DT5,R_MAT2,KNC2>), mptr, lblptr, mid).get();
-          break;
-        case DOUBLE:
-          res = exrpc_async(fm_node, (frovedis_model_score<DT1,DT5,R_MAT1,KNC1>), mptr, lblptr, mid).get();
-          break;
-        default: REPORT_ERROR(USER_ERROR,"Unsupported dtype for input dense matrix!\n");
+      if(dense && modeldense) {
+        switch(dtype) {
+          case FLOAT:
+            res = exrpc_async(fm_node, (frovedis_model_score<DT2,DT5,R_MAT2,KNCR2>), mptr, lblptr, mid).get();
+            break;
+          case DOUBLE:
+            res = exrpc_async(fm_node, (frovedis_model_score<DT1,DT5,R_MAT1,KNCR1>), mptr, lblptr, mid).get();
+            break;
+          default: REPORT_ERROR(USER_ERROR,"Unsupported dtype for input dense matrix!\n");
+        }
+      }
+      else if(dense && !modeldense){
+        switch(dtype) {
+          case FLOAT:
+            if(modelitype == INT)
+              res = exrpc_async(fm_node, (frovedis_model_score<DT2,DT5,R_MAT2,KNCS24>), mptr, lblptr, mid).get();
+            else if(modelitype == LONG)
+              res = exrpc_async(fm_node, (frovedis_model_score<DT2,DT5,R_MAT2,KNCS25>), mptr, lblptr, mid).get();
+            else REPORT_ERROR(USER_ERROR,
+                 "Unsupported itype of input sparse data!\n");
+            break;
+          case DOUBLE:
+            if(modelitype == INT)
+              res = exrpc_async(fm_node, (frovedis_model_score<DT1,DT5,R_MAT1,KNCS14>), mptr, lblptr, mid).get();
+            else if(modelitype == LONG)
+              res = exrpc_async(fm_node, (frovedis_model_score<DT1,DT5,R_MAT1,KNCS14>), mptr, lblptr, mid).get();
+            else REPORT_ERROR(USER_ERROR,
+                 "Unsupported itype of input sparse data!\n");
+            break;
+          default: REPORT_ERROR(USER_ERROR,"Unsupported dtype for input sparse matrix!\n");
+        }
+      }
+      else if(!dense && modeldense){
+        switch(dtype) {
+          case FLOAT:
+            if(itype == INT)
+              res = exrpc_async(fm_node, (frovedis_model_score<DT2,DT5,S_MAT24,KNCR2>), mptr, lblptr, mid).get();
+            else if(itype == LONG)
+              res = exrpc_async(fm_node, (frovedis_model_score<DT2,DT5,S_MAT25,KNCR2>), mptr, lblptr, mid).get();
+            else REPORT_ERROR(USER_ERROR,
+                 "Unsupported itype of input sparse data!\n");
+            break;
+          case DOUBLE:
+            if(itype == INT)
+              res = exrpc_async(fm_node, (frovedis_model_score<DT1,DT5,S_MAT14,KNCR1>), mptr, lblptr, mid).get();
+            else if(itype == LONG)
+              res = exrpc_async(fm_node, (frovedis_model_score<DT1,DT5,S_MAT15,KNCR1>), mptr, lblptr, mid).get();
+            else REPORT_ERROR(USER_ERROR,
+                 "Unsupported itype of input sparse data!\n");
+            break;
+          default: REPORT_ERROR(USER_ERROR,"Unsupported dtype for input sparse matrix!\n");
+        }
+      }
+      else {
+        switch(dtype) {
+          case FLOAT:
+            if(itype == INT)
+            res = exrpc_async(fm_node, (frovedis_model_score<DT2,DT5,S_MAT24,KNCS24>), mptr, lblptr, mid).get();
+            else if(itype == LONG)
+            res = exrpc_async(fm_node, (frovedis_model_score<DT2,DT5,S_MAT25,KNCS25>), mptr, lblptr, mid).get();
+            else REPORT_ERROR(USER_ERROR,
+                 "Unsupported itype of input sparse data!\n");
+            break;
+          case DOUBLE:
+            if(itype == INT)
+            res = exrpc_async(fm_node, (frovedis_model_score<DT1,DT5,S_MAT14,KNCS14>), mptr, lblptr, mid).get();
+            else if(itype == LONG)
+            res = exrpc_async(fm_node, (frovedis_model_score<DT1,DT5,S_MAT15,KNCS15>), mptr, lblptr, mid).get();
+            else REPORT_ERROR(USER_ERROR,
+                 "Unsupported itype of input sparse data!\n");
+            break;
+          default: REPORT_ERROR(USER_ERROR,"Unsupported dtype for input sparse matrix!\n");
+        }
       }
     }
     catch (std::exception& e) {
