@@ -1443,5 +1443,14 @@ void vector_right_shift_inplace(std::vector<T>& vec, size_t tid) {
   vecp[0] = tmp;
 }
 
+template <class T>
+int vector_contains(const std::vector<T>& vec, const T& val) {
+  auto vsz = vec.size();
+  auto vecp = vec.data();
+  size_t i = 0;
+  for(i = 0; i < vsz; ++i) if (vecp[i] == val) break;
+  return (i != vsz);
+}
+
 }
 #endif
