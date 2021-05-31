@@ -352,7 +352,7 @@ dftable make_dftable_loadtext(const string& filename,
       }
     }
     t.show("make_dftable_loadtext: load separated df: ");
-    auto ret = df.union_tables(dfs, to_keep_order);
+    auto ret = df.union_tables(dfs, to_keep_order, false);
     t.show("make_dftable_loadtext: union tables: ");
     return ret;
   } else {
@@ -440,7 +440,7 @@ dftable make_dftable_loadtext(const string& filename,
       }
     }
     t.show("make_dftable_loadtext: load separated df: ");
-    auto ret = df.union_tables(dfs, to_keep_order);
+    auto ret = df.union_tables(dfs, to_keep_order, false);
     t.show("make_dftable_loadtext: union tables: ");
     return ret;
   } else {
@@ -660,7 +660,7 @@ dftable make_dftable_loadtext_infertype(const string& filename,
       }
     }
     t.show("make_dftable_loadtext: load separated df: ");
-    auto ret = df.union_tables(dfs, to_keep_order);
+    auto ret = df.union_tables(dfs, to_keep_order, false);
     t.show("make_dftable_loadtext: union tables: ");
     return ret;
   } else {
@@ -718,7 +718,7 @@ dftable make_dftable_loadtext_infertype(const string& filename,
       }
     }
     t.show("make_dftable_loadtext: load separated df: ");
-    auto ret = df.union_tables(dfs, to_keep_order);
+    auto ret = df.union_tables(dfs, to_keep_order, false);
     t.show("make_dftable_loadtext: union tables: ");
     return ret;
   } else {
@@ -867,7 +867,7 @@ dftable make_dftable_loadtext_infertype(const string& filename,
       }
     }
     t.show("make_dftable_loadtext: load separated df: ");
-    auto ret = df.union_tables(dfs, to_keep_order);
+    auto ret = df.union_tables(dfs, to_keep_order, false);
     t.show("make_dftable_loadtext: union tables: ");
     return ret;
   } else {
@@ -926,7 +926,7 @@ dftable make_dftable_loadtext_infertype(const string& filename,
       }
     }
     t.show("make_dftable_loadtext: load separated df: ");
-    auto ret = df.union_tables(dfs, to_keep_order);
+    auto ret = df.union_tables(dfs, to_keep_order, false);
     t.show("make_dftable_loadtext: union tables: ");
     return ret;
   } else {
