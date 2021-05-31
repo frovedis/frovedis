@@ -41,7 +41,20 @@ object GMMDemo {
     println("Parallel predict : ")
     gmm_model1.predict(s_data).collect().foreach(println)
 
+    println("Single Predict Proba: ")
+    gmm_model1.predictSoft(single).foreach(println)
+    println("Parallel predict : ")
+    val probs = gmm_model1.predictSoft(s_data).collect()
+    //Print values
+    for(vals <- probs) {
+      for(j <- vals) {
+        print(j + " ")
+      }
+      println("")
+    }      
+      
     gmm_model1.save("./out/GMMModelSpark")
+      
     //gmm_model1.debug_print()
 
     for (i <- 0 until ncomponents) {
@@ -49,6 +62,9 @@ object GMMDemo {
         (gmm_model1.weights(i), gmm_model1.gaussians(i).mu,
                                 gmm_model1.gaussians(i).sigma))
     }
+      
+    println("No. of iters : " + gmm_model1.n_iter)
+    println("Log likelihood : " + gmm_model1.lower_bound)  
 
     val gmm_model2 = GaussianMixtureModel.load("./out/GMMModelSpark")
     println("")
