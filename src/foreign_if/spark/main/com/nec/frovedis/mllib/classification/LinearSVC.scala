@@ -151,12 +151,12 @@ object SVMWithSGD {
 
      val mid = ModelID.get()
      val fs = FrovedisServer.getServerInstance()
-     JNISupport.callFrovedisSVMSGD(fs.master_node, encoded_data,
-                                   numIter, stepSize,
-                                   miniBatchFraction, regParam,
-                                   mid, isMovableInput,
-                                   data.is_dense(), ncls, sample_weight,
-                                   sample_weight_length)
+     JNISupport.callFrovedisSVM(fs.master_node, encoded_data,
+                                numIter, stepSize, 10,
+                                miniBatchFraction, regParam,
+                                mid, isMovableInput,
+                                data.is_dense(), ncls, sample_weight,
+                                sample_weight_length, "sgd", false)
      val info = JNISupport.checkServerException()
      if (info != "") throw new java.rmi.ServerException(info)
      val numFeatures = data.numCols()
@@ -271,11 +271,11 @@ object SVMWithLBFGS {
 
      val mid = ModelID.get()
      val fs = FrovedisServer.getServerInstance()
-     JNISupport.callFrovedisSVMLBFGS(fs.master_node, encoded_data, 
+     JNISupport.callFrovedisSVM(fs.master_node, encoded_data, 
                                      numIter, stepSize,
-                                     histSize, regParam, mid, isMovableInput,
+                                     histSize, 1.0, regParam, mid, isMovableInput,
                                      data.is_dense(), ncls, sample_weight,
-                                     sample_weight_length)
+                                     sample_weight_length, "lbfgs", false)
      val info = JNISupport.checkServerException()
      if (info != "") throw new java.rmi.ServerException(info)
      val numFeatures = data.numCols()
