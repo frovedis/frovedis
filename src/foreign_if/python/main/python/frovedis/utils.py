@@ -1,5 +1,5 @@
 """
-utils.py: module containing utils like deprecated, 
+utils.py: module containing utils like deprecated,
           is_notebook, check_sample_weight
 """
 import warnings
@@ -7,17 +7,19 @@ import numbers
 import numpy as np
 
 def deprecated(message):
-  def deprecated_decorator(func):
-      def deprecated_func(*args, **kwargs):
-          warnings.simplefilter('always', DeprecationWarning)
-          warnings.warn(\
-            "{}() is a deprecated function. {}".format(func.__name__, message),
-            category=DeprecationWarning,
-            stacklevel=2)
-          warnings.simplefilter('default', DeprecationWarning)
-          return func(*args, **kwargs)
-      return deprecated_func
-  return deprecated_decorator
+    """ definition for deprecated methods """
+    def deprecated_decorator(func):
+        def deprecated_func(*args, **kwargs):
+            warnings.simplefilter('always', DeprecationWarning)
+            warnings.warn(\
+              "{}() is a deprecated function. {}".format(func.__name__, \
+                                                         message),
+              category=DeprecationWarning,
+              stacklevel=2)
+            warnings.simplefilter('default', DeprecationWarning)
+            return func(*args, **kwargs)
+        return deprecated_func
+    return deprecated_decorator
 
 def is_notebook():
     """checks whether execution environment is an ipython/jupyter notebook"""
@@ -44,4 +46,3 @@ def check_sample_weight(self, sample_weight):
             raise ValueError("sample_weight.shape == {}, expected {}!"\
                    .format(sample_weight.shape, (self.n_samples,)))
     return np.asarray(weight, dtype=np.float64)
-
