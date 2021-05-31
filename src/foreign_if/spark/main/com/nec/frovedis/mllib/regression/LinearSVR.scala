@@ -418,7 +418,8 @@ class LinearSVR(var numIter: Int,
     JNISupport.callFrovedisSVR(fs.master_node,data.get(),numIter,stepSize,
                                miniBatchFraction,regParam,regType,loss,
                                eps,isIntercept,convergenceTol,
-                               mid,movable,data.is_dense(),sample_weight, sample_weight_length)
+                               mid,movable,data.is_dense(),sample_weight, sample_weight_length,
+                               "sgd", false)
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
     val numFeatures = data.numCols()

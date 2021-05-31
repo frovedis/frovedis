@@ -79,10 +79,10 @@ object LassoWithSGD {
      val mid = ModelID.get()
      val sample_weight_length = sample_weight.length
      val fs = FrovedisServer.getServerInstance()
-     JNISupport.callFrovedisLassoSGD(fs.master_node,data.get(),numIter,
-                                     stepSize,miniBatchFraction,regParam,
-                                     mid,isMovableInput,data.is_dense(), sample_weight,
-                                     sample_weight_length)
+     JNISupport.callFrovedisLasso(fs.master_node,data.get(),numIter,
+                                  stepSize,10,miniBatchFraction,regParam,
+                                  mid,isMovableInput,data.is_dense(), sample_weight,
+                                  sample_weight_length, "sgd", false)
      val info = JNISupport.checkServerException()
      if (info != "") throw new java.rmi.ServerException(info)
      val numFeatures = data.numCols()
@@ -195,10 +195,10 @@ object LassoWithLBFGS {
      val mid = ModelID.get()
      val sample_weight_length = sample_weight.length
      val fs = FrovedisServer.getServerInstance()
-     JNISupport.callFrovedisLassoLBFGS(fs.master_node,data.get(),numIter,
-                                       stepSize,histSize,regParam,mid,
-                                       isMovableInput,data.is_dense(), sample_weight,
-                                       sample_weight_length)
+     JNISupport.callFrovedisLasso(fs.master_node,data.get(),numIter,
+                                  stepSize,histSize,0.1,regParam,mid,
+                                  isMovableInput,data.is_dense(), sample_weight,
+                                  sample_weight_length, "lbfgs", false)
      val info = JNISupport.checkServerException()
      if (info != "") throw new java.rmi.ServerException(info)
      val numFeatures = data.numCols()

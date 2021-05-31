@@ -418,7 +418,8 @@ class LinearSVR(var numIter: Int,
                                miniBatchFraction,regParam,regType,loss,
                                eps,isIntercept,convergenceTol,
                                mid,movable,data.is_dense(),
-                               sample_weight, sample_weight_length)
+                               sample_weight, sample_weight_length,
+                               "sgd", false)
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
     val numFeatures = data.numCols()
