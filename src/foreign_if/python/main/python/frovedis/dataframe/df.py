@@ -27,43 +27,10 @@ from ..mllib.model_util import ModelID
 from .info import df_to_sparse_info
 from .frovedisColumn import FrovedisColumn
 from .dfoperator import dfoperator
+from .dfutil import union_lists, infer_dtype, add_null_column_and_type_cast, \
+                    infer_column_type_from_first_notna, get_string_typename
 from ..utils import deprecated
 from pandas.core.common import SettingWithCopyWarning
-
-def infer_column_type_from_first_notna(df, col, is_index=False):
-    if is_index: #infers type of index assuming it contains all non-na
-        dtype = type(df.index.values[0]).__name__
-    else:
-        valid_idx = col.first_valid_index()
-        tidx = df.index.get_loc(valid_idx)
-        if isinstance(tidx, slice):
-            valid_int_idx = tidx.start
-        elif isinstance(tidx, Iterable):
-            valid_int_idx = np.where(tidx == True)[0][0]
-        elif isinstance(tidx, int):
-            valid_int_idx = tidx
-        else:
-            raise TypeError(\
-            "pandas df.get_loc() return type could not be understood!")
-        dtype = type(col.values[valid_int_idx]).__name__
-    return dtype 
-     
-def get_string_typename(numpy_type):
-    """
-    return frovedis types from numpy types
-    """
-    numpy_to_string_type = { "int32": "int",
-                             "int64": "long",
-                             "float32": "float",
-                             "float64": "double",
-                             "str": "dic_string",
-                             "string": "dic_string",
-                             "bool": "dic_string",
-                             "uint64": "unsigned long"}
-    if numpy_type not in numpy_to_string_type:
-        raise TypeError("data type '{0}'' not understood\n"
-                        .format(numpy_type))
-    return numpy_to_string_type[numpy_type]
 
 def read_csv(filepath_or_buffer, sep=',', delimiter=None,
              header="infer", names=None, index_col=None,
@@ -1927,6 +1894,99 @@ class DataFrame(object):
         self.load_dummy(dummy_df["dfptr"], names[1:], types[1:])
         return self
 
+    def astype(self, dtype, copy=True, errors='raise'):
+        """ Cast a frovedis DataFrame object to a specified dtype """
+        t_cols = []
+        t_dtypes = []
+        if isinstance (dtype, (str, type)):
+            numpy_dtype = np.dtype(dtype)
+            t_cols = list(self.columns)
+            t_dtypes = [TypeUtil.to_id_dtype(numpy_dtype)] * len(t_cols)
+        elif isinstance (dtype, dict):
+            for k, v in dtype.items():
+                if k in self.columns:
+                    t_cols.append(k)
+                    t_dtypes.append(TypeUtil.to_id_dtype(np.dtype(v)))
+                elif self.has_index() and k == self.index.name:
+                    if self.index.dtype != DTYPE.STRING:
+                        t_cols.append(k)
+                        t_dtypes.append(TypeUtil.to_id_dtype(np.dtype(v)))
+                    else:
+                        raise ValueError("astype is not supported for "
+                                         "string-typed index")
+        else:
+            raise TypeError("astype: supports only string, numpy.dtype " \
+                            "or dict object as for 'dtype' parameter!")
+
+        ret = self.copy() # always returns a new dataframe (after casting)
+        (host, port) = FrovedisServer.getServerInstance()
+        t_cols_ptr = get_string_array_pointer(t_cols)
+        type_arr = np.asarray(t_dtypes, dtype=c_short)
+        t_dtypes_ptr = type_arr.ctypes.data_as(POINTER(c_short))
+        dummy_df = rpclib.df_astype(host, port, ret.get(), t_cols_ptr, \
+                                    t_dtypes_ptr, len(t_cols))
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
+        
+        names = dummy_df["names"]
+        types = dummy_df["types"]
+        ret.num_row = dummy_df["nrow"]
+        if self.has_index():
+            ret.index = FrovedisColumn(names[0], types[0]) #setting index
+            ret.load_dummy(dummy_df["dfptr"], names[1:], types[1:])
+        else:
+            ret.load_dummy(dummy_df["dfptr"], names[0:], types[0:])
+        return ret
+
+    def append2(self, other, ignore_index=False, verify_integrity=False,
+                sort=False):
+
+        if isinstance(other, FrovedisDataframe):
+            other = [other]
+        elif isinstance(other, Iterable):
+            other = [DataFrame.asDF(e) for e in other]
+        else:
+            raise ValueError("append: Unsupported value for 'other'!")
+        
+        res_names = [self.columns] 
+        for e in other:
+            res_names.append(e.columns)
+        res_names = sorted(union_lists(res_names)) \
+                    if sort else union_lists(res_names)
+        dfs = [self] + other
+        res_dtypes = [infer_dtype(dfs, col) for col in res_names]
+        astype_input = dict(zip(res_names, res_dtypes))
+        #print(astype_input)
+        dfs, index_col = add_null_column_and_type_cast(dfs, astype_input)
+        all_cols = [index_col] + res_names
+
+        proxies = [e.get() for e in dfs[1:]]
+        proxies_arr = np.asarray(proxies, dtype=c_long)
+        proxies_ptr = proxies_arr.ctypes.data_as(POINTER(c_long))
+        verify_integrity = false if ignore_index else verify_integrity
+        (host, port) = FrovedisServer.getServerInstance()
+        dummy_df = rpclib.df_union2(host, port, dfs[0].get(), \
+                                   proxies_ptr, len(proxies),  \
+                                   get_string_array_pointer(all_cols), \
+                                   len(all_cols), verify_integrity)
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
+
+        names = dummy_df["names"]
+        types = dummy_df["types"]
+        astypes = astype_input.values()
+        for i in range(0, len(astypes)):
+            if astypes[i] == np.bool:
+                types[i] = DTYPE.BOOL
+        res = DataFrame().load_dummy(dummy_df["dfptr"], names[1:], types[1:])
+        res.index = FrovedisColumn(names[0], types[0]) #setting index
+        res.num_row = dummy_df["nrow"]
+        if ignore_index:
+            res.reset_index(inplace=True, drop=True)
+        return res
+     
     def append(self, other, ignore_index=False, verify_integrity=False,
                sort=False):
         null_replacement = {}
@@ -2098,6 +2158,15 @@ class DataFrame(object):
 
     def get_types(self):
         return self.__types
+
+    def get_dtype(self, colname):
+        if self.has_index() and colname == self.index.name:
+            ret = TypeUtil.to_numpy_dtype(self.index.dtype)
+        elif colname in self.columns:
+            ret = TypeUtil.to_numpy_dtype(self.__dict__[colname].dtype)
+        else:
+            raise ValueError("column not found: '%s'" % (colname))
+        return ret
 
     def __setattr__(self, key, value):
         if key in self.__dict__: # instance attribute
