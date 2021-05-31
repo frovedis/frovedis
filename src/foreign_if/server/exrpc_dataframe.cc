@@ -856,19 +856,18 @@ frov_df_set_index(exrpc_ptr_t& df_proxy,
 
 dummy_dftable
 frov_df_union(exrpc_ptr_t& df_proxy, std::vector<exrpc_ptr_t>& proxies,
-            bool& ignore_index, bool& verify_integrity, bool& sort) {
-  dftable* base_dftblp = NULL;
-  auto base_dftblp_ = reinterpret_cast<dftable_base*>(df_proxy);
-  if(base_dftblp_-> need_materialize()) {
-    base_dftblp = new dftable(base_dftblp_->materialize());
+              bool& ignore_index, bool& verify_integrity, bool& sort) {
+  dftable* dftblp = NULL;
+  auto base_dftblp = reinterpret_cast<dftable_base*>(df_proxy);
+  if(base_dftblp-> need_materialize()) {
+    dftblp = new dftable(base_dftblp->materialize());
   }
-  else base_dftblp = reinterpret_cast<dftable*>(df_proxy);
-  if (!base_dftblp) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed.\n");
+  else dftblp = reinterpret_cast<dftable*>(df_proxy);
+  if (!dftblp) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed.\n");
 
   auto sz = proxies.size();
   std::vector<dftable*> other_dfs(sz);
-  
-  for(size_t i=0; i<sz; i++){
+  for(size_t i = 0; i < sz; ++i) {
     dftable* dftblp = NULL;
     auto dftblp_ = reinterpret_cast<dftable_base*>(proxies[i]);
     if(dftblp_-> need_materialize()) {
@@ -879,15 +878,50 @@ frov_df_union(exrpc_ptr_t& df_proxy, std::vector<exrpc_ptr_t>& proxies,
     other_dfs[i] = dftblp;
   }
   
-  auto union_df = new dftable(base_dftblp->union_tables(other_dfs));
-
-  if ( !ignore_index && verify_integrity ) {
+  bool keep_order = true; // pandas keeps the original order
+  auto union_df = new dftable(dftblp->union_tables(other_dfs, keep_order));
+  if (!ignore_index && verify_integrity) {
     bool is_uniq = union_df->column("tmp_index")->is_unique();
-    if ( !is_uniq )
-      REPORT_ERROR(USER_ERROR,"Indexes have overlapping values!\n");
+    if (!is_uniq) REPORT_ERROR(USER_ERROR, "Indices have overlapping values!\n");
   }
   return to_dummy_dftable(union_df);
 }
+
+dummy_dftable
+frov_df_union2(exrpc_ptr_t& df_proxy, 
+               std::vector<exrpc_ptr_t>& proxies,
+               std::vector<std::string>& names, 
+               bool& verify_integrity) {
+  dftable* dftblp = NULL;
+  auto base_dftblp = reinterpret_cast<dftable_base*>(df_proxy);
+  if(base_dftblp-> need_materialize()) {
+    dftblp = new dftable(base_dftblp->materialize());
+  }
+  else dftblp = reinterpret_cast<dftable*>(df_proxy);
+  if (!dftblp) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed.\n");
+
+  auto sz = proxies.size();
+  std::vector<dftable*> other_dfs(sz);
+  for(size_t i = 0; i < sz; ++i) {
+    dftable* dftblp = NULL;
+    auto dftblp_ = reinterpret_cast<dftable_base*>(proxies[i]);
+    if(dftblp_-> need_materialize()) {
+      dftblp = new dftable(dftblp_->materialize());
+    }
+    else dftblp = reinterpret_cast<dftable*>(proxies[i]);
+    if (!dftblp) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed.\n");
+    other_dfs[i] = dftblp;
+  }
+
+  bool keep_order = true; // pandas keeps the original order
+  auto union_df = new dftable(dftblp->union_tables(other_dfs, keep_order));
+  if (verify_integrity && 
+      (!union_df->column("index")->is_unique())) // assumes "index" is present
+    REPORT_ERROR(USER_ERROR, "append(): indices have overlapping values!\n");
+  union_df->set_col_order(names); // sets desired column order
+  return to_dummy_dftable(union_df);
+}
+
 
 dummy_dftable
 frov_df_set_col_order(exrpc_ptr_t& df_proxy,
@@ -917,9 +951,12 @@ frov_df_astype(exrpc_ptr_t& df_proxy,
   checkAssumption(cols.size() == types.size());
   for (size_t i = 0; i < cols.size(); ++i) {
     auto c = cols[i];
-    dftblp->rename(c, c + "__temp");
-    dftblp->type_cast(c + "__temp", c, get_string_dtype(types[i]));
-    dftblp->drop(c + "__temp"); 
+    auto t = get_string_dtype(types[i]);
+    if (dftblp->column(c)->dtype() != t) {
+      dftblp->rename(c, c + "__temp");
+      dftblp->type_cast(c + "__temp", c, t);
+      dftblp->drop(c + "__temp"); 
+    }
   }
   return to_dummy_dftable(dftblp);
 }
