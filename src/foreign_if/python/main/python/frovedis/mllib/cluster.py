@@ -18,11 +18,11 @@ from ..matrix.dtype import TypeUtil
 from .model_util import *
 
 def clustering_score(labels_true, labels_pred):
-  try:
-      from sklearn.metrics.cluster import homogeneity_score
-      return homogeneity_score(labels_true, labels_pred)
-  except: #for system without sklearn
-      raise AttributeError("score: needs scikit-learn to use this method!")
+    try:
+        from sklearn.metrics.cluster import homogeneity_score
+        return homogeneity_score(labels_true, labels_pred)
+    except: #for system without sklearn
+        raise AttributeError("score: needs scikit-learn to use this method!")
 
 class KMeans(BaseEstimator):
     """
@@ -874,7 +874,7 @@ class DBSCAN(BaseEstimator):
         # it would be loaded as rowmajor matrix
         inp_data = FrovedisFeatureData(X, \
                    caller = "[" + self.__class__.__name__ + "] " + F + ": ",\
-                   dense_kind='rowmajor', densify=True)
+                   dense_kind='rowmajor', densify=False)
         X = inp_data.get()
         dtype = inp_data.get_dtype()
         itype = inp_data.get_itype()
@@ -892,8 +892,8 @@ class DBSCAN(BaseEstimator):
         else:
             weight = np.ravel(sample_weight)
             if len(weight) != self.n_samples:
-                 raise ValueError("sample_weight.shape == {}, expected {}!"\
-                       .format(sample_weight.shape, (self.n_samples,)))
+                raise ValueError("sample_weight.shape == {}, expected {}!"\
+                      .format(sample_weight.shape, (self.n_samples,)))
         return np.asarray(weight, dtype=np.float64)
 
     @set_association
