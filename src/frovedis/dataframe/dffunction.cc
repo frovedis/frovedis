@@ -7,6 +7,11 @@ std::shared_ptr<dfcolumn> dffunction_add::execute(dftable_base& t) const {
   return left_column->add(t.column(right));
 }
 
+std::shared_ptr<dfcolumn> dffunction_add::execute(dftable_base& t1, dftable_base& t2) const {
+  auto left_column = t1.column(left);
+  return left_column->add(t2.column(right));
+}
+
 std::shared_ptr<dffunction> add_col(const std::string& left,
                                     const std::string& right) {
   return std::make_shared<dffunction_add>(left, right);

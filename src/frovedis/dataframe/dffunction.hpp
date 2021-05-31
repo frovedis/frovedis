@@ -21,6 +21,7 @@ struct dffunction_add : public dffunction {
     left(left), right(right), as_name(as_name) {}
   virtual std::string as() {return as_name;}
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const;
+  std::shared_ptr<dfcolumn> execute(dftable_base& t1, dftable_base& t2) const;
 
   std::string left, right, as_name;
 };
