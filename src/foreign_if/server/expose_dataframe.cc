@@ -81,6 +81,7 @@ void expose_frovedis_dataframe_functions() {
   expose(frov_df_copy_index<double>);
   expose(frov_df_copy_index<std::string>);
   expose(frov_df_union);
+  expose(frov_df_union2);
   expose(frov_df_set_col_order);
   expose(frov_df_astype);
 }
