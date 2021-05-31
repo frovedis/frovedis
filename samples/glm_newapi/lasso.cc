@@ -47,8 +47,8 @@ void do_train(const string& input,
   lm.fit(mat, lbl);
   t.show("train time: ");
 
-  if(binary) lm.model.savebinary(output);
-  else       lm.model.save(output);
+  if(binary) lm.savebinary(output);
+  else       lm.save(output);
   t.show("save model time: ");
 }
 
