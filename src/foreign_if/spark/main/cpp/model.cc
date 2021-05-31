@@ -498,7 +498,7 @@ JNIEXPORT jint JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_doSingleGMMPredic
   int ret = 0;
   try {
    if (isDense)     
-       ret = exrpc_async(fm_node,(single_gmm_predict<R_LMAT1,GMM1>),f_dptr,mid).get();      
+     ret = exrpc_async(fm_node,(single_gmm_predict<R_LMAT1,GMM1>),f_dptr,mid).get();      
    else REPORT_ERROR(USER_ERROR, 
          "Frovedis Gaussian Model doesn't support sparse input at "
          "this moment.\n");     
@@ -530,7 +530,53 @@ JNIEXPORT jintArray JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_doParallelGM
   catch(std::exception& e) { set_status(true,e.what()); }
   return to_jintArray(env, pred);
 }    
-    
+
+// for single test input: prediction on trained kmm is carried out in master node
+JNIEXPORT jdoubleArray JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_doSingleGMMPredictProba
+  (JNIEnv *env, jclass thisCls, jobject master_node, 
+   jlong mptr, jint mid, jboolean dense) {
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto f_dptr = (exrpc_ptr_t) mptr;
+  bool isDense = (bool) dense;
+#ifdef _EXRPC_DEBUG_
+  std::cout << "Connecting to master node (" 
+            << fm_node.hostname << "," << fm_node.rpcport 
+            << ") to perform single GMM prediction.\n";
+#endif
+  std::vector<double> pred;
+  try {
+   if (isDense)     
+     pred = exrpc_async(fm_node,(single_gmm_predict_proba<DT1,R_LMAT1,GMM1>),f_dptr,mid).get();      
+   else REPORT_ERROR(USER_ERROR, 
+         "Frovedis Gaussian Model doesn't support sparse input at "
+         "this moment.\n");     
+  }
+  catch(std::exception& e) { set_status(true,e.what()); }
+  return to_jdoubleArray(env, pred);
+}
+
+JNIEXPORT jdoubleArray JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_doParallelGMMPredictProba
+  (JNIEnv *env, jclass thisCls, jobject worker_node, 
+   jlong mptr, jint mid, jboolean dense) {
+  auto fm_node = java_node_to_frovedis_node(env, worker_node);
+  auto f_dptr = (exrpc_ptr_t) mptr;
+  bool isDense = (bool) dense;
+#ifdef _EXRPC_DEBUG_
+  std::cout << "Connecting to master node (" 
+            << fm_node.hostname << "," << fm_node.rpcport 
+            << ") to perform multiple gmm prediction in parallel.\n";
+#endif
+  std::vector<double> pred;
+  try {
+    if (isDense)
+      pred = exrpc_async(fm_node,(frovedis_gmm_predict_proba<DT1,R_MAT1,GMM1>),f_dptr,mid).get(); 
+    else REPORT_ERROR(USER_ERROR, 
+         "Frovedis Gaussian Model doesn't support sparse input at "
+         "this moment.\n");
+  }
+  catch(std::exception& e) { set_status(true,e.what()); }
+  return to_jdoubleArray(env, pred);
+} 
     
 JNIEXPORT jdoubleArray JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getGMMMeans
   (JNIEnv *env, jclass thisCls, jobject master_node, jint mid) {

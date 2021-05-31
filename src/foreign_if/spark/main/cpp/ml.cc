@@ -471,7 +471,7 @@ JNIEXPORT jintArray JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedis
  
 
 // (.) --- Gaussian Mixture ---
-JNIEXPORT jint JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisGMM
+JNIEXPORT jobject JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisGMM
   (JNIEnv *env, jclass thisCls, jobject master_node, jlong fdata, 
    jint ncomponent, jstring covtype, jdouble tol, jint max_iter, 
    jstring init_type, jlong seed, jint mid, jboolean dense, jboolean movable) {
@@ -489,17 +489,19 @@ JNIEXPORT jint JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisGMM
             << fm_node.hostname << "," << fm_node.rpcport
             << ") to train frovedis gaussian mixture.\n";
 #endif
-  int n_iter = 0;
+  gmm_result ret;
   try {   
     if(isDense) { // gaussian mixture accepts rowmajor matrix as for dense data
-      n_iter = exrpc_async(fm_node,(frovedis_gmm<DT1,R_MAT1>),f_dptr,mid,ncomponent,
+      ret = exrpc_async(fm_node,(frovedis_gmm<DT1,R_MAT1>),f_dptr,mid,ncomponent,
                            cov_type, tol,max_iter,n_init,param_type,seed,vb,mvbl).get();
     }
     else REPORT_ERROR(USER_ERROR, 
          "Frovedis gaussian mixture doesn't accept sparse input at this moment.\n");
   }
   catch(std::exception& e) { set_status(true,e.what()); }
-  return n_iter;
+  std::cout << "frovedis GMM converged in " << ret.n_iter_ 
+            << " steps! lower_bound: " << ret.likelihood_ << "\n";
+  return make_jIntDoublePair(env, ret.n_iter_, ret.likelihood_);
 }    
 
 // (10) --- Spectral Embedding ---
