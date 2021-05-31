@@ -10,5 +10,7 @@ enum MatType {
   HYBRID
 };
 
+enum { NONE = 0xDEAD };
+
 }
 #endif
