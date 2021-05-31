@@ -156,7 +156,13 @@ public:
     bool isIntercept=false,
     double convergenceTol=0.001,
     double epsilon=0.0,
-    SVRLossType lossType=EPS);
+    SVRLossType lossType=EPS,
+#if defined(_SX) || defined(__ve__)
+    MatType mType = HYBRID 
+#else
+    MatType mType = CRS
+#endif 
+  );
 
   template <class T>
   static linear_regression_model<T> train (
@@ -172,7 +178,13 @@ public:
     bool isIntercept=false,
     double convergenceTol=0.001,
     double epsilon=0.0,
-    SVRLossType lossType=EPS);
+    SVRLossType lossType=EPS,
+#if defined(_SX) || defined(__ve__)
+    MatType mType = HYBRID 
+#else
+    MatType mType = CRS
+#endif 
+  );
 
   template <class T>
   static linear_regression_model<T> train (
@@ -186,7 +198,13 @@ public:
     bool isIntercept=false,
     double convergenceTol=0.001,
     double epsilon=0.0,
-    SVRLossType lossType=EPS); 
+    SVRLossType lossType=EPS,
+#if defined(_SX) || defined(__ve__)
+    MatType mType = HYBRID 
+#else
+    MatType mType = CRS
+#endif 
+  ); 
 
   template <class T>
   static linear_regression_model<T> train (
@@ -202,7 +220,13 @@ public:
     bool isIntercept=false,
     double convergenceTol=0.001,
     double epsilon=0.0,
-    SVRLossType lossType=EPS);
+    SVRLossType lossType=EPS,
+#if defined(_SX) || defined(__ve__)
+    MatType mType = HYBRID 
+#else
+    MatType mType = CRS
+#endif 
+  );
 
   template <class T>
   static linear_regression_model<T> train (
@@ -219,7 +243,14 @@ public:
     bool isIntercept=false,
     double convergenceTol=0.001,
     double epsilon=0.0,
-    SVRLossType lossType=EPS); 
+    SVRLossType lossType=EPS,
+#if defined(_SX) || defined(__ve__)
+    MatType mType = HYBRID, 
+#else
+    MatType mType = CRS,
+#endif
+    bool inputMovable=false 
+  ); 
 };
 
 template <class T, class I, class O>
@@ -425,10 +456,11 @@ svm_regression_with_sgd::train (rowmajor_matrix<T>& data,
                                 bool isIntercept,
                                 double convergenceTol,
                                 double epsilon,
-                                SVRLossType lossType) {
+                                SVRLossType lossType,
+                                MatType mType) {
   return train<T>(colmajor_matrix<T>(data),label,
                   numIteration,alpha,miniBatchFraction,regParam,regTyp,
-                  isIntercept,convergenceTol,epsilon,lossType);
+                  isIntercept,convergenceTol,epsilon,lossType,mType);
 }
 
 template <class T>
@@ -445,10 +477,11 @@ svm_regression_with_sgd::train (rowmajor_matrix<T>& data,
                                 bool isIntercept,
                                 double convergenceTol,
                                 double epsilon,
-                                SVRLossType lossType) {
+                                SVRLossType lossType,
+                                MatType mType) {
   return train<T>(colmajor_matrix<T>(data),label,sample_weight,n_iter,
                   numIteration,alpha,miniBatchFraction,regParam,regTyp,
-                  isIntercept,convergenceTol,epsilon,lossType);
+                  isIntercept,convergenceTol,epsilon,lossType,mType);
 }
 
 template <class T>
@@ -463,14 +496,15 @@ svm_regression_with_sgd::train (const colmajor_matrix<T>& data,
                                 bool isIntercept,
                                 double convergenceTol,
                                 double epsilon,
-                                SVRLossType lossType) {
+                                SVRLossType lossType,
+                                MatType mType) {
   size_t numFeatures = data.num_col;
   linear_regression_model<T> initModel(numFeatures);
   size_t n_iter = 0;
   std::vector<T> sample_weight;
   return train<T>(data,label,initModel,sample_weight,n_iter,numIteration,
 		  alpha,miniBatchFraction,regParam,regTyp,
-		  isIntercept,convergenceTol,epsilon,lossType);
+		  isIntercept,convergenceTol,epsilon,lossType,mType);
 }
 
 template <class T>
@@ -487,12 +521,13 @@ svm_regression_with_sgd::train (const colmajor_matrix<T>& data,
                                 bool isIntercept,
                                 double convergenceTol,
                                 double epsilon,
-                                SVRLossType lossType) {
+                                SVRLossType lossType,
+                                MatType mType) {
   size_t numFeatures = data.num_col;
   linear_regression_model<T> initModel(numFeatures);
   return train<T>(data,label,initModel,sample_weight,n_iter,numIteration,
                   alpha,miniBatchFraction,regParam,regTyp,
-                  isIntercept,convergenceTol,epsilon,lossType);
+                  isIntercept,convergenceTol,epsilon,lossType,mType);
 }
 
 // --- main api with dense data support ---
@@ -511,7 +546,9 @@ svm_regression_with_sgd::train (const colmajor_matrix<T>& data,
                                 bool isIntercept,
                                 double convergenceTol,
                                 double epsilon,
-                                SVRLossType lossType) {
+                                SVRLossType lossType,
+                                MatType mType,
+                                bool inputMovable) {
 #ifdef _DEBUG_
   std::cout << "Initial model: \n";
   initModel.debug_print(); std::cout << "\n";

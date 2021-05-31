@@ -123,7 +123,13 @@ public:
     double alpha=0.01,
     size_t hist_size=10,
     bool isIntercept=false,
-    double convergenceTol=0.001);
+    double convergenceTol=0.001, 
+#if defined(_SX) || defined(__ve__)
+    MatType mType = HYBRID 
+#else
+    MatType mType = CRS
+#endif 
+  );
 
   template <class T>
   static linear_regression_model<T> train (
@@ -135,7 +141,13 @@ public:
     double alpha=0.01,
     size_t hist_size=10,
     bool isIntercept=false,
-    double convergenceTol=0.001);
+    double convergenceTol=0.001, 
+#if defined(_SX) || defined(__ve__)
+    MatType mType = HYBRID 
+#else
+    MatType mType = CRS
+#endif 
+  );
 
   template <class T>
   static linear_regression_model<T> train (
@@ -145,7 +157,13 @@ public:
     double alpha=0.01, 
     size_t hist_size=10, 
     bool isIntercept=false,
-    double convergenceTol=0.001);
+    double convergenceTol=0.001, 
+#if defined(_SX) || defined(__ve__)
+    MatType mType = HYBRID 
+#else
+    MatType mType = CRS
+#endif 
+  );
 
   template <class T>
   static linear_regression_model<T> train (
@@ -157,7 +175,13 @@ public:
     double alpha=0.01,
     size_t hist_size=10,
     bool isIntercept=false,
-    double convergenceTol=0.001);
+    double convergenceTol=0.001, 
+#if defined(_SX) || defined(__ve__)
+    MatType mType = HYBRID 
+#else
+    MatType mType = CRS
+#endif 
+  );
 
   template <class T>
   static linear_regression_model<T> train (
@@ -170,7 +194,14 @@ public:
     double alpha=0.01, 
     size_t hist_size=10, 
     bool isIntercept=false,
-    double convergenceTol=0.001);
+    double convergenceTol=0.001, 
+#if defined(_SX) || defined(__ve__)
+    MatType mType = HYBRID, 
+#else
+    MatType mType = CRS,
+#endif
+    bool inputMovable=false 
+  );
 };
 
 template <class T, class I, class O>
@@ -302,10 +333,11 @@ linear_regression_with_lbfgs::train (rowmajor_matrix<T>& data,
                                      double alpha,
                                      size_t hist_size,
                                      bool isIntercept,
-                                     double convergenceTol) {
+                                     double convergenceTol,
+                                     MatType mType) {
   return train<T>(colmajor_matrix<T>(data),label,
                   numIteration,alpha,hist_size,
-                  isIntercept,convergenceTol);
+                  isIntercept,convergenceTol,mType);
 }
 
 template <class T>
@@ -318,10 +350,11 @@ linear_regression_with_lbfgs::train (rowmajor_matrix<T>& data,
                                      double alpha,
                                      size_t hist_size,
                                      bool isIntercept,
-                                     double convergenceTol) {
+                                     double convergenceTol,
+                                     MatType mType) {
   return train<T>(colmajor_matrix<T>(data),label,sample_weight,n_iter,
                   numIteration,alpha,hist_size,
-                  isIntercept,convergenceTol);
+                  isIntercept,convergenceTol,mType);
 }
 
 template <class T>
@@ -332,7 +365,8 @@ linear_regression_with_lbfgs::train (const colmajor_matrix<T>& data,
                                      double alpha,
                                      size_t hist_size,
                                      bool isIntercept,
-                                     double convergenceTol) {
+                                     double convergenceTol,
+                                     MatType mType) {
   size_t numFeatures = data.num_col;
   T intercept = isIntercept ? 1.0 : 0.0;
   linear_regression_model<T> initModel(numFeatures,intercept);
@@ -352,7 +386,8 @@ linear_regression_with_lbfgs::train (const colmajor_matrix<T>& data,
                                      double alpha,
                                      size_t hist_size,
                                      bool isIntercept,
-                                     double convergenceTol) {
+                                     double convergenceTol,
+                                     MatType mType) {
   size_t numFeatures = data.num_col;
   T intercept = isIntercept ? 1.0 : 0.0;
   linear_regression_model<T> initModel(numFeatures,intercept);
@@ -372,7 +407,9 @@ linear_regression_with_lbfgs::train (const colmajor_matrix<T>& data,
                                      double alpha,
                                      size_t hist_size,
                                      bool isIntercept,
-                                     double convergenceTol) {
+                                     double convergenceTol,
+                                     MatType mType,
+                                     bool inputMovable) {
 #ifdef _DEBUG_
   std::cout << "Initial model: \n";
   initModel.debug_print(); std::cout << "\n";

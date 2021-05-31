@@ -8,6 +8,7 @@
 #include <string>
 #include "../../core/utility.hpp"
 #include "../../matrix/rowmajor_matrix.hpp"
+#include "../utility/mattype.hpp"
 
 #define YES_RESPONSE 1
 #define NO_RESPONSE -1
@@ -17,6 +18,21 @@ namespace frovedis {
 template <class MATRIX, class MODEL, class T>
 std::vector<T>
 parallel_predict(MATRIX& mat, MODEL& model) { return model.predict(mat); }
+
+
+template <class MATRIX, class MODEL, class T>
+std::vector<T>
+parallel_predict_probability(MATRIX& mat, MODEL& model, 
+         bool use_score = false) { 
+  return model.predict_probability(mat, use_score); 
+}
+
+
+template <class MATRIX, class MODEL, class T>
+rowmajor_matrix_local<T>
+parallel_compute_probability_matrix(MATRIX& mat, MODEL& model) { 
+  return model.compute_probability_matrix(mat); 
+}
 
 template <class T> struct linear_regression_model; // forward declaration
 
@@ -220,29 +236,17 @@ struct linear_regression_model {
   linear_regression_model<T>
   operator+(const linear_regression_model<T>& right_m) const {
     checkAssumption(weight.size() == right_m.weight.size());
-    size_t numFtr = weight.size();
-    linear_regression_model<T> ret(numFtr);
+    linear_regression_model<T> ret;
     ret.intercept = intercept + right_m.intercept;
-    auto retweightp = ret.weight.data();
-    auto weightp = weight.data();
-    auto right_mweightp = right_m.weight.data();
-    for(size_t i = 0; i < numFtr; i++) {
-      retweightp[i] = weightp[i] + right_mweightp[i];
-    }
+    ret.weight = weight + right_m.weight;
     return ret;
   }
   linear_regression_model<T>
   operator-(const linear_regression_model<T>& right_m) const { 
     checkAssumption(weight.size() == right_m.weight.size());
-    size_t numFtr = weight.size();
-    linear_regression_model<T> ret(numFtr);
+    linear_regression_model<T> ret;
     ret.intercept = intercept - right_m.intercept;
-    auto retweightp = ret.weight.data();
-    auto weightp = weight.data();
-    auto right_mweightp = right_m.weight.data();
-    for(size_t i = 0; i < numFtr; i++) {
-      retweightp[i] = weightp[i] - right_mweightp[i];
-    }
+    ret.weight = weight - right_m.weight;
     return ret;
   }
   void operator+=(const linear_regression_model<T>& right_m) {
@@ -333,15 +337,9 @@ struct logistic_regression_model {
   operator+(const logistic_regression_model<T>& right_m) const {  
     checkAssumption(weight.size() == right_m.weight.size() && 
                     threshold == right_m.threshold);
-    size_t numFtr = weight.size();
-    logistic_regression_model<T> ret(numFtr);
+    logistic_regression_model<T> ret;
     ret.intercept = intercept + right_m.intercept;
-    auto retweightp = ret.weight.data();
-    auto weightp = weight.data();
-    auto right_mweightp = right_m.weight.data();
-    for(size_t i = 0; i < numFtr; i++) {
-      retweightp[i] = weightp[i] + right_mweightp[i];
-    }
+    ret.weight = weight + right_m.weight;
     ret.threshold = threshold;
     return ret;
   }
@@ -349,15 +347,9 @@ struct logistic_regression_model {
   operator-(const logistic_regression_model<T>& right_m) const {
     checkAssumption(weight.size() == right_m.weight.size() && 
                     threshold == right_m.threshold);
-    size_t numFtr = weight.size();
-    logistic_regression_model<T> ret(numFtr);
+    logistic_regression_model<T> ret;
     ret.intercept = intercept - right_m.intercept;
-    auto retweightp = ret.weight.data();
-    auto weightp = weight.data();
-    auto right_mweightp = right_m.weight.data();
-    for(size_t i = 0; i < numFtr; i++) {
-      retweightp[i] = weightp[i] - right_mweightp[i];
-    }
+    ret.weight = weight - right_m.weight;
     ret.threshold = threshold;
     return ret;
   }
@@ -402,6 +394,8 @@ struct logistic_regression_model {
   std::vector<T>
   predict(DATA_MATRIX& mat, bool use_score=false) {
     auto tmp = predict_probability(mat, use_score);
+    // for spark: if threshold is cleared, it will always return raw probability values
+    if (get_threshold() == NONE) return tmp;
     std::vector<T> ret(tmp.size());
     auto tmpp = tmp.data();
     auto retp = ret.data();
@@ -504,15 +498,9 @@ struct svm_model {
   operator+(const svm_model<T>& right_m) const {
     checkAssumption(weight.size() == right_m.weight.size() &&
                     threshold == right_m.threshold);
-    size_t numFtr = weight.size();
-    svm_model<T> ret(numFtr);
+    svm_model<T> ret;
     ret.intercept = intercept + right_m.intercept;
-    auto retweightp = ret.weight.data();
-    auto weightp = weight.data();
-    auto right_mweightp = right_m.weight.data();
-    for(size_t i = 0; i < numFtr; i++) {
-      retweightp[i] = weightp[i] + right_mweightp[i];
-    }
+    ret.weight = weight + right_m.weight;
     ret.threshold = threshold;
     return ret;
   }
@@ -520,15 +508,9 @@ struct svm_model {
   operator-(const svm_model<T>& right_m) const { 
     checkAssumption(weight.size() == right_m.weight.size() &&
                     threshold == right_m.threshold);
-    size_t numFtr = weight.size();
-    svm_model<T> ret(numFtr);
+    svm_model<T> ret;
     ret.intercept = intercept - right_m.intercept;
-    auto retweightp = ret.weight.data();
-    auto weightp = weight.data();
-    auto right_mweightp = right_m.weight.data();
-    for(size_t i = 0; i < numFtr; i++) {
-      retweightp[i] = weightp[i] - right_mweightp[i];
-    }
+    ret.weight = weight - right_m.weight;
     ret.threshold = threshold;
     return ret;
   }

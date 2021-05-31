@@ -18,7 +18,14 @@ struct linear_svm_regressor {
                        double mini_batch_fraction = 1.0,
                        double epsilon=0.0,
 		       const std::string& loss_type= "EPS",
-                       double convergence_tol = 0.001) {
+                       double convergence_tol = 0.001,
+                       bool warm_start = false,
+                       #if defined(_SX) || defined(__ve__)
+                       MatType mType = HYBRID
+                       #else
+                       MatType mType = CRS
+                       #endif
+                       ) {
     this->max_iter = max_iter;
     this->alpha = alpha;
     this->solver = solver;
@@ -29,8 +36,11 @@ struct linear_svm_regressor {
     this->epsilon = epsilon;
     this->loss_type = loss_type;
     this->tol = convergence_tol;
+    this->warm_start = warm_start;
+    this->mat_type = mType;
     this->is_fitted = false;
     this->n_iter_ = 0;
+    this->n_features_ = 0;
   }
   linear_svm_regressor<T>& 
   set_max_iter(int max_iter) {
@@ -88,7 +98,7 @@ struct linear_svm_regressor {
     return *this;  
   }
   linear_svm_regressor<T>& 
-  set_epsilon(int epsilon) {
+  set_epsilon(double epsilon) {
     std::string msg = "expected a positive epsilon; received: " + STR(epsilon) + "\n";
     require(epsilon >= 0, msg);
     this->epsilon = epsilon;
@@ -100,6 +110,27 @@ struct linear_svm_regressor {
     require(tol > 0, msg);
     this->tol = tol;
     return *this;  
+  }
+  linear_svm_regressor<T>&
+  set_warm_start(bool warm_start) {
+    this->warm_start = warm_start;
+    return *this;
+  }
+
+  linear_svm_regressor<T>&
+  set_params(glm_config& config) {
+    set_max_iter(config.numIteration);
+    set_alpha(config.alpha);
+    set_solver(config.solver);
+    set_reg_param(config.regParam);
+    set_reg_type(config.regType);
+    set_intercept(config.isIntercept);
+    set_mini_batch_fraction(config.miniBatchFraction);
+    set_tol(config.convergenceTol);
+    set_warm_start(config.warmStart);
+    set_epsilon(config.epsilon);
+    set_loss_type(config.lossType);
+    return *this;
   }
 
   // frovedis::grid_sdearch_cv compatible setter
@@ -149,6 +180,10 @@ struct linear_svm_regressor {
         set_intercept(val.get<bool>());
         msg += "fit intercept: " + val.tt + "; ";
       }
+      else if(param == "warm_start") {
+        set_warm_start(val.get<bool>());
+        msg += "warm_start: " + val.tt + "; ";
+      }
       else REPORT_ERROR(USER_ERROR, "[linear_svm_regressor] Unknown parameter: '" 
                                      + param + "' is encountered!\n");
     }
@@ -175,22 +210,58 @@ struct linear_svm_regressor {
     return loss;
 }
 
+  template <class MATRIX>
+  linear_svm_regressor&
+  fit(MATRIX&& mat, dvector<T>& label) {
+    std::vector<T> sample_weight;
+    return fit(std::move(mat), label, sample_weight);
+  }
+
+  template <class MATRIX>
+  linear_svm_regressor&
+  fit(MATRIX&& mat, dvector<T>& label,
+      std::vector<T>& sample_weight) {
+    return _fit(mat, label, sample_weight, true);
+  }
+
+   template <class MATRIX>
+  linear_svm_regressor&
+  fit(const MATRIX& mat, dvector<T>& label) {
+    std::vector<T> sample_weight;
+    return fit(mat, label, sample_weight);
+  }
+
+  template <class MATRIX>
+  linear_svm_regressor&
+  fit(const MATRIX& mat, dvector<T>& label,
+      std::vector<T>& sample_weight) {
+    return _fit(mat, label, sample_weight, false);
+  }
+
   // MATRIX: can accept both rowmajor and colmajor matrices as for dense data; 
   //         and crs matrix as for sparse data
   template <class MATRIX>
-  linear_svm_regressor& 
-  fit(MATRIX& mat, dvector<T>& label
-      const std::vector<T> &sample_weight = std::vector<T>()) {
+  linear_svm_regressor&
+  _fit(MATRIX& mat, dvector<T>& label,
+       std::vector<T>& sample_weight,
+       bool input_movable) {
+    size_t nfeatures = mat.num_col;
+    if(!(warm_start && is_fitted)) {
+      T intercept = fit_intercept ? 1.0 : 0.0;
+      model = linear_regression_model<T>(nfeatures, intercept);
+    }
     size_t n_iter;
     if (solver == "sgd") {
-      this->model = svm_regression_with_sgd::train(
-                      mat, label, sample_weight, n_iter, max_iter, alpha, mbf,
-                      reg_param, get_regularizer(), fit_intercept, 
-                      tol, epsilon, get_loss());
+      model = svm_regression_with_sgd::train(
+                 mat, label, model, sample_weight, n_iter, 
+                 max_iter, alpha, mbf, reg_param, get_regularizer(), 
+                 fit_intercept, tol, epsilon, 
+                 get_loss(), mat_type, input_movable);
     }
     else REPORT_ERROR(USER_ERROR, "Unknown solver is encountered!\n");
     this->is_fitted = true;
     this->n_iter_ = n_iter;
+    this->n_features_ = nfeatures;
     return *this;
   }
 
@@ -214,6 +285,44 @@ struct linear_svm_regressor {
     return r2_score(pred_label, label.gather());
   }
 
+  size_t get_num_features() {
+    return model.get_num_features();
+  }
+
+  std::vector<T> get_intercept() {
+    return std::vector<T>({model.intercept});
+  }
+
+  std::vector<T> get_weight() {
+    return model.weight;
+  }
+
+  void debug_print() {
+    model.debug_print();
+  }
+
+  void savebinary(const std::string &inputPath) {
+    model.savebinary(inputPath);
+  }
+
+  void save(const std::string &inputPath) {
+    model.save(inputPath);
+  }
+
+  linear_svm_regressor& loadbinary(const std::string &inputPath) {
+    model.loadbinary(inputPath);
+    n_features_ = model.get_num_features();
+    is_fitted = true;
+    return *this; 
+  }
+
+  linear_svm_regressor& load(const std::string &inputPath) {
+    model.load(inputPath);
+    n_features_ = model.get_num_features();
+    is_fitted = true;
+    return *this; 
+  }
+
   int max_iter;
   double alpha, mbf, tol, reg_param, epsilon;
   std::string reg_type, solver, loss_type;
@@ -221,9 +330,13 @@ struct linear_svm_regressor {
   linear_regression_model<T> model;
   bool is_fitted;
   size_t n_iter_;
+  bool warm_start;
+  size_t n_features_;
+  MatType mat_type;
   SERIALIZE(max_iter, epsilon, alpha, mbf, tol, 
             reg_param, reg_type, loss_type, solver,
-            fit_intercept, model, is_fitted, n_iter_); 
+            fit_intercept, model, is_fitted, n_iter_,
+            warm_start, n_features_, mat_type); 
 };
 
 }

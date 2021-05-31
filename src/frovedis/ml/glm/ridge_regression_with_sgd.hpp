@@ -130,7 +130,13 @@ public:
     double miniBatchFraction=1.0,
     double regParam=0.01,
     bool isIntercept=false,
-    double convergenceTol=0.001);
+    double convergenceTol=0.001, 
+#if defined(_SX) || defined(__ve__)
+    MatType mType = HYBRID 
+#else
+    MatType mType = CRS
+#endif 
+  );
 
   template <class T>
   static linear_regression_model<T> train (
@@ -143,7 +149,13 @@ public:
     double miniBatchFraction=1.0,
     double regParam=0.01,
     bool isIntercept=false,
-    double convergenceTol=0.001);
+    double convergenceTol=0.001, 
+#if defined(_SX) || defined(__ve__)
+    MatType mType = HYBRID 
+#else
+    MatType mType = CRS
+#endif 
+  );
 
   template <class T>
   static linear_regression_model<T> train (
@@ -154,7 +166,13 @@ public:
     double miniBatchFraction=1.0, 
     double regParam=0.01, 
     bool isIntercept=false,
-    double convergenceTol=0.001);
+    double convergenceTol=0.001, 
+#if defined(_SX) || defined(__ve__)
+    MatType mType = HYBRID 
+#else
+    MatType mType = CRS
+#endif 
+  );
 
   template <class T>
   static linear_regression_model<T> train (
@@ -167,7 +185,13 @@ public:
     double miniBatchFraction=1.0,
     double regParam=0.01,
     bool isIntercept=false,
-    double convergenceTol=0.001);
+    double convergenceTol=0.001, 
+#if defined(_SX) || defined(__ve__)
+    MatType mType = HYBRID 
+#else
+    MatType mType = CRS
+#endif 
+  );
 
   template <class T>
   static linear_regression_model<T> train (
@@ -181,7 +205,14 @@ public:
     double miniBatchFraction=1.0, 
     double regParam=0.01, 
     bool isIntercept=false,
-    double convergenceTol=0.001);
+    double convergenceTol=0.001, 
+#if defined(_SX) || defined(__ve__)
+    MatType mType = HYBRID, 
+#else
+    MatType mType = CRS,
+#endif
+    bool inputMovable = false 
+  );
 };
 
 template <class T, class I, class O>
@@ -199,7 +230,8 @@ ridge_regression_with_sgd::train (crs_matrix<T,I,O>& data,
   linear_regression_model<T> initModel(numFeatures);
   size_t n_iter = 0;
   std::vector<T> sample_weight; 
-  return train<T>(data,label,initModel,sample_weight,n_iter,numIteration,alpha,miniBatchFraction,
+  return train<T>(data,label,initModel,sample_weight,n_iter,
+                  numIteration,alpha,miniBatchFraction,
                   regParam,isIntercept,convergenceTol,mType,false);
 }
 
@@ -218,7 +250,8 @@ ridge_regression_with_sgd::train (crs_matrix<T,I,O>& data,
                                   MatType mType) {
   size_t numFeatures = data.num_col;
   linear_regression_model<T> initModel(numFeatures);
-  return train<T>(data,label,initModel,sample_weight,n_iter,numIteration,alpha,miniBatchFraction,
+  return train<T>(data,label,initModel,sample_weight,n_iter,
+                  numIteration,alpha,miniBatchFraction,
                   regParam,isIntercept,convergenceTol,mType,false);
 }
 
@@ -237,7 +270,8 @@ ridge_regression_with_sgd::train (crs_matrix<T,I,O>&& data,
   linear_regression_model<T> initModel(numFeatures);
   size_t n_iter = 0;
   std::vector<T> sample_weight; 
-  return train<T>(data,label,initModel,sample_weight,n_iter,numIteration,alpha,miniBatchFraction,
+  return train<T>(data,label,initModel,sample_weight,n_iter,
+                  numIteration,alpha,miniBatchFraction,
                   regParam,isIntercept,convergenceTol,mType,true);
 }
 
@@ -256,7 +290,8 @@ ridge_regression_with_sgd::train (crs_matrix<T,I,O>&& data,
                                   MatType mType) {
   size_t numFeatures = data.num_col;
   linear_regression_model<T> initModel(numFeatures);
-  return train<T>(data,label,initModel,sample_weight,n_iter,numIteration,alpha,miniBatchFraction,
+  return train<T>(data,label,initModel,sample_weight,n_iter,
+                  numIteration,alpha,miniBatchFraction,
                   regParam,isIntercept,convergenceTol,mType,true);
 }
 
@@ -274,7 +309,8 @@ ridge_regression_with_sgd::train (crs_matrix<T,I,O>&& data,
                                   bool isIntercept,
                                   double convergenceTol,
                                   MatType mType) {
-  return train<T>(data,label,initModel,sample_weight,n_iter,numIteration,alpha,miniBatchFraction,
+  return train<T>(data,label,initModel,sample_weight,n_iter,
+                  numIteration,alpha,miniBatchFraction,
                   regParam,isIntercept,convergenceTol,mType,true);
 }
 
@@ -317,10 +353,11 @@ ridge_regression_with_sgd::train (rowmajor_matrix<T>& data,
                                   double miniBatchFraction,
                                   double regParam,
                                   bool isIntercept,
-                                  double convergenceTol) {
+                                  double convergenceTol,
+                                  MatType mType) {
   return train<T>(colmajor_matrix<T>(data),label,
                   numIteration,alpha,miniBatchFraction,
-                  regParam,isIntercept,convergenceTol);
+                  regParam,isIntercept,convergenceTol,mType);
 }
 
 template <class T>
@@ -332,13 +369,15 @@ ridge_regression_with_sgd::train (const colmajor_matrix<T>& data,
                                   double miniBatchFraction,
                                   double regParam,
                                   bool isIntercept,
-                                  double convergenceTol) {
+                                  double convergenceTol,
+                                  MatType mType) {
   size_t numFeatures = data.num_col;
   linear_regression_model<T> initModel(numFeatures);
   size_t n_iter = 0;
   std::vector<T> sample_weight; 
-  return train<T>(data,label,initModel,sample_weight,n_iter,numIteration,alpha,miniBatchFraction,
-                  regParam,isIntercept,convergenceTol);
+  return train<T>(data,label,initModel,sample_weight,n_iter,
+                  numIteration,alpha,miniBatchFraction,
+                  regParam,isIntercept,convergenceTol,mType);
 }
 
 template <class T>
@@ -352,11 +391,13 @@ ridge_regression_with_sgd::train (const colmajor_matrix<T>& data,
                                   double miniBatchFraction,
                                   double regParam,
                                   bool isIntercept,
-                                  double convergenceTol) {
+                                  double convergenceTol,
+                                  MatType mType) {
   size_t numFeatures = data.num_col;
   linear_regression_model<T> initModel(numFeatures);
-  return train<T>(data,label,initModel,sample_weight,n_iter,numIteration,alpha,miniBatchFraction,
-                  regParam,isIntercept,convergenceTol);
+  return train<T>(data,label,initModel,sample_weight,n_iter,
+                  numIteration,alpha,miniBatchFraction,
+                  regParam,isIntercept,convergenceTol,mType);
 }
 
 // --- main api with dense data support ---
@@ -372,7 +413,9 @@ ridge_regression_with_sgd::train (const colmajor_matrix<T>& data,
                                   double miniBatchFraction,
                                   double regParam,
                                   bool isIntercept,
-                                  double convergenceTol) {
+                                  double convergenceTol,
+                                  MatType mType,
+                                  bool inputMovable) {
 #ifdef _DEBUG_
   std::cout << "Initial model: \n";
   initModel.debug_print(); std::cout << "\n";

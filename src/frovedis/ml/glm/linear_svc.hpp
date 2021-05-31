@@ -18,7 +18,14 @@ struct linear_svm_classifier {
                         bool fit_intercept = false,
                         double mini_batch_fraction = 1.0,
                         int hs = 10,
-                        double convergence_tol = 0.001) {
+                        double convergence_tol = 0.001,
+                        bool warm_start = false,
+                        #if defined(_SX) || defined(__ve__)
+                        MatType mType = HYBRID
+                        #else
+                        MatType mType = CRS
+                        #endif
+                       ) {
     this->max_iter = max_iter;
     this->alpha = alpha;
     this->solver = solver;
@@ -28,8 +35,12 @@ struct linear_svm_classifier {
     this->mbf = mini_batch_fraction;
     this->hist_size = hs;
     this->tol = convergence_tol;
+    this->warm_start = warm_start;
+    this->mat_type = mType;
     this->is_fitted = false;
     this->n_iter_ = 0;
+    this->n_features_ = 0;
+    this->is_mult = false;
   }
   linear_svm_classifier<T>& 
   set_max_iter(int max_iter) {
@@ -92,6 +103,26 @@ struct linear_svm_classifier {
     this->tol = tol;
     return *this;  
   }
+  linear_svm_classifier<T>&
+  set_warm_start(bool warm_start) {
+    this->warm_start = warm_start;
+    return *this;
+  }
+
+  linear_svm_classifier<T>&
+  set_params(glm_config& config) {
+    set_max_iter(config.numIteration);
+    set_alpha(config.alpha);
+    set_solver(config.solver);
+    set_reg_param(config.regParam);
+    set_reg_type(config.regType);
+    set_intercept(config.isIntercept);
+    set_mini_batch_fraction(config.miniBatchFraction);
+    set_hist_size(config.histSize);
+    set_tol(config.convergenceTol);
+    set_warm_start(config.warmStart);
+    return *this;
+  }
 
   // frovedis::grid_sdearch_cv compatible setter
   linear_svm_classifier<T>& 
@@ -136,6 +167,10 @@ struct linear_svm_classifier {
         set_intercept(val.get<bool>());
         msg += "fit intercept: " + val.tt + "; ";
       }
+      else if(param == "warm_start") {
+        set_warm_start(val.get<bool>());
+        msg += "warm_start: " + val.tt + "; ";
+      }
       else REPORT_ERROR(USER_ERROR, "[linear_svm_classifier] Unknown parameter: '" 
                                      + param + "' is encountered!\n");
     }
@@ -153,25 +188,70 @@ struct linear_svm_classifier {
     return regularizer;
   }
 
+  template <class MATRIX>
+  linear_svm_classifier&
+  fit(MATRIX&& mat, dvector<T>& label) {
+    std::vector<T> sample_weight;
+    return fit(std::move(mat), label, sample_weight);
+  }
+
+  template <class MATRIX>
+  linear_svm_classifier&
+  fit(MATRIX&& mat, dvector<T>& label,
+      std::vector<T>& sample_weight) {
+    return _fit(mat, label, sample_weight, true);
+  }
+
+   template <class MATRIX>
+  linear_svm_classifier&
+  fit(const MATRIX& mat, dvector<T>& label) {
+    std::vector<T> sample_weight;
+    return fit(mat, label, sample_weight);
+  }
+
+  template <class MATRIX>
+  linear_svm_classifier&
+  fit(const MATRIX& mat, dvector<T>& label,
+      std::vector<T>& sample_weight) {
+    return _fit(mat, label, sample_weight, false);
+  }
+
   // MATRIX: can accept both rowmajor and colmajor matrices as for dense data; 
   //         and crs matrix as for sparse data
   template <class MATRIX>
   linear_svm_classifier& 
-  fit(MATRIX& mat, dvector<T>& label, 
-      const std::vector<T>& sample_weight = std::vector<T>()) {
+  _fit(MATRIX& mat, dvector<T>& label,
+       std::vector<T>& sample_weight,
+       bool input_movable) {
+    size_t nfeatures = mat.num_col;
+    if(!(warm_start && is_fitted)) {
+      T intercept = fit_intercept ? 1.0 : 0.0;
+      model_bin = svm_model<T>(nfeatures, intercept);
+    }
+    else {
+      require(nfeatures == n_features_,
+      "Fitted model dimension does not match with number of features in input data\n");
+    }
+
     size_t n_iter;
     if (solver == "sgd") {
-      this->model = svm_with_sgd::train(
-                      mat, label, sample_weight, n_iter, max_iter, alpha, mbf,
-                      reg_param, get_regularizer(), fit_intercept, tol);
+      model_bin = svm_with_sgd::train(
+                 mat, label, model_bin, sample_weight, n_iter, 
+                 max_iter, alpha, mbf,
+                 reg_param, get_regularizer(), fit_intercept, tol,
+                 mat_type, input_movable);
     }
     else if (solver == "lbfgs") {
-      this->model = svm_with_lbfgs::train(
-                      mat, label, sample_weight, n_iter, max_iter, alpha, hist_size,
-                      reg_param, get_regularizer(), fit_intercept, tol);
+      model_bin = svm_with_lbfgs::train(
+                 mat, label, model_bin, sample_weight, n_iter, 
+                 max_iter, alpha, hist_size,
+                 reg_param, get_regularizer(), fit_intercept, tol,
+                 mat_type, input_movable);
     }
     else REPORT_ERROR(USER_ERROR, "Unknown solver is encountered!\n");
     this->is_fitted = true;
+    this->n_iter_ = n_iter;
+    this->n_features_ = nfeatures;
     return *this;
   }
 
@@ -182,7 +262,7 @@ struct linear_svm_classifier {
                    "[linear_svm_classifier] predict is called before fit\n");
     return mat.data.map(parallel_predict<typename MATRIX::local_mat_type,
                         svm_model<T>, T>,
-                        broadcast(model))
+                        broadcast(model_bin))
                    .template moveto_dvector<T>()
                    .gather();
   }
@@ -195,16 +275,66 @@ struct linear_svm_classifier {
     return accuracy_score(pred_label, label.gather());
   }
 
+  size_t get_num_features() {
+    return model_bin.get_num_features();
+  }
+
+  size_t get_num_classes() {return 2;}
+
+  T get_threshold() {return model_bin.threshold;}
+
+  void set_threshold(T thr) {model_bin.set_threshold(thr);}
+
+  std::vector<T> get_intercept() {
+    return std::vector<T>({model_bin.intercept});
+  }
+
+  std::vector<T> get_weight() {
+    return model_bin.weight;
+  }
+
+  void debug_print() {
+    model_bin.debug_print();
+  }
+
+  void savebinary(const std::string &inputPath) {
+    model_bin.savebinary(inputPath);
+  }
+
+  void save(const std::string &inputPath) {
+    model_bin.save(inputPath);
+  }
+
+  linear_svm_classifier& loadbinary(const std::string &inputPath) {
+    model_bin.loadbinary(inputPath);
+    n_features_ = model_bin.get_num_features();
+    is_fitted = true;
+    return *this; 
+  }
+
+  linear_svm_classifier& load(const std::string &inputPath) {
+    model_bin.load(inputPath);
+    n_features_ = model_bin.get_num_features();
+    is_fitted = true;
+    return *this; 
+  }
+
   int max_iter, hist_size;
   double alpha, mbf, tol, reg_param;
   std::string reg_type, solver;
   bool fit_intercept;
-  svm_model<T> model;
+  svm_model<T> model_bin;
+  svm_model<T> model_mult;
   bool is_fitted;
   size_t n_iter_ = 0;
+  bool warm_start;
+  size_t n_features_;
+  MatType mat_type;
+  bool is_mult;
   SERIALIZE(max_iter, hist_size, alpha, mbf, tol, 
             reg_param, reg_type, solver,
-            fit_intercept, model, is_fitted, n_iter_); 
+            fit_intercept, model_bin, model_mult, 
+            is_fitted, n_iter_, warm_start, n_features_, mat_type, is_mult); 
 };
 
 }

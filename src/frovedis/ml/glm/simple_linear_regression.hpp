@@ -190,15 +190,17 @@ linear_regression_with_lapack(colmajor_matrix<T>& mat,
                                        fit_intercept);
 }
 
-template <class T>
+template <class T, class I, class O>
 linear_regression_model<T>
-linear_regression_with_lapack(colmajor_matrix<T>& mat,
+linear_regression_with_lapack(crs_matrix<T,I,O>& mat,
                               dvector<T>& label,
+                              int& rank,
+                              std::vector<T>& sval,
                               std::vector<T>& sample_weight,
                               bool fit_intercept = true) {
-  int rank;
-  std::vector<T> sval;
-  return linear_regression_with_lapack(mat, label, rank, sval, fit_intercept);
+  std::string msg = "lapack solver is supported only for dense data!\n";
+  REPORT_ERROR(USER_ERROR, msg);
+  return linear_regression_model<T>(); // never reachable: to supress compiler warning!
 }
 
 template <class T>
@@ -228,6 +230,17 @@ linear_regression_with_scalapack(colmajor_matrix<T>& mat,
                                 r_Bmat, mat.num_col);
   if(fit_intercept) set_intercept(model, Amean, Bmean);
   return model;
+}
+
+template <class T, class I, class O>
+linear_regression_model<T>
+linear_regression_with_scalapack(crs_matrix<T,I,O>& mat,
+                                 dvector<T>& label,
+                                 std::vector<T>& sample_weight,
+                                 bool fit_intercept = true) {
+  std::string msg = "scalapack solver is supported only for dense data!\n";
+  REPORT_ERROR(USER_ERROR, msg);
+  return linear_regression_model<T>(); // never reachable: to supress compiler warning!
 }
 
 }

@@ -3,6 +3,7 @@
 
 #include <cstdlib>
 #include "softmax_gradient_descent.hpp"
+#include "../utility/mattype.hpp"
 
 namespace frovedis {
 
@@ -17,6 +18,7 @@ struct multinomial_logistic_regression_model {
     nfeatures = m.nfeatures;
     isIntercept = m.isIntercept;
     nclasses = m.nclasses;
+    threshold = m.threshold;
   }
 
   multinomial_logistic_regression_model(
@@ -26,35 +28,40 @@ struct multinomial_logistic_regression_model {
     nfeatures = m.nfeatures;
     isIntercept = m.isIntercept;
     nclasses = m.nclasses;
+    threshold = m.threshold;
   }
 
   multinomial_logistic_regression_model<T>&
-  operator= (const multinomial_logistic_regression_model<T>& l) {
-    weight = l.weight;
-    intercept = l.intercept;
-    nfeatures = l.nfeatures;
-    isIntercept = l.isIntercept;
-    nclasses = l.nclasses;
+  operator= (const multinomial_logistic_regression_model<T>& m) {
+    weight = m.weight;
+    intercept = m.intercept;
+    nfeatures = m.nfeatures;
+    isIntercept = m.isIntercept;
+    nclasses = m.nclasses;
+    threshold = m.threshold;
     return *this;
   }
 
   multinomial_logistic_regression_model<T>&
-  operator= (multinomial_logistic_regression_model<T>&& l) {
-    weight = l.weight;
-    intercept.swap(l.intercept);
-    nfeatures = l.nfeatures;
-    isIntercept = l.isIntercept;
-    nclasses = l.nclasses;
+  operator= (multinomial_logistic_regression_model<T>&& m) {
+    weight = m.weight;
+    intercept.swap(m.intercept);
+    nfeatures = m.nfeatures;
+    isIntercept = m.isIntercept;
+    nclasses = m.nclasses;
+    threshold = m.threshold;
     return *this;
   }
 
   multinomial_logistic_regression_model(size_t feature, 
                      size_t classes,
-                     bool isIcpt = false): weight(feature,classes), 
-                     intercept(classes,0) {
+                     bool isIcpt = false,
+                     double thr = 0.5):
+    weight(feature, classes), intercept(classes, 0) {
     isIntercept = isIcpt;
     nclasses = classes;
     nfeatures = feature;
+    threshold = thr; //To make it uniform with binary model
   }
 
   void debug_print() {
@@ -81,42 +88,39 @@ struct multinomial_logistic_regression_model {
   std::vector<T> predict (MATRIX& mat) {
     auto nsamples = mat.local_num_row;
     auto softmax_mat = compute_probability_matrix(mat);
-    std::vector<T> ret(nsamples,0);
-    auto retp = ret.data();
+    std::vector<T> ret_lbl(nsamples,0), ret_proba(nsamples, 0);
+    auto ret_lblp = ret_lbl.data();
+    auto ret_probap = ret_proba.data();
     auto smatp = softmax_mat.val.data();
+    for (size_t i = 0; i < nsamples; ++i) ret_probap[i] = smatp[i * nclasses + 0];
     for(size_t j = 1; j < nclasses; ++j) { // j starts from 1, considering 0th class as target label
       for (size_t i = 0; i < nsamples; ++i) { // nsamples >> nclasses
-        auto max_id = static_cast<int>(retp[i]);
-        auto max_proba = smatp[i * nclasses + max_id];
+        auto max_proba = ret_probap[i];
         auto cur_proba = smatp[i * nclasses + j];
-        if(cur_proba > max_proba) retp[i] = j;
+        if(cur_proba > max_proba) {
+          ret_lblp[i] = j;
+          ret_probap[i] = cur_proba;
+        }
       }
     }
-    return ret;
+    // for spark: if threshold is cleared, it will always return raw probability values
+    if (get_threshold() == NONE) return ret_proba;
+    else return ret_lbl;
   }
 
   template <class MATRIX>
-  std::vector<T> predict_probability (MATRIX& mat) {
-    auto nsamples = mat.local_num_row;
-    auto softmax_mat = compute_probability_matrix(mat);
-    std::vector<T> ret(nsamples,0);
-    auto retp = ret.data();
-    auto smatp = softmax_mat.val.data();
-    for (size_t i = 0; i < nsamples; ++i) retp[i] = smatp[i * nclasses + 0];
-    for(size_t j = 1; j < nclasses; ++j) { // j starts from 1, considering 0th class as target label
-      for (size_t i = 0; i < nsamples; ++i) { // nsamples >> nclasses
-        auto max_proba = retp[i];
-        auto cur_proba = smatp[i * nclasses + j];
-        if(cur_proba > max_proba) retp[i] = cur_proba; 
-      }
-    }
+  std::vector<T> predict_probability (MATRIX& mat, bool use_score = false) {
+    auto thr = get_threshold();
+    set_threshold(NONE);
+    auto ret = predict(mat);
+    set_threshold(thr);
     return ret;
   }
 
   size_t get_num_features() { return nfeatures; }
   size_t get_num_classes()  { return nclasses; }
-  T get_threshold() { return 0.5; } // to make it uniform
-  void set_threshold(T thr) {/*skip*/}     // to make it call by spark
+  T get_threshold() { return threshold;} // to make it uniform
+  void set_threshold(T thr) {threshold = thr;}     // to make it call by spark
 
   void __create_dir_struct (const std::string& dir) {
     struct stat sb;
@@ -131,7 +135,7 @@ struct multinomial_logistic_regression_model {
     }
   }
 
-  void save (const std::string& dir) {
+  void save(const std::string& dir) {
     __create_dir_struct(dir);
     std::string weight_file = dir + "/weight";
     weight.save(weight_file); //weight: rowmajor_matrix_local<T>
@@ -145,10 +149,11 @@ struct multinomial_logistic_regression_model {
     metadata_str << nclasses    << std::endl;
     metadata_str << nfeatures   << std::endl;
     metadata_str << isIntercept << std::endl;
+    metadata_str << threshold << std::endl;
     //std::cout << "save request on multinomial logistic regression model with dirname: " << dir << std::endl;
   }
 
-  void savebinary (const std::string& dir) {
+  void savebinary(const std::string& dir) {
     __create_dir_struct(dir);
     std::string weight_dir = dir + "/weight";
     weight.savebinary(weight_dir); //weight: rowmajor_matrix_local<T>
@@ -161,6 +166,7 @@ struct multinomial_logistic_regression_model {
     metadata_str << nclasses    << std::endl;
     metadata_str << nfeatures   << std::endl;
     metadata_str << isIntercept << std::endl;
+    metadata_str << threshold << std::endl;
     //std::cout << "save binary request on multinomial logistic regression model with dirname: " << dir << std::endl;
   }
 
@@ -175,6 +181,7 @@ struct multinomial_logistic_regression_model {
     metadata_str >> nclasses;
     metadata_str >> nfeatures;
     metadata_str >> isIntercept;
+    metadata_str >> threshold;
     //std::cout << "load request for multinomial logistic regression model with dirname: " << dir << std::endl;
   }
 
@@ -188,6 +195,7 @@ struct multinomial_logistic_regression_model {
     metadata_str >> nclasses;
     metadata_str >> nfeatures;
     metadata_str >> isIntercept;
+    metadata_str >> threshold;
     //std::cout << "loadbinary request for multinomial logistic regression model with dirname: " << dir << std::endl;
   }
 
@@ -197,42 +205,43 @@ struct multinomial_logistic_regression_model {
   std::vector<T> intercept;
   size_t nfeatures, nclasses;
   bool isIntercept;
-  SERIALIZE(weight,intercept,nfeatures,nclasses,isIntercept)
+  double threshold;
+  SERIALIZE(weight,intercept,nfeatures,nclasses,isIntercept,threshold)
 };
 
 template <class T>
 multinomial_logistic_regression_model<T>
 operator- (const multinomial_logistic_regression_model<T>& m1,
            const multinomial_logistic_regression_model<T>& m2) {
-  checkAssumption(m1.nfeatures == m2.nfeatures && m1.nclasses == m2.nclasses);
-  multinomial_logistic_regression_model<T> ret(m1.nfeatures,m1.nclasses);
-  const T* m1wp = &m1.weight.val[0];
-  const T* m2wp = &m2.weight.val[0];
-  const T* m1ip = &m1.intercept[0];
-  const T* m2ip = &m2.intercept[0];
-  T* rwp = &ret.weight.val[0];
-  T* rip = &ret.intercept[0];
-  for(size_t i=0; i<ret.weight.val.size(); ++i) rwp[i] = m1wp[i] - m2wp[i];
-  for(size_t i=0; i<ret.nclasses; ++i) rip[i] = m1ip[i] - m2ip[i];
+  checkAssumption(m1.nfeatures == m2.nfeatures && 
+                  m1.nclasses == m2.nclasses &&
+                  m1.isIntercept == m2.isIntercept && 
+                  m1.threshold == m2.threshold);
+  multinomial_logistic_regression_model<T> ret(m1.nfeatures, m1.nclasses,
+                                               m1.isIntercept, m1.threshold);
+  ret.weight.val = m1.weight.val - m2.weight.val;
+  ret.intercept = m1.intercept - m2.intercept;
   return ret;
 }
 
 template <class T>
 struct model_bcast_helper {
   model_bcast_helper() {}
-  model_bcast_helper(size_t nc, size_t nf, bool in): 
-  nclasses(nc),nfeatures(nf),isIntercept(in) {}
+  model_bcast_helper(size_t nc, size_t nf, bool in, double thr): 
+  nclasses(nc),nfeatures(nf),isIntercept(in),threshold(thr) {}
   multinomial_logistic_regression_model<T> 
   operator()(rowmajor_matrix_local<T>& weight,
              std::vector<T>& intercept) {
     multinomial_logistic_regression_model<T> ret(nfeatures, nclasses, isIntercept);
     ret.weight = std::move(weight);
     ret.intercept.swap(intercept);
+    ret.threshold = threshold;
     return ret;
   }
   size_t nclasses,nfeatures;
   bool isIntercept;
-  SERIALIZE(nclasses,nfeatures,isIntercept)
+  double threshold;
+  SERIALIZE(nclasses,nfeatures,isIntercept,threshold)
 };
 
 template <class T>
@@ -240,7 +249,8 @@ node_local<multinomial_logistic_regression_model<T>>
 multinomial_logistic_regression_model<T>::broadcast() {
   auto bweight = weight.broadcast();
   auto bintercept = frovedis::broadcast(intercept);
-  return bweight.map(model_bcast_helper<T>(nclasses,nfeatures,isIntercept),
+  return bweight.map(model_bcast_helper<T>(nclasses,nfeatures,
+                     isIntercept,threshold),
                      bintercept);
 }
 

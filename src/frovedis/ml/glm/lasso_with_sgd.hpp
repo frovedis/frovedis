@@ -84,9 +84,9 @@ public:
   static linear_regression_model<T> train (
     crs_matrix<T,I,O>&& data,
     dvector<T>& label,
+    linear_regression_model<T>& lrm,
     std::vector<T>& sample_weight,
     size_t& n_iter,
-    linear_regression_model<T>& lrm,
     size_t numIteration=1000, 
     double alpha=0.01, 
     double miniBatchFraction=1.0, 
@@ -104,9 +104,9 @@ public:
   static linear_regression_model<T> train (
     crs_matrix<T,I,O>& data,
     dvector<T>& label,
+    linear_regression_model<T>& lrm,
     std::vector<T>& sample_weight,
     size_t& n_iter,
-    linear_regression_model<T>& lrm,
     size_t numIteration=1000, 
     double alpha=0.01, 
     double miniBatchFraction=1.0, 
@@ -131,7 +131,13 @@ public:
     double miniBatchFraction=1.0,
     double regParam=0.01,
     bool isIntercept=false,
-    double convergenceTol=0.001);
+    double convergenceTol=0.001, 
+#if defined(_SX) || defined(__ve__)
+    MatType mType = HYBRID 
+#else
+    MatType mType = CRS
+#endif 
+  );
 
   template <class T>
   static linear_regression_model<T> train (
@@ -144,7 +150,13 @@ public:
     double miniBatchFraction=1.0,
     double regParam=0.01,
     bool isIntercept=false,
-    double convergenceTol=0.001);
+    double convergenceTol=0.001, 
+#if defined(_SX) || defined(__ve__)
+    MatType mType = HYBRID 
+#else
+    MatType mType = CRS
+#endif 
+  );
 
   template <class T>
   static linear_regression_model<T> train (
@@ -155,7 +167,13 @@ public:
     double miniBatchFraction=1.0, 
     double regParam=0.01, 
     bool isIntercept=false,
-    double convergenceTol=0.001);
+    double convergenceTol=0.001, 
+#if defined(_SX) || defined(__ve__)
+    MatType mType = HYBRID 
+#else
+    MatType mType = CRS
+#endif 
+  );
 
   template <class T>
   static linear_regression_model<T> train (
@@ -168,21 +186,34 @@ public:
     double miniBatchFraction=1.0,
     double regParam=0.01,
     bool isIntercept=false,
-    double convergenceTol=0.001);
+    double convergenceTol=0.001, 
+#if defined(_SX) || defined(__ve__)
+    MatType mType = HYBRID 
+#else
+    MatType mType = CRS
+#endif 
+  );
 
   template <class T>
   static linear_regression_model<T> train (
     const colmajor_matrix<T>& data,
     dvector<T>& label,
+    linear_regression_model<T>& initModel,
     std::vector<T>& sample_weight,
     size_t& n_iter,
-    linear_regression_model<T>& initModel,
     size_t numIteration=1000, 
     double alpha=0.01, 
     double miniBatchFraction=1.0, 
     double regParam=0.01, 
     bool isIntercept=false,
-    double convergenceTol=0.001);
+    double convergenceTol=0.001, 
+#if defined(_SX) || defined(__ve__)
+    MatType mType = HYBRID,
+#else
+    MatType mType = CRS,
+#endif
+    bool inputMovable=false 
+  );
 };
 
 template <class T, class I, class O>
@@ -200,7 +231,8 @@ lasso_with_sgd::train (crs_matrix<T,I,O>& data,
   linear_regression_model<T> initModel(numFeatures);
   size_t n_iter = 0;
   std::vector<T> sample_weight;
-  return train<T>(data,label,sample_weight,n_iter,initModel,numIteration,alpha,miniBatchFraction,
+  return train<T>(data,label,initModel,sample_weight,n_iter,
+                  numIteration,alpha,miniBatchFraction,
                   regParam,isIntercept,convergenceTol,mType,false);
 }
 
@@ -219,7 +251,8 @@ lasso_with_sgd::train (crs_matrix<T,I,O>& data,
                        MatType mType) {
   size_t numFeatures = data.num_col;
   linear_regression_model<T> initModel(numFeatures);
-  return train<T>(data,label,sample_weight,n_iter,initModel,numIteration,alpha,miniBatchFraction,
+  return train<T>(data,label,initModel,sample_weight,n_iter,
+                  numIteration,alpha,miniBatchFraction,
                   regParam,isIntercept,convergenceTol,mType,false);
 }
 
@@ -238,7 +271,8 @@ lasso_with_sgd::train (crs_matrix<T,I,O>&& data,
   linear_regression_model<T> initModel(numFeatures);
   size_t n_iter = 0;
   std::vector<T> sample_weight;
-  return train<T>(data,label,sample_weight,n_iter,initModel,numIteration,alpha,miniBatchFraction,
+  return train<T>(data,label,initModel,sample_weight,n_iter,
+                  numIteration,alpha,miniBatchFraction,
                   regParam,isIntercept,convergenceTol,mType,true);
 }
 
@@ -257,7 +291,8 @@ lasso_with_sgd::train (crs_matrix<T,I,O>&& data,
                        MatType mType) {
   size_t numFeatures = data.num_col;
   linear_regression_model<T> initModel(numFeatures);
-  return train<T>(data,label,sample_weight,n_iter,initModel,numIteration,alpha,miniBatchFraction,
+  return train<T>(data,label,initModel,sample_weight,n_iter,
+                  numIteration,alpha,miniBatchFraction,
                   regParam,isIntercept,convergenceTol,mType,true);
 }
 
@@ -265,9 +300,9 @@ template <class T, class I, class O>
 linear_regression_model<T>
 lasso_with_sgd::train (crs_matrix<T,I,O>&& data,
                        dvector<T>& label,
+                       linear_regression_model<T>& initModel,
                        std::vector<T>& sample_weight,
                        size_t& n_iter,
-                       linear_regression_model<T>& initModel,
                        size_t numIteration,
                        double alpha,
                        double miniBatchFraction,
@@ -275,7 +310,8 @@ lasso_with_sgd::train (crs_matrix<T,I,O>&& data,
                        bool isIntercept,
                        double convergenceTol,
                        MatType mType) {
-  return train<T>(data,label,sample_weight,n_iter,initModel,numIteration,alpha,miniBatchFraction,
+  return train<T>(data,label,initModel,sample_weight,n_iter,
+                  numIteration,alpha,miniBatchFraction,
                   regParam,isIntercept,convergenceTol,mType,true);
 }
 
@@ -284,9 +320,9 @@ template <class T, class I, class O>
 linear_regression_model<T>
 lasso_with_sgd::train (crs_matrix<T,I,O>& data,
                        dvector<T>& label,
+                       linear_regression_model<T>& initModel,
                        std::vector<T>& sample_weight,
                        size_t& n_iter,
-                       linear_regression_model<T>& initModel,
                        size_t numIteration,
                        double alpha,
                        double miniBatchFraction,
@@ -319,10 +355,11 @@ lasso_with_sgd::train (rowmajor_matrix<T>& data,
                        double miniBatchFraction,
                        double regParam,
                        bool isIntercept,
-                       double convergenceTol) {
+                       double convergenceTol,
+                       MatType mType) {
   return train<T>(colmajor_matrix<T>(data),label,
                   numIteration, alpha, miniBatchFraction,
-                  regParam, isIntercept, convergenceTol);
+                  regParam, isIntercept, convergenceTol,mType);
 }
 
 template <class T>
@@ -336,11 +373,12 @@ lasso_with_sgd::train (rowmajor_matrix<T>& data,
                        double miniBatchFraction,
                        double regParam,
                        bool isIntercept,
-                       double convergenceTol) {
+                       double convergenceTol,
+                       MatType mType) {
   return train<T>(colmajor_matrix<T>(data),label,
                   sample_weight, n_iter,
                   numIteration, alpha, miniBatchFraction,
-                  regParam, isIntercept, convergenceTol);
+                  regParam, isIntercept, convergenceTol,mType);
 }
 
 template <class T>
@@ -352,13 +390,15 @@ lasso_with_sgd::train (const colmajor_matrix<T>& data,
                        double miniBatchFraction,
                        double regParam,
                        bool isIntercept,
-                       double convergenceTol) {
+                       double convergenceTol,
+                       MatType mType) {
   size_t numFeatures = data.num_col;
   linear_regression_model<T> initModel(numFeatures);
   size_t n_iter = 0;
   std::vector<T> sample_weight;
-  return train<T>(data,label,sample_weight,n_iter,initModel,numIteration,alpha,miniBatchFraction,
-                  regParam,isIntercept,convergenceTol);
+  return train<T>(data,label,initModel,sample_weight,n_iter,
+                  numIteration,alpha,miniBatchFraction,
+                  regParam,isIntercept,convergenceTol,mType);
 }
 
 template <class T>
@@ -372,11 +412,13 @@ lasso_with_sgd::train (const colmajor_matrix<T>& data,
                        double miniBatchFraction,
                        double regParam,
                        bool isIntercept,
-                       double convergenceTol) {
+                       double convergenceTol,
+                       MatType mType) {
   size_t numFeatures = data.num_col;
   linear_regression_model<T> initModel(numFeatures);
-  return train<T>(data,label,sample_weight,n_iter,initModel,numIteration,alpha,miniBatchFraction,
-                  regParam,isIntercept,convergenceTol);
+  return train<T>(data,label,initModel,sample_weight,n_iter,
+                  numIteration,alpha,miniBatchFraction,
+                  regParam,isIntercept,convergenceTol,mType);
 }
 
 // --- main api with dense data suppoort ---
@@ -384,15 +426,17 @@ template <class T>
 linear_regression_model<T>
 lasso_with_sgd::train (const colmajor_matrix<T>& data,
                        dvector<T>& label,
+                       linear_regression_model<T>& initModel,
                        std::vector<T>& sample_weight,
                        size_t& n_iter,
-                       linear_regression_model<T>& initModel,
                        size_t numIteration,
                        double alpha,
                        double miniBatchFraction,
                        double regParam,
                        bool isIntercept,
-                       double convergenceTol) {
+                       double convergenceTol,
+                       MatType mType,
+                       bool inputMovable) {
 #ifdef _DEBUG_
   std::cout << "Initial model: \n";
   initModel.debug_print(); std::cout << "\n";

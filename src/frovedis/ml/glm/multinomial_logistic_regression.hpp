@@ -129,7 +129,12 @@ public:
     double regParam=0.01,
     RegType regTyp=ZERO,
     bool isIntercept=false,
-    double convergenceTol=0.001
+    double convergenceTol=0.001,
+#if defined(_SX) || defined(__ve__)
+    MatType mType = HYBRID 
+#else
+    MatType mType = CRS
+#endif 
   );
 
   template <class T>
@@ -143,7 +148,68 @@ public:
     double regParam=0.01,
     RegType regTyp=ZERO,
     bool isIntercept=false,
-    double convergenceTol=0.001
+    double convergenceTol=0.001,
+#if defined(_SX) || defined(__ve__)
+    MatType mType = HYBRID 
+#else
+    MatType mType = CRS
+#endif 
+  );
+
+  template <class T>
+  static multinomial_logistic_regression_model<T> train(
+    colmajor_matrix<T>&& data,
+    dvector<T>& label,
+    size_t numIteration=1000,
+    double alpha=0.01,
+    double regParam=0.01,
+    RegType regTyp=ZERO,
+    bool isIntercept=false,
+    double convergenceTol=0.001,
+#if defined(_SX) || defined(__ve__)
+    MatType mType = HYBRID 
+#else
+    MatType mType = CRS
+#endif 
+  );
+
+  template <class T>
+  static multinomial_logistic_regression_model<T> train(
+    colmajor_matrix<T>&& data,
+    dvector<T>& label,
+    std::vector<T>& sample_weight,
+    size_t& n_iter,
+    size_t numIteration=1000,
+    double alpha=0.01,
+    double regParam=0.01,
+    RegType regTyp=ZERO,
+    bool isIntercept=false,
+    double convergenceTol=0.001,
+#if defined(_SX) || defined(__ve__)
+    MatType mType = HYBRID 
+#else
+    MatType mType = CRS
+#endif 
+  );
+
+  template <class T>
+  static multinomial_logistic_regression_model<T> train(
+    colmajor_matrix<T>&& data,
+    dvector<T>& label,
+    multinomial_logistic_regression_model<T>& lrm,
+    std::vector<T>& sample_weight,
+    size_t& n_iter,
+    size_t numIteration=1000,
+    double alpha=0.01,
+    double regParam=0.01,
+    RegType regTyp=ZERO,
+    bool isIntercept=false,
+    double convergenceTol=0.001,
+#if defined(_SX) || defined(__ve__)
+    MatType mType = HYBRID 
+#else
+    MatType mType = CRS
+#endif 
   );
 
   template <class T>
@@ -158,7 +224,13 @@ public:
     double regParam=0.01,
     RegType regTyp=ZERO,
     bool isIntercept=false,
-    double convergenceTol=0.001
+    double convergenceTol=0.001,
+#if defined(_SX) || defined(__ve__)
+    MatType mType = HYBRID, 
+#else
+    MatType mType = CRS,
+#endif 
+    bool inputMovable=false
   );
 };
 
@@ -243,7 +315,7 @@ multinomial_logistic_regression::train (crs_matrix<T,I,O>&& data,
   size_t nfeatures = data.num_col;
   size_t nclasses = compute_nclasses(label);
   multinomial_logistic_regression_model<T> initModel(nfeatures,nclasses,isIntercept);
-  return train<T,I,O>(data,label,initModel,n_iter,numIteration,alpha,
+  return train<T,I,O>(data,label,initModel,sample_weight,n_iter,numIteration,alpha,
                   regParam,regTyp,isIntercept,convergenceTol,mType,true);
 }
 
@@ -261,7 +333,7 @@ multinomial_logistic_regression::train (crs_matrix<T,I,O>&& data,
                                      bool isIntercept,
                                      double convergenceTol,
                                      MatType mType) {
-  return train<T,I,O>(data,label,initModel,n_iter,numIteration,alpha,
+  return train<T,I,O>(data,label,initModel,sample_weight,n_iter,numIteration,alpha,
                   regParam,regTyp,isIntercept,convergenceTol,mType,true);
 }
 
@@ -318,14 +390,15 @@ multinomial_logistic_regression::train (colmajor_matrix<T>& data,
                                      double regParam,
                                      RegType regTyp,
                                      bool isIntercept,
-                                     double convergenceTol) {
+                                     double convergenceTol,
+                                     MatType mType) {
   size_t nfeatures = data.num_col;
   size_t nclasses = compute_nclasses(label);
   multinomial_logistic_regression_model<T> initModel(nfeatures,nclasses,isIntercept);
   size_t n_iter = 0;
   std::vector<T> sample_weight;
   return train<T>(data,label,initModel,sample_weight,n_iter,numIteration,alpha,
-                  regParam,regTyp,isIntercept,convergenceTol);
+                  regParam,regTyp,isIntercept,convergenceTol,mType);
 }
 
 template <class T>
@@ -339,12 +412,71 @@ multinomial_logistic_regression::train (colmajor_matrix<T>& data,
                                      double regParam,
                                      RegType regTyp,
                                      bool isIntercept,
-                                     double convergenceTol) {
+                                     double convergenceTol,
+                                     MatType mType) {
   size_t nfeatures = data.num_col;
   size_t nclasses = compute_nclasses(label);
   multinomial_logistic_regression_model<T> initModel(nfeatures,nclasses,isIntercept);
   return train<T>(data,label,initModel,sample_weight,n_iter,numIteration,alpha,
-                  regParam,regTyp,isIntercept,convergenceTol);
+                  regParam,regTyp,isIntercept,convergenceTol,mType);
+}
+
+template <class T>
+multinomial_logistic_regression_model<T>
+multinomial_logistic_regression::train (colmajor_matrix<T>&& data,
+                                     dvector<T>& label,
+                                     size_t numIteration,
+                                     double alpha,
+                                     double regParam,
+                                     RegType regTyp,
+                                     bool isIntercept,
+                                     double convergenceTol,
+                                     MatType mType) {
+  size_t nfeatures = data.num_col;
+  size_t nclasses = compute_nclasses(label);
+  multinomial_logistic_regression_model<T> initModel(nfeatures,nclasses,isIntercept);
+  size_t n_iter = 0;
+  std::vector<T> sample_weight;
+  return train<T>(data,label,initModel,sample_weight,n_iter,numIteration,alpha,
+                  regParam,regTyp,isIntercept,convergenceTol,mType,true);
+}
+
+template <class T>
+multinomial_logistic_regression_model<T>
+multinomial_logistic_regression::train (colmajor_matrix<T>&& data,
+                                     dvector<T>& label,
+                                     std::vector<T>& sample_weight,
+                                     size_t& n_iter,
+                                     size_t numIteration,
+                                     double alpha,
+                                     double regParam,
+                                     RegType regTyp,
+                                     bool isIntercept,
+                                     double convergenceTol,
+                                     MatType mType) {
+  size_t nfeatures = data.num_col;
+  size_t nclasses = compute_nclasses(label);
+  multinomial_logistic_regression_model<T> initModel(nfeatures,nclasses,isIntercept);
+  return train<T>(data,label,initModel,sample_weight,n_iter,numIteration,alpha,
+                  regParam,regTyp,isIntercept,convergenceTol,mType,true);
+}
+
+template <class T>
+multinomial_logistic_regression_model<T>
+multinomial_logistic_regression::train (colmajor_matrix<T>&& data,
+                                     dvector<T>& label,
+                                     multinomial_logistic_regression_model<T>& initModel,
+                                     std::vector<T>& sample_weight,
+                                     size_t& n_iter,
+                                     size_t numIteration,
+                                     double alpha,
+                                     double regParam,
+                                     RegType regTyp,
+                                     bool isIntercept,
+                                     double convergenceTol,
+                                     MatType mType) {
+  return train<T>(data,label,initModel,sample_weight,n_iter,numIteration,alpha,
+                  regParam,regTyp,isIntercept,convergenceTol,mType,true);
 }
 
 template <class T>
@@ -359,7 +491,9 @@ multinomial_logistic_regression::train (colmajor_matrix<T>& data,
                                      double regParam,
                                      RegType regTyp,
                                      bool isIntercept,
-                                     double convergenceTol) {
+                                     double convergenceTol,
+                                     MatType mType,
+                                     bool inputMovable) {
 #ifdef _DEBUG_
   std::cout << "Initial model: \n";
   initModel.debug_print(); std::cout << "\n";

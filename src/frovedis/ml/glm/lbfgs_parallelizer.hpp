@@ -192,7 +192,7 @@ void lbfgs_parallelizer::do_train(node_local<DATA_MATRIX>& data,
     std::string msg = "[Iteration: " + ITOS(i) + "] elapsed-time: ";
     t.show(msg);
   }
-  i = n_iter;
+  n_iter = i;
   t2.show("whole iteration: ");
 }
 
