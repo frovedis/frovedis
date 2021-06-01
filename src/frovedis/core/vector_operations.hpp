@@ -31,6 +31,7 @@
  *    numpy.ones(sz) -> vector_ones(sz)
  *    numpy.full(sz, val) [numpy.ndarray.fill(val)] -> vector_full(sz, val)
  *    numpy.ndarray.astype(dtype) -> vector_astype<T>()
+ *                                -> vector_string_astype(): for casting into strings
  *    numpy.arange(st, end, step) -> vector_arrange(st, end, step)
  *    numpy.unique(x, ...) -> vector_unique(x, ...)
  *    numpy.bincount(x) -> vector_bincount(x) (x should be non-negative int-vector)
@@ -302,6 +303,15 @@ vector_astype(const std::vector<T>& vec) {
   auto vptr = vec.data();
   auto rptr = ret.data();
   for(size_t i = 0; i < vecsz; ++i) rptr[i] = static_cast<R>(vptr[i]);
+  return ret;
+}
+
+template <class T>
+std::vector<std::string>
+vector_string_astype(const std::vector<T>& vec) {
+  auto vecsz = vec.size();
+  std::vector<std::string> ret(vecsz);
+  for(size_t i = 0; i < vecsz; ++i) ret[i] = STR(vec[i]);
   return ret;
 }
 
