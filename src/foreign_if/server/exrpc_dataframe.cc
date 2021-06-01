@@ -3,6 +3,17 @@
 
 using namespace frovedis;
 
+dftable* get_dftable_pointer(exrpc_ptr_t& df_proxy) {
+  dftable* dftblp = NULL;
+  auto base_dftblp = reinterpret_cast<dftable_base*>(df_proxy);
+  if(base_dftblp-> need_materialize()) {
+    dftblp = new dftable(base_dftblp->materialize());
+    if (!dftblp) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed.\n");
+  }
+  else dftblp = reinterpret_cast<dftable*>(df_proxy);
+  return dftblp;
+}
+
 exrpc_ptr_t create_dataframe (std::vector<short>& types,
                               std::vector<std::string>& cols,
                               std::vector<exrpc_ptr_t>& dvec_proxies) {
@@ -42,6 +53,7 @@ exrpc_ptr_t create_dataframe (std::vector<short>& types,
 void show_dataframe(exrpc_ptr_t& df_proxy) {
   auto dftblp = reinterpret_cast<dftable_base*>(df_proxy);
   dftblp->show();
+  //for (auto& dt: dftblp->dtypes()) std::cout << dt.first << ": " << dt.second << "\n";
 }
 
 exrpc_ptr_t get_str_dfoperator(std::string& op1, std::string& op2,
@@ -685,17 +697,10 @@ size_t get_dataframe_length(exrpc_ptr_t& df_proxy) {
 
 dummy_dftable
 frov_df_convert_dicstring_to_bool(exrpc_ptr_t& df_proxy,
-                                std::vector<std::string>& col_names,
-                                std::string& nullstr, bool& need_materialize) {
-  dftable* dftblp = NULL;
-  if (need_materialize) {
-    auto dftblp_ = reinterpret_cast<dftable_base*>(df_proxy);
-    dftblp = new dftable(dftblp_->materialize());
-  }
-  else dftblp = reinterpret_cast<dftable*>(df_proxy);
-
-  if (!dftblp) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed.\n");
-  
+                                  std::vector<std::string>& col_names,
+                                  std::string& nullstr, 
+                                  bool& need_materialize) { // TODO: remove need_materialize
+  auto dftblp = get_dftable_pointer(df_proxy); 
   auto cols = dftblp->columns();
   for (auto& e: col_names){
     auto it = std::find (cols.begin(), cols.end(), e);
@@ -709,19 +714,14 @@ frov_df_convert_dicstring_to_bool(exrpc_ptr_t& df_proxy,
 }
 
 dummy_dftable
-frov_df_append_column(exrpc_ptr_t& df_proxy, std::string& col_name,
-                    short& type, exrpc_ptr_t& dvec_proxy, int& position,
-                    bool& need_materialize, bool& drop_old) {
+frov_df_append_column(exrpc_ptr_t& df_proxy, 
+                      std::string& col_name, short& type, 
+                      exrpc_ptr_t& dvec_proxy, int& position,
+                      bool& need_materialize, // TODO: remove need_materialize
+                      bool& drop_old) {
   dftable* dftblp = NULL;
-  if (df_proxy == -1) { // empty dataframe
-    dftblp = new dftable();
-  }
-  else if (need_materialize) {
-    auto dftblp_ = reinterpret_cast<dftable_base*>(df_proxy);
-    dftblp = new dftable(dftblp_->materialize());
-  }
-  else dftblp = reinterpret_cast<dftable*>(df_proxy);
-  if (!dftblp) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed.\n");
+  if (df_proxy == -1)  dftblp = new dftable(); // empty dataframe
+  else dftblp = get_dftable_pointer(df_proxy);
 
   auto df_col_order = dftblp->columns(); // original col_order
   auto sz = df_col_order.size();
@@ -767,15 +767,10 @@ frov_df_append_column(exrpc_ptr_t& df_proxy, std::string& col_name,
 }
 
 dummy_dftable
-frov_df_add_index(exrpc_ptr_t& df_proxy, std::string& name,
-                  bool& need_materialize) {
-  dftable* dftblp = NULL;
-  if (need_materialize) {
-    auto dftblp_ = reinterpret_cast<dftable_base*>(df_proxy);
-    dftblp = new dftable(dftblp_->materialize());
-  }
-  else dftblp = reinterpret_cast<dftable*>(df_proxy);
-  if (!dftblp) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed.\n");
+frov_df_add_index(exrpc_ptr_t& df_proxy, 
+                  std::string& name,
+                  bool& need_materialize) { // TODO: remove need_materialize
+  auto dftblp = get_dftable_pointer(df_proxy);
   dftblp->add_index(name);
   return to_dummy_dftable(dftblp);
 }
@@ -783,14 +778,8 @@ frov_df_add_index(exrpc_ptr_t& df_proxy, std::string& name,
 dummy_dftable
 frov_df_reset_index(exrpc_ptr_t& df_proxy, 
                     bool& drop, 
-                    bool& need_materialize) {
-  dftable* dftblp = NULL;
-  if (need_materialize) {
-    auto dftblp_ = reinterpret_cast<dftable_base*>(df_proxy);
-    dftblp = new dftable(dftblp_->materialize());
-  }
-  else dftblp = reinterpret_cast<dftable*>(df_proxy);
-  if (!dftblp) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed.\n");
+                    bool& need_materialize) { // TODO: remove need_materialize
+  auto dftblp = get_dftable_pointer(df_proxy);
   auto cols = dftblp->columns();
   checkAssumption(cols.size() > 0);
 
@@ -820,14 +809,8 @@ dummy_dftable
 frov_df_drop_duplicates(exrpc_ptr_t& df_proxy, 
                         std::vector<std::string>& cols,
                         std::string& keep,
-                        bool& need_materialize) {
-  dftable* dftblp = NULL;
-  if (need_materialize) {
-    auto dftblp_ = reinterpret_cast<dftable_base*>(df_proxy);
-    dftblp = new dftable(dftblp_->materialize());
-  }
-  else dftblp = reinterpret_cast<dftable*>(df_proxy);
-  if (!dftblp) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed.\n");
+                        bool& need_materialize) { // TODO: remove need_materialize
+  auto dftblp = get_dftable_pointer(df_proxy);
   auto retp = new dftable(dftblp->drop_duplicates(cols, keep));
   return to_dummy_dftable(retp);
 }
@@ -837,14 +820,8 @@ frov_df_set_index(exrpc_ptr_t& df_proxy,
                   std::string& cur_index_name, // existing index column
                   std::string& new_index_name, // existing column to be set as index
                   bool& verify_integrity,
-                  bool& need_materialize) {
-  dftable* dftblp = NULL;
-  if (need_materialize) {
-    auto dftblp_ = reinterpret_cast<dftable_base*>(df_proxy);
-    dftblp = new dftable(dftblp_->materialize());
-  }
-  else dftblp = reinterpret_cast<dftable*>(df_proxy);
-  if (!dftblp) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed.\n");
+                  bool& need_materialize) { // TODO: remove need_materialize
+  auto dftblp = get_dftable_pointer(df_proxy);
   if(verify_integrity and !(dftblp->column(new_index_name)->is_unique()))
     REPORT_ERROR(USER_ERROR, 
     "set_index: given column '" + new_index_name + 
@@ -855,29 +832,15 @@ frov_df_set_index(exrpc_ptr_t& df_proxy,
 }
 
 dummy_dftable
-frov_df_union(exrpc_ptr_t& df_proxy, std::vector<exrpc_ptr_t>& proxies,
-              bool& ignore_index, bool& verify_integrity, bool& sort) {
-  dftable* dftblp = NULL;
-  auto base_dftblp = reinterpret_cast<dftable_base*>(df_proxy);
-  if(base_dftblp-> need_materialize()) {
-    dftblp = new dftable(base_dftblp->materialize());
-  }
-  else dftblp = reinterpret_cast<dftable*>(df_proxy);
-  if (!dftblp) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed.\n");
-
+frov_df_union(exrpc_ptr_t& df_proxy, 
+              std::vector<exrpc_ptr_t>& proxies,
+              bool& ignore_index, 
+              bool& verify_integrity, 
+              bool& sort) {
+  auto dftblp = get_dftable_pointer(df_proxy);
   auto sz = proxies.size();
   std::vector<dftable*> other_dfs(sz);
-  for(size_t i = 0; i < sz; ++i) {
-    dftable* dftblp = NULL;
-    auto dftblp_ = reinterpret_cast<dftable_base*>(proxies[i]);
-    if(dftblp_-> need_materialize()) {
-      dftblp = new dftable(dftblp_->materialize());
-    }
-    else dftblp = reinterpret_cast<dftable*>(proxies[i]);
-    if (!dftblp) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed.\n");
-    other_dfs[i] = dftblp;
-  }
-  
+  for(size_t i = 0; i < sz; ++i) other_dfs[i] = get_dftable_pointer(proxies[i]);
   bool keep_order = true; // pandas keeps the original order
   auto union_df = new dftable(dftblp->union_tables(other_dfs, keep_order));
   if (!ignore_index && verify_integrity) {
@@ -892,26 +855,10 @@ frov_df_union2(exrpc_ptr_t& df_proxy,
                std::vector<exrpc_ptr_t>& proxies,
                std::vector<std::string>& names, 
                bool& verify_integrity) {
-  dftable* dftblp = NULL;
-  auto base_dftblp = reinterpret_cast<dftable_base*>(df_proxy);
-  if(base_dftblp-> need_materialize()) {
-    dftblp = new dftable(base_dftblp->materialize());
-  }
-  else dftblp = reinterpret_cast<dftable*>(df_proxy);
-  if (!dftblp) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed.\n");
-
+  auto dftblp = get_dftable_pointer(df_proxy);
   auto sz = proxies.size();
   std::vector<dftable*> other_dfs(sz);
-  for(size_t i = 0; i < sz; ++i) {
-    dftable* dftblp = NULL;
-    auto dftblp_ = reinterpret_cast<dftable_base*>(proxies[i]);
-    if(dftblp_-> need_materialize()) {
-      dftblp = new dftable(dftblp_->materialize());
-    }
-    else dftblp = reinterpret_cast<dftable*>(proxies[i]);
-    if (!dftblp) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed.\n");
-    other_dfs[i] = dftblp;
-  }
+  for(size_t i = 0; i < sz; ++i) other_dfs[i] = get_dftable_pointer(proxies[i]);
 
   bool keep_order = true; // pandas keeps the original order
   auto union_df = new dftable(dftblp->union_tables(other_dfs, keep_order));
@@ -925,14 +872,8 @@ frov_df_union2(exrpc_ptr_t& df_proxy,
 
 dummy_dftable
 frov_df_set_col_order(exrpc_ptr_t& df_proxy,
-                    std::vector<std::string>& new_cols) {
-  dftable* dftblp = NULL;
-  auto dftblp_ = reinterpret_cast<dftable_base*>(df_proxy);
-  if(dftblp_-> need_materialize()) {
-    dftblp = new dftable(dftblp_->materialize());
-  }
-  else dftblp = reinterpret_cast<dftable*>(df_proxy);
-  if (!dftblp) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed.\n");
+                      std::vector<std::string>& new_cols) {
+  auto dftblp = get_dftable_pointer(df_proxy);
   dftblp->set_col_order(new_cols);
   return to_dummy_dftable(dftblp);
 }
@@ -941,14 +882,9 @@ dummy_dftable
 frov_df_astype(exrpc_ptr_t& df_proxy,
                std::vector<std::string>& cols,
                std::vector<short>& types) {
-  dftable* dftblp = NULL;
-  auto base_dftblp = reinterpret_cast<dftable_base*>(df_proxy);
-  if(base_dftblp->need_materialize())
-    dftblp = new dftable(base_dftblp->materialize());
-  else  dftblp = reinterpret_cast<dftable*>(df_proxy);
-  if (!dftblp) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed.\n");
-
   checkAssumption(cols.size() == types.size());
+  auto dftblp = get_dftable_pointer(df_proxy);
+  auto org_col_order = dftblp->columns();
   for (size_t i = 0; i < cols.size(); ++i) {
     auto c = cols[i];
     auto t = get_string_dtype(types[i]);
@@ -958,5 +894,7 @@ frov_df_astype(exrpc_ptr_t& df_proxy,
       dftblp->drop(c + "__temp"); 
     }
   }
+  // during type-cast, original col-order changes due to drop and append
+  dftblp->set_col_order(org_col_order); 
   return to_dummy_dftable(dftblp);
 }
