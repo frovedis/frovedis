@@ -52,11 +52,37 @@ def infer_dtype(dfs, colname):
     dtypes = [df.get_dtype(colname) for df in dfs if colname in df.columns]
     return get_result_type(dtypes)
 
-def add_null_column_and_type_cast(dfs, cast_info):
+def check_if_consistent(dfs, cast_info):
+    """
+    checks name and types of columns of each dataframes in 'dfs',
+    returns False, in case any one of them if found to be inconsistent,
+    otherwise returns True.
+    """
+    indices = np.asarray([df.index.name if df.has_index() \
+                          else None for df in dfs])
+    # index must exist in each dataframe and their names should be all same
+    if not np.all(indices == indices[0]): 
+        return False
+
+    for col in dfs[0].columns:
+        dtype_base = dfs[0].get_dtype(col)
+        for df in dfs[1:]:
+            try:
+                dtype_other = df.get_dtype(col)
+                if dtype_other != dtype_base:
+                    return False
+            except ValueError as e: # in case 'col' not found in 'e'
+                return False
+    return True # everything seems consistent
+
+def add_null_column_and_type_cast(dfs, is_frov_df, cast_info):
     """
     adds null column to each df in 'dfs' if any column in 'cast_info.keys()'
     is missing and performs typecasting in case requested type
     in 'cast_info' is different than existing type
+    'is_frov_df' should be a list of size = len(dfs) of boolean type
+    indicating which all dataframes in 'dfs' are actually user constructed 
+    frovedis DataFrame object, [used internally by DataFrame.append()]
     """
     null_replacement = {}
     null_replacement[DTYPE.DOUBLE] = np.finfo(np.float64).max
@@ -69,7 +95,25 @@ def add_null_column_and_type_cast(dfs, cast_info):
 
     if len(dfs) < 1:
         raise ValueError("dfs: input is empty!")
-    ret = [df.copy() for df in dfs] # TODO: avoid this copy
+
+    if len(dfs) != len(is_frov_df):
+        raise ValueError("add_null_column_and_type_cast: length "
+                         "of 'dfs' and 'is_frov_df' differ!")
+
+    # copying input dataframes() on need basis
+    is_consistent = check_if_consistent(dfs, cast_info)
+    if is_consistent:
+        return dfs # early return: ready for append, no modification required
+
+    ret = [None] * len(dfs)
+    for i in range(0, len(dfs)):
+        if is_frov_df[i]:
+            if not is_consistent:
+                ret[i] = dfs[i].copy()
+            else:
+                ret[i] = dfs[i]
+        else:
+            ret[i] = dfs[i]
 
     # handling of index-column (frovedis expects all same index names)
     index_names = np.asarray([df.index.name if df.has_index() \

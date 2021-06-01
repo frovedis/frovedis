@@ -411,7 +411,7 @@ class DataFrame(object):
                                               col_vec, idx == 0)
             try:
                 val = col_vec.fillna(null_replacement[vtype])
-            except KeyError, e:
+            except KeyError as e:
                 raise ValueError("load: Unsupported type, '%s' of column "
                                  "is deceted" % (vtype))
             #print(cname + ":" + vtype)
@@ -1953,29 +1953,32 @@ class DataFrame(object):
     def append2(self, other, ignore_index=False, verify_integrity=False,
                 sort=False):
 
-        if isinstance(other, FrovedisDataframe):
+        if isinstance(other, DataFrame):
             other = [other]
+            is_frov_df = [True]
         elif isinstance(other, Iterable):
+            is_frov_df = [isinstance(e, DataFrame) for e in other]
             other = [DataFrame.asDF(e) for e in other]
         else:
             raise ValueError("append: Unsupported value for 'other'!")
         
+        dfs = [self] + other
+        is_frov_df = [True] + is_frov_df # prepending [True]; self is DataFrame
         res_names = [self.columns] 
         for e in other:
             res_names.append(e.columns)
         res_names = union_lists(res_names)
-        dfs = [self] + other
         res_dtypes = [infer_dtype(dfs, col) for col in res_names]
         astype_input = dict(zip(res_names, res_dtypes))
         #print(astype_input)
-        dfs = add_null_column_and_type_cast(dfs, astype_input)
+        dfs = add_null_column_and_type_cast(dfs, is_frov_df, astype_input)
 
         # preserving column order as in self, if not to be sorted
         res_names = sorted(dfs[0].columns) if sort else dfs[0].columns
         all_cols = [dfs[0].index.name] + res_names # adding index
         proxies = np.asarray([e.get() for e in dfs[1:]]) # default dtype=long
         proxies_ptr = proxies.ctypes.data_as(POINTER(c_long))
-        verify_integrity = false if ignore_index else verify_integrity
+        verify_integrity = False if ignore_index else verify_integrity
         (host, port) = FrovedisServer.getServerInstance()
         dummy_df = rpclib.df_union2(host, port, dfs[0].get(), \
                                    proxies_ptr, len(proxies),  \
@@ -2172,6 +2175,11 @@ class DataFrame(object):
         return self.__types
 
     def get_dtype(self, colname):
+        """
+        returns numpy_dtype of given column, 
+        in case presents in (self.index.name or self.columns).
+        otherwise, raises ValueError
+        """
         if self.has_index() and colname == self.index.name:
             ret = TypeUtil.to_numpy_dtype(self.index.dtype)
         elif colname in self.columns:
