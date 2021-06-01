@@ -86,7 +86,7 @@ def add_null_column_and_type_cast(dfs, cast_info):
         index_col = index_names[0]
 
     cols = list(cast_info.keys())
-    index_dtypes = [df.index.dtype for df in ret if df.has_index()]
+    index_dtypes = [df.get_dtype(index_col) for df in ret]
     inferred_index_type = get_result_type(index_dtypes)
     cast_info[index_col] = inferred_index_type
     #print(index_col + ":" + str(inferred_index_type))
