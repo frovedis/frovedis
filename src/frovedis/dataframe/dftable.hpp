@@ -342,14 +342,15 @@ dftable& dftable::append_column(const std::string& name,
                                 dvector<T>& d,
                                 bool check_null_like) {
   if(col.find(name) != col.end())
-    throw std::runtime_error("append_column: same column name already exists");
+    throw std::runtime_error(std::string("append_column: column '") 
+                             + name + "' already exists");
   std::shared_ptr<dfcolumn> c;
   if(col.size() == 0) {
     row_size = d.size();
     d.align_block();
   } else {
     if(d.size() != row_size)
-      throw std::runtime_error("different size of columns");
+      throw std::runtime_error(name + ": different size of columns");
     auto sizes = column(col_order[0])->sizes();
     d.align_as(sizes);
   }
@@ -372,14 +373,15 @@ dftable& dftable::append_column(const std::string& name,
                                 dvector<T>&& d,
                                 bool check_null_like) {
   if(col.find(name) != col.end())
-    throw std::runtime_error("append_column: same column name already exists");
+    throw std::runtime_error(std::string("append_column: column '") 
+                             + name + "' already exists");
   std::shared_ptr<dfcolumn> c;
   if(col.size() == 0) {
     row_size = d.size();
     d.align_block();
   } else {
     if(d.size() != row_size)
-      throw std::runtime_error("different size of columns");
+      throw std::runtime_error(name + ": different size of columns");
     auto sizes = column(col_order[0])->sizes();
     d.align_as(sizes);
   }

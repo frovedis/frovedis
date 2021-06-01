@@ -1114,7 +1114,8 @@ void typed_dfcolumn<dic_string>::calc_hash_base_multi_join
 bool typed_dfcolumn<dic_string>::is_unique() {
   auto& typed_col = dynamic_cast<typed_dfcolumn<dic_string>&>(*this);
   auto key = typed_col.val.viewas_dvector<size_t>().gather();
-  return vector_is_unique(key);
+  auto nulls_count = typed_col.get_nulls().viewas_dvector<size_t>().size();
+  return (nulls_count <= 1) && vector_is_unique(key);
 }
 
 }
