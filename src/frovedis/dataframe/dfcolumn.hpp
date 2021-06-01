@@ -559,6 +559,10 @@ void reset_null_val(const std::vector<T>& nulls,
   for(size_t i = 0; i < nulls.size(); ++i) valp[nullp[i]] = tmax;
 }
 
+// defined in typed_dfcolumn_string.cc 
+words dfcolumn_string_as_words_helper(const std::vector<std::string>& str,
+                                      const std::vector<size_t>& nulls,
+                                      const std::string& nullstr);
 template <>
 class typed_dfcolumn<std::string> : public dfcolumn {
 public:

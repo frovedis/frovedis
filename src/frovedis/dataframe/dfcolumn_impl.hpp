@@ -3400,67 +3400,81 @@ std::string typed_dfcolumn<T>::dtype() const {
 }
 
 template <class T, class U>
-std::vector<U> do_static_cast(const std::vector<T>& v) {
-  const T* vp = v.data();
-  size_t size = v.size();
-  std::vector<U> ret(size);
+std::vector<U> 
+do_static_cast(const std::vector<T>& v, 
+               const std::vector<size_t>& nulls) {
+  auto ret = vector_astype<U>(v);
   U* retp = ret.data();
-  for(size_t i = 0; i < size; i++) {
-    retp[i] = static_cast<U>(vp[i]);
-  }
+  // casting nulls
+  U umax = std::numeric_limits<U>::max();
+  auto nptr = nulls.data();
+  auto nsz = nulls.size();
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+  for(size_t i = 0; i < nsz; ++i) retp[nptr[i]] = umax;
+  return ret;
+}
+
+template <class T>
+std::vector<std::string> 
+do_string_cast(const std::vector<T>& v, 
+               const std::vector<size_t>& nulls) {
+  auto ret = vector_string_astype(v); // will be very slow though...
+  // casting nulls
+  auto nsz = nulls.size();
+  for(size_t i = 0; i < nsz; ++i) ret[nulls[i]] = "NULL";
   return ret;
 }
 
 template <class T>
 dvector<float> typed_dfcolumn<T>::as_dvector_float() {
   auto dv = as_dvector<T>();
-  return dv.moveto_node_local().map(do_static_cast<T,float>).
-    template moveto_dvector<float>();
+  return dv.moveto_node_local().map(do_static_cast<T,float>, nulls)
+           .template moveto_dvector<float>();
 }
 
 template <class T>
 dvector<double> typed_dfcolumn<T>::as_dvector_double() {
   auto dv = as_dvector<T>();
-  return dv.moveto_node_local().map(do_static_cast<T,double>).
-    template moveto_dvector<double>();
+  return dv.moveto_node_local().map(do_static_cast<T,double>, nulls)
+           .template moveto_dvector<double>();
 }
 
 template <class T>
 std::shared_ptr<dfcolumn>
 typed_dfcolumn<T>::type_cast(const std::string& to_type) {
+  std::shared_ptr<dfcolumn> ret;
   if(to_type == "int") {
-    std::shared_ptr<dfcolumn> ret;
-    auto newval = val.map(do_static_cast<T,int>);
+    auto newval = val.map(do_static_cast<T,int>, nulls);
     ret = std::make_shared<typed_dfcolumn<int>>(newval, nulls);
-    return ret;
   } else if(to_type == "unsigned int") {
-    std::shared_ptr<dfcolumn> ret;
-    auto newval = val.map(do_static_cast<T,unsigned int>);
+    auto newval = val.map(do_static_cast<T,unsigned int>, nulls);
     ret = std::make_shared<typed_dfcolumn<unsigned int>>(newval, nulls);
-    return ret;
   } else if(to_type == "long") {
-    std::shared_ptr<dfcolumn> ret;
-    auto newval = val.map(do_static_cast<T,long>);
+    auto newval = val.map(do_static_cast<T,long>, nulls);
     ret = std::make_shared<typed_dfcolumn<long>>(newval, nulls);
-    return ret;
   } else if(to_type == "unsigned long") {
-    std::shared_ptr<dfcolumn> ret;
-    auto newval = val.map(do_static_cast<T,unsigned long>);
+    auto newval = val.map(do_static_cast<T,unsigned long>, nulls);
     ret = std::make_shared<typed_dfcolumn<unsigned long>>(newval, nulls);
-    return ret;
   } else if(to_type == "float") {
-    std::shared_ptr<dfcolumn> ret;
-    auto newval = val.map(do_static_cast<T,float>);
+    auto newval = val.map(do_static_cast<T,float>, nulls);
     ret = std::make_shared<typed_dfcolumn<float>>(newval, nulls);
-    return ret;
   } else if(to_type == "double") {
-    std::shared_ptr<dfcolumn> ret;
-    auto newval = val.map(do_static_cast<T,double>);
+    auto newval = val.map(do_static_cast<T,double>, nulls);
     ret = std::make_shared<typed_dfcolumn<double>>(newval, nulls);
-    return ret;
+  } else if(to_type == "string") {
+    auto newval = val.map(do_string_cast<T>, nulls);
+    ret = std::make_shared<typed_dfcolumn<std::string>>(newval, nulls);
+  } else if(to_type == "dic_string") {
+    auto str_val = val.map(do_string_cast<T>, nulls);
+    auto newval = str_val.map(dfcolumn_string_as_words_helper, nulls,
+                              broadcast(std::string("NULL")));
+    ret = std::make_shared<typed_dfcolumn<dic_string>>(newval, nulls);
   } else {
-    throw std::runtime_error("unsupported type: " + to_type);
+    throw std::runtime_error("type_cast: unsupported type: " + to_type);
   }
+  return ret;
 }
 
 template <class T>

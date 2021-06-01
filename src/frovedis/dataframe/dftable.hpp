@@ -410,9 +410,6 @@ dftable& dftable::append_column(const std::string& name,
                                 dvector<std::string>&& d,
                                 bool check_null_like); 
 
-words dfcolumn_string_as_words_helper(const std::vector<std::string>& str,
-                                      const std::vector<size_t>& nulls,
-                                      const std::string& nullstr);
 template <class R, class T1, class F>
 struct calc_helper1 {
   calc_helper1(){}
