@@ -1914,18 +1914,12 @@ class DataFrame(object):
             numpy_dtype = np.dtype(dtype)
             t_cols = list(self.columns)
             t_dtypes = [TypeUtil.to_id_dtype(numpy_dtype)] * len(t_cols)
-        elif isinstance (dtype, dict):
+        elif isinstance (dtype, dict): # might include index as well
             for k, v in dtype.items():
-                if k in self.columns:
+                if k in self.columns or \
+                    (self.has_index() and k == self.index.name):
                     t_cols.append(k)
                     t_dtypes.append(TypeUtil.to_id_dtype(np.dtype(v)))
-                elif self.has_index() and k == self.index.name:
-                    if self.index.dtype != DTYPE.STRING:
-                        t_cols.append(k)
-                        t_dtypes.append(TypeUtil.to_id_dtype(np.dtype(v)))
-                    else:
-                        raise ValueError("astype is not supported for "
-                                         "string-typed index")
         else:
             raise TypeError("astype: supports only string, numpy.dtype " \
                             "or dict object as for 'dtype' parameter!")
@@ -1944,6 +1938,11 @@ class DataFrame(object):
         names = dummy_df["names"]
         types = dummy_df["types"]
         ret.num_row = dummy_df["nrow"]
+        for i in range(0, len(t_dtypes)):
+            if t_dtypes[i] == DTYPE.BOOL:
+                col = t_cols[i]
+                ind = names.index(col) 
+                types[ind] = DTYPE.BOOL
         if self.has_index():
             ret.index = FrovedisColumn(names[0], types[0]) #setting index
             ret.load_dummy(dummy_df["dfptr"], names[1:], types[1:])
@@ -1988,10 +1987,11 @@ class DataFrame(object):
 
         names = dummy_df["names"]
         types = dummy_df["types"]
-        astypes = astype_input.values()
-        for i in range(0, len(astypes)):
-            if astypes[i] == np.bool:
-                types[i] = DTYPE.BOOL
+        for c, t in astype_input.items():
+            if t == np.bool:
+                # searching index, since dictionary items might not be ordered
+                ind = names.index(c) 
+                types[ind] = DTYPE.BOOL
         res = DataFrame().load_dummy(dummy_df["dfptr"], names[1:], types[1:])
         res.index = FrovedisColumn(names[0], types[0]) #setting index
         res.num_row = dummy_df["nrow"]
