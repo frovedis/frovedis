@@ -61,7 +61,7 @@ def add_null_column_and_type_cast(dfs, cast_info):
     null_replacement = {}
     null_replacement[DTYPE.DOUBLE] = np.finfo(np.float64).max
     null_replacement[DTYPE.FLOAT] = np.finfo(np.float32).max
-    null_replacement[DTYPE.ULONG] = np.iinfo(np.int64).max
+    null_replacement[DTYPE.ULONG] = np.iinfo(np.uint).max
     null_replacement[DTYPE.LONG] = np.iinfo(np.int64).max
     null_replacement[DTYPE.INT] = np.iinfo(np.int32).max
     null_replacement[DTYPE.BOOL] = np.iinfo(np.int32).max
@@ -72,8 +72,8 @@ def add_null_column_and_type_cast(dfs, cast_info):
     ret = [df.copy() for df in dfs] # TODO: avoid this copy
 
     # handling of index-column (frovedis expects all same index names)
-    index_names = [df.index.name if df.has_index() else None for df in ret]
-    index_names = np.asarray(index_names)
+    index_names = np.asarray([df.index.name if df.has_index() \
+                              else None for df in ret])
     if not np.all(index_names == index_names[0]):
         for df in ret:
             if df.has_index():
@@ -112,5 +112,6 @@ def add_null_column_and_type_cast(dfs, cast_info):
         print(df)
         print(df.dtypes)
         print(df.index.dtype)
+        print("---------------")
     ''' 
-    return ret, index_col
+    return ret

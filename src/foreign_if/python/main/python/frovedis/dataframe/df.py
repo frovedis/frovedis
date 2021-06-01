@@ -409,7 +409,11 @@ class DataFrame(object):
             if vtype == 'object': # type-infering required to detect string
                 vtype = infer_column_type_from_first_notna(df, \
                                               col_vec, idx == 0)
-            val = col_vec.fillna(null_replacement[vtype])
+            try:
+                val = col_vec.fillna(null_replacement[vtype])
+            except KeyError, e:
+                raise ValueError("load: Unsupported type, '%s' of column "
+                                 "is deceted" % (vtype))
             #print(cname + ":" + vtype)
             if vtype == 'int32':
                 dt = DTYPE.INT
@@ -431,7 +435,7 @@ class DataFrame(object):
                 dvec[idx] = FrovedisStringDvector(val)
             elif vtype == 'bool' or vtype == 'bool_':
                 dt = DTYPE.BOOL
-                dvec[idx] = FrovedisIntDvector([int(i) for i in val])
+                dvec[idx] = FrovedisIntDvector(np.asarray(val, dtype=np.int32))
             else:
                 raise TypeError("Unsupported column type '%s' in creation of "\
                                 "frovedis dataframe: " % (vtype))
@@ -1680,19 +1684,22 @@ class DataFrame(object):
         """
         if not isinstance(key, str):
             raise ValueError("__setitem__: Column name must be specified as "
-                            "string only!")
+                             "string only!")
 
         if np.isscalar(value):
             if self.__fdata is None:
                 raise ValueError("__setitem__: Frovedis currently doesn't "
-                                "support adding column with scalar values "
-                                "on empty dataframe!")
-            n = len(self)
-            value = [value] * n
-
-        if not isinstance(value, (list, tuple, range, pd.Series, np.ndarray)):
+                                 "support adding column with scalar values "
+                                 "on empty dataframe!")
+            is_imax = value == np.iinfo(np.int32).max
+            value = [value] * len(self)
+            if is_imax: # check to avoid long array construction by default
+                value = np.asarray(value, dtype=np.int32)
+            else:
+                value = np.asarray(value) # deduce type
+        elif not isinstance(value, Iterable):
             raise ValueError("__setitem__: Given column data type '{}' is "
-                            "not supported!".format(type(value)))
+                             "not supported!".format(type(value)))
 
         col_data = np.asarray(value)
         col_dtype = self.__get_dtype_name(col_data)
@@ -1716,14 +1723,19 @@ class DataFrame(object):
         if np.isscalar(value):
             if self.__fdata is None:
                 raise ValueError("insert: Frovedis currently doesn't "
-                                "support adding column with scalar values "
-                                "on empty dataframe!")
-            n = len(self)
-            value = [value] * n
+                                 "support adding column with scalar values "
+                                 "on empty dataframe!")
 
-        if not isinstance(value, (list, tuple, range, pd.Series, np.ndarray)):
-            raise ValueError("insert: Given column data type '{}' is not "
-                            "supported!".format(type(value)))
+            is_imax = value == np.iinfo(np.int32).max
+            value = [value] * len(self)
+            if is_imax: # check to avoid long array construction by default
+                value = np.asarray(value, dtype=np.int32)
+            else:
+                value = np.asarray(value) # deduce type
+        elif not isinstance(value, Iterable):
+            raise ValueError("insert: Given column data type '{}' is "
+                             "not supported!".format(type(value)))
+
         col_data = np.array(value)
         col_dtype = self.__get_dtype_name(col_data)
 
@@ -1731,7 +1743,7 @@ class DataFrame(object):
         if self.__fdata is None:
             if loc != 0:
                 raise IndexError("insert: index '{}' is out of bounds for the "
-                                "given dataframe!".format(loc))
+                                 "given dataframe!".format(loc))
             self = self.__append_column(column, np.dtype(col_dtype), col_data)
         else:
             if column in self.columns:
@@ -1952,18 +1964,18 @@ class DataFrame(object):
         res_names = [self.columns] 
         for e in other:
             res_names.append(e.columns)
-        res_names = sorted(union_lists(res_names)) \
-                    if sort else union_lists(res_names)
+        res_names = union_lists(res_names)
         dfs = [self] + other
         res_dtypes = [infer_dtype(dfs, col) for col in res_names]
         astype_input = dict(zip(res_names, res_dtypes))
         #print(astype_input)
-        dfs, index_col = add_null_column_and_type_cast(dfs, astype_input)
-        all_cols = [index_col] + res_names
+        dfs = add_null_column_and_type_cast(dfs, astype_input)
 
-        proxies = [e.get() for e in dfs[1:]]
-        proxies_arr = np.asarray(proxies, dtype=c_long)
-        proxies_ptr = proxies_arr.ctypes.data_as(POINTER(c_long))
+        # preserving column order as in self, if not to be sorted
+        res_names = sorted(dfs[0].columns) if sort else dfs[0].columns
+        all_cols = [dfs[0].index.name] + res_names # adding index
+        proxies = np.asarray([e.get() for e in dfs[1:]]) # default dtype=long
+        proxies_ptr = proxies.ctypes.data_as(POINTER(c_long))
         verify_integrity = false if ignore_index else verify_integrity
         (host, port) = FrovedisServer.getServerInstance()
         dummy_df = rpclib.df_union2(host, port, dfs[0].get(), \
