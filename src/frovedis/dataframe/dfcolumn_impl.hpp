@@ -3417,28 +3417,17 @@ do_static_cast(const std::vector<T>& v,
 }
 
 template <class T>
-std::vector<std::string> 
-do_string_cast(const std::vector<T>& v, 
-               const std::vector<size_t>& nulls) {
-  auto ret = vector_string_astype(v); // will be very slow though...
-  // casting nulls
-  auto nsz = nulls.size();
-  for(size_t i = 0; i < nsz; ++i) ret[nulls[i]] = "NULL";
-  return ret;
-}
-
-template <class T>
 dvector<float> typed_dfcolumn<T>::as_dvector_float() {
   auto dv = as_dvector<T>();
-  return dv.moveto_node_local().map(do_static_cast<T,float>, nulls)
-           .template moveto_dvector<float>();
+  return val.map(do_static_cast<T,float>, nulls)
+            .template moveto_dvector<float>();
 }
 
 template <class T>
 dvector<double> typed_dfcolumn<T>::as_dvector_double() {
   auto dv = as_dvector<T>();
-  return dv.moveto_node_local().map(do_static_cast<T,double>, nulls)
-           .template moveto_dvector<double>();
+  return val.map(do_static_cast<T,double>, nulls)
+            .template moveto_dvector<double>();
 }
 
 template <class T>
@@ -3464,13 +3453,16 @@ typed_dfcolumn<T>::type_cast(const std::string& to_type) {
     auto newval = val.map(do_static_cast<T,double>, nulls);
     ret = std::make_shared<typed_dfcolumn<double>>(newval, nulls);
   } else if(to_type == "string") {
-    auto newval = val.map(do_string_cast<T>, nulls);
+    std::string nullstr = "NULL";
+    auto newval = as_words().map(words_to_string_vector, 
+                                 nulls, broadcast(nullstr));
     ret = std::make_shared<typed_dfcolumn<std::string>>(newval, nulls);
   } else if(to_type == "dic_string") {
-    auto str_val = val.map(do_string_cast<T>, nulls);
-    auto newval = str_val.map(dfcolumn_string_as_words_helper, nulls,
-                              broadcast(std::string("NULL")));
-    ret = std::make_shared<typed_dfcolumn<dic_string>>(newval, nulls);
+    auto words = as_words();
+    ret = std::make_shared<typed_dfcolumn<dic_string>>(words, nulls);
+  } else if(to_type == "raw_string") {
+    auto words = as_words();
+    ret = std::make_shared<typed_dfcolumn<raw_string>>(words, nulls);
   } else {
     throw std::runtime_error("type_cast: unsupported type: " + to_type);
   }
