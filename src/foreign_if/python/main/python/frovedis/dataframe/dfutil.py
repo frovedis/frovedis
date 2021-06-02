@@ -58,22 +58,28 @@ def check_if_consistent(dfs, cast_info):
     returns False, in case any one of them if found to be inconsistent,
     otherwise returns True.
     """
-    indices = np.asarray([df.index.name if df.has_index() \
+    index_names = np.asarray([df.index.name if df.has_index() \
                           else None for df in dfs])
-    # index must exist in each dataframe and their names should be all same
-    if not np.all(indices == indices[0]): 
-        return False
+    is_index_names_consistent = np.all(index_names == index_names[0])
+        
+    index_dtypes = np.asarray([df.index.dtype if df.has_index() \
+                    else None for df in dfs])
+    is_index_dtypes_consistent = np.all(index_dtypes == index_dtypes[0])
+       
+    is_column_names_consistent = True
+    is_column_dtypes_consistent = True 
+    for c, t in cast_info.items():
+        if is_column_names_consistent or is_column_dtypes_consistent:
+            for df in dfs:
+                if c not in df.columns:
+                    is_column_names_consistent = False   # missing-column
+                elif df.get_dtype(c) != t:
+                    is_column_dtypes_consistent = False  # type-mismatch
+        else:
+            break
 
-    for col in dfs[0].columns:
-        dtype_base = dfs[0].get_dtype(col)
-        for df in dfs[1:]:
-            try:
-                dtype_other = df.get_dtype(col)
-                if dtype_other != dtype_base:
-                    return False
-            except ValueError as e: # in case 'col' not found in 'e'
-                return False
-    return True # everything seems consistent
+    return [is_index_names_consistent, is_index_dtypes_consistent, \
+            is_column_names_consistent, is_column_dtypes_consistent]
 
 def add_null_column_and_type_cast(dfs, is_frov_df, cast_info):
     """
@@ -84,15 +90,6 @@ def add_null_column_and_type_cast(dfs, is_frov_df, cast_info):
     indicating which all dataframes in 'dfs' are actually user constructed 
     frovedis DataFrame object, [used internally by DataFrame.append()]
     """
-    null_replacement = {}
-    null_replacement[DTYPE.DOUBLE] = np.finfo(np.float64).max
-    null_replacement[DTYPE.FLOAT] = np.finfo(np.float32).max
-    null_replacement[DTYPE.ULONG] = np.iinfo(np.uint).max
-    null_replacement[DTYPE.LONG] = np.iinfo(np.int64).max
-    null_replacement[DTYPE.INT] = np.iinfo(np.int32).max
-    null_replacement[DTYPE.BOOL] = np.iinfo(np.int32).max
-    null_replacement[DTYPE.STRING] = "NULL"
-
     if len(dfs) < 1:
         raise ValueError("dfs: input is empty!")
 
@@ -100,25 +97,18 @@ def add_null_column_and_type_cast(dfs, is_frov_df, cast_info):
         raise ValueError("add_null_column_and_type_cast: length "
                          "of 'dfs' and 'is_frov_df' differ!")
 
-    # copying input dataframes() on need basis
-    is_consistent = check_if_consistent(dfs, cast_info)
+    chk_list = check_if_consistent(dfs, cast_info)
+    is_consistent = np.sum(chk_list) == 4
     if is_consistent:
-        return dfs # early return: ready for append, no modification required
+        #print("all consistent")
+        return dfs # early return: ready for append -> no modification required
 
-    ret = [None] * len(dfs)
-    for i in range(0, len(dfs)):
-        if is_frov_df[i]:
-            if not is_consistent:
-                ret[i] = dfs[i].copy()
-            else:
-                ret[i] = dfs[i]
-        else:
-            ret[i] = dfs[i]
+    # copying input dataframes() only when they are frovedis Datarame instances
+    ret = [dfs[i].copy() if is_frov_df[i] else dfs[i] \
+           for i in range(0, len(dfs))]
 
     # handling of index-column (frovedis expects all same index names)
-    index_names = np.asarray([df.index.name if df.has_index() \
-                              else None for df in ret])
-    if not np.all(index_names == index_names[0]):
+    if not chk_list[0]: # is_index_names_consistent
         for df in ret:
             if df.has_index():
                 if df.index.name != "index":
@@ -127,29 +117,44 @@ def add_null_column_and_type_cast(dfs, is_frov_df, cast_info):
                 df.add_index("index")
         index_col = "index"
     else:
-        index_col = index_names[0]
-
-    cols = list(cast_info.keys())
-    index_dtypes = [df.get_dtype(index_col) for df in ret]
-    inferred_index_type = get_result_type(index_dtypes)
-    cast_info[index_col] = inferred_index_type
-    #print(index_col + ":" + str(inferred_index_type))
+        index_col = ret[0].index.name # all index name is same
 
     # handling of missing columns
-    for i in range(0, len(ret)):
-        df = ret[i]
-        for col in cols:
-            if col not in df.columns:
-                df[col] = \
-                null_replacement[TypeUtil.to_id_dtype(cast_info[col])]
+    if not chk_list[2]: # is_column_names_consistent
+        null_replacement = {}
+        null_replacement[DTYPE.DOUBLE] = np.finfo(np.float64).max
+        null_replacement[DTYPE.FLOAT] = np.finfo(np.float32).max
+        null_replacement[DTYPE.ULONG] = np.iinfo(np.uint).max
+        null_replacement[DTYPE.LONG] = np.iinfo(np.int64).max
+        null_replacement[DTYPE.INT] = np.iinfo(np.int32).max
+        null_replacement[DTYPE.BOOL] = np.iinfo(np.int32).max
+        null_replacement[DTYPE.STRING] = "NULL"
+        for i in range(0, len(ret)):
+            df = ret[i]
+            for col in cast_info.keys():
+                if col not in df.columns:
+                    df[col] = \
+                    null_replacement[TypeUtil.to_id_dtype(cast_info[col])]
 
-    # handling of type-casting
-    for i in range(0, len(ret)):
-        df = ret[i]
-        for col in cast_info.keys(): # includes index
-            if df.get_dtype(col) != cast_info[col]: 
-                ret[i] = df.astype(cast_info)
-                break
+    # inferring index type in case of inconsistency
+    if not chk_list[1]: # is_index_dtypes_consistent
+        index_dtypes = [df.get_dtype(index_col) for df in ret]
+        inferred_index_type = get_result_type(index_dtypes)
+        cast_info[index_col] = inferred_index_type
+        #print(index_col + ":" + str(inferred_index_type))
+
+    # handling of type-casting (if type-mismatch either in index or in column)
+    if not (chk_list[1] and chk_list[3]): 
+        for i in range(0, len(ret)):
+            df = ret[i]
+            if df.get_dtype(index_col) != cast_info[index_col]:
+                # this covers index as well as other mismatched columns
+                ret[i] = df.astype(cast_info) 
+            else:
+                for col in cast_info.keys():
+                    if df.get_dtype(col) != cast_info[col]: 
+                        ret[i] = df.astype(cast_info)
+                        break
     
     ''' 
     for df in ret: 

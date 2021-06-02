@@ -1952,7 +1952,6 @@ class DataFrame(object):
 
     def append2(self, other, ignore_index=False, verify_integrity=False,
                 sort=False):
-
         if isinstance(other, DataFrame):
             other = [other]
             is_frov_df = [True]
