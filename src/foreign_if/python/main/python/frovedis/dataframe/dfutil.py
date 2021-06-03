@@ -147,7 +147,8 @@ def add_null_column_and_type_cast(dfs, is_frov_df, cast_info):
     if not (chk_list[1] and chk_list[3]): 
         for i in range(0, len(ret)):
             df = ret[i]
-            if df.get_dtype(index_col) != cast_info[index_col]:
+            if not chk_list[1] and \
+               df.get_dtype(index_col) != cast_info[index_col]:
                 # this covers index as well as other mismatched columns
                 ret[i] = df.astype(cast_info) 
             else:

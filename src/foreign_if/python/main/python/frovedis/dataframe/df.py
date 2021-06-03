@@ -413,7 +413,7 @@ class DataFrame(object):
                 val = col_vec.fillna(null_replacement[vtype])
             except KeyError as e:
                 raise ValueError("load: Unsupported type, '%s' of column "
-                                 "is deceted" % (vtype))
+                                 "is detected" % (vtype))
             #print(cname + ":" + vtype)
             if vtype == 'int32':
                 dt = DTYPE.INT
@@ -930,7 +930,8 @@ class DataFrame(object):
         elif isinstance(df, pd.DataFrame):
             return DataFrame(df)
         else: 
-            raise TypeError("Invalid dataframe type is provided!")
+            raise TypeError("asDF: invalid dataframe type '%s' "
+                            "is provided!" % (type(df).__name__))
 
     def __get_column_types(self, columns):
         """
@@ -1955,11 +1956,15 @@ class DataFrame(object):
         if isinstance(other, DataFrame):
             other = [other]
             is_frov_df = [True]
-        elif isinstance(other, Iterable):
+        elif isinstance(other, pd.DataFrame):
+            other = [DataFrame.asDF(other)]
+            is_frov_df = [False]
+        elif isinstance(other, list):
             is_frov_df = [isinstance(e, DataFrame) for e in other]
             other = [DataFrame.asDF(e) for e in other]
         else:
-            raise ValueError("append: Unsupported value for 'other'!")
+            raise ValueError("append: unsupported type '%s' for "
+                             "'other'!" % (type(other).__name__))
         
         dfs = [self] + other
         is_frov_df = [True] + is_frov_df # prepending [True]; self is DataFrame
