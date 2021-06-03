@@ -96,7 +96,7 @@ frovedis_sparse_truncated_svd(exrpc_ptr_t& data_ptr, int& k,
   int info = 0; // currently frovedisi svd doesn't return any return status
   colmajor_matrix<T> u, v;
   diag_matrix_local<T> s;
-  if(use_shrink) {
+  if(!use_shrink) {
 #if defined(_SX) || defined(__ve__)
     frovedis::sparse_svd<jds_crs_hybrid<T,I>,
                          jds_crs_hybrid_local<T,I>>(mat,u,s,v,k);
