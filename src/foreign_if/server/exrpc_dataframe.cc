@@ -889,6 +889,12 @@ frov_df_astype(exrpc_ptr_t& df_proxy,
     auto c = cols[i];
     auto t = get_string_dtype(types[i]);
     if (dftblp->column(c)->dtype() != t) {
+      //std::cout << "col: " << c 
+      //          << "; type: " << dftblp->column(c)->dtype() 
+      //          << "; to-type: " << t << "\n";
+      if (dftblp->column(c)->dtype() == "dic_string")
+        REPORT_ERROR(USER_ERROR, 
+        "type_cast: casting a string-typed column is not supported!\n");
       dftblp->rename(c, c + "__temp");
       dftblp->type_cast(c + "__temp", c, t);
       dftblp->drop(c + "__temp"); 
