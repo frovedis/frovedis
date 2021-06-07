@@ -235,7 +235,7 @@ void softmax_parallelizer::do_train(node_local<DATA_MATRIX>& data,
     if(conv) break;
 #endif
   }
-  n_iter = i;
+  n_iter = (i == numIteration + 1) ? numIteration : i;
 }
 
 
