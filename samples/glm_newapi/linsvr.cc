@@ -6,25 +6,6 @@ using namespace boost;
 using namespace frovedis;
 using namespace std;
 
-SVRLossType getloss(const std::string& loss) {
-  SVRLossType ret = EPS;
-  if (loss == "epsilon-insensitive") ret = EPS;
-  else if (loss == "squared-epsilon-insensitive") ret = SQEPS;
-  else REPORT_ERROR(USER_ERROR, std::string("supported epsilon loss is either ") + 
-                    "epsilon-insensitive or squared-epsilon-insensitive!\n");
-  return ret;
-}
-
-RegType getRegularizer(const std::string& rt) {
-  RegType ret = ZERO;
-  if (rt == "ZERO") ret = ZERO;
-  else if (rt == "L1") ret = L1;
-  else if (rt == "L2") ret = L2;
-  else REPORT_ERROR(USER_ERROR, std::string("supported regularizer is ") + 
-                    "ZERO, L1 and L2!\n");
-  return ret;
-}
-
 template <class T>
 void do_train(const string& input, 
               const string& label, 
@@ -80,17 +61,17 @@ void do_predict(const string& input,
                 const string& output,
                 bool binary) {
   time_spent t(DEBUG);
-  crs_matrix_local<T> mat;
-  linear_regression_model<T> lm;
+  crs_matrix<T> mat;
+  linear_svm_regressor<T> lm;
   if(binary) {
     lm.loadbinary(model);
     t.show("load model: ");
-    mat = make_crs_matrix_local_loadbinary<T>(input);
+    mat = make_crs_matrix_loadbinary<T>(input);
     t.show("load matrix: ");
   } else {
     lm.load(model);
     t.show("load model: ");
-    mat = make_crs_matrix_local_load<T>(input);
+    mat = make_crs_matrix_load<T>(input);
     t.show("load matrix: ");
   }
   auto r = lm.predict(mat);

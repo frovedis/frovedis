@@ -58,17 +58,17 @@ void do_predict(const string& input,
                 const string& output,
                 bool prob, bool binary) {
   time_spent t(DEBUG);
-  crs_matrix_local<T> mat;
-  logistic_regression_model<T> lm;
+  crs_matrix<T> mat;
+  logistic_regression<T> lm;
   if(binary) {
     lm.loadbinary(model);
     t.show("load model: ");
-    mat = make_crs_matrix_local_loadbinary<T>(input);
+    mat = make_crs_matrix_loadbinary<T>(input);
     t.show("load matrix: ");
   } else {
     lm.load(model);
     t.show("load model: ");
-    mat = make_crs_matrix_local_load<T>(input);
+    mat = make_crs_matrix_load<T>(input);
     t.show("load matrix: ");
   }
   auto r = prob ? lm.predict_probability(mat) : lm.predict(mat);

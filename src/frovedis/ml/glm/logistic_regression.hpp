@@ -236,8 +236,9 @@ struct logistic_regression {
   logistic_regression& 
   _fit(MATRIX& mat, dvector<T>& label,
       std::vector<T>& sample_weight, bool input_movable) {
-
      size_t nclasses = compute_nclasses(label);
+     // multinomial problem detected, implicitly setting is_mult as true
+     if (nclasses > 2) is_mult = true;
      size_t nfeatures = mat.num_col;
      if(!(warm_start && is_fitted)) {
        if(is_mult) {
@@ -248,55 +249,55 @@ struct logistic_regression {
         T intercept = fit_intercept ? 1.0 : 0.0;
         model_bin = logistic_regression_model<T>(nfeatures, intercept);
       }
-    }
-    else {
-      require(nfeatures == n_features_, 
-      "Fitted model dimension does not match with number of features in input data\n");
-      require(nclasses == n_classes_, 
-      "Fitted model dimension does not match with number of labels in input data\n");
-    }
-    size_t n_iter = 0;
-    if(is_mult) {
-      if(solver == "sgd") {
-        model_mult = multinomial_logistic_regression::train(
-                         mat, label, model_mult,
-                         sample_weight, n_iter, max_iter, alpha,
-                         reg_param, get_regularizer(), 
-                         fit_intercept, tol, mat_type, input_movable);
-      }
-      else REPORT_ERROR(USER_ERROR, 
-           "Multinomil classification is only supported for sgd solver\n");
-    }
-    else {
-      if (solver == "sgd") {
-        model_bin = logistic_regression_with_sgd::train(
-                          mat, label, model_bin,
-                          sample_weight, n_iter, max_iter, alpha, mbf,
+     }
+     else {
+       require(nfeatures == n_features_, 
+       "Fitted model dimension does not match with number of features in input data\n");
+       require(nclasses == n_classes_, 
+       "Fitted model dimension does not match with number of labels in input data\n");
+     }
+     size_t n_iter = 0;
+     if(is_mult) {
+       if(solver == "sgd") {
+         model_mult = multinomial_logistic_regression::train(
+                          mat, label, model_mult,
+                          sample_weight, n_iter, max_iter, alpha,
                           reg_param, get_regularizer(), 
                           fit_intercept, tol, mat_type, input_movable);
-      }
-      else if (solver == "shrink-sgd") {
-        model_bin = shrink::logistic_regression_with_sgd::train(
-                          mat, label, model_bin,
-                          sample_weight, n_iter, max_iter, alpha, mbf,
-                          reg_param, get_regularizer(), 
-                          fit_intercept, tol, mat_type, input_movable);
-      }
-      else if (solver == "lbfgs") {
-        model_bin = logistic_regression_with_lbfgs::train(
-                          mat, label, model_bin,
-                          sample_weight, n_iter, max_iter, alpha, hist_size,
-                          reg_param, get_regularizer(), 
-                          fit_intercept, tol, mat_type, input_movable);
-      }
-      else REPORT_ERROR(USER_ERROR, "Unknown solver is encountered!\n");
-    }
-    this->is_fitted = true;
-    this->n_iter_ = n_iter;
-    this->n_features_ = nfeatures;
-    this->n_classes_ = nclasses;
-    return *this;
-  }
+       }
+       else REPORT_ERROR(USER_ERROR, 
+            "Multinomil classification is only supported for sgd solver\n");
+     }
+     else {
+       if (solver == "sgd") {
+         model_bin = logistic_regression_with_sgd::train(
+                           mat, label, model_bin,
+                           sample_weight, n_iter, max_iter, alpha, mbf,
+                           reg_param, get_regularizer(), 
+                           fit_intercept, tol, mat_type, input_movable);
+       }
+       else if (solver == "shrink-sgd") {
+         model_bin = shrink::logistic_regression_with_sgd::train(
+                           mat, label, model_bin,
+                           sample_weight, n_iter, max_iter, alpha, mbf,
+                           reg_param, get_regularizer(), 
+                           fit_intercept, tol, mat_type, input_movable);
+       }
+       else if (solver == "lbfgs") {
+         model_bin = logistic_regression_with_lbfgs::train(
+                           mat, label, model_bin,
+                           sample_weight, n_iter, max_iter, alpha, hist_size,
+                           reg_param, get_regularizer(), 
+                           fit_intercept, tol, mat_type, input_movable);
+       }
+       else REPORT_ERROR(USER_ERROR, "Unknown solver is encountered!\n");
+     }
+     this->is_fitted = true;
+     this->n_iter_ = n_iter;
+     this->n_features_ = nfeatures;
+     this->n_classes_ = nclasses;
+     return *this;
+   }
 
   template <class MATRIX>
   std::vector<T> 
@@ -307,16 +308,25 @@ struct logistic_regression {
       return mat.data.map(parallel_predict<typename MATRIX::local_mat_type,
                         multinomial_logistic_regression_model<T>, T>,
                         model_mult.broadcast())
-                        .template moveto_dvector<T>()
-                        .gather();
+                     .template moveto_dvector<T>()
+                     .gather();
     }
     else {
       return mat.data.map(parallel_predict<typename MATRIX::local_mat_type,
                         logistic_regression_model<T>, T>,
                         model_bin.broadcast())
-                   .template moveto_dvector<T>()
-                   .gather();
+                     .template moveto_dvector<T>()
+                     .gather();
     }
+  }
+
+  template <class LOC_MATRIX>
+  std::vector<T> 
+  predict_local(LOC_MATRIX& mat) {
+    if(!is_fitted) REPORT_ERROR(USER_ERROR, 
+                   "[logistic_regression] predict is called before fit\n");
+    if(is_mult) return model_mult.predict(mat);
+    else        return model_bin.predict(mat);
   }
 
   template <class MATRIX>
@@ -330,119 +340,128 @@ struct logistic_regression {
   template <class MATRIX>
   std::vector<T>
   predict_probability(MATRIX& mat, bool use_score=false) {
-   if(!is_fitted) REPORT_ERROR(USER_ERROR,
+    if(!is_fitted) REPORT_ERROR(USER_ERROR,
       "[logistic_regression] predict_probability is called before fit\n");
     if(is_mult) {
       return mat.data.map(parallel_predict_probability
                         <typename MATRIX::local_mat_type,
                         multinomial_logistic_regression_model<T>, T>,
                         model_mult.broadcast(), broadcast(use_score))
-                        .template moveto_dvector<T>()
-                        .gather();
+                     .template moveto_dvector<T>()
+                     .gather();
     }
     else {
       return mat.data.map(parallel_predict_probability
                         <typename MATRIX::local_mat_type,
                         logistic_regression_model<T>, T>,
                         model_bin.broadcast(), broadcast(use_score))
-                   .template moveto_dvector<T>()
-                   .gather();
+                     .template moveto_dvector<T>()
+                     .gather();
     }
   }
 
   template <class MATRIX>
   rowmajor_matrix_local<T>
   compute_probability_matrix(MATRIX& mat) {
-   if(!is_fitted) REPORT_ERROR(USER_ERROR,
+    if(!is_fitted) REPORT_ERROR(USER_ERROR,
       "[logistic_regression] compute_probability_matrix is called before fit\n");
     if(is_mult) {
       return merge(mat.data.map(parallel_compute_probability_matrix
                         <typename MATRIX::local_mat_type,
                         multinomial_logistic_regression_model<T>, T>,
                         model_mult.broadcast())
-                        .gather());
+                      .gather());
     }
     else {
       return merge(mat.data.map(parallel_compute_probability_matrix
                         <typename MATRIX::local_mat_type,
                         logistic_regression_model<T>, T>,
                         model_bin.broadcast())
-                        .gather());
+                      .gather());
     }
   }
 
   void set_threshold(T thr) {
-    if(is_mult) model_mult.set_threshold(thr);
-    else model_bin.set_threshold(thr);
+    is_mult ? model_mult.set_threshold(thr) : model_bin.set_threshold(thr);
   }
 
   size_t get_num_features() {
-    if(is_mult) return model_mult.get_num_features();
-    else return model_bin.get_num_features();
+    return is_mult ? model_mult.get_num_features() 
+                   : model_bin.get_num_features();
   }
 
   size_t get_num_classes() {
-    if(is_mult) return model_mult.get_num_classes();
-    else return model_bin.get_num_classes();
+    return is_mult ? model_mult.get_num_classes() 
+                   : model_bin.get_num_classes();
   }
 
   T get_threshold() {
-    if(is_mult) return model_mult.get_threshold();
-    else return model_bin.get_threshold();
+    return is_mult ? model_mult.get_threshold() : model_bin.get_threshold();
   }
 
   std::vector<T> get_intercept() {
-    if(is_mult) return model_mult.intercept;
-    else return std::vector<T>({model_bin.intercept});
+    return is_mult ? model_mult.intercept 
+                   : std::vector<T>({model_bin.intercept});
   }
   
   std::vector<T> get_weight() {
-    if(is_mult) return model_mult.weight.val;
-    else return model_bin.weight;
+    return is_mult ? model_mult.weight.val : model_bin.weight;
   }
  
   void debug_print() {
-    if(is_mult) model_mult.debug_print();
-    else model_bin.debug_print();
+    is_mult ? model_mult.debug_print() : model_bin.debug_print();
   }
 
   void savebinary(const std::string &inputPath) {
-    if(is_mult) model_mult.savebinary(inputPath);
-    else model_bin.savebinary(inputPath);
+    make_directory(inputPath);
+    std::string model_file = inputPath + "/model";
+    is_mult ? model_mult.savebinary(model_file) 
+            : model_bin.savebinary(model_file);
+    std::string type_file = inputPath + "/type";
+    std::ofstream type_str;
+    type_str.exceptions(std::ofstream::failbit | std::ofstream::badbit);
+    type_str.open(type_file.c_str()); 
+    std::string model_type = is_mult ? "multinomial" : "binomial";
+    type_str << model_type << std::endl;
   }
 
   void save(const std::string &inputPath) {
-    if(is_mult) model_mult.save(inputPath);
-    else model_bin.save(inputPath);
+    make_directory(inputPath);
+    std::string model_file = inputPath + "/model";
+    is_mult ? model_mult.save(model_file) 
+            : model_bin.save(model_file);
+    std::string type_file = inputPath + "/type";
+    std::ofstream type_str;
+    type_str.exceptions(std::ofstream::failbit | std::ofstream::badbit);
+    type_str.open(type_file.c_str()); 
+    std::string model_type = is_mult ? "multinomial" : "binomial";
+    type_str << model_type << std::endl;
   }
 
-  //TODO: Decide the model type from some saved meta data.
   logistic_regression& loadbinary(const std::string &inputPath) {
-    if(is_mult) {
-      model_mult.loadbinary(inputPath);
-      n_features_ = model_mult.get_num_features();
-      n_classes_ =  model_mult.get_num_classes();
-    }
-    else {
-      model_bin.loadbinary(inputPath);
-      n_features_ = model_bin.get_num_features();
-      n_classes_ =  model_bin.get_num_classes();
-    }
+    std::string type_file = inputPath + "/type";
+    std::string model_type;
+    std::ifstream type_str(type_file.c_str()); type_str >> model_type;
+    is_mult = (model_type == "multinomial");
+    std::string model_file = inputPath + "/model";
+    is_mult ? model_mult.loadbinary(model_file)
+            : model_bin.loadbinary(model_file);
+    n_classes_ = get_num_classes();
+    n_features_ = get_num_features();
     is_fitted = true;
     return *this;
   }
 
   logistic_regression& load(const std::string &inputPath) {
-    if(is_mult) {
-      model_mult.load(inputPath);
-      n_features_ = model_mult.get_num_features();
-      n_classes_ =  model_mult.get_num_classes();
-    }
-    else {
-      model_bin.load(inputPath);
-      n_features_ = model_bin.get_num_features();
-      n_classes_ =  model_bin.get_num_classes();
-    }
+    std::string type_file = inputPath + "/type";
+    std::string model_type;
+    std::ifstream type_str(type_file.c_str()); type_str >> model_type;
+    is_mult = (model_type == "multinomial");
+    std::string model_file = inputPath + "/model";
+    is_mult ? model_mult.load(model_file)
+            : model_bin.load(model_file);
+    n_classes_ = get_num_classes();
+    n_features_ = get_num_features();
     is_fitted = true;
     return *this;
   }

@@ -549,7 +549,8 @@ struct svm_model {
   }
   template <class DATA_MATRIX>
   std::vector<T>
-  predict_probability(DATA_MATRIX& mat) {
+  predict_probability(DATA_MATRIX& mat, 
+                      bool use_score=false) { // simply added for uniformity
     auto v = mat * weight;
     auto vp = v.data();
     if (intercept != 0) {

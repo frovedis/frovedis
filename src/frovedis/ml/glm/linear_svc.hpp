@@ -40,7 +40,6 @@ struct linear_svm_classifier {
     this->is_fitted = false;
     this->n_iter_ = 0;
     this->n_features_ = 0;
-    this->is_mult = false;
   }
   linear_svm_classifier<T>& 
   set_max_iter(int max_iter) {
@@ -268,6 +267,27 @@ struct linear_svm_classifier {
   }
 
   template <class MATRIX>
+  std::vector<T>
+  predict_probability(MATRIX& mat, bool use_score=false) {
+    if(!is_fitted) REPORT_ERROR(USER_ERROR,
+      "[linear_svm_classifier] predict_probability is called before fit\n");
+      return mat.data.map(parallel_predict_probability
+                        <typename MATRIX::local_mat_type,
+                        svm_model<T>, T>,
+                        model_bin.broadcast(), broadcast(false))
+                     .template moveto_dvector<T>()
+                     .gather();
+  }
+
+  template <class LOC_MATRIX>
+  std::vector<T> 
+  predict_local(LOC_MATRIX& mat) {
+    if(!is_fitted) REPORT_ERROR(USER_ERROR, 
+       "[linear_svm_classifier] predict is called before fit\n");
+    return model_bin.predict(mat);
+  }
+
+  template <class MATRIX>
   float score(MATRIX& mat, dvector<T>& label) {
     if(!is_fitted) REPORT_ERROR(USER_ERROR, 
                    "[linear_svm_classifier] score is called before fit\n");
@@ -305,14 +325,16 @@ struct linear_svm_classifier {
     model_bin.save(inputPath);
   }
 
-  linear_svm_classifier& loadbinary(const std::string &inputPath) {
+  linear_svm_classifier& 
+  loadbinary(const std::string &inputPath) {
     model_bin.loadbinary(inputPath);
     n_features_ = model_bin.get_num_features();
     is_fitted = true;
     return *this; 
   }
 
-  linear_svm_classifier& load(const std::string &inputPath) {
+  linear_svm_classifier& 
+  load(const std::string &inputPath) {
     model_bin.load(inputPath);
     n_features_ = model_bin.get_num_features();
     is_fitted = true;
@@ -324,17 +346,16 @@ struct linear_svm_classifier {
   std::string reg_type, solver;
   bool fit_intercept;
   svm_model<T> model_bin;
-  svm_model<T> model_mult;
   bool is_fitted;
   size_t n_iter_ = 0;
   bool warm_start;
   size_t n_features_;
   MatType mat_type;
-  bool is_mult;
   SERIALIZE(max_iter, hist_size, alpha, mbf, tol, 
             reg_param, reg_type, solver,
-            fit_intercept, model_bin, model_mult, 
-            is_fitted, n_iter_, warm_start, n_features_, mat_type, is_mult); 
+            fit_intercept, model_bin,  
+            is_fitted, n_iter_, warm_start, 
+            n_features_, mat_type); 
 };
 
 }

@@ -57,17 +57,17 @@ void do_predict(const string& input,
                 const string& output,
                 bool binary) {
   time_spent t(DEBUG);
-  crs_matrix_local<T> mat;
-  linear_regression_model<T> lm;
+  crs_matrix<T> mat;
+  ridge_regression<T> lm;
   if(binary) {
     lm.loadbinary(model);
     t.show("load model: ");
-    mat = make_crs_matrix_local_loadbinary<T>(input);
+    mat = make_crs_matrix_loadbinary<T>(input);
     t.show("load matrix: ");
   } else {
     lm.load(model);
     t.show("load model: ");
-    mat = make_crs_matrix_local_load<T>(input);
+    mat = make_crs_matrix_load<T>(input);
     t.show("load matrix: ");
   }
   auto r = lm.predict(mat);
@@ -76,7 +76,6 @@ void do_predict(const string& input,
   else       make_dvector_scatter(r).saveline(output);
   t.show("save predicted result: ");
 }
-
 
 int main(int argc, char* argv[]) {
   use_frovedis use(argc, argv);
