@@ -469,41 +469,6 @@ JNIEXPORT jintArray JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedis
   return to_jintArray(env,ret);
 }
  
-
-// (.) --- Gaussian Mixture ---
-JNIEXPORT jobject JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisGMM
-  (JNIEnv *env, jclass thisCls, jobject master_node, jlong fdata, 
-   jint ncomponent, jstring covtype, jdouble tol, jint max_iter, 
-   jstring init_type, jlong seed, jint mid, jboolean dense, jboolean movable) {
-
-  auto fm_node = java_node_to_frovedis_node(env, master_node);
-  auto f_dptr = (exrpc_ptr_t) fdata;
-  bool mvbl = (bool) movable;
-  int vb = 0; // no log (default)
-  int n_init = 1;
-  auto cov_type = to_cstring(env, covtype);
-  auto param_type = to_cstring(env, init_type); 
-  bool isDense = (bool) dense;
-#ifdef _EXRPC_DEBUG_
-  std::cout << "Connecting to master node ("
-            << fm_node.hostname << "," << fm_node.rpcport
-            << ") to train frovedis gaussian mixture.\n";
-#endif
-  gmm_result ret;
-  try {   
-    if(isDense) { // gaussian mixture accepts rowmajor matrix as for dense data
-      ret = exrpc_async(fm_node,(frovedis_gmm<DT1,R_MAT1>),f_dptr,mid,ncomponent,
-                           cov_type, tol,max_iter,n_init,param_type,seed,vb,mvbl).get();
-    }
-    else REPORT_ERROR(USER_ERROR, 
-         "Frovedis gaussian mixture doesn't accept sparse input at this moment.\n");
-  }
-  catch(std::exception& e) { set_status(true,e.what()); }
-  std::cout << "frovedis GMM converged in " << ret.n_iter_ 
-            << " steps! lower_bound: " << ret.likelihood_ << "\n";
-  return make_jIntDoublePair(env, ret.n_iter_, ret.likelihood_);
-}    
-
 // (10) --- Spectral Embedding ---
 JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisSEA
   (JNIEnv *env, jclass thisCls, jobject master_node, jlong fdata, jint ncomponent,
@@ -591,37 +556,38 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisDT
   bool isDense = (bool) dense;
   int vb = 0; // no log (default)
 
-  auto al = to_cstring(env,algoname);
-  tree::algorithm algo = tree::algorithm::Classification; // initializing
-  if (al == "Classification")  algo = tree::algorithm::Classification;
-  else if (al == "Regression") algo = tree::algorithm::Regression;
-  else REPORT_ERROR(USER_ERROR, "Unsupported quantile strategy is provided!\n");
+  try {
+    auto al = to_cstring(env,algoname);
+    tree::algorithm algo = tree::algorithm::Classification; // initializing
+    if (al == "Classification")  algo = tree::algorithm::Classification;
+    else if (al == "Regression") algo = tree::algorithm::Regression;
+    else REPORT_ERROR(USER_ERROR, "Unsupported quantile strategy is provided!\n");
 
-  auto qn = to_cstring(env,quantile_strategy);
-  tree::quantile_strategy qns = tree::quantile_strategy::ApproxHist; // initializing
-  if (qn == "ApproxHist") qns = tree::quantile_strategy::ApproxHist;
-  else REPORT_ERROR(USER_ERROR, "Unsupported quantile strategy is provided!\n");
+    auto qn = to_cstring(env,quantile_strategy);
+    tree::quantile_strategy qns = tree::quantile_strategy::ApproxHist; // initializing
+    if (qn == "ApproxHist") qns = tree::quantile_strategy::ApproxHist;
+    else REPORT_ERROR(USER_ERROR, "Unsupported quantile strategy is provided!\n");
 
-  auto impt = to_cstring(env,impurityType);
-  tree::impurity_type impurity = tree::impurity_type::Default; // initializing
-  if (impt == "default")       impurity = tree::impurity_type::Default;
-  else if (impt == "gini")     impurity = tree::impurity_type::Gini;
-  else if (impt == "entropy")  impurity = tree::impurity_type::Entropy;
-  else if (impt == "variance") impurity = tree::impurity_type::Variance;
-  else REPORT_ERROR(USER_ERROR, "Unsupported impurity type is provided!\n");
+    auto impt = to_cstring(env,impurityType);
+    tree::impurity_type impurity = tree::impurity_type::Default; // initializing
+    if (impt == "default")       impurity = tree::impurity_type::Default;
+    else if (impt == "gini")     impurity = tree::impurity_type::Gini;
+    else if (impt == "entropy")  impurity = tree::impurity_type::Entropy;
+    else if (impt == "variance") impurity = tree::impurity_type::Variance;
+    else REPORT_ERROR(USER_ERROR, "Unsupported impurity type is provided!\n");
 
-  tree::strategy<DT1> str(
+    tree::strategy<DT1> str(
       algo, impurity, 
       max_depth, num_classes, max_bins,
       qns, tree::categorize_strategy::Single,
       std::move(cat_ftr_info),
       min_instance, min_info_gain);
 
-  try{
     if(isDense) 
       exrpc_oneway(fm_node,(frovedis_dt<DT1,D_MAT1>),f_dptr,str,vb,mid,mvbl);
     else
-      REPORT_ERROR(USER_ERROR, "currently Frovedis doesn't support decision tree train with sparse data!\n");
+      REPORT_ERROR(USER_ERROR, 
+      "currently Frovedis doesn't support decision tree train with sparse data!\n");
   }
   catch(std::exception& e) { set_status(true,e.what()); }
 }
@@ -893,6 +859,7 @@ JNIEXPORT jobject JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisLD
   catch(std::exception& e) { set_status(true,e.what()); }
   return to_jDummyLDAModel(env, ret);
 }
+
 // (21) --- Random Forest ---
 JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisRF
   (JNIEnv *env, jclass thisClass, jobject master_node, jobject fdata,
@@ -909,16 +876,16 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisRF
   bool isDense = (bool) dense;
   int vb = 0; // no log (default)
 
-  auto al = to_cstring(env,algoname);
-  tree::algorithm algo = tree::algorithm::Classification; // initializing
-  if (al == "Classification")  algo = tree::algorithm::Classification;
-  else if (al == "Regression") algo = tree::algorithm::Regression;
-  else REPORT_ERROR(USER_ERROR, "Unsupported algorithm type is provided!\n");
-
   auto feature_subset_strategy = to_cstring(env, feature_subset);
   auto impurity_ = to_cstring(env,impurityType);
  
   try {
+    auto al = to_cstring(env, algoname);
+    tree::algorithm algo = tree::algorithm::Classification; // initializing
+    if (al == "Classification")  algo = tree::algorithm::Classification;
+    else if (al == "Regression") algo = tree::algorithm::Regression;
+    else REPORT_ERROR(USER_ERROR, "Unsupported algorithm type is provided!\n");
+
     if(isDense) {
       tree::sampling_strategy<double> subsample_strat;
       subsample_strat.set_feature_subset_strategy(feature_subset_strategy)
@@ -938,7 +905,8 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisRF
         strat.set_seed(seed);
       exrpc_oneway(fm_node,(frovedis_rf<DT1,D_MAT1>),f_dptr,strat,vb,mid,mvbl);
     }
-    else REPORT_ERROR(USER_ERROR, "currently Frovedis doesn't support random forest train with sparse data!\n");
+    else REPORT_ERROR(USER_ERROR, 
+         "currently Frovedis doesn't support random forest train with sparse data!\n");
   }
   catch(std::exception& e) { set_status(true,e.what()); }
 }
@@ -972,10 +940,11 @@ JNIEXPORT void Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisGbtFit
   bool mvbl = (bool) movable;
   int verbose = 0;
 
-  if (nclasses > 2) 
-    REPORT_ERROR(USER_ERROR, "Currently frovedis GBT Classifier supports only binary classification!\n");
-
   try {
+    if (nclasses > 2) 
+      REPORT_ERROR(USER_ERROR, 
+      "Currently frovedis GBT Classifier supports only binary classification!\n");
+
     if(isDense) {
       tree::sampling_strategy<double> subsample_strat;
       subsample_strat.set_subsampling_rate(subsampling_rate)
@@ -998,11 +967,44 @@ JNIEXPORT void Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisGbtFit
         strat.set_seed(random_state);
       exrpc_oneway(fm_node,(frovedis_gbt<DT1,D_MAT1>),f_dptr,strat,verbose,mid,mvbl);
     }
-    else REPORT_ERROR(USER_ERROR, "Frovedis doesn't support input sparse data for GBT training!\n");
+    else REPORT_ERROR(USER_ERROR, 
+         "Frovedis doesn't support input sparse data for GBT training!\n");
   }
   catch (std::exception& e) {
     set_status(true, e.what());
   }
 }
+
+// (23) --- Gaussian Mixture ---
+JNIEXPORT jobject JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisGMM
+  (JNIEnv *env, jclass thisCls, jobject master_node, jlong fdata, 
+   jint ncomponent, jstring covtype, jdouble tol, jint max_iter, 
+   jstring init_type, jlong seed, jint mid, jboolean dense, jboolean movable) {
+
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto f_dptr = (exrpc_ptr_t) fdata;
+  bool mvbl = (bool) movable;
+  int vb = 0; // no log (default)
+  int n_init = 1;
+  auto cov_type = to_cstring(env, covtype);
+  auto param_type = to_cstring(env, init_type); 
+  bool isDense = (bool) dense;
+#ifdef _EXRPC_DEBUG_
+  std::cout << "Connecting to master node ("
+            << fm_node.hostname << "," << fm_node.rpcport
+            << ") to train frovedis gaussian mixture.\n";
+#endif
+  gmm_result ret;
+  try {   
+    if(isDense) { // gaussian mixture accepts rowmajor matrix as for dense data
+      ret = exrpc_async(fm_node,(frovedis_gmm<DT1,R_MAT1>),f_dptr,mid,ncomponent,
+                           cov_type, tol,max_iter,n_init,param_type,seed,vb,mvbl).get();
+    }
+    else REPORT_ERROR(USER_ERROR, 
+         "Frovedis gaussian mixture doesn't accept sparse input at this moment.\n");
+  }
+  catch(std::exception& e) { set_status(true,e.what()); }
+  return make_jIntDoublePair(env, ret.n_iter_, ret.likelihood_);
+}    
 
 }
