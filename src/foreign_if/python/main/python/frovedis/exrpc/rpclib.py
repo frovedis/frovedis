@@ -187,7 +187,7 @@ drop_frovedis_dataframe_columns.argtypes = [c_char_p, c_int, c_long,
 drop_frovedis_duplicate_rows = LIB.drop_frovedis_duplicate_rows
 drop_frovedis_duplicate_rows.argtypes = [c_char_p, c_int, c_long, 
                                          POINTER(c_char_p), c_ulong,
-                                         c_char_p, c_bool]
+                                         c_char_p]
 drop_frovedis_duplicate_rows.restype = py_object
 
 drop_frovedis_dataframe_rows_int = LIB.drop_frovedis_dataframe_rows_int
@@ -227,18 +227,24 @@ drop_frovedis_dataframe_rows_str.argtypes = [c_char_p, c_int, c_long,
 drop_frovedis_dataframe_rows_str.restype = py_object
 
 df_reset_index = LIB.df_reset_index
-df_reset_index.argtypes = [c_char_p, c_int, c_long, c_bool, c_bool]
+df_reset_index.argtypes = [c_char_p, c_int, c_long, c_bool]
 df_reset_index.restype = py_object
 
 df_set_index = LIB.df_set_index
 df_set_index.argtypes = [c_char_p, c_int, c_long, c_char_p, c_char_p, \
-                         c_bool, c_bool]
+                         c_bool]
 df_set_index.restype = py_object
 
 df_copy_index = LIB.df_copy_index
 df_copy_index.argtypes = [c_char_p, c_int, c_long, c_long,
-                          c_char_p, c_bool, c_short]
+                          c_char_p, c_short]
 df_copy_index.restype = py_object
+
+df_copy_column = LIB.df_copy_column
+df_copy_column.argtypes = [c_char_p, c_int, c_long, c_long,
+                           POINTER(c_char_p), POINTER(c_char_p),
+                           POINTER(c_short), c_ulong]
+df_copy_column.restype = py_object
 
 df_astype = LIB.df_astype
 df_astype.argtypes = [c_char_p, c_int, c_long, 
@@ -382,21 +388,20 @@ get_frovedis_dataframe_length.argtypes = [c_char_p, c_int, # host, port
 get_frovedis_dataframe_length.restype = c_long
 
 df_convert_dicstring_to_bool = LIB.df_convert_dicstring_to_bool
-df_convert_dicstring_to_bool.argtypes = [c_char_p, c_int, c_long, # host, port, df_proxy
+df_convert_dicstring_to_bool.argtypes = [c_char_p, c_int, c_long,   # host, port, df_proxy
                                         POINTER(c_char_p), c_ulong, # col_names, sz,
-                                        c_char_p, c_bool] # nullstr, need_materialize
+                                        c_char_p]                   # nullstr
 df_convert_dicstring_to_bool.restype = py_object
 
 df_append_column = LIB.df_append_column
-df_append_column.argtypes = [c_char_p, c_int, c_long, # host, port, df_proxy
-                            c_char_p, c_short, c_long,  # col_name, type, dvec
-                            c_int, c_bool, c_bool] # position, need_materialize, drop_old
+df_append_column.argtypes = [c_char_p, c_int, c_long,  # host, port, df_proxy
+                            c_char_p, c_short, c_long, # col_name, type, dvec
+                            c_int, c_bool]             # position, drop_old
 df_append_column.restype = py_object
 
 df_add_index = LIB.df_add_index
 df_add_index.argtypes = [c_char_p, c_int, # host, port
-                        c_long, c_char_p, # proxy, name
-                        c_bool] # need_materialize
+                        c_long, c_char_p] # proxy, name
 df_add_index.restype = py_object
 
 df_union = LIB.df_union

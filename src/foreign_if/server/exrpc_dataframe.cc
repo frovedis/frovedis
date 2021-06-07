@@ -698,8 +698,7 @@ size_t get_dataframe_length(exrpc_ptr_t& df_proxy) {
 dummy_dftable
 frov_df_convert_dicstring_to_bool(exrpc_ptr_t& df_proxy,
                                   std::vector<std::string>& col_names,
-                                  std::string& nullstr, 
-                                  bool& need_materialize) { // TODO: remove need_materialize
+                                  std::string& nullstr) { 
   auto dftblp = get_dftable_pointer(df_proxy); 
   auto cols = dftblp->columns();
   for (auto& e: col_names){
@@ -717,17 +716,15 @@ dummy_dftable
 frov_df_append_column(exrpc_ptr_t& df_proxy, 
                       std::string& col_name, short& type, 
                       exrpc_ptr_t& dvec_proxy, int& position,
-                      bool& need_materialize, // TODO: remove need_materialize
                       bool& drop_old) {
   dftable* dftblp = NULL;
-  if (df_proxy == -1)  dftblp = new dftable(); // empty dataframe
+  if (df_proxy == -1) dftblp = new dftable(); // empty dataframe
   else dftblp = get_dftable_pointer(df_proxy);
 
   auto df_col_order = dftblp->columns(); // original col_order
   auto sz = df_col_order.size();
 
   if (drop_old) dftblp->drop(col_name);
-
   switch(type) {
     case INT:    { auto v1 = reinterpret_cast<dvector<int>*>(dvec_proxy);
                    dftblp->append_column(col_name,std::move(*v1),true);
@@ -754,7 +751,6 @@ frov_df_append_column(exrpc_ptr_t& df_proxy,
                             + std::to_string(type);
                  REPORT_ERROR(USER_ERROR,msg);
   }
-
   if (drop_old) dftblp->set_col_order(df_col_order);
   if (df_proxy == -1) dftblp->add_index("index");
   if (position != -1 and position != sz) {
@@ -768,8 +764,7 @@ frov_df_append_column(exrpc_ptr_t& df_proxy,
 
 dummy_dftable
 frov_df_add_index(exrpc_ptr_t& df_proxy, 
-                  std::string& name,
-                  bool& need_materialize) { // TODO: remove need_materialize
+                  std::string& name) {
   auto dftblp = get_dftable_pointer(df_proxy);
   dftblp->add_index(name);
   return to_dummy_dftable(dftblp);
@@ -777,8 +772,7 @@ frov_df_add_index(exrpc_ptr_t& df_proxy,
 
 dummy_dftable
 frov_df_reset_index(exrpc_ptr_t& df_proxy, 
-                    bool& drop, 
-                    bool& need_materialize) { // TODO: remove need_materialize
+                    bool& drop) { 
   auto dftblp = get_dftable_pointer(df_proxy);
   auto cols = dftblp->columns();
   checkAssumption(cols.size() > 0);
@@ -808,8 +802,7 @@ frov_df_reset_index(exrpc_ptr_t& df_proxy,
 dummy_dftable
 frov_df_drop_duplicates(exrpc_ptr_t& df_proxy, 
                         std::vector<std::string>& cols,
-                        std::string& keep,
-                        bool& need_materialize) { // TODO: remove need_materialize
+                        std::string& keep) {
   auto dftblp = get_dftable_pointer(df_proxy);
   auto retp = new dftable(dftblp->drop_duplicates(cols, keep));
   return to_dummy_dftable(retp);
@@ -819,8 +812,7 @@ dummy_dftable
 frov_df_set_index(exrpc_ptr_t& df_proxy, 
                   std::string& cur_index_name, // existing index column
                   std::string& new_index_name, // existing column to be set as index
-                  bool& verify_integrity,
-                  bool& need_materialize) { // TODO: remove need_materialize
+                  bool& verify_integrity) {
   auto dftblp = get_dftable_pointer(df_proxy);
   if(verify_integrity and !(dftblp->column(new_index_name)->is_unique()))
     REPORT_ERROR(USER_ERROR, 
@@ -869,7 +861,6 @@ frov_df_union2(exrpc_ptr_t& df_proxy,
   return to_dummy_dftable(union_df);
 }
 
-
 dummy_dftable
 frov_df_set_col_order(exrpc_ptr_t& df_proxy,
                       std::vector<std::string>& new_cols) {
@@ -903,4 +894,63 @@ frov_df_astype(exrpc_ptr_t& df_proxy,
   // during type-cast, original col-order changes due to drop and append
   dftblp->set_col_order(org_col_order); 
   return to_dummy_dftable(dftblp);
+}
+
+void copy_column_helper(dftable& to_df,
+                        dftable_base& from_df,
+                        std::string& cname,
+                        std::string& cname_as,
+                        short& dtype) {
+  // if cname already exists in 'to_df', it would be replaced
+  auto col = to_df.columns();
+  if (std::find(col.begin(), col.end(), cname_as) != col.end()) 
+    to_df.drop(cname_as);
+  switch(dtype) {
+    case INT:    to_df.append_column(cname_as, from_df.as_dvector<int>(cname), 
+                                     true); break;
+    case LONG:   to_df.append_column(cname_as, from_df.as_dvector<long>(cname),
+                                     true); break;
+    case ULONG:  to_df.append_column(cname_as, from_df.as_dvector<unsigned long>(cname),
+                                     true); break;
+    case FLOAT:  to_df.append_column(cname_as, from_df.as_dvector<float>(cname),
+                                     true); break;
+    case DOUBLE: to_df.append_column(cname_as, from_df.as_dvector<double>(cname),
+                                     true); break;
+    case STRING: to_df.append_column(cname_as, from_df.as_dvector<std::string>(cname),
+                                     true); break;
+    default: REPORT_ERROR(USER_ERROR, 
+             std::string("copy: unsupported dtype, '") + STR(dtype) + 
+             std::string("' encountered!"));
+  }
+}
+
+dummy_dftable 
+frov_df_copy_index(exrpc_ptr_t& to_df, 
+                   exrpc_ptr_t& from_df,
+                   std::string& index_name,
+                   short& dtype) { 
+  auto to_df_p = get_dftable_pointer(to_df);
+  auto from_df_p = reinterpret_cast<dftable_base*>(from_df);
+  copy_column_helper(*to_df_p, *from_df_p, index_name, index_name, dtype);
+  to_df_p->set_index(index_name);
+  return to_dummy_dftable(to_df_p);
+}
+
+dummy_dftable 
+frov_df_copy_column(exrpc_ptr_t& to_df, 
+                    exrpc_ptr_t& from_df,
+                    std::vector<std::string>& names,
+                    std::vector<std::string>& names_as,
+                    std::vector<short>& dtypes) { 
+  dftable* to_df_p = NULL;
+  if (to_df == -1) to_df_p = new dftable(); // empty dataframe 
+  else to_df_p = get_dftable_pointer(to_df);
+  auto from_df_p = reinterpret_cast<dftable_base*>(from_df);
+  auto size = names.size();
+  checkAssumption(size == dtypes.size());
+  for(size_t i = 0; i < size; ++i) {
+    copy_column_helper(*to_df_p, *from_df_p, names[i], names_as[i], dtypes[i]);
+  }
+  if (to_df == -1) to_df_p->add_index("index");
+  return to_dummy_dftable(to_df_p);
 }

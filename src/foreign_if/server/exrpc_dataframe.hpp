@@ -194,33 +194,31 @@ size_t get_dataframe_length(exrpc_ptr_t& df_proxy);
 dummy_dftable
 frov_df_convert_dicstring_to_bool(exrpc_ptr_t& df_proxy,
                                  std::vector<std::string>& col_names,
-                                 std::string& nullstr,bool& need_materialize);
+                                 std::string& nullstr);
 
 dummy_dftable
-frov_df_append_column(exrpc_ptr_t& df_proxy, std::string& col_name,
-                    short& type, exrpc_ptr_t& dvec_proxy, int& position,
-                    bool& need_materialize, bool& drop_old);
+frov_df_append_column(exrpc_ptr_t& df_proxy, 
+                      std::string& col_name,
+                      short& type, 
+                      exrpc_ptr_t& dvec_proxy, int& position,
+                      bool& drop_old);
 
 dummy_dftable
-frov_df_add_index(exrpc_ptr_t& df_proxy, std::string& name,
-                  bool& need_materialize);
+frov_df_add_index(exrpc_ptr_t& df_proxy, std::string& name);
 
 dummy_dftable 
-frov_df_reset_index(exrpc_ptr_t& df_proxy, bool& drop,
-                    bool& need_materialize);
+frov_df_reset_index(exrpc_ptr_t& df_proxy, bool& drop);
 
 dummy_dftable
 frov_df_set_index(exrpc_ptr_t& df_proxy, 
                   std::string& cur_index_name, // existing index column
                   std::string& new_index_name, // existing column to be set as index
-                  bool& verify_integrity,
-                  bool& need_materialize);
+                  bool& verify_integrity);
 
 dummy_dftable
 frov_df_drop_duplicates(exrpc_ptr_t& df_proxy, 
                         std::vector<std::string>& cols,
-                        std::string& keep,
-                        bool& need_materialize);
+                        std::string& keep);
 
 dummy_dftable
 frov_df_union(exrpc_ptr_t& df_proxy, std::vector<exrpc_ptr_t>& proxies,
@@ -241,31 +239,32 @@ dummy_dftable
 frov_df_set_col_order(exrpc_ptr_t& df_proxy,
                       std::vector<std::string>& new_cols);
 
+dftable* get_dftable_pointer(exrpc_ptr_t& df_proxy);
+
+void copy_column_helper(dftable& to_df,
+                        dftable_base& from_df,
+                        std::string& cname,
+                        short& dtype);
+
+dummy_dftable 
+frov_df_copy_index(exrpc_ptr_t& to_df, 
+                   exrpc_ptr_t& from_df,
+                   std::string& index_col_name,
+                   short& dtype);
+
+dummy_dftable 
+frov_df_copy_column(exrpc_ptr_t& to_df, 
+                    exrpc_ptr_t& from_df,
+                    std::vector<std::string>& names,
+                    std::vector<std::string>& names_as,
+                    std::vector<short>& dtypes); 
+
 template <class T>
 exrpc_ptr_t get_df_column_pointer(exrpc_ptr_t& df_proxy, 
                                   std::string& cname) {
   auto& df = *reinterpret_cast<dftable_base*>(df_proxy);
   auto cptr = new dvector<T>(df.as_dvector<T>(cname));
   return reinterpret_cast<exrpc_ptr_t>(cptr);
-}
-
-template <class T>
-dummy_dftable 
-frov_df_copy_index(exrpc_ptr_t& to_df, 
-                   exrpc_ptr_t& from_df,
-                   std::string& cname, 
-                   bool& need_materialize) { 
-  dftable* to_df_p = NULL;
-  if (need_materialize) {
-    auto dftblp_ = reinterpret_cast<dftable_base*>(to_df);
-    to_df_p = new dftable(dftblp_->materialize());
-  }
-  else to_df_p = reinterpret_cast<dftable*>(to_df);
-  if (!to_df_p) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed.\n");
-  auto from_df_p = reinterpret_cast<dftable_base*>(from_df);
-  to_df_p->append_column(cname, from_df_p->as_dvector<T>(cname));
-  to_df_p->set_index(cname);
-  return to_dummy_dftable(to_df_p);
 }
 
 #endif

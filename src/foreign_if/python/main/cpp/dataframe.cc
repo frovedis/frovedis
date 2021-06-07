@@ -682,8 +682,7 @@ extern "C" {
 
   PyObject* df_convert_dicstring_to_bool(const char* host, int port,
                                         long proxy, const char **col_names,
-                                        ulong sz, const char* nullstr,
-                                        bool need_materialize) {
+                                        ulong sz, const char* nullstr) {
     ASSERT_PTR(host);
     auto df_proxy = static_cast<exrpc_ptr_t>(proxy);
     auto col_names_ = to_string_vector(col_names, sz);
@@ -692,7 +691,7 @@ extern "C" {
     dummy_dftable res;
     try {
       res = exrpc_async(fm_node, frov_df_convert_dicstring_to_bool, df_proxy,
-                       col_names_, nullstr_, need_materialize).get();
+                       col_names_, nullstr_).get();
     }
     catch (std::exception& e) {
       set_status(true, e.what());
@@ -702,8 +701,7 @@ extern "C" {
 
   PyObject* df_append_column(const char* host, int port,  long proxy,
                             const char* col_name, short type, long dvec,
-                            int position, bool need_materialize,
-                            bool drop_old) {
+                            int position, bool drop_old) {
     ASSERT_PTR(host);
     auto df_proxy = static_cast<exrpc_ptr_t>(proxy);
     auto dvec_proxy = static_cast<exrpc_ptr_t>(dvec);
@@ -712,8 +710,7 @@ extern "C" {
     dummy_dftable res;
     try {
       res = exrpc_async(fm_node, frov_df_append_column, df_proxy, col_name_,
-                      type, dvec_proxy, position, need_materialize,
-                      drop_old).get();
+                      type, dvec_proxy, position, drop_old).get();
     }
     catch (std::exception& e) {
       set_status(true, e.what());
@@ -722,15 +719,14 @@ extern "C" {
   }
 
   PyObject* df_add_index(const char* host, int port, long proxy,
-                         const char* name, bool need_materialize) {
+                         const char* name) {
     ASSERT_PTR(host); 
     exrpc_node fm_node(host, port);
     auto df_proxy = static_cast<exrpc_ptr_t> (proxy);
     std::string name_(name);
     dummy_dftable res;
     try {
-      res = exrpc_async(fm_node, frov_df_add_index, df_proxy, name_,
-                      need_materialize).get();
+      res = exrpc_async(fm_node, frov_df_add_index, df_proxy, name_).get();
     }
     catch (std::exception& e) {
       set_status(true, e.what());
@@ -739,14 +735,13 @@ extern "C" {
   }
 
   PyObject* df_reset_index(const char* host, int port, 
-                           long proxy, bool drop, bool need_materialize) {
+                           long proxy, bool drop) {
     ASSERT_PTR(host);
     exrpc_node fm_node(host, port);
     auto df_proxy = static_cast<exrpc_ptr_t> (proxy);
     dummy_dftable res;
     try {
-      res = exrpc_async(fm_node, frov_df_reset_index, 
-                        df_proxy, drop, need_materialize).get();
+      res = exrpc_async(fm_node, frov_df_reset_index, df_proxy, drop).get();
     }
     catch (std::exception& e) {
       set_status(true, e.what());
@@ -757,8 +752,7 @@ extern "C" {
   PyObject* df_set_index(const char* host, int port, long proxy,
                          const char* cur_ind_name, 
                          const char* new_ind_name,
-                         bool verify_integrity,
-                         bool need_materialize) {
+                         bool verify_integrity) {
     ASSERT_PTR(host);
     exrpc_node fm_node(host, port);
     auto df_proxy = static_cast<exrpc_ptr_t> (proxy);
@@ -767,7 +761,7 @@ extern "C" {
     try {
       res = exrpc_async(fm_node, frov_df_set_index,
                         df_proxy, cur_index_name, new_index_name,
-                        verify_integrity, need_materialize).get();
+                        verify_integrity).get();
     }
     catch (std::exception& e) {
       set_status(true, e.what());
@@ -777,8 +771,7 @@ extern "C" {
 
   PyObject* df_copy_index(const char* host, int port, 
                           long to_df, long from_df, 
-                          const char* i_col, bool need_materialize,
-                          short dtype) {
+                          const char* i_col, short dtype) {
     ASSERT_PTR(host);
     exrpc_node fm_node(host, port);
     auto to_df_ = static_cast<exrpc_ptr_t> (to_df);
@@ -786,28 +779,36 @@ extern "C" {
     std::string index_col(i_col);
     dummy_dftable res;
     try {
-      switch(dtype) {
-        case INT:    res = exrpc_async(fm_node, frov_df_copy_index<int>, 
-                                       to_df_, from_df_, index_col, 
-                                       need_materialize).get(); break;
-        case LONG:   res = exrpc_async(fm_node, frov_df_copy_index<long>, 
-                                       to_df_, from_df_, index_col, 
-                                       need_materialize).get(); break;
-        case ULONG:  res = exrpc_async(fm_node, frov_df_copy_index<unsigned long>, 
-                                       to_df_, from_df_, index_col, 
-                                       need_materialize).get(); break;
-        case FLOAT:  res = exrpc_async(fm_node, frov_df_copy_index<float>, 
-                                       to_df_, from_df_, index_col, 
-                                       need_materialize).get(); break;
-        case DOUBLE: res = exrpc_async(fm_node, frov_df_copy_index<double>, 
-                                       to_df_, from_df_, index_col, 
-                                       need_materialize).get(); break;
-        case STRING: res = exrpc_async(fm_node, frov_df_copy_index<std::string>, 
-                                       to_df_, from_df_, index_col, 
-                                       need_materialize).get(); break;
-        default: REPORT_ERROR(USER_ERROR, 
-                 "Unsupported dtype for index column is encountered!\n");
-      }
+      res = exrpc_async(fm_node, frov_df_copy_index, 
+                        to_df_, from_df_, index_col, dtype).get();
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return to_py_dummy_df(res);
+  }
+
+  PyObject* df_copy_column(const char* host, int port, 
+                           long to_df, long from_df, 
+                           const char** names, 
+                           const char** names_as, 
+                           short* types, 
+                           ulong size) {
+    ASSERT_PTR(host);
+    exrpc_node fm_node(host, port);
+    auto to_df_ = static_cast<exrpc_ptr_t> (to_df);
+    auto from_df_ = static_cast<exrpc_ptr_t> (from_df);
+    std::vector<std::string> nm(size), nm_as(size);
+    std::vector<short> tt(size);
+    for(size_t i = 0; i < size; ++i) {
+       nm[i] = std::string(names[i]);
+       nm_as[i] = std::string(names_as[i]);
+       tt[i] = types[i];
+    }
+    dummy_dftable res;
+    try {
+      res = exrpc_async(fm_node, frov_df_copy_column, 
+                        to_df_, from_df_, nm, nm_as, tt).get();
     }
     catch (std::exception& e) {
       set_status(true, e.what());
@@ -855,8 +856,7 @@ extern "C" {
   PyObject* drop_frovedis_duplicate_rows(const char* host, int port, 
                                          long proxy,
                                          const char** cols, ulong sz,
-                                         const char* keep,
-                                         bool need_materialize) {
+                                         const char* keep) {
     ASSERT_PTR(host);
     exrpc_node fm_node(host, port);
     auto df_proxy = static_cast<exrpc_ptr_t> (proxy);
@@ -865,7 +865,7 @@ extern "C" {
     dummy_dftable ret;
     try {
       ret = exrpc_async(fm_node, frov_df_drop_duplicates, 
-                        df_proxy, tcols, keep_str, need_materialize).get();
+                        df_proxy, tcols, keep_str).get();
     }
     catch (std::exception& e) {
       set_status(true, e.what());
