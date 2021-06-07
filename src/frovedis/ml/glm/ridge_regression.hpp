@@ -242,6 +242,14 @@ struct ridge_regression {
                    .gather();
   }
 
+  template <class LOC_MATRIX>
+  std::vector<T> 
+  predict_local(LOC_MATRIX& mat) {
+    if(!is_fitted) REPORT_ERROR(USER_ERROR, 
+                   "[ridge_regression] predict is called before fit\n");
+    return model.predict(mat);
+  }
+
   template <class MATRIX>
   float score(MATRIX& mat, dvector<T>& label) {
     if(!is_fitted) REPORT_ERROR(USER_ERROR, 
