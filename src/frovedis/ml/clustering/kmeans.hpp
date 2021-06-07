@@ -140,6 +140,13 @@ struct KMeans {
     return parallel_kmeans_assign_cluster(mat, centroid);
   }
   
+  template <class LOC_MATRIX>
+  std::vector<int> 
+  predict_local(LOC_MATRIX& mat) {
+    require(is_fitted, "[KMeans] predict(): is called before fit\n");
+    return kmeans_assign_cluster(mat, centroid);
+  }
+  
   template <class MATRIX>
   float score(MATRIX& mat, 
     const dvector<T>& label = dvector<T>()) { // ignored

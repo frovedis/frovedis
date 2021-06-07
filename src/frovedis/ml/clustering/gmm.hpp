@@ -167,6 +167,18 @@ namespace frovedis {
                      .template moveto_dvector<int>().gather();
     }
 
+    template <class LOC_MATRIX>
+    std::vector<int> 
+    predict_local(LOC_MATRIX& mat) {
+      if(!is_fitted) REPORT_ERROR(USER_ERROR, 
+       "[Gaussian Mixture] predict is called before fit\n");
+      auto gmm_pred = gmm_assign_cluster(mat, n_components, 
+                                         model.model, 
+                                         model.covariance, 
+                                         model.pi);           
+      return gmm_pred.predict.val;
+    }
+
     template <class MATRIX>
     std::vector<int>
     fit_predict(const MATRIX& mat,
