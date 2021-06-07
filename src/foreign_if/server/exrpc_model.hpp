@@ -143,7 +143,7 @@ T single_lnrm_predict(exrpc_ptr_t& f_dptr, int& mid) {
 #endif
   // predict returns std::vector<T>. 
   // In single input prediction case, a vector of single 'T' type data only [0]
-  auto ret = est.model.predict(mat)[0];
+  auto ret = est.predict_local(mat)[0];
   delete matptr; // it is internally created at spark side predict(Vector)
   return ret;
 }
@@ -225,9 +225,7 @@ T single_glm_predict(exrpc_ptr_t& f_dptr, int& mid) {
   std::cout << "with test data: \n";
   mat.debug_print();
 #endif
-  T ret = 0;
-  if(est.is_mult) ret = est.model_mult.predict(mat)[0];
-  else ret = est.model_bin.predict(mat)[0];
+  T ret = est.predict_local(mat)[0];
   delete matptr; // it is internally created at spark side predict(Vector)
   return ret;
 }
@@ -258,7 +256,7 @@ parallel_mfm_predict(exrpc_ptr_t& mp,
   mptr->debug_print();
   std::cout << "with test data: \n [";
   auto total = ids.size();
-  for(int i=0; i<total; ++i) 
+  for(int i = 0; i < total; ++i) 
     std::cout << "(" << ids[i].first << "," << ids[i].second << "), ";
   std::cout << "]\n";
 #endif
@@ -332,8 +330,7 @@ int single_kmm_predict(exrpc_ptr_t& f_dptr, int& mid) {
 #endif
   // frovedis::kmeans_assign_cluster returns std::vector<int>.
   // In single input prediction case, a vector of single 'int' type data only [0]
-  auto centroid = est.cluster_centers_();
-  return kmeans_assign_cluster(data, centroid)[0];
+  return est.predict_local(data)[0];
 }
 
 // --- KNN related functions ---
@@ -670,12 +667,7 @@ int single_gmm_predict(exrpc_ptr_t& f_dptr, int& mid) {
 #endif
   // frovedis::gmm_assign_cluster returns a struct with predict (LOCAL RMJOR MAT)
   // In single input prediction case, a vector of single 'int' type data only [0]
-  auto weights = est.weights_();
-  auto k = weights.val.size();
-  auto means = est.means_();
-  auto cov = est.covariances_();
-  return gmm_assign_cluster(data, k, means, 
-                            cov, weights).predict.val[0];
+  return est.predict_local(data)[0];
 }
 
 
