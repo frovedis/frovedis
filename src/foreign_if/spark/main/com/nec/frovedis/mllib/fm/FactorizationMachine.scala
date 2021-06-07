@@ -6,6 +6,10 @@ import com.nec.frovedis.mllib.{M_KIND,ModelID,GenericModelWithPredict}
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 import org.apache.spark.mllib.regression.LabeledPoint
+import org.apache.spark.sql.{Dataset, Row}
+import org.apache.spark.sql.functions.col
+import org.apache.spark.ml.linalg.Vector
+import org.apache.spark.mllib.linalg.Vectors
 
 class FactorizationMachineModel (val model_Id: Int)
   extends GenericModelWithPredict(model_Id, M_KIND.FMM) { 
@@ -23,7 +27,41 @@ object FactorizationMachineModel{
   }
 }
 
-class FactorizationMachine private (val fm_config: FMConfig) {   
+class FactorizationMachine private (val fm_config: FMConfig) {
+  
+  private var labelCol:String = "label"
+    
+  private var featuresCol:String = "features"
+  
+  def setLabelCol(value: String):this.type = {
+    this.labelCol = value
+    this  
+  }
+    
+  def setFeaturesCol(value: String):this.type = {
+    this.featuresCol = value
+    this  
+  }
+    
+  def getLabelCol:String = labelCol
+    
+  def getFeaturesCol:String = featuresCol  
+    
+  def extractLabeledPoints(data: Dataset[_], numClasses: Int): RDD[LabeledPoint] = {
+    data.select(col(labelCol), col(featuresCol)).rdd.map {
+      case Row(label: Double, features: Vector) =>
+        require(label % 1 == 0 && label >= 0 && label < numClasses, s"Classifier was given" +
+          s" dataset with invalid label $label.  Labels must be integers in range" +
+          s" [0, $numClasses).")
+        LabeledPoint(label, Vectors.fromML(features))
+    }    
+  }
+    
+  def run(input: Dataset[_]):  FactorizationMachineModel = {
+    //Convert to RDD[LabeledPoint]   
+    val rdd_data = extractLabeledPoints(input, 2)
+    return run(rdd_data)
+  }  
   def run(input: RDD[LabeledPoint]): FactorizationMachineModel = {
     val fdata = new FrovedisLabeledPoint(input)
     return run(fdata,true)
@@ -231,5 +269,87 @@ object FactorizationMachine{
     val regParam = (0.0, 1e-3, 1e-4)
     return train(data,0.1,100,0.01,"SGD",true,dim,regParam,100)
   }
+  
+  // train with spark Dataset, along with diffrent hyper-parameters
+  def train(data: Dataset[_], 
+            initStdev: Double,
+            iter: Int, 
+            learnRate: Double, 
+            optimizer: String,
+            isRegression: Boolean, 
+            dim: (Boolean, Boolean, Int),
+            regParam: (Double, Double,Double),
+            batchsize: Int): FactorizationMachineModel =  {
+    val fm_config = new FMConfig(initStdev,iter,
+                                 learnRate,optimizer,isRegression,
+                                 dim,regParam,batchsize)
+    return new FactorizationMachine(fm_config).run(data)
+  }
+
+  def train(data: Dataset[_], 
+            initStdev: Double,
+            iter: Int, 
+            learnRate: Double, 
+            optimizer: String,
+            isRegression: Boolean,
+            dim: (Boolean, Boolean, Int),
+            regParam: (Double, Double,Double)): FactorizationMachineModel =  {
+    return train(data,initStdev,iter,learnRate,optimizer,isRegression,dim,regParam,100)
+  }
+  def train(data: Dataset[_], 
+            initStdev: Double,
+            iter: Int, 
+            learnRate: Double, 
+            optimizer: String,
+            isRegression: Boolean,
+            dim: (Boolean,Boolean,Int)): FactorizationMachineModel =  {
+    val regParam = (0.0, 1e-3, 1e-4)
+    return train(data,initStdev,iter,learnRate,optimizer,isRegression,dim,regParam,100)
+  }
+  def train(data: Dataset[_], 
+            initStdev: Double,
+            iter: Int, 
+            learnRate: Double, 
+            optimizer: String,
+            isRegression: Boolean): FactorizationMachineModel =  {
+    val dim = (true,true,8) 
+    val regParam = (0.0, 1e-3, 1e-4)
+    return train(data,initStdev,iter,learnRate,optimizer,isRegression,dim,regParam,100)
+  }
+  def train(data: Dataset[_],
+            initStdev: Double,
+            iter: Int, 
+            learnRate: Double, 
+            optimizer: String): FactorizationMachineModel =  {
+    val dim = (true,true,8) 
+    val regParam = (0.0, 1e-3, 1e-4)
+    return train(data,initStdev,iter,learnRate,optimizer,true,dim,regParam,100)
+  }
+  def train(data: Dataset[_],
+            initStdev: Double,
+            iter: Int, 
+            learnRate: Double): FactorizationMachineModel =  { 
+    val dim = (true,true,8) 
+    val regParam = (0.0, 1e-3, 1e-4)
+    return train(data,initStdev,iter,learnRate,"SGD",true,dim,regParam,100)
+  }
+  def train(data: Dataset[_],
+            initStdev: Double,
+            iter: Int): FactorizationMachineModel =  { 
+    val dim = (true,true,8) 
+    val regParam = (0.0, 1e-3, 1e-4)
+    return train(data,initStdev,iter,0.01,"SGD",true,dim,regParam,100)
+  }
+  def train(data: Dataset[_],
+            initStdev: Double): FactorizationMachineModel = {
+    val dim = (true,true,8) 
+    val regParam = (0.0, 1e-3, 1e-4)
+    return train(data,initStdev,100,0.01,"SGD",true,dim,regParam,100)
+  }
+  def train(data: Dataset[_]): FactorizationMachineModel =  {
+    val dim = (true,true,8) 
+    val regParam = (0.0, 1e-3, 1e-4)
+    return train(data,0.1,100,0.01,"SGD",true,dim,regParam,100)
+  }    
 }
 
