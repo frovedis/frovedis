@@ -100,6 +100,7 @@ crs_matrix_local<T,I,O> ell_matrix_local<T,I>::to_crs() {
   crs_matrix_local<T,I,O> ret;
   ret.local_num_row = local_num_row;
   ret.local_num_col = local_num_col;
+  if (local_num_row == 0) return ret;
   size_t physical_num_col = val.size() / local_num_row;
   for(size_t r = 0; r < local_num_row; r++) {
     for(size_t c = 0; c < physical_num_col; c++) {
@@ -119,6 +120,7 @@ crs_matrix_local<T,I,O> ell_matrix_local<T,I>::to_crs_allow_zero() {
   crs_matrix_local<T,I,O> ret;
   ret.local_num_row = local_num_row;
   ret.local_num_col = local_num_col;
+  if (local_num_row == 0) return ret;
   size_t physical_num_col = val.size() / local_num_row;
   ret.val.resize(val.size());
   ret.idx.resize(idx.size());
