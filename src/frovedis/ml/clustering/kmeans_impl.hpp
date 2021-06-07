@@ -199,7 +199,7 @@ kmeans_impl(crs_matrix<T,I,O>& samples, int k,
     t2.show("one iteration: ");
     if (!diff) break;
   }
-  n_iter_ = i + 1;
+  n_iter_ = (i == iter) ? i : i + 1;
   RLOG(DEBUG) << "converged in n_iter_: " << n_iter_ << std::endl;
   bcasttime.show_lap("broadcast centroid time: ");
   normtime.show_lap("normalize centroid time: ");
