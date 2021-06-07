@@ -17,13 +17,21 @@ object FrovedisIO {
   def saveDictionary[K,V](target: Map[K,V],
                           path: String): Unit = {
     val context = SparkContext.getOrCreate()
+    saveDictionary[K,V](context, target, path) 
+  }
+  def saveDictionary[K,V](context: SparkContext,
+                          target: Map[K,V],
+                          path: String): Unit = {
     context.parallelize(target.toSeq, 2).saveAsObjectFile(path)
   }
   def loadDictionary[K: ClassTag, V: ClassTag](path: String): Map[K,V] = {
     val context = SparkContext.getOrCreate()
-    val target = context.objectFile[(K,V)](path)
-                        .collectAsMap() // returns generic scala.collection.Map
-                        .toMap          // to make it immutable Map
-    return target
+    return loadDictionary[K,V](context, path)
+  }
+  def loadDictionary[K: ClassTag, V: ClassTag](context: SparkContext,
+                                               path: String): Map[K,V] = {
+    return context.objectFile[(K,V)](path)
+                  .collectAsMap() // returns generic scala.collection.Map
+                  .toMap          // to make it immutable Map
   }
 }

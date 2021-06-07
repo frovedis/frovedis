@@ -103,8 +103,7 @@ class GaussianMixture(var k: Int,
     if (info != "") throw new java.rmi.ServerException(info)  
     val niters = ret.getKey() // number if iterations in convergence
     val lb = ret.getValue() // lower_bound (log_likelihood)
-    return new GaussianMixtureModel(mid).setIters(niters)
-                                        .setLowerBound(lb)
+    return new GaussianMixtureModel(mid, niters, lb)
   }
 
   def run(data: FrovedisRowmajorMatrix): GaussianMixtureModel = {
@@ -128,7 +127,6 @@ class GaussianMixture(var k: Int,
     if (info != "") throw new java.rmi.ServerException(info)
     val niters = ret.getKey() // number if iterations in convergence
     val lb = ret.getValue() // lower_bound (log_likelihood)
-    return new GaussianMixtureModel(mid).setIters(niters)
-                                        .setLowerBound(lb)
+    return new GaussianMixtureModel(mid, niters, lb)
   }
 }

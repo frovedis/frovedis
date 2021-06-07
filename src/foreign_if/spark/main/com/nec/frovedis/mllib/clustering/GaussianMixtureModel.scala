@@ -1,57 +1,40 @@
 package com.nec.frovedis.mllib.clustering;
 
 import com.nec.frovedis.Jexrpc.{FrovedisServer,JNISupport}
-import org.apache.spark.rdd.RDD
 import com.nec.frovedis.mllib.{M_KIND,ModelID,GenericModel}
 import com.nec.frovedis.exrpc.FrovedisSparseData
 import com.nec.frovedis.matrix.FrovedisRowmajorMatrix
 import com.nec.frovedis.matrix.ScalaCRS
+import com.nec.frovedis.io.FrovedisIO
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 import org.apache.spark.mllib.linalg.{Vector, Vectors, DenseMatrix}
 import org.apache.spark.mllib.stat.distribution.MultivariateGaussian
 
-class GaussianMixtureModel(modelId: Int)
-                           extends GenericModel(modelId,M_KIND.GMM) {
+class GaussianMixtureModel(modelId: Int, niter: Int, lb: Double)
+                           extends GenericModel(modelId, M_KIND.GMM) {
+  private var _niter: Int = niter
+  private var _lb: Double = lb
+  private var _weights: Array[Double] = null
+  private var _gaussians: Array[MultivariateGaussian] = null
 
-  def k:Int = getWeights().length
+  def n_iter: Int = _niter
+  def lower_bound: Double = _lb
+  def k: Int = getWeights().length          // model dimension
+  def weights: Array[Double] = getWeights() // model weights
+  def gaussians: Array[MultivariateGaussian] = getGaussians() // model gaussians
 
-  //Model Weights
-  def weights:Array[Double] = getWeights()
-  private var _weights:Array[Double] = null
-
-  //Model gaussians
-  def gaussians:Array[MultivariateGaussian] = getGaussians()
-  private var _gaussians:Array[MultivariateGaussian] = null
-
-  //Model Covariances
-  private var _covs:Array[Double] = null
-
-  //Model means
-  private var _means:Array[Double] = null
-                               
-  //Model niter
-  private var _niter:Int = 0
-  def n_iter:Int = getIters()
-  def setIters(iter: Int): this.type = {
-    _niter = iter
-    this
+  override def save(path: String): Unit = {
+    val context = SparkContext.getOrCreate()
+    save(context, path)
   }
-  private def getIters():Int = {
-    require(this.mid > 0, "n_iter is called before training")
-    _niter
-  }
-                               
-  //Model lowerbound
-  private var _lower_bound:Double = 0.0
-  def lower_bound:Double = getLowerBound()
-  def setLowerBound(lb: Double): this.type = {
-    _lower_bound = lb
-    this
-  }
-  private def getLowerBound():Double = {
-    require(this.mid > 0, "lower bound is called before training")
-    _lower_bound
+  override def save(sc: SparkContext, path: String): Unit = {
+    val success = FrovedisIO.createDir(path)
+    require(success, "Another model named " + path + " already exists!")
+    super.save(path + "/model")
+    val metadata: Map[String, Double] = Map("niter" -> n_iter.toDouble, 
+                                            "lb" -> lower_bound) 
+    FrovedisIO.saveDictionary(sc, metadata, path + "/metadata")
   }
 
   def predict(X: Vector): Int = {
@@ -157,7 +140,6 @@ class GaussianMixtureModel(modelId: Int)
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
     return pred
-
   }
 
   def predictSoft(X: RDD[Vector]): RDD[Array[Double]] = {
@@ -215,18 +197,8 @@ class GaussianMixtureModel(modelId: Int)
     return context.parallelize(probs)
   }
 
-  private def getMeans(): Array[Double] = {
-    if(_means == null) {
-      val fs = FrovedisServer.getServerInstance()
-      _means = JNISupport.getGMMMeans(fs.master_node,this.mid)
-      val info = JNISupport.checkServerException()
-      if (info != "") throw new java.rmi.ServerException(info)
-    }
-    _means
-  }
-
   private def getWeights(): Array[Double] = {
-    if(_weights == null){
+    if(_weights == null){ 
       val fs = FrovedisServer.getServerInstance()
       _weights = JNISupport.getGMMWeights(fs.master_node,this.mid)
       val info = JNISupport.checkServerException()
@@ -235,49 +207,58 @@ class GaussianMixtureModel(modelId: Int)
     _weights
   }
 
+  private def getMeans(): Array[Double] = {
+    val fs = FrovedisServer.getServerInstance()
+    val _means = JNISupport.getGMMMeans(fs.master_node,this.mid)
+    val info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
+    return _means
+  }
+
   private def getCovs(): Array[Double] = {
-    if(_covs == null) {
-      val fs = FrovedisServer.getServerInstance()
-      _covs = JNISupport.getGMMSigma(fs.master_node,this.mid)
-      val info = JNISupport.checkServerException()
-      if (info != "") throw new java.rmi.ServerException(info)
-    }
-    _covs
+    val fs = FrovedisServer.getServerInstance()
+    val _covs = JNISupport.getGMMSigma(fs.master_node,this.mid)
+    val info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
+    return _covs
   }
 
   private def getGaussians(): Array[MultivariateGaussian] = {
     if(_gaussians == null) {
       val ncomponents = getWeights().length
+      _gaussians = new Array[MultivariateGaussian](ncomponents)
       val means = getMeans()
       val nfeatures = means.length / ncomponents
       val covs = getCovs()
-
-      // Populate the array and return
       val cov_nf = nfeatures * nfeatures //to slice out Cov array for each k
-      _gaussians = new Array[MultivariateGaussian](ncomponents)
       for(i <- 0 until ncomponents) {
-        val mu_array = means.slice(i*nfeatures, (i+1)*nfeatures)
+        val mu_array = means.slice(i * nfeatures, (i + 1) * nfeatures)
         val mu = Vectors.dense(mu_array)
-        val cov = covs.slice(i*cov_nf, (i+1)*cov_nf)
+        val cov = covs.slice(i * cov_nf, (i + 1) * cov_nf)
         val sigma = new DenseMatrix(nfeatures, nfeatures, cov, true) //DenseMatrix is colmajor
         val mvg = new MultivariateGaussian(mu, sigma)
         _gaussians(i) = mvg
       }
     }
-    _gaussians
+    return _gaussians
   }
 }
 
 object GaussianMixtureModel {
-  def load(sc: SparkContext, path: String): GaussianMixtureModel = load(path)
   def load(path: String): GaussianMixtureModel = {
+    val context = SparkContext.getOrCreate()
+    load(context, path)
+  }
+  def load(sc: SparkContext, 
+           path: String): GaussianMixtureModel = {
     val mid = ModelID.get()
     val fs = FrovedisServer.getServerInstance()
     // load a GaussianMixtureModel from the 'path'
     // and register it with 'model_id' at Frovedis server
-    JNISupport.loadFrovedisModel(fs.master_node,mid,M_KIND.GMM,path)
+    JNISupport.loadFrovedisModel(fs.master_node, mid, M_KIND.GMM, path + "/model")
     val info = JNISupport.checkServerException();
     if (info != "") throw new java.rmi.ServerException(info);
-    return new GaussianMixtureModel(mid)
+    val metadata = FrovedisIO.loadDictionary[String, Double](sc, path + "/metadata")
+    return new GaussianMixtureModel(mid, metadata("niter").toInt, metadata("lb"))
   }
 }

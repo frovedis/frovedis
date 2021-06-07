@@ -34,40 +34,41 @@ object GMMDemo {
     val ncomponents = 2
     val gmm = new GaussianMixture().setK(ncomponents)
                                    .setMaxIterations(100)
-    val gmm_model1 = gmm.run(fdata)
+    val m1 = gmm.run(fdata)
+    println("GMM converged in " + m1.n_iter + 
+            " steps with training score: " + m1.lower_bound)
+
     val single = Vectors.dense(1.0, 2.0)
-    println("Single Predict : ")
-    println(gmm_model1.predict(single))
-    println("Parallel predict : ")
-    gmm_model1.predict(s_data).collect().foreach(println)
+    println("Single Predict: " + m1.predict(single))
+    println("Parallel predict : ") 
+    m1.predict(s_data).collect().foreach(println)
 
     println("Single Predict Proba: ")
-    gmm_model1.predictSoft(single).foreach(println)
+    for(p <- m1.predictSoft(single)) print(p + " ")
+    println("")
+
     println("Parallel predict : ")
-    val probs = gmm_model1.predictSoft(s_data).collect()
-    //Print values
+    val probs = m1.predictSoft(s_data).collect()
     for(vals <- probs) {
-      for(j <- vals) {
-        print(j + " ")
-      }
+      for(j <- vals) print(j + " ")
       println("")
     }      
       
-    gmm_model1.save("./out/GMMModelSpark")
-      
-    //gmm_model1.debug_print()
+    m1.save("./out/GMMModelSpark")
+    m1.debug_print()
 
     for (i <- 0 until ncomponents) {
-      println("weight=%f\nmu=%s\nsigma=\n%s\n" format
-        (gmm_model1.weights(i), gmm_model1.gaussians(i).mu,
-                                gmm_model1.gaussians(i).sigma))
+      println(" weight=%f \n mu=%s \n sigma=%s\n" format
+        (m1.weights(i), m1.gaussians(i).mu, m1.gaussians(i).sigma))
     }
       
-    println("No. of iters : " + gmm_model1.n_iter)
-    println("Log likelihood : " + gmm_model1.lower_bound)  
+    val m2 = GaussianMixtureModel.load("./out/GMMModelSpark")
+    m2.debug_print()
 
-    val gmm_model2 = GaussianMixtureModel.load("./out/GMMModelSpark")
-    println("")
-    gmm_model2.debug_print()
+    // --- clean up ---
+    sc.stop()
+    m1.release()
+    m2.release()
+    FrovedisServer.shut_down()
   }
 }
