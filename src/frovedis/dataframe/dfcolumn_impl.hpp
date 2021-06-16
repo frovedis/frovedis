@@ -5,16 +5,13 @@
 
 #include <limits>
 #include <climits>
-#include "../core/set_operations.hpp"
+#include "../core/vector_operations.hpp"
 #include "../core/radix_sort.hpp"
 #include "hashtable.hpp"
 #include "join.hpp"
 #include "../text/float_to_words.hpp"
 #include "../text/char_int_conv.hpp"
-#include "../text/find_condition.hpp"
 #include "dfutil.hpp"
-
-#include <boost/lexical_cast.hpp>
 
 #define GROUPBY_VLEN 256
 #define FIND_VALUE_VLEN 256
@@ -3417,6 +3414,17 @@ do_static_cast(const std::vector<T>& v,
 }
 
 template <class T>
+std::vector<int> 
+do_boolean_cast(const std::vector<T>& v) { 
+  auto size = v.size();
+  std::vector<int> ret(size);
+  auto vptr = v.data();
+  auto rptr = ret.data();
+  for (size_t i = 0; i < size; ++i) rptr[i] = (vptr[i] != 0);
+  return ret;
+}
+
+template <class T>
 dvector<float> typed_dfcolumn<T>::as_dvector_float() {
   auto dv = as_dvector<T>();
   return val.map(do_static_cast<T,float>, nulls)
@@ -3437,6 +3445,11 @@ typed_dfcolumn<T>::type_cast(const std::string& to_type) {
   if(to_type == "int") {
     auto newval = val.map(do_static_cast<T,int>, nulls);
     ret = std::make_shared<typed_dfcolumn<int>>(newval, nulls);
+  } else if(to_type == "boolean") {
+    auto newval = val.map(do_boolean_cast<T>)
+                     .template moveto_dvector<int>();
+    // nulls would also be treated as true, hence no nulls in casted column
+    ret = std::make_shared<typed_dfcolumn<int>>(std::move(newval));
   } else if(to_type == "unsigned int") {
     auto newval = val.map(do_static_cast<T,unsigned int>, nulls);
     ret = std::make_shared<typed_dfcolumn<unsigned int>>(newval, nulls);
@@ -3470,6 +3483,31 @@ typed_dfcolumn<T>::type_cast(const std::string& to_type) {
 }
 
 template <class T>
+void clear_null(std::vector<T>& val, 
+                const std::vector<size_t>& nulls) {
+  auto valp = val.data();
+  auto nullsp = nulls.data();
+  auto size = nulls.size();
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+  for(size_t i = 0; i < size; i++) valp[nullsp[i]] = static_cast<T>(0);
+} 
+
+template <class T>
+void reset_null(std::vector<T>& val, 
+                const std::vector<size_t>& nulls) {
+  auto valp = val.data();
+  auto nullsp = nulls.data();
+  auto size = nulls.size();
+  T tmax = std::numeric_limits<T>::max();
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+  for(size_t i = 0; i < size; i++) valp[nullsp[i]] = tmax;
+} 
+
+template <class T>
 std::shared_ptr<dfcolumn>
 typed_dfcolumn<T>::add(const std::shared_ptr<dfcolumn>& right) {
   auto right_type = right->dtype();
@@ -3499,7 +3537,7 @@ typed_dfcolumn<T>::add(const std::shared_ptr<dfcolumn>& right) {
       (right);
     if(!right2) throw std::runtime_error("internal type error");
     return typed_add(right2);
-  } else throw std::runtime_error("unsupported type: " + right_type);
+  } else throw std::runtime_error("add: unsupported type: " + right_type);
 }
 
 template <class T>
@@ -3510,31 +3548,13 @@ typed_dfcolumn<T>::typed_add(const std::shared_ptr<typed_dfcolumn<U>>& right) {
   U b;
   typedef decltype(a+b) V;
   auto newval =
-    val.map(+[](const std::vector<T>& left, const std::vector<U>& right) {
-        auto leftp = left.data();
-        auto rightp = right.data();
-        auto size = left.size();
-        std::vector<V> ret(size);
-        auto retp = ret.data();
-        for(size_t i = 0; i < size; i++) {
-          retp[i] = leftp[i] + rightp[i];
-        }
-        return ret;
+    val.map(+[](const std::vector<T>& left, 
+                const std::vector<U>& right) {
+        return left + right;
       }, right->val);
   if(contain_nulls || right->contain_nulls) {
     auto newnulls = nulls.map(set_union<size_t>, right->nulls);
-    newval.mapv(+[](std::vector<V>& val, const std::vector<size_t>& nulls) {
-        auto valp = val.data();
-        auto nullsp = nulls.data();
-        auto size = nulls.size();
-        auto max = std::numeric_limits<V>::max();
-#pragma _NEC ivdep
-#pragma _NEC vovertake
-#pragma _NEC vob
-        for(size_t i = 0; i < size; i++) {
-          valp[nullsp[i]] = max;
-        }
-      }, newnulls);
+    newval.mapv(reset_null<V>, newnulls);
     return std::make_shared<typed_dfcolumn<V>>
       (std::move(newval), std::move(newnulls));
   } else {
@@ -3573,9 +3593,8 @@ typed_dfcolumn<T>::add_im(const std::shared_ptr<dfscalar>& right) {
       (right);
     if(!right2) throw std::runtime_error("internal type error");
     return typed_add_im(right2);
-  } else throw std::runtime_error("unsupported type: " + right_type);
+  } else throw std::runtime_error("add_im: unsupported type: " + right_type);
 }
-
 
 template <class T>
 template <class U>
@@ -3588,28 +3607,10 @@ typed_dfcolumn<T>::typed_add_im
   auto bcast_right = broadcast(right->val);
   auto newval =
     val.map(+[](const std::vector<T>& left, U right) {
-        auto leftp = left.data();
-        auto size = left.size();
-        std::vector<V> ret(size);
-        auto retp = ret.data();
-        for(size_t i = 0; i < size; i++) {
-          retp[i] = leftp[i] + right;
-        }
-        return ret;
+        return left + right;
       }, bcast_right);
   if(contain_nulls) {
-    newval.mapv(+[](std::vector<V>& val, const std::vector<size_t>& nulls) {
-        auto valp = val.data();
-        auto nullsp = nulls.data();
-        auto size = nulls.size();
-        auto max = std::numeric_limits<V>::max();
-#pragma _NEC ivdep
-#pragma _NEC vovertake
-#pragma _NEC vob
-        for(size_t i = 0; i < size; i++) {
-          valp[nullsp[i]] = max;
-        }
-      }, nulls);
+    newval.mapv(reset_null<V>, nulls);
     return std::make_shared<typed_dfcolumn<V>>(std::move(newval), nulls);
   } else {
     auto dvval = newval.template moveto_dvector<V>();
@@ -3647,7 +3648,7 @@ typed_dfcolumn<T>::sub(const std::shared_ptr<dfcolumn>& right) {
       (right);
     if(!right2) throw std::runtime_error("internal type error");
     return typed_sub(right2);
-  } else throw std::runtime_error("unsupported type: " + right_type);
+  } else throw std::runtime_error("sub: unsupported type: " + right_type);
 }
 
 template <class T>
@@ -3658,31 +3659,13 @@ typed_dfcolumn<T>::typed_sub(const std::shared_ptr<typed_dfcolumn<U>>& right) {
   U b;
   typedef decltype(a-b) V;
   auto newval =
-    val.map(+[](const std::vector<T>& left, const std::vector<U>& right) {
-        auto leftp = left.data();
-        auto rightp = right.data();
-        auto size = left.size();
-        std::vector<V> ret(size);
-        auto retp = ret.data();
-        for(size_t i = 0; i < size; i++) {
-          retp[i] = leftp[i] - rightp[i];
-        }
-        return ret;
+    val.map(+[](const std::vector<T>& left, 
+                const std::vector<U>& right) {
+        return left - right;
       }, right->val);
   if(contain_nulls || right->contain_nulls) {
     auto newnulls = nulls.map(set_union<size_t>, right->nulls);
-    newval.mapv(+[](std::vector<V>& val, const std::vector<size_t>& nulls) {
-        auto valp = val.data();
-        auto nullsp = nulls.data();
-        auto size = nulls.size();
-        auto max = std::numeric_limits<V>::max();
-#pragma _NEC ivdep
-#pragma _NEC vovertake
-#pragma _NEC vob
-        for(size_t i = 0; i < size; i++) {
-          valp[nullsp[i]] = max;
-        }
-      }, newnulls);
+    newval.mapv(reset_null<V>, newnulls);
     return std::make_shared<typed_dfcolumn<V>>
       (std::move(newval), std::move(newnulls));
   } else {
@@ -3721,7 +3704,7 @@ typed_dfcolumn<T>::sub_im(const std::shared_ptr<dfscalar>& right) {
       (right);
     if(!right2) throw std::runtime_error("internal type error");
     return typed_sub_im(right2);
-  } else throw std::runtime_error("unsupported type: " + right_type);
+  } else throw std::runtime_error("sub_im: unsupported type: " + right_type);
 }
 
 template <class T>
@@ -3735,28 +3718,65 @@ typed_dfcolumn<T>::typed_sub_im
   auto bcast_right = broadcast(right->val);
   auto newval =
     val.map(+[](const std::vector<T>& left, U right) {
-        auto leftp = left.data();
-        auto size = left.size();
-        std::vector<V> ret(size);
-        auto retp = ret.data();
-        for(size_t i = 0; i < size; i++) {
-          retp[i] = leftp[i] - right;
-        }
-        return ret;
+        return left - right;
       }, bcast_right);
   if(contain_nulls) {
-    newval.mapv(+[](std::vector<V>& val, const std::vector<size_t>& nulls) {
-        auto valp = val.data();
-        auto nullsp = nulls.data();
-        auto size = nulls.size();
-        auto max = std::numeric_limits<V>::max();
-#pragma _NEC ivdep
-#pragma _NEC vovertake
-#pragma _NEC vob
-        for(size_t i = 0; i < size; i++) {
-          valp[nullsp[i]] = max;
-        }
-      }, nulls);
+    newval.mapv(reset_null<V>, nulls);
+    return std::make_shared<typed_dfcolumn<V>>(std::move(newval), nulls);
+  } else {
+    auto dvval = newval.template moveto_dvector<V>();
+    return std::make_shared<typed_dfcolumn<V>>(std::move(dvval));
+  }
+}
+
+template <class T>
+std::shared_ptr<dfcolumn>
+typed_dfcolumn<T>::rsub_im(const std::shared_ptr<dfscalar>& right) {
+  auto right_type = right->dtype();
+  if(right_type == "double") {
+    auto right2 = std::dynamic_pointer_cast<typed_dfscalar<double>>(right);
+    if(!right2) throw std::runtime_error("internal type error");
+    return typed_rsub_im(right2);
+  } else if (right_type == "float") {
+    auto right2 = std::dynamic_pointer_cast<typed_dfscalar<float>>(right);
+    if(!right2) throw std::runtime_error("internal type error");
+    return typed_rsub_im(right2);
+  } else if(right_type == "long") {
+    auto right2 = std::dynamic_pointer_cast<typed_dfscalar<long>>(right);
+    if(!right2) throw std::runtime_error("internal type error");
+    return typed_rsub_im(right2);
+  } else if(right_type == "unsigned long") {
+    auto right2 = std::dynamic_pointer_cast<typed_dfscalar<unsigned long>>
+      (right);
+    if(!right2) throw std::runtime_error("internal type error");
+    return typed_rsub_im(right2);
+  } else if(right_type == "int") {
+    auto right2 = std::dynamic_pointer_cast<typed_dfscalar<int>>(right);
+    if(!right2) throw std::runtime_error("internal type error");
+    return typed_rsub_im(right2);
+  } else if(right_type == "unsigned int") {
+    auto right2 = std::dynamic_pointer_cast<typed_dfscalar<unsigned int>>
+      (right);
+    if(!right2) throw std::runtime_error("internal type error");
+    return typed_rsub_im(right2);
+  } else throw std::runtime_error("rsub_im: unsupported type: " + right_type);
+}
+
+template <class T>
+template <class U>
+std::shared_ptr<dfcolumn>
+typed_dfcolumn<T>::typed_rsub_im
+(const std::shared_ptr<typed_dfscalar<U>>& right) {
+  T a;
+  U b;
+  typedef decltype(a-b) V;
+  auto bcast_right = broadcast(right->val);
+  auto newval =
+    val.map(+[](const std::vector<T>& left, U right) {
+        return right - left;
+      }, bcast_right);
+  if(contain_nulls) {
+    newval.mapv(reset_null<V>, nulls);
     return std::make_shared<typed_dfcolumn<V>>(std::move(newval), nulls);
   } else {
     auto dvval = newval.template moveto_dvector<V>();
@@ -3794,7 +3814,7 @@ typed_dfcolumn<T>::mul(const std::shared_ptr<dfcolumn>& right) {
       (right);
     if(!right2) throw std::runtime_error("internal type error");
     return typed_mul(right2);
-  } else throw std::runtime_error("unsupported type: " + right_type);
+  } else throw std::runtime_error("mul: unsupported type: " + right_type);
 }
 
 template <class T>
@@ -3805,31 +3825,13 @@ typed_dfcolumn<T>::typed_mul(const std::shared_ptr<typed_dfcolumn<U>>& right) {
   U b;
   typedef decltype(a*b) V;
   auto newval =
-    val.map(+[](const std::vector<T>& left, const std::vector<U>& right) {
-        auto leftp = left.data();
-        auto rightp = right.data();
-        auto size = left.size();
-        std::vector<V> ret(size);
-        auto retp = ret.data();
-        for(size_t i = 0; i < size; i++) {
-          retp[i] = leftp[i] * rightp[i];
-        }
-        return ret;
+    val.map(+[](const std::vector<T>& left, 
+                const std::vector<U>& right) {
+        return left * right;
       }, right->val);
   if(contain_nulls || right->contain_nulls) {
     auto newnulls = nulls.map(set_union<size_t>, right->nulls);
-    newval.mapv(+[](std::vector<V>& val, const std::vector<size_t>& nulls) {
-        auto valp = val.data();
-        auto nullsp = nulls.data();
-        auto size = nulls.size();
-        auto max = std::numeric_limits<V>::max();
-#pragma _NEC ivdep
-#pragma _NEC vovertake
-#pragma _NEC vob
-        for(size_t i = 0; i < size; i++) {
-          valp[nullsp[i]] = max;
-        }
-      }, newnulls);
+    newval.mapv(reset_null<V>, newnulls);
     return std::make_shared<typed_dfcolumn<V>>
       (std::move(newval), std::move(newnulls));
   } else {
@@ -3868,9 +3870,8 @@ typed_dfcolumn<T>::mul_im(const std::shared_ptr<dfscalar>& right) {
       (right);
     if(!right2) throw std::runtime_error("internal type error");
     return typed_mul_im(right2);
-  } else throw std::runtime_error("unsupported type: " + right_type);
+  } else throw std::runtime_error("mul_im: unsupported type: " + right_type);
 }
-
 
 template <class T>
 template <class U>
@@ -3883,28 +3884,10 @@ typed_dfcolumn<T>::typed_mul_im
   auto bcast_right = broadcast(right->val);
   auto newval =
     val.map(+[](const std::vector<T>& left, U right) {
-        auto leftp = left.data();
-        auto size = left.size();
-        std::vector<V> ret(size);
-        auto retp = ret.data();
-        for(size_t i = 0; i < size; i++) {
-          retp[i] = leftp[i] * right;
-        }
-        return ret;
+        return left * right;
       }, bcast_right);
   if(contain_nulls) {
-    newval.mapv(+[](std::vector<V>& val, const std::vector<size_t>& nulls) {
-        auto valp = val.data();
-        auto nullsp = nulls.data();
-        auto size = nulls.size();
-        auto max = std::numeric_limits<V>::max();
-#pragma _NEC ivdep
-#pragma _NEC vovertake
-#pragma _NEC vob
-        for(size_t i = 0; i < size; i++) {
-          valp[nullsp[i]] = max;
-        }
-      }, nulls);
+    newval.mapv(reset_null<V>, nulls);
     return std::make_shared<typed_dfcolumn<V>>(std::move(newval), nulls);
   } else {
     auto dvval = newval.template moveto_dvector<V>();
@@ -3942,7 +3925,7 @@ typed_dfcolumn<T>::fdiv(const std::shared_ptr<dfcolumn>& right) {
       (right);
     if(!right2) throw std::runtime_error("internal type error");
     return typed_fdiv(right2);
-  } else throw std::runtime_error("unsupported type: " + right_type);
+  } else throw std::runtime_error("fdiv: unsupported type: " + right_type);
 }
 
 template <class T>
@@ -3951,31 +3934,13 @@ std::shared_ptr<dfcolumn>
 typed_dfcolumn<T>::typed_fdiv(const std::shared_ptr<typed_dfcolumn<U>>& right) {
   typedef double V;
   auto newval =
-    val.map(+[](const std::vector<T>& left, const std::vector<U>& right) {
-        auto leftp = left.data();
-        auto rightp = right.data();
-        auto size = left.size();
-        std::vector<V> ret(size);
-        auto retp = ret.data();
-        for(size_t i = 0; i < size; i++) {
-          retp[i] = (double)leftp[i] / (double)rightp[i];
-        }
-        return ret;
+    val.map(+[](const std::vector<T>& left, 
+                const std::vector<U>& right) {
+        return vector_fdiv(left, right);
       }, right->val);
   if(contain_nulls || right->contain_nulls) {
     auto newnulls = nulls.map(set_union<size_t>, right->nulls);
-    newval.mapv(+[](std::vector<V>& val, const std::vector<size_t>& nulls) {
-        auto valp = val.data();
-        auto nullsp = nulls.data();
-        auto size = nulls.size();
-        auto max = std::numeric_limits<V>::max();
-#pragma _NEC ivdep
-#pragma _NEC vovertake
-#pragma _NEC vob
-        for(size_t i = 0; i < size; i++) {
-          valp[nullsp[i]] = max;
-        }
-      }, newnulls);
+    newval.mapv(reset_null<V>, newnulls);
     return std::make_shared<typed_dfcolumn<V>>
       (std::move(newval), std::move(newnulls));
   } else {
@@ -4014,9 +3979,8 @@ typed_dfcolumn<T>::fdiv_im(const std::shared_ptr<dfscalar>& right) {
       (right);
     if(!right2) throw std::runtime_error("internal type error");
     return typed_fdiv_im(right2);
-  } else throw std::runtime_error("unsupported type: " + right_type);
+  } else throw std::runtime_error("fdiv_im: unsupported type: " + right_type);
 }
-
 
 template <class T>
 template <class U>
@@ -4027,28 +3991,63 @@ typed_dfcolumn<T>::typed_fdiv_im
   auto bcast_right = broadcast(right->val);
   auto newval =
     val.map(+[](const std::vector<T>& left, U right) {
-        auto leftp = left.data();
-        auto size = left.size();
-        std::vector<V> ret(size);
-        auto retp = ret.data();
-        for(size_t i = 0; i < size; i++) {
-          retp[i] = (double)leftp[i] / (double)right;
-        }
-        return ret;
+        return vector_fdiv(left, right);
       }, bcast_right);
   if(contain_nulls) {
-    newval.mapv(+[](std::vector<V>& val, const std::vector<size_t>& nulls) {
-        auto valp = val.data();
-        auto nullsp = nulls.data();
-        auto size = nulls.size();
-        auto max = std::numeric_limits<V>::max();
-#pragma _NEC ivdep
-#pragma _NEC vovertake
-#pragma _NEC vob
-        for(size_t i = 0; i < size; i++) {
-          valp[nullsp[i]] = max;
-        }
-      }, nulls);
+    newval.mapv(reset_null<V>, nulls);
+    return std::make_shared<typed_dfcolumn<V>>(std::move(newval), nulls);
+  } else {
+    auto dvval = newval.template moveto_dvector<V>();
+    return std::make_shared<typed_dfcolumn<V>>(std::move(dvval));
+  }
+}
+
+template <class T>
+std::shared_ptr<dfcolumn>
+typed_dfcolumn<T>::rfdiv_im(const std::shared_ptr<dfscalar>& right) {
+  auto right_type = right->dtype();
+  if(right_type == "double") {
+    auto right2 = std::dynamic_pointer_cast<typed_dfscalar<double>>(right);
+    if(!right2) throw std::runtime_error("internal type error");
+    return typed_rfdiv_im(right2);
+  } else if (right_type == "float") {
+    auto right2 = std::dynamic_pointer_cast<typed_dfscalar<float>>(right);
+    if(!right2) throw std::runtime_error("internal type error");
+    return typed_rfdiv_im(right2);
+  } else if(right_type == "long") {
+    auto right2 = std::dynamic_pointer_cast<typed_dfscalar<long>>(right);
+    if(!right2) throw std::runtime_error("internal type error");
+    return typed_rfdiv_im(right2);
+  } else if(right_type == "unsigned long") {
+    auto right2 = std::dynamic_pointer_cast<typed_dfscalar<unsigned long>>
+      (right);
+    if(!right2) throw std::runtime_error("internal type error");
+    return typed_rfdiv_im(right2);
+  } else if(right_type == "int") {
+    auto right2 = std::dynamic_pointer_cast<typed_dfscalar<int>>(right);
+    if(!right2) throw std::runtime_error("internal type error");
+    return typed_rfdiv_im(right2);
+  } else if(right_type == "unsigned int") {
+    auto right2 = std::dynamic_pointer_cast<typed_dfscalar<unsigned int>>
+      (right);
+    if(!right2) throw std::runtime_error("internal type error");
+    return typed_rfdiv_im(right2);
+  } else throw std::runtime_error("rfdiv_im: unsupported type: " + right_type);
+}
+
+template <class T>
+template <class U>
+std::shared_ptr<dfcolumn>
+typed_dfcolumn<T>::typed_rfdiv_im
+(const std::shared_ptr<typed_dfscalar<U>>& right) {
+  typedef double V;
+  auto bcast_right = broadcast(right->val);
+  auto newval =
+    val.map(+[](const std::vector<T>& left, U right) {
+        return vector_fdiv(right, left);
+      }, bcast_right);
+  if(contain_nulls) {
+    newval.mapv(reset_null<V>, nulls);
     return std::make_shared<typed_dfcolumn<V>>(std::move(newval), nulls);
   } else {
     auto dvval = newval.template moveto_dvector<V>();
@@ -4086,7 +4085,7 @@ typed_dfcolumn<T>::idiv(const std::shared_ptr<dfcolumn>& right) {
       (right);
     if(!right2) throw std::runtime_error("internal type error");
     return typed_idiv(right2);
-  } else throw std::runtime_error("unsupported type: " + right_type);
+  } else throw std::runtime_error("idiv: unsupported type: " + right_type);
 }
 
 template <class T>
@@ -4095,31 +4094,13 @@ std::shared_ptr<dfcolumn>
 typed_dfcolumn<T>::typed_idiv(const std::shared_ptr<typed_dfcolumn<U>>& right) {
   typedef long V;
   auto newval =
-    val.map(+[](const std::vector<T>& left, const std::vector<U>& right) {
-        auto leftp = left.data();
-        auto rightp = right.data();
-        auto size = left.size();
-        std::vector<V> ret(size);
-        auto retp = ret.data();
-        for(size_t i = 0; i < size; i++) {
-          retp[i] = (double)leftp[i] / (double)rightp[i];
-        }
-        return ret;
+    val.map(+[](const std::vector<T>& left, 
+                const std::vector<U>& right) {
+        return vector_idiv(left, right);
       }, right->val);
   if(contain_nulls || right->contain_nulls) {
     auto newnulls = nulls.map(set_union<size_t>, right->nulls);
-    newval.mapv(+[](std::vector<V>& val, const std::vector<size_t>& nulls) {
-        auto valp = val.data();
-        auto nullsp = nulls.data();
-        auto size = nulls.size();
-        auto max = std::numeric_limits<V>::max();
-#pragma _NEC ivdep
-#pragma _NEC vovertake
-#pragma _NEC vob
-        for(size_t i = 0; i < size; i++) {
-          valp[nullsp[i]] = max;
-        }
-      }, newnulls);
+    newval.mapv(reset_null<V>, newnulls);
     return std::make_shared<typed_dfcolumn<V>>
       (std::move(newval), std::move(newnulls));
   } else {
@@ -4158,9 +4139,8 @@ typed_dfcolumn<T>::idiv_im(const std::shared_ptr<dfscalar>& right) {
       (right);
     if(!right2) throw std::runtime_error("internal type error");
     return typed_idiv_im(right2);
-  } else throw std::runtime_error("unsupported type: " + right_type);
+  } else throw std::runtime_error("idiv_im: unsupported type: " + right_type);
 }
-
 
 template <class T>
 template <class U>
@@ -4171,28 +4151,63 @@ typed_dfcolumn<T>::typed_idiv_im
   auto bcast_right = broadcast(right->val);
   auto newval =
     val.map(+[](const std::vector<T>& left, U right) {
-        auto leftp = left.data();
-        auto size = left.size();
-        std::vector<V> ret(size);
-        auto retp = ret.data();
-        for(size_t i = 0; i < size; i++) {
-          retp[i] = (double)leftp[i] / (double)right;
-        }
-        return ret;
+        return vector_idiv(left, right);
       }, bcast_right);
   if(contain_nulls) {
-    newval.mapv(+[](std::vector<V>& val, const std::vector<size_t>& nulls) {
-        auto valp = val.data();
-        auto nullsp = nulls.data();
-        auto size = nulls.size();
-        auto max = std::numeric_limits<V>::max();
-#pragma _NEC ivdep
-#pragma _NEC vovertake
-#pragma _NEC vob
-        for(size_t i = 0; i < size; i++) {
-          valp[nullsp[i]] = max;
-        }
-      }, nulls);
+    newval.mapv(reset_null<V>, nulls);
+    return std::make_shared<typed_dfcolumn<V>>(std::move(newval), nulls);
+  } else {
+    auto dvval = newval.template moveto_dvector<V>();
+    return std::make_shared<typed_dfcolumn<V>>(std::move(dvval));
+  }
+}
+
+template <class T>
+std::shared_ptr<dfcolumn>
+typed_dfcolumn<T>::ridiv_im(const std::shared_ptr<dfscalar>& right) {
+  auto right_type = right->dtype();
+  if(right_type == "double") {
+    auto right2 = std::dynamic_pointer_cast<typed_dfscalar<double>>(right);
+    if(!right2) throw std::runtime_error("internal type error");
+    return typed_ridiv_im(right2);
+  } else if (right_type == "float") {
+    auto right2 = std::dynamic_pointer_cast<typed_dfscalar<float>>(right);
+    if(!right2) throw std::runtime_error("internal type error");
+    return typed_ridiv_im(right2);
+  } else if(right_type == "long") {
+    auto right2 = std::dynamic_pointer_cast<typed_dfscalar<long>>(right);
+    if(!right2) throw std::runtime_error("internal type error");
+    return typed_ridiv_im(right2);
+  } else if(right_type == "unsigned long") {
+    auto right2 = std::dynamic_pointer_cast<typed_dfscalar<unsigned long>>
+      (right);
+    if(!right2) throw std::runtime_error("internal type error");
+    return typed_ridiv_im(right2);
+  } else if(right_type == "int") {
+    auto right2 = std::dynamic_pointer_cast<typed_dfscalar<int>>(right);
+    if(!right2) throw std::runtime_error("internal type error");
+    return typed_ridiv_im(right2);
+  } else if(right_type == "unsigned int") {
+    auto right2 = std::dynamic_pointer_cast<typed_dfscalar<unsigned int>>
+      (right);
+    if(!right2) throw std::runtime_error("internal type error");
+    return typed_ridiv_im(right2);
+  } else throw std::runtime_error("ridiv_im: unsupported type: " + right_type);
+}
+
+template <class T>
+template <class U>
+std::shared_ptr<dfcolumn>
+typed_dfcolumn<T>::typed_ridiv_im
+(const std::shared_ptr<typed_dfscalar<U>>& right) {
+  typedef long V;
+  auto bcast_right = broadcast(right->val);
+  auto newval =
+    val.map(+[](const std::vector<T>& left, U right) {
+        return vector_idiv(right, left);
+      }, bcast_right);
+  if(contain_nulls) {
+    newval.mapv(reset_null<V>, nulls);
     return std::make_shared<typed_dfcolumn<V>>(std::move(newval), nulls);
   } else {
     auto dvval = newval.template moveto_dvector<V>();
@@ -4230,7 +4245,7 @@ typed_dfcolumn<T>::mod(const std::shared_ptr<dfcolumn>& right) {
       (right);
     if(!right2) throw std::runtime_error("internal type error");
     return typed_mod(right2);
-  } else throw std::runtime_error("unsupported type: " + right_type);
+  } else throw std::runtime_error("mod: unsupported type: " + right_type);
 }
 
 template <class T>
@@ -4242,32 +4257,13 @@ typed_dfcolumn<T>::typed_mod(const std::shared_ptr<typed_dfcolumn<U>>& right) {
   long c;
   typedef decltype(a - b * c) V;
   auto newval =
-    val.map(+[](const std::vector<T>& left, const std::vector<U>& right) {
-        auto leftp = left.data();
-        auto rightp = right.data();
-        auto size = left.size();
-        std::vector<V> ret(size);
-        auto retp = ret.data();
-        for(size_t i = 0; i < size; i++) {
-          long tmp = leftp[i] / rightp[i];
-          retp[i] = leftp[i] - rightp[i] * tmp;
-        }
-        return ret;
+    val.map(+[](const std::vector<T>& left, 
+                const std::vector<U>& right) {
+        return vector_mod(left, right);
       }, right->val);
   if(contain_nulls || right->contain_nulls) {
     auto newnulls = nulls.map(set_union<size_t>, right->nulls);
-    newval.mapv(+[](std::vector<V>& val, const std::vector<size_t>& nulls) {
-        auto valp = val.data();
-        auto nullsp = nulls.data();
-        auto size = nulls.size();
-        auto max = std::numeric_limits<V>::max();
-#pragma _NEC ivdep
-#pragma _NEC vovertake
-#pragma _NEC vob
-        for(size_t i = 0; i < size; i++) {
-          valp[nullsp[i]] = max;
-        }
-      }, newnulls);
+    newval.mapv(reset_null<V>, newnulls);
     return std::make_shared<typed_dfcolumn<V>>
       (std::move(newval), std::move(newnulls));
   } else {
@@ -4306,9 +4302,8 @@ typed_dfcolumn<T>::mod_im(const std::shared_ptr<dfscalar>& right) {
       (right);
     if(!right2) throw std::runtime_error("internal type error");
     return typed_mod_im(right2);
-  } else throw std::runtime_error("unsupported type: " + right_type);
+  } else throw std::runtime_error("mod_im: unsupported type: " + right_type);
 }
-
 
 template <class T>
 template <class U>
@@ -4322,29 +4317,238 @@ typed_dfcolumn<T>::typed_mod_im
   auto bcast_right = broadcast(right->val);
   auto newval =
     val.map(+[](const std::vector<T>& left, U right) {
-        auto leftp = left.data();
-        auto size = left.size();
-        std::vector<V> ret(size);
-        auto retp = ret.data();
-        for(size_t i = 0; i < size; i++) {
-          long tmp = leftp[i] / right;
-          retp[i] = leftp[i] - right * tmp;
-        }
-        return ret;
+        return vector_mod(left, right);
       }, bcast_right);
   if(contain_nulls) {
-    newval.mapv(+[](std::vector<V>& val, const std::vector<size_t>& nulls) {
-        auto valp = val.data();
-        auto nullsp = nulls.data();
-        auto size = nulls.size();
-        auto max = std::numeric_limits<V>::max();
-#pragma _NEC ivdep
-#pragma _NEC vovertake
-#pragma _NEC vob
-        for(size_t i = 0; i < size; i++) {
-          valp[nullsp[i]] = max;
-        }
-      }, nulls);
+    newval.mapv(reset_null<V>, nulls);
+    return std::make_shared<typed_dfcolumn<V>>(std::move(newval), nulls);
+  } else {
+    auto dvval = newval.template moveto_dvector<V>();
+    return std::make_shared<typed_dfcolumn<V>>(std::move(dvval));
+  }
+}
+
+template <class T>
+std::shared_ptr<dfcolumn>
+typed_dfcolumn<T>::rmod_im(const std::shared_ptr<dfscalar>& right) {
+  auto right_type = right->dtype();
+  if(right_type == "double") {
+    auto right2 = std::dynamic_pointer_cast<typed_dfscalar<double>>(right);
+    if(!right2) throw std::runtime_error("internal type error");
+    return typed_rmod_im(right2);
+  } else if (right_type == "float") {
+    auto right2 = std::dynamic_pointer_cast<typed_dfscalar<float>>(right);
+    if(!right2) throw std::runtime_error("internal type error");
+    return typed_rmod_im(right2);
+  } else if(right_type == "long") {
+    auto right2 = std::dynamic_pointer_cast<typed_dfscalar<long>>(right);
+    if(!right2) throw std::runtime_error("internal type error");
+    return typed_rmod_im(right2);
+  } else if(right_type == "unsigned long") {
+    auto right2 = std::dynamic_pointer_cast<typed_dfscalar<unsigned long>>
+      (right);
+    if(!right2) throw std::runtime_error("internal type error");
+    return typed_rmod_im(right2);
+  } else if(right_type == "int") {
+    auto right2 = std::dynamic_pointer_cast<typed_dfscalar<int>>(right);
+    if(!right2) throw std::runtime_error("internal type error");
+    return typed_rmod_im(right2);
+  } else if(right_type == "unsigned int") {
+    auto right2 = std::dynamic_pointer_cast<typed_dfscalar<unsigned int>>
+      (right);
+    if(!right2) throw std::runtime_error("internal type error");
+    return typed_rmod_im(right2);
+  } else throw std::runtime_error("rmod_im: unsupported type: " + right_type);
+}
+
+template <class T>
+template <class U>
+std::shared_ptr<dfcolumn>
+typed_dfcolumn<T>::typed_rmod_im
+(const std::shared_ptr<typed_dfscalar<U>>& right) {
+  T a;
+  U b;
+  long c;
+  typedef decltype(a - b * c) V;
+  auto bcast_right = broadcast(right->val);
+  auto newval =
+    val.map(+[](const std::vector<T>& left, U right) {
+        return vector_mod(right, left);
+      }, bcast_right);
+  if(contain_nulls) {
+    newval.mapv(reset_null<V>, nulls);
+    return std::make_shared<typed_dfcolumn<V>>(std::move(newval), nulls);
+  } else {
+    auto dvval = newval.template moveto_dvector<V>();
+    return std::make_shared<typed_dfcolumn<V>>(std::move(dvval));
+  }
+}
+
+template <class T>
+std::shared_ptr<dfcolumn>
+typed_dfcolumn<T>::pow(const std::shared_ptr<dfcolumn>& right) {
+  auto right_type = right->dtype();
+  if(right_type == "double") {
+    auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<double>>(right);
+    if(!right2) throw std::runtime_error("internal type error");
+    return typed_pow(right2);
+  } else if (right_type == "float") {
+    auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<float>>(right);
+    if(!right2) throw std::runtime_error("internal type error");
+    return typed_pow(right2);
+  } else if(right_type == "long") {
+    auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<long>>(right);
+    if(!right2) throw std::runtime_error("internal type error");
+    return typed_pow(right2);
+  } else if(right_type == "unsigned long") {
+    auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<unsigned long>>
+      (right);
+    if(!right2) throw std::runtime_error("internal type error");
+    return typed_pow(right2);
+  } else if(right_type == "int") {
+    auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<int>>(right);
+    if(!right2) throw std::runtime_error("internal type error");
+    return typed_pow(right2);
+  } else if(right_type == "unsigned int") {
+    auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<unsigned int>>
+      (right);
+    if(!right2) throw std::runtime_error("internal type error");
+    return typed_pow(right2);
+  } else throw std::runtime_error("pow: unsupported type: " + right_type);
+}
+
+template <class T>
+template <class U>
+std::shared_ptr<dfcolumn>
+typed_dfcolumn<T>::typed_pow(const std::shared_ptr<typed_dfcolumn<U>>& right) {
+  T a;
+  U b;
+  typedef decltype(std::pow(a,b)) V;
+  if(contain_nulls) val.mapv(clear_null<T>, nulls);
+  if(right->contain_nulls) right->val.mapv(clear_null<U>, right->nulls);
+  auto newval =
+    val.map(+[](const std::vector<T>& left, 
+                const std::vector<U>& right) {
+        return vector_pow(left, right);
+      }, right->val);
+  if(contain_nulls) val.mapv(reset_null<T>, nulls);
+  if(right->contain_nulls) right->val.mapv(reset_null<U>, right->nulls);
+  if (contain_nulls || right->contain_nulls) {
+    auto newnulls = nulls.map(set_union<size_t>, right->nulls);
+    newval.mapv(reset_null<V>, newnulls);
+    return std::make_shared<typed_dfcolumn<V>>(std::move(newval), 
+                                               std::move(newnulls));
+  } else {
+    auto dvval = newval.template moveto_dvector<V>();
+    return std::make_shared<typed_dfcolumn<V>>(std::move(dvval));
+  }
+}
+
+template <class T>
+std::shared_ptr<dfcolumn>
+typed_dfcolumn<T>::pow_im(const std::shared_ptr<dfscalar>& right) {
+  auto right_type = right->dtype();
+  if(right_type == "double") {
+    auto right2 = std::dynamic_pointer_cast<typed_dfscalar<double>>(right);
+    if(!right2) throw std::runtime_error("internal type error");
+    return typed_pow_im(right2);
+  } else if (right_type == "float") {
+    auto right2 = std::dynamic_pointer_cast<typed_dfscalar<float>>(right);
+    if(!right2) throw std::runtime_error("internal type error");
+    return typed_pow_im(right2);
+  } else if(right_type == "long") {
+    auto right2 = std::dynamic_pointer_cast<typed_dfscalar<long>>(right);
+    if(!right2) throw std::runtime_error("internal type error");
+    return typed_pow_im(right2);
+  } else if(right_type == "unsigned long") {
+    auto right2 = std::dynamic_pointer_cast<typed_dfscalar<unsigned long>>
+      (right);
+    if(!right2) throw std::runtime_error("internal type error");
+    return typed_pow_im(right2);
+  } else if(right_type == "int") {
+    auto right2 = std::dynamic_pointer_cast<typed_dfscalar<int>>(right);
+    if(!right2) throw std::runtime_error("internal type error");
+    return typed_pow_im(right2);
+  } else if(right_type == "unsigned int") {
+    auto right2 = std::dynamic_pointer_cast<typed_dfscalar<unsigned int>>
+      (right);
+    if(!right2) throw std::runtime_error("internal type error");
+    return typed_pow_im(right2);
+  } else throw std::runtime_error("pow_im: unsupported type: " + right_type);
+}
+
+template <class T>
+template <class U>
+std::shared_ptr<dfcolumn>
+typed_dfcolumn<T>::typed_pow_im
+(const std::shared_ptr<typed_dfscalar<U>>& right) {
+  T a;
+  U b;
+  typedef decltype(std::pow(a,b)) V;
+  if(contain_nulls) val.mapv(clear_null<T>, nulls);
+  auto bcast_right = broadcast(right->val);
+  auto newval =
+    val.map(+[](const std::vector<T>& left, U right) {
+        return vector_pow(left, right);
+      }, bcast_right);
+  if (contain_nulls) {
+    newval.mapv(reset_null<V>, nulls);
+    return std::make_shared<typed_dfcolumn<V>>(std::move(newval), nulls);
+  } else {
+    auto dvval = newval.template moveto_dvector<V>();
+    return std::make_shared<typed_dfcolumn<V>>(std::move(dvval));
+  }
+}
+
+template <class T>
+std::shared_ptr<dfcolumn>
+typed_dfcolumn<T>::rpow_im(const std::shared_ptr<dfscalar>& right) {
+  auto right_type = right->dtype();
+  if(right_type == "double") {
+    auto right2 = std::dynamic_pointer_cast<typed_dfscalar<double>>(right);
+    if(!right2) throw std::runtime_error("internal type error");
+    return typed_rpow_im(right2);
+  } else if (right_type == "float") {
+    auto right2 = std::dynamic_pointer_cast<typed_dfscalar<float>>(right);
+    if(!right2) throw std::runtime_error("internal type error");
+    return typed_rpow_im(right2);
+  } else if(right_type == "long") {
+    auto right2 = std::dynamic_pointer_cast<typed_dfscalar<long>>(right);
+    if(!right2) throw std::runtime_error("internal type error");
+    return typed_rpow_im(right2);
+  } else if(right_type == "unsigned long") {
+    auto right2 = std::dynamic_pointer_cast<typed_dfscalar<unsigned long>>
+      (right);
+    if(!right2) throw std::runtime_error("internal type error");
+    return typed_rpow_im(right2);
+  } else if(right_type == "int") {
+    auto right2 = std::dynamic_pointer_cast<typed_dfscalar<int>>(right);
+    if(!right2) throw std::runtime_error("internal type error");
+    return typed_rpow_im(right2);
+  } else if(right_type == "unsigned int") {
+    auto right2 = std::dynamic_pointer_cast<typed_dfscalar<unsigned int>>
+      (right);
+    if(!right2) throw std::runtime_error("internal type error");
+    return typed_rpow_im(right2);
+  } else throw std::runtime_error("rpow_im: unsupported type: " + right_type);
+}
+
+template <class T>
+template <class U>
+std::shared_ptr<dfcolumn>
+typed_dfcolumn<T>::typed_rpow_im
+(const std::shared_ptr<typed_dfscalar<U>>& right) {
+  T a;
+  U b;
+  typedef decltype(std::pow(a,b)) V;
+  if(contain_nulls) val.mapv(clear_null<T>, nulls);
+  auto bcast_right = broadcast(right->val);
+  auto newval =
+    val.map(+[](const std::vector<T>& left, U right) {
+        return vector_pow(right, left);
+      }, bcast_right);
+  if (contain_nulls) {
+    newval.mapv(reset_null<V>, nulls);
     return std::make_shared<typed_dfcolumn<V>>(std::move(newval), nulls);
   } else {
     auto dvval = newval.template moveto_dvector<V>();
