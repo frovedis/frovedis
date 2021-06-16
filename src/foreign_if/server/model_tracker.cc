@@ -14,7 +14,7 @@
 #include "frovedis/ml/clustering/agglomerative_model.hpp"
 #endif
 
-namespace frovedis {
+using namespace frovedis;
 
 std::map<int,std::pair<MODEL_KIND,exrpc_ptr_t>> model_table;
 std::set<int> deleted_model_tracker;
@@ -94,25 +94,23 @@ void cleanup_frovedis_server() {
 }
 
 int get_numeric_dtype(const std::string& dt) {
-  if (dt == "int") return INT; 
+  if (dt == "int" || dt == "int32") return INT; 
   else if (dt == "boolean") return BOOL; 
-  else if (dt == "long") return LONG; 
-  else if (dt == "float") return FLOAT; 
-  else if (dt == "double") return DOUBLE; 
+  else if (dt == "long" || dt == "int64") return LONG; 
+  else if (dt == "float" || dt == "float32") return FLOAT; 
+  else if (dt == "double" || dt == "float64") return DOUBLE; 
   else if (dt == "dic_string") return STRING; 
-  else if (dt == "unsigned long") return ULONG;
+  else if (dt == "unsigned long" || dt == "uint64") return ULONG;
   else throw std::runtime_error(dt + ": unsupported dtype encountered!\n");
 }
 
 std::string get_string_dtype(short dt) {
   if (dt == INT) return "int"; 
-  else if (dt == BOOL) return "int"; 
+  else if (dt == BOOL) return "boolean"; 
   else if (dt == LONG) return "long"; 
   else if (dt == FLOAT) return "float"; 
   else if (dt == DOUBLE) return "double"; 
   else if (dt == STRING) return "dic_string"; 
   else if (dt == ULONG) return "unsigned long";
   else throw std::runtime_error(STR(dt) + ": unsupported dtype encountered!\n");
-}
-
 }

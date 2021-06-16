@@ -165,3 +165,14 @@ def add_null_column_and_type_cast(dfs, is_frov_df, cast_info):
         print("---------------")
     ''' 
     return ret
+
+def get_python_scalar_type(val):
+    """ returns type of the input scalar """
+    if not np.isscalar(val):
+        raise ValueError("input must be a scalar value!")
+    dt = type(val).__name__
+    if dt == "int": # all integer numbers in python3 is typed as 'int'
+        dt = "long" 
+    elif dt == "float": # all floating point numbers in pythin3 is typed as 'float'
+        dt = "double" 
+    return dt
