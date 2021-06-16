@@ -65,6 +65,24 @@ class FrovedisServer(object):
         return FrovedisServer.__instance
 
     @classmethod
+    def setCommand(cls, command):
+        """
+        sets the default command for server initialization
+        """
+        if not isinstance(command, str):
+            raise ValueError(\
+            "expected a string as for server initialization command!")
+        FrovedisServer.__cmd = command
+
+    @classmethod
+    def getCommand(cls):
+        """
+        returns the default command in case the server is not initialized;
+        otherwise returns the command used for server initialization
+        """
+        return FrovedisServer.__cmd
+
+    @classmethod
     def getServerInstance(cls):
         """
         getServerInstance
@@ -79,7 +97,7 @@ class FrovedisServer(object):
         with specified command
         """
         if FrovedisServer.__instance is None:
-            FrovedisServer.__cmd = command
+            cls.setCommand(command)
             cls.getServerInstance()
         else:
             print("FrovedisServer is already initialized!!")
