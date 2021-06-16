@@ -145,17 +145,35 @@ std::vector<datetime_t> words_to_datetime(words& ws,
     new_lensp[i] = lensp[i * num_cols + col];
   }
   nulls = extract_nulls(ws.chars, new_starts, new_lens, nullstr);
-  auto ret = parsedatetime(ws.chars, new_starts, new_lens, fmt);
   auto nullsp = nulls.data();
   auto nulls_size = nulls.size();
-  auto retp = ret.data();
+  size_t first_nonnull = 0;
+  for(size_t i = 0; i < nulls_size; i++) {
+    if(first_nonnull == nullsp[i]) first_nonnull++;
+    else break;
+  }
+  if(first_nonnull != num_rows) {
+    for(size_t i = 0; i < nulls_size; i++) { // dummy for safe parse
+      new_startsp[nullsp[i]] = new_startsp[first_nonnull];
+      new_lensp[nullsp[i]] = new_lensp[first_nonnull];
+    }
+    auto ret = parsedatetime(ws.chars, new_starts, new_lens, fmt);
+    auto retp = ret.data();
 #pragma _NEC ivdep
 #pragma _NEC vovertake
 #pragma _NEC vob
-  for(size_t i = 0; i < nulls_size; i++) {
-    retp[nullsp[i]] = std::numeric_limits<datetime_t>::max();
+    for(size_t i = 0; i < nulls_size; i++) {
+      retp[nullsp[i]] = std::numeric_limits<datetime_t>::max();
+    }
+    return ret;
+  } else {
+    std::vector<datetime_t> ret(nulls_size);
+    auto retp = ret.data();
+    for(size_t i = 0; i < nulls_size; i++) {
+      retp[i] = std::numeric_limits<datetime_t>::max();
+    }
+    return ret;
   }
-  return ret;
 }
 
 std::shared_ptr<dfcolumn>

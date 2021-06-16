@@ -124,6 +124,7 @@ std::vector<T> words_to_number(words& ws,
     new_lensp[i] = lensp[i * num_cols + col];
   }
   nulls = extract_nulls(ws.chars, new_starts, new_lens, nullstr);
+  // parsenumber is called for nullstr but the value is discarded
   auto ret = parsenumber<T>(ws.chars, new_starts, new_lens);
   auto nullsp = nulls.data();
   auto nulls_size = nulls.size();
