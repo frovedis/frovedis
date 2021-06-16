@@ -31,6 +31,7 @@ dftable_base::dtypes() {
 dftable dftable_base::select(const std::vector<std::string>& cols) {
   dftable ret;
   ret.row_size = row_size;
+  ret.row_sizes = row_sizes;
   for(size_t i = 0; i < cols.size(); i++) {
     ret.col[cols[i]] = column(cols[i]);
   }
@@ -57,6 +58,7 @@ construct_isnull_column(size_t size,
 dftable dftable_base::isnull(const std::vector<std::string>& cols) {
   dftable ret;
   for (auto& c: cols) {
+    use_dfcolumn use(raw_column(c));
     auto dfcol = column(c);
     auto sizes = make_node_local_scatter(dfcol->sizes());
     auto nullpos = dfcol->get_nulls();
@@ -68,23 +70,31 @@ dftable dftable_base::isnull(const std::vector<std::string>& cols) {
 }
 
 sorted_dftable dftable_base::sort(const std::string& name) {
+  use_dfcolumn use(raw_column(name));
   node_local<std::vector<size_t>> idx;
   auto to_sort_column = column(name);
   auto sorted_column = to_sort_column->sort(idx);
   if(to_sort_column->if_contain_nulls())
     return sorted_dftable(*this, std::move(idx));
-  else
-    return sorted_dftable(*this, std::move(idx), name, std::move(sorted_column));
+  else {
+    sorted_column->spill();
+    return sorted_dftable(*this, std::move(idx), name,
+                          std::move(sorted_column));
+  }
 }
 
 sorted_dftable dftable_base::sort_desc(const std::string& name) {
+  use_dfcolumn use(raw_column(name));
   node_local<std::vector<size_t>> idx;
   auto to_sort_column = column(name);
   auto sorted_column = to_sort_column->sort_desc(idx);
   if(to_sort_column->if_contain_nulls())
     return sorted_dftable(*this, std::move(idx));
-  else
-    return sorted_dftable(*this, std::move(idx), name, std::move(sorted_column));
+  else {
+    sorted_column->spill();
+    return sorted_dftable(*this, std::move(idx), name,
+                          std::move(sorted_column));
+  }
 }
 
 void join_column_name_check(const std::map<std::string,
@@ -103,6 +113,7 @@ dftable_base::hash_join(dftable_base& right_,
                         const std::shared_ptr<dfoperator>& op) {
   if(right_.is_right_joinable()) {
     auto& right = right_;
+    use_dfcolumn use(op->columns_to_use(*this, right));
     join_column_name_check(col, right.col);
     auto left_idx = get_local_index();
     auto right_idx = right.get_local_index();
@@ -112,6 +123,7 @@ dftable_base::hash_join(dftable_base& right_,
   }
   else {
     auto right = right_.materialize();
+    use_dfcolumn use(op->columns_to_use(*this, right));
     join_column_name_check(col, right.col);
     auto left_idx = get_local_index();
     auto right_idx = right.get_local_index();
@@ -126,6 +138,7 @@ dftable_base::outer_hash_join(dftable_base& right_,
                               const std::shared_ptr<dfoperator>& op) {
   if(right_.is_right_joinable()) {
     auto& right = right_;
+    use_dfcolumn use(op->columns_to_use(*this, right));
     join_column_name_check(col, right.col);
     auto left_idx = get_local_index();
     auto right_idx = right.get_local_index();
@@ -138,6 +151,7 @@ dftable_base::outer_hash_join(dftable_base& right_,
                                std::move(right_idx_), std::move(right_nulls_));
   } else {
     auto right = right_.materialize();
+    use_dfcolumn use(op->columns_to_use(*this, right));
     join_column_name_check(col, right.col);
     auto left_idx = get_local_index();
     auto right_idx = right.get_local_index();
@@ -156,6 +170,7 @@ dftable_base::bcast_join(dftable_base& right_,
                          const std::shared_ptr<dfoperator>& op) {
   if(right_.is_right_joinable()) {
     auto& right = right_;
+    use_dfcolumn use(op->columns_to_use(*this, right));
     join_column_name_check(col, right.col);
     auto left_idx = get_local_index();
     auto right_idx = right.get_local_index();
@@ -165,6 +180,7 @@ dftable_base::bcast_join(dftable_base& right_,
   }
   else {
     auto right = right_.materialize();
+    use_dfcolumn use(op->columns_to_use(*this, right));
     join_column_name_check(col, right.col);
     auto left_idx = get_local_index();
     auto right_idx = right.get_local_index();
@@ -179,6 +195,7 @@ dftable_base::outer_bcast_join(dftable_base& right_,
                                const std::shared_ptr<dfoperator>& op) {
   if(right_.is_right_joinable()) {
     auto& right = right_;
+    use_dfcolumn use(op->columns_to_use(*this, right));
     join_column_name_check(col, right.col);
     auto left_idx = get_local_index();
     auto right_idx = right.get_local_index();
@@ -193,6 +210,7 @@ dftable_base::outer_bcast_join(dftable_base& right_,
                                 std::move(right_nulls_));
   } else {
     auto right = right_.materialize();
+    use_dfcolumn use(op->columns_to_use(*this, right));
     join_column_name_check(col, right.col);
     auto left_idx = get_local_index();
     auto right_idx = right.get_local_index();
@@ -239,6 +257,7 @@ dftable_base::star_join(const std::vector<dftable_base*>& dftables,
       rights[i] = dftables[i]->materialize();
       rightp = &rights[i];
     }
+    use_dfcolumn use(ops[i]->columns_to_use(*this, *rightp));
     join_column_name_check(col, rights[i].col);
     auto right_idx = rightp->get_local_index();
     node_local<std::vector<size_t>> ret_right_idx;
@@ -267,6 +286,7 @@ void create_merge_map(std::vector<size_t>& nodeid,
                                    
 grouped_dftable
 dftable_base::group_by(const std::vector<std::string>& cols) {
+  use_dfcolumn use(cols, *this);
   size_t size = cols.size();
   if(size == 0) {
     throw std::runtime_error("column is not specified for group by");
@@ -279,9 +299,12 @@ dftable_base::group_by(const std::vector<std::string>& cols) {
       make_node_local_allocate<std::vector<std::vector<size_t>>>();
     auto grouped_column = raw_column(cols[0])->group_by
       (local_idx, split_idx, hash_divide, merge_map);
+    auto num_row_ = grouped_column->size();
+    auto num_rows_ = grouped_column->sizes();
+    grouped_column->spill();
     return grouped_dftable(*this, std::move(local_idx), std::move(split_idx),
                            std::move(hash_divide), std::move(merge_map),
-                           {grouped_column}, cols);
+                           {grouped_column}, cols, num_row_, num_rows_);
   } else {
     std::vector<std::shared_ptr<dfcolumn>> pcols(size);
     for(size_t i = 0; i < size; i++) pcols[i] = raw_column(cols[i]);
@@ -392,9 +415,12 @@ dftable_base::group_by(const std::vector<std::string>& cols) {
       pcols4[i] = pcols3[i]->
         multi_group_by_extract(local_idx2, split_idx2, true);
     }
+    auto num_row_ = pcols4[0]->size();
+    auto num_rows_ = pcols4[0]->sizes();
+    for(size_t i = 0; i < size; i++) {pcols4[i]->spill();}
     return grouped_dftable(*this, std::move(local_idx), std::move(split_idx),
                            std::move(hash_divide), std::move(merge_map),
-                           std::move(pcols4), cols);
+                           std::move(pcols4), cols, num_row_, num_rows_);
   }
 }
 
@@ -404,6 +430,7 @@ dftable_base::as_words(const std::string name,
                        const std::string& datetime_fmt,
                        bool quote_escape,
                        const std::string& nullstr) {
+  use_dfcolumn use(raw_column(name));
   return column(name)->as_words(precision, datetime_fmt, quote_escape, nullstr);
 }
 
@@ -411,8 +438,9 @@ dftable dftable_base::head(size_t limit) {
   dftable limit_table;
   auto cols = columns();
   for(size_t i = 0; i < cols.size(); i++) {
-    limit_table.append_column(cols[i],
-                              this->column(cols[i])->head(limit));
+    use_dfcolumn use(this->raw_column(cols[i]));
+    auto c = this->column(cols[i]);
+    limit_table.append_column(cols[i], c->head(limit));
   }
   return limit_table;
 }
@@ -421,8 +449,9 @@ dftable dftable_base::tail(size_t limit) {
   dftable limit_table;
   auto cols = columns();
   for(size_t i = 0; i < cols.size(); i++) {
-    limit_table.append_column(cols[i],
-                              this->column(cols[i])->tail(limit));
+    use_dfcolumn use(this->raw_column(cols[i]));
+    auto c = this->column(cols[i]);
+    limit_table.append_column(cols[i],c->tail(limit));
   }
   return limit_table;
 }
@@ -491,14 +520,17 @@ void dftable_base::print() {
 }
 
 size_t dftable_base::count(const std::string& name) {
+  use_dfcolumn use(raw_column(name));
   return column(name)->count();
 }
 
 double dftable_base::avg(const std::string& name) {
+  use_dfcolumn use(raw_column(name));
   return column(name)->avg();
 }
 
 double dftable_base::std(const std::string& name) {
+  use_dfcolumn use(raw_column(name));
   return column(name)->std();
 }
 
@@ -527,6 +559,7 @@ void dftable_base::save(const std::string& dir) {
   typestr.open(typefile.c_str());
   auto dt = dtypes();
   for(size_t i = 0; i < dt.size(); i++) {
+    use_dfcolumn use(raw_column(dt[i].first));
     colstr << dt[i].first << std::endl;
     typestr << dt[i].second << std::endl;
     column(dt[i].first)->save(dir + "/" + dt[i].first);
@@ -577,8 +610,9 @@ dftable_base::to_colmajor_matrix_float(const std::vector<std::string>& cols) {
   ret.num_row = row_size;
   auto bcols = broadcast(cols.size());
   for(size_t i = 0; i < cols.size(); i++) {
-    auto nl = materialized.column(cols[i])->as_dvector_float().
-      moveto_node_local();
+    auto c = materialized.column(cols[i]);
+    use_dfcolumn use(c);
+    auto nl = c->as_dvector_float().moveto_node_local();
     ret.data.mapv(append_column_to_colmajor_matrix<float>, broadcast(i),
                   bcols, nl);
   }
@@ -594,8 +628,9 @@ dftable_base::to_colmajor_matrix_double(const std::vector<std::string>& cols) {
   ret.num_row = row_size;
   auto bcols = broadcast(cols.size());
   for(size_t i = 0; i < cols.size(); i++) {
-    auto nl = materialized.column(cols[i])->as_dvector_double().
-      moveto_node_local();
+    auto c = materialized.column(cols[i]);
+    use_dfcolumn use(c);
+    auto nl = c->as_dvector_double().moveto_node_local();
     ret.data.mapv(append_column_to_colmajor_matrix<double>, broadcast(i),
                   bcols, nl);
   }
@@ -683,13 +718,12 @@ dftable_base::to_ell_matrix_float(dftable_to_sparse_info& info) {
     throw std::runtime_error("to_ell_matrix: no colums to convert");
   auto materialized = select(cols); // cause exception if not applicable
   std::unordered_set<std::string> cats_set(cats.begin(), cats.end());
-  auto first_column = materialized.column(cols[0]);
 
   ell_matrix<float> ret;
   ret.data = make_node_local_allocate<ell_matrix_local<float>>();
   ret.num_row = info.num_row;
   ret.num_col = info.num_col;
-  auto sizes = first_column->sizes();
+  auto sizes = materialized.num_rows();
   ret.data.mapv(to_ell_matrix_init<float>, broadcast(cols.size()),
                 broadcast(sizes), broadcast(ret.num_col));
   size_t current_category = 0;
@@ -698,6 +732,9 @@ dftable_base::to_ell_matrix_float(dftable_to_sparse_info& info) {
     auto col = cols[i];
     if(cats_set.find(col) != cats_set.end()) {
       auto tmp1 = materialized.select({col});
+      if(tmp1.column(col)->if_contain_nulls())
+        throw std::runtime_error
+          ("to_ell_matrix: column with NULL is not supported");
       auto tmp2 = info.mapping_tables[current_category++];
       auto col_idx = tmp1.bcast_join(tmp2, frovedis::eq(col, "key")).
         column("col_idx")->as_dvector<size_t>().moveto_node_local();
@@ -705,8 +742,9 @@ dftable_base::to_ell_matrix_float(dftable_to_sparse_info& info) {
                     col_idx, broadcast(i));
       current_logical_col += tmp2.num_row();
     } else {
-      auto val = materialized.column(col)->as_dvector_float().
-        moveto_node_local();
+      auto c = materialized.column(col);
+      use_dfcolumn use(c);
+      auto val = c->as_dvector_float().moveto_node_local();
       ret.data.mapv(to_ell_matrix_addvalue<float>,
                     val, broadcast(current_logical_col), broadcast(i));
       current_logical_col++;
@@ -732,6 +770,9 @@ dftable_base::to_ell_matrix_float(const std::vector<std::string>& cols,
     if(cats_set.find(cols[i]) != cats_set.end()) {
       auto col = cols[i];
       auto tmp1 = materialized.select({col});
+      if(tmp1.column(col)->if_contain_nulls())
+        throw std::runtime_error
+          ("to_ell_matrix: column with NULL is not supported");
       auto tmp2 = tmp1.group_by({col}).select({col}).sort(col).
         materialize().rename(col, "key").
         append_rowid("col_idx", current_logical_col);
@@ -741,15 +782,14 @@ dftable_base::to_ell_matrix_float(const std::vector<std::string>& cols,
       current_logical_col++;
     }
   }
-  auto first_column = materialized.column(cols[0]);
-  info.num_row = first_column->size();
+  info.num_row = materialized.num_row();
   info.num_col = current_logical_col;
   // next, actually copies the data
   ell_matrix<float> ret;
   ret.data = make_node_local_allocate<ell_matrix_local<float>>();
   ret.num_row = info.num_row;
   ret.num_col = info.num_col;
-  auto sizes = first_column->sizes();
+  auto sizes = materialized.num_rows();
   ret.data.mapv(to_ell_matrix_init<float>, broadcast(cols.size()),
                 broadcast(sizes), broadcast(ret.num_col));
   size_t current_category = 0;
@@ -765,8 +805,9 @@ dftable_base::to_ell_matrix_float(const std::vector<std::string>& cols,
                     col_idx, broadcast(i));
       current_logical_col += tmp2.num_row();
     } else {
-      auto val = materialized.column(col)->as_dvector_float().
-        moveto_node_local();
+      auto c = materialized.column(col);
+      use_dfcolumn use(c);
+      auto val = c->as_dvector_float().moveto_node_local();
       ret.data.mapv(to_ell_matrix_addvalue<float>,
                     val, broadcast(current_logical_col), broadcast(i));
       current_logical_col++;
@@ -783,13 +824,12 @@ dftable_base::to_ell_matrix_double(dftable_to_sparse_info& info) {
     throw std::runtime_error("to_ell_matrix: no colums to convert");
   auto materialized = select(cols); // cause exception if not applicable
   std::unordered_set<std::string> cats_set(cats.begin(), cats.end());
-  auto first_column = materialized.column(cols[0]);
 
   ell_matrix<double> ret;
   ret.data = make_node_local_allocate<ell_matrix_local<double>>();
   ret.num_row = info.num_row;
   ret.num_col = info.num_col;
-  auto sizes = first_column->sizes();
+  auto sizes = materialized.num_rows();
   ret.data.mapv(to_ell_matrix_init<double>, broadcast(cols.size()),
                 broadcast(sizes), broadcast(ret.num_col));
   size_t current_category = 0;
@@ -798,6 +838,9 @@ dftable_base::to_ell_matrix_double(dftable_to_sparse_info& info) {
     auto col = cols[i];
     if(cats_set.find(col) != cats_set.end()) {
       auto tmp1 = materialized.select({col});
+      if(tmp1.column(col)->if_contain_nulls())
+        throw std::runtime_error
+          ("to_ell_matrix: column with NULL is not supported");
       auto tmp2 = info.mapping_tables[current_category++];
       auto col_idx = tmp1.bcast_join(tmp2, frovedis::eq(col, "key")).
         column("col_idx")->as_dvector<size_t>().moveto_node_local();
@@ -805,8 +848,9 @@ dftable_base::to_ell_matrix_double(dftable_to_sparse_info& info) {
                     col_idx, broadcast(i));
       current_logical_col += tmp2.num_row();
     } else {
-      auto val = materialized.column(col)->as_dvector_double().
-        moveto_node_local();
+      auto c = materialized.column(col);
+      use_dfcolumn use(c);
+      auto val = c->as_dvector_double().moveto_node_local();
       ret.data.mapv(to_ell_matrix_addvalue<double>,
                     val, broadcast(current_logical_col), broadcast(i));
       current_logical_col++;
@@ -832,6 +876,9 @@ dftable_base::to_ell_matrix_double(const std::vector<std::string>& cols,
     if(cats_set.find(cols[i]) != cats_set.end()) {
       auto col = cols[i];
       auto tmp1 = materialized.select({col});
+      if(tmp1.column(col)->if_contain_nulls())
+        throw std::runtime_error
+          ("to_ell_matrix: column with NULL is not supported");
       auto tmp2 = tmp1.group_by({col}).select({col}).sort(col).
         materialize().rename(col, "key").
         append_rowid("col_idx", current_logical_col);
@@ -841,15 +888,14 @@ dftable_base::to_ell_matrix_double(const std::vector<std::string>& cols,
       current_logical_col++;
     }
   }
-  auto first_column = materialized.column(cols[0]);
-  info.num_row = first_column->size();
+  info.num_row = materialized.num_row();
   info.num_col = current_logical_col;
   // next, actually copies the data
   ell_matrix<double> ret;
   ret.data = make_node_local_allocate<ell_matrix_local<double>>();
   ret.num_row = info.num_row;
   ret.num_col = info.num_col;
-  auto sizes = first_column->sizes();
+  auto sizes = materialized.num_rows();
   ret.data.mapv(to_ell_matrix_init<double>, broadcast(cols.size()),
                 broadcast(sizes), broadcast(ret.num_col));
   size_t current_category = 0;
@@ -865,8 +911,9 @@ dftable_base::to_ell_matrix_double(const std::vector<std::string>& cols,
                     col_idx, broadcast(i));
       current_logical_col += tmp2.num_row();
     } else {
-      auto val = materialized.column(col)->as_dvector_double().
-        moveto_node_local();
+      auto c = materialized.column(col);
+      use_dfcolumn use(c);
+      auto val = c->as_dvector_double().moveto_node_local();
       ret.data.mapv(to_ell_matrix_addvalue<double>,
                     val, broadcast(current_logical_col), broadcast(i));
       current_logical_col++;
@@ -908,6 +955,7 @@ dvector<size_t>
 dftable_base::to_dictionary_index(const std::string& col,
                                   std::vector<std::string>& dic) {
   auto c = column(col);
+  use_dfcolumn use(c);
   if(c->dtype() == "string") {
     auto string_column =
       std::dynamic_pointer_cast<typed_dfcolumn<std::string>>(c);
@@ -932,6 +980,7 @@ dvector<size_t>
 dftable_base::to_dictionary_index(const std::string& col,
                                   words& dic) {
   auto c = column(col);
+  use_dfcolumn use(c);
   if(c->dtype() == "string") {
     auto string_column =
       std::dynamic_pointer_cast<typed_dfcolumn<std::string>>(c);
@@ -961,7 +1010,15 @@ std::shared_ptr<dfcolumn> dftable_base::column(const std::string& name) {
 node_local<std::vector<size_t>> dftable_base::get_local_index() {
   if(col.size() == 0)
     throw std::runtime_error("get_local_index(): no columns");
-  else return col.begin()->second->get_local_index();
+  else {
+    auto nlsizes = make_node_local_scatter(row_sizes);
+    return nlsizes.map(+[](size_t size){
+        std::vector<size_t> ret(size);
+        auto retp = ret.data();
+        for(size_t i = 0; i < size; i++) retp[i] = i;
+        return ret;
+      });
+  }
 }
 
 void dftable_base::debug_print() {
@@ -970,6 +1027,9 @@ void dftable_base::debug_print() {
     dftable_base::column(cs)->debug_print();
   }
   std::cout << "row_size: " << row_size << std::endl;
+  std::cout << "row_sizes: ";
+  for(auto i: row_sizes) std::cout << i << " ";
+  std::cout << std::endl;
 }
 
 // ---------- for dftable ----------
@@ -1021,14 +1081,62 @@ dftable& dftable::rename(const std::string& name, const std::string& name2) {
   return *this;
 }
 
+template <>
 dftable& dftable::append_column(const std::string& name,
-                                const std::shared_ptr<dfcolumn>& c) {
+                                dvector<std::string>& d,
+                                bool check_null_like) {
   if(col.find(name) != col.end())
     throw std::runtime_error(std::string("append_column: column '") 
                              + name + "' already exists");
-  if(col.size() == 0) row_size = c->size();
-  else if(c->size() != row_size)
-    throw std::runtime_error(name + ": different size of columns");
+  std::shared_ptr<dfcolumn> c;
+  if(col.size() == 0) {
+    row_size = d.size();
+    d.align_block();
+    row_sizes = d.sizes();
+  } else {
+    if(d.size() != row_size)
+      throw std::runtime_error(name + ": different size of columns");
+    d.align_as(row_sizes);
+  }
+  auto d_nloc = d.as_node_local(); // d: lvalue
+  auto nulls = make_node_local_allocate<std::vector<size_t>>();
+  if(check_null_like) nulls = d_nloc.map(get_null_like_positions<std::string>);
+  std::string nullstr = "NULL";
+  auto words = d_nloc.map(dfcolumn_string_as_words_helper,nulls,
+                          broadcast(nullstr));
+  c = std::make_shared<typed_dfcolumn<dic_string>>(std::move(words),
+                                                   std::move(nulls));
+  c->spill();
+  col.insert(std::make_pair(name, c));
+  col_order.push_back(name);
+  return *this;
+}
+
+template <>
+dftable& dftable::append_column(const std::string& name,
+                                dvector<std::string>&& d,
+                                bool check_null_like) {
+  if(col.find(name) != col.end())
+    throw std::runtime_error(std::string("append_column: column '") 
+                             + name + "' already exists");
+  std::shared_ptr<dfcolumn> c;
+  if(col.size() == 0) {
+    row_size = d.size();
+    d.align_block();
+    row_sizes = d.sizes();
+  } else {
+    if(d.size() != row_size)
+      throw std::runtime_error(name + ": different size of columns");
+    d.align_as(row_sizes);
+  }
+  auto d_nloc = d.moveto_node_local(); // d: rvalue
+  auto nulls = make_node_local_allocate<std::vector<size_t>>();
+  if(check_null_like) nulls = d_nloc.map(get_null_like_positions<std::string>);
+  std::string nullstr = "NULL";
+  auto words = d_nloc.map(dfcolumn_string_as_words_helper,nulls,
+                          broadcast(nullstr));
+  c = std::make_shared<typed_dfcolumn<dic_string>>(std::move(words),
+                                                   std::move(nulls));
   col.insert(std::make_pair(name, c));
   col_order.push_back(name);
   return *this;
@@ -1044,21 +1152,22 @@ dftable& dftable::append_datetime_column(const std::string& name,
   if(col.size() == 0) {
     row_size = d.size();
     d.align_block();
+    row_sizes = d.sizes();
   } else {
     if(d.size() != row_size)
       throw std::runtime_error(name + ": different size of columns");
-    auto sizes = column(col_order[0])->sizes();
-    d.align_as(sizes);
+    d.align_as(row_sizes);
   }
   if(check_null_like) {
     auto d_nloc = d.as_node_local(); // d: lvalue
     auto nulls = d_nloc.map(get_null_like_positions<datetime_t>);
     c = std::make_shared<typed_dfcolumn<datetime>>(std::move(d_nloc), 
-                                                     std::move(nulls));
+                                                   std::move(nulls));
   }
   else {
     c = std::make_shared<typed_dfcolumn<datetime>>(d);
   }
+  c->spill();
   col.insert(std::make_pair(name, c));
   col_order.push_back(name);
   return *this;
@@ -1074,21 +1183,325 @@ dftable& dftable::append_datetime_column(const std::string& name,
   if(col.size() == 0) {
     row_size = d.size();
     d.align_block();
+    row_sizes = d.sizes();
   } else {
     if(d.size() != row_size)
       throw std::runtime_error(name + ": different size of columns");
-    auto sizes = column(col_order[0])->sizes();
-    d.align_as(sizes);
+    d.align_as(row_sizes);
   }
   if(check_null_like) {
     auto d_nloc = d.moveto_node_local(); // d: rvalue
     auto nulls = d_nloc.map(get_null_like_positions<datetime_t>);
     c = std::make_shared<typed_dfcolumn<datetime>>(std::move(d_nloc), 
-                                            std::move(nulls));
+                                                   std::move(nulls));
   }
   else {
     c = std::make_shared<typed_dfcolumn<datetime>>(std::move(d));
   }
+  c->spill();
+  col.insert(std::make_pair(name, c));
+  col_order.push_back(name);
+  return *this;
+}
+
+dftable& dftable::append_dic_string_column(const std::string& name,
+                                           dvector<std::string>& d,
+                                           bool check_null_like) {
+  return append_column(name, d, check_null_like);
+}
+
+dftable& dftable::append_dic_string_column(const std::string& name,
+                                           dvector<std::string>&& d,
+                                           bool check_null_like) {
+  return append_column(name, std::move(d), check_null_like);
+}
+
+dftable& dftable::append_raw_string_column(const std::string& name,
+                                           dvector<std::string>& d,
+                                           bool check_null_like) {
+  if(col.find(name) != col.end())
+    throw std::runtime_error(std::string("append_column: column '") 
+                             + name + "' already exists");
+  std::shared_ptr<dfcolumn> c;
+  if(col.size() == 0) {
+    row_size = d.size();
+    d.align_block();
+    row_sizes = d.sizes();
+ } else {
+    if(d.size() != row_size)
+      throw std::runtime_error(name + ": different size of columns");
+    d.align_as(row_sizes);
+  }
+  auto d_nloc = d.as_node_local(); // d: lvalue
+  auto nulls = make_node_local_allocate<std::vector<size_t>>();
+  if(check_null_like) nulls = d_nloc.map(get_null_like_positions<std::string>);
+  std::string nullstr = "NULL";
+  auto words = d_nloc.map(dfcolumn_string_as_words_helper,nulls,
+                          broadcast(nullstr));
+  c = std::make_shared<typed_dfcolumn<raw_string>>(std::move(words),
+                                                   std::move(nulls));
+  c->spill();
+  col.insert(std::make_pair(name, c));
+  col_order.push_back(name);
+  return *this;
+}
+
+dftable& dftable::append_raw_string_column(const std::string& name,
+                                           dvector<std::string>&& d,
+                                           bool check_null_like) {
+  if(col.find(name) != col.end())
+    throw std::runtime_error(std::string("append_column: column '") 
+                             + name + "' already exists");
+  std::shared_ptr<dfcolumn> c;
+  if(col.size() == 0) {
+    row_size = d.size();
+    d.align_block();
+    row_sizes = d.sizes();
+  } else {
+    if(d.size() != row_size)
+      throw std::runtime_error(name + ": different size of columns");
+    d.align_as(row_sizes);
+  }
+  auto d_nloc = d.moveto_node_local(); // d: rvalue
+  auto nulls = make_node_local_allocate<std::vector<size_t>>();
+  if(check_null_like) nulls = d_nloc.map(get_null_like_positions<std::string>);
+  std::string nullstr = "NULL";
+  auto words = d_nloc.map(dfcolumn_string_as_words_helper,nulls,
+                          broadcast(nullstr));
+  c = std::make_shared<typed_dfcolumn<raw_string>>(std::move(words),
+                                                   std::move(nulls));
+  c->spill();
+  col.insert(std::make_pair(name, c));
+  col_order.push_back(name);
+  return *this;
+}
+
+dftable& dftable::append_string_column(const std::string& name, 
+                                       dvector<std::string>& d,
+                                       bool check_null_like) {
+  if(col.find(name) != col.end())
+    throw std::runtime_error(std::string("append_column: column '") 
+                             + name + "' already exists");
+  std::shared_ptr<dfcolumn> c;
+  if(col.size() == 0) {
+    row_size = d.size();
+    d.align_block();
+    row_sizes = d.sizes();
+  } else {
+    if(d.size() != row_size)
+      throw std::runtime_error(name + ": different size of columns");
+    d.align_as(row_sizes);
+  }
+  if(check_null_like) {
+    auto d_nloc = d.as_node_local(); // d: lvalue
+    auto nulls = d_nloc.map(get_null_like_positions<std::string>);
+    c = std::make_shared<typed_dfcolumn<std::string>>(std::move(d_nloc), 
+                                                      std::move(nulls));
+  }
+  else {
+    c = std::make_shared<typed_dfcolumn<std::string>>(d);
+  }
+  c->spill();
+  col.insert(std::make_pair(name, c));
+  col_order.push_back(name);
+  return *this;
+}
+
+dftable& dftable::append_string_column(const std::string& name, 
+                                       dvector<std::string>&& d,
+                                       bool check_null_like) {
+  if(col.find(name) != col.end())
+    throw std::runtime_error(std::string("append_column: column '") 
+                             + name + "' already exists");
+  std::shared_ptr<dfcolumn> c;
+  if(col.size() == 0) {
+    row_size = d.size();
+    d.align_block();
+    row_sizes = d.sizes();
+  } else {
+    if(d.size() != row_size)
+      throw std::runtime_error(name + ": different size of columns");
+    d.align_as(row_sizes);
+  }
+  if(check_null_like) {
+    auto d_nloc = d.moveto_node_local(); // d: rvalue
+    auto nulls = d_nloc.map(get_null_like_positions<std::string>);
+    c = std::make_shared<typed_dfcolumn<std::string>>(std::move(d_nloc), 
+                                                      std::move(nulls));
+  }
+  else {
+    c = std::make_shared<typed_dfcolumn<std::string>>(std::move(d));
+  }
+  c->spill();
+  col.insert(std::make_pair(name, c));
+  col_order.push_back(name);
+  return *this;
+}
+
+// defined in typed_dfcolumn_raw_string.cc
+void compressed_words_align_as(node_local<compressed_words>& comp_words,
+                               const std::vector<size_t>& mysizes,
+                               const std::vector<size_t>& dst);
+
+struct is_same_value {
+  is_same_value(size_t v) : v(v) {}
+  int operator()(size_t a) const {return a == v;}
+  size_t v;
+  SERIALIZE(v)
+};
+
+dftable& dftable::append_dic_string_column(const std::string& name,
+                                           node_local<words>& w, 
+                                           bool check_null_like) {
+  if(col.find(name) != col.end())
+    throw std::runtime_error(std::string("append_column: column '") 
+                             + name + "' already exists");
+  auto cw = w.map(make_compressed_words);
+  auto sizes = w.map(+[](words& ws){return ws.starts.size();}).gather();
+  size_t total_size = 0;
+  auto sizesp = sizes.data();
+  auto sizes_size = sizes.size();
+  for(size_t i = 0; i < sizes_size; i++) total_size += sizesp[i];
+  std::vector<size_t> dst_sizes;
+  if(col.size() == 0) { 
+    row_size = total_size;
+    // align_block
+    dst_sizes.resize(sizes_size);
+    auto dst_sizesp = dst_sizes.data();
+    auto sz = total_size;
+    size_t each = ceil_div(sz, sizes_size);
+    for(size_t i = 0; i < sizes_size; i++) {
+      if(sz > each) {
+        dst_sizesp[i] = each;
+        sz -= each;
+      } else {
+        dst_sizesp[i] = sz;
+        break;
+      }
+    }
+    compressed_words_align_as(cw, sizes, dst_sizes);
+    row_sizes = dst_sizes;
+  } else {
+    if(total_size != row_size)
+      throw std::runtime_error(name + ": different size of columns");
+    compressed_words_align_as(cw, sizes, row_sizes);
+  }
+  auto dic_string_column = 
+    std::make_shared<typed_dfcolumn<dic_string>>(std::move(cw));
+  if(check_null_like) {
+    dic_string_column->nulls = dic_string_column->val.map
+      (+[](std::vector<size_t>& val, dict& dic){
+        words nullw;
+        nullw.chars = char_to_int(std::string("NULL"));
+        nullw.starts = {0};
+        nullw.lens = {4};
+        auto nullcw = make_compressed_words(nullw);
+        auto nullval = dic.lookup(nullcw);
+        if(nullval[0] != std::numeric_limits<size_t>::max())
+          return find_condition(val, is_same_value(nullval[0]));
+        else return std::vector<size_t>();
+      }, *(dic_string_column->dic));
+    dic_string_column->contain_nulls_check();
+  }
+  std::shared_ptr<dfcolumn> c = dic_string_column;
+  c->spill();
+  col.insert(std::make_pair(name, c));
+  col_order.push_back(name);
+  return *this;
+}
+
+struct is_same_comp_word {
+  is_same_comp_word(uint64_t v) : v(v) {}
+  int operator()(uint64_t a) const {return a == v;}
+  uint64_t v;
+  SERIALIZE(v)
+};
+
+dftable& dftable::append_raw_string_column(const std::string& name,
+                                           node_local<words>& w, 
+                                           bool check_null_like) {
+  if(col.find(name) != col.end())
+    throw std::runtime_error(std::string("append_column: column '") 
+                             + name + "' already exists");
+  auto cw = w.map(make_compressed_words);
+  auto sizes = w.map(+[](words& ws){return ws.starts.size();}).gather();
+  size_t total_size = 0;
+  auto sizesp = sizes.data();
+  auto sizes_size = sizes.size();
+  for(size_t i = 0; i < sizes_size; i++) total_size += sizesp[i];
+  std::vector<size_t> dst_sizes;
+  if(col.size() == 0) { 
+    row_size = total_size;
+    // align_block
+    dst_sizes.resize(sizes_size);
+    auto dst_sizesp = dst_sizes.data();
+    auto sz = total_size;
+    size_t each = ceil_div(sz, sizes_size);
+    for(size_t i = 0; i < sizes_size; i++) {
+      if(sz > each) {
+        dst_sizesp[i] = each;
+        sz -= each;
+      } else {
+        dst_sizesp[i] = sz;
+        break;
+      }
+    }
+    compressed_words_align_as(cw, sizes, dst_sizes);
+    row_sizes = dst_sizes;
+  } else {
+    if(total_size != row_size)
+      throw std::runtime_error(name + ": different size of columns");
+    compressed_words_align_as(cw, sizes, row_sizes);
+  }
+  auto raw_string_column = 
+    std::make_shared<typed_dfcolumn<raw_string>>(std::move(cw));
+  if(check_null_like) {
+    raw_string_column->nulls = raw_string_column->comp_words.map
+      (+[](compressed_words& comp_words){
+        words nullw;
+        nullw.chars = char_to_int(std::string("NULL"));
+        nullw.starts = {0};
+        nullw.lens = {4};
+        auto nullcw = make_compressed_words(nullw);
+        auto nullcw0 = nullcw.cwords[0];
+        if(comp_words.lens[0] != 1) return std::vector<size_t>();
+        else {
+          auto len = comp_words.lens_num[0];
+          auto pos =  find_condition(comp_words.cwords.data(), len,
+                                     is_same_comp_word(nullcw0));
+          auto pos_size = pos.size();
+          std::vector<size_t> ret(pos_size);
+          auto posp = pos.data();
+          auto retp = ret.data();
+          auto orderp = comp_words.order.data();
+          for(size_t i = 0; i < pos_size; i++) {
+            retp[i] = orderp[posp[i]];
+          }
+          return ret;
+        }
+      });
+    raw_string_column->contain_nulls_check();
+  }
+  std::shared_ptr<dfcolumn> c = raw_string_column;
+  c->spill();
+  col.insert(std::make_pair(name, c));
+  col_order.push_back(name);
+  return *this;
+}
+
+dftable& dftable::append_column(const std::string& name,
+                                const std::shared_ptr<dfcolumn>& c) {
+  if(col.find(name) != col.end())
+    throw std::runtime_error(std::string("append_column: column '") 
+                             + name + "' already exists");
+  if(col.size() == 0) {
+    use_dfcolumn use(c);
+    row_size = c->size();
+    row_sizes = c->sizes();
+  }
+  else if(c->size() != row_size)
+    throw std::runtime_error(name + ": different size of columns");
+  c->spill();
   col.insert(std::make_pair(name, c));
   col_order.push_back(name);
   return *this;
@@ -1118,7 +1531,7 @@ dftable& dftable::append_rowid(const std::string& name, size_t offset) {
   if(col.size() == 0)
     throw std::runtime_error
       ("append_rowid: there is no column to append rowid");
-  auto sizes = column(col_order[0])->sizes();
+  auto sizes = num_rows();
   auto nl = make_node_local_allocate<std::vector<size_t>>();
   nl.mapv(append_rowid_helper(sizes, offset));
   return append_column(name, nl.template moveto_dvector<size_t>());
@@ -1149,10 +1562,24 @@ dftable& dftable::datetime_extract(datetime_type type,
     throw std::runtime_error
       ("datetime_extract can be used only for datetime column");
   } else {
+    use_dfcolumn use(c);
     auto dt = c->as_dvector<datetime_t>();
+    auto nulls = c->get_nulls();
     auto ex = dt.moveto_node_local().map(datetime_extract_helper(type)).
+      mapv(+[](std::vector<int>& v, std::vector<size_t>& nulls) {
+          auto vp = v.data();
+          auto nullsp = nulls.data();
+          auto nulls_size = nulls.size();
+          auto max = std::numeric_limits<int>::max();
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+          for(size_t i = 0; i < nulls_size; i++) {
+            vp[nullsp[i]] = max;
+          }
+        }, nulls).
       moveto_dvector<int>();
-    append_column(to_append_column, ex);
+    append_column(to_append_column, ex, true);
     return *this;
   }
 }
@@ -1188,6 +1615,16 @@ add_contiguous_idx(std::vector<std::string>& vs, std::vector<size_t>& sizes) {
     retp[i].second = i + toadd;
   }
   return ret;
+}
+
+dftable& dftable::call_function(const std::shared_ptr<dffunction>& func) {
+  auto as = func->as();
+  if(col.find(as) != col.end())
+    throw std::runtime_error("call_function: same column name already exists");
+  use_dfcolumn use(func->columns_to_use(*this));  
+  auto c = func->execute(*this);
+  append_column(as, c);
+  return *this;
 }
 
 void prepare_string_load(my_map<std::string, std::vector<size_t>>& group,
@@ -1244,6 +1681,10 @@ void dftable_offset_nulls(std::vector<size_t>& nulls,
 }
 
 void dftable::load(const std::string& input) {
+  col.clear();
+  col_order.clear();
+  row_size = 0;
+  row_sizes.clear();
   std::string colfile = input + "/columns";
   std::string typefile = input + "/types";
   std::ifstream colstr;
@@ -1264,59 +1705,66 @@ void dftable::load(const std::string& input) {
     std::string valfile = input + "/" + cols[i];
     std::string nullsfile = input + "/" + cols[i]+ "_nulls";
     if(types[i] == "int") {
+      // loaded binary has same alignment; no need to call align
       auto vec = make_dvector_loadbinary<int>(valfile);
       auto pxsizes = broadcast(prefix_sum(vec.sizes()));
-      append_column(cols[i], std::move(vec));
       auto nulls = broadcast(make_dvector_loadbinary<size_t>(nullsfile)
                              .gather()).mapv(dftable_offset_nulls, pxsizes);
-      std::dynamic_pointer_cast<typed_dfcolumn<int>>
-        (column(cols[i]))->nulls = std::move(nulls);
-      column(cols[i])->contain_nulls_check();
+      auto val = vec.moveto_node_local();
+      std::shared_ptr<dfcolumn> c =
+        std::make_shared<typed_dfcolumn<int>>(std::move(val),
+                                              std::move(nulls));
+      append_column(cols[i], c);
     } else if(types[i] == "unsigned int") {
       auto vec = make_dvector_loadbinary<unsigned int>(valfile);
       auto pxsizes = broadcast(prefix_sum(vec.sizes()));
-      append_column(cols[i], std::move(vec));
       auto nulls = broadcast(make_dvector_loadbinary<size_t>(nullsfile)
                              .gather()).mapv(dftable_offset_nulls, pxsizes);
-      std::dynamic_pointer_cast<typed_dfcolumn<unsigned int>>
-        (column(cols[i]))->nulls = std::move(nulls);
-      column(cols[i])->contain_nulls_check();
+      auto val = vec.moveto_node_local();
+      std::shared_ptr<dfcolumn> c =
+        std::make_shared<typed_dfcolumn<unsigned int>>(std::move(val),
+                                                       std::move(nulls));
+      append_column(cols[i], c);
     } else if(types[i] == "long") {
       auto vec = make_dvector_loadbinary<long>(valfile);
       auto pxsizes = broadcast(prefix_sum(vec.sizes()));
-      append_column(cols[i], std::move(vec));
       auto nulls = broadcast(make_dvector_loadbinary<size_t>(nullsfile)
                              .gather()).mapv(dftable_offset_nulls, pxsizes);
-      std::dynamic_pointer_cast<typed_dfcolumn<long>>
-        (column(cols[i]))->nulls = std::move(nulls);
-      column(cols[i])->contain_nulls_check();
+      auto val = vec.moveto_node_local();
+      std::shared_ptr<dfcolumn> c =
+        std::make_shared<typed_dfcolumn<long>>(std::move(val),
+                                               std::move(nulls));
+      append_column(cols[i], c);
     } else if(types[i] == "unsigned long") {
       auto vec = make_dvector_loadbinary<unsigned long>(valfile);
       auto pxsizes = broadcast(prefix_sum(vec.sizes()));
-      append_column(cols[i], std::move(vec));
       auto nulls = broadcast(make_dvector_loadbinary<size_t>(nullsfile)
                              .gather()).mapv(dftable_offset_nulls, pxsizes);
-      std::dynamic_pointer_cast<typed_dfcolumn<unsigned long>>
-        (column(cols[i]))->nulls = std::move(nulls);
-      column(cols[i])->contain_nulls_check();
+      auto val = vec.moveto_node_local();
+      std::shared_ptr<dfcolumn> c =
+        std::make_shared<typed_dfcolumn<unsigned long>>(std::move(val),
+                                                        std::move(nulls));
+      append_column(cols[i], c);
     } else if(types[i] == "float") {
       auto vec = make_dvector_loadbinary<float>(valfile);
       auto pxsizes = broadcast(prefix_sum(vec.sizes()));
-      append_column(cols[i], std::move(vec));
       auto nulls = broadcast(make_dvector_loadbinary<size_t>(nullsfile)
                              .gather()).mapv(dftable_offset_nulls, pxsizes);
-      std::dynamic_pointer_cast<typed_dfcolumn<float>>
-        (column(cols[i]))->nulls = std::move(nulls);
-      column(cols[i])->contain_nulls_check();
+      auto val = vec.moveto_node_local();
+      std::shared_ptr<dfcolumn> c =
+        std::make_shared<typed_dfcolumn<float>>(std::move(val),
+                                                std::move(nulls));
+      append_column(cols[i], c);
     } else if(types[i] == "double") {
       auto vec = make_dvector_loadbinary<double>(valfile);
       auto pxsizes = broadcast(prefix_sum(vec.sizes()));
-      append_column(cols[i], std::move(vec));
       auto nulls = broadcast(make_dvector_loadbinary<size_t>(nullsfile)
                              .gather()).mapv(dftable_offset_nulls, pxsizes);
-      std::dynamic_pointer_cast<typed_dfcolumn<double>>
-        (column(cols[i]))->nulls = std::move(nulls);
-      column(cols[i])->contain_nulls_check();
+      auto val = vec.moveto_node_local();
+      std::shared_ptr<dfcolumn> c =
+        std::make_shared<typed_dfcolumn<double>>(std::move(val),
+                                                 std::move(nulls));
+      append_column(cols[i], c);
     } else if(types[i] == "string") {
       auto toappend = std::make_shared<typed_dfcolumn<std::string>>();
       auto loaddic = make_dvector_loadline<std::string>(valfile + "_dic");
@@ -1336,14 +1784,7 @@ void dftable::load(const std::string& input) {
                    global_idx);
 
       auto vec = make_dvector_loadbinary<size_t>(valfile + "_idx");
-      std::vector<size_t> sizes;
-      if(i != 0) {
-        sizes = column(col_order[0])->sizes();
-        vec.align_as(sizes);
-      } else {
-        sizes = vec.sizes();
-      }
-      auto pxsizes = broadcast(prefix_sum(sizes));
+      auto pxsizes = broadcast(prefix_sum(vec.sizes()));
       auto nulls = broadcast(make_dvector_loadbinary<size_t>(nullsfile)
                              .gather()).mapv(dftable_offset_nulls, pxsizes);
       toappend->nulls = std::move(nulls);
@@ -1364,19 +1805,12 @@ void dftable::load(const std::string& input) {
       auto dic_to_use = make_dict_from_words(dicwords);
       toappend->dic = std::make_shared<node_local<dict>>(broadcast(dic_to_use));
       auto vec = make_dvector_loadbinary<size_t>(valfile + "_idx");
-      std::vector<size_t> sizes;
-      if(i != 0) {
-        sizes = column(col_order[0])->sizes();
-        vec.align_as(sizes);
-      } else {
-        sizes = vec.sizes();
-      }
-      auto pxsizes = broadcast(prefix_sum(sizes));
+      auto pxsizes = broadcast(prefix_sum(vec.sizes()));
       auto nulls = broadcast(make_dvector_loadbinary<size_t>(nullsfile)
                              .gather()).mapv(dftable_offset_nulls, pxsizes);
+      toappend->val = std::move(vec.moveto_node_local());
       toappend->nulls = std::move(nulls);
       toappend->contain_nulls_check();
-      toappend->val = vec.moveto_node_local();
       append_column(cols[i], std::move(toappend));
     } else if(types[i] == "raw_string") {
       auto toappend = std::make_shared<typed_dfcolumn<raw_string>>();
@@ -1395,7 +1829,7 @@ void dftable::load(const std::string& input) {
                         }, sep, len);
       std::vector<size_t> sizes;
       if(i != 0) {
-        sizes = column(col_order[0])->sizes();
+        sizes = row_sizes;
         toappend->align_as(sizes);
       } else {
         sizes = toappend->sizes();
@@ -1409,12 +1843,13 @@ void dftable::load(const std::string& input) {
     } else if(types[i] == "datetime") {
       auto vec = make_dvector_loadbinary<datetime_t>(valfile);
       auto pxsizes = broadcast(prefix_sum(vec.sizes()));
-      append_datetime_column(cols[i], std::move(vec));
       auto nulls = broadcast(make_dvector_loadbinary<size_t>(nullsfile)
                              .gather()).mapv(dftable_offset_nulls, pxsizes);
-      std::dynamic_pointer_cast<typed_dfcolumn<datetime>>
-        (column(cols[i]))->nulls = std::move(nulls);
-      column(cols[i])->contain_nulls_check();
+      auto val = vec.moveto_node_local();
+      std::shared_ptr<dfcolumn> c =
+        std::make_shared<typed_dfcolumn<datetime>>(std::move(val),
+                                                   std::move(nulls));
+      append_column(cols[i], c);
     }
   }
 }
@@ -1446,19 +1881,11 @@ void dftable::loadtext(const std::string& filename,
   *this = std::move(ret);
 }
 
-dftable& dftable::call_function(const std::shared_ptr<dffunction>& func) {
-  auto as = func->as();
-  if(col.find(as) != col.end())
-    throw std::runtime_error("call_function: same column name already exists");
-  auto c = func->execute(*this);
-  append_column(as, c);
-  return *this;
-}
-
 dftable& dftable::type_cast(const std::string& from_name,
                             const std::string& to_name,
                             const std::string& to_type) {
   auto c = column(from_name);
+  use_dfcolumn use(c);
   auto new_column = c->type_cast(to_type);
   append_column(to_name, new_column);
   return *this;
@@ -1603,14 +2030,14 @@ dftable dftable::union_tables(std::vector<dftable *>& ts, bool keep_order,
   auto table_size = ts.size();
   if(table_size == 0) return *this;
   dftable r;
-  std::vector<std::vector<size_t>> num_rows;
+  std::vector<std::vector<size_t>> all_num_rows;
   if(keep_order) { // keep the num_row information before dropping columns
     if(col_order.size() != 0) {
-      num_rows.push_back(column(col_order[0])->sizes());
+      all_num_rows.push_back(num_rows());
     }
     for(size_t i = 0; i < table_size; i++) {
       if(ts[i]->col_order.size() != 0) {
-        num_rows.push_back(ts[i]->column(ts[i]->col_order[0])->sizes());
+        all_num_rows.push_back(ts[i]->num_rows());
       }
     }
   }
@@ -1619,10 +2046,12 @@ dftable dftable::union_tables(std::vector<dftable *>& ts, bool keep_order,
   for(size_t i = 0; i < colnames_size; i++) {
     auto colname = colnames[i];
     auto col = column(colname);
+    use_dfcolumn use(col);
     std::vector<std::shared_ptr<dfcolumn>> to_union;
     for(size_t j = 0; j < table_size; j++) {
       to_union.push_back(ts[j]->column(colname));
     }
+    use_dfcolumn use2(to_union);
     auto newcolumn = col->union_columns(to_union);
     if(!keep_dftable) drop(colname);
     for(size_t j = 0; j < table_size; j++) {
@@ -1634,13 +2063,16 @@ dftable dftable::union_tables(std::vector<dftable *>& ts, bool keep_order,
   if(keep_order) {
     dftable r2;
     // + 1 for this
-    auto global_idx = union_tables_create_global_idx(num_rows, table_size + 1);
+    auto global_idx = union_tables_create_global_idx(all_num_rows,
+                                                     table_size + 1);
     sorted_dftable sorted_df(r, std::move(global_idx));
+    r2.row_size = sorted_df.num_row();
+    r2.row_sizes = sorted_df.num_rows();
     {dftable tmp; std::swap(r, tmp);} // clear r
     t.show("union_tables: create sorted_dftable: ");
     for(size_t i = 0; i < colnames_size; i++) {
       auto colname = colnames[i];
-      auto sorted_col = sorted_df.select({colname}).column(colname);
+      auto sorted_col = sorted_df.column(colname);
       r2.append_column(colname, sorted_col);
       sorted_df.drop(colname);
     }
@@ -1760,14 +2192,13 @@ dftable& dftable::align_as(const std::vector<size_t>& sizes) {
     return *this;
   } else {
     dftable ret;
-    auto org_sizes = column(col_order[0])->sizes();
     auto sorted_df = sorted_dftable
-      (*this,align_as_create_global_idx(sizes, org_sizes));
+      (*this,align_as_create_global_idx(sizes, row_sizes));
     auto colnames = col_order;
     auto colnames_size = colnames.size();
     for(size_t i = 0; i < colnames_size; i++) {
       auto colname = colnames[i];
-      auto sorted_col = sorted_df.select({colname}).column(colname);
+      auto sorted_col = sorted_df.column(colname);
       ret.append_column(colname, sorted_col);
       sorted_df.drop(colname);
       drop(colname);
@@ -1822,9 +2253,12 @@ dftable& dftable::set_col_order(std::vector<std::string>& new_col_order){
 dftable sorted_dftable::select(const std::vector<std::string>& cols) {
   dftable ret;
   for(size_t i = 0; i < cols.size(); i++) {
+    use_dfcolumn use(raw_column(cols[i]));
     ret.col[cols[i]] = column(cols[i]);
+    ret.col[cols[i]]->spill();
   }
   ret.row_size = global_idx.viewas_dvector<size_t>().size();
+  ret.row_sizes = global_idx.viewas_dvector<size_t>().sizes();
   ret.col_order = cols;
   return ret;
 }
@@ -1832,6 +2266,7 @@ dftable sorted_dftable::select(const std::vector<std::string>& cols) {
 sorted_dftable sorted_dftable::sort(const std::string& name) {
   node_local<std::vector<size_t>> idx;
   auto to_sort_column = column(name);
+  use_dfcolumn use(to_sort_column);
   auto sorted_column = to_sort_column->sort_with_idx(global_idx, idx);
   if(to_sort_column->if_contain_nulls())
     return sorted_dftable(*this, std::move(idx));
@@ -1843,6 +2278,7 @@ sorted_dftable sorted_dftable::sort(const std::string& name) {
 sorted_dftable sorted_dftable::sort_desc(const std::string& name) {
   node_local<std::vector<size_t>> idx;
   auto to_sort_column = column(name);
+  use_dfcolumn use(to_sort_column);
   auto sorted_column = to_sort_column->sort_with_idx_desc(global_idx, idx);
   if(to_sort_column->if_contain_nulls())
     return sorted_dftable(*this, std::move(idx));
@@ -1899,9 +2335,18 @@ std::shared_ptr<dfcolumn> sorted_dftable::column(const std::string& name) {
     if(ret == col.end()) throw std::runtime_error("no such column: " + name);
     else {
       auto col = (*ret).second;
+      use_dfcolumn use(col); // column may be called directly w/o outside use
       return col->global_extract(global_idx, to_store_idx, exchanged_idx);
     }
   }
+}
+
+// returning sorted_column is a bit strange for "raw" column,
+// but this is required for spill-restore functionality,
+// since use_dfcolumn is called for raw_column basically
+std::shared_ptr<dfcolumn> sorted_dftable::raw_column(const std::string& name) {
+  if(name == column_name && is_cachable) return sorted_column;
+  return dftable_base::raw_column(name);
 }
 
 void sorted_dftable::debug_print() {
@@ -1942,6 +2387,14 @@ dftable sorted_dftable::append_rowid(const std::string& name,
   return this->materialize().append_rowid(name, offset);
 }
 
+size_t sorted_dftable::num_row() {
+  return global_idx.viewas_dvector<size_t>().size();
+}
+
+std::vector<size_t> sorted_dftable::num_rows() {
+  return global_idx.viewas_dvector<size_t>().sizes();
+}
+
 // ---------- hash_joined_dftable ----------
 
 std::vector<size_t>
@@ -1965,6 +2418,10 @@ size_t hash_joined_dftable::num_row() {
   return left_idx.viewas_dvector<size_t>().size();
 }
 
+std::vector<size_t> hash_joined_dftable::num_rows() {
+  return left_idx.viewas_dvector<size_t>().sizes();
+}
+
 std::vector<std::string> hash_joined_dftable::columns() const {
   std::vector<std::string> ret = dftable_base::columns();
   auto right_cols = right.columns();
@@ -1975,9 +2432,12 @@ std::vector<std::string> hash_joined_dftable::columns() const {
 dftable hash_joined_dftable::select(const std::vector<std::string>& cols) {    
   dftable ret;
   for(size_t i = 0; i < cols.size(); i++) {
+    use_dfcolumn use(raw_column(cols[i]));
     ret.col[cols[i]] = column(cols[i]);
+    ret.col[cols[i]]->spill();
   }
   ret.row_size = left_idx.viewas_dvector<size_t>().size();
+  ret.row_sizes = left_idx.viewas_dvector<size_t>().sizes();
   ret.col_order = cols;
   return ret;
 }
@@ -2033,6 +2493,7 @@ hash_joined_dftable::column(const std::string& name) {
   auto left_ret = col.find(name);
   if(left_ret != col.end()) {
     auto c = (*left_ret).second;
+    use_dfcolumn use(c);
     // if outer, left_idx is changed to contain nulls in ctor
     return c->global_extract(left_idx, left_to_store_idx,
                              left_exchanged_idx);
@@ -2040,6 +2501,7 @@ hash_joined_dftable::column(const std::string& name) {
     auto right_ret = right.col.find(name);
     if(right_ret != right.col.end()) {
       auto c = (*right_ret).second;
+      use_dfcolumn use(c);
       if(is_outer) {
         auto retcol = c->global_extract(right_idx, right_to_store_idx,
                                         right_exchanged_idx);
@@ -2049,6 +2511,21 @@ hash_joined_dftable::column(const std::string& name) {
         return c->global_extract(right_idx, right_to_store_idx,
                                  right_exchanged_idx);
       }
+    } else {
+      throw std::runtime_error("no such column: " + name);
+    }
+  }
+}
+
+std::shared_ptr<dfcolumn>
+hash_joined_dftable::raw_column(const std::string& name) {
+  auto left_ret = col.find(name);
+  if(left_ret != col.end()) {
+    return dftable_base::raw_column(name);
+  } else {
+    auto right_ret = right.col.find(name);
+    if(right_ret != right.col.end()) {
+      return right.raw_column(name);
     } else {
       throw std::runtime_error("no such column: " + name);
     }
@@ -2142,6 +2619,10 @@ size_t bcast_joined_dftable::num_row() {
   return left_idx.viewas_dvector<size_t>().size();
 }
 
+std::vector<size_t> bcast_joined_dftable::num_rows() {
+  return left_idx.viewas_dvector<size_t>().sizes();
+}
+
 std::vector<std::string> bcast_joined_dftable::columns() const {
   std::vector<std::string> ret = dftable_base::columns();
   auto right_cols = right.columns();
@@ -2152,9 +2633,12 @@ std::vector<std::string> bcast_joined_dftable::columns() const {
 dftable bcast_joined_dftable::select(const std::vector<std::string>& cols) {
   dftable ret;
   for(size_t i = 0; i < cols.size(); i++) {
+    use_dfcolumn use(raw_column(cols[i]));
     ret.col[cols[i]] = column(cols[i]);
+    ret.col[cols[i]]->spill();
   }
   ret.row_size = left_idx.viewas_dvector<size_t>().size();
+  ret.row_sizes = left_idx.viewas_dvector<size_t>().sizes();
   ret.col_order = cols;
   return ret;
 }
@@ -2210,11 +2694,13 @@ bcast_joined_dftable::column(const std::string& name) {
   auto left_ret = col.find(name);
   if(left_ret != col.end()) {
     auto c = (*left_ret).second;
+    use_dfcolumn use(c);
     return c->extract(left_idx);
   } else {
     auto right_ret = right.col.find(name);
     if(right_ret != right.col.end()) {
       auto c = (*right_ret).second;
+      use_dfcolumn use(c);
       if(is_outer) {
         auto retcol = c->global_extract(right_idx, right_to_store_idx,
                                         right_exchanged_idx);
@@ -2224,6 +2710,21 @@ bcast_joined_dftable::column(const std::string& name) {
         return c->global_extract(right_idx, right_to_store_idx,
                                  right_exchanged_idx);
       }
+    } else {
+      throw std::runtime_error("no such column: " + name);
+    }
+  }
+}
+
+std::shared_ptr<dfcolumn>
+bcast_joined_dftable::raw_column(const std::string& name) {
+  auto left_ret = col.find(name);
+  if(left_ret != col.end()) {
+    return dftable_base::raw_column(name);
+  } else {
+    auto right_ret = right.col.find(name);
+    if(right_ret != right.col.end()) {
+      return right.raw_column(name);
     } else {
       throw std::runtime_error("no such column: " + name);
     }
@@ -2280,6 +2781,7 @@ void
 bcast_joined_dftable::inplace_filter_pre(const std::shared_ptr<dfoperator>& op) {
   if(is_outer) throw std::runtime_error
                  ("inplace_filter cannot be used for outer joined table");
+  use_dfcolumn use(op->columns_to_use(*this));    
   auto filtered_idx = op->filter(*this);
   left_idx.mapv(filter_idx, filtered_idx);
   right_idx.mapv(filter_idx, filtered_idx);
@@ -2304,6 +2806,10 @@ size_t star_joined_dftable::num_row() {
   return left_idx.viewas_dvector<size_t>().size();
 }
 
+std::vector<size_t> star_joined_dftable::num_rows() {
+  return left_idx.viewas_dvector<size_t>().sizes();
+}
+
 std::vector<std::string> star_joined_dftable::columns() const {
   std::vector<std::string> ret = dftable_base::columns();
   for(size_t i = 0; i < rights.size(); i++) {
@@ -2316,9 +2822,12 @@ std::vector<std::string> star_joined_dftable::columns() const {
 dftable star_joined_dftable::select(const std::vector<std::string>& cols) {    
   dftable ret;
   for(size_t i = 0; i < cols.size(); i++) {
+    use_dfcolumn use(raw_column(cols[i]));
     ret.col[cols[i]] = column(cols[i]);
+    ret.col[cols[i]]->spill();
   }
   ret.row_size = left_idx.viewas_dvector<size_t>().size();
+  ret.row_sizes = left_idx.viewas_dvector<size_t>().sizes();
   ret.col_order = cols;
   return ret;
 }
@@ -2372,14 +2881,32 @@ star_joined_dftable::column(const std::string& name) {
   auto left_ret = col.find(name);
   if(left_ret != col.end()) {
     auto c = (*left_ret).second;
+    use_dfcolumn use(c);
     return c->extract(left_idx);
   } else {
     for(size_t i = 0; i < rights.size(); i++) {
       auto right_ret = rights[i].col.find(name);
       if(right_ret != rights[i].col.end()) {
         auto c = (*right_ret).second;
+        use_dfcolumn use(c);
         return c->global_extract(right_idxs[i], right_to_store_idxs[i],
                                  right_exchanged_idxs[i]);
+      }
+    }
+    throw std::runtime_error("no such column: " + name);
+  }
+}
+
+std::shared_ptr<dfcolumn>
+star_joined_dftable::raw_column(const std::string& name) {
+  auto left_ret = col.find(name);
+  if(left_ret != col.end()) {
+    return dftable_base::raw_column(name);
+  } else {
+    for(size_t i = 0; i < rights.size(); i++) {
+      auto right_ret = rights[i].col.find(name);
+      if(right_ret != rights[i].col.end()) {
+        return rights[i].raw_column(name);
       }
     }
     throw std::runtime_error("no such column: " + name);
@@ -2436,6 +2963,7 @@ dftable grouped_dftable::select(const std::vector<std::string>& cols) {
     ret_table.col[cols[i]] = grouped_cols[i];
   }
   ret_table.row_size = num_row();
+  ret_table.row_sizes = num_rows();
   ret_table.col_order = cols;
   return ret_table;
 }
@@ -2460,15 +2988,16 @@ grouped_dftable::select(const std::vector<std::string>& cols,
   }
   ret_table.col_order = cols;
   size_t aggssize = aggs.size();
-  auto row_sizes = grouped_cols[0]->sizes();
-  auto nl_row_sizes = make_node_local_scatter(row_sizes);
+  auto nl_row_sizes = make_node_local_scatter(num_rows());
   for(size_t i = 0; i < aggssize; i++) {
+    use_dfcolumn use(org_table.raw_column(aggs[i]->col));
     auto newcol = aggs[i]->aggregate(org_table,
                                      local_grouped_idx,
                                      local_idx_split,
                                      hash_divide,
                                      merge_map,
                                      nl_row_sizes);
+    newcol->spill();
     if(aggs[i]->has_as) {
       if(ret_table.col.find(aggs[i]->as) != ret_table.col.end())
         throw std::runtime_error
@@ -2484,6 +3013,7 @@ grouped_dftable::select(const std::vector<std::string>& cols,
     }
   }
   ret_table.row_size = num_row();
+  ret_table.row_sizes = num_rows();
   return ret_table;
 }
 
@@ -2535,346 +3065,7 @@ void grouped_dftable::debug_print() {
   std::cout << std::endl;
 }
 
-template <>
-dftable& dftable::append_column(const std::string& name,
-                                dvector<std::string>& d,
-                                bool check_null_like) {
-  if(col.find(name) != col.end())
-    throw std::runtime_error(std::string("append_column: column '") 
-                             + name + "' already exists");
-  std::shared_ptr<dfcolumn> c;
-  if(col.size() == 0) {
-    row_size = d.size();
-    d.align_block();
-  } else {
-    if(d.size() != row_size)
-      throw std::runtime_error(name + ": different size of columns");
-    auto sizes = column(col_order[0])->sizes();
-    d.align_as(sizes);
-  }
-  auto d_nloc = d.as_node_local(); // d: lvalue
-  auto nulls = make_node_local_allocate<std::vector<size_t>>();
-  if(check_null_like) nulls = d_nloc.map(get_null_like_positions<std::string>);
-  std::string nullstr = "NULL";
-  auto words = d_nloc.map(dfcolumn_string_as_words_helper,nulls,
-                          broadcast(nullstr));
-  c = std::make_shared<typed_dfcolumn<dic_string>>(std::move(words),
-                                                   std::move(nulls));
-  col.insert(std::make_pair(name, c));
-  col_order.push_back(name);
-  return *this;
-}
-
 // ---------- other functions ----------
-
-template <>
-dftable& dftable::append_column(const std::string& name,
-                                dvector<std::string>&& d,
-                                bool check_null_like) {
-  if(col.find(name) != col.end())
-    throw std::runtime_error(std::string("append_column: column '") 
-                             + name + "' already exists");
-  std::shared_ptr<dfcolumn> c;
-  if(col.size() == 0) {
-    row_size = d.size();
-    d.align_block();
-  } else {
-    if(d.size() != row_size)
-      throw std::runtime_error(name + ": different size of columns");
-    auto sizes = column(col_order[0])->sizes();
-    d.align_as(sizes);
-  }
-  auto d_nloc = d.moveto_node_local(); // d: rvalue
-  auto nulls = make_node_local_allocate<std::vector<size_t>>();
-  if(check_null_like) nulls = d_nloc.map(get_null_like_positions<std::string>);
-  std::string nullstr = "NULL";
-  auto words = d_nloc.map(dfcolumn_string_as_words_helper,nulls,
-                          broadcast(nullstr));
-  c = std::make_shared<typed_dfcolumn<dic_string>>(std::move(words),
-                                                   std::move(nulls));
-  col.insert(std::make_pair(name, c));
-  col_order.push_back(name);
-  return *this;
-}
-
-dftable& dftable::append_dic_string_column(const std::string& name,
-                                           dvector<std::string>& d,
-                                           bool check_null_like) {
-  return append_column(name, d, check_null_like);
-}
-
-dftable& dftable::append_dic_string_column(const std::string& name,
-                                           dvector<std::string>&& d,
-                                           bool check_null_like) {
-  return append_column(name, std::move(d), check_null_like);
-}
-
-dftable& dftable::append_raw_string_column(const std::string& name,
-                                           dvector<std::string>& d,
-                                           bool check_null_like) {
-  if(col.find(name) != col.end())
-    throw std::runtime_error(std::string("append_column: column '") 
-                             + name + "' already exists");
-  std::shared_ptr<dfcolumn> c;
-  if(col.size() == 0) {
-    row_size = d.size();
-    d.align_block();
-  } else {
-    if(d.size() != row_size)
-      throw std::runtime_error(name + ": different size of columns");
-    auto sizes = column(col_order[0])->sizes();
-    d.align_as(sizes);
-  }
-  auto d_nloc = d.as_node_local(); // d: lvalue
-  auto nulls = make_node_local_allocate<std::vector<size_t>>();
-  if(check_null_like) nulls = d_nloc.map(get_null_like_positions<std::string>);
-  std::string nullstr = "NULL";
-  auto words = d_nloc.map(dfcolumn_string_as_words_helper,nulls,
-                          broadcast(nullstr));
-  c = std::make_shared<typed_dfcolumn<raw_string>>(std::move(words),
-                                                   std::move(nulls));
-  col.insert(std::make_pair(name, c));
-  col_order.push_back(name);
-  return *this;
-}
-
-dftable& dftable::append_raw_string_column(const std::string& name,
-                                           dvector<std::string>&& d,
-                                           bool check_null_like) {
-  if(col.find(name) != col.end())
-    throw std::runtime_error(std::string("append_column: column '") 
-                             + name + "' already exists");
-  std::shared_ptr<dfcolumn> c;
-  if(col.size() == 0) {
-    row_size = d.size();
-    d.align_block();
-  } else {
-    if(d.size() != row_size)
-      throw std::runtime_error(name + ": different size of columns");
-    auto sizes = column(col_order[0])->sizes();
-    d.align_as(sizes);
-  }
-  auto d_nloc = d.moveto_node_local(); // d: rvalue
-  auto nulls = make_node_local_allocate<std::vector<size_t>>();
-  if(check_null_like) nulls = d_nloc.map(get_null_like_positions<std::string>);
-  std::string nullstr = "NULL";
-  auto words = d_nloc.map(dfcolumn_string_as_words_helper,nulls,
-                          broadcast(nullstr));
-  c = std::make_shared<typed_dfcolumn<raw_string>>(std::move(words),
-                                                   std::move(nulls));
-  col.insert(std::make_pair(name, c));
-  col_order.push_back(name);
-  return *this;
-}
-
-dftable& dftable::append_string_column(const std::string& name, 
-                                       dvector<std::string>& d,
-                                       bool check_null_like) {
-  if(col.find(name) != col.end())
-    throw std::runtime_error(std::string("append_column: column '") 
-                             + name + "' already exists");
-  std::shared_ptr<dfcolumn> c;
-  if(col.size() == 0) {
-    row_size = d.size();
-    d.align_block();
-  } else {
-    if(d.size() != row_size)
-      throw std::runtime_error(name + ": different size of columns");
-    auto sizes = column(col_order[0])->sizes();
-    d.align_as(sizes);
-  }
-  if(check_null_like) {
-    auto d_nloc = d.as_node_local(); // d: lvalue
-    auto nulls = d_nloc.map(get_null_like_positions<std::string>);
-    c = std::make_shared<typed_dfcolumn<std::string>>(std::move(d_nloc), 
-                                                      std::move(nulls));
-  }
-  else {
-    c = std::make_shared<typed_dfcolumn<std::string>>(d);
-  }
-  col.insert(std::make_pair(name, c));
-  col_order.push_back(name);
-  return *this;
-}
-
-dftable& dftable::append_string_column(const std::string& name, 
-                                       dvector<std::string>&& d,
-                                       bool check_null_like) {
-  if(col.find(name) != col.end())
-    throw std::runtime_error(std::string("append_column: column '") 
-                             + name + "' already exists");
-  std::shared_ptr<dfcolumn> c;
-  if(col.size() == 0) {
-    row_size = d.size();
-    d.align_block();
-  } else {
-    if(d.size() != row_size)
-      throw std::runtime_error(name + ": different size of columns");
-    auto sizes = column(col_order[0])->sizes();
-    d.align_as(sizes);
-  }
-  if(check_null_like) {
-    auto d_nloc = d.moveto_node_local(); // d: rvalue
-    auto nulls = d_nloc.map(get_null_like_positions<std::string>);
-    c = std::make_shared<typed_dfcolumn<std::string>>(std::move(d_nloc), 
-                                                      std::move(nulls));
-  }
-  else {
-    c = std::make_shared<typed_dfcolumn<std::string>>(std::move(d));
-  }
-  col.insert(std::make_pair(name, c));
-  col_order.push_back(name);
-  return *this;
-}
-
-// defined in typed_dfcolumn_raw_string.cc
-void compressed_words_align_as(node_local<compressed_words>& comp_words,
-                               const std::vector<size_t>& mysizes,
-                               const std::vector<size_t>& dst);
-
-struct is_same_value {
-  is_same_value(size_t v) : v(v) {}
-  int operator()(size_t a) const {return a == v;}
-  size_t v;
-  SERIALIZE(v)
-};
-
-dftable& dftable::append_dic_string_column(const std::string& name,
-                                           node_local<words>& w, 
-                                           bool check_null_like) {
-  if(col.find(name) != col.end())
-    throw std::runtime_error(std::string("append_column: column '") 
-                             + name + "' already exists");
-  auto cw = w.map(make_compressed_words);
-  auto sizes = w.map(+[](words& ws){return ws.starts.size();}).gather();
-  size_t total_size = 0;
-  auto sizesp = sizes.data();
-  auto sizes_size = sizes.size();
-  for(size_t i = 0; i < sizes_size; i++) total_size += sizesp[i];
-  std::vector<size_t> dst_sizes;
-  if(col.size() == 0) { 
-    row_size = total_size;
-    // align_block
-    dst_sizes.resize(sizes_size);
-    auto dst_sizesp = dst_sizes.data();
-    auto sz = total_size;
-    size_t each = ceil_div(sz, sizes_size);
-    for(size_t i = 0; i < sizes_size; i++) {
-      if(sz > each) {
-        dst_sizesp[i] = each;
-        sz -= each;
-      } else {
-        dst_sizesp[i] = sz;
-        break;
-      }
-    }
-    compressed_words_align_as(cw, sizes, dst_sizes);
-  } else {
-    if(total_size != row_size)
-      throw std::runtime_error(name + ": different size of columns");
-    auto dst_sizes = column(col_order[0])->sizes();
-    compressed_words_align_as(cw, sizes, dst_sizes);
-  }
-  auto dic_string_column = 
-    std::make_shared<typed_dfcolumn<dic_string>>(std::move(cw));
-  if(check_null_like) {
-    dic_string_column->nulls = dic_string_column->val.map
-      (+[](std::vector<size_t>& val, dict& dic){
-        words nullw;
-        nullw.chars = char_to_int(std::string("NULL"));
-        nullw.starts = {0};
-        nullw.lens = {4};
-        auto nullcw = make_compressed_words(nullw);
-        auto nullval = dic.lookup(nullcw);
-        if(nullval[0] != std::numeric_limits<size_t>::max())
-          return find_condition(val, is_same_value(nullval[0]));
-        else return std::vector<size_t>();
-      }, *(dic_string_column->dic));
-    dic_string_column->contain_nulls_check();
-  }
-  std::shared_ptr<dfcolumn> c = dic_string_column;
-  col.insert(std::make_pair(name, c));
-  col_order.push_back(name);
-  return *this;
-}
-
-struct is_same_comp_word {
-  is_same_comp_word(uint64_t v) : v(v) {}
-  int operator()(uint64_t a) const {return a == v;}
-  uint64_t v;
-  SERIALIZE(v)
-};
-
-dftable& dftable::append_raw_string_column(const std::string& name,
-                                           node_local<words>& w, 
-                                           bool check_null_like) {
-  if(col.find(name) != col.end())
-    throw std::runtime_error(std::string("append_column: column '") 
-                             + name + "' already exists");
-  auto cw = w.map(make_compressed_words);
-  auto sizes = w.map(+[](words& ws){return ws.starts.size();}).gather();
-  size_t total_size = 0;
-  auto sizesp = sizes.data();
-  auto sizes_size = sizes.size();
-  for(size_t i = 0; i < sizes_size; i++) total_size += sizesp[i];
-  std::vector<size_t> dst_sizes;
-  if(col.size() == 0) { 
-    row_size = total_size;
-    // align_block
-    dst_sizes.resize(sizes_size);
-    auto dst_sizesp = dst_sizes.data();
-    auto sz = total_size;
-    size_t each = ceil_div(sz, sizes_size);
-    for(size_t i = 0; i < sizes_size; i++) {
-      if(sz > each) {
-        dst_sizesp[i] = each;
-        sz -= each;
-      } else {
-        dst_sizesp[i] = sz;
-        break;
-      }
-    }
-    compressed_words_align_as(cw, sizes, dst_sizes);
-  } else {
-    if(total_size != row_size)
-      throw std::runtime_error(name + ": different size of columns");
-    auto dst_sizes = column(col_order[0])->sizes();
-    compressed_words_align_as(cw, sizes, dst_sizes);
-  }
-  auto raw_string_column = 
-    std::make_shared<typed_dfcolumn<raw_string>>(std::move(cw));
-  if(check_null_like) {
-    raw_string_column->nulls = raw_string_column->comp_words.map
-      (+[](compressed_words& comp_words){
-        words nullw;
-        nullw.chars = char_to_int(std::string("NULL"));
-        nullw.starts = {0};
-        nullw.lens = {4};
-        auto nullcw = make_compressed_words(nullw);
-        auto nullcw0 = nullcw.cwords[0];
-        if(comp_words.lens[0] != 1) return std::vector<size_t>();
-        else {
-          auto len = comp_words.lens_num[0];
-          auto pos =  find_condition(comp_words.cwords.data(), len,
-                                     is_same_comp_word(nullcw0));
-          auto pos_size = pos.size();
-          std::vector<size_t> ret(pos_size);
-          auto posp = pos.data();
-          auto retp = ret.data();
-          auto orderp = comp_words.order.data();
-          for(size_t i = 0; i < pos_size; i++) {
-            retp[i] = orderp[posp[i]];
-          }
-          return ret;
-        }
-      });
-    raw_string_column->contain_nulls_check();
-  }
-  std::shared_ptr<dfcolumn> c = raw_string_column;
-  col.insert(std::make_pair(name, c));
-  col_order.push_back(name);
-  return *this;
-}
 
 dftable_base* dftable_base::clone() {
   return new dftable_base(*this);

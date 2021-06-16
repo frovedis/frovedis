@@ -1,9 +1,12 @@
 #include "dfcolumn_impl.hpp"
+#include "../core/utility.hpp"
 #include <utility>
 #include <regex>
 #if !(defined(_SX) || defined(__ve__))
 #include <unordered_set>
 #endif
+#include <stdlib.h>
+#include <cstdint>
 
 #define SEPARATE_TO_BUCKET_VLEN 256
 
@@ -593,6 +596,274 @@ dvector<std::string> dfcolumn::as_dvector() {
     throw std::runtime_error("as_dvector<std::string>: non-string column is specified with string target!");
   }
   return ret;
+}
+
+// for spill-restore
+
+dfcolumn_spill_queue_t dfcolumn_spill_queue;
+dfcolumn_spillable_t dfcolumn_spillable;
+
+dfcolumn_spillable_t::dfcolumn_spillable_t() {
+  auto envval = getenv("FROVEDIS_DFCOLUMN_SPILLABLE");
+  if(envval == NULL) is_spillable = false;
+  else if(std::string(envval) == "true") is_spillable = true;
+  else is_spillable = false;
+}
+
+void dfcolumn::spill() {
+  if(spillable) {
+    if(!spill_initialized) { // spill_state should be "restored"
+      init_spill();
+      dfcolumn_spill_queue.put_new(this);
+      spill_state = spill_state_type::spilled;
+    } else if(spill_state == spill_state_type::restored) {
+      dfcolumn_spill_queue.put(this);
+      spill_state = spill_state_type::spilled;
+    }
+  }
+}
+
+void dfcolumn::restore() {
+  if(spillable) {
+    if(spill_state == spill_state_type::spilled) {
+      dfcolumn_spill_queue.get(this);
+      spill_state = spill_state_type::restored;
+    }
+  }
+}
+
+extern std::string frovedis_tmpdir; // in mpi_rpc.cc
+
+std::string create_spill_path_helper(intptr_t thisptr) {
+  char buffer[100];
+  std::sprintf(buffer, "%lx", thisptr);
+  std::string thisptrstr(buffer);
+  return frovedis_tmpdir + "/dfcolumn_" + thisptrstr;
+}
+
+node_local<std::string> create_spill_path(dfcolumn* ptr) {
+  intptr_t thisptr = reinterpret_cast<intptr_t>(ptr);
+  auto bthisptr = broadcast(thisptr);
+  return bthisptr.map(+[](intptr_t thisptr){
+      auto ret = create_spill_path_helper(thisptr);
+      if(!directory_exists(frovedis_tmpdir)) make_directory(frovedis_tmpdir);
+      make_directory(ret);
+      return ret;
+    });
+}
+
+// cannot be called from default ctor,
+// because dfcolumn might be created partially and val might be set later
+void dfcolumn::init_spill() {
+  spill_size_cache = calc_spill_size();
+  spill_path = create_spill_path(this);
+  spill_initialized = true;
+}
+
+size_t dfcolumn::spill_size() {
+  if(!spill_initialized) init_spill();
+  return spill_size_cache;
+}
+
+dfcolumn::~dfcolumn() {
+  if(spillable) {
+    try {
+      if(already_spilled_to_disk) {
+        spill_path.mapv(+[](const std::string& path){
+            // may be moved by move ctor/assignment
+            if(directory_exists(path)) remove_directory(path);
+          });
+      }
+      dfcolumn_spill_queue.remove(this);
+    } catch (std::exception& e) {
+      // exception should not be thrown from dtor
+      RLOG(WARNING) << "exception caught at dtor of dfcolumn: " << e.what()
+                    << std::endl;
+    } 
+  }
+}
+
+dfcolumn::dfcolumn(const dfcolumn& c) : 
+  spillable(dfcolumn_spillable.get()), spill_initialized(false),
+  already_spilled_to_disk(false), cleared(false),
+  spill_state(spill_state_type::restored),
+  spill_size_cache(-1) {
+  if(c.cleared) {
+    // special handling is needed for actually spilled dfcolumn
+    spill_size_cache = c.spill_size_cache;
+    spill_path = create_spill_path(this);
+    spill_initialized = true;
+    spill_path.mapv(+[](const std::string& to, const std::string& from) {
+        copy_directory(from, to);
+      }, c.spill_path);
+    cleared = true;
+    already_spilled_to_disk = true;
+    spill_state = spill_state_type::spilled;
+  }
+}
+
+dfcolumn::dfcolumn(dfcolumn&& c) :
+  spillable(dfcolumn_spillable.get()), spill_initialized(false),
+  already_spilled_to_disk(false), cleared(false),
+  spill_state(spill_state_type::restored),
+  spill_size_cache(-1) {
+  if(c.cleared) {
+    // special handling is needed for actually spilled dfcolumn
+    spill_size_cache = c.spill_size_cache;
+    spill_path = create_spill_path(this);
+    spill_initialized = true;
+    spill_path.mapv(+[](const std::string& to, const std::string& from) {
+        int r = rename(from.c_str(), to.c_str());
+        if(r) throw std::runtime_error("move ctor of dfcolumn: " +
+                                       std::string(strerror(errno)));
+      }, c.spill_path);
+    cleared = true;
+    already_spilled_to_disk = true;
+    spill_state = spill_state_type::spilled;
+  }
+}
+
+dfcolumn& dfcolumn::operator=(const dfcolumn& c) {
+  spillable = dfcolumn_spillable.get();
+  spill_initialized = false;
+  already_spilled_to_disk = false;
+  cleared = false;
+  spill_state = spill_state_type::restored;
+  spill_size_cache = -1;
+  if(c.cleared) {
+    // special handling is needed for actually spilled dfcolumn
+    spill_size_cache = c.spill_size_cache;
+    spill_path = create_spill_path(this);
+    spill_initialized = true;
+    spill_path.mapv(+[](const std::string& to, const std::string& from) {
+        copy_directory(from, to);
+      }, c.spill_path);
+    cleared = true;
+    already_spilled_to_disk = true;
+    spill_state = spill_state_type::spilled;
+  }
+  return *this;
+}
+
+dfcolumn& dfcolumn::operator=(dfcolumn&& c) {
+  spillable = dfcolumn_spillable.get();
+  spill_initialized = false;
+  already_spilled_to_disk = false;
+  cleared = false;
+  spill_state = spill_state_type::restored;
+  spill_size_cache = -1;
+  if(c.cleared) {
+    // special handling is needed for actually spilled dfcolumn
+    spill_size_cache = c.spill_size_cache;
+    spill_path = create_spill_path(this);
+    spill_initialized = true;
+    spill_path.mapv(+[](const std::string& to, const std::string& from) {
+        int r = rename(from.c_str(), to.c_str());
+        if(r) throw std::runtime_error("move assignment of dfcolumn: " +
+                                       std::string(strerror(errno)));
+      }, c.spill_path);
+    cleared = true;
+    already_spilled_to_disk = true;
+    spill_state = spill_state_type::spilled;
+  }
+  return *this;
+}
+
+void dfcolumn_spill_queue_t::init_queue_capacity() {
+  // can't be done at ctor, because get_nodesize() is not set yet
+  auto queue_capacity_char = getenv("FROVEDIS_DFCOLUMN_SPILLSIZE_PERRANK");
+  if(queue_capacity_char != NULL) {
+    // in MB per node
+    queue_capacity =
+      size_t(atoi(queue_capacity_char))
+      * size_t(1024) * size_t(1024) * size_t(get_nodesize());
+  } else {
+    // 2GB per node
+    queue_capacity =
+      2 * size_t(1024)
+      * size_t(1024) * size_t(1024) * size_t(get_nodesize());
+  }
+  capacity_initialized = true;
+}
+
+void dfcolumn_spill_queue_t::put_new(dfcolumn* c) {
+  if(!capacity_initialized) init_queue_capacity();
+  number_of_put++;
+  if(item_map.count(c) > 0) {
+    throw std::runtime_error
+      ("internal error: dfcolumn_spill_queue::put_new called existing column");
+  }
+  item_list.push_front(c);
+  item_map.insert(std::make_pair(c, item_list.begin()));
+  auto csize = c->spill_size();
+  current_usage += csize;
+  spill_until_capacity();
+}
+
+void dfcolumn_spill_queue_t::put(dfcolumn* c) {
+  if(!capacity_initialized) init_queue_capacity(); // shouldn't occur, though
+  number_of_put++;
+  if(item_map.count(c) > 0) {
+    throw std::runtime_error
+      ("internal error: dfcolumn_spill_queue::put called existing column");
+  }
+  item_list.push_front(c);
+  item_map.insert(std::make_pair(c, item_list.begin()));
+  auto csize = c->spill_size();
+  current_usage += csize;
+  queue_capacity += csize;
+  spill_until_capacity();
+}
+
+void dfcolumn_spill_queue_t::get(dfcolumn* c) {
+  if(!capacity_initialized) 
+    throw std::runtime_error
+      ("internal error: dfcolumn_spill_queue::get called before put");
+  number_of_get++;
+  auto csize = c->spill_size();
+  queue_capacity -= csize; // queue_capacity might become negative
+  auto it = item_map.find(c);
+  if(it == item_map.end()) { // spilled
+    spill_until_capacity();
+    double t1 = get_dtime();
+    c->restore_from_disk();
+    number_of_restore_from_disk++;
+    double t2 = get_dtime();
+    restore_time += (t2 - t1);
+  } else {
+    item_list.erase(it->second);
+    item_map.erase(it);
+    current_usage -= csize; // current_usage should be positive or 0
+    spill_until_capacity();
+  }
+}
+
+void dfcolumn_spill_queue_t::remove(dfcolumn* c) {
+  auto it = item_map.find(c);
+  if(it != item_map.end()) { // in the queue
+    item_list.erase(it->second);
+    item_map.erase(it);
+    current_usage -= c->spill_size();
+  }
+}
+
+void dfcolumn_spill_queue_t::spill_until_capacity() {
+  while(current_usage > queue_capacity && item_list.size() > 0) {
+    auto c = *item_list.rbegin();
+    double t1 = get_dtime();
+    c->spill_to_disk();
+    number_of_spill_to_disk++;
+    double t2 = get_dtime();
+    spill_time += (t2 - t1);
+    item_list.pop_back();
+    auto it = item_map.find(c);
+    if(it == item_map.end())
+      throw std::runtime_error
+        ("internal error: dfcolumn_spill_queue::spill_until_capacity");
+    else item_map.erase(it);
+    auto csize = c->spill_size();
+    current_usage -= csize;
+  }
 }
 
 }

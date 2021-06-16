@@ -49,6 +49,16 @@ struct dfoperator {
             node_local<std::vector<size_t>>& right_idx) const {
     throw std::runtime_error("bcast_join on this operator is not implemented");
   }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t) {
+    throw std::runtime_error
+      ("columns_to_use on this operator is not implemented");
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t1, dftable_base& t2) {
+    throw std::runtime_error
+      ("columns_to_use on this operator is not implemented");
+  }
 };
 
 struct dfoperator_eq : public dfoperator {
@@ -107,7 +117,15 @@ struct dfoperator_eq : public dfoperator {
     auto right_column = right_t.raw_column(right);
     return left_column->star_join_eq(right_column, left_idx, right_idx);
   }
-
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t) {
+    // use raw_column to avoid useless extract in the case of filtered_dftable
+    return {t.raw_column(left), t.raw_column(right)};
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t1, dftable_base& t2) {
+    return {t1.raw_column(left), t2.raw_column(right)};
+  }
   std::string left, right;
 };
 
@@ -121,6 +139,14 @@ struct dfoperator_neq : public dfoperator {
   }
   virtual node_local<std::vector<size_t>> not_filter(dftable_base& t) const {
     return dfoperator_eq(left, right).filter(t);
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t) {
+    return {t.raw_column(left), t.raw_column(right)};
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t1, dftable_base& t2) {
+    return {t1.raw_column(left), t2.raw_column(right)};
   }
   std::string left, right;
 };
@@ -141,6 +167,10 @@ struct dfoperator_eq_immed : public dfoperator {
     return t.column(left)->filter_eq_immed(right_scalar);
   }
   virtual node_local<std::vector<size_t>> not_filter(dftable_base& t) const;
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t) {
+    return {t.raw_column(left)};
+  }
   std::string left;
   T right;
 };
@@ -156,6 +186,10 @@ struct dfoperator_neq_immed : public dfoperator {
   }
   virtual node_local<std::vector<size_t>> not_filter(dftable_base& t) const {
     return dfoperator_eq_immed<T>(left, right).filter(t);
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t) {
+    return {t.raw_column(left)};
   }
   std::string left;
   T right;
@@ -185,6 +219,14 @@ struct dfoperator_lt : public dfoperator {
     return left_column->bcast_join_lt(right_column, left_idx, right_idx);
   }
   virtual node_local<std::vector<size_t>> not_filter(dftable_base& t) const;
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t) {
+    return {t.raw_column(left), t.raw_column(right)};
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t1, dftable_base& t2) {
+    return {t1.raw_column(left), t2.raw_column(right)};
+  }
   std::string left, right;
 };
 
@@ -207,6 +249,14 @@ struct dfoperator_ge : public dfoperator {
     auto left_column = left_t.raw_column(left);
     auto right_column = right_t.raw_column(right);
     return left_column->bcast_join_ge(right_column, left_idx, right_idx);
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t) {
+    return {t.raw_column(left), t.raw_column(right)};
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t1, dftable_base& t2) {
+    return {t1.raw_column(left), t2.raw_column(right)};
   }
   std::string left, right;
 };
@@ -235,6 +285,14 @@ struct dfoperator_le : public dfoperator {
     return left_column->bcast_join_le(right_column, left_idx, right_idx);
   }
   virtual node_local<std::vector<size_t>> not_filter(dftable_base& t) const;
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t) {
+    return {t.raw_column(left), t.raw_column(right)};
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t1, dftable_base& t2) {
+    return {t1.raw_column(left), t2.raw_column(right)};
+  }
   std::string left, right;
 };
 
@@ -258,6 +316,14 @@ struct dfoperator_gt : public dfoperator {
     auto right_column = right_t.raw_column(right);
     return left_column->bcast_join_gt(right_column, left_idx, right_idx);
   }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t) {
+    return {t.raw_column(left), t.raw_column(right)};
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t1, dftable_base& t2) {
+    return {t1.raw_column(left), t2.raw_column(right)};
+  }
   std::string left, right;
 };
 
@@ -277,6 +343,10 @@ struct dfoperator_lt_immed : public dfoperator {
     return t.column(left)->filter_lt_immed(right_scalar);
   }
   virtual node_local<std::vector<size_t>> not_filter(dftable_base& t) const;
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t) {
+    return {t.raw_column(left)};
+  }
   std::string left;
   T right;
 };
@@ -292,6 +362,10 @@ struct dfoperator_ge_immed : public dfoperator {
   }
   virtual node_local<std::vector<size_t>> not_filter(dftable_base& t) const {
     return dfoperator_lt_immed<T>(left, right).filter(t);
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t) {
+    return {t.raw_column(left)};
   }
   std::string left;
   T right;
@@ -313,6 +387,10 @@ struct dfoperator_le_immed : public dfoperator {
     return t.column(left)->filter_le_immed(right_scalar);
   }
   virtual node_local<std::vector<size_t>> not_filter(dftable_base& t) const;
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t) {
+    return {t.raw_column(left)};
+  }
   std::string left;
   T right;
 };
@@ -328,6 +406,10 @@ struct dfoperator_gt_immed : public dfoperator {
   }
   virtual node_local<std::vector<size_t>> not_filter(dftable_base& t) const {
     return dfoperator_le_immed<T>(left, right).filter(t);
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t) {
+    return {t.raw_column(left)};
   }
   std::string left;
   T right;
@@ -345,6 +427,10 @@ struct dfoperator_is_null : public dfoperator {
     return t.column(col)->filter_is_null();
   }
   virtual node_local<std::vector<size_t>> not_filter(dftable_base& t) const;
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t) {
+    return {t.raw_column(col)};
+  }
   std::string col;
 };
 
@@ -355,6 +441,10 @@ struct dfoperator_is_not_null : public dfoperator {
   }
   virtual node_local<std::vector<size_t>> not_filter(dftable_base& t) const {
     return dfoperator_is_null(col).filter(t);
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t) {
+    return {t.raw_column(col)};
   }
   std::string col;
 };
@@ -453,6 +543,10 @@ struct dfoperator_not_regex : public dfoperator {
   virtual node_local<std::vector<size_t>> not_filter(dftable_base& t) const {
     return dfoperator_regex(left, pattern).filter(t);
   }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t) {
+    return {t.raw_column(left)};
+  }
   std::string left;
   std::string pattern;
 };
@@ -493,6 +587,10 @@ struct dfoperator_like : public dfoperator {
     }
   }
   virtual node_local<std::vector<size_t>> not_filter(dftable_base& t) const;
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t) {
+    return {t.raw_column(left)};
+  }
   std::string left;
   std::string pattern;
 };
@@ -523,6 +621,10 @@ struct dfoperator_not_like : public dfoperator {
   virtual node_local<std::vector<size_t>> not_filter(dftable_base& t) const {
     //return dfoperator_not_regex(left, pattern).filter(t);
     return dfoperator_like(left, pattern).filter(t);
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t) {
+    return {t.raw_column(left)};
   }
   std::string left;
   std::string pattern;
@@ -556,6 +658,7 @@ public:
                    const node_local<std::vector<size_t>>& filtered_idx) :
     dftable_base(table), filtered_idx(filtered_idx) {}
   virtual size_t num_row();
+  virtual std::vector<size_t> num_rows();
   virtual dftable select(const std::vector<std::string>& cols);
   virtual filtered_dftable filter(const std::shared_ptr<dfoperator>& op);
   virtual sorted_dftable sort(const std::string& name);
@@ -596,6 +699,21 @@ struct dfoperator_and : public dfoperator {
   bcast_join(dftable_base& left, dftable_base& right,
              node_local<std::vector<size_t>>& left_idx,
              node_local<std::vector<size_t>>& right_idx) const;
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t) {
+    auto left_use = left->columns_to_use(t);
+    auto right_use = right->columns_to_use(t);
+    left_use.insert(left_use.end(), right_use.begin(), right_use.end());
+    return left_use;
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t1, dftable_base& t2) {
+    auto left_use = left->columns_to_use(t1, t2);
+    auto right_use = right->columns_to_use(t1, t2);
+    left_use.insert(left_use.end(), right_use.begin(), right_use.end());
+    return left_use;
+  }
+
   std::shared_ptr<dfoperator> left;
   std::shared_ptr<dfoperator> right;
 };
@@ -618,6 +736,20 @@ struct dfoperator_or : public dfoperator {
     auto right_filtered_idx = right->not_filter(t);
     return left_filtered_idx.map(set_intersection<size_t>, right_filtered_idx);
   }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t) {
+    auto left_use = left->columns_to_use(t);
+    auto right_use = right->columns_to_use(t);
+    left_use.insert(left_use.end(), right_use.begin(), right_use.end());
+    return left_use;
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t1, dftable_base& t2) {
+    auto left_use = left->columns_to_use(t1, t2);
+    auto right_use = right->columns_to_use(t1, t2);
+    left_use.insert(left_use.end(), right_use.begin(), right_use.end());
+    return left_use;
+  }
   std::shared_ptr<dfoperator> left;
   std::shared_ptr<dfoperator> right;
 };
@@ -635,6 +767,14 @@ struct dfoperator_not : public dfoperator {
   }
   virtual node_local<std::vector<size_t>> not_filter(dftable_base& t) const {
     return op->filter(t);
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t) {
+    return op->columns_to_use(t);
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t1, dftable_base& t2) {
+    return op->columns_to_use(t1, t2);
   }
   std::shared_ptr<dfoperator> op;
 };
@@ -665,6 +805,14 @@ struct dfoperator_multi_eq : public dfoperator {
     bcast_join(dftable_base& left, dftable_base& right,
                node_local<std::vector<size_t>>& left_idx,
                node_local<std::vector<size_t>>& right_idx) const;
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t1, dftable_base& t2) {
+    std::vector<std::shared_ptr<dfcolumn>> ret;
+    for(auto& c: leftv) ret.push_back(t1.raw_column(c));
+    for(auto& c: rightv) ret.push_back(t2.raw_column(c));
+    return ret;
+  }
+  std::shared_ptr<dfoperator> op;
   std::vector<std::string> leftv, rightv;
 };
 
@@ -688,6 +836,10 @@ struct dfoperator_cross : public dfoperator {
   bcast_join(dftable_base& left, dftable_base& right,
              node_local<std::vector<size_t>>& left_idx,
              node_local<std::vector<size_t>>& right_idx) const;
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t1, dftable_base& t2) {
+    return std::vector<std::shared_ptr<dfcolumn>>();
+  }
 };
 
 std::shared_ptr<dfoperator> cross();

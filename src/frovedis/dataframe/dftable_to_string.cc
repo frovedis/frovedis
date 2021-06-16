@@ -27,6 +27,7 @@ dvector<vector<string>> dftable_to_string(dftable_base& table) {
   auto cols = table.columns();
   auto num_col = table.num_col();
   for(size_t i = 0; i < cols.size(); i++) {
+    use_dfcolumn use(table.raw_column(cols[i]));
     auto nl = table.column(cols[i])->as_string().moveto_node_local();
     ret.mapv(put_ith(i,num_col), nl);
   }

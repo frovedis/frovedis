@@ -200,7 +200,8 @@ bool handle_one_req() {
 
 void handle_req() {
   while (handle_one_bcast_req());
-  remove_directory(frovedis_tmpdir);
+  if(directory_exists(frovedis_tmpdir))
+    remove_directory(frovedis_tmpdir);
   MPI_Finalize();
   exit(0);
 }
@@ -412,11 +413,15 @@ void initfrovedis(int argc, char* argv[]) {
 #endif
 
   auto pidstr = std::to_string(getpid());
+  auto rankstr = std::to_string(frovedis_self_rank);
   auto tmpdir = getenv("FROVEDIS_TMPDIR");
   if(tmpdir != NULL) {
-    frovedis_tmpdir = std::string(tmpdir) + "/" + pidstr;
+    frovedis_tmpdir =
+      std::string(tmpdir) + "/frovedis_" + rankstr + "_" + pidstr;
+      
   } else {
-    frovedis_tmpdir = std::string("/var/tmp/frovedis/") + pidstr;
+    frovedis_tmpdir =
+      std::string("/var/tmp/frovedis_") + rankstr + "_" + pidstr;
   }
 
   if(frovedis_self_rank != 0) {
@@ -427,7 +432,8 @@ void initfrovedis(int argc, char* argv[]) {
 void finalizefrovedis(int code) {
   std::vector<std::string> dummy;
   send_bcast_rpcreq(rpc_type::finalize_type, 0, 0, "", dummy);
-  remove_directory(frovedis_tmpdir);
+  if(directory_exists(frovedis_tmpdir))
+    remove_directory(frovedis_tmpdir);
   MPI_Finalize();
   exit(code);
 }

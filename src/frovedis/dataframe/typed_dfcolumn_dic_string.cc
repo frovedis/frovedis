@@ -870,6 +870,20 @@ void typed_dfcolumn<dic_string>::debug_print() {
   }
   std::cout << std::endl;
   std::cout << "contain_nulls: " << contain_nulls << std::endl;
+  if(spillable) {
+    std::cout << "spill_initialized: " << spill_initialized << std::endl;
+    std::cout << "already_spilled_to_disk: " << already_spilled_to_disk
+              << std::endl;
+    std::cout << "cleared: " << cleared << std::endl;
+    std::cout << "spill_state: " << spill_state << std::endl;
+    std::cout << "spill_size_cache: " << spill_size_cache << std::endl;
+    if(spill_initialized) {
+      std::cout << "spill_path: ";
+      auto spill_paths = spill_path.gather();
+      for(auto& p: spill_paths) std::cout << p << ", ";
+      std::cout << std::endl;
+    }
+  }
 }
 
 void typed_dfcolumn<dic_string>::contain_nulls_check() {
@@ -1116,6 +1130,53 @@ bool typed_dfcolumn<dic_string>::is_unique() {
   auto key = typed_col.val.viewas_dvector<size_t>().gather();
   auto nulls_count = typed_col.get_nulls().viewas_dvector<size_t>().size();
   return (nulls_count <= 1) && vector_is_unique(key);
+}
+
+// for spill-restore
+
+// TODO: spill dic; currently it is shared_ptr,
+// so it is difficult to deallocate them
+void typed_dfcolumn<dic_string>::spill_to_disk() {
+  if(already_spilled_to_disk) {
+    val.mapv(+[](std::vector<size_t>& v){
+        std::vector<size_t> tmp;
+        tmp.swap(v);
+      });
+    nulls.mapv(+[](std::vector<size_t>& n){
+        std::vector<size_t> tmp;
+        tmp.swap(n);
+      });
+  } else {
+    val.mapv(+[](std::vector<size_t>& v, std::string& spill_path){
+        savebinary_local(v, spill_path+"/val");
+        std::vector<size_t> tmp;
+        tmp.swap(v);
+      }, spill_path);
+    nulls.mapv(+[](std::vector<size_t>& n, std::string& spill_path){
+        savebinary_local(n, spill_path+"/nulls");
+        std::vector<size_t> tmp;
+        tmp.swap(n);
+      }, spill_path);
+    already_spilled_to_disk = true;
+  }
+  cleared = true;
+}
+
+void typed_dfcolumn<dic_string>::restore_from_disk() {
+  val.mapv(+[](std::vector<size_t>& v, std::string& spill_path){
+      v = loadbinary_local<size_t>(spill_path+"/val");
+    }, spill_path);
+  nulls.mapv(+[](std::vector<size_t>& n, std::string& spill_path){
+      n = loadbinary_local<size_t>(spill_path+"/nulls");
+    }, spill_path);
+  cleared = false;
+}
+
+size_t typed_dfcolumn<dic_string>::calc_spill_size() {
+  auto valsize = size();
+  auto nullsize = nulls.map(+[](std::vector<size_t>& n){return n.size();}).
+    reduce(+[](const size_t l, const size_t r){return l + r;});
+  return valsize * sizeof(size_t) + nullsize * sizeof(size_t);
 }
 
 }

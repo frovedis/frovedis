@@ -47,12 +47,14 @@ dftable_to_words(dftable_base& table, size_t precision,
                  const std::string& nullstr) {
   auto cols = table.columns();
   auto num_col = table.num_col();
+  if(num_col == 0) return make_node_local_allocate<words>();
   vector<words> work(num_col);
   auto nl_work = broadcast(work);
   for(size_t i = 0; i < cols.size(); i++) {
-    auto ws = table.column(cols[i])->as_words(precision, datetime_fmt,
-                                              quote_escape, nullstr);
-    nl_work.mapv(put_words_ith(i), ws);
+   use_dfcolumn use(table.raw_column(cols[i]));
+   auto ws = table.column(cols[i])->as_words(precision, datetime_fmt,
+                                             quote_escape, nullstr);
+   nl_work.mapv(put_words_ith(i), ws);
   }
   return nl_work.map(dftable_to_words_helper);
 }

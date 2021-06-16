@@ -62,6 +62,7 @@ void treat_nan_as_null(dftable& df) {
   auto cols = df.columns();
   for (size_t i = 1; i < cols.size(); ++i) { // excluding index column: 0th column
     auto dfcol = df.column(cols[i]);
+    use_dfcolumn use(dfcol);
     // 'contain_nulls' may already be 'true' due to presence of existing nulls, 
     // but in case it is 'false', setting it to 'true' when nan is detected 
     if (dfcol->dtype() == "int") {
@@ -149,6 +150,7 @@ frov_df_binary_operation(exrpc_ptr_t& df1,
   if (is_series) {
     checkAssumption(lcol.size() == 2 && rcol.size() == 2);
     auto func = get_function(op_id, lcol[1], rcol[1]);
+    use_dfcolumn use(func->columns_to_use(left, right));
     ret.append_column(func->as(), func->execute(left, right));
   }
   else {
@@ -157,7 +159,7 @@ frov_df_binary_operation(exrpc_ptr_t& df1,
       auto c = rcol[i];
       if (!is_present(lcol, c)) {
         append_missing_column(left, c, right.column(c)->dtype(), num_row, 
-                             fill_value, fill_value_dtype);
+                              fill_value, fill_value_dtype);
       }
     }
     // aligning columns in right table by appending missing columns with fill_value
@@ -173,6 +175,7 @@ frov_df_binary_operation(exrpc_ptr_t& df1,
     for (size_t i = 1; i < lcol.size(); ++i) {
       auto c = lcol[i];
       auto func = get_function(op_id, c, c);
+      use_dfcolumn use(func->columns_to_use(left, right));
       ret.append_column(c, func->execute(left, right));
     }
   }
@@ -208,25 +211,30 @@ frov_df_immed_binary_operation(exrpc_ptr_t& df,
     if (vtype == "int" || vtype == "int32") {
       auto right_val = do_cast<int>(value);
       auto func = get_immed_function<int>(op_id, lcol[i], right_val, is_reversed);
+      use_dfcolumn use(func->columns_to_use(left));
       ret.append_column(lcol[i], func->execute(left));
     } else if (vtype == "long" || vtype == "int64") {
       auto right_val = do_cast<long>(value);
       auto func = get_immed_function<long>(op_id, lcol[i], right_val, is_reversed);
+      use_dfcolumn use(func->columns_to_use(left));
       ret.append_column(lcol[i], func->execute(left));
     } else if (vtype == "float" || vtype == "float32") {
       // for python: [float (op) float] => "float"
       if (left.column(lcol[i])->dtype() == "float") {
         auto right_val = do_cast<float>(value);
         auto func = get_immed_function<float>(op_id, lcol[i], right_val, is_reversed);
+        use_dfcolumn use(func->columns_to_use(left));
         ret.append_column(lcol[i], func->execute(left));
       } else { // for python: [any (op) float] => "double"
         auto right_val = do_cast<double>(value);
         auto func = get_immed_function<double>(op_id, lcol[i], right_val, is_reversed);
+        use_dfcolumn use(func->columns_to_use(left));
         ret.append_column(lcol[i], func->execute(left));
       }
     } else if (vtype == "double" || vtype == "float64") {
       auto right_val = do_cast<double>(value);
       auto func = get_immed_function<double>(op_id, lcol[i], right_val, is_reversed);
+      use_dfcolumn use(func->columns_to_use(left));
       ret.append_column(lcol[i], func->execute(left));
     } else {
       REPORT_ERROR(USER_ERROR, vtype + 
@@ -248,6 +256,7 @@ dummy_dftable frov_df_abs(exrpc_ptr_t& df) {
   for(size_t i = 1; i < lcol.size(); ++i) {
     auto colname = lcol[i];
     auto col = left_base.column(colname);
+    use_dfcolumn use(col);
     auto dtype = col->dtype();
     if (dtype != "string" && dtype != "dic_string") {
       ret.append_column(colname, abs_col(colname)->execute(left_base));

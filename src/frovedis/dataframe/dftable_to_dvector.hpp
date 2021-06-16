@@ -9,6 +9,7 @@ namespace frovedis {
 template <class T0>
 dvector<T0> dftable_to_dvector(dftable_base& table) {
   auto cols = table.columns();
+  use_dfcolumn use(cols, table);
   if(cols.size() != 1) throw std::runtime_error("size of column is not 1");
   auto col0 = table.column(cols[0]);
   auto typed_col0 = std::dynamic_pointer_cast<typed_dfcolumn<T0>>(col0);
@@ -35,6 +36,7 @@ template <class T0, class T1>
 dvector<std::tuple<T0,T1>> dftable_to_dvector(dftable_base& table) {
   auto ret = make_node_local_allocate<std::vector<std::tuple<T0,T1>>>();
   auto cols = table.columns();
+  use_dfcolumn use(cols, table);
   if(cols.size() != 2) throw std::runtime_error("size of column is not 2");
   auto col0 = table.column(cols[0]);
   auto col1 = table.column(cols[1]);
@@ -66,6 +68,7 @@ template <class T0, class T1, class T2>
 dvector<std::tuple<T0,T1,T2>> dftable_to_dvector(dftable_base& table) {
   auto ret = make_node_local_allocate<std::vector<std::tuple<T0,T1,T2>>>();
   auto cols = table.columns();
+  use_dfcolumn use(cols, table);
   if(cols.size() != 3) throw std::runtime_error("size of column is not 3");
   auto col0 = table.column(cols[0]);
   auto col1 = table.column(cols[1]);
@@ -102,6 +105,7 @@ template <class T0, class T1, class T2, class T3>
 dvector<std::tuple<T0,T1,T2,T3>> dftable_to_dvector(dftable_base& table) {
   auto ret = make_node_local_allocate<std::vector<std::tuple<T0,T1,T2,T3>>>();
   auto cols = table.columns();
+  use_dfcolumn use(cols, table);
   if(cols.size() != 4) throw std::runtime_error("size of column is not 4");
   auto col0 = table.column(cols[0]);
   auto col1 = table.column(cols[1]);
@@ -144,6 +148,7 @@ dvector<std::tuple<T0,T1,T2,T3,T4>> dftable_to_dvector(dftable_base& table) {
   auto ret =
     make_node_local_allocate<std::vector<std::tuple<T0,T1,T2,T3,T4>>>();
   auto cols = table.columns();
+  use_dfcolumn use(cols, table);
   if(cols.size() != 5) throw std::runtime_error("size of column is not 5");
   auto col0 = table.column(cols[0]);
   auto col1 = table.column(cols[1]);
@@ -200,6 +205,7 @@ dvector<std::tuple<T0,T1,T2,T3,T4,T5>>
   auto ret =
     make_node_local_allocate<std::vector<std::tuple<T0,T1,T2,T3,T4,T5>>>();
   auto cols = table.columns();
+  use_dfcolumn use(cols, table);
   if(cols.size() != 6) throw std::runtime_error("size of column is not 6");
   auto col0 = table.column(cols[0]);
   auto col1 = table.column(cols[1]);
@@ -264,6 +270,7 @@ dvector<std::tuple<T0,T1,T2,T3,T4,T5,T6>>
   auto ret =
     make_node_local_allocate<std::vector<std::tuple<T0,T1,T2,T3,T4,T5,T6>>>();
   auto cols = table.columns();
+  use_dfcolumn use(cols, table);
   if(cols.size() != 7) throw std::runtime_error("size of column is not 7");
   auto col0 = table.column(cols[0]);
   auto col1 = table.column(cols[1]);

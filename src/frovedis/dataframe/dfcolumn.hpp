@@ -4,6 +4,8 @@
 #include <string>
 #include <memory>
 #include <tuple>
+#include <list>
+#include <unordered_map>
 #include "../core/dvector.hpp"
 #include "../core/dunordered_map.hpp"
 #include "../core/vector_operations.hpp"
@@ -17,9 +19,29 @@
 
 namespace frovedis {
 
+struct dfcolumn_spillable_t {
+  dfcolumn_spillable_t();
+  bool is_spillable;
+  void set(bool val) {is_spillable = val;}
+  bool get(){return is_spillable;}
+};
+extern dfcolumn_spillable_t dfcolumn_spillable;
+enum spill_state_type {
+  restored,
+  spilled
+};
+
 class dfcolumn {
 public:
-  virtual ~dfcolumn(){}
+  dfcolumn() : spillable(dfcolumn_spillable.get()), spill_initialized(false),
+               already_spilled_to_disk(false), cleared(false),
+               spill_state(spill_state_type::restored),
+               spill_size_cache(-1) {}
+  dfcolumn(const dfcolumn& c);
+  dfcolumn(dfcolumn&& c);
+  dfcolumn& operator=(const dfcolumn& c);
+  dfcolumn& operator=(dfcolumn&& c);
+  virtual ~dfcolumn();
   virtual size_t size() = 0;
   virtual std::vector<size_t> sizes() = 0;
   virtual void debug_print() = 0;
@@ -302,6 +324,22 @@ public:
   virtual node_local<std::vector<size_t>> get_nulls() = 0;
   virtual bool if_contain_nulls() = 0;
   virtual bool is_unique() = 0;
+
+  // for spill-restore
+  void spill();
+  void restore();
+  virtual void spill_to_disk() = 0;
+  virtual void restore_from_disk() = 0;
+  virtual size_t calc_spill_size() = 0;
+  size_t spill_size();
+  void init_spill();
+  bool spillable;
+  bool spill_initialized; // also used to switch put_new/put
+  bool already_spilled_to_disk;
+  bool cleared;
+  spill_state_type spill_state;
+  ssize_t spill_size_cache;
+  node_local<std::string> spill_path;
 };
 
 template <class T>
@@ -331,6 +369,19 @@ public:
                  node_local<std::vector<size_t>>& nulls) :
     val(val), nulls(nulls) {
     contain_nulls_check();
+  }
+  typed_dfcolumn(const typed_dfcolumn<T>& c) :
+    dfcolumn(c), val(c.val), nulls(c.nulls) {}
+  typed_dfcolumn(typed_dfcolumn<T>&& c) :
+    dfcolumn(std::move(c)), val(std::move(c.val)), nulls(std::move(c.nulls)) {}
+  typed_dfcolumn& operator=(const typed_dfcolumn<T>& c) {
+    dfcolumn::operator=(c); val = c.val; nulls = c.nulls;
+    return *this;
+  }
+  typed_dfcolumn& operator=(typed_dfcolumn<T>&& c) {
+    dfcolumn::operator=(std::move(c));
+    val = std::move(c.val); nulls = std::move(c.nulls);
+    return *this;
   }
   virtual size_t size();
   virtual std::vector<size_t> sizes();
@@ -609,6 +660,11 @@ public:
   bool contain_nulls;
   virtual bool if_contain_nulls(){return contain_nulls;}
   virtual bool is_unique();
+
+  // for spill-restore
+  virtual void spill_to_disk();
+  virtual void restore_from_disk();
+  virtual size_t calc_spill_size();
 };
 
 template <class T>
@@ -663,6 +719,24 @@ public:
     contain_nulls_check();
     if(contain_nulls) nulls.mapv(reset_null_val<size_t>, val);
   }
+  typed_dfcolumn(const typed_dfcolumn<std::string>& c) :
+    dfcolumn(c), dic(c.dic), dic_idx(c.dic_idx), val(c.val), nulls(c.nulls) {}
+  typed_dfcolumn(typed_dfcolumn<std::string>&& c) :
+    dfcolumn(std::move(c)), dic(std::move(c.dic)),
+    dic_idx(std::move(c.dic_idx)),
+    val(std::move(c.val)), nulls(std::move(c.nulls)) {}
+  typed_dfcolumn& operator=(const typed_dfcolumn<std::string>& c) {
+    dfcolumn::operator=(c);
+    dic = c.dic; dic_idx = c.dic_idx; val = c.val; nulls = c.nulls;
+    return *this;
+  }
+  typed_dfcolumn& operator=(typed_dfcolumn<std::string>&& c) {
+    dfcolumn::operator=(std::move(c));
+    dic = std::move(c.dic); dic_idx = std::move(c.dic_idx);
+    val = std::move(c.val); nulls = std::move(c.nulls);
+    return *this;
+  }
+
   virtual size_t size();
   virtual std::vector<size_t> sizes();
   virtual node_local<std::vector<size_t>>
@@ -872,6 +946,10 @@ public:
   bool contain_nulls;
   virtual bool if_contain_nulls(){return contain_nulls;}
   virtual bool is_unique();
+  // for spill-restore
+  virtual void spill_to_disk();
+  virtual void restore_from_disk();
+  virtual size_t calc_spill_size();
 };
 
 struct dic_string {}; // for tag
@@ -884,30 +962,52 @@ public:
   typed_dfcolumn(node_local<words>&& ws) : contain_nulls(false) {init(ws);}
   typed_dfcolumn(node_local<words>& ws,
                  node_local<std::vector<size_t>>& nulls) :
-    nulls(nulls) {init(ws, false); contain_nulls_check();}
+    nulls(nulls) {init(ws, false); contain_nulls_check();
+    if(contain_nulls) nulls.mapv(reset_null_val<size_t>, val);}
   typed_dfcolumn(node_local<words>&& ws,
                  node_local<std::vector<size_t>>&& nulls) :
-    nulls(std::move(nulls)) {init(ws, false); contain_nulls_check();}
+    nulls(std::move(nulls)) {init(ws, false); contain_nulls_check();
+    if(contain_nulls) this->nulls.mapv(reset_null_val<size_t>, val);}
   typed_dfcolumn(node_local<compressed_words>& ws) : contain_nulls(false)
     {init_compressed(ws);}
   typed_dfcolumn(node_local<compressed_words>&& ws) : contain_nulls(false)
     {init_compressed(ws);}
   typed_dfcolumn(node_local<compressed_words>& ws,
                  node_local<std::vector<size_t>>& nulls) :
-    nulls(nulls) {init_compressed(ws, false); contain_nulls_check();}
+    nulls(nulls) {init_compressed(ws, false); contain_nulls_check();
+    if(contain_nulls) nulls.mapv(reset_null_val<size_t>, val);}
   typed_dfcolumn(node_local<compressed_words>&& ws,
                  node_local<std::vector<size_t>>&& nulls)
     : nulls(std::move(nulls))
-    {init_compressed(ws, false); contain_nulls_check();}
+    {init_compressed(ws, false); contain_nulls_check();
+    if(contain_nulls) this->nulls.mapv(reset_null_val<size_t>, val);}
   typed_dfcolumn(std::shared_ptr<node_local<dict>>& dic,
                  node_local<std::vector<size_t>>& val,
                  node_local<std::vector<size_t>>& nulls)
-    : dic(dic), val(val), nulls(nulls) {contain_nulls_check();}
+    : dic(dic), val(val), nulls(nulls) {contain_nulls_check();
+    if(contain_nulls) nulls.mapv(reset_null_val<size_t>, this->val);}
   typed_dfcolumn(std::shared_ptr<node_local<dict>>&& dic,
                  node_local<std::vector<size_t>>&& val,
                  node_local<std::vector<size_t>>&& nulls)
     : dic(std::move(dic)), val(std::move(val)), nulls(std::move(nulls))
-    {contain_nulls_check();}
+    {contain_nulls_check();
+    if(contain_nulls) this->nulls.mapv(reset_null_val<size_t>, this->val);}
+  typed_dfcolumn(const typed_dfcolumn<dic_string>& c) :
+    dfcolumn(c), dic(c.dic), val(c.val), nulls(c.nulls) {}
+  typed_dfcolumn(typed_dfcolumn<dic_string>&& c) :
+    dfcolumn(std::move(c)), dic(std::move(c.dic)), val(std::move(c.val)),
+    nulls(std::move(c.nulls)) {}
+    
+  typed_dfcolumn& operator=(const typed_dfcolumn<dic_string>& c) {
+    dfcolumn::operator=(c);
+    dic = c.dic; val = c.val; nulls = c.nulls; 
+    return *this;
+  }
+  typed_dfcolumn& operator=(typed_dfcolumn<dic_string>&& c) {
+    dfcolumn::operator=(std::move(c));
+    dic = std::move(c.dic); val = std::move(c.val); nulls = std::move(c.nulls);
+    return *this;
+  }
 
   virtual size_t size(); 
   virtual std::vector<size_t> sizes(); 
@@ -1122,6 +1222,10 @@ public:
   bool contain_nulls;
   virtual bool if_contain_nulls(){return contain_nulls;}
   virtual bool is_unique();
+  // for spill-restore
+  virtual void spill_to_disk();
+  virtual void restore_from_disk();
+  virtual size_t calc_spill_size();
 };
 
 struct raw_string {}; // for tag
@@ -1149,6 +1253,21 @@ public:
                  node_local<std::vector<size_t>>&& nulls)
     : nulls(std::move(nulls))
     {init_compressed(std::move(ws), false); contain_nulls_check();}
+  typed_dfcolumn(const typed_dfcolumn<raw_string>& c) :
+    dfcolumn(c), comp_words(c.comp_words), nulls(c.nulls) {}
+  typed_dfcolumn(typed_dfcolumn<raw_string>&& c) :
+    dfcolumn(std::move(c)), comp_words(std::move(c.comp_words)),
+    nulls(std::move(c.nulls)) {}
+  typed_dfcolumn& operator=(const typed_dfcolumn<raw_string>& c) {
+    dfcolumn::operator=(c);
+    comp_words = c.comp_words; nulls = c.nulls;
+    return *this;
+  }
+  typed_dfcolumn& operator=(typed_dfcolumn<raw_string>&& c) {
+    dfcolumn::operator=(std::move(c));
+    comp_words = std::move(c.comp_words); nulls = std::move(c.nulls);
+    return *this;
+  }
   virtual size_t size(); 
   virtual std::vector<size_t> sizes(); 
   virtual node_local<std::vector<size_t>>
@@ -1411,6 +1530,10 @@ public:
   virtual bool is_unique() {
     throw std::runtime_error("is_unique is not defined for raw_string");
   }
+  // for spill-restore
+  virtual void spill_to_disk();
+  virtual void restore_from_disk();
+  virtual size_t calc_spill_size();
 };
 
 struct datetime {}; // for tag
@@ -1740,6 +1863,103 @@ get_null_like_positions (std::vector<T>& col) {
 template <>
 std::vector<size_t>
 get_null_like_positions (std::vector<std::string>& col);
+
+// for spill-restore
+
+// for doing spill-restore in RAII manner, which is exception safe
+// can be called nested way:
+// call spill in dtor only when state is changed in ctor
+struct use_dfcolumn {
+  void init() {
+    prev_state.resize(dfcolumn_to_use.size());
+    for(size_t i = 0; i < dfcolumn_to_use.size(); i++) {
+      prev_state[i] = dfcolumn_to_use[i]->spill_state;
+      if(prev_state[i] == spill_state_type::spilled) {
+        dfcolumn_to_use[i]->restore();
+      }
+    }
+  }
+  template <class T>
+  use_dfcolumn(const std::vector<std::string>& colname,
+               T& tbl) {
+    auto size = colname.size();
+    dfcolumn_to_use.resize(size);
+    for(size_t i = 0; i < size; i++) {
+      dfcolumn_to_use[i] = tbl.raw_column(colname[i]);
+    }
+    init();
+  }
+  use_dfcolumn(const std::shared_ptr<dfcolumn>& c) : dfcolumn_to_use({c}) {
+    init();
+  }
+  use_dfcolumn(const std::vector<std::shared_ptr<dfcolumn>>& cs) :
+    dfcolumn_to_use(cs) {
+    init();
+  }
+  ~use_dfcolumn() {
+    for(size_t i = 0; i < dfcolumn_to_use.size(); i++) {
+      if(prev_state[i] == spill_state_type::spilled) {
+        dfcolumn_to_use[i]->spill();
+      }
+    }
+  }
+  use_dfcolumn(const use_dfcolumn&) = delete;
+  use_dfcolumn & operator=(const use_dfcolumn&) = delete;
+
+  std::vector<std::shared_ptr<dfcolumn>> dfcolumn_to_use;
+  std::vector<spill_state_type> prev_state;
+};
+
+// LRU: https://stackoverflow.com/questions/2504178/lru-cache-design
+struct dfcolumn_spill_queue_t {
+  dfcolumn_spill_queue_t() : capacity_initialized(false),
+                             number_of_put(0), number_of_get(0),
+                             number_of_restore_from_disk(0),
+                             number_of_spill_to_disk(0),
+                             spill_time(0),
+                             restore_time(0) {}
+  // put column first time; kind of register the column
+  void put_new(dfcolumn*);
+  // put column and return used memory; increase queue_capacy
+  void put(dfcolumn*);
+  void get(dfcolumn*);
+  void remove(dfcolumn*);
+  // if some columns are used by get, queue_capacity will be increased
+  // if the columns is put again
+  void set_queue_capacity(size_t s)
+    {queue_capacity = s; capacity_initialized = true;}
+  void init_queue_capacity();
+  void spill_until_capacity();
+  void debug_print() {
+    std::cout << "queue_capacity: " << queue_capacity
+              << ", current_usage: " << current_usage << std::endl;
+    print_stat();
+  }
+  void print_stat() {
+    std::cout << "number of put: " << number_of_put << "\n"
+              << "number of get: " << number_of_get << "\n"
+              << "number of spill to disk: " << number_of_spill_to_disk
+              << "\n"
+              << "number of restore from disk: "
+              << number_of_restore_from_disk << "\n"
+              << "spill time: " << spill_time << "\n"
+              << "restore time: " << restore_time << std::endl;
+  }
+  std::list<dfcolumn*> item_list;
+  std::unordered_map<dfcolumn*, decltype(item_list.begin())> item_map;
+  ssize_t queue_capacity; // can be negative if large column is get
+  ssize_t current_usage; // used memory; positive or 0
+  bool capacity_initialized;
+
+  size_t number_of_put;
+  size_t number_of_get;
+  size_t number_of_restore_from_disk;
+  size_t number_of_spill_to_disk;
+  double spill_time;
+  double restore_time;
+};
+
+extern dfcolumn_spill_queue_t dfcolumn_spill_queue;
 
 }
 #endif

@@ -401,6 +401,7 @@ void typed_dfcolumn<datetime>::debug_print() {
     for(auto j: i) printf("%lx ", j);
     std::cout << ": ";
   }
+  std::cout << std::endl;
   std::cout << "nulls: ";
   for(auto& i: nulls.gather()) {
     for(auto j: i) std::cout << j << " ";
@@ -408,6 +409,20 @@ void typed_dfcolumn<datetime>::debug_print() {
   }
   std::cout << std::endl;
   std::cout << "contain_nulls: " << contain_nulls << std::endl;
+  if(spillable) {
+    std::cout << "spill_initialized: " << spill_initialized << std::endl;
+    std::cout << "already_spilled_to_disk: " << already_spilled_to_disk
+              << std::endl;
+    std::cout << "cleared: " << cleared << std::endl;
+    std::cout << "spill_state: " << spill_state << std::endl;
+    std::cout << "spill_size_cache: " << spill_size_cache << std::endl;
+    if(spill_initialized) {
+      std::cout << "spill_path: ";
+      auto spill_paths = spill_path.gather();
+      for(auto& p: spill_paths) std::cout << p << ", ";
+      std::cout << std::endl;
+    }
+  }
 }
 
 std::shared_ptr<dfcolumn>

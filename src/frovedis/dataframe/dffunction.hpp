@@ -24,6 +24,16 @@ struct dffunction {
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1,
                                             dftable_base& t2) const  = 0;
   virtual std::string as() = 0;
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t) {
+    throw std::runtime_error
+      ("columns_to_use on this operator is not implemented");
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t1, dftable_base& t2) {
+    throw std::runtime_error
+      ("columns_to_use on this operator is not implemented");
+  }
 };
 
 struct dffunction_add : public dffunction {
@@ -37,6 +47,14 @@ struct dffunction_add : public dffunction {
   virtual std::string as() {return as_name;}
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const;
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1, dftable_base& t2) const;
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t) {
+    return {t.raw_column(left), t.raw_column(right)};
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t1, dftable_base& t2) {
+    return {t1.raw_column(left), t2.raw_column(right)};
+  }
 
   std::string left, right, as_name;
 };
@@ -62,6 +80,10 @@ struct dffunction_add_im : public dffunction {
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1,
                                             dftable_base& t2) const {
     throw std::runtime_error("t1 + t2: is not available for add_im operation!\n");
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t) {
+    return {t.raw_column(left)};
   }
 
   std::string left;
@@ -112,6 +134,14 @@ struct dffunction_sub : public dffunction {
   virtual std::string as() {return as_name;}
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const;
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1, dftable_base& t2) const;
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t) {
+    return {t.raw_column(left), t.raw_column(right)};
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t1, dftable_base& t2) {
+    return {t1.raw_column(left), t2.raw_column(right)};
+  }
 
   std::string left, right, as_name; 
 };
@@ -140,6 +170,10 @@ struct dffunction_sub_im : public dffunction {
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1,
                                             dftable_base& t2) const {
     throw std::runtime_error("t1 - t2: is not available for sub_im operation!\n");
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t) {
+    return {t.raw_column(left)};
   }
 
   std::string left;
@@ -193,6 +227,14 @@ struct dffunction_mul : public dffunction {
   virtual std::string as() {return as_name;}
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const;
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1, dftable_base& t2) const;
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t) {
+    return {t.raw_column(left), t.raw_column(right)};
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t1, dftable_base& t2) {
+    return {t1.raw_column(left), t2.raw_column(right)};
+  }
 
   std::string left, right, as_name;
 };
@@ -218,6 +260,10 @@ struct dffunction_mul_im : public dffunction {
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1,
                                             dftable_base& t2) const {
     throw std::runtime_error("t1 * t2: is not available for mul_im operation!\n");
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t) {
+    return {t.raw_column(left)};
   }
 
   std::string left;
@@ -268,6 +314,14 @@ struct dffunction_fdiv : public dffunction {
   virtual std::string as() {return as_name;}
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const;
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1, dftable_base& t2) const;
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t) {
+    return {t.raw_column(left), t.raw_column(right)};
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t1, dftable_base& t2) {
+    return {t1.raw_column(left), t2.raw_column(right)};
+  }
 
   std::string left, right, as_name; 
 };
@@ -295,6 +349,10 @@ struct dffunction_fdiv_im : public dffunction {
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1,
                                             dftable_base& t2) const {
     throw std::runtime_error("t1 / t2: is not available for fdiv_im operation!\n");
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t) {
+    return {t.raw_column(left)};
   }
 
   std::string left;
@@ -347,6 +405,14 @@ struct dffunction_idiv : public dffunction {
   virtual std::string as() {return as_name;}
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const;
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1, dftable_base& t2) const;
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t) {
+    return {t.raw_column(left), t.raw_column(right)};
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t1, dftable_base& t2) {
+    return {t1.raw_column(left), t2.raw_column(right)};
+  }
 
   std::string left, right, as_name; 
 };
@@ -374,6 +440,10 @@ struct dffunction_idiv_im : public dffunction {
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1,
                                             dftable_base& t2) const {
     throw std::runtime_error("t1 // t2: is not available for idiv_im operation!\n");
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t) {
+    return {t.raw_column(left)};
   }
 
   std::string left;
@@ -426,6 +496,14 @@ struct dffunction_mod : public dffunction {
   virtual std::string as() {return as_name;}
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const;
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1, dftable_base& t2) const;
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t) {
+    return {t.raw_column(left), t.raw_column(right)};
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t1, dftable_base& t2) {
+    return {t1.raw_column(left), t2.raw_column(right)};
+  }
 
   std::string left, right, as_name; 
 };
@@ -453,6 +531,10 @@ struct dffunction_mod_im : public dffunction {
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1,
                                             dftable_base& t2) const {
     throw std::runtime_error("t1 % t2: is not available for mod_im operation!\n");
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t) {
+    return {t.raw_column(left)};
   }
 
   std::string left;
@@ -505,6 +587,14 @@ struct dffunction_pow : public dffunction {
   virtual std::string as() {return as_name;}
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const;
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1, dftable_base& t2) const;
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t) {
+    return {t.raw_column(left), t.raw_column(right)};
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t1, dftable_base& t2) {
+    return {t1.raw_column(left), t2.raw_column(right)};
+  }
 
   std::string left, right, as_name; 
 };
@@ -532,6 +622,10 @@ struct dffunction_pow_im : public dffunction {
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1,
                                             dftable_base& t2) const {
     throw std::runtime_error("t1 ** t2: is not available for pow_im operation!\n");
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t) {
+    return {t.raw_column(left)};
   }
 
   std::string left;
@@ -584,6 +678,10 @@ struct dffunction_abs : public dffunction {
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1, 
                                             dftable_base& t2) const {
     throw std::runtime_error("abs(): is not available for binary operation!\n");
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t) {
+    return {t.raw_column(left)};
   }
 
   std::string left, as_name;

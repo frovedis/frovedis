@@ -84,19 +84,20 @@ not_op(const std::shared_ptr<dfoperator>& op) {
 // ---------- filter of all kinds of tables ----------
 
 filtered_dftable dftable_base::filter(const std::shared_ptr<dfoperator>& op) {
+  use_dfcolumn use(op->columns_to_use(*this));
   return filtered_dftable(*this, op->filter(*this));
 }
 
 filtered_dftable
 sorted_dftable::filter(const std::shared_ptr<dfoperator>& op) {
-    RLOG(DEBUG) << "calling filter after sort" << std::endl;
-    return materialize().filter(op);
+  RLOG(DEBUG) << "calling filter after sort" << std::endl;
+  return materialize().filter(op);
 }
 
 filtered_dftable
 hash_joined_dftable::filter(const std::shared_ptr<dfoperator>& op) {
-    RLOG(DEBUG) << "calling filter after hash_join" << std::endl;
-    return materialize().filter(op);
+  RLOG(DEBUG) << "calling filter after hash_join" << std::endl;
+  return materialize().filter(op);
 }
 
 filtered_dftable
@@ -136,6 +137,7 @@ sorted_dftable filtered_dftable::sort(const std::string& name) {
   auto global_idx = local_to_global_idx(filtered_idx);
   node_local<std::vector<size_t>> idx;
   auto to_sort_column = column(name);
+  use_dfcolumn use(to_sort_column);
   auto sorted_column = column(name)->sort_with_idx(global_idx, idx);
   if(to_sort_column->if_contain_nulls())
     return sorted_dftable(*this, std::move(idx));
@@ -148,6 +150,7 @@ sorted_dftable filtered_dftable::sort_desc(const std::string& name) {
   auto global_idx = local_to_global_idx(filtered_idx);
   node_local<std::vector<size_t>> idx;
   auto to_sort_column = column(name);
+  use_dfcolumn use(to_sort_column);
   auto sorted_column = column(name)->sort_with_idx_desc(global_idx, idx);
   if(to_sort_column->if_contain_nulls())
     return sorted_dftable(*this, std::move(idx));
@@ -160,18 +163,25 @@ size_t filtered_dftable::num_row() {
   return filtered_idx.viewas_dvector<size_t>().size();
 }
 
+std::vector<size_t> filtered_dftable::num_rows() {
+  return filtered_idx.viewas_dvector<size_t>().sizes();
+}
+
 dftable filtered_dftable::select(const std::vector<std::string>& cols) {
   dftable ret;
   for(size_t i = 0; i < cols.size(); i++) {
     ret.col[cols[i]] = column(cols[i]);
+    ret.col[cols[i]]->spill();
   }
   ret.row_size = filtered_idx.viewas_dvector<size_t>().size();
+  ret.row_sizes = filtered_idx.viewas_dvector<size_t>().sizes();
   ret.col_order = cols;
   return ret;
 }
 
 filtered_dftable
 filtered_dftable::filter(const std::shared_ptr<dfoperator>& op) {
+  use_dfcolumn use(op->columns_to_use(*this));  
   auto new_filtered_idx = op->filter(*this);
   return filtered_dftable(*this, filtered_idx.map(convert_filtered_idx,
                                                   new_filtered_idx));
@@ -180,7 +190,11 @@ filtered_dftable::filter(const std::shared_ptr<dfoperator>& op) {
 std::shared_ptr<dfcolumn> filtered_dftable::column(const std::string& name) {
   auto ret = col.find(name);
   if(ret == col.end()) throw std::runtime_error("no such column: " + name);
-  else return (*ret).second->extract(filtered_idx);
+  else {
+    auto c = (*ret).second;
+    use_dfcolumn use(c);
+    return c->extract(filtered_idx);
+  }
 }
 
 void filtered_dftable::debug_print() {

@@ -5,8 +5,8 @@ namespace frovedis {
 bool check_distribution(dftable_base& left, dftable_base& right,
                         std::vector<size_t>& left_sizes) {
   checkAssumption(left.num_col() && right.num_col());
-  left_sizes = left.column(left.columns()[0])->sizes();
-  auto right_sizes = right.column(right.columns()[0])->sizes();
+  left_sizes = left.num_rows();
+  auto right_sizes = right.num_rows();
   return left_sizes == right_sizes;
 }
 
@@ -205,6 +205,7 @@ bool verify_column_identicality(dftable_base& left,
   if (left.num_row() != right.num_row()) return false;
   auto left_col = left.column(lcol);
   auto right_col = right.column(rcol);
+  use_dfcolumn use({left_col, right_col});
   auto dtype = left_col->dtype();
   if (dtype != right_col->dtype()) return false;
   int nproc = get_nodesize();

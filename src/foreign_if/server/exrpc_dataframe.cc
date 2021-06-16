@@ -555,7 +555,9 @@ dicstring_id_to_bool(std::vector<size_t>& vec, std::vector<int>& bool_val_map){
 void convert_bool_column_dictring(dftable& df, const std::string& col_name,
                                   const std::string& nullstr){
 
-  auto typed_dfcol = std::dynamic_pointer_cast<typed_dfcolumn<dic_string>>(df.column(col_name));
+  auto dfcol = df.column(col_name);
+  use_dfcolumn use(dfcol);
+  auto typed_dfcol = std::dynamic_pointer_cast<typed_dfcolumn<dic_string>>(dfcol);
 
   auto nl_dict = *typed_dfcol->dic;
   auto dict1 = nl_dict.get(0);
@@ -819,7 +821,9 @@ frov_df_set_index(exrpc_ptr_t& df_proxy,
                   std::string& new_index_name, // existing column to be set as index
                   bool& verify_integrity) {
   auto dftblp = get_dftable_pointer(df_proxy);
-  if(verify_integrity and !(dftblp->column(new_index_name)->is_unique()))
+  auto new_index_name_column = dftblp->column(new_index_name);
+  use_dfcolumn use(new_index_name_column);
+  if(verify_integrity and !(new_index_name_column->is_unique()))
     REPORT_ERROR(USER_ERROR, 
     "set_index: given column '" + new_index_name + 
     "' does not contain unique values!");
@@ -840,8 +844,10 @@ frov_df_union(exrpc_ptr_t& df_proxy,
 
   bool keep_order = true; // pandas keeps the original order
   auto union_df = new dftable(dftblp->union_tables(other_dfs, keep_order));
+  auto index_column = union_df->column("index");
+  use_dfcolumn use(index_column);
   if (verify_integrity && 
-      (!union_df->column("index")->is_unique())) // assumes "index" is present
+      (!index_column->is_unique())) // assumes "index" is present
     REPORT_ERROR(USER_ERROR, "append(): indices have overlapping values!\n");
   union_df->set_col_order(names); // sets desired column order
   return to_dummy_dftable(union_df);
@@ -864,12 +870,14 @@ frov_df_astype(exrpc_ptr_t& df_proxy,
   auto org_col_order = dftblp->columns();
   for (size_t i = 0; i < cols.size(); ++i) {
     auto c = cols[i];
+    auto cc = dftblp->column(c);
+    use_dfcolumn use(cc);
     auto t = get_string_dtype(types[i]);
-    if (dftblp->column(c)->dtype() != t) {
+    if (cc->dtype() != t) {
       //std::cout << "col: " << c 
       //          << "; type: " << dftblp->column(c)->dtype() 
       //          << "; to-type: " << t << "\n";
-      if (dftblp->column(c)->dtype() == "dic_string")
+      if (cc->dtype() == "dic_string")
         REPORT_ERROR(USER_ERROR, 
         "type_cast: casting a string-typed column is not supported!\n");
       dftblp->rename(c, c + "__temp");
@@ -960,6 +968,7 @@ dftable fillna(dftable& df,
   auto fillv = do_cast<double>(fill_value); // might raise exception
   for (; i < cols.size(); ++i) {
     auto dfcol = df.column(cols[i]);
+    use_dfcolumn use(dfcol);
     if (dfcol->dtype() == "int")
       ret.append_column(cols[i], fillna_column<int>(dfcol, fillv));
     else if (dfcol->dtype() == "unsigned int")

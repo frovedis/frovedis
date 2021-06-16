@@ -400,6 +400,21 @@ void typed_dfcolumn<raw_string>::debug_print() {
   }
   std::cout << std::endl;
   std::cout << "contain_nulls: " << contain_nulls << std::endl;
+  std::cout << "contain_nulls: " << contain_nulls << std::endl;
+  if(spillable) {
+    std::cout << "spill_initialized: " << spill_initialized << std::endl;
+    std::cout << "already_spilled_to_disk: " << already_spilled_to_disk
+              << std::endl;
+    std::cout << "cleared: " << cleared << std::endl;
+    std::cout << "spill_state: " << spill_state << std::endl;
+    std::cout << "spill_size_cache: " << spill_size_cache << std::endl;
+    if(spill_initialized) {
+      std::cout << "spill_path: ";
+      auto spill_paths = spill_path.gather();
+      for(auto& p: spill_paths) std::cout << p << ", ";
+      std::cout << std::endl;
+    }
+  }
 }
 
 void typed_dfcolumn<raw_string>::contain_nulls_check() {
@@ -544,6 +559,76 @@ typed_dfcolumn<raw_string>::union_columns
                      comp_words_colsp, nulls_colsp);
   return std::make_shared<typed_dfcolumn<raw_string>>
     (std::move(newcomp_words), std::move(newnulls));
+}
+
+// for spill-restore
+
+void save_compressed_words(const compressed_words& cw,
+                           const std::string& path) {
+  savebinary_local(cw.cwords, path + "/cwords");
+  savebinary_local(cw.lens, path + "/lens");
+  savebinary_local(cw.lens_num, path + "/lens_num");
+  savebinary_local(cw.order, path + "/order");
+}
+
+compressed_words load_compressed_words(const std::string& path) {
+  compressed_words cw;
+  cw.cwords = loadbinary_local<uint64_t>(path + "/cwords");
+  cw.lens = loadbinary_local<size_t>(path + "/lens");
+  cw.lens_num = loadbinary_local<size_t>(path + "/lens_num");
+  cw.order = loadbinary_local<size_t>(path + "/order");
+  return cw;
+}
+
+void typed_dfcolumn<raw_string>::spill_to_disk() {
+  if(already_spilled_to_disk) {
+    comp_words.mapv(+[](compressed_words& cw){
+        cw.clear();
+      });
+    nulls.mapv(+[](std::vector<size_t>& n){
+        std::vector<size_t> tmp;
+        tmp.swap(n);
+      });
+  } else {
+    comp_words.mapv(+[](compressed_words& cw, std::string& spill_path){
+        make_directory(spill_path + "/comp_words");
+        save_compressed_words(cw, spill_path + "/comp_words");
+      }, spill_path);
+    nulls.mapv(+[](std::vector<size_t>& n, std::string& spill_path){
+        savebinary_local(n, spill_path+"/nulls");
+        std::vector<size_t> tmp;
+        tmp.swap(n);
+      }, spill_path);
+    already_spilled_to_disk = true;
+  }
+  cleared = true;
+}
+
+void typed_dfcolumn<raw_string>::restore_from_disk() {
+  comp_words.mapv(+[](compressed_words& cw, std::string& spill_path){
+      cw = load_compressed_words(spill_path + "/comp_words");
+    }, spill_path);
+  nulls.mapv(+[](std::vector<size_t>& n, std::string& spill_path){
+      n = loadbinary_local<size_t>(spill_path+"/nulls");
+    }, spill_path);
+  cleared = false;
+}
+
+size_t compressed_words_size(compressed_words& cw) {
+  return
+    cw.cwords.size() * sizeof(uint64_t) +
+    cw.lens.size() * sizeof(size_t) +
+    cw.lens_num.size() * sizeof(size_t) +
+    cw.order.size() * sizeof(size_t);
+}
+
+size_t typed_dfcolumn<raw_string>::calc_spill_size() {
+  auto cwsize = comp_words.map(+[](compressed_words& cw)
+                               {return compressed_words_size(cw);}).
+    reduce(+[](const size_t l, const size_t r){return l + r;});
+  auto nullsize = nulls.map(+[](std::vector<size_t>& n){return n.size();}).
+    reduce(+[](const size_t l, const size_t r){return l + r;});
+  return cwsize + nullsize * sizeof(size_t);
 }
 
 }

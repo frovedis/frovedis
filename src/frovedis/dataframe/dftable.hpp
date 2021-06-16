@@ -40,7 +40,9 @@ enum datetime_type {
 class dftable_base {
 public:
   virtual ~dftable_base(){}
-  virtual size_t num_row() {return row_size;} 
+  virtual size_t num_row() {return row_size;}
+  // rows of each rank
+  virtual std::vector<size_t> num_rows() {return row_sizes;} 
   virtual size_t num_col() const {return col.size();}
   virtual std::vector<std::string> columns() const;
   virtual std::vector<std::pair<std::string, std::string>> dtypes();
@@ -121,7 +123,7 @@ public:
                        const std::vector<std::string>& cat,
                        dftable_to_sparse_info& info); 
   crs_matrix<double> to_crs_matrix_double(dftable_to_sparse_info& info);
-  // col should be string or dic_string
+  // col should be string or dic_string; if it contains NULL, MAX is returned
   dvector<size_t> to_dictionary_index(const std::string& col,
                                       std::vector<std::string>& dic);
   dvector<size_t> to_dictionary_index(const std::string& col,
@@ -147,6 +149,7 @@ protected:
   std::map<std::string, std::shared_ptr<dfcolumn>> col;
   std::vector<std::string> col_order; // order of cols, though redundant...
   size_t row_size;
+  std::vector<size_t> row_sizes;
 
   friend filtered_dftable;
   friend sorted_dftable;
@@ -157,19 +160,23 @@ protected:
 };
 
 template <class T> T dftable_base::sum(const std::string& name) {
-    return column(name)->sum<T>();
+  use_dfcolumn use(raw_column(name));
+  return column(name)->sum<T>();
 }
 
 template <class T> T dftable_base::max(const std::string& name) {
+  use_dfcolumn use(raw_column(name));
   return column(name)->max<T>();
 }
 
 template <class T> T dftable_base::min(const std::string& name) {
+  use_dfcolumn use(raw_column(name));
   return column(name)->min<T>();
 }
 
 template <class T>
 dvector<T> dftable_base::as_dvector(const std::string name) {
+  use_dfcolumn use(raw_column(name));
   return column(name)->as_dvector<T>();
 }
 
@@ -348,11 +355,11 @@ dftable& dftable::append_column(const std::string& name,
   if(col.size() == 0) {
     row_size = d.size();
     d.align_block();
+    row_sizes = d.sizes();
   } else {
     if(d.size() != row_size)
       throw std::runtime_error(name + ": different size of columns");
-    auto sizes = column(col_order[0])->sizes();
-    d.align_as(sizes);
+    d.align_as(row_sizes);
   }
   if(check_null_like) {
     auto d_nloc = d.as_node_local(); // d: lvalue
@@ -363,6 +370,7 @@ dftable& dftable::append_column(const std::string& name,
   else {
     c = std::make_shared<typed_dfcolumn<T>>(d);
   }
+  c->spill();
   col.insert(std::make_pair(name, c));
   col_order.push_back(name);
   return *this;
@@ -379,11 +387,11 @@ dftable& dftable::append_column(const std::string& name,
   if(col.size() == 0) {
     row_size = d.size();
     d.align_block();
+    row_sizes = d.sizes();
   } else {
     if(d.size() != row_size)
       throw std::runtime_error(name + ": different size of columns");
-    auto sizes = column(col_order[0])->sizes();
-    d.align_as(sizes);
+    d.align_as(row_sizes);
   }
   if(check_null_like) {
     auto d_nloc = d.moveto_node_local(); // d: rvalue
@@ -394,6 +402,7 @@ dftable& dftable::append_column(const std::string& name,
   else {
     c = std::make_shared<typed_dfcolumn<T>>(std::move(d));
   }
+  c->spill();
   col.insert(std::make_pair(name, c));
   col_order.push_back(name);
   return *this;
@@ -432,6 +441,7 @@ template <class R, class T1, class F>
 dftable& dftable::calc(const std::string& name, F f,
                        const std::string& c1, 
                        bool check_null_like) {
+  use_dfcolumn use({c1}, *this);
   auto tc1 = std::dynamic_pointer_cast<typed_dfcolumn<T1>>(column(c1));
   if(!tc1)
     throw std::runtime_error
@@ -465,6 +475,7 @@ template <class R, class T1, class T2, class F>
 dftable& dftable::calc(const std::string& name, F f,
                        const std::string& c1, const std::string& c2,
                        bool check_null_like) {
+  use_dfcolumn use({c1,c2}, *this);
   auto tc1 = std::dynamic_pointer_cast<typed_dfcolumn<T1>>(column(c1));
   auto tc2 = std::dynamic_pointer_cast<typed_dfcolumn<T2>>(column(c2));
   if(!tc1 || !tc2)
@@ -504,6 +515,7 @@ dftable& dftable::calc(const std::string& name, F f,
                        const std::string& c1, const std::string& c2,
                        const std::string& c3,
                        bool check_null_like) {
+  use_dfcolumn use({c1,c2,c3}, *this);
   auto tc1 = std::dynamic_pointer_cast<typed_dfcolumn<T1>>(column(c1));
   auto tc2 = std::dynamic_pointer_cast<typed_dfcolumn<T2>>(column(c2));
   auto tc3 = std::dynamic_pointer_cast<typed_dfcolumn<T3>>(column(c3));
@@ -546,6 +558,7 @@ dftable&  dftable::calc(const std::string& name, F f,
                         const std::string& c1, const std::string& c2,
                         const std::string& c3, const std::string& c4,
                         bool check_null_like) {
+  use_dfcolumn use({c1,c2,c3,c4}, *this);
   auto tc1 = std::dynamic_pointer_cast<typed_dfcolumn<T1>>(column(c1));
   auto tc2 = std::dynamic_pointer_cast<typed_dfcolumn<T2>>(column(c2));
   auto tc3 = std::dynamic_pointer_cast<typed_dfcolumn<T3>>(column(c3));
@@ -593,6 +606,7 @@ dftable& dftable::calc(const std::string& name, F f,
                    const std::string& c3, const std::string& c4,
                    const std::string& c5,
                    bool check_null_like) {
+  use_dfcolumn use({c1,c2,c3,c4,c5}, *this);
   auto tc1 = std::dynamic_pointer_cast<typed_dfcolumn<T1>>(column(c1));
   auto tc2 = std::dynamic_pointer_cast<typed_dfcolumn<T2>>(column(c2));
   auto tc3 = std::dynamic_pointer_cast<typed_dfcolumn<T3>>(column(c3));
@@ -645,6 +659,7 @@ dftable& dftable::calc(const std::string& name, F f,
                        const std::string& c3, const std::string& c4,
                        const std::string& c5, const std::string& c6,
                        bool check_null_like) {
+  use_dfcolumn use({c1,c2,c3,c4,c5,c6}, *this);
   auto tc1 = std::dynamic_pointer_cast<typed_dfcolumn<T1>>(column(c1));
   auto tc2 = std::dynamic_pointer_cast<typed_dfcolumn<T2>>(column(c2));
   auto tc3 = std::dynamic_pointer_cast<typed_dfcolumn<T3>>(column(c3));
@@ -704,6 +719,7 @@ public:
             const std::vector<std::shared_ptr<dfoperator>>& op);
   virtual grouped_dftable group_by(const std::vector<std::string>& cols);
   virtual std::shared_ptr<dfcolumn> column(const std::string& name);
+  virtual std::shared_ptr<dfcolumn> raw_column(const std::string& name);
   virtual node_local<std::vector<size_t>> get_local_index() {
     throw std::runtime_error("get_local_index on sorted_dftable");
   }
@@ -717,6 +733,8 @@ public:
   dftable append_rowid(const std::string& name, size_t offset = 0);
   sorted_dftable& drop(const std::string& name);
   sorted_dftable& rename(const std::string& name, const std::string& name2);
+  virtual size_t num_row();
+  virtual std::vector<size_t> num_rows();
 private:
   node_local<std::vector<size_t>> global_idx;
   std::string column_name;
@@ -770,6 +788,7 @@ public:
   }
   virtual size_t num_col() const;
   virtual size_t num_row();
+  virtual std::vector<size_t> num_rows();
   virtual std::vector<std::string> columns() const;
   virtual dftable select(const std::vector<std::string>& cols);
   virtual filtered_dftable filter(const std::shared_ptr<dfoperator>& op);
@@ -788,6 +807,7 @@ public:
             const std::vector<std::shared_ptr<dfoperator>>& op);
   virtual grouped_dftable group_by(const std::vector<std::string>& cols);
   virtual std::shared_ptr<dfcolumn> column(const std::string& name);
+  virtual std::shared_ptr<dfcolumn> raw_column(const std::string& name);
   virtual node_local<std::vector<size_t>> get_local_index() {
     throw std::runtime_error("get_local_index on hash_joined_dftable");
   }
@@ -847,6 +867,7 @@ public:
   }
   virtual size_t num_col() const;
   virtual size_t num_row();
+  virtual std::vector<size_t> num_rows();
   virtual std::vector<std::string> columns() const;
   virtual dftable select(const std::vector<std::string>& cols);
   virtual filtered_dftable filter(const std::shared_ptr<dfoperator>& op);
@@ -865,6 +886,7 @@ public:
             const std::vector<std::shared_ptr<dfoperator>>& op);
   virtual grouped_dftable group_by(const std::vector<std::string>& cols);
   virtual std::shared_ptr<dfcolumn> column(const std::string& name);
+  virtual std::shared_ptr<dfcolumn> raw_column(const std::string& name);
   virtual node_local<std::vector<size_t>> get_local_index() {
     throw std::runtime_error("get_local_index on bcast_joined_dftable");
   }
@@ -922,6 +944,7 @@ public:
   }
   virtual size_t num_col() const;
   virtual size_t num_row();
+  virtual std::vector<size_t> num_rows();
   virtual std::vector<std::string> columns() const;
   virtual dftable select(const std::vector<std::string>& cols);
   virtual filtered_dftable filter(const std::shared_ptr<dfoperator>& op);
@@ -940,6 +963,7 @@ public:
             const std::vector<std::shared_ptr<dfoperator>>& op);
   virtual grouped_dftable group_by(const std::vector<std::string>& cols);
   virtual std::shared_ptr<dfcolumn> column(const std::string& name);
+  virtual std::shared_ptr<dfcolumn> raw_column(const std::string& name);
   virtual node_local<std::vector<size_t>> get_local_index() {
     throw std::runtime_error("get_local_index on star_joined_dftable");
   }
@@ -973,19 +997,23 @@ public:
                   node_local<std::vector<std::vector<size_t>>>&& hash_divide_,
                   node_local<std::vector<std::vector<size_t>>>&& merge_map_,
                   std::vector<std::shared_ptr<dfcolumn>>&& grouped_cols_,
-                  const std::vector<std::string>& grouped_col_names_) :
+                  const std::vector<std::string>& grouped_col_names_,
+                  size_t row_size_,
+                  std::vector<size_t>& row_sizes_) :
     org_table(table),
     local_grouped_idx(local_grouped_idx_),
     local_idx_split(local_idx_split_),
     hash_divide(hash_divide_),
     merge_map(merge_map_),
     grouped_cols(grouped_cols_),
-    grouped_col_names(grouped_col_names_) {}
-
+    grouped_col_names(grouped_col_names_),
+    row_size(row_size_),
+    row_sizes(row_sizes_) {}
   dftable
   select(const std::vector<std::string>& cols,
          const std::vector<std::shared_ptr<dfaggregator>>& aggs);
-  size_t num_row(){return grouped_cols[0]->size();}
+  size_t num_row(){return row_size;}
+  std::vector<size_t> num_rows(){return row_sizes;}
   // size_t num_col(){return org_table.num_col();}
   dftable select(const std::vector<std::string>& cols);
   void debug_print();
@@ -997,6 +1025,8 @@ private:
   node_local<std::vector<std::vector<size_t>>> merge_map;
   std::vector<std::shared_ptr<dfcolumn>> grouped_cols;
   std::vector<std::string> grouped_col_names;
+  size_t row_size;
+  std::vector<size_t> row_sizes;
 };
 
 
