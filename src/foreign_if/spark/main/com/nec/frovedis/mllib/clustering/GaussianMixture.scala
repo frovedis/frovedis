@@ -70,6 +70,12 @@ class GaussianMixture(var k: Int,
 
   def getSeed: Long = seed
 
+  def setInitialModel(model: GaussianMixtureModel): this.type = {
+    throw new NotImplementedError(
+    "This feature is currently not supported")      
+    this
+  }
+
   def run(data: RDD[Vector]): GaussianMixtureModel = {
     val isDense = data.first.getClass.toString() matches ".*DenseVector*."
     if (isDense) {
