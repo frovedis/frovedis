@@ -5,6 +5,14 @@
 
 extern "C" {
 
+float sdot_(int *N,
+            float *X, int *INCX,
+            float *Y, int *INCY);
+
+double ddot_(int *N,
+             double *X, int *INCX,
+             double *Y, int *INCY);
+
 void sswap_(int *N,
             float *X, int *INCX,
             float *Y, int *INCY);
@@ -132,6 +140,17 @@ namespace frovedis {
   double dot(const sliced_colmajor_vector_local<double>& inVec1,
              const sliced_colmajor_vector_local<double>& inVec2);
 
+  template <class T>
+  T bdot(const sliced_colmajor_vector_local<T>& inVec1,
+         const sliced_colmajor_vector_local<T>& inVec2);
+  
+  template <>
+  float bdot(const sliced_colmajor_vector_local<float>& inVec1,
+             const sliced_colmajor_vector_local<float>& inVec2);
+
+  template <>
+  double bdot(const sliced_colmajor_vector_local<double>& inVec1,
+              const sliced_colmajor_vector_local<double>& inVec2);
     
   template <class T>
   T nrm2(const sliced_colmajor_vector_local<T>& inVec);

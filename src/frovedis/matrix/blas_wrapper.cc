@@ -5,6 +5,58 @@
 namespace frovedis {
 
 template <>
+float bdot(const sliced_colmajor_vector_local<float>& vec1,
+           const sliced_colmajor_vector_local<float>& vec2){
+
+#ifdef ERROR_CHK
+    ASSERT_PTR(vec1.data && vec2.data);
+
+    if(!vec1.is_valid() || !vec2.is_valid()) 
+      REPORT_ERROR(USER_ERROR,"Invalid input vector!!\n");
+
+    if(vec1.size != vec2.size)
+      REPORT_ERROR(USER_ERROR,"Incompatible input vector sizes!!\n");
+#endif
+
+    int N = static_cast<int>(vec1.size); //vec2.size
+    int INCX = static_cast<int>(vec1.stride);
+    int INCY = static_cast<int>(vec2.stride);
+    float* xptr = vec1.data;
+    float* yptr = vec2.data;
+
+    std::cout << "blas sdot_ is called...\n";
+    return sdot_(&N,
+                 xptr, &INCX,
+                 yptr, &INCY);
+}
+
+template <>
+double bdot(const sliced_colmajor_vector_local<double>& vec1,
+            const sliced_colmajor_vector_local<double>& vec2){
+
+#ifdef ERROR_CHK
+    ASSERT_PTR(vec1.data && vec2.data);
+
+    if(!vec1.is_valid() || !vec2.is_valid()) 
+      REPORT_ERROR(USER_ERROR,"Invalid input vector!!\n");
+
+    if(vec1.size != vec2.size)
+      REPORT_ERROR(USER_ERROR,"Incompatible input vector sizes!!\n");
+#endif
+
+    int N = static_cast<int>(vec1.size); //vec2.size
+    int INCX = static_cast<int>(vec1.stride);
+    int INCY = static_cast<int>(vec2.stride);
+    double* xptr = vec1.data;
+    double* yptr = vec2.data;
+
+    std::cout << "blas ddot_ is called...\n";
+    return ddot_(&N,
+                 xptr, &INCX,
+                 yptr, &INCY);
+}
+
+template <>
 void swap(const sliced_colmajor_vector_local<float>& vec1,
           const sliced_colmajor_vector_local<float>& vec2){
 
