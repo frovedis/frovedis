@@ -18,10 +18,9 @@ class FrovedisDenseMatrix(mt: Short) extends java.io.Serializable {
   protected var num_col: Long = 0
 
   private def copy_local_matrix(index: Int, data: Iterator[Vector],
-                                t_node: Node) : Iterator[Long] = {
+                                t_node: Node, ncol: Long) : Iterator[Long] = {
     val darr = data.toArray
     val nrow: Long = darr.size
-    val ncol: Long = if (nrow > 0) darr.map(_.size).apply(0) else 0
     //println("index: " + index + ", nrow: " + nrow + ", ncol: " + ncol)
     val rmjr_mat = darr.map(_.toArray) //.flatten
     val ret = JNISupport.loadFrovedisWorkerRmajorMatData(t_node,nrow,ncol,rmjr_mat)
@@ -79,10 +78,10 @@ class FrovedisDenseMatrix(mt: Short) extends java.io.Serializable {
     /** converting spark worker data to frovedis worker data */
     val work_data = data.repartition2(fs_size)
     val fw_nodes = JNISupport.getWorkerInfo(fs.master_node) // native call
-    val info = JNISupport.checkServerException();
-    if (info != "") throw new java.rmi.ServerException(info);
+    val info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
     val ep_all = work_data.mapPartitionsWithIndex(
-                 (i,x) => copy_local_matrix(i,x,fw_nodes(i))).collect
+                 (i,x) => copy_local_matrix(i,x,fw_nodes(i),num_col)).collect
 
     /** getting frovedis distributed data from frovedis local data */ 
     fdata = JNISupport.createFrovedisDenseData(fs.master_node, ep_all,

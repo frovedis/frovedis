@@ -9,11 +9,11 @@ class ScalaCRS extends java.io.Serializable {
   var idx: Array[Int] = null
   var data: Array[Double] = null
  
-  def this(input_arr: Array[Vector]) = {
+  def this(input_arr: Array[Vector],
+           ncols: Long) = {
     this()
     val input = input_arr.map(p => p.toSparse)
     nrows = input.length
-    ncols = if (nrows > 0) input(0).size else 0
     val nr = nrows.intValue
     var nnz = 0
     for (i <- 0 until nr) {

@@ -88,8 +88,9 @@ class FrovedisSparseData extends java.io.Serializable {
     return rows
   }
   private def convert_and_send_local_data(data: Iterator[Vector],
-                                          t_node: Node) : Iterator[Long] = {
-    val scalaCRS = new ScalaCRS(data.toArray)
+                                          t_node: Node,
+                                          ncols: Long) : Iterator[Long] = {
+    val scalaCRS = new ScalaCRS(data.toArray, ncols)
     val ret = JNISupport.loadFrovedisWorkerData(t_node, 
                                               scalaCRS.nrows,
                                               scalaCRS.ncols,
@@ -119,7 +120,7 @@ class FrovedisSparseData extends java.io.Serializable {
     val info = JNISupport.checkServerException();
     if (info != "") throw new java.rmi.ServerException(info);
     val ep_all = work_data.mapPartitionsWithIndex(
-                 (i,x) => convert_and_send_local_data(x,fw_nodes(i))).collect
+                 (i,x) => convert_and_send_local_data(x,fw_nodes(i),num_col)).collect
 
     /** getting frovedis distributed data from frovedis local data */ 
     fdata = JNISupport.createFrovedisSparseData(fs.master_node, 

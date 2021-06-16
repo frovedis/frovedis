@@ -104,7 +104,7 @@ class GenericModelWithPredict(modelId: Int,
       if (info != "") throw new java.rmi.ServerException(info)
     }
     else {
-      val scalaCRS = new ScalaCRS(Array(X))
+      val scalaCRS = new ScalaCRS(Array(X), X.size)
       dproxy = JNISupport.loadFrovedisWorkerData(fs.master_node,
                                                  scalaCRS.nrows,
                                                  scalaCRS.ncols,
