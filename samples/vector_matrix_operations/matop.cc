@@ -13,13 +13,6 @@ void show(const std::string& msg, const T& val) {
   std::cout << msg << val << std::endl;
 }
 
-template <class T>
-void show(const std::string& msg,
-          const std::vector<T>& vec,
-          const int& limit = 10) {
-  std::cout << msg; debug_print_vector(vec, limit);
-}
-
 template <class MATRIX>
 void invoke_matrix_operations(MATRIX& m) {
   time_spent t(INFO);
