@@ -16,6 +16,7 @@
 #include <vector>
 #include <cstddef>
 #include <stdexcept>
+#include "conditions_for_find.hpp"
 
 namespace frovedis {
 
@@ -546,6 +547,188 @@ std::vector<size_t> find_condition_pair(const std::vector<T>& v1,
     throw std::runtime_error
       ("find_condition_pair: size of vectors are not same");
   return find_condition_pair(v1.data(), v2.data(), size, condition);
+}
+
+// --- user-friendly vector find interfaces ---
+
+template <class T, class F>
+std::vector<size_t>
+vector_find_condition(const std::vector<T>& vec, 
+                      const F& cond) {
+  return find_condition(vec.data(), vec.size(), cond);
+}
+
+template <class T>
+std::vector<size_t>
+vector_find_nonzero(const std::vector<T>& vec) {
+  if (vec.size() == 0) return std::vector<size_t>();
+  else return vector_find_condition(vec, is_nonzero<T>()); 
+}
+
+template <class T>
+std::vector<size_t>
+vector_find_zero(const std::vector<T>& vec) {
+  if (vec.size() == 0) return std::vector<size_t>();
+  else return vector_find_condition(vec, is_zero<T>()); 
+}
+
+template <class T>
+std::vector<size_t>
+vector_find_one(const std::vector<T>& vec) {
+  if (vec.size() == 0) return std::vector<size_t>();
+  else return vector_find_condition(vec, is_one<T>()); 
+}
+
+template <class T>
+std::vector<size_t>
+vector_find_positive(const std::vector<T>& vec) {
+  if (vec.size() == 0) return std::vector<size_t>();
+  else return vector_find_condition(vec, is_positive<T>()); 
+}
+
+template <class T>
+std::vector<size_t>
+vector_find_negative(const std::vector<T>& vec) {
+  if (vec.size() == 0) return std::vector<size_t>();
+  else return vector_find_condition(vec, is_negative<T>()); 
+}
+
+template <class T>
+std::vector<size_t>
+vector_find_tmax(const std::vector<T>& vec) {
+  if (vec.size() == 0) return std::vector<size_t>();
+  else return vector_find_condition(vec, is_tmax<T>()); 
+}
+
+template <class T>
+std::vector<size_t>
+vector_find_not_tmax(const std::vector<T>& vec) {
+  if (vec.size() == 0) return std::vector<size_t>();
+  else return vector_find_condition(vec, is_not_tmax<T>()); 
+}
+
+template <class T>
+std::vector<size_t>
+vector_find_tmin(const std::vector<T>& vec) {
+  if (vec.size() == 0) return std::vector<size_t>();
+  else return vector_find_condition(vec, is_tmin<T>()); 
+}
+
+template <class T>
+std::vector<size_t>
+vector_find_not_tmin(const std::vector<T>& vec) {
+  if (vec.size() == 0) return std::vector<size_t>();
+  else return vector_find_condition(vec, is_not_tmin<T>()); 
+}
+
+template <class T>
+std::vector<size_t>
+vector_find_nan(const std::vector<T>& vec) {
+  if (vec.size() == 0) return std::vector<size_t>();
+  else return vector_find_condition(vec, is_nan<T>()); 
+}
+
+template <class T>
+std::vector<size_t>
+vector_find_inf(const std::vector<T>& vec) {
+  if (vec.size() == 0) return std::vector<size_t>();
+  else return vector_find_condition(vec, is_inf<T>()); 
+}
+
+template <class T>
+std::vector<size_t>
+vector_find_neg_inf(const std::vector<T>& vec) {
+  if (vec.size() == 0) return std::vector<size_t>();
+  else return vector_find_condition(vec, is_neg_inf<T>()); 
+}
+
+template <class T>
+std::vector<size_t>
+vector_find_binary(const std::vector<T>& vec) {
+  if (vec.size() == 0) return std::vector<size_t>();
+  else return vector_find_condition(vec, is_binary<T>()); 
+}
+
+template <class T>
+std::vector<size_t>
+vector_find_ge(const std::vector<T>& vec, const T& threshold) {
+  if (vec.size() == 0) return std::vector<size_t>();
+  else return vector_find_condition(vec, is_ge<T>(threshold));
+}
+
+template <class T>
+std::vector<size_t>
+vector_find_ge_and_neq(const std::vector<T>& vec, 
+                       const T& threshold,
+                       const T& threshold2) {
+  if (vec.size() == 0) return std::vector<size_t>();
+  else return vector_find_condition(vec, is_ge_and_neq<T>(threshold, 
+                                                          threshold2));
+}
+
+template <class T>
+std::vector<size_t>
+vector_find_gt(const std::vector<T>& vec, const T& threshold) {
+  if (vec.size() == 0) return std::vector<size_t>();
+  else return vector_find_condition(vec, is_gt<T>(threshold));
+}
+
+template <class T>
+std::vector<size_t>
+vector_find_gt_and_neq(const std::vector<T>& vec, 
+                       const T& threshold,
+                       const T& threshold2) {
+  if (vec.size() == 0) return std::vector<size_t>();
+  else return vector_find_condition(vec, is_gt_and_neq<T>(threshold,
+                                                          threshold2));
+}
+
+template <class T>
+std::vector<size_t>
+vector_find_le(const std::vector<T>& vec, const T& threshold) {
+  if (vec.size() == 0) return std::vector<size_t>();
+  else return vector_find_condition(vec, is_le<T>(threshold));
+}
+
+template <class T>
+std::vector<size_t>
+vector_find_le_and_neq(const std::vector<T>& vec, 
+                       const T& threshold,
+                       const T& threshold2) {
+  if (vec.size() == 0) return std::vector<size_t>();
+  else return vector_find_condition(vec, is_le_and_neq<T>(threshold, 
+                                                          threshold2));
+}
+
+template <class T>
+std::vector<size_t>
+vector_find_lt(const std::vector<T>& vec, const T& threshold) {
+  if (vec.size() == 0) return std::vector<size_t>();
+  else return vector_find_condition(vec, is_lt<T>(threshold));
+}
+
+template <class T>
+std::vector<size_t>
+vector_find_lt_and_neq(const std::vector<T>& vec, 
+                       const T& threshold,
+                       const T& threshold2) {
+  if (vec.size() == 0) return std::vector<size_t>();
+  else return vector_find_condition(vec, is_lt_and_neq<T>(threshold,
+                                                          threshold2));
+}
+
+template <class T>
+std::vector<size_t>
+vector_find_eq(const std::vector<T>& vec, const T& threshold) {
+  if (vec.size() == 0) return std::vector<size_t>();
+  else return vector_find_condition(vec, is_eq<T>(threshold));
+}
+
+template <class T>
+std::vector<size_t>
+vector_find_neq(const std::vector<T>& vec, const T& threshold) {
+  if (vec.size() == 0) return std::vector<size_t>();
+  else return vector_find_condition(vec, is_neq<T>(threshold));
 }
 
 }

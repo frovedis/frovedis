@@ -1,7 +1,7 @@
 #ifndef CURSORS_HPFF
 #define CURSORS_HPFF
 
-#include "find_condition.hpp"
+#include "../core/find_condition.hpp"
 #include "../core/set_operations.hpp"
 #include <limits>
 

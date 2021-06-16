@@ -1,6 +1,8 @@
 #ifndef _CONDITIONS_FOR_FIND_
 #define _CONDITIONS_FOR_FIND_
 
+#include <limits>
+
 namespace frovedis {
 
 template <class T>
@@ -143,6 +145,52 @@ struct is_neq {
   int operator()(T a) const {return (a != threshold);}
 };
 
-}
+template <class T>
+struct is_nan {
+  int operator()(T a) const {return isnan(a);}
+};
 
+#ifdef __ve__
+/*
+ * Since isnan cannot be vectorized, specialized version is added.
+ * This code causes "dereferencing type-punned pointer will break
+ * strict-aliasing rules" warning in the case of g++, so ifdef'ed only for VE.
+ * (using double/float instead of int does not work, since it is NaN)
+ * */
+template <>
+struct is_nan<double> {
+  is_nan() {
+    double n = std::numeric_limits<double>::quiet_NaN();
+    mynan = *reinterpret_cast<uint64_t*>(&n);
+  }
+  int operator()(double a) const {
+    return (mynan == *reinterpret_cast<uint64_t*>(&a));
+  }
+  uint64_t mynan;
+};
+
+template <>
+struct is_nan<float> {
+  is_nan() {
+    float n = std::numeric_limits<float>::quiet_NaN();
+    mynan = *reinterpret_cast<uint32_t*>(&n);
+  }
+  int operator()(float a) const {
+    return (mynan == *reinterpret_cast<uint32_t*>(&a));
+  }
+  uint32_t mynan;
+};
+#endif
+
+template <class T>
+struct is_inf {
+  int operator()(T a) const {return (a == std::numeric_limits<T>::infinity());}
+};
+
+template <class T>
+struct is_neg_inf {
+  int operator()(T a) const {return (a == -std::numeric_limits<T>::infinity());}
+};
+
+}
 #endif

@@ -1,4 +1,4 @@
-HEADERS := char_int_conv.hpp find.hpp load_text.hpp words.hpp text_utility.hpp dict.hpp load_csv.hpp parseint.hpp parsefloat.hpp int_to_words.hpp float_to_words.hpp find_condition.hpp cursors.hpp infer_dtype.hpp parsedatetime.hpp datetime_to_words.hpp
+HEADERS := char_int_conv.hpp find.hpp load_text.hpp words.hpp text_utility.hpp dict.hpp load_csv.hpp parseint.hpp parsefloat.hpp int_to_words.hpp float_to_words.hpp cursors.hpp infer_dtype.hpp parsedatetime.hpp datetime_to_words.hpp
 
 OBJS := char_int_conv.o find.o load_text.o words.o text_utility.o dict.o load_csv.o cursors.o parsefloat.o int_to_words.o float_to_words.o infer_dtype.o parsedatetime.o datetime_to_words.o
 
@@ -23,11 +23,11 @@ words.o: words.cc words.hpp find.hpp
 text_utility.o: text_utility.hpp find.hpp
 dict.o: dict.cc dict.hpp words.hpp
 load_csv.o: load_csv.cc load_csv.hpp words.hpp find.hpp load_text.hpp
-cursors.o: cursors.cc cursors.hpp find_condition.hpp
-parsefloat.o: parsefloat.cc parsefloat.hpp find_condition.hpp words.hpp
+cursors.o: cursors.cc cursors.hpp 
+parsefloat.o: parsefloat.cc parsefloat.hpp words.hpp
 int_to_words.o: int_to_words.cc int_to_words.hpp words.hpp
 float_to_words.o: float_to_words.cc float_to_words.hpp
-infer_dtype.o: infer_dtype.cc infer_dtype.hpp parsefloat.hpp find_condition.hpp words.hpp
+infer_dtype.o: infer_dtype.cc infer_dtype.hpp parsefloat.hpp words.hpp
 parsedatetime.o: parsedatetime.hpp parsedatetime.cc parseint.hpp words.hpp char_int_conv.hpp
 datetime_to_words.o: datetime_to_words.hpp datetime_to_words.cc int_to_words.hpp words.hpp
 

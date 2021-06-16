@@ -10,7 +10,7 @@
 #include "dfaggregator.hpp"
 #include "../matrix/colmajor_matrix.hpp"
 #include "../matrix/ell_matrix.hpp"
-#include "../text/find_condition.hpp"
+#include "../core/find_condition.hpp"
 
 namespace frovedis {
 

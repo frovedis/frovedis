@@ -7,8 +7,9 @@
 #include "exceptions.hpp"
 #include "set_operations.hpp"
 #include "mpihelper.hpp"
-#include "conditions_for_find.hpp"
-#include "../text/find_condition.hpp"
+#include "find_condition.hpp"
+#include "../text/float_to_words.hpp" // for number_to_words() etc.
+#include <boost/lexical_cast.hpp>
 
 #define OP_VLEN 1024
 #define NOVEC_LEN 20
@@ -83,166 +84,6 @@
 
 namespace frovedis {
 
-// regarding find functions - uses loop-raked find_condition() defined in text module
-template <class T, class F>
-std::vector<size_t>
-vector_find_condition(const std::vector<T>& vec, 
-                      const F& cond) {
-  return find_condition(vec.data(), vec.size(), cond); // defined in text module
-}
-
-template <class T>
-std::vector<size_t>
-vector_find_nonzero(const std::vector<T>& vec) {
-  if (vec.size() == 0) return std::vector<size_t>();
-  else return vector_find_condition(vec, is_nonzero<T>()); 
-}
-
-template <class T>
-std::vector<size_t>
-vector_find_zero(const std::vector<T>& vec) {
-  if (vec.size() == 0) return std::vector<size_t>();
-  else return vector_find_condition(vec, is_zero<T>()); 
-}
-
-template <class T>
-std::vector<size_t>
-vector_find_one(const std::vector<T>& vec) {
-  if (vec.size() == 0) return std::vector<size_t>();
-  else return vector_find_condition(vec, is_one<T>()); 
-}
-
-template <class T>
-std::vector<size_t>
-vector_find_positive(const std::vector<T>& vec) {
-  if (vec.size() == 0) return std::vector<size_t>();
-  else return vector_find_condition(vec, is_positive<T>()); 
-}
-
-template <class T>
-std::vector<size_t>
-vector_find_negative(const std::vector<T>& vec) {
-  if (vec.size() == 0) return std::vector<size_t>();
-  else return vector_find_condition(vec, is_negative<T>()); 
-}
-
-template <class T>
-std::vector<size_t>
-vector_find_tmax(const std::vector<T>& vec) {
-  if (vec.size() == 0) return std::vector<size_t>();
-  else return vector_find_condition(vec, is_tmax<T>()); 
-}
-
-template <class T>
-std::vector<size_t>
-vector_find_not_tmax(const std::vector<T>& vec) {
-  if (vec.size() == 0) return std::vector<size_t>();
-  else return vector_find_condition(vec, is_not_tmax<T>()); 
-}
-
-template <class T>
-std::vector<size_t>
-vector_find_tmin(const std::vector<T>& vec) {
-  if (vec.size() == 0) return std::vector<size_t>();
-  else return vector_find_condition(vec, is_tmin<T>()); 
-}
-
-template <class T>
-std::vector<size_t>
-vector_find_not_tmin(const std::vector<T>& vec) {
-  if (vec.size() == 0) return std::vector<size_t>();
-  else return vector_find_condition(vec, is_not_tmin<T>()); 
-}
-
-template <class T>
-std::vector<size_t>
-vector_find_binary(const std::vector<T>& vec) {
-  if (vec.size() == 0) return std::vector<size_t>();
-  else return vector_find_condition(vec, is_binary<T>()); 
-}
-
-template <class T>
-std::vector<size_t>
-vector_find_ge(const std::vector<T>& vec, const T& threshold) {
-  if (vec.size() == 0) return std::vector<size_t>();
-  else return vector_find_condition(vec, is_ge<T>(threshold));
-}
-
-template <class T>
-std::vector<size_t>
-vector_find_ge_and_neq(const std::vector<T>& vec, 
-                       const T& threshold,
-                       const T& threshold2) {
-  if (vec.size() == 0) return std::vector<size_t>();
-  else return vector_find_condition(vec, is_ge_and_neq<T>(threshold, 
-                                                          threshold2));
-}
-
-template <class T>
-std::vector<size_t>
-vector_find_gt(const std::vector<T>& vec, const T& threshold) {
-  if (vec.size() == 0) return std::vector<size_t>();
-  else return vector_find_condition(vec, is_gt<T>(threshold));
-}
-
-template <class T>
-std::vector<size_t>
-vector_find_gt_and_neq(const std::vector<T>& vec, 
-                       const T& threshold,
-                       const T& threshold2) {
-  if (vec.size() == 0) return std::vector<size_t>();
-  else return vector_find_condition(vec, is_gt_and_neq<T>(threshold,
-                                                          threshold2));
-}
-
-template <class T>
-std::vector<size_t>
-vector_find_le(const std::vector<T>& vec, const T& threshold) {
-  if (vec.size() == 0) return std::vector<size_t>();
-  else return vector_find_condition(vec, is_le<T>(threshold));
-}
-
-template <class T>
-std::vector<size_t>
-vector_find_le_and_neq(const std::vector<T>& vec, 
-                       const T& threshold,
-                       const T& threshold2) {
-  if (vec.size() == 0) return std::vector<size_t>();
-  else return vector_find_condition(vec, is_le_and_neq<T>(threshold, 
-                                                          threshold2));
-}
-
-template <class T>
-std::vector<size_t>
-vector_find_lt(const std::vector<T>& vec, const T& threshold) {
-  if (vec.size() == 0) return std::vector<size_t>();
-  else return vector_find_condition(vec, is_lt<T>(threshold));
-}
-
-template <class T>
-std::vector<size_t>
-vector_find_lt_and_neq(const std::vector<T>& vec, 
-                       const T& threshold,
-                       const T& threshold2) {
-  if (vec.size() == 0) return std::vector<size_t>();
-  else return vector_find_condition(vec, is_lt_and_neq<T>(threshold,
-                                                          threshold2));
-}
-
-template <class T>
-std::vector<size_t>
-vector_find_eq(const std::vector<T>& vec, const T& threshold) {
-  if (vec.size() == 0) return std::vector<size_t>();
-  else return vector_find_condition(vec, is_eq<T>(threshold));
-}
-
-template <class T>
-std::vector<size_t>
-vector_find_neq(const std::vector<T>& vec, const T& threshold) {
-  if (vec.size() == 0) return std::vector<size_t>();
-  else return vector_find_condition(vec, is_neq<T>(threshold));
-}
-
 // * if limit = 0, it prints all elements in the input vector.
 // * if limit = x and size of vector is more than twice of x, 
 // then it prints first "x" and last "x" elements in the input vector.
@@ -311,7 +152,17 @@ std::vector<std::string>
 vector_string_astype(const std::vector<T>& vec) {
   auto vecsz = vec.size();
   std::vector<std::string> ret(vecsz);
-  for(size_t i = 0; i < vecsz; ++i) ret[i] = STR(vec[i]);
+#if defined(_SX) || defined(__ve__)
+  auto ws = number_to_words(vec);
+  auto lensp = ws.lens.data();
+  auto startsp = ws.starts.data();
+  auto temp = int_to_char(ws.chars);
+  for(size_t i = 0; i < vecsz; ++i) 
+    ret[i] = temp.substr(startsp[i], lensp[i]);
+#else
+  for(size_t i = 0; i < vecsz; ++i) 
+    ret[i] = boost::lexical_cast<std::string>(vec[i]);
+#endif
   return ret;
 }
 
@@ -409,9 +260,10 @@ double vector_mean(const std::vector<T>& vec) {
 }
 
 // sum squared difference: similar to numpy.sum(numpy.square(x - y)) or numpy.dot(x - y, x - y)
-template <class T>
-T vector_ssd(const std::vector<T>& v1,
-             const std::vector<T>& v2) {
+template <class T, class I>
+auto vector_ssd(const std::vector<T>& v1,
+                const std::vector<I>& v2) 
+  -> decltype((v1[0] - v2[0]) * (v1[0] - v2[0])) {
   auto size = v1.size();
   checkAssumption(size == v2.size());
 /*
@@ -503,7 +355,8 @@ size_t vector_count_nonzero(const std::vector<T>& vec) {
 }
 
 template <class T>
-size_t vector_count_equal(const std::vector<T>& vec, const T& val) {
+size_t vector_count_equal(const std::vector<T>& vec, 
+                          const T& val) {
   size_t count = 0;
   auto size = vec.size();
   auto vptr = vec.data();
@@ -580,12 +433,14 @@ vector_ones(const size_t& size) {
 }
 
 // similar to numpy.full()
-template <class T>
+template <class T, class I>
 std::vector<T> 
-vector_full(const size_t& size, const T& val) {
-  std::vector<T> ret (size);
+vector_full(const size_t& size, 
+            const I& val) {
+  std::vector<T> ret(size);
   auto rptr = ret.data();
-  for(size_t i = 0; i < size; ++i) rptr[i] = val;
+  T tval = static_cast<T>(val);
+  for(size_t i = 0; i < size; ++i) rptr[i] = tval;
   return ret;
 }
 
@@ -845,13 +700,16 @@ vector_log(const std::vector<T>& vec) {
 }
 
 // similar to numpy.divide()
-template <class T>
-std::vector<T>
-vector_divide(const std::vector<T>& v1,
-              const std::vector<T>& v2) {
+template <class T, class I>
+auto vector_divide(const std::vector<T>& v1,
+                   const std::vector<I>& v2) 
+  -> std::vector<decltype(v1[0] / v2[0])> {
+  T x;
+  I y;
+  typedef decltype(x / y) V;
   auto vecsz = v1.size();
   checkAssumption(vecsz == v2.size());
-  std::vector<T> ret(vecsz);
+  std::vector<V> ret(vecsz);
   auto v1p = v1.data();
   auto v2p = v2.data();
   auto retp = ret.data();
@@ -868,21 +726,48 @@ vector_divide(const std::vector<T>& v1,
   return ret;
 }
 
-template <class T>
-std::vector<T>
-vector_divide(const std::vector<T>& vec,
-              const T& by_elem) {
+template <class T, class I>
+auto vector_divide(const std::vector<T>& vec,
+                   const I& by_elem) 
+  -> std::vector<decltype(vec[0] / by_elem)> {
+  T x;
+  I y;
+  typedef decltype(x / y) V;
   auto vecsz = vec.size();
   if (by_elem == 0) {
     REPORT_WARNING(WARNING_MESSAGE,
         "RuntimeWarning: divide by zero encountered in divide");
-    return vector_zeros<T>(vecsz);
+    return vector_zeros<V>(vecsz);
   }
-  std::vector<T> ret(vecsz);
+  std::vector<V> ret(vecsz);
   auto vecp = vec.data();
   auto retp = ret.data();
   double one_by_elem = 1.0 / by_elem; 
   for(size_t i = 0; i < vecsz; ++i) retp[i] = vecp[i] * one_by_elem;
+  return ret;
+}
+
+template <class T, class I>
+auto vector_divide(const T& by_elem,
+                   const std::vector<I>& vec) 
+  -> std::vector<decltype(by_elem / vec[0])> {
+  T x;
+  I y;
+  typedef decltype(x / y) V;
+  auto vecsz = vec.size();
+  std::vector<V> ret(vecsz);
+  auto vecp = vec.data();
+  auto retp = ret.data();
+  int divzero = 0;
+  for(size_t i = 0; i < vecsz; ++i) {
+    if (vecp[i] == 0) { 
+      divzero = 1;
+      retp[i] = 0;
+    }
+    else retp[i] = by_elem / vecp[i];
+  }
+  if(divzero) REPORT_WARNING(WARNING_MESSAGE, 
+  "RuntimeWarning: divide by zero encountered in divide");
   return ret;
 }
 
@@ -891,28 +776,188 @@ std::vector<int>
 vector_divide(const std::vector<int>& vec,
               const int& by_elem); // defined in vector_operations.cc
 
-template <class T>
-std::vector<T>
-operator/ (const std::vector<T>& vec,
-           const T& by_elem) {
-  return vector_divide(vec, by_elem);
-}
-
-template <class T>
-std::vector<T>
-operator/ (const std::vector<T>& v1,
-           const std::vector<T>& v2) {
+template <class T, class I>
+auto operator/ (const std::vector<T>& v1,
+                const std::vector<I>& v2) 
+  -> std::vector<decltype(v1[0] / v2[0])> {
   return vector_divide(v1, v2);
 }
 
+template <class T, class I>
+auto operator/ (const std::vector<T>& vec,
+                const I& by_elem) 
+  -> std::vector<decltype(vec[0] / by_elem)> {
+  return vector_divide(vec, by_elem);
+}
+
+template <class T, class I>
+auto operator/ (const T& by_elem,
+                const std::vector<I>& vec)
+  -> std::vector<decltype(by_elem / vec[0])> {
+  return vector_divide(by_elem, vec);
+}
+
+template <class T, class I>
+std::vector<double>
+vector_fdiv (const T& by_elem,
+             const std::vector<I>& vec) {
+  auto vecp = vec.data();
+  auto size = vec.size();
+  std::vector<double> ret(size);
+  auto retp = ret.data();
+  for(size_t i = 0; i < size; i++) {
+    retp[i] = (double)by_elem / (double)vecp[i];
+  }
+  return ret;
+}
+
+template <class T, class I>
+std::vector<double>
+vector_fdiv (const std::vector<T>& vec,
+             const I& by_elem) {
+  auto vecp = vec.data();
+  auto size = vec.size();
+  std::vector<double> ret(size);
+  auto retp = ret.data();
+  for(size_t i = 0; i < size; i++) {
+    retp[i] = (double)vecp[i] / (double)by_elem;
+  }
+  return ret;
+}
+
+template <class T, class I>
+std::vector<double>
+vector_fdiv (const std::vector<T>& v1,
+             const std::vector<I>& v2) {
+  auto leftp = v1.data();
+  auto rightp = v2.data();
+  auto size = v1.size();
+  checkAssumption(size == v2.size());
+  std::vector<double> ret(size);
+  auto retp = ret.data();
+  for(size_t i = 0; i < size; i++) {
+    retp[i] = (double)leftp[i] / (double)rightp[i];
+  }
+  return ret;
+}
+
+template <class T, class I>
+std::vector<long>
+vector_idiv (const T& by_elem,
+             const std::vector<I>& vec) {
+  auto vecp = vec.data();
+  auto size = vec.size();
+  std::vector<long> ret(size);
+  auto retp = ret.data();
+  for(size_t i = 0; i < size; i++) {
+    retp[i] = (double)by_elem / (double)vecp[i];
+  }
+  return ret;
+}
+
+template <class T, class I>
+std::vector<long>
+vector_idiv (const std::vector<T>& vec,
+             const I& by_elem) {
+  auto vecp = vec.data();
+  auto size = vec.size();
+  std::vector<long> ret(size);
+  auto retp = ret.data();
+  for(size_t i = 0; i < size; i++) {
+    retp[i] = (double)vecp[i] / (double)by_elem;
+  }
+  return ret;
+}
+
+template <class T, class I>
+std::vector<long>
+vector_idiv (const std::vector<T>& v1,
+             const std::vector<I>& v2) {
+  auto leftp = v1.data();
+  auto rightp = v2.data();
+  auto size = v1.size();
+  checkAssumption(size == v2.size());
+  std::vector<long> ret(size);
+  auto retp = ret.data();
+  for(size_t i = 0; i < size; i++) {
+    retp[i] = (double)leftp[i] / (double)rightp[i];
+  }
+  return ret;
+}
+
+template <class T, class I>
+auto vector_mod (const T& by_elem,
+                 const std::vector<I>& vec,
+                 long dummy = 0) 
+  -> std::vector<decltype(by_elem - vec[0] * dummy)> {
+  T a;
+  I b;
+  long c;
+  typedef decltype(a - b * c) V;
+  auto vecp = vec.data();
+  auto size = vec.size();
+  std::vector<V> ret(size);
+  auto retp = ret.data();
+  for(size_t i = 0; i < size; i++) {
+    long tmp = by_elem / vecp[i];
+    retp[i] = by_elem - vecp[i] * tmp;
+  }
+  return ret;
+}
+
+template <class T, class I>
+auto vector_mod (const std::vector<T>& vec,
+                 const I& by_elem,
+                 long dummy = 0) 
+  -> std::vector<decltype(vec[0] - by_elem * dummy)> {
+  T a;
+  I b;
+  long c;
+  typedef decltype(a - b * c) V;
+  auto vecp = vec.data();
+  auto size = vec.size();
+  std::vector<V> ret(size);
+  auto retp = ret.data();
+  for(size_t i = 0; i < size; i++) {
+    long tmp = vecp[i] / by_elem;
+    retp[i] = vecp[i] - by_elem * tmp;
+  }
+  return ret;
+}
+
+template <class T, class I>
+auto vector_mod (const std::vector<T>& v1,
+                 const std::vector<I>& v2,
+                 long dummy = 0) 
+  -> std::vector<decltype(v1[0] - v2[0] * dummy)> {
+  T a;
+  I b;
+  long c;
+  typedef decltype(a - b * c) V;
+  auto leftp = v1.data();
+  auto rightp = v2.data();
+  auto size = v1.size();
+  checkAssumption(size == v2.size());
+  std::vector<V> ret(size);
+  auto retp = ret.data();
+  for(size_t i = 0; i < size; i++) {
+    long tmp = leftp[i] / rightp[i];
+    retp[i] = leftp[i] - rightp[i] * tmp;
+  }
+  return ret;
+}
+
 // similar to numpy.multiply()
-template <class T>
-std::vector<T>
-vector_multiply(const std::vector<T>& v1,
-                const std::vector<T>& v2) {
+template <class T, class I>
+auto vector_multiply(const std::vector<T>& v1,
+                     const std::vector<I>& v2) 
+  -> std::vector<decltype(v1[0] * v2[0])> {
+  T x;
+  I y;
+  typedef decltype(x * y) V;
   auto vecsz = v1.size();
   checkAssumption(vecsz == v2.size());
-  std::vector<T> ret(vecsz);
+  std::vector<V> ret(vecsz);
   auto v1p = v1.data();
   auto v2p = v2.data();
   auto retp = ret.data();
@@ -920,40 +965,101 @@ vector_multiply(const std::vector<T>& v1,
   return ret;
 }
 
-template <class T>
-std::vector<T>
-vector_multiply(const std::vector<T>& v1,
-                const T& by_elem) {
+template <class T, class I>
+auto vector_multiply(const std::vector<T>& v1,
+                     const I& by_elem) 
+  -> std::vector<decltype(v1[0] * by_elem)> {
+  T x;
+  I y;
+  typedef decltype(x * y) V;
   auto vecsz = v1.size();
-  std::vector<T> ret(vecsz);
+  std::vector<V> ret(vecsz);
   auto v1p = v1.data();
   auto retp = ret.data();
   for(size_t i = 0; i < vecsz; ++i) retp[i] = v1p[i] * by_elem;
   return ret;
 }
 
-template <class T>
-std::vector<T>
-operator* (const std::vector<T>& v1,
-           const std::vector<T>& v2) {
+template <class T, class I>
+auto operator* (const std::vector<T>& v1,
+                const std::vector<I>& v2) 
+  -> std::vector<decltype(v1[0] * v2[0])> {
   return vector_multiply(v1, v2);
 }
 
-template <class T>
-std::vector<T>
-operator* (const std::vector<T>& v1,
-           const T& by_elem) {
+template <class T, class I>
+auto operator* (const std::vector<T>& v1,
+                const I& by_elem) 
+  -> std::vector<decltype(v1[0] * by_elem)> {
   return vector_multiply(v1, by_elem);
 }
 
-// similar to numpy.add()
-template <class T>
-std::vector<T>
-vector_add(const std::vector<T>& v1,
-           const std::vector<T>& v2) {
+template <class T, class I>
+auto operator* (const T& by_elem, 
+                const std::vector<I>& v1)
+  -> std::vector<decltype(by_elem * v1[0])> {
+  return vector_multiply(v1, by_elem); // multiplication order doesn't matter
+}
+
+template <class T, class I>
+auto vector_pow(const std::vector<T>& v1,
+                const std::vector<I>& v2)
+  -> std::vector<decltype(std::pow(v1[0], v2[0]))> {
+  T x;
+  I y;
+  typedef decltype(std::pow(x,y)) V;
   auto vecsz = v1.size();
   checkAssumption(vecsz == v2.size());
-  std::vector<T> ret(vecsz);
+  std::vector<V> ret(vecsz);
+  auto v1p = v1.data();
+  auto v2p = v2.data();
+  auto retp = ret.data();
+  for(size_t i = 0; i < vecsz; ++i) retp[i] = std::pow(v1p[i], v2p[i]);
+  return ret;
+}
+
+template <class T, class I>
+auto vector_pow(const std::vector<T>& v1,
+                const I& by_elem)
+  -> std::vector<decltype(std::pow(v1[0], by_elem))> {
+  T x;
+  I y;
+  typedef decltype(std::pow(x,y)) V;
+  auto vecsz = v1.size();
+  std::vector<V> ret(vecsz);
+  auto v1p = v1.data();
+  auto retp = ret.data();
+  for(size_t i = 0; i < vecsz; ++i) retp[i] = std::pow(v1p[i], by_elem);
+  return ret;
+}
+
+template <class T, class I>
+auto vector_pow(const T& by_elem, 
+                const std::vector<I>& v1) 
+  -> std::vector<decltype(std::pow(by_elem, v1[0]))> {
+  T x;
+  I y;
+  typedef decltype(std::pow(x,y)) V;
+  auto vecsz = v1.size();
+  std::vector<V> ret(vecsz);
+  auto v1p = v1.data();
+  auto retp = ret.data();
+  for(size_t i = 0; i < vecsz; ++i) retp[i] = std::pow(by_elem, v1p[i]);
+  return ret;
+}
+
+
+// similar to numpy.add()
+template <class T, class I>
+auto vector_add(const std::vector<T>& v1,
+                const std::vector<I>& v2) 
+  -> std::vector<decltype(v1[0] + v2[0])> {
+  T x;
+  I y;
+  typedef decltype(x + y) V;
+  auto vecsz = v1.size();
+  checkAssumption(vecsz == v2.size());
+  std::vector<V> ret(vecsz);
   auto v1p = v1.data();
   auto v2p = v2.data();
   auto retp = ret.data();
@@ -961,54 +1067,72 @@ vector_add(const std::vector<T>& v1,
   return ret;
 }
 
-template <class T>
-std::vector<T>
-vector_add(const std::vector<T>& v1,
-           const T& by_elem) {
+template <class T, class I>
+auto vector_add(const std::vector<T>& v1,
+                const I& by_elem) 
+  -> std::vector<decltype(v1[0] + by_elem)> {
+  T x;
+  I y;
+  typedef decltype(x + y) V;
   auto vecsz = v1.size();
-  std::vector<T> ret(vecsz);
+  std::vector<V> ret(vecsz);
   auto v1p = v1.data();
   auto retp = ret.data();
   for(size_t i = 0; i < vecsz; ++i) retp[i] = v1p[i] + by_elem;
   return ret;
 }
 
-template <class T>
-std::vector<T>
-operator+ (const std::vector<T>& v1,
-           const std::vector<T>& v2) {
+template <class T, class I>
+auto operator+ (const std::vector<T>& v1,
+                const std::vector<I>& v2) 
+  -> std::vector<decltype(v1[0] + v2[0])> {
   return vector_add(v1, v2);
 }
 
-template <class T>
-std::vector<T>
-operator+ (const std::vector<T>& v1,
-           const T& by_elem) {
+template <class T, class I>
+auto operator+ (const std::vector<T>& v1,
+                const I& by_elem) 
+  -> std::vector<decltype(v1[0] + by_elem)> {
   return vector_add(v1, by_elem);
 }
 
+template <class T, class I>
+auto operator+ (const T& by_elem,
+                const std::vector<I>& v1)
+  -> std::vector<decltype(by_elem + v1[0])> {
+  return vector_add(v1, by_elem); // adding order doesn't matter
+}
+
 // similar to numpy.dot() or blas.dot() - it also supports integer type input vector
-template <class T>
-T vector_dot(const std::vector<T>& v1,
-             const std::vector<T>& v2) {
+template <class T, class I>
+auto vector_dot(const std::vector<T>& v1,
+                const std::vector<I>& v2) 
+  -> decltype(v1[0] * v2[0]) {
+  T x;
+  I y;
+  typedef decltype(x * y) V;
   auto vecsz = v1.size();
   checkAssumption(vecsz == v2.size());
   auto v1p = v1.data();
   auto v2p = v2.data();
-  T ret = 0;
+  V ret = 0;
   for(size_t i = 0; i < vecsz; ++i) ret += v1p[i] * v2p[i];
   return ret;
 }
 
 // similar to blas.axpy() - it also supports integer type input vector
-template <class T>
-std::vector<T>
-vector_axpy(const std::vector<T>& v1,
-            const std::vector<T>& v2,
-            const T& alpha = 1) {
+template <class T, class I, class J>
+auto vector_axpy(const std::vector<T>& v1,
+                 const std::vector<I>& v2,
+                 const J& alpha = 1) 
+  -> std::vector<decltype(alpha * v1[0] + v2[0])> {
+  T x;
+  I y;
+  J a;
+  typedef decltype(a * x + y) V;
   auto vecsz = v1.size();
   checkAssumption(vecsz == v2.size());
-  std::vector<T> ret(vecsz);
+  std::vector<V> ret(vecsz); // to store: alpha * v1 + v2
   auto v1p = v1.data();
   auto v2p = v2.data();
   auto retp = ret.data();
@@ -1017,13 +1141,16 @@ vector_axpy(const std::vector<T>& v1,
 }
 
 // similar to numpy.subtract()
-template <class T>
-std::vector<T>
-vector_subtract(const std::vector<T>& v1,
-                const std::vector<T>& v2) {
+template <class T, class I>
+auto vector_subtract(const std::vector<T>& v1,
+                     const std::vector<I>& v2) 
+  -> std::vector<decltype(v1[0] - v2[0])> {
+  T x;
+  I y;
+  typedef decltype(x - y) V;
   auto vecsz = v1.size();
   checkAssumption(vecsz == v2.size());
-  std::vector<T> ret(vecsz);
+  std::vector<V> ret(vecsz);
   auto v1p = v1.data();
   auto v2p = v2.data();
   auto retp = ret.data();
@@ -1031,30 +1158,55 @@ vector_subtract(const std::vector<T>& v1,
   return ret;
 }
 
-template <class T>
-std::vector<T>
-vector_subtract(const std::vector<T>& v1,
-                const T& by_elem) {
+template <class T, class I>
+auto vector_subtract(const std::vector<T>& v1,
+                     const I& by_elem) 
+  -> std::vector<decltype(v1[0] - by_elem)> {
+  T x;
+  I y;
+  typedef decltype(x - y) V;
   auto vecsz = v1.size();
-  std::vector<T> ret(vecsz);
+  std::vector<V> ret(vecsz);
   auto v1p = v1.data();
   auto retp = ret.data();
   for(size_t i = 0; i < vecsz; ++i) retp[i] = v1p[i] - by_elem;
   return ret;
 }
 
-template <class T>
-std::vector<T>
-operator- (const std::vector<T>& v1,
-           const std::vector<T>& v2) {
+template <class T, class I>
+auto vector_subtract(const T& by_elem, 
+                     const std::vector<I>& v1)
+  -> std::vector<decltype(by_elem - v1[0])> {
+  T x;
+  I y;
+  typedef decltype(x - y) V;
+  auto vecsz = v1.size();
+  std::vector<V> ret(vecsz);
+  auto v1p = v1.data();
+  auto retp = ret.data();
+  for(size_t i = 0; i < vecsz; ++i) retp[i] = by_elem - v1p[i];
+  return ret;
+}
+
+template <class T, class I>
+auto operator- (const std::vector<T>& v1,
+                const std::vector<I>& v2) 
+  -> std::vector<decltype(v1[0] - v2[0])> {
   return vector_subtract(v1, v2);
 }
 
-template <class T>
-std::vector<T>
-operator- (const std::vector<T>& v1,
-           const T& by_elem) {
+template <class T, class I>
+auto operator- (const std::vector<T>& v1,
+                const I& by_elem) 
+  -> std::vector<decltype(v1[0] - by_elem)> {
   return vector_subtract(v1, by_elem);
+}
+
+template <class T, class I>
+auto operator- (const T& by_elem,
+                const std::vector<I>& v1)
+  -> std::vector<decltype(by_elem - v1[0])> {
+  return vector_subtract(by_elem, v1);
 }
 
 // similar to numpy.negative()
@@ -1069,6 +1221,12 @@ vector_negative(const std::vector<T>& vec) {
   return ret;
 }
 
+template <class T>
+std::vector<T>
+operator-(const std::vector<T>& vec) {
+  return vector_negative(vec);
+}
+
 // similar to -numpy.log(x) or numpy.negative(numpy.log(x))
 template <class T>
 std::vector<double>
@@ -1081,21 +1239,19 @@ vector_negative_log(const std::vector<T>& vec) {
   return ret;
 }
 
-template <class T>
-std::vector<T>
-operator-(const std::vector<T>& vec) {
-  return vector_negative(vec);
-}
-
 // similar to numpy.sum(vec * al) -> vector_scaled_sum(vec, al)
 // For numpy.sum(vec / al) -> numpy.sum(vec * (1 / al)) -> vector_scaled_sum(vec, 1 / al)
-// TODO: Fix issue for int-type while doing: vector_scaled_sum(vec, 1 / al)
-template <class T>
-T vector_scaled_sum(const std::vector<T>& vec,
-                    const T& al) {
+// Caution: Be sure not to use [vector_scaled_sum(vec, 1 / al)] for int-type (1 / al may cause issue)
+template <class T, class I>
+auto vector_scaled_sum(const std::vector<T>& vec,
+                       const I& al) 
+  -> decltype(al * vec[0]) {
+  T x;
+  I y;
+  typedef decltype(y * x) V;
   auto vecsz = vec.size();
   auto vecp = vec.data();
-  T sum = 0;
+  V sum = 0;
   for(size_t i = 0; i < vecsz; ++i) sum += vecp[i] * al;
   return sum;
 }
@@ -1323,31 +1479,34 @@ vector_max_value(const std::vector<std::pair<T, I>>& t1,
 }
 
 template <class T>
-T vector_logsumexp_impl(const T* datap,
-                        size_t size, size_t stride) {
+auto vector_logsumexp_impl(const T* datap,
+                           size_t size, size_t stride) 
+  -> decltype(log(exp(datap[0]))) {
   auto maxval = std::numeric_limits<T>::lowest();
   for(size_t i = 0; i < size; ++i) {
     if(datap[i * stride] > maxval) maxval = datap[i * stride];
   }
-  T lse = 0;
-  for(size_t i = 0; i < size; ++i) lse += exp(datap[i * stride] - maxval);
-  return maxval + log(lse);
+  typedef decltype(exp(maxval)) E;
+  E sum_exp = 0;
+  for(size_t i = 0; i < size; ++i) sum_exp += exp(datap[i * stride] - maxval);
+  return maxval + log(sum_exp);
 }
 
 // similar to scipy.misc.logsumexp(x)
 // T: must be non-integral type
 template <class T>
-T vector_logsumexp(const std::vector<T>& vec) {
+auto vector_logsumexp(const std::vector<T>& vec) 
+  -> decltype(log(exp(vec[0]))) {
   return vector_logsumexp_impl(vec.data(), vec.size(), 1);
 }
 
 // similar to np.exp(x)
-// T: must be non-integral type
 template <class T>
-std::vector<T>
-vector_exp(const std::vector<T>& vec) {
+auto vector_exp(const std::vector<T>& vec) 
+  -> std::vector<decltype(exp(vec[0]))> {
+  typedef decltype(exp(vec[0])) V;
   auto vecsz = vec.size();
-  std::vector<T> ret(vecsz);
+  std::vector<V> ret(vecsz);
   auto vecp = vec.data();
   auto retp = ret.data();
   for(size_t i = 0; i < vecsz; ++i) retp[i] = exp(vecp[i]);
@@ -1361,9 +1520,9 @@ void vector_exp_inplace(std::vector<T>& vec) {
   for(size_t i = 0; i < vecsz; ++i) vecp[i] = exp(vecp[i]);
 }
 
-template <class T>
+template <class T, class I>
 int vector_is_same_impl(const T* vptr1,
-                        const T* vptr2,
+                        const I* vptr2,
                         size_t sz1, size_t sz2) {
   if (sz1 != sz2) return false;
   size_t st = 0, end = OP_VLEN, count = 0;
@@ -1389,9 +1548,9 @@ int vector_is_same_impl(const T* vptr1,
   return count == rem;
 }
 
-template <class T>
+template <class T, class I>
 int vector_is_same(const std::vector<T>& v1,
-                   const std::vector<T>& v2) {
+                   const std::vector<I>& v2) {
   return vector_is_same_impl(v1.data(), v2.data(), v1.size(), v2.size());
 }
   
@@ -1454,12 +1613,37 @@ void vector_right_shift_inplace(std::vector<T>& vec, size_t tid) {
 }
 
 template <class T>
-int vector_contains(const std::vector<T>& vec, const T& val) {
+int vector_contains(const std::vector<T>& vec, 
+                    const T& val) {
   auto vsz = vec.size();
-  auto vecp = vec.data();
-  size_t i = 0;
-  for(i = 0; i < vsz; ++i) if (vecp[i] == val) break;
-  return (i != vsz);
+  auto vptr = vec.data();
+  if (vsz == 0) return false;
+  size_t st = 0, end = OP_VLEN, count = 0;
+  for(; end < vsz; end += OP_VLEN) {
+    count = 0;
+    for(size_t i = st; i < end; ++i) count += (vptr[i] == val);
+    if (count > 0) return true; // kind of break (but checked after OP_VLEN steps for ve performance)
+    st = end;
+  }
+  count = 0;
+  auto rem = vsz - st;
+  if (rem > NOVEC_LEN) {
+    for(size_t i = st; i < vsz; ++i) count += (vptr[i] == val);
+  }
+  else { // short-loop
+    #pragma _NEC novector
+    for(size_t i = st; i < vsz; ++i) count += (vptr[i] == val);
+  }
+  return count > 0;
+}
+
+template <class T>
+size_t vector_length(const std::vector<T>& vec) { return vec.size(); }
+
+template <class T>
+void vector_clear(std::vector<T>& vec) {
+  std::vector<T> tmp;
+  tmp.swap(vec);
 }
 
 }

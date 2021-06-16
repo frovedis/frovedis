@@ -3,8 +3,8 @@
 
 #include "int_to_words.hpp"
 #include "../core/set_operations.hpp"
+#include "../core/find_condition.hpp"
 #include "char_int_conv.hpp"
-#include "find_condition.hpp"
 #include <math.h>
 #include <limits>
 
@@ -96,58 +96,12 @@ words float_to_words_normal(const T* srcp, size_t src_size,
 }
 
 template <class T>
-struct is_nan {
-  int operator()(T a) const {return isnan(a);}
-};
-
-#ifdef __ve__
-/* 
-Since isnan cannot be vectorized, specialized version is added.
-This code causes "dereferencing type-punned pointer will break
-strict-aliasing rules" warning in the case of g++, so ifdef'ed only for VE.
-(using double/float instead of int does not work, since it is NaN)
-*/
-template <>
-struct is_nan<double> {
-  is_nan() {
-    double n = std::numeric_limits<double>::quiet_NaN();
-    mynan = *reinterpret_cast<uint64_t*>(&n);
-  }
-  int operator()(double a) const {
-    return (mynan == *reinterpret_cast<uint64_t*>(&a));
-  }
-  uint64_t mynan;
-};
-template <>
-struct is_nan<float> {
-  is_nan() {
-    float n = std::numeric_limits<float>::quiet_NaN();
-    mynan = *reinterpret_cast<uint32_t*>(&n);
-  }
-  int operator()(float a) const {
-    return (mynan == *reinterpret_cast<uint32_t*>(&a));
-  }
-  uint32_t mynan;
-};
-#endif
-
-template <class T>
-struct is_inf {
-  int operator()(T a) const {return (a == std::numeric_limits<T>::infinity());}
-};
-
-template <class T>
-struct is_neg_inf {
-  int operator()(T a) const {return (a == -std::numeric_limits<T>::infinity());}
-};
-
-template <class T>
 words float_to_words_normal(const std::vector<T>& src,
                             const std::vector<size_t> num_of_decv) {
   if(src.size() == 0) return words();
-  auto nans = find_condition(src, is_nan<T>());
-  auto infs = find_condition(src, is_inf<T>());
-  auto ninfs = find_condition(src, is_neg_inf<T>());
+  auto nans = vector_find_nan(src);
+  auto infs = vector_find_inf(src);
+  auto ninfs = vector_find_neg_inf(src);
   if(nans.size() == 0 && infs.size() == 0 && ninfs.size() == 0) {
     return float_to_words_normal(src.data(), src.size(), num_of_decv.data());
   } else {
@@ -395,9 +349,9 @@ words float_to_words_exp(const T* srcp, size_t src_size, size_t num_of_dec) {
 template <class T>
 words float_to_words_exp(const std::vector<T>& src, size_t num_of_dec = 6) {
   if(src.size() == 0) return words();
-  auto nans = find_condition(src, is_nan<T>());
-  auto infs = find_condition(src, is_inf<T>());
-  auto ninfs = find_condition(src, is_neg_inf<T>());
+  auto nans = vector_find_nan(src);
+  auto infs = vector_find_inf(src);
+  auto ninfs = vector_find_neg_inf(src);
   if(nans.size() == 0 && infs.size() == 0 && ninfs.size() == 0) {
     return float_to_words_exp(src.data(), src.size(), num_of_dec);
   } else {
@@ -489,7 +443,7 @@ words float_to_words(const std::vector<T>& src, size_t prec = 6) {
   if(src_size == 0) return words();
   auto srcp = src.data();
 
-  auto nans = find_condition(src, is_nan<T>());
+  auto nans = vector_find_nan(src);
   auto nansp = nans.data();
   auto nans_size = nans.size();
   

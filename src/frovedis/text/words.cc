@@ -5,7 +5,7 @@
 #include "../core/lower_bound.hpp"
 #include "../core/upper_bound.hpp"
 #include "../core/prefix_sum.hpp"
-#include "find_condition.hpp"
+#include "../core/find_condition.hpp"
 #include "char_int_conv.hpp"
 #include <stdexcept>
 
