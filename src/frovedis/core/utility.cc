@@ -48,9 +48,12 @@ int count_non_hidden_files(const std::string& dir) {
     throw std::runtime_error("count_non_hidden_files: directory does not exist!\n");
   int count = 0;
   auto dp = opendir(dir.c_str());
-  struct dirent *cur;
   if (dp != NULL) {
-    while (cur = readdir(dp)) if (cur->d_name[0] != '.') ++count;
+    struct dirent *cur = readdir(dp);
+    while (cur) {
+      if (cur->d_name[0] != '.') ++count;
+      cur = readdir(dp);    
+    }
   }
   closedir(dp);
   return count;
