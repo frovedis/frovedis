@@ -6,7 +6,7 @@
 #include "frovedis/core/radix_sort.hpp"
 #include "frovedis/ml/lda/lda_cgs.hpp"
 
-namespace frovedis {
+using namespace frovedis;
 
 // wrapper for frovedis::lda_model<TC>
 // it includes the doc_topic_count matrix as well in the form of rowmajor_matrix<TC>
@@ -168,5 +168,4 @@ extract_k_cols(rowmajor_matrix<T>& mat, int k) {
   return ret;
 }
 
-}
 #endif

@@ -4,7 +4,7 @@
 #include <frovedis/ml/graph/graph.hpp>
 #include "dummy_matrix.hpp"
 
-namespace frovedis {
+using namespace frovedis;
 
 struct dummy_graph {
   dummy_graph() {}
@@ -67,5 +67,4 @@ struct py_pagerank_result {
   SERIALIZE(nodeid, rank)
 };
 
-}
 #endif

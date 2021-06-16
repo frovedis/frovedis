@@ -16,7 +16,8 @@
 #include "frovedis/ml/clustering/spectral_clustering.hpp"
 #include "frovedis/ml/clustering/agglomerative.hpp"
 */
-namespace frovedis {
+
+using namespace frovedis;
 
 enum MODEL_KIND {
   GLM = 0,
@@ -124,10 +125,21 @@ M* get_model_ptr(int mid) {
     }
     else while(is_under_training(mid)); // waits until training is completed
   }
-  auto p = frovedis::model_table[mid];
+  auto p = model_table[mid];
   return reinterpret_cast<M*>(p.second);
 }
 
+// convert a numeric string to number
+template <class T>
+T do_cast (const std::string& data) {
+  T c_data = 0;
+  try {
+    c_data = boost::lexical_cast<T>(data);
+  }
+  catch (const boost::bad_lexical_cast &excpt) {
+    REPORT_ERROR(USER_ERROR, "invalid type for casting: " + data);
+  }
+  return c_data;
 }
 
 #endif

@@ -1,7 +1,7 @@
 #ifndef _ML_RESULT_HPP_
 #define _ML_RESULT_HPP_
 
-namespace frovedis {
+using namespace frovedis;
 
 struct lu_fact_result {
   lu_fact_result() {}
@@ -108,5 +108,4 @@ struct gmm_result {
   SERIALIZE(n_iter_, likelihood_);
 };
 
-}
 #endif

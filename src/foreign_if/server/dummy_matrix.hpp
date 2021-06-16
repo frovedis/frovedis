@@ -3,7 +3,8 @@
 
 #include "model_tracker.hpp"
 
-namespace frovedis {
+using namespace frovedis;
+
 struct dummy_matrix {
   dummy_matrix() {}
 
@@ -132,5 +133,4 @@ struct csv_config {
             index_col)
 };
 
-}
 #endif

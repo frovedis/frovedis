@@ -1,7 +1,8 @@
 #ifndef _DUMMY_MODEL_HPP_
 #define _DUMMY_MODEL_HPP_
 
-namespace frovedis {
+using namespace frovedis;
+
 struct dummy_glm {
   dummy_glm() {}
   dummy_glm(int id, short kind, size_t nftr, int ncls=2, 
@@ -36,5 +37,4 @@ struct dummy_mfm {
   SERIALIZE(mid, rank, nrow, ncol)
 };
 
-}
 #endif
