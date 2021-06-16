@@ -1,5 +1,6 @@
 #include "exrpc_data_storage.hpp"
 #include "exrpc_dataframe.hpp"
+#include "exrpc_dffunction.hpp"
 
 using namespace frovedis;
 
@@ -77,7 +78,10 @@ void expose_frovedis_dataframe_functions() {
   expose(frov_df_copy_index);
   expose(frov_df_copy_column);
   expose(frov_df_union);
-  expose(frov_df_union2);
   expose(frov_df_set_col_order);
   expose(frov_df_astype);
+  expose(frov_df_abs);
+  expose(frov_df_binary_operation);
+  expose(frov_df_immed_binary_operation);
+  expose(frov_df_fillna);
 }

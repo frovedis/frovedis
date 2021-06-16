@@ -1,8 +1,6 @@
 """
 df.py
 """
-#!/usr/bin/env python
-
 import warnings
 import copy
 import numbers
@@ -28,7 +26,8 @@ from .info import df_to_sparse_info
 from .frovedisColumn import FrovedisColumn
 from .dfoperator import dfoperator
 from .dfutil import union_lists, infer_dtype, add_null_column_and_type_cast, \
-                    infer_column_type_from_first_notna, get_string_typename
+                    infer_column_type_from_first_notna, get_string_typename, \
+                    get_python_scalar_type
 from ..utils import deprecated
 from pandas.core.common import SettingWithCopyWarning
 
@@ -249,7 +248,7 @@ class DataFrame(object):
     DataFrame
     """
 
-    def __init__(self, df=None):
+    def __init__(self, df=None, is_series=False):
         """
         __init__
         """
@@ -257,6 +256,7 @@ class DataFrame(object):
         self.__cols = None
         self.__types = None
         self.index = None
+        self.is_series = is_series
         if df is not None:
             self.load(df)
 
@@ -471,9 +471,9 @@ class DataFrame(object):
         """
         if self.__fdata is not None:
             if isinstance(target, str):
-                return self.select_frovedis_dataframe([target])
+                return self.select_frovedis_dataframe([target], is_series=True)
             elif isinstance(target, list):
-                return self.select_frovedis_dataframe(target)
+                return self.select_frovedis_dataframe(target, is_series=False)
             elif isinstance(target, dfoperator):
                 return self.filter_frovedis_dataframe(target)
             else:
@@ -516,11 +516,11 @@ class DataFrame(object):
             raise RuntimeError(excpt["info"])
         return ret
 
-    def select_frovedis_dataframe(self, targets):
+    def select_frovedis_dataframe(self, targets, is_series=False):
         """
         select_frovedis_dataframe
         """
-        ret = DataFrame()
+        ret = DataFrame(is_series=is_series)
         ret.__cols = copy.deepcopy(targets) #targets is a list
         ret.__types = [0]*len(targets)
         i = 0
@@ -934,6 +934,8 @@ class DataFrame(object):
             return df
         elif isinstance(df, pd.DataFrame):
             return DataFrame(df)
+        elif isinstance(df, pd.Series):
+            return DataFrame(df=pd.DataFrame(df), is_series=True)
         else: 
             raise TypeError("asDF: invalid dataframe type '%s' "
                             "is provided!" % (type(df).__name__))
@@ -1126,8 +1128,9 @@ class DataFrame(object):
         """
         returns a pandas dataframe object from frovedis dataframe
         """
-        if self.__fdata is None:
-            raise ValueError("Operation on invalid frovedis dataframe!")
+        if self.__fdata is None: # empty dataframe case
+            return pd.DataFrame()
+
         cols = copy.deepcopy(self.__cols)
         types = copy.deepcopy(self.__types)
         if self.has_index():
@@ -1885,15 +1888,16 @@ class DataFrame(object):
             ret = ret.add_index("index")
         return None if inplace else ret
 
-    # assumes self doesn't have any index column
-    def copy_index(self, from_df, inplace=False): 
+    def copy_index(self, from_df, inplace=False, overwrite=True): 
         """ copies index column from 'from_df' to self """
-        if self.has_index():
-            raise ValueError("input dataframe already has an index column!")
-
         from_df = DataFrame.asDF(from_df)
         if not from_df.has_index():
             raise ValueError("from_df doesn't have any index column!")
+
+        if self.has_index():
+            if not overwrite and from_df.index.name == self.index.name:
+                raise ValueError("input dataframe already has an index "\
+                                 "column with same name!")
 
         if inplace:   # copy may still take place, if self needs materialize
             ret = self
@@ -2024,8 +2028,8 @@ class DataFrame(object):
             ret.load_dummy(dummy_df["dfptr"], names[0:], types[0:])
         return ret
 
-    def append2(self, other, ignore_index=False, verify_integrity=False,
-                sort=False):
+    def append(self, other, ignore_index=False, verify_integrity=False,
+               sort=False):
         if isinstance(other, DataFrame):
             other = [other]
             is_frov_df = [True]
@@ -2057,7 +2061,7 @@ class DataFrame(object):
         proxies_ptr = proxies.ctypes.data_as(POINTER(c_long))
         verify_integrity = False if ignore_index else verify_integrity
         (host, port) = FrovedisServer.getServerInstance()
-        dummy_df = rpclib.df_union2(host, port, dfs[0].get(), \
+        dummy_df = rpclib.df_union(host, port, dfs[0].get(), \
                                    proxies_ptr, len(proxies),  \
                                    get_string_array_pointer(all_cols), \
                                    len(all_cols), verify_integrity)
@@ -2077,132 +2081,6 @@ class DataFrame(object):
         res.num_row = dummy_df["nrow"]
         if ignore_index:
             res.reset_index(inplace=True, drop=True)
-        return res
-     
-    def append(self, other, ignore_index=False, verify_integrity=False,
-               sort=False):
-        null_replacement = {}
-        null_replacement[DTYPE.DOUBLE] = np.finfo(np.float64).max
-        null_replacement[DTYPE.FLOAT] = np.finfo(np.float32).max
-        null_replacement[DTYPE.ULONG] = np.iinfo(np.int64).max
-        null_replacement[DTYPE.LONG] = np.iinfo(np.int64).max
-        null_replacement[DTYPE.INT] = np.iinfo(np.int32).max
-        null_replacement[DTYPE.STRING] = "NULL"
-        null_replacement[DTYPE.BOOL] = np.iinfo(np.int32).max
-
-        (host, port) = FrovedisServer.getServerInstance()
-        
-        if isinstance(other, FrovedisDataframe):
-            other = [other]
-        elif isinstance(other, list):
-            check = all([ isinstance(e, FrovedisDataframe) for e in other ] )
-            if not check:
-                raise ValueError("append: Unsupported value for 'other'!")
-            other = list(other)
-        else:
-            raise ValueError("append: Unsupported value for 'other'!")        
-
-
-        from collections import OrderedDict
-        all_cols = OrderedDict(zip( self.__cols, self.__types))
-        
-        for df in other:
-            cols = df.columns
-            types = df.get_types()
-            col_type_map = OrderedDict(zip(cols, types))
-            
-            for column in col_type_map:
-                if column in all_cols:
-                    if col_type_map[column] != all_cols[column]:
-                        raise ValueError("append: Conflicting types for column : {0} !\n".format(column))
-            all_cols.update(col_type_map)
-
-        all_cols_names = set(all_cols.keys())
-        bool_cols = set()
-        
-        base_df_col_set = set(self.columns)
-        if base_df_col_set < all_cols_names:
-            base_df = self.copy()
-            diff_cols = [ k for k in all_cols.keys() if k not in base_df_col_set ] # keep order
-
-            for e in diff_cols:
-                if all_cols[e] == DTYPE.BOOL:
-                    base_df.__append_column(e, np.dtype("bool"),
-                                        [null_replacement[all_cols[e]]] * len(base_df))
-                    bool_cols.add(e)
-                else:
-                    base_df[e] = null_replacement[all_cols[e]]
-        else:
-            base_df = self
-
-        for i in range(len(other)):
-            col_set = set(other[i].columns)
-            if col_set < all_cols_names:
-                tmp_df = other[i].copy()
-                diff_cols = [ k for k in all_cols.keys() if k not in col_set ]
-
-                for e in diff_cols:
-                    if all_cols[e] == DTYPE.BOOL:
-                        tmp_df.__append_column(e, np.dtype("bool"),
-                                            [null_replacement[all_cols[e]]] * len(tmp_df))
-                        bool_cols.add(e)
-                    else:
-                        tmp_df[e] = null_replacement[all_cols[e]]
-                other[i] = tmp_df
-
-        # original index names
-        orig_index_names = [base_df.index.name] + [df.index.name for df in other ]
-        res_index_name = "index"
-        if len(set(orig_index_names)) == 1:
-            res_index_name = orig_index_names[0]
-
-        # rename all index, for union
-        base_df.rename_index("tmp_index", inplace=True)
-        for i in range(len(other)):
-            other[i].rename_index("tmp_index", inplace=True)
-
-        proxies = [ e.get() for e in other ]
-        proxies_arr = np.asarray(proxies, dtype=c_long)
-        proxies_ptr = proxies_arr.ctypes.data_as(POINTER(c_long))
-        
-        
-        dummy_df = rpclib.df_union(host, port, base_df.get(), proxies_ptr,
-                                len(proxies), ignore_index, verify_integrity,
-                                sort)
-
-        excpt = rpclib.check_server_exception()
-        if excpt["status"]:
-            raise RuntimeError(excpt["info"])
-        
-        names = dummy_df["names"]
-        types = dummy_df["types"]
-
-        if len(bool_cols) > 0:
-            for i in range( len(names) ):
-                if names[i] in bool_cols:
-                    types[i] = DTYPE.BOOL
-
-        res = DataFrame().load_dummy(dummy_df["dfptr"], names[1:], types[1:])
-        res.index = FrovedisColumn(names[0], types[0]) #setting index
-        res.num_row = dummy_df["nrow"]
-        
-        res.rename_index(res_index_name, inplace=True)
-
-        if ignore_index:
-            res.reset_index(inplace=True, drop=True)
-
-        if sort:
-            col_order = sorted(res.columns)
-            if res.has_index():
-                col_order = [res.index.name] + col_order
-            res.__set_col_order(col_order)
-
-
-        # rename to original indices
-        base_df.rename_index(orig_index_names[0], inplace=True)
-        for i in range(len(other)):
-            other[i].rename_index(orig_index_names[i+1], inplace=True)
-        
         return res
 
     def __set_col_order(self, new_cols):
@@ -2264,6 +2142,384 @@ class DataFrame(object):
         else:
             raise ValueError("column not found: '%s'" % (colname))
         return ret
+
+    def fillna(self, value=None, method=None, axis=None, 
+               inplace=False, limit=None, downcast=None):
+        """ 
+        replaces nulls in each column with given value
+        """
+        if method is not None:
+            raise NotImplementedError("fillna: currently doesn't support "
+                                      "method: '%s'" % method)
+
+        if limit is not None:
+            raise NotImplementedError("fillna: currently doesn't support "
+                                      "limit: '%d'" % limit)
+
+        if downcast is not None:
+            raise NotImplementedError("fillna: currently doesn't support "
+                                      "downcasting!")
+
+        if axis is None:
+            axis = 1 # columns
+        elif axis not in (1, 'columns'):
+            raise NotImplementedError("fillna: can only be performed "\
+                                      "on axis=1 (columns)")
+
+        if value is None: 
+            raise ValueError("fillna: must specify a value")
+        elif value is np.nan:
+            return None if inplace else self.copy() # no need for any replacement
+        elif not np.isscalar(value):
+            raise NotImplementedError("fillna: curreently supports only "\
+                                      "scalar values for 'value' parameter, "\
+                                      "received: '%s'" % type(value).__name__)
+        value = str(value)
+        if inplace:
+            ret = self
+        else:
+            ret = DataFrame(is_series=self.is_series)
+
+        (host, port) = FrovedisServer.getServerInstance()
+        dummy_df = rpclib.df_fillna(host, port, \
+                       self.get(), value.encode('ascii'), \
+                       self.has_index())
+        names = dummy_df["names"]
+        types = dummy_df["types"]
+        ret.num_row = dummy_df["nrow"]
+        if self.has_index():
+            ret.index = FrovedisColumn(names[0], types[0]) #setting index
+            ret.load_dummy(dummy_df["dfptr"], names[1:], types[1:])
+        else:
+            ret.load_dummy(dummy_df["dfptr"], names, types)
+        return None if inplace else ret
+
+    def __binary_operator_impl(self, other, op_type, \
+                               axis='columns', level=None, 
+                               fill_value=None, is_rev=False):
+        """ 
+        implements binary opeartions (+, -, *, /, //, %) of 
+        two dataframes invoking server side operations 
+        """
+        if not self.has_index():
+            raise TypeError(op_type + \
+            ": input dataframe must have index column!")
+
+        if self.get() is None:
+            raise ValueError(op_type + ": invoked on empty dataframe!")
+
+        if DTYPE.STRING in self.get_types(): 
+            raise NotImplementedError(op_type + \
+            ": table contains string column. Arithmetic operations "\
+            "on string column is not supported currently!")
+ 
+        if axis not in (1, 'columns'):
+            raise NotImplementedError(op_type + \
+            ": can only be performed on axis=1 (columns)")
+
+        if fill_value is None or fill_value is np.nan:
+            fillv = "NULL"
+            fillv_dt = "none"
+        elif np.isscalar(fill_value):
+            fillv = str(fill_value)
+            fillv_dt = get_python_scalar_type(fill_value)
+        else:
+            raise NotImplementedError(op_type + \
+            ": supports either None or scalar as for 'fill_value', "\
+            "received: %s" % (fill_value))
+
+        if np.isscalar(other):
+            if not isinstance(other, (numbers.Number, np.integer, \
+                              np.float32, np.float64)): 
+                raise TypeError(op_type + \
+                ": supported type of 'other' parameter is either DataFrame "\
+                "or numbers. Received: '%s'" % type(other).__name__)
+            immed = True
+            immed_val = str(other)
+            immed_dt = get_python_scalar_type(other)
+            is_series = self.is_series
+        elif isinstance(other, (list, np.ndarray)):
+            other = np.asarray(other)
+            is_numeric = all([isinstance(e, numbers.Number) for e in other])
+            if not is_numeric:
+                raise NotImplementedError(op_type + \
+                ": array-like other contains non-numeric values!")
+            if other.ndim != 1:
+                raise ValueError(op_type + \
+                ": multi-dimensional array-like 'other' is not supported!")
+            # below implementation is according to axis = 1
+            nrow = len(self)
+            ncol = len(self.columns)
+            if ncol == 1:
+                if len(other) != nrow:
+                    raise ValueError(op_type + ": Unable to coerce to Series," \
+                                     " length must be %d: given %d"
+                                     % (nrow, len(other)))
+                other = DataFrame(pd.DataFrame(other, columns=self.columns))
+            else:
+                if len(other) != ncol:
+                    raise ValueError(op_type + ": Wrong number of items " \
+                                     "passed %d, placement implies %d" \
+                                     % (len(other), ncol))
+                tmp_df = pd.DataFrame()
+                for i in range(0, ncol):
+                    tmp_df[self.columns[i]] = [other[i]] * nrow
+                other = DataFrame(tmp_df)
+            immed = False
+            is_series = False
+            other.copy_index(self, inplace=True, overwrite=True)
+        else:
+            other = DataFrame.asDF(other)
+            if other.get() is None:
+                raise ValueError(op_type + ": right table is empty!")
+            if DTYPE.STRING in other.get_types(): 
+                raise NotImplementedError(op_type + \
+                ": right table contains string column. Arithmetic operations "\
+                "on string column is not supported currently!")
+            immed = False
+            is_series = self.is_series and other.is_series
+ 
+        (host, port) = FrovedisServer.getServerInstance()
+        # nan values can be generated during pow, div, mod operations
+        # and pandas treats nan values as null
+        if op_type in ("pow", "fdiv", "idiv", "mod"):
+            nan_is_null = True
+        else:
+            nan_is_null = False 
+            
+        if immed:
+            # any operation with immediate value as nan would produce nan
+            if other is np.nan:
+                nan_is_null = True
+            dummy_df = rpclib.df_immed_binary_operation(host, port, \
+                       self.get(), immed_val.encode('ascii'), \
+                       immed_dt.encode('ascii'), \
+                       op_type.encode('ascii'), is_rev, nan_is_null)
+        else:
+            if is_rev:
+                left, right = other, self
+            else:
+                left, right = self, other
+            dummy_df = rpclib.df_binary_operation(host, port, left.get(), \
+                       right.get(), is_series, fillv.encode('ascii'), \
+                       fillv_dt.encode('ascii'), \
+                       op_type.encode('ascii'), nan_is_null)
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
+        ret = DataFrame(is_series=is_series)
+        names = dummy_df["names"]
+        types = dummy_df["types"]
+        ret.index = FrovedisColumn(names[0], types[0]) #setting index
+        ret.num_row = dummy_df["nrow"]
+        ret.load_dummy(dummy_df["dfptr"], names[1:], types[1:])
+        #sorting columns as per pandas result
+        ret.__set_col_order([names[0]] + sorted(names[1:]))
+        return ret
+
+    def abs(self):
+        """ 
+        returns resultant dataframe after performing 
+        absolute value of each column
+        """
+        if not self.has_index():
+            raise TypeError("abs: input dataframe must have index column!")
+
+        if DTYPE.STRING in self.get_types(): 
+            raise TypeError("bad operand type for abs(): 'str'")
+ 
+        (host, port) = FrovedisServer.getServerInstance()
+        dummy_df = rpclib.df_abs(host, port, self.get())
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
+        ret = DataFrame(is_series=self.is_series)
+        names = dummy_df["names"]
+        types = dummy_df["types"]
+        # treatment of bool columns
+        for i in range(0, len(names)):
+            if self.__dict__[names[i]].dtype == DTYPE.BOOL:
+                types[i] = DTYPE.BOOL
+        ret.index = FrovedisColumn(names[0], types[0]) #setting index
+        ret.num_row = dummy_df["nrow"]
+        ret.load_dummy(dummy_df["dfptr"], names[1:], types[1:])
+        return ret
+
+    def add(self, other, axis='columns', level=None, fill_value=None):
+        """ returns resultant dataframe after performing self + other """
+        return self.__binary_operator_impl(other, "add", axis, level, \
+                                           fill_value, is_rev=False)
+
+    def radd(self, other, axis='columns', level=None, fill_value=None):
+        """ returns resultant dataframe after performing other + self"""
+        return self.__binary_operator_impl(other, "add", axis, level, \
+                                           fill_value, is_rev=True)
+
+    def __add__(self, other):
+        """ 
+        overloaded binary operator+ (wrapper of self.add())
+        returns resultant dataframe after adding self + other 
+        """
+        return self.add(other)
+
+    def __IADD__(self, other):
+        """ 
+        overloaded binary operator+= to perform self += other 
+        """
+        self = self.add(other)
+
+    def sub(self, other, axis='columns', level=None, fill_value=None):
+        """ returns resultant dataframe after performing self - other """
+        return self.__binary_operator_impl(other, "sub", axis, level, \
+                                           fill_value, is_rev=False)
+
+    def rsub(self, other, axis='columns', level=None, fill_value=None):
+        """ returns resultant dataframe after performing other - self"""
+        return self.__binary_operator_impl(other, "sub", axis, level, \
+                                           fill_value, is_rev=True)
+
+    def __sub__(self, other):
+        """ 
+        overloaded binary operator- (wrapper of self.sub())
+        returns resultant dataframe after adding self - other 
+        """
+        return self.sub(other)
+
+    def __ISUB__(self, other):
+        """ 
+        overloaded binary operator-= to perform self -= other 
+        """
+        self = self.sub(other)
+
+    def mul(self, other, axis='columns', level=None, fill_value=None):
+        """ returns resultant dataframe after performing self * other """
+        return self.__binary_operator_impl(other, "mul", axis, level, \
+                                           fill_value, is_rev=False)
+
+    def rmul(self, other, axis='columns', level=None, fill_value=None):
+        """ returns resultant dataframe after performing other * self"""
+        return self.__binary_operator_impl(other, "mul", axis, level, \
+                                           fill_value, is_rev=True)
+
+    def __mul__(self, other):
+        """ 
+        overloaded binary operator* (wrapper of self.mul())
+        returns resultant dataframe after adding self * other 
+        """
+        return self.mul(other)
+
+    def __IMUL__(self, other):
+        """ 
+        overloaded binary operator*= to perform self *= other 
+        """
+        self = self.mul(other)
+
+    def truediv(self, other, axis='columns', level=None, fill_value=None):
+        """ returns resultant dataframe after performing self / other """
+        return self.__binary_operator_impl(other, "fdiv", axis, level, \
+                                           fill_value, is_rev=False)
+
+    def rtruediv(self, other, axis='columns', level=None, fill_value=None):
+        """ returns resultant dataframe after performing other / self"""
+        return self.__binary_operator_impl(other, "fdiv", axis, level, \
+                                           fill_value, is_rev=True)
+
+    def div(self, other, axis='columns', level=None, fill_value=None):
+        """ returns resultant dataframe after performing self / other """
+        return self.truediv(other, axis, level, fill_value)
+
+    def rdiv(self, other, axis='columns', level=None, fill_value=None):
+        """ returns resultant dataframe after performing self / other """
+        return self.rtruediv(other, axis, level, fill_value)
+
+    def __div__(self, other):
+        """ 
+        overloaded binary operator/ for python 2.x (wrapper of self.truediv())
+        returns resultant dataframe after adding self / other 
+        """
+        return self.truediv(other)
+
+    def __truediv__(self, other):
+        """ 
+        overloaded binary operator/ (wrapper of self.truediv())
+        returns resultant dataframe after adding self / other 
+        """
+        return self.truediv(other)
+
+    def __IDIV__(self, other):
+        """ 
+        overloaded binary operator/= to perform self /= other 
+        """
+        self = self.truediv(other)
+
+    def floordiv(self, other, axis='columns', level=None, fill_value=None):
+        """ returns resultant dataframe after performing self // other """
+        return self.__binary_operator_impl(other, "idiv", axis, level, \
+                                           fill_value, is_rev=False)
+
+    def rfloordiv(self, other, axis='columns', level=None, fill_value=None):
+        """ returns resultant dataframe after performing other // self"""
+        return self.__binary_operator_impl(other, "idiv", axis, level, \
+                                           fill_value, is_rev=True)
+
+    def __floordiv__(self, other):
+        """ 
+        overloaded binary operator// (wrapper of self.floordiv())
+        returns resultant dataframe after adding self // other 
+        """
+        return self.floordiv(other)
+
+    def __IFLOORDIV__(self, other):
+        """ 
+        overloaded binary operator//= to perform self //= other 
+        """
+        self = self.floordiv(other)
+
+    def mod(self, other, axis='columns', level=None, fill_value=None):
+        """ returns resultant dataframe after performing self % other """
+        return self.__binary_operator_impl(other, "mod", axis, level, \
+                                           fill_value, is_rev=False)
+
+    def rmod(self, other, axis='columns', level=None, fill_value=None):
+        """ returns resultant dataframe after performing other % self"""
+        return self.__binary_operator_impl(other, "mod", axis, level, \
+                                           fill_value, is_rev=True)
+
+    def __mod__(self, other):
+        """ 
+        overloaded binary operator% (wrapper of self.mod())
+        returns resultant dataframe after adding self % other 
+        """
+        return self.mod(other)
+
+    def __IMOD__(self, other):
+        """ 
+        overloaded binary operator%= to perform self %= other 
+        """
+        self = self.mod(other)
+
+    def pow(self, other, axis='columns', level=None, fill_value=None):
+        """ returns resultant dataframe after performing self ** other """
+        return self.__binary_operator_impl(other, "pow", axis, level, \
+                                           fill_value, is_rev=False)
+
+    def rpow(self, other, axis='columns', level=None, fill_value=None):
+        """ returns resultant dataframe after performing other ** self"""
+        return self.__binary_operator_impl(other, "pow", axis, level, \
+                                           fill_value, is_rev=True)
+
+    def __pow__(self, other):
+        """ 
+        overloaded binary operator** (wrapper of self.pow())
+        returns resultant dataframe after adding self ** other 
+        """
+        return self.pow(other)
+
+    def __IPOW__(self, other):
+        """ 
+        overloaded binary operator**= to perform self **= other 
+        """
+        self = self.pow(other)
 
     def __setattr__(self, key, value):
         if key in self.__dict__: # instance attribute

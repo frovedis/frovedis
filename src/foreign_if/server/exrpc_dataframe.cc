@@ -3,6 +3,11 @@
 
 using namespace frovedis;
 
+bool is_present(const std::vector<std::string>& vec,
+                const std::string& val) {
+  return std::find(vec.begin(), vec.end(), val) != vec.end();
+}
+
 dftable* get_dftable_pointer(exrpc_ptr_t& df_proxy) {
   dftable* dftblp = NULL;
   auto base_dftblp = reinterpret_cast<dftable_base*>(df_proxy);
@@ -826,27 +831,8 @@ frov_df_set_index(exrpc_ptr_t& df_proxy,
 dummy_dftable
 frov_df_union(exrpc_ptr_t& df_proxy, 
               std::vector<exrpc_ptr_t>& proxies,
-              bool& ignore_index, 
-              bool& verify_integrity, 
-              bool& sort) {
-  auto dftblp = get_dftable_pointer(df_proxy);
-  auto sz = proxies.size();
-  std::vector<dftable*> other_dfs(sz);
-  for(size_t i = 0; i < sz; ++i) other_dfs[i] = get_dftable_pointer(proxies[i]);
-  bool keep_order = true; // pandas keeps the original order
-  auto union_df = new dftable(dftblp->union_tables(other_dfs, keep_order));
-  if (!ignore_index && verify_integrity) {
-    bool is_uniq = union_df->column("tmp_index")->is_unique();
-    if (!is_uniq) REPORT_ERROR(USER_ERROR, "Indices have overlapping values!\n");
-  }
-  return to_dummy_dftable(union_df);
-}
-
-dummy_dftable
-frov_df_union2(exrpc_ptr_t& df_proxy, 
-               std::vector<exrpc_ptr_t>& proxies,
-               std::vector<std::string>& names, 
-               bool& verify_integrity) {
+              std::vector<std::string>& names, 
+              bool& verify_integrity) {
   auto dftblp = get_dftable_pointer(df_proxy);
   auto sz = proxies.size();
   std::vector<dftable*> other_dfs(sz);
@@ -902,9 +888,12 @@ void copy_column_helper(dftable& to_df,
                         std::string& cname_as,
                         short& dtype) {
   // if cname already exists in 'to_df', it would be replaced
-  auto col = to_df.columns();
-  if (std::find(col.begin(), col.end(), cname_as) != col.end()) 
+  bool exist = false;
+  auto col_order = to_df.columns();
+  if (is_present(col_order, cname_as)) { 
+    exist = true;
     to_df.drop(cname_as);
+  }
   switch(dtype) {
     case INT:    to_df.append_column(cname_as, from_df.as_dvector<int>(cname), 
                                      true); break;
@@ -922,6 +911,8 @@ void copy_column_helper(dftable& to_df,
              std::string("copy: unsupported dtype, '") + STR(dtype) + 
              std::string("' encountered!"));
   }
+  // retaining the position after copy, in case of existing column
+  if (exist) to_df.set_col_order(col_order);
 }
 
 dummy_dftable 
@@ -953,4 +944,47 @@ frov_df_copy_column(exrpc_ptr_t& to_df,
   }
   if (to_df == -1) to_df_p->add_index("index");
   return to_dummy_dftable(to_df_p);
+}
+
+// TODO: make a function of dftable class
+dftable fillna(dftable& df, 
+               std::string& fill_value, 
+               bool has_index) {
+  dftable ret;
+  size_t i = 0;
+  auto cols = df.columns();
+  if (has_index) {
+    i = 1;
+    ret.append_column(cols[0], df.column(cols[0]));
+  }
+  auto fillv = do_cast<double>(fill_value); // might raise exception
+  for (; i < cols.size(); ++i) {
+    auto dfcol = df.column(cols[i]);
+    if (dfcol->dtype() == "int")
+      ret.append_column(cols[i], fillna_column<int>(dfcol, fillv));
+    else if (dfcol->dtype() == "unsigned int")
+      ret.append_column(cols[i], fillna_column<unsigned int>(dfcol, fillv));
+    else if (dfcol->dtype() == "long")
+      ret.append_column(cols[i], fillna_column<long>(dfcol, fillv));
+    else if (dfcol->dtype() == "unsigned long")
+      ret.append_column(cols[i], fillna_column<unsigned long>(dfcol, fillv));
+    else if (dfcol->dtype() == "float")
+      ret.append_column(cols[i], fillna_column<float>(dfcol, fillv));
+    else if (dfcol->dtype() == "double")
+      ret.append_column(cols[i], fillna_column<double>(dfcol, fillv));
+    else {
+      REPORT_ERROR(USER_ERROR,
+      "fillna: unsupported column type: " + dfcol->dtype());
+    }
+  }
+  return ret;
+}
+
+dummy_dftable 
+frov_df_fillna(exrpc_ptr_t& df_proxy, 
+               std::string& fill_value, 
+               bool& has_index) {
+  auto& df = *get_dftable_pointer(df_proxy);
+  auto ret = new dftable(fillna(df, fill_value, has_index));
+  return to_dummy_dftable(ret);
 }

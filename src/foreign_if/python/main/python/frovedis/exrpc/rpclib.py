@@ -406,23 +406,40 @@ df_add_index.restype = py_object
 
 df_union = LIB.df_union
 df_union.argtypes = [c_char_p, c_int, # host, port
-                    c_long, POINTER(c_long), # df_proxy, proxies
-                    c_int, c_bool, # size, ignore_index
-                    c_bool, c_bool] # verify_integrity, sort
+                     c_long, POINTER(c_long), # df_proxy, proxies
+                     c_ulong, POINTER(c_char_p), # size, names
+                     c_ulong, c_bool] # names_size, verify_integrity
 df_union.restype = py_object
-
-df_union2 = LIB.df_union2
-df_union2.argtypes = [c_char_p, c_int, # host, port
-                      c_long, POINTER(c_long), # df_proxy, proxies
-                      c_ulong, POINTER(c_char_p), # size, names
-                      c_ulong, c_bool] # names_size, verify_integrity
-df_union2.restype = py_object
 
 df_set_col_order = LIB.df_set_col_order
 df_set_col_order.argtypes = [c_char_p, c_int, # host, port
                             c_long, POINTER(c_char_p), # df_proxy, new_cols
                             c_ulong] # size
 df_set_col_order.restype = py_object
+
+df_fillna = LIB.df_fillna
+df_fillna.argtypes = [c_char_p, c_int, c_long, # host, port, proxy
+                      c_char_p, c_bool]        # fill_value, has_index
+df_fillna.restype = py_object
+
+df_binary_operation = LIB.df_binary_operation
+df_binary_operation.argtypes = [c_char_p, c_int,        # host, port
+                                c_long, c_long, c_bool, # df1, df2, is_series
+                                c_char_p,               # fillv,
+                                c_char_p, c_char_p,     # fillv_type, op_type
+                                c_bool]                 # nan_is_null
+df_binary_operation.restype = py_object
+
+df_immed_binary_operation = LIB.df_immed_binary_operation
+df_immed_binary_operation.argtypes = [c_char_p, c_int,    # host, port
+                                      c_long, c_char_p,   # df1, immed_val 
+                                      c_char_p, c_char_p, # val_type, op_type
+                                      c_bool, c_bool]     # is_rev, nan_is_null
+df_immed_binary_operation.restype = py_object
+
+df_abs = LIB.df_abs
+df_abs.argtypes = [c_char_p, c_int, c_long] # host, port, proxy
+df_abs.restype = py_object
 
 # --- Frovedis dftable_to_sparse_info ---
 load_dftable_to_sparse_info = LIB.load_dftable_to_sparse_info

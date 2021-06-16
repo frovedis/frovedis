@@ -1,6 +1,7 @@
 #include "python_client_headers.hpp"
 #include "exrpc_data_storage.hpp"
 #include "exrpc_dataframe.hpp"
+#include "exrpc_dffunction.hpp"
 
 extern "C" {
 
@@ -993,33 +994,10 @@ extern "C" {
     return to_py_dummy_df(ret);
   }
 
-  PyObject* df_union(const char* host, int port, long df_proxy,
-                    long* proxies, int size, bool ignore_index,
-                    bool verify_integrity, bool sort) {
-    ASSERT_PTR(host);
-    exrpc_node fm_node(host, port);
-    auto df_proxy_ = static_cast<exrpc_ptr_t> (df_proxy);
-
-    std::vector<exrpc_ptr_t> proxies_(size);
-    for(size_t i = 0; i < size; ++i) {
-      proxies_[i] = static_cast<exrpc_ptr_t>(proxies[i]);
-    }
-
-    dummy_dftable res;
-    try {
-      res = exrpc_async(fm_node, frov_df_union, df_proxy_, proxies_,
-                      ignore_index, verify_integrity, sort).get();
-    }
-    catch (std::exception& e) {
-      set_status(true, e.what());
-    }
-    return to_py_dummy_df(res);
-  }
-
- PyObject* df_union2(const char* host, int port, long df_proxy,
-                     long* proxies, ulong size, 
-                     const char** names, ulong names_size, 
-                     bool verify_integrity) {
+ PyObject* df_union(const char* host, int port, long df_proxy,
+                    long* proxies, ulong size, 
+                    const char** names, ulong names_size, 
+                    bool verify_integrity) {
     ASSERT_PTR(host);
     exrpc_node fm_node(host, port);
     auto df_proxy_ = static_cast<exrpc_ptr_t> (df_proxy);
@@ -1030,7 +1008,7 @@ extern "C" {
     }
     dummy_dftable res;
     try {
-      res = exrpc_async(fm_node, frov_df_union2, df_proxy_, proxies_,
+      res = exrpc_async(fm_node, frov_df_union, df_proxy_, proxies_,
                         names_, verify_integrity).get();
     }
     catch (std::exception& e) {
@@ -1057,4 +1035,80 @@ extern "C" {
     return to_py_dummy_df(res);
   }
 
+  PyObject* df_binary_operation(const char* host, int port, 
+                                long df_proxy1, long df_proxy2,
+                                bool is_series,
+                                const char* fill_value,
+                                const char* fill_value_dtype,
+                                const char* op_type,
+                                bool nan_is_null) {
+    ASSERT_PTR(host);
+    exrpc_node fm_node(host, port);
+    auto df_proxy_1 = static_cast<exrpc_ptr_t>(df_proxy1);
+    auto df_proxy_2 = static_cast<exrpc_ptr_t>(df_proxy2);
+    std::string fillv(fill_value), fillv_dt(fill_value_dtype), opt(op_type);
+    dummy_dftable res;
+    try {
+      res = exrpc_async(fm_node, frov_df_binary_operation, 
+                        df_proxy_1, df_proxy_2,
+                        is_series, fillv, fillv_dt, opt, nan_is_null).get();
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return to_py_dummy_df(res);
+  }
+
+  PyObject* df_immed_binary_operation(const char* host, int port,
+                                      long df_proxy1,
+                                      const char* immed_value,
+                                      const char* value_type,
+                                      const char* op_type,
+                                      bool is_reversed,
+                                      bool nan_is_null) {
+    ASSERT_PTR(host);
+    exrpc_node fm_node(host, port);
+    auto df_proxy_1 = static_cast<exrpc_ptr_t>(df_proxy1);
+    std::string val(immed_value), vtype(value_type), opt(op_type);
+    dummy_dftable res;
+    try {
+      res = exrpc_async(fm_node, frov_df_immed_binary_operation,
+                        df_proxy_1, val, vtype, opt, 
+                        is_reversed, nan_is_null).get();
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return to_py_dummy_df(res);
+  }
+
+  PyObject* df_abs(const char* host, int port, long df_proxy) {
+    ASSERT_PTR(host);
+    exrpc_node fm_node(host, port);
+    auto df_proxy_ = static_cast<exrpc_ptr_t>(df_proxy);
+    dummy_dftable res;
+    try {
+      res = exrpc_async(fm_node, frov_df_abs, df_proxy_).get();
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return to_py_dummy_df(res);
+  }
+
+  PyObject* df_fillna(const char* host, int port, long df_proxy,
+                      const char* fill_value, bool has_index) {
+    ASSERT_PTR(host);
+    exrpc_node fm_node(host, port);
+    auto df_proxy_ = static_cast<exrpc_ptr_t>(df_proxy);
+    std::string fillv(fill_value);
+    dummy_dftable res;
+    try {
+      res = exrpc_async(fm_node, frov_df_fillna, df_proxy_, fillv, has_index).get();
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return to_py_dummy_df(res);
+  }
 }

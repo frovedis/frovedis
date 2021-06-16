@@ -10,24 +10,57 @@
 
 using namespace frovedis;
 
+bool is_present(const std::vector<std::string>& vec,
+                const std::string& val);
+
+dftable* get_dftable_pointer(exrpc_ptr_t& df_proxy);
+
+template <class T>
+exrpc_ptr_t get_df_column_pointer(exrpc_ptr_t& df_proxy, 
+                                  std::string& cname) {
+  auto& df = *reinterpret_cast<dftable_base*>(df_proxy);
+  auto cptr = new dvector<T>(df.as_dvector<T>(cname));
+  return reinterpret_cast<exrpc_ptr_t>(cptr);
+}
+
+template <class T>
+std::vector<T>
+fillna_column_helper(std::vector<T>& val,
+                     std::vector<size_t>& nulls,
+                     T fillv) {
+  std::vector<T> ret = val;
+  auto rptr = ret.data();
+  auto nptr = nulls.data();
+  auto nullsz = nulls.size();
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+  for(size_t i = 0; i < nullsz; ++i) rptr[nptr[i]] = fillv;
+  return ret;
+}
+
+// TODO: make a function of dfcolumn class
+template <class T, class V>
+std::shared_ptr<dfcolumn>
+fillna_column(std::shared_ptr<dfcolumn>& dfcol, V fill_value) {
+  std::shared_ptr<dfcolumn> ret;
+  auto c1 = std::dynamic_pointer_cast<typed_dfcolumn<T>>(dfcol);
+  if (c1->contain_nulls) {
+    auto fillv = static_cast<T>(fill_value);
+    auto newval = c1->val.map(fillna_column_helper<T>,
+                              c1->nulls, broadcast(fillv));
+    auto dvval = newval.template moveto_dvector<T>();
+    ret = std::make_shared<typed_dfcolumn<T>>(std::move(dvval));
+  }
+  else ret = dfcol;
+  return ret;
+}
+
 exrpc_ptr_t create_dataframe (std::vector<short>& types,
                               std::vector<std::string>& cols,
                               std::vector<exrpc_ptr_t>& dvec_proxies);
 
 void show_dataframe(exrpc_ptr_t& df_proxy); 
-
-// convert a numeric string to number
-template <class T>
-T cast (std::string& data) {
-  T c_data = 0;
-  try {
-    c_data = boost::lexical_cast<T>(data);
-  }
-  catch (const boost::bad_lexical_cast &excpt) {
-    REPORT_ERROR(USER_ERROR, "Invalid operands in filter operation: " + data);
-  }
-  return c_data;
-}
 
 template <class T>
 exrpc_ptr_t get_dfoperator(std::string& op1, std::string& op2,
@@ -36,7 +69,7 @@ exrpc_ptr_t get_dfoperator(std::string& op1, std::string& op2,
   // op2 would be treated as pattern, instead of immediate value in case of LIKE/NLIKE
   if(op_id == LIKE || op_id == NLIKE) isImmed = false;
   if(isImmed) {
-    auto data = cast<T>(op2);
+    auto data = do_cast<T>(op2);
     switch(op_id) {
         case EQ: opt = new std::shared_ptr<dfoperator>(eq_im<T>(op1,data)); break;
         case NE: opt = new std::shared_ptr<dfoperator>(neq_im<T>(op1,data)); break;
@@ -70,13 +103,9 @@ exrpc_ptr_t get_str_dfoperator(std::string& op1, std::string& op2,
                                short& op_id, bool& isImmed); 
 
 exrpc_ptr_t get_dfANDoperator(exrpc_ptr_t& lopt_proxy, exrpc_ptr_t& ropt_proxy);
-
 exrpc_ptr_t get_dfORoperator(exrpc_ptr_t& lopt_proxy, exrpc_ptr_t& ropt_proxy);
-
 exrpc_ptr_t get_dfNOToperator(exrpc_ptr_t& opt_proxy);
-
 exrpc_ptr_t filter_df(exrpc_ptr_t& df_proxy, exrpc_ptr_t& opt_proxy);
-
 exrpc_ptr_t select_df(exrpc_ptr_t& df_proxy, std::vector<std::string>& cols);
 exrpc_ptr_t isnull_df(exrpc_ptr_t& df_proxy, std::vector<std::string>& cols);
 void drop_df_cols(exrpc_ptr_t& df_proxy, std::vector<std::string>& cols);
@@ -221,14 +250,10 @@ frov_df_drop_duplicates(exrpc_ptr_t& df_proxy,
                         std::string& keep);
 
 dummy_dftable
-frov_df_union(exrpc_ptr_t& df_proxy, std::vector<exrpc_ptr_t>& proxies,
-              bool& ignore_index, bool& verify_integrity, bool& sort);
-
-dummy_dftable
-frov_df_union2(exrpc_ptr_t& df_proxy, 
-               std::vector<exrpc_ptr_t>& proxies,
-               std::vector<std::string>& names, 
-               bool& verify_integrity);
+frov_df_union(exrpc_ptr_t& df_proxy, 
+              std::vector<exrpc_ptr_t>& proxies,
+              std::vector<std::string>& names, 
+              bool& verify_integrity);
 
 dummy_dftable
 frov_df_astype(exrpc_ptr_t& df_proxy,
@@ -238,8 +263,6 @@ frov_df_astype(exrpc_ptr_t& df_proxy,
 dummy_dftable
 frov_df_set_col_order(exrpc_ptr_t& df_proxy,
                       std::vector<std::string>& new_cols);
-
-dftable* get_dftable_pointer(exrpc_ptr_t& df_proxy);
 
 void copy_column_helper(dftable& to_df,
                         dftable_base& from_df,
@@ -259,12 +282,13 @@ frov_df_copy_column(exrpc_ptr_t& to_df,
                     std::vector<std::string>& names_as,
                     std::vector<short>& dtypes); 
 
-template <class T>
-exrpc_ptr_t get_df_column_pointer(exrpc_ptr_t& df_proxy, 
-                                  std::string& cname) {
-  auto& df = *reinterpret_cast<dftable_base*>(df_proxy);
-  auto cptr = new dvector<T>(df.as_dvector<T>(cname));
-  return reinterpret_cast<exrpc_ptr_t>(cptr);
-}
+dftable fillna(dftable& df, 
+	       std::string& fill_value, 
+	       bool has_index);
+
+dummy_dftable 
+frov_df_fillna(exrpc_ptr_t& df_proxy, 
+               std::string& fill_value, 
+               bool& has_index);
 
 #endif
