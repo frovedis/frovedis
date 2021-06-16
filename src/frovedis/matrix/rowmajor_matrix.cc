@@ -99,4 +99,129 @@ void make_rowmajor_matrix_local_parseline(std::string& line,
   }
 }
 
+template <>
+void make_rowmajor_matrix_local_parseline(std::string& line,
+                                          std::vector<unsigned int>& retval,
+                                          size_t& width) {
+  char* s = const_cast<char*>(line.c_str());
+  if(width == 0) {
+    while(*s != '\0') {
+      char* next;
+      unsigned int val = strtol(s, &next, 10);
+      if(next == s) break;
+      retval.push_back(val);
+      s = next;
+      width++;
+    }
+  } else {
+    while(*s != '\0') {
+      char* next;
+      unsigned int val = strtol(s, &next, 10);
+      if(next == s) break;
+      retval.push_back(val);
+      s = next;
+    }
+  }
+}
+
+template <>
+void make_rowmajor_matrix_local_parseline(std::string& line,
+                                          std::vector<long>& retval,
+                                          size_t& width) {
+  char* s = const_cast<char*>(line.c_str());
+  if(width == 0) {
+    while(*s != '\0') {
+      char* next;
+      long val = strtol(s, &next, 10);
+      if(next == s) break;
+      retval.push_back(val);
+      s = next;
+      width++;
+    }
+  } else {
+    while(*s != '\0') {
+      char* next;
+      long val = strtol(s, &next, 10);
+      if(next == s) break;
+      retval.push_back(val);
+      s = next;
+    }
+  }
+}
+
+template <>
+void make_rowmajor_matrix_local_parseline(std::string& line,
+                                          std::vector<unsigned long>& retval,
+                                          size_t& width) {
+  char* s = const_cast<char*>(line.c_str());
+  if(width == 0) {
+    while(*s != '\0') {
+      char* next;
+      unsigned long val = strtol(s, &next, 10);
+      if(next == s) break;
+      retval.push_back(val);
+      s = next;
+      width++;
+    }
+  } else {
+    while(*s != '\0') {
+      char* next;
+      unsigned long val = strtol(s, &next, 10);
+      if(next == s) break;
+      retval.push_back(val);
+      s = next;
+    }
+  }
+}
+
+template <>
+void make_rowmajor_matrix_local_parseline(std::string& line,
+                                          std::vector<long long>& retval,
+                                          size_t& width) {
+  char* s = const_cast<char*>(line.c_str());
+  if(width == 0) {
+    while(*s != '\0') {
+      char* next;
+      long long val = strtoll(s, &next, 10);
+      if(next == s) break;
+      retval.push_back(val);
+      s = next;
+      width++;
+    }
+  } else {
+    while(*s != '\0') {
+      char* next;
+      long long val = strtoll(s, &next, 10);
+      if(next == s) break;
+      retval.push_back(val);
+      s = next;
+    }
+  }
+}
+
+template <>
+void make_rowmajor_matrix_local_parseline(std::string& line,
+                                          std::vector<unsigned long long>& retval,
+                                          size_t& width) {
+  char* s = const_cast<char*>(line.c_str());
+  if(width == 0) {
+    while(*s != '\0') {
+      char* next;
+      unsigned long long val = strtoll(s, &next, 10);
+      if(next == s) break;
+      retval.push_back(val);
+      s = next;
+      width++;
+    }
+  } else {
+    while(*s != '\0') {
+      char* next;
+      unsigned long long val = strtoll(s, &next, 10);
+      if(next == s) break;
+      retval.push_back(val);
+      s = next;
+    }
+  }
+}
+
 }

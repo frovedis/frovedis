@@ -289,7 +289,33 @@ template <>
 void make_rowmajor_matrix_local_parseline(std::string&, std::vector<float>&,
                                           size_t&);
 template <>
-void make_rowmajor_matrix_local_parseline(std::string&, std::vector<int>&,
+void make_rowmajor_matrix_local_parseline(std::string&,
+                                          std::vector<int>&,
+                                          size_t&);
+
+template <>
+void make_rowmajor_matrix_local_parseline(std::string&,
+                                          std::vector<unsigned int>&,
+                                          size_t&);
+
+template <>
+void make_rowmajor_matrix_local_parseline(std::string&,
+                                          std::vector<long>&,
+                                          size_t&);
+
+template <>
+void make_rowmajor_matrix_local_parseline(std::string&,
+                                          std::vector<unsigned long>&,
+                                          size_t&);
+
+template <>
+void make_rowmajor_matrix_local_parseline(std::string&,
+                                          std::vector<long long>&,
+                                          size_t&);
+
+template <>
+void make_rowmajor_matrix_local_parseline(std::string&,
+                                          std::vector<unsigned long long>&,
                                           size_t&);
 
 template <class T>

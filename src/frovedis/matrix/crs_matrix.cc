@@ -18,6 +18,32 @@ int strtox<int>(char* s, char** next) {
   return strtol(s, next, 10);
 }
 
+template <>
+unsigned int strtox<unsigned int>(char* s, char** next) {
+  return strtol(s, next, 10);
+}
+
+template <>
+long strtox<long>(char* s, char** next) {
+  return strtol(s, next, 10);
+}
+
+template <>
+unsigned long strtox<unsigned long>(char* s, char** next) {
+  return strtol(s, next, 10);
+}
+
+template <>
+long long strtox<long long>(char* s, char** next) {
+  return strtoll(s, next, 10);
+}
+
+template <>
+unsigned long long strtox<unsigned long long>(char* s, char** next) {
+  return strtoll(s, next, 10);
+}
+
+
 #ifdef __ve__
 
 void crs_matrix_split_val_idx(const std::vector<int>& v,

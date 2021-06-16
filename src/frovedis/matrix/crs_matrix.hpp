@@ -646,6 +646,21 @@ double strtox<double>(char* s, char** next);
 template <>
 int strtox<int>(char* s, char** next);
 
+template <>
+unsigned int strtox<unsigned int>(char* s, char** next);
+
+template <>
+long strtox<long>(char* s, char** next);
+
+template <>
+unsigned long strtox<unsigned long>(char* s, char** next);
+
+template <>
+long long strtox<long long>(char* s, char** next);
+
+template <>
+unsigned long long strtox<unsigned long long>(char* s, char** next);
+
 template <class T, class I, class O>
 void make_crs_matrix_local_parseline(const std::string& line,
                                      crs_matrix_local<T,I,O>& ret) {
