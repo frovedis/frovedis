@@ -230,6 +230,10 @@ public:
     throw std::runtime_error("sub_im is not supported for this type");
   }
   virtual std::shared_ptr<dfcolumn>
+  rsub_im(const std::shared_ptr<dfscalar>& right) {
+    throw std::runtime_error("rsub_im is not supported for this type");
+  }
+  virtual std::shared_ptr<dfcolumn>
   mul(const std::shared_ptr<dfcolumn>& right) {
     throw std::runtime_error("mul is not supported for this type");
   }
@@ -246,6 +250,10 @@ public:
     throw std::runtime_error("fdiv_im is not supported for this type");
   }
   virtual std::shared_ptr<dfcolumn>
+  rfdiv_im(const std::shared_ptr<dfscalar>& right) {
+    throw std::runtime_error("rfdiv_im is not supported for this type");
+  }
+  virtual std::shared_ptr<dfcolumn>
   idiv(const std::shared_ptr<dfcolumn>& right) {
     throw std::runtime_error("idiv is not supported for this type");
   }
@@ -254,12 +262,32 @@ public:
     throw std::runtime_error("idiv_im is not supported for this type");
   }
   virtual std::shared_ptr<dfcolumn>
+  ridiv_im(const std::shared_ptr<dfscalar>& right) {
+    throw std::runtime_error("ridiv_im is not supported for this type");
+  }
+  virtual std::shared_ptr<dfcolumn>
   mod(const std::shared_ptr<dfcolumn>& right) {
     throw std::runtime_error("mod is not supported for this type");
   }
   virtual std::shared_ptr<dfcolumn>
   mod_im(const std::shared_ptr<dfscalar>& right) {
     throw std::runtime_error("mod_im is not supported for this type");
+  }
+  virtual std::shared_ptr<dfcolumn>
+  rmod_im(const std::shared_ptr<dfscalar>& right) {
+    throw std::runtime_error("rmod_im is not supported for this type");
+  }
+  virtual std::shared_ptr<dfcolumn>
+  pow(const std::shared_ptr<dfcolumn>& right) {
+    throw std::runtime_error("pow is not supported for this type");
+  }
+  virtual std::shared_ptr<dfcolumn>
+  pow_im(const std::shared_ptr<dfscalar>& right) {
+    throw std::runtime_error("pow_im is not supported for this type");
+  }
+  virtual std::shared_ptr<dfcolumn>
+  rpow_im(const std::shared_ptr<dfscalar>& right) {
+    throw std::runtime_error("rpow_im is not supported for this type");
   }
   virtual std::shared_ptr<dfcolumn>
   abs() {throw std::runtime_error("abs is not supported for this type");}
@@ -492,6 +520,11 @@ public:
   template <class U>
   std::shared_ptr<dfcolumn>
   typed_sub_im(const std::shared_ptr<typed_dfscalar<U>>& right);
+  virtual std::shared_ptr<dfcolumn>
+  rsub_im(const std::shared_ptr<dfscalar>& right);
+  template <class U>
+  std::shared_ptr<dfcolumn>
+  typed_rsub_im(const std::shared_ptr<typed_dfscalar<U>>& right);
   virtual std::shared_ptr<dfcolumn> mul(const std::shared_ptr<dfcolumn>& right);
   template <class U>
   std::shared_ptr<dfcolumn>
@@ -511,6 +544,11 @@ public:
   template <class U>
   std::shared_ptr<dfcolumn>
   typed_fdiv_im(const std::shared_ptr<typed_dfscalar<U>>& right);
+  virtual std::shared_ptr<dfcolumn>
+  rfdiv_im(const std::shared_ptr<dfscalar>& right);
+  template <class U>
+  std::shared_ptr<dfcolumn>
+  typed_rfdiv_im(const std::shared_ptr<typed_dfscalar<U>>& right);
   virtual std::shared_ptr<dfcolumn> 
   idiv(const std::shared_ptr<dfcolumn>& right);
   template <class U>
@@ -521,6 +559,11 @@ public:
   template <class U>
   std::shared_ptr<dfcolumn>
   typed_idiv_im(const std::shared_ptr<typed_dfscalar<U>>& right);
+  virtual std::shared_ptr<dfcolumn>
+  ridiv_im(const std::shared_ptr<dfscalar>& right);
+  template <class U>
+  std::shared_ptr<dfcolumn>
+  typed_ridiv_im(const std::shared_ptr<typed_dfscalar<U>>& right);
   virtual std::shared_ptr<dfcolumn> mod(const std::shared_ptr<dfcolumn>& right);
   template <class U>
   std::shared_ptr<dfcolumn>
@@ -530,6 +573,25 @@ public:
   template <class U>
   std::shared_ptr<dfcolumn>
   typed_mod_im(const std::shared_ptr<typed_dfscalar<U>>& right);
+  virtual std::shared_ptr<dfcolumn>
+  rmod_im(const std::shared_ptr<dfscalar>& right);
+  template <class U>
+  std::shared_ptr<dfcolumn>
+  typed_rmod_im(const std::shared_ptr<typed_dfscalar<U>>& right);
+  virtual std::shared_ptr<dfcolumn> pow(const std::shared_ptr<dfcolumn>& right);
+  template <class U>
+  std::shared_ptr<dfcolumn>
+  typed_pow(const std::shared_ptr<typed_dfcolumn<U>>& right);
+  virtual std::shared_ptr<dfcolumn>
+  pow_im(const std::shared_ptr<dfscalar>& right);
+  template <class U>
+  std::shared_ptr<dfcolumn>
+  typed_pow_im(const std::shared_ptr<typed_dfscalar<U>>& right);
+  virtual std::shared_ptr<dfcolumn>
+  rpow_im(const std::shared_ptr<dfscalar>& right);
+  template <class U>
+  std::shared_ptr<dfcolumn>
+  typed_rpow_im(const std::shared_ptr<typed_dfscalar<U>>& right);
 
   virtual std::shared_ptr<dfcolumn> abs();
   virtual void debug_print();
@@ -1678,6 +1740,6 @@ get_null_like_positions (std::vector<T>& col) {
 template <>
 std::vector<size_t>
 get_null_like_positions (std::vector<std::string>& col);
-}
 
+}
 #endif
