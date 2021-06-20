@@ -1,6 +1,7 @@
 """Frovedis word2vec python module"""
 
 import os
+import shutil
 import fnmatch
 from types import GeneratorType
 import numpy as np
@@ -8,6 +9,7 @@ from collections import Iterable
 from ...exrpc.server import FrovedisServer
 from ...exrpc.rpclib import w2v_build_vocab_and_dump, w2v_train
 from ...exrpc.rpclib import check_server_exception
+from ..model_util import ModelID
 
 class w2v_result(object):
     """ contains python dictionary having word2vec result """
@@ -86,8 +88,12 @@ class Word2Vec:
         self.messageSize = messageSize
         self.numThreads = numThreads
         # extra
+        if "FROVEDIS_TMPDIR" in os.environ:
+            tmpdir = os.environ["FROVEDIS_TMPDIR"] + "/frovedis_w2v_dump_"
+        else:
+            tmpdir = "/var/tmp/frovedis_w2v_dump_"
+        self.wpath = tmpdir + str(os.getpid()) + "_" + str(ModelID.get())
         self.wv = None
-        self.wpath = "frovedis-warehouse/w2v"
         self.outDirPath = None
         self.__encodePath = None
         self.__vocabPath = None
@@ -291,3 +297,11 @@ class Word2Vec:
         return self.fit(corpusIterable=corpusIterable, corpusFile=corpusFile).\
                     transform(corpusIterable=corpusIterable,
                              corpusFile=corpusFile, func=func)
+
+    def __del__(self):
+        """
+        destructs the python object, removes wpath
+        """
+        if os.path.exists(self.wpath):
+            #print("removing: " + self.wpath)
+            shutil.rmtree(self.wpath)
