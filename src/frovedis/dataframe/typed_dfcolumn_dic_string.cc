@@ -1179,4 +1179,18 @@ size_t typed_dfcolumn<dic_string>::calc_spill_size() {
   return valsize * sizeof(size_t) + nullsize * sizeof(size_t);
 }
 
+std::shared_ptr<dfcolumn>
+typed_dfcolumn<dic_string>::type_cast(const std::string& to_type) {
+  std::shared_ptr<dfcolumn> ret;
+  if(to_type == "boolean") {
+    auto ddic = dic->get(0).decompress();
+    auto b_words_to_bool_map = broadcast(words_to_bool(ddic));
+    auto newcol = b_words_to_bool_map.map(vector_take<int,int>, val);
+    ret = std::make_shared<typed_dfcolumn<int>>(std::move(newcol), nulls);
+  } else {
+    throw std::runtime_error("dic_string column doesn't support casting to: " + to_type);
+  }
+  return ret;
+}
+
 }

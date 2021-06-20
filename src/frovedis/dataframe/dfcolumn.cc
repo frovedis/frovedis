@@ -866,4 +866,75 @@ void dfcolumn_spill_queue_t::spill_until_capacity() {
   }
 }
 
+std::vector<int>
+words_to_bool(words& w) {
+  auto nwords = w.lens.size();
+  std::vector<int> word_to_bool_map(nwords);
+  auto map_ptr = word_to_bool_map.data();
+  auto charsp = w.chars.data();
+  auto lensp = w.lens.data();
+  auto startsp = w.starts.data();
+  for(size_t i = 0; i < nwords; ++i) {
+    auto len = lensp[i];
+    auto st = startsp[i];
+    int tf = -1;
+    if (len == 1) {
+      if ((charsp[st + 0] == 89 || charsp[st + 0] == 121) ||         // Y or y
+          (charsp[st + 0] == 84 || charsp[st + 0] == 116) ||         // T or t
+          (charsp[st + 0] == 49)) {                                  // 1
+        tf = 1; 
+      } else if ((charsp[st + 0] == 78 || charsp[st + 0] == 110) ||  // N or n
+                 (charsp[st + 0] == 70 || charsp[st + 0] == 102) ||  // F or f
+                 (charsp[st + 0] == 48)) {                           // 0
+        tf = 0; 
+      }
+    } else if (len == 2) {
+      if ((charsp[st + 0] == 79 || charsp[st + 0] == 111) &&
+          (charsp[st + 1] == 78 || charsp[st + 1] == 110)) {         // ON
+        tf = 1; 
+      } else if ((charsp[st + 0] == 78 || charsp[st + 0] == 110) &&
+                 (charsp[st + 1] == 79 || charsp[st + 1] == 111)) {  // NO
+        tf = 0; 
+      }
+    } else if (len == 3) {
+      if ((charsp[st + 0] == 89 || charsp[st + 0] == 121) &&
+          (charsp[st + 1] == 69 || charsp[st + 1] == 101) &&
+          (charsp[st + 2] == 83 || charsp[st + 2] == 115)) {         // YES
+        tf = 1; 
+      } else if ((charsp[st + 0] == 79 || charsp[st + 0] == 111) &&
+                 (charsp[st + 1] == 70 || charsp[st + 1] == 102) && 
+                 (charsp[st + 2] == 70 || charsp[st + 2] == 102)) {  // OFF
+        tf = 0;
+      }
+    } else if (len == 4) {                                           // TRUE
+      int T = charsp[st + 0] == 84 || charsp[st + 0] == 116;
+      int R = charsp[st + 1] == 82 || charsp[st + 1] == 114;
+      int U = charsp[st + 2] == 85 || charsp[st + 2] == 117;
+      int E = charsp[st + 3] == 69 || charsp[st + 3] == 101;
+      if (T & R & U & E) tf = 1;
+    } else if (len == 5) {                                           // FALSE
+      int F = charsp[st + 0] == 70 || charsp[st + 0] == 102;
+      int A = charsp[st + 1] == 65 || charsp[st + 1] == 97;
+      int L = charsp[st + 2] == 76 || charsp[st + 2] == 108;
+      int S = charsp[st + 3] == 83 || charsp[st + 3] == 115;
+      int E = charsp[st + 4] == 69 || charsp[st + 4] == 101;
+      if (F & A & L & S & E) tf = 0;
+    }
+    map_ptr[i] = tf;
+  }
+
+  // would be short loop -> no need for vector_find_eq()
+  for(size_t i = 0; i < nwords; ++i) {
+    if (map_ptr[i] == -1) {
+      auto len = lensp[i];
+      auto st = startsp[i];
+      std::string str;
+      str.resize(len);
+      int_to_char(charsp + st, len, const_cast<char*>(str.data()));
+      REPORT_ERROR(USER_ERROR, "parsed string: '" + str + "' cannot be read as true/false");
+    }
+  }
+  return word_to_bool_map;
+}
+
 }

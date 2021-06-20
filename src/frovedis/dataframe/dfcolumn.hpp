@@ -681,6 +681,11 @@ void reset_null_val(const std::vector<T>& nulls,
 words dfcolumn_string_as_words_helper(const std::vector<std::string>& str,
                                       const std::vector<size_t>& nulls,
                                       const std::string& nullstr);
+
+// defined in dfcolumn.cc: used for conversion of 
+// words (dictionary) (having true/false like strings) to int (1/0)
+std::vector<int> words_to_bool(words& w);
+
 template <>
 class typed_dfcolumn<std::string> : public dfcolumn {
 public:
@@ -863,6 +868,7 @@ public:
   virtual std::shared_ptr<dfcolumn> 
   multi_group_by_exchange(node_local<std::vector<std::vector<size_t>>>&
                           hash_divide);
+  virtual std::shared_ptr<dfcolumn> type_cast(const std::string& to_type);
   virtual std::shared_ptr<dfcolumn>
   sum(node_local<std::vector<size_t>>& local_grouped_idx,
       node_local<std::vector<size_t>>& local_idx_split,
@@ -1139,6 +1145,7 @@ public:
   virtual std::shared_ptr<dfcolumn> 
   multi_group_by_exchange(node_local<std::vector<std::vector<size_t>>>&
                           hash_divide);
+  virtual std::shared_ptr<dfcolumn> type_cast(const std::string& to_type);
   virtual std::shared_ptr<dfcolumn>
   sum(node_local<std::vector<size_t>>& local_grouped_idx,
       node_local<std::vector<size_t>>& local_idx_split,
