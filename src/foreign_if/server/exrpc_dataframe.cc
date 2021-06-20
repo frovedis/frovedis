@@ -525,7 +525,8 @@ void release_sparse_conversion_info(long& info_id) {
 }
 
 // multi-eq dfopt
-exrpc_ptr_t frov_multi_eq_dfopt(std::vector<std::string>& left_cols, std::vector<std::string>& right_cols) {
+exrpc_ptr_t frov_multi_eq_dfopt(std::vector<std::string>& left_cols, 
+                                std::vector<std::string>& right_cols) {
   std::shared_ptr<dfoperator> *opt = NULL;
   checkAssumption(left_cols.size() == right_cols.size())
   // single key join
@@ -545,49 +546,69 @@ exrpc_ptr_t frov_cross_join_dfopt() {
 }
 
 std::vector<int>
-dicstring_id_to_bool(std::vector<size_t>& vec, std::vector<int>& bool_val_map){
-  auto sz = vec.size();
-  std::vector<int> ret(sz);
-  for(size_t i=0; i<sz; i++) ret[i] = bool_val_map[vec[i]];
+string_to_bool_column_helper(const std::vector<size_t>& val, 
+                             const std::vector<size_t>& nulls,
+                             words& w) {
+  auto num = val.size();
+  std::vector<int> ret(num);
+  auto vptr = val.data();
+  auto rptr = ret.data();
+  auto charsp = w.chars.data();
+  auto lensp = w.lens.data();
+  auto startsp = w.starts.data();
+  // parsing strings to detect case-insensitive true/false
+  for(size_t i = 0; i < num; ++i) {
+    auto word_idx = vptr[i];
+    auto st = startsp[word_idx];
+    auto len = lensp[word_idx];
+    int ret = -1;
+    if (len == 4) {
+      int T = charsp[st] == 84 || charsp[st] == 116;
+      int R = charsp[st + 1] == 82 || charsp[st + 1] == 114;
+      int U = charsp[st + 2] == 85 || charsp[st + 2] == 117;
+      int E = charsp[st + 3] == 69 || charsp[st + 3] == 101;
+      if (T & R & U & E) ret = 1;
+    } else if (len == 5) {
+      int F = charsp[st] == 70 || charsp[st] == 102;
+      int A = charsp[st + 1] == 65 || charsp[st + 1] == 97;
+      int L = charsp[st + 2] == 76 || charsp[st + 2] == 108;
+      int S = charsp[st + 3] == 83 || charsp[st + 3] == 115;
+      int E = charsp[st + 4] == 69 || charsp[st + 4] == 101;
+      if (F & A & L & S & E) ret = 0;
+    }
+    rptr[i] = ret;
+  }
+  // resets values for null indices
+  reset_null(ret, nulls);
+  // checks for parsing error: any value which is different than true/false
+  auto err = vector_find_eq(ret, -1);
+  if (!err.empty()) {
+    auto first_error_word_idx = vptr[err[0]];
+    auto len = lensp[first_error_word_idx];
+    auto st = startsp[first_error_word_idx];
+    std::string str;
+    str.resize(len);
+    int_to_char(charsp + st, len, const_cast<char*>(str.data()));
+    std::string msg = "parse-error: invalid value '" + str + "' for boolean conversion!\n";
+    REPORT_ERROR(USER_ERROR, msg);
+  }
   return ret;
 }
 
-void convert_bool_column_dictring(dftable& df, const std::string& col_name,
-                                  const std::string& nullstr){
+void string_to_bool_column(dftable& df, 
+                           const std::string& cname) {
+  words w;
+  auto idx = df.to_dictionary_index(cname, w);
 
-  auto dfcol = df.column(col_name);
-  use_dfcolumn use(dfcol);
-  auto typed_dfcol = std::dynamic_pointer_cast<typed_dfcolumn<dic_string>>(dfcol);
-
-  auto nl_dict = *typed_dfcol->dic;
-  auto dict1 = nl_dict.get(0);
-
-  auto nwords = dict1.num_words();
-  std::vector<size_t> indices1(nwords);
-  for(size_t i=0; i<nwords; i++) indices1[i] = i;
-  auto all_words = dict1.index_to_words(indices1);
-  auto str_vec = words_to_vector_string(all_words);
-
-  std::vector<int> bool_val_map(nwords);
-  auto nullstr_lower = boost::algorithm::to_lower_copy(nullstr);
-  auto int_max = std::numeric_limits<int>::max();
-
-  for(size_t i=0; i<nwords; i++) {
-    boost::algorithm::to_lower(str_vec[i]);
-    if(str_vec[i] == "true") bool_val_map[i] = 1;
-    else if (str_vec[i] == "false") bool_val_map[i] = 0;
-    else if (str_vec[i] == nullstr_lower) bool_val_map[i] = int_max;
-    else {
-      std::string msg = "parse-error: invalid value " + str_vec[i] + " for boolean conversion!\n";
-      REPORT_ERROR(USER_ERROR, msg);
-    }
-  }
-
-  auto new_dvec = typed_dfcol->val
-                            .map(dicstring_id_to_bool, broadcast(bool_val_map))
-                            .as_dvector<int>();
   auto original_col_order = df.columns();
-  df.drop(col_name).append_column(col_name, new_dvec, true);
+  auto dfcol = df.column(cname);
+  use_dfcolumn use(dfcol);
+  auto nulls = dfcol->get_nulls();
+  auto tf_idx = idx.moveto_node_local()
+                   .map(string_to_bool_column_helper, nulls, broadcast(w));
+  auto newcol = std::make_shared<typed_dfcolumn<int>>(std::move(tf_idx), 
+                                                      std::move(nulls));
+  df.drop(cname).append_column(cname, newcol);
   df.set_col_order(original_col_order);
 }
 
@@ -678,13 +699,10 @@ frov_load_dataframe_from_csv(std::string& filename,
 
   if (!dftblp) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed.\n");
 
-  if ( !bool_cols.empty()){
+  if (!bool_cols.empty()){
     auto cols = dftblp->columns();
-    for (auto& e: bool_cols){
-      auto it = std::find (cols.begin(), cols.end(), e);
-      if (it != cols.end()) {
-        convert_bool_column_dictring(*dftblp, e, nullstr);
-      }
+    for (auto& e: bool_cols) {
+      if (is_present(cols, e)) string_to_bool_column(*dftblp, e);
     }
   }
 
@@ -705,17 +723,10 @@ size_t get_dataframe_length(exrpc_ptr_t& df_proxy) {
 dummy_dftable
 frov_df_convert_dicstring_to_bool(exrpc_ptr_t& df_proxy,
                                   std::vector<std::string>& col_names,
-                                  std::string& nullstr) { 
+                                  std::string& nullstr) { // TODO: remove nullstr 
   auto dftblp = get_dftable_pointer(df_proxy); 
   auto cols = dftblp->columns();
-  for (auto& e: col_names){
-    auto it = std::find (cols.begin(), cols.end(), e);
-    if (it != cols.end()) {
-      convert_bool_column_dictring(*dftblp, e, nullstr);
-    }
-    else REPORT_ERROR(USER_ERROR, "frov_df_convert_dicstring_to_bool: given"
-                                  " column does not exist!\n");
-  }
+  for (auto& e: col_names) string_to_bool_column(*dftblp, e);
   return to_dummy_dftable(dftblp);
 }
 

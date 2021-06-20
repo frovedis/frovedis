@@ -2,6 +2,7 @@
 #define _EXRPC_DF_HPP_
 
 #include <frovedis/dataframe.hpp>
+#include <frovedis/dataframe/dfcolumn_impl.hpp>
 #include <frovedis/dataframe/dfaggregator.hpp>
 #include "../exrpc/exrpc_expose.hpp"
 #include "model_tracker.hpp" // for OPTYPE, model_table to register sparse_conv_info
