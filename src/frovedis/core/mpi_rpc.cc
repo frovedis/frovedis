@@ -8,6 +8,8 @@
 #include <iostream>
 #include <sys/types.h>
 #include <unistd.h>
+#include <errno.h>
+#include <signal.h>
 #include "mpi_rpc.hpp"
 #include "mpihelper.hpp"
 #include "utility.hpp"
@@ -388,6 +390,33 @@ void send_bcast_rpcreq_oneway(rpc_type type, intptr_t function_addr,
   send_bcast_rpcreq(type, function_addr, wrapper_addr, serialized_arg, dummy);
 }
 
+static struct sigaction old_sa_term;
+static struct sigaction old_sa_int;
+
+//https://stackoverflow.com/questions/52650215/calling-default-signal-handler-directly-from-new-one 
+static void termsigaction(int sig, siginfo_t *si, void *uc) {
+  if(directory_exists(frovedis_tmpdir))
+    remove_directory(frovedis_tmpdir);
+  if (old_sa_term.sa_flags & SA_SIGINFO) {
+    if(old_sa_term.sa_sigaction) (*old_sa_term.sa_sigaction)(sig, si, uc);
+  } else  {
+    if(old_sa_term.sa_handler) (*old_sa_term.sa_handler)(sig);
+  }
+  MPI_Finalize();
+  exit(sig);
+}
+
+static void intsigaction(int sig, siginfo_t *si, void *uc) {
+  if(directory_exists(frovedis_tmpdir))
+    remove_directory(frovedis_tmpdir);
+  if (old_sa_int.sa_flags & SA_SIGINFO) {
+    if(old_sa_int.sa_sigaction) (*old_sa_int.sa_sigaction)(sig, si, uc);
+  } else {
+    if(old_sa_int.sa_handler) (*old_sa_int.sa_handler)(sig);
+  }
+  MPI_Finalize();
+  exit(sig);
+}
 
 void initfrovedis(int argc, char* argv[]) {
   int provided;
@@ -423,6 +452,23 @@ void initfrovedis(int argc, char* argv[]) {
     frovedis_tmpdir =
       std::string("/var/tmp/frovedis_") + rankstr + "_" + pidstr;
   }
+
+  struct sigaction sa;
+  memset(&sa, 0, sizeof(struct sigaction));
+  void finalizefrovedis(int code);
+  sa.sa_sigaction = termsigaction;
+  if(sigaction(SIGTERM, &sa, &old_sa_term) != 0) {
+    cerr << string("error of sigaction: ") + strerror(errno) << endl;
+    MPI_Finalize();
+    exit(1);
+  } 
+  sa.sa_sigaction = intsigaction;
+  if(sigaction(SIGINT, &sa, &old_sa_int) != 0) {
+    cerr << string("error of sigaction: ") + strerror(errno) << endl;
+    MPI_Finalize();
+    exit(1);
+  } 
+
 
   if(frovedis_self_rank != 0) {
     handle_req();
