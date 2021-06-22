@@ -869,7 +869,7 @@ typed_dfcolumn<dic_string>::as_words(size_t precision, // not used
 void typed_dfcolumn<dic_string>::debug_print() {
   std::cout << "dtype: " << dtype() << std::endl;
   std::cout << "dic: " << std::endl;
-  dic->print();
+  if(dic) dic->print();
   std::cout << "val: " << std::endl;
   for(auto& i: val.gather()) {
     for(auto j: i) {
@@ -1153,8 +1153,6 @@ bool typed_dfcolumn<dic_string>::is_unique() {
 
 // for spill-restore
 
-// TODO: spill dic; currently it is shared_ptr,
-// so it is difficult to deallocate them
 void typed_dfcolumn<dic_string>::spill_to_disk() {
   if(already_spilled_to_disk) {
     val.mapv(+[](std::vector<size_t>& v){
@@ -1165,6 +1163,7 @@ void typed_dfcolumn<dic_string>::spill_to_disk() {
         std::vector<size_t> tmp;
         tmp.swap(n);
       });
+    dic.reset();
   } else {
     val.mapv(+[](std::vector<size_t>& v, std::string& spill_path){
         savebinary_local(v, spill_path+"/val");
@@ -1176,6 +1175,10 @@ void typed_dfcolumn<dic_string>::spill_to_disk() {
         std::vector<size_t> tmp;
         tmp.swap(n);
       }, spill_path);
+    savebinary_local(dic->cwords, spill_path.get(0)+"/dic_cwords");
+    savebinary_local(dic->lens, spill_path.get(0)+"/dic_lens");
+    savebinary_local(dic->lens_num, spill_path.get(0)+"/dic_lens_num");
+    dic.reset();
     already_spilled_to_disk = true;
   }
   cleared = true;
@@ -1188,6 +1191,10 @@ void typed_dfcolumn<dic_string>::restore_from_disk() {
   nulls.mapv(+[](std::vector<size_t>& n, std::string& spill_path){
       n = loadbinary_local<size_t>(spill_path+"/nulls");
     }, spill_path);
+  dic = make_shared<dict>();
+  dic->cwords = loadbinary_local<uint64_t>(spill_path.get(0)+"/dic_cwords");
+  dic->lens = loadbinary_local<size_t>(spill_path.get(0)+"/dic_lens");
+  dic->lens_num = loadbinary_local<size_t>(spill_path.get(0)+"/dic_lens_num");
   cleared = false;
 }
 
@@ -1195,7 +1202,9 @@ size_t typed_dfcolumn<dic_string>::calc_spill_size() {
   auto valsize = size();
   auto nullsize = nulls.map(+[](std::vector<size_t>& n){return n.size();}).
     reduce(+[](const size_t l, const size_t r){return l + r;});
-  return valsize * sizeof(size_t) + nullsize * sizeof(size_t);
+  auto dicsize = dic->cwords.size() * sizeof(uint64_t) +
+    dic->lens.size() * sizeof(size_t) + dic->lens_num.size() * sizeof(size_t);
+  return valsize * sizeof(size_t) + nullsize * sizeof(size_t) + dicsize;
 }
 
 std::shared_ptr<dfcolumn>
