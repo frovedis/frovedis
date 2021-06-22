@@ -967,7 +967,7 @@ dftable_base::to_dictionary_index(const std::string& col,
   } else if (c->dtype() == "dic_string") {
     auto dic_string_column =
       std::dynamic_pointer_cast<typed_dfcolumn<dic_string>>(c);
-    auto dict_words = dic_string_column->dic->get(0).decompress();
+    auto dict_words = dic_string_column->dic->decompress();
     dic = words_to_vector_string(dict_words);
     return dic_string_column->val.as_dvector<size_t>();
   } else {
@@ -993,7 +993,7 @@ dftable_base::to_dictionary_index(const std::string& col,
   } else if (c->dtype() == "dic_string") {
     auto dic_string_column =
       std::dynamic_pointer_cast<typed_dfcolumn<dic_string>>(c);
-    dic = dic_string_column->dic->get(0).decompress();
+    dic = dic_string_column->dic->decompress();
     return dic_string_column->val.as_dvector<size_t>();
   } else {
     throw std::runtime_error
@@ -1389,19 +1389,21 @@ dftable& dftable::append_dic_string_column(const std::string& name,
   auto dic_string_column = 
     std::make_shared<typed_dfcolumn<dic_string>>(std::move(cw));
   if(check_null_like) {
-    dic_string_column->nulls = dic_string_column->val.map
-      (+[](std::vector<size_t>& val, dict& dic){
-        words nullw;
-        nullw.chars = char_to_int(std::string("NULL"));
-        nullw.starts = {0};
-        nullw.lens = {4};
-        auto nullcw = make_compressed_words(nullw);
-        auto nullval = dic.lookup(nullcw);
-        if(nullval[0] != std::numeric_limits<size_t>::max())
-          return find_condition(val, is_same_value(nullval[0]));
-        else return std::vector<size_t>();
-      }, *(dic_string_column->dic));
-    dic_string_column->contain_nulls_check();
+    words nullw;
+    nullw.chars = char_to_int(std::string("NULL"));
+    nullw.starts = {0};
+    nullw.lens = {4};
+    auto nullcw = make_compressed_words(nullw);
+    auto nullval = dic_string_column->dic->lookup(nullcw);
+    if(nullval[0] != std::numeric_limits<size_t>::max()) {
+      dic_string_column->nulls = dic_string_column->val.map
+        (+[](std::vector<size_t>& val, size_t nullval) {
+          return find_condition(val, is_same_value(nullval));
+        }, broadcast(nullval[0]));
+      dic_string_column->nulls.mapv(reset_null_val<size_t>,
+                                    dic_string_column->val);
+      dic_string_column->contain_nulls_check();
+    }
   }
   std::shared_ptr<dfcolumn> c = dic_string_column;
   c->spill();
@@ -1803,13 +1805,14 @@ void dftable::load(const std::string& input) {
       auto vintdic = vchar_to_int(loaddic);
       auto dicwords = split_to_words(vintdic, "\n");
       auto dic_to_use = make_dict_from_words(dicwords);
-      toappend->dic = std::make_shared<node_local<dict>>(broadcast(dic_to_use));
+      toappend->dic = std::make_shared<dict>(std::move(dic_to_use));
       auto vec = make_dvector_loadbinary<size_t>(valfile + "_idx");
       auto pxsizes = broadcast(prefix_sum(vec.sizes()));
       auto nulls = broadcast(make_dvector_loadbinary<size_t>(nullsfile)
                              .gather()).mapv(dftable_offset_nulls, pxsizes);
       toappend->val = std::move(vec.moveto_node_local());
       toappend->nulls = std::move(nulls);
+      toappend->nulls.mapv(reset_null_val<size_t>, toappend->val);
       toappend->contain_nulls_check();
       append_column(cols[i], std::move(toappend));
     } else if(types[i] == "raw_string") {

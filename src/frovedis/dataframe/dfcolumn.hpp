@@ -987,12 +987,12 @@ public:
     : nulls(std::move(nulls))
     {init_compressed(ws, false); contain_nulls_check();
     if(contain_nulls) this->nulls.mapv(reset_null_val<size_t>, val);}
-  typed_dfcolumn(std::shared_ptr<node_local<dict>>& dic,
+  typed_dfcolumn(std::shared_ptr<dict>& dic,
                  node_local<std::vector<size_t>>& val,
                  node_local<std::vector<size_t>>& nulls)
     : dic(dic), val(val), nulls(nulls) {contain_nulls_check();
     if(contain_nulls) nulls.mapv(reset_null_val<size_t>, this->val);}
-  typed_dfcolumn(std::shared_ptr<node_local<dict>>&& dic,
+  typed_dfcolumn(std::shared_ptr<dict>&& dic,
                  node_local<std::vector<size_t>>&& val,
                  node_local<std::vector<size_t>>&& nulls)
     : dic(std::move(dic)), val(std::move(val)), nulls(std::move(nulls))
@@ -1222,8 +1222,8 @@ public:
   virtual std::shared_ptr<dfcolumn> tail(size_t limit);
   virtual std::shared_ptr<dfcolumn> 
   union_columns(const std::vector<std::shared_ptr<dfcolumn>>& cols);
-  // dictionary is shared between columns; all node have the same dic
-  std::shared_ptr<node_local<dict>> dic;
+  // Only rank 0 has the dictionary to save memory
+  std::shared_ptr<dict> dic;
   node_local<std::vector<size_t>> val;
   node_local<std::vector<size_t>> nulls;
   bool contain_nulls;

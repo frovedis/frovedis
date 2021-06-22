@@ -416,9 +416,7 @@ std::vector<size_t> filter_like_join(std::vector<size_t>& left,
 node_local<std::vector<size_t>>
 typed_dfcolumn<dic_string>::
 filter_like(const std::string& pattern, int wild_card) {
-  auto right_non_null_val = dic->map(filter_like_helper, 
-                                     broadcast(pattern), 
-                                     broadcast(wild_card));
+  auto right_non_null_val = filter_like_helper(*dic, pattern, wild_card);
   auto left_full_local_idx = get_local_index();
   node_local<std::vector<size_t>> left_non_null_idx;
   node_local<std::vector<size_t>> left_non_null_val;
@@ -430,8 +428,7 @@ filter_like(const std::string& pattern, int wild_card) {
     left_non_null_val = val.map(extract_helper2<size_t>, left_full_local_idx);
     left_non_null_idx = std::move(left_full_local_idx);
   }
-  auto right_non_null_val_bcast =
-    broadcast(right_non_null_val.template viewas_dvector<size_t>().gather());
+  auto right_non_null_val_bcast = broadcast(right_non_null_val);
   auto left_idx_ret = make_node_local_allocate<std::vector<size_t>>();
   return left_non_null_val.map(filter_like_join, left_non_null_idx,
                                right_non_null_val_bcast);
@@ -440,9 +437,7 @@ filter_like(const std::string& pattern, int wild_card) {
 node_local<std::vector<size_t>>
 typed_dfcolumn<dic_string>::
 filter_not_like(const std::string& pattern, int wild_card) {
-  auto right_non_null_val = dic->map(filter_not_like_helper, 
-                                     broadcast(pattern), 
-                                     broadcast(wild_card));
+  auto right_non_null_val = filter_not_like_helper(*dic, pattern, wild_card);
   auto left_full_local_idx = get_local_index();
   node_local<std::vector<size_t>> left_non_null_idx;
   node_local<std::vector<size_t>> left_non_null_val;
@@ -454,8 +449,7 @@ filter_not_like(const std::string& pattern, int wild_card) {
     left_non_null_val = val.map(extract_helper2<size_t>, left_full_local_idx);
     left_non_null_idx = std::move(left_full_local_idx);
   }
-  auto right_non_null_val_bcast =
-    broadcast(right_non_null_val.template viewas_dvector<size_t>().gather());
+  auto right_non_null_val_bcast = broadcast(right_non_null_val);
   auto left_idx_ret = make_node_local_allocate<std::vector<size_t>>();
   return left_non_null_val.map(filter_like_join, left_non_null_idx,
                                right_non_null_val_bcast);
@@ -488,7 +482,7 @@ typed_dfcolumn<size_t>
 typed_dfcolumn<dic_string>::sort_prepare() {
   typed_dfcolumn<size_t> rescol;
 
-  auto local_dic = dic->get(0);
+  auto& local_dic = *dic;
   auto num_words = local_dic.num_words();
   std::vector<size_t> order(num_words);
   auto orderp = order.data();
@@ -564,17 +558,20 @@ dic_string_equal_prepare_helper(const std::vector<size_t>& rval,
 node_local<vector<size_t>>
 typed_dfcolumn<dic_string>::
 equal_prepare(shared_ptr<typed_dfcolumn<dic_string>>& right) {
-  auto left_local_dic = dic->get(0);
-  auto right_local_dic = right->dic->get(0);
+  auto& left_dic = *dic;
+  auto& right_dic = *(right->dic);
   compressed_words to_lookup;
-  auto right_num_words = right_local_dic.num_words();
-  to_lookup.cwords.swap(right_local_dic.cwords);
-  to_lookup.lens.swap(right_local_dic.lens);
-  to_lookup.lens_num.swap(right_local_dic.lens_num);
+  auto right_num_words = right_dic.num_words();
+  to_lookup.cwords.swap(right_dic.cwords);
+  to_lookup.lens.swap(right_dic.lens);
+  to_lookup.lens_num.swap(right_dic.lens_num);
   to_lookup.order.resize(right_num_words);
   auto orderp = to_lookup.order.data();
   for(size_t i = 0; i < right_num_words; i++) orderp[i] = i;
-  auto trans_table = broadcast(left_local_dic.lookup(to_lookup));
+  auto trans_table = broadcast(left_dic.lookup(to_lookup));
+  to_lookup.cwords.swap(right_dic.cwords);
+  to_lookup.lens.swap(right_dic.lens);
+  to_lookup.lens_num.swap(right_dic.lens_num);
   return right->val.map(dic_string_equal_prepare_helper, trans_table);
 }
 
@@ -606,26 +603,24 @@ typed_dfcolumn<dic_string>::filter_eq_immed(std::shared_ptr<dfscalar>& right) {
   auto right2 = std::dynamic_pointer_cast<typed_dfscalar<std::string>>(right);
   if(!right2) throw std::runtime_error("filter string column with non string");
   auto rightval = right2->val;
-  return val.map
-    (+[](std::vector<size_t>& val, const dict& dic, 
-         const std::string& right, const std::vector<size_t>& nulls,
-         bool contain_nulls) {
-      words right_word;
-      right_word.chars = char_to_int(right);
-      right_word.starts = {0};
-      right_word.lens = {right.size()};
-      auto right_cword = make_compressed_words(right_word);
-      auto lookedup = dic.lookup(right_cword);
-      if(lookedup[0] != numeric_limits<size_t>::max()) {
+  words right_word;
+  right_word.chars = char_to_int(rightval);
+  right_word.starts = {0};
+  right_word.lens = {rightval.size()};
+  auto right_cword = make_compressed_words(right_word);
+  auto lookedup = dic->lookup(right_cword);
+  if(lookedup[0] != numeric_limits<size_t>::max()) {
+    return val.map
+      (+[](std::vector<size_t>& val, const std::vector<size_t>& nulls,
+           bool contain_nulls, size_t lookedup) {
         auto filtered_idx =
-          filter_eq_immed_helper<size_t,size_t>(val, lookedup[0]);
+          filter_eq_immed_helper<size_t,size_t>(val, lookedup);
         if(contain_nulls) return set_difference(filtered_idx, nulls);
         else return filtered_idx;
-      }
-      else {
-        return std::vector<size_t>();
-      }
-    }, *dic, broadcast(rightval), nulls, broadcast(contain_nulls));
+      }, nulls, broadcast(contain_nulls), broadcast(lookedup[0]));
+  } else {
+    return make_node_local_allocate<std::vector<size_t>>();
+  }
 }
 
 node_local<std::vector<size_t>>
@@ -633,26 +628,24 @@ typed_dfcolumn<dic_string>::filter_neq_immed(std::shared_ptr<dfscalar>& right) {
   auto right2 = std::dynamic_pointer_cast<typed_dfscalar<std::string>>(right);
   if(!right2) throw std::runtime_error("filter string column with non string");
   auto rightval = right2->val;
-  return val.map
-    (+[](std::vector<size_t>& val, const dict& dic, 
-         const std::string& right, const std::vector<size_t>& nulls,
-         bool contain_nulls) {
-      words right_word;
-      right_word.chars = char_to_int(right);
-      right_word.starts = {0};
-      right_word.lens = {right.size()};
-      auto right_cword = make_compressed_words(right_word);
-      auto lookedup = dic.lookup(right_cword);
-      if(lookedup[0] != numeric_limits<size_t>::max()) {
+  words right_word;
+  right_word.chars = char_to_int(rightval);
+  right_word.starts = {0};
+  right_word.lens = {rightval.size()};
+  auto right_cword = make_compressed_words(right_word);
+  auto lookedup = dic->lookup(right_cword);
+  if(lookedup[0] != numeric_limits<size_t>::max()) {
+    return val.map
+      (+[](std::vector<size_t>& val, const std::vector<size_t>& nulls,
+           bool contain_nulls, size_t lookedup) {
         auto filtered_idx =
-          filter_neq_immed_helper<size_t,size_t>(val, lookedup[0]);
+          filter_neq_immed_helper<size_t,size_t>(val, lookedup);
         if(contain_nulls) return set_difference(filtered_idx, nulls);
         else return filtered_idx;
-      }
-      else {
-        return std::vector<size_t>();
-      }
-    }, *dic, broadcast(rightval), nulls, broadcast(contain_nulls));
+      }, nulls, broadcast(contain_nulls), broadcast(lookedup[0]));
+  } else {
+    return make_node_local_allocate<std::vector<size_t>>();
+  }
 }
 
 node_local<std::vector<size_t>> typed_dfcolumn<dic_string>::get_local_index() {
@@ -736,7 +729,7 @@ size_t typed_dfcolumn<dic_string>::count() {
 void typed_dfcolumn<dic_string>::save(const std::string& file) {
   vector<size_t> new_starts; // not used
   auto to_save =
-    int_to_vchar(concat_words(dic->get(0).decompress(), "\n", new_starts));
+    int_to_vchar(concat_words(dic->decompress(), "\n", new_starts));
   savebinary_local(to_save, file + "_dic");
   val.viewas_dvector<size_t>().savebinary(file + "_idx");
   auto dv_nulls = nulls.template viewas_dvector<size_t>();
@@ -818,7 +811,9 @@ typed_dfcolumn<dic_string>::as_words(size_t precision, // not used
                                      const std::string& datetime_fmt, // not used
                                      bool quote_escape,
                                      const std::string& nullstr) {
-  auto nl_words = dic->map
+  // broadcasting dic; heavy operation if dic is large
+  auto bdic = broadcast(*dic);
+  auto nl_words = bdic.map
     (+[](const dict& d, const std::vector<size_t>& val, const std::vector<size_t>& nulls) {
       auto nulls_size = nulls.size();
       if(nulls_size == 0) return d.index_to_words(val);
@@ -854,7 +849,7 @@ typed_dfcolumn<dic_string>::as_words(size_t precision, // not used
 void typed_dfcolumn<dic_string>::debug_print() {
   std::cout << "dtype: " << dtype() << std::endl;
   std::cout << "dic: " << std::endl;
-  dic->get(0).print();
+  dic->print();
   std::cout << "val: " << std::endl;
   for(auto& i: val.gather()) {
     for(auto j: i) {
@@ -906,9 +901,11 @@ void typed_dfcolumn<dic_string>::init_compressed
   t.show("init_compressed, create dict locally: ");
   auto local_dict = nl_dict.reduce(merge_dict);
   t.show("init_compressed, merge_dict: ");
-  dic = make_shared<node_local<dict>>(broadcast(local_dict));
+  // broadcasting dic; heavy operation if dic is large
+  auto bdic = broadcast(local_dict);
   t.show("init_compressed, broadcast dict: ");
-  val = dic->map(+[](const dict& d, const compressed_words& c)
+  dic = make_shared<dict>(std::move(local_dict));
+  val = bdic.map(+[](const dict& d, const compressed_words& c)
                  {return d.lookup(c);}, cws);
   t.show("init_compressed, lookup: ");
 }
@@ -962,19 +959,21 @@ void union_columns_dic_string_resize_newval
 }
 
 node_local<vector<size_t>>
-union_columns_dic_string_prepare(dict& local_newdic,
-                                 std::shared_ptr<node_local<dict>>& dic,
+union_columns_dic_string_prepare(dict& newdic,
+                                 dict& dic,
                                  node_local<std::vector<size_t>>& val) {
-  auto local_dic = dic->get(0);
   compressed_words to_lookup;
-  auto num_words = local_dic.num_words();
-  to_lookup.cwords.swap(local_dic.cwords);
-  to_lookup.lens.swap(local_dic.lens);
-  to_lookup.lens_num.swap(local_dic.lens_num);
+  auto num_words = dic.num_words();
+  to_lookup.cwords.swap(dic.cwords);
+  to_lookup.lens.swap(dic.lens);
+  to_lookup.lens_num.swap(dic.lens_num);
   to_lookup.order.resize(num_words);
   auto orderp = to_lookup.order.data();
   for(size_t i = 0; i < num_words; i++) orderp[i] = i;
-  auto trans_table = broadcast(local_newdic.lookup(to_lookup));
+  auto trans_table = broadcast(newdic.lookup(to_lookup));
+  to_lookup.cwords.swap(dic.cwords);
+  to_lookup.lens.swap(dic.lens);
+  to_lookup.lens_num.swap(dic.lens_num);
   return val.map(dic_string_equal_prepare_helper, trans_table);
 }
 
@@ -1031,16 +1030,14 @@ typed_dfcolumn<dic_string>::union_columns
     make_node_local_allocate<std::vector<std::vector<size_t>*>>();
   auto nulls_colsp =
     make_node_local_allocate<std::vector<std::vector<size_t>*>>();
-  auto dic_colsp =
-    make_node_local_allocate<std::vector<dict*>>();
+  std::vector<dict*> dic_colsp;
   val.mapv(+[](std::vector<size_t>& val,
                std::vector<std::vector<size_t>*>& val_colsp)
            {val_colsp.push_back(&val);}, val_colsp);
   nulls.mapv(+[](std::vector<size_t>& nulls,
                  std::vector<std::vector<size_t>*>& nulls_colsp)
              {nulls_colsp.push_back(&nulls);}, nulls_colsp);
-  dic->mapv(+[](dict& dic, std::vector<dict*>& dic_colsp)
-            {dic_colsp.push_back(&dic);}, dic_colsp);
+  dic_colsp.push_back(&(*dic));
   for(size_t i = 0; i < cols_size; i++) {
     rights[i]->val.mapv(+[](std::vector<size_t>& val,
                             std::vector<std::vector<size_t>*>& val_colsp)
@@ -1048,19 +1045,17 @@ typed_dfcolumn<dic_string>::union_columns
     rights[i]->nulls.mapv(+[](std::vector<size_t>& nulls,
                               std::vector<std::vector<size_t>*>& nulls_colsp)
                           {nulls_colsp.push_back(&nulls);}, nulls_colsp);
-    rights[i]->dic->mapv(+[](dict& dic, std::vector<dict*>& dic_colsp)
-                         {dic_colsp.push_back(&dic);}, dic_colsp);
+    dic_colsp.push_back(&(*(rights[i]->dic)));
   }
   auto newval = make_node_local_allocate<std::vector<size_t>>();
   auto newnulls = make_node_local_allocate<std::vector<size_t>>();
-  auto newdic = std::make_shared<node_local<dict>>
-    (dic_colsp.map(union_columns_dic_string_create_dic));
+  auto newdic =
+    std::make_shared<dict>(union_columns_dic_string_create_dic(dic_colsp));
               
   newval.mapv(union_columns_dic_string_resize_newval, val_colsp);
   auto crnt_pos = broadcast(size_t(0));
-  auto local_newdic = newdic->get(0);
   {
-    auto crnt_newval = union_columns_dic_string_prepare(local_newdic, dic, val);
+    auto crnt_newval = union_columns_dic_string_prepare(*newdic, *dic, val);
     newval.mapv
       (+[](std::vector<size_t>& newval, std::vector<size_t>& val, size_t& pos) {
         auto crnt_newvalp = newval.data() + pos;
@@ -1072,7 +1067,7 @@ typed_dfcolumn<dic_string>::union_columns
   }
   for(size_t i = 0; i < cols_size; i++) {
     auto crnt_newval = union_columns_dic_string_prepare
-      (local_newdic, rights[i]->dic, rights[i]->val);
+      (*newdic, *(rights[i]->dic), rights[i]->val);
     newval.mapv
       (+[](std::vector<size_t>& newval, std::vector<size_t>& val, size_t& pos) {
         auto crnt_newvalp = newval.data() + pos;
@@ -1091,17 +1086,20 @@ typed_dfcolumn<dic_string>::union_columns
 node_local<vector<size_t>>
 typed_dfcolumn<dic_string>::
 equal_prepare_multi_join(typed_dfcolumn<dic_string>& right) {
-  auto left_local_dic = dic->get(0);
-  auto right_local_dic = right.dic->get(0);
+  auto& left_dic = *dic;
+  auto& right_dic = *(right.dic);
   compressed_words to_lookup;
-  auto right_num_words = right_local_dic.num_words();
-  to_lookup.cwords.swap(right_local_dic.cwords);
-  to_lookup.lens.swap(right_local_dic.lens);
-  to_lookup.lens_num.swap(right_local_dic.lens_num);
+  auto right_num_words = right_dic.num_words();
+  to_lookup.cwords.swap(right_dic.cwords);
+  to_lookup.lens.swap(right_dic.lens);
+  to_lookup.lens_num.swap(right_dic.lens_num);
   to_lookup.order.resize(right_num_words);
   auto orderp = to_lookup.order.data();
   for(size_t i = 0; i < right_num_words; i++) orderp[i] = i;
-  auto trans_table = broadcast(left_local_dic.lookup(to_lookup));
+  auto trans_table = broadcast(left_dic.lookup(to_lookup));
+  to_lookup.cwords.swap(right_dic.cwords);
+  to_lookup.lens.swap(right_dic.lens);
+  to_lookup.lens_num.swap(right_dic.lens_num);
   return right.val.map(dic_string_equal_prepare_helper, trans_table);
 }
 
@@ -1183,7 +1181,7 @@ std::shared_ptr<dfcolumn>
 typed_dfcolumn<dic_string>::type_cast(const std::string& to_type) {
   std::shared_ptr<dfcolumn> ret;
   if(to_type == "boolean") {
-    auto ddic = dic->get(0).decompress();
+    auto ddic = dic->decompress();
     auto b_words_to_bool_map = broadcast(words_to_bool(ddic));
     auto newcol = b_words_to_bool_map.map(vector_take<int,int>, val);
     ret = std::make_shared<typed_dfcolumn<int>>(std::move(newcol), nulls);
