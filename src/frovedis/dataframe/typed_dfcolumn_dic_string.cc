@@ -806,40 +806,60 @@ void dfcolumn_replace_nullstr(words& ws,
   }
 }
 
+words dic_string_as_words_helper(const dict& d, const std::vector<size_t>& val,
+                                 const std::vector<size_t>& nulls) {
+  auto nulls_size = nulls.size();
+  if(nulls_size == 0) return d.index_to_words(val);
+  else {
+    auto val_size = val.size();
+    std::vector<size_t> newval(val_size);
+    auto newvalp = newval.data();
+    auto valp = val.data();
+    for(size_t i = 0; i < val_size; i++) newvalp[i] = valp[i];
+    auto nullsp = nulls.data();
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+    for(size_t i = 0; i < nulls_size; i++) newvalp[nullsp[i]] = 0;
+    if(d.num_words() == 0) { // does this happen?
+      words w;
+      w.chars = char_to_int("NULL");
+      w.starts = {0};
+      w.lens = {w.chars.size()};
+      auto tmpd = make_dict(w);
+      return tmpd.index_to_words(newval);
+    } else {
+      return d.index_to_words(newval);  
+    }
+  }
+}
+
 node_local<words>
 typed_dfcolumn<dic_string>::as_words(size_t precision, // not used
                                      const std::string& datetime_fmt, // not used
                                      bool quote_escape,
                                      const std::string& nullstr) {
-  // broadcasting dic; heavy operation if dic is large
-  auto bdic = broadcast(*dic);
-  auto nl_words = bdic.map
-    (+[](const dict& d, const std::vector<size_t>& val, const std::vector<size_t>& nulls) {
-      auto nulls_size = nulls.size();
-      if(nulls_size == 0) return d.index_to_words(val);
-      else {
-        auto val_size = val.size();
-        std::vector<size_t> newval(val_size);
-        auto newvalp = newval.data();
-        auto valp = val.data();
-        for(size_t i = 0; i < val_size; i++) newvalp[i] = valp[i];
-        auto nullsp = nulls.data();
-#pragma _NEC ivdep
-#pragma _NEC vovertake
-#pragma _NEC vob
-        for(size_t i = 0; i < nulls_size; i++) newvalp[nullsp[i]] = 0;
-        if(d.num_words() == 0) { // does this happen?
-          words w;
-          w.chars = char_to_int("NULL");
-          w.starts = {0};
-          w.lens = {w.chars.size()};
-          auto tmpd = make_dict(w);
-          return tmpd.index_to_words(newval);
-        } else {
-          return d.index_to_words(newval);  
-        }
-      }
-    }, val, nulls);
+  /* broadcasting dic might be heavy, so if dic is too large,
+     gather val and scatter words */
+  // approximate one word size == 8
+  size_t bcastsize = (dic->cwords.size() + dic->lens.size() +
+                      dic->lens_num.size()) * 8 * get_nodesize();
+  // gather (1 * 8, size_t = 8B) + scatter (4 * 8, since words is int)
+  size_t gathersize = val.viewas_dvector<size_t>().size() * 5 * 8;
+  node_local<words> nl_words;
+  if(bcastsize < gathersize) {
+    auto bdic = broadcast(*dic);
+    nl_words = bdic.map(dic_string_as_words_helper, val, nulls);
+  } else {
+    size_t nodesize = get_nodesize();
+    auto vec_val = val.gather();
+    auto vec_nulls = nulls.gather();
+    std::vector<words> vec_words(nodesize);
+    for(size_t i = 0; i < nodesize; i++) {
+      vec_words[i] = dic_string_as_words_helper(*dic, vec_val[i], vec_nulls[i]);
+    }
+    nl_words = make_node_local_scatter(vec_words);
+  }
   if(contain_nulls)
     nl_words.mapv(dfcolumn_replace_nullstr, nulls, broadcast(nullstr));
   if(quote_escape) nl_words.mapv(quote_and_escape);
@@ -902,6 +922,7 @@ void typed_dfcolumn<dic_string>::init_compressed
   auto local_dict = nl_dict.reduce(merge_dict);
   t.show("init_compressed, merge_dict: ");
   // broadcasting dic; heavy operation if dic is large
+  // (when loading text, loaded separately to save memory...)
   auto bdic = broadcast(local_dict);
   t.show("init_compressed, broadcast dict: ");
   dic = make_shared<dict>(std::move(local_dict));
