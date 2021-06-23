@@ -187,7 +187,24 @@ def do_if_active_association(func):
             #    print("no active server found associated with caller object!")
     return do_if_active_assoc_wrapper
 
-# ensuring Frovedis Server will  definitely shut-down on termination of
+def clean_dump(sig, frame):
+    import os
+    import glob
+    import shutil
+    if "FROVEDIS_TMPDIR" in os.environ:
+        tmpdir = os.environ["FROVEDIS_TMPDIR"] + "/frovedis_w2v_dump_*"
+    else:
+        tmpdir = "/var/tmp/frovedis_w2v_dump_*"
+    w2v_dump = glob.glob(tmpdir)
+    for each in w2v_dump:
+        #print("removing dump: " + each)
+        shutil.rmtree(each)
+
+# ensuring Frovedis Server will definitely be shut-down on termination of
 # a python program which will import this module.
 import atexit
 atexit.register(FrovedisServer.shut_down)
+
+import signal
+signal.signal(signal.SIGINT, clean_dump)
+signal.signal(signal.SIGTERM, clean_dump)
