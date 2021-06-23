@@ -2,6 +2,7 @@
 #include "../core/utility.hpp"
 #include "../core/upper_bound.hpp"
 #include "../core/prefix_sum.hpp"
+#include "../dataframe/hashtable.hpp"
 #include <stdexcept>
 
 #include "words.hpp"
@@ -874,27 +875,75 @@ size_t dict::num_words() const {
 
 words dict::index_to_words(const std::vector<size_t>& idx) const {
   auto num_words_ = num_words();
-  vector<size_t> order(num_words_);
-  auto orderp = order.data();
-  for(size_t i = 0; i < num_words_; i++) orderp[i] = i;
-  auto ws = decompress_compressed_words(cwords, lens, lens_num, order);
   auto idx_size = idx.size();
-  auto idxp = idx.data();
-  vector<size_t> new_starts(idx_size), new_lens(idx_size);
-  auto new_startsp = new_starts.data();
-  auto new_lensp = new_lens.data();
-  auto startsp = ws.starts.data();
-  auto lensp = ws.lens.data();
+  if(num_words_ < idx_size) { // small dictionary
+    vector<size_t> order(num_words_);
+    auto orderp = order.data();
+    for(size_t i = 0; i < num_words_; i++) orderp[i] = i;
+    auto ws = decompress_compressed_words(cwords, lens, lens_num, order);
+    auto idx_size = idx.size();
+    auto idxp = idx.data();
+    vector<size_t> new_starts(idx_size), new_lens(idx_size);
+    auto new_startsp = new_starts.data();
+    auto new_lensp = new_lens.data();
+    auto startsp = ws.starts.data();
+    auto lensp = ws.lens.data();
 #pragma _NEC ivdep
 #pragma _NEC vovertake
 #pragma _NEC vob
-  for(size_t i = 0; i < idx_size; i++) {
-    new_startsp[i] = startsp[idxp[i]];
-    new_lensp[i] = lensp[idxp[i]];
+    for(size_t i = 0; i < idx_size; i++) {
+      new_startsp[i] = startsp[idxp[i]];
+      new_lensp[i] = lensp[idxp[i]];
+    }
+    ws.starts.swap(new_starts);
+    ws.lens.swap(new_lens);
+    return ws;
+  } else { // large dictionary, pick up only used part
+    auto ht = unique_hashtable<size_t,int>(idx);
+    auto uniq = ht.all_keys();
+    ht.clear();
+    radix_sort(uniq);
+    auto uniq_size = uniq.size();
+    std::vector<size_t> order(uniq_size);
+    auto orderp = order.data();
+    for(size_t i = 0; i < uniq_size; i++) orderp[i] = i;
+    auto ht2 = unique_hashtable<size_t, size_t>(uniq, order);
+    auto conv = ht2.lookup(idx);
+    ht2.clear();
+    compressed_words cw;
+    cw.order.resize(num_words_);
+    auto cworderp = cw.order.data();
+    for(size_t i = 0; i < num_words_; i++) cworderp[i] = i;
+    // because this is const method...
+    auto& cwords_ = const_cast<std::vector<uint64_t>&>(cwords);
+    auto& lens_ = const_cast<std::vector<size_t>&>(lens);
+    auto& lens_num_ = const_cast<std::vector<size_t>&>(lens_num);
+    cw.cwords.swap(cwords_);
+    cw.lens.swap(lens_);
+    cw.lens_num.swap(lens_num_);
+    auto newcw = cw.extract(uniq);
+    cw.cwords.swap(cwords_);
+    cw.lens.swap(lens_);
+    cw.lens_num.swap(lens_num_);
+    auto ws = newcw.decompress();
+    auto conv_size = conv.size();
+    auto convp = conv.data();
+    vector<size_t> new_starts(conv_size), new_lens(conv_size);
+    auto new_startsp = new_starts.data();
+    auto new_lensp = new_lens.data();
+    auto startsp = ws.starts.data();
+    auto lensp = ws.lens.data();
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+    for(size_t i = 0; i < conv_size; i++) {
+      new_startsp[i] = startsp[convp[i]];
+      new_lensp[i] = lensp[convp[i]];
+    }
+    ws.starts.swap(new_starts);
+    ws.lens.swap(new_lens);
+    return ws;
   }
-  ws.starts.swap(new_starts);
-  ws.lens.swap(new_lens);
-  return ws;
 }
 
 words dict::decompress() const {
