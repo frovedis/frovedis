@@ -107,7 +107,7 @@ void make_rowmajor_matrix_local_parseline(std::string& line,
   if(width == 0) {
     while(*s != '\0') {
       char* next;
-      unsigned int val = strtol(s, &next, 10);
+      unsigned int val = strtoul(s, &next, 10);
       if(next == s) break;
       retval.push_back(val);
       s = next;
@@ -116,7 +116,7 @@ void make_rowmajor_matrix_local_parseline(std::string& line,
   } else {
     while(*s != '\0') {
       char* next;
-      unsigned int val = strtol(s, &next, 10);
+      unsigned int val = strtoul(s, &next, 10);
       if(next == s) break;
       retval.push_back(val);
       s = next;
@@ -157,7 +157,7 @@ void make_rowmajor_matrix_local_parseline(std::string& line,
   if(width == 0) {
     while(*s != '\0') {
       char* next;
-      unsigned long val = strtol(s, &next, 10);
+      unsigned long val = strtoul(s, &next, 10);
       if(next == s) break;
       retval.push_back(val);
       s = next;
@@ -166,7 +166,7 @@ void make_rowmajor_matrix_local_parseline(std::string& line,
   } else {
     while(*s != '\0') {
       char* next;
-      unsigned long val = strtol(s, &next, 10);
+      unsigned long val = strtoul(s, &next, 10);
       if(next == s) break;
       retval.push_back(val);
       s = next;
@@ -207,7 +207,7 @@ void make_rowmajor_matrix_local_parseline(std::string& line,
   if(width == 0) {
     while(*s != '\0') {
       char* next;
-      unsigned long long val = strtoll(s, &next, 10);
+      unsigned long long val = strtoull(s, &next, 10);
       if(next == s) break;
       retval.push_back(val);
       s = next;
@@ -216,7 +216,7 @@ void make_rowmajor_matrix_local_parseline(std::string& line,
   } else {
     while(*s != '\0') {
       char* next;
-      unsigned long long val = strtoll(s, &next, 10);
+      unsigned long long val = strtoull(s, &next, 10);
       if(next == s) break;
       retval.push_back(val);
       s = next;

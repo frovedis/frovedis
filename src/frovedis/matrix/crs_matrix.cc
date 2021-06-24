@@ -20,7 +20,7 @@ int strtox<int>(char* s, char** next) {
 
 template <>
 unsigned int strtox<unsigned int>(char* s, char** next) {
-  return strtol(s, next, 10);
+  return strtoul(s, next, 10);
 }
 
 template <>
@@ -30,7 +30,7 @@ long strtox<long>(char* s, char** next) {
 
 template <>
 unsigned long strtox<unsigned long>(char* s, char** next) {
-  return strtol(s, next, 10);
+  return strtoul(s, next, 10);
 }
 
 template <>
@@ -40,7 +40,7 @@ long long strtox<long long>(char* s, char** next) {
 
 template <>
 unsigned long long strtox<unsigned long long>(char* s, char** next) {
-  return strtoll(s, next, 10);
+  return strtoull(s, next, 10);
 }
 
 
