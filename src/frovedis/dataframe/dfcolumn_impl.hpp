@@ -4571,6 +4571,34 @@ typed_dfcolumn<T>::typed_rpow_im
 }
 
 template <class T>
+struct abs_helper_signed_struct {
+  void operator()(const T* srcp, T* retp, size_t size) {
+    for(size_t i = 0; i < size; i++) {
+      retp[i] = srcp[i] >= 0 ? srcp[i] : -srcp[i];
+    }
+  }
+};
+
+template <class T>
+struct abs_helper_unsigned_struct {
+  void operator()(const T* srcp, T* retp, size_t size) {
+    for(size_t i = 0; i < size; i++) {
+      retp[i] = srcp[i];
+    }
+  }
+};
+
+// to disable compier warning of comparing unsigned < 0
+template <class T>
+void abs_helper(const T* srcp, T* retp, size_t size) {
+  typename std::conditional
+    <std::numeric_limits<T>::is_signed,
+     abs_helper_signed_struct<T>,
+     abs_helper_unsigned_struct<T>>::type abs_helper_func;
+  return abs_helper_func(srcp, retp, size);
+}
+
+template <class T>
 std::shared_ptr<dfcolumn>
 typed_dfcolumn<T>::abs() {
   auto newval =
@@ -4579,9 +4607,7 @@ typed_dfcolumn<T>::abs() {
         auto size = left.size();
         std::vector<T> ret(size);
         auto retp = ret.data();
-        for(size_t i = 0; i < size; i++) {
-          retp[i] = leftp[i] >= 0 ? leftp[i] : -leftp[i];
-        }
+        abs_helper(leftp, retp, size);
         return ret;
       });
   if(contain_nulls) {
