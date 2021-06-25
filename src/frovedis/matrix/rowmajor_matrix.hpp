@@ -2113,10 +2113,10 @@ rowmajor_matrix_local<T>
 extract_cols(rowmajor_matrix_local<T>& mat, 
              size_t start, size_t end) {
   if(get_selfid() == 0) {  
-    std::string msg1 = "start column index must be less than end column index";                     
+    std::string msg1 = "start column index must be less than end column index";
     require(end > start, msg1);
-    std::string msg2 = "given indices are out of range";                                               
-    require(start >= 0 && end <= mat.local_num_col, msg2);
+    std::string msg2 = "given indices are out of range";
+    require(end <= mat.local_num_col, msg2);
   }    
   auto ret_ncol = end - start;
   auto nrow = mat.local_num_row;
