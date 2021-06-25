@@ -204,16 +204,30 @@ words int_to_words_unsigned_helper(const T* srcp, size_t src_size) {
 }
 
 template <class T>
-words int_to_words(const T* srcp, size_t src_size) {
-  if(std::numeric_limits<T>::is_signed) {
+struct int_to_words_signed_struct {
+  words operator()(const T* srcp, size_t src_size) {
     if(sizeof(T) == 4) {
       return int_to_words_signed_helper<T, uint32_t>(srcp, src_size);
     } else {
       return int_to_words_signed_helper<T, uint64_t>(srcp, src_size);
     }
-  } else {
+  }
+};
+
+template <class T>
+struct int_to_words_unsigned_struct {
+  words operator()(const T* srcp, size_t src_size) {
     return int_to_words_unsigned_helper<T>(srcp, src_size);
   }
+};
+
+template <class T>
+words int_to_words(const T* srcp, size_t src_size) {
+  typename std::conditional
+    <std::numeric_limits<T>::is_signed,
+     int_to_words_signed_struct<T>,
+     int_to_words_unsigned_struct<T>>::type int_to_words_func;
+  return int_to_words_func(srcp, src_size);
 }
 
 template <class T>
