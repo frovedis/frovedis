@@ -85,6 +85,11 @@ struct dffunction_add_im : public dffunction {
   columns_to_use(dftable_base& t) {
     return {t.raw_column(left)};
   }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t1, dftable_base& t2) {
+    throw std::runtime_error
+      ("two args of columns_to_use on this operator is not implemented");
+  }
 
   std::string left;
   T right;
@@ -174,6 +179,11 @@ struct dffunction_sub_im : public dffunction {
   virtual std::vector<std::shared_ptr<dfcolumn>>
   columns_to_use(dftable_base& t) {
     return {t.raw_column(left)};
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t1, dftable_base& t2) {
+    throw std::runtime_error
+      ("two args of columns_to_use on this operator is not implemented");
   }
 
   std::string left;
@@ -265,6 +275,11 @@ struct dffunction_mul_im : public dffunction {
   columns_to_use(dftable_base& t) {
     return {t.raw_column(left)};
   }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t1, dftable_base& t2) {
+    throw std::runtime_error
+      ("two args of columns_to_use on this operator is not implemented");
+  }
 
   std::string left;
   T right;
@@ -353,6 +368,11 @@ struct dffunction_fdiv_im : public dffunction {
   virtual std::vector<std::shared_ptr<dfcolumn>>
   columns_to_use(dftable_base& t) {
     return {t.raw_column(left)};
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t1, dftable_base& t2) {
+    throw std::runtime_error
+      ("two args of columns_to_use on this operator is not implemented");
   }
 
   std::string left;
@@ -445,6 +465,11 @@ struct dffunction_idiv_im : public dffunction {
   columns_to_use(dftable_base& t) {
     return {t.raw_column(left)};
   }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t1, dftable_base& t2) {
+    throw std::runtime_error
+      ("two args of columns_to_use on this operator is not implemented");
+  }
 
   std::string left;
   T right;
@@ -535,6 +560,11 @@ struct dffunction_mod_im : public dffunction {
   virtual std::vector<std::shared_ptr<dfcolumn>>
   columns_to_use(dftable_base& t) {
     return {t.raw_column(left)};
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t1, dftable_base& t2) {
+    throw std::runtime_error
+      ("two args of columns_to_use on this operator is not implemented");
   }
 
   std::string left;
@@ -627,6 +657,11 @@ struct dffunction_pow_im : public dffunction {
   columns_to_use(dftable_base& t) {
     return {t.raw_column(left)};
   }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t1, dftable_base& t2) {
+    throw std::runtime_error
+      ("two args of columns_to_use on this operator is not implemented");
+  }
 
   std::string left;
   T right;
@@ -682,6 +717,11 @@ struct dffunction_abs : public dffunction {
   virtual std::vector<std::shared_ptr<dfcolumn>>
   columns_to_use(dftable_base& t) {
     return {t.raw_column(left)};
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t1, dftable_base& t2) {
+    throw std::runtime_error
+      ("two args of columns_to_use on this operator is not implemented");
   }
 
   std::string left, as_name;

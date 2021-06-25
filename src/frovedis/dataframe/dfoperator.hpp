@@ -171,6 +171,11 @@ struct dfoperator_eq_immed : public dfoperator {
   columns_to_use(dftable_base& t) {
     return {t.raw_column(left)};
   }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t1, dftable_base& t2) {
+    throw std::runtime_error
+      ("columns_to_use on this operator is not implemented");
+  }
   std::string left;
   T right;
 };
@@ -190,6 +195,11 @@ struct dfoperator_neq_immed : public dfoperator {
   virtual std::vector<std::shared_ptr<dfcolumn>>
   columns_to_use(dftable_base& t) {
     return {t.raw_column(left)};
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t1, dftable_base& t2) {
+    throw std::runtime_error
+      ("columns_to_use on this operator is not implemented");
   }
   std::string left;
   T right;
@@ -347,6 +357,11 @@ struct dfoperator_lt_immed : public dfoperator {
   columns_to_use(dftable_base& t) {
     return {t.raw_column(left)};
   }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t1, dftable_base& t2) {
+    throw std::runtime_error
+      ("columns_to_use on this operator is not implemented");
+  }
   std::string left;
   T right;
 };
@@ -366,6 +381,11 @@ struct dfoperator_ge_immed : public dfoperator {
   virtual std::vector<std::shared_ptr<dfcolumn>>
   columns_to_use(dftable_base& t) {
     return {t.raw_column(left)};
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t1, dftable_base& t2) {
+    throw std::runtime_error
+      ("columns_to_use on this operator is not implemented");
   }
   std::string left;
   T right;
@@ -391,6 +411,11 @@ struct dfoperator_le_immed : public dfoperator {
   columns_to_use(dftable_base& t) {
     return {t.raw_column(left)};
   }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t1, dftable_base& t2) {
+    throw std::runtime_error
+      ("columns_to_use on this operator is not implemented");
+  }
   std::string left;
   T right;
 };
@@ -410,6 +435,11 @@ struct dfoperator_gt_immed : public dfoperator {
   virtual std::vector<std::shared_ptr<dfcolumn>>
   columns_to_use(dftable_base& t) {
     return {t.raw_column(left)};
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t1, dftable_base& t2) {
+    throw std::runtime_error
+      ("columns_to_use on this operator is not implemented");
   }
   std::string left;
   T right;
@@ -431,6 +461,11 @@ struct dfoperator_is_null : public dfoperator {
   columns_to_use(dftable_base& t) {
     return {t.raw_column(col)};
   }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t1, dftable_base& t2) {
+    throw std::runtime_error
+      ("two args of columns_to_use on this operator is not implemented");
+  }
   std::string col;
 };
 
@@ -445,6 +480,11 @@ struct dfoperator_is_not_null : public dfoperator {
   virtual std::vector<std::shared_ptr<dfcolumn>>
   columns_to_use(dftable_base& t) {
     return {t.raw_column(col)};
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t1, dftable_base& t2) {
+    throw std::runtime_error
+      ("two args of columns_to_use on this operator is not implemented");
   }
   std::string col;
 };
@@ -526,6 +566,15 @@ struct dfoperator_regex : public dfoperator {
     return left_column->filter_regex(pattern);
   }
   virtual node_local<std::vector<size_t>> not_filter(dftable_base& t) const;
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t) {
+    return {t.raw_column(left)};
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t1, dftable_base& t2) {
+    throw std::runtime_error
+      ("two args of columns_to_use on this operator is not implemented");
+  }
   std::string left;
   std::string pattern;
 };
@@ -546,6 +595,11 @@ struct dfoperator_not_regex : public dfoperator {
   virtual std::vector<std::shared_ptr<dfcolumn>>
   columns_to_use(dftable_base& t) {
     return {t.raw_column(left)};
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t1, dftable_base& t2) {
+    throw std::runtime_error
+      ("two args of columns_to_use on this operator is not implemented");
   }
   std::string left;
   std::string pattern;
@@ -591,6 +645,11 @@ struct dfoperator_like : public dfoperator {
   columns_to_use(dftable_base& t) {
     return {t.raw_column(left)};
   }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t1, dftable_base& t2) {
+    throw std::runtime_error
+      ("two args of columns_to_use on this operator is not implemented");
+  }
   std::string left;
   std::string pattern;
 };
@@ -625,6 +684,11 @@ struct dfoperator_not_like : public dfoperator {
   virtual std::vector<std::shared_ptr<dfcolumn>>
   columns_to_use(dftable_base& t) {
     return {t.raw_column(left)};
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t1, dftable_base& t2) {
+    throw std::runtime_error
+      ("two args of columns_to_use on this operator is not implemented");
   }
   std::string left;
   std::string pattern;
@@ -806,6 +870,11 @@ struct dfoperator_multi_eq : public dfoperator {
                node_local<std::vector<size_t>>& left_idx,
                node_local<std::vector<size_t>>& right_idx) const;
   virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t) {
+    throw std::runtime_error
+      ("one arg of columns_to_use on this operator is not implemented");
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
   columns_to_use(dftable_base& t1, dftable_base& t2) {
     std::vector<std::shared_ptr<dfcolumn>> ret;
     for(auto& c: leftv) ret.push_back(t1.raw_column(c));
@@ -836,6 +905,11 @@ struct dfoperator_cross : public dfoperator {
   bcast_join(dftable_base& left, dftable_base& right,
              node_local<std::vector<size_t>>& left_idx,
              node_local<std::vector<size_t>>& right_idx) const;
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t) {
+    throw std::runtime_error
+      ("one arg of columns_to_use on this operator is not implemented");
+  }
   virtual std::vector<std::shared_ptr<dfcolumn>>
   columns_to_use(dftable_base& t1, dftable_base& t2) {
     return std::vector<std::shared_ptr<dfcolumn>>();
