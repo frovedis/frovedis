@@ -29,7 +29,8 @@ enum spgemm_type {
 
 template <class T>
 size_t max_bits(T a) {
-  if(a < 0) throw std::runtime_error("max_bits is only for positive value");
+  // used only for size_t, so useless
+  // if(a < 0) throw std::runtime_error("max_bits is only for positive value");
   size_t i = 0;
   size_t max = sizeof(T) * 8;
   for(; i < max; i++) {
