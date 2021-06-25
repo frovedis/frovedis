@@ -1644,6 +1644,12 @@ public:
       node_local<std::vector<std::vector<size_t>>>& hash_divide,
       node_local<std::vector<std::vector<size_t>>>& merge_map,
       node_local<size_t>& row_sizes);
+  virtual double std() {
+    throw std::runtime_error("std of datetime is not defined");
+  }
+  virtual double avg() {
+    throw std::runtime_error("avg of datetime is not defined");
+  }
   virtual void debug_print();
   virtual std::shared_ptr<dfcolumn> head(size_t limit);
   virtual std::shared_ptr<dfcolumn> tail(size_t limit);
