@@ -118,9 +118,6 @@ struct sliced_blockcyclic_matrix_local {
     // Thus the below casting is required.
     auto& mat = const_cast<blockcyclic_matrix_local<T>&> (inMat);
 
-    if(!mat.is_valid())
-      REPORT_ERROR(USER_ERROR,"Invalid input blockcyclic matrix!!\n");
-
     // node-local informations
     data = &mat.val[0];
     descA = &mat.descA[0];
@@ -129,13 +126,6 @@ struct sliced_blockcyclic_matrix_local {
     IA = JA = 1;
     local_num_row = mat.descA[2];
     local_num_col = mat.descA[3];
-  }
-
-  bool is_valid() const {
-    if(IA < 0 || JA < 0 || local_num_row < 0 || local_num_col < 0)
-      return false;
-    else
-      return true;
   }
 
   T* data;            // pointer to the node-local distributed matrix
@@ -214,8 +204,6 @@ struct slice_matrix_from_blockcyclic_matrix {
 
   sliced_blockcyclic_matrix_local<T>
   operator() (sliced_blockcyclic_matrix_local<T>& inMat) {
-    if(!inMat.is_valid())
-      REPORT_ERROR(USER_ERROR,"Invalid input matrix!!\n");
 
     sliced_blockcyclic_matrix_local<T> outMat;
 

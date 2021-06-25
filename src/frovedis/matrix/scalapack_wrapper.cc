@@ -1050,10 +1050,6 @@ int pgesvd2 (sliced_blockcyclic_matrix_local<float>& inMat,
         REPORT_ERROR(USER_ERROR,
           "Outmat matrix for Left Singular Vectors is not allocated!!\n");
 
-      if(!S_VEC.is_valid())
-        REPORT_ERROR(USER_ERROR, 
-	  "Invalid output matrix (left singular vector)!!\n");
-
       if (S_VEC.local_num_row < M || S_VEC.local_num_col < MIN_MN)
         REPORT_ERROR(USER_ERROR, 
                      "Incompatible size for the 3rd argument matrix!!\n");
@@ -1069,10 +1065,6 @@ int pgesvd2 (sliced_blockcyclic_matrix_local<float>& inMat,
       if(!S_VEC.data)
         REPORT_ERROR(USER_ERROR,
           "Outmat matrix for Right Singular Vectors is not allocated!!\n");
-
-      if(!S_VEC.is_valid())
-        REPORT_ERROR(USER_ERROR,
-	  "Invalid output matrix (right singular vector)!!\n");
 
       if (S_VEC.local_num_row < MIN_MN || S_VEC.local_num_col < N)
         REPORT_ERROR(USER_ERROR, 
@@ -1209,10 +1201,6 @@ int pgesvd2 (sliced_blockcyclic_matrix_local<double>& inMat,
         REPORT_ERROR(USER_ERROR,
           "Outmat matrix for Left Singular Vectors is not allocated!!\n");
 
-      if(!S_VEC.is_valid())
-        REPORT_ERROR(USER_ERROR, 
-	  "Invalid output matrix (left singular vector)!!\n");
-
       if (S_VEC.local_num_row < M || S_VEC.local_num_col < MIN_MN)
         REPORT_ERROR(USER_ERROR, 
                      "Incompatible size for the 3rd argument matrix!!\n");
@@ -1228,10 +1216,6 @@ int pgesvd2 (sliced_blockcyclic_matrix_local<double>& inMat,
       if(!S_VEC.data)
         REPORT_ERROR(USER_ERROR,
           "Outmat matrix for Right Singular Vectors is not allocated!!\n");
-
-      if(!S_VEC.is_valid())
-        REPORT_ERROR(USER_ERROR,
-	  "Invalid output matrix (right singular vector)!!\n");
 
       if (S_VEC.local_num_row < MIN_MN || S_VEC.local_num_col < N)
         REPORT_ERROR(USER_ERROR, 
