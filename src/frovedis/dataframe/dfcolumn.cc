@@ -771,17 +771,14 @@ dfcolumn& dfcolumn::operator=(dfcolumn&& c) {
 
 void dfcolumn_spill_queue_t::init_queue_capacity() {
   // can't be done at ctor, because get_nodesize() is not set yet
-  auto queue_capacity_char = getenv("FROVEDIS_DFCOLUMN_SPILLSIZE_PERRANK");
+  auto queue_capacity_char = getenv("FROVEDIS_DFCOLUMN_SPILLQ_SIZE");
   if(queue_capacity_char != NULL) {
-    // in MB per node
+    // in MB
     queue_capacity =
-      size_t(atoi(queue_capacity_char))
-      * size_t(1024) * size_t(1024) * size_t(get_nodesize());
+      size_t(atoi(queue_capacity_char)) * size_t(1024) * size_t(1024);
   } else {
-    // 2GB per node
-    queue_capacity =
-      2 * size_t(1024)
-      * size_t(1024) * size_t(1024) * size_t(get_nodesize());
+    // 1GB in total
+    queue_capacity = size_t(1024) * size_t(1024) * size_t(1024);
   }
   capacity_initialized = true;
 }
