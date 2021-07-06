@@ -59,6 +59,10 @@ struct dfoperator {
     throw std::runtime_error
       ("columns_to_use on this operator is not implemented");
   }
+  virtual std::shared_ptr<dfoperator> exchange_lr() {
+    throw std::runtime_error
+      ("exchange_lr (used for bcast_join) on this operator is not implemented");
+  }
 };
 
 struct dfoperator_eq : public dfoperator {
@@ -125,6 +129,9 @@ struct dfoperator_eq : public dfoperator {
   virtual std::vector<std::shared_ptr<dfcolumn>>
   columns_to_use(dftable_base& t1, dftable_base& t2) {
     return {t1.raw_column(left), t2.raw_column(right)};
+  }
+  virtual std::shared_ptr<dfoperator> exchange_lr() {
+    return std::make_shared<dfoperator_eq>(dfoperator_eq(right, left));
   }
   std::string left, right;
 };
@@ -237,6 +244,7 @@ struct dfoperator_lt : public dfoperator {
   columns_to_use(dftable_base& t1, dftable_base& t2) {
     return {t1.raw_column(left), t2.raw_column(right)};
   }
+  virtual std::shared_ptr<dfoperator> exchange_lr();
   std::string left, right;
 };
 
@@ -268,6 +276,7 @@ struct dfoperator_ge : public dfoperator {
   columns_to_use(dftable_base& t1, dftable_base& t2) {
     return {t1.raw_column(left), t2.raw_column(right)};
   }
+  virtual std::shared_ptr<dfoperator> exchange_lr();
   std::string left, right;
 };
 
@@ -303,6 +312,7 @@ struct dfoperator_le : public dfoperator {
   columns_to_use(dftable_base& t1, dftable_base& t2) {
     return {t1.raw_column(left), t2.raw_column(right)};
   }
+  virtual std::shared_ptr<dfoperator> exchange_lr();
   std::string left, right;
 };
 
@@ -334,8 +344,26 @@ struct dfoperator_gt : public dfoperator {
   columns_to_use(dftable_base& t1, dftable_base& t2) {
     return {t1.raw_column(left), t2.raw_column(right)};
   }
+  virtual std::shared_ptr<dfoperator> exchange_lr();
   std::string left, right;
 };
+
+inline std::shared_ptr<dfoperator> dfoperator_lt::exchange_lr() {
+  return std::make_shared<dfoperator_gt>(dfoperator_gt(right, left));
+}
+
+inline std::shared_ptr<dfoperator> dfoperator_ge::exchange_lr() {
+  return std::make_shared<dfoperator_le>(dfoperator_le(right, left));
+}
+
+inline std::shared_ptr<dfoperator> dfoperator_le::exchange_lr() {
+  return std::make_shared<dfoperator_ge>(dfoperator_ge(right, left));
+}
+
+inline std::shared_ptr<dfoperator> dfoperator_gt::exchange_lr() {
+  return std::make_shared<dfoperator_lt>(dfoperator_lt(right, left));
+}
+
 
 inline
 node_local<std::vector<size_t>>
@@ -777,6 +805,10 @@ struct dfoperator_and : public dfoperator {
     left_use.insert(left_use.end(), right_use.begin(), right_use.end());
     return left_use;
   }
+  virtual std::shared_ptr<dfoperator> exchange_lr() {
+    return std::make_shared<dfoperator_and>
+      (dfoperator_and(left->exchange_lr(), right->exchange_lr()));
+  }
 
   std::shared_ptr<dfoperator> left;
   std::shared_ptr<dfoperator> right;
@@ -881,6 +913,10 @@ struct dfoperator_multi_eq : public dfoperator {
     for(auto& c: rightv) ret.push_back(t2.raw_column(c));
     return ret;
   }
+  virtual std::shared_ptr<dfoperator> exchange_lr() {
+    return std::make_shared<dfoperator_multi_eq>
+      (dfoperator_multi_eq(rightv, leftv));
+  }
   std::shared_ptr<dfoperator> op;
   std::vector<std::string> leftv, rightv;
 };
@@ -913,6 +949,9 @@ struct dfoperator_cross : public dfoperator {
   virtual std::vector<std::shared_ptr<dfcolumn>>
   columns_to_use(dftable_base& t1, dftable_base& t2) {
     return std::vector<std::shared_ptr<dfcolumn>>();
+  }
+  virtual std::shared_ptr<dfoperator> exchange_lr() {
+    return std::make_shared<dfoperator_cross>(*this);
   }
 };
 

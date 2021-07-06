@@ -57,7 +57,8 @@ public:
   virtual hash_joined_dftable
   outer_hash_join(dftable_base& dftable, const std::shared_ptr<dfoperator>& op);
   virtual bcast_joined_dftable
-  bcast_join(dftable_base& dftable, const std::shared_ptr<dfoperator>& op);
+  bcast_join(dftable_base& dftable, const std::shared_ptr<dfoperator>& op,
+             bool allow_exchange_lr = true); // for broadcast smaller side
   virtual bcast_joined_dftable
   outer_bcast_join(dftable_base& dftable, const std::shared_ptr<dfoperator>& op);
   // TODO: support outer_star_join
@@ -711,7 +712,8 @@ public:
   virtual hash_joined_dftable
   outer_hash_join(dftable_base& right, const std::shared_ptr<dfoperator>& op);
   virtual bcast_joined_dftable
-  bcast_join(dftable_base& dftable, const std::shared_ptr<dfoperator>& op);
+  bcast_join(dftable_base& dftable, const std::shared_ptr<dfoperator>& op,
+             bool allow_exchange_lr = true);
   virtual bcast_joined_dftable
   outer_bcast_join(dftable_base& dftable, const std::shared_ptr<dfoperator>& op);
   virtual star_joined_dftable
@@ -799,7 +801,8 @@ public:
   virtual hash_joined_dftable
   outer_hash_join(dftable_base& dftable, const std::shared_ptr<dfoperator>& op);
   virtual bcast_joined_dftable
-  bcast_join(dftable_base& dftable, const std::shared_ptr<dfoperator>& op);
+  bcast_join(dftable_base& dftable, const std::shared_ptr<dfoperator>& op,
+             bool allow_exchange_lr = true);
   virtual bcast_joined_dftable
   outer_bcast_join(dftable_base& dftable, const std::shared_ptr<dfoperator>& op);
   virtual star_joined_dftable
@@ -878,7 +881,8 @@ public:
   virtual hash_joined_dftable
   outer_hash_join(dftable_base& dftable, const std::shared_ptr<dfoperator>& op);
   virtual bcast_joined_dftable
-  bcast_join(dftable_base& dftable, const std::shared_ptr<dfoperator>& op);
+  bcast_join(dftable_base& dftable, const std::shared_ptr<dfoperator>& op,
+             bool allow_exchange_lr = true);
   virtual bcast_joined_dftable
   outer_bcast_join(dftable_base& dftable, const std::shared_ptr<dfoperator>& op);
   virtual star_joined_dftable
@@ -955,7 +959,8 @@ public:
   virtual hash_joined_dftable
   outer_hash_join(dftable_base& dftable, const std::shared_ptr<dfoperator>& op);
   virtual bcast_joined_dftable
-  bcast_join(dftable_base& dftable, const std::shared_ptr<dfoperator>& op);
+  bcast_join(dftable_base& dftable, const std::shared_ptr<dfoperator>& op,
+             bool allow_exchange_lr = true);
   virtual bcast_joined_dftable
   outer_bcast_join(dftable_base& dftable, const std::shared_ptr<dfoperator>& op);
   virtual star_joined_dftable

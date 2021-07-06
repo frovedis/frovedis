@@ -167,26 +167,31 @@ dftable_base::outer_hash_join(dftable_base& right_,
 
 bcast_joined_dftable
 dftable_base::bcast_join(dftable_base& right_,
-                         const std::shared_ptr<dfoperator>& op) {
-  if(right_.is_right_joinable()) {
-    auto& right = right_;
-    use_dfcolumn use(op->columns_to_use(*this, right));
-    join_column_name_check(col, right.col);
-    auto left_idx = get_local_index();
-    auto right_idx = right.get_local_index();
-    auto idxs = op->bcast_join(*this, right, left_idx, right_idx);
-    return bcast_joined_dftable(*this, right, std::move(idxs.first),
-                                std::move(idxs.second));
-  }
-  else {
-    auto right = right_.materialize();
-    use_dfcolumn use(op->columns_to_use(*this, right));
-    join_column_name_check(col, right.col);
-    auto left_idx = get_local_index();
-    auto right_idx = right.get_local_index();
-    auto idxs = op->bcast_join(*this, right, left_idx, right_idx);
-    return bcast_joined_dftable(*this, right, std::move(idxs.first),
-                                std::move(idxs.second));
+                         const std::shared_ptr<dfoperator>& op,
+                         bool allow_exchange_lr) {
+  if(allow_exchange_lr && num_row() < right_.num_row()) {
+    return right_.bcast_join(*this, op->exchange_lr(), false);
+  } else {
+    if(right_.is_right_joinable()) {
+      auto& right = right_;
+      use_dfcolumn use(op->columns_to_use(*this, right));
+      join_column_name_check(col, right.col);
+      auto left_idx = get_local_index();
+      auto right_idx = right.get_local_index();
+      auto idxs = op->bcast_join(*this, right, left_idx, right_idx);
+      return bcast_joined_dftable(*this, right, std::move(idxs.first),
+                                  std::move(idxs.second));
+    }
+    else {
+      auto right = right_.materialize();
+      use_dfcolumn use(op->columns_to_use(*this, right));
+      join_column_name_check(col, right.col);
+      auto left_idx = get_local_index();
+      auto right_idx = right.get_local_index();
+      auto idxs = op->bcast_join(*this, right, left_idx, right_idx);
+      return bcast_joined_dftable(*this, right, std::move(idxs.first),
+                                  std::move(idxs.second));
+    }
   }
 }
 
@@ -2306,9 +2311,10 @@ sorted_dftable::outer_hash_join(dftable_base& right,
 
 bcast_joined_dftable
 sorted_dftable::bcast_join(dftable_base& right,
-                           const std::shared_ptr<dfoperator>& op) {
+                           const std::shared_ptr<dfoperator>& op,
+                           bool allow_exchange_lr) {
   RLOG(DEBUG) << "calling bcast_join after sort" << std::endl;
-  return materialize().bcast_join(right, op);
+  return materialize().bcast_join(right, op, allow_exchange_lr);
 }
 
 bcast_joined_dftable
@@ -2469,8 +2475,9 @@ hash_joined_dftable::outer_hash_join(dftable_base& right,
 
 bcast_joined_dftable
 hash_joined_dftable::bcast_join(dftable_base& right,
-                               const std::shared_ptr<dfoperator>& op) {
-  return materialize().bcast_join(right, op);
+                                const std::shared_ptr<dfoperator>& op,
+                                bool allow_exchange_lr) {
+  return materialize().bcast_join(right, op, allow_exchange_lr);
 }
 
 bcast_joined_dftable
@@ -2670,8 +2677,9 @@ bcast_joined_dftable::outer_hash_join(dftable_base& right,
 
 bcast_joined_dftable
 bcast_joined_dftable::bcast_join(dftable_base& right,
-                                 const std::shared_ptr<dfoperator>& op) {
-  return materialize().bcast_join(right, op);
+                                 const std::shared_ptr<dfoperator>& op,
+                                 bool allow_exchange_lr) {
+  return materialize().bcast_join(right, op, allow_exchange_lr);
 }
 
 bcast_joined_dftable
@@ -2857,8 +2865,9 @@ star_joined_dftable::outer_hash_join(dftable_base& right,
 
 bcast_joined_dftable
 star_joined_dftable::bcast_join(dftable_base& right,
-                                const std::shared_ptr<dfoperator>& op) {
-  return materialize().bcast_join(right, op);
+                                const std::shared_ptr<dfoperator>& op,
+                                bool allow_exchange_lr) {
+  return materialize().bcast_join(right, op, allow_exchange_lr);
 }
 
 star_joined_dftable
