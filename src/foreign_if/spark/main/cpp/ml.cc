@@ -224,7 +224,6 @@ JNIEXPORT int JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisLNR
   int vb = 0; // no log (default)
   double tol = 0.001; // default (TODO: send from spark client)
   bool isDense = (bool) dense;
-  size_t n_iter = 0;
   glm_config config;
   config.set_max_iter(numIter).
          set_alpha(stepSize).
@@ -235,23 +234,24 @@ JNIEXPORT int JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisLNR
          set_warm_start(warmStart).
          set_hist_size(histSize);
 
+  lnr_result<double> res;
+  std::vector<double> sample_weight = to_double_vector(env, 
+                                      sample_weight_ptr, sample_weight_length);
 #ifdef _EXRPC_DEBUG_
   std::cout << "Connecting to master node (" 
             << fm_node.hostname << "," << fm_node.rpcport 
             << ") to train frovedis LNR.\n";
 #endif
   try {
-    std::vector<double> sample_weight = to_double_vector(env, 
-                                      sample_weight_ptr, sample_weight_length);
     if(isDense)
-      n_iter = exrpc_async(fm_node,(frovedis_lnr<DT1,D_MAT1>),f_dptr,
+      res = exrpc_async(fm_node,(frovedis_lnr<DT1,D_MAT1>),f_dptr,
                    config,vb,mid,sample_weight,mvbl).get();
     else
-      n_iter = exrpc_async(fm_node,(frovedis_lnr<DT1,S_MAT1>),f_dptr,
+      res = exrpc_async(fm_node,(frovedis_lnr<DT1,S_MAT1>),f_dptr,
                    config,vb,mid,sample_weight,mvbl).get();
   }
   catch(std::exception& e) { set_status(true,e.what()); }
-  return static_cast<int>(n_iter);
+  return res.n_iter;
 }
 
 // (4) --- Lasso Regression ---
