@@ -12,7 +12,7 @@ import org.apache.spark.ml.linalg.Vector
 import org.apache.spark.mllib.linalg.Vectors
 
 class FactorizationMachineModel (val model_Id: Int)
-  extends GenericModelWithPredict(model_Id, M_KIND.FMM) { 
+  extends GenericModelWithPredict(model_Id, M_KIND.FMM) {
 }
 
 object FactorizationMachineModel{
@@ -27,26 +27,178 @@ object FactorizationMachineModel{
   }
 }
 
-class FactorizationMachine private (val fm_config: FMConfig) {
-  
-  private var labelCol:String = "label"
+class FactorizationMachine(var initStd: Double,
+                           var maxIter: Int,
+                           var stepSize: Double,
+                           var optimizer: String,
+                           var isRegression: Boolean,
+                           var fitIntercept: Boolean,
+                           var fitLinear: Boolean,
+                           var factorSize: Int,
+                           var regParam: (Double,Double,Double),
+                           var miniBatchFraction: Double,
+                           var seed: Long) {
     
+  def this() = this(0.1, 100, 0.01, "SGD", true, true, true, 8, (0, 1e-3, 1e-4), 1.0, 1)
+
+  def clear(): Unit = {
+    setInitStd(0.1)
+    setMaxIter(100)
+    setStepSize(0.01)
+    setOptimizer("SGD")
+    setIsRegression(true)
+    setFitIntercept(true)
+    setFitLinear(true)
+    setFactorSize(8)
+    setRegParam((0.0, 1e-3, 1e-4))
+    setMiniBatchFraction(1.0)
+    setSeed(1)
+  }
+    
+  private var labelCol:String = "label"
+
   private var featuresCol:String = "features"
-  
+
+  private var predictionCol:String = "predictions"
+
+  private var weightCol:String = "weight"
+
+  private var probabilityCol:String = "probability"
+
   def setLabelCol(value: String):this.type = {
     this.labelCol = value
-    this  
+    this
   }
+
+  def getLabelCol:String = labelCol
     
   def setFeaturesCol(value: String):this.type = {
     this.featuresCol = value
-    this  
+    this
+  }
+
+  def getFeaturesCol:String = featuresCol
+
+  def setPredictionCol(value: String):this.type = {
+    this.predictionCol = value
+    this
+  }
+
+  def getPredictionCol:String = predictionCol  
+    
+  def setWeightCol(value: String):this.type = {
+    this.weightCol = value
+    this
+  }
+
+  def getWeightCol:String = weightCol
+    
+  def setProbabilityCol(value: String):this.type = {
+    this.probabilityCol = value
+    this
+  }
+
+  def getProbabilityCol:String = probabilityCol
+
+  def setInitStd(initStd: Double):this.type = {
+    if(initStd < 0)
+      throw new IllegalStateException("Invalid initDev: " + initStd)
+    this.initStd = initStd
+    this
+  }
+
+  def getInitStd(): Double = this.initStd
+
+  def setStepSize(stepSize: Double):this.type = {
+    if(stepSize < 0.0001 || stepSize > 1.0) {
+      throw new IllegalStateException("Invalid step size (learning-rate): " + stepSize)
+    }
+    this.stepSize = stepSize
+    this
+  }
+
+  def getStepSize(): Double = this.stepSize
+
+  def setMaxIter(maxIter: Int):this.type = {
+    if(maxIter < 0)
+      throw new IllegalStateException("Invalid iterations: " + maxIter)
+    this.maxIter = maxIter
+    this
   }
     
-  def getLabelCol:String = labelCol
+  def getMaxIter(): Int = this.maxIter
+
+  def setOptimizer(optimizer: String):this.type = {
+    val supported_opt = Array("SGD", "SGDA", "ALS", "MCMC")
+    if (!(supported_opt contains optimizer))
+      throw new IllegalStateException("Invalid optimizer: " + optimizer)
+    this.optimizer = optimizer
+    this
+  }
+
+  def getOptimizer(): String = this.optimizer
+
+  def setIsRegression(reg: Boolean):this.type = {
+    this.isRegression = reg
+    this
+  }
+
+  def getIsRegression(): Boolean = this.isRegression
+
+  /*
+  In previous version, this was batchSize with default value 100.
+  
+  Provided fraction value is used to calculate the batch size from
+  the data. batchSize = fraction * no. of samples
+  */
+  def setMiniBatchFraction(miniBatchFraction: Double):this.type = {
+    if(miniBatchFraction < 0.0 || miniBatchFraction > 1.0)
+      throw new IllegalStateException(s"miniBatchFraction should be between 0.0 and 1.0,"+ 
+                                      s" provided: " + miniBatchFraction)
+    this.miniBatchFraction = miniBatchFraction
+    this
+  }
+
+  def getMiniBatchFraction(): Double = this.miniBatchFraction
+
+  def setSeed(seed: Long):this.type = {
+    if(seed < 0)
+      throw new IllegalStateException("Seed should be a positive value: " + seed)
+    this.seed = seed
+    this
+  }
+
+  def getSeed():Long = this.seed
     
-  def getFeaturesCol:String = featuresCol  
-    
+  def setFitIntercept(fitIntercept: Boolean): this.type = {
+    this.fitIntercept = fitIntercept
+    this
+  }
+
+  def setFitLinear(fitLinear: Boolean): this.type = {
+    this.fitLinear = fitLinear
+    this
+  }
+
+  def setFactorSize(factorSize: Int): this.type = {
+    this.factorSize = factorSize
+    this
+  }
+
+  def setRegParam(regParams: (Double, Double, Double)):this.type = {
+    require(regParams._1 >= 0 && regParams._2 >= 0 && regParams._3 >= 0)
+    this.regParam.copy(_1 = regParams._1)
+    this.regParam.copy(_2 = regParams._2)
+    this.regParam.copy(_3 = regParams._3)
+    this
+  }
+
+  def setRegParam(regIntercept: Double = 0,
+                  reg1Way: Double = 0,
+                  reg2Way: Double = 0):this.type = {
+    setRegParam((regIntercept, reg1Way, reg2Way))
+  }    
+
   def extractLabeledPoints(data: Dataset[_], numClasses: Int): RDD[LabeledPoint] = {
     data.select(col(labelCol), col(featuresCol)).rdd.map {
       case Row(label: Double, features: Vector) =>
@@ -54,302 +206,672 @@ class FactorizationMachine private (val fm_config: FMConfig) {
           s" dataset with invalid label $label.  Labels must be integers in range" +
           s" [0, $numClasses).")
         LabeledPoint(label, Vectors.fromML(features))
-    }    
+    }
   }
     
+  def fit(data: Dataset[_]): FactorizationMachineModel = {
+    return run(data)
+  }
+
   def run(input: Dataset[_]):  FactorizationMachineModel = {
-    //Convert to RDD[LabeledPoint]   
+    //Convert to RDD[LabeledPoint]
     val rdd_data = extractLabeledPoints(input, 2)
     return run(rdd_data)
-  }  
+  }
+    
   def run(input: RDD[LabeledPoint]): FactorizationMachineModel = {
     val fdata = new FrovedisLabeledPoint(input)
     return run(fdata,true)
   }
+    
   def run(fdata: FrovedisLabeledPoint): FactorizationMachineModel = {
     run(fdata,false)
   }
-  def run(fdata: FrovedisLabeledPoint, 
+    
+  def run(fdata: FrovedisLabeledPoint,
           movable: Boolean): FactorizationMachineModel =  {
     if (fdata.is_dense()) throw new IllegalArgumentException(
         s"fit: Currently frovedis factorization machine " +
         s"supports only sparse data!")
-    fm_config.assertValid()
+    val batchSize = (miniBatchFraction * fdata.numRows()).asInstanceOf[Int]
     val model_Id = ModelID.get()
     val fs = FrovedisServer.getServerInstance()
     val res = JNISupport.callFrovedisFM(fs.master_node, fdata.get(),
-                         fm_config.getInitStdev(),    // Double
-                         fm_config.getLearnRate(),    // Double
-                         fm_config.getIterations(),   // Int
-                         fm_config.getOptimizer(),    // String
-                         fm_config.getIsRegression(), // Boolean
-                         fm_config.getBatchSize(),    // Int
-                         fm_config.dim._1,            // Boolean
-                         fm_config.dim._2,	      // Boolean
-                         fm_config.dim._3,            // Int
-                         fm_config.regParam._1,	      // Double
-                         fm_config.regParam._2,       // Double	
-                         fm_config.regParam._3,       // Double
-                         model_Id,                    // Int
-			 movable)                     // Boolean
+                         this.initStd,      // Double
+                         this.stepSize,     // Double
+                         this.maxIter,      // Int
+                         this.optimizer,    // String
+                         this.isRegression, // Boolean
+                         batchSize,         // Int
+                         this.fitIntercept, // Boolean
+                         this.fitLinear,    // Boolean
+                         this.factorSize,   // Int
+                         this.regParam._1,  // Double
+                         this.regParam._2,  // Double
+                         this.regParam._3,  // Double
+                         model_Id,          // Int
+                         movable)           // Boolean
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
     return new FactorizationMachineModel(model_Id)
   }
 }
 
-object FactorizationMachine{  
- // train with Frovedis data, along with diffrent hyper-parameters
- def train(fdata: FrovedisLabeledPoint,
-           initStdev: Double, 
-           iter: Int,
-           learnRate: Double,
-           optimizer: String,
-           isRegression: Boolean, 
-           dim: (Boolean, Boolean, Int),
-           regParam: (Double, Double, Double),
-           batchsize: Int): FactorizationMachineModel =  {
-  
-    val fm_config = new FMConfig(initStdev, iter,
-                                 learnRate, optimizer, isRegression, 
-                                 dim, regParam, batchsize)
-    return new FactorizationMachine(fm_config).run(fdata)
-  }
-
+object FactorizationMachine{
+  // train with Frovedis data, along with diffrent hyper-parameters  
   def train(fdata: FrovedisLabeledPoint,
             initStdev: Double,
-            iter: Int, 
-            learnRate: Double, 
-            optimizer: String,
-            isRegression: Boolean, 
-            dim: (Boolean, Boolean, Int),
-            regParam: (Double, Double,Double)): FactorizationMachineModel = {
-    return train(fdata,initStdev,iter,learnRate,optimizer,isRegression,dim,regParam,100)
-  }
-  
-  def train(fdata: FrovedisLabeledPoint,
-            initStdev: Double,
-            iter: Int, 
-            learnRate: Double, 
+            iter: Int,
+            stepSize: Double,
             optimizer: String,
             isRegression: Boolean,
-            dim: (Boolean, Boolean, Int)): FactorizationMachineModel = {
-    val regParam = (0.0, 1e-3, 1e-4) 
-    return train(fdata,initStdev,iter,learnRate,optimizer,isRegression,dim,regParam,100)
-  }
-
-  def train(fdata: FrovedisLabeledPoint,
-            initStdev: Double,
-            iter: Int, 
-            learnRate: Double, 
-            optimizer: String,
-            isRegression: Boolean): FactorizationMachineModel =  {
-    val dim = (true,true,8) 
-    val regParam = (0.0, 1e-3, 1e-4) 
-    return train(fdata,initStdev,iter,learnRate,optimizer,isRegression,dim,regParam,100)
-  }
-
-  def train(fdata: FrovedisLabeledPoint, 
-            initStdev: Double,
-            iter: Int, 
-            learnRate: Double, 
-            optimizer: String): FactorizationMachineModel =  {
-    val dim = (true,true,8) 
-    val regParam = (0.0, 1e-3, 1e-4) 
-    return train(fdata,initStdev,iter,learnRate,optimizer,true,dim,regParam,100)
-  }
-
-  def train(fdata: FrovedisLabeledPoint, 
-            initStdev: Double,
-            iter: Int, 
-            learnRate: Double): FactorizationMachineModel =  { 
-    val dim = (true,true,8) 
-    val regParam = (0.0, 1e-3, 1e-4) 
-    return train(fdata,initStdev,iter,learnRate,"SGD",true,dim,regParam,100)
-  }
-
-  def train(fdata: FrovedisLabeledPoint,
-            initStdev: Double,
-            iter: Int): FactorizationMachineModel =  { 
-    val dim = (true,true,8) 
-    val regParam = (0.0, 1e-3, 1e-4) 
-    return train(fdata,initStdev,iter,0.01,"SGD",true,dim,regParam,100)
-  }  
- 
-  def train(fdata: FrovedisLabeledPoint,
-            initStdev: Double): FactorizationMachineModel =  {
-    val dim = (true,true,8) 
-    val regParam = (0.0, 1e-3, 1e-4) 
-    return train(fdata,initStdev,100,0.01,"SGD",true,dim,regParam,100)
-  }  
- 
-  def train(fdata: FrovedisLabeledPoint): FactorizationMachineModel =  {
-    val dim = (true,true,8) 
-    val regParam = (0.0, 1e-3, 1e-4)
-    return train(fdata,0.1,100,0.01,"SGD",true,dim,regParam,100)
-  }  
-
-  // train with spark data, along with diffrent hyper-parameters
-  def train(data: RDD[LabeledPoint], 
-            initStdev: Double,
-            iter: Int, 
-            learnRate: Double, 
-            optimizer: String,
-            isRegression: Boolean, 
-            dim: (Boolean, Boolean, Int),
+            fitIntercept : Boolean,
+            fitLinear : Boolean,
+            factorSize : Int,
             regParam: (Double, Double,Double),
-            batchsize: Int): FactorizationMachineModel =  {
-    val fm_config = new FMConfig(initStdev,iter,
-                                 learnRate,optimizer,isRegression,
-                                 dim,regParam,batchsize)
-    return new FactorizationMachine(fm_config).run(data)
+            miniBatchFraction: Double,
+            seed: Int): FactorizationMachineModel =  {
+    return new FactorizationMachine().setInitStd(initStdev)
+                                     .setMaxIter(iter)
+                                     .setStepSize(stepSize)
+                                     .setOptimizer(optimizer)
+                                     .setIsRegression(isRegression)
+                                     .setFitIntercept(fitIntercept)
+                                     .setFitLinear(fitLinear)
+                                     .setFactorSize(factorSize)
+                                     .setRegParam(regParam)
+                                     .setMiniBatchFraction(miniBatchFraction)
+                                     .setSeed(seed)
+                                     .run(fdata)
+
   }
-  def train(data: RDD[LabeledPoint], 
+  
+  def train(fdata: FrovedisLabeledPoint,
             initStdev: Double,
-            iter: Int, 
-            learnRate: Double, 
+            iter: Int,
+            stepSize: Double,
             optimizer: String,
             isRegression: Boolean,
-            dim: (Boolean, Boolean, Int),
+            fitIntercept : Boolean,
+            fitLinear : Boolean,
+            factorSize : Int,
+            regParam: (Double, Double,Double),
+            miniBatchFraction: Double): FactorizationMachineModel =  {
+    return new FactorizationMachine().setInitStd(initStdev)
+                                     .setMaxIter(iter)
+                                     .setStepSize(stepSize)
+                                     .setOptimizer(optimizer)
+                                     .setIsRegression(isRegression)
+                                     .setFitIntercept(fitIntercept)
+                                     .setFitLinear(fitLinear)
+                                     .setFactorSize(factorSize)
+                                     .setRegParam(regParam)
+                                     .setMiniBatchFraction(miniBatchFraction)
+                                     .setSeed(1)
+                                     .run(fdata)
+  } 
+   
+  def train(fdata: FrovedisLabeledPoint,
+            initStdev: Double,
+            iter: Int,
+            stepSize: Double,
+            optimizer: String,
+            isRegression: Boolean,
+            fitIntercept : Boolean,
+            fitLinear : Boolean,
+            factorSize : Int,
             regParam: (Double, Double,Double)): FactorizationMachineModel =  {
-    return train(data,initStdev,iter,learnRate,optimizer,isRegression,dim,regParam,100)
+    return new FactorizationMachine().setInitStd(initStdev)
+                                     .setMaxIter(iter)
+                                     .setStepSize(stepSize)
+                                     .setOptimizer(optimizer)
+                                     .setIsRegression(isRegression)
+                                     .setFitIntercept(fitIntercept)
+                                     .setFitLinear(fitLinear)
+                                     .setFactorSize(factorSize)
+                                     .setRegParam(regParam)
+                                     .setMiniBatchFraction(1.0)
+                                     .setSeed(1)
+                                     .run(fdata)
   }
-  def train(data: RDD[LabeledPoint], 
+  
+  def train(fdata: FrovedisLabeledPoint,
             initStdev: Double,
-            iter: Int, 
-            learnRate: Double, 
+            iter: Int,
+            stepSize: Double,
             optimizer: String,
             isRegression: Boolean,
-            dim: (Boolean,Boolean,Int)): FactorizationMachineModel =  {
-    val regParam = (0.0, 1e-3, 1e-4)
-    return train(data,initStdev,iter,learnRate,optimizer,isRegression,dim,regParam,100)
-  }
-  def train(data: RDD[LabeledPoint], 
+            fitIntercept : Boolean,
+            fitLinear : Boolean,
+            factorSize : Int): FactorizationMachineModel =  {
+    return new FactorizationMachine().setInitStd(initStdev)
+                                     .setMaxIter(iter)
+                                     .setStepSize(stepSize)
+                                     .setOptimizer(optimizer)
+                                     .setIsRegression(isRegression)
+                                     .setFitIntercept(fitIntercept)
+                                     .setFitLinear(fitLinear)
+                                     .setFactorSize(factorSize)
+                                     .setRegParam((0.0, 1e-3, 1e-4))
+                                     .setMiniBatchFraction(1.0)
+                                     .setSeed(1)
+                                     .run(fdata)
+  } 
+  
+  def train(fdata: FrovedisLabeledPoint,
             initStdev: Double,
-            iter: Int, 
-            learnRate: Double, 
+            iter: Int,
+            stepSize: Double,
             optimizer: String,
             isRegression: Boolean): FactorizationMachineModel =  {
-    val dim = (true,true,8) 
-    val regParam = (0.0, 1e-3, 1e-4)
-    return train(data,initStdev,iter,learnRate,optimizer,isRegression,dim,regParam,100)
+    return new FactorizationMachine().setInitStd(initStdev)
+                                     .setMaxIter(iter)
+                                     .setStepSize(stepSize)
+                                     .setOptimizer(optimizer)
+                                     .setIsRegression(isRegression)
+                                     .setFitIntercept(true)
+                                     .setFitLinear(true)
+                                     .setFactorSize(8)
+                                     .setRegParam((0.0, 1e-3, 1e-4))
+                                     .setMiniBatchFraction(1.0)
+                                     .setSeed(1)
+                                     .run(fdata)
   }
-  def train(data: RDD[LabeledPoint],
+
+  def train(fdata: FrovedisLabeledPoint,
             initStdev: Double,
-            iter: Int, 
-            learnRate: Double, 
+            iter: Int,
+            stepSize: Double,
             optimizer: String): FactorizationMachineModel =  {
-    val dim = (true,true,8) 
-    val regParam = (0.0, 1e-3, 1e-4)
-    return train(data,initStdev,iter,learnRate,optimizer,true,dim,regParam,100)
+    return new FactorizationMachine().setInitStd(initStdev)
+                                     .setMaxIter(iter)
+                                     .setStepSize(stepSize)
+                                     .setOptimizer(optimizer)
+                                     .setIsRegression(true)
+                                     .setFitIntercept(true)
+                                     .setFitLinear(true)
+                                     .setFactorSize(8)
+                                     .setRegParam((0.0, 1e-3, 1e-4))
+                                     .setMiniBatchFraction(1.0)
+                                     .setSeed(1)
+                                     .run(fdata)
   }
+  def train(fdata: FrovedisLabeledPoint,
+            initStdev: Double,
+            iter: Int,
+            stepSize: Double ): FactorizationMachineModel =  {
+    return new FactorizationMachine().setInitStd(initStdev)
+                                     .setMaxIter(iter)
+                                     .setStepSize(stepSize)
+                                     .setOptimizer("SGD")
+                                     .setIsRegression(true)
+                                     .setFitIntercept(true)
+                                     .setFitLinear(true)
+                                     .setFactorSize(8)
+                                     .setRegParam((0.0, 1e-3, 1e-4))
+                                     .setMiniBatchFraction(1.0)
+                                     .setSeed(1)
+                                     .run(fdata)
+  }
+  def train(fdata: FrovedisLabeledPoint,
+            initStdev: Double,
+            iter: Int ): FactorizationMachineModel = {
+    return new FactorizationMachine().setInitStd(initStdev)
+                                     .setMaxIter(iter)
+                                     .setStepSize( 0.01)
+                                     .setOptimizer("SGD")
+                                     .setIsRegression(true)
+                                     .setFitIntercept(true)
+                                     .setFitLinear(true)
+                                     .setFactorSize(8)
+                                     .setRegParam((0.0, 1e-3, 1e-4))
+                                     .setMiniBatchFraction(1.0)
+                                     .setSeed(1)
+                                     .run(fdata)
+  }
+  def train(fdata: FrovedisLabeledPoint,
+            initStdev: Double ): FactorizationMachineModel = {
+    return new FactorizationMachine().setInitStd(initStdev)
+                                     .setMaxIter(100)
+                                     .setStepSize( 0.01)
+                                     .setOptimizer("SGD")
+                                     .setIsRegression(true)
+                                     .setFitIntercept(true)
+                                     .setFitLinear(true)
+                                     .setFactorSize(8)
+                                     .setRegParam((0.0, 1e-3, 1e-4))
+                                     .setMiniBatchFraction(1.0)
+                                     .setSeed(1)
+                                     .run(fdata)
+  }
+
+  def train(fdata: FrovedisLabeledPoint): FactorizationMachineModel = {
+    return new FactorizationMachine().setInitStd(0.1)
+                                     .setMaxIter(100)
+                                     .setStepSize( 0.01)
+                                     .setOptimizer("SGD")
+                                     .setIsRegression(true)
+                                     .setFitIntercept(true)
+                                     .setFitLinear(true)
+                                     .setFactorSize(8)
+                                     .setRegParam((0.0, 1e-3, 1e-4))
+                                     .setMiniBatchFraction(1.0)
+                                     .setSeed(1)
+                                     .run(fdata)
+  }
+   
+  // train with spark data, along with diffrent hyper-parameters 
   def train(data: RDD[LabeledPoint],
             initStdev: Double,
-            iter: Int, 
-            learnRate: Double): FactorizationMachineModel =  { 
-    val dim = (true,true,8) 
-    val regParam = (0.0, 1e-3, 1e-4)
-    return train(data,initStdev,iter,learnRate,"SGD",true,dim,regParam,100)
+            iter: Int,
+            stepSize: Double,
+            optimizer: String,
+            isRegression: Boolean,
+            fitIntercept : Boolean,
+            fitLinear : Boolean,
+            factorSize : Int,
+            regParam: (Double, Double,Double),
+            miniBatchFraction: Double,
+            seed: Int): FactorizationMachineModel =  {
+    return new FactorizationMachine().setInitStd(initStdev)
+                                     .setMaxIter(iter)
+                                     .setStepSize(stepSize)
+                                     .setOptimizer(optimizer)
+                                     .setIsRegression(isRegression)
+                                     .setFitIntercept(fitIntercept)
+                                     .setFitLinear(fitLinear)
+                                     .setFactorSize(factorSize)
+                                     .setRegParam(regParam)
+                                     .setMiniBatchFraction(miniBatchFraction)
+                                     .setSeed(seed)
+                                     .run(data)
   }
+  
   def train(data: RDD[LabeledPoint],
             initStdev: Double,
-            iter: Int): FactorizationMachineModel =  { 
-    val dim = (true,true,8) 
-    val regParam = (0.0, 1e-3, 1e-4)
-    return train(data,initStdev,iter,0.01,"SGD",true,dim,regParam,100)
+            iter: Int,
+            stepSize: Double,
+            optimizer: String,
+            isRegression: Boolean,
+            fitIntercept : Boolean,
+            fitLinear : Boolean,
+            factorSize : Int,
+            regParam: (Double, Double,Double),
+            miniBatchFraction: Double): FactorizationMachineModel =  {
+    return new FactorizationMachine().setInitStd(initStdev)
+                                     .setMaxIter(iter)
+                                     .setStepSize(stepSize)
+                                     .setOptimizer(optimizer)
+                                     .setIsRegression(isRegression)
+                                     .setFitIntercept(fitIntercept)
+                                     .setFitLinear(fitLinear)
+                                     .setFactorSize(factorSize)
+                                     .setRegParam(regParam)
+                                     .setMiniBatchFraction(miniBatchFraction)
+                                     .setSeed(1)
+                                     .run(data)
   }
+
+
   def train(data: RDD[LabeledPoint],
-            initStdev: Double): FactorizationMachineModel = {
-    val dim = (true,true,8) 
-    val regParam = (0.0, 1e-3, 1e-4)
-    return train(data,initStdev,100,0.01,"SGD",true,dim,regParam,100)
+            initStdev: Double,
+            iter: Int,
+            stepSize: Double,
+            optimizer: String,
+            isRegression: Boolean,
+            fitIntercept : Boolean,
+            fitLinear : Boolean,
+            factorSize : Int,
+            regParam: (Double, Double,Double)): FactorizationMachineModel =  {
+    return new FactorizationMachine().setInitStd(initStdev)
+                                     .setMaxIter(iter)
+                                     .setStepSize(stepSize)
+                                     .setOptimizer(optimizer)
+                                     .setIsRegression(isRegression)
+                                     .setFitIntercept(fitIntercept)
+                                     .setFitLinear(fitLinear)
+                                     .setFactorSize(factorSize)
+                                     .setRegParam(regParam)
+                                     .setMiniBatchFraction(1.0)
+                                     .setSeed(1)
+                                     .run(data)
   }
+
+  def train(data: RDD[LabeledPoint],
+            initStdev: Double,
+            iter: Int,
+            stepSize: Double,
+            optimizer: String,
+            isRegression: Boolean,
+            fitIntercept : Boolean,
+            fitLinear : Boolean,
+            factorSize : Int): FactorizationMachineModel =  {
+    return new FactorizationMachine().setInitStd(initStdev)
+                                     .setMaxIter(iter)
+                                     .setStepSize(stepSize)
+                                     .setOptimizer(optimizer)
+                                     .setIsRegression(isRegression)
+                                     .setFitIntercept(fitIntercept)
+                                     .setFitLinear(fitLinear)
+                                     .setFactorSize(factorSize)
+                                     .setRegParam((0.0, 1e-3, 1e-4))
+                                     .setMiniBatchFraction(1.0)
+                                     .setSeed(1)
+                                     .run(data)
+  }
+
+
+  def train(data: RDD[LabeledPoint],
+            initStdev: Double,
+            iter: Int,
+            stepSize: Double,
+            optimizer: String,
+            isRegression: Boolean): FactorizationMachineModel =  {
+    return new FactorizationMachine().setInitStd(initStdev)
+                                     .setMaxIter(iter)
+                                     .setStepSize(stepSize)
+                                     .setOptimizer(optimizer)
+                                     .setIsRegression(isRegression)
+                                     .setFitIntercept(true)
+                                     .setFitLinear(true)
+                                     .setFactorSize(8)
+                                     .setRegParam((0.0, 1e-3, 1e-4))
+                                     .setMiniBatchFraction(1.0)
+                                     .setSeed(1)
+                                     .run(data)
+  }
+
+  def train(data: RDD[LabeledPoint],
+            initStdev: Double,
+            iter: Int,
+            stepSize: Double,
+            optimizer: String): FactorizationMachineModel =  {
+    return new FactorizationMachine().setInitStd(initStdev)
+                                     .setMaxIter(iter)
+                                     .setStepSize(stepSize)
+                                     .setOptimizer(optimizer)
+                                     .setIsRegression(true)
+                                     .setFitIntercept(true)
+                                     .setFitLinear(true)
+                                     .setFactorSize(8)
+                                     .setRegParam((0.0, 1e-3, 1e-4))
+                                     .setMiniBatchFraction(1.0)
+                                     .setSeed(1)
+                                     .run(data)
+  }
+  
+  def train(data: RDD[LabeledPoint],
+            initStdev: Double,
+            iter: Int,
+            stepSize: Double ): FactorizationMachineModel =  {
+    return new FactorizationMachine().setInitStd(initStdev)
+                                     .setMaxIter(iter)
+                                     .setStepSize(stepSize)
+                                     .setOptimizer("SGD")
+                                     .setIsRegression(true)
+                                     .setFitIntercept(true)
+                                     .setFitLinear(true)
+                                     .setFactorSize(8)
+                                     .setRegParam((0.0, 1e-3, 1e-4))
+                                     .setMiniBatchFraction(1.0)
+                                     .setSeed(1)
+                                     .run(data)
+  }
+  
+  def train(data: RDD[LabeledPoint],
+            initStdev: Double,
+            iter: Int ): FactorizationMachineModel = {
+    return new FactorizationMachine().setInitStd(initStdev)
+                                     .setMaxIter(iter)
+                                     .setStepSize( 0.01)
+                                     .setOptimizer("SGD")
+                                     .setIsRegression(true)
+                                     .setFitIntercept(true)
+                                     .setFitLinear(true)
+                                     .setFactorSize(8)
+                                     .setRegParam((0.0, 1e-3, 1e-4))
+                                     .setMiniBatchFraction(1.0)
+                                     .setSeed(1)
+                                     .run(data)
+  }
+
+  def train(data: RDD[LabeledPoint],
+            initStdev: Double ): FactorizationMachineModel = {
+    return new FactorizationMachine().setInitStd(initStdev)
+                                     .setMaxIter(100)
+                                     .setStepSize( 0.01)
+                                     .setOptimizer("SGD")
+                                     .setIsRegression(true)
+                                     .setFitIntercept(true)
+                                     .setFitLinear(true)
+                                     .setFactorSize(8)
+                                     .setRegParam((0.0, 1e-3, 1e-4))
+                                     .setMiniBatchFraction(1.0)
+                                     .setSeed(1)
+                                     .run(data)
+  }
+  
   def train(data: RDD[LabeledPoint]): FactorizationMachineModel =  {
-    val dim = (true,true,8) 
-    val regParam = (0.0, 1e-3, 1e-4)
-    return train(data,0.1,100,0.01,"SGD",true,dim,regParam,100)
+
+    return new FactorizationMachine().setInitStd(0.1)
+                                     .setMaxIter(100)
+                                     .setStepSize( 0.01)
+                                     .setOptimizer("SGD")
+                                     .setIsRegression(true)
+                                     .setFitIntercept(true)
+                                     .setFitLinear(true)
+                                     .setFactorSize(8)
+                                     .setRegParam((0.0, 1e-3, 1e-4))
+                                     .setMiniBatchFraction(1.0)
+                                     .setSeed(1)
+                                     .run(data)
   }
   
   // train with spark Dataset, along with diffrent hyper-parameters
-  def train(data: Dataset[_], 
+  def train(data: Dataset[_],
             initStdev: Double,
-            iter: Int, 
-            learnRate: Double, 
+            iter: Int,
+            stepSize: Double,
             optimizer: String,
-            isRegression: Boolean, 
-            dim: (Boolean, Boolean, Int),
+            isRegression: Boolean,
+            fitIntercept : Boolean,
+            fitLinear : Boolean,
+            factorSize : Int,
             regParam: (Double, Double,Double),
-            batchsize: Int): FactorizationMachineModel =  {
-    val fm_config = new FMConfig(initStdev,iter,
-                                 learnRate,optimizer,isRegression,
-                                 dim,regParam,batchsize)
-    return new FactorizationMachine(fm_config).run(data)
+            miniBatchFraction: Double,
+            seed: Long): FactorizationMachineModel = {
+    return new FactorizationMachine().setInitStd(initStdev)
+                                     .setMaxIter(iter)
+                                     .setStepSize(stepSize)
+                                     .setOptimizer(optimizer)
+                                     .setIsRegression(isRegression)
+                                     .setFitIntercept(fitIntercept)
+                                     .setFitLinear(fitLinear)
+                                     .setFactorSize(factorSize)
+                                     .setRegParam(regParam)
+                                     .setMiniBatchFraction(miniBatchFraction)
+                                     .setSeed(seed)
+                                     .run(data)
+    
   }
 
-  def train(data: Dataset[_], 
+  def train(data: Dataset[_],
             initStdev: Double,
-            iter: Int, 
-            learnRate: Double, 
+            iter: Int,
+            stepSize: Double,
             optimizer: String,
             isRegression: Boolean,
-            dim: (Boolean, Boolean, Int),
+            fitIntercept : Boolean,
+            fitLinear : Boolean,
+            factorSize : Int,
+            regParam: (Double, Double,Double),
+            miniBatchFraction: Double): FactorizationMachineModel =  {
+    return new FactorizationMachine().setInitStd(initStdev)
+                                     .setMaxIter(iter)
+                                     .setStepSize(stepSize)
+                                     .setOptimizer(optimizer)
+                                     .setIsRegression(isRegression)
+                                     .setFitIntercept(fitIntercept)
+                                     .setFitLinear(fitLinear)
+                                     .setFactorSize(factorSize)
+                                     .setRegParam(regParam)
+                                     .setMiniBatchFraction(miniBatchFraction)
+                                     .setSeed(1)
+                                     .run(data)
+  }
+
+
+  def train(data: Dataset[_],
+            initStdev: Double,
+            iter: Int,
+            stepSize: Double,
+            optimizer: String,
+            isRegression: Boolean,
+            fitIntercept : Boolean,
+            fitLinear : Boolean,
+            factorSize : Int,
             regParam: (Double, Double,Double)): FactorizationMachineModel =  {
-    return train(data,initStdev,iter,learnRate,optimizer,isRegression,dim,regParam,100)
+    return new FactorizationMachine().setInitStd(initStdev)
+                                     .setMaxIter(iter)
+                                     .setStepSize(stepSize)
+                                     .setOptimizer(optimizer)
+                                     .setIsRegression(isRegression)
+                                     .setFitIntercept(fitIntercept)
+                                     .setFitLinear(fitLinear)
+                                     .setFactorSize(factorSize)
+                                     .setRegParam(regParam)
+                                     .setMiniBatchFraction(1.0)
+                                     .setSeed(1)
+                                     .run(data)
   }
-  def train(data: Dataset[_], 
+
+  def train(data: Dataset[_],
             initStdev: Double,
-            iter: Int, 
-            learnRate: Double, 
+            iter: Int,
+            stepSize: Double,
             optimizer: String,
             isRegression: Boolean,
-            dim: (Boolean,Boolean,Int)): FactorizationMachineModel =  {
-    val regParam = (0.0, 1e-3, 1e-4)
-    return train(data,initStdev,iter,learnRate,optimizer,isRegression,dim,regParam,100)
+            fitIntercept : Boolean,
+            fitLinear : Boolean,
+            factorSize : Int): FactorizationMachineModel =  {
+    return new FactorizationMachine().setInitStd(initStdev)
+                                     .setMaxIter(iter)
+                                     .setStepSize(stepSize)
+                                     .setOptimizer(optimizer)
+                                     .setIsRegression(isRegression)
+                                     .setFitIntercept(fitIntercept)
+                                     .setFitLinear(fitLinear)
+                                     .setFactorSize(factorSize)
+                                     .setRegParam((0.0, 1e-3, 1e-4))
+                                     .setMiniBatchFraction(1.0)
+                                     .setSeed(1)
+                                     .run(data)
   }
-  def train(data: Dataset[_], 
+
+
+  def train(data: Dataset[_],
             initStdev: Double,
-            iter: Int, 
-            learnRate: Double, 
+            iter: Int,
+            stepSize: Double,
             optimizer: String,
             isRegression: Boolean): FactorizationMachineModel =  {
-    val dim = (true,true,8) 
-    val regParam = (0.0, 1e-3, 1e-4)
-    return train(data,initStdev,iter,learnRate,optimizer,isRegression,dim,regParam,100)
+    return new FactorizationMachine().setInitStd(initStdev)
+                                     .setMaxIter(iter)
+                                     .setStepSize(stepSize)
+                                     .setOptimizer(optimizer)
+                                     .setIsRegression(isRegression)
+                                     .setFitIntercept(true)
+                                     .setFitLinear(true)
+                                     .setFactorSize(8)
+                                     .setRegParam((0.0, 1e-3, 1e-4))
+                                     .setMiniBatchFraction(1.0)
+                                     .setSeed(1)
+                                     .run(data)
   }
-  def train(data: Dataset[_],
-            initStdev: Double,
-            iter: Int, 
-            learnRate: Double, 
-            optimizer: String): FactorizationMachineModel =  {
-    val dim = (true,true,8) 
-    val regParam = (0.0, 1e-3, 1e-4)
-    return train(data,initStdev,iter,learnRate,optimizer,true,dim,regParam,100)
-  }
-  def train(data: Dataset[_],
-            initStdev: Double,
-            iter: Int, 
-            learnRate: Double): FactorizationMachineModel =  { 
-    val dim = (true,true,8) 
-    val regParam = (0.0, 1e-3, 1e-4)
-    return train(data,initStdev,iter,learnRate,"SGD",true,dim,regParam,100)
-  }
-  def train(data: Dataset[_],
-            initStdev: Double,
-            iter: Int): FactorizationMachineModel =  { 
-    val dim = (true,true,8) 
-    val regParam = (0.0, 1e-3, 1e-4)
-    return train(data,initStdev,iter,0.01,"SGD",true,dim,regParam,100)
-  }
-  def train(data: Dataset[_],
-            initStdev: Double): FactorizationMachineModel = {
-    val dim = (true,true,8) 
-    val regParam = (0.0, 1e-3, 1e-4)
-    return train(data,initStdev,100,0.01,"SGD",true,dim,regParam,100)
-  }
-  def train(data: Dataset[_]): FactorizationMachineModel =  {
-    val dim = (true,true,8) 
-    val regParam = (0.0, 1e-3, 1e-4)
-    return train(data,0.1,100,0.01,"SGD",true,dim,regParam,100)
-  }    
-}
 
+  def train(data: Dataset[_],
+            initStdev: Double,
+            iter: Int,
+            stepSize: Double,
+            optimizer: String): FactorizationMachineModel =  {
+    return new FactorizationMachine().setInitStd(initStdev)
+                                     .setMaxIter(iter)
+                                     .setStepSize(stepSize)
+                                     .setOptimizer(optimizer)
+                                     .setIsRegression(true)
+                                     .setFitIntercept(true)
+                                     .setFitLinear(true)
+                                     .setFactorSize(8)
+                                     .setRegParam((0.0, 1e-3, 1e-4))
+                                     .setMiniBatchFraction(1.0)
+                                     .setSeed(1)
+                                     .run(data)
+  }
+  
+  def train(data: Dataset[_],
+            initStdev: Double,
+            iter: Int,
+            stepSize: Double ): FactorizationMachineModel =  {
+    return new FactorizationMachine().setInitStd(initStdev)
+                                     .setMaxIter(iter)
+                                     .setStepSize(stepSize)
+                                     .setOptimizer("SGD")
+                                     .setIsRegression(true)
+                                     .setFitIntercept(true)
+                                     .setFitLinear(true)
+                                     .setFactorSize(8)
+                                     .setRegParam((0.0, 1e-3, 1e-4))
+                                     .setMiniBatchFraction(1.0)
+                                     .setSeed(1)
+                                     .run(data)
+  }
+
+  def train(data: Dataset[_],
+            initStdev: Double,
+            iter: Int ): FactorizationMachineModel = {
+    return new FactorizationMachine().setInitStd(initStdev)
+                                     .setMaxIter(iter)
+                                     .setStepSize( 0.01)
+                                     .setOptimizer("SGD")
+                                     .setIsRegression(true)
+                                     .setFitIntercept(true)
+                                     .setFitLinear(true)
+                                     .setFactorSize(8)
+                                     .setRegParam((0.0, 1e-3, 1e-4))
+                                     .setMiniBatchFraction(1.0)
+                                     .setSeed(1)
+                                     .run(data)
+  }
+  
+  def train(data: Dataset[_],
+            initStdev: Double ): FactorizationMachineModel = {
+    return new FactorizationMachine().setInitStd(initStdev)
+                                     .setMaxIter(100)
+                                     .setStepSize( 0.01)
+                                     .setOptimizer("SGD")
+                                     .setIsRegression(true)
+                                     .setFitIntercept(true)
+                                     .setFitLinear(true)
+                                     .setFactorSize(8)
+                                     .setRegParam((0.0, 1e-3, 1e-4))
+                                     .setMiniBatchFraction(1.0)
+                                     .setSeed(1)
+                                     .run(data)
+  }
+
+  def train(data: Dataset[_]): FactorizationMachineModel = {
+
+    return new FactorizationMachine().setInitStd(0.1)
+                                     .setMaxIter(100)
+                                     .setStepSize(0.01)
+                                     .setOptimizer("SGD")
+                                     .setIsRegression(true)
+                                     .setFitIntercept(true)
+                                     .setFitLinear(true)
+                                     .setFactorSize(8)
+                                     .setRegParam((0.0, 1e-3, 1e-4))
+                                     .setMiniBatchFraction(1.0)
+                                     .setSeed(1)
+                                     .run(data)
+  }  
+}
