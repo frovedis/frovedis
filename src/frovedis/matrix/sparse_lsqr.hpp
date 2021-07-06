@@ -23,16 +23,16 @@ namespace frovedis {
                        float r2norm, double arnorm, 
                        float anorm, float acond, 
                        float xnorm, std::vector<T> var){
-      x = x;
-      itn = itn;
-      istop = istop;
-      r1norm = r1norm;
-      r2norm = r2norm;
-      arnorm = arnorm;
-      anorm = anorm;
-      acond = acond;
-      xnorm = xnorm;
-      var = var;
+      this -> x = x;
+      this -> itn = itn;
+      this -> istop = istop;
+      this -> r1norm = r1norm;
+      this -> r2norm = r2norm;
+      this -> arnorm = arnorm;
+      this -> anorm = anorm;
+      this -> acond = acond;
+      this -> xnorm = xnorm;
+      this -> var = var;
     }
     SERIALIZE(x, istop, itn, r1norm, r2norm, anorm, acond, arnorm, xnorm, var);
   };
@@ -86,9 +86,35 @@ namespace frovedis {
     return res;
   }
 
+
+  struct simple_matvec {
+    simple_matvec() {}
+    template <class MATRIX, class T>
+    std::vector<T> operator()(MATRIX& m, std::vector<T>& v) { return m * v; }
+    SERIALIZE_NONE
+  };
+  
   template <class T, class I, class O>
   sparse_lsqr_result<T> 
   sparse_lsqr(crs_matrix<T, I, O>& mat, dvector<T>& b_dv,
+              int iter_lim = std::numeric_limits<int>::max(),
+              bool show = false,
+              float damp = 0.0,
+              double atol = 1e-8,
+              double btol = 1e-8,
+              double conlim = 1e8,
+              bool calc_var = false,
+              const std::vector<T>& x0 = {}) {
+    auto linop = simple_matvec();
+    return sparse_lsqr(mat, b_dv, linop, linop, iter_lim, show, damp, atol, 
+                       btol, conlim, calc_var, x0);
+  }
+
+  template <class T, class I, class O, 
+            class LINOP1, class LINOP2>
+  sparse_lsqr_result<T> 
+  sparse_lsqr(crs_matrix<T, I, O>& mat, dvector<T>& b_dv,
+              LINOP1& func1, LINOP2& func2,
               int iter_lim = std::numeric_limits<int>::max(),
               bool show = false,
               float damp = 0.0,
@@ -165,12 +191,12 @@ namespace frovedis {
               std::string("size of initial solution vector, x0,") +
               std::string("doesn't match the number of features in matrix"));
       x = x0;
-      u = u - A * x;
+      u = u - func1(A, x);
       beta = vector_norm(u);
     }
     if(beta > 0){
       u = u * (1 / beta);
-      v = A_trans * u;
+      v = func2(A_trans, u);
       alfa = vector_norm(v);
     }
     else{
@@ -187,11 +213,13 @@ namespace frovedis {
     auto r1norm = rnorm;
     auto r2norm = rnorm;
     auto arnorm = alfa * beta;
-    if(arnorm == 0){
+    if(arnorm == 0) {
+      if(show) {
+        RLOG(INFO) << msg[0] << std::endl;
+      }
       sparse_lsqr_result<T> ret_val(x, itn, istop, r1norm,
                                     r2norm, arnorm, anorm,
                                     acond, xnorm, var);
-      RLOG(INFO) << msg[0] << std::endl;
       return ret_val;
     }
     if(show){
@@ -219,13 +247,13 @@ namespace frovedis {
     //Main iteration loop.
     while(itn < iter_lim){
       ++itn;
-      u = (A * v) - (u * alfa);
+      u = func1(A, v) - (u * alfa);
       beta = vector_norm(u);
       if(beta > 0){
         u = u * (1 / beta);
         anorm = std::sqrt(anorm * anorm  + alfa * alfa 
                           + beta * beta + damp * damp);
-        v = (A_trans * u) - (v * beta);
+        v = func2(A_trans, u) - (v * beta);
         alfa = vector_norm(v);
         if(alfa > 0)v = v * (1 / alfa);
       }

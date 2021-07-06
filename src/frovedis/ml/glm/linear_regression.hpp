@@ -36,6 +36,8 @@ struct linear_regression {
     this->mat_type = mType;
     this->is_fitted = false;
     this->n_iter_ = 0;
+    this->rank_ = 0;
+    this->singular_ = std::vector<T>(); 
     this->n_features_ = 0;
   }
   linear_regression<T>& 
@@ -54,10 +56,10 @@ struct linear_regression {
   }
   linear_regression<T>& 
   set_solver(const std::string& solver) {
-    std::string msg = "expected sgd, lbfgs, lapack or scalapack; received: " + 
+    std::string msg = "expected sgd, lbfgs, sparse_lsqr, lapack or scalapack; received: " + 
                        solver + "\n";
-    require(solver == "sgd" || solver == "lbfgs" || solver == "lapack"
-           || solver == "scalapack", msg);
+    require(solver == "sgd" || solver == "lbfgs" || solver == "sparse_lsqr" 
+           || solver == "lapack" || solver == "scalapack", msg);
     this->solver = solver;
     return *this;  
   }
@@ -163,20 +165,10 @@ struct linear_regression {
   linear_regression&
   fit(MATRIX&& mat, dvector<T>& label,
       std::vector<T>& sample_weight) {
-    int rank;
-    std::vector<T> sval;
-    return _fit(mat, label, sample_weight, true, rank, sval);
+    return _fit(mat, label, sample_weight, true);
   }
 
   template <class MATRIX>
-  linear_regression&
-  fit(MATRIX&& mat, dvector<T>& label,
-      int& rank, std::vector<T>& sval,
-      std::vector<T>& sample_weight) {
-    return _fit(mat, label, sample_weight, true, rank, sval);
-  }
-
-   template <class MATRIX>
   linear_regression&
   fit(const MATRIX& mat, dvector<T>& label) {
     std::vector<T> sample_weight;
@@ -187,17 +179,7 @@ struct linear_regression {
   linear_regression&
   fit(const MATRIX& mat, dvector<T>& label,
       std::vector<T>& sample_weight) {
-    int rank;
-    std::vector<T> sval;
-    return _fit(mat, label, sample_weight, false, rank, sval);
-  }
-
-  template <class MATRIX>
-  linear_regression&
-  fit(const MATRIX& mat, dvector<T>& label,
-      int& rank, std::vector<T>& sval,
-      std::vector<T>& sample_weight) {
-    return _fit(mat, label, sample_weight, false, rank, sval);
+    return _fit(mat, label, sample_weight, false);
   }
 
   // MATRIX: can accept both rowmajor and colmajor matrices as for dense data; 
@@ -206,12 +188,12 @@ struct linear_regression {
   linear_regression&
   _fit(MATRIX& mat, dvector<T>& label,
        std::vector<T>& sample_weight,
-       bool input_movable,
-       int& rank, std::vector<T>& sval) {
+       bool input_movable) {
     size_t nfeatures = mat.num_col;
-    if(warm_start && (solver == "lapack" || solver == "scalapack"))
+    if(warm_start && (solver == "lapack" || solver == "scalapack" || 
+                      solver == "sparse_lsqr"))
       REPORT_ERROR(USER_ERROR,
-             "warm_start is not available for lapack and scalapack!\n");
+             "warm_start is not available for solver: '" + solver + "'\n");
     if(!(warm_start && is_fitted)) {
       T intercept = fit_intercept ? 1.0 : 0.0;
       model = linear_regression_model<T>(nfeatures, intercept);
@@ -220,8 +202,7 @@ struct linear_regression {
       require(nfeatures == n_features_,
       "Fitted model dimension does not match with number of features in input data\n");
     }
-    size_t n_iter;
-
+    size_t n_iter = 0;
     if (solver == "sgd") {
       this->model = linear_regression_with_sgd::train(
                       mat, label, model, sample_weight, n_iter,
@@ -235,14 +216,23 @@ struct linear_regression {
                       mat_type, input_movable);
     }
     else if (solver == "lapack") {
+      int rank = 0;
+      std::vector<T> sval;
       this->model = linear_regression_with_lapack(mat, label, rank, sval,
                                                   sample_weight,
                                                   fit_intercept);
+      this->rank_ = rank;
+      this->singular_ = sval;
     }
     else if (solver == "scalapack") {
       this->model = linear_regression_with_scalapack(mat, label,
                                                      sample_weight,
                                                      fit_intercept);
+    }
+    else if (solver == "sparse_lsqr") {
+      this->model = linear_regression_with_lsqr_impl(mat, label,
+                                                     sample_weight, max_iter,
+                                                     fit_intercept, n_iter);
     }
     else REPORT_ERROR(USER_ERROR, "Unknown solver is encountered!\n");
     this->is_fitted = true;
@@ -317,6 +307,23 @@ struct linear_regression {
     return *this; 
   }
 
+  size_t n_iter() {
+    require(is_fitted, "n_iter_: attribute can be obtained after fit!\n");
+    return n_iter_;
+  }
+
+  int rank() {
+    require(is_fitted, "rank: attribute can be obtained after fit!\n");
+    require(solver == "lapack", "rank: attribute can be obtained for lapack solver!\n");
+    return rank_;
+  }
+
+  std::vector<T> singular() {
+    require(is_fitted, "singular: attribute can be obtained after fit!\n");
+    require(solver == "lapack", "singular: attribute can be obtained for lapack solver!\n");
+    return singular_;
+  }
+
   int max_iter, hist_size;
   double alpha, mbf, tol;
   std::string solver;
@@ -327,9 +334,11 @@ struct linear_regression {
   bool warm_start;
   size_t n_features_;
   MatType mat_type;
+  int rank_;
+  std::vector<T> singular_;
   SERIALIZE(max_iter, hist_size, alpha, mbf, tol, 
             solver, fit_intercept, model, is_fitted, n_iter_,
-            warm_start, n_features_, mat_type); 
+            warm_start, n_features_, mat_type, rank_, singular_);
 };
 
 }

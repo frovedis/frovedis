@@ -5,6 +5,8 @@
 #include <frovedis/matrix/lapack_wrapper.hpp>
 #include <frovedis/matrix/scalapack_wrapper.hpp>
 #include <frovedis/ml/glm/linear_model.hpp>
+#include <frovedis/matrix/sparse_lsqr.hpp>
+#include <frovedis/core/vector_operations.hpp>
 
 namespace frovedis {
 
@@ -12,10 +14,7 @@ template<class T>
 void rescale_data(colmajor_matrix<T>& mat, 
             std::vector<T>& vect, std::vector<T>& sample_weight) {
   auto sqrt_sw = vector_sqrt(sample_weight);
-  auto vp = vect.data();
-  auto swp = sqrt_sw.data();
-  auto vect_size = vect.size();
-  for(size_t i = 0; i < vect_size; ++i) vp[i] *= swp[i];
+  vect = vect * sqrt_sw;
   mat = scale_cmm_matrix(mat, 0, sqrt_sw);
 }
 
@@ -29,6 +28,40 @@ void rescale_data(colmajor_matrix_local<T>& mat,
   for(size_t i = 0; i < vect_size; ++i) vp[i] *= swp[i];
   mat = scale_cmm_matrix_impl(mat, 0, sqrt_sw);
 }
+
+template<class T, class I, class O>
+void rescale_data(crs_matrix<T,I,O>& mat,
+                  std::vector<T>& vec,
+                  std::vector<T>& sample_weight) {
+  auto sqrt_sw = vector_sqrt(sample_weight);
+  vec = vec * sqrt_sw;
+  mat = scale_crs_matrix(mat, 0, sqrt_sw);
+}
+
+// -------- for lsqr solvers --------
+template <class T, class I, class O>
+void preprocess_data(crs_matrix<T,I,O>& mat,
+                     dvector<T>& in_label,
+                     dvector<T>& out_label,
+                     std::vector<T>& Amean,
+                     T& Bmean,
+                     std::vector<T>& sample_weight) {
+  auto sizes = mat.get_local_num_rows();
+  in_label.align_as(sizes);
+  auto nsamples = mat.num_row;
+  if (nsamples != in_label.size())
+    REPORT_ERROR(USER_ERROR, "Number of samples in input matrix and label vector doesn't match!\n");
+  if (nsamples != sample_weight.size())
+    REPORT_ERROR(USER_ERROR, "Number of samples in input matrix and sample weight size doesn't match!\n");
+  auto label_vec = in_label.gather();
+  Amean = compute_mean(mat, 0);
+  Bmean = vector_sum(label_vec * sample_weight);
+  T total_sw = vector_sum(sample_weight);
+  Bmean /= total_sw;
+  label_vec = label_vec - Bmean;
+  rescale_data(mat, label_vec, sample_weight);
+  out_label = make_dvector_scatter(label_vec);
+}  
 
 // -------- for lapack solvers --------
 template <class T>
@@ -144,7 +177,90 @@ extract_solution(LOC_MAT& Bmat, size_t nfeatures) {
   return model;
 }
 
+template <class T>
+struct lnr_matvec {
+  lnr_matvec() {}
+  lnr_matvec(std::vector<T>& Amean): Amean(Amean) {}
+  template <class MATRIX>
+  std::vector<T> operator()(MATRIX& m, std::vector<T>& v) {
+    return (m * v) - vector_dot(v, Amean);
+  }
+  std::vector<T> Amean;
+  SERIALIZE(Amean);
+};
+
+template <class T>
+struct lnr_rmatvec {
+  lnr_rmatvec() {}
+  lnr_rmatvec(std::vector<T>& Amean): Amean(Amean) {}
+  template <class TRANS_MATRIX>
+  std::vector<T> operator()(TRANS_MATRIX& m, std::vector<T>& v) {
+    return (m * v) - (Amean * vector_sum(v));
+  }
+  std::vector<T> Amean;
+  SERIALIZE(Amean);
+};
+
+template <class T, class I, class O>
+linear_regression_model<T>
+linear_regression_with_lsqr_impl(crs_matrix<T,I,O>& mat,
+                                 dvector<T>& in_label,
+                                 std::vector<T>& sample_weight,
+                                 int max_iter,
+                                 bool fit_intercept,
+                                 size_t& n_iter) {
+  T Bmean;
+  std::vector<T> Amean;
+  dvector<T> out_label;
+  if(sample_weight.empty()) sample_weight = vector_full<T>(mat.num_row, 1);
+  preprocess_data(mat, in_label, out_label, Amean, Bmean, sample_weight);
+  lnr_matvec<T> mv(Amean);
+  lnr_rmatvec<T> rmv(Amean);
+  auto out = sparse_lsqr<T>(mat, out_label, mv, rmv, max_iter);
+  linear_regression_model<T> model;
+  model.weight.swap(out.x);
+  n_iter = out.itn;
+  if(fit_intercept) set_intercept(model, Amean, Bmean);
+  return model;
+}
+
+template <class T>
+linear_regression_model<T>
+linear_regression_with_lsqr_impl(colmajor_matrix<T>& mat,
+                                 dvector<T>& in_label,
+                                 std::vector<T>& sample_weight,
+                                 int max_iter,
+                                 bool fit_intercept, 
+                                 size_t& n_iter) {
+  std::string msg = "lsqr solver is supported only for sparse data!\n";
+  REPORT_ERROR(USER_ERROR, msg);
+  return linear_regression_model<T>(); // never reachable: to supress compiler warning!
+}
+
 // -------- User APIs -------
+template <class T, class I, class O>
+linear_regression_model<T>
+linear_regression_with_lsqr(crs_matrix<T,I,O>& mat,
+                            dvector<T>& in_label,
+                            int max_iter = 1000,
+                            bool fit_intercept = true) {
+  std::vector<T> sample_weight;
+  return linear_regression_with_lsqr(mat, in_label, sample_weight,
+                                     max_iter, fit_intercept);
+}
+
+template <class T, class I, class O>
+linear_regression_model<T>
+linear_regression_with_lsqr(crs_matrix<T,I,O>& mat,
+                            dvector<T>& in_label,
+                            std::vector<T>& sample_weight,
+                            int max_iter,
+                            bool fit_intercept) {
+  size_t n_iter = 0;
+  return linear_regression_with_lsqr_impl(mat, in_label, sample_weight, 
+                                          max_iter, fit_intercept, n_iter);
+}
+
 template <class T>
 linear_regression_model<T>
 linear_regression_with_lapack(colmajor_matrix<T>& mat,
