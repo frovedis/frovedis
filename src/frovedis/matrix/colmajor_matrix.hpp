@@ -524,58 +524,62 @@ void colmajor_mul_vector_row(colmajor_matrix_local<T>& m, std::vector<T>& v) {
 
 template <class T>
 void scale_matrix(colmajor_matrix<T>& mat, std::vector<T>& vec) {
-  mat.data.mapv(colmajor_mul_vector_row<T>, broadcast(vec));
+  mat.data.mapv(colmajor_mul_vector_row<T>, broadcast(vec)); // scale columns used in stddev
 } 
 
 template<class T>
-colmajor_matrix_local<T> scale_cmm_matrix_impl(colmajor_matrix_local<T>& mat,
-                         int axis, const std::vector<T> &vect) {
+colmajor_matrix_local<T> 
+scale_cmm_matrix_impl(const colmajor_matrix_local<T>& mat,
+                      int axis, const std::vector<T>& vec) {
   auto nrow = mat.local_num_row;
   auto ncol = mat.local_num_col;
   colmajor_matrix_local<T> ret(nrow, ncol);
-  auto vp = vect.data();
+  auto vecp = vec.data();
   auto matp = mat.val.data();
   auto retp = ret.val.data();
-  if(axis == 1) {
-   require(vect.size() == ncol,
-    "vector size does not match with number of cols in matrix");
-    for(size_t i = 0; i < ncol; ++i) {
-      for(size_t j = 0; j < nrow; ++j) {
-        retp[i * nrow + j] = matp[i * nrow + j] * vp[i];
-      }
-    }
-  }
-  else {
-    require(vect.size() == nrow,
+  if(axis == 0) {
+    require(vec.size() == nrow,
      "vector size does not match with number of rows in matrix");
     for(size_t i = 0; i < ncol; ++i) {
       for(size_t j = 0; j < nrow; ++j) {
-        retp[i * nrow + j] = matp[i * nrow + j] * vp[j];
+        retp[i * nrow + j] = matp[i * nrow + j] * vecp[j];
       }
     }
-  }
+  } else if(axis == 1) {
+    require(vec.size() == ncol,
+    "vector size does not match with number of cols in matrix");
+    for(size_t i = 0; i < ncol; ++i) {
+      for(size_t j = 0; j < nrow; ++j) {
+        retp[i * nrow + j] = matp[i * nrow + j] * vecp[i];
+      }
+    }
+  } else REPORT_ERROR(USER_ERROR, "expected axis is either 0 or 1\n");
   return ret;
 }
 
 template<class T>
-colmajor_matrix<T> scale_cmm_matrix(colmajor_matrix<T>& mat,
-                                    int axis, const std::vector<T>& vect) {
-  colmajor_matrix_local<T> (*f)(colmajor_matrix_local<T>&,
-                            int, const std::vector<T>&) = scale_cmm_matrix_impl;
+colmajor_matrix<T> 
+scale_cmm_matrix(const colmajor_matrix<T>& inMat,
+                 int axis, const std::vector<T>& vec) {
+  lvec<T> dvec;
+  auto& mat = const_cast<colmajor_matrix<T>&> (inMat);
   auto nrow = mat.num_row;
   auto ncol = mat.num_col;
-  colmajor_matrix<T> ret;
-  if(axis == 1) {
-    ret = colmajor_matrix<T>(mat.data.map(f, broadcast(axis),
-                             broadcast(vect)));
-  }
-  else {
-    auto nvect = make_dvector_scatter(vect, mat.get_local_num_rows()).
-                                      moveto_node_local();
-    ret =  colmajor_matrix<T>(mat.data.map(f,
-                              broadcast(axis),  nvect));
-  }
-  ret.set_num(nrow, ncol);
+  if (axis == 0) {
+    require(vec.size() == nrow,
+    "vector size does not match with number of rows in matrix");
+    auto sizes = mat.get_local_num_rows();
+    dvec = make_dvector_scatter(vec).align_as(sizes).moveto_node_local();
+  } else if (axis == 1) {
+    require(vec.size() == ncol,
+    "vector size does not match with number of cols in matrix");
+    dvec = broadcast(vec);
+  } else REPORT_ERROR(USER_ERROR, "expected axis is either 0 or 1\n");
+
+  colmajor_matrix<T> ret(mat.data.map(scale_cmm_matrix_impl<T>,
+                                      broadcast(axis), dvec));
+  ret.num_row = nrow;
+  ret.num_col = ncol;
   return ret;
 }
 

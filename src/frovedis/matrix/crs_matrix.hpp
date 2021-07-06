@@ -2843,13 +2843,73 @@ void crs_mul_vector_row(crs_matrix_local<T, I, O>& mat,
   auto valptr = mat.val.data();
   auto idxptr = mat.idx.data();
   auto nnz = mat.val.size();
+  #pragma _NEC ivdep
   for(size_t i = 0; i < nnz; ++i) valptr[i] *= vptr[idxptr[i]];
 }
 
 template <class T, class I, class O>
 void scale_matrix(crs_matrix<T, I, O>& mat,
-                  std::vector<T>& vec) {
+                  std::vector<T>& vec) { // column scaling used in stddev
   mat.data.mapv(crs_mul_vector_row<T,I,O>, broadcast(vec));
+}
+
+template <class T, class I, class O>
+crs_matrix_local<T,I,O>
+scale_crs_matrix_impl(const crs_matrix_local<T,I,O>& mat, 
+                      int axis, const std::vector<T>& vec) {
+  auto nrow = mat.local_num_row;
+  auto ncol = mat.local_num_col;
+  crs_matrix_local<T,I,O> ret;
+  auto nnz = mat.val.size();
+  ret.val.resize(nnz);
+  auto mvalp = mat.val.data();
+  auto offp = mat.off.data();
+  auto idxp = mat.idx.data();
+  auto rvalp = ret.val.data();
+  auto vecp = vec.data();
+  ret.idx = mat.idx;
+  ret.off = mat.off;
+  ret.local_num_row = nrow;
+  ret.local_num_col = ncol;
+  if (axis == 0) {  
+    require(vec.size() == nrow, 
+    "vector size does not match with number of rows in matrix");
+    for(size_t i = 0; i < nrow; ++i) {
+      for(size_t j = offp[i]; j < offp[i + 1]; ++j) rvalp[j] = mvalp[j] * vecp[i];
+    }
+  } else if (axis == 1) {  
+    require(vec.size() == ncol, 
+    "vector size does not match with number of cols in matrix");
+    #pragma _NEC ivdep
+    for(size_t i = 0; i < nnz; ++i) rvalp[i] = mvalp[i] * vecp[idxp[i]];
+  } else REPORT_ERROR(USER_ERROR, "expected axis is either 0 or 1\n");
+  return ret;
+}
+
+template <class T, class I, class O>
+crs_matrix<T,I,O>
+scale_crs_matrix(const crs_matrix<T,I,O>& inMat,
+                 int axis, const std::vector<T>& vec) {
+  lvec<T> dvec;
+  auto& mat = const_cast<crs_matrix<T,I,O>&>(inMat);
+  auto nrow = mat.num_row;
+  auto ncol = mat.num_col;
+  if (axis == 0) {  
+    require(vec.size() == nrow, 
+    "vector size does not match with number of rows in matrix");
+    auto sizes = mat.get_local_num_rows();
+    dvec = make_dvector_scatter(vec).align_as(sizes).moveto_node_local();
+  } else if (axis == 1) {  
+    require(vec.size() == ncol, 
+    "vector size does not match with number of cols in matrix");
+    dvec = broadcast(vec);
+  } else REPORT_ERROR(USER_ERROR, "expected axis is either 0 or 1\n");
+
+  crs_matrix<T,I,O> ret(mat.data.map(scale_crs_matrix_impl<T,I,O>, 
+                                     broadcast(axis), dvec));
+  ret.num_row = nrow;
+  ret.num_col = ncol;
+  return ret;
 }
 
 template <class T, class I, class O>
