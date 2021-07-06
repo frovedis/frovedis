@@ -20,10 +20,6 @@ void expose_frovedis_glm_regression_functions() {
   expose((frovedis_lnr<DT1,S_MAT15>));     // python case
   expose((frovedis_lnr<DT2,S_MAT24>));     // python case
   expose((frovedis_lnr<DT2,S_MAT25>));     // python case
-  expose((frovedis_lnr_lapack<DT1,D_MAT1>));   // both spark and python case
-  expose((frovedis_lnr_lapack<DT2,D_MAT2>));   // python case
-  expose((frovedis_lnr_scalapack<DT1,D_MAT1>));   // both spark and python case
-  expose((frovedis_lnr_scalapack<DT2,D_MAT2>));   // python case
   // (3) lasso regression
   expose((frovedis_lasso<DT1,D_MAT1>));    // both spark and python case
   expose((frovedis_lasso<DT2,D_MAT2>));    // python case

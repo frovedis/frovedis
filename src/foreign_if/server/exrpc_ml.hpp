@@ -189,80 +189,36 @@ void frovedis_svc(frovedis_mem_pair& mp, double& tol, double& C,
 }
 
 template <class T, class MATRIX>
-std::vector<T> 
-frovedis_lnr_lapack(frovedis_mem_pair& mp,
-                    bool& isIntercept, int& verbose, int& mid,
-                    std::vector<T>& sample_weight, 
-                    bool& isMovableInput=false) {
-  // extracting input data
-  auto matptr = reinterpret_cast<MATRIX*>(mp.first());
-  auto lblptr = reinterpret_cast<dvector<T>*>(mp.second());
-
-  set_verbose_level(verbose);
-
-  linear_regression<T> m;
-  m.set_intercept(isIntercept);
-  m.set_solver("lapack");
-  int rank;
-  std::vector<T> sval;
-  m.fit(*matptr, *lblptr, rank, sval, sample_weight); 
-  sval.push_back(static_cast<T>(rank));
-  if (isMovableInput) {
-    delete matptr; delete lblptr;
-  }
-  reset_verbose_level();
-  handle_trained_model<linear_regression<T>>(mid, LNRM, m);
-  return sval;
-}
-
-template <class T, class MATRIX>
-void frovedis_lnr_scalapack(frovedis_mem_pair& mp,
-                            bool& isIntercept, int& verbose, int& mid,
-                            std::vector<T>& sample_weight, 
-                            bool& isMovableInput=false) {
-  // extracting input data
-  auto matptr = reinterpret_cast<MATRIX*>(mp.first());
-  auto lblptr = reinterpret_cast<dvector<T>*>(mp.second());
-
-  set_verbose_level(verbose);
-
-  linear_regression<T> m;
-  m.set_intercept(isIntercept);
-  m.set_solver("scalapack");
-  m.fit(*matptr, *lblptr, sample_weight); 
-  if (isMovableInput) {
-    delete matptr; delete lblptr;
-  }
-  reset_verbose_level();
-  handle_trained_model<linear_regression<T>>(mid, LNRM, m);
-}
-
-template <class T, class MATRIX>
-size_t frovedis_lnr(frovedis_mem_pair& mp, glm_config& config, 
-                    int& verbose, int& mid, 
-                    std::vector<T>& sample_weight, 
-                    bool& isMovableInput=false) {
-  // extracting input data
+lnr_result<T> 
+frovedis_lnr(frovedis_mem_pair& mp, glm_config& config, 
+             int& verbose, int& mid, 
+             std::vector<T>& sample_weight, 
+             bool& isMovableInput=false) {
   MATRIX& mat = *reinterpret_cast<MATRIX*>(mp.first());
   dvector<T>& lbl = *reinterpret_cast<dvector<T>*>(mp.second()); 
   auto is_fitted = is_registered_model(mid);
+ 
+  set_verbose_level(verbose);
   linear_regression<T> *m = is_fitted ?
            get_model_ptr<linear_regression<T>>(mid) :
            new linear_regression<T>();
   m->set_params(config);
-
-   set_verbose_level(verbose);
- 
-  size_t n_iter = 0;
   if (isMovableInput) {
-    m->fit(std::move(mat),lbl,sample_weight);
+    m->fit(std::move(mat), lbl, sample_weight);
     lbl.mapv_partitions(clear_lbl_data<T>); 
   }
-  else m->fit(mat,lbl,sample_weight);
-  n_iter = m->n_iter_;
+  else m->fit(mat, lbl, sample_weight);
   reset_verbose_level();
+
+  int rank = 0;
+  std::vector<T> singular;
+  auto n_iter = m->n_iter();
+  if (config.solver == "lapack") {
+    rank = m->rank();
+    singular = m->singular();
+  }
   handle_trained_model<linear_regression<T>>(mid, LNRM, *m);
-  return n_iter;
+  return lnr_result<T>(n_iter, rank, singular);
 }
 
 template <class T, class MATRIX>

@@ -75,7 +75,7 @@ struct tsne_result {
 };
 
 struct kmeans_result {
-  kmeans_result() {}
+  kmeans_result() { n_iter_ = 0; } // to suppress compiler warning in spark wrapper
   kmeans_result(const std::vector<int>& label, 
                 const int n_iter, 
                 const float inertia,
@@ -98,7 +98,7 @@ struct kmeans_result {
 };
     
 struct gmm_result {
-  gmm_result() {}
+  gmm_result() { n_iter_ = 0; } // to suppress compiler warning in spark wrapper
   gmm_result(const int n_iter, 
              const double likelihood): 
              n_iter_(n_iter), 
@@ -107,5 +107,19 @@ struct gmm_result {
   double likelihood_;
   SERIALIZE(n_iter_, likelihood_);
 };
+
+template <class T>
+struct lnr_result {
+  lnr_result() { n_iter = 0; } // to suppress compiler warning in spark wrapper
+  lnr_result(int n_iter,
+             int rank, std::vector<T>& sval):
+             n_iter(n_iter), rank(rank) {
+    singular.swap(sval); // assumes sval is no longer required at caller side
+  }
+  int n_iter, rank;
+  std::vector<T> singular;
+  SERIALIZE(n_iter, rank, singular);
+};
+
 
 #endif
