@@ -61,10 +61,10 @@ struct glm_config {
   }
   glm_config& 
   set_solver(const std::string& solver) {
-    std::string msg = "expected sgd, shrink-sgd, lbfgs, lapack or scalapack; received: "
+    std::string msg = "expected sgd, shrink-sgd, lbfgs, sparse_lsqr, lapack or scalapack; received: "
                        + solver + "\n";
     require(solver == "sgd" || solver == "shrink-sgd" || solver == "lbfgs" 
-            || solver == "lapack" || solver == "scalapack", msg);
+            || solver == "lapack" || solver == "scalapack" || solver == "sparse_lsqr", msg);
     this->solver = solver;
     return *this;  
   }
