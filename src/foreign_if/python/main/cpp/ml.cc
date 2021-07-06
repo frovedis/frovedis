@@ -315,87 +315,13 @@ extern "C" {
   }
 
   // --- (3) Linear Regression ---
-  PyObject* lnr_lapack(const char* host, int port, long xptr, long yptr,
-                       double* sample_weight_ptr, long sample_weight_len,
-                       bool icpt, int vb, int mid, short dtype) {
-    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
-    exrpc_node fm_node(host,port);
-    auto f_xptr = (exrpc_ptr_t) xptr;
-    auto f_yptr = (exrpc_ptr_t) yptr;
-    auto f_dptr = frovedis_mem_pair(f_xptr,f_yptr);
-    bool mvbl = false;
-    PyObject* retptr = NULL;
-    try {
-      switch(dtype) {
-        case FLOAT: {
-          auto sample_weight = double_to_float_vector(sample_weight_ptr,
-                                                      sample_weight_len);
-          std::vector<DT2> sval;
-          sval = exrpc_async(fm_node,(frovedis_lnr_lapack<DT2,D_MAT2>),
-                             f_dptr,icpt,vb,mid,sample_weight,mvbl).get();
-          retptr = to_python_float_list(sval);
-          break;
-        }
-        case DOUBLE: {
-          auto sample_weight = to_double_vector(sample_weight_ptr,
-                                                sample_weight_len);
-          std::vector<DT1> sval;
-          sval = exrpc_async(fm_node,(frovedis_lnr_lapack<DT1,D_MAT1>),
-                             f_dptr,icpt,vb,mid,sample_weight,mvbl).get();
-          retptr = to_python_double_list(sval);
-          break;
-        }
-        default: REPORT_ERROR(USER_ERROR, "Unsupported dtype of input dense data for training!\n");
-      }
-    }
-    catch (std::exception& e) {
-      set_status(true, e.what());
-    }
-    return retptr;
-  }
-
-  void lnr_scalapack(const char* host, int port, long xptr, long yptr,
-                     double* sample_weight_ptr, long sample_weight_len,
-                     bool icpt, int vb, int mid, short dtype) {
-    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
-    exrpc_node fm_node(host,port);
-    auto f_xptr = (exrpc_ptr_t) xptr;
-    auto f_yptr = (exrpc_ptr_t) yptr;
-    auto f_dptr = frovedis_mem_pair(f_xptr,f_yptr);
-    bool mvbl = false;
-    try {
-      switch(dtype) {
-        case FLOAT:
-        {
-          auto sample_weight = double_to_float_vector(sample_weight_ptr,
-                                                      sample_weight_len);
-          exrpc_oneway(fm_node,(frovedis_lnr_scalapack<DT2,D_MAT2>),
-                       f_dptr,icpt,vb,mid,sample_weight,mvbl);
-          break;
-        }
-        case DOUBLE:
-        {
-          auto sample_weight = to_double_vector(sample_weight_ptr,
-                                                sample_weight_len);
-          exrpc_oneway(fm_node,(frovedis_lnr_scalapack<DT1,D_MAT1>),
-                       f_dptr,icpt,vb,mid,sample_weight,mvbl);
-          break;
-        }
-        default: REPORT_ERROR(USER_ERROR, "Unsupported dtype of input dense data for training!\n");
-      }
-    }
-    catch (std::exception& e) {
-      set_status(true, e.what());
-    }
-  }
-
-  int lnr(const char* host, int port, long xptr, long yptr,
+  PyObject* lnr_impl(const char* host, int port, long xptr, long yptr,
                double* sample_weight_ptr, long sample_weight_len,
-               int iter, double al,
+               int max_iter, double al,
                bool icpt, double tol, int vb, int mid, 
                short dtype, short itype, bool dense,
-               const char* solver, bool warm_start) {
-    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
+               const char* solver, bool warm_start, int& n_iter) {
+    if(!host) REPORT_ERROR(USER_ERROR, "Invalid hostname!!");
     exrpc_node fm_node(host,port);
     auto f_xptr = (exrpc_ptr_t) xptr;
     auto f_yptr = (exrpc_ptr_t) yptr;
@@ -403,9 +329,8 @@ extern "C" {
     int hs = 10;  // default
     double mbf = 1.0;  // default
     bool mvbl = false;  // auto-managed at python side
-    size_t n_iter = 0;
     glm_config config;
-    config.set_max_iter(iter).
+    config.set_max_iter(max_iter).
            set_alpha(al).
            set_solver(solver).
            set_intercept(icpt).
@@ -413,23 +338,30 @@ extern "C" {
            set_tol(tol).
            set_warm_start(warm_start).
            set_hist_size(hs);
+    PyObject* retptr = NULL;
     try {
       if(dense) {
         switch(dtype) {
           case FLOAT:
           {
+            lnr_result<float> res;
             auto sample_weight = double_to_float_vector(sample_weight_ptr,
                                                         sample_weight_len);
-            n_iter = exrpc_async(fm_node,(frovedis_lnr<DT2,D_MAT2>),f_dptr,
+            res = exrpc_async(fm_node,(frovedis_lnr<DT2,D_MAT2>),f_dptr,
                      config,vb,mid,sample_weight,mvbl).get();
+            n_iter = res.n_iter;
+            retptr = to_py_float_lnr_result(res);
             break;
           }
           case DOUBLE:
           {
+            lnr_result<double> res;
             auto sample_weight = to_double_vector(sample_weight_ptr,
                                                   sample_weight_len);
-            n_iter = exrpc_async(fm_node,(frovedis_lnr<DT1,D_MAT1>),f_dptr,
+            res = exrpc_async(fm_node,(frovedis_lnr<DT1,D_MAT1>),f_dptr,
                      config,vb,mid,sample_weight,mvbl).get();
+            n_iter = res.n_iter;
+            retptr = to_py_double_lnr_result(res);
             break;
           }
           default: REPORT_ERROR(USER_ERROR, "Unsupported dtype of input dense data for training!\n");
@@ -439,28 +371,34 @@ extern "C" {
         switch(dtype) {
           case FLOAT:
           {
+            lnr_result<float> res;
             auto sample_weight = double_to_float_vector(sample_weight_ptr,
                                                         sample_weight_len);
             if(itype == INT)
-              n_iter = exrpc_async(fm_node,(frovedis_lnr<DT2,S_MAT24>),f_dptr,
+              res = exrpc_async(fm_node,(frovedis_lnr<DT2,S_MAT24>),f_dptr,
                        config,vb,mid,sample_weight,mvbl).get();
             else if(itype == LONG)
-              n_iter = exrpc_async(fm_node,(frovedis_lnr<DT2,S_MAT25>),f_dptr,
+              res = exrpc_async(fm_node,(frovedis_lnr<DT2,S_MAT25>),f_dptr,
                        config,vb,mid,sample_weight,mvbl).get();
             else REPORT_ERROR(USER_ERROR, "Unsupported itype of input sparse data for training!\n");
+	    n_iter = res.n_iter;
+            retptr = to_py_float_lnr_result(res);
             break;
           }
           case DOUBLE:
           {
+            lnr_result<double> res;
             auto sample_weight = to_double_vector(sample_weight_ptr,
                                                   sample_weight_len);
             if(itype == INT)
-              n_iter = exrpc_async(fm_node,(frovedis_lnr<DT1,S_MAT14>),f_dptr,
+              res = exrpc_async(fm_node,(frovedis_lnr<DT1,S_MAT14>),f_dptr,
                        config,vb,mid,sample_weight,mvbl).get();
             else if(itype == LONG)
-              n_iter = exrpc_async(fm_node,(frovedis_lnr<DT1,S_MAT15>),f_dptr,
+              res = exrpc_async(fm_node,(frovedis_lnr<DT1,S_MAT15>),f_dptr,
                        config,vb,mid,sample_weight,mvbl).get();
             else REPORT_ERROR(USER_ERROR, "Unsupported itype of input sparse data for training!\n");
+	    n_iter = res.n_iter;
+            retptr = to_py_double_lnr_result(res);
             break;
           }
           default: REPORT_ERROR(USER_ERROR, "Unsupported dtype of input sparse data for training!\n");
@@ -470,7 +408,19 @@ extern "C" {
     catch (std::exception& e) {
       set_status(true, e.what());
     }
-    return static_cast<int>(n_iter);
+    return retptr;
+  }
+
+  PyObject* lnr(const char* host, int port, long xptr, long yptr,
+               double* sample_weight_ptr, long sample_weight_len,
+               int max_iter, double al,
+               bool icpt, double tol, int vb, int mid,
+               short dtype, short itype, bool dense,
+               const char* solver, bool warm_start) {
+    int n_iter = 0;
+    return lnr_impl(host, port, xptr, yptr, sample_weight_ptr, 
+                    sample_weight_len, max_iter, al, icpt, tol, vb,
+                    mid, dtype, itype, dense, solver, warm_start, n_iter);
   }
 
   // --- (4) Lasso Regression ---
@@ -654,13 +604,13 @@ extern "C" {
                bool icpt, double tol, int vb, int mid,
                short dtype, short itype, bool dense,
                bool warm_start) {
-    size_t n_iter = 0;
+    int n_iter = 0;
     switch(rtype) {
-      case 0: n_iter = lnr(host, port, xptr, yptr,
-                        sample_weight_ptr, sample_weight_len,
-                        iter, al, icpt, tol, vb, mid, 
-                        dtype, itype, dense, "sgd", warm_start);
-              break;
+      case 0:   lnr_impl(host, port, xptr, yptr,
+                         sample_weight_ptr, sample_weight_len,
+                         iter, al, icpt, tol, vb, mid, 
+                         dtype, itype, dense, "sgd", warm_start, n_iter);
+                break;
       case 1: n_iter = lasso(host, port, xptr, yptr, 
                         sample_weight_ptr, sample_weight_len,
                         iter, al, rprm, icpt, tol, vb, mid, 
@@ -674,7 +624,7 @@ extern "C" {
       default: REPORT_ERROR(USER_ERROR, 
                "Unsupported regularization type is encountered!\n");
     }
-    return static_cast<int>(n_iter); 
+    return n_iter; 
   }
 
   // --- (6) Kmeans ---

@@ -62,6 +62,8 @@ extern "C" {
   PyObject* to_py_knn_result(const knn_result& obj, char);
   PyObject* to_py_kmeans_result(const kmeans_result& obj);
   PyObject* to_py_gmm_result(const gmm_result& result);
+  PyObject* to_py_float_lnr_result(const lnr_result<float>& result);
+  PyObject* to_py_double_lnr_result(const lnr_result<double>& result);
   PyObject* to_py_dummy_lda_result(const dummy_lda_result& m);
   PyObject* to_py_dummy_graph(const dummy_graph& obj);
   PyObject* to_py_dummy_df(const dummy_dftable& obj);  

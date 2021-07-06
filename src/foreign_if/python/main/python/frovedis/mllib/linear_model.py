@@ -357,7 +357,7 @@ class LinearRegression(BaseEstimator):
     tol: Frovedis: 0.0001 (added)
     """
     def __init__(self, fit_intercept=True, normalize=False, copy_X=True,
-                 n_jobs=None, max_iter=1000, tol=0.0001, lr_rate=1e-8,
+                 n_jobs=None, max_iter=None, tol=0.0001, lr_rate=1e-8,
                  solver=None, verbose=0, warm_start = False):
         self.fit_intercept = fit_intercept
         self.normalize = normalize
@@ -408,51 +408,57 @@ class LinearRegression(BaseEstimator):
         # select default solver, when None is given
         if self.solver is None:
             if dense:
-                self.solver = 'lapack' # ?gelsd for dense X
+                self.solver = 'lapack'      # ?gelsd for dense X
             else:
-                self.solver = 'sag'    # SGDRegressor for sparse X
+                self.solver = 'sparse_lsqr' # sparse_lsqr for sparse X
         else:
             self.solver = self.solver
 
-        sample_weight = check_sample_weight(self, sample_weight)
-        (host, port) = FrovedisServer.getServerInstance()
-        if self.solver in ['sag', 'lbfgs']:
-            solver = self.solver
-            if solver == 'sag':
-                solver = 'sgd'
-            self._n_iter = rpclib.lnr(host, port, X.get(), y.get(), \
-                           sample_weight, len(sample_weight), \
-                           self.max_iter, self.lr_rate, \
-                           self.fit_intercept, self.tol, self.verbose, self.__mid, \
-                           dtype, itype, dense, solver.encode('ascii'), self.warm_start)
-        elif self.solver == 'lapack':
+        if self.solver in ('lapack', 'scalapack'):
             if not dense:
-                raise TypeError("lapack solver supports only dense feature data!")
+                raise TypeError("%s solver supports only dense feature data!" \
+                                % (self.solver))
             if self.warm_start:
-                raise TypeError("lapack solver does not support warm_start!")
-            out = rpclib.lnr_lapack(host, port, X.get(), y.get(), \
-                              sample_weight, len(sample_weight), \
-                              self.fit_intercept, self.verbose, self.__mid, \
-                              dtype)
-            svalsize = len(out) - 1
-            self.singular_ = np.asarray(out[ : svalsize], \
-                                TypeUtil.to_numpy_dtype(dtype))
-            self.rank_ = int(out[svalsize])
-        elif self.solver == 'scalapack':
-            if not dense:
-                raise TypeError("scalapack solver supports only dense feature data!")
+                raise TypeError("%s solver does not support warm_start!" \
+                                % (self.solver))
+        elif self.solver in ('sparse_lsqr'):
+            if dense:
+                raise TypeError("%s solver supports only sparse feature data!" \
+                                % (self.solver))
             if self.warm_start:
-                raise TypeError("scalapack solver does not support warm_start!")
-            rpclib.lnr_scalapack(host, port, X.get(), y.get(), \
-                                 sample_weight, len(sample_weight), \
-                                 self.fit_intercept, self.verbose, self.__mid, \
-                                 dtype)
-        else:
+                raise TypeError("%s solver does not support warm_start!" \
+                                % (self.solver))
+        elif self.solver not in ('sag', 'sgd', 'lbfgs'):
             raise ValueError( \
             "Unknown solver %s for Linear Regression." % self.solver)
+
+        if self.max_iter is None:
+            if self.solver == 'sparse_lsqr':
+                niter = 2 * X.numCols() 
+            else:
+                niter = 1000 # default for sag and lbfgs
+        else:
+            niter = self.max_iter
+
+        sample_weight = check_sample_weight(self, sample_weight)
+        (host, port) = FrovedisServer.getServerInstance()
+        solver = self.solver
+        if solver == 'sag':
+            solver = 'sgd'
+        res = rpclib.lnr(host, port, X.get(), y.get(), \
+                         sample_weight, len(sample_weight), \
+                         niter, self.lr_rate, \
+                         self.fit_intercept, self.tol, self.verbose, self.__mid, \
+                         dtype, itype, dense, solver.encode('ascii'), self.warm_start)
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
             raise RuntimeError(excpt["info"])
+        if solver == 'lapack': #singular_ and rank_ available only for lapack solver
+            sval = res['singular']
+            self.singular_ = np.asarray(sval, TypeUtil.to_numpy_dtype(dtype))
+            self.rank_ = int(res['rank'])
+        if solver not in ('lapack', 'scalapack'):
+            self._n_iter = res['n_iter']
         self._coef = None
         self._intercept = None
         self.isFitted = True

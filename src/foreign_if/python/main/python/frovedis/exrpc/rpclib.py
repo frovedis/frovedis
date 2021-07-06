@@ -1324,23 +1324,6 @@ get_cls_counts_vector.restype = py_object
 # --- regression APIs ---
 
 # 1. Linear Regression
-lnr_lapack = LIB.lnr_lapack
-lnr_lapack.argtypes = [c_char_p, c_int,  # host, port
-                       c_long, c_long,   # X, y
-                       ndpointer(c_double, ndim=1, flags="C_CONTIGUOUS"),#sample_weight
-                       c_long,#sample_weight length
-                       c_bool, c_int,  # fit_icpt, vb
-                       c_int, c_short]   # mid, dtype
-lnr_lapack.restype = py_object
-
-lnr_scalapack = LIB.lnr_scalapack
-lnr_scalapack.argtypes = [c_char_p, c_int,  # host, port
-                          c_long, c_long,   # X, y
-                          ndpointer(c_double, ndim=1, flags="C_CONTIGUOUS"),#sample_weight
-                          c_long,#sample_weight length
-                          c_bool, c_int,  # fit_icpt, vb
-                          c_int, c_short]   # mid, dtype
-
 lnr = LIB.lnr
 lnr.argtypes = [c_char_p, c_int, c_long, c_long, #host,port,X,y
                     ndpointer(c_double, ndim=1, flags="C_CONTIGUOUS"),#sample_weight
@@ -1349,7 +1332,7 @@ lnr.argtypes = [c_char_p, c_int, c_long, c_long, #host,port,X,y
                     c_bool, c_double, c_int, c_int,  #fit_icpt, tol, vb, mid
                     c_short, c_short, c_bool,        #dtype, itype, dense
                     c_char_p, c_bool]                #solver, warm_start
-lnr.restype = c_int #n_iter
+lnr.restype = py_object 
 
 # 2. Lasso Regression (L2)
 lasso = LIB.lasso

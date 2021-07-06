@@ -196,6 +196,20 @@ extern "C" {
                          "likelihood", result.likelihood_);
   } 
 
+  PyObject* to_py_float_lnr_result(const lnr_result<float>& result) {
+    return Py_BuildValue("{s:i, s:i, s:O}",
+                         "n_iter", result.n_iter,
+                         "rank", result.rank,
+                         "singular", to_python_float_list(result.singular));
+  } 
+
+  PyObject* to_py_double_lnr_result(const lnr_result<double>& result) {
+    return Py_BuildValue("{s:i, s:i, s:O}",
+                         "n_iter", result.n_iter,
+                         "rank", result.rank,
+                         "singular", to_python_double_list(result.singular));
+  } 
+
   PyObject* to_py_knn_result(const knn_result& obj,
                              char mtype) {
     if (mtype != 'R') 
