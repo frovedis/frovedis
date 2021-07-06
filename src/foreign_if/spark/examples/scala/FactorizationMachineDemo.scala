@@ -15,23 +15,27 @@ object FactorizationMachineDemo {
     val conf = new SparkConf().setAppName("FactorizationMachineDemo").setMaster("local[2]")
     val sc = new SparkContext(conf)
 
-    val spark = SparkSession.builder.appName("KmeansExample").getOrCreate()      
+    val spark = SparkSession.builder.appName("FactorizationMachineDemo").getOrCreate()      
 
     // initializing Frovedis server with "personalized command", if provided in command line
     if(args.length != 0) FrovedisServer.initialize(args(0))
 
     // -------- data loading from sample libSVM file at Spark side--------
-    var data = MLUtils.loadLibSVMFile(sc, "./input/libSVMFile.txt")
-    val dataset = spark.read.format("libsvm").load("./input/libSVMFile.txt")  
+    var data = MLUtils.loadLibSVMFile(sc, "./input/libSVMFile.txt") //RDD[LabeledPoint]
+    val dataset = spark.read.format("libsvm").load("./input/libSVMFile.txt") //DataFrame
 
     // -------- training with all parameters (RDD data/dataset)--------
-    val model = FactorizationMachine.train(dataset,
+    val model = FactorizationMachine.train(data,
                                            initStdev = 0.1,
                                            iter = 100,
-                                           learnRate = 0.01, optimizer="SGD", 
-                                           isRegression = false,dim = (true, true, 2),
+                                           stepSize = 0.01, optimizer="SGD", 
+                                           isRegression = false,
+                                           fitIntercept = true ,
+                                           fitLinear = true,
+                                           factorSize = 2,
                                            regParam = (0.0, 0.0, 0.0), 
-                                           batchsize = 1)
+                                           miniBatchFraction = 0.07,
+                                           seed = 1)
 
     // -------- prediction --------
     //val X = data.map(_.features)  
