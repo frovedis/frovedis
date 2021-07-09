@@ -9,9 +9,10 @@ namespace frovedis {
 template <class T, class MATRIX1>
 struct nearest_neighbors {
   nearest_neighbors(int k, float rad, const std::string& algo,
-                    const std::string& met, float c_sz):
+                    const std::string& met, float c_sz, 
+                    double batch_f = std::numeric_limits<double>::max()):
     n_neighbors(k), radius(rad), algorithm(algo), metric(met), 
-    chunk_size(c_sz) {}
+    chunk_size(c_sz), batch_fraction(batch_f) {}
   
   void fit(MATRIX1& mat) {
     observation_data = mat;
@@ -24,7 +25,7 @@ struct nearest_neighbors {
              bool need_distance = true) {
     if (k == 0) k = n_neighbors;
     return knn<T,I>(observation_data, enquiry_data, 
-                    k, algorithm, metric, need_distance, chunk_size);
+                    k, algorithm, metric, need_distance, chunk_size, batch_fraction);
   }
 
   template <class I = size_t, class O = size_t, class MATRIX2 = rowmajor_matrix<T>>
@@ -63,8 +64,9 @@ struct nearest_neighbors {
   std::string algorithm;
   std::string metric;
   float chunk_size;
+  double batch_fraction;
   MATRIX1 observation_data;
-  SERIALIZE(n_neighbors, radius, algorithm, metric, chunk_size, observation_data)
+  SERIALIZE(n_neighbors, radius, algorithm, metric, chunk_size, batch_fraction, observation_data)
 };
 
 }
