@@ -1120,6 +1120,7 @@ extern "C" {
     auto f_dptr = frovedis_mem_pair(f_xptr,f_yptr);
     std::string opt = optimizer;
     bool mvbl = false; // auto-managed at python side
+    int seed = 0;  
     try {
       switch(dtype) {
         case FLOAT: {
@@ -1131,9 +1132,9 @@ extern "C" {
           fm::fm_config<float> conf(dim1, dim2, dim3, stddev, iter, lrate,
                                     r1, r2, r3, isregressor, batch_size);
           if(itype == INT)
-            exrpc_oneway(fm_node,(frovedis_fm<DT2,S_MAT24>),f_dptr,opt,conf,verbose,mid,mvbl);
+            exrpc_oneway(fm_node,(frovedis_fm<DT2,S_MAT24>),f_dptr,opt,conf,seed,verbose,mid,mvbl);
           else if(itype == LONG)
-            exrpc_oneway(fm_node,(frovedis_fm<DT2,S_MAT25>),f_dptr,opt,conf,verbose,mid,mvbl);
+            exrpc_oneway(fm_node,(frovedis_fm<DT2,S_MAT25>),f_dptr,opt,conf,seed,verbose,mid,mvbl);
           else REPORT_ERROR(USER_ERROR,"Supported itypes are either int or long!\n");
           break;
         }
@@ -1141,9 +1142,9 @@ extern "C" {
           fm::fm_config<double> conf(dim1, dim2, dim3, std_dev, iter, init_learn_rate,
                                     reg1, reg2, reg3, isregressor, batch_size);
           if(itype == INT)
-            exrpc_oneway(fm_node,(frovedis_fm<DT1,S_MAT14>),f_dptr,opt,conf,verbose,mid,mvbl);
+            exrpc_oneway(fm_node,(frovedis_fm<DT1,S_MAT14>),f_dptr,opt,conf,seed,verbose,mid,mvbl);
           else if(itype == LONG)
-            exrpc_oneway(fm_node,(frovedis_fm<DT1,S_MAT15>),f_dptr,opt,conf,verbose,mid,mvbl);
+            exrpc_oneway(fm_node,(frovedis_fm<DT1,S_MAT15>),f_dptr,opt,conf,seed,verbose,mid,mvbl);
           else REPORT_ERROR(USER_ERROR,"Supported itypes are either int or long!\n");
           break;
         }
@@ -1352,8 +1353,8 @@ extern "C" {
   // --- (17) K-Nearest Neighbor (KNN) ---
   void knn_fit(const char* host, int port, long xptr, int k,
                float radius, const char* algorithm, const char* metric,
-               float chunk_size, int vb, int mid, 
-               short dtype, short itype, bool dense) {
+               float chunk_size, double batch_f, int vb, int mid, 
+               short dtype, short itype, bool dense) {  
     if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
     exrpc_node fm_node(host,port);
     auto f_xptr = (exrpc_ptr_t) xptr;
@@ -1364,11 +1365,11 @@ extern "C" {
         switch(dtype) {
           case FLOAT: 
             exrpc_oneway(fm_node,(frovedis_knn<DT2,R_MAT2>), f_xptr, k, radius,
-                         algorithm_, metric_, chunk_size, vb, mid);
+                         algorithm_, metric_, chunk_size, batch_f, vb, mid);
             break;
           case DOUBLE: 
             exrpc_oneway(fm_node,(frovedis_knn<DT1,R_MAT1>), f_xptr, k, radius,
-                         algorithm_, metric_, chunk_size, vb, mid);
+                         algorithm_, metric_, chunk_size, batch_f, vb, mid);
             break;
           default: REPORT_ERROR(USER_ERROR, "Unsupported dtype of input dense data for training!\n");
         }
@@ -1378,20 +1379,20 @@ extern "C" {
           case FLOAT:
             if(itype == INT) 
               exrpc_oneway(fm_node,(frovedis_knn<DT2,S_MAT24>), f_xptr, k, radius,
-                           algorithm_, metric_, chunk_size, vb, mid);
+                           algorithm_, metric_, chunk_size, batch_f, vb, mid);
             else if(itype == LONG) 
               exrpc_oneway(fm_node,(frovedis_knn<DT2,S_MAT25>), f_xptr, k, radius,
-                           algorithm_, metric_, chunk_size, vb, mid);
+                           algorithm_, metric_, chunk_size, batch_f, vb, mid);
             else REPORT_ERROR(USER_ERROR, 
                  "Unsupported itype of input sparse data for training!\n");
             break;
           case DOUBLE: 
             if(itype == INT)
               exrpc_oneway(fm_node,(frovedis_knn<DT1,S_MAT14>), f_xptr, k, radius,
-                           algorithm_, metric_, chunk_size, vb, mid);
+                           algorithm_, metric_, chunk_size, batch_f, vb, mid);
             else if(itype == LONG)
               exrpc_oneway(fm_node,(frovedis_knn<DT1,S_MAT15>), f_xptr, k, radius,
-                           algorithm_, metric_, chunk_size, vb, mid);
+                           algorithm_, metric_, chunk_size, batch_f, vb, mid);
             else REPORT_ERROR(USER_ERROR, 
                  "Unsupported itype of input sparse data for training!\n");
             break;
@@ -1407,7 +1408,7 @@ extern "C" {
   // --- (18) K-Nearest Neighbor Classifier (KNC) ---
   void knc_fit(const char* host, int port, long xptr, long yptr, int k,
                const char* algorithm, const char* metric,
-               float chunk_size, int vb, int mid, 
+               float chunk_size, double batch_f, int vb, int mid, 
                short dtype, short itype, bool dense) {
     if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
     exrpc_node fm_node(host,port);
@@ -1422,11 +1423,11 @@ extern "C" {
         switch(dtype) {
           case FLOAT: 
             exrpc_oneway(fm_node,(frovedis_knc<DT2,R_MAT2>), f_dptr, k,
-                         algorithm_, metric_, chunk_size, vb, mid);
+                         algorithm_, metric_, chunk_size, batch_f, vb, mid);
             break;
           case DOUBLE: 
             exrpc_oneway(fm_node,(frovedis_knc<DT1,R_MAT1>), f_dptr, k,
-                         algorithm_, metric_, chunk_size, vb, mid);
+                         algorithm_, metric_, chunk_size, batch_f, vb, mid);
             break;
           default: REPORT_ERROR(USER_ERROR, "Unsupported dtype of input dense data for training!\n");
         }
@@ -1436,20 +1437,20 @@ extern "C" {
           case FLOAT:
             if(itype == INT) 
               exrpc_oneway(fm_node,(frovedis_knc<DT2,S_MAT24>), f_dptr, k,
-                           algorithm_, metric_, chunk_size, vb, mid);
+                           algorithm_, metric_, chunk_size, batch_f, vb, mid);
             else if(itype == LONG) 
               exrpc_oneway(fm_node,(frovedis_knc<DT2,S_MAT25>), f_dptr, k,
-                           algorithm_, metric_, chunk_size, vb, mid);
+                           algorithm_, metric_, chunk_size, batch_f, vb, mid);
             else REPORT_ERROR(USER_ERROR, 
                  "Unsupported itype of input sparse data for training!\n");
             break;
           case DOUBLE: 
             if(itype == INT)
               exrpc_oneway(fm_node,(frovedis_knc<DT1,S_MAT14>), f_dptr, k,
-                           algorithm_, metric_, chunk_size, vb, mid);
+                           algorithm_, metric_, chunk_size, batch_f, vb, mid);
             else if(itype == LONG)
               exrpc_oneway(fm_node,(frovedis_knc<DT1,S_MAT15>), f_dptr, k,
-                           algorithm_, metric_, chunk_size, vb, mid);
+                           algorithm_, metric_, chunk_size, batch_f, vb, mid);
             else REPORT_ERROR(USER_ERROR, 
                  "Unsupported itype of input sparse data for training!\n");
             break;
@@ -1465,7 +1466,7 @@ extern "C" {
   // --- (19) K-Nearest Neighbor Regressor (KNR) ---
   void knr_fit(const char* host, int port, long xptr, long yptr, int k,
                const char* algorithm, const char* metric,
-               float chunk_size, int vb, int mid, 
+               float chunk_size, double batch_f, int vb, int mid, 
                short dtype, short itype, bool dense) {
     if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
     exrpc_node fm_node(host,port);
@@ -1480,11 +1481,11 @@ extern "C" {
         switch(dtype) {
           case FLOAT: 
             exrpc_oneway(fm_node,(frovedis_knr<DT2,R_MAT2>), f_dptr, k,
-                         algorithm_, metric_, chunk_size, vb, mid);
+                         algorithm_, metric_, chunk_size, batch_f, vb, mid);
             break;
           case DOUBLE: 
             exrpc_oneway(fm_node,(frovedis_knr<DT1,R_MAT1>), f_dptr, k,
-                         algorithm_, metric_, chunk_size, vb, mid);
+                         algorithm_, metric_, chunk_size, batch_f, vb, mid);
             break;
           default: REPORT_ERROR(USER_ERROR, "Unsupported dtype of input dense data for training!\n");
         }
@@ -1494,20 +1495,20 @@ extern "C" {
           case FLOAT:
             if(itype == INT) 
               exrpc_oneway(fm_node,(frovedis_knr<DT2,S_MAT24>), f_dptr, k,
-                           algorithm_, metric_, chunk_size, vb, mid);
+                           algorithm_, metric_, chunk_size, batch_f, vb, mid);
             else if(itype == LONG) 
               exrpc_oneway(fm_node,(frovedis_knr<DT2,S_MAT25>), f_dptr, k,
-                           algorithm_, metric_, chunk_size, vb, mid);
+                           algorithm_, metric_, chunk_size, batch_f, vb, mid);
             else REPORT_ERROR(USER_ERROR, 
                  "Unsupported itype of input sparse data for training!\n");
             break;
           case DOUBLE: 
             if(itype == INT)
               exrpc_oneway(fm_node,(frovedis_knr<DT1,S_MAT14>), f_dptr, k,
-                           algorithm_, metric_, chunk_size, vb, mid);
+                           algorithm_, metric_, chunk_size, batch_f, vb, mid);
             else if(itype == LONG)
               exrpc_oneway(fm_node,(frovedis_knr<DT1,S_MAT15>), f_dptr, k,
-                           algorithm_, metric_, chunk_size, vb, mid);
+                           algorithm_, metric_, chunk_size, batch_f, vb, mid);
             else REPORT_ERROR(USER_ERROR, 
                  "Unsupported itype of input sparse data for training!\n");
             break;
