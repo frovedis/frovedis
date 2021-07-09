@@ -4,6 +4,8 @@
 // decide number of elements of 1M memory size
 #define CHUNK_SIZE 1024 * 1024 
 
+#define THRESHOLD 50000
+
 //#define MANUAL_LOOP_COLLAPSE_IN_EXTRACTION 
 //#define DEBUG_SAVE
 
@@ -290,34 +292,230 @@ struct find_kneighbor {
   SERIALIZE(k, need_distance, chunk_size)
 };
 
+template <class T>
+void pre_allocate(rowmajor_matrix_local<T>& rmat_local, size_t row, size_t col) {
+  rmat_local.val.resize(row * col); 
+  rmat_local.set_local_num(row, col);
+}    
+
+//For example nrows: [5, 5, 5, 4] and given batch_size is 10: Then we process ceil(5/10) = 1 cycles
+//batch_size is 3: Then we process ceil(5/3) = 2 cycles
+template <class T>    
+size_t get_num_iterations(std::vector<T>& nrows, T batch_size) {   
+  auto max_nrow = vector_amax(nrows);
+  auto iters = ceil_div(max_nrow, batch_size);
+  return iters;  
+}
+    
+template <class T, class I, class O>
+size_t get_partial_rows(crs_matrix<T,I,O>& mat) {
+  return mat.data.map(crs_get_local_num_row<T,I,O>).reduce(add<size_t>);
+}
+
+template <class T>
+size_t get_partial_rows(rowmajor_matrix<T>& mat) {
+  return mat.data.map(rowmajor_get_local_num_row<T>).reduce(add<size_t>);
+}    
+   
+template <class T>        
+rowmajor_matrix_local<T> extract_rmm_batch(rowmajor_matrix_local<T>& mat,
+                                           size_t batch_size, size_t iter) {
+  auto local_row = mat.local_num_row;
+  auto local_col = mat.local_num_col;  
+  
+  auto start = std::min(iter * batch_size, local_row);  
+  auto end = std::min((iter+1) * batch_size, local_row);
+        
+  require(end >= start, "start row index must be less than end column index");
+  require(start >= 0 && end <= local_row, "given indices are out of range"); 
+    
+  auto nrows = end - start;  
+  rowmajor_matrix_local<T> ret(nrows, local_col);
+  
+  auto retptr = ret.val.data();
+  auto matptr = mat.val.data();  
+
+  //Copy
+  for(size_t j = 0; j < local_col; ++j) {
+    for(size_t i = 0; i < nrows; ++i)
+      retptr[local_col * i + j] = matptr[local_col * (i + start) + j];     
+  }  
+  return ret;  
+}   
+    
+
+template <class T, class I, class O>
+crs_matrix_local<T,I,O>       
+extract_crs_batch(crs_matrix_local<T,I,O>& mat,
+                  size_t batch_size, 
+                  size_t iter) {
+  auto local_row = mat.local_num_row;
+  auto local_col = mat.local_num_col;
+  auto start = std::min(iter * batch_size, local_row);  
+  auto end = std::min((iter+1) * batch_size, local_row);                   
+
+  require(end >= start, "start row index must be less than end column index");
+  require(start >= 0 && end <= local_row, "given indices are out of range");  
+  auto nrows = end - start;  
+  
+  size_t num_elements = 0;
+  auto offp = &mat.off[0];
+  auto idxp = &mat.idx[0];
+  auto valp = &mat.val[0];
+  for(size_t i = start; i < end; ++i)
+    num_elements += offp[i + 1] - offp[i];
+
+  crs_matrix_local<T,I,O> ret(nrows, local_col);
+  ret.val.resize(num_elements);
+  ret.idx.resize(num_elements);
+  ret.off.resize(nrows+1);  
+      
+  auto roffp = &ret.off[0];
+  auto ridxp = &ret.idx[0];
+  auto rvalp = &ret.val[0];
+  
+  //Copy
+  size_t counter = 0, off_iter=1;  
+  for(size_t i = start; i < end; ++i) {
+    for(O o = offp[i]; o < offp[i+1]; ++o) {
+      ridxp[counter] = idxp[o];
+      rvalp[counter] = valp[o];
+      ++counter;
+    }  
+    roffp[off_iter++] = counter;    
+  }
+    
+  return ret;  
+}    
+    
+
+template <class T>
+void copy_row_batch(rowmajor_matrix_local<T>& dest_rmat, 
+                    rowmajor_matrix_local<T>& src_rmat, 
+                    size_t batch_size, size_t iter) {
+    
+  auto local_row = dest_rmat.local_num_row;
+  auto local_col = dest_rmat.local_num_col;  
+  auto start = std::min(iter * batch_size, local_row);  
+  auto end = std::min((iter+1) * batch_size, local_row);
+    
+  auto src_ptr = src_rmat.val.data();
+  auto dest_ptr = dest_rmat.val.data(); 
+  //assert columns
+  require(dest_rmat.local_num_col == src_rmat.local_num_col, 
+          "src and destination matrix should have the same no. of columns");
+
+  //assert rows 
+  require(end >= start, "start row index must be less than end column index");
+  require(start >= 0 && end <= local_row, "given indices are out of range");
+  
+  auto row_range = end - start;
+  
+  //Copy
+  for(size_t j = 0; j < local_col; ++j) {
+    for(size_t i = 0; i < row_range; ++i)
+      dest_ptr[local_col * (i + start) + j] = src_ptr[local_col * i + j];     
+  }  
+}
+
+template <class T, class I, class O>
+crs_matrix<T,I,O> extract_batch(crs_matrix<T,I,O>& mat, 
+                                node_local<size_t> batch_size, 
+                                node_local<size_t> iter) {
+    crs_matrix<T,I,O> ret = mat.data.map(extract_crs_batch<T,I,O>, batch_size, iter);
+    return ret;
+}
+    
+template <class T>
+rowmajor_matrix<T> extract_batch(rowmajor_matrix<T>& mat, 
+                                 node_local<size_t> batch_size, 
+                                 node_local<size_t> iter) {
+    rowmajor_matrix<T> ret = mat.data.map(extract_rmm_batch<T>, batch_size, iter);
+    return ret;
+}      
+    
+    
 template <class T, class I = size_t, 
           class MATRIX1 = rowmajor_matrix<T>,
           class MATRIX2 = rowmajor_matrix<T>>
-knn_model<T, I> knn(MATRIX1& x_mat,
-                    MATRIX2& y_mat,
-                    int k,
-                    const std::string& algorithm = "brute",
-                    const std::string& metric = "euclidean",
-                    bool need_distance = false,
-                    float chunk_size = 1.0) {
-  auto nsamples = x_mat.num_row;
-  auto nquery   = y_mat.num_row;
+knn_model<T, I> compute_kneigbor_in_batch(MATRIX1& x_mat,
+                                          MATRIX2& y_mat,
+                                          int k,
+                                          const std::string& metric,
+                                          bool need_distance,
+                                          float chunk_size, 
+                                          size_t batch_size) {
 
-  if (k <= 0 || k > nsamples) 
-    REPORT_ERROR(USER_ERROR, std::string("Invalid value for k: ") + 
-                             std::to_string(k) + std::string("\n"));
+  auto nquery = y_mat.num_row;
+  auto nrows = y_mat.get_local_num_rows();
+  auto nl_rows = make_node_local_scatter(nrows);
+  //Pre-allocate
+  knn_model<T, I> ret(k);            
+  ret.distances.data = make_node_local_allocate<rowmajor_matrix_local<T>>();
+  if(need_distance) {
+    ret.distances.num_row = nquery;
+    ret.distances.num_col = k;            
+    ret.distances.data.mapv(pre_allocate<T>, nl_rows, broadcast(k));
+  }
+  else {
+    ret.distances.num_row = ret.distances.num_col = 0;
+    ret.distances.data.mapv(pre_allocate<T>, broadcast(0), broadcast(0));//All local shouldn't have garbage row,col  
+  }
+              
+  ret.indices = make_node_local_allocate<rowmajor_matrix_local<I>>();
+  ret.indices.num_row = nquery;
+  ret.indices.num_col = k;
+  ret.indices.data.mapv(pre_allocate<I>, nl_rows, broadcast(k));
+  
+  //Get number of iterations needed
+  auto niters = get_num_iterations(nrows, batch_size);                         
+  auto nl_batch_size = broadcast(batch_size);
+              
+  for(size_t i=0; i < niters; ++i) {
+   
+    auto partial_query = extract_batch(y_mat, nl_batch_size, broadcast(i)); 
+    auto partial_rows = get_partial_rows(partial_query);
+    
+    auto partial_dist_mat = construct_distance_matrix<T>(x_mat, partial_query, metric, need_distance);
+      
+    //apply kneighbours to get partial_distances and partial_indices
+    rowmajor_matrix<T> partial_distances;
+    partial_distances.data = make_node_local_allocate<rowmajor_matrix_local<T>>();
+    if (need_distance) {
+      partial_distances.num_row = partial_rows;
+      partial_distances.num_col = k;
+    }
+    else {
+      partial_distances.num_row = partial_distances.num_col = 0;
+    }      
 
-  if (algorithm != "brute")
-    REPORT_ERROR(USER_ERROR, 
-      "Currently frovedis knn supports only brute force implementation!\n");
-
-  if (metric != "euclidean" && metric != "seuclidean")
-    REPORT_ERROR(USER_ERROR, 
-      "Currently frovedis knn supports only euclidean/seuclidean distance!\n");
+    rowmajor_matrix<I> partial_indices;
+    partial_indices.data = make_node_local_allocate<rowmajor_matrix_local<I>>();
+   
+    partial_indices.num_row = partial_rows;
+    partial_indices.num_col = k;
+    partial_dist_mat.data.mapv(find_kneighbor(k, need_distance, chunk_size), 
+                               partial_distances.data, partial_indices.data);
+    //Copy
+    if(need_distance)  
+      ret.distances.data.mapv(copy_row_batch<T>, partial_distances.data, nl_batch_size, broadcast(i));
+    
+    ret.indices.data.mapv(copy_row_batch<I>, partial_indices.data, nl_batch_size, broadcast(i));        
+  }             
+  return ret;                          
+}
+    
+template <class T, class I = size_t, 
+          class MATRIX1 = rowmajor_matrix<T>,
+          class MATRIX2 = rowmajor_matrix<T>>
+knn_model<T, I> compute_kneigbor(MATRIX1& x_mat,
+                                 MATRIX2& y_mat,
+                                 int k,
+                                 const std::string& metric,
+                                 bool need_distance,
+                                 float chunk_size) {
+  auto nquery   = y_mat.num_row;              
   auto dist_mat = construct_distance_matrix<T>(x_mat, y_mat, metric, need_distance);
-#ifdef DEBUG_SAVE
-  dist_mat.save("unsorted_distance_matrix");
-#endif
 
   knn_model<T, I> ret(k);
   ret.distances.data = make_node_local_allocate<rowmajor_matrix_local<T>>();
@@ -334,9 +532,61 @@ knn_model<T, I> knn(MATRIX1& x_mat,
 
   dist_mat.data.mapv(find_kneighbor(k, need_distance, chunk_size), 
                      ret.distances.data, ret.indices.data);
-  return ret;
+  return ret;              
+}
+        
+template <class T, class I = size_t, 
+          class MATRIX1 = rowmajor_matrix<T>,
+          class MATRIX2 = rowmajor_matrix<T>>
+knn_model<T, I> knn(MATRIX1& x_mat,
+                    MATRIX2& y_mat,
+                    int k,
+                    const std::string& algorithm = "brute",
+                    const std::string& metric = "euclidean",
+                    bool need_distance = false,
+                    float chunk_size = 1.0, 
+                    double batch_f = std::numeric_limits<double>::max()) {  
+  auto nsamples = x_mat.num_row;
+  auto nquery   = y_mat.num_row;
+
+  if (k <= 0 || k > nsamples) 
+    REPORT_ERROR(USER_ERROR, std::string("Invalid value for k: ") + 
+                             std::to_string(k) + std::string("\n"));
+
+  if (algorithm != "brute")
+    REPORT_ERROR(USER_ERROR, 
+      "Currently frovedis knn supports only brute force implementation!\n");
+
+  if (metric != "euclidean" && metric != "seuclidean")
+    REPORT_ERROR(USER_ERROR, 
+      "Currently frovedis knn supports only euclidean/seuclidean distance!\n");
+
+  if (batch_f < 0)
+    REPORT_ERROR(USER_ERROR, 
+      "Batch fraction value should be between 0.0 and 1.0\n");              
+            
+  if(batch_f == std::numeric_limits<double>::max()) { // No batch provided
+    if (nquery > THRESHOLD) { // Compute with batches of distance matrix
+      auto node_size = get_nodesize();  
+      size_t batch_size = THRESHOLD/node_size;
+      return compute_kneigbor_in_batch<T, I>(x_mat, y_mat, k, metric, need_distance, 
+                                             chunk_size, batch_size);  
+    }
+    else { // Compute entire matrix at once
+      return compute_kneigbor<T, I>(x_mat, y_mat, k, metric, need_distance, chunk_size);
+    }
+  }
+  else { // Divide as per batch value provided
+    auto node_size = get_nodesize();
+    auto global_batch = static_cast<size_t>(batch_f * nquery);  
+    size_t batch_size = global_batch/node_size;
+      
+    return compute_kneigbor_in_batch<T, I>(x_mat, y_mat, k, metric, need_distance, 
+                                           chunk_size, batch_size);   
+  }              
 }
 
+    
 template <class T, class I = size_t, 
           class MATRIX = rowmajor_matrix<T>>
 knn_model<T, I> knn(MATRIX& mat,
