@@ -22,7 +22,7 @@ class NearestNeighbors(BaseEstimator):
     def __init__(self, n_neighbors=5, radius=1.0,
                  algorithm='auto', leaf_size=30, metric='euclidean',
                  p=2, metric_params=None, n_jobs=None, verbose=0,
-                 chunk_size=1.0):
+                 chunk_size=1.0, batch_fraction=None):
         self.n_neighbors = n_neighbors
         self.radius = radius
         self.algorithm = algorithm
@@ -34,6 +34,7 @@ class NearestNeighbors(BaseEstimator):
         self.verbose = verbose
         # extra
         self.chunk_size = chunk_size
+        self.batch_fraction = batch_fraction
         self._X = None
         self._X_movable = None
         self.__mid = None
@@ -61,6 +62,11 @@ class NearestNeighbors(BaseEstimator):
                                 metrics : \n", supported_metrics,\
                                 "\n Given metric: ", self.metric,\
                                 "not supported \n")
+        if self.batch_fraction is None:
+            self.batch_fraction = np.finfo(np.float64).max
+        elif self.batch_fraction <= 0.0 or self.batch_fraction > 1.0:
+            raise ValueError("batch fraction should be between 0.0 and 1.0")
+            
         self.release()
         train_data = FrovedisFeatureData(X, dense_kind='rowmajor', \
                        caller = "[" + self.__class__.__name__ + "] fit: ", \
@@ -78,6 +84,7 @@ class NearestNeighbors(BaseEstimator):
                        self.algorithm.encode("ascii"), 
                        self.metric.encode("ascii"), 
                        self.chunk_size,
+                       self.batch_fraction,
                        self.verbose, self.__mid,
                        dtype, self.__itype, self.__dense)
         excpt = rpclib.check_server_exception()
@@ -308,7 +315,7 @@ class KNeighborsClassifier(BaseEstimator):
     """
     def __init__(self, n_neighbors=5, weights='uniform', algorithm='auto',
                  leaf_size=30, p=2, metric='euclidean', metric_params=None, 
-                 n_jobs=None, verbose=0, chunk_size=1.0):
+                 n_jobs=None, verbose=0, chunk_size=1.0, batch_fraction=None):
         self.n_neighbors = n_neighbors
         self.weights = weights
         self.algorithm = algorithm
@@ -320,6 +327,7 @@ class KNeighborsClassifier(BaseEstimator):
         self.verbose = verbose
         # extra
         self.chunk_size = chunk_size
+        self.batch_fraction = batch_fraction
         self._X = None
         self._X_movable = None
         self.__mid = None
@@ -347,6 +355,11 @@ class KNeighborsClassifier(BaseEstimator):
                                 metrics : \n", supported_metrics,\
                                 "\n Given metric: ", self.metric,\
                                 "not supported \n")
+        if self.batch_fraction is None:
+            self.batch_fraction = np.finfo(np.float64).max
+        elif self.batch_fraction <= 0.0 or self.batch_fraction > 1.0:
+            raise ValueError("batch fraction should be between 0.0 and 1.0")
+            
         self.release()
         train_data = FrovedisLabeledPoint(X, y, \
                    caller = "[" + self.__class__.__name__ + "] fit: ",\
@@ -367,7 +380,7 @@ class KNeighborsClassifier(BaseEstimator):
         rpclib.knc_fit(host, port, X.get(), y.get(), self.n_neighbors,
                        self.algorithm.encode("ascii"), 
                        self.metric.encode("ascii"), 
-                       self.chunk_size,
+                       self.chunk_size, self.batch_fraction, 
                        self.verbose, self.__mid,
                        dtype, self.__itype, self.__dense)
         excpt = rpclib.check_server_exception()
@@ -621,7 +634,7 @@ class KNeighborsRegressor(BaseEstimator):
     """
     def __init__(self, n_neighbors=5, weights='uniform', algorithm='auto',
                  leaf_size=30, p=2, metric='euclidean', metric_params=None, 
-                 n_jobs=None, verbose=0, chunk_size=1.0):
+                 n_jobs=None, verbose=0, chunk_size=1.0, batch_fraction=None):
         self.n_neighbors = n_neighbors
         self.weights = weights
         self.algorithm = algorithm
@@ -633,6 +646,7 @@ class KNeighborsRegressor(BaseEstimator):
         self.verbose = verbose
         # extra
         self.chunk_size = chunk_size
+        self.batch_fraction = batch_fraction
         self._X = None
         self._X_movable = None
         self.__mid = None
@@ -660,6 +674,11 @@ class KNeighborsRegressor(BaseEstimator):
                                 metrics : \n", supported_metrics,\
                                 "\n Given metric: ", self.metric,\
                                 "not supported \n")
+        if self.batch_fraction is None:
+            self.batch_fraction = np.finfo(np.float64).max
+        elif self.batch_fraction <= 0.0 or self.batch_fraction > 1.0:
+            raise ValueError("batch fraction should be between 0.0 and 1.0")
+                        
         self.release()
         train_data = FrovedisLabeledPoint(X, y, \
                    caller = "[" + self.__class__.__name__ + "] fit: ",\
@@ -677,7 +696,7 @@ class KNeighborsRegressor(BaseEstimator):
         rpclib.knr_fit(host, port, X.get(), y.get(), self.n_neighbors,
                        self.algorithm.encode("ascii"), 
                        self.metric.encode("ascii"), 
-                       self.chunk_size,
+                       self.chunk_size, self.batch_fraction,
                        self.verbose, self.__mid,
                        dtype, self.__itype, self.__dense)
         excpt = rpclib.check_server_exception()
