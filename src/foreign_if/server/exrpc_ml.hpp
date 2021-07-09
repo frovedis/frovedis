@@ -355,13 +355,14 @@ void frovedis_knn(exrpc_ptr_t& data_ptr, int& k,
                   std::string& algorithm, 
                   std::string& metric, 
                   float& chunk_size,
+                  double& batch_f,
                   int& verbose, 
                   int& mid) {
   MATRIX& mat = *reinterpret_cast<MATRIX*>(data_ptr);  // training input data holder
   set_verbose_level(verbose);
 
   nearest_neighbors<T, MATRIX> obj(k, radius, algorithm, 
-                                   metric, chunk_size);
+                                   metric, chunk_size, batch_f);
   obj.fit(mat);
   reset_verbose_level();
   handle_trained_model<nearest_neighbors<T, MATRIX>>(mid, KNN , obj);
@@ -373,6 +374,7 @@ void frovedis_knc(frovedis_mem_pair& mp, int& k,
                   std::string& algorithm, 
                   std::string& metric, 
                   float& chunk_size,
+                  double& batch_f,
                   int& verbose, 
                   int& mid) {
   MATRIX& mat = *reinterpret_cast<MATRIX*>(mp.first());
@@ -381,7 +383,7 @@ void frovedis_knc(frovedis_mem_pair& mp, int& k,
   set_verbose_level(verbose);
 
   kneighbors_classifier<T, MATRIX> obj(k, algorithm, 
-                                       metric, chunk_size);
+                                       metric, chunk_size, batch_f);
   obj.fit(mat, lbl);
   reset_verbose_level();
   handle_trained_model<kneighbors_classifier<T, MATRIX>>(mid, KNC , obj);
@@ -393,6 +395,7 @@ void frovedis_knr(frovedis_mem_pair& mp, int& k,
                   std::string& algorithm, 
                   std::string& metric, 
                   float& chunk_size,
+                  double& batch_f,
                   int& verbose, 
                   int& mid) {
   MATRIX& mat = *reinterpret_cast<MATRIX*>(mp.first());
@@ -401,7 +404,7 @@ void frovedis_knr(frovedis_mem_pair& mp, int& k,
   set_verbose_level(verbose);
 
   kneighbors_regressor<T, MATRIX> obj(k, algorithm,
-                                      metric, chunk_size);
+                                      metric, chunk_size, batch_f);
   obj.fit(mat, lbl);
   reset_verbose_level();
   handle_trained_model<kneighbors_regressor<T, MATRIX>>(mid, KNR , obj);
@@ -535,26 +538,25 @@ void frovedis_dt(frovedis_mem_pair& mp, tree::strategy<T>& str,
 
 template <class T, class MATRIX>
 void frovedis_fm(frovedis_mem_pair& mp, std::string& optimizer_name, 
-                 fm::fm_config<T>& conf,
-                 int& verbose, int& mid,
-                 bool& isMovableInput=false) {
-  // extracting input data
-  MATRIX& mat = *reinterpret_cast<MATRIX*>(mp.first());
-  dvector<T>& lbl = *reinterpret_cast<dvector<T>*>(mp.second()); 
+                 fm::fm_config<T>& conf, int& seed, int& verbose, 
+                 int& mid, bool& isMovableInput=false) {
+  // extracting input data  
+  MATRIX& mat = *reinterpret_cast<MATRIX*>(mp.first());  
+  dvector<T>& lbl = *reinterpret_cast<dvector<T>*>(mp.second());
 
   auto old_level = frovedis::get_loglevel();
   if (verbose == 1) frovedis::set_loglevel(frovedis::DEBUG);
   else if (verbose == 2) frovedis::set_loglevel(frovedis::TRACE);
 
   fm::FmOptimizer optimizer;
+
   if (optimizer_name == "SGD") optimizer = fm::FmOptimizer::SGD;
   else if (optimizer_name == "SGDA") optimizer = fm::FmOptimizer::SGDA;
   else if (optimizer_name == "ALS")  optimizer = fm::FmOptimizer::ALS;
   else if (optimizer_name == "MCMC") optimizer = fm::FmOptimizer::MCMC;
   else throw std::runtime_error("Specified optimizer is not supported!\n");
   
-  auto model = fm::train(mat,lbl,optimizer,conf);
-
+  auto model = fm::train(mat,lbl,optimizer,conf,seed);
   frovedis::set_loglevel(old_level);
   handle_trained_model<fm::fm_model<T>>(mid, FMM, model);
 
