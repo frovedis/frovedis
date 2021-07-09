@@ -12,10 +12,9 @@ object FactorizationMachineDemo {
     Logger.getLogger("org").setLevel(Level.ERROR)
 
     // -------- configurations --------
-    val conf = new SparkConf().setAppName("FactorizationMachineDemo").setMaster("local[2]")
-    val sc = new SparkContext(conf)
+    val spark = SparkSession.builder.appName("FMExample").master("local[2]").getOrCreate()
+    val sc = spark.sparkContext
 
-    val spark = SparkSession.builder.appName("FactorizationMachineDemo").getOrCreate()      
 
     // initializing Frovedis server with "personalized command", if provided in command line
     if(args.length != 0) FrovedisServer.initialize(args(0))
@@ -24,19 +23,23 @@ object FactorizationMachineDemo {
     var data = MLUtils.loadLibSVMFile(sc, "./input/libSVMFile.txt") //RDD[LabeledPoint]
     val dataset = spark.read.format("libsvm").load("./input/libSVMFile.txt") //DataFrame
 
+      
     // -------- training with all parameters (RDD data/dataset)--------
-    val model = FactorizationMachine.train(data,
-                                           initStdev = 0.1,
-                                           iter = 100,
-                                           stepSize = 0.01, optimizer="SGD", 
-                                           isRegression = false,
-                                           fitIntercept = true ,
-                                           fitLinear = true,
-                                           factorSize = 2,
-                                           regParam = (0.0, 0.0, 0.0), 
-                                           miniBatchFraction = 0.07,
-                                           seed = 1)
 
+    val model = new FactorizationMachine().setInitStd(0.1)
+                                          .setMaxIter(100)
+                                          .setStepSize( 0.01)
+                                          .setOptimizer("SGD")
+                                          .setIsRegression(false)
+                                          .setFitIntercept(true)
+                                          .setFitLinear(true)
+                                          .setFactorSize(2)
+                                          .setRegParam((0.0, 0.0, 0.0))
+                                          .setMiniBatchFraction(0.07)
+                                          .setSeed(1)
+                                          .run(data)
+
+     
     // -------- prediction --------
     //val X = data.map(_.features)  
     //model.predict(X).collect().foreach(println)  
