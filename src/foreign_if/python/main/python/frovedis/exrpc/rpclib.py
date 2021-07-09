@@ -1755,6 +1755,7 @@ knn_fit.argtypes = [  c_char_p, #host
                       c_char_p, #algorithm
                       c_char_p, # metric
                       c_float, #chunk_size
+                      c_double, #batch_fraction
                       c_int, #vb
                       c_int, #mid
                       c_short, #dtype
@@ -1771,6 +1772,7 @@ knc_fit.argtypes = [  c_char_p, #host
                       c_char_p, #algorithm
                       c_char_p, # metric
                       c_float, #chunk_size
+                      c_double, #batch_fraction
                       c_int, #vb
                       c_int, #mid
                       c_short, #dtype
@@ -1787,6 +1789,7 @@ knr_fit.argtypes = [  c_char_p, #host
                       c_char_p, #algorithm
                       c_char_p, # metric
                       c_float, #chunk_size
+                      c_double, #batch_fraction
                       c_int, #vb
                       c_int, #mid
                       c_short, #dtype
