@@ -1,16 +1,11 @@
 package test.scala;
 
 import com.nec.frovedis.exrpc.FrovedisLabeledPoint
+import org.apache.spark.mllib.evaluation.RegressionMetrics
 import com.nec.frovedis.Jexrpc.FrovedisServer
 import com.nec.frovedis.mllib.fm.{FactorizationMachine,FMConfig, FactorizationMachineModel}
 import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.mllib.util.MLUtils
-import java.io.FileReader
-import java.io.FileNotFoundException
-import java.io.IOException
-import sys.process._
-
-// Objective : Test of save API
 
 object GenericTest {
 
@@ -24,10 +19,10 @@ object GenericTest {
     if(args.length != 0) FrovedisServer.initialize(args(0))
 
     // -------- data loading from sample libSVM file at Spark side--------
-    var data = MLUtils.loadLibSVMFile(sc, "./input/fm/libSVMFile.txt")
-
+    var data = MLUtils.loadLibSVMFile(sc, "./input/fm/regression.txt")
+    
     // -------- training  with RDD data ---------
-    val model = FactorizationMachine.train(data,initStdev = 10.1,iter = 100,
+    val r_model = FactorizationMachine.train(data,initStdev = 0.1,iter = 100,
                                            stepSize = 0.01, optimizer="SGD",
                                            isRegression = true,
                                            fitIntercept = true,
@@ -37,23 +32,23 @@ object GenericTest {
                                            miniBatchFraction = 1,
                                            seed = 1)
 
-    var os_stat = "rm -rf ./out/FMModel" .!
-    model.save(sc, "./out/FMModel")
-    var isFileMissing = false
-    try{
-         val f = new FileReader("./out/FMModel")
-      } catch {
-         case ex: FileNotFoundException =>{
-            isFileMissing = true
-         }
-     }
+    val f_model = FactorizationMachine.train(data,initStdev = 0.1,iter = 100)
 
-    if(isFileMissing) println("Failed")
-    else println("Passed")
+
+    //-------- test ---------
+                  
+    val r_predictionAndLabel = data.map(p => (r_model.predict(p.features), p.label))
+    val r_accuracy = 1.0 * r_predictionAndLabel.filter(x => x._1 == x._2).count() / data.count()
+
+    val f_predictionAndLabel = data.map(p => (f_model.predict(p.features), p.label))
+    val f_accuracy = 1.0 * f_predictionAndLabel.filter(x => x._1 == x._2).count() / data.count()
+     
+    if(r_accuracy == f_accuracy ) println("Passed")
+    else println("Failed")
 
     // -------- clean-up --------
-    os_stat = "rm -rf ./out/FMModel" .!
-    model.release() 
+    r_model.release() 
+    f_model.release() 
     FrovedisServer.shut_down()
     sc.stop()
   }

@@ -1,56 +1,63 @@
 package test.scala;
 
-import com.nec.frovedis.exrpc.FrovedisLabeledPoint
+import org.apache.spark.mllib.evaluation.RegressionMetrics
 import com.nec.frovedis.Jexrpc.FrovedisServer
-import com.nec.frovedis.mllib.fm.{FactorizationMachine,FMConfig, FactorizationMachineModel}
+import com.nec.frovedis.mllib.fm.{FactorizationMachine,FactorizationMachineModel}
 import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.mllib.util.MLUtils
-import java.io.FileReader
-import java.io.FileNotFoundException
-import java.io.IOException
-import sys.process._
+import org.apache.spark.ml.evaluation.MulticlassClassificationEvaluator
 
-// Objective : Test of save API
+import org.apache.log4j.{Level, Logger}
+import org.apache.spark.sql.SparkSession
+
+
+// Objective : test algo when iter is not correct  with Classification algo, isRegression : false
 
 object GenericTest {
 
   def main(args: Array[String]): Unit = {
 
     // -------- configurations --------
+
     val conf = new SparkConf().setAppName("FactorizationMachineDemo").setMaster("local[1]")
     val sc = new SparkContext(conf)
     
+    val spark = SparkSession.builder.appName("FactorizationMachineDemo").getOrCreate()
+
     // initializing Frovedis server with "personalized command", if provided in command line
     if(args.length != 0) FrovedisServer.initialize(args(0))
 
     // -------- data loading from sample libSVM file at Spark side--------
     var data = MLUtils.loadLibSVMFile(sc, "./input/fm/libSVMFile.txt")
 
-    // -------- training  with RDD data ---------
-    val model = FactorizationMachine.train(data,initStdev = 0.1,iter = 100,learnRate = 0.1,optimizer="SGD",
-                                           isRegression = false,dim = (true, true, 8), 
-                                           regParam = (0.0, 0.0, 0.1),batchsize = 2000)
+   
+    val dataset = spark.read.format("libsvm").load("././input/fm/libSVMFile.txt") //DataFrame
+ 
+    // -------- training --------
+    var isException = false
+    try {
+      val model = FactorizationMachine.train(data,initStdev = 0.1,iter = -1,
+                                             stepSize = 0.01, optimizer="SGD",
+                                             isRegression = true,
+                                             fitIntercept = true ,
+                                             fitLinear = true,
+                                             factorSize = 2,
+                                             regParam = (0.0, 0.0, 0.0),
+                                             miniBatchFraction = 0.07,
+                                             seed = 1)
 
-    var os_stat = "rm -rf ./out/FMModel" .!
-    model.save(sc, "./out/FMModel")
-    var isFileMissing = false
-    try{
-         val f = new FileReader("./out/FMModel")
-      } catch {
-         case ex: FileNotFoundException =>{
-            isFileMissing = true
-         }
-     }
+    }
 
-    if(isFileMissing) println("Failed")
-    else println("Passed")
+    catch {
+      case e: Exception => isException = true
+    }
+    if(isException) println("Passed")
+    else println("Failed")
 
-    // -------- clean-up --------
-    os_stat = "rm -rf ./out/FMModel" .!
-    model.release() 
-    FrovedisServer.shut_down()
-    sc.stop()
-  }
+
+   FrovedisServer.shut_down()
+   sc.stop()
+ }
 }
 
 

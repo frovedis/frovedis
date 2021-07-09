@@ -6,6 +6,9 @@ import com.nec.frovedis.mllib.fm.{FactorizationMachine,FactorizationMachineModel
 import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.mllib.util.MLUtils
 
+import org.apache.log4j.{Level, Logger}
+import org.apache.spark.sql.SparkSession
+
 // Objective : test algo when initStdev is not correct
 
 object GenericTest {
@@ -16,18 +19,28 @@ object GenericTest {
     val conf = new SparkConf().setAppName("FactorizationMachineDemo").setMaster("local[1]")
     val sc = new SparkContext(conf)
     
+    val spark = SparkSession.builder.appName("FactorizationMachineDemo").getOrCreate()
+
     // initializing Frovedis server with "personalized command", if provided in command line
     if(args.length != 0) FrovedisServer.initialize(args(0))
 
     // -------- data loading from sample libSVM file at Spark side--------
     var data = MLUtils.loadLibSVMFile(sc, "./input/fm/libSVMFile.txt")
 
+    val dataset = spark.read.format("libsvm").load("././input/fm/libSVMFile.txt") //DataFrame
+
     // -------- training --------
     var isException = false
     try {
-      val model = FactorizationMachine.train(data,initStdev = -0.1,iter = 100,learnRate = 0.1,optimizer="SGD",
-                                           isRegression = false,dim = (true, true, 8),
-                                           regParam = (0.0, 0.0, 0.1),batchsize = 2000)
+      val model = FactorizationMachine.train(data,initStdev = -0.1,iter = 100,
+                                             stepSize = 0.01, optimizer="SGD",
+                                             isRegression = true,
+                                             fitIntercept = true ,
+                                             fitLinear = true,
+                                             factorSize = 2,
+                                             regParam = (0.0, 0.0, 0.0),
+                                             miniBatchFraction = 0.07,
+                                             seed = 1)
     }
     catch {
       case e: Exception => isException = true

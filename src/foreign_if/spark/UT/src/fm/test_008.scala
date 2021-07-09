@@ -1,12 +1,14 @@
 package test.scala;
 
-import com.nec.frovedis.exrpc.FrovedisLabeledPoint
 import org.apache.spark.mllib.evaluation.RegressionMetrics
 import com.nec.frovedis.Jexrpc.FrovedisServer
-import com.nec.frovedis.mllib.fm.{FactorizationMachine,FMConfig, FactorizationMachineModel}
+import com.nec.frovedis.mllib.fm.{FactorizationMachine,FactorizationMachineModel}
 import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.mllib.util.MLUtils
-import org.apache.spark.ml.evaluation.MulticlassClassificationEvaluator
+
+import org.apache.log4j.{Level, Logger}
+import org.apache.spark.sql.SparkSession
+// Objective : test algo when initStdev is not correct with Classification algo, isRegression : false 
 
 object GenericTest {
 
@@ -21,36 +23,30 @@ object GenericTest {
 
     // -------- data loading from sample libSVM file at Spark side--------
     var data = MLUtils.loadLibSVMFile(sc, "./input/fm/libSVMFile.txt")
-    
-    // -------- training  with RDD data ---------
-    val r_model = FactorizationMachine.train(data,initStdev = 0.1,iter = 100,learnRate = 0.1,optimizer="SGD",
-                                           isRegression = false,dim = (true, true, 8), 
-                                           regParam = (0.0, 0.0, 0.1),batchsize = 2000)
 
-    // ------------- training with Frovedis data---------
+    // -------- training --------
+    var isException = false
+    try {
+      val model = FactorizationMachine.train(data,initStdev = -0.1,iter = 100,
+                                             stepSize = 0.01, optimizer="SGD",
+                                             isRegression = false,
+                                             fitIntercept = true,
+                                             fitLinear = true,
+                                             factorSize = 2,
+                                             regParam = (0.0, 0.0, 0.1),
+                                             miniBatchFraction = 0.07,
+                                             seed = 1)
+    }
+    catch {
+      case e: Exception => isException = true
+    }
+    if(isException) println("Passed")
+    else println("Failed")
 
-     val fdata = new FrovedisLabeledPoint(data)
-     val f_model = FactorizationMachine.train(fdata,initStdev = 0.1,iter = 100,learnRate = 0.1,optimizer="SGD",
-                                           isRegression = false,dim = (true, true, 8),
-                                           regParam = (0.0, 0.0, 0.1),batchsize = 2000)
 
-    //-------- test ---------
-                  
-    val r_predictionAndLabel = data.map(p => (r_model.predict(p.features), p.label))
-    val r_accuracy = 1.0 * r_predictionAndLabel.filter(x => x._1 == x._2).count() / data.count()
-     
-    val f_predictionAndLabel = data.map(p => (f_model.predict(p.features), p.label))
-    val f_accuracy = 1.0 * f_predictionAndLabel.filter(x => x._1 == x._2).count() / data.count()
-
-    if(r_accuracy == f_accuracy) println("Passed")
-    else println("Failed")   
-
-    // -------- clean-up --------
-    r_model.release() 
-    f_model.release()
-    FrovedisServer.shut_down()
-    sc.stop()
-  }
+   FrovedisServer.shut_down()
+   sc.stop()
+ }
 }
 
 
