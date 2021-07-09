@@ -593,6 +593,7 @@ void typed_dfcolumn<raw_string>::spill_to_disk() {
     comp_words.mapv(+[](compressed_words& cw, std::string& spill_path){
         make_directory(spill_path + "/comp_words");
         save_compressed_words(cw, spill_path + "/comp_words");
+        cw.clear();
       }, spill_path);
     nulls.mapv(+[](std::vector<size_t>& n, std::string& spill_path){
         savebinary_local(n, spill_path+"/nulls");
