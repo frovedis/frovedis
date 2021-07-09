@@ -10,8 +10,10 @@ namespace frovedis {
 template <class T, class MATRIX1>
 struct kneighbors_classifier {
   kneighbors_classifier(int k, const std::string& algo,
-                        const std::string& met, float c_sz):
-    n_neighbors(k), algorithm(algo), metric(met), chunk_size(c_sz) {}
+                        const std::string& met, float c_sz, 
+                        double batch_f = std::numeric_limits<double>::max()):
+    n_neighbors(k), algorithm(algo), metric(met), 
+    chunk_size(c_sz), batch_fraction(batch_f) {}
   
   void fit(MATRIX1& mat,
            dvector<T>& label) { // can support any values for input label
@@ -30,7 +32,7 @@ struct kneighbors_classifier {
              bool need_distance = true) {
     if (k == 0) k = n_neighbors;
     return knn<T,I>(observation_data, enquiry_data, 
-                    k, algorithm, metric, need_distance, chunk_size);
+                    k, algorithm, metric, need_distance, chunk_size, batch_fraction);
   }
 
   template <class I = size_t, class O = size_t, class MATRIX2 = rowmajor_matrix<T>>
@@ -58,11 +60,12 @@ struct kneighbors_classifier {
   std::string algorithm;
   std::string metric;
   float chunk_size;
+  double batch_fraction;
   MATRIX1 observation_data;
   std::vector<size_t> encoded_label;
   std::vector<T> uniq_labels;
   int nclasses;
-  SERIALIZE(n_neighbors, algorithm, metric, chunk_size,
+  SERIALIZE(n_neighbors, algorithm, metric, chunk_size, batch_fraction,
             observation_data, encoded_label, uniq_labels, nclasses);
 };
 
@@ -231,8 +234,10 @@ float kneighbors_classifier<T, MATRIX1>::score(MATRIX2& mat,
 template <class T, class MATRIX1>
 struct kneighbors_regressor {
   kneighbors_regressor(int k, const std::string& algo,
-                       const std::string& met, float c_sz):
-    n_neighbors(k), algorithm(algo), metric(met), chunk_size(c_sz) {}
+                       const std::string& met, float c_sz, 
+                       double batch_f = std::numeric_limits<double>::max()):
+    n_neighbors(k), algorithm(algo), metric(met), chunk_size(c_sz), 
+    batch_fraction(batch_f) {}
 
   void fit(MATRIX1& mat, dvector<T>& label) { 
     if (mat.num_row != label.size())
@@ -248,7 +253,7 @@ struct kneighbors_regressor {
              bool need_distance = true) {
     if (k == 0) k = n_neighbors;
     return knn<T,I>(observation_data, enquiry_data,
-                    k, algorithm, metric, need_distance, chunk_size);
+                    k, algorithm, metric, need_distance, chunk_size, batch_fraction);
   }
 
   template <class I = size_t, class O = size_t, class MATRIX2 = rowmajor_matrix<T>>
@@ -272,9 +277,10 @@ struct kneighbors_regressor {
   std::string algorithm;
   std::string metric;
   float chunk_size;
+  double batch_fraction;
   MATRIX1 observation_data;
   std::vector<T> observation_labels;
-  SERIALIZE(n_neighbors, algorithm, metric, chunk_size,
+  SERIALIZE(n_neighbors, algorithm, metric, chunk_size, batch_fraction,
             observation_data, observation_labels);
 };
 
