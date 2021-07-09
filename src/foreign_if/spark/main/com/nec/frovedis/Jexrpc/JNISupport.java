@@ -378,6 +378,7 @@ public class JNISupport {
                                             String algorithm,
                                             String metric,
                                             float chunk_size,
+                                            double batch_f,   
                                             int mid,
                                             boolean dense);
 
@@ -418,6 +419,7 @@ public class JNISupport {
                                             String algorithm,
                                             String metric,
                                             float chunk_size,
+                                            double batch_f,   
                                             int mid,
                                             boolean dense);
 
@@ -464,6 +466,7 @@ public class JNISupport {
                                             String algorithm,
                                             String metric,
                                             float chunk_size,
+                                            double batch_f,   
                                             int mid,
                                             boolean dense);
 
@@ -634,20 +637,21 @@ public class JNISupport {
                                              String path);
 
   public static native void callFrovedisFM(Node master_node,
-                                         MemPair fdata, double init_stdev,
-					 double learning_rate,
-					 int iteration,
-					 String optimizer,
-					 boolean is_regression,
-					 int batch_size,
-					 boolean global_bias,
-					 boolean one_way_interaction,
-					 int num_factor,
-					 double intercept,
-					 double reg1way,
-					 double reg_pairWise,
-					 int model_id,
-                                         boolean movable);
+                                           MemPair fdata, double init_stdev,
+                                           double learning_rate,
+                                           int iteration,
+                                           String optimizer,
+                                           boolean is_regression,
+                                           int batch_size,
+                                           boolean global_bias,
+                                           boolean one_way_interaction,
+                                           int num_factor,
+                                           double intercept,
+                                           double reg1way,
+                                           double reg_pairWise,
+                                           int seed,
+                                           int model_id,
+                                           boolean movable);
 
   public static native void callFrovedisNBM(Node master_node, MemPair fdata,
                                             double lambda, 
