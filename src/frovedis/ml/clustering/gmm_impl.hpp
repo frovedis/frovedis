@@ -430,6 +430,7 @@ std::vector<T> E_step(frovedis::colmajor_matrix_local<T> &Data, int K,
       Det *= covl.val[dd];
     }
     Det = fabs(Det);
+    if (Det == 0) Det = std::pow(10, -6);
     frovedis::getri<T>(covl, ipiv);
     auto covp = covl.val.data();
     auto Vecp = Vec.data();
@@ -564,97 +565,33 @@ gmm_cluster<T> gmm_assign_cluster(const frovedis::rowmajor_matrix_local<T>& NewD
   prepare_data(input_mu, input_cov, input_pi, Dim, CNT,
                mu, cov, Pi_arr);
     
-  gmm_cluster<T> ret;
-  std::vector<int> ipiv(Dim);
-  std::vector<T> Vec(Dim * Num);
-  std::vector<T> r_arr(CNT * Num);
-  std::vector<T> IP(CNT * Num);
-  std::vector<T> Pi_arr_Sum(Num);
-  std::vector<T> MND(CNT * Num);
-  T Det;
-  const T PI = 4 * atan(1);
-  frovedis::colmajor_matrix_local<T> covl(Dim, Dim);
-  for (int k = 0; k < CNT; k++) {
-    for (int dd = 0; dd < Dim * Dim; dd++) {
-      covl.val[dd] = cov.val[Dim * Dim * k + dd];
-    }
-    for (int dd = 0; dd < Dim * Dim; dd = dd + 1 + Dim) {
-      covl.val[dd] += std::pow(10, -6);
-    }
-    frovedis::getrf<T>(covl, ipiv);
-    Det = 1.0;
-    for (int dd = 0; dd < Dim * Dim; dd = dd + 1 + Dim) {
-      Det *= covl.val[dd];
-    }
-    Det = fabs(Det);
-    frovedis::getri<T>(covl, ipiv);
-    auto covp = covl.val.data();
-    auto Vecp = Vec.data();
-    auto Datap = Data.val.data();
-    auto muvalp = mu.val.data();
-    auto IPp = IP.data();
-
-    for (int d = 0; d < Dim; d++) {
-#pragma _NEC select_vector
-      for (int n = 0; n < Num; n++) {
-        Vecp[d * Num + n] = Datap[d * Num + n] - muvalp[k * Dim + d];
-      }
-    }
-    for (int d = 0; d < Dim; d++) {
-      for (int n = 0; n < Num; n++) {
-        IPp[k * Num + n] +=
-            covp[Dim * d + d] * Vecp[d * Num + n] * Vecp[d * Num + n];
-      }
-    }
-    for (int d0 = 0; d0 < Dim - 1; d0++) {
-      for (int d = d0 + 1; d < Dim; d++) {
-#pragma _NEC select_vector
-        for (int n = 0; n < Num; n++) {
-          IPp[k * Num + n] +=
-              2 * covp[Dim * d + d0] * Vecp[d0 * Num + n] * Vecp[d * Num + n];
-        }
-      }
-    }
-    for (int n1 = 0; n1 < Num; n1++) {
-      MND[k * Num + n1] = Pi_arr.val[k] * exp(-IP[k * Num + n1] / 2.0) /
-                          (std::pow(sqrt(2 * PI), Dim)) / sqrt(Det);
-    }
-  }
-
-  for (int k = 0; k < CNT; k++) {
-    for (int n = 0; n < Num; n++) {
-      Pi_arr_Sum[n] += MND[k * Num + n];
-    }
-  }
-
-  for (int k = 0; k < CNT; k++) {
-    for (int n = 0; n < Num; n++) {
-      r_arr[n * CNT + k] = MND[k * Num + n] / Pi_arr_Sum[n];
-    }
-  }
-  frovedis::rowmajor_matrix_local<T> predict_pro(CNT, Num);
-  for (int k = 0; k < CNT; k++) {
-    for (int n = 0; n < Num; n++) {
-      predict_pro.val[k * Num + n] = r_arr[n * CNT + k];
-    }
-  }
-  ret.predict_prob = predict_pro;
-  int cnt;
+  colmajor_matrix_local<T> MD(CNT, Num);
+  auto r_arr = E_step(Data, K, mu, cov, Pi_arr, MD);
+  auto r_arrp = r_arr.data();
   frovedis::rowmajor_matrix_local<int> assign_cluster(1, Num);
+  auto predp = assign_cluster.val.data();
   for (int n = 0; n < Num; n++) {
-    cnt = 0;
-    auto now = r_arr[n * CNT];
+    int cnt = 0;
+    auto now = r_arrp[n * CNT];
     for (int k = 1; k < CNT; k++) {
-      if (now < r_arr[n * CNT + k]) {
-        now = r_arr[n * CNT + k];
+      if (now < r_arrp[n * CNT + k]) {
+        now = r_arrp[n * CNT + k];
         cnt = k;
       }
     }
-    assign_cluster.val[n] = cnt;
+    predp[n] = cnt;
   }
-  ret.predict_prob = predict_pro;
-  ret.predict = assign_cluster;
+
+  gmm_cluster<T> ret;
+  ret.predict = std::move(assign_cluster);
+
+  colmajor_matrix_local<T> prob;
+  prob.val.swap(r_arr);
+  prob.local_num_row = CNT;
+  prob.local_num_col = Num;
+  ret.predict_prob = prob.to_rowmajor();
   return ret;
-}    
+}
+    
 }  // namespace frovedis
 #endif
