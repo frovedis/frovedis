@@ -77,7 +77,7 @@ class KNeighborsRegressor(var nNeighbors: Int,
     JNISupport.callFrovedisKnrFit(fs.master_node,
                                data.get(), nNeighbors,
                                algorithm, metric,
-                               chunkSize, mid, mdense)
+                               chunkSize, 1.0, mid, mdense)
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
     return this

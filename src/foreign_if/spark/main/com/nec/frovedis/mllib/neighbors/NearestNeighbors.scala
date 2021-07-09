@@ -88,7 +88,7 @@ class NearestNeighbors(var nNeighbors: Int,
     JNISupport.callFrovedisKnnFit(fs.master_node,
                                data.get(), nNeighbors,
                                radius, algorithm, metric,
-                               chunkSize, mid, mdense)
+                               chunkSize, 1.0, mid, mdense)
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
     return this
@@ -102,7 +102,7 @@ class NearestNeighbors(var nNeighbors: Int,
     JNISupport.callFrovedisKnnFit(fs.master_node,
                                data.get(), nNeighbors,
                                radius, algorithm, metric,
-                               chunkSize, mid, mdense)
+                               chunkSize, 1.0, mid, mdense)
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
     return this
