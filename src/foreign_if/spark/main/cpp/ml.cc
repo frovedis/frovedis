@@ -508,11 +508,12 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisFM
    jboolean is_regression, jint batch_size, 
    jboolean dim_1, jboolean dim_2, jint dim3, 
    jdouble reg1, jdouble reg2, jdouble reg3, 
-   jint mid, jboolean movable) {
-
+   jint seed, jint mid, jboolean movable) {
+    
   auto fm_node = java_node_to_frovedis_node(env, master_node);
   auto f_dptr = java_mempair_to_frovedis_mempair(env, fdata);
   auto opt = to_cstring(env,optimizer);
+    
   bool regr = (bool) is_regression;
   bool dim1 = (bool) dim_1;
   bool dim2 = (bool) dim_2;
@@ -521,8 +522,9 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisFM
 
   fm::fm_config<DT1> conf(dim1, dim2, dim3, init_stdev, iteration, learn_rate,
                              reg1, reg2, reg3, regr, batch_size);
+
   try {
-    exrpc_oneway(fm_node,(frovedis_fm<DT1,S_MAT1>),f_dptr,opt,conf,vb,mid,mvbl);
+    exrpc_oneway(fm_node,(frovedis_fm<DT1,S_MAT1>),f_dptr,opt,conf,seed,vb,mid,mvbl);
   }
   catch(std::exception& e) { set_status(true,e.what()); }
 }
@@ -764,7 +766,7 @@ JNIEXPORT jintArray JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedis
 JNIEXPORT void Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisKnnFit
             (JNIEnv *env, jclass thisCls, jobject master_node, jlong xptr, jint k,
              jfloat radius, jstring algorithm, jstring metric,
-             jfloat chunk_size, jint mid, jboolean dense) {
+             jfloat chunk_size, jdouble batch_f, jint mid, jboolean dense) {
   auto fm_node = java_node_to_frovedis_node(env, master_node);
   auto f_xptr = (exrpc_ptr_t) xptr;
   auto algorithm_ = to_cstring(env,algorithm);
@@ -774,11 +776,11 @@ JNIEXPORT void Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisKnnFit
   try {
     if(isDense) {
       exrpc_oneway(fm_node,(frovedis_knn<DT1,R_MAT1>), f_xptr, k, radius,
-                       algorithm_, metric_, chunk_size, vb, mid);
+                       algorithm_, metric_, chunk_size, batch_f, vb, mid);
     }
     else{
       exrpc_oneway(fm_node,(frovedis_knn<DT1,S_MAT15>), f_xptr, k, radius,
-                       algorithm_, metric_, chunk_size, vb, mid);
+                       algorithm_, metric_, chunk_size, batch_f, vb, mid);
     }
   }
   catch (std::exception& e) {
@@ -790,7 +792,7 @@ JNIEXPORT void Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisKnnFit
 JNIEXPORT void Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisKncFit
           (JNIEnv *env, jclass thisCls, jobject master_node, jobject fdata, jint k,
            jstring algorithm, jstring metric,
-           jfloat chunk_size, jint mid, jboolean dense) {
+           jfloat chunk_size, jdouble batch_f, jint mid, jboolean dense) {
   auto fm_node = java_node_to_frovedis_node(env, master_node);
   auto f_dptr = java_mempair_to_frovedis_mempair(env, fdata);
   auto algorithm_ = to_cstring(env,algorithm);
@@ -800,11 +802,11 @@ JNIEXPORT void Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisKncFit
   try {
     if(isDense) {
       exrpc_oneway(fm_node,(frovedis_knc<DT1,R_MAT1>), f_dptr, k,
-                       algorithm_, metric_, chunk_size, vb, mid);
+                       algorithm_, metric_, chunk_size, batch_f, vb, mid);
     }
     else{
       exrpc_oneway(fm_node,(frovedis_knc<DT1,S_MAT15>), f_dptr, k,
-                       algorithm_, metric_, chunk_size, vb, mid);
+                       algorithm_, metric_, chunk_size, batch_f, vb, mid);
     }
   }
   catch (std::exception& e) {
@@ -816,7 +818,7 @@ JNIEXPORT void Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisKncFit
 JNIEXPORT void Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisKnrFit
             (JNIEnv *env, jclass thisCls, jobject master_node, jobject fdata, jint k,
              jstring algorithm, jstring metric,
-             jfloat chunk_size, jint mid, jboolean dense) {
+             jfloat chunk_size, jdouble batch_f, jint mid, jboolean dense) {
   auto fm_node = java_node_to_frovedis_node(env, master_node);
   auto f_dptr = java_mempair_to_frovedis_mempair(env, fdata);
   auto algorithm_ = to_cstring(env,algorithm);
@@ -826,11 +828,11 @@ JNIEXPORT void Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisKnrFit
   try {
     if(isDense) {
       exrpc_oneway(fm_node,(frovedis_knr<DT1,R_MAT1>), f_dptr, k,
-                       algorithm_, metric_, chunk_size, vb, mid);
+                       algorithm_, metric_, chunk_size, batch_f, vb, mid);
     }
     else{
       exrpc_oneway(fm_node,(frovedis_knr<DT1,S_MAT15>), f_dptr, k,
-                       algorithm_, metric_, chunk_size, vb, mid);
+                       algorithm_, metric_, chunk_size, batch_f, vb, mid);
     }
   }
   catch (std::exception& e) {
