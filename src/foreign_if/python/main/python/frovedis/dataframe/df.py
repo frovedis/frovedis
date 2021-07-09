@@ -722,6 +722,56 @@ class DataFrame(object):
             raise ValueError("Operation on invalid frovedis dataframe!")
         right = DataFrame.asDF(right)
 
+        on_index = None
+
+        if not isinstance(left_index, bool):
+            raise ValueError(
+                "left_index parameter must be of type bool, not ", type(left_index)
+            )
+        if not isinstance(right_index, bool):
+            raise ValueError(
+                "right_index parameter must be of type bool, not", type(right_index)
+            )
+
+        if left_on and left_index:
+            raise ValueError("Can only pass 'left_on' OR 'left_index'" +
+                            " not a combination of both!")
+        elif right_on and right_index:
+            raise ValueError("Can only pass 'right_on' OR 'right_index'" +
+                            " not a combination of both!")
+        elif on and (left_index or right_index):
+            raise ValueError("Can only pass 'on' OR 'left_index' and" +
+                            " 'right_index', not a combination of both!")
+        
+        reset_index_name = False
+
+        if self.has_index() and right.has_index() and \
+                self.index.name != right.index.name:
+            reset_index_name = True
+
+        # index rename for right
+        if self.has_index() and right.has_index() and \
+                self.index.name == right.index.name:
+            right = right.rename_index(right.index.name + "_right")
+
+        if left_index or right_index:
+            if left_index and right_index:
+                on_index = self.index
+                if on_index.name == "index":
+                    reset_index_name = False               
+            elif left_index and not right_index:
+                on_index = right.index
+                reset_index_name = False
+            elif right_index and not left_index:
+                on_index = self.index
+                reset_index_name = False
+
+        if on: #if key name is same in both dataframes
+            if(left_on) or (right_on):
+                raise ValueError("Can only pass 'on' OR 'left_on' and" +
+                                 " 'right_on', not a combination of both!")
+            left_on = right_on = on
+
         # no of nulls
         n_nulls = sum(x is None for x in (on, right_on, left_on))
         if n_nulls == 3:
@@ -731,17 +781,25 @@ class DataFrame(object):
                 ret = self.select_frovedis_dataframe(self.columns)
                 ret.reset_index(drop=True, inplace=True)
                 return ret
-            common_cols = list(set(self.columns) & set(right.columns))
-            if len(common_cols) == 0:
-                raise ValueError("No common columns to perform merge on.")
-            left_on = right_on = common_cols
 
-        if on: #if key name is same in both dataframes
-            if(left_on) or (right_on):
-                raise ValueError("Can only pass 'on' OR 'left_on' and" +
-                                 " 'right_on', not a combination of both!")
-            left_on = right_on = on
-        elif (left_on and not right_on) or (not left_on and right_on):
+            if left_index and right_index:
+                left_on, right_on = self.index.name, right.index.name
+            elif left_index:
+                raise ValueError("Must pass right_on or right_index=True")
+            elif right_index:
+                raise ValueError("Must pass left_on or left_index=True")
+
+            else:
+                common_cols = list(set(self.columns) & set(right.columns))
+                if len(common_cols) == 0:
+                    raise ValueError("No common columns to perform merge on.")
+                left_on = right_on = common_cols
+        elif left_on and right_index:
+            right_on = right.index.name
+        elif left_index and right_on:
+            left_on = self.index.name
+
+        if (left_on and not right_on) or (not left_on and right_on):
             raise ValueError("Both left_on and right_on need to be provided."+
                              " In case of common keys, use 'on' parameter!")
 
@@ -762,15 +820,16 @@ class DataFrame(object):
         left_non_key_cols = set(self.__cols) - set(left_keys)
         right_non_key_cols = set(right.__cols) - set(right_keys)
         common_non_key_cols = left_non_key_cols & right_non_key_cols
-
-        # index rename for right
-        if right.has_index(): 
-            right = right.rename_index(right.index.name + "_right") 
+        
+        left_non_key_column_in_right_key = left_non_key_cols & set(right_keys)
+        right_non_key_column_in_left_key = right_non_key_cols & set(left_keys)
 
         # if renaming required add suffixes
         df_left = self
         df_right = right
-        if len(common_non_key_cols) > 0:
+        if len(common_non_key_cols) > 0 \
+            or len(left_non_key_column_in_right_key) > 0 \
+            or len(right_non_key_column_in_left_key) > 0:
             renamed_left_cols = {}
             renamed_right_cols = {}
             lsuf, rsuf = suffixes
@@ -780,6 +839,13 @@ class DataFrame(object):
             for e in common_non_key_cols:
                 renamed_left_cols[e] = e + str(lsuf)
                 renamed_right_cols[e] = e + str(rsuf)
+
+            for e in left_non_key_column_in_right_key:
+                renamed_left_cols[e] = e + str(lsuf)
+
+            for e in right_non_key_column_in_left_key:
+                renamed_right_cols[e] = e + str(rsuf)
+
             if lsuf != '':
                 df_left = self.rename(renamed_left_cols)
             if rsuf != '':
@@ -804,17 +870,33 @@ class DataFrame(object):
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
             raise RuntimeError(excpt["info"])
+        
+        if on_index:
+            index_name = on_index.name
+            ret.index = FrovedisColumn(index_name, dtype=on_index.dtype)
+            ret = ret.select_frovedis_dataframe(ret.columns)
 
+            if index_name.endswith("_right") and ret.has_index():
+                index_name = index_name[:-len("_right")]
+                ret.rename_index(index_name, inplace=True)
+
+            if reset_index_name:
+                ret.rename_index("index", inplace=True)
+            
         if renamed_keys:
             targets = list(ret.__cols)
             for key in renamed_keys:
-                targets.remove(key)
-            res = ret.select_frovedis_dataframe(targets)
-        else:
-            res = ret.select_frovedis_dataframe(ret.columns)
+                if key in targets:
+                    targets.remove(key)
+            ret = ret.select_frovedis_dataframe(targets)
+        elif not on_index:
+            ret = ret.select_frovedis_dataframe(ret.columns)
 
-        return res.add_index("index")
+        if not on_index:
+            ret = ret.add_index("index")
 
+        return ret
+    
     # exception at frovedis server: same key is not
     # currently supported by frovedis
     def join(self, right, on, how='inner',
