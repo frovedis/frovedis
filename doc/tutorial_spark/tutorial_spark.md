@@ -52,8 +52,11 @@ If you did not install sbt, please install it by following
 
 It should be like:
 
-    $ curl https://bintray.com/sbt/rpm/rpm | sudo tee /etc/yum.repos.d/bintray-sbt-rpm.repo
-    $ sudo yum install sbt
+    # remove old Bintray repo file
+    sudo rm -f /etc/yum.repos.d/bintray-rpm.repo
+    curl -L https://www.scala-sbt.org/sbt-rpm.repo > sbt-rpm.repo
+    sudo mv sbt-rpm.repo /etc/yum.repos.d/
+    sudo yum install sbt
 
 If you are behind proxy, you would need to set up proxy. You can
 specify it to sbtopts, which is in /usr/share/sbt/conf.
@@ -79,6 +82,12 @@ You can start Zeppelin by calling
 By default, Zeppelin daemon is waiting connection at 8080 port; please
 access the 8080 port of the server with your Web browser. (Please make
 sure that firewall is configured to allow the access.)
+
+Actually, enclosed version of Zeppelin (0.9.0) does not support 
+enclosed version of Spark (3.1.2) yet. So you need to change
+"zeppelin.spark.enableSupportedVersionCheck" from true to false, 
+which is in right upper corner "Anonymous"->"Interpreter".
+Otherwise, you will see "Fail to open SparkInterpreter" error.
 
 To stop the daemon, you can just call
 
@@ -115,10 +124,12 @@ Then, import LogisticRegression in this case:
 
     import com.nec.frovedis.mllib.classification.LogisticRegressionWithSGD
 
-In the case of Spark, following package is imported instead (commented
-out):
+Current Frovedis API is based on Spark MLlib RDD-based API.
+In the case of Spark, following package is imported instead (commented out):
 
     import org.apache.spark.mllib.classification.LogisticRegressionWithSGD
+
+(This API is not supported by Spark version 3.0 or higher.)
 
 Before using the logistic regression routine, you need to invoke
 frovedis_server: 
@@ -154,7 +165,7 @@ and add initialize / shutdown the server.
 You can run the sample by
 
     $ ${SPARK_HOME}/bin/spark-submit ${SPARK_SUBMIT_OPTIONS} \
-     --master local[4] target/scala-2.11/tut_2.11-1.0.jar
+     --master local[4] target/scala-2.12/tut_2.12-1.0.jar
 
 Here, `${SPARK_HOME}` and `${SPARK_SUBMIT_OPTIONS}` are set by x86env.sh
 or veenv.sh. The contents of `${SPARK_SUBMIT_OPTIONS}` is 
@@ -180,6 +191,8 @@ Then, the execution will produce output like
 If you modify the importing package to original Spark one (and remove
 Frovedis initialization and shut_down), you can run the same program
 using Spark. It should also produce similar result.
+(Though it is deprecated from Spark 3.0 in the case of
+LogisticRegressionWithSGD).
 
 You can run the same program using spark-shell or Zeppelin.
 If you use them, please comment out `val sc = new SparkContext(conf)`
@@ -208,7 +221,19 @@ spark-shell case. Then, you can run the paragraph.
 If it does not work, please make sure that environment variables are
 properly set by `x86env.sh` or `veenv.sh` *before* starting the zeppelin
 daemon.
-    
+
+The Zeppelin extaction script also copies json files that contain sample
+notes: Normal_Spark.json and Spark_with_Frovedis.json. You can import
+these notes by the Web UI (If you are running the browser on a
+different machine, you need to copy the json files to the machine). 
+It contains recommendation demo using singular value decomposition in
+the case of normal Spark and using Frovedis server. The data used in
+this demo is in /opt/nec/nosupport/frovedis/data directory, 
+which is created from MovieLens data
+(F. Maxwell Harper and Joseph A. Konstan. 2015. The MovieLens Datasets:
+History and Context. ACM Transactions on Interactive Intelligent
+Systems (TiiS) 5, 4, Article 19 (December 2015)).
+
 The frovedis server will be terminated when the interpreter exits.
 If it is not terminated because of abnormal termination, please kill the
 server manually by calling command like `pkill mpi`. In the case of
@@ -237,6 +262,7 @@ At this moment, we support following algorithms:
 - `mllib.tree.GradientBoostedTrees`
 - `mllib.clustering.KMeans`
 - `mllib.clustering.LDA`
+- `mllib.clustering.GaussianMixture`
 - `mllib.recommendation.ALS`
 - `mllib.fpm.FPGrowth`
 - `mllib.feature.Word2Vec`
