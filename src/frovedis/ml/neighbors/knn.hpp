@@ -210,7 +210,85 @@ struct find_kneighbor {
   template <class T, class I>
   void operator()(rowmajor_matrix_local<T>& dist_mat,
                   rowmajor_matrix_local<T>& model_dist,
-                  rowmajor_matrix_local<I>& model_indx) {
+                  rowmajor_matrix_local<I>& model_indx,
+                  size_t batch_size,
+                  size_t iter) {
+    auto nrow = dist_mat.local_num_row;
+    auto ncol = dist_mat.local_num_col;
+
+    /*
+    model_dist and model_indx is already allocated. Fetch the index from where
+    the assignment will begin. 
+    */  
+    auto start = std::min(iter * batch_size, model_dist.local_num_row);   
+    
+    auto model_iptr = model_indx.val.data();
+    auto model_dptr = model_dist.val.data();
+    
+    // decide each chunk of rows (startring index and total nrow in each chunk)
+    auto rows_per_chunk = get_rows_per_chunk<T>(nrow, k, chunk_size);
+    auto n_iter = ceil_div(nrow, rows_per_chunk);  
+    RLOG(DEBUG) << "distance sorting problem will be solved in " 
+                  + std::to_string(n_iter) + " steps!\n";
+    std::vector<size_t> rows(n_iter + 1);
+    rows[0] = 0;
+    auto rows_ptr = rows.data();
+    for(size_t i = 1; i <= n_iter; ++i) rows_ptr[i]  = i * rows_per_chunk;
+    if (rows[n_iter] > nrow) rows[n_iter] = nrow;
+    //display(rows);
+
+    time_spent partition_t(DEBUG), sort_each_t(TRACE), extract_t(DEBUG), radix_t(DEBUG);
+    time_spent comp_t(DEBUG), copy_t(DEBUG);
+    for(size_t i = 0; i < n_iter; ++i) {
+      RLOG(DEBUG) << "working on chunk [" << rows[i] << " : " << rows[i+1] - 1 << "]\n";
+      size_t nrow_in_chunk = rows[i+1] - rows[i] ;
+      rowmajor_matrix_local<I> indx_mat(nrow_in_chunk, ncol);
+      set_index(indx_mat);
+      auto dist_mptr = dist_mat.val.data() + (rows[i] * ncol);
+      auto indx_mptr = indx_mat.val.data();
+      partition_t.lap_start();
+      partition_sort(dist_mptr, indx_mptr, nrow_in_chunk, ncol, k, comp_t, copy_t);
+      partition_t.lap_stop();
+
+      extract_t.lap_start();
+      std::vector<T> dist_buffer(nrow_in_chunk * k);
+      auto dist_buf_ptr = dist_buffer.data();
+      extract_k_cols(dist_mptr, dist_buf_ptr, nrow_in_chunk, ncol, k);
+      extract_t.lap_stop();
+
+      // sorting on distance and column index
+      auto b_size = dist_buffer.size();
+      auto dptr = model_dptr;
+      if (need_distance) dptr = dptr + (start * k) + (rows[i] * k);
+      auto iptr = model_iptr + (start * k) + (rows[i] * k);
+      sort_each_t.lap_start();
+      sort_segmented_rows(dist_buf_ptr,        // partitioned distance buffer pointer
+                          indx_mptr,           // partitioned sorted indx_mat pointer
+                          dptr, iptr,          // model pointers
+                          b_size, k, ncol,
+                          need_distance, 
+                          radix_t, extract_t);
+      sort_each_t.lap_stop();      
+      if(get_selfid() == 0) {
+        auto chunk = "[" + std::to_string(rows[i])     + ":" + 
+                           std::to_string(rows[i+1]-1) + "]";
+        sort_each_t.show_lap(chunk + " chunk-wise sorting time: "); // includes distance extraction time
+      }
+      sort_each_t.reset();
+    }
+    if(get_selfid() == 0) { // logging only by rank 0
+      partition_t.show_lap("partition time: ");
+      comp_t.show_lap("  \\_ comparison time: ");
+      copy_t.show_lap("  \\_ copy back time: ");
+      radix_t.show_lap("radix sorting time: ");
+      extract_t.show_lap("extraction time: ");
+    }      
+  }    
+
+  template <class T, class I>
+  void operator()(rowmajor_matrix_local<T>& dist_mat,
+                  rowmajor_matrix_local<T>& model_dist,
+                  rowmajor_matrix_local<I>& model_indx) {            
     auto nrow = dist_mat.local_num_row;
     auto ncol = dist_mat.local_num_col;
 
@@ -229,7 +307,9 @@ struct find_kneighbor {
     
     // decide each chunk of rows (startring index and total nrow in each chunk)
     auto rows_per_chunk = get_rows_per_chunk<T>(nrow, k, chunk_size);
+
     auto n_iter = ceil_div(nrow, rows_per_chunk);
+
     RLOG(DEBUG) << "distance sorting problem will be solved in " 
                   + std::to_string(n_iter) + " steps!\n";
     std::vector<size_t> rows(n_iter + 1);
@@ -245,17 +325,18 @@ struct find_kneighbor {
       RLOG(DEBUG) << "working on chunk [" << rows[i] << " : " << rows[i+1] - 1 << "]\n";
       size_t nrow_in_chunk = rows[i+1] - rows[i] ;
       rowmajor_matrix_local<I> indx_mat(nrow_in_chunk, ncol);
-      set_index(indx_mat); 
+
+      set_index(indx_mat);
       auto dist_mptr = dist_mat.val.data() + (rows[i] * ncol);
       auto indx_mptr = indx_mat.val.data();
       partition_t.lap_start();
-      partition_sort(dist_mptr, indx_mptr, nrow_in_chunk, ncol, k, comp_t, copy_t); 
+      partition_sort(dist_mptr, indx_mptr, nrow_in_chunk, ncol, k, comp_t, copy_t);
       partition_t.lap_stop();
 
       extract_t.lap_start();
       std::vector<T> dist_buffer(nrow_in_chunk * k);
       auto dist_buf_ptr = dist_buffer.data();
-      extract_k_cols(dist_mptr, dist_buf_ptr, nrow_in_chunk, ncol, k); 
+      extract_k_cols(dist_mptr, dist_buf_ptr, nrow_in_chunk, ncol, k);     
       extract_t.lap_stop();
 
       // sorting on distance and column index
@@ -306,17 +387,7 @@ size_t get_num_iterations(std::vector<T>& nrows, T batch_size) {
   auto iters = ceil_div(max_nrow, batch_size);
   return iters;  
 }
-    
-template <class T, class I, class O>
-size_t get_partial_rows(crs_matrix<T,I,O>& mat) {
-  return mat.data.map(crs_get_local_num_row<T,I,O>).reduce(add<size_t>);
-}
-
-template <class T>
-size_t get_partial_rows(rowmajor_matrix<T>& mat) {
-  return mat.data.map(rowmajor_get_local_num_row<T>).reduce(add<size_t>);
-}    
-   
+       
 template <class T>        
 rowmajor_matrix_local<T> extract_rmm_batch(rowmajor_matrix_local<T>& mat,
                                            size_t batch_size, size_t iter) {
@@ -388,36 +459,6 @@ extract_crs_batch(crs_matrix_local<T,I,O>& mat,
   return ret;  
 }    
     
-
-template <class T>
-void copy_row_batch(rowmajor_matrix_local<T>& dest_rmat, 
-                    rowmajor_matrix_local<T>& src_rmat, 
-                    size_t batch_size, size_t iter) {
-    
-  auto local_row = dest_rmat.local_num_row;
-  auto local_col = dest_rmat.local_num_col;  
-  auto start = std::min(iter * batch_size, local_row);  
-  auto end = std::min((iter+1) * batch_size, local_row);
-    
-  auto src_ptr = src_rmat.val.data();
-  auto dest_ptr = dest_rmat.val.data(); 
-  //assert columns
-  require(dest_rmat.local_num_col == src_rmat.local_num_col, 
-          "src and destination matrix should have the same no. of columns");
-
-  //assert rows 
-  require(end >= start, "start row index must be less than end column index");
-  require(start >= 0 && end <= local_row, "given indices are out of range");
-  
-  auto row_range = end - start;
-  
-  //Copy
-  for(size_t j = 0; j < local_col; ++j) {
-    for(size_t i = 0; i < row_range; ++i)
-      dest_ptr[local_col * (i + start) + j] = src_ptr[local_col * i + j];     
-  }  
-}
-
 template <class T, class I, class O>
 crs_matrix<T,I,O> extract_batch(crs_matrix<T,I,O>& mat, 
                                 node_local<size_t> batch_size, 
@@ -474,34 +515,12 @@ knn_model<T, I> compute_kneigbor_in_batch(MATRIX1& x_mat,
   for(size_t i=0; i < niters; ++i) {
    
     auto partial_query = extract_batch(y_mat, nl_batch_size, broadcast(i)); 
-    auto partial_rows = get_partial_rows(partial_query);
     
     auto partial_dist_mat = construct_distance_matrix<T>(x_mat, partial_query, metric, need_distance);
-      
-    //apply kneighbours to get partial_distances and partial_indices
-    rowmajor_matrix<T> partial_distances;
-    partial_distances.data = make_node_local_allocate<rowmajor_matrix_local<T>>();
-    if (need_distance) {
-      partial_distances.num_row = partial_rows;
-      partial_distances.num_col = k;
-    }
-    else {
-      partial_distances.num_row = partial_distances.num_col = 0;
-    }      
-
-    rowmajor_matrix<I> partial_indices;
-    partial_indices.data = make_node_local_allocate<rowmajor_matrix_local<I>>();
-   
-    partial_indices.num_row = partial_rows;
-    partial_indices.num_col = k;
+            
     partial_dist_mat.data.mapv(find_kneighbor(k, need_distance, chunk_size), 
-                               partial_distances.data, partial_indices.data);
-    //Copy
-    if(need_distance)  
-      ret.distances.data.mapv(copy_row_batch<T>, partial_distances.data, nl_batch_size, broadcast(i));
-    
-    ret.indices.data.mapv(copy_row_batch<I>, partial_indices.data, nl_batch_size, broadcast(i));        
-  }             
+                               ret.distances.data, ret.indices.data, nl_batch_size, broadcast(i));      
+  }         
   return ret;                          
 }
     
@@ -513,10 +532,10 @@ knn_model<T, I> compute_kneigbor(MATRIX1& x_mat,
                                  int k,
                                  const std::string& metric,
                                  bool need_distance,
-                                 float chunk_size) {
+                                 float chunk_size) {           
   auto nquery   = y_mat.num_row;              
   auto dist_mat = construct_distance_matrix<T>(x_mat, y_mat, metric, need_distance);
-
+            
   knn_model<T, I> ret(k);
   ret.distances.data = make_node_local_allocate<rowmajor_matrix_local<T>>();
   if (need_distance) {
@@ -563,8 +582,8 @@ knn_model<T, I> knn(MATRIX1& x_mat,
 
   if (batch_f < 0)
     REPORT_ERROR(USER_ERROR, 
-      "Batch fraction value should be between 0.0 and 1.0\n");              
-            
+      "Batch fraction value should be between 0.0 and 1.0\n");
+        
   if(batch_f == std::numeric_limits<double>::max()) { // No batch provided
     if (nquery > THRESHOLD) { // Compute with batches of distance matrix
       auto node_size = get_nodesize();  
@@ -572,7 +591,7 @@ knn_model<T, I> knn(MATRIX1& x_mat,
       return compute_kneigbor_in_batch<T, I>(x_mat, y_mat, k, metric, need_distance, 
                                              chunk_size, batch_size);  
     }
-    else { // Compute entire matrix at once
+    else { // Compute entire matrix at once 
       return compute_kneigbor<T, I>(x_mat, y_mat, k, metric, need_distance, chunk_size);
     }
   }
