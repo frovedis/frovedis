@@ -1943,6 +1943,8 @@ struct dfcolumn_spill_queue_t {
     {queue_capacity = s; capacity_initialized = true;}
   void init_queue_capacity();
   void spill_until_capacity();
+  void spill_all();
+  void spill_one();
   void debug_print() {
     std::cout << "queue_capacity: " << queue_capacity
               << ", current_usage: " << current_usage << std::endl;
@@ -1957,6 +1959,14 @@ struct dfcolumn_spill_queue_t {
               << number_of_restore_from_disk << "\n"
               << "spill time: " << spill_time << "\n"
               << "restore time: " << restore_time << std::endl;
+  }
+  void reset_stat() {
+    number_of_put = 0;
+    number_of_get = 0;
+    number_of_restore_from_disk = 0;
+    number_of_spill_to_disk = 0;
+    spill_time = 0;
+    restore_time = 0;
   }
   std::list<dfcolumn*> item_list;
   std::unordered_map<dfcolumn*, decltype(item_list.begin())> item_map;

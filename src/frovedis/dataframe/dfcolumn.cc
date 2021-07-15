@@ -846,6 +846,18 @@ void dfcolumn_spill_queue_t::remove(dfcolumn* c) {
 
 void dfcolumn_spill_queue_t::spill_until_capacity() {
   while(current_usage > queue_capacity && item_list.size() > 0) {
+    spill_one();
+  }
+}
+
+void dfcolumn_spill_queue_t::spill_all() {
+  while(item_list.size() > 0) {
+    spill_one();
+  }
+}
+
+void dfcolumn_spill_queue_t::spill_one() {
+  if(item_list.size() > 0) {
     auto c = *item_list.rbegin();
     double t1 = get_dtime();
     c->spill_to_disk();
@@ -856,10 +868,13 @@ void dfcolumn_spill_queue_t::spill_until_capacity() {
     auto it = item_map.find(c);
     if(it == item_map.end())
       throw std::runtime_error
-        ("internal error: dfcolumn_spill_queue::spill_until_capacity");
+        ("internal error: dfcolumn_spill_queue::spill_one");
     else item_map.erase(it);
     auto csize = c->spill_size();
     current_usage -= csize;
+  } else {
+    RLOG(WARNING) << "dfcolumn_spill_queue::spill_one: no column to spill"
+                  << std::endl;
   }
 }
 
