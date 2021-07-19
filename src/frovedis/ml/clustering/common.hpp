@@ -868,12 +868,12 @@ construct_connectivity_graph_helper(rowmajor_matrix_local<T>& dmat,
 
 template <class R, class T, class I = size_t, class O = size_t>
 crs_matrix<R,I,O>
-construct_connectivity_graph(rowmajor_matrix<T>& dmat,
+construct_connectivity_graph(rowmajor_matrix<T>& dmat, 
                              double eps,
                              bool to_include_self = true,
                              bool needs_weight = false) {
-  if (dmat.num_row != dmat.num_col)
-    REPORT_ERROR(USER_ERROR, "input distance matrix is not a square matrix!\n");
+  // dmat: might not be asquare matrix because of 
+  // batch-wise distance calculation in knn, dbscan etc.
   crs_matrix<R,I,O> ret(dmat.data.map(construct_connectivity_graph_helper<R,T,I,O>,
                                       broadcast(eps),
                                       broadcast(to_include_self),
