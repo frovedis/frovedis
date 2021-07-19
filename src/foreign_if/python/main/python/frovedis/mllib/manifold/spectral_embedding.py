@@ -20,7 +20,7 @@ class SpectralEmbedding(BaseEstimator):
     """
     def __init__(self, n_components=2, affinity='nearest_neighbors', gamma=1.0,
                  random_state=None, eigen_solver=None, n_neighbors=None,
-                 n_jobs=None, verbose=0, norm_laplacian=True, mode=1,
+                 n_jobs=None, verbose=0, norm_laplacian=True, mode=3,
                  drop_first=True):
         self.n_components = n_components
         self.affinity = affinity

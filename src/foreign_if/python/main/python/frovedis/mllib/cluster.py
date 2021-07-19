@@ -333,7 +333,7 @@ class SpectralClustering(BaseEstimator):
                  n_neighbors=10, eigen_tol=0.0, assign_labels='kmeans', 
                  degree=3, coef0=1, kernel_params=None, n_jobs=None, 
                  verbose=0, n_iter=100, eps=0.01, norm_laplacian=True, 
-                 mode=1, drop_first=False):
+                 mode=3, drop_first=False):
         self.n_clusters = n_clusters
         self.eigen_solver = eigen_solver
         self.n_components = n_clusters if n_components is None else n_components
