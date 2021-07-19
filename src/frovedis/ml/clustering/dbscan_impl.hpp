@@ -3,7 +3,7 @@
 
 #include "../../matrix/rowmajor_matrix.hpp"
 #include "../../matrix/crs_matrix.hpp"
-#include "./common.hpp"
+#include "../neighbors/knn.hpp"
 
 namespace frovedis {
 
@@ -14,7 +14,8 @@ public:
   template <class MATRIX>    
   void fit(MATRIX& vector_set) {
     num_row = vector_set.num_row;
-    d_graph = calc_graph(vector_set, eps);
+    d_graph = knn_radius<int,T>(vector_set, vector_set, eps, 1.0, // TODO: add batch_fraction 
+                                "brute", "euclidean", "connectivity").data;
     d_core_flgs = calc_core_flgs(min_pts, (T) 1.0);
     set_components(vector_set);
     d_core_graph = calc_core_graph();
@@ -26,7 +27,8 @@ public:
     num_row = vector_set.num_row;
     require(sample_weight.size() == num_row,
     "sample_weight size does not match with number of samples in input data");
-    d_graph = calc_graph(vector_set, eps);
+    d_graph = knn_radius<int,T>(vector_set, vector_set, eps, 1.0, // TODO: add batch_fraction
+                                "brute", "euclidean", "connectivity").data;
     if(vector_is_uniform(sample_weight))
       d_core_flgs = calc_core_flgs(min_pts, sample_weight[0]);
     else
@@ -42,16 +44,6 @@ public:
   rowmajor_matrix<T> components_() { return components; }
 
 private:
-  template <class MATRIX>    
-  node_local<crs_matrix_local<int>> calc_graph(MATRIX& vector_set,
-                                               double eps) {
-    auto g_vector_set = get_global_data(vector_set);
-    // get distance matrix
-    auto dist_m = construct_distance_matrix<T>(g_vector_set, true);
-    auto ret = construct_connectivity_graph<int>(dist_m, eps);
-    return ret.data;
-  }
-  
   dvector<int> calc_core_flgs(int min_pts, T weight) {
     auto is_bigger_than_min_pts = +[] (crs_matrix_local<int>& graph,
                                        int min_pts, T weight) {

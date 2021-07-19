@@ -10,9 +10,9 @@ template <class T, class MATRIX1>
 struct nearest_neighbors {
   nearest_neighbors(int k, float rad, const std::string& algo,
                     const std::string& met, float c_sz, 
-                    double batch_f = std::numeric_limits<double>::max()):
+                    double batch_fraction = std::numeric_limits<double>::max()):
     n_neighbors(k), radius(rad), algorithm(algo), metric(met), 
-    chunk_size(c_sz), batch_fraction(batch_f) {}
+    chunk_size(c_sz), batch_fraction(batch_fraction) {}
   
   void fit(MATRIX1& mat) {
     observation_data = mat;
@@ -45,8 +45,8 @@ struct nearest_neighbors {
                    float rad = 0) {
     if (rad == 0) rad = radius;
     std::string mode = "distance"; // mode is always distance for radius_neighbors
-    return knn_radius<T,I,O>(observation_data, enquiry_data,
-                             rad, algorithm, metric, mode); 
+    return knn_radius<T,T,I,O>(observation_data, enquiry_data,
+                               rad, batch_fraction, algorithm, metric, mode); 
   }
 
   template <class I = size_t, class O = size_t, class MATRIX2 = rowmajor_matrix<T>>
@@ -55,8 +55,8 @@ struct nearest_neighbors {
                          float rad = 0,
                          const std::string& mode = "connectivity") {
     if (rad == 0) rad = radius;
-    return knn_radius<T,I,O>(observation_data, enquiry_data,
-                             rad, algorithm, metric, mode); 
+    return knn_radius<T,T,I,O>(observation_data, enquiry_data,
+                               rad, batch_fraction, algorithm, metric, mode); 
   }
 
   int n_neighbors;

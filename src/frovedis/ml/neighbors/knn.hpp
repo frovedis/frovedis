@@ -564,7 +564,7 @@ knn_model<T, I> knn(MATRIX1& x_mat,
                     const std::string& metric = "euclidean",
                     bool need_distance = false,
                     float chunk_size = 1.0, 
-                    double batch_f = std::numeric_limits<double>::max()) {  
+                    double batch_fraction = std::numeric_limits<double>::max()) {  
   auto nsamples = x_mat.num_row;
   auto nquery   = y_mat.num_row;
 
@@ -580,11 +580,11 @@ knn_model<T, I> knn(MATRIX1& x_mat,
     REPORT_ERROR(USER_ERROR, 
       "Currently frovedis knn supports only euclidean/seuclidean distance!\n");
 
-  if (batch_f < 0)
+  if (batch_fraction < 0)
     REPORT_ERROR(USER_ERROR, 
       "Batch fraction value should be between 0.0 and 1.0\n");
         
-  if(batch_f == std::numeric_limits<double>::max()) { // No batch provided
+  if(batch_fraction == std::numeric_limits<double>::max()) { // No batch provided
     if (nquery > THRESHOLD) { // Compute with batches of distance matrix
       auto node_size = get_nodesize();  
       size_t batch_size = THRESHOLD/node_size;
@@ -597,7 +597,7 @@ knn_model<T, I> knn(MATRIX1& x_mat,
   }
   else { // Divide as per batch value provided
     auto node_size = get_nodesize();
-    auto global_batch = static_cast<size_t>(batch_f * nquery);  
+    auto global_batch = static_cast<size_t>(batch_fraction * nquery);  
     size_t batch_size = global_batch/node_size;
       
     return compute_kneigbor_in_batch<T, I>(x_mat, y_mat, k, metric, need_distance, 
@@ -613,17 +613,19 @@ knn_model<T, I> knn(MATRIX& mat,
                     const std::string& algorithm = "brute",
                     const std::string& metric = "euclidean",
                     bool need_distance = false,
-                    float chunk_size = 1.0) {
-  return knn(mat, mat, k, algorithm, metric, need_distance, chunk_size);
+                    float chunk_size = 1.0, 
+                    double batch_fraction = std::numeric_limits<double>::max()) {
+  return knn(mat, mat, k, algorithm, metric, need_distance, chunk_size, batch_fraction);
 }
 
-template <class T, class I = size_t, class O = size_t, 
+template <class R, class T, class I = size_t, class O = size_t, 
           class MATRIX1 = rowmajor_matrix<T>,
           class MATRIX2 = rowmajor_matrix<T>>
-crs_matrix<T, I, O> 
+crs_matrix<R, I, O> 
 knn_radius(MATRIX1& x_mat,
            MATRIX2& y_mat,
            float radius,
+           double batch_fraction = std::numeric_limits<double>::max(), 
            const std::string& algorithm = "brute",
            const std::string& metric = "euclidean",
            const std::string& mode = "distance") {
@@ -643,6 +645,8 @@ knn_radius(MATRIX1& x_mat,
       "Currently frovedis knn supports only distance or connectivity as for mode of radius_graph!");
 
   bool need_distance = true; // needs correct distance for checking within radius
+
+  // TODO: implement batch-wise distance calculation here...
   auto dist_mat = construct_distance_matrix<T>(x_mat, y_mat, metric, need_distance);
 #ifdef DEBUG_SAVE
   dist_mat.save("unsorted_distance_matrix");
@@ -650,7 +654,7 @@ knn_radius(MATRIX1& x_mat,
 
   bool include_self = true;
   bool need_weight = (mode == "distance");
-  return construct_connectivity_graph<T,T,I,O>(dist_mat, radius, 
+  return construct_connectivity_graph<R,T,I,O>(dist_mat, radius, 
                                                include_self, need_weight);
 }
 
