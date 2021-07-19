@@ -1839,6 +1839,47 @@ merge_scattered_crs_matrices(const std::vector<crs_matrix_local<T,I,O>>& vcrs) {
   return ret;
 }
 
+template<class T, class I, class O>
+crs_matrix<T,I,O> 
+local_append(std::vector<crs_matrix<T,I,O>>& gs) {
+  size_t n_chunks = gs.size();
+  if (n_chunks == 1) return gs[0];
+  size_t nrow = 0;
+  for(size_t i = 0; i < n_chunks; ++i) nrow += gs[i].num_row;
+  size_t ncol = gs[0].num_col;
+
+  // converts std::vector<crs_matrix<T,I,O>> => node_local<std::vector<crs_matrix_local<T,I,O>>>
+  auto lvec = broadcast(n_chunks).map(+[](size_t sz) {
+                           return std::vector<crs_matrix_local<T,I,O>>(sz);
+                        }); // allocates node_local<vector>
+
+  for(size_t i = 0; i < n_chunks; ++i) {
+    lvec.mapv(+[](std::vector<crs_matrix_local<T,I,O>>& vec,
+                 crs_matrix_local<T,I,O>& lmat,
+                 size_t i) { 
+            vec[i] = std::move(lmat); 
+         }, gs[i].data, broadcast(i)); // moves data to assign in allocated vector
+  }
+
+  // performs merge
+  crs_matrix<T,I,O> ret;
+  try {
+    ret.data = lvec.map(+[](std::vector<crs_matrix_local<T,I,O>>& vec) {
+                              return merge_scattered_crs_matrices(vec);
+                        });
+  } catch(std::exception& excpt) {
+    std::string msg = excpt.what();
+    if(msg.find("bad_alloc") != std::string::npos ) {
+      std::string e = "out-of-memory error occured while merging crs-chunks!";
+      REPORT_ERROR(INTERNAL_ERROR, e);
+    }
+    else REPORT_ERROR(INTERNAL_ERROR, msg);
+  }
+  ret.num_row = nrow;
+  ret.num_col = ncol;
+  return ret;
+}
+
 #if defined(_SX) || defined(__ve__)
 /*
   This version vectorize column dimension of rowmajor matrix
