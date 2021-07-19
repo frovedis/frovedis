@@ -464,7 +464,7 @@ frovedis_sca(exrpc_ptr_t& data_ptr, int& ncluster,
   else if (verbose == 2) frovedis::set_loglevel(frovedis::TRACE);
   auto model = frovedis::spectral_clustering_impl(mat,ncluster,component,
                                              iteration,eps,nlaplacian,
-                                             pre,drop_first,gamma,mode,isMovableInput);
+                                             pre,gamma,mode,drop_first,isMovableInput);
   frovedis::set_loglevel(old_level);
   auto m = model.labels;
   handle_trained_model<spectral_clustering_model<T>>(mid,SCM,model);
