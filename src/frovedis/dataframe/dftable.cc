@@ -1505,9 +1505,11 @@ dftable& dftable::append_column(const std::string& name,
     use_dfcolumn use(c);
     row_size = c->size();
     row_sizes = c->sizes();
+  } else {
+    use_dfcolumn use(c);
+    if(c->size() != row_size)
+      throw std::runtime_error(name + ": different size of columns");
   }
-  else if(c->size() != row_size)
-    throw std::runtime_error(name + ": different size of columns");
   c->spill();
   col.insert(std::make_pair(name, c));
   col_order.push_back(name);
