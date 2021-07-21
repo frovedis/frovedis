@@ -310,7 +310,7 @@ vector_arrange(const T& st,
   auto sz = ceil_div(end - st, step);
   std::vector<T> ret(sz);
   auto retp = ret.data();
-  for(size_t i = 0; i < sz; i += step) retp[i] = st + i;
+  for(size_t i = 0; i < sz; ++i) retp[i] = st + i * step;
   return ret;
 }
 
