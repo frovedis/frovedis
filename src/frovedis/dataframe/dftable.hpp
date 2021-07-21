@@ -147,7 +147,6 @@ public:
                     const std::vector<T>& targets); // defined in dfoperator.hpp
   template <class T> 
   std::vector<size_t> get_loc(const std::string& col, const T& val); // defined in dfoperator.hpp 
-  dftable make_sliced_dftable(size_t st, size_t end, size_t step = 1);
 
 protected:
   std::map<std::string, std::shared_ptr<dfcolumn>> col;
@@ -162,6 +161,8 @@ protected:
   friend star_joined_dftable;
   friend grouped_dftable;
 };
+
+dftable make_sliced_dftable(dftable_base& t, size_t st, size_t end, size_t step = 1);
 
 template <class T> T dftable_base::sum(const std::string& name) {
   use_dfcolumn use(raw_column(name));

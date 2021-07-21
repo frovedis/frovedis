@@ -971,9 +971,16 @@ dftable dftable_base::drop_rows(const std::string& index_col,
 template <class T> 
 std::vector<size_t> 
 dftable_base::get_loc(const std::string& col, const T& val) {
-  auto tmp = select({col}).append_rowid("__tid__"); // assumed col != "__tid__"
-  auto fdf = tmp.filter(eq_im(col, val));
-  return fdf.template as_dvector<size_t>("__tid__").gather();
+  auto lidx = filter(eq_im(col, val)).get_local_index();
+  auto sizes = num_rows();
+  auto nproc = sizes.size();
+  std::vector<size_t> myst(nproc); myst[0] = 0;
+  for(size_t i = 1; i < nproc; ++i) myst[i] = myst[i - 1] + sizes[i - 1];
+  auto lmyst = make_node_local_scatter(myst);
+  auto gidx = lidx.map(+[](const std::vector<size_t>& vec, 
+                           size_t myst) { return vec + myst; }
+                       , lmyst);
+  return gidx.template moveto_dvector<size_t>().gather();
 }
 
 }
