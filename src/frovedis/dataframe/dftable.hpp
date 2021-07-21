@@ -145,6 +145,9 @@ public:
   template <class T>
   dftable drop_rows(const std::string& index_col,
                     const std::vector<T>& targets); // defined in dfoperator.hpp
+  template <class T> 
+  std::vector<size_t> get_loc(const std::string& col, const T& val); // defined in dfoperator.hpp 
+  dftable make_sliced_dftable(size_t st, size_t end, size_t step = 1);
 
 protected:
   std::map<std::string, std::shared_ptr<dfcolumn>> col;
