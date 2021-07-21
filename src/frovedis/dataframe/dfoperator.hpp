@@ -973,7 +973,7 @@ std::vector<size_t>
 dftable_base::get_loc(const std::string& col, const T& val) {
   auto tmp = select({col}).append_rowid("__tid__"); // assumed col != "__tid__"
   auto fdf = tmp.filter(eq_im(col, val));
-  return fdf.as_dvector<size_t>("__tid__").gather();
+  return fdf.template as_dvector<size_t>("__tid__").gather();
 }
 
 }
