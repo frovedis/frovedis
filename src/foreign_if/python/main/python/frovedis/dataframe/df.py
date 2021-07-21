@@ -672,6 +672,17 @@ class DataFrame(object):
                                                                 types,
                                                                 self.__cols,
                                                                 self.__types)
+    def __merge_rename_helper(self, rename_dict):
+        """
+        helper function for renaming columns/index for dataframe
+        """
+        ret = self.rename(rename_dict)
+        index_name = self.index.name
+
+        if index_name is not None and index_name in rename_dict:
+            ret = self.rename_index(rename_dict[index_name])
+
+        return ret
 
     # method to evaluate join keys
     def __evaluate_join_condition(self, df_right, left_on, right_on):
@@ -689,7 +700,7 @@ class DataFrame(object):
                 tmp = right_on[i] + "_right"
                 col_dict[right_on[i]] = tmp
                 right_on[i] = tmp
-        df_right = df_right.rename(col_dict)
+        df_right = df_right.__merge_rename_helper(col_dict)
         renamed_key = list(col_dict.values()) # [] if no renaming is performed
 
         # for dfopt combining
@@ -847,9 +858,9 @@ class DataFrame(object):
                 renamed_right_cols[e] = e + str(rsuf)
 
             if lsuf != '':
-                df_left = self.rename(renamed_left_cols)
+                df_left = self.__merge_rename_helper(renamed_left_cols)
             if rsuf != '':
-                df_right = right.rename(renamed_right_cols)
+                df_right = right.__merge_rename_helper(renamed_right_cols)
 
         ret = DataFrame()
         ret.__cols = df_left.__cols + df_right.__cols
