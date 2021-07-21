@@ -225,7 +225,6 @@ struct compute_dist {
   rowmajor_matrix_local<T>
   operator()(MATRIX1& a,
              MATRIX2& b) {
-    if (!a.local_num_row || !b.local_num_row) return std::vector<T>();
     std::vector<T> a2, b2;
     const T *a2ptr, *b2ptr;
     a2ptr = b2ptr = NULL;
