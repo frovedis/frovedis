@@ -30,7 +30,7 @@ public:
         this->topic_id.clear();
         this->doc_topic_count.val.clear();
     }    
-    ~lda_document() {}  
+    ~lda_document() {}
     
     void initilize(size_t& num_topics){
         this->voc_par_word_index.assign(LDA_CGS_VLEN+1,this->num_word());   
@@ -66,7 +66,7 @@ public:
     template <typename TC>
     static void get_local_model(lda_corpus<TD,TW,TK>& corpus, lda_model<TC>& model);     
     static lda_corpus<TD,TW,TK> gen_corpus_from_crs(crs_matrix_local<TD>& data, lda_config& config, std::vector<TD>& token_in_doc, size_t& num_token);   
-    SERIALIZE(topic_id,word_id)
+    SERIALIZE(token_index,word_index,finished_token,topic_id,word_id,voc_par_word_index,doc_topic_count)
 };
 
 template <typename TD, typename TW, typename TK>
@@ -215,41 +215,46 @@ lda_corpus<TD,TW,TK> lda_document<TD,TW,TK>::gen_corpus_from_crs(crs_matrix_loca
 
 template <typename TD, typename TW, typename TK>
 template <typename TC>
-void lda_document<TD,TW,TK>::distribute_doc(std::vector<TD>& token_per_doc, size_t& num_tokens, std::vector<size_t>& doc_per_thread, std::vector<TC>& token_per_thread){
-    TC num_tok_per_thread = num_tokens/get_nodesize();
+void lda_document<TD,TW,TK>::distribute_doc(std::vector<TD>& token_per_doc, 
+                                            size_t& num_tokens, 
+                                            std::vector<size_t>& doc_per_thread, 
+                                            std::vector<TC>& token_per_thread) {
+    auto nproc = get_nodesize();
+    auto num_docs = token_per_doc.size();
+    TC num_tok_per_thread = num_tokens / nproc;
     TD num_tok_doc = 0;
     TC num_tok_now = 0, tok_left = num_tokens;
-    size_t num_doc_now = 0, doc_left = token_per_doc.size();
-    doc_per_thread.clear(); token_per_thread.clear();     
-    if (get_nodesize()==1) {
-        doc_per_thread.push_back(token_per_doc.size());
-        token_per_thread.push_back(num_tokens);
+    size_t num_doc_now = 0, doc_left = num_docs;
+    doc_per_thread.resize(nproc); token_per_thread.resize(nproc);
+    if (nproc == 1) {
+      doc_per_thread[0] = num_docs;
+      token_per_thread[0] = num_tokens;
     }    
     else {    
-        for(size_t i=0; i<token_per_doc.size(); i++){
-            TC diff_old = num_tok_now - num_tok_per_thread;
-            diff_old = diff_old<0? -diff_old:diff_old;
-            num_tok_doc = token_per_doc[i];
-            num_tok_now += num_tok_doc;
-            TC diff_new = num_tok_now - num_tok_per_thread;
-            diff_new = diff_new<0? -diff_new:diff_new;
-            if(diff_new<=diff_old){
-                num_doc_now++;
-            } else if (doc_per_thread.size()<get_nodesize()){
-                doc_per_thread.push_back(num_doc_now);
-                token_per_thread.push_back(num_tok_now - num_tok_doc);
-                doc_left -= doc_per_thread.back();
-                tok_left -= token_per_thread.back();
-                num_doc_now = 1;
-                num_tok_now = num_tok_doc;
-            } 
-            if (doc_per_thread.size()==get_nodesize()-1) break;
-        }           
-        doc_per_thread.push_back(doc_left);
-        token_per_thread.push_back(tok_left);
+      size_t k = 0;
+      for(size_t i = 0; i < num_docs; i++){
+        TC diff_old = num_tok_now - num_tok_per_thread;
+        diff_old = diff_old < 0 ? -diff_old : diff_old;
+        num_tok_doc = token_per_doc[i];
+        num_tok_now += num_tok_doc;
+        TC diff_new = num_tok_now - num_tok_per_thread;
+        diff_new = diff_new < 0 ? -diff_new : diff_new;
+        if(diff_new <= diff_old) num_doc_now++;
+        else {
+          doc_per_thread[k] = num_doc_now;
+          token_per_thread[k] = num_tok_now - num_tok_doc;
+          doc_left -= doc_per_thread[k];
+          tok_left -= token_per_thread[k];
+          num_doc_now = 1;
+          num_tok_now = num_tok_doc;
+        } 
+        k++;
+        if (k == nproc - 1) break; 
+      }           
+      doc_per_thread[k] = doc_left;
+      token_per_thread[k] = tok_left;
     }
-    std::vector<TD> tmp;
-    tmp.swap(token_per_doc);
+    vector_clear(token_per_doc);
 }
 
 }
