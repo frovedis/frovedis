@@ -1,0 +1,10 @@
+TARGETS := standard_scaler
+include ../Makefile.in.ve
+include ../Makefile.common
+
+TO_INSTALL := standard_scaler.cc
+DIR := standard_scaler
+ARCH := ve
+
+standard_scaler: standard_scaler.o
+	${LINK} -o standard_scaler standard_scaler.o ${LIBS}

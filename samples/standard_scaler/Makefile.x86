@@ -1,0 +1,10 @@
+TARGETS := standard_scaler
+include ../Makefile.in.x86
+include ../Makefile.common
+
+TO_INSTALL := standard_scaler.cc
+DIR := standard_scaler
+ARCH := x86
+
+standard_scaler: standard_scaler.o
+	${MPICXX} ${CXXFLAGS} -o standard_scaler standard_scaler.o ${LIBS}
