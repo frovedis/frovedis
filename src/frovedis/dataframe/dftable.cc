@@ -461,8 +461,9 @@ dftable dftable_base::tail(size_t limit) {
   return limit_table;
 }
 
-void show_impl(bool with_index, size_t start_idx, bool with_column_name,
-               words& table_words, std::vector<std::string>& cols) {
+void to_stream_impl(bool with_index, size_t start_idx, bool with_column_name,
+                    words& table_words, std::vector<std::string>& cols,
+                    std::ostream& stream) {
   auto num_col = cols.size();
   if (num_col == 0) return;
   auto num_words = table_words.starts.size();
@@ -470,36 +471,36 @@ void show_impl(bool with_index, size_t start_idx, bool with_column_name,
   if(num_words % num_col != 0)
     throw std::runtime_error("show_all: incorrect number of col or row");
   if(with_column_name) {
-    if(with_index) std::cout << "\t";
+    if(with_index) stream << "\t";
     for(size_t i = 0; i < num_col-1; i++) {
-      std::cout << cols[i] << "\t";
+      stream << cols[i] << "\t";
     }
-    std::cout << cols[num_col-1] << std::endl;
+    stream << cols[num_col-1] << std::endl;
   }
   auto charsp = table_words.chars.data();
   for(size_t i = 0; i < num_row; i++) {
-    if(with_index) std::cout << i + start_idx << "\t";
+    if(with_index) stream << i + start_idx << "\t";
     for(size_t j = 0; j < num_col-1; j++) {
       auto crnt_start = table_words.starts[i * num_col + j];
       auto crnt_len = table_words.lens[i * num_col + j];
       for(size_t k = 0; k < crnt_len; k++) {
-        std::cout << static_cast<char>(charsp[crnt_start + k]);
+        stream << static_cast<char>(charsp[crnt_start + k]);
       }
-      std::cout << "\t";
+      stream << "\t";
     }
     auto crnt_start = table_words.starts[i * num_col + num_col - 1];
     auto crnt_len = table_words.lens[i * num_col + num_col - 1];
     for(size_t k = 0; k < crnt_len; k++) {
-      std::cout << static_cast<char>(charsp[crnt_start + k]);
+      stream << static_cast<char>(charsp[crnt_start + k]);
     }
-    std::cout << "\n";
+    stream << "\n";
   }
 }
 
 void dftable_base::show_all(bool with_index) {
   auto table_words = dftable_to_words(*this).reduce(merge_words);
   auto cols = columns();
-  show_impl(with_index, 0, true, table_words, cols);
+  to_stream_impl(with_index, 0, true, table_words, cols, std::cout);
 }
 
 void dftable_base::show(size_t limit) {
@@ -520,8 +521,33 @@ void dftable_base::print() {
     auto t = tail(30);
     auto table_words = dftable_to_words(t).reduce(merge_words);
     auto cols = columns(); // not used 
-    show_impl(true, nr-30, false, table_words, cols);
+    to_stream_impl(true, nr-30, false, table_words, cols, std::cout);
+    std::cout << "\n[" << num_row() << " rows x " << num_col() << " columns]\n";
   }
+}
+
+void to_string_all(dftable_base& t, bool with_index, std::ostream& os) {
+  auto table_words = dftable_to_words(t).reduce(merge_words);
+  auto cols = t.columns();
+  to_stream_impl(with_index, 0, true, table_words, cols, os);
+}
+
+std::string dftable_base::to_string(bool with_index) {
+  std::ostringstream os;
+  auto nr = num_row();
+  if(nr < 61) to_string_all(*this, with_index, os);
+  else {
+    auto h = head(30);
+    to_string_all(h, with_index, os);
+    os << "..." << std::endl;
+    auto t = tail(30);
+    auto table_words = dftable_to_words(t).reduce(merge_words);
+    auto cols = columns(); // not used
+    to_stream_impl(with_index, nr-30, false, table_words, cols, os);
+    os << "\n[" << num_row() << " rows x " << num_col() << " columns]\n";
+  }
+  std::string ret = os.str();
+  return ret;
 }
 
 size_t dftable_base::count(const std::string& name) {

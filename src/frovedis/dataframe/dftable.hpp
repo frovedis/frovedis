@@ -85,6 +85,7 @@ public:
   void show_all(bool with_index = false);
   // like Pandas print, head(30), "...", and tail(30) is printed together with row_id
   void print(); 
+  std::string to_string(bool with_index = true); 
   void save(const std::string& dir);
   std::vector<std::pair<std::string, std::string>>
     savetext(const std::string& file,
@@ -147,6 +148,9 @@ public:
                     const std::vector<T>& targets); // defined in dfoperator.hpp
   template <class T> 
   std::vector<size_t> get_loc(const std::string& col, const T& val); // defined in dfoperator.hpp 
+  dftable drop_null(const std::vector<std::string>& targets, 
+                    int axis=0, const std::string& how="any"); // defined in dfoperator.cc
+  dftable drop_null(int axis=0, const std::string& how="any"); 
 
 protected:
   std::map<std::string, std::shared_ptr<dfcolumn>> col;
