@@ -20,7 +20,7 @@ int main(int argc, char* argv[]){
             "\n\"dp\": doc_proposal, \n\"wp\": word_proposal, \n\"cp\":cycle_proposal, \n\"sparse\": sparse_lda")
         ("input,i", value<std::string>(), "path for input corpus of crs matrix")
         ("output,o", value<std::string>(), "path for output model of LDA")       
-        ("topic,p", value<int>(), "number of topics.")           
+        ("topics,p", value<int>(), "number of topics.")           
         ("train_iter", value<int>(), "number of iterations.")     
         ("explore_iter", value<int>(), "number of iteration to explore optimal hyperparams")       
         // ("delay_update", "update model after sampling for all tokens")
@@ -108,9 +108,12 @@ int main(int argc, char* argv[]){
         algorithm = "original";
     }
     
+    rowmajor_matrix<int32_t> doc_topic_count;
     auto data_train = binary ? make_crs_matrix_loadbinary<int32_t>(input_path) : make_crs_matrix_load<int32_t>(input_path);
     auto model = lda_train<int32_t>(data_train,alpha,beta,topics,train_iter,algorithm,explore_iter,   
-        eval_cycle); 
-    model.save_as(output_path, binary);  
+                                    eval_cycle, doc_topic_count); 
+    model.save_as(output_path, binary); 
+    binary ? doc_topic_count.savebinary(output_path + "/doc_topic")
+           : doc_topic_count.save(output_path + "/doc_topic"); 
 
 }
