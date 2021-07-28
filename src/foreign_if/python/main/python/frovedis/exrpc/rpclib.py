@@ -422,6 +422,17 @@ df_fillna.argtypes = [c_char_p, c_int, c_long, # host, port, proxy
                       c_char_p, c_bool]        # fill_value, has_index
 df_fillna.restype = py_object
 
+df_dropna = LIB.df_dropna
+df_dropna.argtypes = [c_char_p, c_int, c_long,    # host, port, proxy
+                      POINTER(c_char_p), c_ulong, # targets_ptr, sz
+                      c_int, c_char_p]            # axis, how
+df_dropna.restype = py_object
+
+df_to_string = LIB.df_to_string
+df_to_string.argtypes = [c_char_p, c_int, c_long, # host, port, proxy
+                         c_bool]                  # has_index
+df_to_string.restype = c_char_p
+
 df_binary_operation = LIB.df_binary_operation
 df_binary_operation.argtypes = [c_char_p, c_int,        # host, port
                                 c_long, c_long, c_bool, # df1, df2, is_series

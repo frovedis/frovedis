@@ -292,4 +292,10 @@ frov_df_fillna(exrpc_ptr_t& df_proxy,
                std::string& fill_value, 
                bool& has_index);
 
+dummy_dftable
+frov_df_dropna(exrpc_ptr_t& df_proxy,
+               std::vector<std::string>& targets,
+               int& axis, std::string& how);
+
+std::string frov_df_to_string(exrpc_ptr_t& df_proxy, bool& has_index);
 #endif

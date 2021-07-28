@@ -283,6 +283,7 @@ class DataFrame(object):
         """
         show
         """
+        '''
         if self.__fdata is not None:
             (host, port) = FrovedisServer.getServerInstance()
             rpclib.show_frovedis_dataframe(host, port, self.__fdata)
@@ -290,6 +291,8 @@ class DataFrame(object):
             if excpt["status"]:
                 raise RuntimeError(excpt["info"])
             print("\n")
+        '''
+        print(str(self))
 
     def release(self):
         """
@@ -2287,6 +2290,34 @@ class DataFrame(object):
             ret.load_dummy(dummy_df["dfptr"], names, types)
         return None if inplace else ret
 
+    def dropna(self, axis=0, how='any', thresh=None, subset=None, inplace=False):
+        """ drops rows/columns having null values"""
+        if inplace:
+            ret = self
+        else:
+            ret = DataFrame(is_series=self.is_series)
+
+        if subset is None: 
+            subset = self.columns
+        sz = len(subset)
+        name_ptr = get_string_array_pointer(subset)
+
+        (host, port) = FrovedisServer.getServerInstance()
+        dummy_df = rpclib.df_dropna(host, port, \
+                              self.get(), name_ptr, sz, \
+                              axis, how.encode('ascii'))
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
+        names = dummy_df["names"]
+        types = dummy_df["types"]
+        if self.has_index():
+            ret.index = FrovedisColumn(names[0], types[0]) #setting index
+            ret.load_dummy(dummy_df["dfptr"], names[1:], types[1:])
+        else:
+            ret.load_dummy(dummy_df["dfptr"], names[0:], types[0:])
+        return None if inplace else ret
+
     def __binary_operator_impl(self, other, op_type, \
                                axis='columns', level=None, 
                                fill_value=None, is_rev=False):
@@ -2630,9 +2661,15 @@ class DataFrame(object):
                 self.__dict__[key] = value
 
     def __str__(self):
-        #TODO: fixme to return df as a string
-        self.show()
-        return ""
+        if self.__fdata is not None:
+            (host, port) = FrovedisServer.getServerInstance()
+            df_str = rpclib.df_to_string(host, port, self.__fdata, self.has_index())
+            excpt = rpclib.check_server_exception()
+            if excpt["status"]:
+                raise RuntimeError(excpt["info"])
+            return df_str + "\n"
+        else:
+            return "\n"
 
     def __repr__(self):
         return self.__str__()

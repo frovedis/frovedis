@@ -1111,4 +1111,39 @@ extern "C" {
     }
     return to_py_dummy_df(res);
   }
+
+  PyObject* df_dropna(const char* host, int port, long df_proxy,
+                      const char** targetsp, ulong size,
+                      int axis, const char* howp) {
+    ASSERT_PTR(host);
+    exrpc_node fm_node(host, port);
+    auto df_proxy_ = static_cast<exrpc_ptr_t>(df_proxy);
+    auto targets = to_string_vector(targetsp, size);
+    std::string how(howp);
+    dummy_dftable res;
+    try {
+      res = exrpc_async(fm_node, frov_df_dropna, df_proxy_, targets, axis, how).get();
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return to_py_dummy_df(res);
+  }
+
+
+  const char* df_to_string(const char* host, int port, long df_proxy,
+                           bool has_index) {
+    ASSERT_PTR(host);
+    exrpc_node fm_node(host, port);
+    auto df_proxy_ = static_cast<exrpc_ptr_t>(df_proxy);
+    std::string ret;
+    try {
+      ret = exrpc_async(fm_node, frov_df_to_string, df_proxy_, has_index).get();
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return ret.c_str();
+  }
+
 }

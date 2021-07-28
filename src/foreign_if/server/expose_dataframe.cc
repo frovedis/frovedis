@@ -84,4 +84,6 @@ void expose_frovedis_dataframe_functions() {
   expose(frov_df_binary_operation);
   expose(frov_df_immed_binary_operation);
   expose(frov_df_fillna);
+  expose(frov_df_dropna);
+  expose(frov_df_to_string);
 }

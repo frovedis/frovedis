@@ -1008,3 +1008,17 @@ frov_df_fillna(exrpc_ptr_t& df_proxy,
   auto ret = new dftable(fillna(df, fill_value, has_index));
   return to_dummy_dftable(ret);
 }
+
+dummy_dftable
+frov_df_dropna(exrpc_ptr_t& df_proxy,
+               std::vector<std::string>& targets,
+               int& axis, std::string& how) {
+  auto df = reinterpret_cast<dftable_base*>(df_proxy);
+  auto ret = new dftable(df->drop_null(targets, axis, how));
+  return to_dummy_dftable(ret);
+}
+
+std::string frov_df_to_string(exrpc_ptr_t& df_proxy, bool& has_index) {
+  auto df = reinterpret_cast<dftable_base*>(df_proxy);
+  return df->to_string(!has_index);
+}
