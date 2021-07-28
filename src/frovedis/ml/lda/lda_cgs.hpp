@@ -9,15 +9,19 @@ namespace frovedis {
 
 template <typename TD, typename TW, typename TK>
 rowmajor_matrix_local<TD> 
-get_doc_topic_count_rmml(lda::lda_corpus<TD,TW,TK>& corpus){
-  auto sz = corpus.size();
+get_doc_topic_count_rmml(lda::lda_corpus<TD,TW,TK>& corpus, // excludes empty docs in data_test
+                         crs_matrix_local<TD>& data_test) {
+  auto num_doc = data_test.local_num_row;
   auto num_topic = corpus[0].doc_topic_count.local_num_col;
-  rowmajor_matrix_local<TD> ret(sz, num_topic);
+  rowmajor_matrix_local<TD> ret(num_doc, num_topic);
   auto rptr = ret.val.data();
-  for(size_t i = 0; i < sz; i++) {
-    auto vptr = corpus[i].doc_topic_count.val.data();
-    for(size_t j = 0; j < num_topic; j++) {
-      rptr[i * num_topic + j] = vptr[j];
+  auto offp = data_test.off.data();
+  size_t k = 0;
+  for(size_t i = 0; i < num_doc; i++) {
+    auto is_empty = (offp[i+1] - offp[i] == 0);
+    if (!is_empty) {
+      auto vptr = corpus[k++].doc_topic_count.val.data(); 
+      for(size_t j = 0; j < num_topic; j++) rptr[i * num_topic + j] = vptr[j];
     }
   }
   return ret;
@@ -78,7 +82,10 @@ lda_model<TC> lda_train(
     auto local_num_tokens = make_node_local_broadcast(size_t()); 
     lda::lda_config config(beta,alpha,num_voc,num_topics,0,delay_update,algorithm,num_explore_iter,true,num_iter);  
     auto config_l = make_node_local_broadcast(config);
-    auto corpus_d = data_train.data.map(lda::lda_document<TD,TW,TK>::gen_corpus_from_crs, config_l, doc_token_count,local_num_tokens).template as_dvector< lda::lda_document<TD,TW,TK> >();
+    auto corpus_d = data_train.data.map(lda::lda_document<TD,TW,TK>::gen_corpus_from_crs, 
+                                        config_l, doc_token_count, local_num_tokens)
+                              .template moveto_dvector<lda::lda_document<TD,TW,TK>>();
+    auto corpus_initial_sizes = corpus_d.sizes();
     config_l.mapv(
         +[](lda::lda_config& config, size_t& num_tokens){
             TC tmp_total, local_total = num_tokens; 
@@ -259,7 +266,7 @@ lda_model<TC> lda_train(
     RLOG(DEBUG)<< "LDA execution time per iteration: " << total.count()/config.num_itr << std::endl;
     RLOG(DEBUG)<< "-------------------------------------------------------------" << std::endl;
         
-# ifdef LDA_CGS_TIMING_SAVE
+#ifdef LDA_CGS_TIMING_SAVE
     std::string str_mhstep = config.algorithm==lda::lda_config::original_cgs? "":"-"+std::to_string(LDA_MH_STEP);
     std::string str_delay_update = config.delay_update? "-delay":"";
     std::string filename = std::to_string(config.num_topics)+"-"+std::to_string(config.num_itr)
@@ -278,13 +285,15 @@ lda_model<TC> lda_train(
         for(auto& i:lld) fout<<i<<" "; fout<<std::endl<<std::endl;
     }
     fout<<"-----------------------------------------------------------"<<std::endl<<std::endl;    
-# endif
+#endif
+
 #endif    
     // ======================== save doc topic count ======================== //
     auto model = model_g.get(0);    
-    /* saving the doc_topic_count matrix */ 
     if (need_doc_topic_count) { 
-      doc_topic_count = rowmajor_matrix<TD>(corpus_l.map(get_doc_topic_count_rmml<TD,TW,TK>));
+      corpus_d.align_as(corpus_initial_sizes); // realign as per initial size
+      doc_topic_count = corpus_d.viewas_node_local().map(
+                          get_doc_topic_count_rmml<TD,TW,TK>, data_train.data);
       doc_topic_count.num_row = data_train.num_row;
       doc_topic_count.num_col = config.num_topics;
     }
@@ -294,7 +303,7 @@ lda_model<TC> lda_train(
 template <typename TC, typename TD = int32_t, typename TW = int32_t, 
           typename TK = int32_t, typename TA = int16_t>
 rowmajor_matrix<TD>
-lda_test(crs_matrix<TD>& data_test , const double alpha, const double beta, 
+lda_test(crs_matrix<TD>& data_test, const double alpha, const double beta, 
          const int num_iter, std::string& algorithm, 
          const int num_explore_iter, lda_model<TC>& model, 
          std::vector<double>& perplexity, std::vector<double>& likelihood) {
@@ -317,7 +326,10 @@ lda_test(crs_matrix<TD>& data_test , const double alpha, const double beta,
     // ----------------------------------- generate corpus ----------------------------------- //
     auto doc_token_count = make_node_local_broadcast(std::vector<TD>()); 
     auto local_num_tokens = make_node_local_broadcast(size_t()); 
-    auto corpus_d = data_test.data.map(lda::lda_document<TD,TW,TK>::gen_corpus_from_crs, config_l, doc_token_count, local_num_tokens).template as_dvector< lda::lda_document<TD,TW,TK> >();
+    auto corpus_d = data_test.data.map(lda::lda_document<TD,TW,TK>::gen_corpus_from_crs, 
+                                       config_l, doc_token_count, local_num_tokens)
+                                  .template as_dvector<lda::lda_document<TD,TW,TK>>();
+    auto corpus_initial_sizes = corpus_d.sizes();
     config_l.mapv(
         +[](lda::lda_config& config, size_t& num_tokens){
             TC tmp_total, local_total = num_tokens; 
@@ -368,12 +380,9 @@ lda_test(crs_matrix<TD>& data_test , const double alpha, const double beta,
         corpus_l,broadcast(token_per_thread),config_l
     );  
         
-    // std::vector<double> perplexity;  
-    // std::vector<double> likelihood;  
     perplexity = std::vector<double>();
     likelihood = std::vector<double>();
     auto model_l = make_node_local_broadcast(model);
-    //model.clear(); // causing issues for consecutive use of same model
         
     for(int i=1; i<=num_iter; i++){      
         
@@ -410,11 +419,12 @@ lda_test(crs_matrix<TD>& data_test , const double alpha, const double beta,
     for(auto i:likelihood) RLOG(DEBUG)<<i<<" "; RLOG(DEBUG)<<std::endl;
     RLOG(DEBUG)<<"-----------------------------------------------------------"<<std::endl;
       
-    // if(save_model) corpus_l.mapv(lda::lda_document<TD,TW,TK>::dump_document,broadcast(dataset_name),broadcast(doc_per_thread),broadcast(false));
-    rowmajor_matrix<TD> rmm(corpus_l.map(get_doc_topic_count_rmml<TD,TW,TK>));
-    rmm.num_col = config.num_topics;
-    rmm.num_row = data_test.num_row;
-    return rmm;
+    corpus_d.align_as(corpus_initial_sizes); // realign as per initial size
+    rowmajor_matrix<TD> ret(corpus_d.viewas_node_local().map(
+                            get_doc_topic_count_rmml<TD,TW,TK>, data_test.data));
+    ret.num_row = data_test.num_row;
+    ret.num_col = config.num_topics;
+    return ret;
 
 }
 
