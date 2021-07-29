@@ -449,23 +449,20 @@ frovedis_dbscan(exrpc_ptr_t& data_ptr,
 }
 
 template <class T, class MATRIX>
-std::vector<int> 
-frovedis_sca(exrpc_ptr_t& data_ptr, int& ncluster, 
-             int& iteration, int& component, double& eps,
-             double& gamma, bool& nlaplacian, 
-             int& mid, int& verbose, 
-             bool& pre, int& mode, bool& drop_first, 
-             bool& isMovableInput=false) {
+std::vector<int>
+frovedis_sca(exrpc_ptr_t& data_ptr, int& n_comp,
+             double& gamma, std::string& affinity, int& n_neighbors,
+             bool& norm_laplacian, bool& drop_first, int& mode,
+             KMeans<T>& assign,
+             int& mid, int& verbose, bool& isMovableInput=false) {
   MATRIX& mat = *reinterpret_cast<MATRIX*>(data_ptr);  // training input data holder
-  auto old_level = frovedis::get_loglevel();
-  if (verbose == 1) frovedis::set_loglevel(frovedis::DEBUG);
-  else if (verbose == 2) frovedis::set_loglevel(frovedis::TRACE);
-  auto model = frovedis::spectral_clustering_impl(mat,ncluster,component,
-                                             iteration,eps,nlaplacian,
-                                             pre,gamma,mode,drop_first,isMovableInput);
-  frovedis::set_loglevel(old_level);
+  set_verbose_level(verbose);
+  auto model = spectral_clustering_impl(mat, assign, 
+                   n_comp, gamma, affinity, n_neighbors,
+                   norm_laplacian, drop_first, mode, isMovableInput);
   auto m = model.labels;
-  handle_trained_model<spectral_clustering_model<T>>(mid,SCM,model);
+  reset_verbose_level();
+  handle_trained_model<spectral_clustering_model<T>>(mid, SCM, model);
   return m;
 }
 
