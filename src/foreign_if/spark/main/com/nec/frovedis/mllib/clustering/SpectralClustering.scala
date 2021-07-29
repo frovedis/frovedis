@@ -10,19 +10,29 @@ import org.apache.spark.SparkContext
 
 class SpectralClustering(var nCluster: Int,
                          var nIteration: Int,
-                         var nComponent: Int, 
-                         var gamma: Double, 
+                         var nComponent: Int,
+                         var nInit: Int,
+                         var seed: Int, 
                          var eps: Double, 
+                         var gamma: Double, 
+                         var affinity: String,
+                         var nNeighbors: Int,
                          var normLaplacian: Boolean,
-                         var precomputed: Boolean,
-                         var mode: Int,
-                         var dropFirst: Boolean) extends java.io.Serializable {
-  def this() = this(2,100,2,1.0,0.01,true,false,1,false)
+                         var dropFirst: Boolean,
+                         var mode: Int) extends java.io.Serializable {
+  def this() = this(2, 100, 2, 1, 0, 0.0001, 1.0, "rbf", 10, true, true, 3)
  
   def setNumIteration(nIteration: Int ): this.type = {
     require(nIteration > 0 ,
       s"nIteration must be greater than 0 but got  ${nIteration}")
     this.nIteration = nIteration
+    this
+  }
+
+  def setNumInit(nInit: Int ): this.type = {
+    require(nInit > 0 ,
+      s"nInit must be greater than 0 but got  ${nInit}")
+    this.nInit = nInit
     this
   }
 
@@ -41,9 +51,14 @@ class SpectralClustering(var nCluster: Int,
   }
 
   def setEps(eps: Double): this.type = {
-    require(eps > 0.0 ,
+    require(eps > 0.0 && eps <= 1.0,
       s"eps must be greater than 0 but got  ${eps}")
     this.eps = eps
+    this
+  }
+
+  def setSeed(seed: Int ): this.type = {
+    this.seed = seed
     this
   }
 
@@ -52,8 +67,17 @@ class SpectralClustering(var nCluster: Int,
     this
   }
 
-  def setPrecomputed(precomputed: Boolean): this.type = {
-    this.precomputed = precomputed
+  def setAffinity(aff: String): this.type = {
+    require(aff == "rbf" || aff == "precomputed" || aff == "nearest_neighbors",
+      s"affinity must be either rbf, precomputed or nearest_neighbors, but got ${aff}")
+    this.affinity = aff
+    this
+  }
+
+  def setNumNeighbors(n_nb: Int): this.type = {
+    require(n_nb > 0,
+      s"n_nb must be greater than 0 but got  ${n_nb}")
+    this.nNeighbors = n_nb
     this
   }
 
@@ -93,13 +117,13 @@ class SpectralClustering(var nCluster: Int,
     val mid = ModelID.get()
     val fs = FrovedisServer.getServerInstance()
     val ret =  JNISupport.callFrovedisSCA(fs.master_node,
-                                  data.get(),nCluster,nIteration,
-                                  nComponent,eps,gamma,
-                                  normLaplacian,mid,
-                                  precomputed,mode,dropFirst,
-                                  movable,false)
-    val info = JNISupport.checkServerException();
-    if (info != "") throw new java.rmi.ServerException(info);
+                                  data.get(), nCluster, nIteration,
+                                  nComponent, eps, nInit, seed,
+                                  gamma, affinity, nNeighbors,
+                                  normLaplacian, dropFirst, mode, 
+                                  mid, movable, false)
+    val info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
     return new SpectralClusteringModel(mid).setLabels(ret)
   }
   def run(data: FrovedisRowmajorMatrix): SpectralClusteringModel = {
@@ -110,242 +134,14 @@ class SpectralClustering(var nCluster: Int,
     val mid = ModelID.get()
     val fs = FrovedisServer.getServerInstance()
     val ret =  JNISupport.callFrovedisSCA(fs.master_node,
-                                  data.get(),nCluster,nIteration,
-                                  nComponent,eps,gamma,
-                                  normLaplacian,mid,
-                                  precomputed,mode,dropFirst,
-                                  movable,true)
+                                  data.get(), nCluster, nIteration,
+                                  nComponent, eps, nInit, seed,
+                                  gamma, affinity, nNeighbors,
+                                  normLaplacian, dropFirst, mode, 
+                                  mid, movable, true)
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
     return new SpectralClusteringModel(mid).setLabels(ret)
-  }
-}
-
-object SpectralClustering{
-  //  --- RDD ---
-  def train(data: RDD[Vector] , 
-            nCluster: Int,  nIteration: Int ,
-            nComponent: Int,  
-            gamma: Double, eps: Double, 
-            normLaplacian: Boolean,
-            precomputed: Boolean,
-            mode: Int, 
-            dropFirst: Boolean): SpectralClusteringModel = {
-     return new SpectralClustering()
-               .setNumCluster(nCluster)
-               .setNumIteration(nIteration)
-               .setNumComponent(nComponent)
-               .setEps(eps)
-               .setGamma(gamma)
-               .setNormLaplacian(normLaplacian)
-               .setPrecomputed(precomputed)
-               .setMode(mode)
-               .setDropFirst(dropFirst)
-               .run(data)
-  }
-  def train(data: RDD[Vector] , 
-            nCluster: Int,  nIteration: Int ,
-            nComponent: Int,  
-            gamma: Double, eps: Double, 
-            normLaplacian: Boolean,
-            precomputed: Boolean,
-            mode: Int): SpectralClusteringModel = {
-    return train(data,nCluster,nIteration,nComponent,gamma,eps,normLaplacian,precomputed,mode,false)
-  }
-  def train(data: RDD[Vector] , 
-            nCluster: Int,  nIteration: Int ,
-            nComponent: Int,  
-            gamma: Double, eps: Double, 
-            normLaplacian: Boolean,
-            precomputed: Boolean): SpectralClusteringModel = {
-    return train(data,nCluster,nIteration,nComponent,gamma,eps,normLaplacian,precomputed,1,false)
-  }
-  def train(data: RDD[Vector],
-            nCluster: Int,
-            nIteration: Int,
-            nComponent: Int, 
-            gamma: Double, eps: Double, 
-            normLaplacian: Boolean): SpectralClusteringModel = {
-    return train(data,nCluster,nIteration,nComponent,gamma,eps,normLaplacian,false,1,false)
-  }
-  def train(data: RDD[Vector],
-            nCluster: Int,
-            nIteration: Int,
-            nComponent: Int, 
-            gamma: Double, eps: Double): SpectralClusteringModel = {
-    return train(data,nCluster,nIteration,nComponent,gamma,eps,true,false,1,false)
-  }
-  def train(data: RDD[Vector],
-            nCluster: Int,
-            nIteration: Int,
-            nComponent: Int, 
-            gamma: Double): SpectralClusteringModel = {
-     return train(data,nCluster,nIteration,nComponent,gamma,0.01,true,false,1,false)
-  }
-  def train(data: RDD[Vector],
-            nCluster: Int,
-            nIteration: Int,
-            nComponent: Int): SpectralClusteringModel = {
-     return train(data,nCluster,nIteration,nComponent,1.0,0.01,true,false,1,false)
-  }
-  def train(data: RDD[Vector],
-            nCluster: Int,
-            nIteration: Int): SpectralClusteringModel = {
-     return train(data,nCluster,nIteration,2,1.0,0.01,true,false,1,false)
-  }
-  def train(data: RDD[Vector],
-            nCluster: Int): SpectralClusteringModel = {
-    return train(data,nCluster,100,2,1.0,0.01,true,false,1,false)
-  }
-  def train(data: RDD[Vector]): SpectralClusteringModel = {
-    return train(data,2,100,2,1.0,0.01,true,false,1,false)
-  }
-
-  // --- SparseData Train ---
-  def train(data: FrovedisSparseData, nCluster: Int, 
-            nIteration: Int,
-            nComponent: Int,  
-            gamma: Double, eps: Double, 
-            normLaplacian: Boolean,
-            precomputed: Boolean,
-            mode: Int,
-            dropFirst: Boolean): SpectralClusteringModel = {
-    return new SpectralClustering()
-          .setNumCluster(nCluster)
-          .setNumIteration(nIteration)
-          .setNumComponent(nComponent)
-          .setEps(eps)
-          .setGamma(gamma)
-          .setNormLaplacian(normLaplacian)
-          .setPrecomputed(precomputed)
-          .setMode(mode)
-          .setDropFirst(dropFirst)
-          .run(data,false)
-  }
-
-  def train(data: FrovedisSparseData, nCluster: Int,
-            nIteration: Int,
-            nComponent: Int,
-            gamma: Double, eps: Double,
-            normLaplacian: Boolean,
-            precomputed: Boolean,
-            mode: Int): SpectralClusteringModel = {
-    return train(data,nCluster,nIteration,nComponent,gamma,eps,normLaplacian,precomputed,mode,false)
-  }
-
-  def train(data: FrovedisSparseData, nCluster: Int, 
-            nIteration: Int,
-            nComponent: Int,  
-            gamma: Double, eps: Double,
-            normLaplacian: Boolean,
-            precomputed: Boolean): SpectralClusteringModel = {
-    return train(data,nCluster,nIteration,nComponent,gamma,eps,normLaplacian,precomputed,1,false)
-  }
-  def train(data: FrovedisSparseData, nCluster: Int,
-            nIteration: Int,
-            nComponent: Int,
-            gamma: Double, eps: Double,
-            normLaplacian: Boolean): SpectralClusteringModel = {
-    return train(data,nCluster,nIteration,nComponent,gamma,eps,normLaplacian,false,1,false)
-  }
-  def train(data: FrovedisSparseData,nCluster: Int, 
-            nIteration: Int,
-            nComponent: Int, 
-            gamma: Double, eps: Double): SpectralClusteringModel = {
-    return train(data,nCluster,nIteration,nComponent,gamma,eps,true,false,1,false)
-  }
-  def train(data: FrovedisSparseData, nCluster: Int,
-            nIteration: Int, nComponent: Int,
-            gamma: Double): SpectralClusteringModel = {
-    return train(data,nCluster,nIteration,nComponent,gamma,0.01,true,false,1,false)
-  }
-  def train(data: FrovedisSparseData, nCluster: Int,
-            nIteration: Int, nComponent:Int): SpectralClusteringModel = {
-    return train(data,nCluster,nIteration,nComponent,1.0,0.01,true,false,1,false)
-  }
-  def train(data: FrovedisSparseData, nCluster: Int,
-            nIteration: Int ): SpectralClusteringModel = {
-    return train(data,nCluster,nIteration,2,1.0,0.01,true,false,1,false)
-  }
-  def train(data: FrovedisSparseData ,
-            nCluster: Int): SpectralClusteringModel = {
-    return train(data,nCluster,100,2,1.0,0.01,true,false,1,false)
-  }
-  def train(data: FrovedisSparseData): SpectralClusteringModel = {
-    return train(data,2,100,2,1.0,0.01,true,false,1,false)
-  }
-  
-  // --- RowmajorData Train --- 
-  def train(data: FrovedisRowmajorMatrix, nCluster: Int,
-            nIteration: Int,
-            nComponent: Int, 
-            gamma: Double, eps: Double, 
-            normLaplacian: Boolean, 
-            precomputed: Boolean,
-            mode: Int,
-            dropFirst: Boolean): SpectralClusteringModel = {
-    return new SpectralClustering()
-          .setNumCluster(nCluster)
-          .setNumIteration(nIteration)
-          .setNumComponent(nComponent)
-          .setEps(eps)
-          .setGamma(gamma)
-          .setNormLaplacian(normLaplacian)
-          .setPrecomputed(precomputed)
-          .setMode(mode)
-          .setDropFirst(dropFirst)
-          .run(data,false)
-  }
-  def train(data: FrovedisRowmajorMatrix, nCluster: Int,
-            nIteration: Int,
-            nComponent: Int,
-            gamma: Double, eps: Double,
-            normLaplacian: Boolean,
-            precomputed: Boolean,
-            mode: Int): SpectralClusteringModel = {
-    return train(data,nCluster,nIteration,nComponent,gamma,eps,normLaplacian,precomputed,mode,false)
-  }
-  def train(data: FrovedisRowmajorMatrix, nCluster: Int,
-            nIteration: Int,
-            nComponent: Int,
-            gamma: Double, eps: Double,
-            normLaplacian: Boolean,
-            precomputed: Boolean): SpectralClusteringModel = {
-    return train(data,nCluster,nIteration,nComponent,gamma,eps,normLaplacian,precomputed,1,false)
-  }
-  def train(data: FrovedisRowmajorMatrix, nCluster: Int, 
-            nIteration: Int,
-            nComponent: Int,  
-            gamma: Double, eps: Double,
-            normLaplacian: Boolean): SpectralClusteringModel = {
-    return train(data,nCluster,nIteration,nComponent,gamma,eps,normLaplacian,false,1,false)
-  }
-  def train(data: FrovedisRowmajorMatrix, nCluster: Int, 
-            nIteration: Int,
-            nComponent: Int,  
-            gamma: Double, eps: Double): SpectralClusteringModel = {
-    return train(data,nCluster,nIteration,nComponent,gamma,eps,true,false,1,false)
-  }
-  def train(data: FrovedisRowmajorMatrix, nCluster: Int,
-            nIteration: Int, 
-            nComponent: Int,
-            gamma: Double): SpectralClusteringModel = {
-    return train(data,nCluster,nIteration,nComponent,gamma,0.01,true,false,1,false)
-  }
-  def train(data: FrovedisRowmajorMatrix, nCluster: Int,
-            nIteration: Int, nComponent: Int): SpectralClusteringModel = {
-    return train(data,nCluster,nIteration,nComponent,1.0,0.01,true,false,1,false)
-  }
-  def train(data: FrovedisRowmajorMatrix, nCluster: Int,
-            nIteration: Int ): SpectralClusteringModel = {
-    return train(data,nCluster,nIteration,2,1.0,0.01,true,false,1,false)
-  }
-  def train(data: FrovedisRowmajorMatrix ,
-            nCluster: Int): SpectralClusteringModel = {
-    return train(data,nCluster,100,2,1.0,0.01,true,false,1,false)
-  }
-  def train(data: FrovedisRowmajorMatrix): SpectralClusteringModel = {
-    return train(data,2,100,2,1.0,0.01,true,false,1,false)
   }
 }
 

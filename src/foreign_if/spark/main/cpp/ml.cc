@@ -437,29 +437,36 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisACA
 // (9) --- Spectral Clustering ---
 JNIEXPORT jintArray JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisSCA
   (JNIEnv *env, jclass thisCls, jobject master_node, jlong fdata, jint ncluster, 
-   jint niteration, jint ncomponent, jdouble eps, jdouble gamma,
-   jboolean normlaplacian, jint mid, jboolean precomputed, 
-   jint mode, jboolean drop_first,
-   jboolean movable, jboolean dense) {
+   jint niteration, jint ncomponent, jdouble eps, jint n_init, jint seed,
+   jdouble gamma, jstring affinity, jint n_neighbors, 
+   jboolean normlaplacian, jboolean drop_first, jint mode,
+   jint mid, jboolean movable, jboolean dense) {
 
   auto fm_node = java_node_to_frovedis_node(env, master_node);
   auto f_dptr = (exrpc_ptr_t) fdata;
   bool mvbl = (bool) movable;
   bool nlap = (bool) normlaplacian;
-  bool pre = (bool) precomputed;
-  int vb = 0; // no log (default)
   bool isDense = (bool) dense;
   bool drop = (bool) drop_first;
+  auto aff = to_cstring(env, affinity);
+  int vb = 0; // no log (default)
 #ifdef _EXRPC_DEBUG_
   std::cout << "Connecting to master node ("
             << fm_node.hostname << "," << fm_node.rpcport
             << ") to train frovedis spectral clustering.\n";
 #endif
   std::vector<int> ret;
-   try {
+  auto assign = KMeans<double>().set_k(ncluster)
+                                .set_max_iter(niteration)
+                                .set_n_init(n_init)
+                                .set_eps(eps)
+                                .set_seed(seed);
+  
+  try {
     if(isDense){ // spectral clustering accepts rowmajor matrix as for dense data
-       ret = exrpc_async(fm_node,(frovedis_sca<DT1,R_MAT1>),f_dptr,ncluster,
-                         niteration,ncomponent,eps,gamma,nlap,mid,vb,pre,mode,drop,mvbl).get();
+       ret = exrpc_async(fm_node,(frovedis_sca<DT1,R_MAT1>),
+                         f_dptr, ncomponent, gamma, aff, n_neighbors,
+                         nlap, drop, mode, assign, mid, vb, mvbl).get();
     }
     else REPORT_ERROR(USER_ERROR, 
          "Frovedis spectral clustering doesn't accept sparse input at this moment.\n");
