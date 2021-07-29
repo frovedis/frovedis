@@ -58,7 +58,7 @@ class KNeighborsClassifier(var nNeighbors: Int,
 
   def setBatchFraction(batchFraction: Double): this.type = {
     require(batchFraction > 0.0 && batchFraction <= 1.0,
-      s"batchFraction must be greater than 0 but got ${batchFraction}")
+      s"batchFraction must be in between 0 and 1 but got ${batchFraction}")
     this.batchFraction = batchFraction
     this
   }    
@@ -85,7 +85,8 @@ class KNeighborsClassifier(var nNeighbors: Int,
     JNISupport.callFrovedisKncFit(fs.master_node,
                                   data.get(), nNeighbors,
                                   algorithm, metric,
-                                  chunkSize, 1.0, mid, mdense)
+                                  chunkSize, batchFraction, 
+                                  mid, mdense)
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
     return this

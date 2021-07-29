@@ -62,7 +62,7 @@ class NearestNeighbors(var nNeighbors: Int,
 
   def setBatchFraction(batchFraction: Double): this.type = {
     require(batchFraction > 0.0 && batchFraction <= 1.0,
-      s"batchFraction must be greater than 0 but got ${batchFraction}")
+      s"batchFraction must be in between 0 and 1 but got ${batchFraction}")
     this.batchFraction = batchFraction
     this
   }     

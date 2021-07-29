@@ -22,7 +22,7 @@ class KNeighborsRegressor(var nNeighbors: Int,
   private var mid: Int = 0
   private var mdense: Boolean = false
 
-  def this() = this(5,"brute","euclidean",1.0F,Double.MaxValue)
+  def this() = this(5, "brute", "euclidean", 1.0F, Double.MaxValue)
 
   def setNNeighbors(nNeighbors: Int): this.type = {
     require(nNeighbors > 0 ,
@@ -58,7 +58,7 @@ class KNeighborsRegressor(var nNeighbors: Int,
 
   def setBatchFraction(batchFraction: Double): this.type = {
     require(batchFraction > 0.0 && batchFraction <= 1.0,
-      s"batchFraction must be greater than 0 but got ${batchFraction}")
+      s"batchFraction must be in between 0 and 1 but got ${batchFraction}")
     this.batchFraction = batchFraction
     this
   }     
@@ -83,10 +83,10 @@ class KNeighborsRegressor(var nNeighbors: Int,
     val fs = FrovedisServer.getServerInstance()
     mdense = data.is_dense()
     JNISupport.callFrovedisKnrFit(fs.master_node,
-                               data.get(), nNeighbors,
-                               algorithm, metric,
-                               chunkSize, batchFraction, 
-                               mid, mdense)
+                                  data.get(), nNeighbors,
+                                  algorithm, metric,
+                                  chunkSize, batchFraction, 
+                                  mid, mdense)
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
     return this
