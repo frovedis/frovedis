@@ -403,7 +403,7 @@ rowmajor_matrix_local<T>
 agglomerative_impl(rowmajor_matrix_local<T>& mat,
                    bool inputMovable = false) {
   auto nsamples = mat.local_num_row;
-  time_spent dist(INFO), nn(INFO);
+  time_spent dist(DEBUG), nn(DEBUG);
   dist.lap_start();
   auto dist_vec = construct_condensed_distance_matrix(mat);
   dist.lap_stop();
@@ -546,7 +546,7 @@ agglomerative_assign_cluster(rowmajor_matrix_local<T>& tree,
                              int ncluster,
                              T threshold = 0,
                              int &ncluster_ = 0) {
-  time_spent assign(INFO);
+  time_spent assign(DEBUG);
   auto nsamples = tree.local_num_row + 1;
   if ((ncluster <= 0) || (ncluster > nsamples))
     REPORT_ERROR(USER_ERROR,"Number of clusters should be greater than 0 and less than nsamples.\n");
