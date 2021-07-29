@@ -35,6 +35,108 @@ std::vector<T> get_block(T sz) {
   }
   return block_size;
 }
+ 
+//For example nrows: [5, 5, 5, 4] and given batch_size is 10: Then we process ceil(5/10) = 1 cycles
+//batch_size is 3: Then we process ceil(5/3) = 2 cycles
+template <class T>    
+size_t get_num_iterations(std::vector<T>& nrows, T batch_size) {   
+  auto max_nrow = vector_amax(nrows);
+  auto iters = ceil_div(max_nrow, batch_size);
+  return iters;  
+}
+    
+template <class T>    
+size_t get_batch_size_per_node(T global_batch) {
+  T node_size = get_nodesize();  
+  return ceil_div(global_batch, node_size);
+}
+  
+template <class T>        
+rowmajor_matrix_local<T> 
+extract_rmm_batch(rowmajor_matrix_local<T>& mat,
+                  size_t batch_size, size_t iter) {
+  auto local_row = mat.local_num_row;
+  auto local_col = mat.local_num_col;  
+  
+  auto start = std::min(iter * batch_size, local_row);  
+  auto end = std::min((iter + 1) * batch_size, local_row);
+  require(end >= start, "start row index must be less than end column index");
+    
+  auto nrows = end - start;  
+  rowmajor_matrix_local<T> ret(nrows, local_col);
+  auto ret_sz = ret.val.size();
+  auto retptr = ret.val.data();
+  auto matptr = mat.val.data() + local_col * start;
+  for(size_t i = 0; i < ret_sz; ++i) retptr[i] = matptr[i]; 
+  return ret;  
+}   
+
+    
+template <class T, class I, class O>
+crs_matrix_local<T,I,O>       
+extract_crs_batch(crs_matrix_local<T,I,O>& mat,
+                  size_t batch_size, 
+                  size_t iter) {
+  auto local_row = mat.local_num_row;
+  auto local_col = mat.local_num_col;
+
+  auto start = std::min(iter * batch_size, local_row);  
+  auto end = std::min((iter + 1) * batch_size, local_row);                   
+  require(end >= start, "start row index must be less than end column index");
+
+  auto nrows = end - start;    
+  auto offp = mat.off.data();
+  auto idxp = mat.idx.data();
+  auto valp = mat.val.data();
+  size_t num_elements = offp[end] - offp[start];
+
+  crs_matrix_local<T,I,O> ret(nrows, local_col);
+  ret.val.resize(num_elements);
+  ret.idx.resize(num_elements);
+  ret.off.resize(nrows + 1);  
+      
+  auto roffp = ret.off.data();
+  auto ridxp = ret.idx.data();
+  auto rvalp = ret.val.data();
+  
+  valp = valp + offp[start];
+  idxp = idxp + offp[start];     
+  for(size_t i = 0; i < num_elements; ++i) {
+    rvalp[i] = valp[i];
+    ridxp[i] = idxp[i];  
+  }
+
+  roffp[0] = 0; offp = offp + start;
+  for(size_t j = 0; j < nrows; ++j) roffp[j + 1] = roffp[j] + (offp[j + 1] - offp[j]);    
+  return ret;  
+}     
+
+    
+template <class T, class I, class O>
+crs_matrix<T,I,O> 
+extract_batch(crs_matrix<T,I,O>& mat, 
+              size_t batch_size_per_node, 
+              size_t iter) {
+  crs_matrix<T,I,O> ret = mat.data.map(extract_crs_batch<T,I,O>, 
+                                       broadcast(batch_size_per_node), 
+                                       broadcast(iter));
+  ret.num_row = ret.data.map(crs_get_local_num_row<T,I,O>).reduce(add<size_t>); 
+  ret.num_col = mat.num_col;
+  return ret;
+}
+        
+template <class T>
+rowmajor_matrix<T> 
+extract_batch(rowmajor_matrix<T>& mat, 
+              size_t batch_size_per_node, 
+              size_t iter) {
+  rowmajor_matrix<T> ret = mat.data.map(extract_rmm_batch<T>, 
+                                        broadcast(batch_size_per_node), 
+                                        broadcast(iter));
+  ret.num_row = ret.data.map(rowmajor_get_local_num_row<T>).reduce(add<size_t>);
+  ret.num_col = mat.num_col;
+  return ret;
+}     
 
 template <class T>
 rowmajor_matrix_local<T>

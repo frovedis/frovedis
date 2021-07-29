@@ -8,8 +8,9 @@ namespace frovedis {
 
 template <typename T>  
 struct dbscan { 
-  dbscan(double eps = 0.5, int min_pts = 5) : 
-    eps(eps), min_pts(min_pts), is_fitted(false) {}
+  dbscan(double eps = 0.5, int min_pts = 5, 
+         double batch_fraction = std::numeric_limits<double>::max()): 
+    eps(eps), min_pts(min_pts), batch_fraction(batch_fraction), is_fitted(false) {}
 
   dbscan<T>& 
   set_eps(double eps) { 
@@ -28,6 +29,15 @@ struct dbscan {
     return *this;
   }
 
+  dbscan<T>&
+  set_batch_fraction(double batch_fraction) {
+    std::string msg = "expected batch_fraction within the range of 0.0 to 1.0; received: " + 
+                       STR(batch_fraction) + "\n";
+    require(batch_fraction >= 0.0 && batch_fraction <= 1.0, msg);
+    this->batch_fraction = batch_fraction;
+    return *this;
+  }    
+    
   dbscan<T>& 
   set_params(std::vector<std::pair<std::string, param_t>>& data) {
     std::string msg = "";
@@ -42,6 +52,10 @@ struct dbscan {
         set_min_pts(val.get<int>());
         msg += "seed: " + val.tt + "; ";
       }
+      else if(param == "batch_fraction") {
+        set_batch_fraction(val.get<double>());
+        msg += "batch_fraction: " + val.tt + "; ";
+      }        
       else REPORT_ERROR(USER_ERROR, "[DBSCAN] Unknown parameter: '"
                         + param + "' is encountered!\n");
     }
@@ -53,18 +67,18 @@ struct dbscan {
   dbscan<T>& 
   fit(MATRIX& mat, 
       const dvector<int>& label = dvector<int>()) { //ignored
-    est = dbscan_impl<T>(eps, min_pts);
+    est = dbscan_impl<T>(eps, min_pts, batch_fraction);
     est.fit(mat);
     is_fitted = true;       
     return *this;
   }
-
+    
   template <class MATRIX>    
   dbscan<T>& 
   fit(MATRIX& mat,
       std::vector<T>& sample_weight, 
       const dvector<int>& label = dvector<int>()) { //ignored
-    est = dbscan_impl<T>(eps, min_pts);
+    est = dbscan_impl<T>(eps, min_pts, batch_fraction);
     est.fit(mat, sample_weight);
     is_fitted = true;       
     return *this;
@@ -112,8 +126,9 @@ struct dbscan {
     dbscan_impl<T> est;
     double eps;
     int min_pts;
+    double batch_fraction;
     bool is_fitted;
-    SERIALIZE(est, eps, min_pts, is_fitted);
+    SERIALIZE(est, eps, min_pts, batch_fraction, is_fitted);
     typedef int predict_type;
 };
 

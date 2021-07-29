@@ -374,108 +374,12 @@ struct find_kneighbor {
 };
 
 template <class T>
-void pre_allocate(rowmajor_matrix_local<T>& rmat_local, size_t row, size_t col) {
+void pre_allocate(rowmajor_matrix_local<T>& rmat_local, 
+                  size_t row, size_t col) {
   rmat_local.val.resize(row * col); 
   rmat_local.set_local_num(row, col);
 }    
 
-//For example nrows: [5, 5, 5, 4] and given batch_size is 10: Then we process ceil(5/10) = 1 cycles
-//batch_size is 3: Then we process ceil(5/3) = 2 cycles
-template <class T>    
-size_t get_num_iterations(std::vector<T>& nrows, T batch_size) {   
-  auto max_nrow = vector_amax(nrows);
-  auto iters = ceil_div(max_nrow, batch_size);
-  return iters;  
-}
-       
-template <class T>        
-rowmajor_matrix_local<T> extract_rmm_batch(rowmajor_matrix_local<T>& mat,
-                                           size_t batch_size, size_t iter) {
-  auto local_row = mat.local_num_row;
-  auto local_col = mat.local_num_col;  
-  
-  auto start = std::min(iter * batch_size, local_row);  
-  auto end = std::min((iter+1) * batch_size, local_row);
-        
-  require(end >= start, "start row index must be less than end column index");
-  require(start >= 0 && end <= local_row, "given indices are out of range"); 
-    
-  auto nrows = end - start;  
-  rowmajor_matrix_local<T> ret(nrows, local_col);
-  
-  auto retptr = ret.val.data();
-  auto matptr = mat.val.data();  
-
-  //Copy
-  for(size_t j = 0; j < local_col; ++j) {
-    for(size_t i = 0; i < nrows; ++i)
-      retptr[local_col * i + j] = matptr[local_col * (i + start) + j];     
-  }  
-  return ret;  
-}   
-    
-
-template <class T, class I, class O>
-crs_matrix_local<T,I,O>       
-extract_crs_batch(crs_matrix_local<T,I,O>& mat,
-                  size_t batch_size, 
-                  size_t iter) {
-  auto local_row = mat.local_num_row;
-  auto local_col = mat.local_num_col;
-  auto start = std::min(iter * batch_size, local_row);  
-  auto end = std::min((iter+1) * batch_size, local_row);                   
-
-  require(end >= start, "start row index must be less than end column index");
-  require(start >= 0 && end <= local_row, "given indices are out of range");  
-  auto nrows = end - start;  
-  
-  size_t num_elements = 0;
-  auto offp = &mat.off[0];
-  auto idxp = &mat.idx[0];
-  auto valp = &mat.val[0];
-  for(size_t i = start; i < end; ++i)
-    num_elements += offp[i + 1] - offp[i];
-
-  crs_matrix_local<T,I,O> ret(nrows, local_col);
-  ret.val.resize(num_elements);
-  ret.idx.resize(num_elements);
-  ret.off.resize(nrows+1);  
-      
-  auto roffp = &ret.off[0];
-  auto ridxp = &ret.idx[0];
-  auto rvalp = &ret.val[0];
-  
-  //Copy
-  size_t counter = 0, off_iter=1;  
-  for(size_t i = start; i < end; ++i) {
-    for(O o = offp[i]; o < offp[i+1]; ++o) {
-      ridxp[counter] = idxp[o];
-      rvalp[counter] = valp[o];
-      ++counter;
-    }  
-    roffp[off_iter++] = counter;    
-  }
-    
-  return ret;  
-}    
-    
-template <class T, class I, class O>
-crs_matrix<T,I,O> extract_batch(crs_matrix<T,I,O>& mat, 
-                                node_local<size_t> batch_size, 
-                                node_local<size_t> iter) {
-    crs_matrix<T,I,O> ret = mat.data.map(extract_crs_batch<T,I,O>, batch_size, iter);
-    return ret;
-}
-    
-template <class T>
-rowmajor_matrix<T> extract_batch(rowmajor_matrix<T>& mat, 
-                                 node_local<size_t> batch_size, 
-                                 node_local<size_t> iter) {
-    rowmajor_matrix<T> ret = mat.data.map(extract_rmm_batch<T>, batch_size, iter);
-    return ret;
-}      
-    
-    
 template <class T, class I = size_t, 
           class MATRIX1 = rowmajor_matrix<T>,
           class MATRIX2 = rowmajor_matrix<T>>
@@ -485,7 +389,7 @@ knn_model<T, I> compute_kneigbor_in_batch(MATRIX1& x_mat,
                                           const std::string& metric,
                                           bool need_distance,
                                           float chunk_size, 
-                                          size_t batch_size) {
+                                          size_t batch_size_per_node) {
 
   auto nquery = y_mat.num_row;
   auto nrows = y_mat.get_local_num_rows();
@@ -509,17 +413,14 @@ knn_model<T, I> compute_kneigbor_in_batch(MATRIX1& x_mat,
   ret.indices.data.mapv(pre_allocate<I>, nl_rows, broadcast(k));
   
   //Get number of iterations needed
-  auto niters = get_num_iterations(nrows, batch_size);                         
-  auto nl_batch_size = broadcast(batch_size);
+  auto niters = get_num_iterations(nrows, batch_size_per_node);                         
               
-  for(size_t i=0; i < niters; ++i) {
-   
-    auto partial_query = extract_batch(y_mat, nl_batch_size, broadcast(i)); 
-    
-    auto partial_dist_mat = construct_distance_matrix<T>(x_mat, partial_query, metric, need_distance);
-            
+  for(size_t i = 0; i < niters; ++i) {   
+    auto partial_query = extract_batch(y_mat, batch_size_per_node, i);     
+    auto partial_dist_mat = construct_distance_matrix<T>(x_mat, partial_query, metric, need_distance);            
     partial_dist_mat.data.mapv(find_kneighbor(k, need_distance, chunk_size), 
-                               ret.distances.data, ret.indices.data, nl_batch_size, broadcast(i));      
+                               ret.distances.data, ret.indices.data, 
+                               broadcast(batch_size_per_node), broadcast(i));      
   }         
   return ret;                          
 }
@@ -580,29 +481,24 @@ knn_model<T, I> knn(MATRIX1& x_mat,
     REPORT_ERROR(USER_ERROR, 
       "Currently frovedis knn supports only euclidean/seuclidean distance!\n");
 
-  if (batch_fraction < 0)
-    REPORT_ERROR(USER_ERROR, 
-      "Batch fraction value should be between 0.0 and 1.0\n");
-        
+  knn_model<T, I> ret(k);
   if(batch_fraction == std::numeric_limits<double>::max()) { // No batch provided
-    if (nquery > THRESHOLD) { // Compute with batches of distance matrix
-      auto node_size = get_nodesize();  
-      size_t batch_size = THRESHOLD/node_size;
-      return compute_kneigbor_in_batch<T, I>(x_mat, y_mat, k, metric, need_distance, 
-                                             chunk_size, batch_size);  
+    if (nquery > THRESHOLD) { // Compute with batches of distance matrix  
+      size_t batch_size_per_node = get_batch_size_per_node(THRESHOLD);
+      ret = compute_kneigbor_in_batch<T, I>(x_mat, y_mat, k, metric, need_distance, 
+                                            chunk_size, batch_size_per_node);  
     }
     else { // Compute entire matrix at once 
-      return compute_kneigbor<T, I>(x_mat, y_mat, k, metric, need_distance, chunk_size);
+      ret = compute_kneigbor<T, I>(x_mat, y_mat, k, metric, need_distance, chunk_size);
     }
   }
   else { // Divide as per batch value provided
-    auto node_size = get_nodesize();
     auto global_batch = static_cast<size_t>(batch_fraction * nquery);  
-    size_t batch_size = global_batch/node_size;
-      
-    return compute_kneigbor_in_batch<T, I>(x_mat, y_mat, k, metric, need_distance, 
-                                           chunk_size, batch_size);   
-  }              
+    size_t batch_size_per_node = get_batch_size_per_node(global_batch);      
+    ret = compute_kneigbor_in_batch<T, I>(x_mat, y_mat, k, metric, need_distance, 
+                                          chunk_size, batch_size_per_node);   
+  }
+  return ret;            
 }
 
     
@@ -615,7 +511,7 @@ knn_model<T, I> knn(MATRIX& mat,
                     bool need_distance = false,
                     float chunk_size = 1.0, 
                     double batch_fraction = std::numeric_limits<double>::max()) {
-  return knn(mat, mat, k, algorithm, metric, need_distance, chunk_size, batch_fraction);
+  return knn<T>(mat, mat, k, algorithm, metric, need_distance, chunk_size, batch_fraction);
 }
 
 template <class R, class T, class I = size_t, class O = size_t, 
@@ -645,17 +541,44 @@ knn_radius(MATRIX1& x_mat,
       "Currently frovedis knn supports only distance or connectivity as for mode of radius_graph!");
 
   bool need_distance = true; // needs correct distance for checking within radius
-
-  // TODO: implement batch-wise distance calculation here...
-  auto dist_mat = construct_distance_matrix<T>(x_mat, y_mat, metric, need_distance);
-#ifdef DEBUG_SAVE
-  dist_mat.save("unsorted_distance_matrix");
-#endif
-
-  bool include_self = true;
   bool need_weight = (mode == "distance");
-  return construct_connectivity_graph<R,T,I,O>(dist_mat, radius, 
-                                               include_self, need_weight);
+  bool include_self = true;
+  auto nquery = y_mat.num_row;
+  bool in_one_go = true; 
+  size_t batch_size_per_node = 0; 
+  crs_matrix<R,I,O> ret;            
+ 
+  if(batch_fraction == std::numeric_limits<double>::max()) { // No batch provided
+    if (nquery > THRESHOLD) { // Compute with batches of distance matrix  
+      batch_size_per_node = get_batch_size_per_node(THRESHOLD);  
+      in_one_go = false;
+    }  
+  }
+  else {
+    auto global_batch = static_cast<size_t>(batch_fraction * nquery);  
+    batch_size_per_node = get_batch_size_per_node(global_batch);  
+    in_one_go = false;  
+  } 
+  
+  if(!in_one_go) {             
+    auto nrows = y_mat.get_local_num_rows();
+    auto niters = get_num_iterations(nrows, batch_size_per_node);
+    std::vector<crs_matrix<R,I,O>> graphs(niters);
+    // batch-wise distance calculation 
+    for(size_t i = 0; i < niters; ++i) {
+      auto partial_query = extract_batch(y_mat, batch_size_per_node, i);   
+      auto partial_dist_mat = construct_distance_matrix<T>(x_mat, partial_query, metric, need_distance);
+      graphs[i] = construct_connectivity_graph<R,T,I,O>(partial_dist_mat, 
+                                                        radius, include_self, need_weight);
+    }
+    ret = local_append(graphs);        
+  }
+  else { // Compute entire matrix at once   
+    auto dist_mat = construct_distance_matrix<T>(x_mat, y_mat, metric, need_distance);  
+    ret = construct_connectivity_graph<R,T,I,O>(dist_mat, radius, 
+                                                include_self, need_weight);
+  }
+  return ret;            
 }
 
 }

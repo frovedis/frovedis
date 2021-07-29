@@ -14,11 +14,14 @@ public:
   template <class MATRIX>    
   void fit(MATRIX& vector_set) {
     num_row = vector_set.num_row;
-    d_graph = knn_radius<int,T>(vector_set, vector_set, eps, 1.0, // TODO: add batch_fraction 
-                                "brute", "euclidean", "connectivity").data;
-    d_core_flgs = calc_core_flgs(min_pts, (T) 1.0);
+    auto radius_graph = knn_radius<int,T>(vector_set, vector_set, eps, batch_fraction, 
+                                "brute", "euclidean", "connectivity");
+
+    distribution =  radius_graph.get_local_num_rows();
+    d_graph = std::move(radius_graph.data);  
+    d_core_flgs = calc_core_flgs(min_pts, (T) 1.0); 
     set_components(vector_set);
-    d_core_graph = calc_core_graph();
+    d_core_graph = calc_core_graph();      
     cluster();
   }
 
@@ -27,19 +30,23 @@ public:
     num_row = vector_set.num_row;
     require(sample_weight.size() == num_row,
     "sample_weight size does not match with number of samples in input data");
-    d_graph = knn_radius<int,T>(vector_set, vector_set, eps, 1.0, // TODO: add batch_fraction
-                                "brute", "euclidean", "connectivity").data;
+    auto radius_graph = knn_radius<int,T>(vector_set, vector_set, eps, batch_fraction, 
+                                "brute", "euclidean", "connectivity");
+    distribution =  radius_graph.get_local_num_rows();
+    d_graph = std::move(radius_graph.data);    
     if(vector_is_uniform(sample_weight))
       d_core_flgs = calc_core_flgs(min_pts, sample_weight[0]);
     else
       d_core_flgs = calc_core_flgs(min_pts, sample_weight);
     set_components(vector_set);
+      
     d_core_graph = calc_core_graph();
     cluster();
   }
   std::vector<int> labels() {return clustered_labels;}
-  dbscan_impl(double eps=0.5, int min_pts=5) : 
-             eps(eps), min_pts(min_pts) {}
+  dbscan_impl(double eps=0.5, int min_pts=5, 
+              double batch_fraction = std::numeric_limits<double>::max()) : 
+             eps(eps), min_pts(min_pts), batch_fraction(batch_fraction) {}
   std::vector<size_t> core_sample_indices_() {return core_sample_indices;}
   rowmajor_matrix<T> components_() { return components; }
 
@@ -140,18 +147,17 @@ private:
 
   void core_labeling() {
     clustered_labels = std::vector<int>(num_row, -1);
-
     // core labeling
     auto label_l = make_node_local_broadcast(0);
     auto d_labels = dvector<int>();
-    auto core_flgs = d_core_flgs.gather();
+    auto core_flgs = d_core_flgs.gather();  
     // lambda function for map
-    auto is_all_zero = [](std::vector<int> v) {
-      auto* ptr = v.data();
-      size_t total = 0;
-      for(size_t i=0;i<v.size();i++) total += ptr[i];
-      return total == 0;
-    };
+    auto is_all_zero = [](std::vector<int> v) {          
+      auto* ptr = v.data();      
+      size_t total = 0;      
+      for(size_t i=0;i<v.size();i++) total += ptr[i];      
+      return total == 0;        
+    };  
     auto vist_core = +[](crs_matrix_local<int>& core_graph,
                          std::vector<int>& frontier) {
       return core_graph * frontier;
@@ -163,31 +169,32 @@ private:
         if (labels[i] != -1) continue;
         labels[i] = label;
       }
-    };
+    };  
     auto update_frontier = +[](std::vector<int>& frontier,
                                std::vector<int>& visit,
                                std::vector<int>& labels) {
       for(int i=0;i<visit.size();i++) {
         frontier[i] = (int) (visit[i] != 0 && labels[i] == -1);
       }
-    };
-    for(int i=0;i<num_row;i++) {
+    };  
+    for(int i=0;i<num_row;i++) {  
       if (clustered_labels[i] != -1 || core_flgs[i] != 1) continue;
       auto frontier = std::vector<int>(num_row, 0);
       frontier[i] = 1;
       clustered_labels[i] = label_l.get(0);
-      auto d_frontier = make_dvector_scatter(frontier);
-      d_labels = make_dvector_scatter(clustered_labels);
-      while (!is_all_zero(frontier)) {
-        auto g_frontier = make_node_local_broadcast(frontier);
-        auto d_visit = d_core_graph.map(vist_core, g_frontier);
+      auto d_frontier = make_dvector_scatter(frontier).align_as(distribution);  
+      d_labels = make_dvector_scatter(clustered_labels).align_as(distribution);    
+      while (!is_all_zero(frontier)) { 
+        auto g_frontier = make_node_local_broadcast(frontier);    
+        auto d_visit = d_core_graph.map(vist_core, g_frontier);  
         d_frontier.viewas_node_local().mapv(update_frontier, d_visit,
                                             d_labels.viewas_node_local());
-        d_labels.viewas_node_local().mapv(labeling, d_visit, label_l);
+        d_labels.viewas_node_local().mapv(labeling, d_visit, label_l);  
         frontier = d_frontier.gather();
+        
       }
-      label_l.mapv(+[](int& label){label++;});
-      clustered_labels = d_labels.gather();
+      label_l.mapv(+[](int& label){label++;});      
+      clustered_labels = d_labels.gather();      
     }
   };
 
@@ -206,7 +213,7 @@ private:
       }
       return ret;
     };
-    auto d_labels = make_dvector_scatter(clustered_labels);
+    auto d_labels = make_dvector_scatter(clustered_labels).align_as(distribution);
     auto g_lables = make_node_local_broadcast(clustered_labels);
     clustered_labels = d_graph.map(labeling, d_labels.viewas_node_local(),
                                    g_lables).
@@ -220,9 +227,9 @@ private:
         });
   };
 
-  void cluster() {
-    core_labeling();
-    other_labeling();
+  void cluster() {  
+    core_labeling();  
+    other_labeling();  
   };
 
   template <class I, class O>
@@ -255,8 +262,10 @@ private:
   dvector<int> d_core_flgs;
   node_local<crs_matrix_local<int>> d_core_graph;
   std::vector<int> clustered_labels;
-  double eps;
+  double eps;  
   int min_pts;
+  double batch_fraction;
+  std::vector<size_t> distribution;  
   std::vector<size_t> core_sample_indices;
   rowmajor_matrix<T> components;
 };
