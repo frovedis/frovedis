@@ -558,21 +558,25 @@ dic_string_equal_prepare_helper(const std::vector<size_t>& rval,
 node_local<vector<size_t>>
 typed_dfcolumn<dic_string>::
 equal_prepare(shared_ptr<typed_dfcolumn<dic_string>>& right) {
-  auto& left_dic = *dic;
-  auto& right_dic = *(right->dic);
-  compressed_words to_lookup;
-  auto right_num_words = right_dic.num_words();
-  to_lookup.cwords.swap(right_dic.cwords);
-  to_lookup.lens.swap(right_dic.lens);
-  to_lookup.lens_num.swap(right_dic.lens_num);
-  to_lookup.order.resize(right_num_words);
-  auto orderp = to_lookup.order.data();
-  for(size_t i = 0; i < right_num_words; i++) orderp[i] = i;
-  auto trans_table = broadcast(left_dic.lookup(to_lookup));
-  to_lookup.cwords.swap(right_dic.cwords);
-  to_lookup.lens.swap(right_dic.lens);
-  to_lookup.lens_num.swap(right_dic.lens_num);
-  return right->val.map(dic_string_equal_prepare_helper, trans_table);
+  if(dic == right->dic) {
+    return right->val;
+  } else {
+    auto& left_dic = *dic;
+    auto& right_dic = *(right->dic);
+    compressed_words to_lookup;
+    auto right_num_words = right_dic.num_words();
+    to_lookup.cwords.swap(right_dic.cwords);
+    to_lookup.lens.swap(right_dic.lens);
+    to_lookup.lens_num.swap(right_dic.lens_num);
+    to_lookup.order.resize(right_num_words);
+    auto orderp = to_lookup.order.data();
+    for(size_t i = 0; i < right_num_words; i++) orderp[i] = i;
+    auto trans_table = broadcast(left_dic.lookup(to_lookup));
+    to_lookup.cwords.swap(right_dic.cwords);
+    to_lookup.lens.swap(right_dic.lens);
+    to_lookup.lens_num.swap(right_dic.lens_num);
+    return right->val.map(dic_string_equal_prepare_helper, trans_table);
+  }
 }
 
 node_local<std::vector<size_t>>
@@ -1107,21 +1111,25 @@ typed_dfcolumn<dic_string>::union_columns
 node_local<vector<size_t>>
 typed_dfcolumn<dic_string>::
 equal_prepare_multi_join(typed_dfcolumn<dic_string>& right) {
-  auto& left_dic = *dic;
-  auto& right_dic = *(right.dic);
-  compressed_words to_lookup;
-  auto right_num_words = right_dic.num_words();
-  to_lookup.cwords.swap(right_dic.cwords);
-  to_lookup.lens.swap(right_dic.lens);
-  to_lookup.lens_num.swap(right_dic.lens_num);
-  to_lookup.order.resize(right_num_words);
-  auto orderp = to_lookup.order.data();
-  for(size_t i = 0; i < right_num_words; i++) orderp[i] = i;
-  auto trans_table = broadcast(left_dic.lookup(to_lookup));
-  to_lookup.cwords.swap(right_dic.cwords);
-  to_lookup.lens.swap(right_dic.lens);
-  to_lookup.lens_num.swap(right_dic.lens_num);
-  return right.val.map(dic_string_equal_prepare_helper, trans_table);
+  if(dic == right.dic) {
+    return right.val;
+  } else {
+    auto& left_dic = *dic;
+    auto& right_dic = *(right.dic);
+    compressed_words to_lookup;
+    auto right_num_words = right_dic.num_words();
+    to_lookup.cwords.swap(right_dic.cwords);
+    to_lookup.lens.swap(right_dic.lens);
+    to_lookup.lens_num.swap(right_dic.lens_num);
+    to_lookup.order.resize(right_num_words);
+    auto orderp = to_lookup.order.data();
+    for(size_t i = 0; i < right_num_words; i++) orderp[i] = i;
+    auto trans_table = broadcast(left_dic.lookup(to_lookup));
+    to_lookup.cwords.swap(right_dic.cwords);
+    to_lookup.lens.swap(right_dic.lens);
+    to_lookup.lens_num.swap(right_dic.lens_num);
+    return right.val.map(dic_string_equal_prepare_helper, trans_table);
+  }
 }
 
 node_local<std::vector<size_t>>
