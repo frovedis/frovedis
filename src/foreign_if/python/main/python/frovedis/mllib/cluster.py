@@ -329,11 +329,14 @@ class SpectralClustering(BaseEstimator):
     A python wrapper of Frovedis Spectral clustering
     """
     def __init__(self, n_clusters=8, eigen_solver=None, n_components=None, 
-                 random_state=None, n_init=10, gamma=1.0, affinity='rbf', 
-                 n_neighbors=10, eigen_tol=0.0, assign_labels='kmeans', 
-                 degree=3, coef0=1, kernel_params=None, n_jobs=None, 
-                 verbose=0, n_iter=100, eps=0.01, norm_laplacian=True, 
-                 mode=3, drop_first=False):
+                 random_state=None, n_init=10, 
+                 gamma=1.0, affinity='rbf', n_neighbors=10,
+                 eigen_tol=0.0, assign_labels='kmeans', 
+                 degree=3, coef0=1, kernel_params=None, 
+                 n_jobs=None, verbose=0,
+                 max_iter=300, eps=1e-4, # for KMeans
+                 norm_laplacian=True, mode=3, drop_first=True # for spectral_embedding
+                ):
         self.n_clusters = n_clusters
         self.eigen_solver = eigen_solver
         self.n_components = n_clusters if n_components is None else n_components
@@ -353,12 +356,49 @@ class SpectralClustering(BaseEstimator):
         self.__mid = None
         self.__mdtype = None
         self.__mkind = M_KIND.SCM
-        self.n_iter = n_iter
+        self.max_iter = max_iter
         self.eps = eps
         self.norm_laplacian = norm_laplacian
         self.mode = mode
         self.drop_first = drop_first
         self.labels_ = None
+
+    def check_params(self):
+        """
+        checks the validity of hyper-parameters
+        """
+        if self.affinity is None:
+            self.affinity = 'rbf'
+        elif self.affinity not in ['rbf', 'precomputed', 'nearest_neighbors']:
+            raise ValueError("affinity=%s is not supported!" % (self.affinity))
+
+        if self.eigen_solver is None:
+            self.eigen_solver = 'arpack'
+        elif self.eigen_solver not in ['arpack']:
+            raise ValueError("eigen_solver=%s is not supported!" \
+                             % (self.eigen_solver))
+
+        if self.assign_labels is None:
+            self.assign_labels = 'kmeans'
+        elif self.assign_labels not in ['kmeans']:
+            raise ValueError("assign_labels=%s is not supported!" \
+                             % (self.assign_labels))
+
+        if self.gamma is None:
+            self.gamma = 1.0
+
+        if self.n_init is None:
+            self.n_init = 10
+        if self.n_init < 1:
+            raise ValueError("n_init must be a positive integer!")
+
+        if isinstance(self.random_state, numbers.Number):
+            if sys.version_info[0] < 3:
+                self.seed = long(self.random_state)
+            else:
+                self.seed = int(self.random_state)
+        else:
+            self.seed = 0
 
     @set_association
     def fit(self, X, y=None):
@@ -366,6 +406,7 @@ class SpectralClustering(BaseEstimator):
         NAME: fit
         """
         self.release()
+        self.check_params()
         # if X is not a sparse data, it would be loaded as rowmajor matrix
         inp_data = FrovedisFeatureData(X, \
                      caller = "[" + self.__class__.__name__ + "] fit: ",\
@@ -374,10 +415,6 @@ class SpectralClustering(BaseEstimator):
         dtype = inp_data.get_dtype()
         itype = inp_data.get_itype()
         dense = inp_data.is_dense()
-        if self.affinity == "precomputed":
-            precomputed = True
-        else:
-            precomputed = False
         self.__mid = ModelID.get()
         self.__mdtype = dtype
         self.__X_movable = inp_data.is_movable()
@@ -385,9 +422,10 @@ class SpectralClustering(BaseEstimator):
         (host, port) = FrovedisServer.getServerInstance()
         ret = np.zeros(len_l, dtype=np.int32)
         rpclib.sca_train(host, port, X.get(), self.n_clusters, self.n_components,
-                         self.n_iter, self.eps, self.gamma,
-                         precomputed, self.norm_laplacian, self.mode,
-                         self.drop_first, ret, len_l, self.verbose, self.__mid,
+                         self.max_iter, self.eps, self.n_init, self.seed,
+                         self.gamma, self.affinity.encode('ascii'), self.n_neighbors,
+                         self.norm_laplacian, self.mode, self.drop_first, 
+                         ret, len_l, self.verbose, self.__mid,
                          dtype, itype, dense)
         self.labels_ = ret
         self._affinity = None

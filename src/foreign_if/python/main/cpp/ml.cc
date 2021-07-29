@@ -820,30 +820,46 @@ extern "C" {
 
   // (9) --- Spectral Clustering ---
   void sca_train(const char* host, int port, long xptr,
-                 int k,int n_comp, int n_iter, double eps, double gamma,
-                 bool precomputed, bool norm_laplacian, int mode,
-                 bool drop_first, int* ret, long len, int vb, int mid,
+                 int k, int n_comp, 
+                 int n_iter, double eps, 
+                 int n_init, int seed, 
+                 double gamma, const char* aff, int n_neighbors,
+                 bool norm_laplacian, int mode, bool drop_first, 
+                 int* ret, long len, int vb, int mid,
                  short dtype, short itype, bool dense) {
     if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
     exrpc_node fm_node(host,port);
     auto f_xptr = (exrpc_ptr_t) xptr;
+    std::string affinity(aff);
     bool mvbl = false; // auto-managed at python side
     std::vector<int> pred;
     try {
       if(dense) {
         switch(dtype) {
-          case FLOAT:
+          case FLOAT: {
+            auto assign = KMeans<float>().set_k(k)
+                                         .set_max_iter(n_iter)
+                                         .set_n_init(n_init)
+                                         .set_eps(eps)
+                                         .set_seed(seed);
             pred = exrpc_async(fm_node,(frovedis_sca<DT2,R_MAT2>),
-                               f_xptr,k,n_iter,n_comp,eps,gamma,
-                               norm_laplacian,mid,vb,precomputed,
-                               mode,drop_first,mvbl).get();
+                               f_xptr, n_comp, gamma, affinity, n_neighbors,
+                               norm_laplacian, drop_first, mode, 
+                               assign, mid, vb, mvbl).get();
             break;
-          case DOUBLE:
+          }
+          case DOUBLE: {
+            auto assign = KMeans<double>().set_k(k)
+                                          .set_max_iter(n_iter)
+                                          .set_n_init(n_init)
+                                          .set_eps(eps)
+                                          .set_seed(seed);
             pred = exrpc_async(fm_node,(frovedis_sca<DT1,R_MAT1>),
-                               f_xptr,k,n_iter,n_comp,eps,gamma,
-                               norm_laplacian,mid,vb,precomputed,
-                               mode,drop_first,mvbl).get();
+                               f_xptr, n_comp, gamma, affinity, n_neighbors,
+                               norm_laplacian, drop_first, mode, 
+                               assign, mid, vb, mvbl).get();
             break;
+          }
           default: REPORT_ERROR(USER_ERROR, 
                    "Unsupported dtype of input dense data for training!\n");
         }
