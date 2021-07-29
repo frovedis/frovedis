@@ -1189,6 +1189,7 @@ dbscan_train.argtypes = [c_char_p, #host
                          ndpointer(c_double, ndim=1, flags="C_CONTIGUOUS"),#sample_weight
                          c_long,#sample_weight length
                          c_double, #eps
+                         c_double, #batch_fraction
                          c_int, #min_pts
                          ndpointer(c_long, ndim=1, flags="C_CONTIGUOUS"),#labels
                          c_long, #labels array length
@@ -1705,6 +1706,17 @@ compute_lda_component = LIB.compute_lda_component
 compute_lda_component.argtypes = [c_char_p, c_int,\
                                   c_int, c_short]
 compute_lda_component.restype = py_object
+
+# 4. EIGSH
+eigsh = LIB.eigsh
+eigsh.argtypes = [c_char_p, c_int,    #host, port
+                  c_long, c_int,      #Xptr, k
+                  c_char_p, c_float,  #which, sigma
+                  c_int, c_bool,      #maxiter, wantEv
+                  c_float, c_short,   #tol, dtype
+                  c_short, c_bool     #indextype, isdense
+                  ]             
+eigsh.restype = py_object
 
 # --- manifold APIs ---
 

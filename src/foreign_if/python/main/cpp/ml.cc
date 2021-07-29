@@ -751,7 +751,7 @@ extern "C" {
                  long* ret, long len,
                  int vb, int mid, 
                  short dtype, short itype, bool dense) {
-    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");   
+    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
     exrpc_node fm_node(host,port);
     auto f_xptr = (exrpc_ptr_t) xptr;
     bool mvbl = false; // auto-managed at python side
@@ -862,7 +862,7 @@ extern "C" {
   // --- (10) DBSCAN ---
   void dbscan_train(const char* host, int port, long xptr, 
                     double* sample_weight_ptr, long sample_weight_len,
-                    double eps, int min_pts,
+                    double eps, double batch_f, int min_pts,
                     long* ret, long len, int vb, int mid, 
                     short dtype, short itype, bool dense) {
     if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
@@ -877,7 +877,7 @@ extern "C" {
             auto sample_weight = double_to_float_vector(sample_weight_ptr,
                                                   sample_weight_len);
             pred = exrpc_async(fm_node,(frovedis_dbscan<DT2,R_MAT2>),
-                               f_xptr,sample_weight,eps,min_pts,vb,mid).get();
+                               f_xptr,sample_weight,eps,batch_f,min_pts,vb,mid).get();
             }
             break;
           case DOUBLE:
@@ -885,7 +885,7 @@ extern "C" {
             auto sample_weight = to_double_vector(sample_weight_ptr,
                                                   sample_weight_len);
             pred = exrpc_async(fm_node,(frovedis_dbscan<DT1,R_MAT1>),
-                               f_xptr,sample_weight,eps,min_pts,vb,mid).get();
+                               f_xptr,sample_weight,eps,batch_f,min_pts,vb,mid).get();
             }
             break;
           default: REPORT_ERROR(USER_ERROR, 
@@ -900,10 +900,10 @@ extern "C" {
                                                   sample_weight_len);
             if(itype == INT) 
               pred = exrpc_async(fm_node,(frovedis_dbscan<DT2,S_MAT24>),
-                                 f_xptr,sample_weight,eps,min_pts,vb,mid).get();
+                                 f_xptr,sample_weight,eps,batch_f,min_pts,vb,mid).get();
             else if(itype == LONG) 
               pred = exrpc_async(fm_node,(frovedis_dbscan<DT2,S_MAT25>),
-                                 f_xptr,sample_weight,eps,min_pts,vb,mid).get();
+                                 f_xptr,sample_weight,eps,batch_f,min_pts,vb,mid).get();
             else REPORT_ERROR(USER_ERROR, 
                  "Unsupported itype of input sparse data for training!\n");
             break;
@@ -914,10 +914,10 @@ extern "C" {
                                                   sample_weight_len);
             if(itype == INT) 
               pred = exrpc_async(fm_node,(frovedis_dbscan<DT1,S_MAT14>),
-                                 f_xptr,sample_weight,eps,min_pts,vb,mid).get();
+                                 f_xptr,sample_weight,eps,batch_f,min_pts,vb,mid).get();
             else if(itype == LONG) 
               pred = exrpc_async(fm_node,(frovedis_dbscan<DT1,S_MAT15>),
-                                 f_xptr,sample_weight,eps,min_pts,vb,mid).get();
+                                 f_xptr,sample_weight,eps,batch_f,min_pts,vb,mid).get();
             else REPORT_ERROR(USER_ERROR, 
                  "Unsupported itype of input sparse data for training!\n");
             break;

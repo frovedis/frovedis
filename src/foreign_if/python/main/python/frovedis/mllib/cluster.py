@@ -825,13 +825,14 @@ class DBSCAN(BaseEstimator):
     """
     def __init__(self, eps=0.5, min_samples=5, metric='euclidean', 
                  metric_params=None, algorithm='auto', leaf_size=30, 
-                 p=None, n_jobs=None, verbose=0):
+                 p=None, n_jobs=None, batch_fraction=None, verbose=0):
         self.eps = eps
         self.min_samples = min_samples
         self.metric = metric
         self.metric_params = metric_params
         self.algorithm = algorithm
         self.leaf_size = leaf_size
+        self.batch_fraction = batch_fraction
         self.p = p
         self.n_jobs = n_jobs
         self.verbose = verbose
@@ -867,6 +868,10 @@ class DBSCAN(BaseEstimator):
             raise ValueError(\
                 "Currently Frovedis DBSCAN does not support %s algorithm!" \
                 % self.algorithm)
+        if self.batch_fraction is None:
+            self.batch_fraction = np.finfo(np.float64).max
+        elif self.batch_fraction <= 0.0 or self.batch_fraction > 1.0:
+            raise ValueError("batch fraction should be in between 0.0 and 1.0")            
 
     def check_input(self, X, F):
         """checks input X"""
@@ -916,9 +921,9 @@ class DBSCAN(BaseEstimator):
         (host, port) = FrovedisServer.getServerInstance()
         ret = np.zeros(n_samples, dtype=np.int64)
         rpclib.dbscan_train(host, port, X.get(), sample_weight, \
-                            len(sample_weight), self.eps, self.min_samples, \
-                            ret, n_samples, self.verbose, self.__mid, dtype, \
-                            itype, dense)
+                            len(sample_weight), self.eps, self.batch_fraction, \
+                            self.min_samples, ret, n_samples, self.verbose, \
+                            self.__mid, dtype, itype, dense)
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
             raise RuntimeError(excpt["info"])
