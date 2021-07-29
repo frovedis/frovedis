@@ -39,7 +39,7 @@ object SCADemo {
     //aff.debug_print()
     
     // training with precomputed affinity
-    val m2 = algo.setPrecomputed(true).run(aff)
+    val m2 = algo.setAffinity("precomputed").run(aff)
     //m2.debug_print()
     print("labels with precomputed affinity: ")
     for ( x <- m2.labels ) print(x + " ")
