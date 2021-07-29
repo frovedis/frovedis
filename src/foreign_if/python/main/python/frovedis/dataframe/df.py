@@ -641,7 +641,8 @@ class DataFrame(object):
                                 na_position=na_position)
 
     def groupby(self, by=None, axis=0, level=None,
-                as_index=True, sort=True, group_keys=True, squeeze=False):
+                as_index=True, sort=True, group_keys=True, squeeze=False,
+                observed=False, dropna=True):
         """
         groupby
         """
@@ -656,6 +657,14 @@ class DataFrame(object):
             raise TypeError("Expected: string|list; Received: ",
                             type(by).__name__)
 
+        if axis != 0:
+            raise NotImplementedError(\
+            "groupby: axis = '%d' is currently not supported!" % (axis))
+
+        if level is not None: 
+            raise NotImplementedError( \
+            "groupby: level is currently not supported!")
+
         types = []
         for item in g_by:
             if item not in self.__cols:
@@ -663,10 +672,15 @@ class DataFrame(object):
             else:
                 types.append(self.__dict__[item].dtype)
 
+        if dropna:
+            g_df = self.dropna(subset=g_by)
+        else:
+            g_df = self
+
         sz = len(g_by) 
         ptr_arr = get_string_array_pointer(g_by)
         (host, port) = FrovedisServer.getServerInstance()
-        fdata = rpclib.group_frovedis_dataframe(host, port, self.get(),
+        fdata = rpclib.group_frovedis_dataframe(host, port, g_df.get(),
                                                 ptr_arr, sz)
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
@@ -757,28 +771,35 @@ class DataFrame(object):
             raise ValueError("Can only pass 'on' OR 'left_index' and" +
                             " 'right_index', not a combination of both!")
         
-        reset_index_name = False
+        # table must have index, if merge-target is index
+        if left_index and not self.has_index():
+            raise ValueError("left table doesn't have index!\n")
+        if right_index and not right.has_index():
+            raise ValueError("right table doesn't have index!\n")
 
-        if self.has_index() and right.has_index() and \
-                self.index.name != right.index.name:
-            reset_index_name = True
+        # index rename for right, if same with left
+        if self.has_index() and right.has_index():
+            if self.index.name == right.index.name:
+                right = right.rename_index(right.index.name + "_right")
+                reset_index_name = False #rename not required, if both are same
+            else:
+                # if both table have different names for index,
+                # then if merge takes place on both indices i.e., 
+                # (left_index=right_index=True), resultant table 
+                # would have generic name for index column
+                reset_index_name = True
 
-        # index rename for right
-        if self.has_index() and right.has_index() and \
-                self.index.name == right.index.name:
-            right = right.rename_index(right.index.name + "_right")
-
-        if left_index or right_index:
-            if left_index and right_index:
-                on_index = self.index
-                if on_index.name == "index":
-                    reset_index_name = False               
-            elif left_index and not right_index:
-                on_index = right.index
-                reset_index_name = False
-            elif right_index and not left_index:
-                on_index = self.index
-                reset_index_name = False
+        if left_index and right_index:
+            on_index = self.index
+            if self.index.name == "index":   
+                #rename not required, if index-name is already generic
+                reset_index_name = False 
+        elif left_index and not right_index:
+            on_index = right.index
+            reset_index_name = False
+        elif right_index and not left_index:
+            on_index = self.index
+            reset_index_name = False
 
         if on: #if key name is same in both dataframes
             if(left_on) or (right_on):
@@ -802,7 +823,6 @@ class DataFrame(object):
                 raise ValueError("Must pass right_on or right_index=True")
             elif right_index:
                 raise ValueError("Must pass left_on or left_index=True")
-
             else:
                 common_cols = list(set(self.columns) & set(right.columns))
                 if len(common_cols) == 0:
@@ -885,28 +905,23 @@ class DataFrame(object):
         if excpt["status"]:
             raise RuntimeError(excpt["info"])
         
-        if on_index:
-            index_name = on_index.name
-            ret.index = FrovedisColumn(index_name, dtype=on_index.dtype)
-            ret = ret.select_frovedis_dataframe(ret.columns)
-
-            if index_name.endswith("_right") and ret.has_index():
-                index_name = index_name[:-len("_right")]
-                ret.rename_index(index_name, inplace=True)
-
-            if reset_index_name:
-                ret.rename_index("index", inplace=True)
-            
+        targets = ret.columns
         if renamed_keys:
-            targets = list(ret.__cols)
             for key in renamed_keys:
                 if key in targets:
                     targets.remove(key)
-            ret = ret.select_frovedis_dataframe(targets)
-        elif not on_index:
-            ret = ret.select_frovedis_dataframe(ret.columns)
 
-        if not on_index:
+        if on_index:
+            index_name = on_index.name
+            ret.index = FrovedisColumn(index_name, dtype=on_index.dtype)
+            ret = ret.select_frovedis_dataframe(targets)
+            if index_name.endswith("_right"):
+                index_name = index_name[:-len("_right")]
+                ret.rename_index(index_name, inplace=True)
+            elif reset_index_name:
+                ret.rename_index("index", inplace=True)
+        else:
+            ret = ret.select_frovedis_dataframe(targets)
             ret = ret.add_index("index")
 
         return ret
