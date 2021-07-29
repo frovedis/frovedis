@@ -7,6 +7,7 @@
 #include "exrpc_pca.hpp"
 #include "exrpc_tsne.hpp"
 #include "exrpc_data_storage.hpp"
+#include "exrpc_eigen.hpp"
 extern "C" {
 
   // --- Frovedis PBLAS L1 Wrapper ---
@@ -597,6 +598,68 @@ extern "C" {
       set_status(true, e.what());
     }
     return to_py_dummy_matrix(ret); 
+  }
+
+  // ----- Frovedis Arpack Wrapper ----
+  PyObject* eigsh(const char* host, int port,
+                  long mptr, int k,
+                  const char* which, float sigma,
+                  int maxiter, bool wantEv,
+                  float tol, short dtype,
+                  short itype, bool isDense) {
+    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
+    exrpc_node fm_node(host,port);
+    auto m = (exrpc_ptr_t) mptr;
+    bool mvbl = false;
+    std::string order = which;
+    eigen_result ret;
+    try {
+      if(isDense) {
+        switch(dtype) {
+          case FLOAT: 
+            ret = exrpc_async(fm_node,(frovedis_dense_eigsh<R_MAT2,DT2>),
+                              m, k, order, sigma, maxiter, tol, mvbl).get(); 
+            break;
+          case DOUBLE: 
+            ret = exrpc_async(fm_node,(frovedis_dense_eigsh<R_MAT1,DT1>),
+                              m, k, order, sigma,
+                              maxiter, tol, mvbl).get();
+            break;
+          default: REPORT_ERROR(USER_ERROR,
+                                "Unsupported dtype for input dense matrix!\n");
+        }
+      }
+      else {
+        switch(dtype) {
+          case FLOAT: 
+            if (itype == INT){
+              ret = exrpc_async(fm_node,(frovedis_sparse_eigsh<S_MAT24,DT2,DT4>),
+                                m, k, order, maxiter, tol, mvbl).get();}
+            else if (itype == LONG) {
+              ret = exrpc_async(fm_node,(frovedis_sparse_eigsh<S_MAT25,DT2,DT5>),
+                                m, k, order, maxiter, tol, mvbl).get();}
+            else REPORT_ERROR(USER_ERROR,
+                              "Unsupported itype for input sparse matrix!\n");
+            break;
+          case DOUBLE: 
+            if (itype == INT) {
+              ret = exrpc_async(fm_node,(frovedis_sparse_eigsh<S_MAT14,DT1,DT4>),
+                                m, k, order, maxiter, tol, mvbl).get();}
+            else if (itype == LONG) {
+              ret = exrpc_async(fm_node,(frovedis_sparse_eigsh<S_MAT15,DT1,DT5>),
+                                m, k, order, maxiter, tol, mvbl).get();}
+            else REPORT_ERROR(USER_ERROR,
+                              "Unsupported itype for input sparse matrix!\n");
+              break;
+          default: REPORT_ERROR(USER_ERROR,
+                                "Unsupported dtype for input sparse matrix!\n");
+        }
+      }
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return to_py_eigen_result(ret, wantEv);
   }
 
   // --- Frovedis Scalapack Wrapper Results ---

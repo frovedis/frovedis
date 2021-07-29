@@ -56,6 +56,7 @@ extern "C" {
   PyObject* to_py_mfm_info(const dummy_mfm& m);
   PyObject* to_py_dummy_vector(const dummy_vector& dv);
   PyObject* to_py_svd_result(const svd_result& obj, char, bool, bool);
+  PyObject* to_py_eigen_result(const eigen_result& obj, bool);
   PyObject* to_py_lu_fact_result(const lu_fact_result& obj, char);
   PyObject* to_py_pca_result(const pca_result& obj, char);
   PyObject* to_py_tsne_result(const tsne_result& obj);

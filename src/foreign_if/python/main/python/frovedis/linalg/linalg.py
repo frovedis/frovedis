@@ -2,10 +2,14 @@
 #!/usr/bin/env python
 
 import numpy as np
-from ..matrix.dense import FrovedisBlockcyclicMatrix
-from frovedis.linalg.scalapack import *
-from frovedis.matrix.dtype import DTYPE, TypeUtil
-from frovedis.matrix.wrapper import PBLAS
+from ..exrpc import rpclib
+from ..exrpc.server import FrovedisServer
+from ..matrix.dense import FrovedisBlockcyclicMatrix, FrovedisDenseMatrix
+from ..matrix.vector import FrovedisVector
+from ..matrix.ml_data import FrovedisFeatureData
+from ..matrix.dtype import DTYPE, TypeUtil
+from ..matrix.wrapper import PBLAS
+from .scalapack import *
 
 def check_if_vec(a):
     """checking if the input mat is col or row vec"""
@@ -324,3 +328,66 @@ def dot(a, b, out=None):
             #raise ValueError("dot: vector-matrix multiplication is not \
             #    supported!")
 
+def eigsh(A, M = None, k = 6, sigma = None, which = 'LM', v0=None,
+          ncv = None, maxiter = None, tol = 0., return_eigenvectors = True,
+          Minv = None, OPinv = None, mode = 'normal'):
+    """
+    Find k eigenvalues and eigenvectors of the real symmetric square matrix A.
+    """     
+    if M is not None:
+        raise NotImplementedError("M is not currently supported!")
+    if v0 is not None:
+        raise NotImplementedError("v0 is not currently supported!")
+    if ncv is not None:
+        raise NotImplementedError("ncv is not currently supported!")
+    if Minv is not None:
+        raise NotImplementedError("Minv is not currently supported!")
+    if OPinv is not None:
+        raise NotImplementedError("OPinv is not currently supported!")
+    inp_data = FrovedisFeatureData(A, dense_kind='rowmajor')
+    X = inp_data.get()
+    x_dtype = inp_data.get_dtype()
+    x_itype = inp_data.get_itype()
+    dense = inp_data.is_dense()
+    nrows = inp_data.numRows()
+    ncols = inp_data.numCols()
+
+    if nrows != ncols:
+        raise ValueError('expected squared symmetric matrix (shape=%s)' % (inp_data.shape,))
+    if k <= 0:
+        raise ValueError('k must be greater than 0.')
+    if k >= nrows:
+        raise ValueError('k must be less than or equal to N for N * N square matrix.')
+    if sigma is not None and not dense:
+        raise ValueError('currently sigma is only supported for dense matrices.')
+    if sigma is None:
+        sigma =  np.finfo(np.float32).max
+
+    if which not in ['LM', 'SM', 'LA', 'SA', 'BE']:
+        raise ValueError('which must be one of LM, SM, LA, SA, or BE')
+    if mode in ['buckling', 'cayley']:
+        raise ValueError('currenly normal mode is only supported!')
+    if maxiter is None:
+        maxiter = 10 * nrows
+    wantEv = return_eigenvectors
+    (host, port) = FrovedisServer.getServerInstance()
+    res = rpclib.eigsh(host, port, X.get(), 
+                       k, which.encode('ascii'), 
+                       sigma, maxiter, wantEv,
+                       tol, x_dtype,
+                       x_itype, dense)
+    excpt = rpclib.check_server_exception()
+    if excpt["status"]:
+        raise RuntimeError(excpt["info"])
+    sptr = res["eigenval"]
+    uptr = res["eigenvec"]
+    m_m = res['m']
+    k_k = res['k']
+    eigval = FrovedisVector({'dptr' : sptr, 'size' : k_k}, 
+                            dtype = TypeUtil.to_numpy_dtype(x_dtype)).to_numpy_array()
+    if wantEv:
+        eigvec = FrovedisDenseMatrix('C', {'dptr' : uptr, 'nrow' : m_m, 'ncol' : k_k}, 
+                                     dtype = TypeUtil.to_numpy_dtype(x_dtype)).to_numpy_array()
+        return eigval, eigvec
+    else:
+        return eigval

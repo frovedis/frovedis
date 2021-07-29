@@ -144,6 +144,14 @@ extern "C" {
                          "info", obj.info);
   }
 
+  PyObject* to_py_eigen_result(const eigen_result& obj, bool isU) {
+    long uptr = isU ? (long)obj.umat_ptr : 0;
+    long sptr = (long)obj.svec_ptr;
+    return Py_BuildValue("{s:l, s:l, s:i, s:i, s:i}",
+                         "eigenval", sptr, "eigenvec", uptr,
+                         "m", obj.m, "n", obj.n,
+                         "k", obj.k);
+  }
 
   PyObject* to_py_pca_result(const pca_result& obj,
                              char mtype) {
