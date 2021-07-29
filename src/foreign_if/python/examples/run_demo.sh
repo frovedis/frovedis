@@ -24,6 +24,7 @@ python scalapack_demo.py "$COMMAND"
 python truncated_svd_demo.py "$COMMAND"
 python pca_demo.py "$COMMAND"
 python tsne_demo.py "$COMMAND"
+python eigen_demo.py "$COMMAND"
 
 # --- ML Demo ---
 python lr_demo.py "$COMMAND"
