@@ -11,9 +11,10 @@ import org.apache.spark.SparkContext
 class DBSCAN(var eps: Double,
              var min_samples: Int,
              var metric: String,
-             var algorithm: String) extends java.io.Serializable {
+             var algorithm: String,
+             var batchFraction: Double) extends java.io.Serializable {
   private var mid: Int = 0
-  def this() = this(0.5, 5, "euclidean", "brute")
+  def this() = this(0.5, 5, "euclidean", "brute", Double.MaxValue)
 
   def setEps(eps: Double): this.type = {
     require(eps > 0.0 ,
@@ -42,6 +43,14 @@ class DBSCAN(var eps: Double,
     this.algorithm = algorithm
     this
   }
+
+  def setBatchFraction(batchFraction: Double): this.type = {
+    require(batchFraction > 0.0 && batchFraction <= 1.0,
+      s"batchFraction must be greater than 0 but got ${batchFraction}")
+    this.batchFraction = batchFraction
+    this
+  }
+    
   def run(data: RDD[Vector]): Array[Int] = {
     val isDense = data.first.getClass.toString() matches ".*DenseVector*."
     if (isDense) {
@@ -84,7 +93,8 @@ class DBSCAN(var eps: Double,
     val fs = FrovedisServer.getServerInstance()
     val ret = JNISupport.callFrovedisDBSCAN(fs.master_node,
                                             data.get(),
-                                            eps,min_samples,
+                                            eps,batchFraction,
+                                            min_samples,
                                             mid,isDense,
                                             sample_weight,
                                             sample_weight_length)
@@ -110,7 +120,8 @@ class DBSCAN(var eps: Double,
     val fs = FrovedisServer.getServerInstance()
     val ret = JNISupport.callFrovedisDBSCAN(fs.master_node,
                                             data.get(),
-                                            eps,min_samples,
+                                            eps,batchFraction,
+                                            min_samples,
                                             mid,isDense,
                                             sample_weight,
                                             sample_weight_length)

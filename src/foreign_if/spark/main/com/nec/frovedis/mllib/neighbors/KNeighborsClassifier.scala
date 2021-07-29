@@ -17,11 +17,12 @@ import org.apache.spark.mllib.linalg.distributed.RowMatrix
 class KNeighborsClassifier(var nNeighbors: Int, 
                            var algorithm: String,
                            var metric: String,
-                           var chunkSize: Float) extends java.io.Serializable {
+                           var chunkSize: Float,
+                           var batchFraction: Double) extends java.io.Serializable {
   private var mid: Int = 0
   private var mdense: Boolean = false
 
-  def this() = this(5, "brute", "euclidean", 1.0F)
+  def this() = this(5, "brute", "euclidean", 1.0F, Double.MaxValue)
 
   def setNNeighbors(nNeighbors: Int): this.type = {
     require(nNeighbors > 0 ,
@@ -54,7 +55,14 @@ class KNeighborsClassifier(var nNeighbors: Int,
     this.chunkSize = chunkSize
     this
   }
-  
+
+  def setBatchFraction(batchFraction: Double): this.type = {
+    require(batchFraction > 0.0 && batchFraction <= 1.0,
+      s"batchFraction must be greater than 0 but got ${batchFraction}")
+    this.batchFraction = batchFraction
+    this
+  }    
+    
   def run(data: RDD[LabeledPoint]): this.type = {
     val fdata = new FrovedisLabeledPoint(data, true)
     return run(fdata, true)

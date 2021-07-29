@@ -14,11 +14,12 @@ class NearestNeighbors(var nNeighbors: Int,
                        var radius: Float, 
                        var algorithm: String,
                        var metric: String,
-                       var chunkSize: Float) extends java.io.Serializable {
+                       var chunkSize: Float,
+                       var batchFraction: Double) extends java.io.Serializable {
   private var mid: Int = 0 
   private var mdense: Boolean = false
 
-  def this() = this(5, 1.0F, "brute", "euclidean", 1.0F)
+  def this() = this(5, 1.0F, "brute", "euclidean", 1.0F, Double.MaxValue)
 
   def setNNeighbors(nNeighbors: Int): this.type = {
     require(nNeighbors > 0 ,
@@ -59,6 +60,13 @@ class NearestNeighbors(var nNeighbors: Int,
     this
   }
 
+  def setBatchFraction(batchFraction: Double): this.type = {
+    require(batchFraction > 0.0 && batchFraction <= 1.0,
+      s"batchFraction must be greater than 0 but got ${batchFraction}")
+    this.batchFraction = batchFraction
+    this
+  }     
+    
   def run(data: RDD[Vector]): this.type = {
     val isDense = data.first.getClass.toString() matches ".*DenseVector*."
     if (isDense) {
@@ -88,7 +96,8 @@ class NearestNeighbors(var nNeighbors: Int,
     JNISupport.callFrovedisKnnFit(fs.master_node,
                                data.get(), nNeighbors,
                                radius, algorithm, metric,
-                               chunkSize, 1.0, mid, mdense)
+                               chunkSize, batchFraction, 
+                               mid, mdense)
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
     return this
@@ -102,7 +111,8 @@ class NearestNeighbors(var nNeighbors: Int,
     JNISupport.callFrovedisKnnFit(fs.master_node,
                                data.get(), nNeighbors,
                                radius, algorithm, metric,
-                               chunkSize, 1.0, mid, mdense)
+                               chunkSize, batchFraction, 
+                               mid, mdense)
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
     return this

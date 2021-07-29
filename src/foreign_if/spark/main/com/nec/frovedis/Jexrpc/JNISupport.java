@@ -346,6 +346,7 @@ public class JNISupport {
   public static native int[] callFrovedisDBSCAN(Node master_node,
                                                long fdata,
                                                double eps,
+                                               double batch_fraction,
                                                int min_samples,
                                                int mid,
                                                boolean dense,
