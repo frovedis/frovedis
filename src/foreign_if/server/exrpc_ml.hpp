@@ -435,15 +435,13 @@ template <class T, class MATRIX>
 std::vector<int>
 frovedis_dbscan(exrpc_ptr_t& data_ptr,
                 std::vector<T>& sample_weight,
-                double& eps, int& min_pts,
+                double& eps, double& batch_f, int& min_pts,
                 int& verbose, int& mid) {
   MATRIX& mat = *reinterpret_cast<MATRIX*>(data_ptr);  // training input data holder
   set_verbose_level(verbose);
-  auto dbm = dbscan<T>(eps, min_pts);
-  if(sample_weight.size())
-    dbm.fit(mat, sample_weight);
-  else
-    dbm.fit(mat);
+  auto dbm = dbscan<T>(eps, min_pts, batch_f);
+  if(!sample_weight.empty())   dbm.fit(mat, sample_weight);
+  else                         dbm.fit(mat);
   auto label = dbm.labels();
   reset_verbose_level();
   handle_trained_model<dbscan<T>>(mid,DBSCAN,dbm);
