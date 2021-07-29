@@ -2682,7 +2682,7 @@ class DataFrame(object):
             excpt = rpclib.check_server_exception()
             if excpt["status"]:
                 raise RuntimeError(excpt["info"])
-            return df_str + "\n"
+            return df_str
         else:
             return "\n"
 

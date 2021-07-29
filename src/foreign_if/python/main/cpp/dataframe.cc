@@ -1131,7 +1131,7 @@ extern "C" {
   }
 
 
-  const char* df_to_string(const char* host, int port, long df_proxy,
+  PyObject* df_to_string(const char* host, int port, long df_proxy,
                            bool has_index) {
     ASSERT_PTR(host);
     exrpc_node fm_node(host, port);
@@ -1143,7 +1143,7 @@ extern "C" {
     catch (std::exception& e) {
       set_status(true, e.what());
     }
-    return ret.c_str();
+    return Py_BuildValue("s", ret.c_str());
   }
 
 }

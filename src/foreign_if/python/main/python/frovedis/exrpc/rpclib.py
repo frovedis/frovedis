@@ -431,7 +431,7 @@ df_dropna.restype = py_object
 df_to_string = LIB.df_to_string
 df_to_string.argtypes = [c_char_p, c_int, c_long, # host, port, proxy
                          c_bool]                  # has_index
-df_to_string.restype = c_char_p
+df_to_string.restype = py_object
 
 df_binary_operation = LIB.df_binary_operation
 df_binary_operation.argtypes = [c_char_p, c_int,        # host, port
@@ -1159,8 +1159,11 @@ sca_train.argtypes = [c_char_p, #host
                       c_int, #n_comp
                       c_int, #n_iter
                       c_double, #eps
+                      c_int, #n_init
+                      c_int, #seed
                       c_double,#gamma
-                      c_bool, #precomputed
+                      c_char_p, #affinity
+                      c_int, #n_neighbors
                       c_bool, #norm_laplacian
                       c_int, #mode
                       c_bool, #drop_first
