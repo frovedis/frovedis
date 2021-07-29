@@ -384,48 +384,36 @@ lda_test(crs_matrix<TD>& data_test, const double alpha, const double beta,
     likelihood = std::vector<double>();
     auto model_l = make_node_local_broadcast(model);
         
-    for(int i=1; i<=num_iter; i++){      
-        
-        RLOG(TRACE)<<"iteration-"<<i<<"\n";                
-        // ====================================== sampling ====================================== //    
+    // ====================================== sampling ====================================== //    
 #if !(defined(_SX) || defined(__ve__))
-        corpus_l.mapv(
-            +[](lda::lda_corpus<TD,TW,TK>& corpus,lda::lda_sampler<TC,TD,TW,TK,TA>& sampler,lda_model<TC>& model_g, lda_model<TC>& model_l){
-                sampler.sample_for_corpus_unvec(corpus,model_g,model_l);
-            },
-            sampler_l,model_l,model_l
-        );
+    corpus_l.mapv(
+        +[](lda::lda_corpus<TD,TW,TK>& corpus,lda::lda_sampler<TC,TD,TW,TK,TA>& sampler,lda_model<TC>& model_g, lda_model<TC>& model_l){
+            sampler.sample_for_corpus_unvec(corpus,model_g,model_l);
+        },
+        sampler_l,model_l,model_l
+    );
 #else
-        corpus_l.mapv(
-            +[](lda::lda_corpus<TD,TW,TK>& corpus,lda::lda_sampler<TC,TD,TW,TK,TA>& sampler,lda_model<TC>& model_g, lda_model<TC>& model_l){
-                sampler.sample_for_corpus_vec(corpus,model_g,model_l);
-            },
-            sampler_l,model_l,model_l
-        );
+    corpus_l.mapv(
+        +[](lda::lda_corpus<TD,TW,TK>& corpus,lda::lda_sampler<TC,TD,TW,TK,TA>& sampler,lda_model<TC>& model_g, lda_model<TC>& model_l){
+            sampler.sample_for_corpus_vec(corpus,model_g,model_l);
+        },
+        sampler_l,model_l,model_l
+    );
 #endif      
-        // ============================ calculate the perplexity =================================== //
-        if(true){
-            likelihood.push_back(corpus_l.map(lda::template cal_perplexity<TC,TD,TW,TK>,model_l,config_l).reduce(lda::sum<double>)/num_tokens);
-            perplexity.push_back(exp(-likelihood.back()));
-            double word_ll = model_l.map(lda::template cal_word_likelihood<TC>,config_l).reduce(lda::sum<double>);
-            double doc_ll = corpus_l.map(lda::template cal_doc_likelihood<TD,TW,TK>,config_l).reduce(lda::sum<double>);
-            double lld = word_ll + doc_ll;
-            RLOG(DEBUG)<<likelihood.back()<<" "<<perplexity.back()<<" "<<lld<<std::endl;
-        }       
-    }
+    // ============================ calculate the perplexity =================================== //
+    likelihood.push_back(corpus_l.map(lda::template cal_perplexity<TC,TD,TW,TK>,model_l,config_l).reduce(lda::sum<double>)/num_tokens);
+    perplexity.push_back(exp(-likelihood.back()));
+    double word_ll = model_l.map(lda::template cal_word_likelihood<TC>,config_l).reduce(lda::sum<double>);
+    double doc_ll = corpus_l.map(lda::template cal_doc_likelihood<TD,TW,TK>,config_l).reduce(lda::sum<double>);
+    double lld = word_ll + doc_ll;
+    RLOG(DEBUG)<<likelihood.back()<<" "<<perplexity.back()<<" "<<lld<<std::endl;
        
-    RLOG(DEBUG)<<"-----------------------------------------------------------"<<std::endl;
-    for(auto i:perplexity) RLOG(DEBUG)<<i<<" "; RLOG(DEBUG)<<std::endl;
-    for(auto i:likelihood) RLOG(DEBUG)<<i<<" "; RLOG(DEBUG)<<std::endl;
-    RLOG(DEBUG)<<"-----------------------------------------------------------"<<std::endl;
-      
     corpus_d.align_as(corpus_initial_sizes); // realign as per initial size
     rowmajor_matrix<TD> ret(corpus_d.viewas_node_local().map(
                             get_doc_topic_count_rmml<TD,TW,TK>, data_test.data));
     ret.num_row = data_test.num_row;
     ret.num_col = config.num_topics;
     return ret;
-
 }
 
 }  // namespace frovedis
