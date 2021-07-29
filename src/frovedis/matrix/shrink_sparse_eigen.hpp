@@ -20,7 +20,7 @@ void eigen_sym_mpi(SPARSE_MATRIX_LOCAL& mat,
                    diag_matrix_local<REAL>& ret_d,
                    colmajor_matrix_local<REAL>& ret_v,
                    std::string order,
-                   int k) {
+                   int k, int maxiter, REAL tol) {
   int rank, size;
   MPI_Comm_rank(frovedis_comm_rpc, &rank);
   MPI_Comm_size(frovedis_comm_rpc, &size);
@@ -40,7 +40,6 @@ void eigen_sym_mpi(SPARSE_MATRIX_LOCAL& mat,
   char bmat = 'I';
   char* which = const_cast<char*>(order.c_str());
   int nev = k;
-  REAL tol = 0.0;
   REAL* resid = new REAL[nloc];
   int ncv;
   // some heulistics
@@ -58,8 +57,7 @@ void eigen_sym_mpi(SPARSE_MATRIX_LOCAL& mat,
   int ldv = nloc;
   int iparam[11];
   iparam[0] = 1;
-  int maxitr = n;
-  iparam[2] = maxitr;
+  iparam[2] = maxiter;
   iparam[3] = 1;
   iparam[6] = 1;
   int ipntr[11];
@@ -139,8 +137,15 @@ void eigen_sym_mpi(SPARSE_MATRIX_LOCAL& mat,
   }
 
   if(info < 0) {
-    RLOG(ERROR) << "error with dsaupd, info = " << info << std::endl;
-  } else {
+    REPORT_ERROR(INTERNAL_ERROR, 
+    "error with dsaupd, info = " + STR(info) + "\n");
+  }
+  else if(info == 1) {
+    REPORT_ERROR(INTERNAL_ERROR, "ARPACK error: No convergence (" + STR(iparam[2]) + 
+                 " iterations, " + STR(iparam[4]) + "/" + STR(k) +
+                 " eigenvectors converged)\n");
+  }
+  else {
     int rvec = 1;
     char howmny = 'A';
     int* select = new int[ncv];
@@ -158,7 +163,8 @@ void eigen_sym_mpi(SPARSE_MATRIX_LOCAL& mat,
     arpack_lap.lap_stop();
     if(rank == 0) t.show("p[ds]seupd time: ");
     if(info < 0) {
-      RLOG(ERROR) << "error with dseupd, info = " << info << std::endl;
+      REPORT_ERROR(INTERNAL_ERROR, 
+      "error with dseupd, info = " + STR(info) + "\n");
     }
     if(rank == 0) {
       arpack_lap.show_lap("arpack time: ");
@@ -177,19 +183,24 @@ void eigen_sym_mpi(SPARSE_MATRIX_LOCAL& mat,
 template <class T, class I, class SPARSE_MATRIX_LOCAL>
 struct calc_eigen_sym {
   calc_eigen_sym() {}
-  calc_eigen_sym(std::string order, int k, size_t mat_size) :
-    order(order), k(k), mat_size(mat_size) {}
+  calc_eigen_sym(std::string order, int k, size_t mat_size, 
+                 int maxiter, float tol) :
+                 order(order), k(k), mat_size(mat_size), 
+                 maxiter(maxiter), tol(tol) {}
   void operator()(SPARSE_MATRIX_LOCAL& mat,
                   diag_matrix_local<T>& d,
                   colmajor_matrix_local<T>& v,
                   std::vector<I>& tbl) {
     eigen_sym_mpi<T, I, SPARSE_MATRIX_LOCAL>(mat, mat_size,
-                                             tbl, d, v, order, k);
+                                             tbl, d, v, order, k, 
+                                             maxiter, tol);
   }
   std::string order;
   int k;
   size_t mat_size;
-  SERIALIZE(order, k, mat_size)
+  int maxiter;
+  float tol;
+  SERIALIZE(order, k, mat_size, maxiter, tol)
 };
 
 template <class T, class I, class O>
@@ -197,19 +208,18 @@ void sparse_eigen_sym(crs_matrix<T,I,O>& mat,
                       diag_matrix_local<T>& d,
                       colmajor_matrix<T>& v,
                       std::string order,
-                      int k) { 
+                      int k, int maxiter = std::numeric_limits<int>::max(),
+                      float tol = 0.0) { 
   auto dtmp = make_node_local_allocate<diag_matrix_local<T>>();
   v.data = make_node_local_allocate<colmajor_matrix_local<T>>();
-  if(mat.num_col != mat.num_row) {
-    throw std::runtime_error("sparse_eigen_sym: matrix is not square");
-  } else {
-    frovedis::time_spent t(DEBUG);
-    auto tbl = shrink_column(mat);
-    t.show("shrink_column: ");
-    mat.data.mapv(calc_eigen_sym<T,I,crs_matrix_local<T,I,O>>
-                  (order, k, mat.num_row),
-                  dtmp, v.data, tbl);
-  }
+  if(maxiter == std::numeric_limits<int>::max()) maxiter = mat.num_row;
+  require(mat.num_col == mat.num_row, "sparse_eigen_sym: matrix is not square");
+  frovedis::time_spent t(DEBUG);
+  auto tbl = shrink_column(mat);
+  t.show("shrink_column: ");
+  mat.data.mapv(calc_eigen_sym<T,I,crs_matrix_local<T,I,O>>
+                (order, k, mat.num_row, maxiter, tol),
+                 dtmp, v.data, tbl);
   d = *dtmp.get_dvid().get_selfdata();
   v.set_num(mat.num_row, k);
 }
@@ -221,25 +231,24 @@ void sparse_eigen_sym(crs_matrix<T,I,O>& mat,
                       diag_matrix_local<T>& d,
                       colmajor_matrix<T>& v,
                       std::string order,
-                      int k) {
+                      int k, int maxiter = std::numeric_limits<int>::max(),
+                      float tol = 0.0) {
   auto dtmp = make_node_local_allocate<diag_matrix_local<T>>();
   v.data = make_node_local_allocate<colmajor_matrix_local<T>>();
-  if(mat.num_col != mat.num_row) {
-    throw std::runtime_error("sparse_eigen_sym: matrix is not square");
-  } else {
-    frovedis::time_spent t(DEBUG);
-    auto tbl = shrink_column(mat);
-    t.show("shrink_column: ");
-    SPARSE_MATRIX new_mat(mat);
-    t.show("convert matrix format: ");
-    new_mat.data.mapv(calc_eigen_sym<T,I,SPARSE_MATRIX_LOCAL>
-                      (order, k, mat.num_row),
-                      dtmp, v.data, tbl);
-  }
+  if(maxiter == std::numeric_limits<int>::max()) maxiter = mat.num_row;
+  require(mat.num_col == mat.num_row, "sparse_eigen_sym: matrix is not square");
+  frovedis::time_spent t(DEBUG);
+  auto tbl = shrink_column(mat);
+  t.show("shrink_column: ");
+  SPARSE_MATRIX new_mat(mat);
+  t.show("convert matrix format: ");
+  new_mat.data.mapv(calc_eigen_sym<T,I,SPARSE_MATRIX_LOCAL>
+                   (order, k, mat.num_row, maxiter, tol),
+                    dtmp, v.data, tbl);
   d = *dtmp.get_dvid().get_selfdata();
   v.set_num(mat.num_row, k);
 }
 
-}
-}
+}  //shrink namepace
+}  // frovedis namespace
 #endif
