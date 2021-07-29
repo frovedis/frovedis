@@ -526,25 +526,4 @@ dftable_base* filtered_dftable::drop_cols(const std::vector<std::string>& cols) 
   return this;
 }
 
-dftable dftable_base::drop_null(const std::vector<std::string>& targets, 
-                                int axis, const std::string& how) {
-
-  require(axis == 0, "drop on axis: '" + STR(axis) + "' is not supported!\n");
-  require(how == "any", "drop using how: '" + how + "' is not supported!\n");
-
-  dftable ret;
-  auto tsz = targets.size();
-  if (tsz == 0) ret = materialize();
-  else {
-    auto fdf = filter(is_not_null(targets[0]));
-    for(size_t i = 1; i < tsz; ++i) fdf = fdf.filter(is_not_null(targets[i]));
-    ret = fdf.materialize();
-  }
-  return ret;
-}
-
-dftable dftable_base::drop_null(int axis, const std::string& how) {
-  return drop_null(columns(), axis, how);
-}
-
 }

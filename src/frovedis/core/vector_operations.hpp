@@ -76,9 +76,8 @@
  *    vector_max_pair(x, y): reduction by max for two vector of pairs<T,I>, returns pair vector containing maximums
  *    vector_max_index(x, y): reduction by max for two vector of pairs<T,I>, returns vector of max indices
  *    vector_max_value(x, y): reduction by max for two vector of pairs<T,I>, returns vector of max values
- *    vector_right_shift(x, tid): right-shift by 1 position for all elements from 0th index to 'tid-1'th index;
- *                                place value in 'tid'th index at 0.
- *    vector_right_shift_inplace(x, tid): inplace version of the above to shift elements in input 'x' itself.
+ *    vector_shift(x, from_id, to_id): shift all elements from 'from_id' index to 'to_id' index;
+ *    vector_shift_inplace(x, tid): inplace version of the above to shift elements in input 'x' itself.
  *
  */
 
@@ -1588,28 +1587,43 @@ int vector_is_uniform(const std::vector<T>& vec) {
 
 template <class T>
 std::vector<T>
-vector_right_shift(const std::vector<T>& vec, size_t tid) {
+vector_shift(const std::vector<T>& vec,
+             size_t from_id, size_t to_id) {
   auto vsz = vec.size();
-  if (vsz == 0) return std::vector<T>();
-  require(tid < vsz, "invalid tid for shift operation is provided!\n");
+  if (from_id == to_id || vsz == 0) return vec;
+  require(to_id < vsz, "invalid to_id for shift operation is provided!\n");
+  require(from_id < vsz, "invalid from_id for shift operation is provided!\n");
   std::vector<T> ret(vsz);
   auto vecp = vec.data();
   auto retp = ret.data();
-  retp[0] = vecp[tid];
-  for(size_t i = tid; i > 0; --i) retp[i] = vecp[i - 1];   // right-shift
-  for(size_t i = tid + 1; i < vsz; ++i) retp[i] = vecp[i]; // simple copy
+  auto tmp = vecp[from_id];
+  if (from_id > to_id) {
+    for(size_t i = from_id; i > to_id; --i) retp[i] = vecp[i - 1]; // right-shift
+    retp[to_id] = tmp;
+    for(size_t i = 0; i < to_id; ++i) retp[i] = vecp[i]; // simple copy
+    for(size_t i = from_id + 1; i < vsz; ++i) retp[i] = vecp[i]; // simple copy
+  }
+  else {
+    for(size_t i = from_id; i < to_id; ++i) retp[i] = vecp[i + 1]; // left-shift
+    retp[to_id] = tmp;
+    for(size_t i = 0; i < from_id; ++i) retp[i] = vecp[i]; // simple copy
+    for(size_t i = to_id + 1; i < vsz; ++i) retp[i] = vecp[i]; // simple copy
+  }
   return ret;
 }
 
 template <class T>
-void vector_right_shift_inplace(std::vector<T>& vec, size_t tid) {
+void vector_shift_inplace(std::vector<T>& vec, 
+                          size_t from_id, size_t to_id) {
   auto vsz = vec.size();
-  if (vsz == 0) return;
-  require(tid < vsz, "invalid tid for shift operation is provided!\n");
+  if (from_id == to_id || vsz == 0) return;
+  require(to_id < vsz, "invalid to_id for shift operation is provided!\n");
+  require(from_id < vsz, "invalid from_id for shift operation is provided!\n");
   auto vecp = vec.data();
-  auto tmp = vecp[tid];
-  for(size_t i = tid; i > 0; --i) vecp[i] = vecp[i - 1]; // right-shift
-  vecp[0] = tmp;
+  auto tmp = vecp[from_id];
+  if (from_id > to_id) for(size_t i = from_id; i > to_id; --i) vecp[i] = vecp[i - 1]; // right-shift
+  else                 for(size_t i = from_id; i < to_id; ++i) vecp[i] = vecp[i + 1]; // left-shift
+  vecp[to_id] = tmp;
 }
 
 template <class T>

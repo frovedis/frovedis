@@ -148,9 +148,8 @@ public:
                     const std::vector<T>& targets); // defined in dfoperator.hpp
   template <class T> 
   std::vector<size_t> get_loc(const std::string& col, const T& val); // defined in dfoperator.hpp 
-  dftable drop_null(const std::vector<std::string>& targets, 
-                    int axis=0, const std::string& how="any"); // defined in dfoperator.cc
-  dftable drop_null(int axis=0, const std::string& how="any"); 
+  dftable drop_nulls(int axis = 0, const std::string& how="any",
+                     const std::vector<std::string>& targets = std::vector<std::string>()); 
 
 protected:
   std::map<std::string, std::shared_ptr<dfcolumn>> col;
@@ -276,6 +275,7 @@ public:
                  const std::string& c6,
                  bool check_null_like = false);
   dftable& append_rowid(const std::string& name, size_t offset = 0);
+  dftable& prepend_rowid(const std::string& name, size_t offset=0);
   dftable& datetime_extract(datetime_type kind, const std::string& src_column,
                             const std::string& to_append_column);
   dftable& append_dictionary_index(const std::string& src_column,
@@ -330,8 +330,7 @@ public:
   dftable& align_as(const std::vector<size_t>& sizes);
   dftable& align_block();
 
-  dftable& add_index(const std::string& name, size_t offset=0);
-  dftable& set_index(const std::string& name);
+  dftable& change_col_position(const std::string& name, size_t idx);
   dftable& set_col_order(std::vector<std::string>& new_col_order);
   
   friend filtered_dftable;

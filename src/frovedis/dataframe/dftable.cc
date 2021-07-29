@@ -1113,6 +1113,36 @@ dftable make_sliced_dftable(dftable_base& t, size_t st, size_t end, size_t step)
   return filtered_dftable(t, std::move(idx)).materialize();
 }
 
+dftable drop_nulls_axis0_any_impl(dftable_base& df,
+                                  const std::vector<std::string>& targets) {
+  auto tsz = targets.size();
+  if (tsz == 0) return df.materialize(); // empty dftable case
+  auto fdf = df.filter(is_not_null(targets[0]));
+  for(size_t i = 1; i < tsz; ++i) fdf = fdf.filter(is_not_null(targets[i]));
+  return fdf.materialize();
+}
+
+dftable drop_nulls_axis0_all_impl(dftable_base& df,
+                                  const std::vector<std::string>& targets) {
+  auto tsz = targets.size();
+  if (tsz == 0) return df.materialize(); // empty dftable case
+  auto opt = is_null(targets[0]);
+  for(size_t i = 1; i < tsz; ++i) opt = and_op(opt, is_null(targets[i]));
+  return df.filter(not_op(opt)).materialize();
+}
+
+dftable dftable_base::drop_nulls(int axis, const std::string& how,
+                                 const std::vector<std::string>& targets) {
+  require(axis == 0, "drop nulls using axis: '" + STR(axis) + "' is not supported!\n");
+  require(how == "any" || how == "all", "drop nulls using how: '" + how + "' is not supported!\n");
+  dftable ret;
+  std::vector<std::string> cols = targets;
+  if (targets.empty()) cols = columns();
+  if (how == "any") ret = drop_nulls_axis0_any_impl(*this, cols);
+  else ret = drop_nulls_axis0_all_impl(*this, cols);
+  return ret;
+}
+
 // ---------- for dftable ----------
 
 // reused for other type of tables
@@ -2021,7 +2051,8 @@ union_tables_create_global_idx_helper(std::vector<size_t>& ret,
   if(start_idx < flat_num_rows_size) {
     size_t crnt_rank = start_idx % node_size;
     size_t crnt_table = start_idx / node_size;
-    size_t crnt_size = flat_num_rowsp[start_idx] - start_pos_in_idx;
+    size_t crnt_size =
+      std::min(flat_num_rowsp[start_idx] - start_pos_in_idx, ret_size);
     size_t nodeinfo = crnt_rank << DFNODESHIFT;
     size_t col_pos =
       colpx_flat_num_rows_transp[crnt_rank * table_size + crnt_table];
@@ -2042,7 +2073,7 @@ union_tables_create_global_idx_helper(std::vector<size_t>& ret,
       }
       crnt_retp += crnt_size;
     }
-    if(end_idx < flat_num_rows_size) {
+    if(start_idx != end_idx && end_idx < flat_num_rows_size) {
       crnt_rank = end_idx % node_size;
       crnt_table = end_idx / node_size;
       crnt_size = end_pos_in_idx;
@@ -2313,19 +2344,23 @@ dftable& dftable::align_block() {
   return align_as(block_size);
 }
 
-dftable& dftable::add_index(const std::string& name,
-                            size_t offset){
+// similar to add_index in pandas...
+dftable& dftable::prepend_rowid(const std::string& name,
+                                size_t offset) {
   append_rowid(name, offset);
-  vector_right_shift_inplace(col_order, num_col() - 1);
+  vector_shift_inplace(col_order, num_col() - 1, 0);
   return *this;
 }
 
-dftable& dftable::set_index(const std::string& name){
+// df.change_col_position("x", 0); => similar to df.set_index("x") in pandas...
+dftable& dftable::change_col_position(const std::string& name, size_t pos) {
   auto cols = columns();
+  require(pos < cols.size(), "change_col_position: given position is out-of-bound!\n");
   auto find_it = std::find (cols.begin(), cols.end(), name);
-  require(find_it != cols.end(), "set_index: given column doesn’t exist!\n");
+  require(find_it != cols.end(), "change_col_position: given column doesn't exist!\n");
   auto find_index = find_it - cols.begin();
-  vector_right_shift_inplace(col_order, find_index);
+  // do nothing if requested for same position
+  if (pos != find_index) vector_shift_inplace(col_order, find_index, pos);
   return *this;
 }
 

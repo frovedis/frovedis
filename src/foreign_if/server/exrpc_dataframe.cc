@@ -708,9 +708,9 @@ frov_load_dataframe_from_csv(std::string& filename,
 
   if (index_col >= 0) {
     auto cols = dftblp->columns();
-    dftblp->set_index(cols[index_col]);
+    dftblp->change_col_position(cols[index_col], 0); // set_index
   }
-  else if (add_index) dftblp->add_index("index");
+  else if (add_index) dftblp->prepend_rowid("index");
   reset_verbose_level();
   return to_dummy_dftable(dftblp);
 }
@@ -770,7 +770,7 @@ frov_df_append_column(exrpc_ptr_t& df_proxy,
                  REPORT_ERROR(USER_ERROR,msg);
   }
   if (drop_old) dftblp->set_col_order(df_col_order);
-  if (df_proxy == -1) dftblp->add_index("index");
+  if (df_proxy == -1) dftblp->prepend_rowid("index");
   if (position != -1 and position != sz) {
     // position can be zero if index column is not present
     checkAssumption(position >= 0 && position < sz); 
@@ -784,7 +784,7 @@ dummy_dftable
 frov_df_add_index(exrpc_ptr_t& df_proxy, 
                   std::string& name) {
   auto dftblp = get_dftable_pointer(df_proxy);
-  dftblp->add_index(name);
+  dftblp->prepend_rowid(name);
   return to_dummy_dftable(dftblp);
 }
 
@@ -797,7 +797,7 @@ frov_df_reset_index(exrpc_ptr_t& df_proxy,
 
   if (drop) {
     dftblp->drop(cols[0]); // dropping existing index-column
-    dftblp->add_index("index");
+    dftblp->prepend_rowid("index");
   }
   else {
     if (cols[0] == "label_0")
@@ -812,7 +812,7 @@ frov_df_reset_index(exrpc_ptr_t& df_proxy,
     }
     else if (cols[0] == "index_col") new_index_col = "label_0"; // as in pandas
     else                             new_index_col = "index_col"; 
-    dftblp->add_index(new_index_col);
+    dftblp->prepend_rowid(new_index_col);
   }
   return to_dummy_dftable(dftblp);
 }
@@ -839,7 +839,7 @@ frov_df_set_index(exrpc_ptr_t& df_proxy,
     "set_index: given column '" + new_index_name + 
     "' does not contain unique values!");
   if (cur_index_name != "") dftblp->drop(cur_index_name); //if self.has_index() is True
-  dftblp->set_index(new_index_name);
+  dftblp->change_col_position(new_index_name, 0); //set_index
   return to_dummy_dftable(dftblp);
 }
 
@@ -942,7 +942,7 @@ frov_df_copy_index(exrpc_ptr_t& to_df,
   auto to_df_p = get_dftable_pointer(to_df);
   auto from_df_p = reinterpret_cast<dftable_base*>(from_df);
   copy_column_helper(*to_df_p, *from_df_p, index_name, index_name, dtype);
-  to_df_p->set_index(index_name);
+  to_df_p->change_col_position(index_name, 0); //set_index
   return to_dummy_dftable(to_df_p);
 }
 
@@ -961,7 +961,7 @@ frov_df_copy_column(exrpc_ptr_t& to_df,
   for(size_t i = 0; i < size; ++i) {
     copy_column_helper(*to_df_p, *from_df_p, names[i], names_as[i], dtypes[i]);
   }
-  if (to_df == -1) to_df_p->add_index("index");
+  if (to_df == -1) to_df_p->prepend_rowid("index");
   return to_dummy_dftable(to_df_p);
 }
 
@@ -1014,7 +1014,7 @@ frov_df_dropna(exrpc_ptr_t& df_proxy,
                std::vector<std::string>& targets,
                int& axis, std::string& how) {
   auto df = reinterpret_cast<dftable_base*>(df_proxy);
-  auto ret = new dftable(df->drop_null(targets, axis, how));
+  auto ret = new dftable(df->drop_nulls(axis, how, targets));
   return to_dummy_dftable(ret);
 }
 
