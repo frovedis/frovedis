@@ -25,6 +25,15 @@ struct svd_result {
   SERIALIZE(svec_ptr,umat_ptr,vmat_ptr,m,n,k,info)
 };
 
+struct eigen_result {
+  eigen_result() {}
+  eigen_result(exrpc_ptr_t sptr, exrpc_ptr_t uptr,int mm, int nn, int kk):
+    svec_ptr(sptr), umat_ptr(uptr), m(mm), n(nn), k(kk) {}
+  exrpc_ptr_t svec_ptr, umat_ptr;
+  int m, n, k;
+  SERIALIZE(svec_ptr,umat_ptr,m,n,k);
+};
+
 struct knn_result {
   knn_result() {}
   knn_result(int k,
