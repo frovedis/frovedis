@@ -8,38 +8,35 @@ namespace frovedis {
     
   template <class T>
   struct spectral_clustering { 
-    spectral_clustering(int n_clusters = 2,
+    spectral_clustering(int ncluster = 2,
                         int n_comp = 2,
-                        int n_iter = 300,
                         double gamma = 1.0,
-                        double eps = 0.1,
+                        const std::string& affinity = "rbf",
+                        int n_neighbors = 10,
+                        int max_iter = 300,
+                        int n_init = 1,
+                        int seed = 0,
+                        double eps = 0.001,
                         bool norm_laplacian = true,
-                        bool precomputed = false,
-                        bool drop_first = false,
-                        int mode = 1) {
-      this->n_clusters = n_clusters;
+                        bool drop_first = true,
+                        int mode = 3) {
+      this->assign.set_k(ncluster)
+                  .set_max_iter(max_iter)
+                  .set_n_init(n_init)
+                  .set_seed(seed)
+                  .set_eps(eps);
       this->n_comp = n_comp;
-      this->n_iter = n_iter;
       this->gamma = gamma;
-      this->eps = eps;
+      this->affinity = affinity;
+      this->n_neighbors = n_neighbors;
       this->norm_laplacian = norm_laplacian;
-      this->precomputed = precomputed;
       this->drop_first = drop_first;
       this->mode = mode;
       this->is_fitted = false;
     }   
 
     spectral_clustering<T>& 
-    set_n_clusters(int n_clusters) {
-      std::string msg = "expected a positive n_clusters; received: " +
-                         STR(n_clusters) + "\n";
-      require(n_clusters > 0, msg);
-      this->n_clusters = n_clusters;  
-      return *this;
-    }
-
-    spectral_clustering<T>& 
-    set_n_comp(int n_comp) {
+    set_n_component(int n_comp) {
       std::string msg = "expected a positive n_comp; received: " + STR(n_comp) + "\n";
       require(n_comp > 0, msg);
       this->n_comp = n_comp;    
@@ -47,40 +44,39 @@ namespace frovedis {
     }
 
     spectral_clustering<T>& 
-    set_n_iter(int n_iter) {
-      std::string msg = "expected a positive n_iter; received: " + STR(n_iter) + "\n";
-      require(n_iter > 0, msg);
-      this->n_iter = n_iter;    
-      return *this;
-    }
-    
-    spectral_clustering<T>& 
     set_gamma(double gamma) {
       this->gamma = gamma;      
       return *this;
     }
     
     spectral_clustering<T>& 
-    set_eps(double eps) {
-      std::string msg = "expected eps within the range of 0.0 to 1.0; received: " +
-                         STR(eps) + "\n";
-      require(eps >= 0.0 && eps <= 1.0, msg);
-      this->eps = eps;
+    set_affinity(const std::string& aff) {
+      std::string msg = "expected 'rbf', 'precomputed' or 'nearest_neighbors'; received: " + aff + "\n";
+      require(aff == "rbf" || aff == "nearest_neighbors" || aff == "precomputed", msg);
+      this->affinity = aff;    
       return *this;
     }
-
+    
+    spectral_clustering<T>& 
+    set_n_neighbors(int n_nb) {
+      std::string msg = "expected a positive n_neighbors; received: " + STR(n_nb) + "\n";
+      require(n_nb > 0, msg);
+      this->n_neighbors = n_nb;    
+      return *this;
+    }
+    
+    spectral_clustering<T>& 
+    set_assign(KMeans<T>& obj) {
+      this->assign = obj;   
+      return *this;
+    }
+    
     spectral_clustering<T>& 
     set_norm_laplacian(bool norm_laplacian) {
       this->norm_laplacian = norm_laplacian;    
       return *this;
     }
 
-    spectral_clustering<T>& 
-    set_precomputed(bool precomputed) {
-      this->precomputed = precomputed;      
-      return *this;
-    }
-    
     spectral_clustering<T>& 
     set_drop_first(bool drop_first) {
       this->drop_first = drop_first;    
@@ -103,32 +99,44 @@ namespace frovedis {
         auto param = e.first;
         auto val = e.second;
         if(param == "n_clusters") {
-          set_n_clusters(val.get<int>());
+          assign.set_k(val.get<int>());
           msg += "n_clusters: " + val.tt + "; ";
         }
-        else if(param == "n_comp") {
-          set_n_comp(val.get<int>());
-          msg += "n_comp: " + val.tt + "; ";
-        }
         else if(param == "n_iter") {
-          set_n_iter(val.get<int>());
+          assign.set_max_iter(val.get<int>());
           msg += "n_iter: " + val.tt + "; ";
         }       
+        else if(param == "n_init") {
+          assign.set_n_init(val.get<int>());
+          msg += "n_init: " + val.tt + "; ";
+        }       
+        else if(param == "seed") {
+          assign.set_seed(val.get<int>());
+          msg += "n_seed: " + val.tt + "; ";
+        }       
         else if(param == "eps") {
-          set_eps(val.get<double>());
+          assign.set_eps(val.get<double>());
           msg += "eps: " + val.tt + "; ";
+        }
+        else if(param == "n_comp") {
+          set_n_component(val.get<int>());
+          msg += "n_comp: " + val.tt + "; ";
         }
         else if(param == "gamma") {
           set_gamma(val.get<double>());
           msg += "gamma: " + val.tt + "; ";
         }
+        else if(param == "affinity") {
+          set_affinity(val.get<std::string>());
+          msg += "affinity: " + val.tt + "; ";
+        }
+        else if(param == "n_neighbors") {
+          set_n_neighbors(val.get<int>());
+          msg += "n_neighbors: " + val.tt + "; ";
+        }
         else if(param == "norm_laplacian") {
           set_norm_laplacian(val.get<bool>());
           msg += "norm_laplacian: " + val.tt + "; ";
-        }
-        else if(param == "precomputed") {
-          set_precomputed(val.get<bool>());
-          msg += "precomputed: " + val.tt + "; ";
         }
         else if(param == "drop_first") {
           set_drop_first(val.get<bool>());
@@ -150,8 +158,8 @@ namespace frovedis {
     fit(const MATRIX& mat,
       const dvector<int>& label = dvector<int>()) { // ignored
       bool movable = false;
-      model = spectral_clustering_impl(mat, n_clusters, n_comp, n_iter, eps,
-                norm_laplacian, precomputed, drop_first, gamma, mode, movable);
+      model = spectral_clustering_impl(mat, assign, n_comp, gamma, affinity, n_neighbors,
+                                       norm_laplacian, drop_first, mode, movable);
       is_fitted = true;
       return *this;           
     }
@@ -161,8 +169,8 @@ namespace frovedis {
     fit(MATRIX&& mat,
       const dvector<int>& label = dvector<int>()) { // ignored
       bool movable = true;
-      model = spectral_clustering_impl(mat, n_clusters, n_comp, n_iter, eps,
-                norm_laplacian, precomputed, drop_first, gamma, mode, movable);
+      model = spectral_clustering_impl(mat, assign, n_comp, gamma, affinity, n_neighbors,
+                                       norm_laplacian, drop_first, mode, movable);
       is_fitted = true;
       return *this;           
     }   
@@ -205,7 +213,6 @@ namespace frovedis {
       return model.labels; 
     }
 
-
     void debug_print(size_t limit = 0) {
       std::cout << "spectral clustering model: \n";
       model.debug_print(limit);
@@ -233,19 +240,19 @@ namespace frovedis {
       // TODO: load other metadata
     }
 
-    private:
-      int n_clusters;
-      int n_comp;
-      int n_iter;
-      double eps;
-      bool norm_laplacian, precomputed;
-      bool drop_first, is_fitted;
-      double gamma;
-      int mode;
-      spectral_clustering_model<T> model;    
-      SERIALIZE(n_clusters, n_comp, n_iter, eps, norm_laplacian, 
-                 precomputed, drop_first, gamma, mode, model)     
-      typedef int predict_type;
+    int n_comp;
+    double gamma;
+    std::string affinity;
+    int n_neighbors;
+    KMeans<T> assign;
+    bool norm_laplacian, drop_first, is_fitted;
+    int mode;
+    spectral_clustering_model<T> model;    
+    SERIALIZE(n_comp, gamma, affinity, n_neighbors, 
+              assign,
+              norm_laplacian, drop_first, mode, 
+              is_fitted, model)     
+    typedef int predict_type;
   };
 }
 

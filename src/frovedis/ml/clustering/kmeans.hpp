@@ -11,7 +11,7 @@ namespace frovedis {
 
 template <class T>
 struct KMeans { 
-  KMeans(int k,
+  KMeans(int k=2,
          int n_init = 1,
          int max_iter = 300,
          double eps = 0.0001,
@@ -228,18 +228,17 @@ struct KMeans {
     return centroid.local_num_col;
   }
 
-  private:
-    int k;
-    int n_init, max_iter;
-    double eps;
-    long seed;
-    bool is_fitted, use_shrink;
-    std::vector<int> labels;
-    float inertia;
-    int n_iter;
-    rowmajor_matrix_local<T> centroid;
-    SERIALIZE(k, n_init, max_iter, eps, seed, is_fitted, use_shrink,
-              labels, inertia, n_iter, centroid);
+  int k;
+  int n_init, max_iter;
+  double eps;
+  long seed;
+  bool is_fitted, use_shrink;
+  std::vector<int> labels;
+  float inertia;
+  int n_iter;
+  rowmajor_matrix_local<T> centroid;
+  SERIALIZE(k, n_init, max_iter, eps, seed, is_fitted, use_shrink,
+            labels, inertia, n_iter, centroid);
 };
 
 }
