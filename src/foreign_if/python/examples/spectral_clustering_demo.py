@@ -14,7 +14,8 @@ if (argc < 2):
     quit()
 FrovedisServer.initialize(argvs[1])
 
-train_mat = FrovedisRowmajorMatrix(dtype=np.float64).load("./input/spectral_data.txt")
+#train_mat = FrovedisRowmajorMatrix(dtype=np.float64).load("./input/spectral_data.txt")
+train_mat = np.loadtxt("./input/spectral_data.txt")
 
 # creating spectral clustering object
 spec = SpectralClustering(n_clusters=2, verbose=0)
@@ -34,7 +35,7 @@ spec.debug_print()
 
 # saving the trained model
 spec.save("./out/MySpecClusteringModel")
-aff.release()
+#aff.release()
 spec.release()
 
 # loading the same trained model
