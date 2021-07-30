@@ -185,26 +185,12 @@ raw_string_extract_helper(const compressed_words& cws,
                           const std::vector<size_t>& nulls,
                           std::vector<size_t>& retnulls) {
   compressed_words ret = cws.extract(idx);
-  size_t size = idx.size();
   size_t nullssize = nulls.size();
   if(nullssize != 0) {
     std::vector<int> dummy(nullssize);
     auto nullhash = unique_hashtable<size_t, int>(nulls, dummy);
     auto isnull = nullhash.check_existence(idx);
-    int* isnullp = &isnull[0];
-    std::vector<size_t> rettmp(size);
-    size_t* rettmpp = &rettmp[0];
-    size_t current = 0;
-    for(size_t i = 0; i < size; i++) {
-      if(isnullp[i] == 1) {
-        rettmpp[current++] = i;
-      }
-    }
-    retnulls.resize(current);
-    size_t* retnullsp = &retnulls[0];
-    for(size_t i = 0; i < current; i++) {
-      retnullsp[i] = rettmpp[i];
-    }
+    retnulls = vector_find_one(isnull);
   }
   return ret;
 }
