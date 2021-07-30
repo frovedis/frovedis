@@ -286,7 +286,7 @@ def dot(a, b, out=None):
             b, cv2, isM2, b_ndim = get_computation_matrix(b, copy_bcm=False, \
                                                       check_col_vector=True, \
                                                       return_ndim=True)
-        else: 
+        else:
             a, cv1, isM1, a_ndim = get_computation_matrix(a, copy_bcm=False, \
                                                       check_col_vector=True, \
                                                       return_ndim=True)
@@ -324,7 +324,7 @@ def dot(a, b, out=None):
             else:
                 c = PBLAS.gemm(a, b)
                 return handle_dot_output(a, b, c, cv1, cv2, out, isM1 or isM2,\
-                                         toFlatten=True)  
+                                         toFlatten=True)
             #raise ValueError("dot: vector-matrix multiplication is not \
             #    supported!")
 
@@ -333,7 +333,7 @@ def eigsh(A, M = None, k = 6, sigma = None, which = 'LM', v0=None,
           Minv = None, OPinv = None, mode = 'normal'):
     """
     Find k eigenvalues and eigenvectors of the real symmetric square matrix A.
-    """     
+    """
     if M is not None:
         raise NotImplementedError("M is not currently supported!")
     if v0 is not None:
@@ -371,8 +371,8 @@ def eigsh(A, M = None, k = 6, sigma = None, which = 'LM', v0=None,
         maxiter = 10 * nrows
     wantEv = return_eigenvectors
     (host, port) = FrovedisServer.getServerInstance()
-    res = rpclib.eigsh(host, port, X.get(), 
-                       k, which.encode('ascii'), 
+    res = rpclib.eigsh(host, port, X.get(),
+                       k, which.encode('ascii'),
                        sigma, maxiter, wantEv,
                        tol, x_dtype,
                        x_itype, dense)
@@ -383,10 +383,10 @@ def eigsh(A, M = None, k = 6, sigma = None, which = 'LM', v0=None,
     uptr = res["eigenvec"]
     m_m = res['m']
     k_k = res['k']
-    eigval = FrovedisVector({'dptr' : sptr, 'size' : k_k}, 
+    eigval = FrovedisVector({'dptr' : sptr, 'size' : k_k},
                             dtype = TypeUtil.to_numpy_dtype(x_dtype)).to_numpy_array()
     if wantEv:
-        eigvec = FrovedisDenseMatrix('C', {'dptr' : uptr, 'nrow' : m_m, 'ncol' : k_k}, 
+        eigvec = FrovedisDenseMatrix('C', {'dptr' : uptr, 'nrow' : m_m, 'ncol' : k_k},
                                      dtype = TypeUtil.to_numpy_dtype(x_dtype)).to_numpy_array()
         return eigval, eigvec
     else:
