@@ -218,13 +218,8 @@ dummy_dftable frov_load_dataframe_from_csv(std::string& filename,
                                           std::map<std::string, std::string>& type_map,
                                           std::vector<int>& usecols,
                                           std::vector<std::string>& bool_cols,
-                                          csv_config& config);
+                                          csv_config& config, bool& is_all_bools);
 size_t get_dataframe_length(exrpc_ptr_t& df_proxy);
-
-dummy_dftable
-frov_df_convert_dicstring_to_bool(exrpc_ptr_t& df_proxy,
-                                 std::vector<std::string>& col_names,
-                                 std::string& nullstr);
 
 dummy_dftable
 frov_df_append_column(exrpc_ptr_t& df_proxy, 
@@ -259,7 +254,8 @@ frov_df_union(exrpc_ptr_t& df_proxy,
 dummy_dftable
 frov_df_astype(exrpc_ptr_t& df_proxy,
                std::vector<std::string>& cols,
-               std::vector<short>& types);
+               std::vector<short>& types,
+               bool& check_bool_like_string);
 
 dummy_dftable
 frov_df_set_col_order(exrpc_ptr_t& df_proxy,

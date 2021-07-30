@@ -632,7 +632,7 @@ extern "C" {
                                    int* usecols, ulong usecols_len,
                                    bool verbose, bool mangle_dupe_cols,
                                    int index_col, const char** bool_cols,
-                                   ulong bool_cols_size) {
+                                   ulong bool_cols_size, bool is_all_bools) {
     ASSERT_PTR(host);
  
     std::vector<std::string> col_types, col_names, bool_col_vec;
@@ -658,7 +658,7 @@ extern "C" {
     try {
       res = exrpc_async(fm_node, frov_load_dataframe_from_csv, filename_,
                         col_types, col_names, partial_type_info, type_map, 
-                        usecols_vec, bool_col_vec, conf). get();
+                        usecols_vec, bool_col_vec, conf, is_all_bools). get();
     }
     catch (std::exception& e) {
       set_status(true, e.what());
@@ -679,25 +679,6 @@ extern "C" {
       set_status(true, e.what());
     }
     return (long) len;
-  }
-
-  PyObject* df_convert_dicstring_to_bool(const char* host, int port,
-                                        long proxy, const char **col_names,
-                                        ulong sz, const char* nullstr) {
-    ASSERT_PTR(host);
-    auto df_proxy = static_cast<exrpc_ptr_t>(proxy);
-    auto col_names_ = to_string_vector(col_names, sz);
-    auto nullstr_ = std::string(nullstr);
-    exrpc_node fm_node(host,port);
-    dummy_dftable res;
-    try {
-      res = exrpc_async(fm_node, frov_df_convert_dicstring_to_bool, df_proxy,
-                       col_names_, nullstr_).get();
-    }
-    catch (std::exception& e) {
-      set_status(true, e.what());
-    }
-    return to_py_dummy_df(res);
   }
 
   PyObject* df_append_column(const char* host, int port,  long proxy,
@@ -820,7 +801,7 @@ extern "C" {
   PyObject* df_astype(const char* host, int port, 
                       long df,  
                       const char** cols, short* types,
-                      ulong size) {
+                      ulong size, bool check_bool_like_string) {
     ASSERT_PTR(host);
     exrpc_node fm_node(host, port);
     auto df_proxy = static_cast<exrpc_ptr_t> (df);
@@ -832,7 +813,7 @@ extern "C" {
     }
     dummy_dftable res;
     try {
-      res = exrpc_async(fm_node, frov_df_astype, df_proxy, cc, tt).get();
+      res = exrpc_async(fm_node, frov_df_astype, df_proxy, cc, tt, check_bool_like_string).get();
     }
     catch (std::exception& e) {
       set_status(true, e.what());

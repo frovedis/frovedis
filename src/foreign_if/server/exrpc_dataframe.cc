@@ -545,73 +545,6 @@ exrpc_ptr_t frov_cross_join_dfopt() {
   return reinterpret_cast<exrpc_ptr_t> (opt);
 }
 
-std::vector<int>
-string_to_bool_column_helper(const std::vector<size_t>& val, 
-                             const std::vector<size_t>& nulls,
-                             words& w) {
-  auto num = val.size();
-  std::vector<int> ret(num);
-  auto vptr = val.data();
-  auto rptr = ret.data();
-  auto charsp = w.chars.data();
-  auto lensp = w.lens.data();
-  auto startsp = w.starts.data();
-  // parsing strings to detect case-insensitive true/false
-  for(size_t i = 0; i < num; ++i) {
-    auto word_idx = vptr[i];
-    auto st = startsp[word_idx];
-    auto len = lensp[word_idx];
-    int ret = -1;
-    if (len == 4) {
-      int T = charsp[st] == 84 || charsp[st] == 116;
-      int R = charsp[st + 1] == 82 || charsp[st + 1] == 114;
-      int U = charsp[st + 2] == 85 || charsp[st + 2] == 117;
-      int E = charsp[st + 3] == 69 || charsp[st + 3] == 101;
-      if (T & R & U & E) ret = 1;
-    } else if (len == 5) {
-      int F = charsp[st] == 70 || charsp[st] == 102;
-      int A = charsp[st + 1] == 65 || charsp[st + 1] == 97;
-      int L = charsp[st + 2] == 76 || charsp[st + 2] == 108;
-      int S = charsp[st + 3] == 83 || charsp[st + 3] == 115;
-      int E = charsp[st + 4] == 69 || charsp[st + 4] == 101;
-      if (F & A & L & S & E) ret = 0;
-    }
-    rptr[i] = ret;
-  }
-  // resets values for null indices
-  reset_null(ret, nulls);
-  // checks for parsing error: any value which is different than true/false
-  auto err = vector_find_eq(ret, -1);
-  if (!err.empty()) {
-    auto first_error_word_idx = vptr[err[0]];
-    auto len = lensp[first_error_word_idx];
-    auto st = startsp[first_error_word_idx];
-    std::string str;
-    str.resize(len);
-    int_to_char(charsp + st, len, const_cast<char*>(str.data()));
-    std::string msg = "parse-error: invalid value '" + str + "' for boolean conversion!\n";
-    REPORT_ERROR(USER_ERROR, msg);
-  }
-  return ret;
-}
-
-void string_to_bool_column(dftable& df, 
-                           const std::string& cname) {
-  words w;
-  auto idx = df.to_dictionary_index(cname, w);
-
-  auto original_col_order = df.columns();
-  auto dfcol = df.column(cname);
-  use_dfcolumn use(dfcol);
-  auto nulls = dfcol->get_nulls();
-  auto tf_idx = idx.moveto_node_local()
-                   .map(string_to_bool_column_helper, nulls, broadcast(w));
-  auto newcol = std::make_shared<typed_dfcolumn<int>>(std::move(tf_idx), 
-                                                      std::move(nulls));
-  df.drop(cname).append_column(cname, newcol);
-  df.set_col_order(original_col_order);
-}
-
 dummy_dftable 
 frov_load_dataframe_from_csv(std::string& filename,
                              std::vector<std::string>& types,
@@ -620,7 +553,8 @@ frov_load_dataframe_from_csv(std::string& filename,
                              std::map<std::string, std::string>& type_map,
                              std::vector<int>& usecols,
                              std::vector<std::string>& bool_cols,
-                             csv_config& config) {
+                             csv_config& config,
+                             bool& is_all_bools) {
   //config.debug_print();
   auto separator = config.separator;
   auto nullstr = config.nullstr;
@@ -699,17 +633,30 @@ frov_load_dataframe_from_csv(std::string& filename,
 
   if (!dftblp) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed.\n");
 
-  if (!bool_cols.empty()){
-    auto cols = dftblp->columns();
-    for (auto& e: bool_cols) {
-      if (is_present(cols, e)) string_to_bool_column(*dftblp, e);
+  auto cols = dftblp->columns();
+  auto check_bool_like = true;
+  if (is_all_bools) {
+    for(auto& e: cols) {
+      auto tmp_e = e + "_tmp";
+      dftblp->rename(e, tmp_e);
+      dftblp->type_cast(tmp_e, e, "boolean", check_bool_like);
+      dftblp->drop(tmp_e);
     }
+    dftblp->set_col_order(cols); // to retain initial order
+  }
+  else if (!bool_cols.empty()) {
+    for (auto& e: bool_cols) {
+      if (is_present(cols, e)) {
+        auto tmp_e = e + "_tmp";
+        dftblp->rename(e, tmp_e);
+        dftblp->type_cast(tmp_e, e, "boolean", check_bool_like);
+        dftblp->drop(tmp_e);
+      }
+    }
+    dftblp->set_col_order(cols); // to retain initial order
   }
 
-  if (index_col >= 0) {
-    auto cols = dftblp->columns();
-    dftblp->change_col_position(cols[index_col], 0); // set_index
-  }
+  if (index_col >= 0) dftblp->change_col_position(cols[index_col], 0); // set_index
   else if (add_index) dftblp->prepend_rowid("index");
   reset_verbose_level();
   return to_dummy_dftable(dftblp);
@@ -718,16 +665,6 @@ frov_load_dataframe_from_csv(std::string& filename,
 size_t get_dataframe_length(exrpc_ptr_t& df_proxy) {
   auto dftblp = reinterpret_cast<dftable_base*>(df_proxy);
   return dftblp->num_row();
-}
-
-dummy_dftable
-frov_df_convert_dicstring_to_bool(exrpc_ptr_t& df_proxy,
-                                  std::vector<std::string>& col_names,
-                                  std::string& nullstr) { // TODO: remove nullstr 
-  auto dftblp = get_dftable_pointer(df_proxy); 
-  auto cols = dftblp->columns();
-  for (auto& e: col_names) string_to_bool_column(*dftblp, e);
-  return to_dummy_dftable(dftblp);
 }
 
 dummy_dftable
@@ -875,7 +812,8 @@ frov_df_set_col_order(exrpc_ptr_t& df_proxy,
 dummy_dftable
 frov_df_astype(exrpc_ptr_t& df_proxy,
                std::vector<std::string>& cols,
-               std::vector<short>& types) {
+               std::vector<short>& types,
+               bool& check_bool_like_string) {
   checkAssumption(cols.size() == types.size());
   auto dftblp = get_dftable_pointer(df_proxy);
   auto org_col_order = dftblp->columns();
@@ -888,11 +826,12 @@ frov_df_astype(exrpc_ptr_t& df_proxy,
       //std::cout << "col: " << c 
       //          << "; type: " << dftblp->column(c)->dtype() 
       //          << "; to-type: " << t << "\n";
-      if (cc->dtype() == "dic_string")
-        REPORT_ERROR(USER_ERROR, 
-        "type_cast: casting a string-typed column is not supported!\n");
+      if (cc->dtype() == "dic_string") { // FUTURE TODO: might need to remove this check
+        require(t == "boolean", 
+        "type_cast: casting a string-typed column is supported only for bool!\n");
+      }
       dftblp->rename(c, c + "__temp");
-      dftblp->type_cast(c + "__temp", c, t);
+      dftblp->type_cast(c + "__temp", c, t, check_bool_like_string);
       dftblp->drop(c + "__temp"); 
     }
   }

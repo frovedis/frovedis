@@ -249,7 +249,7 @@ df_copy_column.restype = py_object
 df_astype = LIB.df_astype
 df_astype.argtypes = [c_char_p, c_int, c_long, 
                       POINTER(c_char_p),
-                      POINTER(c_short), c_ulong]
+                      POINTER(c_short), c_ulong, c_bool]
 df_astype.restype = py_object
 
 select_frovedis_dataframe = LIB.select_frovedis_dataframe
@@ -379,19 +379,14 @@ load_dataframe_from_csv.argtypes = [c_char_p, c_int, # host, port
                                    ndpointer(c_int, ndim=1, flags="C_CONTIGUOUS"), #usecols-id
                                    c_ulong,        # usecols-len
                                    c_bool, c_bool, # verbose, mangle_dupe_cols
-                                   c_int, POINTER(c_char_p), c_ulong] # index_col, bool_cols, bool_cols_len
+                                   c_int, POINTER(c_char_p), c_ulong, # index_col, bool_cols, bool_cols_len
+                                   c_bool] # is_all_bools
 load_dataframe_from_csv.restype = py_object
 
 get_frovedis_dataframe_length = LIB.get_frovedis_dataframe_length
 get_frovedis_dataframe_length.argtypes = [c_char_p, c_int, # host, port
                                           c_long]          # proxy
 get_frovedis_dataframe_length.restype = c_long
-
-df_convert_dicstring_to_bool = LIB.df_convert_dicstring_to_bool
-df_convert_dicstring_to_bool.argtypes = [c_char_p, c_int, c_long,   # host, port, df_proxy
-                                        POINTER(c_char_p), c_ulong, # col_names, sz,
-                                        c_char_p]                   # nullstr
-df_convert_dicstring_to_bool.restype = py_object
 
 df_append_column = LIB.df_append_column
 df_append_column.argtypes = [c_char_p, c_int, c_long,  # host, port, df_proxy

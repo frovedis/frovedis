@@ -186,11 +186,15 @@ def read_csv(filepath_or_buffer, sep=',', delimiter=None,
             n = len(names)
         else:
             n = ncols
-        types = [get_string_typename(single_dtype)] * n
+        if single_dtype == 'bool':
+            types = [] # let it be infered at server side
+        else:
+            types = [get_string_typename(single_dtype)] * n
 
+    is_all_bools = single_dtype == 'bool'
     bool_cols = []
-    if isinstance(dtype, dict) :
-        bool_cols = [ k for k in dtype if dtype[k] == 'bool' ]
+    if isinstance(dtype, dict):
+        bool_cols = [k for k in dtype if dtype[k] == 'bool']
 
     name_arr = get_string_array_pointer(names)
     type_arr = get_string_array_pointer(types)
@@ -219,7 +223,8 @@ def read_csv(filepath_or_buffer, sep=',', delimiter=None,
                                             len(dtype_keys), low_memory, add_index,
                                             usecols, len(usecols),
                                             verbose, mangle_dupe_cols, index_col_no,
-                                            bool_cols_arr, len(bool_cols_arr))
+                                            bool_cols_arr, len(bool_cols_arr),
+                                            is_all_bools)
     excpt = rpclib.check_server_exception()
     if excpt["status"]:
         raise RuntimeError(excpt["info"])
@@ -227,8 +232,10 @@ def read_csv(filepath_or_buffer, sep=',', delimiter=None,
     names = dummy_df["names"]
     types = dummy_df["types"]
 
-    if len(bool_cols) > 0:
-        for i in range( len(names) ):
+    if is_all_bools:
+        types = [DTYPE.BOOL] * len(types)
+    elif len(bool_cols) > 0:
+        for i in range(len(names)):
             if names[i] in bool_cols:
                 types[i] = DTYPE.BOOL
 
@@ -237,10 +244,6 @@ def read_csv(filepath_or_buffer, sep=',', delimiter=None,
     #TODO: handle index/num_row setting inside load_dummy()
     res.index = FrovedisColumn(names[0], types[0]) #setting index
     res.num_row = dummy_df["nrow"]
-
-    if single_dtype == 'bool':
-        res = res.convert_dicstring_to_bool(res.columns, na_values)
-
     return res
 
 class DataFrame(object):
@@ -1652,35 +1655,6 @@ class DataFrame(object):
         ret.load_dummy(dummy_df["dfptr"], names[1:], types[1:])
         return None if inplace else ret
 
-    def convert_dicstring_to_bool(self, col_names, nullstr):
-        """ converts dicstring columns to bool"""
-        curr_types = self.__get_column_types(col_names)
-        for t in curr_types:
-            if t != DTYPE.STRING:
-                raise TypeError("convert_dicstring_to_bool: Conversion to "
-                               "boolean is supported for string columns only!")
-
-        name_arr = get_string_array_pointer(col_names)
-        (host, port) = FrovedisServer.getServerInstance()
-        dummy_df = rpclib.df_convert_dicstring_to_bool(host, port, self.get(),
-                                                       name_arr, len(name_arr),
-                                                       nullstr.encode("ascii"))
-        excpt = rpclib.check_server_exception()
-        if excpt["status"]:
-            raise RuntimeError(excpt["info"])
-
-        names = dummy_df["names"]
-        types = dummy_df["types"]
-
-        for i in range( len(names) ):
-            if names[i] in col_names:
-                types[i] = DTYPE.BOOL
-
-        self.index = FrovedisColumn(names[0], types[0]) #setting index
-        self.num_row = dummy_df["nrow"]
-        self.load_dummy(dummy_df["dfptr"], names[1:], types[1:])
-        return self
-
     def __get_dvec(self, dtype, val):
         """
         get dvector from numpy array
@@ -2095,8 +2069,15 @@ class DataFrame(object):
         self.load_dummy(dummy_df["dfptr"], names[1:], types[1:])
         return self
 
-    def astype(self, dtype, copy=True, errors='raise'):
-        """ Cast a frovedis DataFrame object to a specified dtype """
+    def astype(self, dtype, copy=True, errors='raise', 
+               check_bool_like_string=False):
+        """ 
+        Casts a frovedis DataFrame object to a specified dtype 
+
+        check_bool_like_string: added parameter; if True, can cast string column
+        having bool like case-insensitive strings (True, False, yes, No, 
+        On, Off, Y, N, T, F) to boolean columns
+        """
         t_cols = []
         t_dtypes = []
         if isinstance (dtype, (str, type)):
@@ -2119,7 +2100,8 @@ class DataFrame(object):
         type_arr = np.asarray(t_dtypes, dtype=c_short)
         t_dtypes_ptr = type_arr.ctypes.data_as(POINTER(c_short))
         dummy_df = rpclib.df_astype(host, port, ret.get(), t_cols_ptr, \
-                                    t_dtypes_ptr, len(t_cols))
+                                    t_dtypes_ptr, len(t_cols), \
+                                    check_bool_like_string)
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
             raise RuntimeError(excpt["info"])
