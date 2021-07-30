@@ -13,7 +13,9 @@ if (argc < 2):
     quit()
 FrovedisServer.initialize(argvs[1])
 
-mat = FrovedisCRSMatrix().load("./input/libSVMFile.txt")
+#mat = FrovedisCRSMatrix().load("./input/libSVMFile.txt")
+from sklearn.datasets import load_breast_cancer
+mat, lbl = load_breast_cancer(return_X_y=True)
 
 # fitting the input matrix on a ALS object
 als = ALS(rank=4).fit(mat)
