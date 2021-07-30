@@ -3,7 +3,7 @@
 import sys
 import numpy as np
 from frovedis.exrpc.server import FrovedisServer
-
+from sklearn.datasets import load_svmlight_file as lsf
 # initializing the Frovedis server
 argvs = sys.argv
 argc = len(argvs)
@@ -22,8 +22,10 @@ def grid_search_cv(obj, param, mat, lab):
     print('Frovedis accuracy_score with best C: ', grid.score(mat,lab))
 
 from frovedis.matrix.crs import FrovedisCRSMatrix
-mat = FrovedisCRSMatrix(dtype=np.float64).load("./input/libSVMFile.txt").to_scipy_matrix()
-lbl = np.array([1,0,1,1,1,0,1,1])
+#mat = FrovedisCRSMatrix(dtype=np.float64).load("./input/libSVMFile.txt").to_scipy_matrix()
+#lbl = np.array([1,0,1,1,1,0,1,1])
+from sklearn.datasets import load_breast_cancer
+mat, lbl = load_breast_cancer(return_X_y=True)
 
 from frovedis.mllib.linear_model import *
 lr = LogisticRegression(solver='sag')
