@@ -232,7 +232,8 @@ public:
   // cast to float/double; throw exception when string 
   virtual dvector<float> as_dvector_float() = 0; 
   virtual dvector<double> as_dvector_double() = 0;
-  virtual std::shared_ptr<dfcolumn> type_cast(const std::string& to_type) {
+  virtual std::shared_ptr<dfcolumn> type_cast(const std::string& to_type,
+                                              bool check_bool_like = false) {
     throw std::runtime_error("type_cast is not supported for this type");
   }
   virtual std::shared_ptr<dfcolumn>
@@ -551,7 +552,8 @@ public:
   T min();
   virtual dvector<float> as_dvector_float(); 
   virtual dvector<double> as_dvector_double();
-  virtual std::shared_ptr<dfcolumn> type_cast(const std::string& to_type);
+  virtual std::shared_ptr<dfcolumn> type_cast(const std::string& to_type,
+                                              bool check_bool_like=false);
 
   virtual std::shared_ptr<dfcolumn> add(const std::shared_ptr<dfcolumn>& right);
   template <class U>
@@ -868,7 +870,8 @@ public:
   virtual std::shared_ptr<dfcolumn> 
   multi_group_by_exchange(node_local<std::vector<std::vector<size_t>>>&
                           hash_divide);
-  virtual std::shared_ptr<dfcolumn> type_cast(const std::string& to_type);
+  virtual std::shared_ptr<dfcolumn> type_cast(const std::string& to_type,
+                                              bool check_bool_like = false);
   virtual std::shared_ptr<dfcolumn>
   sum(node_local<std::vector<size_t>>& local_grouped_idx,
       node_local<std::vector<size_t>>& local_idx_split,
@@ -1145,7 +1148,8 @@ public:
   virtual std::shared_ptr<dfcolumn> 
   multi_group_by_exchange(node_local<std::vector<std::vector<size_t>>>&
                           hash_divide);
-  virtual std::shared_ptr<dfcolumn> type_cast(const std::string& to_type);
+  virtual std::shared_ptr<dfcolumn> type_cast(const std::string& to_type,
+                                              bool check_bool_like = false);
   virtual std::shared_ptr<dfcolumn>
   sum(node_local<std::vector<size_t>>& local_grouped_idx,
       node_local<std::vector<size_t>>& local_idx_split,

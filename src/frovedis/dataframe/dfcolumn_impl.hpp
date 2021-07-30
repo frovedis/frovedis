@@ -7,6 +7,7 @@
 #include <climits>
 #include "../core/vector_operations.hpp"
 #include "../core/radix_sort.hpp"
+#include "../core/find_condition.hpp"
 #include "hashtable.hpp"
 #include "join.hpp"
 #include "../text/float_to_words.hpp"
@@ -245,28 +246,21 @@ std::vector<T> extract_helper(std::vector<T>& val,
   size_t* idxp = &idx[0];
 #pragma cdir nodep
 #pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
   for(size_t i = 0; i < size; i++) {
     retp[i] = valp[idxp[i]];
   }
   size_t nullssize = nulls.size();
   if(nullssize != 0) {
+/*
     std::vector<int> dummy(nullssize);
     auto nullhash = unique_hashtable<size_t, int>(nulls, dummy);
     auto isnull = nullhash.check_existence(idx);
-    int* isnullp = &isnull[0];
-    std::vector<size_t> rettmp(size);
-    size_t* rettmpp = &rettmp[0];
-    size_t current = 0;
-    for(size_t i = 0; i < size; i++) {
-      if(isnullp[i] == 1) {
-        rettmpp[current++] = i;
-      }
-    }
-    retnulls.resize(current);
-    size_t* retnullsp = &retnulls[0];
-    for(size_t i = 0; i < current; i++) {
-      retnullsp[i] = rettmpp[i];
-    }
+    retnulls = vector_find_one(isnull);
+*/
+    // assume that val always contains max() if NULL; this is much faster
+    retnulls = vector_find_eq(ret, std::numeric_limits<T>::max());
   }
   return ret;
 }
@@ -282,6 +276,8 @@ std::vector<T> extract_helper2(std::vector<T>& val,
   size_t* idxp = &idx[0];
 #pragma cdir nodep
 #pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
   for(size_t i = 0; i < size; i++) {
     retp[i] = valp[idxp[i]];
   }
@@ -300,6 +296,9 @@ global_extract_helper(std::vector<T>& val,
     ret[i].resize(exchanged_size);
     size_t* exchanged_idxp = &exchanged_idx[i][0];
     T* retp = &ret[i][0];
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
     for(size_t j = 0; j < exchanged_size; j++) {
       retp[j] = valp[exchanged_idxp[j]];
     }
@@ -343,6 +342,9 @@ std::vector<T> extract_non_null(std::vector<T>& val,
   T* non_null_valp = &non_null_val[0];
   T* valp = &val[0];
   size_t* non_null_idxp = &non_null_idx[0];
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
   for(size_t i = 0; i < non_null_size; i++) {
     non_null_valp[i] = valp[non_null_idxp[i]];
   }
@@ -422,10 +424,14 @@ outer_hash_join_eq_helper(std::vector<std::vector<T>>& left_vals,
   for(size_t i = 0; i < left_vals.size(); i++) {
     T* left_valsp = &left_vals[i][0];
     size_t* left_idxsp = &left_idxs[i][0];
-    for(size_t j = 0; j < left_vals[i].size(); j++) {
-      left_valp[current] = left_valsp[j];
-      left_idxp[current++] = left_idxsp[j];
+    size_t left_vals_size = left_vals[i].size();
+    T* left_valp_current = left_valp + current;
+    size_t* left_idxp_current = left_idxp + current;
+    for(size_t j = 0; j < left_vals_size; j++) {
+      left_valp_current[j] = left_valsp[j];
+      left_idxp_current[j] = left_idxsp[j];
     }
+    current += left_vals_size;
   }
   size_t right_size = 0;
   for(size_t i = 0; i < right_vals.size(); i++)
@@ -438,10 +444,14 @@ outer_hash_join_eq_helper(std::vector<std::vector<T>>& left_vals,
   for(size_t i = 0; i < right_vals.size(); i++) {
     T* right_valsp = &right_vals[i][0];
     size_t* right_idxsp = &right_idxs[i][0];
-    for(size_t j = 0; j < right_vals[i].size(); j++) {
-      right_valp[current] = right_valsp[j];
-      right_idxp[current++] = right_idxsp[j];
+    size_t right_vals_size = right_vals[i].size();
+    T* right_valp_current = right_valp + current;
+    size_t* right_idxp_current = right_idxp + current;
+    for(size_t j = 0; j < right_vals_size; j++) {
+      right_valp_current[j] = right_valsp[j];
+      right_idxp_current[j] = right_idxsp[j];
     }
+    current += right_vals_size;
   }
   return outer_equi_join(left_val, left_idx, right_val, right_idx,
                          left_idx_out, right_idx_out);
@@ -490,6 +500,13 @@ void group_by_vector_sum_helper
   size_t out_idx[GROUPBY_VLEN];
   size_t next_group_idx[GROUPBY_VLEN];
   T current_val[GROUPBY_VLEN];
+// never remove this vreg! this is needed following vovertake
+#pragma _NEC vreg(valid)
+#pragma _NEC vreg(val_idx)
+#pragma _NEC vreg(val_idx_stop)
+#pragma _NEC vreg(out_idx)
+#pragma _NEC vreg(next_group_idx)
+#pragma _NEC vreg(current_val)
   size_t group_size = split_idx.size() - 1;
   auto retp = ret.data();
 
@@ -530,6 +547,8 @@ void group_by_vector_sum_helper
   for(size_t j = 0; j < max_size; j++) {
 #pragma cdir nodep
 #pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
     for(int i = 0; i < GROUPBY_VLEN; i++) {
       if(valid[i]) {
         if(val_idx[i] == next_group_idx[i]) {
@@ -545,6 +564,8 @@ void group_by_vector_sum_helper
   }
 #pragma cdir nodep
 #pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
   for(int i = 0; i < GROUPBY_VLEN; i++) {
     if(out_idx[i] != group_size) {
       retp[out_idx[i]] = current_val[i];
@@ -564,6 +585,8 @@ sum_helper(std::vector<T>& org_val,
   size_t nullssize = nulls.size();
 #pragma cdir nodep
 #pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
   for(size_t i = 0; i < nullssize; i++) {
     org_valp[nullsp[i]] = 0;
   }
@@ -573,6 +596,8 @@ sum_helper(std::vector<T>& org_val,
   auto grouped_idxp = grouped_idx.data();
 #pragma cdir nodep
 #pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
   for(size_t i = 0; i < valsize; i++) {
     valp[i] = org_valp[grouped_idxp[i]];
   }
@@ -624,6 +649,8 @@ sum_helper(std::vector<T>& org_val,
   auto max = std::numeric_limits<T>::max();
 #pragma cdir nodep
 #pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
   for(size_t i = 0; i < nullssize; i++) {
     org_valp[nullsp[i]] = max;
   }
@@ -646,6 +673,12 @@ void group_by_vector_max_helper
   size_t out_idx[GROUPBY_VLEN];
   size_t next_group_idx[GROUPBY_VLEN];
   T current_val[GROUPBY_VLEN];
+#pragma _NEC vreg(valid)
+#pragma _NEC vreg(val_idx)
+#pragma _NEC vreg(val_idx_stop)
+#pragma _NEC vreg(out_idx)
+#pragma _NEC vreg(next_group_idx)
+#pragma _NEC vreg(current_val)
   size_t group_size = split_idx.size() - 1;
   auto retp = ret.data();
 
@@ -687,6 +720,8 @@ void group_by_vector_max_helper
   for(size_t j = 0; j < max_size; j++) {
 #pragma cdir nodep
 #pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
     for(int i = 0; i < GROUPBY_VLEN; i++) {
       if(valid[i]) {
         if(val_idx[i] == next_group_idx[i]) {
@@ -703,6 +738,8 @@ void group_by_vector_max_helper
   }
 #pragma cdir nodep
 #pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
   for(int i = 0; i < GROUPBY_VLEN; i++) {
     if(out_idx[i] != group_size) {
       retp[out_idx[i]] = current_val[i];
@@ -723,6 +760,8 @@ max_helper(std::vector<T>& org_val,
   auto min = std::numeric_limits<T>::lowest();
 #pragma cdir nodep
 #pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
   for(size_t i = 0; i < nullssize; i++) {
     org_valp[nullsp[i]] = min;
   }
@@ -732,6 +771,8 @@ max_helper(std::vector<T>& org_val,
   auto grouped_idxp = grouped_idx.data();
 #pragma cdir nodep
 #pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
   for(size_t i = 0; i < valsize; i++) {
     valp[i] = org_valp[grouped_idxp[i]];
   }
@@ -783,6 +824,8 @@ max_helper(std::vector<T>& org_val,
   auto max = std::numeric_limits<T>::max();
 #pragma cdir nodep
 #pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
   for(size_t i = 0; i < nullssize; i++) {
     org_valp[nullsp[i]] = max;
   }
@@ -805,6 +848,12 @@ void group_by_vector_min_helper
   size_t out_idx[GROUPBY_VLEN];
   size_t next_group_idx[GROUPBY_VLEN];
   T current_val[GROUPBY_VLEN];
+#pragma _NEC vreg(valid)
+#pragma _NEC vreg(val_idx)
+#pragma _NEC vreg(val_idx_stop)
+#pragma _NEC vreg(out_idx)
+#pragma _NEC vreg(next_group_idx)
+#pragma _NEC vreg(current_val)
   size_t group_size = split_idx.size() - 1;
   auto retp = ret.data();
 
@@ -846,6 +895,8 @@ void group_by_vector_min_helper
   for(size_t j = 0; j < max_size; j++) {
 #pragma cdir nodep
 #pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
     for(int i = 0; i < GROUPBY_VLEN; i++) {
       if(valid[i]) {
         if(val_idx[i] == next_group_idx[i]) {
@@ -862,6 +913,8 @@ void group_by_vector_min_helper
   }
 #pragma cdir nodep
 #pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
   for(int i = 0; i < GROUPBY_VLEN; i++) {
     if(out_idx[i] != group_size) {
       retp[out_idx[i]] = current_val[i];
@@ -883,6 +936,8 @@ min_helper(std::vector<T>& org_val,
   auto grouped_idxp = grouped_idx.data();
 #pragma cdir nodep
 #pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
   for(size_t i = 0; i < valsize; i++) {
     valp[i] = org_valp[grouped_idxp[i]];
   }
@@ -942,6 +997,8 @@ T sum_helper2(std::vector<T>& val,
   size_t* nullsp = &nulls[0];
 #pragma cdir nodep
 #pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
   for(size_t i = 0; i < nullssize; i++) {
     valp[nullsp[i]] = 0;
   }
@@ -952,6 +1009,8 @@ T sum_helper2(std::vector<T>& val,
   T max = std::numeric_limits<T>::max();
 #pragma cdir nodep
 #pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
   for(size_t i = 0; i < nullssize; i++) {
     valp[nullsp[i]] = max;
   }
@@ -968,6 +1027,8 @@ double mean_helper2(std::vector<T>& val,
   size_t* nullsp = &nulls[0];
 #pragma cdir nodep
 #pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
   for(size_t i = 0; i < nullssize; i++) {
     valp[nullsp[i]] = mean; // mean - mean would become zero in error calculation
   }
@@ -978,6 +1039,8 @@ double mean_helper2(std::vector<T>& val,
   T max = std::numeric_limits<T>::max();
 #pragma cdir nodep
 #pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
   for(size_t i = 0; i < nullssize; i++) {
     valp[nullsp[i]] = max;
   }
@@ -995,6 +1058,8 @@ T max_helper2(std::vector<T>& val,
   T min = std::numeric_limits<T>::lowest();
 #pragma cdir nodep
 #pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
   for(size_t i = 0; i < nullssize; i++) {
     valp[nullsp[i]] = min;
   }
@@ -1005,6 +1070,8 @@ T max_helper2(std::vector<T>& val,
   T max = std::numeric_limits<T>::max();
 #pragma cdir nodep
 #pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
   for(size_t i = 0; i < nullssize; i++) {
     valp[nullsp[i]] = max;
   }
@@ -1629,8 +1696,9 @@ typed_dfcolumn<T>::global_extract
       auto size = idx.size();
       std::vector<T> ret(size);
       auto retp = ret.data();
-#pragma cdir nodep
 #pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
       for(size_t i = 0 ; i < size; i++) {
         retp[i] = valp[idxp[i]];
       }
@@ -1638,6 +1706,7 @@ typed_dfcolumn<T>::global_extract
     }, to_store_idx);
   t.show("store: ");
   if(contain_nulls) {
+    /*
     auto exnulls = nulls.map(global_extract_null_helper, exchanged_idx);
     t.show("global_extract_null_helper: ");
     auto exchanged_back_nulls = alltoall_exchange(exnulls);
@@ -1649,6 +1718,11 @@ typed_dfcolumn<T>::global_extract
     ret->nulls = nullhashes.map(global_extract_null_helper2, global_idx,
                                 null_exists);
     t.show("global_extract_null_helper2: ");
+    */
+    // assume that val always contains max() if NULL; this is much faster
+    ret->nulls = ret->val.map(+[](std::vector<T>& val) {
+        return vector_find_eq(val, std::numeric_limits<T>::max());
+      });
     ret->contain_nulls_check();
   } else {
     ret->nulls = make_node_local_allocate<std::vector<size_t>>();
@@ -2299,6 +2373,9 @@ void group_by_impl(node_local<std::vector<T>>& val,
       std::vector<T> group(split_size-1);
       auto groupp = group.data();
       auto splitp = split.data();
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
       for(size_t i = 0; i < split_size-1; i++) {
         groupp[i] = newvalp[splitp[i]];
       }
@@ -2342,6 +2419,9 @@ void group_by_impl(node_local<std::vector<T>>& val,
       std::vector<T> retval(sepsize-1);
       auto retvalp = retval.data();
       auto sepp = sep.data();
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
       for(size_t i = 0; i < sepsize-1; i++) {
         retvalp[i] = flat_exchanged_groupp[sepp[i]];
       }
@@ -2377,6 +2457,9 @@ void multi_group_by_sort_helper(std::vector<T>& val,
   T* valp = &val[0];
   T* val2p = &val2[0];
   size_t* local_idxp = &local_idx[0];
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
   for(size_t i = 0; i < size; i++) {
     val2p[i] = valp[local_idxp[i]];
   }
@@ -2399,6 +2482,9 @@ multi_group_by_sort_split_helper(std::vector<T>& val,
   T* valp = &val[0];
   T* val2p = &val2[0];
   size_t* local_idxp = &local_idx[0];
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
   for(size_t i = 0; i < size; i++) {
     val2p[i] = valp[local_idxp[i]];
   }
@@ -2422,6 +2508,9 @@ multi_group_by_split_helper(std::vector<T>& val,
   T* valp = &val[0];
   T* val2p = &val2[0];
   size_t* local_idxp = &local_idx[0];
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
   for(size_t i = 0; i < size; i++) {
     val2p[i] = valp[local_idxp[i]];
   }
@@ -2446,6 +2535,9 @@ multi_group_by_extract_helper(std::vector<T>& val,
   auto size = split_idx.size();
   std::vector<T> ret(size-1);
   auto retp = ret.data();
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
   for(size_t i = 0; i < size-1; i++) {
     retp[i] = valp[local_idxp[split_idxp[i]]];
   }
@@ -2545,6 +2637,9 @@ multi_group_by_exchange_helper
         ret[i].resize(size);
         auto retp = ret[i].data();
         auto hash_dividep = hash_divide[i].data();
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
         for(size_t j = 0; j < size; j++) {
           retp[j] = valp[hash_dividep[j]];
         }
@@ -2674,6 +2769,9 @@ count_helper(std::vector<T>& val,
       hashed_ret[i].resize(each_size);
       auto hash_dividep = hash_divide[i].data();
       auto hashed_retp = hashed_ret[i].data();
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
       for(size_t j = 0; j < each_size; j++) {
         hashed_retp[j] = retp[hash_dividep[j]];
       }
@@ -3429,12 +3527,25 @@ do_static_cast(const std::vector<T>& v,
 
 template <class T>
 std::vector<int> 
-do_boolean_cast(const std::vector<T>& v) { 
+do_boolean_cast(const std::vector<T>& v,
+                const std::string& from_cast_name,
+                bool check_bool_like) { 
   auto size = v.size();
   std::vector<int> ret(size);
   auto vptr = v.data();
   auto rptr = ret.data();
-  for (size_t i = 0; i < size; ++i) rptr[i] = (vptr[i] != 0);
+  size_t count_non_bool_like = 0;
+  auto null_like = std::numeric_limits<T>::max();
+  for (size_t i = 0; i < size; ++i) {
+    rptr[i] = (vptr[i] != 0);
+    count_non_bool_like += (vptr[i] != 0) && (vptr[i] != 1) && 
+                           (vptr[i] != null_like);
+  }
+  if (check_bool_like && count_non_bool_like) {
+    auto tt = get_type_name<T>();
+    REPORT_ERROR(USER_ERROR, 
+    "some parsed " + from_cast_name + " cannot be treated as true/false");
+  }
   return ret;
 }
 
@@ -3454,13 +3565,16 @@ dvector<double> typed_dfcolumn<T>::as_dvector_double() {
 
 template <class T>
 std::shared_ptr<dfcolumn>
-typed_dfcolumn<T>::type_cast(const std::string& to_type) {
+typed_dfcolumn<T>::type_cast(const std::string& to_type,
+                             bool check_bool_like) {
   std::shared_ptr<dfcolumn> ret;
   if(to_type == "int") {
     auto newval = val.map(do_static_cast<T,int>, nulls);
     ret = std::make_shared<typed_dfcolumn<int>>(newval, nulls);
   } else if(to_type == "boolean") {
-    auto newval = val.map(do_boolean_cast<T>)
+    auto b_ctype = broadcast(dtype());
+    auto newval = val.map(do_boolean_cast<T>, 
+                          b_ctype, broadcast(check_bool_like))
                      .template moveto_dvector<int>();
     // nulls would also be treated as true, hence no nulls in casted column
     ret = std::make_shared<typed_dfcolumn<int>>(std::move(newval));

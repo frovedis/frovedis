@@ -48,6 +48,9 @@ get_null_like_positions (std::vector<std::string>& col) {
   auto hitp = hit.data();
   std::vector<size_t> ret(hit_size);
   auto retp = ret.data();
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
   for(size_t i = 0; i < hit_size; i++) {
     retp[i] = candp[hitp[i]];
   }
@@ -221,6 +224,8 @@ vector<size_t> convert_sorted_idx(vector<size_t>& val,
   auto nulls_size = nulls.size();
   auto null_value = std::numeric_limits<size_t>::max();
 #pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
   for(size_t i = 0; i < nulls_size; i++) {
     retp[nullsp[i]] = null_value;
   }
@@ -293,6 +298,9 @@ vector<size_t> equal_prepare_helper(vector<size_t>& val,
   size_t* missedp = &missed[0];
   size_t missedsize = missed.size();
   size_t misseddummy = numeric_limits<size_t>::max() - 1;
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
   for(size_t i = 0; i < missedsize; i++) {
     retp[missedp[i]] = misseddummy - i;
   }
@@ -791,14 +799,16 @@ typed_dfcolumn<string>::global_extract
       auto size = idx.size();
       std::vector<size_t> ret(size);
       auto retp = ret.data();
-#pragma cdir nodep
 #pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
       for(size_t i = 0 ; i < size; i++) {
         retp[i] = valp[idxp[i]];
       }
       return ret;
     }, to_store_idx);
   if(contain_nulls) {
+    /*
     auto exnulls = nulls.map(global_extract_null_helper, exchanged_idx);
     auto exchanged_back_nulls = alltoall_exchange(exnulls);
     auto null_exists = make_node_local_allocate<int>();
@@ -806,6 +816,10 @@ typed_dfcolumn<string>::global_extract
                                                null_exists);
     ret->nulls = nullhashes.map(global_extract_null_helper2, global_idx,
                                 null_exists);
+    */
+    ret->nulls = ret->val.map(+[](std::vector<size_t>& val) {
+        return vector_find_eq(val, std::numeric_limits<size_t>::max());
+      });
     ret->contain_nulls_check();
   } else {
     ret->nulls = make_node_local_allocate<std::vector<size_t>>();    
@@ -1436,17 +1450,31 @@ size_t typed_dfcolumn<string>::calc_spill_size() {
 }
 
 std::shared_ptr<dfcolumn>
-typed_dfcolumn<std::string>::type_cast(const std::string& to_type) {
+typed_dfcolumn<std::string>::type_cast(const std::string& to_type,
+                                       bool check_bool_like) {
   std::shared_ptr<dfcolumn> ret;
   if(to_type == "boolean") {
-    auto dic_dv = dic_idx->viewas_dvector<std::string>();
-    auto dicsizes = dic_dv.sizes();
-    auto sdic = dic_dv.gather();
-    auto tmp_dic = vector_string_to_words(sdic);
-    auto idx = val.map(to_contiguous_idx, broadcast(dicsizes));
-    auto b_words_to_bool_map = broadcast(words_to_bool(tmp_dic));
-    auto newcol = b_words_to_bool_map.map(vector_take<int,int>, idx);
-    ret = std::make_shared<typed_dfcolumn<int>>(std::move(newcol), nulls);
+    if (check_bool_like) {
+      auto dic_dv = dic_idx->viewas_dvector<std::string>();
+      auto dicsizes = dic_dv.sizes();
+      auto sdic = dic_dv.gather();
+      auto tmp_dic = vector_string_to_words(sdic);
+      auto idx = val.map(to_contiguous_idx, broadcast(dicsizes));
+      auto b_words_to_bool_map = broadcast(words_to_bool(tmp_dic));
+      auto newcol = b_words_to_bool_map.map(vector_take<int,int>, idx);
+      // TODO: should treat nulls as true?
+      ret = std::make_shared<typed_dfcolumn<int>>(std::move(newcol), nulls);
+    } else {
+      // True if non-empty string
+      auto newcol = get_val().map(+[](const std::vector<std::string>& vec) {
+                      auto sz = vec.size();
+                      std::vector<int> ret(sz); 
+                      for(size_t i = 0; i < sz; ++i) ret[i] = vec[i] != "";
+                      return ret;
+                    }).template moveto_dvector<int>();
+      // nulls would also be treated as true, hence no nulls in casted column
+      ret = std::make_shared<typed_dfcolumn<int>>(std::move(newcol));
+    }
   } else {
     throw std::runtime_error("string column doesn't support casting to: " + to_type);
   }

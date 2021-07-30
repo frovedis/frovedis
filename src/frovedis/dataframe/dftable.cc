@@ -1999,10 +1999,11 @@ void dftable::loadtext(const std::string& filename,
 
 dftable& dftable::type_cast(const std::string& from_name,
                             const std::string& to_name,
-                            const std::string& to_type) {
+                            const std::string& to_type,
+                            bool check_bool_like) {
   auto c = column(from_name);
   use_dfcolumn use(c);
-  auto new_column = c->type_cast(to_type);
+  auto new_column = c->type_cast(to_type, check_bool_like);
   append_column(to_name, new_column);
   return *this;
 }

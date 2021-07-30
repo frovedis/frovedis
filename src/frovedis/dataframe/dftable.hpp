@@ -301,7 +301,8 @@ public:
   virtual bool is_right_joinable() {return true;}
   dftable& type_cast(const std::string& from_name,
                      const std::string& to_name,
-                     const std::string& to_type);
+                     const std::string& to_type,
+                     bool check_bool_like = false);
   dftable union_tables(std::vector<dftable *>& ts, bool keep_order = false,
                        bool keep_dftable = true);
   dftable union_tables(std::vector<dftable>& ts, bool keep_order = false,

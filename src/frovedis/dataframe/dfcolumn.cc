@@ -1,5 +1,6 @@
 #include "dfcolumn_impl.hpp"
 #include "../core/utility.hpp"
+#include "../core/find_condition.hpp"
 #include <utility>
 #include <regex>
 #if !(defined(_SX) || defined(__ve__))
@@ -173,23 +174,14 @@ global_extract_null_helper(std::vector<size_t>& nulls,
   auto ht = unique_hashtable<size_t, int>(nulls, dummy);
   for(size_t i = 0; i < size; i++) {
     auto hit = ht.check_existence(exchanged_idx[i]);
-    size_t exchanged_idx_i_size = exchanged_idx[i].size();
-    int* hitp = &hit[0];
-    size_t nullsize = 0;
-    for(size_t j = 0; j < exchanged_idx_i_size; j++) {
-      if(hitp[j]) nullsize++;
-    }
-    part_nulls[i].resize(nullsize);
+    auto hit_idx = vector_find_one(hit);
+    auto hit_idx_size = hit_idx.size();
+    part_nulls[i].resize(hit_idx_size);
     size_t* part_nulls_ip = &part_nulls[i][0];
     size_t* exchanged_idx_ip = &exchanged_idx[i][0];
-    size_t current = 0;
-    for(size_t j = 0; j < exchanged_idx_i_size; j++) {
-      if(hitp[j]) {
-        part_nulls_ip[current++] = exchanged_idx_ip[j];
-      }
-    }
-    for(size_t j = 0; j < nullsize; j++) {
-      part_nulls_ip[j] += nodeinfo;
+    auto hit_idxp = hit_idx.data();
+    for(size_t j = 0; j < hit_idx_size; j++) {
+      part_nulls_ip[j] = exchanged_idx_ip[hit_idxp[j]] + nodeinfo;
     }
   }
   return part_nulls;
@@ -222,22 +214,7 @@ global_extract_null_helper2(unique_hashtable<size_t, int>& hashtable,
                             int& null_exists) {
   if(null_exists) {
     vector<int> isnull = hashtable.check_existence(global_idx);
-    int* isnullp = &isnull[0];
-    size_t size = isnull.size();
-    vector<size_t> rettmp(size);
-    size_t* rettmpp = &rettmp[0];
-    size_t current = 0;
-    for(size_t i = 0; i < size; i++) {
-      if(isnullp[i] == 1) {
-        rettmpp[current++] = i;
-      }
-    }
-    vector<size_t> ret(current);
-    size_t* retp = &ret[0];
-    for(size_t i = 0; i < current; i++) {
-      retp[i] = rettmpp[i];
-    }
-    return ret;
+    return vector_find_one(isnull);
   } else {
     return vector<size_t>();
   }
@@ -878,6 +855,8 @@ void dfcolumn_spill_queue_t::spill_one() {
   }
 }
 
+// converts bool-like case-insensitive words (Y, N, 1, 0, T, F, ON, OFF, YES, NO, 
+// TRUE, FALSE) to boolean
 std::vector<int>
 words_to_bool(words& w) {
   auto nwords = w.lens.size();
@@ -950,3 +929,4 @@ words_to_bool(words& w) {
 }
 
 }
+

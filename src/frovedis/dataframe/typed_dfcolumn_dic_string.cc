@@ -466,12 +466,16 @@ dic_string_sort_prepare_helper(const std::vector<size_t>& val,
   auto new_valp = new_val.data();
   auto null_value = std::numeric_limits<size_t>::max();
 #pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
   for(size_t i = 0; i < val_size; i++) {
     if(valp[i] != null_value) new_valp[i] = orderp[valp[i]];
   }
   auto nullsp = nulls.data();
   auto nulls_size = nulls.size();
 #pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
   for(size_t i = 0; i < nulls_size; i++) {
     new_valp[nullsp[i]] = null_value;
   }
@@ -689,12 +693,15 @@ typed_dfcolumn<dic_string>::global_extract
       auto retp = ret.data();
 #pragma cdir nodep
 #pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
       for(size_t i = 0 ; i < size; i++) {
         retp[i] = valp[idxp[i]];
       }
       return ret;
     }, to_store_idx);
   if(contain_nulls) {
+    /*
     auto exnulls = nulls.map(global_extract_null_helper, exchanged_idx);
     auto exchanged_back_nulls = alltoall_exchange(exnulls);
     auto null_exists = make_node_local_allocate<int>();
@@ -702,6 +709,10 @@ typed_dfcolumn<dic_string>::global_extract
                                                null_exists);
     ret->nulls = nullhashes.map(global_extract_null_helper2, global_idx,
                                 null_exists);
+    */
+    ret->nulls = ret->val.map(+[](std::vector<size_t>& val) {
+        return vector_find_eq(val, std::numeric_limits<size_t>::max());
+      });
     ret->contain_nulls_check();
   } else {
     ret->nulls = make_node_local_allocate<std::vector<size_t>>();    
@@ -1216,13 +1227,30 @@ size_t typed_dfcolumn<dic_string>::calc_spill_size() {
 }
 
 std::shared_ptr<dfcolumn>
-typed_dfcolumn<dic_string>::type_cast(const std::string& to_type) {
+typed_dfcolumn<dic_string>::type_cast(const std::string& to_type,
+                                      bool check_bool_like) {
   std::shared_ptr<dfcolumn> ret;
   if(to_type == "boolean") {
-    auto ddic = dic->decompress();
-    auto b_words_to_bool_map = broadcast(words_to_bool(ddic));
-    auto newcol = b_words_to_bool_map.map(vector_take<int,int>, val);
-    ret = std::make_shared<typed_dfcolumn<int>>(std::move(newcol), nulls);
+    if (check_bool_like) {
+      auto ddic = dic->decompress();
+      auto b_words_to_bool_map = broadcast(words_to_bool(ddic));
+      auto newcol = b_words_to_bool_map.map(vector_take<int,int>, val);
+      // TODO: should treat nulls as true?
+      ret = std::make_shared<typed_dfcolumn<int>>(std::move(newcol), nulls);
+    } else {
+      // True if non-empty string
+      std::string nullstr = "NULL";
+      auto strvec = as_words().map(words_to_string_vector,
+                                   get_nulls(), broadcast(nullstr));
+      auto newcol = strvec.map(+[](const std::vector<std::string>& vec) {
+                      auto sz = vec.size();
+                      std::vector<int> ret(sz); 
+                      for(size_t i = 0; i < sz; ++i) ret[i] = vec[i] != "";
+                      return ret;
+                    }).template moveto_dvector<int>();
+      // nulls would also be treated as true, hence no nulls in casted column
+      ret = std::make_shared<typed_dfcolumn<int>>(std::move(newcol));
+    }
   } else {
     throw std::runtime_error("dic_string column doesn't support casting to: " + to_type);
   }
