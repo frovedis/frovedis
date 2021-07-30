@@ -143,8 +143,10 @@ void svd_mpi(SPARSE_MATRIX_LOCAL& mat,
   trans_mat.clear();
 
   if(info < 0) {
-    RLOG(ERROR) << "error with dsaupd, info = " << info << std::endl;
-  } else {
+    REPORT_ERROR(INTERNAL_ERROR, 
+    "error with dsaupd, info = " + STR(info) + "\n");
+  }
+  else {
     int rvec = 1;
     char howmny = 'A';
     int* select = new int[ncv];
@@ -162,8 +164,10 @@ void svd_mpi(SPARSE_MATRIX_LOCAL& mat,
     arpack_lap.lap_stop();
     if(rank == 0) t.show("p[ds]seupd time: ");
     if(info < 0) {
-      RLOG(ERROR) << "error with dseupd, info = " << info << std::endl;
-    } else {
+      REPORT_ERROR(INTERNAL_ERROR, 
+      "error with dseupd, info = " + STR(info) + "\n");
+    } 
+    else {
       std::vector<REAL> tmpv(n);
       REAL* tmpvp = &tmpv[0];
       ret_u.val.resize(mloc*nev);

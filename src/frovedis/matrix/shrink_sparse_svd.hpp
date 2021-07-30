@@ -145,8 +145,15 @@ void svd_mpi(SPARSE_MATRIX_LOCAL& mat,
   trans_mat.clear();
 
   if(info < 0) {
-    RLOG(ERROR) << "error with dsaupd, info = " << info << std::endl;
-  } else {
+    REPORT_ERROR(INTERNAL_ERROR, 
+    "error with dsaupd, info = " + STR(info) + "\n");
+  }
+  else if(info == 1) {
+    REPORT_ERROR(INTERNAL_ERROR, "ARPACK error: No convergence (" + STR(iparam[2]) + 
+                 " iterations, " + STR(iparam[4]) + "/" + STR(k) +
+                 " eigenvectors converged)\n");
+  }
+  else {
     int rvec = 1;
     char howmny = 'A';
     int* select = new int[ncv];
@@ -164,8 +171,10 @@ void svd_mpi(SPARSE_MATRIX_LOCAL& mat,
     arpack_lap.lap_stop();
     if(rank == 0) t.show("p[ds]seupd time: ");
     if(info < 0) {
-      RLOG(ERROR) << "error with dseupd, info = " << info << std::endl;
-    } else {
+      REPORT_ERROR(INTERNAL_ERROR, 
+      "error with dseupd, info = " + STR(info) + "\n");
+    }
+    else {
       ret_u.val.resize(mloc*nev);
       REAL* ret_u_valp = &ret_u.val[0];
       ret_u.local_num_col = nev;
