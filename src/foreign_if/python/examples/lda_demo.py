@@ -26,32 +26,27 @@ corpus = [
     'Is this the first document?',
 ]
 vectorizer = CountVectorizer()
-mat = vectorizer.fit_transform(corpus)
-fmat = FrovedisCRSMatrix(mat, dtype=np.int32, itype=np.int64)
-#fmat.save('input_corpus_crs_001')
+fmat = vectorizer.fit_transform(corpus)
+
+lda = LatentDirichletAllocation(n_components=4, max_iter=5)
+lda.fit(fmat)
+print("components: ")
+print(lda.components_)
+lda.save('./out/trained_lda_model')
+
+# loading model for test on test corpus
+lda.load('./out/trained_lda_model')
 
 test_corpus = [
     'This is the first second third document.',
     'This This one third document.'
 ]
+fmat = vectorizer.fit_transform(test_corpus)
 
-mat_01 = vectorizer.fit_transform(test_corpus)
-fmat_01 = FrovedisCRSMatrix(mat_01, dtype=np.int32, itype=np.int64)
-#fmat_01.save('test_corpus_crs_001')
-
-
-lda = LatentDirichletAllocation(n_components=4, max_iter=5, doc_topic_prior=0.25,algorithm='original',
-                                topic_word_prior=0.25, learning_method='batch', learning_offset=50.,
-                                verbose=0,random_state=0,explore_iter=1, evaluate_every=2)
-lda.fit(fmat)
-print(lda.components_)
-lda.save('./out/trained_lda_model')
-
-lda.release()
-lda.load('./out/trained_lda_model')
-lda.fit_transform(fmat)
-print(lda.perplexity(fmat_01))
-print(lda.score(fmat_01))
+print("transformed: ")
+print(lda.fit_transform(fmat))
+print("preplexity: %.2f" % (lda.perplexity(fmat)))
+print("score: %.2f" % (lda.score(fmat)))
 
 # Shutting down the Frovedis server
 FrovedisServer.shut_down()
