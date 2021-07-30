@@ -15,7 +15,8 @@ if (argc < 2):
     quit()
 FrovedisServer.initialize(argvs[1])
 
-train_mat = FrovedisRowmajorMatrix(dtype=np.float64).load("./input/spectral_data.txt")
+#train_mat = FrovedisRowmajorMatrix(dtype=np.float64).load("./input/spectral_data.txt")
+train_mat = np.loadtxt("./input/spectral_data.txt")
 
 # creating spectral embedding object
 sem = SpectralEmbedding(n_components=2, verbose=0, drop_first=False)
@@ -50,8 +51,8 @@ sem.release()
 sem.load("./out/MySemModel",dtype=np.float64)
 sem.debug_print()
 
-embed.release()
-aff.release()
+#embed.release()
+#aff.release()
 sem.release()
 
 FrovedisServer.shut_down()
