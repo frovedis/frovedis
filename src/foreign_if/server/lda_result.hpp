@@ -85,13 +85,13 @@ template <class T>
 rowmajor_matrix_local <double>
 get_distribution_matrix_local(rowmajor_matrix_local<T>& m, 
                               std::vector<T>& vec,
-                              int axis = 1){
+                              int axis = 1, double alpha = 1.0) {
   auto nrow = m.local_num_row;
   auto ncol = m.local_num_col;
   std::vector<double> dbl_vec(vec.size());
   auto vptr = vec.data();
   auto dvptr = dbl_vec.data();
-  for(size_t i=0; i < vec.size(); i++) {
+  for(size_t i = 0; i < vec.size(); i++) {
     if(vptr[i]) dvptr[i] = 1.0 / vptr[i];
     else        dvptr[i] = 1.0;
   }
@@ -101,14 +101,14 @@ get_distribution_matrix_local(rowmajor_matrix_local<T>& m,
   if (axis) {
     for(size_t j = 0; j < ncol; ++j) {
       for(size_t i = 0; i < nrow; ++i) {
-        retvalptr[i * ncol + j] = mvalptr[i * ncol + j] * dvptr[i];
+        retvalptr[i * ncol + j] = (mvalptr[i * ncol + j] + alpha) * dvptr[i];
       }
     }
   }
   else {
     for(size_t j = 0; j < ncol; ++j) {
       for(size_t i = 0; i < nrow; ++i) {
-        retvalptr[i * ncol + j] = mvalptr[i * ncol + j] * dvptr[j];
+        retvalptr[i * ncol + j] = (mvalptr[i * ncol + j] + alpha) * dvptr[j];
       }
     }
   }
@@ -118,11 +118,12 @@ get_distribution_matrix_local(rowmajor_matrix_local<T>& m,
 template <class T>
 rowmajor_matrix <double>
 get_distribution_matrix(rowmajor_matrix<T>& m,
-                        int axis = 1) {
+                        int axis = 1, 
+                        double alpha = 1.0) {
   auto sum = (axis == 0) ? broadcast(sum_of_rows(m)) 
                          : m.data.map(rmm_sum_of_cols<T>);
   rowmajor_matrix<double> ret(m.data.map(get_distribution_matrix_local<T>,
-                                         sum, broadcast(axis)));
+                                         sum, broadcast(axis), broadcast(alpha)));
   ret.num_row = m.num_row;
   ret.num_col = m.num_col;
   return ret;

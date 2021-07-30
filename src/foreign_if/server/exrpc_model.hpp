@@ -986,8 +986,9 @@ frovedis_lda_transform(exrpc_ptr_t& dptr, double& alpha,
   auto doc_topic_count = lda_test(mat, alpha, beta, num_iter, algorithm,
                                   num_explore_iter, model, perplexity,
                                   likelihood);
+  int axis = 1;
   auto retptr = new rowmajor_matrix<double>(
-                get_distribution_matrix<TD>(doc_topic_count));
+                get_distribution_matrix(doc_topic_count, axis, alpha));
   auto dmat = to_dummy_matrix<rowmajor_matrix<double>,
                               rowmajor_matrix_local<double>>(retptr);
   return dummy_lda_result(dmat, perplexity.back(), likelihood.back());
@@ -1024,8 +1025,9 @@ frovedis_lda_transform_for_spark(exrpc_ptr_t& dptr, double& alpha,
                                         beta, num_iter, 
                                         algorithm, num_explore_iter, mid,
                                         ppl, llh);
+  int axis = 1;
   auto retptr = new rowmajor_matrix<double>(
-                get_distribution_matrix<TD>(doc_topic_count));
+                get_distribution_matrix<TD>(doc_topic_count, axis, alpha));
   auto dmat = to_dummy_matrix<rowmajor_matrix<double>,
                               rowmajor_matrix_local<double>>(retptr);
   return dummy_lda_result(dmat, ppl, llh);
