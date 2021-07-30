@@ -6,7 +6,8 @@ import os
 import pickle
 import numpy as np
 from ...base import *
-from ...exrpc.server import FrovedisServer
+from ...exrpc.server import FrovedisServer, set_association, \
+                            check_association, do_if_active_association
 from ...exrpc.rpclib import compute_lda_train, compute_lda_transform,\
                             compute_lda_component, \
                             check_server_exception
@@ -67,12 +68,11 @@ class LatentDirichletAllocation(BaseEstimator):
                                          #optimal hyperparams
         self._components = None
 
+    @set_association
     def fit(self, X, y=None):
         """Fit LDA model on training data X.
         Input parameters:
             X: This can be a sparse matrix or an array(non-negative dense).
-            Since frovedis accepts only crs_matrix, we need to
-            convert the input data to FrovedisCRSMatrix.
             X will be of shape([num_topic * sizeof(vocab)])
 
             y: ignore (as in sklearn)
@@ -107,17 +107,10 @@ class LatentDirichletAllocation(BaseEstimator):
             raise RuntimeError(excpt["info"])
         return self
 
-    def transform(self, X, return_distribution=True):
+    def _transform_impl(self, X):
         """
-	Transform input matrix X according to the trained model.
-            X: This can be a sparse matrix or an array(non-negative dense).
-            Since frovedis accepts only crs_matrix, we need to
-            convert the input data to FrovedisCRSMatrix.
-            X will be of shape([num_topic * sizeof(vocab)])
-        Output parameter:
-            doc_topic_distribution: document topic distribution . """
-        if self.__mid is None:
-            raise AttributeError("Transform called before fit, or the model is released!")
+        implements lda transform
+        """
         self.check_parameters()
         X1 = FrovedisFeatureData(X, itype=np.int64, allow_int_dtype=True)
         if X1.is_dense():
@@ -147,12 +140,22 @@ class LatentDirichletAllocation(BaseEstimator):
         nrow = dummy['nrow']
         ncol = dummy['ncol']
         dtd_mat = {'dptr': dist_mat, 'nrow': nrow, 'ncol': ncol}
-        ret = FrovedisRowmajorMatrix(mat=dtd_mat, dtype=np.float64)
-        if return_distribution:
-            if x_movable:
-                return ret.to_numpy_array()
-            else:
-                return ret
+        self.transformedX = FrovedisRowmajorMatrix(mat=dtd_mat, dtype=np.float64)
+        return x_movable
+
+    @check_association
+    def transform(self, X):
+        """
+	Transform input matrix X according to the trained model.
+            X: This can be a sparse matrix or an array(non-negative dense).
+            X will be of shape([num_topic * sizeof(vocab)])
+        Output parameter:
+            doc_topic_distribution: document topic distribution . """
+        x_movable = self._transform_impl(X)
+        if x_movable:
+            return self.transformedX.to_numpy_array()
+        else:
+            return self.transformedX
 
     def perplexity(self, X, sub_sampling=False):
         """
@@ -167,7 +170,7 @@ class LatentDirichletAllocation(BaseEstimator):
     	    score : float type
     	            Perplexity score.
         """
-        self.transform(X, return_distribution=False)
+        self._transform_impl(X)
         return self.ppl
 
     def score(self, X, y=None):
@@ -182,7 +185,7 @@ class LatentDirichletAllocation(BaseEstimator):
     	    score : float type
     	            Perplexity score.
         """
-        self.transform(X, return_distribution=False)
+        self._transform_impl(X)
         return self.llh
 
     def fit_transform(self, X, y=None):
@@ -221,6 +224,7 @@ class LatentDirichletAllocation(BaseEstimator):
 	                      % self.learning_method)
 
     @property
+    @check_association
     def components_(self):
         """components_ getter"""
         if self._components is None:
@@ -241,6 +245,7 @@ class LatentDirichletAllocation(BaseEstimator):
         raise AttributeError(\
             "attribute 'components_' of LatentDirichletAllocation object is not writable")
 
+    @set_association
     def load(self, fname, dtype=None):
         """
         NAME: load
@@ -262,41 +267,54 @@ class LatentDirichletAllocation(BaseEstimator):
         GLM.load(self.__mid, self.__mkind, self.__mdtype, fname)
         return self
 
+    @check_association
     def save(self, fname):
         """
         NAME: save
         """
-        if self.__mid is not None:
-            if os.path.exists(fname):
-                raise ValueError(\
-                    "another model with %s name already exists!" % fname)
-            else:
-                os.makedirs(fname)
-            GLM.save(self.__mid, self.__mkind, self.__mdtype, fname)
-            metadata = open(fname+"/metadata", "wb")
-            pickle.dump(\
-            (self.__mkind, self.__mdtype), metadata)
-            metadata.close()
+        if os.path.exists(fname):
+            raise ValueError(\
+                "another model with %s name already exists!" % fname)
         else:
-            raise AttributeError(\
-                "save: requested model might have been released!")
+            os.makedirs(fname)
+        GLM.save(self.__mid, self.__mkind, self.__mdtype, fname)
+        metadata = open(fname+"/metadata", "wb")
+        pickle.dump(\
+        (self.__mkind, self.__mdtype), metadata)
+        metadata.close()
+
+    def reset_metadata(self):
+        """
+        resets after-fit populated attributes to None
+        """
+        self.__mid = None
+        self.__mdtype = None
+        self._components = None
+        self.transformedX = None
+        self.ppl = None
+        self.llh = None
 
     def release(self):
         """
-        NAME: release for SGD classifier
+        resets after-fit populated attributes to None 
+        along with relasing server side memory
         """
-        if self.__mid is not None:
-            GLM.release(self.__mid, self.__mkind, self.__mdtype)
-            self.__mid = None
-            self.__mdtype = None
-            self._components = None
-            self.ppl = None
-            self.llh = None
+        self.__release_server_heap()
+        self.reset_metadata()
+
+    @do_if_active_association
+    def __release_server_heap(self):
+        """
+        to release model pointer from server heap
+        """
+        GLM.release(self.__mid, self.__mkind, self.__mdtype)
 
     def __del__(self):
         """
-        NAME: __del__ for SGD classifier
+        destructs the python object
         """
-        if FrovedisServer.isUP():
-            self.release()
+        self.reset_metadata()
 
+    def is_fitted(self):
+        """ function to confirm if the model is already fitted """
+        return self.__mid is not None

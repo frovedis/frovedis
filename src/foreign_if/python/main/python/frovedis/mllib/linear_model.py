@@ -127,16 +127,17 @@ class LogisticRegression(BaseEstimator):
         else:
             raise ValueError("Unsupported penalty is provided: ", self.penalty)
 
-        rparam = 1.0 / self.C
+        rparam = 1.0 / self.C * 0.5 # added 0.5 as in sklearn
         sample_weight = check_sample_weight(self, sample_weight)
-        (host, port) = FrovedisServer.getServerInstance()
-        supported_solver = ['sgd', 'lbfgs']
         solver = self.solver
         if solver == 'sag':
             solver = 'sgd'
-        if solver not in supported_solver:
+        elif solver == 'lbfgs':
+            regTyp = 2 # l2 is supported for lbfgs
+        else:
             raise ValueError( \
                 "Unknown solver %s for Logistic Regression." % solver)
+        (host, port) = FrovedisServer.getServerInstance()
         n_iter = rpclib.lr(host, port, X.get(), y.get(), \
                        sample_weight, len(sample_weight), self.max_iter, \
                        self.lr_rate, regTyp, rparam, isMult, \
@@ -327,6 +328,7 @@ class LogisticRegression(BaseEstimator):
     def release(self):
         """
         resets after-fit populated attributes to None
+        along with relasing server side memory
         """
         self.__release_server_heap()
         self.reset_metadata()
@@ -591,6 +593,7 @@ class LinearRegression(BaseEstimator):
     def release(self):
         """
         resets after-fit populated attributes to None
+        along with relasing server side memory
         """
         self.__release_server_heap()
         self.reset_metadata()
@@ -824,6 +827,7 @@ class Lasso(BaseEstimator):
     def release(self):
         """
         resets after-fit populated attributes to None
+        along with relasing server side memory
         """
         self.__release_server_heap()
         self.reset_metadata()
@@ -1056,6 +1060,7 @@ class Ridge(BaseEstimator):
     def release(self):
         """
         resets after-fit populated attributes to None
+        along with relasing server side memory
         """
         self.__release_server_heap()
         self.reset_metadata()
@@ -1417,6 +1422,7 @@ class SGDClassifier(BaseEstimator):
     def release(self):
         """
         resets after-fit populated attributes to None
+        along with relasing server side memory
         """
         self.__release_server_heap()
         self.reset_metadata()
@@ -1710,6 +1716,7 @@ class SGDRegressor(BaseEstimator):
     def release(self):
         """
         resets after-fit populated attributes to None
+        along with relasing server side memory
         """
         self.__release_server_heap()
         self.reset_metadata()
