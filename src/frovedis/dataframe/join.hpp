@@ -156,6 +156,8 @@ void multi_equi_join_vreg(int* valid, size_t* left_idx, size_t* right_idx,
   while(1) {
 #pragma cdir nodep
 #pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
     for(int j = 0; j < JOIN_VLEN; j++) {
       if(valid_vreg[j]) {
         leftelm[j] = leftelm_next[j];
@@ -344,6 +346,8 @@ std::vector<size_t> outer_equi_join(std::vector<T>& left,
     size_t* retp = &ret[0];
 #pragma cdir nodep
 #pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
     for(size_t i = 0; i < missedsize; i++) {
       retp[i] = left_idxp[missedp[i]];
     }
@@ -359,20 +363,18 @@ std::vector<size_t> outer_equi_join(std::vector<T>& left,
     std::vector<int> dummy(left_idx_out_size);
     auto idxhash = unique_hashtable<size_t, int>(left_idx_out, dummy);
     auto idx_exist = idxhash.check_existence(left_idx);
-
-    std::vector<size_t> onlylefttmp(left_idx_size);
-    size_t* onlylefttmpp = onlylefttmp.data();
-    int* idx_existp = idx_exist.data();
-    size_t* left_idxp = left_idx.data();
-    size_t current = 0;
-    for(size_t i = 0; i < left_idx_size; i++) {
-      if(idx_existp[i] == 0) {
-        onlylefttmpp[current++] = left_idxp[i];
-      }
+    auto only_left_idx = vector_find_eq(idx_exist, 0);
+    auto only_left_idxp = only_left_idx.data();
+    auto only_left_idx_size = only_left_idx.size();
+    std::vector<size_t> onlyleft(only_left_idx_size);
+    auto onlyleftp = onlyleft.data();
+    auto left_idxp = left_idx.data();
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+    for(size_t i = 0; i < only_left_idx_size; i++) {
+      onlyleftp[i] = left_idxp[only_left_idxp[i]];
     }
-    std::vector<size_t> onlyleft(current);
-    size_t* onlyleftp = onlyleft.data();
-    for(size_t i = 0; i < current; i++) onlyleftp[i] = onlylefttmpp[i];
     return onlyleft;
   }
 }

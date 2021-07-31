@@ -60,8 +60,9 @@ typed_dfcolumn<datetime>::global_extract
       auto size = idx.size();
       std::vector<datetime_t> ret(size);
       auto retp = ret.data();
-#pragma cdir nodep
 #pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
       for(size_t i = 0 ; i < size; i++) {
         retp[i] = valp[idxp[i]];
       }
@@ -69,6 +70,7 @@ typed_dfcolumn<datetime>::global_extract
     }, to_store_idx);
   t.show("store: ");
   if(contain_nulls) {
+    /*
     auto exnulls = nulls.map(global_extract_null_helper, exchanged_idx);
     t.show("global_extract_null_helper: ");
     auto exchanged_back_nulls = alltoall_exchange(exnulls);
@@ -80,6 +82,11 @@ typed_dfcolumn<datetime>::global_extract
     ret->nulls = nullhashes.map(global_extract_null_helper2, global_idx,
                                 null_exists);
     t.show("global_extract_null_helper2: ");
+    */
+    // assume that val always contains max() if NULL; this is much faster
+    ret->nulls = ret->val.map(+[](std::vector<datetime_t>& val) {
+        return vector_find_eq(val, std::numeric_limits<datetime_t>::max());
+      });
     ret->contain_nulls_check();
   } else {
     ret->nulls = make_node_local_allocate<std::vector<size_t>>();

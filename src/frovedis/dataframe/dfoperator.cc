@@ -123,6 +123,8 @@ convert_filtered_idx(std::vector<size_t>& org_idx,
   size_t* retp = &ret[0];
 #pragma cdir nodep
 #pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
   for(size_t i = 0; i < ret.size(); i++) {
     retp[i] = orgp[createdp[i]];
   }

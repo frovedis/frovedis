@@ -399,6 +399,9 @@ dftable_base::group_by(const std::vector<std::string>& cols) {
         auto local_idxp = local_idx.data();
         std::vector<size_t> ret(size);
         auto retp = ret.data();
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
         for(size_t i = 0; i < size; i++) {
           retp[i] = nodeidp[local_idxp[i]];
         }
@@ -1587,6 +1590,9 @@ dftable& dftable::append_raw_string_column(const std::string& name,
           auto posp = pos.data();
           auto retp = ret.data();
           auto orderp = comp_words.order.data();
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
           for(size_t i = 0; i < pos_size; i++) {
             retp[i] = orderp[posp[i]];
           }

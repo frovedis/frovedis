@@ -676,6 +676,8 @@ void reset_null_val(const std::vector<T>& nulls,
   auto nullp = nulls.data();
   auto tmax = std::numeric_limits<T>::max();
 #pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
   for(size_t i = 0; i < nulls.size(); ++i) valp[nullp[i]] = tmax;
 }
 
@@ -1783,6 +1785,8 @@ void split_by_hash_with_size(std::vector<T>& val,
       size_t* sepp = &sep[i][0];
 #pragma cdir nodep
 #pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
       for(size_t j = 0; j < sepsize; j++) {
         split_valp[j] = valp[sepp[j]];
         split_idxp[j] = global_idxp[sepp[j]];
@@ -1838,6 +1842,8 @@ void split_by_hash_no_outval_with_size
       size_t* sepp = &sep[i][0];
 #pragma cdir nodep
 #pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
       for(size_t j = 0; j < sepsize; j++) {
         split_idxp[j] = global_idxp[sepp[j]];
       }

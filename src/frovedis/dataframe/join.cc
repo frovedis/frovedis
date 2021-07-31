@@ -50,6 +50,9 @@ std::vector<size_t> shrink_missed(std::vector<size_t>& to_shrink,
     std::vector<size_t> ret(to_shrink_idx_size);
     size_t* retp = &ret[0];
     size_t* to_shrinkp = &to_shrink[0];
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
     for(size_t i = 0; i < to_shrink_idx_size; i++) {
       retp[i] = to_shrinkp[to_shrink_idxp[i]];
     }

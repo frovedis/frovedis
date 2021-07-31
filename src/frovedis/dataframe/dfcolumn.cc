@@ -58,6 +58,9 @@ void split_idx_with_size(std::vector<size_t>& global_idx,
       split_idx[i].resize(sepsize);
       size_t* split_idxp = &split_idx[i][0];
       size_t* sepp = &sep[i][0];
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
       for(size_t j = 0; j < sepsize; j++) {
         split_idxp[j] = global_idxp[sepp[j]];
       }
@@ -180,6 +183,9 @@ global_extract_null_helper(std::vector<size_t>& nulls,
     size_t* part_nulls_ip = &part_nulls[i][0];
     size_t* exchanged_idx_ip = &exchanged_idx[i][0];
     auto hit_idxp = hit_idx.data();
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
     for(size_t j = 0; j < hit_idx_size; j++) {
       part_nulls_ip[j] = exchanged_idx_ip[hit_idxp[j]] + nodeinfo;
     }
@@ -255,8 +261,8 @@ std::vector<std::vector<size_t>> separate_to_bucket(std::vector<int>& key,
   size_t* px_bucket_tablep = &px_bucket_table[0];
   std::vector<size_t> bucket_sum(num_bucket);
   size_t* bucket_sump = &bucket_sum[0];
-  int bucket[RADIX_SORT_VLEN];
-#pragma vreg(bucket)
+  int bucket[SEPARATE_TO_BUCKET_VLEN];
+#pragma _NEC vreg(bucket)
 
   std::vector<size_t> pos(size);
   size_t* posp = &pos[0];
@@ -437,6 +443,11 @@ void create_merge_map(std::vector<size_t>& nodeid,
   size_t start_idx[CREATE_MERGE_MAP_VLEN];
   size_t current_idx[CREATE_MERGE_MAP_VLEN];
   size_t stop_idx[CREATE_MERGE_MAP_VLEN];
+  size_t stop_idx_work[CREATE_MERGE_MAP_VLEN];
+// start_idx is not used in for loop
+#pragma _NEC vreg(valid)
+#pragma _NEC vreg(current_idx)
+#pragma _NEC vreg(stop_idx)
   auto each = ceil_div(nodeidsize, size_t(CREATE_MERGE_MAP_VLEN));
   if(each % 2 == 0) each++;
   start_idx[0] = 0;
@@ -461,9 +472,12 @@ void create_merge_map(std::vector<size_t>& nodeid,
     current_idx[i] = start_idx[i];
   }
   for(size_t i = 0; i < CREATE_MERGE_MAP_VLEN-1; i++) {
-    stop_idx[i] = start_idx[i+1];
+    stop_idx_work[i] = start_idx[i+1];
   }
-  stop_idx[CREATE_MERGE_MAP_VLEN-1] = nodeidsize;
+  stop_idx_work[CREATE_MERGE_MAP_VLEN-1] = nodeidsize;
+  for(size_t i = 0; i < CREATE_MERGE_MAP_VLEN; i++) {
+    stop_idx[i] = stop_idx_work[i];
+  }
   for(size_t i = 0; i < CREATE_MERGE_MAP_VLEN; i++) {
     if(stop_idx[i] == start_idx[i]) valid[i] = false;
     else valid[i] = true;

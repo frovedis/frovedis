@@ -15,7 +15,6 @@
 #include "dfutil.hpp"
 
 #define GROUPBY_VLEN 256
-#define FIND_VALUE_VLEN 256
 
 namespace frovedis {
 
@@ -641,6 +640,9 @@ sum_helper(std::vector<T>& org_val,
     hashed_ret[i].resize(each_size);
     auto hash_dividep = hash_divide[i].data();
     auto hashed_retp = hashed_ret[i].data();
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
     for(size_t j = 0; j < each_size; j++) {
       hashed_retp[j] = retp[hash_dividep[j]];
     }
@@ -816,6 +818,9 @@ max_helper(std::vector<T>& org_val,
     hashed_ret[i].resize(each_size);
     auto hash_dividep = hash_divide[i].data();
     auto hashed_retp = hashed_ret[i].data();
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
     for(size_t j = 0; j < each_size; j++) {
       hashed_retp[j] = retp[hash_dividep[j]];
     }
@@ -981,6 +986,9 @@ min_helper(std::vector<T>& org_val,
     hashed_ret[i].resize(each_size);
     auto hash_dividep = hash_divide[i].data();
     auto hashed_retp = hashed_ret[i].data();
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
     for(size_t j = 0; j < each_size; j++) {
       hashed_retp[j] = retp[hash_dividep[j]];
     }
@@ -2239,112 +2247,10 @@ void create_merge_map(std::vector<size_t>& nodeid,
                       std::vector<size_t>& split,
                       std::vector<std::vector<size_t>>& merge_map);
 
-#if defined(_SX) || defined(__ve__)
-// loop raking version
 template <class T>
 std::vector<size_t> find_value(std::vector<T>& val, T tofind) {
-  auto size = val.size();
-  if(size == 0) return std::vector<size_t>();
-  auto vp = val.data();
-  std::vector<size_t> idxtmp(size);
-  auto idxtmpp = idxtmp.data();
-  size_t each = size / FIND_VALUE_VLEN; // maybe 0
-  if(each % 2 == 0 && each > 1) each--;
-  size_t rest = size - each * FIND_VALUE_VLEN;
-  size_t out_ridx[FIND_VALUE_VLEN];
-// never remove this vreg! this is needed folowing vovertake
-// though this prevents ftrace...
-#pragma _NEC vreg(out_ridx)
-  for(size_t i = 0; i < FIND_VALUE_VLEN; i++) {
-    out_ridx[i] = each * i;
-  }
-  if(each == 0) {
-    size_t current = 0;
-    for(size_t i = 0; i < size; i++) {
-      if(vp[i] == tofind) {
-        idxtmpp[current] = i;
-        current++;
-      }
-    }
-    std::vector<size_t> found(current);
-    auto foundp = found.data();
-    for(size_t i = 0; i < current; i++) {
-      foundp[i] = idxtmpp[i];
-    }
-    return found;
-  } else {
-#pragma _NEC vob
-    for(size_t j = 0; j < each; j++) {
-#pragma cdir nodep
-#pragma _NEC ivdep
-#pragma _NEC vovertake
-      for(size_t i = 0; i < FIND_VALUE_VLEN; i++) {
-        auto loaded_v = vp[j + each * i];
-        if(loaded_v == tofind) {
-          idxtmpp[out_ridx[i]] = j + each * i;
-          out_ridx[i]++;
-        }
-      }
-    }
-    size_t rest_idx_start = each * FIND_VALUE_VLEN;
-    size_t rest_idx = rest_idx_start;
-    if(rest != 0) {
-      for(size_t j = 0; j < rest; j++) {
-        auto loaded_v = vp[j + rest_idx_start]; 
-        if(loaded_v == tofind) {
-          idxtmpp[rest_idx] = j + rest_idx_start;
-          rest_idx++;
-        }
-      }
-    }
-    size_t sizes[FIND_VALUE_VLEN];
-    for(size_t i = 0; i < FIND_VALUE_VLEN; i++) {
-      sizes[i] = out_ridx[i] - each * i;
-    }
-    size_t total = 0;
-    for(size_t i = 0; i < FIND_VALUE_VLEN; i++) {
-      total += sizes[i];
-    }
-    size_t rest_size = rest_idx - each * FIND_VALUE_VLEN;
-    total += rest_size;
-    std::vector<size_t> found(total);
-    auto foundp = found.data();
-    size_t current = 0;
-    for(size_t i = 0; i < FIND_VALUE_VLEN; i++) {
-      for(size_t j = 0; j < sizes[i]; j++) {
-        foundp[current + j] = idxtmpp[each * i + j];
-      }
-      current += sizes[i];
-    }
-    for(size_t j = 0; j < rest_size; j++) {
-      foundp[current + j] = idxtmpp[rest_idx_start + j];
-    }
-    return found;
-  }
+  return vector_find_eq(val, tofind);
 }
-#else
-template <class T>
-std::vector<size_t> find_value(std::vector<T>& val, T tofind) {
-  auto size = val.size();
-  auto vp = val.data();
-  if(size == 0) return std::vector<size_t>();
-  std::vector<size_t> idxtmp(size);
-  auto idxtmpp = idxtmp.data();
-  size_t current = 0;
-  for(size_t i = 0; i < size; i++) {
-    if(vp[i] == tofind) {
-      idxtmpp[current] = i;
-      current++;
-    }
-  }
-  std::vector<size_t> found(current);
-  auto foundp = found.data();
-  for(size_t i = 0; i < current; i++) {
-    foundp[i] = idxtmpp[i];
-  }
-  return found;
-}
-#endif
 
 template <class T>
 void group_by_impl(node_local<std::vector<T>>& val,
@@ -2366,6 +2272,9 @@ void group_by_impl(node_local<std::vector<T>>& val,
       auto size = idx.size();
       std::vector<T> newval(size);
       auto newvalp = newval.data();
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
       for(size_t i = 0; i < size; i++) {newvalp[i] = valp[idxp[i]];}
       radix_sort(newvalp, idxp, size); 
       split = set_separate(newval);
