@@ -1,3 +1,4 @@
+#pragma options "-fno-loop-fusion"
 #ifndef PARSEINT_HPP
 #define PARSEINT_HPP
 
@@ -34,6 +35,12 @@ void parseint(const int* charsp, const size_t* startsp,
   T sign_buf[PARSEINT_VLEN];
 #pragma _NEC vreg(sign_buf)
 
+  // work around for loop fusion bug of nc++ 3.3.0
+  size_t all_max = 0;
+  for(size_t i = 0; i < num_words; i++) {
+    if(lensp[i] > all_max) all_max = lensp[i];
+  }
+
   for(size_t b = 0; b < block; b++) {
     auto crnt_startsp = startsp + b * PARSEINT_VLEN;
     auto crnt_lensp = lensp + b * PARSEINT_VLEN;
@@ -58,11 +65,13 @@ void parseint(const int* charsp, const size_t* startsp,
         }
       }
     }
+    /*
     size_t max = 0;
     for(size_t i = 0; i < PARSEINT_VLEN; i++) {
       if(lens_buf[i] > max) max = lens_buf[i];
     }
-    for(size_t it = 0; it < max; it++) {
+    */
+    for(size_t it = 0; it < all_max; it++) {
       for(size_t i = 0; i < PARSEINT_VLEN; i++) {
         if(starts_buf[i] != stops_buf[i]) {
           res_buf[i] = res_buf[i] * 10 + charsp[starts_buf[i]++] - '0';
@@ -108,11 +117,13 @@ void parseint(const int* charsp, const size_t* startsp,
       }
     }
   }
+  /*
   size_t max = 0;
   for(size_t i = 0; i < rest; i++) {
     if(lens_buf2[i] > max) max = lens_buf2[i];
   }
-  for(size_t it = 0; it < max; it++) {
+  */
+  for(size_t it = 0; it < all_max; it++) {
     for(size_t i = 0; i < rest; i++) {
       if(starts_buf2[i] != stops_buf2[i]) {
         res_buf2[i] = res_buf2[i] * 10 + charsp[starts_buf2[i]++] - '0';
