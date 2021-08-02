@@ -21,9 +21,9 @@ card/node, unless otherwise specified.
 <tr><td>Random Forest Regression</td> <td>[*3]</td> </tr>
 <tr><td>GBDT Classification</td> <td>[*3]</td> </tr>
 <tr><td>GBDT Regression</td> <td>[*3]</td> </tr>
-<tr><td>Nearest Neighbor Classification</td> <td>Only dense</td> </tr>
-<tr><td>Nearest Neighbor Regression</td> <td>Only dense</td> </tr>
-<tr><td>Unsupervised Nearest Neighbor</td> <td>Only dense</td> </tr>
+<tr><td>Nearest Neighbor Classification</td> <td></td> </tr>
+<tr><td>Nearest Neighbor Regression</td> <td></td> </tr>
+<tr><td>Unsupervised Nearest Neighbor</td> <td></td> </tr>
 <tr><td>Multinomial Naive Bayes</td> <td></td> </tr>
 <tr><td>Bernoulli Naive Bayes</td> <td></td> </tr>
 <tr><td>Factorization Machines</td> <td></td> </tr>
@@ -31,12 +31,12 @@ card/node, unless otherwise specified.
 <td>K-means</td> <td></td> </tr>
 <tr><td>Spectral Clustering</td> <td>Only dense</td> </tr>
 <tr><td>Agglomerative Clustering</td> <td>Only dense</td> </tr>
-<tr><td>DBSCAN</td> <td>Only dense</td> </tr>
+<tr><td>DBSCAN</td> <td></td> </tr>
 <tr><td>Gaussian Mixture Model</td> <td>Only dense</td> </tr>
 <tr><td>ART-2A</td> <td>Only C++</td> </tr>
 <tr><td rowspan="5">Preprocess</td>
 <td>Singular Value Decomposition</td> <td></td> </tr>
-<tr><td>Eigen Value Decomposition</td> <td>Only C++</td> </tr>
+<tr><td>Eigen Value Decomposition</td> <td>Only C++, python</td> </tr>
 <tr><td>Principal Component Analysis</td> <td>Only dense</td> </tr>
 <tr><td>Spectral Embedding</td> <td>Only dense</td> </tr>
 <tr><td>T-SNE</td> <td>Only dense</td> </tr>
