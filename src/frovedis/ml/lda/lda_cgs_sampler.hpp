@@ -69,8 +69,10 @@ private:
     void cal_distribution_3(lda_document<TD,TW,TK>& doc, lda_model<TC>& model, TW& word_id); 
     
 #if (defined(_SX) || defined(__ve__)) 
+    bool is_asl_rng_initialized;
     asl_random_t rng;
     void initialize_asl_rng(){
+        is_asl_rng_initialized = true;
         asl_library_initialize(); 
         asl_random_create(&rng, ASL_RANDOMMETHOD_MT19937_64);
         asl_int_t len = 10;
@@ -84,11 +86,15 @@ private:
     
 public:   
     
-    lda_sampler() {}
+    lda_sampler()
+#if (defined(_SX) || defined(__ve__))
+        : is_asl_rng_initialized(false)
+#endif
+    {}
     
     ~lda_sampler(){
 #if (defined(_SX) || defined(__ve__))
-        finalize_asl_rng();
+        if(is_asl_rng_initialized) finalize_asl_rng();
 #endif
     }   
     
