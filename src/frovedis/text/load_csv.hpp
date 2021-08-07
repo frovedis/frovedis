@@ -8,8 +8,9 @@
 #define LOAD_CSV_VLEN 768
 #define LOAD_CSV_VLEN_EACH 256
 #else
+//#define LOAD_CSV_VLEN 3
 //#define LOAD_CSV_VLEN 1
-#define LOAD_CSV_VLEN 16
+#define LOAD_CSV_VLEN 12
 #define LOAD_CSV_VLEN_EACH 4
 #endif
 
