@@ -55,58 +55,138 @@ enum csv_action {
   start_line = 1 << 18
 };
 
-void parse_csv_vreg(uint32_t state[][256], const int* vp, int* outvp,
+void parse_csv_vreg(uint32_t state0[][256], const int* vp, int* outvp,
                     size_t* startidx, size_t* stopidx, size_t* outidx,
                     size_t max, size_t* outstartp, size_t* outstartidx,
                     size_t* outlinep, size_t* outlineidx) {
-  size_t crnt_ridx[LOAD_CSV_VLEN];
-#pragma _NEC vreg(crnt_ridx)
-  size_t stop_ridx[LOAD_CSV_VLEN];
-#pragma _NEC vreg(stop_ridx)
-  size_t out_ridx[LOAD_CSV_VLEN];
-#pragma _NEC vreg(out_ridx) // doesn't compile with ncc 2.4.1
-  size_t outstart_ridx[LOAD_CSV_VLEN];
-#pragma _NEC vreg(outstart_ridx)
-  uint32_t crnt_state_ridx[LOAD_CSV_VLEN];
-#pragma _NEC vreg(crnt_state_ridx)
-  size_t outline_ridx[LOAD_CSV_VLEN];
-#pragma _NEC vreg(outline_ridx)
+  // currently unroll 3 is the best
+  size_t crnt_ridx0[LOAD_CSV_VLEN_EACH];
+  size_t crnt_ridx1[LOAD_CSV_VLEN_EACH];
+  size_t crnt_ridx2[LOAD_CSV_VLEN_EACH];
+  size_t stop_ridx0[LOAD_CSV_VLEN_EACH];
+  size_t stop_ridx1[LOAD_CSV_VLEN_EACH];
+  size_t stop_ridx2[LOAD_CSV_VLEN_EACH];
+  size_t out_ridx0[LOAD_CSV_VLEN_EACH];
+  size_t out_ridx1[LOAD_CSV_VLEN_EACH];
+  size_t out_ridx2[LOAD_CSV_VLEN_EACH];
+  size_t outstart_ridx0[LOAD_CSV_VLEN_EACH];
+  size_t outstart_ridx1[LOAD_CSV_VLEN_EACH];
+  size_t outstart_ridx2[LOAD_CSV_VLEN_EACH];
+  uint32_t crnt_state_ridx0[LOAD_CSV_VLEN_EACH];
+  uint32_t crnt_state_ridx1[LOAD_CSV_VLEN_EACH];
+  uint32_t crnt_state_ridx2[LOAD_CSV_VLEN_EACH];
+  size_t outline_ridx0[LOAD_CSV_VLEN_EACH];
+  size_t outline_ridx1[LOAD_CSV_VLEN_EACH];
+  size_t outline_ridx2[LOAD_CSV_VLEN_EACH];
+#pragma _NEC vreg(outline_ridx0)
+#pragma _NEC vreg(outline_ridx1)
+#pragma _NEC vreg(outline_ridx2)
+#pragma _NEC vreg(crnt_ridx0)
+#pragma _NEC vreg(crnt_ridx1)
+#pragma _NEC vreg(crnt_ridx2)
+#pragma _NEC vreg(stop_ridx0)
+#pragma _NEC vreg(stop_ridx1)
+#pragma _NEC vreg(stop_ridx2)
+#pragma _NEC vreg(out_ridx0)
+#pragma _NEC vreg(out_ridx1)
+#pragma _NEC vreg(out_ridx2)
+#pragma _NEC vreg(outstart_ridx0)
+#pragma _NEC vreg(outstart_ridx1)
+#pragma _NEC vreg(outstart_ridx2)
+#pragma _NEC vreg(crnt_state_ridx0)
+#pragma _NEC vreg(crnt_state_ridx1)
+#pragma _NEC vreg(crnt_state_ridx2)
 
-  for(size_t i = 0; i < LOAD_CSV_VLEN; i++) {
-    crnt_ridx[i] = startidx[i];
-    stop_ridx[i] = stopidx[i];
-    out_ridx[i] = startidx[i];
-    outstart_ridx[i] = startidx[i];
-    crnt_state_ridx[i] = csv_state::line_start;
-    outline_ridx[i] = outlineidx[i];
+  // to alleviate memory access contention
+  uint32_t state1[7][256];
+  uint32_t state2[7][256];
+  for(size_t i = 0; i < 7; i++) {
+    for(size_t j = 0; j < 256; j++) {
+      state1[i][j] = state0[i][j];
+      state2[i][j] = state0[i][j];
+    }
+  }
+
+  for(size_t i = 0; i < LOAD_CSV_VLEN_EACH; i++) {
+    crnt_ridx0[i] = startidx[i];
+    crnt_ridx1[i] = startidx[i + LOAD_CSV_VLEN_EACH];
+    crnt_ridx2[i] = startidx[i + LOAD_CSV_VLEN_EACH * 2];
+    stop_ridx0[i] = stopidx[i];
+    stop_ridx1[i] = stopidx[i + LOAD_CSV_VLEN_EACH];
+    stop_ridx2[i] = stopidx[i + LOAD_CSV_VLEN_EACH * 2];
+    out_ridx0[i] = startidx[i];
+    out_ridx1[i] = startidx[i + LOAD_CSV_VLEN_EACH];
+    out_ridx2[i] = startidx[i + LOAD_CSV_VLEN_EACH * 2];
+    outstart_ridx0[i] = startidx[i];
+    outstart_ridx1[i] = startidx[i + LOAD_CSV_VLEN_EACH];
+    outstart_ridx2[i] = startidx[i + LOAD_CSV_VLEN_EACH * 2];
+    crnt_state_ridx0[i] = csv_state::line_start;
+    crnt_state_ridx1[i] = csv_state::line_start;
+    crnt_state_ridx2[i] = csv_state::line_start;
+    outline_ridx0[i] = outlineidx[i];
+    outline_ridx1[i] = outlineidx[i + LOAD_CSV_VLEN_EACH];
+    outline_ridx2[i] = outlineidx[i + LOAD_CSV_VLEN_EACH * 2];
   }
 
 #pragma _NEC vob
   for(size_t i = 0; i < max; i++) {
 #pragma _NEC ivdep
 #pragma _NEC vovertake
-    for(size_t j = 0; j < LOAD_CSV_VLEN; j++) {
-      if(crnt_ridx[j] != stop_ridx[j]) {
-        auto loaded = vp[crnt_ridx[j]];
-        auto st = state[crnt_state_ridx[j]][loaded];
-        if(st & csv_action::start_line) {
-          outlinep[outline_ridx[j]++] = outstart_ridx[j]; // calculated later
+    for(size_t j = 0; j < LOAD_CSV_VLEN_EACH; j++) {
+      if(crnt_ridx0[j] != stop_ridx0[j]) {
+        auto loaded0 = vp[crnt_ridx0[j]];
+        auto st0 = state0[crnt_state_ridx0[j]][loaded0];
+        if(st0 & csv_action::start_line) {
+          outlinep[outline_ridx0[j]++] = outstart_ridx0[j]; // calculated later
         }
-        if(st & csv_action::start_entry) {
-          outstartp[outstart_ridx[j]++] = out_ridx[j];
+        if(st0 & csv_action::start_entry) {
+          outstartp[outstart_ridx0[j]++] = out_ridx0[j];
         }
-        if(st & csv_action::out) {
-          outvp[out_ridx[j]++] = loaded;
+        if(st0 & csv_action::out) {
+          outvp[out_ridx0[j]++] = loaded0;
         }
-        crnt_ridx[j]++;
-        crnt_state_ridx[j] = st & 0xFFFF;
+        crnt_ridx0[j]++;
+        crnt_state_ridx0[j] = st0 & 0xFFFF;
+      }
+      if(crnt_ridx1[j] != stop_ridx1[j]) {
+        auto loaded1 = vp[crnt_ridx1[j]];
+        auto st1 = state1[crnt_state_ridx1[j]][loaded1];
+        if(st1 & csv_action::start_line) {
+          outlinep[outline_ridx1[j]++] = outstart_ridx1[j]; // calculated later
+        }
+        if(st1 & csv_action::start_entry) {
+          outstartp[outstart_ridx1[j]++] = out_ridx1[j];
+        }
+        if(st1 & csv_action::out) {
+          outvp[out_ridx1[j]++] = loaded1;
+        }
+        crnt_ridx1[j]++;
+        crnt_state_ridx1[j] = st1 & 0xFFFF;
+      }
+      if(crnt_ridx2[j] != stop_ridx2[j]) {
+        auto loaded2 = vp[crnt_ridx2[j]];
+        auto st2 = state2[crnt_state_ridx2[j]][loaded2];
+        if(st2 & csv_action::start_line) {
+          outlinep[outline_ridx2[j]++] = outstart_ridx2[j]; // calculated later
+        }
+        if(st2 & csv_action::start_entry) {
+          outstartp[outstart_ridx2[j]++] = out_ridx2[j];
+        }
+        if(st2 & csv_action::out) {
+          outvp[out_ridx2[j]++] = loaded2;
+        }
+        crnt_ridx2[j]++;
+        crnt_state_ridx2[j] = st2 & 0xFFFF;
       }
     }
   }
-
-  for(size_t i = 0; i < LOAD_CSV_VLEN; i++) {
-    outidx[i] = out_ridx[i];
-    outstartidx[i] = outstart_ridx[i];
+  for(size_t i = 0; i < LOAD_CSV_VLEN_EACH; i++) {
+    outidx[i] = out_ridx0[i];
+    outidx[i + LOAD_CSV_VLEN_EACH] = out_ridx1[i];
+    outidx[i + LOAD_CSV_VLEN_EACH * 2] = out_ridx2[i];
+    outstartidx[i] = outstart_ridx0[i];
+    outstartidx[i + LOAD_CSV_VLEN_EACH] = outstart_ridx1[i];
+    outstartidx[i + LOAD_CSV_VLEN_EACH * 2] = outstart_ridx2[i];
   }
 }
 

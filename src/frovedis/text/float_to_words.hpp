@@ -145,6 +145,8 @@ words float_to_words_normal(const std::vector<T>& src,
     auto ret_lensp = ret.lens.data();
     auto normal_fp_words_startsp = normal_fp_words.starts.data();
     auto normal_fp_words_lensp = normal_fp_words.lens.data();
+#pragma _NEC vob
+#pragma _NEC vovertake
 #pragma _NEC ivdep
     for(size_t i = 0; i < normal_fp_size; i++) {
       ret_startsp[normal_fpp[i]] = normal_fp_words_startsp[i];
@@ -154,6 +156,8 @@ words float_to_words_normal(const std::vector<T>& src,
     auto nans_size = nans.size();
     auto nan_start = w.starts[0] + normal_fp_words_chars_size;
     auto nan_len = w.lens[0];
+#pragma _NEC vob
+#pragma _NEC vovertake
 #pragma _NEC ivdep
     for(size_t i = 0; i < nans_size; i++) {
       ret_startsp[nansp[i]] = nan_start;
@@ -163,6 +167,8 @@ words float_to_words_normal(const std::vector<T>& src,
     auto infs_size = infs.size();
     auto inf_start = w.starts[1] + normal_fp_words_chars_size;
     auto inf_len = w.lens[1];
+#pragma _NEC vob
+#pragma _NEC vovertake
 #pragma _NEC ivdep
     for(size_t i = 0; i < infs_size; i++) {
       ret_startsp[infsp[i]] = inf_start;
@@ -172,6 +178,8 @@ words float_to_words_normal(const std::vector<T>& src,
     auto ninfs_size = ninfs.size();
     auto ninf_start = w.starts[2] + normal_fp_words_chars_size;
     auto ninf_len = w.lens[2];
+#pragma _NEC vob
+#pragma _NEC vovertake
 #pragma _NEC ivdep
     for(size_t i = 0; i < ninfs_size; i++) {
       ret_startsp[ninfsp[i]] = ninf_start;
@@ -395,6 +403,8 @@ words float_to_words_exp(const std::vector<T>& src, size_t num_of_dec = 6) {
     auto ret_lensp = ret.lens.data();
     auto normal_fp_words_startsp = normal_fp_words.starts.data();
     auto normal_fp_words_lensp = normal_fp_words.lens.data();
+#pragma _NEC vob
+#pragma _NEC vovertake
 #pragma _NEC ivdep
     for(size_t i = 0; i < normal_fp_size; i++) {
       ret_startsp[normal_fpp[i]] = normal_fp_words_startsp[i];
@@ -404,6 +414,8 @@ words float_to_words_exp(const std::vector<T>& src, size_t num_of_dec = 6) {
     auto nans_size = nans.size();
     auto nan_start = w.starts[0] + normal_fp_words_chars_size;
     auto nan_len = w.lens[0];
+#pragma _NEC vob
+#pragma _NEC vovertake
 #pragma _NEC ivdep
     for(size_t i = 0; i < nans_size; i++) {
       ret_startsp[nansp[i]] = nan_start;
@@ -413,6 +425,8 @@ words float_to_words_exp(const std::vector<T>& src, size_t num_of_dec = 6) {
     auto infs_size = infs.size();
     auto inf_start = w.starts[1] + normal_fp_words_chars_size;
     auto inf_len = w.lens[1];
+#pragma _NEC vob
+#pragma _NEC vovertake
 #pragma _NEC ivdep
     for(size_t i = 0; i < infs_size; i++) {
       ret_startsp[infsp[i]] = inf_start;
@@ -422,6 +436,8 @@ words float_to_words_exp(const std::vector<T>& src, size_t num_of_dec = 6) {
     auto ninfs_size = ninfs.size();
     auto ninf_start = w.starts[2] + normal_fp_words_chars_size;
     auto ninf_len = w.lens[2];
+#pragma _NEC vob
+#pragma _NEC vovertake
 #pragma _NEC ivdep
     for(size_t i = 0; i < ninfs_size; i++) {
       ret_startsp[ninfsp[i]] = ninf_start;

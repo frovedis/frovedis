@@ -36,11 +36,11 @@ void parsefloat(const int* charsp, const size_t* startsp,
   T e_buf[PARSEFLOAT_VLEN];
 #pragma _NEC vreg(e_buf)
   int esign_buf[PARSEFLOAT_VLEN];
-//#pragma _NEC vreg(esign_buf)
+#pragma _NEC vreg(esign_buf)
   int ispoint[PARSEFLOAT_VLEN];
-//#pragma _NEC vreg(ispoint)
+#pragma _NEC vreg(ispoint)
   int isexp[PARSEFLOAT_VLEN];
-//#pragma _NEC vreg(isexp)
+#pragma _NEC vreg(isexp)
   T e_val_buf[PARSEFLOAT_VLEN];
 #pragma _NEC vreg(e_val_buf)
 

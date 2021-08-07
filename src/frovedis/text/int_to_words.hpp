@@ -65,7 +65,9 @@ void int_to_words_write_digits(int* charsp, const size_t* startsp,
     for(size_t i = 0; i < INT_TO_WORDS_VLEN; i++) {
       if(max < crnt_lensp[i]) max = crnt_lensp[i];
     }
+#pragma _NEC vob
     for(size_t m = 0; m < max; m++) {
+#pragma _NEC vovertake
 #pragma _NEC ivdep
       for(size_t i = 0; i < INT_TO_WORDS_VLEN; i++) {
         if(crnt_lens_vreg[i] > 0) {
