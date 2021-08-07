@@ -2,6 +2,7 @@
 #include "find.hpp"
 #include "words.hpp"
 #include "../core/lower_bound.hpp"
+#include "../core/find_condition.hpp"
 
 using namespace std;
 
@@ -55,10 +56,9 @@ enum csv_action {
   start_line = 1 << 18
 };
 
-void parse_csv_vreg(uint32_t state0[][256], const int* vp, int* outvp,
+void parse_csv_vreg(uint32_t state[][256][32], const int* vp, int* outvp,
                     size_t* startidx, size_t* stopidx, size_t* outidx,
-                    size_t max, size_t* outstartp, size_t* outstartidx,
-                    size_t* outlinep, size_t* outlineidx) {
+                    size_t max, size_t* outstartp, size_t* outstartidx) {
   // currently unroll 3 is the best
   size_t crnt_ridx0[LOAD_CSV_VLEN_EACH];
   size_t crnt_ridx1[LOAD_CSV_VLEN_EACH];
@@ -75,12 +75,6 @@ void parse_csv_vreg(uint32_t state0[][256], const int* vp, int* outvp,
   uint32_t crnt_state_ridx0[LOAD_CSV_VLEN_EACH];
   uint32_t crnt_state_ridx1[LOAD_CSV_VLEN_EACH];
   uint32_t crnt_state_ridx2[LOAD_CSV_VLEN_EACH];
-  size_t outline_ridx0[LOAD_CSV_VLEN_EACH];
-  size_t outline_ridx1[LOAD_CSV_VLEN_EACH];
-  size_t outline_ridx2[LOAD_CSV_VLEN_EACH];
-#pragma _NEC vreg(outline_ridx0)
-#pragma _NEC vreg(outline_ridx1)
-#pragma _NEC vreg(outline_ridx2)
 #pragma _NEC vreg(crnt_ridx0)
 #pragma _NEC vreg(crnt_ridx1)
 #pragma _NEC vreg(crnt_ridx2)
@@ -96,16 +90,6 @@ void parse_csv_vreg(uint32_t state0[][256], const int* vp, int* outvp,
 #pragma _NEC vreg(crnt_state_ridx0)
 #pragma _NEC vreg(crnt_state_ridx1)
 #pragma _NEC vreg(crnt_state_ridx2)
-
-  // to alleviate memory access contention
-  uint32_t state1[7][256];
-  uint32_t state2[7][256];
-  for(size_t i = 0; i < 7; i++) {
-    for(size_t j = 0; j < 256; j++) {
-      state1[i][j] = state0[i][j];
-      state2[i][j] = state0[i][j];
-    }
-  }
 
   for(size_t i = 0; i < LOAD_CSV_VLEN_EACH; i++) {
     crnt_ridx0[i] = startidx[i];
@@ -123,10 +107,9 @@ void parse_csv_vreg(uint32_t state0[][256], const int* vp, int* outvp,
     crnt_state_ridx0[i] = csv_state::line_start;
     crnt_state_ridx1[i] = csv_state::line_start;
     crnt_state_ridx2[i] = csv_state::line_start;
-    outline_ridx0[i] = outlineidx[i];
-    outline_ridx1[i] = outlineidx[i + LOAD_CSV_VLEN_EACH];
-    outline_ridx2[i] = outlineidx[i + LOAD_CSV_VLEN_EACH * 2];
   }
+
+  size_t flag = size_t(1) << (sizeof(size_t) * 8 - 1);
 
 #pragma _NEC vob
   for(size_t i = 0; i < max; i++) {
@@ -134,49 +117,46 @@ void parse_csv_vreg(uint32_t state0[][256], const int* vp, int* outvp,
 #pragma _NEC vovertake
     for(size_t j = 0; j < LOAD_CSV_VLEN_EACH; j++) {
       if(crnt_ridx0[j] != stop_ridx0[j]) {
-        auto loaded0 = vp[crnt_ridx0[j]];
-        auto st0 = state0[crnt_state_ridx0[j]][loaded0];
-        if(st0 & csv_action::start_line) {
-          outlinep[outline_ridx0[j]++] = outstart_ridx0[j]; // calculated later
+        auto loaded = vp[crnt_ridx0[j]];
+        auto st = state[crnt_state_ridx0[j]][loaded][0];
+        if(st & csv_action::start_entry) {
+          auto to_store =
+            (st & csv_action::start_line) ? out_ridx0[j] + flag : out_ridx0[j];
+          outstartp[outstart_ridx0[j]++] = to_store;
         }
-        if(st0 & csv_action::start_entry) {
-          outstartp[outstart_ridx0[j]++] = out_ridx0[j];
-        }
-        if(st0 & csv_action::out) {
-          outvp[out_ridx0[j]++] = loaded0;
+        if(st & csv_action::out) {
+          outvp[out_ridx0[j]++] = loaded;
         }
         crnt_ridx0[j]++;
-        crnt_state_ridx0[j] = st0 & 0xFFFF;
+        crnt_state_ridx0[j] = st & 0xFFFF;
       }
       if(crnt_ridx1[j] != stop_ridx1[j]) {
-        auto loaded1 = vp[crnt_ridx1[j]];
-        auto st1 = state1[crnt_state_ridx1[j]][loaded1];
-        if(st1 & csv_action::start_line) {
-          outlinep[outline_ridx1[j]++] = outstart_ridx1[j]; // calculated later
+        auto loaded = vp[crnt_ridx1[j]];
+        auto st = state[crnt_state_ridx1[j]][loaded][0];
+        if(st & csv_action::start_entry) {
+          auto to_store =
+            (st & csv_action::start_line) ? out_ridx1[j] + flag : out_ridx1[j];
+          outstartp[outstart_ridx1[j]++] = to_store;
         }
-        if(st1 & csv_action::start_entry) {
-          outstartp[outstart_ridx1[j]++] = out_ridx1[j];
-        }
-        if(st1 & csv_action::out) {
-          outvp[out_ridx1[j]++] = loaded1;
+        if(st & csv_action::out) {
+          outvp[out_ridx1[j]++] = loaded;
         }
         crnt_ridx1[j]++;
-        crnt_state_ridx1[j] = st1 & 0xFFFF;
+        crnt_state_ridx1[j] = st & 0xFFFF;
       }
       if(crnt_ridx2[j] != stop_ridx2[j]) {
-        auto loaded2 = vp[crnt_ridx2[j]];
-        auto st2 = state2[crnt_state_ridx2[j]][loaded2];
-        if(st2 & csv_action::start_line) {
-          outlinep[outline_ridx2[j]++] = outstart_ridx2[j]; // calculated later
+        auto loaded = vp[crnt_ridx2[j]];
+        auto st = state[crnt_state_ridx2[j]][loaded][0];
+        if(st & csv_action::start_entry) {
+          auto to_store =
+            (st & csv_action::start_line) ? out_ridx2[j] + flag : out_ridx2[j];
+          outstartp[outstart_ridx2[j]++] = to_store;
         }
-        if(st2 & csv_action::start_entry) {
-          outstartp[outstart_ridx2[j]++] = out_ridx2[j];
-        }
-        if(st2 & csv_action::out) {
-          outvp[out_ridx2[j]++] = loaded2;
+        if(st & csv_action::out) {
+          outvp[out_ridx2[j]++] = loaded;
         }
         crnt_ridx2[j]++;
-        crnt_state_ridx2[j] = st2 & 0xFFFF;
+        crnt_state_ridx2[j] = st & 0xFFFF;
       }
     }
   }
@@ -190,75 +170,89 @@ void parse_csv_vreg(uint32_t state0[][256], const int* vp, int* outvp,
   }
 }
 
+struct is_flagged {
+  int operator()(size_t a) const {
+    size_t flag = size_t(1) << (sizeof(size_t) * 8 - 1);
+    return (a & flag) != 0;
+  }
+  SERIALIZE_NONE
+};
+
 words parse_csv_impl(const int*  vp, size_t v_size,
                      const size_t* startp, size_t start_size,
                      vector<size_t>& line_starts_byword, int separator) {
   if(v_size == 0 || start_size == 0) return words();
-  uint32_t state[7][256];
+  // [32] is to place each element on different cache lines
+  uint32_t state[7][256][32];
   size_t num_chars = 256;
   for(size_t i = 0; i < num_chars; i++) {
     if(i == '\\') {
-      state[csv_state::line_start][i] =
+      state[csv_state::line_start][i][0] =
         (csv_state::in_escape|csv_action::start_entry|csv_action::start_line);
     } else if(i == '"') {
-      state[csv_state::line_start][i] =
+      state[csv_state::line_start][i][0] =
         (csv_state::in_quote|csv_action::start_entry|csv_action::start_line);
     } else if(i == separator) {
-      state[csv_state::line_start][i] =
+      state[csv_state::line_start][i][0] =
         (csv_state::entry_start|csv_action::start_entry|csv_action::start_line);
     } else if(i == '\n') {
-      state[csv_state::line_start][i] =
+      state[csv_state::line_start][i][0] =
         (csv_state::line_start|csv_action::start_entry|csv_action::start_line);
     } else {
-      state[csv_state::line_start][i] =
+      state[csv_state::line_start][i][0] =
         (csv_state::in_entry|csv_action::out|csv_action::start_entry|
          csv_action::start_line);
     }
   }
   for(size_t i = 0; i < num_chars; i++) {
     if(i == '\\') {
-      state[csv_state::entry_start][i] =
+      state[csv_state::entry_start][i][0] =
         (csv_state::in_escape|csv_action::start_entry);
     } else if(i == '"') {
-      state[csv_state::entry_start][i] =
+      state[csv_state::entry_start][i][0] =
         (csv_state::in_quote|csv_action::start_entry);
     } else if(i == separator) {
-      state[csv_state::entry_start][i] =
+      state[csv_state::entry_start][i][0] =
         (csv_state::entry_start|csv_action::start_entry);
     } else if(i == '\n') {
-      state[csv_state::entry_start][i] =
+      state[csv_state::entry_start][i][0] =
         (csv_state::line_start|csv_action::start_entry);
     } else {
-      state[csv_state::entry_start][i] =
+      state[csv_state::entry_start][i][0] =
         (csv_state::in_entry|csv_action::out|csv_action::start_entry);
     }
   }
   for(size_t i = 0; i < num_chars; i++) {
-    if(i == '\\') state[csv_state::in_entry][i] = csv_state::in_escape;
+    if(i == '\\') state[csv_state::in_entry][i][0] = csv_state::in_escape;
     else if(i == separator) 
-      state[csv_state::in_entry][i] = csv_state::entry_start;
-    else if(i == '\n') state[csv_state::in_entry][i] = csv_state::line_start;
-    else state[csv_state::in_entry][i] = (csv_state::in_entry|csv_action::out);
+      state[csv_state::in_entry][i][0] = csv_state::entry_start;
+    else if(i == '\n') state[csv_state::in_entry][i][0] = csv_state::line_start;
+    else
+      state[csv_state::in_entry][i][0] = (csv_state::in_entry|csv_action::out);
   }
   for(size_t i = 0; i < num_chars; i++) {
-    state[csv_state::in_escape][i] = (csv_state::in_entry|csv_action::out);
+    state[csv_state::in_escape][i][0] = (csv_state::in_entry|csv_action::out);
   }
   for(size_t i = 0; i < num_chars; i++) {
-    if(i == '\\') state[csv_state::in_quote][i] = csv_state::in_quote_escape;
-    else if(i == '"') state[csv_state::in_quote][i] = csv_state::out_quote;
-    else state[csv_state::in_quote][i] = (csv_state::in_quote|csv_action::out);
+    if(i == '\\') state[csv_state::in_quote][i][0] = csv_state::in_quote_escape;
+    else if(i == '"') state[csv_state::in_quote][i][0] = csv_state::out_quote;
+    else
+      state[csv_state::in_quote][i][0] = (csv_state::in_quote|csv_action::out);
   }
   for(size_t i = 0; i < num_chars; i++) {
-    state[csv_state::in_quote_escape][i] =
+    state[csv_state::in_quote_escape][i][0] =
       (csv_state::in_quote|csv_action::out);
   }
   for(size_t i = 0; i < num_chars; i++) {
-    if(i == separator) state[csv_state::out_quote][i] = csv_state::entry_start;
-    else if(i == '\n') state[csv_state::out_quote][i] = csv_state::line_start;
+    if(i == separator)
+      state[csv_state::out_quote][i][0] = csv_state::entry_start;
+    else if(i == '\n')
+      state[csv_state::out_quote][i][0] = csv_state::line_start;
     else if(i == '"')
-      state[csv_state::out_quote][i] = (csv_state::in_quote|csv_action::out);
+      state[csv_state::out_quote][i][0] = (csv_state::in_quote|csv_action::out);
     else  // invalid
-      state[csv_state::out_quote][i] = (csv_state::out_quote|csv_action::out);
+      state[csv_state::out_quote][i][0] =
+        (csv_state::out_quote|csv_action::out);
   }
 
   vector<int> outv(v_size);
@@ -292,10 +286,8 @@ words parse_csv_impl(const int*  vp, size_t v_size,
   }
   size_t outidx[LOAD_CSV_VLEN];
   size_t outstartidx[LOAD_CSV_VLEN];
-  vector<size_t> startline(start_size);
-  auto startlinep = startline.data();
   parse_csv_vreg(state, vp, outvp, startidx, stopidx, outidx, max,
-                 outstartp, outstartidx, startlinep, startlineidx);
+                 outstartp, outstartidx);
   size_t totalchars = 0;
   size_t totalwords = 0;
   for(size_t i = 0; i < LOAD_CSV_VLEN; i++) {
@@ -333,28 +325,16 @@ words parse_csv_impl(const int*  vp, size_t v_size,
     crnt_retstartsp += size;
     off += outidx[i] - startidx[i];
   }
+  line_starts_byword = find_condition(retstartsp, totalwords, is_flagged());
+  size_t flag = size_t(1) << (sizeof(size_t) * 8 - 1);
+  auto mask = ~flag;
+  for(size_t i = 0; i < totalwords; i++) {
+    retstartsp[i] &= mask;
+  }
   for(size_t i = 0; i < totalwords-1; i++) {
     retlensp[i] = retstartsp[i+1] - retstartsp[i];
   }
   retlensp[totalwords-1] = totalchars - retstartsp[totalwords-1];
-  auto crnt_startlinep = startlinep;
-  off = 0;
-  for(size_t i = 0; i < LOAD_CSV_VLEN-1; i++) {
-    auto size = startlineidx[i+1] - startlineidx[i];
-    for(size_t j = 0; j < size; j++) {
-      crnt_startlinep[j] = crnt_startlinep[j] - startidx[i] + off;
-    }
-    off += outstartidx[i] - startidx[i];
-    crnt_startlinep += size;
-  }
-  for(size_t j = 0; j < start_size - startlineidx[LOAD_CSV_VLEN-1]; j++) {
-    crnt_startlinep[j] = crnt_startlinep[j] - startidx[LOAD_CSV_VLEN-1] + off;
-  }
-  line_starts_byword.resize(start_size);
-  auto line_starts_bywordp = line_starts_byword.data();
-  for(size_t i = 0; i < start_size; i++) {
-    line_starts_bywordp[i] = startlinep[i];
-  }
   return ret;
 }
 
