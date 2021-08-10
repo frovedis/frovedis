@@ -432,22 +432,105 @@ namespace frovedis {
     "get_item_support: attribute is available only after fit!\n");
     if(item_support.num_row() == 0) { // first-time computation only
       item_support = item[0];
-      item_support.calc<double,size_t>("item_support", 
-                                       support_helper(n_trans),
-                                       "count") // item_support = count / n_trans
+      item_support.calc<double,size_t>
+                    ("item_support", 
+                     support_helper(n_trans),
+                     "count") // item_support = count / n_trans
                   .drop("count");
     }
     return item_support; // item, item_support
   }
+  
+  dftable fp_growth_model:: transform(dftable& trans){
+    std::vector<dftable> trans_table_v;
+    std::vector<dftable> res_table;
+    dftable x;
+    for (auto rule: rules.rule) {
+      //antacedent columns = total number of columns - (consequent, confidence,
+      //                                                lift, support, 
+      //                                                conviction)
+      auto ant_n = rule.num_col() - 5; // #antecedent columns
+      std::vector<std::string> ant_cols(ant_n);
+      res_table.clear();
+      auto tmp = rule.columns();
+      for (size_t i = 0; i < ant_n; ++i) ant_cols[i] = tmp[i];
+      std::vector<std::string> targets = {"trans_id", "consequent"};
+      // targets = trans_id consequent <all antecedent columns except for the 
+      //                                first, as it would no longer be needed 
+      //                                in further calculations>
+      targets.insert(std::end(targets), std::begin(ant_cols) + 1, 
+                     std::end(ant_cols));
+
+      // transactions = trans_id item rank
+      // trans = trans_id item
+      // rule = <antecedents> consequent confidence lift support conviction
+      auto j_df = trans.bcast_join(rule, eq("item", "antecedent1"))
+                   .filter(neq("item", "consequent"))
+                   .select(targets)
+                   .rename("trans_id", "trans_id_");
+      for (size_t i = 1; i < ant_n; ++i) {
+        targets = {"trans_id_", "consequent"};
+        targets.insert(std::end(targets), 
+                                              std::begin(ant_cols) + i + 1, 
+                                              std::end(ant_cols));
+        j_df = trans.bcast_join(j_df, eq("item", ant_cols[i]))
+                .filter(neq("item", "consequent"))
+                .filter(eq("trans_id", "trans_id_"))
+                .select(targets);
+        if (j_df.num_row() == 0) {
+          //No further computation possible, this antecedent group in rules 
+          //does not lead to any possible predictions.
+          break; //break if table empty.
+        }
+      }
+      if (j_df.num_row() >= 0) {
+        trans.append_rowid("id");
+        j_df.append_rowid("id_");
+        auto x = trans.bcast_join(j_df, 
+                                  multi_eq({"trans_id", "item"}, 
+                                   {"trans_id_", "consequent"}))
+                      .select({"id_"})
+                      .rename("id_", "id");
+        j_df.rename("trans_id_", "trans_id");
+        auto id = x.column("id")->as_dvector<size_t>().gather();
+        for(size_t i: id) {
+          j_df = j_df.filter(neq_im("id_", i))
+                     .select({"id_", "trans_id", "consequent"});
+        }
+        j_df.drop("id_");
+        trans.drop("id");
+      }
+      if (j_df.num_row() > 0) trans_table_v.push_back(j_df.align_block()); 
+    }
+    if (trans_table_v.size()) {
+      x = trans_table_v.back();
+      trans_table_v.pop_back();
+      auto x1 = x.union_tables(trans_table_v, false);
+      //group_by & select
+      auto x2 = x1.distinct();
+      return x2;
+    } 
+    else {
+      dftable dummy;
+      std::vector<int> v = {};
+      auto dv = make_dvector_scatter(v);
+      dummy.append_column("trans_id", dv);
+      dummy.append_column("consequent", dv);
+      return dummy;
+    }
+  }
+
 
   association_rule fp_growth_model::generate_rules(double min_conf) {
-    require(!item.empty(), 
+    require(!item.empty(),
     "generate_rules: can be called only after fit!\n");
     auto item_support = get_item_support();
-    return generate_association_rules(item, tree_info, item_support, 
+    rules =  generate_association_rules(item, tree_info, item_support,
                                       min_conf, n_trans);
+    return rules;
   }
- 
+
+
   void association_rule::clear () {
     for(size_t i = 0; i < rule.size(); ++i) free_df(rule[i]); 
     rule.clear();

@@ -1,4 +1,5 @@
 #include "fp_growth.hpp"
+#include <typeinfo>
 
 namespace frovedis {
 
@@ -101,7 +102,7 @@ void compress_dftable(dftable& input, int niter,
 }
 
 fp_growth_model 
-generate_tables(dftable& item_count, 
+generate_tables(dftable& item_count,
                 dftable& df, size_t support,
                 size_t n_trans,
                 int tree_depth,
@@ -142,7 +143,6 @@ generate_tables(dftable& item_count,
   time_spent gen_t(DEBUG);
   for (int niter = 1; niter < tree_depth; ++niter) {
     df = fp_growth_self_join(df, niter, compression_point, nproc);
-
     // df would be compressed in-place if niter >= compression_point
     compress_dftable(df, niter, compression_point, compressed_info);
     
@@ -192,6 +192,7 @@ grow_fp_tree(dftable& t,
              << "; mem_opt_level: " << mem_opt_level << std::endl; 
   auto col_list = t.columns();
 
+
   if (col_list.size() == 2) {
     require (col_list[0] == "trans_id" && col_list[1] == "item",
            "two columns detected: expected names - (trans_id, item)");
@@ -237,13 +238,14 @@ grow_fp_tree(dftable& t,
   fp_t.show("item-count: ");
  
   // getting the ordered item set
-  auto ordered_itemset = t.bcast_join(item_count.rename("item", "item_join"), 
+  item_count.rename("item", "item_join");
+
+  auto ordered_itemset = t.bcast_join(item_count, 
                                       eq("item","item_join"))
                           .select({"trans_id","item","rank"});
   item_count.rename("item_join", "item") // renaming back
             .drop("rank");  // rank is no longer required in item_count
   fp_t.show("ordered-itemset: ");
-
   fp_growth_model m;
   try {
     m = generate_tables(item_count, ordered_itemset, 

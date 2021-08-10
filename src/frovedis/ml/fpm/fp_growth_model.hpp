@@ -35,12 +35,14 @@ namespace frovedis {
       item.swap(fp_tree); 
       tree_info.swap(t_info);
     }
+
     void clear();
     void debug_print();
     size_t get_count();
     size_t get_depth();
     dftable& get_item_support();
     std::vector<dftable> get_frequent_itemset();
+    dftable transform(dftable& transactions);
     association_rule generate_rules(double confidence);
     void load (const std::string& dir);
     void loadbinary (const std::string& dir);
@@ -50,7 +52,8 @@ namespace frovedis {
     size_t n_trans;
     std::vector<dftable> item, tree_info;
     dftable item_support;
-    SERIALIZE(n_trans, item, tree_info, item_support)
+    association_rule rules;
+    SERIALIZE(n_trans, item, tree_info, item_support, rules)
   };
   
   void free_df(dftable_base&);
