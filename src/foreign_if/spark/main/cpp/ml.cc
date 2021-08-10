@@ -683,6 +683,20 @@ JNIEXPORT int JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisFPM
   return fis_cnt;
 }
 
+JNIEXPORT jobject JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_FPTransform
+  (JNIEnv *env, jclass thisCls, jobject master_node, jlong fdata,
+   jint mid) {
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto f_dptr = static_cast<exrpc_ptr_t> (fdata);
+  dummy_dftable trans; // output
+  try {
+    trans = exrpc_async(fm_node, (frovedis_fp_transform<dftable,fp_growth_model>), 
+                          f_dptr, mid).get();
+  }
+  catch(std::exception& e) { set_status(true,e.what()); }
+  return to_spark_dummy_df(env, trans);
+}
+
 // generate association rule
 JNIEXPORT int JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisFPMR
   (JNIEnv *env, jclass thisCls, jobject master_node ,
