@@ -1505,6 +1505,10 @@ fpgrowth_generate_rules.argtypes = [c_char_p, c_int, # host, port,
                                     c_double]        # minConfidence
 fpgrowth_generate_rules.restype = c_int # returns rules count as int
 
+fp_transform = LIB.fpgrowth_transform
+fp_transform.argtypes = [c_char_p, c_int, c_long, c_int] #host, port, fdata, mid
+fp_transform.restype = py_object
+
 get_association_rules = LIB.fpgrowth_rules
 get_association_rules.argtypes = [c_char_p, c_int, c_int] #host, port, mid
 get_association_rules.restype = py_object

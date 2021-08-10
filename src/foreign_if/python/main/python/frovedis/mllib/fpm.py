@@ -2,15 +2,17 @@
 fpm.py
 """
 
+#!/usr/bin/env python
+
 from collections import Iterable
 import numpy as np
 import pandas as pd
 import frovedis.dataframe as fpd
 from ..exrpc import rpclib
-from ..exrpc.server import FrovedisServer, set_association, \
-                           check_association, do_if_active_association
+from ..exrpc.server import FrovedisServer
 from ..matrix.dtype import DTYPE
 from .model_util import *
+
 
 def merge_and_append_fis(append_buf, merge_target):
     """Merge fis"""
@@ -40,6 +42,15 @@ def merge_and_append_rules(append_buf, merge_target):
                                         'conviction'])
     return append_buf.append(m_df)
 
+def adjust_transform_output(transform_df, data):
+    """Adjust transform output"""
+    df = transform_df.groupby("trans_id").agg(lambda x:[i for i in x])
+    data1 = data.groupby("trans_id").agg(lambda x:[i for i in x])
+    df1 = data1.join(df).reset_index(drop=True)
+    df1.columns = ['items', 'prediction']
+    df1["prediction"] = df1["prediction"].apply(lambda d: d if isinstance(d, list) else [])
+    return df1
+
 class FPGrowth(object):
     """A python wrapper of Frovedis FP-Growth"""
     def __init__(self, minSupport=0.3, minConfidence=0.8,
@@ -54,19 +65,21 @@ class FPGrowth(object):
         self.itemsCol = itemsCol
         self.predictionCol = predictionCol
         self.numPartitions = numPartitions
+        #---#
+        self.encode_logic = None
+        self.count = None
+        self.__fis = None
+        self.__rule = None
+        self.__prediction = None
+        #---#
         # --- added parameters in frovedis ---
         self.tree_depth = tree_depth
         self.compression_point = compression_point
         self.mem_opt_level = mem_opt_level
         self.verbose = verbose
         self.encode_string_input = encode_string_input
-        self.__mkind = M_KIND.FPM
-        # --- post training available attributes ---
         self.__mid = None
-        self.__fis = None
-        self.__rule = None
-        self.count = None
-        self.encode_logic = None
+        self.__mkind = M_KIND.FPM
 
     def __encode_input(self, data):
         """Encode input"""
@@ -119,6 +132,8 @@ class FPGrowth(object):
                 item_list.append(item)
         elif len(data.columns) == 2:
             item_list = data[data.columns[1]].tolist()
+            #for i in tmp_list:
+            #    item_list.append(i.strip('[').strip(']').split(','))
         else: #unsupported pandas format
             raise ValueError("fit: unsupported pandas dataframe received!\n")
         return self.__convert_iterable(item_list)
@@ -148,15 +163,16 @@ class FPGrowth(object):
                              "inputs are supported!\n")
         return f_df
 
-    @set_association
     def fit(self, data):
         """
         NAME: fit
         """
         f_df = self.__check_input(data)
+        print ("F_DF DTYPE: ", f_df.get_types())
+        self.p_df = f_df.to_pandas_dataframe()
         self.release()
-        (host, port) = FrovedisServer.getServerInstance()
         self.__mid = ModelID.get()
+        (host, port) = FrovedisServer.getServerInstance()
         self.count = rpclib.fpgrowth_generate_fis(host, port, \
             f_df.get(), self.__mid, \
             self.minSupport, self.tree_depth, self.compression_point, \
@@ -171,14 +187,13 @@ class FPGrowth(object):
         self.__rule = None
         return self
 
-    @check_association
     def generate_rules(self, confidence=None):
         """
         NAME: generate_rules
         """
-        rule_mid = ModelID.get()
         if confidence is None:  # to use confidence provided during init()
             confidence = self.minConfidence
+        rule_mid = ModelID.get()
         (host, port) = FrovedisServer.getServerInstance()
         rule_count = rpclib.fpgrowth_generate_rules(host, port, self.__mid, \
                                                     rule_mid, confidence)
@@ -189,9 +204,11 @@ class FPGrowth(object):
         return self.__rule
 
     @property
-    @check_association
     def freqItemsets(self):
         """freqItemsets getter"""
+        if self.__mid is None:
+            raise valueError("freqItemsets: attribute is not " +
+                             "available before fit!\n")
         if self.__fis is None:
             (host, port) = FrovedisServer.getServerInstance()
             ldf = rpclib.get_fpgrowth_fis(host, port, self.__mid)
@@ -203,10 +220,10 @@ class FPGrowth(object):
             for each in ldf:
                 res = fpd.DataFrame().load_dummy(each["dfptr"], \
                                        each["names"], each["types"])
+                print("RES COUNT: ", res.to_pandas_dataframe().count())
                 fis = merge_and_append_fis(fis, res.to_pandas_dataframe())
             self.__fis = fis.reset_index(drop=True)
         return self.__fis
-
     @freqItemsets.setter
     def freqItemsets(self, val):
         """freqItemsets setter"""
@@ -214,9 +231,11 @@ class FPGrowth(object):
             "attribute 'freqItemsets' of FPGrowth object is not writable")
 
     @property
-    @check_association
     def associationRules(self):
         """associationRules getter"""
+        if self.__mid is None:
+            raise valueError("associationRules: attribute is not " +
+                             "available before fit!\n")
         if self.__rule is None: # generate_rules() is not called explicitly
             self.generate_rules() # uses confidence provided during init()
         return self.__rule.get_association_rules()
@@ -226,76 +245,90 @@ class FPGrowth(object):
         """associationRules setter"""
         raise AttributeError(\
             "attribute 'associationRules' of FPGrowth object is not writable")
+    
+    def transform(self, data):
+        """transform getter"""
+        f_df = self.__check_input(data)
+        if self.__mid is None:
+            raise valueError("transform: Cannot be called before fit!\n")
+        if self.__rule is None: # generate_rules() is not called explicitly
+            self.generate_rules() # uses confidence provided during init()
+        (host, port) = FrovedisServer.getServerInstance()
+        pred = rpclib.fp_transform(host, port, f_df.get(), self.__mid)
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
+        res = fpd.DataFrame().load_dummy(pred["dfptr"], \
+                                   pred["names"], pred["types"])
+        if len(res) >  0:
+            self.__prediction = adjust_transform_output(
+                                    res.to_pandas_dataframe(), 
+                                    f_df.to_pandas_dataframe())
+        else:
+            res = pd.DataFrame({'trans_id':[], 'consequent':[]})
+            self.__prediction = adjust_transform_output(
+                                    res, 
+                                    f_df.to_pandas_dataframe())
+        return self.__prediction
 
-    @set_association
     def load(self, fname):
         """
         NAME: load
         """
         self.release()
-        (host, port) = FrovedisServer.getServerInstance()
         self.__mid = ModelID.get()
-        self.count = rpclib.load_fp_model(host, port, self.__mid, \
+        (host, port) = FrovedisServer.getServerInstance()
+        self.count = rpclib.load_fp_model(host, port, self.__mid,
                          self.__mkind, fname.encode('ascii'))
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
             raise RuntimeError(excpt["info"])
         return self
 
-    @check_association
     def save(self, fname):
         """
         NAME: save
         """
-        GLM.save(self.__mid, self.__mkind, DTYPE.DOUBLE, fname)
+        if self.__mid is not None:
+            GLM.save(self.__mid, self.__mkind, DTYPE.DOUBLE, fname)
 
-    @check_association
     def debug_print(self):
         """
         NAME: debug_print
         """
-        GLM.debug_print(self.__mid, self.__mkind, DTYPE.DOUBLE)
-                
+        if self.__mid is not None:
+            GLM.debug_print(self.__mid, self.__mkind, DTYPE.DOUBLE)
+
     def release(self):
         """
-        resets after-fit populated attributes to None
+        NAME: release
         """
-        self.__release_server_heap()
-        self.__mid = None
-        self.encode_logic = None
-        self.count = None
-        self.__fis = None
-        self.__rule = None
-
-    @do_if_active_association
-    def __release_server_heap(self):
-        """
-        to release model pointer from server heap
-        """
-        GLM.release(self.__mid, self.__mkind, DTYPE.DOUBLE)
+        if self.__mid is not None:
+            GLM.release(self.__mid, self.__mkind, DTYPE.DOUBLE)
+            self.__mid = None
+            self.encode_logic = None
+            self.count = None
+            self.__fis = None
+            self.__rule = None
 
     def __del__(self):
         """
         NAME: __del__
         """
-        self.release()
-
-    def is_fitted(self):
-        """ function to confirm if the model is already fitted """
-        return self.__mid is not None
+        if FrovedisServer.isUP():
+            self.release()
 
 class FPRules(object):
     """
     FPRules
     """
-    @set_association
     def __init__(self, mid=None, count=None):
         self.__mid = mid
         self.count = count
         self.__mkind = M_KIND.FPR
+        self.__rules = None
         self.__rule = None
 
-    @set_association
     def load(self, fname):
         """
         NAME: load
@@ -310,17 +343,19 @@ class FPRules(object):
             raise RuntimeError(excpt["info"])
         return self
 
-    @check_association
     def save(self, fname):
         """
         NAME: save
         """
-        GLM.save(self.__mid, self.__mkind, DTYPE.DOUBLE, fname)
+        if self.__mid is not None:
+            GLM.save(self.__mid, self.__mkind, DTYPE.DOUBLE, fname)
 
-    @check_association
     def get_association_rules(self):
         """associationRules getter helper"""
-        if self.__rule is None:
+        if self.__mid is None:
+            raise valueError("associationRules: attribute is not " +
+                             "available before fit!\n")
+        if self.__rules is None:
             (host, port) = FrovedisServer.getServerInstance()
             ldf = rpclib.get_association_rules(host, port, self.__mid)
             excpt = rpclib.check_server_exception()
@@ -332,39 +367,28 @@ class FPRules(object):
                 res = fpd.DataFrame().load_dummy(each["dfptr"], \
                                        each["names"], each["types"])
                 rules = merge_and_append_rules(rules, res.to_pandas_dataframe())
-            self.__rule = rules.reset_index(drop=True)
-        return self.__rule
-
-    @check_association
+            self.__rules = rules.reset_index(drop=True)
+        return self.__rules
     def debug_print(self):
         """
         NAME: debug_print
         """
-        GLM.debug_print(self.__mid, self.__mkind, DTYPE.DOUBLE)
+        if self.__mid is not None:
+            GLM.debug_print(self.__mid, self.__mkind, DTYPE.DOUBLE)
 
     def release(self):
         """
-        resets after-fit populated attributes to None
+        NAME: release
         """
-        self.__release_server_heap()
-        self.__mid = None
-        self.__rule = None
-        self.count = None
-
-    @do_if_active_association
-    def __release_server_heap(self):
-        """
-        to release model pointer from server heap
-        """
-        GLM.release(self.__mid, self.__mkind, DTYPE.DOUBLE)
+        if self.__mid is not None:
+            GLM.release(self.__mid, self.__mkind, DTYPE.DOUBLE)
+            self.__mid = None
+            self.__rule = None
+            self.count = None
 
     def __del__(self):
         """
         NAME: __del__
         """
-        self.release()
-
-    def is_fitted(self):
-        """ function to confirm if the model is already fitted """
-        return self.__mid is not None
-
+        if FrovedisServer.isUP():
+            self.release()

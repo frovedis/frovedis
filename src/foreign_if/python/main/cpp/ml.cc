@@ -1288,6 +1288,7 @@ extern "C" {
     std::vector<dummy_dftable> freq;
     try {
       freq =  exrpc_async(fm_node, frovedis_fp_fis<fp_growth_model>, mid).get();
+      std::cout << "FIS LIST SIZE: " << freq.size() << std::endl;
     }
     catch (std::exception& e) {
       set_status(true, e.what());
@@ -1307,6 +1308,23 @@ extern "C" {
       set_status(true, e.what());
     }
    return to_py_dataframe_list(rules);
+  }
+
+  PyObject* fpgrowth_transform(const char* host, int port,
+                               long fdata, int mid) {
+    if(!host) REPORT_ERROR(USER_ERROR, "Invalid hostname!!");
+    exrpc_node fm_node(host, port);
+    auto f_dptr = (exrpc_ptr_t) (fdata);
+    dummy_dftable trans;
+    try {
+      trans =  exrpc_async(fm_node, 
+                           (frovedis_fp_transform<dftable,fp_growth_model>), 
+                           f_dptr, mid).get();
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+   return to_py_dummy_df(trans);
   }
 
   // --- (16) Word2Vector ---

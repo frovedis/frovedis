@@ -13,12 +13,12 @@ if (argc < 2):
     quit()
 FrovedisServer.initialize(argvs[1])
 
-'''
-data = [[1,4],
-        [1,3,2,5],
-        [1],
-        [1,2,5]]
-'''
+#'''
+data = [[1,2,3,4],
+        [1,2,3],
+        [1,2],
+        [1]]
+#'''
 
 def get_names(fname):
     fp = open(fname, 'r')
@@ -31,14 +31,16 @@ def get_names(fname):
         line = fp.readline()
     names = ["item_" + str(i) for i in range(max_ncol)]
     return names
-
+'''
 data = pd.read_csv("./input/retail.dat", sep = " ", 
        names = get_names("./input/retail.dat"), # variable no. of fields in each line, hence col-names are provided
        engine = 'python') # older pandas version has some parsing issue with c-engine
+'''
+#data = pd.read_csv("./input/groceries.csv", dtype=str).drop(['Item(s)'], axis=1)
+#print ("Loaded data: ", data.column, data.index)
+test_data = data
 
-#data = pd.read_csv("./input/groceries.csv").drop(['Item(s)'], axis=1)
-
-fpm = FPGrowth(minSupport=0.001, minConfidence=0.05,
+fpm = FPGrowth(minSupport=0.01, minConfidence=0.5,
                compression_point=4, mem_opt_level=1) #memory optimization parameters
 
 # groceries data contains non-numeric (string) items
@@ -66,6 +68,16 @@ print("association rules: ")
 print(fpm.associationRules)
 print("association rules count: %d" % (rule.count))
 
+print("transform: ")
+t1 = time.time()
+trans = fpm.transform(test_data)
+t2 = time.time()
+print("Transformation time: %.4f sec" % (t2 - t1))
+pd.set_option('display.max_colwidth', -1)
+print(trans.to_string())
+#print("transform count: %d" % (.count))
+
+'''
 # for save/load/release/print 
 # server-side in-memory frequent items and rules structures
 fpm.save("./out/FPModel") # saving the model
@@ -77,7 +89,7 @@ rule.save("./out/FPRule") # saving the rules
 rule.release() # releasing rule from memory after saving into files
 rule.load("./out/FPRule") #loading the saved rules
 rule.debug_print() # for printing in memory rules in server side
-
+'''
 # server clean-up
 fpm.release()
 rule.release()
