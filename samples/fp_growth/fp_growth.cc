@@ -14,6 +14,7 @@ int main(int argc, char* argv[]){
     opt.add_options()
         ("help,h", "produce help message")
         ("input,i" , value<std::string>(), "input data path containing transaction dataframe.") 
+        ("test-input,t" , value<std::string>(), "test input data path containing transaction dataframe.") 
         ("output,o" , value<std::string>(), "output path for saving model.") 
         ("min-support,s", value<double>(), "minimal support level of the frequent pattern. [default: 0.2]") 
         ("min-confidence,c", value<double>(), "minimum confidence value for rule mining [default: 0.5]")
@@ -30,7 +31,7 @@ int main(int argc, char* argv[]){
           run(), argmap);
     notify(argmap);                
                 
-    std::string data_p, out_p, tid_dtype = "int", item_dtype = "int";
+    std::string data_p, out_p, test_p, tid_dtype = "int", item_dtype = "int";
     double min_support = 0.2, conf = 0.5;
     int tree_depth = std::numeric_limits<int>::max();
     int compression_point = 4;
@@ -45,6 +46,15 @@ int main(int argc, char* argv[]){
     }    
     else {
       cerr << "input is not specified" << endl;
+      cerr << opt << endl;
+      exit(1);
+    }
+    
+    if(argmap.count("test-input")){
+      test_p = argmap["test-input"].as<std::string>();
+    }    
+    else {
+      cerr << "test input is not specified" << endl;
       cerr << opt << endl;
       exit(1);
     }
@@ -98,26 +108,38 @@ int main(int argc, char* argv[]){
       auto t = make_dftable_loadtext(data_p, 
                                  {tid_dtype, item_dtype}, 
                                  {"trans_id", "item"});
-      time_spent t_tree(INFO), t_rule(INFO);
+      auto test_t = make_dftable_loadtext(test_p, 
+                                 {tid_dtype, item_dtype}, 
+                                 {"trans_id", "item"});
+      time_spent t_tree(INFO), t_rule(INFO), t_trans(INFO);
       t_tree.lap_start();
       auto model = grow_fp_tree(t, min_support, tree_depth, 
                                 compression_point, mem_opt_level);
       t_tree.lap_stop();
       t_tree.show_lap("generate freq-itemsets: ");
-      //model.debug_print();
+      auto xt = model.get_frequent_itemset();
+      for ( auto i : xt) i.show();
+      model.debug_print();
       std::cout << "tree-depth: " << model.get_depth() 
                 << "; FIS-count: " << model.get_count() << std::endl;
-
       t_rule.lap_start();
       auto rule = model.generate_rules(conf);
       t_rule.lap_stop();
       t_rule.show_lap("generate_rules: ");
-      //rule.debug_print();
+      rule.debug_print();
       std::cout << "rule-count: " << rule.get_count() << std::endl;
+
+      t_trans.lap_start();
+      auto trans = model.transform(test_t);
+      t_trans.lap_stop();
+      t_trans.show_lap("Transform: ");
+      trans.show_all();
 
       make_directory(out_p);
       rule.save(out_p + "/rule");
       model.save(out_p + "/model");
+      rule.load(out_p + "/rule");
+      model.load(out_p + "/model");
       return 0;
     }
     catch (std::exception& e) {
