@@ -10,4 +10,5 @@ void expose_frovedis_pattern_mining_functions() {
   expose(get_frovedis_fpm<int>);
   expose(frovedis_fp_fis<fp_growth_model>);
   expose(frovedis_fp_rules<association_rule>);
+  expose((frovedis_fp_transform<dftable,fp_growth_model>));
 }

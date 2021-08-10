@@ -649,6 +649,17 @@ frovedis_fp_rules(int& mid) {
   return ret;
 }
 
+template <class DATA, class MODEL>
+dummy_dftable
+frovedis_fp_transform(exrpc_ptr_t& dptr, int& mid) {
+  auto dfptr = reinterpret_cast<DATA*>(dptr);
+  DATA& db = *dfptr;
+  auto mptr = get_model_ptr<MODEL>(mid);
+  auto trans =  mptr->transform(db);
+  auto dfp = new dftable(trans);
+  return to_dummy_dftable(dfp);
+}
+
 template<class T>
 std::pair<std::vector<T> , long>
 convert_0( std::tuple<T,long> t){
