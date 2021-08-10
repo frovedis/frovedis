@@ -7,6 +7,7 @@ import com.nec.frovedis.Jmatrix.DummyPCAResult;
 import com.nec.frovedis.Jmatrix.DummyFreqItemset;
 import com.nec.frovedis.Jgraph.DummyEdge;
 import com.nec.frovedis.Jgraph.DummyGraph;
+import com.nec.frovedis.Jmllib.DummyDftable;
 import com.nec.frovedis.Jmllib.DummyGLM;
 import com.nec.frovedis.Jmllib.IntDoublePair;
 import com.nec.frovedis.Jmllib.DummyLDAResult;
@@ -639,6 +640,10 @@ public class JNISupport {
                                              int model_Id,
                                              short mkind, 
                                              String path);
+
+  public static native DummyDftable FPTransform(Node master_node,
+                                       long fdata,
+                                       int model_Id);
 
   public static native void callFrovedisFM(Node master_node,
                                            MemPair fdata, double init_stdev,

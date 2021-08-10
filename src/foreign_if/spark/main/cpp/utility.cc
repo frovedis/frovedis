@@ -238,6 +238,18 @@ jlongArray to_jlongArray3(JNIEnv *env, std::vector<size_t>& eps) {
   return ret;
 }
 
+// conversion std::vector<int> => jshortArray
+jshortArray to_jshortArray2(JNIEnv *env, std::vector<int>& eps) {
+  size_t sz = eps.size();
+  std::vector<short> eps_s(sz);
+  for(size_t i=0; i<sz; ++i) eps_s[i] = static_cast<short>(eps[i]);
+  jshort* arr = &eps_s[0];
+  jshortArray ret = env->NewShortArray(sz);
+  if(ret == NULL) REPORT_ERROR(INTERNAL_ERROR, "New jshortArray allocation failed.\n");
+  env->SetShortArrayRegion(ret, 0, sz, arr);
+  return ret;
+}
+
 // conversion std::vector<double> => jdoubleArray
 jdoubleArray to_jdoubleArray(JNIEnv *env, std::vector<double>& pd) {
   jdouble* arr = &pd[0];
@@ -501,6 +513,19 @@ jobject to_jSSSP_Result (JNIEnv *env,
   jdoubleArray distances = to_jdoubleArray(env, result.distances);
   jlongArray predecessors = to_jlongArray3(env, result.predecessors);
   auto ret = env->NewObject(ssspCls, ssspConst, destids, distances, predecessors, source_vertex);
+  if (ret == NULL) REPORT_ERROR(INTERNAL_ERROR, "sssp_result object creation failed\n");
+  return ret;
+}
+
+jobject to_spark_dummy_df (JNIEnv *env, dummy_dftable& obj) {
+  jclass dummy_df = env->FindClass(JRE_PATH_DummyDftable);
+  if (dummy_df == NULL) REPORT_ERROR(INTERNAL_ERROR, "dummy_dftable class not found in JRE\n");
+  jmethodID dfConst = env->GetMethodID(dummy_df, "<init>", "(J[Ljava/lang/String;[S)V");
+  if (dfConst == NULL) REPORT_ERROR(INTERNAL_ERROR, "dummy_df constructor not found in JRE\n");
+  jlong dfptr = obj.dfptr;
+  jobjectArray names = to_jStringArray(env, obj.names);
+  jshortArray types = to_jshortArray2(env, obj.types);
+  auto ret = env->NewObject(dummy_df, dfConst, dfptr, names, types);
   if (ret == NULL) REPORT_ERROR(INTERNAL_ERROR, "sssp_result object creation failed\n");
   return ret;
 }

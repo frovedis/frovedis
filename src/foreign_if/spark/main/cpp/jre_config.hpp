@@ -19,5 +19,6 @@
 #define JRE_PATH_sssp_result "com/nec/frovedis/graphx/sssp_result"
 #define JRE_PATH_DummyLDAResult "com/nec/frovedis/Jmllib/DummyLDAResult"
 #define JRE_PATH_DummyLDAModel "com/nec/frovedis/Jmllib/DummyLDAModel"
+#define JRE_PATH_DummyDftable "com/nec/frovedis/Jmllib/DummyDftable"
 
 #endif

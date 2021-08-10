@@ -64,6 +64,7 @@ extern "C" {
   std::vector<size_t> to_sizet_vector(JNIEnv *, jlongArray&, size_t);
   std::vector<std::string> to_string_vector(JNIEnv *, jobjectArray&, size_t);
   std::vector<exrpc_ptr_t> to_exrpc_vector(JNIEnv *, jlongArray&, size_t);
+  jobject to_spark_dummy_df (JNIEnv *env, dummy_dftable& obj);
 }
 
 #endif
