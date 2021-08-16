@@ -57,7 +57,8 @@ class FPGrowth  private (var minSupport: Double,
     this.numPartitions = numPartitions
     this
   }
-  private def get_table_string(data: Iterator[(Array[String],Long)]): Iterator[(Int,String)] = {
+  private def get_table_string(data: Iterator[(Array[String],Long)]): 
+              Iterator[(Int,String)] = {
     val darr = data.toArray
     var ret = new ArrayBuffer[(Int, String)]()
     for (i <- 0 to (darr.length-1)) {
@@ -70,7 +71,8 @@ class FPGrowth  private (var minSupport: Double,
     }
     return ret.toIterator
   }
-  private def get_table(data: Iterator[(Array[Int],Long)]): Iterator[(Int,Int)] = {
+  private def get_table(data: Iterator[(Array[Int],Long)]): 
+              Iterator[(Int,Int)] = {
     val darr = data.toArray
     var ret = new ArrayBuffer[(Int,Int)]()
     for (i <- 0 to (darr.length-1)) {
@@ -83,10 +85,12 @@ class FPGrowth  private (var minSupport: Double,
     }
     return ret.toIterator
   }
-  private def convert_to_spark_dataframe_string(tr: RDD[Array[String]]): DataFrame = {
+  private def convert_to_spark_dataframe_string(tr: RDD[Array[String]]): 
+          DataFrame = {
     val spark = SparkSession.builder().getOrCreate()
     import spark.implicits._
-    return tr.zipWithIndex().mapPartitions(get_table_string).toDF("trans_id","item")
+    return tr.zipWithIndex()
+             .mapPartitions(get_table_string).toDF("trans_id","item")
   }
   private def convert_to_spark_dataframe(tr: RDD[Array[Int]]): DataFrame = {
     val spark = SparkSession.builder().getOrCreate()
@@ -135,7 +139,8 @@ object FPGrowth {
             numPartitions: Int,
             treeDepth: Int,
             compressionPoint: Int,
-            memOptLevel: Int) (implicit tag: TypeTag[String]) : FPGrowthModel = {
+            memOptLevel: Int) 
+            (implicit tag: TypeTag[String]) : FPGrowthModel = {
     return new FPGrowth().setMinSupport(minSupport)
                          .setNumPartitions(numPartitions)
                          .setTreeDepth(treeDepth)
@@ -147,8 +152,10 @@ object FPGrowth {
             minSupport: Double,
             numPartitions: Int,
             treeDepth: Int,
-            compressionPoint: Int) (implicit tag: TypeTag[String]) : FPGrowthModel = {
-    return train(data, minSupport, numPartitions, treeDepth, compressionPoint, 0)
+            compressionPoint: Int) 
+            (implicit tag: TypeTag[String]) : FPGrowthModel = {
+    return train(data, minSupport, numPartitions, 
+                 treeDepth, compressionPoint, 0)
   }
   def train(data: RDD[Array[String]],
             minSupport: Double,
@@ -158,14 +165,17 @@ object FPGrowth {
   }
   def train(data: RDD[Array[String]],
             minSupport: Double,
-            numPartitions: Int) (implicit tag: TypeTag[String]) : FPGrowthModel = {
+            numPartitions: Int) 
+            (implicit tag: TypeTag[String]) : FPGrowthModel = {
     return train(data, minSupport, numPartitions, Int.MaxValue, 4, 0)
   }
   def train(data: RDD[Array[String]],
-            minSupport: Double) (implicit tag: TypeTag[String]) : FPGrowthModel =  {
+            minSupport: Double) 
+            (implicit tag: TypeTag[String]) : FPGrowthModel =  {
     return train(data, minSupport, 1, Int.MaxValue, 4, 0)
   }
-  def train(data: RDD[Array[String]]) (implicit tag: TypeTag[String]) : FPGrowthModel =  {
+  def train(data: RDD[Array[String]]) 
+            (implicit tag: TypeTag[String]) : FPGrowthModel =  {
     return train(data, 0.3, 1, Int.MaxValue, 4, 0)
   }
   // Int RDD
@@ -187,7 +197,8 @@ object FPGrowth {
             numPartitions: Int,
             treeDepth: Int,
             compressionPoint: Int): FPGrowthModel = {
-    return train(data, minSupport, numPartitions, treeDepth, compressionPoint, 0)
+    return train(data, minSupport, numPartitions, 
+                 treeDepth, compressionPoint, 0)
   }
   def train(data: RDD[Array[Int]],
             minSupport: Double,
@@ -227,7 +238,8 @@ object FPGrowth {
             numPartitions: Int,
             treeDepth: Int,
             compressionPoint: Int): FPGrowthModel = {
-    return train(data, minSupport, numPartitions, treeDepth, compressionPoint, 0)
+    return train(data, minSupport, numPartitions, 
+                 treeDepth, compressionPoint, 0)
   }
   def train(data: FrovedisDataFrame,
             minSupport: Double,
@@ -247,6 +259,46 @@ object FPGrowth {
   def train(data: FrovedisDataFrame): FPGrowthModel =  {
     return train(data, 0.3, 1, Int.MaxValue, 4, 0)
   }
+  // --- spark df input ---
+  def train(data: DataFrame,
+            minSupport: Double,
+            numPartitions: Int,
+            treeDepth: Int,
+            compressionPoint: Int,
+            memOptLevel: Int): FPGrowthModel = {
+    return new FPGrowth().setMinSupport(minSupport)
+                         .setNumPartitions(numPartitions)
+                         .setTreeDepth(treeDepth)
+                         .setCompressionPoint(compressionPoint)
+                         .setMemOptLevel(memOptLevel)
+                         .run(data)
+  }
+  def train(data: DataFrame,
+            minSupport: Double,
+            numPartitions: Int,
+            treeDepth: Int,
+            compressionPoint: Int): FPGrowthModel = {
+    return train(data, minSupport, numPartitions, 
+                 treeDepth, compressionPoint, 0)
+  }
+  def train(data: DataFrame,
+            minSupport: Double,
+            numPartitions: Int,
+            treeDepth: Int): FPGrowthModel = {
+    return train(data, minSupport, numPartitions, treeDepth, 4, 0)
+  }
+  def train(data: DataFrame,
+            minSupport: Double,
+            numPartitions: Int): FPGrowthModel = {
+    return train(data, minSupport, numPartitions, Int.MaxValue, 4, 0)
+  }
+  def train(data: DataFrame,
+            minSupport: Double): FPGrowthModel =  {
+    return train(data, minSupport, 1, Int.MaxValue, 4, 0)
+  }
+  def train(data: DataFrame): FPGrowthModel =  {
+    return train(data, 0.3, 1, Int.MaxValue, 4, 0)
+  }
 }
 
 class FPGrowthModel (val model_Id: Int, val fis_count: Int) 
@@ -264,7 +316,8 @@ class FPGrowthModel (val model_Id: Int, val fis_count: Int)
     return generateAssociationRules(0.8)
   }
   //---Duplicate---
-  private def get_table(data: Iterator[(Array[Int],Long)]): Iterator[(Int,Int)] = {
+  private def get_table(data: Iterator[(Array[Int],Long)]): 
+          Iterator[(Int,Int)] = {
     val darr = data.toArray
     var ret = new ArrayBuffer[(Int,Int)]()
     for (i <- 0 to (darr.length-1)) {
@@ -284,7 +337,8 @@ class FPGrowthModel (val model_Id: Int, val fis_count: Int)
     var sdata = fdata.to_spark_DF()
     spred = spred.groupBy("trans_id").agg(collect_set("consequent"))
     sdata = sdata.groupBy("trans_id").agg(collect_set("item"))
-    var y_df = sdata.join(spred, sdata("trans_id") === spred("trans_id"), "outer")
+    var y_df = sdata.join(spred, sdata("trans_id") === spred("trans_id"), 
+                          "outer")
                     .drop("trans_id")
                     .withColumnRenamed("collect_set(item)", "item")
                     .withColumnRenamed("collect_set(consequent)", "predictions")
@@ -294,7 +348,8 @@ class FPGrowthModel (val model_Id: Int, val fis_count: Int)
                                 array().cast("array<integer>"))
                                        .otherwise(myCol))
   }
-  private def get_table_string(data: Iterator[(Array[String],Long)]): Iterator[(Int,String)] = {
+  private def get_table_string(data: Iterator[(Array[String],Long)]): 
+          Iterator[(Int,String)] = {
     val darr = data.toArray
     var ret = new ArrayBuffer[(Int, String)]()
     for (i <- 0 to (darr.length-1)) {
@@ -307,10 +362,12 @@ class FPGrowthModel (val model_Id: Int, val fis_count: Int)
     }
     return ret.toIterator
   }
-  private def convert_to_spark_dataframe_string(tr: RDD[Array[String]]): DataFrame = {
+  private def convert_to_spark_dataframe_string(tr: RDD[Array[String]]): 
+          DataFrame = {
     val spark = SparkSession.builder().getOrCreate()
     import spark.implicits._
-    return tr.zipWithIndex().mapPartitions(get_table_string).toDF("trans_id","item")
+    return tr.zipWithIndex()
+             .mapPartitions(get_table_string).toDF("trans_id","item")
   }
   //---Duplicate---
   private def convert_to_spark_dataframe(tr: RDD[Array[Int]]): DataFrame = {
@@ -346,9 +403,9 @@ class FPGrowthModel (val model_Id: Int, val fis_count: Int)
     if (info != "") throw new java.rmi.ServerException(info);
     var dummy_df = new FrovedisDataFrame(pred.dfptr, pred.names, pred.types)
     return adjust_predictions(dummy_df, fdata)
-    //return dummy_df.to_spark_DF()
   }
-  def to_spark_model(sc:SparkContext): org.apache.spark.mllib.fpm.FPGrowthModel[Int] = {
+  def to_spark_model(sc:SparkContext): 
+      org.apache.spark.mllib.fpm.FPGrowthModel[Int] = {
     val fs = FrovedisServer.getServerInstance();
     var res = JNISupport.toSparkFPM(fs.master_node,mid)
     for (x <- res) x.debug_print()
