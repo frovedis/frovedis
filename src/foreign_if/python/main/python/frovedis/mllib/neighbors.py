@@ -51,7 +51,7 @@ class NearestNeighbors(BaseEstimator):
         if self.algorithm == "auto":
             self.algorithm = "brute"
         supported_algorithms = ['brute']
-        supported_metrics = ['euclidean', 'seuclidean']
+        supported_metrics = ['euclidean', 'seuclidean', 'cosine']
         if self.algorithm not in supported_algorithms:
             raise AttributeError("Frovedis KNN currently supports following\
                                 algorithms : \n", supported_algorithms,\
@@ -344,7 +344,7 @@ class KNeighborsClassifier(BaseEstimator):
         if self.algorithm == "auto":
             self.algorithm = "brute"
         supported_algorithms = ['brute']
-        supported_metrics = ['euclidean', 'seuclidean']
+        supported_metrics = ['euclidean', 'seuclidean', 'cosine']
         if self.algorithm not in supported_algorithms:
             raise AttributeError("Frovedis KNN currently supports following\
                                 algorithms : \n", supported_algorithms,\
@@ -663,7 +663,7 @@ class KNeighborsRegressor(BaseEstimator):
         if self.algorithm == "auto":
             self.algorithm = "brute"
         supported_algorithms = ['brute']
-        supported_metrics = ['euclidean', 'seuclidean']
+        supported_metrics = ['euclidean', 'seuclidean', 'cosine']
         if self.algorithm not in supported_algorithms:
             raise AttributeError("Frovedis currently supports following\
                                 algorithms : \n", supported_algorithms,\
