@@ -445,7 +445,7 @@ namespace frovedis {
     std::vector<dftable> trans_table_v;
     std::vector<dftable> res_table;
     dftable x;
-    for (auto rule: rules.rule) {
+    for (auto& rule: rules.rule) {
       //antacedent columns = total number of columns - (consequent, confidence,
       //                                                lift, support, 
       //                                                conviction)
@@ -471,8 +471,8 @@ namespace frovedis {
       for (size_t i = 1; i < ant_n; ++i) {
         targets = {"trans_id_", "consequent"};
         targets.insert(std::end(targets), 
-                                              std::begin(ant_cols) + i + 1, 
-                                              std::end(ant_cols));
+                       std::begin(ant_cols) + i + 1, 
+                       std::end(ant_cols));
         j_df = trans.bcast_join(j_df, eq("item", ant_cols[i]))
                 .filter(neq("item", "consequent"))
                 .filter(eq("trans_id", "trans_id_"))
@@ -505,10 +505,9 @@ namespace frovedis {
     if (trans_table_v.size()) {
       x = trans_table_v.back();
       trans_table_v.pop_back();
-      auto x1 = x.union_tables(trans_table_v, false);
+      x = x.union_tables(trans_table_v, false);
       //group_by & select
-      auto x2 = x1.distinct();
-      return x2;
+      return x.distinct();
     } 
     else {
       dftable dummy;
