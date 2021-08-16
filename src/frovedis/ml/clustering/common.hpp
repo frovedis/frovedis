@@ -331,27 +331,53 @@ struct compute_dist {
     const T *a2ptr, *b2ptr;
     a2ptr = b2ptr = NULL;
 #ifdef COMPUTE_ONLY_B2_FOR_PARTIAL_DISTANCE
-    if (need_distance) {
-      a2 = squared_sum_of_cols(a);
-      a2ptr = a2.data();
+    /*partial distance only applies currently for euclidean distances*/
+    if(((metric == "euclidean" || metric == "seuclidean")  
+        && need_distance) || (metric == "cosine")) {
+        a2 = squared_sum_of_cols(a);
+        a2ptr = a2.data();
     }
     if (is_trans_b) b2 = squared_sum_of_rows(b); // b is transposed
     else b2 = squared_sum_of_cols(b); // b is not transposed
     b2ptr = b2.data();
 #else
     a2 = squared_sum_of_cols(a);
-    a2ptr = a2.data();
-    if (need_distance) {
+    a2ptr = a2.data();       
+    if(((metric == "euclidean" || metric == "seuclidean")  
+        && need_distance) || (metric == "cosine")) {
       if (is_trans_b) b2 = squared_sum_of_rows(b); // b is transposed
       else b2 = squared_sum_of_cols(b); // b is not transposed
-      b2ptr = b2.data();
+      b2ptr = b2.data();        
     }
 #endif
     auto ab = mult_a_with_trans_b(a, b, !is_trans_b, use_spgemm);
     auto abptr = ab.val.data();
     auto nrow = ab.local_num_row;
     auto ncol = ab.local_num_col;
-    if (metric == "euclidean" && need_distance) {
+
+    if(metric == "cosine") {
+      if (nrow > ncol) {
+#pragma _NEC nointerchange
+        for(size_t j = 0; j < ncol; ++j) {
+          for(size_t i = 0; i < nrow; ++i) {
+            auto den = std::sqrt(a2ptr[i] * b2ptr[j]);
+            if (den > 0) abptr[i*ncol+j] = 1.0 - (abptr[i*ncol+j] / den);
+            else abptr[i*ncol+j] = 0;
+          }
+        }
+      }
+      else {
+#pragma _NEC nointerchange
+        for(size_t i = 0; i < nrow; ++i) {
+          for(size_t j = 0; j < ncol; ++j) {
+            auto den = std::sqrt(a2ptr[i] * b2ptr[j]);
+            if (den > 0) abptr[i*ncol+j] = 1.0 - (abptr[i*ncol+j] / den);
+            else abptr[i*ncol+j] = 0;
+          }
+        }
+      }        
+    }  
+    else if (metric == "euclidean" && need_distance) {
       if (nrow > ncol) {
 #pragma _NEC nointerchange
         for(size_t j = 0; j < ncol; ++j) {
@@ -465,10 +491,10 @@ construct_distance_matrix(M1& x_mat,
       auto g_x_mat = x_mat.gather();
 #ifdef NEED_TRANS_FOR_MULT
       auto b_mat = broadcast(g_x_mat.transpose());
-      auto trans_b = true;
+      auto trans_b = true; 
 #else
       auto b_mat = broadcast(g_x_mat);
-      auto trans_b = false;
+      auto trans_b = false;  
 #endif
       g_x_mat.clear(); // releasing memory for gathered data
       auto loc_dist_mat = y_mat.data.map(compute_dist<T>(dist_metric,
@@ -476,7 +502,7 @@ construct_distance_matrix(M1& x_mat,
                                          use_spgemm), b_mat);
       dist_mat.data = std::move(loc_dist_mat);
       dist_mat.num_row = nquery;
-      dist_mat.num_col = nsamples; // no tranpose required, since Y * Xt is performed
+      dist_mat.num_col = nsamples; // no tranpose required, since Y * Xt is performed 
     }
     else { // nsamples >> nquery (more than 100 times)
       auto g_y_mat = y_mat.gather();
