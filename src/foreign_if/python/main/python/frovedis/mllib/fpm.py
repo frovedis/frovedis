@@ -168,7 +168,6 @@ class FPGrowth(object):
         NAME: fit
         """
         f_df = self.__check_input(data)
-        print ("F_DF DTYPE: ", f_df.get_types())
         self.p_df = f_df.to_pandas_dataframe()
         self.release()
         self.__mid = ModelID.get()
@@ -247,7 +246,7 @@ class FPGrowth(object):
             "attribute 'associationRules' of FPGrowth object is not writable")
     
     def transform(self, data):
-        """transform getter"""
+        """transform"""
         f_df = self.__check_input(data)
         if self.__mid is None:
             raise valueError("transform: Cannot be called before fit!\n")
