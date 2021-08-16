@@ -435,8 +435,7 @@ knn_model<T, I> compute_kneigbor(MATRIX1& x_mat,
                                  bool need_distance,
                                  float chunk_size) {           
   auto nquery   = y_mat.num_row;              
-  auto dist_mat = construct_distance_matrix<T>(x_mat, y_mat, metric, need_distance);
-            
+  auto dist_mat = construct_distance_matrix<T>(x_mat, y_mat, metric, need_distance);           
   knn_model<T, I> ret(k);
   ret.distances.data = make_node_local_allocate<rowmajor_matrix_local<T>>();
   if (need_distance) {
@@ -477,13 +476,14 @@ knn_model<T, I> knn(MATRIX1& x_mat,
     REPORT_ERROR(USER_ERROR, 
       "Currently frovedis knn supports only brute force implementation!\n");
 
-  if (metric != "euclidean" && metric != "seuclidean")
+  if (metric != "euclidean" && metric != "seuclidean" && metric != "cosine")
     REPORT_ERROR(USER_ERROR, 
-      "Currently frovedis knn supports only euclidean/seuclidean distance!\n");
+      "Currently frovedis knn supports only euclidean/seuclidean and \
+                 cosine distance!\n");
 
   knn_model<T, I> ret(k);
   if(batch_fraction == std::numeric_limits<double>::max()) { // No batch provided
-    if (nquery > THRESHOLD) { // Compute with batches of distance matrix  
+    if (nquery > THRESHOLD) { // Compute with batches of distance matrix 
       size_t batch_size_per_node = get_batch_size_per_node(THRESHOLD);
       ret = compute_kneigbor_in_batch<T, I>(x_mat, y_mat, k, metric, need_distance, 
                                             chunk_size, batch_size_per_node);  
@@ -532,9 +532,10 @@ knn_radius(MATRIX1& x_mat,
     REPORT_ERROR(USER_ERROR,
       "Currently frovedis knn supports only brute force implementation!\n");
 
-  if (metric != "euclidean" && metric != "seuclidean")
+  if (metric != "euclidean" && metric != "seuclidean" && metric != "cosine")
     REPORT_ERROR(USER_ERROR,
-      "Currently frovedis knn supports only euclidean/seuclidean distance!\n");
+      "Currently frovedis knn supports only euclidean/seuclidean and \
+                 cosine distance!\n");
 
   if (mode != "distance" && mode != "connectivity")
     REPORT_ERROR(USER_ERROR,
