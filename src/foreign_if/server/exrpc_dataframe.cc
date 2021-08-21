@@ -19,9 +19,19 @@ dftable* get_dftable_pointer(exrpc_ptr_t& df_proxy) {
   return dftblp;
 }
 
+void treat_str_nan_as_null(std::vector<std::string>& vec) {
+  auto vsz = vec.size();
+  auto vptr = vec.data();
+  std::string nullstr = "NULL";
+  for(size_t i = 0; i < vsz; ++i) {
+    if (vptr[i] == "nan" || vptr[i] == "None") vptr[i] = nullstr;
+  }
+}
+
 exrpc_ptr_t create_dataframe (std::vector<short>& types,
                               std::vector<std::string>& cols,
-                              std::vector<exrpc_ptr_t>& dvec_proxies) {
+                              std::vector<exrpc_ptr_t>& dvec_proxies,
+                              bool& nan_as_null) {
   //for(auto t: types) std::cout << t << " "; std::cout << std::endl;
   auto dftblp = new dftable();
   if (!dftblp) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed.\n");
@@ -37,12 +47,15 @@ exrpc_ptr_t create_dataframe (std::vector<short>& types,
                      dftblp->append_column(cols[i],std::move(*v2),true);
                      delete v2; break; }
       case FLOAT:  { auto v3 = reinterpret_cast<dvector<float>*>(dvec_proxies[i]);
+                     if (nan_as_null) v3->mapv_partitions(treat_nan_as_null<float>);
                      dftblp->append_column(cols[i],std::move(*v3),true);
                      delete v3; break; }
       case DOUBLE: { auto v4 = reinterpret_cast<dvector<double>*>(dvec_proxies[i]);
+                     if (nan_as_null) v4->mapv_partitions(treat_nan_as_null<double>);
                      dftblp->append_column(cols[i],std::move(*v4),true);
                      delete v4; break; }
       case STRING: { auto v5 = reinterpret_cast<dvector<std::string>*>(dvec_proxies[i]);
+                     if (nan_as_null) v5->mapv_partitions(treat_str_nan_as_null);
                      dftblp->append_column(cols[i],std::move(*v5),true);
                      delete v5; break; }
       case BOOL:   { auto v6 = reinterpret_cast<dvector<int>*>(dvec_proxies[i]);
@@ -357,46 +370,6 @@ exrpc_ptr_t frovedis_df_rename(exrpc_ptr_t& df_proxy,
   return reinterpret_cast<exrpc_ptr_t> (ret);
 }
 
-dummy_vector get_df_int_col(exrpc_ptr_t& df_proxy, 
-                                std::string& cname) {
-  auto& df = *reinterpret_cast<dftable_base*>(df_proxy);
-  auto vecp = new dvector<int>(df.as_dvector<int>(cname));
-  auto vecp_ = reinterpret_cast<exrpc_ptr_t>(vecp);
-  return dummy_vector(vecp_, vecp->size(), INT);
-}
-
-dummy_vector get_df_long_col(exrpc_ptr_t& df_proxy, 
-                             std::string& cname) {
-  auto& df = *reinterpret_cast<dftable_base*>(df_proxy);
-  auto vecp = new dvector<long>(df.as_dvector<long>(cname));
-  auto vecp_ = reinterpret_cast<exrpc_ptr_t>(vecp);
-  return dummy_vector(vecp_, vecp->size(), LONG);
-}
-
-dummy_vector get_df_ulong_col(exrpc_ptr_t& df_proxy, 
-                              std::string& cname) {
-  auto& df = *reinterpret_cast<dftable_base*>(df_proxy);
-  auto vecp = new dvector<unsigned long>(df.as_dvector<unsigned long>(cname));
-  auto vecp_ = reinterpret_cast<exrpc_ptr_t>(vecp);
-  return dummy_vector(vecp_, vecp->size(), ULONG);
-}
-
-dummy_vector get_df_float_col(exrpc_ptr_t& df_proxy, 
-                              std::string& cname) {
-  auto& df = *reinterpret_cast<dftable_base*>(df_proxy);
-  auto vecp = new dvector<float>(df.as_dvector<float>(cname));
-  auto vecp_ = reinterpret_cast<exrpc_ptr_t>(vecp);
-  return dummy_vector(vecp_, vecp->size(), FLOAT);
-}
-
-dummy_vector get_df_double_col(exrpc_ptr_t& df_proxy, 
-                               std::string& cname) {
-  auto& df = *reinterpret_cast<dftable_base*>(df_proxy);
-  auto vecp = new dvector<double>(df.as_dvector<double>(cname));
-  auto vecp_ = reinterpret_cast<exrpc_ptr_t>(vecp);
-  return dummy_vector(vecp_, vecp->size(), DOUBLE);
-}
-
 dummy_vector get_df_string_col(exrpc_ptr_t& df_proxy, 
                                std::string& cname) {
   auto& df = *reinterpret_cast<dftable_base*>(df_proxy);
@@ -657,7 +630,7 @@ frov_load_dataframe_from_csv(std::string& filename,
   }
 
   if (index_col >= 0) dftblp->change_col_position(cols[index_col], 0); // set_index
-  else if (add_index) dftblp->prepend_rowid("index");
+  else if (add_index) dftblp->prepend_rowid<long>("index");
   reset_verbose_level();
   return to_dummy_dftable(dftblp);
 }
@@ -671,7 +644,7 @@ dummy_dftable
 frov_df_append_column(exrpc_ptr_t& df_proxy, 
                       std::string& col_name, short& type, 
                       exrpc_ptr_t& dvec_proxy, int& position,
-                      bool& drop_old) {
+                      bool& drop_old, bool& nan_as_null) {
   dftable* dftblp = NULL;
   if (df_proxy == -1) dftblp = new dftable(); // empty dataframe
   else dftblp = get_dftable_pointer(df_proxy);
@@ -691,12 +664,15 @@ frov_df_append_column(exrpc_ptr_t& df_proxy,
                    dftblp->append_column(col_name,std::move(*v2),true);
                    delete v2; break; }
     case FLOAT:  { auto v3 = reinterpret_cast<dvector<float>*>(dvec_proxy);
+                   if (nan_as_null) v3->mapv_partitions(treat_nan_as_null<float>);
                    dftblp->append_column(col_name,std::move(*v3),true);
                    delete v3; break; }
     case DOUBLE: { auto v4 = reinterpret_cast<dvector<double>*>(dvec_proxy);
+                   if (nan_as_null) v4->mapv_partitions(treat_nan_as_null<double>);
                    dftblp->append_column(col_name,std::move(*v4),true);
                    delete v4; break; }
     case STRING: { auto v5 = reinterpret_cast<dvector<std::string>*>(dvec_proxy);
+                   if (nan_as_null) v5->mapv_partitions(treat_str_nan_as_null);
                    dftblp->append_column(col_name,std::move(*v5),true);
                    delete v5; break; }
     case BOOL:   { auto v6 = reinterpret_cast<dvector<int>*>(dvec_proxy);
@@ -707,7 +683,7 @@ frov_df_append_column(exrpc_ptr_t& df_proxy,
                  REPORT_ERROR(USER_ERROR,msg);
   }
   if (drop_old) dftblp->set_col_order(df_col_order);
-  if (df_proxy == -1) dftblp->prepend_rowid("index");
+  if (df_proxy == -1) dftblp->prepend_rowid<long>("index");
   if (position != -1 and position != sz) {
     // position can be zero if index column is not present
     checkAssumption(position >= 0 && position < sz); 
@@ -721,7 +697,7 @@ dummy_dftable
 frov_df_add_index(exrpc_ptr_t& df_proxy, 
                   std::string& name) {
   auto dftblp = get_dftable_pointer(df_proxy);
-  dftblp->prepend_rowid(name);
+  dftblp->prepend_rowid<long>(name);
   return to_dummy_dftable(dftblp);
 }
 
@@ -734,7 +710,7 @@ frov_df_reset_index(exrpc_ptr_t& df_proxy,
 
   if (drop) {
     dftblp->drop(cols[0]); // dropping existing index-column
-    dftblp->prepend_rowid("index");
+    dftblp->prepend_rowid<long>("index");
   }
   else {
     if (cols[0] == "label_0")
@@ -749,7 +725,7 @@ frov_df_reset_index(exrpc_ptr_t& df_proxy,
     }
     else if (cols[0] == "index_col") new_index_col = "label_0"; // as in pandas
     else                             new_index_col = "index_col"; 
-    dftblp->prepend_rowid(new_index_col);
+    dftblp->prepend_rowid<long>(new_index_col);
   }
   return to_dummy_dftable(dftblp);
 }
@@ -900,7 +876,7 @@ frov_df_copy_column(exrpc_ptr_t& to_df,
   for(size_t i = 0; i < size; ++i) {
     copy_column_helper(*to_df_p, *from_df_p, names[i], names_as[i], dtypes[i]);
   }
-  if (to_df == -1) to_df_p->prepend_rowid("index");
+  if (to_df == -1) to_df_p->prepend_rowid<long>("index");
   return to_dummy_dftable(to_df_p);
 }
 
@@ -948,154 +924,59 @@ frov_df_fillna(exrpc_ptr_t& df_proxy,
   return to_dummy_dftable(ret);
 }
 
-dummy_dftable
-frov_df_dropna(exrpc_ptr_t& df_proxy,
-               std::vector<std::string>& targets,
-               int& axis, std::string& how) {
-  auto df = reinterpret_cast<dftable_base*>(df_proxy);
-  auto ret = new dftable(df->drop_nulls(axis, how, targets));
-  return to_dummy_dftable(ret);
-}
-
 std::string frov_df_to_string(exrpc_ptr_t& df_proxy, bool& has_index) {
   auto df = reinterpret_cast<dftable_base*>(df_proxy);
   return df->to_string(!has_index);
 }
 
-dummy_dftable 
-frov_df_head(exrpc_ptr_t& df_proxy,
-            size_t& limit) {
+dummy_dftable
+frov_df_dropna_by_rows(exrpc_ptr_t& df_proxy,
+                       std::vector<std::string>& targets,
+                       std::string& how) {
+  auto df = reinterpret_cast<dftable_base*>(df_proxy);
+  auto ret = new dftable(df->drop_nulls_by_rows(how, targets));
+  return to_dummy_dftable(ret);
+}
+
+dummy_dftable frov_df_head(exrpc_ptr_t& df_proxy,
+                           size_t& limit) {
   auto dftblp = reinterpret_cast<dftable_base*>(df_proxy);
   auto ret = new dftable(dftblp->head(limit));
   return to_dummy_dftable(ret);
 }
 
-dummy_dftable 
-frov_df_tail(exrpc_ptr_t& df_proxy,
-            size_t& limit) {
+dummy_dftable frov_df_tail(exrpc_ptr_t& df_proxy,
+                           size_t& limit) {
   auto dftblp = reinterpret_cast<dftable_base*>(df_proxy);
   auto ret = new dftable(dftblp->tail(limit));
   return to_dummy_dftable(ret);
 }
 
-std::vector<size_t>
-get_filtered_idx_local(size_t local_start, size_t local_end,
-                      size_t a, size_t b, size_t c){
-
-    if ( b < a ) return std::vector<size_t>();
-
-    // local_start, local_end is range present locally   
-    auto sz = local_end - local_start + 1;
-    auto max_val = std::numeric_limits<size_t>::max();
-
-    size_t ret_start = max_val;
-    size_t ret_end = max_val;
-
-    size_t cnt = 0;
-    
-    bool is_a_in_local_range = ( a >= local_start && a <= local_end );
-    bool is_b_in_local_range = ( b >= local_start && b <= local_end );
-
-    if (is_a_in_local_range && is_b_in_local_range){
-        ret_start = a;
-        ret_end = b;
-    }
-    else if (is_a_in_local_range and !is_b_in_local_range){
-        ret_start = a;
-        ret_end = local_end;
-    }
-    else if (!is_a_in_local_range and is_b_in_local_range){
-        ret_start = local_start;
-        ret_end = b;
-    }
-    else {
-        if (a <= local_start and b >= local_end){
-            ret_start = local_start;
-            ret_end = local_end;
-        }
-    }
-    
-    if (ret_start == max_val && ret_end == max_val) return std::vector<size_t>();
-
-    std::vector<size_t> ret(sz, 0);
-    auto retp = ret.data();
-
-    for(size_t i=ret_start; i<=ret_end; i++){
-        if ( (i - a) % c == 0) retp[cnt++] = i - local_start;
-    }
-
-    ret.resize(cnt);
-
-    return ret;
-}
-
-filtered_dftable
-get_filtered_df_from_slice(dftable& df, size_t a, size_t b,
-                          size_t c) {
-    auto distribution_sizes = df.num_rows();
-    auto n_nodes = distribution_sizes.size();
-    
-    std::vector<size_t> start_vec(n_nodes, 0), end_vec(n_nodes, 0);
-    
-    for(size_t i=1; i<n_nodes; i++) start_vec[i] = distribution_sizes[i-1];
-    for(size_t i=1; i<n_nodes; i++) start_vec[i] += start_vec[i-1];
-
-    for(size_t i=0; i<n_nodes; i++) end_vec[i] = distribution_sizes[i];
-    for(size_t i=1; i<n_nodes; i++) end_vec[i] +=  end_vec[i-1];
-    for(size_t i=0; i<n_nodes; i++) end_vec[i] -= 1;
-    
-    auto nl_start = make_node_local_scatter(start_vec);
-    auto nl_end = make_node_local_scatter(end_vec);
-    
-    auto fidx = nl_start.map(get_filtered_idx_local, nl_end,
-                            broadcast(a), broadcast(b),
-                            broadcast(c));
-    
-    auto ftable = filtered_dftable(df, fidx);
-
-    return ftable;
-}
-
-dummy_dftable 
-frov_df_slice_range(exrpc_ptr_t& df_proxy, size_t& a, size_t& b,
-                  size_t& c) {
-  auto& df = *get_dftable_pointer(df_proxy);
-  auto ret = new dftable(get_filtered_df_from_slice(df, a, b, c).materialize());
+dummy_dftable frov_df_slice_range(exrpc_ptr_t& df_proxy, 
+                                  size_t& a, size_t& b,
+                                  size_t& c) {
+  auto& df = *reinterpret_cast<dftable_base*>(df_proxy);
+  auto ret = new dftable(make_sliced_dftable(df, a, b, c));
   return to_dummy_dftable(ret);
 }
 
-size_t 
-frov_df_slice_range_non_integer_bound(exrpc_ptr_t& df_proxy, std::string& column,
-                                      std::string& value, short& dtype) {
-  auto& df = *get_dftable_pointer(df_proxy);
-  size_t res = 0;
-  
+std::vector<size_t> 
+frov_df_get_index_loc(exrpc_ptr_t& df_proxy, std::string& column,
+                      std::string& value, short& dtype) {
+  auto& df = *reinterpret_cast<dftable_base*>(df_proxy);
+  std::vector<size_t> res;
   switch(dtype) {
-      case INT:    { int value_ = convert_string<int>(value);
-                    res = get_non_integer_slice_bound(df, column, value_);
-                    break; }
-      case LONG:   { long value_ = convert_string<long>(value);
-                    res = get_non_integer_slice_bound(df, column, value_);
-                    break; }
-      case ULONG:  { unsigned long value_ = convert_string<unsigned long>(value);
-                    res = get_non_integer_slice_bound(df, column, value_);
-                    break; }
-      case FLOAT:  { float value_ = convert_string<float>(value);
-                    res = get_non_integer_slice_bound(df, column, value_);
-                    break; }
-      case DOUBLE: { double value_ = convert_string<double>(value);
-                    res = get_non_integer_slice_bound(df, column, value_);
-                    break; }
-      case STRING: { res = get_non_integer_slice_bound(df, column, value);
-                    break; }
-      case BOOL:   { int value_;
-                    if (value == "True") value_ = 1;
-                    else if (value == "False") value_ = 0;
-                    else REPORT_ERROR(USER_ERROR, "Unsupported value for boolean: "+ value +"! \n");
-                    res = get_non_integer_slice_bound(df, column, value_);
-                    break; }
-      default:     auto msg = "Unsupported datatype dataframe slice : " + std::to_string(dtype) + "! \n";
-                   REPORT_ERROR(USER_ERROR,msg);
-    }
+    case INT:    res = df.get_loc(column, do_cast<int>(value)); break;
+    case BOOL:   res = df.get_loc(column, (int) do_cast<bool>(value)); break;
+    case LONG:   res = df.get_loc(column, do_cast<long>(value)); break;
+    case ULONG:  res = df.get_loc(column, do_cast<unsigned long>(value)); break;
+    case FLOAT:  res = df.get_loc(column, do_cast<float>(value)); break;
+    case DOUBLE: res = df.get_loc(column, do_cast<double>(value)); break;
+    case STRING: res = df.get_loc(column, value); break;
+    default:     auto msg = "get_loc: Unsupported datatype: " + 
+                            std::to_string(dtype) + "! \n";
+                 REPORT_ERROR(USER_ERROR, msg);
+  }
   return res;
 }
+

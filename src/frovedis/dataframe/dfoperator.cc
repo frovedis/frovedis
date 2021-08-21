@@ -528,4 +528,71 @@ dftable_base* filtered_dftable::drop_cols(const std::vector<std::string>& cols) 
   return this;
 }
 
+// if raise_exception=true, raises exception when any value in 'right_col' is not in 'left_col'
+dftable isin_impl(dftable_base& left_t, const std::string& left_col,
+                  dftable_base& right_t, const std::string& right_col,
+                  bool raise_exception) {
+  dftable ret;
+  auto cols = left_t.columns();
+  if (!raise_exception) {
+    ret = left_t.bcast_join(right_t, eq(left_col, right_col)).select(cols);
+  } else {
+    // it might be a little slower...
+    auto joined = right_t.outer_hash_join(left_t, eq(right_col, left_col));
+    auto c = joined.column(left_col);
+    use_dfcolumn use(c);
+    if(c->if_contain_nulls()) {
+      auto tmp = joined.filter(is_null(left_col));
+      /*
+      std::string msg = "KeyError: key '";
+      msg += std::to_string(tmp.min<T>(right_col));
+      msg += "' not found in target column: " + left_col + "\n";
+      */
+      std::string msg = std::to_string(tmp.num_row()) + " key(s) ";
+      msg += "not found in target column: " + left_col + "\n";
+      REPORT_ERROR(USER_ERROR, msg);
+    }
+    ret = joined.select(cols);
+  }
+  return ret;
+}
+
+// if raise_exception=true, raises exception when any value in 'right_col' is not in 'left_col'
+dftable isnotin_impl(dftable_base& left_t, const std::string& left_col,
+                     dftable_base& right_t, const std::string& right_col,
+                     bool raise_exception) {
+  if (raise_exception) {
+    // it might be a little slower...
+    auto joined = right_t.outer_hash_join(left_t, eq(right_col, left_col));
+    auto c = joined.column(left_col);
+    use_dfcolumn use(c);
+    if(c->if_contain_nulls()) { // missing key found
+      auto tmp = joined.filter(is_null(left_col));
+      /*
+      std::string msg = "KeyError: key '";
+      msg += std::to_string(tmp.min<T>(right_col));
+      msg += "' not found in target column: " + left_col + "\n";
+      */
+      std::string msg = std::to_string(tmp.num_row()) + " key(s) ";
+      msg += "not found in target column: " + left_col + "\n";
+      REPORT_ERROR(USER_ERROR, msg);
+    }
+  }
+  auto cols = left_t.columns();
+  return left_t.outer_bcast_join(right_t, eq(left_col, right_col))
+               .filter(is_null(right_col)).select(cols);
+}
+
+dftable dftable_base::is_in(const std::string& target_col,
+                            dftable_base& right_t,
+                            const std::string& right_col) {
+  return isin_impl(*this, target_col, right_t, right_col, false);
+}
+
+dftable dftable_base::is_not_in(const std::string& target_col,
+                                dftable_base& right_t,
+                                const std::string& right_col) {
+  return isnotin_impl(*this, target_col, right_t, right_col, false);
+}
+
 }

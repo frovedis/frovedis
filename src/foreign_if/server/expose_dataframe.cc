@@ -41,11 +41,11 @@ void expose_frovedis_dataframe_functions() {
   expose(frovedis_df_max);
   expose(frovedis_df_std);
   expose(frovedis_df_rename);
-  expose(get_df_int_col);
-  expose(get_df_long_col);
-  expose(get_df_ulong_col);
-  expose(get_df_float_col);
-  expose(get_df_double_col);
+  expose(get_df_col<int>);
+  expose(get_df_col<long>);
+  expose(get_df_col<unsigned long>);
+  expose(get_df_col<float>);
+  expose(get_df_col<double>);
   expose(get_df_string_col);
   expose(frovedis_gdf_aggr);
   expose(frovedis_gdf_select);
@@ -83,10 +83,16 @@ void expose_frovedis_dataframe_functions() {
   expose(frov_df_binary_operation);
   expose(frov_df_immed_binary_operation);
   expose(frov_df_fillna);
-  expose(frov_df_dropna);
   expose(frov_df_to_string);
+  expose(frov_df_dropna_by_rows);
+  expose(frov_df_dropna_by_cols<int>);
+  expose(frov_df_dropna_by_cols<long>);
+  expose(frov_df_dropna_by_cols<unsigned long>);
+  expose(frov_df_dropna_by_cols<float>);
+  expose(frov_df_dropna_by_cols<double>);
+  expose(frov_df_dropna_by_cols<std::string>);
   expose(frov_df_head);
   expose(frov_df_tail);
   expose(frov_df_slice_range);
-  expose(frov_df_slice_range_non_integer_bound);
+  expose(frov_df_get_index_loc);
 }

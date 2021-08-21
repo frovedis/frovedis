@@ -114,3 +114,13 @@ std::string get_string_dtype(short dt) {
   else if (dt == ULONG) return "unsigned long";
   else throw std::runtime_error(STR(dt) + ": unsupported dtype encountered!\n");
 }
+
+template <>
+bool do_cast<bool>(const std::string& data) {
+  int ret = 0;
+  if (data == "True") ret = 1;
+  else if (data == "False") ret = 0;
+  else REPORT_ERROR(USER_ERROR, 
+       "do_cast<bool>: Unknown boolean string is detected!\n");
+  return ret;
+}

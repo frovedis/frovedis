@@ -1116,8 +1116,8 @@ dftable make_sliced_dftable(dftable_base& t, size_t st, size_t end, size_t step)
   return filtered_dftable(t, std::move(idx)).materialize();
 }
 
-dftable drop_nulls_axis0_any_impl(dftable_base& df,
-                                  const std::vector<std::string>& targets) {
+dftable drop_nulls_by_rows_any_impl(dftable_base& df,
+                                    const std::vector<std::string>& targets) {
   auto tsz = targets.size();
   if (tsz == 0) return df.materialize(); // empty dftable case
   auto fdf = df.filter(is_not_null(targets[0]));
@@ -1125,8 +1125,8 @@ dftable drop_nulls_axis0_any_impl(dftable_base& df,
   return fdf.materialize();
 }
 
-dftable drop_nulls_axis0_all_impl(dftable_base& df,
-                                  const std::vector<std::string>& targets) {
+dftable drop_nulls_by_rows_all_impl(dftable_base& df,
+                                    const std::vector<std::string>& targets) {
   auto tsz = targets.size();
   if (tsz == 0) return df.materialize(); // empty dftable case
   auto opt = is_null(targets[0]);
@@ -1134,15 +1134,38 @@ dftable drop_nulls_axis0_all_impl(dftable_base& df,
   return df.filter(not_op(opt)).materialize();
 }
 
-dftable dftable_base::drop_nulls(int axis, const std::string& how,
-                                 const std::vector<std::string>& targets) {
-  require(axis == 0, "drop nulls using axis: '" + STR(axis) + "' is not supported!\n");
+dftable dftable_base::drop_nulls_by_rows(const std::string& how,
+                                         const std::vector<std::string>& targets) {
   require(how == "any" || how == "all", "drop nulls using how: '" + how + "' is not supported!\n");
   dftable ret;
   std::vector<std::string> cols = targets;
   if (targets.empty()) cols = columns();
-  if (how == "any") ret = drop_nulls_axis0_any_impl(*this, cols);
-  else ret = drop_nulls_axis0_all_impl(*this, cols);
+  if (how == "any") ret = drop_nulls_by_rows_any_impl(*this, cols);
+  else ret = drop_nulls_by_rows_all_impl(*this, cols);
+  return ret;
+}
+
+dftable drop_nulls_by_cols_impl(dftable_base& df,
+                                dftable_base& sliced_df, // drop would be in-place
+                                const std::string& how) {
+  require(how == "any" || how == "all", "drop nulls using how: '" + how + "' is not supported!\n");
+  bool is_all = how == "all";
+  auto cols = sliced_df.columns();
+  auto nrows = sliced_df.num_row();
+  auto ncols = cols.size();
+  dftable ret;
+  for(size_t i = 0; i < ncols; ++i) {
+    auto cname = cols[i];
+    auto c = sliced_df.column(cname);
+    use_dfcolumn use(c);
+    auto nullsz = nrows - c->count(); // count excludes nulls
+    auto to_drop = (!is_all && nullsz > 0) || (is_all && nullsz == nrows);
+    if (!to_drop) {
+      auto actual_c = df.column(cname);
+      use_dfcolumn use(actual_c);
+      ret.append_column(cname, actual_c); // ret would have same distribution as in 'df'
+    }
+  }
   return ret;
 }
 
@@ -1626,36 +1649,6 @@ dftable& dftable::append_column(const std::string& name,
   col.insert(std::make_pair(name, c));
   col_order.push_back(name);
   return *this;
-}
-
-struct append_rowid_helper {
-  append_rowid_helper(){}
-  append_rowid_helper(std::vector<size_t> sizes, size_t offset) :
-    sizes(sizes), offset(offset) {}
-  void operator()(std::vector<size_t>& v) {
-    int self = get_selfid();
-    size_t size = sizes[self];
-    v.resize(size);
-    size_t* vp = v.data();
-    size_t start = 0;
-    auto sizesp = sizes.data();
-    for(size_t i = 0; i < self; i++) start += sizesp[i];
-    start += offset;
-    for(size_t i = 0; i < size; i++) vp[i] = start + i;
-  }
-  std::vector<size_t> sizes;
-  size_t offset;
-  SERIALIZE(sizes, offset)
-};
-
-dftable& dftable::append_rowid(const std::string& name, size_t offset) {
-  if(col.size() == 0)
-    throw std::runtime_error
-      ("append_rowid: there is no column to append rowid");
-  auto sizes = num_rows();
-  auto nl = make_node_local_allocate<std::vector<size_t>>();
-  nl.mapv(append_rowid_helper(sizes, offset));
-  return append_column(name, nl.template moveto_dvector<size_t>());
 }
 
 struct datetime_extract_helper {
@@ -2351,14 +2344,6 @@ dftable& dftable::align_block() {
   return align_as(block_size);
 }
 
-// similar to add_index in pandas...
-dftable& dftable::prepend_rowid(const std::string& name,
-                                size_t offset) {
-  append_rowid(name, offset);
-  vector_shift_inplace(col_order, num_col() - 1, 0);
-  return *this;
-}
-
 // df.change_col_position("x", 0); => similar to df.set_index("x") in pandas...
 dftable& dftable::change_col_position(const std::string& name, size_t pos) {
   auto cols = columns();
@@ -2510,11 +2495,6 @@ void sorted_dftable::debug_print() {
   std::cout << std::endl;
   std::cout << "sorted_column: " << column_name << std::endl;
   dftable_base::debug_print();
-}
-
-dftable sorted_dftable::append_rowid(const std::string& name,
-                                     size_t offset) {
-  return this->materialize().append_rowid(name, offset);
 }
 
 size_t sorted_dftable::num_row() {
@@ -2734,12 +2714,7 @@ void hash_joined_dftable::debug_print() {
     std::cout << std::endl;
   }
 }
-
-dftable hash_joined_dftable::append_rowid(const std::string& name,
-                                          size_t offset) {
-  return this->materialize().append_rowid(name, offset);
-}
-
+  
 // ---------- bcast_joined_dftable ----------
 
 size_t bcast_joined_dftable::num_col() const {
@@ -2895,11 +2870,6 @@ void bcast_joined_dftable::debug_print() {
     }
     std::cout << std::endl;
   }
-}
-
-dftable bcast_joined_dftable::append_rowid(const std::string& name,
-                                          size_t offset) {
-  return this->materialize().append_rowid(name, offset);
 }
 
 void bcast_joined_dftable::update_to_store_idx_and_exchanged_idx() {
@@ -3072,11 +3042,6 @@ void star_joined_dftable::debug_print() {
     }
     std::cout << std::endl;
   }
-}
-
-dftable star_joined_dftable::append_rowid(const std::string& name,
-                                          size_t offset) {
-  return this->materialize().append_rowid(name, offset);
 }
 
 // ---------- grouped_dftable ----------

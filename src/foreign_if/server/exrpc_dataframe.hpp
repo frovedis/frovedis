@@ -57,9 +57,57 @@ fillna_column(std::shared_ptr<dfcolumn>& dfcol, V fill_value) {
   return ret;
 }
 
+void treat_str_nan_as_null(std::vector<std::string>& vec); // defined in exrpc_dataframe.cc
+
+template <class T>
+void treat_nan_as_null(std::vector<T>& vec) {
+  auto nanpos = vector_find_nan(vec);
+  auto tmax = std::numeric_limits<T>::max();
+  auto vptr = vec.data();
+  auto nptr = nanpos.data();
+  auto nsz = nanpos.size();
+#pragma cdir nodep
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+  for(size_t i = 0; i < nsz; ++i) vptr[nptr[i]] = tmax;
+}
+
+template <class T> // for T: int, long, ulong etc.
+std::vector<double> 
+treat_null_as_nan(const std::vector<T>& vec,
+                  const std::vector<size_t>& nulls) {
+  auto ret = vector_astype<double>(vec); // casting is needed for int-like vectors...
+  auto mynan = std::numeric_limits<double>::quiet_NaN();
+  auto rptr = ret.data();
+  auto nptr = nulls.data();
+  auto nsz = nulls.size();
+#pragma cdir nodep
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+  for(size_t i = 0; i < nsz; ++i) rptr[nptr[i]] = mynan;
+  return ret;
+}
+
+template <class T> // for T: float, double
+void treat_null_as_nan_inplace(std::vector<T>& vec,
+                               const std::vector<size_t>& nulls) {
+  auto mynan = std::numeric_limits<T>::quiet_NaN();
+  auto rptr = vec.data();
+  auto nptr = nulls.data();
+  auto nsz = nulls.size();
+#pragma cdir nodep
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+  for(size_t i = 0; i < nsz; ++i) rptr[nptr[i]] = mynan;
+}
+
 exrpc_ptr_t create_dataframe (std::vector<short>& types,
                               std::vector<std::string>& cols,
-                              std::vector<exrpc_ptr_t>& dvec_proxies);
+                              std::vector<exrpc_ptr_t>& dvec_proxies,
+                              bool& nan_as_null);
 
 void show_dataframe(exrpc_ptr_t& df_proxy); 
 
@@ -160,12 +208,38 @@ exrpc_ptr_t frovedis_df_rename(exrpc_ptr_t& df_proxy,
                                std::vector<std::string>& new_cols,
                                bool& inplace);
 
-dummy_vector get_df_int_col(exrpc_ptr_t& df_proxy, std::string& cname);
-dummy_vector get_df_long_col(exrpc_ptr_t& df_proxy, std::string& cname);
-dummy_vector get_df_ulong_col(exrpc_ptr_t& df_proxy, std::string& cname);
-dummy_vector get_df_float_col(exrpc_ptr_t& df_proxy, std::string& cname);
-dummy_vector get_df_double_col(exrpc_ptr_t& df_proxy, std::string& cname);
 dummy_vector get_df_string_col(exrpc_ptr_t& df_proxy, std::string& cname);
+
+// for pandas wrapper...
+template <class T>
+dummy_vector get_df_col(exrpc_ptr_t& df_proxy, 
+                        std::string& cname, 
+                        short& ctype) {
+  auto& df = *reinterpret_cast<dftable_base*>(df_proxy);
+  auto col = df.column(cname);
+  use_dfcolumn use(col);
+  dummy_vector dvec;
+  if (col->if_contain_nulls()) {
+    auto nullpos = col->get_nulls();
+    auto vec = df.as_dvector<T>(cname);
+    if (col->dtype() == "float" || col->dtype() == "double") { // no need for casting, null-treatment can be in-place
+      auto retp = new dvector<T>(vec.mapv_partitions(
+                    treat_null_as_nan_inplace<T>, nullpos));
+      auto retp_ = reinterpret_cast<exrpc_ptr_t>(retp);
+      dvec = dummy_vector(retp_, retp->size(), ctype);
+    } else {
+      auto retp = new dvector<double>(vec.map_partitions(
+                    treat_null_as_nan<T>, nullpos));
+      auto retp_ = reinterpret_cast<exrpc_ptr_t>(retp);
+      dvec = dummy_vector(retp_, retp->size(), DOUBLE);
+    }
+  } else {
+    auto retp = new dvector<T>(df.as_dvector<T>(cname));
+    auto retp_ = reinterpret_cast<exrpc_ptr_t>(retp);
+    dvec = dummy_vector(retp_, retp->size(), ctype);
+  }
+  return dvec;
+}
 
 exrpc_ptr_t frovedis_gdf_select(exrpc_ptr_t& df_proxy, 
                                 std::vector<std::string>& tcols);
@@ -226,7 +300,8 @@ frov_df_append_column(exrpc_ptr_t& df_proxy,
                       std::string& col_name,
                       short& type, 
                       exrpc_ptr_t& dvec_proxy, int& position,
-                      bool& drop_old);
+                      bool& drop_old,
+                      bool& nan_as_null);
 
 dummy_dftable
 frov_df_add_index(exrpc_ptr_t& df_proxy, std::string& name);
@@ -288,65 +363,36 @@ frov_df_fillna(exrpc_ptr_t& df_proxy,
                std::string& fill_value, 
                bool& has_index);
 
-dummy_dftable
-frov_df_dropna(exrpc_ptr_t& df_proxy,
-               std::vector<std::string>& targets,
-               int& axis, std::string& how);
-
 std::string frov_df_to_string(exrpc_ptr_t& df_proxy, bool& has_index);
 
-dummy_dftable 
-frov_df_head(exrpc_ptr_t& df_proxy,
-            size_t& limit);
-
-dummy_dftable 
-frov_df_tail(exrpc_ptr_t& df_proxy,
-            size_t& limit);
-
-dummy_dftable 
-frov_df_slice_range(exrpc_ptr_t& df_proxy, size_t& a, size_t& b,
-                  size_t& c);
+dummy_dftable
+frov_df_dropna_by_rows(exrpc_ptr_t& df_proxy,
+                       std::vector<std::string>& targets,
+                       std::string& how);
 
 template <class T>
-size_t get_non_integer_slice_bound(dftable& df, std::string& column, T& value) {
-
-    auto df1 = df.select({column}).append_rowid("tmp_rowid");
-    auto ftable = df1.filter(eq_im(column, value));
-    auto ftable_sz = ftable.num_row();
-    size_t res = 0;
-    
-    std::ostringstream stream_obj;
-    stream_obj << value;
-
-    if ( ftable_sz == 0) {
-        std::string msg = "The label '" + stream_obj.str() + "' does not exists!\n";
-        REPORT_ERROR(USER_ERROR, msg);
-    }
-    else if (ftable_sz > 1) {
-        std::string msg = "Cannot get slice bound for non-unique label: '" 
-                        + stream_obj.str() + "'!\n";
-        REPORT_ERROR(USER_ERROR, msg);
-    }
-    else {
-        res = ftable.template as_dvector<size_t>("tmp_rowid").gather()[0];
-    }
-
-    return res;
+dummy_dftable
+frov_df_dropna_by_cols(exrpc_ptr_t& df_proxy,
+                       std::string& tcol,
+                       std::vector<T>& targets,
+                       std::string& how) {
+  auto df = reinterpret_cast<dftable_base*>(df_proxy);
+  auto ret = new dftable(df->drop_nulls_by_cols(how, tcol, targets));
+  return to_dummy_dftable(ret);
 }
 
-template <typename T>
-T convert_string (const std::string &str){
-  std::istringstream ss(str);
-  T num;
-  ss >> num;
-  return num;
-}
 
-size_t 
-frov_df_slice_range_non_integer_bound(exrpc_ptr_t& df_proxy,
-                                      std::string& column,
-                                      std::string& value,
-                                      short& dtype);
+dummy_dftable frov_df_head(exrpc_ptr_t& df_proxy, size_t& limit);
 
+dummy_dftable frov_df_tail(exrpc_ptr_t& df_proxy, size_t& limit);
+
+dummy_dftable frov_df_slice_range(exrpc_ptr_t& df_proxy, 
+                                  size_t& a, size_t& b,
+                                  size_t& c);
+std::vector<size_t> 
+frov_df_get_index_loc(exrpc_ptr_t& df_proxy,
+                      std::string& column,
+                      std::string& value,
+                      short& dtype);
 
 #endif

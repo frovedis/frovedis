@@ -142,4 +142,7 @@ T do_cast (const std::string& data) {
   return c_data;
 }
 
+template <>
+bool do_cast<bool>(const std::string& data);
+
 #endif

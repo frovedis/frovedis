@@ -244,13 +244,38 @@ class FrovedisDvector:
 
     def to_numpy_array(self):
         if self.__fdata:
+            sz = self.size()
+            dt = self.get_dtype() 
+            if dt == DTYPE.INT or dt == DTYPE.BOOL:
+                ret = np.empty(sz, dtype=np.int32)
+            elif dt == DTYPE.LONG:
+                ret = np.empty(sz, dtype=np.int64)
+            elif dt == DTYPE.ULONG:
+                ret = np.empty(sz, dtype=np.uint)
+            elif dt == DTYPE.FLOAT:
+                ret = np.empty(sz, dtype=np.float32)
+            elif dt == DTYPE.DOUBLE:
+                ret = np.empty(sz, dtype=np.float64)
+            elif dt == DTYPE.STRING:
+                pass # handles later 
+            else:
+                raise TypeError(\
+                "Report Bug: Unsupported dtype for dvector " \
+                "to numpy array conversion!")
+
             (host, port) = FrovedisServer.getServerInstance()
-            ret = rpclib.dvector_to_numpy_array(host, port, \
-                    self.get(), self.get_dtype(), self.size())
+            if dt == DTYPE.STRING:
+                # TODO: improve list to ndarray conversion (as it is slower)
+                ret = np.asarray(rpclib.string_dvector_to_numpy_array( \
+                                 host, port, self.get(), sz))
+            else:
+                retptr = ret.__array_interface__['data'][0]
+                rpclib.dvector_to_numpy_array(host, port, \
+                          self.get(), retptr, dt, sz)
             excpt = rpclib.check_server_exception()
             if excpt["status"]:
                 raise RuntimeError(excpt["info"])
-            return np.asarray(ret)
+            return ret
 
     @staticmethod
     def as_dvec(vec, dtype=None, retIsConverted=False):

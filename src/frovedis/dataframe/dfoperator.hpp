@@ -957,21 +957,13 @@ struct dfoperator_cross : public dfoperator {
 
 std::shared_ptr<dfoperator> cross();
 
-template <class T>
-dftable dftable_base::drop_rows(const std::string& index_col,
-                                const std::vector<T>& targets) {
-  auto &left = *this;
-  dftable right;
-  right.append_column("r_key", make_dvector_scatter(targets));
-  return left.outer_bcast_join(right, eq(index_col, "r_key"))
-             .filter(is_null("r_key"))
-             .select(left.columns());
-}
-
 template <class T> 
 std::vector<size_t> 
 dftable_base::get_loc(const std::string& col, const T& val) {
-  auto lidx = filter(eq_im(col, val)).get_local_index();
+  auto fdf = filter(eq_im(col, val));
+  require(fdf.num_row() > 0, 
+  "get_loc: given value doesn't found in column: " + col + "!\n");
+  auto lidx = fdf.get_local_index();
   auto sizes = num_rows();
   auto nproc = sizes.size();
   std::vector<size_t> myst(nproc); myst[0] = 0;
@@ -981,6 +973,42 @@ dftable_base::get_loc(const std::string& col, const T& val) {
                            size_t myst) { return vec + myst; }
                        , lmyst);
   return gidx.template moveto_dvector<size_t>().gather();
+}
+
+template <class T>
+dftable dftable_base::is_in_im(const std::string& target_col,
+                               const std::vector<T>& target_values) {
+  dftable right_t;
+  std::string right_col = "__r_key__";
+  right_t.append_column(right_col, make_dvector_scatter(target_values));
+  return isin_impl(*this, target_col, right_t, right_col, false);
+}
+
+template <class T>
+dftable dftable_base::select_rows(const std::string& target_col,
+                                  const std::vector<T>& target_values) {
+  dftable right_t;
+  std::string right_col = "__r_key__";
+  right_t.append_column(right_col, make_dvector_scatter(target_values));
+  return isin_impl(*this, target_col, right_t, right_col, true);
+}
+
+template <class T>
+dftable dftable_base::is_not_in_im(const std::string& target_col,
+                                   const std::vector<T>& target_values) {
+  dftable right_t;
+  std::string right_col = "__r_key__";
+  right_t.append_column(right_col, make_dvector_scatter(target_values));
+  return isnotin_impl(*this, target_col, right_t, right_col, false);
+}
+
+template <class T>
+dftable dftable_base::drop_rows(const std::string& target_col,
+                                const std::vector<T>& target_values) {
+  dftable right_t;
+  std::string right_col = "__r_key__";
+  right_t.append_column(right_col, make_dvector_scatter(target_values));
+  return isnotin_impl(*this, target_col, right_t, right_col, true);
 }
 
 }

@@ -143,13 +143,52 @@ public:
   virtual dftable_base* rename_cols(const std::string& name,
                                     const std::string& name2);
   virtual bool need_materialize() {return true;}
-  template <class T>
-  dftable drop_rows(const std::string& index_col,
-                    const std::vector<T>& targets); // defined in dfoperator.hpp
+
   template <class T> 
   std::vector<size_t> get_loc(const std::string& col, const T& val); // defined in dfoperator.hpp 
-  dftable drop_nulls(int axis = 0, const std::string& how="any",
-                     const std::vector<std::string>& targets = std::vector<std::string>()); 
+
+  // similar to: SELECT * FROM <this> WHERE <target_col> IN (SELECT <right_col> FROM <right_t>);
+  dftable is_in(const std::string& target_col,
+                dftable_base& right_t,
+                const std::string& right_col); // defined in dfoperator.cc
+
+  // similar to: SELECT * FROM <this> WHERE <target_col> IN (value1, value2, ...);
+  template <class T>
+  dftable is_in_im(const std::string& target_col,
+                   const std::vector<T>& target_values); // defined in dfoperator.hpp
+
+  template <class T>
+  dftable select_rows(const std::string& target_col,
+                      const std::vector<T>& target_values); // defined in dfoperator.hpp
+
+  // similar to: SELECT * FROM <this> WHERE <target_col> NOT IN (SELECT <right_col> FROM <right_t>);
+  dftable is_not_in(const std::string& target_col,
+                    dftable_base& right_t,
+                    const std::string& right_col); // defined in dfoperator.cc
+
+  // similar to: SELECT * FROM <this> WHERE <target_col> NOT IN (value1, value2, ...);
+  template <class T>
+  dftable is_not_in_im(const std::string& target_col,
+                       const std::vector<T>& target_values); // defined in dfoperator.hpp
+
+  template <class T>
+  dftable drop_rows(const std::string& target_col,
+                    const std::vector<T>& target_values); // defined in dfoperator.hpp
+
+  // When no argument is required to be passed, 
+  // user would need to call like: df.drop_nulls_by_cols<size_t>(); 
+  // Since the function is templated and type for 'target_values' 
+  // vector cannot be deduced at compile time, 
+  // so 'size_t' or some dummy type needs to be provided.
+  // To allow user to simply call like: df.drop_nulls_by_cols();
+  // T: defaults to size_t (can be any type though, just for compilation...) 
+  template <class T = size_t> 
+  dftable drop_nulls_by_cols(const std::string& how="any", 
+                             const std::string& target_col="", // if empty, uses columns()[0]
+                             const std::vector<T>& target_values = std::vector<T>());
+ 
+  dftable drop_nulls_by_rows(const std::string& how="any", // defined in dftable.cc
+                             const std::vector<std::string>& targets = std::vector<std::string>());
 
 protected:
   std::map<std::string, std::shared_ptr<dfcolumn>> col;
@@ -164,8 +203,6 @@ protected:
   friend star_joined_dftable;
   friend grouped_dftable;
 };
-
-dftable make_sliced_dftable(dftable_base& t, size_t st, size_t end, size_t step = 1);
 
 template <class T> T dftable_base::sum(const std::string& name) {
   use_dfcolumn use(raw_column(name));
@@ -274,8 +311,10 @@ public:
                  const std::string& c4, const std::string& c5,
                  const std::string& c6,
                  bool check_null_like = false);
-  dftable& append_rowid(const std::string& name, size_t offset = 0);
-  dftable& prepend_rowid(const std::string& name, size_t offset=0);
+  template <class T = size_t>
+  dftable& append_rowid(const std::string& name, T offset = 0);
+  template <class T = size_t>
+  dftable& prepend_rowid(const std::string& name, T offset=0);
   dftable& datetime_extract(datetime_type kind, const std::string& src_column,
                             const std::string& to_append_column);
   dftable& append_dictionary_index(const std::string& src_column,
@@ -740,7 +779,8 @@ public:
   virtual dftable_base* rename_cols(const std::string& name,
                                     const std::string& name2);
 
-  dftable append_rowid(const std::string& name, size_t offset = 0);
+  template <class T = size_t>
+  dftable append_rowid(const std::string& name, T offset = 0);
   sorted_dftable& drop(const std::string& name);
   sorted_dftable& rename(const std::string& name, const std::string& name2);
   virtual size_t num_row();
@@ -829,7 +869,8 @@ public:
   virtual dftable_base* rename_cols(const std::string& name,
                                     const std::string& name2);
 
-  dftable append_rowid(const std::string& name, size_t offset = 0);
+  template <class T = size_t>
+  dftable append_rowid(const std::string& name, T offset = 0);
   hash_joined_dftable& drop(const std::string& name);
   hash_joined_dftable& rename(const std::string& name,
                               const std::string& name2);
@@ -909,7 +950,8 @@ public:
   virtual dftable_base* rename_cols(const std::string& name,
                                     const std::string& name2);
 
-  dftable append_rowid(const std::string& name, size_t offset = 0);
+  template <class T = size_t>
+  dftable append_rowid(const std::string& name, T offset = 0);
   bcast_joined_dftable& drop(const std::string& name);
   bcast_joined_dftable& rename(const std::string& name,
                                const std::string& name2);
@@ -987,7 +1029,8 @@ public:
   virtual dftable_base* rename_cols(const std::string& name,
                                     const std::string& name2);
 
-  dftable append_rowid(const std::string& name, size_t offset = 0);
+  template <class T = size_t>
+  dftable append_rowid(const std::string& name, T offset = 0);
   star_joined_dftable& drop(const std::string& name);
   star_joined_dftable& rename(const std::string& name,
                               const std::string& name2);
@@ -1104,6 +1147,102 @@ void to_ell_matrix_addvalue(ell_matrix_local<T>& mat,
   for(size_t i = 0; i < num_row; i++) {
     idxp[num_row * physical_col + i] = logical_col;
   }
+}
+
+// defined in dfoperator.cc
+dftable isin_impl(dftable_base& left_t, const std::string& left_col,
+                  dftable_base& right_t, const std::string& right_col,
+                  bool raise_exception = false);
+
+dftable isnotin_impl(dftable_base& left_t, const std::string& left_col,
+                     dftable_base& right_t, const std::string& right_col,
+                     bool raise_exception = false);
+
+// defined in dftable.cc
+dftable make_sliced_dftable(dftable_base& t, size_t st, 
+                            size_t end, size_t step = 1);
+
+dftable drop_nulls_by_cols_impl(dftable_base& df, 
+                                dftable_base& sliced_df, 
+                                const std::string& how);
+
+template <class T>
+dftable dftable_base::drop_nulls_by_cols(const std::string& how,
+                                         const std::string& target_col,
+                                         const std::vector<T>& target_values) {
+  if (target_values.empty()) { // uses each column of full table for null checks
+    return drop_nulls_by_cols_impl(*this, *this, how); 
+  }
+  else {  // uses each column of sliced table for null checks
+    auto tcol = target_col == "" ? columns()[0] : target_col;
+    auto sliced_df = select_rows(tcol, target_values);
+    return drop_nulls_by_cols_impl(*this, sliced_df, how); 
+  }
+}
+
+template <class T>
+struct append_rowid_helper {
+  append_rowid_helper(){}
+  append_rowid_helper(std::vector<size_t> sizes, T offset) :
+    sizes(sizes), offset(offset) {}
+  void operator()(std::vector<T>& v) {
+    int self = get_selfid();
+    size_t size = sizes[self];
+    v.resize(size);
+    auto vp = v.data();
+    T start = 0;
+    auto sizesp = sizes.data();
+    for(size_t i = 0; i < self; i++) start += sizesp[i];
+    start += offset;
+    for(size_t i = 0; i < size; i++) vp[i] = start + i;
+  }
+  std::vector<size_t> sizes;
+  T offset;
+  SERIALIZE(sizes, offset)
+};
+
+template <class T>
+dftable& dftable::append_rowid(const std::string& name, T offset) {
+  if(col.size() == 0)
+    throw std::runtime_error
+      ("append_rowid: there is no column to append rowid");
+  auto sizes = num_rows();
+  auto nl = make_node_local_allocate<std::vector<T>>();
+  nl.mapv(append_rowid_helper<T>(sizes, offset));
+  return append_column(name, nl.template moveto_dvector<T>());
+}
+
+// similar to add_index in pandas...
+template <class T>
+dftable& dftable::prepend_rowid(const std::string& name,
+                                T offset) {
+  append_rowid(name, offset);
+  vector_shift_inplace(col_order, num_col() - 1, 0);
+  return *this;
+}
+
+template <class T>
+dftable sorted_dftable::append_rowid(const std::string& name,
+                                     T offset) {
+  return this->materialize().append_rowid(name, offset);
+}
+
+template <class T>
+dftable hash_joined_dftable::append_rowid(const std::string& name,
+                                          T offset) {
+  return this->materialize().append_rowid(name, offset);
+}
+
+template <class T>
+dftable bcast_joined_dftable::append_rowid(const std::string& name,
+                                           T offset) {
+  return this->materialize().append_rowid(name, offset);
+}
+
+template <class T>
+dftable star_joined_dftable::append_rowid(const std::string& name,
+                                          T offset) {
+  return this->materialize().append_rowid(name, offset);
 }
 
 }

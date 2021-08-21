@@ -417,11 +417,53 @@ df_fillna.argtypes = [c_char_p, c_int, c_long, # host, port, proxy
                       c_char_p, c_bool]        # fill_value, has_index
 df_fillna.restype = py_object
 
-df_dropna = LIB.df_dropna
-df_dropna.argtypes = [c_char_p, c_int, c_long,    # host, port, proxy
-                      POINTER(c_char_p), c_ulong, # targets_ptr, sz
-                      c_int, c_char_p]            # axis, how
-df_dropna.restype = py_object
+df_dropna_by_rows = LIB.df_dropna_by_rows
+df_dropna_by_rows.argtypes = [c_char_p, c_int, c_long,    # host, port, proxy
+                              POINTER(c_char_p), c_ulong, # targets_ptr, sz
+                              c_char_p]                   # how
+df_dropna_by_rows.restype = py_object
+
+df_dropna_by_cols_with_int_icol = LIB.df_dropna_by_cols_with_int_icol
+df_dropna_by_cols_with_int_icol.argtypes = [
+                              c_char_p, c_int, c_long,   # host, port, proxy
+                              c_char_p, POINTER(c_int),  # index_nm, targets_ptr
+                              c_ulong, c_char_p]         # sz, how
+df_dropna_by_cols_with_int_icol.restype = py_object
+
+df_dropna_by_cols_with_long_icol = LIB.df_dropna_by_cols_with_long_icol
+df_dropna_by_cols_with_long_icol.argtypes = [
+                              c_char_p, c_int, c_long,    # host, port, proxy
+                              c_char_p, POINTER(c_long),  # index_nm, targets_ptr
+                              c_ulong, c_char_p]          # sz, how
+df_dropna_by_cols_with_long_icol.restype = py_object
+
+df_dropna_by_cols_with_ulong_icol = LIB.df_dropna_by_cols_with_ulong_icol
+df_dropna_by_cols_with_ulong_icol.argtypes = [
+                              c_char_p, c_int, c_long,     # host, port, proxy
+                              c_char_p, POINTER(c_ulong),  # index_nm, targets_ptr
+                              c_ulong, c_char_p]           # sz, how
+df_dropna_by_cols_with_ulong_icol.restype = py_object
+
+df_dropna_by_cols_with_float_icol = LIB.df_dropna_by_cols_with_float_icol
+df_dropna_by_cols_with_float_icol.argtypes = [
+                              c_char_p, c_int, c_long,     # host, port, proxy
+                              c_char_p, POINTER(c_float),  # index_nm, targets_ptr
+                              c_ulong, c_char_p]           # sz, how
+df_dropna_by_cols_with_float_icol.restype = py_object
+
+df_dropna_by_cols_with_double_icol = LIB.df_dropna_by_cols_with_double_icol
+df_dropna_by_cols_with_double_icol.argtypes = [
+                              c_char_p, c_int, c_long,      # host, port, proxy
+                              c_char_p, POINTER(c_double),  # index_nm, targets_ptr
+                              c_ulong, c_char_p]            # sz, how
+df_dropna_by_cols_with_double_icol.restype = py_object
+
+df_dropna_by_cols_with_string_icol = LIB.df_dropna_by_cols_with_string_icol
+df_dropna_by_cols_with_string_icol.argtypes = [
+                              c_char_p, c_int, c_long,      # host, port, proxy
+                              c_char_p, POINTER(c_char_p),  # index_nm, targets_ptr
+                              c_ulong, c_char_p]            # sz, how
+df_dropna_by_cols_with_string_icol.restype = py_object
 
 df_to_string = LIB.df_to_string
 df_to_string.argtypes = [c_char_p, c_int, c_long, # host, port, proxy
@@ -462,11 +504,11 @@ df_slice_range.argtypes = [c_char_p, c_int, c_long,  # host, port, proxy
                           c_ulong, c_ulong, c_ulong] # a, b, c (slice)
 df_slice_range.restype = py_object
 
-df_slice_range_non_integer_bound = LIB.df_slice_range_non_integer_bound
-df_slice_range_non_integer_bound.argtypes = [c_char_p, c_int, c_long, # host, port, proxy
-                                            c_char_p, c_char_p,       # column, value
-                                            c_short]                  # dtype
-df_slice_range_non_integer_bound.restype = c_ulong
+df_get_index_loc = LIB.df_get_index_loc
+df_get_index_loc.argtypes = [c_char_p, c_int, c_long,  # host, port, proxy
+                             c_char_p, c_char_p,       # column, value
+                             c_short]                  # dtype
+df_get_index_loc.restype = py_object
 
 # --- Frovedis dftable_to_sparse_info ---
 load_dftable_to_sparse_info = LIB.load_dftable_to_sparse_info
@@ -1010,10 +1052,14 @@ get_distinct_elements.argtypes = [c_char_p, c_int, c_long, c_short] #host, port,
 get_distinct_elements.restype = py_object
 
 dvector_to_numpy_array = LIB.dvector_to_numpy_array
-dvector_to_numpy_array.argtypes = [c_char_p, c_int,  # host, port
-                                   c_long, c_short,  # proxy, dtype
-                                   c_ulong]          # size
-dvector_to_numpy_array.restype = py_object
+dvector_to_numpy_array.argtypes = [c_char_p, c_int,    # host, port
+                                   c_long, c_void_p,   # proxy, retp
+                                   c_short, c_ulong]   # dtype, size
+
+string_dvector_to_numpy_array = LIB.string_dvector_to_numpy_array
+string_dvector_to_numpy_array.argtypes = [c_char_p, c_int,         # host, port
+                                          c_long, c_ulong]         # proxy, size
+string_dvector_to_numpy_array.restype = py_object # returns python list of strings
 
 encode_frovedis_dvector_zero_based = LIB.encode_frovedis_dvector_zero_based
 encode_frovedis_dvector_zero_based.argtypes = [c_char_p, c_int, #host, port

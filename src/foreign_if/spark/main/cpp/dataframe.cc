@@ -15,8 +15,9 @@ JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_createFrovedisDa
   auto col_names = to_string_vector(env, cols, size);
   auto dvecps = to_exrpc_vector(env, dvec_proxies, size);
   exrpc_ptr_t df_proxy = 0;
+  bool nan_as_null = false; // TODO: confirm spark's null treatment case
   try {
-    df_proxy = exrpc_async(fm_node,create_dataframe,dtypes,col_names,dvecps).get();
+    df_proxy = exrpc_async(fm_node,create_dataframe,dtypes,col_names,dvecps,nan_as_null).get();
   }
   catch(std::exception& e) { set_status(true,e.what()); }
   return (jlong) df_proxy;

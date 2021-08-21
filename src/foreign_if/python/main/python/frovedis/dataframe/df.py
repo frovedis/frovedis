@@ -75,7 +75,7 @@ def read_csv(filepath_or_buffer, sep=',', delimiter=None,
     elif not isinstance(na_values, str):
         raise ValueError("read_csv: Expected a string or None value "
                          "as for parameter 'na_values'!")
-
+ 
     if header not in ("infer", 0, None):
         raise ValueError("read_csv: Frovedis doesn't support "
                          "header={0}!".format(header))
@@ -104,7 +104,7 @@ def read_csv(filepath_or_buffer, sep=',', delimiter=None,
                              "for usecols parameter!")
     else:
         usecols = np.empty(0, dtype=np.int32)
-
+ 
     if names is None:
         if header is None:
             if prefix is None:
@@ -161,8 +161,8 @@ def read_csv(filepath_or_buffer, sep=',', delimiter=None,
             names = names[1:]
             add_index = False
             if len(names) == ncols - 1:
-                names.insert(index_col, "index")
-                #inserted in names, so this is parsed as well
+                names.insert(index_col, "index") 
+                #inserted in names, so this is parsed as well   
     else:
         raise ValueError("read_csv: Frovedis currently supports only bool and int types for index_col !")
 
@@ -210,7 +210,7 @@ def read_csv(filepath_or_buffer, sep=',', delimiter=None,
     dtype_vals_arr = get_string_array_pointer(dtype_vals)
 
     (host, port) = FrovedisServer.getServerInstance()
-    dummy_df = rpclib.load_dataframe_from_csv(host, port,
+    dummy_df = rpclib.load_dataframe_from_csv(host, port, 
                                             filepath_or_buffer.encode('ascii'),
                                             type_arr, name_arr,
                                             len(type_arr), len(name_arr),
@@ -312,10 +312,10 @@ class DataFrame(object):
             self.__fdata = None
             self.__cols = None
             self.__types = None
-
+    
     def __del__(self):
         """ destructs a dataframe object from server heap """
-        if FrovedisServer.isUP():
+        if FrovedisServer.isUP(): 
             self.release()
 
     def __len__(self):
@@ -333,7 +333,7 @@ class DataFrame(object):
         return int(self.num_row)
 
     @property
-    def count(self): # similar to spark dataframe
+    def count(self): # similar to spark dataframe 
         """return num_row in input df"""
         return len(self)
 
@@ -393,32 +393,15 @@ class DataFrame(object):
         types = [0] * size
         dvec = [None] * size
 
-        # null replacements
-        null_replacement = {}
-        null_replacement['float64'] = np.finfo(np.float64).max
-        null_replacement['float32'] = np.finfo(np.float32).max
-        null_replacement['int64'] = np.iinfo(np.int64).max
-        null_replacement['int32'] = np.iinfo(np.int32).max
-        null_replacement['uint64'] = np.iinfo(np.uint).max
-        null_replacement['bool'] = np.iinfo(np.int32).max
-        null_replacement['bool_'] = np.iinfo(np.int32).max
-        null_replacement['str'] = "NULL"
-
         for idx in range(0, size):
             cname = cols[idx]
             if idx == 0:
-                col_vec = df.index
+                val = df.index
             else:
-                col_vec = df[cname]
-            vtype = col_vec.dtype.name
+                val = df[cname]
+            vtype = val.dtype.name
             if vtype == 'object': # type-infering required to detect string
-                vtype = infer_column_type_from_first_notna(df, \
-                                              col_vec, idx == 0)
-            try:
-                val = col_vec.fillna(null_replacement[vtype])
-            except KeyError as e:
-                raise ValueError("load: Unsupported type, '%s' of column "
-                                 "is detected" % (vtype))
+                vtype = infer_column_type_from_first_notna(df, val, idx == 0)
             #print(cname + ":" + vtype)
             if vtype == 'int32':
                 dt = DTYPE.INT
@@ -446,7 +429,7 @@ class DataFrame(object):
                                 "frovedis dataframe: " % (vtype))
             types[idx] = dt
             if idx == 0:
-                self.index = FrovedisColumn(cname, dt)
+                self.index = FrovedisColumn(cname, dt)   
             else:
                 self.__dict__[cname] = FrovedisColumn(cname, dt) #For query purpose
 
@@ -466,7 +449,7 @@ class DataFrame(object):
 
         # dvectors in 'dptr' are already destructed during dataframe
         # construction. thus resetting the metadata to avoid double
-        # free issue from server side during destructor calls of the
+        # free issue from server side during destructor calls of the 
         # dvectors in 'dptr'
         for dv in dvec:
             dv.reset()
@@ -545,7 +528,7 @@ class DataFrame(object):
             targets = [self.index.name] + targets
             ret.index = self.index
 
-        sz = len(targets)
+        sz = len(targets) 
         ptr_arr = get_string_array_pointer(targets)
         (host, port) = FrovedisServer.getServerInstance()
         ret.__fdata = rpclib.select_frovedis_dataframe(host, port, self.get(),
@@ -556,11 +539,11 @@ class DataFrame(object):
         return ret
 
     def sort_index(self, axis=0, ascending=True, inplace=False,
-                kind='radixsort', na_position='last'):
+                  kind='quicksort', na_position='last'):
         """
         sort_index
         """
-        return self.sort_values(by=self.index.name, axis=axis, ascending=ascending,
+        return self.sort_values(by=self.index.name, axis=axis, ascending=ascending, 
                                inplace=inplace, kind=kind, na_position=na_position)
 
     def sort_values(self, by, axis=0, ascending=True,
@@ -570,26 +553,26 @@ class DataFrame(object):
         """
         if na_position != "last":
             if na_position == "first":
-                raise ValueError("Frovedis currently doesn't support"
-                                " na_position='first' !")
+                raise ValueError("Frovedis currently doesn't support " \
+                                 "na_position='first' !")
             else:
                 raise ValueError("invalid na_position: '{}' ".format(na_position))
 
         if axis not in (0, "index"):
             if axis in (1, "columns"):
-                raise ValueError("Frovedis currently doesn't support sorting"
-                                " the axis = 1 !")
+                raise ValueError("Frovedis currently doesn't support sorting " \
+                                 "the axis = 1 !")
             else:
                 raise ValueError("No axis named {} for frovedis dataframe !"
                                 .format(axis))
 
-        if kind != "radixsort":
-            warnings.warn("Frovedis currently support radixsort internally, "
-                        "other 'kind' parameters will be ignored !")
+        if kind not in ["radixsort", "stable"]:
+            warnings.warn("Frovedis currently supports radixsort (stable) " \
+                     "internally, other 'kind' parameters will be ignored!")
 
         if inplace:
-            raise ValueError("Frovedis currently doesn't support inplace "
-                            "sorting of dataframes ! ")
+            raise ValueError("Frovedis currently doesn't support inplace " \
+                             "sorting of dataframes ! ")
 
         if self.__fdata is None:
             raise ValueError("sort: Operation on invalid frovedis dataframe!")
@@ -605,9 +588,9 @@ class DataFrame(object):
             if item not in self.__cols and item != self.index.name:
                 raise ValueError("sort: No column named: ", item)
 
-        sz = len(sort_by)
+        sz = len(sort_by) 
         sort_by_arr = get_string_array_pointer(sort_by)
-
+        
         if type(ascending).__name__ == 'bool':
             orderlist = [ascending] * sz
             sort_order = np.asarray(orderlist, dtype=np.int32)
@@ -642,7 +625,7 @@ class DataFrame(object):
         return ret
 
     def sort(self, columns=None, axis=0, ascending=True,
-            inplace=False, kind='radixsort', na_position='last', **kwargs):
+             inplace=False, kind='radixsort', na_position='last', **kwargs):
         """
         sort_
         """
@@ -674,7 +657,7 @@ class DataFrame(object):
             raise NotImplementedError(\
             "groupby: axis = '%d' is currently not supported!" % (axis))
 
-        if level is not None:
+        if level is not None: 
             raise NotImplementedError( \
             "groupby: level is currently not supported!")
 
@@ -690,7 +673,7 @@ class DataFrame(object):
         else:
             g_df = self
 
-        sz = len(g_by)
+        sz = len(g_by) 
         ptr_arr = get_string_array_pointer(g_by)
         (host, port) = FrovedisServer.getServerInstance()
         fdata = rpclib.group_frovedis_dataframe(host, port, g_df.get(),
@@ -783,7 +766,7 @@ class DataFrame(object):
         elif on and (left_index or right_index):
             raise ValueError("Can only pass 'on' OR 'left_index' and" +
                             " 'right_index', not a combination of both!")
-
+        
         # table must have index, if merge-target is index
         if left_index and not self.has_index():
             raise ValueError("left table doesn't have index!\n")
@@ -797,16 +780,16 @@ class DataFrame(object):
                 reset_index_name = False #rename not required, if both are same
             else:
                 # if both table have different names for index,
-                # then if merge takes place on both indices i.e.,
-                # (left_index=right_index=True), resultant table
+                # then if merge takes place on both indices i.e., 
+                # (left_index=right_index=True), resultant table 
                 # would have generic name for index column
                 reset_index_name = True
 
         if left_index and right_index:
             on_index = self.index
-            if self.index.name == "index":
+            if self.index.name == "index":   
                 #rename not required, if index-name is already generic
-                reset_index_name = False
+                reset_index_name = False 
         elif left_index and not right_index:
             on_index = right.index
             reset_index_name = False
@@ -823,7 +806,7 @@ class DataFrame(object):
         # no of nulls
         n_nulls = sum(x is None for x in (on, right_on, left_on))
         if n_nulls == 3:
-            if self is right:
+            if self is right: 
                 # Early return: all columns are common => all comlumns are treated as keys
                 # returning a copy of self
                 ret = self.select_frovedis_dataframe(self.columns)
@@ -867,7 +850,7 @@ class DataFrame(object):
         left_non_key_cols = set(self.__cols) - set(left_keys)
         right_non_key_cols = set(right.__cols) - set(right_keys)
         common_non_key_cols = left_non_key_cols & right_non_key_cols
-
+        
         left_non_key_column_in_right_key = left_non_key_cols & set(right_keys)
         right_non_key_column_in_left_key = right_non_key_cols & set(left_keys)
 
@@ -917,7 +900,7 @@ class DataFrame(object):
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
             raise RuntimeError(excpt["info"])
-
+        
         targets = ret.columns
         if renamed_keys:
             for key in renamed_keys:
@@ -938,7 +921,7 @@ class DataFrame(object):
             ret = ret.add_index("index")
 
         return ret
-
+    
     # exception at frovedis server: same key is not
     # currently supported by frovedis
     def join(self, right, on, how='inner',
@@ -1003,9 +986,9 @@ class DataFrame(object):
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
             raise RuntimeError(excpt["info"])
-        return None if inplace else ret
+        return None if inplace else ret 
 
-    def rename_index(self, new_name, inplace=False):
+    def rename_index(self, new_name, inplace=False): 
         """ renames index field of self inplace """
         if not self.has_index():
             raise ValueError("rename_index: no index field for renaming!")
@@ -1030,7 +1013,7 @@ class DataFrame(object):
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
             raise RuntimeError(excpt["info"])
-        return None if inplace else ret
+        return None if inplace else ret 
 
     def copy(self, deep=True):
         """
@@ -1060,7 +1043,7 @@ class DataFrame(object):
             return DataFrame(df)
         elif isinstance(df, pd.Series):
             return DataFrame(df=pd.DataFrame(df), is_series=True)
-        else:
+        else: 
             raise TypeError("asDF: invalid dataframe type '%s' "
                             "is provided!" % (type(df).__name__))
 
@@ -1143,7 +1126,7 @@ class DataFrame(object):
             pass
         else:
             raise TypeError("Expected: string|list; Received: ", type(columns))
-
+        
         types = self.__get_column_types(columns)
         if func_name == "count":
             return self.__get_stat('count', columns, types)
@@ -1214,7 +1197,7 @@ class DataFrame(object):
                     tmp = ret[cols[i]]['min']
                     ret[cols[i]]['min'] = True if tmp == 1 else False
         warnings.simplefilter(action="default", category=SettingWithCopyWarning)
-        return ret
+        return ret 
 
     def agg(self, func):
         if isinstance(func, str):
@@ -1230,7 +1213,7 @@ class DataFrame(object):
         return self.__agg_impl(cols=self.columns, index=func)
 
     def __agg_dict(self, func_dict):
-        from itertools import chain
+        from itertools import chain 
         func_dict = dict(func_dict)
         for col in func_dict:
             if isinstance(func_dict[col], str):
@@ -1261,19 +1244,10 @@ class DataFrame(object):
             cols.append(self.index.name)
             types.append(self.index.dtype)
 
-        # null replacements
-        null_replacement = {}
-        null_replacement[DTYPE.DOUBLE] = np.finfo(np.float64).max
-        null_replacement[DTYPE.FLOAT] = np.finfo(np.float32).max
-        null_replacement[DTYPE.ULONG] = np.iinfo(np.uint).max
-        null_replacement[DTYPE.LONG] = np.iinfo(np.int64).max
-        null_replacement[DTYPE.INT] = np.iinfo(np.int32).max
-        null_replacement[DTYPE.STRING] = "NULL"
-        int2bool = {0: False, 1: True, np.iinfo(np.int32).max: np.nan}
-
-        res = pd.DataFrame()
+        out_data = {}
+        bool_cols = []
+        str_cols = []
         (host, port) = FrovedisServer.getServerInstance()
-
         for i in range(0, len(cols)):
             dvec = rpclib.get_frovedis_col(host, port, self.get(),
                                            cols[i].encode('ascii'),
@@ -1281,16 +1255,24 @@ class DataFrame(object):
             excpt = rpclib.check_server_exception()
             if excpt["status"]:
                 raise RuntimeError(excpt["info"])
-
-            col_val = FrovedisDvector(dvec).to_numpy_array()
+            out_data[cols[i]] = FrovedisDvector(dvec).to_numpy_array()
             if types[i] == DTYPE.BOOL:
-                res[cols[i]] = [int2bool[x] for x in col_val]
-            else:
-                null_val = null_replacement[types[i]]
-                res[cols[i]] = [np.nan if x == null_val else x for x in col_val]
+                bool_cols.append(cols[i])
+            elif types[i] == DTYPE.STRING:
+                str_cols.append(cols[i])
 
+        res = pd.DataFrame(out_data)
         if self.has_index():
             res.set_index(self.index.name, inplace=True)
+
+        # BOOL treatment
+        for c in bool_cols:
+            res[c].replace(to_replace={0: False, 1: True}, inplace=True)
+
+        # NULL treatment for string columns
+        for c in str_cols:
+            res[c].replace(to_replace={"NULL": np.nan}, inplace=True)
+
         return res
 
     @deprecated("Use to_pandas_dataframe() instead!\n")
@@ -1488,11 +1470,11 @@ class DataFrame(object):
         else:
             ret.__cols = copy.deepcopy(self.__cols)
 
-        # modify column type metadata INT -> BOOL
+        # modify column type metadata INT -> BOOL 
         # required for to_pandas_dataframe()
         for i in range(0, len(ret.__cols)):
             item = ret.__cols[i]
-            ret.__types[i] = DTYPE.BOOL
+            ret.__types[i] = DTYPE.BOOL 
             ret.__dict__[item] = FrovedisColumn(item, DTYPE.BOOL)
         return ret
 
@@ -1501,7 +1483,7 @@ class DataFrame(object):
 
     def drop_duplicates(self, subset=None, keep='first', inplace=False, \
                         ignore_index=False):
-        """
+        """ 
         drops duplicate rows for specified columns (None: all columns).
         """
         if subset is None:
@@ -1538,7 +1520,7 @@ class DataFrame(object):
         if ignore_index:
             ret.reset_index(drop=True, inplace=True)
         return None if inplace else ret
-
+       
     def drop(self, labels=None, axis=0, index=None, columns=None, \
              level=None, inplace=False, errors='raise'):
         """ drops specified labels from rows or columns. """
@@ -1556,8 +1538,8 @@ class DataFrame(object):
             else:
                 raise ValueError("drop(): No axis named %d for " \
                       "object type %s" % (axis, self.__class__))
-        return ret
-
+        return ret 
+                
     def drop_cols(self, targets, inplace=False):
         """ drops specified columns from input dataframe. """
         if isinstance(targets, str):
@@ -1707,26 +1689,6 @@ class DataFrame(object):
             raise TypeError("Invalid type for position, for appending "
                            "column: {} !".format(position))
 
-        # null replacements
-        null_replacement = {}
-        null_replacement['float64'] = np.finfo(np.float64).max
-        null_replacement['float32'] = np.finfo(np.float32).max
-        null_replacement['int64'] = np.iinfo(np.int64).max
-        null_replacement['int32'] = np.iinfo(np.int32).max
-        null_replacement['uint64'] = np.iinfo(np.uint).max
-        null_replacement['bool'] = np.iinfo(np.int32).max
-        null_replacement['bool_'] = np.iinfo(np.int32).max
-        null_replacement['str'] = "NULL"
-
-        #replacing None with np.nan
-        data = np.array(list(map(lambda x: np.nan if x==None else x, data)))
-        if data_type.char in ("U", "S"):
-            data = np.array(list(map(lambda x: null_replacement["str"] \
-                                    if x=="nan" else x, data)))
-        else:
-            nan_idx = np.isnan(data)
-            data[nan_idx] = null_replacement[data_type.name]
-
         data_type = TypeUtil.to_id_dtype(data_type)
         is_bool = (data_type == DTYPE.BOOL)
         dvec = self.__get_dvec(data_type, data)
@@ -1763,7 +1725,7 @@ class DataFrame(object):
             self.load_dummy(dummy_df["dfptr"], names[0:], types[0:])
         return self
 
-    def __get_dtype_name(self, arr):
+    def __get_dtype_name(self, arr): #TODO: improve
         if arr.dtype.name != 'object':
             if arr.dtype.char in ("U", "S"):
                 return "str"
@@ -1800,7 +1762,7 @@ class DataFrame(object):
                             % (type(key).__name__))
 
         if isinstance(value, (DataFrame, pd.DataFrame)):
-            self.copy_column(value, names_as=key, inplace=True)
+            self.copy_column(value, names_as=key, inplace=True) 
         else:
             if np.isscalar(value):
                 if self.__fdata is None:
@@ -1837,7 +1799,7 @@ class DataFrame(object):
         """
         Insert column into DataFrame at specified location.
         """
-        if allow_duplicates == True:
+        if allow_duplicates == True: #TODO: allow it
             raise ValueError("insert: Frovedis does not support duplicate "
                              "column names !")
 
@@ -1881,11 +1843,11 @@ class DataFrame(object):
         """
         updates/sets index values: pandas-like df.index = [...]
         """
-        if inplace: # copy may still take place, if self needs materialize
+        if inplace: # copy may still take place, if self needs materialize 
             ret = self
         else:
             ret = self.copy()
-
+     
         if not isinstance(value, Iterable):
             raise TypeError("given index value must be an iterable!")
         if verify_integrity:
@@ -1897,8 +1859,8 @@ class DataFrame(object):
 
         if ret.has_index():
             if key is not None: #rename required
-                if ret.index.name != key:
-                    ret.rename_index(key, inplace=True)
+                if ret.index.name != key: 
+                    ret.rename_index(key, inplace=True) 
             drop_old = True   # existing index column will be dropped
             position = None   # adds given column in same position (as in existing index)
         else:
@@ -1912,7 +1874,7 @@ class DataFrame(object):
 
     #TODO: support drop=False, multi-level index
     def set_index(self, keys, drop=True, append=False,
-                  inplace=False, verify_integrity=False):
+                  inplace=False, verify_integrity=False): 
         """ sets the index column of self """
         if not drop:
             raise NotImplementedError("set_index: currently frovedis " \
@@ -1920,7 +1882,7 @@ class DataFrame(object):
 
         if not isinstance(keys, list):
             keys = [keys]
-
+        
         # multi-level index case
         if append or len(keys) > 1:
             raise NotImplementedError("set_index: currently frovedis " \
@@ -1932,7 +1894,7 @@ class DataFrame(object):
             ret = self.copy()
 
         if isinstance(keys[0], str):        # keys = ["colname"]
-            new_index_name = keys[0]
+            new_index_name = keys[0] 
             cur_index_name = self.index.name if self.has_index() else ""
             if not new_index_name in ret.__cols:
                 raise KeyError("set_index: '%s' key does not found in " \
@@ -1958,7 +1920,7 @@ class DataFrame(object):
                              verify_integrity=verify_integrity, inplace=True)
         else:
             raise TypeError("set_index: unknown type of 'keys' found!")
-        return None if inplace else ret
+        return None if inplace else ret 
 
     def reset_index(self, drop=False, inplace=False): #TODO: support other params
         """ resets the index column of self """
@@ -1983,7 +1945,7 @@ class DataFrame(object):
             ret = ret.add_index("index")
         return None if inplace else ret
 
-    def copy_index(self, from_df, inplace=False, overwrite=True):
+    def copy_index(self, from_df, inplace=False, overwrite=True): 
         """ copies index column from 'from_df' to self """
         from_df = DataFrame.asDF(from_df)
         if not from_df.has_index():
@@ -2013,9 +1975,9 @@ class DataFrame(object):
         ret.load_dummy(dummy_df["dfptr"], names[1:], types[1:])
         return None if inplace else ret
 
-    def copy_column(self, from_df, names_as=None, inplace=False):
-        """
-        copies all columns from 'from_df' to self. if 'names_as' is given,
+    def copy_column(self, from_df, names_as=None, inplace=False): 
+        """ 
+        copies all columns from 'from_df' to self. if 'names_as' is given, 
         copied columns would be renamed based on 'names_as'
         """
         names = list(from_df.columns)
@@ -2030,7 +1992,7 @@ class DataFrame(object):
 
         if len(names) != len(names_as):
             raise ValueError("Columns must be same length as key")
-
+ 
         from_df = DataFrame.asDF(from_df)
         types = np.asarray(from_df.get_types(), dtype=c_short)
         sz = len(types)
@@ -2079,13 +2041,13 @@ class DataFrame(object):
         self.load_dummy(dummy_df["dfptr"], names[1:], types[1:])
         return self
 
-    def astype(self, dtype, copy=True, errors='raise',
+    def astype(self, dtype, copy=True, errors='raise', 
                check_bool_like_string=False):
-        """
-        Casts a frovedis DataFrame object to a specified dtype
+        """ 
+        Casts a frovedis DataFrame object to a specified dtype 
 
         check_bool_like_string: added parameter; if True, can cast string column
-        having bool like case-insensitive strings (True, False, yes, No,
+        having bool like case-insensitive strings (True, False, yes, No, 
         On, Off, Y, N, T, F) to boolean columns
         """
         t_cols = []
@@ -2115,14 +2077,14 @@ class DataFrame(object):
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
             raise RuntimeError(excpt["info"])
-
+        
         names = dummy_df["names"]
         types = dummy_df["types"]
         ret.num_row = dummy_df["nrow"]
         for i in range(0, len(t_dtypes)):
             if t_dtypes[i] == DTYPE.BOOL:
                 col = t_cols[i]
-                ind = names.index(col)
+                ind = names.index(col) 
                 types[ind] = DTYPE.BOOL
         if self.has_index():
             ret.index = FrovedisColumn(names[0], types[0]) #setting index
@@ -2145,10 +2107,10 @@ class DataFrame(object):
         else:
             raise ValueError("append: unsupported type '%s' for "
                              "'other'!" % (type(other).__name__))
-
+        
         dfs = [self] + other
         is_frov_df = [True] + is_frov_df # prepending [True]; self is DataFrame
-        res_names = [self.columns]
+        res_names = [self.columns] 
         for e in other:
             res_names.append(e.columns)
         res_names = union_lists(res_names)
@@ -2177,7 +2139,7 @@ class DataFrame(object):
         for c, t in astype_input.items():
             if t == np.bool:
                 # searching index, since dictionary items might not be ordered
-                ind = names.index(c)
+                ind = names.index(c) 
                 types[ind] = DTYPE.BOOL
         res = DataFrame().load_dummy(dummy_df["dfptr"], names[1:], types[1:])
         res.index = FrovedisColumn(names[0], types[0]) #setting index
@@ -2234,7 +2196,7 @@ class DataFrame(object):
 
     def get_dtype(self, colname):
         """
-        returns numpy_dtype of given column,
+        returns numpy_dtype of given column, 
         in case presents in (self.index.name or self.columns).
         otherwise, raises ValueError
         """
@@ -2246,9 +2208,9 @@ class DataFrame(object):
             raise ValueError("column not found: '%s'" % (colname))
         return ret
 
-    def fillna(self, value=None, method=None, axis=None,
+    def fillna(self, value=None, method=None, axis=None, 
                inplace=False, limit=None, downcast=None):
-        """
+        """ 
         replaces nulls in each column with given value
         """
         if method is not None:
@@ -2269,7 +2231,7 @@ class DataFrame(object):
             raise NotImplementedError("fillna: can only be performed "\
                                       "on axis=1 (columns)")
 
-        if value is None:
+        if value is None: 
             raise ValueError("fillna: must specify a value")
         elif value is np.nan:
             return None if inplace else self.copy() # no need for any replacement
@@ -2304,15 +2266,74 @@ class DataFrame(object):
         else:
             ret = DataFrame(is_series=self.is_series)
 
-        if subset is None:
-            subset = self.columns
-        sz = len(subset)
-        name_ptr = get_string_array_pointer(subset)
-
         (host, port) = FrovedisServer.getServerInstance()
-        dummy_df = rpclib.df_dropna(host, port, \
-                              self.get(), name_ptr, sz, \
-                              axis, how.encode('ascii'))
+        if axis == 0:   # dropna by rows (extraction subset: column names)
+            if subset is None: 
+                subset = self.columns
+            sz = len(subset)
+            targets_ptr = get_string_array_pointer(subset)
+            dummy_df = rpclib.df_dropna_by_rows(host, port, \
+                           self.get(), targets_ptr, sz, \
+                           how.encode('ascii'))
+        elif axis == 1: # dropna by cols (extraction subset: index values)
+            if not self.has_index():
+                raise ValueError(
+                "dropna: input dataframe doesn't have an index column!")
+            index_nm = self.index.name.encode('ascii')
+            if subset is None:
+                subset = np.asarray([], dtype=np.int32) # int32: dummy type
+                sz = len(subset)
+                targets_ptr = subset.ctypes.data_as(POINTER(c_int))
+                dummy_df = rpclib.df_dropna_by_cols_with_int_icol( \
+                               host, port, \
+                               self.get(), index_nm, targets_ptr, sz, \
+                               how.encode('ascii'))
+            else:
+                tt = self.index.dtype
+                subset = np.asarray(subset, dtype=TypeUtil.to_numpy_dtype(tt))
+                sz = len(subset)
+                if tt == DTYPE.INT:
+                    targets_ptr = subset.ctypes.data_as(POINTER(c_int))
+                    dummy_df = rpclib.df_dropna_by_cols_with_int_icol( \
+                                   host, port, \
+                                   self.get(), index_nm, targets_ptr, sz, \
+                                   how.encode('ascii'))
+                elif tt == DTYPE.LONG:
+                    targets_ptr = subset.ctypes.data_as(POINTER(c_long))
+                    dummy_df = rpclib.df_dropna_by_cols_with_long_icol( \
+                                   host, port, \
+                                   self.get(), index_nm, targets_ptr, sz, \
+                                   how.encode('ascii'))
+                elif tt == DTYPE.ULONG:
+                    targets_ptr = subset.ctypes.data_as(POINTER(c_ulong))
+                    dummy_df = rpclib.df_dropna_by_cols_with_ulong_icol( \
+                                   host, port, \
+                                   self.get(), index_nm, targets_ptr, sz, \
+                                   how.encode('ascii'))
+                elif tt == DTYPE.FLOAT:
+                    targets_ptr = subset.ctypes.data_as(POINTER(c_float))
+                    dummy_df = rpclib.df_dropna_by_cols_with_float_icol( \
+                                   host, port, \
+                                   self.get(), index_nm, targets_ptr, sz, \
+                                   how.encode('ascii'))
+                elif tt == DTYPE.DOUBLE:
+                    targets_ptr = subset.ctypes.data_as(POINTER(c_double))
+                    dummy_df = rpclib.df_dropna_by_cols_with_double_icol( \
+                                   host, port, \
+                                   self.get(), index_nm, targets_ptr, sz, \
+                                   how.encode('ascii'))
+                elif tt == DTYPE.STRING:
+                    targets_ptr = get_string_array_pointer(subset)
+                    dummy_df = rpclib.df_dropna_by_cols_with_string_icol( \
+                                   host, port, \
+                                   self.get(), index_nm, targets_ptr, sz, \
+                                   how.encode('ascii'))
+                else:
+                    raise TypeError(\
+                    "dropna: Unsupported index column dtype is detected!")
+        else:
+            raise ValueError(\
+            "dropna: Unsupported axis parameter: '%d'" % (axis))
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
             raise RuntimeError(excpt["info"])
@@ -2323,14 +2344,15 @@ class DataFrame(object):
             ret.load_dummy(dummy_df["dfptr"], names[1:], types[1:])
         else:
             ret.load_dummy(dummy_df["dfptr"], names[0:], types[0:])
+        ret.num_row = dummy_df["nrow"]
         return None if inplace else ret
 
     def __binary_operator_impl(self, other, op_type, \
-                               axis='columns', level=None,
+                               axis='columns', level=None, 
                                fill_value=None, is_rev=False):
-        """
-        implements binary opeartions (+, -, *, /, //, %) of
-        two dataframes invoking server side operations
+        """ 
+        implements binary opeartions (+, -, *, /, //, %) of 
+        two dataframes invoking server side operations 
         """
         if not self.has_index():
             raise TypeError(op_type + \
@@ -2339,11 +2361,11 @@ class DataFrame(object):
         if self.get() is None:
             raise ValueError(op_type + ": invoked on empty dataframe!")
 
-        if DTYPE.STRING in self.get_types():
+        if DTYPE.STRING in self.get_types(): 
             raise NotImplementedError(op_type + \
             ": table contains string column. Arithmetic operations "\
             "on string column is not supported currently!")
-
+ 
         if axis not in (1, 'columns'):
             raise NotImplementedError(op_type + \
             ": can only be performed on axis=1 (columns)")
@@ -2361,7 +2383,7 @@ class DataFrame(object):
 
         if np.isscalar(other):
             if not isinstance(other, (numbers.Number, np.integer, \
-                              np.float32, np.float64)):
+                              np.float32, np.float64)): 
                 raise TypeError(op_type + \
                 ": supported type of 'other' parameter is either DataFrame "\
                 "or numbers. Received: '%s'" % type(other).__name__)
@@ -2403,21 +2425,21 @@ class DataFrame(object):
             other = DataFrame.asDF(other)
             if other.get() is None:
                 raise ValueError(op_type + ": right table is empty!")
-            if DTYPE.STRING in other.get_types():
+            if DTYPE.STRING in other.get_types(): 
                 raise NotImplementedError(op_type + \
                 ": right table contains string column. Arithmetic operations "\
                 "on string column is not supported currently!")
             immed = False
             is_series = self.is_series and other.is_series
-
+ 
         (host, port) = FrovedisServer.getServerInstance()
         # nan values can be generated during pow, div, mod operations
         # and pandas treats nan values as null
         if op_type in ("pow", "fdiv", "idiv", "mod"):
             nan_is_null = True
         else:
-            nan_is_null = False
-
+            nan_is_null = False 
+            
         if immed:
             # any operation with immediate value as nan would produce nan
             if other is np.nan:
@@ -2449,16 +2471,16 @@ class DataFrame(object):
         return ret
 
     def abs(self):
-        """
-        returns resultant dataframe after performing
+        """ 
+        returns resultant dataframe after performing 
         absolute value of each column
         """
         if not self.has_index():
             raise TypeError("abs: input dataframe must have index column!")
 
-        if DTYPE.STRING in self.get_types():
+        if DTYPE.STRING in self.get_types(): 
             raise TypeError("bad operand type for abs(): 'str'")
-
+ 
         (host, port) = FrovedisServer.getServerInstance()
         dummy_df = rpclib.df_abs(host, port, self.get())
         excpt = rpclib.check_server_exception()
@@ -2487,15 +2509,15 @@ class DataFrame(object):
                                            fill_value, is_rev=True)
 
     def __add__(self, other):
-        """
+        """ 
         overloaded binary operator+ (wrapper of self.add())
-        returns resultant dataframe after adding self + other
+        returns resultant dataframe after adding self + other 
         """
         return self.add(other)
 
     def __IADD__(self, other):
-        """
-        overloaded binary operator+= to perform self += other
+        """ 
+        overloaded binary operator+= to perform self += other 
         """
         self = self.add(other)
 
@@ -2510,15 +2532,15 @@ class DataFrame(object):
                                            fill_value, is_rev=True)
 
     def __sub__(self, other):
-        """
+        """ 
         overloaded binary operator- (wrapper of self.sub())
-        returns resultant dataframe after adding self - other
+        returns resultant dataframe after adding self - other 
         """
         return self.sub(other)
 
     def __ISUB__(self, other):
-        """
-        overloaded binary operator-= to perform self -= other
+        """ 
+        overloaded binary operator-= to perform self -= other 
         """
         self = self.sub(other)
 
@@ -2533,15 +2555,15 @@ class DataFrame(object):
                                            fill_value, is_rev=True)
 
     def __mul__(self, other):
-        """
+        """ 
         overloaded binary operator* (wrapper of self.mul())
-        returns resultant dataframe after adding self * other
+        returns resultant dataframe after adding self * other 
         """
         return self.mul(other)
 
     def __IMUL__(self, other):
-        """
-        overloaded binary operator*= to perform self *= other
+        """ 
+        overloaded binary operator*= to perform self *= other 
         """
         self = self.mul(other)
 
@@ -2564,22 +2586,22 @@ class DataFrame(object):
         return self.rtruediv(other, axis, level, fill_value)
 
     def __div__(self, other):
-        """
+        """ 
         overloaded binary operator/ for python 2.x (wrapper of self.truediv())
-        returns resultant dataframe after adding self / other
+        returns resultant dataframe after adding self / other 
         """
         return self.truediv(other)
 
     def __truediv__(self, other):
-        """
+        """ 
         overloaded binary operator/ (wrapper of self.truediv())
-        returns resultant dataframe after adding self / other
+        returns resultant dataframe after adding self / other 
         """
         return self.truediv(other)
 
     def __IDIV__(self, other):
-        """
-        overloaded binary operator/= to perform self /= other
+        """ 
+        overloaded binary operator/= to perform self /= other 
         """
         self = self.truediv(other)
 
@@ -2594,15 +2616,15 @@ class DataFrame(object):
                                            fill_value, is_rev=True)
 
     def __floordiv__(self, other):
-        """
+        """ 
         overloaded binary operator// (wrapper of self.floordiv())
-        returns resultant dataframe after adding self // other
+        returns resultant dataframe after adding self // other 
         """
         return self.floordiv(other)
 
     def __IFLOORDIV__(self, other):
-        """
-        overloaded binary operator//= to perform self //= other
+        """ 
+        overloaded binary operator//= to perform self //= other 
         """
         self = self.floordiv(other)
 
@@ -2617,15 +2639,15 @@ class DataFrame(object):
                                            fill_value, is_rev=True)
 
     def __mod__(self, other):
-        """
+        """ 
         overloaded binary operator% (wrapper of self.mod())
-        returns resultant dataframe after adding self % other
+        returns resultant dataframe after adding self % other 
         """
         return self.mod(other)
 
     def __IMOD__(self, other):
-        """
-        overloaded binary operator%= to perform self %= other
+        """ 
+        overloaded binary operator%= to perform self %= other 
         """
         self = self.mod(other)
 
@@ -2640,15 +2662,15 @@ class DataFrame(object):
                                            fill_value, is_rev=True)
 
     def __pow__(self, other):
-        """
+        """ 
         overloaded binary operator** (wrapper of self.pow())
-        returns resultant dataframe after adding self ** other
+        returns resultant dataframe after adding self ** other 
         """
         return self.pow(other)
 
     def __IPOW__(self, other):
-        """
-        overloaded binary operator**= to perform self **= other
+        """ 
+        overloaded binary operator**= to perform self **= other 
         """
         self = self.pow(other)
 
@@ -2683,7 +2705,7 @@ class DataFrame(object):
 
     def tail(self, n=5):
         """
-        return first n rows of the dataframe
+        return last n rows of the dataframe
         """
         if not isinstance(n, int):
             raise TypeError("tail: Invalid type '%s' for n"
@@ -2709,31 +2731,6 @@ class DataFrame(object):
         else:
             ret.load_dummy(dummy_df["dfptr"], names, types)
         return ret
-
-    def __check_compatible_types(self, value, col_dtype):
-        """
-        checks if value is compatible with frovedis column data type
-        """
-        is_compatible = False
-        
-        if isinstance(value, bool):
-            if col_dtype == DTYPE.BOOL:
-                is_compatible = True
-        elif isinstance(value, int):
-            if col_dtype in ( DTYPE.INT, DTYPE.LONG, DTYPE.ULONG ):
-                is_compatible = True
-            if col_dtype == DTYPE.ULONG and value < 0:
-            	is_compatible = False
-        elif isinstance(value, float):
-            if col_dtype in (DTYPE.FLOAT, DTYPE.DOUBLE):
-                is_compatible = True
-        elif isinstance(value, str):
-            if col_dtype == DTYPE.STRING:
-                is_compatible = True
-        
-        if not is_compatible:
-            raise TypeError("Value {0} is not compatible with the column data type : {1} "
-                            .format(value, TypeUtil.to_numpy_dtype(col_dtype)))
 
     def __filter_slice_range(self, target):
         """
@@ -2765,12 +2762,20 @@ class DataFrame(object):
             if a is None:
                 a_int = 0
             else:
-                a_int = self.__get_non_integer_slice_bound(a)
+                aloc = self.__get_index_loc_impl(a)
+                if len(aloc) != 1:
+                    raise ValueError("Cannot get slice bound for " \
+                                     "non-unique label '%s'" % (a))
+                a_int = int(aloc[0])
 
             if b is None:
                 b_int = nrows
             else:
-                b_int = self.__get_non_integer_slice_bound(b)
+                bloc = self.__get_index_loc_impl(b)
+                if len(bloc) != 1:
+                    raise ValueError("Cannot get slice bound for " \
+                                     "non-unique label '%s'" % (b))
+                b_int = int(bloc[0])
         else:
             # integer slice
             a_int = int(a) if a is not None else 0
@@ -2781,32 +2786,20 @@ class DataFrame(object):
             if b_int < 0:
                 b_int = max(0, nrows + b_int)
 
-            if a_int ==0 and b_int==0:
+            if a_int == 0 and b_int == 0:
                 a_int = 1
             else:
                 b_int -= 1
 
-        res = self.__filter_slice_range_integer(a_int, b_int, c)
-
-        return res
-
-    def __filter_slice_range_integer(self, a, b, c=1):
-        """
-        return filtered dataframe in integer range (a,b) with step 'c'
-        """
         (host, port) = FrovedisServer.getServerInstance()
-
-        dummy_df = rpclib.df_slice_range(host, port, self.get(), a, b, c)
-
+        dummy_df = rpclib.df_slice_range(host, port, self.get(), a_int, b_int, c)
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
             raise RuntimeError(excpt["info"])
-
         ret = DataFrame()
         names = dummy_df["names"]
         types = dummy_df["types"]
         ret.num_row = dummy_df["nrow"]
-
         if self.has_index():
             ret.index = FrovedisColumn(names[0], types[0]) #setting index
             ret.load_dummy(dummy_df["dfptr"], names[1:], types[1:])
@@ -2814,31 +2807,43 @@ class DataFrame(object):
             ret.load_dummy(dummy_df["dfptr"], names, types)
         return ret
 
-    def __get_non_integer_slice_bound(self, value):
+    def __get_index_loc_impl(self, value):
         """
-        return row_id for given value in index column
+        helper for get_index_loc
         """
-        if self.has_index():
-            index_name = self.index.name
-        else:
-            raise ValueError("get_non_integer_slice_bound: Index column"
-                            " not present for slice operation!")
+        if not self.has_index():
+            raise ValueError("get_index_loc: no index column in input df!")
 
+        index_name = self.index.name
         dtype = self.index.dtype
 
-        # check compatible types
-        self.__check_compatible_types(value, dtype)
-
         (host, port) = FrovedisServer.getServerInstance()
-        ret = rpclib.df_slice_range_non_integer_bound(host, port, self.get(),
-                                                    index_name.encode('ascii'),
-                                                    str(value).encode('ascii'),
-                                                    dtype)
-
+        ret = rpclib.df_get_index_loc(host, port, self.get(), \
+                                      index_name.encode('ascii'), \
+                                      str(value).encode('ascii'), \
+                                      dtype)
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
             raise RuntimeError(excpt["info"])
+        return ret
 
+    # similar to pandas pd.Index.get_loc(value)
+    def get_index_loc(self, value):
+        """
+        returns row-ids (int, slice or maask) for given value in index column
+        """
+        idx = self.__get_index_loc_impl(value)
+        sz = len(idx)
+        if sz == 1:          # int
+            ret = int(idx[0])
+        else:
+            is_monotonic = np.all(np.diff(idx) == 1)
+            if is_monotonic: # slice
+                ret = slice(idx[0], idx[sz - 1] + 1, None)
+            else:            # masked-array
+                mask = np.asarray([False] * len(self))
+                mask[idx] = True
+                ret = mask 
         return ret
 
     def __setattr__(self, key, value):

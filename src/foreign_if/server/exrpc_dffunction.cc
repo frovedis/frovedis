@@ -129,7 +129,8 @@ frov_df_binary_operation(exrpc_ptr_t& df1,
   if(!verify_column_identicality(left, lindex, right, rindex))
     REPORT_ERROR(USER_ERROR, op_id +
     std::string(": can be performed on columns having identical index, ") +
-    std::string("detected one or more missing indices!\n"));
+    std::string("detected one or more missing indices or ") +
+    std::string("index column of different types!\n"));
 
   // TODO: treating missing entries in input tables like in pandas 
   // in datframe library itself.

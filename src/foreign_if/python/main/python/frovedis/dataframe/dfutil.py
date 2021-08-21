@@ -39,6 +39,22 @@ def get_string_typename(numpy_type):
                         .format(numpy_type))
     return numpy_to_string_type[numpy_type]
 
+def get_null_value(dtype):
+    """
+    return frovedis-like null values for given 'dtype'
+    """
+    null_val = {}
+    null_val[DTYPE.DOUBLE] = np.finfo(np.float64).max
+    null_val[DTYPE.FLOAT] = np.finfo(np.float32).max
+    null_val[DTYPE.ULONG] = np.iinfo(np.uint).max
+    null_val[DTYPE.LONG] = np.iinfo(np.int64).max
+    null_val[DTYPE.INT] = np.iinfo(np.int32).max
+    null_val[DTYPE.BOOL] = np.iinfo(np.int32).max
+    null_val[DTYPE.STRING] = "NULL"
+    if dtype not in null_val:
+        raise TypeError("data type '{0}'' not understood\n".format(dtype))
+    return null_val[dtype]
+    
 def union_lists(data):
     """ performs union on list of lists """
     return list(set().union(*data))
@@ -121,20 +137,12 @@ def add_null_column_and_type_cast(dfs, is_frov_df, cast_info):
 
     # handling of missing columns
     if not chk_list[2]: # is_column_names_consistent
-        null_replacement = {}
-        null_replacement[DTYPE.DOUBLE] = np.finfo(np.float64).max
-        null_replacement[DTYPE.FLOAT] = np.finfo(np.float32).max
-        null_replacement[DTYPE.ULONG] = np.iinfo(np.uint).max
-        null_replacement[DTYPE.LONG] = np.iinfo(np.int64).max
-        null_replacement[DTYPE.INT] = np.iinfo(np.int32).max
-        null_replacement[DTYPE.BOOL] = np.iinfo(np.int32).max
-        null_replacement[DTYPE.STRING] = "NULL"
         for i in range(0, len(ret)):
             df = ret[i]
             for col in cast_info.keys():
                 if col not in df.columns:
-                    df[col] = \
-                    null_replacement[TypeUtil.to_id_dtype(cast_info[col])]
+                    ctype = TypeUtil.to_id_dtype(cast_info[col])
+                    df[col] = get_null_value(ctype)
 
     # inferring index type in case of inconsistency
     if not chk_list[1]: # is_index_dtypes_consistent
