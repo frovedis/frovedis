@@ -359,7 +359,6 @@ std::vector<size_t> outer_equi_join(std::vector<T>& left,
     multi_equi_join(sep, left, left_idx, right, right_idx,
                     left_idx_out, right_idx_out);
     size_t left_idx_out_size = left_idx_out.size();
-    size_t left_idx_size = left_idx.size();
     std::vector<int> dummy(left_idx_out_size);
     auto idxhash = unique_hashtable<size_t, int>(left_idx_out, dummy);
     auto idx_exist = idxhash.check_existence(left_idx);
