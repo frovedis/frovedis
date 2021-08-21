@@ -294,4 +294,59 @@ frov_df_dropna(exrpc_ptr_t& df_proxy,
                int& axis, std::string& how);
 
 std::string frov_df_to_string(exrpc_ptr_t& df_proxy, bool& has_index);
+
+dummy_dftable 
+frov_df_head(exrpc_ptr_t& df_proxy,
+            size_t& limit);
+
+dummy_dftable 
+frov_df_tail(exrpc_ptr_t& df_proxy,
+            size_t& limit);
+
+dummy_dftable 
+frov_df_slice_range(exrpc_ptr_t& df_proxy, size_t& a, size_t& b,
+                  size_t& c);
+
+template <class T>
+size_t get_non_integer_slice_bound(dftable& df, std::string& column, T& value) {
+
+    auto df1 = df.select({column}).append_rowid("tmp_rowid");
+    auto ftable = df1.filter(eq_im(column, value));
+    auto ftable_sz = ftable.num_row();
+    size_t res = 0;
+    
+    std::ostringstream stream_obj;
+    stream_obj << value;
+
+    if ( ftable_sz == 0) {
+        std::string msg = "The label '" + stream_obj.str() + "' does not exists!\n";
+        REPORT_ERROR(USER_ERROR, msg);
+    }
+    else if (ftable_sz > 1) {
+        std::string msg = "Cannot get slice bound for non-unique label: '" 
+                        + stream_obj.str() + "'!\n";
+        REPORT_ERROR(USER_ERROR, msg);
+    }
+    else {
+        res = ftable.template as_dvector<size_t>("tmp_rowid").gather()[0];
+    }
+
+    return res;
+}
+
+template <typename T>
+T convert_string (const std::string &str){
+  std::istringstream ss(str);
+  T num;
+  ss >> num;
+  return num;
+}
+
+size_t 
+frov_df_slice_range_non_integer_bound(exrpc_ptr_t& df_proxy,
+                                      std::string& column,
+                                      std::string& value,
+                                      short& dtype);
+
+
 #endif

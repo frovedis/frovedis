@@ -961,3 +961,141 @@ std::string frov_df_to_string(exrpc_ptr_t& df_proxy, bool& has_index) {
   auto df = reinterpret_cast<dftable_base*>(df_proxy);
   return df->to_string(!has_index);
 }
+
+dummy_dftable 
+frov_df_head(exrpc_ptr_t& df_proxy,
+            size_t& limit) {
+  auto dftblp = reinterpret_cast<dftable_base*>(df_proxy);
+  auto ret = new dftable(dftblp->head(limit));
+  return to_dummy_dftable(ret);
+}
+
+dummy_dftable 
+frov_df_tail(exrpc_ptr_t& df_proxy,
+            size_t& limit) {
+  auto dftblp = reinterpret_cast<dftable_base*>(df_proxy);
+  auto ret = new dftable(dftblp->tail(limit));
+  return to_dummy_dftable(ret);
+}
+
+std::vector<size_t>
+get_filtered_idx_local(size_t local_start, size_t local_end,
+                      size_t a, size_t b, size_t c){
+
+    if ( b < a ) return std::vector<size_t>();
+
+    // local_start, local_end is range present locally   
+    auto sz = local_end - local_start + 1;
+    auto max_val = std::numeric_limits<size_t>::max();
+
+    size_t ret_start = max_val;
+    size_t ret_end = max_val;
+
+    size_t cnt = 0;
+    
+    bool is_a_in_local_range = ( a >= local_start && a <= local_end );
+    bool is_b_in_local_range = ( b >= local_start && b <= local_end );
+
+    if (is_a_in_local_range && is_b_in_local_range){
+        ret_start = a;
+        ret_end = b;
+    }
+    else if (is_a_in_local_range and !is_b_in_local_range){
+        ret_start = a;
+        ret_end = local_end;
+    }
+    else if (!is_a_in_local_range and is_b_in_local_range){
+        ret_start = local_start;
+        ret_end = b;
+    }
+    else {
+        if (a <= local_start and b >= local_end){
+            ret_start = local_start;
+            ret_end = local_end;
+        }
+    }
+    
+    if (ret_start == max_val && ret_end == max_val) return std::vector<size_t>();
+
+    std::vector<size_t> ret(sz, 0);
+    auto retp = ret.data();
+
+    for(size_t i=ret_start; i<=ret_end; i++){
+        if ( (i - a) % c == 0) retp[cnt++] = i - local_start;
+    }
+
+    ret.resize(cnt);
+
+    return ret;
+}
+
+filtered_dftable
+get_filtered_df_from_slice(dftable& df, size_t a, size_t b,
+                          size_t c) {
+    auto distribution_sizes = df.num_rows();
+    auto n_nodes = distribution_sizes.size();
+    
+    std::vector<size_t> start_vec(n_nodes, 0), end_vec(n_nodes, 0);
+    
+    for(size_t i=1; i<n_nodes; i++) start_vec[i] = distribution_sizes[i-1];
+    for(size_t i=1; i<n_nodes; i++) start_vec[i] += start_vec[i-1];
+
+    for(size_t i=0; i<n_nodes; i++) end_vec[i] = distribution_sizes[i];
+    for(size_t i=1; i<n_nodes; i++) end_vec[i] +=  end_vec[i-1];
+    for(size_t i=0; i<n_nodes; i++) end_vec[i] -= 1;
+    
+    auto nl_start = make_node_local_scatter(start_vec);
+    auto nl_end = make_node_local_scatter(end_vec);
+    
+    auto fidx = nl_start.map(get_filtered_idx_local, nl_end,
+                            broadcast(a), broadcast(b),
+                            broadcast(c));
+    
+    auto ftable = filtered_dftable(df, fidx);
+
+    return ftable;
+}
+
+dummy_dftable 
+frov_df_slice_range(exrpc_ptr_t& df_proxy, size_t& a, size_t& b,
+                  size_t& c) {
+  auto& df = *get_dftable_pointer(df_proxy);
+  auto ret = new dftable(get_filtered_df_from_slice(df, a, b, c).materialize());
+  return to_dummy_dftable(ret);
+}
+
+size_t 
+frov_df_slice_range_non_integer_bound(exrpc_ptr_t& df_proxy, std::string& column,
+                                      std::string& value, short& dtype) {
+  auto& df = *get_dftable_pointer(df_proxy);
+  size_t res = 0;
+  
+  switch(dtype) {
+      case INT:    { int value_ = convert_string<int>(value);
+                    res = get_non_integer_slice_bound(df, column, value_);
+                    break; }
+      case LONG:   { long value_ = convert_string<long>(value);
+                    res = get_non_integer_slice_bound(df, column, value_);
+                    break; }
+      case ULONG:  { unsigned long value_ = convert_string<unsigned long>(value);
+                    res = get_non_integer_slice_bound(df, column, value_);
+                    break; }
+      case FLOAT:  { float value_ = convert_string<float>(value);
+                    res = get_non_integer_slice_bound(df, column, value_);
+                    break; }
+      case DOUBLE: { double value_ = convert_string<double>(value);
+                    res = get_non_integer_slice_bound(df, column, value_);
+                    break; }
+      case STRING: { res = get_non_integer_slice_bound(df, column, value);
+                    break; }
+      case BOOL:   { int value_;
+                    if (value == "True") value_ = 1;
+                    else if (value == "False") value_ = 0;
+                    else REPORT_ERROR(USER_ERROR, "Unsupported value for boolean: "+ value +"! \n");
+                    res = get_non_integer_slice_bound(df, column, value_);
+                    break; }
+      default:     auto msg = "Unsupported datatype dataframe slice : " + std::to_string(dtype) + "! \n";
+                   REPORT_ERROR(USER_ERROR,msg);
+    }
+  return res;
+}

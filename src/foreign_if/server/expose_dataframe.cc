@@ -85,4 +85,8 @@ void expose_frovedis_dataframe_functions() {
   expose(frov_df_fillna);
   expose(frov_df_dropna);
   expose(frov_df_to_string);
+  expose(frov_df_head);
+  expose(frov_df_tail);
+  expose(frov_df_slice_range);
+  expose(frov_df_slice_range_non_integer_bound);
 }
