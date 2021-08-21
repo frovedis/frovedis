@@ -128,6 +128,27 @@ crs_mat.debug_print()
 crs_mat2 = df.to_frovedis_crs_matrix_using_info(info)
 crs_mat2.debug_print()
 
+
+pdf5 = pdf1.set_index("Ename") 
+fdf5 = fdf.DataFrame(pdf5)
+
+print(pdf5)
+
+# integer slice
+print(fdf5[1:4])
+
+# integer slice with stepping
+
+# pandas call
+# print(pdf5[1:4:2])
+print(fdf5[1:4:2])
+
+# non-integer slice
+print(fdf5["Andy":"Raul"])
+
+# non-integer slice with stepping
+print(fdf5["Andy":"Raul":2])
+
 df.release()
 row_mat.release()
 col_mat.release()
