@@ -1127,4 +1127,70 @@ extern "C" {
     return Py_BuildValue("s", ret.c_str());
   }
 
+  PyObject* df_head(const char* host, int port, long df_proxy,
+                    long unsigned limit) {
+    ASSERT_PTR(host);
+    exrpc_node fm_node(host, port);
+    auto df_proxy_ = static_cast<exrpc_ptr_t>(df_proxy);
+    dummy_dftable res;
+    try {
+      res = exrpc_async(fm_node, frov_df_head, df_proxy_, limit).get();
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return to_py_dummy_df(res);
+  }
+
+  PyObject* df_tail(const char* host, int port, long df_proxy,
+                    long unsigned limit) {
+    ASSERT_PTR(host);
+    exrpc_node fm_node(host, port);
+    auto df_proxy_ = static_cast<exrpc_ptr_t>(df_proxy);
+    dummy_dftable res;
+    try {
+      res = exrpc_async(fm_node, frov_df_tail, df_proxy_, limit).get();
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return to_py_dummy_df(res);
+  }
+
+  PyObject* df_slice_range(const char* host, int port, long df_proxy,
+                        long unsigned a, long unsigned b, long unsigned c) {
+    ASSERT_PTR(host);
+    exrpc_node fm_node(host, port);
+    auto df_proxy_ = static_cast<exrpc_ptr_t>(df_proxy);
+    dummy_dftable res;
+    try {
+      res = exrpc_async(fm_node, frov_df_slice_range, df_proxy_, a, b, c).get();
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return to_py_dummy_df(res);
+  }
+
+  size_t 
+  df_slice_range_non_integer_bound(const char* host, int port,
+                                    long df_proxy, const char* column,
+                                    const char* value, short dtype) {
+    ASSERT_PTR(host);
+    exrpc_node fm_node(host, port);
+    std::string column_(column);
+    std::string value_(value);
+    
+    auto df_proxy_ = static_cast<exrpc_ptr_t>(df_proxy);
+    size_t res = 0;
+    try {
+      res = exrpc_async(fm_node, frov_df_slice_range_non_integer_bound, df_proxy_,
+                      column_, value_, dtype).get();
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return res;
+  }
+
 }
