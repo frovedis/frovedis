@@ -80,11 +80,12 @@ void expose_frovedis_wrapper_functions() {
   expose((frovedis_geadd<DT1,B_MAT1>));
   expose((frovedis_geadd<DT2,B_MAT2>));
   // ------ frovedis arpack wrappers -----
+  expose((frovedis_sparse_eigsh<S_MAT1,DT1>));       // for spark
   expose((frovedis_sparse_eigsh<S_MAT14,DT1,DT4>));  // for python
   expose((frovedis_sparse_eigsh<S_MAT15,DT1,DT5>));  // for python
   expose((frovedis_sparse_eigsh<S_MAT24,DT2,DT4>));  // for python
   expose((frovedis_sparse_eigsh<S_MAT25,DT2,DT5>));  // for python
-  expose((frovedis_dense_eigsh<R_MAT1,DT1>));        // for python
+  expose((frovedis_dense_eigsh<R_MAT1,DT1>));        // for spark/python
   expose((frovedis_dense_eigsh<R_MAT2,DT2>));        // for python
   // --- frovedis lapack/scalapack wrappers ---
   expose((frovedis_getrf<DT1,C_LMAT1,std::vector<int>>));
