@@ -1,7 +1,7 @@
 include ../../../../../Makefile.in.x86
 #include ../Makefile.in.x86
 
-all: dtransfer.mf frov_mat.mf frov_df.mf pblas_scalapack.mf svd.mf pca.mf als.mf kmeans.mf lrm.mf lrsgd.mf nb.mf fm.mf dt.mf fp.mf ac.mf se.mf sc.mf w2v.mf knn.mf knc.mf knr.mf page_rank.mf sssp.mf bfs.mf cc.mf dbscan.mf lda.mf rf.mf gbt.mf svr.mf svc.mf tsne.mf gmm.mf
+all: dtransfer.mf frov_mat.mf frov_df.mf pblas_scalapack.mf svd.mf evd.mf pca.mf als.mf kmeans.mf lrm.mf lrsgd.mf nb.mf fm.mf dt.mf fp.mf ac.mf se.mf sc.mf w2v.mf knn.mf knc.mf knr.mf page_rank.mf sssp.mf bfs.mf cc.mf dbscan.mf lda.mf rf.mf gbt.mf svr.mf svc.mf tsne.mf gmm.mf
 
 append:
 	echo ${SPARK_HOME}/jars/*:${HDPATH} > tmp
@@ -59,6 +59,10 @@ pblas_scalapack.mf: pblas_scalapack.mf.tmpl append
 svd.mf: svd.mf.tmpl append
 	cp svd.mf.tmpl svd.mf
 	cat append >> svd.mf
+
+evd.mf: evd.mf.tmpl append
+	cp evd.mf.tmpl evd.mf
+	cat append >> evd.mf
 
 pca.mf: pca.mf.tmpl append
 	cp pca.mf.tmpl pca.mf
