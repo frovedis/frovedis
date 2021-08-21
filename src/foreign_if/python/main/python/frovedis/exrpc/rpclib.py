@@ -447,6 +447,27 @@ df_abs = LIB.df_abs
 df_abs.argtypes = [c_char_p, c_int, c_long] # host, port, proxy
 df_abs.restype = py_object
 
+df_head = LIB.df_head
+df_head.argtypes = [c_char_p, c_int, c_long, # host, port, proxy
+                    c_ulong]                 # limit
+df_head.restype = py_object
+
+df_tail = LIB.df_tail
+df_tail.argtypes = [c_char_p, c_int, c_long, # host, port, proxy
+                    c_ulong]                 # limit
+df_tail.restype = py_object
+
+df_slice_range = LIB.df_slice_range
+df_slice_range.argtypes = [c_char_p, c_int, c_long,  # host, port, proxy
+                          c_ulong, c_ulong, c_ulong] # a, b, c (slice)
+df_slice_range.restype = py_object
+
+df_slice_range_non_integer_bound = LIB.df_slice_range_non_integer_bound
+df_slice_range_non_integer_bound.argtypes = [c_char_p, c_int, c_long, # host, port, proxy
+                                            c_char_p, c_char_p,       # column, value
+                                            c_short]                  # dtype
+df_slice_range_non_integer_bound.restype = c_ulong
+
 # --- Frovedis dftable_to_sparse_info ---
 load_dftable_to_sparse_info = LIB.load_dftable_to_sparse_info
 load_dftable_to_sparse_info.argtypes = [c_char_p, c_int,  #host, port
