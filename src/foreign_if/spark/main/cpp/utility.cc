@@ -110,6 +110,19 @@ jobject to_jDummyGesvdResult(JNIEnv *env, svd_result& obj, short mtype,
   return newSVD;
 }
 
+jobject to_jDummyEvdResult(JNIEnv *env, eigen_result& obj) {
+  jclass evdCls = env->FindClass(JRE_PATH_DummyEvdResult);
+  if (evdCls == NULL) REPORT_ERROR(INTERNAL_ERROR, "DummyEvdResult class not found in JRE\n");
+  jmethodID evdConst = env->GetMethodID(evdCls, "<init>", "(JJIII)V");
+  if (evdConst == NULL) REPORT_ERROR(INTERNAL_ERROR, "DummyEvdResult(JJIII) not found in JRE\n");
+  long svecp = static_cast<long>(obj.svec_ptr);
+  long vmatp = static_cast<long>(obj.umat_ptr);
+  auto newEVD = env->NewObject(evdCls, evdConst, svecp, vmatp,
+                               obj.m, obj.n, obj.k);
+  if (newEVD == NULL) REPORT_ERROR(INTERNAL_ERROR, "DummyEvdResult object creation failed\n");
+  return newEVD;
+}
+
 jobject to_jDummyPCAResult(JNIEnv *env, pca_result& obj, short mtype) {
   jclass pcaCls = env->FindClass(JRE_PATH_DummyPCAResult);
   if (pcaCls == NULL) REPORT_ERROR(INTERNAL_ERROR, "DummyPCAResult class not found in JRE\n");

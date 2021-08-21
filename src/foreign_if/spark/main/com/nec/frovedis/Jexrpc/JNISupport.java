@@ -3,6 +3,7 @@ package com.nec.frovedis.Jexrpc;
 import com.nec.frovedis.Jmatrix.DummyMatrix;
 import com.nec.frovedis.Jmatrix.DummyGetrfResult;
 import com.nec.frovedis.Jmatrix.DummyGesvdResult;
+import com.nec.frovedis.Jmatrix.DummyEvdResult;
 import com.nec.frovedis.Jmatrix.DummyPCAResult;
 import com.nec.frovedis.Jmatrix.DummyFreqItemset;
 import com.nec.frovedis.Jgraph.DummyEdge;
@@ -541,6 +542,16 @@ public class JNISupport {
                                                               boolean wantU,
                                                               boolean wantV,
                                                               boolean isbinary);
+  // --------- Eigen Value Decomposition -------
+  public static native DummyEvdResult eigsh(Node master_node,
+                                            long fdata,
+                                            int k,
+                                            float sigma,
+                                            String which,
+                                            int maxiter,
+                                            double tol,
+                                            boolean isDense,
+                                            boolean movable);
   // -------- Frovedis Model Operations --------
   public static native void showFrovedisModel(Node master_node, int mid, short mkind);
   public static native void releaseFrovedisModel(Node master_node, int mid, short mkind);

@@ -6,6 +6,7 @@
 #define JRE_PATH_MemPair "com/nec/frovedis/Jexrpc/MemPair"
 #define JRE_PATH_Node "com/nec/frovedis/Jexrpc/Node"
 #define JRE_PATH_DummyGesvdResult "com/nec/frovedis/Jmatrix/DummyGesvdResult"
+#define JRE_PATH_DummyEvdResult "com/nec/frovedis/Jmatrix/DummyEvdResult"
 #define JRE_PATH_DummyPCAResult "com/nec/frovedis/Jmatrix/DummyPCAResult"
 #define JRE_PATH_DummyTSNEResult "com/nec/frovedis/Jmllib/DummyTSNEResult"
 #define JRE_PATH_DummyKNNResult "com/nec/frovedis/Jmllib/DummyKNNResult"

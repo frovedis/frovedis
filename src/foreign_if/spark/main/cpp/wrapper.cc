@@ -1,4 +1,5 @@
 #include "exrpc_svd.hpp"
+#include "exrpc_eigen.hpp"
 #include "exrpc_pca.hpp"
 #include "exrpc_tsne.hpp"
 #include "exrpc_pblas.hpp"
@@ -42,6 +43,38 @@ JNIEXPORT jobject JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_computeSVD
   catch(std::exception& e) { set_status(true,e.what()); }
   return to_jDummyGesvdResult(env,res,CMJR,true,true);
 }
+
+// to compute Eigen Value Decomposition of a given matrix
+JNIEXPORT jobject JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_eigsh
+  (JNIEnv *env, jclass thisCls, jobject master_node,
+   jlong fdata, jint k, jfloat sigma, jstring which, jint maxiter, 
+   jdouble tol, jboolean isDense, jboolean movable) {
+
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto f_dptr = (exrpc_ptr_t) fdata;
+  auto order = to_cstring(env,which);
+  bool mvbl = (bool) movable;
+  bool dense = (bool) isDense;
+#ifdef _EXRPC_DEBUG_
+  std::cout << "Connecting to master node ("
+            << fm_node.hostname << "," << fm_node.rpcport
+            << ") to compute truncated svd.\n";
+#endif
+  eigen_result res;
+  try{
+    if(dense){
+      res = exrpc_async(fm_node,(frovedis_dense_eigsh<R_MAT1,DT1>),
+                        f_dptr, k, order, sigma,
+                        maxiter, (float)tol, mvbl).get();
+    }
+    else {
+      res = exrpc_async(fm_node,(frovedis_sparse_eigsh<S_MAT1,DT1>),
+                        f_dptr, k, order, maxiter, (float)tol, mvbl).get();
+    }
+  }
+  catch(std::exception& e) { set_status(true,e.what()); }
+  return to_jDummyEvdResult(env,res);
+}    
 
 // to compute PCA of a given dense matrix (rowmajor)
 JNIEXPORT jobject JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_computePCA

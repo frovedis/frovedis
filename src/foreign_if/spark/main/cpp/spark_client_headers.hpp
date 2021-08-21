@@ -28,6 +28,7 @@ extern "C" {
   jobject to_jDummyMatrix(JNIEnv *, dummy_matrix&, short );
   jobject to_jDummyGetrfResult(JNIEnv *, lu_fact_result&, short);
   jobject to_jDummyGesvdResult(JNIEnv *, svd_result&, short, bool, bool);
+  jobject to_jDummyEvdResult(JNIEnv *, eigen_result&);
   jobject to_jDummyPCAResult(JNIEnv *, pca_result&, short);
   jobject to_jDummyTSNEResult(JNIEnv *, tsne_result&); //tsne
   jobject to_jDummyKNNResult(JNIEnv *env, knn_result&); //knn
