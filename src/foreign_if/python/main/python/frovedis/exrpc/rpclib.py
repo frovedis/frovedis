@@ -146,7 +146,7 @@ release_frovedis_array.argtypes = [c_char_p, c_int, c_long, c_short]
 #----Frovedis Dataframe from Python--------------------
 create_frovedis_dataframe = LIB.create_frovedis_dataframe
 create_frovedis_dataframe.argtypes = [c_char_p, c_int, POINTER(c_short),
-                                      POINTER(c_char_p), POINTER(c_long), 
+                                      POINTER(c_char_p), POINTER(c_long),
                                       c_ulong]
 create_frovedis_dataframe.restype = c_long
 
@@ -181,47 +181,47 @@ filter_frovedis_dataframe.argtypes = [c_char_p, c_int, c_long, c_long]
 filter_frovedis_dataframe.restype = c_long
 
 drop_frovedis_dataframe_columns = LIB.drop_frovedis_dataframe_columns
-drop_frovedis_dataframe_columns.argtypes = [c_char_p, c_int, c_long, 
+drop_frovedis_dataframe_columns.argtypes = [c_char_p, c_int, c_long,
                                             POINTER(c_char_p), c_ulong]
 
 drop_frovedis_duplicate_rows = LIB.drop_frovedis_duplicate_rows
-drop_frovedis_duplicate_rows.argtypes = [c_char_p, c_int, c_long, 
+drop_frovedis_duplicate_rows.argtypes = [c_char_p, c_int, c_long,
                                          POINTER(c_char_p), c_ulong,
                                          c_char_p]
 drop_frovedis_duplicate_rows.restype = py_object
 
 drop_frovedis_dataframe_rows_int = LIB.drop_frovedis_dataframe_rows_int
-drop_frovedis_dataframe_rows_int.argtypes = [c_char_p, c_int, c_long, 
+drop_frovedis_dataframe_rows_int.argtypes = [c_char_p, c_int, c_long,
                                              POINTER(c_int), c_ulong,
                                              c_char_p]
 drop_frovedis_dataframe_rows_int.restype = py_object
 
 drop_frovedis_dataframe_rows_long = LIB.drop_frovedis_dataframe_rows_long
-drop_frovedis_dataframe_rows_long.argtypes = [c_char_p, c_int, c_long, 
+drop_frovedis_dataframe_rows_long.argtypes = [c_char_p, c_int, c_long,
                                               POINTER(c_long), c_ulong,
                                               c_char_p]
 drop_frovedis_dataframe_rows_long.restype = py_object
 
 drop_frovedis_dataframe_rows_ulong = LIB.drop_frovedis_dataframe_rows_ulong
-drop_frovedis_dataframe_rows_ulong.argtypes = [c_char_p, c_int, c_long, 
+drop_frovedis_dataframe_rows_ulong.argtypes = [c_char_p, c_int, c_long,
                                                POINTER(c_ulong), c_ulong,
                                                c_char_p]
 drop_frovedis_dataframe_rows_ulong.restype = py_object
 
 drop_frovedis_dataframe_rows_float = LIB.drop_frovedis_dataframe_rows_float
-drop_frovedis_dataframe_rows_float.argtypes = [c_char_p, c_int, c_long, 
+drop_frovedis_dataframe_rows_float.argtypes = [c_char_p, c_int, c_long,
                                                POINTER(c_float), c_ulong,
                                                c_char_p]
 drop_frovedis_dataframe_rows_float.restype = py_object
 
 drop_frovedis_dataframe_rows_double = LIB.drop_frovedis_dataframe_rows_double
-drop_frovedis_dataframe_rows_double.argtypes = [c_char_p, c_int, c_long, 
+drop_frovedis_dataframe_rows_double.argtypes = [c_char_p, c_int, c_long,
                                                 POINTER(c_double), c_ulong,
                                                 c_char_p]
 drop_frovedis_dataframe_rows_double.restype = py_object
 
 drop_frovedis_dataframe_rows_str = LIB.drop_frovedis_dataframe_rows_str
-drop_frovedis_dataframe_rows_str.argtypes = [c_char_p, c_int, c_long, 
+drop_frovedis_dataframe_rows_str.argtypes = [c_char_p, c_int, c_long,
                                              POINTER(c_char_p), c_ulong,
                                              c_char_p]
 drop_frovedis_dataframe_rows_str.restype = py_object
@@ -247,7 +247,7 @@ df_copy_column.argtypes = [c_char_p, c_int, c_long, c_long,
 df_copy_column.restype = py_object
 
 df_astype = LIB.df_astype
-df_astype.argtypes = [c_char_p, c_int, c_long, 
+df_astype.argtypes = [c_char_p, c_int, c_long,
                       POINTER(c_char_p),
                       POINTER(c_short), c_ulong, c_bool]
 df_astype.restype = py_object
@@ -480,7 +480,7 @@ df_binary_operation.restype = py_object
 
 df_immed_binary_operation = LIB.df_immed_binary_operation
 df_immed_binary_operation.argtypes = [c_char_p, c_int,    # host, port
-                                      c_long, c_char_p,   # df1, immed_val 
+                                      c_long, c_char_p,   # df1, immed_val
                                       c_char_p, c_char_p, # val_type, op_type
                                       c_bool, c_bool]     # is_rev, nan_is_null
 df_immed_binary_operation.restype = py_object
@@ -636,7 +636,7 @@ transpose_frovedis_sparse_matrix.argtypes = [c_char_p, c_int,\
 transpose_frovedis_sparse_matrix.restype = py_object
 
 csr_to_rowmajor_matrix = LIB.csr_to_rowmajor_matrix
-csr_to_rowmajor_matrix.argtypes = [c_char_p, #host 
+csr_to_rowmajor_matrix.argtypes = [c_char_p, #host
                                    c_int,    #port
                                    c_long,   #data
                                    c_short,  #dtype
@@ -1132,7 +1132,7 @@ parallel_double_glm_predict.argtypes = [c_char_p, c_int, c_int, c_short, c_long,
                                  flags="C_CONTIGUOUS"),\
                                  c_ulong, c_bool, c_short, c_bool]
 
-# --- clustering APIs --- 
+# --- clustering APIs ---
 
 # 1. KMeans
 kmeans_fit = LIB.kmeans_fit
@@ -1277,7 +1277,7 @@ get_dbscan_components.restype = py_object
 # 5. Gaussian Mixture
 gmm_train = LIB.gmm_train
 gmm_train.argtypes = [c_char_p, c_int, c_long, # host, port, data_proxy
-                      c_int, c_char_p, # n_components, covariance type 
+                      c_int, c_char_p, # n_components, covariance type
                       c_double, c_int , c_int, #tol, max_iter, n_init
                       c_char_p, c_long, c_int, # init_param, seed, verbose
                       c_int, c_short, c_short, c_bool] #mid, dtype, itype, dense
@@ -1409,7 +1409,7 @@ lnr.argtypes = [c_char_p, c_int, c_long, c_long, #host,port,X,y
                     c_bool, c_double, c_int, c_int,  #fit_icpt, tol, vb, mid
                     c_short, c_short, c_bool,        #dtype, itype, dense
                     c_char_p, c_bool]                #solver, warm_start
-lnr.restype = py_object 
+lnr.restype = py_object
 
 # 2. Lasso Regression (L2)
 lasso = LIB.lasso
@@ -1465,7 +1465,7 @@ svm_regressor.restype = c_int #n_iter
 
 # 1. Decision Tree
 dt_train = LIB.dt_trainer
-dt_train.argtypes = [c_char_p, c_int, c_long,    # host, port, X_proxy 
+dt_train.argtypes = [c_char_p, c_int, c_long,    # host, port, X_proxy
                      c_long, c_char_p, c_char_p, # y_proxy, algo, criterion
                      c_int, c_int, c_int, c_int, # depth, ncls, bins, min-leaf
                      c_float, c_int, c_int,    # impurity-dec, verbose, mid
@@ -1683,20 +1683,20 @@ compute_truncated_svd.restype = py_object
 compute_svd_self_transform = LIB.compute_svd_self_transform
 compute_svd_self_transform.argtypes = [c_char_p, c_int, # host, port
                                        c_long, c_long,  # umat_ptr, sval_ptr
-                                       c_short]         # dtype 
+                                       c_short]         # dtype
 compute_svd_self_transform.restype = py_object
 
 
 compute_svd_transform = LIB.compute_svd_transform
 compute_svd_transform.argtypes = [c_char_p, c_int,  # host, port
-                                  c_long, c_short,  # Xptr, dtype 
+                                  c_long, c_short,  # Xptr, dtype
                                   c_short, c_bool,  # itype, isDense
                                   c_long]           # comp_ptr
 compute_svd_transform.restype = py_object
 
 compute_svd_inverse_transform = LIB.compute_svd_inverse_transform
 compute_svd_inverse_transform.argtypes = [c_char_p, c_int,  # host, port
-                                          c_long, c_short,  # Xptr, dtype 
+                                          c_long, c_short,  # Xptr, dtype
                                           c_short, c_bool,  # itype, isDense
                                           c_long]           # comp_ptr
 compute_svd_inverse_transform.restype = py_object
@@ -1723,8 +1723,8 @@ compute_pca.argtypes = [ c_char_p, #host
                          c_int,  #k
                          c_bool, #whiten
                          c_short, #dtype
-                         c_bool, #to_copy 
-                         c_bool #movable 
+                         c_bool, #to_copy
+                         c_bool #movable
                        ]
 compute_pca.restype = py_object
 
@@ -1784,7 +1784,7 @@ eigsh.argtypes = [c_char_p, c_int,    #host, port
                   c_int, c_bool,      #maxiter, wantEv
                   c_float, c_short,   #tol, dtype
                   c_short, c_bool     #indextype, isdense
-                  ]             
+                  ]
 eigsh.restype = py_object
 
 # --- manifold APIs ---
@@ -2172,3 +2172,35 @@ call_frovedis_cc.argtypes = [c_char_p, c_int,             # host, port
                              c_int, c_double]             # opt-level, hyb-threshold
 call_frovedis_cc.restype = py_object
 
+
+# 6. Standard scaler
+#----fit-----#
+scaler_partial_fit = LIB.scaler_partial_fit
+scaler_partial_fit.argtypes = [c_char_p, c_int, c_long, c_bool,   #host, port, dptr, with_mean,
+                               c_bool, c_bool,  c_int,  c_int,    #with_std, sample_stddev, verbose, mid
+                               c_short, c_short, c_bool]          #dtype, itype, dense,
+
+#----transform-----#
+scaler_transform = LIB.scaler_transform
+scaler_transform.argtypes = [c_char_p, c_int, c_long, #host, port,dptr
+                             c_bool, c_bool,          #with_mean, with_std
+                             c_int, c_short,          #mid, dtype
+                             c_short, c_bool]         #itype, dense
+scaler_transform.restype = py_object
+
+#----inverse transform-----#
+scaler_inverse_transform = LIB.scaler_inverse_transform
+scaler_inverse_transform.argtypes = [ c_char_p, c_int, c_long, #host, port, dptr
+                                      c_int, c_short,          #mid, dtype
+                                      c_short, c_bool]         #itype, dense
+scaler_inverse_transform.restype = py_object
+
+#----mean attribute-----#
+get_scaler_mean = LIB.get_scaler_mean_vector
+get_scaler_mean.argtypes = [c_char_p, c_int, c_int, c_short]  #host, port, mid, dtype
+get_scaler_mean.restype = py_object
+
+#----variance attribute-----#
+get_scaler_var = LIB.get_scaler_var_vector
+get_scaler_var.argtypes = [c_char_p, c_int, c_int, c_short]
+get_scaler_var.restype = py_object
