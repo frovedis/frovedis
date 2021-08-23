@@ -98,6 +98,7 @@ extern "C" {
           case FPR:    exrpc_oneway(fm_node, release_model<FPR1>,mid); break; // not template based
           case FMM:    exrpc_oneway(fm_node,release_model<FMM2>,mid); break;
           case NBM:    exrpc_oneway(fm_node,release_model<NBM2>,mid); break;
+          case STANDARDSCALER:    exrpc_oneway(fm_node,release_model<STANDARDSCALER2>,mid); break;      
           case KNN: 
             if(dense) {   
               exrpc_oneway(fm_node,release_model<KNNR2>,mid); 
@@ -157,6 +158,7 @@ extern "C" {
           case FPR:    exrpc_oneway(fm_node, release_model<FPR1>,mid); break; // not template based
           case FMM:    exrpc_oneway(fm_node,release_model<FMM1>,mid); break;
           case NBM:    exrpc_oneway(fm_node,release_model<NBM1>,mid); break;
+          case STANDARDSCALER:    exrpc_oneway(fm_node,release_model<STANDARDSCALER1>,mid); break;      
           case KNN: 
             if(dense) {   
               exrpc_oneway(fm_node,release_model<KNNR1>,mid); 
@@ -3218,5 +3220,56 @@ void fpgrowth_rules(const char* host, int port,
     }
     return to_py_dummy_matrix(ret);
   }
+    
+// scaler mean
+  PyObject* get_scaler_mean_vector(const char* host, int port,
+                                    int mid, short mdtype) {
+    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
+    exrpc_node fm_node(host,port);
+    PyObject* ret_ptr = NULL;
+    try {
+      if(mdtype == FLOAT) {
+        std::vector<float> mean_vector;
+        mean_vector = exrpc_async(fm_node,get_scaler_mean<DT2>,mid).get(); 
+        ret_ptr = to_python_float_list(mean_vector);
+      } 
+      else if(mdtype == DOUBLE) {
+        std::vector<double> mean_vector;
+        mean_vector = exrpc_async(fm_node,get_scaler_mean<DT1>,mid).get(); 
+        ret_ptr =  to_python_double_list(mean_vector); 
+      } 
+      else REPORT_ERROR(USER_ERROR,"model dtype can either be float or double!\n");
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+     
+    return ret_ptr;     
+  }
 
+  // scaler var
+  PyObject* get_scaler_var_vector(const char* host, int port,
+                                    int mid, short mdtype) {
+    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
+    exrpc_node fm_node(host,port);
+    PyObject* ret_ptr = NULL;
+    try {
+      if(mdtype == FLOAT) {
+        std::vector<float> var_vector;
+        var_vector = exrpc_async(fm_node,get_scaler_var<DT2>,mid).get();
+        ret_ptr = to_python_float_list(var_vector);
+      }
+      else if(mdtype == DOUBLE) {
+        std::vector<double> var_vector;
+        var_vector = exrpc_async(fm_node,get_scaler_var<DT1>,mid).get();
+        ret_ptr =  to_python_double_list(var_vector);
+      }
+      else REPORT_ERROR(USER_ERROR,"model dtype can either be float or double!\n");
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return ret_ptr;
+  }
+    
 }

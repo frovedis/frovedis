@@ -1773,4 +1773,187 @@ extern "C" {
     }
   }
 
+    
+  //---(23) Standard Scaler ---
+  void scaler_partial_fit(const char* host, int port, long xptr,
+                        bool with_mean, bool with_std, bool sample_stddev,
+                        int vb, int mid, short dtype, short itype,
+                        bool dense) {
+    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
+    exrpc_node fm_node(host,port);
+    auto f_xptr = (exrpc_ptr_t) xptr;
+    bool mvbl = false;
+    try {
+      if(dense) {
+        switch(dtype) {
+          case FLOAT:
+            exrpc_oneway(fm_node,(frovedis_scaler_partial_fit<DT2,R_MAT2>),
+                              f_xptr, with_mean, with_std, sample_stddev, vb, mid, mvbl);
+            break;
+          case DOUBLE:
+            exrpc_oneway(fm_node,(frovedis_scaler_partial_fit<DT1,R_MAT1>),
+                             f_xptr, with_mean, with_std, sample_stddev, vb, mid, mvbl);
+           break;
+          default: REPORT_ERROR(USER_ERROR,
+                   "Unsupported dtype of input dense data for training!\n");
+        }
+      }
+      else {
+        switch(dtype) {
+          case FLOAT:
+            {
+              if(itype == INT)
+                exrpc_oneway(fm_node,(frovedis_scaler_partial_fit<DT2,S_MAT24>),
+                              f_xptr, with_mean, with_std, sample_stddev, vb, mid, mvbl);
+              else if(itype == LONG)
+                exrpc_oneway(fm_node,(frovedis_scaler_partial_fit<DT2,S_MAT25>),
+                              f_xptr, with_mean, with_std, sample_stddev, vb, mid, mvbl);
+              else REPORT_ERROR(USER_ERROR,
+                   "Unsupported itype of input sparse data for training!\n");
+            }
+            break;
+          case DOUBLE:
+            {
+             if(itype == INT)
+               exrpc_oneway(fm_node,(frovedis_scaler_partial_fit<DT1,S_MAT14>),
+                            f_xptr, with_mean, with_std, sample_stddev, vb, mid, mvbl);
+             else if(itype == LONG)
+                exrpc_oneway(fm_node,(frovedis_scaler_partial_fit<DT1,S_MAT15>),
+                            f_xptr, with_mean, with_std, sample_stddev, vb, mid, mvbl);
+              else REPORT_ERROR(USER_ERROR,
+                   "Unsupported itype of input sparse data for training!\n");
+            }
+            break;
+          default: REPORT_ERROR(USER_ERROR,
+                   "Unsupported dtype of input sparse data for training!\n");
+        }
+     }
+   }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+  }
+
+
+
+  PyObject* scaler_transform(const char* host, int port,
+                             long xptr, bool with_mean, bool with_std,
+                             int mid, short dtype,short itype,
+                             bool dense) {
+
+    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
+    exrpc_node fm_node(host,port);
+    auto f_xptr = (exrpc_ptr_t) xptr;
+    dummy_matrix dmat;
+    try {
+      if(dense) {
+        switch(dtype) {
+          case FLOAT:
+            dmat = exrpc_async(fm_node,(frovedis_scaler_transform<DT2,R_MAT2,R_MAT2,R_LMAT2>),
+                             f_xptr,mid).get();
+            break;
+
+          case DOUBLE:
+            dmat = exrpc_async(fm_node,(frovedis_scaler_transform<DT1,R_MAT1,R_MAT1,R_LMAT1>),
+                                        f_xptr,mid).get();
+            break;
+          default: REPORT_ERROR(USER_ERROR,
+                   "Unsupported dtype of input dense data for training!\n");
+        }
+      }
+      else {
+        switch(dtype) {
+          case FLOAT:
+            if(itype == INT)
+              dmat = exrpc_async(fm_node,(frovedis_scaler_transform<DT2,S_MAT24,S_MAT24,S_LMAT24>),
+                                        f_xptr,mid).get();
+            else if(itype == LONG)
+              dmat = exrpc_async(fm_node,(frovedis_scaler_transform<DT2,S_MAT25,S_MAT25,S_LMAT25>),
+                                        f_xptr,mid).get();
+            else REPORT_ERROR(USER_ERROR,
+                              "Unsupported itype of input sparse data for training!\n");
+            break;
+          case DOUBLE:
+            if(itype == INT){
+                dmat = exrpc_async(fm_node,(frovedis_scaler_transform<DT1,S_MAT14,S_MAT14,S_LMAT14>),
+                                   f_xptr,mid).get();
+            }
+            else if(itype == LONG){
+                dmat = exrpc_async(fm_node,(frovedis_scaler_transform<DT1,S_MAT15,S_MAT15,S_LMAT15>),
+                                   f_xptr,mid).get();
+            }
+            else REPORT_ERROR(USER_ERROR,
+                 "Unsupported itype of input sparse data for training!\n");
+            break;
+          default: REPORT_ERROR(USER_ERROR,
+                   "Unsupported dtype of input sparse data for training!\n");
+        }
+      }
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return to_py_dummy_matrix(dmat);
+  }
+
+  PyObject* scaler_inverse_transform(const char* host, int port,
+                                long xptr, int mid, short dtype,
+                                short itype, bool dense) {
+
+    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
+    exrpc_node fm_node(host,port);
+    auto f_xptr = (exrpc_ptr_t) xptr;
+    dummy_matrix dmat;
+
+    try {
+      if(dense) {
+        switch(dtype) {
+          case FLOAT:
+            dmat = exrpc_async(fm_node,(frovedis_scaler_inverse_transform<DT2,R_MAT2,R_MAT2,R_LMAT2>),
+                               f_xptr,mid).get();
+            break;
+
+          case DOUBLE:
+            dmat = exrpc_async(fm_node,(frovedis_scaler_inverse_transform<DT1,R_MAT1,R_MAT1,R_LMAT1>),
+                               f_xptr,mid).get();
+            break;
+          default: REPORT_ERROR(USER_ERROR,
+                   "Unsupported dtype of input dense data for training!\n");
+        }
+      }
+      else {
+        switch(dtype) {
+          case FLOAT:
+            if(itype == INT)
+              dmat = exrpc_async(fm_node,(frovedis_scaler_inverse_transform<DT2,S_MAT24,S_MAT24,S_LMAT24>),
+                                 f_xptr,mid).get();
+            else if(itype == LONG)
+              dmat = exrpc_async(fm_node,(frovedis_scaler_inverse_transform<DT2,S_MAT25,S_MAT25,S_LMAT25>),
+                                 f_xptr,mid).get();
+            else REPORT_ERROR(USER_ERROR,
+                              "Unsupported itype of input sparse data for training!\n");
+            break;
+          case DOUBLE:
+            if(itype == INT){
+                dmat = exrpc_async(fm_node,(frovedis_scaler_inverse_transform<DT1,S_MAT14,S_MAT14,S_LMAT14>),
+                                   f_xptr,mid).get();
+            }
+            else if(itype == LONG){
+                dmat = exrpc_async(fm_node,(frovedis_scaler_inverse_transform<DT1,S_MAT15,S_MAT15,S_LMAT15>),
+                                   f_xptr,mid).get();
+            }
+            else REPORT_ERROR(USER_ERROR,
+                 "Unsupported itype of input sparse data for training!\n");
+            break;
+          default: REPORT_ERROR(USER_ERROR,
+                   "Unsupported dtype of input sparse data for training!\n");
+        }
+      }
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return to_py_dummy_matrix(dmat);
+  }
+    
 }
