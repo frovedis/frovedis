@@ -14,6 +14,7 @@ python crs_matrix_demo.py "$COMMAND"
 python dense_matrix_demo.py "$COMMAND"
 python df_demo.py "$COMMAND"
 python linalg_demo.py "$COMMAND"
+python standard_scaler_demo.py "$COMMAND"
 
 # --- ML Data Creation Demo ---
 python frovedis_labeled_point_demo.py "$COMMAND"
