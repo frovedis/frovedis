@@ -35,6 +35,7 @@
 #include "frovedis/ml/neighbors/knn_supervised.hpp"
 #include "frovedis/ml/lda/lda_cgs.hpp"
 #include "frovedis/ml/kernel/kernel_svm.hpp"
+#include "frovedis/matrix/standard_scaler.hpp"
 
 #include "../exrpc/exrpc_expose.hpp"
 #include "frovedis_mem_pair.hpp"
@@ -951,5 +952,50 @@ void frovedis_gbt(frovedis_mem_pair& mp, tree::strategy<T>& strategy,
     lbl.mapv_partitions(clear_lbl_data<T>);
   }
 }
+
+//standard scaler
+template <class T, class MATRIX>
+void frovedis_scaler_partial_fit(exrpc_ptr_t& data_ptr,
+                                 bool& with_mean,
+                                 bool& with_std, bool& sample_stddev,
+                                 int& verbose, int& mid,
+                                 bool& isMovableInput=false) {
+
+  MATRIX& mat = *reinterpret_cast<MATRIX*>(data_ptr);  // training input data holder
+  set_verbose_level(verbose);
+  standard_scaler<T> est(with_mean, with_std, sample_stddev);
+  est.partial_fit(mat);
+  if (isMovableInput) mat.clear();
+  reset_verbose_level();
+  handle_trained_model<standard_scaler<T>>(mid, STANDARDSCALER, est);
+}    
+
+template <class T, class MATRIX,
+          class OUTMAT, class OUTMAT_LOC>
+dummy_matrix frovedis_scaler_transform(exrpc_ptr_t& data_ptr,
+                                       int& mid) {
+
+
+  MATRIX& mat = *reinterpret_cast<MATRIX*>(data_ptr);  // training input data holder
+  auto& obj = *get_model_ptr<frovedis::standard_scaler<T>>(mid);
+
+  auto ret = new OUTMAT(obj.template transform<MATRIX>(mat)); 
+  return to_dummy_matrix<OUTMAT,OUTMAT_LOC>(ret);
+}
+
+
+template <class T, class MATRIX,
+          class OUTMAT, class OUTMAT_LOC>
+dummy_matrix
+frovedis_scaler_inverse_transform(exrpc_ptr_t& data_ptr,
+                                  int& mid) {
+
+  MATRIX& mat = *reinterpret_cast<MATRIX*>(data_ptr);  // training input data holder
+  auto& obj = *get_model_ptr<frovedis::standard_scaler<T>>(mid);
+  auto ret = new OUTMAT(obj.template inverse_transform<MATRIX>(mat)); // rmm
+  return to_dummy_matrix<OUTMAT,OUTMAT_LOC>(ret);
+}
+
+
 
 #endif

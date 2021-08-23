@@ -48,7 +48,8 @@ enum MODEL_KIND {
   KSVC,
   RR,
   LSR,
-  GMM
+  GMM,
+  STANDARDSCALER    
 };
 
 enum MAT_KIND {

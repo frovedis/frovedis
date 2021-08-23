@@ -724,4 +724,12 @@ void expose_frovedis_model_functions() {
   expose(frovedis_ensemble_get_total_num_nodes<GBT1>);
   expose((frovedis_ensemble_get_tree_weights<GBT1,DT1>));
   expose(frovedis_ensemble_to_string<GBT1>);
+  // --- frovedis Standard Scaler
+  expose(release_model<STANDARDSCALER1>);
+  expose(release_model<STANDARDSCALER2>);  
+  expose(get_scaler_mean<DT1>); // for python
+  expose(get_scaler_mean<DT2>); // for python
+
+  expose(get_scaler_var<DT1>); // for python
+  expose(get_scaler_var<DT2>); // for python    
 }

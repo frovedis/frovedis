@@ -31,6 +31,7 @@
 #include "frovedis/ml/lda/lda_cgs.hpp"
 #include "frovedis/ml/tree/ensemble_model.hpp"
 #include "frovedis/ml/kernel/kernel_svm.hpp"
+#include "frovedis/matrix/standard_scaler.hpp"
 #include "../exrpc/exrpc_expose.hpp"
 #include "dummy_model.hpp"
 #include "dummy_matrix.hpp"
@@ -1247,6 +1248,20 @@ dummy_matrix get_dbscan_components(int& mid) {
   auto retptr = new rowmajor_matrix<T>(model.components_());
   return to_dummy_matrix<rowmajor_matrix<T>,
                          rowmajor_matrix_local<T>>(retptr);
+}
+
+template <class T>
+std::vector<T>
+get_scaler_mean(int& mid) {
+  auto& scaler_obj = *get_model_ptr<standard_scaler<T>>(mid);
+  return scaler_obj.mean;
+} 
+
+template <class T>
+std::vector<T>
+get_scaler_var(int& mid) {
+  auto& scaler_obj = *get_model_ptr<standard_scaler<T>>(mid);
+  return scaler_obj.var;
 }
 
 #endif 

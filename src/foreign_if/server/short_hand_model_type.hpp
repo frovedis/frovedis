@@ -80,5 +80,6 @@ typedef random_forest_model<DT1> RFM1;
 typedef random_forest_model<DT2> RFM2;
 typedef gradient_boosted_trees_model<DT1> GBT1;
 typedef gradient_boosted_trees_model<DT2> GBT2;
-
+typedef standard_scaler<DT1> STANDARDSCALER1;
+typedef standard_scaler<DT2> STANDARDSCALER2;
 #endif
