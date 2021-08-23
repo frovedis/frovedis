@@ -817,6 +817,8 @@ typed_dfcolumn<string>::global_extract
     ret->nulls = nullhashes.map(global_extract_null_helper2, global_idx,
                                 null_exists);
     */
+    // assume that val always contains max() iff NULL; this is much faster
+    // val does not become max() in the case of string
     ret->nulls = ret->val.map(+[](std::vector<size_t>& val) {
         return vector_find_eq(val, std::numeric_limits<size_t>::max());
       });

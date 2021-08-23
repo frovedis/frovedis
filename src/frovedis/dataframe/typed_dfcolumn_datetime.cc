@@ -83,7 +83,8 @@ typed_dfcolumn<datetime>::global_extract
                                 null_exists);
     t.show("global_extract_null_helper2: ");
     */
-    // assume that val always contains max() if NULL; this is much faster
+    // assume that val always contains max() iff NULL; this is much faster
+    // datetime_t does not become max()
     ret->nulls = ret->val.map(+[](std::vector<datetime_t>& val) {
         return vector_find_eq(val, std::numeric_limits<datetime_t>::max());
       });

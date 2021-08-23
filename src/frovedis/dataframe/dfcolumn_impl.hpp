@@ -15,6 +15,7 @@
 #include "dfutil.hpp"
 
 #define GROUPBY_VLEN 256
+#define DONOT_ALLOW_MAX_AS_VALUE // for better performance
 
 namespace frovedis {
 
@@ -252,14 +253,15 @@ std::vector<T> extract_helper(std::vector<T>& val,
   }
   size_t nullssize = nulls.size();
   if(nullssize != 0) {
-/*
+#ifdef DONOT_ALLOW_MAX_AS_VALUE
+    // assume that val always contains max() iff NULL; this is much faster
+    retnulls = vector_find_eq(ret, std::numeric_limits<T>::max());
+#else
     std::vector<int> dummy(nullssize);
     auto nullhash = unique_hashtable<size_t, int>(nulls, dummy);
     auto isnull = nullhash.check_existence(idx);
     retnulls = vector_find_one(isnull);
-*/
-    // assume that val always contains max() if NULL; this is much faster
-    retnulls = vector_find_eq(ret, std::numeric_limits<T>::max());
+#endif
   }
   return ret;
 }
@@ -1714,7 +1716,13 @@ typed_dfcolumn<T>::global_extract
     }, to_store_idx);
   t.show("store: ");
   if(contain_nulls) {
-    /*
+#ifdef DONOT_ALLOW_MAX_AS_VALUE
+    // assume that val always contains max() if NULL; this is much faster
+    ret->nulls = ret->val.map(+[](std::vector<T>& val) {
+        return vector_find_eq(val, std::numeric_limits<T>::max());
+      });
+    ret->contain_nulls_check();
+#else
     auto exnulls = nulls.map(global_extract_null_helper, exchanged_idx);
     t.show("global_extract_null_helper: ");
     auto exchanged_back_nulls = alltoall_exchange(exnulls);
@@ -1726,12 +1734,7 @@ typed_dfcolumn<T>::global_extract
     ret->nulls = nullhashes.map(global_extract_null_helper2, global_idx,
                                 null_exists);
     t.show("global_extract_null_helper2: ");
-    */
-    // assume that val always contains max() if NULL; this is much faster
-    ret->nulls = ret->val.map(+[](std::vector<T>& val) {
-        return vector_find_eq(val, std::numeric_limits<T>::max());
-      });
-    ret->contain_nulls_check();
+#endif
   } else {
     ret->nulls = make_node_local_allocate<std::vector<size_t>>();
   }
