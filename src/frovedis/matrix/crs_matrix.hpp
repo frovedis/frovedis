@@ -3111,6 +3111,63 @@ compute_stddev(crs_matrix<T, I, O>& mat,
 }
 
 template <class T, class I, class O>
+std::vector<T>
+compute_var(crs_matrix<T, I, O>& mat, 
+            std::vector<T>& mean, 
+            bool sample_var = true,
+            bool with_nnz = false) {
+  auto ncol = mat.num_col;
+  auto nrow = mat.num_row;
+  if(nrow < 2)
+    throw std::runtime_error("cannot compute variance if number of row is 0 or 1");
+  mat.data.mapv(crs_sub_vector_row<T,I,O>, broadcast(mean));
+  std::vector<I> count; // count of non-zeros in each column
+  auto tmp = squared_sum_of_rows(mat, count);
+  auto tmpptr = tmp.data();
+  auto cptr = count.data();
+  // tmp: sqsum of rows will inplace be updated with reciprocal of stddev
+  if(!with_nnz) {
+    auto meanp = mean.data();
+    for(size_t i = 0; i < ncol; ++i) {
+      auto nzeros = nrow - cptr[i];
+      tmpptr[i] += (meanp[i] * meanp[i] * nzeros);
+    }
+    T to_div;
+    if(sample_var) to_div = static_cast<T>(nrow - 1);
+    else to_div = static_cast<T>(nrow);
+    for(size_t i = 0; i < ncol; ++i) {
+      if(tmpptr[i] == 0) tmpptr[i] = 1.0;
+      else tmpptr[i] = tmpptr[i] / to_div;
+    }
+  }
+  else {
+    if(sample_var) {
+      for(size_t i = 0; i < ncol; ++i) {
+        if(tmpptr[i] == 0) tmpptr[i] = 1.0;
+        else tmpptr[i] = tmpptr[i] / (cptr[i] - 1);
+      }
+    }
+    else {
+      for(size_t i = 0; i < ncol; ++i) {
+        if(tmpptr[i] == 0) tmpptr[i] = 1.0;
+        else tmpptr[i] = tmpptr[i] / cptr[i];
+      }
+    }
+  }
+  return tmp;
+}
+
+template <class T, class I, class O>
+std::vector<T>
+compute_var(crs_matrix<T, I, O>& mat, 
+            bool sample_var = true,
+            bool with_nnz = false) {
+  auto mean = compute_mean(mat, 0, with_nnz); // column-wise mean
+  return compute_var(mat, mean, sample_var, with_nnz);
+}
+
+    
+template <class T, class I, class O>
 void standardize(crs_matrix<T, I, O>& mat,
                  std::vector<T>& mean, 
                  bool sample_stddev = true,

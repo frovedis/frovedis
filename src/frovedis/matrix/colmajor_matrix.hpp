@@ -682,6 +682,35 @@ compute_stddev(colmajor_matrix<T>& mat, bool sample_stddev = true) {
 }
 
 template <class T>
+std::vector<T>
+compute_var(colmajor_matrix<T>& mat,
+               std::vector<T>& mean,
+               bool sample_var = true) {
+  if(mat.num_row < 2)
+    throw std::runtime_error("cannot compute variance if number of row is 0 or 1");
+  centerize(mat, mean); // m = m - mean
+  auto ret = mat.data.map(+[](colmajor_matrix_local<T>& m)
+                         {return squared_sum_of_rows(m);}).vector_sum();
+  auto retp = ret.data();
+  T to_div;
+  if(sample_var) to_div = static_cast<T>(mat.num_row - 1);
+  else to_div = static_cast<T>(mat.num_row);
+  for(size_t i = 0; i < mat.num_col; ++i) {
+    if(retp[i] == 0) retp[i] = 1.0;
+    retp[i] = retp[i] / to_div;
+  }
+  return ret;
+}
+
+template <class T>
+std::vector<T>
+compute_var(colmajor_matrix<T>& mat, bool sample_var = true) {
+  auto mean = compute_mean(mat, 0); // column-wise mean
+  return compute_var(mat, mean, sample_var);
+}
+
+
+template <class T>
 void standardize(colmajor_matrix<T>& mat,
                  std::vector<T>& mean, 
                  bool sample_stddev = true) {
