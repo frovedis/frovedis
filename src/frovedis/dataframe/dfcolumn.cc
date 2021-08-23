@@ -418,8 +418,8 @@ limit_nulls_tail(node_local<std::vector<size_t>>& nulls,
       std::vector<size_t> ret(retsize);
       auto retp = ret.data();
       auto nullsp = nulls.data();
-      for(size_t i = start; i < retsize; i++) {
-        retp[i] = nullsp[i] - sizediff;
+      for(size_t i = 0; i < retsize; i++) {
+        retp[i] = nullsp[i+start] - sizediff;
       }
       return ret;
     }, slimits, nlsizediff);
