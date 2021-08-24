@@ -3,7 +3,8 @@
 
 import numpy as np
 from ...base import *
-from ...exrpc.server import FrovedisServer
+from ...exrpc.server import FrovedisServer, set_association, \
+                            check_association, do_if_active_association
 from ...exrpc.rpclib import compute_pca, check_server_exception
 from ...exrpc.rpclib import pca_transform, pca_inverse_transform
 from ...exrpc.rpclib import get_double_array, get_float_array
@@ -43,6 +44,7 @@ class PCA(BaseEstimator):
         self.n_samples_ = None
         self.n_components_ = None
 
+    @set_association
     def fit(self, X, y=None):
         """Fit PCA on training data."""
         supported_solvers = {'arpack', 'auto'}
@@ -110,6 +112,7 @@ class PCA(BaseEstimator):
         return self
 
     @property
+    @check_association
     def components_(self):
         """components_ getter"""
         if self.pca_res_ is None:
@@ -131,6 +134,7 @@ class PCA(BaseEstimator):
             "attribute 'components_' of PCA object is not writable")
 
     @property
+    @check_association
     def explained_variance_ratio_(self):
         """explained_variance_ratio_ getter"""
         if self.pca_res_ is None:
@@ -154,6 +158,7 @@ class PCA(BaseEstimator):
         "attribute 'explained_variance_ratio_' of PCA object is not writable")
 
     @property
+    @check_association
     def explained_variance_(self):
         """explained_variance_ getter"""
         if self.pca_res_ is None:
@@ -175,6 +180,7 @@ class PCA(BaseEstimator):
             "attribute 'explained_variance_' of PCA object is not writable")
 
     @property
+    @check_association
     def mean_(self):
         """mean_ getter"""
         if self.pca_res_ is None:
@@ -193,6 +199,7 @@ class PCA(BaseEstimator):
         raise AttributeError("attribute 'mean_' of PCA object is not writable")
 
     @property
+    @check_association
     def singular_values_(self):
         """singular_values_ getter"""
         if self.pca_res_ is None:
@@ -219,6 +226,7 @@ class PCA(BaseEstimator):
               "object does not have score computed!")
         return self.pca_res_._score.to_numpy_array()
 
+    @check_association
     def transform(self, X):
         """transform"""
         if self.pca_res_ is None:
@@ -248,6 +256,7 @@ class PCA(BaseEstimator):
         else:
             return res
 
+    @check_association
     def inverse_transform(self, X):
         """inverse_transform"""
         if self.pca_res_ is None:
@@ -278,22 +287,60 @@ class PCA(BaseEstimator):
         else:
             return res
 
+    @check_association
     def save(self, path):
         """save"""
         if self.pca_res_:
             self.pca_res_.save(path)
 
+    @check_association
     def save_binary(self, path):
         """save_binary"""
         if self.pca_res_:
             self.pca_res_.save_binary(path)
 
+    @set_association
     def load(self, path, dtype):
         """load"""
         self.pca_res_ = PcaResult(dtype=dtype)
         self.pca_res_.load(path=path, dtype=dtype)
 
+    @set_association
     def load_binary(self, path, dtype):
         """load_binary"""
         self.pca_res_ = PcaResult(dtype=dtype)
         self.pca_res_.load_binary(path=path, dtype=dtype)
+
+    def release(self):
+        """
+        resets after-fit populated attributes to None
+        along with relasing server side memory
+        """
+        self.__release_server_heap()
+        self._explained_variance_ratio = None
+        self._explained_variance = None
+        self._singular_values = None
+        self._components = None
+        self._mean = None
+        self.noise_variance_ = None
+        self.n_components_ = None
+        self.n_features_ = None
+        self.n_samples_ = None
+
+    @do_if_active_association
+    def __release_server_heap(self):
+        """
+        to release model pointer from server heap
+        """
+        self.pca_res_.release()
+
+    def __del__(self):
+        """
+        destructs the python object
+        """
+        self.release()
+
+    def is_fitted(self):
+        """ function to confirm if the model is already fitted """
+        return self.pca_res_ is not None
+

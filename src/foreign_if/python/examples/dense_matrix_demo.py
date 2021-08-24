@@ -50,17 +50,7 @@ cmat.get_rowmajor_view()
 print("releasing deepcopied matrix: ")
 cmat.release()  
 print("printing source matrix after releasing copied matrix to check deep copy effect: ")
-cmat.get_rowmajor_view() # No view, since cmat is released
 fmat.get_rowmajor_view() # cmat is released | fmat is still there in memory
-
-# Verifying corner cases: Operation on empty (non-existent) matrix
-dmat = FrovedisBlockcyclicMatrix() #empty matrix - no matrix is created on Frovedis server
-copy_dmat = FrovedisBlockcyclicMatrix(dmat) #copying empty matrix (no effect)
-dmat.debug_print() #no effect
-dmat.save("./out/empty") #no effect
-dmat.release() #no effect
-#dmat.to_frovedis_rowmatrix() #exception: Empty matrix.
-#dmat.transpose() #exception: Empty input matrix.
 
 # Checking invalid copy
 rmat = FrovedisRowmajorMatrix() #empty rowmajor matrix

@@ -3,7 +3,8 @@ dvector.py: contains the implementation of frovedis distributed vector
 """
 
 from ..exrpc import rpclib
-from ..exrpc.server import FrovedisServer
+from ..exrpc.server import FrovedisServer, set_association, \
+                           check_association, do_if_active_association
 from .dtype import TypeUtil, DTYPE, get_string_array_pointer
 from ctypes import c_char_p, c_int, c_long, c_ulong, c_float, c_double, POINTER
 import numpy as np
@@ -92,6 +93,7 @@ class FrovedisDvector:
             raise RuntimeError(excpt["info"])
         return self.load_dummy(dvec)
 
+    @set_association
     def load_dummy(self, dvec):
         self.release()
         try:
@@ -111,31 +113,48 @@ class FrovedisDvector:
         self.__fdata = None
         self.__dtype = None
         self.__size = 0
-        
-    def release(self):
-        if self.__fdata is not None:
-            (host, port) = FrovedisServer.getServerInstance()
-            rpclib.release_frovedis_dvector(host, port, self.get(),
-                                            self.get_dtype())
-            excpt = rpclib.check_server_exception()
-            if excpt["status"]:
-                raise RuntimeError(excpt["info"])
-            self.__fdata = None
-            self.__dtype = None
-            self.__size = 0
 
+    def release(self):
+        """
+        resets after-fit populated attributes to None
+        """
+        self.__release_server_heap()
+        self.reset()
+
+    @do_if_active_association
+    def __release_server_heap(self):
+        """
+        to release model pointer from server heap
+        """
+        (host, port) = FrovedisServer.getServerInstance()
+        rpclib.release_frovedis_dvector(host, port, self.get(),
+                                        self.get_dtype())
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
+
+    def __del__(self):
+        """
+        NAME: __del__
+        """
+        self.release()
+
+    def is_fitted(self):
+        """ function to confirm if the model is already fitted """
+        return self.__fdata is not None
+
+    @check_association
     def debug_print(self):
-        if self.__fdata is not None:
-            (host, port) = FrovedisServer.getServerInstance()
-            rpclib.show_frovedis_dvector(host, port, self.get(),
-                                         self.get_dtype())
-            excpt = rpclib.check_server_exception()
-            if excpt["status"]:
-                raise RuntimeError(excpt["info"])
-            if self.get_dtype() == DTYPE.STRING:
-                print("dtype: string")
-            else:
-                print("dtype: %s" % TypeUtil.to_numpy_dtype(self.get_dtype()))
+        (host, port) = FrovedisServer.getServerInstance()
+        rpclib.show_frovedis_dvector(host, port, self.get(),
+                                     self.get_dtype())
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
+        if self.get_dtype() == DTYPE.STRING:
+            print("dtype: string")
+        else:
+            print("dtype: %s" % TypeUtil.to_numpy_dtype(self.get_dtype()))
 
     def get(self):
         return self.__fdata
@@ -146,37 +165,33 @@ class FrovedisDvector:
     def get_dtype(self):
         return TypeUtil.to_id_dtype(self.__dtype)
 
-    def __del__(self): 
-        """ destructs a dvector object from server heap """
-        if FrovedisServer.isUP(): 
-            self.release()
-
     def encode(self, src=None, target=None, need_logic=False):
         if src is None and target is None:
             return self.__encode_zero_based(need_logic)
         else:
             return self.__encode_as_needed(src, target, need_logic)
 
+    @check_association
     def __encode_zero_based(self, need_logic=False):
-        if self.__fdata:
-            (host, port) = FrovedisServer.getServerInstance()
-            proxy = rpclib.encode_frovedis_dvector_zero_based(host, port,
-                                                              self.get(),
-                                                              self.get_dtype())
-            excpt = rpclib.check_server_exception()
-            if excpt["status"]:
-                raise RuntimeError(excpt["info"])
-            ret = FrovedisDvector(dtype=self.__dtype)
-            ret.__fdata = proxy
-            ret.__size = self.__size
-            if need_logic:
-                src = np.asarray(self.get_unique_elements(), dtype=self.__dtype)
-                target = np.arange(src.size, dtype=self.__dtype)
-                logic = dict(zip(target, src))
-                return (ret, logic)
-            else:
-                return ret
+        (host, port) = FrovedisServer.getServerInstance()
+        proxy = rpclib.encode_frovedis_dvector_zero_based(host, port,
+                                                          self.get(),
+                                                          self.get_dtype())
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
+        ret = FrovedisDvector(dtype=self.__dtype)
+        ret.__fdata = proxy
+        ret.__size = self.__size
+        if need_logic:
+            src = np.asarray(self.get_unique_elements(), dtype=self.__dtype)
+            target = np.arange(src.size, dtype=self.__dtype)
+            logic = dict(zip(target, src))
+            return (ret, logic)
+        else:
+            return ret
 
+    @check_association
     def __encode_as_needed(self, src, target, need_logic=False):
         if self.__fdata:
             src = np.asarray(src, self.__dtype)
@@ -232,50 +247,50 @@ class FrovedisDvector:
             else:
                 return ret
 
+    @check_association
     def get_unique_elements(self):
-        if self.__fdata:
-            (host, port) = FrovedisServer.getServerInstance()
-            ret = rpclib.get_distinct_elements(host, \
-                    port, self.get(), self.get_dtype())
-            excpt = rpclib.check_server_exception()
-            if excpt["status"]:
-                raise RuntimeError(excpt["info"])
-            return ret
+        (host, port) = FrovedisServer.getServerInstance()
+        ret = rpclib.get_distinct_elements(host, \
+                port, self.get(), self.get_dtype())
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
+        return ret
 
+    @check_association
     def to_numpy_array(self):
-        if self.__fdata:
-            sz = self.size()
-            dt = self.get_dtype() 
-            if dt == DTYPE.INT or dt == DTYPE.BOOL:
-                ret = np.empty(sz, dtype=np.int32)
-            elif dt == DTYPE.LONG:
-                ret = np.empty(sz, dtype=np.int64)
-            elif dt == DTYPE.ULONG:
-                ret = np.empty(sz, dtype=np.uint)
-            elif dt == DTYPE.FLOAT:
-                ret = np.empty(sz, dtype=np.float32)
-            elif dt == DTYPE.DOUBLE:
-                ret = np.empty(sz, dtype=np.float64)
-            elif dt == DTYPE.STRING:
-                pass # handles later 
-            else:
-                raise TypeError(\
-                "Report Bug: Unsupported dtype for dvector " \
-                "to numpy array conversion!")
+        sz = self.size()
+        dt = self.get_dtype() 
+        if dt == DTYPE.INT or dt == DTYPE.BOOL:
+            ret = np.empty(sz, dtype=np.int32)
+        elif dt == DTYPE.LONG:
+            ret = np.empty(sz, dtype=np.int64)
+        elif dt == DTYPE.ULONG:
+            ret = np.empty(sz, dtype=np.uint)
+        elif dt == DTYPE.FLOAT:
+            ret = np.empty(sz, dtype=np.float32)
+        elif dt == DTYPE.DOUBLE:
+            ret = np.empty(sz, dtype=np.float64)
+        elif dt == DTYPE.STRING:
+            pass # handles later 
+        else:
+            raise TypeError(\
+            "Report Bug: Unsupported dtype for dvector " \
+            "to numpy array conversion!")
 
-            (host, port) = FrovedisServer.getServerInstance()
-            if dt == DTYPE.STRING:
-                # TODO: improve list to ndarray conversion (as it is slower)
-                ret = np.asarray(rpclib.string_dvector_to_numpy_array( \
-                                 host, port, self.get(), sz))
-            else:
-                retptr = ret.__array_interface__['data'][0]
-                rpclib.dvector_to_numpy_array(host, port, \
-                          self.get(), retptr, dt, sz)
-            excpt = rpclib.check_server_exception()
-            if excpt["status"]:
-                raise RuntimeError(excpt["info"])
-            return ret
+        (host, port) = FrovedisServer.getServerInstance()
+        if dt == DTYPE.STRING:
+            # TODO: improve list to ndarray conversion (as it is slower)
+            ret = np.asarray(rpclib.string_dvector_to_numpy_array( \
+                             host, port, self.get(), sz))
+        else:
+            retptr = ret.__array_interface__['data'][0]
+            rpclib.dvector_to_numpy_array(host, port, \
+                      self.get(), retptr, dt, sz)
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
+        return ret
 
     @staticmethod
     def as_dvec(vec, dtype=None, retIsConverted=False):

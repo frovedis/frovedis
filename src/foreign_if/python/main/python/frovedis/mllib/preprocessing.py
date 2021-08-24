@@ -13,16 +13,16 @@ from ..exrpc.server import FrovedisServer, set_association, \
                            check_association, do_if_active_association
 from ..matrix.ml_data import FrovedisFeatureData
 from ..matrix.dense import FrovedisRowmajorMatrix
+from ..matrix.crs import FrovedisCRSMatrix
 from ..matrix.dtype import TypeUtil
 from .model_util import *
-
-from ..matrix.crs import FrovedisCRSMatrix
 
 class StandardScaler(BaseEstimator):
     """
     A python wrapper of Frovedis Standard Scaler
     """
-    def __init__(self, copy = True, with_mean= True, with_std=True, sam_std = False, verbose=0):
+    def __init__(self, copy = True, with_mean= True, with_std=True, 
+                 sam_std = False, verbose=0):
         self.copy = copy
         self.with_mean = with_mean
         self.with_std = with_std
@@ -35,7 +35,6 @@ class StandardScaler(BaseEstimator):
         self.__mid = None
         self.__mdtype = None
 
-
     def check_input(self, X, F):
         inp_data = FrovedisFeatureData(X, \
                      caller = "[" + self.__class__.__name__ + "] "+ F +": ",\
@@ -44,7 +43,7 @@ class StandardScaler(BaseEstimator):
         dtype = inp_data.get_dtype()
         itype = inp_data.get_itype()
         dense = inp_data.is_dense()
-        if self.with_mean and  not dense:
+        if self.with_mean and not dense:
             raise ValueError(F + ": To centerize sparse data" \
                              + " use with_mean= False!")
         if self.with_mean is None:
@@ -84,9 +83,6 @@ class StandardScaler(BaseEstimator):
         """
         NAME: transform X
         """
-        if not self.is_fitted():
-            raise AttributeError(" transform is " \
-                                 " called before fit")
         X, dtype, itype,  \
         dense = self.check_input(X, "transform")
         (host, port) = FrovedisServer.getServerInstance()
@@ -107,7 +103,7 @@ class StandardScaler(BaseEstimator):
                                     itype=TypeUtil.to_numpy_dtype(itype))
             return ret.to_scipy_matrix()
 
-
+    @check_association
     def inverse_transform(self, X, copy=None):
         """inverse_transform"""
         X, dtype, itype,  \
@@ -128,7 +124,6 @@ class StandardScaler(BaseEstimator):
                                      itype=TypeUtil.to_numpy_dtype(itype))
             return ret.to_scipy_matrix()
 
-
     def fit_transform(self, X, y=None):
         """fit_transform"""
         self.fit(X)
@@ -147,17 +142,14 @@ class StandardScaler(BaseEstimator):
             excpt = rpclib.check_server_exception()
             if excpt["status"]:
                 raise RuntimeError(excpt["info"])
-
             self._mean = mean_vector
         return self._mean
-
 
     @mean_.setter
     def mean_(self, val):
         """Setter method for mean__ """
         raise AttributeError(\
         "attribute 'mean_' of Standard Scaler is not writable")
-
 
     @property
     @check_association
@@ -172,17 +164,14 @@ class StandardScaler(BaseEstimator):
             excpt = rpclib.check_server_exception()
             if excpt["status"]:
                 raise RuntimeError(excpt["info"])
-
             self._var = var_vector
         return self._var
-
 
     @var_.setter
     def var_(self, val):
         """Setter method for var__ """
         raise AttributeError(\
         "attribute 'var_' of Standard Scaler is not writable")
-
 
     def release(self):
         """
@@ -195,7 +184,6 @@ class StandardScaler(BaseEstimator):
         self.__mdtype = None
         self.__itype = None
         self.__dense = None
-
 
     @do_if_active_association
     def __release_server_heap(self):

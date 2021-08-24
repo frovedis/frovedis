@@ -6,7 +6,8 @@ Module for storing results
 import os
 import numpy as np
 from ..exrpc import rpclib
-from ..exrpc.server import FrovedisServer
+from ..exrpc.server import FrovedisServer, set_association, \
+                           check_association, do_if_active_association
 from .dense import FrovedisDenseMatrix
 from .vector import FrovedisVector
 
@@ -21,6 +22,7 @@ class GetrfResult(object):
         if dummy is not None:
             self.load_dummy(dummy)
 
+    @set_association
     def load_dummy(self, dummy):
         """load_dummy"""
         self.release()
@@ -30,23 +32,6 @@ class GetrfResult(object):
             self.__info = dummy['info']
         except KeyError:
             raise TypeError("[INTERNAL ERROR] Invalid input encountered.")
-
-    def release(self):
-        """release"""
-        if self.__mtype is not None:
-            (host, port) = FrovedisServer.getServerInstance()
-            rpclib.release_ipiv(host, port, self.mtype().encode('ascii'),
-                                self.ipiv())
-            excpt = rpclib.check_server_exception()
-            if excpt["status"]:
-                raise RuntimeError(excpt["info"])
-            self.__mtype = None
-            self.__ipiv_ptr = None
-            self.__info = None
-
-    def __del__(self):  # destructor
-        if FrovedisServer.isUP():
-            self.release()
 
     def mtype(self):
         """mtype"""
@@ -60,6 +45,37 @@ class GetrfResult(object):
         """stat"""
         return self.__info
 
+    def release(self):
+        """
+        resets after-fit populated attributes to None
+        along with relasing server side memory
+        """
+        self.__release_server_heap()
+        self.__mtype = None
+        self.__ipiv_ptr = None
+        self.__info = None
+
+    @do_if_active_association
+    def __release_server_heap(self):
+        """
+        to release model pointer from server heap
+        """
+        (host, port) = FrovedisServer.getServerInstance()
+        rpclib.release_ipiv(host, port, self.mtype().encode('ascii'),
+                            self.ipiv())
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
+
+    def __del__(self):
+        """
+        destructs the python object
+        """
+        self.release()
+
+    def is_fitted(self):
+        """ function to confirm if the model is already fitted """
+        return self.__mtype is not None
 
 # A generic class for storing SVD results
 # of the type colmajor_matrix<float/double> or blockcyclic_matrix<float/double>
@@ -80,6 +96,7 @@ class svdResult(object):
         if dummy is not None:
             self.load_dummy(dummy)
 
+    @set_association
     def load_dummy(self, dummy):
         """load_dummy"""
         self.release()
@@ -107,91 +124,89 @@ class svdResult(object):
         except KeyError:
             raise TypeError("[INTERNAL ERROR] Invalid input encountered.")
 
+    @check_association
     def debug_print(self):
         """debug_print"""
-        if self.__svec is not None:
-            print("svec: ")
-            self.__svec.debug_print()
-            if self.__umat is not None:
-                print("umat: ")
-                self.__umat.get_rowmajor_view()
-            if self.__vmat is not None:
-                print("vmat: ")
-                self.__vmat.get_rowmajor_view()
+        print("svec: ")
+        self.__svec.debug_print()
+        if self.__umat is not None:
+            print("umat: ")
+            self.__umat.get_rowmajor_view()
+        if self.__vmat is not None:
+            print("vmat: ")
+            self.__vmat.get_rowmajor_view()
 
+    @check_association
     def to_numpy_results(self):
         """to_numpy_results"""
-        if self.__svec is not None:
-            svec = self.__svec.to_numpy_array()
-            if self.__umat is not None:
-                umat = self.__umat.to_numpy_array()
-            else:
-                umat = None
-            if self.__vmat is not None:
-                mtype = self.__vmat.get_mtype()
-                if (mtype == 'B'):
-                    vmat = self.__vmat.transpose().to_numpy_array()
-                elif (mtype == 'C'):
-                    vmat = self.__vmat.to_frovedis_rowmatrix() \
-                               .transpose().to_numpy_array()
-                else:
-                    raise ValueError(\
-                        "SVD vmat: expected mtype is either B or C")
-            else:
-                vmat = None
-            return umat, svec, vmat
+        svec = self.__svec.to_numpy_array()
+        if self.__umat is not None:
+            umat = self.__umat.to_numpy_array()
         else:
-            raise ValueError("Empty input matrix.")
+            umat = None
+        if self.__vmat is not None:
+            mtype = self.__vmat.get_mtype()
+            if (mtype == 'B'):
+                vmat = self.__vmat.transpose().to_numpy_array()
+            elif (mtype == 'C'):
+                vmat = self.__vmat.to_frovedis_rowmatrix() \
+                           .transpose().to_numpy_array()
+            else:
+                raise ValueError(\
+                    "SVD vmat: expected mtype is either B or C")
+        else:
+            vmat = None
+        return umat, svec, vmat
 
+    @check_association
     def save(self, sfl, ufl=None, vfl=None):
         """save"""
-        if self.__svec is not None:
-            if sfl is None:
-                raise ValueError("s_filename can't be None")
-            (host, port) = FrovedisServer.getServerInstance()
-            if self.__dtype == np.float32:
-                dtype = 'F'
-            elif self.__dtype == np.float64:
-                dtype = 'D'
-            else:
-                raise TypeError("Invalid dtype, expected double/float.")
-            rpclib.save_as_diag_matrix(host, port, self.__svec.get(),
-                                       sfl.encode('ascii'), False,
-                                       dtype.encode('ascii'))
-            excpt = rpclib.check_server_exception()
-            if excpt["status"]:
-                raise RuntimeError(excpt["info"])
-            want_u = self.__umat is not None and ufl is not None
-            want_v = self.__vmat is not None and vfl is not None
-            if want_u:
-                self.__umat.save(ufl)
-            if want_v:
-                self.__vmat.save(vfl)
+        if sfl is None:
+            raise ValueError("s_filename can't be None")
+        (host, port) = FrovedisServer.getServerInstance()
+        if self.__dtype == np.float32:
+            dtype = 'F'
+        elif self.__dtype == np.float64:
+            dtype = 'D'
+        else:
+            raise TypeError("Invalid dtype, expected double/float.")
+        rpclib.save_as_diag_matrix(host, port, self.__svec.get(),
+                                   sfl.encode('ascii'), False,
+                                   dtype.encode('ascii'))
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
+        want_u = self.__umat is not None and ufl is not None
+        want_v = self.__vmat is not None and vfl is not None
+        if want_u:
+            self.__umat.save(ufl)
+        if want_v:
+            self.__vmat.save(vfl)
 
+    @check_association
     def save_binary(self, sfl, ufl=None, vfl=None):
         """save_binary"""
-        if self.__svec is not None:
-            if sfl is None:
-                raise ValueError("s_filename can't be None")
-            (host, port) = FrovedisServer.getServerInstance()
-            if self.__dtype == np.float32:
-                dtype = 'F'
-            elif self.__dtype == np.float64:
-                dtype = 'D'
-            else:
-                raise TypeError("Invalid dtype, expected double/float.")
-            rpclib.save_as_diag_matrix(host, port, self.__svec.get(),
-                                       sfl.encode('ascii'), True,
-                                       dtype.encode('ascii'))
-            excpt = rpclib.check_server_exception()
-            if excpt["status"]:
-                raise RuntimeError(excpt["info"])
-            want_u = self.__umat is not None and ufl is not None
-            want_v = self.__vmat is not None and vfl is not None
-            if want_u:
-                self.__umat.save_binary(ufl)
-            if want_v:
-                self.__vmat.save_binary(vfl)
+        if sfl is None:
+            raise ValueError("s_filename can't be None")
+        (host, port) = FrovedisServer.getServerInstance()
+        if self.__dtype == np.float32:
+            dtype = 'F'
+        elif self.__dtype == np.float64:
+            dtype = 'D'
+        else:
+            raise TypeError("Invalid dtype, expected double/float.")
+        rpclib.save_as_diag_matrix(host, port, self.__svec.get(),
+                                   sfl.encode('ascii'), True,
+                                   dtype.encode('ascii'))
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
+        want_u = self.__umat is not None and ufl is not None
+        want_v = self.__vmat is not None and vfl is not None
+        if want_u:
+            self.__umat.save_binary(ufl)
+        if want_v:
+            self.__vmat.save_binary(vfl)
 
     def load(self, sfl, ufl=None, vfl=None, mtype='B'):
         """load"""
@@ -250,24 +265,6 @@ class svdResult(object):
         self.__k = None
         self.__info = None
 
-    def release(self):
-        """release"""
-        if self.__umat is not None:
-            self.__umat.release()
-            self.__umat = None
-        if self.__svec is not None:
-            self.__svec.release()
-            self.__svec = None
-        if self.__vmat is not None:
-            self.__vmat.release()
-            self.__vmat = None
-        self.__k = None
-        self.__info = None
-
-    def __del__(self):  # destructor
-        if FrovedisServer.isUP():
-            self.release()
-
     def stat(self):
         """stat"""
         return self.__info
@@ -308,6 +305,40 @@ class svdResult(object):
         raise AttributeError(\
         "attribute 'singular_values_' of svdResult object is not writable")
 
+    def release(self):
+        """
+        resets after-fit populated attributes to None
+        along with relasing server side memory
+        """
+        self.__release_server_heap()
+        self.__svec = None
+        self.__umat = None
+        self.__vmat = None
+        self.__k = None
+        self.__info = None
+
+    @do_if_active_association
+    def __release_server_heap(self):
+        """
+        to release model pointer from server heap
+        """
+        if self.__svec is not None:
+            self.__svec.release()
+        if self.__umat is not None:
+            self.__umat.release()
+        if self.__vmat is not None:
+            self.__vmat.release()
+
+    def __del__(self):
+        """
+        destructs the python object
+        """
+        self.release()
+
+    def is_fitted(self):
+        """ function to confirm if the model is already fitted """
+        return self.__svec is not None
+
 # A generic class for storing PCA results
 class PcaResult(object):
     """A python container for holding pointers of Frovedis server side
@@ -330,6 +361,7 @@ class PcaResult(object):
             self.load_dummy(dummy)
 
     # modify this function according to update in client (utility.cc)
+    @set_association
     def load_dummy(self, dummy):
         self.release()
         try:
@@ -373,33 +405,10 @@ class PcaResult(object):
 
             # for internal use
             self.__n_features = n_features
-
         except KeyError:
             raise TypeError("[pca: load_dummy()] Invalid input encountered.")
 
-    def release(self):
-        if self.__pc:
-            self.__pc.release()
-        if self.__score:
-            self.__score.release()
-        if self.__var:
-            self.__var.release()
-        if self.__var_ratio:
-            self.__var_ratio.release()
-        if self.__singular:
-            self.__singular.release()
-        if self.__mean:
-            self.__mean.release()
-        self.__pc = None
-        self.__score = None
-        self.__var = None
-        self.__var_ratio = None
-        self.__singular = None
-        self.__n_components = None
-        self.__n_features = None
-        self.__mean = None
-        self.__noise = None
-
+    @check_association
     def debug_print(self):
         if self.__pc:
             print("principal components: ")
@@ -423,6 +432,7 @@ class PcaResult(object):
             print("noise variance: ")
             print(self.__noise)
 
+    @check_association
     def to_numpy_results(self):
         pca_components = None
         pca_scores = None
@@ -453,17 +463,11 @@ class PcaResult(object):
         return (pca_components, pca_scores, explained_variance,
                 explained_variance_ratio, singular_values, mean, self.__noise)
 
-    def __del__(self):  # destructor
-        if FrovedisServer.isUP():
-            self.release()
-
+    @check_association
     def get_dtype(self):
-        if self.__pc is not None:
-            return self.__pc.get_dtype()
-        else:
-            raise ValueError(\
-            "get_dtype: pca_res_ object might have been released!")
+        return self.__pc.get_dtype()
 
+    @check_association
     def save(self, path):
         if os.path.exists(path):
             raise ValueError(\
@@ -477,6 +481,7 @@ class PcaResult(object):
         self.__singular.save(path + "/singular_values")
         self.__mean.save(path + "/mean")
 
+    @check_association
     def save_binary(self, path):
         if os.path.exists(path):
             raise ValueError(\
@@ -490,6 +495,7 @@ class PcaResult(object):
         self.__singular.save_binary(path + "/singular_values")
         self.__mean.save_binary(path + "/mean")
 
+    @set_association
     def load(self, path, dtype):
         if not os.path.exists(path):
             raise ValueError(\
@@ -506,6 +512,7 @@ class PcaResult(object):
         FrovedisVector(vec=path+"/singular_values", dtype=dtype)
         self.__mean = FrovedisVector(vec=path+"/mean", dtype=dtype)
 
+    @set_association
     def load_binary(self, path, dtype):
         if not os.path.exists(path):
             raise ValueError(\
@@ -596,3 +603,48 @@ class PcaResult(object):
     def _singular_values(self, val):
         raise AttributeError(\
         "attribute '_singular_values' of PcaResult object is not writable")
+
+    def release(self):
+        """
+        resets after-fit populated attributes to None
+        along with relasing server side memory
+        """
+        self.__release_server_heap()
+        self.__pc = None
+        self.__score = None
+        self.__var = None
+        self.__var_ratio = None
+        self.__singular = None
+        self.__n_components = None
+        self.__n_features = None
+        self.__mean = None
+        self.__noise = None
+
+    @do_if_active_association
+    def __release_server_heap(self):
+        """
+        to release model pointer from server heap
+        """
+        if self.__pc:
+            self.__pc.release()
+        if self.__score:
+            self.__score.release()
+        if self.__var:
+            self.__var.release()
+        if self.__var_ratio:
+            self.__var_ratio.release()
+        if self.__singular:
+            self.__singular.release()
+        if self.__mean:
+            self.__mean.release()
+
+    def __del__(self):
+        """
+        destructs the python object
+        """
+        self.release()
+
+    def is_fitted(self):
+        """ function to confirm if the model is already fitted """
+        return self.__pc is not None
+

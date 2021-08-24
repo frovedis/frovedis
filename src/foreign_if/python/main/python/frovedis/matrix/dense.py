@@ -2,9 +2,9 @@
 
 import numpy as np
 from frovedis.exrpc import rpclib
-from frovedis.exrpc.server import FrovedisServer
+from frovedis.exrpc.server import FrovedisServer, set_association, \
+                           check_association, do_if_active_association
 from .dtype import TypeUtil, DTYPE
-
 
 # dtype: Currently supports float/double/int/long datatypes.
 # Extension for new Frovedis dense matrix is very simple.
@@ -96,6 +96,7 @@ class FrovedisDenseMatrix(object):
             raise RuntimeError(excpt["info"])
         return self.load_dummy(dmat)
 
+    @set_association
     def load_dummy(self, dmat):
         """load_dummy"""
         self.release()
@@ -161,29 +162,29 @@ class FrovedisDenseMatrix(object):
             raise RuntimeError(excpt["info"])
         return self.load_dummy(dmat)
 
+    @check_association
     def save(self, fname):
         """save"""
-        if self.__fdata is not None:
-            (host, port) = FrovedisServer.getServerInstance()
-            rpclib.save_frovedis_dense_matrix(host, port, self.get(),
-                                              fname.encode('ascii'), False,
-                                              self.__mtype.encode('ascii'),
-                                              self.get_dtype())
-            excpt = rpclib.check_server_exception()
-            if excpt["status"]:
-                raise RuntimeError(excpt["info"])
+        (host, port) = FrovedisServer.getServerInstance()
+        rpclib.save_frovedis_dense_matrix(host, port, self.get(),
+                                          fname.encode('ascii'), False,
+                                          self.__mtype.encode('ascii'),
+                                          self.get_dtype())
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
 
+    @check_association
     def save_binary(self, fname):
         """save_binary"""
-        if self.__fdata is not None:
-            (host, port) = FrovedisServer.getServerInstance()
-            rpclib.save_frovedis_dense_matrix(host, port, self.get(),
-                                              fname.encode('ascii'), True,
-                                              self.__mtype.encode('ascii'),
-                                              self.get_dtype())
-            excpt = rpclib.check_server_exception()
-            if excpt["status"]:
-                raise RuntimeError(excpt["info"])
+        (host, port) = FrovedisServer.getServerInstance()
+        rpclib.save_frovedis_dense_matrix(host, port, self.get(),
+                                          fname.encode('ascii'), True,
+                                          self.__mtype.encode('ascii'),
+                                          self.get_dtype())
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
 
     # developer's API
     def set_none(self):
@@ -199,59 +200,69 @@ class FrovedisDenseMatrix(object):
         self.__num_col = None
  
     def release(self):
-        """release"""
-        if self.__fdata is not None:
-            (host, port) = FrovedisServer.getServerInstance()
-            rpclib.release_frovedis_dense_matrix(host, port, self.get(),
-                                                 self.__mtype.encode('ascii'),
-                                                 self.get_dtype())
-            excpt = rpclib.check_server_exception()
-            if excpt["status"]:
-                raise RuntimeError(excpt["info"])
-            self.__fdata = None
-            self.__num_row = 0
-            self.__num_col = 0
+        """
+        resets after-fit populated attributes to None
+        """
+        self.__release_server_heap()
+        self.set_none()
 
-    def __del__(self):  # destructor
-        if FrovedisServer.isUP():
-            self.release()
+    @do_if_active_association
+    def __release_server_heap(self):
+        """
+        to release model pointer from server heap
+        """
+        (host, port) = FrovedisServer.getServerInstance()
+        rpclib.release_frovedis_dense_matrix(host, port, self.get(),
+                                             self.__mtype.encode('ascii'),
+                                             self.get_dtype())
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
 
+    def __del__(self):
+        """
+        NAME: __del__
+        """
+        self.release()
+
+    def is_fitted(self):
+        """ function to confirm if the model is already fitted """
+        return self.__fdata is not None
+
+    @check_association
     def debug_print(self):
         """debug_print"""
-        if self.__fdata is not None:
-            (host, port) = FrovedisServer.getServerInstance()
-            rpclib.show_frovedis_dense_matrix(host, port, self.get(),
-                                              self.__mtype.encode('ascii'),
-                                              self.get_dtype())
-            excpt = rpclib.check_server_exception()
-            if excpt["status"]:
-                raise RuntimeError(excpt["info"])
+        (host, port) = FrovedisServer.getServerInstance()
+        rpclib.show_frovedis_dense_matrix(host, port, self.get(),
+                                          self.__mtype.encode('ascii'),
+                                          self.get_dtype())
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
 
     def __get_empty_array(self, dtype=None):
         """__get_empty_array"""
-        if self.__fdata is not None:
-            my_shape = [self.numRows(), self.numCols()]
-            if dtype is None:
-                arr = np.empty(my_shape, dtype=self.__dtype)
-            else:
-                arr = np.empty(my_shape, dtype=dtype) # user requested dtype
-            return arr
+        my_shape = [self.numRows(), self.numCols()]
+        if dtype is None:
+            arr = np.empty(my_shape, dtype=self.__dtype)
+        else:
+            arr = np.empty(my_shape, dtype=dtype) # user requested dtype
+        return arr
 
     def to_numpy_matrix(self, dtype=None):
         """to_numpy_matrix"""
-        if self.__fdata is not None:
-            arr = self.__get_empty_array(dtype=dtype)
-            mat = np.asmatrix(arr) # no-copy
-            self.to_numpy_matrix_inplace(mat)
-            return mat
+        arr = self.__get_empty_array(dtype=dtype)
+        mat = np.asmatrix(arr) # no-copy
+        self.to_numpy_matrix_inplace(mat)
+        return mat
 
     def to_numpy_array(self, dtype=None):
         """to_numpy_array"""
-        if self.__fdata is not None:
-            arr = self.__get_empty_array(dtype=dtype)
-            self.to_numpy_array_inplace(arr)
-            return arr
+        arr = self.__get_empty_array(dtype=dtype)
+        self.to_numpy_array_inplace(arr)
+        return arr
 
+    @check_association
     def to_numpy_matrix_inplace(self, mat):
         """ non-retuning function to overwrite input numpy matrix with 
             converted matrix. self.size needs to be matched with mat.size 
@@ -259,9 +270,9 @@ class FrovedisDenseMatrix(object):
         if type(mat).__name__ != 'matrix':
             raise TypeError(\
             "to_numpy_matrix_inplace: input is not a numpy matrix!")
-        if self.__fdata is not None:
-            self.__to_numpy_data_inplace(mat, is_ndarray=False)
+        self.__to_numpy_data_inplace(mat, is_ndarray=False)
 
+    @check_association
     def to_numpy_array_inplace(self, arr):
         """ non-retuning function to overwrite input numpy array with 
             converted matrix. self.size needs to be matched with mat.size 
@@ -269,8 +280,7 @@ class FrovedisDenseMatrix(object):
         if type(arr).__name__ != 'ndarray':
             raise TypeError(
             "to_numpy_array_inplace: input is not a numpy ndarray!")
-        if self.__fdata is not None:
-            self.__to_numpy_data_inplace(arr, is_ndarray=True)
+        self.__to_numpy_data_inplace(arr, is_ndarray=True)
 
     def __to_numpy_data_inplace(self, data, is_ndarray=True):
         """ non-retuning function to overwrite input numpy matrix/ndarray with 
@@ -376,45 +386,41 @@ class FrovedisDenseMatrix(object):
                 raise RuntimeError(excpt["info"])
             if is_ndarray: data = np.asarray(data)
 
+    @check_association
     def to_frovedis_rowmatrix(self):
         """to_frovedis_rowmatrix"""
         if self.__mtype == 'R':
             return self
-        if self.__fdata is not None:
-            (host, port) = FrovedisServer.getServerInstance()
-            dmat = rpclib.get_frovedis_rowmatrix(host, port, self.get(),
-                                                 self.numRows(),
-                                                 self.numCols(),
-                                                 self.__mtype.encode('ascii'),
-                                                 self.get_dtype())
-            excpt = rpclib.check_server_exception()
-            if excpt["status"]:
-                raise RuntimeError(excpt["info"])
-            return FrovedisDenseMatrix(mtype='R', mat=dmat, dtype=self.__dtype)
-        else:
-            raise ValueError("Empty input matrix.")
+        (host, port) = FrovedisServer.getServerInstance()
+        dmat = rpclib.get_frovedis_rowmatrix(host, port, self.get(),
+                                             self.numRows(),
+                                             self.numCols(),
+                                             self.__mtype.encode('ascii'),
+                                             self.get_dtype())
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
+        return FrovedisDenseMatrix(mtype='R', mat=dmat, dtype=self.__dtype)
 
+    @check_association
     def get_rowmajor_view(self):
         """get_rowmajor_view"""
-        if self.__fdata is not None:
-            self.to_frovedis_rowmatrix().debug_print()
+        self.to_frovedis_rowmatrix().debug_print()
 
+    @check_association
     def transpose(self):
         """transpose"""
-        if self.__fdata is not None:
-            (host, port) = FrovedisServer.getServerInstance()
-            dmat = rpclib.transpose_frovedis_dense_matrix(host, port,
-                                                          self.get(),
-                                                          self.__mtype.encode(
-                                                              'ascii'),
-                                                          self.get_dtype())
-            excpt = rpclib.check_server_exception()
-            if excpt["status"]:
-                raise RuntimeError(excpt["info"])
-            return FrovedisDenseMatrix(mtype=self.__mtype, mat=dmat,
-                                       dtype=self.__dtype)
-        else:
-            raise ValueError("Empty input matrix.")
+        (host, port) = FrovedisServer.getServerInstance()
+        dmat = rpclib.transpose_frovedis_dense_matrix(host, port,
+                                                      self.get(),
+                                                      self.__mtype.encode(
+                                                          'ascii'),
+                                                      self.get_dtype())
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
+        return FrovedisDenseMatrix(mtype=self.__mtype, mat=dmat,
+                                   dtype=self.__dtype)
 
     def get(self):
         """get"""
@@ -524,6 +530,7 @@ class FrovedisBlockcyclicMatrix(FrovedisDenseMatrix):
                 "Unsupported dtype for blockcyclic matrix creation!")
         FrovedisDenseMatrix.__init__(self, 'B', mat, dtype)
 
+    @check_association
     def __add__(self, mat):  # returns(self + mat)
         # tmp = self + tmp(=mat)
         tmp = FrovedisBlockcyclicMatrix(mat=mat)  # copy
@@ -538,6 +545,7 @@ class FrovedisBlockcyclicMatrix(FrovedisDenseMatrix):
             raise RuntimeError(excpt["info"])
         return tmp
 
+    @check_association
     def __sub__(self, mat):  # returns (cls - mat)
         # tmp = cls - tmp(=mat)
         tmp = FrovedisBlockcyclicMatrix(mat=mat)  # copy
@@ -552,6 +560,7 @@ class FrovedisBlockcyclicMatrix(FrovedisDenseMatrix):
             raise RuntimeError(excpt["info"])
         return tmp
 
+    @check_association
     def __mul__(self, mat):  # returns (cls * mat)
         tmp = FrovedisBlockcyclicMatrix.asBCM(mat)
         if(self.get_dtype() != tmp.get_dtype()):
@@ -568,6 +577,7 @@ class FrovedisBlockcyclicMatrix(FrovedisDenseMatrix):
     def __invert__(self):  # returns transpose (~cls)
         return self.transpose()
 
+    @check_association
     def inv(self):  # returns inverse of self
         """inv"""
         ret = FrovedisBlockcyclicMatrix(mat=self)  # ret = cls

@@ -3,7 +3,8 @@
 import numpy as np
 from scipy.sparse import issparse, csr_matrix
 from ..exrpc import rpclib
-from ..exrpc.server import FrovedisServer
+from ..exrpc.server import FrovedisServer, set_association, \
+                           check_association, do_if_active_association
 from .dtype import TypeUtil, DTYPE
 from .vector import FrovedisVector
 from .dense import FrovedisRowmajorMatrix, FrovedisColmajorMatrix
@@ -21,115 +22,107 @@ class FrovedisCRSMatrix(object):
         if mat is not None:
             self.load(mat, dtype=dtype)
 
+    @check_association
     def to_frovedis_rowmajor_matrix(self):
         """to_frovedis_rowmatrix"""
-        if self.__fdata is not None:
-            (host, port) = FrovedisServer.getServerInstance()
-            dmat = rpclib.csr_to_rowmajor_matrix(host, port,
-                                                 self.get(),
-                                                 self.get_dtype(),
-                                                 self.get_itype())
-            excpt = rpclib.check_server_exception()
-            if excpt["status"]:
-                raise RuntimeError(excpt["info"])
-            return FrovedisRowmajorMatrix(mat=dmat, dtype=self.__dtype)
-        else:
-            raise ValueError("Empty input matrix.") 
+        (host, port) = FrovedisServer.getServerInstance()
+        dmat = rpclib.csr_to_rowmajor_matrix(host, port,
+                                             self.get(),
+                                             self.get_dtype(),
+                                             self.get_itype())
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
+        return FrovedisRowmajorMatrix(mat=dmat, dtype=self.__dtype)
 
+    @check_association
     def to_frovedis_colmajor_matrix(self):
         """to_frovedis_rowmatrix"""
-        if self.__fdata is not None:
-            (host, port) = FrovedisServer.getServerInstance()
-            dmat = rpclib.csr_to_colmajor_matrix(host, port,
-                                                 self.get(),
-                                                 self.get_dtype(),
-                                                 self.get_itype())
-            excpt = rpclib.check_server_exception()
-            if excpt["status"]:
-                raise RuntimeError(excpt["info"])
-            return FrovedisColmajorMatrix(mat=dmat, dtype=self.__dtype)
-        else:
-            raise ValueError("Empty input matrix.")
+        (host, port) = FrovedisServer.getServerInstance()
+        dmat = rpclib.csr_to_colmajor_matrix(host, port,
+                                             self.get(),
+                                             self.get_dtype(),
+                                             self.get_itype())
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
+        return FrovedisColmajorMatrix(mat=dmat, dtype=self.__dtype)
  
+    @check_association
     def to_scipy_matrix(self):
-        if self.__fdata is not None:
-            crs_shape = [self.numRows(), self.numCols()]
-            data_type = TypeUtil.to_numpy_dtype(self.get_dtype())
-            idx_type = TypeUtil.to_numpy_dtype(self.get_itype())
-            if self.nnz == 0:
-                offset = np.zeros(self.numRows()+1, dtype=np.int32)
-                ret = csr_matrix(([],[],offset), dtype=data_type,\
-                                  shape=crs_shape) #empty matrix
-            else:
-                data_nzelem = self.nnz #get_nzelem()
-                val_arr = np.empty(data_nzelem, dtype=data_type)
-                idx_arr = np.empty(data_nzelem, dtype=idx_type) 
-                off_arr = np.empty((self.numRows()+1), dtype=np.int64)
-                ddt = self.get_dtype()
-                idt = self.get_itype()
-                (host, port) = FrovedisServer.getServerInstance()
-                rpclib.get_crs_matrix_components(host, port, self.get(),
-                                                 val_arr.__array_interface__['data'][0], 
-                                                 idx_arr.__array_interface__['data'][0], 
-                                                 off_arr.__array_interface__['data'][0],
-                                                 ddt, idt, val_arr.size, off_arr.size)
-                excpt = rpclib.check_server_exception()
-                if excpt["status"]:
-                    raise RuntimeError(excpt["info"])
-                ret = csr_matrix((val_arr, idx_arr, off_arr), dtype=data_type,\
-                                 shape=crs_shape)
-            return ret
-
-    def transpose(self):
-        if self.__fdata is not None:
-            (host, port) = FrovedisServer.getServerInstance()
-            dmat = rpclib.transpose_frovedis_sparse_matrix(host, port,
-                                                           self.get(),
-                                                           self.get_dtype(),
-                                                           self.get_itype())
-            excpt = rpclib.check_server_exception()
-            if excpt["status"]:
-                raise RuntimeError(excpt["info"])
-            return FrovedisCRSMatrix(mat=dmat, dtype=self.__dtype,\
-                                     itype=self.__itype)
+        crs_shape = [self.numRows(), self.numCols()]
+        data_type = TypeUtil.to_numpy_dtype(self.get_dtype())
+        idx_type = TypeUtil.to_numpy_dtype(self.get_itype())
+        if self.nnz == 0:
+            offset = np.zeros(self.numRows()+1, dtype=np.int32)
+            ret = csr_matrix(([],[],offset), dtype=data_type,\
+                              shape=crs_shape) #empty matrix
         else:
-            raise ValueError("Empty input matrix.")
-
-
-    def dot(self, v):
-        if self.__fdata is not None:
-            data_type = TypeUtil.to_numpy_dtype(self.get_dtype())
-            idx_type = TypeUtil.to_numpy_dtype(self.get_itype())
+            data_nzelem = self.nnz #get_nzelem()
+            val_arr = np.empty(data_nzelem, dtype=data_type)
+            idx_arr = np.empty(data_nzelem, dtype=idx_type) 
+            off_arr = np.empty((self.numRows()+1), dtype=np.int64)
             ddt = self.get_dtype()
             idt = self.get_itype()
-            if isinstance(v, FrovedisVector):
-                if(ddt != v.get_dtype()):
-                    raise TypeError("input matrix and vector dtypes are not matching!")
-                vec = v
-                conv = False
-            else:
-                vv = np.asarray(v, dtype=data_type)
-                vec = FrovedisVector(vv)
-                conv = True
-            sz = vec.size()
-            if (self.numCols() != sz):
-                raise ValueError("MatVec: input vector length doesn't match with matrix ncols!")
             (host, port) = FrovedisServer.getServerInstance()
-            dum_vec = rpclib.compute_spmv(host, port, \
-                                          self.get(), vec.get(), \
-                                          ddt, idt)
+            rpclib.get_crs_matrix_components(host, port, self.get(),
+                                             val_arr.__array_interface__['data'][0], 
+                                             idx_arr.__array_interface__['data'][0], 
+                                             off_arr.__array_interface__['data'][0],
+                                             ddt, idt, val_arr.size, off_arr.size)
             excpt = rpclib.check_server_exception()
             if excpt["status"]:
                 raise RuntimeError(excpt["info"])
-            ret = FrovedisVector(vec=dum_vec, dtype=data_type)
-            if conv:
-                #vec.release()
-                return ret.to_numpy_array()
-            else:
-                return ret
-        else:
-            raise ValueError("Empty input matrix.")
+            ret = csr_matrix((val_arr, idx_arr, off_arr), dtype=data_type,\
+                             shape=crs_shape)
+        return ret
 
+    @check_association
+    def transpose(self):
+        (host, port) = FrovedisServer.getServerInstance()
+        dmat = rpclib.transpose_frovedis_sparse_matrix(host, port,
+                                                       self.get(),
+                                                       self.get_dtype(),
+                                                       self.get_itype())
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
+        return FrovedisCRSMatrix(mat=dmat, dtype=self.__dtype,\
+                                     itype=self.__itype)
+
+    @check_association
+    def dot(self, v):
+        data_type = TypeUtil.to_numpy_dtype(self.get_dtype())
+        idx_type = TypeUtil.to_numpy_dtype(self.get_itype())
+        ddt = self.get_dtype()
+        idt = self.get_itype()
+        if isinstance(v, FrovedisVector):
+            if ddt != v.get_dtype():
+                raise TypeError(\
+                "input matrix and vector dtypes are not matching!")
+            vec = v
+            conv = False
+        else:
+            vv = np.asarray(v, dtype=data_type)
+            vec = FrovedisVector(vv)
+            conv = True
+        sz = vec.size()
+        if self.numCols() != sz:
+            raise ValueError(\
+            "MatVec: input vector length doesn't match with matrix ncols!")
+        (host, port) = FrovedisServer.getServerInstance()
+        dum_vec = rpclib.compute_spmv(host, port, \
+                                      self.get(), vec.get(), \
+                                      ddt, idt)
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
+        ret = FrovedisVector(vec=dum_vec, dtype=data_type)
+        if conv:
+            #vec.release()
+            return ret.to_numpy_array()
+        else:
+            return ret
 
     def load(self, inp, dtype=None):
         if issparse(inp):  # any sparse matrix
@@ -142,6 +135,7 @@ class FrovedisCRSMatrix(object):
         else:
             return self.load_python_data(inp, dtype=dtype)
 
+    @set_association
     def load_dummy(self, dmat):
         self.release()
         try:
@@ -265,56 +259,69 @@ class FrovedisCRSMatrix(object):
             raise RuntimeError(excpt["info"])
         return self.load_dummy(dmat)
 
+    @check_association
     def save(self, fname):
-        if self.__fdata is not None:
-            (host, port) = FrovedisServer.getServerInstance()
-            rpclib.save_frovedis_crs_matrix(host, port, self.get(),
-                                            fname.encode('ascii'),
-                                            False, self.get_dtype(),
-                                            self.get_itype())
-            excpt = rpclib.check_server_exception()
-            if excpt["status"]:
-                raise RuntimeError(excpt["info"])
+        (host, port) = FrovedisServer.getServerInstance()
+        rpclib.save_frovedis_crs_matrix(host, port, self.get(),
+                                        fname.encode('ascii'),
+                                        False, self.get_dtype(),
+                                        self.get_itype())
+        excpt = rpclib.check_server_exception()
 
+    @check_association
     def save_binary(self, fname):
-        if self.__fdata is not None:
-            (host, port) = FrovedisServer.getServerInstance()
-            rpclib.save_frovedis_crs_matrix(host, port, self.get(),
-                                            fname.encode('ascii'),
-                                            True, self.get_dtype(),
-                                            self.get_itype())
-            excpt = rpclib.check_server_exception()
-            if excpt["status"]:
-                raise RuntimeError(excpt["info"])
+        (host, port) = FrovedisServer.getServerInstance()
+        rpclib.save_frovedis_crs_matrix(host, port, self.get(),
+                                        fname.encode('ascii'),
+                                        True, self.get_dtype(),
+                                        self.get_itype())
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
 
     def release(self):
-        if self.__fdata is not None:
-            (host, port) = FrovedisServer.getServerInstance()
-            rpclib.release_frovedis_crs_matrix(host, port, self.get(),
-                                               self.get_dtype(),
-                                               self.get_itype())
-            excpt = rpclib.check_server_exception()
-            if excpt["status"]:
-                raise RuntimeError(excpt["info"])
-            self.__fdata = None
-            self.__num_row = 0
-            self.__num_col = 0
-            self.__active_elems = 0
+        """
+        resets after-fit populated attributes to None
+        """
+        self.__release_server_heap()
+        self.__fdata = None
+        self.__num_row = 0
+        self.__num_col = 0
+        self.__active_elems = 0
 
-    def __del__(self):  # destructor
-        if FrovedisServer.isUP():
-            self.release()
+    @do_if_active_association
+    def __release_server_heap(self):
+        """
+        to release model pointer from server heap
+        """
+        (host, port) = FrovedisServer.getServerInstance()
+        rpclib.release_frovedis_crs_matrix(host, port, self.get(),
+                                           self.get_dtype(),
+                                           self.get_itype())
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
 
+    def __del__(self):
+        """
+        NAME: __del__
+        """
+        self.release()
+
+    def is_fitted(self):
+        """ function to confirm if the model is already fitted """
+        return self.__fdata is not None
+
+    @check_association
     def debug_print(self):
-        if self.__fdata is not None:
-            (host, port) = FrovedisServer.getServerInstance()
-            rpclib.show_frovedis_crs_matrix(host, port, self.get(),
-                                            self.get_dtype(),
-                                            self.get_itype())
-            print("Active Elements: ", self.__active_elems)
-            excpt = rpclib.check_server_exception()
-            if excpt["status"]:
-                raise RuntimeError(excpt["info"])
+        (host, port) = FrovedisServer.getServerInstance()
+        rpclib.show_frovedis_crs_matrix(host, port, self.get(),
+                                        self.get_dtype(),
+                                        self.get_itype())
+        print("Active Elements: ", self.__active_elems)
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
 
     def get(self):
         return self.__fdata

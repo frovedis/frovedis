@@ -2,7 +2,8 @@
 
 import numpy as np
 from ..exrpc import rpclib
-from ..exrpc.server import FrovedisServer
+from ..exrpc.server import FrovedisServer, set_association, \
+                           check_association, do_if_active_association
 from .dtype import TypeUtil, DTYPE
 from ctypes import POINTER, c_int, c_long, c_float, c_double, c_char_p
 
@@ -65,6 +66,7 @@ class FrovedisVector:
             raise RuntimeError(excpt["info"])
         return self.load_dummy(dmat)
 
+    @set_association
     def load_dummy(self, vec, dtype=None):
         """load_dummy"""
         self.release()
@@ -76,34 +78,52 @@ class FrovedisVector:
             raise TypeError("[INTERNAL ERROR] Invalid input encountered.")
         return self
 
+    @check_association
     def to_numpy_array(self):
         """to_numpy_array"""
-        if self.__fdata is not None:
-            (host, port) = FrovedisServer.getServerInstance()
-            dt = TypeUtil.to_id_dtype(self.__dtype)
-            arr = rpclib.get_frovedis_array(host, port, self.__fdata, dt)
-            excpt = rpclib.check_server_exception()
-            if excpt["status"]:
-                raise RuntimeError(excpt["info"])
-            return np.asarray(arr, dtype=self.__dtype)
+        (host, port) = FrovedisServer.getServerInstance()
+        dt = TypeUtil.to_id_dtype(self.__dtype)
+        arr = rpclib.get_frovedis_array(host, port, self.__fdata, dt)
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
+        return np.asarray(arr, dtype=self.__dtype)
 
+    @check_association
     def debug_print(self):
         """debug_print"""
-        if self.__fdata is not None:
-            print("vector: ")
-            print(self.to_numpy_array())
+        print("vector: ")
+        print(self.to_numpy_array())
 
     def release(self):
-        """release"""
-        if self.__fdata is not None:
-            (host, port) = FrovedisServer.getServerInstance()
-            data_type = TypeUtil.to_id_dtype(self.__dtype)
-            rpclib.release_frovedis_array(host, port, self.__fdata, data_type)
-            excpt = rpclib.check_server_exception()
-            if excpt["status"]:
-                raise RuntimeError(excpt["info"])
-            self.__fdata = None
-            self.__size = None
+        """
+        resets after-fit populated attributes to None
+        """
+        self.__release_server_heap()
+        self.__fdata = None
+        self.__size = None
+
+    @do_if_active_association
+    def __release_server_heap(self):
+        """
+        to release model pointer from server heap
+        """
+        (host, port) = FrovedisServer.getServerInstance()
+        data_type = TypeUtil.to_id_dtype(self.__dtype)
+        rpclib.release_frovedis_array(host, port, self.__fdata, data_type)
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
+
+    def __del__(self):
+        """
+        NAME: __del__
+        """
+        self.release()
+
+    def is_fitted(self):
+        """ function to confirm if the model is already fitted """
+        return self.__fdata is not None
 
     def get(self):
         """get"""
@@ -117,29 +137,29 @@ class FrovedisVector:
         """get_dtype"""
         return TypeUtil.to_id_dtype(self.__dtype)
 
+    @check_association
     def save(self, path):
         """save"""
-        if self.__fdata:
-            is_binary = False
-            (host, port) = FrovedisServer.getServerInstance()
-            rpclib.save_frovedis_vector_client(\
-                host, port, self.get(), path.encode('ascii'),\
-                is_binary, self.get_dtype())
-            excpt = rpclib.check_server_exception()
-            if excpt["status"]:
-                raise RuntimeError(excpt["info"])
+        is_binary = False
+        (host, port) = FrovedisServer.getServerInstance()
+        rpclib.save_frovedis_vector_client(\
+            host, port, self.get(), path.encode('ascii'),\
+            is_binary, self.get_dtype())
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
 
+    @check_association
     def save_binary(self, path):
         """save_binary"""
-        if self.__fdata:
-            is_binary = True
-            (host, port) = FrovedisServer.getServerInstance()
-            rpclib.save_frovedis_vector_client(\
-                host, port, self.get(), path.encode('ascii'),\
-                is_binary, self.get_dtype())
-            excpt = rpclib.check_server_exception()
-            if excpt["status"]:
-                raise RuntimeError(excpt["info"])
+        is_binary = True
+        (host, port) = FrovedisServer.getServerInstance()
+        rpclib.save_frovedis_vector_client(\
+            host, port, self.get(), path.encode('ascii'),\
+            is_binary, self.get_dtype())
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
 
     def load_text(self, path, dtype=None):
         """load_text"""

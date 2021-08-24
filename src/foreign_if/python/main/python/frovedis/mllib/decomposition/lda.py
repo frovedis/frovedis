@@ -283,24 +283,18 @@ class LatentDirichletAllocation(BaseEstimator):
         (self.__mkind, self.__mdtype), metadata)
         metadata.close()
 
-    def reset_metadata(self):
-        """
-        resets after-fit populated attributes to None
-        """
-        self.__mid = None
-        self.__mdtype = None
-        self._components = None
-        self.transformedX = None
-        self.ppl = None
-        self.llh = None
-
     def release(self):
         """
         resets after-fit populated attributes to None 
         along with relasing server side memory
         """
         self.__release_server_heap()
-        self.reset_metadata()
+        self.__mid = None
+        self.__mdtype = None
+        self._components = None
+        self.transformedX = None
+        self.ppl = None
+        self.llh = None
 
     @do_if_active_association
     def __release_server_heap(self):
@@ -313,7 +307,7 @@ class LatentDirichletAllocation(BaseEstimator):
         """
         destructs the python object
         """
-        self.reset_metadata()
+        self.release()
 
     def is_fitted(self):
         """ function to confirm if the model is already fitted """

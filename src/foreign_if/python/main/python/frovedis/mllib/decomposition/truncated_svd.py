@@ -3,7 +3,8 @@
 #!/usr/bin/env python
 
 from ...base import *
-from ...exrpc.server import FrovedisServer
+from ...exrpc.server import FrovedisServer, set_association, \
+                            check_association, do_if_active_association
 from ...exrpc.rpclib import compute_truncated_svd, compute_var_sum
 from ...exrpc.rpclib import compute_svd_transform
 from ...exrpc.rpclib import compute_svd_self_transform
@@ -35,6 +36,7 @@ class TruncatedSVD(BaseEstimator):
         self._explained_variance_ratio = None
         self._singular_values = None
 
+    @set_association
     def fit(self, X, y=None):
         """Fits LSA model on training data X."""
         (host, port) = FrovedisServer.getServerInstance()
@@ -101,10 +103,9 @@ class TruncatedSVD(BaseEstimator):
         else:
             return dmat.to_numpy_array()
 
+    @check_association
     def transform(self, X):
         """Performs dimensionality reduction on X."""
-        if self.svd_res_ is None:
-            raise ValueError("transform() is called before fit()!")
         (host, port) = FrovedisServer.getServerInstance()
         if isinstance(X, (FrovedisCRSMatrix, FrovedisRowmajorMatrix)):
             inp_data = FrovedisFeatureData(X, dense_kind='rowmajor', 
@@ -128,10 +129,9 @@ class TruncatedSVD(BaseEstimator):
         else:
             return np.asarray(X * self.components_.T)
 
+    @check_association
     def inverse_transform(self, X):
         """Transforms X back to its original space."""
-        if self.svd_res_ is None:
-            raise ValueError("inverse_transform() is called before fit()!")
         (host, port) = FrovedisServer.getServerInstance()
         if isinstance(X, (FrovedisCRSMatrix, FrovedisRowmajorMatrix)):
             inp_data = FrovedisFeatureData(X, dense_kind='rowmajor', 
@@ -155,11 +155,10 @@ class TruncatedSVD(BaseEstimator):
         else:
             return np.asarray(X * self.components_)
 
+    @check_association
     def __set_results(self):
         """ it should be called after fit().
         it sets the ouput properties """
-        if self.svd_res_ is None:
-            raise ValueError("__set_results is called before fit!")
         (U, s, VT) = self.svd_res_.to_numpy_results()
         self._components = VT
         self._singular_values = s
@@ -228,3 +227,35 @@ class TruncatedSVD(BaseEstimator):
         """explained_variance_ratio_ setter"""
         raise AttributeError("attribute 'explained_variance_ratio_' of " + \
                              "TruncatedSVD object is not writable")
+
+    def release(self):
+        """
+        resets after-fit populated attributes to None
+        along with relasing server side memory
+        """
+        self.__release_server_heap()
+        self.svd_res_ = None
+        self.__mdtype = None
+        self._explained_variance_ratio = None
+        self._explained_variance = None
+        self._singular_values = None
+        self._components = None
+        self.var_sum = None
+        self.X_transformed = None
+
+    @do_if_active_association
+    def __release_server_heap(self):
+        """
+        to release model pointer from server heap
+        """
+        self.svd_res_.release()
+
+    def __del__(self):
+        """
+        destructs the python object
+        """
+        self.release()
+
+    def is_fitted(self):
+        """ function to confirm if the model is already fitted """
+        return self.svd_res_ is not None

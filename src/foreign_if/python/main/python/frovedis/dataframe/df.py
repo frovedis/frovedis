@@ -403,19 +403,19 @@ class DataFrame(object):
             if vtype == 'object': # type-infering required to detect string
                 vtype = infer_column_type_from_first_notna(df, val, idx == 0)
             #print(cname + ":" + vtype)
-            if vtype == 'int32':
+            if vtype == 'int32' or vtype == 'int':
                 dt = DTYPE.INT
                 dvec[idx] = FrovedisIntDvector(val)
-            elif vtype == 'int64':
+            elif vtype == 'int64' or vtype == 'long':
                 dt = DTYPE.LONG
                 dvec[idx] = FrovedisLongDvector(val)
             elif vtype == 'uint64':
                 dt = DTYPE.ULONG
                 dvec[idx] = FrovedisULongDvector(val)
-            elif vtype == 'float32':
+            elif vtype == 'float32' or vtype == 'float':
                 dt = DTYPE.FLOAT
                 dvec[idx] = FrovedisFloatDvector(val)
-            elif vtype == 'float64':
+            elif vtype == 'float64' or vtype == 'double':
                 dt = DTYPE.DOUBLE
                 dvec[idx] = FrovedisDoubleDvector(val)
             elif vtype == 'str' or vtype == 'str_':
@@ -1231,6 +1231,61 @@ class DataFrame(object):
 
         return pd.DataFrame(data_dict)
 
+    def to_dict(self, orient="dict", into=dict):
+        """
+        returns dataframe columns as dictionary
+        """
+        if orient not in ["dict", "list"]:
+            raise ValueError("to_dict: supported only 'dict' and 'list' " \
+                             "as for 'orient' parameter!\n")
+        if into != dict:
+        #if not isinstance(into, dict):
+            raise ValueError(\
+            "to_dict: supported only dictionary as per return type!\n")
+        return self.__to_dict_impl(orient=orient, into=into)
+
+    def __to_dict_impl(self, orient="dict", into=dict, include_index=True):
+        """
+        helper for to_dict
+        """
+
+        out_data = {}
+        (host, port) = FrovedisServer.getServerInstance()
+   
+        # whether to extract index column from the dataframe
+        if orient == "dict" or include_index:
+            if not self.has_index():
+                raise ValueError(\
+                "to_dict: dataframe doesn't have an index column!\n")
+            indx_dvec = rpclib.get_frovedis_col(host, port, self.get(),
+                                           self.index.name.encode('ascii'),
+                                           self.index.dtype)
+            excpt = rpclib.check_server_exception()
+            if excpt["status"]:
+                raise RuntimeError(excpt["info"])
+            indx_arr = FrovedisDvector(indx_dvec).to_numpy_array()
+
+        if orient == "list" and include_index:
+            out_data[self.index.name] = indx_arr
+
+        for i in range(0, len(self.columns)):
+            cc = self.__cols[i]
+            tt = self.__types[i]
+            dvec = rpclib.get_frovedis_col(host, port, self.get(),
+                                           cc.encode('ascii'), tt)
+            excpt = rpclib.check_server_exception()
+            if excpt["status"]:
+                raise RuntimeError(excpt["info"])
+            col_arr = FrovedisDvector(dvec).to_numpy_array()
+            #TODO: fix NULL conversion in case of string-vector; 
+            #TODO: fix numeric to boolean conversion in case of boolean-vector
+            if orient == "dict":
+                out_data[cc] = dict(zip(indx_arr, col_arr))
+            else: # list
+                out_data[cc] = col_arr
+
+        return out_data
+
     def to_pandas_dataframe(self):
         """
         returns a pandas dataframe object from frovedis dataframe
@@ -1238,46 +1293,47 @@ class DataFrame(object):
         if self.__fdata is None: # empty dataframe case
             return pd.DataFrame()
 
-        cols = copy.deepcopy(self.__cols)
-        types = copy.deepcopy(self.__types)
-        if self.has_index():
-            cols.append(self.index.name)
-            types.append(self.index.dtype)
+        res = pd.DataFrame(self.__to_dict_impl(orient="list", include_index=True))
 
-        out_data = {}
-        bool_cols = []
-        str_cols = []
-        (host, port) = FrovedisServer.getServerInstance()
-        for i in range(0, len(cols)):
-            dvec = rpclib.get_frovedis_col(host, port, self.get(),
-                                           cols[i].encode('ascii'),
-                                           types[i])
-            excpt = rpclib.check_server_exception()
-            if excpt["status"]:
-                raise RuntimeError(excpt["info"])
-            out_data[cols[i]] = FrovedisDvector(dvec).to_numpy_array()
-            if types[i] == DTYPE.BOOL:
-                bool_cols.append(cols[i])
-            elif types[i] == DTYPE.STRING:
-                str_cols.append(cols[i])
-
-        res = pd.DataFrame(out_data)
         if self.has_index():
             res.set_index(self.index.name, inplace=True)
+            if (self.index.dtype == DTYPE.BOOL):
+                res.index = res.index.to_series().replace({0: False, 1: True})
+            elif (self.index.dtype == DTYPE.STRING):
+                res.index = res.index.to_series().replace({"NULL": np.nan})
 
-        # BOOL treatment
-        for c in bool_cols:
-            res[c].replace(to_replace={0: False, 1: True}, inplace=True)
-
-        # NULL treatment for string columns
-        for c in str_cols:
-            res[c].replace(to_replace={"NULL": np.nan}, inplace=True)
-
+        for col in self.columns:
+            # BOOL treatment
+            if (self.__dict__[col].dtype == DTYPE.BOOL):
+                res[col].replace(to_replace={0: False, 1: True}, inplace=True)
+            # NULL treatment for string columns
+            elif (self.__dict__[col].dtype == DTYPE.STRING):
+                res[col].replace(to_replace={"NULL": np.nan}, inplace=True)
         return res
 
     @deprecated("Use to_pandas_dataframe() instead!\n")
     def to_panda_dataframe(self):
         return self.to_pandas_dataframe()
+
+    def to_numpy(self, dtype=None, copy=False, na_value=None):
+        """
+        frovedis dataframe to numpy array conversion
+        """
+        out_data = self.__to_dict_impl(orient="list", include_index=False)
+        return np.array(list(out_data.values()), dtype=dtype).T
+
+    @property
+    def values(self):
+        """
+        frovedis dataframe to numpy array conversion
+        """
+        return self.to_numpy()
+
+    @values.setter
+    def values(self, val):
+        """values setter"""
+        raise AttributeError(\
+            "attribute 'values' of DataFrame object is not writable")
 
     #default type: float
     def to_frovedis_rowmajor_matrix(self, t_cols, dtype=np.float32):
