@@ -219,7 +219,7 @@ class FPGrowth(object):
             for each in ldf:
                 res = fpd.DataFrame().load_dummy(each["dfptr"], \
                                        each["names"], each["types"])
-                print("RES COUNT: ", res.to_pandas_dataframe().count())
+                res = res.add_index("index")
                 fis = merge_and_append_fis(fis, res.to_pandas_dataframe())
             self.__fis = fis.reset_index(drop=True)
         return self.__fis
@@ -259,6 +259,7 @@ class FPGrowth(object):
             raise RuntimeError(excpt["info"])
         res = fpd.DataFrame().load_dummy(pred["dfptr"], \
                                    pred["names"], pred["types"])
+        res = res.add_index("index")
         if len(res) >  0:
             self.__prediction = adjust_transform_output(
                                     res.to_pandas_dataframe(), 
@@ -365,6 +366,7 @@ class FPRules(object):
             for each in ldf:
                 res = fpd.DataFrame().load_dummy(each["dfptr"], \
                                        each["names"], each["types"])
+                res = res.add_index("index")
                 rules = merge_and_append_rules(rules, res.to_pandas_dataframe())
             self.__rules = rules.reset_index(drop=True)
         return self.__rules
