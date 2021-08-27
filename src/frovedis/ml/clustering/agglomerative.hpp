@@ -74,7 +74,7 @@ namespace frovedis {
     fit(const MATRIX& mat,
       const dvector<int>& label = dvector<int>()) { // ignored  
       auto link = this->linkage;  
-      model = agglomerative_training(mat, link);
+      model = agglomerative_training<T>(mat, link);
       is_fitted = true;
       nleaves_ = mat.num_row;  
       labels = agglomerative_assign_cluster(model, n_clusters, threshold, nclusters_);      
@@ -84,10 +84,10 @@ namespace frovedis {
     template <class MATRIX>
     agglomerative_clustering<T>& 
     fit(MATRIX&& mat,
-      const dvector<int>& label = dvector<int>()) { // ignored  
+      const dvector<int>& label = dvector<int>()) { // ignored 
       auto link = this->linkage; 
       nleaves_ = mat.num_row;  
-      model = agglomerative_training(std::move(mat), link);
+      model = agglomerative_training<T>(std::move(mat), link);
       is_fitted = true;   
       labels = agglomerative_assign_cluster(model, n_clusters, threshold, nclusters_);      
       return *this; 

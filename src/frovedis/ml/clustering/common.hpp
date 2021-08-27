@@ -694,9 +694,9 @@ T get_distance_vector_size(T nrow, T ncol, T myst) {
   return a - b - c;
 }
 
-template <class T>
+template <class T, class MATRIX>
 std::vector<T>
-construct_condensed_distance_matrix_helper(rowmajor_matrix_local<T>& mat,
+construct_condensed_distance_matrix_helper(MATRIX& mat,
                                            size_t myst, size_t mysz,
                                            bool is_sq_euclidian = false) {
   if(!mysz) return std::vector<T>();
@@ -738,9 +738,9 @@ construct_condensed_distance_matrix_helper(rowmajor_matrix_local<T>& mat,
   return ret;
 }
 
-template <class T>
+template <class T, class MATRIX>
 std::vector<T>
-construct_condensed_distance_matrix(rowmajor_matrix_local<T>& mat) {
+construct_condensed_distance_matrix(MATRIX& mat) {
   auto nrow = mat.local_num_row;
   auto nrows = get_block(nrow);
   std::vector<size_t> sidx(nrows.size(),0);
@@ -748,7 +748,7 @@ construct_condensed_distance_matrix(rowmajor_matrix_local<T>& mat) {
   auto myst = make_node_local_scatter(sidx);
   auto mysz = make_node_local_scatter(nrows);
   auto bmat = broadcast(mat);
-  return bmat.map(construct_condensed_distance_matrix_helper<T>, 
+  return bmat.map(construct_condensed_distance_matrix_helper<T, MATRIX>, 
                   myst,mysz,broadcast(false))
              .template moveto_dvector<T>().gather();
 }

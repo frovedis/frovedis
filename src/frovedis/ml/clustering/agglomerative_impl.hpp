@@ -394,18 +394,18 @@ assign_labels_impl(rowmajor_matrix_local<T>& Z,
   return assign_labels_vectorized<T>(Z,nsamples,ncluster);
 }
 
-template <class T, class LINKAGE>
+template <class T, class LINKAGE, class MATRIX>
 #ifdef VEC_VEC
 std::vector<std::vector<T>>
 #else
 rowmajor_matrix_local<T>
 #endif
-agglomerative_impl(rowmajor_matrix_local<T>& mat,
+agglomerative_impl(MATRIX& mat,
                    bool inputMovable = false) {
   auto nsamples = mat.local_num_row;
   time_spent dist(DEBUG), nn(DEBUG);
   dist.lap_start();
-  auto dist_vec = construct_condensed_distance_matrix(mat);
+  auto dist_vec = construct_condensed_distance_matrix<T>(mat);
   dist.lap_stop();
   dist.show_lap("condensed dist computation: ");
   if(inputMovable) mat.clear();
@@ -419,13 +419,13 @@ agglomerative_impl(rowmajor_matrix_local<T>& mat,
 
 // --- definition of user APIS starts here ---
 
-template <class T>
+template <class T, class MATRIX>
 #ifdef VEC_VEC
 std::vector<std::vector<T>>
 #else
 rowmajor_matrix_local<T>
 #endif
-agglomerative_training(rowmajor_matrix<T>& mat,
+agglomerative_training(const MATRIX& mat,
                        const std::string& linkage = "average") {
   auto movable = true;
   auto nsamples = mat.num_row;
@@ -446,17 +446,17 @@ agglomerative_training(rowmajor_matrix<T>& mat,
   rowmajor_matrix_local<T> Z(nsamples-1, 4);
 #endif
 
-  return Z;
-  
+  return Z;  
 }
-             
-template <class T>
+
+                   
+template <class T, class MATRIX>
 #ifdef VEC_VEC
 std::vector<std::vector<T>>
 #else
 rowmajor_matrix_local<T>
 #endif
-agglomerative_training(rowmajor_matrix<T>&& mat,
+agglomerative_training(MATRIX&& mat,
                        const std::string& linkage = "average") {
   auto movable = true;
   auto lmat = mat.gather();
