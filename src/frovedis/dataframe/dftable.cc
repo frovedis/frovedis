@@ -1116,6 +1116,152 @@ dftable make_sliced_dftable(dftable_base& t, size_t st, size_t end, size_t step)
   return filtered_dftable(t, std::move(idx)).materialize();
 }
 
+node_local<std::vector<size_t>>
+get_rows_with_nulls_ge_threshold(node_local<std::vector<std::vector<size_t>>>& null_vec_local,
+                                 size_t threshold) {
+  return null_vec_local.map(+[](std::vector<std::vector<size_t>>& null_vec,
+                                size_t thr) {
+       auto nsz = null_vec.size();
+       if (nsz == 0) return std::vector<size_t>();
+       else if (nsz == 1) return null_vec[0];
+       else {
+         // vectors in null_vec must be sorted
+         auto merged = set_merge(null_vec[0], null_vec[1]);
+         for(size_t i = 2; i < nsz; ++i) merged = set_merge(merged, null_vec[i]);
+         auto sep = set_separate(merged);
+         auto n_unique = sep.size() - 1;
+         std::vector<size_t> countvec(n_unique);
+         auto sptr = sep.data();
+         auto cptr = countvec.data();
+         for(size_t i = 0; i < n_unique; ++i) cptr[i] = sptr[i + 1] - sptr[i];
+         auto targets = vector_find_ge(countvec, thr);
+         auto tsz = targets.size();
+         std::vector<size_t> ret(tsz);
+         auto rptr = ret.data();
+         auto tptr = targets.data();
+         auto mptr = merged.data();
+#pragma _NEC ivdep
+//#pragma _NEC vovertake
+//#pragma _NEC vob
+         for(size_t i = 0; i < tsz; ++i) rptr[i] = mptr[sptr[tptr[i]]];
+         return ret;
+       }
+    }, broadcast(threshold));
+}
+
+node_local<std::vector<size_t>>
+count_nulls_by_rows_impl(node_local<std::vector<std::vector<size_t>>>& null_vec_local,
+                         std::vector<size_t> sizes) {
+  auto mysz = make_node_local_scatter(sizes);
+  return null_vec_local.map(+[](std::vector<std::vector<size_t>>& null_vec,
+                                size_t mysz) {
+       auto nvecsz = null_vec.size();
+       std::vector<size_t> nullpos, countvec;
+       if (nvecsz == 0); // no-nulls, do-nothing
+       else if (nvecsz == 1) {
+         nullpos.swap(null_vec[0]);
+         countvec = vector_ones<size_t>(nullpos.size());
+       }
+       else {
+         // vectors in null_vec must be sorted
+         auto merged = set_merge(null_vec[0], null_vec[1]);
+         for(size_t i = 2; i < nvecsz; ++i) merged = set_merge(merged, null_vec[i]);
+         auto sep = set_separate(merged);
+         auto n_unique = sep.size() - 1;
+         countvec.resize(n_unique);
+         nullpos.resize(n_unique);
+         auto sptr = sep.data();
+         auto cptr = countvec.data();
+         auto nptr = nullpos.data();
+         auto mptr = merged.data();
+         for(size_t i = 0; i < n_unique; ++i) {
+           cptr[i] = sptr[i + 1] - sptr[i];
+           nptr[i] = mptr[sptr[i]];
+         }
+       }
+       auto ret = vector_zeros<size_t>(mysz);
+       auto rptr = ret.data();
+       auto cptr = countvec.data();
+       auto nptr = nullpos.data();
+       auto nsz = nullpos.size();
+#pragma _NEC ivdep
+//#pragma _NEC vovertake
+//#pragma _NEC vob
+       for(size_t i = 0; i < nsz; ++i) rptr[nptr[i]] = cptr[i];
+       return ret;
+    }, mysz);
+}
+
+node_local<std::vector<std::vector<size_t>>>
+get_nulls_by_cols(dftable_base& df, const std::vector<std::string>& targets) {
+  auto ncol = targets.size();
+  auto null_vec_local = make_node_local_allocate<std::vector<std::vector<size_t>>>();
+  for(size_t i = 0; i < ncol; ++i) {
+    auto dfcol = df.column(targets[i]);
+    use_dfcolumn use(dfcol);
+    if (dfcol->if_contain_nulls()) {
+      null_vec_local.mapv(+[](std::vector<std::vector<size_t>>& null_vec,
+                              std::vector<size_t>& nulls) {
+                                null_vec.push_back(std::move(nulls));
+                              }, dfcol-> get_nulls());
+    }
+  }
+  return null_vec_local;
+}
+
+dftable dftable_base::count_nulls(int axis, bool with_index) {
+  dftable ret;
+  auto cols = columns();
+  std::string index = "index";
+  if (with_index) {
+    index = cols[0];
+    cols.erase(cols.begin(), cols.begin() + 1);
+  }
+  if (axis == 1) { 
+    auto null_vec_local = get_nulls_by_cols(*this, cols);
+    auto count = count_nulls_by_rows_impl(null_vec_local, num_rows())
+                            .moveto_dvector<size_t>();
+    ret.append_column("count", std::move(count));
+    if (with_index) { 
+      auto icol = column(index);
+      use_dfcolumn use(icol);
+      ret.append_column(index, icol).change_col_position(index, 0); // set_index()
+    }
+    else ret.prepend_rowid<long>(index);
+  }
+  else if (axis == 0) {
+    auto ncol = cols.size();
+    auto nrow = num_row();
+    std::vector<size_t> count(ncol);
+    auto cptr = count.data();
+    for(size_t i = 0; i < ncol; ++i) {
+      auto col = column(cols[i]);
+      use_dfcolumn use(col);
+      cptr[i] = nrow - col->count();
+    } 
+    ret.append_column("index", make_dvector_scatter(cols));
+    ret.append_column("count", make_dvector_scatter(count));
+  }
+  else REPORT_ERROR(USER_ERROR, "count_nulls: axis can be either 0 or 1!\n");
+  return ret;
+}
+
+dftable drop_nulls_by_rows_with_threshold_impl(dftable_base& df,
+                                   size_t threshold,
+                                   const std::vector<std::string>& targets) {
+  dftable ret;
+  auto null_vec_local = get_nulls_by_cols(df, targets);
+  if (null_vec_local.viewas_dvector<std::vector<size_t>>().size() >= threshold) {
+    auto drop_targets = get_rows_with_nulls_ge_threshold(null_vec_local, threshold);
+    auto ret_idx = df.get_local_index().map(set_difference<size_t>, 
+                                            drop_targets);
+    ret = filtered_dftable(df, std::move(ret_idx)).materialize();
+  } else {
+    ret = df.need_materialize() ? df.materialize() : df;
+  }
+  return ret;
+}
+
 dftable drop_nulls_by_rows_any_impl(dftable_base& df,
                                     const std::vector<std::string>& targets) {
   auto tsz = targets.size();
@@ -1145,21 +1291,33 @@ dftable dftable_base::drop_nulls_by_rows(const std::string& how,
   return ret;
 }
 
+dftable dftable_base::drop_nulls_by_rows(size_t threshold,
+                                         const std::vector<std::string>& targets) {
+  std::vector<std::string> cols = targets;
+  if (targets.empty()) cols = columns();
+  return drop_nulls_by_rows_with_threshold_impl(*this, threshold, cols);
+}
+
 dftable drop_nulls_by_cols_impl(dftable_base& df,
                                 dftable_base& sliced_df, // drop would be in-place
-                                const std::string& how) {
-  require(how == "any" || how == "all", "drop nulls using how: '" + how + "' is not supported!\n");
-  bool is_all = how == "all";
+                                const std::string& how,
+                                size_t threshold) {
   auto cols = sliced_df.columns();
-  auto nrows = sliced_df.num_row();
-  auto ncols = cols.size();
+  auto nrow = sliced_df.num_row();
+  auto ncol = cols.size();
   dftable ret;
-  for(size_t i = 0; i < ncols; ++i) {
+  for(size_t i = 0; i < ncol; ++i) {
     auto cname = cols[i];
     auto c = sliced_df.column(cname);
     use_dfcolumn use(c);
-    auto nullsz = nrows - c->count(); // count excludes nulls
-    auto to_drop = (!is_all && nullsz > 0) || (is_all && nullsz == nrows);
+    auto nullsz = nrow - c->count(); 
+    bool to_drop = false;
+    if (threshold == std::numeric_limits<size_t>::max()) { // threshold undefined
+      auto is_all = (how == "all");
+      to_drop = (!is_all && nullsz > 0) || (is_all && nullsz == nrow);
+    } else {
+      to_drop = (nullsz >= threshold);
+    }
     if (!to_drop) {
       auto actual_c = df.column(cname);
       use_dfcolumn use(actual_c);
@@ -1167,6 +1325,89 @@ dftable drop_nulls_by_cols_impl(dftable_base& df,
     }
   }
   return ret;
+}
+
+dftable dftable_base::drop_duplicates(const std::vector<std::string>& cols,
+                                      const std::string& keep) {
+  if(keep != "first" and keep != "last")
+    REPORT_ERROR(USER_ERROR,
+       "drop_duplicates: either first or last value can be kept!\n");
+
+  // assuming these names can not be in this->columns()
+  std::string tmpid = "tmp_index_", r_key = "t_join_r_key_";
+  std::shared_ptr<dfaggregator> agg;
+  if (keep == "first") agg = min_as(tmpid, r_key);
+  else                 agg = max_as(tmpid, r_key);
+  dftable left = need_materialize() ? materialize() : *this;
+  left.append_rowid(tmpid); 
+  auto right = left.group_by(cols).select(cols, {agg}).select({r_key});
+  auto ret = left.bcast_join(right, eq(tmpid, r_key));
+  return ret.select(columns());
+}
+
+sorted_dftable 
+multiple_sort(dftable_base& df,
+              const std::vector<std::string>& targets,
+              bool is_desc) {
+  auto size = targets.size();
+  checkAssumption(size > 0);
+  auto cname = targets[size - 1];
+  auto ret = is_desc ? df.sort_desc(cname) : df.sort(cname);
+  for (int i = size - 2; i >= 0; --i) {
+    auto cname = targets[i];
+    ret = is_desc ? ret.sort_desc(cname) : ret.sort(cname);
+  }
+  return ret;
+} 
+
+dftable ksort_impl(dftable_base& df, 
+                   int k, const std::vector<std::string>& targets,
+                   const std::string& keep, bool is_desc) {
+  if (targets.empty()) return df.materialize();
+  auto tmp = df.drop_nulls_by_rows("any", {targets[0]}); 
+  dftable sorted;
+  if (keep == "last") {
+    std::string tid = "__tmp_id__";
+    auto last_ordered = tmp.append_rowid(tid).sort_desc(tid);
+    sorted = multiple_sort(last_ordered, targets, is_desc).drop(tid).materialize();
+  }
+  else sorted = multiple_sort(tmp, targets, is_desc).materialize();
+
+  int actual_k = k;
+  if (keep == "all") { 
+    std::string cnt = "__tmp_count__";
+    // TODO: confirm if goupby internally sorts table in ascending order
+    auto grouped = tmp.group_by(targets) 
+                      .select(targets, {count_as(targets[0], cnt)});
+    if (grouped.num_row() != tmp.num_row()) { // if there are duplicates
+      auto target_group = is_desc ? grouped.tail(k) : grouped.head(k);
+      if (target_group.max<size_t>(cnt) != 1) { // duplicates in target group
+        auto countvec = target_group.as_dvector<size_t>(cnt).gather();
+        if (is_desc) countvec = vector_reverse(countvec);
+        auto psum = prefix_sum(countvec);
+        auto ub = std::lower_bound(psum.begin(), psum.end(), k);
+        if (ub == psum.end()) actual_k = df.num_row();
+        else                  actual_k = *ub;
+      }
+    }
+  }
+  return sorted.head(actual_k);
+}
+
+dftable dftable_base::nlargest(int n, const std::vector<std::string>& targets,
+                               const std::string& keep) {
+  require(n >= 0, "nlargest: expected a positive integer for 'n'!\n");
+  require(keep == "first" || keep == "last" || keep == "all", 
+  "nlargest: supported 'keep' can be all, first or last!\n");
+  return ksort_impl(*this, n, targets, keep, true);
+}
+
+dftable dftable_base::nsmallest(int n, const std::vector<std::string>& targets,
+                                const std::string& keep) {
+  require(n >= 0, "nsmallest: expected a positive integer for 'n'!\n");
+  require(keep == "first" || keep == "last" || keep == "all", 
+  "nsmallest: supported 'keep' can be all, first or last!\n");
+  return ksort_impl(*this, n, targets, keep, false);
 }
 
 // ---------- for dftable ----------
@@ -2202,27 +2443,6 @@ dftable dftable::union_tables(std::vector<dftable *>& ts, bool keep_order,
 
 dftable dftable::distinct() {
   return group_by(columns()).select(columns());
-}
-
-dftable dftable::drop_duplicates(const std::vector<std::string>& cols,
-                                 const std::string& keep) {
-  if(keep != "first" and keep != "last") 
-    REPORT_ERROR(USER_ERROR, 
-       "drop_duplicates: either first or last value can be kept!\n");
-
-  // assuming these names can not be in this->columns()
-  std::string tmpid = "tmp_index_", r_key = "t_join_r_key_";
-  std::shared_ptr<dfaggregator> agg;
-  if (keep == "first") agg = min_as(tmpid, r_key); 
-  else                 agg = max_as(tmpid, r_key); 
-
-  auto& left = append_rowid(tmpid); // adding int index to self
-  auto right = left.group_by(cols).select(cols, {agg});
-  // rename for join
-  for(size_t i = 0; i < cols.size(); ++i) right.rename(cols[i], cols[i] + "_");
-  auto ret = left.bcast_join(right, eq(tmpid, r_key));
-  left.drop(tmpid); // dropping tmpid from self
-  return ret.select(left.columns());
 }
 
 std::vector<size_t>

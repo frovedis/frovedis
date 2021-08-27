@@ -184,3 +184,14 @@ def get_python_scalar_type(val):
     elif dt == "float": # all floating point numbers in pythin3 is typed as 'float'
         dt = "double" 
     return dt
+
+def check_string_or_array_like(by, func): 
+    if isinstance(by, str):
+        ret_by = [by]
+    elif isinstance(by, (list, tuple, np.ndarray)): #iterable
+        ret_by = by
+    else:
+        raise TypeError(func + ": expected: string or array-like; "\
+                        "received: %s" % (type(by).__name__))
+    return ret_by
+

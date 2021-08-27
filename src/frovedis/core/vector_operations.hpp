@@ -78,6 +78,7 @@
  *    vector_max_value(x, y): reduction by max for two vector of pairs<T,I>, returns vector of max values
  *    vector_shift(x, from_id, to_id): shift all elements from 'from_id' index to 'to_id' index;
  *    vector_shift_inplace(x, tid): inplace version of the above to shift elements in input 'x' itself.
+ *    vector_reverse(x): to reverse the elements in vector x.
  *
  */
 
@@ -1658,6 +1659,24 @@ template <class T>
 void vector_clear(std::vector<T>& vec) {
   std::vector<T> tmp;
   tmp.swap(vec);
+}
+
+template <class T>
+std::vector<T>
+vector_reverse(const std::vector<T>& vec) {
+  auto vsz = vec.size();
+  std::vector<T> ret(vsz);
+  auto vp = vec.data();
+  auto rp = ret.data();
+  for(size_t i = 0; i < vsz / 2; ++i) {
+    rp[i] = vp[vsz - i - 1];
+    rp[vsz - i - 1] = vp[i];
+  }
+  if (vsz % 2 != 0) {
+    size_t mid = vsz / 2;
+    rp[mid] = vp[mid];
+  }
+  return ret;
 }
 
 }

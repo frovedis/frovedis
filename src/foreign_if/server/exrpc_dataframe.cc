@@ -55,7 +55,7 @@ exrpc_ptr_t create_dataframe (std::vector<short>& types,
                      dftblp->append_column(cols[i],std::move(*v4),true);
                      delete v4; break; }
       case STRING: { auto v5 = reinterpret_cast<dvector<std::string>*>(dvec_proxies[i]);
-                     if (nan_as_null) v5->mapv_partitions(treat_str_nan_as_null);
+                     //if (nan_as_null) v5->mapv_partitions(treat_str_nan_as_null);
                      dftblp->append_column(cols[i],std::move(*v5),true);
                      delete v5; break; }
       case BOOL:   { auto v6 = reinterpret_cast<dvector<int>*>(dvec_proxies[i]);
@@ -734,8 +734,8 @@ dummy_dftable
 frov_df_drop_duplicates(exrpc_ptr_t& df_proxy, 
                         std::vector<std::string>& cols,
                         std::string& keep) {
-  auto dftblp = get_dftable_pointer(df_proxy);
-  auto retp = new dftable(dftblp->drop_duplicates(cols, keep));
+  auto& df = *reinterpret_cast<dftable_base*>(df_proxy);
+  auto retp = new dftable(df.drop_duplicates(cols, keep));
   return to_dummy_dftable(retp);
 }
 
@@ -932,10 +932,17 @@ std::string frov_df_to_string(exrpc_ptr_t& df_proxy, bool& has_index) {
 dummy_dftable
 frov_df_dropna_by_rows(exrpc_ptr_t& df_proxy,
                        std::vector<std::string>& targets,
-                       std::string& how) {
+                       std::string& how,
+                       size_t& threshold) {
   auto df = reinterpret_cast<dftable_base*>(df_proxy);
-  auto ret = new dftable(df->drop_nulls_by_rows(how, targets));
-  return to_dummy_dftable(ret);
+  dftable ret;
+  if (threshold == std::numeric_limits<size_t>::max()) {
+    ret = df->drop_nulls_by_rows(how, targets);
+  } else {
+    ret = df->drop_nulls_by_rows(threshold, targets);
+  }
+  auto retp = new dftable(std::move(ret));
+  return to_dummy_dftable(retp);
 }
 
 dummy_dftable frov_df_head(exrpc_ptr_t& df_proxy,
@@ -978,5 +985,23 @@ frov_df_get_index_loc(exrpc_ptr_t& df_proxy, std::string& column,
                  REPORT_ERROR(USER_ERROR, msg);
   }
   return res;
+}
+
+dummy_dftable 
+frov_df_countna(exrpc_ptr_t& df_proxy, int& axis, bool& with_index) {
+  auto& df = *reinterpret_cast<dftable_base*>(df_proxy);
+  auto ret = new dftable(df.count_nulls(axis, with_index));
+  return to_dummy_dftable(ret);
+}
+
+dummy_dftable frov_df_ksort(exrpc_ptr_t& df_proxy, int& k,
+                            std::vector<std::string>& targets,
+                            std::string& keep,
+                            bool& is_desc) {
+  auto& df = *reinterpret_cast<dftable_base*>(df_proxy);
+  auto ret = is_desc ? df.nlargest(k, targets, keep)
+                     : df.nsmallest(k, targets, keep);
+  auto retp = new dftable(std::move(ret));
+  return to_dummy_dftable(retp);
 }
 

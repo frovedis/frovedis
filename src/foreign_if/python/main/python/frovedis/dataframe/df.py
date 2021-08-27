@@ -27,7 +27,7 @@ from .frovedisColumn import FrovedisColumn
 from .dfoperator import dfoperator
 from .dfutil import union_lists, infer_dtype, add_null_column_and_type_cast, \
                     infer_column_type_from_first_notna, get_string_typename, \
-                    get_python_scalar_type
+                    get_python_scalar_type, check_string_or_array_like
 from ..utils import deprecated
 from pandas.core.common import SettingWithCopyWarning
 
@@ -333,6 +333,17 @@ class DataFrame(object):
         return int(self.num_row)
 
     @property
+    def ndim(self):
+        """return dimension in input df"""
+        return 2
+
+    @ndim.setter
+    def ndim(self, val):
+        """ndim setter"""
+        raise AttributeError(\
+            "attribute 'ndim' of DataFrame object is not writable")
+
+    @property
     def count(self): # similar to spark dataframe 
         """return num_row in input df"""
         return len(self)
@@ -514,6 +525,7 @@ class DataFrame(object):
         ret = DataFrame(is_series=is_series)
         ret.__cols = copy.deepcopy(targets) #targets is a list
         ret.__types = [0]*len(targets)
+        ret.num_row = len(self) 
         i = 0
 
         for item in targets:
@@ -537,6 +549,65 @@ class DataFrame(object):
         if excpt["status"]:
             raise RuntimeError(excpt["info"])
         return ret
+
+
+    def nsort(self, n, columns, keep='first', is_desc=False):
+        """
+        returns top n sorted rows (in ascending or descending order)
+        """
+        func = "nlargest" if is_desc else "nsmallest"
+        if not isinstance(n, int):
+            raise TypeError(\
+            func + ": expected a positive integer for 'n' parameter!\n")
+        elif n < 0:
+            raise ValueError(\
+            func + ": expected a positive integer for 'n' parameter!\n")
+
+        if not isinstance(keep, str):
+            raise TypeError(\
+            func + ": expected a string for 'keep' parameter!\n")
+        elif keep != "all" and keep != "first" and keep != "last":
+            raise ValueError(func + ": supported 'keep' values are 'first', "\
+                             "'last' and 'all' only! receieved %s.\n" % (keep))
+
+        sort_by = check_string_or_array_like(columns, func)
+        for item in sort_by:
+            # TODO: confirm possibility of including index column
+            #if item not in self.columns and item != self.index.name:
+            if item not in self.columns: 
+                raise ValueError(func + ": No column named: ", item)
+
+        sz = len(sort_by) 
+        ptr_arr = get_string_array_pointer(sort_by)
+        (host, port) = FrovedisServer.getServerInstance()
+        dummy_df = rpclib.df_ksort(host, port, self.get(),
+                                   n, ptr_arr, sz, keep.encode('ascii'), 
+                                   is_desc)
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
+        names = dummy_df["names"]
+        types = dummy_df["types"]
+        ret = DataFrame(is_series=self.is_series)
+        ret.num_row = dummy_df["nrow"]
+        if self.has_index():
+            ret.index = FrovedisColumn(names[0], types[0]) #setting index
+            ret.load_dummy(dummy_df["dfptr"], names[1:], types[1:])
+        else:
+            ret.load_dummy(dummy_df["dfptr"], names, types)
+        return ret
+
+    def nlargest(self, n, columns, keep='first'):
+        """
+        returns top n sorted rows in descending order
+        """
+        return self.nsort(n, columns, keep, is_desc=True)
+
+    def nsmallest(self, n, columns, keep='first'):
+        """
+        returns top n sorted rows in ascending order
+        """
+        return self.nsort(n, columns, keep, is_desc=False)
 
     def sort_index(self, axis=0, ascending=True, inplace=False,
                   kind='quicksort', na_position='last'):
@@ -576,16 +647,10 @@ class DataFrame(object):
 
         if self.__fdata is None:
             raise ValueError("sort: Operation on invalid frovedis dataframe!")
-        if type(by).__name__ == 'str':
-            sort_by = [by]
-        elif type(by).__name__ == 'list':
-            sort_by = by
-        else:
-            raise TypeError("sort: Expected: string|list; Received: ",
-                            type(by).__name__)
 
+        sort_by = check_string_or_array_like(by, "sort")
         for item in sort_by:
-            if item not in self.__cols and item != self.index.name:
+            if item not in self.columns and item != self.index.name:
                 raise ValueError("sort: No column named: ", item)
 
         sz = len(sort_by) 
@@ -614,6 +679,7 @@ class DataFrame(object):
         for item in ret.__cols:
             ret.__dict__[item] = self.__dict__[item]
         ret.index = self.index
+        ret.num_row = len(self) 
 
         #Making exrpc request for sorting.
         (host, port) = FrovedisServer.getServerInstance()
@@ -644,14 +710,8 @@ class DataFrame(object):
         """
         from frovedis.dataframe import grouped_df
         if self.__fdata is None:
-            raise ValueError("Operation on invalid frovedis dataframe!")
-        if isinstance(by, str):
-            g_by = [by]
-        elif isinstance(by, list):
-            g_by = by
-        else:
-            raise TypeError("Expected: string|list; Received: ",
-                            type(by).__name__)
+            raise ValueError(\
+            "groupby: operation on invalid frovedis dataframe!")
 
         if axis != 0:
             raise NotImplementedError(\
@@ -661,6 +721,7 @@ class DataFrame(object):
             raise NotImplementedError( \
             "groupby: level is currently not supported!")
 
+        g_by = check_string_or_array_like(by, "groupby")
         types = []
         for item in g_by:
             if item not in self.__cols:
@@ -959,6 +1020,7 @@ class DataFrame(object):
             for item in ret.__cols:
                 ret.__dict__[item] = self.__dict__[item]
             ret.index = self.index
+            ret.num_row = len(self) 
         else:
             ret = self
 
@@ -998,6 +1060,7 @@ class DataFrame(object):
             ret.__types = copy.deepcopy(self.__types)
             for item in ret.__cols:
                 ret.__dict__[item] = self.__dict__[item]
+            ret.num_row = len(self) 
         else:
             ret = self
 
@@ -1254,16 +1317,16 @@ class DataFrame(object):
    
         # whether to extract index column from the dataframe
         if orient == "dict" or include_index:
-            if not self.has_index():
-                raise ValueError(\
-                "to_dict: dataframe doesn't have an index column!\n")
-            indx_dvec = rpclib.get_frovedis_col(host, port, self.get(),
-                                           self.index.name.encode('ascii'),
-                                           self.index.dtype)
-            excpt = rpclib.check_server_exception()
-            if excpt["status"]:
-                raise RuntimeError(excpt["info"])
-            indx_arr = FrovedisDvector(indx_dvec).to_numpy_array()
+            if self.has_index():
+                indx_dvec = rpclib.get_frovedis_col(host, port, self.get(),
+                                               self.index.name.encode('ascii'),
+                                               self.index.dtype)
+                excpt = rpclib.check_server_exception()
+                if excpt["status"]:
+                    raise RuntimeError(excpt["info"])
+                indx_arr = FrovedisDvector(indx_dvec).to_numpy_array()
+            else:
+                indx_arr = np.arange(len(self), dtype=np.int64)
 
         if orient == "list" and include_index:
             out_data[self.index.name] = indx_arr
@@ -1280,7 +1343,7 @@ class DataFrame(object):
             #TODO: fix NULL conversion in case of string-vector; 
             #TODO: fix numeric to boolean conversion in case of boolean-vector
             if orient == "dict":
-                out_data[cc] = dict(zip(indx_arr, col_arr))
+                out_data[cc] = dict(zip(indx_arr, col_arr)) # this is very slow...
             else: # list
                 out_data[cc] = col_arr
 
@@ -2315,12 +2378,38 @@ class DataFrame(object):
             ret.load_dummy(dummy_df["dfptr"], names, types)
         return None if inplace else ret
 
+    # optimized implementation for query like "self.isna().sum(axis=0)"
+    def countna(self, axis=0):
+        """ counts number of missing values in the given axis """
+        if axis != 0 and axis != 1:
+            raise ValueError("countna: axis can be either 0 or 1!\n")
+        (host, port) = FrovedisServer.getServerInstance()
+        dummy_df = rpclib.df_countna(host, port, self.get(), \
+                                     axis, self.has_index())
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
+        # returns a series
+        ret = DataFrame(is_series=True)
+        names = dummy_df["names"]
+        types = dummy_df["types"]
+        ret.num_row = dummy_df["nrow"]
+        ret.index = FrovedisColumn(names[0], types[0]) #setting index
+        ret.load_dummy(dummy_df["dfptr"], names[1:], types[1:])
+        return ret
+       
     def dropna(self, axis=0, how='any', thresh=None, subset=None, inplace=False):
         """ drops rows/columns having null values"""
         if inplace:
             ret = self
         else:
             ret = DataFrame(is_series=self.is_series)
+
+        if thresh is None:
+            thresh = np.iinfo(np.uint).max
+        elif not isinstance(thresh, int):
+            raise ValueError(\
+            "dropna: expected an integer value for 'thresh' parameter!\n")
 
         (host, port) = FrovedisServer.getServerInstance()
         if axis == 0:   # dropna by rows (extraction subset: column names)
@@ -2330,7 +2419,7 @@ class DataFrame(object):
             targets_ptr = get_string_array_pointer(subset)
             dummy_df = rpclib.df_dropna_by_rows(host, port, \
                            self.get(), targets_ptr, sz, \
-                           how.encode('ascii'))
+                           how.encode('ascii'), thresh)
         elif axis == 1: # dropna by cols (extraction subset: index values)
             if not self.has_index():
                 raise ValueError(
@@ -2339,54 +2428,27 @@ class DataFrame(object):
             if subset is None:
                 subset = np.asarray([], dtype=np.int32) # int32: dummy type
                 sz = len(subset)
-                targets_ptr = subset.ctypes.data_as(POINTER(c_int))
-                dummy_df = rpclib.df_dropna_by_cols_with_int_icol( \
+                targets_ptr = subset.__array_interface__['data'][0]
+                dummy_df = rpclib.df_dropna_by_cols_with_numeric_icol( \
                                host, port, \
                                self.get(), index_nm, targets_ptr, sz, \
-                               how.encode('ascii'))
+                               how.encode('ascii'), thresh, DTYPE.INT)
             else:
                 tt = self.index.dtype
                 subset = np.asarray(subset, dtype=TypeUtil.to_numpy_dtype(tt))
                 sz = len(subset)
-                if tt == DTYPE.INT:
-                    targets_ptr = subset.ctypes.data_as(POINTER(c_int))
-                    dummy_df = rpclib.df_dropna_by_cols_with_int_icol( \
+                if tt != DTYPE.STRING:
+                    targets_ptr = subset.__array_interface__['data'][0]
+                    dummy_df = rpclib.df_dropna_by_cols_with_numeric_icol( \
                                    host, port, \
                                    self.get(), index_nm, targets_ptr, sz, \
-                                   how.encode('ascii'))
-                elif tt == DTYPE.LONG:
-                    targets_ptr = subset.ctypes.data_as(POINTER(c_long))
-                    dummy_df = rpclib.df_dropna_by_cols_with_long_icol( \
-                                   host, port, \
-                                   self.get(), index_nm, targets_ptr, sz, \
-                                   how.encode('ascii'))
-                elif tt == DTYPE.ULONG:
-                    targets_ptr = subset.ctypes.data_as(POINTER(c_ulong))
-                    dummy_df = rpclib.df_dropna_by_cols_with_ulong_icol( \
-                                   host, port, \
-                                   self.get(), index_nm, targets_ptr, sz, \
-                                   how.encode('ascii'))
-                elif tt == DTYPE.FLOAT:
-                    targets_ptr = subset.ctypes.data_as(POINTER(c_float))
-                    dummy_df = rpclib.df_dropna_by_cols_with_float_icol( \
-                                   host, port, \
-                                   self.get(), index_nm, targets_ptr, sz, \
-                                   how.encode('ascii'))
-                elif tt == DTYPE.DOUBLE:
-                    targets_ptr = subset.ctypes.data_as(POINTER(c_double))
-                    dummy_df = rpclib.df_dropna_by_cols_with_double_icol( \
-                                   host, port, \
-                                   self.get(), index_nm, targets_ptr, sz, \
-                                   how.encode('ascii'))
-                elif tt == DTYPE.STRING:
+                                   how.encode('ascii'), thresh, tt)
+                else:
                     targets_ptr = get_string_array_pointer(subset)
                     dummy_df = rpclib.df_dropna_by_cols_with_string_icol( \
                                    host, port, \
                                    self.get(), index_nm, targets_ptr, sz, \
-                                   how.encode('ascii'))
-                else:
-                    raise TypeError(\
-                    "dropna: Unsupported index column dtype is detected!")
+                                   how.encode('ascii'), thresh)
         else:
             raise ValueError(\
             "dropna: Unsupported axis parameter: '%d'" % (axis))

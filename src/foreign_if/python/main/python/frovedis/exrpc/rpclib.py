@@ -417,52 +417,37 @@ df_fillna.argtypes = [c_char_p, c_int, c_long, # host, port, proxy
                       c_char_p, c_bool]        # fill_value, has_index
 df_fillna.restype = py_object
 
+df_countna = LIB.df_countna
+df_countna.argtypes = [c_char_p, c_int, c_long, # host, port, proxy
+                       c_int, c_bool]           # axis, with_index
+df_countna.restype = py_object
+
+df_ksort = LIB.df_ksort
+df_ksort.argtypes = [c_char_p, c_int, c_long,    # host, port, proxy
+                     c_int,                      # k
+                     POINTER(c_char_p), c_ulong, # targets_ptr, sz
+                     c_char_p, c_bool]           # keep, is_desc
+df_ksort.restype = py_object
+
 df_dropna_by_rows = LIB.df_dropna_by_rows
 df_dropna_by_rows.argtypes = [c_char_p, c_int, c_long,    # host, port, proxy
                               POINTER(c_char_p), c_ulong, # targets_ptr, sz
-                              c_char_p]                   # how
+                              c_char_p, c_ulong]          # how, thresh
 df_dropna_by_rows.restype = py_object
 
-df_dropna_by_cols_with_int_icol = LIB.df_dropna_by_cols_with_int_icol
-df_dropna_by_cols_with_int_icol.argtypes = [
-                              c_char_p, c_int, c_long,   # host, port, proxy
-                              c_char_p, POINTER(c_int),  # index_nm, targets_ptr
-                              c_ulong, c_char_p]         # sz, how
-df_dropna_by_cols_with_int_icol.restype = py_object
-
-df_dropna_by_cols_with_long_icol = LIB.df_dropna_by_cols_with_long_icol
-df_dropna_by_cols_with_long_icol.argtypes = [
+df_dropna_by_cols_with_numeric_icol = LIB.df_dropna_by_cols_with_numeric_icol
+df_dropna_by_cols_with_numeric_icol.argtypes = [
                               c_char_p, c_int, c_long,    # host, port, proxy
-                              c_char_p, POINTER(c_long),  # index_nm, targets_ptr
-                              c_ulong, c_char_p]          # sz, how
-df_dropna_by_cols_with_long_icol.restype = py_object
-
-df_dropna_by_cols_with_ulong_icol = LIB.df_dropna_by_cols_with_ulong_icol
-df_dropna_by_cols_with_ulong_icol.argtypes = [
-                              c_char_p, c_int, c_long,     # host, port, proxy
-                              c_char_p, POINTER(c_ulong),  # index_nm, targets_ptr
-                              c_ulong, c_char_p]           # sz, how
-df_dropna_by_cols_with_ulong_icol.restype = py_object
-
-df_dropna_by_cols_with_float_icol = LIB.df_dropna_by_cols_with_float_icol
-df_dropna_by_cols_with_float_icol.argtypes = [
-                              c_char_p, c_int, c_long,     # host, port, proxy
-                              c_char_p, POINTER(c_float),  # index_nm, targets_ptr
-                              c_ulong, c_char_p]           # sz, how
-df_dropna_by_cols_with_float_icol.restype = py_object
-
-df_dropna_by_cols_with_double_icol = LIB.df_dropna_by_cols_with_double_icol
-df_dropna_by_cols_with_double_icol.argtypes = [
-                              c_char_p, c_int, c_long,      # host, port, proxy
-                              c_char_p, POINTER(c_double),  # index_nm, targets_ptr
-                              c_ulong, c_char_p]            # sz, how
-df_dropna_by_cols_with_double_icol.restype = py_object
+                              c_char_p, c_void_p,         # index_nm, targets_ptr
+                              c_ulong, c_char_p,          # sz, how
+                              c_ulong, c_short]           # thresh, dtype
+df_dropna_by_cols_with_numeric_icol.restype = py_object
 
 df_dropna_by_cols_with_string_icol = LIB.df_dropna_by_cols_with_string_icol
 df_dropna_by_cols_with_string_icol.argtypes = [
                               c_char_p, c_int, c_long,      # host, port, proxy
                               c_char_p, POINTER(c_char_p),  # index_nm, targets_ptr
-                              c_ulong, c_char_p]            # sz, how
+                              c_ulong, c_char_p, c_ulong]   # sz, how, thresh
 df_dropna_by_cols_with_string_icol.restype = py_object
 
 df_to_string = LIB.df_to_string

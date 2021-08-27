@@ -368,17 +368,25 @@ std::string frov_df_to_string(exrpc_ptr_t& df_proxy, bool& has_index);
 dummy_dftable
 frov_df_dropna_by_rows(exrpc_ptr_t& df_proxy,
                        std::vector<std::string>& targets,
-                       std::string& how);
+                       std::string& how,
+                       size_t& threshold);
 
 template <class T>
 dummy_dftable
 frov_df_dropna_by_cols(exrpc_ptr_t& df_proxy,
                        std::string& tcol,
                        std::vector<T>& targets,
-                       std::string& how) {
+                       std::string& how,
+                       size_t& threshold) {
   auto df = reinterpret_cast<dftable_base*>(df_proxy);
-  auto ret = new dftable(df->drop_nulls_by_cols(how, tcol, targets));
-  return to_dummy_dftable(ret);
+  dftable ret;
+  if (threshold == std::numeric_limits<size_t>::max()) {
+    ret = df->drop_nulls_by_cols(how, tcol, targets);
+  } else {
+    ret = df->drop_nulls_by_cols(threshold, tcol, targets);
+  }
+  auto retp = new dftable(std::move(ret));
+  return to_dummy_dftable(retp);
 }
 
 
@@ -395,4 +403,11 @@ frov_df_get_index_loc(exrpc_ptr_t& df_proxy,
                       std::string& value,
                       short& dtype);
 
+dummy_dftable frov_df_countna(exrpc_ptr_t& df_proxy, 
+                              int& axis, bool& with_index);
+
+dummy_dftable frov_df_ksort(exrpc_ptr_t& df_proxy, int& k,
+                            std::vector<std::string>& targets,
+                            std::string& keep,
+                            bool& is_desc);
 #endif

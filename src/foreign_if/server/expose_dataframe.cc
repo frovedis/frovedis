@@ -95,4 +95,6 @@ void expose_frovedis_dataframe_functions() {
   expose(frov_df_tail);
   expose(frov_df_slice_range);
   expose(frov_df_get_index_loc);
+  expose(frov_df_countna);
+  expose(frov_df_ksort);
 }

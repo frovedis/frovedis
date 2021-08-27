@@ -4755,6 +4755,7 @@ bool vector_is_unique(const std::vector<T>& vec) {
 template <class T>
 bool typed_dfcolumn<T>::is_unique() {
   auto& typed_col = dynamic_cast<typed_dfcolumn<T>&>(*this);
+  // TODO: optimize without gathering the column
   auto key = typed_col.get_val().template viewas_dvector<T>().gather();
   auto nulls_count = typed_col.get_nulls().template viewas_dvector<size_t>().size();
   return (nulls_count <= 1) && vector_is_unique(key);

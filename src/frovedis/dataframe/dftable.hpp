@@ -171,6 +171,8 @@ public:
   dftable is_not_in_im(const std::string& target_col,
                        const std::vector<T>& target_values); // defined in dfoperator.hpp
 
+  dftable drop_duplicates(const std::vector<std::string>& cols, 
+                          const std::string& keep = "first");
   template <class T>
   dftable drop_rows(const std::string& target_col,
                     const std::vector<T>& target_values); // defined in dfoperator.hpp
@@ -183,12 +185,28 @@ public:
   // To allow user to simply call like: df.drop_nulls_by_cols();
   // T: defaults to size_t (can be any type though, just for compilation...) 
   template <class T = size_t> 
-  dftable drop_nulls_by_cols(const std::string& how="any", 
+  dftable drop_nulls_by_cols(const std::string& how="any",
+                             const std::string& target_col="", // if empty, uses columns()[0]
+                             const std::vector<T>& target_values = std::vector<T>());
+ 
+  template <class T = size_t> 
+  dftable drop_nulls_by_cols(size_t threshold = std::numeric_limits<size_t>::max(), 
                              const std::string& target_col="", // if empty, uses columns()[0]
                              const std::vector<T>& target_values = std::vector<T>());
  
   dftable drop_nulls_by_rows(const std::string& how="any", // defined in dftable.cc
                              const std::vector<std::string>& targets = std::vector<std::string>());
+
+  dftable drop_nulls_by_rows(size_t threshold = std::numeric_limits<size_t>::max(), // defined in dftable.cc
+                             const std::vector<std::string>& targets = std::vector<std::string>());
+
+  dftable count_nulls(int axis = 0, bool with_index = false);
+
+  dftable nlargest(int n, const std::vector<std::string>& targets, 
+                   const std::string& keep="first");
+
+  dftable nsmallest(int n, const std::vector<std::string>& targets, 
+                    const std::string& keep="first");
 
 protected:
   std::map<std::string, std::shared_ptr<dfcolumn>> col;
@@ -357,8 +375,6 @@ public:
     return union_tables(ts, keep_order, keep_dftable);
   }
   dftable distinct();
-  dftable drop_duplicates(const std::vector<std::string>& cols, 
-                          const std::string& keep = "first");
   virtual dftable_base* clone();
   virtual dftable_base* drop_cols(const std::vector<std::string>& cols);
   virtual dftable_base* rename_cols(const std::string& name,
@@ -1164,19 +1180,35 @@ dftable make_sliced_dftable(dftable_base& t, size_t st,
 
 dftable drop_nulls_by_cols_impl(dftable_base& df, 
                                 dftable_base& sliced_df, 
-                                const std::string& how);
+                                const std::string& how,
+                                size_t threshold = std::numeric_limits<size_t>::max());
 
 template <class T>
 dftable dftable_base::drop_nulls_by_cols(const std::string& how,
                                          const std::string& target_col,
                                          const std::vector<T>& target_values) {
+  require(how == "any" || how == "all", "drop nulls using how: '" + how + "' is not supported!\n");
   if (target_values.empty()) { // uses each column of full table for null checks
     return drop_nulls_by_cols_impl(*this, *this, how); 
   }
   else {  // uses each column of sliced table for null checks
     auto tcol = target_col == "" ? columns()[0] : target_col;
     auto sliced_df = select_rows(tcol, target_values);
-    return drop_nulls_by_cols_impl(*this, sliced_df, how); 
+    return drop_nulls_by_cols_impl(*this, sliced_df, how);
+  }
+}
+
+template <class T>
+dftable dftable_base::drop_nulls_by_cols(size_t threshold,
+                                         const std::string& target_col,
+                                         const std::vector<T>& target_values) {
+  if (target_values.empty()) { // uses each column of full table for null checks
+    return drop_nulls_by_cols_impl(*this, *this, "", threshold);
+  }
+  else {  // uses each column of sliced table for null checks
+    auto tcol = target_col == "" ? columns()[0] : target_col;
+    auto sliced_df = select_rows(tcol, target_values);
+    return drop_nulls_by_cols_impl(*this, sliced_df, "", threshold);
   }
 }
 
