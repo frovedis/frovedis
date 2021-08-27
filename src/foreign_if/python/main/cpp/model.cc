@@ -3271,5 +3271,31 @@ void fpgrowth_rules(const char* host, int port,
     }
     return ret_ptr;
   }
+
+  // scaler std
+  PyObject* get_scaler_std_vector(const char* host, int port,
+                                    int mid, short mdtype) {
+    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
+    exrpc_node fm_node(host,port);
+    PyObject* ret_ptr = NULL;
+    try {
+      if(mdtype == FLOAT) {
+        std::vector<float> std_vector;
+        std_vector = exrpc_async(fm_node,get_scaler_std<DT2>,mid).get();
+        ret_ptr = to_python_float_list(std_vector);
+      }
+      else if(mdtype == DOUBLE) {
+        std::vector<double> std_vector;
+        std_vector = exrpc_async(fm_node,get_scaler_std<DT1>,mid).get();
+        ret_ptr =  to_python_double_list(std_vector);
+      }
+      else REPORT_ERROR(USER_ERROR,"model dtype can either be float or double!\n");
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return ret_ptr;
+  }
+    
     
 }
