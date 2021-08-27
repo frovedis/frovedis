@@ -1264,4 +1264,11 @@ get_scaler_var(int& mid) {
   return scaler_obj.var;
 }
 
+template <class T>
+std::vector<T>
+get_scaler_std(int& mid) {
+  auto& scaler_obj = *get_model_ptr<standard_scaler<T>>(mid);
+  return scaler_obj.stddev;
+}
+
 #endif 

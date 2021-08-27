@@ -731,5 +731,7 @@ void expose_frovedis_model_functions() {
   expose(get_scaler_mean<DT2>); // for python
 
   expose(get_scaler_var<DT1>); // for python
-  expose(get_scaler_var<DT2>); // for python    
+  expose(get_scaler_var<DT2>); // for python
+  expose(get_scaler_std<DT1>); // for python
+  expose(get_scaler_std<DT2>); // for python    
 }
