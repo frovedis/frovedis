@@ -2204,3 +2204,8 @@ get_scaler_mean.restype = py_object
 get_scaler_var = LIB.get_scaler_var_vector
 get_scaler_var.argtypes = [c_char_p, c_int, c_int, c_short]
 get_scaler_var.restype = py_object
+
+#----scale attribute-----#
+get_scaler_std = LIB.get_scaler_std_vector
+get_scaler_std.argtypes = [c_char_p, c_int, c_int, c_short]
+get_scaler_std.restype = py_object
