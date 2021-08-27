@@ -32,6 +32,7 @@ class StandardScaler(BaseEstimator):
         # extra
         self._mean = None
         self._var = None
+        self._scale = None
         self.__mid = None
         self.__mdtype = None
 
@@ -47,9 +48,9 @@ class StandardScaler(BaseEstimator):
             raise ValueError(F + ": To centerize sparse data" \
                              + " use with_mean= False!")
         if self.with_mean is None:
-            self.with_mean = True
+            self.with_mean = False
         if self.with_std is None:
-            self.with_std = True
+            self.with_std = False
         return X, dtype, itype, dense
 
     def fit(self, X, y = None, sample_weight = None):
@@ -142,7 +143,7 @@ class StandardScaler(BaseEstimator):
             excpt = rpclib.check_server_exception()
             if excpt["status"]:
                 raise RuntimeError(excpt["info"])
-            self._mean = mean_vector
+            self._mean = np.asarray(mean_vector, dtype=np.float64)
         return self._mean
 
     @mean_.setter
@@ -164,7 +165,7 @@ class StandardScaler(BaseEstimator):
             excpt = rpclib.check_server_exception()
             if excpt["status"]:
                 raise RuntimeError(excpt["info"])
-            self._var = var_vector
+            self._var = np.asarray(var_vector, dtype=np.float64)
         return self._var
 
     @var_.setter
@@ -173,6 +174,28 @@ class StandardScaler(BaseEstimator):
         raise AttributeError(\
         "attribute 'var_' of Standard Scaler is not writable")
 
+    @property
+    @check_association
+    def scale_(self):
+        """
+        NAME: scale_
+        """
+        if self._scale is None:
+            (host, port) = FrovedisServer.getServerInstance()
+            std_vector = rpclib.get_scaler_std(host, port, self.__mid, \
+                                                  self.__mdtype)
+            excpt = rpclib.check_server_exception()
+            if excpt["status"]:
+                raise RuntimeError(excpt["info"])
+            self._scale = np.asarray(std_vector, dtype=np.float64)
+        return self._scale
+
+    @scale_.setter
+    def scale_(self, val):
+        """Setter method for var__ """
+        raise AttributeError(\
+        "attribute 'scale_' of Standard Scaler is not writable")        
+
     def release(self):
         """
         resets after-fit populated attributes to None
@@ -180,6 +203,7 @@ class StandardScaler(BaseEstimator):
         self.__release_server_heap()
         self._mean = None
         self._var = None
+        self._scale = None
         self.__mid = None
         self.__mdtype = None
         self.__itype = None
