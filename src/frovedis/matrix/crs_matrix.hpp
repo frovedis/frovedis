@@ -3327,6 +3327,74 @@ extract_rows(crs_matrix<T,I,O>& mat,
   auto loc_ids = align_global_index(mat, rowids);
   return extract_rows(mat, loc_ids, need_transpose);
 }
+    
+template <class T, class I, class O>    
+crs_matrix_local<T,I,O>
+slice_crs_matrix(crs_matrix_local<T,I,O>& mat,
+                 size_t start, size_t end,
+                 T alpha) {
+
+  auto nrows = end - start + 1;    
+  auto ncols = mat.local_num_col;
+  const T* valp = mat.val.data();
+  const I* idxp = mat.idx.data();
+  const O* offp = mat.off.data();
+    
+  //Extract
+  crs_matrix_local<T,I,O> ret(nrows, ncols);  
+  size_t num_elements = offp[end + 1]  - offp[start];
+  ret.val.resize(num_elements);
+  ret.idx.resize(num_elements);
+  ret.off.resize(nrows + 1);
+
+  auto roffp = ret.off.data();
+  auto ridxp = ret.idx.data();
+  auto rvalp = ret.val.data();    
+    
+  auto mval_itr = valp + offp[start];
+  auto midx_itr = idxp + offp[start];     
+  for(size_t i = 0; i < num_elements; ++i) {
+    rvalp[i] = mval_itr[i] * alpha;
+    ridxp[i] = midx_itr[i];  
+  }    
+
+  roffp[0] = 0; 
+  auto offp_st = offp + start;
+  for(size_t j = 0; j < nrows; ++j) 
+    roffp[j + 1] = roffp[j] + (offp_st[j + 1] - offp_st[j]);
+    
+  return ret;  
+}
+    
+template <class T, class I, class O>
+rowmajor_matrix_local<T>
+mult_sliceA_trans_sliceB(crs_matrix_local<T,I,O>& mat, 
+                         size_t st1, size_t end1,
+                         size_t st2, size_t end2,
+                         T alpha = 1,
+                         T beta = 1) {
+  
+  /*result = alpha.MAT * MAT.transpose + beta * result*/
+  auto mat_a = slice_crs_matrix(mat, st1, end1, alpha); //apply alpha while slicing
+  auto mat_b = slice_crs_matrix(mat, st2, end2, (T)1.0); 
+  mat_b = mat_b.transpose();
+    
+  mat.clear(); //save memory
+    
+  rowmajor_matrix_local<T> ret(mat_a.local_num_row, mat_b.local_num_col);
+  auto retp = ret.val.data();
+  auto sz = ret.val.size(); 
+  /*result * beta;*/  
+  for(size_t i = 0; i < sz; ++i) retp[i] = retp[i] * beta;
+    
+  /*alpha.MAT * MAT.transpose*/  
+  auto mul_ret = crs_mm(mat_a, mat_b);  
+  /*add to result*/  
+  ret = ret + mul_ret;
+    
+  return ret;    
+}
+    
 
 }
 #endif
