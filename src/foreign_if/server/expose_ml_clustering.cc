@@ -24,6 +24,10 @@ void expose_frovedis_clustering_functions() {
   // (2) hierarchical clustering
   expose((frovedis_aca<DT1,R_MAT1>));  // python+spark case (fit-predict)
   expose((frovedis_aca<DT2,R_MAT2>));  // python case (fit-predict)
+  expose((frovedis_aca<DT1,S_MAT14>));  // python+spark case (fit-predict)
+  expose((frovedis_aca<DT2,S_MAT24>));  // python case (fit-predict)
+  expose((frovedis_aca<DT1,S_MAT15>));  // python+spark case (fit-predict)
+  expose((frovedis_aca<DT2,S_MAT25>));  // python case (fit-predict)    
   // (3) spectral clustering
   expose((frovedis_sca<DT1,R_MAT1>));
   expose((frovedis_sca<DT2,R_MAT2>)); // python case
