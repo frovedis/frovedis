@@ -1307,30 +1307,40 @@ class DataFrame(object):
             "to_dict: supported only dictionary as per return type!\n")
         return self.__to_dict_impl(orient=orient, into=into)
 
+    def __get_index_column(self):
+        """ returns index column if present """
+        if not self.has_index():
+            raise ValueError("input dataframe doesn't have index column!\n")
+
+        (host, port) = FrovedisServer.getServerInstance()
+        indx_dvec = rpclib.get_frovedis_col(host, port, self.get(),
+                                       self.index.name.encode('ascii'),
+                                       self.index.dtype)
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
+        return FrovedisDvector(indx_dvec).to_numpy_array()
+
     def __to_dict_impl(self, orient="dict", into=dict, include_index=True):
         """
         helper for to_dict
         """
 
         out_data = {}
-        (host, port) = FrovedisServer.getServerInstance()
-   
-        # whether to extract index column from the dataframe
-        if orient == "dict" or include_index:
+        if orient == "dict": # presence of index is must 
             if self.has_index():
-                indx_dvec = rpclib.get_frovedis_col(host, port, self.get(),
-                                               self.index.name.encode('ascii'),
-                                               self.index.dtype)
-                excpt = rpclib.check_server_exception()
-                if excpt["status"]:
-                    raise RuntimeError(excpt["info"])
-                indx_arr = FrovedisDvector(indx_dvec).to_numpy_array()
+                indx_arr = self.__get_index_column()
             else:
                 indx_arr = np.arange(len(self), dtype=np.int64)
-
-        if orient == "list" and include_index:
-            out_data[self.index.name] = indx_arr
-
+        elif orient == "list": 
+            if include_index and self.has_index(): # extract index, if presents
+                out_data[self.index.name] = self.__get_index_column()
+                
+        else:
+            raise ValueError("to_dict: supported 'orient' values are " \
+                             "'dict' and 'list' only!\n")
+    
+        (host, port) = FrovedisServer.getServerInstance()
         for i in range(0, len(self.columns)):
             cc = self.__cols[i]
             tt = self.__types[i]
