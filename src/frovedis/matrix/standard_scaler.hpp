@@ -45,7 +45,6 @@ template <class MATRIX>
 void
 standard_scaler<T>::increment_mean_and_var(MATRIX& mat, std::vector<T>& last_mean,
                                            std::vector<T>& last_var, size_t& sample_count) {
-
   std::vector<T> last_sum, new_sum;
   size_t updated_sample_count;
   if(with_mean || with_std){
@@ -64,11 +63,14 @@ standard_scaler<T>::increment_mean_and_var(MATRIX& mat, std::vector<T>& last_mea
     auto new_unnormalized_variance = new_var * mat.num_row;
 
     T last_over_new_count = sample_count ? (sample_count / mat.num_row) : 0;
-
+    std::vector<T> last_sum_div;  
+    if(last_over_new_count == 0) last_sum_div = vector_zeros<T>(mat.num_col);
+    else last_sum_div = last_sum / last_over_new_count;
+     
     auto updated_unnormalized_variance =
     (last_unnormalized_variance + new_unnormalized_variance +
                   last_over_new_count / updated_sample_count *
-                  vector_pow((last_sum / last_over_new_count - new_sum), 2));
+                  vector_pow((last_sum_div - new_sum), 2));
 
     last_var = vector_astype<T>(updated_unnormalized_variance / updated_sample_count);
   } 
