@@ -772,8 +772,36 @@ extern "C" {
                    "Unsupported dtype of input dense data for training!\n");
         }
       }
-      else  REPORT_ERROR(USER_ERROR, 
-            "Frovedis doesn't support input sparse data for agglomerative clustering!\n");
+      else {
+        switch(dtype) {
+          case FLOAT: 
+            {
+            if(itype == INT) 
+              pred = exrpc_async(fm_node,(frovedis_aca<DT2,S_MAT24>),
+                                 f_xptr,mid,linkages,k,(float)threshold,vb,mvbl).get();
+            else if(itype == LONG) 
+              pred = exrpc_async(fm_node,(frovedis_aca<DT2,S_MAT25>),
+                                 f_xptr,mid,linkages,k,(float)threshold,vb,mvbl).get();
+            else REPORT_ERROR(USER_ERROR, 
+                 "Unsupported itype of input sparse data for training!\n");
+            break;
+          }
+          case DOUBLE: 
+          {
+            if(itype == INT) 
+              pred = exrpc_async(fm_node,(frovedis_aca<DT1,S_MAT14>),
+                                 f_xptr,mid,linkages,k,threshold,vb,mvbl).get();
+            else if(itype == LONG) 
+              pred = exrpc_async(fm_node,(frovedis_aca<DT1,S_MAT15>),
+                                 f_xptr,mid,linkages,k,threshold,vb,mvbl).get();
+            else REPORT_ERROR(USER_ERROR, 
+                 "Unsupported itype of input sparse data for training!\n");
+            break;
+          }
+          default: REPORT_ERROR(USER_ERROR, 
+                   "Unsupported dtype of input sparse data for training!\n");
+        }                
+      }
       auto sz = pred.size();
       checkAssumption(len == sz);
       for(size_t i=0; i<sz; ++i) {ret[i] = static_cast<long>(pred[i]);}
