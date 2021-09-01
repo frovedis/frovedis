@@ -186,12 +186,39 @@ def get_python_scalar_type(val):
     return dt
 
 def check_string_or_array_like(by, func): 
+    """ checks if the given input 'by' is a string or array-like """
     if isinstance(by, str):
         ret_by = [by]
     elif isinstance(by, (list, tuple, np.ndarray)): #iterable
-        ret_by = by
+        ret_by = np.unique(by) # excludes redundant values, if any
     else:
         raise TypeError(func + ": expected: string or array-like; "\
                         "received: %s" % (type(by).__name__))
     return ret_by
 
+def check_stat_error(axis, skipna, level):
+    """ 
+    checks the given parameters for the statistical functions
+    like sum, mean, var etc. 
+    """
+    if level is not None:
+        raise ValueError("'level' parameter is not cutrrently supported!\n")
+
+    if axis not in [None, 0, 1, "index", "columns"]:
+        raise ValueError("No axis named '%s' for DataFrame object" % str(axis))
+    if axis is None or axis == "index":
+        axis_ = 0
+    elif axis == "columns":
+        axis_ = 1
+    else:
+        axis_ = axis
+
+    if skipna not in [None, True, False]:
+        raise ValueError(\
+        "skipna='%s' is not supported currently!\n" % str(skipna))
+    if skipna is None:
+        skipna_ = True
+    else:
+        skipna_ = skipna
+
+    return axis_, skipna_

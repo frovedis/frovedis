@@ -105,7 +105,7 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_releaseFrovedisDa
   auto fm_node = java_node_to_frovedis_node(env, master_node);
   auto df_proxy = static_cast<exrpc_ptr_t> (proxy);
   try {
-    exrpc_oneway(fm_node,release_data<dftable>,df_proxy);
+    exrpc_oneway(fm_node, release_data<dftable_base>, df_proxy);
   }
   catch(std::exception& e) { set_status(true,e.what()); }
 }
@@ -116,7 +116,7 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_releaseFrovedisGr
   auto fm_node = java_node_to_frovedis_node(env, master_node);
   auto df_proxy = static_cast<exrpc_ptr_t> (proxy);
   try {
-    exrpc_oneway(fm_node,release_data<grouped_dftable>,df_proxy);
+    exrpc_oneway(fm_node, release_data<grouped_dftable>, df_proxy);
   }
   catch(std::exception& e) { set_status(true,e.what()); }
 }

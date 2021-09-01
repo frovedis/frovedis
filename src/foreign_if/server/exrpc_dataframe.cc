@@ -55,7 +55,7 @@ exrpc_ptr_t create_dataframe (std::vector<short>& types,
                      dftblp->append_column(cols[i],std::move(*v4),true);
                      delete v4; break; }
       case STRING: { auto v5 = reinterpret_cast<dvector<std::string>*>(dvec_proxies[i]);
-                     //if (nan_as_null) v5->mapv_partitions(treat_str_nan_as_null);
+                     if (nan_as_null) v5->mapv_partitions(treat_str_nan_as_null);
                      dftblp->append_column(cols[i],std::move(*v5),true);
                      delete v5; break; }
       case BOOL:   { auto v6 = reinterpret_cast<dvector<int>*>(dvec_proxies[i]);
@@ -147,11 +147,18 @@ exrpc_ptr_t select_df(exrpc_ptr_t& df_proxy,
 }
 
 exrpc_ptr_t isnull_df(exrpc_ptr_t& df_proxy,
-                      std::vector<std::string>& cols) {
+                      std::vector<std::string>& cols,
+                      bool& with_index) {
   auto& dftbl = *reinterpret_cast<dftable_base*>(df_proxy);
-  auto r_df_ptr = new dftable(dftbl.isnull(cols));
-  if (!r_df_ptr) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed.\n");
-  return reinterpret_cast<exrpc_ptr_t> (r_df_ptr);
+  auto ret = dftbl.isnull(cols);
+  if (with_index) {
+    auto icol = dftbl.columns()[0];
+    use_dfcolumn use(dftbl.raw_column(icol));
+    ret.append_column(icol, dftbl.column(icol)).change_col_position(icol, 0);
+  }
+  auto retp = new dftable(std::move(ret));
+  if (!retp) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed.\n");
+  return reinterpret_cast<exrpc_ptr_t> (retp);
 }
 
 void drop_df_cols(exrpc_ptr_t& df_proxy,
@@ -880,6 +887,27 @@ frov_df_copy_column(exrpc_ptr_t& to_df,
   return to_dummy_dftable(to_df_p);
 }
 
+void fillna_helper(dftable& ret, const std::string& cname, 
+                   std::shared_ptr<dfcolumn>& dfcol, 
+                   double fillv) {
+  if (dfcol->dtype() == "int")
+    ret.append_column(cname, fillna_column<int>(dfcol, fillv));
+  else if (dfcol->dtype() == "unsigned int")
+    ret.append_column(cname, fillna_column<unsigned int>(dfcol, fillv));
+  else if (dfcol->dtype() == "long")
+    ret.append_column(cname, fillna_column<long>(dfcol, fillv));
+  else if (dfcol->dtype() == "unsigned long")
+    ret.append_column(cname, fillna_column<unsigned long>(dfcol, fillv));
+  else if (dfcol->dtype() == "float")
+    ret.append_column(cname, fillna_column<float>(dfcol, fillv));
+  else if (dfcol->dtype() == "double")
+    ret.append_column(cname, fillna_column<double>(dfcol, fillv));
+  else {
+    REPORT_ERROR(USER_ERROR,
+    "fillna: unsupported column type: " + dfcol->dtype());
+  }
+}
+
 // TODO: make a function of dftable class
 dftable fillna(dftable& df, 
                std::string& fill_value, 
@@ -887,30 +915,16 @@ dftable fillna(dftable& df,
   dftable ret;
   size_t i = 0;
   auto cols = df.columns();
-  if (has_index) {
+  if (has_index) { // fillna is not applied on index column
     i = 1;
+    use_dfcolumn use(df.raw_column(cols[0]));
     ret.append_column(cols[0], df.column(cols[0]));
   }
   auto fillv = do_cast<double>(fill_value); // might raise exception
   for (; i < cols.size(); ++i) {
+    use_dfcolumn use(df.raw_column(cols[i]));
     auto dfcol = df.column(cols[i]);
-    use_dfcolumn use(dfcol);
-    if (dfcol->dtype() == "int")
-      ret.append_column(cols[i], fillna_column<int>(dfcol, fillv));
-    else if (dfcol->dtype() == "unsigned int")
-      ret.append_column(cols[i], fillna_column<unsigned int>(dfcol, fillv));
-    else if (dfcol->dtype() == "long")
-      ret.append_column(cols[i], fillna_column<long>(dfcol, fillv));
-    else if (dfcol->dtype() == "unsigned long")
-      ret.append_column(cols[i], fillna_column<unsigned long>(dfcol, fillv));
-    else if (dfcol->dtype() == "float")
-      ret.append_column(cols[i], fillna_column<float>(dfcol, fillv));
-    else if (dfcol->dtype() == "double")
-      ret.append_column(cols[i], fillna_column<double>(dfcol, fillv));
-    else {
-      REPORT_ERROR(USER_ERROR,
-      "fillna: unsupported column type: " + dfcol->dtype());
-    }
+    fillna_helper(ret, cols[i], dfcol, fillv);
   }
   return ret;
 }
@@ -1005,3 +1019,81 @@ dummy_dftable frov_df_ksort(exrpc_ptr_t& df_proxy, int& k,
   return to_dummy_dftable(retp);
 }
 
+// TODO: move the implementation in dataframe library
+dummy_dftable frov_df_mean(exrpc_ptr_t& df_proxy, 
+                           std::vector<std::string>& cols,
+                           int& axis, bool& skip_na, 
+                           bool& with_index) {
+  auto& df = *reinterpret_cast<dftable_base*>(df_proxy);
+  std::string index_nm = "index";
+  if (with_index) index_nm = df.columns()[0]; // 0th column is always treated as index
+
+  dftable ret;
+  auto ncol = cols.size();
+  if (axis == 0) { // simply calculates the avg of each column one-by-one
+    std::vector<double> mean_res(ncol);
+    if (skip_na) {
+      for (size_t i = 0; i < ncol; ++i) mean_res[i] = df.avg(cols[i]);
+    } else {
+      auto tmax = std::numeric_limits<double>::max();
+      for (size_t i = 0; i < ncol; ++i) {
+        auto cname = cols[i];
+        use_dfcolumn use(df.raw_column(cname));
+        if (df.column(cname)->if_contain_nulls()) mean_res[i] = tmax;
+        else mean_res[i] = df.avg(cname);
+      }
+    }
+    ret.append_column("index", make_dvector_scatter(cols)); 
+    ret.append_column("mean", make_dvector_scatter(mean_res), true); // may contain null 
+  } 
+  else if (axis == 1) {
+    dftable tmp;
+    double fillv = 0;
+    // --- calculate sum(axis = 1) ---
+    std::string old_sum = "old_sum";
+    use_dfcolumn use(df.raw_column(cols[0]));
+    auto dfcol = df.column(cols[0]);
+    if (skip_na) fillna_helper(tmp, old_sum, dfcol, fillv); // replaces nulls with fillv (if any) and append in 'tmp'
+    else tmp.append_column(old_sum, dfcol); // appends as it is in 'tmp' (no copy)
+    for (size_t i = 1; i < ncol; ++i) {
+      use_dfcolumn use_col(df.raw_column(cols[i]));
+      dfcol = df.column(cols[i]);
+      if (skip_na) fillna_helper(tmp, cols[i], dfcol, fillv); // replaces nulls with fillv (if any) and append in 'tmp'
+      else tmp.append_column(cols[i], dfcol); // appends as it is in 'tmp' (no copy)
+      auto func = frovedis::add_col(old_sum, cols[i]);
+      use_dfcolumn use_func(func->columns_to_use(tmp)); 
+      auto rescol = func->execute(tmp);
+      // replace old_sum with new sum: old_sum += col_i
+      tmp.drop(cols[i]);
+      tmp.drop(old_sum);
+      tmp.append_column(old_sum, rescol); // old_sum becomes new_sum (rescol)
+    }
+    if (skip_na) {
+      // --- calculate row-wise non-na values ---
+      auto countna_df = df.count_nulls(axis, with_index);
+      auto subt_fn = frovedis::sub_im(ncol, "count"); 
+      use_dfcolumn use_sub(subt_fn->columns_to_use(countna_df));
+      countna_df.append_column("count_non_na", subt_fn->execute(countna_df)); // count_non_na = ncol - count
+      // --- calculate mean --- 
+      auto mean_fn = frovedis::fdiv_col(old_sum, "count_non_na"); // mean = sum / count_non_na
+      use_dfcolumn use_mean(mean_fn->columns_to_use(tmp, countna_df));
+      ret.append_column("mean", mean_fn->execute(tmp, countna_df));
+    } else {
+      // --- calculate mean --- 
+      auto mean_fn = frovedis::fdiv_im(old_sum, ncol); // mean = sum / ncol
+      use_dfcolumn use_mean(mean_fn->columns_to_use(tmp));
+      ret.append_column("mean", mean_fn->execute(tmp));
+    }
+    // use index as it is in input dataframe, if any. otherwise add index.
+    if (with_index) {
+      use_dfcolumn use(df.raw_column(index_nm));
+      ret.append_column(index_nm, df.column(index_nm)).change_col_position(index_nm, 0);
+    } else {
+      ret.prepend_rowid<long>(index_nm);
+    }
+  } 
+  else REPORT_ERROR(USER_ERROR, "mean: supported axis: 0 and 1 only!\n");
+
+  auto retp = new dftable(std::move(ret));
+  return to_dummy_dftable(retp);
+}

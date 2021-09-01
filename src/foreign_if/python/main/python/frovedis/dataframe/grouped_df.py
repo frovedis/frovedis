@@ -7,10 +7,12 @@ import copy
 from ctypes import c_char_p
 import numpy as np
 from ..exrpc import rpclib
-from ..exrpc.server import FrovedisServer
+from ..exrpc.server import FrovedisServer, set_association, \
+                           check_association, do_if_active_association
 from ..matrix.dtype import DTYPE, get_string_array_pointer
 from .frovedisColumn import FrovedisColumn
 from .df import DataFrame
+from .dfutil import check_string_or_array_like 
 
 class FrovedisGroupedDataframe(object):
     """
@@ -26,15 +28,16 @@ class FrovedisGroupedDataframe(object):
         self.__p_cols = None
         self.__p_types = None
 
+    @set_association
     def load_dummy(self, fdata, cols, types, p_cols, p_types):
         """
         load_dummy
         """
         self.__fdata = fdata
-        self.__cols = copy.deepcopy(cols)
-        self.__types = copy.deepcopy(types)
-        self.__p_cols = copy.deepcopy(p_cols)
-        self.__p_types = copy.deepcopy(p_types)
+        self.__cols = cols
+        self.__types = types
+        self.__p_cols = p_cols
+        self.__p_types = p_types
         for i in range(0, len(p_cols)):
             cname = p_cols[i]
             dt = p_types[i]
@@ -43,36 +46,41 @@ class FrovedisGroupedDataframe(object):
 
     def release(self):
         """
-        release
+        to release dataframe pointer from server heap and
+        resets after-fit populated attributes to None
         """
-        if self.__fdata is not None:
-            (host, port) = FrovedisServer.getServerInstance()
-            rpclib.release_frovedis_dataframe(host, port, self.__fdata)
-            excpt = rpclib.check_server_exception()
-            if excpt["status"]:
-                raise RuntimeError(excpt["info"])
+        self.__release_server_heap()
+        if self.__cols is not None:
             for cname in self.__cols:
                 del self.__dict__[cname]
-            self.__fdata = None
-            self.__cols = None
-            self.__types = None
-            self.__p_cols = None
-            self.__p_types = None
+        self.__fdata = None
+        self.__cols = None
+        self.__types = None
+        self.__p_cols = None
+        self.__p_types = None
 
-    #def __del__(self):
-    #  if FrovedisServer.isUP(): self.release()
+    @do_if_active_association
+    def __release_server_heap(self):
+        """ releases the dataframe pointer from server heap """
+        (host, port) = FrovedisServer.getServerInstance()
+        rpclib.release_frovedis_grouped_dataframe(host, port, self.__fdata)
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
 
+    def __del__(self):
+        """ destructs a python dataframe object """
+        self.release()
+
+    def is_fitted(self):
+        """ function to confirm if the dataframe is already constructed """
+        return self.__fdata is not None
+
+    @check_association
     def __getitem__(self, target):
         """  __getitem__  """
-        if self.__fdata is not None:
-            if isinstance(target, str):
-                return self.__select_gdf([target])
-            elif isinstance(target, list):
-                return self.__select_gdf(target)
-            else:
-                raise TypeError("Unsupported indexing input type!")
-        else:
-            raise ValueError("Operation on invalid frovedis grouped dataframe!")
+        target = check_string_or_array_like(target, "select")
+        return self.__select_gdf(target)
 
     def __select_gdf(self, cols):
         """ To select grouped columns """
@@ -104,6 +112,7 @@ class FrovedisGroupedDataframe(object):
         """
         return self.aggregate(func, args, kwargs)
 
+    @check_association
     def aggregate(self, func, *args, **kwargs):
         """
         aggregate

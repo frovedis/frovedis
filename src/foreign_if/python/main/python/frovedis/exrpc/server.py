@@ -171,8 +171,9 @@ def check_association(func):
     def check_assoc_wrapper(*args, **kwargs):
         obj = args[0] # args[0] of func() must be self
         if not obj.is_fitted():
-            raise AttributeError(func.__name__ + ": is called before fit or" \
-                              " the model might have already been released!")
+            raise AttributeError(func.__name__ + ": is called before the "\
+            "object is actually constructed (fitted) or the object might " \
+            "have already been released!")
         check_server_state(obj.__sid, obj.__class__.__name__)
         return func(*args, **kwargs)
     return check_assoc_wrapper

@@ -156,6 +156,9 @@ show_frovedis_dataframe.argtypes = [c_char_p, c_int, c_long]
 release_frovedis_dataframe = LIB.release_frovedis_dataframe
 release_frovedis_dataframe.argtypes = [c_char_p, c_int, c_long]
 
+release_frovedis_grouped_dataframe = LIB.release_frovedis_grouped_dataframe
+release_frovedis_grouped_dataframe.argtypes = [c_char_p, c_int, c_long]
+
 release_dfoperator = LIB.release_dfoperator
 release_dfoperator.argtypes = [c_char_p, c_int, c_long]
 
@@ -259,7 +262,7 @@ select_frovedis_dataframe.restype = c_long
 
 isnull_frovedis_dataframe = LIB.isnull_frovedis_dataframe
 isnull_frovedis_dataframe.argtypes = [c_char_p, c_int, c_long, \
-                                      POINTER(c_char_p), c_ulong]
+                                      POINTER(c_char_p), c_ulong, c_bool]
 isnull_frovedis_dataframe.restype = c_long
 
 sort_frovedis_dataframe = LIB.sort_frovedis_dataframe
@@ -329,6 +332,12 @@ get_std_frovedis_dataframe = LIB.std_frovedis_dataframe
 get_std_frovedis_dataframe.argtypes = [c_char_p, c_int, c_long,
                                        POINTER(c_char_p), c_ulong]
 get_std_frovedis_dataframe.restype = py_object
+
+df_mean = LIB.df_mean
+df_mean.argtypes = [c_char_p, c_int, c_long,      # host, port, proxy
+                    POINTER(c_char_p), c_ulong,   # cols_arr, ncol
+                    c_int, c_bool, c_bool]        # axis, skip_na, with_index
+df_mean.restype = py_object
 
 get_frovedis_col = LIB.get_frovedis_col
 get_frovedis_col.argtypes = [c_char_p, c_int, c_long, c_char_p, c_short]

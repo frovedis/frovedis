@@ -134,19 +134,32 @@ extern "C" {
     return (static_cast<long>(ret_proxy));
   }
  
-  //To release data frame
+  //To release dataframe
   void release_frovedis_dataframe(const char* host,int port,long proxy){
     ASSERT_PTR(host); 
     exrpc_node fm_node(host,port);
     auto df_proxy = static_cast<exrpc_ptr_t> (proxy);
     try {
-      exrpc_oneway(fm_node,release_data<dftable>,df_proxy);
+      exrpc_oneway(fm_node, release_data<dftable_base>, df_proxy);
     }
     catch (std::exception& e) {
       set_status(true, e.what());
     }
   }
   
+  //To release grouped dataframe
+  void release_frovedis_grouped_dataframe(const char* host, int port, long proxy) {
+    ASSERT_PTR(host);
+    exrpc_node fm_node(host,port);
+    auto df_proxy = static_cast<exrpc_ptr_t> (proxy);
+    try {
+      exrpc_oneway(fm_node, release_data<grouped_dftable>, df_proxy);
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+  }
+
   //To release dfoperator
   void release_dfoperator(const char* host,int port,
                           long proxy){
@@ -197,14 +210,16 @@ extern "C" {
    
   // To find missing values in given columns of the input dataframe
   long isnull_frovedis_dataframe(const char* host, int port, long proxy, 
-                                 const char **cols, ulong size) {
+                                 const char **cols, ulong size, 
+                                 bool with_index) {
     ASSERT_PTR(host); 
     exrpc_node fm_node(host, port);
     auto df_proxy = static_cast<exrpc_ptr_t> (proxy);
     auto targets = to_string_vector(cols, size);
     exrpc_ptr_t ret_proxy = 0;
     try {
-      ret_proxy = exrpc_async(fm_node, isnull_df, df_proxy, targets).get();
+      ret_proxy = exrpc_async(fm_node, isnull_df, 
+                              df_proxy, targets, with_index).get();
     }
     catch (std::exception& e) {
       set_status(true, e.what());
@@ -440,6 +455,24 @@ extern "C" {
       set_status(true, e.what());
     }
     return to_python_string_list(ret);
+  }
+
+  PyObject* df_mean(const char* host, int port, long proxy,
+                    const char** cols, ulong size, 
+                    int axis, bool skipna, bool with_index) {
+    ASSERT_PTR(host);
+    exrpc_node fm_node(host, port);
+    auto df_proxy = static_cast<exrpc_ptr_t> (proxy);
+    auto cc = to_string_vector(cols, size);
+    dummy_dftable ret;
+    try {
+      ret = exrpc_async(fm_node, frov_df_mean, df_proxy, 
+                        cc, axis, skipna, with_index).get();
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return to_py_dummy_df(ret);
   }
 
   PyObject* get_frovedis_col(const char* host, int port, long proxy,

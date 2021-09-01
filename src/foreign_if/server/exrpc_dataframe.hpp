@@ -156,7 +156,8 @@ exrpc_ptr_t get_dfORoperator(exrpc_ptr_t& lopt_proxy, exrpc_ptr_t& ropt_proxy);
 exrpc_ptr_t get_dfNOToperator(exrpc_ptr_t& opt_proxy);
 exrpc_ptr_t filter_df(exrpc_ptr_t& df_proxy, exrpc_ptr_t& opt_proxy);
 exrpc_ptr_t select_df(exrpc_ptr_t& df_proxy, std::vector<std::string>& cols);
-exrpc_ptr_t isnull_df(exrpc_ptr_t& df_proxy, std::vector<std::string>& cols);
+exrpc_ptr_t isnull_df(exrpc_ptr_t& df_proxy, std::vector<std::string>& cols, 
+                      bool& with_index);
 void drop_df_cols(exrpc_ptr_t& df_proxy, std::vector<std::string>& cols);
 
 template <class T>
@@ -410,4 +411,8 @@ dummy_dftable frov_df_ksort(exrpc_ptr_t& df_proxy, int& k,
                             std::vector<std::string>& targets,
                             std::string& keep,
                             bool& is_desc);
+
+dummy_dftable frov_df_mean(exrpc_ptr_t& df_proxy, 
+                           std::vector<std::string>& cols,
+                           int& axis, bool& skip_na, bool& with_index);
 #endif

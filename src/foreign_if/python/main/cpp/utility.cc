@@ -270,6 +270,14 @@ extern "C" {
     return vec;
   }
 
+  // converison : short* (pointer-to-short-array) => std::vector<short>
+  std::vector<short> 
+  to_short_vector(short* data, ulong sz) {
+    std::vector<short> vec(sz);
+    for(size_t i = 0; i < sz; ++i) vec[i] = data[i];
+    return vec;
+  }
+
   // converison : int* (pointer-to-int-array) => std::vector<int>
   std::vector<int> 
   to_int_vector(int* data, ulong sz) {

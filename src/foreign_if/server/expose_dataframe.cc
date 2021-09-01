@@ -7,7 +7,7 @@ using namespace frovedis;
 void expose_frovedis_dataframe_functions() {
   // --- frovedis dataframe ---
   expose(create_dataframe);
-  expose(release_data<dftable>);
+  expose(release_data<dftable_base>);
   expose(release_data<grouped_dftable>);
   expose(show_dataframe);
   expose(get_dfoperator<int>);
@@ -97,4 +97,5 @@ void expose_frovedis_dataframe_functions() {
   expose(frov_df_get_index_loc);
   expose(frov_df_countna);
   expose(frov_df_ksort);
+  expose(frov_df_mean);
 }

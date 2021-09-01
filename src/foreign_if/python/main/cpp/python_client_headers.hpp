@@ -74,6 +74,7 @@ extern "C" {
 
   // conversion
   std::vector<std::string> to_string_vector(const char** data, ulong sz);
+  std::vector<short> to_short_vector(short* data, ulong sz);
   std::vector<int> to_int_vector(int* data, ulong sz);
   std::vector<long> to_long_vector(long* data, ulong sz);
   std::vector<unsigned long> to_ulong_vector(unsigned long* data, ulong sz);
