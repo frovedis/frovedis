@@ -70,9 +70,10 @@ public:
     MODEL& model,    
     std::vector<T>& target,
     std::vector<T>& sample_weight,
-    GRADIENT& gradient) {
+    GRADIENT& gradient,
+    double& loss) { // used from lbfgs_parallelizer
     T bias = 0.0;
-    double loss = 0.0;
+    loss = 0.0;
     auto v = compute_gradient(data, model, target, sample_weight, gradient, bias, loss);
     v.push_back(bias);
     return v;
@@ -99,9 +100,10 @@ public:
     MODEL& model,    
     std::vector<T>& target,
     std::vector<T>& sample_weight,
-    GRADIENT& gradient) {
+    GRADIENT& gradient,
+    double& loss) { // used from lbfgs_parallelizer
     T bias = 0.0; 
-    double loss = 0.0;
+    loss = 0.0;
     auto v = compute_gradient(data, trans, model, target, sample_weight, gradient, bias, loss);
     v.push_back(bias);
     return v;

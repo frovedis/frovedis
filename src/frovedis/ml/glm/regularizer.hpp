@@ -1,7 +1,7 @@
 #ifndef _REGULARIZER_HPP_
 #define _REGULARIZER_HPP_
 
-#define USE_ETA
+//#define USE_ETA
 
 namespace frovedis {
 

@@ -4,6 +4,11 @@
 #include "common.hpp"
 #include "lbfgs.hpp"
 
+#define LBFGS_MAX_STEP 1e+20 
+#define LBFGS_MAX_SEARCH_ITER 10
+#define LBFGS_SEARCH_TOL 1e-4
+#define LBFGS_PRINT_INTERVAL 10
+
 namespace frovedis {
 
 template <class T>
@@ -18,11 +23,11 @@ struct lbfgs_dtrain {
              std::vector<T>& label,
              std::vector<T>& sample_weight,
              MODEL& model,
-             GRADIENT& loss) {
+             GRADIENT& grad_obj,
+             double& loss) {
     gradient_descent gd(alpha, isIntercept);
-    return gd.compute_gradient<T>(data,model,label,sample_weight,loss);
+    return gd.compute_gradient<T>(data,model,label,sample_weight,grad_obj,loss);
   }
-
   double alpha;
   bool isIntercept;
   SERIALIZE(alpha, isIntercept)
@@ -41,11 +46,11 @@ struct lbfgs_dtrain_with_trans {
              std::vector<T>& label,
              std::vector<T>& sample_weight,
              MODEL& model,
-             GRADIENT& loss) {
+             GRADIENT& grad_obj,
+             double& loss) {
     gradient_descent gd(alpha, isIntercept);
-    return gd.compute_gradient<T>(data,trans,model,label,sample_weight,loss);
+    return gd.compute_gradient<T>(data,trans,model,label,sample_weight,grad_obj,loss);
   }
-
   double alpha;
   bool isIntercept;
   SERIALIZE(alpha, isIntercept)
@@ -109,47 +114,9 @@ struct lbfgs_parallelizer {
                  double regParam,
                  bool isIntercept,
                  double convergenceTol);
-
-  template <class T, class MODEL, class REGULARIZER>
-  bool update_global_model(MODEL& initModel,
-                           lvec<T>& grad_vector_part,
-                           lbfgs<T>& lbfgs,
-                           REGULARIZER& rType,
-                           double convergenceTol,
-                           size_t iterCount,
-                           time_spent t);
-
   size_t hist_size;
   SERIALIZE(hist_size)
 };
-
-template <class T, class MODEL, class REGULARIZER>
-inline bool
-lbfgs_parallelizer::update_global_model(MODEL& initModel, 
-                                        lvec<T>& grad_vector_part,
-                                        lbfgs<T>& opt,
-                                        REGULARIZER& rType,
-                                        double convergenceTol,
-                                        size_t iterCount,
-                                        time_spent t) {
-  bool conv = false;
-  auto grad_vector = grad_vector_part.vector_sum(); // reduce grad-vectors
-  t.show("reduce: ");
-
-#ifdef _CONV_RATE_CHECK_
-  MODEL prev_model = initModel;
-#endif
-
-  opt.optimize(grad_vector,initModel,iterCount,rType);
-  t.show("update and regularize: ");
-
-#ifdef _CONV_RATE_CHECK_
-  MODEL& cur_model = initModel; // updated initModel
-  if(is_converged(cur_model,prev_model,convergenceTol,iterCount)) conv = true;
-#endif
-
-  return conv;
-}
 
 template <class T, class DATA_MATRIX, class TRANS_MATRIX, 
           class MODEL, class GRADIENT, class REGULARIZER>
@@ -160,40 +127,90 @@ void lbfgs_parallelizer::do_train(node_local<DATA_MATRIX>& data,
                                   lvec<T>& sample_weight,
                                   size_t& n_iter,
                                   size_t numIteration,
-                                  double alpha,
+                                  double alpha, // no need
                                   double regParam,
                                   bool isIntercept,
                                   double convergenceTol) {
-  frovedis::time_spent t(DEBUG), t2(DEBUG);
+  frovedis::time_spent t(DEBUG);
   lbfgs<T> opt(alpha,hist_size,isIntercept);
-  REGULARIZER rType(regParam);
-  auto distLoss = make_node_local_allocate<GRADIENT>();
+  REGULARIZER rType(regParam); // should be L2 always
+  auto distGrad = make_node_local_allocate<GRADIENT>();
+  auto dloss = make_node_local_allocate<double>();
+
+  auto distModel = initModel.broadcast();
+  auto grad_vector = data.template map<std::vector<T>>
+                            (lbfgs_dtrain_with_trans<T>(alpha,isIntercept),
+                             transData,label,sample_weight,distModel,distGrad,dloss)
+                         .vector_sum();
+  auto loss = dloss.reduce(add<double>);
+  auto weight = initModel.weight;
+  weight.push_back(initModel.intercept);
+  opt.old_model = weight;
+  opt.old_gradient = grad_vector;
 
   // -------- main loop --------
-  size_t i;
-  for(i = 1; i <= numIteration; i++) {
-    frovedis::time_spent t3(TRACE);
-    auto distModel = initModel.broadcast();
-    t3.show("broadcast: ");
+  size_t i = 1;
+  for(; i <= numIteration; i++) {
+    auto step = opt.compute_hkgk(grad_vector);
 
-    // work_at_worker
-    auto grad_vector_part = data.template map<std::vector<T>>
-                            (lbfgs_dtrain_with_trans<T>(alpha,isIntercept),
-                             transData,label,sample_weight,distModel,distLoss);
-    t3.show("Dtrain: ");
+    // --- line search ---
+    // https://github.com/js850/lbfgs_cpp/blob/master/lbfgs.cpp#L216
+    // if the step is pointing uphill, invert it
+    if (vector_dot(grad_vector, step) > 0) step = step * static_cast<T>(-1.0); 
+    T factor = 1.0; // alpha
+    T stepsize = vector_norm(step);
+    if (factor * stepsize > LBFGS_MAX_STEP) factor = LBFGS_MAX_STEP / stepsize;
+    auto bias_step = step.back();
+    step.pop_back();
+    MODEL new_model;
+    lvec<T> new_grad_vector_part;
+    auto new_dloss = make_node_local_allocate<double>();
+    double newloss = 0;
+    size_t j = 1;
+    for(; j <= LBFGS_MAX_SEARCH_ITER; ++j) {
+      new_model.weight = initModel.weight + (factor * step);
+      new_model.intercept = initModel.intercept + (factor * bias_step);
+      rType.regularize(new_model.weight);
+      auto dist_newmodel = new_model.broadcast();
+      new_grad_vector_part = data.template map<std::vector<T>>
+                                    (lbfgs_dtrain_with_trans<T>(alpha,isIntercept),
+                                    transData,label,sample_weight,dist_newmodel,distGrad,new_dloss);
+      newloss = new_dloss.reduce(add<double>);
+      auto diff = newloss - loss;
+      //std::cout << "   loss: " << loss << "; newloss: " << newloss 
+      //          << "; diff: " << diff << "; factor: " << factor <<"\n";
+      if (diff < LBFGS_SEARCH_TOL) {
+        RLOG(DEBUG) << "line-search completed in " << j << " iterations!\n";
+        break;
+      }
+      else factor /= static_cast<T>(10.0);
+    }
 
-    // work_at_master
-    bool conv = update_global_model<T>(initModel,grad_vector_part,opt,
-                                       rType,convergenceTol,i,t3);
-#ifdef _CONV_RATE_CHECK_
-    if(conv) break;
-#endif
+    if (j > LBFGS_MAX_SEARCH_ITER) {
+      RLOG(DEBUG) << "LBFGS line search exceeded maximum search step!\n";
+    }
+    loss = newloss;
+    grad_vector = new_grad_vector_part.vector_sum();
+    initModel = std::move(new_model);
+    auto rms = vector_norm(grad_vector) / sqrt(grad_vector.size());
+    opt.update_history(initModel, grad_vector);
 
-    std::string msg = "[Iteration: " + ITOS(i) + "] elapsed-time: ";
-    t.show(msg);
+    if (i % LBFGS_PRINT_INTERVAL == 0) {
+      RLOG(INFO) << "[Iteration: " << i << "]"
+                 << " norm(w): " << vector_norm(initModel.weight)
+                 << "; norm(g): " << vector_norm(grad_vector)
+                 << "; rms: " << rms
+                 << "; loss: " << loss
+                 << "; stepsize: " << stepsize * factor << std::endl;
+    }
+
+    if (rms <= convergenceTol) {
+      REPORT_INFO("Convergence achieved in " + ITOS(i) + " iterations!\n");
+      break;
+    }
   }
   n_iter = (i == numIteration + 1) ? numIteration : i;
-  t2.show("whole iteration: ");
+  t.show("whole iteration: ");
 }
 
 template <class T, class DATA_MATRIX, 
@@ -208,36 +225,86 @@ void lbfgs_parallelizer::do_train(node_local<DATA_MATRIX>& data,
                                   double regParam,
                                   bool isIntercept,
                                   double convergenceTol) {
-  frovedis::time_spent t(DEBUG), t2(DEBUG);
+  frovedis::time_spent t(DEBUG);
   lbfgs<T> opt(alpha,hist_size,isIntercept);
-  REGULARIZER rType(regParam);
-  auto distLoss = make_node_local_allocate<GRADIENT>();
+  REGULARIZER rType(regParam); // should be L2 always
+  auto distGrad = make_node_local_allocate<GRADIENT>();
+  auto dloss = make_node_local_allocate<double>();
+
+  auto distModel = initModel.broadcast();
+  auto grad_vector = data.template map<std::vector<T>>
+                            (lbfgs_dtrain<T>(alpha,isIntercept),
+                             label,sample_weight,distModel,distGrad,dloss)
+                         .vector_sum();
+  auto loss = dloss.reduce(add<double>);
+  auto weight = initModel.weight;
+  weight.push_back(initModel.intercept);
+  opt.old_model = weight;
+  opt.old_gradient = grad_vector;
 
   // -------- main loop --------
-  size_t i;
-  for(i = 1; i <= numIteration; i++) {
-    frovedis::time_spent t3(TRACE);
-    auto distModel = initModel.broadcast();
-    t3.show("broadcast: ");
+  size_t i = 1;
+  for(; i <= numIteration; i++) {
+    auto step = opt.compute_hkgk(grad_vector);
 
-    // work_at_worker
-    auto grad_vector_part = data.template map<std::vector<T>>
-                            (lbfgs_dtrain<T>(alpha,isIntercept),
-                             label,sample_weight,distModel,distLoss);
-    t3.show("Dtrain: ");
+    // --- line search ---
+    // https://github.com/js850/lbfgs_cpp/blob/master/lbfgs.cpp#L216
+    // if the step is pointing uphill, invert it
+    if (vector_dot(grad_vector, step) > 0) step = step * static_cast<T>(-1.0);
+    T factor = 1.0; // alpha
+    T stepsize = vector_norm(step);
+    if (factor * stepsize > LBFGS_MAX_STEP) factor = LBFGS_MAX_STEP / stepsize;
+    auto bias_step = step.back();
+    step.pop_back();
+    MODEL new_model;
+    lvec<T> new_grad_vector_part;
+    auto new_dloss = make_node_local_allocate<double>();
+    double newloss = 0;
+    size_t j = 1;
+    for(; j <= LBFGS_MAX_SEARCH_ITER; ++j) {
+      new_model.weight = initModel.weight + (factor * step);
+      new_model.intercept = initModel.intercept + (factor * bias_step);
+      rType.regularize(new_model.weight);
+      auto dist_newmodel = new_model.broadcast();
+      new_grad_vector_part = data.template map<std::vector<T>>
+                                    (lbfgs_dtrain<T>(alpha,isIntercept),
+                                    label,sample_weight,dist_newmodel,distGrad,new_dloss);
+      newloss = new_dloss.reduce(add<double>);
+      auto diff = newloss - loss;
+      //std::cout << "   loss: " << loss << "; newloss: " << newloss
+      //          << "; diff: " << diff << "; factor: " << factor <<"\n";
+      if (diff < LBFGS_SEARCH_TOL) {
+        RLOG(DEBUG) << "line-search completed in " << j << " iterations!\n";
+        break;
+      }
+      else factor /= static_cast<T>(10.0);
+    }
 
-    // work_at_master
-    bool conv = update_global_model<T>(initModel,grad_vector_part,opt,
-                                       rType,convergenceTol,i,t3);
-#ifdef _CONV_RATE_CHECK_
-    if(conv) break;
-#endif
+    if (j > LBFGS_MAX_SEARCH_ITER) {
+      RLOG(DEBUG) << "LBFGS line search exceeded maximum search step!\n";
+    }
+    loss = newloss;
+    grad_vector = new_grad_vector_part.vector_sum();
+    initModel = std::move(new_model);
+    auto rms = vector_norm(grad_vector) / sqrt(grad_vector.size());
+    opt.update_history(initModel, grad_vector);
 
-    std::string msg = "[Iteration: " + ITOS(i) + "] elapsed-time: ";
-    t.show(msg);
+    if (i % LBFGS_PRINT_INTERVAL == 0) {
+      RLOG(INFO) << "[Iteration: " << i << "]"
+                 << " norm(w): " << vector_norm(initModel.weight)
+                 << "; norm(g): " << vector_norm(grad_vector)
+                 << "; rms: " << rms
+                 << "; loss: " << loss
+                 << "; stepsize: " << stepsize * factor << std::endl;
+    }
+
+    if (rms <= convergenceTol) {
+      REPORT_INFO("Convergence achieved in " + ITOS(i) + " iterations!\n");
+      break;
+    }
   }
-  n_iter = i;
-  t2.show("whole iteration: ");
+  n_iter = (i == numIteration + 1) ? numIteration : i;
+  t.show("whole iteration: ");
 }
 
 // --- dense support ---

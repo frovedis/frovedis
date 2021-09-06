@@ -61,22 +61,9 @@ struct lbfgs {
  
   std::vector<T> compute_hkgk(const std::vector<T>& grad_vector);
 
-  template <class MODEL, class REGULARIZER>
-  void update_model(MODEL& model, 
-                    const std::vector<T>& hkgk,
-                    REGULARIZER& rType,
-                    size_t iterCount);
-
   template <class MODEL>
   void update_history(const MODEL& cur_model, 
-                      std::vector<T>& cur_gradient,
-                      size_t iterCount);
-
-  template <class MODEL, class REGULARIZER>
-  void optimize(std::vector<T>& grad_vector, 
-                MODEL& model,
-                size_t iterCount,
-                REGULARIZER& rType);
+                      std::vector<T>& cur_gradient);
 
   double alpha;
   bool isIntercept;
@@ -92,92 +79,57 @@ struct lbfgs {
 template <class T>
 std::vector<T>
 lbfgs<T>::compute_hkgk(const std::vector<T>& grad_vector) {
-  //checkAssumption(grad_vector.size() > 0);
+  auto gsz = grad_vector.size();
   int n_elem = model_hist.totActiveElements;
-  if (n_elem == 0) return grad_vector; 
-  auto q = grad_vector;
-  std::vector<T> al(n_elem);
-  for(int i = n_elem - 1; i >= 0; --i) {
-    al[i] = rho[i] * vector_dot(model_hist[i], q);
-    q = q - (grad_hist[i] * al[i]);
+  std::vector<T> z;
+  // https://github.com/js850/lbfgs_cpp/blob/master/lbfgs.cpp#L167
+  if (n_elem == 0) { // no history...
+    z.resize(gsz);
+    T H0 = 0.1;
+    auto gnorm = vector_norm(grad_vector);
+    if (gnorm > 1) gnorm = 1.0 / gnorm;
+    for(size_t i = 0; i < gsz; ++i) z[i] = -gnorm * H0 * grad_vector[i];
+  } else {
+    auto q = grad_vector;
+    std::vector<T> al(n_elem);
+    for(int i = n_elem - 1; i >= 0; --i) {
+      al[i] = rho[i] * vector_dot(model_hist[i], q);
+      q = q - (grad_hist[i] * al[i]);
+    }
+    // https://github.com/js850/lbfgs_cpp/blob/master/lbfgs.cpp#L145
+    int i = n_elem - 1; // k-1
+    auto yy = vector_dot(grad_hist[i], grad_hist[i]);
+    if (yy == 0) yy = 1.0;
+    auto ys = 1.0 / rho[i];
+    T H0 = ys / yy;
+    z = q * H0; 
+    for(int i = 0; i < n_elem; ++i) {
+      auto beta = rho[i] * vector_dot(grad_hist[i], z);
+      z = z + (model_hist[i] * (al[i] - beta));
+    }
   }
-  int i = n_elem - 1; // k-1
-  auto yk = rho[i] * vector_dot(grad_hist[i], grad_hist[i]);
-  auto z = q * (static_cast<T>(1.0) / yk); // this scaling is not used in sklearn
-  for(int i = 0; i < n_elem; ++i) {
-    auto beta = rho[i] * vector_dot(grad_hist[i], z);
-    z = z + (model_hist[i] * (al[i] - beta));
-  }
-  return z;
-}
-
-template <class T>
-template <class MODEL, class REGULARIZER>
-void lbfgs<T>::update_model(MODEL& model,
-                            const std::vector<T>& hkgk,
-                            REGULARIZER& rType,
-                            size_t iterCount) {
-  auto weightp = model.weight.data();
-  auto hkgkp = hkgk.data();
-  size_t nftr = model.weight.size();
-  T reducedAlpha = alpha / sqrt(iterCount);
-  for(size_t i = 0; i < nftr; ++i) weightp[i] -= reducedAlpha * hkgkp[i];
-
-  // Updating bias (n+1 th) term of the model
-  // n+1 th dimension of hkgk vector is for bias term 
-  if(isIntercept) model.intercept -= reducedAlpha * hkgkp[nftr]; 
-
-  // Regularizing model (if required)
-  rType.regularize(model.weight);
+  return z * static_cast<T>(-1.0); // invert the step to point downhill
 }
 
 template <class T>
 template <class MODEL>
 void lbfgs<T>::update_history(const MODEL& cur_model,
-                              std::vector<T>& cur_gradient,
-                              size_t iterCount) {
+                              std::vector<T>& cur_gradient) {
   auto cur_model_vec = cur_model.weight;
   cur_model_vec.push_back(cur_model.intercept);
-  if (iterCount != 1) { //no history in first iteration
-    auto model_diff = cur_model_vec - old_model;
-    auto grad_diff  = cur_gradient - old_gradient;
-    if (vector_count_nonzero(grad_diff) == 0) // all zeros 
-      REPORT_INFO("No change in gradient, hence skipping history update!\n");
-    else { 
-      T dotval = vector_dot(model_diff, grad_diff);
-      if(dotval > 0.0) {      // mandatory curvature condition for history update
-        T one_by_dotval = static_cast<T>(1.0) / dotval;   // Pi := 1/Si.Yi
-        rho.push_back(one_by_dotval);
-        model_hist.push_back(std::move(model_diff));
-        grad_hist.push_back(std::move(grad_diff));
-      }
-    }
-  }
+  auto model_diff = cur_model_vec - old_model;
+  auto grad_diff  = cur_gradient - old_gradient;
+  T dotval = vector_dot(model_diff, grad_diff);
+  // https://github.com/scipy/scipy/blob/v1.7.0/scipy/optimize/optimize.py#L1268
+  //if (dotval == 0) dotval = 1000.0;
+  // https://github.com/js850/lbfgs_cpp/blob/master/lbfgs.cpp#L139
+  if (dotval == 0) dotval = 1;
+  T one_by_dotval = static_cast<T>(1.0) / dotval;   // Pi := 1/Si.Yi
+  rho.push_back(one_by_dotval);
+  model_hist.push_back(std::move(model_diff));
+  grad_hist.push_back(std::move(grad_diff));
   old_model.swap(cur_model_vec);
   old_gradient.swap(cur_gradient);
-}
-
-template <class T>
-template <class MODEL, class REGULARIZER>
-void lbfgs<T>::optimize(std::vector<T>& grad_vector,
-                        MODEL& model,
-                        size_t iterCount,
-                        REGULARIZER& rType) {
-  frovedis::time_spent t(TRACE);
-  std::vector<T> hkgk = compute_hkgk(grad_vector);
-  t.show("compute hkgk: ");
-  update_model(model,hkgk,rType,iterCount); // in-place model update using computed hkgk
-  t.show("update model: ");
-  update_history(model,grad_vector,iterCount); // 'model' is updated model
-  t.show("update history: ");
-#ifdef _LBFGS_DEBUG_
-  std::cout << "iteration: " << iterCount << std::endl;
-  std::cout << model_hist.totActiveElements << " "
-            << grad_hist.totActiveElements  << " " 
-            << rho.totActiveElements << std::endl;
-  debug_print_vector(old_model, 10);
-  debug_print_vector(old_gradient, 10);
-#endif
 }
 
 }
