@@ -1826,6 +1826,13 @@ class DataFrame(object):
             ind = names.index(col_name)
             types[ind] = DTYPE.BOOL
 
+        bool_cols = set([self.__cols[i] for i in range(len(self.__types)) \
+                        if self.__types[i] == DTYPE.BOOL])
+        if len(bool_cols) > 0:
+            for i in range(len(names)):
+                if names[i] in bool_cols:
+                    types[i] = DTYPE.BOOL
+
         self.num_row = dummy_df["nrow"]
         if self.has_index() or \
            df_proxy == -1: # empty dataframe case: new index column is added
@@ -1887,6 +1894,7 @@ class DataFrame(object):
                     value = np.asarray(value) # deduce type
             elif isinstance(value, (list, pd.Series, np.ndarray)):
                 value = np.asarray(value)
+                value = np.array(list(map(lambda x: np.nan if x is None else x, value)))
                 if value.ndim != 1:
                     raise ValueError(\
                     "array is not broadcastable to correct shape")
@@ -1926,6 +1934,7 @@ class DataFrame(object):
                 value = np.asarray(value) # deduce type
         elif isinstance(value, (list, pd.Series, np.ndarray)):
             value = np.asarray(value)
+            value = np.array(list(map(lambda x: np.nan if x is None else x, value)))
             if value.ndim != 1:
                 raise ValueError("array is not broadcastable to correct shape")
             if self.__fdata is not None and len(value) != len(self):
@@ -2051,6 +2060,14 @@ class DataFrame(object):
                 raise RuntimeError(excpt["info"])
             names = dummy_df["names"]
             types = dummy_df["types"]
+
+            bool_cols = set([self.__cols[i] for i in range(len(self.__types)) \
+                            if self.__types[i] == DTYPE.BOOL])
+            if len(bool_cols) > 0:
+                for i in range(len(names)):
+                    if names[i] in bool_cols:
+                        types[i] = DTYPE.BOOL
+
             ret.index = FrovedisColumn(names[0], types[0]) # with new index
             ret.num_row = dummy_df["nrow"]
             ret.load_dummy(dummy_df["dfptr"], names[1:], types[1:])
@@ -2147,6 +2164,14 @@ class DataFrame(object):
             raise RuntimeError(excpt["info"])
         names = dummy_df["names"]
         types = dummy_df["types"]
+
+        bool_cols = set([self.__cols[i] for i in range(len(self.__types)) \
+                        if self.__types[i] == DTYPE.BOOL])
+        if len(bool_cols) > 0:
+            for i in range(len(names)):
+                if names[i] in bool_cols:
+                    types[i] = DTYPE.BOOL
+
         self.index = FrovedisColumn(names[0], types[0]) #setting index
         self.num_row = dummy_df["nrow"]
         self.load_dummy(dummy_df["dfptr"], names[1:], types[1:])
