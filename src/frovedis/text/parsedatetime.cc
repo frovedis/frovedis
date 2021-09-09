@@ -161,14 +161,4 @@ datetime_t parsedatetime(const std::string& datetime,
   return r[0];
 }
 
-datetime_t makedatetime(int year, int month, int day,
-                        int hour, int minute, int second) {
-  datetime_t ret = ((datetime_t)year << 5 * 8) + ((datetime_t)month << 4 * 8) +
-    ((datetime_t)day << 3 * 8) + ((datetime_t)hour << 2 * 8) +
-    ((datetime_t)minute << 1 * 8) + (datetime_t)second;
-    
-  return ret;
-}
-
-
 }

@@ -1,6 +1,6 @@
-HEADERS := char_int_conv.hpp find.hpp load_text.hpp words.hpp text_utility.hpp dict.hpp load_csv.hpp parseint.hpp parsefloat.hpp int_to_words.hpp float_to_words.hpp cursors.hpp infer_dtype.hpp parsedatetime.hpp datetime_to_words.hpp
+HEADERS := char_int_conv.hpp find.hpp load_text.hpp words.hpp text_utility.hpp dict.hpp load_csv.hpp parseint.hpp parsefloat.hpp int_to_words.hpp float_to_words.hpp cursors.hpp infer_dtype.hpp parsedatetime.hpp datetime_to_words.hpp datetime_utility.hpp
 
-OBJS := char_int_conv.o find.o load_text.o words.o text_utility.o dict.o load_csv.o cursors.o parsefloat.o int_to_words.o float_to_words.o infer_dtype.o parsedatetime.o datetime_to_words.o
+OBJS := char_int_conv.o find.o load_text.o words.o text_utility.o dict.o load_csv.o cursors.o parsefloat.o int_to_words.o float_to_words.o infer_dtype.o parsedatetime.o datetime_to_words.o datetime_utility.o
 
 TARGETS := libfrovedis_text.a
 
@@ -29,7 +29,8 @@ int_to_words.o: int_to_words.cc int_to_words.hpp words.hpp
 float_to_words.o: float_to_words.cc float_to_words.hpp
 infer_dtype.o: infer_dtype.cc infer_dtype.hpp parsefloat.hpp words.hpp
 parsedatetime.o: parsedatetime.hpp parsedatetime.cc parseint.hpp words.hpp char_int_conv.hpp
-datetime_to_words.o: datetime_to_words.hpp datetime_to_words.cc int_to_words.hpp words.hpp
+datetime_to_words.o: datetime_to_words.hpp datetime_to_words.cc int_to_words.hpp words.hpp datetime_utility.hpp
+datetime_utility.o: datetime_utility.hpp datetime_utility.cc
 
 clean:
 	${RM} ${TO_CLEAN} ${TARGETS} 

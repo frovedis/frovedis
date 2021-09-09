@@ -2,6 +2,7 @@
 #define PARSEDATETIME_HPP
 
 #include <cstdint>
+#include <time.h>
 #include "parseint.hpp"
 
 typedef uint64_t datetime_t;
@@ -29,10 +30,5 @@ parsedatetime(const words& w, const std::string& format);
 datetime_t parsedatetime(const std::string& datetime,
                          const std::string& format);
 
-datetime_t makedatetime(int year, int month, int day,
-                        int hour = 0, int minute = 0, int second = 0);
-
 }
 #endif
-
-
