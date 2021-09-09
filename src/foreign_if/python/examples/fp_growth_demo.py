@@ -72,10 +72,9 @@ print("transform: ")
 t1 = time.time()
 trans = fpm.transform(test_data)
 t2 = time.time()
+pd.set_option('display.max_colwidth', None)
+print(trans)
 print("Transformation time: %.4f sec" % (t2 - t1))
-pd.set_option('display.max_colwidth', -1)
-print(trans.to_string())
-#print("transform count: %d" % (.count))
 
 '''
 # for save/load/release/print 
