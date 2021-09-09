@@ -193,6 +193,9 @@ std::vector<std::string> frovedis_df_avg(exrpc_ptr_t& df_proxy,
 std::vector<std::string> frovedis_df_std(exrpc_ptr_t& df_proxy,
                                          std::vector<std::string>& cols);
 
+std::vector<std::string> frovedis_df_var(exrpc_ptr_t& df_proxy,
+                                         std::vector<std::string>& cols);
+
 std::vector<std::string> frovedis_df_cnt(exrpc_ptr_t& df_proxy,
                                          std::vector<std::string>& cols);
 
@@ -413,6 +416,13 @@ dummy_dftable frov_df_ksort(exrpc_ptr_t& df_proxy, int& k,
                             bool& is_desc);
 
 dummy_dftable frov_df_mean(exrpc_ptr_t& df_proxy, 
+                           std::vector<std::string>& cols,
+                           int& axis, bool& skip_na, bool& with_index);
+
+dummy_dftable frov_df_var(exrpc_ptr_t& df_proxy, 
+                           std::vector<std::string>& cols,
+                           int& axis, bool& skip_na, bool& with_index);
+dummy_dftable frov_df_std(exrpc_ptr_t& df_proxy, 
                            std::vector<std::string>& cols,
                            int& axis, bool& skip_na, bool& with_index);
 #endif

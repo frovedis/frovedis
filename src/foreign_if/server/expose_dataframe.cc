@@ -40,6 +40,7 @@ void expose_frovedis_dataframe_functions() {
   expose(frovedis_df_min);
   expose(frovedis_df_max);
   expose(frovedis_df_std);
+  expose(frovedis_df_var);
   expose(frovedis_df_rename);
   expose(get_df_col<int>);
   expose(get_df_col<long>);
@@ -98,4 +99,6 @@ void expose_frovedis_dataframe_functions() {
   expose(frov_df_countna);
   expose(frov_df_ksort);
   expose(frov_df_mean);
+  expose(frov_df_var);
+  expose(frov_df_std);
 }
