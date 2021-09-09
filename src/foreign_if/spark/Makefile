@@ -5,7 +5,7 @@ JOBS := $(shell /usr/bin/nproc --all)
 all:
 	install -d ./bin
 	install -d ./lib
-	make -f Makefile.js
+	make -f Makefile.js -j ${JOBS}
 	cd main/cpp; make -j ${JOBS}
 
 install:
