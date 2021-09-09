@@ -568,6 +568,11 @@ double dftable_base::std(const std::string& name) {
   return column(name)->std();
 }
 
+double dftable_base::var(const std::string& name) {
+  use_dfcolumn use(raw_column(name));
+  return column(name)->var();
+}
+
 std::shared_ptr<dfcolumn> dftable_base::raw_column(const std::string& name) {
   return dftable_base::column(name);
 }
@@ -2219,7 +2224,7 @@ dftable make_dftable_load(const std::string& input) {
 void dftable::loadtext(const std::string& filename,
                        const std::vector<std::string>& types,
                        int separator,
-                       const std::string& nullstr,
+                       const std::vector<std::string>& nullstr,
                        bool is_crlf) {
   auto ret = make_dftable_loadtext(filename, types, separator, nullstr,
                                    is_crlf);
@@ -2230,7 +2235,7 @@ void dftable::loadtext(const std::string& filename,
                        const std::vector<std::string>& types,
                        const std::vector<std::string>& names,
                        int separator,
-                       const std::string& nullstr,
+                       const std::vector<std::string>& nullstr,
                        bool is_crlf) {
   auto ret = make_dftable_loadtext(filename, types, names, separator, nullstr,
                                    is_crlf);

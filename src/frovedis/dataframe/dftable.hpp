@@ -70,6 +70,7 @@ public:
   template <class T> T sum(const std::string& name);
   double avg(const std::string& name);
   double std(const std::string& name);
+  double var(const std::string& name);
   template <class T> T max(const std::string& name);
   template <class T> T min(const std::string& name);
   template <class T> dvector<T> as_dvector(const std::string name);
@@ -347,13 +348,15 @@ public:
   void loadtext(const std::string& filename,
                 const std::vector<std::string>& types,
                 int separator = ',',
-                const std::string& nullstr = "NULL",
+                const std::vector<std::string>& nullstr
+                = {std::string("NULL")},
                 bool is_crlf = false);
   void loadtext(const std::string& filename,
                 const std::vector<std::string>& types,
                 const std::vector<std::string>& names,
                 int separator = ',',
-                const std::string& nullstr = "NULL",
+                const std::vector<std::string>& nullstr
+                = {std::string("NULL")},
                 bool is_crlf = false);
   virtual bool is_right_joinable() {return true;}
   dftable& type_cast(const std::string& from_name,
