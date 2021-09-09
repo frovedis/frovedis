@@ -225,6 +225,7 @@ public:
   virtual size_t count() = 0; // exclude null
   template <class T> T sum();
   virtual double std() = 0;
+  virtual double var() = 0;
   virtual double avg() = 0;
   template <class T> T max();
   template <class T> T min();
@@ -548,6 +549,7 @@ public:
   T sum();
   virtual double avg();
   virtual double std();
+  virtual double var();
   T max();
   T min();
   virtual dvector<float> as_dvector_float(); 
@@ -922,6 +924,9 @@ public:
   virtual double std() {
     throw std::runtime_error("std of string is not defined");
   }
+  virtual double var() {
+    throw std::runtime_error("var of string is not defined");
+  }
   std::string max() {
     throw std::runtime_error("max of string is not defined");
   }
@@ -1199,6 +1204,9 @@ public:
   }
   virtual double std() {
     throw std::runtime_error("std of dic_string is not defined");
+  }
+  virtual double var() {
+    throw std::runtime_error("var of dic_string is not defined");
   }
   dic_string max() {
     throw std::runtime_error("max of dic_string is not defined");
@@ -1503,6 +1511,9 @@ public:
   virtual double std() {
     throw std::runtime_error("std of raw_string is not defined");
   }
+  virtual double var() {
+    throw std::runtime_error("var of raw_string is not defined");
+  }
   raw_string max() {
     throw std::runtime_error("max of raw_string is not defined");
   }
@@ -1652,6 +1663,9 @@ public:
       node_local<size_t>& row_sizes);
   virtual double std() {
     throw std::runtime_error("std of datetime is not defined");
+  }
+  virtual double var() {
+    throw std::runtime_error("var of datetime is not defined");
   }
   virtual double avg() {
     throw std::runtime_error("avg of datetime is not defined");

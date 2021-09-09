@@ -2933,12 +2933,17 @@ double typed_dfcolumn<T>::avg() {
 }
 
 template <class T>
-double typed_dfcolumn<T>::std() {
+double typed_dfcolumn<T>::var() {
   size_t size = count();
   double mean = avg();
   auto ssdm = val.map(mean_helper2<T>, nulls, broadcast(mean))
                  .reduce(frovedis::add<double>);
-  return std::sqrt(ssdm / static_cast<double>(size - 1));
+  return ssdm / static_cast<double>(size - 1);
+}
+
+template <class T>
+double typed_dfcolumn<T>::std() {
+  return std::sqrt(var());
 }
 
 template <class T>
