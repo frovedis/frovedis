@@ -333,11 +333,28 @@ get_std_frovedis_dataframe.argtypes = [c_char_p, c_int, c_long,
                                        POINTER(c_char_p), c_ulong]
 get_std_frovedis_dataframe.restype = py_object
 
+get_var_frovedis_dataframe = LIB.var_frovedis_dataframe
+get_var_frovedis_dataframe.argtypes = [c_char_p, c_int, c_long,
+                                       POINTER(c_char_p), c_ulong]
+get_var_frovedis_dataframe.restype = py_object
+
 df_mean = LIB.df_mean
 df_mean.argtypes = [c_char_p, c_int, c_long,      # host, port, proxy
                     POINTER(c_char_p), c_ulong,   # cols_arr, ncol
                     c_int, c_bool, c_bool]        # axis, skip_na, with_index
 df_mean.restype = py_object
+
+df_var = LIB.df_var
+df_var.argtypes = [c_char_p, c_int, c_long,      # host, port, proxy
+                    POINTER(c_char_p), c_ulong,   # cols_arr, ncol
+                    c_int, c_bool, c_bool]        # axis, skip_na, with_index
+df_var.restype = py_object
+
+df_std = LIB.df_std
+df_std.argtypes = [c_char_p, c_int, c_long,      # host, port, proxy
+                    POINTER(c_char_p), c_ulong,   # cols_arr, ncol
+                    c_int, c_bool, c_bool]        # axis, skip_na, with_index
+df_std.restype = py_object
 
 get_frovedis_col = LIB.get_frovedis_col
 get_frovedis_col.argtypes = [c_char_p, c_int, c_long, c_char_p, c_short]

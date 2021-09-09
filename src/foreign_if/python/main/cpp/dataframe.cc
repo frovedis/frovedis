@@ -457,6 +457,22 @@ extern "C" {
     return to_python_string_list(ret);
   }
 
+  PyObject* var_frovedis_dataframe(const char* host, int port, long proxy,
+                                   const char** cols, ulong size) {
+    ASSERT_PTR(host);
+    exrpc_node fm_node(host, port);
+    auto df_proxy = static_cast<exrpc_ptr_t> (proxy);
+    auto cc = to_string_vector(cols, size);
+    std::vector<std::string> ret;
+    try {
+      ret = exrpc_async(fm_node,frovedis_df_var,df_proxy,cc).get();
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return to_python_string_list(ret);
+  }
+
   PyObject* df_mean(const char* host, int port, long proxy,
                     const char** cols, ulong size, 
                     int axis, bool skipna, bool with_index) {
@@ -467,6 +483,42 @@ extern "C" {
     dummy_dftable ret;
     try {
       ret = exrpc_async(fm_node, frov_df_mean, df_proxy, 
+                        cc, axis, skipna, with_index).get();
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return to_py_dummy_df(ret);
+  }
+
+  PyObject* df_var(const char* host, int port, long proxy,
+                    const char** cols, ulong size, 
+                    int axis, bool skipna, bool with_index) {
+    ASSERT_PTR(host);
+    exrpc_node fm_node(host, port);
+    auto df_proxy = static_cast<exrpc_ptr_t> (proxy);
+    auto cc = to_string_vector(cols, size);
+    dummy_dftable ret;
+    try {
+      ret = exrpc_async(fm_node, frov_df_var, df_proxy, 
+                        cc, axis, skipna, with_index).get();
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return to_py_dummy_df(ret);
+  }
+
+  PyObject* df_std(const char* host, int port, long proxy,
+                    const char** cols, ulong size, 
+                    int axis, bool skipna, bool with_index) {
+    ASSERT_PTR(host);
+    exrpc_node fm_node(host, port);
+    auto df_proxy = static_cast<exrpc_ptr_t> (proxy);
+    auto cc = to_string_vector(cols, size);
+    dummy_dftable ret;
+    try {
+      ret = exrpc_async(fm_node, frov_df_std, df_proxy, 
                         cc, axis, skipna, with_index).get();
     }
     catch (std::exception& e) {
