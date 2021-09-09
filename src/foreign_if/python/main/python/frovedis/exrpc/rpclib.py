@@ -397,8 +397,8 @@ load_dataframe_from_csv.argtypes = [c_char_p, c_int, # host, port
                                    c_char_p, #filename
                                    POINTER(c_char_p), POINTER(c_char_p), # types, names
                                    c_ulong, c_ulong, # types_size, names_size
-                                   c_char, c_char_p, c_char_p, #seperator, nullstr, comments
-                                   c_size_t, c_double, #rows_to_see, seperate_mb
+                                   c_char, POINTER(c_char_p), c_ulong, #seperator, nullarr, nullsz,
+                                   c_char_p, c_size_t, c_double, #comment, rows_to_see, seperate_mb
                                    c_bool, #partial_type_info
                                    POINTER(c_char_p), POINTER(c_char_p), # dtype_keys, dtype_vals
                                    c_ulong, c_bool, c_bool, # dtypes_dict_size, low_memory, add_index

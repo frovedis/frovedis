@@ -73,10 +73,12 @@ def read_csv(filepath_or_buffer, sep=',', delimiter=None,
             raise ValueError("read_csv: Duplicate names are not allowed.")
 
     if na_values is None:
-        na_values = "NULL"
-    elif not isinstance(na_values, str):
-        raise ValueError("read_csv: Expected a string or None value "
-                         "as for parameter 'na_values'!")
+        na_values = ['null', 'NULL', 'nan', '-nan', 'NaN', '-NaN', 'NA', 'N/A', 'n/a']
+    elif isinstance(na_values, dict):
+        raise ValueError("read_csv: Frovedis currently doesn't support "\
+                         "na_values as dictionary!")
+    else:
+        na_values = check_string_or_array_like(na_values, 'read_csv')
  
     if header not in ("infer", 0, None):
         raise ValueError("read_csv: Frovedis doesn't support "
@@ -211,13 +213,16 @@ def read_csv(filepath_or_buffer, sep=',', delimiter=None,
     dtype_keys_arr = get_string_array_pointer(dtype_keys)
     dtype_vals_arr = get_string_array_pointer(dtype_vals)
 
+    na_sz = len(na_values)
+    na_ptr = get_string_array_pointer(na_values)
+
     (host, port) = FrovedisServer.getServerInstance()
     dummy_df = rpclib.load_dataframe_from_csv(host, port, 
                                             filepath_or_buffer.encode('ascii'),
                                             type_arr, name_arr,
                                             len(type_arr), len(name_arr),
                                             delimiter.encode('ascii'),
-                                            na_values.encode("ascii"),
+                                            na_ptr, na_sz,
                                             comment.encode("ascii"),
                                             rows_to_see, separate_mb,
                                             partial_type_info,

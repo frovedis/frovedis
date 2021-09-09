@@ -1058,7 +1058,8 @@ dftable frov_df_mean_impl(exrpc_ptr_t& df_proxy,
     ret.append_column("mean", make_dvector_scatter(mean_res), true); // may contain null 
   } 
   else if (axis == 1) {
-    if (ncol > 0) { 
+    if (ncol == 0 ) append_null<double>(ret, "mean", df.num_row());
+    else {
       dftable tmp;
       double fillv = 0;
       // --- calculate sum(axis = 1) ---
@@ -1096,27 +1097,16 @@ dftable frov_df_mean_impl(exrpc_ptr_t& df_proxy,
         use_dfcolumn use_mean(mean_fn->columns_to_use(tmp));
         ret.append_column("mean", mean_fn->execute(tmp));
       }
-      // use index as it is in input dataframe, if any. otherwise add index.
-      if (with_index) {
-        use_dfcolumn use(df.raw_column(index_nm));
-        ret.append_column(index_nm, df.column(index_nm)).change_col_position(index_nm, 0);
-      } else {
-        ret.prepend_rowid<long>(index_nm);
-      }
+    } 
+    // use index as it is in input dataframe, if any. otherwise add index.
+    if (with_index) {
+      use_dfcolumn use(df.raw_column(index_nm));
+      ret.append_column(index_nm, df.column(index_nm)).change_col_position(index_nm, 0);
     } else {
-      std::vector<double> mean_res(df.num_row(), std::numeric_limits<double>::max());
-      if (with_index) {
-        use_dfcolumn use(df.raw_column(index_nm));
-        ret.append_column(index_nm, df.column(index_nm)).change_col_position(index_nm, 0);
-      } else {
-        ret.prepend_rowid<long>(index_nm);
-      }
-      //ret.append_column("index", make_dvector_scatter(cols)); 
-      ret.append_column("mean", make_dvector_scatter(mean_res), true); // may contain null 
+      ret.prepend_rowid<long>(index_nm);
     }
   } 
   else REPORT_ERROR(USER_ERROR, "mean: supported axis: 0 and 1 only!\n");
-
   return ret;
 }
 
@@ -1158,7 +1148,8 @@ dftable frov_df_var_impl(exrpc_ptr_t& df_proxy,
     ret.append_column("var", make_dvector_scatter(var_res), true); // may contain null 
   }
   else if (axis == 1) {
-    if (ncol > 0 ) {
+    if (ncol == 0 ) append_null<double>(ret, "var", df.num_row());
+    else {
       double fillv = 0;
       auto tmp = frov_df_mean_impl(df_proxy, cols, axis, skip_na, with_index);
       //auto tmp = *reinterpret_cast<dftable*>(dummy_df.dfptr);
@@ -1211,27 +1202,16 @@ dftable frov_df_var_impl(exrpc_ptr_t& df_proxy,
         use_dfcolumn use_var(var_fn->columns_to_use(tmp));
         ret.append_column("var", var_fn->execute(tmp));
       }
-      // use index as it is in input dataframe, if any. otherwise add index.
-      if (with_index) {
-        use_dfcolumn use(df.raw_column(index_nm));
-        ret.append_column(index_nm, df.column(index_nm)).change_col_position(index_nm, 0);
-      } else {
-        ret.prepend_rowid<long>(index_nm);
-      }
+    }
+    // use index as it is in input dataframe, if any. otherwise add index.
+    if (with_index) {
+      use_dfcolumn use(df.raw_column(index_nm));
+      ret.append_column(index_nm, df.column(index_nm)).change_col_position(index_nm, 0);
     } else {
-      std::vector<double> var_col(df.num_row(), std::numeric_limits<double>::max());
-      if (with_index) {
-        use_dfcolumn use(df.raw_column(index_nm));
-        ret.append_column(index_nm, df.column(index_nm)).change_col_position(index_nm, 0);
-      } else {
-        ret.prepend_rowid<long>(index_nm);
-      }
-      //ret.append_column("index", make_dvector_scatter(cols)); 
-      ret.append_column("var", make_dvector_scatter(var_col), true);
+      ret.prepend_rowid<long>(index_nm);
     }
   }
   else REPORT_ERROR(USER_ERROR, "variance: supported axis: 0 and 1 only!\n");
-
   return ret;
 }
 
@@ -1267,7 +1247,6 @@ dummy_dftable frov_df_std(exrpc_ptr_t& df_proxy,
     }
   }
   else REPORT_ERROR(USER_ERROR, "standard deviation: supported axis: 0 and 1 only!\n");
-
   auto retp = new dftable(std::move(ret));
   return to_dummy_dftable(retp);
 }

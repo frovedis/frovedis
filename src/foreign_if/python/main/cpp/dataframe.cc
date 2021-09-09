@@ -709,7 +709,7 @@ extern "C" {
                                    const char* filename,
                                    const char** types, const char** names,
                                    ulong types_size, ulong names_size,
-                                   char sep, const char* nullstr,
+                                   char sep, const char** nullarr, ulong nullsz,
                                    const char* comment,
                                    size_t rows_to_see, double separate_mb,
                                    bool partial_type_info,
@@ -737,7 +737,8 @@ extern "C" {
 
     auto filename_ = std::string(filename);
     auto usecols_vec = to_int_vector(usecols, usecols_len);
-    csv_config conf((int)sep, nullstr, comment, rows_to_see, 
+    auto nullvec = to_string_vector(nullarr, nullsz);
+    csv_config conf((int)sep, nullvec, comment, rows_to_see, 
                     separate_mb, to_separate, add_index, 
                     verbose, mangle_dupe_cols, index_col);
 

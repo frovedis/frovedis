@@ -393,6 +393,42 @@ frov_df_dropna_by_cols(exrpc_ptr_t& df_proxy,
   return to_dummy_dftable(retp);
 }
 
+template <class T>
+void append_null(dftable& df, 
+		 const std::string& cname, 
+		 size_t num_row) {
+  std::vector<size_t> sizes;
+  if (df.num_row() == 0) sizes = get_block_sizes(num_row);
+  else                   sizes = df.num_rows();
+  auto mysz = make_node_local_scatter(sizes);
+  auto vals = make_node_local_allocate<std::vector<T>>();
+  auto nulls = make_node_local_allocate<std::vector<size_t>>();
+  vals.mapv(+[](std::vector<T>& vals, size_t mysz) {
+                 vals = vector_full<T>(mysz, std::numeric_limits<T>::max());
+             }, mysz);
+  nulls.mapv(+[](std::vector<size_t>& nulls, size_t mysz) {
+                 nulls = vector_arrange<size_t>(mysz);
+             }, mysz);
+  auto null_col = std::make_shared<typed_dfcolumn<T>>(std::move(vals), std::move(nulls));
+  df.append_column(cname, null_col);
+}
+
+template <class T>
+void append_value(dftable& df, 
+		  const std::string& cname, 
+		  size_t num_row,
+                  const std::string& fill_value) {
+  std::vector<size_t> sizes;
+  if (df.num_row() == 0) sizes = get_block_sizes(num_row);
+  else                   sizes = df.num_rows();
+  auto mysz = make_node_local_scatter(sizes);
+  auto vals = make_node_local_allocate<std::vector<T>>();
+  auto fillv = do_cast<T>(fill_value); // might raise exception
+  vals.mapv(+[](std::vector<T>& vals, size_t mysz, T fillv) {
+                 vals = vector_full<T>(mysz, fillv);
+             }, mysz, broadcast(fillv));
+  df.append_column(cname, vals.template moveto_dvector<T>()); 
+}
 
 dummy_dftable frov_df_head(exrpc_ptr_t& df_proxy, size_t& limit);
 
@@ -422,6 +458,7 @@ dummy_dftable frov_df_mean(exrpc_ptr_t& df_proxy,
 dummy_dftable frov_df_var(exrpc_ptr_t& df_proxy, 
                            std::vector<std::string>& cols,
                            int& axis, bool& skip_na, bool& with_index);
+
 dummy_dftable frov_df_std(exrpc_ptr_t& df_proxy, 
                            std::vector<std::string>& cols,
                            int& axis, bool& skip_na, bool& with_index);

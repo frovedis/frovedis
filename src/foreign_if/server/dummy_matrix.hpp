@@ -88,28 +88,6 @@ dummy_dftable to_dummy_dftable(DF* df) {
 
 struct csv_config {
   csv_config() {}
-  // TODO: remove this ctor after update
-  csv_config(int sep, 
-             const std::string& nullstr,
-             const std::string& comment,
-             size_t rows_to_see, 
-             double separate_mb,
-             bool to_separate,
-             bool add_index, 
-             bool verbose,
-             bool mangle_dupe_cols,
-             int index_col) {
-    this->separator = sep;
-    this->nullstr = {nullstr};
-    this->comment = comment;
-    this->rows_to_see = rows_to_see;
-    this->separate_mb = separate_mb;
-    this->to_separate = to_separate;
-    this->add_index = add_index;
-    this->verbose_level = verbose ? 1 : 0;
-    this->mangle_dupe_cols = mangle_dupe_cols;
-    this->index_col = index_col;
-  }
   csv_config(int sep, 
              const std::vector<std::string>& nullstr,
              const std::string& comment,
@@ -121,7 +99,7 @@ struct csv_config {
              bool mangle_dupe_cols,
              int index_col) {
     this->separator = sep;
-    this->nullstr = {nullstr};
+    this->nullstr = nullstr;
     this->comment = comment;
     this->rows_to_see = rows_to_see;
     this->separate_mb = separate_mb;

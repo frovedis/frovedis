@@ -34,25 +34,6 @@ get_immed_function(const std::string& op_id,
 }
 
 template <class T>
-void append_null(dftable& df, 
-		 const std::string& cname, 
-		 size_t num_row) {
-  auto vec = vector_full<T>(num_row, std::numeric_limits<T>::max());
-  df.append_column(cname, make_dvector_scatter(vec), true);
-}
-
-template <class T>
-void append_value(dftable& df, 
-		  const std::string& cname, 
-		  size_t num_row,
-                  const std::string& fill_value) {
-  auto fillv = do_cast<T>(fill_value); // might raise exception
-  auto vec = vector_full<T>(num_row, fillv);
-  // fill-values are not to be treated as nulls
-  df.append_column(cname, make_dvector_scatter(vec), false); 
-}
-
-template <class T>
 std::vector<size_t>
 treat_nan_as_null_helper(std::vector<T>& val,
                          std::vector<size_t>& nulls) {
