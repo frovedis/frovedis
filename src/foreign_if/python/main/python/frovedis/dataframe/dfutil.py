@@ -191,8 +191,11 @@ def check_string_or_array_like(by, func):
         ret_by = [by]
     elif isinstance(by, (list, tuple, np.ndarray)): #iterable
         unq, idx = np.unique(by, return_index=True) # excludes redundant values, if any
-        sorted_idx = np.sort(idx) 
-        ret_by = [by[i] for i in sorted_idx]
+        if len(unq) == len(by): # no duplicate found
+            ret_by = list(by)
+        else:
+            sorted_idx = np.sort(idx) 
+            ret_by = [by[i] for i in sorted_idx]
     else:
         raise TypeError(func + ": expected: string or array-like; "\
                         "received: %s" % (type(by).__name__))
