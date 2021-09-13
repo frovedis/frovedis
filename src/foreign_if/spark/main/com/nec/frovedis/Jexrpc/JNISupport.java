@@ -1066,6 +1066,29 @@ public class JNISupport {
                                           int values[], int size,
                                           int model_id,
                                           boolean movable,
-                                          boolean isDense);  
+                                          boolean isDense);
+   
+  // Standard Scaler
+  public static native void callFrovedisScaler(Node master_node,
+                                               long fdata,
+                                               boolean with_mean,
+                                               boolean with_std,
+                                               boolean sam_std,
+                                               int model_Id,
+                                               boolean dense);
 
+  public static native DummyMatrix callScalerTransform(Node master_node,
+                                                       long fdata,
+                                                       int model_Id,
+                                                       boolean dense);
+
+  public static native DummyMatrix callScalerInverseTransform(Node master_node,
+                                                              long fdata,
+                                                              int model_Id,
+                                                              boolean dense);
+
+  public static native double[] getScalerMean(Node master_node, int mid);
+
+  public static native double[] getScalerStd(Node master_node, int mid);
+    
 }
