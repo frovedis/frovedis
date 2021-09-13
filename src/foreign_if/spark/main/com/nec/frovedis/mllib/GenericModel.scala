@@ -38,7 +38,8 @@ object M_KIND {
   val KSVC: Short = 25
   val RR: Short = 26
   val LSR: Short = 27
-  val GMM: Short = 28  
+  val GMM: Short = 28
+  val STANDARDSCALER: Short = 29  
 }
 
 object ModelID {
