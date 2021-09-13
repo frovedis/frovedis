@@ -71,6 +71,7 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_releaseFrovedisMo
       case W2V:    exrpc_oneway(fm_node, release_model<W2V1>, mid); break;
       case DBSCAN: exrpc_oneway(fm_node, release_model<DBSCAN1>, mid); break;
       case LDASP:  exrpc_oneway(fm_node, release_model<LDASP3>, mid); break;
+      case STANDARDSCALER:  exrpc_oneway(fm_node,release_model<STANDARDSCALER1>,mid); break;      
       default:     REPORT_ERROR(USER_ERROR,"Unknown Model Kind is encountered!\n");
     }
   }
@@ -1581,5 +1582,30 @@ Java_com_nec_frovedis_Jexrpc_JNISupport_rfToString
   jstring js = env->NewStringUTF(res.c_str());
   return js;
 }
+    
+JNIEXPORT jdoubleArray JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getScalerMean
+  (JNIEnv *env, jclass thisCls, jobject master_node, jint mid) {
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  std::vector<double> mean_vector;
+  try{
+    mean_vector = exrpc_async(fm_node,get_scaler_mean<DT1>,mid).get();
+  }
+  catch(std::exception& e) { set_status(true,e.what()); }
+  return to_jdoubleArray(env, mean_vector);
+
+} 
+
+
+JNIEXPORT jdoubleArray JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getScalerStd
+  (JNIEnv *env, jclass thisCls, jobject master_node, jint mid) {
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  std::vector<double> std_vector;
+  try {
+    std_vector = exrpc_async(fm_node,get_scaler_std<DT1>,mid).get();
+  }
+  catch(std::exception& e) { set_status(true,e.what()); }
+  return to_jdoubleArray(env, std_vector);
+}
+    
 
 }

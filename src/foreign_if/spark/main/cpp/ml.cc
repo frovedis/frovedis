@@ -1028,6 +1028,92 @@ JNIEXPORT jobject JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisGM
   }
   catch(std::exception& e) { set_status(true,e.what()); }
   return make_jIntDoublePair(env, ret.n_iter_, ret.likelihood_);
-}    
+}
+    
+// (24) --- Standard Scaler ---
+JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisScaler
+  (JNIEnv *env, jclass thisCls, jobject master_node, jlong fdata, 
+   jboolean with_mean, jboolean with_std, jboolean sample_stddev, jint mid, jboolean dense) {
+ 
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto f_dptr = (exrpc_ptr_t) fdata;
+  bool with_mean_ = (bool) with_mean;
+  bool with_std_ = (bool) with_std;
+  bool sample_stddev_ = (bool) sample_stddev;
+  bool isDense = (bool) dense;
+  bool mvbl = false;
+  int vb = 0; //  (default)
+#ifdef _EXRPC_DEBUG_
+  std::cout << "Connecting to master node ("
+            << fm_node.hostname << "," << fm_node.rpcport
+            << ") to train frovedis Standard Scaler.\n";
+#endif
+  try {
+    if(isDense) {  
+      exrpc_oneway(fm_node,(frovedis_scaler_partial_fit<DT1,R_MAT1>),
+                            f_dptr, with_mean_, with_std_, sample_stddev_, vb, mid, mvbl);
+    }
+    else {
+      exrpc_oneway(fm_node,(frovedis_scaler_partial_fit<DT1,S_MAT14>),
+                            f_dptr, with_mean_, with_std_, sample_stddev_, vb, mid, mvbl); 
+    }
+  } 
+  catch(std::exception& e) {
+    set_status(true,e.what()); 
+  }
+}
+   
+JNIEXPORT jobject JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callScalerTransform
+  (JNIEnv *env, jclass thisCls, jobject master_node, jlong fdata, jint mid, jboolean dense) {
+
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto f_dptr = (exrpc_ptr_t) fdata;
+  bool isDense = (bool) dense;
+  dummy_matrix dmat;
+  jobject mat_obj;
+  try{
+    if(isDense) { 
+      dmat = exrpc_async(fm_node,(frovedis_scaler_transform<DT1,R_MAT1,R_MAT1,R_LMAT1>),
+                         f_dptr,mid).get();
+      mat_obj = to_jDummyMatrix(env,dmat,RMJR);
+    }
+    else {
+      dmat = exrpc_async(fm_node,(frovedis_scaler_transform<DT1,S_MAT14,S_MAT14,S_LMAT14>),
+                                  f_dptr,mid).get();
+      mat_obj = to_jDummyMatrix(env,dmat,SCRS);
+    }
+  }
+  catch(std::exception& e) { 
+    set_status(true,e.what());
+  }
+  return mat_obj;
+}
+
+JNIEXPORT jobject JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callScalerInverseTransform
+  (JNIEnv *env, jclass thisCls, jobject master_node, jlong fdata, jint mid, jboolean dense ) {
+  
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto f_dptr = (exrpc_ptr_t) fdata;
+  bool isDense = (bool) dense;
+  dummy_matrix dmat;
+  jobject mat_obj;
+  try{
+    if(isDense) {
+      dmat = exrpc_async(fm_node,(frovedis_scaler_inverse_transform<DT1,R_MAT1,R_MAT1,R_LMAT1>),
+                         f_dptr,mid).get();
+      mat_obj = to_jDummyMatrix(env,dmat,RMJR);
+    }
+    else {
+      dmat = exrpc_async(fm_node,(frovedis_scaler_inverse_transform<DT1,S_MAT14,S_MAT14,S_LMAT14>),
+                         f_dptr,mid).get();
+      mat_obj = to_jDummyMatrix(env,dmat,SCRS);
+    }
+  }
+  catch(std::exception& e) {
+    set_status(true,e.what());
+  }
+  return mat_obj;
+}
+    
 
 }
