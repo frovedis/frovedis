@@ -4,7 +4,7 @@ include ../../../../Makefile.in.x86
 CLIENT_JAR := ../lib/frovedis_client.jar
 #CLIENT_JAR := ${INSTALLPATH}/lib/spark/frovedis_client.jar
 
-JARS := lib/spark2frovedis_data_transfer.jar lib/spark2frovedis_mat.jar lib/spark2frovedis_df.jar lib/spark2frovedis_pblas_scalapack.jar lib/spark2frovedis_svd.jar lib/spark2frovedis_evd.jar lib/spark2frovedis_pca.jar lib/spark2frovedis_lrsgd.jar lib/spark2frovedis_lrm.jar lib/spark2frovedis_als.jar lib/spark2frovedis_nb.jar lib/spark2frovedis_dt.jar lib/spark2frovedis_fm.jar lib/spark2frovedis_kmeans.jar lib/spark2frovedis_ac.jar lib/spark2frovedis_sc.jar lib/frovedis_gmm.jar lib/spark2frovedis_se.jar lib/spark2frovedis_fp.jar lib/spark2frovedis_w2v.jar lib/frovedis_pagerank.jar lib/frovedis_dbscan.jar lib/spark2frovedis_knn.jar lib/spark2frovedis_knc.jar lib/spark2frovedis_knr.jar lib/frovedis_sssp.jar lib/frovedis_bfs.jar lib/frovedis_cc.jar lib/spark2frovedis_lda.jar lib/spark2frovedis_rf.jar lib/spark2frovedis_gbt.jar lib/spark2frovedis_svr.jar lib/spark2frovedis_svc.jar lib/frovedis_tsne.jar
+JARS := lib/spark2frovedis_data_transfer.jar lib/spark2frovedis_mat.jar lib/spark2frovedis_df.jar lib/spark2frovedis_pblas_scalapack.jar lib/spark2frovedis_svd.jar lib/spark2frovedis_evd.jar lib/spark2frovedis_pca.jar lib/spark2frovedis_lrsgd.jar lib/spark2frovedis_lrm.jar lib/spark2frovedis_als.jar lib/spark2frovedis_nb.jar lib/spark2frovedis_dt.jar lib/spark2frovedis_fm.jar lib/spark2frovedis_kmeans.jar lib/spark2frovedis_ac.jar lib/spark2frovedis_sc.jar lib/frovedis_gmm.jar lib/spark2frovedis_se.jar lib/spark2frovedis_fp.jar lib/spark2frovedis_w2v.jar lib/spark2frovedis_scaler.jar lib/frovedis_pagerank.jar lib/frovedis_dbscan.jar lib/spark2frovedis_knn.jar lib/spark2frovedis_knc.jar lib/spark2frovedis_knr.jar lib/frovedis_sssp.jar lib/frovedis_bfs.jar lib/frovedis_cc.jar lib/spark2frovedis_lda.jar lib/spark2frovedis_rf.jar lib/spark2frovedis_gbt.jar lib/spark2frovedis_svr.jar lib/spark2frovedis_svc.jar lib/frovedis_tsne.jar
 
 JOBS := $(shell /usr/bin/nproc --all)
 
@@ -57,6 +57,8 @@ bin/test/scala/FPGrowthDemo.class: scala/FPGrowthDemo.scala
 	${SCALA_HOME}/bin/scalac -cp "${SPARK_HOME}/jars/*:${HDPATH}:${CLIENT_JAR}" -sourcepath . -d bin scala/FPGrowthDemo.scala
 bin/test/scala/Word2VecDemo.class: scala/Word2VectorDemo.scala
 	${SCALA_HOME}/bin/scalac -cp "${SPARK_HOME}/jars/*:${HDPATH}:${CLIENT_JAR}" -sourcepath . -d bin scala/Word2VectorDemo.scala
+bin/test/scala/StandardScalerDemo.class: scala/StandardScalerDemo.scala
+	${SCALA_HOME}/bin/scalac -cp "${SPARK_HOME}/jars/*:${HDPATH}:${CLIENT_JAR}" -sourcepath . -d bin scala/StandardScalerDemo.scala
 bin/test/scala/FrovedisPageRank.class: scala/FrovedisPageRank.scala
 	${SCALA_HOME}/bin/scalac -cp "${SPARK_HOME}/jars/*:${HDPATH}:${CLIENT_JAR}" -sourcepath . -d bin scala/FrovedisPageRank.scala
 bin/test/scala/DBSCANDemo.class: scala/DBSCANDemo.scala
@@ -126,6 +128,8 @@ lib/spark2frovedis_fp.jar: bin/test/scala/FPGrowthDemo.class
 	cd bin; ${JAVA_HOME}/bin/jar -cfm ../lib/spark2frovedis_fp.jar ../MANIFEST/fp.mf test/scala/FPGrowthDemo*
 lib/spark2frovedis_w2v.jar: bin/test/scala/Word2VecDemo.class
 	cd bin; ${JAVA_HOME}/bin/jar -cfm ../lib/spark2frovedis_w2v.jar ../MANIFEST/w2v.mf test/scala/Word2VecDemo*
+lib/spark2frovedis_scaler.jar: bin/test/scala/StandardScalerDemo.class
+	cd bin; ${JAVA_HOME}/bin/jar -cfm ../lib/spark2frovedis_scaler.jar ../MANIFEST/scaler.mf test/scala/StandardScalerDemo*
 lib/frovedis_pagerank.jar: bin/test/scala/FrovedisPageRank.class
 	cd bin; ${JAVA_HOME}/bin/jar -cfm ../lib/frovedis_pagerank.jar ../MANIFEST/page_rank.mf test/scala/FrovedisPageRank*
 lib/frovedis_dbscan.jar: bin/test/scala/DBSCANDemo.class
