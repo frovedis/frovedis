@@ -6,6 +6,7 @@ import os.path
 import pickle
 import sys
 import numbers
+import numpy as np
 from ..base import BaseEstimator
 from ..exrpc import rpclib
 from ..exrpc.server import FrovedisServer, set_association, \
@@ -414,9 +415,8 @@ class SVC(BaseEstimator):
 
         if self.cache_size <= 2:
             raise ValueError("validate: cache_size must be greater than 2!")
-
         if self.max_iter == -1:
-            self.max_iter = sys.maxsize
+            self.max_iter = np.iinfo(np.int32).max
         elif self.max_iter <= 0:
             raise ValueError("validate: max_iter can either be -1 or positive!")
 
@@ -462,11 +462,13 @@ class SVC(BaseEstimator):
             regType = 2
             icpt = True
             rparam = 1.0 / self.C
-            self._n_iter = rpclib.svm_sgd(host, port, X.get(), y.get(), \
+            solver = "sgd"
+            warm_start = False
+            self._n_iter = rpclib.svm(host, port, X.get(), y.get(), \
                            sample_weight, len(sample_weight), \
                            self.max_iter, lrate, regType, rparam, icpt, \
                            self.tol, self.verbose, self.__mid, dtype, \
-                           itype, dense)
+                           itype, dense, solver.encode('ascii'), warm_start)
             self._coef = None
             self._intercept = None
         else:
