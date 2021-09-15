@@ -268,6 +268,78 @@ void key_val_matrix_partition_sort_by_each_row(
   }
 }
 
+// for matrix with different no. of elements in each row
+template <class T, class I, class O>
+void k_partition(T* keyptr, I* valptr,
+                 O* offsetptr,
+                 size_t nrow, size_t k) {
+  O max_ncol = 0, min_ncol = std::numeric_limits<O>::max();
+  for(size_t i = 0; i < nrow; ++i) {
+    auto cur_ncol = offsetptr[i + 1] - offsetptr[i];
+    if (cur_ncol > max_ncol) max_ncol = cur_ncol;
+    else if (cur_ncol < min_ncol) min_ncol = cur_ncol;
+  }
+  require(min_ncol >= k,
+  "given k is larger than the minimum no. of cols in given sparse matrix!\n");
+
+  std::vector<T> work_key(max_ncol);  auto work_kptr = work_key.data();
+  std::vector<I> work_val(max_ncol);  auto work_vptr = work_val.data();
+  size_t kidx = k - 1; // kth index
+  time_spent tot_t(DEBUG), comp_t(DEBUG), copy_t(DEBUG);
+
+  tot_t.lap_start();
+  for(size_t i = 0; i < nrow; ++i) {
+    auto kptr = keyptr + offsetptr[i];
+    auto vptr = valptr + offsetptr[i];
+    auto ncol = offsetptr[i + 1] - offsetptr[i];
+    O st_idx = 0, end_idx = ncol - 1;
+    while(st_idx != end_idx) {
+      auto piv_key = kptr[st_idx];
+      auto piv_val = vptr[st_idx];
+      O low = st_idx, high = end_idx;
+      comp_t.lap_start();
+#pragma _NEC ivdep
+      for(size_t i = st_idx + 1; i <= end_idx; ++i) {
+        if(kptr[i] < piv_key) {
+          work_kptr[low] = kptr[i];
+          work_vptr[low] = vptr[i];
+          low++;
+        }
+        else {
+          work_kptr[high] = kptr[i];
+          work_vptr[high] = vptr[i];
+          high--;
+        }
+      }
+      comp_t.lap_stop();
+
+      // at this point (low == high)
+      checkAssumption(low == high);
+      work_kptr[low] = piv_key;
+      work_vptr[low] = piv_val;
+
+      copy_t.lap_start();
+      // copy-back to input data buffers for next iteration
+      for(size_t i = st_idx; i <= end_idx; ++i) {
+        kptr[i] = work_kptr[i];
+        vptr[i] = work_vptr[i];
+      }
+      copy_t.lap_stop();
+
+      // adjustment
+      if (low > kidx) end_idx = low - 1;
+      else if (low < kidx) st_idx = low + 1;
+      else st_idx = end_idx = kidx; // DONE: equal case
+    }
+  }
+  tot_t.lap_stop();
+  if(get_selfid()== 0) {
+    tot_t.show_lap("total k-partition time: ");
+    comp_t.show_lap("  \\_ comparison time: ");
+    copy_t.show_lap("  \\_ copy_back time: ");
+  }
+}
+
 template <class T, class I>
 void key_val_matrix_partition_sort_by_each_row_loopraked(
                               T* keyptr, I* valptr, 
@@ -702,6 +774,7 @@ void partition_sort(T* kptr, I* vptr,
     copy_t.show_lap("  \\_ copy_back time: ");
   }
 }
+
 
 }
 #endif
