@@ -90,18 +90,26 @@ namespace frovedis {
 // * if size of vector is less than twice of x, then it prints all elements.
 template <class T>
 void debug_print_vector(const std::vector<T>& vec,
-                        size_t limit = 0) {
+                        size_t limit = 0,
+                        std::ostream& str = std::cout) {
   if (limit == 0 || vec.size() < 2*limit) {
-    for(auto& i: vec){ std::cout << i << " "; }
-    std::cout << std::endl;
+    for(auto& i: vec) str << i << " "; 
+    str << std::endl;
   }
   else {
-    for(size_t i = 0; i < limit; ++i) std::cout << vec[i] << " ";
-    std::cout << " ... ";
+    for(size_t i = 0; i < limit; ++i) str << vec[i] << " ";
+    str << " ... ";
     auto size = vec.size();
-    for(size_t i = size - limit; i < size; ++i) std::cout << vec[i] << " ";
-    std::cout << std::endl;
+    for(size_t i = size - limit; i < size; ++i) str << vec[i] << " ";
+    str << std::endl;
   }
+}
+
+template <class T>
+std::ostream& operator<<(std::ostream& str,
+                         const std::vector<T>& vec) {
+  debug_print_vector(vec, 5, str);
+  return str;
 }
 
 // show() for debugging with tagged (named) vector...
