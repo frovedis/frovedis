@@ -13,6 +13,9 @@
 
 #define OP_VLEN 1024
 #define NOVEC_LEN 20
+#define SIGN(x) (((x) >= 0) - ((x) < 0))
+#define ABS(x) ((x) * SIGN(x))
+
 
 /*
  *  This header contains frequently used vector operations in ML algorithms
@@ -94,15 +97,14 @@ void debug_print_vector(const std::vector<T>& vec,
                         std::ostream& str = std::cout) {
   if (limit == 0 || vec.size() < 2*limit) {
     for(auto& i: vec) str << i << " "; 
-    str << std::endl;
   }
   else {
     for(size_t i = 0; i < limit; ++i) str << vec[i] << " ";
     str << " ... ";
     auto size = vec.size();
     for(size_t i = size - limit; i < size; ++i) str << vec[i] << " ";
-    str << std::endl;
   }
+  str << std::endl;
 }
 
 template <class T>
@@ -226,10 +228,9 @@ T vector_squared_sum_impl(const std::vector<T>& vec, T& maxval) {
   if (sz == 0) { maxval = 0; return static_cast<T>(0); }
   auto vptr = vec.data();
   // overflow handling
-  maxval = std::abs(vptr[0]);
-  T zero = static_cast<T>(0);
+  maxval = ABS(vptr[0]);
   for(size_t i = 0; i < sz; ++i) {
-    auto absval = vptr[i] * ((vptr[i] >= zero) - (vptr[i] < zero));
+    auto absval = ABS(vptr[i]);
     if (absval > maxval) maxval = absval;
   }
   if (maxval == 0) return 0;
