@@ -2,6 +2,7 @@
 #define _LBFGS_HPP_
 
 #include "../../matrix/cir_array_list.hpp"
+#define IGNORABLE_DIFF 1e-16
 
 namespace frovedis {
 
@@ -119,6 +120,11 @@ void lbfgs<T>::update_history(const MODEL& cur_model,
   cur_model_vec.push_back(cur_model.intercept);
   auto model_diff = cur_model_vec - old_model;
   auto grad_diff  = cur_gradient - old_gradient;
+  // --- to avoid numerical error on ve ---
+  auto sz = grad_diff.size();
+  auto dptr = grad_diff.data();
+  for (size_t i = 0; i < sz; ++i) if (ABS(dptr[i]) < IGNORABLE_DIFF) dptr[i] = 0;
+  // --------------------------------------
   T dotval = vector_dot(model_diff, grad_diff);
   // https://github.com/scipy/scipy/blob/v1.7.0/scipy/optimize/optimize.py#L1268
   //if (dotval == 0) dotval = 1000.0;
@@ -130,6 +136,11 @@ void lbfgs<T>::update_history(const MODEL& cur_model,
   grad_hist.push_back(std::move(grad_diff));
   old_model.swap(cur_model_vec);
   old_gradient.swap(cur_gradient);
+  /*
+  std::cout << "grad-diff: \n"; grad_hist.debug_print();
+  std::cout << "model-diff: \n"; model_hist.debug_print();
+  std::cout << "rho: \n"; rho.debug_print();
+  */
 }
 
 }

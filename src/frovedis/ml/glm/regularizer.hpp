@@ -28,7 +28,7 @@ struct l1_regularizer {
     T* weightp = &weight[0];
 #pragma cdir on_adb(weightp)
     for(size_t i = 0; i < weight.size(); i++) {
-      weightp[i] -= regParam * ((weightp[i]>0) - (weightp[i]<0));
+      weightp[i] -= regParam * SIGN(weightp[i]);
     }
   }
   void debug_print() { std::cout << "l1_regularizer\n"; }

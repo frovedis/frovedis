@@ -56,8 +56,9 @@ struct cir_array_list {
     return len; 
   }
   void debug_print() const {
-    for (size_t i = 0; i < totActiveElements; ++i) 
-      std::cout << operator[](i) << " ";
+    for (size_t i = 0; i < totActiveElements; ++i) { 
+      std::cout << "[" << i << "] " << operator[](i) << "\n";
+    }
     std::cout << std::endl;
   }
   void reset() {

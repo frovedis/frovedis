@@ -7,7 +7,7 @@
 #define LBFGS_MAX_STEP 1e+20 
 #define LBFGS_MAX_SEARCH_ITER 10
 #define LBFGS_SEARCH_TOL 1e-4
-#define LBFGS_PRINT_INTERVAL 10
+#define LBFGS_PRINT_INTERVAL 1 
 
 namespace frovedis {
 
@@ -147,6 +147,8 @@ void lbfgs_parallelizer::do_train(node_local<DATA_MATRIX>& data,
   weight.push_back(initModel.intercept);
   opt.old_model = weight;
   opt.old_gradient = grad_vector;
+  //RLOG(DEBUG) << "initial gradient: " << grad_vector; 
+  //RLOG(DEBUG) << "initial weight: " << initModel.weight; 
 
   // -------- main loop --------
   size_t i = 1;
@@ -193,16 +195,18 @@ void lbfgs_parallelizer::do_train(node_local<DATA_MATRIX>& data,
     grad_vector = new_grad_vector_part.vector_sum();
     initModel = std::move(new_model);
     auto rms = vector_norm(grad_vector) / sqrt(grad_vector.size());
-    opt.update_history(initModel, grad_vector);
 
     if (i % LBFGS_PRINT_INTERVAL == 0) {
-      RLOG(INFO) << "[Iteration: " << i << "]"
-                 << " norm(w): " << vector_norm(initModel.weight)
-                 << "; norm(g): " << vector_norm(grad_vector)
-                 << "; rms: " << rms
-                 << "; loss: " << loss
-                 << "; stepsize: " << stepsize * factor << std::endl;
+      RLOG(DEBUG) << "[Iteration: " << i << "]"
+                  << " norm(w): " << vector_norm(initModel.weight)
+                  << "; norm(g): " << vector_norm(grad_vector)
+                  << "; rms: " << rms
+                  << "; loss: " << loss
+                  << "; stepsize: " << stepsize * factor << std::endl;
     }
+    //RLOG(DEBUG) << "gradient: " << grad_vector; 
+    //RLOG(DEBUG) << "weight: " << initModel.weight; 
+    opt.update_history(initModel, grad_vector);
 
     if (rms <= convergenceTol) {
       REPORT_INFO("Convergence achieved in " + ITOS(i) + " iterations!\n");
@@ -241,6 +245,8 @@ void lbfgs_parallelizer::do_train(node_local<DATA_MATRIX>& data,
   weight.push_back(initModel.intercept);
   opt.old_model = weight;
   opt.old_gradient = grad_vector;
+  //RLOG(DEBUG) << "initial gradient: " << grad_vector; 
+  //RLOG(DEBUG) << "initial weight: " << initModel.weight; 
 
   // -------- main loop --------
   size_t i = 1;
@@ -287,16 +293,18 @@ void lbfgs_parallelizer::do_train(node_local<DATA_MATRIX>& data,
     grad_vector = new_grad_vector_part.vector_sum();
     initModel = std::move(new_model);
     auto rms = vector_norm(grad_vector) / sqrt(grad_vector.size());
-    opt.update_history(initModel, grad_vector);
 
     if (i % LBFGS_PRINT_INTERVAL == 0) {
-      RLOG(INFO) << "[Iteration: " << i << "]"
-                 << " norm(w): " << vector_norm(initModel.weight)
-                 << "; norm(g): " << vector_norm(grad_vector)
-                 << "; rms: " << rms
-                 << "; loss: " << loss
-                 << "; stepsize: " << stepsize * factor << std::endl;
+      RLOG(DEBUG) << "[Iteration: " << i << "]"
+                  << " norm(w): " << vector_norm(initModel.weight)
+                  << "; norm(g): " << vector_norm(grad_vector)
+                  << "; rms: " << rms
+                  << "; loss: " << loss
+                  << "; stepsize: " << stepsize * factor << std::endl;
     }
+    //RLOG(DEBUG) << "gradient: " << grad_vector; 
+    //RLOG(DEBUG) << "weight: " << initModel.weight; 
+    opt.update_history(initModel, grad_vector);
 
     if (rms <= convergenceTol) {
       REPORT_INFO("Convergence achieved in " + ITOS(i) + " iterations!\n");
@@ -319,6 +327,13 @@ MODEL lbfgs_parallelizer::parallelize(colmajor_matrix<T>& data,
                                       double regParam,
                                       bool isIntercept,
                                       double convergenceTol) {
+  RLOG(DEBUG) << "niter: " << numIteration
+              << "; hist_size: " << hist_size
+              << "; alpha: " << alpha
+              << "; regParam: " << regParam
+              << "; icpt: " << isIntercept
+              << "; tol: " << convergenceTol << std::endl;
+
   checkAssumption (numIteration > 0 && alpha > 0 && 
                    regParam >= 0 && convergenceTol >= 0);
 
@@ -365,6 +380,13 @@ MODEL lbfgs_parallelizer::parallelize(crs_matrix<T,I,O>& data,
                                       double convergenceTol,
                                       MatType mType,
                                       bool inputMovable) {
+  RLOG(DEBUG) << "niter: " << numIteration
+              << "; hist_size: " << hist_size
+              << "; alpha: " << alpha
+              << "; regParam: " << regParam
+              << "; icpt: " << isIntercept
+              << "; tol: " << convergenceTol << std::endl;
+
   checkAssumption (numIteration > 0 && alpha > 0 && 
                    regParam >= 0 && convergenceTol >= 0);
 

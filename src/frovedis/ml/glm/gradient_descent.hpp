@@ -172,6 +172,7 @@ gradient_descent::compute_gradient(
   std::vector<T>& sample_weight,
   GRADIENT& gradient, 
   T& bias, double& loss) {
+  if (data.local_num_row == 0) return vector_zeros<T>(model.weight.size());
   auto wtx = compute_wtx<T>(data, model);
   auto dloss = gradient.compute_dloss(target, wtx, loss) * sample_weight;
    
@@ -203,6 +204,7 @@ gradient_descent::compute_gradient(
   std::vector<T>& sample_weight,
   GRADIENT& gradient,
   T& bias, double& loss) {
+  if (data.local_num_row == 0) return vector_zeros<T>(model.weight.size());
   auto wtx = compute_wtx<T>(data, model);
   auto dloss = gradient.compute_dloss(target, wtx, loss) * sample_weight;
   if(isIntercept) bias = vector_sum(dloss);

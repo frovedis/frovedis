@@ -367,7 +367,7 @@ void do_train_notrans(std::vector<DATA_MATRIX>& data,
     }
   }
   if(self == 0) {
-    n_iter = i;
+    n_iter = (i == numIteration + 1) ? numIteration : i;
     reduce_lap.show_lap("allreduce time: ");
     dtrain_lap.show_lap("dtrain time: ");
     update_lap.show_lap("update time: ");
