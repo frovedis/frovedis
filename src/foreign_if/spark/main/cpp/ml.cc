@@ -468,8 +468,11 @@ JNIEXPORT jintArray JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedis
                          f_dptr, ncomponent, gamma, aff, n_neighbors,
                          nlap, drop, mode, assign, mid, vb, mvbl).get();
     }
-    else REPORT_ERROR(USER_ERROR, 
-         "Frovedis spectral clustering doesn't accept sparse input at this moment.\n");
+    else {
+       ret = exrpc_async(fm_node,(frovedis_sca<DT1,S_MAT1>),
+                         f_dptr, ncomponent, gamma, aff, n_neighbors,
+                         nlap, drop, mode, assign, mid, vb, mvbl).get();    
+    }
   }
   catch(std::exception& e) { set_status(true,e.what()); }
 
@@ -1070,7 +1073,7 @@ JNIEXPORT jobject JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callScalerTran
   auto f_dptr = (exrpc_ptr_t) fdata;
   bool isDense = (bool) dense;
   dummy_matrix dmat;
-  jobject mat_obj;
+  jobject mat_obj = NULL;
   try{
     if(isDense) { 
       dmat = exrpc_async(fm_node,(frovedis_scaler_transform<DT1,R_MAT1,R_MAT1,R_LMAT1>),
@@ -1096,7 +1099,7 @@ JNIEXPORT jobject JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callScalerInve
   auto f_dptr = (exrpc_ptr_t) fdata;
   bool isDense = (bool) dense;
   dummy_matrix dmat;
-  jobject mat_obj;
+  jobject mat_obj = NULL;
   try{
     if(isDense) {
       dmat = exrpc_async(fm_node,(frovedis_scaler_inverse_transform<DT1,R_MAT1,R_MAT1,R_LMAT1>),
