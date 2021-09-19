@@ -101,7 +101,7 @@ int main(int argc, char** argv) {
 
   time_spent train(INFO);
   train.lap_start();
-  auto model = spectral_clustering_train(std::move(mat),k,n_comp,niter,n_init, 
+  auto model = spectral_clustering_train<double>(std::move(mat),k,n_comp,niter,n_init, 
                eps, seed, gamma, affinity, n_neighbors, norm_laplacian,drop_first, mode);  
   train.lap_stop();
   train.show_lap("training time: ");
