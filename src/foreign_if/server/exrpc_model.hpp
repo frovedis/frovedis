@@ -754,11 +754,19 @@ get_gmm_score_samples(exrpc_ptr_t& mat_ptr, int& mid) {
 template <class T>
 dummy_matrix get_scm_affinity_matrix(int& mid) {
   auto& model = *get_model_ptr<spectral_clustering_model<T>>(mid);
-  auto aff_mat = model.affinity_matrix;
-  auto retp = new rowmajor_matrix<T>(std::move(aff_mat)); // stack to heap
-  if (!retp) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed.\n");
-  return to_dummy_matrix<rowmajor_matrix<T>, 
-                         rowmajor_matrix_local<T>>(retp);
+  if (model.is_dense_affinity) {
+    auto aff_mat = model.dense_affinity_matrix;
+    auto retp = new rowmajor_matrix<T>(std::move(aff_mat)); // stack to heap
+    if (!retp) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed.\n");
+    return to_dummy_matrix<rowmajor_matrix<T>, 
+                           rowmajor_matrix_local<T>>(retp);
+  } else {
+    auto aff_mat = model.sparse_affinity_matrix;
+    auto retp = new crs_matrix<T>(std::move(aff_mat)); // stack to heap
+    if (!retp) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed.\n");
+    return to_dummy_matrix<crs_matrix<T>, 
+                           crs_matrix_local<T>>(retp);
+  }
 }
 
 template <class T>

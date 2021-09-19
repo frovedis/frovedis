@@ -31,6 +31,11 @@ void expose_frovedis_clustering_functions() {
   // (3) spectral clustering
   expose((frovedis_sca<DT1,R_MAT1>));
   expose((frovedis_sca<DT2,R_MAT2>)); // python case
+  expose((frovedis_sca<DT1,S_MAT1>)); // spark case 
+  expose((frovedis_sca<DT1,S_MAT14>));
+  expose((frovedis_sca<DT2,S_MAT24>)); // python case
+  expose((frovedis_sca<DT1,S_MAT15>));
+  expose((frovedis_sca<DT2,S_MAT25>)); // python case    
   // (4) spectral embedding
   expose((frovedis_sea<DT1,R_MAT1>));
   expose((frovedis_sea<DT2,R_MAT2>)); // python case
