@@ -790,8 +790,8 @@ construct_affinity_matrix(rowmajor_matrix<T>& mat,
 
 template <class T>
 std::vector<T>
-sum_of_cols_without_diagonal(rowmajor_matrix_local<T>& aff_loc,
-                             size_t myst) {
+rmm_sum_of_cols_without_diagonal(rowmajor_matrix_local<T>& aff_loc,
+                                 size_t myst) {
   auto nrow = aff_loc.local_num_row;
   auto ncol = aff_loc.local_num_col;
   std::vector<T> con_vec(nrow,0);
@@ -810,7 +810,43 @@ sum_of_cols_without_diagonal(rowmajor_matrix_local<T>& aff_loc,
 template <class T>
 lvec<T> construct_connectivity_diagonals(rowmajor_matrix<T>& mat,
                                          node_local<size_t>& myst) {
-  return mat.data.map(sum_of_cols_without_diagonal<T>, myst);
+  return mat.data.map(rmm_sum_of_cols_without_diagonal<T>, myst);
+}
+    
+template <class T, class I, class O>
+std::vector<T>
+crs_sum_of_cols_without_diagonal(crs_matrix_local<T,I,O>& aff_loc,
+                                 size_t myst) {
+  auto nrow = aff_loc.local_num_row;
+  std::vector<T> sum_vec(nrow, 0);
+  auto mvalp = aff_loc.val.data();
+  auto moffp = aff_loc.off.data();
+  auto idxp = aff_loc.idx.data();  
+  auto sumvecp = sum_vec.data();
+  size_t maxlen = 0;
+  for (size_t i = 0; i < nrow; ++i) {
+    auto rowlen = moffp[i+1] - moffp[i];  
+    if (rowlen > maxlen) maxlen = rowlen;
+  }
+  for (size_t i = 0; i < maxlen; ++i) { // iterates on columns (left -> right)
+    for (size_t j = 0; j < nrow; ++j) { // iterates on rows (top -> bottom)
+      int rem = moffp[j+1] - moffp[j] - i; 
+      if (rem > 0) {
+        auto col = moffp[j] + i;
+        auto glob_row = j + myst;
+        //only non-diagonal  
+        if(glob_row != idxp[col]) sumvecp[j] += mvalp[col];
+      }
+    }
+  }
+  return sum_vec;
+}
+    
+
+template <class T, class I, class O>
+lvec<T> construct_connectivity_diagonals(crs_matrix<T,I,O>& mat,
+                                         node_local<size_t>& myst) {  
+  return mat.data.map(crs_sum_of_cols_without_diagonal<T,I,O>, myst);
 }
 
 template <class T>
@@ -834,9 +870,9 @@ one_by_sqrt_inplace(std::vector<T>& conn_vec) {
 // L = D - A
 // normalized laplacian can be constructed with norm = true
 template <class T>
-struct construct_laplace_matrix_helper {
-  construct_laplace_matrix_helper() {}
-  construct_laplace_matrix_helper(bool norm): norm_laplacian(norm) {}
+struct rmm_construct_laplace_matrix_helper {
+  rmm_construct_laplace_matrix_helper() {}
+  rmm_construct_laplace_matrix_helper(bool norm): norm_laplacian(norm) {}
   // in-place conversion of affinity matrix -> lapalce matrix
   void operator()(rowmajor_matrix_local<T>& mat, 
                   std::vector<T>& conn_vec,
@@ -845,7 +881,7 @@ struct construct_laplace_matrix_helper {
     auto ncol = mat.local_num_col;
     auto mptr = mat.val.data();
     // algo: scipy.sparse.csgraph.laplacian
-    if(norm_laplacian) {
+    if(norm_laplacian) {  
       auto isolated = one_by_sqrt_inplace(conn_vec); // returns vector(1 or 0) 
       auto cptr = conn_vec.data();
       auto isoptr = isolated.data();
@@ -875,7 +911,7 @@ void construct_laplace_matrix_inplace(rowmajor_matrix<T>& aff,
                                       lvec<T>& conn_vec,
                                       node_local<size_t>& myst,
                                       bool norm = false) {
-  aff.data.mapv(construct_laplace_matrix_helper<T>(norm), 
+  aff.data.mapv(rmm_construct_laplace_matrix_helper<T>(norm), 
                 conn_vec, myst);
 }
 
@@ -890,13 +926,117 @@ construct_laplace_matrix(rowmajor_matrix<T>& aff,
   return lap;
 }
 
+template <class T, class I, class O>
+struct crs_construct_laplace_matrix_helper {
+  crs_construct_laplace_matrix_helper() {}
+  crs_construct_laplace_matrix_helper(bool norm): norm_laplacian(norm) {}
+  // in-place conversion of affinity matrix -> lapalce matrix
+  void operator()(crs_matrix_local<T,I,O>& mat, 
+                  std::vector<T>& conn_vec,
+                  size_t myst) {
+    auto nrow = mat.local_num_row;
+    auto mptr = mat.val.data();
+    auto idxp = mat.idx.data();
+    auto offp = mat.off.data();      
+    auto sz = mat.val.size();
+    size_t count_diag_not_present = 0;
+      
+    // algo: scipy.sparse.csgraph.laplacian
+    if(norm_laplacian) {
+      auto isolated = one_by_sqrt_inplace(conn_vec); // returns vector(1 or 0) 
+      auto cptr = conn_vec.data();
+      auto isoptr = isolated.data();
+      for(size_t i = 0; i < nrow; ++i) {
+        bool diag_found = false;  
+        auto diag = i + myst;          
+        for(O pos = offp[i]; pos < offp[i+1]; pos++) { 
+          mptr[pos] *= -1.0 * cptr[idxp[pos]] * cptr[diag];
+          // taking care of diagonals   
+          if(idxp[pos] == diag) {
+            diag_found = true;
+            mptr[pos] = 1.0 - isoptr[i];
+          }            
+        }
+        //count if diagonal element is not present in this row 
+        if(!diag_found) count_diag_not_present++; 
+      }    
+    }
+    else {
+      auto cptr = conn_vec.data();
+      for(size_t i = 0; i < sz; ++i) mptr[i] *= -1.0; // -A 
+             
+      for(size_t i = 0; i < nrow; ++i) {
+        bool diag_found = false;  
+        auto diag = i + myst;    
+        for(O pos = offp[i]; pos < offp[i+1]; pos++) {
+          // taking care of diagonals   
+          if(idxp[pos] == diag) {
+            diag_found = true;
+            mptr[pos] =  cptr[diag];  
+          }                 
+        }
+        //count if diagonal element is not present in this row 
+        if(!diag_found) count_diag_not_present++;   
+      }
+    }
+
+    //if diagonal is not present, give warning
+    if(count_diag_not_present > 0)
+      REPORT_WARNING(WARNING_MESSAGE, "Affinty matrix should have diagonal values");           
+  }
+  bool norm_laplacian;
+  SERIALIZE(norm_laplacian)
+};
+    
+    
+template <class T, class I, class O>
+void construct_laplace_matrix_inplace(crs_matrix<T,I,O>& aff,
+                                       lvec<T>& conn_vec,
+                                       node_local<size_t>& myst,
+                                       bool norm = false) {
+  aff.data.mapv(crs_construct_laplace_matrix_helper<T,I,O>(norm), 
+                conn_vec, myst);
+}
+    
+    
+template <class T, class I, class O>
+crs_matrix<T,I,O>
+construct_laplace_matrix(crs_matrix<T,I,O>& aff,
+                          lvec<T>& conn_vec,
+                          node_local<size_t>& myst,
+                          bool norm = false) {
+  crs_matrix<T,I,O> lap(aff);
+  construct_laplace_matrix_inplace(lap,conn_vec,myst,norm);
+  return lap;
+}
+
+template <class T, class I, class O>
+void crs_negate_inplace(crs_matrix_local<T,I,O>& mat) {
+    auto mptr = mat.val.data();
+    auto sz = mat.val.size(); 
+    for(size_t i=0; i < sz; ++i) mptr[i] *= -1; 
+}
+    
+    
 template <class T>
-void negate_inplace(rowmajor_matrix_local<T>& mat) {
+void rmm_negate_inplace(rowmajor_matrix_local<T>& mat) {
     auto nrow = mat.local_num_row;
     auto ncol = mat.local_num_col;
     auto mptr = mat.val.data();
     for(size_t i=0; i < nrow*ncol; ++i) mptr[i] *= -1; 
 }
+
+template <class T, class I, class O>
+void negate_inplace(crs_matrix<T,I,O>& mat) {
+  mat.data.mapv(crs_negate_inplace<T,I,O>);  
+}
+
+    
+template <class T>
+void negate_inplace(rowmajor_matrix<T>& mat) {
+  mat.data.mapv(rmm_negate_inplace<T>);  
+}
+
 
 template <class T>
 rowmajor_matrix_local<T>

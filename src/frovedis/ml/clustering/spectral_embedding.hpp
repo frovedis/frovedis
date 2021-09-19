@@ -1,14 +1,10 @@
 #ifndef _SPECTRAL_EMBED_
 #define _SPECTRAL_EMBED_
 
-//#define SPARSE
 #define SAVE false 
 
-#ifdef SPARSE
 #include <frovedis/matrix/shrink_sparse_eigen.hpp>
-#else
 #include <frovedis/matrix/dense_eigen.hpp>
-#endif
 
 #include "common.hpp"
 #include "spectral_embedding_model.hpp"
@@ -23,17 +19,24 @@ get_target_eigen_vector(rowmajor_matrix<T>& mat,
                         int mode) {
   diag_matrix_local<T> eig_val;
   colmajor_matrix<T> eig_vec;
-#ifdef SPARSE
-  auto smat = mat.to_crs();
-  sparse_eigen_sym(smat,eig_val,eig_vec,std::string("LA"),num);
-#else
   if (mode == 1) dense_eigen_sym(mat,eig_val,eig_vec,"LA",num); // standard mode
   else if (mode == 3) {
     T sigma = 1.0;
     dense_eigen_sym(mat,eig_val,eig_vec,"LM",num,sigma); // shift-invert mode
   }
   else REPORT_ERROR(USER_ERROR, "Unsupported arpack mode for eigen computation is encountered!\n");
-#endif
+  //std::cout << "eigen values: \n";  eig_val.debug_print(10);
+  return eig_vec.to_rowmajor();
+}
+    
+template <class T, class I, class O>
+rowmajor_matrix<T>
+get_target_eigen_vector(crs_matrix<T,I,O>& mat,
+                        int num,
+                        int mode) { //mode not used here
+  diag_matrix_local<T> eig_val;
+  colmajor_matrix<T> eig_vec;  
+  shrink::sparse_eigen_sym(mat,eig_val,eig_vec,std::string("LA"),num);
   //std::cout << "eigen values: \n";  eig_val.debug_print(10);
   return eig_vec.to_rowmajor();
 }
@@ -65,9 +68,9 @@ drop_first_column(rowmajor_matrix<T>& mat) {
   return ret;
 }
 
-template <class T>
+template <class T, class MATRIX>
 rowmajor_matrix<T>
-compute_spectral_embedding(rowmajor_matrix<T>& aff, //affinity matrix
+compute_spectral_embedding(MATRIX& aff, //affinity matrix
                            int n_comp = 2,
                            bool norm_laplacian = true,
                            bool drop_first = true,
@@ -95,7 +98,7 @@ compute_spectral_embedding(rowmajor_matrix<T>& aff, //affinity matrix
   if(SAVE) laplace.save("./dump/laplace");
 
   embed_t.lap_start();
-  laplace.data.mapv(negate_inplace<T>); // negating as done in sklearn
+  negate_inplace(laplace); // negating as done in sklearn
   auto eig_vec = get_target_eigen_vector<T>(laplace,n_comp,mode);
   embed_t.lap_stop();
   embed_t.show_lap("eigen computation time: ");
@@ -131,7 +134,7 @@ spectral_embedding_impl(rowmajor_matrix<T>& mat,
       REPORT_ERROR(USER_ERROR, "Precomputed affinity matrix is not a square matrix\n");
     if(input_movable) affinity = std::move(mat);
     else affinity = mat;
-    embed = compute_spectral_embedding(mat,n_comp,norm_laplacian,drop_first,mode);
+    embed = compute_spectral_embedding<T>(mat,n_comp,norm_laplacian,drop_first,mode);
   }
   else { // 'mat' is input data
     time_spent aff_t(DEBUG);
@@ -146,7 +149,7 @@ spectral_embedding_impl(rowmajor_matrix<T>& mat,
     aff_t.lap_stop();
     aff_t.show_lap("affinity computation time: ");
     if(SAVE) affinity.save("./dump/dmat");
-    embed = compute_spectral_embedding(affinity,n_comp,norm_laplacian,drop_first,mode);
+    embed = compute_spectral_embedding<T>(affinity,n_comp,norm_laplacian,drop_first,mode);
   }
   spectral_embedding_model<T> model;
   model.embed_matrix = std::move(embed);

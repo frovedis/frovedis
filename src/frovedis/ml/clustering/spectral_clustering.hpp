@@ -158,7 +158,7 @@ namespace frovedis {
     fit(const MATRIX& mat,
       const dvector<int>& label = dvector<int>()) { // ignored
       bool movable = false;
-      model = spectral_clustering_impl(mat, assign, n_comp, gamma, affinity, n_neighbors,
+      model = spectral_clustering_impl<T>(mat, assign, n_comp, gamma, affinity, n_neighbors,
                                        norm_laplacian, drop_first, mode, movable);
       is_fitted = true;
       return *this;           
@@ -169,7 +169,7 @@ namespace frovedis {
     fit(MATRIX&& mat,
       const dvector<int>& label = dvector<int>()) { // ignored
       bool movable = true;
-      model = spectral_clustering_impl(mat, assign, n_comp, gamma, affinity, n_neighbors,
+      model = spectral_clustering_impl<T>(mat, assign, n_comp, gamma, affinity, n_neighbors,
                                        norm_laplacian, drop_first, mode, movable);
       is_fitted = true;
       return *this;           
@@ -203,9 +203,16 @@ namespace frovedis {
        return homogeneity_score(true_label.gather(), pred_label);
      }      
 
-    rowmajor_matrix<T> affinity_matrix_() {
-      require(is_fitted, "affinity_matrix_() is called before fit()");       
-      return model.affinity_matrix; 
+    rowmajor_matrix<T> dense_affinity_matrix_() {
+      require(is_fitted, "dense_affinity_matrix_() is called before fit()");       
+      return model.is_dense_affinity ? model.dense_affinity_matrix 
+                                     : model.sparse_affinity_matrix.to_rowmajor(); 
+    } 
+
+    crs_matrix<T> sparse_affinity_matrix_() {
+      require(is_fitted, "sparse_affinity_matrix_() is called before fit()");       
+      return model.is_dense_affinity ? model.dense_affinity_matrix.to_crs() 
+                                     : model.sparse_affinity_matrix;
     } 
     
     std::vector<int> labels_() {
