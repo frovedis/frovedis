@@ -410,7 +410,7 @@ class SpectralClustering(BaseEstimator):
         # if X is not a sparse data, it would be loaded as rowmajor matrix
         inp_data = FrovedisFeatureData(X, \
                      caller = "[" + self.__class__.__name__ + "] fit: ",\
-                     dense_kind='rowmajor', densify=True)
+                     dense_kind='rowmajor', densify=False)
         X = inp_data.get()
         dtype = inp_data.get_dtype()
         itype = inp_data.get_itype()
@@ -495,12 +495,22 @@ class SpectralClustering(BaseEstimator):
             excpt = rpclib.check_server_exception()
             if excpt["status"]:
                 raise RuntimeError(excpt["info"])
-            rmat = FrovedisRowmajorMatrix(mat=dmat, dtype=TypeUtil. \
-                        to_numpy_dtype(self.__mdtype))
-            if self.__X_movable:
-                self._affinity = rmat.to_numpy_array()
+            
+            is_dense = (dmat["nrow"] * dmat["ncol"] == dmat["n_nz"])
+            if is_dense:
+                rmat = FrovedisRowmajorMatrix(mat=dmat, dtype=TypeUtil. \
+                            to_numpy_dtype(self.__mdtype))
+                if self.__X_movable:
+                    self._affinity = rmat.to_numpy_array()
+                else:
+                    self._affinity = rmat
             else:
-                self._affinity = rmat
+                smat = FrovedisCRSMatrix(mat=dmat, dtype=TypeUtil. \
+                            to_numpy_dtype(self.__mdtype))
+                if self.__X_movable:
+                    self._affinity = smat.to_scipy_matrix()
+                else:
+                    self._affinity = smat
         return self._affinity
 
     @affinity_matrix_.setter
