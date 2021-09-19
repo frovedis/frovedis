@@ -892,8 +892,54 @@ extern "C" {
                    "Unsupported dtype of input dense data for training!\n");
         }
       }
-      else  REPORT_ERROR(USER_ERROR, 
-            "Frovedis doesn't support input sparse data for spectral clustering!\n");
+      else {
+        switch(dtype) {
+          case FLOAT: 
+            {
+            auto assign = KMeans<float>().set_k(k)
+                                         .set_max_iter(n_iter)
+                                         .set_n_init(n_init)
+                                         .set_eps(eps)
+                                         .set_seed(seed);                
+            if(itype == INT) 
+              pred = exrpc_async(fm_node,(frovedis_sca<DT2,S_MAT24>),
+                                 f_xptr, n_comp, gamma, affinity, n_neighbors,
+                                 norm_laplacian, drop_first, mode, 
+                                 assign, mid, vb, mvbl).get();
+            else if(itype == LONG) 
+              pred = exrpc_async(fm_node,(frovedis_sca<DT2,S_MAT25>),
+                                 f_xptr, n_comp, gamma, affinity, n_neighbors,
+                                 norm_laplacian, drop_first, mode, 
+                                 assign, mid, vb, mvbl).get();
+            else REPORT_ERROR(USER_ERROR, 
+                 "Unsupported itype of input sparse data for training!\n");
+            break;
+          }
+          case DOUBLE: 
+          {
+            auto assign = KMeans<double>().set_k(k)
+                                          .set_max_iter(n_iter)
+                                          .set_n_init(n_init)
+                                          .set_eps(eps)
+                                          .set_seed(seed);              
+            if(itype == INT) 
+              pred = exrpc_async(fm_node,(frovedis_sca<DT1,S_MAT14>),
+                                 f_xptr, n_comp, gamma, affinity, n_neighbors,
+                                 norm_laplacian, drop_first, mode, 
+                                 assign, mid, vb, mvbl).get();
+            else if(itype == LONG) 
+              pred = exrpc_async(fm_node,(frovedis_sca<DT1,S_MAT15>),
+                                 f_xptr, n_comp, gamma, affinity, n_neighbors,
+                                 norm_laplacian, drop_first, mode, 
+                                 assign, mid, vb, mvbl).get();
+            else REPORT_ERROR(USER_ERROR, 
+                 "Unsupported itype of input sparse data for training!\n");
+            break;
+          }
+          default: REPORT_ERROR(USER_ERROR, 
+                   "Unsupported dtype of input sparse data for training!\n");
+        }            
+      }
       auto sz = pred.size();
       checkAssumption(len == sz);
       for(size_t i=0; i<len && i<sz; ++i) ret[i] = pred[i];
