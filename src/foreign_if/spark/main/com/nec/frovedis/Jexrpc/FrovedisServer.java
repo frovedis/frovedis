@@ -8,8 +8,8 @@ public class FrovedisServer implements java.io.Serializable {
   public int worker_size;
   private static boolean instantiated = false;
   // default command
-  private static String command = "/opt/nec/ve/bin/mpirun -np 1 " +
-                 "/opt/nec/nosupport/frovedis/ve/bin/frovedis_server"; 
+  private static String command = "/opt/nec/ve/bin/mpirun -np 8 " +
+                 "/opt/nec/frovedis/ve/bin/frovedis_server"; 
   private static FrovedisServer server;
 
   private FrovedisServer() throws ServerException {
