@@ -477,7 +477,7 @@ void frovedis_sea(exrpc_ptr_t& data_ptr, int& component,
   auto old_level = frovedis::get_loglevel();
   if (verbose == 1) frovedis::set_loglevel(frovedis::DEBUG);
   else if (verbose == 2) frovedis::set_loglevel(frovedis::TRACE);
-  auto m = frovedis::spectral_embedding(mat,component,nlaplacian,pre,drop_first,gamma,mode);
+  auto m = frovedis::spectral_embedding<T>(mat,component,nlaplacian,pre,drop_first,gamma,mode);
   // if input is movable, destroying Frovedis side data after training is done.
   if (isMovableInput)  mat.clear();
   frovedis::set_loglevel(old_level);
