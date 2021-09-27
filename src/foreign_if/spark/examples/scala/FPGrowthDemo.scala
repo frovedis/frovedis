@@ -21,10 +21,10 @@ object FPGrowthDemo {
     if(args.length != 0) FrovedisServer.initialize(args(0))
 
     // -------- data loading from sample transaction file at Spark side--------
-    var s_data = sc.textFile("./input/groceries.txt")
-    val tr: RDD[Array[String]] = s_data.map(s => s.trim.split(' ').map(x => x.toString))
-    //var s_data = sc.textFile("./input/transaction.txt")
-    //val tr: RDD[Array[Int]] = s_data.map(s => s.trim.split(' ').map(x => x.toInt))
+    //var s_data = sc.textFile("./input/groceries.txt")
+    //val tr: RDD[Array[String]] = s_data.map(s => s.trim.split(' ').map(x => x.toString))
+    var s_data = sc.textFile("./input/transaction.txt")
+    val tr: RDD[Array[Int]] = s_data.map(s => s.trim.split(' ').map(x => x.toInt))
 
     // -------- spark dataframe containing arrays -------
     //val spark = SparkSession.builder().getOrCreate()

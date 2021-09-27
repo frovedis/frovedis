@@ -16,6 +16,7 @@ import org.apache.spark.sql.functions.{row_number, array, lit, when, explode}
 import org.apache.spark.mllib.fpm.FPGrowth.FreqItemset
 import org.apache.spark.mllib.fpm.AssociationRules.Rule
 import scala.reflect.runtime.universe._
+import scala.reflect.ClassTag
 
 // newly added parameters: treeDepth, compression_point, memOptLevel
 class FPGrowth  private (var minSupport: Double,
@@ -57,46 +58,6 @@ class FPGrowth  private (var minSupport: Double,
     this.numPartitions = numPartitions
     this
   }
-  private def get_table_string(data: Iterator[(Array[String],Long)]): 
-              Iterator[(Int,String)] = {
-    val darr = data.toArray
-    var ret = new ArrayBuffer[(Int, String)]()
-    for (i <- 0 to (darr.length-1)) {
-      val id = darr(i)._2.intValue
-      val items = darr(i)._1
-      for (j <- 0 to (items.length-1)) {
-        val p = (id, items(j))
-        ret += p
-      }
-    }
-    return ret.toIterator
-  }
-  private def get_table(data: Iterator[(Array[Int],Long)]): 
-              Iterator[(Int,Int)] = {
-    val darr = data.toArray
-    var ret = new ArrayBuffer[(Int,Int)]()
-    for (i <- 0 to (darr.length-1)) {
-      val id = darr(i)._2.intValue
-      val items = darr(i)._1
-      for (j <- 0 to (items.length-1)) {
-        val p = (id, items(j))
-        ret += p
-      }
-    }
-    return ret.toIterator
-  }
-  private def convert_to_spark_dataframe_string(tr: RDD[Array[String]]): 
-          DataFrame = {
-    val spark = SparkSession.builder().getOrCreate()
-    import spark.implicits._
-    return tr.zipWithIndex()
-             .mapPartitions(get_table_string).toDF("trans_id","item")
-  }
-  private def convert_to_spark_dataframe(tr: RDD[Array[Int]]): DataFrame = {
-    val spark = SparkSession.builder().getOrCreate()
-    import spark.implicits._
-    return tr.zipWithIndex().mapPartitions(get_table).toDF("trans_id","item")
-  }
   def run(data: DataFrame): FPGrowthModel = {
     val spark = SparkSession.builder().getOrCreate()
     import spark.implicits._
@@ -108,12 +69,12 @@ class FPGrowth  private (var minSupport: Double,
     return run(fdata)
   }
   def run(data:RDD[Array[String]], dummy: Null = null): FPGrowthModel = {
-    var sdata = convert_to_spark_dataframe_string(data)
+    var sdata = FPUtil.convert_to_spark_dataframe(data)
     var fdata = new FrovedisDataFrame(sdata)
     return run(fdata, true)
   }
   def run(data:RDD[Array[Int]]): FPGrowthModel = {
-    var sdata = convert_to_spark_dataframe(data)
+    var sdata = FPUtil.convert_to_spark_dataframe(data)
     var fdata = new FrovedisDataFrame(sdata)
     return run(fdata, true)
   }
@@ -301,7 +262,7 @@ object FPGrowth {
   }
 }
 
-class FPGrowthModel (val model_Id: Int, val fis_count: Int) 
+class FPGrowthModel (val model_Id: Int, val fis_count: Int)
     extends GenericModel(model_Id, M_KIND.FPM) {
   def generateAssociationRules(minConfidence: Double): FPGrowthRule = {
     val model_Idr = ModelID.get()
@@ -314,21 +275,6 @@ class FPGrowthModel (val model_Id: Int, val fis_count: Int)
   }
   def generateAssociationRules(): FPGrowthRule = {
     return generateAssociationRules(0.8)
-  }
-  //---Duplicate---
-  private def get_table(data: Iterator[(Array[Int],Long)]): 
-          Iterator[(Int,Int)] = {
-    val darr = data.toArray
-    var ret = new ArrayBuffer[(Int,Int)]()
-    for (i <- 0 to (darr.length-1)) {
-      val id = darr(i)._2.intValue
-      val items = darr(i)._1
-      for (j <- 0 to (items.length-1)) {
-        val p = (id, items(j))
-        ret += p
-      }
-    }
-    return ret.toIterator
   }
   private def adjust_predictions(pred: FrovedisDataFrame, 
                                  fdata: FrovedisDataFrame): 
@@ -348,33 +294,6 @@ class FPGrowthModel (val model_Id: Int, val fis_count: Int)
                                 array().cast("array<integer>"))
                                        .otherwise(myCol))
   }
-  private def get_table_string(data: Iterator[(Array[String],Long)]): 
-          Iterator[(Int,String)] = {
-    val darr = data.toArray
-    var ret = new ArrayBuffer[(Int, String)]()
-    for (i <- 0 to (darr.length-1)) {
-      val id = darr(i)._2.intValue
-      val items = darr(i)._1
-      for (j <- 0 to (items.length-1)) {
-        val p = (id, items(j))
-        ret += p
-      }
-    }
-    return ret.toIterator
-  }
-  private def convert_to_spark_dataframe_string(tr: RDD[Array[String]]): 
-          DataFrame = {
-    val spark = SparkSession.builder().getOrCreate()
-    import spark.implicits._
-    return tr.zipWithIndex()
-             .mapPartitions(get_table_string).toDF("trans_id","item")
-  }
-  //---Duplicate---
-  private def convert_to_spark_dataframe(tr: RDD[Array[Int]]): DataFrame = {
-    val spark = SparkSession.builder().getOrCreate()
-    import spark.implicits._
-    return tr.zipWithIndex().mapPartitions(get_table).toDF("trans_id","item")
-  }
   def transform(data: DataFrame): DataFrame = {
     val spark = SparkSession.builder().getOrCreate()
     import spark.implicits._
@@ -386,12 +305,12 @@ class FPGrowthModel (val model_Id: Int, val fis_count: Int)
     return transform(fdata)
   }
   def transform(data:RDD[Array[String]], dummy: Null = null): DataFrame = {
-    var sdata = convert_to_spark_dataframe_string(data)
+    var sdata = FPUtil.convert_to_spark_dataframe(data)
     var fdata = new FrovedisDataFrame(sdata)
     return transform(fdata)
   }
   def transform(data: RDD[Array[Int]]): DataFrame = {
-    var sdata = convert_to_spark_dataframe(data)
+    var sdata = FPUtil.convert_to_spark_dataframe(data)
     var fdata = new FrovedisDataFrame(sdata)
     return transform(fdata)
   }
