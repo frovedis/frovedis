@@ -838,8 +838,40 @@ extern "C" {
                    "Unsupported dtype of input dense data for training!\n");
         }
       }
-      else  REPORT_ERROR(USER_ERROR, 
-            "Frovedis doesn't support input sparse data for spectral embedding!\n");
+      else {
+        switch(dtype) {
+          case FLOAT: 
+            {
+            if(itype == INT) 
+              exrpc_oneway(fm_node,(frovedis_sea<DT2,S_MAT24>),f_xptr,k,
+                           gamma,norm_laplacian,mid,vb,precomputed,mode,
+                           drop_first,mvbl);
+            else if(itype == LONG) 
+              exrpc_oneway(fm_node,(frovedis_sea<DT2,S_MAT25>),f_xptr,k,
+                           gamma,norm_laplacian,mid,vb,precomputed,mode,
+                           drop_first,mvbl);
+            else REPORT_ERROR(USER_ERROR, 
+                 "Unsupported itype of input sparse data for training!\n");
+            break;
+          }
+          case DOUBLE: 
+          {
+            if(itype == INT) 
+              exrpc_oneway(fm_node,(frovedis_sea<DT1,S_MAT14>),f_xptr,k,
+                           gamma,norm_laplacian,mid,vb,precomputed,mode,
+                           drop_first,mvbl);
+            else if(itype == LONG) 
+              exrpc_oneway(fm_node,(frovedis_sea<DT1,S_MAT15>),f_xptr,k,
+                           gamma,norm_laplacian,mid,vb,precomputed,mode,
+                           drop_first,mvbl);
+            else REPORT_ERROR(USER_ERROR, 
+                 "Unsupported itype of input sparse data for training!\n");
+            break;
+          }
+          default: REPORT_ERROR(USER_ERROR, 
+                   "Unsupported dtype of input sparse data for training!\n");
+        }          
+      }    
     }
     catch (std::exception& e) {
       set_status(true, e.what());
