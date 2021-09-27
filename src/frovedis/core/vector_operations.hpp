@@ -1329,7 +1329,21 @@ vector_clip(const std::vector<T>& vec,
   }
   return ret;
 }
-
+    
+template <class T>
+std::vector<T>
+vector_concat(const std::vector<T>& a, const std::vector<T>& b) {
+  auto sz = a.size() + b.size();
+  std::vector<T> ret(sz);
+  auto ap = a.data();
+  auto bp = b.data();
+  auto retp = ret.data(); 
+  for(size_t i = 0; i < a.size(); ++i) retp[i] = ap[i];
+  auto k = a.size();
+  for(size_t i = 0; i < b.size(); ++i) retp[k + i] = bp[i]; 
+  return ret;
+}
+    
 // similar to np.take(vec, idx)
 template <class R, class T>
 std::vector<R>
