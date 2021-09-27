@@ -9,55 +9,90 @@ struct spectral_embedding_model {
   spectral_embedding_model() {}
   spectral_embedding_model(rowmajor_matrix<T>& aff,
                            rowmajor_matrix<T>& embed): 
-    affinity_matrix(aff), embed_matrix(embed) {}
-
-  void __create_dir_struct (const std::string& dir) {
-    struct stat sb;
-    if(stat(dir.c_str(), &sb) != 0) { // no file/directory
-      mode_t mode = S_IRWXU | S_IRWXG | S_IRWXO; // man 2 stat
-      if(mkdir(dir.c_str(), mode) != 0) {
-        perror("mkdir failed:");
-        throw std::runtime_error("mkdir failed");
-      }
-    } else if(!S_ISDIR(sb.st_mode)) {
-      throw std::runtime_error(dir + " is not a directory");
-    }
+    dense_affinity_matrix(aff), embed_matrix(embed) {
+    is_dense_affinity = true;  
   }
+  spectral_embedding_model(crs_matrix<T>& aff,
+                           rowmajor_matrix<T>& embed): 
+    sparse_affinity_matrix(aff), embed_matrix(embed) {
+    is_dense_affinity = false;  
+  }    
   void save(const std::string& dir) {
-    __create_dir_struct(dir);
+    make_directory(dir);
+    //Affinity matrix 
     std::string affinity_file = dir + "/affinity";
-    affinity_matrix.save(affinity_file); //affinity: rowmajor_matrix<T>
+    is_dense_affinity ? dense_affinity_matrix.save(affinity_file)  
+                      : sparse_affinity_matrix.save(affinity_file);
+    //Affinity type  
+    std::string type_file = dir + "/aff_type";
+    std::ofstream type_str;
+    type_str.exceptions(std::ofstream::failbit | std::ofstream::badbit);
+    type_str.open(type_file.c_str()); 
+    std::string aff_type = is_dense_affinity ? "dense" : "sparse";
+    type_str << aff_type << std::endl;      
     std::string embed_file = dir + "/embedding";
     embed_matrix.save(embed_file); //embedding: rowmajor_matrix<T>
   }
   void savebinary(const std::string& dir) {
-    __create_dir_struct(dir);
+    make_directory(dir);
+    //Affinity matrix 
     std::string affinity_file = dir + "/affinity";
-    affinity_matrix.savebinary(affinity_file); //affinity: rowmajor_matrix<T>
+    is_dense_affinity ? dense_affinity_matrix.savebinary(affinity_file)  
+                      : sparse_affinity_matrix.savebinary(affinity_file);
+    //Affinity type  
+    std::string type_file = dir + "/aff_type";
+    std::ofstream type_str;
+    type_str.exceptions(std::ofstream::failbit | std::ofstream::badbit);
+    type_str.open(type_file.c_str()); 
+    std::string aff_type = is_dense_affinity ? "dense" : "sparse";
+    type_str << aff_type << std::endl;
     std::string embed_file = dir + "/embedding";
     embed_matrix.savebinary(embed_file); //embedding: rowmajor_matrix<T>
   }
   void load(const std::string& dir) {
+    //check affinity type  
+    std::string type_file = dir + "/aff_type";
+    std::string aff_type;
+    std::ifstream type_str(type_file.c_str()); type_str >> aff_type;
+    is_dense_affinity = (aff_type == "dense");
     std::string affinity_file = dir + "/affinity";
-    affinity_matrix = make_rowmajor_matrix_load<T>(affinity_file);
+    if(is_dense_affinity)
+      dense_affinity_matrix = make_rowmajor_matrix_load<T>(affinity_file);
+    else
+      sparse_affinity_matrix = make_crs_matrix_load<T>(affinity_file);
+    //Embedding  
     std::string embed_file = dir + "/embedding";
     embed_matrix = make_rowmajor_matrix_load<T>(embed_file);
   }
   void loadbinary(const std::string& dir) {
+    //check affinity type  
+    std::string type_file = dir + "/aff_type";
+    std::string aff_type;
+    std::ifstream type_str(type_file.c_str()); type_str >> aff_type;
+    is_dense_affinity = (aff_type == "dense");
     std::string affinity_file = dir + "/affinity";
-    affinity_matrix = make_rowmajor_matrix_loadbinary<T>(affinity_file);
+    if(is_dense_affinity)
+      dense_affinity_matrix = make_rowmajor_matrix_loadbinary<T>(affinity_file);
+    else
+      sparse_affinity_matrix = make_crs_matrix_loadbinary<T>(affinity_file);
+    //Embedding  
     std::string embed_file = dir + "/embedding";
     embed_matrix = make_rowmajor_matrix_loadbinary<T>(embed_file);
   }
   void debug_print() {
     std::cout << "affinity matrix: \n";
-    affinity_matrix.debug_print();
+    if(is_dense_affinity) dense_affinity_matrix.debug_print();
+    else sparse_affinity_matrix.debug_print();
     std::cout << "embed matrix: \n";
     embed_matrix.debug_print();
   }  
 
-  rowmajor_matrix<T> affinity_matrix, embed_matrix;
-  SERIALIZE(affinity_matrix, embed_matrix)
+  rowmajor_matrix<T> dense_affinity_matrix;
+  crs_matrix<T> sparse_affinity_matrix;
+  bool is_dense_affinity;  
+  rowmajor_matrix<T> embed_matrix;
+  SERIALIZE(dense_affinity_matrix, sparse_affinity_matrix,
+            is_dense_affinity, embed_matrix)
 };
 
 }

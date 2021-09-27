@@ -11,29 +11,15 @@ struct spectral_clustering_model {
                             std::vector<int>& lbl, int ncluster):
     dense_affinity_matrix(aff), labels(lbl), nclusters(ncluster) {
       is_dense_affinity = true;
-    }
-    
+  }
   spectral_clustering_model(crs_matrix<T>& aff,
                             std::vector<int>& lbl, int ncluster):
     sparse_affinity_matrix(aff), labels(lbl), nclusters(ncluster) {
       is_dense_affinity = false;
-    }    
-
-  void __create_dir_struct (const std::string& dir) {
-    struct stat sb;
-    if(stat(dir.c_str(), &sb) != 0) { // no file directory
-      mode_t mode = S_IRWXU | S_IRWXG | S_IRWXO; // man 2 stat
-      if(mkdir(dir.c_str(), mode) != 0) {
-        perror("mkdir failed:");
-        throw std::runtime_error("mkdir failed");
-      }
-    } else if(!S_ISDIR(sb.st_mode)) {
-      throw std::runtime_error(dir + " is not a directory");
-    }
-  }
+  }    
   void save(const std::string& dir) {
-    __create_dir_struct(dir);
-    //Affinity  
+    make_directory(dir);
+    //Affinity matrix
     std::string affinity_file = dir + "/affinity";
     is_dense_affinity ? dense_affinity_matrix.save(affinity_file)  
                       : sparse_affinity_matrix.save(affinity_file);
@@ -54,8 +40,8 @@ struct spectral_clustering_model {
     type_str << aff_type << std::endl;      
   }
   void savebinary(const std::string& dir) {
-    __create_dir_struct(dir);
-    //Affinity  
+    make_directory(dir);
+    //Affinity matrix  
     std::string affinity_file = dir + "/affinity";
     is_dense_affinity ? dense_affinity_matrix.savebinary(affinity_file)  
                       : sparse_affinity_matrix.savebinary(affinity_file);
@@ -103,7 +89,6 @@ struct spectral_clustering_model {
       dense_affinity_matrix = make_rowmajor_matrix_loadbinary<T>(affinity_file);
     else
       sparse_affinity_matrix = make_crs_matrix_loadbinary<T>(affinity_file);
-      
     std::string label_file = dir + "/label";
     std::string cluster_file = dir + "/cluster_size";
     labels = make_dvector_loadbinary<int>(label_file).gather();

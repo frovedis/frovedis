@@ -4,11 +4,128 @@
 #include "kmeans.hpp"
 #include "spectral_embedding.hpp"
 #include "spectral_clustering_model.hpp"
+#include <frovedis/core/vector_operations.hpp>
 #include "../neighbors/knn.hpp"
 
 namespace frovedis {
 
-// TODO: implement for crs graph
+template <class T, class I, class O>
+crs_matrix_local<T,I,O>    
+compute_joint_probability_helper(const crs_matrix_local<T,I,O>& a, 
+                                 const crs_matrix_local<T,I,O>& b) {  
+  require(a.local_num_row == b.local_num_row &&
+          a.local_num_col == b.local_num_col, 
+  "compute_joint_probability: local matrix dimensions must be same!\n");
+ 
+  auto a_nrow = a.local_num_row;
+  auto a_sz = a.val.size();
+  auto aidxp = a.idx.data();
+  auto aoffp = a.off.data();
+    
+  auto b_nrow = b.local_num_row;
+  auto b_sz = b.val.size();      
+  auto bidxp = b.idx.data();    
+  auto boffp = b.off.data();
+    
+  // find max of ncol
+  auto maxA = vector_amax(a.idx);
+  auto maxB = vector_amax(b.idx);
+  auto max_ncol = std::max(maxA, maxB) + 1;
+  
+  // step1: create global_ids of size_t type (physical id can be large enough...)
+  // from current row and idx
+  std::vector<size_t> aidx_global(a_sz), bidx_global(b_sz); 
+  auto aidx_gp = aidx_global.data();
+  auto bidx_gp = bidx_global.data();
+  for(size_t row = 0; row < a_nrow; ++row) {  
+    for(O pos = aoffp[row]; pos < aoffp[row + 1]; pos++) {
+      aidx_gp[pos] = row * max_ncol + aidxp[pos];
+    }    
+  }
+  for(size_t row = 0; row < b_nrow; ++row) {
+    for(O pos = boffp[row]; pos < boffp[row + 1]; pos++) {
+      bidx_gp[pos] = row * max_ncol + bidxp[pos];
+    }    
+  }  
+
+  // step2: concat
+  auto concat_val = vector_concat(a.val, b.val);
+  auto concat_id = vector_concat(aidx_global, bidx_global);
+  vector_clear(aidx_global); // freeing memory after concat
+  vector_clear(bidx_global); // freeing memory after concat
+    
+  // step3: find unique ids
+  radix_sort(concat_id, concat_val);
+  auto sep = set_separate(concat_id);
+  auto sepsz = sep.size(); 
+  auto unqsz = sepsz - 1;
+  std::vector<size_t> unq_val(unqsz), unq_pos(unqsz), unq_cnt(unqsz);
+  auto sepp = sep.data();  
+  auto concat_idp = concat_id.data();
+  auto unq_valp = unq_val.data();
+  auto unq_posp = unq_pos.data();
+  auto unq_cntp = unq_cnt.data();      
+  for(size_t i = 0; i < unqsz; ++i) {
+    unq_valp[i] = concat_idp[sepp[i]];
+    unq_posp[i] = sepp[i];
+    unq_cntp[i] = sepp[i + 1] - sepp[i];
+  }
+  
+  // step4: sparse-vector addition of all the rows at a go...
+  std::vector<T> val(unqsz);
+  std::vector<I> cid(unqsz);
+  std::vector<O> rid(unqsz);    
+  auto valp = val.data();  
+  auto ridp = rid.data();  
+  auto cidp = cid.data();    
+  auto concat_valp = concat_val.data();  
+  for(size_t i = 0; i < unqsz; ++i) {
+    auto pos = unq_posp[i];
+    valp[i] = concat_valp[pos];
+    cidp[i] = unq_valp[i] % max_ncol;
+    ridp[i] = unq_valp[i] / max_ncol;
+  }    
+
+  size_t group = 2;
+  auto grp2 = vector_find_eq(unq_cnt, group); // check all with count 2
+  auto grp2p = grp2.data();  
+  auto grp2sz = grp2.size();
+  #pragma _NEC ivdep
+  for(size_t i = 0; i < grp2sz; ++i) {
+    auto tid = grp2p[i];
+    auto id = unq_posp[tid];
+    valp[tid] += concat_valp[id + 1];
+  }
+    
+  for(size_t i = 0; i < unqsz; ++i) valp[i] *= 0.5; // joined probability calculation  
+
+  // step5: resultant matrix construction
+  crs_matrix_local<T,I,O> ret;
+  ret.val.swap(val);
+  ret.idx.swap(cid);
+  ret.off = set_separate(rid);
+  ret.local_num_row = a.local_num_row;
+  ret.local_num_col = b.local_num_col;
+  return ret;  
+}    
+           
+template <class T, class I, class O>
+crs_matrix<T,I,O>
+compute_joint_probability(crs_matrix<T,I,O>& mat) {
+  auto nrow = mat.num_row;
+  auto ncol = mat.num_col;
+  require(nrow == ncol, "compute_joint_probability: input is not a square matrix!\n");
+  auto tmat = mat.transpose();
+  //align local matrices with same distribution 
+  auto sizes = mat.get_local_num_rows();
+  tmat.align_as(sizes);
+  crs_matrix<T,I,O> ret = mat.data.map(compute_joint_probability_helper<T,I,O>, 
+                                       tmat.data);
+  ret.num_row = nrow;
+  ret.num_col = ncol;
+  return ret;
+}
+    
 template <class T>
 rowmajor_matrix<T>
 compute_joint_probability(rowmajor_matrix<T>& mat) {
@@ -74,9 +191,10 @@ spectral_clustering_impl(rowmajor_matrix<T>& mat,
     "no. of neighbors should be in between 1 to nsamples!\n");
     aff_t.lap_start();
     auto knn_model = knn<T>(mat, n_neighbors);
-    auto connectivity = knn_model.create_graph("connectivity", nrow).to_rowmajor();
-    model.dense_affinity_matrix = compute_joint_probability(connectivity);
-    model.is_dense_affinity = true;   
+    auto connectivity = knn_model.create_graph("connectivity", nrow);
+    model.is_dense_affinity = false;   
+    model.sparse_affinity_matrix = \
+      compute_joint_probability(connectivity).template change_datatype<T>();
     aff_t.lap_stop();
     aff_t.show_lap("affinity computation time: ");
     if(SAVE) model.dense_affinity_matrix.save("./dump/affinity");
@@ -167,9 +285,10 @@ spectral_clustering_impl(crs_matrix<T,I,O>& mat,
     "no. of neighbors should be in between 1 to nsamples!\n");
     aff_t.lap_start();
     auto knn_model = knn<T>(mat, n_neighbors);
-    auto connectivity = knn_model.create_graph("connectivity", nrow).to_rowmajor();
-    model.dense_affinity_matrix = compute_joint_probability(connectivity);
-    model.is_dense_affinity = true;   
+    auto connectivity = knn_model.create_graph("connectivity", nrow);
+    model.is_dense_affinity = false;   
+    model.sparse_affinity_matrix = \
+      compute_joint_probability(connectivity).template change_datatype<T>();
     aff_t.lap_stop();
     aff_t.show_lap("affinity computation time: ");
     if(SAVE) model.dense_affinity_matrix.save("./dump/affinity");
