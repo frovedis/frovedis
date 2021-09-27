@@ -2971,6 +2971,23 @@ T typed_dfcolumn<T>::min() {
 }
 
 template <class T>
+T typed_dfcolumn<T>::at(size_t i) {
+  auto sizes = val.template viewas_dvector<T>().sizes();
+  auto nproc = sizes.size();
+  std::vector<size_t> starts(nproc); starts[0] = 0;
+  for(size_t i = 1; i < nproc; ++i) starts[i] = starts[i - 1] + sizes[i - 1];
+  auto myst = make_node_local_scatter(starts);
+  auto mysz = make_node_local_scatter(sizes);
+  return val.map(+[](const std::vector<T>& val, size_t myst, 
+                     size_t mysz, size_t index) {
+         std::vector<T> ret;
+         if (myst <= index && index < myst + mysz) 
+           ret.push_back(val[index - myst]);
+         return ret;
+       }, myst, mysz, broadcast(i)).template moveto_dvector<T>().gather()[0];
+}
+
+template <class T>
 void typed_dfcolumn<T>::debug_print() {
   std::cout << "dtype: " << dtype() << std::endl;
   std::cout << "values: ";

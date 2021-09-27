@@ -73,6 +73,8 @@ public:
   double var(const std::string& name);
   template <class T> T max(const std::string& name);
   template <class T> T min(const std::string& name);
+  template <class T> T at(const std::string& name, size_t i);
+  template <class T> double median(const std::string& name); // uses at()
   template <class T> dvector<T> as_dvector(const std::string name);
   node_local<words> as_words(const std::string name,
                              size_t precision = 6,
@@ -236,6 +238,12 @@ template <class T> T dftable_base::max(const std::string& name) {
 template <class T> T dftable_base::min(const std::string& name) {
   use_dfcolumn use(raw_column(name));
   return column(name)->min<T>();
+}
+
+template <class T> T dftable_base::at(const std::string& name,
+                                      size_t i) {
+  use_dfcolumn use(raw_column(name));
+  return column(name)->at<T>(i);
 }
 
 template <class T>
@@ -1213,6 +1221,24 @@ dftable dftable_base::drop_nulls_by_cols(size_t threshold,
     auto sliced_df = select_rows(tcol, target_values);
     return drop_nulls_by_cols_impl(*this, sliced_df, "", threshold);
   }
+}
+
+template <class T>
+double dftable_base::median(const std::string& name) {
+  double ret = 0.0;
+  auto tmp = select({name}).drop_nulls_by_rows("any").sort(name); // always skips nulls
+  auto n = tmp.num_row();
+  if (n == 0) {
+    ret = std::numeric_limits<double>::max(); // null
+  }
+  else if (n % 2 == 0) {
+    auto m1 = tmp.at<T>(name, n / 2);
+    auto m2 = tmp.at<T>(name, n / 2 - 1);
+    ret = (m1 + m2) * 0.5;
+  } else {
+    ret = tmp.at<T>(name, n / 2);
+  }
+  return ret;
 }
 
 template <class T>

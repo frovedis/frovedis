@@ -229,6 +229,7 @@ public:
   virtual double avg() = 0;
   template <class T> T max();
   template <class T> T min();
+  template <class T> T at(size_t i);
   template <class T> dvector<T> as_dvector();
   // cast to float/double; throw exception when string 
   virtual dvector<float> as_dvector_float() = 0; 
@@ -552,6 +553,7 @@ public:
   virtual double var();
   T max();
   T min();
+  T at(size_t i);
   virtual dvector<float> as_dvector_float(); 
   virtual dvector<double> as_dvector_double();
   virtual std::shared_ptr<dfcolumn> type_cast(const std::string& to_type,
@@ -933,6 +935,9 @@ public:
   std::string min() {
     throw std::runtime_error("min of string is not defined");
   }
+  std::string at(size_t i) {
+    throw std::runtime_error("at of string is not defined");
+  }
   virtual dvector<float> as_dvector_float() {
     throw std::runtime_error("as_dvector_float of string is not defined");
   } 
@@ -1213,6 +1218,9 @@ public:
   }
   dic_string min() {
     throw std::runtime_error("min of dic_string is not defined");
+  }
+  dic_string at(size_t i) {
+    throw std::runtime_error("at of dic_string is not defined");
   }
   virtual dvector<float> as_dvector_float() {
     throw std::runtime_error("as_dvector_float of dic_string is not defined");
@@ -1520,6 +1528,9 @@ public:
   raw_string min() {
     throw std::runtime_error("min of raw_string is not defined");
   }
+  raw_string at(size_t i) {
+    throw std::runtime_error("at of raw_string is not defined");
+  }
   virtual dvector<float> as_dvector_float() {
     throw std::runtime_error("as_dvector_float of raw_string is not defined");
   } 
@@ -1721,6 +1732,15 @@ T dfcolumn::min() {
     return dynamic_cast<typed_dfcolumn<T>&>(*this).min();
   } catch (std::bad_cast& e) {
     throw std::runtime_error("type mismatch of min<T>()");
+  }
+}
+
+template <class T>
+T dfcolumn::at(size_t i) {
+  try {
+    return dynamic_cast<typed_dfcolumn<T>&>(*this).at(i);
+  } catch (std::bad_cast& e) {
+    throw std::runtime_error("type mismatch of at<T>()");
   }
 }
 
