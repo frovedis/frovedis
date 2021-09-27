@@ -483,22 +483,18 @@ namespace frovedis {
           break; //break if table empty.
         }
       }
-      if (j_df.num_row() >= 0) {
-        trans.append_rowid("id");
-        j_df.append_rowid("id_");
+      if (j_df.num_row() > 0) {
+        j_df.append_rowid("id");
         auto x = trans.bcast_join(j_df, 
                                   multi_eq({"trans_id", "item"}, 
                                    {"trans_id_", "consequent"}))
-                      .select({"id_"})
-                      .rename("id_", "id");
+                      .select({"id"});
         j_df.rename("trans_id_", "trans_id");
-        auto id = x.column("id")->as_dvector<size_t>().gather();
-        for(size_t i: id) {
-          j_df = j_df.filter(neq_im("id_", i))
-                     .select({"id_", "trans_id", "consequent"});
+        if (x.num_row() > 0) {
+          auto id = x.column("id")->as_dvector<size_t>().gather();
+          j_df = j_df.drop_rows("id", id);
         }
-        j_df.drop("id_");
-        trans.drop("id");
+        j_df.drop("id");
       }
       if (j_df.num_row() > 0) trans_table_v.push_back(j_df.align_block()); 
     }
