@@ -13,6 +13,7 @@
 #include "join.hpp"
 #include "../text/dict.hpp"
 #include "../text/parsedatetime.hpp"
+#include "../text/datetime_utility.hpp"
 #include "dfscalar.hpp"
 
 #define DFNODESHIFT 48 // used to concatenate node id and local index
