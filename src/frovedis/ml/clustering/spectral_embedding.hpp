@@ -127,39 +127,82 @@ spectral_embedding_impl(rowmajor_matrix<T>& mat,
                         bool input_movable = false) {
   auto nrow = mat.num_row;
   auto ncol = mat.num_col;
-  rowmajor_matrix<T> embed, affinity;
-
+  rowmajor_matrix<T> embed;
+  spectral_embedding_model<T> model;
   if(precomputed) { // 'mat' is precomputed 'affinity'
     if(nrow != ncol) 
       REPORT_ERROR(USER_ERROR, "Precomputed affinity matrix is not a square matrix\n");
-    if(input_movable) affinity = std::move(mat);
-    else affinity = mat;
-    embed = compute_spectral_embedding<T>(mat,n_comp,norm_laplacian,drop_first,mode);
+    model.dense_affinity_matrix = input_movable ? std::move(mat) : mat;
+    model.is_dense_affinity = true;  
+    embed = compute_spectral_embedding<T>(model.dense_affinity_matrix,
+                                          n_comp,norm_laplacian,drop_first,mode);
   }
   else { // 'mat' is input data
     time_spent aff_t(DEBUG);
     auto gdata = get_global_data(mat);
     if(input_movable) mat.clear();
     aff_t.lap_start();
-    affinity = construct_distance_matrix<T>(gdata,true); //locally created "gdata" is movable
+    model.dense_affinity_matrix = construct_distance_matrix<T>(gdata,true); //locally created "gdata" is movable
     aff_t.lap_stop();
-    if(SAVE) affinity.save("./dump/distance");
+    if(SAVE) model.dense_affinity_matrix.save("./dump/distance");
     aff_t.lap_start();
-    construct_affinity_matrix_inplace(affinity,gamma);
+    construct_affinity_matrix_inplace(model.dense_affinity_matrix,gamma);
+    model.is_dense_affinity = true;  
     aff_t.lap_stop();
     aff_t.show_lap("affinity computation time: ");
-    if(SAVE) affinity.save("./dump/dmat");
-    embed = compute_spectral_embedding<T>(affinity,n_comp,norm_laplacian,drop_first,mode);
+    if(SAVE) model.dense_affinity_matrix.save("./dump/dmat");
+    embed = compute_spectral_embedding<T>(model.dense_affinity_matrix,n_comp,norm_laplacian,drop_first,mode);
   }
-  spectral_embedding_model<T> model;
   model.embed_matrix = std::move(embed);
-  model.affinity_matrix = std::move(affinity);
   return model;
 }
 
-template <class T>
+template <class T, class I, class O>
 spectral_embedding_model<T>
-spectral_embedding(rowmajor_matrix<T>& mat, 
+spectral_embedding_impl(crs_matrix<T,I,O>& mat, 
+                        int n_comp = 2,
+                        bool norm_laplacian = true,
+                        bool precomputed = false,
+                        bool drop_first = true,
+                        double gamma = 1.0,
+                        int mode = 1,
+                        bool input_movable = false) {
+  auto nrow = mat.num_row;
+  auto ncol = mat.num_col;
+  rowmajor_matrix<T> embed;
+  spectral_embedding_model<T> model;
+  if(precomputed) { // 'mat' is precomputed 'affinity'
+    if(nrow != ncol) 
+      REPORT_ERROR(USER_ERROR, "Precomputed affinity matrix is not a square matrix\n");
+    model.sparse_affinity_matrix = mat.template change_datatype<T>();
+    model.is_dense_affinity = false;  
+    embed = compute_spectral_embedding<T>(model.sparse_affinity_matrix,
+                                          n_comp,norm_laplacian,drop_first,mode);
+  }
+  else { // 'mat' is input data
+    time_spent aff_t(DEBUG);
+    auto gdata = get_global_data(mat);
+    if(input_movable) mat.clear();
+    aff_t.lap_start();
+    model.dense_affinity_matrix = construct_distance_matrix<T>(gdata,true); //locally created "gdata" is movable
+    aff_t.lap_stop();
+    if(SAVE) model.dense_affinity_matrix.save("./dump/distance");
+    aff_t.lap_start();
+    construct_affinity_matrix_inplace(model.dense_affinity_matrix,gamma);
+    model.is_dense_affinity = true;  
+    aff_t.lap_stop();
+    aff_t.show_lap("affinity computation time: ");
+    if(SAVE) model.dense_affinity_matrix.save("./dump/dmat");
+    embed = compute_spectral_embedding<T>(model.dense_affinity_matrix,n_comp,norm_laplacian,drop_first,mode);
+  }
+  model.embed_matrix = std::move(embed);
+  return model;
+}
+    
+    
+template <class T, class MATRIX>
+spectral_embedding_model<T>
+spectral_embedding(const MATRIX& mat, 
                    int n_comp = 2,
                    bool norm_laplacian = true,
                    bool precomputed = false,
@@ -170,9 +213,9 @@ spectral_embedding(rowmajor_matrix<T>& mat,
                                  precomputed,drop_first,gamma,mode,false);
 }
                    
-template <class T>
+template <class T, class MATRIX>
 spectral_embedding_model<T>
-spectral_embedding(rowmajor_matrix<T>&& mat, 
+spectral_embedding(MATRIX&& mat, 
                    int n_comp = 2,
                    bool norm_laplacian = true,
                    bool precomputed = false,
