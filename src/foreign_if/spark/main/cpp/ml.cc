@@ -505,8 +505,9 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callFrovedisSEA
     if(isDense){ // spectral embedding accepts rowmajor matrix as for dense data
        exrpc_oneway(fm_node,(frovedis_sea<DT1,R_MAT1>),f_dptr,ncomponent,gamma,nlap,mid,vb,pre,mode,drop,mvbl);
     }
-    else REPORT_ERROR(USER_ERROR, 
-         "Frovedis embedding clustering doesn't accept sparse input at this moment.\n");
+    else {
+       exrpc_oneway(fm_node,(frovedis_sea<DT1,S_MAT1>),f_dptr,ncomponent,gamma,nlap,mid,vb,pre,mode,drop,mvbl);        
+    }
   }
   catch(std::exception& e) { set_status(true,e.what()); }
 }
