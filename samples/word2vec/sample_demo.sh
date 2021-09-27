@@ -24,8 +24,8 @@ iter=5
 alpha=0.05
 
 # CHANGE below according to path for frovedis samples
-ve_frovedis_path=/opt/nec/nosupport/frovedis/ve
-x86_frovedis_path=/opt/nec/nosupport/frovedis/x86
+ve_frovedis_path=/opt/nec/frovedis/ve
+x86_frovedis_path=/opt/nec/frovedis/x86
 
 build_vocab_path=$x86_frovedis_path/samples/word2vec/build_vocab
 ve_train_word_path=$ve_frovedis_path/samples/word2vec/ve_train_word

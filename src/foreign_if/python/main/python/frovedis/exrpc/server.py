@@ -40,8 +40,8 @@ class FrovedisServer(object):
     """A singleton implementation to store Frovedis server information"""
 
     #default command
-    __cmd = "/opt/nec/ve/bin/mpirun -np 1 " + \
-            "/opt/nec/nosupport/frovedis/ve/bin/frovedis_server"
+    __cmd = "/opt/nec/ve/bin/mpirun -np 8 " + \
+            "/opt/nec/frovedis/ve/bin/frovedis_server"
     __instance = None
 
     def __new__(cls):

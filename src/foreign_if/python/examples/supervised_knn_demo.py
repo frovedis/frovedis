@@ -10,7 +10,7 @@ from frovedis.mllib.neighbors import KNeighborsRegressor
 argvs = sys.argv
 argc = len(argvs)
 if (argc < 2):
-    print ('Please give frovedis_server calling command as the first argument \n(e.g. "mpirun -np 2 -x /opt/nec/nosupport/frovedis/ve/bin/frovedis_server")')
+    print ('Please give frovedis_server calling command as the first argument \n(e.g. "mpirun -np 2 /opt/nec/frovedis/ve/bin/frovedis_server")')
     quit()
 FrovedisServer.initialize(argvs[1])
 
