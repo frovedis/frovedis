@@ -1,0 +1,10 @@
+TARGETS := embedding
+include ../Makefile.in.x86
+include ../Makefile.common
+
+TO_INSTALL := embedding.cc
+DIR := spectral_embedding
+ARCH := x86
+
+embedding: embedding.o
+	${MPICXX} ${CXXFLAGS} -o embedding embedding.o ${LIBS}

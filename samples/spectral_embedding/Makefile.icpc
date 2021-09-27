@@ -1,0 +1,10 @@
+TARGETS := embedding
+include ../Makefile.in.icpc
+include ../Makefile.common
+
+TO_INSTALL := embedding.cc
+DIR := spectral_embedding
+ARCH := icpc
+
+emebedding: emebdding.o
+	${LINK} -o emebedding emebedding.o ${LIBS}

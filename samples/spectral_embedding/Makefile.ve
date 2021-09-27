@@ -1,0 +1,10 @@
+TARGETS := embedding
+include ../Makefile.in.ve
+include ../Makefile.common
+
+TO_INSTALL := embedding.cc
+DIR := spectral_embedding
+ARCH := ve
+
+embedding: embedding.o
+	${LINK} -o embedding embedding.o ${LIBS}
