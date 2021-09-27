@@ -26,7 +26,7 @@ template <class Error,
           class OnEpochEnumerate>
 void dnn_train_local(std::vector<tiny_dnn::vec_t>& inputs,
                      std::vector<tiny_dnn::label_t>& class_labels,
-                     std::tuple<intptr_t, intptr_t, intptr_t> intptrs,
+                     std::vector<intptr_t> intptrs,
                      std::string& ser_nn, 
                      Optimizer& optimizer,
                      size_t batch_size,
@@ -34,11 +34,11 @@ void dnn_train_local(std::vector<tiny_dnn::vec_t>& inputs,
                      OnBatchEnumerate on_batch_enumerate,
                      OnEpochEnumerate on_epoch_enumerate) {
   if(get_selfid() == 0) {
-    Network& nn = *reinterpret_cast<Network*>(std::get<0>(intptrs));
+    Network& nn = *reinterpret_cast<Network*>(intptrs[0]);
     OnBatchEnumerate& on_batch_enumerate0 =
-      *reinterpret_cast<OnBatchEnumerate*>(std::get<1>(intptrs));
+      *reinterpret_cast<OnBatchEnumerate*>(intptrs[1]);
     OnEpochEnumerate& on_epoch_enumerate0 =
-      *reinterpret_cast<OnEpochEnumerate*>(std::get<2>(intptrs));
+      *reinterpret_cast<OnEpochEnumerate*>(intptrs[2]);
     nn.template train<Error>(optimizer, inputs, class_labels, batch_size,
                              epoch, on_batch_enumerate0, on_epoch_enumerate0);
   } else {
@@ -76,9 +76,9 @@ void dnn_train(Network& nn,
     reinterpret_cast<intptr_t>(&on_batch_enumerate);
   intptr_t on_epoch_enumerate_ptr =
     reinterpret_cast<intptr_t>(&on_epoch_enumerate);
-  auto intptrs = std::make_tuple(nn_ptr,
-                                 on_batch_enumerate_ptr,
-                                 on_epoch_enumerate_ptr);
+  std::vector<intptr_t> intptrs = {nn_ptr,
+                                   on_batch_enumerate_ptr,
+                                   on_epoch_enumerate_ptr};
                                  
   inputs.viewas_node_local().
     mapv(dnn_train_local<Error,Network,Optimizer,OnBatchEnumerate,
