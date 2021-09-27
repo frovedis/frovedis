@@ -53,20 +53,20 @@ On other platforms, please follow the [instructions](doc/misc/how_to_build.md).
 # 3. Getting started
 
 Here, we assume that you have installed Frovedis from prebuilt binary.
-Please also refer to /opt/nec/nosupport/frovedis/getting_started.md.
+Please also refer to /opt/nec/frovedis/getting_started.md.
 
 If you want to use VE version, you can set up your environment
 variables by
 
-    $ source /opt/nec/nosupport/frovedis/ve/bin/veenv.sh
+    $ source /opt/nec/frovedis/ve/bin/veenv.sh
 
 If you want to use x86 version, please use following:
 
-    $ source /opt/nec/nosupport/frovedis/x86/bin/x86env.sh
+    $ source /opt/nec/frovedis/x86/bin/x86env.sh
 
 `${INSTALLPATH}` below is
-`/opt/nec/nosupport/frovedis/ve/` in the case of VE, and
-`/opt/nec/nosupport/frovedis/x86/` in the case of x86. 
+`/opt/nec/frovedis/ve/` in the case of VE, and
+`/opt/nec/frovedis/x86/` in the case of x86. 
 
 ## 3.1 C++ interface
 
@@ -175,7 +175,7 @@ There are [other Spark demo programs](./src/foreign_if/spark/examples/)
 installed in `${X86_INSTALLPATH}`/foreign_if_demo/spark, and
 [Python demo programs](./src/foreign_if/python/examples/) installed in 
 `${X86_INSTALLPATH}`/foreign_if_demo/spark, where `${X86_INSTALLPATH}`
-is `/opt/nec/nosupport/frovedis/x86/`.
+is `/opt/nec/frovedis/x86/`.
 
 To try them, please copy these directories into your home directory
 (since it creates files). The scripts ./foreign_if_demo/spark/run_demo.sh 

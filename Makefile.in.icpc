@@ -1,6 +1,6 @@
 # site definitions: modify these lines if necessary
 # "-showme" depends on mpi implementation; this works for OpenMPI
-INSTALLPATH := /opt/nec/nosupport/frovedis/x86
+INSTALLPATH := /opt/nec/frovedis/x86
 MPICXX := mpic++
 CXXFLAGS_COMMON := -g -Wall -O3 -std=c++11 -Wno-unknown-pragmas -Wno-sign-compare
 

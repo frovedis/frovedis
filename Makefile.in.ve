@@ -1,13 +1,13 @@
 # site definitions: modify these lines if necessary
-#BOOST_INC := /opt/nec/nosupport/frovedis/ve/opt/boost/include
-#BOOST_LIB := /opt/nec/nosupport/frovedis/ve/opt/boost/lib
-BOOST_INC := /opt/nec/nosupport/frovedis/ve/opt/boost/include
-BOOST_LIB := /opt/nec/nosupport/frovedis/ve/opt/boost/lib
+#BOOST_INC := /opt/nec/frovedis/ve/opt/boost/include
+#BOOST_LIB := /opt/nec/frovedis/ve/opt/boost/lib
+BOOST_INC := /opt/nec/frovedis/ve/opt/boost/include
+BOOST_LIB := /opt/nec/frovedis/ve/opt/boost/lib
 NLC_VERSION := $(shell ls /opt/nec/ve/nlc | sort -V -r | head -1)
 NLC_INC := /opt/nec/ve/nlc/${NLC_VERSION}/include
 NLC_LIB := /opt/nec/ve/nlc/${NLC_VERSION}/lib
 
-INSTALLPATH := /opt/nec/nosupport/frovedis/ve
+INSTALLPATH := /opt/nec/frovedis/ve
 
 CXX := nc++
 MPICXX := mpinc++

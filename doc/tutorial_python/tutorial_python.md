@@ -22,15 +22,15 @@ interpreter communicates with it.
 # 2. Environment setting
 
 In this tutorial, we assume that Frovedis is installed from rpm.
-Please follow /opt/nec/nosupport/frovedis/ getting_started.md. 
+Please follow /opt/nec/frovedis/ getting_started.md. 
 As described in the file, if you want to use frovedis_server on x86,
 please do:
 
-    $ source /opt/nec/nosupport/frovedis/x86/bin/x86env.sh
+    $ source /opt/nec/frovedis/x86/bin/x86env.sh
 
 If you want to use vector engine (VE), please do:
 
-    $ source /opt/nec/nosupport/frovedis/ve/bin/veenv.sh
+    $ source /opt/nec/frovedis/ve/bin/veenv.sh
 
 Main purpose of the script is to set `PYTHONPATH` and `LD_LIBRARY_PATH`.
 It also switches `mpirun` to call (x86 or ve). If you did not source
@@ -233,7 +233,7 @@ server, and automatically distributed among MPI processes.
 (SX-Aurora TSUBASA shows much better performance with sparse matrix.)
 
 For more information, please refer to the manual. You can also find
-other samples in /opt/nec/nosupport/frovedis/ x86/foreign_if_demo/python/.
+other samples in /opt/nec/frovedis/ x86/foreign_if_demo/python/.
 
 # 5. Distributed matrix
 

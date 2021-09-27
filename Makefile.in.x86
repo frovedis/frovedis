@@ -1,5 +1,5 @@
 # site definitions: modify these lines if necessary
-INSTALLPATH := /opt/nec/nosupport/frovedis/x86
+INSTALLPATH := /opt/nec/frovedis/x86
 MPICXX := mpic++
 CXXFLAGS_COMMON := -fPIC -g -Wall -O3 -std=c++11 -Wno-unknown-pragmas -Wno-sign-compare -pthread
 

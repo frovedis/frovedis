@@ -34,21 +34,21 @@ I assume that Frovedis is successfully installed using rpm file.
 If you want to try it on Vector Engine (VE) of SX-Aurora TSUBASA, 
 please set up your environment variables by
 
-    $ source /opt/nec/nosupport/frovedis/ve/bin/veenv.sh
+    $ source /opt/nec/frovedis/ve/bin/veenv.sh
 
-Then, copy the directory /opt/nec/nosupport/frovedis/ve/doc/tutorial/src
+Then, copy the directory /opt/nec/frovedis/ve/doc/tutorial/src
 to somewhere in your home directory. It contains the source code
 referred from the tutorial.
 
 
 If you want to try it on x86, please use following:
 
-    $ source /opt/nec/nosupport/frovedis/x86/bin/x86env.sh
+    $ source /opt/nec/frovedis/x86/bin/x86env.sh
 
-and use the directory /opt/nec/nosupport/frovedis/x86/doc/tutorial/src.
+and use the directory /opt/nec/frovedis/x86/doc/tutorial/src.
 
-${INSTALLPATH} is /opt/nec/nosupport/frovedis/ve/ in the case of VE, and 
-/opt/nec/nosupport/frovedis/x86/ in the case of x86.
+${INSTALLPATH} is /opt/nec/frovedis/ve/ in the case of VE, and 
+/opt/nec/frovedis/x86/ in the case of x86.
 
 # 2. Frovedis core
 

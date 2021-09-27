@@ -22,15 +22,15 @@ communicates with it.
 # 2. Environment setting
 
 In this tutorial, we assume that Frovedis is installed from rpm.
-Please follow /opt/nec/nosupport/frovedis/ getting_started.md. 
+Please follow /opt/nec/frovedis/getting_started.md. 
 As described in the file, if you want to use frovedis_server on x86,
 please do:
 
-    $ source /opt/nec/nosupport/frovedis/x86/bin/x86env.sh
+    $ source /opt/nec/frovedis/x86/bin/x86env.sh
 
 If you want to use vector engine (VE), please do:
 
-    $ source /opt/nec/nosupport/frovedis/ve/bin/veenv.sh
+    $ source /opt/nec/frovedis/ve/bin/veenv.sh
 
 Main purpose of the script is to set environment variables like
 SCALA_HOME, SPARK_HOME, SPARK_SUBMIT_OPTIONS. 
@@ -70,9 +70,9 @@ Add proxy information to the file like this:
 Alternatively, you can use Zeppelin, which is a kind of notebook tool
 that can be used to edit Spark program from Web browser. A script that
 downloads and extracts Zeppelin is in
-/opt/nec/nosupport/frovedis/x86/opt/ zeppelin/extract_zeppelin.sh
+/opt/nec/frovedis/x86/opt/ zeppelin/extract_zeppelin.sh
 
-    $ /opt/nec/nosupport/frovedis/x86/opt/zeppelin/extract_zeppelin.sh somewhere_in_your_homedir
+    $ /opt/nec/frovedis/x86/opt/zeppelin/extract_zeppelin.sh somewhere_in_your_homedir
 
 This command downloads and extracts Zeppelin into the specified directory.
 You can start Zeppelin by calling
@@ -111,7 +111,7 @@ a long time (e.g. 10 min.) to download dependent files.
 
 The build.sbt file is standard one; but it includes
 
-    unmanagedBase := file("/opt/nec/nosupport/frovedis/x86/lib/spark/")
+    unmanagedBase := file("/opt/nec/frovedis/x86/lib/spark/")
 
 to refer to the jar file that is provided by Frovedis.
 
@@ -171,8 +171,8 @@ Here, `${SPARK_HOME}` and `${SPARK_SUBMIT_OPTIONS}` are set by x86env.sh
 or veenv.sh. The contents of `${SPARK_SUBMIT_OPTIONS}` is 
 
     --driver-java-options \
-    "-Djava.library.path=/opt/nec/nosupport/frovedis/x86/lib" \
-    --jars /opt/nec/nosupport/frovedis/x86/lib/spark/frovedis_client.jar \
+    "-Djava.library.path=/opt/nec/frovedis/x86/lib" \
+    --jars /opt/nec/frovedis/x86/lib/spark/frovedis_client.jar \
     --conf spark.driver.memory=8g
 
 The option --driver-java-options "-Djava.library.path..." is for
@@ -228,7 +228,7 @@ these notes by the Web UI (If you are running the browser on a
 different machine, you need to copy the json files to the machine). 
 It contains recommendation demo using singular value decomposition in
 the case of normal Spark and using Frovedis server. The data used in
-this demo is in /opt/nec/nosupport/frovedis/data directory, 
+this demo is in /opt/nec/frovedis/data directory, 
 which is created from MovieLens data
 (F. Maxwell Harper and Joseph A. Konstan. 2015. The MovieLens Datasets:
 History and Context. ACM Transactions on Interactive Intelligent
@@ -311,7 +311,7 @@ server, and automatically distributed among MPI processes.
 (SX-Aurora TSUBASA shows much better performance with sparse matrix.)
 
 For more information, please refer to the manual. You can also find
-other samples in /opt/nec/nosupport/frovedis/ x86/foreign_if_demo/spark/.
+other samples in /opt/nec/frovedis/x86/ foreign_if_demo/spark/.
 
 # 5. Frovedis server side data and distributed matrix
 
