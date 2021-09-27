@@ -20,13 +20,11 @@ class LogisticRegression(BaseEstimator):
     """
     A python wrapper of Frovedis Logistic Regression
     defaults are as per Frovedis
-    penalty: Frovedis: none, Sklearn: l2
     max_iter: Frovedis: 1000, Sklearn: 100
-    solver: Frovedis: sag (SGD), Sklearn: lbfgs
     lr_rate: Frovedis: 0.01 (added)
     use_shrink: Frovedis: false (added)
     """
-    def __init__(self, penalty='l2', dual=False, tol=1e-4, C=1.0,
+    def __init__(self, penalty='l2', dual=False, tol=1e-4, C=100.0,
                  fit_intercept=True, intercept_scaling=1, class_weight=None,
                  random_state=None, solver='lbfgs', max_iter=1000,
                  multi_class='auto', verbose=0, warm_start=False,
@@ -127,8 +125,6 @@ class LogisticRegression(BaseEstimator):
         else:
             raise ValueError("Unsupported penalty is provided: ", self.penalty)
 
-        rparam = 1.0 / self.C * 0.5 # added 0.5 as in sklearn
-        sample_weight = check_sample_weight(self, sample_weight)
         solver = self.solver
         if solver == 'sag':
             solver = 'sgd'
@@ -137,6 +133,12 @@ class LogisticRegression(BaseEstimator):
         else:
             raise ValueError( \
                 "Unknown solver %s for Logistic Regression." % solver)
+
+        if self.C == 1.0:
+            rparam = 0.01 # 1.0 / 100.0
+        else:
+            rparam = 1.0 / self.C
+        sample_weight = check_sample_weight(self, sample_weight)
         (host, port) = FrovedisServer.getServerInstance()
         n_iter = rpclib.lr(host, port, X.get(), y.get(), \
                        sample_weight, len(sample_weight), self.max_iter, \
