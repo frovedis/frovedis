@@ -86,16 +86,26 @@ class SpectralEmbedding(BaseEstimator):
         if self._affinity is None:
             (host, port) = FrovedisServer.getServerInstance()
             dmat = rpclib.get_sem_affinity_matrix(host, port, self.__mid, \
-                                                    self.__mdtype)
+                                                  self.__mdtype)
             excpt = rpclib.check_server_exception()
             if excpt["status"]:
                 raise RuntimeError(excpt["info"])
-            rmat = FrovedisRowmajorMatrix(mat=dmat, dtype=TypeUtil. \
-                                          to_numpy_dtype(self.__mdtype))
-            if self.__X_movable:
-                self._affinity = rmat.to_numpy_array()
+            
+            is_dense = (dmat["nrow"] * dmat["ncol"] == dmat["n_nz"])
+            if is_dense:
+                rmat = FrovedisRowmajorMatrix(mat=dmat, dtype=TypeUtil. \
+                            to_numpy_dtype(self.__mdtype))
+                if self.__X_movable:
+                    self._affinity = rmat.to_numpy_array()
+                else:
+                    self._affinity = rmat
             else:
-                self._affinity = rmat
+                smat = FrovedisCRSMatrix(mat=dmat, dtype=TypeUtil. \
+                            to_numpy_dtype(self.__mdtype))
+                if self.__X_movable:
+                    self._affinity = smat.to_scipy_matrix()
+                else:
+                    self._affinity = smat
         return self._affinity
          
     @affinity_matrix_.setter
