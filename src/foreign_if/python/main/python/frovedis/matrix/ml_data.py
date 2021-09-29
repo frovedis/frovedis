@@ -7,8 +7,8 @@ from ..exrpc.server import FrovedisServer
 from ..exrpc.rpclib import distinct_count, check_server_exception
 from .dvector import FrovedisDvector
 from .crs import FrovedisCRSMatrix
-from .dense import FrovedisColmajorMatrix
-from .dense import FrovedisRowmajorMatrix
+from .dense import FrovedisDenseMatrix, FrovedisColmajorMatrix, \
+                   FrovedisRowmajorMatrix
 from .dtype import TypeUtil, DTYPE
 
 def encode_array_using_map(lbl, src=None, target= None, need_logic = False):
@@ -67,8 +67,8 @@ class FrovedisLabeledPoint:
                  densify=False):
         # decision making whether the converted data would be movable upon
         # destruction
-        if isinstance(mat, (FrovedisCRSMatrix, FrovedisRowmajorMatrix,
-                            FrovedisColmajorMatrix)):
+        if isinstance(mat, (FrovedisCRSMatrix, FrovedisDenseMatrix, \
+                            FrovedisRowmajorMatrix, FrovedisColmajorMatrix)):
             self.__mat_movable = False
         else:
             self.__mat_movable = True
@@ -282,8 +282,8 @@ class FrovedisFeatureData:
                  dense_kind='rowmajor', densify=False):
         # decision making whether the converted data would be movable
         # upon destruction
-        if isinstance(mat, (FrovedisCRSMatrix, FrovedisRowmajorMatrix,
-                            FrovedisColmajorMatrix)):
+        if isinstance(mat, (FrovedisCRSMatrix, FrovedisDenseMatrix, \
+                            FrovedisRowmajorMatrix, FrovedisColmajorMatrix)):
             self.__mat_movable = False
         else:
             self.__mat_movable = True

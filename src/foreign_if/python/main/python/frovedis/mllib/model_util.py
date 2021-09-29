@@ -83,7 +83,7 @@ class GLM(object):
         if dtype != mdtype:
             raise TypeError( \
             "Input matrix dtype is different than model dtype!")
-        if(dense and not isinstance(X, FrovedisRowmajorMatrix)):
+        if(dense and X.get_mtype() != 'R'):
             raise TypeError("Currently prediction is supported only " \
                     + "for Rowmajor Matrix as for Frovedis dense data!")
         (host, port) = FrovedisServer.getServerInstance()
