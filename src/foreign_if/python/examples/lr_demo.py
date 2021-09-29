@@ -21,16 +21,19 @@ FrovedisServer.initialize(argvs[1])
 from sklearn.datasets import load_breast_cancer
 mat, lbl = load_breast_cancer(return_X_y=True)
 
+from frovedis.matrix.dense import FrovedisColmajorMatrix
+cmat = FrovedisColmajorMatrix(mat)
+
 # fitting input matrix and label on logistic regression object
-lr = LogisticRegression(solver='lbfgs', max_iter=1000).fit(mat,lbl)
+lr = LogisticRegression(solver='lbfgs').fit(cmat,lbl)
 
 # predicting on loaded model
 print("predicting on lbfgs logistic regression model: ")
-print(lr.predict(mat))
+print(lr.predict(cmat.to_frovedis_rowmatrix()))
 print("score: %.2f " % (lr.score(mat, lbl)))
 
 # fitting input matrix and label on logistic regression object
-lr = LogisticRegression(solver='sag', max_iter=1000, penalty='none').fit(mat,lbl)
+lr = LogisticRegression(solver='sag').fit(mat,lbl)
 
 # predicting on loaded model
 print("predicting on sag logistic regression model: ")
