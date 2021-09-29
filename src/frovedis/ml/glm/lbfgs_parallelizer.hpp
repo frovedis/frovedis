@@ -172,7 +172,7 @@ void lbfgs_parallelizer::do_train(node_local<DATA_MATRIX>& data,
     for(; j <= LBFGS_MAX_SEARCH_ITER; ++j) {
       new_model.weight = initModel.weight + (factor * step);
       new_model.intercept = initModel.intercept + (factor * bias_step);
-      rType.regularize(new_model.weight);
+      rType.regularize(new_model.weight, factor);
       auto dist_newmodel = new_model.broadcast();
       new_grad_vector_part = data.template map<std::vector<T>>
                                     (lbfgs_dtrain_with_trans<T>(alpha,isIntercept),
