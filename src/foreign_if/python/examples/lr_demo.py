@@ -48,7 +48,7 @@ print("classes: ")
 print(lr.classes_)
 
 print("n_iter: ")
-print(lr.n_iter__)
+print(lr.n_iter_)
 
 # saving the model
 lr.save("./out/LRModel")
@@ -64,9 +64,6 @@ print(lr.intercept_)
 
 print("classes: ")
 print(lr.classes_)
-
-print("n_iter: ")
-print(lr.n_iter_)
 
 # debug_print
 lr.debug_print()
