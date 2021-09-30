@@ -144,37 +144,10 @@ It accepts the training feature matrix (X) and corresponding output labels (y)
 as inputs from the user and trains a ridge regression model with L2 regularization 
 with those data at frovedis server.  
 
-For example,  
-
-    # loading a sample matrix and labels data
-    from sklearn.datasets import load_boston
-    mat, label = load_boston(return_X_y = True)
-    
-    # fitting input matrix and label on ridge regression object
-    from frovedis.mllib.linear_model import Ridge
-    rr = Ridge(solver = 'lbfgs').fit(mat, label)  
-
 When native python data is provided, it is converted to frovedis-like inputs and 
 sent to frovedis server which consumes some data transfer time. Pre-constructed 
 frovedlis-like inputs can be used to speed up the training time, specially when 
 same data would be used for multiple executions.  
-
-For example,
-    
-    # loading a sample matrix and labels data
-    from sklearn.datasets import load_boston
-    mat, label = load_boston(return_X_y = True)
-    
-    # Since "mat" is numpy dense data, we have created FrovedisColmajorMatrix. 
-    # For scipy sparse data, FrovedisCRSMatrix should be used instead.
-    from frovedis.matrix.dense import FrovedisColmajorMatrix
-    from frovedis.matrix.dvector import FrovedisDvector 
-    cmat = FrovedisColmajorMatrix(mat)
-    dlbl = FrovedisDvector(lbl)
-    
-    # Ridge Regression with pre-constructed frovedlis-like inputs
-    from frovedis.mllib.linear_model import Ridge
-    rr = Ridge(solver = 'lbfgs').fit(cmat, dlbl)
 
 __Return Value__  
 It simply returns "self" reference.  
@@ -187,38 +160,11 @@ for dense data.
 
 __Purpose__    
 It accepts the test feature matrix (X) in order to make prediction on the 
-trained model at frovedis server. 
+trained model at frovedis server.  
 
-For example,   
-
-    # predicting on ridge model
-    rr.predict(mat) 
-
-Output  
-
-    [28.71021961 23.76178249 30.4133597  28.97666397 28.67315792 24.66094155
-     20.57933251 17.64381951  9.47525481 16.75502233 17.6363261  19.15371596
-     18.82699337 20.73240606 20.44989254 20.31470466 21.85948797 18.28896663
-     ...
-     16.35934999 20.59831667 21.23383603 17.60978119 14.01230367 19.28714569
-     21.74889541 18.19015854 20.88375846 26.19279806 24.06841151 30.327149
-     28.62134714 23.7732722 ]
-
-If the above pre-constructed training data (cmat) is to be used during prediction, 
-the same can be used as follows:
-
-    # predicting on ridge regression model using pre-constructed input
-    rr.predict(cmat.to_frovedis_rowmatrix())
-
-Output  
-
-    [28.71021961 23.76178249 30.4133597  28.97666397 28.67315792 24.66094155
-     20.57933251 17.64381951  9.47525481 16.75502233 17.6363261  19.15371596
-     18.82699337 20.73240606 20.44989254 20.31470466 21.85948797 18.28896663
-     ...
-     16.35934999 20.59831667 21.23383603 17.60978119 14.01230367 19.28714569
-     21.74889541 18.19015854 20.88375846 26.19279806 24.06841151 30.327149
-     28.62134714 23.7732722 ]
+In case pre-constructed frovedis-like training data such as FrovedisColmajorMatrix (X) 
+is provided during prediction, then "X.to_frovedis_rowmatrix()" will be used for
+prediction.  
 
 __Return Value__  
 It returns a numpy array of double(float64) type type and has shape (n_samples,) 
@@ -244,15 +190,6 @@ possible score is 1.0 and it can be negative (because the model can be arbitrari
 A constant model that always predicts the expected value of y, disregarding the input 
 features, would get a R2 score of 0.0.  
 
-For example,   
-
-    # calculate R2 score on given test data and labels
-    rr.score(mat, label) 
-
-Output  
-
-    0.70
-
 __Return Value__  
 It returns an R2 score of float type.  
 
@@ -266,10 +203,6 @@ data-type is either float or double(float64). (Default: None)
 __Purpose__    
 It loads the model from the specified file (having little-endian binary data).
 
-For example,   
-
-    rr.load("./out/RidgeModel")
-
 __Return Value__  
 It simply returns "self" instance.  
 
@@ -279,15 +212,8 @@ __Parameters__
 model is to be saved.  
 
 __Purpose__    
-On success, it writes the model information (weight values etc.) in the 
-specified file as little-endian binary data. Otherwise, it throws an exception. 
-
-For example,   
-
-    # To save the ridge regression model
-    rr.save("./out/RidgeModel")  
-
-This will save the ridge regression model on the path "/out/RidgeModel".  
+On success, it writes the model information (weight values, etc.) in the 
+specified file as little-endian binary data. Otherwise, it throws an exception.  
 
 __Return Value__  
 It returns nothing.  
@@ -295,22 +221,8 @@ It returns nothing.
 ### debug_print()
 
 __Purpose__    
-It shows the target model information (weight values, intercept) on the server side 
+It shows the target model information like weight values, intercept on the server side 
 user terminal. It is mainly used for debugging purpose.   
-
-For example,  
-
-    rr.debug_print() 
-    
-Output  
-
-    -------- Weight Vector:: --------
-    -0.092909 0.0669578 -0.013893 -0.0253964 -0.314699 5.54217 -0.0117369 -1.29332
-     0.215405 -0.0133328 -0.253942 0.0153361 -0.444395
-    Intercept:: 1.06476  
-
-It displays the weights and intercept values on the trained model which is currently
-present on the server.
 
 __Return Value__  
 It returns nothing.  
@@ -318,14 +230,8 @@ It returns nothing.
 ### release()
 
 __Purpose__    
-It can be used to release the in-memory model at frovedis server. 
-
-For example,
- 
-    rr.release()
-
-This will reset the after-fit populated attributes to None, along with releasing 
-server side memory.  
+It can be used to release the in-memory model at frovedis server. With this, after-fit
+populated attributes are reset to None, along with releasing server side memory.  
 
 __Return Value__  
 It returns nothing.  

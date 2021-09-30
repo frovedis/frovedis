@@ -7,20 +7,30 @@ the continuous output with L1 regularization.
 
 # SYNOPSIS
 
-class frovedis.mllib.linear_model.Lasso (alpha=0.01, fit_intercept=True, normalize=False,    
-\  \ \  \  \  \ precompute=False, copy_X=True, max_iter=1000,    
-\  \ \  \  \  \ tol=1e-4, warm_start=False, positive=False,    
-\  \ \  \  \  \ random_state=None, selection='cyclic',    
-\  \ \  \  \  \ verbose=0, solver='sag')     
+class frovedis.mllib.linear_model.Lasso(alpha=0.01, fit_intercept=True,  
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ normalize=False, precompute=False,  
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ copy_X=True, max_iter=1000,  
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ tol=1e-4, warm_start=False,  
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ positive=False, random_state=None,  
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ selection='cyclic', lr_rate=1e-8,  
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ verbose=0, solver='sag')  
 
 ## Public Member Functions
 
-fit(X, y, sample_weight=None)   
+fit(X, y, sample_weight = None)   
 predict(X)   
-save(filename)   
-load(filename)   
+score(X, y, sample_weight = None)  
+load(fname, dtype = None)   
+save(fname)   
 debug_print()   
-release()   
+release()  
+is_fitted()  
 
 # DESCRIPTION
 Linear least squares is the most common formulation for regression problems. 
@@ -38,8 +48,9 @@ The gradient of the squared loss is: (wTx-y).x
 The gradient of the regularizer is: sign(w)   
 
 Frovedis provides implementation of lasso regression with two different 
-optimizers: (1) stochastic gradient descent with minibatch and (2) LBFGS 
-optimizer. 
+optimizers:  
+(1) stochastic gradient descent with minibatch  
+(2) LBFGS optimizer  
 
 The simplest method to solve optimization problems of the form **min f(w)** 
 is gradient descent. Such first-order optimization methods well-suited for 
@@ -55,150 +66,189 @@ vectors that represent the approximation implicitly. L-BFGS often achieves
 rapider convergence compared with other first-order optimization.
 
 This module provides a client-server implementation, where the client 
-application is a normal python scikit-learn program. Scikit-learn has its own 
-linear_model providing the Lasso Regression support. But that algorithm is 
-non-distributed in nature. Hence it is slower when comparing with 
-the equivalent Frovedis algorithm (see frovedis manual for ml/lasso_regression) with 
-big dataset. Thus in this implementation, a scikit-learn client can interact with 
-a frovedis server sending the required python data for training at frovedis side. 
-Python data is converted into frovedis compatible data internally and the 
-scikit-learn ML call is linked with the respective frovedis ML call to get the 
-job done at frovedis server. 
+application is a normal python program. The frovedis interface is almost same
+as Scikit-learn Lasso Regression interface, but it doesn't have any dependency
+with Scikit-learn. It can be used simply even if the system doesn't have Scikit-learn
+installed. Thus in this implementation, a python client can interact with a 
+frovedis server sending the required python data for training at frovedis side.
+Python data is converted into frovedis compatible data internally and the python
+ML call is linked with the respective frovedis ML call to get the job done at 
+frovedis server.  
 
-Scikit-learn side call for Lasso Regression quickly returns, 
-right after submitting the training request to the frovedis server with a unique 
-model ID for the submitted training request. 
+Python side calls for Lasso Regression on the frovedis server. Once the training is
+completed with the input data at the frovedis server, it returns an abstract model 
+with a unique model ID to the client python program.  
 
-When operations like prediction will be required on the trained model, scikit-learn 
-client sends the same request to frovedis server on the same model 
-(containing the unique ID) and the request is served at frovedis server and output 
-is sent back to the scikit-learn client. 
+When prediction-like request would be made on the trained model, python program will
+send the same request to the frovedis server. After the request is served at the frovedis
+server, the output would be sent back to the python client.   
 
 ## Detailed Description  
 
 ### Lasso()
 
 __Parameters__   
-_alpha_: A double parameter containing the learning rate. (Default: 0.01)   
-_fit\_intercept_: A boolean parameter specifying whether a constant (intercept) 
-should be added to the decision function. (Default: True)    
-_normalize_: A boolean parameter (unused)     
-_precompute_: A boolean parameter (unused)     
-_copy\_X_: A boolean parameter (unsed)      
-_max\_iter_: An integer parameter specifying maximum iteration count. (Default: 1000)    
-_tol_: A double parameter specifying the convergence tolerance value, (Default: 1e-4)    
-_warm\_start_: A boolean parameter (unused)     
-_positive_: A boolean parameter (unused)     
-_random\_state_: An integer, None or RandomState instance. (unused)   
-_selection_: A string object. (unused)   
-_verbose_: An integer object specifying the log level to use. (Default: 0)   
-_solver_: A string object specifying the solver to use. (Default: 'sag')   
+**_alpha_**: A constant that multiplies the L1 term. It must be a positive value of 
+double(float64) type . (Default: 0.01)  
+**_fit\_intercept_**: A boolean parameter specifying whether a constant (intercept) 
+should be added to the decision function. (Default: True)  
+**_normalize_**: A boolean parameter (unused)  
+**_precompute_**: A boolean parameter (unused)  
+**_copy\_X_**: A boolean parameter (unsed)  
+**_max\_iter_**: A positive integer value used to set the maximum number of iterations. (Default: 1000)    
+**_tol_**: Zero or a positive value of double(float64) type specifying the convergence
+tolerance value. (Default: 1e-4)  
+**_warm\_start_**: A boolean parameter which when set to True, reuses the solution of 
+the previous call to fit as initialization, otherwise, just erase the previous solution. (Default: False)  
+**_positive_**: A boolean parameter (unused)     
+**_random\_state_**: An integer, None or RandomState instance. (unused)   
+**_selection_**: A string object. (unused)  
+**_lr\_rate_**: Zero or a positive value of double(float64) type containing the learning 
+rate. (Default: 1e-8)  
+**_verbose_**: An integer parameter specifying the log level to use. Its value is 0 
+by default(for INFO mode and not specified explicitly). But it can be set to 1 (for DEBUG mode)
+or 2 (for TRACE mode) for getting training time logs from frovedis server.  
+**_solver_**: A string object specifying the solver to use. (Default: 'sag')  
+It can be "sag" for frovedis side stochastic gradient descent or "lbfgs" for frovedis
+side LBFGS optimizer when optimizing the lasso regression model. Both "sag" and "lbfgs" 
+handle L1 penalty.  
+
+__Attributes__  
+**_coef\__**: It is a python ndarray(containing float or double(float64) typed values
+depending on data-type of input matrix (X)) of estimated coefficients for the lasso 
+regression problem. It has shape (n_features,).  
+**_intercept(bias)\__**: It is a python ndarray(contaning float or double(float64) typed
+values depending on data-type of input matrix (X)). If fit_intercept is set to False, 
+the intercept is set to zero. It has shape (1,).  
+**_n\_iter\__**: A positive integer value used to get the actual iteration point at 
+which the problem is converged.  
 
 __Purpose__    
 It initialized a Lasso object with the given parameters.   
 
-The parameters: "normalize", "precompute", "copy_X", "warm_start", 
-"positive", "random_state" and "selection" are not yet supported at frovedis side. 
-Thus they don't have any significance in this call. They are simply provided 
-for the compatibility with scikit-learn application.    
-
-"solver" can be either 'sag' for frovedis side stochastic gradient descent or 
-'lbfgs' for frovedis side LBFGS optimizer when optimizing the linear regression 
-model. 
-
-"verbose" value is set at 0 by default.
-But it can be set to 1 (for DEBUG mode) or 2 (for TRACE mode) for getting 
-training time logs from frovedis server.   
+The parameters: "normalize", "precompute", "copy_X", "positive", "random_state"
+and "selection" are simply kept in to to make the interface uniform to the
+Scikit-learn Lasso Regression module. They are not used anywhere within frovedis
+implementation.   
 
 __Return Value__    
 It simply returns "self" reference. 
 
-### fit(X, y, sample_weight=None)
+### fit(X, y, sample_weight = None)
 __Parameters__   
-_X_: A scipy sparse matrix or any python array-like object or an instance 
-of FrovedisCRSMatrix.    
-_y_: Any python array-like object or an instance of FrovedisDvector.     
-_sample\_weight_: Python array-like optional parameter. (unused)   
+**_X_**: A numpy dense or scipy sparse matrix or any python array-like object or an 
+instance of FrovedisCRSMatrix for sparse data and FrovedisColmajorMatrix for dense data.  
+**_y_**: Any python array-like object or an instance of FrovedisDvector.     
+**_sample\_weight_**: Python array-like containing the intended weights for
+each input samples and it should be the shape of (nsamples, ). When it is None (not specified),
+an uniform weight vector is assigned on each input sample.   
 
 __Purpose__    
-It accepts the training feature matrix (X) and corresponding output labels (y) 
-as inputs from the user and trains a linear regression model with L1 regularization 
-with those data at frovedis server. 
+It accepts the training feature matrix (X) and corresponding output labels (y) as 
+inputs from the user and trains a lasso regression model with L1 regularization 
+with those data at frovedis server.   
 
-It doesn't support any initial weight to be passed as input at this moment. 
-Thus the "sample_weight" parameter will simply be ignored. It starts with an 
-initial guess of zeros for the model vector and keeps updating the model to 
-minimize the cost function until convergence is achieved or maximum iteration count 
-is reached.  
-
-For example,   
-
-    # loading sample CRS data file
-    mat = FrovedisCRSMatrix().load("./sample")
-    lbl = FrovedisDvector([1.1,0.2,1.3,1.4,1.5,0.6,1.7,1.8])
-    
-    # fitting input matrix and label on lasso object
-    lr = Lasso(solver='sgd', verbose=2).fit(mat,lbl)
+When native python data is provided, it is converted to frovedis-like inputs and 
+sent to frovedis server which consumes some data transfer time. Pre-constructed 
+frovedlis-like inputs can be used to speed up the training time, specially when 
+same data would be used for multiple executions.  
 
 __Return Value__  
-It simply returns "self" reference.   
-Note that the call will return quickly, right after submitting the fit request 
-at frovedis server side with a unique model ID for the fit request. It may be 
-possible that the training is not completed at the frovedis server side even 
-though the client scikit-learn side fit() returns. 
+It simply returns "self" reference.  
 
 ### predict(X)
 __Parameters__   
-_X_: A scipy sparse matrix or any python array-like object or an instance 
-of FrovedisCRSMatrix.    
+**_X_**: A numpy dense or scipy sparse matrix or any python array-like object or 
+an instance of FrovedisCRSMatrix for sparse data and FrovedisRowmajorMatrix as 
+for dense data.  
 
 __Purpose__    
 It accepts the test feature matrix (X) in order to make prediction on the 
-trained model at frovedis server. 
+trained model at frovedis server.  
+
+In case pre-constructed frovedis-like training data such as FrovedisColmajorMatrix (X) 
+is provided during prediction, then "X.to_frovedis_rowmatrix()" will be used for
+prediction.  
 
 __Return Value__  
-It returns a numpy array of double (float64) type containing the predicted 
-outputs. 
+It returns a numpy array of float or double(float64) type and has shape (n_samples,) 
+containing the predicted outputs. 
 
-### save(filename)
+### score(X, y, sample_weight = None)
+__Parameters__  
+**_X_**: A numpy dense or scipy sparse matrix or any python array-like object or an instance 
+of FrovedisCRSMatrix for sparse data and FrovedisRowmajorMatrix for dense data.  
+**_y_**: Any python array-like object or an instance of FrovedisDvector.     
+**_sample\_weight_**: Python array-like containing the intended weights for
+each input samples and it should be the shape of (nsamples, ). When it is None (not specified),
+an uniform weight vector is assigned on each input sample.  
+
+__Purpose__  
+Calculate the root mean square value on the given test data and labels i.e. 
+R2(r-squared) of self.predict(X) wrt. y.
+
+The coefficient 'R2' is defined as (1 - (u/v)),  
+where 'u' is the residual sum of squares ((y_true - y_pred) ** 2).sum() and  
+'v' is the total sum of squares ((y_true - y_true.mean()) ** 2).sum(). The best 
+possible score is 1.0 and it can be negative (because the model can be arbitrarily worse). 
+A constant model that always predicts the expected value of y, disregarding the input 
+features, would get a R2 score of 0.0.  
+
+__Return Value__  
+It returns an R2 score of float type.
+
+### load(fname, dtype = None)
 __Parameters__   
-_filename_: A string object containing the name of the file on which the target 
+**_fname_**: A string object containing the name of the file having model 
+information to be loaded.    
+**_dtype_**: A data-type is inferred from the input data. Currently, expected input 
+data-type is either float or double(float64). (Default: None)  
+
+__Purpose__    
+It loads the model from the specified file (having little-endian binary data).  
+
+__Return Value__  
+It simply returns "self" instance.  
+
+### save(fname)
+__Parameters__   
+**_fname_**: A string object containing the name of the file on which the target 
 model is to be saved.    
 
 __Purpose__    
-On success, it writes the model information (weight values etc.) in the 
-specified file as little-endian binary data. Otherwise, it throws an exception. 
+On success, it writes the model information (weight values, etc.) in the 
+specified file as little-endian binary data. Otherwise, it throws an exception.   
 
 __Return Value__  
-It returns nothing.   
-
-### load(filename)
-__Parameters__   
-_filename_: A string object containing the name of the file having model 
-information to be loaded.    
-
-__Purpose__    
-It loads the model from the specified file (having little-endian binary data).
-
-__Return Value__  
-It simply returns "self" instance.   
+It returns nothing.
 
 ### debug_print()
 
 __Purpose__    
-It shows the target model information (weight values etc.) on the server side 
-user terminal. It is mainly used for debugging purpose.   
+It shows the target model information like weight values, intercept on the server side 
+user terminal. It is mainly used for debugging purpose.  
 
 __Return Value__  
-It returns nothing.   
+It returns nothing.  
 
 ### release()
 
 __Purpose__    
-It can be used to release the in-memory model at frovedis server. 
+It can be used to release the in-memory model at frovedis server. With this, after-fit
+populated attributes are reset to None, along with releasing server side memory.  
 
 __Return Value__  
-It returns nothing.   
+It returns nothing.
+
+### is_fitted()
+
+__Purpose__    
+It can be used to confirm if the model is already fitted or not. In case, predict() is used 
+before training the model, then it can prompt the user to train the lasso regression 
+model first. 
+
+__Return Value__  
+It returns ‘True’, if the model is already fitted otherwise, it returns ‘False’.
 
 # SEE ALSO  
 linear_regression, ridge_regression, dvector, crs_matrix      
