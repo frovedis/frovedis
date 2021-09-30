@@ -1083,7 +1083,7 @@ dftable frov_df_mean_impl(exrpc_ptr_t& df_proxy,
       }
       if (skip_na) {
         // --- calculate row-wise non-na values ---
-        auto countna_df = df.count_nulls(axis, with_index);
+        auto countna_df = df.select(cols).count_nulls(axis);
         auto subt_fn = frovedis::sub_im(ncol, "count"); 
         use_dfcolumn use_sub(subt_fn->columns_to_use(countna_df));
         countna_df.append_column("count_non_na", subt_fn->execute(countna_df)); // count_non_na = ncol - count
@@ -1188,7 +1188,7 @@ dftable frov_df_var_impl(exrpc_ptr_t& df_proxy,
       tmp.drop(mean_str);//tmp:sum
       if (skip_na) {
         // --- calculate row-wise non-na values ---
-        auto countna_df = df.count_nulls(axis, with_index);
+        auto countna_df = df.select(cols).count_nulls(axis);
         auto subt_fn = frovedis::sub_im(ncol - 1, "count"); //using 'ncol = ncol - 1' for variance
         use_dfcolumn use_sub(subt_fn->columns_to_use(countna_df));
         countna_df.append_column("count_non_na", subt_fn->execute(countna_df)); // count_non_na = ncol - count
