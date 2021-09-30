@@ -9,10 +9,10 @@ namespace frovedis {
 template <class T>
 size_t get_nrows_per_chunk(size_t nrow, size_t ncol,
                            float chunk_size = 1.0) {
-  require(chunk_size > 0, "chunk_size (in mb) should be a positive non-zero value!\n");
+  require(chunk_size > 0, "chunk_size (in mb) must be a positive non-zero value!\n");
   size_t tot_elems_per_chunk = chunk_size / sizeof(T) * MB; 
   size_t rows_per_chunk = ceil_div(tot_elems_per_chunk, ncol);
-  return 4; // std::min(nrow, rows_per_chunk);
+  return std::min(nrow, rows_per_chunk);
 }
 
 template <class T>
