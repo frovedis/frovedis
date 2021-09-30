@@ -3394,7 +3394,126 @@ mult_sliceA_trans_sliceB(crs_matrix_local<T,I,O>& mat,
     
   return ret;    
 }
-    
+
+template <class T, class I, class O>
+crs_matrix_local<T,I,O>
+operator+(const crs_matrix_local<T,I,O>& a,
+          const crs_matrix_local<T,I,O>& b) {
+  require(a.local_num_row == b.local_num_row &&
+          a.local_num_col == b.local_num_col,
+  "operator+: local matrix dimensions must be same!\n");
+
+  crs_matrix_local<T,I,O> ret(a.local_num_row, a.local_num_col);
+  // handling of early return cases
+  if (a.val.empty() && b.val.empty()) return ret; 
+  else if(a.val.empty()) return b;
+  else if (b.val.empty()) return a;
+  
+  auto a_nrow = a.local_num_row;
+  auto a_sz = a.val.size();
+  auto aidxp = a.idx.data();
+  auto aoffp = a.off.data();
+
+  auto b_nrow = b.local_num_row;
+  auto b_sz = b.val.size();
+  auto bidxp = b.idx.data();
+  auto boffp = b.off.data();
+
+  // find max of ncol
+  auto maxA = vector_amax(a.idx);
+  auto maxB = vector_amax(b.idx);
+  auto max_ncol = std::max(maxA, maxB) + 1;
+
+  // step1: create global_ids of size_t type (physical id can be large enough...)
+  // from current row and idx
+  std::vector<size_t> aidx_global(a_sz), bidx_global(b_sz);
+  auto aidx_gp = aidx_global.data();
+  auto bidx_gp = bidx_global.data();
+  for(size_t row = 0; row < a_nrow; ++row) {
+    for(O pos = aoffp[row]; pos < aoffp[row + 1]; pos++) {
+      aidx_gp[pos] = row * max_ncol + aidxp[pos];
+    }
+  }
+  for(size_t row = 0; row < b_nrow; ++row) {
+    for(O pos = boffp[row]; pos < boffp[row + 1]; pos++) {
+      bidx_gp[pos] = row * max_ncol + bidxp[pos];
+    }
+  }
+
+  // step2: concat
+  auto concat_val = vector_concat(a.val, b.val);
+  auto concat_id = vector_concat(aidx_global, bidx_global);
+  vector_clear(aidx_global); // freeing memory after concat
+  vector_clear(bidx_global); // freeing memory after concat
+
+  // step3: find unique ids
+  radix_sort(concat_id, concat_val);
+  auto sep = set_separate(concat_id);
+  auto sepsz = sep.size();
+  auto unqsz = sepsz - 1;
+  std::vector<size_t> unq_val(unqsz), unq_pos(unqsz), unq_cnt(unqsz);
+  auto sepp = sep.data();
+  auto concat_idp = concat_id.data();
+  auto unq_valp = unq_val.data();
+  auto unq_posp = unq_pos.data();
+  auto unq_cntp = unq_cnt.data();
+  for(size_t i = 0; i < unqsz; ++i) {
+    unq_valp[i] = concat_idp[sepp[i]];
+    unq_posp[i] = sepp[i];
+    unq_cntp[i] = sepp[i + 1] - sepp[i];
+  }
+
+  // step4: sparse-vector opt(addition etc.) of all the rows in one go...
+  std::vector<T> val(unqsz);
+  std::vector<I> cid(unqsz);
+  std::vector<O> rid(unqsz);
+  auto valp = val.data();
+  auto ridp = rid.data();
+  auto cidp = cid.data();
+  auto concat_valp = concat_val.data();
+  for(size_t i = 0; i < unqsz; ++i) {
+    auto pos = unq_posp[i];
+    valp[i] = concat_valp[pos];
+    cidp[i] = unq_valp[i] % max_ncol;
+    ridp[i] = unq_valp[i] / max_ncol;
+  }
+
+  size_t group = 2;
+  auto grp2 = vector_find_eq(unq_cnt, group); // check all with count 2
+  auto grp2p = grp2.data();
+  auto grp2sz = grp2.size();
+  #pragma _NEC ivdep
+  for(size_t i = 0; i < grp2sz; ++i) {
+    auto tid = grp2p[i];
+    auto id = unq_posp[tid];
+    valp[tid] += concat_valp[id + 1]; // OPERATION
+  }
+
+  // step5: resultant matrix construction
+  ret.val.swap(val);
+  ret.idx.swap(cid);
+  ret.off = set_separate(rid);
+  return ret;
+}
+
+template <class T, class I, class O>
+crs_matrix<T,I,O>
+operator+(crs_matrix<T,I,O>& a,
+          crs_matrix<T,I,O>& b) {
+  require(a.num_row == b.num_row && a.num_col == b.num_col,
+  "operator+: input sparse matrix dimensions must be same!\n");
+  auto a_dist = a.get_local_num_rows();
+  auto b_dist = b.get_local_num_rows();
+  if (a_dist != b_dist) b.align_as(a_dist); // re-align b as per a
+  crs_matrix<T,I,O> ret =  a.data.map(+[](const crs_matrix_local<T,I,O>& a,
+                                          const crs_matrix_local<T,I,O>& b) {
+                                            return a + b;
+                                       }, b.data);
+  if (a_dist != b_dist) b.align_as(b_dist); // align-back b to original
+  ret.num_row = a.num_row;
+  ret.num_col = a.num_col;
+  return ret;
+}
 
 }
 #endif
