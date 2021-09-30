@@ -14,7 +14,6 @@ We are still updating the contents.
     + [FrovedisBlockcyclicMatrix]
     + [pblas_wrapper]
     + [scalapack_wrapper]
-    + [arpack_wrapper]
     + [getrf_result]
     + [gesvd_result]
 - Machine Learning
