@@ -5,15 +5,35 @@ Linear Regression \- A regression algorithm to predict the continuous
 output without any regularization.
 .SH SYNOPSIS
 .PP
-class frovedis.mllib.linear_model.LinearRegression (fit_intercept=True,
+class frovedis.mllib.linear_model.LinearRegression(fit_intercept=True,
 normalize=False,
 .PD 0
 .P
 .PD
-\  \ \  \  \  \ copy_X=True, n_jobs=1, solver=\[aq]sag\[aq], verbose=0)
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ copy_X=True,
+n_jobs=None,
+.PD 0
+.P
+.PD
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ max_iter=None,
+tol=0.0001,
+.PD 0
+.P
+.PD
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ lr_rate=1e\-8,
+solver=None,
+.PD 0
+.P
+.PD
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ verbose=0, warm_start
+= False)
 .SS Public Member Functions
 .PP
-fit(X, y, sample_weight=None)
+fit(X, y, sample_weight = None)
 .PD 0
 .P
 .PD
@@ -21,11 +41,15 @@ predict(X)
 .PD 0
 .P
 .PD
-save(filename)
+score(X, y, sample_weight = None)
 .PD 0
 .P
 .PD
-load(filename)
+load(fname, dtype = None)
+.PD 0
+.P
+.PD
+save(fname)
 .PD 0
 .P
 .PD
@@ -34,6 +58,10 @@ debug_print()
 .P
 .PD
 release()
+.PD 0
+.P
+.PD
+is_fitted()
 .SH DESCRIPTION
 .PP
 Linear least squares is the most common formulation for regression
@@ -53,13 +81,24 @@ w is the linear model (also known as weight) which uses a single
 weighted sum of features to make a prediction.
 The method is called linear since it can be expressed as a function of
 wTx and y.
-Linear regression does not use any regularizer.
+Linear Regression does not use any regularizer.
 .PP
 The gradient of the squared loss is: (wTx\-y).x
 .PP
-Frovedis provides implementation of linear regression with two different
-optimizers: (1) stochastic gradient descent with minibatch and (2) LBFGS
-optimizer.
+Frovedis provides implementation of linear regression with the following
+optimizers:
+.PD 0
+.P
+.PD
+(1) stochastic gradient descent with minibatch
+.PD 0
+.P
+.PD
+(2) LBFGS optimizer
+.PD 0
+.P
+.PD
+(3) least\-square
 .PP
 The simplest method to solve optimization problems of the form \f[B]min
 f(w)\f[] is gradient descent.
@@ -77,28 +116,33 @@ few vectors that represent the approximation implicitly.
 L\-BFGS often achieves rapider convergence compared with other
 first\-order optimization.
 .PP
+For least\-square solver, we have used LAPACK routine "gelsd" and
+ScaLAPACK routine "gels" when input data is dense in nature.
+For the sparse\-input we have provided a least\-square implementation,
+similar to scipy.sparse.linalg.lsqr.
+.PP
 This module provides a client\-server implementation, where the client
-application is a normal python scikit\-learn program.
-Scikit\-learn has its own linear_model providing the Linear Regression
-support.
-But that algorithm is non\-distributed in nature.
-Hence it is slower when comparing with the equivalent Frovedis algorithm
-(see frovedis manual for ml/linear_regression) with big dataset.
-Thus in this implementation, a scikit\-learn client can interact with a
-frovedis server sending the required python data for training at
+application is a normal python program.
+The frovedis interface is almost same as Scikit\-learn Linear Regression
+interface, but it doesn\[aq]t have any dependency with Scikit\-learn.
+It can be used simply even if the system doesn\[aq]t have Scikit\-learn
+installed.
+Thus in this implementation, a python client can interact with a
+frovedis server by sending the required python data for training at
 frovedis side.
 Python data is converted into frovedis compatible data internally and
-the scikit\-learn ML call is linked with the respective frovedis ML call
-to get the job done at frovedis server.
+the python ML call is linked with the respective frovedis ML call to get
+the job done at frovedis server.
 .PP
-Scikit\-learn side call for Linear Regression quickly returns, right
-after submitting the training request to the frovedis server with a
-unique model ID for the submitted training request.
+Python side calls for Linear Regression on the frovedis server.
+Once the training is completed with the input data at the frovedis
+server, it returns an abstract model with a unique model ID to the
+client python program.
 .PP
-When operations like prediction will be required on the trained model,
-scikit\-learn client sends the same request to frovedis server on the
-same model (containing the unique ID) and the request is served at
-frovedis server and output is sent back to the scikit\-learn client.
+When prediction\-like request would be made on the trained model, python
+program will send the same request to the frovedis server.
+After the request is served at the frovedis server, the output would be
+sent back to the python client.
 .SS Detailed Description
 .SS LinearRegression()
 .PP
@@ -106,79 +150,166 @@ frovedis server and output is sent back to the scikit\-learn client.
 .PD 0
 .P
 .PD
-\f[I]fit_intercept\f[]: A boolean parameter specifying whether a
-constant (intercept) should be added to the decision function.
+\f[B]\f[I]fit_intercept\f[]\f[]: A boolean parameter specifying whether
+a constant(intercept) should be added to the decision function.
 (Default: True)
 .PD 0
 .P
 .PD
-\f[I]normalize\f[]: A boolean parameter.
+\f[B]\f[I]normalize\f[]\f[]: A boolean parameter.
 (unused)
 .PD 0
 .P
 .PD
-\f[I]copy_X\f[]: A boolean parameter.
-(unsed)
-.PD 0
-.P
-.PD
-\f[I]n_jobs\f[]: An integer parameter.
+\f[B]\f[I]copy_X\f[]\f[]: A boolean parameter.
 (unused)
 .PD 0
 .P
 .PD
-\f[I]solver\f[]: A string parameter specifying the solver to use.
-(Default: \[aq]sag\[aq])
+\f[B]\f[I]n_jobs\f[]\f[]: An integer parameter.
+(unused)
 .PD 0
 .P
 .PD
-\f[I]verbose\f[]: A integer parameter specifying the log level to use.
-(Default: 0)
+\f[B]\f[I]max_iter\f[]\f[]: A positive integer value used to set the
+maximum number of iterations.
+When it is None(not specified explicitly), it will be set as 1000 for
+"sag", "lbfgs", "lapack" and "scalapack" solvers and for "sparse_lsqr"
+solver, it will be 2 * (n_features).
+(Default: None)
+.PD 0
+.P
+.PD
+\f[B]\f[I]tol\f[]\f[]: Zero or a positive value of double(float64) type
+specifying the convergence tolerance value.
+(Default: 0.001)
+.PD 0
+.P
+.PD
+\f[B]\f[I]lr_rate\f[]\f[]: A positive value of double(float64) type
+containing the learning rate.
+(Default: 1e\-8)
+.PD 0
+.P
+.PD
+\f[B]\f[I]solver\f[]\f[]: A string parameter specifying the solver to
+use.
+(Default: None).
+In case it is None (not explicitly specified), the value will be set to
+"lapack" when dense input matrix (X) is provided and for sparse input
+matrix (X), it is set as "sparse_lsqr".
+Frovedis supports "sag", "lbfgs", "lapack", "scalapack", "sparse_lsqr"
+solvers.
+.PD 0
+.P
+.PD
+"lapack" and "scalapack" solvers can only work with dense data.
+.PD 0
+.P
+.PD
+"sparse_lsqr" solver can only work with sparse data.
+.PD 0
+.P
+.PD
+\f[B]\f[I]verbose\f[]\f[]: An integer parameter specifying the log level
+to use.
+Its value is 0 by default(for INFO mode and not specified explicitly).
+But it can be set to 1 (for DEBUG mode) or 2 (for TRACE mode) for
+getting training time logs from frovedis server.
+.PD 0
+.P
+.PD
+\f[B]\f[I]warm_start\f[]\f[]: A boolean parameter which when set to
+True, reuses the solution of the previous call to fit as initialization,
+otherwise, just erase the previous solution.
+Only supported by "sag" and "lbfgs" solvers.
+(Default: False)
+.PP
+\f[B]Attributes\f[]
+.PD 0
+.P
+.PD
+\f[B]\f[I]coef_\f[]\f[]: It is a python ndarray(containing float or
+double(float64) typed values depending on data\-type of input matrix
+(X)) of estimated coefficients for the linear regression problem.
+It has shape (n_features,).
+.PD 0
+.P
+.PD
+\f[B]\f[I]rank_\f[]\f[]: An integer value used to store rank of matrix
+(X).
+It is only available when matrix (X) is dense and "lapack" solver is
+used.
+.PD 0
+.P
+.PD
+\f[B]\f[I]singular_\f[]\f[]: It is a python ndarray(contaning float or
+double(float64) typed values depending on data\-type of input matrix
+(X)) and of shape(min(X,y),) which is used to store singular values of
+X.
+It is only available when X is dense and "lapack" solver is used.
+.PD 0
+.P
+.PD
+\f[B]\f[I]intercept(bias)_\f[]\f[]: It is a python ndarray(contaning
+float or double(float64) typed values depending on data\-type of input
+matrix (X)).
+If fit_intercept is set to False, the intercept is set to zero.
+It has shape (1,).
+.PD 0
+.P
+.PD
+\f[B]\f[I]n_iter_\f[]\f[]: A positive integer value used to get the
+actual iteration point at which the problem is converged.
+It is only available for "sag", "lbfgs" and "sparse\-lsqr" solvers.
 .PP
 \f[B]Purpose\f[]
 .PD 0
 .P
 .PD
-It initialized a LinearRegression object with the given parameters.
+It initializes a Linear Regression object with the given parameters.
 .PP
-The parameters: "normalize", "copy_X" and "n_jobs" are not yet supported
-at frovedis side.
-Thus they don\[aq]t have any significance when calling the frovedis
-linear regression algorithm.
-They are simply provided for the compatibility with scikit\-learn
-application.
+The parameters: "normalize", "copy_X" and "n_jobs" are simply kept in to
+to make the interface uniform to the Scikit\-learn Linear Regression
+module.
+They are not used anywhere within frovedis implementation.
 .PP
-"solver" can be either \[aq]sag\[aq] for frovedis side stochastic
-gradient descent or \[aq]lbfgs\[aq] for frovedis side LBFGS optimizer
-when optimizing the linear regression model.
+"solver" can be "sag" for frovedis side stochastic gradient descent,
+"lbfgs" for frovedis side LBFGS optimizer, "sparse_lsqr", "lapack" and
+"scalapack" when optimizing the linear regression model.
 .PP
-"verbose" value is set at 0 by default.
-But it can be set to 1 (for DEBUG mode) or 2 (for TRACE mode) for
-getting training time logs from frovedis server.
+"max_iter" can be used to set the maximum interations to achieve the
+convergence.
+In case the convergence is not achieved, it displays a warning for the
+same.
 .PP
 \f[B]Return Value\f[]
 .PD 0
 .P
 .PD
 It simply returns "self" reference.
-.SS fit(X, y, sample_weight=None)
+.SS fit(X, y, sample_weight = None)
 .PP
 \f[B]Parameters\f[]
 .PD 0
 .P
 .PD
-\f[I]X\f[]: A scipy sparse matrix or any python array\-like object or an
-instance of FrovedisCRSMatrix.
+\f[B]\f[I]X\f[]\f[]: A numpy dense or scipy sparse matrix or any python
+array\-like object or an instance of FrovedisCRSMatrix for sparse data
+and FrovedisColmajorMatrix for dense data.
 .PD 0
 .P
 .PD
-\f[I]y\f[]: Any python array\-like object or an instance of
+\f[B]\f[I]y\f[]\f[]: Any python array\-like object or an instance of
 FrovedisDvector.
 .PD 0
 .P
 .PD
-\f[I]sample_weight\f[]: Python array\-like optional parameter.
-(unused)
+\f[B]\f[I]sample_weight\f[]\f[]: Python array\-like containing the
+intended weights for each input samples and it should be the shape of
+(nsamples, ).
+When it is None (not specified), an uniform weight vector is assigned on
+each input sample.
 .PP
 \f[B]Purpose\f[]
 .PD 0
@@ -188,25 +319,45 @@ It accepts the training feature matrix (X) and corresponding output
 labels (y) as inputs from the user and trains a linear regression model
 with those data at frovedis server.
 .PP
-It doesn\[aq]t support any initial weight to be passed as input at this
-moment.
-Thus the "sample_weight" parameter will simply be ignored.
-It starts with an initial guess of zeros for the model vector and keeps
-updating the model to minimize the cost function until convergence is
-achieved (default convergence tolerance value is 0.001) or maximum
-iteration count is reached (default 1000, is not configurable at this
-moment).
+For example,
+.IP
+.nf
+\f[C]
+#\ loading\ a\ sample\ matrix\ and\ labels\ data
+from\ sklearn.datasets\ import\ load_boston
+mat,\ label\ =\ load_boston(return_X_y\ =\ True)
+
+#\ fitting\ input\ matrix\ and\ label\ on\ linear\ regression\ object
+from\ frovedis.mllib.linear_model\ import\ LinearRegression
+lr\ =\ LinearRegression(solver\ =\ \[aq]sag\[aq]).fit(mat,label)
+\f[]
+.fi
+.PP
+When native python data is provided, it is converted to frovedis\-like
+inputs and sent to frovedis server which consumes some data transfer
+time.
+Pre\-constructed frovedlis\-like inputs can be used to speed up the
+training time, specially when same data would be used for multiple
+executions.
 .PP
 For example,
 .IP
 .nf
 \f[C]
-#\ loading\ sample\ CRS\ data\ file
-mat\ =\ FrovedisCRSMatrix().load("./sample")
-lbl\ =\ FrovedisDvector([1.1,0.2,1.3,1.4,1.5,0.6,1.7,1.8])
+#\ loading\ a\ sample\ matrix\ and\ labels\ data
+from\ sklearn.datasets\ import\ load_boston
+mat,\ label\ =\ load_boston(return_X_y\ =\ True)
 
-#\ fitting\ input\ matrix\ and\ label\ on\ linear\ regression\ object
-lr\ =\ LinearRegression(solver=\[aq]sgd\[aq],\ verbose=2).fit(mat,lbl)
+#\ Since\ "mat"\ is\ numpy\ dense\ data,\ we\ have\ created\ FrovedisColmajorMatrix.\ 
+#\ For\ scipy\ sparse\ data,\ FrovedisCRSMatrix\ should\ be\ used\ instead.
+from\ frovedis.matrix.dense\ import\ FrovedisColmajorMatrix
+from\ frovedis.matrix.dvector\ import\ FrovedisDvector\ 
+cmat\ =\ FrovedisColmajorMatrix(mat)
+dlbl\ =\ FrovedisDvector(lbl)
+
+#\ Linear\ Regression\ with\ pre\-constructed\ frovedlis\-like\ inputs
+from\ frovedis.mllib.linear_model\ import\ LinearRegression
+lr\ =\ LinearRegression(solver\ =\ \[aq]sag\[aq]).fit(cmat,\ dlbl)\ \ 
 \f[]
 .fi
 .PP
@@ -215,22 +366,15 @@ lr\ =\ LinearRegression(solver=\[aq]sgd\[aq],\ verbose=2).fit(mat,lbl)
 .P
 .PD
 It simply returns "self" reference.
-.PD 0
-.P
-.PD
-Note that the call will return quickly, right after submitting the fit
-request at frovedis server side with a unique model ID for the fit
-request.
-It may be possible that the training is not completed at the frovedis
-server side even though the client scikit\-learn side fit() returns.
 .SS predict(X)
 .PP
 \f[B]Parameters\f[]
 .PD 0
 .P
 .PD
-\f[I]X\f[]: A scipy sparse matrix or any python array\-like object or an
-instance of FrovedisCRSMatrix.
+\f[B]\f[I]X\f[]\f[]: A numpy dense or scipy sparse matrix or any python
+array\-like object or an instance of FrovedisCRSMatrix for sparse data
+and FrovedisRowmajorMatrix for dense data.
 .PP
 \f[B]Purpose\f[]
 .PD 0
@@ -239,20 +383,165 @@ instance of FrovedisCRSMatrix.
 It accepts the test feature matrix (X) in order to make prediction on
 the trained model at frovedis server.
 .PP
+For example,
+.IP
+.nf
+\f[C]
+#\ predicting\ on\ linear\ regression\ model
+lr.predict(mat[:10])\ \ 
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+[30.00384338\ 25.02556238\ 30.56759672\ 28.60703649\ 27.94352423\ 25.25628446
+\ 23.00180827\ 19.53598843\ 11.52363685\ 18.92026211]
+\f[]
+.fi
+.PP
+If the above pre\-constructed training data (cmat) is to be used during
+prediction, the same can be used as follows:
+.IP
+.nf
+\f[C]
+#\ predicting\ on\ sag\ linear\ regression\ model\ using\ pre\-constructed\ input
+lr.predict(cmat.to_frovedis_rowmatrix())
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+[30.00384338\ 25.02556238\ 30.56759672\ 28.60703649\ 27.94352423\ 25.25628446\ 
+\ 23.00180827\ 19.53598843\ 11.52363685\ 18.92026211]
+\f[]
+.fi
+.PP
 \f[B]Return Value\f[]
 .PD 0
 .P
 .PD
-It returns a numpy array of double (float64) type containing the
-predicted outputs.
-.SS save(filename)
+It returns a numpy array of float or double(float64) type and has shape
+(n_samples,) containing the predicted outputs.
+.SS score(X, y, sample_weight = None)
 .PP
 \f[B]Parameters\f[]
 .PD 0
 .P
 .PD
-\f[I]filename\f[]: A string object containing the name of the file on
-which the target model is to be saved.
+\f[B]\f[I]X\f[]\f[]: A numpy dense or scipy sparse matrix or any python
+array\-like object or an instance of FrovedisCRSMatrix for sparse data
+and FrovedisRowmajorMatrix for dense data.
+.PD 0
+.P
+.PD
+\f[B]\f[I]y\f[]\f[]: Any python array\-like object or an instance of
+FrovedisDvector.
+.PD 0
+.P
+.PD
+\f[B]\f[I]sample_weight\f[]\f[]: Python array\-like containing the
+intended weights for each input samples and it should be the shape of
+(nsamples, ).
+When it is None (not specified), an uniform weight vector is assigned on
+each input sample.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+Calculate the root mean square value on the given test data and labels
+i.e.
+R2(r\-squared) of self.predict(X) wrt.
+y.
+.PP
+The coefficient \[aq]R2\[aq] is defined as (1 \- (u/v)),
+.PD 0
+.P
+.PD
+where \[aq]u\[aq] is the residual sum of squares ((y_true \- y_pred) **
+2).sum() and,
+.PD 0
+.P
+.PD
+\[aq]v\[aq] is the total sum of squares ((y_true \- y_true.mean()) **
+2).sum().
+.PD 0
+.P
+.PD
+The best possible score is 1.0 and it can be negative (because the model
+can be arbitrarily worse).
+A constant model that always predicts the expected value of y,
+disregarding the input features, would get a R2 score of 0.0.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ calculate\ R2\ score\ on\ given\ test\ data\ and\ labels
+lr.score(mat[:10],\ label[:10])\ 
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+0.40
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns an R2 score of float type.
+.SS load(fname, dtype = None)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[B]\f[I]fname\f[]\f[]: A string object containing the name of the file
+having model information to be loaded.
+.PD 0
+.P
+.PD
+\f[B]\f[I]dtype\f[]\f[]: A data\-type is inferred from the input data.
+Currently, expected input data\-type is either float or double(float64).
+(Default: None)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It loads the model from the specified file (having little\-endian binary
+data).
+.PP
+For example,
+.IP
+.nf
+\f[C]
+lr.load("./out/LNRModel")
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It simply returns "self" instance.
+.SS save(fname)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[B]\f[I]fname\f[]\f[]: A string object containing the name of the file
+on which the target model is to be saved.
 .PP
 \f[B]Purpose\f[]
 .PD 0
@@ -262,41 +551,53 @@ On success, it writes the model information (weight values etc.) in the
 specified file as little\-endian binary data.
 Otherwise, it throws an exception.
 .PP
+For example,
+.IP
+.nf
+\f[C]
+#\ To\ save\ the\ linear\ regression\ model
+lr.save("./out/LNRModel")\ \ \ \ 
+\f[]
+.fi
+.PP
+This will save the linear regression model on the path "/out/LNRModel".
+.PP
 \f[B]Return Value\f[]
 .PD 0
 .P
 .PD
 It returns nothing.
-.SS load(filename)
-.PP
-\f[B]Parameters\f[]
-.PD 0
-.P
-.PD
-\f[I]filename\f[]: A string object containing the name of the file
-having model information to be loaded.
-.PP
-\f[B]Purpose\f[]
-.PD 0
-.P
-.PD
-It loads the model from the specified file (having little\-endian binary
-data).
-.PP
-\f[B]Return Value\f[]
-.PD 0
-.P
-.PD
-It simply returns "self" instance.
 .SS debug_print()
 .PP
 \f[B]Purpose\f[]
 .PD 0
 .P
 .PD
-It shows the target model information (weight values etc.) on the server
-side user terminal.
+It shows the target model information (weight values, intercept) on the
+server side user terminal.
 It is mainly used for debugging purpose.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+lr.debug_print()\ 
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+\-\-\-\-\-\-\-\-\ Weight\ Vector::\ \-\-\-\-\-\-\-\-
+\-0.108011\ 0.0464205\ 0.0205586\ 2.68673\ \-17.7666\ 3.80987\ 0.000692225\ \-1.47557\ 0.306049\ 
+\-0.0123346\ \-0.952747\ 0.00931168\ \-0.524758
+Intercept::\ 36.4595
+\f[]
+.fi
+.PP
+It displays the weights and intercept values on the trained model which
+is currently present on the server.
 .PP
 \f[B]Return Value\f[]
 .PD 0
@@ -311,11 +612,38 @@ It returns nothing.
 .PD
 It can be used to release the in\-memory model at frovedis server.
 .PP
+For example,
+.IP
+.nf
+\f[C]
+lr.release()
+\f[]
+.fi
+.PP
+This will reset the after\-fit populated attributes to None, along with
+releasing server side memory.
+.PP
 \f[B]Return Value\f[]
 .PD 0
 .P
 .PD
 It returns nothing.
+.SS is_fitted()
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It can be used to confirm if the model is already fitted or not.
+In case, predict() is used before training the model, then it can prompt
+the user to train the linear regression model first.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns ‘True', if the model is already fitted otherwise, it returns
+‘False'.
 .SH SEE ALSO
 .PP
 lasso_regression, ridge_regression, dvector, crs_matrix
