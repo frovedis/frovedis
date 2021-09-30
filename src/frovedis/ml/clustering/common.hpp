@@ -48,7 +48,7 @@ size_t get_num_iterations(std::vector<T>& nrows, T batch_size) {
 template <class T>    
 size_t get_batch_size_per_node(T global_batch) {
   T node_size = get_nodesize();  
-  return ceil_div(global_batch, node_size);
+  return global_batch / node_size;
 }
   
 template <class T>        

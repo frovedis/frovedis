@@ -2,9 +2,8 @@
 #define _KNN_HPP_
 
 // decide number of elements of 1M memory size
-#define CHUNK_SIZE 1024 * 1024 
-
-#define THRESHOLD 50000
+#define ONE_MB 1024 * 1024 
+#define THRESHOLD 1e8
 
 //#define MANUAL_LOOP_COLLAPSE_IN_EXTRACTION 
 //#define DEBUG_SAVE
@@ -97,9 +96,9 @@ struct knn_model {
 
 template <class T>
 size_t get_rows_per_chunk(size_t nrow, size_t ncol,
-                          float MB = 1.0) {
-  if(MB <= 0) REPORT_ERROR(USER_ERROR, "chunk_size should be a positive non-zero value!\n");
-  size_t tot_elems_per_chunk = MB / sizeof(T) * CHUNK_SIZE;
+                          float chunk_size = 1.0) {
+  require(chunk_size > 0, "chunk_size must be a positive non-zero value!\n");
+  size_t tot_elems_per_chunk = chunk_size / sizeof(T) * ONE_MB;
   size_t rows_per_chunk = ceil_div(tot_elems_per_chunk, ncol);
   return std::min(nrow, rows_per_chunk);
 }
@@ -413,10 +412,15 @@ knn_model<T, I> compute_kneigbor_in_batch(MATRIX1& x_mat,
   ret.indices.data.mapv(pre_allocate<I>, nl_rows, broadcast(k));
   
   //Get number of iterations needed
-  auto niters = get_num_iterations(nrows, batch_size_per_node);                         
-              
-  for(size_t i = 0; i < niters; ++i) {   
+  auto niters = get_num_iterations(nrows, batch_size_per_node);  
+             
+  RLOG(INFO) << "Very large input data is detected. KNN computation would be performed in " 
+             << niters << " batches!\n"; 
+  for(size_t i = 0; i < niters; ++i) { 
     auto partial_query = extract_batch(y_mat, batch_size_per_node, i);     
+    RLOG(INFO) << "processing batch: " << i + 1 
+               << "; nsamples: " << x_mat.num_row 
+               << "; nquery: " << partial_query.num_row << std::endl;
     auto partial_dist_mat = construct_distance_matrix<T>(x_mat, partial_query, metric, need_distance);            
     partial_dist_mat.data.mapv(find_kneighbor(k, need_distance, chunk_size), 
                                ret.distances.data, ret.indices.data, 
@@ -478,13 +482,13 @@ knn_model<T, I> knn(MATRIX1& x_mat,
 
   if (metric != "euclidean" && metric != "seuclidean" && metric != "cosine")
     REPORT_ERROR(USER_ERROR, 
-      "Currently frovedis knn supports only euclidean/seuclidean and \
-                 cosine distance!\n");
+      "Currently frovedis knn supports only euclidean/seuclidean and cosine distance!\n");
 
   knn_model<T, I> ret(k);
   if(batch_fraction == std::numeric_limits<double>::max()) { // No batch provided
-    if (nquery > THRESHOLD) { // Compute with batches of distance matrix 
-      size_t batch_size_per_node = get_batch_size_per_node(THRESHOLD);
+    if (nquery * nsamples > THRESHOLD) { // Compute with batches of distance matrix
+      size_t global_batch = THRESHOLD / nsamples;
+      size_t batch_size_per_node = get_batch_size_per_node(global_batch);
       ret = compute_kneigbor_in_batch<T, I>(x_mat, y_mat, k, metric, need_distance, 
                                             chunk_size, batch_size_per_node);  
     }
@@ -534,8 +538,7 @@ knn_radius(MATRIX1& x_mat,
 
   if (metric != "euclidean" && metric != "seuclidean" && metric != "cosine")
     REPORT_ERROR(USER_ERROR,
-      "Currently frovedis knn supports only euclidean/seuclidean and \
-                 cosine distance!\n");
+      "Currently frovedis knn supports only euclidean/seuclidean and cosine distance!\n");
 
   if (mode != "distance" && mode != "connectivity")
     REPORT_ERROR(USER_ERROR,
@@ -550,8 +553,9 @@ knn_radius(MATRIX1& x_mat,
   crs_matrix<R,I,O> ret;            
  
   if(batch_fraction == std::numeric_limits<double>::max()) { // No batch provided
-    if (nquery > THRESHOLD) { // Compute with batches of distance matrix  
-      batch_size_per_node = get_batch_size_per_node(THRESHOLD);  
+    if (nquery * nsamples > THRESHOLD) { // Compute with batches of distance matrix
+      size_t global_batch = THRESHOLD / nsamples;
+      size_t batch_size_per_node = get_batch_size_per_node(global_batch);
       in_one_go = false;
     }  
   }
@@ -565,9 +569,13 @@ knn_radius(MATRIX1& x_mat,
     auto nrows = y_mat.get_local_num_rows();
     auto niters = get_num_iterations(nrows, batch_size_per_node);
     std::vector<crs_matrix<R,I,O>> graphs(niters);
-    // batch-wise distance calculation 
+    RLOG(INFO) << "Very large input data is detected. KNN computation would be performed in " 
+               << niters << " batches!\n"; 
     for(size_t i = 0; i < niters; ++i) {
       auto partial_query = extract_batch(y_mat, batch_size_per_node, i);   
+      RLOG(INFO) << "processing batch: " << i + 1 
+                 << "; nsamples: " << x_mat.num_row 
+                 << "; nquery: " << partial_query.num_row << std::endl;
       auto partial_dist_mat = construct_distance_matrix<T>(x_mat, partial_query, metric, need_distance);
       graphs[i] = construct_connectivity_graph<R,T,I,O>(partial_dist_mat, 
                                                         radius, include_self, need_weight);
