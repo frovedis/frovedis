@@ -548,6 +548,7 @@ knn_radius(MATRIX1& x_mat,
   bool need_weight = (mode == "distance");
   bool include_self = true;
   auto nquery = y_mat.num_row;
+  auto nsamples = x_mat.num_row;
   bool in_one_go = true; 
   size_t batch_size_per_node = 0; 
   crs_matrix<R,I,O> ret;            
@@ -555,7 +556,7 @@ knn_radius(MATRIX1& x_mat,
   if(batch_fraction == std::numeric_limits<double>::max()) { // No batch provided
     if (nquery * nsamples > THRESHOLD) { // Compute with batches of distance matrix
       size_t global_batch = THRESHOLD / nsamples;
-      size_t batch_size_per_node = get_batch_size_per_node(global_batch);
+      batch_size_per_node = get_batch_size_per_node(global_batch);
       in_one_go = false;
     }  
   }
