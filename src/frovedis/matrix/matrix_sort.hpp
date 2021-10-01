@@ -35,20 +35,18 @@ void sort_row_segment_impl(T* valp, size_t nrow, size_t ncol,
   std::vector<size_t> row_index(valsz);
   auto ridxp = row_index.data();
   for(size_t i = 0; i < valsz; ++i) {
-    ridxp[i] = tmpp[i] / ncol; // row-index
-    tmpp[i] = tmpp[i] % ncol;  // col-index (updated in-place to reduce memory)
+    ridxp[i] = tmpp[i] / ncol;   // row-index
+    tmpp[i] -= ridxp[i] * ncol;  // col-index (updated in-place to reduce memory)
   }
 
   // second time sorting to re-position sorted values row-wise
   radix_sort(ridxp, tmpp, valsz, true); // specified true, since indices are always positive
 
   // -------- copy-back --------
-  for(size_t i = 0; i < nrow; ++i) {
-    #pragma _NEC ivdep
-    for(size_t j = 0; j < ncol; ++j) {
-      auto sorted_col_idx = tmpp[i * ncol + j];
-      valp[i * ncol + j] = c_valp[i * ncol + sorted_col_idx];
-    }
+  for(size_t ij = 0; ij < valsz; ++ij) {
+    auto i = ridxp[ij];
+    auto j = tmpp[ij]; // sorted col-index
+    valp[ij] = c_valp[i * ncol + j];
   }
 }
 
@@ -86,21 +84,19 @@ void sort_row_segment_impl(T* valp, I* posp,
   std::vector<size_t> row_index(valsz);
   auto ridxp = row_index.data();
   for(size_t i = 0; i < valsz; ++i) {
-    ridxp[i] = tmpp[i] / ncol; // row-index
-    tmpp[i] = tmpp[i] % ncol;  // col-index (updated in-place to reduce memory)
+    ridxp[i] = tmpp[i] / ncol;   // row-index
+    tmpp[i] -= ridxp[i] * ncol;  // col-index (updated in-place to reduce memory)
   }
 
   // second time sorting to re-position sorted values row-wise
   radix_sort(ridxp, tmpp, valsz, true); // specified true, since indices are always positive
 
   // -------- copy-back --------
-  for(size_t i = 0; i < nrow; ++i) {
-    #pragma _NEC ivdep
-    for(size_t j = 0; j < ncol; ++j) {
-      auto sorted_col_idx = tmpp[i * ncol + j];
-      valp[i * ncol + j] = c_valp[i * ncol + sorted_col_idx];
-      posp[i * ncol + j] = c_posp[i * ncol + sorted_col_idx];
-    }
+  for(size_t ij = 0; ij < valsz; ++ij) {
+    auto i = ridxp[ij];
+    auto j = tmpp[ij]; // sorted col-index
+    valp[ij] = c_valp[i * ncol + j];
+    posp[ij] = c_posp[i * ncol + j];
   }
 }
 
