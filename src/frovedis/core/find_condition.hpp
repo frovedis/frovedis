@@ -731,5 +731,19 @@ vector_find_neq(const std::vector<T>& vec, const T& threshold) {
   else return vector_find_condition(vec, is_neq<T>(threshold));
 }
 
+template <class T>
+std::vector<size_t>
+vector_find_even(const std::vector<T>& vec) {
+  if (vec.size() == 0) return std::vector<size_t>();
+  else return vector_find_condition(vec, is_even<T>());
+}
+
+template <class T>
+std::vector<size_t>
+vector_find_odd(const std::vector<T>& vec) {
+  if (vec.size() == 0) return std::vector<size_t>();
+  else return vector_find_condition(vec, is_odd<T>());
+}
+
 }
 #endif
