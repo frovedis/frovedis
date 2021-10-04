@@ -4,8 +4,9 @@
 #include <vector>
 #include "exceptions.hpp"
 
-#define PARTITION_SORT_VLEN 256
-#define USE_VREG
+#define PARTITION_SORT_VLEN 256 
+#define PARTITION_SORT_MIN_EACH_LEN 32 // minimum VLEN of 2nd part
+//#define PARTITION_SORT_DEBUG
 
 namespace frovedis {
 template <class T, class I>
@@ -64,98 +65,20 @@ void key_val_vector_partition_sort_loopraked(T* kptr, I* vptr,
                                              size_t k,
                                              time_spent& comp_t,
                                              time_spent& copy_t) { 
-  checkAssumption(k >= 1  && k <= size);
-  auto nchunk = (size - 1) / PARTITION_SORT_VLEN; // maybe zero
-  if (nchunk == 0) 
-    key_val_vector_partition_sort(kptr, vptr, size, k, comp_t, copy_t);
-  else {
-    T work_kptr[size]; 
-    I work_vptr[size];
-    size_t st_idx = 0, end_idx = size - 1, kidx = k - 1;
-
-    size_t st_ptr[PARTITION_SORT_VLEN];
-#pragma _NEC vreg(st_ptr) 
-
-    while(st_idx != end_idx) {
-      auto piv_key = kptr[st_idx];
-      auto piv_val = vptr[st_idx];
-      size_t left_idx = st_idx + 1;
-      size_t right_idx = left_idx + (nchunk * PARTITION_SORT_VLEN) - 1;
-      size_t rem_left_idx = right_idx + 1;
-      size_t rem_right_idx = end_idx;
-      size_t low = st_idx, high = end_idx;
-      RLOG(DEBUG) << st_idx << " "
-                  << end_idx << " "
-                  << left_idx << " "
-                  << right_idx << " "
-                  << rem_left_idx << " "
-                  << rem_right_idx << "\n";
-      if (nchunk > 0) {
-        for(size_t i = 0; i < PARTITION_SORT_VLEN; ++i) {
-          st_ptr[i] = left_idx + (i * nchunk);
-        }
-      }
-
-      comp_t.lap_start();
-      // for data in chunks
-      for(size_t j = 0; j < nchunk; ++j) {
-#pragma _NEC ivdep
-        for(size_t i = 0; i < PARTITION_SORT_VLEN; ++i) {
-          auto loaded_key = kptr[st_ptr[i]];
-          auto loaded_val = vptr[st_ptr[i]];
-          if (loaded_key < piv_key) {
-            work_kptr[low] = loaded_key;
-            work_vptr[low] = loaded_val;
-            low++;
-          }
-          else {
-            work_kptr[high] = loaded_key;
-            work_vptr[high] = loaded_val;
-            high--;
-          }
-        }
-      }
-
-    // for remaining part
-#pragma _NEC ivdep
-      for(size_t i = rem_left_idx; i <= rem_right_idx; ++i) {
-        auto loaded_key = kptr[i];
-        auto loaded_val = vptr[i];
-        if (loaded_key < piv_key) {
-          work_kptr[low] = loaded_key;
-          work_vptr[low] = loaded_val;
-          low++;
-        }
-        else {
-          work_kptr[high] = loaded_key;
-          work_vptr[high] = loaded_val;
-          high--;
-        }
-      }
-      comp_t.lap_stop();
-
-      // low == high, at this point
-      checkAssumption(low == high);
-      work_kptr[low] = piv_key;
-      work_vptr[low] = piv_val;
-
-      copy_t.lap_start();
-      // copy back
-      for(size_t i = st_idx; i <= end_idx; ++i) {
-        kptr[i] = work_kptr[i];
-        vptr[i] = work_vptr[i];
-      }
-      copy_t.lap_stop();
-    
-      // adjustment 
-      if (low > kidx) end_idx = low - 1;
-      else if (low < kidx) st_idx = low + 1;
-      else st_idx = end_idx = kidx; // DONE: equal case
-
-      size = end_idx - st_idx + 1;
-      nchunk = (size - 1) / PARTITION_SORT_VLEN; // maybe zero
-    } // end of while
-  } // end of else
+  require(k >= 1  && k <= size, 
+  "the given k must be in between 1 to " + std::to_string(size) + "!\n");
+  T work_kptr[size]; 
+  I work_vptr[size];
+  size_t kidx = k - 1;
+  size_t stp[PARTITION_SORT_VLEN];
+  size_t endp[PARTITION_SORT_VLEN];
+  size_t lowp[PARTITION_SORT_VLEN];
+  size_t highp[PARTITION_SORT_VLEN];
+#pragma _NEC vreg(stp) 
+#pragma _NEC vreg(endp) 
+#pragma _NEC vreg(lowp) 
+#pragma _NEC vreg(highp) 
+#include "partition_sort.incl"
 }
  
 template <class T, class I>
@@ -164,6 +87,7 @@ void partition_sort(T* kptr, I* vptr,
                     size_t k,
                     time_spent& comp_t,
                     time_spent& copy_t) {
+  //key_val_vector_partition_sort(kptr, vptr, size, k, comp_t, copy_t);
   key_val_vector_partition_sort_loopraked(kptr, vptr, size, k, comp_t, copy_t);
 }
 
@@ -173,6 +97,7 @@ void partition_sort(T* kptr, I* vptr,
                     size_t k) {
   time_spent comp_t(DEBUG), copy_t(DEBUG), part_t(DEBUG);
   part_t.lap_start();
+  //key_val_vector_partition_sort(kptr, vptr, size, k, comp_t, copy_t);
   key_val_vector_partition_sort_loopraked(kptr, vptr, size, k, comp_t, copy_t);
   part_t.lap_stop();
   if(get_selfid()== 0) {
@@ -185,21 +110,21 @@ void partition_sort(T* kptr, I* vptr,
 template <class T, class I>
 void partition_sort(std::vector<T>& key, 
                     std::vector<I>& val, 
-                    size_t size, 
                     size_t k,
                     time_spent& comp_t,
                     time_spent& copy_t) {
-  partition_sort(key.data(), val.data(), size, k, comp_t, copy_t);
+  checkAssumption(key.size() == val.size());
+  partition_sort(key.data(), val.data(), key.size(), k, comp_t, copy_t);
 }
 
 template <class T, class I>
 void partition_sort(std::vector<T>& key, 
                     std::vector<I>& val, 
-                    size_t size, 
                     size_t k) {
-  time_spent comp_t(DEBUG), copy_t(DEBUG), part_t(DEBUG);
+  time_spent comp_t(INFO), copy_t(INFO), part_t(INFO);
+  checkAssumption(key.size() == val.size());
   part_t.lap_start();
-  partition_sort(key, val, size, k, comp_t, copy_t);
+  partition_sort(key, val, k, comp_t, copy_t);
   part_t.lap_stop();
   if(get_selfid()== 0) {
     part_t.show_lap("vector partition time: ");
@@ -347,100 +272,25 @@ void key_val_matrix_partition_sort_by_each_row_loopraked(
                               size_t k,
                               time_spent& comp_t,
                               time_spent& copy_t) {
-  if (ncol < PARTITION_SORT_VLEN)
-    key_val_matrix_partition_sort_by_each_row(keyptr, valptr, nrow, ncol, k, comp_t, copy_t);
-  else {
-    auto nchunk = (ncol - 1) / PARTITION_SORT_VLEN; // maybe zero
-    T work_kptr[ncol]; 
-    I work_vptr[ncol];
-    size_t st_ptr[PARTITION_SORT_VLEN];
-#pragma _NEC vreg(st_ptr) 
-    size_t kidx = k - 1; // kth index
+  auto size = ncol;
+  require(k >= 1  && k <= size,
+  "the given k must be in between 1 to " + std::to_string(size) + "!\n");
+  T work_kptr[size];
+  I work_vptr[size];
+  size_t kidx = k - 1; // kth index
+  size_t stp[PARTITION_SORT_VLEN];
+  size_t endp[PARTITION_SORT_VLEN];
+  size_t lowp[PARTITION_SORT_VLEN];
+  size_t highp[PARTITION_SORT_VLEN];
+#pragma _NEC vreg(stp) 
+#pragma _NEC vreg(endp) 
+#pragma _NEC vreg(lowp) 
+#pragma _NEC vreg(highp) 
 
-    for(size_t i = 0; i < nrow; ++i) {
-      auto kptr = keyptr + i * ncol;    
-      auto vptr = valptr + i * ncol;    
-      size_t st_idx = 0, end_idx = ncol - 1;
-      while(st_idx != end_idx) {
-        auto piv_key = kptr[st_idx];
-        auto piv_val = vptr[st_idx];
-        size_t left_idx = st_idx + 1;
-        size_t right_idx = left_idx + (nchunk * PARTITION_SORT_VLEN) - 1;
-        size_t rem_left_idx = right_idx + 1;
-        size_t rem_right_idx = end_idx;
-        size_t low = st_idx, high = end_idx;
-        RLOG(DEBUG) << st_idx << " "
-                    << end_idx << " "
-                    << left_idx << " "
-                    << right_idx << " "
-                    << rem_left_idx << " "
-                    << rem_right_idx << "\n";
-        if (nchunk > 0) {
-          for(size_t i = 0; i < PARTITION_SORT_VLEN; ++i) {
-            st_ptr[i] = left_idx + (i * nchunk);
-          }
-        }
-
-        comp_t.lap_start();
-        // for data in chunks
-        for(size_t j = 0; j < nchunk; ++j) {
-#pragma _NEC ivdep
-          for(size_t i = 0; i < PARTITION_SORT_VLEN; ++i) {
-            auto loaded_key = kptr[st_ptr[i]];
-            auto loaded_val = vptr[st_ptr[i]];
-            if (loaded_key < piv_key) {
-              work_kptr[low] = loaded_key;
-              work_vptr[low] = loaded_val;
-              low++;
-            }
-            else {
-              work_kptr[high] = loaded_key;
-              work_vptr[high] = loaded_val;
-              high--;
-            }
-          }
-        }
-
-      // for remaining part
-#pragma _NEC ivdep
-        for(size_t i = rem_left_idx; i <= rem_right_idx; ++i) {
-          auto loaded_key = kptr[i];
-          auto loaded_val = vptr[i];
-          if (loaded_key < piv_key) {
-            work_kptr[low] = loaded_key;
-            work_vptr[low] = loaded_val;
-            low++;
-          }
-          else {
-            work_kptr[high] = loaded_key;
-            work_vptr[high] = loaded_val;
-            high--;
-          }
-        }
-        comp_t.lap_stop();
-
-        // low == high, at this point
-        checkAssumption(low == high);
-        work_kptr[low] = piv_key;
-        work_vptr[low] = piv_val;
-
-        copy_t.lap_start();
-        // copy back
-        for(size_t i = st_idx; i <= end_idx; ++i) {
-          kptr[i] = work_kptr[i];
-          vptr[i] = work_vptr[i];
-        }
-        copy_t.lap_stop();
-    
-        // adjustment 
-        if (low > kidx) end_idx = low - 1;
-        else if (low < kidx) st_idx = low + 1;
-        else st_idx = end_idx = kidx; // DONE: equal case
-
-        auto size = end_idx - st_idx + 1;
-        nchunk = (size - 1) / PARTITION_SORT_VLEN; // maybe zero
-      } // end of while
-    }
+  for(size_t i = 0; i < nrow; ++i) {
+    auto kptr = keyptr + i * ncol;    
+    auto vptr = valptr + i * ncol;   
+#include "partition_sort.incl"
   }
 }
 
@@ -576,6 +426,7 @@ void key_val_matrix_partition_sort_by_multiple_row(
   }
 }
 
+// --- TODO: fix -> this version is not stable ---
 template <class T, class I>
 void key_val_matrix_partition_sort_by_multiple_row_loopraked(
                                        T* kptr, I* vptr, 
@@ -752,9 +603,8 @@ void partition_sort(T* kptr, I* vptr,
     }
   }
   else {
-    // current implementation of loopraked version has performance issue...
-    //key_val_matrix_partition_sort_by_each_row_loopraked(
-    key_val_matrix_partition_sort_by_each_row(
+    //key_val_matrix_partition_sort_by_each_row(
+    key_val_matrix_partition_sort_by_each_row_loopraked(
                               kptr, vptr, nrow, ncol, k, comp_t, copy_t);
   }
 }
@@ -774,7 +624,6 @@ void partition_sort(T* kptr, I* vptr,
     copy_t.show_lap("  \\_ copy_back time: ");
   }
 }
-
 
 }
 #endif
