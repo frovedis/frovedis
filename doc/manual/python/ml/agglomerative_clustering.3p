@@ -1,0 +1,612 @@
+.TH "Agglomerative Clustering" "" "" "" ""
+.SH NAME
+.PP
+A most common type of hierarchical clustering used to group objects in
+clusters based on their similarities.
+.SH SYNOPSIS
+.PP
+class frovedis.mllib.cluster.AgglomerativeClustering(n_clusters=2,
+affinity=\[aq]euclidean\[aq],
+.PD 0
+.P
+.PD
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ memory=None,
+connectivity=None,
+.PD 0
+.P
+.PD
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ compute_full_tree=\[aq]auto\[aq],
+linkage=\[aq]average\[aq],
+.PD 0
+.P
+.PD
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ distance_threshold=None,
+compute_distances=False,
+.PD 0
+.P
+.PD
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ verbose=0)
+.SS Public Member Functions
+.PP
+fit(X, y = None)
+.PD 0
+.P
+.PD
+fit_predict(X, y = None)
+.PD 0
+.P
+.PD
+reassign(ncluster = None)
+.PD 0
+.P
+.PD
+score(X, y, sample_weight = None)
+.PD 0
+.P
+.PD
+load(fname, dtype = None)
+.PD 0
+.P
+.PD
+save(fname)
+.PD 0
+.P
+.PD
+debug_print()
+.PD 0
+.P
+.PD
+release()
+.PD 0
+.P
+.PD
+is_fitted()
+.SH DESCRIPTION
+.PP
+Clustering is a Machine Learning technique that involves the grouping of
+data points.
+Hierarchical clustering is a general family of clustering algorithms
+that build nested clusters by merging or splitting them successively.
+.PP
+The Agglomerative Clustering object performs a hierarchical clustering
+using a bottom\-up approach, each observation starts in its own cluster,
+and clusters are successively merged together.
+.PP
+This module provides a client\-server implementation, where the client
+application is a normal python program.
+The frovedis interface is almost same as Scikit\-learn Agglomerative
+Clustering interface, but it doesn\[aq]t have any dependency with
+Scikit\-learn.
+It can be used simply even if the system doesn\[aq]t have Scikit\-learn
+installed.
+Thus, in this implementation, a python client can interact with a
+frovedis server sending the required python data for training at
+frovedis side.
+Python data is converted into frovedis compatible data internally and
+the python ML call is linked with the respective frovedis ML call to get
+the job done at frovedis server.
+.PP
+Python side calls for Agglomerative Clustering on the frovedis server.
+Once the training is completed with the input data at the frovedis
+server, it returns an abstract model with a unique model ID to the
+client python program.
+.PP
+When prediction\-like request would be made on the trained model, python
+program will send the same request to the frovedis server.
+After the request is served at the frovedis server, the output would be
+sent back to the python client.
+.SS Detailed Description
+.SS AgglomerativeClustering()
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[B]\f[I]n_clusters\f[]\f[]: An integer parameter specifying the number
+of clusters.
+The number of clusters should be greater than 0 and less than n_samples.
+(Default: 2)
+.PD 0
+.P
+.PD
+\f[B]\f[I]affinity\f[]\f[]: An unused parameter.
+(Default: \[aq]euclidean\[aq])
+.PD 0
+.P
+.PD
+\f[B]\f[I]memory\f[]\f[]: An unused parameter.
+(Default: None)
+.PD 0
+.P
+.PD
+\f[B]\f[I]connectivity\f[]\f[]: An unused parameter.
+(Default: None)
+.PD 0
+.P
+.PD
+\f[B]\f[I]compute_full_tree\f[]\f[]: An unused parameter.
+(Default: \[aq]auto\[aq])
+.PD 0
+.P
+.PD
+\f[B]\f[I]linkage\f[]\f[]: A string parameter used to specify linkage
+criterion.
+It determines which distance to use between sets of observation.
+The algorithm will merge the pairs of clusters that minimize this
+criterion.
+Only \[aq]average\[aq], \[aq]complete\[aq] and \[aq]single\[aq] are
+supported.
+(Default: \[aq]average\[aq])
+.PD 0
+.P
+.PD
+\f[B]\f[I]distance_threshold\f[]\f[]: A float or double(float64) type
+parameter, is the linkage distance threshold above which the clusters
+will not be merged.
+It must be zero or positive value.
+(Default: None)
+.PD 0
+.P
+.PD
+When it is None (not specified explicitly), it will be set as 0.0.
+.PD 0
+.P
+.PD
+\f[B]\f[I]compute_distances\f[]\f[]: An unused parameter.
+(Default: False)
+.PD 0
+.P
+.PD
+\f[B]\f[I]verbose\f[]\f[]: An integer parameter specifying the log level
+to use.
+Its value is 0 by default (for INFO mode and not specified explicitly).
+But it can be set to 1 (for DEBUG mode) or 2 (for TRACE mode) for
+getting training time logs from frovedis server.
+.PP
+\f[B]Attributes\f[]
+.PD 0
+.P
+.PD
+\f[B]\f[I]n_clusters_\f[]\f[]: A positive integer value specifying the
+number of clusters found by the algorithm.
+.PD 0
+.P
+.PD
+\f[B]\f[I]labels_\f[]\f[]: A python ndarray of int64 values and has
+shape (n_clusters,).
+It contains cluster labels for each point.
+.PD 0
+.P
+.PD
+\f[B]\f[I]children_\f[]\f[]: A python ndarray of int64 values and has
+shape (n_samples \- 1, 2).
+It contains the children of each non\-leaf node.
+.PD 0
+.P
+.PD
+\f[B]\f[I]distances_\f[]\f[]: A python ndarray of float or
+double(float64) values and has shape (n_samples \- 1,).
+It is the distances between nodes in the corresponding place in
+"children_".
+.PD 0
+.P
+.PD
+\f[B]\f[I]n_connected_components_\f[]\f[]: An integer value used to
+provide the estimated number of connected components in the graph.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It initializes an Agglomerative Clustering object with the given
+parameters.
+.PP
+The parameters: "affinity", "memory", "connectivity",
+"compute_full_tree" and "compute_distances" are simply kept in to to
+make the interface uniform to the Scikit\-learn Agglomerative Clustering
+module.
+They are not used anywhere within frovedis implementation.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It simply returns "self" reference.
+.SS fit(X, y = None)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[B]\f[I]X\f[]\f[]: A numpy dense or scipy sparse matrix or any python
+array\-like object or an instance of FrovedisCRSMatrix for sparse data
+and FrovedisRowmajorMatrix for dense data.
+.PD 0
+.P
+.PD
+\f[B]\f[I]y\f[]\f[]: None or any python array\-like object (any shape).
+It is simply ignored in frovedis implementation and in Scikit\-learn as
+well.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It clusters the given data points (X) into a predefined number of
+clusters.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ loading\ sample\ matrix\ data
+mat\ =\ np.loadtxt("./input/sample_data.txt")
+
+#\ fitting\ input\ matrix\ on\ Agglomerative\ Clustering\ object
+from\ frovedis.mllib.cluster\ import\ AgglomerativeClustering
+acm\ =\ AgglomerativeClustering(n_clusters\ =\ 2).fit(mat)\ \ 
+\f[]
+.fi
+.PP
+When native python data is provided, it is converted to frovedis\-like
+inputs and sent to frovedis server which consumes some data transfer
+time.
+Pre\-constructed frovedlis\-like inputs can be used to speed up the
+training time, especially when same data would be used for multiple
+executions.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ loading\ sample\ matrix\ data
+mat\ =\ np.loadtxt("./input/sample_data.txt")
+
+#\ Since\ "mat"\ is\ numpy\ dense\ data,\ we\ have\ created\ FrovedisRowmajorMatrix.\ 
+#\ For\ scipy\ sparse\ data,\ FrovedisCRSMatrix\ should\ be\ used\ instead.
+from\ frovedis.matrix.dense\ import\ FrovedisRowmajorMatrix
+rmat\ =\ FrovedisRowmajorMatrix(mat)
+
+#\ Agglomerative\ Clustering\ with\ pre\-constructed\ frovedlis\-like\ inputs
+from\ frovedis.mllib.cluster\ import\ AgglomerativeClustering
+acm\ =\ AgglomerativeClustering(n_clusters\ =\ 2).fit(rmat)
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It simply returns "self" reference.
+.SS fit_predict(X, y = None)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[B]\f[I]X\f[]\f[]: A numpy dense or scipy sparse matrix or any python
+array\-like object or an instance of FrovedisCRSMatrix for sparse data
+and FrovedisRowmajorMatrix for dense data.
+.PD 0
+.P
+.PD
+\f[B]\f[I]y\f[]\f[]: None or any python array\-like object (any shape).
+It is simply ignored in frovedis implementation and in Scikit\-learn as
+well.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It clusters the given data points (X) into a predefined number of
+clusters.
+In addition to fitting, it returns the cluster labels for each sample in
+the training set.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ loading\ sample\ matrix\ data
+mat\ =\ np.loadtxt("./input/sample_data.txt")
+
+#\ fitting\ input\ matrix\ on\ Agglomerative\ Clustering\ object
+from\ frovedis.mllib.cluster\ import\ AgglomerativeClustering
+acm\ =\ AgglomerativeClustering(n_clusters\ =\ 2)
+print(acm.fit_predict(mat))\ 
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+[1\ 1\ 0\ 0\ 0]
+\f[]
+.fi
+.PP
+When native python data is provided, it is converted to frovedis\-like
+inputs and sent to frovedis server which consumes some data transfer
+time.
+Pre\-constructed frovedlis\-like inputs can be used to speed up the
+training time, specially when same data would be used for multiple
+executions.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ loading\ sample\ matrix\ data
+mat\ =\ np.loadtxt("./input/sample_data.txt")
+
+#\ Since\ "mat"\ is\ numpy\ dense\ data,\ we\ have\ created\ FrovedisRowmajorMatrix.\ 
+#\ For\ scipy\ sparse\ data,\ FrovedisCRSMatrix\ should\ be\ used\ instead.
+from\ frovedis.matrix.dense\ import\ FrovedisRowmajorMatrix
+rmat\ =\ FrovedisRowmajorMatrix(mat)
+
+#\ using\ pre\-constructed\ input\ matrix
+from\ frovedis.mllib.cluster\ import\ AgglomerativeClustering
+acm\ =\ AgglomerativeClustering(n_clusters\ =\ 2)
+print(acm.fit_predict(rmat))
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+[1\ 1\ 0\ 0\ 0]
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns a numpy array of int64 type containing the cluster labels.
+It has a shape(n_samples,).
+.SS reassign(ncluster = None)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[B]\f[I]nclusters\f[]\f[]: An integer parameter specifying the number
+of clusters.
+The number of clusters should be greater than 0 and less than n_samples.
+(Default: None)
+.PD 0
+.P
+.PD
+When it is None (not specified explicitly), it simply returns the same
+cluster labels of already fitted clustering model (using above ncluster
+= 2).
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It accepts the number of clusters (nclusters) in order to make
+prediction with different "nclusters" on same model at frovedis server.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ On\ the\ same\ Agglomerative\ Clustering\ object,\ predicting\ labels\ with\ new\ nclusters
+print(acm.reassign(nclusters\ =\ 3))
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+[0\ 0\ 1\ 1\ 2]\ \ 
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns a numpy array of int64 type containing the cluster labels.
+It has a shape(n_samples,).
+.SS score(X, y, sample_weight = None)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[B]\f[I]X\f[]\f[]: A numpy dense or scipy sparse matrix or any python
+array\-like object or an instance of FrovedisCRSMatrix for sparse data
+and FrovedisRowmajorMatrix for dense data.
+.PD 0
+.P
+.PD
+\f[B]\f[I]y\f[]\f[]: A python ndarray and has shape (n_samples,1).
+.PD 0
+.P
+.PD
+\f[B]\f[I]sample_weight\f[]\f[]: An unused parameter whose default value
+is None.
+It is simply ignored in frovedis implementation.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It uses scikit\-learn homogeneity score on given test data and labels
+i.e homogeneity score of self.predict(X, y) wrt.
+y.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+acm.score(train_mat,\ [1,\ 0,\ 0,\ 0,\ 2])\ \ 
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+1.0\ \ 
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns a homogeneity score of float type.
+.SS load(fname, dtype = None)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[B]\f[I]fname\f[]\f[]: A string object containing the name of the file
+having model information to be loaded.
+.PD 0
+.P
+.PD
+\f[B]\f[I]dtype\f[]\f[]: A data\-type is inferred from the input data.
+Currently, expected input data\-type is either float or double(float64).
+(Default: None)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It loads an agglomerative cluster model stored previously from the
+specified file (having little\-endian binary data).
+.PP
+For example,
+.IP
+.nf
+\f[C]
+acm.load("./out/MyAcmClusteringModel",\ dtype\ =\ np.float64)
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It simply returns "self" instance.
+.SS save(fname)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[B]\f[I]fname\f[]\f[]: A string object containing the name of the file
+on which the target model is to be saved.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+On success, it writes the model information (after\-fit populated
+attributes) in the specified file as little\-endian binary data.
+Otherwise, it throws an exception.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ To\ save\ the\ agglomerative\ clustering\ model
+acm.save("./out/MyAcmClusteringModel")\ \ 
+\f[]
+.fi
+.PP
+This will save the agglomerative clustering model on the path
+"/out/MyAcmClusteringModel".
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns nothing.
+.SS debug_print()
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It shows the target model information(dendogram) on the server side user
+terminal.
+It is mainly used for debugging purpose.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+acm.debug_print()\ 
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+dendrogram:
+node\ =\ 0,\ local_num_row\ =\ 4,\ local_num_col\ =\ 4,\ val\ =\ 2\ 3\ 0.173205\ 2\ 0\ 1\ 0.173205\ 2\ 4\ 5\ \ 
+0.259808\ 3\ 6\ 7\ 15.5019\ 5
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns nothing.
+.SS release()
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It can be used to release the in\-memory model at frovedis server.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+acm.release()
+\f[]
+.fi
+.PP
+This will reset the after\-fit populated attributes to None, along with
+releasing server side memory.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns nothing.
+.SS is_fitted()
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It can be used to confirm if the model is already fitted or not.
+In case, reassign() is used before training the model, then it can
+prompt the user to train the clustering model first.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns ‘True', if the model is already fitted otherwise, it returns
+‘False'.
+.SH SEE ALSO
+.PP
+rowmajor_matrix, crs_matrix
