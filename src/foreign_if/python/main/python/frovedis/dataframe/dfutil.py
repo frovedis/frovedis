@@ -201,29 +201,46 @@ def check_string_or_array_like(by, func):
                         "received: %s" % (type(by).__name__))
     return ret_by
 
-def check_stat_error(axis, skipna, level):
+
+
+def check_stat_error(**kwargs):
     """ 
     checks the given parameters for the statistical functions
-    like sum, mean, var etc. 
+    like sum, mean, var , ddof etc.
+    Returns list containing(if present in input kwargs : axis, skipna, ddof
     """
-    if level is not None:
-        raise ValueError("'level' parameter is not cutrrently supported!\n")
+    ret = []
+    if "level_" in kwargs.keys():
+        level_ = kwargs["level_"]
+        if level_ is not None:
+            raise ValueError("'level' parameter is not cutrrently supported!\n")
+    
+    if "axis_" in kwargs.keys():
+        axis_ = kwargs["axis_"]
+        if axis_ not in [None, 0, 1, "index", "columns"]:
+            raise ValueError("No axis named '%s' for DataFrame object" % str(axis_))
+        if axis_ is None or axis_ == "index":
+            ret.append(0)
+        elif axis_ == "columns":
+            ret.append(1)
+        else:
+            ret.append(axis_)
 
-    if axis not in [None, 0, 1, "index", "columns"]:
-        raise ValueError("No axis named '%s' for DataFrame object" % str(axis))
-    if axis is None or axis == "index":
-        axis_ = 0
-    elif axis == "columns":
-        axis_ = 1
-    else:
-        axis_ = axis
+    if "skipna_" in kwargs.keys():
+        skipna_ = kwargs["skipna_"]
+        if skipna_ not in [None, True, False]:
+            raise ValueError(\
+            "skipna='%s' is not supported currently!\n" % str(skipna_))
+        if skipna_ is None:
+            ret.append(True)
+        else:
+            ret.append(skipna_)
 
-    if skipna not in [None, True, False]:
-        raise ValueError(\
-        "skipna='%s' is not supported currently!\n" % str(skipna))
-    if skipna is None:
-        skipna_ = True
-    else:
-        skipna_ = skipna
+    if "ddof_" in kwargs.keys():
+        ddof_ = kwargs["ddof_"]
+        if not isinstance(ddof_, int) and not isinstance(ddof_, float):
+            raise ValueError(\
+                  "ddof='%s' is not supported currently!\n" % str(ddof_))
+        ret.append(ddof_)
+    return ret
 
-    return axis_, skipna_

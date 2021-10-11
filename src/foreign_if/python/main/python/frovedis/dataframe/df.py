@@ -1150,6 +1150,9 @@ class DataFrame(object):
         elif name == 'std':
             ret = rpclib.get_std_frovedis_dataframe(host, port, self.get(),
                                                     cols_ptr, sz)
+        elif name == 'sem':
+            ret = rpclib.get_sem_frovedis_dataframe(host, port, self.get(),
+                                                    cols_ptr, sz)
         elif name == 'avg' or name == 'mean':
             ret = rpclib.get_avg_frovedis_dataframe(host, port, self.get(),
                                                     cols_ptr, sz)
@@ -1159,6 +1162,9 @@ class DataFrame(object):
         elif name == 'var':
             ret = rpclib.get_var_frovedis_dataframe(host, port, self.get(),
                                                     cols_ptr, sz)
+        elif name == 'median':
+            ret = rpclib.get_median_frovedis_dataframe(host, port, self.get(),
+                                                       cols_ptr, tptr, sz)
         else:
             raise ValueError("Unknown statistics request is encountered!")
         excpt = rpclib.check_server_exception()
@@ -1213,7 +1219,7 @@ class DataFrame(object):
         describe
         """
         cols, types = self.__get_numeric_columns(include_bool=False)
-        index = ['count', 'mean', 'var', 'std', 'sum', 'min', 'max']
+        index = ['count', 'mean', 'median', 'var', 'std', 'sem', 'sum', 'min', 'max']
         return self.__agg_impl(cols, index)
 
     def __agg_impl(self, cols, index):
@@ -1230,8 +1236,8 @@ class DataFrame(object):
         has_max = 'max' in ret.index
         has_min = 'min' in ret.index
         # agg func list has std, avg/mean, then dtype = float64
-        if ("mean" in index) or ("avg" in index) or ("std" in index) \
-           or ("var" in index):
+        if (len(set(index).intersection(set(['mean', 'avg', 'std',  \
+                                            'var', 'median', 'sem']))) > 0):
             rtypes = [np.float64] * ncols
         else:
             rtypes = [np.int32 if x == DTYPE.BOOL \
@@ -2998,7 +3004,8 @@ class DataFrame(object):
         """
         returns the mean of the values over the requested axis.
         """
-        axis_, skipna_ = check_stat_error(axis, skipna, level)
+        axis_, skipna_ = check_stat_error(axis_=axis, skipna_=skipna, \
+                                                 level_=level)
         cols, types = self.__get_numeric_columns()
 
         ncol = len(cols)
@@ -3025,7 +3032,9 @@ class DataFrame(object):
         """
         returns the variance of the values over the requested axis.
         """
-        axis_, skipna_ = check_stat_error(axis, skipna, level)
+        axis_, skipna_, ddof_ = check_stat_error(axis_=axis, skipna_=skipna, \
+                                                 level_=level, ddof_=ddof)
+
         cols, types = self.__get_numeric_columns()
 
         ncol = len(cols)
@@ -3033,7 +3042,7 @@ class DataFrame(object):
         (host, port) = FrovedisServer.getServerInstance()
         dummy_df = rpclib.df_var(host, port, self.get(), \
                                   cols_arr, ncol, \
-                                  axis_, skipna_, self.has_index())
+                                  axis_, skipna_, ddof_, self.has_index())
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
             raise RuntimeError(excpt["info"])
@@ -3052,7 +3061,8 @@ class DataFrame(object):
         """
         returns the standard deviatioon of the values over the requested axis.
         """
-        axis_, skipna_ = check_stat_error(axis, skipna, level)
+        axis_, skipna_, ddof_ = check_stat_error(axis_=axis, skipna_=skipna, \
+                                                 level_=level, ddof_=ddof)
         cols, types = self.__get_numeric_columns()
 
         ncol = len(cols)
@@ -3060,7 +3070,7 @@ class DataFrame(object):
         (host, port) = FrovedisServer.getServerInstance()
         dummy_df = rpclib.df_std(host, port, self.get(), \
                                   cols_arr, ncol, \
-                                  axis_, skipna_, self.has_index())
+                                  axis_, skipna_, ddof_, self.has_index())
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
             raise RuntimeError(excpt["info"])
@@ -3073,6 +3083,64 @@ class DataFrame(object):
         ret.load_dummy(dummy_df["dfptr"], names[1:], types[1:])
         return ret
             
+    @check_association
+    def sem(self, axis=None, skipna=None, level=None, ddof=1,
+             numeric_only=None, **kwargs):
+        """
+        returns the standard error of mean of the values over the requested axis.
+        """
+        axis_, skipna_, ddof_ = check_stat_error(axis_=axis, skipna_=skipna, \
+                                                 level_=level, ddof_=ddof)
+        cols, types = self.__get_numeric_columns()
+
+        ncol = len(cols)
+        cols_arr = get_string_array_pointer(cols)
+        (host, port) = FrovedisServer.getServerInstance()
+        dummy_df = rpclib.df_sem(host, port, self.get(), \
+                                  cols_arr, ncol, \
+                                  axis_, skipna_, ddof_, self.has_index())
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
+        # returns a series
+        ret = DataFrame(is_series=True)
+        names = dummy_df["names"]
+        types = dummy_df["types"]
+        ret.num_row = dummy_df["nrow"]
+        ret.index = FrovedisColumn(names[0], types[0]) #setting index
+        ret.load_dummy(dummy_df["dfptr"], names[1:], types[1:])
+        return ret
+            
+    @check_association
+    def median(self, axis=None, skipna=None, level=None,
+             numeric_only=None, **kwargs):
+        """
+        returns the median of the values over the requested axis.
+        """
+        axis_, skipna_ = check_stat_error(axis_=axis, skipna_=skipna, \
+                                                 level_=level)
+        cols, types = self.__get_numeric_columns()
+
+        ncol = len(cols)
+        cols_arr = get_string_array_pointer(cols)
+        type_arr = np.asarray(types, dtype=c_short)
+        tptr = type_arr.ctypes.data_as(POINTER(c_short))
+        (host, port) = FrovedisServer.getServerInstance()
+        dummy_df = rpclib.df_median(host, port, self.get(), \
+                                    cols_arr, tptr, ncol, \
+                                    axis_, skipna_, self.has_index())
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
+        # returns a series
+        ret = DataFrame(is_series=True)
+        names = dummy_df["names"]
+        types = dummy_df["types"]
+        ret.num_row = dummy_df["nrow"]
+        ret.index = FrovedisColumn(names[0], types[0]) #setting index
+        ret.load_dummy(dummy_df["dfptr"], names[1:], types[1:])
+        return ret
+
     def __setattr__(self, key, value):
         """ sets the specified attribute """
         if key in self.__dict__: # instance attribute

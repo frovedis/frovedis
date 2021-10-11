@@ -152,18 +152,32 @@ class FrovedisGroupedDataframe(object):
     def count(self, numeric_only=True):
         return self.agg("count")    
 
+    def size(self, numeric_only=True):
+        return self.agg("size")
+
     def __agg_with_list(self, func):
         """
         __agg_with_list
         """
         num_cols = self.__get_numeric_columns()
         args = {}
-        for col in num_cols:
-            args[col] = func
-        if 'count' in func:
-            n_num_cols = self.__get_non_numeric_columns()
-            for col in n_num_cols:
-                args[col] = ['count']
+        funcs = []
+        if len(func) == 1 and "size" in func:
+            if len(self.__cols) > 0:
+                args[self.__cols[0]] = ["size"]
+            else:
+                raise TypeError("Column not provided to GroupBy.")
+        else:
+            for col in num_cols:
+                args[col] = func
+            if 'count' in func:
+                funcs.append("count")
+            if 'size' in func:
+                funcs.append("size")
+            if len(funcs) > 0:
+                n_num_cols = self.__get_non_numeric_columns()
+                for col in n_num_cols:
+                    args[col] = funcs
         return self.__agg_with_dict(args)
 
     def __agg_with_dict(self, func):
@@ -188,14 +202,14 @@ class FrovedisGroupedDataframe(object):
                 aggfuncs = params
             if isinstance(aggfuncs, dict):
                 for new_col, f in aggfuncs.items():
-                    if tid == DTYPE.STRING and f != 'count':
+                    if tid == DTYPE.STRING and f != 'count' and f != 'size':
                         raise ValueError("Currently Frovedis doesn't support"
                                          " aggregator %s to be applied on"
                                          " string-typed column %s" %(f, col))
                     agg_func.append(f)
                     agg_col.append(col)
                     agg_col_as.append(new_col)
-                    if f == 'count':
+                    if f == 'count' or f == 'size':
                         col_as_tid = DTYPE.ULONG
                     elif f == 'mean':
                         col_as_tid = DTYPE.DOUBLE
