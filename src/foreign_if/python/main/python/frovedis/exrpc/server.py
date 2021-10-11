@@ -149,6 +149,13 @@ class FrovedisServer(object):
             else:  # query made for some specific server
                 return server_id == FrovedisServer.getID()
 
+    @classmethod
+    def reset(cls):
+        """ 
+        resets server instance -> should be called only when it is 
+        guaranteed that the server is already terminated.
+        """
+        FrovedisServer.__instance = None
 
 def check_server_state(server_id, inst_class_name):
     if not FrovedisServer.isUP(server_id):
@@ -190,8 +197,10 @@ def do_if_active_association(func):
 
 def clean_dump(sig, frame):
     import os
+    import sys
     import glob
     import shutil
+    print("caught signal %d" % sig)
     if "FROVEDIS_TMPDIR" in os.environ:
         tmpdir = os.environ["FROVEDIS_TMPDIR"] + "/frovedis_w2v_dump_*"
     else:
@@ -200,6 +209,8 @@ def clean_dump(sig, frame):
     for each in w2v_dump:
         #print("removing dump: " + each)
         shutil.rmtree(each)
+    FrovedisServer.reset() # safe, since signal handler has alreday terminated the server process
+    sys.exit(sig)
 
 # ensuring Frovedis Server will definitely be shut-down on termination of
 # a python program which will import this module.
