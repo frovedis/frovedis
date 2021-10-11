@@ -23,7 +23,7 @@ def to_scipy_sparse_matrix(nx_graph, format='csr'):
     '''
 
     #stime = time.time()
-    edges = [i.keys() for i in nx_graph.adj.values()]
+    edges = [list(i.keys()) for i in nx_graph.adj.values()]
     #print("edges: {0}".format(time.time() - stime) + " [sec]")
 
     #stime = time.time()
@@ -98,7 +98,8 @@ class Graph(object):
         #import time
         #t1 = time.time()
         #TODO: use reimplemented version after result correctness
-        nx_smat = nx.to_scipy_sparse_matrix(nx_graph, format='csr')
+        order = sorted(list(nx_graph.nodes()))
+        nx_smat = nx.to_scipy_sparse_matrix(nx_graph, format='csr', nodelist=order)
         #print("Graph.py -> nx.to_scipy_sparse_matrix: ", time.time() - t1)
         # by default, edge data is loaded as float64
         # and node data is loaded as int64
