@@ -226,6 +226,94 @@ void matrix_sort_by_cols(rowmajor_matrix<T>& val_mat,
 }
 
 template <class T>
+std::vector<double>
+matrix_median_by_rows(rowmajor_matrix_local<T>& mat,
+                      std::vector<size_t>& last_skip_count,
+                      bool skip_na,
+                      bool sort_inplace = false) { // whether to sort matrix inplace
+  T* matp = NULL;
+  rowmajor_matrix_local<T> copy_mat;
+  if (sort_inplace) {
+    matrix_sort_by_rows(mat);
+    matp = mat.val.data();
+  } else {
+    copy_mat = mat;
+    matrix_sort_by_rows(copy_mat);
+    matp = copy_mat.val.data();
+  }
+  auto nrow = mat.local_num_row;
+  auto ncol = mat.local_num_col;
+  std::vector<double> ret(nrow);
+  auto retp = ret.data();
+  auto last_skip_countp = last_skip_count.data();
+  auto tmax = std::numeric_limits<double>::max();
+
+  if (skip_na) {
+    for (size_t i =0; i < nrow; ++i) {
+      if (ncol == last_skip_countp[i]) retp[i] = tmax;
+      else {
+        auto mid = (ncol - last_skip_countp[i]) / 2;
+        if ((ncol - last_skip_countp[i]) % 2 == 0) {
+          auto x = matp[i * ncol + mid];
+          auto y = matp[i * ncol + (mid - 1)];
+          retp[i] = (x + y) * 0.5;
+        } else retp[i] = static_cast<double>(matp[i * ncol + mid]);
+      }
+    }
+  }
+  else {
+    for (size_t i =0; i < nrow; ++i) {
+      if (last_skip_countp[i] > 0) retp[i] = tmax;
+      else {
+        auto mid = ncol / 2;
+        if (ncol % 2 == 0) {
+          auto x = matp[i * ncol + mid];
+          auto y = matp[i * ncol + (mid - 1)];
+          retp[i] = (x + y) * 0.5;
+        } else retp[i] = static_cast<double>(matp[i * ncol + mid]);
+      }
+    }
+  }
+  return ret;
+}
+
+template <class T>
+std::vector<double>
+matrix_median_by_rows(rowmajor_matrix_local<T>& mat,
+                      std::vector<size_t>& last_skip_count,
+                      bool sort_inplace = false) { // whether to sort matrix inplace
+  T* matp = NULL;
+  rowmajor_matrix_local<T> copy_mat;
+  if (sort_inplace) {
+    matrix_sort_by_rows(mat);
+    matp = mat.val.data();
+  } else {
+    copy_mat = mat;
+    matrix_sort_by_rows(copy_mat);
+    matp = copy_mat.val.data();
+  }
+  auto nrow = mat.local_num_row;
+  auto ncol = mat.local_num_col;
+  std::vector<double> ret(nrow);
+  auto retp = ret.data();
+  auto last_skip_countp = last_skip_count.data();
+  auto tmax = std::numeric_limits<double>::max();
+
+  for (size_t i =0; i < nrow; ++i) {
+    if (ncol == last_skip_countp[i]) retp[i] = tmax;
+    else {
+      auto mid = (ncol - last_skip_countp[i]) / 2;
+      if ((ncol - last_skip_countp[i]) % 2 == 0) {
+        auto x = matp[i * ncol + mid];
+        auto y = matp[i * ncol + (mid - 1)];
+        retp[i] = (x + y) * 0.5;
+      } else retp[i] = static_cast<double>(matp[i * ncol + mid]);
+    }
+  }
+  return ret;
+}
+
+template <class T>
 std::vector<double> 
 matrix_median_by_rows(rowmajor_matrix_local<T>& mat, 
                       bool sort_inplace = false) { // whether to sort matrix inplace
@@ -266,6 +354,37 @@ matrix_median_by_rows(rowmajor_matrix<T>& mat,
                           bool sort_inplace) {
     return matrix_median_by_rows(lmat, sort_inplace);
   }, broadcast(sort_inplace)).template moveto_dvector<double>().gather();
+}
+
+//specific usecase - when dvector distribution matches with rmm distribution
+template <class T>
+std::vector<double>
+matrix_median_by_rows(rowmajor_matrix<T>& mat,
+                      dvector<size_t>& last_skip_count_dv,
+                      bool skip_na,
+                      bool sort_inplace = false) { // whether to sort matrix inplace
+  return mat.data.map(+[](rowmajor_matrix_local<T>& lmat, 
+                          std::vector<size_t>& last_skip_count,
+                          bool skip_na,
+                          bool sort_inplace) {
+    return matrix_median_by_rows(lmat, last_skip_count, skip_na, sort_inplace);
+    }, last_skip_count_dv.viewas_node_local(), broadcast(skip_na),
+    broadcast(sort_inplace)).template moveto_dvector<double>().gather();
+}
+
+template <class T>
+std::vector<double>
+matrix_median_by_rows(rowmajor_matrix<T>& mat,
+                      std::vector<size_t>& last_skip_count,
+                      bool sort_inplace = false) { // whether to sort matrix inplace
+  auto last_skip_count_dv = make_dvector_scatter(last_skip_count);
+  last_skip_count_dv.align_as(mat.get_local_num_rows());
+  return mat.data.map(+[](rowmajor_matrix_local<T>& lmat, 
+                          std::vector<size_t>& last_skip_count,
+                          bool sort_inplace) {
+    return matrix_median_by_rows(lmat, last_skip_count, sort_inplace);
+    }, last_skip_count_dv.viewas_node_local(), 
+    broadcast(sort_inplace)).template moveto_dvector<double>().gather();
 }
 
 template <class T>
