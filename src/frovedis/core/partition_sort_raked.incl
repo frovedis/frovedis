@@ -4,10 +4,10 @@
   while(st_idx != end_idx) {
     auto cur_size = (end_idx - st_idx + 1);
     if (cur_size < PARTITION_SORT_VLEN * PARTITION_SORT_MIN_EACH_LEN) {
-      key_val_vector_partition_sort(kptr + st_idx,
-                                    vptr + st_idx,
-                                    cur_size, k - st_idx,
-                                    comp_t, copy_t);
+      partition_sort_normal(kptr + st_idx,
+                            vptr + st_idx,
+                            cur_size, k - st_idx,
+                            comp_t, copy_t);
       break;
     }
 
