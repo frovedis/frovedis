@@ -3,6 +3,7 @@
 
 #include <frovedis/dataframe.hpp>
 #include <frovedis/dataframe/dfcolumn_impl.hpp>
+#include <frovedis/matrix/matrix_sort.hpp>
 #include <frovedis/dataframe/dfaggregator.hpp>
 #include "../exrpc/exrpc_expose.hpp"
 #include "model_tracker.hpp" // for OPTYPE, model_table to register sparse_conv_info
@@ -193,8 +194,15 @@ std::vector<std::string> frovedis_df_avg(exrpc_ptr_t& df_proxy,
 std::vector<std::string> frovedis_df_std(exrpc_ptr_t& df_proxy,
                                          std::vector<std::string>& cols);
 
+std::vector<std::string> frovedis_df_sem(exrpc_ptr_t& df_proxy,
+                                         std::vector<std::string>& cols);
+
 std::vector<std::string> frovedis_df_var(exrpc_ptr_t& df_proxy,
                                          std::vector<std::string>& cols);
+
+std::vector<std::string> frovedis_df_median(exrpc_ptr_t& df_proxy,
+                                            std::vector<std::string>& cols,
+                                            std::vector<short>& types);
 
 std::vector<std::string> frovedis_df_cnt(exrpc_ptr_t& df_proxy,
                                          std::vector<std::string>& cols);
@@ -457,9 +465,16 @@ dummy_dftable frov_df_mean(exrpc_ptr_t& df_proxy,
 
 dummy_dftable frov_df_var(exrpc_ptr_t& df_proxy, 
                            std::vector<std::string>& cols,
-                           int& axis, bool& skip_na, bool& with_index);
+                           int& axis, bool& skip_na, double& ddof, bool& with_index);
 
 dummy_dftable frov_df_std(exrpc_ptr_t& df_proxy, 
                            std::vector<std::string>& cols,
+                           int& axis, bool& skip_na, double& ddof, bool& with_index);
+dummy_dftable frov_df_sem(exrpc_ptr_t& df_proxy, 
+                          std::vector<std::string>& cols,
+                          int& axis, bool& skip_na, double& ddof, bool& with_index);
+dummy_dftable frov_df_median(exrpc_ptr_t& df_proxy, 
+                           std::vector<std::string>& cols,
+                           std::vector<short>& types,
                            int& axis, bool& skip_na, bool& with_index);
 #endif
