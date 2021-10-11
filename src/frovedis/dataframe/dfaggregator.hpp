@@ -49,6 +49,19 @@ struct dfaggregator_count : public dfaggregator {
             node_local<size_t>& row_sizes);
 };
 
+struct dfaggregator_size : public dfaggregator {
+  dfaggregator_size(const std::string& col, const std::string& as) :
+    dfaggregator(col,as) {}
+  dfaggregator_size(const std::string& col) : dfaggregator(col) {}
+  virtual std::shared_ptr<dfcolumn>
+  aggregate(dftable_base& table,
+            node_local<std::vector<size_t>>& local_grouped_idx,
+            node_local<std::vector<size_t>>& local_idx_split,
+            node_local<std::vector<std::vector<size_t>>>& hash_divide,
+            node_local<std::vector<std::vector<size_t>>>& merge_map,
+            node_local<size_t>& row_sizes);
+};
+
 struct dfaggregator_avg : public dfaggregator {
   dfaggregator_avg(const std::string& col, const std::string& as) :
     dfaggregator(col,as) {}
@@ -99,6 +112,12 @@ count(const std::string& col);
 
 std::shared_ptr<dfaggregator>
 count_as(const std::string& col, const std::string& as);
+
+std::shared_ptr<dfaggregator>
+size(const std::string& col);
+
+std::shared_ptr<dfaggregator>
+size_as(const std::string& col, const std::string& as);
 
 std::shared_ptr<dfaggregator>
 avg(const std::string& col);

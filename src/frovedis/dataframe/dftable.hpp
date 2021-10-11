@@ -70,7 +70,11 @@ public:
   template <class T> T sum(const std::string& name);
   double avg(const std::string& name);
   double std(const std::string& name);
+  double std(const std::string& name, double ddof);
+  double sem(const std::string& name);
+  double sem(const std::string& name, double ddof);
   double var(const std::string& name);
+  double var(const std::string& name, double ddof);
   template <class T> T max(const std::string& name);
   template <class T> T min(const std::string& name);
   template <class T> T at(const std::string& name, size_t i);

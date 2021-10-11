@@ -30,6 +30,19 @@ aggregate(dftable_base& table,
 }
 
 std::shared_ptr<dfcolumn> 
+dfaggregator_size::
+aggregate(dftable_base& table,
+          node_local<std::vector<size_t>>& local_grouped_idx,
+          node_local<std::vector<size_t>>& local_idx_split,
+          node_local<std::vector<std::vector<size_t>>>& hash_divide,
+          node_local<std::vector<std::vector<size_t>>>& merge_map,
+          node_local<size_t>& row_sizes) {
+  auto colp = table.raw_column(col);
+  return colp->size(local_grouped_idx, local_idx_split, hash_divide,
+                     merge_map, row_sizes);
+}
+
+std::shared_ptr<dfcolumn> 
 dfaggregator_avg::
 aggregate(dftable_base& table,
           node_local<std::vector<size_t>>& local_grouped_idx,
@@ -84,6 +97,15 @@ std::shared_ptr<dfaggregator> count(const std::string& col) {
 std::shared_ptr<dfaggregator> count_as(const std::string& col,
                                        const std::string& as) {
   return std::make_shared<dfaggregator_count>(col,as);
+}
+
+std::shared_ptr<dfaggregator> size(const std::string& col) {
+  return std::make_shared<dfaggregator_size>(col);
+}
+
+std::shared_ptr<dfaggregator> size_as(const std::string& col,
+                                       const std::string& as) {
+  return std::make_shared<dfaggregator_size>(col,as);
 }
 
 std::shared_ptr<dfaggregator> avg(const std::string& col) {

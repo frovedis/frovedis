@@ -2660,38 +2660,42 @@ typed_dfcolumn<T>::sum
 
 template <class T>
 std::vector<std::vector<size_t>>
+size_helper(std::vector<size_t>& idx_split,
+            std::vector<std::vector<size_t>>& hash_divide) {
+  size_t splitsize = idx_split.size();
+  std::vector<size_t> ret(splitsize-1);
+  size_t* idx_splitp = &idx_split[0];
+  size_t* retp = &ret[0];
+  for(size_t i = 0; i < splitsize-1; i++) {
+    retp[i] = idx_splitp[i+1] - idx_splitp[i];
+  }
+  auto nodesize = hash_divide.size();
+  std::vector<std::vector<size_t>> hashed_ret(nodesize);
+  for(size_t i = 0; i < nodesize; i++) {
+    auto each_size = hash_divide[i].size();
+    hashed_ret[i].resize(each_size);
+    auto hash_dividep = hash_divide[i].data();
+    auto hashed_retp = hashed_ret[i].data();
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+    for(size_t j = 0; j < each_size; j++) {
+      hashed_retp[j] = retp[hash_dividep[j]];
+    }
+  }
+  return hashed_ret;
+}
+
+template <class T>
+std::vector<std::vector<size_t>>
 count_helper(std::vector<T>& val,
              std::vector<size_t>& grouped_idx,
              std::vector<size_t>& idx_split,
              std::vector<std::vector<size_t>>& hash_divide,
              std::vector<size_t>& nulls) {
-  size_t nullssize = nulls.size();
-  if(nullssize == 0) {
-    size_t splitsize = idx_split.size();
-    std::vector<size_t> ret(splitsize-1);
-    size_t* idx_splitp = &idx_split[0];
-    size_t* retp = &ret[0];
-    for(size_t i = 0; i < splitsize-1; i++) {
-      retp[i] = idx_splitp[i+1] - idx_splitp[i];
-    }
-    auto nodesize = hash_divide.size();
-    std::vector<std::vector<size_t>> hashed_ret(nodesize);
-    for(size_t i = 0; i < nodesize; i++) {
-      auto each_size = hash_divide[i].size();
-      hashed_ret[i].resize(each_size);
-      auto hash_dividep = hash_divide[i].data();
-      auto hashed_retp = hashed_ret[i].data();
-#pragma _NEC ivdep
-#pragma _NEC vovertake
-#pragma _NEC vob
-      for(size_t j = 0; j < each_size; j++) {
-        hashed_retp[j] = retp[hash_dividep[j]];
-      }
-    }
-    return hashed_ret;
-  } else { // slow: takes same time as sum
-    auto size = val.size();
-    std::vector<size_t> tmp(size, 1);
+  if(nulls.size() == 0) return size_helper<T>(idx_split, hash_divide);
+  else { // slow: takes same time as sum
+    std::vector<size_t> tmp(val.size(), 1);
     return sum_helper(tmp, grouped_idx, idx_split, hash_divide, nulls);
   }
 }
@@ -2705,9 +2709,25 @@ count_impl(node_local<std::vector<T>>& val,
            node_local<std::vector<std::vector<size_t>>>& hash_divide,
            node_local<std::vector<std::vector<size_t>>>& merge_map,
            node_local<size_t>& row_sizes) {
+  return count_impl(val, nulls, local_grouped_idx, local_idx_split,
+                    hash_divide, merge_map,row_sizes, false);
+}
+
+template <class T>
+std::shared_ptr<dfcolumn>
+count_impl(node_local<std::vector<T>>& val,
+           node_local<std::vector<size_t>>& nulls,
+           node_local<std::vector<size_t>>& local_grouped_idx,
+           node_local<std::vector<size_t>>& local_idx_split,
+           node_local<std::vector<std::vector<size_t>>>& hash_divide,
+           node_local<std::vector<std::vector<size_t>>>& merge_map,
+           node_local<size_t>& row_sizes,
+           bool count_nulls) {
   auto ret = std::make_shared<typed_dfcolumn<size_t>>();
+  node_local<std::vector<std::vector<size_t>>> local_agg;
   ret->nulls = make_node_local_allocate<std::vector<size_t>>();
-  auto local_agg = val.map(count_helper<T>, local_grouped_idx, local_idx_split,
+  if (count_nulls) local_agg = local_idx_split.map(size_helper<T>, hash_divide);
+  else local_agg = val.map(count_helper<T>, local_grouped_idx, local_idx_split,
                            hash_divide, nulls);
   auto exchanged = alltoall_exchange(local_agg);
   auto newval = exchanged.map
@@ -2744,6 +2764,18 @@ typed_dfcolumn<T>::count
  node_local<size_t>& row_sizes) {
   return count_impl(val, nulls, local_grouped_idx, local_idx_split,
                     hash_divide, merge_map, row_sizes);
+}
+
+template <class T>
+std::shared_ptr<dfcolumn>
+typed_dfcolumn<T>::size
+(node_local<std::vector<size_t>>& local_grouped_idx,
+ node_local<std::vector<size_t>>& local_idx_split,
+ node_local<std::vector<std::vector<size_t>>>& hash_divide,
+ node_local<std::vector<std::vector<size_t>>>& merge_map,
+ node_local<size_t>& row_sizes) {
+  return count_impl(val, nulls, local_grouped_idx, local_idx_split,
+                    hash_divide, merge_map, row_sizes, true);
 }
 
 template <class T>
@@ -2938,7 +2970,18 @@ double typed_dfcolumn<T>::var() {
   double mean = avg();
   auto ssdm = val.map(mean_helper2<T>, nulls, broadcast(mean))
                  .reduce(frovedis::add<double>);
-  return ssdm / static_cast<double>(size - 1);
+  return ssdm / static_cast<double>(size - 1); //default ddof=1
+}
+
+template <class T>
+double typed_dfcolumn<T>::var(double ddof) {
+  size_t size = count();
+  double mean = avg();
+  auto ssdm = val.map(mean_helper2<T>, nulls, broadcast(mean))
+                 .reduce(frovedis::add<double>);
+  double n_ddof = size - ddof;
+  if (n_ddof > 0) return ssdm / n_ddof;
+  return std::numeric_limits<double>::quiet_NaN();
 }
 
 template <class T>
@@ -2946,6 +2989,24 @@ double typed_dfcolumn<T>::std() {
   return std::sqrt(var());
 }
 
+template <class T>
+double typed_dfcolumn<T>::std(double ddof) {
+  double ret = var(ddof);
+  if (isnan(ret)) return ret;
+  return std::sqrt(ret);
+}
+
+template <class T>
+double typed_dfcolumn<T>::sem() {
+  return std()/std::sqrt(count());
+}
+
+template <class T>
+double typed_dfcolumn<T>::sem(double ddof) {
+  double ret = std(ddof);
+  if (isnan(ret)) return ret;
+  return ret/std::sqrt(count());
+}
 template <class T>
 T typed_dfcolumn<T>::max() {
   auto maxs = val.map(max_helper2<T>, nulls).gather();
