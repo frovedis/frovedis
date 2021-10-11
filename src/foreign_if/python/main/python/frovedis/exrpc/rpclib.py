@@ -333,10 +333,20 @@ get_std_frovedis_dataframe.argtypes = [c_char_p, c_int, c_long,
                                        POINTER(c_char_p), c_ulong]
 get_std_frovedis_dataframe.restype = py_object
 
+get_sem_frovedis_dataframe = LIB.sem_frovedis_dataframe
+get_sem_frovedis_dataframe.argtypes = [c_char_p, c_int, c_long,
+                                       POINTER(c_char_p), c_ulong]
+get_sem_frovedis_dataframe.restype = py_object
+
 get_var_frovedis_dataframe = LIB.var_frovedis_dataframe
 get_var_frovedis_dataframe.argtypes = [c_char_p, c_int, c_long,
                                        POINTER(c_char_p), c_ulong]
 get_var_frovedis_dataframe.restype = py_object
+
+get_median_frovedis_dataframe = LIB.median_frovedis_dataframe
+get_median_frovedis_dataframe.argtypes = [c_char_p, c_int, c_long,
+                                       POINTER(c_char_p), POINTER(c_short), c_ulong]
+get_median_frovedis_dataframe.restype = py_object
 
 df_mean = LIB.df_mean
 df_mean.argtypes = [c_char_p, c_int, c_long,      # host, port, proxy
@@ -346,15 +356,31 @@ df_mean.restype = py_object
 
 df_var = LIB.df_var
 df_var.argtypes = [c_char_p, c_int, c_long,      # host, port, proxy
-                    POINTER(c_char_p), c_ulong,   # cols_arr, ncol
-                    c_int, c_bool, c_bool]        # axis, skip_na, with_index
+                   POINTER(c_char_p), c_ulong,   # cols_arr, ncol
+                   c_int, c_bool, c_double,      # axis, skip_na,ddof
+                   c_bool]                       #with_index
 df_var.restype = py_object
+
+df_median = LIB.df_median
+df_median.argtypes = [c_char_p, c_int, c_long,    # host, port, proxy
+                    POINTER(c_char_p),            # cols_arr
+                    POINTER(c_short), c_ulong,    # type_ptr, ncol
+                    c_int, c_bool, c_bool]        # axis, skip_na, with_index
+df_median.restype = py_object
 
 df_std = LIB.df_std
 df_std.argtypes = [c_char_p, c_int, c_long,      # host, port, proxy
-                    POINTER(c_char_p), c_ulong,   # cols_arr, ncol
-                    c_int, c_bool, c_bool]        # axis, skip_na, with_index
+                   POINTER(c_char_p), c_ulong,   # cols_arr, ncol
+                   c_int, c_bool, c_double,      # axis, skip_na,ddof
+                   c_bool]                       #with_index
 df_std.restype = py_object
+
+df_sem = LIB.df_sem
+df_sem.argtypes = [c_char_p, c_int, c_long,       # host, port, proxy
+                    POINTER(c_char_p), c_ulong,   # cols_arr, ncol
+                    c_int, c_bool, c_double,      # axis, skip_na, ddof
+                    c_bool]                       # with_index
+df_sem.restype = py_object
 
 get_frovedis_col = LIB.get_frovedis_col
 get_frovedis_col.argtypes = [c_char_p, c_int, c_long, c_char_p, c_short]
