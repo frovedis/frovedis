@@ -1,44 +1,68 @@
-.TH "spectral clustering" "" "" "" ""
+.TH "Spectral Clustering" "" "" "" ""
 .SH NAME
 .PP
-spectral clustering \- A clustering algorithm commonly used in EDA
-(exploratory data analysis), using the spectrum (eigenvalues) of the
-similarity matrix of the data to perform clustering.
+Spectral Clustering \- A clustering algorithm commonly used in EDA
+(exploratory data analysis).
+It uses the spectrum (eigenvalues) of the similarity matrix of the data
+to perform clustering.
 .SH SYNOPSIS
 .PP
-class frovedis.mllib.cluster.SpectralClustering (n_clusters=8,
-eigen_solver=None, random_state=None, n_init=10, gamma=1.0,
-affinity=\[aq]rbf\[aq], n_neighbors=10, eigen_tol=0.0,
-assign_labels=\[aq]kmeans\[aq], degree=3, coef0=1, kernel_params=None,
-n_jobs=None, verbose=0, n_iter=100, eps=0.01, n_comp=None,
-norm_laplacian=True, mode=1, drop_first=False)
+class frovedis.mllib.cluster.SpectralClustering(n_clusters=8,
+eigen_solver=None, n_components=None,
+.PD 0
+.P
+.PD
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ random_state=None,
+n_init=10, gamma=1.0,
+.PD 0
+.P
+.PD
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ affinity=\[aq]rbf\[aq],
+n_neighbors=10, eigen_tol=0.0,
+.PD 0
+.P
+.PD
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ assign_labels=\[aq]kmeans\[aq],
+degree=3, coef0=1,
+.PD 0
+.P
+.PD
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ kernel_params=None,
+n_jobs=None, verbose=0,
+.PD 0
+.P
+.PD
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ max_iter=300, eps=1e\-4,
+norm_laplacian=True,
+.PD 0
+.P
+.PD
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ mode=3, drop_first=True)
 .SS Public Member Functions
 .PP
-fit(X, y=None)
+fit(X, y = None)
 .PD 0
 .P
 .PD
-fit_predict(X)
+fit_predict(X, y = None)
 .PD 0
 .P
 .PD
-get_params()
+score(X, y, sample_weight = None)
 .PD 0
 .P
 .PD
-set_params(params)
+load(fname, dtype = None)
 .PD 0
 .P
 .PD
-load(filename)
-.PD 0
-.P
-.PD
-get_affinity_matrix()
-.PD 0
-.P
-.PD
-save(filename)
+save(fname)
 .PD 0
 .P
 .PD
@@ -47,11 +71,16 @@ debug_print()
 .P
 .PD
 release()
+.PD 0
+.P
+.PD
+is_fitted()
 .SH DESCRIPTION
 .PP
-Clustering is an unsupervised learning problem whereby we aim to group
+Clustering is an unsupervised learning problem where we aim to group
 subsets of entities with one another based on some notion of similarity.
-In spectral clustering, the data points are treated as nodes of a graph.
+.PP
+In Spectral Clustering, the data points are treated as nodes of a graph.
 Thus, clustering is treated as a graph partitioning problem.
 The nodes are then mapped to a low\-dimensional space that can be easily
 segregated to form clusters.
@@ -59,144 +88,243 @@ The components or features are identified as per column order in matrix
 data.
 The nodes are then mapped to a low\-dimensional space that can be easily
 segregated to form clusters.
+.PP
+This module provides a client\-server implementation, where the client
+application is a normal python program.
+The frovedis interface is almost same as Scikit\-learn Spectral
+Clustering interface, but it doesn\[aq]t have any dependency with
+Scikit\-learn.
+It can be used simply even if the system doesn\[aq]t have Scikit\-learn
+installed.
+Thus, in this implementation, a python client can interact with a
+frovedis server sending the required python data for training at
+frovedis side.
+Python data is converted into frovedis compatible data internally and
+the python ML call is linked with the respective frovedis ML call to get
+the job done at frovedis server.
+.PP
+Python side calls for Spectral Clustering on the frovedis server.
+Once the training is completed with the input data at the frovedis
+server, it returns an abstract model with a unique model ID to the
+client python program.
+.PP
+When prediction\-like request would be made on the trained model, python
+program will send the same request to the frovedis server.
+After the request is served at the frovedis server, the output would be
+sent back to the python client.
 .SS Detailed Description
 .SS SpectralClustering()
 .PP
 \f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[B]\f[I]n_clusters\f[]\f[]: A positive integer parameter specifying
+the number of clusters.
+The number of clusters should be greater than 0 and less than or equal
+to n_samples.
+(Default: 8)
+.PD 0
+.P
+.PD
+\f[B]\f[I]eigen_solver\f[]\f[]: A string object parameter.
+It is the eigenvalue decomposition strategy to use.
+(Default: None)
+.PD 0
+.P
+.PD
+When it is None (not specified explicitly), it will be set as
+\[aq]arpack\[aq].
+Only \[aq]arpack\[aq] eigen solver is supported.
+\f[B]\f[I]n_components\f[]\f[]: A positive integer parameter containing
+the number of components for clusters.
+It is used to store the number of eigenvectors for spectral embedding.
+The number of components should be in between 1 to n_features.
+(Default: None)
+.PD 0
+.P
+.PD
+When it is None (not specified explicitly), it will be equal to the
+number of clusters.
+.PD 0
+.P
+.PD
+\f[B]\f[I]random_state\f[]\f[]: Zero or positive integer parameter, is
+the pseudo random number generator.
+(Default: None)
+.PD 0
+.P
+.PD
+When it is None (not specified explicitly), it will be set as 0.
+.PD 0
+.P
+.PD
+\f[B]\f[I]n_init\f[]\f[]: A positive integer parameter is the number of
+times the k\-means algorithm will be run with different centroid seeds.
+(Default: 10)
+.PD 0
+.P
+.PD
+\f[B]\f[I]gamma\f[]\f[]: The double (float64) parameter required for
+computing nearby relational meaningful eigenvalues.
+When it is None (specified explicitly), it will be set as 1.0.
+(Default: 1.0)
+.PD 0
+.P
+.PD
+\f[B]\f[I]affinity\f[]\f[]: A string object parameter which tells how to
+construct the affinity matrix.
+(Default: \[aq]rbf\[aq])
+.PD 0
+.P
+.PD
+When it is None (specified explicitly), it will be set as \[aq]rbf\[aq].
+Only \[aq]rbf\[aq], \[aq]nearest_neighbors\[aq] and
+\[aq]precomputed\[aq] are supported.
+.PD 0
+.P
+.PD
+\f[B]\f[I]n_neighbors\f[]\f[]: A positive integer parameter, is the
+number of neighbors used when constructing the affinity matrix using the
+nearest neighbors method.
+It must be in between 1 to n_samples.
+(Default: 10)
+.PD 0
+.P
+.PD
+\f[B]\f[I]eigen_tol\f[]\f[]: Stopping criterion for eigen decomposition
+of the Laplacian matrix when using \[aq]arpack\[aq] eigen_solver.
+(unused)
+.PD 0
+.P
+.PD
+\f[B]\f[I]assign_labels\f[]\f[]: A string object parameter, is the
+strategy to use to assign labels in the embedding space.
+When it is None (specified explicitly), it will be set as
+\[aq]kmeans\[aq].
+Only \[aq]kmeans\[aq] is supported.
+(Default: \[aq]kmeans\[aq])
+.PD 0
+.P
+.PD
+\f[B]\f[I]degree\f[]\f[]: Degree of the polynomial kernel.
+(unused)
+.PD 0
+.P
+.PD
+\f[B]\f[I]coef0\f[]\f[]: Zero coefficient for polynomial and sigmoid
+kernels.
+(unused)
+.PD 0
+.P
+.PD
+\f[B]\f[I]kernel_params\f[]\f[]: Parameters (keyword arguments) and
+values for kernel.
+(unused)
+.PD 0
+.P
+.PD
+\f[B]\f[I]n_jobs\f[]\f[]: The number of parallel jobs to run.
+(unused)
+.PD 0
+.P
+.PD
+\f[B]\f[I]verbose\f[]\f[]: An integer parameter specifying the log level
+to use.
+Its value is 0 by default (for INFO mode and not specified explicitly).
+But it can be set to 1 (for DEBUG mode) or 2 (for TRACE mode) for
+getting training time logs from frovedis server.
+.PD 0
+.P
+.PD
+\f[B]\f[I]max_iter\f[]\f[]: A positive integer parameter containing the
+maximum number of iteration count for kmeans algorithm.
+(Default: 300)
+.PD 0
+.P
+.PD
+\f[B]\f[I]eps\f[]\f[]: A double parameter containing the epsilon value
+for kmeans.
+It must be within the range of 0.0 to 1.0.
+(Default: 1e\-4)
+.PD 0
+.P
+.PD
+\f[B]\f[I]norm_laplacian\f[]\f[]: A boolean parameter if set to True,
+then compute normalized Laplacian, else not.
+(Default: True)
+.PD 0
+.P
+.PD
+\f[B]\f[I]mode\f[]\f[]: An integer parameter required to set the eigen
+computation method.
+It can be either 1 (for generic) or 3 (for shift\-invert).
+(Default: 3)
+.PD 0
+.P
+.PD
+\f[B]\f[I]drop_first\f[]\f[]: A boolean parameter if set to True, then
+drops the first eigenvector.
+The first eigenvector of a normalized Laplacian is full of constants,
+thus if it is set to true, then (n_components + 1) eigenvectors are
+computed and will drop the first vector.
+Otherwise, it will calculate \[aq]n_components\[aq] number of
+eigenvectors.
+(Default: True)
 .PP
-\f[B]n_clusters:\f[] An integer parameter containing the number of
-required clusters.(Default: 2)
+\f[B]Attributes\f[]
 .PD 0
 .P
 .PD
-\f[B]eigen_solver:\f[] The eigenvalue decomposition strategy to use.
-AMG requires pyamg to be installed.
-It can be faster on very large, sparse problems, but may also lead to
-instabilities(Default: None)[Internally skipped]
+\f[B]\f[I]affinity_matrix_\f[]\f[]: A numpy dense array or scipy sparse
+matrix with float or double (float64) type values, or an instance of
+FrovedisCRSMatrix for sparse data and FrovedisRowmajorMatrix for dense
+data.
+It has a shape (n_samples, n_samples).
+It is used for clustering and is only available after calling fit().
 .PD 0
 .P
 .PD
-\f[B]random_state:\f[] A pseudo random number generator used for the
-initialization of the lobpcg eigen vectors decomposition when
-eigen_solver == \[aq]amg\[aq] and by the K\-Means
-initialization.[Internally skipped]
-.PD 0
-.P
-.PD
-\f[B]n_init:\f[] An integer parameter containing the maximum number of
-iteration count (Default: 100)
-.PD 0
-.P
-.PD
-\f[B]gamma:\f[] The value required for computing nearby relational
-meaningful eigenvalues (Default: 1.0)
-.PD 0
-.P
-.PD
-\f[B]affinity:\f[] If a string, this may be one of
-\[aq]nearest_neighbors\[aq], \[aq]precomputed\[aq] according to input
-data.(Default: rbf)[Internally skipped]
-.PD 0
-.P
-.PD
-\f[B]n_neighbors:\f[] Number of neighbors to use when constructing the
-affinity matrix using the nearest neighbors method.[Internally skipped]
-.PD 0
-.P
-.PD
-\f[B]eigen_tol:\f[] Stopping criterion for eigen decomposition of the
-Laplacian matrix when using arpack eigen_solver.[Internally skipped]
-.PD 0
-.P
-.PD
-\f[B]assign_labels :\f[] The strategy to use to assign labels in the
-embedding space.[Internally skipped]
-.PD 0
-.P
-.PD
-\f[B]degree:\f[] Degree of the polynomial kernel.
-Ignored by other kernels.[Internally skipped]
-.PD 0
-.P
-.PD
-\f[B]coef0:\f[] Zero coefficient for polynomial and sigmoid
-kernels.[Internally skipped]
-.PD 0
-.P
-.PD
-\f[B]kernel_params:\f[] Parameters (keyword arguments) and values for
-kernel passed as callable object.[Internally skipped]
-.PD 0
-.P
-.PD
-\f[B]n_jobs:\f[] The number of parallel jobs to run.[Internally skipped]
-.PD 0
-.P
-.PD
-\f[B]verbose:\f[] An integer object specifying the log level to use.
-(Default: 0)
-.PD 0
-.P
-.PD
-\f[B]n_iter:\f[] An integer parameter containing the maximum number of
-iteration count for kmeans
-.PD 0
-.P
-.PD
-\f[B]eps:\f[] An double parameter containing the epsilon value for
-kmeans (Default: 0.01)
-.PD 0
-.P
-.PD
-\f[B]n_comp:\f[] An integer parameter containing the number of
-components for clusters (Default: 2)
-.PD 0
-.P
-.PD
-\f[B]norm_laplacian:\f[] A boolean parameter if set True, then compute
-normalized Laplacian else not (Default: true)
-.PD 0
-.P
-.PD
-\f[B]mode:\f[] A parameter required to set the eigen computation method.
-It can be either 1 or 3, 1 for generic and 3 for shift\-invert(Default:
-1)
-.PD 0
-.P
-.PD
-\f[B]drop_first:\f[] A boolean parameter if set True, then drops the
-first eigenvector.
-The first eigenvector of a normalized laplacian is full of constants,
-thus if drop_first is set true, compute (n_comp+1) eigenvectors and will
-drop the first vector.
-Otherwise it will calculate n_comp number of eigenvectors(Default:
-false)
+\f[B]\f[I]labels_\f[]\f[]: A python ndarray of int64 values and has
+shape(n_clusters,).
+It contains cluster labels for each point.
 .PP
 \f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It initializes a Spectral Clustering object with the given parameters.
 .PP
-It clusters the given data points into a predefined number (n_clusters)
-of clusters.
-It simply returns "self" reference.
+The parameters: "eigen_tol", "degree", "coef0", "kernel_params" and
+"n_jobs" are simply kept in to make the interface uniform to the
+Scikit\-learn Spectral Clustering module.
+They are not used anywhere within frovedis implementation.
 .PP
 \f[B]Return Value\f[]
-.PP
-This is a non\-blocking call.
-The control will return quickly, right after submitting the training
-request at frovedis server side with a SpectralModel object containing a
-array of labels.
-.SS fit(X, y=None)
-.PP
-\f[B]Parameters\f[]
-.PP
-\f[I]X\f[]: A scipy dense matrix or any python array\-like object or an
-instance of FrovedisRowmajorMatrix.
 .PD 0
 .P
 .PD
-\f[I]y\f[]: None (simply ignored in scikit\-learn as well).
+It simply returns "self" reference.
+.SS fit(X, y = None)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[B]\f[I]X\f[]\f[]: A numpy dense or scipy sparse matrix or any python
+array\-like object or an instance of FrovedisCRSMatrix for sparse data
+and FrovedisRowmajorMatrix for dense data.
+.PD 0
+.P
+.PD
+\f[B]\f[I]y\f[]\f[]: None or any python array\-like object (any shape).
+It is simply ignored in frovedis implementation and in Scikit\-learn as
+well.
 .PP
 \f[B]Purpose\f[]
-.PP
+.PD 0
+.P
+.PD
 It clusters the given data points (X) into a predefined number
 (n_clusters) of clusters.
 .PP
@@ -204,115 +332,360 @@ For example,
 .IP
 .nf
 \f[C]
-#\ loading\ sample\ Rowmajor\ data\ file
-mat\ =\ FrovedisRowmajorMatrix().load("./sample")
+#\ loading\ sample\ matrix\ data
+mat\ =\ np.loadtxt("./input/spectral_data.txt")
 
-#\ fitting\ input\ matrix\ on\ spectral\ object
-spectral\ =\ SpectralClustering(n_clusters=2,\ verbose=2).fit(mat)\ \ \ 
+#\ fitting\ input\ matrix\ on\ Spectral\ Clustering\ object
+from\ frovedis.mllib.cluster\ import\ SpectralClustering
+spec\ =\ SpectralClustering(n_clusters\ =\ 2).fit(mat)\ \ \ 
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+n_cluster:\ 2;\ n_comp:\ 2;\ max_iter:\ 300;\ n_init:\ 10;\ seed:\ 0;\ eps:\ 0.0001;\ gamma:\ 1;\ 
+affinity:\ rbf;\ n_neighbors:\ 10;\ norm_laplacian:\ 1;\ drop_first:\ 1;\ mode:\ 3;\ input_movable:\ 0
+\f[]
+.fi
+.PP
+It prints the initial value of input parameters to be used during
+training.
+.PP
+When native python data is provided, it is converted to frovedis\-like
+inputs and sent to frovedis server which consumes some data transfer
+time.
+Pre\-constructed frovedlis\-like inputs can be used to speed up the
+training time, especially when same data would be used for multiple
+executions.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ loading\ sample\ matrix\ data
+mat\ =\ np.loadtxt("./input/spectral_data.txt")
+
+#\ Since\ "mat"\ is\ numpy\ dense\ data,\ we\ have\ created\ FrovedisRowmajorMatrix.\ 
+#\ For\ scipy\ sparse\ data,\ FrovedisCRSMatrix\ should\ be\ used\ instead.
+from\ frovedis.matrix.dense\ import\ FrovedisRowmajorMatrix
+rmat\ =\ FrovedisRowmajorMatrix(mat)
+
+#\ Spectral\ Clustering\ with\ pre\-constructed\ frovedlis\-like\ inputs
+from\ frovedis.mllib.cluster\ import\ SpectralClustering
+spec\ =\ SpectralClustering(n_clusters\ =\ 2).fit(rmat)
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+n_cluster:\ 2;\ n_comp:\ 2;\ max_iter:\ 300;\ n_init:\ 10;\ seed:\ 0;\ eps:\ 0.0001;\ gamma:\ 1;\ 
+affinity:\ rbf;\ n_neighbors:\ 10;\ norm_laplacian:\ 1;\ drop_first:\ 1;\ mode:\ 3;\ input_movable:\ 0
+\f[]
+.fi
+.PP
+It prints the initial value of input parameters to be used during
+training.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It simply returns "self" reference.
+.SS fit_predict(X, y = None)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[B]\f[I]X\f[]\f[]: A numpy dense or scipy sparse matrix or any python
+array\-like object or an instance of FrovedisCRSMatrix for sparse data
+and FrovedisRowmajorMatrix for dense data.
+.PD 0
+.P
+.PD
+\f[B]\f[I]y\f[]\f[]: None or any python array\-like object (any shape).
+It is simply ignored in frovedis implementation and in Scikit\-learn as
+well.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It clusters the given data points (X) and returns the centroid
+information.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ loading\ sample\ matrix\ data
+mat\ =\ np.loadtxt("./input/spectral_data.txt")
+
+#\ fitting\ input\ matrix\ on\ Spectral\ Clustering\ object
+from\ frovedis.mllib.cluster\ import\ SpectralClustering
+spec\ =\ SpectralClustering(n_clusters\ =\ 2)
+print(spec.fit_predict(mat))\ 
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+n_cluster:\ 2;\ n_comp:\ 2;\ max_iter:\ 300;\ n_init:\ 10;\ seed:\ 0;\ eps:\ 0.0001;\ gamma:\ 1;\ 
+affinity:\ rbf;\ n_neighbors:\ 10;\ norm_laplacian:\ 1;\ drop_first:\ 1;\ mode:\ 3;\ input_movable:\ 0
+[0\ 0\ 1\ 1\ 1]
+\f[]
+.fi
+.PP
+It prints the initial value of input parameters to be used during
+training and the cluster lables after training is completed.
+.PP
+When native python data is provided, it is converted to frovedis\-like
+inputs and sent to frovedis server which consumes some data transfer
+time.
+Pre\-constructed frovedlis\-like inputs can be used to speed up the
+training time, especially when same data would be used for multiple
+executions.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ loading\ sample\ matrix\ data
+mat\ =\ np.loadtxt("./input/sample_data.txt")
+
+#\ Since\ "mat"\ is\ numpy\ dense\ data,\ we\ have\ created\ FrovedisRowmajorMatrix.\ 
+#\ For\ scipy\ sparse\ data,\ FrovedisCRSMatrix\ should\ be\ used\ instead.
+from\ frovedis.matrix.dense\ import\ FrovedisRowmajorMatrix
+rmat\ =\ FrovedisRowmajorMatrix(mat)
+
+#\ using\ pre\-constructed\ input\ matrix
+from\ frovedis.mllib.cluster\ import\ SpectralClustering
+spec\ =\ SpectralClustering(n_clusters\ =\ 2)
+print(spec.fit_predict(rmat))
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+n_cluster:\ 2;\ n_comp:\ 2;\ max_iter:\ 300;\ n_init:\ 10;\ seed:\ 0;\ eps:\ 0.0001;\ gamma:\ 1;\ 
+affinity:\ rbf;\ n_neighbors:\ 10;\ norm_laplacian:\ 1;\ drop_first:\ 1;\ mode:\ 3;\ input_movable:\ 0
+[0\ 0\ 1\ 1\ 1]
+\f[]
+.fi
+.PP
+It prints the initial value of input parameters to be used during
+training and the cluster lables after training is completed.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns a numpy array of int32 type containing the cluster labels.
+It has a shape(n_samples,).
+.SS score(X, y, sample_weight = None)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[B]\f[I]X\f[]\f[]: A numpy dense or scipy sparse matrix or any python
+array\-like object or an instance of FrovedisCRSMatrix for sparse data
+and FrovedisRowmajorMatrix for dense data.
+.PD 0
+.P
+.PD
+\f[B]\f[I]y\f[]\f[]: A python ndarray and has shape (n_samples,1).
+.PD 0
+.P
+.PD
+\f[B]\f[I]sample_weight\f[]\f[]: An unused parameter whose default value
+is None.
+It is simply ignored in frovedis implementation.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It uses scikit\-learn homogeneity score on given test data and labels
+i.e homogeneity score of self.predict(X, y) wrt.
+y.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+spec.score(train_mat,\ [0,\ 0,\ 2,\ 2,\ 2])\ \ 
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+1.0\ 
 \f[]
 .fi
 .PP
 \f[B]Return Value\f[]
-.PP
-It simply returns "self" reference.
 .PD 0
 .P
 .PD
-Note that the call will return quickly, right after submitting the fit
-request at frovedis server side with a unique model ID for the fit
-request.
-It may be possible that the training is not completed at the frovedis
-server side even though the client scikit\-learn side fit() returns.
-.SS fit_predict(X, y=None)
+It returns a homogeneity score of float type.
+.SS load(fname, dtype = None)
 .PP
 \f[B]Parameters\f[]
-.PP
-\f[I]X\f[]: A scipy dense matrix or any python array\-like object or an
-instance of FrovedisRowmajorMatrix.
-.PP
-\f[B]Purpose\f[]
-.PP
-It accepts the test data points (X) and returns the centroid
-information.
-.PP
-\f[B]Return Value\f[]
-.PP
-It returns a numpy array of integer (int32) type containing the label
-values.
-.SS get_params()
-.PP
-\f[B]Purpose\f[]
-.PP
-It returns the values of parameters used for clustering.
-.PP
-\f[B]Return Value\f[]
-.PP
-It simply returns "self" instance.
-.SS set_params()
-.PP
-\f[B]Purpose\f[]
-.PP
-It intialize the values of parameters the required for clustering.
-.PP
-\f[B]Return Value\f[]
-.PP
-It simply returns "self" instance.
-.SS load(filename)
-.PP
-\f[B]Parameters\f[]
-.PP
-\f[I]filename\f[]: A string object containing the name of the file
+.PD 0
+.P
+.PD
+\f[B]\f[I]fname\f[]\f[]: A string object containing the name of the file
 having model information to be loaded.
+.PD 0
+.P
+.PD
+\f[B]\f[I]dtype\f[]\f[]: A data\-type is inferred from the input data.
+Currently, expected input data\-type is either float or double(float64).
+(Default: None)
 .PP
 \f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It loads a spectral clustering model stored previously from the
+specified file (having little\-endian binary data).
 .PP
-It loads the model from the specified file (having little\-endian binary
-data).
+For example,
+.IP
+.nf
+\f[C]
+spec.load("./out/MySpecClusteringModel",\ dtype\ =\ np.float64)
+\f[]
+.fi
 .PP
 \f[B]Return Value\f[]
-.PP
+.PD 0
+.P
+.PD
 It simply returns "self" instance.
-.SS get_affinity_matrix()
-.PP
-\f[B]Purpose\f[]
-.PP
-It returns the output value of the computed affinity matrix.
-.PP
-\f[B]Return Value\f[]
-.PP
-It returns FrovedisRowmajorMatrix instance.
-.SS save(filename)
+.SS save(fname)
 .PP
 \f[B]Parameters\f[]
-.PP
-\f[I]filename\f[]: A string object containing the name of the file on
-which the target model is to be saved.
+.PD 0
+.P
+.PD
+\f[B]\f[I]fname\f[]\f[]: A string object containing the name of the file
+on which the target model is to be saved.
 .PP
 \f[B]Purpose\f[]
-.PP
-On success, it writes the model information in the specified file as
-little\-endian binary data.
+.PD 0
+.P
+.PD
+On success, it writes the model information (after\-fit populated
+attributes) in the specified file as little\-endian binary data.
 Otherwise, it throws an exception.
 .PP
-\f[B]Return Value\f[]
+For example,
+.IP
+.nf
+\f[C]
+#\ To\ save\ the\ spectral\ clustering\ model
+spec.save("./out/MySpecClusteringModel")\ \ 
+\f[]
+.fi
 .PP
+This will save the spectral clustering model on the path
+"/out/MySpecClusteringModel".
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
 It returns nothing.
 .SS debug_print()
 .PP
 \f[B]Purpose\f[]
-.PP
-It shows the target model information on the server side user terminal.
+.PD 0
+.P
+.PD
+It shows the target model information (affinity matrix) on the server
+side user terminal.
 It is mainly used for debugging purpose.
 .PP
-\f[B]Return Value\f[]
+For example,
+.IP
+.nf
+\f[C]
+spec.debug_print()\ 
+\f[]
+.fi
 .PP
+Output
+.IP
+.nf
+\f[C]
+affinity\ matrix:
+num_row\ =\ 5,\ num_col\ =\ 5
+node\ 0
+node\ =\ 0,\ local_num_row\ =\ 5,\ local_num_col\ =\ 5,\ val\ =\ 1\ 0.970446\ 6.2893e\-104\ 2.92712e\-106\ 
+1.28299e\-108\ 0.970446\ 1\ 1.27264e\-101\ 6.2893e\-104\ 2.92712e\-106\ 6.2893e\-104\ 1.27264e\-101\ 1\ 
+0.970446\ 0.88692\ 2.92712e\-106\ 6.2893e\-104\ 0.970446\ 1\ 0.970446\ 1.28299e\-108\ 2.92712e\-106\ 
+0.88692\ 0.970446\ 1
+labels:
+0\ 0\ 1\ 1\ 1
+ncluster:\ 2
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
 It returns nothing.
 .SS release()
 .PP
 \f[B]Purpose\f[]
-.PP
+.PD 0
+.P
+.PD
 It can be used to release the in\-memory model at frovedis server.
 .PP
-\f[B]Return Value\f[]
+For example,
+.IP
+.nf
+\f[C]
+spec.release()
+\f[]
+.fi
 .PP
+This will reset the after\-fit populated attributes to None, along with
+releasing server side memory.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
 It returns nothing.
+.SS is_fitted()
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It can be used to confirm if the model is already fitted or not.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns ‘True', if the model is already fitted otherwise, it returns
+‘False'.
+.SH SEE ALSO
+.PP
+rowmajor_matrix, crs_matrix
