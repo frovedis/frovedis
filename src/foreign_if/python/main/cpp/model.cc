@@ -6,6 +6,35 @@
 
 extern "C" {
 
+  float get_homogeneity_score(const char* host, int port,
+                              long tlblp, long plblp,
+                              ulong size, short dtype) {
+    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
+    exrpc_node fm_node(host,port);
+    auto tlbl = (exrpc_ptr_t) tlblp;
+    auto plbl = (exrpc_ptr_t) plblp;
+
+    float ret = 0;
+    try {
+      switch(dtype) {
+        case INT:    ret = exrpc_async(fm_node, frovedis_homogeneity_score<DT4>,
+                                       tlbl, plbl).get(); break;
+        case LONG:   ret = exrpc_async(fm_node, frovedis_homogeneity_score<DT3>,
+                                       tlbl, plbl).get(); break;
+        case FLOAT:  ret = exrpc_async(fm_node, frovedis_homogeneity_score<DT2>,
+                                       tlbl, plbl).get(); break;
+        case DOUBLE: ret = exrpc_async(fm_node, frovedis_homogeneity_score<DT1>,
+                                       tlbl, plbl).get(); break;
+        default:     REPORT_ERROR(USER_ERROR, 
+                     "homogeneity_score: expected either int, long, float or double type input!\n");
+      }
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return ret;
+  }
+
   void show_frovedis_model(const char* host, int port, 
                            int mid, short mkind, short mdtype) {
     if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");

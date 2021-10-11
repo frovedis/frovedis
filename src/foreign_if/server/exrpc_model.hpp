@@ -31,6 +31,7 @@
 #include "frovedis/ml/lda/lda_cgs.hpp"
 #include "frovedis/ml/tree/ensemble_model.hpp"
 #include "frovedis/ml/kernel/kernel_svm.hpp"
+#include "frovedis/ml/metrics.hpp"
 #include "frovedis/matrix/standard_scaler.hpp"
 #include "../exrpc/exrpc_expose.hpp"
 #include "dummy_model.hpp"
@@ -1285,6 +1286,13 @@ std::vector<T>
 get_scaler_std(int& mid) {
   auto& scaler_obj = *get_model_ptr<standard_scaler<T>>(mid);
   return scaler_obj.stddev;
+}
+
+template <class T>
+float frovedis_homogeneity_score(exrpc_ptr_t& tlblp, exrpc_ptr_t& plblp) {
+  auto& tlbl = *reinterpret_cast<std::vector<T>*>(tlblp);
+  auto& plbl = *reinterpret_cast<std::vector<T>*>(plblp);
+  return homogeneity_score(tlbl, plbl);
 }
 
 #endif 

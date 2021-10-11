@@ -7,6 +7,10 @@ metrics.py
 import warnings
 import numbers
 import numpy as np
+from ..exrpc import rpclib
+from ..exrpc.server import FrovedisServer
+from ..matrix.vector import FrovedisVector
+from ..matrix.dtype import TypeUtil
 
 # simple implementation of r2_score and accuracy_score for the systems
 # without scikit-learn installed support
@@ -69,3 +73,28 @@ def r2_score(y_true, y_pred,
         return 0.0
     else:
         return 1.0 - (float(numerator) / denominator)
+
+def homogeneity_score(labels_true, labels_pred):
+    try:
+        from sklearn.metrics.cluster import homogeneity_score
+        return homogeneity_score(labels_true, labels_pred)
+    except: #for system without sklearn
+        #print("sklearn is not found, switching to native implementation!")
+        plbl = FrovedisVector(labels_pred)
+        tlbl = FrovedisVector(labels_true, \
+               dtype=TypeUtil.to_numpy_dtype(plbl.get_dtype()))
+        if (tlbl.get_dtype() != plbl.get_dtype()):
+            raise TypeError(\
+            "homogeneity_score: input arrays have different dtypes!")
+        if (tlbl.size() != plbl.size()):
+            raise TypeError(\
+            "homogeneity_score: input arrays have different sizes!")
+        (host, port) = FrovedisServer.getServerInstance()
+        ret = rpclib.get_homogeneity_score(host, port, tlbl.get(), \
+                                           plbl.get(), tlbl.size(), \
+                                           tlbl.get_dtype())
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
+        return ret
+

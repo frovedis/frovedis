@@ -349,7 +349,7 @@ float mutual_info_score(const contingency_matrix<T>& cmat) {
   auto log_contingency = vector_log(nz_val);
   auto log_contingency_sum = std::log(contingency_sum);
   auto contingency_nm = nz_val / contingency_sum;
-  auto outer = vector_take(pi, nzx) * vector_take(pj, nzy);
+  auto outer = vector_take<T>(pi, nzx) * vector_take<T>(pj, nzy);
   auto log_outer = vector_negative_log(outer) + 
                    (std::log(vector_sum(pi)) + std::log(vector_sum(pj)));
   auto mi = contingency_nm * (log_contingency - log_contingency_sum) +

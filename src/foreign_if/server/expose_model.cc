@@ -7,6 +7,10 @@ using namespace frovedis;
 
 void expose_frovedis_model_functions() {
   expose(cleanup_frovedis_server);
+  expose(frovedis_homogeneity_score<DT1>);
+  expose(frovedis_homogeneity_score<DT2>);
+  expose(frovedis_homogeneity_score<DT3>);
+  expose(frovedis_homogeneity_score<DT4>);
   // --- frovedis DecisionTreeModel ---
   expose(show_model<DTM1>);
   expose(show_model<DTM2>);    // for python

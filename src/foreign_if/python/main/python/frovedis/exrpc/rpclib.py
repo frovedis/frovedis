@@ -1108,6 +1108,11 @@ encode_frovedis_double_dvector.argtypes = [c_char_p, c_int, c_long,  #host, port
 encode_frovedis_double_dvector.restype = c_long # out proxy
 
 # --- generic model functions ---
+get_homogeneity_score = LIB.get_homogeneity_score
+get_homogeneity_score.argtypes = [c_char_p, c_int, c_long,  # host, port, tlbl
+                                  c_long, c_ulong, c_short] # plbl, size, dtype
+get_homogeneity_score.restype = c_float
+
 show_frovedis_model = LIB.show_frovedis_model
 show_frovedis_model.argtypes = [c_char_p, c_int, c_int, c_short, c_short]
 
@@ -2116,7 +2121,7 @@ set_graph_data.restype = c_ulong
 get_graph_data= LIB.get_graph_data
 get_graph_data.argtypes = [c_char_p, c_int,\
                            c_ulong]
-get_graph_data.restype = c_ulong
+get_graph_data.restype = py_object
 
 show_graph_py= LIB.show_graph_py
 show_graph_py.argtypes = [c_char_p, c_int,\

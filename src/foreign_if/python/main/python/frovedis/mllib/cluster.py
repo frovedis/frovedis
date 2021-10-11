@@ -16,13 +16,7 @@ from ..matrix.ml_data import FrovedisFeatureData
 from ..matrix.dense import FrovedisRowmajorMatrix
 from ..matrix.dtype import TypeUtil
 from .model_util import *
-
-def clustering_score(labels_true, labels_pred):
-    try:
-        from sklearn.metrics.cluster import homogeneity_score
-        return homogeneity_score(labels_true, labels_pred)
-    except: #for system without sklearn
-        raise AttributeError("score: needs scikit-learn to use this method!")
+from .metrics import homogeneity_score 
 
 class KMeans(BaseEstimator):
     """
@@ -442,8 +436,8 @@ class SpectralClustering(BaseEstimator):
         return self.labels_
 
     def score(self, X, y, sample_weight=None):
-        """uses scikit-learn homogeneity_score for scoring"""
-        return clustering_score(y, self.fit_predict(X, y))
+        """returns homogeneity score"""
+        return homogeneity_score(y, self.fit_predict(X, y))
 
     def __str__(self):
         """
@@ -770,8 +764,8 @@ class AgglomerativeClustering(BaseEstimator):
 
     
     def score(self, X, y, sample_weight=None):
-        """uses scikit-learn homogeneity_score for scoring"""
-        return clustering_score(y, self.fit_predict(X, y))
+        """returns homogeneity score"""
+        return homogeneity_score(y, self.fit_predict(X, y))
 
     def __str__(self):
         """
@@ -988,8 +982,8 @@ class DBSCAN(BaseEstimator):
         return self._labels
 
     def score(self, X, y, sample_weight=None):
-        """uses scikit-learn homogeneity_score for scoring"""
-        return clustering_score(y, self.fit_predict(X))
+        """returns homogeneity score"""
+        return homogeneity_score(y, self.fit_predict(X))
 
     @property
     def labels_(self):
