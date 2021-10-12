@@ -107,14 +107,14 @@ void label(rowmajor_matrix_local<T>& Z, size_t n){
   auto size = Z.local_num_row;
   for(size_t i = 0; i < n; ++i) lptr[i] = i;
   for(size_t i = 0; i < size; ++i) {
-    auto x = (int ) zptr[i*4+0];
-    auto y = (int) zptr[i*4+1];
+    auto x = (int ) zptr[i * 4 + 0];
+    auto y = (int) zptr[i * 4 + 1];
     auto xx = lptr[x];
     auto yy = lptr[y];
     if(xx > yy) std::swap(xx, yy);
-    zptr[i*4+0] = xx;
-    zptr[i*4+1] = yy;
-    lptr[y] = n++;
+    zptr[i * 4 + 0] = xx;
+    zptr[i * 4 + 1] = yy;
+    lptr[y] = n + i;
   }
 }
 #endif
@@ -265,10 +265,10 @@ compute_dendogram (std::vector<T>& D, size_t n) {
     Z[k][2] = current_min;
     Z[k][3] = (T) szptr[x]+szptr[y];
 #else
-    zptr[k*4+0] = (T)x;
-    zptr[k*4+1] = (T)y;
-    zptr[k*4+2] = current_min;
-    zptr[k*4+3] = (T) szptr[x]+szptr[y];
+    zptr[k * 4 + 0] = (T)x;
+    zptr[k * 4 + 1] = (T)y;
+    zptr[k * 4 + 2] = current_min;
+    zptr[k * 4 + 3] = (T) szptr[x]+szptr[y];
 #endif
 
     ln.update_distance(D, size, x, y); // calling update_distance() of instantiated linkage object
@@ -310,18 +310,24 @@ assign_labels_vectorized(rowmajor_matrix_local<T>& Z,
     auto x = (int) Z[i][0];
     auto y = (int) Z[i][1];
 #else
-    auto x = (int) zptr[i*4+0];
-    auto y = (int) zptr[i*4+1];
+    auto x = (int) zptr[i * 4 + 0];
+    auto y = (int) zptr[i * 4 + 1];
 #endif
     auto e_indx = nsamples + i;
     if(eptr[e_indx] == -1) eptr[x] = eptr[y] = eptr[e_indx] = label++;
     else eptr[x] = eptr[y] = eptr[e_indx];
   }
-  std::vector<int> ret(nsamples);
-  auto rptr = ret.data();
-  for(size_t i = 0; i < nsamples; ++i) {
-    rptr[i] = (eptr[i] == -1) ? label++ : eptr[i];
-  }
+  std::vector<int> ret(nsamples); auto rptr = ret.data();
+  for(size_t i = 0; i < nsamples; ++i) rptr[i] = eptr[i];
+  // treat uninitialized points (if any)
+  auto find = vector_find_eq(ret, -1);
+  auto findp = find.data();
+  auto findsz = find.size();
+#pragma cdir nodep
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+  for(size_t i = 0; i < findsz; ++i) rptr[findp[i]] = label + i;
   return ret;
 }
 
@@ -418,7 +424,6 @@ agglomerative_impl(MATRIX& mat,
 }
 
 // --- definition of user APIS starts here ---
-
 template <class T, class MATRIX>
 #ifdef VEC_VEC
 std::vector<std::vector<T>>
@@ -428,24 +433,20 @@ rowmajor_matrix_local<T>
 agglomerative_training(const MATRIX& mat,
                        const std::string& linkage = "average") {
   auto movable = true;
-  auto nsamples = mat.num_row;
   auto lmat = mat.gather();
-  // linkage is passed as template
-  if (linkage == "average")
-    return agglomerative_impl<T, average_linkage<T>>(lmat, movable);
-  else if (linkage == "complete")
-    return agglomerative_impl<T, complete_linkage<T>>(lmat, movable);
-  else if (linkage == "single")
-    return agglomerative_impl<T, single_linkage<T>>(lmat, movable); 
-  else 
-     REPORT_ERROR(USER_ERROR,"Unsupported linkage type is encountered.\n");
-  
-#ifdef VEC_VEC 
-  std::vector<std::vector<T>> Z(nsamples-1, std::vector<T>(4));
+#ifdef VEC_VEC
+  std::vector<std::vector<T>> Z; 
 #else
-  rowmajor_matrix_local<T> Z(nsamples-1, 4);
+   rowmajor_matrix_local<T> Z;
 #endif
-
+  
+  if (linkage == "average")
+    Z = agglomerative_impl<T, average_linkage<T>>(lmat, movable);
+  else if (linkage == "complete")
+    Z = agglomerative_impl<T, complete_linkage<T>>(lmat, movable);
+  else if (linkage == "single")
+    Z = agglomerative_impl<T, single_linkage<T>>(lmat, movable); 
+  else REPORT_ERROR(USER_ERROR, "Unsupported linkage is provided!\n");
   return Z;  
 }
 
@@ -460,23 +461,20 @@ agglomerative_training(MATRIX&& mat,
                        const std::string& linkage = "average") {
   auto movable = true;
   auto lmat = mat.gather();
-  auto nsamples = mat.num_row;
   mat.clear(); // mat is rvalue
-  if (linkage == "average")
-    return agglomerative_impl<T, average_linkage<T>>(lmat, movable);
-  else if (linkage == "complete")
-    return agglomerative_impl<T, complete_linkage<T>>(lmat, movable);
-  else if (linkage == "single")
-    return agglomerative_impl<T, single_linkage<T>>(lmat, movable);
-  else
-    REPORT_ERROR(USER_ERROR,"Unsupported linkage type is encountered.\n");
- 
-#ifdef VEC_VEC 
-  std::vector<std::vector<T>> Z(nsamples-1, std::vector<T>(4));
+#ifdef VEC_VEC
+  std::vector<std::vector<T>> Z; 
 #else
-  rowmajor_matrix_local<T> Z(nsamples-1, 4);
+   rowmajor_matrix_local<T> Z;
 #endif
-
+  
+  if (linkage == "average")
+    Z = agglomerative_impl<T, average_linkage<T>>(lmat, movable);
+  else if (linkage == "complete")
+    Z = agglomerative_impl<T, complete_linkage<T>>(lmat, movable);
+  else if (linkage == "single")
+    Z = agglomerative_impl<T, single_linkage<T>>(lmat, movable);
+  else REPORT_ERROR(USER_ERROR, "Unsupported linkage is provided!\n");
   return Z; 
 }
    
@@ -489,19 +487,19 @@ rowmajor_matrix_local<T>
 agglomerative_training(rowmajor_matrix_local<T>& mat,
                        const std::string& linkage = "average") {
   auto movable = false;
-  auto nsamples = mat.local_num_row;
-  if (linkage == "average")
-    return agglomerative_impl<T, average_linkage<T>>(mat, movable);
-  else if (linkage == "complete")
-    return agglomerative_impl<T, complete_linkage<T>>(mat, movable);
-  else if (linkage == "single")
-    return agglomerative_impl<T, single_linkage<T>>(mat, movable);
-
-#ifdef VEC_VEC 
-  std::vector<std::vector<T>> Z(nsamples-1, std::vector<T>(4));
+#ifdef VEC_VEC
+  std::vector<std::vector<T>> Z; 
 #else
-  rowmajor_matrix_local<T> Z(nsamples-1, 4);
+   rowmajor_matrix_local<T> Z;
 #endif
+  
+  if (linkage == "average")
+    Z = agglomerative_impl<T, average_linkage<T>>(mat, movable);
+  else if (linkage == "complete")
+    Z = agglomerative_impl<T, complete_linkage<T>>(mat, movable);
+  else if (linkage == "single")
+    Z = agglomerative_impl<T, single_linkage<T>>(mat, movable);
+  else REPORT_ERROR(USER_ERROR, "Unsupported linkage is provided!\n");
   return Z;  
 }
 
@@ -514,19 +512,19 @@ rowmajor_matrix_local<T>
 agglomerative_training(rowmajor_matrix_local<T>&& mat,
                        const std::string& linkage = "average") {
   auto movable = true;
-  auto nsamples = mat.local_num_row;
-  if (linkage == "average")
-    return agglomerative_impl<T, average_linkage<T>>(mat, movable);
-  else if (linkage == "complete")
-    return agglomerative_impl<T, complete_linkage<T>>(mat, movable);
-  else if (linkage == "single")
-    return agglomerative_impl<T, single_linkage<T>>(mat, movable);
-
-#ifdef VEC_VEC 
-  std::vector<std::vector<T>> Z(nsamples-1, std::vector<T>(4));
+#ifdef VEC_VEC
+  std::vector<std::vector<T>> Z; 
 #else
-  rowmajor_matrix_local<T> Z(nsamples-1, 4);
+   rowmajor_matrix_local<T> Z;
 #endif
+  
+  if (linkage == "average")
+    Z = agglomerative_impl<T, average_linkage<T>>(mat, movable);
+  else if (linkage == "complete")
+    Z = agglomerative_impl<T, complete_linkage<T>>(mat, movable);
+  else if (linkage == "single")
+    Z = agglomerative_impl<T, single_linkage<T>>(mat, movable);
+  else REPORT_ERROR(USER_ERROR, "Unsupported linkage is provided!\n");
   return Z;  
 }
 
@@ -549,7 +547,8 @@ agglomerative_assign_cluster(rowmajor_matrix_local<T>& tree,
   time_spent assign(DEBUG);
   auto nsamples = tree.local_num_row + 1;
   if ((ncluster <= 0) || (ncluster > nsamples))
-    REPORT_ERROR(USER_ERROR,"Number of clusters should be greater than 0 and less than nsamples.\n");
+    REPORT_ERROR(USER_ERROR, 
+    "Number of clusters should be greater than 0 and less than nsamples.\n");
   ncluster_ = threshold ? calc_n_clusters(tree, threshold) : ncluster;  
   std::vector<int> label;
   assign.lap_start();
@@ -562,5 +561,4 @@ agglomerative_assign_cluster(rowmajor_matrix_local<T>& tree,
 }
 
 }
-
 #endif

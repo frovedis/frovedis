@@ -131,9 +131,32 @@ namespace frovedis {
       return homogeneity_score(true_label.gather(), pred_label);
     }
 
-    void debug_print(size_t limit = 0) { 
-      std::cout << "dendrogram: \n";
-      model.debug_print(limit); 
+    void debug_print(size_t limit = 5) { 
+      auto nrow = model.local_num_row;
+      auto vp = model.val.data();
+      std::cout << "--- dendrogram --- \n";
+      //model.debug_print(limit); 
+      std::cout << "\tX \tY \tdistance \tsize\n";
+      if(limit == 0 || nrow <= 2 * limit) {
+        for(size_t i = 0; i < nrow; ++i) {
+          std::cout << nrow + i + 1 << ":\t";
+          for(size_t j = 0; j < 3; ++j) std::cout << vp[i * 4 + j] << "\t";
+          std::cout << vp[i * 4 + 3] << std::endl;
+        }
+      }
+      else {
+        for(size_t i = 0; i < limit; ++i) {
+          std::cout << nrow + i + 1 << ":\t";
+          for(size_t j = 0; j < 3; ++j) std::cout << vp[i * 4 + j] << "\t";
+          std::cout << vp[i * 4 + 3] << std::endl;
+        }
+        std::cout << ":\n:\n";
+        for(size_t i = nrow - limit; i < nrow; ++i) {
+          std::cout << nrow + i + 1 << ":\t";
+          for(size_t j = 0; j < 3; ++j) std::cout << vp[i * 4 + j] << "\t";
+          std::cout << vp[i * 4 + 3] << std::endl;
+        }
+      }
     }
 
     void savebinary(const std::string& fname) { 
