@@ -168,7 +168,6 @@ class FPGrowth(object):
         NAME: fit
         """
         f_df = self.__check_input(data)
-        self.p_df = f_df.to_pandas_dataframe()
         self.release()
         self.__mid = ModelID.get()
         (host, port) = FrovedisServer.getServerInstance()
