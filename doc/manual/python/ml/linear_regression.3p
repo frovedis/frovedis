@@ -1,8 +1,8 @@
 .TH "Linear Regression" "" "" "" ""
 .SH NAME
 .PP
-Linear Regression \- A regression algorithm to predict the continuous
-output without any regularization.
+Linear Regression \- A regression algorithm used to predict the
+continuous output without any regularization.
 .SH SYNOPSIS
 .PP
 class frovedis.mllib.linear_model.LinearRegression(fit_intercept=True,
@@ -81,7 +81,7 @@ w is the linear model (also known as weight) which uses a single
 weighted sum of features to make a prediction.
 The method is called linear since it can be expressed as a function of
 wTx and y.
-Linear Regression does not use any regularizer.
+\f[B]Linear Regression does not use any regularizer.\f[]
 .PP
 The gradient of the squared loss is: (wTx\-y).x
 .PP
@@ -144,7 +144,7 @@ program will send the same request to the frovedis server.
 After the request is served at the frovedis server, the output would be
 sent back to the python client.
 .SS Detailed Description
-.SS LinearRegression()
+.SS 1. LinearRegression()
 .PP
 \f[B]Parameters\f[]
 .PD 0
@@ -195,7 +195,10 @@ containing the learning rate.
 \f[B]\f[I]solver\f[]\f[]: A string parameter specifying the solver to
 use.
 (Default: None).
-In case it is None (not explicitly specified), the value will be set to
+.PD 0
+.P
+.PD
+When it is None (not explicitly specified), the value will be set to
 "lapack" when dense input matrix (X) is provided and for sparse input
 matrix (X), it is set as "sparse_lsqr".
 Frovedis supports "sag", "lbfgs", "lapack", "scalapack", "sparse_lsqr"
@@ -245,13 +248,13 @@ used.
 .PD
 \f[B]\f[I]singular_\f[]\f[]: It is a python ndarray(contaning float or
 double(float64) typed values depending on data\-type of input matrix
-(X)) and of shape(min(X,y),) which is used to store singular values of
+(X)) and has shape(min(X,y),) which is used to store singular values of
 X.
 It is only available when X is dense and "lapack" solver is used.
 .PD 0
 .P
 .PD
-\f[B]\f[I]intercept(bias)_\f[]\f[]: It is a python ndarray(contaning
+\f[B]\f[I]intercept_(bias)\f[]\f[]: It is a python ndarray(contaning
 float or double(float64) typed values depending on data\-type of input
 matrix (X)).
 If fit_intercept is set to False, the intercept is set to zero.
@@ -288,7 +291,7 @@ same.
 .P
 .PD
 It simply returns "self" reference.
-.SS fit(X, y, sample_weight = None)
+.SS 2. fit(X, y, sample_weight = None)
 .PP
 \f[B]Parameters\f[]
 .PD 0
@@ -305,11 +308,12 @@ FrovedisDvector.
 .PD 0
 .P
 .PD
-\f[B]\f[I]sample_weight\f[]\f[]: Python array\-like containing the
-intended weights for each input samples and it should be the shape of
-(nsamples, ).
-When it is None (not specified), an uniform weight vector is assigned on
-each input sample.
+\f[B]\f[I]sample_weight\f[]\f[]: A python narray containing the intended
+weights for each input samples and it should be the shape of (nsamples,
+).
+When it is None (not specified explicitly), an uniform weight vector is
+assigned on each input sample.
+(Default: None)
 .PP
 \f[B]Purpose\f[]
 .PD 0
@@ -366,7 +370,7 @@ lr\ =\ LinearRegression(solver\ =\ \[aq]sag\[aq]).fit(cmat,\ dlbl)\ \
 .P
 .PD
 It simply returns "self" reference.
-.SS predict(X)
+.SS 3. predict(X)
 .PP
 \f[B]Parameters\f[]
 .PD 0
@@ -401,11 +405,16 @@ Output
 \f[]
 .fi
 .PP
-If the above pre\-constructed training data (cmat) is to be used during
-prediction, the same can be used as follows:
+Like in fit(), frovedis\-like input can be used to speed\-up the
+prediction making on the trained model at server side.
+.PP
+For example,
 .IP
 .nf
 \f[C]
+#\ Since\ "cmat"\ is\ FrovedisColmajorMatrix,\ we\ have\ created\ FrovedisRowmajorMatrix.
+from\ frovedis.matrix.dense\ import\ FrovedisRowmajorMatrix
+
 #\ predicting\ on\ sag\ linear\ regression\ model\ using\ pre\-constructed\ input
 lr.predict(cmat.to_frovedis_rowmatrix())
 \f[]
@@ -426,7 +435,7 @@ Output
 .PD
 It returns a numpy array of float or double(float64) type and has shape
 (n_samples,) containing the predicted outputs.
-.SS score(X, y, sample_weight = None)
+.SS 4. score(X, y, sample_weight = None)
 .PP
 \f[B]Parameters\f[]
 .PD 0
@@ -446,8 +455,9 @@ FrovedisDvector.
 \f[B]\f[I]sample_weight\f[]\f[]: Python array\-like containing the
 intended weights for each input samples and it should be the shape of
 (nsamples, ).
-When it is None (not specified), an uniform weight vector is assigned on
-each input sample.
+When it is None (not specified explicitly), an uniform weight vector is
+assigned on each input sample.
+(Default: None)
 .PP
 \f[B]Purpose\f[]
 .PD 0
@@ -499,7 +509,7 @@ Output
 .P
 .PD
 It returns an R2 score of float type.
-.SS load(fname, dtype = None)
+.SS 5. load(fname, dtype = None)
 .PP
 \f[B]Parameters\f[]
 .PD 0
@@ -534,7 +544,7 @@ lr.load("./out/LNRModel")
 .P
 .PD
 It simply returns "self" instance.
-.SS save(fname)
+.SS 6. save(fname)
 .PP
 \f[B]Parameters\f[]
 .PD 0
@@ -567,7 +577,7 @@ This will save the linear regression model on the path "/out/LNRModel".
 .P
 .PD
 It returns nothing.
-.SS debug_print()
+.SS 7. debug_print()
 .PP
 \f[B]Purpose\f[]
 .PD 0
@@ -604,7 +614,7 @@ is currently present on the server.
 .P
 .PD
 It returns nothing.
-.SS release()
+.SS 8. release()
 .PP
 \f[B]Purpose\f[]
 .PD 0
@@ -628,7 +638,7 @@ releasing server side memory.
 .P
 .PD
 It returns nothing.
-.SS is_fitted()
+.SS 9. is_fitted()
 .PP
 \f[B]Purpose\f[]
 .PD 0
@@ -646,4 +656,4 @@ It returns ‘True', if the model is already fitted otherwise, it returns
 ‘False'.
 .SH SEE ALSO
 .PP
-lasso_regression, ridge_regression, dvector, crs_matrix
+lasso_regression, ridge_regression, dvector, crs_matrix, rowmajor_matrix

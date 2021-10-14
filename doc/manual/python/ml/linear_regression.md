@@ -2,7 +2,7 @@
 
 # NAME
 
-Linear Regression - A regression algorithm to predict 
+Linear Regression - A regression algorithm used to predict 
 the continuous output without any regularization.
 
 # SYNOPSIS
@@ -15,7 +15,7 @@ class frovedis.mllib.linear_model.LinearRegression(fit_intercept=True, normalize
 \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
 \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ lr_rate=1e-8, solver=None,  
 \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ verbose=0, warm_start = False)
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ verbose=0, warm_start = False)  
 
 ## Public Member Functions
   
@@ -24,7 +24,7 @@ predict(X)
 score(X, y, sample_weight = None)  
 load(fname, dtype = None)  
 save(fname)  
-debug_print()    
+debug_print()  
 release()  
 is_fitted()  
 
@@ -37,8 +37,8 @@ It is a linear method with the loss function given by the **squared loss**:
 Where the vectors x are the training data examples and y are their corresponding 
 labels which we want to predict. w is the linear model (also known as weight) 
 which uses a single weighted sum of features to make a prediction. The method 
-is called linear since it can be expressed as a function of wTx and y. Linear 
-Regression does not use any regularizer. 
+is called linear since it can be expressed as a function of wTx and y. **Linear 
+Regression does not use any regularizer.**  
 
 The gradient of the squared loss is: (wTx-y).x   
 
@@ -59,7 +59,7 @@ the inverse Hessian matrix to steer its search through feature space,
 but where BFGS stores a dense nxn approximation to the inverse Hessian 
 (n being the number of features in the problem), L-BFGS stores only a few 
 vectors that represent the approximation implicitly. L-BFGS often achieves 
-rapider convergence compared with other first-order optimization.
+rapider convergence compared with other first-order optimization.  
 
 For least-square solver, we have used LAPACK routine "gelsd" and ScaLAPACK routine
 "gels" when input data is dense in nature. For the sparse-input we have provided a
@@ -72,7 +72,7 @@ It can be used simply even if the system doesn't have Scikit-learn installed. Th
 in this implementation, a python client can interact with a frovedis server by sending
 the required python data for training at frovedis side. Python data is converted
 into frovedis compatible data internally and the python ML call is linked with the
-respective frovedis ML call to get the job done at frovedis server. 
+respective frovedis ML call to get the job done at frovedis server.  
 
 Python side calls for Linear Regression on the frovedis server. Once the training is
 completed with the input data at the frovedis server, it returns an abstract model 
@@ -84,7 +84,7 @@ server, the output would be sent back to the python client.
 
 ## Detailed Description  
 
-### LinearRegression()
+### 1. LinearRegression()  
 
 __Parameters__   
 **_fit\_intercept_**: A boolean parameter specifying whether a constant(intercept) 
@@ -98,8 +98,8 @@ When it is None(not specified explicitly), it will be set as 1000 for "sag", "lb
 **_tol_**: Zero or a positive value of double(float64) type specifying the convergence tolerance 
 value. (Default: 0.001)  
 **_lr\_rate_**: A positive value of double(float64) type containing the learning rate. (Default: 1e-8)  
-**_solver_**: A string parameter specifying the solver to use. (Default: None). In case 
-it is None (not explicitly specified), the value will be set to "lapack" 
+**_solver_**: A string parameter specifying the solver to use. (Default: None).  
+When it is None (not explicitly specified), the value will be set to "lapack" 
 when dense input matrix (X) is provided and for sparse input matrix (X), it is set as
 "sparse_lsqr". Frovedis supports "sag", "lbfgs", "lapack", "scalapack", "sparse_lsqr"
 solvers.  
@@ -119,9 +119,9 @@ It has shape (n_features,).
 **_rank\__**: An integer value used to store rank of matrix (X). It is only available when
 matrix (X) is dense and "lapack" solver is used.  
 **_singular\__**: It is a python ndarray(contaning float or double(float64) typed values depending
-on data-type of input matrix (X)) and of shape(min(X,y),) which is  used to store singular 
+on data-type of input matrix (X)) and has shape(min(X,y),) which is  used to store singular 
 values of X. It is only available when X is dense and "lapack" solver is used.  
-**_intercept(bias)\__**: It is a python ndarray(contaning float or double(float64) typed values 
+**_intercept\_(bias)_**: It is a python ndarray(contaning float or double(float64) typed values 
 depending on data-type of input matrix (X)). If fit_intercept is set to False, the intercept 
 is set to zero. It has shape (1,).  
 **_n\_iter\__**: A positive integer value used to get the actual iteration point at which the 
@@ -144,14 +144,14 @@ the convergence is not achieved, it displays a warning for the same.
 __Return Value__    
 It simply returns "self" reference. 
 
-### fit(X, y, sample_weight = None)
+### 2. fit(X, y, sample_weight = None)  
 __Parameters__   
 **_X_**: A numpy dense or scipy sparse matrix or any python array-like object or an instance 
 of FrovedisCRSMatrix for sparse data and FrovedisColmajorMatrix for dense data.      
 **_y_**: Any python array-like object or an instance of FrovedisDvector.     
-**_sample\_weight_**: Python array-like containing the intended weights for each
-input samples and it should be the shape of (nsamples, ). When it is None (not specified),
-an uniform weight vector is assigned on each input sample.  
+**_sample\_weight_**: A python narray containing the intended weights for each
+input samples and it should be the shape of (nsamples, ). When it is None (not specified explicitly),
+an uniform weight vector is assigned on each input sample. (Default: None)  
 
 __Purpose__    
 It accepts the training feature matrix (X) and corresponding output labels (y) 
@@ -193,7 +193,7 @@ For example,
 __Return Value__  
 It simply returns "self" reference.  
 
-### predict(X)
+### 3. predict(X)  
 __Parameters__   
 **_X_**: A numpy dense or scipy sparse matrix or any python array-like object or an instance 
 of FrovedisCRSMatrix for sparse data and FrovedisRowmajorMatrix for dense data.  
@@ -212,9 +212,14 @@ Output
     [30.00384338 25.02556238 30.56759672 28.60703649 27.94352423 25.25628446
      23.00180827 19.53598843 11.52363685 18.92026211]
 
-If the above pre-constructed training data (cmat) is to be used during prediction, the
-same can be used as follows:
+Like in fit(), frovedis-like input can be used to speed-up the prediction making on 
+the trained model at server side.  
 
+For example,  
+
+    # Since "cmat" is FrovedisColmajorMatrix, we have created FrovedisRowmajorMatrix.
+    from frovedis.matrix.dense import FrovedisRowmajorMatrix
+    
     # predicting on sag linear regression model using pre-constructed input
     lr.predict(cmat.to_frovedis_rowmatrix())
 
@@ -227,14 +232,14 @@ __Return Value__
 It returns a numpy array of float or double(float64) type and has shape (n_samples,) 
 containing the predicted outputs. 
 
-### score(X, y, sample_weight = None)
+### 4. score(X, y, sample_weight = None)  
 __Parameters__  
 **_X_**: A numpy dense or scipy sparse matrix or any python array-like object or an 
 instance of FrovedisCRSMatrix for sparse data and FrovedisRowmajorMatrix for dense data.  
 **_y_**: Any python array-like object or an instance of FrovedisDvector.     
 **_sample\_weight_**: Python array-like containing the intended weights for each
-input samples and it should be the shape of (nsamples, ). When it is None (not specified),
-an uniform weight vector is assigned on each input sample.  
+input samples and it should be the shape of (nsamples, ). When it is None (not specified explicitly), 
+an uniform weight vector is assigned on each input sample. (Default: None)
 
 __Purpose__  
 Calculate the root mean square value on the given test data and labels i.e. 
@@ -259,7 +264,7 @@ Output
 __Return Value__  
 It returns an R2 score of float type.
  
-### load(fname, dtype = None)
+### 5. load(fname, dtype = None)  
 __Parameters__   
 **_fname_**: A string object containing the name of the file having model 
 information to be loaded.    
@@ -276,7 +281,7 @@ For example,
 __Return Value__  
 It simply returns "self" instance.   
 
-### save(fname)
+### 6. save(fname)  
 __Parameters__   
 **_fname_**: A string object containing the name of the file on which the target 
 model is to be saved.    
@@ -295,7 +300,7 @@ This will save the linear regression model on the path "/out/LNRModel".
 __Return Value__  
 It returns nothing.  
 
-### debug_print()
+### 7. debug_print()  
 
 __Purpose__    
 It shows the target model information (weight values, intercept) on the server side 
@@ -318,7 +323,7 @@ on the server.
 __Return Value__  
 It returns nothing.  
 
-### release()
+### 8. release()  
 
 __Purpose__    
 It can be used to release the in-memory model at frovedis server.  
@@ -333,7 +338,7 @@ side memory.
 __Return Value__  
 It returns nothing.  
 
-### is_fitted()
+### 9. is_fitted()  
 
 __Purpose__    
 It can be used to confirm if the model is already fitted or not. In case, predict() is used 
@@ -343,4 +348,4 @@ __Return Value__
 It returns ‘True’, if the model is already fitted otherwise, it returns ‘False’.
 
 # SEE ALSO  
-lasso_regression, ridge_regression, dvector, crs_matrix      
+lasso_regression, ridge_regression, dvector, crs_matrix, rowmajor_matrix      
