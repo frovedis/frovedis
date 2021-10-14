@@ -2,7 +2,7 @@
 
 # NAME
 
-A most common type of hierarchical clustering used to group objects 
+Agglomerative Clustering - The most common type of hierarchical clustering used to group objects 
 in clusters based on their similarities.   
 
 # SYNOPSIS
@@ -58,7 +58,7 @@ server, the output would be sent back to the python client.
 
 ## Detailed Description  
 
-### AgglomerativeClustering()   
+### 1. AgglomerativeClustering()   
 
 __Parameters__  
 **_n\_clusters_**: An integer parameter specifying the number of clusters. The number of
@@ -69,12 +69,17 @@ clusters should be greater than 0 and less than n_samples. (Default: 2)
 **_compute\_full\_tree_**: An unused parameter. (Default: 'auto')  
 **_linkage_**: A string parameter used to specify linkage criterion. It determines 
 which distance to use between sets of observation. The algorithm will merge the pairs of 
-clusters that minimize this criterion. Only 'average', 'complete' and 'single' are 
-supported. (Default: 'average')  
+clusters that minimize this criterion.   
+'average' uses the average of the distances of each observation of the two sets.  
+'complete' linkage uses the maximum distances between all observations of the 
+two sets.  
+'single' uses the minimum of the distances between all observations of the two sets.  
+Only 'average', 'complete' and 'single' are supported. (Default: 'average')  
 **_distance\_threshold_**: A float or double(float64) type parameter, is the linkage distance
 threshold above which the clusters will not be merged. It must be zero or positive value. (Default: None)  
 When it is None (not specified explicitly), it will be set as 0.0.  
-**_compute\_distances_**: An unused parameter. (Default: False)  
+**_compute\_distances_**: Unlike sklearn, it is alwats True for frovedis. Hence, this parameter 
+is left unused. (Default: False)  
 **_verbose_**: An integer parameter specifying the log level to use. Its value is 0 by 
 default (for INFO mode and not specified explicitly). But it can be set to 1 (for DEBUG mode) 
 or 2 (for TRACE mode) for getting training time logs from frovedis server.  
@@ -101,12 +106,12 @@ module. They are not used anywhere within frovedis implementation.
 __Return Value__  
 It simply returns "self" reference. 
 
-### fit(X, y = None)  
+### 2. fit(X, y = None)  
 __Parameters__   
 **_X_**: A numpy dense or scipy sparse matrix or any python array-like object or 
 an instance of FrovedisCRSMatrix for sparse data and FrovedisRowmajorMatrix for dense data.  
 **_y_**: None or any python array-like object (any shape). It is simply ignored in frovedis
-implementation and in Scikit-learn as well.  
+implementation, like in Scikit-learn as well.  
 
 __Purpose__  
 It clusters the given data points (X) into a predefined number of clusters.  
@@ -142,12 +147,12 @@ For example,
 __Return Value__  
 It simply returns "self" reference.  
 
-### fit_predict(X, y = None)  
+### 3. fit_predict(X, y = None)  
 __Parameters__   
 **_X_**: A numpy dense or scipy sparse matrix or any python array-like object or 
 an instance of FrovedisCRSMatrix for sparse data and FrovedisRowmajorMatrix for dense data.  
 **_y_**: None or any python array-like object (any shape). It is simply ignored in frovedis
-implementation and in Scikit-learn as well.  
+implementation, like in Scikit-learn as well.  
 
 __Purpose__  
 It clusters the given data points (X) into a predefined number of clusters. In addition to 
@@ -167,10 +172,7 @@ Output
 
     [1 1 0 0 0]
 
-When native python data is provided, it is converted to frovedis-like inputs and 
-sent to frovedis server which consumes some data transfer time. Pre-constructed 
-frovedlis-like inputs can be used to speed up the training time, specially when 
-same data would be used for multiple executions.  
+Like in fit(), frovedis-like input can be used to speed-up the trainng at server side.  
 
 For example,
 
@@ -194,12 +196,14 @@ Output
 __Return Value__  
 It returns a numpy array of int64 type containing the cluster labels. It has a shape(n_samples,).  
 
-### reassign(ncluster = None)  
+### 4. reassign(ncluster = None)  
 __Parameters__   
-**_nclusters_**: An integer parameter specifying the number of clusters. The number of
-clusters should be greater than 0 and less than n_samples. (Default: None)  
+**_nclusters_**: An integer parameter specifying the number of clusters to be reassigned 
+for the fitted data without computing the tree again. The number of clusters should be 
+greater than 0 and less than n_samples. (Default: None)  
 When it is None (not specified explicitly), it simply returns the same cluster labels of 
-already fitted clustering model (using above ncluster = 2).   
+already fitted clustering model. In this case, 'ncluster' becomes the 'n_cluster' value used 
+during fit().
 
 __Purpose__    
 It accepts the number of clusters (nclusters) in order to make prediction with different 
@@ -217,7 +221,7 @@ Output
 __Return Value__  
 It returns a numpy array of int64 type containing the cluster labels. It has a shape(n_samples,).  
 
-### score(X, y, sample_weight = None)  
+### 5. score(X, y, sample_weight = None)  
 __Parameters__   
 **_X_**: A numpy dense or scipy sparse matrix or any python array-like object or 
 an instance of FrovedisCRSMatrix for sparse data and FrovedisRowmajorMatrix for dense data.  
@@ -226,12 +230,12 @@ an instance of FrovedisCRSMatrix for sparse data and FrovedisRowmajorMatrix for 
 in frovedis implementation.  
 
 __Purpose__  
-It uses scikit-learn homogeneity score on given test data and labels i.e homogeneity score 
-of self.predict(X, y) wrt. y.  
+It uses homogeneity score on given test data and labels i.e homogeneity score of 
+self.predict(X, y) wrt. y.  
 
 For example,
 
-    acm.score(train_mat, [1, 0, 0, 0, 2])  
+    acm.score(train_mat, [0, 0, 1, 1 1]) 
 
 Output
 
@@ -240,7 +244,7 @@ Output
 __Return Value__  
 It returns a homogeneity score of float type.
 
-### load(fname, dtype = None)  
+### 6. load(fname, dtype = None)  
 __Parameters__   
 **_fname_**:  A string object containing the name of the file having model information
 to be loaded.  
@@ -258,7 +262,7 @@ For example,
 __Return Value__  
 It simply returns "self" instance.  
 
-### save(fname)  
+### 7. save(fname)  
 __Parameters__  
 **_fname_**: A string object containing the name of the file on which the target 
 model is to be saved.  
@@ -277,7 +281,7 @@ This will save the agglomerative clustering model on the path "/out/MyAcmCluster
 __Return Value__  
 It returns nothing.
 
-### debug_print()  
+### 8. debug_print()  
 
 __Purpose__  
 It shows the target model information(dendogram) on the server side user terminal. 
@@ -289,14 +293,20 @@ For example,
     
 Output  
 
-    dendrogram:
-    node = 0, local_num_row = 4, local_num_col = 4, val = 2 3 0.173205 2 0 1 0.173205 2 4 5  
-    0.259808 3 6 7 15.5019 5
+    --- dendrogram ---
+            X       Y       distance        size
+    5:      2       3       0.173205        2
+    6:      0       1       0.173205        2
+    7:      4       5       0.259808        3
+    8:      6       7       15.5019 5
+
+It displays the dendrogram on the trained model which is currently present on the server. 
+Using the dendrogram, the desired number of clusters may be found. 
 
 __Return Value__  
 It returns nothing.  
 
-### release()  
+### 9. release()  
 
 __Purpose__  
 It can be used to release the in-memory model at frovedis server.  
@@ -311,7 +321,7 @@ side memory.
 __Return Value__  
 It returns nothing.  
 
-### is_fitted()  
+### 10. is_fitted()  
 
 __Purpose__  
 It can be used to confirm if the model is already fitted or not. In case, reassign() is used 

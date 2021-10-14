@@ -1,8 +1,9 @@
 .TH "Agglomerative Clustering" "" "" "" ""
 .SH NAME
 .PP
-A most common type of hierarchical clustering used to group objects in
-clusters based on their similarities.
+Agglomerative Clustering \- The most common type of hierarchical
+clustering used to group objects in clusters based on their
+similarities.
 .SH SYNOPSIS
 .PP
 class frovedis.mllib.cluster.AgglomerativeClustering(n_clusters=2,
@@ -100,7 +101,7 @@ program will send the same request to the frovedis server.
 After the request is served at the frovedis server, the output would be
 sent back to the python client.
 .SS Detailed Description
-.SS AgglomerativeClustering()
+.SS 1. AgglomerativeClustering()
 .PP
 \f[B]Parameters\f[]
 .PD 0
@@ -138,6 +139,24 @@ criterion.
 It determines which distance to use between sets of observation.
 The algorithm will merge the pairs of clusters that minimize this
 criterion.
+.PD 0
+.P
+.PD
+\[aq]average\[aq] uses the average of the distances of each observation
+of the two sets.
+.PD 0
+.P
+.PD
+\[aq]complete\[aq] linkage uses the maximum distances between all
+observations of the two sets.
+.PD 0
+.P
+.PD
+\[aq]single\[aq] uses the minimum of the distances between all
+observations of the two sets.
+.PD 0
+.P
+.PD
 Only \[aq]average\[aq], \[aq]complete\[aq] and \[aq]single\[aq] are
 supported.
 (Default: \[aq]average\[aq])
@@ -156,7 +175,9 @@ When it is None (not specified explicitly), it will be set as 0.0.
 .PD 0
 .P
 .PD
-\f[B]\f[I]compute_distances\f[]\f[]: An unused parameter.
+\f[B]\f[I]compute_distances\f[]\f[]: Unlike sklearn, it is alwats True
+for frovedis.
+Hence, this parameter is left unused.
 (Default: False)
 .PD 0
 .P
@@ -216,7 +237,7 @@ They are not used anywhere within frovedis implementation.
 .P
 .PD
 It simply returns "self" reference.
-.SS fit(X, y = None)
+.SS 2. fit(X, y = None)
 .PP
 \f[B]Parameters\f[]
 .PD 0
@@ -229,8 +250,8 @@ and FrovedisRowmajorMatrix for dense data.
 .P
 .PD
 \f[B]\f[I]y\f[]\f[]: None or any python array\-like object (any shape).
-It is simply ignored in frovedis implementation and in Scikit\-learn as
-well.
+It is simply ignored in frovedis implementation, like in Scikit\-learn
+as well.
 .PP
 \f[B]Purpose\f[]
 .PD 0
@@ -282,7 +303,7 @@ acm\ =\ AgglomerativeClustering(n_clusters\ =\ 2).fit(rmat)
 .P
 .PD
 It simply returns "self" reference.
-.SS fit_predict(X, y = None)
+.SS 3. fit_predict(X, y = None)
 .PP
 \f[B]Parameters\f[]
 .PD 0
@@ -295,8 +316,8 @@ and FrovedisRowmajorMatrix for dense data.
 .P
 .PD
 \f[B]\f[I]y\f[]\f[]: None or any python array\-like object (any shape).
-It is simply ignored in frovedis implementation and in Scikit\-learn as
-well.
+It is simply ignored in frovedis implementation, like in Scikit\-learn
+as well.
 .PP
 \f[B]Purpose\f[]
 .PD 0
@@ -329,12 +350,8 @@ Output
 \f[]
 .fi
 .PP
-When native python data is provided, it is converted to frovedis\-like
-inputs and sent to frovedis server which consumes some data transfer
-time.
-Pre\-constructed frovedlis\-like inputs can be used to speed up the
-training time, specially when same data would be used for multiple
-executions.
+Like in fit(), frovedis\-like input can be used to speed\-up the trainng
+at server side.
 .PP
 For example,
 .IP
@@ -369,22 +386,24 @@ Output
 .PD
 It returns a numpy array of int64 type containing the cluster labels.
 It has a shape(n_samples,).
-.SS reassign(ncluster = None)
+.SS 4. reassign(ncluster = None)
 .PP
 \f[B]Parameters\f[]
 .PD 0
 .P
 .PD
 \f[B]\f[I]nclusters\f[]\f[]: An integer parameter specifying the number
-of clusters.
+of clusters to be reassigned for the fitted data without computing the
+tree again.
 The number of clusters should be greater than 0 and less than n_samples.
 (Default: None)
 .PD 0
 .P
 .PD
 When it is None (not specified explicitly), it simply returns the same
-cluster labels of already fitted clustering model (using above ncluster
-= 2).
+cluster labels of already fitted clustering model.
+In this case, \[aq]ncluster\[aq] becomes the \[aq]n_cluster\[aq] value
+used during fit().
 .PP
 \f[B]Purpose\f[]
 .PD 0
@@ -416,7 +435,7 @@ Output
 .PD
 It returns a numpy array of int64 type containing the cluster labels.
 It has a shape(n_samples,).
-.SS score(X, y, sample_weight = None)
+.SS 5. score(X, y, sample_weight = None)
 .PP
 \f[B]Parameters\f[]
 .PD 0
@@ -440,15 +459,15 @@ It is simply ignored in frovedis implementation.
 .PD 0
 .P
 .PD
-It uses scikit\-learn homogeneity score on given test data and labels
-i.e homogeneity score of self.predict(X, y) wrt.
+It uses homogeneity score on given test data and labels i.e homogeneity
+score of self.predict(X, y) wrt.
 y.
 .PP
 For example,
 .IP
 .nf
 \f[C]
-acm.score(train_mat,\ [1,\ 0,\ 0,\ 0,\ 2])\ \ 
+acm.score(train_mat,\ [0,\ 0,\ 1,\ 1\ 1])\ 
 \f[]
 .fi
 .PP
@@ -465,7 +484,7 @@ Output
 .P
 .PD
 It returns a homogeneity score of float type.
-.SS load(fname, dtype = None)
+.SS 6. load(fname, dtype = None)
 .PP
 \f[B]Parameters\f[]
 .PD 0
@@ -500,7 +519,7 @@ acm.load("./out/MyAcmClusteringModel",\ dtype\ =\ np.float64)
 .P
 .PD
 It simply returns "self" instance.
-.SS save(fname)
+.SS 7. save(fname)
 .PP
 \f[B]Parameters\f[]
 .PD 0
@@ -534,7 +553,7 @@ This will save the agglomerative clustering model on the path
 .P
 .PD
 It returns nothing.
-.SS debug_print()
+.SS 8. debug_print()
 .PP
 \f[B]Purpose\f[]
 .PD 0
@@ -556,18 +575,25 @@ Output
 .IP
 .nf
 \f[C]
-dendrogram:
-node\ =\ 0,\ local_num_row\ =\ 4,\ local_num_col\ =\ 4,\ val\ =\ 2\ 3\ 0.173205\ 2\ 0\ 1\ 0.173205\ 2\ 4\ 5\ \ 
-0.259808\ 3\ 6\ 7\ 15.5019\ 5
+\-\-\-\ dendrogram\ \-\-\-
+\ \ \ \ \ \ \ \ X\ \ \ \ \ \ \ Y\ \ \ \ \ \ \ distance\ \ \ \ \ \ \ \ size
+5:\ \ \ \ \ \ 2\ \ \ \ \ \ \ 3\ \ \ \ \ \ \ 0.173205\ \ \ \ \ \ \ \ 2
+6:\ \ \ \ \ \ 0\ \ \ \ \ \ \ 1\ \ \ \ \ \ \ 0.173205\ \ \ \ \ \ \ \ 2
+7:\ \ \ \ \ \ 4\ \ \ \ \ \ \ 5\ \ \ \ \ \ \ 0.259808\ \ \ \ \ \ \ \ 3
+8:\ \ \ \ \ \ 6\ \ \ \ \ \ \ 7\ \ \ \ \ \ \ 15.5019\ 5
 \f[]
 .fi
+.PP
+It displays the dendrogram on the trained model which is currently
+present on the server.
+Using the dendrogram, the desired number of clusters may be found.
 .PP
 \f[B]Return Value\f[]
 .PD 0
 .P
 .PD
 It returns nothing.
-.SS release()
+.SS 9. release()
 .PP
 \f[B]Purpose\f[]
 .PD 0
@@ -591,7 +617,7 @@ releasing server side memory.
 .P
 .PD
 It returns nothing.
-.SS is_fitted()
+.SS 10. is_fitted()
 .PP
 \f[B]Purpose\f[]
 .PD 0
