@@ -64,6 +64,8 @@ class NearestNeighbors(BaseEstimator):
                                 "not supported \n")
         if self.batch_fraction is None:
             self.batch_fraction = np.finfo(np.float64).max
+        elif self.batch_fraction == np.finfo(np.float64).max:
+            pass # might be set to DBLMAX in recurrent calls to fit() etc.
         elif self.batch_fraction <= 0.0 or self.batch_fraction > 1.0:
             raise ValueError("batch fraction should be between 0.0 and 1.0")
             

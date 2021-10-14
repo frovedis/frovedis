@@ -8,6 +8,7 @@ import os.path
 import pickle
 import numpy as np
 import numbers
+import warnings
 from ..base import *
 from ..exrpc import rpclib
 from ..exrpc.server import FrovedisServer, set_association, \
@@ -569,7 +570,7 @@ class AgglomerativeClustering(BaseEstimator):
     def __init__(self, n_clusters=2, affinity='euclidean', memory=None,
                  connectivity=None, compute_full_tree='auto',
                  linkage='average', distance_threshold=None,
-                 compute_distances=False, verbose=0):
+                 compute_distances=True, verbose=0):
         self.n_clusters = n_clusters
         self.affinity = affinity
         self.memory = memory
@@ -578,6 +579,7 @@ class AgglomerativeClustering(BaseEstimator):
         self.linkage = linkage
         self.verbose = verbose
         self.threshold = distance_threshold
+        self.compute_distances = compute_distances
         # extra
         self.__mid = None
         self.__mdtype = None
@@ -607,6 +609,9 @@ class AgglomerativeClustering(BaseEstimator):
                               + "given linkage!")
         if self.threshold is None:
             self.threshold = 0.0
+        if not self.compute_distances:
+            warnings.warn("'compute_distances' is set to False, " \
+            "but Frovedis implementation would always compute distances!\n")
         
     @set_association
     def fit(self, X, y=None):
@@ -912,6 +917,8 @@ class DBSCAN(BaseEstimator):
                 % self.algorithm)
         if self.batch_fraction is None:
             self.batch_fraction = np.finfo(np.float64).max
+        elif self.batch_fraction == np.finfo(np.float64).max:
+            pass # might be set to DBLMAX in recurrent calls to fit() etc.
         elif self.batch_fraction <= 0.0 or self.batch_fraction > 1.0:
             raise ValueError("batch fraction should be in between 0.0 and 1.0")            
 

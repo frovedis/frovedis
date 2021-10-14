@@ -20,6 +20,7 @@ class LogisticRegression(BaseEstimator):
     """
     A python wrapper of Frovedis Logistic Regression
     defaults are as per Frovedis
+    C: Frovedis: 100, Sklearn: 1
     max_iter: Frovedis: 1000, Sklearn: 100
     lr_rate: Frovedis: 0.01 (added)
     use_shrink: Frovedis: false (added)
