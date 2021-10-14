@@ -92,9 +92,9 @@ The most common classification type is binary classification, where
 there are two categories, usually named positive and negative.
 The other is multinomial classification, where there are more than two
 categories.
-Frovedis supports both binary and multinomial logistic regression
-algorithms.
-For multinomial classification, it uses softmax probability.
+\f[B]Frovedis supports both binary and multinomial logistic regression
+algorithms.\f[] For multinomial classification, it uses softmax
+probability.
 .PP
 Logistic regression is widely used to predict a binary response.
 It is a linear method with the loss function given by the \f[B]logistic
@@ -209,7 +209,7 @@ program will send the same request to the frovedis server.
 After the request is served at the frovedis server, the output would be
 sent back to the python client.
 .SS Detailed Description
-.SS LogisticRegression()
+.SS 1. LogisticRegression()
 .PP
 \f[B]Parameters\f[]
 .PD 0
@@ -234,9 +234,8 @@ It must be zero or a postive value.
 .PD 0
 .P
 .PD
-\f[B]\f[I]C\f[]\f[]: A float parameter, it is the inverse of
+\f[B]\f[I]C\f[]\f[]: A positive float parameter, it is the inverse of
 regularization strength.
-It must be a positive value of float type.
 Like in support vector machines, smaller values specify stronger
 regularization.
 (Default: 100.0)
@@ -276,11 +275,11 @@ regression model.
 .PD 0
 .P
 .PD
-"sag" handle L1, L2 or no penalty.
+"sag" can handle L1, L2 or no penalty.
 .PD 0
 .P
 .PD
-"lbfgs" handle only L2 penalty.
+"lbfgs" can handle only L2 penalty.
 .PD 0
 .P
 .PD
@@ -290,7 +289,7 @@ iteration count.
 .PD 0
 .P
 .PD
-\f[B]\f[I]multi_class\f[]\f[]: A string object specifying type of
+\f[B]\f[I]multi_class\f[]\f[]: A string object specifying the type of
 classification.
 If it is "auto" or "ovr", then a binary classification is selected when
 N = 2, otherwise multinomial classification is selected (where N is the
@@ -353,7 +352,7 @@ It has shape (1, n_features) when the given problem is "binary" and
 .PD 0
 .P
 .PD
-\f[B]\f[I]intercept(bias)_\f[]\f[]: It is a python ndarray(float or
+\f[B]\f[I]intercept_(bias)\f[]\f[]: It is a python ndarray(float or
 double(float64) values depending on input matrix data type) If
 fit_intercept is set to False, the intercept is set to zero.
 It has shape (1,) when the given problem is "binary" and (n_classes)
@@ -388,7 +387,7 @@ They are not used anywhere within the frovedis implementation.
 .P
 .PD
 It simply returns "self" reference.
-.SS fit(X, y, sample_weight = None)
+.SS 2. fit(X, y, sample_weight = None)
 .PP
 \f[B]Parameters\f[]
 .PD 0
@@ -405,11 +404,12 @@ FrovedisDvector.
 .PD 0
 .P
 .PD
-\f[B]\f[I]sample_weight\f[]\f[]: Python array\-like containing the
-intended weights for each input samples and it should be the shape of
-(nsamples, ).
-When it is None (not specified), an uniform weight vector is assigned on
-each input sample.
+\f[B]\f[I]sample_weight\f[]\f[]: A python narray containing the intended
+weights for each input samples and it should be the shape of (nsamples,
+).
+When it is None (not specified explicitly), an uniform weight vector is
+assigned on each input sample.
+(Default: None)
 .PP
 \f[B]Purpose\f[]
 .PD 0
@@ -427,7 +427,7 @@ For example,
 from\ sklearn.datasets\ import\ load_breast_cancer
 mat,\ lbl\ =\ load_breast_cancer(return_X_y\ =\ True)
 
-#\ fitting\ input\ matrix\ and\ label\ on\ logistic\ regression\ object
+#\ fitting\ input\ matrix\ and\ label\ on\ LogisticRegression\ object
 from\ frovedis.mllib.linear_model\ import\ LogisticRegression
 lr\ =\ LogisticRegression(solver\ =\ \[aq]lbfgs\[aq]).fit(mat,lbl)
 \f[]
@@ -436,7 +436,7 @@ lr\ =\ LogisticRegression(solver\ =\ \[aq]lbfgs\[aq]).fit(mat,lbl)
 When native python data is provided, it is converted to frovedis\-like
 inputs and sent to frovedis server which consumes some data transfer
 time.
-Pre\-constructed frovedlis\-like inputs can be used to speed up the
+Pre\-constructed frovedis\-like inputs can be used to speed up the
 training time, specially when same data would be used for multiple
 executions.
 .PP
@@ -466,7 +466,7 @@ lr\ =\ LogisticRegression(solver\ =\ \[aq]lbfgs\[aq]).fit(cmat,\ dlbl)
 .P
 .PD
 It simply returns "self" reference.
-.SS predict(X)
+.SS 3. predict(X)
 .PP
 \f[B]Parameters\f[]
 .PD 0
@@ -500,11 +500,16 @@ Output
 \f[]
 .fi
 .PP
-If the above pre\-constructed training data (cmat) is to be used during
-prediction, the same can be used as follows:
+Like in fit(), frovedis\-like input can be used to speed\-up the
+prediction making on the trained model at server side.
+.PP
+For example,
 .IP
 .nf
 \f[C]
+#\ Since\ "cmat"\ is\ FrovedisColmajorMatrix,\ we\ have\ created\ FrovedisRowmajorMatrix.
+from\ frovedis.matrix.dense\ import\ FrovedisRowmajorMatrix
+
 #\ predicting\ on\ lbfgs\ logistic\ regression\ model\ using\ pre\-constructed\ input
 lr.predict(cmat.to_frovedis_rowmatrix())
 \f[]
@@ -524,7 +529,7 @@ Output
 .PD
 It returns a numpy array of float or double(float64) type and of shape
 (n_samples,) containing the predicted outputs.
-.SS predict_proba(X)
+.SS 4. predict_proba(X)
 .PP
 \f[B]Parameters\f[]
 .PD 0
@@ -567,13 +572,42 @@ Output
 \f[]
 .fi
 .PP
+Like in fit(), frovedis\-like input can be used to speed\-up the
+prediction making on the trained model at server side.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ Since\ "cmat"\ is\ FrovedisColmajorMatrix,\ we\ have\ created\ FrovedisRowmajorMatrix.
+from\ frovedis.matrix.dense\ import\ FrovedisRowmajorMatrix
+
+#\ finds\ the\ probablity\ sample\ for\ each\ class\ in\ the\ model
+lr.predict_proba(mat)\ \ 
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+[[1.46990588e\-19\ 1.00000000e+00]
+\ [7.23344224e\-10\ 9.99999999e\-01]
+\ [8.43160984e\-10\ 9.99999999e\-01]
+\ ...
+\ [4.03499383e\-04\ 9.99596501e\-01]
+\ [3.03132738e\-13\ 1.00000000e+00]
+\ [6.14030540e\-03\ 9.93859695e\-01]]
+\f[]
+.fi
+.PP
 \f[B]Return Value\f[]
 .PD 0
 .P
 .PD
 It returns a numpy array of float or double(float64) type and of shape
 (n_samples, n_classes) containing the prediction probability values.
-.SS score(X, y, sample_weight = None)
+.SS 5. score(X, y, sample_weight = None)
 .PP
 \f[B]Parameters\f[]
 .PD 0
@@ -593,8 +627,9 @@ FrovedisDvector.
 \f[B]\f[I]sample_weight\f[]\f[]: Python array\-like containing the
 intended weights for each input samples and it should be the shape of
 (nsamples, ).
-When it is None (not specified), an uniform weight vector is assigned on
-each input sample.
+When it is None (not specified explicitly), an uniform weight vector is
+assigned on each input sample.
+(Default: None)
 .PP
 \f[B]Purpose\f[]
 .PD 0
@@ -626,7 +661,7 @@ Output
 .P
 .PD
 It returns an accuracy score of float type.
-.SS load(fname, dtype = None)
+.SS 6. load(fname, dtype = None)
 .PP
 \f[B]Parameters\f[]
 .PD 0
@@ -661,7 +696,7 @@ lr.load("./out/LRModel")
 .P
 .PD
 It simply returns "self" instance.
-.SS save(fname)
+.SS 7. save(fname)
 .PP
 \f[B]Parameters\f[]
 .PD 0
@@ -695,7 +730,7 @@ This will save the logistic regression model on the path
 .P
 .PD
 It returns nothing.
-.SS debug_print()
+.SS 8. debug_print()
 .PP
 \f[B]Purpose\f[]
 .PD 0
@@ -735,7 +770,7 @@ values on the trained model which is currently present on the server.
 .P
 .PD
 It returns nothing.
-.SS release()
+.SS 9. release()
 .PP
 \f[B]Purpose\f[]
 .PD 0
@@ -759,7 +794,7 @@ releasing server side memory.
 .P
 .PD
 It returns nothing.
-.SS is_fitted()
+.SS 10. is_fitted()
 .PP
 \f[B]Purpose\f[]
 .PD 0

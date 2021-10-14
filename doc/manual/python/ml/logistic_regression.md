@@ -39,7 +39,7 @@ is_fitted()
 Classification aims to divide the items into categories. The most common classification 
 type is binary classification, where there are two categories, usually named positive 
 and negative. The other is multinomial classification, where there are more than two 
-categories. Frovedis supports both binary and multinomial logistic regression algorithms.
+categories. **Frovedis supports both binary and multinomial logistic regression algorithms.** 
 For multinomial classification, it uses softmax probability.  
 
 Logistic regression is widely used to predict a binary response. 
@@ -107,32 +107,31 @@ the frovedis server, the output would be sent back to the python client.
 
 ## Detailed Description  
 
-### LogisticRegression()   
+### 1. LogisticRegression()   
 
 __Parameters__  
 **_penalty_**: A string object containing the regularizer type to use. Currenlty
-none, l1 and l2 are supported by Frovedis. (Default: 'l2')    
-**_dual_**: A boolean parameter. (unused)      
+none, l1 and l2 are supported by Frovedis. (Default: 'l2')  
+**_dual_**: A boolean parameter. (unused)  
 **_tol_**: A double(float64) type value specifying the convergence tolerance value.
-It must be zero or a postive value. (Default: 1e-4)     
-**_C_**: A float parameter, it is the inverse of regularization strength. It must 
-be a positive value of float type. Like in support vector machines, smaller values 
-specify stronger regularization. (Default: 100.0)    
+It must be zero or a postive value. (Default: 1e-4)  
+**_C_**: A positive float parameter, it is the inverse of regularization strength. 
+Like in support vector machines, smaller values specify stronger regularization. (Default: 100.0)  
 **_fit\_intercept_**: A boolean parameter specifying whether a constant (intercept)
-should be added to the decision function. (Default: True)     
-**_intercept\_scaling_**: An integer parameter. (unused)    
-**_class\_weight_**: A python dictionary or a string object. (unused)    
+should be added to the decision function. (Default: True)  
+**_intercept\_scaling_**: An integer parameter. (unused)  
+**_class\_weight_**: A python dictionary or a string object. (unused)  
 **_random\_state_**: An integer, None or RandomState instance. (unused)   
 **_solver_**: A string object specifying the solver to use. (Default: 'lbfgs')  
 It can be "sag" for frovedis side stochastic gradient descent or "lbfgs" for frovedis
-side LBFGS optimizer when optimizing the logistic regression model.    
-"sag" handle L1, L2 or no penalty.  
-"lbfgs" handle only L2 penalty.  
+side LBFGS optimizer when optimizing the logistic regression model.  
+"sag" can handle L1, L2 or no penalty.  
+"lbfgs" can handle only L2 penalty.  
 **_max\_iter_**: A positive integer value specifying maximum iteration count. (Default: 1000)  
-**_multi\_class_**: A string object specifying type of classification. If it is 
+**_multi\_class_**: A string object specifying the type of classification. If it is 
 "auto" or "ovr", then a binary classification is selected when N = 2, otherwise 
-multinomial classification is selected (where N is the no. of classes in training labels).
-If it is "multinomial", then it always selects a multinomial problem (even when N = 2).
+multinomial classification is selected (where N is the no. of classes in training labels). 
+If it is "multinomial", then it always selects a multinomial problem (even when N = 2). 
 Only "sag" solvers support multinomial classification currently. (Default: 'auto')  
 **_verbose_**: An integer parameter specifying the log level to use. Its value is 0 
 by default(for INFO mode and not explicitly specified). But it can be set to 1 (for DEBUG mode)
@@ -151,7 +150,7 @@ __Attributes__
 on input matrix data type) of coefficient of the features in the decision function.
 It has shape (1, n_features) when the given problem is "binary" and (n_classes, n_features) 
 when it is a "multinomial" problem.  
-**_intercept(bias)\__**: It is a python ndarray(float or double(float64) values 
+**_intercept\_(bias)_**: It is a python ndarray(float or double(float64) values 
 depending on input matrix data type) If fit_intercept is set to False, the intercept
 is set to zero. It has shape (1,) when the given problem is "binary" and (n_classes) 
 when its "multinomial" problem.  
@@ -170,14 +169,14 @@ Logistic Regression module. They are not used anywhere within the frovedis imple
 __Return Value__    
 It simply returns "self" reference. 
 
-### fit(X, y, sample_weight = None)
+### 2. fit(X, y, sample_weight = None)
 __Parameters__   
 **_X_**: A numpy dense or scipy sparse matrix or any python array-like object or 
 an instance of FrovedisCRSMatrix for sparse data and FrovedisColmajorMatrix for dense data.  
 **_y_**: Any python array-like object or an instance of FrovedisDvector.     
-**_sample\_weight_**: Python array-like containing the intended weights for each input
-samples and it should be the shape of (nsamples, ). When it is None (not specified), an
-uniform weight vector is assigned on each input sample.  
+**_sample\_weight_**: A python narray containing the intended weights for each input
+samples and it should be the shape of (nsamples, ). When it is None (not specified explicitly), an
+uniform weight vector is assigned on each input sample. (Default: None)  
 
 __Purpose__    
 It accepts the training feature matrix (X) and corresponding output labels (y) 
@@ -190,13 +189,13 @@ For example,
     from sklearn.datasets import load_breast_cancer
     mat, lbl = load_breast_cancer(return_X_y = True)
     
-    # fitting input matrix and label on logistic regression object
+    # fitting input matrix and label on LogisticRegression object
     from frovedis.mllib.linear_model import LogisticRegression
     lr = LogisticRegression(solver = 'lbfgs').fit(mat,lbl)
 
 When native python data is provided, it is converted to frovedis-like inputs and 
 sent to frovedis server which consumes some data transfer time. Pre-constructed 
-frovedlis-like inputs can be used to speed up the training time, specially when 
+frovedis-like inputs can be used to speed up the training time, specially when 
 same data would be used for multiple executions.  
 
 For example,
@@ -219,7 +218,7 @@ For example,
 __Return Value__  
 It simply returns "self" reference.    
 
-### predict(X)
+### 3. predict(X)
 __Parameters__   
 **_X_**: A numpy dense or scipy sparse matrix or any python array-like object or an
 instance of FrovedisCRSMatrix for sparse data and FrovedisRowmajorMatrix for dense data.  
@@ -237,9 +236,14 @@ Output
 
     [0 0 0 ... 0 0 1]
 
-If the above pre-constructed training data (cmat) is to be used during prediction, the
-same can be used as follows:
+Like in fit(), frovedis-like input can be used to speed-up the prediction making on 
+the trained model at server side.  
 
+For example,  
+
+    # Since "cmat" is FrovedisColmajorMatrix, we have created FrovedisRowmajorMatrix.
+    from frovedis.matrix.dense import FrovedisRowmajorMatrix
+    
     # predicting on lbfgs logistic regression model using pre-constructed input
     lr.predict(cmat.to_frovedis_rowmatrix())
 
@@ -251,7 +255,7 @@ __Return Value__
 It returns a numpy array of float or double(float64) type and of shape (n_samples,) 
 containing the predicted outputs. 
 
-### predict_proba(X)
+### 4. predict_proba(X)
 __Parameters__   
 **_X_**: A numpy dense or scipy sparse matrix or any python array-like object or an instance 
 of FrovedisCRSMatrix for sparse data and FrovedisRowmajorMatrix for dense data.   
@@ -275,19 +279,40 @@ Output
      [4.03499383e-04 9.99596501e-01]
      [3.03132738e-13 1.00000000e+00]
      [6.14030540e-03 9.93859695e-01]]
+
+Like in fit(), frovedis-like input can be used to speed-up the prediction making on 
+the trained model at server side.  
+
+For example,  
+
+    # Since "cmat" is FrovedisColmajorMatrix, we have created FrovedisRowmajorMatrix.
+    from frovedis.matrix.dense import FrovedisRowmajorMatrix
+
+    # finds the probablity sample for each class in the model
+    lr.predict_proba(mat)  
+
+Output
     
+    [[1.46990588e-19 1.00000000e+00]
+     [7.23344224e-10 9.99999999e-01]
+     [8.43160984e-10 9.99999999e-01]
+     ...
+     [4.03499383e-04 9.99596501e-01]
+     [3.03132738e-13 1.00000000e+00]
+     [6.14030540e-03 9.93859695e-01]]
+
 __Return Value__  
 It returns a numpy array of float or double(float64) type and of shape (n_samples, n_classes) 
 containing the prediction probability values. 
 
-### score(X, y, sample_weight = None)
+### 5. score(X, y, sample_weight = None)
 __Parameters__  
 **_X_**: A numpy dense or scipy sparse matrix or any python array-like object or an instance 
 of FrovedisCRSMatrix for sparse data and FrovedisRowmajorMatrix for dense data.  
 **_y_**: Any python array-like object or an instance of FrovedisDvector.     
 **_sample\_weight_**: Python array-like containing the intended weights for each input
-samples and it should be the shape of (nsamples, ). When it is None (not specified), an
-uniform weight vector is assigned on each input sample.  
+samples and it should be the shape of (nsamples, ). When it is None (not specified explicitly), an
+uniform weight vector is assigned on each input sample. (Default: None)  
 
 __Purpose__  
 Calculate mean accuracy on the given test data and labels i.e. mean accuracy of 
@@ -305,7 +330,7 @@ Output
 __Return Value__  
 It returns an accuracy score of float type.   
 
-### load(fname, dtype = None)
+### 6. load(fname, dtype = None)
 __Parameters__   
 **_fname_**: A string object containing the name of the file having model 
 information to be loaded.    
@@ -322,7 +347,7 @@ For example,
 __Return Value__  
 It simply returns "self" instance.   
 
-### save(fname)
+### 7. save(fname)
 __Parameters__   
 **_fname_**: A string object containing the name of the file on which the target 
 model is to be saved.    
@@ -341,7 +366,7 @@ This will save the logistic regression model on the path '/out/LRModel'.
 __Return Value__  
 It returns nothing.
 
-### debug_print()
+### 8. debug_print()
 
 __Purpose__    
 It shows the target model information (weight values, intercept, etc.) on the server side 
@@ -367,7 +392,7 @@ on the server.
 __Return Value__  
 It returns nothing.  
 
-### release()
+### 9. release()
 
 __Purpose__    
 It can be used to release the in-memory model at frovedis server.  
@@ -382,7 +407,7 @@ side memory.
 __Return Value__  
 It returns nothing.  
 
-### is_fitted()
+### 10. is_fitted()
 
 __Purpose__    
 It can be used to confirm if the model is already fitted or not. In case, predict() is used 
