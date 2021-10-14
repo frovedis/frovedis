@@ -2,7 +2,7 @@
 
 # NAME
 
-Ridge Regression - A regression algorithm to predict 
+Ridge Regression - A regression algorithm used to predict 
 the continuous output with L2 regularization.   
 
 # SYNOPSIS
@@ -83,7 +83,7 @@ server, the output would be sent back to the python client.
 
 ## Detailed Description  
 
-### Ridge()
+### 1. Ridge()
 
 __Parameters__   
 **_alpha_**: A postive value of double(float64) type is called the regularization 
@@ -99,7 +99,7 @@ tolerance value. (Default: 1e-3)
 **_solver_**: A string object specifying the solver to use. It can be "sag" for frovedis 
 side stochastic gradient descent or "lbfgs" for frovedis side LBFGS optimizer 
 when optimizing the ridge regression model. Initilaly solver is "auto" by default. 
-In such cases, it will select "sag" solver. Both "sag" and "lbfgs" handle L2 penalty.  
+In such cases, it will select "sag" solver. Both "sag" and "lbfgs" can handle L2 penalty.  
 **_random\_state_**: An integer, None or RandomState instance. (unused)  
 **_lr\_rate_**: Zero or a positive value of double(float64) type containing the learning 
 rate. (Default: 1e-8)  
@@ -114,30 +114,30 @@ __Attributes__
 **_coef\__**: It is a python ndarray(containing float or double(float64) typed values depending 
 on data-type of input matrix (X)) of estimated coefficients for the ridge regression problem. 
 It has shape (n_features,).  
-**_intercept(bias)\__**: It is a python ndarray(contaning float or double(float64) typed values 
+**_intercept\_(bias)_**: It is a python ndarray(contaning float or double(float64) typed values 
 depending on data-type of input matrix (X)). If fit_intercept is set to False, the intercept 
 is set to zero. It has shape (1,).  
 **_n\_iter\__**: A positive integer value used to get the actual iteration point at which the 
 problem is converged.   
 
 __Purpose__    
-It initialized a Ridge object with the given parameters.   
+It initializes a Ridge object with the given parameters.   
 
 The parameters: "normalize", "copy_X" and "random_state" are simply kept in to to make the
 interface uniform to the Scikit-learn Ridge Regression module. They are not used anywhere
-within frovedis implementation.  
+within the frovedis implementation.  
 
 __Return Value__    
 It simply returns "self" reference. 
 
-### fit(X, y, sample_weight = None)
+### 2. fit(X, y, sample_weight = None)
 __Parameters__   
 **_X_**: A numpy dense or scipy sparse matrix or any python array-like object or an 
 instance of FrovedisCRSMatrix for sparse data and FrovedisColmajorMatrix for dense data.  
 **_y_**: Any python array-like object or an instance of FrovedisDvector.  
-**_sample\_weight_**: Python array-like containing the intended weights for each input
-samples and it should be the shape of (nsamples, ). When it is None (not specified),
-an uniform weight vector is assigned on each input sample.   
+**_sample\_weight_**: A python ndarray containing the intended weights for each input
+samples and it should be the shape of (nsamples, ). When it is None (not specified explicitly), 
+an uniform weight vector is assigned on each input sample. (Default: None)  
 
 __Purpose__    
 It accepts the training feature matrix (X) and corresponding output labels (y) 
@@ -146,13 +146,13 @@ with those data at frovedis server.
 
 When native python data is provided, it is converted to frovedis-like inputs and 
 sent to frovedis server which consumes some data transfer time. Pre-constructed 
-frovedlis-like inputs can be used to speed up the training time, specially when 
+frovedlis-like inputs can be used to speed up the training time, especially when 
 same data would be used for multiple executions.  
 
 __Return Value__  
 It simply returns "self" reference.  
 
-### predict(X)
+### 3. predict(X)
 __Parameters__   
 **_X_**: A numpy dense or scipy sparse matrix or any python array-like object or 
 an instance of FrovedisCRSMatrix for sparse data and FrovedisRowmajorMatrix as 
@@ -167,17 +167,17 @@ is provided during prediction, then "X.to_frovedis_rowmatrix()" will be used for
 prediction.  
 
 __Return Value__  
-It returns a numpy array of double(float64) type type and has shape (n_samples,) 
+It returns a numpy array of double(float64) type and has shape (n_samples,) 
 containing the predicted outputs. 
 
-### score(X, y, sample_weight = None)
+### 4. score(X, y, sample_weight = None)
 __Parameters__  
 **_X_**: A numpy dense or scipy sparse matrix or any python array-like object or an instance 
 of FrovedisCRSMatrix for sparse data and FrovedisRowmajorMatrix for dense data.  
 **_y_**: Any python array-like object or an instance of FrovedisDvector.     
-**_sample\_weight_**: Python array-like containing the intended weights for each input
-samples and it should be the shape of (nsamples, ). When it is None (not specified),
-an uniform weight vector is assigned on each input sample.  
+**_sample\_weight_**: A python ndarray containing the intended weights for each input
+samples and it should be the shape of (nsamples, ). When it is None (not specified explicitly), 
+an uniform weight vector is assigned on each input sample. (Default: None)  
 
 __Purpose__  
 Calculate the root mean square value on the given test data and labels i.e. 
@@ -193,7 +193,7 @@ features, would get a R2 score of 0.0.
 __Return Value__  
 It returns an R2 score of float type.  
 
-### load(fname, dtype = None)
+### 5. load(fname, dtype = None)
 __Parameters__   
 **_fname_**: A string object containing the name of the file having model 
 information to be loaded.  
@@ -206,7 +206,7 @@ It loads the model from the specified file (having little-endian binary data).
 __Return Value__  
 It simply returns "self" instance.  
 
-### save(fname)
+### 6. save(fname)
 __Parameters__   
 **_fname_**: A string object containing the name of the file on which the target 
 model is to be saved.  
@@ -218,7 +218,7 @@ specified file as little-endian binary data. Otherwise, it throws an exception.
 __Return Value__  
 It returns nothing.  
 
-### debug_print()
+### 7. debug_print()
 
 __Purpose__    
 It shows the target model information like weight values, intercept on the server side 
@@ -227,7 +227,7 @@ user terminal. It is mainly used for debugging purpose.
 __Return Value__  
 It returns nothing.  
 
-### release()
+### 8. release()
 
 __Purpose__    
 It can be used to release the in-memory model at frovedis server. With this, after-fit
@@ -236,7 +236,7 @@ populated attributes are reset to None, along with releasing server side memory.
 __Return Value__  
 It returns nothing.  
 
-### is_fitted()
+### 9. is_fitted()
 
 __Purpose__    
 It can be used to confirm if the model is already fitted or not. In case, predict() is used 

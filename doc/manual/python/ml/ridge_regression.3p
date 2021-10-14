@@ -1,8 +1,8 @@
 .TH "Ridge Regression" "" "" "" ""
 .SH NAME
 .PP
-Ridge Regression \- A regression algorithm to predict the continuous
-output with L2 regularization.
+Ridge Regression \- A regression algorithm used to predict the
+continuous output with L2 regularization.
 .SH SYNOPSIS
 .PP
 class frovedis.mllib.linear_model.Ridge(alpha=0.01, fit_intercept=True,
@@ -140,7 +140,7 @@ program will send the same request to the frovedis server.
 After the request is served at the frovedis server, the output would be
 sent back to the python client.
 .SS Detailed Description
-.SS Ridge()
+.SS 1. Ridge()
 .PP
 \f[B]Parameters\f[]
 .PD 0
@@ -185,7 +185,7 @@ for frovedis side LBFGS optimizer when optimizing the ridge regression
 model.
 Initilaly solver is "auto" by default.
 In such cases, it will select "sag" solver.
-Both "sag" and "lbfgs" handle L2 penalty.
+Both "sag" and "lbfgs" can handle L2 penalty.
 .PD 0
 .P
 .PD
@@ -225,7 +225,7 @@ It has shape (n_features,).
 .PD 0
 .P
 .PD
-\f[B]\f[I]intercept(bias)_\f[]\f[]: It is a python ndarray(contaning
+\f[B]\f[I]intercept_(bias)\f[]\f[]: It is a python ndarray(contaning
 float or double(float64) typed values depending on data\-type of input
 matrix (X)).
 If fit_intercept is set to False, the intercept is set to zero.
@@ -240,19 +240,19 @@ actual iteration point at which the problem is converged.
 .PD 0
 .P
 .PD
-It initialized a Ridge object with the given parameters.
+It initializes a Ridge object with the given parameters.
 .PP
 The parameters: "normalize", "copy_X" and "random_state" are simply kept
 in to to make the interface uniform to the Scikit\-learn Ridge
 Regression module.
-They are not used anywhere within frovedis implementation.
+They are not used anywhere within the frovedis implementation.
 .PP
 \f[B]Return Value\f[]
 .PD 0
 .P
 .PD
 It simply returns "self" reference.
-.SS fit(X, y, sample_weight = None)
+.SS 2. fit(X, y, sample_weight = None)
 .PP
 \f[B]Parameters\f[]
 .PD 0
@@ -269,11 +269,12 @@ FrovedisDvector.
 .PD 0
 .P
 .PD
-\f[B]\f[I]sample_weight\f[]\f[]: Python array\-like containing the
+\f[B]\f[I]sample_weight\f[]\f[]: A python ndarray containing the
 intended weights for each input samples and it should be the shape of
 (nsamples, ).
-When it is None (not specified), an uniform weight vector is assigned on
-each input sample.
+When it is None (not specified explicitly), an uniform weight vector is
+assigned on each input sample.
+(Default: None)
 .PP
 \f[B]Purpose\f[]
 .PD 0
@@ -287,7 +288,7 @@ When native python data is provided, it is converted to frovedis\-like
 inputs and sent to frovedis server which consumes some data transfer
 time.
 Pre\-constructed frovedlis\-like inputs can be used to speed up the
-training time, specially when same data would be used for multiple
+training time, especially when same data would be used for multiple
 executions.
 .PP
 \f[B]Return Value\f[]
@@ -295,7 +296,7 @@ executions.
 .P
 .PD
 It simply returns "self" reference.
-.SS predict(X)
+.SS 3. predict(X)
 .PP
 \f[B]Parameters\f[]
 .PD 0
@@ -320,9 +321,9 @@ FrovedisColmajorMatrix (X) is provided during prediction, then
 .PD 0
 .P
 .PD
-It returns a numpy array of double(float64) type type and has shape
+It returns a numpy array of double(float64) type and has shape
 (n_samples,) containing the predicted outputs.
-.SS score(X, y, sample_weight = None)
+.SS 4. score(X, y, sample_weight = None)
 .PP
 \f[B]Parameters\f[]
 .PD 0
@@ -339,11 +340,12 @@ FrovedisDvector.
 .PD 0
 .P
 .PD
-\f[B]\f[I]sample_weight\f[]\f[]: Python array\-like containing the
+\f[B]\f[I]sample_weight\f[]\f[]: A python ndarray containing the
 intended weights for each input samples and it should be the shape of
 (nsamples, ).
-When it is None (not specified), an uniform weight vector is assigned on
-each input sample.
+When it is None (not specified explicitly), an uniform weight vector is
+assigned on each input sample.
+(Default: None)
 .PP
 \f[B]Purpose\f[]
 .PD 0
@@ -375,7 +377,7 @@ disregarding the input features, would get a R2 score of 0.0.
 .P
 .PD
 It returns an R2 score of float type.
-.SS load(fname, dtype = None)
+.SS 5. load(fname, dtype = None)
 .PP
 \f[B]Parameters\f[]
 .PD 0
@@ -402,7 +404,7 @@ data).
 .P
 .PD
 It simply returns "self" instance.
-.SS save(fname)
+.SS 6. save(fname)
 .PP
 \f[B]Parameters\f[]
 .PD 0
@@ -424,7 +426,7 @@ Otherwise, it throws an exception.
 .P
 .PD
 It returns nothing.
-.SS debug_print()
+.SS 7. debug_print()
 .PP
 \f[B]Purpose\f[]
 .PD 0
@@ -439,7 +441,7 @@ It is mainly used for debugging purpose.
 .P
 .PD
 It returns nothing.
-.SS release()
+.SS 8. release()
 .PP
 \f[B]Purpose\f[]
 .PD 0
@@ -454,7 +456,7 @@ releasing server side memory.
 .P
 .PD
 It returns nothing.
-.SS is_fitted()
+.SS 9. is_fitted()
 .PP
 \f[B]Purpose\f[]
 .PD 0
