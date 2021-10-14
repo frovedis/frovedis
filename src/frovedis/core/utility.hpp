@@ -66,6 +66,7 @@ private:
 void make_directory(const std::string&);
 bool directory_exists(const std::string&);
 int count_non_hidden_files(const std::string&);
+int count_files_with_regex(const std::string& dir, const std::string& exp);
 void remove_directory(const std::string&);
 void copy_file(const std::string& from, const std::string& to);
 void copy_directory(const std::string& from, const std::string& to);

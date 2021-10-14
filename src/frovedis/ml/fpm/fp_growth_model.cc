@@ -150,7 +150,7 @@ namespace frovedis {
 
   void fp_growth_model::load (const std::string& dir) {
     require(directory_exists(dir), "load: directory does not exist!\n");
-    auto depth = count_non_hidden_files(dir) - 1; // -1 for metadata
+    auto depth = count_files_with_regex(dir, "(tree)(.*)");
     clear();
     std::string tmp;
     std::vector<dftable> tree_item(depth), tree_info(depth);
@@ -179,7 +179,7 @@ namespace frovedis {
 
   void fp_growth_model::loadbinary (const std::string& dir) {
     require(directory_exists(dir), "load: directory does not exist!\n");
-    auto depth = count_non_hidden_files(dir) - 1; // -1 for metadata
+    auto depth = count_files_with_regex(dir, "(tree)(.*)");
     clear();
     std::vector<dftable> tree_item(depth), tree_info(depth);
     for(size_t i = 0; i < depth; ++i) {
@@ -581,7 +581,7 @@ namespace frovedis {
   
   void association_rule::load (const std::string& dir) {
     require(directory_exists(dir), "load: directory does not exist!\n");
-    auto depth = count_non_hidden_files(dir);
+    auto depth = count_files_with_regex(dir, "(rule)(.*)");
     RLOG(INFO) << "load: set of rules found: " << depth << std::endl;
     clear();  this->rule.resize(depth);
     std::string tmp;
@@ -602,7 +602,7 @@ namespace frovedis {
   
   void association_rule::loadbinary (const std::string& dir) {
     require(directory_exists(dir), "load: directory does not exist!\n");
-    auto depth = count_non_hidden_files(dir);
+    auto depth = count_files_with_regex(dir, "(rule)(.*)");
     RLOG(INFO) << "load: set of rules found: " << depth << std::endl;
     clear();  this->rule.resize(depth);
     for(size_t i = 0; i < depth; ++i) {
