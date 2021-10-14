@@ -1,8 +1,8 @@
 .TH "Matrix Factorization using ALS" "" "" "" ""
 .SH NAME
 .PP
-Matrix Factorization using ALS \- A matrix factorization algorithm
-commonly used for recommender systems.
+Matrix Factorization using Alternating Least Square (ALS) \- is a matrix
+factorization algorithm commonly used for recommender systems.
 .SH SYNOPSIS
 .PP
 class frovedis.mllib.recommendation.ALS(rank=None, max_iter=100,
@@ -87,18 +87,18 @@ python program will send the same request to the frovedis server.
 After the request is served at the frovedis server, the output would be
 sent back to the python client.
 .SS Detailed Description
-.SS ALS()
+.SS 1. ALS()
 .PP
-\f[I]\f[B]rank\f[]\f[]: An integer parameter containing the user given
-rank for the input matrix.
+\f[I]\f[B]rank\f[]\f[]: A positive integer parameter containing the user
+given rank for the input matrix.
 (Default: None)
 .PD 0
 .P
 .PD
-When rank is None(not specified explicitly), it will be the minimum(256,
-min(M,N)), where M is number of users and N is number of items in input
-data.
-Rank must be a positive integer and in a range of > 0 to <= max(M,N).
+When rank is None (not specified explicitly), it will be the
+minimum(256, min(M,N)), where M is number of users and N is number of
+items in input data.
+It must be within the range of 0 to max(M, N).
 .PD 0
 .P
 .PD
@@ -108,16 +108,14 @@ iteration count.
 .PD 0
 .P
 .PD
-\f[I]\f[B]alpha\f[]\f[]: A double(float64) parameter containing the
-learning rate.
-It must be a positive double(float64).
+\f[I]\f[B]alpha\f[]\f[]: A positive double(float64) parameter containing
+the learning rate.
 (Default: 0.01)
 .PD 0
 .P
 .PD
-\f[I]\f[B]reg_param\f[]\f[]: A double(float64) parameter containing the
-regularization parameter.
-It must be a positive double(float64).
+\f[I]\f[B]reg_param\f[]\f[]: A positive double(float64) parameter, also
+called as the regularization parameter.
 (Default: 0.01)
 .PD 0
 .P
@@ -126,7 +124,7 @@ It must be a positive double(float64).
 helps to identify whether the algorithm will optimize the computation
 for similar user/item or not.
 If similarity percentage of user or item features is more than or equal
-to(>=) the given similarity_factor, the algorithm will optimize the
+to the given similarity_factor, the algorithm will optimize the
 computation for similar user/item.
 Otherwise, each user and item feature will be treated uniquely.
 Similarity factor must be in range of >= 0.0 to <= 1.0.
@@ -134,7 +132,7 @@ Similarity factor must be in range of >= 0.0 to <= 1.0.
 .PD 0
 .P
 .PD
-\f[I]\f[B]seed\f[]\f[]: A long parameter containing the seed value to
+\f[I]\f[B]seed\f[]\f[]: An int64 parameter containing the seed value to
 initialize the model structures with random values.
 (Default: 0)
 .PD 0
@@ -155,7 +153,7 @@ It initializes an ALS object with the given parameters.
 .P
 .PD
 It simply returns "self" reference.
-.SS fit(X)
+.SS 2. fit(X)
 .PP
 \f[B]Parameters\f[]
 .PD 0
@@ -163,7 +161,7 @@ It simply returns "self" reference.
 .PD
 \f[I]\f[B]X\f[]\f[]: A scipy sparse matrix or any python array\-like
 object or an instance of FrovedisCRSMatrix.
-It has shape(n_samples, n_features).
+It has shape (n_samples, n_features).
 .PP
 \f[B]Purpose\f[]
 .PD 0
@@ -173,7 +171,7 @@ It accepts the training sparse matrix (X) and trains a matrix
 factorization model on that at frovedis server.
 .PP
 It starts with initializing the model structures of the size MxF and
-NxF(where M is the number of users and N is the products in the given
+NxF(where M is the number of users, N is the products in the given
 rating matrix and F is the given rank) with random values and keeps
 updating them until maximum iteration count is reached.
 .PP
@@ -199,7 +197,7 @@ When native python data is provided, it is converted to frovedis\-like
 inputs and sent to frovedis server which consumes some data transfer
 time.
 Pre\-constructed frovedis\-like inputs can be used to speed up the
-training time, specially when same data would be used for multiple
+training time, especially when same data would be used for multiple
 executions.
 .PP
 For example,
@@ -221,7 +219,7 @@ als\ =\ ALS(rank\ =\ 4).fit(crs_mat)\ \
 .P
 .PD
 It simply returns "self" reference.
-.SS predict(ids)
+.SS 3. predict(ids)
 .PP
 \f[B]Parameters\f[]
 .PD 0
@@ -234,7 +232,7 @@ pairs of user id and product id to predict.
 .PD 0
 .P
 .PD
-It accepts a list of pair of user ids and product ids(0\-based ID) in
+It accepts a list of pair of user ids and product ids(0\-based Id) in
 order to make prediction for their ratings from the trained model at
 frovedis server.
 .PP
@@ -242,7 +240,7 @@ For example,
 .IP
 .nf
 \f[C]
-#\ this\ will\ print\ the\ predicted\ ratings\ for\ the\ given\ list\ of\ id\ pairs
+#\ prints\ the\ predicted\ ratings\ for\ the\ given\ list\ of\ id\ pairs
 als.predict([(1,1),(0,1),(2,3),(3,1)])\ \ \ 
 \f[]
 .fi
@@ -261,14 +259,14 @@ Output:
 .PD
 It returns a numpy array containing the predicted ratings, of float or
 double(float64) type depending upon the input type.
-.SS recommend_users(pid, k)
+.SS 4. recommend_users(pid, k)
 .PP
 \f[B]Parameters\f[]
 .PD 0
 .P
 .PD
 \f[I]\f[B]pid\f[]\f[]: An integer parameter specifying the product
-ID(0\-based) for which to recommend users.
+ID(0\-based Id) for which to recommend users.
 .PD 0
 .P
 .PD
@@ -282,7 +280,7 @@ to be recommended.
 It recommends the best "k" users with highest rating confidence in
 sorted order for the given product.
 .PP
-If k > number of rows(number of users in the given matrix when training
+If k > number of rows (number of users in the given matrix when training
 the model), then it resets the k as "number of rows in the given
 matrix".
 This is done in order to recommend all the users with rating confidence
@@ -313,14 +311,14 @@ Output:
 It returns a python list containing the pairs of recommended users and
 their corresponding rating confidence values(double(float64)) in
 descending order.
-.SS recommend_products(uid, k)
+.SS 5. recommend_products(uid, k)
 .PP
 \f[B]Parameters\f[]
 .PD 0
 .P
 .PD
 \f[I]\f[B]uid\f[]\f[]: An integer parameter specifying the user
-ID(0\-based) for which to recommend products.
+ID(0\-based Id) for which to recommend products.
 .PD 0
 .P
 .PD
@@ -334,7 +332,7 @@ products to be recommended.
 It recommends the best "k" products with highest rating confidence in
 sorted order for the given user.
 .PP
-If k > number of columns(number of products in the given matrix when
+If k > number of columns (number of products in the given matrix when
 training the model), then it resets the k as "number of columns in the
 given matrix".
 This is done in order to recommend all the products with rating
@@ -365,7 +363,7 @@ Output:
 It returns a python list containing the pairs of recommended products
 and their corresponding rating confidence values(double(float64)) in
 descending order.
-.SS save(fname)
+.SS 6. save(fname)
 .PP
 \f[B]Parameters\f[]
 .PD 0
@@ -396,7 +394,7 @@ als.save("./out/MyMFModel")
 .P
 .PD
 It returns nothing.
-.SS load(fname, dtype = None)
+.SS 7. load(fname, dtype = None)
 .PP
 \f[B]Parameters\f[]
 .PD 0
@@ -432,7 +430,7 @@ als.load("./out/MyMFModel")
 .P
 .PD
 It simply returns "self" instance.
-.SS debug_print()
+.SS 8. debug_print()
 .PP
 \f[B]Purpose\f[]
 .PD 0
@@ -445,7 +443,7 @@ For example,
 .IP
 .nf
 \f[C]
-\ als.debug_print()
+als.debug_print()
 \f[]
 .fi
 .PP
@@ -472,7 +470,7 @@ It will print the matrix and labels of training data.
 .P
 .PD
 It returns nothing.
-.SS release()
+.SS 9. release()
 .PP
 \f[B]Purpose\f[]
 .PD 0
@@ -496,7 +494,7 @@ releasing server side memory.
 .P
 .PD
 It returns nothing.
-.SS is_fitted()
+.SS 10. is_fitted()
 .PP
 \f[B]Purpose\f[]
 .PD 0
