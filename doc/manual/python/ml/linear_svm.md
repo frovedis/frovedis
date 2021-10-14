@@ -2,7 +2,7 @@
 
 # NAME
 
-Linear SVM (Support Vector Machines) - A classification algorithm 
+Linear SVM (Support Vector Machines) - A classification algorithm used 
 to predict the binary output with hinge loss.  
 
 # SYNOPSIS
@@ -69,8 +69,8 @@ is gradient descent. Such first-order optimization methods well-suited for
 large-scale and distributed computation. 
 
 This module provides a client-server implementation, where the client 
-application is a normal python program. Frovedis is almost same as Scikit-learn
-svm module providing the LinearSVC (Support Vector Classification) support, but 
+application is a normal python program. The frovedis interface is almost same 
+as Scikit-learn LinearSVC (Support Vector Classification) interface, but 
 it doesn't have any dependency with Scikit-learn. It can be used simply even if 
 the system doesn't have Scikit-learn installed. Thus in this implementation, a 
 python client can interact with a frovedis server sending the required python
@@ -88,43 +88,41 @@ at the frovedis server, the output would be sent back to the python client.
 
 ## Detailed Description  
 
-### LinearSVC()   
+### 1. LinearSVC()   
 
 __Parameters__       
 _**penalty**_: A string object containing the regularizer type to use. Currently
-none, l1 and l2 are supported by Frovedis. (Default: 'l2')   
-_**loss**_: A string object containing the loss function type to use. Currently 
-svm supports only hinge loss. (Default: 'hinge')    
-_**dual**_: A boolean parameter (unused)      
+none, l1 and l2 are supported by Frovedis. (Default: 'l2')  
+_**loss**_: A string object containing the loss function type to use. Unlike
+ Scikit-learn, currently it supports only hinge loss. (Default: 'hinge')  
+_**dual**_: A boolean parameter (unused)  
 _**tol**_: A double(float64) parameter specifying the convergence tolerance value. 
 It must be zero or a positive value. (Default: 1e-4)     
-_**C**_: A float parameter, also called as inverse of regularization strength. 
-It must be positive. (Default: 1.0)   
-_**multi\_class**_: A string object specifying type of classification. (unused)   
+_**C**_: A positive float parameter, also called as inverse of regularization 
+strength. (Default: 1.0)  
+_**multi\_class**_: A string object specifying the type of classification. (unused)  
 _**fit\_intercept**_: A boolean parameter specifying whether a constant (intercept) 
-should be added to the decision function. (Default: True)     
-_**intercept\_scaling**_: An integer parameter. (unused)    
+should be added to the decision function. (Default: True)  
+_**intercept\_scaling**_: An integer parameter. (unused)  
 _**class\_weight**_: A python dictionary or a string object. (unused)  
 _**verbose**_: An integer parameter specifying the log level to use. Its value 
 is set as 0 by default(for INFO mode). But it can be set to 1(for DEBUG mode) or 
 2(for TRACE mode) for getting training time logs from frovedis server.  
-_**random\_state**_: An integer, None or RandomState instance. (unused)   
-_**max\_iter**_: An integer parameter specifying maximum iteration count. It is 
-positive interger. (Default: 1000)    
+_**random\_state**_: An integer, None or RandomState instance. (unused)  
+_**max\_iter**_: A positive integer parameter specifying maximum iteration count. (Default: 1000)  
 _**lr_rate**_: A double(float64) parameter containing the learning rate. (Default: 0.01)  
 _**solver**_: A string object specifying the solver to use. (Default: 'sag')  
-“sag” handle L1, L2 or no penalty.  
+“sag” can handle L1, L2 or no penalty.  
 _**warm_start**_: A boolean parameter which when set to True, reuses the solution of 
 the previous call to fit as initialization, otherwise, just erase the previous solution. 
-(Default: False)
+(Default: False)  
 
 __Attributes__  
 _**coef\_**_: It is a python ndarray(containing float or double(float64) typed values 
 depending on data-type of input matrix (X)). It is the weights assigned to the features. 
 It has shape (1, n_features).  
 _**classes\_**_: It is a python ndarray(any type) of unique labels given to the classifier 
-during training. It has shape
-(n_classes,).  
+during training. It has shape (n_classes,).  
 _**intercept\_**_: It is a python ndarray(float or double(float64) values depending on 
 input matrix data type) and has shape(1,).   
 _**n_iter**_: It is a python ndarray of shape(1,) and has integer data. It is used to 
@@ -135,21 +133,20 @@ It initializes a LinearSVC object with the given parameters.
 
 The parameters: "dual", "intercept_scaling", "class_weight", "multi_class"and 
 "random_state" are simply kept to make the interface uniform to Scikit-learn LinearSVC 
-module. They are not used anywhere within frovedis implementation. 
-
+module. They are not used anywhere within frovedis implementation.  
 
 __Return Value__    
-It simply returns "self" reference. 
+It simply returns "self" reference.  
 
-### fit(X, y, sample_weight = None)
+### 2. fit(X, y, sample_weight = None)
 __Parameters__   
 _**X**_: A numpy dense or scipy sparse matrix or any python array-like object or an 
 instance of FrovedisCRSMatrix for sparse data and FrovedisColmajorMatrix for 
 dense data. It has shape(n_samples, n_features).  
-_**y**_: Any python array-like object or an instance of FrovedisDvector.     
-_**sample\_weight**_: Python array-like containing the intended weights for each input
-samples and it should be the shape of (nsamples, ). When it is None (not specified), an
-uniform weight vector is assigned on each input sample.  
+_**y**_: Any python array-like object or an instance of FrovedisDvector.  
+_**sample\_weight**_: A python ndarray containing the intended weights for each input
+samples and it should be the shape of (nsamples, ). When it is None (not specified explicitly), 
+an uniform weight vector is assigned on each input sample. (Default: None)  
 
 __Purpose__    
 It accepts the training feature matrix (X) and corresponding output labels (y) 
@@ -162,13 +159,13 @@ For example,
     from sklearn.datasets import load_breast_cancer
     mat, lbl = load_breast_cancer(return_X_y = True)
     
-    # fitting input matrix and label on linear SVC object
+    # fitting input matrix and label on LinearSVC object
     from frovedis.mllib.svm import LinearSVC
     svm = LinearSVC().fit(mat, lbl)
 
 When native python data is provided, it is converted to frovedis-like inputs
 and sent to frovedis server which consumes some data transfer time. Pre-constructed 
-frovedis-like inputs can be used to speed up the training time, specially when same 
+frovedis-like inputs can be used to speed up the training time, especially when same 
 data would be used for multiple executions.  
 
 For example,
@@ -190,7 +187,7 @@ For example,
 __Return Value__  
 It simply returns "self" reference.   
 
-### predict(X)
+### 3. predict(X)
 __Parameters__   
 _**X**_: A numpy dense or scipy sparse matrix or any python array-like object or 
 an instance of FrovedisCRSMatrix for sparse data and FrovedisRowmajorMatrix 
@@ -207,11 +204,16 @@ For example,
 Output:  
 
     [0 0 0 ... 0 0 1]  
-    
-If the above pre-constructed training data (cmat) is to be used during prediction, 
-the same can be used as follows:
- 
-    # predicting on LinearSVC using pre-constructed input
+
+Like in fit(), frovedis-like input can be used to speed-up the prediction making on 
+the trained model at server side.  
+
+For example,  
+
+    # Since "cmat" is FrovedisColmajorMatrix, we have created FrovedisRowmajorMatrix.
+    from frovedis.matrix.dense import FrovedisRowmajorMatrix
+
+    # predicting on LinearSVC using frovedis-like input 
     svm.predict(cmat.to_frovedis_rowmatrix())
  
 Output  
@@ -222,7 +224,7 @@ __Return Value__
 It returns a numpy array of double(float64) type containing the predicted 
 outputs. It has shape(n_samples,).
 
-### load(fname, dtype = None)
+### 4. load(fname, dtype = None)
 __Parameters__  
 **fname**: A string object containing the name of the file having model information 
 to be loaded.  
@@ -234,14 +236,14 @@ It loads the model from the specified file(having little-endian binary data).
 
 For example,  
 
-    # loading the svc model
+    # loading the LinearSVC model
     svm.load("./out/SVMModel")
 
 __Return Value__  
 It simply returns "self" instance.   
 
 
-### save(fname)
+### 5. save(fname)
 __Parameters__   
 **fname**: A string object containing the name of the file on which the target 
 model is to be saved.    
@@ -258,15 +260,15 @@ For example,
 __Return Value__  
 It returns nothing.   
 
-### score(X,  y,  sample_weight = None)
+### 6. score(X,  y,  sample_weight = None)
 __Parameters__  
 **X**: A numpy dense or scipy sparse matrix or any python array-like object or an 
 instance of FrovedisCRSMatrix for sparse data and FrovedisRowmajorMatrix for dense 
 data. It has shape(n_samples, n_features).  
 **y**: Any python array-like object or an instance of FrovedisDvector.  
-**sample_weight**: Python array-like containing the intended weights for each input
-samples and it should be the shape of (nsamples, ). When it is None (not specified), an
-uniform weight vector is assigned on each input sample.  
+**sample_weight**: A python narray containing the intended weights for each input
+samples and it should be the shape of (nsamples, ). When it is None (not specified explicitly), 
+an uniform weight vector is assigned on each input sample. (Default: None)  
 
 __Purpose__    
 Calculate mean accuracy on the given test data and labels i.e. mean accuracy of 
@@ -284,10 +286,10 @@ Output
 __Return Value__  
 It returns an accuracy score of float type.
 
-### debug_print()
+### 7. debug_print()
 
 __Purpose__    
-It shows the target model information(weight values etc.) on the server side 
+It shows the target model information(weight values, intercept, etc.) on the server side 
 user terminal. It is mainly used for debugging purpose.  
 
 For example,
@@ -307,7 +309,7 @@ Output:
 __Return Value__  
 It returns nothing.   
 
-### release()
+### 8. release()
 
 __Purpose__    
 It can be used to release the in-memory model at frovedis server.  
@@ -322,7 +324,7 @@ releasing server side memory.
 __Return Value__  
 It returns nothing.   
 
-### is_fitted()
+### 9. is_fitted()
 
 __Purpose__   
 It can be used to confirm if the model is already fitted or not. In case, 

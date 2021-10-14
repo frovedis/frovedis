@@ -1,8 +1,8 @@
 .TH "Linear SVM" "" "" "" ""
 .SH NAME
 .PP
-Linear SVM (Support Vector Machines) \- A classification algorithm to
-predict the binary output with hinge loss.
+Linear SVM (Support Vector Machines) \- A classification algorithm used
+to predict the binary output with hinge loss.
 .SH SYNOPSIS
 .PP
 class frovedis.mllib.svm.LinearSVC(penalty=\[aq]l2\[aq],
@@ -126,9 +126,9 @@ distributed computation.
 .PP
 This module provides a client\-server implementation, where the client
 application is a normal python program.
-Frovedis is almost same as Scikit\-learn svm module providing the
-LinearSVC (Support Vector Classification) support, but it doesn\[aq]t
-have any dependency with Scikit\-learn.
+The frovedis interface is almost same as Scikit\-learn LinearSVC
+(Support Vector Classification) interface, but it doesn\[aq]t have any
+dependency with Scikit\-learn.
 It can be used simply even if the system doesn\[aq]t have Scikit\-learn
 installed.
 Thus in this implementation, a python client can interact with a
@@ -148,7 +148,7 @@ program will send the same request to the frovedis server.
 After the request is served at the frovedis server, the output would be
 sent back to the python client.
 .SS Detailed Description
-.SS LinearSVC()
+.SS 1. LinearSVC()
 .PP
 \f[B]Parameters\f[]
 .PD 0
@@ -163,7 +163,7 @@ Currently none, l1 and l2 are supported by Frovedis.
 .PD
 \f[I]\f[B]loss\f[]\f[]: A string object containing the loss function
 type to use.
-Currently svm supports only hinge loss.
+Unlike Scikit\-learn, currently it supports only hinge loss.
 (Default: \[aq]hinge\[aq])
 .PD 0
 .P
@@ -179,14 +179,13 @@ It must be zero or a positive value.
 .PD 0
 .P
 .PD
-\f[I]\f[B]C\f[]\f[]: A float parameter, also called as inverse of
-regularization strength.
-It must be positive.
+\f[I]\f[B]C\f[]\f[]: A positive float parameter, also called as inverse
+of regularization strength.
 (Default: 1.0)
 .PD 0
 .P
 .PD
-\f[I]\f[B]multi_class\f[]\f[]: A string object specifying type of
+\f[I]\f[B]multi_class\f[]\f[]: A string object specifying the type of
 classification.
 (unused)
 .PD 0
@@ -222,9 +221,8 @@ instance.
 .PD 0
 .P
 .PD
-\f[I]\f[B]max_iter\f[]\f[]: An integer parameter specifying maximum
-iteration count.
-It is positive interger.
+\f[I]\f[B]max_iter\f[]\f[]: A positive integer parameter specifying
+maximum iteration count.
 (Default: 1000)
 .PD 0
 .P
@@ -240,7 +238,7 @@ learning rate.
 .PD 0
 .P
 .PD
-“sag” handle L1, L2 or no penalty.
+“sag” can handle L1, L2 or no penalty.
 .PD 0
 .P
 .PD
@@ -294,7 +292,7 @@ They are not used anywhere within frovedis implementation.
 .P
 .PD
 It simply returns "self" reference.
-.SS fit(X, y, sample_weight = None)
+.SS 2. fit(X, y, sample_weight = None)
 .PP
 \f[B]Parameters\f[]
 .PD 0
@@ -312,11 +310,12 @@ FrovedisDvector.
 .PD 0
 .P
 .PD
-\f[I]\f[B]sample_weight\f[]\f[]: Python array\-like containing the
+\f[I]\f[B]sample_weight\f[]\f[]: A python ndarray containing the
 intended weights for each input samples and it should be the shape of
 (nsamples, ).
-When it is None (not specified), an uniform weight vector is assigned on
-each input sample.
+When it is None (not specified explicitly), an uniform weight vector is
+assigned on each input sample.
+(Default: None)
 .PP
 \f[B]Purpose\f[]
 .PD 0
@@ -334,7 +333,7 @@ For example,
 from\ sklearn.datasets\ import\ load_breast_cancer
 mat,\ lbl\ =\ load_breast_cancer(return_X_y\ =\ True)
 
-#\ fitting\ input\ matrix\ and\ label\ on\ linear\ SVC\ object
+#\ fitting\ input\ matrix\ and\ label\ on\ LinearSVC\ object
 from\ frovedis.mllib.svm\ import\ LinearSVC
 svm\ =\ LinearSVC().fit(mat,\ lbl)
 \f[]
@@ -344,7 +343,7 @@ When native python data is provided, it is converted to frovedis\-like
 inputs and sent to frovedis server which consumes some data transfer
 time.
 Pre\-constructed frovedis\-like inputs can be used to speed up the
-training time, specially when same data would be used for multiple
+training time, especially when same data would be used for multiple
 executions.
 .PP
 For example,
@@ -372,7 +371,7 @@ svm\ =\ LinearSVC().fit(cmat,dlbl)
 .P
 .PD
 It simply returns "self" reference.
-.SS predict(X)
+.SS 3. predict(X)
 .PP
 \f[B]Parameters\f[]
 .PD 0
@@ -406,12 +405,17 @@ Output:
 \f[]
 .fi
 .PP
-If the above pre\-constructed training data (cmat) is to be used during
-prediction, the same can be used as follows:
+Like in fit(), frovedis\-like input can be used to speed\-up the
+prediction making on the trained model at server side.
+.PP
+For example,
 .IP
 .nf
 \f[C]
-#\ predicting\ on\ LinearSVC\ using\ pre\-constructed\ input
+#\ Since\ "cmat"\ is\ FrovedisColmajorMatrix,\ we\ have\ created\ FrovedisRowmajorMatrix.
+from\ frovedis.matrix.dense\ import\ FrovedisRowmajorMatrix
+
+#\ predicting\ on\ LinearSVC\ using\ frovedis\-like\ input\ 
 svm.predict(cmat.to_frovedis_rowmatrix())
 \f[]
 .fi
@@ -431,7 +435,7 @@ Output
 It returns a numpy array of double(float64) type containing the
 predicted outputs.
 It has shape(n_samples,).
-.SS load(fname, dtype = None)
+.SS 4. load(fname, dtype = None)
 .PP
 \f[B]Parameters\f[]
 .PD 0
@@ -457,7 +461,7 @@ For example,
 .IP
 .nf
 \f[C]
-#\ loading\ the\ svc\ model
+#\ loading\ the\ LinearSVC\ model
 svm.load("./out/SVMModel")
 \f[]
 .fi
@@ -467,7 +471,7 @@ svm.load("./out/SVMModel")
 .P
 .PD
 It simply returns "self" instance.
-.SS save(fname)
+.SS 5. save(fname)
 .PP
 \f[B]Parameters\f[]
 .PD 0
@@ -498,7 +502,7 @@ svm.save("./out/SVMModel")
 .P
 .PD
 It returns nothing.
-.SS score(X, y, sample_weight = None)
+.SS 6. score(X, y, sample_weight = None)
 .PP
 \f[B]Parameters\f[]
 .PD 0
@@ -516,11 +520,11 @@ FrovedisDvector.
 .PD 0
 .P
 .PD
-\f[B]sample_weight\f[]: Python array\-like containing the intended
-weights for each input samples and it should be the shape of (nsamples,
-).
-When it is None (not specified), an uniform weight vector is assigned on
-each input sample.
+\f[B]sample_weight\f[]: A python narray containing the intended weights
+for each input samples and it should be the shape of (nsamples, ).
+When it is None (not specified explicitly), an uniform weight vector is
+assigned on each input sample.
+(Default: None)
 .PP
 \f[B]Purpose\f[]
 .PD 0
@@ -553,14 +557,14 @@ Output
 .P
 .PD
 It returns an accuracy score of float type.
-.SS debug_print()
+.SS 7. debug_print()
 .PP
 \f[B]Purpose\f[]
 .PD 0
 .P
 .PD
-It shows the target model information(weight values etc.) on the server
-side user terminal.
+It shows the target model information(weight values, intercept, etc.) on
+the server side user terminal.
 It is mainly used for debugging purpose.
 .PP
 For example,
@@ -590,7 +594,7 @@ Output:
 .P
 .PD
 It returns nothing.
-.SS release()
+.SS 8. release()
 .PP
 \f[B]Purpose\f[]
 .PD 0
@@ -614,7 +618,7 @@ releasing server side memory.
 .P
 .PD
 It returns nothing.
-.SS is_fitted()
+.SS 9. is_fitted()
 .PP
 \f[B]Purpose\f[]
 .PD 0
