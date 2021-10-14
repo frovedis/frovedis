@@ -14,9 +14,8 @@ struct dbscan {
 
   dbscan<T>& 
   set_eps(double eps) { 
-    std::string msg = "expected eps within the range of 0.0 to 1.0; received: " + 
-                       STR(eps) + "\n";
-    require(eps >= 0.0 && eps <= 1.0, msg);
+    std::string msg = "expected a positive or zero eps; received: " + STR(eps) + "\n";
+    require(eps >= 0.0, msg);
     this->eps = eps;
     return *this;
   }
@@ -31,9 +30,11 @@ struct dbscan {
 
   dbscan<T>&
   set_batch_fraction(double batch_fraction) {
-    std::string msg = "expected batch_fraction within the range of 0.0 to 1.0; received: " + 
-                       STR(batch_fraction) + "\n";
-    require(batch_fraction >= 0.0 && batch_fraction <= 1.0, msg);
+    std::string msg = std::string("expected undefined (DBLMAX) batch_fraction ")
+                      + "or within the range of 0.0 to 1.0; received: "
+                      +  STR(batch_fraction) + "\n";
+    require(batch_fraction == std::numeric_limits<double>::max() ||
+            (batch_fraction >= 0.0 && batch_fraction <= 1.0), msg);
     this->batch_fraction = batch_fraction;
     return *this;
   }    

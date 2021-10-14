@@ -88,8 +88,8 @@ struct ridge_regression {
   }
   ridge_regression<T>& 
   set_tol(double tol) {
-    std::string msg = "expected a positive convergence tolerance; received: " + STR(tol) + "\n";
-    require(tol > 0, msg);
+    std::string msg = "expected a positive or zero convergence tolerance; received: " + STR(tol) + "\n";
+    require(tol >= 0, msg);
     this->tol = tol;
     return *this;  
   }

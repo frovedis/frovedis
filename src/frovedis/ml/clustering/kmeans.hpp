@@ -51,9 +51,9 @@ struct KMeans {
   }
 
   KMeans<T>& 
-  set_eps(double eps) { // eps >= 0.0 && eps <= 1.0
-    std::string msg = "expected eps within the range of 0.0 to 1.0; received: " + STR(eps) + "\n";
-    require(eps >= 0.0 && eps <= 1.0, msg);
+  set_eps(double eps) { 
+    std::string msg = "expected zero or positive eps; received: " + STR(eps) + "\n";
+    require(eps >= 0.0, msg);
     this->eps = eps;
     return *this;
   }
