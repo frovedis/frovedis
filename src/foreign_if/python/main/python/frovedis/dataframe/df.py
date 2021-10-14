@@ -2927,6 +2927,7 @@ class DataFrame(object):
                     raise ValueError("Cannot get slice bound for " \
                                      "non-unique label '%s'" % (b))
                 b_int = int(bloc[0])
+                b_int += 1
         else:
             # integer slice
             a_int = int(a) if a is not None else 0
@@ -2936,11 +2937,6 @@ class DataFrame(object):
                 a_int = max(0, nrows + a_int)
             if b_int < 0:
                 b_int = max(0, nrows + b_int)
-
-            if a_int == 0 and b_int == 0:
-                a_int = 1
-            else:
-                b_int -= 1
 
         (host, port) = FrovedisServer.getServerInstance()
         dummy_df = rpclib.df_slice_range(host, port, self.get(), a_int, b_int, c)
