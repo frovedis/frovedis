@@ -56,6 +56,32 @@ aggregate(dftable_base& table,
 }
 
 std::shared_ptr<dfcolumn> 
+dfaggregator_var::
+aggregate(dftable_base& table,
+          node_local<std::vector<size_t>>& local_grouped_idx,
+          node_local<std::vector<size_t>>& local_idx_split,
+          node_local<std::vector<std::vector<size_t>>>& hash_divide,
+          node_local<std::vector<std::vector<size_t>>>& merge_map,
+          node_local<size_t>& row_sizes) {
+  auto colp = table.raw_column(col);
+  return colp->var(local_grouped_idx, local_idx_split, hash_divide,
+                   merge_map, row_sizes, ddof);
+}
+
+std::shared_ptr<dfcolumn> 
+dfaggregator_sem::
+aggregate(dftable_base& table,
+          node_local<std::vector<size_t>>& local_grouped_idx,
+          node_local<std::vector<size_t>>& local_idx_split,
+          node_local<std::vector<std::vector<size_t>>>& hash_divide,
+          node_local<std::vector<std::vector<size_t>>>& merge_map,
+          node_local<size_t>& row_sizes) {
+  auto colp = table.raw_column(col);
+  return colp->sem(local_grouped_idx, local_idx_split, hash_divide,
+                   merge_map, row_sizes, ddof);
+}
+
+std::shared_ptr<dfcolumn> 
 dfaggregator_max::
 aggregate(dftable_base& table,
           node_local<std::vector<size_t>>& local_grouped_idx,
@@ -115,6 +141,26 @@ std::shared_ptr<dfaggregator> avg(const std::string& col) {
 std::shared_ptr<dfaggregator> avg_as(const std::string& col,
                                      const std::string& as) {
   return std::make_shared<dfaggregator_avg>(col,as);
+}
+
+std::shared_ptr<dfaggregator> var(const std::string& col, const double& ddof) {
+  return std::make_shared<dfaggregator_var>(col, ddof);
+}
+
+std::shared_ptr<dfaggregator> var_as(const std::string& col,
+                                     const std::string& as,
+                                     const double& ddof) {
+  return std::make_shared<dfaggregator_var>(col, as, ddof);
+}
+
+std::shared_ptr<dfaggregator> sem(const std::string& col, const double& ddof) {
+  return std::make_shared<dfaggregator_sem>(col, ddof);
+}
+
+std::shared_ptr<dfaggregator> sem_as(const std::string& col,
+                                     const std::string& as,
+                                     const double& ddof) {
+  return std::make_shared<dfaggregator_sem>(col, as, ddof);
 }
 
 std::shared_ptr<dfaggregator> max(const std::string& col) {
