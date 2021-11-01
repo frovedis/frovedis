@@ -289,6 +289,14 @@ agg_grouped_dataframe.argtypes = [c_char_p, c_int, c_long,
                                   POINTER(c_char_p), c_ulong]
 agg_grouped_dataframe.restype = c_long
 
+gdf_aggr_with_ddof = LIB.gdf_aggr_with_ddof
+gdf_aggr_with_ddof.argtypes = [c_char_p, c_int, c_long,   # host, port, proxy
+                              POINTER(c_char_p), c_ulong, # columns, sz1
+                              c_char_p, POINTER(c_char_p),# function, agg_cols
+                              POINTER(c_char_p), c_ulong, # agg_cols_as, sz2
+                              c_double]                   # ddof
+gdf_aggr_with_ddof.restype = py_object
+
 merge_frovedis_dataframe = LIB.join_frovedis_dataframe
 merge_frovedis_dataframe.argtypes = [c_char_p, c_int, c_long, c_long, c_long,
                                      c_char_p, c_char_p]
@@ -343,10 +351,21 @@ get_var_frovedis_dataframe.argtypes = [c_char_p, c_int, c_long,
                                        POINTER(c_char_p), c_ulong]
 get_var_frovedis_dataframe.restype = py_object
 
+get_mad_frovedis_dataframe = LIB.mad_frovedis_dataframe
+get_mad_frovedis_dataframe.argtypes = [c_char_p, c_int, c_long,   #host,port,proxy
+                                       POINTER(c_char_p), c_ulong]#cols_Arr,ncol
+get_mad_frovedis_dataframe.restype = py_object
+
 get_median_frovedis_dataframe = LIB.median_frovedis_dataframe
 get_median_frovedis_dataframe.argtypes = [c_char_p, c_int, c_long,
                                        POINTER(c_char_p), POINTER(c_short), c_ulong]
 get_median_frovedis_dataframe.restype = py_object
+
+df_mad = LIB.df_mad
+df_mad.argtypes = [c_char_p, c_int, c_long,       # host, port, proxy
+                    POINTER(c_char_p), c_ulong,   # cols_arr, ncol
+                    c_int, c_bool, c_bool]        # axis, skip_na, with_index
+df_mad.restype = py_object
 
 df_mean = LIB.df_mean
 df_mean.argtypes = [c_char_p, c_int, c_long,      # host, port, proxy

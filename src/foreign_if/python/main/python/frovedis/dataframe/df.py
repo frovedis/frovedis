@@ -1162,6 +1162,9 @@ class DataFrame(object):
         elif name == 'var':
             ret = rpclib.get_var_frovedis_dataframe(host, port, self.get(),
                                                     cols_ptr, sz)
+        elif name == 'mad':
+            ret = rpclib.get_mad_frovedis_dataframe(host, port, self.get(),
+                                                    cols_ptr, sz)
         elif name == 'median':
             ret = rpclib.get_median_frovedis_dataframe(host, port, self.get(),
                                                        cols_ptr, tptr, sz)
@@ -1219,7 +1222,8 @@ class DataFrame(object):
         describe
         """
         cols, types = self.__get_numeric_columns(include_bool=False)
-        index = ['count', 'mean', 'median', 'var', 'std', 'sem', 'sum', 'min', 'max']
+        index = ['count', 'mean', 'median', 'var', 'mad', 'std', 'sem', \
+                 'sum', 'min', 'max']
         return self.__agg_impl(cols, index)
 
     def __agg_impl(self, cols, index):
@@ -1236,7 +1240,7 @@ class DataFrame(object):
         has_max = 'max' in ret.index
         has_min = 'min' in ret.index
         # agg func list has std, avg/mean, then dtype = float64
-        if (len(set(index).intersection(set(['mean', 'avg', 'std',  \
+        if (len(set(index).intersection(set(['mean', 'avg', 'std', 'mad', \
                                             'var', 'median', 'sem']))) > 0):
             rtypes = [np.float64] * ncols
         else:
@@ -2927,7 +2931,6 @@ class DataFrame(object):
                     raise ValueError("Cannot get slice bound for " \
                                      "non-unique label '%s'" % (b))
                 b_int = int(bloc[0])
-                b_int += 1
         else:
             # integer slice
             a_int = int(a) if a is not None else 0
@@ -3039,6 +3042,36 @@ class DataFrame(object):
         dummy_df = rpclib.df_var(host, port, self.get(), \
                                   cols_arr, ncol, \
                                   axis_, skipna_, ddof_, self.has_index())
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
+        # returns a series
+        ret = DataFrame(is_series=True)
+        names = dummy_df["names"]
+        types = dummy_df["types"]
+        ret.num_row = dummy_df["nrow"]
+        ret.index = FrovedisColumn(names[0], types[0]) #setting index
+        ret.load_dummy(dummy_df["dfptr"], names[1:], types[1:])
+        return ret
+            
+    @check_association
+    def mad(self, axis=None, skipna=None, level=None,
+            numeric_only=None, **kwargs):
+        """
+        returns the mean absolute deviation of the values over the 
+        requested axis.
+        """
+        axis_, skipna_ = check_stat_error(axis_=axis, skipna_=skipna, \
+                                                 level_=level)
+
+        cols, types = self.__get_numeric_columns()
+
+        ncol = len(cols)
+        cols_arr = get_string_array_pointer(cols)
+        (host, port) = FrovedisServer.getServerInstance()
+        dummy_df = rpclib.df_mad(host, port, self.get(), \
+                                  cols_arr, ncol, \
+                                  axis_, skipna_, self.has_index())
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
             raise RuntimeError(excpt["info"])

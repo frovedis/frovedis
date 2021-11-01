@@ -303,6 +303,28 @@ extern "C" {
     return (static_cast<long>(ret));
   }
 
+  PyObject* gdf_aggr_with_ddof(const char* host, int port, long proxy, 
+                              const char** cols, ulong sz1,
+                              const char* agg_func, const char** agg_col,
+                              const char** agg_col_as, ulong sz2,
+                              double ddof) {
+    ASSERT_PTR(host); 
+    exrpc_node fm_node(host, port);
+    auto df_proxy = static_cast<exrpc_ptr_t> (proxy);
+
+    auto grp_cols = to_string_vector(cols, sz1);
+    auto s_agg_col = to_string_vector(agg_col, sz2);
+    auto agg_func_ = std::string(agg_func);
+    auto s_agg_col_as = to_string_vector(agg_col_as, sz2);
+    dummy_dftable ret;
+    try {
+      ret = exrpc_async(fm_node, frovedis_gdf_aggr_with_ddof, df_proxy, grp_cols,
+                        agg_func_, s_agg_col, s_agg_col_as, ddof).get();
+    }
+    catch(std::exception& e) { set_status(true,e.what()); }
+    return to_py_dummy_df(ret);
+  }
+
   // To perform join operation 
   long join_frovedis_dataframe(const char* host, int port,  
                                long proxy1, long proxy2, long proxy3,
@@ -504,6 +526,40 @@ extern "C" {
       set_status(true, e.what());
     }
     return to_python_string_list(ret);
+  }
+
+  PyObject* mad_frovedis_dataframe(const char* host, int port, long proxy,
+                                   const char** cols, ulong size) {
+    ASSERT_PTR(host);
+    exrpc_node fm_node(host, port);
+    auto df_proxy = static_cast<exrpc_ptr_t> (proxy);
+    auto cc = to_string_vector(cols, size);
+    std::vector<std::string> ret;
+    try {
+      ret = exrpc_async(fm_node,frovedis_df_mad,df_proxy,cc).get();
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return to_python_string_list(ret);
+  }
+
+  PyObject* df_mad(const char* host, int port, long proxy,
+                   const char** cols, ulong size, 
+                   int axis, bool skipna, bool with_index) {
+    ASSERT_PTR(host);
+    exrpc_node fm_node(host, port);
+    auto df_proxy = static_cast<exrpc_ptr_t> (proxy);
+    auto cc = to_string_vector(cols, size);
+    dummy_dftable ret;
+    try {
+      ret = exrpc_async(fm_node, frov_df_mad, df_proxy, 
+                        cc, axis, skipna, with_index).get();
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return to_py_dummy_df(ret);
   }
 
   PyObject* df_mean(const char* host, int port, long proxy,
