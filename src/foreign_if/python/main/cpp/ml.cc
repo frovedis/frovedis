@@ -1394,7 +1394,6 @@ extern "C" {
     std::vector<dummy_dftable> freq;
     try {
       freq =  exrpc_async(fm_node, frovedis_fp_fis<fp_growth_model>, mid).get();
-      std::cout << "FIS LIST SIZE: " << freq.size() << std::endl;
     }
     catch (std::exception& e) {
       set_status(true, e.what());
