@@ -2,12 +2,16 @@
 #define PARTITION_SORT_HPP
 
 #include <vector>
+#include <random>
 #include "exceptions.hpp"
 
-#define PARTITION_SORT_VLEN 256 
+//#define PARTITION_SORT_VLEN 1024
+#define PARTITION_SORT_VLEN 512        // seems best as per evaluation
+#define PARTITION_SORT_VLEN_EACH 256 
 #define PARTITION_SORT_MIN_EACH_LEN 32 // minimum VLEN of 2nd part
 
 #define USE_LOOP_RAKING
+#define USE_RANDOM_PIVOT
 //#define PARTITION_SORT_DEBUG
 
 namespace frovedis {
@@ -23,6 +27,7 @@ void partition_sort_normal(T* kptr, I* vptr,
   T work_kptr[size]; 
   I work_vptr[size];
   size_t kidx = k - 1;
+  srand(time(NULL));
 #include "partition_sort_normal.incl" 
 }
 
@@ -38,14 +43,23 @@ void partition_sort(T* kptr, I* vptr,
   T work_kptr[size]; 
   I work_vptr[size];
   size_t kidx = k - 1;
-  size_t stp[PARTITION_SORT_VLEN];
-  size_t endp[PARTITION_SORT_VLEN];
-  size_t lowp[PARTITION_SORT_VLEN];
-  size_t highp[PARTITION_SORT_VLEN];
-#pragma _NEC vreg(stp) 
-#pragma _NEC vreg(endp) 
-#pragma _NEC vreg(lowp) 
-#pragma _NEC vreg(highp) 
+  srand(time(NULL));
+  size_t lowp0[PARTITION_SORT_VLEN_EACH];
+  size_t lowp1[PARTITION_SORT_VLEN_EACH];
+  //size_t lowp2[PARTITION_SORT_VLEN_EACH];
+  //size_t lowp3[PARTITION_SORT_VLEN_EACH];
+  size_t highp0[PARTITION_SORT_VLEN_EACH];
+  size_t highp1[PARTITION_SORT_VLEN_EACH];
+  //size_t highp2[PARTITION_SORT_VLEN_EACH];
+  //size_t highp3[PARTITION_SORT_VLEN_EACH];
+#pragma _NEC vreg(lowp0) 
+#pragma _NEC vreg(lowp1) 
+//#pragma _NEC vreg(lowp2) 
+//#pragma _NEC vreg(lowp3) 
+#pragma _NEC vreg(highp0) 
+#pragma _NEC vreg(highp1) 
+//#pragma _NEC vreg(highp2) 
+//#pragma _NEC vreg(highp3) 
 #include "partition_sort_raked.incl"
 #else
   partition_sort_normal(kptr, vptr, size, k, comp_t, copy_t);
@@ -103,18 +117,28 @@ void partition_sort_by_each_row(
   T work_kptr[size]; 
   I work_vptr[size];
   size_t kidx = k - 1;
+  srand(time(NULL));
 
 #ifdef USE_LOOP_RAKING
-  size_t stp[PARTITION_SORT_VLEN];
-  size_t endp[PARTITION_SORT_VLEN];
-  size_t lowp[PARTITION_SORT_VLEN];
-  size_t highp[PARTITION_SORT_VLEN];
-#pragma _NEC vreg(stp) 
-#pragma _NEC vreg(endp) 
-#pragma _NEC vreg(lowp) 
-#pragma _NEC vreg(highp) 
+  size_t lowp0[PARTITION_SORT_VLEN_EACH];
+  size_t lowp1[PARTITION_SORT_VLEN_EACH];
+//  size_t lowp2[PARTITION_SORT_VLEN_EACH];
+//  size_t lowp3[PARTITION_SORT_VLEN_EACH];
+  size_t highp0[PARTITION_SORT_VLEN_EACH];
+  size_t highp1[PARTITION_SORT_VLEN_EACH];
+//  size_t highp2[PARTITION_SORT_VLEN_EACH];
+//  size_t highp3[PARTITION_SORT_VLEN_EACH];
+#pragma _NEC vreg(lowp0)
+#pragma _NEC vreg(lowp1)
+//#pragma _NEC vreg(lowp2)
+//#pragma _NEC vreg(lowp3)
+#pragma _NEC vreg(highp0)
+#pragma _NEC vreg(highp1)
+//#pragma _NEC vreg(highp2)
+//#pragma _NEC vreg(highp3)
 #endif
 
+  //time_spent t(INFO);
   for(size_t i = 0; i < nrow; ++i) {
     auto kptr = keyptr + i * ncol;    
     auto vptr = valptr + i * ncol;    
@@ -123,6 +147,7 @@ void partition_sort_by_each_row(
 #else
 #include "partition_sort_normal.incl"
 #endif
+    //t.show("-------- completed partition for " + STR(i + 1) + "th loop: ");
   }
 }
 
