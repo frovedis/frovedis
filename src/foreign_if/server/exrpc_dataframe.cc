@@ -1,5 +1,6 @@
 #include "exrpc_dataframe.hpp"
 #include <boost/algorithm/string.hpp>
+#include "exrpc_dffunction.hpp"
 
 using namespace frovedis;
 
@@ -236,6 +237,20 @@ get_aggr(std::string& funcname,
   else if (funcname == "max")   ret = max_as(col,as_col);
   else if (funcname == "count") ret = count_as(col,as_col);
   else if (funcname == "size") ret = size_as(col,as_col);
+  else if (funcname == "var") ret = var_as(col,as_col);
+  else if (funcname == "sem") ret = sem_as(col,as_col);
+  else REPORT_ERROR(USER_ERROR,"Unsupported aggregation function is requested!\n");
+  return ret;
+}
+
+std::shared_ptr<dfaggregator> 
+get_aggr(std::string& funcname, 
+        std::string& col, 
+        std::string& as_col,
+        double& ddof) {
+  std::shared_ptr<dfaggregator> ret;
+  if (funcname == "var")        ret = var_as(col, as_col, ddof);
+  else if (funcname == "sem")   ret = sem_as(col, as_col, ddof);
   else REPORT_ERROR(USER_ERROR,"Unsupported aggregation function is requested!\n");
   return ret;
 }
@@ -247,6 +262,26 @@ frovedis_gdf_select(exrpc_ptr_t& df_proxy,
   auto retp = new dftable(df.select(tcols));
   if (!retp) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed.\n");
   return reinterpret_cast<exrpc_ptr_t> (retp);
+}
+
+void convert_float_nan_to_null(dftable& df) {
+  auto cols = df.columns();
+  for (size_t i = 1; i < cols.size(); ++i) { // excluding index column: 0th column
+    auto dfcol = df.column(cols[i]);
+    use_dfcolumn use(dfcol);
+    if (dfcol->dtype() == "float") {
+      auto c1 = std::dynamic_pointer_cast<typed_dfcolumn<float>>(dfcol);
+      auto nans = c1->val.map(treat_nan_as_null_helper<float>, c1->nulls);
+      auto nansz = nans.template viewas_dvector<size_t>().size();
+      if (nansz) c1->contain_nulls = true; 
+    }
+    else if (dfcol->dtype() == "double") {
+      auto c1 = std::dynamic_pointer_cast<typed_dfcolumn<double>>(dfcol);
+      auto nans = c1->val.map(treat_nan_as_null_helper<double>, c1->nulls);
+      auto nansz = nans.template viewas_dvector<size_t>().size();
+      if (nansz) c1->contain_nulls = true; 
+    }
+  }
 }
 
 exrpc_ptr_t 
@@ -262,10 +297,29 @@ frovedis_gdf_aggr(exrpc_ptr_t& df_proxy,
     agg[i] = get_aggr(aggFuncs[i],aggCols[i],aggAsCols[i]);
   }
   auto retp = new dftable(df.select(groupedCols,agg));
+  convert_float_nan_to_null(*retp);
   if (!retp) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed.\n");
   return reinterpret_cast<exrpc_ptr_t> (retp);
 }
 
+dummy_dftable 
+frovedis_gdf_aggr_with_ddof(exrpc_ptr_t& df_proxy,
+                          std::vector<std::string>& groupedCols,
+                          std::string& aggFunc,
+                          std::vector<std::string>& aggCols,
+                          std::vector<std::string>& aggAsCols,
+                          double& ddof) {
+  auto& gdf = *reinterpret_cast<grouped_dftable*>(df_proxy);
+  auto size = aggCols.size();
+  std::vector<std::shared_ptr<dfaggregator>> agg(size);
+  for(size_t i=0; i<size; ++i) {
+    agg[i] = get_aggr(aggFunc, aggCols[i], aggAsCols[i], ddof);
+  }
+  auto retp = new dftable(gdf.select(groupedCols, agg));
+  convert_float_nan_to_null(*retp);
+  if (!retp) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed.\n");
+  return to_dummy_dftable(retp);
+}
 
 long frovedis_df_size(exrpc_ptr_t& df_proxy) {
   auto& df = *reinterpret_cast<dftable_base*>(df_proxy);
@@ -372,6 +426,17 @@ frovedis_df_var(exrpc_ptr_t& df_proxy,
   std::vector<std::string> ret(cols.size());
   for (size_t i=0; i<cols.size(); ++i) {
     ret[i] = std::to_string(df.var(cols[i]));
+  }
+  return ret;
+}
+
+std::vector<std::string>
+frovedis_df_mad(exrpc_ptr_t& df_proxy,
+                std::vector<std::string>& cols) {
+  auto& df = *reinterpret_cast<dftable_base*>(df_proxy);
+  std::vector<std::string> ret(cols.size());
+  for (size_t i=0; i<cols.size(); ++i) {
+    ret[i] = std::to_string(df.mad(cols[i]));
   }
   return ret;
 }
@@ -1062,12 +1127,15 @@ dummy_dftable frov_df_ksort(exrpc_ptr_t& df_proxy, int& k,
   return to_dummy_dftable(retp);
 }
 
-dftable calc_non_na_vals(dftable_base& df, std::vector<std::string>& cols, int& axis, bool& with_index, 
+dftable calc_non_na_vals(dftable_base& df, 
+                         std::vector<std::string>& cols, 
+                         int& axis, bool& with_index, 
                          size_t& ncol, std::string col_name = "count_non_na") {
   auto countna_df = df.select(cols).count_nulls(axis, with_index);
   auto subt_fn = frovedis::sub_im(ncol, "count");
   use_dfcolumn use_sub(subt_fn->columns_to_use(countna_df));
-  countna_df.append_column(col_name, subt_fn->execute(countna_df)); // count_non_na = ncol - count
+  // count_non_na = ncol - count
+  countna_df.append_column(col_name, subt_fn->execute(countna_df));
   return countna_df;
 }
 
@@ -1078,7 +1146,8 @@ dftable frov_df_mean_impl(exrpc_ptr_t& df_proxy,
                           bool& with_index) {
   auto& df = *reinterpret_cast<dftable_base*>(df_proxy);
   std::string index_nm = "index";
-  if (with_index) index_nm = df.columns()[0]; // 0th column is always treated as index
+  // 0th column is always treated as index
+  if (with_index) index_nm = df.columns()[0];
 
   dftable ret;
   auto ncol = cols.size();
@@ -1096,7 +1165,8 @@ dftable frov_df_mean_impl(exrpc_ptr_t& df_proxy,
       }
     }
     ret.append_column("index", make_dvector_scatter(cols)); 
-    ret.append_column("mean", make_dvector_scatter(mean_res), true); // may contain null 
+    ret.append_column("mean", 
+                      make_dvector_scatter(mean_res), true); // may contain null 
   } 
   else if (axis == 1) {
     if (ncol == 0 ) append_null<double>(ret, "mean", df.num_row());
@@ -1107,13 +1177,17 @@ dftable frov_df_mean_impl(exrpc_ptr_t& df_proxy,
       std::string old_sum = "old_sum";
       use_dfcolumn use(df.raw_column(cols[0]));
       auto dfcol = df.column(cols[0]);
-      if (skip_na) fillna_helper(tmp, old_sum, dfcol, fillv); // replaces nulls with fillv (if any) and append in 'tmp'
-      else tmp.append_column(old_sum, dfcol); // appends as it is in 'tmp' (no copy)
+      // replaces nulls with fillv (if any) and append in 'tmp'
+      if (skip_na) fillna_helper(tmp, old_sum, dfcol, fillv);
+      // appends as it is in 'tmp' (no copy)
+      else tmp.append_column(old_sum, dfcol);
       for (size_t i = 1; i < ncol; ++i) {
         use_dfcolumn use_col(df.raw_column(cols[i]));
         dfcol = df.column(cols[i]);
-        if (skip_na) fillna_helper(tmp, cols[i], dfcol, fillv); // replaces nulls with fillv (if any) and append in 'tmp'
-        else tmp.append_column(cols[i], dfcol); // appends as it is in 'tmp' (no copy)
+        // replaces nulls with fillv (if any) and append in 'tmp'
+        if (skip_na) fillna_helper(tmp, cols[i], dfcol, fillv);
+        // appends as it is in 'tmp' (no copy)
+        else tmp.append_column(cols[i], dfcol);
         auto func = frovedis::add_col(old_sum, cols[i]);
         use_dfcolumn use_func(func->columns_to_use(tmp)); 
         auto rescol = func->execute(tmp);
@@ -1124,9 +1198,11 @@ dftable frov_df_mean_impl(exrpc_ptr_t& df_proxy,
       }
       if (skip_na) {
         // --- calculate row-wise non-na values ---
-        auto countna_df = calc_non_na_vals(df, cols, axis, with_index, ncol, "count_non_na");
+        auto countna_df = calc_non_na_vals(df, cols, axis, with_index, 
+                                           ncol, "count_non_na");
         // --- calculate mean --- 
-        auto mean_fn = frovedis::fdiv_col(old_sum, "count_non_na"); // mean = sum / count_non_na
+        auto mean_fn = frovedis::fdiv_col(old_sum, 
+                                  "count_non_na"); // mean = sum / count_non_na
         use_dfcolumn use_mean(mean_fn->columns_to_use(tmp, countna_df));
         ret.append_column("mean", mean_fn->execute(tmp, countna_df));
       } else {
@@ -1139,7 +1215,8 @@ dftable frov_df_mean_impl(exrpc_ptr_t& df_proxy,
     // use index as it is in input dataframe, if any. otherwise add index.
     if (with_index) {
       use_dfcolumn use(df.raw_column(index_nm));
-      ret.append_column(index_nm, df.column(index_nm)).change_col_position(index_nm, 0);
+      ret.append_column(index_nm, df.column(index_nm))
+         .change_col_position(index_nm, 0);
     } else {
       ret.prepend_rowid<long>(index_nm);
     }
@@ -1175,7 +1252,8 @@ dftable frov_df_var_impl(exrpc_ptr_t& df_proxy,
   if (with_index) index_nm = df.columns()[0]; 
 
   dftable ret;
-  std::string mean_str = "mean", sum_str = "sum", sub_str = "sub", sq_str = "square";
+  std::string mean_str = "mean", sum_str = "sum";
+  std::string sub_str = "sub", sq_str = "square";
   auto ncol = cols.size();
   if (axis == 0) {
     std::vector<double> var_res(ncol);
@@ -1191,32 +1269,28 @@ dftable frov_df_var_impl(exrpc_ptr_t& df_proxy,
       }
     }
     ret.append_column("index", make_dvector_scatter(cols)); 
-    ret.append_column("var", make_dvector_scatter(var_res), true); // may contain null 
+    ret.append_column("var", 
+                      make_dvector_scatter(var_res), true); // may contain null 
   }
   else if (axis == 1) {
     if (ncol == 0 ) append_null<double>(ret, "var", df.num_row());
     else {
       double fillv = 0;
       auto tmp = frov_df_mean_impl(df_proxy, cols, axis, skip_na, with_index);
-      use_dfcolumn use_(df.raw_column(cols[0]));
-      auto dfcol = df.column(cols[0]);
-      if (skip_na) fillna_helper(tmp, sum_str, dfcol, fillv); // replaces nulls with fillv (if any) and append in 'tmp'
-      else tmp.append_column(sum_str, dfcol); //tmp:mean,sum
-      //set sum_str to zeros
-      auto func = frovedis::mul_im(sum_str, 0);
-      use_dfcolumn use_func_mul(func->columns_to_use(tmp)); 
-      auto sum_0 = func->execute(tmp);
-      tmp.drop(sum_str); //tmp:mean
-      tmp.append_column(sum_str, sum_0); //tmp:mean,sum
+      auto sum_col = tmp.as_dvector<double>(mean_str);
+      sum_col.mapv(+[](double& x){ //sum col with zeros
+                   x = 0;});
+      tmp.append_column(sum_str, sum_col); //tmp:mean,sum
       for (size_t i = 0; i < ncol; ++i) {
         use_dfcolumn use_col(df.raw_column(cols[i]));
-        dfcol = df.column(cols[i]);
+        auto dfcol = df.column(cols[i]);
         tmp.append_column(cols[i], dfcol);//tmp:mean,sum,cols[i]
         auto func = frovedis::sub_col(mean_str, cols[i]);
         use_dfcolumn use_func_sub(func->columns_to_use(tmp)); 
         auto rescol = func->execute(tmp);
         tmp.drop(cols[i]);//tmp:mean,sum
-        if (skip_na) fillna_helper(tmp, sub_str, rescol, fillv); // replaces nulls with fillv (if any) and append in 'tmp'
+        // replaces nulls with fillv (if any) and append in 'tmp'
+        if (skip_na) fillna_helper(tmp, sub_str, rescol, fillv);
         else tmp.append_column(sub_str, rescol); //tmp:mean,sum,sub
         func = frovedis::pow_im(sub_str, 2);
         use_dfcolumn use_func_pow(func->columns_to_use(tmp)); 
@@ -1235,7 +1309,9 @@ dftable frov_df_var_impl(exrpc_ptr_t& df_proxy,
       if (n_ddof > 0) {
         if (skip_na) {
           // --- calculate row-wise non-na values ---
-          auto countna_df = calc_non_na_vals(df, cols, axis, with_index, ncol, "count_non_na");
+          auto countna_df = calc_non_na_vals(df, cols, 
+                                             axis, with_index, 
+                                             ncol, "count_non_na");
           auto subt_fn = frovedis::sub_im("count_non_na", ddof);
           use_dfcolumn use_sub(subt_fn->columns_to_use(countna_df));
           auto res_col = subt_fn->execute(countna_df); // ncol - count -ddof
@@ -1246,12 +1322,14 @@ dftable frov_df_var_impl(exrpc_ptr_t& df_proxy,
           col_ddof.mapv(replace_le_zero);
           countna_df.append_column("count_non_na", col_ddof_dv, true);
           countna_df.drop("count_non_na_ddof");
-          auto var_fn = frovedis::fdiv_col(sum_str, "count_non_na"); // variance = sum / count_non_na
+          auto var_fn = frovedis::fdiv_col(sum_str, 
+                               "count_non_na"); // variance = sum / count_non_na
           use_dfcolumn use_var(var_fn->columns_to_use(tmp, countna_df));
           ret.append_column("var", var_fn->execute(tmp, countna_df));
         } else {
           // --- calculate variance --- 
-          auto var_fn = frovedis::fdiv_im(sum_str, n_ddof); // variance = sum / ncol - ddof
+          auto var_fn = frovedis::fdiv_im(sum_str, 
+                                       n_ddof); // variance = sum / ncol - ddof
           use_dfcolumn use_var(var_fn->columns_to_use(tmp));
           ret.append_column("var", var_fn->execute(tmp));
         }
@@ -1267,7 +1345,8 @@ dftable frov_df_var_impl(exrpc_ptr_t& df_proxy,
     // use index as it is in input dataframe, if any. otherwise add index.
     if (with_index) {
       use_dfcolumn use(df.raw_column(index_nm));
-      ret.append_column(index_nm, df.column(index_nm)).change_col_position(index_nm, 0);
+      ret.append_column(index_nm, df.column(index_nm))
+         .change_col_position(index_nm, 0);
     } else {
       ret.prepend_rowid<long>(index_nm);
     }
@@ -1308,7 +1387,8 @@ dftable frov_df_std_impl(exrpc_ptr_t& df_proxy,
       ret.rename_cols(var_str, std_str);
     }
   }
-  else REPORT_ERROR(USER_ERROR, "standard deviation: supported axis: 0 and 1 only!\n");  
+  else REPORT_ERROR(USER_ERROR, 
+                    "standard deviation: supported axis: 0 and 1 only!\n");  
   return ret;
 }
 
@@ -1341,7 +1421,8 @@ dftable frov_df_sem_impl(exrpc_ptr_t& df_proxy,
           use_dfcolumn use(df.raw_column(cname));
           count[i] = std::sqrt(df.column(cname)->count());
         }
-        ret.append_column("count_non_na_root", make_dvector_scatter(count), true);
+        ret.append_column("count_non_na_root", 
+                          make_dvector_scatter(count), true);
         auto func = frovedis::fdiv_col(std_str, "count_non_na_root");
         use_dfcolumn use_func_sub(func->columns_to_use(ret)); 
         ret.append_column(sem_str, func->execute(ret));
@@ -1351,7 +1432,8 @@ dftable frov_df_sem_impl(exrpc_ptr_t& df_proxy,
       else {
         count = df.column(cols[0])->size();
         // --- calculate sem --- 
-        auto sem_fn = frovedis::fdiv_im(std_str, std::sqrt(count)); // variance = sum / (count)^0.5
+        auto sem_fn = frovedis::fdiv_im(std_str, 
+                              std::sqrt(count)); // variance = sum / (count)^0.5
         use_dfcolumn use_sem(sem_fn->columns_to_use(ret));
         ret.append_column(sem_str, sem_fn->execute(ret));
         ret.drop(std_str);
@@ -1360,7 +1442,8 @@ dftable frov_df_sem_impl(exrpc_ptr_t& df_proxy,
     else if (axis == 1) {
       if (skip_na) {
         // --- calculate row-wise non-na values ---
-        auto countna_df = calc_non_na_vals(df, cols, axis, with_index, ncol, "count_non_na");
+        auto countna_df = calc_non_na_vals(df, cols, axis, with_index, 
+                                           ncol, "count_non_na");
         use_dfcolumn use_count_non_na(countna_df.raw_column("count_non_na"));
         auto func = frovedis::pow_im("count_non_na", 0.5); //square root
         use_dfcolumn use_func_sqrt(func->columns_to_use(countna_df)); 
@@ -1368,19 +1451,22 @@ dftable frov_df_sem_impl(exrpc_ptr_t& df_proxy,
         countna_df.drop("count_non_na");
         countna_df.append_column("count_non_na", rescol); 
         // --- calculate sem --- 
-        auto sem_fn = frovedis::fdiv_col(std_str, "count_non_na"); // sem = std / (count_non_na)^0.5
+        auto sem_fn = frovedis::fdiv_col(std_str, 
+                              "count_non_na"); // sem = std / (count_non_na)^0.5
         use_dfcolumn use_sem(sem_fn->columns_to_use(ret, countna_df));
         ret.append_column(sem_str, sem_fn->execute(ret, countna_df));
         ret.drop(std_str);
       } else {
         // --- calculate sem --- 
-        auto sem_fn = frovedis::fdiv_im(std_str, std::sqrt(ncol)); // variance = sum / (ncol)^0.5
+        auto sem_fn = frovedis::fdiv_im(std_str, 
+                                std::sqrt(ncol)); // variance = sum / (ncol)^0.5
         use_dfcolumn use_sem(sem_fn->columns_to_use(ret));
         ret.append_column(sem_str, sem_fn->execute(ret));
         ret.drop(std_str);
       }
     }
-    else REPORT_ERROR(USER_ERROR, "standard error of mean: supported axis: 0 and 1 only!\n");
+    else REPORT_ERROR(USER_ERROR, 
+                     "standard error of mean: supported axis: 0 and 1 only!\n");
   }
   else {
     ret.rename_cols(std_str, sem_str);
@@ -1406,7 +1492,8 @@ dftable frov_df_median_impl(exrpc_ptr_t& df_proxy,
                             bool& with_index) {
   auto& df = *reinterpret_cast<dftable_base*>(df_proxy);
   std::string index_nm = "index";
-  if (with_index) index_nm = df.columns()[0]; // 0th column is always treated as index
+  // 0th column is always treated as index
+  if (with_index) index_nm = df.columns()[0];
 
   dftable ret;
   std::string median_str = "median";
@@ -1422,7 +1509,8 @@ dftable frov_df_median_impl(exrpc_ptr_t& df_proxy,
           case FLOAT:  median_res[i] = df.median<float>(cols[i]); break;
           case DOUBLE: median_res[i] = df.median<double>(cols[i]); break;
           case ULONG:  median_res[i] = df.median<unsigned long>(cols[i]); break;
-          default:     REPORT_ERROR(USER_ERROR, "median on non-numeric column!\n");
+          default:     REPORT_ERROR(USER_ERROR, 
+                                    "median on non-numeric column!\n");
         }
       }
     } else {
@@ -1439,13 +1527,16 @@ dftable frov_df_median_impl(exrpc_ptr_t& df_proxy,
             case FLOAT:  median_res[i] = df.median<float>(cname); break;
             case DOUBLE: median_res[i] = df.median<double>(cname); break;
             case ULONG:  median_res[i] = df.median<unsigned long>(cname); break;
-            default:     REPORT_ERROR(USER_ERROR, "median on non-numeric column!\n");
+            default:     REPORT_ERROR(USER_ERROR, 
+                                      "median on non-numeric column!\n");
           }
         }
       }
     }
     ret.append_column("index", make_dvector_scatter(cols)); 
-    ret.append_column(median_str, make_dvector_scatter(median_res), true); // may contain null 
+    ret.append_column(median_str, 
+                      make_dvector_scatter(median_res), 
+                      true); // may contain null 
   }
   else if (axis == 1) {
     if (ncol == 0 ) append_null<double>(ret, "median", df.num_row());
@@ -1454,14 +1545,13 @@ dftable frov_df_median_impl(exrpc_ptr_t& df_proxy,
       std::vector<double> median;
       auto nan_count_dv = df.select(cols).count_nulls(axis, with_index)
                             .as_dvector<size_t>("count");
-      if (skip_na) median = matrix_median_by_rows(rmat, nan_count_dv, 
-                                                  skip_na, true);
-      else median = matrix_median_by_rows(rmat, nan_count_dv, skip_na, true);
+      median = matrix_median_by_rows(rmat, nan_count_dv, skip_na, true);
       ret.append_column(median_str, make_dvector_scatter(median), true);
     }
     if (with_index) {
       use_dfcolumn use(df.raw_column(index_nm));
-      ret.append_column(index_nm, df.column(index_nm)).change_col_position(index_nm, 0);
+      ret.append_column(index_nm, 
+                        df.column(index_nm)).change_col_position(index_nm, 0);
     } else {
       ret.prepend_rowid<long>(index_nm);
     }
@@ -1475,9 +1565,107 @@ dummy_dftable frov_df_median(exrpc_ptr_t& df_proxy,
                            std::vector<short>& types,
                            int& axis, bool& skip_na, 
                            bool& with_index) {
-  auto ret = frov_df_median_impl(df_proxy, cols, types, axis, skip_na, with_index);
+  auto ret = frov_df_median_impl(df_proxy, cols, types, 
+                                 axis, skip_na, with_index);
   auto retp = new dftable(std::move(ret));
   return to_dummy_dftable(retp);
 }
 
+//Mean Absolute Deviation
+//summation(|Xi - m(x)|)/n
+dftable frov_df_mad_impl(exrpc_ptr_t& df_proxy, 
+                         std::vector<std::string>& cols,
+                         int& axis, bool& skip_na,
+                         bool& with_index) {
+  auto& df = *reinterpret_cast<dftable_base*>(df_proxy);
+  std::string index_nm = "index";
+  if (with_index) index_nm = df.columns()[0]; 
+
+  dftable ret;
+  std::string mean_str = "mean", sum_str = "sum", sub_str = "sub";
+  auto ncol = cols.size();
+  if (axis == 0) {
+    std::vector<double> mad_res(ncol);
+    if (skip_na) {
+      for (size_t i = 0; i < ncol; ++i) mad_res[i] = df.mad(cols[i]);
+    } else {
+      auto tmax = std::numeric_limits<double>::max();
+      for (size_t i = 0; i < ncol; ++i) {
+        auto cname = cols[i];
+        use_dfcolumn use(df.raw_column(cname));
+        if (df.column(cname)->if_contain_nulls()) mad_res[i] = tmax;
+        else mad_res[i] = df.mad(cname);
+      }
+    }
+    ret.append_column("index", make_dvector_scatter(cols)); 
+    ret.append_column("mad", 
+                      make_dvector_scatter(mad_res), true); // may contain null 
+  }
+  else if (axis == 1) {
+    if (ncol == 0 ) append_null<double>(ret, "mad", df.num_row());
+    else {
+      double fillv = 0;
+      auto tmp = frov_df_mean_impl(df_proxy, cols, axis, skip_na, with_index);
+      auto sum_col = tmp.as_dvector<double>(mean_str);
+      sum_col.mapv(+[](double& x){ //TODO: sum col zeroos
+                   x = 0;});
+      tmp.append_column(sum_str, sum_col); // may contain null 
+      for (size_t i = 0; i < ncol; ++i) {
+        use_dfcolumn use_col(df.raw_column(cols[i]));
+        auto func = frovedis::sub_col(mean_str, cols[i]);
+        use_dfcolumn use_func_sub(func->columns_to_use(tmp, df)); 
+        auto rescol = func->execute(tmp, df);
+        // replaces nulls with fillv (if any) and append in 'tmp'
+        if (skip_na) fillna_helper(tmp, sub_str, rescol, fillv);
+        else tmp.append_column(sub_str, rescol); //tmp:mean,sum,sub
+        use_dfcolumn use_sub(tmp.raw_column(sub_str));
+        func = frovedis::abs_col(sub_str);
+        use_dfcolumn use_func_abs(func->columns_to_use(tmp)); 
+        rescol = func->execute(tmp);
+        tmp.drop(sub_str);
+        tmp.append_column(sub_str, rescol);
+        func = frovedis::add_col(sum_str, sub_str);
+        use_dfcolumn use_func_add(func->columns_to_use(tmp)); 
+        rescol = func->execute(tmp);
+        tmp.drop(sum_str);//tmp:mean,sub
+        tmp.drop(sub_str);//tmp:mean
+        tmp.append_column(sum_str, rescol);//tmp:mean,sum
+      }
+      tmp.drop(mean_str);//tmp:sum
+      if (skip_na) {
+        // --- calculate row-wise non-na values ---
+        auto countna_df = calc_non_na_vals(df, cols, axis, with_index, 
+                                           ncol, "count_non_na");
+        // variance = sum / count_non_na
+        auto var_fn = frovedis::fdiv_col(sum_str, "count_non_na");
+        use_dfcolumn use_var(var_fn->columns_to_use(tmp, countna_df));
+        ret.append_column("mad", var_fn->execute(tmp, countna_df));
+      } else {
+        // --- calculate mad --- 
+        auto var_fn = frovedis::fdiv_im(sum_str, ncol); // variance = sum / ncol
+        use_dfcolumn use_var(var_fn->columns_to_use(tmp));
+        ret.append_column("mad", var_fn->execute(tmp));
+      }
+    }
+    // use index as it is in input dataframe, if any. otherwise add index.
+    if (with_index) {
+      use_dfcolumn use(df.raw_column(index_nm));
+      ret.append_column(index_nm, 
+                        df.column(index_nm)).change_col_position(index_nm, 0);
+    } else {
+      ret.prepend_rowid<long>(index_nm);
+    }
+  }
+  else REPORT_ERROR(USER_ERROR, "mad: supported axis: 0 and 1 only!\n");
+  return ret;
+}
+
+dummy_dftable frov_df_mad(exrpc_ptr_t& df_proxy, 
+                          std::vector<std::string>& cols,
+                          int& axis, bool& skip_na,
+                          bool& with_index) {
+  auto ret = frov_df_mad_impl(df_proxy, cols, axis, skip_na, with_index);
+  auto retp = new dftable(std::move(ret));
+  return to_dummy_dftable(retp);
+}
 

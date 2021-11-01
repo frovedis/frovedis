@@ -200,6 +200,9 @@ std::vector<std::string> frovedis_df_sem(exrpc_ptr_t& df_proxy,
 std::vector<std::string> frovedis_df_var(exrpc_ptr_t& df_proxy,
                                          std::vector<std::string>& cols);
 
+std::vector<std::string> frovedis_df_mad(exrpc_ptr_t& df_proxy,
+                                         std::vector<std::string>& cols);
+
 std::vector<std::string> frovedis_df_median(exrpc_ptr_t& df_proxy,
                                             std::vector<std::string>& cols,
                                             std::vector<short>& types);
@@ -467,6 +470,10 @@ dummy_dftable frov_df_var(exrpc_ptr_t& df_proxy,
                            std::vector<std::string>& cols,
                            int& axis, bool& skip_na, double& ddof, bool& with_index);
 
+dummy_dftable frov_df_mad(exrpc_ptr_t& df_proxy, 
+                           std::vector<std::string>& cols,
+                           int& axis, bool& skip_na, bool& with_index);
+
 dummy_dftable frov_df_std(exrpc_ptr_t& df_proxy, 
                            std::vector<std::string>& cols,
                            int& axis, bool& skip_na, double& ddof, bool& with_index);
@@ -477,4 +484,11 @@ dummy_dftable frov_df_median(exrpc_ptr_t& df_proxy,
                            std::vector<std::string>& cols,
                            std::vector<short>& types,
                            int& axis, bool& skip_na, bool& with_index);
+dummy_dftable 
+frovedis_gdf_aggr_with_ddof(exrpc_ptr_t& df_proxy,
+                          std::vector<std::string>& groupedCols,
+                          std::string& aggFunc,
+                          std::vector<std::string>& aggCols,
+                          std::vector<std::string>& aggAsCols,
+                          double& ddof);
 #endif
