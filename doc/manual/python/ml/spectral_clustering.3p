@@ -84,10 +84,6 @@ In Spectral Clustering, the data points are treated as nodes of a graph.
 Thus, clustering is treated as a graph partitioning problem.
 The nodes are then mapped to a low\-dimensional space that can be easily
 segregated to form clusters.
-The components or features are identified as per column order in matrix
-data.
-The nodes are then mapped to a low\-dimensional space that can be easily
-segregated to form clusters.
 .PP
 This module provides a client\-server implementation, where the client
 application is a normal python program.
@@ -138,7 +134,7 @@ When it is None (not specified explicitly), it will be set as
 Only \[aq]arpack\[aq] eigen solver is supported.
 \f[B]\f[I]n_components\f[]\f[]: A positive integer parameter containing
 the number of components for clusters.
-It is used to store the number of eigenvectors for spectral embedding.
+It is used to compute the number of eigenvectors for spectral embedding.
 The number of components should be in between 1 to n_features.
 (Default: None)
 .PD 0
@@ -149,13 +145,10 @@ number of clusters.
 .PD 0
 .P
 .PD
-\f[B]\f[I]random_state\f[]\f[]: Zero or positive integer parameter, is
-the pseudo random number generator.
-(Default: None)
-.PD 0
-.P
-.PD
+\f[B]\f[I]random_state\f[]\f[]: Zero or positive integer parameter.
+It is None by default.
 When it is None (not specified explicitly), it will be set as 0.
+(unused)
 .PD 0
 .P
 .PD
@@ -167,8 +160,16 @@ times the k\-means algorithm will be run with different centroid seeds.
 .PD
 \f[B]\f[I]gamma\f[]\f[]: The double (float64) parameter required for
 computing nearby relational meaningful eigenvalues.
-When it is None (specified explicitly), it will be set as 1.0.
 (Default: 1.0)
+.PD 0
+.P
+.PD
+When it is None (specified explicitly), it will be set as 1.0.
+.PD 0
+.P
+.PD
+Kernel coefficient for rbf is "[np.exp(\-gamma * d(X,X) ** 2)]" kernel.
+Ignored for affinity=\[aq]nearest_neighbors\[aq].
 .PD 0
 .P
 .PD
@@ -184,10 +185,27 @@ Only \[aq]rbf\[aq], \[aq]nearest_neighbors\[aq] and
 .PD 0
 .P
 .PD
+\[aq]nearest_neighbors\[aq]: construct the affinity matrix by computing
+a graph of nearest neighbors.
+.PD 0
+.P
+.PD
+\[aq]rbf\[aq]: construct the affinity matrix using a radial basis
+function (RBF) kernel.
+.PD 0
+.P
+.PD
+\[aq]precomputed\[aq]: interpret X as a precomputed affinity matrix,
+where larger values indicate greater similarity between instances.
+One of the kernels supported by pairwise_kernels.
+.PD 0
+.P
+.PD
 \f[B]\f[I]n_neighbors\f[]\f[]: A positive integer parameter, is the
-number of neighbors used when constructing the affinity matrix using the
-nearest neighbors method.
+number of neighbors to be used when constructing the affinity matrix
+using the nearest neighbors method.
 It must be in between 1 to n_samples.
+It is applicable only when affinity = \[aq]nearest_neighbors\[aq].
 (Default: 10)
 .PD 0
 .P
@@ -238,14 +256,13 @@ getting training time logs from frovedis server.
 .P
 .PD
 \f[B]\f[I]max_iter\f[]\f[]: A positive integer parameter containing the
-maximum number of iteration count for kmeans algorithm.
+maximum number of iteration count for kmeans assignment.
 (Default: 300)
 .PD 0
 .P
 .PD
-\f[B]\f[I]eps\f[]\f[]: A double parameter containing the epsilon value
-for kmeans.
-It must be within the range of 0.0 to 1.0.
+\f[B]\f[I]eps\f[]\f[]: Zero or a positive double parameter containing
+the tolerance value for kmeans.
 (Default: 1e\-4)
 .PD 0
 .P
@@ -259,6 +276,8 @@ then compute normalized Laplacian, else not.
 \f[B]\f[I]mode\f[]\f[]: An integer parameter required to set the eigen
 computation method.
 It can be either 1 (for generic) or 3 (for shift\-invert).
+It is applicable only for dense data.
+For more details refer ARPACK computation modes.
 (Default: 3)
 .PD 0
 .P
@@ -276,18 +295,69 @@ eigenvectors.
 .PD 0
 .P
 .PD
-\f[B]\f[I]affinity_matrix_\f[]\f[]: A numpy dense array or scipy sparse
-matrix with float or double (float64) type values, or an instance of
-FrovedisCRSMatrix for sparse data and FrovedisRowmajorMatrix for dense
-data.
-It has a shape (n_samples, n_samples).
-It is used for clustering and is only available after calling fit().
+\f[B]\f[I]affinity_matrix_\f[]\f[]:
+.PD 0
+.P
+.PD
+For python native dense input:
+.PD 0
+.P
+.PD
+\- When affinity = \[aq]precomputed/rbf\[aq], it returns a numpy array
+.PD 0
+.P
+.PD
+\- When affinity = \[aq]nearest_neighbors\[aq], it returns a scipy
+matrix
+.PD 0
+.P
+.PD
+For frovedis\-like dense input:
+.PD 0
+.P
+.PD
+\- When affinity = \[aq]precomputed/rbf\[aq], returns a
+FrovedisRowmajorMatrix
+.PD 0
+.P
+.PD
+\- When affinity = \[aq]nearest_neighbors\[aq], returns a
+FrovedisCRSMatrix
+.PD 0
+.P
+.PD
+For python native sparse input:
+.PD 0
+.P
+.PD
+\- When affinity = \[aq]precomputed/nearest_neighbors\[aq], it returns a
+scipy matrix
+.PD 0
+.P
+.PD
+\- When affinity = \[aq]rbf\[aq], it returns a numpy array
+.PD 0
+.P
+.PD
+For frovedis\-like sparse input:
+.PD 0
+.P
+.PD
+\- When affinity = \[aq]precomputed/nearest_neighbors\[aq], it a returns
+FrovedisCRSMatrix
+.PD 0
+.P
+.PD
+\- When affinity = \[aq]rbf\[aq], it returns a FrovedisRowmajorMatrix
+.PP
+In all cases, the output is of float or double (float64) type and of
+shape (n_samples, n_samples).
 .PD 0
 .P
 .PD
 \f[B]\f[I]labels_\f[]\f[]: A python ndarray of int64 values and has
 shape(n_clusters,).
-It contains cluster labels for each point.
+It contains predicted cluster labels for each point.
 .PP
 \f[B]Purpose\f[]
 .PD 0
@@ -296,8 +366,8 @@ It contains cluster labels for each point.
 It initializes a Spectral Clustering object with the given parameters.
 .PP
 The parameters: "eigen_tol", "degree", "coef0", "kernel_params" and
-"n_jobs" are simply kept in to make the interface uniform to the
-Scikit\-learn Spectral Clustering module.
+"n_jobs", "random_state" are simply kept in to make the interface
+uniform to the Scikit\-learn Spectral Clustering module.
 They are not used anywhere within frovedis implementation.
 .PP
 \f[B]Return Value\f[]
@@ -314,11 +384,13 @@ It simply returns "self" reference.
 \f[B]\f[I]X\f[]\f[]: A numpy dense or scipy sparse matrix or any python
 array\-like object or an instance of FrovedisCRSMatrix for sparse data
 and FrovedisRowmajorMatrix for dense data.
+If affinity="precomputed", it needs to be of shape (n_samples,
+n_samples).
 .PD 0
 .P
 .PD
 \f[B]\f[I]y\f[]\f[]: None or any python array\-like object (any shape).
-It is simply ignored in frovedis implementation and in Scikit\-learn as
+It is simply ignored in frovedis implementation, as in Scikit\-learn as
 well.
 .PP
 \f[B]Purpose\f[]
@@ -340,18 +412,6 @@ from\ frovedis.mllib.cluster\ import\ SpectralClustering
 spec\ =\ SpectralClustering(n_clusters\ =\ 2).fit(mat)\ \ \ 
 \f[]
 .fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-n_cluster:\ 2;\ n_comp:\ 2;\ max_iter:\ 300;\ n_init:\ 10;\ seed:\ 0;\ eps:\ 0.0001;\ gamma:\ 1;\ 
-affinity:\ rbf;\ n_neighbors:\ 10;\ norm_laplacian:\ 1;\ drop_first:\ 1;\ mode:\ 3;\ input_movable:\ 0
-\f[]
-.fi
-.PP
-It prints the initial value of input parameters to be used during
-training.
 .PP
 When native python data is provided, it is converted to frovedis\-like
 inputs and sent to frovedis server which consumes some data transfer
@@ -378,18 +438,6 @@ spec\ =\ SpectralClustering(n_clusters\ =\ 2).fit(rmat)
 \f[]
 .fi
 .PP
-Output
-.IP
-.nf
-\f[C]
-n_cluster:\ 2;\ n_comp:\ 2;\ max_iter:\ 300;\ n_init:\ 10;\ seed:\ 0;\ eps:\ 0.0001;\ gamma:\ 1;\ 
-affinity:\ rbf;\ n_neighbors:\ 10;\ norm_laplacian:\ 1;\ drop_first:\ 1;\ mode:\ 3;\ input_movable:\ 0
-\f[]
-.fi
-.PP
-It prints the initial value of input parameters to be used during
-training.
-.PP
 \f[B]Return Value\f[]
 .PD 0
 .P
@@ -404,19 +452,21 @@ It simply returns "self" reference.
 \f[B]\f[I]X\f[]\f[]: A numpy dense or scipy sparse matrix or any python
 array\-like object or an instance of FrovedisCRSMatrix for sparse data
 and FrovedisRowmajorMatrix for dense data.
+If affinity="precomputed", it needs to be of shape (n_samples,
+n_samples).
 .PD 0
 .P
 .PD
 \f[B]\f[I]y\f[]\f[]: None or any python array\-like object (any shape).
-It is simply ignored in frovedis implementation and in Scikit\-learn as
+It is simply ignored in frovedis implementation, as in Scikit\-learn as
 well.
 .PP
 \f[B]Purpose\f[]
 .PD 0
 .P
 .PD
-It clusters the given data points (X) and returns the centroid
-information.
+It fits the given data points (X) and returns the predicted labels based
+on cluster formed during the fit.
 .PP
 For example,
 .IP
@@ -436,21 +486,14 @@ Output
 .IP
 .nf
 \f[C]
-n_cluster:\ 2;\ n_comp:\ 2;\ max_iter:\ 300;\ n_init:\ 10;\ seed:\ 0;\ eps:\ 0.0001;\ gamma:\ 1;\ 
-affinity:\ rbf;\ n_neighbors:\ 10;\ norm_laplacian:\ 1;\ drop_first:\ 1;\ mode:\ 3;\ input_movable:\ 0
 [0\ 0\ 1\ 1\ 1]
 \f[]
 .fi
 .PP
-It prints the initial value of input parameters to be used during
-training and the cluster lables after training is completed.
+It prints the predicted cluster lables after training is completed.
 .PP
-When native python data is provided, it is converted to frovedis\-like
-inputs and sent to frovedis server which consumes some data transfer
-time.
-Pre\-constructed frovedlis\-like inputs can be used to speed up the
-training time, especially when same data would be used for multiple
-executions.
+Like in fit(), we can also provide frovedis\-like input in fit_predict()
+for faster computation.
 .PP
 For example,
 .IP
@@ -475,14 +518,11 @@ Output
 .IP
 .nf
 \f[C]
-n_cluster:\ 2;\ n_comp:\ 2;\ max_iter:\ 300;\ n_init:\ 10;\ seed:\ 0;\ eps:\ 0.0001;\ gamma:\ 1;\ 
-affinity:\ rbf;\ n_neighbors:\ 10;\ norm_laplacian:\ 1;\ drop_first:\ 1;\ mode:\ 3;\ input_movable:\ 0
 [0\ 0\ 1\ 1\ 1]
 \f[]
 .fi
 .PP
-It prints the initial value of input parameters to be used during
-training and the cluster lables after training is completed.
+It prints the predicted cluster lables after training is completed.
 .PP
 \f[B]Return Value\f[]
 .PD 0
@@ -499,10 +539,12 @@ It has a shape(n_samples,).
 \f[B]\f[I]X\f[]\f[]: A numpy dense or scipy sparse matrix or any python
 array\-like object or an instance of FrovedisCRSMatrix for sparse data
 and FrovedisRowmajorMatrix for dense data.
+If affinity="precomputed", it needs to be of shape (n_samples,
+n_samples).
 .PD 0
 .P
 .PD
-\f[B]\f[I]y\f[]\f[]: A python ndarray and has shape (n_samples,1).
+\f[B]\f[I]y\f[]\f[]: A python ndarray of shape (n_samples,).
 .PD 0
 .P
 .PD
@@ -514,15 +556,15 @@ It is simply ignored in frovedis implementation.
 .PD 0
 .P
 .PD
-It uses scikit\-learn homogeneity score on given test data and labels
-i.e homogeneity score of self.predict(X, y) wrt.
+It uses homogeneity score on given true labels and predicted labels i.e
+homogeneity score of self.predict(X, y) wrt.
 y.
 .PP
 For example,
 .IP
 .nf
 \f[C]
-spec.score(train_mat,\ [0,\ 0,\ 2,\ 2,\ 2])\ \ 
+spec.score(train_mat,\ [0,\ 0,\ 1,\ 1,\ 1])\ \ 
 \f[]
 .fi
 .PP

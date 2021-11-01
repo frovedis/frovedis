@@ -38,9 +38,7 @@ entities with one another based on some notion of similarity.
 
 In Spectral Clustering, the data points are treated as nodes of a graph. Thus, 
 clustering is treated as a graph partitioning problem. The nodes are then mapped to 
-a low-dimensional space that can be easily segregated to form clusters. The components 
-or features are identified as per column order in matrix data. The nodes are then 
-mapped to a low-dimensional space that can be easily segregated to form clusters.  
+a low-dimensional space that can be easily segregated to form clusters.  
 
 This module provides a client-server implementation, where the client application 
 is a normal python program. The frovedis interface is almost same as Scikit-learn 
@@ -71,21 +69,28 @@ to use. (Default: None)
 When it is None (not specified explicitly), it will be set as 'arpack'. Only 'arpack' 
 eigen solver is supported. 
 **_n\_components_**: A positive integer parameter containing the number of components 
-for clusters. It is used to store the number of eigenvectors for spectral embedding. 
+for clusters. It is used to compute the number of eigenvectors for spectral embedding. 
 The number of components should be in between 1 to n_features. (Default: None)  
 When it is None (not specified explicitly), it will be equal to the number of clusters.  
-**_random\_state_**: Zero or positive integer parameter, is the pseudo random number generator. (Default: None)  
-When it is None (not specified explicitly), it will be set as 0.  
+**_random\_state_**: Zero or positive integer parameter. It is None by default. When it is 
+None (not specified explicitly), it will be set as 0. (unused)  
 **_n\_init_**: A positive integer parameter is the number of times the k-means algorithm 
 will be run with different centroid seeds. (Default: 10)  
 **_gamma_**: The double (float64) parameter required for computing nearby relational 
-meaningful eigenvalues. When it is None (specified explicitly), it will be set as 1.0. (Default: 1.0)  
+meaningful eigenvalues. (Default: 1.0)  
+When it is None (specified explicitly), it will be set as 1.0.  
+Kernel coefficient for rbf is "[np.exp(-gamma * d(X,X) ** 2)]" kernel. Ignored for 
+affinity='nearest_neighbors'.  
 **_affinity_**: A string object parameter which tells how to construct the affinity matrix. (Default: 'rbf')  
 When it is None (specified explicitly), it will be set as 'rbf'. Only 'rbf', 
 'nearest_neighbors' and 'precomputed' are supported.  
-**_n\_neighbors_**: A positive integer parameter, is the number of neighbors used when 
+'nearest_neighbors': construct the affinity matrix by computing a graph of nearest neighbors.  
+'rbf': construct the affinity matrix using a radial basis function (RBF) kernel.  
+'precomputed': interpret X as a precomputed affinity matrix, where larger values indicate greater 
+similarity between instances. One of the kernels supported by pairwise_kernels.  
+**_n\_neighbors_**: A positive integer parameter, is the number of neighbors to be used when 
 constructing the affinity matrix using the nearest neighbors method. It must be in between 
-1 to n_samples. (Default: 10)  
+1 to n_samples. It is applicable only when affinity = 'nearest_neighbors'. (Default: 10)  
 **_eigen\_tol_**: Stopping criterion for eigen decomposition of the Laplacian matrix when 
 using 'arpack' eigen_solver. (unused)  
 **_assign\_labels_**: A string object parameter, is the strategy to use to assign labels in the 
@@ -99,30 +104,41 @@ embedding space. When it is None (specified explicitly), it will be set as 'kmea
 default (for INFO mode and not specified explicitly). But it can be set to 1 (for DEBUG mode) 
 or 2 (for TRACE mode) for getting training time logs from frovedis server.  
 **_max\_iter_**: A positive integer parameter containing the maximum number of iteration count 
-for kmeans algorithm. (Default: 300)  
-**_eps_**: A double parameter containing the epsilon value for kmeans. It must be within 
-the range of 0.0 to 1.0. (Default: 1e-4)  
+for kmeans assignment. (Default: 300)  
+**_eps_**: Zero or a positive double parameter containing the tolerance value for kmeans. (Default: 1e-4)  
 **_norm\_laplacian_**: A boolean parameter if set to True, then compute normalized Laplacian, 
 else not. (Default: True)  
 **_mode_**: An integer parameter required to set the eigen computation method. It can be either 
-1 (for generic) or 3 (for shift-invert). (Default: 3)  
+1 (for generic) or 3 (for shift-invert). It is applicable only for dense data. For more details 
+refer ARPACK computation modes. (Default: 3)  
 **_drop\_first_**: A boolean parameter if set to True, then drops the first eigenvector. The 
 first eigenvector of a normalized Laplacian is full of constants, thus if it is set to true, 
 then (n_components + 1) eigenvectors are computed and will drop the first vector. Otherwise, 
 it will calculate 'n_components' number of eigenvectors. (Default: True)  
 
 __Attributes__  
-**_affinity\_matrix\__**: A numpy dense array or scipy sparse matrix with float or 
-double (float64) type values, or an instance of FrovedisCRSMatrix for sparse data and 
-FrovedisRowmajorMatrix for dense data. It has a shape (n_samples, n_samples). It is used 
-for clustering and is only available after calling fit().  
+**_affinity\_matrix\__**:  
+For python native dense input:  
+  - When affinity = 'precomputed/rbf', it returns a numpy array  
+  - When affinity = 'nearest_neighbors', it returns a scipy matrix  
+For frovedis-like dense input:  
+  - When affinity = 'precomputed/rbf', returns a FrovedisRowmajorMatrix  
+  - When affinity = 'nearest_neighbors', returns a FrovedisCRSMatrix  
+For python native sparse input:  
+  - When affinity = 'precomputed/nearest_neighbors', it returns a scipy matrix  
+  - When affinity = 'rbf', it returns a numpy array  
+For frovedis-like sparse input:  
+  - When affinity = 'precomputed/nearest_neighbors', it a returns FrovedisCRSMatrix  
+  - When affinity = 'rbf', it returns a FrovedisRowmajorMatrix  
+  
+In all cases, the output is of float or double (float64) type and of shape (n_samples, n_samples).  
 **_labels\__**: A python ndarray of int64 values and has shape(n_clusters,). It contains 
-cluster labels for each point.  
+predicted cluster labels for each point.  
 
 __Purpose__  
 It initializes a Spectral Clustering object with the given parameters.  
 
-The parameters: "eigen_tol", "degree", "coef0", "kernel_params" and "n_jobs" are simply kept 
+The parameters: "eigen_tol", "degree", "coef0", "kernel_params" and "n_jobs", "random_state" are simply kept 
 in to make the interface uniform to the Scikit-learn Spectral Clustering module. They are 
 not used anywhere within frovedis implementation.  
 
@@ -132,9 +148,10 @@ It simply returns "self" reference.
 ### fit(X, y = None)
 __Parameters__  
 **_X_**: A numpy dense or scipy sparse matrix or any python array-like object or 
-an instance of FrovedisCRSMatrix for sparse data and FrovedisRowmajorMatrix for dense data.  
+an instance of FrovedisCRSMatrix for sparse data and FrovedisRowmajorMatrix for dense data. If 
+affinity="precomputed", it needs to be of shape (n_samples, n_samples).  
 **_y_**: None or any python array-like object (any shape). It is simply ignored in frovedis
-implementation and in Scikit-learn as well.  
+implementation, as in Scikit-learn as well.  
 
 __Purpose__  
 It clusters the given data points (X) into a predefined number (n_clusters) of clusters.   
@@ -147,13 +164,6 @@ For example,
     # fitting input matrix on Spectral Clustering object
     from frovedis.mllib.cluster import SpectralClustering
     spec = SpectralClustering(n_clusters = 2).fit(mat)   
-
-Output
-    
-    n_cluster: 2; n_comp: 2; max_iter: 300; n_init: 10; seed: 0; eps: 0.0001; gamma: 1; 
-    affinity: rbf; n_neighbors: 10; norm_laplacian: 1; drop_first: 1; mode: 3; input_movable: 0
-
-It prints the initial value of input parameters to be used during training.
 
 When native python data is provided, it is converted to frovedis-like inputs and 
 sent to frovedis server which consumes some data transfer time. Pre-constructed 
@@ -174,25 +184,20 @@ For example,
     from frovedis.mllib.cluster import SpectralClustering
     spec = SpectralClustering(n_clusters = 2).fit(rmat)
 
-Output
-    
-    n_cluster: 2; n_comp: 2; max_iter: 300; n_init: 10; seed: 0; eps: 0.0001; gamma: 1; 
-    affinity: rbf; n_neighbors: 10; norm_laplacian: 1; drop_first: 1; mode: 3; input_movable: 0
-
-It prints the initial value of input parameters to be used during training.
-
 __Return Value__  
 It simply returns "self" reference.  
 
 ### fit_predict(X, y = None)  
 __Parameters__  
 **_X_**: A numpy dense or scipy sparse matrix or any python array-like object or 
-an instance of FrovedisCRSMatrix for sparse data and FrovedisRowmajorMatrix for dense data.  
+an instance of FrovedisCRSMatrix for sparse data and FrovedisRowmajorMatrix for dense data. If 
+affinity="precomputed", it needs to be of shape (n_samples, n_samples).  
 **_y_**: None or any python array-like object (any shape). It is simply ignored in frovedis
-implementation and in Scikit-learn as well.  
+implementation, as in Scikit-learn as well.  
 
 __Purpose__  
-It clusters the given data points (X) and returns the centroid information.  
+It fits the given data points (X) and returns the predicted labels based on cluster formed 
+during the fit.  
 
 For example,  
 
@@ -206,17 +211,11 @@ For example,
 
 Output
 
-    n_cluster: 2; n_comp: 2; max_iter: 300; n_init: 10; seed: 0; eps: 0.0001; gamma: 1; 
-    affinity: rbf; n_neighbors: 10; norm_laplacian: 1; drop_first: 1; mode: 3; input_movable: 0
     [0 0 1 1 1]
 
-It prints the initial value of input parameters to be used during training and the cluster 
-lables after training is completed.  
+It prints the predicted cluster lables after training is completed.  
 
-When native python data is provided, it is converted to frovedis-like inputs and 
-sent to frovedis server which consumes some data transfer time. Pre-constructed 
-frovedlis-like inputs can be used to speed up the training time, especially when 
-same data would be used for multiple executions.  
+Like in fit(), we can also provide frovedis-like input in fit_predict() for faster computation.  
 
 For example,
 
@@ -235,12 +234,9 @@ For example,
     
 Output
 
-    n_cluster: 2; n_comp: 2; max_iter: 300; n_init: 10; seed: 0; eps: 0.0001; gamma: 1; 
-    affinity: rbf; n_neighbors: 10; norm_laplacian: 1; drop_first: 1; mode: 3; input_movable: 0
     [0 0 1 1 1]
 
-It prints the initial value of input parameters to be used during training and the cluster 
-lables after training is completed.  
+It prints the predicted cluster lables after training is completed.  
 
 __Return Value__  
 It returns a numpy array of int32 type containing the cluster labels. It has a shape(n_samples,).   
@@ -248,18 +244,19 @@ It returns a numpy array of int32 type containing the cluster labels. It has a s
 ### score(X, y, sample_weight = None)  
 __Parameters__   
 **_X_**: A numpy dense or scipy sparse matrix or any python array-like object or 
-an instance of FrovedisCRSMatrix for sparse data and FrovedisRowmajorMatrix for dense data.  
-**_y_**: A python ndarray and has shape (n_samples,1).  
+an instance of FrovedisCRSMatrix for sparse data and FrovedisRowmajorMatrix for dense data. If 
+affinity="precomputed", it needs to be of shape (n_samples, n_samples).  
+**_y_**: A python ndarray of shape (n_samples,).  
 **_sample\_weight_**: An unused parameter whose default value is None. It is simply ignored 
 in frovedis implementation.  
 
 __Purpose__  
-It uses scikit-learn homogeneity score on given test data and labels i.e homogeneity score 
+It uses homogeneity score on given true labels and predicted labels i.e homogeneity score 
 of self.predict(X, y) wrt. y.  
 
 For example,
 
-    spec.score(train_mat, [0, 0, 2, 2, 2])  
+    spec.score(train_mat, [0, 0, 1, 1, 1])  
 
 Output
 
