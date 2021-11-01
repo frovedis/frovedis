@@ -155,6 +155,77 @@ class FrovedisGroupedDataframe(object):
     def size(self, numeric_only=True):
         return self.agg("size")
 
+    def var(self, ddof=1.0):
+        if not (isinstance(ddof, int) or isinstance(ddof, float)):
+            raise ValueError("var: parameter 'ddof' must be a number!")
+
+        if ddof == 1.0:
+            return self.agg("var")
+
+        agg_col = self.__get_numeric_columns()
+        agg_col_as = [ "var_" + e for e in agg_col ]
+        sz1 = len(self.__cols) 
+        sz2 = len(agg_col)
+        agg_func = "var"
+        g_cols_arr = get_string_array_pointer(self.__cols)
+        a_col_arr = get_string_array_pointer(agg_col)
+        a_col_as_arr = get_string_array_pointer(agg_col_as)
+
+        (host, port) = FrovedisServer.getServerInstance()
+        dummy_df = rpclib.gdf_aggr_with_ddof(host, port, self.__fdata,
+                                            g_cols_arr, sz1,
+                                            agg_func.encode("ascii"),
+                                            a_col_arr, a_col_as_arr, sz2,
+                                            ddof)
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
+
+        names = dummy_df["names"]
+        types = dummy_df["types"]
+        ret = DataFrame().load_dummy(dummy_df["dfptr"], names, types)
+        if (len(self.__cols) > 1):
+            ret.add_index("index")
+        else:
+            ret.set_index(keys=self.__cols, drop=True, inplace=True)
+        return ret
+
+    def sem(self, ddof=1.0):
+        if not (isinstance(ddof, int) or isinstance(ddof, float)):
+            raise ValueError("sem: parameter 'ddof' must be a number!")
+
+        if ddof == 1.0:
+            return self.agg("sem")
+
+        agg_col = self.__get_numeric_columns()
+        agg_col_as = [ "sem_" + e for e in agg_col ]
+        sz1 = len(self.__cols) 
+        sz2 = len(agg_col) 
+        agg_func = "sem"
+        g_cols_arr = get_string_array_pointer(self.__cols)
+        a_col_arr = get_string_array_pointer(agg_col)
+        a_col_as_arr = get_string_array_pointer(agg_col_as)
+
+        (host, port) = FrovedisServer.getServerInstance()
+        dummy_df = rpclib.gdf_aggr_with_ddof(host, port, self.__fdata,
+                                            g_cols_arr, sz1,
+                                            agg_func.encode("ascii"),
+                                            a_col_arr,
+                                            a_col_as_arr, sz2,
+                                            int(ddof))
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
+
+        names = dummy_df["names"]
+        types = dummy_df["types"]
+        ret = DataFrame().load_dummy(dummy_df["dfptr"], names, types)
+        if (len(self.__cols) > 1):
+            ret.add_index("index")
+        else:
+            ret.set_index(keys=self.__cols, drop=True, inplace=True)
+        return ret
+
     def __agg_with_list(self, func):
         """
         __agg_with_list
@@ -211,7 +282,7 @@ class FrovedisGroupedDataframe(object):
                     agg_col_as.append(new_col)
                     if f == 'count' or f == 'size':
                         col_as_tid = DTYPE.ULONG
-                    elif f == 'mean':
+                    elif f in ('mean', 'var', 'sem'):
                         col_as_tid = DTYPE.DOUBLE
                     else:
                         col_as_tid = tid
