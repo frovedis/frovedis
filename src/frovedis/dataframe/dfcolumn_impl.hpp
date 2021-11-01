@@ -1057,6 +1057,36 @@ double mean_helper2(std::vector<T>& val,
   return total;
 }
 
+template <class T>
+double mean_helper3(std::vector<T>& val,
+                    std::vector<size_t>& nulls,
+                    double mean) {
+  size_t valsize = val.size();
+  size_t nullssize = nulls.size();
+  T* valp = &val[0];
+  size_t* nullsp = &nulls[0];
+#pragma cdir nodep
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+  for(size_t i = 0; i < nullssize; i++) {
+    valp[nullsp[i]] = mean; // mean - mean would become zero in error calculation
+  }
+  double total = 0;
+  for(size_t i = 0; i < valsize; i++) {
+    total += fabs(valp[i] - mean); //TODO: replace->ensure subtraction of smaller one from larger one.
+  }
+  T max = std::numeric_limits<T>::max();
+#pragma cdir nodep
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+  for(size_t i = 0; i < nullssize; i++) {
+    valp[nullsp[i]] = max;
+  }
+  return total;
+}
+
 
 template <class T>
 T max_helper2(std::vector<T>& val,
@@ -2831,6 +2861,158 @@ typed_dfcolumn<T>::avg
 }
 
 template <class T>
+std::vector<double>
+var_helper(std::vector<T>& sum_sq,
+           std::vector<T>& sum,
+           std::vector<double>& avg, 
+           std::vector<size_t>& count,
+           std::vector<size_t>& sum_nulls,
+           std::vector<size_t>& ret_nulls,
+           double ddof) {
+  auto size = sum_sq.size();
+  std::vector<double> ret(size);
+  auto retp = ret.data();
+  auto sum_sqp = sum_sq.data();
+  auto sump = sum.data();
+  auto avgp = avg.data();
+  auto countp = count.data();
+
+  auto denom = count - ddof;
+  auto denomp = denom.data();
+  size_t invalid_count = 0;
+  for(size_t i = 0; i < size; i++) {
+    retp[i] = (sum_sqp[i] + countp[i]*avgp[i]*avgp[i] - 2*avgp[i]*sump[i]) / denomp[i]; 
+    invalid_count += (denomp[i] <= 0.0);
+  }
+  if (invalid_count) ret_nulls = set_union(sum_nulls, vector_find_le(denom, 0.0));
+  else               ret_nulls.swap(sum_nulls); // sum_nulls is no longer required in caller
+  return ret;
+}
+
+template <class T>
+std::shared_ptr<dfcolumn>
+typed_dfcolumn<T>::var
+(node_local<std::vector<size_t>>& local_grouped_idx,
+ node_local<std::vector<size_t>>& local_idx_split,
+ node_local<std::vector<std::vector<size_t>>>& hash_divide,
+ node_local<std::vector<std::vector<size_t>>>& merge_map,
+ node_local<size_t>& row_sizes,
+ double ddof) {
+  auto ret = std::make_shared<typed_dfcolumn<double>>();
+  
+  auto sum_column = std::dynamic_pointer_cast<typed_dfcolumn<T>>
+    (sum(local_grouped_idx, local_idx_split, hash_divide, merge_map,
+         row_sizes));
+  
+  auto count_column = std::dynamic_pointer_cast<typed_dfcolumn<size_t>>
+    (count(local_grouped_idx, local_idx_split, hash_divide,
+           merge_map, row_sizes));
+
+  auto avg_column = std::dynamic_pointer_cast<typed_dfcolumn<double>>
+    (avg(local_grouped_idx, local_idx_split, hash_divide,
+           merge_map, row_sizes));
+
+  auto orig_val = val;
+  val.mapv(+[](std::vector<T>& val){
+            auto size = val.size();
+            auto valp = val.data();
+            for(size_t i = 0; i < size; i++) valp[i] = ( valp[i] * valp[i] );
+          });
+  auto sum_sq_column = std::dynamic_pointer_cast<typed_dfcolumn<T>>
+    (sum(local_grouped_idx, local_idx_split, hash_divide, merge_map,
+         row_sizes));
+  val = std::move(orig_val);
+
+  ret->nulls = make_node_local_allocate<std::vector<size_t>>();
+  ret->val = sum_sq_column->val.map(var_helper<T>, sum_column->val,
+                                    avg_column->val, count_column->val,
+                                    sum_column->nulls, ret->nulls,
+                                    broadcast(ddof));
+  auto ret_nulls_size = ret->nulls.viewas_dvector<size_t>().size();
+
+  if(ret_nulls_size){
+    ret->val.mapv
+      (+[](std::vector<double>& val, std::vector<size_t>& nulls) {
+        auto valp = val.data();
+        auto nullsp = nulls.data();
+        auto size = nulls.size();
+        auto max = std::numeric_limits<double>::max();
+#pragma cdir nodep
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+        for(size_t i = 0; i < size; i++) {
+          valp[nullsp[i]] = max;
+        }
+      }, ret->nulls);
+    ret->contain_nulls = true;
+  } else {
+    ret->contain_nulls = false;
+  }
+  return ret;
+}
+
+template <class T>
+std::shared_ptr<dfcolumn>
+typed_dfcolumn<T>::sem
+(node_local<std::vector<size_t>>& local_grouped_idx,
+ node_local<std::vector<size_t>>& local_idx_split,
+ node_local<std::vector<std::vector<size_t>>>& hash_divide,
+ node_local<std::vector<std::vector<size_t>>>& merge_map,
+ node_local<size_t>& row_sizes,
+ double ddof) {
+  auto ret = std::make_shared<typed_dfcolumn<double>>();
+  auto var_column = std::dynamic_pointer_cast<typed_dfcolumn<double>>
+    (var(local_grouped_idx, local_idx_split, hash_divide, merge_map,
+        row_sizes, ddof));
+  auto count_column = std::dynamic_pointer_cast<typed_dfcolumn<size_t>>
+    (count(local_grouped_idx, local_idx_split, hash_divide,
+           merge_map, row_sizes));
+
+  ret->val = var_column->val.map(+[](std::vector<double>& var, std::vector<size_t>& count ){
+                                  auto size = var.size();
+                                  std::vector<double> ret(size);
+                                  auto varp = var.data();
+                                  auto countp = count.data();
+                                  auto retp = ret.data();
+                                  for(size_t i = 0; i < size; i++) retp[i] = sqrt(varp[i] / countp[i]);
+                                  
+                                  auto nans = vector_find_nan(var);
+                                  auto nansp = nans.data();
+                                  auto nansz = nans.size();
+                                  if (nansz > 0){
+                                    auto nan_val = std::numeric_limits<double>::quiet_NaN();
+                                    for (size_t i = 0; i < nansz; i++) retp[nansp[i]] = nan_val;
+                                  }
+
+                                  return ret;
+                                }, count_column->val);
+
+  if(var_column->contain_nulls){
+    ret->nulls = var_column->nulls;
+    ret->val.mapv
+      (+[](std::vector<double>& val, std::vector<size_t>& nulls) {
+        auto valp = val.data();
+        auto nullsp = nulls.data();
+        auto size = nulls.size();
+        auto max = std::numeric_limits<double>::max();
+#pragma cdir nodep
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+        for(size_t i = 0; i < size; i++) {
+          valp[nullsp[i]] = max;
+        }
+      }, ret->nulls);
+    ret->contain_nulls = true;
+  } else {
+    ret->nulls = make_node_local_allocate<std::vector<size_t>>();
+    ret->contain_nulls = false;
+  }
+  return ret;
+}
+
+template <class T>
 std::shared_ptr<dfcolumn>
 typed_dfcolumn<T>::max
 (node_local<std::vector<size_t>>& local_grouped_idx,
@@ -2965,12 +3147,12 @@ double typed_dfcolumn<T>::avg() {
 }
 
 template <class T>
-double typed_dfcolumn<T>::var() {
+double typed_dfcolumn<T>::mad() {
   size_t size = count();
   double mean = avg();
-  auto ssdm = val.map(mean_helper2<T>, nulls, broadcast(mean))
+  auto res = val.map(mean_helper3<T>, nulls, broadcast(mean))
                  .reduce(frovedis::add<double>);
-  return ssdm / static_cast<double>(size - 1); //default ddof=1
+  return res / static_cast<double>(size);
 }
 
 template <class T>
@@ -2985,20 +3167,10 @@ double typed_dfcolumn<T>::var(double ddof) {
 }
 
 template <class T>
-double typed_dfcolumn<T>::std() {
-  return std::sqrt(var());
-}
-
-template <class T>
 double typed_dfcolumn<T>::std(double ddof) {
   double ret = var(ddof);
   if (isnan(ret)) return ret;
   return std::sqrt(ret);
-}
-
-template <class T>
-double typed_dfcolumn<T>::sem() {
-  return std()/std::sqrt(count());
 }
 
 template <class T>

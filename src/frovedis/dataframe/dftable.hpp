@@ -69,12 +69,10 @@ public:
   size_t count(const std::string& name);
   template <class T> T sum(const std::string& name);
   double avg(const std::string& name);
-  double std(const std::string& name);
-  double std(const std::string& name, double ddof);
-  double sem(const std::string& name);
-  double sem(const std::string& name, double ddof);
-  double var(const std::string& name);
-  double var(const std::string& name, double ddof);
+  double std(const std::string& name, double ddof = 1);
+  double sem(const std::string& name, double ddof = 1);
+  double mad(const std::string& name);
+  double var(const std::string& name, double ddof = 1);
   template <class T> T max(const std::string& name);
   template <class T> T min(const std::string& name);
   template <class T> T at(const std::string& name, size_t i);
@@ -1308,6 +1306,30 @@ template <class T>
 dftable star_joined_dftable::append_rowid(const std::string& name,
                                           T offset) {
   return this->materialize().append_rowid(name, offset);
+}
+
+template <class T>
+dftable rowmajor_matrix<T>::to_dataframe(const std::vector<std::string>& names) {
+  dftable ret;
+  for (size_t i = 0; i < num_col; ++i) {
+    ret.append_column(names[i],
+      data.map(+[](const rowmajor_matrix_local<T>& mat, size_t cid) {
+                   auto nrow = mat.local_num_row;
+                   auto ncol = mat.local_num_col;
+                   std::vector<T> ret(nrow); auto retp = ret.data();
+                   auto valp = mat.val.data();
+                   for(size_t i = 0; i < nrow; ++i) retp[i] = valp[i * ncol + cid];
+                   return ret;
+               }, broadcast(i)).template moveto_dvector<T>());
+  }
+  return ret;
+}
+
+template <class T>
+dftable rowmajor_matrix<T>::to_dataframe() {
+  std::vector<std::string> names(num_col);
+  for (size_t i = 0; i < num_col; ++i) names[i] = std::to_string(i);
+  return to_dataframe(names);
 }
 
 }

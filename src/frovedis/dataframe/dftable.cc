@@ -563,19 +563,9 @@ double dftable_base::avg(const std::string& name) {
   return column(name)->avg();
 }
 
-double dftable_base::std(const std::string& name) {
-  use_dfcolumn use(raw_column(name));
-  return column(name)->std(1); //default ddof=1
-}
-
 double dftable_base::std(const std::string& name, double ddof) {
   use_dfcolumn use(raw_column(name));
   return column(name)->std(ddof);
-}
-
-double dftable_base::sem(const std::string& name) {
-  use_dfcolumn use(raw_column(name));
-  return column(name)->sem(1); //default ddof=1
 }
 
 double dftable_base::sem(const std::string& name, double ddof) {
@@ -583,9 +573,9 @@ double dftable_base::sem(const std::string& name, double ddof) {
   return column(name)->sem(ddof);
 }
 
-double dftable_base::var(const std::string& name) {
+double dftable_base::mad(const std::string& name) {
   use_dfcolumn use(raw_column(name));
-  return column(name)->var(1); //default ddof=1
+  return column(name)->mad();
 }
 
 double dftable_base::var(const std::string& name, double ddof) {

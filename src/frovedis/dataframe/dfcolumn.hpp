@@ -217,6 +217,20 @@ public:
       node_local<std::vector<std::vector<size_t>>>& merge_map,
       node_local<size_t>& row_sizes) = 0;
   virtual std::shared_ptr<dfcolumn>
+  var(node_local<std::vector<size_t>>& local_grouped_idx,
+      node_local<std::vector<size_t>>& local_idx_split,
+      node_local<std::vector<std::vector<size_t>>>& hash_divide,
+      node_local<std::vector<std::vector<size_t>>>& merge_map,
+      node_local<size_t>& row_sizes,
+      double ddof = 1.0) = 0;
+  virtual std::shared_ptr<dfcolumn>
+  sem(node_local<std::vector<size_t>>& local_grouped_idx,
+      node_local<std::vector<size_t>>& local_idx_split,
+      node_local<std::vector<std::vector<size_t>>>& hash_divide,
+      node_local<std::vector<std::vector<size_t>>>& merge_map,
+      node_local<size_t>& row_sizes,
+      double ddof = 1.0) = 0;
+  virtual std::shared_ptr<dfcolumn>
   max(node_local<std::vector<size_t>>& local_grouped_idx,
       node_local<std::vector<size_t>>& local_idx_split,
       node_local<std::vector<std::vector<size_t>>>& hash_divide,
@@ -231,11 +245,9 @@ public:
   // for whole column
   virtual size_t count() = 0; // exclude null
   template <class T> T sum();
-  virtual double std() = 0;
   virtual double std(double ddof) = 0;
-  virtual double sem() = 0;
   virtual double sem(double ddof) = 0;
-  virtual double var() = 0;
+  virtual double mad() = 0;
   virtual double var(double ddof) = 0;
   virtual double avg() = 0;
   template <class T> T max();
@@ -552,6 +564,20 @@ public:
       node_local<std::vector<std::vector<size_t>>>& merge_map,
       node_local<size_t>& row_sizes);
   virtual std::shared_ptr<dfcolumn>
+  var(node_local<std::vector<size_t>>& local_grouped_idx,
+      node_local<std::vector<size_t>>& local_idx_split,
+      node_local<std::vector<std::vector<size_t>>>& hash_divide,
+      node_local<std::vector<std::vector<size_t>>>& merge_map,
+      node_local<size_t>& row_sizes,
+      double ddof = 1.0);
+  virtual std::shared_ptr<dfcolumn>
+  sem(node_local<std::vector<size_t>>& local_grouped_idx,
+      node_local<std::vector<size_t>>& local_idx_split,
+      node_local<std::vector<std::vector<size_t>>>& hash_divide,
+      node_local<std::vector<std::vector<size_t>>>& merge_map,
+      node_local<size_t>& row_sizes,
+      double ddof = 1.0);
+  virtual std::shared_ptr<dfcolumn>
   max(node_local<std::vector<size_t>>& local_grouped_idx,
       node_local<std::vector<size_t>>& local_idx_split,
       node_local<std::vector<std::vector<size_t>>>& hash_divide,
@@ -566,12 +592,10 @@ public:
   virtual size_t count();
   T sum();
   virtual double avg();
-  virtual double std();
-  virtual double std(double ddof);
-  virtual double sem();
-  virtual double sem(double ddof);
-  virtual double var();
-  virtual double var(double ddof);
+  virtual double std(double ddof = 1);
+  virtual double sem(double ddof = 1);
+  virtual double mad();
+  virtual double var(double ddof = 1);
   T max();
   T min();
   T at(size_t i);
@@ -928,6 +952,24 @@ public:
     throw std::runtime_error("avg of string is not defined");
   }
   virtual std::shared_ptr<dfcolumn>
+  var(node_local<std::vector<size_t>>& local_grouped_idx,
+      node_local<std::vector<size_t>>& local_idx_split,
+      node_local<std::vector<std::vector<size_t>>>& hash_divide,
+      node_local<std::vector<std::vector<size_t>>>& merge_map,
+      node_local<size_t>& row_sizes,
+      double ddof = 1.0){
+    throw std::runtime_error("var of string is not defined");
+  }
+  virtual std::shared_ptr<dfcolumn>
+  sem(node_local<std::vector<size_t>>& local_grouped_idx,
+      node_local<std::vector<size_t>>& local_idx_split,
+      node_local<std::vector<std::vector<size_t>>>& hash_divide,
+      node_local<std::vector<std::vector<size_t>>>& merge_map,
+      node_local<size_t>& row_sizes,
+      double ddof = 1.0){
+    throw std::runtime_error("sem of string is not defined");
+  }
+  virtual std::shared_ptr<dfcolumn>
   max(node_local<std::vector<size_t>>& local_grouped_idx,
       node_local<std::vector<size_t>>& local_idx_split,
       node_local<std::vector<std::vector<size_t>>>& hash_divide,
@@ -950,22 +992,16 @@ public:
   virtual double avg() {
     throw std::runtime_error("avg of string is not defined");
   }
-  virtual double std() {
+  virtual double std(double ddof = 1) {
     throw std::runtime_error("std of string is not defined");
   }
-  virtual double std(double ddof) {
-    throw std::runtime_error("std of string is not defined");
-  }
-  virtual double sem() {
+  virtual double sem(double ddof = 1) {
     throw std::runtime_error("sem of string is not defined");
   }
-  virtual double sem(double ddof) {
-    throw std::runtime_error("sem of string is not defined");
+  virtual double mad() {
+    throw std::runtime_error("mad of string is not defined");
   }
-  virtual double var() {
-    throw std::runtime_error("var of string is not defined");
-  }
-  virtual double var(double ddof) {
+  virtual double var(double ddof = 1) {
     throw std::runtime_error("var of string is not defined");
   }
   std::string max() {
@@ -1230,6 +1266,24 @@ public:
     throw std::runtime_error("avg of dic_string is not defined");
   }
   virtual std::shared_ptr<dfcolumn>
+  var(node_local<std::vector<size_t>>& local_grouped_idx,
+      node_local<std::vector<size_t>>& local_idx_split,
+      node_local<std::vector<std::vector<size_t>>>& hash_divide,
+      node_local<std::vector<std::vector<size_t>>>& merge_map,
+      node_local<size_t>& row_sizes,
+      double ddof = 1.0){
+    throw std::runtime_error("var of dic_string is not defined");
+  }
+  virtual std::shared_ptr<dfcolumn>
+  sem(node_local<std::vector<size_t>>& local_grouped_idx,
+      node_local<std::vector<size_t>>& local_idx_split,
+      node_local<std::vector<std::vector<size_t>>>& hash_divide,
+      node_local<std::vector<std::vector<size_t>>>& merge_map,
+      node_local<size_t>& row_sizes,
+      double ddof = 1.0){
+    throw std::runtime_error("sem of dic_string is not defined");
+  }
+  virtual std::shared_ptr<dfcolumn>
   max(node_local<std::vector<size_t>>& local_grouped_idx,
       node_local<std::vector<size_t>>& local_idx_split,
       node_local<std::vector<std::vector<size_t>>>& hash_divide,
@@ -1252,22 +1306,16 @@ public:
   virtual double avg() {
     throw std::runtime_error("avg of dic_string is not defined");
   }
-  virtual double std() {
+  virtual double std(double ddof = 1) {
     throw std::runtime_error("std of dic_string is not defined");
   }
-  virtual double std(double ddof) {
-    throw std::runtime_error("std of dic_string is not defined");
-  }
-  virtual double sem() {
+  virtual double sem(double ddof = 1) {
     throw std::runtime_error("sem of dic_string is not defined");
   }
-  virtual double sem(double ddof) {
-    throw std::runtime_error("sem of dic_string is not defined");
+  virtual double mad() {
+    throw std::runtime_error("mad of dic_string is not defined");
   }
-  virtual double var() {
-    throw std::runtime_error("var of dic_string is not defined");
-  }
-  virtual double var(double ddof) {
+  virtual double var(double ddof = 1) {
     throw std::runtime_error("var of dic_string is not defined");
   }
 
@@ -1560,6 +1608,24 @@ public:
     throw std::runtime_error("avg of raw_string is not defined");
   }
   virtual std::shared_ptr<dfcolumn>
+  var(node_local<std::vector<size_t>>& local_grouped_idx,
+      node_local<std::vector<size_t>>& local_idx_split,
+      node_local<std::vector<std::vector<size_t>>>& hash_divide,
+      node_local<std::vector<std::vector<size_t>>>& merge_map,
+      node_local<size_t>& row_sizes,
+      double ddof = 1.0){
+   throw std::runtime_error("var of raw_string is not defined");
+  }
+  virtual std::shared_ptr<dfcolumn>
+  sem(node_local<std::vector<size_t>>& local_grouped_idx,
+      node_local<std::vector<size_t>>& local_idx_split,
+      node_local<std::vector<std::vector<size_t>>>& hash_divide,
+      node_local<std::vector<std::vector<size_t>>>& merge_map,
+      node_local<size_t>& row_sizes,
+      double ddof = 1.0){
+   throw std::runtime_error("sem of raw_string is not defined");
+  }
+  virtual std::shared_ptr<dfcolumn>
   max(node_local<std::vector<size_t>>& local_grouped_idx,
       node_local<std::vector<size_t>>& local_idx_split,
       node_local<std::vector<std::vector<size_t>>>& hash_divide,
@@ -1582,22 +1648,16 @@ public:
   virtual double avg() {
     throw std::runtime_error("avg of raw_string is not defined");
   }
-  virtual double std() {
+  virtual double std(double ddof = 1) {
     throw std::runtime_error("std of raw_string is not defined");
   }
-  virtual double std(double ddof) {
-    throw std::runtime_error("std of raw_string is not defined");
-  }
-  virtual double sem() {
+  virtual double sem(double ddof = 1) {
     throw std::runtime_error("sem of raw_string is not defined");
   }
-  virtual double sem(double ddof) {
-    throw std::runtime_error("sem of raw_string is not defined");
+  virtual double mad() {
+    throw std::runtime_error("mad of raw_string is not defined");
   }
-  virtual double var() {
-    throw std::runtime_error("var of raw_string is not defined");
-  }
-  virtual double var(double ddof) {
+  virtual double var(double ddof = 1) {
     throw std::runtime_error("var of raw_string is not defined");
   }
   raw_string max() {
@@ -1739,6 +1799,24 @@ public:
     throw std::runtime_error("avg of datetime is not defined");
   }
   virtual std::shared_ptr<dfcolumn>
+  var(node_local<std::vector<size_t>>& local_grouped_idx,
+      node_local<std::vector<size_t>>& local_idx_split,
+      node_local<std::vector<std::vector<size_t>>>& hash_divide,
+      node_local<std::vector<std::vector<size_t>>>& merge_map,
+      node_local<size_t>& row_sizes,
+      double ddof = 1.0){
+    throw std::runtime_error("var of datetime is not defined");
+  }
+  virtual std::shared_ptr<dfcolumn>
+  sem(node_local<std::vector<size_t>>& local_grouped_idx,
+      node_local<std::vector<size_t>>& local_idx_split,
+      node_local<std::vector<std::vector<size_t>>>& hash_divide,
+      node_local<std::vector<std::vector<size_t>>>& merge_map,
+      node_local<size_t>& row_sizes,
+      double ddof = 1.0){
+    throw std::runtime_error("sem of datetime is not defined");
+  }
+  virtual std::shared_ptr<dfcolumn>
   max(node_local<std::vector<size_t>>& local_grouped_idx,
       node_local<std::vector<size_t>>& local_idx_split,
       node_local<std::vector<std::vector<size_t>>>& hash_divide,
@@ -1750,22 +1828,16 @@ public:
       node_local<std::vector<std::vector<size_t>>>& hash_divide,
       node_local<std::vector<std::vector<size_t>>>& merge_map,
       node_local<size_t>& row_sizes);
-  virtual double std() {
+  virtual double std(double ddof = 1) {
     throw std::runtime_error("std of datetime is not defined");
   }
-  virtual double std(double ddof) {
-    throw std::runtime_error("std of datetime is not defined");
-  }
-  virtual double sem() {
+  virtual double sem(double ddof = 1) {
     throw std::runtime_error("sem of datetime is not defined");
   }
-  virtual double sem(double ddof) {
-    throw std::runtime_error("sem of datetime is not defined");
+  virtual double mad() {
+    throw std::runtime_error("mad of datetime is not defined");
   }
-  virtual double var() {
-    throw std::runtime_error("var of datetime is not defined");
-  }
-  virtual double var(double ddof) {
+  virtual double var(double ddof = 1) {
     throw std::runtime_error("var of datetime is not defined");
   }
   virtual double avg() {
