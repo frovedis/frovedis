@@ -337,6 +337,27 @@ namespace frovedis {
     return ret;
   }
 
+  template <class T>
+  rowmajor_matrix<T> operator*(rowmajor_matrix<T>& m1, 
+                             rowmajor_matrix<T>& m2) {
+    if(m1.num_col != m2.num_row)
+      throw std::runtime_error("invalid size for matrix multiplication");
+    rowmajor_matrix<T> ret =
+      m1.data.map(+[](rowmajor_matrix_local<T>& lm1,
+                      rowmajor_matrix_local<T>& lm2) {
+                      return lm1 * lm2; }, broadcast(m2.gather()));
+    ret.num_row = m1.num_row;
+    ret.num_col = m2.num_col;
+    return ret;
+  }
+
+  // returns trans_mat * mat
+  template <class T>
+  rowmajor_matrix<T> trans_mm(rowmajor_matrix<T>& mat) {
+    auto tmat = mat.transpose();
+    return tmat * mat;
+  }
+
   // This routine can be used to perform the below operation:
   //   (*) colmajor_matrix_local * rowmajor_matrix_local
   //       output would be of rowmajor_matrix_local type

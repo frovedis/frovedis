@@ -31,6 +31,8 @@ struct crs_matrix_local;
 template <class T, class I, class O>
 struct crs_matrix;
 
+class dftable;
+
 template <class T>
 struct rowmajor_matrix_local {
   rowmajor_matrix_local(){}
@@ -863,6 +865,8 @@ struct rowmajor_matrix {
   rowmajor_matrix<T>& align_block();
   template <class I = size_t, class O = size_t>
   crs_matrix<T,I,O> to_crs();
+  dftable to_dataframe();
+  dftable to_dataframe(const std::vector<std::string>& names);
   std::vector<T> get_row(size_t r);
   std::vector<size_t> get_local_num_rows(); 
   void debug_print(size_t n = 0) {
