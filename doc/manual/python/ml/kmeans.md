@@ -2,7 +2,7 @@
 
 # NAME
 
-KMeans - A clustering algorithm commonly used in EDA 
+**KMeans** is a clustering algorithm commonly used in EDA 
 (exploratory data analysis).    
 
 # SYNOPSIS
@@ -68,32 +68,30 @@ frovedis server, the output would be sent back to the python client.
 
 ## Detailed Description  
 
-### KMeans()  
+### 1. KMeans()  
 
 __Parameters__  
-_**n\_clusters**_: An integer parameter specifying the number of clusters.The number 
-of clusters should be greater than 0 and less than n_samples. (Default: 8)  
+_**n\_clusters**_: An integer parameter specifying the number of clusters. The number 
+of clusters should be greater than zero and less than n_samples. (Default: 8)  
 When it is None (specified explicitly), then it will be set as min(8, nsamples).  
 _**init**_: A string object parameter specifies the method of initialization. (Default: 'random')  
-It only supports 'random' initialization.  
+Unlike Scikit-learn, currently it only supports 'random' initialization.  
 _**n\_init**_: A positive integer specifying the number of times the kmeans algorithm 
 will be run with different centroid seeds. (Default: 10)  
 When it is None (specified explicitly), then it will be set as default 10.  
 _**max\_iter**_: A positive integer parameter specifying the maximum iteration count. 
 (Default: 300)   
-_**tol**_: A double(float64) parameter specifying the convergence tolerance. It should 
-be in range from 0.0 to 1.0. (Default: 1e-4)    
+_**tol**_: Zero or a positive double(float64) parameter specifying the convergence tolerance. (Default: 1e-4)    
 _**precompute\_distances**_: A string object parameter. (unused)   
 _**verbose**_: An integer parameter specifying the log level to use. Its value is set 
 as 0 by default(for INFO mode). But it can be set to 1(for DEBUG mode) or 2(for TRACE 
 mode) for getting training time logs from frovedis server.  
-_**random\_state**_: A zero or positive integer parameter, is the pseudo random number 
-generator. (Default: None)  
-When it is None (not specified explicitly), it will be set as 0.  
-_**copy\_x**_: A boolean parameter. (unused)     
+_**random\_state**_: A zero or positive integer parameter. When it is None (not specified explicitly), 
+it will be set as 0. (unused)  
+_**copy\_x**_: A boolean parameter. (unused)  
 _**n\_jobs**_: An integer parameter. (unused)   
 _**algorithm**_: A string object parameter, specifies the kmeans algorithm to use. (Default: auto)  
-When it is 'auto', it will be set as 'full'. Only 'full' is supported.  
+When it is 'auto', it will be set as 'full'. Unlike Scikit-learn, currently it supports only 'full'.  
 _**use_shrink**_: A boolean parameter applicable only for "sparse" input (X). When set 
 to True for sparse input, it can improve training performance by reducing communication 
 overhead across participating processes. (Default: False)  
@@ -101,30 +99,35 @@ overhead across participating processes. (Default: False)
 __Attribute__  
 _**cluster\_centers\_**_: It is a python ndarray, containing float or double(float64) typed 
 values and has shape (n_clusters, n_features). These are the coordinates of cluster centers.  
+_**labels\_**_: A python ndarray of int64 values and has shape(n_clusters,). It contains predicted cluster 
+labels for each point.  
+_**inertia\_**_: A float parameter specifies the sum of squared distances of samples to their closest 
+cluster center, weighted by the sample weights if provided.  
+_**n_iter\_**_:  An integer parameter specifies the number of iterations to run.  
 
 __Purpose__    
 It initializes a Kmeans object with the given parameters.   
 
-The parameters: "precompute_distances", "copy_x" and "n_jobs" are simply kept to make 
+The parameters: "precompute_distances", "random_state", "copy_x" and "n_jobs" are simply kept to make 
 the interface uniform to Scikit-learn cluster module. They are not used anywhere within 
 frovedis implementation.  
 
 __Return Value__    
 It simply returns "self" reference. 
 
-### fit(X,  y = None, sample_weight = None)  
+### 2. fit(X,  y = None, sample_weight = None)  
 __Parameters__   
 _**X**_: A numpy dense or scipy sparse matrix or any python array-like object or
 an instance of FrovedisCRSMatrix for sparse data and FrovedisRowmajorMatrix for 
 dense data of float or double(float64) type. It has shape (n_samples, n_features).   
 _**y**_: None or any python array-like object (any shape). It is simply ignored 
-in frovedis implementation and in Scikit-learn as well.  
+in frovedis implementation, like in Scikit-learn.  
 _**sample\_weight**_: An unused parameter whose default value is None. 
-It is simply ignored in frovedis implementation and in Scikit-learn as well.  
+It is simply ignored in frovedis implementation, like in Scikit-learn.  
 
 __Purpose__    
 
-It clusters the given data points (X) into a predefined number (k) of clusters.   
+It clusters the given data points (X) into a predefined number of clusters (n_clusters).   
 
 For example,   
 
@@ -157,19 +160,19 @@ For example,
 __Return Value__  
 It simply returns "self" reference.  
 
-### fit_predict(X, y = None, sample_weight = None)  
+### 3. fit_predict(X, y = None, sample_weight = None)  
 __Parameters__   
 _**X**_: A numpy dense or scipy sparse matrix or any python array-like object or
 an instance of FrovedisCRSMatrix for sparse data and FrovedisRowmajorMatrix for 
 dense data of float or double(float64) type. It has shape (n_samples, n_features).   
 _**y**_: None or any python array-like object (any shape). It is simply ignored 
-in frovedis implementation and in Scikit-learn as well.  
+in frovedis implementation, like in Scikit-learn.  
 _**sample\_weight**_: An unused parameter whose default value is None. It is 
 simply ignored in frovedis implementation.  
 
 __Purpose__    
 
-It clusters the given data points (X) into a predefined number (k) of clusters 
+It clusters the given data points (X) into a predefined number of clusters (n_clusters)
 and predicts the cluster index for each sample.  
 
 For example,   
@@ -185,19 +188,16 @@ For example,
 Output
 
     [0 0 1 1 1]
-    
-When native python data is provided, it is converted to frovedis-like inputs and 
-sent to frovedis server which consumes some data transfer time. Pre-constructed 
-frovedlis-like inputs can be used to speed up the training time, especially when 
-same data would be used for multiple executions.   
+ 
+Like in fit() frovedis-like input can be used to speed-up training at server side.  
 
 For example,   
 
-    # loading sample matrix data
+    # loading sample matrix data    
     train_mat = np.loadtxt("sample_data.txt")
     
     # Since "train_mat" is numpy dense data, we have created FrovedisRowmajorMatrix.
-    # For scipy sparse data, FrovedisCRSMatrix should be used instead.   
+    # For scipy sparse data, FrovedisCRSMatrix should be used instead.
     from frovedis.matrix.dense import FrovedisRowmajorMatrix
     rmat = FrovedisRowmajorMatrix(train_mat)
 
@@ -214,12 +214,12 @@ __Return Value__
 It returns a numpy array of int64 type containing the cluster labels. 
 It has a shape (n_samples,).   
 
-### fit_transform(X, y = None, sample_weight = None)  
+### 4. fit_transform(X, y = None, sample_weight = None)  
 _**X**_: A numpy dense or scipy sparse matrix or any python array-like object or
 an instance of FrovedisCRSMatrix for sparse data and FrovedisRowmajorMatrix for 
 dense data of float or double(float64) type. It has shape (n_samples, n_features).  
 _**y**_: None or any python array-like object (any shape). It is simply ignored 
-in frovedis implementation and in Scikit-learn as well.  
+in frovedis implementation, like in Scikit-learn.  
 _**sample\_weight**_: An unused parameter whose default value is None and
 simply ignored in frovedis implementation.  
 
@@ -247,10 +247,7 @@ Output
 If training data (X) is a numpy array or a scipy sparse matrix, it will return a
 new numpy dense array.  
 
-When native python data is provided, it is converted to frovedis-like inputs and 
-sent to frovedis server which consumes some data transfer time. Pre-constructed 
-frovedlis-like inputs can be used to speed up the training time, especially when 
-same data would be used for multiple executions.   
+Like in fit() frovedis-like input can be used to speed-up training at server side.   
 
 For example,   
 
@@ -258,7 +255,7 @@ For example,
     train_mat = np.loadtxt("sample_data.txt")
     
     # Since "train_mat" is numpy dense data, we have created FrovedisRowmajorMatrix.
-    # For scipy sparse data, FrovedisCRSMatrix should be used instead.   
+    # For scipy sparse data, FrovedisCRSMatrix should be used instead.
     from frovedis.matrix.dense import FrovedisRowmajorMatrix
     rmat = FrovedisRowmajorMatrix(train_mat)
 
@@ -272,11 +269,15 @@ If training data (X) is a frovedis-like input, it will return a FrovedisRowmajor
 object.  
 
 __Return Value__  
-It returns a numpy array containing the transformed matrix of float or double(float64) 
-type (depending upon the input) or a FrovedisRowmajorMatrix object. It has a 
-shape (n_samples, n_clusters).   
+If native-python data is input, it would output a numpy array containing the transformed matrix. 
+If frovedis-like data is input, it would output a FrovedisRowmajorMatrix. In both cases output 
+would be of float or double (float64) type (depending upon input dtype) and of 
+shape (n_samples, n_clusters).  
 
-### transform(X)  
+Note that even if training data (X) is sparse, the output would 
+typically be dense.  
+
+### 5. transform(X)  
 _**X**_: A numpy dense or scipy sparse matrix or any python array-like object or
 an instance of FrovedisCRSMatrix for sparse data and FrovedisRowmajorMatrix for 
 dense data of float or double(float64) type. It has shape (n_samples, n_features).
@@ -302,13 +303,10 @@ Output
     [15.50185473  0.        ]
     [15.67505981  0.17320508]]
 
-If test data (X) is a numpy array or a scipy sparse matrix, it will return a
-new numpy dense array.  
+If test data (X) is a numpy array or a scipy sparse matrix, it  will return a new numpy 
+dense array.  
 
-When native python data is provided, it is converted to frovedis-like inputs and 
-sent to frovedis server which consumes some data transfer time. Pre-constructed 
-frovedlis-like inputs can be used to speed up the training time, especially when 
-same data would be used for multiple executions.   
+Like in fit() frovedis-like input can be used to speed-up training the test data at server side.   
 
 For example,   
 
@@ -325,25 +323,26 @@ For example,
     kmeans = KMeans(n_clusters = 2, n_init = 1).fit(tr_mat)
     kmeans.transform(tr_mat)
 
-If test data (X) is a frovedis-like input, it will return a FrovedisRowmajorMatrix 
-object.  
+If test data (X) is a frovedis-like input, it  will return FrovedisRowmajorMatrix object.  
 
 __Return Value__  
-It returns a numpy array containing the transformed matrix of float or double(float64) 
-type (depending upon the input) or a FrovedisRowmajorMatrix object. It has a 
+If native-python data is input, it would output a numpy array containing the transformed matrix. 
+If frovedis-like data is input, it would output a FrovedisRowmajorMatrix. In both cases output 
+would be of float or double (float64) type (depending upon input dtype) and of 
 shape (n_samples, n_clusters).  
 
-### predict(X, sample_weight = None)  
+Note that even if test data (X) is sparse, the output would typically be dense.  
+
+### 6. predict(X, sample_weight = None)  
 __Parameters__   
 _**X**_: A numpy dense or scipy sparse matrix or any python array-like object or
 an instance of FrovedisCRSMatrix for sparse data and FrovedisRowmajorMatrix for 
 dense data of float or double(float64) type. It has shape (n_samples, n_features).  
 _**sample\_weight**_: None or any python array-like object containing the 
 intended weights for each input samples. It is simply ignored in frovedis 
-implementation and in Scikit-learn as well.  
-
+implementation, like in Scikit-learn.  
 __Purpose__  
-It accepts the test data points (X) and returns the centroid information.  
+It accepts the test data points (X) and returns the closest cluster each sample in X belongs to.  
 
 For example,   
 
@@ -359,10 +358,7 @@ Output
 
     [0 0 1 1 1]
 
-When native python data is provided, it is converted to frovedis-like inputs and 
-sent to frovedis server which consumes some data transfer time. Pre-constructed 
-frovedlis-like inputs can be used to speed up the training time, especially when 
-same data would be used for multiple executions.   
+Like in fit() frovedis-like input can be used to speed-up prediction on the test data at server side.  
 
 For example,   
 
@@ -370,10 +366,10 @@ For example,
     test_mat = np.loadtxt("sample_data.txt")
     
     # Since "test_mat" is numpy dense data, we have created FrovedisRowmajorMatrix.
-    # For scipy sparse data, FrovedisCRSMatrix should be used instead.   
+    # For scipy sparse data, FrovedisCRSMatrix should be used instead.
     from frovedis.matrix.dense import FrovedisRowmajorMatrix
     tr_mat = FrovedisRowmajorMatrix(test_mat)
-
+    
     # using pre-constructed input matrix
     from frovedis.mllib.cluster import KMeans
     kmeans = KMeans(n_clusters = 2, n_init = 1).fit(tr_mat)
@@ -387,23 +383,20 @@ __Return Value__
 It returns a numpy array of int32 type containing the centroid values. It has a 
 shape (n_samples,).  
 
-### score(X, y = None, sample_weight = None)  
+### 7. score(X, y = None, sample_weight = None)  
 _**X**_: A numpy dense or scipy sparse matrix or any python array-like object or
 an instance of FrovedisCRSMatrix for sparse data and FrovedisRowmajorMatrix for 
 dense data of float or double(float64) type. It has shape (n_samples, n_features).  
 _**y**_: None or any python array-like object (any shape). It is simply ignored 
-in frovedis implementation and in Scikit-learn as well.  
+in frovedis implementation, like in Scikit-learn.  
 _**sample\_weight**_: None or any python array-like object containing the 
 intended weights for each input samples. It is simply ignored in frovedis 
-implementation and in Scikit-learn as well.  
+implementation, like in Scikit-learn.  
 
 __Purpose__  
-It is opposite of the value of test data (X) on the K-means objective.  
-It means negative of the K-means objective.  
-
-The objective of K-means is to reduce the sum of squares of the distances of 
-points from their respective cluster centroids. This value tells how internally 
-coherent the clusters are. (The less the better)  
+It is calculated as "-1.0 * inertia", which an indication of how far the points 
+are from the centroids. Bad scores will return a large negative number, whereas 
+good scores return a value close to zero.  
 
 For example,
 
@@ -417,7 +410,7 @@ __Return Value__
 It returns a score of float type.
 
 
-### load(fname, dtype = None)
+### 8. load(fname, dtype = None)
 __Parameters__   
 _**fname**_: A string object containing the name of the file having model 
 information to be loaded.    
@@ -435,7 +428,7 @@ For example,
 __Return Value__  
 It simply returns "self" instance.   
 
-### save(fname)
+### 9. save(fname)
 __Parameters__   
 _**fname**_: A string object containing the name of the file on which the target 
 model is to be saved.    
@@ -452,7 +445,7 @@ For example,
 __Return Value__  
 It returns nothing.   
 
-### debug_print()
+### 10. debug_print()
 
 __Purpose__  
 It shows the target model information on the server side user terminal. 
@@ -470,7 +463,7 @@ Output
 __Return Value__  
 It returns nothing.   
 
-### release()
+### 11. release()
 
 __Purpose__    
 It can be used to release the in-memory model at frovedis server.   
@@ -485,14 +478,15 @@ releasing server side memory.
 __Return Value__  
 It returns nothing.   
 
-### is_fitted()  
+### 12. is_fitted()  
 
 __Purpose__  
-It can be used to confirm if the model is already fitted or not. In case, predict() is used before training the
-model, then it can prompt the user to train the clustering model first.
+It can be used to confirm if the model is already fitted or not. In case, predict() 
+is used before training the model, then it can prompt the user to train the clustering 
+model first.  
 
 __Return Value__  
 It returns ‘True’, if the model is already fitted otherwise, it returns ‘False’.  
 
-### SEE ALSO  
-rowmajor_matrix, crs_matrix, dvector
+## SEE ALSO  
+rowmajor_matrix, crs_matrix
