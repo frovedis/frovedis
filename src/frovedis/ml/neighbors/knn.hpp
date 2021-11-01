@@ -1,10 +1,7 @@
 #ifndef _KNN_HPP_
 #define _KNN_HPP_
 
-// decide number of elements of 1M memory size
-#define ONE_MB 1024 * 1024 
-#define THRESHOLD 1e8
-
+#define THRESHOLD 1e9
 //#define MANUAL_LOOP_COLLAPSE_IN_EXTRACTION 
 //#define DEBUG_SAVE
 
@@ -219,7 +216,7 @@ struct find_kneighbor {
     model_dist and model_indx is already allocated. Fetch the index from where
     the assignment will begin. 
     */  
-    auto start = std::min(iter * batch_size, model_dist.local_num_row);   
+    auto start = std::min(iter * batch_size, model_indx.local_num_row);  
     
     auto model_iptr = model_indx.val.data();
     auto model_dptr = model_dist.val.data();
@@ -227,19 +224,23 @@ struct find_kneighbor {
     // decide each chunk of rows (startring index and total nrow in each chunk)
     auto rows_per_chunk = get_rows_per_chunk<T>(nrow, k, chunk_size);
     auto n_iter = ceil_div(nrow, rows_per_chunk);  
-    RLOG(DEBUG) << "distance sorting problem will be solved in " 
-                  + std::to_string(n_iter) + " steps!\n";
+    if(get_selfid() == 0) {
+      RLOG(DEBUG) << "distance sorting problem will be solved in " 
+                  << n_iter << " steps!\n";
+    }
     std::vector<size_t> rows(n_iter + 1);
     rows[0] = 0;
     auto rows_ptr = rows.data();
     for(size_t i = 1; i <= n_iter; ++i) rows_ptr[i]  = i * rows_per_chunk;
     if (rows[n_iter] > nrow) rows[n_iter] = nrow;
-    //display(rows);
+    //debug_print_vector(rows, 10);
 
-    time_spent partition_t(DEBUG), sort_each_t(TRACE), extract_t(DEBUG), radix_t(DEBUG);
+    time_spent partition_t(DEBUG), extract_t(DEBUG), radix_t(DEBUG);
     time_spent comp_t(DEBUG), copy_t(DEBUG);
     for(size_t i = 0; i < n_iter; ++i) {
-      RLOG(DEBUG) << "working on chunk [" << rows[i] << " : " << rows[i+1] - 1 << "]\n";
+      if(get_selfid() == 0) {
+        RLOG(DEBUG) << "working on chunk [" << rows[i] << " : " << rows[i+1] - 1 << "]\n";
+      }
       size_t nrow_in_chunk = rows[i+1] - rows[i] ;
       rowmajor_matrix_local<I> indx_mat(nrow_in_chunk, ncol);
       set_index(indx_mat);
@@ -260,20 +261,12 @@ struct find_kneighbor {
       auto dptr = model_dptr;
       if (need_distance) dptr = dptr + (start * k) + (rows[i] * k);
       auto iptr = model_iptr + (start * k) + (rows[i] * k);
-      sort_each_t.lap_start();
       sort_segmented_rows(dist_buf_ptr,        // partitioned distance buffer pointer
                           indx_mptr,           // partitioned sorted indx_mat pointer
                           dptr, iptr,          // model pointers
                           b_size, k, ncol,
                           need_distance, 
                           radix_t, extract_t);
-      sort_each_t.lap_stop();      
-      if(get_selfid() == 0) {
-        auto chunk = "[" + std::to_string(rows[i])     + ":" + 
-                           std::to_string(rows[i+1]-1) + "]";
-        sort_each_t.show_lap(chunk + " chunk-wise sorting time: "); // includes distance extraction time
-      }
-      sort_each_t.reset();
     }
     if(get_selfid() == 0) { // logging only by rank 0
       partition_t.show_lap("partition time: ");
@@ -306,22 +299,24 @@ struct find_kneighbor {
     
     // decide each chunk of rows (startring index and total nrow in each chunk)
     auto rows_per_chunk = get_rows_per_chunk<T>(nrow, k, chunk_size);
-
     auto n_iter = ceil_div(nrow, rows_per_chunk);
-
-    RLOG(DEBUG) << "distance sorting problem will be solved in " 
-                  + std::to_string(n_iter) + " steps!\n";
+    if(get_selfid() == 0) {
+      RLOG(DEBUG) << "distance sorting problem will be solved in " 
+                  << n_iter << " steps!\n";
+    }
     std::vector<size_t> rows(n_iter + 1);
     rows[0] = 0;
     auto rows_ptr = rows.data();
     for(size_t i = 1; i <= n_iter; ++i) rows_ptr[i]  = i * rows_per_chunk;
     if (rows[n_iter] > nrow) rows[n_iter] = nrow;
-    //display(rows);
+    //debug_print_vector(rows, 10);
 
-    time_spent partition_t(DEBUG), sort_each_t(TRACE), extract_t(DEBUG), radix_t(DEBUG);
+    time_spent partition_t(DEBUG), extract_t(DEBUG), radix_t(DEBUG);
     time_spent comp_t(DEBUG), copy_t(DEBUG);
     for(size_t i = 0; i < n_iter; ++i) {
-      RLOG(DEBUG) << "working on chunk [" << rows[i] << " : " << rows[i+1] - 1 << "]\n";
+      if(get_selfid() == 0) {
+        RLOG(DEBUG) << "working on chunk [" << rows[i] << " : " << rows[i+1] - 1 << "]\n";
+      }
       size_t nrow_in_chunk = rows[i+1] - rows[i] ;
       rowmajor_matrix_local<I> indx_mat(nrow_in_chunk, ncol);
 
@@ -343,20 +338,12 @@ struct find_kneighbor {
       auto dptr = model_dptr;
       if (need_distance) dptr = dptr + (rows[i] * k);
       auto iptr = model_iptr + (rows[i] * k);
-      sort_each_t.lap_start();
       sort_segmented_rows(dist_buf_ptr,        // partitioned distance buffer pointer
                           indx_mptr,           // partitioned sorted indx_mat pointer
                           dptr, iptr,          // model pointers
                           b_size, k, ncol,
                           need_distance, 
                           radix_t, extract_t);
-      sort_each_t.lap_stop();      
-      if(get_selfid() == 0) {
-        auto chunk = "[" + std::to_string(rows[i])     + ":" + 
-                           std::to_string(rows[i+1]-1) + "]";
-        sort_each_t.show_lap(chunk + " chunk-wise sorting time: "); // includes distance extraction time
-      }
-      sort_each_t.reset();
     }
     if(get_selfid() == 0) { // logging only by rank 0
       partition_t.show_lap("partition time: ");
@@ -414,17 +401,21 @@ knn_model<T, I> compute_kneigbor_in_batch(MATRIX1& x_mat,
   //Get number of iterations needed
   auto niters = get_num_iterations(nrows, batch_size_per_node);  
              
-  RLOG(INFO) << "Very large input data is detected. KNN computation would be performed in " 
-             << niters << " batches!\n"; 
+  RLOG(DEBUG) << "Very large input data is detected. KNN computation "
+              << "would be performed in " << niters << " batches!\n"; 
+  time_spent t(DEBUG);
   for(size_t i = 0; i < niters; ++i) { 
     auto partial_query = extract_batch(y_mat, batch_size_per_node, i);     
-    RLOG(INFO) << "processing batch: " << i + 1 
-               << "; nsamples: " << x_mat.num_row 
-               << "; nquery: " << partial_query.num_row << std::endl;
-    auto partial_dist_mat = construct_distance_matrix<T>(x_mat, partial_query, metric, need_distance);            
+    auto partial_dist_mat = construct_distance_matrix<T>(x_mat, partial_query, metric, need_distance); 
     partial_dist_mat.data.mapv(find_kneighbor(k, need_distance, chunk_size), 
                                ret.distances.data, ret.indices.data, 
-                               broadcast(batch_size_per_node), broadcast(i));      
+                               broadcast(batch_size_per_node), broadcast(i)); 
+    if (get_loglevel() <= DEBUG) {
+      std::ostringstream os;
+      os << "processed batch: " << i + 1 << " (nsamples: " << x_mat.num_row
+          << "; nquery: " << partial_query.num_row << ") in: ";
+      t.show(os.str());
+    }
   }         
   return ret;                          
 }
@@ -485,22 +476,28 @@ knn_model<T, I> knn(MATRIX1& x_mat,
       "Currently frovedis knn supports only euclidean/seuclidean and cosine distance!\n");
 
   knn_model<T, I> ret(k);
+  bool in_one_go = true;
+  size_t batch_size_per_node = 0;
   if(batch_fraction == std::numeric_limits<double>::max()) { // No batch provided
     if (nquery * nsamples > THRESHOLD) { // Compute with batches of distance matrix
       size_t global_batch = THRESHOLD / nsamples;
-      size_t batch_size_per_node = get_batch_size_per_node(global_batch);
-      ret = compute_kneigbor_in_batch<T, I>(x_mat, y_mat, k, metric, need_distance, 
-                                            chunk_size, batch_size_per_node);  
-    }
-    else { // Compute entire matrix at once 
-      ret = compute_kneigbor<T, I>(x_mat, y_mat, k, metric, need_distance, chunk_size);
+      batch_size_per_node = get_batch_size_per_node(global_batch);
+      in_one_go = false;
     }
   }
   else { // Divide as per batch value provided
-    auto global_batch = static_cast<size_t>(batch_fraction * nquery);  
-    size_t batch_size_per_node = get_batch_size_per_node(global_batch);      
+    if(batch_fraction != 1.0) { 
+      auto global_batch = static_cast<size_t>(batch_fraction * nquery);  
+      batch_size_per_node = get_batch_size_per_node(global_batch);      
+      in_one_go = false;
+    }
+  }
+
+  if (in_one_go) {
+    ret = compute_kneigbor<T, I>(x_mat, y_mat, k, metric, need_distance, chunk_size);
+  } else {
     ret = compute_kneigbor_in_batch<T, I>(x_mat, y_mat, k, metric, need_distance, 
-                                          chunk_size, batch_size_per_node);   
+                                          chunk_size, batch_size_per_node);  
   }
   return ret;            
 }
@@ -515,7 +512,8 @@ knn_model<T, I> knn(MATRIX& mat,
                     bool need_distance = false,
                     float chunk_size = 1.0, 
                     double batch_fraction = std::numeric_limits<double>::max()) {
-  return knn<T>(mat, mat, k, algorithm, metric, need_distance, chunk_size, batch_fraction);
+  return knn<T,I>(mat, mat, k, algorithm, metric, need_distance, 
+                  chunk_size, batch_fraction);
 }
 
 template <class R, class T, class I = size_t, class O = size_t, 
@@ -561,25 +559,31 @@ knn_radius(MATRIX1& x_mat,
     }  
   }
   else {
-    auto global_batch = static_cast<size_t>(batch_fraction * nquery);  
-    batch_size_per_node = get_batch_size_per_node(global_batch);  
-    in_one_go = false;  
+    if(batch_fraction != 1.0) { 
+      auto global_batch = static_cast<size_t>(batch_fraction * nquery);  
+      batch_size_per_node = get_batch_size_per_node(global_batch);  
+      in_one_go = false;  
+    }
   } 
   
   if(!in_one_go) {             
     auto nrows = y_mat.get_local_num_rows();
     auto niters = get_num_iterations(nrows, batch_size_per_node);
     std::vector<crs_matrix<R,I,O>> graphs(niters);
-    RLOG(INFO) << "Very large input data is detected. KNN computation would be performed in " 
-               << niters << " batches!\n"; 
+    RLOG(DEBUG) << "Very large input data is detected. KNN computation "
+                << "would be performed in " << niters << " batches!\n";
+    time_spent t(DEBUG); 
     for(size_t i = 0; i < niters; ++i) {
       auto partial_query = extract_batch(y_mat, batch_size_per_node, i);   
-      RLOG(INFO) << "processing batch: " << i + 1 
-                 << "; nsamples: " << x_mat.num_row 
-                 << "; nquery: " << partial_query.num_row << std::endl;
       auto partial_dist_mat = construct_distance_matrix<T>(x_mat, partial_query, metric, need_distance);
       graphs[i] = construct_connectivity_graph<R,T,I,O>(partial_dist_mat, 
                                                         radius, include_self, need_weight);
+      if (get_loglevel() <= DEBUG) {
+        std::ostringstream os;
+        os << "processed batch: " << i + 1 << " (nsamples: " << x_mat.num_row
+           << "; nquery: " << partial_query.num_row << ") in: ";
+        t.show(os.str());
+      }
     }
     ret = local_append(graphs);        
   }

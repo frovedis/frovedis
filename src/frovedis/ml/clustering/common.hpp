@@ -48,7 +48,7 @@ size_t get_num_iterations(std::vector<T>& nrows, T batch_size) {
 template <class T>    
 size_t get_batch_size_per_node(T global_batch) {
   T node_size = get_nodesize();  
-  return global_batch / node_size;
+  return ceil_div(global_batch, node_size);
 }
   
 template <class T>        
@@ -107,7 +107,7 @@ extract_crs_batch(crs_matrix_local<T,I,O>& mat,
   }
 
   roffp[0] = 0; offp = offp + start;
-  for(size_t j = 0; j < nrows; ++j) roffp[j + 1] = roffp[j] + (offp[j + 1] - offp[j]);    
+  for(size_t j = 0; j < nrows; ++j) roffp[j + 1] = offp[j + 1] - offp[0]; 
   return ret;  
 }     
 
@@ -459,7 +459,7 @@ struct compute_dist {
     }
     else
       REPORT_ERROR(USER_ERROR,
-      "Currently frovedis knn supports only euclidean/seuclidean distance!\n");
+      "Currently frovedis supports only euclidean/seuclidean/cosine distance!\n");
     return ab;
   }
   std::string metric;
