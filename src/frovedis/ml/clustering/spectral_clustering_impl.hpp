@@ -56,19 +56,19 @@ spectral_clustering_impl(rowmajor_matrix<T>& mat,
                          int mode = 3,
                          bool input_movable = false) {
   // debug for the hyper-parameters
-  RLOG(INFO)  << "n_cluster: "      << assign.k << "; "
-              << "n_comp: "         << n_comp << "; " 
-              << "max_iter: "       << assign.max_iter << "; " 
-              << "n_init: "         << assign.n_init << "; " 
-              << "seed: "           << assign.seed << "; " 
-              << "eps: "            << assign.eps << "; " 
-              << "gamma: "          << gamma << "; " 
-              << "affinity: "       << affinity << "; " 
-              << "n_neighbors: "    << n_neighbors << "; " 
-              << "norm_laplacian: " << norm_laplacian << "; " 
-              << "drop_first: "     << drop_first << "; " 
-              << "mode: "           << mode << "; " 
-              << "input_movable: "  << input_movable << std::endl; 
+  RLOG(DEBUG)  << "n_cluster: "      << assign.k << "; "
+               << "n_comp: "         << n_comp << "; " 
+               << "max_iter: "       << assign.max_iter << "; " 
+               << "n_init: "         << assign.n_init << "; " 
+               << "seed: "           << assign.seed << "; " 
+               << "eps: "            << assign.eps << "; " 
+               << "gamma: "          << gamma << "; " 
+               << "affinity: "       << affinity << "; " 
+               << "n_neighbors: "    << n_neighbors << "; " 
+               << "norm_laplacian: " << norm_laplacian << "; " 
+               << "drop_first: "     << drop_first << "; " 
+               << "mode: "           << mode << "; " 
+               << "input_movable: "  << input_movable << std::endl; 
 
   auto nrow = mat.num_row;   
   auto ncol = mat.num_col;   
@@ -150,19 +150,19 @@ spectral_clustering_impl(crs_matrix<T,I,O>& mat,
                          int mode = 3,
                          bool input_movable = false) {
   // debug for the hyper-parameters
-  RLOG(INFO)  << "n_cluster: "      << assign.k << "; "
-              << "n_comp: "         << n_comp << "; " 
-              << "max_iter: "       << assign.max_iter << "; " 
-              << "n_init: "         << assign.n_init << "; " 
-              << "seed: "           << assign.seed << "; " 
-              << "eps: "            << assign.eps << "; " 
-              << "gamma: "          << gamma << "; " 
-              << "affinity: "       << affinity << "; " 
-              << "n_neighbors: "    << n_neighbors << "; " 
-              << "norm_laplacian: " << norm_laplacian << "; " 
-              << "drop_first: "     << drop_first << "; " 
-              << "mode: "           << mode << "; " 
-              << "input_movable: "  << input_movable << std::endl; 
+  RLOG(DEBUG)  << "n_cluster: "      << assign.k << "; "
+               << "n_comp: "         << n_comp << "; " 
+               << "max_iter: "       << assign.max_iter << "; " 
+               << "n_init: "         << assign.n_init << "; " 
+               << "seed: "           << assign.seed << "; " 
+               << "eps: "            << assign.eps << "; " 
+               << "gamma: "          << gamma << "; " 
+               << "affinity: "       << affinity << "; " 
+               << "n_neighbors: "    << n_neighbors << "; " 
+               << "norm_laplacian: " << norm_laplacian << "; " 
+               << "drop_first: "     << drop_first << "; " 
+               << "mode: "           << mode << "; " 
+               << "input_movable: "  << input_movable << std::endl; 
 
   auto nrow = mat.num_row;   
   auto ncol = mat.num_col;   

@@ -193,8 +193,10 @@ struct find_kneighbor {
     // decide each chunk of rows (startring index and total nrow in each chunk)
     auto rows_per_chunk = get_rows_per_chunk<T>(nrow, ncol, chunk_size);
     auto n_iter = ceil_div(nrow, rows_per_chunk);
-    RLOG(INFO) << "distance sorting problem will be solved in " 
-                  + std::to_string(n_iter) + " steps!\n";
+    if(get_selfid() == 0) {
+      RLOG(DEBUG) << "distance sorting problem will be solved in " 
+                  << n_iter << " steps!\n";
+    }
     std::vector<size_t> rows(n_iter + 1);
     rows[0] = 0;
     auto rows_ptr = rows.data();
@@ -204,7 +206,7 @@ struct find_kneighbor {
 
     std::vector<I> indx_buffer(rows_per_chunk * ncol); // reusable buffer of CHUNK_SIZE
     auto indx_bfptr = indx_buffer.data();
-    time_spent sort_t(INFO), sort_each_t(TRACE), extract_t(INFO), radix_t(INFO);
+    time_spent sort_t(DEBUG), sort_each_t(TRACE), extract_t(DEBUG), radix_t(DEBUG);
     for(size_t i = 0; i < n_iter; ++i) {
       //std::cout << "sorting: " << rows[i] << " -> " << rows[i+1] << std::endl;
       // creating chunk for dist_mat.val for sorting
