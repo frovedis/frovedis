@@ -2,7 +2,6 @@
 #define _LBFGS_HPP_
 
 #include "../../matrix/cir_array_list.hpp"
-#define IGNORABLE_DIFF 1e-10
 
 namespace frovedis {
 

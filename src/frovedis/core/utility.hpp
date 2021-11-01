@@ -22,6 +22,8 @@
 #define SIZEOF_UINT64 8
 #define SIZEOF_FLOAT32 4
 #define SIZEOF_FLOAT64 8
+#define ONE_MB 1024 * 1024 
+#define IGNORABLE_DIFF 1e-10
 
 namespace frovedis {
 

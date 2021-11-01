@@ -2,7 +2,6 @@
 #define _MATRIX_SORT_HPP_
 
 #include <frovedis/matrix/rowmajor_matrix.hpp>
-#define ONE_MB 1024 * 1024 
 
 namespace frovedis {
 
