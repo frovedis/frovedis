@@ -12,7 +12,8 @@ from ...exrpc.server import FrovedisServer, set_association, \
 from ...exrpc import rpclib
 from ...matrix.ml_data import FrovedisFeatureData
 from ...matrix.dense import FrovedisRowmajorMatrix
-from ...matrix.dtype import TypeUtil
+from ...matrix.crs import FrovedisCRSMatrix 
+from ...matrix.dtype import TypeUtil, DTYPE
 
 class SpectralEmbedding(BaseEstimator):
     """
@@ -101,7 +102,8 @@ class SpectralEmbedding(BaseEstimator):
                     self._affinity = rmat
             else:
                 smat = FrovedisCRSMatrix(mat=dmat, dtype=TypeUtil. \
-                            to_numpy_dtype(self.__mdtype))
+                            to_numpy_dtype(self.__mdtype), \
+                            itype=np.int64) # actually 'size_t' 
                 if self.__X_movable:
                     self._affinity = smat.to_scipy_matrix()
                 else:

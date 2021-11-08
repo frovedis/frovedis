@@ -9,6 +9,7 @@ from .dtype import TypeUtil, DTYPE
 from .vector import FrovedisVector
 from .dense import FrovedisRowmajorMatrix, FrovedisColmajorMatrix
 
+# NOTE: itype = np.int64 (DTYPE.LONG) will actually be 'size_t' at server side
 class FrovedisCRSMatrix(object):
     """A python container for Frovedis server side crs_matrix"""
 
@@ -47,7 +48,7 @@ class FrovedisCRSMatrix(object):
         if excpt["status"]:
             raise RuntimeError(excpt["info"])
         return FrovedisColmajorMatrix(mat=dmat, dtype=self.__dtype)
- 
+
     @check_association
     def to_scipy_matrix(self):
         crs_shape = [self.numRows(), self.numCols()]
@@ -60,14 +61,14 @@ class FrovedisCRSMatrix(object):
         else:
             data_nzelem = self.nnz #get_nzelem()
             val_arr = np.empty(data_nzelem, dtype=data_type)
-            idx_arr = np.empty(data_nzelem, dtype=idx_type) 
+            idx_arr = np.empty(data_nzelem, dtype=idx_type)
             off_arr = np.empty((self.numRows()+1), dtype=np.int64)
             ddt = self.get_dtype()
             idt = self.get_itype()
             (host, port) = FrovedisServer.getServerInstance()
             rpclib.get_crs_matrix_components(host, port, self.get(),
-                                             val_arr.__array_interface__['data'][0], 
-                                             idx_arr.__array_interface__['data'][0], 
+                                             val_arr.__array_interface__['data'][0],
+                                             idx_arr.__array_interface__['data'][0],
                                              off_arr.__array_interface__['data'][0],
                                              ddt, idt, val_arr.size, off_arr.size)
             excpt = rpclib.check_server_exception()
@@ -385,4 +386,4 @@ class FrovedisCRSMatrix(object):
             ret = FrovedisCRSMatrix(dtype=dtype, itype=itype).load_python_data(mat)
             if retIsConverted: return (ret, True)
             else: return ret
-           
+
