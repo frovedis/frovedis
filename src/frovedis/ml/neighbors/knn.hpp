@@ -247,7 +247,7 @@ struct find_kneighbor {
       auto dist_mptr = dist_mat.val.data() + (rows[i] * ncol);
       auto indx_mptr = indx_mat.val.data();
       partition_t.lap_start();
-      partition_sort(dist_mptr, indx_mptr, nrow_in_chunk, ncol, k, comp_t, copy_t);
+      partition(dist_mptr, indx_mptr, nrow_in_chunk, ncol, k, comp_t, copy_t);
       partition_t.lap_stop();
 
       extract_t.lap_start();
@@ -319,12 +319,11 @@ struct find_kneighbor {
       }
       size_t nrow_in_chunk = rows[i+1] - rows[i] ;
       rowmajor_matrix_local<I> indx_mat(nrow_in_chunk, ncol);
-
       set_index(indx_mat);
       auto dist_mptr = dist_mat.val.data() + (rows[i] * ncol);
       auto indx_mptr = indx_mat.val.data();
       partition_t.lap_start();
-      partition_sort(dist_mptr, indx_mptr, nrow_in_chunk, ncol, k, comp_t, copy_t);
+      partition(dist_mptr, indx_mptr, nrow_in_chunk, ncol, k, comp_t, copy_t);
       partition_t.lap_stop();
 
       extract_t.lap_start();
