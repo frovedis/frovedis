@@ -45,6 +45,14 @@ score(X, y, sample_weight = None)
 .PD 0
 .P
 .PD
+get_params(deep = True)
+.PD 0
+.P
+.PD
+set_params(**params)
+.PD 0
+.P
+.PD
 load(fname, dtype = None)
 .PD 0
 .P
@@ -235,7 +243,7 @@ Only supported by "sag" and "lbfgs" solvers.
 \f[B]\f[I]coef_\f[]\f[]: It is a python ndarray(containing float or
 double(float64) typed values depending on data\-type of input matrix
 (X)) of estimated coefficients for the linear regression problem.
-It has shape (n_features,).
+It has shape \f[B](n_features,)\f[].
 .PD 0
 .P
 .PD
@@ -248,8 +256,8 @@ used.
 .PD
 \f[B]\f[I]singular_\f[]\f[]: It is a python ndarray(contaning float or
 double(float64) typed values depending on data\-type of input matrix
-(X)) and has shape(min(X,y),) which is used to store singular values of
-X.
+(X)) and has shape \f[B](min(X,y),)\f[] which is used to store singular
+values of X.
 It is only available when X is dense and "lapack" solver is used.
 .PD 0
 .P
@@ -258,7 +266,7 @@ It is only available when X is dense and "lapack" solver is used.
 float or double(float64) typed values depending on data\-type of input
 matrix (X)).
 If fit_intercept is set to False, the intercept is set to zero.
-It has shape (1,).
+It has shape \f[B](1,)\f[].
 .PD 0
 .P
 .PD
@@ -434,7 +442,7 @@ Output
 .P
 .PD
 It returns a numpy array of float or double(float64) type and has shape
-(n_samples,) containing the predicted outputs.
+\f[B](n_samples,)\f[] containing the predicted outputs.
 .SS 4. score(X, y, sample_weight = None)
 .PP
 \f[B]Parameters\f[]
@@ -509,7 +517,99 @@ Output
 .P
 .PD
 It returns an R2 score of float type.
-.SS 5. load(fname, dtype = None)
+.SS 5. get_params(deep = True)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]\f[B]deep\f[]\f[]: A boolean parameter, used to get parameters and
+their values for an estimator.
+If True, it will return the parameters for an estimator and contained
+subobjects that are estimators.
+(Default: True)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+This method belongs to the BaseEstimator class inherited by
+LinearRegression.
+It is used to get parameters and their values of LinearRegression class.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+\ \ print(lr.get_params())
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+{\[aq]copy_X\[aq]:\ True,\ \[aq]fit_intercept\[aq]:\ True,\ \[aq]lr_rate\[aq]:\ 1e\-08,\ \[aq]max_iter\[aq]:\ None,\ \[aq]n_jobs\[aq]:\ None,
+\[aq]normalize\[aq]:\ False,\ \[aq]solver\[aq]:\ \[aq]lapack\[aq],\ \[aq]tol\[aq]:\ 0.0001,\ \[aq]verbose\[aq]:\ 0,\ \[aq]warm_start\[aq]:\ False}\ \ 
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+A dictionary of parameter names mapped to their values.
+.SS 6. set_params(**params)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]\f[B]**params\f[]\f[]: All the keyword arguments are passed this
+function as dictionary.
+This dictionary contains parameters of an estimator with its given
+values to set.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+This method belongs to the BaseEstimator class inherited by
+LinearRegression, used to set parameter values.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+print("get\ parameters\ before\ setting:")\ \ 
+print(lr.get_params())\ \ 
+#\ User\ just\ needs\ to\ provide\ the\ arguments\ and\ internally\ it\ will\ create\ a\ 
+dictionary\ over\ the\ arguments\ given\ by\ user\ \ 
+lr.set_params(solver=\[aq]lbfgs\[aq],\ max_iter\ =\ 10000)\ \ 
+print("get\ parameters\ after\ setting:")\ \ 
+print(lr.get_params())\ \ 
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+get\ parameters\ before\ setting:
+{\[aq]copy_X\[aq]:\ True,\ \[aq]fit_intercept\[aq]:\ True,\ \[aq]lr_rate\[aq]:\ 1e\-08,\ \[aq]max_iter\[aq]:\ None,\ \[aq]n_jobs\[aq]:\ None,
+\[aq]normalize\[aq]:\ False,\ \[aq]solver\[aq]:\ \[aq]lapack\[aq],\ \[aq]tol\[aq]:\ 0.0001,\ \[aq]verbose\[aq]:\ 0,\ \[aq]warm_start\[aq]:\ False}
+get\ parameters\ after\ setting:
+{\[aq]copy_X\[aq]:\ True,\ \[aq]fit_intercept\[aq]:\ True,\ \[aq]lr_rate\[aq]:\ 1e\-08,\ \[aq]max_iter\[aq]:\ 10000,\ \[aq]n_jobs\[aq]:\ None,
+\[aq]normalize\[aq]:\ False,\ \[aq]solver\[aq]:\ \[aq]lbfgs\[aq],\ \[aq]tol\[aq]:\ 0.0001,\ \[aq]verbose\[aq]:\ 0,\ \[aq]warm_start\[aq]:\ False}
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It simply returns "self" reference.
+.SS 7. load(fname, dtype = None)
 .PP
 \f[B]Parameters\f[]
 .PD 0
@@ -544,7 +644,7 @@ lr.load("./out/LNRModel")
 .P
 .PD
 It simply returns "self" instance.
-.SS 6. save(fname)
+.SS 8. save(fname)
 .PP
 \f[B]Parameters\f[]
 .PD 0
@@ -572,12 +672,31 @@ lr.save("./out/LNRModel")\ \ \ \
 .PP
 This will save the linear regression model on the path "/out/LNRModel".
 .PP
+The \[aq]LNRModel\[aq] directory has
+.PP
+\f[B]LNRModel\f[]
+.PD 0
+.P
+.PD
+|\-\-\-\-\-\-\-\- metadata
+.PD 0
+.P
+.PD
+|\-\-\-\-\-\-\-\- model
+.PP
+The metadata file contains the number of classes, model kind, input
+datatype used for trained model.
+.PD 0
+.P
+.PD
+Here, the model file contains information about weights, intercept.
+.PP
 \f[B]Return Value\f[]
 .PD 0
 .P
 .PD
 It returns nothing.
-.SS 7. debug_print()
+.SS 9. debug_print()
 .PP
 \f[B]Purpose\f[]
 .PD 0
@@ -614,7 +733,7 @@ is currently present on the server.
 .P
 .PD
 It returns nothing.
-.SS 8. release()
+.SS 10. release()
 .PP
 \f[B]Purpose\f[]
 .PD 0
@@ -638,7 +757,7 @@ releasing server side memory.
 .P
 .PD
 It returns nothing.
-.SS 9. is_fitted()
+.SS 11. is_fitted()
 .PP
 \f[B]Purpose\f[]
 .PD 0

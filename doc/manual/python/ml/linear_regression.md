@@ -22,6 +22,8 @@ class frovedis.mllib.linear_model.LinearRegression(fit_intercept=True, normalize
 fit(X, y, sample_weight = None)  
 predict(X)  
 score(X, y, sample_weight = None)  
+get_params(deep = True)  
+set_params(\*\*params)  
 load(fname, dtype = None)  
 save(fname)  
 debug_print()  
@@ -115,15 +117,15 @@ Only supported by "sag" and "lbfgs" solvers. (Default: False)
 __Attributes__  
 **_coef\__**: It is a python ndarray(containing float or double(float64) typed values depending 
 on data-type of input matrix (X)) of estimated coefficients for the linear regression problem. 
-It has shape (n_features,).  
+It has shape **(n_features,)**.  
 **_rank\__**: An integer value used to store rank of matrix (X). It is only available when
 matrix (X) is dense and "lapack" solver is used.  
 **_singular\__**: It is a python ndarray(contaning float or double(float64) typed values depending
-on data-type of input matrix (X)) and has shape(min(X,y),) which is  used to store singular 
+on data-type of input matrix (X)) and has shape **(min(X,y),)** which is  used to store singular 
 values of X. It is only available when X is dense and "lapack" solver is used.  
 **_intercept\_(bias)_**: It is a python ndarray(contaning float or double(float64) typed values 
 depending on data-type of input matrix (X)). If fit_intercept is set to False, the intercept 
-is set to zero. It has shape (1,).  
+is set to zero. It has shape **(1,)**.  
 **_n\_iter\__**: A positive integer value used to get the actual iteration point at which the 
 problem is converged. It is only available for "sag", "lbfgs" and "sparse-lsqr" solvers.  
 
@@ -229,7 +231,7 @@ Output
      23.00180827 19.53598843 11.52363685 18.92026211]
 
 __Return Value__  
-It returns a numpy array of float or double(float64) type and has shape (n_samples,) 
+It returns a numpy array of float or double(float64) type and has shape **(n_samples,)** 
 containing the predicted outputs. 
 
 ### 4. score(X, y, sample_weight = None)  
@@ -263,8 +265,60 @@ Output
 
 __Return Value__  
 It returns an R2 score of float type.
+
+### 5. get_params(deep = True)  
+__Parameters__   
+_**deep**_: A boolean parameter, used to get parameters and their values for an estimator. If True, 
+it will return the parameters for an estimator and contained subobjects that are estimators. (Default: True)  
+
+__Purpose__    
+This method belongs to the BaseEstimator class inherited by LinearRegression. It is used to get parameters 
+and their values of LinearRegression class.  
+
+For example, 
  
-### 5. load(fname, dtype = None)  
+      print(lr.get_params())
+
+Output  
+
+    {'copy_X': True, 'fit_intercept': True, 'lr_rate': 1e-08, 'max_iter': None, 'n_jobs': None,
+    'normalize': False, 'solver': 'lapack', 'tol': 0.0001, 'verbose': 0, 'warm_start': False}  
+    
+__Return Value__  
+A dictionary of parameter names mapped to their values.  
+
+### 6. set_params(\*\*params)  
+__Parameters__  
+_**\*\*params**_: All the keyword arguments are passed this function as dictionary. This dictionary 
+contains parameters of an estimator with its given values to set.  
+
+__Purpose__  
+This method belongs to the BaseEstimator class inherited by LinearRegression, used to set 
+parameter values.  
+
+For example,   
+
+    print("get parameters before setting:")  
+    print(lr.get_params())  
+    # User just needs to provide the arguments and internally it will create a 
+    dictionary over the arguments given by user  
+    lr.set_params(solver='lbfgs', max_iter = 10000)  
+    print("get parameters after setting:")  
+    print(lr.get_params())  
+
+Output  
+     
+    get parameters before setting:
+    {'copy_X': True, 'fit_intercept': True, 'lr_rate': 1e-08, 'max_iter': None, 'n_jobs': None,
+    'normalize': False, 'solver': 'lapack', 'tol': 0.0001, 'verbose': 0, 'warm_start': False}
+    get parameters after setting:
+    {'copy_X': True, 'fit_intercept': True, 'lr_rate': 1e-08, 'max_iter': 10000, 'n_jobs': None,
+    'normalize': False, 'solver': 'lbfgs', 'tol': 0.0001, 'verbose': 0, 'warm_start': False}
+    
+__Return Value__  
+It simply returns "self" reference.  
+
+### 7. load(fname, dtype = None)  
 __Parameters__   
 **_fname_**: A string object containing the name of the file having model 
 information to be loaded.    
@@ -281,7 +335,7 @@ For example,
 __Return Value__  
 It simply returns "self" instance.   
 
-### 6. save(fname)  
+### 8. save(fname)  
 __Parameters__   
 **_fname_**: A string object containing the name of the file on which the target 
 model is to be saved.    
@@ -297,10 +351,19 @@ For example,
 
 This will save the linear regression model on the path "/out/LNRModel".  
 
+The 'LNRModel' directory has  
+
+**LNRModel**  
+|-------- metadata  
+|-------- model  
+
+The metadata file contains the number of classes, model kind, input datatype used for trained model.  
+Here, the model file contains information about weights, intercept.  
+
 __Return Value__  
 It returns nothing.  
 
-### 7. debug_print()  
+### 9. debug_print()  
 
 __Purpose__    
 It shows the target model information (weight values, intercept) on the server side 
@@ -323,7 +386,7 @@ on the server.
 __Return Value__  
 It returns nothing.  
 
-### 8. release()  
+### 10. release()  
 
 __Purpose__    
 It can be used to release the in-memory model at frovedis server.  
@@ -338,7 +401,7 @@ side memory.
 __Return Value__  
 It returns nothing.  
 
-### 9. is_fitted()  
+### 11. is_fitted()  
 
 __Purpose__    
 It can be used to confirm if the model is already fitted or not. In case, predict() is used 
