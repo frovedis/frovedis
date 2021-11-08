@@ -1,0 +1,53 @@
+  
+  int iter = 1;
+  size_t st_idx = 0, end_idx = size - 1;
+  while(st_idx != end_idx) {
+
+#ifdef USE_RANDOM_PIVOT
+    auto piv_id = st_idx + rand() % (end_idx - st_idx + 1); // random point in between st_idx and end_idx
+    //std::cout << "(" << st_idx << " - " << end_idx << "): pivot: " << piv_id << std::endl;
+    auto tmp_key = kptr[piv_id]; auto tmp_val = vptr[piv_id];
+    kptr[piv_id] = kptr[st_idx]; vptr[piv_id] = vptr[st_idx];
+    kptr[st_idx] = tmp_key; vptr[st_idx] = tmp_val;
+#endif
+
+    auto piv_key = kptr[st_idx];
+    auto piv_val = vptr[st_idx];
+    size_t low = st_idx, high = end_idx;
+    comp_t.lap_start();
+#pragma _NEC ivdep
+    for(size_t i = st_idx + 1; i <= end_idx; ++i) {
+      if(kptr[i] < piv_key) {
+        work_kptr[low] = kptr[i];
+        work_vptr[low] = vptr[i];
+        low++;
+      }
+      else {
+        work_kptr[high] = kptr[i];
+        work_vptr[high] = vptr[i];
+        high--;
+      }
+    }
+    comp_t.lap_stop();
+
+    // at this point (low == high)
+    checkAssumption(low == high);
+    work_kptr[low] = piv_key;
+    work_vptr[low] = piv_val;
+
+    copy_t.lap_start();
+    // copy-back to input data buffers for next iteration
+    for(size_t i = st_idx; i <= end_idx; ++i) {
+      kptr[i] = work_kptr[i];
+      vptr[i] = work_vptr[i];
+    }
+    copy_t.lap_stop();
+
+    // adjustment
+    if (low > kidx) end_idx = low - 1;
+    else if (low < kidx) st_idx = low + 1;
+    else st_idx = end_idx = kidx; // DONE: equal case
+    iter++;
+  }
+  RLOG(TRACE) << "partition: total iteration:: " << iter << std::endl;
+

@@ -1072,25 +1072,6 @@ size_t get_num_topics(int& mid) {
   return t_mod.model.word_topic_count.local_num_col;
 }
 
-template <class I, class T>
-rowmajor_matrix_local<I>
-arg_partition_local(rowmajor_matrix_local<T>& mat, // to resolve overloaded version  
-                    size_t max_terms) {
-  return frovedis::arg_partition<T,I>(mat, max_terms);
-}
-
-template <class I, class T>
-rowmajor_matrix<I>
-arg_partition_global(rowmajor_matrix<T>& mat, size_t max_terms) {
-  auto nrow = mat.num_row;
-  auto ncol = mat.num_col;
-  rowmajor_matrix<I> ret(mat.data.map(arg_partition_local<I,T>, 
-                         broadcast(max_terms)));
-  ret.num_row = nrow;
-  ret.num_col = ncol;
-  return ret;
-}
-
 template <class I>
 void decode_doc_ids(rowmajor_matrix_local<I>& matrix,
                     std::vector<I> logic) {
@@ -1103,7 +1084,7 @@ template <class I, class T>
 distMatrix<I,T>
 extract_top_k_of_each_row(rowmajor_matrix<T>& mat, 
                           int& k) {
-  auto index = arg_partition_global<I,T>(mat, k);
+  auto index = partition<T,I>(mat, k);
   auto key = extract_k_cols(mat, k).gather();
   auto value = extract_k_cols(index, k).gather();
   radix_sort_desc(key.val.data(), value.val.data(), key.val.size());

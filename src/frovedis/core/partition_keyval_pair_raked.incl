@@ -1,0 +1,253 @@
+
+  int iter = 1;
+  size_t st_idx = 0, end_idx = size - 1;
+  while(st_idx != end_idx) {
+    auto cur_size = (end_idx - st_idx + 1);
+    if (cur_size < PARTITION_VLEN * PARTITION_MIN_EACH_LEN) {
+      partition_normal(kptr + st_idx,
+                       vptr + st_idx,
+                       cur_size, k - st_idx,
+                       comp_t, copy_t);
+      break;
+    }
+
+    auto tsize = cur_size - 1; // excluding pivot
+    auto each = tsize / PARTITION_VLEN; // maybe zero
+    if(each % 2 == 0 && each > 1) each--;
+
+#ifdef USE_RANDOM_PIVOT
+    auto piv_id = st_idx + rand() % (end_idx - st_idx + 1); // random point in between st_idx and end_idx
+    //std::cout << "(" << st_idx << " - " << end_idx << "): pivot: " << piv_id << std::endl;
+    auto tmp_key = kptr[piv_id]; auto tmp_val = vptr[piv_id];
+    kptr[piv_id] = kptr[st_idx]; vptr[piv_id] = vptr[st_idx];
+    kptr[st_idx] = tmp_key; vptr[st_idx] = tmp_val;
+#endif
+
+    auto piv_key = kptr[st_idx];
+    auto piv_val = vptr[st_idx];
+#ifdef PARTITION_DEBUG
+    std::cout << "iter: " << iter
+              << "; st_idx: " << st_idx 
+              << "; end_idx: " << end_idx 
+              << "; each: " << each 
+              << "; piv_key: " << piv_key
+              << "; piv_val: " << piv_val << std::endl;
+#endif
+
+    for(size_t i = 0; i < PARTITION_VLEN_EACH; ++i) {
+      auto idx0 = i + PARTITION_VLEN_EACH * 0;
+      lowp0[i] = st_idx + (idx0 * each) + 1;
+      highp0[i] = st_idx + (idx0 + 1) * each;
+
+      auto idx1 = i + PARTITION_VLEN_EACH * 1;
+      lowp1[i] = st_idx + (idx1 * each) + 1;
+      highp1[i] = st_idx + (idx1 + 1) * each;
+
+      /*
+      auto idx2 = i + PARTITION_VLEN_EACH * 2;
+      lowp2[i] = st_idx + (idx2 * each) + 1;
+      highp2[i] = st_idx + (idx2 + 1) * each;
+
+      auto idx3 = i + PARTITION_VLEN_EACH * 3;
+      lowp3[i] = st_idx + (idx3 * each) + 1;
+      highp3[i] = st_idx + (idx3 + 1) * each;
+      */
+    }
+
+#ifdef PARTITION_DEBUG
+    for(size_t i = 0; i < PARTITION_VLEN_EACH; ++i) {
+      auto idx0 = i + PARTITION_VLEN_EACH * 0;
+      std::cout << "[" << idx0 << "] low: " << lowp0[i] << "; high: " << highp0[i] << std::endl;
+      auto idx1 = i + PARTITION_VLEN_EACH * 1;
+      std::cout << "[" << idx1 << "] low: " << lowp1[i] << "; high: " << highp1[i] << std::endl;
+      /*
+      auto idx2 = i + PARTITION_VLEN_EACH * 2;
+      std::cout << "[" << idx2 << "] low: " << lowp2[i] << "; high: " << highp2[i] << std::endl;
+      auto idx3 = i + PARTITION_VLEN_EACH * 3;
+      std::cout << "[" << idx3 << "] low: " << lowp3[i] << "; high: " << highp3[i] << std::endl;
+      */
+    }
+#endif
+
+    comp_t.lap_start();
+#pragma _NEC vob
+    for(size_t j = 0; j < each; ++j) {
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+      for(size_t i = 0; i < PARTITION_VLEN_EACH; ++i) {
+        // store at 'low' and increase low if (loaded_key < piv_key);
+        // store at 'high' and decrease high otherwise...
+        auto idx0 = i + PARTITION_VLEN_EACH * 0;
+        auto st0 = st_idx + (idx0 * each) + 1;
+        auto loaded_key0 = kptr[st0 + j];
+        auto loaded_val0 = vptr[st0 + j];
+        auto wid0 = (lowp0[i]  * (loaded_key0 < piv_key)) +
+                    (highp0[i] * (loaded_key0 >= piv_key));
+        work_kptr[wid0] = loaded_key0;
+        work_vptr[wid0] = loaded_val0;
+        lowp0[i]  += (loaded_key0 < piv_key);
+        highp0[i] -= (loaded_key0 >= piv_key);
+
+        auto idx1 = i + PARTITION_VLEN_EACH * 1;
+        auto st1 = st_idx + (idx1 * each) + 1;
+        auto loaded_key1 = kptr[st1 + j];
+        auto loaded_val1 = vptr[st1 + j];
+        auto wid1 = (lowp1[i]  * (loaded_key1 < piv_key)) +
+                    (highp1[i] * (loaded_key1 >= piv_key));
+        work_kptr[wid1] = loaded_key1;
+        work_vptr[wid1] = loaded_val1;
+        lowp1[i]  += (loaded_key1 < piv_key);
+        highp1[i] -= (loaded_key1 >= piv_key);
+
+        /*
+        auto idx2 = i + PARTITION_VLEN_EACH * 2;
+        auto st2 = st_idx + (idx2 * each) + 1;
+        auto loaded_key2 = kptr[st2 + j];
+        auto loaded_val2 = vptr[st2 + j];
+        auto wid2 = (lowp2[i]  * (loaded_key2 < piv_key)) +
+                    (highp2[i] * (loaded_key2 >= piv_key));
+        work_kptr[wid2] = loaded_key2;
+        work_vptr[wid2] = loaded_val2;
+        lowp2[i]  += (loaded_key2 < piv_key);
+        highp2[i] -= (loaded_key2 >= piv_key);
+
+        auto idx3 = i + PARTITION_VLEN_EACH * 3;
+        auto st3 = st_idx + (idx3 * each) + 1;
+        auto loaded_key3 = kptr[st3 + j];
+        auto loaded_val3 = vptr[st3 + j];
+        auto wid3 = (lowp3[i]  * (loaded_key3 < piv_key)) +
+                    (highp3[i] * (loaded_key3 >= piv_key));
+        work_kptr[wid3] = loaded_key3;
+        work_vptr[wid3] = loaded_val3;
+        lowp3[i]  += (loaded_key3 < piv_key);
+        highp3[i] -= (loaded_key3 >= piv_key);
+        */
+      }
+    }
+
+#ifdef PARTITION_DEBUG
+    for(size_t i = 0; i < PARTITION_VLEN_EACH; ++i) {
+      auto idx0 = i + PARTITION_VLEN_EACH * 0;
+      std::cout << "[" << idx0 << "] low: " << lowp0[i] << "; high: " << highp0[i] << std::endl;
+      auto idx1 = i + PARTITION_VLEN_EACH * 1;
+      std::cout << "[" << idx1 << "] low: " << lowp1[i] << "; high: " << highp1[i] << std::endl;
+      /*
+      auto idx2 = i + PARTITION_VLEN_EACH * 2;
+      std::cout << "[" << idx2 << "] low: " << lowp2[i] << "; high: " << highp2[i] << std::endl;
+      auto idx3 = i + PARTITION_VLEN_EACH * 3;
+      std::cout << "[" << idx3 << "] low: " << lowp3[i] << "; high: " << highp3[i] << std::endl;
+      */
+    }
+#endif
+
+    // --- for remaining part ---
+    auto rem_size = end_idx - (st_idx + each * PARTITION_VLEN);
+    auto rem_st_idx = st_idx + PARTITION_VLEN * each + 1;
+    auto rem_end_idx = end_idx;
+    auto rem_low = rem_st_idx;
+    auto rem_high = rem_end_idx;
+#ifdef PARTITION_DEBUG
+    if(rem_size) std::cout << "[rem] rem_st_idx: " << rem_st_idx
+                           << "; rem_end_idx: " << rem_end_idx << std::endl;
+#endif
+#pragma _NEC ivdep
+    for(size_t i = 0; i < rem_size; ++i) {
+      auto loaded_key = kptr[rem_st_idx + i];
+      auto loaded_val = vptr[rem_st_idx + i];
+      if (loaded_key < piv_key) {
+        work_kptr[rem_low] = loaded_key;
+        work_vptr[rem_low] = loaded_val;
+        rem_low++;
+      } else {
+        work_kptr[rem_high] = loaded_key;
+        work_vptr[rem_high] = loaded_val;
+        rem_high--;
+      }
+    }
+#ifdef PARTITION_DEBUG
+    if(rem_size) std::cout << "[rem] rem_low: " << rem_low
+                           << "; rem_high: " << rem_high << std::endl;
+#endif
+    comp_t.lap_stop();
+
+    // --- start of merge ---
+    copy_t.lap_start();
+    size_t rstart[PARTITION_VLEN];
+    for(size_t i = 0; i < PARTITION_VLEN_EACH; ++i) {
+      auto idx0 = i + PARTITION_VLEN_EACH * 0;
+      rstart[idx0] = lowp0[i];
+      auto idx1 = i + PARTITION_VLEN_EACH * 1;
+      rstart[idx1] = lowp1[i];
+      /*
+      auto idx2 = i + PARTITION_VLEN_EACH * 2;
+      rstart[idx2] = lowp2[i];
+      auto idx3 = i + PARTITION_VLEN_EACH * 3;
+      rstart[idx3] = lowp3[i];
+      */
+    }
+
+    auto low = st_idx;
+    for(size_t i = 0; i < PARTITION_VLEN; ++i) {
+      auto lstart = st_idx + (i * each) + 1;
+      auto wkptr = work_kptr + lstart;
+      auto wvptr = work_vptr + lstart;
+      auto lsize = rstart[i] - lstart; // low - start
+      for(size_t j = 0; j < lsize; ++j) {
+        kptr[low + j] = wkptr[j];
+        vptr[low + j] = wvptr[j];
+      }
+      low += lsize;
+    }
+
+    auto high = end_idx;
+    for(size_t i = 0; i < PARTITION_VLEN; ++i) {
+      auto wkptr = work_kptr + rstart[i];
+      auto wvptr = work_vptr + rstart[i];
+      auto rsize = (st_idx + (i + 1) * each) - rstart[i] + 1; // end - low + 1
+      for(size_t j = 0; j < rsize; ++j) {
+        kptr[high - j] = wkptr[j];
+        vptr[high - j] = wvptr[j];
+      }
+      high -= rsize;
+    }
+
+    if(rem_size) {
+#ifdef PARTITION_DEBUG
+      std::cout << "[rem] low: " << low << "; high: " << high << std::endl;
+#endif
+      auto wkptr = work_kptr + rem_st_idx;
+      auto wvptr = work_vptr + rem_st_idx;
+      auto size = rem_low - rem_st_idx;
+      for(size_t j = 0; j < size; ++j) {
+        kptr[low + j] = wkptr[j];
+        vptr[low + j] = wvptr[j];
+      }
+      low += size;
+
+      wkptr = work_kptr + rem_low;
+      wvptr = work_vptr + rem_low;
+      size = rem_end_idx - rem_low + 1;
+      for(size_t j = 0; j < size; ++j) {
+        kptr[high - j] = wkptr[j];
+        vptr[high - j] = wvptr[j];
+      }
+      high -= size;
+    }
+    copy_t.lap_stop();
+
+    // low == high, at this point
+#ifdef PARTITION_DEBUG
+    std::cout << "low: " << low << "; high: " << high << std::endl;
+#endif
+    checkAssumption(low == high);
+    kptr[low] = piv_key;
+    vptr[low] = piv_val;
+
+    // adjustment 
+    if (low > kidx) end_idx = low - 1;
+    else if (low < kidx) st_idx = low + 1;
+    else st_idx = end_idx = kidx; // DONE: equal case
+    iter++;
+  } // end of while
+  RLOG(TRACE) << "partition: total iteration:: " << iter << std::endl;
+ 

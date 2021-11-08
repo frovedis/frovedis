@@ -812,33 +812,28 @@ void rowmajor_matrix_local<T>::savebinary(const std::string& dir) {
 }
 
 template <class T, class I>
-void arg_partition(rowmajor_matrix_local<T>& key,
-                   rowmajor_matrix_local<I>& value,
-                   size_t k,
-                   bool allow_multiple = false) {
+void partition(rowmajor_matrix_local<T>& key,
+               rowmajor_matrix_local<I>& value,
+               size_t k) {
   auto nrow = key.local_num_row;
   auto ncol = key.local_num_col;
   if (nrow != value.local_num_row && ncol != value.local_num_col)
-    throw std::runtime_error("partition_sort: different dimension for key and value is encountered!\n");
-  partition_sort(key.val.data(), value.val.data(), nrow, ncol, k, allow_multiple);
+    throw std::runtime_error("partition: different dimension for key and value is encountered!\n");
+  partition(key.val.data(), value.val.data(), nrow, ncol, k);
 }
 
 
 template <class T, class I = int>
 rowmajor_matrix_local<I>
-arg_partition(rowmajor_matrix_local<T>& key,
-              size_t k,
-              bool allow_multiple = false) {
+partition(rowmajor_matrix_local<T>& key, size_t k) {
   auto nrow = key.local_num_row;
   auto ncol = key.local_num_col;
   rowmajor_matrix_local<I> ret(nrow, ncol);
   auto iptr = ret.val.data();
   for(size_t i = 0; i < nrow; ++i) {
-    for(size_t j = 0; j < ncol; ++j) {
-      iptr[i * ncol + j] = j; // storing col-index
-    }
+    for(size_t j = 0; j < ncol; ++j) iptr[i * ncol + j] = j; // storing col-index
   }
-  partition_sort(key.val.data(), iptr, nrow, ncol, k, allow_multiple);
+  partition(key.val.data(), iptr, nrow, ncol, k);
   return ret;
 }
 
@@ -2343,6 +2338,20 @@ logsumexp(rowmajor_matrix_local<T>& mat,
   auto ncol = mat.local_num_col;
   if(nrow > ncol) return rmm_logsumexp_vector_y_axis(mat, axis);
   else            return rmm_logsumexp_vector_x_axis(mat, axis);
+}
+
+template <class T, class I=int>
+rowmajor_matrix<I> 
+partition(rowmajor_matrix<T>& mat, size_t k) {
+  auto nrow = mat.num_row;
+  auto ncol = mat.num_col;
+  rowmajor_matrix<I> ret(mat.data.map(+[](rowmajor_matrix_local<T>& mat, 
+                                          size_t k) {
+                           return partition<T,I>(mat, k); 
+                         }, broadcast(k)));
+  ret.num_row = nrow;
+  ret.num_col = ncol;
+  return ret;
 }
 
 }
