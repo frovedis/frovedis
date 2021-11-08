@@ -1,45 +1,53 @@
-.TH "spectral embedding" "" "" "" ""
+.TH "Spectral Embedding" "" "" "" ""
 .SH NAME
 .PP
-spectral embedding \- Spectral embedding is the accurate method for
-extraction of meaningful patterns in high dimensional data.
+Spectral Embedding \- One of the accurate method for extraction of
+meaningful patterns in high dimensional data.
 It forms an affinity matrix given by the specified function and applies
 spectral decomposition to the corresponding graph laplacian.
 The resulting transformation is given by the value of the normalized
 eigenvectors for each data point.
 .SH SYNOPSIS
 .PP
-class frovedis.mllib.cluster.SpectralEmbedding (n_components=2,
-affinity=\[aq]rbf\[aq], gamma=1.0, random_state=None, eigen_solver=None,
-n_neighbors=None, n_jobs=None, verbose=0, norm_laplacian=True, mode=1,
-drop_first=True)
+class frovedis.mllib.manifold.SpectralEmbedding(n_components=2,
+affinity=\[aq]nearest_neighbors\[aq],
+.PD 0
+.P
+.PD
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ gamma=1.0,
+random_state=None, eigen_solver=None,
+.PD 0
+.P
+.PD
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ n_neighbors=None,
+n_jobs=None, verbose=0,
+.PD 0
+.P
+.PD
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ norm_laplacian=True,
+mode=3, drop_first=True)
 .SS Public Member Functions
 .PP
-fit(X, y=None)
+fit(X, y = None)
 .PD 0
 .P
 .PD
-get_params()
+load(fname, dtype = None)
 .PD 0
 .P
 .PD
-set_params(params)
+save(fname)
 .PD 0
 .P
 .PD
-get_affinity_matrix()
+get_params(deep = True)
 .PD 0
 .P
 .PD
-get_embedding_matrix()
-.PD 0
-.P
-.PD
-load(filename)
-.PD 0
-.P
-.PD
-save(filename)
+set_params(**params)
 .PD 0
 .P
 .PD
@@ -48,109 +56,294 @@ debug_print()
 .P
 .PD
 release()
+.PD 0
+.P
+.PD
+is_fitted()
 .SH DESCRIPTION
 .PP
 Spectral embedding is particularly useful for reducing the
 dimensionality of data that is expected to lie on a low\-dimensional
-manifold contained within a high\-dimensional space, it yields a
-low\-dimensional representation of the data that best preserves the
-structure of the original manifold in the sense that points that are
-close to each other on the original manifold will also be close after
-embedding.
+manifold contained within a high\-dimensional space.
+It yields a low\-dimensional representation of the data that best
+preserves the structure of the original manifold in the sense that
+points that are close to each other on the original manifold will also
+be close after embedding.
 At the same time, the embedding emphasizes clusters in the original
 data.
+.PP
+This module provides a client\-server implementation, where the client
+application is a normal python program.
+Frovedis is almost same as Scikit\-learn manifold module providing
+Spectral Embedding support, but it doesn't have any dependency with
+Scikit\-learn.
+It can be used simply even if the system doesn't have Scikit\-learn
+installed.
+Thus, in this implementation, a python client can interact with a
+frovedis server sending the required python data for training at
+frovedis side.
+Python data is converted into frovedis compatible data internally and
+the python ML call is linked with the respective frovedis ML call to get
+the job done at frovedis server.
+.PP
+Python side calls for Spectral Embedding on the frovedis server.
+Once the training is completed with the input data at the frovedis
+server, it returns an abstract model with a unique model ID to the
+client python program.
+.PP
+When prediction\-like request would be made on the trained model, the
+python program will send the same request to the frovedis server.
+After the request is served at the frovedis server, the output would be
+sent back to the python client.
 .SS Detailed Description
-.SS SpectralEmbedding()
+.SS 1. SpectralEmbedding()
 .PP
 \f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]\f[B]n_components\f[]\f[]: An integer parameter containing the
+number of component count.
+(Default: 2)
+.PD 0
+.P
+.PD
+\f[I]\f[B]affinity\f[]\f[]: A string object parameter which specifies
+how to construct the affinity matrix.
+(Default: \[aq]nearest_neighbors\[aq])
+.PD 0
+.P
+.PD
+‘nearest_neighbors': construct the affinity matrix by computing a graph
+of nearest neighbors.
+.PD 0
+.P
+.PD
+‘precomputed': interpret X as a precomputed affinity matrix, where
+larger values indicate greater similarity between instances.
+Only \[aq]nearest_neighbors\[aq] and \[aq]precomputed\[aq] are
+supported.
+.PD 0
+.P
+.PD
+\f[I]\f[B]gamma\f[]\f[]: The double(float64) parameter required for
+computing nearby relational meaningful eigenvalues.
+(Default: 1.0)
+.PD 0
+.P
+.PD
+\f[I]\f[B]random_state\f[]\f[]: An unused parameter.
+(Default: None)
+.PD 0
+.P
+.PD
+\f[I]\f[B]eigen_solver\f[]\f[]: A string object parameter, specifies the
+eigenvalue decomposition strategy to use.
+(unused)
+.PD 0
+.P
+.PD
+\f[I]\f[B]n_neighbors\f[]\f[]: An string object parameter, specifies the
+number of neighbors to use when constructing the affinity matrix using
+the nearest neighbors method.
+(unused)
+.PD 0
+.P
+.PD
+\f[I]\f[B]n_jobs\f[]\f[]: The number of parallel jobs to run.
+(unused)
+.PD 0
+.P
+.PD
+\f[I]\f[B]verbose\f[]\f[]: An integer parameter specifying the log level
+to use.
+Its value is 0 by default (for INFO mode and not specified explicitly).
+But it can be set to 1 (for DEBUG mode) or 2 (for TRACE mode) for
+getting training time logs from frovedis server.
+.PD 0
+.P
+.PD
+\f[I]\f[B]norm_laplacian\f[]\f[]: A boolean parameter if set to True,
+then computes the normalized Laplacian.
+(Default: True)
+.PD 0
+.P
+.PD
+\f[I]\f[B]mode\f[]\f[]: An integer parameter required to set the eigen
+computation method.
+It can be either 1 (for generic) or 3 (for shift\-invert).
+(Default: 3)
+.PD 0
+.P
+.PD
+\f[I]\f[B]drop_first\f[]\f[]: A boolean parameter if set to True, then
+drops the first eigenvector.
+The first eigenvector of a normalized Laplacian is full of constants,
+thus if it is set to true, then (n_components + 1) eigenvectors are
+computed and will drop the first vector.
+Otherwise, it will calculate ‘n_components' number of eigenvectors.
+(Default: True)
 .PP
-\f[B]n_components:\f[] An integer parameter containing the number of
-component count (Default: 2)
+\f[B]Attribute\f[]
 .PD 0
 .P
 .PD
-\f[B]affinity:\f[] If a string, this may be one of
-\[aq]nearest_neighbors\[aq], \[aq]precomputed\[aq] according to input
-data.(Default: rbf)[Internally skipped]
+\f[I]\f[B]affinity_matrix\f[]\f[]:
 .PD 0
 .P
 .PD
-\f[B]gamma:\f[] The value required for computing nearby relational
-meaningful eigenvalues(Default: 1.0)
+For python native dense input:
 .PD 0
 .P
 .PD
-\f[B]random_state:\f[] A pseudo random number generator used for the
-initialization of the lobpcg eigen vectors decomposition when
-eigen_solver == \[aq]amg\[aq] and by the K\-Means
-initialization.[Internally skipped]
+\- When affinity = ‘precomputed', it returns a numpy array
 .PD 0
 .P
 .PD
-\f[B]eigen_solver:\f[] The eigenvalue decomposition strategy to use.
-AMG requires pyamg to be installed.
-It can be faster on very large, sparse problems, but may also lead to
-instabilities(Default: None)[Internally skipped]
+\- When affinity = ‘nearest_neighbors', it returns a numpy array
 .PD 0
 .P
 .PD
-\f[B]n_neighbors:\f[] Number of neighbors to use when constructing the
-affinity matrix using the nearest neighbors method.[Internally skipped]
+For frovedis\-like dense input:
 .PD 0
 .P
 .PD
-\f[B]n_jobs:\f[] The number of parallel jobs to run.[Internally skipped]
+\- When affinity = ‘precomputed\[aq], returns a FrovedisRowmajorMatrix
 .PD 0
 .P
 .PD
-\f[B]verbose:\f[] An integer object specifying the log level to use.
-(Default: 0)
+\- When affinity = ‘nearest_neighbors', returns a FrovedisRowmajorMatrix
 .PD 0
 .P
 .PD
-\f[B]norm_laplacian:\f[] A boolean parameter if set True, then compute
-normalized Laplacian else not (Default: true)
+For python native sparse input:
 .PD 0
 .P
 .PD
-\f[B]mode:\f[] A parameter required to set the eigen computation method.
-It can be either 1 or 3, 1 for generic and 3 for shift\-invert(Default:
-1)
+\- When affinity = ‘precomputed', it returns a scipy matrix
 .PD 0
 .P
 .PD
-\f[B]drop_first:\f[] A boolean parameter if set True, then drops the
-first eigenvector.
-The first eigenvector of a normalized laplacian is full of constants,
-thus if drop_first is set true, compute (n_comp+1) eigenvectors and will
-drop the first vector.
-Otherwise it will calculate n_comp number of eigenvectors(Default:
-false)
-.PP
+\- When affinity = \[aq]nearest_neighbors\[aq], it returns a numpy array
+.PD 0
+.P
+.PD
+For frovedis\-like sparse input:
+.PD 0
+.P
+.PD
+\- When affinity = ‘nearest_neighbors', it a returns a
+FrovedisRowmajorMatrix
+.PD 0
+.P
+.PD
+\- When affinity = ‘precomputed', it returns a FrovedisRowmajorMatrix
+.PD 0
+.P
+.PD
+In all cases, the output is of float or double (float64) type and of
+shape \f[B](n_samples, n_samples)\f[].
+.PD 0
+.P
+.PD
+\f[I]\f[B]embedding_\f[]\f[]:
+.PD 0
+.P
+.PD
+For python native dense input:
+.PD 0
+.P
+.PD
+\- When affinity = ‘precomputed', it returns a numpy array
+.PD 0
+.P
+.PD
+\- When affinity = ‘nearest_neighbors', it returns a numpy array
+.PD 0
+.P
+.PD
+For frovedis\-like dense input:
+.PD 0
+.P
+.PD
+\- When affinity = ‘precomputed\[aq], returns a FrovedisRowmajorMatrix
+.PD 0
+.P
+.PD
+\- When affinity = ‘nearest_neighbors', returns a FrovedisRowmajorMatrix
+.PD 0
+.P
+.PD
+For python native sparse input:
+.PD 0
+.P
+.PD
+\- When affinity = ‘precomputed', it returns a numpy array
+.PD 0
+.P
+.PD
+\- When affinity = \[aq]nearest_neighbors\[aq], it returns a numpy array
+.PD 0
+.P
+.PD
+For frovedis\-like sparse input:
+.PD 0
+.P
+.PD
+\- When affinity = ‘nearest_neighbors', it a returns a
+FrovedisRowmajorMatrix
+.PD 0
+.P
+.PD
+\- When affinity = ‘precomputed', it returns a FrovedisRowmajorMatrix
+.PD 0
+.P
+.PD
+In all cases, the output is of float or double (float64) type and of
+shape \f[B](n_samples, n_components)\f[].
+.PD 0
+.P
+.PD
+Note: affinity = ‘precomputed' should be used with square matrix input
+only, Otherwise, it throws an exception.
+.PD 0
+.P
+.PD
 \f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It initializes a Spectral Embedding object with the given parameters.
+.PP
+The parameters: \[aq]random_state\[aq], \[aq]eigen_solver\[aq],
+\[aq]n_neighbors\[aq] and \[aq]n_jobs\[aq] are simply kept in to make
+the interface uniform to the Scikit\-learn Spectral Embedding module.
+They are not used anywhere within frovedis implementation.
 .PP
 After getting the affinity matrix by computing distance co\-relation,
 this is used to extract meaningful patterns in high dimensional data.
-After the successful embedding, It returns a FrovedisRowmajorMatrix
-containing the assigned values.
 .PP
 \f[B]Return Value\f[]
-.PP
-This is a non\-blocking call.
-The control will return quickly, right after submitting the training
-request at frovedis server side with a SpectralEmbedding object
-containing a FrovedisRowmajorMatrix with meaningful or co\-related
-patterns obtained from eigenvectors.
-.SS fit(X, y=None)
-.PP
-\f[B]Parameters\f[]
-.PP
-\f[I]X\f[]: A scipy dense matrix or any python array\-like object or an
-instance of FrovedisRowmajorMatrix.
 .PD 0
 .P
 .PD
-\f[I]y\f[]: None (simply ignored in scikit\-learn as well).
+It simply returns “self” reference.
+.SS 2. fit(X, y = None)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]\f[B]X\f[]\f[]: A numpy dense or scipy sparse matrix or any python
+array\-like object or an instance of FrovedisCRSMatrix for sparse data
+and FrovedisRowmajorMatrix for dense data of float or double(float64)
+type.
+It has shape \f[B](n_samples, n_features)\f[].
+.PD 0
+.P
+.PD
+\f[I]\f[B]y\f[]\f[]: None or any python array\-like object (any shape).
+It is simply ignored in frovedis implementation, like in Scikit\-learn.
 .PP
 \f[B]Purpose\f[]
 .PP
@@ -161,82 +354,85 @@ For example,
 .IP
 .nf
 \f[C]
-#\ loading\ sample\ Rowmajor\ data\ file
-mat\ =\ FrovedisRowmajorMatrix().load("./sample")
+#\ loading\ sample\ matrix\ data
+train_mat\ =\ np.loadtxt("spectral_data.txt")
 
-#\ fitting\ input\ matrix\ on\ embedding\ object
-embedding\ =\ SpectralEmbedding(n_components=2,\ gamma=1.0,\ mode=1,\ verbose=2).fit(mat)\ \ \ 
+#\ fitting\ input\ matrix\ on\ Spectral\ Embedding\ object
+from\ frovedis.mllib.manifold\ import\ SpectralEmbedding
+sem\ =\ SpectralEmbedding(n_components\ =\ 2,\ drop_first\ =\ True).fit(train_mat)\ \ 
+\f[]
+.fi
+.PP
+When native python data is provided, it is converted to frovedis\-like
+inputs and sent to frovedis server which consumes some data transfer
+time.
+Pre\-constructed frovedis\-like inputs can be used to speed up the
+training time, especially when same data would be used for multiple
+executions.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ loading\ sample\ matrix\ data
+train_mat\ =\ np.loadtxt("spectral_data.txt")
+
+#\ Since\ "train_mat"\ is\ numpy\ dense\ data,\ we\ have\ created\ FrovedisRowmajorMatrix.
+#\ For\ scipy\ sparse\ data,\ FrovedisCRSMatrix\ should\ be\ used\ instead.\ \ \ 
+from\ frovedis.matrix.dense\ import\ FrovedisRowmajorMatrix
+rmat\ =\ FrovedisRowmajorMatrix(train_mat)
+
+#\ fitting\ input\ matrix\ on\ Spectral\ Embedding\ object
+from\ frovedis.mllib.manifold\ import\ SpectralEmbedding
+sem\ =\ SpectralEmbedding(n_components\ =\ 2,\ drop_first\ =\ True).fit(rmat)\ \ 
 \f[]
 .fi
 .PP
 \f[B]Return Value\f[]
-.PP
-It simply returns "self" reference.
 .PD 0
 .P
 .PD
-Note that the call will return quickly, right after submitting the fit
-request at frovedis server side with a unique model ID for the fit
-request.
-It may be possible that the training is not completed at the frovedis
-server side even though the client scikit\-learn side fit() returns.
-.SS get_params()
-.PP
-\f[B]Purpose\f[]
-.PP
-It returns the values of parameters used for embedding.
-.PP
-\f[B]Return Value\f[]
-.PP
-It simply returns "self" instance.
-.SS set_params()
-.PP
-\f[B]Purpose\f[]
-.PP
-It intialize the values of parameters the required for embedding.
-.PP
-\f[B]Return Value\f[]
-.PP
-It simply returns "self" instance.
-.SS get_affinity_matrix()
-.PP
-\f[B]Purpose\f[]
-.PP
-It returns the output value of the computed affinity matrix.
-.PP
-\f[B]Return Value\f[]
-.PP
-It returns FrovedisRowmajorMatrix instance.
-.SS get_embedding_matrix()
-.PP
-\f[B]Purpose\f[]
-.PP
-It returns the output value of the computed normalized embedding matrix.
-.PP
-\f[B]Return Value\f[]
-.PP
-It returns FrovedisRowmajorMatrix instance.
-.SS load(filename)
+It simply returns "self" reference.
+.SS 3. load(fname, dtype = None)
 .PP
 \f[B]Parameters\f[]
 .PP
-\f[I]filename\f[]: A string object containing the name of the file
+\f[I]\f[B]fname\f[]\f[]: A string object containing the name of the file
 having model information to be loaded.
+.PD 0
+.P
+.PD
+\f[I]\f[B]dtype\f[]\f[]: A data\-type is inferred from the input data.
+Currently, expected input data\-type is either float or double(float64).
+(Default: None)
 .PP
 \f[B]Purpose\f[]
-.PP
-It loads the model from the specified file (having little\-endian binary
+.PD 0
+.P
+.PD
+It loads the model from the specified file(having little\-endian binary
 data).
 .PP
-\f[B]Return Value\f[]
+For example,
+.IP
+.nf
+\f[C]
+#\ loading\ the\ same\ model
+sem.load("./out/MySemModel",dtype=np.float64)
+\f[]
+.fi
 .PP
-It returns nothing.
-.SS save(filename)
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It simply returns "self" instance.
+.SS 4. save(fname)
 .PP
 \f[B]Parameters\f[]
 .PP
-\f[I]filename\f[]: A string object containing the name of the file on
-which the target model is to be saved.
+\f[I]\f[B]fname\f[]\f[]: A string object containing the name of the file
+on which the target model is to be saved.
 .PP
 \f[B]Purpose\f[]
 .PP
@@ -244,20 +440,186 @@ On success, it writes the model information in the specified file as
 little\-endian binary data.
 Otherwise, it throws an exception.
 .PP
-\f[B]Return Value\f[]
+For example,
+.IP
+.nf
+\f[C]
+#\ saving\ the\ model
+sem.save("./out/MySemModel")
+\f[]
+.fi
 .PP
+The MySemModel contains below directory structure:
+.PD 0
+.P
+.PD
+\f[B]MySemModel\f[]
+.PD 0
+.P
+.PD
+|\-\-\-\-\-\-metadata
+.PD 0
+.P
+.PD
+|\-\-\-\-\-\-\f[B]model\f[]
+.PD 0
+.P
+.PD
+\ \ \ \ \ \ \ \ |\-\-\-\-\-\-aff_type
+.PD 0
+.P
+.PD
+\ \ \ \ \ \ \ \ |\-\-\-\-\-\-\f[B]affinity\f[]
+.PD 0
+.P
+.PD
+\ \ \ \ \ \ \ \ |\-\-\-\-\-\-\f[B]embedding\f[]
+.PP
+\[aq]metadata\[aq] represents the detail about n_components, model_kind
+and datatype of training vector.
+Here, the \f[B]model\f[] directory contains information about type of
+affinity matrix, affinity matrix and embedding matrix.
+.PP
+If the directory already exists with the same name then it will raise an
+exception.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
 It returns nothing.
-.SS debug_print()
+.SS 5. get_params(deep = True)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]\f[B]deep\f[]\f[]: A boolean parameter, used to get parameters and
+their values for an estimator.
+If True, will return the parameters for an estimator and contained
+subobjects that are estimators.
+(Default: True)
 .PP
 \f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+This method belongs to the BaseEstimator class inherited by Spectral
+Embedding.
+It is used to get parameters and their values of Spectral Embedding
+class.
 .PP
-It shows the target model information on the server side user terminal.
-It is mainly used for debugging purpose.
+For example,
+.IP
+.nf
+\f[C]
+\ \ print(sem.get_params())
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+\ {\[aq]affinity\[aq]:\ \[aq]nearest_neighbors\[aq],\ \[aq]drop_first\[aq]:\ True,\ \[aq]eigen_solver\[aq]:\ None,\ \[aq]gamma\[aq]:\ 1.0,\ \[aq]mode\[aq]:\ 3,\ 
+\ \[aq]n_components\[aq]:\ 2,\ \[aq]n_jobs\[aq]:\ None,\ \[aq]n_neighbors\[aq]:\ None,\ \[aq]norm_laplacian\[aq]:\ True,\ \[aq]random_state\[aq]:\ None,\ 
+\ \[aq]verbose\[aq]:\ 0}
+\f[]
+.fi
 .PP
 \f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+A dictionary of parameter names mapped to their values.
+.SS 6. set_params(**params)
 .PP
+\f[B]Parameters\f[]
+.PP
+\f[I]\f[B]params\f[]\f[]: All the keyword arguments are passed this
+function as dictionary.
+This dictionary contains parameters of an estimator with its given
+values to set.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+This method belongs to the BaseEstimator class inherited by Spectral
+Embedding, used to set parameter values.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+print("get\ parameters\ before\ setting:",\ sem.get_params())
+#\ User\ just\ needs\ to\ provide\ the\ arguments\ and\ internally\ it\ will\ create\ a\ 
+dictionary\ over\ the\ arguments\ given\ by\ user
+sem.set_params(n_components\ =\ 3,\ drop_first\ =\ False)
+print("get\ parameters\ after\ setting:",\ sem.get_params())
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+\ get\ parameters\ before\ setting:\ {\[aq]affinity\[aq]:\ \[aq]nearest_neighbors\[aq],\ \[aq]drop_first\[aq]:\ True,\ 
+\ \[aq]eigen_solver\[aq]:\ None,\ \[aq]gamma\[aq]:\ 1.0,\ \[aq]mode\[aq]:\ 3,\ \[aq]n_components\[aq]:\ 2,\ \[aq]n_jobs\[aq]:\ None,\ 
+\ \[aq]n_neighbors\[aq]:\ None,\ \[aq]norm_laplacian\[aq]:\ True,\ \[aq]random_state\[aq]:\ None,\ \[aq]verbose\[aq]:\ 0}
+\ get\ parameters\ after\ setting:\ {\[aq]affinity\[aq]:\ \[aq]nearest_neighbors\[aq],\ \[aq]drop_first\[aq]:\ False,\ 
+\ \[aq]eigen_solver\[aq]:\ None,\ \[aq]gamma\[aq]:\ 1.0,\ \[aq]mode\[aq]:\ 3,\ \[aq]n_components\[aq]:\ 3,\ \[aq]n_jobs\[aq]:\ None,\ 
+\ \[aq]n_neighbors\[aq]:\ None,\ \[aq]norm_laplacian\[aq]:\ True,\ random_state\[aq]:\ None,\ \[aq]verbose\[aq]:\ 0}\ \ 
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It simply returns "self" reference.
+.SS 7. debug_print()
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It shows the target model information (affinity and embed matrix) on the
+server side user terminal.
+It is mainly used for debugging purpose.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+sem.debug_print()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+affinity\ matrix:
+num_row\ =\ 5,\ num_col\ =\ 5
+node\ 0
+node\ =\ 0,\ local_num_row\ =\ 5,\ local_num_col\ =\ 5,\ val\ =\ 1\ 0.970446\ 6.2893e\-104\ 2.92712e\-106\ 1.28299e\-108\ 
+0.970446\ 1\ 1.27264e\-101\ 6.2893e\-104\ 2.92712e\-106\ 6.2893e\-104\ 1.27264e\-101\ 1\ 0.970446\ 0.88692\ 
+2.92712e\-106\ 6.2893e\-104\ 0.970446\ 1\ 0.970446\ 1.28299e\-108\ 2.92712e\-106\ 0.88692\ 0.970446\ 1
+embed\ matrix:
+num_row\ =\ 5,\ num_col\ =\ 2
+node\ 0
+node\ =\ 0,\ local_num_row\ =\ 5,\ local_num_col\ =\ 2,\ val\ =\ \-0.628988\ \-0.345834\ \-0.628988\ \-0.345834\ \-0.202594\ 
+0.368471\ \-0.202594\ 0.368471\ \-0.202594\ 0.368471
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
 It returns nothing.
-.SS release()
+.SS 8. release()
 .PP
 \f[B]Purpose\f[]
 .PD 0
@@ -265,8 +627,38 @@ It returns nothing.
 .PD
 It can be used to release the in\-memory model at frovedis server.
 .PP
+For example,
+.IP
+.nf
+\f[C]
+sem.release()
+\f[]
+.fi
+.PP
+This will reset the after\-fit populated attributes to None, along with
+releasing server side memory.
+.PP
 \f[B]Return Value\f[]
 .PD 0
 .P
 .PD
 It returns nothing.
+.SS 9. is_fitted()
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It can be used to confirm if the model is already fitted or not.
+In case, affinity_matrix is used before training the model, then it can
+prompt the user to train the clustering model first.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns ‘True', if the model is already fitted otherwise, it returns
+‘False'.
+.SS SEE ALSO
+.PP
+rowmajor_matrix, crs_matrix
