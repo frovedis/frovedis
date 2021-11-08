@@ -29,6 +29,8 @@ fit(X, y, sample_weight = None)
 predict(X)  
 predict_proba(X)  
 score(X, y, sample_weight = None)  
+get_params(deep = True)  
+set_params(\*\*params)  
 load(fname, dtype = None)  
 save(fname)  
 debug_print()   
@@ -148,15 +150,15 @@ reducing communication overhead across participating processes. (Default: False)
 __Attributes__  
 **_coef\__**: It is a python ndarray(float or double(float64) values depending 
 on input matrix data type) of coefficient of the features in the decision function.
-It has shape (1, n_features) when the given problem is "binary" and (n_classes, n_features) 
+It has shape **(1, n_features)** when the given problem is "binary" and (n_classes, n_features) 
 when it is a "multinomial" problem.  
 **_intercept\_(bias)_**: It is a python ndarray(float or double(float64) values 
 depending on input matrix data type) If fit_intercept is set to False, the intercept
-is set to zero. It has shape (1,) when the given problem is "binary" and (n_classes) 
+is set to zero. It has shape **(1,)** when the given problem is "binary" and (n_classes) 
 when its "multinomial" problem.  
 **_classes\__**: It is a python ndarray(any type) of unique labels given to the classifier
-during training. It has shape (n_classes,).  
-**_n\_iter\__**: It is a python ndarray of shape(1,) and has integer data. It is used to
+during training. It has shape **(n_classes,)**.  
+**_n\_iter\__**: It is a python ndarray of shape **(1,)** and has integer data. It is used to
 get the actual iteration point at which the problem is converged.  
 
 __Purpose__    
@@ -252,10 +254,10 @@ Output
     [0 0 0 ... 0 0 1]
 
 __Return Value__  
-It returns a numpy array of float or double(float64) type and of shape (n_samples,) 
-containing the predicted outputs. 
+It returns a numpy array of float or double(float64) type and of shape **(n_samples,)** 
+containing the predicted outputs.  
 
-### 4. predict_proba(X)
+### 4. predict_proba(X)  
 __Parameters__   
 **_X_**: A numpy dense or scipy sparse matrix or any python array-like object or an instance 
 of FrovedisCRSMatrix for sparse data and FrovedisRowmajorMatrix for dense data.   
@@ -263,7 +265,7 @@ of FrovedisCRSMatrix for sparse data and FrovedisRowmajorMatrix for dense data.
 __Purpose__    
 It accepts the test feature matrix (X) in order to make prediction on the 
 trained model at frovedis server. But unlike predict(), it returns the softmax probability 
-matrix of shape (n_samples, n_classes) containing the probability of each class in each sample.  
+matrix of shape **(n_samples, n_classes)** containing the probability of each class in each sample.  
 
 For example,   
 
@@ -302,7 +304,7 @@ Output
      [6.14030540e-03 9.93859695e-01]]
 
 __Return Value__  
-It returns a numpy array of float or double(float64) type and of shape (n_samples, n_classes) 
+It returns a numpy array of float or double(float64) type and of shape **(n_samples, n_classes)** 
 containing the prediction probability values. 
 
 ### 5. score(X, y, sample_weight = None)
@@ -330,7 +332,65 @@ Output
 __Return Value__  
 It returns an accuracy score of float type.   
 
-### 6. load(fname, dtype = None)
+### 6. get_params(deep = True)  
+__Parameters__   
+_**deep**_: A boolean parameter, used to get parameters and their values for an estimator. If True, 
+it will return the parameters for an estimator and contained subobjects that are estimators. (Default: True)  
+
+__Purpose__    
+This method belongs to the BaseEstimator class inherited by LogisticRegression. It is used to get parameters 
+and their values of LogisticRegression class.  
+
+For example, 
+ 
+      print(lr.get_params())
+
+Output  
+
+    {'C': 100.0, 'class_weight': None, 'dual': False, 'fit_intercept': True, 'intercept_scaling': 1,
+    'l1_ratio': None, 'lr_rate': 0.01, 'max_iter': 1000, 'multi_class': 'auto', 'n_jobs': 1,
+    'penalty': 'l2', 'random_state': None, 'solver': 'sag', 'tol': 0.0001, 'use_shrink': False,
+    'verbose': 0, 'warm_start': False}
+
+__Return Value__  
+A dictionary of parameter names mapped to their values.  
+
+### 7. set_params(\*\*params)  
+__Parameters__  
+_**\*\*params**_: All the keyword arguments are passed this function as dictionary. This dictionary 
+contains parameters of an estimator with its given values to set.  
+
+__Purpose__  
+This method belongs to the BaseEstimator class inherited by LogisticRegression, used to set 
+parameter values.  
+
+For example,   
+
+    print("get parameters before setting:") 
+    print(lr.get_params())
+    # User just needs to provide the arguments and internally it will create a 
+    dictionary over the arguments given by user
+    lr.set_params(solver='lbfgs', max_iter = 10000) 
+    print("get parameters after setting:") 
+    print(lr.get_params())
+
+Output  
+     
+    get parameters before setting:
+    {'C': 100.0, 'class_weight': None, 'dual': False, 'fit_intercept': True, 'intercept_scaling': 1,
+    'l1_ratio': None, 'lr_rate': 0.01, 'max_iter': 1000, 'multi_class': 'auto', 'n_jobs': 1,
+    'penalty': 'l2', 'random_state': None, 'solver': 'sag', 'tol': 0.0001, 'use_shrink': False,
+    'verbose': 0, 'warm_start': False}
+    get parameters after setting:
+    {'C': 100.0, 'class_weight': None, 'dual': False, 'fit_intercept': True, 'intercept_scaling': 1,
+    'l1_ratio': None, 'lr_rate': 0.01, 'max_iter': 10000, 'multi_class': 'auto', 'n_jobs': 1,
+    'penalty': 'l2', 'random_state': None, 'solver': 'lbfgs', 'tol': 0.0001, 'use_shrink': False,
+    'verbose': 0, 'warm_start': False}
+    
+__Return Value__  
+It simply returns "self" reference.  
+
+### 8. load(fname, dtype = None)
 __Parameters__   
 **_fname_**: A string object containing the name of the file having model 
 information to be loaded.    
@@ -347,7 +407,7 @@ For example,
 __Return Value__  
 It simply returns "self" instance.   
 
-### 7. save(fname)
+### 9. save(fname)
 __Parameters__   
 **_fname_**: A string object containing the name of the file on which the target 
 model is to be saved.    
@@ -363,10 +423,23 @@ For example,
 
 This will save the logistic regression model on the path '/out/LRModel'.
 
+The 'LRModel' directory has  
+
+**LRModel**  
+|----label_map  
+|----metadata  
+|----**model**  
+\ \ \ \ \ |------model  
+\ \ \ \ \ |------type  
+
+‘label_map’ contains information about labels mapped with their encoded value.  
+The metadata file contains the number of classes, model kind, input datatype used for trained model.  
+Here, the **model** directory contains information about weights, intercept, threshold and thier datatype.  
+
 __Return Value__  
 It returns nothing.
 
-### 8. debug_print()
+### 10. debug_print()
 
 __Purpose__    
 It shows the target model information (weight values, intercept, etc.) on the server side 
@@ -392,7 +465,7 @@ on the server.
 __Return Value__  
 It returns nothing.  
 
-### 9. release()
+### 11. release()
 
 __Purpose__    
 It can be used to release the in-memory model at frovedis server.  
@@ -407,7 +480,7 @@ side memory.
 __Return Value__  
 It returns nothing.  
 
-### 10. is_fitted()
+### 12. is_fitted()
 
 __Purpose__    
 It can be used to confirm if the model is already fitted or not. In case, predict() is used 

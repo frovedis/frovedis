@@ -68,6 +68,14 @@ score(X, y, sample_weight = None)
 .PD 0
 .P
 .PD
+get_params(deep = True)
+.PD 0
+.P
+.PD
+set_params(**params)
+.PD 0
+.P
+.PD
 load(fname, dtype = None)
 .PD 0
 .P
@@ -347,27 +355,27 @@ by reducing communication overhead across participating processes.
 \f[B]\f[I]coef_\f[]\f[]: It is a python ndarray(float or double(float64)
 values depending on input matrix data type) of coefficient of the
 features in the decision function.
-It has shape (1, n_features) when the given problem is "binary" and
-(n_classes, n_features) when it is a "multinomial" problem.
+It has shape \f[B](1, n_features)\f[] when the given problem is "binary"
+and (n_classes, n_features) when it is a "multinomial" problem.
 .PD 0
 .P
 .PD
 \f[B]\f[I]intercept_(bias)\f[]\f[]: It is a python ndarray(float or
 double(float64) values depending on input matrix data type) If
 fit_intercept is set to False, the intercept is set to zero.
-It has shape (1,) when the given problem is "binary" and (n_classes)
-when its "multinomial" problem.
+It has shape \f[B](1,)\f[] when the given problem is "binary" and
+(n_classes) when its "multinomial" problem.
 .PD 0
 .P
 .PD
 \f[B]\f[I]classes_\f[]\f[]: It is a python ndarray(any type) of unique
 labels given to the classifier during training.
-It has shape (n_classes,).
+It has shape \f[B](n_classes,)\f[].
 .PD 0
 .P
 .PD
-\f[B]\f[I]n_iter_\f[]\f[]: It is a python ndarray of shape(1,) and has
-integer data.
+\f[B]\f[I]n_iter_\f[]\f[]: It is a python ndarray of shape \f[B](1,)\f[]
+and has integer data.
 It is used to get the actual iteration point at which the problem is
 converged.
 .PP
@@ -528,7 +536,7 @@ Output
 .P
 .PD
 It returns a numpy array of float or double(float64) type and of shape
-(n_samples,) containing the predicted outputs.
+\f[B](n_samples,)\f[] containing the predicted outputs.
 .SS 4. predict_proba(X)
 .PP
 \f[B]Parameters\f[]
@@ -546,8 +554,8 @@ and FrovedisRowmajorMatrix for dense data.
 It accepts the test feature matrix (X) in order to make prediction on
 the trained model at frovedis server.
 But unlike predict(), it returns the softmax probability matrix of shape
-(n_samples, n_classes) containing the probability of each class in each
-sample.
+\f[B](n_samples, n_classes)\f[] containing the probability of each class
+in each sample.
 .PP
 For example,
 .IP
@@ -606,7 +614,8 @@ Output
 .P
 .PD
 It returns a numpy array of float or double(float64) type and of shape
-(n_samples, n_classes) containing the prediction probability values.
+\f[B](n_samples, n_classes)\f[] containing the prediction probability
+values.
 .SS 5. score(X, y, sample_weight = None)
 .PP
 \f[B]Parameters\f[]
@@ -661,7 +670,106 @@ Output
 .P
 .PD
 It returns an accuracy score of float type.
-.SS 6. load(fname, dtype = None)
+.SS 6. get_params(deep = True)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]\f[B]deep\f[]\f[]: A boolean parameter, used to get parameters and
+their values for an estimator.
+If True, it will return the parameters for an estimator and contained
+subobjects that are estimators.
+(Default: True)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+This method belongs to the BaseEstimator class inherited by
+LogisticRegression.
+It is used to get parameters and their values of LogisticRegression
+class.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+\ \ print(lr.get_params())
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+{\[aq]C\[aq]:\ 100.0,\ \[aq]class_weight\[aq]:\ None,\ \[aq]dual\[aq]:\ False,\ \[aq]fit_intercept\[aq]:\ True,\ \[aq]intercept_scaling\[aq]:\ 1,
+\[aq]l1_ratio\[aq]:\ None,\ \[aq]lr_rate\[aq]:\ 0.01,\ \[aq]max_iter\[aq]:\ 1000,\ \[aq]multi_class\[aq]:\ \[aq]auto\[aq],\ \[aq]n_jobs\[aq]:\ 1,
+\[aq]penalty\[aq]:\ \[aq]l2\[aq],\ \[aq]random_state\[aq]:\ None,\ \[aq]solver\[aq]:\ \[aq]sag\[aq],\ \[aq]tol\[aq]:\ 0.0001,\ \[aq]use_shrink\[aq]:\ False,
+\[aq]verbose\[aq]:\ 0,\ \[aq]warm_start\[aq]:\ False}
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+A dictionary of parameter names mapped to their values.
+.SS 7. set_params(**params)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]\f[B]**params\f[]\f[]: All the keyword arguments are passed this
+function as dictionary.
+This dictionary contains parameters of an estimator with its given
+values to set.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+This method belongs to the BaseEstimator class inherited by
+LogisticRegression, used to set parameter values.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+print("get\ parameters\ before\ setting:")\ 
+print(lr.get_params())
+#\ User\ just\ needs\ to\ provide\ the\ arguments\ and\ internally\ it\ will\ create\ a\ 
+dictionary\ over\ the\ arguments\ given\ by\ user
+lr.set_params(solver=\[aq]lbfgs\[aq],\ max_iter\ =\ 10000)\ 
+print("get\ parameters\ after\ setting:")\ 
+print(lr.get_params())
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+get\ parameters\ before\ setting:
+{\[aq]C\[aq]:\ 100.0,\ \[aq]class_weight\[aq]:\ None,\ \[aq]dual\[aq]:\ False,\ \[aq]fit_intercept\[aq]:\ True,\ \[aq]intercept_scaling\[aq]:\ 1,
+\[aq]l1_ratio\[aq]:\ None,\ \[aq]lr_rate\[aq]:\ 0.01,\ \[aq]max_iter\[aq]:\ 1000,\ \[aq]multi_class\[aq]:\ \[aq]auto\[aq],\ \[aq]n_jobs\[aq]:\ 1,
+\[aq]penalty\[aq]:\ \[aq]l2\[aq],\ \[aq]random_state\[aq]:\ None,\ \[aq]solver\[aq]:\ \[aq]sag\[aq],\ \[aq]tol\[aq]:\ 0.0001,\ \[aq]use_shrink\[aq]:\ False,
+\[aq]verbose\[aq]:\ 0,\ \[aq]warm_start\[aq]:\ False}
+get\ parameters\ after\ setting:
+{\[aq]C\[aq]:\ 100.0,\ \[aq]class_weight\[aq]:\ None,\ \[aq]dual\[aq]:\ False,\ \[aq]fit_intercept\[aq]:\ True,\ \[aq]intercept_scaling\[aq]:\ 1,
+\[aq]l1_ratio\[aq]:\ None,\ \[aq]lr_rate\[aq]:\ 0.01,\ \[aq]max_iter\[aq]:\ 10000,\ \[aq]multi_class\[aq]:\ \[aq]auto\[aq],\ \[aq]n_jobs\[aq]:\ 1,
+\[aq]penalty\[aq]:\ \[aq]l2\[aq],\ \[aq]random_state\[aq]:\ None,\ \[aq]solver\[aq]:\ \[aq]lbfgs\[aq],\ \[aq]tol\[aq]:\ 0.0001,\ \[aq]use_shrink\[aq]:\ False,
+\[aq]verbose\[aq]:\ 0,\ \[aq]warm_start\[aq]:\ False}
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It simply returns "self" reference.
+.SS 8. load(fname, dtype = None)
 .PP
 \f[B]Parameters\f[]
 .PD 0
@@ -696,7 +804,7 @@ lr.load("./out/LRModel")
 .P
 .PD
 It simply returns "self" instance.
-.SS 7. save(fname)
+.SS 9. save(fname)
 .PP
 \f[B]Parameters\f[]
 .PD 0
@@ -725,12 +833,49 @@ lr.save("./out/LRModel")\ \ \ \
 This will save the logistic regression model on the path
 \[aq]/out/LRModel\[aq].
 .PP
+The \[aq]LRModel\[aq] directory has
+.PP
+\f[B]LRModel\f[]
+.PD 0
+.P
+.PD
+|\-\-\-\-label_map
+.PD 0
+.P
+.PD
+|\-\-\-\-metadata
+.PD 0
+.P
+.PD
+|\-\-\-\-\f[B]model\f[]
+.PD 0
+.P
+.PD
+\ \ \ \ \ |\-\-\-\-\-\-model
+.PD 0
+.P
+.PD
+\ \ \ \ \ |\-\-\-\-\-\-type
+.PP
+‘label_map' contains information about labels mapped with their encoded
+value.
+.PD 0
+.P
+.PD
+The metadata file contains the number of classes, model kind, input
+datatype used for trained model.
+.PD 0
+.P
+.PD
+Here, the \f[B]model\f[] directory contains information about weights,
+intercept, threshold and thier datatype.
+.PP
 \f[B]Return Value\f[]
 .PD 0
 .P
 .PD
 It returns nothing.
-.SS 8. debug_print()
+.SS 10. debug_print()
 .PP
 \f[B]Purpose\f[]
 .PD 0
@@ -770,7 +915,7 @@ values on the trained model which is currently present on the server.
 .P
 .PD
 It returns nothing.
-.SS 9. release()
+.SS 11. release()
 .PP
 \f[B]Purpose\f[]
 .PD 0
@@ -794,7 +939,7 @@ releasing server side memory.
 .P
 .PD
 It returns nothing.
-.SS 10. is_fitted()
+.SS 12. is_fitted()
 .PP
 \f[B]Purpose\f[]
 .PD 0
