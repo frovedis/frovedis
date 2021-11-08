@@ -188,17 +188,17 @@ class FrovedisDenseMatrix(object):
 
     # developer's API
     def set_none(self):
-        """ this api sets the metadata to None. it does not 
+        """ this api sets the metadata to None. it does not
             release the actual matrix
-            in server side. this API should 
+            in server side. this API should
             call when actual matrix is moved to
-            another matrix, e.g., a FrovedisDenseMatrix is moved as 
+            another matrix, e.g., a FrovedisDenseMatrix is moved as
             FrovedisBlockclicMatrix and in order to avoid memory release of
             source FrovedisDenseMatrix, its metadata can be set to None """
         self.__fdata = None
         self.__num_row = None
         self.__num_col = None
- 
+
     def release(self):
         """
         resets after-fit populated attributes to None
@@ -264,8 +264,8 @@ class FrovedisDenseMatrix(object):
 
     @check_association
     def to_numpy_matrix_inplace(self, mat):
-        """ non-retuning function to overwrite input numpy matrix with 
-            converted matrix. self.size needs to be matched with mat.size 
+        """ non-retuning function to overwrite input numpy matrix with
+            converted matrix. self.size needs to be matched with mat.size
             self.__dtype needs to be matched with mat.dtype """
         if type(mat).__name__ != 'matrix':
             raise TypeError(\
@@ -274,8 +274,8 @@ class FrovedisDenseMatrix(object):
 
     @check_association
     def to_numpy_array_inplace(self, arr):
-        """ non-retuning function to overwrite input numpy array with 
-            converted matrix. self.size needs to be matched with mat.size 
+        """ non-retuning function to overwrite input numpy array with
+            converted matrix. self.size needs to be matched with mat.size
             self.__dtype needs to be matched with mat.dtype """
         if type(arr).__name__ != 'ndarray':
             raise TypeError(
@@ -283,11 +283,11 @@ class FrovedisDenseMatrix(object):
         self.__to_numpy_data_inplace(arr, is_ndarray=True)
 
     def __to_numpy_data_inplace(self, data, is_ndarray=True):
-        """ non-retuning function to overwrite input numpy matrix/ndarray with 
-            converted matrix. self.size needs to be matched with data.size 
+        """ non-retuning function to overwrite input numpy matrix/ndarray with
+            converted matrix. self.size needs to be matched with data.size
             self.__dtype needs to be matched with data.dtype """
         if self.__fdata is not None:
-            data = np.asmatrix(data) # doesn't copy. it is needed 
+            data = np.asmatrix(data) # doesn't copy. it is needed
                                      #to get flattened array A1
             if data.size != self.size:
                 raise ValueError(\
@@ -457,7 +457,7 @@ class FrovedisDenseMatrix(object):
         """size getter"""
         return self.numRows() * self.numCols()
 
-    @size.setter    
+    @size.setter
     def size(self, s):
         """size setter"""
         raise AttributeError(\
@@ -538,7 +538,7 @@ class FrovedisBlockcyclicMatrix(FrovedisDenseMatrix):
             raise TypeError("add: input matrix types are not same!")
         # geadd performs B = al*A + be*B, thus tmp = B and tmp = A + tmp
         (host, port) = FrovedisServer.getServerInstance()
-        rpclib.pgeadd(host, port, self.get(), tmp.get(), 
+        rpclib.pgeadd(host, port, self.get(), tmp.get(),
                       False, 1.0, 1.0, self.get_dtype())
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
@@ -553,7 +553,7 @@ class FrovedisBlockcyclicMatrix(FrovedisDenseMatrix):
             raise TypeError("sub: input matrix types are not same!")
         # geadd performs B = al*A + be*B, thus tmp = B and tmp = A - tmp
         (host, port) = FrovedisServer.getServerInstance()
-        rpclib.pgeadd(host, port, self.get(), tmp.get(), 
+        rpclib.pgeadd(host, port, self.get(), tmp.get(),
                       False, 1.0, -1.0, self.get_dtype())
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
@@ -582,9 +582,9 @@ class FrovedisBlockcyclicMatrix(FrovedisDenseMatrix):
         """inv"""
         ret = FrovedisBlockcyclicMatrix(mat=self)  # ret = cls
         (host, port) = FrovedisServer.getServerInstance()
-        mat_rf = GetrfResult(rpclib.pgetrf(host, port, ret.get(), 
+        mat_rf = GetrfResult(rpclib.pgetrf(host, port, ret.get(),
                                            ret.get_dtype()))
-        rpclib.pgetri(host, port, ret.get(), mat_rf.ipiv(), 
+        rpclib.pgetri(host, port, ret.get(), mat_rf.ipiv(),
                       ret.get_dtype())  # ret = inv(ret)
         excpt = rpclib.check_server_exception()
         if excpt["status"]:

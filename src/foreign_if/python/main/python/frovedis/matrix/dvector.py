@@ -33,7 +33,7 @@ class FrovedisDvector:
         if len(shape) == 1:
             inp = np.ravel(inp)
         elif len(shape) == 2 and shape[1] == 1: # column-vector
-            import warnings 
+            import warnings
             warnings.warn("A column-vector y was passed when a 1d array was"
                           " expected. Please change the shape of y to "
                           "(n_samples, ), for example using ravel().",
@@ -41,8 +41,8 @@ class FrovedisDvector:
             inp = np.ravel(inp)
         else:
             raise ValueError("bad input shape {0}".format(shape))
-        
-        if dtype is not None: 
+
+        if dtype is not None:
             self.__dtype = dtype
         if self.__dtype is not None:
             vec = np.asarray(inp, dtype=self.__dtype)
@@ -106,7 +106,7 @@ class FrovedisDvector:
         return self
 
     def reset(self):
-        """ 
+        """
         to reset the instance members. It expects user program will explicitly
         free dvector memory from server heap
         """
@@ -260,7 +260,7 @@ class FrovedisDvector:
     @check_association
     def to_numpy_array(self):
         sz = self.size()
-        dt = self.get_dtype() 
+        dt = self.get_dtype()
         if dt == DTYPE.INT or dt == DTYPE.BOOL:
             ret = np.empty(sz, dtype=np.int32)
         elif dt == DTYPE.LONG:
@@ -272,7 +272,7 @@ class FrovedisDvector:
         elif dt == DTYPE.DOUBLE:
             ret = np.empty(sz, dtype=np.float64)
         elif dt == DTYPE.STRING:
-            pass # handles later 
+            pass # handles later
         else:
             raise TypeError(\
             "Report Bug: Unsupported dtype for dvector " \

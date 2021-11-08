@@ -12,7 +12,7 @@ from ..exrpc.server import FrovedisServer, set_association, \
 from ..matrix.dtype import DTYPE, get_string_array_pointer
 from .frovedisColumn import FrovedisColumn
 from .df import DataFrame
-from .dfutil import check_string_or_array_like 
+from .dfutil import check_string_or_array_like
 
 class FrovedisGroupedDataframe(object):
     """
@@ -100,7 +100,7 @@ class FrovedisGroupedDataframe(object):
         if excpt["status"]:
             raise RuntimeError(excpt["info"])
         ret = DataFrame().load_dummy(fdata, cols, types)
-        if (len(self.__cols) > 1): #TODO: support multi-level index
+        if len(self.__cols) > 1: #TODO: support multi-level index
             ret.add_index("index") # not similar to pandas behavior though...
         else:
             ret.set_index(keys=self.__cols, drop=True, inplace=True)
@@ -120,43 +120,48 @@ class FrovedisGroupedDataframe(object):
         if self.__fdata is not None:
             if isinstance(func, str):
                 return self.__agg_with_list([func])
-            elif isinstance(func, list):
+            if isinstance(func, list):
                 return self.__agg_with_list(func)
-            elif isinstance(func, dict):
+            if isinstance(func, dict):
                 return self.__agg_with_dict(func)
-            else:
-                raise TypeError("Unsupported input type for aggregation")
-        else:
-            raise ValueError("Operation on invalid frovedis grouped dataframe!")
-    
+            raise TypeError("Unsupported input type for aggregation")
+        raise ValueError("Operation on invalid frovedis grouped dataframe!")
+
     def min(self, numeric_only=True, min_count=-1):
-        if numeric_only == False:
+        """ min """
+        if numeric_only is False:
             raise ValueError("min: Currently supported only for numeric columns!")
         return self.agg("min")
 
     def max(self, numeric_only=True, min_count=-1):
-        if numeric_only == False:
+        """ max """
+        if numeric_only is False:
             raise ValueError("max: Currently supported only for numeric columns!")
         return self.agg("max")
 
     def mean(self, numeric_only=True):
-        if numeric_only == False:
+        """ mean """
+        if numeric_only is False:
             raise ValueError("mean: Currently supported only for numeric columns!")
         return self.agg("mean")
 
     def sum(self, numeric_only=True, min_count=0):
-        if numeric_only == False:
+        """ sum """
+        if numeric_only is False:
             raise ValueError("sum: Currently supported only for numeric columns!")
         return self.agg("sum")
 
     def count(self, numeric_only=True):
-        return self.agg("count")    
+        """ count """
+        return self.agg("count")
 
     def size(self, numeric_only=True):
+        """ size """
         return self.agg("size")
 
     def var(self, ddof=1.0):
-        if not (isinstance(ddof, int) or isinstance(ddof, float)):
+        """ var """
+        if not isinstance(ddof, (float, int)):
             raise ValueError("var: parameter 'ddof' must be a number!")
 
         if ddof == 1.0:
@@ -164,7 +169,7 @@ class FrovedisGroupedDataframe(object):
 
         agg_col = self.__get_numeric_columns()
         agg_col_as = [ "var_" + e for e in agg_col ]
-        sz1 = len(self.__cols) 
+        sz1 = len(self.__cols)
         sz2 = len(agg_col)
         agg_func = "var"
         g_cols_arr = get_string_array_pointer(self.__cols)
@@ -184,14 +189,15 @@ class FrovedisGroupedDataframe(object):
         names = dummy_df["names"]
         types = dummy_df["types"]
         ret = DataFrame().load_dummy(dummy_df["dfptr"], names, types)
-        if (len(self.__cols) > 1):
+        if len(self.__cols) > 1:
             ret.add_index("index")
         else:
             ret.set_index(keys=self.__cols, drop=True, inplace=True)
         return ret
 
     def sem(self, ddof=1.0):
-        if not (isinstance(ddof, int) or isinstance(ddof, float)):
+        """ sem """
+        if not isinstance(ddof, (float,int)):
             raise ValueError("sem: parameter 'ddof' must be a number!")
 
         if ddof == 1.0:
@@ -199,8 +205,8 @@ class FrovedisGroupedDataframe(object):
 
         agg_col = self.__get_numeric_columns()
         agg_col_as = [ "sem_" + e for e in agg_col ]
-        sz1 = len(self.__cols) 
-        sz2 = len(agg_col) 
+        sz1 = len(self.__cols)
+        sz2 = len(agg_col)
         agg_func = "sem"
         g_cols_arr = get_string_array_pointer(self.__cols)
         a_col_arr = get_string_array_pointer(agg_col)
@@ -220,7 +226,7 @@ class FrovedisGroupedDataframe(object):
         names = dummy_df["names"]
         types = dummy_df["types"]
         ret = DataFrame().load_dummy(dummy_df["dfptr"], names, types)
-        if (len(self.__cols) > 1):
+        if len(self.__cols) > 1:
             ret.add_index("index")
         else:
             ret.set_index(keys=self.__cols, drop=True, inplace=True)
@@ -291,8 +297,8 @@ class FrovedisGroupedDataframe(object):
         #print(agg_col)
         #print(agg_col_as)
         #print(agg_col_as_types)
-        sz1 = len(self.__cols) 
-        sz2 = len(agg_func) 
+        sz1 = len(self.__cols)
+        sz2 = len(agg_func)
         g_cols_arr = get_string_array_pointer(self.__cols)
         a_func_arr = get_string_array_pointer(agg_func)
         a_col_arr = get_string_array_pointer(agg_col)
@@ -310,7 +316,7 @@ class FrovedisGroupedDataframe(object):
         cols = self.__cols + agg_col_as
         types = self.__types + agg_col_as_types
         ret = DataFrame().load_dummy(fdata, cols, types)
-        if (len(self.__cols) > 1): #TODO: support multi-level index
+        if len(self.__cols) > 1: #TODO: support multi-level index
             ret.add_index("index")
         else:
             ret.set_index(keys=self.__cols, drop=True, inplace=True)

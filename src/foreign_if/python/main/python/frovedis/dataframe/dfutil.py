@@ -20,8 +20,8 @@ def infer_column_type_from_first_notna(df, col, is_index=False):
             raise TypeError(\
             "pandas df.get_loc() return type could not be understood!")
         dtype = type(col.values[valid_int_idx]).__name__
-    return dtype 
-     
+    return dtype
+
 def get_string_typename(numpy_type):
     """
     return frovedis types from numpy types
@@ -54,13 +54,13 @@ def get_null_value(dtype):
     if dtype not in null_val:
         raise TypeError("data type '{0}'' not understood\n".format(dtype))
     return null_val[dtype]
-    
+
 def union_lists(data):
     """ performs union on list of lists """
     return list(set().union(*data))
 
 def infer_dtype(dfs, colname):
-    """ 
+    """
     infers the dtype of the resultant column when
     the given column, 'colname' of input dataframes, 'dfs'
     are appended together
@@ -77,13 +77,13 @@ def check_if_consistent(dfs, cast_info):
     index_names = np.asarray([df.index.name if df.has_index() \
                           else None for df in dfs])
     is_index_names_consistent = np.all(index_names == index_names[0])
-        
+
     index_dtypes = np.asarray([df.index.dtype if df.has_index() \
                     else None for df in dfs])
     is_index_dtypes_consistent = np.all(index_dtypes == index_dtypes[0])
-       
+
     is_column_names_consistent = True
-    is_column_dtypes_consistent = True 
+    is_column_dtypes_consistent = True
     for c, t in cast_info.items():
         if is_column_names_consistent or is_column_dtypes_consistent:
             for df in dfs:
@@ -103,7 +103,7 @@ def add_null_column_and_type_cast(dfs, is_frov_df, cast_info):
     is missing and performs typecasting in case requested type
     in 'cast_info' is different than existing type
     'is_frov_df' should be a list of size = len(dfs) of boolean type
-    indicating which all dataframes in 'dfs' are actually user constructed 
+    indicating which all dataframes in 'dfs' are actually user constructed
     frovedis DataFrame object, [used internally by DataFrame.append()]
     """
     if len(dfs) < 1:
@@ -152,26 +152,26 @@ def add_null_column_and_type_cast(dfs, is_frov_df, cast_info):
         #print(index_col + ":" + str(inferred_index_type))
 
     # handling of type-casting (if type-mismatch either in index or in column)
-    if not (chk_list[1] and chk_list[3]): 
+    if not (chk_list[1] and chk_list[3]):
         for i in range(0, len(ret)):
             df = ret[i]
             if not chk_list[1] and \
                df.get_dtype(index_col) != cast_info[index_col]:
                 # this covers index as well as other mismatched columns
-                ret[i] = df.astype(cast_info) 
+                ret[i] = df.astype(cast_info)
             else:
                 for col in cast_info.keys():
-                    if df.get_dtype(col) != cast_info[col]: 
+                    if df.get_dtype(col) != cast_info[col]:
                         ret[i] = df.astype(cast_info)
                         break
-    
-    ''' 
-    for df in ret: 
+
+    '''
+    for df in ret:
         print(df)
         print(df.dtypes)
         print(df.index.dtype)
         print("---------------")
-    ''' 
+    '''
     return ret
 
 def get_python_scalar_type(val):
@@ -180,12 +180,12 @@ def get_python_scalar_type(val):
         raise ValueError("input must be a scalar value!")
     dt = type(val).__name__
     if dt == "int": # all integer numbers in python3 is typed as 'int'
-        dt = "long" 
+        dt = "long"
     elif dt == "float": # all floating point numbers in pythin3 is typed as 'float'
-        dt = "double" 
+        dt = "double"
     return dt
 
-def check_string_or_array_like(by, func): 
+def check_string_or_array_like(by, func):
     """ checks if the given input 'by' is a string or array-like """
     if isinstance(by, str):
         ret_by = [by]
@@ -194,7 +194,7 @@ def check_string_or_array_like(by, func):
         if len(unq) == len(by): # no duplicate found
             ret_by = list(by)
         else:
-            sorted_idx = np.sort(idx) 
+            sorted_idx = np.sort(idx)
             ret_by = [by[i] for i in sorted_idx]
     else:
         raise TypeError(func + ": expected: string or array-like; "\
@@ -204,7 +204,7 @@ def check_string_or_array_like(by, func):
 
 
 def check_stat_error(**kwargs):
-    """ 
+    """
     checks the given parameters for the statistical functions
     like sum, mean, var , ddof etc.
     Returns list containing(if present in input kwargs : axis, skipna, ddof
@@ -214,7 +214,7 @@ def check_stat_error(**kwargs):
         level_ = kwargs["level_"]
         if level_ is not None:
             raise ValueError("'level' parameter is not cutrrently supported!\n")
-    
+
     if "axis_" in kwargs.keys():
         axis_ = kwargs["axis_"]
         if axis_ not in [None, 0, 1, "index", "columns"]:

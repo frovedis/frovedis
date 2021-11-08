@@ -34,7 +34,7 @@ def encode_array_using_df(lbl, src=None, target= None, need_logic = False):
         key, val = src, target
     right = pd.DataFrame({'label': key, 'enc_label': val})
     # default inner-join seems not to preserve order of left keys
-    #tmp = left.merge(right, on='label') 
+    #tmp = left.merge(right, on='label')
     tmp = left.merge(right, on='label', how='left')
     if need_logic:
         return tmp.enc_label.values, dict(zip(val, key)) # returns decoding logic
@@ -61,7 +61,7 @@ class FrovedisLabeledPoint:
     """A python container for frovedis side data for supervised
     ML algorithms"""
 
-    def __init__(self, mat, lbl, caller="", encode_label=False, 
+    def __init__(self, mat, lbl, caller="", encode_label=False,
                  binary_encoder=[-1, 1],
                  dense_kind='colmajor',
                  densify=False):
@@ -146,7 +146,7 @@ class FrovedisLabeledPoint:
                 self.X = FrovedisCRSMatrix.asCRS(mat, dtype=target_dtype)
             else:
                 self.X = mat # already created crs matrix
-            # for algorithms which don't support sparse data, 
+            # for algorithms which don't support sparse data,
             # please set densify = true
             if densify:
                 if dense_kind == 'rowmajor':
@@ -277,8 +277,8 @@ class FrovedisFeatureData:
     """A python container for frovedis side data for unsupervised
     ML algorithms"""
 
-    def __init__(self, mat, caller="", dtype=None, itype=None, 
-                 allow_int_dtype=False, 
+    def __init__(self, mat, caller="", dtype=None, itype=None,
+                 allow_int_dtype=False,
                  dense_kind='rowmajor', densify=False):
         # decision making whether the converted data would be movable
         # upon destruction
@@ -307,7 +307,7 @@ class FrovedisFeatureData:
                     else:
                         target_dtype = mat.dtype
                 else:
-                    if mat.dtype != np.float32 and mat.dtype != np.float64: 
+                    if mat.dtype != np.float32 and mat.dtype != np.float64:
                         target_dtype = np.float64 #(default double)
                     else:
                         target_dtype = mat.dtype
@@ -340,7 +340,7 @@ class FrovedisFeatureData:
                     else:
                         target_dtype = mat.dtype
                 else:
-                    if mat.dtype != np.float32 and mat.dtype != np.float64: 
+                    if mat.dtype != np.float32 and mat.dtype != np.float64:
                         target_dtype = np.float64 #(default double)
                     else:
                         target_dtype = mat.dtype
