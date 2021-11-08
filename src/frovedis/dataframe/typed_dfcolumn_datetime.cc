@@ -529,6 +529,8 @@ typed_dfcolumn<datetime>::filter_neq(std::shared_ptr<dfcolumn>& right) {
     throw std::runtime_error("filter_neq: column types are different");
   auto filtered_idx = val.map(filter_neq_helper<datetime_t, datetime_t>,
                               right2->val);
+  if(right2->contain_nulls)
+    filtered_idx = filtered_idx.map(set_difference<size_t>, right2->nulls);
   if(contain_nulls)
     return filtered_idx.map(set_difference<size_t>, nulls);
   else return filtered_idx;
@@ -551,6 +553,8 @@ typed_dfcolumn<datetime>::filter_lt(std::shared_ptr<dfcolumn>& right) {
   if(!right2) throw std::runtime_error("filter_lt: column types are different");
   auto filtered_idx = val.map(filter_lt_helper<datetime_t, datetime_t>,
                               right2->val);
+  if(right2->contain_nulls)
+    filtered_idx = filtered_idx.map(set_difference<size_t>, right2->nulls);
   if(contain_nulls)
     return filtered_idx.map(set_difference<size_t>, nulls);
   else return filtered_idx;
@@ -573,6 +577,8 @@ typed_dfcolumn<datetime>::filter_le(std::shared_ptr<dfcolumn>& right) {
   if(!right2) throw std::runtime_error("filter_le: column types are different");
   auto filtered_idx = val.map(filter_le_helper<datetime_t, datetime_t>,
                               right2->val);
+  if(right2->contain_nulls)
+    filtered_idx = filtered_idx.map(set_difference<size_t>, right2->nulls);
   if(contain_nulls)
     return filtered_idx.map(set_difference<size_t>, nulls);
   else return filtered_idx;
@@ -595,6 +601,8 @@ typed_dfcolumn<datetime>::filter_gt(std::shared_ptr<dfcolumn>& right) {
   if(!right2) throw std::runtime_error("filter_gt: column types are different");
   auto filtered_idx = val.map(filter_gt_helper<datetime_t, datetime_t>,
                               right2->val);
+  if(right2->contain_nulls)
+    filtered_idx = filtered_idx.map(set_difference<size_t>, right2->nulls);
   if(contain_nulls)
     return filtered_idx.map(set_difference<size_t>, nulls);
   else return filtered_idx;
@@ -617,6 +625,8 @@ typed_dfcolumn<datetime>::filter_ge(std::shared_ptr<dfcolumn>& right) {
   if(!right2) throw std::runtime_error("filter_ge: column types are different");
   auto filtered_idx = val.map(filter_ge_helper<datetime_t, datetime_t>,
                               right2->val);
+  if(right2->contain_nulls)
+    filtered_idx = filtered_idx.map(set_difference<size_t>, right2->nulls);
   if(contain_nulls)
     return filtered_idx.map(set_difference<size_t>, nulls);
   else return filtered_idx;

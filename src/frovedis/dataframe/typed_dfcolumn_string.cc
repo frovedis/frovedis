@@ -339,6 +339,8 @@ typed_dfcolumn<string>::filter_neq(std::shared_ptr<dfcolumn>& right) {
   if(!right2) throw std::runtime_error("filter_eq: column types are different");
   auto rightval = equal_prepare(right2);
   auto filtered_idx = val.map(filter_neq_helper<size_t,size_t>, rightval);
+  if(right2->contain_nulls)
+    filtered_idx = filtered_idx.map(set_difference<size_t>, right2->nulls);
   if(contain_nulls)
     return filtered_idx.map(set_difference<size_t>, nulls);
   else return filtered_idx;

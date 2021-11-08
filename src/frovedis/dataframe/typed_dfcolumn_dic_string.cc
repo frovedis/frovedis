@@ -594,13 +594,14 @@ typed_dfcolumn<dic_string>::filter_eq(std::shared_ptr<dfcolumn>& right) {
   else return filtered_idx;
 }
 
-// TODO: check right null; should not be included
 node_local<std::vector<size_t>>
 typed_dfcolumn<dic_string>::filter_neq(std::shared_ptr<dfcolumn>& right) {
   auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<dic_string>>(right);
   if(!right2) throw std::runtime_error("filter_eq: column types are different");
   auto rightval = equal_prepare(right2);
   auto filtered_idx = val.map(filter_neq_helper<size_t, size_t>, rightval);
+  if(right2->contain_nulls)
+    filtered_idx = filtered_idx.map(set_difference<size_t>, right2->nulls);
   if(contain_nulls)
     return filtered_idx.map(set_difference<size_t>, nulls);
   else return filtered_idx;

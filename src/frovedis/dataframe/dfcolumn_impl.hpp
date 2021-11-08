@@ -1208,6 +1208,7 @@ node_local<words> typed_dfcolumn<T>::as_words(size_t precision,
       }, broadcast(precision));
 }
 
+// no need to check right null, since it is checked by left if they are equal
 template <class T>
 node_local<std::vector<size_t>>
 typed_dfcolumn<T>::filter_eq(std::shared_ptr<dfcolumn>& right) {
@@ -1297,28 +1298,40 @@ typed_dfcolumn<T>::filter_neq(std::shared_ptr<dfcolumn>& right) {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<double>>(right);
     if(!right2) throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_neq_helper<T,double>, right2->val);
+    if(right2->contain_nulls)
+      filtered_idx = filtered_idx.map(set_difference<size_t>, right2->nulls);
   } else if (right_type == "float") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<float>>(right);
     if(!right2) throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_neq_helper<T,float>, right2->val);
+    if(right2->contain_nulls)
+      filtered_idx = filtered_idx.map(set_difference<size_t>, right2->nulls);
   } else if(right_type == "long") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<long>>(right);
     if(!right2) throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_neq_helper<T,long>, right2->val);
+    if(right2->contain_nulls)
+      filtered_idx = filtered_idx.map(set_difference<size_t>, right2->nulls);
   } else if(right_type == "unsigned long") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<unsigned long>>
       (right);
     if(!right2) throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_neq_helper<T,unsigned long>, right2->val);
+    if(right2->contain_nulls)
+      filtered_idx = filtered_idx.map(set_difference<size_t>, right2->nulls);
   } else if(right_type == "int") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<int>>(right);
     if(!right2) throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_neq_helper<T,int>, right2->val);
+    if(right2->contain_nulls)
+      filtered_idx = filtered_idx.map(set_difference<size_t>, right2->nulls);
   } else if(right_type == "unsigned int") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<unsigned int>>
       (right);
     if(!right2) throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_neq_helper<T,unsigned int>, right2->val);
+    if(right2->contain_nulls)
+      filtered_idx = filtered_idx.map(set_difference<size_t>, right2->nulls);
   } else throw std::runtime_error("unsupported type: " + right_type);
   if(contain_nulls)
     return filtered_idx.map(set_difference<size_t>, nulls);
@@ -1377,28 +1390,40 @@ typed_dfcolumn<T>::filter_lt(std::shared_ptr<dfcolumn>& right) {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<double>>(right);
     if(!right2) throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_lt_helper<T,double>, right2->val);
+    if(right2->contain_nulls)
+      filtered_idx = filtered_idx.map(set_difference<size_t>, right2->nulls);
   } else if (right_type == "float") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<float>>(right);
     if(!right2) throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_lt_helper<T,float>, right2->val);
+    if(right2->contain_nulls)
+      filtered_idx = filtered_idx.map(set_difference<size_t>, right2->nulls);
   } else if(right_type == "long") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<long>>(right);
     if(!right2) throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_lt_helper<T,long>, right2->val);
+    if(right2->contain_nulls)
+      filtered_idx = filtered_idx.map(set_difference<size_t>, right2->nulls);
   } else if(right_type == "unsigned long") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<unsigned long>>
       (right);
     if(!right2) throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_lt_helper<T,unsigned long>, right2->val);
+    if(right2->contain_nulls)
+      filtered_idx = filtered_idx.map(set_difference<size_t>, right2->nulls);
   } else if(right_type == "int") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<int>>(right);
     if(!right2) throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_lt_helper<T,int>, right2->val);
+    if(right2->contain_nulls)
+      filtered_idx = filtered_idx.map(set_difference<size_t>, right2->nulls);
   } else if(right_type == "unsigned int") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<unsigned int>>
       (right);
     if(!right2) throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_lt_helper<T,unsigned int>, right2->val);
+    if(right2->contain_nulls)
+      filtered_idx = filtered_idx.map(set_difference<size_t>, right2->nulls);
   } else throw std::runtime_error("unsupported type: " + right_type);
   if(contain_nulls)
     return filtered_idx.map(set_difference<size_t>, nulls);
@@ -1457,28 +1482,40 @@ typed_dfcolumn<T>::filter_le(std::shared_ptr<dfcolumn>& right) {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<double>>(right);
     if(!right2) throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_le_helper<T,double>, right2->val);
+    if(right2->contain_nulls)
+      filtered_idx = filtered_idx.map(set_difference<size_t>, right2->nulls);
   } else if (right_type == "float") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<float>>(right);
     if(!right2) throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_le_helper<T,float>, right2->val);
+    if(right2->contain_nulls)
+      filtered_idx = filtered_idx.map(set_difference<size_t>, right2->nulls);
   } else if(right_type == "long") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<long>>(right);
     if(!right2) throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_le_helper<T,long>, right2->val);
+    if(right2->contain_nulls)
+      filtered_idx = filtered_idx.map(set_difference<size_t>, right2->nulls);
   } else if(right_type == "unsigned long") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<unsigned long>>
       (right);
     if(!right2) throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_le_helper<T,unsigned long>, right2->val);
+    if(right2->contain_nulls)
+      filtered_idx = filtered_idx.map(set_difference<size_t>, right2->nulls);
   } else if(right_type == "int") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<int>>(right);
     if(!right2) throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_le_helper<T,int>, right2->val);
+    if(right2->contain_nulls)
+      filtered_idx = filtered_idx.map(set_difference<size_t>, right2->nulls);
   } else if(right_type == "unsigned int") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<unsigned int>>
       (right);
     if(!right2) throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_le_helper<T,unsigned int>, right2->val);
+    if(right2->contain_nulls)
+      filtered_idx = filtered_idx.map(set_difference<size_t>, right2->nulls);
   } else throw std::runtime_error("unsupported type: " + right_type);
   if(contain_nulls)
     return filtered_idx.map(set_difference<size_t>, nulls);
@@ -1537,28 +1574,40 @@ typed_dfcolumn<T>::filter_gt(std::shared_ptr<dfcolumn>& right) {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<double>>(right);
     if(!right2) throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_gt_helper<T,double>, right2->val);
+    if(right2->contain_nulls)
+      filtered_idx = filtered_idx.map(set_difference<size_t>, right2->nulls);
   } else if (right_type == "float") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<float>>(right);
     if(!right2) throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_gt_helper<T,float>, right2->val);
+    if(right2->contain_nulls)
+      filtered_idx = filtered_idx.map(set_difference<size_t>, right2->nulls);
   } else if(right_type == "long") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<long>>(right);
     if(!right2) throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_gt_helper<T,long>, right2->val);
+    if(right2->contain_nulls)
+      filtered_idx = filtered_idx.map(set_difference<size_t>, right2->nulls);
   } else if(right_type == "unsigned long") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<unsigned long>>
       (right);
     if(!right2) throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_gt_helper<T,unsigned long>, right2->val);
+    if(right2->contain_nulls)
+      filtered_idx = filtered_idx.map(set_difference<size_t>, right2->nulls);
   } else if(right_type == "int") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<int>>(right);
     if(!right2) throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_gt_helper<T,int>, right2->val);
+    if(right2->contain_nulls)
+      filtered_idx = filtered_idx.map(set_difference<size_t>, right2->nulls);
   } else if(right_type == "unsigned int") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<unsigned int>>
       (right);
     if(!right2) throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_gt_helper<T,unsigned int>, right2->val);
+    if(right2->contain_nulls)
+      filtered_idx = filtered_idx.map(set_difference<size_t>, right2->nulls);
   } else throw std::runtime_error("unsupported type: " + right_type);
   if(contain_nulls)
     return filtered_idx.map(set_difference<size_t>, nulls);
@@ -1617,28 +1666,40 @@ typed_dfcolumn<T>::filter_ge(std::shared_ptr<dfcolumn>& right) {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<double>>(right);
     if(!right2) throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_ge_helper<T,double>, right2->val);
+    if(right2->contain_nulls)
+      filtered_idx = filtered_idx.map(set_difference<size_t>, right2->nulls);
   } else if (right_type == "float") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<float>>(right);
     if(!right2) throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_ge_helper<T,float>, right2->val);
+    if(right2->contain_nulls)
+      filtered_idx = filtered_idx.map(set_difference<size_t>, right2->nulls);
   } else if(right_type == "long") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<long>>(right);
     if(!right2) throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_ge_helper<T,long>, right2->val);
+    if(right2->contain_nulls)
+      filtered_idx = filtered_idx.map(set_difference<size_t>, right2->nulls);
   } else if(right_type == "unsigned long") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<unsigned long>>
       (right);
     if(!right2) throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_ge_helper<T,unsigned long>, right2->val);
+    if(right2->contain_nulls)
+      filtered_idx = filtered_idx.map(set_difference<size_t>, right2->nulls);
   } else if(right_type == "int") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<int>>(right);
     if(!right2) throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_ge_helper<T,int>, right2->val);
+    if(right2->contain_nulls)
+      filtered_idx = filtered_idx.map(set_difference<size_t>, right2->nulls);
   } else if(right_type == "unsigned int") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<unsigned int>>
       (right);
     if(!right2) throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_ge_helper<T,unsigned int>, right2->val);
+    if(right2->contain_nulls)
+      filtered_idx = filtered_idx.map(set_difference<size_t>, right2->nulls);
   } else throw std::runtime_error("unsupported type: " + right_type);
   if(contain_nulls)
     return filtered_idx.map(set_difference<size_t>, nulls);
