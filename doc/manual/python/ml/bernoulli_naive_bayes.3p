@@ -1,0 +1,777 @@
+.TH "Bernoulli Naive Bayes" "" "" "" ""
+.SH NAME
+.PP
+BernoulliNB \- One of the variations of Naive Bayes algorithm.
+It is a classification algorithm to predict only binary output.
+.SH SYNOPSIS
+.PP
+frovedis.mllib.naive_bayes.BernoulliNB(alpha=1.0, fit_prior=True,
+.PD 0
+.P
+.PD
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ class_prior=None, binarize=0.0,
+.PD 0
+.P
+.PD
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ verbose=0)
+.SS Public Member Functions
+.PP
+fit(X, y, sample_weight = None)
+.PD 0
+.P
+.PD
+predict(X)
+.PD 0
+.P
+.PD
+predict_proba(X)
+.PD 0
+.P
+.PD
+score(X, y, sample_weight = None)
+.PD 0
+.P
+.PD
+get_params(deep = True)
+.PD 0
+.P
+.PD
+set_params(**params)
+.PD 0
+.P
+.PD
+debug_print()
+.PD 0
+.P
+.PD
+load(fname, dtype = None)
+.PD 0
+.P
+.PD
+save(fname)
+.PD 0
+.P
+.PD
+release()
+.PD 0
+.P
+.PD
+is_fitted()
+.SH DESCRIPTION
+.PP
+Naive Bayes classifier for bernoulli models.
+.PP
+The Bernoulli Naive Bayes classifier is suitable for classification with
+binary/boolean features.
+In the multivariate Bernoulli event model, features are independent
+booleans (binary variables) describing inputs.
+.PP
+This model is popular for document classification tasks, where binary
+term occurrence features (i.e a word occurs in a document or not) are
+used rather than finding the frequency of a word in document.
+.PP
+This module provides a client\-server implementation, where the client
+application is a normal python program.
+The frovedis interface is almost same as Scikit\-learn BernoulliNB
+interface, but it doesn\[aq]t have any dependency with Scikit\-learn.
+It can be used simply even if the system doesn\[aq]t have Scikit\-learn
+installed.
+Thus in this implementation, a python client can interact with a
+frovedis server sending the required python data for training at
+frovedis side.
+Python data is converted into frovedis compatible data internally and
+the python ML call is linked with the respective frovedis ML call to get
+the job done at frovedis server.
+.PP
+Python side calls for BernoulliNB on the frovedis server.
+Once the training is completed with the input data at the frovedis
+server, it returns an abstract model with a unique model ID to the
+client python program.
+.PP
+When prediction\-like request would be made on the trained model, python
+program will send the same request to the frovedis server.
+After the request is served at the frovedis server, the output would be
+sent back to the python client.
+.SS Detailed Description
+.SS 1. BernoulliNB()
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[B]\f[I]alpha\f[]\f[]: A positive double(float64) smoothing parameter
+(0 for no smoothing).
+It must be greater than or equal to 1.
+(Default: 1.0)
+.PD 0
+.P
+.PD
+\f[B]\f[I]fit_prior\f[]\f[]: A boolean parameter specifying whether to
+learn class prior probabilities or not.
+If False, a uniform prior will be used.
+(Default: True)
+.PD 0
+.P
+.PD
+\f[B]\f[I]class_prior\f[]\f[]: A numpy ndarray of double(float64) type
+values and must be of shape \f[B](n_classes,)\f[].
+It gives prior probabilities of the classes.
+(Default: None)
+.PD 0
+.P
+.PD
+When it is None (not specified explicitly), the priors are adjusted
+according to the data.
+.PD 0
+.P
+.PD
+\f[B]\f[I]binarize\f[]\f[]: A double(float64) parameter specifying the
+threshold for binarizing sample features.
+(Default: 0.0)
+.PD 0
+.P
+.PD
+\f[B]\f[I]verbose\f[]\f[]: An integer parameter specifying the log level
+to use.
+Its value is 0 by default(for INFO mode).
+But it can be set to 1 (for DEBUG mode) or 2 (for TRACE mode) for
+getting training time logs from frovedis server.
+.PP
+\f[B]Attributes\f[]
+.PD 0
+.P
+.PD
+\f[B]\f[I]class_log_prior_\f[]\f[]: A python ndarray of double(float64)
+type values and has shape \f[B](n_classes,)\f[].
+It contains log probability of each class (smoothed).
+.PD 0
+.P
+.PD
+\f[B]\f[I]feature_log_prob_\f[]\f[]: A python ndarray of double(float64)
+type values and has shape \f[B](n_classes, n_features)\f[].
+It contains empirical log probability of features given a class,
+P(x_i|y).
+.PD 0
+.P
+.PD
+\f[B]\f[I]class_count_\f[]\f[]: A python ndarray of double(float64) type
+values and has shape \f[B](n_classes,)\f[].
+It contains the number of samples encountered for each class during
+fitting.
+This value is weighted by the sample weight when provided.
+.PD 0
+.P
+.PD
+\f[B]\f[I]classes_\f[]\f[]: A python ndarray of double(float64) type
+values and has shape \f[B](n_classes,)\f[].
+It contains the of unique labels given to the classifier during
+training.
+.PD 0
+.P
+.PD
+\f[B]\f[I]feature_count_\f[]\f[]: A python ndarray of double(float64)
+type values and has shape \f[B](n_classes, n_features)\f[].
+It contains the number of samples encountered for each (class, feature)
+during fitting.
+This value is weighted by the sample weight when provided.
+.PD 0
+.P
+.PD
+\f[B]\f[I]coef_\f[]\f[]: A python ndarray of double(float64) type
+values.
+If \[aq]classess_\[aq] is 2, then its shape \f[B](1, n_features)\f[],
+otherwise, the shape is (n_classes, n_features).
+It mirrors \[aq]feature_log_prob_\[aq] for interpreting BernoulliNB as a
+linear model.
+.PD 0
+.P
+.PD
+\f[B]\f[I]intercept_\f[]\f[]: A python ndarray of double(float64) type
+values.
+If \[aq]classes_\[aq] is 2, the its shape \f[B](1,)\f[], otherwise, the
+shape is (n_classes,).
+It mirrors \[aq]class_log_prior_\[aq] for interpreting BernoulliNB as a
+linear model.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It initializes a BernoulliNB object with the given parameters.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It simply returns "self" reference.
+.SS 2. fit(X, y, sample_weight = None)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[B]\f[I]X\f[]\f[]: A numpy dense or scipy sparse matrix or any python
+array\-like object or an instance of FrovedisCRSMatrix for sparse data
+and FrovedisRowmajorMatrix for dense data.
+.PD 0
+.P
+.PD
+\f[B]\f[I]y\f[]\f[]: Any python array\-like object or an instance of
+FrovedisDvector.
+.PD 0
+.P
+.PD
+\f[B]\f[I]sample_weight\f[]\f[]: A python ndarray containing the
+intended weights for each input samples and it should be the shape of
+\f[B](n_samples, )\f[].
+When it is None (not specified explicitly), an uniform weight vector is
+assigned on each input sample.
+(Default: None)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It accepts the training matrix (X) with labels (y) and trains a
+BernoulliNB model.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ loading\ a\ sample\ matrix\ and\ labels\ data\ \ 
+from\ sklearn.datasets\ import\ load_breast_cancer\ \ 
+mat,\ lbl\ =\ load_breast_cancer(return_X_y\ =\ True)\ \ 
+
+#\ fitting\ input\ matrix\ and\ label\ on\ BernoulliNB\ object\ \ 
+from\ frovedis.mllib.linear_model\ import\ BernoulliNB\ \ 
+bnb\ =\ BernoulliNB(alpha\ =\ 1.0).fit(mat,lbl)\ \ 
+\f[]
+.fi
+.PP
+When native python data is provided, it is converted to frovedis\-like
+inputs and sent to frovedis server which consumes some data transfer
+time.
+Pre\-constructed frovedis\-like inputs can be used to speed up the
+training time, specially when same data would be used for multiple
+executions.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ loading\ a\ sample\ matrix\ and\ labels\ data\ \ 
+from\ sklearn.datasets\ import\ load_breast_cancer\ \ 
+mat,\ lbl\ =\ load_breast_cancer(return_X_y\ =\ True)\ \ 
+
+#\ Since\ "mat"\ is\ numpy\ dense\ data,\ we\ have\ created\ FrovedisRowmajorMatrix.\ \ 
+#\ For\ scipy\ sparse\ data,\ FrovedisCRSMatrix\ should\ be\ used\ instead.\ \ 
+from\ frovedis.matrix.dense\ import\ FrovedisRowmajorMatrix\ \ 
+from\ frovedis.matrix.dvector\ import\ FrovedisDvector\ \ 
+cmat\ =\ FrovedisRowmajorMatrix(mat)\ \ 
+dlbl\ =\ FrovedisDvector(lbl)\ \ 
+
+#\ BernoulliNB\ with\ pre\-constructed\ frovedlis\-like\ inputs\ \ 
+from\ frovedis.mllib.linear_model\ import\ BernoulliNB\ \ 
+bnb\ =\ BernoulliNB(alpha\ =\ 1.0).fit(cmat,\ dlbl)\ \ 
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It simply returns "self" reference.
+.SS 3. predict(X)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[B]\f[I]X\f[]\f[]: A numpy dense or scipy sparse matrix or any python
+array\-like object or an instance of FrovedisCRSMatrix for sparse data
+and FrovedisRowmajorMatrix for dense data.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It accepts the test feature matrix (X) in order to make prediction on
+the trained model at frovedis server.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ predicting\ on\ BernoulliNB\ model
+bnb.predict(mat)\ \ 
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+[1\ 1\ 1\ ...\ 1\ 1\ 1]
+\f[]
+.fi
+.PP
+Like in fit(), frovedis\-like input can be used to speed\-up the
+prediction making on the trained model at server side.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ Since\ "mat"\ is\ numpy\ dense\ data,\ we\ have\ created\ FrovedisRowmajorMatrix.\ 
+#\ For\ scipy\ sparse\ data,\ FrovedisCRSMatrix\ should\ be\ used\ instead.\ \ 
+from\ frovedis.matrix.dense\ import\ FrovedisRowmajorMatrix\ \ 
+rmat\ =\ FrovedisRowmajorMatrix(mat)\ \ 
+
+#\ predicting\ on\ BernoulliNB\ model\ using\ pre\-constructed\ input\ \ 
+bnb.predict(rmat)\ \ 
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+[1\ 1\ 1\ ...\ 1\ 1\ 1]
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns a numpy array of float or double(float64) type and of shape
+\f[B](n_samples,)\f[] containing the predicted outputs.
+.SS 4. predict_proba(X)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[B]\f[I]X\f[]\f[]: A numpy dense or scipy sparse matrix or any python
+array\-like object or an instance of FrovedisCRSMatrix for sparse data
+and FrovedisRowmajorMatrix for dense data.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It accepts the test feature matrix (X) in order to make prediction on
+the trained model at frovedis server.
+Unlike sklearn, it performs the classification on an array and returns
+the probability estimates for the test feature matrix (X).
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ finds\ the\ probablity\ sample\ for\ each\ class\ in\ the\ model
+bnb.predict_proba(mat)\ \ 
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+\ [[0.35939685\ 0.64060315]
+\ \ [0.35939685\ 0.64060315]
+\ \ [0.35939685\ 0.64060315]
+\ \ ...
+\ \ [0.35939685\ 0.64060315]
+\ \ [0.35939685\ 0.64060315]
+\ \ [0.35939685\ 0.64060315]]
+\f[]
+.fi
+.PP
+Like in fit(), frovedis\-like input can be used to speed\-up the
+prediction making on the trained model at server side.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ Since\ "mat"\ is\ numpy\ dense\ data,\ we\ have\ created\ FrovedisRowmajorMatrix.\ 
+#\ For\ scipy\ sparse\ data,\ FrovedisCRSMatrix\ should\ be\ used\ instead.\ \ 
+from\ frovedis.matrix.dense\ import\ FrovedisRowmajorMatrix\ \ 
+rmat\ =\ FrovedisRowmajorMatrix(mat)\ \ 
+
+#\ finds\ the\ probablity\ sample\ for\ each\ class\ in\ the\ model
+bnb.predict_proba(rmat)\ \ 
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+[[0.35939685\ 0.64060315]
+\ [0.35939685\ 0.64060315]
+\ [0.35939685\ 0.64060315]
+\ ...
+\ [0.35939685\ 0.64060315]
+\ [0.35939685\ 0.64060315]
+\ [0.35939685\ 0.64060315]]
+\ 
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns a numpy array of float or double(float64) type and of shape
+\f[B](n_samples, n_classes)\f[] containing the prediction probability
+values.
+.SS 5. score(X, y)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[B]\f[I]X\f[]\f[]: A numpy dense or scipy sparse matrix or any python
+array\-like object or an instance of FrovedisCRSMatrix for sparse data
+and FrovedisRowmajorMatrix for dense data.
+.PD 0
+.P
+.PD
+\f[B]\f[I]y\f[]\f[]: Any python array\-like object or an instance of
+FrovedisDvector.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+Calculate mean accuracy on the given test data and labels i.e.
+mean accuracy of self.predict(X) wrt.
+y.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ calculate\ mean\ accuracy\ score\ on\ given\ test\ data\ and\ labels
+bnb.score(mat,lbl)\ \ 
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+0.6274
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns an accuracy score of float type.
+.SS 6. debug_print()
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It shows the target model information on the server side user terminal.
+It is mainly used for debugging purpose.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+bnb.debug_print()\ \ 
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+model_type:\ bernoulli
+binarize:\ \-1
+feature_count:\ 212\ 212\ 212\ 212\ 212\ \ ...\ 357\ 357\ 357\ 357\ 357
+theta:\ node\ =\ 0,\ local_num_row\ =\ 2,\ local_num_col\ =\ 30,\ val\ =\ \-0.00468385\ \-0.00468385\ \-0.00468385\ 
+\-0.00468385\ \-0.00468385\ ...\ \-0.0027894\ \-0.0027894\ \-0.0027894\ \-0.0027894\ \-0.0027894
+pi:\ \-0.987294\ \-0.466145
+label:\ 0\ 1
+class\ count:\ 212\ 357
+theta_minus_negtheta:\ node\ =\ 0,\ local_num_row\ =\ 2,\ local_num_col\ =\ 30,\ val\ =\ 5.36129\ 5.36129\ 5.36129\ 
+5.36129\ 5.36129\ ...\ 5.88053\ 5.88053\ 5.88053\ 5.88053\ 5.88053
+negtheta_sum:\ \-160.979\ \-176.5
+\f[]
+.fi
+.PP
+It displays the target model information like model_type, binarize,
+feature_count, theta, pi, etc.
+values on the trained model which is currently present on the server.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns nothing.
+.SS 7. get_params(deep = True)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]\f[B]deep\f[]\f[]: A boolean parameter, used to get parameters and
+their values for an estimator.
+If True, it will return the parameters for an estimator and contained
+subobjects that are estimators.
+(Default: True)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+This method belongs to the BaseEstimator class inherited by BernoulliNB.
+It is used to get parameters and their values of BernoulliNB class.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+\ \ print(bnb.get_params())
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+{\[aq]alpha\[aq]:\ 1.0,\ \[aq]binarize\[aq]:\ \-1.0,\ \[aq]class_prior\[aq]:\ None,\ \[aq]fit_prior\[aq]:\ True,\ \[aq]verbose\[aq]:\ 0}
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+A dictionary of parameter names mapped to their values.
+.SS 8. set_params(**params)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]\f[B]**params\f[]\f[]: All the keyword arguments are passed this
+function as dictionary.
+This dictionary contains parameters of an estimator with its given
+values to set.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+This method belongs to the BaseEstimator class inherited by BernoulliNB,
+used to set parameter values.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+print("get\ parameters\ before\ setting:")\ 
+print(bnb.get_params())
+#\ User\ just\ needs\ to\ provide\ the\ arguments\ and\ internally\ it\ will\ create\ a\ 
+dictionary\ over\ the\ arguments\ given\ by\ user
+bnb.set_params(n_clusters\ =\ 4)\ 
+print("get\ parameters\ after\ setting:")\ 
+print(bnb.get_params())
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+get\ parameters\ before\ setting:
+{\[aq]alpha\[aq]:\ 1.0,\ \[aq]binarize\[aq]:\ \-1.0,\ \[aq]class_prior\[aq]:\ None,\ \[aq]fit_prior\[aq]:\ True,\ \[aq]verbose\[aq]:\ 0}
+get\ parameters\ after\ setting:
+{\[aq]alpha\[aq]:\ 1.0,\ \[aq]binarize\[aq]:\ 0.5,\ \[aq]class_prior\[aq]:\ None,\ \[aq]fit_prior\[aq]:\ True,\ \[aq]verbose\[aq]:\ 0}
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It simply returns "self" reference.
+.SS 9. load(fname, dtype=None)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[B]\f[I]fname\f[]\f[]: A string object containing the name of the file
+having model information such as theta, cls_count, feature_count, label,
+pi, type to be loaded.
+.PD 0
+.P
+.PD
+\f[B]\f[I]dtype\f[]\f[]: A data\-type is inferred from the input data.
+Currently, expected input data\-type is either float or double(float64).
+(Default: None)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It loads the model from the specified file (having little\-endian binary
+data).
+.PP
+For example,
+.IP
+.nf
+\f[C]
+bnb.load("./out/BNBModel")
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It simply returns "self" reference.
+.SS 10. save(fname)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[B]\f[I]fname\f[]\f[]: A string object containing the name of the file
+on which the target model is to be saved.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+On success, it writes the model information (theta, cls_count,
+feature_count, label, pi, type) in the specified file as little\-endian
+binary data.
+Otherwise, it throws an exception.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ To\ save\ the\ bernoulli\ naive\ bayes\ model
+bnb.save("./out/BNBModel")\ \ \ \ 
+\f[]
+.fi
+.PP
+This will save the naive bayes model on the path
+\[aq]/out/BNBModel\[aq].
+It would raise exception if the directory already exists with same name.
+.PP
+The \[aq]BNBModel\[aq] directory has
+.PP
+\f[B]BNBModel\f[]
+.PD 0
+.P
+.PD
+|\-\-\-\-label_map
+.PD 0
+.P
+.PD
+|\-\-\-\-metadata
+.PD 0
+.P
+.PD
+|\-\-\-\-\f[B]model\f[]
+.PD 0
+.P
+.PD
+\ \ \ \ \ |\-\-\-\-\-\-cls_count
+.PD 0
+.P
+.PD
+\ \ \ \ \ |\-\-\-\-\-\-feature_count
+.PD 0
+.P
+.PD
+\ \ \ \ \ |\-\-\-\-\-\-label
+.PD 0
+.P
+.PD
+\ \ \ \ \ |\-\-\-\-\-\-pi
+.PD 0
+.P
+.PD
+\ \ \ \ \ |\-\-\-\-\-\-\f[B]theta\f[]
+.PD 0
+.P
+.PD
+\ \ \ \ \ |\-\-\-\-\-\-type
+.PP
+‘label_map' contains information about labels mapped with their encoded
+value.
+.PD 0
+.P
+.PD
+The metadata file contains the model kind, input datatype used for
+trained model.
+.PD 0
+.P
+.PD
+Here, the \f[B]model\f[] directory contains information about class
+count, feature count, labels, pi, \f[B]theta\f[] and thier datatype.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns nothing
+.SS 11. release()
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It can be used to release the in\-memory model at frovedis server.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+bnb.release()
+\f[]
+.fi
+.PP
+This will reset the after\-fit populated attributes to None, along with
+releasing server side memory.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns nothing.
+.SS 12. is_fitted()
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It can be used to confirm if the model is already fitted or not.
+In case, predict() is used before training the model, then it can prompt
+the user to train the naive bayes model first.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns ‘True', if the model is already fitted otherwise, it returns
+‘False'.
+.SH SEE ALSO
+.PP
+rowmajor_matrix, dvector, crs_matrix
