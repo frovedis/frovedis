@@ -24,6 +24,8 @@ class frovedis.mllib.linear_model.Ridge(alpha=0.01, fit_intercept=True,
 fit(X, y, sample_weight = None)  
 predict(X)  
 score(X, y, sample_weight = None)  
+get_params(deep = True)  
+set_params(\*\*params)  
 load(fname, dtype = None)  
 save(fname)  
 debug_print()  
@@ -113,10 +115,10 @@ solution. (Default: False)
 __Attributes__  
 **_coef\__**: It is a python ndarray(containing float or double(float64) typed values depending 
 on data-type of input matrix (X)) of estimated coefficients for the ridge regression problem. 
-It has shape (n_features,).  
+It has shape **(n_features,)**.  
 **_intercept\_(bias)_**: It is a python ndarray(contaning float or double(float64) typed values 
 depending on data-type of input matrix (X)). If fit_intercept is set to False, the intercept 
-is set to zero. It has shape (1,).  
+is set to zero. It has shape **(1,)**.  
 **_n\_iter\__**: A positive integer value used to get the actual iteration point at which the 
 problem is converged.   
 
@@ -167,7 +169,7 @@ is provided during prediction, then "X.to_frovedis_rowmatrix()" will be used for
 prediction.  
 
 __Return Value__  
-It returns a numpy array of double(float64) type and has shape (n_samples,) 
+It returns a numpy array of double(float64) type and has shape **(n_samples,)** 
 containing the predicted outputs. 
 
 ### 4. score(X, y, sample_weight = None)
@@ -193,7 +195,30 @@ features, would get a R2 score of 0.0.
 __Return Value__  
 It returns an R2 score of float type.  
 
-### 5. load(fname, dtype = None)
+### 5. get_params(deep = True)  
+__Parameters__   
+_**deep**_: A boolean parameter, used to get parameters and their values for an estimator. If True, 
+it will return the parameters for an estimator and contained subobjects that are estimators. (Default: True)  
+
+__Purpose__    
+This method belongs to the BaseEstimator class inherited by Ridge. It is used to get parameters 
+and their values of Ridge class.  
+
+__Return Value__  
+A dictionary of parameter names mapped to their values.  
+
+### 6. set_params(\*\*params)  
+__Parameters__  
+_**\*\*params**_: All the keyword arguments are passed this function as dictionary. This dictionary 
+contains parameters of an estimator with its given values to set.  
+
+__Purpose__  
+This method belongs to the BaseEstimator class inherited by Ridge, used to set parameter values.  
+    
+__Return Value__  
+It simply returns "self" reference.  
+
+### 7. load(fname, dtype = None)
 __Parameters__   
 **_fname_**: A string object containing the name of the file having model 
 information to be loaded.  
@@ -206,10 +231,19 @@ It loads the model from the specified file (having little-endian binary data).
 __Return Value__  
 It simply returns "self" instance.  
 
-### 6. save(fname)
+### 8. save(fname)
 __Parameters__   
 **_fname_**: A string object containing the name of the file on which the target 
 model is to be saved.  
+
+Suppose 'RidgeModel' directory is the model created, It will have  
+
+**RidgeModel**  
+|-------- metadata  
+|-------- model  
+
+The metadata file contains the number of classes, model kind, input datatype used for trained model.  
+Here, the model file contains information about weights, intercept and threshold.  
 
 __Purpose__    
 On success, it writes the model information (weight values, etc.) in the 
@@ -218,7 +252,7 @@ specified file as little-endian binary data. Otherwise, it throws an exception.
 __Return Value__  
 It returns nothing.  
 
-### 7. debug_print()
+### 9. debug_print()
 
 __Purpose__    
 It shows the target model information like weight values, intercept on the server side 
@@ -227,7 +261,7 @@ user terminal. It is mainly used for debugging purpose.
 __Return Value__  
 It returns nothing.  
 
-### 8. release()
+### 10. release()
 
 __Purpose__    
 It can be used to release the in-memory model at frovedis server. With this, after-fit
@@ -236,7 +270,7 @@ populated attributes are reset to None, along with releasing server side memory.
 __Return Value__  
 It returns nothing.  
 
-### 9. is_fitted()
+### 11. is_fitted()
 
 __Purpose__    
 It can be used to confirm if the model is already fitted or not. In case, predict() is used 

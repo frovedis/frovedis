@@ -46,6 +46,14 @@ score(X, y, sample_weight = None)
 .PD 0
 .P
 .PD
+get_params(deep = True)
+.PD 0
+.P
+.PD
+set_params(**params)
+.PD 0
+.P
+.PD
 load(fname, dtype = None)
 .PD 0
 .P
@@ -221,7 +229,7 @@ otherwise, just erase the previous solution.
 \f[B]\f[I]coef_\f[]\f[]: It is a python ndarray(containing float or
 double(float64) typed values depending on data\-type of input matrix
 (X)) of estimated coefficients for the ridge regression problem.
-It has shape (n_features,).
+It has shape \f[B](n_features,)\f[].
 .PD 0
 .P
 .PD
@@ -229,7 +237,7 @@ It has shape (n_features,).
 float or double(float64) typed values depending on data\-type of input
 matrix (X)).
 If fit_intercept is set to False, the intercept is set to zero.
-It has shape (1,).
+It has shape \f[B](1,)\f[].
 .PD 0
 .P
 .PD
@@ -322,7 +330,7 @@ FrovedisColmajorMatrix (X) is provided during prediction, then
 .P
 .PD
 It returns a numpy array of double(float64) type and has shape
-(n_samples,) containing the predicted outputs.
+\f[B](n_samples,)\f[] containing the predicted outputs.
 .SS 4. score(X, y, sample_weight = None)
 .PP
 \f[B]Parameters\f[]
@@ -377,7 +385,54 @@ disregarding the input features, would get a R2 score of 0.0.
 .P
 .PD
 It returns an R2 score of float type.
-.SS 5. load(fname, dtype = None)
+.SS 5. get_params(deep = True)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]\f[B]deep\f[]\f[]: A boolean parameter, used to get parameters and
+their values for an estimator.
+If True, it will return the parameters for an estimator and contained
+subobjects that are estimators.
+(Default: True)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+This method belongs to the BaseEstimator class inherited by Ridge.
+It is used to get parameters and their values of Ridge class.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+A dictionary of parameter names mapped to their values.
+.SS 6. set_params(**params)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]\f[B]**params\f[]\f[]: All the keyword arguments are passed this
+function as dictionary.
+This dictionary contains parameters of an estimator with its given
+values to set.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+This method belongs to the BaseEstimator class inherited by Ridge, used
+to set parameter values.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It simply returns "self" reference.
+.SS 7. load(fname, dtype = None)
 .PP
 \f[B]Parameters\f[]
 .PD 0
@@ -404,7 +459,7 @@ data).
 .P
 .PD
 It simply returns "self" instance.
-.SS 6. save(fname)
+.SS 8. save(fname)
 .PP
 \f[B]Parameters\f[]
 .PD 0
@@ -412,6 +467,27 @@ It simply returns "self" instance.
 .PD
 \f[B]\f[I]fname\f[]\f[]: A string object containing the name of the file
 on which the target model is to be saved.
+.PP
+Suppose \[aq]RidgeModel\[aq] directory is the model created, It will
+have
+.PP
+\f[B]RidgeModel\f[]
+.PD 0
+.P
+.PD
+|\-\-\-\-\-\-\-\- metadata
+.PD 0
+.P
+.PD
+|\-\-\-\-\-\-\-\- model
+.PP
+The metadata file contains the number of classes, model kind, input
+datatype used for trained model.
+.PD 0
+.P
+.PD
+Here, the model file contains information about weights, intercept and
+threshold.
 .PP
 \f[B]Purpose\f[]
 .PD 0
@@ -426,7 +502,7 @@ Otherwise, it throws an exception.
 .P
 .PD
 It returns nothing.
-.SS 7. debug_print()
+.SS 9. debug_print()
 .PP
 \f[B]Purpose\f[]
 .PD 0
@@ -441,7 +517,7 @@ It is mainly used for debugging purpose.
 .P
 .PD
 It returns nothing.
-.SS 8. release()
+.SS 10. release()
 .PP
 \f[B]Purpose\f[]
 .PD 0
@@ -456,7 +532,7 @@ releasing server side memory.
 .P
 .PD
 It returns nothing.
-.SS 9. is_fitted()
+.SS 11. is_fitted()
 .PP
 \f[B]Purpose\f[]
 .PD 0
