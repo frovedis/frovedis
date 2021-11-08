@@ -146,6 +146,10 @@ std::vector<exrpc_node> get_parallel_exrpc_nodes(exrpc_node&,exptr<node_local<ex
 std::vector<exrpc_node> get_parallel_exrpc_nodes_server(exptr<node_local<exrpc_info>>&);
 void wait_parallel_exrpc(exrpc_node&,exptr<node_local<exrpc_info>>&);
 void wait_parallel_exrpc_server(exptr<node_local<exrpc_info>>&);
+void wait_parallel_exrpc_multi(exrpc_node&,exptr<node_local<exrpc_info>>&,
+                               std::vector<size_t>&);
+void wait_parallel_exrpc_multi_server(exptr<node_local<exrpc_info>>&,
+                                      std::vector<size_t>&);
 
 /*
   Copied from dvector.cc

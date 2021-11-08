@@ -593,6 +593,7 @@ void init_frovedis_server(int argc, char* argv[]) {
   expose(prepare_parallel_exrpc_server);
   expose(get_parallel_exrpc_nodes_server);
   expose(wait_parallel_exrpc_server);
+  expose(wait_parallel_exrpc_multi_server);
   flush_exposed(); // send expose information to workers
 #ifdef NO_PROGRAM_OPTION
   std::string client_hostname;
@@ -746,6 +747,25 @@ void wait_parallel_exrpc_server(exptr<node_local<exrpc_info>>& info) {
 void wait_parallel_exrpc(exrpc_node& n, exptr<node_local<exrpc_info>>& info) {
   // Use noexcept because this should not block!
   exrpc_oneway_noexcept(n, wait_parallel_exrpc_server, info);
+}
+
+void wait_parallel_exrpc_multi_server_helper(exrpc_info& i, size_t num_rpc) {
+  for(size_t j = 0; j < num_rpc; j++) {
+    handle_exrpc_onereq(i.sockfd, false);
+  }
+}
+
+void wait_parallel_exrpc_multi_server(exptr<node_local<exrpc_info>>& info,
+                                      std::vector<size_t>& num_rpc) {
+  auto nl_num_rpc = make_node_local_scatter(num_rpc);
+  info.to_ptr()->mapv(wait_parallel_exrpc_multi_server_helper, nl_num_rpc);
+}
+
+void wait_parallel_exrpc_multi(exrpc_node& n,
+                               exptr<node_local<exrpc_info>>& info,
+                               std::vector<size_t>& num_rpc) {
+  // Use noexcept because this should not block!
+  exrpc_oneway_noexcept(n, wait_parallel_exrpc_multi_server, info, num_rpc);
 }
 
 }

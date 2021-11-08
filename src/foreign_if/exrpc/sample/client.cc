@@ -24,6 +24,18 @@ int main(int argc, char* argv[]) {
     vector<int> to_add = {5,6};
     exrpc_oneway(nodes[i], add_each, ep[i], to_add);
   }
+
+  // demo of connecting to each workers multiple times
+  info = prepare_parallel_exrpc(n);
+  nodes = get_parallel_exrpc_nodes(n, info);
+  std::vector<size_t> num_rpc = {2, 3};
+  wait_parallel_exrpc_multi(n, info, num_rpc);
+  vector<int> to_add = {5,6};
+  for(size_t i = 0; i < nodes.size(); i++) {
+    for(size_t j = 0; j < num_rpc[i]; j++) {
+      exrpc_oneway(nodes[i], add_each, ep[i], to_add);
+    }
+  }
   
   auto vv = exrpc_async(n, gather_sample, r).get();
   for(auto i: vv) cout << i << endl;

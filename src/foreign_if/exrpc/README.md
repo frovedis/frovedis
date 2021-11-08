@@ -85,10 +85,29 @@ The first function binds sockets to ephemeral (temporal) port at all
 ranks. The second function returns the nodes to connect. The third
 function let the nodes wait for the RPCs.
 
-Then, The client can call RPCs for each rank:
+Then, the client can call RPCs for each rank:
 
-  for(size_t i = 0; i < nodes.size(); i++) {
-    exrpc_oneway(nodes[i], some_func, args);
-  }
+    for(size_t i = 0; i < nodes.size(); i++) {
+      exrpc_oneway(nodes[i], some_func, args);
+    }
+
+In this case, the RPC can be called only once. However, there might be
+a case that RPC need to be called multiple times. For that purpose, we
+provide wait_parallel_exrpc_multi function. In this case, you can
+specify the number of RPC calls for each node.
+
+    std::vector<size_t> num_rpc = {2, 3};
+    wait_parallel_exrpc_multi(n, info, num_rpc);
+
+In this case, the number of nodes is two and rank 0 waits for RPC 2
+times, rank 1 waits for RPC 3 times.
+
+Then, the client can call RPCs for each rank like this:
+
+    for(size_t i = 0; i < nodes.size(); i++) {
+      for(size_t j = 0; j < num_rpc[i]; j++) {
+        exrpc_oneway(nodes[i], some_func, args);
+      }
+    }
 
 The `sample` directory contains sample of exrpc program.
