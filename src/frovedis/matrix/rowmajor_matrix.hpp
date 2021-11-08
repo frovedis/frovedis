@@ -9,7 +9,7 @@
 
 #include "../core/dvector.hpp"
 #include "../core/mpihelper.hpp"
-#include "../core/partition_sort.hpp"
+#include "../core/partition.hpp"
 #include "../core/vector_operations.hpp"
 #include "diag_matrix.hpp"
 #ifdef __ve__

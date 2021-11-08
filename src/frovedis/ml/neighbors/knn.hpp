@@ -6,7 +6,7 @@
 //#define DEBUG_SAVE
 
 #include <frovedis/core/radix_sort.hpp>
-#include <frovedis/core/partition_sort.hpp>
+#include <frovedis/core/partition.hpp>
 #include <frovedis/matrix/crs_matrix.hpp>
 #include <frovedis/ml/clustering/common.hpp>
 
