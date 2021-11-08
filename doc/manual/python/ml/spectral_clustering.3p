@@ -58,6 +58,14 @@ score(X, y, sample_weight = None)
 .PD 0
 .P
 .PD
+get_params(deep = True)
+.PD 0
+.P
+.PD
+set_params(**params)
+.PD 0
+.P
+.PD
 load(fname, dtype = None)
 .PD 0
 .P
@@ -109,7 +117,7 @@ program will send the same request to the frovedis server.
 After the request is served at the frovedis server, the output would be
 sent back to the python client.
 .SS Detailed Description
-.SS SpectralClustering()
+.SS 1. SpectralClustering()
 .PP
 \f[B]Parameters\f[]
 .PD 0
@@ -351,12 +359,12 @@ FrovedisCRSMatrix
 \- When affinity = \[aq]rbf\[aq], it returns a FrovedisRowmajorMatrix
 .PP
 In all cases, the output is of float or double (float64) type and of
-shape (n_samples, n_samples).
+shape \f[B](n_samples, n_samples)\f[].
 .PD 0
 .P
 .PD
 \f[B]\f[I]labels_\f[]\f[]: A python ndarray of int64 values and has
-shape(n_clusters,).
+shape \f[B](n_clusters,)\f[].
 It contains predicted cluster labels for each point.
 .PP
 \f[B]Purpose\f[]
@@ -375,7 +383,7 @@ They are not used anywhere within frovedis implementation.
 .P
 .PD
 It simply returns "self" reference.
-.SS fit(X, y = None)
+.SS 2. fit(X, y = None)
 .PP
 \f[B]Parameters\f[]
 .PD 0
@@ -384,8 +392,8 @@ It simply returns "self" reference.
 \f[B]\f[I]X\f[]\f[]: A numpy dense or scipy sparse matrix or any python
 array\-like object or an instance of FrovedisCRSMatrix for sparse data
 and FrovedisRowmajorMatrix for dense data.
-If affinity="precomputed", it needs to be of shape (n_samples,
-n_samples).
+If affinity="precomputed", it needs to be of shape \f[B](n_samples,
+n_samples)\f[].
 .PD 0
 .P
 .PD
@@ -416,7 +424,7 @@ spec\ =\ SpectralClustering(n_clusters\ =\ 2).fit(mat)\ \ \
 When native python data is provided, it is converted to frovedis\-like
 inputs and sent to frovedis server which consumes some data transfer
 time.
-Pre\-constructed frovedlis\-like inputs can be used to speed up the
+Pre\-constructed frovedis\-like inputs can be used to speed up the
 training time, especially when same data would be used for multiple
 executions.
 .PP
@@ -443,7 +451,7 @@ spec\ =\ SpectralClustering(n_clusters\ =\ 2).fit(rmat)
 .P
 .PD
 It simply returns "self" reference.
-.SS fit_predict(X, y = None)
+.SS 3. fit_predict(X, y = None)
 .PP
 \f[B]Parameters\f[]
 .PD 0
@@ -452,8 +460,8 @@ It simply returns "self" reference.
 \f[B]\f[I]X\f[]\f[]: A numpy dense or scipy sparse matrix or any python
 array\-like object or an instance of FrovedisCRSMatrix for sparse data
 and FrovedisRowmajorMatrix for dense data.
-If affinity="precomputed", it needs to be of shape (n_samples,
-n_samples).
+If affinity="precomputed", it needs to be of shape \f[B](n_samples,
+n_samples)\f[].
 .PD 0
 .P
 .PD
@@ -529,8 +537,8 @@ It prints the predicted cluster lables after training is completed.
 .P
 .PD
 It returns a numpy array of int32 type containing the cluster labels.
-It has a shape(n_samples,).
-.SS score(X, y, sample_weight = None)
+It has a shape \f[B](n_samples,)\f[].
+.SS 4. score(X, y, sample_weight = None)
 .PP
 \f[B]Parameters\f[]
 .PD 0
@@ -539,12 +547,12 @@ It has a shape(n_samples,).
 \f[B]\f[I]X\f[]\f[]: A numpy dense or scipy sparse matrix or any python
 array\-like object or an instance of FrovedisCRSMatrix for sparse data
 and FrovedisRowmajorMatrix for dense data.
-If affinity="precomputed", it needs to be of shape (n_samples,
-n_samples).
+If affinity="precomputed", it needs to be of shape \f[B](n_samples,
+n_samples)\f[].
 .PD 0
 .P
 .PD
-\f[B]\f[I]y\f[]\f[]: A python ndarray of shape (n_samples,).
+\f[B]\f[I]y\f[]\f[]: A python ndarray of shape \f[B](n_samples,)\f[].
 .PD 0
 .P
 .PD
@@ -581,7 +589,106 @@ Output
 .P
 .PD
 It returns a homogeneity score of float type.
-.SS load(fname, dtype = None)
+.SS 5. get_params(deep = True)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]\f[B]deep\f[]\f[]: A boolean parameter, used to get parameters and
+their values for an estimator.
+If True, it will return the parameters for an estimator and contained
+subobjects that are estimators.
+(Default: True)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+This method belongs to the BaseEstimator class inherited by
+SpectralClustering.
+It is used to get parameters and their values of SpectralClustering
+class.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+\ \ print(spec.get_params())
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+{\[aq]affinity\[aq]:\ \[aq]rbf\[aq],\ \[aq]assign_labels\[aq]:\ \[aq]kmeans\[aq],\ \[aq]coef0\[aq]:\ 1,\ \[aq]degree\[aq]:\ 3,\ \[aq]drop_first\[aq]:\ True,
+\[aq]eigen_solver\[aq]:\ \[aq]arpack\[aq],\ \[aq]eigen_tol\[aq]:\ 0.0,\ \[aq]eps\[aq]:\ 0.0001,\ \[aq]gamma\[aq]:\ 1.0,\ \[aq]kernel_params\[aq]:\ None,
+\[aq]max_iter\[aq]:\ 300,\ \[aq]mode\[aq]:\ 3,\ \[aq]n_clusters\[aq]:\ 2,\ \[aq]n_components\[aq]:\ 2,\ \[aq]n_init\[aq]:\ 10,\ \[aq]n_jobs\[aq]:\ None,
+\[aq]n_neighbors\[aq]:\ 10,\ \[aq]norm_laplacian\[aq]:\ True,\ \[aq]random_state\[aq]:\ None,\ \[aq]verbose\[aq]:\ 0}
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+A dictionary of parameter names mapped to their values.
+.SS 6. set_params(**params)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]\f[B]**params\f[]\f[]: All the keyword arguments are passed this
+function as dictionary.
+This dictionary contains parameters of an estimator with its given
+values to set.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+This method belongs to the BaseEstimator class inherited by
+SpectralClustering, used to set parameter values.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+print("get\ parameters\ before\ setting:")\ 
+print(spec.get_params())
+#\ User\ just\ needs\ to\ provide\ the\ arguments\ and\ internally\ it\ will\ create\ a\ 
+dictionary\ over\ the\ arguments\ given\ by\ user
+spec.set_params(n_clusters=3,\ affinity\ =\ \[aq]precomputed\[aq])\ 
+print("get\ parameters\ after\ setting:")\ 
+print(spec.get_params())
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+get\ parameters\ before\ setting:
+{\[aq]affinity\[aq]:\ \[aq]rbf\[aq],\ \[aq]assign_labels\[aq]:\ \[aq]kmeans\[aq],\ \[aq]coef0\[aq]:\ 1,\ \[aq]degree\[aq]:\ 3,\ \[aq]drop_first\[aq]:\ True,
+\[aq]eigen_solver\[aq]:\ \[aq]arpack\[aq],\ \[aq]eigen_tol\[aq]:\ 0.0,\ \[aq]eps\[aq]:\ 0.0001,\ \[aq]gamma\[aq]:\ 1.0,\ \[aq]kernel_params\[aq]:\ None,
+\[aq]max_iter\[aq]:\ 300,\ \[aq]mode\[aq]:\ 3,\ \[aq]n_clusters\[aq]:\ 2,\ \[aq]n_components\[aq]:\ 2,\ \[aq]n_init\[aq]:\ 10,\ \[aq]n_jobs\[aq]:\ None,
+\[aq]n_neighbors\[aq]:\ 10,\ \[aq]norm_laplacian\[aq]:\ True,\ \[aq]random_state\[aq]:\ None,\ \[aq]verbose\[aq]:\ 0}
+get\ parameters\ after\ setting:
+{\[aq]affinity\[aq]:\ \[aq]precomputed\[aq],\ \[aq]assign_labels\[aq]:\ \[aq]kmeans\[aq],\ \[aq]coef0\[aq]:\ 1,\ \[aq]degree\[aq]:\ 3,\ \[aq]drop_first\[aq]:\ True,
+\[aq]eigen_solver\[aq]:\ \[aq]arpack\[aq],\ \[aq]eigen_tol\[aq]:\ 0.0,\ \[aq]eps\[aq]:\ 0.0001,\ \[aq]gamma\[aq]:\ 1.0,\ \[aq]kernel_params\[aq]:\ None,
+\[aq]max_iter\[aq]:\ 300,\ \[aq]mode\[aq]:\ 3,\ \[aq]n_clusters\[aq]:\ 3,\ \[aq]n_components\[aq]:\ 2,\ \[aq]n_init\[aq]:\ 10,\ \[aq]n_jobs\[aq]:\ None,
+\[aq]n_neighbors\[aq]:\ 10,\ \[aq]norm_laplacian\[aq]:\ True,\ \[aq]random_state\[aq]:\ None,\ \[aq]verbose\[aq]:\ 0}
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It simply returns "self" reference.
+.SS 7. load(fname, dtype = None)
 .PP
 \f[B]Parameters\f[]
 .PD 0
@@ -615,8 +722,8 @@ spec.load("./out/MySpecClusteringModel",\ dtype\ =\ np.float64)
 .PD 0
 .P
 .PD
-It simply returns "self" instance.
-.SS save(fname)
+It simply returns "self" reference.
+.SS 8. save(fname)
 .PP
 \f[B]Parameters\f[]
 .PD 0
@@ -645,12 +752,50 @@ spec.save("./out/MySpecClusteringModel")\ \
 This will save the spectral clustering model on the path
 "/out/MySpecClusteringModel".
 .PP
+The \[aq]MySpecClusteringModel\[aq] directory has
+.PP
+\f[B]MySpecClusteringModel\f[]
+.PD 0
+.P
+.PD
+|\-\-\-\-\-metadata
+.PD 0
+.P
+.PD
+|\-\-\-\-\-\f[B]model\f[]
+.PD 0
+.P
+.PD
+\ \ \ \ \ \ |\-\-\-\-\-\-\-\- aff_type
+.PD 0
+.P
+.PD
+\ \ \ \ \ \ |\-\-\-\-\-\-\-\- \f[B]affinity\f[]
+.PD 0
+.P
+.PD
+\ \ \ \ \ \ |\-\-\-\-\-\-\-\- cluster_size
+.PD 0
+.P
+.PD
+\ \ \ \ \ \ |\-\-\-\-\-\-\-\- label
+.PP
+The metadata file contains the number of clusters, number of components,
+model kind, input datatype used for trained model.
+.PD 0
+.P
+.PD
+Here, the \f[B]model\f[] directory contains information about affinity
+type, labels, cluster size and \f[B]affinity\f[] matrix (sparse or
+dense, depending upon python/frovedis input and affinity is
+\[aq]rbf\[aq], \[aq]precomputed\[aq] or \[aq]nearest_neighbors\[aq]).
+.PP
 \f[B]Return Value\f[]
 .PD 0
 .P
 .PD
 It returns nothing.
-.SS debug_print()
+.SS 9. debug_print()
 .PP
 \f[B]Purpose\f[]
 .PD 0
@@ -690,7 +835,7 @@ ncluster:\ 2
 .P
 .PD
 It returns nothing.
-.SS release()
+.SS 10. release()
 .PP
 \f[B]Purpose\f[]
 .PD 0
@@ -714,7 +859,7 @@ releasing server side memory.
 .P
 .PD
 It returns nothing.
-.SS is_fitted()
+.SS 11. is_fitted()
 .PP
 \f[B]Purpose\f[]
 .PD 0

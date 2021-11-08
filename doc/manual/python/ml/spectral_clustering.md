@@ -26,6 +26,8 @@ class frovedis.mllib.cluster.SpectralClustering(n_clusters=8, eigen_solver=None,
 fit(X, y = None)  
 fit_predict(X, y = None)  
 score(X, y, sample_weight = None)  
+get_params(deep = True)  
+set_params(\*\*params)  
 load(fname, dtype = None)  
 save(fname)  
 debug_print()  
@@ -59,7 +61,7 @@ server, the output would be sent back to the python client.
 
 ## Detailed Description
 
-### SpectralClustering()  
+### 1. SpectralClustering()  
 
 __Parameters__  
  **_n\_clusters_**: A positive integer parameter specifying the number of clusters. The 
@@ -131,8 +133,8 @@ For frovedis-like sparse input:
   - When affinity = 'precomputed/nearest_neighbors', it a returns FrovedisCRSMatrix  
   - When affinity = 'rbf', it returns a FrovedisRowmajorMatrix  
   
-In all cases, the output is of float or double (float64) type and of shape (n_samples, n_samples).  
-**_labels\__**: A python ndarray of int64 values and has shape(n_clusters,). It contains 
+In all cases, the output is of float or double (float64) type and of shape **(n_samples, n_samples)**.  
+**_labels\__**: A python ndarray of int64 values and has shape **(n_clusters,)**. It contains 
 predicted cluster labels for each point.  
 
 __Purpose__  
@@ -145,11 +147,11 @@ not used anywhere within frovedis implementation.
 __Return Value__  
 It simply returns "self" reference. 
 
-### fit(X, y = None)
+### 2. fit(X, y = None)
 __Parameters__  
 **_X_**: A numpy dense or scipy sparse matrix or any python array-like object or 
 an instance of FrovedisCRSMatrix for sparse data and FrovedisRowmajorMatrix for dense data. If 
-affinity="precomputed", it needs to be of shape (n_samples, n_samples).  
+affinity="precomputed", it needs to be of shape **(n_samples, n_samples)**.  
 **_y_**: None or any python array-like object (any shape). It is simply ignored in frovedis
 implementation, as in Scikit-learn as well.  
 
@@ -167,7 +169,7 @@ For example,
 
 When native python data is provided, it is converted to frovedis-like inputs and 
 sent to frovedis server which consumes some data transfer time. Pre-constructed 
-frovedlis-like inputs can be used to speed up the training time, especially when 
+frovedis-like inputs can be used to speed up the training time, especially when 
 same data would be used for multiple executions.  
 
 For example,   
@@ -187,11 +189,11 @@ For example,
 __Return Value__  
 It simply returns "self" reference.  
 
-### fit_predict(X, y = None)  
+### 3. fit_predict(X, y = None)  
 __Parameters__  
 **_X_**: A numpy dense or scipy sparse matrix or any python array-like object or 
 an instance of FrovedisCRSMatrix for sparse data and FrovedisRowmajorMatrix for dense data. If 
-affinity="precomputed", it needs to be of shape (n_samples, n_samples).  
+affinity="precomputed", it needs to be of shape **(n_samples, n_samples)**.  
 **_y_**: None or any python array-like object (any shape). It is simply ignored in frovedis
 implementation, as in Scikit-learn as well.  
 
@@ -239,14 +241,14 @@ Output
 It prints the predicted cluster lables after training is completed.  
 
 __Return Value__  
-It returns a numpy array of int32 type containing the cluster labels. It has a shape(n_samples,).   
+It returns a numpy array of int32 type containing the cluster labels. It has a shape **(n_samples,)**.   
 
-### score(X, y, sample_weight = None)  
+### 4. score(X, y, sample_weight = None)  
 __Parameters__   
 **_X_**: A numpy dense or scipy sparse matrix or any python array-like object or 
 an instance of FrovedisCRSMatrix for sparse data and FrovedisRowmajorMatrix for dense data. If 
-affinity="precomputed", it needs to be of shape (n_samples, n_samples).  
-**_y_**: A python ndarray of shape (n_samples,).  
+affinity="precomputed", it needs to be of shape **(n_samples, n_samples)**.  
+**_y_**: A python ndarray of shape **(n_samples,)**.  
 **_sample\_weight_**: An unused parameter whose default value is None. It is simply ignored 
 in frovedis implementation.  
 
@@ -265,7 +267,66 @@ Output
 __Return Value__  
 It returns a homogeneity score of float type.
 
-### load(fname, dtype = None)
+### 5. get_params(deep = True)  
+__Parameters__   
+_**deep**_: A boolean parameter, used to get parameters and their values for an estimator. If True, 
+it will return the parameters for an estimator and contained subobjects that are estimators. (Default: True)  
+
+__Purpose__    
+This method belongs to the BaseEstimator class inherited by SpectralClustering. It is used to get 
+parameters and their values of SpectralClustering class.  
+
+For example, 
+ 
+      print(spec.get_params())
+
+Output  
+
+    {'affinity': 'rbf', 'assign_labels': 'kmeans', 'coef0': 1, 'degree': 3, 'drop_first': True,
+    'eigen_solver': 'arpack', 'eigen_tol': 0.0, 'eps': 0.0001, 'gamma': 1.0, 'kernel_params': None,
+    'max_iter': 300, 'mode': 3, 'n_clusters': 2, 'n_components': 2, 'n_init': 10, 'n_jobs': None,
+    'n_neighbors': 10, 'norm_laplacian': True, 'random_state': None, 'verbose': 0}
+
+__Return Value__  
+A dictionary of parameter names mapped to their values.  
+
+### 6. set_params(\*\*params)  
+__Parameters__  
+_**\*\*params**_: All the keyword arguments are passed this function as dictionary. This dictionary 
+contains parameters of an estimator with its given values to set.  
+
+__Purpose__  
+This method belongs to the BaseEstimator class inherited by SpectralClustering, used to set 
+parameter values.  
+
+For example,   
+
+    print("get parameters before setting:") 
+    print(spec.get_params())
+    # User just needs to provide the arguments and internally it will create a 
+    dictionary over the arguments given by user
+    spec.set_params(n_clusters=3, affinity = 'precomputed') 
+    print("get parameters after setting:") 
+    print(spec.get_params())
+
+Output  
+     
+    get parameters before setting:
+    {'affinity': 'rbf', 'assign_labels': 'kmeans', 'coef0': 1, 'degree': 3, 'drop_first': True,
+    'eigen_solver': 'arpack', 'eigen_tol': 0.0, 'eps': 0.0001, 'gamma': 1.0, 'kernel_params': None,
+    'max_iter': 300, 'mode': 3, 'n_clusters': 2, 'n_components': 2, 'n_init': 10, 'n_jobs': None,
+    'n_neighbors': 10, 'norm_laplacian': True, 'random_state': None, 'verbose': 0}
+    get parameters after setting:
+    {'affinity': 'precomputed', 'assign_labels': 'kmeans', 'coef0': 1, 'degree': 3, 'drop_first': True,
+    'eigen_solver': 'arpack', 'eigen_tol': 0.0, 'eps': 0.0001, 'gamma': 1.0, 'kernel_params': None,
+    'max_iter': 300, 'mode': 3, 'n_clusters': 3, 'n_components': 2, 'n_init': 10, 'n_jobs': None,
+    'n_neighbors': 10, 'norm_laplacian': True, 'random_state': None, 'verbose': 0}
+    
+__Return Value__  
+It simply returns "self" reference.  
+
+
+### 7. load(fname, dtype = None)
 __Parameters__   
 **_fname_**:  A string object containing the name of the file having model information
 to be loaded.  
@@ -281,9 +342,9 @@ For example,
     spec.load("./out/MySpecClusteringModel", dtype = np.float64)
 
 __Return Value__  
-It simply returns "self" instance.   
+It simply returns "self" reference.   
 
-### save(fname)
+### 8. save(fname)
 __Parameters__   
 **_fname_**: A string object containing the name of the file on which the target 
 model is to be saved.  
@@ -299,10 +360,26 @@ For example,
 
 This will save the spectral clustering model on the path "/out/MySpecClusteringModel".  
 
+The 'MySpecClusteringModel' directory has  
+
+**MySpecClusteringModel**  
+|-----metadata  
+|-----**model**  
+\ \ \ \ \ \ |-------- aff_type  
+\ \ \ \ \ \ |-------- **affinity**  
+\ \ \ \ \ \ |-------- cluster_size  
+\ \ \ \ \ \ |-------- label  
+
+The metadata file contains the number of clusters, number of components, model kind, input datatype 
+used for trained model.  
+Here, the **model** directory contains information about affinity type, labels, cluster size and 
+**affinity** matrix (sparse or dense, depending upon python/frovedis input and affinity is 'rbf', 
+'precomputed' or 'nearest_neighbors').  
+
 __Return Value__  
 It returns nothing.   
 
-### debug_print()
+### 9. debug_print()
 
 __Purpose__   
 It shows the target model information (affinity matrix) on the server side user terminal. 
@@ -328,7 +405,7 @@ Output
 __Return Value__  
 It returns nothing.  
 
-### release()  
+### 10. release()  
 
 __Purpose__  
 It can be used to release the in-memory model at frovedis server.  
@@ -343,7 +420,7 @@ side memory.
 __Return Value__  
 It returns nothing.   
 
-### is_fitted()  
+### 11. is_fitted()  
 
 __Purpose__  
 It can be used to confirm if the model is already fitted or not.  
