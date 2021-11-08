@@ -23,6 +23,8 @@ fit(X, y = None)
 fit_predict(X, y = None)  
 reassign(ncluster = None)  
 score(X, y, sample_weight = None)  
+get_params(deep = True)  
+set_params(\*\*params)  
 load(fname, dtype = None)  
 save(fname)  
 debug_print()  
@@ -87,12 +89,12 @@ or 2 (for TRACE mode) for getting training time logs from frovedis server.
 __Attributes__  
 **_n\_clusters\__**: A positive integer value specifying the number of clusters found by 
 the algorithm.  
-**_labels\__**: A python ndarray of int64 values and has shape (n_clusters,). It contains 
+**_labels\__**: A python ndarray of int64 values and has shape **(n_clusters,)**. It contains 
 cluster labels for each point.  
-**_children\__**: A python ndarray of int64 values and has shape (n_samples - 1, 2). It
+**_children\__**: A python ndarray of int64 values and has shape **(n_samples - 1, 2)**. It
 contains the children of each non-leaf node.  
 **_distances\__**: A python ndarray of float or double(float64) values and has 
-shape (n_samples - 1,). It is the distances between nodes in the corresponding place in "children_".  
+shape **(n_samples - 1,)**. It is the distances between nodes in the corresponding place in "children_".  
 **_n\_connected\_components\__**: An integer value used to provide the estimated number of 
 connected components in the graph.  
 
@@ -194,7 +196,7 @@ Output
     [1 1 0 0 0]
     
 __Return Value__  
-It returns a numpy array of int64 type containing the cluster labels. It has a shape(n_samples,).  
+It returns a numpy array of int64 type containing the cluster labels. It has a shape **(n_samples,)**.  
 
 ### 4. reassign(ncluster = None)  
 __Parameters__   
@@ -219,13 +221,13 @@ Output
     [0 0 1 1 2]  
 
 __Return Value__  
-It returns a numpy array of int64 type containing the cluster labels. It has a shape(n_samples,).  
+It returns a numpy array of int64 type containing the cluster labels. It has a shape **(n_samples,)**.  
 
 ### 5. score(X, y, sample_weight = None)  
 __Parameters__   
 **_X_**: A numpy dense or scipy sparse matrix or any python array-like object or 
 an instance of FrovedisCRSMatrix for sparse data and FrovedisRowmajorMatrix for dense data.  
-**_y_**: A python ndarray and has shape (n_samples,1).  
+**_y_**: A python ndarray and has shape **(n_samples,1)**.  
 **_sample\_weight_**: An unused parameter whose default value is None. It is simply ignored 
 in frovedis implementation.  
 
@@ -244,7 +246,62 @@ Output
 __Return Value__  
 It returns a homogeneity score of float type.
 
-### 6. load(fname, dtype = None)  
+### 6. get_params(deep = True)  
+__Parameters__   
+_**deep**_: A boolean parameter, used to get parameters and their values for an estimator. If True, 
+it will return the parameters for an estimator and contained subobjects that are estimators. (Default: True)  
+
+__Purpose__    
+This method belongs to the BaseEstimator class inherited by AgglomerativeClustering. It is used to get 
+parameters and their values of AgglomerativeClustering class.  
+
+For example, 
+ 
+      print(acm.get_params())
+
+Output  
+
+    {'affinity': 'euclidean', 'compute_distances': True, 'compute_full_tree': 'auto',  
+    'connectivity': None, 'distance_threshold': None, 'linkage': 'average', 'memory': None,
+    'n_clusters': 3, 'verbose': 0}
+
+__Return Value__  
+A dictionary of parameter names mapped to their values.  
+
+### 7. set_params(\*\*params)  
+__Parameters__  
+_**\*\*params**_: All the keyword arguments are passed this function as dictionary. This dictionary 
+contains parameters of an estimator with its given values to set.  
+
+__Purpose__  
+This method belongs to the BaseEstimator class inherited by AgglomerativeClustering, used to set 
+parameter values.  
+
+For example,   
+
+    print("get parameters before setting:") 
+    print(acm.get_params())
+    # User just needs to provide the arguments and internally it will create a 
+    dictionary over the arguments given by user
+    acm.set_params(n_clusters = 4) 
+    print("get parameters after setting:") 
+    print(acm.get_params())
+
+Output  
+     
+    get parameters before setting:
+    {'affinity': 'euclidean', 'compute_distances': True, 'compute_full_tree': 'auto',  
+    'connectivity': None, 'distance_threshold': None, 'linkage': 'average', 'memory': None,
+    'n_clusters': 3, 'verbose': 0}
+    get parameters after setting:
+    {'affinity': 'euclidean', 'compute_distances': True, 'compute_full_tree': 'auto',  
+    'connectivity': None, 'distance_threshold': None, 'linkage': 'average', 'memory': None,
+    'n_clusters': 4, 'verbose': 0}
+    
+__Return Value__  
+It simply returns "self" reference.  
+
+### 8. load(fname, dtype = None)  
 __Parameters__   
 **_fname_**:  A string object containing the name of the file having model information
 to be loaded.  
@@ -262,7 +319,7 @@ For example,
 __Return Value__  
 It simply returns "self" instance.  
 
-### 7. save(fname)  
+### 9. save(fname)  
 __Parameters__  
 **_fname_**: A string object containing the name of the file on which the target 
 model is to be saved.  
@@ -278,10 +335,20 @@ For example,
 
 This will save the agglomerative clustering model on the path "/out/MyAcmClusteringModel".  
 
+The 'MyAcmClusteringModel' directory has  
+
+**MyAcmClusteringModel**  
+|-------- metadata  
+|-------- **model**  
+
+The metadata file contains the number of clusters, number of samples, model kind, input datatype 
+used for trained model.  
+Here, the **model** directory contains information about dendogram.  
+
 __Return Value__  
 It returns nothing.
 
-### 8. debug_print()  
+### 10. debug_print()  
 
 __Purpose__  
 It shows the target model information(dendogram) on the server side user terminal. 
@@ -306,7 +373,7 @@ Using the dendrogram, the desired number of clusters may be found.
 __Return Value__  
 It returns nothing.  
 
-### 9. release()  
+### 11. release()  
 
 __Purpose__  
 It can be used to release the in-memory model at frovedis server.  
@@ -321,7 +388,7 @@ side memory.
 __Return Value__  
 It returns nothing.  
 
-### 10. is_fitted()  
+### 12. is_fitted()  
 
 __Purpose__  
 It can be used to confirm if the model is already fitted or not. In case, reassign() is used 

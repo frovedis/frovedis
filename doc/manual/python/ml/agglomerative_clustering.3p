@@ -49,6 +49,14 @@ score(X, y, sample_weight = None)
 .PD 0
 .P
 .PD
+get_params(deep = True)
+.PD 0
+.P
+.PD
+set_params(**params)
+.PD 0
+.P
+.PD
 load(fname, dtype = None)
 .PD 0
 .P
@@ -198,19 +206,19 @@ number of clusters found by the algorithm.
 .P
 .PD
 \f[B]\f[I]labels_\f[]\f[]: A python ndarray of int64 values and has
-shape (n_clusters,).
+shape \f[B](n_clusters,)\f[].
 It contains cluster labels for each point.
 .PD 0
 .P
 .PD
 \f[B]\f[I]children_\f[]\f[]: A python ndarray of int64 values and has
-shape (n_samples \- 1, 2).
+shape \f[B](n_samples \- 1, 2)\f[].
 It contains the children of each non\-leaf node.
 .PD 0
 .P
 .PD
 \f[B]\f[I]distances_\f[]\f[]: A python ndarray of float or
-double(float64) values and has shape (n_samples \- 1,).
+double(float64) values and has shape \f[B](n_samples \- 1,)\f[].
 It is the distances between nodes in the corresponding place in
 "children_".
 .PD 0
@@ -385,7 +393,7 @@ Output
 .P
 .PD
 It returns a numpy array of int64 type containing the cluster labels.
-It has a shape(n_samples,).
+It has a shape \f[B](n_samples,)\f[].
 .SS 4. reassign(ncluster = None)
 .PP
 \f[B]Parameters\f[]
@@ -434,7 +442,7 @@ Output
 .P
 .PD
 It returns a numpy array of int64 type containing the cluster labels.
-It has a shape(n_samples,).
+It has a shape \f[B](n_samples,)\f[].
 .SS 5. score(X, y, sample_weight = None)
 .PP
 \f[B]Parameters\f[]
@@ -447,7 +455,8 @@ and FrovedisRowmajorMatrix for dense data.
 .PD 0
 .P
 .PD
-\f[B]\f[I]y\f[]\f[]: A python ndarray and has shape (n_samples,1).
+\f[B]\f[I]y\f[]\f[]: A python ndarray and has shape
+\f[B](n_samples,1)\f[].
 .PD 0
 .P
 .PD
@@ -484,7 +493,103 @@ Output
 .P
 .PD
 It returns a homogeneity score of float type.
-.SS 6. load(fname, dtype = None)
+.SS 6. get_params(deep = True)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]\f[B]deep\f[]\f[]: A boolean parameter, used to get parameters and
+their values for an estimator.
+If True, it will return the parameters for an estimator and contained
+subobjects that are estimators.
+(Default: True)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+This method belongs to the BaseEstimator class inherited by
+AgglomerativeClustering.
+It is used to get parameters and their values of AgglomerativeClustering
+class.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+\ \ print(acm.get_params())
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+{\[aq]affinity\[aq]:\ \[aq]euclidean\[aq],\ \[aq]compute_distances\[aq]:\ True,\ \[aq]compute_full_tree\[aq]:\ \[aq]auto\[aq],\ \ 
+\[aq]connectivity\[aq]:\ None,\ \[aq]distance_threshold\[aq]:\ None,\ \[aq]linkage\[aq]:\ \[aq]average\[aq],\ \[aq]memory\[aq]:\ None,
+\[aq]n_clusters\[aq]:\ 3,\ \[aq]verbose\[aq]:\ 0}
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+A dictionary of parameter names mapped to their values.
+.SS 7. set_params(**params)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]\f[B]**params\f[]\f[]: All the keyword arguments are passed this
+function as dictionary.
+This dictionary contains parameters of an estimator with its given
+values to set.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+This method belongs to the BaseEstimator class inherited by
+AgglomerativeClustering, used to set parameter values.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+print("get\ parameters\ before\ setting:")\ 
+print(acm.get_params())
+#\ User\ just\ needs\ to\ provide\ the\ arguments\ and\ internally\ it\ will\ create\ a\ 
+dictionary\ over\ the\ arguments\ given\ by\ user
+acm.set_params(n_clusters\ =\ 4)\ 
+print("get\ parameters\ after\ setting:")\ 
+print(acm.get_params())
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+get\ parameters\ before\ setting:
+{\[aq]affinity\[aq]:\ \[aq]euclidean\[aq],\ \[aq]compute_distances\[aq]:\ True,\ \[aq]compute_full_tree\[aq]:\ \[aq]auto\[aq],\ \ 
+\[aq]connectivity\[aq]:\ None,\ \[aq]distance_threshold\[aq]:\ None,\ \[aq]linkage\[aq]:\ \[aq]average\[aq],\ \[aq]memory\[aq]:\ None,
+\[aq]n_clusters\[aq]:\ 3,\ \[aq]verbose\[aq]:\ 0}
+get\ parameters\ after\ setting:
+{\[aq]affinity\[aq]:\ \[aq]euclidean\[aq],\ \[aq]compute_distances\[aq]:\ True,\ \[aq]compute_full_tree\[aq]:\ \[aq]auto\[aq],\ \ 
+\[aq]connectivity\[aq]:\ None,\ \[aq]distance_threshold\[aq]:\ None,\ \[aq]linkage\[aq]:\ \[aq]average\[aq],\ \[aq]memory\[aq]:\ None,
+\[aq]n_clusters\[aq]:\ 4,\ \[aq]verbose\[aq]:\ 0}
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It simply returns "self" reference.
+.SS 8. load(fname, dtype = None)
 .PP
 \f[B]Parameters\f[]
 .PD 0
@@ -519,7 +624,7 @@ acm.load("./out/MyAcmClusteringModel",\ dtype\ =\ np.float64)
 .P
 .PD
 It simply returns "self" instance.
-.SS 7. save(fname)
+.SS 9. save(fname)
 .PP
 \f[B]Parameters\f[]
 .PD 0
@@ -548,12 +653,31 @@ acm.save("./out/MyAcmClusteringModel")\ \
 This will save the agglomerative clustering model on the path
 "/out/MyAcmClusteringModel".
 .PP
+The \[aq]MyAcmClusteringModel\[aq] directory has
+.PP
+\f[B]MyAcmClusteringModel\f[]
+.PD 0
+.P
+.PD
+|\-\-\-\-\-\-\-\- metadata
+.PD 0
+.P
+.PD
+|\-\-\-\-\-\-\-\- \f[B]model\f[]
+.PP
+The metadata file contains the number of clusters, number of samples,
+model kind, input datatype used for trained model.
+.PD 0
+.P
+.PD
+Here, the \f[B]model\f[] directory contains information about dendogram.
+.PP
 \f[B]Return Value\f[]
 .PD 0
 .P
 .PD
 It returns nothing.
-.SS 8. debug_print()
+.SS 10. debug_print()
 .PP
 \f[B]Purpose\f[]
 .PD 0
@@ -593,7 +717,7 @@ Using the dendrogram, the desired number of clusters may be found.
 .P
 .PD
 It returns nothing.
-.SS 9. release()
+.SS 11. release()
 .PP
 \f[B]Purpose\f[]
 .PD 0
@@ -617,7 +741,7 @@ releasing server side memory.
 .P
 .PD
 It returns nothing.
-.SS 10. is_fitted()
+.SS 12. is_fitted()
 .PP
 \f[B]Purpose\f[]
 .PD 0
