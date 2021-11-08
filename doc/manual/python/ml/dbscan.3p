@@ -1,0 +1,577 @@
+.TH "DBSCAN" "" "" "" ""
+.SH NAME
+.PP
+DBSCAN clustering \- \f[B]Density\-Based Spatial Clustering of
+Applications with Noise (DBSCAN)\f[] is a clustering algorithm commonly
+used in EDA (exploratory data analysis).
+It is a base algorithm for density\-based clustering, which can discover
+clusters of different shapes and sizes from a large amount of data,
+containing noise and outliers.
+.SH SYNOPSIS
+.PP
+class frovedis.mllib.cluster.DBSCAN(eps=0.5, min_samples=5,
+metric=‘euclidean',metric_params=None,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \ 
+\ algorithm=‘auto', leaf_size=30, p=None, n_jobs=None,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \ 
+\ batch_fraction=None, verbose=0)
+.SS Public Member Functions
+.PP
+fit(X, y = None, sample_weight = None)
+.PD 0
+.P
+.PD
+fit_predict(X, sample_weight = None)
+.PD 0
+.P
+.PD
+score(X, y, sample_weight = None)
+.PD 0
+.P
+.PD
+get_params(deep = True)
+.PD 0
+.P
+.PD
+set_params(**params)
+.PD 0
+.P
+.PD
+release()
+.PD 0
+.P
+.PD
+is_fitted()
+.SH DESCRIPTION
+.PP
+DBSCAN is a Density\-Based Clustering unsupervised learning algorithm
+that identifies distinctive groups/clusters in the data, based on the
+idea that a cluster in data space is a contiguous region of high
+point\-density, separated from other such clusters by contiguous regions
+of low point\-density.
+.PP
+It is able to find arbitrary shaped clusters and clusters with noise
+(i.e.
+outliers).
+The main idea behind DBSCAN is that a point belongs to a cluster if it
+is close to many points from that cluster.
+.PD 0
+.P
+.PD
+DBSCAN algorithm requires two key parameters: \f[B]eps\f[] and
+\f[B]min_samples\f[].
+.PP
+Based on these two parameters, the points are classified as core point,
+border point, or outlier:
+.PD 0
+.P
+.PD
+\f[B]Core point\f[]: A point is a core point if there are at least
+minPts number of points (including the point itself) in its surrounding
+area with radius eps.
+.PD 0
+.P
+.PD
+\f[B]Border point\f[]: A point is a border point if it is reachable from
+a core point and there are less than minPts number of points within its
+surrounding area.
+.PD 0
+.P
+.PD
+\f[B]Outlier\f[]: A point is an outlier if it is not a core point and
+not reachable from any core points.
+.PP
+The main advantage of using DBSCAN is that it is able to find
+arbitrarily size and arbitrarily shaped clusters and identify noise data
+while clustering.
+.PP
+This module provides a client\-server implementation, where the client
+application is a normal python program.
+Frovedis is almost same as Scikit\-learn clustering module providing
+DBSCAN support, but it doesn't have any dependency with Scikit\-learn.
+It can be used simply even if the system doesn't have Scikit\-learn
+installed.
+Thus, in this implementation, a python client can interact with a
+frovedis server sending the required python data for training at
+frovedis side.
+Python data is converted into frovedis compatible data internally and
+the python ML call is linked with the respective frovedis ML call to get
+the job done at frovedis server.
+.PP
+Python side calls for DBSCAN on the frovedis server.
+Once the training is completed with the input data at the frovedis
+server, it returns an abstract model with a unique model ID to the
+client python program.
+.PP
+When prediction\-like request would be made on the trained model, the
+python program will send the same request to the frovedis server.
+After the request is served at the frovedis server, the output would be
+sent back to the python client.
+.SS Detailed Description
+.SS 1. DBSCAN()
+.PP
+\f[B]Parameters\f[]
+.PP
+\f[I]\f[B]eps\f[]\f[]: A positive double(float64) parameter containing
+the epsilon value or distance that specifies the neighborhoods.
+Two points are considered to be neighbors if the distance between them
+is less than or equal to eps.
+(Default: 0.5)
+.PD 0
+.P
+.PD
+\f[I]\f[B]min_samples\f[]\f[]: A positive integer parameter which
+specifies the number of samples in a neighborhood for a point to be
+considered as a core point.
+.PD 0
+.P
+.PD
+This includes the point itself.
+(Default: 5)
+.PD 0
+.P
+.PD
+\f[I]\f[B]metric\f[]\f[]: A string object parameter used when
+calculating distance between instances in a feature array.
+(Default: \[aq]euclidean\[aq])
+.PD 0
+.P
+.PD
+It only supports \[aq]euclidean\[aq] distance.
+.PD 0
+.P
+.PD
+\f[I]\f[B]metric_params\f[]\f[]: It is unused parameter which is an
+additional keyword arguments for the metric function.
+(Default: None)
+.PD 0
+.P
+.PD
+\f[I]\f[B]algorithm\f[]\f[]: A string object parameter, used to compute
+pointwise distances and find nearest neighbors.
+(Default: \[aq]auto\[aq])
+.PD 0
+.P
+.PD
+When it is \[aq]auto\[aq], it will be set as
+\[aq]brute\[aq](brute\-force search approach).
+Unlike Scikit\-learn, currently it supports only \[aq]brute\[aq].
+.PD 0
+.P
+.PD
+\f[I]\f[B]leaf_size\f[]\f[]: An unused parameter, which is used to
+affect the speed of the construction and query.
+(Default: 30)
+.PD 0
+.P
+.PD
+\f[I]\f[B]p\f[]\f[]: An unused parameter specifying the power of the
+Minkowski metric to be used to calculate distance between points.
+(Default: None)
+.PD 0
+.P
+.PD
+\f[I]\f[B]n_jobs\f[]\f[]: An unused parameter specifying the number of
+parallel jobs to run.
+(Default: None)
+.PD 0
+.P
+.PD
+\f[I]\f[B]batch_fraction\f[]\f[]: A positive double(float64) parameter
+used to calculate the batches of specific size.
+These batches are used to construct the distance matrix.
+(Default: None)
+.PD 0
+.P
+.PD
+It must be within the range of 0.0 to 1.0.
+When it is None (not specified explicitly), it will be set as
+np.finfo(np.float64).max value.
+.PD 0
+.P
+.PD
+\f[I]\f[B]verbose\f[]\f[]: An integer parameter specifying the log level
+to use.
+Its value is set as 0 by default(for INFO mode).
+But it can be set to 1(for DEBUG mode) or 2(for TRACE mode) for getting
+training time logs from frovedis server.
+.PP
+\f[B]Attributes\f[]
+.PD 0
+.P
+.PD
+\f[I]\f[B]labels_\f[]\f[]: It is a python ndarray, containing int64
+typed values and has shape \f[B](n_samples,)\f[].
+These are the coordinates of cluster centers.
+.PD 0
+.P
+.PD
+\f[I]\f[B]core_sample_indices_\f[]\f[]: It is a python ndarray,
+containing int32 or int64 typed values and has shape
+\f[B](n_samples)\f[].
+These are the core samples indices.
+.PD 0
+.P
+.PD
+\f[I]\f[B]components_\f[]\f[]: It is a numpy array or
+FrovedisRowmajorMatrix, containing float or double(float64) typed values
+and has shape \f[B](n_samples, n_features)\f[].
+.PD 0
+.P
+.PD
+These are the copy of each core sample found by training.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It initializes a DBSCAN object with the given parameters.
+.PP
+The parameters: "metric_params", "leaf_size", "p" and "n_jobs" are
+simply kept to make the interface uniform to Scikit\-learn DBSCAN
+clustering module.
+They are not used anywhere within frovedis implementation.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It simply returns "self" reference.
+.SS 2. fit(X, y = None, sample_weight = None)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]\f[B]X\f[]\f[]: A numpy dense or scipy sparse matrix or any python
+array\-like object or an instance of FrovedisCRSMatrix for sparse data
+and FrovedisRowmajorMatrix for dense data of float or double(float64)
+type.
+It has shape \f[B](n_samples, n_features)\f[].
+.PD 0
+.P
+.PD
+\f[I]\f[B]y\f[]\f[]: None or any python array\-like object (any shape).
+It is simply ignored in frovedis implementation, like in Scikit\-learn.
+.PD 0
+.P
+.PD
+\f[I]\f[B]sample_weight\f[]\f[]: Python array\-like containing the
+intended weights for each input samples and it should be the shape of
+\f[B](nsamples, )\f[].
+When it is None (not specified explicitly), an uniform weight vector is
+assigned on each input sample.
+.PP
+\f[B]Purpose\f[]
+.PP
+It clusters the given data points (X).
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ loading\ sample\ matrix\ data
+train_mat\ =\ np.loadtxt("sample_data.txt")
+
+#\ fitting\ input\ matrix\ on\ DBSCAN\ object
+from\ frovedis.mllib.cluster\ import\ DBSCAN
+dbm\ =\ DBSCAN(eps\ =\ 5,\ min_samples\ =\ 2).fit(train_mat)\ \ \ 
+\f[]
+.fi
+.PP
+When native python data is provided, it is converted to frovedis\-like
+inputs and sent to frovedis server which consumes some data transfer
+time.
+Pre\-constructed frovedis\-like inputs can be used to speed up the
+training time, especially when same data would be used for multiple
+executions.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ loading\ sample\ matrix\ data
+train_mat\ =\ np.loadtxt("sample_data.txt")
+
+#\ Since\ "train_mat"\ is\ numpy\ dense\ data,\ we\ have\ created\ FrovedisRowmajorMatrix.
+#\ For\ scipy\ sparse\ data,\ FrovedisCRSMatrix\ should\ be\ used\ instead.\ \ \ 
+from\ frovedis.matrix.dense\ import\ FrovedisRowmajorMatrix
+rmat\ =\ FrovedisRowmajorMatrix(train_mat)
+
+#\ DBSCAN\ with\ pre\-constructed\ frovedlis\-like\ inputs
+from\ frovedis.mllib.cluster\ import\ DBSCAN
+dbm\ =\ DBSCAN(eps\ =\ 5,\ min_samples\ =\ 2).fit(rmat)
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It simply returns "self" reference.
+.SS 3. fit_predict(X, sample_weight = None)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]\f[B]X\f[]\f[]: A numpy dense or scipy sparse matrix or any python
+array\-like object or an instance of FrovedisCRSMatrix for sparse data
+and FrovedisRowmajorMatrix for dense data of float or double(float64)
+type.
+It has shape \f[B](n_samples, n_features)\f[].
+.PD 0
+.P
+.PD
+\f[I]\f[B]sample_weight\f[]\f[]: Python array\-like containing the
+intended weights for each input samples and it should be the shape of
+\f[B](nsamples, )\f[].
+When it is None (not specified explicitly), an uniform weight vector is
+assigned on each input sample.
+.PP
+\f[B]Purpose\f[]
+.PP
+It computes the clusters from the given data points (X) or distance
+matrix and predict labels.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ loading\ sample\ matrix\ data
+train_mat\ =\ np.loadtxt("sample_data.txt")
+
+#\ fitting\ input\ matrix\ on\ DBSCAN\ object
+from\ frovedis.mllib.cluster\ import\ DBSCAN
+dbm\ =\ DBSCAN(eps\ =\ 5,\ min_samples\ =\ 2)
+print(dbm.fit_predict(train_mat))\ \ \ \ 
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+[0\ 0\ 1\ 1\ 1]
+\f[]
+.fi
+.PP
+Like in fit() frovedis\-like input can be used to speed\-up training at
+server side.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ loading\ sample\ matrix\ data
+train_mat\ =\ np.loadtxt("sample_data.txt")
+
+#\ Since\ "train_mat"\ is\ numpy\ dense\ data,\ we\ have\ created\ FrovedisRowmajorMatrix.
+#\ For\ scipy\ sparse\ data,\ FrovedisCRSMatrix\ should\ be\ used\ instead.\ \ \ 
+from\ frovedis.matrix.dense\ import\ FrovedisRowmajorMatrix
+rmat\ =\ FrovedisRowmajorMatrix(train_mat)
+
+#\ using\ pre\-constructed\ input\ matrix
+from\ frovedis.mllib.cluster\ import\ DBSCAN
+dbm\ =\ DBSCAN(eps\ =\ 5,\ min_samples\ =\ 2)
+print(dbm.fit_predict(rmat))\ \ \ \ 
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+[0\ 0\ 1\ 1\ 1]
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns a numpy array of int64 type containing the cluster labels,
+with shape \f[B](n_samples,)\f[].
+.SS 4. score(X, y, sample_weight = None)
+.PP
+\f[I]\f[B]X\f[]\f[]: A numpy dense or scipy sparse matrix or any python
+array\-like object or an instance of FrovedisCRSMatrix for sparse data
+and FrovedisRowmajorMatrix for dense data of float or double(float64)
+type.
+It has shape \f[B](n_samples, n_features)\f[].
+.PD 0
+.P
+.PD
+\f[I]\f[B]y\f[]\f[]: A python ndarray of int64 type.
+It has shape \f[B](n_samples,)\f[].
+.PD 0
+.P
+.PD
+\f[I]\f[B]sample_weight\f[]\f[]: An unused parameter whose default value
+is None.
+It is simply ignored in frovedis implementation, like in Scikit\-learn
+as well.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It calculates homogeneity score on given test data and labels i.e
+homogeneity score of self.predict(X, y) wrt.
+y.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+dbm.score(train_mat,\ [0\ 0\ 1\ 1\ 1])
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+1.0
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns a score of float type.
+.SS 5. get_params(deep = True)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]\f[B]deep\f[]\f[]: A boolean parameter, used to get parameters and
+their values for an estimator.
+If True, will return the parameters for an estimator and contained
+subobjects that are estimators.
+(Default: True)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+This method belongs to the BaseEstimator class inherited by DBSCAN.
+It is used to get parameters and their values of DBSCAN class.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+\ \ print(dbm.get_params())
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+\ {\[aq]algorithm\[aq]:\ \[aq]auto\[aq],\ \[aq]batch_fraction\[aq]:\ None,\ \[aq]eps\[aq]:\ 5,\ \[aq]leaf_size\[aq]:\ 30,\ \[aq]metric\[aq]:\ \[aq]euclidean\[aq],\ 
+\ \[aq]metric_params\[aq]:\ None,\ \[aq]min_samples\[aq]:\ 2,\ \[aq]n_jobs\[aq]:\ None,\ \[aq]p\[aq]:\ None,\ \[aq]verbose\[aq]:\ 0}
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+A dictionary of parameter names mapped to their values.
+.SS 6. set_params(**params)
+.PP
+\f[B]Parameters\f[]
+.PP
+\f[I]\f[B]params\f[]\f[]: All the keyword arguments are passed this
+function as dictionary.
+This dictionary contains parameters of an estimator with its given
+values to set.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+This method belongs to the BaseEstimator class inherited by DBSCAN, used
+to set parameter values.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+print("get\ parameters\ before\ setting:",\ kmeans.get_params())
+kmeans.set_params(n_clusters=4,\ n_init=5)
+print("get\ parameters\ after\ setting:",\ kmeans.get_params())
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+get\ parameters\ before\ setting:\ {\[aq]algorithm\[aq]:\ \[aq]auto\[aq],\ \[aq]copy_x\[aq]:\ True,\ \[aq]init\[aq]:\ \[aq]random\[aq],\ \[aq]max_iter\[aq]:\ 300,\ 
+\[aq]n_clusters\[aq]:\ 2,\ \[aq]n_init\[aq]:\ 1,\ \[aq]n_jobs\[aq]:\ 1,\ \[aq]precompute_distances\[aq]:\ \[aq]auto\[aq],\ \[aq]random_state\[aq]:\ None,\ 
+\[aq]tol\[aq]:\ 0.0001,\ \[aq]use_shrink\[aq]:\ False,\ \[aq]verbose\[aq]:\ 0}
+get\ parameters\ after\ setting:\ {\[aq]algorithm\[aq]:\ \[aq]auto\[aq],\ \[aq]copy_x\[aq]:\ True,\ \[aq]init\[aq]:\ \[aq]random\[aq],\ \[aq]max_iter\[aq]:\ 300,\ 
+\[aq]n_clusters\[aq]:\ 4,\ \[aq]n_init\[aq]:\ 5,\ \[aq]n_jobs\[aq]:\ 1,\ \[aq]precompute_distances\[aq]:\ \[aq]auto\[aq],\ \[aq]random_state\[aq]:\ None,\ 
+\[aq]tol\[aq]:\ 0.0001,\ \[aq]use_shrink\[aq]:\ False,\ \[aq]verbose\[aq]:\ 0}
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It simply returns "self" reference.
+.SS 7. release()
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It can be used to release the in\-memory model at frovedis server.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+dbm.release()
+\f[]
+.fi
+.PP
+This will reset the after\-fit populated attributes to None, along with
+releasing server side memory.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns nothing.
+.SS 8. is_fitted()
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It can be used to confirm if the model is already fitted or not.
+In case, fit_predict() is used before training the model, then it can
+prompt the user to train the clustering model first.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns ‘True', if the model is already fitted otherwise, it returns
+‘False'.
+.SS SEE ALSO
+.PP
+rowmajor_matrix, crs_matrix
