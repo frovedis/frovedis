@@ -56,6 +56,14 @@ save(fname)
 .PD 0
 .P
 .PD
+get_params(deep = True)
+.PD 0
+.P
+.PD
+set_params(**params)
+.PD 0
+.P
+.PD
 debug_print()
 .PD 0
 .P
@@ -213,14 +221,14 @@ by reducing communication overhead across participating processes.
 .P
 .PD
 \f[I]\f[B]cluster_centers_\f[]\f[]: It is a python ndarray, containing
-float or double(float64) typed values and has shape (n_clusters,
-n_features).
+float or double(float64) typed values and has shape \f[B](n_clusters,
+n_features)\f[].
 These are the coordinates of cluster centers.
 .PD 0
 .P
 .PD
 \f[I]\f[B]labels_\f[]\f[]: A python ndarray of int64 values and has
-shape(n_clusters,).
+shape \f[B](n_clusters,)\f[].
 It contains predicted cluster labels for each point.
 .PD 0
 .P
@@ -260,7 +268,7 @@ It simply returns "self" reference.
 array\-like object or an instance of FrovedisCRSMatrix for sparse data
 and FrovedisRowmajorMatrix for dense data of float or double(float64)
 type.
-It has shape (n_samples, n_features).
+It has shape \f[B](n_samples, n_features)\f[].
 .PD 0
 .P
 .PD
@@ -331,7 +339,7 @@ It simply returns "self" reference.
 array\-like object or an instance of FrovedisCRSMatrix for sparse data
 and FrovedisRowmajorMatrix for dense data of float or double(float64)
 type.
-It has shape (n_samples, n_features).
+It has shape \f[B](n_samples, n_features)\f[].
 .PD 0
 .P
 .PD
@@ -406,14 +414,14 @@ Output
 .P
 .PD
 It returns a numpy array of int64 type containing the cluster labels.
-It has a shape (n_samples,).
+It has a shape \f[B](n_samples,)\f[].
 .SS 4. fit_transform(X, y = None, sample_weight = None)
 .PP
 \f[I]\f[B]X\f[]\f[]: A numpy dense or scipy sparse matrix or any python
 array\-like object or an instance of FrovedisCRSMatrix for sparse data
 and FrovedisRowmajorMatrix for dense data of float or double(float64)
 type.
-It has shape (n_samples, n_features).
+It has shape \f[B](n_samples, n_features)\f[].
 .PD 0
 .P
 .PD
@@ -496,7 +504,8 @@ containing the transformed matrix.
 If frovedis\-like data is input, it would output a
 FrovedisRowmajorMatrix.
 In both cases output would be of float or double (float64) type
-(depending upon input dtype) and of shape (n_samples, n_clusters).
+(depending upon input dtype) and of shape \f[B](n_samples,
+n_clusters)\f[].
 .PP
 Note that even if training data (X) is sparse, the output would
 typically be dense.
@@ -506,7 +515,7 @@ typically be dense.
 array\-like object or an instance of FrovedisCRSMatrix for sparse data
 and FrovedisRowmajorMatrix for dense data of float or double(float64)
 type.
-It has shape (n_samples, n_features).
+It has shape \f[B](n_samples, n_features)\f[].
 .PP
 \f[B]Purpose\f[]
 .PD 0
@@ -577,7 +586,8 @@ containing the transformed matrix.
 If frovedis\-like data is input, it would output a
 FrovedisRowmajorMatrix.
 In both cases output would be of float or double (float64) type
-(depending upon input dtype) and of shape (n_samples, n_clusters).
+(depending upon input dtype) and of shape \f[B](n_samples,
+n_clusters)\f[].
 .PP
 Note that even if test data (X) is sparse, the output would typically be
 dense.
@@ -591,7 +601,7 @@ dense.
 array\-like object or an instance of FrovedisCRSMatrix for sparse data
 and FrovedisRowmajorMatrix for dense data of float or double(float64)
 type.
-It has shape (n_samples, n_features).
+It has shape \f[B](n_samples, n_features)\f[].
 .PD 0
 .P
 .PD
@@ -665,14 +675,14 @@ Output
 .P
 .PD
 It returns a numpy array of int32 type containing the centroid values.
-It has a shape (n_samples,).
+It has a shape \f[B](n_samples,)\f[].
 .SS 7. score(X, y = None, sample_weight = None)
 .PP
 \f[I]\f[B]X\f[]\f[]: A numpy dense or scipy sparse matrix or any python
 array\-like object or an instance of FrovedisCRSMatrix for sparse data
 and FrovedisRowmajorMatrix for dense data of float or double(float64)
 type.
-It has shape (n_samples, n_features).
+It has shape \f[B](n_samples, n_features)\f[].
 .PD 0
 .P
 .PD
@@ -764,8 +774,8 @@ on which the target model is to be saved.
 .PD 0
 .P
 .PD
-On success, it writes the model information(user\-product features etc.)
-in the specified file as little\-endian binary data.
+On success, it writes the model information in the specified file as
+little\-endian binary data.
 Otherwise, it throws an exception.
 .PP
 For example,
@@ -777,12 +787,123 @@ kmeans.save("./out/MyKMeansModel")
 \f[]
 .fi
 .PP
+The MyKMeansModel contains below directory structure:
+.PD 0
+.P
+.PD
+\f[B]MyKMeansModel\f[]
+.PD 0
+.P
+.PD
+|\-\-\-\-\-\-metadata
+.PD 0
+.P
+.PD
+|\-\-\-\-\-\-\f[B]model\f[]
+.PP
+\[aq]metadata\[aq] represents the detail about model_id, model_kind and
+datatype of training vector.
+.PD 0
+.P
+.PD
+Here, the \f[B]model\f[] directory contains information about
+n_clusters_, n_features, model_kind and datatype of training vector.
+.PP
+This will save the Kmeans model on the path ‘/out/MyKMeansModel'.
+It would raise exception if the directory already exists with same name.
+.PP
 \f[B]Return Value\f[]
 .PD 0
 .P
 .PD
 It returns nothing.
-.SS 10. debug_print()
+.SS 10. get_params(deep = True)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]\f[B]deep\f[]\f[]: A boolean parameter, used to get parameters and
+their values for an estimator.
+If True, will return the parameters for an estimator and contained
+subobjects that are estimators.
+(Default: True)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+This method belongs to the BaseEstimator class inherited by Kmeans.
+It is used to get parameters and their values of Kmeans class.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+\ \ print(kmeans.get_params())
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+\ {\[aq]algorithm\[aq]:\ \[aq]auto\[aq],\ \[aq]copy_x\[aq]:\ True,\ \[aq]init\[aq]:\ \[aq]random\[aq],\ \[aq]max_iter\[aq]:\ 300,\ \[aq]n_clusters\[aq]:\ 2,\ 
+\ \[aq]n_init\[aq]:\ 1,\ \[aq]n_jobs\[aq]:\ 1,\ \[aq]precompute_distances\[aq]:\ \[aq]auto\[aq],\ \[aq]random_state\[aq]:\ None,\ \[aq]tol\[aq]:\ 0.0001,\ 
+\ \[aq]use_shrink\[aq]:\ False,\ \[aq]verbose\[aq]:\ 0}
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+A dictionary of parameter names mapped to their values.
+.SS 11. set_params(**params)
+.PP
+\f[B]Parameters\f[]
+.PP
+\f[I]\f[B]params\f[]\f[]: All the keyword arguments are passed this
+function as dictionary.
+This dictionary contains parameters of an estimator with its given
+values to set.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+This method belongs to the BaseEstimator class inherited by Kmeans, used
+to set parameter values.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+print("get\ parameters\ before\ setting:",\ kmeans.get_params())
+kmeans.set_params(n_clusters\ =\ 4,\ n_init\ =\ 5)
+print("get\ parameters\ after\ setting:",\ kmeans.get_params())
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+get\ parameters\ before\ setting:\ {\[aq]algorithm\[aq]:\ \[aq]auto\[aq],\ \[aq]copy_x\[aq]:\ True,\ \[aq]init\[aq]:\ \[aq]random\[aq],\ \[aq]max_iter\[aq]:\ 300,\ 
+\[aq]n_clusters\[aq]:\ 2,\ \[aq]n_init\[aq]:\ 1,\ \[aq]n_jobs\[aq]:\ 1,\ \[aq]precompute_distances\[aq]:\ \[aq]auto\[aq],\ \[aq]random_state\[aq]:\ None,
+\[aq]tol\[aq]:\ 0.0001,\[aq]use_shrink\[aq]:\ False,\ \[aq]verbose\[aq]:\ 0}
+get\ parameters\ after\ setting:\ {\[aq]algorithm\[aq]:\ \[aq]auto\[aq],\ \[aq]copy_x\[aq]:\ True,\ \[aq]init\[aq]:\ \[aq]random\[aq],\ \[aq]max_iter\[aq]:\ 300,\ 
+\[aq]n_clusters\[aq]:\ 4,\ \[aq]n_init\[aq]:\ 5,\ \[aq]n_jobs\[aq]:\ 1,\ \[aq]precompute_distances\[aq]:\ \[aq]auto\[aq],\ \[aq]random_state\[aq]:\ None,\ 
+\[aq]tol\[aq]:\ 0.0001,\[aq]use_shrink\[aq]:\ False,\ \[aq]verbose\[aq]:\ 0}
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It simply returns "self" reference.
+.SS 12. debug_print()
 .PP
 \f[B]Purpose\f[]
 .PD 0
@@ -813,7 +934,7 @@ node\ =\ 0,\ local_num_row\ =\ 2,\ local_num_col\ =\ 3,\ val\ =\ 0.15\ 0.15\ 0.1
 .P
 .PD
 It returns nothing.
-.SS 11. release()
+.SS 13. release()
 .PP
 \f[B]Purpose\f[]
 .PD 0
@@ -837,7 +958,7 @@ releasing server side memory.
 .P
 .PD
 It returns nothing.
-.SS 12. is_fitted()
+.SS 14. is_fitted()
 .PP
 \f[B]Purpose\f[]
 .PD 0
