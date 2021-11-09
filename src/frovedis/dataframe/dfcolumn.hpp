@@ -1116,6 +1116,22 @@ public:
   virtual node_local<std::vector<size_t>>
   filter_neq_immed(std::shared_ptr<dfscalar>& right);
   virtual node_local<std::vector<size_t>>
+  filter_lt(std::shared_ptr<dfcolumn>& right);
+  virtual node_local<std::vector<size_t>>
+  filter_lt_immed(std::shared_ptr<dfscalar>& right);
+  virtual node_local<std::vector<size_t>>
+  filter_le(std::shared_ptr<dfcolumn>& right);
+  virtual node_local<std::vector<size_t>>
+  filter_le_immed(std::shared_ptr<dfscalar>& right);
+  virtual node_local<std::vector<size_t>>
+  filter_gt(std::shared_ptr<dfcolumn>& right);
+  virtual node_local<std::vector<size_t>>
+  filter_gt_immed(std::shared_ptr<dfscalar>& right);
+  virtual node_local<std::vector<size_t>>
+  filter_ge(std::shared_ptr<dfcolumn>& right);
+  virtual node_local<std::vector<size_t>>
+  filter_ge_immed(std::shared_ptr<dfscalar>& right);
+  virtual node_local<std::vector<size_t>>
   filter_is_null();
   virtual node_local<std::vector<size_t>>
   filter_is_not_null();
@@ -1345,6 +1361,12 @@ public:
   (std::shared_ptr<typed_dfcolumn<dic_string>>&);
   node_local<std::vector<size_t>>
   equal_prepare_multi_join(typed_dfcolumn<dic_string>& right);
+  void compare_prepare(std::shared_ptr<typed_dfcolumn<dic_string>>&,
+                       node_local<std::vector<size_t>>&,
+                       node_local<std::vector<size_t>>&);
+  void compare_prepare_immed(const std::string&,
+                             node_local<std::vector<size_t>>&,
+                             size_t&);
   virtual void contain_nulls_check();
   virtual std::shared_ptr<dfcolumn> head(size_t limit);
   virtual std::shared_ptr<dfcolumn> tail(size_t limit);

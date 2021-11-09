@@ -657,6 +657,277 @@ typed_dfcolumn<dic_string>::filter_neq_immed(std::shared_ptr<dfscalar>& right) {
   }
 }
 
+std::vector<size_t>
+dic_string_compare_prepare_helper(const std::vector<size_t>& val,
+                                  const std::vector<size_t>& trans,
+                                  const std::vector<size_t>& sort_order) {
+  auto valp = val.data();
+  auto transp = trans.data();
+  auto sort_orderp = sort_order.data();
+  auto size = val.size();
+  std::vector<size_t> ret(size);
+  auto retp = ret.data();
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+  for(size_t i = 0; i < size; i++) {
+    retp[i] = sort_orderp[transp[valp[i]]];
+  }
+  return ret;
+}
+
+std::vector<size_t>
+dic_string_compare_prepare_helper2(const std::vector<size_t>& val,
+                                   const std::vector<size_t>& sort_order) {
+  auto valp = val.data();
+  auto sort_orderp = sort_order.data();
+  auto size = val.size();
+  std::vector<size_t> ret(size);
+  auto retp = ret.data();
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+  for(size_t i = 0; i < size; i++) {
+    retp[i] = sort_orderp[valp[i]];
+  }
+  return ret;
+}
+
+void
+typed_dfcolumn<dic_string>::
+compare_prepare(shared_ptr<typed_dfcolumn<dic_string>>& right,
+                node_local<std::vector<size_t>>& leftval,
+                node_local<std::vector<size_t>>& rightval) {
+  if(dic == right->dic) {
+    auto& new_dic = *dic;
+    auto new_num_words = new_dic.num_words();
+    std::vector<size_t> new_order(new_num_words);
+    auto new_orderp = new_order.data();
+    for(size_t i = 0; i < new_num_words; i++) new_orderp[i] = i;
+    lexical_sort_compressed_words(new_dic.cwords, new_dic.lens,
+                                  new_dic.lens_num, new_order);
+    auto bnew_order = broadcast(new_order);
+    leftval = val.map(dic_string_compare_prepare_helper2, bnew_order);
+    rightval = right->val.map(dic_string_compare_prepare_helper2, bnew_order);
+  } else {
+    auto& left_dic = *dic;
+    auto& right_dic = *(right->dic);
+    auto new_dic = merge_dict(left_dic, right_dic);
+
+    compressed_words to_lookup_left;
+    auto left_num_words = left_dic.num_words();
+    to_lookup_left.cwords.swap(left_dic.cwords);
+    to_lookup_left.lens.swap(left_dic.lens);
+    to_lookup_left.lens_num.swap(left_dic.lens_num);
+    to_lookup_left.order.resize(left_num_words);
+    auto left_orderp = to_lookup_left.order.data();
+    for(size_t i = 0; i < left_num_words; i++) left_orderp[i] = i;
+    auto left_trans_table = new_dic.lookup(to_lookup_left);
+    to_lookup_left.cwords.swap(left_dic.cwords);
+    to_lookup_left.lens.swap(left_dic.lens);
+    to_lookup_left.lens_num.swap(left_dic.lens_num);
+
+    compressed_words to_lookup_right;
+    auto right_num_words = right_dic.num_words();
+    to_lookup_right.cwords.swap(right_dic.cwords);
+    to_lookup_right.lens.swap(right_dic.lens);
+    to_lookup_right.lens_num.swap(right_dic.lens_num);
+    to_lookup_right.order.resize(right_num_words);
+    auto right_orderp = to_lookup_right.order.data();
+    for(size_t i = 0; i < right_num_words; i++) right_orderp[i] = i;
+    auto right_trans_table = new_dic.lookup(to_lookup_right);
+    to_lookup_right.cwords.swap(right_dic.cwords);
+    to_lookup_right.lens.swap(right_dic.lens);
+    to_lookup_right.lens_num.swap(right_dic.lens_num);
+
+    auto new_num_words = new_dic.num_words();
+    std::vector<size_t> new_order(new_num_words);
+    auto new_orderp = new_order.data();
+    for(size_t i = 0; i < new_num_words; i++) new_orderp[i] = i;
+    lexical_sort_compressed_words(new_dic.cwords, new_dic.lens,
+                                  new_dic.lens_num, new_order);
+    auto bleft_trans_table = broadcast(left_trans_table);
+    auto bright_trans_table = broadcast(right_trans_table);
+    auto bnew_order = broadcast(new_order);
+
+    leftval = val.map(dic_string_compare_prepare_helper,
+                      bleft_trans_table, bnew_order);
+    rightval = right->val.map(dic_string_compare_prepare_helper,
+                              bright_trans_table, bnew_order);
+  }
+}
+
+node_local<std::vector<size_t>>
+typed_dfcolumn<dic_string>::filter_lt(std::shared_ptr<dfcolumn>& right) {
+  auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<dic_string>>(right);
+  if(!right2) throw std::runtime_error("filter_lt: column types are different");
+  node_local<std::vector<size_t>> leftval, rightval;
+  compare_prepare(right2, leftval, rightval);
+  auto filtered_idx = leftval.map(filter_lt_helper<size_t, size_t>, rightval);
+  if(right2->contain_nulls)
+    filtered_idx = filtered_idx.map(set_difference<size_t>, right2->nulls);
+  if(contain_nulls)
+    filtered_idx = filtered_idx.map(set_difference<size_t>, nulls);
+  return filtered_idx;
+}
+
+node_local<std::vector<size_t>>
+typed_dfcolumn<dic_string>::filter_le(std::shared_ptr<dfcolumn>& right) {
+  auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<dic_string>>(right);
+  if(!right2) throw std::runtime_error("filter_le: column types are different");
+  node_local<std::vector<size_t>> leftval, rightval;
+  compare_prepare(right2, leftval, rightval);
+  auto filtered_idx = leftval.map(filter_le_helper<size_t, size_t>, rightval);
+  if(right2->contain_nulls)
+    filtered_idx = filtered_idx.map(set_difference<size_t>, right2->nulls);
+  if(contain_nulls)
+    filtered_idx = filtered_idx.map(set_difference<size_t>, nulls);
+  return filtered_idx;
+}
+
+node_local<std::vector<size_t>>
+typed_dfcolumn<dic_string>::filter_gt(std::shared_ptr<dfcolumn>& right) {
+  auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<dic_string>>(right);
+  if(!right2) throw std::runtime_error("filter_gt: column types are different");
+  node_local<std::vector<size_t>> leftval, rightval;
+  compare_prepare(right2, leftval, rightval);
+  auto filtered_idx = leftval.map(filter_gt_helper<size_t, size_t>, rightval);
+  if(right2->contain_nulls)
+    filtered_idx = filtered_idx.map(set_difference<size_t>, right2->nulls);
+  if(contain_nulls)
+    filtered_idx = filtered_idx.map(set_difference<size_t>, nulls);
+  return filtered_idx;
+}
+
+node_local<std::vector<size_t>>
+typed_dfcolumn<dic_string>::filter_ge(std::shared_ptr<dfcolumn>& right) {
+  auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<dic_string>>(right);
+  if(!right2) throw std::runtime_error("filter_ge: column types are different");
+  node_local<std::vector<size_t>> leftval, rightval;
+  compare_prepare(right2, leftval, rightval);
+  auto filtered_idx = leftval.map(filter_ge_helper<size_t, size_t>, rightval);
+  if(right2->contain_nulls)
+    filtered_idx = filtered_idx.map(set_difference<size_t>, right2->nulls);
+  if(contain_nulls)
+    filtered_idx = filtered_idx.map(set_difference<size_t>, nulls);
+  return filtered_idx;
+}
+
+void
+typed_dfcolumn<dic_string>::
+compare_prepare_immed(const std::string& right,
+                      node_local<std::vector<size_t>>& leftval,
+                      size_t& rightval) {
+  auto& left_dic = *dic;
+  auto cws = make_compressed_words(vector_string_to_words({right}));
+  auto idx = left_dic.lookup(cws);
+  auto NOT_FOUND = numeric_limits<size_t>::max();
+  if(idx[0] == NOT_FOUND) {
+    // TODO: inefficient because original dict is not utilized
+    // modify lookup to support lower_bound/upper_bound?
+    auto right_dic = make_dict(cws);
+    auto new_dic = merge_dict(left_dic, right_dic);
+    compressed_words to_lookup_left;
+    auto left_num_words = left_dic.num_words();
+    to_lookup_left.cwords.swap(left_dic.cwords);
+    to_lookup_left.lens.swap(left_dic.lens);
+    to_lookup_left.lens_num.swap(left_dic.lens_num);
+    to_lookup_left.order.resize(left_num_words);
+    auto left_orderp = to_lookup_left.order.data();
+    for(size_t i = 0; i < left_num_words; i++) left_orderp[i] = i;
+    auto left_trans_table = new_dic.lookup(to_lookup_left);
+    to_lookup_left.cwords.swap(left_dic.cwords);
+    to_lookup_left.lens.swap(left_dic.lens);
+    to_lookup_left.lens_num.swap(left_dic.lens_num);
+
+    compressed_words& to_lookup_right = cws;
+    auto right_trans_table = new_dic.lookup(to_lookup_right);
+
+    auto new_num_words = new_dic.num_words();
+    std::vector<size_t> new_order(new_num_words);
+    auto new_orderp = new_order.data();
+    for(size_t i = 0; i < new_num_words; i++) new_orderp[i] = i;
+    lexical_sort_compressed_words(new_dic.cwords, new_dic.lens,
+                                  new_dic.lens_num, new_order);
+    auto bleft_trans_table = broadcast(left_trans_table);
+    auto bnew_order = broadcast(new_order);
+    leftval = val.map(dic_string_compare_prepare_helper,
+                      bleft_trans_table, bnew_order);
+    rightval = new_order[right_trans_table[0]];
+  } else {
+    auto& new_dic = left_dic;
+    auto new_num_words = new_dic.num_words();
+    std::vector<size_t> new_order(new_num_words);
+    auto new_orderp = new_order.data();
+    for(size_t i = 0; i < new_num_words; i++) new_orderp[i] = i;
+    lexical_sort_compressed_words(new_dic.cwords, new_dic.lens,
+                                  new_dic.lens_num, new_order);
+    auto bnew_order = broadcast(new_order);
+    leftval = val.map(dic_string_compare_prepare_helper2, bnew_order);
+    rightval = new_order[idx[0]];
+  }
+}
+
+node_local<std::vector<size_t>>
+typed_dfcolumn<dic_string>::filter_lt_immed(std::shared_ptr<dfscalar>& right) {
+  auto right2 = std::dynamic_pointer_cast<typed_dfscalar<std::string>>(right);
+  if(!right2)
+    throw std::runtime_error("filter_lt_immed: column types are different");
+  node_local<std::vector<size_t>> leftval;
+  size_t rightval;
+  compare_prepare_immed(right2->val, leftval, rightval);
+  auto filtered_idx = leftval.map(filter_lt_immed_helper<size_t, size_t>,
+                                  broadcast(rightval));
+  if(contain_nulls)
+    filtered_idx = filtered_idx.map(set_difference<size_t>, nulls);
+  return filtered_idx;
+}
+
+node_local<std::vector<size_t>>
+typed_dfcolumn<dic_string>::filter_le_immed(std::shared_ptr<dfscalar>& right) {
+  auto right2 = std::dynamic_pointer_cast<typed_dfscalar<std::string>>(right);
+  if(!right2)
+    throw std::runtime_error("filter_le_immed: column types are different");
+  node_local<std::vector<size_t>> leftval;
+  size_t rightval;
+  compare_prepare_immed(right2->val, leftval, rightval);
+  auto filtered_idx = leftval.map(filter_le_immed_helper<size_t, size_t>,
+                                  broadcast(rightval));
+  if(contain_nulls)
+    filtered_idx = filtered_idx.map(set_difference<size_t>, nulls);
+  return filtered_idx;
+}
+
+node_local<std::vector<size_t>>
+typed_dfcolumn<dic_string>::filter_gt_immed(std::shared_ptr<dfscalar>& right) {
+  auto right2 = std::dynamic_pointer_cast<typed_dfscalar<std::string>>(right);
+  if(!right2)
+    throw std::runtime_error("filter_gt_immed: column types are different");
+  node_local<std::vector<size_t>> leftval;
+  size_t rightval;
+  compare_prepare_immed(right2->val, leftval, rightval);
+  auto filtered_idx = leftval.map(filter_gt_immed_helper<size_t, size_t>,
+                                  broadcast(rightval));
+  if(contain_nulls)
+    filtered_idx = filtered_idx.map(set_difference<size_t>, nulls);
+  return filtered_idx;
+}
+
+node_local<std::vector<size_t>>
+typed_dfcolumn<dic_string>::filter_ge_immed(std::shared_ptr<dfscalar>& right) {
+  auto right2 = std::dynamic_pointer_cast<typed_dfscalar<std::string>>(right);
+  if(!right2)
+    throw std::runtime_error("filter_ge_immed: column types are different");
+  node_local<std::vector<size_t>> leftval;
+  size_t rightval;
+  compare_prepare_immed(right2->val, leftval, rightval);
+  auto filtered_idx = leftval.map(filter_ge_immed_helper<size_t, size_t>,
+                                  broadcast(rightval));
+  if(contain_nulls)
+    filtered_idx = filtered_idx.map(set_difference<size_t>, nulls);
+  return filtered_idx;
+}
+
 node_local<std::vector<size_t>> typed_dfcolumn<dic_string>::get_local_index() {
   return val.map(get_local_index_helper<size_t>);
 }
