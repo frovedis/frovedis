@@ -204,17 +204,15 @@ For example,
 It returns distances and indices as FrovedisRowmajorMatrix objects for frovedis-like inputs.
 
 __Return Value__  
-**When test data and training data used by fitted model are same (both are python native 
-input or frovedis-like input) :**  
+**When test data and training data used by fitted model are both python native input:**  
 **_distances_**: A numpy array of float or double(float64) type values. It has 
 shape **(n_samples, n_neighbors)**. It is only returned by kneighbors() if 
 return_distance = True.  
 **_indices_**: A numpy array of int64 type values. It has shape **(n_samples, n_neighbors)**.  
-**When test data and training data used by fitted model are different:**  
+**When either test data or training data used by fitted model are frovedis-like input:**  
 **_distances_**: A FrovedisRowmajorMatrix of float or double(float64) type values. It has 
 shape **(n_samples, n_neighbors)**. It is only returned by kneighbors() if return_distance = True.  
 **_indices_**: A FrovedisRowmajorMatrix of int64 type values. It has shape **(n_samples, n_neighbors)**.  
-
 
 ### 4. kneighbors_graph(X = None, n_neighbors = None, mode = 'connectivity')
 __Parameters__   
@@ -235,9 +233,9 @@ selected 'metric' value in NearestNeighbors class. (Default: 'connectivity')
 __Purpose__    
 It computes the (weighted) graph of k-Neighbors for points in X.
 
-For example,   
+For example, when mode = 'connectivity'  
 
-    # Here 'mode = connectivty' by default
+    # Here 'mode = connectivity' by default
     graph = knn.kneighbors_graph(samples)
     print('kneighbors graph')
     print(graph)
@@ -264,6 +262,36 @@ Output
     (5, 4)        1.0
     (5, 3)        1.0
 
+
+For example, when mode = 'distance'  
+
+    # Here 'mode = distance'  
+    graph = knn.kneighbors_graph(samples, mode = 'distance')
+    print('kneighbors graph')
+    print(graph)
+
+Output 
+
+    kneighbors graph
+    (0, 0)        0.0
+    (0, 1)        1.0
+    (0, 2)        2.23606797749979
+    (1, 1)        0.0
+    (1, 0)        1.0
+    (1, 2)        1.4142135623730951
+    (2, 2)        0.0
+    (2, 1)        1.4142135623730951
+    (2, 0)        2.23606797749979
+    (3, 3)        0.0
+    (3, 4)        1.0
+    (3, 5)        2.23606797749979
+    (4, 4)        0.0
+    (4, 3)        1.0
+    (4, 5)        1.4142135623730951
+    (5, 5)        0.0
+    (5, 4)        1.4142135623730951
+    (5, 3)        2.23606797749979
+
 Like in fit(), frovedis-like input can be used to speed-up the graph making at server side. 
 
 For example,   
@@ -279,12 +307,11 @@ For example,
 It returns a FrovedisCRSMatrix object for frovedis-like input.  
     
 __Return Value__  
-**When test data and training data used by fitted model are same (both are python native 
-input or frovedis-like input):**  
-It returns a scipy sparse matrix of float or double(float64) type values. It has 
+**When test data and training data used by fitted model are both python native input:**  
+It returns a scipy sparse csr matrix of float or double(float64) type values. It has 
 shape **(n_samples, n_samples_fit)**, where 'n_samples_fit' is the number of samples in the fitted 
 data.  
-**When test data and training data used by fitted model are different:**  
+**When either test data or training data used by fitted model are frovedis-like input:**  
 It returns a FrovedisCRSMatrix of float or double(float64) type values. It has 
 shape **(n_samples, n_samples_fit)**, where 'n_samples_fit' is the number of samples in the fitted 
 data.  
@@ -344,12 +371,11 @@ For example,
 It returns a FrovedisCRSMatrix object for frovedis-like input.  
 
 __Return Value__  
-**When test data and training data used by fitted model are same (both are python native 
-input or frovedis-like input):**  
+**When test data and training data used by fitted model are both python native input:**  
 **_distance_**: A python list of float or double(float64) type values and has length **n_samples**. It 
 is only returned by radius_neighbors() if return_distance = True.  
 **_indices_**: A python list of float or double(float64) type values and has length **n_samples**.  
-**When test data and training data used by fitted model are different:**  
+**When either test data or training data used by fitted model are frovedis-like input:**  
 It returns a FrovedisCRSMatrix of shape **(n_samples, n_samples_fit)**, where 'n_samples_fit' 
 is the number of samples in the fitted data.  
 
@@ -372,9 +398,9 @@ selected 'metric' value in NearestNeighbors class. (Default: 'connectivity')
 __Purpose__    
 It computes the (weighted) graph of Neighbors for points in X.  
 
-For example,   
+For example, when mode = 'connectivity'  
 
-    # Here 'mode = connectivty' by default
+    # Here 'mode = connectivity' by default
     rad_graph = knn.radius_neighbors_graph(samples)
     print('radius neighbors graph')
     print(rad_graph)
@@ -397,6 +423,31 @@ Output
     (5, 4)        1.0
     (5, 5)        1.0
 
+For example, when mode = 'distance'  
+
+    # Here 'mode = distance'
+    rad_graph = knn.radius_neighbors_graph(samples, mode = 'distance')
+    print('radius neighbors graph')
+    print(rad_graph)
+
+Output
+
+    radius neighbors graph
+    (0, 0)        0.0
+    (0, 1)        1.0
+    (1, 0)        1.0
+    (1, 1)        0.0
+    (1, 2)        1.4142135623730951
+    (2, 1)        1.4142135623730951
+    (2, 2)        0.0
+    (3, 3)        0.0
+    (3, 4)        1.0
+    (4, 3)        1.0
+    (4, 4)        0.0
+    (4, 5)        1.4142135623730951
+    (5, 4)        1.4142135623730951
+    (5, 5)        0.0
+
 Like in fit(), frovedis-like input can be used to speed-up the computation of indices and distances 
 at server side. 
 
@@ -413,12 +464,11 @@ For example,
 It returns a FrovedisCRSMatrix object for frovedis-like input.  
 
 __Return Value__  
-**When test data and training data used by fitted model are same (both are python native 
-input or frovedis-like input):**  
-It returns a scipy sparse matrix of float or double(float64) type values. It has 
+**When test data and training data used by fitted model are both python native input:**  
+It returns a scipy sparse csr matrix of float or double(float64) type values. It has 
 shape **(n_samples, n_samples_fit)**, where 'n_samples_fit' is the number of samples in the fitted 
 data.  
-**When test data and training data used by fitted model are different:**  
+**When either test data or training data used by fitted model are frovedis-like input:**  
 It returns a FrovedisCRSMatrix of float or double(float64) type values. It has 
 shape **(n_samples, n_samples_fit)**, where 'n_samples_fit' is the number of samples in the fitted 
 data.  
@@ -484,12 +534,11 @@ __Parameters__
 model is to be saved.  
 
 __Purpose__  
-On success, it writes the model information (after-fit populated attributes) in the 
-specified file as little-endian binary data. Otherwise, it throws an exception. Currently 
-this method is not supported for NearestNeighbors.  
+Currently this method is not supported for NearestNeighbors. It is simply kept in NearestNeighbors
+module to maintain uniform interface for all estimators in frovedis.  
 
 __Return Value__  
-It simply raises an AttributeError Exception.  
+It simply raises an AttributeError.  
 
 ### 10. load(fname)
 __Parameters__   
@@ -497,20 +546,20 @@ __Parameters__
 to be loaded.  
 
 __Purpose__  
-It loads a knn model stored previously from the specified file (having little-endian 
-binary data). Currently this method is not supported for NearestNeighbors.  
+Currently this method is not supported for NearestNeighbors. It is simply kept in NearestNeighbors
+module to maintain uniform interface for all estimators in frovedis.  
 
 __Return Value__  
-It simply raises an AttributeError Exception.  
+It simply raises an AttributeError.  
 
 ### 11. debug_print()
 
 __Purpose__   
-It shows the target model information on the server side user terminal. It is mainly used 
-for debugging purpose. Currently this method is not supported for NearestNeighbors.  
+Currently this method is not supported for NearestNeighbors. It is simply kept in NearestNeighbors
+module to maintain uniform interface for all estimators in frovedis.  
 
 __Return Value__  
-It simply raises an AttributeError Exception.  
+It simply raises an AttributeError.  
 
 ### 12. release()  
 

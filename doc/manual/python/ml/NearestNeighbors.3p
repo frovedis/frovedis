@@ -398,8 +398,8 @@ frovedis\-like inputs.
 .PD 0
 .P
 .PD
-\f[B]When test data and training data used by fitted model are same
-(both are python native input or frovedis\-like input) :\f[]
+\f[B]When test data and training data used by fitted model are both
+python native input:\f[]
 .PD 0
 .P
 .PD
@@ -415,8 +415,8 @@ It has shape \f[B](n_samples, n_neighbors)\f[].
 .PD 0
 .P
 .PD
-\f[B]When test data and training data used by fitted model are
-different:\f[]
+\f[B]When either test data or training data used by fitted model are
+frovedis\-like input:\f[]
 .PD 0
 .P
 .PD
@@ -483,11 +483,11 @@ between points, type of distance depends on the selected
 .PD
 It computes the (weighted) graph of k\-Neighbors for points in X.
 .PP
-For example,
+For example, when mode = \[aq]connectivity\[aq]
 .IP
 .nf
 \f[C]
-#\ Here\ \[aq]mode\ =\ connectivty\[aq]\ by\ default
+#\ Here\ \[aq]mode\ =\ connectivity\[aq]\ by\ default
 graph\ =\ knn.kneighbors_graph(samples)
 print(\[aq]kneighbors\ graph\[aq])
 print(graph)
@@ -520,6 +520,43 @@ kneighbors\ graph
 \f[]
 .fi
 .PP
+For example, when mode = \[aq]distance\[aq]
+.IP
+.nf
+\f[C]
+#\ Here\ \[aq]mode\ =\ distance\[aq]\ \ 
+graph\ =\ knn.kneighbors_graph(samples,\ mode\ =\ \[aq]distance\[aq])
+print(\[aq]kneighbors\ graph\[aq])
+print(graph)
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+kneighbors\ graph
+(0,\ 0)\ \ \ \ \ \ \ \ 0.0
+(0,\ 1)\ \ \ \ \ \ \ \ 1.0
+(0,\ 2)\ \ \ \ \ \ \ \ 2.23606797749979
+(1,\ 1)\ \ \ \ \ \ \ \ 0.0
+(1,\ 0)\ \ \ \ \ \ \ \ 1.0
+(1,\ 2)\ \ \ \ \ \ \ \ 1.4142135623730951
+(2,\ 2)\ \ \ \ \ \ \ \ 0.0
+(2,\ 1)\ \ \ \ \ \ \ \ 1.4142135623730951
+(2,\ 0)\ \ \ \ \ \ \ \ 2.23606797749979
+(3,\ 3)\ \ \ \ \ \ \ \ 0.0
+(3,\ 4)\ \ \ \ \ \ \ \ 1.0
+(3,\ 5)\ \ \ \ \ \ \ \ 2.23606797749979
+(4,\ 4)\ \ \ \ \ \ \ \ 0.0
+(4,\ 3)\ \ \ \ \ \ \ \ 1.0
+(4,\ 5)\ \ \ \ \ \ \ \ 1.4142135623730951
+(5,\ 5)\ \ \ \ \ \ \ \ 0.0
+(5,\ 4)\ \ \ \ \ \ \ \ 1.4142135623730951
+(5,\ 3)\ \ \ \ \ \ \ \ 2.23606797749979
+\f[]
+.fi
+.PP
 Like in fit(), frovedis\-like input can be used to speed\-up the graph
 making at server side.
 .PP
@@ -543,20 +580,20 @@ It returns a FrovedisCRSMatrix object for frovedis\-like input.
 .PD 0
 .P
 .PD
-\f[B]When test data and training data used by fitted model are same
-(both are python native input or frovedis\-like input):\f[]
+\f[B]When test data and training data used by fitted model are both
+python native input:\f[]
 .PD 0
 .P
 .PD
-It returns a scipy sparse matrix of float or double(float64) type
+It returns a scipy sparse csr matrix of float or double(float64) type
 values.
 It has shape \f[B](n_samples, n_samples_fit)\f[], where
 \[aq]n_samples_fit\[aq] is the number of samples in the fitted data.
 .PD 0
 .P
 .PD
-\f[B]When test data and training data used by fitted model are
-different:\f[]
+\f[B]When either test data or training data used by fitted model are
+frovedis\-like input:\f[]
 .PD 0
 .P
 .PD
@@ -664,8 +701,8 @@ It returns a FrovedisCRSMatrix object for frovedis\-like input.
 .PD 0
 .P
 .PD
-\f[B]When test data and training data used by fitted model are same
-(both are python native input or frovedis\-like input):\f[]
+\f[B]When test data and training data used by fitted model are both
+python native input:\f[]
 .PD 0
 .P
 .PD
@@ -680,8 +717,8 @@ type values and has length \f[B]n_samples\f[].
 .PD 0
 .P
 .PD
-\f[B]When test data and training data used by fitted model are
-different:\f[]
+\f[B]When either test data or training data used by fitted model are
+frovedis\-like input:\f[]
 .PD 0
 .P
 .PD
@@ -738,11 +775,11 @@ between points, type of distance depends on the selected
 .PD
 It computes the (weighted) graph of Neighbors for points in X.
 .PP
-For example,
+For example, when mode = \[aq]connectivity\[aq]
 .IP
 .nf
 \f[C]
-#\ Here\ \[aq]mode\ =\ connectivty\[aq]\ by\ default
+#\ Here\ \[aq]mode\ =\ connectivity\[aq]\ by\ default
 rad_graph\ =\ knn.radius_neighbors_graph(samples)
 print(\[aq]radius\ neighbors\ graph\[aq])
 print(rad_graph)
@@ -771,6 +808,39 @@ radius\ neighbors\ graph
 \f[]
 .fi
 .PP
+For example, when mode = \[aq]distance\[aq]
+.IP
+.nf
+\f[C]
+#\ Here\ \[aq]mode\ =\ distance\[aq]
+rad_graph\ =\ knn.radius_neighbors_graph(samples,\ mode\ =\ \[aq]distance\[aq])
+print(\[aq]radius\ neighbors\ graph\[aq])
+print(rad_graph)
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+radius\ neighbors\ graph
+(0,\ 0)\ \ \ \ \ \ \ \ 0.0
+(0,\ 1)\ \ \ \ \ \ \ \ 1.0
+(1,\ 0)\ \ \ \ \ \ \ \ 1.0
+(1,\ 1)\ \ \ \ \ \ \ \ 0.0
+(1,\ 2)\ \ \ \ \ \ \ \ 1.4142135623730951
+(2,\ 1)\ \ \ \ \ \ \ \ 1.4142135623730951
+(2,\ 2)\ \ \ \ \ \ \ \ 0.0
+(3,\ 3)\ \ \ \ \ \ \ \ 0.0
+(3,\ 4)\ \ \ \ \ \ \ \ 1.0
+(4,\ 3)\ \ \ \ \ \ \ \ 1.0
+(4,\ 4)\ \ \ \ \ \ \ \ 0.0
+(4,\ 5)\ \ \ \ \ \ \ \ 1.4142135623730951
+(5,\ 4)\ \ \ \ \ \ \ \ 1.4142135623730951
+(5,\ 5)\ \ \ \ \ \ \ \ 0.0
+\f[]
+.fi
+.PP
 Like in fit(), frovedis\-like input can be used to speed\-up the
 computation of indices and distances at server side.
 .PP
@@ -794,20 +864,20 @@ It returns a FrovedisCRSMatrix object for frovedis\-like input.
 .PD 0
 .P
 .PD
-\f[B]When test data and training data used by fitted model are same
-(both are python native input or frovedis\-like input):\f[]
+\f[B]When test data and training data used by fitted model are both
+python native input:\f[]
 .PD 0
 .P
 .PD
-It returns a scipy sparse matrix of float or double(float64) type
+It returns a scipy sparse csr matrix of float or double(float64) type
 values.
 It has shape \f[B](n_samples, n_samples_fit)\f[], where
 \[aq]n_samples_fit\[aq] is the number of samples in the fitted data.
 .PD 0
 .P
 .PD
-\f[B]When test data and training data used by fitted model are
-different:\f[]
+\f[B]When either test data or training data used by fitted model are
+frovedis\-like input:\f[]
 .PD 0
 .P
 .PD
@@ -922,16 +992,15 @@ on which the target model is to be saved.
 .PD 0
 .P
 .PD
-On success, it writes the model information (after\-fit populated
-attributes) in the specified file as little\-endian binary data.
-Otherwise, it throws an exception.
 Currently this method is not supported for NearestNeighbors.
+It is simply kept in NearestNeighbors module to maintain uniform
+interface for all estimators in frovedis.
 .PP
 \f[B]Return Value\f[]
 .PD 0
 .P
 .PD
-It simply raises an AttributeError Exception.
+It simply raises an AttributeError.
 .SS 10. load(fname)
 .PP
 \f[B]Parameters\f[]
@@ -945,30 +1014,30 @@ having model information to be loaded.
 .PD 0
 .P
 .PD
-It loads a knn model stored previously from the specified file (having
-little\-endian binary data).
 Currently this method is not supported for NearestNeighbors.
+It is simply kept in NearestNeighbors module to maintain uniform
+interface for all estimators in frovedis.
 .PP
 \f[B]Return Value\f[]
 .PD 0
 .P
 .PD
-It simply raises an AttributeError Exception.
+It simply raises an AttributeError.
 .SS 11. debug_print()
 .PP
 \f[B]Purpose\f[]
 .PD 0
 .P
 .PD
-It shows the target model information on the server side user terminal.
-It is mainly used for debugging purpose.
 Currently this method is not supported for NearestNeighbors.
+It is simply kept in NearestNeighbors module to maintain uniform
+interface for all estimators in frovedis.
 .PP
 \f[B]Return Value\f[]
 .PD 0
 .P
 .PD
-It simply raises an AttributeError Exception.
+It simply raises an AttributeError.
 .SS 12. release()
 .PP
 \f[B]Purpose\f[]
