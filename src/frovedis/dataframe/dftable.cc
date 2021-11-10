@@ -57,14 +57,16 @@ construct_isnull_column(size_t size,
 
 dftable dftable_base::isnull(const std::vector<std::string>& cols) {
   dftable ret;
+  auto mysz = make_node_local_scatter(num_rows());
   for (auto& c: cols) {
     use_dfcolumn use(raw_column(c));
     auto dfcol = column(c);
-    auto sizes = make_node_local_scatter(dfcol->sizes());
     auto nullpos = dfcol->get_nulls();
-    auto isnull_col = sizes.map(construct_isnull_column, nullpos)
-                           .moveto_dvector<int>();
-    ret.append_column(c, std::move(isnull_col));
+    auto vals = mysz.map(construct_isnull_column, nullpos);
+    auto nulls = make_node_local_allocate<std::vector<size_t>>();  
+    auto rescol = std::make_shared<typed_dfcolumn<int>>(std::move(vals), 
+                                                        std::move(nulls));
+    ret.append_column(c, rescol);
   }
   return ret;
 }
