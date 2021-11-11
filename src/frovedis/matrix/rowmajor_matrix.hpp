@@ -2354,5 +2354,135 @@ partition(rowmajor_matrix<T>& mat, size_t k) {
   return ret;
 }
 
+// --- for covariance calculation ---
+template <class T, class I>
+void compute_column_mutual_mean(const rowmajor_matrix_local<T>& data,
+                                const rowmajor_matrix_local<I>& nulls,
+                                size_t i, size_t j,
+                                T& sumX, T& sumY, size_t& nobjs) {
+  auto nrow = data.local_num_row;
+  auto ncol = data.local_num_col;
+  auto np = nulls.val.data();
+  auto dp = data.val.data();
+  nobjs = 0; sumX = 0; sumY = 0;
+  for(size_t k = 0; k < nrow; ++k) {
+    auto i1 = k * ncol + i;
+    auto i2 = k * ncol + j;
+    // optimization of if-statement with mask
+    int mask = (np[i1] == 0 && np[i2] == 0);
+    nobjs += mask;
+    sumX += mask * dp[i1];
+    sumY += mask * dp[i2];
+  }
+}
+
+template <class T, class I>
+double compute_column_cov(const rowmajor_matrix_local<T>& data,
+                          const rowmajor_matrix_local<I>& nulls,
+                          size_t i, size_t j,
+                          double meanX, double meanY) {
+  auto nrow = data.local_num_row;
+  auto ncol = data.local_num_col;
+  auto np = nulls.val.data();
+  auto dp = data.val.data();
+  double sum = 0;
+  for(size_t k = 0; k < nrow; ++k) {
+    auto i1 = k * ncol + i;
+    auto i2 = k * ncol + j;
+    // optimization of if-statement with mask
+    int mask = (np[i1] == 0 && np[i2] == 0);
+    auto mx = mask * meanX;
+    auto my = mask * meanY;
+    sum += mask * (dp[i1] - mx) * (dp[i2] - my);
+  }
+  return sum;
+}
+
+// covariance of ij
+template <class T, class I>
+double cov_impl(rowmajor_matrix<T>& data,
+                rowmajor_matrix<I>& nulls,
+                size_t i, size_t j, int min_periods) {
+  auto sumX = make_node_local_allocate<T>();
+  auto sumY = make_node_local_allocate<T>();
+  auto lnobjs = make_node_local_allocate<size_t>();
+  auto bi = broadcast(i);
+  auto bj = broadcast(j);
+  data.data.mapv(compute_column_mutual_mean<T,I>, nulls.data,
+                 bi, bj, sumX, sumY, lnobjs);
+  auto nobjs = lnobjs.reduce(add<size_t>);
+  double ret = std::numeric_limits<double>::max();
+  if (nobjs >= std::max(2, min_periods)) {
+    auto meanX = static_cast<double>(sumX.reduce(add<T>)) / nobjs;
+    auto meanY = static_cast<double>(sumY.reduce(add<T>)) / nobjs;
+    ret = data.data.map(compute_column_cov<T,I>, nulls.data,
+                        bi, bj, broadcast(meanX), broadcast(meanY))
+                   .reduce(add<double>);
+    ret /= (nobjs - 1); // ddof = 1; for having data with nulls
+  }
+  return ret;
+}
+
+template <class T, class I>
+rowmajor_matrix<double>
+matrix_covariance(rowmajor_matrix<T>& data, 
+                  rowmajor_matrix<I>& nulls, 
+                  int min_periods = -1) {
+  auto nrow = data.num_row;
+  auto ncol = data.num_col;
+  require(nrow == nulls.num_row && ncol == nulls.num_col,
+  "cov: difference found in dimensions of data and null matrices!\n")
+  auto a1 = data.get_local_num_rows();
+  nulls.align_as(a1); // realign nulls as per data
+  rowmajor_matrix_local<double> ret(ncol, ncol);
+  auto retp = ret.val.data();
+  for(size_t i = 0; i < ncol; ++i) {
+    retp[i * ncol + i] = cov_impl(data, nulls, i, i, min_periods);
+    for(size_t j = i + 1; j < ncol; ++j) {
+      retp[i * ncol + j] = retp[j * ncol + i] = \
+        cov_impl(data, nulls, i, j, min_periods);
+    }
+  }
+  return make_rowmajor_matrix_scatter(ret);
+}
+
+template <class T>
+rowmajor_matrix<double>
+matrix_covariance(rowmajor_matrix<T>& data,
+                  int min_periods = -1,
+                  double ddof = 1.0,
+                  bool copy_input = true) {
+  auto nrow = data.num_row;
+  auto ncol = data.num_col;
+  rowmajor_matrix<double> ret;
+  if (nrow == 0 || nrow < min_periods || nrow - ddof < 1) {
+    auto mysz = make_node_local_scatter(get_block_sizes(ncol));
+    ret.data = mysz.map(+[](size_t nrow, size_t ncol) {
+                            auto dmax = std::numeric_limits<double>::max();
+                         rowmajor_matrix_local<double> ret(nrow, ncol);
+                         auto retp = ret.val.data();
+                         for(size_t i = 0; i < nrow * ncol; ++i) retp[i] = dmax;
+                         return ret;
+                      }, broadcast(ncol));
+  } else {
+    if (copy_input) {
+      auto cdata = data;
+      centerize(cdata);
+      ret = trans_mm(cdata);
+    } else {
+      centerize(data); // in-place centerize
+      ret = trans_mm(data);
+    }
+    auto scale = 1.0 / (nrow - ddof);
+    ret.data.mapv(+[](rowmajor_matrix_local<double>& mat, double scale) {
+                      auto sz = mat.val.size();
+                      auto mvalp = mat.val.data();
+                      for(size_t i = 0; i < sz; ++i) mvalp[i] *= scale;
+                  }, broadcast(scale));
+  }
+  ret.num_row = ret.num_col = ncol;
+  return ret;
+}
+
 }
 #endif

@@ -3590,4 +3590,102 @@ dftable_base* star_joined_dftable::drop_cols(const std::vector<std::string>& col
   return this;
 }
 
+// for covariance
+double dftable::covariance(const std::string& c1, 
+                           const std::string& c2,
+                           int min_periods, 
+                           double ddof) {
+  auto tmp = select({c1, c2});
+  auto na_count = 2 * tmp.num_row() - (tmp.count(c1) + tmp.count(c2));
+  if (na_count) {
+    tmp = tmp.drop_nulls_by_rows("any");
+    ddof = 1.0;
+  }
+  auto n_observations = tmp.num_row();
+  if (n_observations == 0 ||
+      n_observations < min_periods ||
+      n_observations - ddof < 1) return std::numeric_limits<double>::max();
+  auto mean1 = tmp.avg(c1);
+  auto mean2 = tmp.avg(c2);
+  tmp.call_function(sub_im_as(c1, mean1, "_t1"));
+  tmp.call_function(sub_im_as(c2, mean2, "_t2"));
+  tmp.call_function(mul_col_as("_t1", "_t2", "_t3"));
+  return tmp.sum<double>("_t3") / (n_observations - ddof);
+}
+
+double dftable::covariance(const std::string& c1,
+                           int min_periods, 
+                           double ddof) {
+  auto tmp = select({c1});
+  auto na_count = tmp.num_row() - tmp.count(c1);
+  if (na_count) {
+    tmp = tmp.drop_nulls_by_rows("any");
+    ddof = 1.0;
+  }
+  auto n_observations = tmp.num_row();
+  if (n_observations == 0 ||
+      n_observations < min_periods ||
+      n_observations - ddof < 1) return std::numeric_limits<double>::max();
+  auto mean1 = tmp.avg(c1);
+  tmp.call_function(sub_im_as(c1, mean1, "_t1"));
+  tmp.call_function(mul_col_as("_t1", "_t1", "_t3"));
+  return tmp.sum<double>("_t3") / (n_observations - ddof);
+}
+
+dftable dftable::covariance(int min_periods,
+                            double ddof, 
+                            bool low_memory) {
+  auto cols = columns();
+  auto ncol = cols.size();
+  rowmajor_matrix<double> ret;
+  auto na_count = count_nulls().sum<size_t>("count");
+
+  if(low_memory) { // column-by-column computation
+    rowmajor_matrix_local<double> covmat(ncol, ncol);
+    auto retp = covmat.val.data();
+    if (na_count) {
+      auto nulls = isnull(cols);
+      for(size_t i = 0; i < ncol; ++i) {
+        auto x = cols[i];
+        use_dfcolumn use(raw_column(x));
+        auto valX = column(x)->as_dvector_double().moveto_node_local();
+        auto nullX = nulls.as_dvector<int>(x).moveto_node_local();
+        retp[i * ncol + i] = cov_impl(valX, valX, nullX, nullX, min_periods);
+        for(size_t j = i + 1; j < ncol; ++j) {
+          auto y = cols[j];
+          use_dfcolumn use2(raw_column(y));
+          auto valY = column(y)->as_dvector_double().moveto_node_local();
+          auto nullY = nulls.as_dvector<int>(y).moveto_node_local();
+          retp[i * ncol + j] = retp[j * ncol + i] = \
+            cov_impl(valX, valY, nullX, nullY, min_periods);
+        }
+      }
+    } else {
+      for(size_t i = 0; i < ncol; ++i) {
+        auto x = cols[i];
+        use_dfcolumn use(raw_column(x));
+        auto valX = column(x)->as_dvector_double().moveto_node_local();
+        retp[i * ncol + i] = cov_impl(valX, valX, min_periods);
+        for(size_t j = i + 1; j < ncol; ++j) {
+          auto y = cols[j];
+          use_dfcolumn use2(raw_column(y));
+          auto valY = column(y)->as_dvector_double().moveto_node_local();
+          retp[i * ncol + j] = retp[j * ncol + i] = \
+            cov_impl(valX, valY, min_periods);
+        }
+      }
+    }
+    ret = make_rowmajor_matrix_scatter(covmat);
+  } else { // use matrix version
+    auto mat = to_rowmajor_matrix_double(cols);
+    if (na_count) {
+      auto nulls = isnull(cols).to_rowmajor_matrix_double(cols);
+      ret = matrix_covariance(mat, nulls, min_periods);
+    } else {
+      ret = matrix_covariance(mat, min_periods, ddof, false);
+    }
+  }
+  return ret.to_dataframe(cols);
+}
+
 }

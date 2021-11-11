@@ -10,6 +10,7 @@
 #include "dfaggregator.hpp"
 #include "../matrix/colmajor_matrix.hpp"
 #include "../matrix/ell_matrix.hpp"
+#include "../matrix/blas_wrapper.hpp"
 #include "../core/find_condition.hpp"
 
 namespace frovedis {
@@ -262,6 +263,21 @@ public:
   dftable(dftable_base&& b) : dftable_base(std::move(b)) {}
   dftable& drop(const std::string& name);
   dftable& rename(const std::string& name, const std::string& name2);
+
+  // for covariance of two columns
+  double covariance(const std::string& c1, const std::string& c2,
+                    int min_periods = -1, double ddof = 1.0);
+
+  // for covariance of single column
+  double covariance(const std::string& c1,
+                    int min_periods = -1, double ddof = 1.0);
+
+  // for covariance of whole table (must have only numeric columns)
+  // if input table has too many columns without nulls and 
+  // complete table can be fit into memory, setting low_memory=true would be faster
+  dftable covariance(int min_periods = -1,
+                     double ddof = 1.0, bool low_memory = true);
+
   /*
     if check_null_like == true, values of numeric_limits<T>::max or "NULL"
     are treated as NULL
@@ -1330,6 +1346,117 @@ dftable rowmajor_matrix<T>::to_dataframe() {
   std::vector<std::string> names(num_col);
   for (size_t i = 0; i < num_col; ++i) names[i] = std::to_string(i);
   return to_dataframe(names);
+}
+
+// for covariance
+template <class T, class I>
+void compute_vector_mutual_mean(const std::vector<T>& vecX,
+                                const std::vector<T>& vecY,
+                                const std::vector<I>& nullX,
+                                const std::vector<I>& nullY,
+                                T& sumX, T& sumY, size_t& nobjs) {
+  auto vxp = vecX.data();
+  auto vyp = vecY.data();
+  auto nxp = nullX.data();
+  auto nyp = nullY.data();
+  auto size = vecX.size();
+  nobjs = 0; sumX = 0; sumY = 0;
+  for(size_t k = 0; k < size; ++k) {
+    // optimization of if-statement with mask
+    int mask = (nxp[k] == 0 && nyp[k] == 0);
+    nobjs += mask;
+    sumX += mask * vxp[k];
+    sumY += mask * vyp[k];
+  }
+}
+
+template <class T>
+void compute_vector_mutual_mean(const std::vector<T>& vecX,
+                                const std::vector<T>& vecY,
+                                T& sumX, T& sumY, size_t& nobjs) {
+  auto vxp = vecX.data();
+  auto vyp = vecY.data();
+  auto size = vecX.size();
+  nobjs = 0; sumX = 0; sumY = 0;
+  for(size_t k = 0; k < size; ++k) {
+    nobjs += 1;
+    sumX += vxp[k];
+    sumY += vyp[k];
+  }
+}
+
+template <class T, class I>
+double compute_vector_cov(const std::vector<T>& vecX,
+                          const std::vector<T>& vecY,
+                          const std::vector<I>& nullX,
+                          const std::vector<I>& nullY,
+                          double meanX, double meanY) {
+  auto vxp = vecX.data();
+  auto vyp = vecY.data();
+  auto nxp = nullX.data();
+  auto nyp = nullY.data();
+  auto size = vecX.size();
+  double sum = 0;
+  for(size_t k = 0; k < size; ++k) {
+    // optimization of if-statement with mask
+    int mask = (nxp[k] == 0 && nyp[k] == 0);
+    auto mx = mask * meanX;
+    auto my = mask * meanY;
+    sum += mask * (vxp[k] - mx) * (vyp[k] - my);
+  }
+  return sum;
+}
+
+template <class T>
+double compute_vector_cov(const std::vector<T>& vecX,
+                          const std::vector<T>& vecY,
+                          double meanX, double meanY) {
+  auto vxp = vecX.data();
+  auto vyp = vecY.data();
+  auto size = vecX.size();
+  double sum = 0;
+  for(size_t k = 0; k < size; ++k) sum += (vxp[k] - meanX) * (vyp[k] - meanY);
+  return sum;
+}
+
+template <class T, class I>
+double cov_impl(lvec<T>& valX, lvec<T>& valY,
+                lvec<I>& nullX, lvec<I>& nullY,
+                int min_periods) {
+  auto sumX = make_node_local_allocate<T>();
+  auto sumY = make_node_local_allocate<T>();
+  auto lnobjs = make_node_local_allocate<size_t>();
+  valX.mapv(compute_vector_mutual_mean<T,I>, valY,
+            nullX, nullY, sumX, sumY, lnobjs);
+  auto nobjs = lnobjs.reduce(add<size_t>);
+  double ret = std::numeric_limits<double>::max();
+  if (nobjs >= std::max(2, min_periods)) {
+    auto meanX = static_cast<double>(sumX.reduce(add<T>)) / nobjs;
+    auto meanY = static_cast<double>(sumY.reduce(add<T>)) / nobjs;
+    ret = valX.map(compute_vector_cov<T,I>, valY,
+                   nullX, nullY, broadcast(meanX), broadcast(meanY))
+              .reduce(add<double>);
+    ret /= (nobjs - 1); // ddof = 1; for having data with nulls
+  }
+  return ret;
+}
+
+template <class T>
+double cov_impl(lvec<T>& valX, lvec<T>& valY, int min_periods) {
+  auto sumX = make_node_local_allocate<T>();
+  auto sumY = make_node_local_allocate<T>();
+  auto lnobjs = make_node_local_allocate<size_t>();
+  valX.mapv(compute_vector_mutual_mean<T>, valY, sumX, sumY, lnobjs);
+  auto nobjs = lnobjs.reduce(add<size_t>);
+  double ret = std::numeric_limits<double>::max();
+  if (nobjs >= std::max(2, min_periods)) {
+    auto meanX = static_cast<double>(sumX.reduce(add<T>)) / nobjs;
+    auto meanY = static_cast<double>(sumY.reduce(add<T>)) / nobjs;
+    ret = valX.map(compute_vector_cov<T>, valY, broadcast(meanX), broadcast(meanY))
+              .reduce(add<double>);
+    ret /= (nobjs - 1); // ddof = 1; for having data with nulls
+  }
+  return ret;
 }
 
 }
