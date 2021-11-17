@@ -1,0 +1,1099 @@
+.TH "KNeighborsClassifier" "" "" "" ""
+.SH NAME
+.PP
+KNeighborsClassifier\- Classifier implementing the k\-nearest neighbors
+vote.
+.SH SYNOPSIS
+.PP
+class frovedis.mllib.neighbors.KNeighborsClassifier(n_neighbors=5,
+weights=‘uniform', algorithm=\[aq]auto\[aq],
+.PD 0
+.P
+.PD
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ leaf_size=30,
+p=2, metric=\[aq]euclidean\[aq],
+.PD 0
+.P
+.PD
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ metric_params=None,
+n_jobs=None,
+.PD 0
+.P
+.PD
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ verbose=0,
+chunk_size=1.0,
+.PD 0
+.P
+.PD
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ batch_fraction=None)
+.SS Public Member Functions
+.PP
+fit(X, y)
+.PD 0
+.P
+.PD
+kneighbors(X = None, n_neighbors = None, return_distance = True)
+.PD 0
+.P
+.PD
+kneighbors_graph(X = None, n_neighbors = None, mode =
+\[aq]connectivity\[aq])
+.PD 0
+.P
+.PD
+save(fname)
+.PD 0
+.P
+.PD
+load(fname)
+.PD 0
+.P
+.PD
+predict(X, save_proba = False)
+.PD 0
+.P
+.PD
+predict_proba(X)
+.PD 0
+.P
+.PD
+score(X, y, sample_weight = None)
+.PD 0
+.P
+.PD
+get_params(deep = True)
+.PD 0
+.P
+.PD
+set_params(**params)
+.PD 0
+.P
+.PD
+debug_print()
+.PD 0
+.P
+.PD
+release()
+.PD 0
+.P
+.PD
+is_fitted()
+.SH DESCRIPTION
+.PP
+Neighbors\-based classification is a type of instance\-based learning or
+non\-generalizing learning.
+It does not attempt to construct a general internal model, but simply
+stores instances of the training data.
+Classification is computed from a simple majority vote of the nearest
+neighbors of each point\- a query point is assigned the data class which
+has the most representatives within the nearest neighbors of the point.
+.PP
+The k\-neighbors classification in KNeighborsClassifier is a commonly
+used technique.
+The optimal choice of the value is highly data\-dependent.
+In general, a larger k suppresses the effects of noise, but makes the
+classification boundaries less distinct.
+.PP
+This module provides a client\-server implementation, where the client
+application is a normal python program.
+The frovedis interface is almost same as Scikit\-learn
+KNeighborsClassifier interface, but it doesn\[aq]t have any dependency
+with Scikit\-learn.
+It can be used simply even if the system doesn\[aq]t have Scikit\-learn
+installed.
+Thus, in this implementation, a python client can interact with a
+frovedis server sending the required python data for training at
+frovedis side.
+Python data is converted into frovedis compatible data internally and
+the python ML call is linked with the respective frovedis ML call to get
+the job done at frovedis server.
+.PP
+Python side calls for KNeighborsClassifier on the frovedis server.
+Once the training is completed with the input data at the frovedis
+server, it returns an abstract model with a unique model ID to the
+client python program.
+.PP
+When kneighbors\-like request would be made on the trained model, python
+program will send the same request to the frovedis server.
+After the request is served at the frovedis server, the output would be
+sent back to the python client.
+.SS Detailed Description
+.SS 1. KNeighborsClassifier()
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[B]\f[I]n_neighbors\f[]\f[]: A positive integer parameter, specifying
+the number of neighbors to use by default for \[aq]kneighbors\[aq]
+queries.
+It must be within the range of 0 and n_samples.
+(Default: 5)
+.PD 0
+.P
+.PD
+\f[B]\f[I]weights\f[]\f[]: An unused parameter.
+(Default: uniform)
+.PD 0
+.P
+.PD
+\f[B]\f[I]algorithm\f[]\f[]: A string object parameter, specifying the
+algorithm used to compute the nearest neighbors.
+(Default: auto)
+.PD 0
+.P
+.PD
+When it is ‘auto', it will be set as ‘brute'(brute\-force search
+approach).
+Unlike Scikit\-learn, currently it supports only ‘brute'.
+.PD 0
+.P
+.PD
+\f[B]\f[I]leaf_size\f[]\f[]: An unused parameter.
+(Default: 30)
+.PD 0
+.P
+.PD
+\f[B]\f[I]p\f[]\f[]: An unused parameter.
+(Default: 2)
+.PD 0
+.P
+.PD
+\f[B]\f[I]metric\f[]\f[]: A string object parameter specifying the
+distance metric to use for the tree.
+(Default: ‘euclidean')
+.PD 0
+.P
+.PD
+Currenlty it only supports ‘euclidean', \[aq]seuclidean\[aq] and
+\[aq]cosine\[aq] distance.
+.PD 0
+.P
+.PD
+\f[B]\f[I]metric_params\f[]\f[]: An unused parameter.
+(Default: None)
+.PD 0
+.P
+.PD
+\f[B]\f[I]n_jobs\f[]\f[]: An unused parameter.
+(Default: None)
+.PD 0
+.P
+.PD
+\f[B]\f[I]verbose\f[]\f[]: An integer parameter specifying the log level
+to use.
+Its value is set as 0 by default(for INFO mode).
+But it can be set to 1(for DEBUG mode) or 2(for TRACE mode) for getting
+training time logs from frovedis server.
+.PD 0
+.P
+.PD
+\f[B]\f[I]chunk_size\f[]\f[]: A positive float parameter specifying the
+amount of data (in megabytes) to be processed in one time.
+(Default: 1.0)
+.PD 0
+.P
+.PD
+\f[B]\f[I]batch_fraction\f[]\f[]: A positive double(float64) parameter
+used to calculate the batches of specific size.
+These batches are used to construct the distance matrix.
+It must be within the range of 0.0 to 1.0.
+(Default: None)
+.PD 0
+.P
+.PD
+When it is None (not specified explicitly), it will be set as
+np.finfo(np.float64).max value.
+.PP
+\f[B]Attributes\f[]
+.PD 0
+.P
+.PD
+\f[B]\f[I]classes_\f[]\f[]: A numpy array of int64 type value that
+specifies unique labels given to the classifier during training.
+It has shape \f[B](n_samples,)\f[].
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It initializes a KNeighborsClassifier object with the given parameters.
+.PP
+The parameters: "weights","leaf_size", "p","metric_params" and "n_jobs"
+are simply kept in to make the interface uniform to the Scikit\-learn
+KNeighborsClassifier module.
+They are not used anywhere within frovedis implementation.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It simply returns "self" reference.
+.SS 2. fit(X, y)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[B]\f[I]X\f[]\f[]: A numpy dense or scipy sparse matrix or any python
+array\-like object or an instance of FrovedisCRSMatrix for sparse data
+and FrovedisRowmajorMatrix for dense data of float or double(float64)
+type.
+It has shape \f[B](n_samples, n_features)\f[].
+.PD 0
+.P
+.PD
+\f[I]\f[B]y\f[]\f[]: Any python array\-like object or an instance of
+FrovedisDvector and has shape \f[B](n_samples,)\f[].
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It accepts the training matrix (X) with labels (y) and trains a
+KNeighborsClassifier model.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ loading\ sample\ data\ 
+samples\ =\ np.loadtxt("./input/knc_data.txt",\ dtype\ =\ np.float64)
+lbl\ =\ [10,\ 10,\ 10,\ 20,\ 10,\ 20]
+
+#\ fitting\ input\ data\ on\ KNeighborsClassifier\ object
+from\ frovedis.mllib.neighbors\ import\ KNeighborsClassifier
+knc\ =\ KNeighborsClassifier(n_neighbors\ =\ 3)
+knc.fit(samples,\ lbl)
+\f[]
+.fi
+.PP
+When native python data is provided, it is converted to frovedis\-like
+inputs and sent to frovedis server which consumes some data transfer
+time.
+Pre\-constructed frovedis\-like inputs can be used to speed up the
+training time, especially when same data would be used for multiple
+executions.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ loading\ sample\ data
+samples\ =\ np.loadtxt("./input/knc_data.txt",\ dtype\ =\ np.float64)
+lbl\ =\ [10,\ 10,\ 10,\ 20,\ 10,\ 20]
+
+#\ Since\ "samples"\ is\ numpy\ dense\ data,\ we\ have\ created\ FrovedisRowmajorMatrix.\ 
+#\ For\ scipy\ sparse\ data,\ FrovedisCRSMatrix\ should\ be\ used\ instead.
+from\ frovedis.matrix.dense\ import\ FrovedisRowmajorMatrix
+from\ frovedis.matrix.dvector\ import\ FrovedisDvector
+rmat\ =\ FrovedisRowmajorMatrix(samples)
+dlbl\ =\ FrovedisDvector(lbl)
+
+#\ fitting\ input\ data\ on\ KNeighborsClassifier\ object
+from\ frovedis.mllib.neighbors\ import\ KNeighborsClassifier
+knc\ =\ KNeighborsClassifier(n_neighbors\ =\ 3)
+knc.fit(rmat,\ dlbl)
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It simply returns "self" reference.
+.SS 3. kneighbors(X = None, n_neighbors = None, return_distance = True)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[B]\f[I]X\f[]\f[]: A numpy dense or scipy sparse matrix or any python
+array\-like object or an instance of FrovedisCRSMatrix for sparse data
+and FrovedisRowmajorMatrix for dense data of float or double(float64)
+type.
+It has shape \f[B](n_queries, n_features)\f[], where ‘n_queries' is the
+number of rows in the test data.
+(Default: None)
+.PD 0
+.P
+.PD
+When it is None (not specified explicitly), it will be training data (X)
+used as input in fit().
+.PD 0
+.P
+.PD
+\f[B]\f[I]n_neighbors\f[]\f[]: A positive integer parameter, specifying
+the number of neighbors to use by default for \[aq]kneighbors\[aq]
+queries.
+It must be within the range of 0 and n_samples.
+(Default: None)
+.PD 0
+.P
+.PD
+When it is None (not specified explicitly), it will be
+\[aq]n_neighbors\[aq] value used during KNeighborsClassifier object
+creation.
+.PD 0
+.P
+.PD
+\f[B]\f[I]return_distance\f[]\f[]: A boolean parameter specifying
+whether or not to return the distances.
+(Default: True)
+.PD 0
+.P
+.PD
+If set to False, it will not return distances.
+Then, only indices are returned by this method.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+Finds the k\-Neighbors of a point and returns the indices of neighbors
+and distances to the neighbors of each point.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+distances,\ indices\ =\ knc.kneighbors(samples)
+print(\[aq]distances\[aq])
+print(distances)
+print(\[aq]indices\[aq])
+print(indices)
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+distances
+[[0.\ \ \ \ \ \ \ \ \ 1.\ \ \ \ \ \ \ \ \ 2.23606798]
+\ [0.\ \ \ \ \ \ \ \ \ 1.\ \ \ \ \ \ \ \ \ 1.41421356]
+\ [0.\ \ \ \ \ \ \ \ \ 1.41421356\ 2.23606798]
+\ [0.\ \ \ \ \ \ \ \ \ 1.\ \ \ \ \ \ \ \ \ 2.23606798]
+\ [0.\ \ \ \ \ \ \ \ \ 1.\ \ \ \ \ \ \ \ \ 1.41421356]
+\ [0.\ \ \ \ \ \ \ \ \ 1.41421356\ 2.23606798]]
+indices
+[[0\ 1\ 2]
+\ [1\ 0\ 2]
+\ [2\ 1\ 0]
+\ [3\ 4\ 5]
+\ [4\ 3\ 5]
+\ [5\ 4\ 3]]
+\f[]
+.fi
+.PP
+Like in fit(), frovedis\-like input can be used to speed\-up the
+computation of indices and distances at server side.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ Since\ "samples"\ is\ numpy\ dense\ data,\ we\ have\ created\ FrovedisRowmajorMatrix.\ 
+#\ For\ scipy\ sparse\ data,\ FrovedisCRSMatrix\ should\ be\ used\ instead.
+from\ frovedis.matrix.dense\ import\ FrovedisRowmajorMatrix
+rmat\ =\ FrovedisRowmajorMatrix(samples)
+
+#\ fitting\ input\ data\ on\ KNeighborsClassifier\ object
+from\ frovedis.mllib.neighbors\ import\ KNeighborsClassifier
+knc\ =\ KNeighborsClassifier(n_neighbors\ =\ 3)
+distances,\ indices\ =\ knc.kneighbors(rmat)\ \ \ \ 
+
+#\ Here\ FrovedisRowmajorMatrix().debug_print()\ is\ used
+print(\[aq]distances\[aq])
+distances.debug_print()
+#\ Here\ FrovedisRowmajorMatrix().debug_print()\ is\ used
+print(\[aq]indices\[aq])
+indices.debug_print()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+distances\ \ \ \ 
+matrix:
+num_row\ =\ 6,\ num_col\ =\ 3
+node\ 0
+node\ =\ 0,\ local_num_row\ =\ 6,\ local_num_col\ =\ 3,\ val\ =\ 0\ 1\ 2.23607\ 0\ 1\ 1.41421\ 0\ 1.41421\ 
+2.23607\ 0\ 1\ 2.23607\ 0\ 1\ 1.41421\ 0\ 1.41421\ 2.23607
+indices
+matrix:
+num_row\ =\ 6,\ num_col\ =\ 3
+node\ 0
+node\ =\ 0,\ local_num_row\ =\ 6,\ local_num_col\ =\ 3,\ val\ =\ 0\ 1\ 2\ 1\ 0\ 2\ 2\ 1\ 0\ 3\ 4\ 5\ 4\ 3\ 5\ 5\ 4\ 3
+\f[]
+.fi
+.PP
+It returns distances and indices as FrovedisRowmajorMatrix objects.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+\f[B]When test data and training data used by fitted model are python
+native input:\f[]
+.PD 0
+.P
+.PD
+\f[B]\f[I]distances\f[]\f[]: A numpy array of float or double(float64)
+type values.
+It has shape \f[B](n_queries, n_neighbors)\f[], where ‘n_queries' is the
+number of rows in the test data.
+It is only returned by kneighbors(), if return_distance = True.
+.PD 0
+.P
+.PD
+\f[B]\f[I]indices\f[]\f[]: A numpy array of int64 type values.
+It has shape \f[B](n_queries, n_neighbors)\f[].
+.PD 0
+.P
+.PD
+\f[B]When either test data or training data used by fitted model is
+frovedis\-like input:\f[]
+.PD 0
+.P
+.PD
+\f[B]\f[I]distances\f[]\f[]: A FrovedisRowmajorMatrix of float or
+double(float64) type values.
+It has shape
+.PD 0
+.P
+.PD
+\f[B](n_queries, n_neighbors)\f[], where ‘n_queries' is the number of
+rows in the test data.
+It is only returned by kneighbors(), if return_distance = True.
+.PD 0
+.P
+.PD
+\f[B]\f[I]indices\f[]\f[]: A FrovedisRowmajorMatrix of int64 typess
+values.
+It has shape \f[B](n_queries, n_neighbors)\f[].
+.SS 4. kneighbors_graph(X = None, n_neighbors = None, mode =
+\[aq]connectivity\[aq])
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[B]\f[I]X\f[]\f[]: A numpy dense or scipy sparse matrix or any python
+array\-like object or an instance of FrovedisCRSMatrix for sparse data
+and FrovedisRowmajorMatrix for dense data of float or double(float64)
+type.
+It has shape \f[B](n_queries, n_features)\f[], where ‘n_queries' is the
+number of rows in the test data.
+(Default: None)
+.PD 0
+.P
+.PD
+When it is None (not specified explicitly), it will be training data (X)
+used as input in fit().
+.PD 0
+.P
+.PD
+\f[B]\f[I]n_neighbors\f[]\f[]: A positive integer parameter, specifying
+the number of neighbors to use by default for \[aq]kneighbors\[aq]
+queries.
+It must be within the range of 0 and n_samples.
+(Default: None)
+.PD 0
+.P
+.PD
+When it is None (not specified explicitly), it will be
+\[aq]n_queries\[aq] value used during NearestNeighbors object creation.
+.PD 0
+.P
+.PD
+\f[B]\f[I]mode\f[]\f[]: A string object parameter which can be either
+\[aq]connectivity\[aq] or \[aq]distance\[aq].
+It specifies the type of returned matrix.
+.PD 0
+.P
+.PD
+For \[aq]connectivity\[aq], it will return the connectivity matrix with
+ones and zeros, whereas for ‘distance', the edges are euclidean distance
+between points, type of distance depends on the selected
+\[aq]metric\[aq] value in KNeighborsClassifier class.
+(Default: \[aq]connectivity\[aq])
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It computes the (weighted) graph of k\-Neighbors for points in X.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ Here\ \[aq]mode\ =\ connectivity\[aq]\ by\ default
+graph\ =\ knc.kneighbors_graph(samples)
+print(\[aq]kneighbors\ graph\[aq])
+print(graph)
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+kneighbors\ graph
+(0,\ 0)\ \ \ \ \ \ \ \ 1.0
+(0,\ 1)\ \ \ \ \ \ \ \ 1.0
+(0,\ 2)\ \ \ \ \ \ \ \ 1.0
+(1,\ 1)\ \ \ \ \ \ \ \ 1.0
+(1,\ 0)\ \ \ \ \ \ \ \ 1.0
+(1,\ 2)\ \ \ \ \ \ \ \ 1.0
+(2,\ 2)\ \ \ \ \ \ \ \ 1.0
+(2,\ 1)\ \ \ \ \ \ \ \ 1.0
+(2,\ 0)\ \ \ \ \ \ \ \ 1.0
+(3,\ 3)\ \ \ \ \ \ \ \ 1.0
+(3,\ 4)\ \ \ \ \ \ \ \ 1.0
+(3,\ 5)\ \ \ \ \ \ \ \ 1.0
+(4,\ 4)\ \ \ \ \ \ \ \ 1.0
+(4,\ 3)\ \ \ \ \ \ \ \ 1.0
+(4,\ 5)\ \ \ \ \ \ \ \ 1.0
+(5,\ 5)\ \ \ \ \ \ \ \ 1.0
+(5,\ 4)\ \ \ \ \ \ \ \ 1.0
+(5,\ 3)\ \ \ \ \ \ \ \ 1.0
+\f[]
+.fi
+.PP
+For example, when mode = ‘distance'
+.IP
+.nf
+\f[C]
+#\ Here\ \[aq]mode\ =\ distance\[aq]
+graph\ =\ knc.kneighbors_graph(samples,\ mode\ =\ \[aq]distance\[aq])
+print(\[aq]kneighbors\ graph\[aq])
+print(graph)
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+(0,\ 0)\ \ \ \ \ \ \ \ 0.0
+(0,\ 1)\ \ \ \ \ \ \ \ 1.0
+(0,\ 2)\ \ \ \ \ \ \ \ 2.23606797749979
+(1,\ 1)\ \ \ \ \ \ \ \ 0.0
+(1,\ 0)\ \ \ \ \ \ \ \ 1.0
+(1,\ 2)\ \ \ \ \ \ \ \ 1.4142135623730951
+(2,\ 2)\ \ \ \ \ \ \ \ 0.0
+(2,\ 1)\ \ \ \ \ \ \ \ 1.4142135623730951
+(2,\ 0)\ \ \ \ \ \ \ \ 2.23606797749979
+(3,\ 3)\ \ \ \ \ \ \ \ 0.0
+(3,\ 4)\ \ \ \ \ \ \ \ 1.0
+(3,\ 5)\ \ \ \ \ \ \ \ 2.23606797749979
+(4,\ 4)\ \ \ \ \ \ \ \ 0.0
+(4,\ 3)\ \ \ \ \ \ \ \ 1.0
+(4,\ 5)\ \ \ \ \ \ \ \ 1.4142135623730951
+(5,\ 5)\ \ \ \ \ \ \ \ 0.0
+(5,\ 4)\ \ \ \ \ \ \ \ 1.4142135623730951
+(5,\ 3)\ \ \ \ \ \ \ \ 2.23606797749979
+\f[]
+.fi
+.PP
+Like in fit(), frovedis\-like input can be used to speed\-up the graph
+making at server side.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ Since\ "samples"\ is\ numpy\ dense\ data,\ we\ have\ created\ FrovedisRowmajorMatrix.\ 
+#\ For\ scipy\ sparse\ data,\ FrovedisCRSMatrix\ should\ be\ used\ instead.
+from\ frovedis.matrix.dense\ import\ FrovedisRowmajorMatrix
+rmat\ =\ FrovedisRowmajorMatrix(samples)
+
+#\ fitting\ input\ data\ on\ KNeighborsClassifier\ object
+from\ frovedis.mllib.neighbors\ import\ KNeighborsClassifier
+knc\ =\ KNeighborsClassifier(n_neighbors\ =\ 3)
+#\ Here\ \[aq]mode\ =\ connectivty\[aq]\ by\ default
+graph\ =\ knc.kneighbors_graph(rmat)
+
+#\ Here\ FrovedisCRSMatrix().debug_print()\ is\ used
+print(\[aq]graph\[aq])
+graph.debug_print()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+matrix:
+num_row\ =\ 6,\ num_col\ =\ 6
+node\ 0
+local_num_row\ =\ 6,\ local_num_col\ =\ 6
+val\ :\ 1\ 1\ 1\ 1\ 1\ 1\ 1\ 1\ 1\ 1\ 1\ 1\ 1\ 1\ 1\ 1\ 1\ 1
+idx\ :\ 0\ 1\ 2\ 1\ 0\ 2\ 2\ 1\ 0\ 3\ 4\ 5\ 4\ 3\ 5\ 5\ 4\ 3
+off\ :\ 0\ 3\ 6\ 9\ 12\ 15\ 18
+\f[]
+.fi
+.PP
+It returns a FrovedisCRSMatrix object.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+\f[B]When test data and training data used by fitted model are python
+native input:\f[]
+.PD 0
+.P
+.PD
+It returns a scipy sparse matrix of float or double(float64) type
+values.
+It has shape \f[B](n_queries, n_samples_fit)\f[], where ‘n_queries' is
+the number of rows in the test data and \[aq]n_samples_fit\[aq] is the
+number of samples in the fitted data.
+.PD 0
+.P
+.PD
+\f[B]When either test data or training data used by fitted model is
+frovedis\-like input:\f[]
+.PD 0
+.P
+.PD
+It returns a FrovedisCRSMatrix of float or double(float64) type values.
+It has shape \f[B](n_queries, n_samples_fit)\f[], where ‘n_queries' is
+the number of rows in the test data and \[aq]n_samples_fit\[aq] is the
+number of samples in the fitted data.
+.SS 5. save(fname)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[B]\f[I]fname\f[]\f[]: A string object containing the name of the file
+on which the target model is to be saved.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+Currently, this method is not supported for KNeighborsClassifier.
+It is simply kept in KNeighborsClassifier module to maintain uniform
+interface like other estimators in frovedis.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It simply raises an AttributeError.
+.SS 6. load(fname)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[B]\f[I]fname\f[]\f[]: A string object containing the name of the file
+having model information to be loaded.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+Currently, this method is not supported for KNeighborsClassifier.
+It is simply kept in KNeighborsClassifier module to maintain uniform
+interface like other estimators in frovedis.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It simply raises an AttributeError.
+.SS 7. predict(X, save_proba = False)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[B]\f[I]X\f[]\f[]: A numpy dense or scipy sparse matrix or any python
+array\-like object or an instance of FrovedisCRSMatrix for sparse data
+and FrovedisRowmajorMatrix for dense data of float or double(float64)
+type.
+It has shape \f[B](n_queries, n_features)\f[], where ‘n_queries' is the
+number of rows in the test data.
+.PD 0
+.P
+.PD
+\f[B]\f[I]save_proba\f[]\f[]: A boolean parameter specifies whether to
+save the predicted probability or not.
+.PD 0
+.P
+.PD
+If it is set to \[aq]True\[aq], a matrix with the name
+‘probability_matrix' would be generated in the current execution
+directory, which can be used for inspecting the probability of
+individual classes (just for debug purpose).
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+Predict the class labels for the provided data.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ predicting\ on\ KNeighborsClassifier\ model
+knc.predict(samples)
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+[10\ 10\ 10\ 20\ 20\ 20]
+\f[]
+.fi
+.PP
+Like in fit(), frovedis\-like input can be used to speed\-up the
+prediction making on the trained model at server side.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ Since\ "samples"\ is\ numpy\ dense\ data,\ we\ have\ created\ FrovedisRowmajorMatrix.
+#\ For\ scipy\ sparse\ data,\ FrovedisCRSMatrix\ should\ be\ used\ instead.
+from\ frovedis.matrix.dense\ import\ FrovedisRowmajorMatrix
+rmat\ =\ FrovedisRowmajorMatrix(samples)
+
+#\ predicting\ on\ KNeighborsClassifier\ model\ using\ pre\-constructed\ input
+knc.predict(rmat)
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+[10\ 10\ 10\ 20\ 20\ 20]
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns a numpy array of long (int64) type containing the predicted
+outputs.
+It is of shape \f[B](n_queries,)\f[], where \[aq]n_queries\[aq] is the
+number of rows in the test data.
+.SS 8. predict_proba(X)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[B]\f[I]X\f[]\f[]: A numpy dense or scipy sparse matrix or any python
+array\-like object or an instance of FrovedisCRSMatrix for sparse data
+and FrovedisRowmajorMatrix for dense data of float or double(float64)
+type.
+It has shape \f[B](n_queries, n_features)\f[], where ‘n_queries' is the
+number of rows in the test data.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+Calculates probability for the test data X.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+knc.predict_proba(samples)
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+[[1.\ \ \ \ \ \ \ \ \ 0.\ \ \ \ \ \ \ \ ]
+\ [1.\ \ \ \ \ \ \ \ \ 0.\ \ \ \ \ \ \ \ ]
+\ [1.\ \ \ \ \ \ \ \ \ 0.\ \ \ \ \ \ \ \ ]
+\ [0.33333333\ 0.66666667]
+\ [0.33333333\ 0.66666667]
+\ [0.33333333\ 0.66666667]]
+\f[]
+.fi
+.PP
+Like in fit(), frovedis\-like input can be used to speed\-up the
+computation of probability at server side.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ Since\ "samples"\ is\ numpy\ dense\ data,\ we\ have\ created\ FrovedisRowmajorMatrix.\ 
+#\ For\ scipy\ sparse\ data,\ FrovedisCRSMatrix\ should\ be\ used\ instead.
+from\ frovedis.matrix.dense\ import\ FrovedisRowmajorMatrix
+rmat\ =\ FrovedisRowmajorMatrix(samples)
+
+#\ fitting\ input\ data\ on\ KNeighborsClassifier\ object
+from\ frovedis.mllib.neighbors\ import\ KNeighborsClassifier
+knc\ =\ KNeighborsClassifier(n_neighbors\ =\ 3)
+proba\ =\ knc.predict_proba(rmat)
+
+#\ Here\ FrovedisRowmajorMatrix().debug_print()\ is\ used
+print(proba)
+proba.debug_print()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+matrix:
+num_row\ =\ 6,\ num_col\ =\ 2
+node\ 0
+node\ =\ 0,\ local_num_row\ =\ 6,\ local_num_col\ =\ 2,\ val\ =\ 1\ 0\ 1\ 0\ 1\ 0\ 0.333333\ 0.666667\ 0.333333\ 0.666667\ 0.333333\ 0.666667
+\f[]
+.fi
+.PP
+It returns a FrovedisRowmajorMatrix object.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+\f[B]When test data and training data used by fitted model are python
+native input :\f[]
+.PD 0
+.P
+.PD
+A numpy array of float or double(float64) type values.
+It has shape \f[B](n_queries, n_neighbors)\f[].
+.PD 0
+.P
+.PD
+\f[B]When either test data or training data used by fitted model is
+frovedis\-like input:\f[]
+.PD 0
+.P
+.PD
+A FrovedisRowmajorMatrix of float or double(float64) type values.
+It has shape \f[B](n_queries, n_neighbors)\f[].
+.SS 9. score(X, y, sample_weight = None)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[B]\f[I]X\f[]\f[]: A numpy dense or scipy sparse matrix or any python
+array\-like object or an instance of FrovedisCRSMatrix for sparse data
+and FrovedisRowmajorMatrix for dense data of float or double(float64)
+type.
+It has shape \f[B](n_samples, n_features)\f[].
+.PD 0
+.P
+.PD
+\f[B]\f[I]y\f[]\f[]: Any python array\-like object or an instance of
+FrovedisDvector.
+.PD 0
+.P
+.PD
+\f[B]\f[I]sample_weight\f[]\f[]: An unused parameter whose default value
+is None.
+It is simply ignored in frovedis implementation, just like in
+Scikit\-learn.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+Calculate mean accuracy on the given test data and labels i.e.
+mean accuracy of self.predict(X) wrt.
+y.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+knc.score(samples,\ lbl)
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+0.89\ 
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns an accuracy score of double(float64) type.
+.SS 9. get_params(deep = True)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]\f[B]deep\f[]\f[]: A boolean parameter, used to get parameters and
+their values for an estimator.
+If True, it will return the parameters for an estimator and contained
+subobjects that are estimators.
+(Default: True)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+This method belongs to the BaseEstimator class inherited by
+KNeighborsClassifier.
+It is used to get parameters and their values of KNeighborsClassifier
+class.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+\ \ print(knc.get_params())
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+{\[aq]algorithm\[aq]:\ \[aq]auto\[aq],\ \[aq]batch_fraction\[aq]:\ None,\ \[aq]chunk_size\[aq]:\ 1.0,\ \[aq]leaf_size\[aq]:\ 30,\ 
+\[aq]metric\[aq]:\ \[aq]euclidean\[aq],\ \[aq]metric_params\[aq]:\ None,\ \[aq]n_jobs\[aq]:\ None,\ \[aq]n_neighbors\[aq]:\ 3,\ 
+\[aq]p\[aq]:\ 2,\ \[aq]verbose\[aq]:\ 0,\ \[aq]weights\[aq]:\ \[aq]uniform\[aq]}
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+A dictionary of parameter names mapped to their values.
+.SS 10. set_params(**params)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]\f[B]**params\f[]\f[]: All the keyword arguments are passed this
+function as dictionary.
+This dictionary contains parameters of an estimator with its given
+values to set.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+This method belongs to the BaseEstimator class inherited by
+KNeighborsClassifier, used to set parameter values.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+print("Get\ parameters\ before\ setting:")\ 
+print(knc.get_params())
+#\ User\ just\ needs\ to\ provide\ the\ arguments\ and\ internally\ it\ will\ create\ a\ 
+dictionary\ over\ the\ arguments\ given\ by\ user
+knc.set_params(n_neighbors\ =\ 5)\ 
+print("Get\ parameters\ after\ setting:")\ 
+print(knc.get_params())
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+Get\ parameters\ before\ setting:\ 
+{\[aq]algorithm\[aq]:\ \[aq]auto\[aq],\ \[aq]batch_fraction\[aq]:\ None,\ \[aq]chunk_size\[aq]:\ 1.0,\ 
+\[aq]leaf_size\[aq]:\ 30,\ \[aq]metric\[aq]:\ \[aq]euclidean\[aq],\ \[aq]metric_params\[aq]:\ None,\ \[aq]n_jobs\[aq]:\ None,\ \[aq]n_neighbors\[aq]:\ 3,\ 
+\[aq]p\[aq]:\ 2,\ \[aq]verbose\[aq]:\ 0,\ \[aq]weights\[aq]:\ \[aq]uniform\[aq]}
+Get\ parameters\ after\ setting:\ 
+{\[aq]algorithm\[aq]:\ \[aq]auto\[aq],\ \[aq]batch_fraction\[aq]:\ None,\ \[aq]chunk_size\[aq]:\ 1.0,\ 
+\[aq]leaf_size\[aq]:\ 30,\ \[aq]metric\[aq]:\ \[aq]euclidean\[aq],\ \[aq]metric_params\[aq]:\ None,\ \[aq]n_jobs\[aq]:\ None,\ \[aq]n_neighbors\[aq]:\ 5,\ 
+\[aq]p\[aq]:\ 2,\ \[aq]verbose\[aq]:\ 0,\ \[aq]weights\[aq]:\ \[aq]uniform\[aq]}
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It simply returns "self" reference.
+.SS 11. debug_print()
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+Currently, this method is not supported for KNeighborsClassifier.
+It is simply kept in KNeighborsClassifier module to maintain uniform
+interface like other estimators in frovedis.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It simply raises an AttributeError.
+.SS 12. release()
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It can be used to release the in\-memory model at frovedis server.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+knc.release()
+\f[]
+.fi
+.PP
+This will reset the after\-fit populated attributes to None, along with
+releasing server side memory.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns nothing.
+.SS 13. is_fitted()
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It can be used to confirm if the model is already fitted or not.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns ‘True', if the model is already fitted otherwise, it returns
+‘False'.
+.SH SEE ALSO
+.PP
+rowmajor_matrix, crs_matrix, dvector
