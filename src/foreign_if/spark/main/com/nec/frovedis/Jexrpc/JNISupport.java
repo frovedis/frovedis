@@ -121,6 +121,8 @@ public class JNISupport {
   public static native Node getMasterInfo(String cmd);
   public static native int getWorkerSize(Node master_node);
   public static native Node[] getWorkerInfo(Node master_node);
+  public static native Node[] getWorkerInfoMulti(Node master_node, 
+                                                 long[] block_sizes, int nproc);
   public static native void finalizeFrovedisServer(Node master_node);
   public static native void cleanUPFrovedisServer(Node master_node);
 
@@ -747,20 +749,41 @@ public class JNISupport {
                                               long mptr, 
                                               boolean wantU, boolean wantV);
   // Dvector and DataFrame
-  public static native long loadFrovedisWorkerIntVector(Node t_node, long size,
-                                                      int data[]);
-  public static native long loadFrovedisWorkerLongVector(Node t_node, long size,
-                                                       long data[]);
-  public static native long loadFrovedisWorkerFloatVector(Node t_node, long size,
-                                                        float data[]);
-  public static native long loadFrovedisWorkerDoubleVector(Node t_node, long size,
-                                                         double data[]);
-  public static native long loadFrovedisWorkerStringVector(Node t_node, long size,
-                                                         String data[]);
-  public static native long loadFrovedisWorkerBoolVector(Node t_node, long size,
-                                                       boolean data[]);
+  public static native long[] allocateLocalVector(Node master_node, 
+                                                  long[] block_sizes, int nproc, 
+                                                  short dtype);
+  public static native void loadFrovedisWorkerIntVector(Node t_node, long vptr,
+                                                        long index, int data[],
+                                                        long size);
+  public static native void loadFrovedisWorkerLongVector(Node t_node, long vptr,
+                                                         long index, long data[],
+                                                         long size);
+  public static native void loadFrovedisWorkerFloatVector(Node t_node, long vptr,
+                                                          long index, float data[],
+                                                          long size);
+  public static native void loadFrovedisWorkerDoubleVector(Node t_node, long vptr,
+                                                           long index, double data[],
+                                                           long size);
+  public static native void loadFrovedisWorkerStringVector(Node t_node, long vptr,
+                                                           long index, String data[],
+                                                           long size);
+  public static native void loadFrovedisWorkerCharArrayVector(Node t_node, long vptr,
+                                                              long index, char data[][],
+                                                              long size);
+  public static native void loadFrovedisWorkerCharArray(Node t_node, long vptr,
+                                                        long index, char data[],
+                                                        int sizes[], long flat_size,
+                                                        long actual_size);
+  public static native void loadFrovedisWorkerBoolVector(Node t_node, long vptr,
+                                                         long index, boolean data[],
+                                                         long size);
+  public static native long createNodeLocalOfWords(Node master_node, 
+                                                   long intDataDvec, long sizesDvec);
   public static native long createFrovedisDvector(Node master_node, long proxies[],
-                                                long sizes[], long size, short dtype);
+                                                  int nproc, short dtype);
+  public static native long createFrovedisDvectorWithSizesVerification(
+                                                  Node master_node, long proxies[],
+                                                  long sizes[], int nproc, short dtype);
   public static native double[] getUniqueDvectorElements(Node master_node,
                                                          long dptr);
   public static native long getZeroBasedEncodedDvector(Node master_node, 

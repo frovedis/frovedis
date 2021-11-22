@@ -8,7 +8,7 @@ bin/com/nec/frovedis/Jgraph/DummyEdge.class bin/com/nec/frovedis/Jgraph/DummyGra
 
 JCLASSES := bin/com/nec/frovedis/Jexrpc/FrovedisServer.class ${JCLASSES_NOSERVER}
 
-SMATCLASSES_BASE := bin/com/nec/frovedis/matrix/Utils.class bin/com/nec/frovedis/matrix/ScalaCRS.class bin/com/nec/frovedis/matrix/MAT_KIND.class bin/com/nec/frovedis/matrix/DTYPE.class bin/com/nec/frovedis/matrix/FrovedisDenseMatrix.class 
+SMATCLASSES_BASE := bin/com/nec/frovedis/matrix/GenericUtils.class bin/com/nec/frovedis/matrix/Utils.class bin/com/nec/frovedis/matrix/ScalaCRS.class bin/com/nec/frovedis/matrix/MAT_KIND.class bin/com/nec/frovedis/matrix/DTYPE.class bin/com/nec/frovedis/matrix/FrovedisDenseMatrix.class 
 SMATCLASSES := ${SMATCLASSES_BASE} bin/com/nec/frovedis/matrix/BLAS.class bin/com/nec/frovedis/matrix/PBLAS.class bin/com/nec/frovedis/matrix/EvdResult.class bin/com/nec/frovedis/matrix/GetrfResult.class bin/com/nec/frovedis/matrix/FrovedisPCAModel.class bin/com/nec/frovedis/matrix/ScaLAPACK.class bin/com/nec/frovedis/matrix/LAPACK.class bin/com/nec/frovedis/matrix/RowMatrixUtils.class 
 
 SCLASSES := ${SMATCLASSES} \
@@ -72,6 +72,8 @@ bin/com/nec/frovedis/exrpc/FrovedisLabeledPoint.class: main/com/nec/frovedis/exr
 bin/com/nec/frovedis/io/FrovedisIO.class: main/com/nec/frovedis/io/iohandler.scala
 	${SCALA_HOME}/bin/scalac -cp "./bin:${SPARK_HOME}/jars/*:${HDPATH}" -sourcepath . -d bin ./main/com/nec/frovedis/io/iohandler.scala
 
+bin/com/nec/frovedis/matrix/GenericUtils.class: main/com/nec/frovedis/matrix/GenericUtils.scala
+	${SCALA_HOME}/bin/scalac -cp "./bin:${SPARK_HOME}/jars/*:${HDPATH}" -sourcepath . -d bin ./main/com/nec/frovedis/matrix/GenericUtils.scala
 bin/com/nec/frovedis/matrix/Utils.class: main/com/nec/frovedis/matrix/repartition.scala
 	${SCALA_HOME}/bin/scalac -cp "./bin:${SPARK_HOME}/jars/*:${HDPATH}" -sourcepath . -d bin ./main/com/nec/frovedis/matrix/repartition.scala
 bin/com/nec/frovedis/matrix/ScalaCRS.class: main/com/nec/frovedis/matrix/ScalaCRS.scala

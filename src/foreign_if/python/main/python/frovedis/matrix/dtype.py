@@ -19,6 +19,7 @@ class DTYPE:
     STRING = 5
     BOOL = 6
     ULONG = 7
+    WORDS = 8
 
 class TypeUtil:
     @staticmethod

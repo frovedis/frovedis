@@ -7,6 +7,7 @@ import com.nec.frovedis.matrix.{FloatDvector,DoubleDvector}
 import com.nec.frovedis.matrix.{StringDvector,BoolDvector}
 import com.nec.frovedis.matrix.FrovedisRowmajorMatrix
 import com.nec.frovedis.matrix.FrovedisColmajorMatrix
+import com.nec.frovedis.matrix.TimeSpent
 import com.nec.frovedis.exrpc.FrovedisSparseData
 import com.nec.frovedis.mllib.ModelID
 import org.apache.spark.rdd.RDD
@@ -18,6 +19,7 @@ import org.apache.spark.sql.types._
 import org.apache.spark.sql.DataFrame
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.mutable.ListBuffer
+import org.apache.log4j.{Level, Logger}
 
 object TMAPPER {
   val func2id = Map("sum" -> DTYPE.NONE, "max" -> DTYPE.NONE, "min" -> DTYPE.NONE,
@@ -34,7 +36,7 @@ object TMAPPER {
 
   val string2id = Map("IntegerType" -> DTYPE.INT,    "LongType" -> DTYPE.LONG,
                    "FloatType"   -> DTYPE.FLOAT,  "DoubleType" -> DTYPE.DOUBLE,
-                   "StringType"  -> DTYPE.STRING, "BooleanType" -> DTYPE.BOOL)
+                   "StringType"  -> DTYPE.WORDS, "BooleanType" -> DTYPE.BOOL)
 
   val spark = SparkSession.builder.getOrCreate()
   import spark.implicits._
@@ -45,38 +47,63 @@ object TMAPPER {
       else return 0
   } 
 
-  def toTypedDvector(df: DataFrame, tname: String, i: Int): Long = {
+  def toTypedDvector(df: DataFrame, tname: String, i: Int, 
+                     part_sizes: RDD[Int]): Long = {
     val col_name = df.columns(i)
+    val t0 = new TimeSpent(Level.DEBUG)
     return tname match {
         case "IntegerType" => { 
            val null_replaced = df.select(col_name).na.fill(Int.MaxValue)
+           t0.show("null_replaced: ")
            val data = null_replaced.map(_.getInt(0)).rdd
-           IntDvector.get(data)
+           t0.show("get rdd: ")
+           val ret = IntDvector.get(data, part_sizes)
+           t0.show("get intDvector: ")
+           ret
         }
         case "LongType" => { 
            val null_replaced = df.select(col_name).na.fill(Long.MaxValue)
+           t0.show("null_replaced: ")
            val data = null_replaced.map(_.getLong(0)).rdd
-           LongDvector.get(data)
+           t0.show("get rdd: ")
+           val ret = LongDvector.get(data, part_sizes)
+           t0.show("get longDvector: ")
+           ret
         }
         case "FloatType" => { 
            val null_replaced = df.select(col_name).na.fill(Float.MaxValue)
+           t0.show("null_replaced: ")
            val data = null_replaced.map(_.getFloat(0)).rdd
-           FloatDvector.get(data)
+           t0.show("get rdd: ")
+           val ret = FloatDvector.get(data, part_sizes)
+           t0.show("get floatDvector: ")
+           ret
         }
         case "DoubleType" => { 
            val null_replaced = df.select(col_name).na.fill(Double.MaxValue)
+           t0.show("null_replaced: ")
            val data = null_replaced.map(_.getDouble(0)).rdd
-           DoubleDvector.get(data)
+           t0.show("get rdd: ")
+           val ret = DoubleDvector.get(data, part_sizes)
+           t0.show("get doubleDvector: ")
+           ret
         }
         case "StringType" => {
            val null_replaced = df.select(col_name).na.fill("NULL")
+           t0.show("null_replaced: ")
            val data = null_replaced.map(_.getString(0)).rdd
-           StringDvector.get(data)
+           t0.show("get rdd: ")
+           val ret = StringDvector.get(data, part_sizes) // node_local<words>
+           t0.show("get stringDvector: ")
+           ret
         }
         case "BooleanType" => {
            // data is passed as int-vector
            var data = df.select(col_name).map(x => bool2int(x(0))).rdd
-           IntDvector.get(data)
+           t0.show("get rdd: ")
+           val ret = IntDvector.get(data, part_sizes)
+           t0.show("get booleanDvector: ")
+           ret
         }
         case _ => throw new IllegalArgumentException("Unsupported type: " + tname)
     }
@@ -154,11 +181,12 @@ class FrovedisDataFrame extends java.io.Serializable {
     val size = cols.size
     var dvecs = new Array[Long](size)
     types = new Array[Short](size)
+    val part_sizes = df.rdd.mapPartitions(x => Array(x.size).toIterator)
     for (i <- 0 to (size-1)) {
       //print("col_name: " + cols(i) + " col_type: " + tt(i) + "\n")
       val tname = tt(i)
       types(i) = TMAPPER.string2id(tname)
-      dvecs(i) = TMAPPER.toTypedDvector(df,tname,i)
+      dvecs(i) = TMAPPER.toTypedDvector(df,tname,i,part_sizes)
     }
     val fs = FrovedisServer.getServerInstance()
     fdata = JNISupport.createFrovedisDataframe(fs.master_node,types,cols,dvecs,size)

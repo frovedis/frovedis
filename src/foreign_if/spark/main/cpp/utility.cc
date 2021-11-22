@@ -313,13 +313,61 @@ to_string_vector(JNIEnv *env, jobjectArray& data, size_t size) {
   jsize d_len = env->GetArrayLength(data);
   if(d_len != size) REPORT_ERROR(INTERNAL_ERROR, "Error in data extraction from JRE");
   std::vector<std::string> data_vec(d_len);
-  for(size_t i=0; i<d_len; ++i) { 
+  for(size_t i = 0; i < d_len; ++i) { 
     jstring js = (jstring) (env->GetObjectArrayElement(data,i));
     const char *rawstr = env->GetStringUTFChars(js, 0);
     std::string str(rawstr);
     data_vec[i] = str;
     env->ReleaseStringUTFChars(js,rawstr);
   }
+  return data_vec;
+}
+
+std::vector<std::string>
+charArray_to_string_vector(JNIEnv *env, jobjectArray& data, size_t size) {
+  jsize d_len = env->GetArrayLength(data);
+  if(d_len != size) REPORT_ERROR(INTERNAL_ERROR, "Error in data extraction from JRE");
+  std::vector<std::string> data_vec(d_len);
+  time_spent t1(INFO), t2(INFO);
+  for(size_t i = 0; i < d_len; ++i) {
+    t1.lap_start();
+    jcharArray jcarr = (jcharArray) (env->GetObjectArrayElement(data,i));
+    jsize str_size = env->GetArrayLength(jcarr);
+    jchar *valp = env->GetCharArrayElements(jcarr, 0); 
+    t1.lap_stop();
+    
+    t2.lap_start();
+    char rawstr[str_size]; 
+    for(size_t j = 0; j < str_size; ++j) rawstr[j] = valp[j];
+    data_vec[i] = std::string(rawstr, str_size);
+    t2.lap_stop();
+    env->ReleaseCharArrayElements(jcarr, valp, JNI_ABORT); 
+  }
+  t1.show_lap("get array: ");
+  t2.show_lap("flatten array: ");
+  return data_vec;
+}
+
+std::vector<std::string>
+flat_charArray_to_string_vector(JNIEnv *env, jcharArray& data, jintArray& sizes, 
+                                size_t flat_size, size_t actual_size) {
+  jsize d_len = env->GetArrayLength(data);
+  if(d_len != flat_size) REPORT_ERROR(INTERNAL_ERROR, "Error in data extraction from JRE");
+  jchar *datap = env->GetCharArrayElements(data, 0);  
+  jint *sizesp = env->GetIntArrayElements(sizes, 0); int* sizesp_ = sizesp;
+  std::vector<std::string> data_vec(actual_size);
+  size_t k = 0;
+  time_spent t1(INFO);
+  for(size_t i = 0; i < actual_size; ++i) {
+    auto str_size = sizesp_[i];
+    char rawstr[str_size]; 
+    for(size_t j = 0; j < str_size; ++j) rawstr[j] = datap[k + j];
+    data_vec[i] = std::string(rawstr, str_size);
+    k += str_size;
+  }
+  t1.show("flat_charArray_to_string_vector: ");
+  env->ReleaseCharArrayElements(data, datap, JNI_ABORT);
+  env->ReleaseIntArrayElements(sizes, sizesp, JNI_ABORT);
   return data_vec;
 }
 
@@ -410,7 +458,7 @@ std::vector<int> to_bool_vector(JNIEnv *env, jbooleanArray& data, size_t size) {
   if(d_len != size) REPORT_ERROR(INTERNAL_ERROR, "Error in data extraction from JRE");
   jboolean *datap = env->GetBooleanArrayElements(data, 0);  // bool* datap_ = datap;
   std::vector<int> data_vec(d_len);
-  for(size_t i=0; i<d_len; ++i) data_vec[i] = datap[i] ? 1 : 0;
+  for(size_t i = 0; i < d_len; ++i) data_vec[i] = (datap[i] == 1);
   env->ReleaseBooleanArrayElements(data,datap,JNI_ABORT);
   return data_vec;
 }
