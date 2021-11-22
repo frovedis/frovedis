@@ -752,6 +752,8 @@ public class JNISupport {
   public static native long[] allocateLocalVector(Node master_node, 
                                                   long[] block_sizes, int nproc, 
                                                   short dtype);
+  public static native MemPair[] allocateLocalVectorPair(Node master_node, 
+                                                         long[] block_sizes, int nproc); 
   public static native void loadFrovedisWorkerIntVector(Node t_node, long vptr,
                                                         long index, int data[],
                                                         long size);
@@ -774,11 +776,18 @@ public class JNISupport {
                                                         long index, char data[],
                                                         int sizes[], long flat_size,
                                                         long actual_size);
+  public static native void loadFrovedisWorkerCharSizePair(Node t_node, 
+                                                           long dptr, long sptr, 
+                                                           long index, 
+                                                           char data[], int sizes[], 
+                                                           long flat_size,
+                                                           long actual_size);
   public static native void loadFrovedisWorkerBoolVector(Node t_node, long vptr,
                                                          long index, boolean data[],
                                                          long size);
   public static native long createNodeLocalOfWords(Node master_node, 
-                                                   long intDataDvec, long sizesDvec);
+                                                   long[] dptrs, long[] sptrs,
+                                                   int nproc);
   public static native long createFrovedisDvector(Node master_node, long proxies[],
                                                   int nproc, short dtype);
   public static native long createFrovedisDvectorWithSizesVerification(
@@ -802,7 +811,8 @@ public class JNISupport {
   public static native float[] getFrovedisWorkerFloatVector(Node t_node, long dptr);
   public static native double[] getFrovedisWorkerDoubleVector(Node t_node, long dptr);
   public static native String[] getFrovedisWorkerStringVector(Node t_node, long dptr);
-  public static native int[] getFrovedisWorkerBoolVector(Node t_node, long dptr); // TODO
+  public static native String[] getFrovedisWorkerWordsAsStringVector(Node t_node, long dptr);
+  public static native int[] getFrovedisWorkerBoolVector(Node t_node, long dptr);
 
   // frovedis dataframe column extraction
   public static native long getDFColumnPointer(Node master_node, long dptr, 

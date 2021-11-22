@@ -4,16 +4,28 @@
 
 using namespace frovedis;
 
-exrpc_ptr_t make_node_local_words(exrpc_ptr_t& dataDvec, 
-                                  exrpc_ptr_t& sizesDvec) {
-  auto& data = *reinterpret_cast<dvector<int>*>(dataDvec);
-  auto& sizes = *reinterpret_cast<dvector<int>*>(sizesDvec);
-  auto redist = sizes.viewas_node_local().map(+[](const std::vector<int>& sizes) {
-                                 return static_cast<size_t>(vector_sum(sizes));
-                            }).gather();
-  data.align_as(redist); // to ensure data and sizes distributions are in-sync
+exrpc_ptr_t make_node_local_words(std::vector<exrpc_ptr_t>& data_ptrs, 
+                                  std::vector<exrpc_ptr_t>& size_ptrs) {
+  auto sizesp = new dvector<int>(make_dvector_allocate<int>());
+  auto each_size_eps =  make_node_local_scatter(size_ptrs);
+  auto sizes_ss = sizesp->map_partitions(merge_and_set_dvector_impl<int>, 
+                                         each_size_eps).gather();
+  sizesp->set_sizes(sizes_ss);
+  sizesp->align_block(); 
+
+  auto datap = new dvector<int>(make_dvector_allocate<int>());
+  auto each_data_eps =  make_node_local_scatter(data_ptrs);
+  auto data_ss = datap->map_partitions(merge_and_set_dvector_impl<int>, 
+                                       each_data_eps).gather();
+  datap->set_sizes(data_ss);
+  auto dist = sizesp->viewas_node_local()
+                    .map(+[](const std::vector<int>& sizes) {
+                          return static_cast<size_t>(vector_sum(sizes));
+                     }).gather();
+  datap->align_as(dist); // to ensure data and sizes distributions are in-sync
+
   auto retp = new node_local<words>(make_node_local_allocate<words>());
-  data.viewas_node_local().mapv(
+  datap->viewas_node_local().mapv(
        +[](std::vector<int>& data, std::vector<int>& sizes, words& w) {
            auto size = sizes.size();
            if (size == 0) return;
@@ -23,7 +35,7 @@ exrpc_ptr_t make_node_local_words(exrpc_ptr_t& dataDvec,
            w.chars.swap(data);
            w.lens.swap(length);
            w.starts.swap(starts);
-       }, sizes.viewas_node_local(), *retp);
+       }, sizesp->viewas_node_local(), *retp);
   return reinterpret_cast<exrpc_ptr_t>(retp);
 }
 
@@ -84,6 +96,9 @@ void expose_frovedis_dvector_functions() {
   expose((allocate_local_vector<std::vector<std::string>>));
   expose((load_local_vector<std::vector<std::string>>));
   expose(merge_and_set_dvector<std::string>);
+  // for handling strings as words (chars, sizes pair)
+  expose((allocate_local_vector_pair<std::vector<int>, std::vector<int>>));
+  expose((load_local_vector_pair<std::vector<int>, std::vector<int>>));
   expose(make_node_local_words);
   expose(get_node_local_word_pointers);
   expose(get_string_vector_from_words);

@@ -34,6 +34,20 @@ JNIEXPORT jlongArray JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_allocateLoc
   return to_jlongArray(env, proxies);
 }
 
+JNIEXPORT jobjectArray JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_allocateLocalVectorPair // (int, int)
+  (JNIEnv *env, jclass thisCls, jobject master_node,
+   jlongArray block_sizes, jint nproc) {
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto blocksz = to_sizet_vector(env, block_sizes, nproc);
+  std::vector<frovedis_mem_pair> proxies;
+  try {
+    proxies = exrpc_async(fm_node, (allocate_local_vector_pair<std::vector<int>, std::vector<int>>),
+                          blocksz).get(); 
+  }
+  catch(std::exception& e) { set_status(true,e.what()); }
+  return to_jMemPairArray(env, proxies);
+}
+
 JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_loadFrovedisWorkerIntVector
   (JNIEnv *env, jclass thisCls, jobject worker_node, jlong vptr, 
    jlong index,  jintArray data, jlong size) {
@@ -148,15 +162,36 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_loadFrovedisWorke
   catch(std::exception& e) { set_status(true,e.what()); }
 }
 
+JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_loadFrovedisWorkerCharSizePair
+  (JNIEnv *env, jclass thisCls, jobject worker_node, jlong dptr, jlong sptr,
+   jlong index,  jcharArray data, jintArray sizes,
+   jlong flat_size, jlong actual_size) {
+
+  auto fw_node = java_node_to_frovedis_node(env, worker_node);
+  auto p_dvec = flat_charArray_to_int_vector(env, data, flat_size);
+  auto p_svec = to_int_vector(env, sizes, actual_size);
+  auto dp = (exrpc_ptr_t) dptr;
+  auto sp = (exrpc_ptr_t) sptr;
+  size_t idx = index;
+  try{
+    exrpc_oneway(fw_node, (load_local_vector_pair<std::vector<int>, std::vector<int>>), 
+                 idx, dp, p_dvec, sp, p_svec); // dp[idx] = p_dvec; sp[idx] = p_svec;
+  }
+  catch(std::exception& e) { set_status(true,e.what()); }
+}
+
 JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_createNodeLocalOfWords
-  (JNIEnv *env, jclass thisCls, jobject master_node, jlong dptr, jlong sptr) {
+  (JNIEnv *env, jclass thisCls, jobject master_node, 
+   jlongArray dptrs, jlongArray sptrs, jint nproc) {
 
   auto fm_node = java_node_to_frovedis_node(env, master_node);
-  auto dptr_ = (exrpc_ptr_t) dptr;
-  auto sptr_ = (exrpc_ptr_t) sptr;
+  auto dptrs_ = to_exrpc_vector(env, dptrs, nproc);
+  auto sptrs_ = to_exrpc_vector(env, sptrs, nproc);
   exrpc_ptr_t proxy = 0;
   try {
-    proxy = exrpc_async(fm_node, make_node_local_words, dptr_, sptr_).get(); 
+    // merges local chunks stored in dptrs_ and sptrs_ to create dvectors,
+    // then creates node_local<words> using the created dvectors.
+    proxy = exrpc_async(fm_node, make_node_local_words, dptrs_, sptrs_).get(); 
   }
   catch(std::exception& e) { set_status(true,e.what()); }
   return (jlong) proxy;
@@ -283,8 +318,8 @@ JNIEXPORT jlongArray JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getLocalVec
       case LONG:   eps = exrpc_async(fm_node, get_dvector_local_pointers<long>, f_dptr).get(); break;
       case FLOAT:  eps = exrpc_async(fm_node, get_dvector_local_pointers<float>, f_dptr).get(); break;
       case DOUBLE: eps = exrpc_async(fm_node, get_dvector_local_pointers<double>, f_dptr).get(); break;
-      //case STRING: eps = exrpc_async(fm_node, get_dvector_local_pointers<std::string>, f_dptr).get(); break;
-      case STRING: eps = exrpc_async(fm_node, get_node_local_word_pointers, f_dptr).get(); break;
+      case STRING: eps = exrpc_async(fm_node, get_dvector_local_pointers<std::string>, f_dptr).get(); break;
+      case WORDS:  eps = exrpc_async(fm_node, get_node_local_word_pointers, f_dptr).get(); break;
       case BOOL:   eps = exrpc_async(fm_node, get_dvector_local_pointers<int>, f_dptr).get(); break;
       default:     REPORT_ERROR(USER_ERROR, 
                    "Unsupported datatype is encountered in dvector to RDD conversion!\n");
@@ -346,15 +381,27 @@ JNIEXPORT jdoubleArray JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getFroved
   return to_jdoubleArray(env, ret);
 }
 
-JNIEXPORT jobjectArray JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getFrovedisWorkerStringVector
+JNIEXPORT jobjectArray JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getFrovedisWorkerWordsAsStringVector
   (JNIEnv *env, jclass thisCls, jobject worker_node, 
    jlong dptr) {
   auto fw_node = java_node_to_frovedis_node(env, worker_node);
   auto f_dptr = (exrpc_ptr_t) dptr;
   std::vector<std::string> ret;
   try {
-    //ret = exrpc_async(fw_node, get_local_vector<std::string>, f_dptr).get();
     ret = exrpc_async(fw_node, get_string_vector_from_words, f_dptr).get();
+  }
+  catch(std::exception& e) { set_status(true, e.what()); }
+  return to_jStringArray(env, ret);
+}
+
+JNIEXPORT jobjectArray JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getFrovedisWorkerStringVector
+  (JNIEnv *env, jclass thisCls, jobject worker_node,
+   jlong dptr) {
+  auto fw_node = java_node_to_frovedis_node(env, worker_node);
+  auto f_dptr = (exrpc_ptr_t) dptr;
+  std::vector<std::string> ret;
+  try {
+    ret = exrpc_async(fw_node, get_local_vector<std::string>, f_dptr).get();
   }
   catch(std::exception& e) { set_status(true, e.what()); }
   return to_jStringArray(env, ret);

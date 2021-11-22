@@ -54,6 +54,7 @@ extern "C" {
   jobjectArray to_jNodeArray(JNIEnv *, std::vector<frovedis::exrpc_node>&);
   jobjectArray to_jIntDoublePairArray(JNIEnv *, std::vector<std::pair<size_t,double>>&);
   jobjectArray to_jDummyEdgeArray(JNIEnv *, crs_matrix_local<double>&);
+  jobjectArray to_jMemPairArray(JNIEnv *env, std::vector<frovedis_mem_pair>& pd);
 
   // dataframe etc.
   std::vector<float> to_float_vector(JNIEnv *, jfloatArray&, size_t);
@@ -67,6 +68,7 @@ extern "C" {
   std::vector<std::string> charArray_to_string_vector(JNIEnv *, jobjectArray&, size_t);
   std::vector<std::string> flat_charArray_to_string_vector(JNIEnv *, jcharArray&, 
                                                            jintArray&, size_t, size_t);
+  std::vector<int> flat_charArray_to_int_vector(JNIEnv *, jcharArray&, size_t);
   std::vector<exrpc_ptr_t> to_exrpc_vector(JNIEnv *, jlongArray&, size_t);
   jobject to_spark_dummy_df (JNIEnv *env, dummy_dftable& obj);
 }

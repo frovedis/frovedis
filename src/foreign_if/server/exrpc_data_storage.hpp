@@ -20,7 +20,8 @@
 using namespace frovedis;
 
 // defined in expose_dvector.cc
-exrpc_ptr_t make_node_local_words(exrpc_ptr_t& dataDvec, exrpc_ptr_t& sizesDvec);
+exrpc_ptr_t make_node_local_words(std::vector<exrpc_ptr_t>& data_ptrs, 
+                                  std::vector<exrpc_ptr_t>& size_ptrs);
 std::vector<exrpc_ptr_t> get_node_local_word_pointers(exrpc_ptr_t& words_nl_ptr);
 std::vector<std::string> get_string_vector_from_words(exrpc_ptr_t& wordsptr);
 
@@ -138,11 +139,35 @@ allocate_local_vector(std::vector<size_t>& sizes) {
          }).gather();
 }
 
+template <class E, class P>
+std::vector<frovedis_mem_pair>
+allocate_local_vector_pair(std::vector<size_t>& sizes) {
+  require(sizes.size() == get_nodesize(),
+  "allocate_local_vector: given sizes doesn't match with the no. of mpi processes!\n");
+  return make_node_local_scatter(sizes).map(+[](size_t size) {
+           auto dp = new std::vector<E>(size); // for data (chars)
+           auto sp = new std::vector<P>(size); // for sizes
+           return frovedis_mem_pair(reinterpret_cast<exrpc_ptr_t>(dp),
+                                    reinterpret_cast<exrpc_ptr_t>(sp));
+         }).gather();
+}
+
 template <class E>
 void load_local_vector(exrpc_ptr_t& vp, size_t& index, E& p_vec) {
   auto& vec = *reinterpret_cast<std::vector<E>*>(vp);
   require(index < vec.size(), "load_local_vector: index is out-of-bound!\n");
   vec[index] = std::move(p_vec);
+}
+
+template <class E, class P>
+void load_local_vector_pair(size_t& index, 
+                            exrpc_ptr_t& dp, E& p_dvec,
+                            exrpc_ptr_t& sp, P& p_svec) {
+  auto& dvec = *reinterpret_cast<std::vector<E>*>(dp);
+  auto& svec = *reinterpret_cast<std::vector<P>*>(sp);
+  require(index < dvec.size(), "load_local_vector: index is out-of-bound!\n");
+  dvec[index] = std::move(p_dvec);
+  svec[index] = std::move(p_svec);
 }
 
 // after the loading, input data will be destroyed...

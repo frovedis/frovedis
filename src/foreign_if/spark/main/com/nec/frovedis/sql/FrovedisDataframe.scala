@@ -2,9 +2,11 @@ package com.nec.frovedis.sql;
 
 import com.nec.frovedis.Jexrpc._
 import com.nec.frovedis.matrix.DTYPE
-import com.nec.frovedis.matrix.{IntDvector,LongDvector}
-import com.nec.frovedis.matrix.{FloatDvector,DoubleDvector}
-import com.nec.frovedis.matrix.{StringDvector,BoolDvector}
+import com.nec.frovedis.matrix.{
+  IntDvector, LongDvector, 
+  FloatDvector, DoubleDvector,
+  StringDvector, WordsNodeLocal,
+  BoolDvector}
 import com.nec.frovedis.matrix.FrovedisRowmajorMatrix
 import com.nec.frovedis.matrix.FrovedisColmajorMatrix
 import com.nec.frovedis.matrix.TimeSpent
@@ -26,17 +28,24 @@ object TMAPPER {
                     "mean" -> DTYPE.DOUBLE, "avg" -> DTYPE.DOUBLE, 
                     "std" -> DTYPE.DOUBLE,  "count" -> DTYPE.LONG)
 
-  val id2string = Map(DTYPE.INT -> "IntegerType",   DTYPE.LONG -> "LongType",
-                      DTYPE.FLOAT -> "FloatType",   DTYPE.DOUBLE -> "DoubleType",
-                      DTYPE.STRING -> "StringType", DTYPE.BOOL -> "BooleanType")
-
   val id2field = Map(DTYPE.INT -> IntegerType,   DTYPE.LONG -> LongType,
                      DTYPE.FLOAT -> FloatType,   DTYPE.DOUBLE -> DoubleType,
-                     DTYPE.STRING -> StringType, DTYPE.BOOL -> BooleanType)
+                     DTYPE.STRING -> StringType, DTYPE.WORDS -> StringType,
+                     DTYPE.BOOL -> BooleanType)
 
+  val id2string = Map(DTYPE.INT -> "IntegerType",   DTYPE.LONG -> "LongType",
+                      DTYPE.FLOAT -> "FloatType",   DTYPE.DOUBLE -> "DoubleType",
+                      DTYPE.STRING -> "StringType", DTYPE.WORDS -> "StringType",
+                      DTYPE.BOOL -> "BooleanType")
+
+  // string2id: only used in dataframe load
+  // used WORDS instead of STRING, while loading string column (RDD[STRING]) as Dvector for better performance
+  // simply enable ["StringType"  -> DTYPE.STRING] if you want to use the STRING type instead
   val string2id = Map("IntegerType" -> DTYPE.INT,    "LongType" -> DTYPE.LONG,
                    "FloatType"   -> DTYPE.FLOAT,  "DoubleType" -> DTYPE.DOUBLE,
-                   "StringType"  -> DTYPE.WORDS, "BooleanType" -> DTYPE.BOOL)
+                   //"StringType"  -> DTYPE.STRING, 
+                   "StringType"  -> DTYPE.WORDS,
+                   "BooleanType" -> DTYPE.BOOL)
 
   val spark = SparkSession.builder.getOrCreate()
   import spark.implicits._
@@ -47,12 +56,12 @@ object TMAPPER {
       else return 0
   } 
 
-  def toTypedDvector(df: DataFrame, tname: String, i: Int, 
+  def toTypedDvector(df: DataFrame, dtype: Short, i: Int, 
                      part_sizes: RDD[Int]): Long = {
     val col_name = df.columns(i)
     val t0 = new TimeSpent(Level.DEBUG)
-    return tname match {
-        case "IntegerType" => { 
+    return dtype match {
+        case DTYPE.INT => { 
            val null_replaced = df.select(col_name).na.fill(Int.MaxValue)
            t0.show("null_replaced: ")
            val data = null_replaced.map(_.getInt(0)).rdd
@@ -61,7 +70,7 @@ object TMAPPER {
            t0.show("get intDvector: ")
            ret
         }
-        case "LongType" => { 
+        case DTYPE.LONG => { 
            val null_replaced = df.select(col_name).na.fill(Long.MaxValue)
            t0.show("null_replaced: ")
            val data = null_replaced.map(_.getLong(0)).rdd
@@ -70,7 +79,7 @@ object TMAPPER {
            t0.show("get longDvector: ")
            ret
         }
-        case "FloatType" => { 
+        case DTYPE.FLOAT => { 
            val null_replaced = df.select(col_name).na.fill(Float.MaxValue)
            t0.show("null_replaced: ")
            val data = null_replaced.map(_.getFloat(0)).rdd
@@ -79,7 +88,7 @@ object TMAPPER {
            t0.show("get floatDvector: ")
            ret
         }
-        case "DoubleType" => { 
+        case DTYPE.DOUBLE => { 
            val null_replaced = df.select(col_name).na.fill(Double.MaxValue)
            t0.show("null_replaced: ")
            val data = null_replaced.map(_.getDouble(0)).rdd
@@ -88,16 +97,25 @@ object TMAPPER {
            t0.show("get doubleDvector: ")
            ret
         }
-        case "StringType" => {
+        case DTYPE.STRING => {
            val null_replaced = df.select(col_name).na.fill("NULL")
            t0.show("null_replaced: ")
            val data = null_replaced.map(_.getString(0)).rdd
            t0.show("get rdd: ")
-           val ret = StringDvector.get(data, part_sizes) // node_local<words>
+           val ret = StringDvector.get(data, part_sizes)
            t0.show("get stringDvector: ")
            ret
         }
-        case "BooleanType" => {
+        case DTYPE.WORDS => { // use instead of StringDvector for better performance
+           val null_replaced = df.select(col_name).na.fill("NULL")
+           t0.show("null_replaced: ")
+           val data = null_replaced.map(_.getString(0)).rdd
+           t0.show("get rdd: ")
+           val ret = WordsNodeLocal.get(data, part_sizes)
+           t0.show("get wordsNodeLocal: ")
+           ret
+        }
+        case DTYPE.BOOL => {
            // data is passed as int-vector
            var data = df.select(col_name).map(x => bool2int(x(0))).rdd
            t0.show("get rdd: ")
@@ -105,7 +123,7 @@ object TMAPPER {
            t0.show("get booleanDvector: ")
            ret
         }
-        case _ => throw new IllegalArgumentException("Unsupported type: " + tname)
+        case _ => throw new IllegalArgumentException("Unsupported type: " + TMAPPER.id2string(dtype))
     }
   }
 }
@@ -181,12 +199,13 @@ class FrovedisDataFrame extends java.io.Serializable {
     val size = cols.size
     var dvecs = new Array[Long](size)
     types = new Array[Short](size)
-    val part_sizes = df.rdd.mapPartitions(x => Array(x.size).toIterator)
+    val part_sizes = df.rdd.mapPartitions(x => Array(x.size).toIterator).persist
     for (i <- 0 to (size-1)) {
       //print("col_name: " + cols(i) + " col_type: " + tt(i) + "\n")
       val tname = tt(i)
-      types(i) = TMAPPER.string2id(tname)
-      dvecs(i) = TMAPPER.toTypedDvector(df,tname,i,part_sizes)
+      val dtype = TMAPPER.string2id(tname)
+      types(i) = dtype
+      dvecs(i) = TMAPPER.toTypedDvector(df, dtype, i, part_sizes)
     }
     val fs = FrovedisServer.getServerInstance()
     fdata = JNISupport.createFrovedisDataframe(fs.master_node,types,cols,dvecs,size)
@@ -594,6 +613,7 @@ class FrovedisDataFrame extends java.io.Serializable {
         case DTYPE.FLOAT  => FloatDvector.to_RDD(cptr)
         case DTYPE.DOUBLE => DoubleDvector.to_RDD(cptr)
         case DTYPE.STRING => StringDvector.to_RDD(cptr)
+        case DTYPE.WORDS => StringDvector.to_RDD(cptr) // cptr is dvector<string> even for WORDS
         case DTYPE.BOOL => IntDvector.to_RDD(cptr)
         case _  => throw new IllegalArgumentException("to_spark_DF: Invalid " +
                                                     "datatype encountered: %s !\n"
@@ -606,11 +626,10 @@ class FrovedisDataFrame extends java.io.Serializable {
       ret_lb += col_rdd
     }
     var ret = ret_lb.toArray.asInstanceOf[Array[RDD[Any]]]
-    //TODO: directly create array instead of list buffer
-
     val maxValueMap = Map(DTYPE.INT -> Int.MaxValue, DTYPE.LONG -> Long.MaxValue,
                       DTYPE.FLOAT -> Float.MaxValue, DTYPE.DOUBLE -> Double.MaxValue,
-                      DTYPE.STRING -> "NULL", DTYPE.BOOL -> Int.MaxValue)
+                      DTYPE.STRING -> "NULL", DTYPE.WORDS -> "NULL", 
+                      DTYPE.BOOL -> Int.MaxValue)
 
     for (i <- 0 until ret.size) {
       if (types(i) == DTYPE.BOOL ) ret(i) = ret(i).map(x => int2bool(x))
@@ -629,6 +648,7 @@ class FrovedisDataFrame extends java.io.Serializable {
         case DTYPE.FLOAT  => StructField(cname, FloatType, true)
         case DTYPE.DOUBLE => StructField(cname, DoubleType, true)
         case DTYPE.STRING => StructField(cname, StringType, true)
+        case DTYPE.WORDS  => StructField(cname, StringType, true)
         case DTYPE.BOOL => StructField(cname, BooleanType, true)
         case _  => throw new IllegalArgumentException("to_spark_DF: Invalid " +
                                                     "datatype encountered: %s !\n"
@@ -697,7 +717,7 @@ class FrovedisDataFrame extends java.io.Serializable {
   def avg(cname: Array[String]): Array[String] = {
     if(fdata == -1)  throw new IllegalArgumentException("Invalid Frovedis Dataframe!\n")
     val tids = getColumnTypes(cname) // throws exception, if colname not found
-    if (tids contains DTYPE.STRING) 
+    if ((tids contains DTYPE.STRING) || (tids contains DTYPE.WORDS)) 
       throw new IllegalArgumentException("String-typed column given for avg!\n") 
     val size = cname.length
     val fs = FrovedisServer.getServerInstance()
@@ -713,7 +733,7 @@ class FrovedisDataFrame extends java.io.Serializable {
   def sum(cname: Array[String],
           tids: Array[Short]): Array[String] = {
     if(fdata == -1)  throw new IllegalArgumentException("Invalid Frovedis Dataframe!\n")
-    if (tids contains DTYPE.STRING) 
+    if ((tids contains DTYPE.STRING) || (tids contains DTYPE.WORDS)) 
       throw new IllegalArgumentException("String-typed column given for sum!\n") 
     val size = cname.length
     val fs = FrovedisServer.getServerInstance()
@@ -733,7 +753,7 @@ class FrovedisDataFrame extends java.io.Serializable {
   def min(cname: Array[String],
           tids: Array[Short]): Array[String] = {
     if(fdata == -1)  throw new IllegalArgumentException("Invalid Frovedis Dataframe!\n")
-    if (tids contains DTYPE.STRING) 
+    if ((tids contains DTYPE.STRING) || (tids contains DTYPE.WORDS)) 
       throw new IllegalArgumentException("String-typed column given for min!\n") 
     val size = cname.length
     val fs = FrovedisServer.getServerInstance()
@@ -753,7 +773,7 @@ class FrovedisDataFrame extends java.io.Serializable {
   def max(cname: Array[String],
           tids: Array[Short]): Array[String] = {
     if(fdata == -1)  throw new IllegalArgumentException("Invalid Frovedis Dataframe!\n")
-    if (tids contains DTYPE.STRING) 
+    if ((tids contains DTYPE.STRING) || (tids contains DTYPE.WORDS)) 
       throw new IllegalArgumentException("String-typed column given for max!\n") 
     val size = cname.length
     val fs = FrovedisServer.getServerInstance()
@@ -773,7 +793,7 @@ class FrovedisDataFrame extends java.io.Serializable {
   def std(cname: Array[String]): Array[String] = {
     if(fdata == -1)  throw new IllegalArgumentException("Invalid Frovedis Dataframe!\n")
     val tids = getColumnTypes(cname) // throws exception, if colname not found
-    if (tids contains DTYPE.STRING) 
+    if ((tids contains DTYPE.STRING) || (tids contains DTYPE.WORDS)) 
       throw new IllegalArgumentException("String-typed column given for avg!\n") 
     val size = cname.length
     val fs = FrovedisServer.getServerInstance()
@@ -822,7 +842,7 @@ class FrovedisDataFrame extends java.io.Serializable {
     var ret  = new ArrayBuffer[(Short,String)]()
     for(i <- 0 to (size-1)) {
       val tid = types(i)
-      if(tid != DTYPE.STRING) { // only-numeric
+      if((tid != DTYPE.STRING) && (tid != DTYPE.WORDS)) { // only-numeric
         val k = (tid,cols(i))
         ret += k
       }

@@ -113,7 +113,7 @@ object TransferData {
         val ret = Array(x.size).toIterator
         t0.show("partition sizes extraction: ")
         ret 
-    }) 
+    }).persist
     return execute(data, part_sizes, dtype)
   }
   def execute[T: ClassTag](data: RDD[T], part_sizes: RDD[Int],
@@ -320,56 +320,10 @@ object DoubleDvector {
   }
 }
 
-object StringDvector { // actually node_local<words>
-  def get(data: RDD[String]): Long = {
-    //return TransferData.execute(data, DTYPE.STRING)
-    val part_sizes = data.mapPartitions({ 
-      case(x) => 
-        val t0 = new TimeSpent(Level.TRACE)
-        val ret = Array(x.size).toIterator
-        t0.show("partition sizes extraction: ")
-        ret 
-    })
-    return get(data, part_sizes) 
-  }
+object StringDvector { 
+  def get(data: RDD[String]) = TransferData.execute(data, DTYPE.STRING)
   def get(data: RDD[String], part_sizes: RDD[Int]): Long = {
-    //return TransferData.execute(data, part_sizes, DTYPE.STRING)
-    val tmp = data.zipPartitions(part_sizes, 
-              preservesPartitioning=true) ({ 
-                case(x, x_sz) => 
-                  val t0 = new TimeSpent(Level.TRACE)
-                  val ret = x_sz ++ x // (Int ++ T) -> Any
-                  t0.show("zip partition: ")
-                  ret 
-              })
-
-    val intData = tmp.mapPartitions({ case(x) =>
-      val t0 = new TimeSpent(Level.TRACE)
-      val size = x.next.asInstanceOf[Int]
-      val sArr = new Array[Array[Char]](size)
-      for(i <- 0 until size) sArr(i) = (x.next.asInstanceOf[String]).toCharArray
-      t0.show("iterator to array-of-CharArray: ")
-      //val flat_sArr = sArr.flatten.map(x => x.toInt)
-      val (flat_sArr, sizes_arr) = GenericUtils.flatten_charArray_asIntArray(sArr)
-      t0.show("array-of-CharArray flatten as IntArray: ")
-      flat_sArr.toIterator 
-    })
-
-    val t0 = new TimeSpent(Level.DEBUG)
-    val sizeData = data.map(x => x.size)
-    val sizesDvec = IntDvector.get(sizeData, part_sizes)
-    t0.show("size dvector creation: ")
-
-    val intDataDvec = IntDvector.get(intData)
-    t0.show("char data dvector creation: ")
-
-    val fs = FrovedisServer.getServerInstance()
-    val proxy = JNISupport.createNodeLocalOfWords(fs.master_node, 
-                                          intDataDvec, sizesDvec)
-    val info = JNISupport.checkServerException()
-    if (info != "") throw new java.rmi.ServerException(info)
-    t0.show("node_local<words> creation: ")
-    return proxy
+    return TransferData.execute(data, part_sizes, DTYPE.STRING)
   }
   private def setEachPartition(nid: Int,
                                wnode: Node,
@@ -382,6 +336,123 @@ object StringDvector { // actually node_local<words>
   def to_RDD(proxy: Long): RDD[String] = {
     val fs = FrovedisServer.getServerInstance()
     val eps = JNISupport.getLocalVectorPointers(fs.master_node, proxy, DTYPE.STRING)
+    var info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
+    val dummy = new Array[Boolean](eps.size)
+    val ctxt = SparkContext.getOrCreate()
+    val dist_dummy = ctxt.parallelize(dummy, eps.size)
+    val nodes = JNISupport.getWorkerInfo(fs.master_node) // native call
+    info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
+    val ret = dist_dummy.mapPartitionsWithIndex((i,x) =>
+                    setEachPartition(i,nodes(i),eps(i))).cache()
+    return ret
+  }
+}
+
+object WordsNodeLocal {
+  private def copy_local_data(
+    index: Int, destId: Int,
+    w_node: Node, dptr: Long, sptr: Long, localId: Long,
+    data: Iterator[Any], size: Int): Unit = {
+
+    //println("dest[" + destId + "::" + localId + "] partition-" +
+    //       index + " of size: " + size + " is being copied!")
+    val t0 = new TimeSpent(Level.TRACE)
+    val sArr = new Array[Array[Char]](size)
+    for(i <- 0 until size) sArr(i) = (data.next.asInstanceOf[String]).toCharArray
+    t0.show("iterator to array-of-CharArray: ")
+
+    //val flat_sArr = sArr.flatten
+    //val sizes_arr = sArr.map(x => x.size)
+    val (flat_sArr, sizes_arr) = GenericUtils.flatten(sArr)
+    t0.show("array-of-CharArray flatten: ")
+
+    // w_node::dptr[localId] = flat_sArr
+    // w_node::sptr[localId] = sizes_arr
+    JNISupport.loadFrovedisWorkerCharSizePair(w_node, dptr, sptr, localId,
+                                              flat_sArr, sizes_arr,
+                                              flat_sArr.size, size)
+    val err = JNISupport.checkServerException()
+    if (err != "") throw new java.rmi.ServerException(err)
+    t0.show("spark-worker to frovedis-rank local data copy: ")
+  }
+  def get(data: RDD[String]): Long = {
+    val part_sizes = data.mapPartitions({ 
+      case(x) => 
+        val t0 = new TimeSpent(Level.TRACE)
+        val ret = Array(x.size).toIterator
+        t0.show("partition sizes extraction: ")
+        ret 
+    }).persist
+    return get(data, part_sizes) 
+  }
+  def get(data: RDD[String], part_sizes: RDD[Int]): Long = {
+    val t_log = new TimeSpent(Level.DEBUG)
+
+    // (1) allocate
+    val fs = FrovedisServer.getServerInstance()
+    val nproc = fs.worker_size
+    val npart = data.getNumPartitions
+    val block_sizes = GenericUtils.get_block_sizes(npart, nproc)
+
+    // pair: chars and sizes
+    val mempair = JNISupport.allocateLocalVectorPair(fs.master_node, 
+                                                     block_sizes, nproc) // (Int, Int)
+    var info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
+    val dptrs = mempair.map(x => x.first())
+    val sptrs = mempair.map(x => x.second())
+    t_log.show("server memory allocation: ")
+
+    // (2) prepare server side ranks for processing N parallel requests
+    val fw_nodes = JNISupport.getWorkerInfoMulti(fs.master_node,
+                                                 block_sizes, nproc)
+    info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
+    t_log.show("server process preparation: ")
+
+    // (3) data transfer
+    val tmp = data.zipPartitions(part_sizes,
+              preservesPartitioning=true) ({
+                case(x, x_sz) =>
+                  val t0 = new TimeSpent(Level.TRACE)
+                  val ret = x_sz ++ x // (Int ++ T) -> Any
+                  t0.show("zip partition: ")
+                  ret
+              })
+
+    val ret = tmp.mapPartitionsWithIndex({
+                 case (index, x) =>
+                     val size = x.next.asInstanceOf[Int]
+                     val (destId, myst) = GenericUtils.index2Dest(index, block_sizes)
+                     val localId = index - myst
+                     copy_local_data(index, destId, fw_nodes(destId), 
+                                     dptrs(destId),  // chars
+                                     sptrs(destId), // sizes
+                                     localId, x, size)
+                     Array(true).toIterator // SUCCESS (since need to return an iterator)
+                 })
+    ret.count // for action
+    t_log.show("server side pair (chars, size) data transfer: ")
+
+    val proxy = JNISupport.createNodeLocalOfWords(fs.master_node, dptrs, sptrs, nproc)
+    info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
+    t_log.show("node_local<words> creation: ")
+    return proxy
+  }
+  private def setEachPartition(nid: Int,
+                               wnode: Node,
+                               dptr: Long): Iterator[String] = {
+    val lvec = JNISupport.getFrovedisWorkerWordsAsStringVector(wnode, dptr)
+    val info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
+    return lvec.toIterator
+  }
+  def to_RDD(proxy: Long): RDD[String] = {
+    val fs = FrovedisServer.getServerInstance()
+    val eps = JNISupport.getLocalVectorPointers(fs.master_node, proxy, DTYPE.WORDS)
     var info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
     val dummy = new Array[Boolean](eps.size)

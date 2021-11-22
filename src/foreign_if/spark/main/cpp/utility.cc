@@ -189,6 +189,26 @@ jobject frovedis_mempair_to_java_mempair(JNIEnv *env, frovedis_mem_pair& mp) {
   return newmempair;
 }
 
+// conversion std::vector<frovedis_mem_pair> => jobjectArray(MemPair)
+jobjectArray to_jMemPairArray(JNIEnv *env,
+                              std::vector<frovedis_mem_pair>& pd) {
+  jclass mpCls = env->FindClass(JRE_PATH_MemPair);
+  if (mpCls == NULL) REPORT_ERROR(INTERNAL_ERROR, "MemPair class not found in JRE\n");
+  jmethodID mpConst = env->GetMethodID(mpCls, "<init>", "(JJ)V");
+  if (mpConst == NULL) REPORT_ERROR(INTERNAL_ERROR, "MemPair::MemPair(J,J) not found in JRE\n");
+  jobjectArray ret = env->NewObjectArray(pd.size(), mpCls, NULL);
+  if(ret == NULL) REPORT_ERROR(INTERNAL_ERROR, "New jMemPairArray allocation failed.\n");
+  for(size_t i = 0; i < pd.size(); ++i) {
+    auto mp = pd[i];
+    jlong f = (jlong) mp.first();
+    jlong s = (jlong) mp.second();
+    auto newmempair = env->NewObject(mpCls, mpConst, f, s);
+    if (newmempair == NULL) REPORT_ERROR(INTERNAL_ERROR, "MemPair object creation failed\n");
+    env->SetObjectArrayElement(ret, i, newmempair);
+  }
+  return ret;
+}
+
 jobject make_jIntDoublePair (JNIEnv *env, int key, double value) {
   jclass cls = env->FindClass(JRE_PATH_IntDoublePair);
   if (cls == NULL) REPORT_ERROR(INTERNAL_ERROR, "IntDoublePair class not found in JRE\n");
@@ -328,23 +348,15 @@ charArray_to_string_vector(JNIEnv *env, jobjectArray& data, size_t size) {
   jsize d_len = env->GetArrayLength(data);
   if(d_len != size) REPORT_ERROR(INTERNAL_ERROR, "Error in data extraction from JRE");
   std::vector<std::string> data_vec(d_len);
-  time_spent t1(INFO), t2(INFO);
   for(size_t i = 0; i < d_len; ++i) {
-    t1.lap_start();
     jcharArray jcarr = (jcharArray) (env->GetObjectArrayElement(data,i));
     jsize str_size = env->GetArrayLength(jcarr);
     jchar *valp = env->GetCharArrayElements(jcarr, 0); 
-    t1.lap_stop();
-    
-    t2.lap_start();
     char rawstr[str_size]; 
     for(size_t j = 0; j < str_size; ++j) rawstr[j] = valp[j];
     data_vec[i] = std::string(rawstr, str_size);
-    t2.lap_stop();
     env->ReleaseCharArrayElements(jcarr, valp, JNI_ABORT); 
   }
-  t1.show_lap("get array: ");
-  t2.show_lap("flatten array: ");
   return data_vec;
 }
 
@@ -357,18 +369,26 @@ flat_charArray_to_string_vector(JNIEnv *env, jcharArray& data, jintArray& sizes,
   jint *sizesp = env->GetIntArrayElements(sizes, 0); int* sizesp_ = sizesp;
   std::vector<std::string> data_vec(actual_size);
   size_t k = 0;
-  time_spent t1(INFO);
   for(size_t i = 0; i < actual_size; ++i) {
     auto str_size = sizesp_[i];
     char rawstr[str_size]; 
     for(size_t j = 0; j < str_size; ++j) rawstr[j] = datap[k + j];
-    data_vec[i] = std::string(rawstr, str_size);
+    data_vec[i] = std::string(rawstr, str_size); // TODO: send chars, size to server and create strings there
     k += str_size;
   }
-  t1.show("flat_charArray_to_string_vector: ");
   env->ReleaseCharArrayElements(data, datap, JNI_ABORT);
   env->ReleaseIntArrayElements(sizes, sizesp, JNI_ABORT);
   return data_vec;
+}
+
+std::vector<int> flat_charArray_to_int_vector(JNIEnv *env, jcharArray& data, size_t size) {
+  jsize d_len = env->GetArrayLength(data);
+  if(d_len != size) REPORT_ERROR(INTERNAL_ERROR, "Error in data extraction from JRE");
+  jchar *datap = env->GetCharArrayElements(data, 0);
+  std::vector<int> ret(size); auto retp = ret.data();
+  for(size_t i = 0; i < size; ++i) retp[i] = datap[i]; 
+  env->ReleaseCharArrayElements(data, datap, JNI_ABORT);
+  return ret;
 }
 
 // conversion jfloatArray => std::vector<float>

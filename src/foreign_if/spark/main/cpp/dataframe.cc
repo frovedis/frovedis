@@ -38,6 +38,7 @@ JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getDFOperator
        case LONG:   opt_proxy = exrpc_async(fm_node,get_dfoperator<long>,t1,t2,optid,immed).get(); break;
        case FLOAT:  opt_proxy = exrpc_async(fm_node,get_dfoperator<float>,t1,t2,optid,immed).get(); break;
        case DOUBLE: opt_proxy = exrpc_async(fm_node,get_dfoperator<double>,t1,t2,optid,immed).get(); break;
+       case WORDS:
        case STRING: opt_proxy = exrpc_async(fm_node,get_str_dfoperator,t1,t2,optid,immed).get(); break;
        case BOOL:   opt_proxy = exrpc_async(fm_node,get_dfoperator<int>,t1,t2,optid,immed).get(); break;
        default:     REPORT_ERROR(USER_ERROR,
@@ -493,6 +494,7 @@ JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getDFColumnPoint
       case LONG:   ret = exrpc_async(fm_node, get_df_column_pointer<long>, df, cname).get(); break;
       case FLOAT:  ret = exrpc_async(fm_node, get_df_column_pointer<float>, df, cname).get(); break;
       case DOUBLE: ret = exrpc_async(fm_node, get_df_column_pointer<double>, df, cname).get(); break;
+      case WORDS:
       case STRING: ret = exrpc_async(fm_node, get_df_column_pointer<std::string>, df, cname).get(); break;
       case BOOL:   ret = exrpc_async(fm_node, get_df_column_pointer<int>, df, cname).get(); break;
       default:     REPORT_ERROR(USER_ERROR, 
@@ -514,6 +516,7 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_releaseDFColumnPo
        case LONG:   exrpc_oneway(fm_node, release_dvector<long>, f_dptr); break;
        case FLOAT:  exrpc_oneway(fm_node, release_dvector<float>, f_dptr); break;
        case DOUBLE: exrpc_oneway(fm_node, release_dvector<double>, f_dptr); break;
+       case WORDS:
        case STRING: exrpc_oneway(fm_node, release_dvector<std::string>, f_dptr); break;
        case BOOL:   exrpc_oneway(fm_node, release_dvector<int>, f_dptr); break;
        default:     REPORT_ERROR(USER_ERROR, 
