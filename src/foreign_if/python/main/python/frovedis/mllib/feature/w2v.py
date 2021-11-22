@@ -196,7 +196,11 @@ class Word2Vec:
         weights = list(self.wv.values())
         from gensim.models import KeyedVectors
         gensim_w2v = KeyedVectors(self.hiddenSize)
-        gensim_w2v.add_vectors(vocabList, weights)
+        try:
+            gensim_w2v.add_vectors(vocabList, weights)
+        except AttributeError as err:
+            raise AttributeError(str(err) + \
+            "\nPlease ensure gensim >= 4.0.1 is installed!")
         return gensim_w2v
 
     def train(self, corpusIterable=None, corpusFile=None):
