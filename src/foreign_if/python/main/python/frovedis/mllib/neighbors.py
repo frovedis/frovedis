@@ -359,6 +359,8 @@ class KNeighborsClassifier(BaseEstimator):
                                 "not supported \n")
         if self.batch_fraction is None:
             self.batch_fraction = np.finfo(np.float64).max
+        elif self.batch_fraction == np.finfo(np.float64).max:
+            pass # might be set to DBLMAX in recurrent calls to fit() etc.
         elif self.batch_fraction <= 0.0 or self.batch_fraction > 1.0:
             raise ValueError("batch fraction should be between 0.0 and 1.0")
             
@@ -368,7 +370,7 @@ class KNeighborsClassifier(BaseEstimator):
                    encode_label = True, binary_encoder=[0, 1], \
                    dense_kind = 'rowmajor', densify=False)
         self._X = train_data 
-        self._X_movable = train_data.is_movable()
+        self._X_movable = train_data.is_movable()[1]
         X, y, logic = train_data.get()
         self._classes = train_data.get_distinct_labels()
         self.n_classes = len(self._classes)
@@ -678,6 +680,8 @@ class KNeighborsRegressor(BaseEstimator):
                                 "not supported \n")
         if self.batch_fraction is None:
             self.batch_fraction = np.finfo(np.float64).max
+        elif self.batch_fraction == np.finfo(np.float64).max:
+            pass # might be set to DBLMAX in recurrent calls to fit() etc.
         elif self.batch_fraction <= 0.0 or self.batch_fraction > 1.0:
             raise ValueError("batch fraction should be between 0.0 and 1.0")
                         
@@ -686,7 +690,7 @@ class KNeighborsRegressor(BaseEstimator):
                    caller = "[" + self.__class__.__name__ + "] fit: ",\
                    dense_kind = 'rowmajor', densify=False)
         self._X = train_data 
-        self._X_movable = train_data.is_movable()
+        self._X_movable = train_data.is_movable()[1]
         X, y = train_data.get()
         dtype = train_data.get_dtype()
         self.__itype = train_data.get_itype()
