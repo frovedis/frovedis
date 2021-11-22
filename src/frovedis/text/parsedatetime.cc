@@ -1,5 +1,7 @@
 #include "parsedatetime.hpp"
+#include "parseint.hpp"
 #include "char_int_conv.hpp"
+#include "../text/datetime_utility.hpp"
 
 using namespace std;
 
@@ -9,7 +11,7 @@ void parseabbmonth(const std::vector<int>& chars,
                    const std::vector<size_t>& starts,
                    const std::vector<size_t>& lens,
                    size_t num_words,
-                   datetime_t* retp) {
+                   int* retp) {
   vector<string> months = {"Jan", "Feb", "Mar", "Apr", "May", "Jun",
                            "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
   for(int m = 0; m < 12; m++) {
@@ -52,8 +54,16 @@ parsedatetime(const std::vector<int>& chars,
   std::vector<size_t> newstarts(num_words), newlens(num_words);
   auto newstartsp = newstarts.data();
   auto newlensp = newlens.data();
-  std::vector<size_t> parsed(num_words);
-  auto parsedp = parsed.data();
+  std::vector<int> year(num_words), month(num_words), day(num_words);
+  std::vector<int> hour(num_words), minute(num_words), second(num_words);
+  std::vector<int> nanosecond(num_words);
+  auto yearp = year.data();
+  auto monthp = month.data();
+  auto dayp = day.data();
+  auto hourp = hour.data();
+  auto minutep = minute.data();
+  auto secondp = second.data();
+  auto nanosecondp = nanosecond.data();
   if(yearpos != string::npos) {
     auto pos = yearpos;
     if(pos > abbmonthpos) pos += 1;
@@ -61,10 +71,7 @@ parsedatetime(const std::vector<int>& chars,
       newstartsp[i] = startsp[i] + pos;
       newlensp[i] = 4;
     }
-    parseint(charsp, newstartsp, newlensp, num_words, parsedp);
-    for(size_t i = 0; i < num_words; i++) {
-      retp[i] = parsedp[i] << 5 * 8;
-    }
+    parseint(charsp, newstartsp, newlensp, num_words, yearp);
   }
   if(abbmonthpos != string::npos) {
     auto pos = abbmonthpos;
@@ -73,10 +80,7 @@ parsedatetime(const std::vector<int>& chars,
       newstartsp[i] = startsp[i] + pos;
       newlensp[i] = 3;
     }
-    parseabbmonth(chars, newstarts, newlens, num_words, parsedp);
-    for(size_t i = 0; i < num_words; i++) {
-      retp[i] += parsedp[i] << 4 * 8;
-    }
+    parseabbmonth(chars, newstarts, newlens, num_words, monthp);
   }
   auto pos = format.find("%m");
   if(pos != string::npos) {
@@ -86,10 +90,7 @@ parsedatetime(const std::vector<int>& chars,
       newstartsp[i] = startsp[i] + pos;
       newlensp[i] = 2;
     }
-    parseint(charsp, newstartsp, newlensp, num_words, parsedp);
-    for(size_t i = 0; i < num_words; i++) {
-      retp[i] += parsedp[i] << 4 * 8;
-    }
+    parseint(charsp, newstartsp, newlensp, num_words, monthp);
   }
   pos = format.find("%d");
   if(pos != string::npos) {
@@ -99,10 +100,7 @@ parsedatetime(const std::vector<int>& chars,
       newstartsp[i] = startsp[i] + pos;
       newlensp[i] = 2;
     }
-    parseint(charsp, newstartsp, newlensp, num_words, parsedp);
-    for(size_t i = 0; i < num_words; i++) {
-      retp[i] += parsedp[i] << 3 * 8;
-    }
+    parseint(charsp, newstartsp, newlensp, num_words, dayp);
   }
   pos = format.find("%H");
   if(pos != string::npos) {
@@ -112,10 +110,7 @@ parsedatetime(const std::vector<int>& chars,
       newstartsp[i] = startsp[i] + pos;
       newlensp[i] = 2;
     }
-    parseint(charsp, newstartsp, newlensp, num_words, parsedp);
-    for(size_t i = 0; i < num_words; i++) {
-      retp[i] += parsedp[i] << 2 * 8;
-    }
+    parseint(charsp, newstartsp, newlensp, num_words, hourp);
   }
   pos = format.find("%M");
   if(pos != string::npos) {
@@ -125,10 +120,7 @@ parsedatetime(const std::vector<int>& chars,
       newstartsp[i] = startsp[i] + pos;
       newlensp[i] = 2;
     }
-    parseint(charsp, newstartsp, newlensp, num_words, parsedp);
-    for(size_t i = 0; i < num_words; i++) {
-      retp[i] += parsedp[i] << 1 * 8;
-    }
+    parseint(charsp, newstartsp, newlensp, num_words, minutep);
   }
   pos = format.find("%S");
   if(pos != string::npos) {
@@ -138,10 +130,11 @@ parsedatetime(const std::vector<int>& chars,
       newstartsp[i] = startsp[i] + pos;
       newlensp[i] = 2;
     }
-    parseint(charsp, newstartsp, newlensp, num_words, parsedp);
-    for(size_t i = 0; i < num_words; i++) {
-      retp[i] += parsedp[i];
-    }
+    parseint(charsp, newstartsp, newlensp, num_words, secondp);
+  }
+  for(size_t i = 0; i < num_words; i++) {
+    retp[i] = makedatetime(yearp[i], monthp[i], dayp[i], hourp[i], minutep[i],
+                           secondp[i], nanosecondp[i]);
   }
   return ret;
 }
