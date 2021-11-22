@@ -22,8 +22,8 @@ prepare_scattered_vectors(const std::vector<T>& vec,
 }
 
 template <class T>
-void merge_vectors_impl(const std::vector<std::vector<T>>& vec,
-                        T* retp, ulong rsize) {
+void omp_merge_vectors_impl(const std::vector<std::vector<T>>& vec,
+                            T* retp, ulong rsize) {
   auto wsize = vec.size();
   if(wsize == 0) return;
   std::vector<size_t> myst(wsize); myst[0] = 0;
@@ -37,15 +37,16 @@ void merge_vectors_impl(const std::vector<std::vector<T>>& vec,
   }
 }
 
+// non-omp version is defined in server/exrpc_data_storage.hpp
 template <class T>
 std::vector<T>
-merge_vectors(const std::vector<std::vector<T>>& vec) {
+omp_merge_vectors(const std::vector<std::vector<T>>& vec) {
   auto nvec = vec.size();
   if(nvec == 0) return std::vector<T>();
   size_t rsize = 0;
   for(size_t i = 0; i < nvec; ++i) rsize += vec[i].size();
   std::vector<T> ret(rsize);
-  merge_vectors_impl(vec, ret.data(), rsize);
+  omp_merge_vectors_impl(vec, ret.data(), rsize);
   return ret;
 }
 
@@ -690,7 +691,7 @@ extern "C" {
       std::vector<int> is_except(wsize);
       auto evs = get_local_string_vectors(nodes, eps, exps,
                                           is_except, wsize, dvsz);
-      ret = to_python_string_list(merge_vectors(evs)); 
+      ret = to_python_string_list(omp_merge_vectors(evs)); 
     }
     catch (std::exception& e) {
       set_status(true, e.what());
@@ -731,23 +732,23 @@ extern "C" {
         case BOOL:
         case INT:    { auto evs = get_local_int_vectors(nodes, eps, exps,
                                                         is_except, wsize, dvsz);
-                       merge_vectors_impl(evs, (int*) retp, dvsz); break;
+                       omp_merge_vectors_impl(evs, (int*) retp, dvsz); break;
                      }
         case LONG:   { auto evs = get_local_long_vectors(nodes, eps, exps,
                                                          is_except, wsize, dvsz);
-                       merge_vectors_impl(evs, (long*) retp, dvsz); break;
+                       omp_merge_vectors_impl(evs, (long*) retp, dvsz); break;
                      }
         case ULONG:  { auto evs = get_local_ulong_vectors(nodes, eps, exps,
                                                           is_except, wsize, dvsz);
-                       merge_vectors_impl(evs, (unsigned long*) retp, dvsz); break;
+                       omp_merge_vectors_impl(evs, (unsigned long*) retp, dvsz); break;
                      }
         case FLOAT:  { auto evs = get_local_float_vectors(nodes, eps, exps,
                                                           is_except, wsize, dvsz);
-                       merge_vectors_impl(evs, (float*) retp, dvsz); break;
+                       omp_merge_vectors_impl(evs, (float*) retp, dvsz); break;
                      }
         case DOUBLE: { auto evs = get_local_double_vectors(nodes, eps, exps,
                                                            is_except, wsize, dvsz);
-                       merge_vectors_impl(evs, (double*) retp, dvsz); break;
+                       omp_merge_vectors_impl(evs, (double*) retp, dvsz); break;
                      }
         default:  REPORT_ERROR(USER_ERROR,
                   "Unknown numeric type for frovedis dvector: " + std::to_string(dtype));
