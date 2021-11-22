@@ -71,7 +71,7 @@ use by default for 'kneighbors' queries. It must be within the range of 0 and n_
 **_radius_**: A positive float paramater, specifying the range of parameter space to use 
 by default for 'radius_neighbors' queries. (Default: 1.0)  
 **_algorithm_**: A string object parameter, specifying the algorithm used to compute the 
-nearest neighbors. (Default: auto)  
+nearest neighbors. (Default: 'auto')  
 When it is ‘auto’, it will be set as ‘brute’(brute-force search approach). Unlike 
 Scikit-learn, currently it supports only ‘brute’.  
 **_leaf\_size_**: An unsed parameter. (Default: 30)  
