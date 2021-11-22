@@ -8,10 +8,10 @@ package com.nec.frovedis.sql;
 class FrovedisColumn extends java.io.Serializable {
   protected var col_name: String = null
   private var isDesc: Int = 0
+  private var as_name: String = null
   def this(n: String) = {
     this()
     col_name = n
-    isDesc = 0
   }
   
   def >  (arg: Any) = new Expr(col_name, arg.toString(), OPTYPE.GT, checkIsImmed(arg)) 
@@ -24,6 +24,11 @@ class FrovedisColumn extends java.io.Serializable {
   def startsWith(pattern: String) = new Expr(col_name, pattern + "%", OPTYPE.LIKE, true)
   def endsWith(pattern: String) = new Expr(col_name, "%" + pattern, OPTYPE.LIKE, true)
 
+  def as(new_name: String): this.type = {
+    as_name = new_name // actual rename would take place on action (like select etc.)
+    this
+  }
+  def asName: String = as_name 
   def getIsDesc() = isDesc
   def setIsDesc(isDesc: Int): this.type = {
     this.isDesc = isDesc

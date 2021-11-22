@@ -254,9 +254,23 @@ class FrovedisDataFrame extends java.io.Serializable {
   }
   // Usage: df.select($$"colA", $$"colB")
   def select(c: FrovedisColumn*): FrovedisDataFrame = {
-    val all = c.toArray.map(x => x.toString)
-    return select(all)
-  } // TODO: Support of expression like [df.select($"colA", $"colB" + 1)]
+    val all = c.toArray
+    val cols = all.map(x => x.toString)
+    var ret = select(cols)
+
+    // for renaming in response to as()...
+    var names = new ArrayBuffer[String]()
+    var new_names = new ArrayBuffer[String]()
+    for(i <- 0 until all.size) {
+      val c = all(i)
+      if (c.asName != null) {
+        names += c.toString
+        new_names += c.asName
+      }
+    }
+    if (names.size > 0) return ret.withColumnRenamed(names.toArray, new_names.toArray)
+    else                return ret
+  } 
 
   private def sort_impl(targets: Array[String], 
                         isDescArr: Array[Int]): FrovedisDataFrame = {
@@ -359,7 +373,7 @@ class FrovedisDataFrame extends java.io.Serializable {
       t_cols = this.cols ++ df_right.cols
       t_types = this.types ++ df_right.types
     }
-  
+     
     val frov_join_type = getFrovedisJoinType(join_type)
     val proxy = JNISupport.joinFrovedisDataframes(fs.master_node,
                 this.get(), df_right.get(), opt.get(), frov_join_type,
