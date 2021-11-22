@@ -21,6 +21,8 @@ class FrovedisColumn extends java.io.Serializable {
   def ===(arg: Any) = new Expr(col_name, arg.toString(), OPTYPE.EQ, checkIsImmed(arg))
   def !==(arg: Any) = new Expr(col_name, arg.toString(), OPTYPE.NE, checkIsImmed(arg))
   def like(pattern: String) = new Expr(col_name, pattern, OPTYPE.LIKE, true)
+  def startsWith(pattern: String) = new Expr(col_name, pattern + "%", OPTYPE.LIKE, true)
+  def endsWith(pattern: String) = new Expr(col_name, "%" + pattern, OPTYPE.LIKE, true)
 
   def getIsDesc() = isDesc
   def setIsDesc(isDesc: Int): this.type = {
