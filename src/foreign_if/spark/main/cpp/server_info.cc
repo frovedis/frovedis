@@ -22,13 +22,29 @@ JNIEXPORT jint JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getWorkerSize
   return exrpc_async0(fm_node, get_nodesize).get();
 }
 
-// connects with Frovedis worker nodes and returns their node informations
+// connects with Frovedis worker nodes for processing single parallel request 
+// and returns their node informations
 JNIEXPORT jobjectArray JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getWorkerInfo
   (JNIEnv *env, jclass thisCls, jobject master_node) {
   auto fm_node = java_node_to_frovedis_node(env,master_node);
   auto info = prepare_parallel_exrpc(fm_node);
   auto nodes = get_parallel_exrpc_nodes(fm_node, info);
   wait_parallel_exrpc(fm_node, info);
+  return to_jNodeArray(env,nodes);
+}
+
+// connects with Frovedis worker nodes for processing N parallel requests 
+// and returns their node informations
+JNIEXPORT jobjectArray JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getWorkerInfoMulti
+  (JNIEnv *env, jclass thisCls, jobject master_node, 
+   jlongArray block_sizes, jint nproc) {
+  auto fm_node = java_node_to_frovedis_node(env,master_node);
+  auto info = prepare_parallel_exrpc(fm_node);
+  auto nodes = get_parallel_exrpc_nodes(fm_node, info);
+  auto blocksz = to_sizet_vector(env, block_sizes, nproc);
+  require(nodes.size() == nproc, 
+  "size of block vector doesn't match with the no. of mpi processes at FrovedisServer!\n");
+  wait_parallel_exrpc_multi(fm_node, info, blocksz);
   return to_jNodeArray(env,nodes);
 }
 
