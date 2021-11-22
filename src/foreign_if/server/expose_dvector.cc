@@ -1,7 +1,45 @@
+#include "frovedis/text/words.hpp"
 #include "exrpc_data_storage.hpp"
 #include "short_hand_dtype.hpp"
 
 using namespace frovedis;
+
+exrpc_ptr_t make_node_local_words(exrpc_ptr_t& dataDvec, 
+                                  exrpc_ptr_t& sizesDvec) {
+  auto& data = *reinterpret_cast<dvector<int>*>(dataDvec);
+  auto& sizes = *reinterpret_cast<dvector<int>*>(sizesDvec);
+  auto redist = sizes.viewas_node_local().map(+[](const std::vector<int>& sizes) {
+                                 return static_cast<size_t>(vector_sum(sizes));
+                            }).gather();
+  data.align_as(redist); // to ensure data and sizes distributions are in-sync
+  auto retp = new node_local<words>(make_node_local_allocate<words>());
+  data.viewas_node_local().mapv(
+       +[](std::vector<int>& data, std::vector<int>& sizes, words& w) {
+           auto size = sizes.size();
+           if (size == 0) return;
+           std::vector<size_t> starts(size); starts[0] = 0;
+           auto length = vector_astype<size_t>(sizes);
+           prefix_sum(length.data(), starts.data() + 1, size - 1);
+           w.chars.swap(data);
+           w.lens.swap(length);
+           w.starts.swap(starts);
+       }, sizes.viewas_node_local(), *retp);
+  return reinterpret_cast<exrpc_ptr_t>(retp);
+}
+
+std::vector<std::string> get_string_vector_from_words(exrpc_ptr_t& wordsptr) {
+  auto& w = *reinterpret_cast<words*>(wordsptr);
+  return words_to_vector_string(w);
+}
+
+std::vector<exrpc_ptr_t>
+get_node_local_word_pointers(exrpc_ptr_t& words_nl_ptr) {
+  auto& w_nl = *reinterpret_cast<node_local<words>*>(words_nl_ptr);
+  return w_nl.map(+[](words& w) {
+                   auto wptr = &w;
+                   return reinterpret_cast<exrpc_ptr_t>(wptr);
+                 }).gather();
+}
 
 void expose_frovedis_dvector_functions() {
   expose(count_distinct<int>);
@@ -30,6 +68,26 @@ void expose_frovedis_dvector_functions() {
   expose(show_dvector<DT1>);
   expose(release_dvector<DT1>);
   // --- frovedis typed dvector for dataframes ---
+  // for spark (allocate_local_vector, load_local_vector, merge_and_set_dvector)
+  expose((allocate_local_vector<std::vector<int>>));
+  expose((load_local_vector<std::vector<int>>));
+  expose(merge_and_set_dvector<int>);
+  expose((allocate_local_vector<std::vector<long>>));
+  expose((load_local_vector<std::vector<long>>));
+  expose(merge_and_set_dvector<long>);
+  expose((allocate_local_vector<std::vector<float>>));
+  expose((load_local_vector<std::vector<float>>));
+  expose(merge_and_set_dvector<float>);
+  expose((allocate_local_vector<std::vector<double>>));
+  expose((load_local_vector<std::vector<double>>));
+  expose(merge_and_set_dvector<double>);
+  expose((allocate_local_vector<std::vector<std::string>>));
+  expose((load_local_vector<std::vector<std::string>>));
+  expose(merge_and_set_dvector<std::string>);
+  expose(make_node_local_words);
+  expose(get_node_local_word_pointers);
+  expose(get_string_vector_from_words);
+  // for python (load_local_data, create_and_set_dvector)
   expose((load_local_data<std::vector<int>>));
   expose((load_local_data<std::vector<long>>));
   expose((load_local_data<std::vector<unsigned long>>));
@@ -42,6 +100,7 @@ void expose_frovedis_dvector_functions() {
   expose(create_and_set_dvector<float>);
   expose(create_and_set_dvector<double>);
   expose(create_and_set_dvector<std::string>);
+  //expose common (spark/python) dvector functionalities
   expose(show_dvector<int>);
   expose(show_dvector<long>);
   expose(show_dvector<unsigned long>);
@@ -54,13 +113,12 @@ void expose_frovedis_dvector_functions() {
   expose(release_dvector<float>);
   expose(release_dvector<double>);
   expose(release_dvector<std::string>);
-  //expose frovedis vector create
+  // frovedis (simple std::vector) vector functionalities
   expose(create_frovedis_vector<int>);
   expose(create_frovedis_vector<long>);
   expose(create_frovedis_vector<float>);
   expose(create_frovedis_vector<double>);
   expose(create_frovedis_vector<std::string>);
-  // expose frovedis vector save
   expose(save_frovedis_vector<int>);
   expose(save_frovedis_vector<long>);
   expose(save_frovedis_vector<float>);

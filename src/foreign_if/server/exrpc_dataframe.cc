@@ -62,6 +62,10 @@ exrpc_ptr_t create_dataframe (std::vector<short>& types,
       case BOOL:   { auto v6 = reinterpret_cast<dvector<int>*>(dvec_proxies[i]);
                      dftblp->append_column(cols[i],std::move(*v6),true);
                      delete v6; break; }
+      case WORDS:  { auto v7 = reinterpret_cast<node_local<words>*>(dvec_proxies[i]);
+                     //TODO: if (nan_as_null) 
+                     dftblp->append_dic_string_column(cols[i],(*v7),true);
+                     delete v7; break; }
       default:     auto msg = "Unsupported datatype in dataframe creation: " + std::to_string(types[i]);
                    REPORT_ERROR(USER_ERROR,msg);
     }
@@ -793,6 +797,9 @@ frov_df_append_column(exrpc_ptr_t& df_proxy,
     case BOOL:   { auto v6 = reinterpret_cast<dvector<int>*>(dvec_proxy);
                    dftblp->append_column(col_name,std::move(*v6),true);
                    delete v6; break; }
+    case WORDS:  { auto v7 = reinterpret_cast<node_local<words>*>(dvec_proxy);
+                   dftblp->append_dic_string_column(col_name,(*v7),true);
+                   delete v7; break; }
     default:     auto msg = "frov_df_append_column: Unsupported datatype for append_column: "
                             + std::to_string(type);
                  REPORT_ERROR(USER_ERROR,msg);

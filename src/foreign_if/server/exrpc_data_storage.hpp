@@ -19,6 +19,11 @@
 
 using namespace frovedis;
 
+// defined in expose_dvector.cc
+exrpc_ptr_t make_node_local_words(exrpc_ptr_t& dataDvec, exrpc_ptr_t& sizesDvec);
+std::vector<exrpc_ptr_t> get_node_local_word_pointers(exrpc_ptr_t& words_nl_ptr);
+std::vector<std::string> get_string_vector_from_words(exrpc_ptr_t& wordsptr);
+
 // --- Functions to enable ML data transfer and handling the same ---
 template <class MATRIX>
 void set_matrix_data(MATRIX& mat,
@@ -122,6 +127,24 @@ set_dvector_data(std::vector<T>& vec,
   return ret;
 }
 
+template <class E>
+std::vector<exrpc_ptr_t>
+allocate_local_vector(std::vector<size_t>& sizes) {
+  require(sizes.size() == get_nodesize(), 
+  "allocate_local_vector: given sizes doesn't match with the no. of mpi processes!\n");
+  return make_node_local_scatter(sizes).map(+[](size_t size) { 
+           auto vp = new std::vector<E>(size);
+           return reinterpret_cast<exrpc_ptr_t>(vp);
+         }).gather();
+}
+
+template <class E>
+void load_local_vector(exrpc_ptr_t& vp, size_t& index, E& p_vec) {
+  auto& vec = *reinterpret_cast<std::vector<E>*>(vp);
+  require(index < vec.size(), "load_local_vector: index is out-of-bound!\n");
+  vec[index] = std::move(p_vec);
+}
+
 // after the loading, input data will be destroyed...
 template <class MATRIX>
 exrpc_ptr_t load_local_data(MATRIX& mat) {
@@ -166,14 +189,59 @@ void show_glm_data(frovedis_mem_pair& mp) {
   show_dvector<T>(dptr);
 }
 
-
 // returns local chunk of dvector (node_local<std::vector<T>>) 
 template <class T>
 std::vector<T> get_local_vector(exrpc_ptr_t& d_ptr) {
   return *reinterpret_cast<std::vector<T>*>(d_ptr);
 }
 
+template <class T>
+std::vector<T>
+merge_vectors(const std::vector<std::vector<T>>& vec) {
+  auto nvec = vec.size();
+  if(nvec == 0) return std::vector<T>();
+  size_t rsize = 0; for(size_t i = 0; i < nvec; ++i) rsize += vec[i].size();
+  std::vector<T> ret(rsize); auto retp = ret.data();
+  for(size_t i = 0; i < nvec; ++i) {
+    auto vecp = vec[i].data();
+    auto vsz = vec[i].size();
+    for(size_t j = 0; j < vsz; ++j) retp[j] = vecp[j];
+    retp += vsz;
+  }
+  //show("[" + std::to_string(get_selfid()) + "]: ", ret);
+  return ret;
+}
+
+template <class T>
+std::vector<size_t> 
+merge_and_set_dvector_impl(std::vector<T>& lvec,
+                           exrpc_ptr_t p_vecs_ptr) {
+  auto& p_vecs = *reinterpret_cast<std::vector<std::vector<T>>*>(p_vecs_ptr);
+  lvec = merge_vectors(p_vecs);
+  return {lvec.size()}; // map_partitions needs to return vector
+}
+
 // returns a memptr pointing to the head of created dvector
+template <class T>
+exrpc_ptr_t merge_and_set_dvector(std::vector<exrpc_ptr_t>& dvec_eps,
+                                  std::vector<size_t>& sizes,
+                                  bool& verify_sizes) {
+  auto vecp = new dvector<T>(make_dvector_allocate<T>());
+  if(!vecp) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed!\n");
+  auto each_eps =  make_node_local_scatter(dvec_eps);
+  auto ss = vecp->map_partitions(merge_and_set_dvector_impl<T>, 
+                                 each_eps).gather();
+  //show("created sizes: ", ss);
+  //show("expected sizes: ", sizes);
+  if (verify_sizes) {
+    require(ss == sizes, 
+    "merge_and_set_dvector: sizes of created dvector doesn't match with specified sizes!\n");
+  }
+  vecp->set_sizes(ss);
+  vecp->align_block(); 
+  return reinterpret_cast<exrpc_ptr_t>(vecp);
+}
+
 template <class T>
 exrpc_ptr_t create_and_set_dvector(std::vector<exrpc_ptr_t>& dvec_eps) {
   auto vecp = new dvector<T>(make_dvector_allocate<T>());
@@ -646,7 +714,5 @@ get_all_nrow(exrpc_ptr_t& d_ptr) {
   auto& mat = *reinterpret_cast<crs_matrix<T,I,O>*>(d_ptr);
   return mat.get_local_num_rows();
 }
-
-
 
 #endif
