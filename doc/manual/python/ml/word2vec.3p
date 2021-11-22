@@ -7,7 +7,7 @@ It is capable of capturing context of a word in a document, semantic and
 syntactic similarity, relation with other words, etc.
 .SH SYNOPSIS
 .PP
-class frovedis.mllib.Word2Vec(sentences=None, corpusFile=None,
+class frovedis.mllib.feature.Word2Vec(sentences=None, corpusFile=None,
 .PD 0
 .P
 .PD
@@ -233,15 +233,17 @@ value 1.
 (mapping between keys such as words and embeddings as arrays) instance.
 It contains the mapping between words and embeddings.
 .PP
-For Example,
+For example,
 .IP
 .nf
 \f[C]
-#\ Generate\ embeddings\ using\ build_vocab\ and\ train
+#\ Using\ an\ iterable\ data\ \ 
 data\ =\ [["cat",\ "say",\ "meow"],\ ["dog",\ "say",\ "woof"]]\ \ \ \ 
+
+#\ Training\ the\ Word2Vec\ model\ using\ build_vocab()\ and\ train()
 from\ frovedis.mllib\ import\ Word2Vec
 wv_model\ =\ Word2Vec(minCount\ =\ 2)
-wv_model.build_vocab_and_dump(data)\ 
+wv_model.build_vocab(data)\ 
 wv_model.train(data)\ 
 print(wv_model.wv)
 \f[]
@@ -319,25 +321,29 @@ It builds the vocabulary from input data file and dumped into provided
 output files.
 It also initializes the \[aq]wv\[aq] attribute.
 .PP
-For Example, building vocabulary from an iterable
+For example, building vocabulary from an iterable
 .IP
 .nf
 \f[C]
-#\ Building\ vocabulary\ from\ input\ iterable\ data\ \ \ \ 
+#\ Using\ an\ iterable\ data\ \ 
 data\ =\ [["cat",\ "say",\ "meow"],\ ["dog",\ "say",\ "woof"]]\ 
+
+#\ Building\ vocabulary\ from\ input\ iterable\ data\ 
 from\ frovedis.mllib\ import\ Word2Vec
 wv_model\ =\ Word2vec(minCount\ =\ 2)
 wv_model.build_vocab(corpusIterable\ =\ data)\ \ \ 
 \f[]
 .fi
 .PP
-For Example, building vocabulary from a text file
+For example, building vocabulary from a text file
 .IP
 .nf
 \f[C]
-#\ Building\ vocabulary\ from\ input\ text\ file\ \ \ \ 
+#\ Using\ a\ text\ file\ \ 
 textfile\ =\ "./input/text8\-10k"
 modelpath\ =\ "./out/text_model.txt"
+
+#\ Building\ vocabulary\ from\ input\ text\ file\ \ \ \ 
 from\ frovedis.mllib\ import\ Word2Vec
 wv_model\ =\ Word2Vec(minCount\ =\ 2)
 wv_model.build_vocab(corpusFile\ =\ textfile,\ outDirPath\ =\ modelpath)\ \ 
@@ -393,25 +399,29 @@ output files.
 It also initializes the \[aq]wv\[aq] attribute.
 This method is an alias to build_vocab().
 .PP
-For Example, building vocabulary from an iterable
+For example, building vocabulary from an iterable
 .IP
 .nf
 \f[C]
-#\ Building\ vocabulary\ from\ input\ iterable\ data\ \ \ \ 
+#\ Using\ an\ iterable\ data\ \ \ \ \ \ 
 data\ =\ [["cat",\ "say",\ "meow"],\ ["dog",\ "say",\ "woof"]]\ \ 
+
+#\ Building\ vocabulary\ from\ input\ iterable\ data\ \ \ \ 
 from\ frovedis.mllib\ import\ Word2Vec
 wv_model\ =\ Word2vec(minCount\ =\ 2)
 wv_model.build_vocab_and_dump(corpusIterable\ =\ data)\ \ \ 
 \f[]
 .fi
 .PP
-For Example, building vocabulary from a text file
+For example, building vocabulary from a text file
 .IP
 .nf
 \f[C]
-#\ Building\ vocabulary\ from\ input\ text\ file\ \ \ \ 
+#\ Using\ a\ text\ file\ \ \ \ 
 textfile\ =\ "./input/text8\-10k"
 modelpath\ =\ "./out/text_model.txt"
+
+#\ Building\ vocabulary\ from\ input\ text\ file\ \ \ \ 
 from\ frovedis.mllib\ import\ Word2Vec
 wv_model\ =\ Word2Vec(minCount\ =\ 2)
 wv_model.build_vocab_and_dump(corpusFile\ =\ textfile,\ outDirPath\ =\ modelpath)\ \ 
@@ -432,7 +442,7 @@ It simply returns "self" reference.
 It generates a gensim like \[aq]wv\[aq] (KeyedVectors instance)
 attribute for Word2Vec model.
 .PP
-For Example,
+For example,
 .IP
 .nf
 \f[C]
@@ -474,12 +484,14 @@ vocabulary.
 .PD
 It trains the Word2Vec model on input vocabulary.
 .PP
-For Example, training with an iterable data
+For example, training with an iterable data
 .IP
 .nf
 \f[C]
-#\ Training\ the\ model
+#\ Using\ an\ iterable\ data\ \ 
 data\ =\ [["cat",\ "say",\ "meow"],\ ["dog",\ "say",\ "woof"]]\ 
+
+#\ Training\ the\ model\ \ 
 from\ frovedis.mllib\ import\ Word2Vec
 wv_model\ =\ Word2vec(minCount\ =\ 2)
 wv_model.build_vocab(corpusIterable\ =\ data)
@@ -487,13 +499,15 @@ wv_model.train(corpusIterable\ =\ data)\ \
 \f[]
 .fi
 .PP
-For Example, training with a text file
+For example, training with a text file
 .IP
 .nf
 \f[C]
-#\ Training\ the\ model\ \ \ \ \ \ 
+#\ Using\ a\ text\ file\ \ 
 textfile\ =\ "./input/text8\-10k"
 modelpath\ =\ "./out/text_model.txt"
+
+#\ Training\ the\ model\ \ 
 from\ frovedis.mllib\ import\ Word2Vec
 wv_model\ =\ Word2Vec(minCount\ =\ 2)
 wv_model.build_vocab(corpusFile\ =\ textfile,\ outDirPath\ =\ modelpath)\ \ 
@@ -533,12 +547,14 @@ vocabulary.
 It trains the Word2Vec model on input vocabulary.
 This method is an alias to train().
 .PP
-For Example, training with an iterable data
+For example, training with an iterable data
 .IP
 .nf
 \f[C]
-#\ Training\ the\ model
+#\ Using\ an\ iterable\ data\ \ 
 data\ =\ [["cat",\ "say",\ "meow"],\ ["dog",\ "say",\ "woof"]]\ 
+
+#\ Training\ the\ model
 from\ frovedis.mllib\ import\ Word2Vec
 wv_model\ =\ Word2vec(minCount\ =\ 2)
 wv_model.build_vocab(corpusIterable\ =\ data)
@@ -546,13 +562,15 @@ wv_model.fit(corpusIterable\ =\ data)\ \
 \f[]
 .fi
 .PP
-For Example, training with a text file
+For example, training with a text file
 .IP
 .nf
 \f[C]
-#\ Training\ the\ model\ \ \ \ \ \ 
+#\ Using\ a\ text\ file\ \ 
 textfile\ =\ "./input/text8\-10k"
 modelpath\ =\ "./out/text_model.txt"
+
+#\ Training\ the\ model\ \ \ \ \ \ 
 from\ frovedis.mllib\ import\ Word2Vec
 wv_model\ =\ Word2Vec(minCount\ =\ 2)
 wv_model.build_vocab(corpusFile\ =\ textfile,\ outDirPath\ =\ modelpath)\ \ 
@@ -591,7 +609,7 @@ attribute like \[aq]wv\[aq]) in the specified file as little\-endian
 binary data.
 Otherwise, it throws an exception.
 .PP
-For Example,
+For example,
 .IP
 .nf
 \f[C]
@@ -645,11 +663,14 @@ vocabulary.
 .PD
 It transforms the document text to word2vec embeddings.
 .PP
-For Example, training with an iterable
+For example, training with an iterable
 .IP
 .nf
 \f[C]
+#\ Using\ an\ iterable\ data\ \ 
 data\ =\ [["cat",\ "say",\ "meow"],\ ["dog",\ "say",\ "woof"]]\ 
+
+#\ Training\ the\ model\ 
 from\ frovedis.mllib\ import\ Word2Vec
 wv_model\ =\ Word2vec(minCount\ =\ 2)
 wv_model.build_vocab(corpusIterable\ =\ data)
@@ -670,11 +691,14 @@ Output
 \f[]
 .fi
 .PP
-For Example, training with a text file
+For example, training with a text file
 .IP
 .nf
 \f[C]
+#\ Using\ a\ text\ file\ \ 
 textfile\ =\ "./input/text8\-10k"
+
+#\ Training\ the\ model\ 
 wv_model\ =\ Word2Vec(minCount\ =\ 2)
 wv_model.build_vocab(corpusFile\ =\ textfile)
 wv_model.fit(corpusFile\ =\ textfile)
@@ -731,11 +755,14 @@ vocabulary.
 It trains the word2vec model on input document and transforms the
 document text to word2vec embeddings.
 .PP
-For Example, training with an iterable
+For example, training with an iterable
 .IP
 .nf
 \f[C]
+#\ Using\ an\ iterable\ data\ \ 
 data\ =\ [["cat",\ "say",\ "meow"],\ ["dog",\ "say",\ "woof"]]\ 
+
+#\ Training\ the\ model\ 
 from\ frovedis.mllib\ import\ Word2Vec
 wv_model\ =\ Word2vec(minCount\ =\ 2)
 wv_model.build_vocab(corpusIterable\ =\ data)
@@ -755,11 +782,14 @@ Output
 \f[]
 .fi
 .PP
-For Example, with a text file
+For example, with a text file
 .IP
 .nf
 \f[C]
+#\ Using\ a\ text\ file\ \ 
 textfile\ =\ "./input/text8\-10k"
+
+#\ Training\ the\ model\ 
 wv_model\ =\ Word2Vec(minCount\ =\ 2)
 wv_model.build_vocab(corpusFile\ =\ textfile)
 embeddings\ =\ wv_model.fit_transform(corpusFile\ =\ textfile)

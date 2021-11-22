@@ -8,7 +8,7 @@ semantic and syntactic similarity, relation with other words, etc.
 
 # SYNOPSIS  
 
-class frovedis.mllib.Word2Vec(sentences=None, corpusFile=None,  
+class frovedis.mllib.feature.Word2Vec(sentences=None, corpusFile=None,  
 \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
 \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ outDirPath=None, hiddenSize=100,  
 \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
@@ -100,13 +100,15 @@ __Attributes__
 **_wv_**: The trained words are stored in KeyedVectors (mapping between keys such as words and 
 embeddings as arrays) instance. It contains the mapping between words and embeddings.  
 
-For Example,
+For example,
 
-    # Generate embeddings using build_vocab and train
+    # Using an iterable data  
     data = [["cat", "say", "meow"], ["dog", "say", "woof"]]    
+    
+    # Training the Word2Vec model using build_vocab() and train()
     from frovedis.mllib import Word2Vec
     wv_model = Word2Vec(minCount = 2)
-    wv_model.build_vocab_and_dump(data) 
+    wv_model.build_vocab(data) 
     wv_model.train(data) 
     print(wv_model.wv)
 
@@ -145,19 +147,23 @@ __Purpose__
 It builds the vocabulary from input data file and dumped into provided output files. 
 It also initializes the 'wv' attribute.  
 
-For Example, building vocabulary from an iterable  
+For example, building vocabulary from an iterable  
     
-    # Building vocabulary from input iterable data    
+    # Using an iterable data  
     data = [["cat", "say", "meow"], ["dog", "say", "woof"]] 
+    
+    # Building vocabulary from input iterable data 
     from frovedis.mllib import Word2Vec
     wv_model = Word2vec(minCount = 2)
     wv_model.build_vocab(corpusIterable = data)   
 
-For Example, building vocabulary from a text file
+For example, building vocabulary from a text file
 
-    # Building vocabulary from input text file    
+    # Using a text file  
     textfile = "./input/text8-10k"
     modelpath = "./out/text_model.txt"
+    
+    # Building vocabulary from input text file    
     from frovedis.mllib import Word2Vec
     wv_model = Word2Vec(minCount = 2)
     wv_model.build_vocab(corpusFile = textfile, outDirPath = modelpath)  
@@ -182,19 +188,23 @@ __Purpose__
 It builds the vocabulary from input data file and dump into provided output files. 
 It also initializes the 'wv' attribute. This method is an alias to build_vocab().  
 
-For Example, building vocabulary from an iterable  
+For example, building vocabulary from an iterable  
+    
+    # Using an iterable data      
+    data = [["cat", "say", "meow"], ["dog", "say", "woof"]]  
     
     # Building vocabulary from input iterable data    
-    data = [["cat", "say", "meow"], ["dog", "say", "woof"]]  
     from frovedis.mllib import Word2Vec
     wv_model = Word2vec(minCount = 2)
     wv_model.build_vocab_and_dump(corpusIterable = data)   
 
-For Example, building vocabulary from a text file
+For example, building vocabulary from a text file
 
-    # Building vocabulary from input text file    
+    # Using a text file    
     textfile = "./input/text8-10k"
     modelpath = "./out/text_model.txt"
+    
+    # Building vocabulary from input text file    
     from frovedis.mllib import Word2Vec
     wv_model = Word2Vec(minCount = 2)
     wv_model.build_vocab_and_dump(corpusFile = textfile, outDirPath = modelpath)  
@@ -206,7 +216,7 @@ It simply returns "self" reference.
 __Purpose__  
 It generates a gensim like 'wv' (KeyedVectors instance) attribute for Word2Vec model.  
 
-For Example,
+For example,
 
     wv_model.to_gensim_model()
 
@@ -226,20 +236,24 @@ the 'corpusIterable' must be provided for building the vocabulary. (Default: Non
 __Purpose__  
 It trains the Word2Vec model on input vocabulary.  
 
-For Example, training with an iterable data  
+For example, training with an iterable data  
     
-    # Training the model
+    # Using an iterable data  
     data = [["cat", "say", "meow"], ["dog", "say", "woof"]] 
+    
+    # Training the model  
     from frovedis.mllib import Word2Vec
     wv_model = Word2vec(minCount = 2)
     wv_model.build_vocab(corpusIterable = data)
     wv_model.train(corpusIterable = data)  
     
-For Example, training with a text file
+For example, training with a text file
 
-    # Training the model      
+    # Using a text file  
     textfile = "./input/text8-10k"
     modelpath = "./out/text_model.txt"
+    
+    # Training the model  
     from frovedis.mllib import Word2Vec
     wv_model = Word2Vec(minCount = 2)
     wv_model.build_vocab(corpusFile = textfile, outDirPath = modelpath)  
@@ -259,20 +273,24 @@ the 'corpusIterable' must be provided for building the vocabulary. (Default: Non
 __Purpose__  
 It trains the Word2Vec model on input vocabulary. This method is an alias to train().  
 
-For Example, training with an iterable data  
+For example, training with an iterable data  
     
-    # Training the model
+    # Using an iterable data  
     data = [["cat", "say", "meow"], ["dog", "say", "woof"]] 
+
+    # Training the model
     from frovedis.mllib import Word2Vec
     wv_model = Word2vec(minCount = 2)
     wv_model.build_vocab(corpusIterable = data)
     wv_model.fit(corpusIterable = data)  
 
-For Example, training with a text file
+For example, training with a text file
 
-    # Training the model      
+    # Using a text file  
     textfile = "./input/text8-10k"
     modelpath = "./out/text_model.txt"
+
+    # Training the model      
     from frovedis.mllib import Word2Vec
     wv_model = Word2Vec(minCount = 2)
     wv_model.build_vocab(corpusFile = textfile, outDirPath = modelpath)  
@@ -294,7 +312,7 @@ It saves the word2vec model information to a file.
 On success, it writes the model information (after-fit populated attribute like 'wv') in 
 the specified file as little-endian binary data. Otherwise, it throws an exception.  
 
-For Example,   
+For example,   
 
     # To save the word embeddings in a file
     model = "./out/text_model.txt"  
@@ -321,9 +339,12 @@ If None, then np.mean() is used as 'func'.
 __Purpose__  
 It transforms the document text to word2vec embeddings.  
 
-For Example, training with an iterable  
+For example, training with an iterable  
 
+    # Using an iterable data  
     data = [["cat", "say", "meow"], ["dog", "say", "woof"]] 
+    
+    # Training the model 
     from frovedis.mllib import Word2Vec
     wv_model = Word2vec(minCount = 2)
     wv_model.build_vocab(corpusIterable = data)
@@ -338,9 +359,12 @@ Output
      [ 0.00227966 -0.00495255  0.00431488 ...  0.00019882 -0.0016861
       -0.00112656]]
 
-For Example, training with a text file  
+For example, training with a text file  
 
+    # Using a text file  
     textfile = "./input/text8-10k"
+    
+    # Training the model 
     wv_model = Word2Vec(minCount = 2)
     wv_model.build_vocab(corpusFile = textfile)
     wv_model.fit(corpusFile = textfile)
@@ -369,9 +393,12 @@ __Purpose__
 It trains the word2vec model on input document and transforms the document text to 
 word2vec embeddings.  
 
-For Example, training with an iterable  
+For example, training with an iterable  
 
+    # Using an iterable data  
     data = [["cat", "say", "meow"], ["dog", "say", "woof"]] 
+    
+    # Training the model 
     from frovedis.mllib import Word2Vec
     wv_model = Word2vec(minCount = 2)
     wv_model.build_vocab(corpusIterable = data)
@@ -385,9 +412,12 @@ Output
      [ 0.00227966 -0.00495255  0.00431488 ...  0.00019882 -0.0016861
       -0.00112656]]
 
-For Example, with a text file  
+For example, with a text file  
 
+    # Using a text file  
     textfile = "./input/text8-10k"
+    
+    # Training the model 
     wv_model = Word2Vec(minCount = 2)
     wv_model.build_vocab(corpusFile = textfile)
     embeddings = wv_model.fit_transform(corpusFile = textfile)
