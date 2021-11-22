@@ -222,27 +222,20 @@ public class JNISupport {
 
 
   // -------- Linear Regression --------
-  public static native int callFrovedisLNRSGD(Node master_node,
-                                             MemPair fdata,
-                                             int numIter,
-                                             double stepSize,
-                                             double miniBatchFraction,
-                                             int mid, 
-                                             boolean movable,
-                                             boolean isDense,
-                                             double[] sample_weight,
-                                             long sample_weight_length);
+  public static native int callFrovedisLNR(Node master_node,
+                                           MemPair fdata,
+                                           int numIter,
+                                           double stepSize,
+                                           int histSize,
+                                           double miniBatchFraction,
+                                           int mid, 
+                                           boolean movable,
+                                           boolean isDense,
+                                           double[] sample_weight,
+                                           long sample_weight_length,
+                                           String solver, 
+                                           boolean warm_start);
 
-  public static native int callFrovedisLNRLBFGS(Node master_node,
-                                               MemPair fdata,
-                                               int numIter,
-                                               double stepSize,
-                                               int histSize,
-                                               int mid, 
-                                               boolean movable,
-                                               boolean isDense,
-                                               double[] sample_weight,
-                                               long sample_weight_length);
 
   // -------- Lasso Regression --------
   public static native int callFrovedisLasso(Node master_node,

@@ -99,9 +99,10 @@ object LinearRegressionWithSGD {
      val mid = ModelID.get()
      val sample_weight_length = sample_weight.length
      val fs = FrovedisServer.getServerInstance()
-     JNISupport.callFrovedisLNRSGD(fs.master_node,data.get(),numIter,stepSize,
-                                   miniBatchFraction,mid,isMovableInput,
-                                   data.is_dense(), sample_weight, sample_weight_length)
+     JNISupport.callFrovedisLNR(fs.master_node,data.get(),numIter,stepSize,
+                                10,miniBatchFraction,mid,isMovableInput,
+                                data.is_dense(), sample_weight, 
+                                sample_weight_length, "sgd", false)
      val info = JNISupport.checkServerException()
      if (info != "") throw new java.rmi.ServerException(info)
      val numFeatures = data.numCols()
@@ -116,7 +117,6 @@ object LinearRegressionWithSGD {
      return train(data, numIter, stepSize, miniBatchFraction, 
                   isMovableInput, Array.empty[Double])
   }
-
 
   def train(data: FrovedisLabeledPoint,
             numIter: Int,
@@ -194,11 +194,11 @@ object LinearRegressionWithLBFGS {
      val mid = ModelID.get()
      val sample_weight_length = sample_weight.length
      val fs = FrovedisServer.getServerInstance()
-     JNISupport.callFrovedisLNRLBFGS(fs.master_node,data.get(),numIter,
-                                     stepSize,
-                                     histSize,mid,isMovableInput,
-                                     data.is_dense(), sample_weight,
-                                     sample_weight_length)
+     JNISupport.callFrovedisLNR(fs.master_node,data.get(),numIter,
+                                stepSize,histSize,0.1,
+                                mid,isMovableInput,
+                                data.is_dense(), sample_weight,
+                                sample_weight_length, "lbfgs", false)
      val info = JNISupport.checkServerException()
      if (info != "") throw new java.rmi.ServerException(info)
      val numFeatures = data.numCols()
