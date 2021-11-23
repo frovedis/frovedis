@@ -1,4 +1,4 @@
-package com.nec.frovedis.Jmllib;
+package com.nec.frovedis.Jmllib; // TODO: move to JdataFrame package
 
 public class DummyDftable implements java.io.Serializable {
   public DummyDftable() {}

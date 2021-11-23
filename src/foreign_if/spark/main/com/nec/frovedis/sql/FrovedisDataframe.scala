@@ -1,6 +1,7 @@
 package com.nec.frovedis.sql;
 
 import com.nec.frovedis.Jexrpc._
+import com.nec.frovedis.Jmllib.DummyDftable
 import com.nec.frovedis.matrix.DTYPE
 import com.nec.frovedis.matrix.{
   IntDvector, LongDvector, 
@@ -167,6 +168,12 @@ class FrovedisDataFrame extends java.io.Serializable {
     cols = cc.clone()
     types = tt.clone()
   }
+  def this(dummy: DummyDftable) = {
+    this()
+    fdata = dummy.dfptr
+    cols = dummy.names.clone()
+    types = dummy.types.clone()
+  }
   // to release a frovedis dataframe from frovedis server -> User API
   def release () : Unit = {
     if (fdata != -1) {
@@ -252,24 +259,24 @@ class FrovedisDataFrame extends java.io.Serializable {
     val all = (Array(must) ++ optional).toArray.map(x => x.toString)
     return select(all)
   }
-  // Usage: df.select($$"colA", $$"colB")
+  // Usage: df.select($$"colA", $$"colB" + 1)
   def select(c: FrovedisColumn*): FrovedisDataFrame = {
     val all = c.toArray
-    val cols = all.map(x => x.toString)
+    val cols = all.map({ case(x) => 
+      if (x.isOpt) append_column(x.toString, x)
+      x.toString
+    })
     var ret = select(cols)
 
+    // for dropping appended columns in this
+    val drop_targets = DFColUtils.get_opt_cols(all)
+    if (drop_targets.size > 0) drop_inplace(drop_targets)
+
     // for renaming in response to as()...
-    var names = new ArrayBuffer[String]()
-    var new_names = new ArrayBuffer[String]()
-    for(i <- 0 until all.size) {
-      val c = all(i)
-      if (c.asName != null) {
-        names += c.toString
-        new_names += c.asName
-      }
-    }
-    if (names.size > 0) return ret.withColumnRenamed(names.toArray, new_names.toArray)
-    else                return ret
+    val rename_t = DFColUtils.get_rename_targets(all) 
+    if (rename_t._1.size > 0) ret = ret.withColumnRenamed(rename_t._1, rename_t._2)
+
+    return ret
   } 
 
   private def sort_impl(targets: Array[String], 
@@ -985,5 +992,36 @@ class FrovedisDataFrame extends java.io.Serializable {
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
     return new FrovedisSparseData(dmat)
+  }
+  def withColumn(cname: String, op: FrovedisColumn): FrovedisDataFrame = { // append in-place
+    val fs = FrovedisServer.getServerInstance()
+    val dummy = JNISupport.executeDFfunc(fs.master_node, get(), op.get_dffunc)
+    val info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
+    return new FrovedisDataFrame(dummy)
+  }
+  def append_column(cname: String, op: FrovedisColumn): this.type = { // append in-place
+    val tmp = withColumn(cname, op)
+    this.fdata = tmp.fdata
+    this.cols = tmp.cols.clone()
+    this.types = tmp.types.clone()
+    tmp.fdata = -1 // to avoid it being released
+    this
+  }
+  def drop(targets: Array[String]): FrovedisDataFrame = {
+    val select_targets = this.columns.toSet.diff(targets.toSet).toArray
+    return select(select_targets)
+  }
+  def drop(targets: FrovedisColumn*): FrovedisDataFrame = {
+    return drop(targets.toArray.map(x => x.toString))
+  }
+  def drop_inplace(targets: Array[String]): this.type = {
+    val fs = FrovedisServer.getServerInstance()
+    JNISupport.dropDFColsInPlace(fs.master_node, get(), 
+                                 targets, targets.size)
+    val info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
+    // TODO: need to remove cols from this.cols and this.types ?
+    this
   }
 }

@@ -1676,3 +1676,163 @@ dummy_dftable frov_df_mad(exrpc_ptr_t& df_proxy,
   return to_dummy_dftable(retp);
 }
 
+dummy_dftable
+frov_df_mode_cols(exrpc_ptr_t& df_proxy, 
+                  std::vector<std::string>& col_names,
+                  bool& dropna) {
+  dftable* dftblp = get_dftable_pointer(df_proxy);
+  auto ncols = col_names.size();
+
+  if (ncols == 0)
+    REPORT_ERROR(USER_ERROR, "mode: no column names provided!\n");
+
+  dftable res;
+
+  res = mode_helper(*dftblp, col_names[0], dropna);
+  res.append_rowid("ind1");
+
+  for( size_t i=1; i < ncols; i++ ) {
+    auto col = col_names[i];
+    dftable tmp_df = mode_helper(*dftblp, col, dropna);
+    tmp_df.append_rowid("ind2"); 
+
+    if ( res.num_row() >= tmp_df.num_row() ) {
+        res = res.outer_bcast_join(tmp_df, eq("ind1", "ind2")).materialize();
+        res.drop_cols({"ind2"});
+    }
+    else {
+        res = tmp_df.outer_bcast_join(res, eq("ind2", "ind1")).materialize();
+        res.drop_cols({"ind1"});
+        res.rename_cols("ind2", "ind1");
+    }
+  }
+
+  res.drop_cols({"ind1"});
+  res.prepend_rowid("index");
+  auto retp = new dftable(std::move(res));
+  return to_dummy_dftable(retp);
+}
+
+dftable mode_rows_numeric(dftable& df, std::vector<std::string>& columns,
+                          bool include_index, bool dropna){
+  auto ncols = columns.size();
+  auto nl_cnts_numeric = make_node_local_allocate<std::vector<std::map<double, size_t> >>();
+  auto nl_most_freq_numeric = make_node_local_allocate<std::vector<double>>();
+  bool numeric_cnts_initialized = false;
+
+  auto null_val = std::numeric_limits<double>::max();
+  dftable res;
+
+  if (include_index) {
+    res = df.select({df.columns()[0]});
+  }
+
+  for(size_t i = 0; i < ncols; i++) {
+    auto curr_col = columns[i];
+    auto val = df.column(curr_col)->as_dvector_double().as_node_local();
+    if (!numeric_cnts_initialized) {
+      nl_cnts_numeric = val.map(intialize_cnts_rows<double>, nl_most_freq_numeric,
+                                broadcast(null_val), broadcast(dropna));
+      numeric_cnts_initialized = true;   
+    }
+    else nl_cnts_numeric.mapv(update_counts<double>, val, nl_most_freq_numeric,
+                              broadcast(null_val), broadcast(dropna));
+  }
+
+  auto cnts_dvec_numeric = nl_most_freq_numeric.as_dvector<double>();    
+  if (numeric_cnts_initialized) res.append_column("0", cnts_dvec_numeric, true);
+  return res;
+}
+
+dftable mode_rows_str(dftable& df, std::vector<std::string>& columns,
+                      bool include_index, bool dropna){
+  auto ncols = columns.size();
+  auto nl_cnts_str = make_node_local_allocate<std::vector<std::map<std::string, size_t> >>();
+  auto nl_most_freq_str = make_node_local_allocate<std::vector<std::string>>();
+  bool str_cnts_initialized = false;
+
+  std::string null_val = "NULL";
+  dftable res;
+  
+  if (include_index) {
+    res = df.select({df.columns()[0]});
+  }
+
+  for(size_t i=0; i<ncols; i++) {
+      auto curr_col = columns[i];
+      auto val = df.column(curr_col)->as_dvector<std::string>().as_node_local();
+      if (!str_cnts_initialized) {
+        nl_cnts_str = val.map(intialize_cnts_rows<std::string>, nl_most_freq_str,
+                              broadcast(null_val), broadcast(dropna) );
+        str_cnts_initialized = true;
+      }
+      else nl_cnts_str.mapv(update_counts<std::string>, val, nl_most_freq_str,
+                            broadcast(null_val), broadcast(dropna));
+  }
+
+  auto cnts_dvec_str = nl_most_freq_str.as_dvector<std::string>();
+  if (str_cnts_initialized) res.append_column("0", cnts_dvec_str, true);
+  return res;
+}
+
+dummy_dftable
+frov_df_mode_rows(exrpc_ptr_t& df_proxy, 
+                std::vector<std::string>& col_names,
+                bool& is_string,
+                bool& dropna) {
+  dftable* dftblp = get_dftable_pointer(df_proxy);
+  auto ncols = col_names.size();
+
+  if (ncols == 0)
+    REPORT_ERROR(USER_ERROR, "mode: no column names provided!\n");
+
+  bool include_index = true;
+  dftable res;
+  if (is_string) res = mode_rows_str(*dftblp, col_names, include_index, dropna);
+  else res = mode_rows_numeric(*dftblp, col_names, include_index, dropna);
+  
+  auto retp = new dftable(std::move(res));
+  return to_dummy_dftable(retp);
+}
+
+// --- dffunc for spark wrapper ---
+exrpc_ptr_t get_dffunc_id(std::string& cname) {
+  auto retptr = new std::shared_ptr<dffunction>(id_col(cname));
+  return reinterpret_cast<exrpc_ptr_t> (retptr);
+}
+
+exrpc_ptr_t get_dffunc_opt(exrpc_ptr_t& leftp,
+                           exrpc_ptr_t& rightp,
+                           short& opt_id,
+                           std::string& cname) {
+  auto& left = *reinterpret_cast<std::shared_ptr<dffunction>*>(leftp);
+  auto& right = *reinterpret_cast<std::shared_ptr<dffunction>*>(rightp);
+  std::shared_ptr<dffunction> *opt = NULL;
+  switch(opt_id) {
+    case ADD:  opt = new std::shared_ptr<dffunction>(add_col_as(left, right, cname)); break;
+    case SUB:  opt = new std::shared_ptr<dffunction>(sub_col_as(left, right, cname)); break;
+    case MUL:  opt = new std::shared_ptr<dffunction>(mul_col_as(left, right, cname)); break;
+    case IDIV: opt = new std::shared_ptr<dffunction>(idiv_col_as(left, right, cname)); break;
+    case FDIV: opt = new std::shared_ptr<dffunction>(fdiv_col_as(left, right, cname)); break;
+    case MOD:  opt = new std::shared_ptr<dffunction>(mod_col_as(left, right, cname)); break;
+    case POW:  opt = new std::shared_ptr<dffunction>(pow_col_as(left, right, cname)); break;
+    default:   REPORT_ERROR(USER_ERROR, "Unsupported dffunction is requested!\n");
+  }
+  return reinterpret_cast<exrpc_ptr_t> (opt);
+}
+
+dummy_dftable execute_dffunc(exrpc_ptr_t& dfproxy, exrpc_ptr_t& dffunc) {
+  auto& df = *get_dftable_pointer(dfproxy);
+  auto& func = *reinterpret_cast<std::shared_ptr<dffunction>*>(dffunc);
+  auto ret = df.select(df.columns()); // new dftable always
+  ret.call_function(func);
+  auto retp = new dftable(std::move(ret));
+  if (!retp) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed.\n");
+  return to_dummy_dftable(retp);
+}
+
+void set_dffunc_asCol_name(exrpc_ptr_t& fn, std::string& cname) {
+  auto& func = *reinterpret_cast<std::shared_ptr<dffunction>*>(fn);
+  //func.set_as_col(cname); // TODO: support in library
+}
+

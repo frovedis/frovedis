@@ -112,6 +112,36 @@ exrpc_ptr_t create_dataframe (std::vector<short>& types,
 
 void show_dataframe(exrpc_ptr_t& df_proxy); 
 
+exrpc_ptr_t get_dffunc_id(std::string& cname);
+
+exrpc_ptr_t get_dffunc_opt(exrpc_ptr_t& leftp, exrpc_ptr_t& rightp,
+                           short& opt_id, std::string& cname);
+
+dummy_dftable execute_dffunc(exrpc_ptr_t& dfproxy, exrpc_ptr_t& dffunc); 
+
+void set_dffunc_asCol_name(exrpc_ptr_t& fn, std::string& cname);
+
+template <class T>
+exrpc_ptr_t get_immed_dffunc_opt(exrpc_ptr_t& leftp,
+                                 std::string& right_str,
+                                 short& opt_id,
+                                 std::string& cname) {
+  auto& left = *reinterpret_cast<std::shared_ptr<dffunction>*>(leftp);
+  auto right = do_cast<T>(right_str);
+  std::shared_ptr<dffunction> *opt = NULL;
+  switch(opt_id) {
+    case ADD:  opt = new std::shared_ptr<dffunction>(add_im_as<T>(left, right, cname)); break;
+    case SUB:  opt = new std::shared_ptr<dffunction>(sub_im_as<T>(left, right, cname)); break;
+    case MUL:  opt = new std::shared_ptr<dffunction>(mul_im_as<T>(left, right, cname)); break;
+    case IDIV: opt = new std::shared_ptr<dffunction>(idiv_im_as<T>(left, right, cname)); break;
+    case FDIV: opt = new std::shared_ptr<dffunction>(fdiv_im_as<T>(left, right, cname)); break;
+    case MOD:  opt = new std::shared_ptr<dffunction>(mod_im_as<T>(left, right, cname)); break;
+    case POW:  opt = new std::shared_ptr<dffunction>(pow_im_as<T>(left, right, cname)); break;
+    default:   REPORT_ERROR(USER_ERROR, "Unsupported dffunction is requested!\n");
+  }
+  return reinterpret_cast<exrpc_ptr_t> (opt);
+}
+
 template <class T>
 exrpc_ptr_t get_dfoperator(std::string& op1, std::string& op2,
                            short& op_id, bool& isImmed) {
@@ -491,4 +521,54 @@ frovedis_gdf_aggr_with_ddof(exrpc_ptr_t& df_proxy,
                           std::vector<std::string>& aggCols,
                           std::vector<std::string>& aggAsCols,
                           double& ddof);
+
+dummy_dftable
+frov_df_mode_cols(exrpc_ptr_t& df_proxy, 
+                  std::vector<std::string>& cols,
+                  bool& dropna);
+
+template <class T>
+std::vector<std::map<T, size_t>>
+intialize_cnts_rows(std::vector<T>& val, std::vector<T>& most_freq, T null_val, bool dropna){
+    
+    auto sz = val.size();
+    std::vector<T> res_vec(sz);
+    std::vector<T> initial_most_freq(sz);
+
+    std::vector<std::map<T, size_t>> cnts_rows(sz);
+    for(size_t i=0; i<sz; i++){
+        if (dropna && val[i]==null_val) continue;
+        cnts_rows[i][val[i]]++;
+        initial_most_freq[i] = val[i];
+    }
+
+    most_freq.swap(initial_most_freq);
+    return cnts_rows;
+}
+
+template <class T>
+void update_counts( std::vector<std::map<T, size_t> >& cnts_rows,  std::vector<T>& val,
+                std::vector<T>& most_freq, T null_val, bool dropna) {
+    auto sz = val.size();
+    for(size_t i=0; i<sz; i++){
+        if (dropna && val[i]==null_val) continue;
+        cnts_rows[i][val[i]]++;
+
+        if (cnts_rows[i][val[i]] > cnts_rows[i][most_freq[i]] ) most_freq[i] = val[i];
+    }
+}
+
+dftable mode_rows_numeric(dftable& df, std::vector<std::string>& columns,
+                          bool include_index, bool dropna = true);
+
+dftable mode_rows_str(dftable& df, std::vector<std::string>& columns,
+                      bool include_index, bool dropna = true);
+
+dummy_dftable
+frov_df_mode_rows(exrpc_ptr_t& df_proxy, 
+                  std::vector<std::string>& col_names,
+                  bool& is_string,
+                  bool& dropna);
+
+
 #endif

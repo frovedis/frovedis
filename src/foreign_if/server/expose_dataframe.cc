@@ -108,4 +108,16 @@ void expose_frovedis_dataframe_functions() {
   expose(frov_df_sem);
   expose(frov_df_median);
   expose(frovedis_gdf_aggr_with_ddof);
+  expose(frov_df_mode_cols);
+  expose(frov_df_mode_rows);
+  // -- for spark wrapper ---
+  expose(get_dffunc_id);
+  expose(get_dffunc_opt);
+  expose(get_immed_dffunc_opt<int>);
+  expose(get_immed_dffunc_opt<long>);
+  expose(get_immed_dffunc_opt<float>);
+  expose(get_immed_dffunc_opt<double>);
+  expose(execute_dffunc);
+  expose(set_dffunc_asCol_name);
+  // -----------------------
 }

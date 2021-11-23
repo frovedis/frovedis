@@ -14,6 +14,13 @@ object OPTYPE {
   val OR: Short = 12
   val NOT: Short = 13
   val LIKE: Short = 14
+  val ADD: Short = 21
+  val SUB: Short = 22
+  val MUL: Short = 23
+  val IDIV: Short = 24
+  val FDIV: Short = 25
+  val MOD: Short = 26
+  val POW: Short = 27
 }
 
 class Expr extends java.io.Serializable {

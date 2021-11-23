@@ -892,6 +892,20 @@ public class JNISupport {
                                                           long info_id);
   public static native long getCrossDfopt(Node master_node);
 
+  public static native long getIDDFfunc(Node master_node, String col_name);
+  public static native long getOptDFfunc(Node master_node, long left_fn, 
+                                         long right_fn, short opt, 
+                                         String col_name);
+  public static native long getOptImmedDFfunc(Node master_node, long left_fn, 
+                                              String right_str, short opt, 
+                                              String col_name);
+  public static native DummyDftable executeDFfunc(Node master_node, long df_proxy, 
+                                                  long fn_proxy);
+  public static native void dropDFColsInPlace(Node master_node, long df_proxy,
+                                              String[] targets, long size);
+  public static native void setDFfuncAsColName(Node master_node, long fn_proxy, 
+                                               String as_name);
+
   // --- dftable_to_sparse_info ---
   public static native void loadSparseConversionInfo(Node master_node,long info_id,String dirname);
   public static native void saveSparseConversionInfo(Node master_node,long info_id,String dirname);

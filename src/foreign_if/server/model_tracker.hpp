@@ -91,7 +91,14 @@ enum OPTYPE {
   OR = 12,
   NOT = 13,
   LIKE = 14,
-  NLIKE = 15
+  NLIKE = 15,
+  ADD = 21,
+  SUB = 22,
+  MUL = 23,
+  IDIV = 24,
+  FDIV = 25,
+  MOD = 26,
+  POW = 27
 };
 
 // [MODEL_ID] => [MODEL_KIND, MODEL_PTR]
