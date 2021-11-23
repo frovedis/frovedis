@@ -9,6 +9,18 @@
 */
 namespace frovedis {
 
+// used in dataframe
+enum datetime_type {
+  year,
+  month,
+  day,
+  hour,
+  minute,
+  second,
+  nanosecond,
+  quarter
+};
+
 void year_from_datetime(const datetime_t* srcp, size_t size, int* dstp);
 void month_from_datetime(const datetime_t* srcp, size_t size, int* dstp);
 void day_from_datetime(const datetime_t* srcp, size_t size, int* dstp);

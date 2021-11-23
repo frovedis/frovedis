@@ -1532,6 +1532,7 @@ dftable& dftable::append_column(const std::string& name,
                           broadcast(nullstr));
   c = std::make_shared<typed_dfcolumn<dic_string>>(std::move(words),
                                                    std::move(nulls));
+  c->spill();
   col.insert(std::make_pair(name, c));
   col_order.push_back(name);
   return *this;
@@ -3665,13 +3666,13 @@ dftable dftable::covariance(int min_periods,
         auto x = cols[i];
         use_dfcolumn use(raw_column(x));
         auto valX = column(x)->as_dvector_double().moveto_node_local();
-        retp[i * ncol + i] = cov_impl(valX, valX, min_periods);
+        retp[i * ncol + i] = cov_impl(valX, valX, min_periods, ddof);
         for(size_t j = i + 1; j < ncol; ++j) {
           auto y = cols[j];
           use_dfcolumn use2(raw_column(y));
           auto valY = column(y)->as_dvector_double().moveto_node_local();
           retp[i * ncol + j] = retp[j * ncol + i] = \
-            cov_impl(valX, valY, min_periods);
+            cov_impl(valX, valY, min_periods, ddof);
         }
       }
     }
@@ -3686,6 +3687,21 @@ dftable dftable::covariance(int min_periods,
     }
   }
   return ret.to_dataframe(cols);
+}
+
+dftable
+mode_helper(dftable_base& df, const std::string& name, bool dropna) {
+  auto grp_df = df.group_by({name});
+  dftable res;
+
+  if (dropna) res = grp_df.select({name} , {frovedis::count_as(name, "count_elements")});
+  else res = grp_df.select({name} , {frovedis::size_as(name, "count_elements")});
+  auto max_count = res.max<size_t>("count_elements");
+
+  auto res2 = res.filter(eq_im("count_elements", max_count));
+  res2.drop_cols({"count_elements"});
+
+  return res2.materialize();
 }
 
 }

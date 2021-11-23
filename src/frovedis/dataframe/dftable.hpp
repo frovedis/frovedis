@@ -28,15 +28,6 @@ struct dftable_to_sparse_info;
 
 struct dffunction;
 
-enum datetime_type {
-  year,
-  month,
-  day,
-  hour,
-  minute,
-  second
-};
-
 // same as dftable w/o its specific member functions
 class dftable_base {
 public:
@@ -78,6 +69,7 @@ public:
   template <class T> T min(const std::string& name);
   template <class T> T at(const std::string& name, size_t i);
   template <class T> double median(const std::string& name); // uses at()
+  template <class T> std::vector<T> mode(const std::string& name, bool dropna = true);
   template <class T> dvector<T> as_dvector(const std::string name);
   node_local<words> as_words(const std::string name,
                              size_t precision = 6,
@@ -1212,6 +1204,8 @@ dftable drop_nulls_by_cols_impl(dftable_base& df,
                                 const std::string& how,
                                 size_t threshold = std::numeric_limits<size_t>::max());
 
+dftable mode_helper(dftable_base& df, const std::string& name, bool dropna);
+
 template <class T>
 dftable dftable_base::drop_nulls_by_cols(const std::string& how,
                                          const std::string& target_col,
@@ -1257,6 +1251,13 @@ double dftable_base::median(const std::string& name) {
     ret = tmp.at<T>(name, n / 2);
   }
   return ret;
+}
+
+template <class T>
+std::vector<T>
+dftable_base::mode(const std::string& name, bool dropna){
+  auto res = mode_helper(*this, name, dropna).as_dvector<T>(name).gather();
+  return res;
 }
 
 template <class T>
@@ -1442,19 +1443,19 @@ double cov_impl(lvec<T>& valX, lvec<T>& valY,
 }
 
 template <class T>
-double cov_impl(lvec<T>& valX, lvec<T>& valY, int min_periods) {
+double cov_impl(lvec<T>& valX, lvec<T>& valY, int min_periods, double ddof) {
   auto sumX = make_node_local_allocate<T>();
   auto sumY = make_node_local_allocate<T>();
   auto lnobjs = make_node_local_allocate<size_t>();
   valX.mapv(compute_vector_mutual_mean<T>, valY, sumX, sumY, lnobjs);
   auto nobjs = lnobjs.reduce(add<size_t>);
   double ret = std::numeric_limits<double>::max();
-  if (nobjs >= std::max(2, min_periods)) {
+  if (nobjs >= std::max(2, min_periods) && (nobjs - ddof) > 0) {
     auto meanX = static_cast<double>(sumX.reduce(add<T>)) / nobjs;
     auto meanY = static_cast<double>(sumY.reduce(add<T>)) / nobjs;
     ret = valX.map(compute_vector_cov<T>, valY, broadcast(meanX), broadcast(meanY))
               .reduce(add<double>);
-    ret /= (nobjs - 1); // ddof = 1; for having data with nulls
+    ret /= (nobjs - ddof); 
   }
   return ret;
 }
