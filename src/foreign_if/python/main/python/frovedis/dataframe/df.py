@@ -496,11 +496,17 @@ class DataFrame(object):
             if isinstance(target, str):
                 return self.select_frovedis_dataframe([target])
             elif isinstance(target, list):
+                if all(isinstance(e, bool) for e in target):
+                    return self.__filter_mask(target)
                 return self.select_frovedis_dataframe(target)
             elif isinstance(target, dfoperator):
                 return self.filter_frovedis_dataframe(target)
             elif isinstance(target, slice):
                 return self.__filter_slice_range(target)
+            elif isinstance(target, np.ndarray):
+                if target.dtype == "bool":
+                    return self.__filter_mask(target)
+                return self.select_frovedis_dataframe(target.tolist())
             else:
                 raise TypeError("Unsupported indexing input type!")
         else:
@@ -3006,6 +3012,29 @@ class DataFrame(object):
         return ret
 
     @check_association
+    def __filter_mask(self, target):
+        """
+        filters rows on the basis of boolean-mask
+        """
+        if isinstance(target, np.ndarray):
+            if target.ndim != 1:
+                raise ValueError("Filtering with boolean mask is not supported"
+                                " for ndim: {} \n".format(target.ndim))
+
+        if len(target) != len(self):
+            raise ValueError("Item wrong length {} instead of {}".format(len(target), len(self)))
+        
+        filter_column_name = "__filter_column"
+        self[filter_column_name] = target
+        ret = self[self.__dict__[filter_column_name] == 1]
+
+        self.drop(columns=[filter_column_name], inplace=True)
+        ret.drop(columns=[filter_column_name], inplace=True)
+
+        return ret
+
+
+    @check_association
     def mean(self, axis=None, skipna=None, level=None,
              numeric_only=None, **kwargs):
         """
@@ -3118,6 +3147,71 @@ class DataFrame(object):
         ret.num_row = dummy_df["nrow"]
         ret.index = FrovedisColumn(names[0], types[0]) #setting index
         ret.load_dummy(dummy_df["dfptr"], names[1:], types[1:])
+        return ret
+
+    @check_association
+    def mode(self, axis=0, numeric_only=False, dropna=True):
+        """
+        Calculate the mode of elements along the specified axis
+        """
+        if axis not in (0, 1):
+            raise ValueError("Frovedis currently supports mode only for axis:0,1 !")
+
+        if numeric_only:
+            cols = self.__get_numeric_columns()[0]
+        else:
+            cols = self.columns
+        ncols = len(cols)
+        
+        if axis == 1:
+            is_numeric_col_present = False
+            is_string_col_present = False
+
+            col_types = self.__get_column_types(cols)
+            for i in range(len(col_types)):
+                if col_types[i] == DTYPE.STRING:
+                    is_string_col_present = True
+
+                if col_types[i] in ( DTYPE.INT, DTYPE.DOUBLE, DTYPE.FLOAT,\
+                                    DTYPE.LONG, DTYPE.ULONG, DTYPE.BOOL):
+                    is_numeric_col_present = True
+
+            if is_string_col_present and is_numeric_col_present:
+                raise ValueError("mode: Cannot calculate mode for both numeric"
+                                " and string columns, with axis=1!")
+            elif is_string_col_present and (not is_numeric_col_present):
+                is_string = True
+            else:
+                is_string = False
+
+        cols_arr = get_string_array_pointer(cols)
+        (host, port) = FrovedisServer.getServerInstance()
+
+        if axis == 0:
+            dummy_df = rpclib.df_mode_cols(host, port, self.get(),
+                                        cols_arr, ncols, dropna)
+        else:
+            dummy_df = rpclib.df_mode_rows(host, port, self.get(),
+                                        cols_arr, ncols, is_string, dropna)
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
+
+        ret = DataFrame()
+        names = dummy_df["names"]
+        types = dummy_df["types"]
+
+        bool_cols = set([self.__cols[i] for i in range(len(self.__types)) \
+                        if self.__types[i] == DTYPE.BOOL])
+        if len(bool_cols) > 0:
+            for i in range(len(names)):
+                if names[i] in bool_cols:
+                    types[i] = DTYPE.BOOL
+
+        ret.num_row = dummy_df["nrow"]
+        ret.index = FrovedisColumn(names[0], types[0]) #setting index
+        ret.load_dummy(dummy_df["dfptr"], names[1:], types[1:])
+
         return ret
 
     @check_association

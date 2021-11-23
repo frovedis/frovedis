@@ -394,6 +394,18 @@ df_std.argtypes = [c_char_p, c_int, c_long,      # host, port, proxy
                    c_bool]                       #with_index
 df_std.restype = py_object
 
+df_mode_cols = LIB.df_mode_cols
+df_mode_cols.argtypes = [c_char_p, c_int, c_long,     # host, port, proxy
+                        POINTER(c_char_p), c_ulong,   # col_names, size
+                        c_bool]                       # dropna
+df_mode_cols.restype = py_object
+
+df_mode_rows = LIB.df_mode_rows
+df_mode_rows.argtypes = [c_char_p, c_int, c_long,     # host, port, proxy
+                        POINTER(c_char_p), c_ulong,   # col_names, size
+                        c_bool, c_bool]               # is_string, dropna
+df_mode_rows.restype = py_object
+
 df_sem = LIB.df_sem
 df_sem.argtypes = [c_char_p, c_int, c_long,       # host, port, proxy
                     POINTER(c_char_p), c_ulong,   # cols_arr, ncol
