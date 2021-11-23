@@ -2723,6 +2723,319 @@ node_local<std::vector<T>> make_dictionary(node_local<std::vector<T>>& lv) {
   return make_node_local_broadcast(make_dictionary_local(lv));
 }
 
+template <class T>
+struct extend_lower_shadow_helper {
+  extend_lower_shadow_helper(){}
+  extend_lower_shadow_helper(size_t shadow_size, int last)
+    : shadow_size(shadow_size), last(last) {}
+  std::vector<T> operator()(std::vector<T>& v) {
+    // last is guaranteed to be >= 2
+    auto size = v.size();
+    auto vp = v.data();
+    auto self = get_selfid();
+    if(self < last) {
+      if(self != 0) {
+        std::vector<T> ret(size + shadow_size);
+        auto retp = ret.data();
+        for(size_t i = 0; i < size; i++) {retp[i+shadow_size] = vp[i];}
+        if(self != last - 1) {
+          char* bufsend = reinterpret_cast<char*>(vp + size - shadow_size);
+          large_send(sizeof(T), bufsend, shadow_size, self+1, 0,
+                     frovedis_comm_rpc);
+        }
+        char* bufrecv = reinterpret_cast<char*>(retp);
+        large_recv(sizeof(T), bufrecv, shadow_size, self-1, 0,
+                   frovedis_comm_rpc, MPI_STATUS_IGNORE);
+        return ret;
+      } else {
+        std::vector<T> ret(size);
+        auto retp = ret.data();
+        for(size_t i = 0; i < size; i++) {retp[i] = vp[i];}
+        char* bufsend = reinterpret_cast<char*>(vp + size - shadow_size);
+        large_send(sizeof(T), bufsend, shadow_size, self+1, 0,
+                   frovedis_comm_rpc);
+        return ret;
+      }
+    } else {
+      return std::vector<T>();
+    }
+  }
+  size_t shadow_size;
+  int last;
+  SERIALIZE(shadow_size,last)
+};
+
+// tailing zero is allowed; last non-zero can be < shadow_size
+template <class T>
+int extend_lower_shadow_checksize(node_local<std::vector<T>>& in,
+                                  size_t shadow_size) {
+  auto sizes = in.template viewas_dvector<T>().sizes();
+  auto size = sizes.size();
+  size_t i = 0;
+  for(; i < size; i++) {
+    if(sizes[size-1-i] != 0) break;
+  }
+  size_t tailzero = size-i;
+  if(tailzero == 0) 
+    throw std::runtime_error("sizes of the vector is all zero");
+  for(i = 0; i < tailzero - 1; i++) {
+    if(sizes[i] < shadow_size)
+      throw std::runtime_error("shadow size is larger than vector size");
+  }
+  return static_cast<int>(tailzero);
+}
+
+template <class T>
+node_local<std::vector<T>>
+extend_lower_shadow(node_local<std::vector<T>>& in, size_t shadow_size);
+
+template <>
+node_local<std::vector<int>>
+extend_lower_shadow(node_local<std::vector<int>>& in, size_t shadow_size);
+
+template <>
+node_local<std::vector<unsigned int>>
+extend_lower_shadow(node_local<std::vector<unsigned int>>& in,
+                    size_t shadow_size);
+
+template <>
+node_local<std::vector<long>>
+extend_lower_shadow(node_local<std::vector<long>>& in, size_t shadow_size);
+
+template <>
+node_local<std::vector<unsigned long>>
+extend_lower_shadow(node_local<std::vector<unsigned long>>& in,
+                    size_t shadow_size);
+
+template <>
+node_local<std::vector<long long>>
+extend_lower_shadow(node_local<std::vector<long long>>& in,
+                    size_t shadow_size);
+
+template <>
+node_local<std::vector<unsigned long long>>
+extend_lower_shadow(node_local<std::vector<unsigned long long>>& in,
+                    size_t shadow_size);
+
+template <>
+node_local<std::vector<float>>
+extend_lower_shadow(node_local<std::vector<float>>& in, size_t shadow_size);
+
+template <>
+node_local<std::vector<double>>
+extend_lower_shadow(node_local<std::vector<double>>& in, size_t shadow_size);
+
+
+template <class T>
+struct extend_upper_shadow_helper {
+  extend_upper_shadow_helper(){}
+  extend_upper_shadow_helper(size_t shadow_size, int last)
+    : shadow_size(shadow_size), last(last) {}
+  std::vector<T> operator()(std::vector<T>& v) {
+    // last is guaranteed to be >= 2
+    auto size = v.size();
+    auto vp = v.data();
+    auto self = get_selfid();
+    if(self < last) {
+      if(self != last - 1) {
+        std::vector<T> ret(size + shadow_size);
+        auto retp = ret.data();
+        for(size_t i = 0; i < size; i++) {retp[i] = vp[i];}
+        if(self != 0) {
+          char* bufsend = reinterpret_cast<char*>(vp);
+          large_send(sizeof(T), bufsend, shadow_size, self-1, 0,
+                     frovedis_comm_rpc);
+        }
+        char* bufrecv = reinterpret_cast<char*>(retp+size);
+        large_recv(sizeof(T), bufrecv, shadow_size, self+1, 0,
+                   frovedis_comm_rpc, MPI_STATUS_IGNORE);
+        return ret;
+      } else {
+        std::vector<T> ret(size);
+        auto retp = ret.data();
+        for(size_t i = 0; i < size; i++) {retp[i] = vp[i];}
+        char* bufsend = reinterpret_cast<char*>(vp);
+        large_send(sizeof(T), bufsend, shadow_size, self-1, 0,
+                   frovedis_comm_rpc);
+        return ret;
+      }
+    } else {
+      return std::vector<T>();
+    }
+  }
+  size_t shadow_size;
+  int last;
+  SERIALIZE(shadow_size,last)
+};
+
+// tailing zero is allowed; all non-zero should be >= shadow_size
+template <class T>
+int extend_upper_shadow_checksize(node_local<std::vector<T>>& in,
+                                  size_t shadow_size) {
+  auto sizes = in.template viewas_dvector<T>().sizes();
+  auto size = sizes.size();
+  size_t i = 0;
+  for(; i < size; i++) {
+    if(sizes[size-1-i] != 0) break;
+  }
+  size_t tailzero = size-i;
+  if(tailzero == 0) 
+    throw std::runtime_error("sizes of the vector is all zero");
+  for(i = 0; i < tailzero; i++) {
+    if(sizes[i] < shadow_size)
+      throw std::runtime_error("shadow size is larger than vector size");
+  }
+  return static_cast<int>(tailzero);
+}
+
+template <class T>
+node_local<std::vector<T>>
+extend_upper_shadow(node_local<std::vector<T>>& in, size_t shadow_size);
+
+template <>
+node_local<std::vector<int>>
+extend_upper_shadow(node_local<std::vector<int>>& in, size_t shadow_size);
+
+template <>
+node_local<std::vector<unsigned int>>
+extend_upper_shadow(node_local<std::vector<unsigned int>>& in,
+                    size_t shadow_size);
+
+template <>
+node_local<std::vector<long>>
+extend_upper_shadow(node_local<std::vector<long>>& in, size_t shadow_size);
+
+template <>
+node_local<std::vector<unsigned long>>
+extend_upper_shadow(node_local<std::vector<unsigned long>>& in,
+                    size_t shadow_size);
+
+template <>
+node_local<std::vector<long long>>
+extend_upper_shadow(node_local<std::vector<long long>>& in,
+                    size_t shadow_size);
+
+template <>
+node_local<std::vector<unsigned long long>>
+extend_upper_shadow(node_local<std::vector<unsigned long long>>& in,
+                    size_t shadow_size);
+
+template <>
+node_local<std::vector<float>>
+extend_upper_shadow(node_local<std::vector<float>>& in, size_t shadow_size);
+
+template <>
+node_local<std::vector<double>>
+extend_upper_shadow(node_local<std::vector<double>>& in, size_t shadow_size);
+
+
+template <class T>
+struct extend_both_shadow_helper {
+  extend_both_shadow_helper(){}
+  extend_both_shadow_helper(size_t shadow_size, int last)
+    : shadow_size(shadow_size), last(last) {}
+  std::vector<T> operator()(std::vector<T>& v) {
+    // last is guaranteed to be >= 2
+    auto size = v.size();
+    auto vp = v.data();
+    auto self = get_selfid();
+    if(self < last) {
+      if(self != 0 && self != last - 1) {
+        std::vector<T> ret(size + shadow_size * 2);
+        auto retp = ret.data();
+        for(size_t i = 0; i < size; i++) {retp[i+shadow_size] = vp[i];}
+        char* bufsend = reinterpret_cast<char*>(vp + size - shadow_size);
+        large_send(sizeof(T), bufsend, shadow_size, self+1, 0,
+                   frovedis_comm_rpc);
+        char* bufrecv = reinterpret_cast<char*>(retp);
+        large_recv(sizeof(T), bufrecv, shadow_size, self-1, 0,
+                   frovedis_comm_rpc, MPI_STATUS_IGNORE);
+        bufsend = reinterpret_cast<char*>(vp);
+        large_send(sizeof(T), bufsend, shadow_size, self-1, 0,
+                   frovedis_comm_rpc);
+        bufrecv = reinterpret_cast<char*>(retp+size+shadow_size);
+        large_recv(sizeof(T), bufrecv, shadow_size, self+1, 0,
+                   frovedis_comm_rpc, MPI_STATUS_IGNORE);
+        return ret;
+      } else {
+        std::vector<T> ret(size + shadow_size);
+        auto retp = ret.data();
+        if(self == 0) {
+          for(size_t i = 0; i < size; i++) {retp[i] = vp[i];}
+          char* bufsend = reinterpret_cast<char*>(vp + size - shadow_size);
+          large_send(sizeof(T), bufsend, shadow_size, self+1, 0,
+                     frovedis_comm_rpc);
+          char* bufrecv = reinterpret_cast<char*>(retp+size);
+          large_recv(sizeof(T), bufrecv, shadow_size, self+1, 0,
+                     frovedis_comm_rpc, MPI_STATUS_IGNORE);
+          return ret;
+        } else { // self == last-1
+          for(size_t i = 0; i < size; i++) {retp[i+shadow_size] = vp[i];}
+          char* bufrecv = reinterpret_cast<char*>(retp);
+          large_recv(sizeof(T), bufrecv, shadow_size, self-1, 0,
+                     frovedis_comm_rpc, MPI_STATUS_IGNORE);
+          char* bufsend = reinterpret_cast<char*>(vp);
+          large_send(sizeof(T), bufsend, shadow_size, self-1, 0,
+                     frovedis_comm_rpc);
+          return ret;
+        }
+      }
+    } else {
+      return std::vector<T>();
+    }
+  }
+  size_t shadow_size;
+  int last;
+  SERIALIZE(shadow_size,last)
+};
+
+// same as upper_shadow
+template <class T>
+int extend_both_shadow_checksize(node_local<std::vector<T>>& in,
+                                 size_t shadow_size) {
+  return extend_upper_shadow_checksize(in, shadow_size);
+}
+
+template <class T>
+node_local<std::vector<T>>
+extend_both_shadow(node_local<std::vector<T>>& in, size_t shadow_size);
+
+template <>
+node_local<std::vector<int>>
+extend_both_shadow(node_local<std::vector<int>>& in, size_t shadow_size);
+
+template <>
+node_local<std::vector<unsigned int>>
+extend_both_shadow(node_local<std::vector<unsigned int>>& in,
+                   size_t shadow_size);
+
+template <>
+node_local<std::vector<long>>
+extend_both_shadow(node_local<std::vector<long>>& in, size_t shadow_size);
+
+template <>
+node_local<std::vector<unsigned long>>
+extend_both_shadow(node_local<std::vector<unsigned long>>& in,
+                   size_t shadow_size);
+
+template <>
+node_local<std::vector<long long>>
+extend_both_shadow(node_local<std::vector<long long>>& in,
+                   size_t shadow_size);
+
+template <>
+node_local<std::vector<unsigned long long>>
+extend_both_shadow(node_local<std::vector<unsigned long long>>& in,
+                   size_t shadow_size);
+
+template <>
+node_local<std::vector<float>>
+extend_both_shadow(node_local<std::vector<float>>& in, size_t shadow_size);
+
+template <>
+node_local<std::vector<double>>
+extend_both_shadow(node_local<std::vector<double>>& in, size_t shadow_size);
+
 }
 
 #endif

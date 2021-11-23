@@ -797,4 +797,221 @@ std::vector<unsigned long long> gather(dvector<unsigned long long>& dv) {
          (reinterpret_cast<intptr_t>(&ret)));
   return ret;
 }
+
+template <>
+node_local<std::vector<int>>
+extend_lower_shadow(node_local<std::vector<int>>& in, size_t shadow_size) {
+  auto last = extend_lower_shadow_checksize(in, shadow_size);
+  if(last == 1) return in;
+  else return in.map(extend_lower_shadow_helper<int>(shadow_size, last));
+}
+
+template <>
+node_local<std::vector<unsigned int>>
+extend_lower_shadow(node_local<std::vector<unsigned int>>& in,
+                    size_t shadow_size) {
+  auto last = extend_lower_shadow_checksize(in, shadow_size);
+  if(last == 1) return in;
+  else return in.map(extend_lower_shadow_helper<unsigned int>
+                     (shadow_size, last));
+}
+
+template <>
+node_local<std::vector<long>>
+extend_lower_shadow(node_local<std::vector<long>>& in, size_t shadow_size) {
+  auto last = extend_lower_shadow_checksize(in, shadow_size);
+  if(last == 1) return in;
+  else return in.map(extend_lower_shadow_helper<long>(shadow_size, last));
+}
+
+template <>
+node_local<std::vector<unsigned long>>
+extend_lower_shadow(node_local<std::vector<unsigned long>>& in,
+                    size_t shadow_size) {
+  auto last = extend_lower_shadow_checksize(in, shadow_size);
+  if(last == 1) return in;
+  else return in.map(extend_lower_shadow_helper<unsigned long>
+                     (shadow_size, last));
+}
+
+template <>
+node_local<std::vector<long long>>
+extend_lower_shadow(node_local<std::vector<long long>>& in,
+                    size_t shadow_size) {
+  auto last = extend_lower_shadow_checksize(in, shadow_size);
+  if(last == 1) return in;
+  else return in.map(extend_lower_shadow_helper<long long>
+                     (shadow_size, last));
+}
+
+template <>
+node_local<std::vector<unsigned long long>>
+extend_lower_shadow(node_local<std::vector<unsigned long long>>& in,
+                    size_t shadow_size) {
+  auto last = extend_lower_shadow_checksize(in, shadow_size);
+  if(last == 1) return in;
+  else return in.map(extend_lower_shadow_helper<unsigned long long>
+                     (shadow_size, last));
+}
+
+template <>
+node_local<std::vector<float>>
+extend_lower_shadow(node_local<std::vector<float>>& in, size_t shadow_size) {
+  auto last = extend_lower_shadow_checksize(in, shadow_size);
+  if(last == 1) return in;
+  else return in.map(extend_lower_shadow_helper<float>(shadow_size, last));
+}
+
+template <>
+node_local<std::vector<double>>
+extend_lower_shadow(node_local<std::vector<double>>& in, size_t shadow_size) {
+  auto last = extend_lower_shadow_checksize(in, shadow_size);
+  if(last == 1) return in;
+  else return in.map(extend_lower_shadow_helper<double>(shadow_size, last));
+}
+
+template <>
+node_local<std::vector<int>>
+extend_upper_shadow(node_local<std::vector<int>>& in, size_t shadow_size) {
+  auto last = extend_upper_shadow_checksize(in, shadow_size);
+  if(last == 1) return in;
+  else return in.map(extend_upper_shadow_helper<int>(shadow_size, last));
+}
+
+template <>
+node_local<std::vector<unsigned int>>
+extend_upper_shadow(node_local<std::vector<unsigned int>>& in,
+                    size_t shadow_size) {
+  auto last = extend_upper_shadow_checksize(in, shadow_size);
+  if(last == 1) return in;
+  else return in.map(extend_upper_shadow_helper<unsigned int>
+                     (shadow_size, last));
+}
+
+template <>
+node_local<std::vector<long>>
+extend_upper_shadow(node_local<std::vector<long>>& in, size_t shadow_size) {
+  auto last = extend_upper_shadow_checksize(in, shadow_size);
+  if(last == 1) return in;
+  else return in.map(extend_upper_shadow_helper<long>(shadow_size, last));
+}
+
+template <>
+node_local<std::vector<unsigned long>>
+extend_upper_shadow(node_local<std::vector<unsigned long>>& in,
+                    size_t shadow_size) {
+  auto last = extend_upper_shadow_checksize(in, shadow_size);
+  if(last == 1) return in;
+  else return in.map(extend_upper_shadow_helper<unsigned long>
+                     (shadow_size, last));
+}
+
+template <>
+node_local<std::vector<long long>>
+extend_upper_shadow(node_local<std::vector<long long>>& in,
+                    size_t shadow_size) {
+  auto last = extend_upper_shadow_checksize(in, shadow_size);
+  if(last == 1) return in;
+  else return in.map(extend_upper_shadow_helper<long long>
+                     (shadow_size, last));
+}
+
+template <>
+node_local<std::vector<unsigned long long>>
+extend_upper_shadow(node_local<std::vector<unsigned long long>>& in,
+                    size_t shadow_size) {
+  auto last = extend_upper_shadow_checksize(in, shadow_size);
+  if(last == 1) return in;
+  else return in.map(extend_upper_shadow_helper<unsigned long long>
+                     (shadow_size, last));
+}
+
+template <>
+node_local<std::vector<float>>
+extend_upper_shadow(node_local<std::vector<float>>& in, size_t shadow_size) {
+  auto last = extend_upper_shadow_checksize(in, shadow_size);
+  if(last == 1) return in;
+  else return in.map(extend_upper_shadow_helper<float>(shadow_size, last));
+}
+
+template <>
+node_local<std::vector<double>>
+extend_upper_shadow(node_local<std::vector<double>>& in, size_t shadow_size) {
+  auto last = extend_upper_shadow_checksize(in, shadow_size);
+  if(last == 1) return in;
+  else return in.map(extend_upper_shadow_helper<double>(shadow_size, last));
+}
+
+template <>
+node_local<std::vector<int>>
+extend_both_shadow(node_local<std::vector<int>>& in, size_t shadow_size) {
+  auto last = extend_both_shadow_checksize(in, shadow_size);
+  if(last == 1) return in;
+  else return in.map(extend_both_shadow_helper<int>(shadow_size, last));
+}
+
+template <>
+node_local<std::vector<unsigned int>>
+extend_both_shadow(node_local<std::vector<unsigned int>>& in,
+                   size_t shadow_size) {
+  auto last = extend_both_shadow_checksize(in, shadow_size);
+  if(last == 1) return in;
+  else return in.map(extend_both_shadow_helper<unsigned int>
+                     (shadow_size, last));
+}
+
+template <>
+node_local<std::vector<long>>
+extend_both_shadow(node_local<std::vector<long>>& in, size_t shadow_size) {
+  auto last = extend_both_shadow_checksize(in, shadow_size);
+  if(last == 1) return in;
+  else return in.map(extend_both_shadow_helper<long>(shadow_size, last));
+}
+
+template <>
+node_local<std::vector<unsigned long>>
+extend_both_shadow(node_local<std::vector<unsigned long>>& in,
+                   size_t shadow_size) {
+  auto last = extend_both_shadow_checksize(in, shadow_size);
+  if(last == 1) return in;
+  else return in.map(extend_both_shadow_helper<unsigned long>
+                     (shadow_size, last));
+}
+
+template <>
+node_local<std::vector<long long>>
+extend_both_shadow(node_local<std::vector<long long>>& in,
+                   size_t shadow_size) {
+  auto last = extend_both_shadow_checksize(in, shadow_size);
+  if(last == 1) return in;
+  else return in.map(extend_both_shadow_helper<long long>
+                     (shadow_size, last));
+}
+
+template <>
+node_local<std::vector<unsigned long long>>
+extend_both_shadow(node_local<std::vector<unsigned long long>>& in,
+                   size_t shadow_size) {
+  auto last = extend_both_shadow_checksize(in, shadow_size);
+  if(last == 1) return in;
+  else return in.map(extend_both_shadow_helper<unsigned long long>
+                     (shadow_size, last));
+}
+
+template <>
+node_local<std::vector<float>>
+extend_both_shadow(node_local<std::vector<float>>& in, size_t shadow_size) {
+  auto last = extend_both_shadow_checksize(in, shadow_size);
+  if(last == 1) return in;
+  else return in.map(extend_both_shadow_helper<float>(shadow_size, last));
+}
+
+template <>
+node_local<std::vector<double>>
+extend_both_shadow(node_local<std::vector<double>>& in, size_t shadow_size) {
+  auto last = extend_both_shadow_checksize(in, shadow_size);
+  if(last == 1) return in;
+  else return in.map(extend_both_shadow_helper<double>(shadow_size, last));
+}
+
 }
