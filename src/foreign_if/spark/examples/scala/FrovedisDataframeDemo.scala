@@ -61,10 +61,12 @@ object FrovedisDataframeDemo {
        .select("EName","Age","CCode","CName").show()
 
     // combined operation demo
-    df1.join(df2, df1("Country") === df2("CName"))
-       .select("EName","Age","CCode","CName")
-       .when($$"Age" > 19)
-       .sort($$"CCode", $$"Age").show()
+    df1.join(df2, $$"Country" === $$"CName")
+       .select($$"EName".as("x"), ($$"Age" + 1).as("y"), $$"Country".as("z"))
+       .when($$"y" > 20)
+       .sort($$"x").show()
+
+    df1.filter($$"EName".startsWith("Ra")).show()
 
     val countryDF2 = sc.textFile("./input/country.txt")
                       .map(_.split(","))
