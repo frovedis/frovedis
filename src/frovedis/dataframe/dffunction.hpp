@@ -24,6 +24,7 @@ struct dffunction {
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1,
                                             dftable_base& t2) const  = 0;
   virtual std::string as() = 0;
+  virtual void set_as_name(const std::string& cname) = 0;
   virtual std::vector<std::shared_ptr<dfcolumn>>
   columns_to_use(dftable_base& t) {
     throw std::runtime_error
@@ -43,13 +44,14 @@ struct dffunction_id : public dffunction {
   dffunction_id(const std::string& left, const std::string& as_name) :
     left(left), as_name(as_name) {}
   virtual std::string as() {return as_name;}
+  virtual void set_as_name(const std::string& cname) { as_name = cname; }
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const {
     return t.column(left);
   }
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1,
                                             dftable_base& t2) const {
     throw std::runtime_error
-      ("execute(t1, t2) is not available for id operation!\n");
+      ("1. execute(t1, t2) is not available for id operation!\n");
   }
   virtual std::vector<std::shared_ptr<dfcolumn>>
   columns_to_use(dftable_base& t) {
@@ -82,6 +84,7 @@ struct dffunction_add : public dffunction {
     left(left), right(right), as_name(as_name) {}
 
   virtual std::string as() {return as_name;}
+  virtual void set_as_name(const std::string& cname) { as_name = cname; }
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const;
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1, dftable_base& t2) const;
   virtual std::vector<std::shared_ptr<dfcolumn>>
@@ -136,6 +139,7 @@ struct dffunction_add_im : public dffunction {
                     const std::string& as_name) :
     left(left), right(right), as_name(as_name) {}
   virtual std::string as() {return as_name;}
+  virtual void set_as_name(const std::string& cname) { as_name = cname; }
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const;
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1,
                                             dftable_base& t2) const {
@@ -229,6 +233,7 @@ struct dffunction_sub : public dffunction {
     left(left), right(right), as_name(as_name) {}
 
   virtual std::string as() {return as_name;}
+  virtual void set_as_name(const std::string& cname) { as_name = cname; }
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const;
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1, dftable_base& t2) const;
   virtual std::vector<std::shared_ptr<dfcolumn>>
@@ -285,6 +290,7 @@ struct dffunction_sub_im : public dffunction {
                     const std::string& as_name, bool is_reversed = false) :
     left(left), right(right), is_reversed(is_reversed), as_name(as_name) {}
   virtual std::string as() {return as_name;}
+  virtual void set_as_name(const std::string& cname) { as_name = cname; }
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const;
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1,
                                             dftable_base& t2) const {
@@ -380,6 +386,7 @@ struct dffunction_mul : public dffunction {
     left(left), right(right), as_name(as_name) {}
 
   virtual std::string as() {return as_name;}
+  virtual void set_as_name(const std::string& cname) { as_name = cname; }
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const;
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1, dftable_base& t2) const;
   virtual std::vector<std::shared_ptr<dfcolumn>>
@@ -434,6 +441,7 @@ struct dffunction_mul_im : public dffunction {
                     const std::string& as_name) :
     left(left), right(right), as_name(as_name) {}
   virtual std::string as() {return as_name;}
+  virtual void set_as_name(const std::string& cname) { as_name = cname; }
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const;
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1,
                                             dftable_base& t2) const {
@@ -526,6 +534,7 @@ struct dffunction_fdiv : public dffunction {
     left(left), right(right), as_name(as_name) {}
 
   virtual std::string as() {return as_name;}
+  virtual void set_as_name(const std::string& cname) { as_name = cname; }
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const;
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1, dftable_base& t2) const;
   virtual std::vector<std::shared_ptr<dfcolumn>>
@@ -582,6 +591,7 @@ struct dffunction_fdiv_im : public dffunction {
                      const std::string& as_name, bool is_reversed = false) :
     left(left), right(right), is_reversed(is_reversed), as_name(as_name) {}
   virtual std::string as() {return as_name;}
+  virtual void set_as_name(const std::string& cname) { as_name = cname; }
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const;
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1,
                                             dftable_base& t2) const {
@@ -677,6 +687,7 @@ struct dffunction_idiv : public dffunction {
     left(left), right(right), as_name(as_name) {}
 
   virtual std::string as() {return as_name;}
+  virtual void set_as_name(const std::string& cname) { as_name = cname; }
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const;
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1, dftable_base& t2) const;
   virtual std::vector<std::shared_ptr<dfcolumn>>
@@ -733,6 +744,7 @@ struct dffunction_idiv_im : public dffunction {
                      const std::string& as_name, bool is_reversed = false) :
     left(left), right(right), is_reversed(is_reversed), as_name(as_name) {}
   virtual std::string as() {return as_name;}
+  virtual void set_as_name(const std::string& cname) { as_name = cname; }
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const;
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1,
                                             dftable_base& t2) const {
@@ -829,6 +841,7 @@ struct dffunction_mod : public dffunction {
     left(left), right(right), as_name(as_name) {}
 
   virtual std::string as() {return as_name;}
+  virtual void set_as_name(const std::string& cname) { as_name = cname; }
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const;
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1, dftable_base& t2) const;
   virtual std::vector<std::shared_ptr<dfcolumn>>
@@ -885,6 +898,7 @@ struct dffunction_mod_im : public dffunction {
                     const std::string& as_name, bool is_reversed = false) :
     left(left), right(right), is_reversed(is_reversed), as_name(as_name) {}
   virtual std::string as() {return as_name;}
+  virtual void set_as_name(const std::string& cname) { as_name = cname; }
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const;
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1,
                                             dftable_base& t2) const {
@@ -981,6 +995,7 @@ struct dffunction_pow : public dffunction {
     left(left), right(right), as_name(as_name) {}
 
   virtual std::string as() {return as_name;}
+  virtual void set_as_name(const std::string& cname) { as_name = cname; }
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const;
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1, dftable_base& t2) const;
   virtual std::vector<std::shared_ptr<dfcolumn>>
@@ -1037,6 +1052,7 @@ struct dffunction_pow_im : public dffunction {
                     const std::string& as_name, bool is_reversed = false) :
     left(left), right(right), is_reversed(is_reversed), as_name(as_name) {}
   virtual std::string as() {return as_name;}
+  virtual void set_as_name(const std::string& cname) { as_name = cname; }
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const;
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1,
                                             dftable_base& t2) const {
@@ -1129,6 +1145,7 @@ struct dffunction_abs : public dffunction {
                  const std::string& as_name) :
     left(left), as_name(as_name) {}
   virtual std::string as() {return as_name;}
+  virtual void set_as_name(const std::string& cname) { as_name = cname; }
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const;
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1, 
                                             dftable_base& t2) const {
