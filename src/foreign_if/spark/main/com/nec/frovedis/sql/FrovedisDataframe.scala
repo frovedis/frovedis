@@ -264,7 +264,7 @@ class FrovedisDataFrame extends java.io.Serializable {
     val all = c.toArray
     val cols = all.map({ case(x) => 
       if (x.isOpt) append_column(x.toString, x)
-      x.toString
+      x.colName
     })
     var ret = select(cols)
 

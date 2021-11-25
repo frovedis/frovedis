@@ -1833,6 +1833,6 @@ dummy_dftable execute_dffunc(exrpc_ptr_t& dfproxy, exrpc_ptr_t& dffunc) {
 
 void set_dffunc_asCol_name(exrpc_ptr_t& fn, std::string& cname) {
   auto& func = *reinterpret_cast<std::shared_ptr<dffunction>*>(fn);
-  //func.set_as_col(cname); // TODO: support in library
+  func->set_as_name(cname);
 }
 

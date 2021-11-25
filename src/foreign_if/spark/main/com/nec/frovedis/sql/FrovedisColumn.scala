@@ -27,8 +27,8 @@ class FrovedisColumn extends java.io.Serializable {
     this()
     is_opt = true
     val sign = get_opt_mark(opt)
-    val right_str = right.toString()
-    col_name = "(" + left.col_name + sign + right_str + ")"
+    val right_str = right.toString
+    col_name = "(" + left.toString + sign + right_str + ")"
 
     var leftp = left.dffunc_proxy
     val is_immed = checkIsImmed(right)
@@ -69,12 +69,12 @@ class FrovedisColumn extends java.io.Serializable {
     }
   }
 
-  def >  (arg: Any) = new Expr(col_name, arg.toString(), OPTYPE.GT, checkIsImmed(arg)) 
-  def >= (arg: Any) = new Expr(col_name, arg.toString(), OPTYPE.GE, checkIsImmed(arg))
-  def <  (arg: Any) = new Expr(col_name, arg.toString(), OPTYPE.LT, checkIsImmed(arg))
-  def <= (arg: Any) = new Expr(col_name, arg.toString(), OPTYPE.LE, checkIsImmed(arg))
-  def ===(arg: Any) = new Expr(col_name, arg.toString(), OPTYPE.EQ, checkIsImmed(arg))
-  def !==(arg: Any) = new Expr(col_name, arg.toString(), OPTYPE.NE, checkIsImmed(arg))
+  def >  (arg: Any) = new Expr(col_name, arg.toString, OPTYPE.GT, checkIsImmed(arg)) 
+  def >= (arg: Any) = new Expr(col_name, arg.toString, OPTYPE.GE, checkIsImmed(arg))
+  def <  (arg: Any) = new Expr(col_name, arg.toString, OPTYPE.LT, checkIsImmed(arg))
+  def <= (arg: Any) = new Expr(col_name, arg.toString, OPTYPE.LE, checkIsImmed(arg))
+  def ===(arg: Any) = new Expr(col_name, arg.toString, OPTYPE.EQ, checkIsImmed(arg))
+  def !==(arg: Any) = new Expr(col_name, arg.toString, OPTYPE.NE, checkIsImmed(arg))
 
   def +(right: Any) = new FrovedisColumn(this, right, OPTYPE.ADD)
   def -(right: Any) = new FrovedisColumn(this, right, OPTYPE.SUB)
@@ -89,13 +89,12 @@ class FrovedisColumn extends java.io.Serializable {
 
   def as(new_name: String): this.type = {
     if (is_opt) {
-      // rename isformation is updated in dffunction; so reflected during execute()
+      col_name = new_name
+      // rename information is updated in dffunction; so reflected during execute()
       val fs = FrovedisServer.getServerInstance()
       JNISupport.setDFfuncAsColName(fs.master_node, dffunc_proxy, col_name)
       val info = JNISupport.checkServerException()
       if (info != "") throw new java.rmi.ServerException(info)
-      //col_name = new_name // TODO: uncomment after supporting the set in server
-      as_name = new_name // actual rename would take place on action (like select etc.)
     } else {
       as_name = new_name // actual rename would take place on action (like select etc.)
     }
@@ -108,14 +107,15 @@ class FrovedisColumn extends java.io.Serializable {
   }
   def asc(): this.type  = setIsDesc(0)
   def desc(): this.type = setIsDesc(1)
-  override def toString() = col_name
   private def checkIsImmed(arg: Any): Boolean = {
     return !(arg.isInstanceOf[com.nec.frovedis.sql.FrovedisColumn] ||
              arg.isInstanceOf[org.apache.spark.sql.ColumnName])
   }
   def isOpt = is_opt 
-  def asName = as_name 
+  def asName = as_name
+  def colName = col_name 
   def get_dffunc = dffunc_proxy
+  override def toString = if (asName != null) col_name + " AS `" + asName + "`" else col_name
 }
 
 object implicits_ {
@@ -139,7 +139,7 @@ object DFColUtils {
     for(i <- 0 until cols.size) {
       val c = cols(i)
       if (c.asName != null) {
-        names += c.toString
+        names += c.colName
         new_names += c.asName
       }
     }
