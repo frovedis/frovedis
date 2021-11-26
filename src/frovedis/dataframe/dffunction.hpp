@@ -3,6 +3,7 @@
 
 #include "dfscalar.hpp"
 #include "dftable.hpp"
+#include "../text/datetime_to_words.hpp"
 
 namespace frovedis {
 
@@ -1176,6 +1177,706 @@ abs_col_as(const std::string& left, const std::string& as);
 
 std::shared_ptr<dffunction>
 abs_col_as(const std::shared_ptr<dffunction>& left, const std::string& as);
+
+
+// ----- datetime_extract -----
+struct dffunction_datetime_extract : public dffunction {
+  dffunction_datetime_extract(const std::shared_ptr<dffunction>& left,
+                              const datetime_type type)
+    : left(left), type(type) {
+    auto typestr = datetime_type_to_string(type);
+    as_name = typestr + "(" + left->as() + ")";
+  }
+  dffunction_datetime_extract(const std::shared_ptr<dffunction>& left,
+                              const datetime_type type,
+                              const std::string& as_name) :
+    left(left), type(type), as_name(as_name) {}
+  virtual std::string as() {return as_name;}
+  virtual void set_as_name(const std::string& cname) { as_name = cname; }
+  virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const;
+  virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1, 
+                                            dftable_base& t2) const {
+    throw std::runtime_error
+      ("datetime_extract(): is not available for binary operation!\n");
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t) {
+    return left->columns_to_use(t);
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t1, dftable_base& t2) {
+    throw std::runtime_error
+      ("two args of columns_to_use on this operator is not implemented");
+  }
+
+  std::shared_ptr<dffunction> left;
+  datetime_type type;
+  std::string as_name;
+};
+
+std::shared_ptr<dffunction>
+datetime_extract_col(const std::string& left, datetime_type type);
+
+std::shared_ptr<dffunction>
+datetime_extract_col(const std::shared_ptr<dffunction>& left,
+                     datetime_type type);
+
+std::shared_ptr<dffunction>
+datetime_extract_col_as(const std::string& left, datetime_type type,
+                        const std::string& as);
+
+std::shared_ptr<dffunction>
+datetime_extract_col_as(const std::shared_ptr<dffunction>& left,
+                        datetime_type type, const std::string& as);
+
+
+// ----- datetime_diff -----
+struct dffunction_datetime_diff : public dffunction {
+  dffunction_datetime_diff(const std::shared_ptr<dffunction>& left,
+                           const std::shared_ptr<dffunction>& right,
+                           const datetime_type type)
+    : left(left), right(right), type(type) {
+    auto typestr = datetime_type_to_string(type);
+    as_name = "diff_" + typestr + "(" + left->as() + "," + right->as() + ")";
+  }
+  dffunction_datetime_diff(const std::shared_ptr<dffunction>& left,
+                           const std::shared_ptr<dffunction>& right,
+                           const datetime_type type,
+                           const std::string& as_name) :
+    left(left), right(right), type(type), as_name(as_name) {}
+  virtual std::string as() {return as_name;}
+  virtual void set_as_name(const std::string& cname) { as_name = cname; }
+  virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const;
+  virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1, 
+                                            dftable_base& t2) const;
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t) {
+    auto leftuse = left->columns_to_use(t);
+    auto rightuse = right->columns_to_use(t);
+    leftuse.insert(leftuse.end(), rightuse.begin(), rightuse.end());
+    return leftuse;
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t1, dftable_base& t2) {
+    auto leftuse = left->columns_to_use(t1);
+    auto rightuse = right->columns_to_use(t2);
+    leftuse.insert(leftuse.end(), rightuse.begin(), rightuse.end());
+    return leftuse;
+  }
+
+  std::shared_ptr<dffunction> left, right;
+  datetime_type type;
+  std::string as_name;
+};
+
+std::shared_ptr<dffunction>
+datetime_diff_col(const std::string& left, const std::string& right,
+                  datetime_type type);
+
+std::shared_ptr<dffunction>
+datetime_diff_col(const std::shared_ptr<dffunction>& left,
+                  const std::string& right,
+                  datetime_type type);
+
+std::shared_ptr<dffunction>
+datetime_diff_col(const std::string& left,
+                  const std::shared_ptr<dffunction>& right,
+                  datetime_type type);
+
+std::shared_ptr<dffunction>
+datetime_diff_col(const std::shared_ptr<dffunction>&left,
+                  const std::shared_ptr<dffunction>& right,
+                  datetime_type type);
+
+std::shared_ptr<dffunction>
+datetime_diff_col_as(const std::string& left, const std::string& right,
+                     datetime_type type, const std::string& as);
+
+std::shared_ptr<dffunction>
+datetime_diff_col_as(const std::shared_ptr<dffunction>& left,
+                     const std::string& right,
+                     datetime_type type, const std::string& as);
+
+std::shared_ptr<dffunction>
+datetime_diff_col_as(const std::string& left,
+                     const std::shared_ptr<dffunction>& right,
+                     datetime_type type, const std::string& as);
+
+std::shared_ptr<dffunction>
+datetime_diff_col_as(const std::shared_ptr<dffunction>&left,
+                     const std::shared_ptr<dffunction>& right,
+                     datetime_type type, const std::string& as);
+
+
+// ----- datetime_diff_im -----
+struct dffunction_datetime_diff_im : public dffunction {
+  dffunction_datetime_diff_im(const std::shared_ptr<dffunction>& left,
+                              datetime_t right,
+                              const datetime_type type,
+                              bool is_reversed = false) :
+    left(left), right(right), type(type), is_reversed(is_reversed) {
+    auto vs = words_to_vector_string(datetime_to_words({right}, "%Y-%m-%d"));
+    if(is_reversed) as_name = "datetime_diff(" + vs[0] + "," + left->as() + ")";
+    else as_name = "datetime_diff(" + left->as() + "," + vs[0] + ")";
+  }
+  dffunction_datetime_diff_im(const std::shared_ptr<dffunction>& left,
+                              datetime_t right,
+                              const datetime_type type,
+                              const std::string& as_name,
+                              bool is_reversed = false) :
+    left(left), right(right), type(type), is_reversed(is_reversed),
+    as_name(as_name) {}
+  virtual std::string as() {return as_name;}
+  virtual void set_as_name(const std::string& cname) { as_name = cname; }
+  virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const;
+  virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1,
+                                            dftable_base& t2) const {
+    throw std::runtime_error
+      ("t1, t2 is not available for datetime_diff_im operation!\n");
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t) {
+    return left->columns_to_use(t);
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t1, dftable_base& t2) {
+    throw std::runtime_error
+      ("two args of columns_to_use on this operator is not implemented");
+  }
+
+  std::shared_ptr<dffunction> left;
+  datetime_t right;
+  datetime_type type;
+  bool is_reversed;
+  std::string as_name;
+};
+
+std::shared_ptr<dffunction>
+datetime_diff_im(const std::string& left, datetime_t right,
+                 datetime_type type);
+
+std::shared_ptr<dffunction>
+datetime_diff_im_as(const std::string& left, datetime_t right,
+                    datetime_type type, const std::string& as);
+
+std::shared_ptr<dffunction>
+datetime_diff_im(const std::shared_ptr<dffunction>& left, datetime_t right,
+                 datetime_type type);
+
+std::shared_ptr<dffunction>
+datetime_diff_im_as(const std::shared_ptr<dffunction>& left, datetime_t right,
+                    datetime_type type, const std::string& as);
+
+std::shared_ptr<dffunction>
+datetime_diff_im
+(datetime_t left, const std::string& right, datetime_type type);
+
+std::shared_ptr<dffunction>
+datetime_diff_im_as(datetime_t left, const std::string& right,
+                    datetime_type type, const std::string& as);
+
+std::shared_ptr<dffunction>
+datetime_diff_im(datetime_t left, const std::shared_ptr<dffunction>& right,
+                 datetime_type type);
+
+std::shared_ptr<dffunction>
+datetime_diff_im_as(datetime_t left, const std::shared_ptr<dffunction>& right,
+                    datetime_type type, const std::string& as);
+
+// ----- datetime_add -----
+struct dffunction_datetime_add : public dffunction {
+  dffunction_datetime_add(const std::shared_ptr<dffunction>& left,
+                          const std::shared_ptr<dffunction>& right,
+                          const datetime_type type)
+    : left(left), right(right), type(type) {
+    auto typestr = datetime_type_to_string(type);
+    as_name = "(" + left->as() + "+" + right->as() + typestr + ")";
+  }
+  dffunction_datetime_add(const std::shared_ptr<dffunction>& left,
+                          const std::shared_ptr<dffunction>& right,
+                          const datetime_type type,
+                          const std::string& as_name) :
+    left(left), right(right), type(type), as_name(as_name) {}
+  virtual std::string as() {return as_name;}
+  virtual void set_as_name(const std::string& cname) { as_name = cname; }
+  virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const;
+  virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1, 
+                                            dftable_base& t2) const;
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t) {
+    auto leftuse = left->columns_to_use(t);
+    auto rightuse = right->columns_to_use(t);
+    leftuse.insert(leftuse.end(), rightuse.begin(), rightuse.end());
+    return leftuse;
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t1, dftable_base& t2) {
+    auto leftuse = left->columns_to_use(t1);
+    auto rightuse = right->columns_to_use(t2);
+    leftuse.insert(leftuse.end(), rightuse.begin(), rightuse.end());
+    return leftuse;
+  }
+
+  std::shared_ptr<dffunction> left, right;
+  datetime_type type;
+  std::string as_name;
+};
+
+std::shared_ptr<dffunction>
+datetime_add_col(const std::string& left, const std::string& right,
+                 datetime_type type);
+
+std::shared_ptr<dffunction>
+datetime_add_col(const std::shared_ptr<dffunction>& left,
+                 const std::string& right,
+                 datetime_type type);
+
+std::shared_ptr<dffunction>
+datetime_add_col(const std::string& left,
+                 const std::shared_ptr<dffunction>& right,
+                 datetime_type type);
+
+std::shared_ptr<dffunction>
+datetime_add_col(const std::shared_ptr<dffunction>&left,
+                 const std::shared_ptr<dffunction>& right,
+                 datetime_type type);
+
+std::shared_ptr<dffunction>
+datetime_add_col_as(const std::string& left, const std::string& right,
+                    datetime_type type, const std::string& as);
+
+std::shared_ptr<dffunction>
+datetime_add_col_as(const std::shared_ptr<dffunction>& left,
+                    const std::string& right,
+                    datetime_type type, const std::string& as);
+
+std::shared_ptr<dffunction>
+datetime_add_col_as(const std::string& left,
+                    const std::shared_ptr<dffunction>& right,
+                    datetime_type type, const std::string& as);
+
+std::shared_ptr<dffunction>
+datetime_add_col_as(const std::shared_ptr<dffunction>&left,
+                    const std::shared_ptr<dffunction>& right,
+                    datetime_type type, const std::string& as);
+
+
+// ----- datetime_add_im -----
+struct dffunction_datetime_add_im : public dffunction {
+  dffunction_datetime_add_im(const std::shared_ptr<dffunction>& left, int right,
+                             datetime_type type): 
+    left(left), right(right), type(type)  {
+    auto typestr = datetime_type_to_string(type);
+    as_name = "(" + left->as() + "+" + STR(right) + typestr + ")";
+  }
+  dffunction_datetime_add_im(const std::shared_ptr<dffunction>& left, int right,
+                             datetime_type type, const std::string& as_name) :
+    left(left), right(right), type(type), as_name(as_name) {}
+  virtual std::string as() {return as_name;}
+  virtual void set_as_name(const std::string& cname) { as_name = cname; }
+  virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const;
+  virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1,
+                                            dftable_base& t2) const {
+    throw std::runtime_error
+      ("t1, t2: is not available for datetime_add_im operation!\n");
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t) {
+    return left->columns_to_use(t);
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t1, dftable_base& t2) {
+    throw std::runtime_error
+      ("two args of columns_to_use on this operator is not implemented");
+  }
+
+  std::shared_ptr<dffunction> left;
+  int right;
+  datetime_type type;
+  std::string as_name;
+};
+
+std::shared_ptr<dffunction>
+datetime_add_im(const std::string& left, int right, datetime_type type);
+
+std::shared_ptr<dffunction>
+datetime_add_im_as(const std::string& left, int right, datetime_type type,
+                   const std::string& as);
+
+std::shared_ptr<dffunction>
+datetime_add_im(const std::shared_ptr<dffunction>& left, int right,
+                datetime_type type);
+
+std::shared_ptr<dffunction>
+datetime_add_im_as(const std::shared_ptr<dffunction>& left, int right,
+                   datetime_type type, const std::string& as);
+
+
+// ----- datetime_sub -----
+struct dffunction_datetime_sub : public dffunction {
+  dffunction_datetime_sub(const std::shared_ptr<dffunction>& left,
+                          const std::shared_ptr<dffunction>& right,
+                          const datetime_type type)
+    : left(left), right(right), type(type) {
+    auto typestr = datetime_type_to_string(type);
+    as_name = "(" + left->as() + "-" + right->as() + typestr + ")";
+  }
+  dffunction_datetime_sub(const std::shared_ptr<dffunction>& left,
+                          const std::shared_ptr<dffunction>& right,
+                          const datetime_type type,
+                          const std::string& as_name) :
+    left(left), right(right), type(type), as_name(as_name) {}
+  virtual std::string as() {return as_name;}
+  virtual void set_as_name(const std::string& cname) { as_name = cname; }
+  virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const;
+  virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1, 
+                                            dftable_base& t2) const;
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t) {
+    auto leftuse = left->columns_to_use(t);
+    auto rightuse = right->columns_to_use(t);
+    leftuse.insert(leftuse.end(), rightuse.begin(), rightuse.end());
+    return leftuse;
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t1, dftable_base& t2) {
+    auto leftuse = left->columns_to_use(t1);
+    auto rightuse = right->columns_to_use(t2);
+    leftuse.insert(leftuse.end(), rightuse.begin(), rightuse.end());
+    return leftuse;
+  }
+
+  std::shared_ptr<dffunction> left, right;
+  datetime_type type;
+  std::string as_name;
+};
+
+std::shared_ptr<dffunction>
+datetime_sub_col(const std::string& left, const std::string& right,
+                 datetime_type type);
+
+std::shared_ptr<dffunction>
+datetime_sub_col(const std::shared_ptr<dffunction>& left,
+                 const std::string& right,
+                 datetime_type type);
+
+std::shared_ptr<dffunction>
+datetime_sub_col(const std::string& left,
+                 const std::shared_ptr<dffunction>& right,
+                 datetime_type type);
+
+std::shared_ptr<dffunction>
+datetime_sub_col(const std::shared_ptr<dffunction>&left,
+                 const std::shared_ptr<dffunction>& right,
+                 datetime_type type);
+
+std::shared_ptr<dffunction>
+datetime_sub_col_as(const std::string& left, const std::string& right,
+                    datetime_type type, const std::string& as);
+
+std::shared_ptr<dffunction>
+datetime_sub_col_as(const std::shared_ptr<dffunction>& left,
+                    const std::string& right,
+                    datetime_type type, const std::string& as);
+
+std::shared_ptr<dffunction>
+datetime_sub_col_as(const std::string& left,
+                    const std::shared_ptr<dffunction>& right,
+                    datetime_type type, const std::string& as);
+
+std::shared_ptr<dffunction>
+datetime_sub_col_as(const std::shared_ptr<dffunction>&left,
+                    const std::shared_ptr<dffunction>& right,
+                    datetime_type type, const std::string& as);
+
+
+// ----- datetime_sub_im -----
+struct dffunction_datetime_sub_im : public dffunction {
+  dffunction_datetime_sub_im(const std::shared_ptr<dffunction>& left, int right,
+                             datetime_type type): 
+    left(left), right(right), type(type)  {
+    auto typestr = datetime_type_to_string(type);
+    as_name = "(" + left->as() + "-" + STR(right) + typestr + ")";
+  }
+  dffunction_datetime_sub_im(const std::shared_ptr<dffunction>& left, int right,
+                             datetime_type type, const std::string& as_name) :
+    left(left), right(right), type(type), as_name(as_name) {}
+  virtual std::string as() {return as_name;}
+  virtual void set_as_name(const std::string& cname) { as_name = cname; }
+  virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const;
+  virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1,
+                                            dftable_base& t2) const {
+    throw std::runtime_error
+      ("t1, t2: is not available for datetime_sub_im operation!\n");
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t) {
+    return left->columns_to_use(t);
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t1, dftable_base& t2) {
+    throw std::runtime_error
+      ("two args of columns_to_use on this operator is not implemented");
+  }
+
+  std::shared_ptr<dffunction> left;
+  int right;
+  datetime_type type;
+  std::string as_name;
+};
+
+std::shared_ptr<dffunction>
+datetime_sub_im(const std::string& left, int right, datetime_type type);
+
+std::shared_ptr<dffunction>
+datetime_sub_im_as(const std::string& left, int right, datetime_type type,
+                   const std::string& as);
+
+std::shared_ptr<dffunction>
+datetime_sub_im(const std::shared_ptr<dffunction>& left, int right,
+                datetime_type type);
+
+std::shared_ptr<dffunction>
+datetime_sub_im_as(const std::shared_ptr<dffunction>& left, int right,
+                   datetime_type type, const std::string& as);
+
+
+// ----- datetime_truncate -----
+struct dffunction_datetime_truncate : public dffunction {
+  dffunction_datetime_truncate(const std::shared_ptr<dffunction>& left,
+                               const datetime_type type)
+    : left(left), type(type) {
+    auto typestr = datetime_type_to_string(type);
+    as_name = typestr + "(" + left->as() + ")";
+  }
+  dffunction_datetime_truncate(const std::shared_ptr<dffunction>& left,
+                               const datetime_type type,
+                               const std::string& as_name) :
+    left(left), type(type), as_name(as_name) {}
+  virtual std::string as() {return as_name;}
+  virtual void set_as_name(const std::string& cname) { as_name = cname; }
+  virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const;
+  virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1, 
+                                            dftable_base& t2) const {
+    throw std::runtime_error
+      ("datetime_truncate(): is not available for binary operation!\n");
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t) {
+    return left->columns_to_use(t);
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t1, dftable_base& t2) {
+    throw std::runtime_error
+      ("two args of columns_to_use on this operator is not implemented");
+  }
+
+  std::shared_ptr<dffunction> left;
+  datetime_type type;
+  std::string as_name;
+};
+
+std::shared_ptr<dffunction>
+datetime_truncate_col(const std::string& left, datetime_type type);
+
+std::shared_ptr<dffunction>
+datetime_truncate_col(const std::shared_ptr<dffunction>& left,
+                      datetime_type type);
+
+std::shared_ptr<dffunction>
+datetime_truncate_col_as(const std::string& left, datetime_type type,
+                         const std::string& as);
+
+std::shared_ptr<dffunction>
+datetime_truncate_col_as(const std::shared_ptr<dffunction>& left,
+                         datetime_type type, const std::string& as);
+
+
+// ----- datetime_months_between -----
+struct dffunction_datetime_months_between : public dffunction {
+  dffunction_datetime_months_between(const std::shared_ptr<dffunction>& left,
+                                     const std::shared_ptr<dffunction>& right)
+    : left(left), right(right){
+    as_name =
+      "month_between(" + left->as() + "," + right->as() + ")";
+  }
+  dffunction_datetime_months_between(const std::shared_ptr<dffunction>& left,
+                                     const std::shared_ptr<dffunction>& right,
+                                     const std::string& as_name) :
+    left(left), right(right), as_name(as_name) {}
+  virtual std::string as() {return as_name;}
+  virtual void set_as_name(const std::string& cname) { as_name = cname; }
+  virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const;
+  virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1, 
+                                            dftable_base& t2) const;
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t) {
+    auto leftuse = left->columns_to_use(t);
+    auto rightuse = right->columns_to_use(t);
+    leftuse.insert(leftuse.end(), rightuse.begin(), rightuse.end());
+    return leftuse;
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t1, dftable_base& t2) {
+    auto leftuse = left->columns_to_use(t1);
+    auto rightuse = right->columns_to_use(t2);
+    leftuse.insert(leftuse.end(), rightuse.begin(), rightuse.end());
+    return leftuse;
+  }
+
+  std::shared_ptr<dffunction> left, right;
+  std::string as_name;
+};
+
+std::shared_ptr<dffunction>
+datetime_months_between_col(const std::string& left, const std::string& right);
+
+std::shared_ptr<dffunction>
+datetime_months_between_col(const std::shared_ptr<dffunction>& left,
+                            const std::string& right);
+
+std::shared_ptr<dffunction>
+datetime_months_between_col(const std::string& left,
+                            const std::shared_ptr<dffunction>& right);
+
+std::shared_ptr<dffunction>
+datetime_months_between_col(const std::shared_ptr<dffunction>&left,
+                            const std::shared_ptr<dffunction>& right);
+
+std::shared_ptr<dffunction>
+datetime_months_between_col_as(const std::string& left, const std::string& right,
+                               const std::string& as);
+
+std::shared_ptr<dffunction>
+datetime_months_between_col_as(const std::shared_ptr<dffunction>& left,
+                               const std::string& right, const std::string& as);
+
+std::shared_ptr<dffunction>
+datetime_months_between_col_as(const std::string& left,
+                               const std::shared_ptr<dffunction>& right,
+                               const std::string& as);
+
+std::shared_ptr<dffunction>
+datetime_months_between_col_as(const std::shared_ptr<dffunction>&left,
+                               const std::shared_ptr<dffunction>& right,
+                               const std::string& as);
+
+
+// ----- datetime_next_day -----
+struct dffunction_datetime_next_day : public dffunction {
+  dffunction_datetime_next_day(const std::shared_ptr<dffunction>& left,
+                               const std::shared_ptr<dffunction>& right)
+    : left(left), right(right) {
+    as_name = "next_day(" + left->as() + "," + right->as() + ")";
+  }
+  dffunction_datetime_next_day(const std::shared_ptr<dffunction>& left,
+                               const std::shared_ptr<dffunction>& right,
+                               const std::string& as_name) :
+    left(left), right(right), as_name(as_name) {}
+  virtual std::string as() {return as_name;}
+  virtual void set_as_name(const std::string& cname) { as_name = cname; }
+  virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const;
+  virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1, 
+                                            dftable_base& t2) const;
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t) {
+    auto leftuse = left->columns_to_use(t);
+    auto rightuse = right->columns_to_use(t);
+    leftuse.insert(leftuse.end(), rightuse.begin(), rightuse.end());
+    return leftuse;
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t1, dftable_base& t2) {
+    auto leftuse = left->columns_to_use(t1);
+    auto rightuse = right->columns_to_use(t2);
+    leftuse.insert(leftuse.end(), rightuse.begin(), rightuse.end());
+    return leftuse;
+  }
+
+  std::shared_ptr<dffunction> left, right;
+  std::string as_name;
+};
+
+std::shared_ptr<dffunction>
+datetime_next_day_col(const std::string& left, const std::string& right);
+
+std::shared_ptr<dffunction>
+datetime_next_day_col(const std::shared_ptr<dffunction>& left,
+                      const std::string& right);
+
+std::shared_ptr<dffunction>
+datetime_next_day_col(const std::string& left,
+                      const std::shared_ptr<dffunction>& right);
+
+std::shared_ptr<dffunction>
+datetime_next_day_col(const std::shared_ptr<dffunction>&left,
+                      const std::shared_ptr<dffunction>& right);
+
+std::shared_ptr<dffunction>
+datetime_next_day_col_as(const std::string& left, const std::string& right,
+                         const std::string& as);
+
+std::shared_ptr<dffunction>
+datetime_next_day_col_as(const std::shared_ptr<dffunction>& left,
+                         const std::string& right, const std::string& as);
+
+std::shared_ptr<dffunction>
+datetime_next_day_col_as(const std::string& left,
+                         const std::shared_ptr<dffunction>& right,
+                         const std::string& as);
+
+std::shared_ptr<dffunction>
+datetime_next_day_col_as(const std::shared_ptr<dffunction>&left,
+                         const std::shared_ptr<dffunction>& right,
+                         const std::string& as);
+
+
+// ----- datetime_next_day_im -----
+struct dffunction_datetime_next_day_im : public dffunction {
+  dffunction_datetime_next_day_im(const std::shared_ptr<dffunction>& left,
+                                  int right) :
+    left(left), right(right) {
+    as_name = "next_day(" + left->as() + "," + STR(right) + ")";
+  }
+  dffunction_datetime_next_day_im(const std::shared_ptr<dffunction>& left,
+                                  int right, const std::string& as_name) :
+    left(left), right(right), as_name(as_name) {}
+  virtual std::string as() {return as_name;}
+  virtual void set_as_name(const std::string& cname) { as_name = cname; }
+  virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const;
+  virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1,
+                                            dftable_base& t2) const {
+    throw std::runtime_error
+      ("t1, t2: is not available for datetime_next_day_im operation!\n");
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t) {
+    return left->columns_to_use(t);
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t1, dftable_base& t2) {
+    throw std::runtime_error
+      ("two args of columns_to_use on this operator is not implemented");
+  }
+
+  std::shared_ptr<dffunction> left;
+  int right;
+  std::string as_name;
+};
+
+std::shared_ptr<dffunction>
+datetime_next_day_im(const std::string& left, int right);
+
+std::shared_ptr<dffunction>
+datetime_next_day_im_as(const std::string& left, int right,
+                        const std::string& as);
+
+std::shared_ptr<dffunction>
+datetime_next_day_im(const std::shared_ptr<dffunction>& left, int right);
+
+std::shared_ptr<dffunction>
+datetime_next_day_im_as(const std::shared_ptr<dffunction>& left, int right,
+                        const std::string& as);
 
 }
 #endif

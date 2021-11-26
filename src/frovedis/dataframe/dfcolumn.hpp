@@ -340,6 +340,61 @@ public:
   virtual std::shared_ptr<dfcolumn>
   abs() {throw std::runtime_error("abs is not supported for this type");}
   virtual std::shared_ptr<dfcolumn>
+  datetime_extract(datetime_type kind){ 
+    throw std::runtime_error("datetime_extract is not supported for this type");
+  }
+  virtual std::shared_ptr<dfcolumn>
+  datetime_diff(const std::shared_ptr<dfcolumn>& right, datetime_type kind){ 
+    throw std::runtime_error("datetime_diff is not supported for this type");
+  }
+  virtual std::shared_ptr<dfcolumn>
+  datetime_diff_im(datetime_t right, datetime_type kind){ 
+    throw std::runtime_error("datetime_diff_im is not supported for this type");
+  }
+  virtual std::shared_ptr<dfcolumn>
+  rdatetime_diff_im(datetime_t right, datetime_type kind){ 
+    throw std::runtime_error
+      ("rdatetime_diff_im is not supported for this type");
+  }
+  virtual std::shared_ptr<dfcolumn>
+  datetime_add(const std::shared_ptr<dfcolumn>& right, datetime_type kind) {
+    throw std::runtime_error
+      ("datetime_add is not supported for this type");
+  }
+  virtual std::shared_ptr<dfcolumn>
+  datetime_add_im(int right, datetime_type kind){ 
+    throw std::runtime_error("datetime_add_im is not supported for this type");
+  }
+  virtual std::shared_ptr<dfcolumn>
+  datetime_sub(const std::shared_ptr<dfcolumn>& right, datetime_type kind) {
+    throw std::runtime_error
+      ("datetime_sub is not supported for this type");
+  }
+  virtual std::shared_ptr<dfcolumn>
+  datetime_sub_im(int right, datetime_type kind){ 
+    throw std::runtime_error("datetime_sub_im is not supported for this type");
+  }
+  virtual std::shared_ptr<dfcolumn>
+  datetime_truncate(datetime_type kind){ 
+    throw std::runtime_error
+      ("datetime_truncate is not supported for this type");
+  }
+  virtual std::shared_ptr<dfcolumn>
+  datetime_months_between(const std::shared_ptr<dfcolumn>& right){ 
+    throw std::runtime_error
+      ("datetime_months_between is not supported for this type");
+  }
+  virtual std::shared_ptr<dfcolumn>
+  datetime_next_day(const std::shared_ptr<dfcolumn>& right) {
+    throw std::runtime_error
+      ("datetime_next_day is not supported for this type");
+  }
+  virtual std::shared_ptr<dfcolumn>
+  datetime_next_day_im(int right) {
+    throw std::runtime_error
+      ("datetime_next_day_im is not supported for this type");
+  }
+  virtual std::shared_ptr<dfcolumn>
   union_columns(const std::vector<std::shared_ptr<dfcolumn>>& cols) = 0;
   virtual std::shared_ptr<dfcolumn> head(size_t limit) = 0;
   virtual std::shared_ptr<dfcolumn> tail(size_t limit) = 0;
@@ -1865,6 +1920,30 @@ public:
   virtual double avg() {
     throw std::runtime_error("avg of datetime is not defined");
   }
+  virtual std::shared_ptr<dfcolumn>
+  datetime_extract(datetime_type kind);
+  virtual std::shared_ptr<dfcolumn>
+  datetime_diff(const std::shared_ptr<dfcolumn>& right, datetime_type kind);
+  virtual std::shared_ptr<dfcolumn>
+  datetime_diff_im(datetime_t right, datetime_type kind);
+  virtual std::shared_ptr<dfcolumn>
+  rdatetime_diff_im(datetime_t right, datetime_type kind);
+  virtual std::shared_ptr<dfcolumn>
+  datetime_add(const std::shared_ptr<dfcolumn>& right, datetime_type kind);
+  virtual std::shared_ptr<dfcolumn>
+  datetime_add_im(int right, datetime_type kind);
+  virtual std::shared_ptr<dfcolumn>
+  datetime_sub(const std::shared_ptr<dfcolumn>& right, datetime_type kind);
+  virtual std::shared_ptr<dfcolumn>
+  datetime_sub_im(int right, datetime_type kind);
+  virtual std::shared_ptr<dfcolumn>
+  datetime_truncate(datetime_type kind);
+  virtual std::shared_ptr<dfcolumn>
+  datetime_months_between(const std::shared_ptr<dfcolumn>& right);
+  virtual std::shared_ptr<dfcolumn>
+  datetime_next_day(const std::shared_ptr<dfcolumn>& right);
+  virtual std::shared_ptr<dfcolumn>
+  datetime_next_day_im(int right);
   virtual void debug_print();
   virtual std::shared_ptr<dfcolumn> head(size_t limit);
   virtual std::shared_ptr<dfcolumn> tail(size_t limit);

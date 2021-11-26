@@ -1910,23 +1910,6 @@ dftable& dftable::append_column(const std::string& name,
   return *this;
 }
 
-struct datetime_extract_helper {
-  datetime_extract_helper(){}
-  datetime_extract_helper(datetime_type type) : type(type) {}
-  std::vector<int> operator()(const std::vector<datetime_t>& d) {
-    if(type == datetime_type::year) return year_from_datetime(d);
-    else if(type == datetime_type::month) return month_from_datetime(d);
-    else if(type == datetime_type::day) return day_from_datetime(d);
-    else if(type == datetime_type::hour) return hour_from_datetime(d);
-    else if(type == datetime_type::minute) return minute_from_datetime(d);
-    else if(type == datetime_type::second) return second_from_datetime(d);
-    else throw std::runtime_error("unsupported datetime_type");
-  }
-  
-  datetime_type type;
-  SERIALIZE(type)
-};
-
 dftable& dftable::datetime_extract(datetime_type type,
                                    const std::string& src_column,
                                    const std::string& to_append_column) {
@@ -1936,23 +1919,8 @@ dftable& dftable::datetime_extract(datetime_type type,
       ("datetime_extract can be used only for datetime column");
   } else {
     use_dfcolumn use(c);
-    auto dt = c->as_dvector<datetime_t>();
-    auto nulls = c->get_nulls();
-    auto ex = dt.moveto_node_local().map(datetime_extract_helper(type)).
-      mapv(+[](std::vector<int>& v, std::vector<size_t>& nulls) {
-          auto vp = v.data();
-          auto nullsp = nulls.data();
-          auto nulls_size = nulls.size();
-          auto max = std::numeric_limits<int>::max();
-#pragma _NEC ivdep
-#pragma _NEC vovertake
-#pragma _NEC vob
-          for(size_t i = 0; i < nulls_size; i++) {
-            vp[nullsp[i]] = max;
-          }
-        }, nulls).
-      moveto_dvector<int>();
-    append_column(to_append_column, ex, true);
+    auto retc = c->datetime_extract(type);
+    append_column(to_append_column, retc);
     return *this;
   }
 }
