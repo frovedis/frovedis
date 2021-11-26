@@ -7,8 +7,6 @@
 
 /*
   only supports %Y(year), %m(month), %d(day), %H(hour), %M(minute), %S(second)
-  input is 64bit unsigned integer.
-  each bytes are: |0|Y|Y|m|d|H|M|S|
 */
 
 namespace frovedis {
