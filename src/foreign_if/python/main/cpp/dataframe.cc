@@ -690,6 +690,43 @@ extern "C" {
     return to_py_dummy_df(ret);
   }
 
+  PyObject* get_bool_mask(const char* host, int port, long df_opt_proxy,
+                          long df_proxy){
+    ASSERT_PTR(host);
+    exrpc_node fm_node(host, port);
+    auto df_opt_proxy_ = static_cast<exrpc_ptr_t> (df_opt_proxy);
+    auto df_proxy_ = static_cast<exrpc_ptr_t> (df_proxy);
+
+    dummy_vector dvec;
+    try {
+      dvec = exrpc_async(fm_node, frov_get_bool_mask, df_opt_proxy_,
+                        df_proxy_).get();
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }  
+    return to_py_dummy_vector(dvec);
+  }
+
+  PyObject* df_filter_dfopt_different_proxy(const char* host, int port,
+                                           long df_proxy1, long df_proxy2,
+                                           long df_opt_proxy) {
+    ASSERT_PTR(host);
+    exrpc_node fm_node(host, port);
+    auto df_proxy1_ = static_cast<exrpc_ptr_t> (df_proxy1);
+    auto df_proxy2_ = static_cast<exrpc_ptr_t> (df_proxy2);
+    auto df_opt_proxy_ = static_cast<exrpc_ptr_t> (df_opt_proxy);
+    dummy_dftable ret;
+    try {
+      ret = exrpc_async(fm_node, frov_df_filter_dfopt_different_proxy, 
+                        df_proxy1_, df_proxy2_, df_opt_proxy_).get();
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return to_py_dummy_df(ret);
+  }
+
   PyObject* get_frovedis_col(const char* host, int port, long proxy,
                              const char* col_name, short tid){
     ASSERT_PTR(host);
