@@ -570,5 +570,14 @@ frov_df_mode_rows(exrpc_ptr_t& df_proxy,
                   bool& is_string,
                   bool& dropna);
 
+dummy_vector
+frov_get_bool_mask(exrpc_ptr_t& df_opt_proxy, 
+                  exrpc_ptr_t& df_proxy);
+
+dummy_dftable 
+frov_df_filter_dfopt_different_proxy(exrpc_ptr_t& df_proxy1,
+                                    exrpc_ptr_t& df_proxy2, 
+                                    exrpc_ptr_t& df_opt_proxy);
+
 
 #endif

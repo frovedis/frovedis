@@ -120,4 +120,6 @@ void expose_frovedis_dataframe_functions() {
   expose(execute_dffunc);
   expose(set_dffunc_asCol_name);
   // -----------------------
+  expose(frov_get_bool_mask);
+  expose(frov_df_filter_dfopt_different_proxy);
 }

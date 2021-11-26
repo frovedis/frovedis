@@ -1836,3 +1836,61 @@ void set_dffunc_asCol_name(exrpc_ptr_t& fn, std::string& cname) {
   func->set_as_name(cname);
 }
 
+std::vector<int>
+get_bool_mask_helper(std::vector<size_t> local_idx, size_t sz){
+    std::vector<int> res(sz, 0);
+    auto local_idx_size = local_idx.size();
+    for (size_t i=0; i<local_idx_size; i++) res[local_idx[i]] = 1;
+    return res;
+}
+
+
+dummy_vector
+frov_get_bool_mask(exrpc_ptr_t& df_opt_proxy, 
+                  exrpc_ptr_t& df_proxy) {
+  auto& df = *reinterpret_cast<dftable_base*>(df_proxy);
+  auto dfopt = *reinterpret_cast<std::shared_ptr<dfoperator>*>(df_opt_proxy);
+
+  auto filter_idx = dfopt->filter(df);
+
+  auto sizes = df.num_rows();
+  auto nl_sizes = make_node_local_scatter(sizes);
+  auto bool_mask = filter_idx.map(get_bool_mask_helper, nl_sizes);
+
+  auto retp = new dvector<int>(bool_mask.as_dvector<int>());
+
+  auto retp_ = reinterpret_cast<exrpc_ptr_t>(retp);
+  dummy_vector dvec = dummy_vector(retp_, retp->size(), INT);
+  return dvec;
+}
+
+dummy_dftable 
+frov_df_filter_dfopt_different_proxy(exrpc_ptr_t& df_proxy1,
+                                    exrpc_ptr_t& df_proxy2, 
+                                    exrpc_ptr_t& df_opt_proxy) {
+  auto df1 = get_dftable_pointer(df_proxy1);
+  auto df2 = get_dftable_pointer(df_proxy2);
+  auto dfopt = *reinterpret_cast<std::shared_ptr<dfoperator>*>(df_opt_proxy);
+ 
+  if (df1->num_row() != df2->num_row()) {
+    auto msg = "Item wrong length "+std::to_string(df2->num_row()) +
+              " instead of " + std::to_string(df1->num_row())+"\n";
+    REPORT_ERROR(USER_ERROR, msg);
+  } 
+
+  auto filter_idx = dfopt->filter(*df2);
+  auto sizes = df2->num_rows();
+  auto nl_sizes = make_node_local_scatter(sizes);
+  auto bool_mask_dv = filter_idx.map(get_bool_mask_helper, nl_sizes).as_dvector<int>();
+
+  auto bool_mask_col = "__tmp_col";
+  df1->append_column(bool_mask_col, bool_mask_dv);
+  auto res = df1->filter(eq_im(bool_mask_col, 1));
+
+  df1->drop(bool_mask_col);
+  res.drop(bool_mask_col);
+
+  auto retp = new dftable(std::move(res.materialize()));
+  return to_dummy_dftable(retp);
+}
+
