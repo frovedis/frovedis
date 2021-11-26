@@ -18,23 +18,13 @@ enum datetime_type {
   minute,
   second,
   nanosecond,
-  quarter
+  quarter,
+  dayofweek,
+  dayofyear,
+  weekofyear
 };
 
-void year_from_datetime(const datetime_t* srcp, size_t size, int* dstp);
-void month_from_datetime(const datetime_t* srcp, size_t size, int* dstp);
-void day_from_datetime(const datetime_t* srcp, size_t size, int* dstp);
-void hour_from_datetime(const datetime_t* srcp, size_t size, int* dstp);
-void minute_from_datetime(const datetime_t* srcp, size_t size, int* dstp);
-void second_from_datetime(const datetime_t* srcp, size_t size, int* dstp);
-void nanosecond_from_datetime(const datetime_t* srcp, size_t size, int* dstp);
-std::vector<int> year_from_datetime(const std::vector<datetime_t>& src);
-std::vector<int> month_from_datetime(const std::vector<datetime_t>& src);
-std::vector<int> day_from_datetime(const std::vector<datetime_t>& src);
-std::vector<int> hour_from_datetime(const std::vector<datetime_t>& src);
-std::vector<int> minute_from_datetime(const std::vector<datetime_t>& src);
-std::vector<int> second_from_datetime(const std::vector<datetime_t>& src);
-std::vector<int> nanosecond_from_datetime(const std::vector<datetime_t>& src);
+std::string datetime_type_to_string(datetime_type type);
 
 /* Following utility functions should be in header as inline,
    because they are used in loop */
@@ -152,26 +142,26 @@ inline int datetime_diff_nanosecond(datetime_t a, datetime_t b) {
 }
 
 inline int datetime_diff_second(datetime_t a, datetime_t b) {
-  auto ad = a / datetime_t(1000000L);
-  auto bd = b / datetime_t(1000000L);
+  auto ad = a / datetime_t(1000000000L);
+  auto bd = b / datetime_t(1000000000L);
   return ad - bd;
 }
 
 inline int datetime_diff_minute(datetime_t a, datetime_t b) {
-  auto ad = a / datetime_t(60L * 1000000L);
-  auto bd = b / datetime_t(60L * 1000000L);
+  auto ad = a / datetime_t(60L * 1000000000L);
+  auto bd = b / datetime_t(60L * 1000000000L);
   return ad - bd;
 }
 
 inline int datetime_diff_hour(datetime_t a, datetime_t b) {
-  auto ad = a / datetime_t(60L * 60L * 1000000L);
-  auto bd = b / datetime_t(60L * 60L * 1000000L);
+  auto ad = a / datetime_t(60L * 60L * 1000000000L);
+  auto bd = b / datetime_t(60L * 60L * 1000000000L);
   return ad - bd;
 }
 
 inline int datetime_diff_day(datetime_t a, datetime_t b) {
-  auto ad = a / datetime_t(24l * 60L * 60L * 1000000L);
-  auto bd = b / datetime_t(24l * 60L * 60L * 1000000L);
+  auto ad = a / datetime_t(24l * 60L * 60L * 1000000000L);
+  auto bd = b / datetime_t(24l * 60L * 60L * 1000000000L);
   return ad - bd;
 }
 

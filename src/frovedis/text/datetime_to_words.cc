@@ -59,6 +59,37 @@ words make_abbmonth_words(int* value, size_t size) {
   return ret;
 }
 
+void year_from_datetime(const datetime_t* srcp, size_t size, int* dstp) {
+  for(size_t i = 0; i < size; i++) {
+    dstp[i] = year_from_datetime(srcp[i]);
+  }
+}
+void month_from_datetime(const datetime_t* srcp, size_t size, int* dstp) {
+  for(size_t i = 0; i < size; i++) {
+    dstp[i] = month_from_datetime(srcp[i]);
+  }
+}
+void day_from_datetime(const datetime_t* srcp, size_t size, int* dstp) {
+  for(size_t i = 0; i < size; i++) {
+    dstp[i] = day_from_datetime(srcp[i]);
+  }
+}
+void hour_from_datetime(const datetime_t* srcp, size_t size, int* dstp) {
+  for(size_t i = 0; i < size; i++) {
+    dstp[i] = hour_from_datetime(srcp[i]);
+  }
+}
+void minute_from_datetime(const datetime_t* srcp, size_t size, int* dstp) {
+  for(size_t i = 0; i < size; i++) {
+    dstp[i] = minute_from_datetime(srcp[i]);
+  }
+}
+void second_from_datetime(const datetime_t* srcp, size_t size, int* dstp) {
+  for(size_t i = 0; i < size; i++) {
+    dstp[i] = second_from_datetime(srcp[i]);
+  }
+}
+
 void datetime_to_words(const datetime_t* srcp, size_t src_size,
                        int* charsp, size_t entry_size,
                        const std::string& format) {
