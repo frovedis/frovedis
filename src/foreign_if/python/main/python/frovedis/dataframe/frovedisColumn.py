@@ -19,6 +19,7 @@ class FrovedisColumn(object):
         """
         self.__colName = colName
         self.__dtype = dtype
+        self.df = None
 
     def __str__(self):
         """ to-string """
@@ -88,7 +89,7 @@ class FrovedisColumn(object):
             excpt = rpclib.check_server_exception()
             if excpt["status"]:
                 raise RuntimeError(excpt["info"])
-            return dfoperator(proxy)
+            return dfoperator(proxy, self.df) 
         else:
             #print ('Filtering dataframe where', self.colName, '<', other)
             proxy = rpclib.get_frovedis_dfoperator(host, port,
@@ -98,7 +99,7 @@ class FrovedisColumn(object):
             excpt = rpclib.check_server_exception()
             if excpt["status"]:
                 raise RuntimeError(excpt["info"])
-            return dfoperator(proxy)
+            return dfoperator(proxy, self.df) 
 
     def __gt__(self, other):
         """
@@ -114,7 +115,7 @@ class FrovedisColumn(object):
             excpt = rpclib.check_server_exception()
             if excpt["status"]:
                 raise RuntimeError(excpt["info"])
-            return dfoperator(proxy)
+            return dfoperator(proxy, self.df) 
         else:
             #print ('Filtering dataframe where', self.colName, '>', other)
             proxy = rpclib.get_frovedis_dfoperator(host, port,
@@ -124,7 +125,7 @@ class FrovedisColumn(object):
             excpt = rpclib.check_server_exception()
             if excpt["status"]:
                 raise RuntimeError(excpt["info"])
-            return dfoperator(proxy)
+            return dfoperator(proxy, self.df) 
 
     def __eq__(self, other):
         """
@@ -140,7 +141,7 @@ class FrovedisColumn(object):
             excpt = rpclib.check_server_exception()
             if excpt["status"]:
                 raise RuntimeError(excpt["info"])
-            return dfoperator(proxy)
+            return dfoperator(proxy, self.df) 
         else:
             #print ('Filtering dataframe where', self.colName, '==', other)
             proxy = rpclib.get_frovedis_dfoperator(host, port,
@@ -150,7 +151,7 @@ class FrovedisColumn(object):
             excpt = rpclib.check_server_exception()
             if excpt["status"]:
                 raise RuntimeError(excpt["info"])
-            return dfoperator(proxy)
+            return dfoperator(proxy, self.df) 
 
     def __ne__(self, other):
         """
@@ -166,7 +167,7 @@ class FrovedisColumn(object):
             excpt = rpclib.check_server_exception()
             if excpt["status"]:
                 raise RuntimeError(excpt["info"])
-            return dfoperator(proxy)
+            return dfoperator(proxy, self.df) 
         else:
             #print ('Filtering dataframe where', self.colName, '!=', other)
             proxy = rpclib.get_frovedis_dfoperator(host, port,
@@ -176,7 +177,7 @@ class FrovedisColumn(object):
             excpt = rpclib.check_server_exception()
             if excpt["status"]:
                 raise RuntimeError(excpt["info"])
-            return dfoperator(proxy)
+            return dfoperator(proxy, self.df) 
 
     def __le__(self, other):
         """
@@ -192,7 +193,7 @@ class FrovedisColumn(object):
             excpt = rpclib.check_server_exception()
             if excpt["status"]:
                 raise RuntimeError(excpt["info"])
-            return dfoperator(proxy)
+            return dfoperator(proxy, self.df) 
         else:
             #print ('Filtering dataframe where', self.colName, '<=', other)
             proxy = rpclib.get_frovedis_dfoperator(host, port,
@@ -202,7 +203,7 @@ class FrovedisColumn(object):
             excpt = rpclib.check_server_exception()
             if excpt["status"]:
                 raise RuntimeError(excpt["info"])
-            return dfoperator(proxy)
+            return dfoperator(proxy, self.df) 
 
     def __ge__(self, other):
         """
@@ -218,7 +219,7 @@ class FrovedisColumn(object):
             excpt = rpclib.check_server_exception()
             if excpt["status"]:
                 raise RuntimeError(excpt["info"])
-            return dfoperator(proxy)
+            return dfoperator(proxy, self.df) 
         else:
             #print ('Filtering dataframe where', self.colName, '>=', other)
             proxy = rpclib.get_frovedis_dfoperator(host, port,
@@ -228,15 +229,36 @@ class FrovedisColumn(object):
             excpt = rpclib.check_server_exception()
             if excpt["status"]:
                 raise RuntimeError(excpt["info"])
-            return dfoperator(proxy)
+            return dfoperator(proxy, self.df) 
+
+    def between(self, left, right, inclusive="both"):
+        """
+        filtering rows according to the specified bounds
+        """
+        dfopt = None
+        if inclusive == "both":
+            dfopt = (self >= left) & (self <= right)
+        elif inclusive == "left":
+            dfopt = (self >= left) & (self < right)
+        elif inclusive == "right":
+            dfopt = (self > left) & (self <= right)
+        elif inclusive == "neither":
+            dfopt = (self > left) & (self < right)
+        else:
+            raise ValueError(
+                "Inclusive has to be either string of 'both',"
+                "'left', 'right', or 'neither'."
+            )
+        return dfopt
 
     @property
     def str(self):
         """returns a FrovedisStringMethods object, for: \
         startswith/endwith/contains operations
         """
-        return FrovedisStringMethods(self.colName, self.dtype)
-
+        ret = FrovedisStringMethods(self.colName, self.dtype)
+        ret.df = self.df
+        return ret
 
 class FrovedisStringMethods(object):
     """
@@ -248,6 +270,7 @@ class FrovedisStringMethods(object):
         """
         self.__colName = colName
         self.__dtype = dtype
+        self.df = None
 
     @property
     def colName(self):
@@ -292,7 +315,7 @@ class FrovedisStringMethods(object):
             excpt = rpclib.check_server_exception()
             if excpt["status"]:
                 raise RuntimeError(excpt["info"])
-            return dfoperator(proxy)
+            return dfoperator(proxy, self.df) 
 
     def startswith(self, pat, na=False):
         """

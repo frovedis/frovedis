@@ -288,6 +288,13 @@ class DataFrame(object):
             cname = cols[i]
             dt = types[i]
             self.__dict__[cname] = FrovedisColumn(cname, dt)
+
+        for column in self.columns:
+            self.__dict__[column].df = self
+
+        if self.has_index():
+            self.index.df = self
+
         return self
 
     def show(self):
@@ -481,6 +488,12 @@ class DataFrame(object):
         if excpt["status"]:
             raise RuntimeError(excpt["info"])
 
+        for col in self.columns:
+            self.__dict__[col].df = self
+
+        if self.has_index():
+            self.index.df = self
+
         # dvectors in 'dptr' are already destructed during dataframe
         # construction. thus resetting the metadata to avoid double
         # free issue from server side during destructor calls of the
@@ -500,6 +513,8 @@ class DataFrame(object):
                     return self.__filter_mask(target)
                 return self.select_frovedis_dataframe(target)
             elif isinstance(target, dfoperator):
+                if target.df.get() != self.get():
+                    return self.__filter_dfopt_different_proxy(target)
                 return self.filter_frovedis_dataframe(target)
             elif isinstance(target, slice):
                 return self.__filter_slice_range(target)
@@ -546,6 +561,31 @@ class DataFrame(object):
         if excpt["status"]:
             raise RuntimeError(excpt["info"])
         ret.load_dummy(proxy, list(self.__cols), list(self.__types))
+        return ret
+
+    def __filter_dfopt_different_proxy(self, opt):
+        """
+        filters rows on the basis of given 'opt' condition, 
+        in case of different underlying dataframe
+        """
+        (host, port) = FrovedisServer.getServerInstance()
+        dummy_df = rpclib.df_filter_dfopt_different_proxy(host, port, self.get(),\
+                                                    opt.df.get(), opt.get())
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
+        
+        names = dummy_df["names"]
+        types = dummy_df["types"]
+        ret = DataFrame(is_series=self.is_series)
+        ret.num_row = dummy_df["nrow"]
+
+        if self.has_index():
+            ret.index = FrovedisColumn(names[0], types[0]) #setting index
+            ret.load_dummy(dummy_df["dfptr"], names[1:], types[1:])
+        else:
+            ret.load_dummy(dummy_df["dfptr"], names, types)
+
         return ret
 
     @check_association
@@ -3033,6 +3073,15 @@ class DataFrame(object):
 
         return ret
 
+    def between(self, left, right, inclusive="both"):
+        """
+        filtering rows according to the specified bounds
+        """
+        if not self.is_series:
+            raise AttributeError("'DataFrame' object has no attribute 'between'\n")
+        col_name = self.columns[0]
+        dfopt = self.__dict__[col_name].between(left, right, inclusive)
+        return dfopt
 
     @check_association
     def mean(self, axis=None, skipna=None, level=None,
