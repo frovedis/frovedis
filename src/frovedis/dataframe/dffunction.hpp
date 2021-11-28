@@ -4,6 +4,7 @@
 #include "dfscalar.hpp"
 #include "dftable.hpp"
 #include "../text/datetime_to_words.hpp"
+#include "dfoperator.hpp" // for struct dffunction definition
 
 namespace frovedis {
 
@@ -11,81 +12,43 @@ bool check_distribution(dftable_base& left,
                         dftable_base& right,
                         std::vector<size_t>& left_sizes);
 
-dftable_base& realign_df(dftable_base& left, 
-                         dftable_base& right,
-                         const std::vector<std::string>& right_cols);
+std::shared_ptr<dfcolumn> realign_df(dftable_base& left, 
+                                     dftable_base& right,
+                                     std::shared_ptr<dfcolumn>& rightcol);
 
 bool verify_column_identicality(dftable_base& left,
                                 const std::string& lcol,
                                 dftable_base& right,
                                 const std::string& rcol);
 
-struct dffunction {
-  virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const = 0;
-  virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1,
-                                            dftable_base& t2) const  = 0;
-  virtual std::string as() = 0;
-  virtual void set_as_name(const std::string& cname) = 0;
-  virtual std::vector<std::shared_ptr<dfcolumn>>
-  columns_to_use(dftable_base& t) {
-    throw std::runtime_error
-      ("columns_to_use on this operator is not implemented");
-  }
-  virtual std::vector<std::shared_ptr<dfcolumn>>
-  columns_to_use(dftable_base& t1, dftable_base& t2) {
-    throw std::runtime_error
-      ("columns_to_use on this operator is not implemented");
-  }
-};
-
-
-// ----- id -----
-struct dffunction_id : public dffunction {
-  dffunction_id(const std::string& left): left(left), as_name(left) {}
-  dffunction_id(const std::string& left, const std::string& as_name) :
-    left(left), as_name(as_name) {}
-  virtual std::string as() {return as_name;}
-  virtual void set_as_name(const std::string& cname) { as_name = cname; }
-  virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const {
-    return t.column(left);
-  }
-  virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1,
-                                            dftable_base& t2) const {
-    throw std::runtime_error
-      ("1. execute(t1, t2) is not available for id operation!\n");
-  }
-  virtual std::vector<std::shared_ptr<dfcolumn>>
-  columns_to_use(dftable_base& t) {
-    return {t.raw_column(left)};
-  }
-  virtual std::vector<std::shared_ptr<dfcolumn>>
-  columns_to_use(dftable_base& t1, dftable_base& t2) {
-    throw std::runtime_error
-      ("two args of columns_to_use on this operator is not implemented");
-  }
-  std::string left;
-  std::string as_name;
-};
-
-std::shared_ptr<dffunction> id_col(const std::string& left);
-std::shared_ptr<dffunction> id_col_as(const std::string& left,
-                                      const std::string& as);
-
+/*
+  naming convention of free functions:
+  - add "_col" for functions, since function name like "add" might be
+    already used (e.g. core/utility.hpp)
+  - add "_im" for immediate arguments.
+    do not use the same function name since over loading does not work here
+    because immediate is template type
+  - datetime and string functions do not have "_col", "_im" postfix because
+    no such problems exist
+ */
 
 // ----- add -----
 struct dffunction_add : public dffunction {
   dffunction_add(const std::shared_ptr<dffunction>& left, 
                  const std::shared_ptr<dffunction>& right) :
     left(left), right(right) {
-    as_name = "(" + left->as() + "+" + right->as() + ")";
+    as_name = "(" + left->get_as() + "+" + right->get_as() + ")";
   }
   dffunction_add(const std::shared_ptr<dffunction>& left, 
                  const std::shared_ptr<dffunction>& right, 
                  const std::string& as_name) :
     left(left), right(right), as_name(as_name) {}
 
-  virtual std::string as() {return as_name;}
-  virtual void set_as_name(const std::string& cname) { as_name = cname; }
+  virtual std::string get_as() {return as_name;}
+  virtual std::shared_ptr<dffunction> as(const std::string& cname) {
+    as_name = cname;
+    return std::make_shared<dffunction_add>(*this);
+  }
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const;
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1, dftable_base& t2) const;
   virtual std::vector<std::shared_ptr<dfcolumn>>
@@ -134,13 +97,16 @@ template <class T>
 struct dffunction_add_im : public dffunction {
   dffunction_add_im(const std::shared_ptr<dffunction>& left, T right): 
     left(left), right(right) {
-    as_name = "(" + left->as() + "+" + STR(right) + ")";
+    as_name = "(" + left->get_as() + "+" + STR(right) + ")";
   }
   dffunction_add_im(const std::shared_ptr<dffunction>& left, T right,
                     const std::string& as_name) :
     left(left), right(right), as_name(as_name) {}
-  virtual std::string as() {return as_name;}
-  virtual void set_as_name(const std::string& cname) { as_name = cname; }
+  virtual std::string get_as() {return as_name;}
+  virtual std::shared_ptr<dffunction> as(const std::string& cname) {
+    as_name = cname;
+    return std::make_shared<dffunction_add_im>(*this);
+  }
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const;
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1,
                                             dftable_base& t2) const {
@@ -226,15 +192,18 @@ struct dffunction_sub : public dffunction {
   dffunction_sub(const std::shared_ptr<dffunction>& left, 
                  const std::shared_ptr<dffunction>& right) :
     left(left), right(right) {
-    as_name = "(" + left->as() + "-" + right->as() + ")";
+    as_name = "(" + left->get_as() + "-" + right->get_as() + ")";
   }
   dffunction_sub(const std::shared_ptr<dffunction>& left, 
                  const std::shared_ptr<dffunction>& right, 
                  const std::string& as_name) :
     left(left), right(right), as_name(as_name) {}
 
-  virtual std::string as() {return as_name;}
-  virtual void set_as_name(const std::string& cname) { as_name = cname; }
+  virtual std::string get_as() {return as_name;}
+  virtual std::shared_ptr<dffunction> as(const std::string& cname) {
+    as_name = cname;
+    return std::make_shared<dffunction_sub>(*this);
+  }
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const;
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1, dftable_base& t2) const;
   virtual std::vector<std::shared_ptr<dfcolumn>>
@@ -284,14 +253,17 @@ struct dffunction_sub_im : public dffunction {
   dffunction_sub_im(const std::shared_ptr<dffunction>& left, T right,
                     bool is_reversed = false) :
     left(left), right(right), is_reversed(is_reversed) {
-    if(is_reversed) as_name = "(" + STR(right) + "-" + left->as() + ")";
-    else            as_name = "(" + left->as() + "-" + STR(right) + ")";
+    if(is_reversed) as_name = "(" + STR(right) + "-" + left->get_as() + ")";
+    else            as_name = "(" + left->get_as() + "-" + STR(right) + ")";
   }
   dffunction_sub_im(const std::shared_ptr<dffunction>& left, T right,
                     const std::string& as_name, bool is_reversed = false) :
     left(left), right(right), is_reversed(is_reversed), as_name(as_name) {}
-  virtual std::string as() {return as_name;}
-  virtual void set_as_name(const std::string& cname) { as_name = cname; }
+  virtual std::string get_as() {return as_name;}
+  virtual std::shared_ptr<dffunction> as(const std::string& cname) {
+    as_name = cname;
+    return std::make_shared<dffunction_sub_im>(*this);
+  }
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const;
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1,
                                             dftable_base& t2) const {
@@ -379,15 +351,18 @@ struct dffunction_mul : public dffunction {
   dffunction_mul(const std::shared_ptr<dffunction>& left, 
                  const std::shared_ptr<dffunction>& right) :
     left(left), right(right) {
-    as_name = "(" + left->as() + "*" + right->as() + ")";
+    as_name = "(" + left->get_as() + "*" + right->get_as() + ")";
   }
   dffunction_mul(const std::shared_ptr<dffunction>& left, 
                  const std::shared_ptr<dffunction>& right, 
                  const std::string& as_name) :
     left(left), right(right), as_name(as_name) {}
 
-  virtual std::string as() {return as_name;}
-  virtual void set_as_name(const std::string& cname) { as_name = cname; }
+  virtual std::string get_as() {return as_name;}
+  virtual std::shared_ptr<dffunction> as(const std::string& cname) {
+    as_name = cname;
+    return std::make_shared<dffunction_mul>(*this);
+  }
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const;
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1, dftable_base& t2) const;
   virtual std::vector<std::shared_ptr<dfcolumn>>
@@ -436,13 +411,16 @@ template <class T>
 struct dffunction_mul_im : public dffunction {
   dffunction_mul_im(const std::shared_ptr<dffunction>& left, T right): 
     left(left), right(right) {
-    as_name = "(" + left->as() + "*" + STR(right) + ")";
+    as_name = "(" + left->get_as() + "*" + STR(right) + ")";
   }
   dffunction_mul_im(const std::shared_ptr<dffunction>& left, T right,
                     const std::string& as_name) :
     left(left), right(right), as_name(as_name) {}
-  virtual std::string as() {return as_name;}
-  virtual void set_as_name(const std::string& cname) { as_name = cname; }
+  virtual std::string get_as() {return as_name;}
+  virtual std::shared_ptr<dffunction> as(const std::string& cname) {
+    as_name = cname;
+    return std::make_shared<dffunction_mul_im>(*this);
+  }
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const;
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1,
                                             dftable_base& t2) const {
@@ -527,15 +505,18 @@ struct dffunction_fdiv : public dffunction {
   dffunction_fdiv(const std::shared_ptr<dffunction>& left, 
                   const std::shared_ptr<dffunction>& right) :
     left(left), right(right) {
-    as_name = "(" + left->as() + "/" + right->as() + ")";
+    as_name = "(" + left->get_as() + "/" + right->get_as() + ")";
   }
   dffunction_fdiv(const std::shared_ptr<dffunction>& left, 
                   const std::shared_ptr<dffunction>& right, 
                   const std::string& as_name) :
     left(left), right(right), as_name(as_name) {}
 
-  virtual std::string as() {return as_name;}
-  virtual void set_as_name(const std::string& cname) { as_name = cname; }
+  virtual std::string get_as() {return as_name;}
+  virtual std::shared_ptr<dffunction> as(const std::string& cname) {
+    as_name = cname;
+    return std::make_shared<dffunction_fdiv>(*this);
+  }
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const;
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1, dftable_base& t2) const;
   virtual std::vector<std::shared_ptr<dfcolumn>>
@@ -585,14 +566,17 @@ struct dffunction_fdiv_im : public dffunction {
   dffunction_fdiv_im(const std::shared_ptr<dffunction>& left, T right,
                      bool is_reversed = false) :
     left(left), right(right), is_reversed(is_reversed) {
-    if(is_reversed) as_name = "(" + STR(right) + "/" + left->as() + ")";
-    else            as_name = "(" + left->as() + "/" + STR(right) + ")";
+    if(is_reversed) as_name = "(" + STR(right) + "/" + left->get_as() + ")";
+    else            as_name = "(" + left->get_as() + "/" + STR(right) + ")";
   }
   dffunction_fdiv_im(const std::shared_ptr<dffunction>& left, T right,
                      const std::string& as_name, bool is_reversed = false) :
     left(left), right(right), is_reversed(is_reversed), as_name(as_name) {}
-  virtual std::string as() {return as_name;}
-  virtual void set_as_name(const std::string& cname) { as_name = cname; }
+  virtual std::string get_as() {return as_name;}
+  virtual std::shared_ptr<dffunction> as(const std::string& cname) {
+    as_name = cname;
+    return std::make_shared<dffunction_fdiv_im>(*this);
+  }
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const;
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1,
                                             dftable_base& t2) const {
@@ -680,17 +664,21 @@ struct dffunction_idiv : public dffunction {
   dffunction_idiv(const std::shared_ptr<dffunction>& left, 
                   const std::shared_ptr<dffunction>& right) :
     left(left), right(right) {
-    as_name = "(" + left->as() + " div " + right->as() + ")";
+    as_name = "(" + left->get_as() + " div " + right->get_as() + ")";
   }
   dffunction_idiv(const std::shared_ptr<dffunction>& left, 
                   const std::shared_ptr<dffunction>& right, 
                   const std::string& as_name) :
     left(left), right(right), as_name(as_name) {}
 
-  virtual std::string as() {return as_name;}
-  virtual void set_as_name(const std::string& cname) { as_name = cname; }
+  virtual std::string get_as() {return as_name;}
+  virtual std::shared_ptr<dffunction> as(const std::string& cname) {
+    as_name = cname;
+    return std::make_shared<dffunction_idiv>(*this);
+  }
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const;
-  virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1, dftable_base& t2) const;
+  virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1,
+                                            dftable_base& t2) const;
   virtual std::vector<std::shared_ptr<dfcolumn>>
   columns_to_use(dftable_base& t) {
     auto leftuse = left->columns_to_use(t);
@@ -738,14 +726,17 @@ struct dffunction_idiv_im : public dffunction {
   dffunction_idiv_im(const std::shared_ptr<dffunction>& left, T right,
                      bool is_reversed = false) :
     left(left), right(right), is_reversed(is_reversed) {
-    if(is_reversed) as_name = "(" + STR(right) + " div " + left->as() + ")";
-    else            as_name = "(" + left->as() + " div " + STR(right) + ")";
+    if(is_reversed) as_name = "(" + STR(right) + " div " + left->get_as() + ")";
+    else            as_name = "(" + left->get_as() + " div " + STR(right) + ")";
   }
   dffunction_idiv_im(const std::shared_ptr<dffunction>& left, T right,
                      const std::string& as_name, bool is_reversed = false) :
     left(left), right(right), is_reversed(is_reversed), as_name(as_name) {}
-  virtual std::string as() {return as_name;}
-  virtual void set_as_name(const std::string& cname) { as_name = cname; }
+  virtual std::string get_as() {return as_name;}
+  virtual std::shared_ptr<dffunction> as(const std::string& cname) {
+    as_name = cname;
+    return std::make_shared<dffunction_idiv_im>(*this);
+  }
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const;
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1,
                                             dftable_base& t2) const {
@@ -834,15 +825,18 @@ struct dffunction_mod : public dffunction {
   dffunction_mod(const std::shared_ptr<dffunction>& left, 
                  const std::shared_ptr<dffunction>& right) :
     left(left), right(right) {
-    as_name = "(" + left->as() + "%" + right->as() + ")";
+    as_name = "(" + left->get_as() + "%" + right->get_as() + ")";
   }
   dffunction_mod(const std::shared_ptr<dffunction>& left, 
                  const std::shared_ptr<dffunction>& right, 
                  const std::string& as_name) :
     left(left), right(right), as_name(as_name) {}
 
-  virtual std::string as() {return as_name;}
-  virtual void set_as_name(const std::string& cname) { as_name = cname; }
+  virtual std::string get_as() {return as_name;}
+  virtual std::shared_ptr<dffunction> as(const std::string& cname) {
+    as_name = cname;
+    return std::make_shared<dffunction_mod>(*this);
+  }
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const;
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1, dftable_base& t2) const;
   virtual std::vector<std::shared_ptr<dfcolumn>>
@@ -892,14 +886,17 @@ struct dffunction_mod_im : public dffunction {
   dffunction_mod_im(const std::shared_ptr<dffunction>& left, T right,
                     bool is_reversed = false) :
     left(left), right(right), is_reversed(is_reversed) {
-    if(is_reversed) as_name = "(" + STR(right) + "%" + left->as() + ")";
-    else            as_name = "(" + left->as() + "%" + STR(right) + ")";
+    if(is_reversed) as_name = "(" + STR(right) + "%" + left->get_as() + ")";
+    else            as_name = "(" + left->get_as() + "%" + STR(right) + ")";
   }
   dffunction_mod_im(const std::shared_ptr<dffunction>& left, T right,
                     const std::string& as_name, bool is_reversed = false) :
     left(left), right(right), is_reversed(is_reversed), as_name(as_name) {}
-  virtual std::string as() {return as_name;}
-  virtual void set_as_name(const std::string& cname) { as_name = cname; }
+  virtual std::string get_as() {return as_name;}
+  virtual std::shared_ptr<dffunction> as(const std::string& cname) {
+    as_name = cname;
+    return std::make_shared<dffunction_mod_im>(*this);
+  }
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const;
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1,
                                             dftable_base& t2) const {
@@ -988,15 +985,18 @@ struct dffunction_pow : public dffunction {
   dffunction_pow(const std::shared_ptr<dffunction>& left, 
                  const std::shared_ptr<dffunction>& right) :
     left(left), right(right) {
-    as_name = "(" + left->as() + "**" + right->as() + ")";
+    as_name = "(" + left->get_as() + "**" + right->get_as() + ")";
   }
   dffunction_pow(const std::shared_ptr<dffunction>& left, 
                  const std::shared_ptr<dffunction>& right, 
                  const std::string& as_name) :
     left(left), right(right), as_name(as_name) {}
 
-  virtual std::string as() {return as_name;}
-  virtual void set_as_name(const std::string& cname) { as_name = cname; }
+  virtual std::string get_as() {return as_name;}
+  virtual std::shared_ptr<dffunction> as(const std::string& cname) {
+    as_name = cname;
+    return std::make_shared<dffunction_pow>(*this);
+  }
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const;
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1, dftable_base& t2) const;
   virtual std::vector<std::shared_ptr<dfcolumn>>
@@ -1046,14 +1046,17 @@ struct dffunction_pow_im : public dffunction {
   dffunction_pow_im(const std::shared_ptr<dffunction>& left, T right,
                     bool is_reversed = false) :
     left(left), right(right), is_reversed(is_reversed) {
-    if(is_reversed) as_name = "(" + STR(right) + "**" + left->as() + ")";
-    else            as_name = "(" + left->as() + "**" + STR(right) + ")";
+    if(is_reversed) as_name = "(" + STR(right) + "**" + left->get_as() + ")";
+    else            as_name = "(" + left->get_as() + "**" + STR(right) + ")";
   }
   dffunction_pow_im(const std::shared_ptr<dffunction>& left, T right,
                     const std::string& as_name, bool is_reversed = false) :
     left(left), right(right), is_reversed(is_reversed), as_name(as_name) {}
-  virtual std::string as() {return as_name;}
-  virtual void set_as_name(const std::string& cname) { as_name = cname; }
+  virtual std::string get_as() {return as_name;}
+  virtual std::shared_ptr<dffunction> as(const std::string& cname) {
+    as_name = cname;
+    return std::make_shared<dffunction_pow_im>(*this);
+  }
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const;
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1,
                                             dftable_base& t2) const {
@@ -1140,13 +1143,16 @@ pow_im_as(T left, const std::shared_ptr<dffunction>& right,
 // ----- abs -----
 struct dffunction_abs : public dffunction {
   dffunction_abs(const std::shared_ptr<dffunction>& left) : left(left) {
-    as_name = "abs(" + left->as() + ")";
+    as_name = "abs(" + left->get_as() + ")";
   }
   dffunction_abs(const std::shared_ptr<dffunction>& left,
                  const std::string& as_name) :
     left(left), as_name(as_name) {}
-  virtual std::string as() {return as_name;}
-  virtual void set_as_name(const std::string& cname) { as_name = cname; }
+  virtual std::string get_as() {return as_name;}
+  virtual std::shared_ptr<dffunction> as(const std::string& cname) {
+    as_name = cname;
+    return std::make_shared<dffunction_abs>(*this);
+  }
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const;
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1, 
                                             dftable_base& t2) const {
@@ -1185,14 +1191,17 @@ struct dffunction_datetime_extract : public dffunction {
                               const datetime_type type)
     : left(left), type(type) {
     auto typestr = datetime_type_to_string(type);
-    as_name = typestr + "(" + left->as() + ")";
+    as_name = typestr + "(" + left->get_as() + ")";
   }
   dffunction_datetime_extract(const std::shared_ptr<dffunction>& left,
                               const datetime_type type,
                               const std::string& as_name) :
     left(left), type(type), as_name(as_name) {}
-  virtual std::string as() {return as_name;}
-  virtual void set_as_name(const std::string& cname) { as_name = cname; }
+  virtual std::string get_as() {return as_name;}
+  virtual std::shared_ptr<dffunction> as(const std::string& cname) {
+    as_name = cname;
+    return std::make_shared<dffunction_datetime_extract>(*this);
+  }
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const;
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1, 
                                             dftable_base& t2) const {
@@ -1237,15 +1246,18 @@ struct dffunction_datetime_diff : public dffunction {
                            const datetime_type type)
     : left(left), right(right), type(type) {
     auto typestr = datetime_type_to_string(type);
-    as_name = "diff_" + typestr + "(" + left->as() + "," + right->as() + ")";
+    as_name = "diff_" + typestr + "(" + left->get_as() + "," + right->get_as() + ")";
   }
   dffunction_datetime_diff(const std::shared_ptr<dffunction>& left,
                            const std::shared_ptr<dffunction>& right,
                            const datetime_type type,
                            const std::string& as_name) :
     left(left), right(right), type(type), as_name(as_name) {}
-  virtual std::string as() {return as_name;}
-  virtual void set_as_name(const std::string& cname) { as_name = cname; }
+  virtual std::string get_as() {return as_name;}
+  virtual std::shared_ptr<dffunction> as(const std::string& cname) {
+    as_name = cname;
+    return std::make_shared<dffunction_datetime_diff>(*this);
+  }
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const;
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1, 
                                             dftable_base& t2) const;
@@ -1316,8 +1328,8 @@ struct dffunction_datetime_diff_im : public dffunction {
                               bool is_reversed = false) :
     left(left), right(right), type(type), is_reversed(is_reversed) {
     auto vs = words_to_vector_string(datetime_to_words({right}, "%Y-%m-%d"));
-    if(is_reversed) as_name = "datetime_diff(" + vs[0] + "," + left->as() + ")";
-    else as_name = "datetime_diff(" + left->as() + "," + vs[0] + ")";
+    if(is_reversed) as_name = "datetime_diff(" + vs[0] + "," + left->get_as() + ")";
+    else as_name = "datetime_diff(" + left->get_as() + "," + vs[0] + ")";
   }
   dffunction_datetime_diff_im(const std::shared_ptr<dffunction>& left,
                               datetime_t right,
@@ -1326,8 +1338,11 @@ struct dffunction_datetime_diff_im : public dffunction {
                               bool is_reversed = false) :
     left(left), right(right), type(type), is_reversed(is_reversed),
     as_name(as_name) {}
-  virtual std::string as() {return as_name;}
-  virtual void set_as_name(const std::string& cname) { as_name = cname; }
+  virtual std::string get_as() {return as_name;}
+  virtual std::shared_ptr<dffunction> as(const std::string& cname) {
+    as_name = cname;
+    return std::make_shared<dffunction_datetime_diff_im>(*this);
+  }
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const;
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1,
                                             dftable_base& t2) const {
@@ -1390,15 +1405,18 @@ struct dffunction_datetime_add : public dffunction {
                           const datetime_type type)
     : left(left), right(right), type(type) {
     auto typestr = datetime_type_to_string(type);
-    as_name = "(" + left->as() + "+" + right->as() + typestr + ")";
+    as_name = "(" + left->get_as() + "+" + right->get_as() + typestr + ")";
   }
   dffunction_datetime_add(const std::shared_ptr<dffunction>& left,
                           const std::shared_ptr<dffunction>& right,
                           const datetime_type type,
                           const std::string& as_name) :
     left(left), right(right), type(type), as_name(as_name) {}
-  virtual std::string as() {return as_name;}
-  virtual void set_as_name(const std::string& cname) { as_name = cname; }
+  virtual std::string get_as() {return as_name;}
+  virtual std::shared_ptr<dffunction> as(const std::string& cname) {
+    as_name = cname;
+    return std::make_shared<dffunction_datetime_add>(*this);
+  }
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const;
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1, 
                                             dftable_base& t2) const;
@@ -1467,13 +1485,16 @@ struct dffunction_datetime_add_im : public dffunction {
                              datetime_type type): 
     left(left), right(right), type(type)  {
     auto typestr = datetime_type_to_string(type);
-    as_name = "(" + left->as() + "+" + STR(right) + typestr + ")";
+    as_name = "(" + left->get_as() + "+" + STR(right) + typestr + ")";
   }
   dffunction_datetime_add_im(const std::shared_ptr<dffunction>& left, int right,
                              datetime_type type, const std::string& as_name) :
     left(left), right(right), type(type), as_name(as_name) {}
-  virtual std::string as() {return as_name;}
-  virtual void set_as_name(const std::string& cname) { as_name = cname; }
+  virtual std::string get_as() {return as_name;}
+  virtual std::shared_ptr<dffunction> as(const std::string& cname) {
+    as_name = cname;
+    return std::make_shared<dffunction_datetime_add_im>(*this);
+  }
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const;
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1,
                                             dftable_base& t2) const {
@@ -1519,15 +1540,18 @@ struct dffunction_datetime_sub : public dffunction {
                           const datetime_type type)
     : left(left), right(right), type(type) {
     auto typestr = datetime_type_to_string(type);
-    as_name = "(" + left->as() + "-" + right->as() + typestr + ")";
+    as_name = "(" + left->get_as() + "-" + right->get_as() + typestr + ")";
   }
   dffunction_datetime_sub(const std::shared_ptr<dffunction>& left,
                           const std::shared_ptr<dffunction>& right,
                           const datetime_type type,
                           const std::string& as_name) :
     left(left), right(right), type(type), as_name(as_name) {}
-  virtual std::string as() {return as_name;}
-  virtual void set_as_name(const std::string& cname) { as_name = cname; }
+  virtual std::string get_as() {return as_name;}
+  virtual std::shared_ptr<dffunction> as(const std::string& cname) {
+    as_name = cname;
+    return std::make_shared<dffunction_datetime_sub>(*this);
+  }
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const;
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1, 
                                             dftable_base& t2) const;
@@ -1596,13 +1620,16 @@ struct dffunction_datetime_sub_im : public dffunction {
                              datetime_type type): 
     left(left), right(right), type(type)  {
     auto typestr = datetime_type_to_string(type);
-    as_name = "(" + left->as() + "-" + STR(right) + typestr + ")";
+    as_name = "(" + left->get_as() + "-" + STR(right) + typestr + ")";
   }
   dffunction_datetime_sub_im(const std::shared_ptr<dffunction>& left, int right,
                              datetime_type type, const std::string& as_name) :
     left(left), right(right), type(type), as_name(as_name) {}
-  virtual std::string as() {return as_name;}
-  virtual void set_as_name(const std::string& cname) { as_name = cname; }
+  virtual std::string get_as() {return as_name;}
+  virtual std::shared_ptr<dffunction> as(const std::string& cname) {
+    as_name = cname;
+    return std::make_shared<dffunction_datetime_sub_im>(*this);
+  }
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const;
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1,
                                             dftable_base& t2) const {
@@ -1647,14 +1674,17 @@ struct dffunction_datetime_truncate : public dffunction {
                                const datetime_type type)
     : left(left), type(type) {
     auto typestr = datetime_type_to_string(type);
-    as_name = typestr + "(" + left->as() + ")";
+    as_name = typestr + "(" + left->get_as() + ")";
   }
   dffunction_datetime_truncate(const std::shared_ptr<dffunction>& left,
                                const datetime_type type,
                                const std::string& as_name) :
     left(left), type(type), as_name(as_name) {}
-  virtual std::string as() {return as_name;}
-  virtual void set_as_name(const std::string& cname) { as_name = cname; }
+  virtual std::string get_as() {return as_name;}
+  virtual std::shared_ptr<dffunction> as(const std::string& cname) {
+    as_name = cname;
+    return std::make_shared<dffunction_datetime_truncate>(*this);
+  }
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const;
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1, 
                                             dftable_base& t2) const {
@@ -1698,14 +1728,17 @@ struct dffunction_datetime_months_between : public dffunction {
                                      const std::shared_ptr<dffunction>& right)
     : left(left), right(right){
     as_name =
-      "month_between(" + left->as() + "," + right->as() + ")";
+      "month_between(" + left->get_as() + "," + right->get_as() + ")";
   }
   dffunction_datetime_months_between(const std::shared_ptr<dffunction>& left,
                                      const std::shared_ptr<dffunction>& right,
                                      const std::string& as_name) :
     left(left), right(right), as_name(as_name) {}
-  virtual std::string as() {return as_name;}
-  virtual void set_as_name(const std::string& cname) { as_name = cname; }
+  virtual std::string get_as() {return as_name;}
+  virtual std::shared_ptr<dffunction> as(const std::string& cname) {
+    as_name = cname;
+    return std::make_shared<dffunction_datetime_months_between>(*this);
+  }
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const;
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1, 
                                             dftable_base& t2) const;
@@ -1767,14 +1800,17 @@ struct dffunction_datetime_next_day : public dffunction {
   dffunction_datetime_next_day(const std::shared_ptr<dffunction>& left,
                                const std::shared_ptr<dffunction>& right)
     : left(left), right(right) {
-    as_name = "next_day(" + left->as() + "," + right->as() + ")";
+    as_name = "next_day(" + left->get_as() + "," + right->get_as() + ")";
   }
   dffunction_datetime_next_day(const std::shared_ptr<dffunction>& left,
                                const std::shared_ptr<dffunction>& right,
                                const std::string& as_name) :
     left(left), right(right), as_name(as_name) {}
-  virtual std::string as() {return as_name;}
-  virtual void set_as_name(const std::string& cname) { as_name = cname; }
+  virtual std::string get_as() {return as_name;}
+  virtual std::shared_ptr<dffunction> as(const std::string& cname) {
+    as_name = cname;
+    return std::make_shared<dffunction_datetime_next_day>(*this);
+  }
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const;
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1, 
                                             dftable_base& t2) const;
@@ -1836,13 +1872,16 @@ struct dffunction_datetime_next_day_im : public dffunction {
   dffunction_datetime_next_day_im(const std::shared_ptr<dffunction>& left,
                                   int right) :
     left(left), right(right) {
-    as_name = "next_day(" + left->as() + "," + STR(right) + ")";
+    as_name = "next_day(" + left->get_as() + "," + STR(right) + ")";
   }
   dffunction_datetime_next_day_im(const std::shared_ptr<dffunction>& left,
                                   int right, const std::string& as_name) :
     left(left), right(right), as_name(as_name) {}
-  virtual std::string as() {return as_name;}
-  virtual void set_as_name(const std::string& cname) { as_name = cname; }
+  virtual std::string get_as() {return as_name;}
+  virtual std::shared_ptr<dffunction> as(const std::string& cname) {
+    as_name = cname;
+    return std::make_shared<dffunction_datetime_next_day_im>(*this);
+  }
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const;
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1,
                                             dftable_base& t2) const {
@@ -1877,6 +1916,95 @@ datetime_next_day_im(const std::shared_ptr<dffunction>& left, int right);
 std::shared_ptr<dffunction>
 datetime_next_day_im_as(const std::shared_ptr<dffunction>& left, int right,
                         const std::string& as);
+
+
+// ----- utility functions for user's direct use -----
+
+// alias of id_col
+std::shared_ptr<dffunction> col(const std::string& col);
+
+// create id_col using operator~
+std::shared_ptr<dffunction> operator~(const std::string& col);
+
+std::shared_ptr<dffunction> operator+(const std::shared_ptr<dffunction>& a,
+                                      const std::shared_ptr<dffunction>& b);
+
+template <class T>
+std::shared_ptr<dffunction> operator+(const std::shared_ptr<dffunction>& a,
+                                      T b) {
+  return add_im(a,b);
+}
+
+template <class T>
+std::shared_ptr<dffunction> operator+(T b,
+                                      const std::shared_ptr<dffunction>& a) {
+                                      
+  return add_im(a,b);
+}
+
+std::shared_ptr<dffunction> operator-(const std::shared_ptr<dffunction>& a,
+                                      const std::shared_ptr<dffunction>& b);
+
+template <class T>
+std::shared_ptr<dffunction> operator-(const std::shared_ptr<dffunction>& a,
+                                      T b) {
+  return sub_im(a,b);
+}
+
+template <class T>
+std::shared_ptr<dffunction> operator-(T b,
+                                      const std::shared_ptr<dffunction>& a) {
+                                      
+  return sub_im(b,a);
+}
+
+std::shared_ptr<dffunction> operator*(const std::shared_ptr<dffunction>& a,
+                                      const std::shared_ptr<dffunction>& b);
+
+template <class T>
+std::shared_ptr<dffunction> operator*(const std::shared_ptr<dffunction>& a,
+                                      T b) {
+  return mul_im(a,b);
+}
+
+template <class T>
+std::shared_ptr<dffunction> operator*(T b,
+                                      const std::shared_ptr<dffunction>& a) {
+                                      
+  return mul_im(a,b);
+}
+
+std::shared_ptr<dffunction> operator/(const std::shared_ptr<dffunction>& a,
+                                      const std::shared_ptr<dffunction>& b);
+
+template <class T>
+std::shared_ptr<dffunction> operator/(const std::shared_ptr<dffunction>& a,
+                                      T b) {
+  return fdiv_im(a,b);
+}
+
+template <class T>
+std::shared_ptr<dffunction> operator/(T b,
+                                      const std::shared_ptr<dffunction>& a) {
+                                      
+  return fdiv_im(b,a);
+}
+
+std::shared_ptr<dffunction> operator%(const std::shared_ptr<dffunction>& a,
+                                      const std::shared_ptr<dffunction>& b);
+
+template <class T>
+std::shared_ptr<dffunction> operator%(const std::shared_ptr<dffunction>& a,
+                                      T b) {
+  return mod_im(a,b);
+}
+
+template <class T>
+std::shared_ptr<dffunction> operator%(T b,
+                                      const std::shared_ptr<dffunction>& a) {
+                                      
+  return mod_im(b,a);
+}
 
 }
 #endif

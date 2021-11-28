@@ -1,85 +1,374 @@
 #include "dfoperator.hpp"
+#include "dffunction.hpp"
 
 namespace frovedis {
 
 using namespace std;
 
+// ----- dfoperator_eq -----
+std::shared_ptr<dfcolumn> dfoperator_eq::execute(dftable_base& t) const {
+  auto left_column = left->execute(t);
+  return left_column->eq(right->execute(t));
+}
+
+std::shared_ptr<dfcolumn> dfoperator_eq::execute(dftable_base& t1, 
+                                                 dftable_base& t2) const {
+  auto left_column = left->execute(t1);
+  auto right_column = right->execute(t2);
+  auto aligned_right_column = realign_df(t1, t2, right_column);
+  return left_column->eq(aligned_right_column);
+}
+
 std::shared_ptr<dfoperator>
 eq(const std::string& left, const std::string& right) {
-  return std::make_shared<dfoperator_eq>(left,right);
+  return std::make_shared<dfoperator_eq>(id_col(left), id_col(right));
+}
+
+std::shared_ptr<dfoperator>
+eq(const std::shared_ptr<dffunction>& left, const std::string& right) {
+  return std::make_shared<dfoperator_eq>(left, id_col(right));
+}
+
+std::shared_ptr<dfoperator>
+eq(const std::string& left, const std::shared_ptr<dffunction>& right) {
+  return std::make_shared<dfoperator_eq>(id_col(left), right);
+}
+
+std::shared_ptr<dfoperator>
+eq(const std::shared_ptr<dffunction>& left,
+   const std::shared_ptr<dffunction>& right) {
+  return std::make_shared<dfoperator_eq>(left, right);
+}
+
+// ----- dfoperator_neq -----
+std::shared_ptr<dfcolumn> dfoperator_neq::execute(dftable_base& t) const {
+  auto left_column = left->execute(t);
+  return left_column->neq(right->execute(t));
+}
+
+std::shared_ptr<dfcolumn> dfoperator_neq::execute(dftable_base& t1, 
+                                                  dftable_base& t2) const {
+  auto left_column = left->execute(t1);
+  auto right_column = right->execute(t2);
+  auto aligned_right_column = realign_df(t1, t2, right_column);
+  return left_column->neq(aligned_right_column);
 }
 
 std::shared_ptr<dfoperator>
 neq(const std::string& left, const std::string& right) {
-  return std::make_shared<dfoperator_neq>(left,right);
+  return std::make_shared<dfoperator_neq>(id_col(left), id_col(right));
+}
+
+std::shared_ptr<dfoperator>
+neq(const std::shared_ptr<dffunction>& left, const std::string& right) {
+  return std::make_shared<dfoperator_neq>(left, id_col(right));
+}
+
+std::shared_ptr<dfoperator>
+neq(const std::string& left, const std::shared_ptr<dffunction>& right) {
+  return std::make_shared<dfoperator_neq>(id_col(left), right);
+}
+
+std::shared_ptr<dfoperator>
+neq(const std::shared_ptr<dffunction>& left,
+    const std::shared_ptr<dffunction>& right) {
+  return std::make_shared<dfoperator_neq>(left, right);
+}
+
+// ----- dfoperator_lt -----
+std::shared_ptr<dfcolumn> dfoperator_lt::execute(dftable_base& t) const {
+  auto left_column = left->execute(t);
+  return left_column->lt(right->execute(t));
+}
+
+std::shared_ptr<dfcolumn> dfoperator_lt::execute(dftable_base& t1, 
+                                                 dftable_base& t2) const {
+  auto left_column = left->execute(t1);
+  auto right_column = right->execute(t2);
+  auto aligned_right_column = realign_df(t1, t2, right_column);
+  return left_column->lt(aligned_right_column);
 }
 
 std::shared_ptr<dfoperator>
 lt(const std::string& left, const std::string& right) {
-  return std::make_shared<dfoperator_lt>(left,right);
+  return std::make_shared<dfoperator_lt>(id_col(left), id_col(right));
 }
 
 std::shared_ptr<dfoperator>
-le(const std::string& left, const std::string& right) {
-  return std::make_shared<dfoperator_le>(left,right);
+lt(const std::shared_ptr<dffunction>& left, const std::string& right) {
+  return std::make_shared<dfoperator_lt>(left, id_col(right));
 }
 
 std::shared_ptr<dfoperator>
-gt(const std::string& left, const std::string& right) {
-  return std::make_shared<dfoperator_gt>(left,right);
+lt(const std::string& left, const std::shared_ptr<dffunction>& right) {
+  return std::make_shared<dfoperator_lt>(id_col(left), right);
+}
+
+std::shared_ptr<dfoperator>
+lt(const std::shared_ptr<dffunction>& left,
+   const std::shared_ptr<dffunction>& right) {
+  return std::make_shared<dfoperator_lt>(left, right);
+}
+
+// ----- dfoperator_ge -----
+std::shared_ptr<dfcolumn> dfoperator_ge::execute(dftable_base& t) const {
+  auto left_column = left->execute(t);
+  return left_column->ge(right->execute(t));
+}
+
+std::shared_ptr<dfcolumn> dfoperator_ge::execute(dftable_base& t1, 
+                                                 dftable_base& t2) const {
+  auto left_column = left->execute(t1);
+  auto right_column = right->execute(t2);
+  auto aligned_right_column = realign_df(t1, t2, right_column);
+  return left_column->ge(aligned_right_column);
 }
 
 std::shared_ptr<dfoperator>
 ge(const std::string& left, const std::string& right) {
-  return std::make_shared<dfoperator_ge>(left,right);
+  return std::make_shared<dfoperator_ge>(id_col(left), id_col(right));
 }
 
 std::shared_ptr<dfoperator>
-is_null(const std::string& col) {
-  return std::make_shared<dfoperator_is_null>(col);
+ge(const std::shared_ptr<dffunction>& left, const std::string& right) {
+  return std::make_shared<dfoperator_ge>(left, id_col(right));
 }
 
 std::shared_ptr<dfoperator>
-is_not_null(const std::string& col) {
-  return std::make_shared<dfoperator_is_not_null>(col);
+ge(const std::string& left, const std::shared_ptr<dffunction>& right) {
+  return std::make_shared<dfoperator_ge>(id_col(left), right);
 }
 
 std::shared_ptr<dfoperator>
-is_regex(const std::string& col, const std::string& pattern) {
-  return std::make_shared<dfoperator_regex>(col, pattern);
+ge(const std::shared_ptr<dffunction>& left,
+   const std::shared_ptr<dffunction>& right) {
+  return std::make_shared<dfoperator_ge>(left, right);
+}
+
+// ----- dfoperator_le -----
+std::shared_ptr<dfcolumn> dfoperator_le::execute(dftable_base& t) const {
+  auto left_column = left->execute(t);
+  return left_column->le(right->execute(t));
+}
+
+std::shared_ptr<dfcolumn> dfoperator_le::execute(dftable_base& t1, 
+                                                 dftable_base& t2) const {
+  auto left_column = left->execute(t1);
+  auto right_column = right->execute(t2);
+  auto aligned_right_column = realign_df(t1, t2, right_column);
+  return left_column->le(aligned_right_column);
 }
 
 std::shared_ptr<dfoperator>
-is_not_regex(const std::string& col, const std::string& pattern) {
-  return std::make_shared<dfoperator_not_regex>(col, pattern);
+le(const std::string& left, const std::string& right) {
+  return std::make_shared<dfoperator_le>(id_col(left), id_col(right));
 }
 
 std::shared_ptr<dfoperator>
-is_like(const std::string& col, const std::string& pattern) {
-  return std::make_shared<dfoperator_like>(col, pattern);
+le(const std::shared_ptr<dffunction>& left, const std::string& right) {
+  return std::make_shared<dfoperator_le>(left, id_col(right));
 }
 
 std::shared_ptr<dfoperator>
-is_not_like(const std::string& col, const std::string& pattern) {
-  return std::make_shared<dfoperator_not_like>(col, pattern);
+le(const std::string& left, const std::shared_ptr<dffunction>& right) {
+  return std::make_shared<dfoperator_le>(id_col(left), right);
 }
 
 std::shared_ptr<dfoperator>
-and_op(const std::shared_ptr<dfoperator>& left,
-       const std::shared_ptr<dfoperator>& right) {
-  return std::make_shared<dfoperator_and>(left,right);
+le(const std::shared_ptr<dffunction>& left,
+   const std::shared_ptr<dffunction>& right) {
+  return std::make_shared<dfoperator_le>(left, right);
+}
+
+// ----- dfoperator_gt -----
+std::shared_ptr<dfcolumn> dfoperator_gt::execute(dftable_base& t) const {
+  auto left_column = left->execute(t);
+  return left_column->gt(right->execute(t));
+}
+
+std::shared_ptr<dfcolumn> dfoperator_gt::execute(dftable_base& t1, 
+                                                 dftable_base& t2) const {
+  auto left_column = left->execute(t1);
+  auto right_column = right->execute(t2);
+  auto aligned_right_column = realign_df(t1, t2, right_column);
+  return left_column->gt(aligned_right_column);
 }
 
 std::shared_ptr<dfoperator>
-or_op(const std::shared_ptr<dfoperator>& left,
-      const std::shared_ptr<dfoperator>& right) {
-  return std::make_shared<dfoperator_or>(left,right);
+gt(const std::string& left, const std::string& right) {
+  return std::make_shared<dfoperator_gt>(id_col(left), id_col(right));
 }
 
 std::shared_ptr<dfoperator>
-not_op(const std::shared_ptr<dfoperator>& op) {
-  return std::make_shared<dfoperator_not>(op);
+gt(const std::shared_ptr<dffunction>& left, const std::string& right) {
+  return std::make_shared<dfoperator_gt>(left, id_col(right));
 }
+
+std::shared_ptr<dfoperator>
+gt(const std::string& left, const std::shared_ptr<dffunction>& right) {
+  return std::make_shared<dfoperator_gt>(id_col(left), right);
+}
+
+std::shared_ptr<dfoperator>
+gt(const std::shared_ptr<dffunction>& left,
+   const std::shared_ptr<dffunction>& right) {
+  return std::make_shared<dfoperator_gt>(left, right);
+}
+
+// ----- dfoperator_is_null -----
+std::shared_ptr<dfoperator>
+is_null(const std::string& left) {
+  return std::make_shared<dfoperator_is_null>(id_col(left));
+}
+
+std::shared_ptr<dfoperator>
+is_null(const std::shared_ptr<dffunction>& left) {
+  return std::make_shared<dfoperator_is_null>(left);
+}
+
+// ----- dfoperator_is_not_null -----
+std::shared_ptr<dfoperator>
+is_not_null(const std::string& left) {
+  return std::make_shared<dfoperator_is_not_null>(id_col(left));
+}
+
+std::shared_ptr<dfoperator>
+is_not_null(const std::shared_ptr<dffunction>& left) {
+  return std::make_shared<dfoperator_is_not_null>(left);
+}
+
+// ----- dfoperator_is_regex -----
+std::shared_ptr<dfoperator>
+is_regex(const std::string& left, const std::string& pattern) {
+  return std::make_shared<dfoperator_regex>(id_col(left), pattern);
+}
+
+std::shared_ptr<dfoperator>
+is_regex(const std::shared_ptr<dffunction>& left, const std::string& pattern) {
+  return std::make_shared<dfoperator_regex>(left, pattern);
+}
+
+// ----- dfoperator_is_not_regex -----
+std::shared_ptr<dfoperator>
+is_not_regex(const std::string& left, const std::string& pattern) {
+  return std::make_shared<dfoperator_not_regex>(id_col(left), pattern);
+}
+
+std::shared_ptr<dfoperator>
+is_not_regex(const std::shared_ptr<dffunction>& left,
+             const std::string& pattern) {
+  return std::make_shared<dfoperator_not_regex>(left, pattern);
+}
+
+// ----- dfoperator_is_like -----
+std::shared_ptr<dfoperator>
+is_like(const std::string& left, const std::string& pattern) {
+  return std::make_shared<dfoperator_like>(id_col(left), pattern);
+}
+
+std::shared_ptr<dfoperator>
+is_like(const std::shared_ptr<dffunction>& left, const std::string& pattern) {
+  return std::make_shared<dfoperator_like>(left, pattern);
+}
+
+// ----- dfoperator_is_not_like -----
+std::shared_ptr<dfoperator>
+is_not_like(const std::string& left, const std::string& pattern) {
+  return std::make_shared<dfoperator_not_like>(id_col(left), pattern);
+}
+
+std::shared_ptr<dfoperator>
+is_not_like(const std::shared_ptr<dffunction>& left,
+            const std::string& pattern) {
+  return std::make_shared<dfoperator_not_like>(left, pattern);
+}
+
+// ----- dfoperator_and -----
+std::shared_ptr<dfcolumn> dfoperator_and::execute(dftable_base& t) const {
+  auto left_column = left->execute(t);
+  return left_column->and_op(right->execute(t));
+}
+
+std::shared_ptr<dfcolumn> dfoperator_and::execute(dftable_base& t1, 
+                                                  dftable_base& t2) const {
+  auto left_column = left->execute(t1);
+  auto right_column = right->execute(t2);
+  auto aligned_right_column = realign_df(t1, t2, right_column);
+  return left_column->and_op(aligned_right_column);
+}
+
+std::shared_ptr<dfoperator>
+and_op(const std::string& left, const std::string& right) {
+  return std::make_shared<dfoperator_and>(id_col(left), id_col(right));
+}
+
+std::shared_ptr<dfoperator>
+and_op(const std::shared_ptr<dffunction>& left, const std::string& right) {
+  return std::make_shared<dfoperator_and>(left, id_col(right));
+}
+
+std::shared_ptr<dfoperator>
+and_op(const std::string& left, const std::shared_ptr<dffunction>& right) {
+  return std::make_shared<dfoperator_and>(id_col(left), right);
+}
+
+std::shared_ptr<dfoperator>
+and_op(const std::shared_ptr<dffunction>& left,
+       const std::shared_ptr<dffunction>& right) {
+  return std::make_shared<dfoperator_and>(left, right);
+}
+
+// ----- dfoperator_or -----
+std::shared_ptr<dfcolumn> dfoperator_or::execute(dftable_base& t) const {
+  auto left_column = left->execute(t);
+  return left_column->or_op(right->execute(t));
+}
+
+std::shared_ptr<dfcolumn> dfoperator_or::execute(dftable_base& t1, 
+                                                 dftable_base& t2) const {
+  auto left_column = left->execute(t1);
+  auto right_column = right->execute(t2);
+  auto aligned_right_column = realign_df(t1, t2, right_column);
+  return left_column->or_op(aligned_right_column);
+}
+
+std::shared_ptr<dfoperator>
+or_op(const std::string& left, const std::string& right) {
+  return std::make_shared<dfoperator_or>(id_col(left), id_col(right));
+}
+
+std::shared_ptr<dfoperator>
+or_op(const std::shared_ptr<dffunction>& left, const std::string& right) {
+  return std::make_shared<dfoperator_or>(left, id_col(right));
+}
+
+std::shared_ptr<dfoperator>
+or_op(const std::string& left, const std::shared_ptr<dffunction>& right) {
+  return std::make_shared<dfoperator_or>(id_col(left), right);
+}
+
+std::shared_ptr<dfoperator>
+or_op(const std::shared_ptr<dffunction>& left,
+      const std::shared_ptr<dffunction>& right) {
+  return std::make_shared<dfoperator_or>(left, right);
+}
+
+// ----- dfoperatnot_not -----
+std::shared_ptr<dfcolumn> dfoperator_not::execute(dftable_base& t) const {
+  auto left_column = left->execute(t);
+  return left_column->not_op();
+}
+
+std::shared_ptr<dfoperator>
+not_op(const std::string& left) {
+  return std::make_shared<dfoperator_not>(id_col(left));
+}
+
+std::shared_ptr<dfoperator>
+not_op(const std::shared_ptr<dffunction>& left) {
+  return std::make_shared<dfoperator_not>(left);
+}
+
 
 // ---------- filter of all kinds of tables ----------
 
@@ -128,7 +417,7 @@ convert_filtered_idx(std::vector<size_t>& org_idx,
   for(size_t i = 0; i < ret.size(); i++) {
     retp[i] = orgp[createdp[i]];
   }
-   return ret;
+  return ret;
 }
 
 // in dfcolumn.cc
@@ -181,6 +470,23 @@ dftable filtered_dftable::select(const std::vector<std::string>& cols) {
   return ret;
 }
 
+dftable filtered_dftable::select
+(const std::vector<std::shared_ptr<dffunction>>& cols) {
+  dftable ret;
+  for(size_t i = 0; i < cols.size(); i++) {
+    auto as = cols[i]->get_as();
+    if(ret.col.find(as) != ret.col.end())
+      throw std::runtime_error("select: same column name already exists");
+    use_dfcolumn use(cols[i]->columns_to_use(*this));    
+    ret.col[as] = cols[i]->execute(*this);
+    ret.col[as]->spill();
+    ret.col_order.push_back(as);
+  }
+  ret.row_size = filtered_idx.viewas_dvector<size_t>().size();
+  ret.row_sizes = filtered_idx.viewas_dvector<size_t>().sizes();
+  return ret;
+}
+
 filtered_dftable
 filtered_dftable::filter(const std::shared_ptr<dfoperator>& op) {
   use_dfcolumn use(op->columns_to_use(*this));  
@@ -219,6 +525,48 @@ multi_eq(const std::vector<std::string>& left,
   return std::make_shared<dfoperator_multi_eq>(left,right);
 }
 
+std::shared_ptr<dfoperator>
+multi_eq(const std::vector<std::shared_ptr<dffunction>>& left_func,
+         const std::vector<std::string>& right) {
+  auto size = left_func.size();
+  std::vector<std::string> left(size);
+  for(size_t i = 0; i < size; i++) {
+    if(left_func[i]->is_id()) left[i] = left_func[i]->get_as();
+    else throw std::runtime_error("multi_eq does not support function");
+  }
+  return std::make_shared<dfoperator_multi_eq>(left,right);
+}
+
+std::shared_ptr<dfoperator>
+multi_eq(const std::vector<std::string>& left,
+         const std::vector<std::shared_ptr<dffunction>>& right_func) {
+  auto size = right_func.size();
+  std::vector<std::string> right(size);
+  for(size_t i = 0; i < size; i++) {
+    if(right_func[i]->is_id()) right[i] = right_func[i]->get_as();
+    else throw std::runtime_error("multi_eq does not support function");
+  }
+  return std::make_shared<dfoperator_multi_eq>(left,right);
+}
+
+std::shared_ptr<dfoperator>
+multi_eq(const std::vector<std::shared_ptr<dffunction>>& left_func,
+         const std::vector<std::shared_ptr<dffunction>>& right_func) {
+  auto size = left_func.size();
+  std::vector<std::string> left(size);
+  for(size_t i = 0; i < size; i++) {
+    if(left_func[i]->is_id()) left[i] = left_func[i]->get_as();
+    else throw std::runtime_error("multi_eq does not support function");
+  }
+  std::vector<std::string> right(size);
+  for(size_t i = 0; i < size; i++) {
+    if(right_func[i]->is_id()) right[i] = right_func[i]->get_as();
+    else throw std::runtime_error("multi_eq does not support function");
+  }
+  return std::make_shared<dfoperator_multi_eq>(left,right);
+}
+
+
 void filter_idx(std::vector<size_t>& idx,
                 const std::vector<size_t>& filter) {
   auto idxp = idx.data();
@@ -237,10 +585,10 @@ void filter_idx(std::vector<size_t>& idx,
 
 std::pair<node_local<std::vector<size_t>>,
           node_local<std::vector<size_t>>>
-dfoperator_multi_eq::hash_join
-               (dftable_base& left_t, dftable_base& right_t,
-                node_local<std::vector<size_t>>& left_idx,
-                node_local<std::vector<size_t>>& right_idx) const {
+  dfoperator_multi_eq::hash_join
+  (dftable_base& left_t, dftable_base& right_t,
+   node_local<std::vector<size_t>>& left_idx,
+   node_local<std::vector<size_t>>& right_idx) const {
   auto size = leftv.size();
   if(size == 0) {
     throw std::runtime_error("column is not specified for hash_join");    
@@ -326,10 +674,10 @@ dfoperator_multi_eq::hash_join
 
 std::pair<node_local<std::vector<size_t>>,
           node_local<std::vector<size_t>>>
-dfoperator_multi_eq::bcast_join
-               (dftable_base& left_t, dftable_base& right_t,
-                node_local<std::vector<size_t>>& left_idx,
-                node_local<std::vector<size_t>>& right_idx) const {
+                 dfoperator_multi_eq::bcast_join
+                 (dftable_base& left_t, dftable_base& right_t,
+                  node_local<std::vector<size_t>>& left_idx,
+                  node_local<std::vector<size_t>>& right_idx) const {
   auto size = leftv.size();
   if(size == 0) {
     throw std::runtime_error("column is not specified for bcast_join");    
@@ -431,10 +779,10 @@ void make_cross_idx(const std::vector<size_t>& left_idx,
 
 std::pair<node_local<std::vector<size_t>>,
           node_local<std::vector<size_t>>>
-dfoperator_cross::bcast_join
-               (dftable_base& left_t, dftable_base& right_t,
-                node_local<std::vector<size_t>>& left_idx,
-                node_local<std::vector<size_t>>& right_idx) const {
+  dfoperator_cross::bcast_join
+  (dftable_base& left_t, dftable_base& right_t,
+   node_local<std::vector<size_t>>& left_idx,
+   node_local<std::vector<size_t>>& right_idx) const {
   auto right_global_idx = local_to_global_idx(right_idx);
   auto right_global_idx_bcast =
     broadcast(right_global_idx.template viewas_dvector<size_t>().gather());
@@ -451,7 +799,7 @@ std::shared_ptr<dfoperator> cross() {
 
 // ---------- for dfoperator_and bcast_join ----------
 
-void flatten_and_op_helper(const shared_ptr<dfoperator>& op,
+void flatten_and_op_helper(const shared_ptr<dffunction>& op,
                            std::vector<shared_ptr<dfoperator>>& ret) {
   auto and_op_cand = dynamic_pointer_cast<dfoperator_and>(op);
   if(and_op_cand) {
@@ -460,8 +808,13 @@ void flatten_and_op_helper(const shared_ptr<dfoperator>& op,
   } else {
     if(dynamic_pointer_cast<dfoperator_or>(op)) {
       throw std::runtime_error("only and_op can be used for bcast_join");
+    } else {
+      shared_ptr<dfoperator> opcand = dynamic_pointer_cast<dfoperator>(op);
+      if(opcand)
+        ret.push_back(opcand);
+      else
+        throw std::runtime_error("only dfoperator can be used for bcast_join");
     }
-    ret.push_back(op);
   }
 }
 
@@ -475,9 +828,9 @@ flatten_and_op(const dfoperator_and& op) {
 
 std::pair<node_local<std::vector<size_t>>,
           node_local<std::vector<size_t>>>
-dfoperator_and::bcast_join(dftable_base& left, dftable_base& right,
-                           node_local<std::vector<size_t>>& left_idx,
-                           node_local<std::vector<size_t>>& right_idx) const {
+  dfoperator_and::bcast_join(dftable_base& left, dftable_base& right,
+                             node_local<std::vector<size_t>>& left_idx,
+                             node_local<std::vector<size_t>>& right_idx) const {
 
   auto flattend_op = flatten_and_op(*this);
   std::vector<shared_ptr<dfoperator>> filter_op;
@@ -488,9 +841,16 @@ dfoperator_and::bcast_join(dftable_base& left, dftable_base& right,
     size_t i = 0;
     for(; i < flattend_op.size(); i++) {
       if(auto eq_op = dynamic_pointer_cast<dfoperator_eq>(flattend_op[i])) {
-        multi_eq_op.leftv.push_back(eq_op->left);
-        multi_eq_op.rightv.push_back(eq_op->right);
-      } else break;
+        if(eq_op->left->is_id() && eq_op->right->is_id()) {
+          multi_eq_op.leftv.push_back(eq_op->left->get_as());
+          multi_eq_op.rightv.push_back(eq_op->right->get_as());
+        } else {
+          throw std::runtime_error
+            ("dfoprator_and::bcast_join does not support function");
+        } 
+      } else {
+        break;
+      }
     }
     for(; i < flattend_op.size(); i++) {
       filter_op.push_back(flattend_op[i]);
@@ -516,6 +876,54 @@ dfoperator_and::bcast_join(dftable_base& left, dftable_base& right,
   return idx_pair;
 }
 
+// ----- operators -----
+std::shared_ptr<dfoperator> operator==(const std::shared_ptr<dffunction>& a,
+                                       const std::shared_ptr<dffunction>& b) {
+  return eq(a,b);
+}
+
+std::shared_ptr<dfoperator> operator!=(const std::shared_ptr<dffunction>& a,
+                                       const std::shared_ptr<dffunction>& b) {
+  return neq(a,b);
+}
+
+std::shared_ptr<dfoperator> operator<(const std::shared_ptr<dffunction>& a,
+                                      const std::shared_ptr<dffunction>& b) {
+  return lt(a,b);
+}
+
+std::shared_ptr<dfoperator> operator>=(const std::shared_ptr<dffunction>& a,
+                                       const std::shared_ptr<dffunction>& b) {
+  return ge(a,b);
+}
+
+std::shared_ptr<dfoperator> operator<=(const std::shared_ptr<dffunction>& a,
+                                       const std::shared_ptr<dffunction>& b) {
+  return le(a,b);
+}
+
+std::shared_ptr<dfoperator> operator>(const std::shared_ptr<dffunction>& a,
+                                      const std::shared_ptr<dffunction>& b) {
+  return gt(a,b);
+}
+
+// use dfoperator for argument to avoid ambiguous operator error
+// cannot use dffunction
+std::shared_ptr<dfoperator> operator&&(const std::shared_ptr<dfoperator>& a,
+                                       const std::shared_ptr<dfoperator>& b) {
+  return and_op(a,b);
+}
+
+std::shared_ptr<dfoperator> operator||(const std::shared_ptr<dfoperator>& a,
+                                       const std::shared_ptr<dfoperator>& b) {
+  return or_op(a,b);
+}
+
+std::shared_ptr<dfoperator> operator!(const std::shared_ptr<dfoperator>& a) {
+  return not_op(a);
+}
+
+// ----- misc ----
 filtered_dftable& filtered_dftable::drop(const std::string& name) {
   col.erase(name);
   col_order.erase(std::remove(col_order.begin(), col_order.end(), name),

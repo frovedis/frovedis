@@ -340,6 +340,74 @@ public:
   virtual std::shared_ptr<dfcolumn>
   abs() {throw std::runtime_error("abs is not supported for this type");}
   virtual std::shared_ptr<dfcolumn>
+  eq(const std::shared_ptr<dfcolumn>& right) {
+    throw std::runtime_error("eq is not supported for this type");
+  }
+  virtual std::shared_ptr<dfcolumn>
+  eq_im(const std::shared_ptr<dfscalar>& right) {
+    throw std::runtime_error("eq_im is not supported for this type");
+  }
+  virtual std::shared_ptr<dfcolumn>
+  neq(const std::shared_ptr<dfcolumn>& right) {
+    throw std::runtime_error("neq is not supported for this type");
+  }
+  virtual std::shared_ptr<dfcolumn>
+  neq_im(const std::shared_ptr<dfscalar>& right) {
+    throw std::runtime_error("neq_im is not supported for this type");
+  }
+  virtual std::shared_ptr<dfcolumn>
+  lt(const std::shared_ptr<dfcolumn>& right) {
+    throw std::runtime_error("lt is not supported for this type");
+  }
+  virtual std::shared_ptr<dfcolumn>
+  lt_im(const std::shared_ptr<dfscalar>& right) {
+    throw std::runtime_error("lt_im is not supported for this type");
+  }
+  virtual std::shared_ptr<dfcolumn>
+  le(const std::shared_ptr<dfcolumn>& right) {
+    throw std::runtime_error("le is not supported for this type");
+  }
+  virtual std::shared_ptr<dfcolumn>
+  le_im(const std::shared_ptr<dfscalar>& right) {
+    throw std::runtime_error("le_im is not supported for this type");
+  }
+  virtual std::shared_ptr<dfcolumn>
+  gt(const std::shared_ptr<dfcolumn>& right) {
+    throw std::runtime_error("gt is not supported for this type");
+  }
+  virtual std::shared_ptr<dfcolumn>
+  gt_im(const std::shared_ptr<dfscalar>& right) {
+    throw std::runtime_error("gt_im is not supported for this type");
+  }
+  virtual std::shared_ptr<dfcolumn>
+  ge(const std::shared_ptr<dfcolumn>& right) {
+    throw std::runtime_error("gt is not supported for this type");
+  }
+  virtual std::shared_ptr<dfcolumn>
+  ge_im(const std::shared_ptr<dfscalar>& right) {
+    throw std::runtime_error("ge_im is not supported for this type");
+  }
+  virtual std::shared_ptr<dfcolumn>
+  is_null() {
+    throw std::runtime_error("is_null is not supported for this type");
+  }
+  virtual std::shared_ptr<dfcolumn>
+  is_not_null() {
+    throw std::runtime_error("is_not_null is not supported for this type");
+  }
+  virtual std::shared_ptr<dfcolumn>
+  and_op(const std::shared_ptr<dfcolumn>& right) {
+    throw std::runtime_error("and_op is not supported for this type");
+  }
+  virtual std::shared_ptr<dfcolumn>
+  or_op(const std::shared_ptr<dfcolumn>& right) {
+    throw std::runtime_error("or_op is not supported for this type");
+  }
+  virtual std::shared_ptr<dfcolumn>
+  not_op() {
+    throw std::runtime_error("not_op is not supported for this type");
+  }
+  virtual std::shared_ptr<dfcolumn>
   datetime_extract(datetime_type kind){ 
     throw std::runtime_error("datetime_extract is not supported for this type");
   }
@@ -749,8 +817,83 @@ public:
   template <class U>
   std::shared_ptr<dfcolumn>
   typed_rpow_im(const std::shared_ptr<typed_dfscalar<U>>& right);
-
   virtual std::shared_ptr<dfcolumn> abs();
+  template <class U>
+  std::shared_ptr<dfcolumn>
+  typed_eq(const std::shared_ptr<typed_dfcolumn<U>>& right);
+  virtual std::shared_ptr<dfcolumn>
+  eq(const std::shared_ptr<dfcolumn>& right);
+  template <class U>
+  std::shared_ptr<dfcolumn>
+  typed_eq_im(const std::shared_ptr<typed_dfscalar<U>>& right);
+  virtual std::shared_ptr<dfcolumn>
+  eq_im(const std::shared_ptr<dfscalar>& right);
+  template <class U>
+  std::shared_ptr<dfcolumn>
+  typed_neq(const std::shared_ptr<typed_dfcolumn<U>>& right);
+  virtual std::shared_ptr<dfcolumn>
+  neq(const std::shared_ptr<dfcolumn>& right);
+  template <class U>
+  std::shared_ptr<dfcolumn>
+  typed_neq_im(const std::shared_ptr<typed_dfscalar<U>>& right);
+  virtual std::shared_ptr<dfcolumn>
+  neq_im(const std::shared_ptr<dfscalar>& right);
+  template <class U>
+  std::shared_ptr<dfcolumn>
+  typed_lt(const std::shared_ptr<typed_dfcolumn<U>>& right);
+  virtual std::shared_ptr<dfcolumn>
+  lt(const std::shared_ptr<dfcolumn>& right);
+  template <class U>
+  std::shared_ptr<dfcolumn>
+  typed_lt_im(const std::shared_ptr<typed_dfscalar<U>>& right);
+  virtual std::shared_ptr<dfcolumn>
+  lt_im(const std::shared_ptr<dfscalar>& right);
+  template <class U>
+  std::shared_ptr<dfcolumn>
+  typed_le(const std::shared_ptr<typed_dfcolumn<U>>& right);
+  virtual std::shared_ptr<dfcolumn>
+  le(const std::shared_ptr<dfcolumn>& right);
+  template <class U>
+  std::shared_ptr<dfcolumn>
+  typed_le_im(const std::shared_ptr<typed_dfscalar<U>>& right);
+  virtual std::shared_ptr<dfcolumn>
+  le_im(const std::shared_ptr<dfscalar>& right);
+  template <class U>
+  std::shared_ptr<dfcolumn>
+  typed_gt(const std::shared_ptr<typed_dfcolumn<U>>& right);
+  virtual std::shared_ptr<dfcolumn>
+  gt(const std::shared_ptr<dfcolumn>& right);
+  template <class U>
+  std::shared_ptr<dfcolumn>
+  typed_gt_im(const std::shared_ptr<typed_dfscalar<U>>& right);
+  virtual std::shared_ptr<dfcolumn>
+  gt_im(const std::shared_ptr<dfscalar>& right);
+  template <class U>
+  std::shared_ptr<dfcolumn>
+  typed_ge(const std::shared_ptr<typed_dfcolumn<U>>& right);
+  virtual std::shared_ptr<dfcolumn>
+  ge(const std::shared_ptr<dfcolumn>& right);
+  template <class U>
+  std::shared_ptr<dfcolumn>
+  typed_ge_im(const std::shared_ptr<typed_dfscalar<U>>& right);
+  virtual std::shared_ptr<dfcolumn>
+  ge_im(const std::shared_ptr<dfscalar>& right);
+  virtual std::shared_ptr<dfcolumn>
+  is_null();
+  virtual std::shared_ptr<dfcolumn>
+  is_not_null();
+  template <class U>
+  std::shared_ptr<dfcolumn>
+  typed_and_op(const std::shared_ptr<typed_dfcolumn<U>>& right);
+  virtual std::shared_ptr<dfcolumn>
+  and_op(const std::shared_ptr<dfcolumn>& right);
+  template <class U>
+  std::shared_ptr<dfcolumn>
+  typed_or_op(const std::shared_ptr<typed_dfcolumn<U>>& right);
+  virtual std::shared_ptr<dfcolumn>
+  or_op(const std::shared_ptr<dfcolumn>& right);
+  virtual std::shared_ptr<dfcolumn>
+  not_op();
   virtual void debug_print();
   virtual std::string dtype() const;
   virtual void save(const std::string& file);

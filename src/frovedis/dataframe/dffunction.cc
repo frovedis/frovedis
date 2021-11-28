@@ -1150,4 +1150,40 @@ datetime_next_day_im_as(const std::shared_ptr<dffunction>& left, int right,
   return std::make_shared<dffunction_datetime_next_day_im>(left, right, as);
 }
 
+// ----- utility functions for user's direct use -----
+
+std::shared_ptr<dffunction> col(const std::string& col) {
+  return id_col(col);
+}
+
+std::shared_ptr<dffunction> operator~(const std::string& col) {
+  return id_col(col);
+}
+
+std::shared_ptr<dffunction> operator+(const std::shared_ptr<dffunction>& a,
+                                      const std::shared_ptr<dffunction>& b) {
+  return add_col(a,b);
+}
+
+std::shared_ptr<dffunction> operator*(const std::shared_ptr<dffunction>& a,
+                                      const std::shared_ptr<dffunction>& b) {
+  return mul_col(a,b);
+}
+
+std::shared_ptr<dffunction> operator-(const std::shared_ptr<dffunction>& a,
+                                      const std::shared_ptr<dffunction>& b) {
+  return sub_col(a,b);
+}
+
+std::shared_ptr<dffunction> operator/(const std::shared_ptr<dffunction>& a,
+                                      const std::shared_ptr<dffunction>& b) {
+  return fdiv_col(a,b);
+}
+
+std::shared_ptr<dffunction> operator%(const std::shared_ptr<dffunction>& a,
+                                      const std::shared_ptr<dffunction>& b) {
+  return mod_col(a,b);
+}
+
+
 }

@@ -152,7 +152,7 @@ frov_df_binary_operation(exrpc_ptr_t& df1,
     checkAssumption(lcol.size() == 2 && rcol.size() == 2);
     auto func = get_function(op_id, lcol[1], rcol[1]);
     use_dfcolumn use(func->columns_to_use(left, right));
-    ret.append_column(func->as(), func->execute(left, right));
+    ret.append_column(func->get_as(), func->execute(left, right));
   }
   else {
     // aligning columns in left table by appending missing columns with fill_value

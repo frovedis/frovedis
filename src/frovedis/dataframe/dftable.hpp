@@ -39,6 +39,7 @@ public:
   virtual std::vector<std::string> columns() const;
   virtual std::vector<std::pair<std::string, std::string>> dtypes();
   virtual dftable select(const std::vector<std::string>& cols);
+  virtual dftable select(const std::vector<std::shared_ptr<dffunction>>& cols);
   virtual dftable isnull(const std::vector<std::string>& cols);
   virtual dftable materialize();
   virtual filtered_dftable filter(const std::shared_ptr<dfoperator>& op);
@@ -788,6 +789,7 @@ public:
     is_cachable = false;
   }
   virtual dftable select(const std::vector<std::string>& cols);
+  virtual dftable select(const std::vector<std::shared_ptr<dffunction>>& cols);
   virtual filtered_dftable filter(const std::shared_ptr<dfoperator>& op);
   virtual sorted_dftable sort(const std::string& name);
   virtual sorted_dftable sort_desc(const std::string& name);
@@ -878,6 +880,7 @@ public:
   virtual std::vector<size_t> num_rows();
   virtual std::vector<std::string> columns() const;
   virtual dftable select(const std::vector<std::string>& cols);
+  virtual dftable select(const std::vector<std::shared_ptr<dffunction>>& cols);
   virtual filtered_dftable filter(const std::shared_ptr<dfoperator>& op);
   virtual sorted_dftable sort(const std::string& name);
   virtual sorted_dftable sort_desc(const std::string& name);
@@ -959,6 +962,7 @@ public:
   virtual std::vector<size_t> num_rows();
   virtual std::vector<std::string> columns() const;
   virtual dftable select(const std::vector<std::string>& cols);
+  virtual dftable select(const std::vector<std::shared_ptr<dffunction>>& cols);
   virtual filtered_dftable filter(const std::shared_ptr<dfoperator>& op);
   virtual sorted_dftable sort(const std::string& name);
   virtual sorted_dftable sort_desc(const std::string& name);
@@ -1038,6 +1042,7 @@ public:
   virtual std::vector<size_t> num_rows();
   virtual std::vector<std::string> columns() const;
   virtual dftable select(const std::vector<std::string>& cols);
+  virtual dftable select(const std::vector<std::shared_ptr<dffunction>>& cols);
   virtual filtered_dftable filter(const std::shared_ptr<dfoperator>& op);
   virtual sorted_dftable sort(const std::string& name);
   virtual sorted_dftable sort_desc(const std::string& name);
