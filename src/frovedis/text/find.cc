@@ -256,10 +256,12 @@ vector<size_t> find_impl(const int* vp, size_t size,
   auto crntidxp = crntidx.data();
   size_t retsize;
   auto crntsize = idxsize;
+#pragma _NEC noinline
   find_one_helper(vp, crntidxp, crntsize, bufidx.data(), retsize,
                   static_cast<int>(static_cast<unsigned char>(to_find[0])));
   crntsize = retsize;
   for(size_t i = 1; i < to_find_size; i++) {
+#pragma _NEC noinline
     find_helper(vp, crntidxp, crntsize, bufidx.data(), retsize,
                 static_cast<int>(static_cast<unsigned char>(to_find[i])), i);
     crntsize = retsize;
