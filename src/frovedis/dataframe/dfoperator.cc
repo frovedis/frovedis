@@ -470,7 +470,7 @@ dftable filtered_dftable::select(const std::vector<std::string>& cols) {
   return ret;
 }
 
-dftable filtered_dftable::select
+dftable filtered_dftable::fselect
 (const std::vector<std::shared_ptr<dffunction>>& cols) {
   dftable ret;
   for(size_t i = 0; i < cols.size(); i++) {
