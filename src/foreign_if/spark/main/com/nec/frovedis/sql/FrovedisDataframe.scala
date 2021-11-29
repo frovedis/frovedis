@@ -2,7 +2,7 @@ package com.nec.frovedis.sql;
 
 import com.nec.frovedis.Jexrpc._
 import com.nec.frovedis.Jmllib.DummyDftable
-import com.nec.frovedis.matrix.DTYPE
+import com.nec.frovedis.matrix.{GenericUtils, TimeSpent, DTYPE}
 import com.nec.frovedis.matrix.{
   IntDvector, LongDvector, 
   FloatDvector, DoubleDvector,
@@ -10,7 +10,6 @@ import com.nec.frovedis.matrix.{
   BoolDvector}
 import com.nec.frovedis.matrix.FrovedisRowmajorMatrix
 import com.nec.frovedis.matrix.FrovedisColmajorMatrix
-import com.nec.frovedis.matrix.TimeSpent
 import com.nec.frovedis.exrpc.FrovedisSparseData
 import com.nec.frovedis.mllib.ModelID
 import org.apache.spark.rdd.RDD
@@ -20,6 +19,7 @@ import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.DataFrame
+import org.apache.spark.sql.catalyst.InternalRow
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.mutable.ListBuffer
 import org.apache.log4j.{Level, Logger}
@@ -55,73 +55,52 @@ object TMAPPER {
       if(a == null) return Int.MaxValue
       if(a == true) return 1
       else return 0
-  } 
-
-  def toTypedDvector(df: DataFrame, dtype: Short, i: Int, 
+  }
+ 
+  def toTypedDvector(rddData: RDD[InternalRow], dtype: Short, i: Int,
                      part_sizes: RDD[Int]): Long = {
-    val col_name = df.columns(i)
     val t0 = new TimeSpent(Level.DEBUG)
     return dtype match {
-        case DTYPE.INT => { 
-           val null_replaced = df.select(col_name).na.fill(Int.MaxValue)
-           t0.show("null_replaced: ")
-           val data = null_replaced.map(_.getInt(0)).rdd
-           t0.show("get rdd: ")
+        case DTYPE.BOOL => {
+           val data = rddData.mapPartitions(x => x.map(y => if(y.isNullAt(i)) Int.MaxValue else y.getInt(i)))
            val ret = IntDvector.get(data, part_sizes)
            t0.show("get intDvector: ")
            ret
         }
-        case DTYPE.LONG => { 
-           val null_replaced = df.select(col_name).na.fill(Long.MaxValue)
-           t0.show("null_replaced: ")
-           val data = null_replaced.map(_.getLong(0)).rdd
-           t0.show("get rdd: ")
+        case DTYPE.INT => {
+           val data = rddData.mapPartitions(x => x.map(y => if(y.isNullAt(i)) Int.MaxValue else y.getInt(i)))
+           val ret = IntDvector.get(data, part_sizes)
+           t0.show("get intDvector: ")
+           ret
+        }
+        case DTYPE.LONG => {
+           val data = rddData.mapPartitions(x => x.map(y => if(y.isNullAt(i)) Long.MaxValue else y.getLong(i)))
            val ret = LongDvector.get(data, part_sizes)
            t0.show("get longDvector: ")
            ret
         }
-        case DTYPE.FLOAT => { 
-           val null_replaced = df.select(col_name).na.fill(Float.MaxValue)
-           t0.show("null_replaced: ")
-           val data = null_replaced.map(_.getFloat(0)).rdd
-           t0.show("get rdd: ")
+        case DTYPE.FLOAT => {
+           val data = rddData.mapPartitions(x => x.map(y => if(y.isNullAt(i)) Float.MaxValue else y.getFloat(i)))
            val ret = FloatDvector.get(data, part_sizes)
            t0.show("get floatDvector: ")
            ret
         }
-        case DTYPE.DOUBLE => { 
-           val null_replaced = df.select(col_name).na.fill(Double.MaxValue)
-           t0.show("null_replaced: ")
-           val data = null_replaced.map(_.getDouble(0)).rdd
-           t0.show("get rdd: ")
+        case DTYPE.DOUBLE => {
+           val data = rddData.mapPartitions(x => x.map(y => if(y.isNullAt(i)) Double.MaxValue else y.getDouble(i)))
            val ret = DoubleDvector.get(data, part_sizes)
            t0.show("get doubleDvector: ")
            ret
         }
         case DTYPE.STRING => {
-           val null_replaced = df.select(col_name).na.fill("NULL")
-           t0.show("null_replaced: ")
-           val data = null_replaced.map(_.getString(0)).rdd
-           t0.show("get rdd: ")
+           val data = rddData.mapPartitions(x => x.map(y => if(y.isNullAt(i)) "NULL" else y.getString(i)))
            val ret = StringDvector.get(data, part_sizes)
            t0.show("get stringDvector: ")
            ret
         }
         case DTYPE.WORDS => { // use instead of StringDvector for better performance
-           val null_replaced = df.select(col_name).na.fill("NULL")
-           t0.show("null_replaced: ")
-           val data = null_replaced.map(_.getString(0)).rdd
-           t0.show("get rdd: ")
+           val data = rddData.mapPartitions(x => x.map(y => if(y.isNullAt(i)) "NULL" else y.getString(i)))
            val ret = WordsNodeLocal.get(data, part_sizes)
            t0.show("get wordsNodeLocal: ")
-           ret
-        }
-        case DTYPE.BOOL => {
-           // data is passed as int-vector
-           var data = df.select(col_name).map(x => bool2int(x(0))).rdd
-           t0.show("get rdd: ")
-           val ret = IntDvector.get(data, part_sizes)
-           t0.show("get booleanDvector: ")
            ret
         }
         case _ => throw new IllegalArgumentException("Unsupported type: " + TMAPPER.id2string(dtype))
@@ -151,6 +130,56 @@ object DFConverter {
   }
 }
 
+object DFTransferData {
+  def copy_local_data(
+    index: Int, destId: Int,
+    w_node: Node, vptr: Long, localId: Long,
+    data: ArrayBuffer[Any], size: Int, dtype: Short): Unit = {
+
+    //println("dest[" + destId + "::" + localId + "] partition-" +
+    //       index + " of size: " + size + " is being copied!")
+
+    val t0 = new TimeSpent(Level.TRACE)
+    dtype match { // w_node::vptr[index] = data
+        case DTYPE.INT => {
+          val iArr = data.asInstanceOf[ArrayBuffer[Int]].toArray
+          t0.show("buffer to int-array: ")
+          JNISupport.loadFrovedisWorkerIntVector(w_node, vptr, localId, iArr,
+                                                 iArr.size)
+        }
+        case DTYPE.BOOL => {
+          val iArr = data.asInstanceOf[ArrayBuffer[Int]].toArray
+          t0.show("buffer to int-array: ")
+          JNISupport.loadFrovedisWorkerIntVector(w_node, vptr, localId, iArr,
+                                                 iArr.size)
+        }
+        case DTYPE.LONG => {
+          val lArr = data.asInstanceOf[ArrayBuffer[Long]].toArray
+          t0.show("buffer to long-array: ")
+          JNISupport.loadFrovedisWorkerLongVector(w_node, vptr, localId, lArr,
+                                                  lArr.size)
+        }
+        case DTYPE.FLOAT => {
+          val fArr = data.asInstanceOf[ArrayBuffer[Float]].toArray
+          t0.show("buffer to float-array: ")
+          JNISupport.loadFrovedisWorkerFloatVector(w_node, vptr, localId, fArr,
+                                                   fArr.size)
+        }
+        case DTYPE.DOUBLE => {
+          val dArr = data.asInstanceOf[ArrayBuffer[Double]].toArray
+          t0.show("buffer to double-array: ")
+          JNISupport.loadFrovedisWorkerDoubleVector(w_node, vptr, localId, dArr,
+                                                    dArr.size)
+        }
+        case _ => throw new IllegalArgumentException(
+                  "[optimized_load] Unsupported type: " + TMAPPER.id2string(dtype))
+    }
+    val err = JNISupport.checkServerException()
+    if (err != "") throw new java.rmi.ServerException(err)
+    t0.show("spark-worker to frovedis-rank local data copy: ")
+  }
+}
+
 class FrovedisDataFrame extends java.io.Serializable {
   protected var fdata: Long = -1
   protected var cols: Array[String] = null
@@ -158,8 +187,13 @@ class FrovedisDataFrame extends java.io.Serializable {
 
   // creating a frovedis dataframe from a spark dataframe -> User API
   def this(df: DataFrame) = {
-    this ()
-    load (df)
+    this()
+    load(df)
+  }
+  def this(df: DataFrame, name: String, others: String*) = {
+    this()
+    val sdf = df.select(name, others:_*)
+    optimized_load(sdf) // temporary method
   }
   // internally used, not for user
   def this(proxy: Long, cc: Array[String], tt: Array[Short]) = {
@@ -197,28 +231,107 @@ class FrovedisDataFrame extends java.io.Serializable {
     }
   }
   def show (truncate: Boolean = true) : Unit = show()
-  // loading data from a spark dataframe to a frovedis dataframe -> User API
+
   def load (df: DataFrame) : Unit = {
-    /** releasing the old data (if any) */
     release()
     cols = df.dtypes.map(_._1)
     val tt = df.dtypes.map(_._2)
     val size = cols.size
-    var dvecs = new Array[Long](size)
+    val dvecs = new Array[Long](size)
     types = new Array[Short](size)
-    val part_sizes = df.rdd.mapPartitions(x => Array(x.size).toIterator).persist
+    val rddData = df.queryExecution.toRdd
+    val part_sizes = rddData.mapPartitions(x => Array(x.size).toIterator).persist
     for (i <- 0 to (size-1)) {
       //print("col_name: " + cols(i) + " col_type: " + tt(i) + "\n")
       val tname = tt(i)
       val dtype = TMAPPER.string2id(tname)
       types(i) = dtype
-      dvecs(i) = TMAPPER.toTypedDvector(df, dtype, i, part_sizes)
+      dvecs(i) = TMAPPER.toTypedDvector(rddData, dtype, i, part_sizes)
     }
     val fs = FrovedisServer.getServerInstance()
     fdata = JNISupport.createFrovedisDataframe(fs.master_node,types,cols,dvecs,size)
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
   }
+  // for loading specific columns; 
+  // TODO: improve existing limitations: 
+  //   - doesn't support StringType column
+  //   - assumes null is absent in target columns
+  //   - use some intermediate copies (memory-image copy can be done)
+  //   - might cause bad-alloc in ve-memory when target columns are too large to fit
+  def optimized_load (df: DataFrame) : Unit = {
+    release()
+    cols = df.dtypes.map(_._1)
+    types = df.dtypes.map(_._2).map(x => TMAPPER.string2id(x))
+    val ncol = cols.size
+    val rddData = df.queryExecution.toRdd
+    val t_log = new TimeSpent(Level.DEBUG)
+
+    // (1) allocate
+    val fs = FrovedisServer.getServerInstance()
+    val nproc = fs.worker_size
+    val npart = rddData.getNumPartitions
+    val block_sizes = GenericUtils.get_block_sizes(npart, nproc)
+    val vptrs = JNISupport.allocateLocalVectors2(fs.master_node, block_sizes,
+                                                 nproc, types, ncol) // vptrs: ncol x nproc
+    var info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
+    t_log.show("server memory allocation: ")
+
+    // (2) prepare server side ranks for processing N parallel requests
+    val fw_nodes = JNISupport.getWorkerInfoMulti(fs.master_node,
+                                        block_sizes.map(_ * ncol), nproc)
+    info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
+    t_log.show("server process preparation: ")
+                                                      
+    // (3) data transfer
+    val ret = rddData.mapPartitionsWithIndex({ case(index, x) =>
+        val t0 = new TimeSpent(Level.DEBUG)
+        val mat = new Array[ArrayBuffer[Any]](ncol)
+        for(i <- 0 until ncol) mat(i) = new ArrayBuffer[Any]()
+        var k: Int = 0
+        while(x.hasNext) {
+          val row: InternalRow = x.next
+          for (i <- 0 until ncol) {
+            val tmp = types(i) match {
+              case DTYPE.INT    => if(row.isNullAt(i)) Int.MaxValue else row.getInt(i)
+              case DTYPE.BOOL   => if(row.isNullAt(i)) Int.MaxValue else row.getInt(i)
+              case DTYPE.LONG   => if(row.isNullAt(i)) Long.MaxValue else row.getLong(i)
+              case DTYPE.FLOAT  => if(row.isNullAt(i)) Float.MaxValue else row.getFloat(i)
+              case DTYPE.DOUBLE => if(row.isNullAt(i)) Double.MaxValue else row.getDouble(i)
+              //case DTYPE.STRING => if(row.isNullAt(i)) "NULL" row.getString(i)
+              case _ => throw new IllegalArgumentException(
+                        "[optimized_load] Unsupported type: " + TMAPPER.id2string(types(i)))
+            }
+            mat(i) += tmp
+          }
+          k += 1
+        }
+        t0.show("to matrix buffer: ")
+
+        val (destId, myst) = GenericUtils.index2Dest(index, block_sizes)
+        val localId = index - myst
+
+        for (i <- 0 until ncol) {
+          val vptr = vptrs(i * nproc + destId)
+          //println("col: " + cols(i) + "; dtype: " + types(i) + "; vptr: " + vptr)
+          DFTransferData.copy_local_data(index, destId, fw_nodes(destId), 
+                                         vptr, localId, mat(i), k, types(i))
+        }
+        t0.show("data transfer: ")
+        Array(true).toIterator // SUCCESS (since need to return an iterator)
+    })
+    ret.count // for action
+    t_log.show("server side data transfer: ")
+
+    fdata = JNISupport.createFrovedisDataframe2(fs.master_node, cols, types,
+                                                ncol, vptrs, vptrs.size)
+    info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
+    t_log.show("dataframe creation: ")
+  }
+
   // --- Frovedis server side FILTER definition here ---
   // Usage: df.filter(df.col("colA") > 10)
   // Usage: df.filter(df("colA") > 10)

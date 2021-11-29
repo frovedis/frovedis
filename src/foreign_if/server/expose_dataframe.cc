@@ -7,6 +7,7 @@ using namespace frovedis;
 void expose_frovedis_dataframe_functions() {
   // --- frovedis dataframe ---
   expose(create_dataframe);
+  expose(create_dataframe_from_local_vectors);
   expose(release_data<dftable_base>);
   expose(release_data<grouped_dftable>);
   expose(show_dataframe);

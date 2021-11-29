@@ -128,14 +128,17 @@ set_dvector_data(std::vector<T>& vec,
   return ret;
 }
 
+std::vector<exrpc_ptr_t>
+allocate_local_vectors(std::vector<size_t>& sizes,
+                       std::vector<short>& dtypes);
+
 template <class E>
 std::vector<exrpc_ptr_t>
 allocate_local_vector(std::vector<size_t>& sizes) {
   require(sizes.size() == get_nodesize(), 
   "allocate_local_vector: given sizes doesn't match with the no. of mpi processes!\n");
   return make_node_local_scatter(sizes).map(+[](size_t size) { 
-           auto vp = new std::vector<E>(size);
-           return reinterpret_cast<exrpc_ptr_t>(vp);
+           return reinterpret_cast<exrpc_ptr_t>(new std::vector<E>(size));
          }).gather();
 }
 
@@ -225,6 +228,7 @@ std::vector<T>
 merge_vectors(const std::vector<std::vector<T>>& vec) {
   auto nvec = vec.size();
   if(nvec == 0) return std::vector<T>();
+  if(nvec == 1) return vec[0];
   size_t rsize = 0; for(size_t i = 0; i < nvec; ++i) rsize += vec[i].size();
   std::vector<T> ret(rsize); auto retp = ret.data();
   for(size_t i = 0; i < nvec; ++i) {

@@ -4,6 +4,29 @@
 
 using namespace frovedis;
 
+std::vector<exrpc_ptr_t>
+allocate_local_vectors(std::vector<size_t>& sizes,
+                       std::vector<short>& dtypes) {
+  auto ncol = dtypes.size();
+  auto nproc = sizes.size();
+  std::vector<exrpc_ptr_t> ret(ncol * nproc);
+  for (size_t i = 0; i < ncol; ++i) {
+    std::vector<exrpc_ptr_t> tmp;
+    switch(dtypes[i]) {
+      case BOOL:
+      case INT:    tmp = allocate_local_vector<std::vector<int>>(sizes); break;
+      case LONG:   tmp = allocate_local_vector<std::vector<long>>(sizes); break;
+      case FLOAT:  tmp = allocate_local_vector<std::vector<float>>(sizes); break;
+      case DOUBLE: tmp = allocate_local_vector<std::vector<double>>(sizes); break;
+      default: REPORT_ERROR(USER_ERROR, "Unsupported dtype is encountered!\n");
+    }
+    auto tmpp = tmp.data();
+    auto retp = ret.data() + i * nproc;
+    for(size_t j = 0; j < nproc; ++j) retp[j] = tmpp[j];
+  }
+  return ret;
+}
+
 exrpc_ptr_t make_node_local_words(std::vector<exrpc_ptr_t>& data_ptrs, 
                                   std::vector<exrpc_ptr_t>& size_ptrs) {
   auto sizesp = new dvector<int>(make_dvector_allocate<int>());
@@ -96,6 +119,7 @@ void expose_frovedis_dvector_functions() {
   expose((allocate_local_vector<std::vector<std::string>>));
   expose((load_local_vector<std::vector<std::string>>));
   expose(merge_and_set_dvector<std::string>);
+  expose(allocate_local_vectors);
   // for handling strings as words (chars, sizes pair)
   expose((allocate_local_vector_pair<std::vector<int>, std::vector<int>>));
   expose((load_local_vector_pair<std::vector<int>, std::vector<int>>));

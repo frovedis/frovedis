@@ -9,6 +9,7 @@
 #include "model_tracker.hpp" // for OPTYPE, model_table to register sparse_conv_info
 #include "frovedis_mem_pair.hpp"
 #include "dummy_matrix.hpp"
+#include "exrpc_data_storage.hpp"
 
 using namespace frovedis;
 
@@ -109,6 +110,11 @@ exrpc_ptr_t create_dataframe (std::vector<short>& types,
                               std::vector<std::string>& cols,
                               std::vector<exrpc_ptr_t>& dvec_proxies,
                               bool& nan_as_null);
+
+exrpc_ptr_t create_dataframe_from_local_vectors (
+            std::vector<short>& types,
+            std::vector<std::string>& cols,
+            std::vector<exrpc_ptr_t>& local_vec_proxies);
 
 void show_dataframe(exrpc_ptr_t& df_proxy); 
 

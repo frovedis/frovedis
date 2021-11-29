@@ -34,6 +34,21 @@ JNIEXPORT jlongArray JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_allocateLoc
   return to_jlongArray(env, proxies);
 }
 
+JNIEXPORT jlongArray JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_allocateLocalVectors2
+  (JNIEnv *env, jclass thisCls, jobject master_node,
+   jlongArray block_sizes, jint nproc,
+   jshortArray dtypes, jlong ncol) {
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto blocksz = to_sizet_vector(env, block_sizes, nproc);
+  auto dt = to_short_vector(env, dtypes, ncol);
+  std::vector<exrpc_ptr_t> proxies;
+  try {
+    proxies = exrpc_async(fm_node, allocate_local_vectors, blocksz, dt).get();
+  }
+  catch(std::exception& e) { set_status(true,e.what()); }
+  return to_jlongArray(env, proxies);
+}
+
 JNIEXPORT jobjectArray JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_allocateLocalVectorPair // (int, int)
   (JNIEnv *env, jclass thisCls, jobject master_node,
    jlongArray block_sizes, jint nproc) {

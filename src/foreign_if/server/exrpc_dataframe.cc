@@ -73,6 +73,44 @@ exrpc_ptr_t create_dataframe (std::vector<short>& types,
   return reinterpret_cast<exrpc_ptr_t>(dftblp);
 }
 
+exrpc_ptr_t create_dataframe_from_local_vectors (
+            std::vector<short>& types,
+            std::vector<std::string>& cols,
+            std::vector<exrpc_ptr_t>& local_vec_proxies) {
+  auto nproc = get_nodesize();
+  std::vector<exrpc_ptr_t> proxies(nproc); auto pp = proxies.data();
+  std::vector<size_t> sizes; bool verify_size = false;
+
+  auto dftblp = new dftable();
+  if (!dftblp) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed.\n");
+  for(size_t i = 0; i < cols.size(); ++i) {
+    auto vp = local_vec_proxies.data() + i * nproc;
+    for (size_t j = 0; j < nproc; ++j) pp[j] = vp[j];
+    switch(types[i]) {
+      case BOOL:
+      case INT:    { auto dvec = merge_and_set_dvector<int>(proxies, sizes, verify_size);
+                     auto v1 = reinterpret_cast<dvector<int>*>(dvec);
+                     dftblp->append_column(cols[i],std::move(*v1),true);
+                     delete v1; break; }
+      case LONG:   { auto dvec = merge_and_set_dvector<long>(proxies, sizes, verify_size);
+                     auto v2 = reinterpret_cast<dvector<long>*>(dvec);
+                     dftblp->append_column(cols[i],std::move(*v2),true);
+                     delete v2; break; }
+      case FLOAT:  { auto dvec = merge_and_set_dvector<float>(proxies, sizes, verify_size);
+                     auto v3 = reinterpret_cast<dvector<float>*>(dvec);
+                     dftblp->append_column(cols[i],std::move(*v3),true);
+                     delete v3; break; }
+      case DOUBLE: { auto dvec = merge_and_set_dvector<double>(proxies, sizes, verify_size);
+                     auto v4 = reinterpret_cast<dvector<double>*>(dvec);
+                     dftblp->append_column(cols[i],std::move(*v4),true);
+                     delete v4; break; }
+      default:     auto msg = "Unsupported datatype in dataframe creation: " + std::to_string(types[i]);
+                   REPORT_ERROR(USER_ERROR,msg);
+    }
+  }
+  return reinterpret_cast<exrpc_ptr_t>(dftblp);
+}
+
 void show_dataframe(exrpc_ptr_t& df_proxy) {
   auto dftblp = reinterpret_cast<dftable_base*>(df_proxy);
   dftblp->show();

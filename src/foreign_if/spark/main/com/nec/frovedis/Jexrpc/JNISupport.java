@@ -745,6 +745,9 @@ public class JNISupport {
   public static native long[] allocateLocalVector(Node master_node, 
                                                   long[] block_sizes, int nproc, 
                                                   short dtype);
+  public static native long[] allocateLocalVectors2(Node master_node, 
+                                                    long[] block_sizes, int nproc,
+                                                    short[] dtypes, long ncol);
   public static native MemPair[] allocateLocalVectorPair(Node master_node, 
                                                          long[] block_sizes, int nproc); 
   public static native void loadFrovedisWorkerIntVector(Node t_node, long vptr,
@@ -817,6 +820,11 @@ public class JNISupport {
                                                   short dtypes[],
                                                   String cols_names[],
                                                   long dvecs[], long size);
+  public static native long createFrovedisDataframe2(Node master_node,
+                                                     String cols_names[],
+                                                     short dtypes[],
+                                                     long ncol,
+                                                     long vptrs[], long ptrsz);
   public static native void releaseFrovedisDataframe(Node master_node, long data);
 
   public static native void showFrovedisDataframe(Node master_node, long data);
