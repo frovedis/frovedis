@@ -1110,10 +1110,15 @@ public:
   dftable
   select(const std::vector<std::string>& cols,
          const std::vector<std::shared_ptr<dfaggregator>>& aggs);
+  dftable
+  fselect
+  (const std::vector<std::shared_ptr<dffunction>>& cols,
+   const std::vector<std::shared_ptr<dfaggregator>>& aggs);
   size_t num_row(){return row_size;}
   std::vector<size_t> num_rows(){return row_sizes;}
   // size_t num_col(){return org_table.num_col();}
   dftable select(const std::vector<std::string>& cols);
+  dftable fselect(const std::vector<std::shared_ptr<dffunction>>& cols);
   void debug_print();
 private:
   dftable_base org_table;
