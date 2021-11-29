@@ -12,8 +12,8 @@ struct dfoperator;
 // need to be here, because dfoperator inherits dffunction
 struct dffunction {
   // column_name and raw_column are only for dffunction_id
-  virtual bool is_id(){return false;}
-  virtual std::string column_name(dftable_base& t) const {
+  virtual bool is_id() const {return false;}
+  virtual std::string column_name() const {
     throw std::runtime_error
       ("column_name on this operator is not implemented");
   }
@@ -59,8 +59,8 @@ struct dffunction_id : public dffunction {
     as_name = cname;
     return std::make_shared<dffunction_id>(*this);
   }
-  virtual bool is_id() {return true;}
-  virtual std::string column_name(){return left;}
+  virtual bool is_id() const {return true;}
+  virtual std::string column_name() const {return left;}
   virtual std::shared_ptr<dfcolumn> raw_column(dftable_base& t) const {
     return t.raw_column(left);
   }
@@ -363,6 +363,16 @@ struct dfoperator_eq_immed : public dfoperator {
     return left->execute(t)->filter_eq_immed(right_scalar);
   }
   virtual node_local<std::vector<size_t>> not_filter(dftable_base& t) const;
+  virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1,
+                                            dftable_base& t2) const {
+    throw std::runtime_error
+      ("2 arg version of execute on this operator is not implemented");
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t1, dftable_base& t2) {
+    throw std::runtime_error
+      ("2 arg version of columns_to_use on this operator is not implemented");
+  }
 
   std::shared_ptr<dffunction> left;
   T right;
@@ -416,6 +426,17 @@ struct dfoperator_neq_immed : public dfoperator {
   virtual node_local<std::vector<size_t>> not_filter(dftable_base& t) const {
     return dfoperator_eq_immed<T>(left, right).filter(t);
   }
+  virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1,
+                                            dftable_base& t2) const {
+    throw std::runtime_error
+      ("2 arg version of execute on this operator is not implemented");
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t1, dftable_base& t2) {
+    throw std::runtime_error
+      ("2 arg version of columns_to_use on this operator is not implemented");
+  }
+
   std::shared_ptr<dffunction> left;
   T right;
   std::string as_name;
@@ -781,6 +802,17 @@ struct dfoperator_lt_immed : public dfoperator {
     return left->execute(t)->filter_lt_immed(right_scalar);
   }
   virtual node_local<std::vector<size_t>> not_filter(dftable_base& t) const;
+  virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1,
+                                            dftable_base& t2) const {
+    throw std::runtime_error
+      ("2 arg version of execute on this operator is not implemented");
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t1, dftable_base& t2) {
+    throw std::runtime_error
+      ("2 arg version of columns_to_use on this operator is not implemented");
+  }
+
   std::shared_ptr<dffunction> left;
   T right;
   std::string as_name;
@@ -833,6 +865,16 @@ struct dfoperator_ge_immed : public dfoperator {
   }
   virtual node_local<std::vector<size_t>> not_filter(dftable_base& t) const {
     return dfoperator_lt_immed<T>(left, right).filter(t);
+  }
+  virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1,
+                                            dftable_base& t2) const {
+    throw std::runtime_error
+      ("2 arg version of execute on this operator is not implemented");
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t1, dftable_base& t2) {
+    throw std::runtime_error
+      ("2 arg version of columns_to_use on this operator is not implemented");
   }
 
   std::shared_ptr<dffunction> left;
@@ -891,6 +933,16 @@ struct dfoperator_le_immed : public dfoperator {
     return left->execute(t)->filter_le_immed(right_scalar);
   }
   virtual node_local<std::vector<size_t>> not_filter(dftable_base& t) const;
+  virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1,
+                                            dftable_base& t2) const {
+    throw std::runtime_error
+      ("2 arg version of execute on this operator is not implemented");
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t1, dftable_base& t2) {
+    throw std::runtime_error
+      ("2 arg version of columns_to_use on this operator is not implemented");
+  }
 
   std::shared_ptr<dffunction> left;
   T right;
@@ -945,6 +997,16 @@ struct dfoperator_gt_immed : public dfoperator {
   virtual node_local<std::vector<size_t>> not_filter(dftable_base& t) const {
     return dfoperator_le_immed<T>(left, right).filter(t);
   }
+  virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1,
+                                            dftable_base& t2) const {
+    throw std::runtime_error
+      ("2 arg version of execute on this operator is not implemented");
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t1, dftable_base& t2) {
+    throw std::runtime_error
+      ("2 arg version of columns_to_use on this operator is not implemented");
+  }
 
   std::shared_ptr<dffunction> left;
   T right;
@@ -996,6 +1058,16 @@ struct dfoperator_is_null : public dfoperator {
     return left->execute(t)->filter_is_null();
   }
   virtual node_local<std::vector<size_t>> not_filter(dftable_base& t) const;
+  virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1,
+                                            dftable_base& t2) const {
+    throw std::runtime_error
+      ("2 arg version of execute on this operator is not implemented");
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t1, dftable_base& t2) {
+    throw std::runtime_error
+      ("2 arg version of columns_to_use on this operator is not implemented");
+  }
 
   std::shared_ptr<dffunction> left;
   std::string as_name;
@@ -1036,6 +1108,16 @@ struct dfoperator_is_not_null : public dfoperator {
   virtual node_local<std::vector<size_t>> not_filter(dftable_base& t) const {
     return dfoperator_is_null(left).filter(t);
   }
+  virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1,
+                                            dftable_base& t2) const {
+    throw std::runtime_error
+      ("2 arg version of execute on this operator is not implemented");
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t1, dftable_base& t2) {
+    throw std::runtime_error
+      ("2 arg version of columns_to_use on this operator is not implemented");
+  }
 
   std::shared_ptr<dffunction> left;
   std::string as_name;
@@ -1075,6 +1157,11 @@ struct dfoperator_regex : public dfoperator {
   virtual std::vector<std::shared_ptr<dfcolumn>>
   columns_to_use(dftable_base& t) {
     return left->columns_to_use(t);
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t1, dftable_base& t2) {
+    throw std::runtime_error
+      ("2 arg version of columns_to_use on this operator is not implemented");
   }
   virtual node_local<std::vector<size_t>> filter(dftable_base& t) const {
     auto left_column =
@@ -1117,6 +1204,11 @@ struct dfoperator_not_regex : public dfoperator {
   virtual std::vector<std::shared_ptr<dfcolumn>>
   columns_to_use(dftable_base& t) {
     return left->columns_to_use(t);
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t1, dftable_base& t2) {
+    throw std::runtime_error
+      ("2 arg version of columns_to_use on this operator is not implemented");
   }
   virtual node_local<std::vector<size_t>> filter(dftable_base& t) const {
     auto left_column =
@@ -1169,6 +1261,11 @@ struct dfoperator_like : public dfoperator {
   virtual std::vector<std::shared_ptr<dfcolumn>>
   columns_to_use(dftable_base& t) {
     return left->columns_to_use(t);
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t1, dftable_base& t2) {
+    throw std::runtime_error
+      ("2 arg version of columns_to_use on this operator is not implemented");
   }
   virtual node_local<std::vector<size_t>> filter(dftable_base& t) const {
     auto tcol = left->execute(t);
@@ -1224,6 +1321,11 @@ struct dfoperator_not_like : public dfoperator {
   virtual std::vector<std::shared_ptr<dfcolumn>>
   columns_to_use(dftable_base& t) {
     return left->columns_to_use(t);
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t1, dftable_base& t2) {
+    throw std::runtime_error
+      ("2 arg version of columns_to_use on this operator is not implemented");
   }
   virtual node_local<std::vector<size_t>> filter(dftable_base& t) const {
     auto tcol = left->execute(t);
@@ -1476,10 +1578,6 @@ struct dfoperator_not : public dfoperator {
   columns_to_use(dftable_base& t) {
     return left->columns_to_use(t);
   }
-  virtual std::vector<std::shared_ptr<dfcolumn>>
-  columns_to_use(dftable_base& t1, dftable_base& t2) {
-    return left->columns_to_use(t1, t2);
-  }
   virtual node_local<std::vector<size_t>> filter(dftable_base& t) const {
     auto left2 = std::dynamic_pointer_cast<dfoperator>(left);
     if(!left2) throw std::runtime_error("filter by non operator");
@@ -1489,6 +1587,16 @@ struct dfoperator_not : public dfoperator {
     auto left2 = std::dynamic_pointer_cast<dfoperator>(left);
     if(!left2) throw std::runtime_error("filter by non operator");
     return left2->filter(t);
+  }
+  virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1,
+                                            dftable_base& t2) const {
+    throw std::runtime_error
+      ("2 arg version of execute on this operator is not implemented");
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t1, dftable_base& t2) {
+    throw std::runtime_error
+      ("2 arg version of columns_to_use on this operator is not implemented");
   }
 
   std::shared_ptr<dffunction> left;
