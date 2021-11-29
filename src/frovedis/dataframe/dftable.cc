@@ -28,7 +28,7 @@ dftable_base::dtypes() {
   return ret;
 }
 
-dftable dftable_base::select
+dftable dftable_base::fselect
 (const std::vector<std::shared_ptr<dffunction>>& cols) {
   dftable ret;
   ret.row_size = row_size;
@@ -2604,7 +2604,7 @@ dftable sorted_dftable::select(const std::vector<std::string>& cols) {
   return ret;
 }
 
-dftable sorted_dftable::select
+dftable sorted_dftable::fselect
 (const std::vector<std::shared_ptr<dffunction>>& cols) {
   dftable ret;
   for(size_t i = 0; i < cols.size(); i++) {
@@ -2796,7 +2796,7 @@ dftable hash_joined_dftable::select(const std::vector<std::string>& cols) {
   return ret;
 }
 
-dftable hash_joined_dftable::select
+dftable hash_joined_dftable::fselect
 (const std::vector<std::shared_ptr<dffunction>>& cols) {
   dftable ret;
   for(size_t i = 0; i < cols.size(); i++) {
@@ -3010,7 +3010,7 @@ dftable bcast_joined_dftable::select(const std::vector<std::string>& cols) {
   return ret;
 }
 
-dftable bcast_joined_dftable::select
+dftable bcast_joined_dftable::fselect
 (const std::vector<std::shared_ptr<dffunction>>& cols) {
   dftable ret;
   for(size_t i = 0; i < cols.size(); i++) {
@@ -3212,7 +3212,7 @@ dftable star_joined_dftable::select(const std::vector<std::string>& cols) {
   return ret;
 }
 
-dftable star_joined_dftable::select
+dftable star_joined_dftable::fselect
 (const std::vector<std::shared_ptr<dffunction>>& cols) {
   dftable ret;
   for(size_t i = 0; i < cols.size(); i++) {
