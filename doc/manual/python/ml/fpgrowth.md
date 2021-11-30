@@ -6,13 +6,11 @@ FPGrowth - A frequent pattern mining algorithm supported by Frovedis.
 
 # SYNOPSIS
 
-class frovedis.mllib.fpm.FPGrowth(minSupport = 0.3,  minConfidence=0.8,  
+class frovedis.mllib.fpm.FPGrowth(minSupport=0.3,  minConfidence=0.8, itemsCol='items',  
 \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ itemsCol='items', predictionCol='prediction',  
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ predictionCol='prediction', numPartitions=None,  
 \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ numPartitions=None, tree_depth=None,  
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ compression_point=4, mem_opt_level=0,  
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ tree_depth=None, compression_point=4, mem_opt_level=0,  
 \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
 \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ verbose=0, encode_string_input=False)  
 
@@ -30,10 +28,10 @@ is_fitted()
 # DESCRIPTION
 FPGrowth is an algorithm for discovering frequent itemsets in a transaction database. 
 The input of FPGrowth is a set of transactions called transaction database. Each transaction 
-is a set of items. Frovedis supports numeric and non-numeric values for transaction data.  
+is a set of items. **Frovedis supports numeric and non-numeric values for transaction data.**  
 
 For example, consider the following transaction database. It contains 4 
-transactions (t1, t2, .., t4) and 4 items (1, 2, 3, 4). The first transaction represents 
+transactions (t1, t2, t3, t4) and 4 items (1, 2, 3, 4). The first transaction represents 
 the set of items 1, 2 , 3 and 4.  
 
     Transaction id      Items  
@@ -94,7 +92,7 @@ within 0 to 1. (Default: 0.8)
 for tree construction. Its value must be greater than 1. (Default: None)  
 When it is None (not specified explicitly), the tree is constructed to its maximum 
 depth according to the data. Since transaction databases tend to be very large, there may be a 
-scenario wherin entire FP tree cannot be contained in memory. In those cases, the size of 
+scenario wherein entire FP tree cannot be contained in memory. In those cases, the size of 
 FP tree may be limited by using this parameter.  
 **_compression\_point_**: A positive integer parameter. This is an internal memory optimisation 
 strategy which helps when working with large transaction databases. Its value must be greater 
@@ -108,7 +106,7 @@ keeping this value as 1, it will help in reducing memory footprint. However, whe
 might still cause memory issue in case data is too big. In this case, data may be spilled onto disk 
 if this environment variable has been set. This will degrade performance (execution time).  
 **_verbose_**: An integer parameter specifying the log level to use. Its value is 0 by 
-default(INFO level). But it can be set to 1 (DEBUG level) or 2 (TRACE level) for getting 
+default (INFO level). But it can be set to 1 (DEBUG level) or 2 (TRACE level) for getting 
 training time logs from frovedis server.  
 **_encode\_string\_input_**: A boolean parameter when set to True, encodes the non-numeric 
 (like strings) itemset values. It first internally encodes the named-items to an encoded 
@@ -119,7 +117,7 @@ columns than the numeric columns. (Default: False)
 
 For example,  
 
-    # let data be some non-numeric transaction database 
+    # let the data be some non-numeric transaction database 
     data = [['banana','apple','mango','cake'],
             ['cake','banana','apple'],
             ['bread','banana'],
@@ -127,10 +125,11 @@ For example,
     # Using FPGrowth object with memory optimization parameters for training 
     # Here, disabling the parameter encode_string_input = False by default
     from frovedis.mllib.fpm import FPGrowth
-    fpm = FPGrowth(minSupport = 0.01, minConfidence = 0.5, compression_point = 4, mem_opt_level = 1) 
+    fpm = FPGrowth(minSupport = 0.01, minConfidence = 0.5, compression_point = 4, 
+                   mem_opt_level = 1) 
     fpm.fit(data)
 
-Frequent itemsets generation time: 0.0361 sec  
+**Frequent itemsets generation time: 0.0361 sec**  
 
 And, when enabling 'encode_string_input' with the same non-numeric data,  
 
@@ -141,7 +140,7 @@ And, when enabling 'encode_string_input' with the same non-numeric data,
                    mem_opt_level = 1, encode_string_input = True) 
     fpm.fit(data)
 
-Frequent itemsets generation time: 0.0315 sec  
+**Frequent itemsets generation time: 0.0315 sec**  
 
 __Attributes__  
 **_freqItemsets_**: A pandas dataframe having two fields, 'items' and 'freq', where 'items' is
@@ -213,11 +212,11 @@ or frovedis-two column dataframe containing the transaction data. Frovedis suppo
 non-numeric values in transaction dataset.  
 
 __Purpose__  
-It accepts the training data and trains the fp growth model with specified 
-minimum support value and tree depth value for construction of tree.  
+It accepts the training data and trains the fpgrowth model with specified minimum support 
+value and tree depth value for construction of tree.  
 
 For pandas dataframe, if it has 2 columns, the second column would be treated as items and needs 
-to be an array-like input. 
+to be an array-like input.  
 
 For example,  
 
@@ -315,22 +314,22 @@ Output
     331          [yogurt, rolls/buns, whole milk]   153.0
     332                [yogurt, soda, whole milk]   103.0
     association rules:
-                                antecedent          consequent     confidence   lift     support   conviction
-    0               [yogurt, other vegetables]      [whole milk]    0.512881   2.007235  0.022267  1.528340
-    1             [whipped/sour cream, yogurt]      [whole milk]    0.524510   2.052747  0.010880  1.565719
-    2   [whipped/sour cream, other vegetables]      [whole milk]    0.507042   1.984385  0.014642  1.510239
-    3                 [tropical fruit, yogurt]      [whole milk]    0.517361   2.024770  0.015150  1.542528
-    4        [tropical fruit, root vegetables]      [whole milk]    0.570048   2.230969  0.011998  1.731553
-    5                [root vegetables, yogurt]      [whole milk]    0.562992   2.203354  0.014540  1.703594
-    6            [root vegetables, rolls/buns]      [whole milk]    0.523013   2.046888  0.012710  1.560804
-    7            [pip fruit, other vegetables]      [whole milk]    0.517510   2.025351  0.013523  1.543003
-    8        [domestic eggs, other vegetables]      [whole milk]    0.552511   2.162336  0.012303  1.663694
-    9                           [curd, yogurt]      [whole milk]    0.582353   2.279125  0.010066  1.782567
-    10              [butter, other vegetables]      [whole milk]    0.573604   2.244885  0.011490  1.745992
-    11       [tropical fruit, root vegetables]  [other vegetables]  0.584541   3.020999  0.012303  1.941244
-    12               [root vegetables, yogurt]  [other vegetables]  0.500000   2.584078  0.012913  1.613015
-    13           [root vegetables, rolls/buns]  [other vegetables]  0.502092   2.594890  0.012201  1.619792
-    14         [citrus fruit, root vegetables]  [other vegetables]  0.586207   3.029608  0.010371  1.949059
+                              antecedent         consequent    confidence    lift   support  conviction
+    0             [yogurt, other vegetables]    [whole milk]     0.512881  2.007235 0.022267 1.528340
+    1           [whipped/sour cream, yogurt]    [whole milk]     0.524510  2.052747 0.010880 1.565719
+    2 [whipped/sour cream, other vegetables]    [whole milk]     0.507042  1.984385 0.014642 1.510239
+    3               [tropical fruit, yogurt]    [whole milk]     0.517361  2.024770 0.015150 1.542528
+    4      [tropical fruit, root vegetables]    [whole milk]     0.570048  2.230969 0.011998 1.731553
+    5              [root vegetables, yogurt]    [whole milk]     0.562992  2.203354 0.014540 1.703594
+    6          [root vegetables, rolls/buns]    [whole milk]     0.523013  2.046888 0.012710 1.560804
+    7          [pip fruit, other vegetables]    [whole milk]     0.517510  2.025351 0.013523 1.543003
+    8      [domestic eggs, other vegetables]    [whole milk]     0.552511  2.162336 0.012303 1.663694
+    9                         [curd, yogurt]    [whole milk]     0.582353  2.279125 0.010066 1.782567
+    10            [butter, other vegetables]    [whole milk]     0.573604  2.244885 0.011490 1.745992
+    11     [tropical fruit, root vegetables] [other vegetables]  0.584541  3.020999 0.012303 1.941244
+    12             [root vegetables, yogurt] [other vegetables]  0.500000  2.584078 0.012913 1.613015
+    13         [root vegetables, rolls/buns] [other vegetables]  0.502092  2.594890 0.012201 1.619792
+    14       [citrus fruit, root vegetables] [other vegetables]  0.586207  3.029608 0.010371 1.949059
     
 When native python iterable or a pandas dataframe is provided, it is converted to frovedis 
 dataframe and sent to frovedis server which consumes some data transfer time. Pre-constructed 
@@ -443,12 +442,12 @@ For example,
     fp_rules = fpm.generate_rules(0.2)  
 
 This will generate tables containing rules at server side.  
-To print theses generated rules, debug_print() may be used as show below:
+To print these generated rules, debug_print() may be used as show below:
 
     fp_rules.debug_print()
 
 This will show all tables of different antecedent length at server side. Here, encoding 
-was disbaled during rule generation.  
+was disabled during rule generation.  
 
 Output,
 
@@ -512,7 +511,8 @@ These above generated rules can also be saved and loaded separately as shown bel
 
     rule.save("./out/FPRule")
 
-It saves the rules in 'FPRule' directory.
+It saves the rules in 'FPRule' directory.  
+It would raise exception if the directory already exists with same name.  
 
 The 'FPRule' directory has  
 
@@ -530,7 +530,8 @@ The 'FPRule' directory has
 
 The 'encode_logic' file is created only when 'encode_string_input = True' while training.  
 Other directories are created according to number of rules created which were constructed during training.  
-Each rule based directory contains information about antecedent, consequent, confidence, lift, support, convition.  
+Each rule based directory contains information about antecedent, consequent, confidence, lift, 
+support, conviction.  
 
 For loading the already saved rules, following should be done:
 
@@ -596,7 +597,8 @@ For example,
     # To save the FPGrowth model
     fpm.save("./out/FPModel")  
 
-This will save the fp-growth model on the path '/out/FPModel'.
+This will save the fp-growth model on the path '/out/FPModel'.  
+It would raise exception if the directory already exists with same name.  
 
 The 'FPModel' directory has  
 
@@ -702,7 +704,7 @@ __Purpose__
 It can be used to confirm if the model is already fitted or not.  
 
 __Return Value__  
-It returns ‘True’, if the model is already fitted otherwise, it returns ‘False’.  
+It returns ‘True’, if the model is already fitted, otherwise, it returns ‘False’.  
 
 # SEE ALSO  
 dataframe

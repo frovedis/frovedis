@@ -4,23 +4,20 @@
 FPGrowth \- A frequent pattern mining algorithm supported by Frovedis.
 .SH SYNOPSIS
 .PP
-class frovedis.mllib.fpm.FPGrowth(minSupport = 0.3, minConfidence=0.8,
+class frovedis.mllib.fpm.FPGrowth(minSupport=0.3, minConfidence=0.8,
+itemsCol=\[aq]items\[aq],
 .PD 0
 .P
 .PD
 \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ itemsCol=\[aq]items\[aq],
-predictionCol=\[aq]prediction\[aq],
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ predictionCol=\[aq]prediction\[aq],
+numPartitions=None,
 .PD 0
 .P
 .PD
 \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ numPartitions=None, tree_depth=None,
-.PD 0
-.P
-.PD
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ compression_point=4, mem_opt_level=0,
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ tree_depth=None, compression_point=4,
+mem_opt_level=0,
 .PD 0
 .P
 .PD
@@ -64,10 +61,11 @@ transaction database.
 The input of FPGrowth is a set of transactions called transaction
 database.
 Each transaction is a set of items.
-Frovedis supports numeric and non\-numeric values for transaction data.
+\f[B]Frovedis supports numeric and non\-numeric values for transaction
+data.\f[]
 .PP
 For example, consider the following transaction database.
-It contains 4 transactions (t1, t2, .., t4) and 4 items (1, 2, 3, 4).
+It contains 4 transactions (t1, t2, t3, t4) and 4 items (1, 2, 3, 4).
 The first transaction represents the set of items 1, 2 , 3 and 4.
 .IP
 .nf
@@ -171,7 +169,7 @@ Its value must be greater than 1.
 When it is None (not specified explicitly), the tree is constructed to
 its maximum depth according to the data.
 Since transaction databases tend to be very large, there may be a
-scenario wherin entire FP tree cannot be contained in memory.
+scenario wherein entire FP tree cannot be contained in memory.
 In those cases, the size of FP tree may be limited by using this
 parameter.
 .PD 0
@@ -205,7 +203,7 @@ This will degrade performance (execution time).
 .PD
 \f[B]\f[I]verbose\f[]\f[]: An integer parameter specifying the log level
 to use.
-Its value is 0 by default(INFO level).
+Its value is 0 by default (INFO level).
 But it can be set to 1 (DEBUG level) or 2 (TRACE level) for getting
 training time logs from frovedis server.
 .PD 0
@@ -226,7 +224,7 @@ For example,
 .IP
 .nf
 \f[C]
-#\ let\ data\ be\ some\ non\-numeric\ transaction\ database\ 
+#\ let\ the\ data\ be\ some\ non\-numeric\ transaction\ database\ 
 data\ =\ [[\[aq]banana\[aq],\[aq]apple\[aq],\[aq]mango\[aq],\[aq]cake\[aq]],
 \ \ \ \ \ \ \ \ [\[aq]cake\[aq],\[aq]banana\[aq],\[aq]apple\[aq]],
 \ \ \ \ \ \ \ \ [\[aq]bread\[aq],\[aq]banana\[aq]],
@@ -234,12 +232,13 @@ data\ =\ [[\[aq]banana\[aq],\[aq]apple\[aq],\[aq]mango\[aq],\[aq]cake\[aq]],
 #\ Using\ FPGrowth\ object\ with\ memory\ optimization\ parameters\ for\ training\ 
 #\ Here,\ disabling\ the\ parameter\ encode_string_input\ =\ False\ by\ default
 from\ frovedis.mllib.fpm\ import\ FPGrowth
-fpm\ =\ FPGrowth(minSupport\ =\ 0.01,\ minConfidence\ =\ 0.5,\ compression_point\ =\ 4,\ mem_opt_level\ =\ 1)\ 
+fpm\ =\ FPGrowth(minSupport\ =\ 0.01,\ minConfidence\ =\ 0.5,\ compression_point\ =\ 4,\ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ mem_opt_level\ =\ 1)\ 
 fpm.fit(data)
 \f[]
 .fi
 .PP
-Frequent itemsets generation time: 0.0361 sec
+\f[B]Frequent itemsets generation time: 0.0361 sec\f[]
 .PP
 And, when enabling \[aq]encode_string_input\[aq] with the same
 non\-numeric data,
@@ -255,7 +254,7 @@ fpm.fit(data)
 \f[]
 .fi
 .PP
-Frequent itemsets generation time: 0.0315 sec
+\f[B]Frequent itemsets generation time: 0.0315 sec\f[]
 .PP
 \f[B]Attributes\f[]
 .PD 0
@@ -407,7 +406,7 @@ dataset.
 .PD 0
 .P
 .PD
-It accepts the training data and trains the fp growth model with
+It accepts the training data and trains the fpgrowth model with
 specified minimum support value and tree depth value for construction of
 tree.
 .PP
@@ -554,22 +553,22 @@ frequent\ itemsets:
 331\ \ \ \ \ \ \ \ \ \ [yogurt,\ rolls/buns,\ whole\ milk]\ \ \ 153.0
 332\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ [yogurt,\ soda,\ whole\ milk]\ \ \ 103.0
 association\ rules:
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ antecedent\ \ \ \ \ \ \ \ \ \ consequent\ \ \ \ \ confidence\ \ \ lift\ \ \ \ \ support\ \ \ conviction
-0\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ [yogurt,\ other\ vegetables]\ \ \ \ \ \ [whole\ milk]\ \ \ \ 0.512881\ \ \ 2.007235\ \ 0.022267\ \ 1.528340
-1\ \ \ \ \ \ \ \ \ \ \ \ \ [whipped/sour\ cream,\ yogurt]\ \ \ \ \ \ [whole\ milk]\ \ \ \ 0.524510\ \ \ 2.052747\ \ 0.010880\ \ 1.565719
-2\ \ \ [whipped/sour\ cream,\ other\ vegetables]\ \ \ \ \ \ [whole\ milk]\ \ \ \ 0.507042\ \ \ 1.984385\ \ 0.014642\ \ 1.510239
-3\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ [tropical\ fruit,\ yogurt]\ \ \ \ \ \ [whole\ milk]\ \ \ \ 0.517361\ \ \ 2.024770\ \ 0.015150\ \ 1.542528
-4\ \ \ \ \ \ \ \ [tropical\ fruit,\ root\ vegetables]\ \ \ \ \ \ [whole\ milk]\ \ \ \ 0.570048\ \ \ 2.230969\ \ 0.011998\ \ 1.731553
-5\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ [root\ vegetables,\ yogurt]\ \ \ \ \ \ [whole\ milk]\ \ \ \ 0.562992\ \ \ 2.203354\ \ 0.014540\ \ 1.703594
-6\ \ \ \ \ \ \ \ \ \ \ \ [root\ vegetables,\ rolls/buns]\ \ \ \ \ \ [whole\ milk]\ \ \ \ 0.523013\ \ \ 2.046888\ \ 0.012710\ \ 1.560804
-7\ \ \ \ \ \ \ \ \ \ \ \ [pip\ fruit,\ other\ vegetables]\ \ \ \ \ \ [whole\ milk]\ \ \ \ 0.517510\ \ \ 2.025351\ \ 0.013523\ \ 1.543003
-8\ \ \ \ \ \ \ \ [domestic\ eggs,\ other\ vegetables]\ \ \ \ \ \ [whole\ milk]\ \ \ \ 0.552511\ \ \ 2.162336\ \ 0.012303\ \ 1.663694
-9\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ [curd,\ yogurt]\ \ \ \ \ \ [whole\ milk]\ \ \ \ 0.582353\ \ \ 2.279125\ \ 0.010066\ \ 1.782567
-10\ \ \ \ \ \ \ \ \ \ \ \ \ \ [butter,\ other\ vegetables]\ \ \ \ \ \ [whole\ milk]\ \ \ \ 0.573604\ \ \ 2.244885\ \ 0.011490\ \ 1.745992
-11\ \ \ \ \ \ \ [tropical\ fruit,\ root\ vegetables]\ \ [other\ vegetables]\ \ 0.584541\ \ \ 3.020999\ \ 0.012303\ \ 1.941244
-12\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ [root\ vegetables,\ yogurt]\ \ [other\ vegetables]\ \ 0.500000\ \ \ 2.584078\ \ 0.012913\ \ 1.613015
-13\ \ \ \ \ \ \ \ \ \ \ [root\ vegetables,\ rolls/buns]\ \ [other\ vegetables]\ \ 0.502092\ \ \ 2.594890\ \ 0.012201\ \ 1.619792
-14\ \ \ \ \ \ \ \ \ [citrus\ fruit,\ root\ vegetables]\ \ [other\ vegetables]\ \ 0.586207\ \ \ 3.029608\ \ 0.010371\ \ 1.949059
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ antecedent\ \ \ \ \ \ \ \ \ consequent\ \ \ \ confidence\ \ \ \ lift\ \ \ support\ \ conviction
+0\ \ \ \ \ \ \ \ \ \ \ \ \ [yogurt,\ other\ vegetables]\ \ \ \ [whole\ milk]\ \ \ \ \ 0.512881\ \ 2.007235\ 0.022267\ 1.528340
+1\ \ \ \ \ \ \ \ \ \ \ [whipped/sour\ cream,\ yogurt]\ \ \ \ [whole\ milk]\ \ \ \ \ 0.524510\ \ 2.052747\ 0.010880\ 1.565719
+2\ [whipped/sour\ cream,\ other\ vegetables]\ \ \ \ [whole\ milk]\ \ \ \ \ 0.507042\ \ 1.984385\ 0.014642\ 1.510239
+3\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ [tropical\ fruit,\ yogurt]\ \ \ \ [whole\ milk]\ \ \ \ \ 0.517361\ \ 2.024770\ 0.015150\ 1.542528
+4\ \ \ \ \ \ [tropical\ fruit,\ root\ vegetables]\ \ \ \ [whole\ milk]\ \ \ \ \ 0.570048\ \ 2.230969\ 0.011998\ 1.731553
+5\ \ \ \ \ \ \ \ \ \ \ \ \ \ [root\ vegetables,\ yogurt]\ \ \ \ [whole\ milk]\ \ \ \ \ 0.562992\ \ 2.203354\ 0.014540\ 1.703594
+6\ \ \ \ \ \ \ \ \ \ [root\ vegetables,\ rolls/buns]\ \ \ \ [whole\ milk]\ \ \ \ \ 0.523013\ \ 2.046888\ 0.012710\ 1.560804
+7\ \ \ \ \ \ \ \ \ \ [pip\ fruit,\ other\ vegetables]\ \ \ \ [whole\ milk]\ \ \ \ \ 0.517510\ \ 2.025351\ 0.013523\ 1.543003
+8\ \ \ \ \ \ [domestic\ eggs,\ other\ vegetables]\ \ \ \ [whole\ milk]\ \ \ \ \ 0.552511\ \ 2.162336\ 0.012303\ 1.663694
+9\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ [curd,\ yogurt]\ \ \ \ [whole\ milk]\ \ \ \ \ 0.582353\ \ 2.279125\ 0.010066\ 1.782567
+10\ \ \ \ \ \ \ \ \ \ \ \ [butter,\ other\ vegetables]\ \ \ \ [whole\ milk]\ \ \ \ \ 0.573604\ \ 2.244885\ 0.011490\ 1.745992
+11\ \ \ \ \ [tropical\ fruit,\ root\ vegetables]\ [other\ vegetables]\ \ 0.584541\ \ 3.020999\ 0.012303\ 1.941244
+12\ \ \ \ \ \ \ \ \ \ \ \ \ [root\ vegetables,\ yogurt]\ [other\ vegetables]\ \ 0.500000\ \ 2.584078\ 0.012913\ 1.613015
+13\ \ \ \ \ \ \ \ \ [root\ vegetables,\ rolls/buns]\ [other\ vegetables]\ \ 0.502092\ \ 2.594890\ 0.012201\ 1.619792
+14\ \ \ \ \ \ \ [citrus\ fruit,\ root\ vegetables]\ [other\ vegetables]\ \ 0.586207\ \ 3.029608\ 0.010371\ 1.949059
 \f[]
 .fi
 .PP
@@ -748,8 +747,7 @@ This will generate tables containing rules at server side.
 .PD 0
 .P
 .PD
-To print theses generated rules, debug_print() may be used as show
-below:
+To print these generated rules, debug_print() may be used as show below:
 .IP
 .nf
 \f[C]
@@ -758,7 +756,7 @@ fp_rules.debug_print()
 .fi
 .PP
 This will show all tables of different antecedent length at server side.
-Here, encoding was disbaled during rule generation.
+Here, encoding was disabled during rule generation.
 .PP
 Output,
 .IP
@@ -831,6 +829,10 @@ rule.save("./out/FPRule")
 .fi
 .PP
 It saves the rules in \[aq]FPRule\[aq] directory.
+.PD 0
+.P
+.PD
+It would raise exception if the directory already exists with same name.
 .PP
 The \[aq]FPRule\[aq] directory has
 .PP
@@ -887,7 +889,7 @@ were constructed during training.
 .P
 .PD
 Each rule based directory contains information about antecedent,
-consequent, confidence, lift, support, convition.
+consequent, confidence, lift, support, conviction.
 .PP
 For loading the already saved rules, following should be done:
 .IP
@@ -1006,6 +1008,10 @@ fpm.save("./out/FPModel")\ \
 .fi
 .PP
 This will save the fp\-growth model on the path \[aq]/out/FPModel\[aq].
+.PD 0
+.P
+.PD
+It would raise exception if the directory already exists with same name.
 .PP
 The \[aq]FPModel\[aq] directory has
 .PP
@@ -1173,7 +1179,7 @@ It can be used to confirm if the model is already fitted or not.
 .PD 0
 .P
 .PD
-It returns ‘True', if the model is already fitted otherwise, it returns
+It returns ‘True', if the model is already fitted, otherwise, it returns
 ‘False'.
 .SH SEE ALSO
 .PP
