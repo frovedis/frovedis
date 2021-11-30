@@ -8,36 +8,31 @@ syntactic similarity, relation with other words, etc.
 .SH SYNOPSIS
 .PP
 class frovedis.mllib.feature.Word2Vec(sentences=None, corpusFile=None,
+outDirPath=None,
 .PD 0
 .P
 .PD
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ outDirPath=None, hiddenSize=100,
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ hiddenSize=100,
+learningRate=0.025, n_iter=1,
 .PD 0
 .P
 .PD
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ learningRate=0.025, n_iter=1,
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ minCount=5, window=5,
+threshold=1e\-3,
 .PD 0
 .P
 .PD
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ minCount=5, window=5, threshold=1e\-3,
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ negative=5, modelSyncPeriod=0.1,
+minSyncWords=1024,
 .PD 0
 .P
 .PD
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ negative=5, modelSyncPeriod=0.1,
-.PD 0
-.P
-.PD
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ minSyncWords=1024, fullSyncTimes=0,
-.PD 0
-.P
-.PD
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ messageSize=1024, numThreads=None)
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ fullSyncTimes=0, messageSize=1024,
+numThreads=None)
 .SS Public Member Functions
 .PP
 build_vocab(corpusIterable = None, corpusFile = None, outDirPath = None,
@@ -131,14 +126,14 @@ creating the model.
 \f[B]\f[I]outDirPath\f[]\f[]: A string object parameter specifying the
 path of output directory.
 The newly built vocabulary generated from the input data file is dumped
-into provided output file path.
+into the provided output file path.
 (Default: None)
 .PD 0
 .P
 .PD
 \f[B]\f[I]hiddenSize\f[]\f[]: An integer parameter specifying the
 dimensionality of the word vectors.
-For fast compuatation, this value should be an even value and less than
+For fast computation, this value should be an even value and less than
 512 during training.
 (Default: 100)
 .PD 0
@@ -187,7 +182,7 @@ The default value should be used for fast computation during training.
 .PD 0
 .P
 .PD
-\f[B]\f[I]modelSyncPeriod\f[]\f[]: An unused parameter specfying the
+\f[B]\f[I]modelSyncPeriod\f[]\f[]: An unused parameter specifying the
 model synchronous period.
 (Default: 0.1)
 .PD 0
@@ -271,7 +266,7 @@ The parameters: "learningRate", "n_iter", "threshold",
 "modelSyncPeriod", "minSyncWords", "fullSyncTimes" and "messageSize" are
 simply kept in to to make the interface uniform to the gensim Word2Vec
 module.
-They are not used anywhere within frovedis implementation.
+They are not used anywhere within the frovedis implementation.
 .PP
 \f[B]Return Value\f[]
 .PD 0
@@ -621,6 +616,11 @@ wv_model.save(model,\ binary\ =\ False)\ \
 .PP
 This will save the word2vec model information on the path
 "/out/text_model.txt".
+.PD 0
+.P
+.PD
+It would raise exception if the \[aq]text_model.txt\[aq] file already
+existed with same name.
 .PP
 The \[aq]text_model.txt\[aq] file contains the count of all the words
 with total frequency greater than \[aq]minCount\[aq],

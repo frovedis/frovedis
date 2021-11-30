@@ -8,19 +8,15 @@ semantic and syntactic similarity, relation with other words, etc.
 
 # SYNOPSIS  
 
-class frovedis.mllib.feature.Word2Vec(sentences=None, corpusFile=None,  
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ outDirPath=None, hiddenSize=100,  
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ learningRate=0.025, n_iter=1,  
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ minCount=5, window=5, threshold=1e-3,  
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ negative=5, modelSyncPeriod=0.1,  
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ minSyncWords=1024, fullSyncTimes=0,  
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ messageSize=1024, numThreads=None)  
+class frovedis.mllib.feature.Word2Vec(sentences=None, corpusFile=None, outDirPath=None,  
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ hiddenSize=100, learningRate=0.025, n_iter=1,  
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ minCount=5, window=5, threshold=1e-3,  
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ negative=5, modelSyncPeriod=0.1, minSyncWords=1024,  
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ fullSyncTimes=0, messageSize=1024, numThreads=None)  
 
 ## Public Member Functions  
 
@@ -69,10 +65,10 @@ __Parameters__
 **_corpusFile_**: A string object parameter which specifies the path to a corpus file. If 
 not provided, the 'sentences' parameter must be provided for creating the model. (Default: None)  
 **_outDirPath_**: A string object parameter specifying the path of output directory. The 
-newly built vocabulary generated from the input data file is dumped into provided 
+newly built vocabulary generated from the input data file is dumped into the provided 
 output file path. (Default: None)  
 **_hiddenSize_**: An integer parameter specifying the dimensionality of the word vectors. For 
-fast compuatation, this value should be an even value and less than 512 during training. (Default: 100)  
+fast computation, this value should be an even value and less than 512 during training. (Default: 100)  
 **_learningRate_**: An unused parameter specifying the initial learning rate. (Default: 0.025)  
 **_n\_iter_**: An unused parameter specifying the number of iterations over the corpus. (Default: 1)  
 **_minCount_**: An integer parameter that ignores all words with total frequency lower than 
@@ -86,7 +82,7 @@ higher-frequency words are randomly downsampled. (Default: 1e-3)
 **_negative_**: An integer parameter. This value specifies how many "noise words" should be 
 drawn (usually between 5-20). The default value should be used for fast computation during 
 training. (Default: 5)  
-**_modelSyncPeriod_**: An unused parameter specfying the model synchronous period. (Default: 0.1)  
+**_modelSyncPeriod_**: An unused parameter specifying the model synchronous period. (Default: 0.1)  
 **_minSyncWords_**: An unused parameter specifying the minimum number of words to be synced 
 at each model sync. (Default: 1024)  
 **_fullSyncTimes_**: An unused parameter specifying the full-model sync-up time during 
@@ -125,7 +121,7 @@ It initializes a Word2Vec object with the given parameters.
 
 The parameters: "learningRate", "n_iter", "threshold", "modelSyncPeriod", "minSyncWords", 
 "fullSyncTimes" and "messageSize" are simply kept in to to make the interface uniform to the 
-gensim Word2Vec module. They are not used anywhere within frovedis implementation.  
+gensim Word2Vec module. They are not used anywhere within the frovedis implementation.  
 
 __Return Value__    
 It simply returns "self" reference.  
@@ -319,6 +315,7 @@ For example,
     wv_model.save(model, binary = False)  
 
 This will save the word2vec model information on the path "/out/text_model.txt".  
+It would raise exception if the 'text_model.txt' file already existed with same name.  
 
 The 'text_model.txt' file contains the count of all the words with total frequency greater 
 than 'minCount', 'hiddenSize' and dictionary having words (as keys) and embeddings (as values).  
