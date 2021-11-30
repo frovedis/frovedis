@@ -532,7 +532,7 @@ dummy_dftable
 frov_df_mode_cols(exrpc_ptr_t& df_proxy, 
                   std::vector<std::string>& cols,
                   bool& dropna);
-
+// TODO: improve vectorization in intialize_cnts_rows, update_counts
 template <class T>
 std::vector<std::map<T, size_t>>
 intialize_cnts_rows(std::vector<T>& val, std::vector<T>& most_freq, T null_val, bool dropna){
@@ -576,14 +576,11 @@ frov_df_mode_rows(exrpc_ptr_t& df_proxy,
                   bool& is_string,
                   bool& dropna);
 
-dummy_vector
-frov_get_bool_mask(exrpc_ptr_t& df_opt_proxy, 
-                  exrpc_ptr_t& df_proxy);
+dummy_vector frov_get_bool_mask(exrpc_ptr_t& df_opt_proxy, 
+                                exrpc_ptr_t& df_proxy,
+                                bool& ignore_null);
 
-dummy_dftable 
-frov_df_filter_dfopt_different_proxy(exrpc_ptr_t& df_proxy1,
-                                    exrpc_ptr_t& df_proxy2, 
-                                    exrpc_ptr_t& df_opt_proxy);
-
+exrpc_ptr_t frov_df_filter_using_mask(exrpc_ptr_t& df_proxy,
+                                      exrpc_ptr_t& mask_dvec_proxy);
 
 #endif

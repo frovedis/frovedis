@@ -183,6 +183,16 @@ filter_frovedis_dataframe = LIB.filter_frovedis_dataframe
 filter_frovedis_dataframe.argtypes = [c_char_p, c_int, c_long, c_long]
 filter_frovedis_dataframe.restype = c_long
 
+get_bool_mask = LIB.get_bool_mask
+get_bool_mask.argtypes = [c_char_p, c_int, c_long, # host, port, dfopt_proxy
+                          c_long, c_bool]          # df_Proxy, ignore_nulls
+get_bool_mask.restype = py_object
+
+filter_df_using_mask = LIB.filter_df_using_mask
+filter_df_using_mask.argtypes = [c_char_p, c_int, # host, port,
+                                 c_long, c_long]  # dfproxy, mask_dvec_proxy 
+filter_df_using_mask.restype = c_long
+
 drop_frovedis_dataframe_columns = LIB.drop_frovedis_dataframe_columns
 drop_frovedis_dataframe_columns.argtypes = [c_char_p, c_int, c_long,
                                             POINTER(c_char_p), c_ulong]
@@ -386,18 +396,6 @@ df_median.argtypes = [c_char_p, c_int, c_long,    # host, port, proxy
                     POINTER(c_short), c_ulong,    # type_ptr, ncol
                     c_int, c_bool, c_bool]        # axis, skip_na, with_index
 df_median.restype = py_object
-
-
-get_bool_mask = LIB.get_bool_mask
-get_bool_mask.argtypes = [c_char_p, c_int, c_long, # host, port, dfopt_proxy
-                          c_long]                  # df_Proxy
-get_bool_mask.restype = py_object
-
-df_filter_dfopt_different_proxy = LIB.df_filter_dfopt_different_proxy
-df_filter_dfopt_different_proxy.argtypes = [c_char_p, c_int, c_long, # host, port, dfproxy1
-                                           c_long, c_long]           # dfproxy2, dfopt_proxy 
-df_filter_dfopt_different_proxy.restype = py_object
-
 
 df_std = LIB.df_std
 df_std.argtypes = [c_char_p, c_int, c_long,      # host, port, proxy

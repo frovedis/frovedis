@@ -510,17 +510,15 @@ class DataFrame(object):
                 return self.select_frovedis_dataframe([target])
             elif isinstance(target, list):
                 if all(isinstance(e, bool) for e in target):
-                    return self.__filter_mask(target)
+                    return self.__filter_using_mask(target)
                 return self.select_frovedis_dataframe(target)
             elif isinstance(target, dfoperator):
-                if target.df.get() != self.get():
-                    return self.__filter_dfopt_different_proxy(target)
                 return self.filter_frovedis_dataframe(target)
             elif isinstance(target, slice):
                 return self.__filter_slice_range(target)
             elif isinstance(target, np.ndarray):
                 if target.dtype == "bool":
-                    return self.__filter_mask(target)
+                    return self.__filter_using_mask(target)
                 return self.select_frovedis_dataframe(target.tolist())
             else:
                 raise TypeError("Unsupported indexing input type!")
@@ -552,40 +550,36 @@ class DataFrame(object):
         filters rows on the basis of given 'opt' condition
         from the input dataframe
         """
+        if (opt.df.get() != self.get()):
+            ret = self.__filter_using_mask(opt.mask)
+        else:
+            ret = DataFrame(is_series=self.is_series)
+            ret.index = self.index
+            (host, port) = FrovedisServer.getServerInstance()
+            proxy = rpclib.filter_frovedis_dataframe(host, port, \
+                                                     self.get(), opt.get())
+            excpt = rpclib.check_server_exception()
+            if excpt["status"]:
+                raise RuntimeError(excpt["info"])
+            ret.load_dummy(proxy, list(self.__cols), list(self.__types))
+        return ret
+
+    @check_association
+    def __filter_using_mask(self, mask):
+        """
+        filters rows on the basis of boolean-mask
+        """
+        if not isinstance(mask, FrovedisIntDvector):
+            mask = FrovedisIntDvector(np.asarray(mask, dtype=np.int32)) #checks errors
         ret = DataFrame(is_series=self.is_series)
         ret.index = self.index
         (host, port) = FrovedisServer.getServerInstance()
-        proxy = rpclib.filter_frovedis_dataframe(host, port, \
-                                                 self.get(), opt.get())
+        proxy = rpclib.filter_df_using_mask(host, port, \
+                                            self.get(), mask.get())
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
             raise RuntimeError(excpt["info"])
         ret.load_dummy(proxy, list(self.__cols), list(self.__types))
-        return ret
-
-    def __filter_dfopt_different_proxy(self, opt):
-        """
-        filters rows on the basis of given 'opt' condition, 
-        in case of different underlying dataframe
-        """
-        (host, port) = FrovedisServer.getServerInstance()
-        dummy_df = rpclib.df_filter_dfopt_different_proxy(host, port, self.get(),\
-                                                    opt.df.get(), opt.get())
-        excpt = rpclib.check_server_exception()
-        if excpt["status"]:
-            raise RuntimeError(excpt["info"])
-        
-        names = dummy_df["names"]
-        types = dummy_df["types"]
-        ret = DataFrame(is_series=self.is_series)
-        ret.num_row = dummy_df["nrow"]
-
-        if self.has_index():
-            ret.index = FrovedisColumn(names[0], types[0]) #setting index
-            ret.load_dummy(dummy_df["dfptr"], names[1:], types[1:])
-        else:
-            ret.load_dummy(dummy_df["dfptr"], names, types)
-
         return ret
 
     @check_association
@@ -1860,12 +1854,14 @@ class DataFrame(object):
                            "column: {} !".format(position))
 
         data_type = TypeUtil.to_id_dtype(data_type)
-        is_bool = (data_type == DTYPE.BOOL)
         dvec = self.__get_dvec(data_type, data)
-        (host, port) = FrovedisServer.getServerInstance()
+        return self.__append_column_impl(col_name, data_type, dvec, pos, drop_old)
+
+    def __append_column_impl(self, col_name, data_type, dvec, pos, drop_old):
         df_proxy = -1
         if self.__fdata:
             df_proxy = self.get()
+        (host, port) = FrovedisServer.getServerInstance()
         dummy_df = rpclib.df_append_column(host, port, df_proxy,
                                            col_name.encode("ascii"),
                                            data_type, dvec.get(),
@@ -1882,7 +1878,7 @@ class DataFrame(object):
         names = dummy_df["names"]
         types = dummy_df["types"]
 
-        if is_bool:
+        if data_type == DTYPE.BOOL:
             ind = names.index(col_name)
             types[ind] = DTYPE.BOOL
 
@@ -1941,6 +1937,10 @@ class DataFrame(object):
 
         if isinstance(value, (DataFrame, pd.DataFrame)):
             self.copy_column(value, names_as=key, inplace=True)
+        elif isinstance(value, dfoperator):
+            pos = -1 # insert at last
+            drop_old = False
+            self = self.__append_column_impl(key[0], DTYPE.INT, value.mask, pos, drop_old)
         else:
             if np.isscalar(value):
                 if self.__fdata is None:
@@ -3049,28 +3049,6 @@ class DataFrame(object):
                 mask = np.asarray([False] * len(self))
                 mask[idx] = True
                 ret = mask
-        return ret
-
-    @check_association
-    def __filter_mask(self, target):
-        """
-        filters rows on the basis of boolean-mask
-        """
-        if isinstance(target, np.ndarray):
-            if target.ndim != 1:
-                raise ValueError("Filtering with boolean mask is not supported"
-                                " for ndim: {} \n".format(target.ndim))
-
-        if len(target) != len(self):
-            raise ValueError("Item wrong length {} instead of {}".format(len(target), len(self)))
-        
-        filter_column_name = "__filter_column"
-        self[filter_column_name] = target
-        ret = self[self.__dict__[filter_column_name] == 1]
-
-        self.drop(columns=[filter_column_name], inplace=True)
-        ret.drop(columns=[filter_column_name], inplace=True)
-
         return ret
 
     def between(self, left, right, inclusive="both"):
