@@ -120,7 +120,7 @@ For example, when evaluate_every < 0
     lda = LatentDirichletAllocation(n_components = 3, evaluate_every = -1)
     lda.fit(csr_mat)
 
-LDA training time: 0.0007402896881103516  
+**LDA training time: 0.0007402896881103516**  
 
 For example, when evaluate_every > 0  
 
@@ -142,21 +142,21 @@ For example, when evaluate_every > 0
     lda = LatentDirichletAllocation(n_components = 3, evaluate_every = 2)
     lda.fit(csr_mat)
 
-LDA training time: 0.0008301734924316406  
+**LDA training time: 0.0008301734924316406**  
 
-**_total\_samples_**: An unused positive integer parameter which is unused in 
-frovedis. This is simply kept to make the behavior consistent with Scikit-learn. (Default: 1e6)  
+**_total\_samples_**: A positive integer parameter which is unused in frovedis. This 
+is simply kept to make the behavior consistent with Scikit-learn. (Default: 1e6)  
 **_perp\_tol_**: An unused parameter. (Default: 1e-1)  
 **_mean\_change\_tol_**: An unused parameter. (Default: 1e-3)  
 **_max\_doc\_update\_iter_**: An unused parameter. (Default: 100)  
 **_n\_jobs_**: An unused parameter. (Default: None)  
 **_verbose_**: An integer parameter specifying the log level to use. Its value is set as 0 
-by default(for INFO mode). But it can be set to 1(for DEBUG mode) or 2(for TRACE mode) for 
+by default (for INFO mode). But it can be set to 1(for DEBUG mode) or 2(for TRACE mode) for 
 getting training time logs from frovedis server.  
 **_algorithm_**: A string object parameter which specifies the sampling technique to be 
 used. (Default: 'original')  
 Frovedis LatentDirichletAllocation(LDA) supports either of two sampling techniques:  
-**1. Collapsed Gibbs Sampling**  
+**1. Collapsed Gibbs Sampling (CGS)**  
 **2. Metropolis Hastings**  
 The default sampling algorithm is CGS (Default: 'original')  
 If Metropolis Hastings is to be used, then it is required to set the proposal types namely:  
@@ -177,7 +177,7 @@ It initializes a LatentDirichletAllocation object with the given parameters.
 The parameters: "learning_method", "learning_decay", "learning_offset", "batch_size", 
 "total_samples", "perp_tol", "mean_change_tol", "max_doc_update_iter" and "n_jobs" are simply 
 kept in to make the interface uniform to the Scikit-learn LatentDirichletAllocation module. 
-They are not used anywhere within frovedis implementation.  
+They are not used anywhere within the frovedis implementation.  
 
 __Return Value__   
 It simply returns "self" reference.   
@@ -251,7 +251,7 @@ __Parameters__
 double(float64) type. It has shape **(n_samples, n_features)**.  
 
 __Purpose__  
-Transform input matrix X according to the trained model.  
+Transforms input matrix X according to the trained model.  
 
 For example,   
 
@@ -308,11 +308,12 @@ Output
     matrix:
     num_row = 2, num_col = 3
     node 0
-    node = 0, local_num_row = 2, local_num_col = 3, val = 0.47619 0.333333 0.333333 0.266667 0.0666667 0.866667
+    node = 0, local_num_row = 2, local_num_col = 3, val = 0.47619 0.333333 0.333333 0.266667 
+    0.0666667 0.866667
 
 __Return Value__  
 **When X is python native input:**  
-It returns a numpy ndarray of shape **(n_samples, n_components)** and double (float64) 
+It returns a python ndarray of shape **(n_samples, n_components)** and double (float64) 
 type values. It contains the document-wise topic distribution for input data X.  
 **When X is frovedis-like input:**  
 It returns a FrovedisRowmajorMatrix of shape **(n_samples, n_components)** and 
@@ -349,7 +350,7 @@ __Parameters__
 **_X_**: A scipy sparse matrix or an instance of FrovedisCRSMatrix for sparse data of int, float, 
 double(float64) type. It has shape **(n_samples, n_features)**.  
 **_y_**:  None or any python array-like object (any shape). It is simply ignored in frovedis 
-implementation, like in Scikit-learn.  
+implementation, just like in Scikit-learn.  
 
 __Purpose__  
 Calculate approximate log-likelihood as score for data X.  
@@ -388,16 +389,17 @@ Output
 
     {'algorithm': 'original', 'batch_size': 128, 'doc_topic_prior': 0.3333333333333333, 
     'evaluate_every': -1, 'explore_iter': 0, 'learning_decay': 0.7, 'learning_method': 'batch', 
-    'learning_offset': 10.0, 'max_doc_update_iter': 100, 'max_iter': 10, 'mean_change_tol': 0.001, 
-    'n_components': 3, 'n_jobs': None, 'perp_tol': 0.1, 'random_state': None, 
-    'topic_word_prior': 0.3333333333333333, 'total_samples': 1000000.0, 'verbose': 0}
+    'learning_offset': 10.0, 'max_doc_update_iter': 100, 'max_iter': 10, 
+    'mean_change_tol': 0.001, 'n_components': 3, 'n_jobs': None, 'perp_tol': 0.1, 
+    'random_state': None, 'topic_word_prior': 0.3333333333333333, 'total_samples': 1000000.0, 
+    'verbose': 0}
 
 __Return Value__  
 A dictionary of parameter names mapped to their values.  
 
 ### 7. set_params(\*\*params)  
 __Parameters__  
-_**\*\*params**_: All the keyword arguments are passed this function as dictionary. This 
+_**\*\*params**_: All the keyword arguments are passed to this function as dictionary. This 
 dictionary contains parameters of an estimator with its given values to set.  
 
 __Purpose__  
@@ -419,15 +421,17 @@ Output
     get parameters before setting:
     {'algorithm': 'original', 'batch_size': 128, 'doc_topic_prior': 0.3333333333333333, 
     'evaluate_every': -1, 'explore_iter': 0, 'learning_decay': 0.7, 'learning_method': 'batch', 
-    'learning_offset': 10.0, 'max_doc_update_iter': 100, 'max_iter': 10, 'mean_change_tol': 0.001, 
-    'n_components': 3, 'n_jobs': None, 'perp_tol': 0.1, 'random_state': None, 
-    'topic_word_prior': 0.3333333333333333, 'total_samples': 1000000.0, 'verbose': 0}
+    'learning_offset': 10.0, 'max_doc_update_iter': 100, 'max_iter': 10, 
+    'mean_change_tol': 0.001, 'n_components': 3, 'n_jobs': None, 'perp_tol': 0.1, 
+    'random_state': None, 'topic_word_prior': 0.3333333333333333, 'total_samples': 1000000.0, 
+    'verbose': 0}
     get parameters after setting:
     {'algorithm': 'dp', 'batch_size': 128, 'doc_topic_prior': 0.3333333333333333, 
     'evaluate_every': -1, 'explore_iter': 0, 'learning_decay': 0.7, 'learning_method': 'batch', 
-    'learning_offset': 10.0, 'max_doc_update_iter': 100, 'max_iter': 10, 'mean_change_tol': 0.001, 
-    'n_components': 4, 'n_jobs': None, 'perp_tol': 0.1, 'random_state': None, 
-    'topic_word_prior': 0.3333333333333333, 'total_samples': 1000000.0, 'verbose': 0}
+    'learning_offset': 10.0, 'max_doc_update_iter': 100, 'max_iter': 10, 
+    'mean_change_tol': 0.001, 'n_components': 4, 'n_jobs': None, 'perp_tol': 0.1, 
+    'random_state': None, 'topic_word_prior': 0.3333333333333333, 'total_samples': 1000000.0, 
+    'verbose': 0}
     
 __Return Value__  
 It simply returns "self" reference.  
@@ -539,6 +543,7 @@ For example,
     lda.save("./out/trained_lda_model")  
 
 This will save the lda model on the path "/out/trained_lda_model".  
+It would raise exception if the directory already exists with same name.  
 
 The 'trained_lda_model' directory has  
 
@@ -576,7 +581,7 @@ __Purpose__
 It can be used to confirm if the model is already fitted or not.  
 
 __Return Value__  
-It returns ‘True’, if the model is already fitted otherwise, it returns ‘False’.  
+It returns ‘True’, if the model is already fitted, otherwise, it returns ‘False’.  
 
 # SEE ALSO  
 crs_matrix

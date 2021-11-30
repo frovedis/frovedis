@@ -250,7 +250,7 @@ lda.fit(csr_mat)
 \f[]
 .fi
 .PP
-LDA training time: 0.0007402896881103516
+\f[B]LDA training time: 0.0007402896881103516\f[]
 .PP
 For example, when evaluate_every > 0
 .IP
@@ -276,10 +276,10 @@ lda.fit(csr_mat)
 \f[]
 .fi
 .PP
-LDA training time: 0.0008301734924316406
+\f[B]LDA training time: 0.0008301734924316406\f[]
 .PP
-\f[B]\f[I]total_samples\f[]\f[]: An unused positive integer parameter
-which is unused in frovedis.
+\f[B]\f[I]total_samples\f[]\f[]: A positive integer parameter which is
+unused in frovedis.
 This is simply kept to make the behavior consistent with Scikit\-learn.
 (Default: 1e6)
 .PD 0
@@ -307,7 +307,7 @@ This is simply kept to make the behavior consistent with Scikit\-learn.
 .PD
 \f[B]\f[I]verbose\f[]\f[]: An integer parameter specifying the log level
 to use.
-Its value is set as 0 by default(for INFO mode).
+Its value is set as 0 by default (for INFO mode).
 But it can be set to 1(for DEBUG mode) or 2(for TRACE mode) for getting
 training time logs from frovedis server.
 .PD 0
@@ -324,7 +324,7 @@ techniques:
 .PD 0
 .P
 .PD
-\f[B]1. Collapsed Gibbs Sampling\f[]
+\f[B]1. Collapsed Gibbs Sampling (CGS)\f[]
 .PD 0
 .P
 .PD
@@ -379,7 +379,7 @@ The parameters: "learning_method", "learning_decay", "learning_offset",
 "batch_size", "total_samples", "perp_tol", "mean_change_tol",
 "max_doc_update_iter" and "n_jobs" are simply kept in to make the
 interface uniform to the Scikit\-learn LatentDirichletAllocation module.
-They are not used anywhere within frovedis implementation.
+They are not used anywhere within the frovedis implementation.
 .PP
 \f[B]Return Value\f[]
 .PD 0
@@ -486,7 +486,7 @@ It has shape \f[B](n_samples, n_features)\f[].
 .PD 0
 .P
 .PD
-Transform input matrix X according to the trained model.
+Transforms input matrix X according to the trained model.
 .PP
 For example,
 .IP
@@ -558,7 +558,8 @@ Output
 matrix:
 num_row\ =\ 2,\ num_col\ =\ 3
 node\ 0
-node\ =\ 0,\ local_num_row\ =\ 2,\ local_num_col\ =\ 3,\ val\ =\ 0.47619\ 0.333333\ 0.333333\ 0.266667\ 0.0666667\ 0.866667
+node\ =\ 0,\ local_num_row\ =\ 2,\ local_num_col\ =\ 3,\ val\ =\ 0.47619\ 0.333333\ 0.333333\ 0.266667\ 
+0.0666667\ 0.866667
 \f[]
 .fi
 .PP
@@ -570,7 +571,7 @@ node\ =\ 0,\ local_num_row\ =\ 2,\ local_num_col\ =\ 3,\ val\ =\ 0.47619\ 0.3333
 .PD 0
 .P
 .PD
-It returns a numpy ndarray of shape \f[B](n_samples, n_components)\f[]
+It returns a python ndarray of shape \f[B](n_samples, n_components)\f[]
 and double (float64) type values.
 It contains the document\-wise topic distribution for input data X.
 .PD 0
@@ -647,7 +648,8 @@ It has shape \f[B](n_samples, n_features)\f[].
 .P
 .PD
 \f[B]\f[I]y\f[]\f[]: None or any python array\-like object (any shape).
-It is simply ignored in frovedis implementation, like in Scikit\-learn.
+It is simply ignored in frovedis implementation, just like in
+Scikit\-learn.
 .PP
 \f[B]Purpose\f[]
 .PD 0
@@ -719,9 +721,10 @@ Output
 \f[C]
 {\[aq]algorithm\[aq]:\ \[aq]original\[aq],\ \[aq]batch_size\[aq]:\ 128,\ \[aq]doc_topic_prior\[aq]:\ 0.3333333333333333,\ 
 \[aq]evaluate_every\[aq]:\ \-1,\ \[aq]explore_iter\[aq]:\ 0,\ \[aq]learning_decay\[aq]:\ 0.7,\ \[aq]learning_method\[aq]:\ \[aq]batch\[aq],\ 
-\[aq]learning_offset\[aq]:\ 10.0,\ \[aq]max_doc_update_iter\[aq]:\ 100,\ \[aq]max_iter\[aq]:\ 10,\ \[aq]mean_change_tol\[aq]:\ 0.001,\ 
-\[aq]n_components\[aq]:\ 3,\ \[aq]n_jobs\[aq]:\ None,\ \[aq]perp_tol\[aq]:\ 0.1,\ \[aq]random_state\[aq]:\ None,\ 
-\[aq]topic_word_prior\[aq]:\ 0.3333333333333333,\ \[aq]total_samples\[aq]:\ 1000000.0,\ \[aq]verbose\[aq]:\ 0}
+\[aq]learning_offset\[aq]:\ 10.0,\ \[aq]max_doc_update_iter\[aq]:\ 100,\ \[aq]max_iter\[aq]:\ 10,\ 
+\[aq]mean_change_tol\[aq]:\ 0.001,\ \[aq]n_components\[aq]:\ 3,\ \[aq]n_jobs\[aq]:\ None,\ \[aq]perp_tol\[aq]:\ 0.1,\ 
+\[aq]random_state\[aq]:\ None,\ \[aq]topic_word_prior\[aq]:\ 0.3333333333333333,\ \[aq]total_samples\[aq]:\ 1000000.0,\ 
+\[aq]verbose\[aq]:\ 0}
 \f[]
 .fi
 .PP
@@ -736,7 +739,7 @@ A dictionary of parameter names mapped to their values.
 .PD 0
 .P
 .PD
-\f[I]\f[B]**params\f[]\f[]: All the keyword arguments are passed this
+\f[I]\f[B]**params\f[]\f[]: All the keyword arguments are passed to this
 function as dictionary.
 This dictionary contains parameters of an estimator with its given
 values to set.
@@ -769,15 +772,17 @@ Output
 get\ parameters\ before\ setting:
 {\[aq]algorithm\[aq]:\ \[aq]original\[aq],\ \[aq]batch_size\[aq]:\ 128,\ \[aq]doc_topic_prior\[aq]:\ 0.3333333333333333,\ 
 \[aq]evaluate_every\[aq]:\ \-1,\ \[aq]explore_iter\[aq]:\ 0,\ \[aq]learning_decay\[aq]:\ 0.7,\ \[aq]learning_method\[aq]:\ \[aq]batch\[aq],\ 
-\[aq]learning_offset\[aq]:\ 10.0,\ \[aq]max_doc_update_iter\[aq]:\ 100,\ \[aq]max_iter\[aq]:\ 10,\ \[aq]mean_change_tol\[aq]:\ 0.001,\ 
-\[aq]n_components\[aq]:\ 3,\ \[aq]n_jobs\[aq]:\ None,\ \[aq]perp_tol\[aq]:\ 0.1,\ \[aq]random_state\[aq]:\ None,\ 
-\[aq]topic_word_prior\[aq]:\ 0.3333333333333333,\ \[aq]total_samples\[aq]:\ 1000000.0,\ \[aq]verbose\[aq]:\ 0}
+\[aq]learning_offset\[aq]:\ 10.0,\ \[aq]max_doc_update_iter\[aq]:\ 100,\ \[aq]max_iter\[aq]:\ 10,\ 
+\[aq]mean_change_tol\[aq]:\ 0.001,\ \[aq]n_components\[aq]:\ 3,\ \[aq]n_jobs\[aq]:\ None,\ \[aq]perp_tol\[aq]:\ 0.1,\ 
+\[aq]random_state\[aq]:\ None,\ \[aq]topic_word_prior\[aq]:\ 0.3333333333333333,\ \[aq]total_samples\[aq]:\ 1000000.0,\ 
+\[aq]verbose\[aq]:\ 0}
 get\ parameters\ after\ setting:
 {\[aq]algorithm\[aq]:\ \[aq]dp\[aq],\ \[aq]batch_size\[aq]:\ 128,\ \[aq]doc_topic_prior\[aq]:\ 0.3333333333333333,\ 
 \[aq]evaluate_every\[aq]:\ \-1,\ \[aq]explore_iter\[aq]:\ 0,\ \[aq]learning_decay\[aq]:\ 0.7,\ \[aq]learning_method\[aq]:\ \[aq]batch\[aq],\ 
-\[aq]learning_offset\[aq]:\ 10.0,\ \[aq]max_doc_update_iter\[aq]:\ 100,\ \[aq]max_iter\[aq]:\ 10,\ \[aq]mean_change_tol\[aq]:\ 0.001,\ 
-\[aq]n_components\[aq]:\ 4,\ \[aq]n_jobs\[aq]:\ None,\ \[aq]perp_tol\[aq]:\ 0.1,\ \[aq]random_state\[aq]:\ None,\ 
-\[aq]topic_word_prior\[aq]:\ 0.3333333333333333,\ \[aq]total_samples\[aq]:\ 1000000.0,\ \[aq]verbose\[aq]:\ 0}
+\[aq]learning_offset\[aq]:\ 10.0,\ \[aq]max_doc_update_iter\[aq]:\ 100,\ \[aq]max_iter\[aq]:\ 10,\ 
+\[aq]mean_change_tol\[aq]:\ 0.001,\ \[aq]n_components\[aq]:\ 4,\ \[aq]n_jobs\[aq]:\ None,\ \[aq]perp_tol\[aq]:\ 0.1,\ 
+\[aq]random_state\[aq]:\ None,\ \[aq]topic_word_prior\[aq]:\ 0.3333333333333333,\ \[aq]total_samples\[aq]:\ 1000000.0,\ 
+\[aq]verbose\[aq]:\ 0}
 \f[]
 .fi
 .PP
@@ -964,6 +969,10 @@ lda.save("./out/trained_lda_model")\ \
 .fi
 .PP
 This will save the lda model on the path "/out/trained_lda_model".
+.PD 0
+.P
+.PD
+It would raise exception if the directory already exists with same name.
 .PP
 The \[aq]trained_lda_model\[aq] directory has
 .PP
@@ -1035,7 +1044,7 @@ It can be used to confirm if the model is already fitted or not.
 .PD 0
 .P
 .PD
-It returns ‘True', if the model is already fitted otherwise, it returns
+It returns ‘True', if the model is already fitted, otherwise, it returns
 ‘False'.
 .SH SEE ALSO
 .PP
