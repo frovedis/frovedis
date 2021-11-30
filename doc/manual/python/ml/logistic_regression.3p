@@ -114,17 +114,18 @@ L(w;x,y)\ :=\ log(1\ +\ exp(\-ywTx))\ \ \ \
 \f[]
 .fi
 .PP
-Where the vectors x are the training data examples and y are their
-corresponding labels (Frovedis supports any values as for labels, but
-internally it encodes the input binary labels to \-1 and 1, and input
-multinomial labels to 0, 1, 2, ..., N\-1 (where N is the no.
+Where the vectors \f[B]x\f[] are the training data examples and
+\f[B]y\f[] are their corresponding labels (Frovedis supports any values
+as for labels, but internally it encodes the input binary labels to \-1
+and 1, and input multinomial labels to 0, 1, 2, ..., N\-1 (where N is
+the no.
 of classes) before training at Frovedis server) which we want to
 predict.
-w is the linear model (also called as weight) which uses a single
-weighted sum of features to make a prediction.
-Frovedis Logistic Regression supports ZERO, L1 and L2 regularization to
-address the overfit problem.
-However, LBFGS solver supports only L2 regularization.
+\f[B]w\f[] is the linear model (also called as weight) which uses a
+single weighted sum of features to make a prediction.
+\f[B]Frovedis Logistic Regression supports ZERO, L1 and L2
+regularization to address the overfit problem. However, LBFGS solver
+supports only L2 regularization.\f[]
 .PD 0
 .P
 .PD
@@ -312,7 +313,7 @@ Only "sag" solvers support multinomial classification currently.
 .PD
 \f[B]\f[I]verbose\f[]\f[]: An integer parameter specifying the log level
 to use.
-Its value is 0 by default(for INFO mode and not explicitly specified).
+Its value is 0 by default (for INFO mode and not explicitly specified).
 But it can be set to 1 (for DEBUG mode) or 2 (for TRACE mode) for
 getting training time logs from frovedis server.
 .PD 0
@@ -356,7 +357,7 @@ by reducing communication overhead across participating processes.
 values depending on input matrix data type) of coefficient of the
 features in the decision function.
 It has shape \f[B](1, n_features)\f[] when the given problem is "binary"
-and (n_classes, n_features) when it is a "multinomial" problem.
+and \f[B](n_classes, n_features)\f[] when it is a "multinomial" problem.
 .PD 0
 .P
 .PD
@@ -409,12 +410,13 @@ and FrovedisColmajorMatrix for dense data.
 .PD
 \f[B]\f[I]y\f[]\f[]: Any python array\-like object or an instance of
 FrovedisDvector.
+It has shape \f[B](n_samples,)\f[].
 .PD 0
 .P
 .PD
-\f[B]\f[I]sample_weight\f[]\f[]: A python narray containing the intended
-weights for each input samples and it should be the shape of (nsamples,
-).
+\f[B]\f[I]sample_weight\f[]\f[]: A python ndarray containing the
+intended weights for each input samples and it should be the shape of
+\f[B](n_samples, )\f[].
 When it is None (not specified explicitly), an uniform weight vector is
 assigned on each input sample.
 (Default: None)
@@ -425,7 +427,7 @@ assigned on each input sample.
 .PD
 It accepts the training feature matrix (X) and corresponding output
 labels (y) as inputs from the user and trains a logistic regression
-model with specifed regularization with those data at frovedis server.
+model with specified regularization with those data at frovedis server.
 .PP
 For example,
 .IP
@@ -445,7 +447,7 @@ When native python data is provided, it is converted to frovedis\-like
 inputs and sent to frovedis server which consumes some data transfer
 time.
 Pre\-constructed frovedis\-like inputs can be used to speed up the
-training time, specially when same data would be used for multiple
+training time, especially when same data would be used for multiple
 executions.
 .PP
 For example,
@@ -463,7 +465,7 @@ from\ frovedis.matrix.dvector\ import\ FrovedisDvector\
 cmat\ =\ FrovedisColmajorMatrix(mat)
 dlbl\ =\ FrovedisDvector(lbl)
 
-#\ Logistic\ Regression\ with\ pre\-constructed\ frovedlis\-like\ inputs
+#\ Logistic\ Regression\ with\ pre\-constructed\ frovedis\-like\ inputs
 from\ frovedis.mllib.linear_model\ import\ LogisticRegression
 lr\ =\ LogisticRegression(solver\ =\ \[aq]lbfgs\[aq]).fit(cmat,\ dlbl)
 \f[]
@@ -561,7 +563,7 @@ For example,
 .IP
 .nf
 \f[C]
-#\ finds\ the\ probablity\ sample\ for\ each\ class\ in\ the\ model
+#\ finds\ the\ probability\ sample\ for\ each\ class\ in\ the\ model
 lr.predict_proba(mat)\ \ 
 \f[]
 .fi
@@ -590,7 +592,7 @@ For example,
 #\ Since\ "cmat"\ is\ FrovedisColmajorMatrix,\ we\ have\ created\ FrovedisRowmajorMatrix.
 from\ frovedis.matrix.dense\ import\ FrovedisRowmajorMatrix
 
-#\ finds\ the\ probablity\ sample\ for\ each\ class\ in\ the\ model
+#\ finds\ the\ probability\ sample\ for\ each\ class\ in\ the\ model
 lr.predict_proba(mat)\ \ 
 \f[]
 .fi
@@ -613,7 +615,7 @@ Output
 .PD 0
 .P
 .PD
-It returns a numpy array of float or double(float64) type and of shape
+It returns an ndarray of float or double(float64) type and of shape
 \f[B](n_samples, n_classes)\f[] containing the prediction probability
 values.
 .SS 5. score(X, y, sample_weight = None)
@@ -630,12 +632,13 @@ and FrovedisRowmajorMatrix for dense data.
 .PD
 \f[B]\f[I]y\f[]\f[]: Any python array\-like object or an instance of
 FrovedisDvector.
+It has shape \f[B](n_samples,)\f[].
 .PD 0
 .P
 .PD
-\f[B]\f[I]sample_weight\f[]\f[]: Python array\-like containing the
+\f[B]\f[I]sample_weight\f[]\f[]: A python ndarray containing the
 intended weights for each input samples and it should be the shape of
-(nsamples, ).
+\f[B](n_samples, )\f[].
 When it is None (not specified explicitly), an uniform weight vector is
 assigned on each input sample.
 (Default: None)
@@ -703,10 +706,11 @@ Output
 .IP
 .nf
 \f[C]
-{\[aq]C\[aq]:\ 100.0,\ \[aq]class_weight\[aq]:\ None,\ \[aq]dual\[aq]:\ False,\ \[aq]fit_intercept\[aq]:\ True,\ \[aq]intercept_scaling\[aq]:\ 1,
-\[aq]l1_ratio\[aq]:\ None,\ \[aq]lr_rate\[aq]:\ 0.01,\ \[aq]max_iter\[aq]:\ 1000,\ \[aq]multi_class\[aq]:\ \[aq]auto\[aq],\ \[aq]n_jobs\[aq]:\ 1,
-\[aq]penalty\[aq]:\ \[aq]l2\[aq],\ \[aq]random_state\[aq]:\ None,\ \[aq]solver\[aq]:\ \[aq]sag\[aq],\ \[aq]tol\[aq]:\ 0.0001,\ \[aq]use_shrink\[aq]:\ False,
-\[aq]verbose\[aq]:\ 0,\ \[aq]warm_start\[aq]:\ False}
+{\[aq]C\[aq]:\ 100.0,\ \[aq]class_weight\[aq]:\ None,\ \[aq]dual\[aq]:\ False,\ \[aq]fit_intercept\[aq]:\ True,\ 
+\[aq]intercept_scaling\[aq]:\ 1,\ \[aq]l1_ratio\[aq]:\ None,\ \[aq]lr_rate\[aq]:\ 0.01,\ \[aq]max_iter\[aq]:\ 1000,\ 
+\[aq]multi_class\[aq]:\ \[aq]auto\[aq],\ \[aq]n_jobs\[aq]:\ 1,\ \[aq]penalty\[aq]:\ \[aq]l2\[aq],\ \[aq]random_state\[aq]:\ None,\ 
+\[aq]solver\[aq]:\ \[aq]sag\[aq],\ \[aq]tol\[aq]:\ 0.0001,\ \[aq]use_shrink\[aq]:\ False,\ \[aq]verbose\[aq]:\ 0,\ 
+\[aq]warm_start\[aq]:\ False}
 \f[]
 .fi
 .PP
@@ -721,7 +725,7 @@ A dictionary of parameter names mapped to their values.
 .PD 0
 .P
 .PD
-\f[I]\f[B]**params\f[]\f[]: All the keyword arguments are passed this
+\f[I]\f[B]**params\f[]\f[]: All the keyword arguments are passed to this
 function as dictionary.
 This dictionary contains parameters of an estimator with its given
 values to set.
@@ -752,15 +756,17 @@ Output
 .nf
 \f[C]
 get\ parameters\ before\ setting:
-{\[aq]C\[aq]:\ 100.0,\ \[aq]class_weight\[aq]:\ None,\ \[aq]dual\[aq]:\ False,\ \[aq]fit_intercept\[aq]:\ True,\ \[aq]intercept_scaling\[aq]:\ 1,
-\[aq]l1_ratio\[aq]:\ None,\ \[aq]lr_rate\[aq]:\ 0.01,\ \[aq]max_iter\[aq]:\ 1000,\ \[aq]multi_class\[aq]:\ \[aq]auto\[aq],\ \[aq]n_jobs\[aq]:\ 1,
-\[aq]penalty\[aq]:\ \[aq]l2\[aq],\ \[aq]random_state\[aq]:\ None,\ \[aq]solver\[aq]:\ \[aq]sag\[aq],\ \[aq]tol\[aq]:\ 0.0001,\ \[aq]use_shrink\[aq]:\ False,
-\[aq]verbose\[aq]:\ 0,\ \[aq]warm_start\[aq]:\ False}
+{\[aq]C\[aq]:\ 100.0,\ \[aq]class_weight\[aq]:\ None,\ \[aq]dual\[aq]:\ False,\ \[aq]fit_intercept\[aq]:\ True,\ 
+\[aq]intercept_scaling\[aq]:\ 1,\ \[aq]l1_ratio\[aq]:\ None,\ \[aq]lr_rate\[aq]:\ 0.01,\ \[aq]max_iter\[aq]:\ 1000,\ 
+\[aq]multi_class\[aq]:\ \[aq]auto\[aq],\ \[aq]n_jobs\[aq]:\ 1,\ \[aq]penalty\[aq]:\ \[aq]l2\[aq],\ \[aq]random_state\[aq]:\ None,\ 
+\[aq]solver\[aq]:\ \[aq]sag\[aq],\ \[aq]tol\[aq]:\ 0.0001,\ \[aq]use_shrink\[aq]:\ False,\ \[aq]verbose\[aq]:\ 0,\ 
+\[aq]warm_start\[aq]:\ False}
 get\ parameters\ after\ setting:
-{\[aq]C\[aq]:\ 100.0,\ \[aq]class_weight\[aq]:\ None,\ \[aq]dual\[aq]:\ False,\ \[aq]fit_intercept\[aq]:\ True,\ \[aq]intercept_scaling\[aq]:\ 1,
-\[aq]l1_ratio\[aq]:\ None,\ \[aq]lr_rate\[aq]:\ 0.01,\ \[aq]max_iter\[aq]:\ 10000,\ \[aq]multi_class\[aq]:\ \[aq]auto\[aq],\ \[aq]n_jobs\[aq]:\ 1,
-\[aq]penalty\[aq]:\ \[aq]l2\[aq],\ \[aq]random_state\[aq]:\ None,\ \[aq]solver\[aq]:\ \[aq]lbfgs\[aq],\ \[aq]tol\[aq]:\ 0.0001,\ \[aq]use_shrink\[aq]:\ False,
-\[aq]verbose\[aq]:\ 0,\ \[aq]warm_start\[aq]:\ False}
+{\[aq]C\[aq]:\ 100.0,\ \[aq]class_weight\[aq]:\ None,\ \[aq]dual\[aq]:\ False,\ \[aq]fit_intercept\[aq]:\ True,\ 
+\[aq]intercept_scaling\[aq]:\ 1,\ \[aq]l1_ratio\[aq]:\ None,\ \[aq]lr_rate\[aq]:\ 0.01,\ \[aq]max_iter\[aq]:\ 10000,\ 
+\[aq]multi_class\[aq]:\ \[aq]auto\[aq],\ \[aq]n_jobs\[aq]:\ 1,\ \[aq]penalty\[aq]:\ \[aq]l2\[aq],\ \[aq]random_state\[aq]:\ None,\ 
+\[aq]solver\[aq]:\ \[aq]lbfgs\[aq],\ \[aq]tol\[aq]:\ 0.0001,\ \[aq]use_shrink\[aq]:\ False,\ \[aq]verbose\[aq]:\ 0,\ 
+\[aq]warm_start\[aq]:\ False}
 \f[]
 .fi
 .PP
@@ -803,7 +809,7 @@ lr.load("./out/LRModel")
 .PD 0
 .P
 .PD
-It simply returns "self" instance.
+It simply returns "self" reference.
 .SS 9. save(fname)
 .PP
 \f[B]Parameters\f[]
@@ -817,7 +823,7 @@ on which the target model is to be saved.
 .PD 0
 .P
 .PD
-On success, it writes the model information (weight values etc.) in the
+On success, it writes the model information (weight values, etc.) in the
 specified file as little\-endian binary data.
 Otherwise, it throws an exception.
 .PP
@@ -832,6 +838,7 @@ lr.save("./out/LRModel")\ \ \ \
 .PP
 This will save the logistic regression model on the path
 \[aq]/out/LRModel\[aq].
+It would raise exception if the directory already exists with same name.
 .PP
 The \[aq]LRModel\[aq] directory has
 .PP
@@ -957,4 +964,4 @@ It returns ‘True', if the model is already fitted otherwise, it returns
 ‘False'.
 .SH SEE ALSO
 .PP
-linear_svm, dvector, crs_matrix
+linear_regression, dvector, crs_matrix, colmajor_matrix

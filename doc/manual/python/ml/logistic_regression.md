@@ -49,14 +49,14 @@ It is a linear method with the loss function given by the **logistic loss**:
 
     L(w;x,y) := log(1 + exp(-ywTx))    
 
-Where the vectors x are the training data examples and y are their corresponding 
+Where the vectors **x** are the training data examples and **y** are their corresponding 
 labels (Frovedis supports any values as for labels, but internally it encodes the 
 input binary labels to -1 and 1, and input multinomial labels to 0, 1, 2, ..., N-1 
 (where N is the no. of classes) before training at Frovedis server) which we want 
-to predict. w is the linear model (also called as weight) which uses a single weighted 
-sum of features to make a prediction. Frovedis Logistic Regression supports ZERO, 
+to predict. **w** is the linear model (also called as weight) which uses a single weighted 
+sum of features to make a prediction. **Frovedis Logistic Regression supports ZERO, 
 L1 and L2 regularization to address the overfit problem. However, LBFGS solver 
-supports only L2 regularization.  
+supports only L2 regularization.**  
 The gradient of the logistic loss is: -y( 1 - 1 / (1 + exp(-ywTx))).x    
 The gradient of the L1 regularizer is: sign(w)     
 And, the gradient of the L2 regularizer is: w  
@@ -136,7 +136,7 @@ multinomial classification is selected (where N is the no. of classes in trainin
 If it is "multinomial", then it always selects a multinomial problem (even when N = 2). 
 Only "sag" solvers support multinomial classification currently. (Default: 'auto')  
 **_verbose_**: An integer parameter specifying the log level to use. Its value is 0 
-by default(for INFO mode and not explicitly specified). But it can be set to 1 (for DEBUG mode)
+by default (for INFO mode and not explicitly specified). But it can be set to 1 (for DEBUG mode)
 or 2 (for TRACE mode) for getting training time logs from frovedis server.  
 **_warm\_start_**: A boolean parameter which when set to True, reuses the solution of the
 previous call to fit as initialization, otherwise, just erase the previous solution. (Default: False)     
@@ -150,7 +150,7 @@ reducing communication overhead across participating processes. (Default: False)
 __Attributes__  
 **_coef\__**: It is a python ndarray(float or double(float64) values depending 
 on input matrix data type) of coefficient of the features in the decision function.
-It has shape **(1, n_features)** when the given problem is "binary" and (n_classes, n_features) 
+It has shape **(1, n_features)** when the given problem is "binary" and **(n_classes, n_features)** 
 when it is a "multinomial" problem.  
 **_intercept\_(bias)_**: It is a python ndarray(float or double(float64) values 
 depending on input matrix data type) If fit_intercept is set to False, the intercept
@@ -175,14 +175,14 @@ It simply returns "self" reference.
 __Parameters__   
 **_X_**: A numpy dense or scipy sparse matrix or any python array-like object or 
 an instance of FrovedisCRSMatrix for sparse data and FrovedisColmajorMatrix for dense data.  
-**_y_**: Any python array-like object or an instance of FrovedisDvector.     
-**_sample\_weight_**: A python narray containing the intended weights for each input
-samples and it should be the shape of (nsamples, ). When it is None (not specified explicitly), an
+**_y_**: Any python array-like object or an instance of FrovedisDvector. It has shape **(n_samples,)**.  
+**_sample\_weight_**: A python ndarray containing the intended weights for each input
+samples and it should be the shape of **(n_samples, )**. When it is None (not specified explicitly), an
 uniform weight vector is assigned on each input sample. (Default: None)  
 
 __Purpose__    
 It accepts the training feature matrix (X) and corresponding output labels (y) 
-as inputs from the user and trains a logistic regression model with specifed 
+as inputs from the user and trains a logistic regression model with specified 
 regularization with those data at frovedis server.  
 
 For example,   
@@ -197,7 +197,7 @@ For example,
 
 When native python data is provided, it is converted to frovedis-like inputs and 
 sent to frovedis server which consumes some data transfer time. Pre-constructed 
-frovedis-like inputs can be used to speed up the training time, specially when 
+frovedis-like inputs can be used to speed up the training time, especially when 
 same data would be used for multiple executions.  
 
 For example,
@@ -213,7 +213,7 @@ For example,
     cmat = FrovedisColmajorMatrix(mat)
     dlbl = FrovedisDvector(lbl)
     
-    # Logistic Regression with pre-constructed frovedlis-like inputs
+    # Logistic Regression with pre-constructed frovedis-like inputs
     from frovedis.mllib.linear_model import LogisticRegression
     lr = LogisticRegression(solver = 'lbfgs').fit(cmat, dlbl)
 
@@ -269,7 +269,7 @@ matrix of shape **(n_samples, n_classes)** containing the probability of each cl
 
 For example,   
 
-    # finds the probablity sample for each class in the model
+    # finds the probability sample for each class in the model
     lr.predict_proba(mat)  
 
 Output
@@ -290,7 +290,7 @@ For example,
     # Since "cmat" is FrovedisColmajorMatrix, we have created FrovedisRowmajorMatrix.
     from frovedis.matrix.dense import FrovedisRowmajorMatrix
 
-    # finds the probablity sample for each class in the model
+    # finds the probability sample for each class in the model
     lr.predict_proba(mat)  
 
 Output
@@ -304,16 +304,16 @@ Output
      [6.14030540e-03 9.93859695e-01]]
 
 __Return Value__  
-It returns a numpy array of float or double(float64) type and of shape **(n_samples, n_classes)** 
+It returns an ndarray of float or double(float64) type and of shape **(n_samples, n_classes)** 
 containing the prediction probability values. 
 
 ### 5. score(X, y, sample_weight = None)
 __Parameters__  
 **_X_**: A numpy dense or scipy sparse matrix or any python array-like object or an instance 
 of FrovedisCRSMatrix for sparse data and FrovedisRowmajorMatrix for dense data.  
-**_y_**: Any python array-like object or an instance of FrovedisDvector.     
-**_sample\_weight_**: Python array-like containing the intended weights for each input
-samples and it should be the shape of (nsamples, ). When it is None (not specified explicitly), an
+**_y_**: Any python array-like object or an instance of FrovedisDvector. It has shape **(n_samples,)**.  
+**_sample\_weight_**: A python ndarray containing the intended weights for each input
+samples and it should be the shape of **(n_samples, )**. When it is None (not specified explicitly), an
 uniform weight vector is assigned on each input sample. (Default: None)  
 
 __Purpose__  
@@ -347,17 +347,18 @@ For example,
 
 Output  
 
-    {'C': 100.0, 'class_weight': None, 'dual': False, 'fit_intercept': True, 'intercept_scaling': 1,
-    'l1_ratio': None, 'lr_rate': 0.01, 'max_iter': 1000, 'multi_class': 'auto', 'n_jobs': 1,
-    'penalty': 'l2', 'random_state': None, 'solver': 'sag', 'tol': 0.0001, 'use_shrink': False,
-    'verbose': 0, 'warm_start': False}
+    {'C': 100.0, 'class_weight': None, 'dual': False, 'fit_intercept': True, 
+    'intercept_scaling': 1, 'l1_ratio': None, 'lr_rate': 0.01, 'max_iter': 1000, 
+    'multi_class': 'auto', 'n_jobs': 1, 'penalty': 'l2', 'random_state': None, 
+    'solver': 'sag', 'tol': 0.0001, 'use_shrink': False, 'verbose': 0, 
+    'warm_start': False}
 
 __Return Value__  
 A dictionary of parameter names mapped to their values.  
 
 ### 7. set_params(\*\*params)  
 __Parameters__  
-_**\*\*params**_: All the keyword arguments are passed this function as dictionary. This dictionary 
+_**\*\*params**_: All the keyword arguments are passed to this function as dictionary. This dictionary 
 contains parameters of an estimator with its given values to set.  
 
 __Purpose__  
@@ -377,15 +378,17 @@ For example,
 Output  
      
     get parameters before setting:
-    {'C': 100.0, 'class_weight': None, 'dual': False, 'fit_intercept': True, 'intercept_scaling': 1,
-    'l1_ratio': None, 'lr_rate': 0.01, 'max_iter': 1000, 'multi_class': 'auto', 'n_jobs': 1,
-    'penalty': 'l2', 'random_state': None, 'solver': 'sag', 'tol': 0.0001, 'use_shrink': False,
-    'verbose': 0, 'warm_start': False}
+    {'C': 100.0, 'class_weight': None, 'dual': False, 'fit_intercept': True, 
+    'intercept_scaling': 1, 'l1_ratio': None, 'lr_rate': 0.01, 'max_iter': 1000, 
+    'multi_class': 'auto', 'n_jobs': 1, 'penalty': 'l2', 'random_state': None, 
+    'solver': 'sag', 'tol': 0.0001, 'use_shrink': False, 'verbose': 0, 
+    'warm_start': False}
     get parameters after setting:
-    {'C': 100.0, 'class_weight': None, 'dual': False, 'fit_intercept': True, 'intercept_scaling': 1,
-    'l1_ratio': None, 'lr_rate': 0.01, 'max_iter': 10000, 'multi_class': 'auto', 'n_jobs': 1,
-    'penalty': 'l2', 'random_state': None, 'solver': 'lbfgs', 'tol': 0.0001, 'use_shrink': False,
-    'verbose': 0, 'warm_start': False}
+    {'C': 100.0, 'class_weight': None, 'dual': False, 'fit_intercept': True, 
+    'intercept_scaling': 1, 'l1_ratio': None, 'lr_rate': 0.01, 'max_iter': 10000, 
+    'multi_class': 'auto', 'n_jobs': 1, 'penalty': 'l2', 'random_state': None, 
+    'solver': 'lbfgs', 'tol': 0.0001, 'use_shrink': False, 'verbose': 0, 
+    'warm_start': False}
     
 __Return Value__  
 It simply returns "self" reference.  
@@ -405,7 +408,7 @@ For example,
     lr.load("./out/LRModel")
 
 __Return Value__  
-It simply returns "self" instance.   
+It simply returns "self" reference.   
 
 ### 9. save(fname)
 __Parameters__   
@@ -413,7 +416,7 @@ __Parameters__
 model is to be saved.    
 
 __Purpose__    
-On success, it writes the model information (weight values etc.) in the 
+On success, it writes the model information (weight values, etc.) in the 
 specified file as little-endian binary data. Otherwise, it throws an exception.  
 
 For example,   
@@ -421,7 +424,8 @@ For example,
     # To save the logistic regression model
     lr.save("./out/LRModel")    
 
-This will save the logistic regression model on the path '/out/LRModel'.
+This will save the logistic regression model on the path '/out/LRModel'. It would raise exception if 
+the directory already exists with same name.  
 
 The 'LRModel' directory has  
 
@@ -490,4 +494,4 @@ __Return Value__
 It returns ‘True’, if the model is already fitted otherwise, it returns ‘False’.
 
 # SEE ALSO  
-linear_svm, dvector, crs_matrix   
+linear_regression, dvector, crs_matrix, colmajor_matrix   
