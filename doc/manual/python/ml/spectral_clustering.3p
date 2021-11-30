@@ -100,7 +100,7 @@ Clustering interface, but it doesn\[aq]t have any dependency with
 Scikit\-learn.
 It can be used simply even if the system doesn\[aq]t have Scikit\-learn
 installed.
-Thus, in this implementation, a python client can interact with a
+Thus in this implementation, a python client can interact with a
 frovedis server sending the required python data for training at
 frovedis side.
 Python data is converted into frovedis compatible data internally and
@@ -140,6 +140,9 @@ It is the eigenvalue decomposition strategy to use.
 When it is None (not specified explicitly), it will be set as
 \[aq]arpack\[aq].
 Only \[aq]arpack\[aq] eigen solver is supported.
+.PD 0
+.P
+.PD
 \f[B]\f[I]n_components\f[]\f[]: A positive integer parameter containing
 the number of components for clusters.
 It is used to compute the number of eigenvectors for spectral embedding.
@@ -155,13 +158,17 @@ number of clusters.
 .PD
 \f[B]\f[I]random_state\f[]\f[]: Zero or positive integer parameter.
 It is None by default.
+.PD 0
+.P
+.PD
 When it is None (not specified explicitly), it will be set as 0.
 (unused)
 .PD 0
 .P
 .PD
-\f[B]\f[I]n_init\f[]\f[]: A positive integer parameter is the number of
-times the k\-means algorithm will be run with different centroid seeds.
+\f[B]\f[I]n_init\f[]\f[]: A positive integer parameter that specifies
+the number of times the k\-means algorithm will be run with different
+centroid seeds.
 (Default: 10)
 .PD 0
 .P
@@ -193,25 +200,24 @@ Only \[aq]rbf\[aq], \[aq]nearest_neighbors\[aq] and
 .PD 0
 .P
 .PD
-\[aq]nearest_neighbors\[aq]: construct the affinity matrix by computing
-a graph of nearest neighbors.
+\- \[aq]nearest_neighbors\[aq]: construct the affinity matrix by
+computing a graph of nearest neighbors.
 .PD 0
 .P
 .PD
-\[aq]rbf\[aq]: construct the affinity matrix using a radial basis
+\- \[aq]rbf\[aq]: construct the affinity matrix using a radial basis
 function (RBF) kernel.
 .PD 0
 .P
 .PD
-\[aq]precomputed\[aq]: interpret X as a precomputed affinity matrix,
+\- \[aq]precomputed\[aq]: interpret X as a precomputed affinity matrix,
 where larger values indicate greater similarity between instances.
-One of the kernels supported by pairwise_kernels.
 .PD 0
 .P
 .PD
-\f[B]\f[I]n_neighbors\f[]\f[]: A positive integer parameter, is the
-number of neighbors to be used when constructing the affinity matrix
-using the nearest neighbors method.
+\f[B]\f[I]n_neighbors\f[]\f[]: A positive integer parameter that
+specifies the number of neighbors to be used when constructing the
+affinity matrix using the nearest neighbors method.
 It must be in between 1 to n_samples.
 It is applicable only when affinity = \[aq]nearest_neighbors\[aq].
 (Default: 10)
@@ -224,8 +230,8 @@ of the Laplacian matrix when using \[aq]arpack\[aq] eigen_solver.
 .PD 0
 .P
 .PD
-\f[B]\f[I]assign_labels\f[]\f[]: A string object parameter, is the
-strategy to use to assign labels in the embedding space.
+\f[B]\f[I]assign_labels\f[]\f[]: A string object parameter that
+specifies the strategy to use to assign labels in the embedding space.
 When it is None (specified explicitly), it will be set as
 \[aq]kmeans\[aq].
 Only \[aq]kmeans\[aq] is supported.
@@ -293,7 +299,7 @@ For more details refer ARPACK computation modes.
 \f[B]\f[I]drop_first\f[]\f[]: A boolean parameter if set to True, then
 drops the first eigenvector.
 The first eigenvector of a normalized Laplacian is full of constants,
-thus if it is set to true, then (n_components + 1) eigenvectors are
+thus if it is set to True, then (n_components + 1) eigenvectors are
 computed and will drop the first vector.
 Otherwise, it will calculate \[aq]n_components\[aq] number of
 eigenvectors.
@@ -307,7 +313,8 @@ eigenvectors.
 .PD 0
 .P
 .PD
-For python native dense input:
+1.
+\f[B]For python native dense input:\f[]
 .PD 0
 .P
 .PD
@@ -320,7 +327,8 @@ matrix
 .PD 0
 .P
 .PD
-For frovedis\-like dense input:
+2.
+\f[B]For frovedis\-like dense input:\f[]
 .PD 0
 .P
 .PD
@@ -334,7 +342,8 @@ FrovedisCRSMatrix
 .PD 0
 .P
 .PD
-For python native sparse input:
+3.
+\f[B]For python native sparse input:\f[]
 .PD 0
 .P
 .PD
@@ -347,7 +356,8 @@ scipy matrix
 .PD 0
 .P
 .PD
-For frovedis\-like sparse input:
+4.
+\f[B]For frovedis\-like sparse input:\f[]
 .PD 0
 .P
 .PD
@@ -357,15 +367,17 @@ FrovedisCRSMatrix
 .P
 .PD
 \- When affinity = \[aq]rbf\[aq], it returns a FrovedisRowmajorMatrix
-.PP
+.PD 0
+.P
+.PD
 In all cases, the output is of float or double (float64) type and of
 shape \f[B](n_samples, n_samples)\f[].
 .PD 0
 .P
 .PD
-\f[B]\f[I]labels_\f[]\f[]: A python ndarray of int64 values and has
+\f[B]\f[I]labels_\f[]\f[]: A python ndarray of int64 type values and has
 shape \f[B](n_clusters,)\f[].
-It contains predicted cluster labels for each point.
+It contains the predicted cluster labels for each point.
 .PP
 \f[B]Purpose\f[]
 .PD 0
@@ -376,7 +388,7 @@ It initializes a Spectral Clustering object with the given parameters.
 The parameters: "eigen_tol", "degree", "coef0", "kernel_params" and
 "n_jobs", "random_state" are simply kept in to make the interface
 uniform to the Scikit\-learn Spectral Clustering module.
-They are not used anywhere within frovedis implementation.
+They are not used anywhere within the frovedis implementation.
 .PP
 \f[B]Return Value\f[]
 .PD 0
@@ -405,8 +417,8 @@ well.
 .PD 0
 .P
 .PD
-It clusters the given data points (X) into a predefined number
-(n_clusters) of clusters.
+It clusters the given data points (X) into a predefined number of
+clusters.
 .PP
 For example,
 .IP
@@ -415,7 +427,7 @@ For example,
 #\ loading\ sample\ matrix\ data
 mat\ =\ np.loadtxt("./input/spectral_data.txt")
 
-#\ fitting\ input\ matrix\ on\ Spectral\ Clustering\ object
+#\ fitting\ input\ matrix\ on\ SpectralClustering\ object
 from\ frovedis.mllib.cluster\ import\ SpectralClustering
 spec\ =\ SpectralClustering(n_clusters\ =\ 2).fit(mat)\ \ \ 
 \f[]
@@ -440,7 +452,7 @@ mat\ =\ np.loadtxt("./input/spectral_data.txt")
 from\ frovedis.matrix.dense\ import\ FrovedisRowmajorMatrix
 rmat\ =\ FrovedisRowmajorMatrix(mat)
 
-#\ Spectral\ Clustering\ with\ pre\-constructed\ frovedlis\-like\ inputs
+#\ Spectral\ Clustering\ with\ pre\-constructed\ frovedis\-like\ inputs
 from\ frovedis.mllib.cluster\ import\ SpectralClustering
 spec\ =\ SpectralClustering(n_clusters\ =\ 2).fit(rmat)
 \f[]
@@ -498,7 +510,7 @@ Output
 \f[]
 .fi
 .PP
-It prints the predicted cluster lables after training is completed.
+It prints the predicted cluster labels after training is completed.
 .PP
 Like in fit(), we can also provide frovedis\-like input in fit_predict()
 for faster computation.
@@ -530,13 +542,14 @@ Output
 \f[]
 .fi
 .PP
-It prints the predicted cluster lables after training is completed.
+It prints the predicted cluster labels after training is completed.
 .PP
 \f[B]Return Value\f[]
 .PD 0
 .P
 .PD
-It returns a numpy array of int32 type containing the cluster labels.
+It returns a numpy array of int32 type values containing the cluster
+labels.
 It has a shape \f[B](n_samples,)\f[].
 .SS 4. score(X, y, sample_weight = None)
 .PP
@@ -552,7 +565,8 @@ n_samples)\f[].
 .PD 0
 .P
 .PD
-\f[B]\f[I]y\f[]\f[]: A python ndarray of shape \f[B](n_samples,)\f[].
+\f[B]\f[I]y\f[]\f[]: A python ndarray or an instance of FrovedisVector.
+It has shape \f[B](n_samples,1)\f[].
 .PD 0
 .P
 .PD
@@ -622,10 +636,11 @@ Output
 .IP
 .nf
 \f[C]
-{\[aq]affinity\[aq]:\ \[aq]rbf\[aq],\ \[aq]assign_labels\[aq]:\ \[aq]kmeans\[aq],\ \[aq]coef0\[aq]:\ 1,\ \[aq]degree\[aq]:\ 3,\ \[aq]drop_first\[aq]:\ True,
-\[aq]eigen_solver\[aq]:\ \[aq]arpack\[aq],\ \[aq]eigen_tol\[aq]:\ 0.0,\ \[aq]eps\[aq]:\ 0.0001,\ \[aq]gamma\[aq]:\ 1.0,\ \[aq]kernel_params\[aq]:\ None,
-\[aq]max_iter\[aq]:\ 300,\ \[aq]mode\[aq]:\ 3,\ \[aq]n_clusters\[aq]:\ 2,\ \[aq]n_components\[aq]:\ 2,\ \[aq]n_init\[aq]:\ 10,\ \[aq]n_jobs\[aq]:\ None,
-\[aq]n_neighbors\[aq]:\ 10,\ \[aq]norm_laplacian\[aq]:\ True,\ \[aq]random_state\[aq]:\ None,\ \[aq]verbose\[aq]:\ 0}
+{\[aq]affinity\[aq]:\ \[aq]rbf\[aq],\ \[aq]assign_labels\[aq]:\ \[aq]kmeans\[aq],\ \[aq]coef0\[aq]:\ 1,\ \[aq]degree\[aq]:\ 3,\ 
+\[aq]drop_first\[aq]:\ True,\ \[aq]eigen_solver\[aq]:\ \[aq]arpack\[aq],\ \[aq]eigen_tol\[aq]:\ 0.0,\ \[aq]eps\[aq]:\ 0.0001,\ 
+\[aq]gamma\[aq]:\ 1.0,\ \[aq]kernel_params\[aq]:\ None,\ \[aq]max_iter\[aq]:\ 300,\ \[aq]mode\[aq]:\ 3,\ \[aq]n_clusters\[aq]:\ 2,\ 
+\[aq]n_components\[aq]:\ 2,\ \[aq]n_init\[aq]:\ 10,\ \[aq]n_jobs\[aq]:\ None,\ \[aq]n_neighbors\[aq]:\ 10,\ 
+\[aq]norm_laplacian\[aq]:\ True,\ \[aq]random_state\[aq]:\ None,\ \[aq]verbose\[aq]:\ 0}
 \f[]
 .fi
 .PP
@@ -640,7 +655,7 @@ A dictionary of parameter names mapped to their values.
 .PD 0
 .P
 .PD
-\f[I]\f[B]**params\f[]\f[]: All the keyword arguments are passed this
+\f[I]\f[B]**params\f[]\f[]: All the keyword arguments are passed to this
 function as dictionary.
 This dictionary contains parameters of an estimator with its given
 values to set.
@@ -660,7 +675,7 @@ print("get\ parameters\ before\ setting:")\
 print(spec.get_params())
 #\ User\ just\ needs\ to\ provide\ the\ arguments\ and\ internally\ it\ will\ create\ a\ 
 dictionary\ over\ the\ arguments\ given\ by\ user
-spec.set_params(n_clusters=3,\ affinity\ =\ \[aq]precomputed\[aq])\ 
+spec.set_params(n_clusters\ =\ 3,\ affinity\ =\ \[aq]precomputed\[aq])\ 
 print("get\ parameters\ after\ setting:")\ 
 print(spec.get_params())
 \f[]
@@ -671,15 +686,17 @@ Output
 .nf
 \f[C]
 get\ parameters\ before\ setting:
-{\[aq]affinity\[aq]:\ \[aq]rbf\[aq],\ \[aq]assign_labels\[aq]:\ \[aq]kmeans\[aq],\ \[aq]coef0\[aq]:\ 1,\ \[aq]degree\[aq]:\ 3,\ \[aq]drop_first\[aq]:\ True,
-\[aq]eigen_solver\[aq]:\ \[aq]arpack\[aq],\ \[aq]eigen_tol\[aq]:\ 0.0,\ \[aq]eps\[aq]:\ 0.0001,\ \[aq]gamma\[aq]:\ 1.0,\ \[aq]kernel_params\[aq]:\ None,
-\[aq]max_iter\[aq]:\ 300,\ \[aq]mode\[aq]:\ 3,\ \[aq]n_clusters\[aq]:\ 2,\ \[aq]n_components\[aq]:\ 2,\ \[aq]n_init\[aq]:\ 10,\ \[aq]n_jobs\[aq]:\ None,
-\[aq]n_neighbors\[aq]:\ 10,\ \[aq]norm_laplacian\[aq]:\ True,\ \[aq]random_state\[aq]:\ None,\ \[aq]verbose\[aq]:\ 0}
+{\[aq]affinity\[aq]:\ \[aq]rbf\[aq],\ \[aq]assign_labels\[aq]:\ \[aq]kmeans\[aq],\ \[aq]coef0\[aq]:\ 1,\ \[aq]degree\[aq]:\ 3,\ 
+\[aq]drop_first\[aq]:\ True,\ \[aq]eigen_solver\[aq]:\ \[aq]arpack\[aq],\ \[aq]eigen_tol\[aq]:\ 0.0,\ \[aq]eps\[aq]:\ 0.0001,\ 
+\[aq]gamma\[aq]:\ 1.0,\ \[aq]kernel_params\[aq]:\ None,\ \[aq]max_iter\[aq]:\ 300,\ \[aq]mode\[aq]:\ 3,\ \[aq]n_clusters\[aq]:\ 2,\ 
+\[aq]n_components\[aq]:\ 2,\ \[aq]n_init\[aq]:\ 10,\ \[aq]n_jobs\[aq]:\ None,\ \[aq]n_neighbors\[aq]:\ 10,\ 
+\[aq]norm_laplacian\[aq]:\ True,\ \[aq]random_state\[aq]:\ None,\ \[aq]verbose\[aq]:\ 0}
 get\ parameters\ after\ setting:
-{\[aq]affinity\[aq]:\ \[aq]precomputed\[aq],\ \[aq]assign_labels\[aq]:\ \[aq]kmeans\[aq],\ \[aq]coef0\[aq]:\ 1,\ \[aq]degree\[aq]:\ 3,\ \[aq]drop_first\[aq]:\ True,
-\[aq]eigen_solver\[aq]:\ \[aq]arpack\[aq],\ \[aq]eigen_tol\[aq]:\ 0.0,\ \[aq]eps\[aq]:\ 0.0001,\ \[aq]gamma\[aq]:\ 1.0,\ \[aq]kernel_params\[aq]:\ None,
-\[aq]max_iter\[aq]:\ 300,\ \[aq]mode\[aq]:\ 3,\ \[aq]n_clusters\[aq]:\ 3,\ \[aq]n_components\[aq]:\ 2,\ \[aq]n_init\[aq]:\ 10,\ \[aq]n_jobs\[aq]:\ None,
-\[aq]n_neighbors\[aq]:\ 10,\ \[aq]norm_laplacian\[aq]:\ True,\ \[aq]random_state\[aq]:\ None,\ \[aq]verbose\[aq]:\ 0}
+{\[aq]affinity\[aq]:\ \[aq]precomputed\[aq],\ \[aq]assign_labels\[aq]:\ \[aq]kmeans\[aq],\ \[aq]coef0\[aq]:\ 1,\ \[aq]degree\[aq]:\ 3,\ 
+\[aq]drop_first\[aq]:\ True,\ \[aq]eigen_solver\[aq]:\ \[aq]arpack\[aq],\ \[aq]eigen_tol\[aq]:\ 0.0,\ \[aq]eps\[aq]:\ 0.0001,\ 
+\[aq]gamma\[aq]:\ 1.0,\ \[aq]kernel_params\[aq]:\ None,\ \[aq]max_iter\[aq]:\ 300,\ \[aq]mode\[aq]:\ 3,\ \[aq]n_clusters\[aq]:\ 3,\ 
+\[aq]n_components\[aq]:\ 2,\ \[aq]n_init\[aq]:\ 10,\ \[aq]n_jobs\[aq]:\ None,\ \[aq]n_neighbors\[aq]:\ 10,\ 
+\[aq]norm_laplacian\[aq]:\ True,\ \[aq]random_state\[aq]:\ None,\ \[aq]verbose\[aq]:\ 0}
 \f[]
 .fi
 .PP
@@ -751,6 +768,10 @@ spec.save("./out/MySpecClusteringModel")\ \
 .PP
 This will save the spectral clustering model on the path
 "/out/MySpecClusteringModel".
+.PD 0
+.P
+.PD
+It would raise exception if the directory already exists with same name.
 .PP
 The \[aq]MySpecClusteringModel\[aq] directory has
 .PP
@@ -830,6 +851,8 @@ ncluster:\ 2
 \f[]
 .fi
 .PP
+It dispays the affinity matrix.
+.PP
 \f[B]Return Value\f[]
 .PD 0
 .P
@@ -875,4 +898,4 @@ It returns ‘True', if the model is already fitted otherwise, it returns
 ‘False'.
 .SH SEE ALSO
 .PP
-rowmajor_matrix, crs_matrix
+agglomerative_clustering, dbscan, kmeans, rowmajor_matrix, crs_matrix
