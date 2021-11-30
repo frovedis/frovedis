@@ -1,9 +1,9 @@
 .TH "DBSCAN" "" "" "" ""
 .SH NAME
 .PP
-DBSCAN clustering \- \f[B]Density\-Based Spatial Clustering of
-Applications with Noise (DBSCAN)\f[] is a clustering algorithm commonly
-used in EDA (exploratory data analysis).
+DBSCAN clustering \- Density\-Based Spatial Clustering of Applications
+with Noise (DBSCAN) is a clustering algorithm commonly used in EDA
+(exploratory data analysis).
 It is a base algorithm for density\-based clustering, which can discover
 clusters of different shapes and sizes from a large amount of data,
 containing noise and outliers.
@@ -120,9 +120,12 @@ sent back to the python client.
 .PP
 \f[I]\f[B]eps\f[]\f[]: A positive double(float64) parameter containing
 the epsilon value or distance that specifies the neighborhoods.
+(Default: 0.5)
+.PD 0
+.P
+.PD
 Two points are considered to be neighbors if the distance between them
 is less than or equal to eps.
-(Default: 0.5)
 .PD 0
 .P
 .PD
@@ -304,7 +307,7 @@ train_mat\ =\ np.loadtxt("sample_data.txt")
 from\ frovedis.matrix.dense\ import\ FrovedisRowmajorMatrix
 rmat\ =\ FrovedisRowmajorMatrix(train_mat)
 
-#\ DBSCAN\ with\ pre\-constructed\ frovedlis\-like\ inputs
+#\ DBSCAN\ with\ pre\-constructed\ Frovedis\-like\ inputs
 from\ frovedis.mllib.cluster\ import\ DBSCAN
 dbm\ =\ DBSCAN(eps\ =\ 5,\ min_samples\ =\ 2).fit(rmat)
 \f[]
@@ -518,12 +521,12 @@ Output
 .IP
 .nf
 \f[C]
-get\ parameters\ before\ setting:\ {\[aq]algorithm\[aq]:\ \[aq]auto\[aq],\ \[aq]copy_x\[aq]:\ True,\ \[aq]init\[aq]:\ \[aq]random\[aq],\ \[aq]max_iter\[aq]:\ 300,\ 
-\[aq]n_clusters\[aq]:\ 2,\ \[aq]n_init\[aq]:\ 1,\ \[aq]n_jobs\[aq]:\ 1,\ \[aq]precompute_distances\[aq]:\ \[aq]auto\[aq],\ \[aq]random_state\[aq]:\ None,\ 
-\[aq]tol\[aq]:\ 0.0001,\ \[aq]use_shrink\[aq]:\ False,\ \[aq]verbose\[aq]:\ 0}
-get\ parameters\ after\ setting:\ {\[aq]algorithm\[aq]:\ \[aq]auto\[aq],\ \[aq]copy_x\[aq]:\ True,\ \[aq]init\[aq]:\ \[aq]random\[aq],\ \[aq]max_iter\[aq]:\ 300,\ 
-\[aq]n_clusters\[aq]:\ 4,\ \[aq]n_init\[aq]:\ 5,\ \[aq]n_jobs\[aq]:\ 1,\ \[aq]precompute_distances\[aq]:\ \[aq]auto\[aq],\ \[aq]random_state\[aq]:\ None,\ 
-\[aq]tol\[aq]:\ 0.0001,\ \[aq]use_shrink\[aq]:\ False,\ \[aq]verbose\[aq]:\ 0}
+get\ parameters\ before\ setting:\ {\[aq]algorithm\[aq]:\ \[aq]auto\[aq],\ \[aq]copy_x\[aq]:\ True,\ \[aq]init\[aq]:\[aq]random\[aq],\ 
+\[aq]max_iter\[aq]:\ 300,\ \[aq]n_clusters\[aq]:\ 2,\ \[aq]n_init\[aq]:\ 1,\ \[aq]n_jobs\[aq]:\ 1,\ \[aq]precompute_distances\[aq]:\ \[aq]auto\[aq],
+\[aq]random_state\[aq]:\ None,\ \[aq]tol\[aq]:\ 0.0001,\ \[aq]use_shrink\[aq]:\ False,\ \[aq]verbose\[aq]:\ 0}
+get\ parameters\ after\ setting:\ {\[aq]algorithm\[aq]:\ \[aq]auto\[aq],\ \[aq]copy_x\[aq]:\ True,\ \[aq]init\[aq]:\ \[aq]random\[aq],\ 
+\[aq]max_iter\[aq]:\ 300,\ \[aq]n_clusters\[aq]:\ 4,\ \[aq]n_init\[aq]:\ 5,\ \[aq]n_jobs\[aq]:\ 1,\ \[aq]precompute_distances\[aq]:\ \[aq]auto\[aq],\ 
+\[aq]random_state\[aq]:\ None,\ \[aq]tol\[aq]:\ 0.0001,\ \[aq]use_shrink\[aq]:\ False,\ \[aq]verbose\[aq]:\ 0}
 \f[]
 .fi
 .PP

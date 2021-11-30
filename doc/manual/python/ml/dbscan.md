@@ -74,8 +74,8 @@ the frovedis server, the output would be sent back to the python client.
 __Parameters__  
 
 _**eps**_: A positive double(float64) parameter containing the epsilon value or distance 
-that specifies the neighborhoods. Two points are considered to be neighbors if the distance 
-between them is less than or equal to eps. (Default: 0.5)  
+that specifies the neighborhoods. (Default: 0.5)  
+Two points are considered to be neighbors if the distance between them is less than or equal to eps.  
 _**min_samples**_: A positive integer parameter which specifies the number of samples in a 
 neighborhood for a point to be considered as a core point.  
 This includes the point itself. (Default: 5)  
@@ -159,7 +159,7 @@ For example,
     from frovedis.matrix.dense import FrovedisRowmajorMatrix
     rmat = FrovedisRowmajorMatrix(train_mat)
     
-    # DBSCAN with pre-constructed frovedlis-like inputs
+    # DBSCAN with pre-constructed Frovedis-like inputs
     from frovedis.mllib.cluster import DBSCAN
     dbm = DBSCAN(eps = 5, min_samples = 2).fit(rmat)
     
@@ -283,12 +283,12 @@ For example,
 
 Output  
      
-    get parameters before setting: {'algorithm': 'auto', 'copy_x': True, 'init': 'random', 'max_iter': 300, 
-    'n_clusters': 2, 'n_init': 1, 'n_jobs': 1, 'precompute_distances': 'auto', 'random_state': None, 
-    'tol': 0.0001, 'use_shrink': False, 'verbose': 0}
-    get parameters after setting: {'algorithm': 'auto', 'copy_x': True, 'init': 'random', 'max_iter': 300, 
-    'n_clusters': 4, 'n_init': 5, 'n_jobs': 1, 'precompute_distances': 'auto', 'random_state': None, 
-    'tol': 0.0001, 'use_shrink': False, 'verbose': 0}
+    get parameters before setting: {'algorithm': 'auto', 'copy_x': True, 'init':'random', 
+    'max_iter': 300, 'n_clusters': 2, 'n_init': 1, 'n_jobs': 1, 'precompute_distances': 'auto',
+    'random_state': None, 'tol': 0.0001, 'use_shrink': False, 'verbose': 0}
+    get parameters after setting: {'algorithm': 'auto', 'copy_x': True, 'init': 'random', 
+    'max_iter': 300, 'n_clusters': 4, 'n_init': 5, 'n_jobs': 1, 'precompute_distances': 'auto', 
+    'random_state': None, 'tol': 0.0001, 'use_shrink': False, 'verbose': 0}
 
 __Return Value__  
 It simply returns "self" reference.  
