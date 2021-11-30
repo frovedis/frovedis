@@ -22,7 +22,6 @@ class GeneralizedLinearModel(modelId: Int,
   def getThreshold(): Double = threshold 
   def setThreshold(thr: Double) : Unit = {
     threshold = thr
-    val fs = FrovedisServer.getServerInstance() 
     JNISupport.setFrovedisGLMThreshold(fs.master_node,mid,mkind,thr)
     val info = JNISupport.checkServerException();
     if (info != "") throw new java.rmi.ServerException(info);

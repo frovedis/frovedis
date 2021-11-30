@@ -58,22 +58,20 @@ class GenericModel(modelId: Int,
                    modelKind: Short) extends java.io.Serializable {
   protected val mid: Int = modelId
   protected val mkind: Short = modelKind
+  protected val fs = FrovedisServer.getServerInstance() 
 
   def debug_print() : Unit = {
-    val fs = FrovedisServer.getServerInstance() 
     JNISupport.showFrovedisModel(fs.master_node,mid,mkind)
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
   }
   def save(sc: SparkContext, path: String) : Unit = save(path) 
   def save(path: String) : Unit = {
-    val fs = FrovedisServer.getServerInstance()
     JNISupport.saveFrovedisModel(fs.master_node,mid,mkind,path) 
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
   }
   def release() : Unit = {
-    val fs = FrovedisServer.getServerInstance() 
     // It is serializable class. Thus an if check must be performed before the below JNI call.
     // To-Do: if(iam == rank0), only then call below JNI method 
     // [What is the Spark way of getting selfid()?]
@@ -94,7 +92,6 @@ class GenericModelWithPredict(modelId: Int,
     require(this.mid > 0, "predict() is called before training ")
     var dproxy: Long = -1
     var pred: Double = 0
-    val fs = FrovedisServer.getServerInstance()
     val isDense = X.getClass.toString() matches ".*DenseVector*."
     if (isDense) {
       val nrow: Long = 1
@@ -142,7 +139,6 @@ class GenericModelWithPredict(modelId: Int,
   // dense predict()
   def predict(X: FrovedisRowmajorMatrix): RDD[Double] = {
     require(this.mid > 0, "predict() is called before training ")
-    val fs = FrovedisServer.getServerInstance()
     val prob = false
     val isDense = true
     val res = JNISupport.genericPredict(fs.master_node, X.get(),
@@ -157,7 +153,6 @@ class GenericModelWithPredict(modelId: Int,
   // sparse predict()
   def predict(X: FrovedisSparseData): RDD[Double] = {
     require(this.mid > 0, "predict() is called before training ")
-    val fs = FrovedisServer.getServerInstance()
     val prob = false
     val isDense = false
     val res = JNISupport.genericPredict(fs.master_node, X.get(),
@@ -190,7 +185,6 @@ class GenericModelWithPredict(modelId: Int,
   // dense predict_proba()
   def predict_proba(X: FrovedisRowmajorMatrix): RDD[Double] = {
     require(this.mid > 0, "predict_proba() is called before training ")
-    val fs = FrovedisServer.getServerInstance()
     val prob = true
     val isDense = true
     val res = JNISupport.genericPredict(fs.master_node, X.get(),
@@ -205,7 +199,6 @@ class GenericModelWithPredict(modelId: Int,
   // sparse predict_proba()
   def predict_proba(X: FrovedisSparseData): RDD[Double] = {
     require(this.mid > 0, "predict_proba() is called before training ")
-    val fs = FrovedisServer.getServerInstance()
     val prob = true
     val isDense = false
     val res = JNISupport.genericPredict(fs.master_node, X.get(),
