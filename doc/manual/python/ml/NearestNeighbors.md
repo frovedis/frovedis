@@ -1,4 +1,4 @@
-﻿% NearestNeighbors
+% NearestNeighbors
 
 # NAME
 
@@ -6,20 +6,18 @@ NearestNeighbors - Unsupervised learner for implementing neighbor searches.
 
 # SYNOPSIS
 
-class frovedis.mllib.neighbors.NearestNeighbors(n_neighbors=5, radius=1.0,  
+class frovedis.mllib.neighbors.NearestNeighbors(n_neighbors=5, radius=1.0, algorithm='auto',  
 \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ algorithm='auto', leaf_size=30,  
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ leaf_size=30, metric='euclidean', p=2,  
 \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ metric='euclidean', p=2, metric_params=None,  
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ n_jobs=None, verbose=0,  
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ metric_params=None, n_jobs=None, verbose=0,  
 \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
 \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ chunk_size=1.0, batch_fraction=None)  
 
 ## Public Member Functions
 
 fit(X, y = None)  
-kneighbors(X = None, n_neighbors=None, return_distance = True)  
+kneighbors(X = None, n_neighbors = None, return_distance = True)  
 kneighbors_graph(X = None, n_neighbors = None, mode = 'connectivity')  
 radius_neighbors(X = None, radius = None, return_distance = True)  
 radius_neighbors_graph(X = None, radius = None, mode = 'connectivity')  
@@ -47,7 +45,7 @@ all of its training data.
 This module provides a client-server implementation, where the client application 
 is a normal python program. The frovedis interface is almost same as Scikit-learn 
 NearestNeighbors interface, but it doesn't have any dependency with Scikit-learn. 
-It can be used simply even if the system doesn't have Scikit-learn installed. Thus, in 
+It can be used simply even if the system doesn't have Scikit-learn installed. Thus in 
 this implementation, a python client can interact with a frovedis server sending the 
 required python data for training at frovedis side. Python data is converted into 
 frovedis compatible data internally and the python ML call is linked with the respective 
@@ -68,23 +66,23 @@ the frovedis server, the output would be sent back to the python client.
 __Parameters__  
 **_n\_neighbors_**: A positive integer parameter, specifying the number of neighbors to 
 use by default for 'kneighbors' queries. It must be within the range of 0 and n_samples. (Default: 5)  
-**_radius_**: A positive float paramater, specifying the range of parameter space to use 
+**_radius_**: A positive float parameter, specifying the range of parameter space to use 
 by default for 'radius_neighbors' queries. (Default: 1.0)  
 **_algorithm_**: A string object parameter, specifying the algorithm used to compute the 
 nearest neighbors. (Default: 'auto')  
 When it is ‘auto’, it will be set as ‘brute’(brute-force search approach). Unlike 
 Scikit-learn, currently it supports only ‘brute’.  
 **_leaf\_size_**: An unsed parameter. (Default: 30)  
-**_metric_**: A string object parameter specifying the distance metric to use for the 
+**_metric_**: A string object parameter, specifying the distance metric to use for the 
 tree. (Default: ‘euclidean’)  
 Currenlty it only supports ‘euclidean’, 'seuclidean' and 'cosine' distance.  
 **_p_**: An unused parameter. (Default: 2)  
 **_metric\_params_**: An unsed parameter. (Default: None)  
 **_n\_jobs_**: An unsed parameter. (Default: None)  
 **_verbose_**: An integer parameter specifying the log level to use. Its value is set as 0 
-by default(for INFO mode). But it can be set to 1(for DEBUG mode) or 2(for TRACE mode) for 
+by default (for INFO mode). But it can be set to 1(for DEBUG mode) or 2(for TRACE mode) for 
 getting training time logs from frovedis server.  
-**_chunk\_size_**: A positive float parameter specifying the amount of data (in megabytes) to 
+**_chunk\_size_**: A positive float parameter, specifying the amount of data (in megabytes) to 
 be processed in one time. (Default: 1.0)  
 **_batch\_fraction_**: A positive double(float64) parameter used to calculate the batches 
 of specific size. These batches are used to construct the distance matrix. It must be within 
@@ -96,7 +94,7 @@ It initializes a NearestNeighbors object with the given parameters.
 
 The parameters: "leaf_size", "p", "metric_params" and "n_jobs" are simply kept in to make the 
 interface uniform to the Scikit-learn NearestNeighbors module. They are not used anywhere 
-within frovedis implementation.  
+within the frovedis implementation.  
 
 __Return Value__    
 It simply returns "self" reference. 
@@ -216,8 +214,8 @@ Output
     matrix:
     num_row = 6, num_col = 3
     node 0
-    node = 0, local_num_row = 6, local_num_col = 3, val = 0 1 2.23607 0 1 1.41421 0 1.41421 2.23607
-    0 1 2.23607 0 1 1.41421 0 1.41421 2.23607
+    node = 0, local_num_row = 6, local_num_col = 3, val = 0 1 2.23607 0 1 1.41421 0 1.41421 
+    2.23607 0 1 2.23607 0 1 1.41421 0 1.41421 2.23607
     indices
     matrix:
     num_row = 6, num_col = 3
@@ -252,7 +250,7 @@ NearestNeighbors object creation.
 **_mode_**:  A string object parameter which can be either 'connectivity' or 'distance'. It 
 specifies the type of returned matrix.  
 For 'connectivity', it will return the connectivity matrix with ones and zeros, whereas for 
-‘distance’, the edges are euclidean distance between points, type of distance depends on the 
+‘distance’, the edges are euclidean distance between points. Type of distance depends on the 
 selected 'metric' value in NearestNeighbors class. (Default: 'connectivity')  
 
 __Purpose__    
@@ -317,7 +315,7 @@ Output
     (5, 4)        1.4142135623730951
     (5, 3)        2.23606797749979
 
-Like in fit(), frovedis-like input can be used to speed-up the graph making at server side. 
+Like in fit(), frovedis-like input can be used to speed-up the graph construction at server side. 
 
 For example,   
 
@@ -361,7 +359,7 @@ __Parameters__
 of FrovedisCRSMatrix for sparse data and FrovedisRowmajorMatrix for dense data of float or 
 double(float64) type. It has shape **(n_samples, n_features)**. (Default: None)  
 When it is None (not specified explicitly), it will be training data (X) used as input in fit().  
-**_radius_**: A positive float paramater, specifying the limiting distance of neighbors to 
+**_radius_**: A positive float parameter, specifying the limiting distance of neighbors to 
 return. (Default: None)  
 When it is None (not specified explicitly), it will be 'radius' value used in NearestNeighbors object 
 creation.  
@@ -438,14 +436,14 @@ __Parameters__
 of FrovedisCRSMatrix for sparse data and FrovedisRowmajorMatrix for dense data of float or 
 double(float64) type. It has shape **(n_samples, n_features)**. (Default: None)  
 When it is None (not specified explicitly), it will be training data (X) used as input in fit().  
-**_radius_**: A positive float paramater, specifying the limiting distance of neighbors to 
+**_radius_**: A positive float parameter, specifying the limiting distance of neighbors to 
 return. (Default: None)  
 When it is None (not specified explicitly), it will be 'radius' value used in NearestNeighbors object 
 creation.  
 **_mode_**:  A string object parameter which can be either 'connectivity' or 'distance'. It 
 specifies the type of returned matrix.  
 For 'connectivity', it will return the connectivity matrix with ones and zeros, whereas for 
-‘distance’, the edges are euclidean distance between points, type of distance depends on the 
+‘distance’, the edges are euclidean distance between points. Type of distance depends on the 
 selected 'metric' value in NearestNeighbors class. (Default: 'connectivity')  
 
 __Purpose__    
@@ -501,8 +499,8 @@ Output
     (5, 4)        1.4142135623730951
     (5, 5)        0.0
 
-Like in fit(), frovedis-like input can be used to speed-up the computation of indices and distances 
-at server side. 
+Like in fit(), frovedis-like input can be used to speed-up the computation of graph construction 
+at server side.  
 
 For example,   
 
@@ -557,15 +555,15 @@ For example,
 Output  
 
     {'algorithm': 'brute', 'batch_fraction': 1.7976931348623157e+308, 'chunk_size': 1.0, 
-    'leaf_size': 30, 'metric': 'euclidean', 'metric_params': None, 'n_jobs': None, 'n_neighbors': 3,
-    'p': 2, 'radius': 2.0, 'verbose': 0}
+    'leaf_size': 30, 'metric': 'euclidean', 'metric_params': None, 'n_jobs': None, 
+    'n_neighbors': 3, 'p': 2, 'radius': 2.0, 'verbose': 0}
 
 __Return Value__  
 A dictionary of parameter names mapped to their values.  
 
 ### 8. set_params(\*\*params)  
 __Parameters__  
-_**\*\*params**_: All the keyword arguments are passed this function as dictionary. This dictionary 
+_**\*\*params**_: All the keyword arguments are passed to this function as dictionary. This dictionary 
 contains parameters of an estimator with its given values to set.  
 
 __Purpose__  
@@ -585,12 +583,12 @@ Output
      
     get parameters before setting: 
     {'algorithm': 'brute', 'batch_fraction': 1.7976931348623157e+308, 'chunk_size': 1.0,
-    'leaf_size': 30, 'metric': 'euclidean', 'metric_params': None, 'n_jobs': None, 'n_neighbors': 3,
-    'p': 2, 'radius': 2.0, 'verbose': 0}
+    'leaf_size': 30, 'metric': 'euclidean', 'metric_params': None, 'n_jobs': None, 
+    'n_neighbors': 3, 'p': 2, 'radius': 2.0, 'verbose': 0}
     get parameters after setting: 
     {'algorithm': 'brute', 'batch_fraction': 1.7976931348623157e+308, 'chunk_size': 1.0,
-    'leaf_size': 30, 'metric': 'euclidean', 'metric_params': None, 'n_jobs': None, 'n_neighbors': 4,
-    'p': 2, 'radius': 1.0, 'verbose': 0} 
+    'leaf_size': 30, 'metric': 'euclidean', 'metric_params': None, 'n_jobs': None, 
+    'n_neighbors': 4, 'p': 2, 'radius': 1.0, 'verbose': 0} 
     
 __Return Value__  
 It simply returns "self" reference.  
@@ -633,7 +631,7 @@ It simply raises an AttributeError.
 __Purpose__  
 It can be used to release the in-memory model at frovedis server.  
 
-For example,
+For example,  
  
     knn.release()
     
@@ -649,7 +647,7 @@ __Purpose__
 It can be used to confirm if the model is already fitted or not.  
 
 __Return Value__  
-It returns ‘True’, if the model is already fitted otherwise, it returns ‘False’.  
+It returns ‘True’, if the model is already fitted, otherwise, it returns ‘False’.  
 
 # SEE ALSO  
-rowmajor_matrix, crs_matrix  
+rowmajor_matrix, crs_matrix, kneighborsclassifier, kneighborsregressor  

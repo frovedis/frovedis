@@ -6,24 +6,19 @@ searches.
 .SH SYNOPSIS
 .PP
 class frovedis.mllib.neighbors.NearestNeighbors(n_neighbors=5,
-radius=1.0,
+radius=1.0, algorithm=\[aq]auto\[aq],
 .PD 0
 .P
 .PD
 \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ algorithm=\[aq]auto\[aq],
-leaf_size=30,
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ leaf_size=30,
+metric=\[aq]euclidean\[aq], p=2,
 .PD 0
 .P
 .PD
 \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ metric=\[aq]euclidean\[aq],
-p=2, metric_params=None,
-.PD 0
-.P
-.PD
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ n_jobs=None, verbose=0,
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ metric_params=None,
+n_jobs=None, verbose=0,
 .PD 0
 .P
 .PD
@@ -36,7 +31,7 @@ fit(X, y = None)
 .PD 0
 .P
 .PD
-kneighbors(X = None, n_neighbors=None, return_distance = True)
+kneighbors(X = None, n_neighbors = None, return_distance = True)
 .PD 0
 .P
 .PD
@@ -101,7 +96,7 @@ The frovedis interface is almost same as Scikit\-learn NearestNeighbors
 interface, but it doesn\[aq]t have any dependency with Scikit\-learn.
 It can be used simply even if the system doesn\[aq]t have Scikit\-learn
 installed.
-Thus, in this implementation, a python client can interact with a
+Thus in this implementation, a python client can interact with a
 frovedis server sending the required python data for training at
 frovedis side.
 Python data is converted into frovedis compatible data internally and
@@ -132,7 +127,7 @@ It must be within the range of 0 and n_samples.
 .PD 0
 .P
 .PD
-\f[B]\f[I]radius\f[]\f[]: A positive float paramater, specifying the
+\f[B]\f[I]radius\f[]\f[]: A positive float parameter, specifying the
 range of parameter space to use by default for
 \[aq]radius_neighbors\[aq] queries.
 (Default: 1.0)
@@ -156,7 +151,7 @@ Unlike Scikit\-learn, currently it supports only ‘brute'.
 .PD 0
 .P
 .PD
-\f[B]\f[I]metric\f[]\f[]: A string object parameter specifying the
+\f[B]\f[I]metric\f[]\f[]: A string object parameter, specifying the
 distance metric to use for the tree.
 (Default: ‘euclidean')
 .PD 0
@@ -184,13 +179,13 @@ Currenlty it only supports ‘euclidean', \[aq]seuclidean\[aq] and
 .PD
 \f[B]\f[I]verbose\f[]\f[]: An integer parameter specifying the log level
 to use.
-Its value is set as 0 by default(for INFO mode).
+Its value is set as 0 by default (for INFO mode).
 But it can be set to 1(for DEBUG mode) or 2(for TRACE mode) for getting
 training time logs from frovedis server.
 .PD 0
 .P
 .PD
-\f[B]\f[I]chunk_size\f[]\f[]: A positive float parameter specifying the
+\f[B]\f[I]chunk_size\f[]\f[]: A positive float parameter, specifying the
 amount of data (in megabytes) to be processed in one time.
 (Default: 1.0)
 .PD 0
@@ -216,7 +211,7 @@ It initializes a NearestNeighbors object with the given parameters.
 The parameters: "leaf_size", "p", "metric_params" and "n_jobs" are
 simply kept in to make the interface uniform to the Scikit\-learn
 NearestNeighbors module.
-They are not used anywhere within frovedis implementation.
+They are not used anywhere within the frovedis implementation.
 .PP
 \f[B]Return Value\f[]
 .PD 0
@@ -408,8 +403,8 @@ distances
 matrix:
 num_row\ =\ 6,\ num_col\ =\ 3
 node\ 0
-node\ =\ 0,\ local_num_row\ =\ 6,\ local_num_col\ =\ 3,\ val\ =\ 0\ 1\ 2.23607\ 0\ 1\ 1.41421\ 0\ 1.41421\ 2.23607
-0\ 1\ 2.23607\ 0\ 1\ 1.41421\ 0\ 1.41421\ 2.23607
+node\ =\ 0,\ local_num_row\ =\ 6,\ local_num_col\ =\ 3,\ val\ =\ 0\ 1\ 2.23607\ 0\ 1\ 1.41421\ 0\ 1.41421\ 
+2.23607\ 0\ 1\ 2.23607\ 0\ 1\ 1.41421\ 0\ 1.41421\ 2.23607
 indices
 matrix:
 num_row\ =\ 6,\ num_col\ =\ 3
@@ -502,8 +497,9 @@ It specifies the type of returned matrix.
 .PD
 For \[aq]connectivity\[aq], it will return the connectivity matrix with
 ones and zeros, whereas for ‘distance', the edges are euclidean distance
-between points, type of distance depends on the selected
-\[aq]metric\[aq] value in NearestNeighbors class.
+between points.
+Type of distance depends on the selected \[aq]metric\[aq] value in
+NearestNeighbors class.
 (Default: \[aq]connectivity\[aq])
 .PP
 \f[B]Purpose\f[]
@@ -587,7 +583,7 @@ kneighbors\ graph
 .fi
 .PP
 Like in fit(), frovedis\-like input can be used to speed\-up the graph
-making at server side.
+construction at server side.
 .PP
 For example,
 .IP
@@ -669,7 +665,7 @@ used as input in fit().
 .PD 0
 .P
 .PD
-\f[B]\f[I]radius\f[]\f[]: A positive float paramater, specifying the
+\f[B]\f[I]radius\f[]\f[]: A positive float parameter, specifying the
 limiting distance of neighbors to return.
 (Default: None)
 .PD 0
@@ -813,7 +809,7 @@ used as input in fit().
 .PD 0
 .P
 .PD
-\f[B]\f[I]radius\f[]\f[]: A positive float paramater, specifying the
+\f[B]\f[I]radius\f[]\f[]: A positive float parameter, specifying the
 limiting distance of neighbors to return.
 (Default: None)
 .PD 0
@@ -832,8 +828,9 @@ It specifies the type of returned matrix.
 .PD
 For \[aq]connectivity\[aq], it will return the connectivity matrix with
 ones and zeros, whereas for ‘distance', the edges are euclidean distance
-between points, type of distance depends on the selected
-\[aq]metric\[aq] value in NearestNeighbors class.
+between points.
+Type of distance depends on the selected \[aq]metric\[aq] value in
+NearestNeighbors class.
 (Default: \[aq]connectivity\[aq])
 .PP
 \f[B]Purpose\f[]
@@ -909,7 +906,7 @@ radius\ neighbors\ graph
 .fi
 .PP
 Like in fit(), frovedis\-like input can be used to speed\-up the
-computation of indices and distances at server side.
+computation of graph construction at server side.
 .PP
 For example,
 .IP
@@ -1004,8 +1001,8 @@ Output
 .nf
 \f[C]
 {\[aq]algorithm\[aq]:\ \[aq]brute\[aq],\ \[aq]batch_fraction\[aq]:\ 1.7976931348623157e+308,\ \[aq]chunk_size\[aq]:\ 1.0,\ 
-\[aq]leaf_size\[aq]:\ 30,\ \[aq]metric\[aq]:\ \[aq]euclidean\[aq],\ \[aq]metric_params\[aq]:\ None,\ \[aq]n_jobs\[aq]:\ None,\ \[aq]n_neighbors\[aq]:\ 3,
-\[aq]p\[aq]:\ 2,\ \[aq]radius\[aq]:\ 2.0,\ \[aq]verbose\[aq]:\ 0}
+\[aq]leaf_size\[aq]:\ 30,\ \[aq]metric\[aq]:\ \[aq]euclidean\[aq],\ \[aq]metric_params\[aq]:\ None,\ \[aq]n_jobs\[aq]:\ None,\ 
+\[aq]n_neighbors\[aq]:\ 3,\ \[aq]p\[aq]:\ 2,\ \[aq]radius\[aq]:\ 2.0,\ \[aq]verbose\[aq]:\ 0}
 \f[]
 .fi
 .PP
@@ -1020,7 +1017,7 @@ A dictionary of parameter names mapped to their values.
 .PD 0
 .P
 .PD
-\f[I]\f[B]**params\f[]\f[]: All the keyword arguments are passed this
+\f[I]\f[B]**params\f[]\f[]: All the keyword arguments are passed to this
 function as dictionary.
 This dictionary contains parameters of an estimator with its given
 values to set.
@@ -1052,12 +1049,12 @@ Output
 \f[C]
 get\ parameters\ before\ setting:\ 
 {\[aq]algorithm\[aq]:\ \[aq]brute\[aq],\ \[aq]batch_fraction\[aq]:\ 1.7976931348623157e+308,\ \[aq]chunk_size\[aq]:\ 1.0,
-\[aq]leaf_size\[aq]:\ 30,\ \[aq]metric\[aq]:\ \[aq]euclidean\[aq],\ \[aq]metric_params\[aq]:\ None,\ \[aq]n_jobs\[aq]:\ None,\ \[aq]n_neighbors\[aq]:\ 3,
-\[aq]p\[aq]:\ 2,\ \[aq]radius\[aq]:\ 2.0,\ \[aq]verbose\[aq]:\ 0}
+\[aq]leaf_size\[aq]:\ 30,\ \[aq]metric\[aq]:\ \[aq]euclidean\[aq],\ \[aq]metric_params\[aq]:\ None,\ \[aq]n_jobs\[aq]:\ None,\ 
+\[aq]n_neighbors\[aq]:\ 3,\ \[aq]p\[aq]:\ 2,\ \[aq]radius\[aq]:\ 2.0,\ \[aq]verbose\[aq]:\ 0}
 get\ parameters\ after\ setting:\ 
 {\[aq]algorithm\[aq]:\ \[aq]brute\[aq],\ \[aq]batch_fraction\[aq]:\ 1.7976931348623157e+308,\ \[aq]chunk_size\[aq]:\ 1.0,
-\[aq]leaf_size\[aq]:\ 30,\ \[aq]metric\[aq]:\ \[aq]euclidean\[aq],\ \[aq]metric_params\[aq]:\ None,\ \[aq]n_jobs\[aq]:\ None,\ \[aq]n_neighbors\[aq]:\ 4,
-\[aq]p\[aq]:\ 2,\ \[aq]radius\[aq]:\ 1.0,\ \[aq]verbose\[aq]:\ 0}\ 
+\[aq]leaf_size\[aq]:\ 30,\ \[aq]metric\[aq]:\ \[aq]euclidean\[aq],\ \[aq]metric_params\[aq]:\ None,\ \[aq]n_jobs\[aq]:\ None,\ 
+\[aq]n_neighbors\[aq]:\ 4,\ \[aq]p\[aq]:\ 2,\ \[aq]radius\[aq]:\ 1.0,\ \[aq]verbose\[aq]:\ 0}\ 
 \f[]
 .fi
 .PP
@@ -1161,8 +1158,8 @@ It can be used to confirm if the model is already fitted or not.
 .PD 0
 .P
 .PD
-It returns ‘True', if the model is already fitted otherwise, it returns
+It returns ‘True', if the model is already fitted, otherwise, it returns
 ‘False'.
 .SH SEE ALSO
 .PP
-rowmajor_matrix, crs_matrix
+rowmajor_matrix, crs_matrix, kneighborsclassifier, kneighborsregressor
