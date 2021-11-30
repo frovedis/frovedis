@@ -31,7 +31,7 @@ random_state=None,
 .P
 .PD
 \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ warm_start = False)
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ warm_start=False)
 .SS Public Member Functions
 .PP
 fit(X, y, sample_weight = None)
@@ -84,10 +84,10 @@ L(w;x,y)\ :=\ 1/2(wTx\-y)^2
 \f[]
 .fi
 .PP
-Where the vectors x are the training data examples and y are their
-corresponding labels which we want to predict.
-w is the linear model (also known as weight) which uses a single
-weighted sum of features to make a prediction.
+Where the vectors \f[B]x\f[] are the training data examples and
+\f[B]y\f[] are their corresponding labels which we want to predict.
+\f[B]w\f[] is the linear model (also known as weight) which uses a
+single weighted sum of features to make a prediction.
 The method is called linear since it can be expressed as a function of
 wTx and y.
 Ridge regression uses L2 regularization to address the overfit problem.
@@ -127,8 +127,8 @@ first\-order optimization.
 .PP
 This module provides a client\-server implementation, where the client
 application is a normal python program.
-The frovedis interface is almost same as Scikit\-learn Ridge Regression
-interface, but it doesn\[aq]t have any dependency with Scikit\-learn.
+The frovedis interface is almost same as Scikit\-learn Ridge interface,
+but it doesn\[aq]t have any dependency with Scikit\-learn.
 It can be used simply even if the system doesn\[aq]t have Scikit\-learn
 installed.
 Thus in this implementation, a python client can interact with a
@@ -138,7 +138,7 @@ Python data is converted into frovedis compatible data internally and
 the python ML call is linked with the respective frovedis ML call to get
 the job done at frovedis server.
 .PP
-Python side calls for Ridge Regression on the frovedis server.
+Python side calls for Ridge on the frovedis server.
 Once the training is completed with the input data at the frovedis
 server, it returns an abstract model with a unique model ID to the
 client python program.
@@ -174,7 +174,7 @@ a constant (intercept) should be added to the decision function.
 .PD 0
 .P
 .PD
-\f[B]\f[I]max_iter\f[]\f[]: An integer parameter specifying maximum
+\f[B]\f[I]max_iter\f[]\f[]: An integer parameter specifying the maximum
 iteration count.
 (Default: None) When it is None(not specified explicitly), it will be
 set as 1000.
@@ -191,7 +191,7 @@ specifying the convergence tolerance value.
 It can be "sag" for frovedis side stochastic gradient descent or "lbfgs"
 for frovedis side LBFGS optimizer when optimizing the ridge regression
 model.
-Initilaly solver is "auto" by default.
+Initially solver is "auto" by default.
 In such cases, it will select "sag" solver.
 Both "sag" and "lbfgs" can handle L2 penalty.
 .PD 0
@@ -211,7 +211,7 @@ type containing the learning rate.
 .PD
 \f[B]\f[I]verbose\f[]\f[]: An integer parameter specifying the log level
 to use.
-Its value is 0 by default(for INFO mode and not specified explicitly).
+Its value is 0 by default (for INFO mode and not specified explicitly).
 But it can be set to 1 (for DEBUG mode) or 2 (for TRACE mode) for
 getting training time logs from frovedis server.
 .PD 0
@@ -251,8 +251,7 @@ actual iteration point at which the problem is converged.
 It initializes a Ridge object with the given parameters.
 .PP
 The parameters: "normalize", "copy_X" and "random_state" are simply kept
-in to to make the interface uniform to the Scikit\-learn Ridge
-Regression module.
+in to to make the interface uniform to the Scikit\-learn Ridge module.
 They are not used anywhere within the frovedis implementation.
 .PP
 \f[B]Return Value\f[]
@@ -274,12 +273,13 @@ and FrovedisColmajorMatrix for dense data.
 .PD
 \f[B]\f[I]y\f[]\f[]: Any python array\-like object or an instance of
 FrovedisDvector.
+It has shape \f[B](n_samples,)\f[].
 .PD 0
 .P
 .PD
-\f[B]\f[I]sample_weight\f[]\f[]: A python ndarray containing the
-intended weights for each input samples and it should be the shape of
-(nsamples, ).
+\f[B]\f[I]sample_weight\f[]\f[]: Python ndarray containing the intended
+weights for each input samples and it should be the shape of
+\f[B](n_samples, )\f[].
 When it is None (not specified explicitly), an uniform weight vector is
 assigned on each input sample.
 (Default: None)
@@ -295,7 +295,7 @@ with L2 regularization with those data at frovedis server.
 When native python data is provided, it is converted to frovedis\-like
 inputs and sent to frovedis server which consumes some data transfer
 time.
-Pre\-constructed frovedlis\-like inputs can be used to speed up the
+Pre\-constructed frovedis\-like inputs can be used to speed up the
 training time, especially when same data would be used for multiple
 executions.
 .PP
@@ -345,12 +345,13 @@ and FrovedisRowmajorMatrix for dense data.
 .PD
 \f[B]\f[I]y\f[]\f[]: Any python array\-like object or an instance of
 FrovedisDvector.
+It has shape \f[B](n_samples,)\f[].
 .PD 0
 .P
 .PD
-\f[B]\f[I]sample_weight\f[]\f[]: A python ndarray containing the
-intended weights for each input samples and it should be the shape of
-(nsamples, ).
+\f[B]\f[I]sample_weight\f[]\f[]: Python ndarray containing the intended
+weights for each input samples and it should be the shape of
+\f[B](n_samples, )\f[].
 When it is None (not specified explicitly), an uniform weight vector is
 assigned on each input sample.
 (Default: None)
@@ -375,6 +376,9 @@ where \[aq]u\[aq] is the residual sum of squares ((y_true \- y_pred) **
 .PD
 \[aq]v\[aq] is the total sum of squares ((y_true \- y_true.mean()) **
 2).sum().
+.PD 0
+.P
+.PD
 The best possible score is 1.0 and it can be negative (because the model
 can be arbitrarily worse).
 A constant model that always predicts the expected value of y,
@@ -415,7 +419,7 @@ A dictionary of parameter names mapped to their values.
 .PD 0
 .P
 .PD
-\f[I]\f[B]**params\f[]\f[]: All the keyword arguments are passed this
+\f[I]\f[B]**params\f[]\f[]: All the keyword arguments are passed to this
 function as dictionary.
 This dictionary contains parameters of an estimator with its given
 values to set.
@@ -458,7 +462,7 @@ data).
 .PD 0
 .P
 .PD
-It simply returns "self" instance.
+It simply returns "self" reference.
 .SS 8. save(fname)
 .PP
 \f[B]Parameters\f[]
@@ -467,6 +471,14 @@ It simply returns "self" instance.
 .PD
 \f[B]\f[I]fname\f[]\f[]: A string object containing the name of the file
 on which the target model is to be saved.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+On success, it writes the model information (weight values, etc.) in the
+specified file as little\-endian binary data.
+Otherwise, it throws an exception.
 .PP
 Suppose \[aq]RidgeModel\[aq] directory is the model created, It will
 have
@@ -489,13 +501,8 @@ datatype used for trained model.
 Here, the model file contains information about weights, intercept and
 threshold.
 .PP
-\f[B]Purpose\f[]
-.PD 0
-.P
-.PD
-On success, it writes the model information (weight values, etc.) in the
-specified file as little\-endian binary data.
-Otherwise, it throws an exception.
+It would raise exception if the \[aq]RidgeModel\[aq] directory already
+existed with same name.
 .PP
 \f[B]Return Value\f[]
 .PD 0
@@ -550,4 +557,5 @@ It returns ‘True', if the model is already fitted otherwise, it returns
 ‘False'.
 .SH SEE ALSO
 .PP
-linear_regression, lasso_regression, dvector, crs_matrix
+linear_regression, lasso_regression, dvector, crs_matrix,
+rowmajor_matrix

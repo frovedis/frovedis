@@ -17,7 +17,7 @@ class frovedis.mllib.linear_model.Ridge(alpha=0.01, fit_intercept=True,
 \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
 \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ lr_rate=1e-8, verbose=0,  
 \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ warm_start = False)  
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ warm_start=False)  
 
 ## Public Member Functions
 
@@ -38,8 +38,8 @@ It is a linear method with the loss function given by the **squared loss**:
 
     L(w;x,y) := 1/2(wTx-y)^2
 
-Where the vectors x are the training data examples and y are their corresponding 
-labels which we want to predict. w is the linear model (also known as weight) 
+Where the vectors **x** are the training data examples and **y** are their corresponding 
+labels which we want to predict. **w** is the linear model (also known as weight) 
 which uses a single weighted sum of features to make a prediction. The method 
 is called linear since it can be expressed as a function of wTx and y. Ridge 
 regression uses L2 regularization to address the overfit problem.    
@@ -67,17 +67,16 @@ rapider convergence compared with other first-order optimization.
 
 This module provides a client-server implementation, where the client 
 application is a normal python program. The frovedis interface is almost same
-as Scikit-learn Ridge Regression interface, but it doesn't have any dependency
-with Scikit-learn. It can be used simply even if the system doesn't have Scikit-learn
-installed. Thus in this implementation, a python client can 
-interact with a frovedis server sending the required python data for training
-at frovedis side. Python data is converted into frovedis compatible data 
-internally and the python ML call is linked with the respective frovedis ML 
-call to get the job done at frovedis server.  
+as Scikit-learn Ridge interface, but it doesn't have any dependency with Scikit-learn. 
+It can be used simply even if the system doesn't have Scikit-learn installed. Thus in 
+this implementation, a python client can interact with a frovedis server sending the 
+required python data for training at frovedis side. Python data is converted into 
+frovedis compatible data internally and the python ML call is linked with the 
+respective frovedis ML call to get the job done at frovedis server.  
 
-Python side calls for Ridge Regression on the frovedis server. Once the training is
-completed with the input data at the frovedis server, it returns an abstract model 
-with a unique model ID to the client python program.  
+Python side calls for Ridge on the frovedis server. Once the training is completed 
+with the input data at the frovedis server, it returns an abstract model with a 
+unique model ID to the client python program.  
 
 When prediction-like request would be made on the trained model, python program will
 send the same request to the frovedis server. After the request is served at the frovedis
@@ -94,19 +93,19 @@ strength parameter. (Default: 0.01)
 should be added to the decision function. (Default: True)  
 **_normalize_**: A boolean parameter (unused)  
 **_copy\_X_**: A boolean parameter (unsed)  
-**_max\_iter_**: An integer parameter specifying maximum iteration count. (Default: None)
+**_max\_iter_**: An integer parameter specifying the maximum iteration count. (Default: None)
 When it is None(not specified explicitly), it will be set as 1000.  
 **_tol_**: Zero or a positive value of double(float64) type specifying the convergence 
 tolerance value. (Default: 1e-3)  
 **_solver_**: A string object specifying the solver to use. It can be "sag" for frovedis 
-side stochastic gradient descent or "lbfgs" for frovedis side LBFGS optimizer 
-when optimizing the ridge regression model. Initilaly solver is "auto" by default. 
-In such cases, it will select "sag" solver. Both "sag" and "lbfgs" can handle L2 penalty.  
+side stochastic gradient descent or "lbfgs" for frovedis side LBFGS optimizer when 
+optimizing the ridge regression model. Initially solver is "auto" by default. In such 
+cases, it will select "sag" solver. Both "sag" and "lbfgs" can handle L2 penalty.  
 **_random\_state_**: An integer, None or RandomState instance. (unused)  
 **_lr\_rate_**: Zero or a positive value of double(float64) type containing the learning 
 rate. (Default: 1e-8)  
 **_verbose_**: An integer parameter specifying the log level to use. Its value is 0 by 
-default(for INFO mode and not specified explicitly). But it can be set to 1 (for DEBUG mode)
+default (for INFO mode and not specified explicitly). But it can be set to 1 (for DEBUG mode)
 or 2 (for TRACE mode) for getting training time logs from frovedis server.  
 **_warm\_start_**: A boolean parameter which when set to True, reuses the solution of 
 the previous call to fit as initialization, otherwise, just erase the previous 
@@ -126,7 +125,7 @@ __Purpose__
 It initializes a Ridge object with the given parameters.   
 
 The parameters: "normalize", "copy_X" and "random_state" are simply kept in to to make the
-interface uniform to the Scikit-learn Ridge Regression module. They are not used anywhere
+interface uniform to the Scikit-learn Ridge module. They are not used anywhere
 within the frovedis implementation.  
 
 __Return Value__    
@@ -136,10 +135,10 @@ It simply returns "self" reference.
 __Parameters__   
 **_X_**: A numpy dense or scipy sparse matrix or any python array-like object or an 
 instance of FrovedisCRSMatrix for sparse data and FrovedisColmajorMatrix for dense data.  
-**_y_**: Any python array-like object or an instance of FrovedisDvector.  
-**_sample\_weight_**: A python ndarray containing the intended weights for each input
-samples and it should be the shape of (nsamples, ). When it is None (not specified explicitly), 
-an uniform weight vector is assigned on each input sample. (Default: None)  
+**_y_**: Any python array-like object or an instance of FrovedisDvector. It has shape **(n_samples,)**.   
+**_sample\_weight_**: Python ndarray containing the intended weights for each input
+samples and it should be the shape of **(n_samples, )**. When it is None (not specified explicitly), an
+uniform weight vector is assigned on each input sample. (Default: None)  
 
 __Purpose__    
 It accepts the training feature matrix (X) and corresponding output labels (y) 
@@ -148,7 +147,7 @@ with those data at frovedis server.
 
 When native python data is provided, it is converted to frovedis-like inputs and 
 sent to frovedis server which consumes some data transfer time. Pre-constructed 
-frovedlis-like inputs can be used to speed up the training time, especially when 
+frovedis-like inputs can be used to speed up the training time, especially when 
 same data would be used for multiple executions.  
 
 __Return Value__  
@@ -170,16 +169,16 @@ prediction.
 
 __Return Value__  
 It returns a numpy array of double(float64) type and has shape **(n_samples,)** 
-containing the predicted outputs. 
+containing the predicted outputs.  
 
 ### 4. score(X, y, sample_weight = None)
 __Parameters__  
 **_X_**: A numpy dense or scipy sparse matrix or any python array-like object or an instance 
 of FrovedisCRSMatrix for sparse data and FrovedisRowmajorMatrix for dense data.  
-**_y_**: Any python array-like object or an instance of FrovedisDvector.     
-**_sample\_weight_**: A python ndarray containing the intended weights for each input
-samples and it should be the shape of (nsamples, ). When it is None (not specified explicitly), 
-an uniform weight vector is assigned on each input sample. (Default: None)  
+**_y_**: Any python array-like object or an instance of FrovedisDvector. It has shape **(n_samples,)**.    
+**_sample\_weight_**: Python ndarray containing the intended weights for each input
+samples and it should be the shape of **(n_samples, )**. When it is None (not specified explicitly), an
+uniform weight vector is assigned on each input sample. (Default: None)  
 
 __Purpose__  
 Calculate the root mean square value on the given test data and labels i.e. 
@@ -187,8 +186,8 @@ R2(r-squared) of self.predict(X) wrt. y.
 
 The coefficient 'R2' is defined as (1 - (u/v)),  
 where 'u' is the residual sum of squares ((y_true - y_pred) ** 2).sum() and  
-'v' is the total sum of squares ((y_true - y_true.mean()) ** 2).sum(). The best 
-possible score is 1.0 and it can be negative (because the model can be arbitrarily worse). 
+'v' is the total sum of squares ((y_true - y_true.mean()) ** 2).sum().  
+The best possible score is 1.0 and it can be negative (because the model can be arbitrarily worse). 
 A constant model that always predicts the expected value of y, disregarding the input 
 features, would get a R2 score of 0.0.  
 
@@ -209,7 +208,7 @@ A dictionary of parameter names mapped to their values.
 
 ### 6. set_params(\*\*params)  
 __Parameters__  
-_**\*\*params**_: All the keyword arguments are passed this function as dictionary. This dictionary 
+_**\*\*params**_: All the keyword arguments are passed to this function as dictionary. This dictionary 
 contains parameters of an estimator with its given values to set.  
 
 __Purpose__  
@@ -229,12 +228,16 @@ __Purpose__
 It loads the model from the specified file (having little-endian binary data).
 
 __Return Value__  
-It simply returns "self" instance.  
+It simply returns "self" reference.  
 
 ### 8. save(fname)
 __Parameters__   
 **_fname_**: A string object containing the name of the file on which the target 
 model is to be saved.  
+
+__Purpose__    
+On success, it writes the model information (weight values, etc.) in the 
+specified file as little-endian binary data. Otherwise, it throws an exception.  
 
 Suppose 'RidgeModel' directory is the model created, It will have  
 
@@ -245,9 +248,7 @@ Suppose 'RidgeModel' directory is the model created, It will have
 The metadata file contains the number of classes, model kind, input datatype used for trained model.  
 Here, the model file contains information about weights, intercept and threshold.  
 
-__Purpose__    
-On success, it writes the model information (weight values, etc.) in the 
-specified file as little-endian binary data. Otherwise, it throws an exception.  
+It would raise exception if the 'RidgeModel' directory already existed with same name.  
 
 __Return Value__  
 It returns nothing.  
@@ -281,4 +282,4 @@ __Return Value__
 It returns ‘True’, if the model is already fitted otherwise, it returns ‘False’.
 
 # SEE ALSO  
-linear_regression, lasso_regression, dvector, crs_matrix    
+linear_regression, lasso_regression, dvector, crs_matrix, rowmajor_matrix    
