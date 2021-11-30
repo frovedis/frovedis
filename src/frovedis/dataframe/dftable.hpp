@@ -7,7 +7,6 @@
 #include <sys/types.h>
 
 #include "dfcolumn.hpp"
-#include "dfaggregator.hpp"
 #include "../matrix/colmajor_matrix.hpp"
 #include "../matrix/ell_matrix.hpp"
 #include "../matrix/blas_wrapper.hpp"
@@ -27,6 +26,7 @@ class dfoperator;
 struct dftable_to_sparse_info;
 
 struct dffunction;
+struct dfaggregator;
 
 // same as dftable w/o its specific member functions
 class dftable_base {

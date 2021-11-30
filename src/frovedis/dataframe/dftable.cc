@@ -8,6 +8,7 @@
 #include "../text/datetime_to_words.hpp"
 #include "../core/prefix_sum.hpp"
 #include "dffunction.hpp"
+#include "dfaggregator.hpp"
 
 #define GROUPED_DFTABLE_VLEN 256
 
@@ -3414,7 +3415,7 @@ grouped_dftable::fselect
   size_t aggssize = aggs.size();
   auto nl_row_sizes = make_node_local_scatter(num_rows());
   for(size_t i = 0; i < aggssize; i++) {
-    use_dfcolumn use(org_table.raw_column(aggs[i]->col));
+    use_dfcolumn use(aggs[i]->col->columns_to_use(org_table));
     auto newcol = aggs[i]->aggregate(org_table,
                                      local_grouped_idx,
                                      local_idx_split,
@@ -3422,19 +3423,11 @@ grouped_dftable::fselect
                                      merge_map,
                                      nl_row_sizes);
     newcol->spill();
-    if(aggs[i]->has_as) {
-      if(ret_table.col.find(aggs[i]->as) != ret_table.col.end())
-        throw std::runtime_error
-          ("grouped_dftable::select: same column name already exists");
-      ret_table.col[aggs[i]->as] = newcol;
-      ret_table.col_order.push_back(aggs[i]->as);
-    } else {
-      if(ret_table.col.find(aggs[i]->col) != ret_table.col.end())
-        throw std::runtime_error
-          ("grouped_dftable::select: same column name already exists");
-      ret_table.col[aggs[i]->col] = newcol;
-      ret_table.col_order.push_back(aggs[i]->col);
-    }
+    if(ret_table.col.find(aggs[i]->get_as()) != ret_table.col.end())
+      throw std::runtime_error
+        ("grouped_dftable::select: same column name already exists");
+    ret_table.col[aggs[i]->get_as()] = newcol;
+    ret_table.col_order.push_back(aggs[i]->get_as());
   }
   ret_table.row_size = num_row();
   ret_table.row_sizes = num_rows();
@@ -3464,7 +3457,7 @@ grouped_dftable::select(const std::vector<std::string>& cols,
   size_t aggssize = aggs.size();
   auto nl_row_sizes = make_node_local_scatter(num_rows());
   for(size_t i = 0; i < aggssize; i++) {
-    use_dfcolumn use(org_table.raw_column(aggs[i]->col));
+    use_dfcolumn use(aggs[i]->col->columns_to_use(org_table));
     auto newcol = aggs[i]->aggregate(org_table,
                                      local_grouped_idx,
                                      local_idx_split,
@@ -3472,19 +3465,11 @@ grouped_dftable::select(const std::vector<std::string>& cols,
                                      merge_map,
                                      nl_row_sizes);
     newcol->spill();
-    if(aggs[i]->has_as) {
-      if(ret_table.col.find(aggs[i]->as) != ret_table.col.end())
-        throw std::runtime_error
-          ("grouped_dftable::select: same column name already exists");
-      ret_table.col[aggs[i]->as] = newcol;
-      ret_table.col_order.push_back(aggs[i]->as);
-    } else {
-      if(ret_table.col.find(aggs[i]->col) != ret_table.col.end())
-        throw std::runtime_error
-          ("grouped_dftable::select: same column name already exists");
-      ret_table.col[aggs[i]->col] = newcol;
-      ret_table.col_order.push_back(aggs[i]->col);
-    }
+    if(ret_table.col.find(aggs[i]->get_as()) != ret_table.col.end())
+      throw std::runtime_error
+        ("grouped_dftable::select: same column name already exists");
+    ret_table.col[aggs[i]->get_as()] = newcol;
+    ret_table.col_order.push_back(aggs[i]->get_as());
   }
   ret_table.row_size = num_row();
   ret_table.row_sizes = num_rows();
