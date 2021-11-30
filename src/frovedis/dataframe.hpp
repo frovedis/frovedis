@@ -1,6 +1,7 @@
 #include "dataframe/dftable.hpp"
 #include "dataframe/dfoperator.hpp"
 #include "dataframe/dffunction.hpp"
+#include "dataframe/dfaggregator.hpp"
 #include "dataframe/time_extract.hpp"
 #include "dataframe/make_dftable_string.hpp"
 #include "dataframe/make_dftable_loadtext.hpp"
