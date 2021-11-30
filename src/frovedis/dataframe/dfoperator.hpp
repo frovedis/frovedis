@@ -1663,17 +1663,10 @@ std::shared_ptr<dfoperator>
 multi_eq(const std::vector<std::string>& left,
          const std::vector<std::string>& right);
 
+// use different name since literal argument becomes ambiguous
 std::shared_ptr<dfoperator>
-multi_eq(const std::vector<std::shared_ptr<dffunction>>& left_func,
-         const std::vector<std::string>& right);
-
-std::shared_ptr<dfoperator>
-multi_eq(const std::vector<std::string>& left,
-         const std::vector<std::shared_ptr<dffunction>>& right_func);
-
-std::shared_ptr<dfoperator>
-multi_eq(const std::vector<std::shared_ptr<dffunction>>& left_func,
-         const std::vector<std::shared_ptr<dffunction>>& right_func);
+fmulti_eq(const std::vector<std::shared_ptr<dffunction>>& left_func,
+          const std::vector<std::shared_ptr<dffunction>>& right_func);
 
 struct dfoperator_cross : public dfoperator {
   dfoperator_cross() {}

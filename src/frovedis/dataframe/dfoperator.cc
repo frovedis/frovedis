@@ -529,23 +529,7 @@ multi_eq(const std::vector<std::string>& left,
 }
 
 std::shared_ptr<dfoperator>
-multi_eq(const std::vector<std::shared_ptr<dffunction>>& left_func,
-         const std::vector<std::string>& right) {
-  std::vector<std::shared_ptr<dffunction>> right_func(right.size());
-  for(size_t i = 0; i < right.size(); i++) right_func[i] = id_col(right[i]);
-  return std::make_shared<dfoperator_multi_eq>(left_func,right_func);
-}
-
-std::shared_ptr<dfoperator>
-multi_eq(const std::vector<std::string>& left,
-         const std::vector<std::shared_ptr<dffunction>>& right_func) {
-  std::vector<std::shared_ptr<dffunction>> left_func(left.size());
-  for(size_t i = 0; i < left.size(); i++) left_func[i] = id_col(left[i]);
-  return std::make_shared<dfoperator_multi_eq>(left_func,right_func);
-}
-
-std::shared_ptr<dfoperator>
-multi_eq(const std::vector<std::shared_ptr<dffunction>>& left_func,
+fmulti_eq(const std::vector<std::shared_ptr<dffunction>>& left_func,
          const std::vector<std::shared_ptr<dffunction>>& right_func) {
   return std::make_shared<dfoperator_multi_eq>(left_func,right_func);
 }
