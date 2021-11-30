@@ -129,7 +129,7 @@ For example,
     rmat = FrovedisRowmajorMatrix(mat)
     dlbl = FrovedisDvector(lbl)
     
-    # MultinomialNB with pre-constructed frovedlis-like inputs
+    # MultinomialNB with pre-constructed frovedis-like inputs
     from frovedis.mllib.naive_bayes import MultinomialNB
     mnb = MultinomialNB().fit(rmat, dlbl)  
 
