@@ -11,16 +11,7 @@ struct dfoperator;
 
 // need to be here, because dfoperator inherits dffunction
 struct dffunction {
-  // column_name and raw_column are only for dffunction_id
   virtual bool is_id() const {return false;}
-  virtual std::string column_name() const {
-    throw std::runtime_error
-      ("column_name on this operator is not implemented");
-  }
-  virtual std::shared_ptr<dfcolumn> raw_column(dftable_base& t) const {
-    throw std::runtime_error
-      ("raw_column on this operator is not implemented");
-  }
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const {
     throw std::runtime_error
       ("execute on this operator is not implemented");
@@ -60,10 +51,6 @@ struct dffunction_id : public dffunction {
     return std::make_shared<dffunction_id>(*this);
   }
   virtual bool is_id() const {return true;}
-  virtual std::string column_name() const {return left;}
-  virtual std::shared_ptr<dfcolumn> raw_column(dftable_base& t) const {
-    return t.raw_column(left);
-  }
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const {
     return t.column(left);
   }
@@ -192,10 +179,13 @@ struct dfoperator_eq : public dfoperator {
     hash_join(dftable_base& left_t, dftable_base& right_t,
               node_local<std::vector<size_t>>& left_idx,
               node_local<std::vector<size_t>>& right_idx) const {
-    if(!left->is_id() || !right->is_id())
-      throw std::runtime_error("function call is not allowed for join");
-    auto left_column = left->raw_column(left_t);
-    auto right_column = right->raw_column(right_t);
+    // slice to get raw_column from execute
+    // TODO: execute is done on raw (not filtered) column
+    // for better performance, join need to be modified to support filtered col
+    dftable_base left_sliced = left_t;
+    dftable_base right_sliced = right_t;
+    auto left_column = left->execute(left_sliced);
+    auto right_column = right->execute(right_sliced);
     return left_column->hash_join_eq(right_column, left_idx, right_idx);
   }
   virtual std::tuple<node_local<std::vector<size_t>>,
@@ -204,10 +194,10 @@ struct dfoperator_eq : public dfoperator {
     outer_hash_join(dftable_base& left_t, dftable_base& right_t,
                     node_local<std::vector<size_t>>& left_idx,
                     node_local<std::vector<size_t>>& right_idx) const {
-    if(!left->is_id() || !right->is_id())
-      throw std::runtime_error("function call is not allowed for join");
-    auto left_column = left->raw_column(left_t);
-    auto right_column = right->raw_column(right_t);
+    dftable_base left_sliced = left_t;
+    dftable_base right_sliced = right_t;
+    auto left_column = left->execute(left_sliced);
+    auto right_column = right->execute(right_sliced);
     return left_column->outer_hash_join_eq(right_column, left_idx, right_idx);
   }
   virtual std::pair<node_local<std::vector<size_t>>,
@@ -215,10 +205,10 @@ struct dfoperator_eq : public dfoperator {
     bcast_join(dftable_base& left_t, dftable_base& right_t,
                node_local<std::vector<size_t>>& left_idx,
                node_local<std::vector<size_t>>& right_idx) const {
-    if(!left->is_id() || !right->is_id())
-      throw std::runtime_error("function call is not allowed for join");
-    auto left_column = left->raw_column(left_t);
-    auto right_column = right->raw_column(right_t);
+    dftable_base left_sliced = left_t;
+    dftable_base right_sliced = right_t;
+    auto left_column = left->execute(left_sliced);
+    auto right_column = right->execute(right_sliced);
     return left_column->bcast_join_eq(right_column, left_idx, right_idx);
   }
   virtual std::tuple<node_local<std::vector<size_t>>,
@@ -227,10 +217,10 @@ struct dfoperator_eq : public dfoperator {
     outer_bcast_join(dftable_base& left_t, dftable_base& right_t,
                      node_local<std::vector<size_t>>& left_idx,
                      node_local<std::vector<size_t>>& right_idx) const {
-    if(!left->is_id() || !right->is_id())
-      throw std::runtime_error("function call is not allowed for join");
-    auto left_column = left->raw_column(left_t);
-    auto right_column = right->raw_column(right_t);
+    dftable_base left_sliced = left_t;
+    dftable_base right_sliced = right_t;
+    auto left_column = left->execute(left_sliced);
+    auto right_column = right->execute(right_sliced);
     return left_column->outer_bcast_join_eq(right_column, left_idx, right_idx);
   }
   virtual std::pair<node_local<std::vector<size_t>>,
@@ -238,10 +228,10 @@ struct dfoperator_eq : public dfoperator {
     star_join(dftable_base& left_t, dftable_base& right_t,
               node_local<std::vector<size_t>>& left_idx,
               node_local<std::vector<size_t>>& right_idx) const {
-    if(!left->is_id() || !right->is_id())
-      throw std::runtime_error("function call is not allowed for join");
-    auto left_column = left->raw_column(left_t);
-    auto right_column = right->raw_column(right_t);
+    dftable_base left_sliced = left_t;
+    dftable_base right_sliced = right_t;
+    auto left_column = left->execute(left_sliced);
+    auto right_column = right->execute(right_sliced);
     return left_column->star_join_eq(right_column, left_idx, right_idx);
   }
   virtual std::shared_ptr<dfoperator> exchange_lr() {
@@ -505,10 +495,10 @@ struct dfoperator_lt : public dfoperator {
     bcast_join(dftable_base& left_t, dftable_base& right_t,
                node_local<std::vector<size_t>>& left_idx,
                node_local<std::vector<size_t>>& right_idx) const {
-    if(!left->is_id() || !right->is_id())
-      throw std::runtime_error("function call is not allowed for join");
-    auto left_column = left->raw_column(left_t);
-    auto right_column = right->raw_column(right_t);
+    dftable_base left_sliced = left_t;
+    dftable_base right_sliced = right_t;
+    auto left_column = left->execute(left_sliced);
+    auto right_column = right->execute(right_sliced);
     return left_column->bcast_join_lt(right_column, left_idx, right_idx);
   }
   virtual std::shared_ptr<dfoperator> exchange_lr();
@@ -576,10 +566,10 @@ struct dfoperator_ge : public dfoperator {
     bcast_join(dftable_base& left_t, dftable_base& right_t,
                node_local<std::vector<size_t>>& left_idx,
                node_local<std::vector<size_t>>& right_idx) const {
-    if(!left->is_id() || !right->is_id())
-      throw std::runtime_error("function call is not allowed for join");
-    auto left_column = left->raw_column(left_t);
-    auto right_column = right->raw_column(right_t);
+    dftable_base left_sliced = left_t;
+    dftable_base right_sliced = right_t;
+    auto left_column = left->execute(left_sliced);
+    auto right_column = right->execute(right_sliced);
     return left_column->bcast_join_ge(right_column, left_idx, right_idx);
   }
   virtual std::shared_ptr<dfoperator> exchange_lr();
@@ -651,10 +641,10 @@ struct dfoperator_le : public dfoperator {
     bcast_join(dftable_base& left_t, dftable_base& right_t,
                node_local<std::vector<size_t>>& left_idx,
                node_local<std::vector<size_t>>& right_idx) const {
-    if(!left->is_id() || !right->is_id())
-      throw std::runtime_error("function call is not allowed for join");
-    auto left_column = left->raw_column(left_t);
-    auto right_column = right->raw_column(right_t);
+    dftable_base left_sliced = left_t;
+    dftable_base right_sliced = right_t;
+    auto left_column = left->execute(left_sliced);
+    auto right_column = right->execute(right_sliced);
     return left_column->bcast_join_le(right_column, left_idx, right_idx);
   }
   virtual std::shared_ptr<dfoperator> exchange_lr();
@@ -722,11 +712,11 @@ struct dfoperator_gt : public dfoperator {
     bcast_join(dftable_base& left_t, dftable_base& right_t,
                node_local<std::vector<size_t>>& left_idx,
                node_local<std::vector<size_t>>& right_idx) const {
-    if(!left->is_id() || !right->is_id())
-      throw std::runtime_error("function call is not allowed for join");
-    auto left_column = left->raw_column(left_t);
-    auto right_column = right->raw_column(right_t);
-    return left_column->bcast_join_le(right_column, left_idx, right_idx);
+    dftable_base left_sliced = left_t;
+    dftable_base right_sliced = right_t;
+    auto left_column = left->execute(left_sliced);
+    auto right_column = right->execute(right_sliced);
+    return left_column->bcast_join_gt(right_column, left_idx, right_idx);
   }
   virtual std::shared_ptr<dfoperator> exchange_lr();
 
@@ -1610,14 +1600,19 @@ std::shared_ptr<dfoperator>
 not_op(const std::shared_ptr<dffunction>& left);
 
 
-// ----- dfoperator_or -----
-// TODO: currently internally column name is stored, not dffunction
+// ----- dfoperator_multi_eq -----
 struct dfoperator_multi_eq : public dfoperator {
-  dfoperator_multi_eq(const std::vector<std::string>& leftv,
-                      const std::vector<std::string>& rightv) :
-    leftv(leftv), rightv(rightv) {
-    if(leftv.size() != rightv.size())
-      throw std::runtime_error("number of columns is different");
+  dfoperator_multi_eq(const std::vector<std::shared_ptr<dffunction>>& leftv, 
+                      const std::vector<std::shared_ptr<dffunction>>& rightv) :
+    leftv(leftv), rightv(rightv) {as_name = "multieq";}
+  dfoperator_multi_eq(const std::vector<std::shared_ptr<dffunction>>& leftv, 
+                      const std::vector<std::shared_ptr<dffunction>>& rightv, 
+                      const std::string& as_name) :
+    leftv(leftv), rightv(rightv), as_name(as_name) {}
+  virtual std::string get_as() {return as_name;}
+  virtual std::shared_ptr<dffunction> as(const std::string& cname) {
+    as_name = cname;
+    return std::make_shared<dfoperator_multi_eq>(*this);
   }
   virtual node_local<std::vector<size_t>> filter(dftable_base& t) const {
     throw std::runtime_error("filter on this operator is not implemented");
@@ -1643,15 +1638,22 @@ struct dfoperator_multi_eq : public dfoperator {
   virtual std::vector<std::shared_ptr<dfcolumn>>
   columns_to_use(dftable_base& t1, dftable_base& t2) {
     std::vector<std::shared_ptr<dfcolumn>> ret;
-    for(auto& c: leftv) ret.push_back(t1.raw_column(c));
-    for(auto& c: rightv) ret.push_back(t2.raw_column(c));
+    for(size_t i = 0; i < leftv.size(); i++) {
+      auto use = leftv[i]->columns_to_use(t1);
+      ret.insert(ret.end(), use.begin(), use.end());
+    }
+    for(size_t i = 0; i < rightv.size(); i++) {
+      auto use = rightv[i]->columns_to_use(t2);
+      ret.insert(ret.end(), use.begin(), use.end());
+    }
     return ret;
   }
   virtual std::shared_ptr<dfoperator> exchange_lr() {
     return std::make_shared<dfoperator_multi_eq>
       (dfoperator_multi_eq(rightv, leftv));
   }
-  std::vector<std::string> leftv, rightv;
+  std::vector<std::shared_ptr<dffunction>> leftv, rightv;
+  std::string as_name;
 };
 
 void filter_idx(std::vector<size_t>& idx,
@@ -1660,6 +1662,18 @@ void filter_idx(std::vector<size_t>& idx,
 std::shared_ptr<dfoperator>
 multi_eq(const std::vector<std::string>& left,
          const std::vector<std::string>& right);
+
+std::shared_ptr<dfoperator>
+multi_eq(const std::vector<std::shared_ptr<dffunction>>& left_func,
+         const std::vector<std::string>& right);
+
+std::shared_ptr<dfoperator>
+multi_eq(const std::vector<std::string>& left,
+         const std::vector<std::shared_ptr<dffunction>>& right_func);
+
+std::shared_ptr<dfoperator>
+multi_eq(const std::vector<std::shared_ptr<dffunction>>& left_func,
+         const std::vector<std::shared_ptr<dffunction>>& right_func);
 
 struct dfoperator_cross : public dfoperator {
   dfoperator_cross() {}

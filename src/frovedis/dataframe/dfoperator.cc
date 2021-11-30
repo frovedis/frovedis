@@ -518,54 +518,37 @@ void filtered_dftable::debug_print() {
 }
 
 // ---------- for multi_eq ----------
-
 std::shared_ptr<dfoperator>
 multi_eq(const std::vector<std::string>& left,
          const std::vector<std::string>& right) {
-  return std::make_shared<dfoperator_multi_eq>(left,right);
+  std::vector<std::shared_ptr<dffunction>> left_func(left.size());
+  std::vector<std::shared_ptr<dffunction>> right_func(right.size());
+  for(size_t i = 0; i < left.size(); i++) left_func[i] = id_col(left[i]);
+  for(size_t i = 0; i < right.size(); i++) right_func[i] = id_col(right[i]);
+  return std::make_shared<dfoperator_multi_eq>(left_func,right_func);
 }
 
 std::shared_ptr<dfoperator>
 multi_eq(const std::vector<std::shared_ptr<dffunction>>& left_func,
          const std::vector<std::string>& right) {
-  auto size = left_func.size();
-  std::vector<std::string> left(size);
-  for(size_t i = 0; i < size; i++) {
-    if(left_func[i]->is_id()) left[i] = left_func[i]->get_as();
-    else throw std::runtime_error("multi_eq does not support function");
-  }
-  return std::make_shared<dfoperator_multi_eq>(left,right);
+  std::vector<std::shared_ptr<dffunction>> right_func(right.size());
+  for(size_t i = 0; i < right.size(); i++) right_func[i] = id_col(right[i]);
+  return std::make_shared<dfoperator_multi_eq>(left_func,right_func);
 }
 
 std::shared_ptr<dfoperator>
 multi_eq(const std::vector<std::string>& left,
          const std::vector<std::shared_ptr<dffunction>>& right_func) {
-  auto size = right_func.size();
-  std::vector<std::string> right(size);
-  for(size_t i = 0; i < size; i++) {
-    if(right_func[i]->is_id()) right[i] = right_func[i]->get_as();
-    else throw std::runtime_error("multi_eq does not support function");
-  }
-  return std::make_shared<dfoperator_multi_eq>(left,right);
+  std::vector<std::shared_ptr<dffunction>> left_func(left.size());
+  for(size_t i = 0; i < left.size(); i++) left_func[i] = id_col(left[i]);
+  return std::make_shared<dfoperator_multi_eq>(left_func,right_func);
 }
 
 std::shared_ptr<dfoperator>
 multi_eq(const std::vector<std::shared_ptr<dffunction>>& left_func,
          const std::vector<std::shared_ptr<dffunction>>& right_func) {
-  auto size = left_func.size();
-  std::vector<std::string> left(size);
-  for(size_t i = 0; i < size; i++) {
-    if(left_func[i]->is_id()) left[i] = left_func[i]->get_as();
-    else throw std::runtime_error("multi_eq does not support function");
-  }
-  std::vector<std::string> right(size);
-  for(size_t i = 0; i < size; i++) {
-    if(right_func[i]->is_id()) right[i] = right_func[i]->get_as();
-    else throw std::runtime_error("multi_eq does not support function");
-  }
-  return std::make_shared<dfoperator_multi_eq>(left,right);
+  return std::make_shared<dfoperator_multi_eq>(left_func,right_func);
 }
-
 
 void filter_idx(std::vector<size_t>& idx,
                 const std::vector<size_t>& filter) {
@@ -590,17 +573,19 @@ std::pair<node_local<std::vector<size_t>>,
    node_local<std::vector<size_t>>& left_idx,
    node_local<std::vector<size_t>>& right_idx) const {
   auto size = leftv.size();
+  dftable_base left_sliced = left_t;
+  dftable_base right_sliced = right_t;
   if(size == 0) {
     throw std::runtime_error("column is not specified for hash_join");    
   } if(size == 1) {
-    auto left_column = left_t.raw_column(leftv[0]);
-    auto right_column = right_t.raw_column(rightv[0]);
+    auto left_column = leftv[0]->execute(left_sliced);
+    auto right_column = rightv[0]->execute(right_sliced);
     return left_column->hash_join_eq(right_column, left_idx, right_idx);
   } else {
     std::vector<std::shared_ptr<dfcolumn>> left_pcols(size), right_pcols(size);
     for(size_t i = 0; i < size; i++) {
-      left_pcols[i] = left_t.raw_column(leftv[i]);
-      right_pcols[i] = right_t.raw_column(rightv[i]);
+      left_pcols[i] = leftv[i]->execute(left_sliced);
+      right_pcols[i] = rightv[i]->execute(right_sliced);
     }
     // TODO: even in the case of filtered_dftable, calculate all hash values,
     // which can be avoided...
@@ -679,17 +664,19 @@ std::pair<node_local<std::vector<size_t>>,
                   node_local<std::vector<size_t>>& left_idx,
                   node_local<std::vector<size_t>>& right_idx) const {
   auto size = leftv.size();
+  dftable_base left_sliced = left_t;
+  dftable_base right_sliced = right_t;
   if(size == 0) {
     throw std::runtime_error("column is not specified for bcast_join");    
   } if(size == 1) {
-    auto left_column = left_t.raw_column(leftv[0]);
-    auto right_column = right_t.raw_column(rightv[0]);
+    auto left_column = leftv[0]->execute(left_sliced);
+    auto right_column = rightv[0]->execute(right_sliced);
     return left_column->bcast_join_eq(right_column, left_idx, right_idx);
   } else {
     std::vector<std::shared_ptr<dfcolumn>> left_pcols(size), right_pcols(size);
     for(size_t i = 0; i < size; i++) {
-      left_pcols[i] = left_t.raw_column(leftv[i]);
-      right_pcols[i] = right_t.raw_column(rightv[i]);
+      left_pcols[i] = leftv[i]->execute(left_sliced);
+      right_pcols[i] = rightv[i]->execute(right_sliced);
     }
     // TODO: even in the case of filtered_dftable, calculate all hash values,
     // which can be avoided...
@@ -841,13 +828,8 @@ std::pair<node_local<std::vector<size_t>>,
     size_t i = 0;
     for(; i < flattend_op.size(); i++) {
       if(auto eq_op = dynamic_pointer_cast<dfoperator_eq>(flattend_op[i])) {
-        if(eq_op->left->is_id() && eq_op->right->is_id()) {
-          multi_eq_op.leftv.push_back(eq_op->left->get_as());
-          multi_eq_op.rightv.push_back(eq_op->right->get_as());
-        } else {
-          throw std::runtime_error
-            ("dfoprator_and::bcast_join does not support function");
-        } 
+        multi_eq_op.leftv.push_back(eq_op->left);
+        multi_eq_op.rightv.push_back(eq_op->right);
       } else {
         break;
       }
