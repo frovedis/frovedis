@@ -2,7 +2,7 @@
 
 # NAME
 
-KMeans is a clustering algorithm commonly used in EDA 
+KMeans- is a clustering algorithm commonly used in EDA 
 (exploratory data analysis).    
 
 # SYNOPSIS
@@ -142,7 +142,7 @@ For example,
 
 When native python data is provided, it is converted to frovedis-like inputs and 
 sent to frovedis server which consumes some data transfer time. Pre-constructed 
-frovedlis-like inputs can be used to speed up the training time, especially when 
+frovedis-like inputs can be used to speed up the training time, especially when 
 same data would be used for multiple executions.   
 
 For example,   
@@ -155,7 +155,7 @@ For example,
     from frovedis.matrix.dense import FrovedisRowmajorMatrix
     rmat = FrovedisRowmajorMatrix(train_mat)
     
-    # KMeans with pre-constructed frovedlis-like inputs
+    # KMeans with pre-constructed frovedis-like inputs
     from frovedis.mllib.cluster import KMeans
     kmeans = KMeans(n_clusters = 2, n_init = 1).fit(rmat)
     
@@ -271,13 +271,13 @@ If training data (X) is a frovedis-like input, it will return a FrovedisRowmajor
 object.  
 
 __Return Value__  
-If native-python data is input, it would output a numpy array containing the transformed matrix. 
-If frovedis-like data is input, it would output a FrovedisRowmajorMatrix. In both cases output 
-would be of float or double (float64) type (depending upon input dtype) and of 
+**When training data is native-python data, then the output will be a numpy array containing 
+the transformed matrix.**  
+**When training data is frovedis-like data is input, then the output will be a FrovedisRowmajorMatrix.**  
+In both cases output would be of float or double (float64) type (depending upon input dtype) and of 
 shape **(n_samples, n_clusters)**.  
 
-Note that even if training data (X) is sparse, the output would 
-typically be dense.  
+Note that even if training data (X) is sparse, the output would typically be dense.  
 
 ### 5. transform(X)  
 _**X**_: A numpy dense or scipy sparse matrix or any python array-like object or
@@ -498,12 +498,12 @@ For example,
 
 Output  
      
-    get parameters before setting: {'algorithm': 'auto', 'copy_x': True, 'init': 'random', 'max_iter': 300, 
-    'n_clusters': 2, 'n_init': 1, 'n_jobs': 1, 'precompute_distances': 'auto', 'random_state': None,
-    'tol': 0.0001,'use_shrink': False, 'verbose': 0}
-    get parameters after setting: {'algorithm': 'auto', 'copy_x': True, 'init': 'random', 'max_iter': 300, 
-    'n_clusters': 4, 'n_init': 5, 'n_jobs': 1, 'precompute_distances': 'auto', 'random_state': None, 
-    'tol': 0.0001,'use_shrink': False, 'verbose': 0}
+    get parameters before setting: {'algorithm': 'auto', 'copy_x': True, 'init': 'random', 
+    'max_iter': 300, 'n_clusters': 2, 'n_init': 1, 'n_jobs': 1,'precompute_distances': 'auto', 
+    'random_state': None,'tol': 0.0001,'use_shrink': False, 'verbose': 0}
+    get parameters after setting: {'algorithm': 'auto', 'copy_x': True, 'init': 'random',
+    'max_iter': 300, 'n_clusters': 4, 'n_init': 5, 'n_jobs': 1, 'precompute_distances': 'auto', 
+    'random_state': None, 'tol': 0.0001,'use_shrink': False, 'verbose': 0}
 
 __Return Value__  
 It simply returns "self" reference.  
@@ -523,6 +523,8 @@ Output
     centroid:
     node = 0, local_num_row = 2, local_num_col = 3, val = 0.15 0.15 0.15 9.1 9.1 9.1
     
+It displays the centroid information on the trained model which is currently present on the server.  
+
 __Return Value__  
 It returns nothing.   
 

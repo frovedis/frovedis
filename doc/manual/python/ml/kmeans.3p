@@ -1,8 +1,8 @@
 .TH "KMeans Clustering" "" "" "" ""
 .SH NAME
 .PP
-\f[B]KMeans\f[] is a clustering algorithm commonly used in EDA
-(exploratory data analysis).
+KMeans\- is a clustering algorithm commonly used in EDA (exploratory
+data analysis).
 .SH SYNOPSIS
 .PP
 class frovedis.mllib.cluster.KMeans(n_clusters=8, init=\[aq]random\[aq],
@@ -302,7 +302,7 @@ kmeans\ =\ KMeans(n_clusters\ =\ 2,\ n_init\ =\ 1).fit(train_mat)\ \ \
 When native python data is provided, it is converted to frovedis\-like
 inputs and sent to frovedis server which consumes some data transfer
 time.
-Pre\-constructed frovedlis\-like inputs can be used to speed up the
+Pre\-constructed frovedis\-like inputs can be used to speed up the
 training time, especially when same data would be used for multiple
 executions.
 .PP
@@ -318,7 +318,7 @@ train_mat\ =\ np.loadtxt("sample_data.txt")
 from\ frovedis.matrix.dense\ import\ FrovedisRowmajorMatrix
 rmat\ =\ FrovedisRowmajorMatrix(train_mat)
 
-#\ KMeans\ with\ pre\-constructed\ frovedlis\-like\ inputs
+#\ KMeans\ with\ pre\-constructed\ frovedis\-like\ inputs
 from\ frovedis.mllib.cluster\ import\ KMeans
 kmeans\ =\ KMeans(n_clusters\ =\ 2,\ n_init\ =\ 1).fit(rmat)
 \f[]
@@ -499,10 +499,16 @@ FrovedisRowmajorMatrix object.
 .PD 0
 .P
 .PD
-If native\-python data is input, it would output a numpy array
-containing the transformed matrix.
-If frovedis\-like data is input, it would output a
-FrovedisRowmajorMatrix.
+\f[B]When training data is native\-python data, then the output will be
+a numpy array containing the transformed matrix.\f[]
+.PD 0
+.P
+.PD
+\f[B]When training data is frovedis\-like data is input, then the output
+will be a FrovedisRowmajorMatrix.\f[]
+.PD 0
+.P
+.PD
 In both cases output would be of float or double (float64) type
 (depending upon input dtype) and of shape \f[B](n_samples,
 n_clusters)\f[].
@@ -889,12 +895,12 @@ Output
 .IP
 .nf
 \f[C]
-get\ parameters\ before\ setting:\ {\[aq]algorithm\[aq]:\ \[aq]auto\[aq],\ \[aq]copy_x\[aq]:\ True,\ \[aq]init\[aq]:\ \[aq]random\[aq],\ \[aq]max_iter\[aq]:\ 300,\ 
-\[aq]n_clusters\[aq]:\ 2,\ \[aq]n_init\[aq]:\ 1,\ \[aq]n_jobs\[aq]:\ 1,\ \[aq]precompute_distances\[aq]:\ \[aq]auto\[aq],\ \[aq]random_state\[aq]:\ None,
-\[aq]tol\[aq]:\ 0.0001,\[aq]use_shrink\[aq]:\ False,\ \[aq]verbose\[aq]:\ 0}
-get\ parameters\ after\ setting:\ {\[aq]algorithm\[aq]:\ \[aq]auto\[aq],\ \[aq]copy_x\[aq]:\ True,\ \[aq]init\[aq]:\ \[aq]random\[aq],\ \[aq]max_iter\[aq]:\ 300,\ 
-\[aq]n_clusters\[aq]:\ 4,\ \[aq]n_init\[aq]:\ 5,\ \[aq]n_jobs\[aq]:\ 1,\ \[aq]precompute_distances\[aq]:\ \[aq]auto\[aq],\ \[aq]random_state\[aq]:\ None,\ 
-\[aq]tol\[aq]:\ 0.0001,\[aq]use_shrink\[aq]:\ False,\ \[aq]verbose\[aq]:\ 0}
+get\ parameters\ before\ setting:\ {\[aq]algorithm\[aq]:\ \[aq]auto\[aq],\ \[aq]copy_x\[aq]:\ True,\ \[aq]init\[aq]:\ \[aq]random\[aq],\ 
+\[aq]max_iter\[aq]:\ 300,\ \[aq]n_clusters\[aq]:\ 2,\ \[aq]n_init\[aq]:\ 1,\ \[aq]n_jobs\[aq]:\ 1,\[aq]precompute_distances\[aq]:\ \[aq]auto\[aq],\ 
+\[aq]random_state\[aq]:\ None,\[aq]tol\[aq]:\ 0.0001,\[aq]use_shrink\[aq]:\ False,\ \[aq]verbose\[aq]:\ 0}
+get\ parameters\ after\ setting:\ {\[aq]algorithm\[aq]:\ \[aq]auto\[aq],\ \[aq]copy_x\[aq]:\ True,\ \[aq]init\[aq]:\ \[aq]random\[aq],
+\[aq]max_iter\[aq]:\ 300,\ \[aq]n_clusters\[aq]:\ 4,\ \[aq]n_init\[aq]:\ 5,\ \[aq]n_jobs\[aq]:\ 1,\ \[aq]precompute_distances\[aq]:\ \[aq]auto\[aq],\ 
+\[aq]random_state\[aq]:\ None,\ \[aq]tol\[aq]:\ 0.0001,\[aq]use_shrink\[aq]:\ False,\ \[aq]verbose\[aq]:\ 0}
 \f[]
 .fi
 .PP
@@ -928,6 +934,9 @@ centroid:
 node\ =\ 0,\ local_num_row\ =\ 2,\ local_num_col\ =\ 3,\ val\ =\ 0.15\ 0.15\ 0.15\ 9.1\ 9.1\ 9.1
 \f[]
 .fi
+.PP
+It displays the centroid information on the trained model which is
+currently present on the server.
 .PP
 \f[B]Return Value\f[]
 .PD 0
