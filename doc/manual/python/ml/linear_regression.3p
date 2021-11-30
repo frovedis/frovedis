@@ -29,8 +29,8 @@ solver=None,
 .P
 .PD
 \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ verbose=0, warm_start
-= False)
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ verbose=0,
+warm_start=False)
 .SS Public Member Functions
 .PP
 fit(X, y, sample_weight = None)
@@ -83,10 +83,10 @@ L(w;x,y)\ :=\ 1/2(wTx\-y)^2
 \f[]
 .fi
 .PP
-Where the vectors x are the training data examples and y are their
-corresponding labels which we want to predict.
-w is the linear model (also known as weight) which uses a single
-weighted sum of features to make a prediction.
+Where the vectors \f[B]x\f[] are the training data examples and
+\f[B]y\f[] are their corresponding labels which we want to predict.
+\f[B]w\f[] is the linear model (also known as weight) which uses a
+single weighted sum of features to make a prediction.
 The method is called linear since it can be expressed as a function of
 wTx and y.
 \f[B]Linear Regression does not use any regularizer.\f[]
@@ -127,7 +127,7 @@ first\-order optimization.
 For least\-square solver, we have used LAPACK routine "gelsd" and
 ScaLAPACK routine "gels" when input data is dense in nature.
 For the sparse\-input we have provided a least\-square implementation,
-similar to scipy.sparse.linalg.lsqr.
+similar to \f[B]scipy.sparse.linalg.lsqr\f[].
 .PP
 This module provides a client\-server implementation, where the client
 application is a normal python program.
@@ -179,7 +179,7 @@ a constant(intercept) should be added to the decision function.
 .PD 0
 .P
 .PD
-\f[B]\f[I]max_iter\f[]\f[]: A positive integer value used to set the
+\f[B]\f[I]max_iter\f[]\f[]: A positive integer parameter used to set the
 maximum number of iterations.
 When it is None(not specified explicitly), it will be set as 1000 for
 "sag", "lbfgs", "lapack" and "scalapack" solvers and for "sparse_lsqr"
@@ -224,7 +224,7 @@ solvers.
 .PD
 \f[B]\f[I]verbose\f[]\f[]: An integer parameter specifying the log level
 to use.
-Its value is 0 by default(for INFO mode and not specified explicitly).
+Its value is 0 by default (for INFO mode and not specified explicitly).
 But it can be set to 1 (for DEBUG mode) or 2 (for TRACE mode) for
 getting training time logs from frovedis server.
 .PD 0
@@ -283,7 +283,7 @@ It initializes a Linear Regression object with the given parameters.
 The parameters: "normalize", "copy_X" and "n_jobs" are simply kept in to
 to make the interface uniform to the Scikit\-learn Linear Regression
 module.
-They are not used anywhere within frovedis implementation.
+They are not used anywhere within the frovedis implementation.
 .PP
 "solver" can be "sag" for frovedis side stochastic gradient descent,
 "lbfgs" for frovedis side LBFGS optimizer, "sparse_lsqr", "lapack" and
@@ -313,12 +313,13 @@ and FrovedisColmajorMatrix for dense data.
 .PD
 \f[B]\f[I]y\f[]\f[]: Any python array\-like object or an instance of
 FrovedisDvector.
+It has shape \f[B](n_samples,)\f[].
 .PD 0
 .P
 .PD
-\f[B]\f[I]sample_weight\f[]\f[]: A python narray containing the intended
-weights for each input samples and it should be the shape of (nsamples,
-).
+\f[B]\f[I]sample_weight\f[]\f[]: Python ndarray containing the intended
+weights for each input samples and it should be the shape of
+\f[B](n_samples, )\f[].
 When it is None (not specified explicitly), an uniform weight vector is
 assigned on each input sample.
 (Default: None)
@@ -348,8 +349,8 @@ lr\ =\ LinearRegression(solver\ =\ \[aq]sag\[aq]).fit(mat,label)
 When native python data is provided, it is converted to frovedis\-like
 inputs and sent to frovedis server which consumes some data transfer
 time.
-Pre\-constructed frovedlis\-like inputs can be used to speed up the
-training time, specially when same data would be used for multiple
+Pre\-constructed frovedis\-like inputs can be used to speed up the
+training time, especially when same data would be used for multiple
 executions.
 .PP
 For example,
@@ -367,7 +368,7 @@ from\ frovedis.matrix.dvector\ import\ FrovedisDvector\
 cmat\ =\ FrovedisColmajorMatrix(mat)
 dlbl\ =\ FrovedisDvector(lbl)
 
-#\ Linear\ Regression\ with\ pre\-constructed\ frovedlis\-like\ inputs
+#\ Linear\ Regression\ with\ pre\-constructed\ frovedis\-like\ inputs
 from\ frovedis.mllib.linear_model\ import\ LinearRegression
 lr\ =\ LinearRegression(solver\ =\ \[aq]sag\[aq]).fit(cmat,\ dlbl)\ \ 
 \f[]
@@ -399,7 +400,7 @@ For example,
 .IP
 .nf
 \f[C]
-#\ predicting\ on\ linear\ regression\ model
+#\ predicting\ on\ sag\ linear\ regression\ model
 lr.predict(mat[:10])\ \ 
 \f[]
 .fi
@@ -457,12 +458,13 @@ and FrovedisRowmajorMatrix for dense data.
 .PD
 \f[B]\f[I]y\f[]\f[]: Any python array\-like object or an instance of
 FrovedisDvector.
+It has shape \f[B](n_samples,)\f[].
 .PD 0
 .P
 .PD
-\f[B]\f[I]sample_weight\f[]\f[]: Python array\-like containing the
-intended weights for each input samples and it should be the shape of
-(nsamples, ).
+\f[B]\f[I]sample_weight\f[]\f[]: Python ndarray containing the intended
+weights for each input samples and it should be the shape of
+\f[B](n_samples, )\f[].
 When it is None (not specified explicitly), an uniform weight vector is
 assigned on each input sample.
 (Default: None)
@@ -565,7 +567,7 @@ A dictionary of parameter names mapped to their values.
 .PD 0
 .P
 .PD
-\f[I]\f[B]**params\f[]\f[]: All the keyword arguments are passed this
+\f[I]\f[B]**params\f[]\f[]: All the keyword arguments are passed to this
 function as dictionary.
 This dictionary contains parameters of an estimator with its given
 values to set.
@@ -643,7 +645,7 @@ lr.load("./out/LNRModel")
 .PD 0
 .P
 .PD
-It simply returns "self" instance.
+It simply returns "self" reference.
 .SS 8. save(fname)
 .PP
 \f[B]Parameters\f[]
@@ -657,7 +659,7 @@ on which the target model is to be saved.
 .PD 0
 .P
 .PD
-On success, it writes the model information (weight values etc.) in the
+On success, it writes the model information (weight values, etc.) in the
 specified file as little\-endian binary data.
 Otherwise, it throws an exception.
 .PP
@@ -671,6 +673,7 @@ lr.save("./out/LNRModel")\ \ \ \
 .fi
 .PP
 This will save the linear regression model on the path "/out/LNRModel".
+It would raise exception if the directory already exists with same name.
 .PP
 The \[aq]LNRModel\[aq] directory has
 .PP
@@ -775,4 +778,4 @@ It returns ‘True', if the model is already fitted otherwise, it returns
 ‘False'.
 .SH SEE ALSO
 .PP
-lasso_regression, ridge_regression, dvector, crs_matrix, rowmajor_matrix
+lasso_regression, ridge_regression, dvector, crs_matrix, colmajor_matrix
