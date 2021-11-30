@@ -68,7 +68,7 @@ It gives prior probabilities of the classes. (Default: None)
 When it is None (not specified explicitly), the priors are adjusted according to the data.  
 **_binarize_**: A double(float64) parameter specifying the threshold for binarizing sample features. (Default: 0.0)  
 **_verbose_**: An integer parameter specifying the log level to use. Its value is 0 by 
-default(for INFO mode). But it can be set to 1 (for DEBUG mode) or 2 (for TRACE mode) for getting 
+default (for INFO mode). But it can be set to 1 (for DEBUG mode) or 2 (for TRACE mode) for getting 
 training time logs from frovedis server.  
 
 __Attributes__  
@@ -85,10 +85,10 @@ contains the of unique labels given to the classifier during training.
 It contains the number of samples encountered for each (class, feature) during fitting. This 
 value is weighted by the sample weight when provided.  
 **_coef\__**: A python ndarray of double(float64) type values. If 'classess_' is 2, then its shape **(1, n_features)**, 
-otherwise, the shape is (n_classes, n_features). It mirrors 'feature_log_prob_' for interpreting BernoulliNB 
+otherwise, the shape is **(n_classes, n_features)**. It mirrors 'feature_log_prob_' for interpreting BernoulliNB 
 as a linear model.  
 **_intercept\__**: A python ndarray of double(float64) type values. If 'classes_' is 2, the its shape **(1,)**, 
-otherwise, the shape is (n_classes,). It mirrors 'class_log_prior_' for interpreting BernoulliNB as a linear model.  
+otherwise, the shape is **(n_classes,)**. It mirrors 'class_log_prior_' for interpreting BernoulliNB as a linear model.  
 
 __Purpose__  
 It initializes a BernoulliNB object with the given parameters.  
@@ -100,7 +100,7 @@ It simply returns "self" reference.
 __Parameters__  
 **_X_**: A numpy dense or scipy sparse matrix or any python array-like object or 
 an instance of FrovedisCRSMatrix for sparse data and FrovedisRowmajorMatrix for dense data.  
-**_y_**: Any python array-like object or an instance of FrovedisDvector.  
+**_y_**: Any python array-like object or an instance of FrovedisDvector. It has shape **(n_samples,)**.  
 **_sample\_weight_**: A python ndarray containing the intended weights for each input
 samples and it should be the shape of **(n_samples, )**. When it is None (not specified explicitly), an 
 uniform weight vector is assigned on each input sample. (Default: None)  
@@ -120,7 +120,7 @@ For example,
 
 When native python data is provided, it is converted to frovedis-like inputs and 
 sent to frovedis server which consumes some data transfer time. Pre-constructed 
-frovedis-like inputs can be used to speed up the training time, specially when 
+frovedis-like inputs can be used to speed up the training time, especially when 
 same data would be used for multiple executions.  
 
 For example,
@@ -136,7 +136,7 @@ For example,
     cmat = FrovedisRowmajorMatrix(mat)  
     dlbl = FrovedisDvector(lbl)  
     
-    # BernoulliNB with pre-constructed frovedlis-like inputs  
+    # BernoulliNB with pre-constructed frovedis-like inputs  
     from frovedis.mllib.linear_model import BernoulliNB  
     bnb = BernoulliNB(alpha = 1.0).fit(cmat, dlbl)  
 
@@ -189,12 +189,12 @@ an instance of FrovedisCRSMatrix for sparse data and FrovedisRowmajorMatrix for 
 
 __Purpose__  
 It accepts the test feature matrix (X) in order to make prediction on the trained model at 
-frovedis server. Unlike sklearn, it performs the classification on an array and returns the 
+frovedis server. Unlike Scikit-learn, it performs the classification on an array and returns the 
 probability estimates for the test feature matrix (X).  
 
 For example,   
 
-    # finds the probablity sample for each class in the model
+    # finds the probability sample for each class in the model
     bnb.predict_proba(mat)  
 
 Output
@@ -217,7 +217,7 @@ For example,
     from frovedis.matrix.dense import FrovedisRowmajorMatrix  
     rmat = FrovedisRowmajorMatrix(mat)  
     
-    # finds the probablity sample for each class in the model
+    # finds the probability sample for each class in the model
     bnb.predict_proba(rmat)  
 
 Output
@@ -238,7 +238,7 @@ containing the prediction probability values.
 __Parameters__  
 **_X_**: A numpy dense or scipy sparse matrix or any python array-like object or an instance 
 of FrovedisCRSMatrix for sparse data and FrovedisRowmajorMatrix for dense data.  
-**_y_**: Any python array-like object or an instance of FrovedisDvector.     
+**_y_**: Any python array-like object. It has shape **(n_samples,)**.  
 
 __Purpose__  
 Calculate mean accuracy on the given test data and labels i.e. mean accuracy of 
@@ -271,13 +271,13 @@ Output
     model_type: bernoulli
     binarize: -1
     feature_count: 212 212 212 212 212  ... 357 357 357 357 357
-    theta: node = 0, local_num_row = 2, local_num_col = 30, val = -0.00468385 -0.00468385 -0.00468385 
-    -0.00468385 -0.00468385 ... -0.0027894 -0.0027894 -0.0027894 -0.0027894 -0.0027894
+    theta: node = 0, local_num_row = 2, local_num_col = 30, val = -0.00468385 -0.00468385 
+    -0.00468385 -0.00468385 -0.00468385 ... -0.0027894 -0.0027894 -0.0027894 -0.0027894 -0.0027894
     pi: -0.987294 -0.466145
     label: 0 1
     class count: 212 357
-    theta_minus_negtheta: node = 0, local_num_row = 2, local_num_col = 30, val = 5.36129 5.36129 5.36129 
-    5.36129 5.36129 ... 5.88053 5.88053 5.88053 5.88053 5.88053
+    theta_minus_negtheta: node = 0, local_num_row = 2, local_num_col = 30, val = 5.36129 
+    5.36129 5.36129 5.36129 5.36129 ... 5.88053 5.88053 5.88053 5.88053 5.88053
     negtheta_sum: -160.979 -176.5
     
 It displays the target model information like model_type, binarize, feature_count, theta, pi, etc. values on 
@@ -308,7 +308,7 @@ A dictionary of parameter names mapped to their values.
 
 ### 8. set_params(\*\*params)  
 __Parameters__  
-_**\*\*params**_: All the keyword arguments are passed this function as dictionary. This dictionary 
+_**\*\*params**_: All the keyword arguments are passed to this function as dictionary. This dictionary 
 contains parameters of an estimator with its given values to set.  
 
 __Purpose__  
@@ -413,7 +413,7 @@ It can be used to confirm if the model is already fitted or not. In case, predic
 before training the model, then it can prompt the user to train the naive bayes model first.  
 
 __Return Value__  
-It returns ‘True’, if the model is already fitted otherwise, it returns ‘False’.
+It returns ‘True’, if the model is already fitted, otherwise, it returns ‘False’.
 
 # SEE ALSO  
-rowmajor_matrix, dvector, crs_matrix   
+multinomial_naive_bayes, rowmajor_matrix, dvector, crs_matrix   
