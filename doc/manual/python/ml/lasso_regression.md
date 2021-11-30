@@ -40,8 +40,8 @@ It is a linear method with the loss function given by the **squared loss**:
 
     L(w;x,y) := 1/2(wTx-y)^2
 
-Where the vectors x are the training data examples and y are their corresponding 
-labels which we want to predict. w is the linear model (also known as weight) 
+Where the vectors **x** are the training data examples and **y** are their corresponding 
+labels which we want to predict. **w** is the linear model (also known as weight) 
 which uses a single weighted sum of features to make a prediction. The method 
 is called linear since it can be expressed as a function of wTx and y. **Lasso 
 regression uses L1 regularization to address the overfit problem.**  
@@ -108,7 +108,7 @@ the previous call to fit as initialization, otherwise, just erase the previous s
 **_lr\_rate_**: Zero or a positive value of double(float64) type containing the learning 
 rate. (Default: 1e-8)  
 **_verbose_**: An integer parameter specifying the log level to use. Its value is 0 
-by default(for INFO mode and not specified explicitly). But it can be set to 1 (for DEBUG mode)
+by default (for INFO mode and not specified explicitly). But it can be set to 1 (for DEBUG mode)
 or 2 (for TRACE mode) for getting training time logs from frovedis server.  
 **_solver_**: A string object specifying the solver to use. (Default: 'sag')  
 It can be "sag" for frovedis side stochastic gradient descent or "lbfgs" for frovedis
@@ -130,8 +130,7 @@ It initializes a Lasso object with the given parameters.
 
 The parameters: "normalize", "precompute", "copy_X", "positive", "random_state"
 and "selection" are simply kept in to to make the interface uniform to the
-Scikit-learn Lasso Regression module. They are not used anywhere within frovedis
-implementation.   
+Scikit-learn Lasso module. They are not used anywhere within the frovedis implementation.   
 
 __Return Value__    
 It simply returns "self" reference. 
@@ -140,10 +139,10 @@ It simply returns "self" reference.
 __Parameters__   
 **_X_**: A numpy dense or scipy sparse matrix or any python array-like object or an 
 instance of FrovedisCRSMatrix for sparse data and FrovedisColmajorMatrix for dense data.  
-**_y_**: Any python array-like object or an instance of FrovedisDvector.     
-**_sample\_weight_**: A python ndarray containing the intended weights for each input 
-samples and it should be the shape of (nsamples, ). When it is None (not specified explicitly), 
-an uniform weight vector is assigned on each input sample.   
+**_y_**: Any python array-like object or an instance of FrovedisDvector. It has shape **(n_samples,)**.  
+**_sample\_weight_**: Python ndarray containing the intended weights for each input
+samples and it should be the shape of **(n_samples, )**. When it is None (not specified explicitly), an
+uniform weight vector is assigned on each input sample. (Default: None)  
 
 __Purpose__    
 It accepts the training feature matrix (X) and corresponding output labels (y) as 
@@ -180,10 +179,10 @@ containing the predicted outputs.
 __Parameters__  
 **_X_**: A numpy dense or scipy sparse matrix or any python array-like object or an instance 
 of FrovedisCRSMatrix for sparse data and FrovedisRowmajorMatrix for dense data.  
-**_y_**: Any python array-like object or an instance of FrovedisDvector.     
-**_sample\_weight_**: A python ndarray containing the intended weights for each input 
-samples and it should be the shape of (nsamples, ). When it is None (not specified explicitly), 
-an uniform weight vector is assigned on each input sample. (Default: None)  
+**_y_**: Any python array-like object or an instance of FrovedisDvector. It has shape **(n_samples,)**.  
+**_sample\_weight_**: Python ndarray containing the intended weights for each input
+samples and it should be the shape of **(n_samples, )**. When it is None (not specified explicitly), an
+uniform weight vector is assigned on each input sample. (Default: None)  
 
 __Purpose__  
 Calculate the root mean square value on the given test data and labels i.e. 
@@ -191,8 +190,8 @@ R2(r-squared) of self.predict(X) wrt. y.
 
 The coefficient 'R2' is defined as (1 - (u/v)),  
 where 'u' is the residual sum of squares ((y_true - y_pred) ** 2).sum() and  
-'v' is the total sum of squares ((y_true - y_true.mean()) ** 2).sum(). The best 
-possible score is 1.0 and it can be negative (because the model can be arbitrarily worse). 
+'v' is the total sum of squares ((y_true - y_true.mean()) ** 2).sum().  
+The best possible score is 1.0 and it can be negative (because the model can be arbitrarily worse). 
 A constant model that always predicts the expected value of y, disregarding the input 
 features, would get a R2 score of 0.0.  
 
@@ -213,7 +212,7 @@ A dictionary of parameter names mapped to their values.
 
 ### 6. set_params(\*\*params)  
 __Parameters__  
-_**\*\*params**_: All the keyword arguments are passed this function as dictionary. This dictionary 
+_**\*\*params**_: All the keyword arguments are passed to this function as dictionary. This dictionary 
 contains parameters of an estimator with its given values to set.  
 
 __Purpose__  
@@ -233,7 +232,7 @@ __Purpose__
 It loads the model from the specified file (having little-endian binary data).  
 
 __Return Value__  
-It simply returns "self" instance.  
+It simply returns "self" reference.  
 
 ### 8. save(fname)
 __Parameters__   
@@ -252,6 +251,8 @@ Suppose 'LassoModel' directory is the model created, It will have
 
 The metadata file contains the number of classes, model kind, input datatype used for trained model.  
 Here, the model file contains information about weights, intercept and threshold.  
+
+It would raise exception if the 'LassoModel' directory already existed with same name.  
 
 __Return Value__  
 It returns nothing.
@@ -285,4 +286,4 @@ __Return Value__
 It returns ‘True’, if the model is already fitted otherwise, it returns ‘False’.
 
 # SEE ALSO  
-linear_regression, ridge_regression, dvector, crs_matrix      
+linear_regression, ridge_regression, dvector, crs_matrix, colmajor_matrix      

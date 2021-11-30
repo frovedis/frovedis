@@ -91,10 +91,10 @@ L(w;x,y)\ :=\ 1/2(wTx\-y)^2
 \f[]
 .fi
 .PP
-Where the vectors x are the training data examples and y are their
-corresponding labels which we want to predict.
-w is the linear model (also known as weight) which uses a single
-weighted sum of features to make a prediction.
+Where the vectors \f[B]x\f[] are the training data examples and
+\f[B]y\f[] are their corresponding labels which we want to predict.
+\f[B]w\f[] is the linear model (also known as weight) which uses a
+single weighted sum of features to make a prediction.
 The method is called linear since it can be expressed as a function of
 wTx and y.
 \f[B]Lasso regression uses L1 regularization to address the overfit
@@ -228,7 +228,7 @@ type containing the learning rate.
 .PD
 \f[B]\f[I]verbose\f[]\f[]: An integer parameter specifying the log level
 to use.
-Its value is 0 by default(for INFO mode and not specified explicitly).
+Its value is 0 by default (for INFO mode and not specified explicitly).
 But it can be set to 1 (for DEBUG mode) or 2 (for TRACE mode) for
 getting training time logs from frovedis server.
 .PD 0
@@ -274,8 +274,8 @@ It initializes a Lasso object with the given parameters.
 .PP
 The parameters: "normalize", "precompute", "copy_X", "positive",
 "random_state" and "selection" are simply kept in to to make the
-interface uniform to the Scikit\-learn Lasso Regression module.
-They are not used anywhere within frovedis implementation.
+interface uniform to the Scikit\-learn Lasso module.
+They are not used anywhere within the frovedis implementation.
 .PP
 \f[B]Return Value\f[]
 .PD 0
@@ -296,14 +296,16 @@ and FrovedisColmajorMatrix for dense data.
 .PD
 \f[B]\f[I]y\f[]\f[]: Any python array\-like object or an instance of
 FrovedisDvector.
+It has shape \f[B](n_samples,)\f[].
 .PD 0
 .P
 .PD
-\f[B]\f[I]sample_weight\f[]\f[]: A python ndarray containing the
-intended weights for each input samples and it should be the shape of
-(nsamples, ).
+\f[B]\f[I]sample_weight\f[]\f[]: Python ndarray containing the intended
+weights for each input samples and it should be the shape of
+\f[B](n_samples, )\f[].
 When it is None (not specified explicitly), an uniform weight vector is
 assigned on each input sample.
+(Default: None)
 .PP
 \f[B]Purpose\f[]
 .PD 0
@@ -366,12 +368,13 @@ and FrovedisRowmajorMatrix for dense data.
 .PD
 \f[B]\f[I]y\f[]\f[]: Any python array\-like object or an instance of
 FrovedisDvector.
+It has shape \f[B](n_samples,)\f[].
 .PD 0
 .P
 .PD
-\f[B]\f[I]sample_weight\f[]\f[]: A python ndarray containing the
-intended weights for each input samples and it should be the shape of
-(nsamples, ).
+\f[B]\f[I]sample_weight\f[]\f[]: Python ndarray containing the intended
+weights for each input samples and it should be the shape of
+\f[B](n_samples, )\f[].
 When it is None (not specified explicitly), an uniform weight vector is
 assigned on each input sample.
 (Default: None)
@@ -396,6 +399,9 @@ where \[aq]u\[aq] is the residual sum of squares ((y_true \- y_pred) **
 .PD
 \[aq]v\[aq] is the total sum of squares ((y_true \- y_true.mean()) **
 2).sum().
+.PD 0
+.P
+.PD
 The best possible score is 1.0 and it can be negative (because the model
 can be arbitrarily worse).
 A constant model that always predicts the expected value of y,
@@ -436,7 +442,7 @@ A dictionary of parameter names mapped to their values.
 .PD 0
 .P
 .PD
-\f[I]\f[B]**params\f[]\f[]: All the keyword arguments are passed this
+\f[I]\f[B]**params\f[]\f[]: All the keyword arguments are passed to this
 function as dictionary.
 This dictionary contains parameters of an estimator with its given
 values to set.
@@ -479,7 +485,7 @@ data).
 .PD 0
 .P
 .PD
-It simply returns "self" instance.
+It simply returns "self" reference.
 .SS 8. save(fname)
 .PP
 \f[B]Parameters\f[]
@@ -517,6 +523,9 @@ datatype used for trained model.
 .PD
 Here, the model file contains information about weights, intercept and
 threshold.
+.PP
+It would raise exception if the \[aq]LassoModel\[aq] directory already
+existed with same name.
 .PP
 \f[B]Return Value\f[]
 .PD 0
@@ -571,4 +580,5 @@ It returns ‘True', if the model is already fitted otherwise, it returns
 ‘False'.
 .SH SEE ALSO
 .PP
-linear_regression, ridge_regression, dvector, crs_matrix
+linear_regression, ridge_regression, dvector, crs_matrix,
+colmajor_matrix
