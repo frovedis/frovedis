@@ -180,9 +180,8 @@ class FrovedisDvector:
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
             raise RuntimeError(excpt["info"])
-        ret = FrovedisDvector(dtype=self.__dtype)
-        ret.__fdata = proxy
-        ret.__size = self.__size
+        dummy = {'dptr': proxy, 'size': self.size(), 'vtype': self.get_dtype()}
+        ret = FrovedisDvector().load(dummy)
         if need_logic:
             src = np.asarray(self.get_unique_elements(), dtype=self.__dtype)
             target = np.arange(src.size, dtype=self.__dtype)
@@ -238,9 +237,9 @@ class FrovedisDvector:
             excpt = rpclib.check_server_exception()
             if excpt["status"]:
                 raise RuntimeError(excpt["info"])
-            ret = FrovedisDvector(dtype=self.__dtype)
-            ret.__fdata = proxy
-            ret.__size = self.__size
+            dummy = {'dptr': proxy, 'size': self.size(), \
+                     'vtype': self.get_dtype()}
+            ret = FrovedisDvector().load(dummy)
             if need_logic:
                 logic = dict(zip(target, src))
                 return (ret, logic)
