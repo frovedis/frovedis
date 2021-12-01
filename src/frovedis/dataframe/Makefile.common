@@ -19,15 +19,15 @@ install: ${TARGETS}
 
 dfcolumn.o: dfcolumn.cc dfcolumn.hpp dfcolumn_impl.hpp dfutil.hpp hashtable.hpp join.hpp
 typed_dfcolumns.o : typed_dfcolumn_datetime.cc typed_dfcolumn_dic_string.cc typed_dfcolumn_raw_string.cc typed_dfcolumn_string.cc typed_dfcolumn_uint.cc typed_dfcolumn_int.cc typed_dfcolumn_double.cc typed_dfcolumn_float.cc typed_dfcolumn_ulong.cc typed_dfcolumn_long.cc dfcolumn.hpp dfcolumn_impl.hpp dfutil.hpp hashtable.hpp join.hpp
-dftable.o: dftable.cc dftable.hpp dfoperator.hpp dfcolumn.hpp dfcolumn_impl.hpp dfutil.hpp hashtable.hpp join.hpp dftable_to_string.hpp dfaggregator.hpp make_dftable_loadtext.hpp
-make_dftable_string.o: make_dftable_string.cc make_dftable_string.hpp dftable.hpp dfoperator.hpp dfcolumn.hpp dfcolumn_impl.hpp dfutil.hpp hashtable.hpp join.hpp dftable_to_string.hpp dfaggregator.hpp
-dftable_to_string.o: dftable_to_string.cc dftable_to_string.hpp dftable.hpp dfoperator.hpp dfcolumn.hpp dfcolumn_impl.hpp dfutil.hpp hashtable.hpp join.hpp dftable_to_string.hpp dfaggregator.hpp
-dftable_to_words.o: dftable_to_words.cc dftable_to_words.hpp dftable.hpp dfoperator.hpp dfcolumn.hpp dfcolumn_impl.hpp dfutil.hpp hashtable.hpp join.hpp dftable_to_string.hpp dfaggregator.hpp
-dfoperator.o: dfoperator.cc dfoperator.hpp dftable.hpp dfoperator.hpp dfcolumn.hpp dfcolumn_impl.hpp dfutil.hpp hashtable.hpp join.hpp dftable_to_string.hpp dfaggregator.hpp
-dfaggregator.o: dfaggregator.cc dfaggregator.hpp dftable.hpp dfoperator.hpp dfcolumn.hpp dfcolumn_impl.hpp dfutil.hpp hashtable.hpp join.hpp dftable_to_string.hpp
+dftable.o: dftable.cc dftable.hpp dffunction.hpp dfoperator.hpp dfcolumn.hpp dfcolumn_impl.hpp dfutil.hpp hashtable.hpp join.hpp dftable_to_string.hpp dfaggregator.hpp make_dftable_loadtext.hpp
+make_dftable_string.o: make_dftable_string.cc make_dftable_string.hpp dftable.hpp dfoperator.hpp dfcolumn.hpp dfcolumn_impl.hpp dfutil.hpp hashtable.hpp join.hpp dftable_to_string.hpp
+dftable_to_string.o: dftable_to_string.cc dftable_to_string.hpp dftable.hpp dfoperator.hpp dfcolumn.hpp dfcolumn_impl.hpp dfutil.hpp hashtable.hpp join.hpp dftable_to_string.hpp
+dftable_to_words.o: dftable_to_words.cc dftable_to_words.hpp dftable.hpp dfoperator.hpp dfcolumn.hpp dfcolumn_impl.hpp dfutil.hpp hashtable.hpp join.hpp dftable_to_string.hpp
+dfoperator.o: dfoperator.cc dfoperator.hpp dffunction.hpp dftable.hpp dfoperator.hpp dfcolumn.hpp dfcolumn_impl.hpp dfutil.hpp hashtable.hpp join.hpp dftable_to_string.hpp
+dfaggregator.o: dfaggregator.cc dfaggregator.hpp dftable.hpp dffunction.hpp dfoperator.hpp dfcolumn.hpp dfcolumn_impl.hpp dfutil.hpp hashtable.hpp join.hpp dftable_to_string.hpp
 join.o: join.cc join.hpp hashtable.hpp
-make_dftable_loadtext.o: make_dftable_loadtext.cc make_dftable_loadtext.hpp dftable.hpp dfoperator.hpp dfcolumn.hpp dfcolumn_impl.hpp dfutil.hpp hashtable.hpp join.hpp dftable_to_string.hpp dfaggregator.hpp
-dffunction.o: dffunction.hpp dfcolumn.hpp dfcolumn_impl.hpp dfutil.hpp dftable.hpp
+make_dftable_loadtext.o: make_dftable_loadtext.cc make_dftable_loadtext.hpp dftable.hpp dfoperator.hpp dfcolumn.hpp dfcolumn_impl.hpp dfutil.hpp hashtable.hpp join.hpp dftable_to_string.hpp
+dffunction.o: dffunction.hpp dfoperator.hpp dfcolumn.hpp dfcolumn_impl.hpp dfutil.hpp dftable.hpp
 dfutil.o: dfutil.cc dfutil.hpp
 
 clean:
