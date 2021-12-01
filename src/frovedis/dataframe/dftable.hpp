@@ -71,6 +71,9 @@ public:
   template <class T> T at(const std::string& name, size_t i);
   template <class T> double median(const std::string& name); // uses at()
   template <class T> std::vector<T> mode(const std::string& name, bool dropna = true);
+  // TODO: no need to be virtual?
+  dftable
+  aggregate(const std::vector<std::shared_ptr<dfaggregator>>& aggs);
   template <class T> dvector<T> as_dvector(const std::string name);
   node_local<words> as_words(const std::string name,
                              size_t precision = 6,

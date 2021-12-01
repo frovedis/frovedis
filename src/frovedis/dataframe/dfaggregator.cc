@@ -116,6 +116,186 @@ aggregate(dftable_base& table,
                    merge_map, row_sizes);
 }
 
+std::shared_ptr<dfcolumn> 
+dfaggregator_sum::
+whole_column_aggregate(dftable_base& table) {
+  auto colp = col->execute(table);
+  if(colp->dtype() == "double") {
+    auto colp2 = std::dynamic_pointer_cast<typed_dfcolumn<double>>(colp);
+    if(!colp2) throw std::runtime_error("internal type error");
+    double r = colp2->sum();
+    std::vector<double> v = {r};
+    return std::make_shared<typed_dfcolumn<double>>(make_dvector_scatter(v));
+  } else if(colp->dtype() == "float") {
+    auto colp2 = std::dynamic_pointer_cast<typed_dfcolumn<float>>(colp);
+    if(!colp2) throw std::runtime_error("internal type error");
+    float r = colp2->sum();
+    std::vector<float> v = {r};
+    return std::make_shared<typed_dfcolumn<float>>(make_dvector_scatter(v));
+  } else if(colp->dtype() == "long") {
+    auto colp2 = std::dynamic_pointer_cast<typed_dfcolumn<long>>(colp);
+    if(!colp2) throw std::runtime_error("internal type error");
+    long r = colp2->sum();
+    std::vector<long> v = {r};
+    return std::make_shared<typed_dfcolumn<long>>(make_dvector_scatter(v));
+  } else if(colp->dtype() == "unsigned long") {
+    auto colp2 = std::dynamic_pointer_cast<typed_dfcolumn<unsigned long>>(colp);
+    if(!colp2) throw std::runtime_error("internal type error");
+    unsigned long r = colp2->sum();
+    std::vector<unsigned long> v = {r};
+    return
+      std::make_shared<typed_dfcolumn<unsigned long>>(make_dvector_scatter(v));
+  } else if(colp->dtype() == "int") {
+    auto colp2 = std::dynamic_pointer_cast<typed_dfcolumn<int>>(colp);
+    if(!colp2) throw std::runtime_error("internal type error");
+    int r = colp2->sum();
+    std::vector<int> v = {r};
+    return std::make_shared<typed_dfcolumn<int>>(make_dvector_scatter(v));
+  } else if(colp->dtype() == "unsigned int") {
+    auto colp2 = std::dynamic_pointer_cast<typed_dfcolumn<unsigned int>>(colp);
+    if(!colp2) throw std::runtime_error("internal type error");
+    unsigned int r = colp2->sum();
+    std::vector<unsigned int> v = {r};
+    return
+      std::make_shared<typed_dfcolumn<unsigned int>>(make_dvector_scatter(v));
+  } else throw std::runtime_error("unsupported type: " + colp->dtype());
+}
+
+std::shared_ptr<dfcolumn> 
+dfaggregator_count::
+whole_column_aggregate(dftable_base& table) {
+  auto colp = col->execute(table);
+  size_t r = colp->count();
+  std::vector<size_t> v = {r};
+  return std::make_shared<typed_dfcolumn<size_t>>(make_dvector_scatter(v));
+}
+
+std::shared_ptr<dfcolumn> 
+dfaggregator_size::
+whole_column_aggregate(dftable_base& table) {
+  auto colp = col->execute(table);
+  size_t r = colp->size();
+  std::vector<size_t> v = {r};
+  return std::make_shared<typed_dfcolumn<size_t>>(make_dvector_scatter(v));
+}
+
+std::shared_ptr<dfcolumn> 
+dfaggregator_avg::
+whole_column_aggregate(dftable_base& table) {
+  auto colp = col->execute(table);
+  double r = colp->avg();
+  std::vector<double> v = {r};
+  return std::make_shared<typed_dfcolumn<double>>(make_dvector_scatter(v));
+}
+
+std::shared_ptr<dfcolumn>
+dfaggregator_var::
+whole_column_aggregate(dftable_base& table) {
+  auto colp = col->execute(table);
+  double r = colp->var(ddof);
+  std::vector<double> v = {r};
+  return std::make_shared<typed_dfcolumn<double>>(make_dvector_scatter(v));
+}
+
+std::shared_ptr<dfcolumn>
+dfaggregator_sem::
+whole_column_aggregate(dftable_base& table) {
+  auto colp = col->execute(table);
+  double r = colp->sem(ddof);
+  std::vector<double> v = {r};
+  return std::make_shared<typed_dfcolumn<double>>(make_dvector_scatter(v));
+}
+
+std::shared_ptr<dfcolumn>
+dfaggregator_max::
+whole_column_aggregate(dftable_base& table) {
+  auto colp = col->execute(table);
+  if(colp->dtype() == "double") {
+    auto colp2 = std::dynamic_pointer_cast<typed_dfcolumn<double>>(colp);
+    if(!colp2) throw std::runtime_error("internal type error");
+    double r = colp2->max();
+    std::vector<double> v = {r};
+    return std::make_shared<typed_dfcolumn<double>>(make_dvector_scatter(v));
+  } else if(colp->dtype() == "float") {
+    auto colp2 = std::dynamic_pointer_cast<typed_dfcolumn<float>>(colp);
+    if(!colp2) throw std::runtime_error("internal type error");
+    float r = colp2->max();
+    std::vector<float> v = {r};
+    return std::make_shared<typed_dfcolumn<float>>(make_dvector_scatter(v));
+  } else if(colp->dtype() == "long") {
+    auto colp2 = std::dynamic_pointer_cast<typed_dfcolumn<long>>(colp);
+    if(!colp2) throw std::runtime_error("internal type error");
+    long r = colp2->max();
+    std::vector<long> v = {r};
+    return std::make_shared<typed_dfcolumn<long>>(make_dvector_scatter(v));
+  } else if(colp->dtype() == "unsigned long") {
+    auto colp2 = std::dynamic_pointer_cast<typed_dfcolumn<unsigned long>>(colp);
+    if(!colp2) throw std::runtime_error("internal type error");
+    unsigned long r = colp2->max();
+    std::vector<unsigned long> v = {r};
+    return
+      std::make_shared<typed_dfcolumn<unsigned long>>(make_dvector_scatter(v));
+  } else if(colp->dtype() == "int") {
+    auto colp2 = std::dynamic_pointer_cast<typed_dfcolumn<int>>(colp);
+    if(!colp2) throw std::runtime_error("internal type error");
+    int r = colp2->max();
+    std::vector<int> v = {r};
+    return std::make_shared<typed_dfcolumn<int>>(make_dvector_scatter(v));
+  } else if(colp->dtype() == "unsigned int") {
+    auto colp2 = std::dynamic_pointer_cast<typed_dfcolumn<unsigned int>>(colp);
+    if(!colp2) throw std::runtime_error("internal type error");
+    unsigned int r = colp2->max();
+    std::vector<unsigned int> v = {r};
+    return
+      std::make_shared<typed_dfcolumn<unsigned int>>(make_dvector_scatter(v));
+  } else throw std::runtime_error("unsupported type: " + colp->dtype());
+}
+
+std::shared_ptr<dfcolumn>
+dfaggregator_min::
+whole_column_aggregate(dftable_base& table) {
+  auto colp = col->execute(table);
+  if(colp->dtype() == "double") {
+    auto colp2 = std::dynamic_pointer_cast<typed_dfcolumn<double>>(colp);
+    if(!colp2) throw std::runtime_error("internal type error");
+    double r = colp2->min();
+    std::vector<double> v = {r};
+    return std::make_shared<typed_dfcolumn<double>>(make_dvector_scatter(v));
+  } else if(colp->dtype() == "float") {
+    auto colp2 = std::dynamic_pointer_cast<typed_dfcolumn<float>>(colp);
+    if(!colp2) throw std::runtime_error("internal type error");
+    float r = colp2->min();
+    std::vector<float> v = {r};
+    return std::make_shared<typed_dfcolumn<float>>(make_dvector_scatter(v));
+  } else if(colp->dtype() == "long") {
+    auto colp2 = std::dynamic_pointer_cast<typed_dfcolumn<long>>(colp);
+    if(!colp2) throw std::runtime_error("internal type error");
+    long r = colp2->min();
+    std::vector<long> v = {r};
+    return std::make_shared<typed_dfcolumn<long>>(make_dvector_scatter(v));
+  } else if(colp->dtype() == "unsigned long") {
+    auto colp2 = std::dynamic_pointer_cast<typed_dfcolumn<unsigned long>>(colp);
+    if(!colp2) throw std::runtime_error("internal type error");
+    unsigned long r = colp2->min();
+    std::vector<unsigned long> v = {r};
+    return
+      std::make_shared<typed_dfcolumn<unsigned long>>(make_dvector_scatter(v));
+  } else if(colp->dtype() == "int") {
+    auto colp2 = std::dynamic_pointer_cast<typed_dfcolumn<int>>(colp);
+    if(!colp2) throw std::runtime_error("internal type error");
+    int r = colp2->min();
+    std::vector<int> v = {r};
+    return std::make_shared<typed_dfcolumn<int>>(make_dvector_scatter(v));
+  } else if(colp->dtype() == "unsigned int") {
+    auto colp2 = std::dynamic_pointer_cast<typed_dfcolumn<unsigned int>>(colp);
+    if(!colp2) throw std::runtime_error("internal type error");
+    unsigned int r = colp2->min();
+    std::vector<unsigned int> v = {r};
+    return
+      std::make_shared<typed_dfcolumn<unsigned int>>(make_dvector_scatter(v));
+  } else throw std::runtime_error("unsupported type: " + colp->dtype());
+}
+
 std::shared_ptr<dfaggregator> sum(const std::string& col) {
   return std::make_shared<dfaggregator_sum>(id_col(col));
 }

@@ -22,7 +22,7 @@ struct dfaggregator {
   std::string get_as() {return as_name;}
   virtual std::shared_ptr<dfaggregator> as(const std::string& cname) = 0;
   virtual std::shared_ptr<dfcolumn>
-  aggregate_whole(dftable_base& table) {
+  whole_column_aggregate(dftable_base& table) {
     throw std::runtime_error("aggregate_whole of this type is not implemented");
   }
   std::shared_ptr<dffunction> col;
@@ -45,6 +45,7 @@ struct dfaggregator_sum : public dfaggregator {
             node_local<std::vector<std::vector<size_t>>>& hash_divide,
             node_local<std::vector<std::vector<size_t>>>& merge_map,
             node_local<size_t>& row_sizes);
+  virtual std::shared_ptr<dfcolumn> whole_column_aggregate(dftable_base& table);
 };
 
 struct dfaggregator_count : public dfaggregator {
@@ -63,6 +64,7 @@ struct dfaggregator_count : public dfaggregator {
             node_local<std::vector<std::vector<size_t>>>& hash_divide,
             node_local<std::vector<std::vector<size_t>>>& merge_map,
             node_local<size_t>& row_sizes);
+  virtual std::shared_ptr<dfcolumn> whole_column_aggregate(dftable_base& table);
 };
 
 struct dfaggregator_size : public dfaggregator {
@@ -81,6 +83,7 @@ struct dfaggregator_size : public dfaggregator {
             node_local<std::vector<std::vector<size_t>>>& hash_divide,
             node_local<std::vector<std::vector<size_t>>>& merge_map,
             node_local<size_t>& row_sizes);
+  virtual std::shared_ptr<dfcolumn> whole_column_aggregate(dftable_base& table);
 };
 
 struct dfaggregator_avg : public dfaggregator {
@@ -99,6 +102,7 @@ struct dfaggregator_avg : public dfaggregator {
             node_local<std::vector<std::vector<size_t>>>& hash_divide,
             node_local<std::vector<std::vector<size_t>>>& merge_map,
             node_local<size_t>& row_sizes);
+  virtual std::shared_ptr<dfcolumn> whole_column_aggregate(dftable_base& table);
 };
 
 struct dfaggregator_var : public dfaggregator {
@@ -120,6 +124,7 @@ struct dfaggregator_var : public dfaggregator {
             node_local<std::vector<std::vector<size_t>>>& hash_divide,
             node_local<std::vector<std::vector<size_t>>>& merge_map,
             node_local<size_t>& row_sizes);
+  virtual std::shared_ptr<dfcolumn> whole_column_aggregate(dftable_base& table);
   double ddof = 1.0;
 };
 
@@ -142,6 +147,7 @@ struct dfaggregator_sem : public dfaggregator {
             node_local<std::vector<std::vector<size_t>>>& hash_divide,
             node_local<std::vector<std::vector<size_t>>>& merge_map,
             node_local<size_t>& row_sizes);
+  virtual std::shared_ptr<dfcolumn> whole_column_aggregate(dftable_base& table);
   double ddof = 1.0;
 };
 
@@ -161,6 +167,7 @@ struct dfaggregator_max : public dfaggregator {
             node_local<std::vector<std::vector<size_t>>>& hash_divide,
             node_local<std::vector<std::vector<size_t>>>& merge_map,
             node_local<size_t>& row_sizes);
+  virtual std::shared_ptr<dfcolumn> whole_column_aggregate(dftable_base& table);
 };
 
 struct dfaggregator_min : public dfaggregator {
@@ -179,6 +186,7 @@ struct dfaggregator_min : public dfaggregator {
             node_local<std::vector<std::vector<size_t>>>& hash_divide,
             node_local<std::vector<std::vector<size_t>>>& merge_map,
             node_local<size_t>& row_sizes);
+  virtual std::shared_ptr<dfcolumn> whole_column_aggregate(dftable_base& table);
 };
 
 std::shared_ptr<dfaggregator>
