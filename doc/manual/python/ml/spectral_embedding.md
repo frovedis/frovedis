@@ -88,6 +88,7 @@ calculate ‘n_components’ number of eigenvectors. (Default: True)
 
 __Attribute__  
 _**affinity\_matrix**_:  
+
 For python native dense input:  
 - When affinity = ‘precomputed’, it returns a numpy array  
 - When affinity = ‘nearest_neighbors’, it returns a numpy array  
@@ -101,6 +102,7 @@ For frovedis-like sparse input:
 - When affinity = ‘nearest_neighbors’, it a returns a FrovedisRowmajorMatrix  
 - When affinity = ‘precomputed’, it returns a FrovedisRowmajorMatrix  
 In all cases, the output is of float or double (float64) type and of shape **(n_samples, n_samples)**.  
+
 _**embedding\_**_:  
 For python native dense input:  
 - When affinity = ‘precomputed’, it returns a numpy array  
@@ -114,8 +116,11 @@ For python native sparse input:
 For frovedis-like sparse input:  
 - When affinity = ‘nearest_neighbors’, it a returns a FrovedisRowmajorMatrix  
 - When affinity = ‘precomputed’, it returns a FrovedisRowmajorMatrix  
+
 In all cases, the output is of float or double (float64) type and of shape **(n_samples, n_components)**.  
-Note: affinity = ‘precomputed’ should be used with square matrix input only, Otherwise, it throws an exception.  
+
+**Note: affinity = ‘precomputed’ should be used with square matrix input only, Otherwise, it throws an exception.**  
+
 __Purpose__  
 It initializes a Spectral Embedding object with the given parameters.  
 

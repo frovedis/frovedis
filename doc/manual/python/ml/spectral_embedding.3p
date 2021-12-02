@@ -189,9 +189,7 @@ Otherwise, it will calculate ‘n_components' number of eigenvectors.
 .P
 .PD
 \f[I]\f[B]affinity_matrix\f[]\f[]:
-.PD 0
-.P
-.PD
+.PP
 For python native dense input:
 .PD 0
 .P
@@ -243,9 +241,7 @@ FrovedisRowmajorMatrix
 .PD
 In all cases, the output is of float or double (float64) type and of
 shape \f[B](n_samples, n_samples)\f[].
-.PD 0
-.P
-.PD
+.PP
 \f[I]\f[B]embedding_\f[]\f[]:
 .PD 0
 .P
@@ -296,19 +292,13 @@ FrovedisRowmajorMatrix
 .P
 .PD
 \- When affinity = ‘precomputed', it returns a FrovedisRowmajorMatrix
-.PD 0
-.P
-.PD
+.PP
 In all cases, the output is of float or double (float64) type and of
 shape \f[B](n_samples, n_components)\f[].
-.PD 0
-.P
-.PD
-Note: affinity = ‘precomputed' should be used with square matrix input
-only, Otherwise, it throws an exception.
-.PD 0
-.P
-.PD
+.PP
+\f[B]Note: affinity = ‘precomputed' should be used with square matrix
+input only, Otherwise, it throws an exception.\f[]
+.PP
 \f[B]Purpose\f[]
 .PD 0
 .P
