@@ -90,6 +90,7 @@ When it is None (specified explicitly), it will be set as 'rbf'. Only 'rbf',
 - 'rbf': construct the affinity matrix using a radial basis function (RBF) kernel.  
 - 'precomputed': interpret X as a precomputed affinity matrix, where larger values indicate greater 
 similarity between instances.  
+
 **_n\_neighbors_**: A positive integer parameter that specifies the number of neighbors to be 
 used when constructing the affinity matrix using the nearest neighbors method. It must be 
 in between 1 to n_samples. It is applicable only when affinity = 'nearest_neighbors'. (Default: 10)  
@@ -132,6 +133,7 @@ __Attributes__
 4. **For frovedis-like sparse input:**  
      - When affinity = 'precomputed/nearest_neighbors', it a returns FrovedisCRSMatrix  
      - When affinity = 'rbf', it returns a FrovedisRowmajorMatrix  
+
 In all cases, the output is of float or double (float64) type and of shape **(n_samples, n_samples)**.  
 **_labels\__**: A python ndarray of int64 type values and has shape **(n_clusters,)**. It contains 
 the predicted cluster labels for each point.  
