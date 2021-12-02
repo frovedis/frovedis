@@ -485,6 +485,161 @@ dftable_base::group_by(const std::vector<std::string>& cols) {
   }
 }
 
+grouped_dftable
+dftable_base::fgroup_by(const std::vector<std::shared_ptr<dffunction>>& cols) {
+  size_t size = cols.size();
+  if(size == 0) {
+    throw std::runtime_error("column is not specified for group by");
+  } else if (size == 1) {
+    auto local_idx = get_local_index(); // might be filtered
+    auto split_idx = make_node_local_allocate<std::vector<size_t>>();
+    auto hash_divide =
+      make_node_local_allocate<std::vector<std::vector<size_t>>>();
+    auto merge_map =
+      make_node_local_allocate<std::vector<std::vector<size_t>>>();
+    use_dfcolumn use(cols[0]->columns_to_use(*this));
+    dftable_base sliced = *this;
+    auto grouped_column = cols[0]->execute(sliced)->group_by
+      (local_idx, split_idx, hash_divide, merge_map);
+    auto num_row_ = grouped_column->size();
+    auto num_rows_ = grouped_column->sizes();
+    grouped_column->spill();
+    return grouped_dftable(*this, std::move(local_idx), std::move(split_idx),
+                           std::move(hash_divide), std::move(merge_map),
+                           {grouped_column}, {cols[0]->get_as()},
+                           num_row_, num_rows_);
+  } else {
+    std::vector<std::shared_ptr<dfcolumn>> touse;
+    for(size_t i = 0; i < cols.size(); i++) {
+      auto crnt_touse = cols[i]->columns_to_use(*this);
+      touse.insert(touse.end(), crnt_touse.begin(), crnt_touse.end());
+    }
+    use_dfcolumn use(touse);
+    dftable_base sliced = *this;
+    std::vector<std::shared_ptr<dfcolumn>> pcols(size);
+    for(size_t i = 0; i < size; i++) pcols[i] = cols[i]->execute(sliced);
+    auto local_idx = get_local_index(); // might be filtered
+    // sort reverse order to show intuitive result
+    for(size_t i = 0; i < size-1; i++) {
+      pcols[size - i - 1]->multi_group_by_sort(local_idx);
+    }
+    auto split_idx = pcols[0]->multi_group_by_sort_split(local_idx);
+    for(size_t i = 1; i < size; i++) {
+      auto tmp = pcols[i]->multi_group_by_split(local_idx);
+      split_idx.mapv(merge_split, tmp);
+    }
+    std::vector<std::shared_ptr<dfcolumn>> pcols2(size);
+    for(size_t i = 0; i < size; i++) {
+      pcols2[i] = pcols[i]->multi_group_by_extract(local_idx, split_idx,
+                                                   false);
+    }
+    auto hash_base = pcols2[0]->calc_hash_base();
+    // 52 is fraction of double, size_t might be 32bit...
+    int bit_len = std::min(sizeof(size_t) * 8, size_t(52));
+    int shift = bit_len / size;
+    // from memory access point of view, not efficient though...
+    for(size_t i = 1; i < size; i++) {
+      pcols2[i]->calc_hash_base(hash_base, shift);
+    }
+    auto hash_divide =
+      make_node_local_allocate<std::vector<std::vector<size_t>>>();
+    hash_base.mapv
+      (+[](std::vector<size_t>& hash_base,
+           std::vector<std::vector<size_t>>& hash_divide) {
+        auto size = hash_base.size();
+        std::vector<size_t> iota(size);
+        auto iotap = iota.data();
+        for(size_t i = 0; i < size; i++) iotap[i] = i;
+        split_by_hash_no_outval(hash_base, iota, hash_divide);
+      }, hash_divide);
+    std::vector<std::shared_ptr<dfcolumn>> pcols3(size);
+    for(size_t i = 0; i < size; i++) {
+      pcols3[i] = pcols2[i]->multi_group_by_exchange(hash_divide);
+    }
+    auto sizes_tmp = hash_divide.map
+      (+[](std::vector<std::vector<size_t>>& hash_divide) {
+        std::vector<size_t> ret(hash_divide.size());
+        for(size_t i = 0; i < hash_divide.size(); i++) {
+          ret[i] = hash_divide[i].size();
+        }
+        return ret;
+      });
+    auto sizes = alltoall_exchange(sizes_tmp);
+    auto nodeid = sizes.map
+      (+[](std::vector<size_t>& sizes) {
+        size_t total = 0;
+        auto sizesp = sizes.data();
+        for(size_t i = 0; i < sizes.size(); i++) total += sizesp[i];
+        std::vector<size_t> ret(total);
+        auto retp = ret.data();
+        for(size_t i = 0; i < sizes.size(); i++) {
+          auto size = sizes[i];
+          for(size_t j = 0; j < size; j++) {
+            retp[j] = i;
+          }
+          retp += size;
+        }
+        return ret;
+      });
+    auto local_idx2 = nodeid.map
+      (+[](std::vector<size_t>& nodeid) {
+        size_t size = nodeid.size();
+        std::vector<size_t> ret(size);
+        auto retp = ret.data();
+        for(size_t i = 0; i < size; i++) retp[i] = i;
+        return ret;
+      });
+    for(size_t i = 0; i < size-1; i++) {
+      pcols3[size - i - 1]->multi_group_by_sort(local_idx2);
+    }
+    auto split_idx2 = pcols3[0]->multi_group_by_sort_split(local_idx2);
+    for(size_t i = 1; i < size; i++) {
+      auto tmp = pcols3[i]->multi_group_by_split(local_idx2);
+      split_idx2.mapv(merge_split, tmp);
+    }
+    auto nodeid2 = nodeid.map
+      (+[](std::vector<size_t>& nodeid, std::vector<size_t>& local_idx) {
+        auto size = nodeid.size();
+        auto nodeidp = nodeid.data();
+        auto local_idxp = local_idx.data();
+        std::vector<size_t> ret(size);
+        auto retp = ret.data();
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+        for(size_t i = 0; i < size; i++) {
+          retp[i] = nodeidp[local_idxp[i]];
+        }
+        return ret;
+      }, local_idx2);
+    auto merge_map =
+      make_node_local_allocate<std::vector<std::vector<size_t>>>();
+    merge_map.mapv
+      (+[](std::vector<std::vector<size_t>>& merge_map,
+           std::vector<size_t>& sizes) {
+        merge_map.resize(sizes.size());
+        for(size_t i = 0; i < sizes.size(); i++) {
+          merge_map[i].resize(sizes[i]);
+        }
+      }, sizes);
+    nodeid2.mapv(create_merge_map, split_idx2, merge_map);
+    std::vector<std::shared_ptr<dfcolumn>> pcols4(size);    
+    for(size_t i = 0; i < size; i++) {
+      pcols4[i] = pcols3[i]->
+        multi_group_by_extract(local_idx2, split_idx2, true);
+    }
+    auto num_row_ = pcols4[0]->size();
+    auto num_rows_ = pcols4[0]->sizes();
+    for(size_t i = 0; i < size; i++) {pcols4[i]->spill();}
+    std::vector<std::string> col_names;
+    for(size_t i = 0; i < cols.size(); i++)
+      col_names.push_back(cols[i]->get_as());
+    return grouped_dftable(*this, std::move(local_idx), std::move(split_idx),
+                           std::move(hash_divide), std::move(merge_map),
+                           std::move(pcols4), col_names, num_row_, num_rows_);
+  }
+}
+
 node_local<words>
 dftable_base::as_words(const std::string name,
                        size_t precision,
@@ -2746,6 +2901,12 @@ sorted_dftable::group_by(const std::vector<std::string>& cols) {
   return materialize().group_by(cols);
 }
 
+grouped_dftable
+sorted_dftable::fgroup_by
+(const std::vector<std::shared_ptr<dffunction>>& cols) {
+  return materialize().fgroup_by(cols);
+}
+
 std::shared_ptr<dfcolumn> sorted_dftable::column(const std::string& name) {
   if(name == column_name && is_cachable) return sorted_column;
   else {
@@ -2927,6 +3088,12 @@ hash_joined_dftable::star_join
 grouped_dftable
 hash_joined_dftable::group_by(const std::vector<std::string>& cols) {
   return materialize().group_by(cols);
+}
+
+grouped_dftable
+hash_joined_dftable::fgroup_by
+(const std::vector<std::shared_ptr<dffunction>>& cols) {
+  return materialize().fgroup_by(cols);
 }
 
 std::shared_ptr<dfcolumn>
@@ -3153,6 +3320,12 @@ bcast_joined_dftable::group_by(const std::vector<std::string>& cols) {
   return materialize().group_by(cols);
 }
 
+grouped_dftable
+bcast_joined_dftable::fgroup_by
+(const std::vector<std::shared_ptr<dffunction>>& cols) {
+  return materialize().fgroup_by(cols);
+}
+
 std::shared_ptr<dfcolumn>
 bcast_joined_dftable::column(const std::string& name) {
   auto left_ret = col.find(name);
@@ -3361,6 +3534,12 @@ star_joined_dftable::outer_bcast_join(dftable_base& right,
 grouped_dftable
 star_joined_dftable::group_by(const std::vector<std::string>& cols) {
   return materialize().group_by(cols);
+}
+
+grouped_dftable
+star_joined_dftable::fgroup_by
+(const std::vector<std::shared_ptr<dffunction>>& cols) {
+  return materialize().fgroup_by(cols);
 }
 
 std::shared_ptr<dfcolumn>

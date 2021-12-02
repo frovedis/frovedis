@@ -61,6 +61,8 @@ public:
   star_join(const std::vector<dftable_base*>& dftables, 
             const std::vector<std::shared_ptr<dfoperator>>& op);
   virtual grouped_dftable group_by(const std::vector<std::string>& cols);
+  virtual grouped_dftable
+  fgroup_by(const std::vector<std::shared_ptr<dffunction>>& cols);
   size_t count(const std::string& name);
   template <class T> T sum(const std::string& name);
   double avg(const std::string& name);
@@ -813,6 +815,8 @@ public:
   star_join(const std::vector<dftable_base*>& dftables, 
             const std::vector<std::shared_ptr<dfoperator>>& op);
   virtual grouped_dftable group_by(const std::vector<std::string>& cols);
+  virtual grouped_dftable
+  fgroup_by(const std::vector<std::shared_ptr<dffunction>>& cols);
   virtual std::shared_ptr<dfcolumn> column(const std::string& name);
   virtual std::shared_ptr<dfcolumn> raw_column(const std::string& name);
   virtual node_local<std::vector<size_t>> get_local_index() {
@@ -906,6 +910,8 @@ public:
   star_join(const std::vector<dftable_base*>& dftables, 
             const std::vector<std::shared_ptr<dfoperator>>& op);
   virtual grouped_dftable group_by(const std::vector<std::string>& cols);
+  virtual grouped_dftable
+  fgroup_by(const std::vector<std::shared_ptr<dffunction>>& cols);
   virtual std::shared_ptr<dfcolumn> column(const std::string& name);
   virtual std::shared_ptr<dfcolumn> raw_column(const std::string& name);
   virtual node_local<std::vector<size_t>> get_local_index() {
@@ -990,6 +996,8 @@ public:
   star_join(const std::vector<dftable_base*>& dftables, 
             const std::vector<std::shared_ptr<dfoperator>>& op);
   virtual grouped_dftable group_by(const std::vector<std::string>& cols);
+  virtual grouped_dftable
+  fgroup_by(const std::vector<std::shared_ptr<dffunction>>& cols);
   virtual std::shared_ptr<dfcolumn> column(const std::string& name);
   virtual std::shared_ptr<dfcolumn> raw_column(const std::string& name);
   virtual node_local<std::vector<size_t>> get_local_index() {
@@ -1072,6 +1080,8 @@ public:
   star_join(const std::vector<dftable_base*>& dftables, 
             const std::vector<std::shared_ptr<dfoperator>>& op);
   virtual grouped_dftable group_by(const std::vector<std::string>& cols);
+  virtual grouped_dftable
+  fgroup_by(const std::vector<std::shared_ptr<dffunction>>& cols);
   virtual std::shared_ptr<dfcolumn> column(const std::string& name);
   virtual std::shared_ptr<dfcolumn> raw_column(const std::string& name);
   virtual node_local<std::vector<size_t>> get_local_index() {
