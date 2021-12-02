@@ -45,6 +45,8 @@ public:
   virtual filtered_dftable filter(const std::shared_ptr<dfoperator>& op);
   virtual sorted_dftable sort(const std::string& name);
   virtual sorted_dftable sort_desc(const std::string& name);
+  virtual sorted_dftable fsort(const std::shared_ptr<dffunction>& col);
+  virtual sorted_dftable fsort_desc(const std::shared_ptr<dffunction>& col);
   virtual hash_joined_dftable
   hash_join(dftable_base& dftable, const std::shared_ptr<dfoperator>& op);
   virtual hash_joined_dftable
@@ -796,6 +798,8 @@ public:
   virtual filtered_dftable filter(const std::shared_ptr<dfoperator>& op);
   virtual sorted_dftable sort(const std::string& name);
   virtual sorted_dftable sort_desc(const std::string& name);
+  virtual sorted_dftable fsort(const std::shared_ptr<dffunction>& col);
+  virtual sorted_dftable fsort_desc(const std::shared_ptr<dffunction>& col);
   virtual hash_joined_dftable
   hash_join(dftable_base& right, const std::shared_ptr<dfoperator>& op);
   virtual hash_joined_dftable
@@ -887,6 +891,8 @@ public:
   virtual filtered_dftable filter(const std::shared_ptr<dfoperator>& op);
   virtual sorted_dftable sort(const std::string& name);
   virtual sorted_dftable sort_desc(const std::string& name);
+  virtual sorted_dftable fsort(const std::shared_ptr<dffunction>& col);
+  virtual sorted_dftable fsort_desc(const std::shared_ptr<dffunction>& col);
   virtual hash_joined_dftable hash_join(dftable_base& dftable,
                                         const std::shared_ptr<dfoperator>& op);
   virtual hash_joined_dftable
@@ -969,6 +975,8 @@ public:
   virtual filtered_dftable filter(const std::shared_ptr<dfoperator>& op);
   virtual sorted_dftable sort(const std::string& name);
   virtual sorted_dftable sort_desc(const std::string& name);
+  virtual sorted_dftable fsort(const std::shared_ptr<dffunction>& col);
+  virtual sorted_dftable fsort_desc(const std::shared_ptr<dffunction>& col);
   virtual hash_joined_dftable hash_join(dftable_base& dftable,
                                         const std::shared_ptr<dfoperator>& op);
   virtual hash_joined_dftable
@@ -1049,6 +1057,8 @@ public:
   virtual filtered_dftable filter(const std::shared_ptr<dfoperator>& op);
   virtual sorted_dftable sort(const std::string& name);
   virtual sorted_dftable sort_desc(const std::string& name);
+  virtual sorted_dftable fsort(const std::shared_ptr<dffunction>& col);
+  virtual sorted_dftable fsort_desc(const std::shared_ptr<dffunction>& col);
   virtual hash_joined_dftable hash_join(dftable_base& dftable,
                                         const std::shared_ptr<dfoperator>& op);
   virtual hash_joined_dftable

@@ -450,6 +450,37 @@ sorted_dftable filtered_dftable::sort_desc(const std::string& name) {
                           std::move(sorted_column));
 }
 
+sorted_dftable filtered_dftable::fsort(const std::shared_ptr<dffunction>& col) {
+  use_dfcolumn use(col->columns_to_use(*this));
+  auto global_idx = local_to_global_idx(filtered_idx);
+  node_local<std::vector<size_t>> idx;
+  auto to_sort_column = col->execute(*this);
+  auto sorted_column = to_sort_column->sort_with_idx(global_idx, idx);
+  if(to_sort_column->if_contain_nulls() || !col->is_id())
+    return sorted_dftable(*this, std::move(idx));
+  else {
+    sorted_column->spill();
+    return sorted_dftable(*this, std::move(idx), col->get_as(),
+                          std::move(sorted_column));
+  }
+}
+
+sorted_dftable
+filtered_dftable::fsort_desc(const std::shared_ptr<dffunction>& col) {
+  use_dfcolumn use(col->columns_to_use(*this));
+  auto global_idx = local_to_global_idx(filtered_idx);
+  node_local<std::vector<size_t>> idx;
+  auto to_sort_column = col->execute(*this);
+  auto sorted_column = to_sort_column->sort_with_idx_desc(global_idx, idx);
+  if(to_sort_column->if_contain_nulls() || !col->is_id())
+    return sorted_dftable(*this, std::move(idx));
+  else {
+    sorted_column->spill();
+    return sorted_dftable(*this, std::move(idx), col->get_as(),
+                          std::move(sorted_column));
+  }
+}
+
 size_t filtered_dftable::num_row() {
   return filtered_idx.viewas_dvector<size_t>().size();
 }

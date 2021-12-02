@@ -1381,6 +1381,8 @@ public:
   virtual filtered_dftable filter(const std::shared_ptr<dfoperator>& op);
   virtual sorted_dftable sort(const std::string& name);
   virtual sorted_dftable sort_desc(const std::string& name);
+  virtual sorted_dftable fsort(const std::shared_ptr<dffunction>& col);
+  virtual sorted_dftable fsort_desc(const std::shared_ptr<dffunction>& col);
   // it is OK to call dftable_base's join and group_by, 
   // which calls get_local_index
   virtual node_local<std::vector<size_t>> get_local_index() {

@@ -121,6 +121,35 @@ sorted_dftable dftable_base::sort_desc(const std::string& name) {
   }
 }
 
+sorted_dftable dftable_base::fsort(const std::shared_ptr<dffunction>& col) {
+  use_dfcolumn use(col->columns_to_use(*this));
+  node_local<std::vector<size_t>> idx;
+  auto to_sort_column = col->execute(*this);
+  auto sorted_column = to_sort_column->sort(idx);
+  if(to_sort_column->if_contain_nulls() || !col->is_id())
+    return sorted_dftable(*this, std::move(idx));
+  else {
+    sorted_column->spill();
+    return sorted_dftable(*this, std::move(idx), col->get_as(),
+                          std::move(sorted_column));
+  }
+}
+
+sorted_dftable
+dftable_base::fsort_desc(const std::shared_ptr<dffunction>& col) {
+  use_dfcolumn use(col->columns_to_use(*this));
+  node_local<std::vector<size_t>> idx;
+  auto to_sort_column = col->execute(*this);
+  auto sorted_column = to_sort_column->sort_desc(idx);
+  if(to_sort_column->if_contain_nulls() || !col->is_id())
+    return sorted_dftable(*this, std::move(idx));
+  else {
+    sorted_column->spill();
+    return sorted_dftable(*this, std::move(idx), col->get_as(),
+                          std::move(sorted_column));
+  }
+}
+
 void join_column_name_check(const std::map<std::string,
                             std::shared_ptr<dfcolumn>>& col1,
                             const std::map<std::string,
@@ -2646,6 +2675,35 @@ sorted_dftable sorted_dftable::sort_desc(const std::string& name) {
                           std::move(sorted_column));
 }
 
+sorted_dftable sorted_dftable::fsort(const std::shared_ptr<dffunction>& col) {
+  use_dfcolumn use(col->columns_to_use(*this));
+  node_local<std::vector<size_t>> idx;
+  auto to_sort_column = col->execute(*this);
+  auto sorted_column = to_sort_column->sort_with_idx(global_idx, idx);
+  if(to_sort_column->if_contain_nulls() || !col->is_id())
+    return sorted_dftable(*this, std::move(idx));
+  else {
+    sorted_column->spill();
+    return sorted_dftable(*this, std::move(idx), col->get_as(),
+                          std::move(sorted_column));
+  }
+}
+
+sorted_dftable
+sorted_dftable::fsort_desc(const std::shared_ptr<dffunction>& col) {
+  use_dfcolumn use(col->columns_to_use(*this));
+  node_local<std::vector<size_t>> idx;
+  auto to_sort_column = col->execute(*this);
+  auto sorted_column = to_sort_column->sort_with_idx_desc(global_idx, idx);
+  if(to_sort_column->if_contain_nulls() || !col->is_id())
+    return sorted_dftable(*this, std::move(idx));
+  else {
+    sorted_column->spill();
+    return sorted_dftable(*this, std::move(idx), col->get_as(),
+                          std::move(sorted_column));
+  }
+}
+
 hash_joined_dftable
 sorted_dftable::hash_join(dftable_base& right,
                           const std::shared_ptr<dfoperator>& op) {
@@ -2822,6 +2880,16 @@ sorted_dftable hash_joined_dftable::sort(const std::string& name) {
 
 sorted_dftable hash_joined_dftable::sort_desc(const std::string& name) {
   return materialize().sort_desc(name);
+}
+
+sorted_dftable
+hash_joined_dftable::fsort(const std::shared_ptr<dffunction>& col) {
+  return materialize().fsort(col);
+}
+
+sorted_dftable
+hash_joined_dftable::fsort_desc(const std::shared_ptr<dffunction>& col) {
+  return materialize().fsort_desc(col);
 }
 
 hash_joined_dftable
@@ -3038,6 +3106,16 @@ sorted_dftable bcast_joined_dftable::sort_desc(const std::string& name) {
   return materialize().sort_desc(name);
 }
 
+sorted_dftable
+bcast_joined_dftable::fsort(const std::shared_ptr<dffunction>& col) {
+  return materialize().fsort(col);
+}
+
+sorted_dftable
+bcast_joined_dftable::fsort_desc(const std::shared_ptr<dffunction>& col) {
+  return materialize().fsort_desc(col);
+}
+
 hash_joined_dftable
 bcast_joined_dftable::hash_join(dftable_base& right,
                                 const std::shared_ptr<dfoperator>& op) {
@@ -3236,6 +3314,16 @@ sorted_dftable star_joined_dftable::sort(const std::string& name) {
 
 sorted_dftable star_joined_dftable::sort_desc(const std::string& name) {
   return materialize().sort_desc(name);
+}
+
+sorted_dftable
+star_joined_dftable::fsort(const std::shared_ptr<dffunction>& col) {
+  return materialize().fsort(col);
+}
+
+sorted_dftable
+star_joined_dftable::fsort_desc(const std::shared_ptr<dffunction>& col) {
+  return materialize().fsort_desc(col);
 }
 
 hash_joined_dftable
