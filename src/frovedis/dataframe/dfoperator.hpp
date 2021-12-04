@@ -1670,6 +1670,8 @@ std::shared_ptr<dfoperator>
 fmulti_eq(const std::vector<std::shared_ptr<dffunction>>& left_func,
           const std::vector<std::shared_ptr<dffunction>>& right_func);
 
+
+// ----- dfoperator_cross -----
 struct dfoperator_cross : public dfoperator {
   dfoperator_cross() {}
   virtual node_local<std::vector<size_t>> filter(dftable_base& t) const {
