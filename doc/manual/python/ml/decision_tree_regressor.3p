@@ -1,0 +1,790 @@
+.TH "DecisionTreeRegressor" "" "" "" ""
+.SH NAME
+.PP
+DecisionTreeRegressor \- A regression algorithm used to predict the
+output using conditional control statements.
+A decision tree is a decision support tool that uses a tree\-like model
+of decisions and their possible consequences, including chance, event,
+outcomes, resource costs, and utility.
+.SH SYNOPSIS
+.PP
+class frovedis.mllib.tree.DecisionTreeRegressor(criterion=\[aq]mse\[aq],
+splitter=\[aq]best\[aq], max_depth=None,
+.PD 0
+.P
+.PD
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ min_samples_split=2,
+min_samples_leaf=1,
+.PD 0
+.P
+.PD
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ min_weight_fraction_leaf=0.0,
+max_features=None,
+.PD 0
+.P
+.PD
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ random_state=None,
+max_leaf_nodes=None,
+.PD 0
+.P
+.PD
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ min_impurity_decrease=0.0,
+presort=\[aq]deprecated\[aq],
+.PD 0
+.P
+.PD
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ccp_alpha=0.0,
+max_bins=32,
+.PD 0
+.P
+.PD
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ verbose=0,
+categorical_info={})
+.SS Public Member Functions
+.PP
+fit(X, y)
+.PD 0
+.P
+.PD
+predict(X)
+.PD 0
+.P
+.PD
+get_params(deep = True)
+.PD 0
+.P
+.PD
+set_params(**params)
+.PD 0
+.P
+.PD
+load(fname, dtype = None)
+.PD 0
+.P
+.PD
+save(fname)
+.PD 0
+.P
+.PD
+score(X, y, sample_weight = None)
+.PD 0
+.P
+.PD
+debug_print()
+.PD 0
+.P
+.PD
+release()
+.PD 0
+.P
+.PD
+is_fitted()
+.SH DESCRIPTION
+.PP
+Decision Tree Regressor is a supervised learning method used for
+regression problems.
+The aim is to create a model that predicts the value of a target
+variable by learning simple decision rules inferred from the data
+features.
+Like any other tree representation, it has a root node, internal nodes,
+and leaf nodes.
+The internal node represents condition on attributes, the branches
+represent the results of the condition and the leaf node represents the
+class label.
+.PP
+This module provides a client\-server implementation, where the client
+application is a normal python program.
+The frovedis interface is almost same as Scikit\-learn
+DecisionTreeRegressor interface, but it doesn\[aq]t have any dependency
+with Scikit\-learn.
+It can be used simply even if the system doesn\[aq]t have Scikit\-learn
+installed.
+Thus in this implementation, a python client can interact with a
+frovedis server sending the required python data for training at
+frovedis side.
+Python data is converted into frovedis compatible data internally and
+the python ML call is linked with the respective frovedis ML call to get
+the job done at frovedis server.
+.PP
+Python side calls for DecisionTreeRegressor on the frovedis server.
+Once the training is completed with the input data at the frovedis
+server, it returns an abstract model with a unique model ID to the
+client python program.
+.PP
+When prediction\-like request would be made on the trained model, python
+program will send the same request to the frovedis server.
+After the request is served at the frovedis server, the output would be
+sent back to the python client.
+.SS Detailed Description
+.SS 1. DecisionTreeRegressor()
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[B]\f[I]criterion\f[]\f[]: A string object parameter that specifies
+the function to measure the quality of a split.
+.PD 0
+.P
+.PD
+Currently, supported criteria is \[aq]mse\[aq].
+The mean squared error (mse), is equal to variance reduction as a
+feature selection criterion and minimizes the L2 loss using the mean of
+each terminal node.
+.PD 0
+.P
+.PD
+\f[B]\f[I]splitter\f[]\f[]: An unused parameter.
+(Default: \[aq]best\[aq])
+.PD 0
+.P
+.PD
+\f[B]\f[I]max_depth\f[]\f[]: A positive integer parameter that specifies
+the maximum depth of the tree.
+If it is None (not specified explicitly), then \[aq]max_depth\[aq] is
+set to 5.
+(Default: None)
+.PD 0
+.P
+.PD
+\f[B]\f[I]min_samples_split\f[]\f[]: An unused parameter.
+(Default: 2)
+.PD 0
+.P
+.PD
+\f[B]\f[I]min_samples_leaf\f[]\f[]: A positive integer or float value
+that specifies the minimum number of samples required to be at a leaf
+node.
+A split point at any depth will only be considered if it leaves at least
+\[aq]min_samples_leaf\[aq] training samples in each of the left and
+right branches.
+This may have the effect of smoothing the model, especially in
+regression.
+(Default: 1)
+.PD 0
+.P
+.PD
+If it is an integer, then \[aq]min_samples_leaf\[aq] should be greater
+than or equal to 1.
+.PD 0
+.P
+.PD
+If it is float, then \[aq]min_samples_leaf\[aq] should be in range
+(0,0.5].
+.PD 0
+.P
+.PD
+\f[B]\f[I]min_weight_fraction_leaf\f[]\f[]: An unused parameter.
+(Default: 0.0)
+.PD 0
+.P
+.PD
+\f[B]\f[I]max_features\f[]\f[]: An unused parameter.
+(Default: None)
+.PD 0
+.P
+.PD
+\f[B]\f[I]random_state\f[]\f[]: An unused parameter.
+(Default: None)
+.PD 0
+.P
+.PD
+\f[B]\f[I]max_leaf_nodes\f[]\f[]: An unused parameter.
+(Default: None)
+.PD 0
+.P
+.PD
+\f[B]\f[I]min_impurity_decrease\f[]\f[]: A positive float parameter.
+A node will be split if this split induces a decrease of the impurity
+greater than or equal to this value.
+(Default: 0.0)
+.PD 0
+.P
+.PD
+\f[B]\f[I]presort\f[]\f[]: An unused parameter.
+(Default: \[aq]deprecated\[aq])
+.PD 0
+.P
+.PD
+\f[B]\f[I]ccp_alpha\f[]\f[]: An unused parameter.
+(Default: 0.0)
+.PD 0
+.P
+.PD
+\f[B]\f[I]max_bins\f[]\f[]: A positive integer parameter that specifies
+the maximum number of bins created by ordered splits.
+(Default: 32)
+.PD 0
+.P
+.PD
+\f[B]\f[I]verbose\f[]\f[]: An integer parameter specifying the log level
+to use.
+Its value is set as 0 by default (for INFO mode).
+But it can be set to 1 (for DEBUG mode) or 2 (for TRACE mode) for
+getting training time logs from frovedis server.
+.PD 0
+.P
+.PD
+\f[B]\f[I]categorical_info\f[]\f[]: A dictionary that specifies
+categorical features information.
+Here, it gives column indices of categorical features and the number of
+categories for those features.
+.PD 0
+.P
+.PD
+For example, a dictionary { {0, 2}, {4, 5} } means that the feature[0]
+takes values 0 or 1 (binary) and the feature[4] has five categories
+(values 0, 1, 2, 3 or 4).
+Note that feature indices and category assignments are 0\-based.
+(Default: {})
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It initializes a DecisionTreeRegressor object with the given parameters.
+.PP
+The parameters: "splitter", "min_samples_split",
+"min_weight_fraction_leaf", "max_features", "random_state",
+"max_leaf_nodes", "presort" and "ccp_alpha" are simply kept in to make
+the interface uniform to the Scikit\-learn DecisionTreeRegressor module.
+They are not used anywhere within frovedis implementation.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It simply returns "self" reference.
+.SS 2. fit(X, y)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[B]\f[I]X\f[]\f[]: A numpy dense or scipy sparse matrix or any python
+array\-like object or an instance of FrovedisCRSMatrix for sparse data
+and FrovedisColmajorMatrix for dense data.
+It has shape \f[B](n_samples, n_features)\f[].
+.PD 0
+.P
+.PD
+\f[B]\f[I]y\f[]\f[]: Any python array\-like object or an instance of
+FrovedisDvector.
+It has shape \f[B](n_samples,)\f[].
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It builds a decision tree regressor from the training data X and labels
+y.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ loading\ a\ sample\ matrix\ and\ labels\ data
+from\ sklearn.datasets\ import\ load_boston
+mat,\ lbl\ =\ load_boston(return_X_y\ =\ True)
+
+#\ fitting\ input\ matrix\ and\ label\ on\ DecisionTreeRegressor\ object
+from\ frovedis.mllib.tree\ import\ DecisionTreeRegressor
+dtr\ =\ DecisionTreeRegressor(max_depth\ =\ 5)
+dtr.fit(mat,lbl)
+\f[]
+.fi
+.PP
+When native python data is provided, it is converted to frovedis\-like
+inputs and sent to frovedis server which consumes some data transfer
+time.
+Pre\-constructed frovedis\-like inputs can be used to speed up the
+training time, especially when same data would be used for multiple
+executions.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ loading\ a\ sample\ matrix\ and\ labels\ data
+from\ sklearn.datasets\ import\ load_boston
+mat,\ lbl\ =\ load_boston(return_X_y\ =\ True)
+
+#\ Since\ "mat"\ is\ numpy\ dense\ data,\ we\ have\ created\ FrovedisColmajorMatrix.\ 
+#\ For\ scipy\ sparse\ data,\ FrovedisCRSMatrix\ should\ be\ used\ instead.
+from\ frovedis.matrix.dense\ import\ FrovedisColmajorMatrix
+from\ frovedis.matrix.dvector\ import\ FrovedisDvector\ 
+cmat\ =\ FrovedisColmajorMatrix(mat)
+dlbl\ =\ FrovedisDvector(lbl)
+
+#\ DecisionTreeRegressor\ with\ pre\-constructed\ frovedis\-like\ inputs
+from\ frovedis.mllib.tree\ import\ DecisionTreeRegressor
+dtr\ =\ DecisionTreeRegressor(max_depth\ =\ 5)
+dtr.fit(cmat,dlbl)
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It simply returns "self" reference.
+.SS 3. predict(X)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[B]\f[I]X\f[]\f[]: A numpy dense or scipy sparse matrix or any python
+array\-like object or an instance of FrovedisCRSMatrix for sparse data
+and FrovedisRowmajorMatrix for dense data.
+It has shape \f[B](n_samples, n_features)\f[].
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+Predict regression value for X.
+.PP
+For a regression model, the predicted value based on X is returned.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ predicting\ on\ decision\ tree\ regressor\ model
+dtr.predict(mat)\ \ 
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+[24.64166667\ 24.64166667\ 34.80666667\ ...\ 27.83636364\ 27.83636364\ 20.98461538]\ \ 
+\f[]
+.fi
+.PP
+Like in fit(), frovedis\-like input can be used to speed\-up the
+prediction making on the trained model at server side.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ Since\ "cmat"\ is\ FrovedisColmajorMatrix,\ we\ have\ created\ FrovedisRowmajorMatrix.
+from\ frovedis.matrix.dense\ import\ FrovedisRowmajorMatrix
+
+#\ predicting\ on\ decision\ tree\ regressor\ model\ using\ pre\-constructed\ input
+dtr.predict(cmat.to_frovedis_rowmatrix())
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+[24.64166667\ 24.64166667\ 34.80666667\ ...\ 27.83636364\ 27.83636364\ 20.98461538]\ \ 
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns a numpy array of float or double (float64) type and of shape
+\f[B](n_samples,)\f[] containing the predicted values.
+.SS 4. get_params(deep = True)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]\f[B]deep\f[]\f[]: A boolean parameter, used to get parameters and
+their values for an estimator.
+If True, it will return the parameters for an estimator and contained
+subobjects that are estimators.
+(Default: True)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+This method belongs to the BaseEstimator class inherited by
+DecisionTreeRegressor.
+It is used to get parameters and their values of DecisionTreeRegressor
+class.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+print(dtr.get_params())
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+{\[aq]categorical_info\[aq]:\ {},\ \[aq]ccp_alpha\[aq]:\ 0.0,\ \[aq]criterion\[aq]:\ \[aq]MSE\[aq],\ \[aq]max_bins\[aq]:\ 32,\ \[aq]max_depth\[aq]:\ 5,\ 
+\[aq]max_features\[aq]:\ None,\ \[aq]max_leaf_nodes\[aq]:\ None,\ \[aq]min_impurity_decrease\[aq]:\ 0.0,\ 
+\[aq]min_samples_leaf\[aq]:\ 1,\ \[aq]min_samples_split\[aq]:\ 2,\ \[aq]min_weight_fraction_leaf\[aq]:\ 0.0,\ 
+\[aq]presort\[aq]:\ \[aq]deprecated\[aq],\ \[aq]random_state\[aq]:\ None,\ \[aq]splitter\[aq]:\ \[aq]best\[aq],\ \[aq]verbose\[aq]:\ 0}
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+A dictionary of parameter names mapped to their values.
+.SS 5. set_params(**params)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]\f[B]**params\f[]\f[]: All the keyword arguments are passed to this
+function as dictionary.
+This dictionary contains parameters of an estimator with its given
+values to set.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+This method belongs to the BaseEstimator class inherited by
+DecisionTreeRegressor, used to set parameter values.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+print("get\ parameters\ before\ setting:")\ 
+print(dtr.get_params())
+#\ User\ just\ needs\ to\ provide\ the\ arguments\ and\ internally\ it\ will\ create\ a\ 
+dictionary\ over\ the\ arguments\ given\ by\ user
+dtr.set_params(max_depth\ =\ 4)\ 
+print("get\ parameters\ after\ setting:")\ 
+print(dtr.get_params())
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+get\ parameters\ before\ setting:
+{\[aq]categorical_info\[aq]:\ {},\ \[aq]ccp_alpha\[aq]:\ 0.0,\ \[aq]criterion\[aq]:\ \[aq]MSE\[aq],\ \[aq]max_bins\[aq]:\ 32,\ \[aq]max_depth\[aq]:\ 5,\ 
+\[aq]max_features\[aq]:\ None,\ \[aq]max_leaf_nodes\[aq]:\ None,\ \[aq]min_impurity_decrease\[aq]:\ 0.0,\ 
+\[aq]min_samples_leaf\[aq]:\ 1,\ \[aq]min_samples_split\[aq]:\ 2,\ \[aq]min_weight_fraction_leaf\[aq]:\ 0.0,\ 
+\[aq]presort\[aq]:\ \[aq]deprecated\[aq],\ \[aq]random_state\[aq]:\ None,\ \[aq]splitter\[aq]:\ \[aq]best\[aq],\ \[aq]verbose\[aq]:\ 0}
+get\ parameters\ after\ setting:
+{\[aq]categorical_info\[aq]:\ {},\ \[aq]ccp_alpha\[aq]:\ 0.0,\ \[aq]criterion\[aq]:\ \[aq]MSE\[aq],\ \[aq]max_bins\[aq]:\ 32,\ \[aq]max_depth\[aq]:\ 4,\ 
+\[aq]max_features\[aq]:\ None,\ \[aq]max_leaf_nodes\[aq]:\ None,\ \[aq]min_impurity_decrease\[aq]:\ 0.0,\ 
+\[aq]min_samples_leaf\[aq]:\ 1,\ \[aq]min_samples_split\[aq]:\ 2,\ \[aq]min_weight_fraction_leaf\[aq]:\ 0.0,\ 
+\[aq]presort\[aq]:\ \[aq]deprecated\[aq],\ \[aq]random_state\[aq]:\ None,\ \[aq]splitter\[aq]:\ \[aq]best\[aq],\ \[aq]verbose\[aq]:\ 0}
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It simply returns "self" reference.
+.SS 6. load(fname, dtype = None)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[B]\f[I]fname\f[]\f[]: A string object containing the name of the file
+having model information to be loaded.
+.PD 0
+.P
+.PD
+\f[B]\f[I]dtype\f[]\f[]: A data\-type is inferred from the input data.
+Currently, expected input data\-type is either float or double(float64).
+(Default: None)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It loads the model from the specified file (having little\-endian binary
+data).
+.PP
+For example,
+.IP
+.nf
+\f[C]
+dtr.load("./out/MyDecisionTreeRegressorModel")
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It simply returns "self" reference.
+.SS 7. save(fname)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[B]\f[I]fname\f[]\f[]: A string object containing the name of the file
+on which the target model is to be saved.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+On success, it writes the model information in the specified file as
+little\-endian binary data.
+Otherwise, it throws an exception.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ To\ save\ the\ decision\ tree\ regressor\ model
+dtr.save("./out/MyDecisionTreeRegressorModel")\ \ 
+\f[]
+.fi
+.PP
+This will save the decision tree regressor model on the path
+"/out/MyDecisionTreeRegressorModel".
+It would raise exception if the directory already exists with same name.
+.PP
+The \[aq]MyDecisionTreeRegressorModel\[aq] directory has
+.PP
+\f[B]MyDecisionTreeRegressorModel\f[]
+.PD 0
+.P
+.PD
+|\-\-\-\-\-metadata
+.PD 0
+.P
+.PD
+|\-\-\-\-\-model
+.PP
+The \[aq]metadata\[aq] file contains the number of classes, model kind
+and input datatype used for trained model.
+.PD 0
+.P
+.PD
+The \[aq]model\[aq] file contains the decision tree model saved in
+binary format.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns nothing.
+.SS 8. score(X, y, sample_weight = None)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[B]\f[I]X\f[]\f[]: A numpy dense or scipy sparse matrix or any python
+array\-like object or an instance of FrovedisCRSMatrix for sparse data
+and FrovedisRowmajorMatrix for dense data.
+It has shape \f[B](n_samples, n_features)\f[].
+.PD 0
+.P
+.PD
+\f[B]\f[I]y\f[]\f[]: Any python array\-like object or an instance of
+FrovedisDvector.
+It has shape \f[B](n_samples,)\f[].
+.PD 0
+.P
+.PD
+\f[B]\f[I]sample_weight\f[]\f[]: Python ndarray containing the intended
+weights for each input samples and it should be the shape of
+\f[B](n_samples, )\f[].
+When it is None (not specified explicitly), an uniform weight vector is
+assigned on each input sample.
+(Default: None)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+Calculate the root mean square value on the given test data and labels
+i.e.
+R2(r\-squared) of self.predict(X) wrt.
+y.
+.PP
+The coefficient \[aq]R2\[aq] is defined as (1 \- (u/v)),
+.PD 0
+.P
+.PD
+where \[aq]u\[aq] is the residual sum of squares ((y_true \- y_pred) **
+2).sum() and,
+.PD 0
+.P
+.PD
+\[aq]v\[aq] is the total sum of squares ((y_true \- y_true.mean()) **
+2).sum().
+.PP
+The best possible score is 1.0 and it can be negative (because the model
+can be arbitrarily worse).
+A constant model that always predicts the expected value of y,
+disregarding the input features, would get a R2 score of 0.0.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ calculate\ R2\ score\ on\ given\ test\ data\ and\ labels
+dtr.score(mat,lbl)\ \ 
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+0.9109
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns an R2 score of float type.
+.SS 9. debug_print()
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It shows the target model information on the server side user terminal.
+It is mainly used for debugging purpose.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+dtr.debug_print()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+\-\-\-\-\-\-\-\-\ Regression\ Tree::\ \-\-\-\-\-\-\-\-
+#\ of\ nodes:\ 51,\ height:\ 5
+<1>\ Split:\ feature[12]\ <\ 9.6575,\ IG:\ 37.2288
+\ \\_\ <2>\ Split:\ feature[5]\ <\ 7.14906,\ IG:\ 37.6417
+\ |\ \ \\_\ <4>\ Split:\ feature[7]\ <\ 1.47325,\ IG:\ 17.8515
+\ |\ \ |\ \ \\_\ (8)\ Predict:\ 50
+\ |\ \ |\ \ \\_\ <9>\ Split:\ feature[5]\ <\ 6.69962,\ IG:\ 9.19518
+\ |\ \ |\ \ \ \ \ \\_\ <18>\ Split:\ feature[5]\ <\ 6.10819,\ IG:\ 2.41396
+\ |\ \ |\ \ \ \ \ |\ \ \\_\ (36)\ Predict:\ 20.9846
+\ |\ \ |\ \ \ \ \ |\ \ \\_\ (37)\ Predict:\ 24.6417
+\ |\ \ |\ \ \ \ \ \\_\ <19>\ Split:\ feature[12]\ <\ 5.27,\ IG:\ 6.57304
+\ |\ \ |\ \ \ \ \ \ \ \ \\_\ (38)\ Predict:\ 32.9652
+\ |\ \ |\ \ \ \ \ \ \ \ \\_\ (39)\ Predict:\ 27.8364
+\ |\ \ \\_\ <5>\ Split:\ feature[5]\ <\ 7.45969,\ IG:\ 25.6196
+\ |\ \ \ \ \ \\_\ <10>\ Split:\ feature[5]\ <\ 7.43531,\ IG:\ 4.71838
+\ |\ \ \ \ \ |\ \ \\_\ <20>\ Split:\ feature[8]\ <\ 7.125,\ IG:\ 1.42815
+\ |\ \ \ \ \ |\ \ |\ \ \\_\ (40)\ Predict:\ 34.8067
+\ |\ \ \ \ \ |\ \ |\ \ \\_\ (41)\ Predict:\ 31.6
+\ |\ \ \ \ \ |\ \ \\_\ (21)\ Predict:\ 44
+\ |\ \ \ \ \ \\_\ <11>\ Split:\ feature[0]\ <\ 2.1766,\ IG:\ 19.28
+\ |\ \ \ \ \ \ \ \ \\_\ <22>\ Split:\ feature[10]\ <\ 17.9563,\ IG:\ 5.68288
+\ |\ \ \ \ \ \ \ \ |\ \ \\_\ (44)\ Predict:\ 46.9375
+\ |\ \ \ \ \ \ \ \ |\ \ \\_\ (45)\ Predict:\ 40.125
+\ |\ \ \ \ \ \ \ \ \\_\ (23)\ Predict:\ 21.9
+\ \\_\ <3>\ Split:\ feature[12]\ <\ 14.9763,\ IG:\ 9.38095
+\ \ \ \ \\_\ <6>\ Split:\ feature[5]\ <\ 6.56925,\ IG:\ 1.74534
+\ \ \ \ |\ \ \\_\ <12>\ Split:\ feature[11]\ <\ 101.175,\ IG:\ 0.921292
+\ \ \ \ |\ \ |\ \ \\_\ <24>\ Split:\ feature[4]\ <\ 0.5995,\ IG:\ 6.02083
+\ \ \ \ |\ \ |\ \ |\ \ \\_\ (48)\ Predict:\ 16.5667
+\ \ \ \ |\ \ |\ \ |\ \ \\_\ (49)\ Predict:\ 10.9
+\ \ \ \ |\ \ |\ \ \\_\ <25>\ Split:\ feature[2]\ <\ 2.57187,\ IG:\ 0.586878
+\ \ \ \ |\ \ |\ \ \ \ \ \\_\ (50)\ Predict:\ 25.3667
+\ \ \ \ |\ \ |\ \ \ \ \ \\_\ (51)\ Predict:\ 20.4598
+\ \ \ \ |\ \ \\_\ <13>\ Split:\ feature[0]\ <\ 4.94925,\ IG:\ 10.4783
+\ \ \ \ |\ \ \ \ \ \\_\ <26>\ Split:\ feature[4]\ <\ 0.59225,\ IG:\ 7.70469
+\ \ \ \ |\ \ \ \ \ |\ \ \\_\ (52)\ Predict:\ 24.4429
+\ \ \ \ |\ \ \ \ \ |\ \ \\_\ (53)\ Predict:\ 30.5
+\ \ \ \ |\ \ \ \ \ \\_\ (27)\ Predict:\ 15
+\ \ \ \ \\_\ <7>\ Split:\ feature[0]\ <\ 5.64819,\ IG:\ 5.7942
+\ \ \ \ \ \ \ \\_\ <14>\ Split:\ feature[4]\ <\ 0.52725,\ IG:\ 2.64736
+\ \ \ \ \ \ \ |\ \ \\_\ <28>\ Split:\ feature[12]\ <\ 29.8562,\ IG:\ 2.20522
+\ \ \ \ \ \ \ |\ \ |\ \ \\_\ (56)\ Predict:\ 20.4
+\ \ \ \ \ \ \ |\ \ |\ \ \\_\ (57)\ Predict:\ 15.45
+\ \ \ \ \ \ \ |\ \ \\_\ <29>\ Split:\ feature[12]\ <\ 18.0497,\ IG:\ 1.97256
+\ \ \ \ \ \ \ |\ \ \ \ \ \\_\ (58)\ Predict:\ 17.5667
+\ \ \ \ \ \ \ |\ \ \ \ \ \\_\ (59)\ Predict:\ 14.7563
+\ \ \ \ \ \ \ \\_\ <15>\ Split:\ feature[12]\ <\ 20.0091,\ IG:\ 3.36396
+\ \ \ \ \ \ \ \ \ \ \\_\ <30>\ Split:\ feature[5]\ <\ 5.92387,\ IG:\ 2.19683
+\ \ \ \ \ \ \ \ \ \ |\ \ \\_\ (60)\ Predict:\ 11.4714
+\ \ \ \ \ \ \ \ \ \ |\ \ \\_\ (61)\ Predict:\ 15.137
+\ \ \ \ \ \ \ \ \ \ \\_\ <31>\ Split:\ feature[4]\ <\ 0.67175,\ IG:\ 4.84222
+\ \ \ \ \ \ \ \ \ \ \ \ \ \\_\ (62)\ Predict:\ 13.88
+\ \ \ \ \ \ \ \ \ \ \ \ \ \\_\ (63)\ Predict:\ 9.15938
+\f[]
+.fi
+.PP
+It displays the decision tree having maximum depth of 5 and total 51
+nodes in the tree.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns nothing.
+.SS 10. release()
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It can be used to release the in\-memory model at frovedis server.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+dtr.release()
+\f[]
+.fi
+.PP
+This will remove the trained model, model\-id present on server, along
+with releasing server side memory.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns nothing.
+.SS 11. is_fitted()
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It can be used to confirm if the model is already fitted or not.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns ‘True', if the model is already fitted, otherwise, it returns
+‘False'.
+.SH SEE ALSO
+.PP
+dvector, crs_matrix, colmajor_matrix, rowmajor_matrix
