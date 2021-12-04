@@ -2,6 +2,7 @@ package com.nec.frovedis.sql;
 
 import com.nec.frovedis.Jexrpc._
 import com.nec.frovedis.Jmllib.DummyDftable
+import com.nec.frovedis.Jsql.{jPlatform, jDFTransfer}
 import com.nec.frovedis.matrix.{GenericUtils, TimeSpent, DTYPE}
 import com.nec.frovedis.matrix.{
   IntDvector, LongDvector, 
@@ -20,6 +21,7 @@ import org.apache.spark.sql.Row
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.catalyst.InternalRow
+import org.apache.spark.sql.catalyst.expressions.UnsafeRow
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.mutable.ListBuffer
 import org.apache.log4j.{Level, Logger}
@@ -130,7 +132,7 @@ object DFConverter {
   }
 }
 
-object DFTransferData {
+object sDFTransfer extends java.io.Serializable {
   def copy_local_data(
     index: Int, destId: Int,
     w_node: Node, vptr: Long, localId: Long,
@@ -141,13 +143,7 @@ object DFTransferData {
 
     val t0 = new TimeSpent(Level.TRACE)
     dtype match { // w_node::vptr[index] = data
-        case DTYPE.INT => {
-          val iArr = data.asInstanceOf[ArrayBuffer[Int]].toArray
-          t0.show("buffer to int-array: ")
-          JNISupport.loadFrovedisWorkerIntVector(w_node, vptr, localId, iArr,
-                                                 iArr.size)
-        }
-        case DTYPE.BOOL => {
+        case DTYPE.INT | DTYPE.BOOL => {
           val iArr = data.asInstanceOf[ArrayBuffer[Int]].toArray
           t0.show("buffer to int-array: ")
           JNISupport.loadFrovedisWorkerIntVector(w_node, vptr, localId, iArr,
@@ -177,6 +173,115 @@ object DFTransferData {
     val err = JNISupport.checkServerException()
     if (err != "") throw new java.rmi.ServerException(err)
     t0.show("spark-worker to frovedis-rank local data copy: ")
+  }
+
+  def execute(rddData: RDD[InternalRow],
+              fw_nodes: Array[Node],
+              vptrs: Array[Long],
+              types: Array[Short],
+              block_sizes: Array[Long],
+              ncol: Int, nproc: Int): Long = {
+    val ret = rddData.mapPartitionsWithIndex({ case(index, x) =>
+        val t0 = new TimeSpent(Level.TRACE)
+        val mat = new Array[ArrayBuffer[Any]](ncol)
+        for(i <- 0 until ncol) mat(i) = new ArrayBuffer[Any]()
+        var k: Int = 0
+        while(x.hasNext) {
+          val row: InternalRow = x.next
+          for (i <- 0 until ncol) {
+            val tmp = types(i) match {
+              case DTYPE.INT    => if(row.isNullAt(i)) Int.MaxValue else row.getInt(i)
+              case DTYPE.BOOL   => if(row.isNullAt(i)) Int.MaxValue else row.getInt(i)
+              case DTYPE.LONG   => if(row.isNullAt(i)) Long.MaxValue else row.getLong(i)
+              case DTYPE.FLOAT  => if(row.isNullAt(i)) Float.MaxValue else row.getFloat(i)
+              case DTYPE.DOUBLE => if(row.isNullAt(i)) Double.MaxValue else row.getDouble(i)
+              //case DTYPE.STRING => if(row.isNullAt(i)) "NULL" row.getString(i)
+              case _ => throw new IllegalArgumentException(
+                        "[optimized_load] Unsupported type: " + TMAPPER.id2string(types(i)))
+            }
+            mat(i) += tmp
+          }
+          k += 1
+        }
+        t0.show("to matrix buffer: ")
+
+        val (destId, myst) = GenericUtils.index2Dest(index, block_sizes)
+        val localId = index - myst
+
+        for (i <- 0 until ncol) {
+          val vptr = vptrs(i * nproc + destId)
+          //println("col: " + cols(i) + "; dtype: " + types(i) + "; vptr: " + vptr)
+          copy_local_data(index, destId, fw_nodes(destId),
+                          vptr, localId, mat(i), k, types(i))
+        }
+        t0.show("data transfer: ")
+        Array(true).toIterator // SUCCESS (since need to return an iterator)
+    })
+    return ret.count // for action
+  }
+}
+
+object _jDFTransfer extends java.io.Serializable {
+  def execute(rddData: RDD[InternalRow], // actually UnsafeRow
+              fw_nodes: Array[Node],
+              vptrs: Array[Long],
+              types: Array[Short],
+              block_sizes: Array[Long],
+              ncol: Int, nproc: Int): Long = {
+    val ret = rddData.mapPartitionsWithIndex({ case(index, x) =>
+        val t0 = new TimeSpent(Level.TRACE)
+        var k = 0
+        val obj = new ArrayBuffer[Object]()
+        val off = new ArrayBuffer[Long]()
+        while(x.hasNext) {
+          val row = x.next.asInstanceOf[UnsafeRow]
+          obj += row.getBytes() // row.getBaseObject()
+          off += row.getBaseOffset()
+          k += 1
+        }
+        t0.show("baseObject, baseOffset extraction: ")
+
+        val (destId, myst) = GenericUtils.index2Dest(index, block_sizes)
+        val localId = index - myst
+        val w_node = fw_nodes(destId)
+
+        for (i <- 0 until ncol) {
+          val vptr = vptrs(i * nproc + destId)
+          types(i) match {
+            case DTYPE.INT | DTYPE.BOOL => {
+              val iArr = new Array[Int](k)
+              for (j <- 0 until k) iArr(j) = jPlatform.getInt(obj(j), off(j), ncol, i)
+              t0.show("buffer to int-array: ")
+              JNISupport.loadFrovedisWorkerIntVector(w_node, vptr, localId, iArr, k)
+            }
+            case DTYPE.LONG => {
+              val lArr = new Array[Long](k)
+              for (j <- 0 until k) lArr(j) = jPlatform.getLong(obj(j), off(j), ncol, i)
+              t0.show("buffer to long-array: ")
+              JNISupport.loadFrovedisWorkerLongVector(w_node, vptr, localId, lArr, k)
+            }
+            case DTYPE.FLOAT => {
+              val fArr = new Array[Float](k)
+              for (j <- 0 until k) fArr(j) = jPlatform.getFloat(obj(j), off(j), ncol, i)
+              t0.show("buffer to float-array: ")
+              JNISupport.loadFrovedisWorkerFloatVector(w_node, vptr, localId, fArr, k)
+            }
+            case DTYPE.DOUBLE => {
+              val dArr = new Array[Double](k)
+              for (j <- 0 until k) dArr(j) = jPlatform.getDouble(obj(j), off(j), ncol, i)
+              t0.show("buffer to double-array: ")
+              JNISupport.loadFrovedisWorkerDoubleVector(w_node, vptr, localId, dArr, k)
+            }
+            case _ => throw new IllegalArgumentException(
+                      "[optimized_load] Unsupported type: " + TMAPPER.id2string(types(i)))
+          }
+          val err = JNISupport.checkServerException()
+          if (err != "") throw new java.rmi.ServerException(err)
+          t0.show("spark-worker to frovedis-rank local data copy: ")
+        }
+        Array(true).toIterator
+    })
+    ret.count // for action
   }
 }
 
@@ -286,44 +391,14 @@ class FrovedisDataFrame extends java.io.Serializable {
     t_log.show("server process preparation: ")
                                                       
     // (3) data transfer
-    val ret = rddData.mapPartitionsWithIndex({ case(index, x) =>
-        val t0 = new TimeSpent(Level.DEBUG)
-        val mat = new Array[ArrayBuffer[Any]](ncol)
-        for(i <- 0 until ncol) mat(i) = new ArrayBuffer[Any]()
-        var k: Int = 0
-        while(x.hasNext) {
-          val row: InternalRow = x.next
-          for (i <- 0 until ncol) {
-            val tmp = types(i) match {
-              case DTYPE.INT    => if(row.isNullAt(i)) Int.MaxValue else row.getInt(i)
-              case DTYPE.BOOL   => if(row.isNullAt(i)) Int.MaxValue else row.getInt(i)
-              case DTYPE.LONG   => if(row.isNullAt(i)) Long.MaxValue else row.getLong(i)
-              case DTYPE.FLOAT  => if(row.isNullAt(i)) Float.MaxValue else row.getFloat(i)
-              case DTYPE.DOUBLE => if(row.isNullAt(i)) Double.MaxValue else row.getDouble(i)
-              //case DTYPE.STRING => if(row.isNullAt(i)) "NULL" row.getString(i)
-              case _ => throw new IllegalArgumentException(
-                        "[optimized_load] Unsupported type: " + TMAPPER.id2string(types(i)))
-            }
-            mat(i) += tmp
-          }
-          k += 1
-        }
-        t0.show("to matrix buffer: ")
-
-        val (destId, myst) = GenericUtils.index2Dest(index, block_sizes)
-        val localId = index - myst
-
-        for (i <- 0 until ncol) {
-          val vptr = vptrs(i * nproc + destId)
-          //println("col: " + cols(i) + "; dtype: " + types(i) + "; vptr: " + vptr)
-          DFTransferData.copy_local_data(index, destId, fw_nodes(destId), 
-                                         vptr, localId, mat(i), k, types(i))
-        }
-        t0.show("data transfer: ")
-        Array(true).toIterator // SUCCESS (since need to return an iterator)
-    })
-    ret.count // for action
-    t_log.show("server side data transfer: ")
+    if (rddData.first.isInstanceOf[UnsafeRow]) {
+      //val jRddData = rddData.map(x => x.asInstanceOf[UnsafeRow]).toJavaRDD
+      //jDFTransfer.execute(jRddData, fw_nodes, vptrs, types, block_sizes, ncol, nproc)
+      _jDFTransfer.execute(rddData, fw_nodes, vptrs, types, block_sizes, ncol, nproc)
+    } else {
+      sDFTransfer.execute(rddData, fw_nodes, vptrs, types, block_sizes, ncol, nproc)
+    }
+    t_log.show("[numpartition: " + npart + "] server side data transfer: ")
 
     fdata = JNISupport.createFrovedisDataframe2(fs.master_node, cols, types,
                                                 ncol, vptrs, vptrs.size)
