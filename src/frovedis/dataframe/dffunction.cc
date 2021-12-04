@@ -1,4 +1,6 @@
 #include "dffunction.hpp"
+#include "../text/char_int_conv.hpp"
+#include "../text/words.hpp"
 
 namespace frovedis {
 
@@ -1149,6 +1151,138 @@ datetime_next_day_im_as(const std::shared_ptr<dffunction>& left, int right,
                         const std::string& as) {
   return std::make_shared<dffunction_datetime_next_day_im>(left, right, as);
 }
+
+// ----- dffunction_when -----
+
+std::shared_ptr<dfcolumn>
+merge_column(std::vector<std::shared_ptr<dfcolumn>>& columns,
+             std::vector<node_local<std::vector<size_t>>>& idx,
+             node_local<std::vector<size_t>>& table_idx,
+             node_local<std::vector<size_t>>& null_idx,
+             bool use_null_idx);
+
+std::shared_ptr<dfcolumn>
+dffunction_when::execute(dftable_base& t) const {
+  if(!(cond.size() == func.size()) && !(cond.size() + 1 == func.size())) {
+    throw std::runtime_error
+      ("condition size should be equal to func size or func size - 1");
+  }
+  if(func.size() == 0) throw std::runtime_error("func size is 0");
+  std::vector<node_local<std::vector<size_t>>> new_idx(func.size());
+  std::vector<std::shared_ptr<dfcolumn>> new_columns(func.size());
+  auto table_idx = t.get_local_index();
+  auto crnt_idx = table_idx;
+  for(size_t i = 0; i < cond.size(); i++) {
+    filtered_dftable crnt_table(t, crnt_idx);
+    auto filtered = crnt_table.filter(cond[i]);
+    new_columns[i] = func[i]->execute(filtered);
+    new_idx[i] = filtered.get_local_index();
+    crnt_idx = crnt_idx.map
+      (+[](const std::vector<size_t>& crnt_idx,
+           const std::vector<size_t>& new_idx) {
+        return set_difference(crnt_idx, new_idx);
+      }, new_idx[i]);
+  }
+  if(cond.size() + 1 == func.size()) {
+    filtered_dftable crnt_table(t, crnt_idx);
+    new_columns[func.size() - 1] = func[func.size() - 1]->execute(crnt_table);
+    new_idx[func.size() - 1] = crnt_idx;
+    node_local<std::vector<size_t>> dummy;
+    return merge_column(new_columns, new_idx, table_idx, dummy, false);
+  } else {
+    return merge_column(new_columns, new_idx, table_idx, crnt_idx, true);
+  }
+}
+
+std::shared_ptr<dffunction> 
+when(const std::vector<std::shared_ptr<dfoperator>>& cond,
+     const std::vector<std::shared_ptr<dffunction>>& func) {
+  return std::make_shared<dffunction_when>(cond, func);
+}
+
+std::shared_ptr<dffunction> 
+when(const std::vector<std::pair<std::shared_ptr<dfoperator>, 
+     std::shared_ptr<dffunction>>>& cond_func_pairs) {
+  auto size = cond_func_pairs.size();
+  std::vector<std::shared_ptr<dfoperator>> cond(size);
+  std::vector<std::shared_ptr<dffunction>> func(size);
+  for(size_t i = 0; i < size; i++) {
+    cond[i] = cond_func_pairs[i].first;
+    func[i] = cond_func_pairs[i].second;
+  }
+  return std::make_shared<dffunction_when>(cond, func);
+}
+
+std::shared_ptr<dffunction> 
+when(const std::vector<std::pair<std::shared_ptr<dfoperator>, 
+     std::shared_ptr<dffunction>>>& cond_func_pairs,
+     const std::shared_ptr<dffunction>& else_func) {
+  auto size = cond_func_pairs.size();
+  std::vector<std::shared_ptr<dfoperator>> cond(size);
+  std::vector<std::shared_ptr<dffunction>> func(size+1);
+  for(size_t i = 0; i < size; i++) {
+    cond[i] = cond_func_pairs[i].first;
+    func[i] = cond_func_pairs[i].second;
+  }
+  func[size] = else_func;
+  return std::make_shared<dffunction_when>(cond, func);
+}
+
+std::pair<std::shared_ptr<dfoperator>, std::shared_ptr<dffunction>>
+operator>>(const std::shared_ptr<dfoperator>& cond,
+           const std::shared_ptr<dffunction>& func) {
+  return make_pair(cond, func);
+}
+
+
+// ----- datetime_im -----
+std::shared_ptr<dfcolumn>
+dffunction_datetime_im::execute(dftable_base& t) const {
+  auto num_rows = make_node_local_scatter(t.num_rows());
+  auto nlval = num_rows.map(+[](size_t num_row, datetime_t value) {
+      return std::vector<datetime_t>(num_row, value);
+    }, broadcast(value));
+  auto dvval = nlval.template moveto_dvector<datetime_t>();
+  return std::make_shared<typed_dfcolumn<datetime>>(std::move(dvval));
+}
+
+std::shared_ptr<dffunction>
+datetime_im(datetime_t value) {
+  return std::make_shared<dffunction_datetime_im>(value);
+}
+
+std::shared_ptr<dffunction>
+datetime_im_as(datetime_t value, const std::string& as) {
+  return std::make_shared<dffunction_datetime_im>(value, as);
+}
+
+// ----- dic_string_im -----
+std::shared_ptr<dfcolumn>
+dffunction_dic_string_im::execute(dftable_base& t) const {
+  auto num_rows = make_node_local_scatter(t.num_rows());
+  auto nlval = num_rows.map(+[](size_t num_row) {
+      return std::vector<size_t>(num_row); // dictionary index = 0
+    });
+  words ws;
+  ws.chars = char_to_int(value);
+  ws.starts = {0};
+  ws.lens = {value.size()};
+  auto dic = std::make_shared<dict>(make_dict(ws));
+  auto nulls = make_node_local_allocate<std::vector<size_t>>();
+  return std::make_shared<typed_dfcolumn<dic_string>>
+    (std::move(dic), std::move(nlval), std::move(nulls));
+}
+
+std::shared_ptr<dffunction>
+dic_string_im(const std::string& value) {
+  return std::make_shared<dffunction_dic_string_im>(value);
+}
+
+std::shared_ptr<dffunction>
+dic_string_im_as(const std::string& value, const std::string& as) {
+  return std::make_shared<dffunction_dic_string_im>(value, as);
+}
+
 
 // ----- utility functions for user's direct use -----
 

@@ -1917,6 +1917,198 @@ std::shared_ptr<dffunction>
 datetime_next_day_im_as(const std::shared_ptr<dffunction>& left, int right,
                         const std::string& as);
 
+// ----- when -----
+struct dffunction_when : public dffunction {
+  dffunction_when(const std::vector<std::shared_ptr<dfoperator>>& cond,
+                  const std::vector<std::shared_ptr<dffunction>>& func):
+    cond(cond), func(func) {
+    as_name = "when";
+  }
+  dffunction_when(const std::vector<std::shared_ptr<dfoperator>>& cond,
+                  const std::vector<std::shared_ptr<dffunction>>& func,
+                  const std::string& as_name) :
+    cond(cond), func(func) , as_name(as_name) {}
+  virtual std::string get_as() {return as_name;}
+  virtual std::shared_ptr<dffunction> as(const std::string& cname) {
+    as_name = cname;
+    return std::make_shared<dffunction_when>(*this);
+  }
+  virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const;
+  virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1,
+                                            dftable_base& t2) const {
+    throw std::runtime_error
+      ("t1, t2: is not available for dffunction_when operation!\n");
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t) {
+    std::vector<std::shared_ptr<dfcolumn>> touse;
+    for(size_t i = 0; i < cond.size(); i++) {
+      auto crnt_touse = cond[i]->columns_to_use(t);
+      touse.insert(touse.end(), crnt_touse.begin(), crnt_touse.end());
+    }
+    for(size_t i = 0; i < cond.size(); i++) {
+      auto crnt_touse = func[i]->columns_to_use(t);
+      touse.insert(touse.end(), crnt_touse.begin(), crnt_touse.end());
+    }
+    return touse;
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t1, dftable_base& t2) {
+    throw std::runtime_error
+      ("two args of columns_to_use on this operator is not implemented");
+  }
+  
+  std::vector<std::shared_ptr<dfoperator>> cond;
+  std::vector<std::shared_ptr<dffunction>> func;
+  std::string as_name;
+};
+
+std::shared_ptr<dffunction> 
+when(const std::vector<std::shared_ptr<dfoperator>>& cond,
+     const std::vector<std::shared_ptr<dffunction>>& func);
+
+std::shared_ptr<dffunction> 
+when(const std::vector<std::pair<std::shared_ptr<dfoperator>, 
+     std::shared_ptr<dffunction>>>& cond_func_pairs);
+
+std::shared_ptr<dffunction> 
+when(const std::vector<std::pair<std::shared_ptr<dfoperator>, 
+     std::shared_ptr<dffunction>>>& cond_func_pairs,
+     const std::shared_ptr<dffunction>& else_func);
+
+
+// ----- im -----
+template <class T>
+struct dffunction_im : public dffunction {
+  dffunction_im(T value) : value(value) {
+    as_name = "im(" + STR(value) + ")";
+  }
+  dffunction_im(T value, const std::string& as_name) :
+    value(value), as_name(as_name) {}
+  virtual std::string get_as() {return as_name;}
+  virtual std::shared_ptr<dffunction> as(const std::string& cname) {
+    as_name = cname;
+    return std::make_shared<dffunction_im<T>>(*this);
+  }
+  virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const;
+  virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1,
+                                            dftable_base& t2) const {
+    throw std::runtime_error
+      ("t1, t2: is not available for dffunction_im operation!\n");
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t) {
+    return std::vector<std::shared_ptr<dfcolumn>>();
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t1, dftable_base& t2) {
+    throw std::runtime_error
+      ("two args of columns_to_use on this operator is not implemented");
+  }
+  
+  T value;
+  std::string as_name;
+};
+
+template <class T>
+std::shared_ptr<dfcolumn> dffunction_im<T>::execute(dftable_base& t) const {
+  auto num_rows = make_node_local_scatter(t.num_rows());
+  auto nlval = num_rows.map(+[](size_t num_row, T value) {
+      return std::vector<T>(num_row, value);
+    }, broadcast(value));
+  auto dvval = nlval.template moveto_dvector<T>();
+  return std::make_shared<typed_dfcolumn<T>>(std::move(dvval));
+}
+
+template <class T>
+std::shared_ptr<dffunction>
+im(T value) {
+  return std::make_shared<dffunction_im<T>>(value);
+}
+
+template <class T>
+std::shared_ptr<dffunction>
+im_as(T value, const std::string& as) {
+  return std::make_shared<dffunction_im<T>>(value, as);
+}
+
+// ----- datetime_im -----
+struct dffunction_datetime_im : public dffunction {
+  dffunction_datetime_im(datetime_t value) : value(value) {
+    as_name = "datetime_im(" + STR(value) + ")";
+  }
+  dffunction_datetime_im(datetime_t value, const std::string& as_name) :
+    value(value), as_name(as_name) {}
+  virtual std::string get_as() {return as_name;}
+  virtual std::shared_ptr<dffunction> as(const std::string& cname) {
+    as_name = cname;
+    return std::make_shared<dffunction_datetime_im>(*this);
+  }
+  virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const;
+  virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1,
+                                            dftable_base& t2) const {
+    throw std::runtime_error
+      ("t1, t2: is not available for dffunction_datetime_im operation!\n");
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t) {
+    return std::vector<std::shared_ptr<dfcolumn>>();
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t1, dftable_base& t2) {
+    throw std::runtime_error
+      ("two args of columns_to_use on this operator is not implemented");
+  }
+  
+  datetime_t value;
+  std::string as_name;
+};
+
+std::shared_ptr<dffunction>
+datetime_im(datetime_t value);
+
+std::shared_ptr<dffunction>
+datetime_im_as(datetime_t value, const std::string& as);
+
+
+// ----- dic_string_im -----
+struct dffunction_dic_string_im : public dffunction {
+  dffunction_dic_string_im(const std::string& value) : value(value) {
+    as_name = "dic_string_im(" + STR(value) + ")";
+  }
+  dffunction_dic_string_im(const std::string& value,
+                           const std::string& as_name) :
+    value(value), as_name(as_name) {}
+  virtual std::string get_as() {return as_name;}
+  virtual std::shared_ptr<dffunction> as(const std::string& cname) {
+    as_name = cname;
+    return std::make_shared<dffunction_dic_string_im>(*this);
+  }
+  virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const;
+  virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1,
+                                            dftable_base& t2) const {
+    throw std::runtime_error
+      ("t1, t2: is not available for dffunction_datetime_im operation!\n");
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t) {
+    return std::vector<std::shared_ptr<dfcolumn>>();
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t1, dftable_base& t2) {
+    throw std::runtime_error
+      ("two args of columns_to_use on this operator is not implemented");
+  }
+  
+  std::string value;
+  std::string as_name;
+};
+
+std::shared_ptr<dffunction>
+dic_string_im(const std::string& value);
+
+std::shared_ptr<dffunction>
+dic_string_im_as(const std::string& value, const std::string& as);
 
 // ----- utility functions for user's direct use -----
 
@@ -2005,6 +2197,10 @@ std::shared_ptr<dffunction> operator%(T b,
                                       
   return mod_im(b,a);
 }
+
+std::pair<std::shared_ptr<dfoperator>, std::shared_ptr<dffunction>>
+operator>>(const std::shared_ptr<dfoperator>& cond,
+           const std::shared_ptr<dffunction>& func);
 
 }
 #endif
