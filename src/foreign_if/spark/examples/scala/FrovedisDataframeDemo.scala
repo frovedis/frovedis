@@ -63,10 +63,13 @@ object FrovedisDataframeDemo {
     // combined operation demo
     df1.join(df2, $$"Country" === $$"CName")
        .select($$"EName".as("x"), ($$"Age" + 1).as("y"), $$"Country".as("z"))
-       .when($$"y" > 20)
+       .where($$"y" > 20)
        .sort($$"x").show()
 
     df1.filter($$"EName".startsWith("Ra")).show()
+    df1.filter($$"Age".isNotNull).show()
+    df1.select($$"Age".isNotNull).show()
+    println("-----------------------------")
 
     val countryDF2 = sc.textFile("./input/country.txt")
                       .map(_.split(","))
