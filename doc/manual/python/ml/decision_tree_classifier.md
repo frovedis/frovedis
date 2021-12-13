@@ -8,19 +8,16 @@ consequences, including chance, event, outcomes, resource costs, and utility.
 
 # SYNOPSIS  
 
-class frovedis.mllib.tree.DecisionTreeClassifier(criterion='gini', splitter='best', max_depth=None,  
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ min_samples_split=2, min_samples_leaf=1,  
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ min_weight_fraction_leaf=0.0, max_features=None,  
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ random_state=None, max_leaf_nodes=None,  
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ min_impurity_decrease=0.0, class_weight=None,  
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ presort='deprecated', ccp_alpha=0.0,  
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ max_bins=32, verbose=0, categorical_info={})  
+    class frovedis.mllib.tree.DecisionTreeClassifier(criterion='gini', splitter='best',  
+                                                     max_depth=None, min_samples_split=2,  
+                                                     min_samples_leaf=1,  
+                                                     min_weight_fraction_leaf=0.0,  
+                                                     max_features=None,  
+                                                     random_state=None, max_leaf_nodes=None,  
+                                                     min_impurity_decrease=0.0,  
+                                                     class_weight=None, presort='deprecated',  
+                                                     ccp_alpha=0.0, max_bins=32,  
+                                                     verbose=0, categorical_info={})  
  
 ## Public Member Functions  
 
@@ -74,7 +71,7 @@ the frovedis server, the output would be sent back to the python client.
 
 __Parameters__  
 **_criterion_**: A string object parameter that specifies the function to measure the 
-quality of a split. Supported criteria are 'gini' and 'entropy'. (Deault: 'gini')  
+quality of a split. Supported criteria are 'gini' and 'entropy'. (Default: 'gini')  
 'gini' impurity: calculates the amount of probability of a specific feature that is 
 classified incorrectly when selected randomly.  
 'entropy' (information gain): it is applied to quantify which feature provides maximal 
@@ -113,6 +110,7 @@ and category assignments are 0-based. (Default: {})
 __Attributes__  
 **_classes\__**: It is a python ndarray(any type) of unique labels given to the classifier 
 during training. It has shape **(n_classes,)**.  
+**_n\_features\__**: An integer value specifying the number of features when fitting the estimator.  
 
 __Purpose__   
 It initializes a DecisionTreeClassifier object with the given parameters.  
@@ -198,8 +196,6 @@ the trained model at server side.
 For example,  
 
     # Since "cmat" is FrovedisColmajorMatrix, we have created FrovedisRowmajorMatrix.
-    from frovedis.matrix.dense import FrovedisRowmajorMatrix
-    
     # predicting on decision tree classifier model using pre-constructed input
     dtc.predict(cmat.to_frovedis_rowmatrix())
 
@@ -243,8 +239,6 @@ the trained model at server side.
 For example,  
 
     # Since "cmat" is FrovedisColmajorMatrix, we have created FrovedisRowmajorMatrix.
-    from frovedis.matrix.dense import FrovedisRowmajorMatrix
-
     # finds the probability sample for each class in the model
     dtc.predict_proba(cmat.to_frovedis_rowmatrix())  
 
@@ -478,4 +472,4 @@ __Return Value__
 It returns ‘True’, if the model is already fitted, otherwise, it returns ‘False’.  
 
 # SEE ALSO
-dvector, crs_matrix, rowmajor_matrix, colmajor_matrix
+dvector, crs_matrix, rowmajor_matrix, colmajor_matrix, decision_tree_regressor

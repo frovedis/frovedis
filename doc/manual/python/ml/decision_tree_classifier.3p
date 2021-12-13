@@ -7,46 +7,21 @@ A decision tree is a decision support tool that uses a tree\-like model
 of decisions and their possible consequences, including chance, event,
 outcomes, resource costs, and utility.
 .SH SYNOPSIS
-.PP
-class
-frovedis.mllib.tree.DecisionTreeClassifier(criterion=\[aq]gini\[aq],
-splitter=\[aq]best\[aq], max_depth=None,
-.PD 0
-.P
-.PD
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ min_samples_split=2,
-min_samples_leaf=1,
-.PD 0
-.P
-.PD
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ min_weight_fraction_leaf=0.0,
-max_features=None,
-.PD 0
-.P
-.PD
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ random_state=None,
-max_leaf_nodes=None,
-.PD 0
-.P
-.PD
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ min_impurity_decrease=0.0,
-class_weight=None,
-.PD 0
-.P
-.PD
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ presort=\[aq]deprecated\[aq],
-ccp_alpha=0.0,
-.PD 0
-.P
-.PD
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ max_bins=32, verbose=0,
-categorical_info={})
+.IP
+.nf
+\f[C]
+class\ frovedis.mllib.tree.DecisionTreeClassifier(criterion=\[aq]gini\[aq],\ splitter=\[aq]best\[aq],\ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ max_depth=None,\ min_samples_split=2,\ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ min_samples_leaf=1,\ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ min_weight_fraction_leaf=0.0,\ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ max_features=None,\ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ random_state=None,\ max_leaf_nodes=None,\ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ min_impurity_decrease=0.0,\ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ class_weight=None,\ presort=\[aq]deprecated\[aq],\ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ccp_alpha=0.0,\ max_bins=32,\ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ verbose=0,\ categorical_info={})\ \ 
+\f[]
+.fi
 .SS Public Member Functions
 .PP
 fit(X, y)
@@ -146,7 +121,7 @@ sent back to the python client.
 \f[B]\f[I]criterion\f[]\f[]: A string object parameter that specifies
 the function to measure the quality of a split.
 Supported criteria are \[aq]gini\[aq] and \[aq]entropy\[aq].
-(Deault: \[aq]gini\[aq])
+(Default: \[aq]gini\[aq])
 .PD 0
 .P
 .PD
@@ -279,6 +254,11 @@ Note that feature indices and category assignments are 0\-based.
 \f[B]\f[I]classes_\f[]\f[]: It is a python ndarray(any type) of unique
 labels given to the classifier during training.
 It has shape \f[B](n_classes,)\f[].
+.PD 0
+.P
+.PD
+\f[B]\f[I]n_features_\f[]\f[]: An integer value specifying the number of
+features when fitting the estimator.
 .PP
 \f[B]Purpose\f[]
 .PD 0
@@ -417,8 +397,6 @@ For example,
 .nf
 \f[C]
 #\ Since\ "cmat"\ is\ FrovedisColmajorMatrix,\ we\ have\ created\ FrovedisRowmajorMatrix.
-from\ frovedis.matrix.dense\ import\ FrovedisRowmajorMatrix
-
 #\ predicting\ on\ decision\ tree\ classifier\ model\ using\ pre\-constructed\ input
 dtc.predict(cmat.to_frovedis_rowmatrix())
 \f[]
@@ -489,8 +467,6 @@ For example,
 .nf
 \f[C]
 #\ Since\ "cmat"\ is\ FrovedisColmajorMatrix,\ we\ have\ created\ FrovedisRowmajorMatrix.
-from\ frovedis.matrix.dense\ import\ FrovedisRowmajorMatrix
-
 #\ finds\ the\ probability\ sample\ for\ each\ class\ in\ the\ model
 dtc.predict_proba(cmat.to_frovedis_rowmatrix())\ \ 
 \f[]
@@ -886,4 +862,5 @@ It returns ‘True', if the model is already fitted, otherwise, it returns
 ‘False'.
 .SH SEE ALSO
 .PP
-dvector, crs_matrix, rowmajor_matrix, colmajor_matrix
+dvector, crs_matrix, rowmajor_matrix, colmajor_matrix,
+decision_tree_regressor
