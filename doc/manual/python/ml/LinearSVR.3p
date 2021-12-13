@@ -1,0 +1,742 @@
+.TH "LinearSVR" "" "" "" ""
+.SH NAME
+.PP
+LinearSVR (Support Vector Regression) \- A regression algorithm used to
+predict the binary output with L1 and L2 loss.
+.SH SYNOPSIS
+.PP
+class frovedis.mllib.svm.LinearSVR(epsilon=0.0, tol=1e\-4, C=1.0,
+loss=\[aq]epsilon_insensitive\[aq],
+.PD 0
+.P
+.PD
+\  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \ 
+\ fit_intercept=True, intercept_scaling=1, dual=True,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \ 
+\ verbose=0, random_state=None, max_iter=1000,
+.PD 0
+.P
+.PD
+\  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \ 
+\ penalty=\[aq]l2\[aq], lr_rate=0.01, solver=\[aq]sag\[aq],
+.PD 0
+.P
+.PD
+\  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \ 
+\ warm_start=False)
+.SS Public Member Functions
+.PP
+fit(X, y, sample_weight = None)
+.PD 0
+.P
+.PD
+predict(X)
+.PD 0
+.P
+.PD
+load(fname, dtype = None)done
+.PD 0
+.P
+.PD
+save(fname)
+.PD 0
+.P
+.PD
+score(X, y, sample_weight = None)
+.PD 0
+.P
+.PD
+get_params(deep = True)
+.PD 0
+.P
+.PD
+set_params(**params)
+.PD 0
+.P
+.PD
+debug_print()
+.PD 0
+.P
+.PD
+release()
+.PD 0
+.P
+.PD
+is_fitted()
+.SH DESCRIPTION
+.PP
+Based on support vector machines method, the Linear SVR is an algorithm
+to solve the regression problems.
+The Linear SVR algorithm applies linear kernel method and it works well
+with large datasets.
+L1 or L2 method can be specified as a loss function in this model.
+.PP
+The model produced by Support Vector Regression depends only on a subset
+of the training data, because the cost function ignores samples whose
+prediction is close to their target.
+.PP
+LinearSVR supports ZERO, L1 and L2 regularization to address the overfit
+problem.
+.PP
+Frovedis provides implementation of LinearSVR with \f[B]stochastic
+gradient descent with minibatch\f[].
+.PP
+The simplest method to solve optimization problems of the form \f[B]min
+f(w)\f[] is gradient descent.
+Such first\-order optimization methods well\-suited for large\-scale and
+distributed computation.
+.PP
+This module provides a client\-server implementation, where the client
+application is a normal python program.
+The frovedis interface is almost same as Scikit\-learn LinearSVR
+(Support Vector Regression) interface, but it doesn\[aq]t have any
+dependency with Scikit\-learn.
+It can be used simply even if the system doesn\[aq]t have Scikit\-learn
+installed.
+Thus in this implementation, a python client can interact with a
+frovedis server sending the required python data for training at
+frovedis side.
+Python data is converted into frovedis compatible data internally and
+the python ML call is linked with the respective frovedis ML call to get
+the job done at frovedis server.
+.PP
+Python side calls for LinearSVR on the frovedis server.
+Once the training is completed with the input data at the frovedis
+server, it returns an abstract model with a unique model ID to the
+client python program.
+.PP
+When prediction\-like request would be made on the trained model, python
+program will send the same request to the frovedis server.
+After the request is served at the frovedis server, the output would be
+sent back to the python client.
+.SS Detailed Description
+.SS 1. LinearSVR()
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]\f[B]epsilon\f[]\f[]: A zero or positive double(float64) parameter
+used in the epsilon\-insensitive loss function.
+(Default: 0.0)
+.PD 0
+.P
+.PD
+\f[I]\f[B]tol\f[]\f[]: A double(float64) parameter specifying the
+convergence tolerance value.
+It must be zero or a positive value.
+(Default: 1e\-4)
+.PD 0
+.P
+.PD
+\f[I]\f[B]C\f[]\f[]: A positive float parameter, it is inversely
+proportional to regularization strength.
+(Default: 1.0)
+.PD 0
+.P
+.PD
+\f[I]\f[B]loss\f[]\f[]: A string object containing the loss function
+type to use.
+.PD 0
+.P
+.PD
+Currently, frovedis supports ‘epsilon_insensitive' and
+‘squared_epsilon_insensitive' loss function.
+.PD 0
+.P
+.PD
+The ‘epsilon\-insensitive' loss (standard SVR) is the L1 loss, while the
+squared epsilon\-insensitive loss (‘squared_epsilon_insensitive') is the
+L2 loss.
+(Default: \[aq]epsilon_insensitive\[aq])
+.PD 0
+.P
+.PD
+\f[I]\f[B]fit_intercept\f[]\f[]: A boolean parameter specifying whether
+a constant (intercept) should be added to the decision function.
+(Default: True)
+.PD 0
+.P
+.PD
+\f[I]\f[B]intercept_scaling\f[]\f[]: An unused parameter.
+(Default: 1)
+.PD 0
+.P
+.PD
+\f[I]\f[B]dual\f[]\f[]: An unused parameter.
+(Default: True)
+.PD 0
+.P
+.PD
+\f[I]\f[B]verbose\f[]\f[]: An integer parameter specifying the log level
+to use.
+Its value is set as 0 by default(for INFO mode).
+But it can be set to 1(for DEBUG mode) or 2(for TRACE mode) for getting
+training time logs from frovedis server.
+.PD 0
+.P
+.PD
+\f[I]\f[B]random_state\f[]\f[]: An unused parameter.
+(Default: None)
+.PD 0
+.P
+.PD
+\f[I]\f[B]max_iter\f[]\f[]: A positive integer parameter specifying
+maximum iteration count.
+(Default: 1000)
+.PD 0
+.P
+.PD
+\f[I]\f[B]penalty\f[]\f[]: A string object containing the regularizer
+type to use.
+Currently none, l1 and l2 are supported by Frovedis.
+(Default: \[aq]l2\[aq])
+.PD 0
+.P
+.PD
+If it is None (not specified explicitly), it will be set as
+\[aq]ZERO\[aq] regularization type.
+.PD 0
+.P
+.PD
+\f[I]\f[B]lr_rate\f[]\f[]: A positive double(float64) value of parameter
+containing the learning rate.
+(Default: 0.01)
+.PD 0
+.P
+.PD
+\f[I]\f[B]solver\f[]\f[]: A string object specifying the solver to use.
+(Default: \[aq]sag\[aq])
+.PD 0
+.P
+.PD
+Currenlty, it only supports \[aq]sag\[aq].
+.PD 0
+.P
+.PD
+\f[I]\f[B]warm_start\f[]\f[]: A boolean parameter which when set to
+True, reuses the solution of the previous call to fit as initialization,
+otherwise, just erase the previous solution.
+(Default: False)
+.PP
+\f[B]Attributes\f[]
+.PD 0
+.P
+.PD
+\f[I]\f[B]coef_\f[]\f[]: It is a python ndarray(containing float or
+double(float64) typed values depending on data\-type of input matrix
+(X)).
+It is the weights assigned to the features.
+It has shape \f[B](1, n_features)\f[].
+.PD 0
+.P
+.PD
+\f[I]\f[B]intercept_\f[]\f[]: It is a python ndarray(float or
+double(float64) values depending on input matrix data type) and has
+shape \f[B](1,)\f[].
+.PD 0
+.P
+.PD
+\f[I]\f[B]n_iter_\f[]\f[]: An integer value used to get the actual
+iteration point at which the problem is converged.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It initializes a LinearSVR object with the given parameters.
+.PP
+The parameters: "intercept_scaling", "dual" and "random_state" are
+simply kept to make the interface uniform to Scikit\-learn LinearSVR
+module.
+They are not used anywhere within frovedis implementation.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It simply returns "self" reference.
+.SS 2. fit(X, y, sample_weight = None)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]\f[B]X\f[]\f[]: A numpy dense or scipy sparse matrix or any python
+array\-like object or an instance of FrovedisCRSMatrix for sparse data
+and FrovedisColmajorMatrix for dense data.
+It has shape \f[B](n_samples, n_features)\f[].
+.PD 0
+.P
+.PD
+\f[I]\f[B]y\f[]\f[]: Any python array\-like object or an instance of
+FrovedisDvector.
+It has shape \f[B](n_samples,)\f[].
+.PD 0
+.P
+.PD
+\f[I]\f[B]sample_weight\f[]\f[]: A python ndarray containing the
+intended weights for each input samples and it should be the shape of
+\f[B](nsamples, )\f[].
+.PD 0
+.P
+.PD
+When it is None (not specified explicitly), an uniform weight vector is
+assigned on each input sample.
+(Default: None)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It accepts the training feature matrix (X) and corresponding output
+labels (y) as inputs from the user and trains a LinearSVR model with
+specifed regularization with those data at frovedis server.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ let\ a\ sample\ matrix\ be\ \[aq]mat\ \[aq]and\ labels\ be\ \[aq]lbl\[aq]\ 
+mat\ =\ np.array([[\ 5.5,\ 0.0,\ 6.5,\ 2.3],
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ [\ 0.0,\ 7.2,\ 0.0,\ 8.4],
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ [\ 8.5,\ 0.0,\ 6.5,\ 4.3],
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ [\ 0.0,\ 8.5,\ 0.1,\ 9.1]],\ dtype=np.float64)
+lbl\ =\ np.array([1.1,\ 6.2,1.2,\ 5.9])
+
+
+#\ fitting\ input\ matrix\ and\ label\ on\ LinearSVR\ object
+from\ frovedis.mllib.svm\ import\ LinearSVR
+svr\ =\ LinearSVR().fit(mat,\ lbl)
+\f[]
+.fi
+.PP
+When native python data is provided, it is converted to frovedis\-like
+inputs and sent to frovedis server which consumes some data transfer
+time.
+Pre\-constructed frovedis\-like inputs can be used to speed up the
+training time, especially when same data would be used for multiple
+executions.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ Since\ "mat"\ is\ numpy\ dense\ data,\ we\ have\ created\ FrovedisColmajorMatrix.
+and\ for\ scipy\ sparse\ data,\ FrovedisCRSMatrix\ should\ be\ used.\ 
+from\ frovedis.matrix.dense\ import\ FrovedisColmajorMatrix
+from\ frovedis.matrix.dvector\ import\ FrovedisDvector
+cmat\ =\ FrovedisColmajorMatrix(mat)
+dlbl\ =\ FrovedisDvector(lbl)
+
+#\ LinearSVR\ with\ pre\-constructed\ frovedis\-like\ inputs
+from\ frovedis.mllib.svm\ import\ LinearSVR
+svr\ =\ LinearSVR().fit(cmat,\ dlbl)
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It simply returns "self" reference.
+.SS 3. predict(X)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]\f[B]X\f[]\f[]: A numpy dense or scipy sparse matrix or any python
+array\-like object or an instance of FrovedisCRSMatrix for sparse data
+and FrovedisRowmajorMatrix for dense data.
+It has shape \f[B](n_samples, n_features)\f[].
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It accepts the test feature matrix (X) in order to make prediction on
+the trained model at frovedis server.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+svr.predict(mat)\ \ 
+\f[]
+.fi
+.PP
+Output:
+.IP
+.nf
+\f[C]
+[\-181.66076961\ \-162.62098062\ \-166.05339001\ ...\ \-170.80953572\ \-169.6636383\ \-171.76112166]\ 
+\f[]
+.fi
+.PP
+Like in fit(), frovedis\-like input can be used to speed\-up the
+prediction making on the trained model at server side.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ Since\ "cmat"\ is\ FrovedisColmajorMatrix,\ we\ have\ created\ FrovedisRowmajorMatrix.
+from\ frovedis.matrix.dense\ import\ FrovedisRowmajorMatrix
+
+#\ predicting\ on\ LinearSVR\ using\ frovedis\-like\ input\ 
+svr.predict(cmat.to_frovedis_rowmatrix())
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+[\-181.66076961\ \-162.62098062\ \-166.05339001\ ...\ \-170.80953572\ \-169.6636383\ \-171.76112166]
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns a numpy array of double(float64) type containing the
+predicted outputs.
+It has shape \f[B](n_samples,)\f[].
+.SS 4. load(fname, dtype = None)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[B]fname\f[]: A string object containing the name of the file having
+model information to be loaded.
+.PD 0
+.P
+.PD
+\f[B]dtype\f[]: A data\-type is inferred from the input data.
+Currently, expected input data\-type is either float or double(float64).
+(Default: None)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It loads the model from the specified file(having little\-endian binary
+data).
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ loading\ the\ LinearSVR\ model
+svr.load("./out/SVRModel")
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It simply returns "self" reference.
+.SS 5. save(fname)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[B]fname\f[]: A string object containing the name of the file on which
+the target model is to be saved.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+On success, it writes the model information (metadata and model) in the
+specified file as little\-endian binary data.
+Otherwise, it throws an exception.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ saving\ the\ model
+svr.save("./out/SVRModel")
+\f[]
+.fi
+.PP
+The SVRModel contains below directory structure:
+.PD 0
+.P
+.PD
+\f[B]SVRModel\f[]
+.PD 0
+.P
+.PD
+|\-\-\-\-\-\-metadata
+.PD 0
+.P
+.PD
+|\-\-\-\-\-\-model
+.PP
+\[aq]metadata\[aq] represents the detail about model_kind and datatype
+of training vector.
+.PD 0
+.P
+.PD
+Here, the model file contains information about model_id, model_kind and
+datatype of training vector.
+.PP
+This will save the LinearSVR model on the path ‘/out/SVRModel'.
+It would raise exception if the directory already exists with same name.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns nothing.
+.SS 6. score(X, y, sample_weight = None)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[B]X\f[]: A numpy dense or scipy sparse matrix or any python
+array\-like object or an instance of FrovedisCRSMatrix for sparse data
+and FrovedisRowmajorMatrix for dense data.
+It has shape \f[B](n_samples, n_features)\f[].
+.PD 0
+.P
+.PD
+\f[B]y\f[]: Any python array\-like object or an instance of
+FrovedisDvector.
+It has shape \f[B](n_samples,)\f[].
+.PD 0
+.P
+.PD
+\f[B]sample_weight\f[]: A python narray containing the intended weights
+for each input samples and it should be the shape of \f[B](nsamples,
+)\f[].
+.PD 0
+.P
+.PD
+When it is None (not specified explicitly), an uniform weight vector is
+assigned on each input sample.
+(Default: None)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+Calculate the root mean square value on the given test data and labels
+i.e.
+R2(r\-squared) of self.predict(X) wrt.
+y.
+.PP
+The coefficient \[aq]R2\[aq] is defined as (1 \- (u/v)),
+.PD 0
+.P
+.PD
+where \[aq]u\[aq] is the residual sum of squares ((y_true \- y_pred) **
+2).sum() and \[aq]v\[aq] is the total sum of squares ((y_true \-
+y_true.mean()) ** 2).sum().
+.PP
+The best possible score is 1.0 and it can be negative (because the model
+can be arbitrarily worse).
+A constant model that always predicts the expected value of y,
+disregarding the input features, would get a R2 score of 0.0.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+\ #\ calculate\ R2\ score\ on\ given\ test\ data\ and\ labels
+\ svr.score(mat,\ lbl)
+\ 
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+0.97\ 
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns an R2 score of float type.
+.SS 7. get_params(deep = True)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]\f[B]deep\f[]\f[]: A boolean parameter, used to get parameters and
+their values for an estimator.
+If True, will return the parameters for an estimator and contained
+subobjects that are estimators.
+(Default: True)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+This method belongs to the BaseEstimator class inherited by LinearSVR.
+It is used to get parameters and their values of LinearSVR class.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+print(svr.get_params())
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+{\[aq]C\[aq]:\ 1.0,\ \[aq]dual\[aq]:\ True,\ \[aq]epsilon\[aq]:\ 0.0,\ \[aq]fit_intercept\[aq]:\ True,\ \[aq]intercept_scaling\[aq]:\ 1,\ 
+\[aq]loss\[aq]:\ \[aq]epsilon_insensitive\[aq],\ \[aq]lr_rate\[aq]:\ 0.01,\ \[aq]max_iter\[aq]:\ 1000,\ \[aq]penalty\[aq]:\ \[aq]l2\[aq],\ 
+\[aq]random_state\[aq]:\ None,\ \[aq]solver\[aq]:\ \[aq]sag\[aq],\ \[aq]tol\[aq]:\ 0.0001,\ \[aq]verbose\[aq]:\ 0,\ \[aq]warm_start\[aq]:\ False}
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+A dictionary of parameter names mapped to their values.
+.SS 8. set_params(**params)
+.PP
+\f[B]Parameters\f[]
+.PP
+\f[I]\f[B]params\f[]\f[]: All the keyword arguments are passed to this
+function as dictionary.
+This dictionary contains parameters of an estimator with its given
+values to set.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+This method belongs to the BaseEstimator class inherited by LinearSVR,
+used to set parameter values.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+print("Get\ parameters\ before\ setting:",\ svr.get_params())
+#\ User\ just\ needs\ to\ provide\ the\ arguments\ and\ internally\ it\ will\ create\ a\ 
+dictionary\ over\ the\ arguments\ given\ by\ user
+svr.set_params(\ penalty\ =\ \[aq]l1\[aq],\ dual\ =\ False)
+print("Get\ parameters\ after\ setting:",\ svr.get_params())
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+Get\ parameters\ before\ setting:\ {\[aq]C\[aq]:\ 1.0,\ \[aq]dual\[aq]:\ True,\ \[aq]epsilon\[aq]:\ 0.0,\ \[aq]fit_intercept\[aq]:\ True,\ 
+\[aq]intercept_scaling\[aq]:\ 1,\ \[aq]loss\[aq]:\ \[aq]epsilon_insensitive\[aq],\ \[aq]lr_rate\[aq]:\ 0.01,\ \[aq]max_iter\[aq]:\ 1000,\ 
+\[aq]penalty\[aq]:\ \[aq]l2\[aq],\ \[aq]random_state\[aq]:\ None,\ \[aq]solver\[aq]:\ \[aq]sag\[aq],\ \[aq]tol\[aq]:\ 0.0001,\ \[aq]verbose\[aq]:\ 0,\ 
+\[aq]warm_start\[aq]:\ False}
+Get\ parameters\ before\ setting:\ {\[aq]C\[aq]:\ 1.0,\ \[aq]dual\[aq]:\ False,\ \[aq]epsilon\[aq]:\ 0.0,\ \[aq]fit_intercept\[aq]:\ True,\ 
+\[aq]intercept_scaling\[aq]:\ 1,\ \[aq]loss\[aq]:\ \[aq]epsilon_insensitive\[aq],\ \[aq]lr_rate\[aq]:\ 0.01,\ \[aq]max_iter\[aq]:\ 1000,\ 
+\[aq]penalty\[aq]:\ \[aq]l1\[aq],\ \[aq]random_state\[aq]:\ None,\ \[aq]solver\[aq]:\ \[aq]sag\[aq],\ \[aq]tol\[aq]:\ 0.0001,\ \[aq]verbose\[aq]:\ 0,\ 
+\[aq]warm_start\[aq]:\ False}
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It simply returns "self" reference.
+.SS 9. debug_print()
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It shows the target model information(weight values and intercept) on
+the server side user terminal.
+It is mainly used for debugging purpose.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+svr.debug_print()\ 
+\f[]
+.fi
+.PP
+Output:
+.IP
+.nf
+\f[C]
+\-\-\-\-\-\-\-\-\ Weight\ Vector::\ \-\-\-\-\-\-\-\-
+0.406715\ 0.413736\ 0.440404\ 0.539082\ 0.536528\ 0.51577\ 0.157345\ 0.520861\ 
+0.513352\ \-0.341082\ 0.460518\ \-0.292171\ 0.433433
+Intercept::\ 1.00832
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns nothing.
+.SS 10. release()
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It can be used to release the in\-memory model at frovedis server.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+svr.release()
+\f[]
+.fi
+.PP
+This will reset the after\-fit populated attributes to None, along with
+releasing server side memory.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns nothing.
+.SS 11. is_fitted()
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It can be used to confirm if the model is already fitted or not.
+In case, predict() is used before training the model, then it can prompt
+the user to train the model first.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns ‘True', if the model is already fitted otherwise, it returns
+‘False'.
+.SH SEE ALSO
+.PP
+SVM, LinearSVC, dvector, rowmajor_matrix, colmajor_matrix, crs_matrix
