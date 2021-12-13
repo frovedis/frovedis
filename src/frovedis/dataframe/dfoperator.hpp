@@ -37,6 +37,10 @@ struct dffunction {
     throw std::runtime_error
       ("2 arg version of columns_to_use on this operator is not implemented");
   }
+  virtual std::shared_ptr<dfoperator>
+  modify_right(const std::string& rsuf = "_right") {
+    throw std::runtime_error("modify_right on this operator is not implemented");
+  }
 };
 
 // ----- dffunction_id -----
@@ -150,6 +154,16 @@ struct dfoperator_eq : public dfoperator {
   virtual std::shared_ptr<dffunction> as(const std::string& cname) {
     as_name = cname;
     return std::make_shared<dfoperator_eq>(*this);
+  }
+  virtual std::shared_ptr<dfoperator> 
+   modify_right(const std::string& rsuf) {
+    if (left->get_as() == right->get_as()) {
+      //if (!right.is_id()) throw std::runtime_error
+      //("modify_right on this operator is not supported!\n");
+      auto m_right = id_col(right->get_as() + rsuf);
+      return std::make_shared<dfoperator_eq>(left, m_right);
+    } 
+    else return std::make_shared<dfoperator_eq>(*this);
   }
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const;
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1,
@@ -270,6 +284,16 @@ struct dfoperator_neq : public dfoperator {
   virtual std::shared_ptr<dffunction> as(const std::string& cname) {
     as_name = cname;
     return std::make_shared<dfoperator_neq>(*this);
+  }
+  virtual std::shared_ptr<dfoperator> 
+  modify_right(const std::string& rsuf) {
+    if (left->get_as() == right->get_as()) {
+      //if (!right.is_id()) throw std::runtime_error
+      //("modify_right on this operator is not supported!\n");
+      auto m_right = id_col(right->get_as() + rsuf);
+      return std::make_shared<dfoperator_neq>(left, m_right);
+    } 
+    else return std::make_shared<dfoperator_neq>(*this);
   }
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const;
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1,
@@ -467,6 +491,16 @@ struct dfoperator_lt : public dfoperator {
     as_name = cname;
     return std::make_shared<dfoperator_lt>(*this);
   }
+  virtual std::shared_ptr<dfoperator> 
+  modify_right(const std::string& rsuf) {
+    if (left->get_as() == right->get_as()) {
+      //if (!right.is_id()) throw std::runtime_error
+      //("modify_right on this operator is not supported!\n");
+      auto m_right = id_col(right->get_as() + rsuf);
+      return std::make_shared<dfoperator_lt>(left, m_right);
+    } 
+    else return std::make_shared<dfoperator_lt>(*this);
+  }
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const;
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1,
                                             dftable_base& t2) const;
@@ -535,6 +569,16 @@ struct dfoperator_ge : public dfoperator {
   virtual std::shared_ptr<dffunction> as(const std::string& cname) {
     as_name = cname;
     return std::make_shared<dfoperator_ge>(*this);
+  }
+  virtual std::shared_ptr<dfoperator> 
+  modify_right(const std::string& rsuf) {
+    if (left->get_as() == right->get_as()) {
+      //if (!right.is_id()) throw std::runtime_error
+      //("modify_right on this operator is not supported!\n");
+      auto m_right = id_col(right->get_as() + rsuf);
+      return std::make_shared<dfoperator_ge>(left, m_right);
+    } 
+    else return std::make_shared<dfoperator_ge>(*this);
   }
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const;
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1,
@@ -613,6 +657,16 @@ struct dfoperator_le : public dfoperator {
     as_name = cname;
     return std::make_shared<dfoperator_le>(*this);
   }
+  virtual std::shared_ptr<dfoperator> 
+  modify_right(const std::string& rsuf) {
+    if (left->get_as() == right->get_as()) {
+      //if (!right.is_id()) throw std::runtime_error
+      //("modify_right on this operator is not supported!\n");
+      auto m_right = id_col(right->get_as() + rsuf);
+      return std::make_shared<dfoperator_le>(left, m_right);
+    } 
+    else return std::make_shared<dfoperator_le>(*this);
+  }
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const;
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1,
                                             dftable_base& t2) const;
@@ -681,6 +735,16 @@ struct dfoperator_gt : public dfoperator {
   virtual std::shared_ptr<dffunction> as(const std::string& cname) {
     as_name = cname;
     return std::make_shared<dfoperator_gt>(*this);
+  }
+  virtual std::shared_ptr<dfoperator> 
+  modify_right(const std::string& rsuf) {
+    if (left->get_as() == right->get_as()) {
+      //if (!right.is_id()) throw std::runtime_error
+      //("modify_right on this operator is not supported!\n");
+      auto m_right = id_col(right->get_as() + rsuf);
+      return std::make_shared<dfoperator_gt>(left, m_right);
+    } 
+    else return std::make_shared<dfoperator_gt>(*this);
   }
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const;
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1,
@@ -1417,6 +1481,12 @@ struct dfoperator_and : public dfoperator {
     as_name = cname;
     return std::make_shared<dfoperator_and>(*this);
   }
+  virtual std::shared_ptr<dfoperator> 
+  modify_right(const std::string& rsuf) {
+    auto m_left  = left->modify_right(rsuf);
+    auto m_right = right->modify_right(rsuf);
+    return std::make_shared<dfoperator_and>(m_left, m_right);
+  }
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const;
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1,
                                             dftable_base& t2) const;
@@ -1496,6 +1566,12 @@ struct dfoperator_or : public dfoperator {
   virtual std::shared_ptr<dffunction> as(const std::string& cname) {
     as_name = cname;
     return std::make_shared<dfoperator_or>(*this);
+  }
+  virtual std::shared_ptr<dfoperator> 
+  modify_right(const std::string& rsuf) {
+    auto m_left  = left->modify_right(rsuf);
+    auto m_right = right->modify_right(rsuf);
+    return std::make_shared<dfoperator_or>(m_left, m_right);
   }
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const;
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1,
