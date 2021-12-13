@@ -8,20 +8,17 @@ resource costs, and utility.
 
 # SYNOPSIS  
 
-class frovedis.mllib.tree.DecisionTreeRegressor(criterion='mse', splitter='best', max_depth=None,  
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ min_samples_split=2, min_samples_leaf=1,  
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ min_weight_fraction_leaf=0.0, max_features=None,  
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ random_state=None, max_leaf_nodes=None,  
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ min_impurity_decrease=0.0, presort='deprecated',  
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ccp_alpha=0.0, max_bins=32,  
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ verbose=0, categorical_info={})  
- 
+    class frovedis.mllib.tree.DecisionTreeRegressor(criterion='mse', splitter='best',  
+                                                    max_depth=None, min_samples_split=2,  
+                                                    min_samples_leaf=1,  
+                                                    min_weight_fraction_leaf=0.0,  
+                                                    max_features=None, random_state=None,  
+                                                    max_leaf_nodes=None,  
+                                                    min_impurity_decrease=0.0,  
+                                                    presort='deprecated', ccp_alpha=0.0,  
+                                                    max_bins=32, verbose=0,  
+                                                    categorical_info={})  
+
 ## Public Member Functions  
 
 fit(X, y)  
@@ -69,7 +66,7 @@ __Parameters__
 quality of a split.  
 Currently, supported criteria is 'mse'. The mean squared error (mse), is equal to 
 variance reduction as a feature selection criterion and minimizes the L2 loss using 
-the mean of each terminal node.  
+the mean of each terminal node. (Default: 'mse')  
 **_splitter_**: An unused parameter. (Default: 'best')  
 **_max\_depth_**: A positive integer parameter that specifies the maximum depth of the 
 tree. If it is None (not specified explicitly), then 'max_depth' is set to 5. (Default: None)  
@@ -98,6 +95,9 @@ it gives column indices of categorical features and the number of categories for
 For example, a dictionary { {0, 2}, {4, 5} } means that the feature[0] takes values 0 or 1 (binary) 
 and the feature[4] has five categories (values 0, 1, 2, 3 or 4). Note that feature indices 
 and category assignments are 0-based. (Default: {})  
+
+__Attributes__  
+**_n\_features\__**: An integer value specifying the number of features when fitting the estimator.  
 
 __Purpose__   
 It initializes a DecisionTreeRegressor object with the given parameters.  
@@ -183,8 +183,6 @@ the trained model at server side.
 For example,  
 
     # Since "cmat" is FrovedisColmajorMatrix, we have created FrovedisRowmajorMatrix.
-    from frovedis.matrix.dense import FrovedisRowmajorMatrix
-    
     # predicting on decision tree regressor model using pre-constructed input
     dtr.predict(cmat.to_frovedis_rowmatrix())
 
@@ -294,8 +292,7 @@ The 'MyDecisionTreeRegressorModel' directory has
 |-----metadata  
 |-----model  
 
-The 'metadata' file contains the number of classes, model kind and input datatype used for 
-trained model.  
+The 'metadata' file contains the information on model kind and input datatype used for trained model.  
 The 'model' file contains the decision tree model saved in binary format.  
 
 __Return Value__  
@@ -430,4 +427,4 @@ __Return Value__
 It returns ‘True’, if the model is already fitted, otherwise, it returns ‘False’.  
 
 # SEE ALSO
-dvector, crs_matrix, colmajor_matrix, rowmajor_matrix
+dvector, crs_matrix, colmajor_matrix, rowmajor_matrix, decision_tree_classifier
