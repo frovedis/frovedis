@@ -127,23 +127,44 @@ dummy_dftable execute_dffunc(exrpc_ptr_t& dfproxy, exrpc_ptr_t& dffunc);
 
 void set_dffunc_asCol_name(exrpc_ptr_t& fn, std::string& cname);
 
+
+exrpc_ptr_t get_immed_string_dffunc_opt(exrpc_ptr_t& leftp,
+                                        std::string& right,
+                                        short& opt_id,
+                                        std::string& cname);
+
+// for immediate value (right) of non-string type, T
 template <class T>
 exrpc_ptr_t get_immed_dffunc_opt(exrpc_ptr_t& leftp,
                                  std::string& right_str,
                                  short& opt_id,
                                  std::string& cname) {
   auto& left = *reinterpret_cast<std::shared_ptr<dffunction>*>(leftp);
-  auto right = do_cast<T>(right_str);
   std::shared_ptr<dffunction> *opt = NULL;
-  switch(opt_id) {
-    case ADD:  opt = new std::shared_ptr<dffunction>(add_im_as<T>(left, right, cname)); break;
-    case SUB:  opt = new std::shared_ptr<dffunction>(sub_im_as<T>(left, right, cname)); break;
-    case MUL:  opt = new std::shared_ptr<dffunction>(mul_im_as<T>(left, right, cname)); break;
-    case IDIV: opt = new std::shared_ptr<dffunction>(idiv_im_as<T>(left, right, cname)); break;
-    case FDIV: opt = new std::shared_ptr<dffunction>(fdiv_im_as<T>(left, right, cname)); break;
-    case MOD:  opt = new std::shared_ptr<dffunction>(mod_im_as<T>(left, right, cname)); break;
-    case POW:  opt = new std::shared_ptr<dffunction>(pow_im_as<T>(left, right, cname)); break;
-    default:   REPORT_ERROR(USER_ERROR, "Unsupported dffunction is requested!\n");
+  if(opt_id == LIKE || opt_id == NLIKE) {
+    switch(opt_id) {
+      case LIKE:  opt = new std::shared_ptr<dffunction>(is_like(left, right_str)->as(cname)); break;
+      case NLIKE: opt = new std::shared_ptr<dffunction>(is_not_like(left, right_str)->as(cname)); break;
+      default:    REPORT_ERROR(USER_ERROR, "Unsupported dffunction is requested!\n");
+    }
+  } else { 
+    auto right = do_cast<T>(right_str);
+    switch(opt_id) {
+      case ADD:  opt = new std::shared_ptr<dffunction>(add_im_as(left, right, cname)); break;
+      case SUB:  opt = new std::shared_ptr<dffunction>(sub_im_as(left, right, cname)); break;
+      case MUL:  opt = new std::shared_ptr<dffunction>(mul_im_as(left, right, cname)); break;
+      case IDIV: opt = new std::shared_ptr<dffunction>(idiv_im_as(left, right, cname)); break;
+      case FDIV: opt = new std::shared_ptr<dffunction>(fdiv_im_as(left, right, cname)); break;
+      case MOD:  opt = new std::shared_ptr<dffunction>(mod_im_as(left, right, cname)); break;
+      case POW:  opt = new std::shared_ptr<dffunction>(pow_im_as(left, right, cname)); break;
+      case EQ:   opt = new std::shared_ptr<dffunction>(eq_im(left, right)->as(cname)); break;
+      case NE:   opt = new std::shared_ptr<dffunction>(neq_im(left, right)->as(cname)); break;
+      case LT:   opt = new std::shared_ptr<dffunction>(lt_im(left, right)->as(cname)); break;
+      case LE:   opt = new std::shared_ptr<dffunction>(le_im(left, right)->as(cname)); break;
+      case GT:   opt = new std::shared_ptr<dffunction>(gt_im(left, right)->as(cname)); break;
+      case GE:   opt = new std::shared_ptr<dffunction>(ge_im(left, right)->as(cname)); break;
+      default:   REPORT_ERROR(USER_ERROR, "Unsupported dffunction is requested!\n");
+    }
   }
   return reinterpret_cast<exrpc_ptr_t> (opt);
 }
@@ -157,12 +178,12 @@ exrpc_ptr_t get_dfoperator(std::string& op1, std::string& op2,
   if(isImmed) {
     auto data = do_cast<T>(op2);
     switch(op_id) {
-        case EQ: opt = new std::shared_ptr<dfoperator>(eq_im<T>(op1,data)); break;
-        case NE: opt = new std::shared_ptr<dfoperator>(neq_im<T>(op1,data)); break;
-        case LT: opt = new std::shared_ptr<dfoperator>(lt_im<T>(op1,data)); break;
-        case LE: opt = new std::shared_ptr<dfoperator>(le_im<T>(op1,data)); break;
-        case GT: opt = new std::shared_ptr<dfoperator>(gt_im<T>(op1,data)); break;
-        case GE: opt = new std::shared_ptr<dfoperator>(ge_im<T>(op1,data)); break;
+        case EQ: opt = new std::shared_ptr<dfoperator>(eq_im(op1,data)); break;
+        case NE: opt = new std::shared_ptr<dfoperator>(neq_im(op1,data)); break;
+        case LT: opt = new std::shared_ptr<dfoperator>(lt_im(op1,data)); break;
+        case LE: opt = new std::shared_ptr<dfoperator>(le_im(op1,data)); break;
+        case GT: opt = new std::shared_ptr<dfoperator>(gt_im(op1,data)); break;
+        case GE: opt = new std::shared_ptr<dfoperator>(ge_im(op1,data)); break;
         default: REPORT_ERROR(USER_ERROR,
                  "Unsupported filter operation is encountered!\n");
     }
@@ -193,6 +214,7 @@ exrpc_ptr_t get_dfORoperator(exrpc_ptr_t& lopt_proxy, exrpc_ptr_t& ropt_proxy);
 exrpc_ptr_t get_dfNOToperator(exrpc_ptr_t& opt_proxy);
 exrpc_ptr_t filter_df(exrpc_ptr_t& df_proxy, exrpc_ptr_t& opt_proxy);
 exrpc_ptr_t select_df(exrpc_ptr_t& df_proxy, std::vector<std::string>& cols);
+dummy_dftable fselect_df(exrpc_ptr_t& df_proxy, std::vector<exrpc_ptr_t>& funcs_proxy);
 exrpc_ptr_t isnull_df(exrpc_ptr_t& df_proxy, std::vector<std::string>& cols, 
                       bool& with_index);
 void drop_df_cols(exrpc_ptr_t& df_proxy, std::vector<std::string>& cols);
@@ -214,7 +236,8 @@ exrpc_ptr_t sort_df(exrpc_ptr_t& df_proxy,
 
 exrpc_ptr_t join_df(exrpc_ptr_t& left_proxy, exrpc_ptr_t& right_proxy,
                     exrpc_ptr_t& opt_proxy, 
-                    std::string& how, std::string& join_type);
+                    std::string& how, std::string& join_type,
+                    bool& check_opt_proxy, std::string& rsuf);
 
 exrpc_ptr_t group_by_df(exrpc_ptr_t& df_proxy, std::vector<std::string>& cols);
 
@@ -582,5 +605,7 @@ dummy_vector frov_get_bool_mask(exrpc_ptr_t& df_opt_proxy,
 
 exrpc_ptr_t frov_df_filter_using_mask(exrpc_ptr_t& df_proxy,
                                       exrpc_ptr_t& mask_dvec_proxy);
+
+exrpc_ptr_t frov_df_distinct(exrpc_ptr_t& df_proxy);
 
 #endif

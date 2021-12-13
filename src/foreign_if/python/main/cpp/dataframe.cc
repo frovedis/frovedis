@@ -354,9 +354,12 @@ extern "C" {
     auto right = static_cast<exrpc_ptr_t> (proxy2); 
     auto opt = static_cast<exrpc_ptr_t> (proxy3); 
     std::string k(kind), t(type);
+    bool check_opt = false; // checked at python level itself
+    std::string rsuf = "";
     exrpc_ptr_t ret_proxy = 0;
     try {
-      ret_proxy = exrpc_async(fm_node, join_df, left, right, opt, k, t).get();
+      ret_proxy = exrpc_async(fm_node, join_df, left, right, 
+                              opt, k, t, check_opt, rsuf).get();
     }
     catch (std::exception& e) {
       set_status(true, e.what());

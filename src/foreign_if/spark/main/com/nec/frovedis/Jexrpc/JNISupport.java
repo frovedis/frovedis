@@ -843,13 +843,17 @@ public class JNISupport {
   public static native long joinFrovedisDataframes(Node master_node,
                                                  long dproxy1, long dproxy2,
                                                  long opt_proxy, String type,
-                                                 String algo);
+                                                 String algo, 
+                                                 boolean check_opt, String rsuf);
   public static native long sortFrovedisDataframe(Node master_node,
                                                 long dproxy, String targets[],
                                                 int[] isDesc, long size);
   public static native long selectFrovedisDataframe(Node master_node,
                                                   long dproxy,
                                                   String targets[], long size);
+  public static native DummyDftable fselectFrovedisDataframe(Node master_node,
+                                                  long dproxy,
+                                                  long targets[], long size);
   public static native long groupFrovedisDataframe(Node master_node,
                                                  long dproxy, String targets[],
                                                  long size);
@@ -905,15 +909,20 @@ public class JNISupport {
                                          long right_fn, short opt, 
                                          String col_name);
   public static native long getOptImmedDFfunc(Node master_node, long left_fn, 
-                                              String right_str, short opt, 
-                                              String col_name);
+                                              String right_str, short right_dtype,
+                                              short opt, String col_name);
   public static native DummyDftable executeDFfunc(Node master_node, long df_proxy, 
                                                   long fn_proxy);
   public static native void dropDFColsInPlace(Node master_node, long df_proxy,
                                               String[] targets, long size);
   public static native void setDFfuncAsColName(Node master_node, long fn_proxy, 
                                                String as_name);
-
+  public static native long getDistinct(Node master_node, long dproxy);
+  public static native DummyDftable dropDuplicates(Node master_node, long dproxy,
+                                                  String[] cols, long size,
+                                                  String keep);
+  public static native DummyDftable limitDF(Node master_node, long dproxy,
+                                            long limit);
   // --- dftable_to_sparse_info ---
   public static native void loadSparseConversionInfo(Node master_node,long info_id,String dirname);
   public static native void saveSparseConversionInfo(Node master_node,long info_id,String dirname);

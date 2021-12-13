@@ -168,17 +168,21 @@ JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_filterFrovedisDa
 
 JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_joinFrovedisDataframes
   (JNIEnv *env, jclass thisCls, jobject master_node, jlong dftbl1, jlong dftbl2,
-   jlong opt, jstring type, jstring algo) {
+   jlong opt, jstring jtype, jstring jalgo, 
+   jboolean jcheck_opt, jstring jrsuf) {
 
   auto fm_node = java_node_to_frovedis_node(env, master_node);
   auto df_proxy1 = static_cast<exrpc_ptr_t> (dftbl1);
   auto df_proxy2 = static_cast<exrpc_ptr_t> (dftbl2);
   auto opt_proxy = static_cast<exrpc_ptr_t> (opt);
-  auto jtype = to_cstring(env, type);
-  auto jalgo = to_cstring(env, algo);
+  auto type = to_cstring(env, jtype);
+  auto algo = to_cstring(env, jalgo);
+  auto rsuf = to_cstring(env, jrsuf);
+  bool check_opt = jcheck_opt;
   exrpc_ptr_t ret_proxy = 0;
   try {
-    ret_proxy = exrpc_async(fm_node,join_df,df_proxy1,df_proxy2,opt_proxy,jtype,jalgo).get();
+    ret_proxy = exrpc_async(fm_node,join_df,df_proxy1,df_proxy2,
+                            opt_proxy,type,algo,check_opt,rsuf).get();
   }
   catch(std::exception& e) { set_status(true,e.what()); }
   return (jlong) ret_proxy;
@@ -197,6 +201,21 @@ JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_selectFrovedisDa
   }
   catch(std::exception& e) { set_status(true,e.what()); }
   return (jlong) ret_proxy;
+}
+
+JNIEXPORT jobject JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_fselectFrovedisDataframe
+  (JNIEnv *env, jclass thisCls, jobject master_node, jlong dftbl,
+   jlongArray target, jlong size) {
+
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto df_proxy = static_cast<exrpc_ptr_t> (dftbl);
+  auto funcs = to_exrpc_vector(env,target,size);
+  dummy_dftable ret;
+  try {
+    ret = exrpc_async(fm_node,fselect_df,df_proxy,funcs).get();
+  }
+  catch(std::exception& e) { set_status(true,e.what()); }
+  return to_spark_dummy_df(env, ret);
 }
 
 JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_groupFrovedisDataframe
@@ -575,7 +594,8 @@ JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getOptDFfunc
 
 JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getOptImmedDFfunc
   (JNIEnv *env, jclass thisCls, jobject master_node, 
-   jlong left, jstring right, jshort opt, jstring colname) {
+   jlong left, jstring right, jshort right_dtype,
+   jshort opt, jstring colname) {
 
   auto fm_node = java_node_to_frovedis_node(env, master_node);
   auto leftp = (exrpc_ptr_t) left;
@@ -583,8 +603,20 @@ JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getOptImmedDFfun
   auto cname = to_cstring(env, colname);
   exrpc_ptr_t proxy = 0;
   try {
-    proxy = exrpc_async(fm_node, get_immed_dffunc_opt<double>, // TODO: support other types
-                        leftp, right_str, opt, cname).get();
+    switch(right_dtype) {
+      case INT:    proxy = exrpc_async(fm_node, get_immed_dffunc_opt<int>, 
+                                       leftp, right_str, opt, cname).get(); break;
+      case LONG:   proxy = exrpc_async(fm_node, get_immed_dffunc_opt<long>, 
+                                       leftp, right_str, opt, cname).get(); break;
+      case FLOAT:  proxy = exrpc_async(fm_node, get_immed_dffunc_opt<float>, 
+                                       leftp, right_str, opt, cname).get(); break;
+      case DOUBLE: proxy = exrpc_async(fm_node, get_immed_dffunc_opt<double>, 
+                                       leftp, right_str, opt, cname).get(); break;
+      case STRING: proxy = exrpc_async(fm_node, get_immed_string_dffunc_opt, 
+                                       leftp, right_str, opt, cname).get(); break;
+      default:     REPORT_ERROR(USER_ERROR,
+                  "Unsupported datatype is encountered for immediate value!\n");
+    }
   }
   catch(std::exception& e) { set_status(true,e.what()); }
   return (jlong) proxy;
@@ -621,7 +653,6 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_dropDFColsInPlace
 JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_setDFfuncAsColName
   (JNIEnv *env, jclass thisCls, jobject master_node,
    jlong fn_proxy, jstring as_name) {
-
   auto fm_node = java_node_to_frovedis_node(env, master_node);
   auto fnp = (exrpc_ptr_t) fn_proxy;
   auto name = to_cstring(env, as_name);
@@ -629,6 +660,46 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_setDFfuncAsColNam
     exrpc_oneway(fm_node, set_dffunc_asCol_name, fnp, name);
   }
   catch(std::exception& e) { set_status(true,e.what()); }
+}
+
+JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getDistinct
+  (JNIEnv *env, jclass thisCls, jobject master_node, jlong dftbl) {
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto df_proxy = static_cast<exrpc_ptr_t> (dftbl);
+  exrpc_ptr_t ret_proxy = 0;
+  try {
+    ret_proxy = exrpc_async(fm_node, frov_df_distinct, df_proxy).get();
+  }
+  catch(std::exception& e) { set_status(true,e.what()); }
+  return (jlong) ret_proxy;
+}
+
+JNIEXPORT jobject JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_dropDuplicates
+  (JNIEnv *env, jclass thisCls, jobject master_node, jlong dftbl,
+   jobjectArray cols, jlong size, jstring keep) {
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto df_proxy = static_cast<exrpc_ptr_t> (dftbl);
+  auto cols_ = to_string_vector(env, cols, size);
+  auto keep_ = to_cstring(env, keep);
+  dummy_dftable ret;
+  try {
+    ret = exrpc_async(fm_node, frov_df_drop_duplicates, df_proxy, cols_, keep_).get();
+  }
+  catch(std::exception& e) { set_status(true,e.what()); }
+  return to_spark_dummy_df(env, ret);
+}
+
+JNIEXPORT jobject JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_limitDF
+  (JNIEnv *env, jclass thisCls, jobject master_node, jlong dftbl, jlong limit) {
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto df_proxy = static_cast<exrpc_ptr_t> (dftbl);
+  size_t limit_ = limit;
+  dummy_dftable ret;
+  try {
+    ret = exrpc_async(fm_node, frov_df_head, df_proxy, limit_).get();
+  }
+  catch(std::exception& e) { set_status(true,e.what()); }
+  return to_spark_dummy_df(env, ret);
 }
 
 }

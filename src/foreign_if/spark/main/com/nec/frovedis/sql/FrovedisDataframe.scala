@@ -411,23 +411,18 @@ class FrovedisDataFrame extends java.io.Serializable {
   // Usage: df.filter(df.col("colA") > 10)
   // Usage: df.filter(df("colA") > 10)
   // Usage: df.filter($$"colA" > 10)
-  def filter(expr: Expr): FrovedisDataFrame = {
+  def filter(opt: FrovedisColumn): FrovedisDataFrame = {
     if(fdata == -1) throw new IllegalArgumentException("Invalid Frovedis dataframe!")
-    val opt = new DFOperator(expr,cols,types)
     val fs = FrovedisServer.getServerInstance()
     val proxy = JNISupport.filterFrovedisDataframe(fs.master_node,this.get(),opt.get())
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
     val ret = new FrovedisDataFrame(proxy, cols, types)
-    opt.release()
     return ret
   }
-  // Usage: df.when(df.col("colA") > 10)
-  // Usage: df.when(df("colA") > 10)
-  // Usage: df.when($$"colA" > 10)
-  def when(expr: Expr): FrovedisDataFrame = {
-    return filter(expr)
-  }
+
+  // alias for filter 
+  def where(opt: FrovedisColumn) = filter(opt)
 
   // --- Frovedis server side SELECT definition here ---
   // Usage: df.select(Array("colA","colB"))
@@ -441,38 +436,33 @@ class FrovedisDataFrame extends java.io.Serializable {
     if (info != "") throw new java.rmi.ServerException(info)
     return new FrovedisDataFrame(proxy,targets,tt)
   }
+
   // Usage: df.select("colA")
   // Usage: df.select("colA", "colB") ... any number of column names
   def select(must: String, optional: String*): FrovedisDataFrame = {
     val all = (Array(must) ++ optional).toArray.map(x => x.toString)
     return select(all)
   }
+
   // Usage: df.select($$"colA", $$"colB" + 1)
   def select(c: FrovedisColumn*): FrovedisDataFrame = {
-    val all = c.toArray
-    val cols = all.map({ case(x) => 
-      if (x.isOpt) append_column(x.toString, x)
-      x.colName
-    })
-    var ret = select(cols)
-
-    // for dropping appended columns in this
-    val drop_targets = DFColUtils.get_opt_cols(all)
-    if (drop_targets.size > 0) drop_inplace(drop_targets)
-
-    // for renaming in response to as()...
-    val rename_t = DFColUtils.get_rename_targets(all) 
-    if (rename_t._1.size > 0) ret = ret.withColumnRenamed(rename_t._1, rename_t._2)
-
-    return ret
+    if(fdata == -1) throw new IllegalArgumentException("Invalid Frovedis dataframe!")
+    val funcs = c.toArray.map(x => x.get())
+    val size = funcs.size
+    val fs = FrovedisServer.getServerInstance()
+    val dummy = JNISupport.fselectFrovedisDataframe(fs.master_node,get(),funcs,size)
+    val info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
+    return new FrovedisDataFrame(dummy)
   } 
 
   private def sort_impl(targets: Array[String], 
                         isDescArr: Array[Int]): FrovedisDataFrame = {
     val size = targets.size
-    for (i <- 0 to (size-1)) 
+    for (i <- 0 until size) { 
       if(!hasColumn(targets(i))) 
         throw new IllegalArgumentException("No column named: " + targets(i)) 
+    }
     val fs = FrovedisServer.getServerInstance()
     val proxy = JNISupport.sortFrovedisDataframe(fs.master_node,get(),
                                                  targets,isDescArr,size)
@@ -480,10 +470,16 @@ class FrovedisDataFrame extends java.io.Serializable {
     if (info != "") throw new java.rmi.ServerException(info)
     return new FrovedisDataFrame(proxy, cols, types)
   }
+
   def sort(c: FrovedisColumn*): FrovedisDataFrame = {
     if(fdata == -1) throw new IllegalArgumentException("Invalid Frovedis dataframe!")
-    val targets = c.toArray.map(x => x.toString)
-    val isDescArr = c.toArray.map(x => x.getIsDesc)
+    val all = c.toArray
+    for (i <- 0 until all.size) {
+      if (!all(i).isID) throw new java.lang.UnsupportedOperationException(
+      s"Currently frovedis supports sort/orderBy based on only existing columns!")
+    }
+    val targets = all.map(x => x.toString)
+    val isDescArr = all.map(x => x.getIsDesc)
     return sort_impl(targets, isDescArr)
   }
   
@@ -492,11 +488,10 @@ class FrovedisDataFrame extends java.io.Serializable {
     return sort(all:_*)
   }
 
-  def orderBy(must: String, optional: String*): 
-    FrovedisDataFrame = sort(must, optional : _*)
-  def orderBy(c: FrovedisColumn*): FrovedisDataFrame = sort(c : _*)
+  // alias of sort
+  def orderBy(must: String, optional: String*) = sort(must, optional : _*)
+  def orderBy(c: FrovedisColumn*) = sort(c : _*)
   
-
   // --- Frovedis server side GROUP_BY definition here ---
   // Usage: df.groupBy(Array("colA", "colB")) 
   def groupBy(targets: Array[String]): FrovedisGroupedDF = {
@@ -509,16 +504,22 @@ class FrovedisDataFrame extends java.io.Serializable {
     if (info != "") throw new java.rmi.ServerException(info)
     return new FrovedisGroupedDF(proxy,cols,types,targets,tt)
   }
+
   // Usage: df.groupBy("colA") 
   // Usage: df.groupBy("colA", "colB") // ... any number of strings
   def groupBy(must: String, optional: String*): FrovedisGroupedDF = {
     val all = (Array(must) ++ optional).toArray.map(x => x.toString)
     return groupBy(all)
   }
+
   // Usage: df.groupBy($$"colA", $$"colB") // ... any number of cols in $$"name" form
   def groupBy(c: FrovedisColumn*): FrovedisGroupedDF = {
-    val all = c.toArray.map(x => x.toString)
-    return groupBy(all)
+    val all = c.toArray
+    for (i <- 0 until all.size) {
+      if (!all(i).isID) throw new java.lang.UnsupportedOperationException(
+      s"Currently frovedis supports groupBy based on only existing columns!")
+    }
+    return groupBy(all.map(x => x.toString))
   }
 
   private def getFrovedisJoinType(join_type: String): String = {
@@ -534,8 +535,7 @@ class FrovedisDataFrame extends java.io.Serializable {
   private def rename_helper(df: FrovedisDataFrame,
                    rsuf: String): (FrovedisDataFrame, Boolean) = {
     val common_key_cols = this.columns.toSet
-                          .intersect(df.columns.toSet)
-                          .toArray
+                              .intersect(df.columns.toSet).toArray
     val rename_needed = common_key_cols.size > 0
     var df_right = df
     if (rename_needed){
@@ -547,17 +547,17 @@ class FrovedisDataFrame extends java.io.Serializable {
   }
 
   private def join_helper(df: FrovedisDataFrame,
-                         exp: Expr,
-                         join_type: String, 
-                         join_algo: String,
-                         rsuf: String = "_right"): FrovedisDataFrame = {
+                          opt: FrovedisColumn,
+                          join_type: String, 
+                          join_algo: String,
+                          rsuf: String = "_right"): FrovedisDataFrame = {
+    if (fdata == -1) throw new IllegalArgumentException("Invalid Frovedis left dataframe!")
+    if (df.fdata == -1) throw new IllegalArgumentException("Invalid Frovedis right dataframe!")
+    if (rsuf == "") throw new IllegalArgumentException("Suffix for renaming " +
+                                                       "cannot be empty string!\n")
     var df_right = df
     var t_cols = this.cols ++ df_right.cols
     var t_types = this.types ++ df_right.types
-    val dfopt_proxy = exp.get_proxy(t_cols, t_types, rsuf)
-
-    val fs = FrovedisServer.getServerInstance()
-    val opt = new DFOperator(dfopt_proxy)
 
     // all common-columns renamed with rsuf
     var tmp = rename_helper(df_right, rsuf)
@@ -568,209 +568,184 @@ class FrovedisDataFrame extends java.io.Serializable {
       t_cols = this.cols ++ df_right.cols
       t_types = this.types ++ df_right.types
     }
-     
+    
+    this.show()
+    df_right.show() 
+    var join_opt = opt
+    if (opt.isID) {
+      val cname = opt.colName
+      join_opt = (col(cname) === col(cname + rsuf))
+    } 
+    val check_opt = true // checking is required at server side, since dfoperator is constructed on-the-fly
     val frov_join_type = getFrovedisJoinType(join_type)
+    val fs = FrovedisServer.getServerInstance()
     val proxy = JNISupport.joinFrovedisDataframes(fs.master_node,
-                this.get(), df_right.get(), opt.get(), frov_join_type,
-                join_algo)
+                this.get(), df_right.get(), join_opt.get(), frov_join_type,
+                join_algo, check_opt, rsuf)
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
     val ret = new FrovedisDataFrame(proxy, t_cols, t_types)
-    opt.release()
     return ret
   }
 
   // --- Frovedis server side JOIN definition here ---
   // --- When right is a Frovedis Dataframe ---
-  // case 1. Expr: from FrovedisColumn 
+  // case 1. FrovedisColumn: from FrovedisColumn 
   // For example, left.join(right,left("A") === right("B"))
   //              left.join(right,left.col("A") === right.col("B"))
   //              left.join(right,$$"A" === $$"B")
   //              left.join(right,col("A") === col("B"))
-  def join(df: FrovedisDataFrame, exp: Expr,
+  // FrovedisColumn: Only Column object 
+  // For example, left.join(right,$$"A")]
+  def join(df: FrovedisDataFrame, opt: FrovedisColumn,
            join_type: String, join_algo: String,
-           rsuf: String): FrovedisDataFrame = {
-    if(fdata == -1)
-      throw new IllegalArgumentException("Invalid Frovedis dataframe!")
-    if (rsuf == "") throw new IllegalArgumentException("Suffix for renaming "
-                                                  + "cannot be empty string!\n")
-    return this.join_helper(df, exp, join_type, join_algo, rsuf)
-  }
-  def join(df: FrovedisDataFrame, exp: Expr,
-           join_type: String, join_algo: String): FrovedisDataFrame = {
-    return join(df, exp, join_type, join_algo, "_right")
-  }
-  def join(df: FrovedisDataFrame, exp: Expr, join_type: String): FrovedisDataFrame = {
-    return join(df, exp, join_type, "bcast", "_right")
-  }
-  def join(df: FrovedisDataFrame, exp: Expr): FrovedisDataFrame = {
-    return join(df, exp, "inner", "bcast", "_right")
-  }
+           rsuf: String) = join_helper(df, opt, join_type, join_algo, rsuf)
+
+  def join(df: FrovedisDataFrame, opt: FrovedisColumn,
+           join_type: String, 
+           join_algo: String) = join_helper(df, opt, join_type, join_algo, "_right")
+
+  def join(df: FrovedisDataFrame, opt: FrovedisColumn, 
+           join_type: String) = join_helper(df, opt, join_type, "bcast", "_right")
+
+  def join(df: FrovedisDataFrame, 
+           opt: FrovedisColumn) = join_helper(df, opt, "inner", "bcast", "_right")
 
   // case 2. String: Only single key common in both [e.g., left.join(right,"A")]
   def join(df: FrovedisDataFrame, key: String,
-           join_type: String, join_algo: String): FrovedisDataFrame = {
-    var keyCol = new FrovedisColumn(key)
-    val ret = join(df, keyCol, join_type, join_algo)
-    return ret
-  }
-  def join(df: FrovedisDataFrame, key: String, join_type: String): FrovedisDataFrame = {
-    return join(df, key, join_type, "bcast")
-  }
-  def join(df: FrovedisDataFrame, key: String): FrovedisDataFrame = {
-    return join(df, key, "inner", "bcast")
-  }
+           join_type: String, join_algo: String,
+           rsuf: String) = join_helper(df, col(key) === col(key + rsuf), join_type, join_algo)
 
-  // case 3. FrovedisColumn: Only Column object [e.g., left.join(right,$$"A")]
-  def join(df: FrovedisDataFrame, col: FrovedisColumn,
-           join_type: String, join_algo: String): FrovedisDataFrame = {
-    // converting FrovedisColumn to Expr object
-    return join(df, (col === col), join_type, join_algo)
-  }
-  def join(df: FrovedisDataFrame, col: FrovedisColumn, join_type: String): FrovedisDataFrame = {
-    return join(df, col, join_type, "bcast")
-  }
-  def join(df: FrovedisDataFrame, col: FrovedisColumn): FrovedisDataFrame = {
-    return join(df, col, "inner", "bcast")
-  }
+  def join(df: FrovedisDataFrame, key: String,
+           join_type: String, 
+           join_algo: String): FrovedisDataFrame = join(df, key, join_type, join_algo, "_right")
 
-  // case 4. join with keys provided as scala Sequence
+  def join(df: FrovedisDataFrame, key: String, 
+           join_type: String): FrovedisDataFrame = join(df, key, join_type, "bcast", "_right")
+
+  def join(df: FrovedisDataFrame, 
+           key: String): FrovedisDataFrame = join(df, key, "inner", "bcast", "_right")
+
+  // case 3. join with keys provided as scala Sequence
   def join(df: FrovedisDataFrame, keys: Seq[String],
            join_type: String, join_algo: String,
            rsuf: String): FrovedisDataFrame = {
-    if (rsuf == "") throw new IllegalArgumentException("Suffix for renaming "
-                                                  + "cannot be empty string!\n")
-    if(keys.size == 0)
-        return crossJoin(df, rsuf)
-    var exp: Expr = ( col(keys(0)) === col(keys(0)) ) 
-    for(i <- 1 until keys.size){
-      exp = exp && ( col(keys(i)) === col(keys(i)) ) 
+    var ret: FrovedisDataFrame = null
+    if (keys.size == 0) ret = crossJoin(df, rsuf)
+    else {
+      var opt: FrovedisColumn = (col(keys(0)) === col(keys(0) + rsuf)) 
+      for(i <- 1 until keys.size) opt = opt && (col(keys(i)) === col(keys(i) + rsuf)) 
+      ret = join_helper(df, opt, join_type, join_algo, rsuf)
     }
-    return this.join_helper(df, exp, join_type, join_algo, rsuf)
+    return ret
   }
+
   def join(df: FrovedisDataFrame, keys: Seq[String],
-           join_type: String, join_algo: String): FrovedisDataFrame = {
-    return join(df, keys, join_type, join_algo, "_right")
-  }
+           join_type: String, 
+           join_algo: String): FrovedisDataFrame = join(df, keys, join_type, join_algo, "_right")
+  
   def join(df: FrovedisDataFrame, keys: Seq[String],
-           join_type: String): FrovedisDataFrame = {  
-    return join(df, keys, join_type, "bcast", "_right")
-  }
-  def join(df: FrovedisDataFrame, keys: Seq[String]): FrovedisDataFrame = {
-    return join(df, keys, "inner", "bcast", "_right")
-  }
-  def join(df: FrovedisDataFrame): FrovedisDataFrame = {
-    return crossJoin(df)
-  }
+           join_type: String): FrovedisDataFrame = join(df, keys, join_type, "bcast", "_right")
+  
+  def join(df: FrovedisDataFrame, 
+           keys: Seq[String]): FrovedisDataFrame = join(df, keys, "inner", "bcast", "_right")
+  
+  def join(df: FrovedisDataFrame) = crossJoin(df)
   
   // --- When right is a Spark Dataframe ---
-  // case 1. Expr: from FrovedisColumn
+  // case 1. FrovedisColumn: from FrovedisColumn
   // For example left.join(right,left("A") === right("B"))
   //             left.join(right,left.col("A") === right.col("B"))
   //             left.join(right,$$"A" === $$"B")
-  def join(df: DataFrame, exp: Expr, 
+  // FrovedisColumn: Only Column object 
+  // For example, left.join(right,$$"A")]
+  def join(df: DataFrame, opt: FrovedisColumn, 
            join_type: String, join_algo: String,
            rsuf: String): FrovedisDataFrame = {
-    if (rsuf == "") throw new IllegalArgumentException("Suffix for renaming "
-                                                  + "cannot be empty string!\n")
     val fdf = new FrovedisDataFrame(df) // spark dataframe to frovedis dataframe
-    val ret = join(fdf, exp, join_type, join_algo, rsuf)
+    val ret = join(fdf, opt, join_type, join_algo, rsuf)
     fdf.release()
     return ret
   }
-  def join(df: DataFrame, exp: Expr,
-           join_type: String, join_algo: String): FrovedisDataFrame = {
-    return join(df, exp, join_type, join_algo, "_right")
-  }
-  def join(df: DataFrame, exp: Expr, join_type: String): FrovedisDataFrame = {
-    return join(df, exp, join_type, "bcast", "_right")
-  }
-  def join(df: DataFrame, exp: Expr): FrovedisDataFrame = {
-    return join(df, exp, "inner", "bcast", "_right")
-  }
+  def join(df: DataFrame, opt: FrovedisColumn,
+           join_type: String, 
+           join_algo: String): FrovedisDataFrame = join(df, opt, join_type, join_algo, "_right")
+ 
+  def join(df: DataFrame, opt: FrovedisColumn, 
+           join_type: String): FrovedisDataFrame = join(df, opt, join_type, "bcast", "_right")
+  
+  def join(df: DataFrame, 
+           opt: FrovedisColumn): FrovedisDataFrame = join(df, opt, "inner", "bcast", "_right")
+  
 
   // case 2. String: Only single key common in both [e.g., left.join(right,"A")]
   def join(df: DataFrame, key: String, 
-           join_type: String, join_algo: String): FrovedisDataFrame = {
+           join_type: String, join_algo: String,
+           rsuf: String): FrovedisDataFrame = {
     val fdf = new FrovedisDataFrame(df) // spark dataframe to frovedis dataframe
-    val ret = join(fdf, key, join_type, join_algo)
+    val ret = join(fdf, key, join_type, join_algo, rsuf)
     fdf.release()
     return ret
   }
-  def join(df: DataFrame, key: String, join_type: String): FrovedisDataFrame = {
-    return join(df, key, join_type, "bcast")
-  }
-  def join(df: DataFrame, key: String): FrovedisDataFrame = {
-    return join(df, key, "inner", "bcast")
-  }
-
-  // case 3. FrovedisColumn: Only Column object [e.g., left.join(right,$$"A")]
-  def join(df: DataFrame, col: FrovedisColumn, 
-           join_type: String, join_algo: String): FrovedisDataFrame = {
-    val fdf = new FrovedisDataFrame(df) // spark dataframe to frovedis dataframe
-    return join(fdf, col, join_type, join_algo)
-  }
-  def join(df: DataFrame, col: FrovedisColumn, join_type: String): FrovedisDataFrame = {
-    return join(df, col, join_type, "bcast")
-  }
-  def join(df: DataFrame, col: FrovedisColumn): FrovedisDataFrame = {
-    return join(df, col, "inner", "bcast")
-  }
-
-  // case 4. join with keys provided as scala Sequence
+  def join(df: DataFrame, key: String, join_type: String,
+           join_algo: String): FrovedisDataFrame = join(df, key, join_type, join_algo, "_right")
+  
+  def join(df: DataFrame, key: String, 
+           join_type: String): FrovedisDataFrame = join(df, key, join_type, "bcast", "_right")
+  
+  def join(df: DataFrame, 
+           key: String): FrovedisDataFrame = join(df, key, "inner", "bcast", "_right")
+  
+  // case 3. join with keys provided as scala Sequence
   def join(df: DataFrame, keys: Seq[String],
            join_type: String, join_algo: String,
            rsuf: String): FrovedisDataFrame = {
-    if (rsuf == "") throw new IllegalArgumentException("Suffix for renaming "
-                                                  + "cannot be empty string!\n")
     val fdf = new FrovedisDataFrame(df) // spark dataframe to frovedis dataframe
-    return join(fdf, keys, join_type, join_algo, rsuf)
+    val ret = join(fdf, keys, join_type, join_algo, rsuf)
+    fdf.release()
+    return ret
   }
+
   def join(df: DataFrame, keys: Seq[String],
-           join_type: String, join_algo: String): FrovedisDataFrame = {
-    return join(df, keys, join_type, join_algo, "_right")
-  }
+           join_type: String, 
+           join_algo: String): FrovedisDataFrame = join(df, keys, join_type, join_algo, "_right")
+  
   def join(df: DataFrame, keys: Seq[String],
-           join_type: String): FrovedisDataFrame = {  
-    return join(df, keys, join_type, "bcast", "_right")
-  }
-  def join(df: DataFrame, keys: Seq[String]): FrovedisDataFrame = {
-    return join(df, keys, "inner", "bcast", "_right")
-  }
-  def join(df: DataFrame): FrovedisDataFrame = {
-    return crossJoin(df)
-  }
+           join_type: String): FrovedisDataFrame = join(df, keys, join_type, "bcast", "_right")
+  
+  def join(df: DataFrame, 
+           keys: Seq[String]): FrovedisDataFrame = join(df, keys, "inner", "bcast", "_right")
+  
+  def join(df: DataFrame) = crossJoin(df)
+  
 
   // cross-join
   def crossJoin(df: FrovedisDataFrame, rsuf: String): FrovedisDataFrame = {
-    if (rsuf == "") throw new IllegalArgumentException("Suffix for renaming "
-                                                  + "cannot be empty string!\n")
+    if (fdata == -1) throw new IllegalArgumentException("Invalid Frovedis left dataframe!")
+    if (rsuf == "") throw new IllegalArgumentException("Suffix for renaming " +
+                                                       "cannot be empty string!\n")
     val fs = FrovedisServer.getServerInstance()
-    val dfopt_proxy = JNISupport.getCrossDfopt(fs.master_node)
-    val opt = new DFOperator(dfopt_proxy)
+    val opt_proxy = JNISupport.getCrossDfopt(fs.master_node)
     var (df_right, rename_needed) = rename_helper(df, rsuf)
     var t_cols = this.cols ++ df_right.cols
     var t_types = this.types ++ df_right.types
-
+    val check_opt = false // not need for cross-join
     val proxy = JNISupport.joinFrovedisDataframes(fs.master_node,
-                this.get(), df_right.get(), opt.get(), "inner",
-                "bcast")
-    opt.release()
+                this.get(), df_right.get(), opt_proxy, "inner",
+                "bcast", check_opt, rsuf)
     return new FrovedisDataFrame(proxy, t_cols, t_types) 
   }
-  def crossJoin(df: FrovedisDataFrame): FrovedisDataFrame = {
-    return crossJoin(df, "_right")
-  }
+
+  def crossJoin(df: FrovedisDataFrame): FrovedisDataFrame = crossJoin(df, "_right")
 
   def crossJoin(df: DataFrame, rsuf: String): FrovedisDataFrame = {
-    if (rsuf == "") throw new IllegalArgumentException("Suffix for renaming "
-                                                  + "cannot be empty string!\n")
     val fdf = new FrovedisDataFrame(df) // spark dataframe to frovedis dataframe
-    return crossJoin(fdf, rsuf)
+    val ret = crossJoin(fdf, rsuf)
+    fdf.release()
+    return ret
   }
-  def crossJoin(df: DataFrame): FrovedisDataFrame = {
-    return crossJoin(df, "_right")
-  }
+
+  def crossJoin(df: DataFrame): FrovedisDataFrame = crossJoin(df, "_right")
   
   def int2bool(a: Any): Any = {
     if (a == Int.MaxValue) return null
@@ -1172,6 +1147,7 @@ class FrovedisDataFrame extends java.io.Serializable {
       return (crs_mat,null)
     }
   }
+
   def toFrovedisSparseData(conv_info: DFtoSparseInfo): FrovedisSparseData = {
     if(fdata == -1) throw new IllegalArgumentException("Invalid Frovedis dataframe!")
     if(conv_info.get() == -1) throw new IllegalArgumentException("Invalid sparse conversion info!")
@@ -1181,13 +1157,15 @@ class FrovedisDataFrame extends java.io.Serializable {
     if (info != "") throw new java.rmi.ServerException(info)
     return new FrovedisSparseData(dmat)
   }
+
   def withColumn(cname: String, op: FrovedisColumn): FrovedisDataFrame = { // append in-place
     val fs = FrovedisServer.getServerInstance()
-    val dummy = JNISupport.executeDFfunc(fs.master_node, get(), op.get_dffunc)
+    val dummy = JNISupport.executeDFfunc(fs.master_node, get(), op.get())
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
     return new FrovedisDataFrame(dummy)
   }
+
   def append_column(cname: String, op: FrovedisColumn): this.type = { // append in-place
     val tmp = withColumn(cname, op)
     this.fdata = tmp.fdata
@@ -1196,13 +1174,16 @@ class FrovedisDataFrame extends java.io.Serializable {
     tmp.fdata = -1 // to avoid it being released
     this
   }
+
   def drop(targets: Array[String]): FrovedisDataFrame = {
     val select_targets = this.columns.toSet.diff(targets.toSet).toArray
     return select(select_targets)
   }
+
   def drop(targets: FrovedisColumn*): FrovedisDataFrame = {
     return drop(targets.toArray.map(x => x.toString))
   }
+
   def drop_inplace(targets: Array[String]): this.type = {
     val fs = FrovedisServer.getServerInstance()
     JNISupport.dropDFColsInPlace(fs.master_node, get(), 
@@ -1211,5 +1192,39 @@ class FrovedisDataFrame extends java.io.Serializable {
     if (info != "") throw new java.rmi.ServerException(info)
     // TODO: need to remove cols from this.cols and this.types ?
     this
+  }
+
+  def distinct(): FrovedisDataFrame = {
+    if(fdata == -1) throw new IllegalArgumentException("Invalid Frovedis dataframe!")
+    val fs = FrovedisServer.getServerInstance()
+    val proxy = JNISupport.getDistinct(fs.master_node, get())
+    val info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
+    return new FrovedisDataFrame(proxy, cols, types)
+  }
+
+  def dropDuplicates(colNames: Array[String], keep: String = "first"): FrovedisDataFrame = {
+    if(fdata == -1) throw new IllegalArgumentException("Invalid Frovedis dataframe!")
+    val fs = FrovedisServer.getServerInstance()
+    if (!Array("first", "last").contains(keep))
+      throw new IllegalArgumentException("Unsupported Value for" +
+                                        " 'keep' parameter: " + keep)
+    val dummy = JNISupport.dropDuplicates(fs.master_node, get(), colNames,
+                                          colNames.size, keep)
+    val info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
+    return new FrovedisDataFrame(dummy)
+  }
+
+  def limit(n: Int): FrovedisDataFrame = {
+    if(fdata == -1) throw new IllegalArgumentException("Invalid Frovedis dataframe!")
+    if (n < 0)
+      throw new IllegalArgumentException("The limit value must be equal to" +
+                                        " or greater than 0, but got: " + n)
+    val fs = FrovedisServer.getServerInstance()
+    val dummy = JNISupport.limitDF(fs.master_node, get(), n)
+    val info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
+    return new FrovedisDataFrame(dummy)
   }
 }

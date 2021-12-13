@@ -92,6 +92,8 @@ enum OPTYPE {
   NOT = 13,
   LIKE = 14,
   NLIKE = 15,
+  ISNULL = 16,
+  ISNOTNULL = 17,
   ADD = 21,
   SUB = 22,
   MUL = 23,

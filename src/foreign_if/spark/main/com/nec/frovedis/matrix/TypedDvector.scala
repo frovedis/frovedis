@@ -7,7 +7,7 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.SparkContext
 import org.apache.log4j.{Level, Logger}
 
-object DTYPE {
+object DTYPE extends java.io.Serializable {
   val NONE:   Short = 0
   val INT:    Short = 1
   val LONG:   Short = 2
@@ -17,9 +17,21 @@ object DTYPE {
   val BOOL:   Short = 6
   val ULONG:  Short = 7
   val WORDS:  Short = 8
+
+  def detect(x: Any): Short = {
+    var ret: Short = NONE
+    if (x.isInstanceOf[Int])          ret = INT
+    else if (x.isInstanceOf[Long])    ret = LONG
+    else if (x.isInstanceOf[Float])   ret = FLOAT
+    else if (x.isInstanceOf[Double])  ret = DOUBLE
+    else if (x.isInstanceOf[String])  ret = STRING
+    else if (x.isInstanceOf[Boolean]) ret = BOOL
+    else throw new IllegalArgumentException("Unknown Any Type!") 
+    return ret
+  }
 }
 
-object TransferData {
+object TransferData extends java.io.Serializable {
   //private def copy_local_data[T: ClassTag](
     //index: Int, destId: Int,
     //w_node: Node, vptr: Long, localId: Long, 
@@ -200,7 +212,7 @@ object TransferData {
   }
 }
 
-object IntDvector {
+object IntDvector extends java.io.Serializable {
   def get(data: RDD[Int]) = TransferData.execute(data, DTYPE.INT)
   def get(data: RDD[Int], part_sizes: RDD[Int]): Long = {
     TransferData.execute(data, part_sizes, DTYPE.INT)
@@ -230,7 +242,7 @@ object IntDvector {
   }
 }
 
-object LongDvector {
+object LongDvector extends java.io.Serializable {
   def get(data: RDD[Long]) = TransferData.execute(data, DTYPE.LONG)
   def get(data: RDD[Long], part_sizes: RDD[Int]): Long = {
     return TransferData.execute(data, part_sizes, DTYPE.LONG)
@@ -260,7 +272,7 @@ object LongDvector {
   }
 }
 
-object FloatDvector {
+object FloatDvector extends java.io.Serializable {
   def get(data: RDD[Float]) = TransferData.execute(data, DTYPE.FLOAT)
   def get(data: RDD[Float], part_sizes: RDD[Int]): Long = {
     return TransferData.execute(data, part_sizes, DTYPE.FLOAT)
@@ -290,7 +302,7 @@ object FloatDvector {
   }
 }
 
-object DoubleDvector {
+object DoubleDvector extends java.io.Serializable {
   def get(data: RDD[Double]) = TransferData.execute(data, DTYPE.DOUBLE)
   def get(data: RDD[Double], part_sizes: RDD[Int]): Long = {
     return TransferData.execute(data, part_sizes, DTYPE.DOUBLE)
@@ -320,7 +332,7 @@ object DoubleDvector {
   }
 }
 
-object StringDvector { 
+object StringDvector extends java.io.Serializable { 
   def get(data: RDD[String]) = TransferData.execute(data, DTYPE.STRING)
   def get(data: RDD[String], part_sizes: RDD[Int]): Long = {
     return TransferData.execute(data, part_sizes, DTYPE.STRING)
@@ -350,7 +362,7 @@ object StringDvector {
   }
 }
 
-object WordsNodeLocal {
+object WordsNodeLocal extends java.io.Serializable {
   private def copy_local_data(
     index: Int, destId: Int,
     w_node: Node, dptr: Long, sptr: Long, localId: Long,
@@ -467,7 +479,7 @@ object WordsNodeLocal {
   }
 }
 
-object BoolDvector {
+object BoolDvector extends java.io.Serializable {
   def get(data: RDD[Boolean]): Long = {
     //return TransferData.execute(data, DTYPE.BOOL)
     val t0 = new TimeSpent(Level.DEBUG)
@@ -511,4 +523,3 @@ object BoolDvector {
     return ret
   }
 }
-

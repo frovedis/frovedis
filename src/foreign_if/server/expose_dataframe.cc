@@ -23,6 +23,7 @@ void expose_frovedis_dataframe_functions() {
   expose((release_data<std::shared_ptr<dfoperator>>));
   expose(filter_df);
   expose(select_df);
+  expose(fselect_df);
   expose(isnull_df);
   expose(drop_df_cols);
   expose(drop_df_rows<int>);
@@ -118,9 +119,11 @@ void expose_frovedis_dataframe_functions() {
   expose(get_immed_dffunc_opt<long>);
   expose(get_immed_dffunc_opt<float>);
   expose(get_immed_dffunc_opt<double>);
+  expose(get_immed_string_dffunc_opt);
   expose(execute_dffunc);
   expose(set_dffunc_asCol_name);
   // -----------------------
   expose(frov_get_bool_mask);
   expose(frov_df_filter_using_mask);
+  expose(frov_df_distinct);
 }
