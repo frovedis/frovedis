@@ -425,6 +425,10 @@ class DataFrame(object):
                              "with multi level index")
 
         self.release()
+        if isinstance(df, pd.Series):
+            df = pd.DataFrame(df)
+            self.is_series = True
+
         self.num_row = len(df)
         cols = df.columns.tolist()
         self.__cols = cols
