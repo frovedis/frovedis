@@ -56,7 +56,13 @@ struct dffunction_id : public dffunction {
   }
   virtual bool is_id() const {return true;}
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const {
-    return t.column(left);
+    std::string target = left;
+    if (left == "*") { // to support case like count("*")
+      auto cols = t.columns();
+      require(cols.size() > 0, "execute (*): input table has no column!\n");
+      target = cols[0];
+    }
+    return t.column(target);
   }
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1,
                                             dftable_base& t2) const {
@@ -65,7 +71,13 @@ struct dffunction_id : public dffunction {
   }
   virtual std::vector<std::shared_ptr<dfcolumn>>
   columns_to_use(dftable_base& t) {
-    return {t.raw_column(left)};
+    std::string target = left;
+    if (left == "*") { // to support case like count("*")
+      auto cols = t.columns();
+      require(cols.size() > 0, "columns_to_use (*): input table has no column!\n");
+      target = cols[0];
+    }
+    return {t.raw_column(target)};
   }
   virtual std::vector<std::shared_ptr<dfcolumn>>
   columns_to_use(dftable_base& t1, dftable_base& t2) {
@@ -136,6 +148,11 @@ struct dfoperator : public dffunction {
   virtual std::shared_ptr<dfoperator> exchange_lr() {
     throw std::runtime_error
       ("exchange_lr (used for bcast_join) on this operator is not implemented");
+  }
+  virtual std::shared_ptr<dfoperator> 
+  modify_order(dftable_base& t1, dftable_base& t2) {
+    throw std::runtime_error
+      ("modify_order on this operator is not implemented");
   }
 };
 
@@ -250,6 +267,19 @@ struct dfoperator_eq : public dfoperator {
   }
   virtual std::shared_ptr<dfoperator> exchange_lr() {
     return std::make_shared<dfoperator_eq>(dfoperator_eq(right, left));
+  }
+  virtual std::shared_ptr<dfoperator> 
+  modify_order(dftable_base& t1, dftable_base& t2) {
+    std::shared_ptr<dfoperator> ret;
+    try {
+      columns_to_use(t1, t2);
+      ret = std::make_shared<dfoperator_eq>(*this);
+    } catch(std::exception& e) {
+      std::string msg = e.what();
+      if(msg.find("no such column") != std::string::npos ) ret = exchange_lr();
+      else throw e;
+    }
+    return ret;
   }
 
   std::shared_ptr<dffunction> left, right;
@@ -536,6 +566,19 @@ struct dfoperator_lt : public dfoperator {
     return left_column->bcast_join_lt(right_column, left_idx, right_idx);
   }
   virtual std::shared_ptr<dfoperator> exchange_lr();
+  virtual std::shared_ptr<dfoperator> 
+  modify_order(dftable_base& t1, dftable_base& t2) {
+    std::shared_ptr<dfoperator> ret;
+    try {
+      columns_to_use(t1, t2);
+      ret = std::make_shared<dfoperator_lt>(*this);
+    } catch(std::exception& e) {
+      std::string msg = e.what();
+      if(msg.find("no such column") != std::string::npos ) ret = exchange_lr();
+      else throw e;
+    }
+    return ret;
+  }
 
   std::shared_ptr<dffunction> left, right;
   std::string as_name;
@@ -617,6 +660,19 @@ struct dfoperator_ge : public dfoperator {
     return left_column->bcast_join_ge(right_column, left_idx, right_idx);
   }
   virtual std::shared_ptr<dfoperator> exchange_lr();
+  virtual std::shared_ptr<dfoperator> 
+  modify_order(dftable_base& t1, dftable_base& t2) {
+    std::shared_ptr<dfoperator> ret;
+    try {
+      columns_to_use(t1, t2);
+      ret = std::make_shared<dfoperator_ge>(*this);
+    } catch(std::exception& e) {
+      std::string msg = e.what();
+      if(msg.find("no such column") != std::string::npos ) ret = exchange_lr();
+      else throw e;
+    }
+    return ret;
+  }
 
   std::shared_ptr<dffunction> left, right;
   std::string as_name;
@@ -702,6 +758,19 @@ struct dfoperator_le : public dfoperator {
     return left_column->bcast_join_le(right_column, left_idx, right_idx);
   }
   virtual std::shared_ptr<dfoperator> exchange_lr();
+  virtual std::shared_ptr<dfoperator> 
+  modify_order(dftable_base& t1, dftable_base& t2) {
+    std::shared_ptr<dfoperator> ret;
+    try {
+      columns_to_use(t1, t2);
+      ret = std::make_shared<dfoperator_le>(*this);
+    } catch(std::exception& e) {
+      std::string msg = e.what();
+      if(msg.find("no such column") != std::string::npos ) ret = exchange_lr();
+      else throw e;
+    }
+    return ret;
+  }
 
   std::shared_ptr<dffunction> left, right;
   std::string as_name;
@@ -783,6 +852,19 @@ struct dfoperator_gt : public dfoperator {
     return left_column->bcast_join_gt(right_column, left_idx, right_idx);
   }
   virtual std::shared_ptr<dfoperator> exchange_lr();
+  virtual std::shared_ptr<dfoperator> 
+  modify_order(dftable_base& t1, dftable_base& t2) {
+    std::shared_ptr<dfoperator> ret;
+    try {
+      columns_to_use(t1, t2);
+      ret = std::make_shared<dfoperator_gt>(*this);
+    } catch(std::exception& e) {
+      std::string msg = e.what();
+      if(msg.find("no such column") != std::string::npos ) ret = exchange_lr();
+      else throw e;
+    }
+    return ret;
+  }
 
   std::shared_ptr<dffunction> left, right;
   std::string as_name;
@@ -1531,6 +1613,46 @@ struct dfoperator_and : public dfoperator {
     if(!left2 || !right2) throw std::runtime_error("join by non operator");
     return std::make_shared<dfoperator_and>
       (dfoperator_and(left2->exchange_lr(), right2->exchange_lr()));
+  }
+  virtual std::shared_ptr<dfoperator> 
+  modify_order(dftable_base& t1, dftable_base& t2) {
+    auto left2 = std::dynamic_pointer_cast<dfoperator>(left);
+    auto right2 = std::dynamic_pointer_cast<dfoperator>(right);
+    if(!left2 || !right2) throw std::runtime_error("join by non operator");
+
+    bool left_ok = true;
+    try {
+      left2->columns_to_use(t1, t2);
+    } catch(std::exception& e) {
+      std::string msg = e.what();
+      if(msg.find("no such column") != std::string::npos) left_ok = false;
+      else throw e;
+    }
+
+    bool right_ok = true;
+    try {
+      right2->columns_to_use(t1, t2);
+    } catch(std::exception& e) {
+      std::string msg = e.what();
+      if(msg.find("no such column") != std::string::npos) right_ok = false;
+      else throw e;
+    }
+
+    std::shared_ptr<dfoperator> ret;
+    if (left_ok && right_ok) {
+      ret = std::make_shared<dfoperator_and>(*this);
+    } else if (left_ok && !right_ok) {
+      auto m_right = right2->exchange_lr();
+      ret = std::make_shared<dfoperator_and>(left2, m_right);
+    } else if (!left_ok && right_ok) {
+      auto m_left = left2->exchange_lr();
+      ret = std::make_shared<dfoperator_and>(m_left, right2);
+    } else {
+      auto m_left = left2->exchange_lr();
+      auto m_right = right2->exchange_lr();
+      ret = std::make_shared<dfoperator_and>(m_left, m_right);
+    }
+    return ret;
   }
 
   std::shared_ptr<dffunction> left, right;

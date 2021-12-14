@@ -88,6 +88,34 @@ aggregate(dftable_base& table,
                    merge_map, row_sizes, ddof);
 }
 
+std::shared_ptr<dfcolumn>
+dfaggregator_std::
+aggregate(dftable_base& table,
+          node_local<std::vector<size_t>>& local_grouped_idx,
+          node_local<std::vector<size_t>>& local_idx_split,
+          node_local<std::vector<std::vector<size_t>>>& hash_divide,
+          node_local<std::vector<std::vector<size_t>>>& merge_map,
+          node_local<size_t>& row_sizes) {
+  dftable_base sliced_table = table;
+  auto colp = col->execute(sliced_table);
+  return colp->std(local_grouped_idx, local_idx_split, hash_divide,
+                   merge_map, row_sizes, ddof);
+}
+
+std::shared_ptr<dfcolumn>
+dfaggregator_mad::
+aggregate(dftable_base& table,
+          node_local<std::vector<size_t>>& local_grouped_idx,
+          node_local<std::vector<size_t>>& local_idx_split,
+          node_local<std::vector<std::vector<size_t>>>& hash_divide,
+          node_local<std::vector<std::vector<size_t>>>& merge_map,
+          node_local<size_t>& row_sizes) {
+  dftable_base sliced_table = table;
+  auto colp = col->execute(sliced_table);
+  return colp->mad(local_grouped_idx, local_idx_split, hash_divide,
+                   merge_map, row_sizes);
+}
+
 std::shared_ptr<dfcolumn> 
 dfaggregator_max::
 aggregate(dftable_base& table,
@@ -202,6 +230,24 @@ dfaggregator_sem::
 whole_column_aggregate(dftable_base& table) {
   auto colp = col->execute(table);
   double r = colp->sem(ddof);
+  std::vector<double> v = {r};
+  return std::make_shared<typed_dfcolumn<double>>(make_dvector_scatter(v));
+}
+
+std::shared_ptr<dfcolumn>
+dfaggregator_std::
+whole_column_aggregate(dftable_base& table) {
+  auto colp = col->execute(table);
+  double r = colp->std(ddof);
+  std::vector<double> v = {r};
+  return std::make_shared<typed_dfcolumn<double>>(make_dvector_scatter(v));
+}
+
+std::shared_ptr<dfcolumn>
+dfaggregator_mad::
+whole_column_aggregate(dftable_base& table) {
+  auto colp = col->execute(table);
+  double r = colp->mad();
   std::vector<double> v = {r};
   return std::make_shared<typed_dfcolumn<double>>(make_dvector_scatter(v));
 }
@@ -350,6 +396,15 @@ std::shared_ptr<dfaggregator> size_as(const std::shared_ptr<dffunction>& col,
   return std::make_shared<dfaggregator_size>(col,as);
 }
 
+// size (including nulls) of any column
+std::shared_ptr<dfaggregator> count_all() {
+  return std::make_shared<dfaggregator_size>(id_col("*"));
+}
+
+std::shared_ptr<dfaggregator> count_all_as(const std::string& as) {
+  return std::make_shared<dfaggregator_size>(id_col("*"),as);
+}
+
 std::shared_ptr<dfaggregator> avg(const std::string& col) {
   return std::make_shared<dfaggregator_avg>(id_col(col));
 }
@@ -408,6 +463,45 @@ std::shared_ptr<dfaggregator> sem_as(const std::shared_ptr<dffunction>& col,
                                      const std::string& as,
                                      const double& ddof) {
   return std::make_shared<dfaggregator_sem>(col,as, ddof);
+}
+
+std::shared_ptr<dfaggregator> std(const std::string& col, const double& ddof) {
+  return std::make_shared<dfaggregator_std>(id_col(col), ddof);
+}
+
+std::shared_ptr<dfaggregator> std(const std::shared_ptr<dffunction>& col,
+                                  const double& ddof) {
+  return std::make_shared<dfaggregator_std>(col, ddof);
+}
+
+std::shared_ptr<dfaggregator> std_as(const std::string& col,
+                                     const std::string& as,
+                                     const double& ddof) {
+  return std::make_shared<dfaggregator_std>(id_col(col),as, ddof);
+}
+
+std::shared_ptr<dfaggregator> std_as(const std::shared_ptr<dffunction>& col,
+                                     const std::string& as,
+                                     const double& ddof) {
+  return std::make_shared<dfaggregator_std>(col,as, ddof);
+}
+
+std::shared_ptr<dfaggregator> mad(const std::string& col) {
+  return std::make_shared<dfaggregator_mad>(id_col(col));
+}
+
+std::shared_ptr<dfaggregator> mad(const std::shared_ptr<dffunction>& col) {
+  return std::make_shared<dfaggregator_mad>(col);
+}
+
+std::shared_ptr<dfaggregator> mad_as(const std::string& col,
+                                     const std::string& as) {
+  return std::make_shared<dfaggregator_mad>(id_col(col),as);
+}
+
+std::shared_ptr<dfaggregator> mad_as(const std::shared_ptr<dffunction>& col,
+                                     const std::string& as) {
+  return std::make_shared<dfaggregator_mad>(col,as);
 }
 
 std::shared_ptr<dfaggregator> max(const std::string& col) {

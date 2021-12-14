@@ -26,6 +26,9 @@ object DTYPE extends java.io.Serializable {
     else if (x.isInstanceOf[Double])  ret = DOUBLE
     else if (x.isInstanceOf[String])  ret = STRING
     else if (x.isInstanceOf[Boolean]) ret = BOOL
+    // to support sql.functions.lit(x): x will always be treated as double
+    else if (x.isInstanceOf[org.apache.spark.sql.Column] &&
+            !x.isInstanceOf[org.apache.spark.sql.ColumnName]) ret = DOUBLE
     else throw new IllegalArgumentException("Unknown Any Type!") 
     return ret
   }

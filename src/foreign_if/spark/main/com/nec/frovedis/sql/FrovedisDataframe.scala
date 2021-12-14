@@ -110,28 +110,6 @@ object TMAPPER {
   }
 }
 
-object converter {
-  def cast(v: String, to_type: Short): Any = {
-    return to_type match {
-      case DTYPE.INT => v.toInt
-      case DTYPE.LONG => v.toLong
-      case DTYPE.FLOAT => v.toFloat
-      case DTYPE.DOUBLE => v.toDouble
-      case DTYPE.BOOL => v.toBoolean
-      case DTYPE.STRING => v
-      case _ => throw new IllegalArgumentException("Unsupported type: " + TMAPPER.id2string(to_type))
-    }
-  }
-}
-
-object DFConverter {
-  def toDF(row: Array[Row], schema: StructType): DataFrame = {
-    val spark = SparkSession.builder.getOrCreate()
-    val ctxt = SparkContext.getOrCreate()
-    return spark.createDataFrame(ctxt.parallelize(row), schema)
-  }
-}
-
 object sDFTransfer extends java.io.Serializable {
   def copy_local_data(
     index: Int, destId: Int,
@@ -447,10 +425,27 @@ class FrovedisDataFrame extends java.io.Serializable {
   // Usage: df.select($$"colA", $$"colB" + 1)
   def select(c: FrovedisColumn*): FrovedisDataFrame = {
     if(fdata == -1) throw new IllegalArgumentException("Invalid Frovedis dataframe!")
-    val funcs = c.toArray.map(x => x.get())
-    val size = funcs.size
+    val c_arr = c.toArray
+    val size = c_arr.size
+    val funcs = new Array[Long](size)
+    var aggcnt = 0
+    for (i <- 0 until size) { 
+      val tmp = c_arr(i)
+      if(tmp.isSCALAR)
+        throw new IllegalArgumentException("select: currently doesn't support literals!\n")
+      funcs(i) = tmp.get()
+      aggcnt = aggcnt + (if (tmp.isAGG) 1 else 0)
+    }
     val fs = FrovedisServer.getServerInstance()
-    val dummy = JNISupport.fselectFrovedisDataframe(fs.master_node,get(),funcs,size)
+    var dummy: DummyDftable = null
+    if (aggcnt > 0) {
+      if (aggcnt != size)
+        throw new IllegalArgumentException("select: few non-aggregator functions are detected!")
+      dummy = JNISupport.executeFrovedisAgg(fs.master_node, get(), funcs, size)
+    } else {
+      dummy = JNISupport.fselectFrovedisDataframe(fs.master_node, get(),
+                                                  funcs, size)
+    }
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
     return new FrovedisDataFrame(dummy)
@@ -569,8 +564,6 @@ class FrovedisDataFrame extends java.io.Serializable {
       t_types = this.types ++ df_right.types
     }
     
-    this.show()
-    df_right.show() 
     var join_opt = opt
     if (opt.isID) {
       val cname = opt.colName
@@ -840,7 +833,6 @@ class FrovedisDataFrame extends java.io.Serializable {
       }
       df_schema += col_field
     }
-
     val resRdd = combine_rows_as_partitions(ret.toSeq)
     val res_df = spark.createDataFrame(resRdd, StructType(df_schema.toArray))
     return res_df
@@ -990,34 +982,23 @@ class FrovedisDataFrame extends java.io.Serializable {
     val all = cname.toArray.map(x => x.toString)
     return std(all)
   }
-  def agg(targets: Array[FrovedisAggr]): DataFrame = {
+  def agg(targets: Array[FrovedisColumn]): FrovedisDataFrame = {
     if(fdata == -1) throw new IllegalArgumentException("Invalid Frovedis dataframe!")
     val size = targets.length
-    val res = new Array[Any](size)
-    val field = new Array[StructField](size)
-      for (i <- 0 to (size-1)) {
-        val cname = targets(i).col_name
-        val func = targets(i).func_name
-        require(hasColumn(cname), "No column named: " + cname)
-        var asnm = targets(i).asCol_name
-        if (asnm == null) asnm = func + "(" + cname + ")"
-        var ret_type = TMAPPER.func2id(func)
-        if(ret_type == DTYPE.NONE) ret_type = getColumnType(cname)
-        res(i) = func match {
-          case "max" => converter.cast(max(cname)(0), ret_type)
-          case "min" => converter.cast(min(cname)(0), ret_type)
-          case "avg" => converter.cast(avg(cname)(0), ret_type)
-          case "sum" => converter.cast(sum(cname)(0), ret_type)
-          case "std" => converter.cast(std(cname)(0), ret_type)
-          case "count" => converter.cast(count(cname)(0), ret_type)
-      }
-      field(i) = StructField(asnm, TMAPPER.id2field(ret_type), true)      
+    val agg_proxies = new Array[Long](size)
+    for(i <- 0 until size) {
+      val func = targets(i)
+      if (!func.isAGG) throw new IllegalArgumentException(func.colName + 
+        " is not an aggregate function!\n")
+      agg_proxies(i) = func.get()
     }
-    val row = Row.fromSeq(res.toSeq)
-    val schema = StructType(field)
-    return DFConverter.toDF(Array(row), schema)
+    val fs = FrovedisServer.getServerInstance()
+    val dummy = JNISupport.executeFrovedisAgg(fs.master_node,get(),agg_proxies,size)
+    val info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
+    return new FrovedisDataFrame(dummy)
   }
-  def agg(x: FrovedisAggr, y: FrovedisAggr*): DataFrame = {
+  def agg(x: FrovedisColumn, y: FrovedisColumn*): FrovedisDataFrame = {
     val arr = (Array(x) ++ y).toArray
     return agg(arr)
   }
@@ -1033,7 +1014,7 @@ class FrovedisDataFrame extends java.io.Serializable {
     }
     return ret.toArray
   }
-  def describe(): DataFrame = {
+  def describe(): DataFrame = { // TODO: define in library to return frovedis dataframe
     val ct = get_numeric_dtypes()
     val tids = ct.map(_._1)
     val targets = ct.map(_._2)
@@ -1158,9 +1139,16 @@ class FrovedisDataFrame extends java.io.Serializable {
     return new FrovedisSparseData(dmat)
   }
 
-  def withColumn(cname: String, op: FrovedisColumn): FrovedisDataFrame = { // append in-place
+  def withColumn(cname: String, 
+                 op: FrovedisColumn): FrovedisDataFrame = { 
     val fs = FrovedisServer.getServerInstance()
-    val dummy = JNISupport.executeDFfunc(fs.master_node, get(), op.get())
+    var dummy: DummyDftable = null
+    if (op.isSCALAR) {
+      dummy = JNISupport.appendScalar(fs.master_node, get(), cname, 
+                                      op.colName, op.get_dtype())
+    } else {
+      dummy = JNISupport.executeDFfunc(fs.master_node, get(), cname, op.get())
+    }
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
     return new FrovedisDataFrame(dummy)

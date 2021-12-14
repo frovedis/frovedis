@@ -375,7 +375,7 @@ JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_renameFrovedisDa
 
 JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_selectFrovedisGroupedData
   (JNIEnv *env, jclass thisCls, jobject master_node, jlong gdftable, 
-   jobjectArray cols, jint sz) {
+   jobjectArray cols, jint sz) { // part/all of groupedCols
   auto fm_node = java_node_to_frovedis_node(env, master_node);
   auto proxy = static_cast<exrpc_ptr_t> (gdftable);
   auto tcols = to_string_vector(env, cols, sz);
@@ -387,23 +387,53 @@ JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_selectFrovedisGr
   return (jlong) ret;
 }
 
-JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_aggrFrovedisDataframe
+JNIEXPORT jobject JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_aggSelectFrovedisGroupedData
   (JNIEnv *env, jclass thisCls, jobject master_node, jlong gdftable, 
-   jobjectArray gCols, jint sz1, jobjectArray aFuncs, 
-   jobjectArray aCols, jobjectArray aAsCols, jint sz2) {
+   jobjectArray gCols, jint sz1, jlongArray aggp, jint sz2) { // only dfaggregator
 
   auto fm_node = java_node_to_frovedis_node(env, master_node);
   auto proxy = static_cast<exrpc_ptr_t> (gdftable);
   auto groupCols = to_string_vector(env,gCols,sz1);
-  auto aggFuncs = to_string_vector(env,aFuncs,sz2);
-  auto aggCols = to_string_vector(env,aCols,sz2);
-  auto aggAsCols = to_string_vector(env,aAsCols,sz2);
-  exrpc_ptr_t ret = 0;
+  auto aggp_ = to_exrpc_vector(env,aggp,sz2);
+  dummy_dftable ret;
   try {
-    ret = exrpc_async(fm_node,frovedis_gdf_aggr,proxy,groupCols,aggFuncs,aggCols,aggAsCols).get();
+    ret = exrpc_async(fm_node, frovedis_gdf_agg_select,
+                      proxy, groupCols, aggp_).get();
   }
   catch(std::exception& e) { set_status(true,e.what()); }
-  return (jlong) ret;
+  return to_spark_dummy_df(env, ret);
+}
+
+JNIEXPORT jobject JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_aggFselectFrovedisGroupedData
+  (JNIEnv *env, jclass thisCls, jobject master_node, jlong gdftable,
+   jlongArray funcp, jint sz1, jlongArray aggp, jint sz2) { // dffunction + dfaggregator
+
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto proxy = static_cast<exrpc_ptr_t> (gdftable);
+  auto funcp_ = to_exrpc_vector(env,funcp,sz1);
+  auto aggp_ = to_exrpc_vector(env,aggp,sz2);
+  dummy_dftable ret;
+  try {
+    ret = exrpc_async(fm_node, frovedis_gdf_agg_fselect,
+                      proxy, funcp_, aggp_).get();
+  }
+  catch(std::exception& e) { set_status(true,e.what()); }
+  return to_spark_dummy_df(env, ret);
+}
+
+JNIEXPORT jobject JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_FselectFrovedisGroupedData
+  (JNIEnv *env, jclass thisCls, jobject master_node, jlong gdftable,
+   jlongArray funcp, jint sz) { // only dffunction
+
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto proxy = static_cast<exrpc_ptr_t> (gdftable);
+  auto funcp_ = to_exrpc_vector(env,funcp,sz);
+  dummy_dftable ret;
+  try {
+    ret = exrpc_async(fm_node, frovedis_gdf_fselect, proxy, funcp_).get();
+  }
+  catch(std::exception& e) { set_status(true,e.what()); }
+  return to_spark_dummy_df(env, ret);
 }
 
 JNIEXPORT jobject JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_DFToRowmajorMatrix
@@ -622,16 +652,65 @@ JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getOptImmedDFfun
   return (jlong) proxy;
 }
 
-JNIEXPORT jobject JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_executeDFfunc
+JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getDFagg
+  (JNIEnv *env, jclass thisCls, jobject master_node,
+   jlong left, jshort opt, jstring colname) {
+
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto leftp = (exrpc_ptr_t) left;
+  auto cname = to_cstring(env, colname);
+  exrpc_ptr_t proxy = 0;
+  try {
+    proxy = exrpc_async(fm_node, get_dffunc_agg, leftp, opt, cname).get();
+  }
+  catch(std::exception& e) { set_status(true,e.what()); }
+  return (jlong) proxy;
+}
+
+JNIEXPORT jobject JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_appendScalar
   (JNIEnv *env, jclass thisCls, jobject master_node, 
-   jlong df_proxy, jlong fn_proxy) {
+   jlong df_proxy, jstring name, jstring scalar, jshort dtype) {
 
   auto fm_node = java_node_to_frovedis_node(env, master_node);
   auto dfp = (exrpc_ptr_t) df_proxy;
+  auto cname = to_cstring(env, name);
+  auto value = to_cstring(env, scalar);
+  short dt = dtype;
+  dummy_dftable ret;
+  try {
+    ret = exrpc_async(fm_node, append_scalar, dfp, cname, value, dt).get();
+  }
+  catch(std::exception& e) { set_status(true,e.what()); }
+  return to_spark_dummy_df(env, ret);
+}
+
+JNIEXPORT jobject JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_executeDFfunc
+  (JNIEnv *env, jclass thisCls, jobject master_node,
+   jlong df_proxy, jstring name, jlong fn_proxy) {
+
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto dfp = (exrpc_ptr_t) df_proxy;
+  auto cname = to_cstring(env, name);
   auto fnp = (exrpc_ptr_t) fn_proxy;
   dummy_dftable ret;
   try {
-    ret = exrpc_async(fm_node, execute_dffunc, dfp, fnp).get();
+    ret = exrpc_async(fm_node, execute_dffunc, dfp, cname, fnp).get();
+  }
+  catch(std::exception& e) { set_status(true,e.what()); }
+  return to_spark_dummy_df(env, ret);
+}
+
+
+JNIEXPORT jobject JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_executeFrovedisAgg
+  (JNIEnv *env, jclass thisCls, jobject master_node, 
+   jlong df_proxy, jlongArray agg_proxies, jlong size) {
+
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto dfp = (exrpc_ptr_t) df_proxy;
+  auto agg = to_exrpc_vector(env, agg_proxies, size);
+  dummy_dftable ret;
+  try {
+    ret = exrpc_async(fm_node, execute_dfagg, dfp, agg).get();
   }
   catch(std::exception& e) { set_status(true,e.what()); }
   return to_spark_dummy_df(env, ret);
@@ -658,6 +737,18 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_setDFfuncAsColNam
   auto name = to_cstring(env, as_name);
   try {
     exrpc_oneway(fm_node, set_dffunc_asCol_name, fnp, name);
+  }
+  catch(std::exception& e) { set_status(true,e.what()); }
+}
+
+JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_setDFAggAsColName
+  (JNIEnv *env, jclass thisCls, jobject master_node,
+   jlong fn_proxy, jstring as_name) {
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto fnp = (exrpc_ptr_t) fn_proxy;
+  auto name = to_cstring(env, as_name);
+  try {
+    exrpc_oneway(fm_node, set_dfagg_asCol_name, fnp, name);
   }
   catch(std::exception& e) { set_status(true,e.what()); }
 }

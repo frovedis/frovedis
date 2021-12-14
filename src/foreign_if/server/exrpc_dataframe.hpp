@@ -123,10 +123,20 @@ exrpc_ptr_t get_dffunc_id(std::string& cname);
 exrpc_ptr_t get_dffunc_opt(exrpc_ptr_t& leftp, exrpc_ptr_t& rightp,
                            short& opt_id, std::string& cname);
 
-dummy_dftable execute_dffunc(exrpc_ptr_t& dfproxy, exrpc_ptr_t& dffunc); 
+exrpc_ptr_t get_dffunc_agg(exrpc_ptr_t& leftp,
+                           short& opt_id,std::string& cname);
+
+dummy_dftable append_scalar(exrpc_ptr_t& dfproxy, std::string& cname, 
+                            std::string& value, short& dtype);
+
+dummy_dftable execute_dffunc(exrpc_ptr_t& dfproxy, std::string& cname,
+                             exrpc_ptr_t& dffunc); 
+
+dummy_dftable execute_dfagg(exrpc_ptr_t& dfproxy, std::vector<exrpc_ptr_t>& agg); 
 
 void set_dffunc_asCol_name(exrpc_ptr_t& fn, std::string& cname);
 
+void set_dfagg_asCol_name(exrpc_ptr_t& fn, std::string& cname);
 
 exrpc_ptr_t get_immed_string_dffunc_opt(exrpc_ptr_t& leftp,
                                         std::string& right,
@@ -134,6 +144,7 @@ exrpc_ptr_t get_immed_string_dffunc_opt(exrpc_ptr_t& leftp,
                                         std::string& cname);
 
 // for immediate value (right) of non-string type, T
+// where left is a "dffunction", used in spark wrapper
 template <class T>
 exrpc_ptr_t get_immed_dffunc_opt(exrpc_ptr_t& leftp,
                                  std::string& right_str,
@@ -141,7 +152,7 @@ exrpc_ptr_t get_immed_dffunc_opt(exrpc_ptr_t& leftp,
                                  std::string& cname) {
   auto& left = *reinterpret_cast<std::shared_ptr<dffunction>*>(leftp);
   std::shared_ptr<dffunction> *opt = NULL;
-  if(opt_id == LIKE || opt_id == NLIKE) {
+  if(opt_id == LIKE || opt_id == NLIKE) { // casting not required
     switch(opt_id) {
       case LIKE:  opt = new std::shared_ptr<dffunction>(is_like(left, right_str)->as(cname)); break;
       case NLIKE: opt = new std::shared_ptr<dffunction>(is_not_like(left, right_str)->as(cname)); break;
@@ -150,6 +161,14 @@ exrpc_ptr_t get_immed_dffunc_opt(exrpc_ptr_t& leftp,
   } else { 
     auto right = do_cast<T>(right_str);
     switch(opt_id) {
+      // --- conditional ---
+      case EQ:   opt = new std::shared_ptr<dffunction>(eq_im(left, right)->as(cname)); break;
+      case NE:   opt = new std::shared_ptr<dffunction>(neq_im(left, right)->as(cname)); break;
+      case LT:   opt = new std::shared_ptr<dffunction>(lt_im(left, right)->as(cname)); break;
+      case LE:   opt = new std::shared_ptr<dffunction>(le_im(left, right)->as(cname)); break;
+      case GT:   opt = new std::shared_ptr<dffunction>(gt_im(left, right)->as(cname)); break;
+      case GE:   opt = new std::shared_ptr<dffunction>(ge_im(left, right)->as(cname)); break;
+      // --- mathematical ---
       case ADD:  opt = new std::shared_ptr<dffunction>(add_im_as(left, right, cname)); break;
       case SUB:  opt = new std::shared_ptr<dffunction>(sub_im_as(left, right, cname)); break;
       case MUL:  opt = new std::shared_ptr<dffunction>(mul_im_as(left, right, cname)); break;
@@ -157,18 +176,13 @@ exrpc_ptr_t get_immed_dffunc_opt(exrpc_ptr_t& leftp,
       case FDIV: opt = new std::shared_ptr<dffunction>(fdiv_im_as(left, right, cname)); break;
       case MOD:  opt = new std::shared_ptr<dffunction>(mod_im_as(left, right, cname)); break;
       case POW:  opt = new std::shared_ptr<dffunction>(pow_im_as(left, right, cname)); break;
-      case EQ:   opt = new std::shared_ptr<dffunction>(eq_im(left, right)->as(cname)); break;
-      case NE:   opt = new std::shared_ptr<dffunction>(neq_im(left, right)->as(cname)); break;
-      case LT:   opt = new std::shared_ptr<dffunction>(lt_im(left, right)->as(cname)); break;
-      case LE:   opt = new std::shared_ptr<dffunction>(le_im(left, right)->as(cname)); break;
-      case GT:   opt = new std::shared_ptr<dffunction>(gt_im(left, right)->as(cname)); break;
-      case GE:   opt = new std::shared_ptr<dffunction>(ge_im(left, right)->as(cname)); break;
       default:   REPORT_ERROR(USER_ERROR, "Unsupported dffunction is requested!\n");
     }
   }
   return reinterpret_cast<exrpc_ptr_t> (opt);
 }
 
+// where left is a "String", used in python wrapper
 template <class T>
 exrpc_ptr_t get_dfoperator(std::string& op1, std::string& op2,
                            short& op_id, bool& isImmed) {
@@ -214,7 +228,7 @@ exrpc_ptr_t get_dfORoperator(exrpc_ptr_t& lopt_proxy, exrpc_ptr_t& ropt_proxy);
 exrpc_ptr_t get_dfNOToperator(exrpc_ptr_t& opt_proxy);
 exrpc_ptr_t filter_df(exrpc_ptr_t& df_proxy, exrpc_ptr_t& opt_proxy);
 exrpc_ptr_t select_df(exrpc_ptr_t& df_proxy, std::vector<std::string>& cols);
-dummy_dftable fselect_df(exrpc_ptr_t& df_proxy, std::vector<exrpc_ptr_t>& funcs_proxy);
+dummy_dftable fselect_df(exrpc_ptr_t& df_proxy, std::vector<exrpc_ptr_t>& funcp);
 exrpc_ptr_t isnull_df(exrpc_ptr_t& df_proxy, std::vector<std::string>& cols, 
                       bool& with_index);
 void drop_df_cols(exrpc_ptr_t& df_proxy, std::vector<std::string>& cols);
@@ -317,6 +331,19 @@ dummy_vector get_df_col(exrpc_ptr_t& df_proxy,
 
 exrpc_ptr_t frovedis_gdf_select(exrpc_ptr_t& df_proxy, 
                                 std::vector<std::string>& tcols);
+
+dummy_dftable frovedis_gdf_fselect(exrpc_ptr_t& df_proxy, 
+                                   std::vector<exrpc_ptr_t>& funcp);
+
+dummy_dftable 
+frovedis_gdf_agg_select(exrpc_ptr_t& df_proxy,
+                        std::vector<std::string>& cols,
+                        std::vector<exrpc_ptr_t>& aggp);
+
+dummy_dftable 
+frovedis_gdf_agg_fselect(exrpc_ptr_t& df_proxy,
+                        std::vector<exrpc_ptr_t>& funcp,
+                        std::vector<exrpc_ptr_t>& aggp);
 
 exrpc_ptr_t frovedis_gdf_aggr(exrpc_ptr_t& df_proxy, 
                               std::vector<std::string>& groupedCols,

@@ -1,6 +1,7 @@
 package com.nec.frovedis.sql;
 
 import com.nec.frovedis.Jexrpc._
+import com.nec.frovedis.Jmllib.DummyDftable
 import com.nec.frovedis.matrix.DTYPE
 import scala.collection.mutable.ArrayBuffer
 
@@ -57,34 +58,50 @@ class FrovedisGroupedDF extends java.io.Serializable {
   def get() = fdata
 
   // --- aggregate functions ---
-  def agg(targets: Array[FrovedisAggr]): FrovedisDataFrame = {
+  def agg(targets: Array[FrovedisColumn]): FrovedisDataFrame = {
     if(fdata == -1) throw new IllegalArgumentException("Invalid Frovedis dataframe!")
     val size = targets.length
-    val aggCols = new Array[String](size)
-    val aggFuncs = new Array[String](size)
-    val aggAsCols = new Array[String](size)
-    val aggAsTypes = new Array[Short](size)
-    for (i <- 0 to (size-1)) {
-      val c = targets(i).col_name
-      require(hasColumn(c), "No column named: " + c)
-      aggCols(i) = c
-      aggFuncs(i) = targets(i).func_name
-      var asnm = targets(i).asCol_name
-      if (asnm == null) asnm = aggFuncs(i) + "(" + aggCols(i) + ")"
-      aggAsCols(i) = asnm
-      aggAsTypes(i) = TMAPPER.func2id(aggFuncs(i))
-      if(aggAsTypes(i) == DTYPE.NONE) aggAsTypes(i) = getColumnType(aggCols(i))
+    val aggp  = new ArrayBuffer[Long]()
+    val funcp = new ArrayBuffer[Long]()
+    for(i <- 0 until size) {
+      val t = targets(i)
+      if (t.isAGG)  aggp += t.get()
+      else {
+        // exclude dffunctions which is already included in groupedCols
+        if (!(groupedCols contains t.colName)) funcp += t.get()
+      }
     }
+    val aggp_arr  = aggp.toArray
+    var funcp_arr = funcp.toArray
     val fs = FrovedisServer.getServerInstance()
-    val proxy = JNISupport.aggrFrovedisDataframe(fs.master_node,get(),
-                                                 groupedCols, groupedCols.length,
-                                                 aggFuncs,aggCols,aggAsCols,size)
+    var dummy: DummyDftable = null
+    if (funcp_arr.size > 0) {
+      // convert groupedCols as FrovedisColumn
+      val gsize = groupedCols.size
+      val gcolsp = new Array[Long](gsize)
+      for (i <- 0 until gsize) gcolsp(i) = functions.col(groupedCols(i)).get()
+      // merge groupedCols with input dffunctions
+      funcp_arr = (gcolsp ++ funcp_arr).toArray
+      if (aggp_arr.size > 0) {
+        dummy = JNISupport.aggFselectFrovedisGroupedData(fs.master_node, get(),
+                                                 funcp_arr, funcp_arr.size,
+                                                 aggp_arr, aggp_arr.size)
+      } else {
+        dummy = JNISupport.FselectFrovedisGroupedData(fs.master_node, get(),
+                                              funcp_arr, funcp_arr.size)
+      }
+    } else {
+      dummy = JNISupport.aggSelectFrovedisGroupedData(fs.master_node, get(),
+                                              groupedCols, groupedCols.size,
+                                              aggp_arr, aggp_arr.size)
+    }
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
-    val tot_cols  = this.groupedCols ++ aggAsCols
-    val tot_types = this.groupedTypes ++ aggAsTypes
-    return new FrovedisDataFrame(proxy,tot_cols,tot_types)
+    return new FrovedisDataFrame(dummy)
   }
+  def agg(x: FrovedisColumn, y: FrovedisColumn*): 
+    FrovedisDataFrame = agg((Array(x) ++ y).toArray)
+
   def select(targets: Array[String]): FrovedisDataFrame = {
     val size = targets.length
     val types = new Array[Short](size)
@@ -98,113 +115,99 @@ class FrovedisGroupedDF extends java.io.Serializable {
   }
   // Usage: df.select("colA")
   // Usage: df.select("colA", "colB") ... any number of column names
-  def select(must: String, optional: String*): FrovedisDataFrame = {
-    val all = (Array(must) ++ optional).toArray.map(x => x.toString)
-    return select(all)
-  }
-  // Usage: df.select($$"colA", $$"colB")
-  def select(c: FrovedisColumn*): FrovedisDataFrame = {
-    val all = c.toArray.map(x => x.toString)
-    return select(all)
-  }
-  def agg(x: FrovedisAggr, y: FrovedisAggr*): FrovedisDataFrame = {
-    val arr = (Array(x) ++ y).toArray
-    return agg(arr)
-  }
+  def select(must: String, opt: String*): 
+    FrovedisDataFrame = select((Array(must) ++ opt).toArray)
+  
   // --- count ---
-  def count(): FrovedisDataFrame = {
-    val fagg_arg = functions.count(groupedCols(0)).as("count")
-    return agg(fagg_arg)
-  }
+  def count(): FrovedisDataFrame = agg(functions.count(groupedCols(0)).as("count"))
 
   // --- max ---
   def max(cnames: Array[String]): FrovedisDataFrame = {
-    val fagg_args = new Array[FrovedisAggr](cnames.length)
+    val fagg_args = new Array[FrovedisColumn](cnames.length)
     for (i <- 0 until cnames.length) fagg_args(i) = functions.max(cnames(i))
     return agg(fagg_args)
   }
-  def max(): FrovedisDataFrame = {
-    return max(getNumericCols)
-  }
+
+  def max(): FrovedisDataFrame = max(getNumericCols)
+
   // Usage: FrovedisGroupedDF-object.max("colA", "colB") // ... any number of strings
-  def max(must: String, optional: String*): FrovedisDataFrame = {
-    max((Array(must) ++ optional).toArray.map(x => x.toString))
-  }
+  def max(must: String, opt: String*): 
+    FrovedisDataFrame = max((Array(must) ++ opt).toArray)
+
   // Usage: FrovedisGroupedDF-object.max($$"colA", $$"colB") // ... any number of cols in $$"name" form
-  def max(must: FrovedisColumn, optional: FrovedisColumn*): FrovedisDataFrame = {
-    max((Array(must) ++ optional).toArray.map(x => x.toString))
+  def max(must: FrovedisColumn, opt: FrovedisColumn*): FrovedisDataFrame = {
+    return agg((Array(must) ++ opt).toArray.map(x => functions.max(x)))
   }
 
   // --- min ---
   def min(cnames: Array[String]): FrovedisDataFrame = {
-    val fagg_args = new Array[FrovedisAggr](cnames.length)
+    val fagg_args = new Array[FrovedisColumn](cnames.length)
     for (i <- 0 until cnames.length) fagg_args(i) = functions.min(cnames(i))
     return agg(fagg_args)
   }
-  def min(): FrovedisDataFrame = {
-    return min(getNumericCols)
-  }
+
+  def min(): FrovedisDataFrame = min(getNumericCols)
+
   // Usage: FrovedisGroupedDF-object.min("colA", "colB") // ... any number of strings
-  def min(must: String, optional: String*): FrovedisDataFrame = {
-    min((Array(must) ++ optional).toArray.map(x => x.toString))
-  }
+  def min(must: String, opt: String*):
+    FrovedisDataFrame = min((Array(must) ++ opt).toArray)
+  
   // Usage: FrovedisGroupedDF-object.min($$"colA", $$"colB") // ... any number of cols in $$"name" form
-  def min(must: FrovedisColumn, optional: FrovedisColumn*): FrovedisDataFrame = {
-    min((Array(must) ++ optional).toArray.map(x => x.toString))
+  def min(must: FrovedisColumn, opt: FrovedisColumn*): FrovedisDataFrame = {
+    return agg((Array(must) ++ opt).toArray.map(x => functions.min(x)))
   }
 
   // --- sum ---
   def sum(cnames: Array[String]): FrovedisDataFrame = {
-    val fagg_args = new Array[FrovedisAggr](cnames.length)
+    val fagg_args = new Array[FrovedisColumn](cnames.length)
     for (i <- 0 until cnames.length) fagg_args(i) = functions.sum(cnames(i))
     return agg(fagg_args)
   }
-  def sum(): FrovedisDataFrame = {
-    return sum(getNumericCols)
-  }
+
+  def sum(): FrovedisDataFrame = sum(getNumericCols)
+  
   // Usage: FrovedisGroupedDF-object.sum("colA", "colB") // ... any number of strings
-  def sum(must: String, optional: String*): FrovedisDataFrame = {
-    sum((Array(must) ++ optional).toArray.map(x => x.toString))
-  }
+  def sum(must: String, opt: String*): 
+    FrovedisDataFrame = sum((Array(must) ++ opt).toArray)
+ 
   // Usage: FrovedisGroupedDF-object.sum($$"colA", $$"colB") // ... any number of cols in $$"name" form
-  def sum(must: FrovedisColumn, optional: FrovedisColumn*): FrovedisDataFrame = {
-    sum((Array(must) ++ optional).toArray.map(x => x.toString))
+  def sum(must: FrovedisColumn, opt: FrovedisColumn*): FrovedisDataFrame = {
+    return agg((Array(must) ++ opt).toArray.map(x => functions.sum(x)))
   }
 
   // --- avg ---
   def avg(cnames: Array[String]): FrovedisDataFrame = {
-    val fagg_args = new Array[FrovedisAggr](cnames.length)
+    val fagg_args = new Array[FrovedisColumn](cnames.length)
     for (i <- 0 until cnames.length) fagg_args(i) = functions.avg(cnames(i))
     return agg(fagg_args)
   }
-  def avg(): FrovedisDataFrame = {
-    return avg(getNumericCols)
-  }
+
+  def avg(): FrovedisDataFrame = avg(getNumericCols)
+  
   // Usage: FrovedisGroupedDF-object.avg("colA", "colB") // ... any number of strings
-  def avg(must: String, optional: String*): FrovedisDataFrame = {
-    avg((Array(must) ++ optional).toArray.map(x => x.toString))
-  }
+  def avg(must: String, opt: String*): 
+    FrovedisDataFrame = avg((Array(must) ++ opt).toArray)
+  
   // Usage: FrovedisGroupedDF-object.avg($$"colA", $$"colB") // ... any number of cols in $$"name" form
-  def avg(must: FrovedisColumn, optional: FrovedisColumn*): FrovedisDataFrame = {
-    avg((Array(must) ++ optional).toArray.map(x => x.toString))
+  def avg(must: FrovedisColumn, opt: FrovedisColumn*): FrovedisDataFrame = {
+    return agg((Array(must) ++ opt).toArray.map(x => functions.avg(x)))
   }
 
   // --- mean ---
   def mean(cnames: Array[String]): FrovedisDataFrame = {
-    val fagg_args = new Array[FrovedisAggr](cnames.length)
+    val fagg_args = new Array[FrovedisColumn](cnames.length)
     for (i <- 0 until cnames.length) fagg_args(i) = functions.mean(cnames(i))
     return agg(fagg_args)
   }
-  def mean(): FrovedisDataFrame = {
-    return mean(getNumericCols)
-  }
-  // Usage: FrovedisGroupedDF-object.mean("colA", "colB") // ... any number of strings
-  def mean(must: String, optional: String*): FrovedisDataFrame = {
-    mean((Array(must) ++ optional).toArray.map(x => x.toString))
-  }
-  // Usage: FrovedisGroupedDF-object.mean($$"colA", $$"colB") // ... any number of cols in $$"name" form
-  def mean(must: FrovedisColumn, optional: FrovedisColumn*): FrovedisDataFrame = {
-    mean((Array(must) ++ optional).toArray.map(x => x.toString))
-  }
 
+  def mean(): FrovedisDataFrame = mean(getNumericCols)
+  
+  // Usage: FrovedisGroupedDF-object.mean("colA", "colB") // ... any number of strings
+  def mean(must: String, opt: String*): 
+    FrovedisDataFrame = mean((Array(must) ++ opt).toArray)
+  
+  // Usage: FrovedisGroupedDF-object.mean($$"colA", $$"colB") // ... any number of cols in $$"name" form
+  def mean(must: FrovedisColumn, opt: FrovedisColumn*): FrovedisDataFrame = {
+    return agg((Array(must) ++ opt).toArray.map(x => functions.mean(x)))
+  }
 }

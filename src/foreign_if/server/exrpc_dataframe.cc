@@ -29,6 +29,22 @@ void treat_str_nan_as_null(std::vector<std::string>& vec) {
   }
 }
 
+std::vector<std::shared_ptr<dffunction>>
+to_dffunction(std::vector<exrpc_ptr_t>& funcp) {
+  auto size = funcp.size();
+  std::vector<std::shared_ptr<dffunction>> func(size);
+  for(size_t i = 0; i < size; ++i) func[i] = *reinterpret_cast<std::shared_ptr<dffunction>*>(funcp[i]);
+  return func;
+}
+
+std::vector<std::shared_ptr<dfaggregator>>
+to_dfaggregator(std::vector<exrpc_ptr_t>& aggp) {
+  auto size = aggp.size();
+  std::vector<std::shared_ptr<dfaggregator>> agg(size);
+  for(size_t i = 0; i < size; ++i) agg[i] = *reinterpret_cast<std::shared_ptr<dfaggregator>*>(aggp[i]);
+  return agg;
+}
+
 exrpc_ptr_t create_dataframe (std::vector<short>& types,
                               std::vector<std::string>& cols,
                               std::vector<exrpc_ptr_t>& dvec_proxies,
@@ -195,14 +211,10 @@ exrpc_ptr_t select_df(exrpc_ptr_t& df_proxy,
 }
 
 dummy_dftable fselect_df(exrpc_ptr_t& df_proxy,
-                         std::vector<exrpc_ptr_t>& funcs_proxy) {
+                         std::vector<exrpc_ptr_t>& funcp) {
   auto& dftbl = *reinterpret_cast<dftable_base*>(df_proxy);
-  auto size = funcs_proxy.size();
-  std::vector<std::shared_ptr<dffunction>> funcs(size);
-  for(size_t i = 0; i < size; ++i) {
-    funcs[i] = *reinterpret_cast<std::shared_ptr<dffunction>*>(funcs_proxy[i]);
-  }
-  auto s_df_ptr = new dftable(dftbl.fselect(funcs));
+  auto func = to_dffunction(funcp);
+  auto s_df_ptr = new dftable(dftbl.fselect(func));
   if (!s_df_ptr) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed.\n");
   return to_dummy_dftable(s_df_ptr);
 }
@@ -258,7 +270,7 @@ exrpc_ptr_t join_df(exrpc_ptr_t& left_proxy,
   auto& left = *reinterpret_cast<dftable_base*>(left_proxy);
   auto& right = *reinterpret_cast<dftable_base*>(right_proxy);
   auto dfopt = *reinterpret_cast<std::shared_ptr<dfoperator>*>(opt_proxy);
-  if (check_opt_proxy) dfopt = dfopt->modify_right(rsuf);
+  if (check_opt_proxy) dfopt = dfopt->modify_right(rsuf)->modify_order(left, right);
   dftable_base *bptr = NULL;
   if (join_type == "bcast") {
     if (how == "inner") 
@@ -298,9 +310,11 @@ get_aggr(std::string& funcname,
   else if (funcname == "min")   ret = min_as(col,as_col);
   else if (funcname == "max")   ret = max_as(col,as_col);
   else if (funcname == "count") ret = count_as(col,as_col);
-  else if (funcname == "size") ret = size_as(col,as_col);
-  else if (funcname == "var") ret = var_as(col,as_col);
-  else if (funcname == "sem") ret = sem_as(col,as_col);
+  else if (funcname == "size")  ret = size_as(col,as_col);
+  else if (funcname == "var")   ret = var_as(col,as_col);
+  else if (funcname == "sem")   ret = sem_as(col,as_col);
+  else if (funcname == "std")   ret = std_as(col,as_col);
+  else if (funcname == "mad")   ret = mad_as(col,as_col); // TODO: define in library
   else REPORT_ERROR(USER_ERROR,"Unsupported aggregation function is requested!\n");
   return ret;
 }
@@ -313,6 +327,7 @@ get_aggr(std::string& funcname,
   std::shared_ptr<dfaggregator> ret;
   if (funcname == "var")        ret = var_as(col, as_col, ddof);
   else if (funcname == "sem")   ret = sem_as(col, as_col, ddof);
+  else if (funcname == "std")   ret = std_as(col, as_col, ddof);
   else REPORT_ERROR(USER_ERROR,"Unsupported aggregation function is requested!\n");
   return ret;
 }
@@ -320,10 +335,43 @@ get_aggr(std::string& funcname,
 exrpc_ptr_t 
 frovedis_gdf_select(exrpc_ptr_t& df_proxy, 
                     std::vector<std::string>& tcols) {
-  auto& df = *reinterpret_cast<grouped_dftable*>(df_proxy);
-  auto retp = new dftable(df.select(tcols));
+  auto& gdf = *reinterpret_cast<grouped_dftable*>(df_proxy);
+  auto retp = new dftable(gdf.select(tcols));
   if (!retp) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed.\n");
   return reinterpret_cast<exrpc_ptr_t> (retp);
+}
+
+dummy_dftable
+frovedis_gdf_fselect(exrpc_ptr_t& df_proxy,
+                     std::vector<exrpc_ptr_t>& funcp) {
+  auto& gdf = *reinterpret_cast<grouped_dftable*>(df_proxy);
+  auto func = to_dffunction(funcp);
+  auto s_df_ptr = new dftable(gdf.fselect(func));
+  if (!s_df_ptr) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed.\n");
+  return to_dummy_dftable(s_df_ptr);
+}
+
+dummy_dftable 
+frovedis_gdf_agg_select(exrpc_ptr_t& df_proxy,
+                        std::vector<std::string>& cols,
+                        std::vector<exrpc_ptr_t>& aggp) {
+  auto& gdf = *reinterpret_cast<grouped_dftable*>(df_proxy);
+  auto agg = to_dfaggregator(aggp);
+  auto retp = new dftable(gdf.select(cols, agg));
+  if (!retp) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed.\n");
+  return to_dummy_dftable(retp);
+}
+
+dummy_dftable 
+frovedis_gdf_agg_fselect(exrpc_ptr_t& df_proxy,
+                         std::vector<exrpc_ptr_t>& funcp,
+                         std::vector<exrpc_ptr_t>& aggp) {
+  auto& gdf = *reinterpret_cast<grouped_dftable*>(df_proxy);
+  auto func = to_dffunction(funcp);
+  auto agg = to_dfaggregator(aggp);
+  auto retp = new dftable(gdf.fselect(func, agg));
+  if (!retp) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed.\n");
+  return to_dummy_dftable(retp);
 }
 
 void convert_float_nan_to_null(dftable& df) {
@@ -1866,7 +1914,21 @@ exrpc_ptr_t get_dffunc_opt(exrpc_ptr_t& leftp,
   auto& left = *reinterpret_cast<std::shared_ptr<dffunction>*>(leftp);
   auto& right = *reinterpret_cast<std::shared_ptr<dffunction>*>(rightp);
   std::shared_ptr<dffunction> *opt = NULL;
-  switch(opt_id) { // and, or, not
+  switch(opt_id) { 
+    // --- conditional ---
+    case EQ:        opt = new std::shared_ptr<dffunction>(eq(left, right)->as(cname)); break;
+    case NE:        opt = new std::shared_ptr<dffunction>(neq(left, right)->as(cname)); break;
+    case GT:        opt = new std::shared_ptr<dffunction>(gt(left, right)->as(cname)); break;
+    case GE:        opt = new std::shared_ptr<dffunction>(ge(left, right)->as(cname)); break;
+    case LT:        opt = new std::shared_ptr<dffunction>(lt(left, right)->as(cname)); break;
+    case LE:        opt = new std::shared_ptr<dffunction>(le(left, right)->as(cname)); break;
+    // --- special conditional --- (LIKE/NLIKE: immed operation)
+    case AND:       opt = new std::shared_ptr<dffunction>(and_op(left,right)->as(cname)); break;
+    case OR:        opt = new std::shared_ptr<dffunction>(or_op(left,right)->as(cname)); break;
+    case NOT:       opt = new std::shared_ptr<dffunction>(not_op(left)->as(cname)); break;
+    case ISNULL:    opt = new std::shared_ptr<dffunction>(is_null(left)->as(cname)); break;
+    case ISNOTNULL: opt = new std::shared_ptr<dffunction>(is_not_null(left)->as(cname)); break;
+    // --- mathematical ---
     case ADD:       opt = new std::shared_ptr<dffunction>(add_col_as(left, right, cname)); break;
     case SUB:       opt = new std::shared_ptr<dffunction>(sub_col_as(left, right, cname)); break;
     case MUL:       opt = new std::shared_ptr<dffunction>(mul_col_as(left, right, cname)); break;
@@ -1874,17 +1936,6 @@ exrpc_ptr_t get_dffunc_opt(exrpc_ptr_t& leftp,
     case FDIV:      opt = new std::shared_ptr<dffunction>(fdiv_col_as(left, right, cname)); break;
     case MOD:       opt = new std::shared_ptr<dffunction>(mod_col_as(left, right, cname)); break;
     case POW:       opt = new std::shared_ptr<dffunction>(pow_col_as(left, right, cname)); break;
-    case GT:        opt = new std::shared_ptr<dffunction>(gt(left, right)->as(cname)); break;
-    case GE:        opt = new std::shared_ptr<dffunction>(ge(left, right)->as(cname)); break;
-    case LT:        opt = new std::shared_ptr<dffunction>(lt(left, right)->as(cname)); break;
-    case LE:        opt = new std::shared_ptr<dffunction>(le(left, right)->as(cname)); break;
-    case EQ:        opt = new std::shared_ptr<dffunction>(eq(left, right)->as(cname)); break;
-    case NE:        opt = new std::shared_ptr<dffunction>(neq(left, right)->as(cname)); break;
-    case ISNULL:    opt = new std::shared_ptr<dffunction>(is_null(left)->as(cname)); break;
-    case ISNOTNULL: opt = new std::shared_ptr<dffunction>(is_not_null(left)->as(cname)); break;
-    case AND:       opt = new std::shared_ptr<dffunction>(and_op(left,right)->as(cname)); break;
-    case OR:        opt = new std::shared_ptr<dffunction>(or_op(left,right)->as(cname)); break;
-    case NOT:       opt = new std::shared_ptr<dffunction>(not_op(left)->as(cname)); break;
     default:   REPORT_ERROR(USER_ERROR, "Unsupported dffunction/dfoperator is requested!\n");
   }
   return reinterpret_cast<exrpc_ptr_t> (opt);
@@ -1911,11 +1962,79 @@ exrpc_ptr_t get_immed_string_dffunc_opt(exrpc_ptr_t& leftp,
   return reinterpret_cast<exrpc_ptr_t> (opt);
 }
 
-dummy_dftable execute_dffunc(exrpc_ptr_t& dfproxy, exrpc_ptr_t& dffunc) {
+exrpc_ptr_t get_dffunc_agg(exrpc_ptr_t& leftp,
+                           short& opt_id,
+                           std::string& cname) {
+  auto& left = *reinterpret_cast<std::shared_ptr<dffunction>*>(leftp);
+  std::shared_ptr<dfaggregator> *opt = NULL;
+  switch(opt_id) {
+    // --- aggregator --- 
+    case aMAX:  opt = new std::shared_ptr<dfaggregator>(max_as(left, cname)); break;
+    case aMIN:  opt = new std::shared_ptr<dfaggregator>(min_as(left, cname)); break;
+    case aSUM:  opt = new std::shared_ptr<dfaggregator>(sum_as(left, cname)); break;
+    case aAVG:  opt = new std::shared_ptr<dfaggregator>(avg_as(left, cname)); break;
+    case aVAR:  opt = new std::shared_ptr<dfaggregator>(var_as(left, cname)); break;
+    case aSEM:  opt = new std::shared_ptr<dfaggregator>(sem_as(left, cname)); break;
+    case aSTD:  opt = new std::shared_ptr<dfaggregator>(std_as(left, cname)); break;
+    case aMAD:  opt = new std::shared_ptr<dfaggregator>(mad_as(left, cname)); break; // TODO: implement in library for grouped_table
+    case aCNT:  opt = new std::shared_ptr<dfaggregator>(count_as(left, cname)); break;
+    case aSIZE: opt = new std::shared_ptr<dfaggregator>(size_as(left, cname)); break;
+    default:     REPORT_ERROR(USER_ERROR, "Unsupported dfaggregator is requested!\n");
+  }
+  return reinterpret_cast<exrpc_ptr_t> (opt);
+}
+
+dummy_dftable append_scalar(exrpc_ptr_t& dfproxy, std::string& cname, 
+                            std::string& value, short& dtype) {
   auto& df = *reinterpret_cast<dftable_base*>(dfproxy);
-  auto& func = *reinterpret_cast<std::shared_ptr<dffunction>*>(dffunc);
+  auto ret = df.materialize(); // new dftable always
+  auto size = ret.num_row();
+  require(size > 0, "append_scalar: is allowed for empty dataframe!\n");
+  if (value == "NULL") {
+    switch (dtype) {
+      case INT:    append_null<int>(ret, cname, size); break;
+      case LONG:   append_null<long>(ret, cname, size); break;
+      case ULONG:  append_null<unsigned long>(ret, cname, size); break;
+      case FLOAT:  append_null<float>(ret, cname, size); break;
+      case DOUBLE: append_null<double>(ret, cname, size); break;
+      case STRING: append_null<std::string>(ret, cname, size); break;
+      default:     REPORT_ERROR(USER_ERROR, 
+                   "append_scalar: unsupported type detected for appending nulls!\n");
+    }
+  } else {
+    switch (dtype) {
+      case INT:    append_value<int>(ret, cname, size, value); break;
+      case LONG:   append_value<long>(ret, cname, size, value); break;
+      case ULONG:  append_value<unsigned long>(ret, cname, size, value); break;
+      case FLOAT:  append_value<float>(ret, cname, size, value); break;
+      case DOUBLE: append_value<double>(ret, cname, size, value); break;
+      case STRING: append_value<std::string>(ret, cname, size, value); break;
+      default:     REPORT_ERROR(USER_ERROR,
+                   "append_scalar: unsupported type detected for appending values!\n");
+    }
+  }
+  auto retp = new dftable(std::move(ret));
+  if (!retp) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed.\n");
+  return to_dummy_dftable(retp);
+}
+
+dummy_dftable execute_dffunc(exrpc_ptr_t& dfproxy, std::string& cname, 
+                             exrpc_ptr_t& dffunc) {
+  auto& df = *reinterpret_cast<dftable_base*>(dfproxy);
+  auto func = *reinterpret_cast<std::shared_ptr<dffunction>*>(dffunc);
+  func->as(cname);
   auto ret = df.materialize().call_function(func); // new dftable always
   auto retp = new dftable(std::move(ret));
+  if (!retp) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed.\n");
+  return to_dummy_dftable(retp);
+}
+
+
+dummy_dftable execute_dfagg(exrpc_ptr_t& dfproxy, 
+                            std::vector<exrpc_ptr_t>& aggp) {
+  auto& df = *reinterpret_cast<dftable_base*>(dfproxy);
+  auto agg = to_dfaggregator(aggp);
+  auto retp = new dftable(df.aggregate(agg));
   if (!retp) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed.\n");
   return to_dummy_dftable(retp);
 }
@@ -1923,6 +2042,11 @@ dummy_dftable execute_dffunc(exrpc_ptr_t& dfproxy, exrpc_ptr_t& dffunc) {
 void set_dffunc_asCol_name(exrpc_ptr_t& fn, std::string& cname) {
   auto& func = *reinterpret_cast<std::shared_ptr<dffunction>*>(fn);
   func->as(cname);
+}
+
+void set_dfagg_asCol_name(exrpc_ptr_t& fn, std::string& cname) {
+  auto& agg = *reinterpret_cast<std::shared_ptr<dfaggregator>*>(fn);
+  agg->as(cname);
 }
 
 std::vector<int>

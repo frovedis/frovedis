@@ -55,6 +55,9 @@ void expose_frovedis_dataframe_functions() {
   expose(get_df_string_col);
   expose(frovedis_gdf_aggr);
   expose(frovedis_gdf_select);
+  expose(frovedis_gdf_fselect);
+  expose(frovedis_gdf_agg_select);
+  expose(frovedis_gdf_agg_fselect);
   expose(df_to_colmajor_float);
   expose(df_to_colmajor_double);
   expose(df_to_rowmajor_float);
@@ -113,6 +116,7 @@ void expose_frovedis_dataframe_functions() {
   expose(frov_df_mode_cols);
   expose(frov_df_mode_rows);
   // -- for spark wrapper ---
+  expose(append_scalar);
   expose(get_dffunc_id);
   expose(get_dffunc_opt);
   expose(get_immed_dffunc_opt<int>);
@@ -120,8 +124,11 @@ void expose_frovedis_dataframe_functions() {
   expose(get_immed_dffunc_opt<float>);
   expose(get_immed_dffunc_opt<double>);
   expose(get_immed_string_dffunc_opt);
-  expose(execute_dffunc);
   expose(set_dffunc_asCol_name);
+  expose(execute_dffunc);
+  expose(get_dffunc_agg);
+  expose(set_dfagg_asCol_name);
+  expose(execute_dfagg);
   // -----------------------
   expose(frov_get_bool_mask);
   expose(frov_df_filter_using_mask);

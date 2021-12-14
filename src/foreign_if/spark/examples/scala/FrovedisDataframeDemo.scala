@@ -6,6 +6,7 @@ import com.nec.frovedis.sql.functions._
 import com.nec.frovedis.sql.implicits_._
 import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.sql.SparkSession
+//import org.apache.spark.sql.functions.lit
 import org.apache.log4j.{Level, Logger}
 
 object FrovedisDataframeDemo {
@@ -19,7 +20,7 @@ object FrovedisDataframeDemo {
                             .getOrCreate()
     val sc = spark.sparkContext
     import spark.implicits._
-   
+
     // initializing Frovedis server with "personalized command", if provided in command line
     if(args.length != 0) FrovedisServer.initialize(args(0))
 
@@ -47,11 +48,15 @@ object FrovedisDataframeDemo {
     df1.filter($$"Age" <= 19).show()
     df1.filter($$"Country" === "Japan").show()
     df1.filter($$"Country" !== "USA").show()
+    df1.filter($$"Country" >= "Japan").show()
     df1.filter(($$"Country" !== "Japan") && ($$"Age" > 19)).show()
     
     // not operator
     df1.filter(!($$"Country" === "France")).show()
     df1.filter(not($$"Country" === "France")).show()
+
+    // select demo
+    df1.select($$"Age", $$"Age" * 2).show()
 
     // sort demo
     df1.sort(col("Country").asc, $$"Age".desc).show()
@@ -67,9 +72,9 @@ object FrovedisDataframeDemo {
        .sort($$"x").show()
 
     df1.filter($$"EName".startsWith("Ra")).show()
-    df1.filter($$"Age".isNotNull).show()
-    df1.select($$"Age".isNotNull).show()
-    println("-----------------------------")
+    df1.withColumn("AgePlusOne", $$"Age" + 1).show()
+    df1.withColumn("lit(2)", lit(2)).show()
+    df1.withColumn("null_col", lit(null)).show()
 
     val countryDF2 = sc.textFile("./input/country.txt")
                       .map(_.split(","))
@@ -115,13 +120,14 @@ object FrovedisDataframeDemo {
 
     // groupBy demo
     df1.groupBy("Country").select("Country").show()
-    df1.groupBy("Country").count().show()
-    val gdf = df1.groupBy("Country").agg(max("Age").as("max_age"),
+    df1.groupBy("Country").min($$"Age" ** 2).show()
+    val gdf = df1.groupBy("Country").agg(max($$"Age" * 2).as("max_twice_age"),
                                          min("Age").as("min_age"),
                                          avg($$"Age").as("avg_age"),
                                          mean("Age").as("mean_age"),
                                          sum($$"Age").as("sum_age"))
     gdf.show()
+    println("*************************************************")
 
     // miscellaneous
     df1.withColumnRenamed("Country", "Cname").show()
@@ -129,11 +135,25 @@ object FrovedisDataframeDemo {
     peopleDF.describe().show() // spark implementation
     df1.describe().show()      // frovedis implementation
     println("Total rows: " + df1.count())
-    df1.agg(min("Age").as("min_age"),
+    df1.agg(min($$"Age" + lit(1)),
             max("Age").as("max_age"),
             sum($$"Age").as("sum_age"),
             avg($$"Age").as("avg_age"),
-            std("Age").as("stddev(age)")).show()
+            stddev("Age")).show()
+
+    val dataWithNull = Seq(
+      ("James",null,"M"),
+      ("James","NY","F"),
+      ("Julia",null,null)
+    )
+    val columns = Seq("name","state","gender")
+    val dfWithNull = dataWithNull.toDF(columns:_*)
+    val frov_dfWithNull = new FrovedisDataFrame(dfWithNull)
+    frov_dfWithNull.show()
+    frov_dfWithNull.filter($$"state".isNotNull).show()
+    frov_dfWithNull.filter($$"state".isNull).show()
+    frov_dfWithNull.groupBy("name").agg(count("state"), count("*")).show()
+    frov_dfWithNull.release()
 
     val sampleDF = sc.textFile("./input/sample.txt")
                      .map(_.split(","))

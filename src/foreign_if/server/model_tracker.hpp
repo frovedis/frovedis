@@ -81,12 +81,14 @@ enum DTYPE {
 };
 
 enum OPTYPE {
+  // --- conditional ---
   EQ = 1,
   NE = 2,
   GT = 3,
   GE = 4,
   LT = 5,
   LE = 6,
+  // --- special conditional ---
   AND = 11,
   OR = 12,
   NOT = 13,
@@ -94,13 +96,25 @@ enum OPTYPE {
   NLIKE = 15,
   ISNULL = 16,
   ISNOTNULL = 17,
+  // --- mathematical ---
   ADD = 21,
   SUB = 22,
   MUL = 23,
   IDIV = 24,
   FDIV = 25,
   MOD = 26,
-  POW = 27
+  POW = 27,
+  // --- aggregator ---
+  aMAX = 41,
+  aMIN = 42,
+  aSUM = 43,
+  aAVG = 44,
+  aVAR = 45,
+  aSEM = 46,
+  aSTD = 47,
+  aMAD = 48,
+  aCNT = 49,
+  aSIZE = 50,
 };
 
 // [MODEL_ID] => [MODEL_KIND, MODEL_PTR]

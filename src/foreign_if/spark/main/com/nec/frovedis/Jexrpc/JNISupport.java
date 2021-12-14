@@ -886,11 +886,17 @@ public class JNISupport {
   public static native long selectFrovedisGroupedData(Node master_node,
                                                   long dproxy,
                                                   String[] cols, int sz);
-  public static native long aggrFrovedisDataframe(Node master_node,
+  public static native DummyDftable aggSelectFrovedisGroupedData(Node master_node,
                                                   long dproxy,
-                                                  String[] gCols, int sz1,
-                                                  String[] aFuns, String[] aCols,
-                                                  String[] aAsCols, int sz2);
+                                                  String[] gcols, int sz1,
+                                                  long[] aggp, int sz2);
+  public static native DummyDftable aggFselectFrovedisGroupedData(Node master_node,
+                                                  long dproxy,
+                                                  long[] funcp, int sz1,
+                                                  long[] aggp, int sz2);
+  public static native DummyDftable FselectFrovedisGroupedData(Node master_node,
+                                                  long dproxy,
+                                                  long[] funcp, int sz);
   public static native void releaseFrovedisGroupedDF(Node master_node, long data);
   public static native DummyMatrix DFToRowmajorMatrix(Node master_node, long dproxy, 
                                                       String[] cname, int size); 
@@ -911,12 +917,21 @@ public class JNISupport {
   public static native long getOptImmedDFfunc(Node master_node, long left_fn, 
                                               String right_str, short right_dtype,
                                               short opt, String col_name);
+  public static native long getDFagg(Node master_node, long left_fn, 
+                                     short opt, String col_name);
+  public static native DummyDftable appendScalar(Node master_node, long df_proxy,
+                                                 String name, 
+                                                 String scalar, short dtype);
+  public static native DummyDftable executeFrovedisAgg(Node master_node, long df_proxy, 
+                                                       long[] agg_proxies, long size);
   public static native DummyDftable executeDFfunc(Node master_node, long df_proxy, 
-                                                  long fn_proxy);
+                                                  String cname, long fn_proxy);
   public static native void dropDFColsInPlace(Node master_node, long df_proxy,
                                               String[] targets, long size);
   public static native void setDFfuncAsColName(Node master_node, long fn_proxy, 
                                                String as_name);
+  public static native void setDFAggAsColName(Node master_node, long fn_proxy, 
+                                              String as_name);
   public static native long getDistinct(Node master_node, long dproxy);
   public static native DummyDftable dropDuplicates(Node master_node, long dproxy,
                                                   String[] cols, long size,
