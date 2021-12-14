@@ -1087,7 +1087,6 @@ double mean_helper3(std::vector<T>& val,
   return total;
 }
 
-
 template <class T>
 T max_helper2(std::vector<T>& val,
               std::vector<size_t>& nulls) {
@@ -3037,15 +3036,17 @@ typed_dfcolumn<T>::sem
                                   auto countp = count.data();
                                   auto retp = ret.data();
                                   for(size_t i = 0; i < size; i++) retp[i] = sqrt(varp[i] / countp[i]);
-                                  
                                   auto nans = vector_find_nan(var);
-                                  auto nansp = nans.data();
                                   auto nansz = nans.size();
                                   if (nansz > 0){
+                                    auto nansp = nans.data();
                                     auto nan_val = std::numeric_limits<double>::quiet_NaN();
+                                    #pragma cdir nodep
+                                    #pragma _NEC ivdep
+                                    #pragma _NEC vovertake
+                                    #pragma _NEC vob
                                     for (size_t i = 0; i < nansz; i++) retp[nansp[i]] = nan_val;
                                   }
-
                                   return ret;
                                 }, count_column->val);
 
@@ -3071,6 +3072,74 @@ typed_dfcolumn<T>::sem
     ret->contain_nulls = false;
   }
   return ret;
+}
+
+template <class T>
+std::shared_ptr<dfcolumn>
+typed_dfcolumn<T>::std
+(node_local<std::vector<size_t>>& local_grouped_idx,
+ node_local<std::vector<size_t>>& local_idx_split,
+ node_local<std::vector<std::vector<size_t>>>& hash_divide,
+ node_local<std::vector<std::vector<size_t>>>& merge_map,
+ node_local<size_t>& row_sizes,
+ double ddof) {
+  auto ret = std::make_shared<typed_dfcolumn<double>>();
+  auto var_column = std::dynamic_pointer_cast<typed_dfcolumn<double>>
+    (var(local_grouped_idx, local_idx_split, hash_divide, merge_map,
+        row_sizes, ddof));
+
+  ret->val = var_column->val.map(+[](std::vector<double>& var) {
+                                  auto size = var.size();
+                                  std::vector<double> ret(size);
+                                  auto varp = var.data();
+                                  auto retp = ret.data();
+                                  for(size_t i = 0; i < size; i++) retp[i] = sqrt(varp[i]);
+                                  auto nans = vector_find_nan(var);
+                                  auto nansz = nans.size();
+                                  if (nansz > 0){
+                                    auto nansp = nans.data();
+                                    auto nan_val = std::numeric_limits<double>::quiet_NaN();
+                                    #pragma cdir nodep
+                                    #pragma _NEC ivdep
+                                    #pragma _NEC vovertake
+                                    #pragma _NEC vob
+                                    for (size_t i = 0; i < nansz; i++) retp[nansp[i]] = nan_val;
+                                  }
+                                  return ret;
+                                });
+  if(var_column->contain_nulls){
+    ret->nulls = var_column->nulls;
+    ret->val.mapv
+      (+[](std::vector<double>& val, std::vector<size_t>& nulls) {
+        auto valp = val.data();
+        auto nullsp = nulls.data();
+        auto size = nulls.size();
+        auto max = std::numeric_limits<double>::max();
+#pragma cdir nodep
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+        for(size_t i = 0; i < size; i++) {
+          valp[nullsp[i]] = max;
+        }
+      }, ret->nulls);
+    ret->contain_nulls = true;
+  } else {
+    ret->nulls = make_node_local_allocate<std::vector<size_t>>();
+    ret->contain_nulls = false;
+  }
+  return ret;
+}
+
+template <class T>
+std::shared_ptr<dfcolumn>
+typed_dfcolumn<T>::mad
+(node_local<std::vector<size_t>>& local_grouped_idx,
+ node_local<std::vector<size_t>>& local_idx_split,
+ node_local<std::vector<std::vector<size_t>>>& hash_divide,
+ node_local<std::vector<std::vector<size_t>>>& merge_map,
+ node_local<size_t>& row_sizes) {
+  throw std::runtime_error("mad of numeric column is not yet defined"); // TODO 
 }
 
 template <class T>
