@@ -150,9 +150,9 @@ struct dfoperator : public dffunction {
       ("exchange_lr (used for bcast_join) on this operator is not implemented");
   }
   virtual std::shared_ptr<dfoperator> 
-  modify_order(dftable_base& t1, dftable_base& t2) {
+  rectify_order(dftable_base& t1, dftable_base& t2) {
     throw std::runtime_error
-      ("modify_order on this operator is not implemented");
+      ("rectify_order on this operator is not implemented");
   }
 };
 
@@ -269,7 +269,7 @@ struct dfoperator_eq : public dfoperator {
     return std::make_shared<dfoperator_eq>(dfoperator_eq(right, left));
   }
   virtual std::shared_ptr<dfoperator> 
-  modify_order(dftable_base& t1, dftable_base& t2) {
+  rectify_order(dftable_base& t1, dftable_base& t2) {
     std::shared_ptr<dfoperator> ret;
     try {
       columns_to_use(t1, t2);
@@ -567,7 +567,7 @@ struct dfoperator_lt : public dfoperator {
   }
   virtual std::shared_ptr<dfoperator> exchange_lr();
   virtual std::shared_ptr<dfoperator> 
-  modify_order(dftable_base& t1, dftable_base& t2) {
+  rectify_order(dftable_base& t1, dftable_base& t2) {
     std::shared_ptr<dfoperator> ret;
     try {
       columns_to_use(t1, t2);
@@ -661,7 +661,7 @@ struct dfoperator_ge : public dfoperator {
   }
   virtual std::shared_ptr<dfoperator> exchange_lr();
   virtual std::shared_ptr<dfoperator> 
-  modify_order(dftable_base& t1, dftable_base& t2) {
+  rectify_order(dftable_base& t1, dftable_base& t2) {
     std::shared_ptr<dfoperator> ret;
     try {
       columns_to_use(t1, t2);
@@ -759,7 +759,7 @@ struct dfoperator_le : public dfoperator {
   }
   virtual std::shared_ptr<dfoperator> exchange_lr();
   virtual std::shared_ptr<dfoperator> 
-  modify_order(dftable_base& t1, dftable_base& t2) {
+  rectify_order(dftable_base& t1, dftable_base& t2) {
     std::shared_ptr<dfoperator> ret;
     try {
       columns_to_use(t1, t2);
@@ -853,7 +853,7 @@ struct dfoperator_gt : public dfoperator {
   }
   virtual std::shared_ptr<dfoperator> exchange_lr();
   virtual std::shared_ptr<dfoperator> 
-  modify_order(dftable_base& t1, dftable_base& t2) {
+  rectify_order(dftable_base& t1, dftable_base& t2) {
     std::shared_ptr<dfoperator> ret;
     try {
       columns_to_use(t1, t2);
@@ -1615,7 +1615,7 @@ struct dfoperator_and : public dfoperator {
       (dfoperator_and(left2->exchange_lr(), right2->exchange_lr()));
   }
   virtual std::shared_ptr<dfoperator> 
-  modify_order(dftable_base& t1, dftable_base& t2) {
+  rectify_order(dftable_base& t1, dftable_base& t2) {
     auto left2 = std::dynamic_pointer_cast<dfoperator>(left);
     auto right2 = std::dynamic_pointer_cast<dfoperator>(right);
     if(!left2 || !right2) throw std::runtime_error("join by non operator");

@@ -6,7 +6,6 @@ import com.nec.frovedis.sql.functions._
 import com.nec.frovedis.sql.implicits_._
 import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.sql.SparkSession
-//import org.apache.spark.sql.functions.lit
 import org.apache.log4j.{Level, Logger}
 
 object FrovedisDataframeDemo {
@@ -32,7 +31,7 @@ object FrovedisDataframeDemo {
 
     val countryDF = sc.textFile("./input/country.txt")
                      .map(_.split(","))
-                     .map(attributes => (attributes(0).trim, attributes(1).trim))
+                     .map(attributes => (attributes(0).trim.toInt, attributes(1).trim))
                      .toDF("CCode","CName")
 
     // creating frovedis dataframe from spark dataframe
@@ -44,12 +43,12 @@ object FrovedisDataframeDemo {
     df1.filter($$"Age" < 25).show()
     df1.filter($$"Age" === 19).show()
     df1.filter($$"Age" !== 19).show()
-    df1.filter($$"Age" >= 19).show()
-    df1.filter($$"Age" <= 19).show()
+    df1.filter($$"Age" >= lit(19)).show() // same as df1.filter($$"Age" >= 19).show()
+    df1.filter($$"Age" <= lit(19)).show() // same as df1.filter($$"Age" <= 19).show()
     df1.filter($$"Country" === "Japan").show()
-    df1.filter($$"Country" !== "USA").show()
+    df1.filter($$"Country" =!= lit("USA")).show()
     df1.filter($$"Country" >= "Japan").show()
-    df1.filter(($$"Country" !== "Japan") && ($$"Age" > 19)).show()
+    df1.filter(($$"Country" =!= "Japan") && ($$"Age" > 19)).show()
     
     // not operator
     df1.filter(!($$"Country" === "France")).show()
@@ -62,7 +61,7 @@ object FrovedisDataframeDemo {
     df1.sort(col("Country").asc, $$"Age".desc).show()
 
     // join demo
-    df1.join(df2, df1("Country") === df2("CName"))
+    df1.join(df2, df2("CName") === df1("Country"))
        .select("EName","Age","CCode","CName").show()
 
     // combined operation demo
@@ -127,11 +126,9 @@ object FrovedisDataframeDemo {
                                          mean("Age").as("mean_age"),
                                          sum($$"Age").as("sum_age"))
     gdf.show()
-    println("*************************************************")
 
     // miscellaneous
     df1.withColumnRenamed("Country", "Cname").show()
-    df1.show()
     peopleDF.describe().show() // spark implementation
     df1.describe().show()      // frovedis implementation
     println("Total rows: " + df1.count())
