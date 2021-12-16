@@ -1205,7 +1205,8 @@ class SGDClassifier(BaseEstimator):
                             self.max_iter, self.eta0, \
                             regTyp, rparam, self.is_mult, \
                             self.fit_intercept, self.tol, self.verbose, \
-                            self.__mid, dtype, itype, dense, "sgd".encode('ascii'), False, \
+                            self.__mid, dtype, itype, dense, \
+                            "sgd".encode('ascii'), False, \
                             self.warm_start)
         elif self.loss == "hinge":
             if self.n_classes != 2:
@@ -1291,7 +1292,7 @@ class SGDClassifier(BaseEstimator):
         if not self.is_fitted():
             raise AttributeError("attribute 'classes_' might have been " \
                                  "released or called before fit")
-        if self.__mkind == M_KIND.LNRM:
+        if self.__mkind in [M_KIND.LNRM, M_KIND.LSR, M_KIND.RR]:
             raise AttributeError(\
             "attribute 'classes_' is not available for squared_loss")
         if self._classes is None:
@@ -1335,7 +1336,7 @@ class SGDClassifier(BaseEstimator):
         """
         NAME: predict_proba
         """
-        if self.__mkind == M_KIND.LNRM or self.__mkind == M_KIND.SVM:
+        if self.__mkind in [M_KIND.LNRM, M_KIND.LSR, M_KIND.RR, M_KIND.SVM]:
             raise AttributeError("attribute 'predict_proba' is not " \
                                  "available for %s loss" % (self.loss))
         proba = GLM.predict(X, self.__mid, self.__mkind, \
@@ -1393,7 +1394,7 @@ class SGDClassifier(BaseEstimator):
                 "another model with %s name already exists!" % fname)
         os.makedirs(fname)
         GLM.save(self.__mid, self.__mkind, self.__mdtype, fname + "/model")
-        if self.__mkind != M_KIND.LNRM:
+        if self.__mkind not in [M_KIND.LNRM, M_KIND.LSR, M_KIND.RR]:
             target = open(fname + "/label_map", "wb")
             pickle.dump(self.label_map, target)
             target.close()
