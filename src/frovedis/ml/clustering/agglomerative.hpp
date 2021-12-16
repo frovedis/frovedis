@@ -73,31 +73,35 @@ namespace frovedis {
     agglomerative_clustering<T>& 
     fit(const MATRIX& mat,
       const dvector<int>& label = dvector<int>()) { // ignored  
-      auto link = this->linkage;  
-      model = agglomerative_training<T>(mat, link);
-      is_fitted = true;
-      nleaves_ = mat.num_row;  
-      labels = agglomerative_assign_cluster(model, n_clusters, threshold, nclusters_);      
-      return *this; 
+      return _fit(mat, false);
     }
 
     template <class MATRIX>
     agglomerative_clustering<T>& 
     fit(MATRIX&& mat,
       const dvector<int>& label = dvector<int>()) { // ignored 
-      auto link = this->linkage; 
-      nleaves_ = mat.num_row;  
-      model = agglomerative_training<T>(std::move(mat), link);
-      is_fitted = true;   
-      labels = agglomerative_assign_cluster(model, n_clusters, threshold, nclusters_);      
-      return *this; 
+      return _fit(mat, true);
     }   
     
+    template <class MATRIX>
+    agglomerative_clustering<T>& 
+    _fit(MATRIX& mat, bool input_movable) {
+      std::cout << "movable: " << input_movable << std::endl;
+      auto link = this->linkage; 
+      nleaves_ = mat.num_row;  
+      model = input_movable ? agglomerative_training<T>(std::move(mat), link)
+                            : agglomerative_training<T>(mat, link);
+      is_fitted = true;
+      labels = agglomerative_assign_cluster(model, n_clusters, threshold, nclusters_);
+      mat.debug_print();
+      return *this; 
+    }
+ 
     template <class MATRIX>
     std::vector<int>
     fit_predict(const MATRIX& mat,
       const dvector<int>& label = dvector<int>()) { // ignored
-      fit(mat, label);
+      _fit(mat, false);
       return labels;        
     }
 
@@ -105,14 +109,13 @@ namespace frovedis {
     std::vector<int>
     fit_predict(MATRIX&& mat,
       const dvector<int>& label = dvector<int>()) { // ignored
-      fit(std::move(mat), label);
+      _fit(mat, true);
       return labels;        
     }
       
     std::vector<int>
     reassign(int n_clusters) {
       require(is_fitted, "reassign() is called before fit()");
-
       if(n_clusters == this->n_clusters)
         return labels;
       else

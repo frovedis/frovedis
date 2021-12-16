@@ -424,60 +424,106 @@ agglomerative_impl(MATRIX& mat,
 }
 
 // --- definition of user APIS starts here ---
-template <class T, class MATRIX>
+template <class T, class I, class O>
 #ifdef VEC_VEC
 std::vector<std::vector<T>>
 #else
 rowmajor_matrix_local<T>
 #endif
-agglomerative_training(const MATRIX& mat,
+agglomerative_training(crs_matrix<T,I,O>& mat,
                        const std::string& linkage = "average") {
-  auto movable = true;
   auto lmat = mat.gather();
-#ifdef VEC_VEC
-  std::vector<std::vector<T>> Z; 
-#else
-   rowmajor_matrix_local<T> Z;
-#endif
-  
-  if (linkage == "average")
-    Z = agglomerative_impl<T, average_linkage<T>>(lmat, movable);
-  else if (linkage == "complete")
-    Z = agglomerative_impl<T, complete_linkage<T>>(lmat, movable);
-  else if (linkage == "single")
-    Z = agglomerative_impl<T, single_linkage<T>>(lmat, movable); 
-  else REPORT_ERROR(USER_ERROR, "Unsupported linkage is provided!\n");
-  return Z;  
+  return agglomerative_training(lmat, linkage);
 }
 
-                   
-template <class T, class MATRIX>
+template <class T, class I, class O>
 #ifdef VEC_VEC
 std::vector<std::vector<T>>
 #else
 rowmajor_matrix_local<T>
 #endif
-agglomerative_training(MATRIX&& mat,
+agglomerative_training(crs_matrix<T,I,O>&& mat,
                        const std::string& linkage = "average") {
-  auto movable = true;
   auto lmat = mat.gather();
   mat.clear(); // mat is rvalue
+  return agglomerative_training(lmat, linkage);
+}
+
+template <class T>
 #ifdef VEC_VEC
-  std::vector<std::vector<T>> Z; 
+std::vector<std::vector<T>>
+#else
+rowmajor_matrix_local<T>
+#endif
+agglomerative_training(rowmajor_matrix<T>& mat,
+                       const std::string& linkage = "average") {
+  auto lmat = mat.gather();
+  return agglomerative_training(lmat, linkage);
+}
+                   
+template <class T>
+#ifdef VEC_VEC
+std::vector<std::vector<T>>
+#else
+rowmajor_matrix_local<T>
+#endif
+agglomerative_training(rowmajor_matrix<T>&& mat,
+                       const std::string& linkage = "average") {
+  auto lmat = mat.gather();
+  mat.clear(); // mat is rvalue
+  return agglomerative_training(lmat, linkage);
+}
+
+template <class T, class I, class O>
+#ifdef VEC_VEC
+std::vector<std::vector<T>>
+#else
+rowmajor_matrix_local<T>
+#endif
+agglomerative_training(crs_matrix_local<T, I, O>& mat,
+                       const std::string& linkage = "average") {
+  auto movable = false;
+#ifdef VEC_VEC
+  std::vector<std::vector<T>> Z;
 #else
    rowmajor_matrix_local<T> Z;
 #endif
-  
+
   if (linkage == "average")
-    Z = agglomerative_impl<T, average_linkage<T>>(lmat, movable);
+    Z = agglomerative_impl<T, average_linkage<T>>(mat, movable);
   else if (linkage == "complete")
-    Z = agglomerative_impl<T, complete_linkage<T>>(lmat, movable);
+    Z = agglomerative_impl<T, complete_linkage<T>>(mat, movable);
   else if (linkage == "single")
-    Z = agglomerative_impl<T, single_linkage<T>>(lmat, movable);
+    Z = agglomerative_impl<T, single_linkage<T>>(mat, movable);
   else REPORT_ERROR(USER_ERROR, "Unsupported linkage is provided!\n");
-  return Z; 
+  return Z;
 }
-   
+
+template <class T, class I, class O>
+#ifdef VEC_VEC
+std::vector<std::vector<T>>
+#else
+rowmajor_matrix_local<T>
+#endif
+agglomerative_training(crs_matrix_local<T, I, O>&& mat,
+                       const std::string& linkage = "average") {
+  auto movable = true;
+#ifdef VEC_VEC
+  std::vector<std::vector<T>> Z;
+#else
+   rowmajor_matrix_local<T> Z;
+#endif
+
+  if (linkage == "average")
+    Z = agglomerative_impl<T, average_linkage<T>>(mat, movable);
+  else if (linkage == "complete")
+    Z = agglomerative_impl<T, complete_linkage<T>>(mat, movable);
+  else if (linkage == "single")
+    Z = agglomerative_impl<T, single_linkage<T>>(mat, movable);
+  else REPORT_ERROR(USER_ERROR, "Unsupported linkage is provided!\n");
+  return Z;
+}
+
 template <class T>
 #ifdef VEC_VEC
 std::vector<std::vector<T>>

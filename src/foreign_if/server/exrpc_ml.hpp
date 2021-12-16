@@ -79,29 +79,35 @@ inline void handle_trained_model(int mid, MODEL_KIND mkind, MODEL& model) {
   register_model(mid, mkind, mptr_); // registering the trained model in model_table
 }
 
+// ATTENTION: 
+// MATRIX& mat = *reinterpret_cast<MATRIX*>(mp.first());
+// somehow "mat" in this line is becoming an rvalue. therefore,
+// if the library fit-like method treats rvalue in a special way
+// (e.g., reuse memory, clear data etc.), then input associated with
+// mp.first() would also be destroyed and cannot be used further from
+// respective client side. currently this input is passed to all those 
+// interfaces which either donot destroy the input or accepts boolean 
+// parameter "isMovableInput" to decide whether to move the input.
+// if you add any new wrapper train interface, ensure rvalue handling 
+// of the same method in library beforehand.
+
 // --- Frovedis ML Trainer Calls ---
 template <class T, class MATRIX>
 size_t frovedis_lr(frovedis_mem_pair& mp, glm_config& config, 
                    int& verbose, int& mid,
                    std::vector<T>& sample_weight, 
                    bool& isMovableInput=false) {
-
-  // extracting input data
   MATRIX& mat = *reinterpret_cast<MATRIX*>(mp.first());
-  dvector<T>& lbl = *reinterpret_cast<dvector<T>*>(mp.second()); 
-
+  dvector<T>& lbl = *reinterpret_cast<dvector<T>*>(mp.second());
   set_verbose_level(verbose);
+
   auto is_fitted = is_registered_model(mid);
   logistic_regression<T> *m = is_fitted ? 
            get_model_ptr<logistic_regression<T>>(mid) :
            new logistic_regression<T>();
   m->set_params(config);
-
-  if (isMovableInput) {
-    m->fit(std::move(mat), lbl, sample_weight);
-    lbl.mapv_partitions(clear_lbl_data<T>); 
-  }
-  else m->fit(mat, lbl, sample_weight);
+  m->_fit(mat, lbl, sample_weight, isMovableInput);
+  if (isMovableInput) lbl.mapv_partitions(clear_lbl_data<T>); 
   auto n_iter =  m->n_iter_;
   handle_trained_model<logistic_regression<T>>(mid, LR, *m);
   reset_verbose_level();
@@ -113,23 +119,18 @@ size_t frovedis_svm(frovedis_mem_pair& mp, glm_config& config,
                     int& verbose, int& mid,
                     std::vector<T>& sample_weight, 
                     bool& isMovableInput=false) {
-  // extracting input data
   MATRIX& mat = *reinterpret_cast<MATRIX*>(mp.first());
   dvector<T>& lbl = *reinterpret_cast<dvector<T>*>(mp.second()); 
+  set_verbose_level(verbose);
+
   auto is_fitted = is_registered_model(mid);
   linear_svm_classifier<T> *m = is_fitted ?
            get_model_ptr<linear_svm_classifier<T>>(mid) :
            new linear_svm_classifier<T>();
   m->set_params(config);
-  set_verbose_level(verbose);
- 
-  size_t n_iter = 0;
-  if (isMovableInput) {
-    m->fit(std::move(mat), lbl, sample_weight); 
-    lbl.mapv_partitions(clear_lbl_data<T>); 
-  }
-  else m->fit(mat, lbl, sample_weight);
-  n_iter = m->n_iter_;
+  m->_fit(mat, lbl, sample_weight, isMovableInput);
+  if (isMovableInput) lbl.mapv_partitions(clear_lbl_data<T>); 
+  auto n_iter = m->n_iter_;
   reset_verbose_level();
   handle_trained_model<linear_svm_classifier<T>>(mid, SVM, *m);
   return n_iter;
@@ -141,23 +142,18 @@ size_t frovedis_svm_regressor(frovedis_mem_pair& mp, glm_config& config,
                               int& mid,
                               std::vector<T>& sample_weight, 
                               bool& isMovableInput=false) {
-  // extracting input data
   MATRIX& mat = *reinterpret_cast<MATRIX*>(mp.first());
   dvector<T>& lbl = *reinterpret_cast<dvector<T>*>(mp.second());
+  set_verbose_level(verbose);
+
   auto is_fitted = is_registered_model(mid);
   linear_svm_regressor<T> *m = is_fitted ?
            get_model_ptr<linear_svm_regressor<T>>(mid) :
            new linear_svm_regressor<T>();
   m->set_params(config);
-  set_verbose_level(verbose);
-
-  size_t n_iter = 0;
-  if (isMovableInput) {
-    m->fit(std::move(mat), lbl, sample_weight);
-    lbl.mapv_partitions(clear_lbl_data<T>);
-  }
-  else m->fit(mat, lbl, sample_weight); 
-  n_iter = m->n_iter_;
+  m->_fit(mat, lbl, sample_weight, isMovableInput);
+  if (isMovableInput) lbl.mapv_partitions(clear_lbl_data<T>); 
+  auto n_iter = m->n_iter_;
   reset_verbose_level();
   handle_trained_model<linear_svm_regressor<T>>(mid, SVR, *m);
   return n_iter;
@@ -170,12 +166,10 @@ void frovedis_svc(frovedis_mem_pair& mp, double& tol, double& C,
                   double& gamma, double& coef0,
                   int& degree, int& verbose, int& mid, 
                   bool& isMovableInput=false) {
-  // extracting input data
   MATRIX& matrix = *reinterpret_cast<MATRIX*>(mp.first());
   dvector<T>& label = *reinterpret_cast<dvector<T>*>(mp.second());
   auto lbl = label.gather();
   auto mat = matrix.gather();
-
   set_verbose_level(verbose);
  
   frovedis::kernel_csvc_model<T> model(tol, C, cache_size, max_iter, 
@@ -197,18 +191,15 @@ frovedis_lnr(frovedis_mem_pair& mp, glm_config& config,
              bool& isMovableInput=false) {
   MATRIX& mat = *reinterpret_cast<MATRIX*>(mp.first());
   dvector<T>& lbl = *reinterpret_cast<dvector<T>*>(mp.second()); 
-  auto is_fitted = is_registered_model(mid);
- 
   set_verbose_level(verbose);
+ 
+  auto is_fitted = is_registered_model(mid);
   linear_regression<T> *m = is_fitted ?
            get_model_ptr<linear_regression<T>>(mid) :
            new linear_regression<T>();
   m->set_params(config);
-  if (isMovableInput) {
-    m->fit(std::move(mat), lbl, sample_weight);
-    lbl.mapv_partitions(clear_lbl_data<T>); 
-  }
-  else m->fit(mat, lbl, sample_weight);
+  m->_fit(mat, lbl, sample_weight, isMovableInput);
+  if (isMovableInput) lbl.mapv_partitions(clear_lbl_data<T>); 
   reset_verbose_level();
 
   int rank = 0;
@@ -227,25 +218,18 @@ size_t frovedis_lasso(frovedis_mem_pair& mp, glm_config& config,
                         int& verbose, int& mid, 
                         std::vector<T>& sample_weight, 
                         bool& isMovableInput=false) {
-  // extracting input data
   MATRIX& mat = *reinterpret_cast<MATRIX*>(mp.first());
   dvector<T>& lbl = *reinterpret_cast<dvector<T>*>(mp.second());  
+  set_verbose_level(verbose);
 
   auto is_fitted = is_registered_model(mid);
   lasso_regression<T> *m = is_fitted ?
            get_model_ptr<lasso_regression<T>>(mid) :
            new lasso_regression<T>();
   m->set_params(config);
-
-  set_verbose_level(verbose);
-
-  size_t n_iter = 0;
-  if (isMovableInput) {
-    m->fit(std::move(mat),lbl,sample_weight);
-    lbl.mapv_partitions(clear_lbl_data<T>); 
-  }
-  else m->fit(mat,lbl,sample_weight);
-  n_iter = m->n_iter_;
+  m->_fit(mat, lbl, sample_weight, isMovableInput);
+  if (isMovableInput) lbl.mapv_partitions(clear_lbl_data<T>); 
+  auto n_iter = m->n_iter_;
   reset_verbose_level();
   handle_trained_model<lasso_regression<T>>(mid, LSR, *m);
   return n_iter;
@@ -256,24 +240,18 @@ size_t frovedis_ridge(frovedis_mem_pair& mp, glm_config& config,
                       int& verbose, int& mid,
                       std::vector<T>& sample_weight,
                       bool& isMovableInput=false) {
-  // extracting input data
   MATRIX& mat = *reinterpret_cast<MATRIX*>(mp.first());
   dvector<T>& lbl = *reinterpret_cast<dvector<T>*>(mp.second());
+  set_verbose_level(verbose);
+
   auto is_fitted = is_registered_model(mid);
   ridge_regression<T> *m = is_fitted ?
            get_model_ptr<ridge_regression<T>>(mid) :
            new ridge_regression<T>();
   m->set_params(config);
-
-  set_verbose_level(verbose);
-
-  size_t n_iter = 0;
-  if (isMovableInput) {
-    m->fit(std::move(mat), lbl, sample_weight);
-    lbl.mapv_partitions(clear_lbl_data<T>);
-  }
-  else  m->fit(mat, lbl, sample_weight);
-  n_iter = m->n_iter_;
+  m->_fit(mat, lbl, sample_weight, isMovableInput);
+  if (isMovableInput) lbl.mapv_partitions(clear_lbl_data<T>); 
+  auto n_iter = m->n_iter_;
   reset_verbose_level();
   handle_trained_model<ridge_regression<T>>(mid, RR, *m);
   return n_iter;
@@ -419,13 +397,12 @@ frovedis_aca(exrpc_ptr_t& data_ptr, int& mid,
              std::string& linkage, 
              int& ncluster, T& threshold,
              int& verbose, bool& isMovableInput=false) {
-  MATRIX& mat = *reinterpret_cast<MATRIX*>(data_ptr);  // training input data holder
+  MATRIX& mat = *reinterpret_cast<MATRIX*>(data_ptr);  
   set_verbose_level(verbose);  
   auto agg_est = agglomerative_clustering<T>(ncluster).set_linkage(linkage)
                                                       .set_threshold(threshold);
-  auto label = agg_est.fit_predict(mat);                                              
-  // if input is movable, destroying Frovedis side data after training is done.
-  if (isMovableInput)  mat.clear();
+  agg_est._fit(mat, isMovableInput); 
+  auto label = agg_est.labels_();
   reset_verbose_level();
   handle_trained_model<agglomerative_clustering<T>>(mid, ACM, agg_est);
   return label;
@@ -438,7 +415,7 @@ frovedis_dbscan(exrpc_ptr_t& data_ptr,
                 std::vector<T>& sample_weight,
                 double& eps, double& batch_f, int& min_pts,
                 int& verbose, int& mid) {
-  MATRIX& mat = *reinterpret_cast<MATRIX*>(data_ptr);  // training input data holder
+  MATRIX& mat = *reinterpret_cast<MATRIX*>(data_ptr); 
   set_verbose_level(verbose);
   auto dbm = dbscan<T>(eps, min_pts, batch_f);
   if(!sample_weight.empty())   dbm.fit(mat, sample_weight);
@@ -456,7 +433,7 @@ frovedis_sca(exrpc_ptr_t& data_ptr, int& n_comp,
              bool& norm_laplacian, bool& drop_first, int& mode,
              KMeans<T>& assign,
              int& mid, int& verbose, bool& isMovableInput=false) {
-  MATRIX& mat = *reinterpret_cast<MATRIX*>(data_ptr);  // training input data holder
+  MATRIX& mat = *reinterpret_cast<MATRIX*>(data_ptr); 
   set_verbose_level(verbose);
   auto model = spectral_clustering_impl(mat, assign, 
                    n_comp, gamma, affinity, n_neighbors,
@@ -473,14 +450,12 @@ void frovedis_sea(exrpc_ptr_t& data_ptr, int& component,
                   int& mid, int& verbose, 
                   bool& pre, int& mode, bool& drop_first,
                   bool& isMovableInput=false) {
-  MATRIX& mat = *reinterpret_cast<MATRIX*>(data_ptr);  // training input data holder
-  auto old_level = frovedis::get_loglevel();
-  if (verbose == 1) frovedis::set_loglevel(frovedis::DEBUG);
-  else if (verbose == 2) frovedis::set_loglevel(frovedis::TRACE);
-  auto m = frovedis::spectral_embedding<T>(mat,component,nlaplacian,pre,drop_first,gamma,mode);
-  // if input is movable, destroying Frovedis side data after training is done.
-  if (isMovableInput)  mat.clear();
-  frovedis::set_loglevel(old_level);
+  MATRIX& mat = *reinterpret_cast<MATRIX*>(data_ptr); 
+  set_verbose_level(verbose);
+  auto m = frovedis::spectral_embedding_impl<T>(mat, component, nlaplacian, 
+                                                pre, drop_first, gamma, mode,
+                                                isMovableInput);
+  reset_verbose_level();
   handle_trained_model<spectral_embedding_model<T>>(mid,SEM,m);
 }
 
@@ -490,20 +465,17 @@ gmm_result frovedis_gmm(exrpc_ptr_t& data_ptr, int& mid,
                  T& tol, int& max_iter, int& n_init,
                  std::string& init_params, long& seed,
                  int& verbose, bool& isMovableInput=false) {
-  MATRIX& mat = *reinterpret_cast<MATRIX*>(data_ptr);  // training input data holder
+  MATRIX& mat = *reinterpret_cast<MATRIX*>(data_ptr);  
   set_verbose_level(verbose);
-  if (verbose == 1) frovedis::set_loglevel(frovedis::DEBUG);
-  else if (verbose == 2) frovedis::set_loglevel(frovedis::TRACE);
   auto gmm_model = gaussian_mixture<T>().set_n_components(k)
                                         .set_covariance_type(cov_type)
                                         .set_tol(tol)
                                         .set_max_iter(max_iter)
                                         .set_init_params(init_params)
                                         .set_random_state(seed);
-    
   gmm_model.fit(mat);
-  auto ret = gmm_result(gmm_model.n_iter_(), gmm_model.lower_bound_());
   reset_verbose_level();
+  auto ret = gmm_result(gmm_model.n_iter_(), gmm_model.lower_bound_());
   handle_trained_model<gaussian_mixture<T>>(mid, GMM, gmm_model);    
   return ret;
 }
@@ -512,20 +484,14 @@ template <class T, class MATRIX>
 void frovedis_dt(frovedis_mem_pair& mp, tree::strategy<T>& str,
                  int& verbose, int& mid,
                  bool& isMovableInput=false) {
-  // extracting input data
   MATRIX& mat = *reinterpret_cast<MATRIX*>(mp.first());
   dvector<T>& lbl = *reinterpret_cast<dvector<T>*>(mp.second());
 
-  auto old_level = frovedis::get_loglevel();
-  if (verbose == 1) frovedis::set_loglevel(frovedis::DEBUG);
-  else if (verbose == 2) frovedis::set_loglevel(frovedis::TRACE);
-
+  set_verbose_level(verbose);
   auto builder = make_decision_tree_builder<T>(std::move(str));
   auto model = builder.run(mat, lbl);
-
-  frovedis::set_loglevel(old_level);
+  reset_verbose_level();
   handle_trained_model<decision_tree_model<T>>(mid, DTM, model);
-
   if (isMovableInput) {
     mat.clear(); 
     lbl.mapv_partitions(clear_lbl_data<T>);
@@ -536,26 +502,20 @@ template <class T, class MATRIX>
 void frovedis_fm(frovedis_mem_pair& mp, std::string& optimizer_name, 
                  fm::fm_config<T>& conf, int& seed, int& verbose, 
                  int& mid, bool& isMovableInput=false) {
-  // extracting input data  
   MATRIX& mat = *reinterpret_cast<MATRIX*>(mp.first());  
   dvector<T>& lbl = *reinterpret_cast<dvector<T>*>(mp.second());
 
-  auto old_level = frovedis::get_loglevel();
-  if (verbose == 1) frovedis::set_loglevel(frovedis::DEBUG);
-  else if (verbose == 2) frovedis::set_loglevel(frovedis::TRACE);
-
+  set_verbose_level(verbose);
   fm::FmOptimizer optimizer;
-
   if (optimizer_name == "SGD") optimizer = fm::FmOptimizer::SGD;
   else if (optimizer_name == "SGDA") optimizer = fm::FmOptimizer::SGDA;
   else if (optimizer_name == "ALS")  optimizer = fm::FmOptimizer::ALS;
   else if (optimizer_name == "MCMC") optimizer = fm::FmOptimizer::MCMC;
   else throw std::runtime_error("Specified optimizer is not supported!\n");
-  
-  auto model = fm::train(mat,lbl,optimizer,conf,seed);
-  frovedis::set_loglevel(old_level);
-  handle_trained_model<fm::fm_model<T>>(mid, FMM, model);
 
+  auto model = fm::train(mat,lbl,optimizer,conf,seed);
+  reset_verbose_level();
+  handle_trained_model<fm::fm_model<T>>(mid, FMM, model);
   if (isMovableInput) {
     mat.clear();
     lbl.mapv_partitions(clear_lbl_data<T>);
@@ -570,8 +530,6 @@ void frovedis_nb(frovedis_mem_pair& mp, std::string& model_type,
                  double& binarize,
                  int& verbose, int& mid,
                  bool& isMovableInput=false) {
-
-  // extracting input data
   MATRIX& mat = *reinterpret_cast<MATRIX*>(mp.first());
   dvector<T>& lbl = *reinterpret_cast<dvector<T>*>(mp.second());
 
@@ -594,13 +552,12 @@ void frovedis_nb(frovedis_mem_pair& mp, std::string& model_type,
 
 template <class DATA>
 int frovedis_fp_growth(exrpc_ptr_t& dptr, double& min_support,
-                        int& tree_depth, int& compression_point,
-                        int& mem_opt_level,
-                        int& verbose, int& mid,
-                        bool& isMovableInput=false) {
+                       int& tree_depth, int& compression_point,
+                       int& mem_opt_level,
+                       int& verbose, int& mid,
+                       bool& isMovableInput=false) {
   auto dfptr = reinterpret_cast<DATA*>(dptr);
   DATA& db = *dfptr;
-  
   set_verbose_level(verbose);
   auto model = grow_fp_tree(db, min_support, tree_depth, 
                             compression_point, mem_opt_level); 
@@ -863,16 +820,12 @@ frovedis_lda_train(exrpc_ptr_t& dptr, double& alpha,
                    int& num_iter, std::string& algorithm,
                    int& num_explore_iter, int& num_eval_cycle,
                    int& verbose, int& mid) {
-
-  auto old_level = frovedis::get_loglevel();
-  if (verbose == 1) frovedis::set_loglevel(frovedis::DEBUG);
-  else if (verbose == 2) frovedis::set_loglevel(frovedis::TRACE);
-
   MATRIX& mat = *reinterpret_cast<MATRIX*>(dptr);
+  set_verbose_level(verbose);
   auto model = lda_train<TC>(mat,alpha,beta,num_topics,num_iter,algorithm,
                              num_explore_iter,num_eval_cycle);
   handle_trained_model<lda_model<TC>>(mid, LDA, model);
-  frovedis::set_loglevel(old_level);
+  reset_verbose_level();
   return dummy_lda_model(mat.num_row, num_topics, 
                          model.word_topic_count.local_num_row);
 }
@@ -885,12 +838,8 @@ frovedis_lda_train_for_spark(exrpc_ptr_t& dptr,
                              int& num_iter, std::string& algorithm,
                              int& num_explore_iter, int& num_eval_cycle,
                              int& verbose, int& mid) {
-
-  auto old_level = frovedis::get_loglevel();
-  if (verbose == 1) frovedis::set_loglevel(frovedis::DEBUG);
-  else if (verbose == 2) frovedis::set_loglevel(frovedis::TRACE);
-
   MATRIX& mat = *reinterpret_cast<MATRIX*>(dptr);
+  set_verbose_level(verbose);
   auto mod_mat = mat.template change_datatype<TC>();
   rowmajor_matrix<TC> doc_topic_count;
   auto model = lda_train<TC>(mod_mat,alpha,beta,num_topics,num_iter,algorithm,
@@ -898,7 +847,7 @@ frovedis_lda_train_for_spark(exrpc_ptr_t& dptr,
   lda_model_wrapper<TC> wrapper(std::move(model),std::move(doc_topic_count),
                                 std::move(orig_doc_id));
   handle_trained_model<lda_model_wrapper<TC>>(mid, LDASP, wrapper);
-  frovedis::set_loglevel(old_level);
+  reset_verbose_level();
   return dummy_lda_model(mat.num_row, num_topics, 
                          model.word_topic_count.local_num_row);
 }
@@ -907,21 +856,14 @@ template <class T, class MATRIX>
 void frovedis_rf(frovedis_mem_pair& mp, tree::strategy<T>& strat,
                  int& verbose, int& mid,
                  bool& isMovableInput=false) {
-  // extracting input data
   MATRIX& mat = *reinterpret_cast<MATRIX*>(mp.first());
   dvector<T>& lbl = *reinterpret_cast<dvector<T>*>(mp.second());
+  set_verbose_level(verbose);
 
-  auto old_level = frovedis::get_loglevel();
-  if (verbose == 1) frovedis::set_loglevel(frovedis::DEBUG);
-  else if (verbose == 2) frovedis::set_loglevel(frovedis::TRACE);
-
-  //auto builder = make_random_forest_builder<T>(strat.move());
   random_forest_builder<T> builder(strat.move());
   auto model = builder.run(mat, lbl);
-
-  frovedis::set_loglevel(old_level);
+  reset_verbose_level();
   handle_trained_model<random_forest_model<T>>(mid, RFM, model);
-
   if (isMovableInput) {
     mat.clear(); 
     lbl.mapv_partitions(clear_lbl_data<T>);
@@ -933,20 +875,14 @@ template <class T, class MATRIX>
 void frovedis_gbt(frovedis_mem_pair& mp, tree::strategy<T>& strategy,
                  int& verbose, int& mid,
                  bool& isMovableInput=false) {
-  // extracting input data
   MATRIX& mat = *reinterpret_cast<MATRIX*>(mp.first());
   dvector<T>& lbl = *reinterpret_cast<dvector<T>*>(mp.second());
-
-  auto old_level = frovedis::get_loglevel();
-  if (verbose == 1) frovedis::set_loglevel(frovedis::DEBUG);
-  else if (verbose == 2) frovedis::set_loglevel(frovedis::TRACE);
+  set_verbose_level(verbose);
 
   auto builder = make_gradient_boosted_trees_builder(std::move(strategy));
   auto model = builder.run(mat, lbl);
-
-  frovedis::set_loglevel(old_level);
+  reset_verbose_level();
   handle_trained_model<gradient_boosted_trees_model<T>>(mid, GBT, model);
-
   if (isMovableInput) {
     mat.clear();
     lbl.mapv_partitions(clear_lbl_data<T>);
@@ -960,8 +896,7 @@ void frovedis_scaler_partial_fit(exrpc_ptr_t& data_ptr,
                                  bool& with_std, bool& sample_stddev,
                                  int& verbose, int& mid,
                                  bool& isMovableInput=false) {
-
-  MATRIX& mat = *reinterpret_cast<MATRIX*>(data_ptr);  // training input data holder
+  MATRIX& mat = *reinterpret_cast<MATRIX*>(data_ptr); 
   set_verbose_level(verbose);
   standard_scaler<T> est(with_mean, with_std, sample_stddev);
   est.partial_fit(mat);
@@ -974,11 +909,8 @@ template <class T, class MATRIX,
           class OUTMAT, class OUTMAT_LOC>
 dummy_matrix frovedis_scaler_transform(exrpc_ptr_t& data_ptr,
                                        int& mid) {
-
-
-  MATRIX& mat = *reinterpret_cast<MATRIX*>(data_ptr);  // training input data holder
+  MATRIX& mat = *reinterpret_cast<MATRIX*>(data_ptr); 
   auto& obj = *get_model_ptr<frovedis::standard_scaler<T>>(mid);
-
   auto ret = new OUTMAT(obj.template transform<MATRIX>(mat)); 
   return to_dummy_matrix<OUTMAT,OUTMAT_LOC>(ret);
 }
@@ -989,13 +921,10 @@ template <class T, class MATRIX,
 dummy_matrix
 frovedis_scaler_inverse_transform(exrpc_ptr_t& data_ptr,
                                   int& mid) {
-
-  MATRIX& mat = *reinterpret_cast<MATRIX*>(data_ptr);  // training input data holder
+  MATRIX& mat = *reinterpret_cast<MATRIX*>(data_ptr);
   auto& obj = *get_model_ptr<frovedis::standard_scaler<T>>(mid);
   auto ret = new OUTMAT(obj.template inverse_transform<MATRIX>(mat)); // rmm
   return to_dummy_matrix<OUTMAT,OUTMAT_LOC>(ret);
 }
-
-
 
 #endif
