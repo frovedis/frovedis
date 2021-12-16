@@ -3,6 +3,7 @@
 import numpy as np
 from collections import Iterable
 from ..matrix.dtype import DTYPE, TypeUtil, get_result_type
+from . import df
 
 def infer_column_type_from_first_notna(df, col, is_index=False):
     if is_index: #infers type of index assuming it contains all non-na
@@ -242,5 +243,58 @@ def check_stat_error(**kwargs):
             raise ValueError(\
                   "ddof='%s' is not supported currently!\n" % str(ddof_))
         ret.append(ddof_)
+    if "min_periods_" in kwargs.keys():
+        min_periods_ = kwargs["min_periods_"]
+        if min_periods_ == None:
+            min_periods_ = 1
+        elif not isinstance(min_periods_, int):
+            raise ValueError(\
+                  "min_periods='%s' is not supported currently!\n" % str(min_periods_))
+        ret.append(min_periods_)
+    if "min_count_" in kwargs.keys():
+        min_count_ = kwargs["min_count_"]
+        if min_count_ == None:
+            min_count_ = 1
+        elif not isinstance(min_count_, int):
+            raise ValueError(\
+                  "min_count='%s' is not supported currently!\n" % str(min_count_))
+        ret.append(min_count_)
+    if "low_memory_" in kwargs.keys():
+        low_memory_ = kwargs["low_memory_"]
+        if not isinstance(low_memory_, bool):
+            raise ValueError(\
+                  "low_memory='%s' is not supported currently!\n" % str(low_memory_))
+        ret.append(low_memory_)
+    if "col1_" in kwargs.keys():
+        col1_ = kwargs["col1_"]
+        if col1_ == None:
+            raise ValueError(\
+                  "col_name='%s' can not be None!\n" % str(col1_))
+        ret.append(col1_)
+    if "col2_" in kwargs.keys():
+        col2_ = kwargs["col2_"]
+        if col2_ == None:
+            raise ValueError(\
+                  "col_name='%s' can not be None!\n" % str(col2_))
+        ret.append(col2_)
+    if "other_" in kwargs.keys():
+        other_ = kwargs["other_"]
+        if other_ == None:
+            raise ValueError(\
+                  "other='%s' can not be None!\n" % str(other_))
+        if not isinstance(other_, df.DataFrame):
+            raise ValueError(\
+                  "other='%s' is not supported currently!\n" % str(other_))
+        ret.append(other_)
+    if "numeric_only_" in kwargs.keys():
+        numeric_only_ = kwargs["numeric_only_"]
+        if numeric_only_ not in [None, True, False]:
+            raise ValueError(\
+            "numeric_only='%s' is not supported currently!\n" % \
+            str(numeric_only_))
+        if numeric_only_ is None:
+            ret.append(False)
+        else:
+            ret.append(numeric_only_)
     return ret
 

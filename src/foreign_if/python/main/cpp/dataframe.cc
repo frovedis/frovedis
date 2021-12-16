@@ -711,6 +711,65 @@ extern "C" {
     return to_py_dummy_df(ret);
   }
 
+  PyObject* df_covariance(const char* host, int port, long proxy,
+                          const char** cols, ulong size,
+                          int min_periods, double ddof, bool low_memory, 
+                          bool with_index) {
+    ASSERT_PTR(host);
+    exrpc_node fm_node(host, port);
+    auto df_proxy = static_cast<exrpc_ptr_t> (proxy);
+    auto cc = to_string_vector(cols, size);
+    dummy_dftable ret;
+    try {
+      ret = exrpc_async(fm_node, frov_df_cov, df_proxy, 
+                        cc, min_periods, ddof, low_memory, 
+                        with_index).get();
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return to_py_dummy_df(ret);
+  }
+
+  double col_covariance(const char* host, int port, long proxy,
+                       const char* col1, int min_periods, double ddof,
+                       bool with_index) {
+    ASSERT_PTR(host);
+    exrpc_node fm_node(host, port);
+    auto df_proxy = static_cast<exrpc_ptr_t> (proxy);
+    exrpc_ptr_t ret = 0;
+    auto col1_string = std::string(col1);
+    try {
+      ret = exrpc_async(fm_node, frov_col_cov, df_proxy, 
+                        col1_string, min_periods, ddof, 
+                        with_index).get();
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return (static_cast<double>(ret));
+  }
+
+  double col2_covariance(const char* host, int port, long proxy,
+                       const char* col1, const char* col2, 
+                       int min_periods, double ddof,
+                       bool with_index) {
+    ASSERT_PTR(host);
+    exrpc_node fm_node(host, port);
+    auto df_proxy = static_cast<exrpc_ptr_t> (proxy);
+    exrpc_ptr_t ret = 0;
+    try {
+      ret = exrpc_async(fm_node, frov_col2_cov, df_proxy, 
+                        std::string(col1), std::string(col2), 
+                        min_periods, ddof, 
+                        with_index).get();
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return (static_cast<double>(ret));
+  }
+
   PyObject* get_bool_mask(const char* host, int port, long df_opt_proxy,
                           long df_proxy, bool ignore_nulls){
     ASSERT_PTR(host);

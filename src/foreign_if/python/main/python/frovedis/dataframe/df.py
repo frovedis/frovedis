@@ -3,6 +3,7 @@ df.py
 """
 import warnings
 import copy
+import sys
 import numbers
 from ctypes import *
 from array import array
@@ -431,7 +432,7 @@ class DataFrame(object):
 
         self.num_row = len(df)
         cols = df.columns.tolist()
-        self.__cols = cols
+        self.__cols = [str(x) for x in cols]
         indx_name = df.index.name if df.index.name is not None else "index"
         cols = [indx_name] + cols
         size = len(cols)
@@ -440,6 +441,7 @@ class DataFrame(object):
 
         for idx in range(0, size):
             cname = cols[idx]
+            s_cname = str(cname) # cname might be int etc.
             if idx == 0:
                 val = df.index
             else:
@@ -474,11 +476,12 @@ class DataFrame(object):
                                 "frovedis dataframe: " % (vtype))
             types[idx] = dt
             if idx == 0:
-                self.index = FrovedisColumn(cname, dt)
+                self.index = FrovedisColumn(s_cname, dt)
             else:
-                self.__dict__[cname] = FrovedisColumn(cname, dt) #For query purpose
+                self.__dict__[s_cname] = FrovedisColumn(s_cname, dt) #For query purpose
 
-        col_names = get_string_array_pointer(cols)
+        strcols = [str(cols[0])] + self.__cols # to ensure always a string-vec
+        col_names = get_string_array_pointer(strcols)
         dvec_arr = np.asarray([dv.get() for dv in dvec], dtype=c_long)
         dptr = dvec_arr.ctypes.data_as(POINTER(c_long))
         type_arr = np.asarray(types, dtype=c_short)
@@ -1234,6 +1237,31 @@ class DataFrame(object):
             result_dict = dict(zip(numeric_cols, ret))
             return [result_dict.get(col, np.nan) for col in columns]
 
+    def __get_non_numeric_columns(self, cols=None, include_bool=True):
+        """
+        Returns non numeric columns
+        """
+        if cols is not None:
+            cols = check_string_or_array_like(cols, \
+                         "__get_non_numeric_columns")
+            types = self.__get_column_types(cols)
+        else:
+            cols = self.__cols
+            types = self.__types
+
+        if include_bool:
+            non_numeric_types = [DTYPE.STRING]
+        else:
+            non_numeric_types = [DTYPE.STRING, DTYPE.BOOL]
+
+        non_numeric_cols = []
+        non_numeric_col_types = []
+        for i in range(0, len(cols)):
+            if types[i] in non_numeric_types:
+                non_numeric_cols.append(cols[i])
+                non_numeric_col_types.append(types[i])
+        return non_numeric_cols, non_numeric_col_types
+
     def __get_numeric_columns(self, cols=None, include_bool=True):
         """
         __get_numeric_columns
@@ -1311,10 +1339,23 @@ class DataFrame(object):
     @check_association
     def agg(self, func):
         if isinstance(func, str):
+            if "cov" == func:
+                return self.cov(1, 1.0, True)
             return self.__agg_list([func]).transpose()[func]
         elif isinstance(func, list):
+            if len(func) == 1 and "cov" in func:
+                return self.cov(1, 1.0, True)
+            if len(func) > 1 and "cov" in func:
+                func.remove("cov")
             return self.__agg_list(func)
         elif isinstance(func, dict):
+            covs = [k for k in func if "cov" in func[k]]
+            if len(covs) > 0:
+                if len(func) == 1 and len(func[covs[0]]) == 1 and "cov" in func[covs[0]]:
+                    return self[covs[0]].cov(1, 1.0, True)
+                if len(func) >= 1:
+                    for k in covs:
+                      func[k].remove("cov")
             return self.__agg_dict(func)
         else:
             raise ValueError("Unsupported 'func' type : {0}".format(type(func)))
@@ -3301,6 +3342,66 @@ class DataFrame(object):
         ret.num_row = dummy_df["nrow"]
         ret.index = FrovedisColumn(names[0], types[0]) #setting index
         ret.load_dummy(dummy_df["dfptr"], names[1:], types[1:])
+        return ret
+
+    @check_association
+    def cov(self, min_periods=None, ddof=1.0, low_memory=True, other=None):
+        """
+        returns the covariance matrix for the given dataframe.
+        """
+        if (other != None):
+            return self.__cov_other(other, min_periods, ddof)
+        ddof_, min_periods_, low_memory_  = check_stat_error(min_periods_=min_periods, \
+                                                 ddof_=ddof, low_memory_=low_memory)
+        cols, types = self.__get_numeric_columns()
+
+        ncol = len(cols)
+        cols_arr = get_string_array_pointer(cols)
+        (host, port) = FrovedisServer.getServerInstance()
+        dummy_df = rpclib.df_covariance(host, port, self.get(), \
+                                    cols_arr, ncol, \
+                                    min_periods_, ddof_, low_memory_,
+                                    self.has_index())
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
+        # returns a series
+        ret = DataFrame(is_series=True)
+        names = dummy_df["names"]
+        types = dummy_df["types"]
+        ret.num_row = dummy_df["nrow"]
+        ret.index = FrovedisColumn(names[0], types[0]) #setting index
+        ret.load_dummy(dummy_df["dfptr"], names[1:], types[1:])
+        return ret
+
+    @check_association
+    def __cov_other(self, other=None, min_periods=None, ddof=1.0):
+        """
+        returns the covariance between two columns.
+        """
+        ddof_, min_periods_, other_  = check_stat_error(other_=other, \
+                                                       min_periods_=min_periods, \
+                                                       ddof_=ddof)
+        if not (self.is_series and other.is_series):
+            raise RuntimeError("Input is not a series.")
+        if len(self) != len(other):
+            raise RuntimeError("DataFrame with unequal number of rows.")
+        tmp_df = DataFrame()
+        tmp_df = self.copy_column(self)
+        tmp_df.copy_column(other, inplace=True)
+        col1 = self.columns[0]
+        col2 = other.columns[0]
+        (host, port) = FrovedisServer.getServerInstance()
+        ret = rpclib.col2_covariance(host, port, tmp_df.get(), \
+                                    col1.encode('ascii'), col2.encode('ascii'), \
+                                    min_periods_, ddof_,
+                                    self.has_index())
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
+        # returns a double
+        if ret == sys.float_info.max:
+            return np.nan
         return ret
 
     def __setattr__(self, key, value):

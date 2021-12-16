@@ -260,6 +260,14 @@ class FrovedisColumn(object):
         ret.df = self.df
         return ret
 
+    def cov(self, frov_col):
+        """
+        Covariance
+        call example: df.col1.cov(df.col2)
+        """
+        return self.df[self.__colName] \
+                   .cov(other=frov_col.df[frov_col.__colName])
+
 class FrovedisStringMethods(object):
     """
     FrovedisStringMethods

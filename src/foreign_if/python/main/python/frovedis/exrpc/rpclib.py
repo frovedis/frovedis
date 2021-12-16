@@ -397,6 +397,27 @@ df_median.argtypes = [c_char_p, c_int, c_long,    # host, port, proxy
                     c_int, c_bool, c_bool]        # axis, skip_na, with_index
 df_median.restype = py_object
 
+df_covariance = LIB.df_covariance
+df_covariance.argtypes = [c_char_p, c_int, c_long,    # host, port, proxy
+                          POINTER(c_char_p), c_ulong, # cols_arr, ncol
+                          c_int, c_double, c_bool,    # min_periods, ddof, low_memory,
+                          c_bool]                     # with_index
+df_covariance.restype = py_object
+
+col_covariance = LIB.col_covariance
+col_covariance.argtypes = [c_char_p, c_int, c_long,   # host, port, proxy
+                          c_char_p,                   # col_name
+                          c_int, c_double,            # min_periods, ddof,
+                          c_bool]                     # with_index
+col_covariance.restype = c_double
+
+col2_covariance = LIB.col2_covariance
+col2_covariance.argtypes = [c_char_p, c_int, c_long,  # host, port, proxy
+                          c_char_p, c_char_p,         # col1, col2
+                          c_int, c_double,            # min_periods, ddof,
+                          c_bool]                     # with_index
+col2_covariance.restype = c_double
+
 df_std = LIB.df_std
 df_std.argtypes = [c_char_p, c_int, c_long,      # host, port, proxy
                    POINTER(c_char_p), c_ulong,   # cols_arr, ncol
