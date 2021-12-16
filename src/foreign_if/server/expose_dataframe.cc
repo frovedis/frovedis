@@ -112,6 +112,9 @@ void expose_frovedis_dataframe_functions() {
   expose(frov_df_std);
   expose(frov_df_sem);
   expose(frov_df_median);
+  expose(frov_df_cov);
+  expose(frov_col_cov);
+  expose(frov_col2_cov);
   expose(frovedis_gdf_aggr_with_ddof);
   expose(frov_df_mode_cols);
   expose(frov_df_mode_rows);

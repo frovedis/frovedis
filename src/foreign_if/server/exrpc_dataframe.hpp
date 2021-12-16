@@ -570,6 +570,18 @@ dummy_dftable frov_df_median(exrpc_ptr_t& df_proxy,
                            std::vector<std::string>& cols,
                            std::vector<short>& types,
                            int& axis, bool& skip_na, bool& with_index);
+dummy_dftable frov_df_cov(exrpc_ptr_t& df_proxy,
+                          std::vector<std::string>& cols,
+                          int& min_periods, double& ddof,
+                          bool& low_memory, bool& with_index);
+double frov_col_cov(exrpc_ptr_t& df_proxy,
+                   std::string& col1,
+                   int& min_periods, double& ddof,
+                   bool& with_index);
+double frov_col2_cov(exrpc_ptr_t& df_proxy,
+                   std::string& col1, std::string& col2,
+                   int& min_periods, double& ddof,
+                   bool& with_index);
 dummy_dftable 
 frovedis_gdf_aggr_with_ddof(exrpc_ptr_t& df_proxy,
                           std::vector<std::string>& groupedCols,
