@@ -144,6 +144,7 @@ public:
   virtual node_local<std::vector<size_t>> get_local_index();
   virtual bool is_right_joinable() {return true;}
   virtual void debug_print();
+  dftable distinct();
   virtual dftable_base* clone();
   virtual dftable_base* drop_cols(const std::vector<std::string>& cols);
   virtual dftable_base* rename_cols(const std::string& name,
@@ -403,7 +404,6 @@ public:
     std::vector<dftable> ts = {t};
     return union_tables(ts, keep_order, keep_dftable);
   }
-  dftable distinct();
   virtual dftable_base* clone();
   virtual dftable_base* drop_cols(const std::vector<std::string>& cols);
   virtual dftable_base* rename_cols(const std::string& name,
@@ -1370,7 +1370,7 @@ dftable rowmajor_matrix<T>::to_dataframe(const std::vector<std::string>& names) 
                    auto valp = mat.val.data();
                    for(size_t i = 0; i < nrow; ++i) retp[i] = valp[i * ncol + cid];
                    return ret;
-               }, broadcast(i)).template moveto_dvector<T>());
+               }, broadcast(i)).template moveto_dvector<T>(), true);
   }
   return ret;
 }

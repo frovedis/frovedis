@@ -270,7 +270,8 @@ exrpc_ptr_t join_df(exrpc_ptr_t& left_proxy,
   auto& left = *reinterpret_cast<dftable_base*>(left_proxy);
   auto& right = *reinterpret_cast<dftable_base*>(right_proxy);
   auto dfopt = *reinterpret_cast<std::shared_ptr<dfoperator>*>(opt_proxy);
-  if (check_opt_proxy) dfopt = dfopt->modify_right(rsuf)->modify_order(left, right);
+  if (check_opt_proxy) dfopt = dfopt->modify_right(rsuf)->rectify_order(left, right);
+
   dftable_base *bptr = NULL;
   if (join_type == "bcast") {
     if (how == "inner") 
@@ -1782,6 +1783,36 @@ dummy_dftable frov_df_mad(exrpc_ptr_t& df_proxy,
   return to_dummy_dftable(retp);
 }
 
+dummy_dftable frov_df_cov(exrpc_ptr_t& df_proxy, 
+                          std::vector<std::string>& cols,
+                          int& min_periods, double& ddof,
+                          bool& low_memory, bool& with_index) {
+  std::string index_nm = "index";
+  auto& df = *reinterpret_cast<dftable*>(df_proxy);
+  auto df1 = df.select(cols);
+  auto ret = df1.covariance(min_periods, ddof, low_memory)
+                .append_column(index_nm, make_dvector_scatter(cols))
+                .change_col_position(index_nm, 0);
+  auto retp = new dftable(std::move(ret));
+  return to_dummy_dftable(retp);
+}
+
+double frov_col_cov(exrpc_ptr_t& df_proxy, 
+                          std::string& col1,
+                          int& min_periods, double& ddof,
+                          bool& with_index) {
+  auto& df = *reinterpret_cast<dftable*>(df_proxy);
+  return df.covariance(col1, min_periods, ddof);
+}
+
+double frov_col2_cov(exrpc_ptr_t& df_proxy, 
+                          std::string& col1, std::string& col2,
+                          int& min_periods, double& ddof,
+                          bool& with_index) {
+  auto& df = *reinterpret_cast<dftable*>(df_proxy);
+  return df.covariance(col1, col2, min_periods, ddof);
+}
+
 dummy_dftable
 frov_df_mode_cols(exrpc_ptr_t& df_proxy, 
                   std::vector<std::string>& col_names,
@@ -1989,7 +2020,7 @@ dummy_dftable append_scalar(exrpc_ptr_t& dfproxy, std::string& cname,
   auto& df = *reinterpret_cast<dftable_base*>(dfproxy);
   auto ret = df.materialize(); // new dftable always
   auto size = ret.num_row();
-  require(size > 0, "append_scalar: is allowed for empty dataframe!\n");
+  require(size > 0, "append_scalar: is not allowed for empty dataframe!\n");
   if (value == "NULL") {
     switch (dtype) {
       case INT:    append_null<int>(ret, cname, size); break;
@@ -2103,8 +2134,8 @@ frov_df_filter_using_mask(exrpc_ptr_t& df_proxy,
 }
 
 exrpc_ptr_t frov_df_distinct(exrpc_ptr_t& df_proxy) {
-  auto dftblp = get_dftable_pointer(df_proxy);
-  auto res = new dftable(dftblp->distinct());
+  auto& df = *reinterpret_cast<dftable_base*>(df_proxy);
+  auto res = new dftable(df.distinct());
   if (!res) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed.\n");
   return reinterpret_cast<exrpc_ptr_t> (res);
 }

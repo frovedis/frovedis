@@ -511,7 +511,7 @@ class FrovedisDataFrame extends java.io.Serializable {
   def groupBy(c: FrovedisColumn*): FrovedisGroupedDF = {
     val all = c.toArray
     for (i <- 0 until all.size) {
-      if (!all(i).isID) throw new java.lang.UnsupportedOperationException(
+      if (!all(i).isID) throw new java.lang.UnsupportedOperationException( // TODO
       s"Currently frovedis supports groupBy based on only existing columns!")
     }
     return groupBy(all.map(x => x.toString))

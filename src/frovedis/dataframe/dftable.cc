@@ -640,6 +640,10 @@ dftable_base::fgroup_by(const std::vector<std::shared_ptr<dffunction>>& cols) {
   }
 }
 
+dftable dftable_base::distinct() {
+  return group_by(columns()).select(columns());
+}
+
 node_local<words>
 dftable_base::as_words(const std::string name,
                        size_t precision,
@@ -2633,10 +2637,6 @@ dftable dftable::union_tables(std::vector<dftable *>& ts, bool keep_order,
   }
 }
 
-dftable dftable::distinct() {
-  return group_by(columns()).select(columns());
-}
-
 std::vector<size_t>
 align_as_create_global_idx_helper(const std::vector<size_t>& dstsizes,
                                   const std::vector<size_t>& srcsizes) {
@@ -3988,20 +3988,15 @@ double dftable::covariance(const std::string& c1,
                            double ddof) {
   auto tmp = select({c1, c2});
   auto na_count = 2 * tmp.num_row() - (tmp.count(c1) + tmp.count(c2));
-  if (na_count) {
-    tmp = tmp.drop_nulls_by_rows("any");
-    ddof = 1.0;
-  }
+  if (na_count) tmp = tmp.drop_nulls_by_rows("any");
   auto n_observations = tmp.num_row();
   if (n_observations == 0 ||
       n_observations < min_periods ||
       n_observations - ddof < 1) return std::numeric_limits<double>::max();
   auto mean1 = tmp.avg(c1);
   auto mean2 = tmp.avg(c2);
-  tmp.call_function(sub_im_as(c1, mean1, "_t1"));
-  tmp.call_function(sub_im_as(c2, mean2, "_t2"));
-  tmp.call_function(mul_col_as("_t1", "_t2", "_t3"));
-  return tmp.sum<double>("_t3") / (n_observations - ddof);
+  auto sum = ((~c1 - mean1) * (~c2 - mean2))->execute(tmp)->sum<double>();
+  return sum / (n_observations - ddof);
 }
 
 double dftable::covariance(const std::string& c1,
@@ -4009,18 +4004,15 @@ double dftable::covariance(const std::string& c1,
                            double ddof) {
   auto tmp = select({c1});
   auto na_count = tmp.num_row() - tmp.count(c1);
-  if (na_count) {
-    tmp = tmp.drop_nulls_by_rows("any");
-    ddof = 1.0;
-  }
+  if (na_count) tmp = tmp.drop_nulls_by_rows("any");
   auto n_observations = tmp.num_row();
   if (n_observations == 0 ||
       n_observations < min_periods ||
       n_observations - ddof < 1) return std::numeric_limits<double>::max();
   auto mean1 = tmp.avg(c1);
-  tmp.call_function(sub_im_as(c1, mean1, "_t1"));
-  tmp.call_function(mul_col_as("_t1", "_t1", "_t3"));
-  return tmp.sum<double>("_t3") / (n_observations - ddof);
+  auto center = ~c1 - mean1;
+  auto sum = (center * center)->execute(tmp)->sum<double>();
+  return sum / (n_observations - ddof);
 }
 
 dftable dftable::covariance(int min_periods,
