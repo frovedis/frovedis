@@ -2,7 +2,6 @@
 #define _EXRPC_DF_HPP_
 
 #include <frovedis/dataframe.hpp>
-#include <frovedis/dataframe/dfcolumn_impl.hpp>
 #include <frovedis/matrix/matrix_sort.hpp>
 #include <frovedis/dataframe/dfaggregator.hpp>
 #include "../exrpc/exrpc_expose.hpp"
