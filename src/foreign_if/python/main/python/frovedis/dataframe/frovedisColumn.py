@@ -3,10 +3,12 @@ frovedis_column.py
 """
 #!/usr/bin/env python
 
+import numpy as np
 from ..exrpc import rpclib
 from ..exrpc.server import FrovedisServer
 from ..matrix.dtype import TypeUtil
 from .dfoperator import dfoperator
+from .dfutil import check_stat_error
 from .optype import *
 
 class FrovedisColumn(object):
@@ -260,13 +262,30 @@ class FrovedisColumn(object):
         ret.df = self.df
         return ret
 
-    def cov(self, frov_col):
+    def cov(self, other, min_periods=None, ddof=1):
         """
-        Covariance
+        Covariance for series
         call example: df.col1.cov(df.col2)
         """
-        return self.df[self.__colName] \
-                   .cov(other=frov_col.df[frov_col.__colName])
+        if not isinstance(other, FrovedisColumn):
+            raise TypeError("other: input is expected to be a FrovedisColumn.")
+            
+        if len(self.df) != len(other.df):
+            raise ValueError("cov: input series with unequal no. of elements.")
+
+        param = check_stat_error(min_periods_=min_periods, ddof_=ddof)
+        c1 = self.df.columns[0]
+        c2 = other.df.columns[0]
+        (host, port) = FrovedisServer.getServerInstance()
+        ret = rpclib.series_covariance(host, port, \
+                                       self.df.get(), c1.encode('ascii'), \
+                                       other.df.get(), c2.encode('ascii'), \
+                                       param.min_periods_, param.ddof_)
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
+        # returns a double
+        return np.nan if (ret == np.finfo(np.float64).max) else ret
 
 class FrovedisStringMethods(object):
     """

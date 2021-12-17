@@ -1788,7 +1788,7 @@ dummy_dftable frov_df_cov(exrpc_ptr_t& df_proxy,
                           int& min_periods, double& ddof,
                           bool& low_memory, bool& with_index) {
   std::string index_nm = "index";
-  auto& df = *reinterpret_cast<dftable*>(df_proxy);
+  auto& df = *get_dftable_pointer(df_proxy);
   auto df1 = df.select(cols);
   auto ret = df1.covariance(min_periods, ddof, low_memory)
                 .append_column(index_nm, make_dvector_scatter(cols))
@@ -1797,19 +1797,21 @@ dummy_dftable frov_df_cov(exrpc_ptr_t& df_proxy,
   return to_dummy_dftable(retp);
 }
 
+// TODO: remove (if unused)
 double frov_col_cov(exrpc_ptr_t& df_proxy, 
-                          std::string& col1,
-                          int& min_periods, double& ddof,
-                          bool& with_index) {
-  auto& df = *reinterpret_cast<dftable*>(df_proxy);
+                    std::string& col1,
+                    int& min_periods, double& ddof,
+                     bool& with_index) {
+  auto& df = *get_dftable_pointer(df_proxy);
   return df.covariance(col1, min_periods, ddof);
 }
 
+// TODO: remove (if unused)
 double frov_col2_cov(exrpc_ptr_t& df_proxy, 
-                          std::string& col1, std::string& col2,
-                          int& min_periods, double& ddof,
-                          bool& with_index) {
-  auto& df = *reinterpret_cast<dftable*>(df_proxy);
+                     std::string& col1, std::string& col2,
+                     int& min_periods, double& ddof,
+                     bool& with_index) {
+  auto& df = *get_dftable_pointer(df_proxy);
   return df.covariance(col1, col2, min_periods, ddof);
 }
 
@@ -2139,3 +2141,28 @@ exrpc_ptr_t frov_df_distinct(exrpc_ptr_t& df_proxy) {
   if (!res) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed.\n");
   return reinterpret_cast<exrpc_ptr_t> (res);
 }
+
+double frov_series_cov(exrpc_ptr_t& self_proxy, std::string& col1,
+                       exrpc_ptr_t& other_proxy, std::string& col2,
+                       int& min_periods, double& ddof) {
+  auto& self  = *reinterpret_cast<dftable_base*>(self_proxy);
+  auto& other = *reinterpret_cast<dftable_base*>(other_proxy);
+  use_dfcolumn use({self.raw_column(col1), other.raw_column(col2)});
+  auto c1 = self.column(col1);
+  auto c2 = other.column(col2);
+  double ret = 0;
+  auto lv1 = c1->as_dvector_double().moveto_node_local();
+  auto lv2 = c2->as_dvector_double().moveto_node_local();
+  if (c1->if_contain_nulls() || c2->if_contain_nulls()) {
+    auto lnv1 = c1->get_nulls().map(get_bool_mask_helper,
+                     make_node_local_scatter(self.num_rows()));
+    auto lnv2 = c2->get_nulls().map(get_bool_mask_helper,
+                     make_node_local_scatter(other.num_rows()));
+    bool ignore_ddof = false; // since series case
+    ret = cov_impl(lv1, lv2, lnv1, lnv2, min_periods, ddof, ignore_ddof);
+  } else {
+    ret = cov_impl(lv1, lv2, min_periods, ddof);
+  }
+  return ret;
+}
+

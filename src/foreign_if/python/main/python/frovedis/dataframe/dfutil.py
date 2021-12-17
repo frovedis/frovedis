@@ -3,7 +3,6 @@
 import numpy as np
 from collections import Iterable
 from ..matrix.dtype import DTYPE, TypeUtil, get_result_type
-from . import df
 
 def infer_column_type_from_first_notna(df, col, is_index=False):
     if is_index: #infers type of index assuming it contains all non-na
@@ -203,6 +202,10 @@ def check_string_or_array_like(by, func):
     return ret_by
 
 
+class stat_param(object): # place holder for parameters
+    def __init__(self):
+        #attributes would be set run-time
+        pass
 
 def check_stat_error(**kwargs):
     """
@@ -210,7 +213,7 @@ def check_stat_error(**kwargs):
     like sum, mean, var , ddof etc.
     Returns list containing(if present in input kwargs : axis, skipna, ddof
     """
-    ret = []
+    ret = stat_param() 
     if "level_" in kwargs.keys():
         level_ = kwargs["level_"]
         if level_ is not None:
@@ -221,11 +224,11 @@ def check_stat_error(**kwargs):
         if axis_ not in [None, 0, 1, "index", "columns"]:
             raise ValueError("No axis named '%s' for DataFrame object" % str(axis_))
         if axis_ is None or axis_ == "index":
-            ret.append(0)
+            ret.axis_ = 0
         elif axis_ == "columns":
-            ret.append(1)
+            ret.axis_ = 1
         else:
-            ret.append(axis_)
+            ret.axis_ = axis_
 
     if "skipna_" in kwargs.keys():
         skipna_ = kwargs["skipna_"]
@@ -233,16 +236,17 @@ def check_stat_error(**kwargs):
             raise ValueError(\
             "skipna='%s' is not supported currently!\n" % str(skipna_))
         if skipna_ is None:
-            ret.append(True)
+            ret.skipna_ = True
         else:
-            ret.append(skipna_)
+            ret.skipna_ = skipna_
 
     if "ddof_" in kwargs.keys():
         ddof_ = kwargs["ddof_"]
         if not isinstance(ddof_, int) and not isinstance(ddof_, float):
             raise ValueError(\
                   "ddof='%s' is not supported currently!\n" % str(ddof_))
-        ret.append(ddof_)
+        ret.ddof_ = ddof_
+
     if "min_periods_" in kwargs.keys():
         min_periods_ = kwargs["min_periods_"]
         if min_periods_ == None:
@@ -250,7 +254,8 @@ def check_stat_error(**kwargs):
         elif not isinstance(min_periods_, int):
             raise ValueError(\
                   "min_periods='%s' is not supported currently!\n" % str(min_periods_))
-        ret.append(min_periods_)
+        ret.min_periods_ = min_periods_
+
     if "min_count_" in kwargs.keys():
         min_count_ = kwargs["min_count_"]
         if min_count_ == None:
@@ -258,34 +263,15 @@ def check_stat_error(**kwargs):
         elif not isinstance(min_count_, int):
             raise ValueError(\
                   "min_count='%s' is not supported currently!\n" % str(min_count_))
-        ret.append(min_count_)
+        ret.min_count_ = min_count_
+
     if "low_memory_" in kwargs.keys():
         low_memory_ = kwargs["low_memory_"]
         if not isinstance(low_memory_, bool):
             raise ValueError(\
                   "low_memory='%s' is not supported currently!\n" % str(low_memory_))
-        ret.append(low_memory_)
-    if "col1_" in kwargs.keys():
-        col1_ = kwargs["col1_"]
-        if col1_ == None:
-            raise ValueError(\
-                  "col_name='%s' can not be None!\n" % str(col1_))
-        ret.append(col1_)
-    if "col2_" in kwargs.keys():
-        col2_ = kwargs["col2_"]
-        if col2_ == None:
-            raise ValueError(\
-                  "col_name='%s' can not be None!\n" % str(col2_))
-        ret.append(col2_)
-    if "other_" in kwargs.keys():
-        other_ = kwargs["other_"]
-        if other_ == None:
-            raise ValueError(\
-                  "other='%s' can not be None!\n" % str(other_))
-        if not isinstance(other_, df.DataFrame):
-            raise ValueError(\
-                  "other='%s' is not supported currently!\n" % str(other_))
-        ret.append(other_)
+        ret.low_memory_ = low_memory_
+
     if "numeric_only_" in kwargs.keys():
         numeric_only_ = kwargs["numeric_only_"]
         if numeric_only_ not in [None, True, False]:
@@ -293,8 +279,8 @@ def check_stat_error(**kwargs):
             "numeric_only='%s' is not supported currently!\n" % \
             str(numeric_only_))
         if numeric_only_ is None:
-            ret.append(False)
+            ret.numeric_only_ = False
         else:
-            ret.append(numeric_only_)
-    return ret
+            ret.numeric_only_ = numeric_only_
 
+    return ret

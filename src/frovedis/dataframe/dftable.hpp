@@ -1456,7 +1456,8 @@ double compute_vector_cov(const std::vector<T>& vecX,
 template <class T, class I>
 double cov_impl(lvec<T>& valX, lvec<T>& valY,
                 lvec<I>& nullX, lvec<I>& nullY,
-                int min_periods) {
+                int min_periods, double ddof,
+                bool ignore_ddof) {
   auto sumX = make_node_local_allocate<T>();
   auto sumY = make_node_local_allocate<T>();
   auto lnobjs = make_node_local_allocate<size_t>();
@@ -1464,13 +1465,16 @@ double cov_impl(lvec<T>& valX, lvec<T>& valY,
             nullX, nullY, sumX, sumY, lnobjs);
   auto nobjs = lnobjs.reduce(add<size_t>);
   double ret = std::numeric_limits<double>::max();
-  if (nobjs >= std::max(2, min_periods)) {
+  auto cond = (nobjs >= std::max(2, min_periods));
+  if (ignore_ddof) ddof = 1.0;
+  else             cond = cond && ((nobjs - ddof) > 0);
+  if (cond) {
     auto meanX = static_cast<double>(sumX.reduce(add<T>)) / nobjs;
     auto meanY = static_cast<double>(sumY.reduce(add<T>)) / nobjs;
     ret = valX.map(compute_vector_cov<T,I>, valY,
                    nullX, nullY, broadcast(meanX), broadcast(meanY))
               .reduce(add<double>);
-    ret /= (nobjs - 1); // ddof = 1; for having data with nulls
+    ret /= (nobjs - ddof); 
   }
   return ret;
 }

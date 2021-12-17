@@ -731,6 +731,7 @@ extern "C" {
     return to_py_dummy_df(ret);
   }
 
+  // TODO: remove (if unused)
   double col_covariance(const char* host, int port, long proxy,
                        const char* col1, int min_periods, double ddof,
                        bool with_index) {
@@ -750,6 +751,7 @@ extern "C" {
     return (static_cast<double>(ret));
   }
 
+  // TODO: remove (if unused)
   double col2_covariance(const char* host, int port, long proxy,
                        const char* col1, const char* col2, 
                        int min_periods, double ddof,
@@ -763,6 +765,26 @@ extern "C" {
                         std::string(col1), std::string(col2), 
                         min_periods, ddof, 
                         with_index).get();
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return (static_cast<double>(ret));
+  }
+
+  double series_covariance(const char* host, int port,
+                           long self_proxy, const char* col1, 
+                           long other_proxy, const char* col2, 
+                           int min_periods, double ddof) {
+    ASSERT_PTR(host);
+    exrpc_node fm_node(host, port);
+    auto selfp = static_cast<exrpc_ptr_t> (self_proxy);
+    auto otherp = static_cast<exrpc_ptr_t> (other_proxy);
+    double ret = 0;
+    try {
+      ret = exrpc_async(fm_node, frov_series_cov, 
+                        selfp, std::string(col1), otherp, std::string(col2),
+                        min_periods, ddof).get();
     }
     catch (std::exception& e) {
       set_status(true, e.what());

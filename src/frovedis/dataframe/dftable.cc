@@ -4027,20 +4027,23 @@ dftable dftable::covariance(int min_periods,
     rowmajor_matrix_local<double> covmat(ncol, ncol);
     auto retp = covmat.val.data();
     if (na_count) {
+      ddof = 1;
+      bool ignore_ddof = true;
       auto nulls = isnull(cols);
       for(size_t i = 0; i < ncol; ++i) {
         auto x = cols[i];
         use_dfcolumn use(raw_column(x));
         auto valX = column(x)->as_dvector_double().moveto_node_local();
         auto nullX = nulls.as_dvector<int>(x).moveto_node_local();
-        retp[i * ncol + i] = cov_impl(valX, valX, nullX, nullX, min_periods);
+        retp[i * ncol + i] = cov_impl(valX, valX, nullX, nullX, min_periods, 
+                                      ddof, ignore_ddof);
         for(size_t j = i + 1; j < ncol; ++j) {
           auto y = cols[j];
           use_dfcolumn use2(raw_column(y));
           auto valY = column(y)->as_dvector_double().moveto_node_local();
           auto nullY = nulls.as_dvector<int>(y).moveto_node_local();
           retp[i * ncol + j] = retp[j * ncol + i] = \
-            cov_impl(valX, valY, nullX, nullY, min_periods);
+            cov_impl(valX, valY, nullX, nullY, min_periods, ddof, ignore_ddof);
         }
       }
     } else {
