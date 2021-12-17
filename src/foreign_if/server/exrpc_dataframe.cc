@@ -120,6 +120,10 @@ exrpc_ptr_t create_dataframe_from_local_vectors (
                      auto v4 = reinterpret_cast<dvector<double>*>(dvec);
                      dftblp->append_column(cols[i],std::move(*v4),true);
                      delete v4; break; }
+      case STRING: { auto dvec = merge_and_set_dvector<std::string>(proxies, sizes, verify_size);
+                     auto v5 = reinterpret_cast<dvector<std::string>*>(dvec);
+                     dftblp->append_column(cols[i],std::move(*v5),true);
+                     delete v5; break; }
       default:     auto msg = "Unsupported datatype in dataframe creation: " + std::to_string(types[i]);
                    REPORT_ERROR(USER_ERROR,msg);
     }
@@ -2151,13 +2155,18 @@ double frov_series_cov(exrpc_ptr_t& self_proxy, std::string& col1,
   auto c1 = self.column(col1);
   auto c2 = other.column(col2);
   double ret = 0;
+  auto sizes = self.num_rows();
   auto lv1 = c1->as_dvector_double().moveto_node_local();
-  auto lv2 = c2->as_dvector_double().moveto_node_local();
+  auto lv2 = c2->as_dvector_double().align_as(sizes) // realign if not same
+                                    .moveto_node_local(); 
   if (c1->if_contain_nulls() || c2->if_contain_nulls()) {
     auto lnv1 = c1->get_nulls().map(get_bool_mask_helper,
-                     make_node_local_scatter(self.num_rows()));
+                                    make_node_local_scatter(sizes));
     auto lnv2 = c2->get_nulls().map(get_bool_mask_helper,
-                     make_node_local_scatter(other.num_rows()));
+                                    make_node_local_scatter(sizes))
+                               .moveto_dvector<int>()
+                               .align_as(sizes) // realign if not same
+                               .moveto_node_local();
     bool ignore_ddof = false; // since series case
     ret = cov_impl(lv1, lv2, lnv1, lnv2, min_periods, ddof, ignore_ddof);
   } else {

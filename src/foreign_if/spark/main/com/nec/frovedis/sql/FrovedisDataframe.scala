@@ -46,8 +46,8 @@ object TMAPPER {
   // simply enable ["StringType"  -> DTYPE.STRING] if you want to use the STRING type instead
   val string2id = Map("IntegerType" -> DTYPE.INT,    "LongType" -> DTYPE.LONG,
                    "FloatType"   -> DTYPE.FLOAT,  "DoubleType" -> DTYPE.DOUBLE,
-                   //"StringType"  -> DTYPE.STRING, 
-                   "StringType"  -> DTYPE.WORDS,
+                   "StringType"  -> DTYPE.STRING, 
+                   //"StringType"  -> DTYPE.WORDS,
                    "BooleanType" -> DTYPE.BOOL)
 
   val spark = SparkSession.builder.getOrCreate()
@@ -249,6 +249,12 @@ object _jDFTransfer extends java.io.Serializable {
               for (j <- 0 until k) dArr(j) = jPlatform.getDouble(obj(j), off(j), ncol, i)
               t0.show("buffer to double-array: ")
               JNISupport.loadFrovedisWorkerDoubleVector(w_node, vptr, localId, dArr, k)
+            }
+            case DTYPE.STRING => {
+              val sArr = new Array[String](k)
+              for (j <- 0 until k) sArr(j) = jPlatform.getString(obj(j), off(j), ncol, i)
+              t0.show("buffer to string-array: ")
+              JNISupport.loadFrovedisWorkerStringVector(w_node, vptr, localId, sArr, k)
             }
             case _ => throw new IllegalArgumentException(
                       "[optimized_load] Unsupported type: " + TMAPPER.id2string(types(i)))

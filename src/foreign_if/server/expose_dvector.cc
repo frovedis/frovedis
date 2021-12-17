@@ -18,6 +18,7 @@ allocate_local_vectors(std::vector<size_t>& sizes,
       case LONG:   tmp = allocate_local_vector<std::vector<long>>(sizes); break;
       case FLOAT:  tmp = allocate_local_vector<std::vector<float>>(sizes); break;
       case DOUBLE: tmp = allocate_local_vector<std::vector<double>>(sizes); break;
+      case STRING: tmp = allocate_local_vector<std::vector<std::string>>(sizes); break;
       default: REPORT_ERROR(USER_ERROR, "Unsupported dtype is encountered!\n");
     }
     auto tmpp = tmp.data();
