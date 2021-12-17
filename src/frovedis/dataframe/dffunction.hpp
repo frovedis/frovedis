@@ -28,9 +28,7 @@ bool verify_column_identicality(dftable_base& left,
   - add "_im" for immediate arguments.
     do not use the same function name since over loading does not work here
     because immediate is template type
-  - datetime and string functions do not have "_col", "_im" postfix because
-    no such problems exist
- */
+*/
 
 // ----- add -----
 struct dffunction_add : public dffunction {
