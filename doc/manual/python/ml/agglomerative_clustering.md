@@ -7,15 +7,13 @@ in clusters based on their similarities.
 
 # SYNOPSIS
 
-class frovedis.mllib.cluster.AgglomerativeClustering(n_clusters=2, affinity='euclidean',  
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \  
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ memory=None, connectivity=None,  
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \  
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ compute_full_tree='auto', linkage='average',  
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \  
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ distance_threshold=None, compute_distances=False,  
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \  
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ verbose=0)  
+    class frovedis.mllib.cluster.AgglomerativeClustering(n_clusters=2, affinity='euclidean',  
+                                                         memory=None, connectivity=None,  
+                                                         compute_full_tree='auto', 
+                                                         linkage='average',  
+                                                         distance_threshold=None, 
+                                                         compute_distances=False,  
+                                                         verbose=0)  
 
 ## Public Member Functions
 
@@ -33,12 +31,12 @@ is_fitted()
 
 
 # DESCRIPTION
-Clustering is a Machine Learning technique that involves the grouping of data points. 
+Clustering is a machine learning technique that involves the grouping of data points. 
 Hierarchical clustering is a general family of clustering algorithms that build nested 
 clusters by merging or splitting them successively. 
 
 The Agglomerative Clustering object performs a hierarchical clustering using a bottom-up 
-approach, each observation starts in its own cluster, and clusters are successively merged 
+approach. Each observation starts in its own cluster, and clusters are successively merged 
 together. 
 
 This module provides a client-server implementation, where the client application 
@@ -72,10 +70,11 @@ clusters should be greater than 0 and less than n_samples. (Default: 2)
 **_linkage_**: A string parameter used to specify linkage criterion. It determines 
 which distance to use between sets of observation. The algorithm will merge the pairs of 
 clusters that minimize this criterion.   
-'average' uses the average of the distances of each observation of the two sets.  
-'complete' linkage uses the maximum distances between all observations of the 
+- 'average' uses the average of the distances of each observation of the two sets.  
+- 'complete' linkage uses the maximum distances between all observations of the 
 two sets.  
-'single' uses the minimum of the distances between all observations of the two sets.  
+- 'single' uses the minimum of the distances between all observations of the two sets.  
+
 Only 'average', 'complete' and 'single' are supported. (Default: 'average')  
 **_distance\_threshold_**: A float or double(float64) type parameter, is the linkage distance
 threshold above which the clusters will not be merged. It must be zero or positive value. (Default: None)  
@@ -228,7 +227,8 @@ It returns a numpy array of int64 type values containing the cluster labels. It 
 __Parameters__   
 **_X_**: A numpy dense or scipy sparse matrix or any python array-like object or 
 an instance of FrovedisCRSMatrix for sparse data and FrovedisRowmajorMatrix for dense data.  
-**_y_**: A python ndarray or an instance of FrovedisVector. It has shape **(n_samples,1)**.  
+**_y_**: A python ndarray or an instance of FrovedisVector containing the true labels for 
+X. It has shape **(n_samples, 1)**.  
 **_sample\_weight_**: An unused parameter whose default value is None. It is simply ignored 
 in frovedis implementation.  
 
@@ -258,7 +258,7 @@ parameters and their values of AgglomerativeClustering class.
 
 For example, 
  
-      print(acm.get_params())
+    print(acm.get_params())
 
 Output  
 
@@ -307,10 +307,10 @@ __Parameters__
 **_fname_**:  A string object containing the name of the file having model information
 to be loaded.  
 **_dtype_**: A data-type is inferred from the input data. Currently, expected input data-type 
-is either float or double(float64). (Default: None)
+is either float or double (float64). (Default: None)
 
 __Purpose__    
-It loads an agglomerative cluster model stored previously from the specified 
+It loads an agglomerative clustering model stored previously from the specified 
 file (having little-endian binary data).  
 
 For example,   
@@ -326,7 +326,7 @@ __Parameters__
 model is to be saved.  
 
 __Purpose__  
-On success, it writes the model information (after-fit populated attributes) in the 
+On success, it writes the model information (metadata and model) in the 
 specified file as little-endian binary data. Otherwise, it throws an exception.  
 
 For example,   
@@ -397,7 +397,7 @@ It can be used to confirm if the model is already fitted or not. In case, reassi
 before training the model, then it can prompt the user to train the clustering model first.  
 
 __Return Value__  
-It returns ‘True’, if the model is already fitted otherwise, it returns ‘False’.  
+It returns 'True', if the model is already fitted otherwise, it returns 'False'.  
 
 # SEE ALSO  
 spectral_clustering, dbscan, kmeans, rowmajor_matrix, crs_matrix  
