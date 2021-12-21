@@ -584,8 +584,23 @@ double frov_col2_cov(exrpc_ptr_t& df_proxy,
                    int& min_periods, double& ddof,
                    bool& with_index);
 double frov_series_cov(exrpc_ptr_t& self_proxy, std::string& col1,
-                       exrpc_ptr_t& other_proxy, std::string& col2, 
+                       exrpc_ptr_t& other_proxy, std::string& col2,
                        int& min_periods, double& ddof);
+dummy_dftable frov_df_sum(exrpc_ptr_t& df_proxy,
+                          std::vector<std::string>& cols,
+                          std::vector<short>& types,
+                          int& axis, bool& skip_na, int& min_count,
+                          bool& with_index);
+dummy_dftable frov_df_min(exrpc_ptr_t& df_proxy,
+                          std::vector<std::string>& cols,
+                          std::vector<short>& types,
+                          int& axis, bool& skip_na,
+                          bool& with_index);
+dummy_dftable frov_df_max(exrpc_ptr_t& df_proxy,
+                          std::vector<std::string>& cols,
+                          std::vector<short>& types,
+                          int& axis, bool& skip_na,
+                          bool& with_index);
 dummy_dftable 
 frovedis_gdf_aggr_with_ddof(exrpc_ptr_t& df_proxy,
                           std::vector<std::string>& groupedCols,
