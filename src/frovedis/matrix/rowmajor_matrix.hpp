@@ -1206,7 +1206,8 @@ template <class T>
 rowmajor_matrix_local<T>
 merge(const std::vector<rowmajor_matrix_local<T>>& vec) {
   auto nmat = vec.size();
-  if(nmat == 0) return rowmajor_matrix_local<T>();
+  if( nmat == 0) return rowmajor_matrix_local<T>();
+  if (nmat == 1) return vec[0];
   size_t nrow = 0;
   size_t ncol = vec[0].local_num_col; // all matrix should have same ncol
   for(size_t i = 0; i < nmat; ++i) nrow += vec[i].local_num_row;
