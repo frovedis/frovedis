@@ -116,6 +116,9 @@ void expose_frovedis_dataframe_functions() {
   expose(frov_col_cov);  // TODO: remove (if unused) 
   expose(frov_col2_cov); // TODO: remove (if unused)
   expose(frov_series_cov);
+  expose(frov_df_sum);
+  expose(frov_df_min);
+  expose(frov_df_max);
   expose(frovedis_gdf_aggr_with_ddof);
   expose(frov_df_mode_cols);
   expose(frov_df_mode_rows);

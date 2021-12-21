@@ -383,6 +383,28 @@ df_mean.argtypes = [c_char_p, c_int, c_long,      # host, port, proxy
                     c_int, c_bool, c_bool]        # axis, skip_na, with_index
 df_mean.restype = py_object
 
+df_sum = LIB.df_sum
+df_sum.argtypes = [c_char_p, c_int, c_long,       # host, port, proxy
+                    POINTER(c_char_p),           # cols_arr,
+                    POINTER(c_short), c_ulong,   # types_arr, ncol
+                    c_int, c_bool, c_int,         # axis, skip_na, min_cunt
+                    c_bool]                       # with_index
+df_sum.restype = py_object
+
+df_min = LIB.df_min
+df_min.argtypes = [c_char_p, c_int, c_long,      # host, port, proxy
+                    POINTER(c_char_p),           # cols_arr,
+                    POINTER(c_short), c_ulong,   # types_arr, ncol
+                    c_int, c_bool, c_bool]        # axis, skip_na, with_index
+df_min.restype = py_object
+
+df_max = LIB.df_max
+df_max.argtypes = [c_char_p, c_int, c_long,      # host, port, proxy
+                    POINTER(c_char_p),           # cols_arr,
+                    POINTER(c_short), c_ulong,   # types_arr, ncol
+                    c_int, c_bool, c_bool]        # axis, skip_na, with_index
+df_max.restype = py_object
+
 df_var = LIB.df_var
 df_var.argtypes = [c_char_p, c_int, c_long,      # host, port, proxy
                    POINTER(c_char_p), c_ulong,   # cols_arr, ncol
@@ -1401,10 +1423,12 @@ gmm_predict.argtypes = [c_char_p, c_int, c_int,
                         ndpointer(c_long, ndim=1,\
                         flags="C_CONTIGUOUS"),\
                         c_ulong]
+gmm_predict.restype = py_object
 
 gmm_predict_proba = LIB.gmm_predict_proba
 gmm_predict_proba.argtypes = [c_char_p, c_int, c_int,
                               c_short, c_long]
+gmm_predict_proba.restype = py_object
 
 get_gmm_weights = LIB.get_gmm_weights_vector
 get_gmm_weights.argtypes = [c_char_p, c_int, c_int, c_short]

@@ -584,6 +584,63 @@ extern "C" {
     return to_py_dummy_df(ret);
   }
 
+  PyObject* df_sum(const char* host, int port, long proxy,
+                    const char** cols, short* types, ulong size, 
+                    int axis, bool skipna, int min_count, bool with_index) {
+    ASSERT_PTR(host);
+    exrpc_node fm_node(host, port);
+    auto df_proxy = static_cast<exrpc_ptr_t> (proxy);
+    auto cc = to_string_vector(cols, size);
+    auto tt = to_short_vector(types, size);
+    dummy_dftable ret;
+    try {
+      ret = exrpc_async(fm_node, frov_df_sum, df_proxy, 
+                        cc, tt, axis, skipna, min_count, with_index).get();
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return to_py_dummy_df(ret);
+  }
+
+  PyObject* df_min(const char* host, int port, long proxy,
+                    const char** cols, short* types, ulong size, 
+                    int axis, bool skipna, bool with_index) {
+    ASSERT_PTR(host);
+    exrpc_node fm_node(host, port);
+    auto df_proxy = static_cast<exrpc_ptr_t> (proxy);
+    auto cc = to_string_vector(cols, size);
+    auto tt = to_short_vector(types, size);
+    dummy_dftable ret;
+    try {
+      ret = exrpc_async(fm_node, frov_df_min, df_proxy, 
+                        cc, tt, axis, skipna, with_index).get();
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return to_py_dummy_df(ret);
+  }
+
+  PyObject* df_max(const char* host, int port, long proxy,
+                    const char** cols, short* types, ulong size, 
+                    int axis, bool skipna, bool with_index) {
+    ASSERT_PTR(host);
+    exrpc_node fm_node(host, port);
+    auto df_proxy = static_cast<exrpc_ptr_t> (proxy);
+    auto cc = to_string_vector(cols, size);
+    auto tt = to_short_vector(types, size);
+    dummy_dftable ret;
+    try {
+      ret = exrpc_async(fm_node, frov_df_max, df_proxy, 
+                        cc, tt, axis, skipna, with_index).get();
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return to_py_dummy_df(ret);
+  }
+
   PyObject* df_mean(const char* host, int port, long proxy,
                     const char** cols, ulong size, 
                     int axis, bool skipna, bool with_index) {
