@@ -4,18 +4,14 @@
 BernoulliNB \- One of the variations of Naive Bayes algorithm.
 It is a classification algorithm to predict only binary output.
 .SH SYNOPSIS
-.PP
-frovedis.mllib.naive_bayes.BernoulliNB(alpha=1.0, fit_prior=True,
-.PD 0
-.P
-.PD
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ class_prior=None, binarize=0.0,
-.PD 0
-.P
-.PD
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ verbose=0)
+.IP
+.nf
+\f[C]
+frovedis.mllib.naive_bayes.BernoulliNB(alpha=1.0,\ fit_prior=True,\ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ class_prior=None,\ binarize=0.0,\ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ verbose=0)\ \ 
+\f[]
+.fi
 .SS Public Member Functions
 .PP
 fit(X, y, sample_weight = None)
@@ -65,8 +61,6 @@ Naive Bayes classifier for bernoulli models.
 .PP
 The Bernoulli Naive Bayes classifier is suitable for classification with
 binary/boolean features.
-In the multivariate Bernoulli event model, features are independent
-booleans (binary variables) describing inputs.
 .PP
 This model is popular for document classification tasks, where binary
 term occurrence features (i.e a word occurs in a document or not) are
@@ -101,7 +95,7 @@ sent back to the python client.
 .PD 0
 .P
 .PD
-\f[B]\f[I]alpha\f[]\f[]: A positive double(float64) smoothing parameter
+\f[B]\f[I]alpha\f[]\f[]: A positive double (float64) smoothing parameter
 (0 for no smoothing).
 It must be greater than or equal to 1.
 (Default: 1.0)
@@ -115,7 +109,7 @@ If False, a uniform prior will be used.
 .PD 0
 .P
 .PD
-\f[B]\f[I]class_prior\f[]\f[]: A numpy ndarray of double(float64) type
+\f[B]\f[I]class_prior\f[]\f[]: A numpy ndarray of double (float64) type
 values and must be of shape \f[B](n_classes,)\f[].
 It gives prior probabilities of the classes.
 (Default: None)
@@ -127,7 +121,7 @@ according to the data.
 .PD 0
 .P
 .PD
-\f[B]\f[I]binarize\f[]\f[]: A double(float64) parameter specifying the
+\f[B]\f[I]binarize\f[]\f[]: A double (float64) parameter specifying the
 threshold for binarizing sample features.
 (Default: 0.0)
 .PD 0
@@ -143,35 +137,35 @@ getting training time logs from frovedis server.
 .PD 0
 .P
 .PD
-\f[B]\f[I]class_log_prior_\f[]\f[]: A python ndarray of double(float64)
+\f[B]\f[I]class_log_prior_\f[]\f[]: A python ndarray of double (float64)
 type values and has shape \f[B](n_classes,)\f[].
 It contains log probability of each class (smoothed).
 .PD 0
 .P
 .PD
-\f[B]\f[I]feature_log_prob_\f[]\f[]: A python ndarray of double(float64)
-type values and has shape \f[B](n_classes, n_features)\f[].
+\f[B]\f[I]feature_log_prob_\f[]\f[]: A python ndarray of double
+(float64) type values and has shape \f[B](n_classes, n_features)\f[].
 It contains empirical log probability of features given a class,
 P(x_i|y).
 .PD 0
 .P
 .PD
-\f[B]\f[I]class_count_\f[]\f[]: A python ndarray of double(float64) type
-values and has shape \f[B](n_classes,)\f[].
+\f[B]\f[I]class_count_\f[]\f[]: A python ndarray of double (float64)
+type values and has shape \f[B](n_classes,)\f[].
 It contains the number of samples encountered for each class during
 fitting.
 This value is weighted by the sample weight when provided.
 .PD 0
 .P
 .PD
-\f[B]\f[I]classes_\f[]\f[]: A python ndarray of double(float64) type
+\f[B]\f[I]classes_\f[]\f[]: A python ndarray of double (float64) type
 values and has shape \f[B](n_classes,)\f[].
 It contains the of unique labels given to the classifier during
 training.
 .PD 0
 .P
 .PD
-\f[B]\f[I]feature_count_\f[]\f[]: A python ndarray of double(float64)
+\f[B]\f[I]feature_count_\f[]\f[]: A python ndarray of double (float64)
 type values and has shape \f[B](n_classes, n_features)\f[].
 It contains the number of samples encountered for each (class, feature)
 during fitting.
@@ -179,19 +173,35 @@ This value is weighted by the sample weight when provided.
 .PD 0
 .P
 .PD
-\f[B]\f[I]coef_\f[]\f[]: A python ndarray of double(float64) type
+\f[B]\f[I]coef_\f[]\f[]: A python ndarray of double (float64) type
 values.
-If \[aq]classess_\[aq] is 2, then its shape \f[B](1, n_features)\f[],
-otherwise, the shape is \f[B](n_classes, n_features)\f[].
+.PD 0
+.P
+.PD
+\- If \[aq]classess_\[aq] is 2, then its shape \f[B](1, n_features)\f[].
+.PD 0
+.P
+.PD
+\- If \[aq]classess_\[aq] is more than 2, then its shape is
+\f[B](n_classes, n_features)\f[].
+.PP
 It mirrors \[aq]feature_log_prob_\[aq] for interpreting BernoulliNB as a
 linear model.
 .PD 0
 .P
 .PD
-\f[B]\f[I]intercept_\f[]\f[]: A python ndarray of double(float64) type
+\f[B]\f[I]intercept_\f[]\f[]: A python ndarray of double (float64) type
 values.
-If \[aq]classes_\[aq] is 2, the its shape \f[B](1,)\f[], otherwise, the
-shape is \f[B](n_classes,)\f[].
+.PD 0
+.P
+.PD
+\- If \[aq]classes_\[aq] is 2, the its shape \f[B](1,)\f[].
+.PD 0
+.P
+.PD
+\- If \[aq]classes_\[aq] is more than 2, then its shape is
+\f[B](n_classes,)\f[].
+.PP
 It mirrors \[aq]class_log_prior_\[aq] for interpreting BernoulliNB as a
 linear model.
 .PP
@@ -226,7 +236,10 @@ It has shape \f[B](n_samples,)\f[].
 .PD
 \f[B]\f[I]sample_weight\f[]\f[]: A python ndarray containing the
 intended weights for each input samples and it should be the shape of
-\f[B](n_samples, )\f[].
+\f[B](n_samples,)\f[].
+.PD 0
+.P
+.PD
 When it is None (not specified explicitly), an uniform weight vector is
 assigned on each input sample.
 (Default: None)
@@ -348,7 +361,7 @@ Output
 .PD 0
 .P
 .PD
-It returns a numpy array of float or double(float64) type and of shape
+It returns a numpy array of float or double (float64) type and of shape
 \f[B](n_samples,)\f[] containing the predicted outputs.
 .SS 4. predict_proba(X)
 .PP
@@ -428,7 +441,7 @@ Output
 .PD 0
 .P
 .PD
-It returns a numpy array of float or double(float64) type and of shape
+It returns a numpy array of float or double (float64) type and of shape
 \f[B](n_samples, n_classes)\f[] containing the prediction probability
 values.
 .SS 5. score(X, y)
@@ -443,7 +456,8 @@ and FrovedisRowmajorMatrix for dense data.
 .PD 0
 .P
 .PD
-\f[B]\f[I]y\f[]\f[]: Any python array\-like object.
+\f[B]\f[I]y\f[]\f[]: Any python array\-like object containing true
+labels for X.
 It has shape \f[B](n_samples,)\f[].
 .PP
 \f[B]Purpose\f[]
@@ -543,7 +557,7 @@ For example,
 .IP
 .nf
 \f[C]
-\ \ print(bnb.get_params())
+print(bnb.get_params())
 \f[]
 .fi
 .PP
@@ -621,7 +635,8 @@ pi, type to be loaded.
 .P
 .PD
 \f[B]\f[I]dtype\f[]\f[]: A data\-type is inferred from the input data.
-Currently, expected input data\-type is either float or double(float64).
+Currently, expected input data\-type is either float or double
+(float64).
 (Default: None)
 .PP
 \f[B]Purpose\f[]
@@ -657,9 +672,8 @@ on which the target model is to be saved.
 .PD 0
 .P
 .PD
-On success, it writes the model information (theta, cls_count,
-feature_count, label, pi, type) in the specified file as little\-endian
-binary data.
+On success, it writes the model information (label_map, metadata and
+model) in the specified file as little\-endian binary data.
 Otherwise, it throws an exception.
 .PP
 For example,
@@ -771,8 +785,8 @@ the user to train the naive bayes model first.
 .PD 0
 .P
 .PD
-It returns ‘True', if the model is already fitted, otherwise, it returns
-‘False'.
+It returns \[aq]True\[aq], if the model is already fitted, otherwise, it
+returns \[aq]False\[aq].
 .SH SEE ALSO
 .PP
 multinomial_naive_bayes, rowmajor_matrix, dvector, crs_matrix

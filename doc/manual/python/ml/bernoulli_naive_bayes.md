@@ -7,11 +7,9 @@ to predict only binary output.
 
 # SYNOPSIS
 
-frovedis.mllib.naive_bayes.BernoulliNB(alpha=1.0, fit_prior=True,  
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ class_prior=None, binarize=0.0,  
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ verbose=0)  
+    frovedis.mllib.naive_bayes.BernoulliNB(alpha=1.0, fit_prior=True,  
+                                           class_prior=None, binarize=0.0,  
+                                           verbose=0)  
 
 ## Public Member Functions  
 
@@ -31,8 +29,7 @@ is_fitted()
 Naive Bayes classifier for bernoulli models.  
 
 The Bernoulli Naive Bayes classifier is suitable for classification with 
-binary/boolean features. In the multivariate Bernoulli event model, features 
-are independent booleans (binary variables) describing inputs.  
+binary/boolean features.  
 
 This model is popular for document classification tasks, where binary term 
 occurrence features (i.e a word occurs in a document or not) are used rather than 
@@ -59,36 +56,41 @@ the frovedis server, the output would be sent back to the python client.
 
 ### 1. BernoulliNB()  
 __Parameters__  
-**_alpha_**: A positive double(float64) smoothing parameter (0 for no smoothing). It must be 
+**_alpha_**: A positive double (float64) smoothing parameter (0 for no smoothing). It must be 
 greater than or equal to 1. (Default: 1.0)  
 **_fit\_prior_**: A boolean parameter specifying whether to learn class prior probabilities or 
 not. If False, a uniform prior will be used. (Default: True)  
-**_class\_prior_**: A numpy ndarray of double(float64) type values and must be of shape **(n_classes,)**. 
+**_class\_prior_**: A numpy ndarray of double (float64) type values and must be of shape **(n_classes,)**. 
 It gives prior probabilities of the classes. (Default: None)  
 When it is None (not specified explicitly), the priors are adjusted according to the data.  
-**_binarize_**: A double(float64) parameter specifying the threshold for binarizing sample features. (Default: 0.0)  
+**_binarize_**: A double (float64) parameter specifying the threshold for binarizing sample features. (Default: 0.0)  
 **_verbose_**: An integer parameter specifying the log level to use. Its value is 0 by 
 default (for INFO mode). But it can be set to 1 (for DEBUG mode) or 2 (for TRACE mode) for getting 
 training time logs from frovedis server.  
 
 __Attributes__  
-**_class\_log\_prior\__**: A python ndarray of double(float64) type values and has shape **(n_classes,)**. It 
+**_class\_log\_prior\__**: A python ndarray of double (float64) type values and has shape **(n_classes,)**. It 
 contains log probability of each class (smoothed).  
-**_feature\_log\_prob\__**: A python ndarray of double(float64) type values and has shape **(n_classes, n_features)**. 
+**_feature\_log\_prob\__**: A python ndarray of double (float64) type values and has shape **(n_classes, n_features)**. 
 It contains empirical log probability of features given a class, P(x_i|y).  
-**_class\_count\__**: A python ndarray of double(float64) type values and has shape **(n_classes,)**. It 
+**_class\_count\__**: A python ndarray of double (float64) type values and has shape **(n_classes,)**. It 
 contains the number of samples encountered for each class during fitting. This value is weighted 
 by the sample weight when provided.  
-**_classes\__**: A python ndarray of double(float64) type values and has shape **(n_classes,)**. It 
+**_classes\__**: A python ndarray of double (float64) type values and has shape **(n_classes,)**. It 
 contains the of unique labels given to the classifier during training.  
-**_feature\_count\__**: A python ndarray of double(float64) type values and has shape **(n_classes, n_features)**. 
+**_feature\_count\__**: A python ndarray of double (float64) type values and has shape **(n_classes, n_features)**. 
 It contains the number of samples encountered for each (class, feature) during fitting. This 
 value is weighted by the sample weight when provided.  
-**_coef\__**: A python ndarray of double(float64) type values. If 'classess_' is 2, then its shape **(1, n_features)**, 
-otherwise, the shape is **(n_classes, n_features)**. It mirrors 'feature_log_prob_' for interpreting BernoulliNB 
-as a linear model.  
-**_intercept\__**: A python ndarray of double(float64) type values. If 'classes_' is 2, the its shape **(1,)**, 
-otherwise, the shape is **(n_classes,)**. It mirrors 'class_log_prior_' for interpreting BernoulliNB as a linear model.  
+**_coef\__**: A python ndarray of double (float64) type values.  
+- If 'classess_' is 2, then its shape **(1, n_features)**.  
+- If 'classess_' is more than 2, then its shape is **(n_classes, n_features)**.  
+
+It mirrors 'feature_log_prob_' for interpreting BernoulliNB as a linear model.  
+**_intercept\__**: A python ndarray of double (float64) type values.  
+- If 'classes_' is 2, the its shape **(1,)**.  
+- If 'classes_' is more than 2, then its shape is **(n_classes,)**.  
+
+It mirrors 'class_log_prior_' for interpreting BernoulliNB as a linear model.  
 
 __Purpose__  
 It initializes a BernoulliNB object with the given parameters.  
@@ -101,9 +103,10 @@ __Parameters__
 **_X_**: A numpy dense or scipy sparse matrix or any python array-like object or 
 an instance of FrovedisCRSMatrix for sparse data and FrovedisRowmajorMatrix for dense data.  
 **_y_**: Any python array-like object or an instance of FrovedisDvector. It has shape **(n_samples,)**.  
-**_sample\_weight_**: A python ndarray containing the intended weights for each input
-samples and it should be the shape of **(n_samples, )**. When it is None (not specified explicitly), an 
-uniform weight vector is assigned on each input sample. (Default: None)  
+**_sample\_weight_**: A python ndarray containing the intended weights for each input 
+samples and it should be the shape of **(n_samples,)**.  
+When it is None (not specified explicitly), an uniform weight vector is assigned on each 
+input sample. (Default: None)  
 
 __Purpose__  
 It accepts the training matrix (X) with labels (y) and trains a BernoulliNB model.  
@@ -179,7 +182,7 @@ Output
     [1 1 1 ... 1 1 1]
 
 __Return Value__  
-It returns a numpy array of float or double(float64) type and of shape **(n_samples,)** 
+It returns a numpy array of float or double (float64) type and of shape **(n_samples,)** 
 containing the predicted outputs.  
 
 ### 4. predict_proba(X)  
@@ -231,14 +234,14 @@ Output
      [0.35939685 0.64060315]]
      
 __Return Value__  
-It returns a numpy array of float or double(float64) type and of shape **(n_samples, n_classes)** 
+It returns a numpy array of float or double (float64) type and of shape **(n_samples, n_classes)** 
 containing the prediction probability values.  
 
 ### 5. score(X, y)  
 __Parameters__  
 **_X_**: A numpy dense or scipy sparse matrix or any python array-like object or an instance 
 of FrovedisCRSMatrix for sparse data and FrovedisRowmajorMatrix for dense data.  
-**_y_**: Any python array-like object. It has shape **(n_samples,)**.  
+**_y_**: Any python array-like object containing true labels for X. It has shape **(n_samples,)**.  
 
 __Purpose__  
 Calculate mean accuracy on the given test data and labels i.e. mean accuracy of 
@@ -297,7 +300,7 @@ parameters and their values of BernoulliNB class.
 
 For example, 
  
-      print(bnb.get_params())
+    print(bnb.get_params())
 
 Output  
 
@@ -341,7 +344,7 @@ __Parameters__
 **_fname_**: A string object containing the name of the file having model information such as 
 theta, cls_count, feature_count, label, pi, type to be loaded.    
 **_dtype_**: A data-type is inferred from the input data. Currently, expected input 
-data-type is either float or double(float64). (Default: None)  
+data-type is either float or double (float64). (Default: None)  
 
 __Purpose__  
 It loads the model from the specified file (having little-endian binary data).  
@@ -359,8 +362,8 @@ __Parameters__
 model is to be saved.  
 
 __Purpose__  
-On success, it writes the model information (theta, cls_count, feature_count, label, pi, type) 
-in the specified file as little-endian binary data. Otherwise, it throws an exception.  
+On success, it writes the model information (label_map, metadata and model) in the 
+specified file as little-endian binary data. Otherwise, it throws an exception.  
 
 For example,   
 
@@ -385,8 +388,8 @@ The 'BNBModel' directory has
 
 ‘label_map’ contains information about labels mapped with their encoded value.  
 The metadata file contains the  model kind, input datatype used for trained model.  
-Here, the **model** directory contains information about class count, feature count, labels, pi, **theta** 
-and thier datatype.  
+Here, the **model** directory contains information about class count, feature count, 
+labels, pi, **theta** and thier datatype.  
 
 __Return Value__  
 It returns nothing
@@ -413,7 +416,7 @@ It can be used to confirm if the model is already fitted or not. In case, predic
 before training the model, then it can prompt the user to train the naive bayes model first.  
 
 __Return Value__  
-It returns ‘True’, if the model is already fitted, otherwise, it returns ‘False’.
+It returns 'True', if the model is already fitted, otherwise, it returns 'False'.
 
 # SEE ALSO  
 multinomial_naive_bayes, rowmajor_matrix, dvector, crs_matrix   
