@@ -3,26 +3,15 @@
 .PP
 FPGrowth \- A frequent pattern mining algorithm supported by Frovedis.
 .SH SYNOPSIS
-.PP
-class frovedis.mllib.fpm.FPGrowth(minSupport=0.3, minConfidence=0.8,
-itemsCol=\[aq]items\[aq],
-.PD 0
-.P
-.PD
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ predictionCol=\[aq]prediction\[aq],
-numPartitions=None,
-.PD 0
-.P
-.PD
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ tree_depth=None, compression_point=4,
-mem_opt_level=0,
-.PD 0
-.P
-.PD
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ verbose=0, encode_string_input=False)
+.IP
+.nf
+\f[C]
+class\ frovedis.mllib.fpm.FPGrowth(minSupport=0.3,\ minConfidence=0.8,\ itemsCol=\[aq]items\[aq],\ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ predictionCol=\[aq]prediction\[aq],\ numPartitions=None,\ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ tree_depth=None,\ compression_point=4,\ mem_opt_level=0,\ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ verbose=0,\ encode_string_input=False)\ \ 
+\f[]
+.fi
 .SS Public Member Functions
 .PP
 fit(data)
@@ -128,14 +117,14 @@ sent back to the python client.
 .PD 0
 .P
 .PD
-\f[B]\f[I]minSupport\f[]\f[]: A positive double(float64) type value that
-specifies the minimum support level of frequent itemsets.
+\f[B]\f[I]minSupport\f[]\f[]: A positive double (float64) type value
+that specifies the minimum support level of frequent itemsets.
 Its value must be within 0 to 1.
 (Default: 0.3)
 .PD 0
 .P
 .PD
-\f[B]\f[I]minConfidence\f[]\f[]: A positive double(float64) type value
+\f[B]\f[I]minConfidence\f[]\f[]: A positive double (float64) type value
 that specifies the minimal confidence for generating association rules.
 It will not affect the mining for frequent itemsets, but will affect the
 association rules generation.
@@ -262,7 +251,7 @@ fpm.fit(data)
 .PD
 \f[B]\f[I]freqItemsets\f[]\f[]: A pandas dataframe having two fields,
 \[aq]items\[aq] and \[aq]freq\[aq], where \[aq]items\[aq] is an array
-whereas \[aq]freq\[aq] is double(float64) type value.
+whereas \[aq]freq\[aq] is double (float64) type value.
 It contains the itemsets along with their frequency values.
 Here, the frequency of an itemset signifies as to how many times the
 itemset appears in the transaction database.
@@ -291,7 +280,7 @@ Both are itemsets (arrays).
 For measuring the effectiveness of association rule,
 \[aq]confidence\[aq], \[aq]lift\[aq], \[aq]support\[aq] and
 \[aq]conviction\[aq] are used.
-All are double(float64) type values.
+All are double (float64) type values.
 .PD 0
 .P
 .PD
@@ -326,9 +315,7 @@ other item and vice versa.
 if they were dependent with the actual frequency of the appearance of X
 without Y.
 If it equals 1, then they are completely unrelated.
-.PD 0
-.P
-.PD
+.PP
 \f[B]\f[I]count\f[]\f[]: A positive integer value which specifies the
 frequent itemsets count.
 .PD 0
@@ -718,7 +705,7 @@ It simply returns "self" reference.
 .PD 0
 .P
 .PD
-\f[B]\f[I]confidence\f[]\f[]: A double(float64) type parameter
+\f[B]\f[I]confidence\f[]\f[]: A double (float64) type parameter
 indicating the minimum confidence value.
 (Default: None)
 .PD 0
@@ -1179,8 +1166,8 @@ It can be used to confirm if the model is already fitted or not.
 .PD 0
 .P
 .PD
-It returns ‘True', if the model is already fitted, otherwise, it returns
-‘False'.
+It returns \[aq]True\[aq], if the model is already fitted, otherwise, it
+returns \[aq]False\[aq].
 .SH SEE ALSO
 .PP
 dataframe

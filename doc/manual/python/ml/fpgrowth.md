@@ -6,13 +6,10 @@ FPGrowth - A frequent pattern mining algorithm supported by Frovedis.
 
 # SYNOPSIS
 
-class frovedis.mllib.fpm.FPGrowth(minSupport=0.3,  minConfidence=0.8, itemsCol='items',  
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ predictionCol='prediction', numPartitions=None,  
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ tree_depth=None, compression_point=4, mem_opt_level=0,  
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ verbose=0, encode_string_input=False)  
+    class frovedis.mllib.fpm.FPGrowth(minSupport=0.3, minConfidence=0.8, itemsCol='items',  
+                                      predictionCol='prediction', numPartitions=None,  
+                                      tree_depth=None, compression_point=4, mem_opt_level=0,  
+                                      verbose=0, encode_string_input=False)  
 
 ## Public Member Functions
 
@@ -79,9 +76,9 @@ the frovedis server, the output would be sent back to the python client.
 ### 1. FPGrowth()
 
 __Parameters__  
-**_minSupport_**: A positive double(float64) type value that specifies the minimum 
+**_minSupport_**: A positive double (float64) type value that specifies the minimum 
 support level of frequent itemsets. Its value must be within 0 to 1. (Default: 0.3)  
-**_minConfidence_**: A positive double(float64) type value that specifies the minimal 
+**_minConfidence_**: A positive double (float64) type value that specifies the minimal 
 confidence for generating association rules. It will not affect the mining for frequent 
 itemsets, but will affect the association rules generation. Its value must be 
 within 0 to 1. (Default: 0.8)  
@@ -144,7 +141,7 @@ And, when enabling 'encode_string_input' with the same non-numeric data,
 
 __Attributes__  
 **_freqItemsets_**: A pandas dataframe having two fields, 'items' and 'freq', where 'items' is
-an array whereas 'freq' is double(float64) type value. It contains the itemsets along with their 
+an array whereas 'freq' is double (float64) type value. It contains the itemsets along with their 
 frequency values. Here, the frequency of an itemset signifies as to how many times the itemset 
 appears in the transaction database.  
 **_associationRules_**: A pandas dataframe having six fields, 'antecedent', 'consequent', 
@@ -153,7 +150,7 @@ Every association rule is composed of two parts: an antecedent (if) and a conseq
 An 'antecedent' is an item found within the data. A 'consequent' is an item found in combination with 
 the 'antecedent'. Both are itemsets (arrays).  
 For measuring the effectiveness of association rule, 'confidence', 'lift', 'support' and 'conviction' 
-are used. All are double(float64) type values.  
+are used. All are double (float64) type values.  
 'confidence' refers to the amount of times a given rule turns out to be true in practice.  
 'support' is an indication of how frequently the itemset appears in the dataset.  
 'lift' is the ratio of confidence to support. If the rule has a lift of 1, it would imply that 
@@ -165,6 +162,7 @@ in future data sets. If the lift is less than 1, that lets us know the items are
 other. This means that presence of one item has negative effect on presence of other item and vice versa.  
 'conviction' compares the probability that X appears without Y if they were dependent with the 
 actual frequency of the appearance of X without Y. If it equals 1, then they are completely unrelated.  
+
 **_count_**: A positive integer value which specifies the frequent itemsets count.  
 **_encode\_logic_**: A python dictionary having transaction items with a corresponding encoded 
 number as key-value pairs. It is only available when transaction items are have string values 
@@ -427,7 +425,7 @@ It simply returns "self" reference.
 
 ### 3. generate_rules(confidence = None)
 __Parameters__  
-**_confidence_**: A double(float64) type parameter indicating the minimum confidence 
+**_confidence_**: A double (float64) type parameter indicating the minimum confidence 
 value. (Default: None)  
 When it is None (not specified explicitly), then it will use confidence value used during 
 FPGrowth object creation.  
@@ -704,7 +702,7 @@ __Purpose__
 It can be used to confirm if the model is already fitted or not.  
 
 __Return Value__  
-It returns ‘True’, if the model is already fitted, otherwise, it returns ‘False’.  
+It returns 'True', if the model is already fitted, otherwise, it returns 'False'.  
 
 # SEE ALSO  
 dataframe
