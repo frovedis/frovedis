@@ -72,21 +72,23 @@ the frovedis server, the output would be sent back to the python client.
 __Parameters__  
 **_criterion_**: A string object parameter that specifies the function to measure the 
 quality of a split. Supported criteria are 'gini' and 'entropy'. (Default: 'gini')  
-'gini' impurity: calculates the amount of probability of a specific feature that is 
+- **'gini' impurity**: calculates the amount of probability of a specific feature that is 
 classified incorrectly when selected randomly.  
-'entropy' (information gain): it is applied to quantify which feature provides maximal 
+- **'entropy' (information gain)**: it is applied to quantify which feature provides maximal 
 information about the classification based on the notion of entropy.  
+
 **_splitter_**: An unused parameter. (Default: 'best')  
 **_max\_depth_**: A positive integer parameter that specifies the maximum depth of the 
-tree.  
-If it is None (not specified explicitly), then 'max_depth' is set to 5. (Default: None)  
+tree. (Default: None)  
+If it is None (not specified explicitly), then 'max_depth' is set to 5.  
 **_min\_samples\_split_**: An unused parameter. (Default: 2)  
 **_min\_samples\_leaf_**: A positive integer or float value that specifies the minimum 
 number of samples required to be at a leaf node. A split point at any depth will only be 
-considered if it leaves at least 'min_samples_leaf' training samples in each of the left 
+considered, if it leaves, at least 'min_samples_leaf' training samples in each of the left 
 and right branches. (Default: 1)  
-If it is an integer, then 'min_samples_leaf' should be greater than or equal to 1.  
-If it is float, then 'min_samples_leaf' should be in range (0,0.5].  
+- If it is an integer, then 'min_samples_leaf' should be greater than or equal to 1.  
+- If it is float, then 'min_samples_leaf' should be in range **(0,0.5]**.  
+
 **_min\_weight\_fraction\_leaf_**: An unused parameter. (Default: 0.0)  
 **_max\_features_**: An unused parameter. (Default: None)  
 **_random\_state_**: An unused parameter. (Default: None)  
@@ -108,7 +110,7 @@ and the feature[4] has five categories (values 0, 1, 2, 3 or 4). Note that featu
 and category assignments are 0-based. (Default: {})  
 
 __Attributes__  
-**_classes\__**: It is a python ndarray(any type) of unique labels given to the classifier 
+**_classes\__**: It is a python ndarray (any type) of unique labels given to the classifier 
 during training. It has shape **(n_classes,)**.  
 **_n\_features\__**: An integer value specifying the number of features when fitting the estimator.  
 
@@ -128,7 +130,8 @@ __Parameters__
 **_X_**: A numpy dense or scipy sparse matrix or any python array-like object or 
 an instance of FrovedisCRSMatrix for sparse data and FrovedisColmajorMatrix for dense data. 
 It has shape **(n_samples, n_features)**.  
-**_y_**: Any python array-like object or an instance of FrovedisDvector. It has shape **(n_samples,)**.  
+**_y_**: Any python array-like object or an instance of FrovedisDvector containing the class 
+labels. It has shape **(n_samples,)**.  
 
 __Purpose__  
 It builds a decision tree classifier from the training data X and labels y.  
@@ -253,9 +256,9 @@ Output
      [0.009375 0.990625]]
 
 __Return Value__  
-It returns a numpy array of float or double(float64) type and of shape **(n_samples, n_classes)** 
-containing the prediction probability values. Here, **n_classes = 2**, since only binary classification 
-problems are supported for this method.
+It returns a numpy array of float or double (float64) type and of shape **(n_samples, n_classes)** 
+containing the prediction probability values. Since only binary classification problems (**n_classes = 2**) 
+are supported for this method, so currenlty its shape will be **(n_samples, 2)**.  
 
 ### 5. get_params(deep = True)  
 __Parameters__   
@@ -268,7 +271,7 @@ to get parameters and their values of DecisionTreeClassifier class.
 
 For example, 
  
-      print(dtc.get_params())
+    print(dtc.get_params())
 
 Output  
 
@@ -341,7 +344,7 @@ __Parameters__
 is to be saved.  
 
 __Purpose__  
-On success, it writes the model information (after-fit populated attributes) in the 
+On success, it writes the model information (label_map, metadata and model) in the 
 specified file as little-endian binary data. Otherwise, it throws an exception.  
 
 For example,   
@@ -372,10 +375,11 @@ __Parameters__
 **_X_**: A numpy dense or scipy sparse matrix or any python array-like object or 
 an instance of FrovedisCRSMatrix for sparse data and FrovedisRowmajorMatrix for dense data. 
 It has shape **(n_samples, n_features)**.  
-**_y_**: Any python array-like object or an instance of FrovedisDvector. It has shape **(n_samples,)**.  
+**_y_**: Any python array-like object containing the true labels for X. It has shape **(n_samples,)**.  
 **_sample\_weight_**: Python ndarray containing the intended weights for each input
-samples and it should be the shape of **(n_samples, )**. When it is None (not specified explicitly), an
-uniform weight vector is assigned on each input sample. (Default: None)  
+samples and it should be the shape of **(n_samples, )**.  
+When it is None (not specified explicitly), an uniform weight vector is assigned on 
+each input sample. (Default: None)  
 
 __Purpose__  
 Calculate mean accuracy on the given test data and labels i.e. mean accuracy of 
@@ -469,7 +473,7 @@ __Purpose__
 It can be used to confirm if the model is already fitted or not.  
 
 __Return Value__  
-It returns ‘True’, if the model is already fitted, otherwise, it returns ‘False’.  
+It returns 'True', if the model is already fitted, otherwise, it returns 'False'.  
 
 # SEE ALSO
 dvector, crs_matrix, rowmajor_matrix, colmajor_matrix, decision_tree_regressor

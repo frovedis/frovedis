@@ -125,17 +125,16 @@ Supported criteria are \[aq]gini\[aq] and \[aq]entropy\[aq].
 .PD 0
 .P
 .PD
-\[aq]gini\[aq] impurity: calculates the amount of probability of a
-specific feature that is classified incorrectly when selected randomly.
+\- \f[B]\[aq]gini\[aq] impurity\f[]: calculates the amount of
+probability of a specific feature that is classified incorrectly when
+selected randomly.
 .PD 0
 .P
 .PD
-\[aq]entropy\[aq] (information gain): it is applied to quantify which
-feature provides maximal information about the classification based on
-the notion of entropy.
-.PD 0
-.P
-.PD
+\- \f[B]\[aq]entropy\[aq] (information gain)\f[]: it is applied to
+quantify which feature provides maximal information about the
+classification based on the notion of entropy.
+.PP
 \f[B]\f[I]splitter\f[]\f[]: An unused parameter.
 (Default: \[aq]best\[aq])
 .PD 0
@@ -143,12 +142,12 @@ the notion of entropy.
 .PD
 \f[B]\f[I]max_depth\f[]\f[]: A positive integer parameter that specifies
 the maximum depth of the tree.
+(Default: None)
 .PD 0
 .P
 .PD
 If it is None (not specified explicitly), then \[aq]max_depth\[aq] is
 set to 5.
-(Default: None)
 .PD 0
 .P
 .PD
@@ -160,23 +159,21 @@ set to 5.
 \f[B]\f[I]min_samples_leaf\f[]\f[]: A positive integer or float value
 that specifies the minimum number of samples required to be at a leaf
 node.
-A split point at any depth will only be considered if it leaves at least
-\[aq]min_samples_leaf\[aq] training samples in each of the left and
-right branches.
+A split point at any depth will only be considered, if it leaves, at
+least \[aq]min_samples_leaf\[aq] training samples in each of the left
+and right branches.
 (Default: 1)
 .PD 0
 .P
 .PD
-If it is an integer, then \[aq]min_samples_leaf\[aq] should be greater
-than or equal to 1.
+\- If it is an integer, then \[aq]min_samples_leaf\[aq] should be
+greater than or equal to 1.
 .PD 0
 .P
 .PD
-If it is float, then \[aq]min_samples_leaf\[aq] should be in range
-(0,0.5].
-.PD 0
-.P
-.PD
+\- If it is float, then \[aq]min_samples_leaf\[aq] should be in range
+\f[B](0,0.5]\f[].
+.PP
 \f[B]\f[I]min_weight_fraction_leaf\f[]\f[]: An unused parameter.
 (Default: 0.0)
 .PD 0
@@ -251,7 +248,7 @@ Note that feature indices and category assignments are 0\-based.
 .PD 0
 .P
 .PD
-\f[B]\f[I]classes_\f[]\f[]: It is a python ndarray(any type) of unique
+\f[B]\f[I]classes_\f[]\f[]: It is a python ndarray (any type) of unique
 labels given to the classifier during training.
 It has shape \f[B](n_classes,)\f[].
 .PD 0
@@ -293,7 +290,7 @@ It has shape \f[B](n_samples, n_features)\f[].
 .P
 .PD
 \f[B]\f[I]y\f[]\f[]: Any python array\-like object or an instance of
-FrovedisDvector.
+FrovedisDvector containing the class labels.
 It has shape \f[B](n_samples,)\f[].
 .PP
 \f[B]Purpose\f[]
@@ -490,11 +487,12 @@ Output
 .PD 0
 .P
 .PD
-It returns a numpy array of float or double(float64) type and of shape
+It returns a numpy array of float or double (float64) type and of shape
 \f[B](n_samples, n_classes)\f[] containing the prediction probability
 values.
-Here, \f[B]n_classes = 2\f[], since only binary classification problems
-are supported for this method.
+Since only binary classification problems (\f[B]n_classes = 2\f[]) are
+supported for this method, so currenlty its shape will be
+\f[B](n_samples, 2)\f[].
 .SS 5. get_params(deep = True)
 .PP
 \f[B]Parameters\f[]
@@ -520,7 +518,7 @@ For example,
 .IP
 .nf
 \f[C]
-\ \ print(dtc.get_params())
+print(dtc.get_params())
 \f[]
 .fi
 .PP
@@ -646,8 +644,8 @@ on which the target model is to be saved.
 .PD 0
 .P
 .PD
-On success, it writes the model information (after\-fit populated
-attributes) in the specified file as little\-endian binary data.
+On success, it writes the model information (label_map, metadata and
+model) in the specified file as little\-endian binary data.
 Otherwise, it throws an exception.
 .PP
 For example,
@@ -710,8 +708,8 @@ It has shape \f[B](n_samples, n_features)\f[].
 .PD 0
 .P
 .PD
-\f[B]\f[I]y\f[]\f[]: Any python array\-like object or an instance of
-FrovedisDvector.
+\f[B]\f[I]y\f[]\f[]: Any python array\-like object containing the true
+labels for X.
 It has shape \f[B](n_samples,)\f[].
 .PD 0
 .P
@@ -719,6 +717,9 @@ It has shape \f[B](n_samples,)\f[].
 \f[B]\f[I]sample_weight\f[]\f[]: Python ndarray containing the intended
 weights for each input samples and it should be the shape of
 \f[B](n_samples, )\f[].
+.PD 0
+.P
+.PD
 When it is None (not specified explicitly), an uniform weight vector is
 assigned on each input sample.
 (Default: None)
@@ -858,8 +859,8 @@ It can be used to confirm if the model is already fitted or not.
 .PD 0
 .P
 .PD
-It returns ‘True', if the model is already fitted, otherwise, it returns
-‘False'.
+It returns \[aq]True\[aq], if the model is already fitted, otherwise, it
+returns \[aq]False\[aq].
 .SH SEE ALSO
 .PP
 dvector, crs_matrix, rowmajor_matrix, colmajor_matrix,
