@@ -4,27 +4,15 @@
 NearestNeighbors \- Unsupervised learner for implementing neighbor
 searches.
 .SH SYNOPSIS
-.PP
-class frovedis.mllib.neighbors.NearestNeighbors(n_neighbors=5,
-radius=1.0, algorithm=\[aq]auto\[aq],
-.PD 0
-.P
-.PD
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ leaf_size=30,
-metric=\[aq]euclidean\[aq], p=2,
-.PD 0
-.P
-.PD
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ metric_params=None,
-n_jobs=None, verbose=0,
-.PD 0
-.P
-.PD
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ chunk_size=1.0,
-batch_fraction=None)
+.IP
+.nf
+\f[C]
+class\ frovedis.mllib.neighbors.NearestNeighbors(n_neighbors=5,\ radius=1.0,\ algorithm=\[aq]auto\[aq],
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ leaf_size=30,\ metric=\[aq]euclidean\[aq],\ p=2,
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ metric_params=None,\ n_jobs=None,\ verbose=0,
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ chunk_size=1.0,\ batch_fraction=None)\ \ 
+\f[]
+.fi
 .SS Public Member Functions
 .PP
 fit(X, y = None)
@@ -191,7 +179,7 @@ amount of data (in megabytes) to be processed in one time.
 .PD 0
 .P
 .PD
-\f[B]\f[I]batch_fraction\f[]\f[]: A positive double(float64) parameter
+\f[B]\f[I]batch_fraction\f[]\f[]: A positive double (float64) parameter
 used to calculate the batches of specific size.
 These batches are used to construct the distance matrix.
 It must be within the range of 0.0 to 1.0.
@@ -226,7 +214,7 @@ It simply returns "self" reference.
 .PD
 \f[B]\f[I]X\f[]\f[]: A numpy dense or scipy sparse matrix or any python
 array\-like object or an instance of FrovedisCRSMatrix for sparse data
-and FrovedisRowmajorMatrix for dense data of float or double(float64)
+and FrovedisRowmajorMatrix for dense data of float or double (float64)
 type.
 It has shape \f[B](n_samples, n_features)\f[].
 .PD 0
@@ -250,7 +238,8 @@ samples\ =\ np.loadtxt("./input/knn_data.txt",\ dtype\ =\ np.float64)
 
 #\ fitting\ input\ data\ on\ NearestNeighbors\ object
 from\ frovedis.mllib.neighbors\ import\ NearestNeighbors
-knn\ =\ NearestNeighbors(n_neighbors\ =\ 3,\ radius\ =\ 2.0,\ algorithm\ =\ \[aq]brute\[aq],\ metric\ =\ \[aq]euclidean\[aq])
+knn\ =\ NearestNeighbors(n_neighbors\ =\ 3,\ radius\ =\ 2.0,\ algorithm\ =\ \[aq]brute\[aq],\ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ metric\ =\ \[aq]euclidean\[aq])
 knn.fit(samples)
 \f[]
 .fi
@@ -276,7 +265,8 @@ rmat\ =\ FrovedisRowmajorMatrix(samples)
 
 #\ fitting\ input\ data\ on\ NearestNeighbors\ object
 from\ frovedis.mllib.neighbors\ import\ NearestNeighbors
-knn\ =\ NearestNeighbors(n_neighbors\ =\ 3,\ radius\ =\ 2.0,\ algorithm\ =\ \[aq]brute\[aq],\ metric\ =\ \[aq]euclidean\[aq])
+knn\ =\ NearestNeighbors(n_neighbors\ =\ 3,\ radius\ =\ 2.0,\ algorithm\ =\ \[aq]brute\[aq],\ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ metric\ =\ \[aq]euclidean\[aq])
 knn.fit(rmat)
 \f[]
 .fi
@@ -294,7 +284,7 @@ It simply returns "self" reference.
 .PD
 \f[B]\f[I]X\f[]\f[]: A numpy dense or scipy sparse matrix or any python
 array\-like object or an instance of FrovedisCRSMatrix for sparse data
-and FrovedisRowmajorMatrix for dense data of float or double(float64)
+and FrovedisRowmajorMatrix for dense data of float or double (float64)
 type.
 It has shape \f[B](n_queries, n_features)\f[], where \[aq]n_queries\[aq]
 is the number of rows in the test data.
@@ -417,31 +407,13 @@ node\ =\ 0,\ local_num_row\ =\ 6,\ local_num_col\ =\ 3,\ val\ =\ 0\ 1\ 2\ 1\ 0\ 
 .PD 0
 .P
 .PD
+1.
 \f[B]When test data and training data used by fitted model are python
 native input:\f[]
 .PD 0
 .P
 .PD
-\f[B]\f[I]distances\f[]\f[]: A numpy array of float or double(float64)
-type values.
-It has shape \f[B](n_queries, n_neighbors)\f[], where
-\[aq]n_queries\[aq] is the number of rows in the test data.
-It is only returned by kneighbors() if return_distance = True.
-.PD 0
-.P
-.PD
-\f[B]\f[I]indices\f[]\f[]: A numpy array of int64 type values.
-It has shape \f[B](n_queries, n_neighbors)\f[], where
-\[aq]n_queries\[aq] is the number of rows in the test data.
-.PD 0
-.P
-.PD
-\f[B]When either test data or training data used by fitted model is
-frovedis\-like input:\f[]
-.PD 0
-.P
-.PD
-\f[B]\f[I]distances\f[]\f[]: A FrovedisRowmajorMatrix of float or
+\- \f[B]\f[I]distances\f[]\f[]: A numpy array of float or
 double(float64) type values.
 It has shape \f[B](n_queries, n_neighbors)\f[], where
 \[aq]n_queries\[aq] is the number of rows in the test data.
@@ -449,7 +421,27 @@ It is only returned by kneighbors() if return_distance = True.
 .PD 0
 .P
 .PD
-\f[B]\f[I]indices\f[]\f[]: A FrovedisRowmajorMatrix of int64 type
+\- \f[B]\f[I]indices\f[]\f[]: A numpy array of int64 type values.
+It has shape \f[B](n_queries, n_neighbors)\f[], where
+\[aq]n_queries\[aq] is the number of rows in the test data.
+.PD 0
+.P
+.PD
+2.
+\f[B]When either test data or training data used by fitted model is
+frovedis\-like input:\f[]
+.PD 0
+.P
+.PD
+\- \f[B]\f[I]distances\f[]\f[]: A FrovedisRowmajorMatrix of float or
+double(float64) type values.
+It has shape \f[B](n_queries, n_neighbors)\f[], where
+\[aq]n_queries\[aq] is the number of rows in the test data.
+It is only returned by kneighbors() if return_distance = True.
+.PD 0
+.P
+.PD
+\- \f[B]\f[I]indices\f[]\f[]: A FrovedisRowmajorMatrix of int64 type
 values.
 It has shape \f[B](n_queries, n_neighbors)\f[], where
 \[aq]n_queries\[aq] is the number of rows in the test data.
@@ -462,7 +454,7 @@ It has shape \f[B](n_queries, n_neighbors)\f[], where
 .PD
 \f[B]\f[I]X\f[]\f[]: A numpy dense or scipy sparse matrix or any python
 array\-like object or an instance of FrovedisCRSMatrix for sparse data
-and FrovedisRowmajorMatrix for dense data of float or double(float64)
+and FrovedisRowmajorMatrix for dense data of float or double (float64)
 type.
 It has shape \f[B](n_queries, n_features)\f[], where \[aq]n_queries\[aq]
 is the number of rows in the test data.
@@ -623,12 +615,12 @@ off\ :\ 0\ 3\ 6\ 9\ 12\ 15\ 18\ \
 .PD 0
 .P
 .PD
-\f[B]When test data and training data used by fitted model are python
+\- \f[B]When test data and training data used by fitted model are python
 native input :\f[]
 .PD 0
 .P
 .PD
-It returns a scipy sparse csr matrix of float or double(float64) type
+It returns a scipy sparse csr matrix of float or double (float64) type
 values.
 It has shape \f[B](n_queries, n_samples_fit)\f[], where
 \[aq]n_queries\[aq] is the number of rows in the test data and
@@ -636,7 +628,7 @@ It has shape \f[B](n_queries, n_samples_fit)\f[], where
 .PD 0
 .P
 .PD
-\f[B]When either test data or training data used by fitted model is
+\- \f[B]When either test data or training data used by fitted model is
 frovedis\-like input:\f[]
 .PD 0
 .P
@@ -653,7 +645,7 @@ It has shape \f[B](n_queries, n_samples_fit)\f[], where
 .PD
 \f[B]\f[I]X\f[]\f[]: A numpy dense or scipy sparse matrix or any python
 array\-like object or an instance of FrovedisCRSMatrix for sparse data
-and FrovedisRowmajorMatrix for dense data of float or double(float64)
+and FrovedisRowmajorMatrix for dense data of float or double (float64)
 type.
 It has shape \f[B](n_samples, n_features)\f[].
 (Default: None)
@@ -764,22 +756,24 @@ off\ :\ 0\ 2\ 5\ 7\ 9\ 12\ 14
 .PD 0
 .P
 .PD
+1.
 \f[B]When test data and training data used by fitted model are python
 native input :\f[]
 .PD 0
 .P
 .PD
-\f[B]\f[I]distance\f[]\f[]: A python list of float or double(float64)
+\- \f[B]\f[I]distance\f[]\f[]: A python list of float or double(float64)
 type values and has length \f[B]n_samples\f[].
 It is only returned by radius_neighbors() if return_distance = True.
 .PD 0
 .P
 .PD
-\f[B]\f[I]indices\f[]\f[]: A python list of float or double(float64)
+\- \f[B]\f[I]indices\f[]\f[]: A python list of float or double(float64)
 type values and has length \f[B]n_samples\f[].
 .PD 0
 .P
 .PD
+2.
 \f[B]When either test data or training data used by fitted model is
 frovedis\-like input:\f[]
 .PD 0
@@ -797,7 +791,7 @@ samples in the fitted data.
 .PD
 \f[B]\f[I]X\f[]\f[]: A numpy dense or scipy sparse matrix or any python
 array\-like object or an instance of FrovedisCRSMatrix for sparse data
-and FrovedisRowmajorMatrix for dense data of float or double(float64)
+and FrovedisRowmajorMatrix for dense data of float or double (float64)
 type.
 It has shape \f[B](n_samples, n_features)\f[].
 (Default: None)
@@ -946,7 +940,7 @@ off\ :\ 0\ 2\ 5\ 7\ 9\ 12\ 14\ \
 .PD 0
 .P
 .PD
-\f[B]When test data and training data used by fitted model are python
+\- \f[B]When test data and training data used by fitted model are python
 native input :\f[]
 .PD 0
 .P
@@ -959,7 +953,7 @@ It has shape \f[B](n_queries, n_samples_fit)\f[], where
 .PD 0
 .P
 .PD
-\f[B]When either test data or training data used by fitted model is
+\- \f[B]When either test data or training data used by fitted model is
 frovedis\-like input:\f[]
 .PD 0
 .P
@@ -992,7 +986,7 @@ For example,
 .IP
 .nf
 \f[C]
-\ \ print(knn.get_params())
+print(knn.get_params())
 \f[]
 .fi
 .PP
@@ -1158,8 +1152,8 @@ It can be used to confirm if the model is already fitted or not.
 .PD 0
 .P
 .PD
-It returns ‘True', if the model is already fitted, otherwise, it returns
-‘False'.
+It returns \[aq]True\[aq], if the model is already fitted, otherwise, it
+returns \[aq]False\[aq].
 .SH SEE ALSO
 .PP
 rowmajor_matrix, crs_matrix, kneighborsclassifier, kneighborsregressor

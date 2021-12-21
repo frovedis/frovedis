@@ -6,13 +6,10 @@ NearestNeighbors - Unsupervised learner for implementing neighbor searches.
 
 # SYNOPSIS
 
-class frovedis.mllib.neighbors.NearestNeighbors(n_neighbors=5, radius=1.0, algorithm='auto',  
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ leaf_size=30, metric='euclidean', p=2,  
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ metric_params=None, n_jobs=None, verbose=0,  
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ chunk_size=1.0, batch_fraction=None)  
+    class frovedis.mllib.neighbors.NearestNeighbors(n_neighbors=5, radius=1.0, algorithm='auto',
+                                                    leaf_size=30, metric='euclidean', p=2,
+                                                    metric_params=None, n_jobs=None, verbose=0,
+                                                    chunk_size=1.0, batch_fraction=None)  
 
 ## Public Member Functions
 
@@ -84,7 +81,7 @@ by default (for INFO mode). But it can be set to 1(for DEBUG mode) or 2(for TRAC
 getting training time logs from frovedis server.  
 **_chunk\_size_**: A positive float parameter, specifying the amount of data (in megabytes) to 
 be processed in one time. (Default: 1.0)  
-**_batch\_fraction_**: A positive double(float64) parameter used to calculate the batches 
+**_batch\_fraction_**: A positive double (float64) parameter used to calculate the batches 
 of specific size. These batches are used to construct the distance matrix. It must be within 
 the range of 0.0 to 1.0. (Default: None)  
 When it is None (not specified explicitly), it will be set as np.finfo(np.float64).max value.  
@@ -103,7 +100,7 @@ It simply returns "self" reference.
 __Parameters__   
 **_X_**: A numpy dense or scipy sparse matrix or any python array-like object or an instance 
 of FrovedisCRSMatrix for sparse data and FrovedisRowmajorMatrix for dense data of float or 
-double(float64) type. It has shape **(n_samples, n_features)**.  
+double (float64) type. It has shape **(n_samples, n_features)**.  
 **_y_**:  None or any python array-like object (any shape). It is simply ignored in frovedis 
 implementation, like in Scikit-learn.  
 
@@ -117,7 +114,8 @@ For example,
     
     # fitting input data on NearestNeighbors object
     from frovedis.mllib.neighbors import NearestNeighbors
-    knn = NearestNeighbors(n_neighbors = 3, radius = 2.0, algorithm = 'brute', metric = 'euclidean')
+    knn = NearestNeighbors(n_neighbors = 3, radius = 2.0, algorithm = 'brute', 
+                           metric = 'euclidean')
     knn.fit(samples)
 
 When native python data is provided, it is converted to frovedis-like inputs and 
@@ -137,7 +135,8 @@ For example,
     
     # fitting input data on NearestNeighbors object
     from frovedis.mllib.neighbors import NearestNeighbors
-    knn = NearestNeighbors(n_neighbors = 3, radius = 2.0, algorithm = 'brute', metric = 'euclidean')
+    knn = NearestNeighbors(n_neighbors = 3, radius = 2.0, algorithm = 'brute', 
+                           metric = 'euclidean')
     knn.fit(rmat)
 
 
@@ -148,7 +147,7 @@ It simply returns "self" reference.
 __Parameters__   
 **_X_**: A numpy dense or scipy sparse matrix or any python array-like object or an instance 
 of FrovedisCRSMatrix for sparse data and FrovedisRowmajorMatrix for dense data of float or 
-double(float64) type. It has shape **(n_queries, n_features)**, where 'n_queries' is the number 
+double (float64) type. It has shape **(n_queries, n_features)**, where 'n_queries' is the number 
 of rows in the test data. (Default: None)  
 When it is None (not specified explicitly), it will be training data (X) used as input in fit().  
 **_n\_neighbors_**: A positive integer parameter, specifying the number of neighbors to 
@@ -223,24 +222,25 @@ Output
     node = 0, local_num_row = 6, local_num_col = 3, val = 0 1 2 1 0 2 2 1 0 3 4 5 4 3 5 5 4 3  
 
 __Return Value__  
-**When test data and training data used by fitted model are python native input:**  
-**_distances_**: A numpy array of float or double(float64) type values. It has 
-shape **(n_queries, n_neighbors)**, where 'n_queries' is the number of rows in the test 
-data. It is only returned by kneighbors() if return_distance = True.  
-**_indices_**: A numpy array of int64 type values. It has shape **(n_queries, n_neighbors)**, 
-where 'n_queries' is the number of rows in the test data.  
-**When either test data or training data used by fitted model is frovedis-like input:**  
-**_distances_**: A FrovedisRowmajorMatrix of float or double(float64) type values. It has 
-shape **(n_queries, n_neighbors)**, where 'n_queries' is the number of rows in the test data. 
-It is only returned by kneighbors() if return_distance = True.  
-**_indices_**: A FrovedisRowmajorMatrix of int64 type values. It has shape 
-**(n_queries, n_neighbors)**, where 'n_queries' is the number of rows in the test data.  
+1. **When test data and training data used by fitted model are python native input:**  
+     - **_distances_**: A numpy array of float or double(float64) type values. It has 
+     shape **(n_queries, n_neighbors)**, where 'n_queries' is the number of rows in the test 
+     data. It is only returned by kneighbors() if return_distance = True.  
+     - **_indices_**: A numpy array of int64 type values. It has shape **(n_queries, n_neighbors)**, 
+     where 'n_queries' is the number of rows in the test data.  
+2. **When either test data or training data used by fitted model is frovedis-like input:**  
+     - **_distances_**: A FrovedisRowmajorMatrix of float or double(float64) type values. It has 
+     shape **(n_queries, n_neighbors)**, where 'n_queries' is the number of rows in the test data. 
+     It is only returned by kneighbors() if return_distance = True.  
+     - **_indices_**: A FrovedisRowmajorMatrix of int64 type values. It has shape 
+     **(n_queries, n_neighbors)**, where 'n_queries' is the number of rows in the test data.  
+
 
 ### 4. kneighbors_graph(X = None, n_neighbors = None, mode = 'connectivity')
 __Parameters__   
 **_X_**: A numpy dense or scipy sparse matrix or any python array-like object or an instance 
 of FrovedisCRSMatrix for sparse data and FrovedisRowmajorMatrix for dense data of float or 
-double(float64) type. It has shape **(n_queries, n_features)**, where 'n_queries' is the 
+double (float64) type. It has shape **(n_queries, n_features)**, where 'n_queries' is the 
 number of rows in the test data. (Default: None)  
 When it is None (not specified explicitly), it will be training data (X) used as input in fit().  
 **_n\_neighbors_**: A positive integer parameter, specifying the number of neighbors to 
@@ -344,20 +344,21 @@ Output
     off : 0 3 6 9 12 15 18  
     
 __Return Value__  
-**When test data and training data used by fitted model are python native input :**  
-It returns a scipy sparse csr matrix of float or double(float64) type values. It has 
+- **When test data and training data used by fitted model are python native input :**  
+It returns a scipy sparse csr matrix of float or double (float64) type values. It has 
 shape **(n_queries, n_samples_fit)**, where 'n_queries' is the number of rows in the test data 
 and 'n_samples_fit' is the number of samples in the fitted data.  
-**When either test data or training data used by fitted model is frovedis-like input:**  
+- **When either test data or training data used by fitted model is frovedis-like input:**  
 It returns a FrovedisCRSMatrix of float or double(float64) type values. It has 
 shape **(n_queries, n_samples_fit)**, where 'n_queries' is the number of rows in the test data 
 and 'n_samples_fit' is the number of samples in the fitted data.  
+
 
 ### 5. radius_neighbors(X = None, radius = None, return_distance = True)
 __Parameters__   
 **_X_**: A numpy dense or scipy sparse matrix or any python array-like object or an instance 
 of FrovedisCRSMatrix for sparse data and FrovedisRowmajorMatrix for dense data of float or 
-double(float64) type. It has shape **(n_samples, n_features)**. (Default: None)  
+double (float64) type. It has shape **(n_samples, n_features)**. (Default: None)  
 When it is None (not specified explicitly), it will be training data (X) used as input in fit().  
 **_radius_**: A positive float parameter, specifying the limiting distance of neighbors to 
 return. (Default: None)  
@@ -422,19 +423,20 @@ Output
     off : 0 2 5 7 9 12 14
     
 __Return Value__  
-**When test data and training data used by fitted model are python native input :**  
-**_distance_**: A python list of float or double(float64) type values and has length **n_samples**. It 
-is only returned by radius_neighbors() if return_distance = True.  
-**_indices_**: A python list of float or double(float64) type values and has length **n_samples**.  
-**When either test data or training data used by fitted model is frovedis-like input:**  
+1. **When test data and training data used by fitted model are python native input :**  
+     - **_distance_**: A python list of float or double(float64) type values and has length **n_samples**. It 
+     is only returned by radius_neighbors() if return_distance = True.  
+     - **_indices_**: A python list of float or double(float64) type values and has length **n_samples**.  
+2. **When either test data or training data used by fitted model is frovedis-like input:**  
 It returns a FrovedisCRSMatrix of shape **(n_samples, n_samples_fit)**, where 'n_samples_fit' 
 is the number of samples in the fitted data.  
+
 
 ### 6. radius_neighbors_graph(X = None, radius = None, mode = 'connectivity')
 __Parameters__   
 **_X_**: A numpy dense or scipy sparse matrix or any python array-like object or an instance 
 of FrovedisCRSMatrix for sparse data and FrovedisRowmajorMatrix for dense data of float or 
-double(float64) type. It has shape **(n_samples, n_features)**. (Default: None)  
+double (float64) type. It has shape **(n_samples, n_features)**. (Default: None)  
 When it is None (not specified explicitly), it will be training data (X) used as input in fit().  
 **_radius_**: A positive float parameter, specifying the limiting distance of neighbors to 
 return. (Default: None)  
@@ -529,14 +531,15 @@ Output
     off : 0 2 5 7 9 12 14  
     
 __Return Value__  
-**When test data and training data used by fitted model are python native input :**  
+- **When test data and training data used by fitted model are python native input :**  
 It returns a scipy sparse csr matrix of float or double(float64) type values. It has 
 shape **(n_queries, n_samples_fit)**, where 'n_queries' is the number of rows in the test data 
 and 'n_samples_fit' is the number of samples in the fitted data.  
-**When either test data or training data used by fitted model is frovedis-like input:**  
+- **When either test data or training data used by fitted model is frovedis-like input:**  
 It returns a FrovedisCRSMatrix of float or double(float64) type values. It has 
 shape **(n_queries, n_samples_fit)**, where 'n_queries' is the number of rows in the test data and 
 'n_samples_fit' is the number of samples in the fitted data.  
+
 
 ### 7. get_params(deep = True)  
 
@@ -550,7 +553,7 @@ and their values of NearestNeighbors class.
 
 For example, 
  
-      print(knn.get_params())
+    print(knn.get_params())
 
 Output  
 
@@ -647,7 +650,7 @@ __Purpose__
 It can be used to confirm if the model is already fitted or not.  
 
 __Return Value__  
-It returns ‘True’, if the model is already fitted, otherwise, it returns ‘False’.  
+It returns 'True', if the model is already fitted, otherwise, it returns 'False'.  
 
 # SEE ALSO  
 rowmajor_matrix, crs_matrix, kneighborsclassifier, kneighborsregressor  
