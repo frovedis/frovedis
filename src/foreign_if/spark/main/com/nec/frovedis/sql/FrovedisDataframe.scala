@@ -46,8 +46,8 @@ object TMAPPER {
   // simply enable ["StringType"  -> DTYPE.STRING] if you want to use the STRING type instead
   val string2id = Map("IntegerType" -> DTYPE.INT,    "LongType" -> DTYPE.LONG,
                    "FloatType"   -> DTYPE.FLOAT,  "DoubleType" -> DTYPE.DOUBLE,
-                   "StringType"  -> DTYPE.STRING, 
-                   //"StringType"  -> DTYPE.WORDS,
+                   //"StringType"  -> DTYPE.STRING, 
+                   "StringType"  -> DTYPE.WORDS,
                    "BooleanType" -> DTYPE.BOOL)
 
   val spark = SparkSession.builder.getOrCreate()
@@ -111,6 +111,26 @@ object TMAPPER {
 }
 
 object sDFTransfer extends java.io.Serializable {
+  def copy_local_word_data(
+    index: Int, destId: Int,
+    w_node: Node, vptr: Long, sptr: Long, localId: Long,
+    data: ArrayBuffer[Any], size: Int): Unit = {
+
+    val t0 = new TimeSpent(Level.TRACE)
+    val sArr = new Array[Array[Char]](size)
+    for(i <- 0 until size) sArr(i) = (data(i).asInstanceOf[String]).toCharArray
+    t0.show("ArrayBuffer[String] to array-of-CharArray: ")
+
+    val (flat_sArr, sizes_arr) = GenericUtils.flatten(sArr)
+    t0.show("array-of-CharArray flatten: ")
+    JNISupport.loadFrovedisWorkerCharSizePair(w_node, vptr, sptr, localId,
+                                              flat_sArr, sizes_arr,
+                                              flat_sArr.size, size)
+    val err = JNISupport.checkServerException()
+    if (err != "") throw new java.rmi.ServerException(err)
+    t0.show("spark-worker to frovedis-rank local word data copy: ")
+  }
+
   def copy_local_data(
     index: Int, destId: Int,
     w_node: Node, vptr: Long, localId: Long,
@@ -145,6 +165,12 @@ object sDFTransfer extends java.io.Serializable {
           JNISupport.loadFrovedisWorkerDoubleVector(w_node, vptr, localId, dArr,
                                                     dArr.size)
         }
+        case DTYPE.STRING => {
+          val sArr = data.asInstanceOf[ArrayBuffer[String]].toArray
+          t0.show("buffer to string-array: ")
+          JNISupport.loadFrovedisWorkerStringVector(w_node, vptr, localId, sArr,
+                                                    sArr.size)
+        }
         case _ => throw new IllegalArgumentException(
                   "[optimized_load] Unsupported type: " + TMAPPER.id2string(dtype))
     }
@@ -156,6 +182,7 @@ object sDFTransfer extends java.io.Serializable {
   def execute(rddData: RDD[InternalRow],
               fw_nodes: Array[Node],
               vptrs: Array[Long],
+              offset: Array[Int], 
               types: Array[Short],
               block_sizes: Array[Long],
               ncol: Int, nproc: Int): Long = {
@@ -173,7 +200,8 @@ object sDFTransfer extends java.io.Serializable {
               case DTYPE.LONG   => if(row.isNullAt(i)) Long.MaxValue else row.getLong(i)
               case DTYPE.FLOAT  => if(row.isNullAt(i)) Float.MaxValue else row.getFloat(i)
               case DTYPE.DOUBLE => if(row.isNullAt(i)) Double.MaxValue else row.getDouble(i)
-              //case DTYPE.STRING => if(row.isNullAt(i)) "NULL" row.getString(i)
+              case DTYPE.STRING => if(row.isNullAt(i)) "NULL" else row.getString(i)
+              case DTYPE.WORDS  => if(row.isNullAt(i)) "NULL" else row.getString(i)
               case _ => throw new IllegalArgumentException(
                         "[optimized_load] Unsupported type: " + TMAPPER.id2string(types(i)))
             }
@@ -187,10 +215,17 @@ object sDFTransfer extends java.io.Serializable {
         val localId = index - myst
 
         for (i <- 0 until ncol) {
-          val vptr = vptrs(i * nproc + destId)
-          //println("col: " + cols(i) + "; dtype: " + types(i) + "; vptr: " + vptr)
-          copy_local_data(index, destId, fw_nodes(destId),
-                          vptr, localId, mat(i), k, types(i))
+          val row_offset = offset(i)
+          val vptr = vptrs(row_offset * nproc + destId)
+          if (types(i) != DTYPE.WORDS) {
+            copy_local_data(index, destId, fw_nodes(destId),
+                            vptr, localId, mat(i), k, types(i))
+          } else {
+            val next_row_offset = row_offset + 1
+            val sptr = vptrs(next_row_offset * nproc + destId)
+            copy_local_word_data(index, destId, fw_nodes(destId),
+                                 vptr, sptr, localId, mat(i), k)
+          }
         }
         t0.show("data transfer: ")
         Array(true).toIterator // SUCCESS (since need to return an iterator)
@@ -200,20 +235,54 @@ object sDFTransfer extends java.io.Serializable {
 }
 
 object _jDFTransfer extends java.io.Serializable {
+
+  def getStringsAsFlattenCharArray(baseObject: ArrayBuffer[Array[Byte]],
+                                   baseOffset: ArrayBuffer[Long],
+                                   numFields: Int, 
+                                   ordinal: Int,
+                                   sizes: Array[Int]): Array[Char] = {
+    require(ordinal >= 0 && ordinal < numFields, "ordinal: out-of-bound!\n")
+    val size = baseObject.size
+    var flatten_size = 0
+    for (i <- 0 until size) flatten_size += sizes(i)
+
+    var cur = 0;
+    val ret = new Array[Char](flatten_size)
+    for (i <- 0 until size) {
+      val data = baseObject(i)
+      if (jPlatform.isNullAt(data, baseOffset(i), numFields, ordinal)) {
+        ret(cur + 0) = 'N'
+        ret(cur + 1) = 'U'
+        ret(cur + 2) = 'L'
+        ret(cur + 3) = 'L'
+        cur += 4
+      }
+      else {
+        val offsetAndSize = jPlatform.getLong(data, baseOffset(i), numFields, ordinal)
+        val offset = (offsetAndSize >> 32).asInstanceOf[Int]
+        val str_size = (offsetAndSize).asInstanceOf[Int]
+        for(j <- 0 until str_size) ret(cur + j) = data(offset + j).asInstanceOf[Char];
+        cur += str_size;
+      }
+    }
+    return ret
+  }
+
   def execute(rddData: RDD[InternalRow], // actually UnsafeRow
               fw_nodes: Array[Node],
               vptrs: Array[Long],
+              offset: Array[Int],
               types: Array[Short],
               block_sizes: Array[Long],
               ncol: Int, nproc: Int): Long = {
     val ret = rddData.mapPartitionsWithIndex({ case(index, x) =>
         val t0 = new TimeSpent(Level.TRACE)
         var k = 0
-        val obj = new ArrayBuffer[Object]()
+        val obj = new ArrayBuffer[Array[Byte]]()
         val off = new ArrayBuffer[Long]()
         while(x.hasNext) {
           val row = x.next.asInstanceOf[UnsafeRow]
-          obj += row.getBytes() // row.getBaseObject()
+          obj += row.getBytes()       // row.getBaseObject()
           off += row.getBaseOffset()
           k += 1
         }
@@ -224,7 +293,8 @@ object _jDFTransfer extends java.io.Serializable {
         val w_node = fw_nodes(destId)
 
         for (i <- 0 until ncol) {
-          val vptr = vptrs(i * nproc + destId)
+          val row_offset = offset(i)
+          val vptr = vptrs(row_offset * nproc + destId)
           types(i) match {
             case DTYPE.INT | DTYPE.BOOL => {
               val iArr = new Array[Int](k)
@@ -255,6 +325,16 @@ object _jDFTransfer extends java.io.Serializable {
               for (j <- 0 until k) sArr(j) = jPlatform.getString(obj(j), off(j), ncol, i)
               t0.show("buffer to string-array: ")
               JNISupport.loadFrovedisWorkerStringVector(w_node, vptr, localId, sArr, k)
+            }
+            case DTYPE.WORDS => {
+              val szArr = new Array[Int](k)
+              for (j <- 0 until k) szArr(j) = jPlatform.getStringSize(obj(j), off(j), ncol, i)
+              val cArr = getStringsAsFlattenCharArray(obj, off, ncol, i, szArr)
+              t0.show("buffer to array of char-size pair (words): ")
+              val next_row_offset = row_offset + 1 // size is stored in next row of vptrs matrix
+              val sptr = vptrs(next_row_offset * nproc + destId)
+              JNISupport.loadFrovedisWorkerCharSizePair(w_node, vptr, sptr, localId, 
+                                                        cArr, szArr, cArr.size, k)
             }
             case _ => throw new IllegalArgumentException(
                       "[optimized_load] Unsupported type: " + TMAPPER.id2string(types(i)))
@@ -354,6 +434,12 @@ class FrovedisDataFrame extends java.io.Serializable {
     types = df.dtypes.map(_._2).map(x => TMAPPER.string2id(x))
     val ncol = cols.size
     val rddData = df.queryExecution.toRdd
+    val offset = new Array[Int](ncol)
+    var word_count = 0
+    for (i <- 0 until ncol) {
+      offset(i) = i + word_count
+      word_count += (if (types(i) == DTYPE.WORDS) 1 else 0)
+    }
     val t_log = new TimeSpent(Level.DEBUG)
 
     // (1) allocate
@@ -362,7 +448,7 @@ class FrovedisDataFrame extends java.io.Serializable {
     val npart = rddData.getNumPartitions
     val block_sizes = GenericUtils.get_block_sizes(npart, nproc)
     val vptrs = JNISupport.allocateLocalVectors2(fs.master_node, block_sizes,
-                                                 nproc, types, ncol) // vptrs: ncol x nproc
+                                                 nproc, types, ncol) // vptrs: (ncol + no-of-words) x nproc
     var info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
     t_log.show("server memory allocation: ")
@@ -378,9 +464,9 @@ class FrovedisDataFrame extends java.io.Serializable {
     if (rddData.first.isInstanceOf[UnsafeRow]) {
       //val jRddData = rddData.map(x => x.asInstanceOf[UnsafeRow]).toJavaRDD
       //jDFTransfer.execute(jRddData, fw_nodes, vptrs, types, block_sizes, ncol, nproc)
-      _jDFTransfer.execute(rddData, fw_nodes, vptrs, types, block_sizes, ncol, nproc)
+      _jDFTransfer.execute(rddData, fw_nodes, vptrs, offset, types, block_sizes, ncol, nproc)
     } else {
-      sDFTransfer.execute(rddData, fw_nodes, vptrs, types, block_sizes, ncol, nproc)
+      sDFTransfer.execute(rddData, fw_nodes, vptrs, offset, types, block_sizes, ncol, nproc)
     }
     t_log.show("[numpartition: " + npart + "] server side data transfer: ")
 

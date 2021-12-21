@@ -3,6 +3,7 @@ package com.nec.frovedis.Jsql;
 import org.apache.spark.unsafe.Platform;
 import org.apache.spark.unsafe.types.UTF8String;
 import org.apache.spark.unsafe.bitset.BitSetMethods;
+import scala.collection.mutable.ArrayBuffer;
 
 public class jPlatform implements java.io.Serializable {
   // REF: https://github.com/apache/spark/blob/95fc4c56426706546601d339067ce6e3e7f4e03f/sql/catalyst/src/main/java/org/apache/spark/sql/catalyst/expressions/UnsafeRow.java#L136
@@ -85,6 +86,22 @@ public class jPlatform implements java.io.Serializable {
     }
   }
  
+  public static int getStringSize(Object baseObject,
+                                  long baseOffset,
+                                  int numFields,
+                                  int ordinal) {
+    assertIndexIsValid(ordinal, numFields);
+    if (isNullAt(baseObject, baseOffset, numFields, ordinal)) {
+      return 4; // "NULL"
+    }
+    else {
+      long offsetAndSize = getLong(baseObject, baseOffset, numFields, ordinal);
+      int offset = (int) (offsetAndSize >> 32);
+      int size = (int) offsetAndSize;
+      return size;
+    }
+  }
+
   public static char[] getCharArray(byte[] baseObject,
                                     long baseOffset,
                                     int numFields,
@@ -103,4 +120,5 @@ public class jPlatform implements java.io.Serializable {
       return ret;
     }
   }
+
 }

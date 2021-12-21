@@ -89,43 +89,65 @@ exrpc_ptr_t create_dataframe (std::vector<short>& types,
   return reinterpret_cast<exrpc_ptr_t>(dftblp);
 }
 
+// for spark -> frovedis dataframe load
 exrpc_ptr_t create_dataframe_from_local_vectors (
             std::vector<short>& types,
             std::vector<std::string>& cols,
             std::vector<exrpc_ptr_t>& local_vec_proxies) {
   auto nproc = get_nodesize();
   std::vector<exrpc_ptr_t> proxies(nproc); auto pp = proxies.data();
-  std::vector<size_t> sizes; bool verify_size = false;
+  std::vector<exrpc_ptr_t> word_sizep(nproc); auto sp = word_sizep.data();
+  std::vector<size_t> sizes; bool verify_size = false; // not used (dummy)
 
   auto dftblp = new dftable();
   if (!dftblp) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed.\n");
+  size_t words_count = 0;
+  short wid = WORDS;
+
   for(size_t i = 0; i < cols.size(); ++i) {
-    auto vp = local_vec_proxies.data() + i * nproc;
-    for (size_t j = 0; j < nproc; ++j) pp[j] = vp[j];
-    switch(types[i]) {
-      case BOOL:
-      case INT:    { auto dvec = merge_and_set_dvector<int>(proxies, sizes, verify_size);
-                     auto v1 = reinterpret_cast<dvector<int>*>(dvec);
-                     dftblp->append_column(cols[i],std::move(*v1),true);
-                     delete v1; break; }
-      case LONG:   { auto dvec = merge_and_set_dvector<long>(proxies, sizes, verify_size);
-                     auto v2 = reinterpret_cast<dvector<long>*>(dvec);
-                     dftblp->append_column(cols[i],std::move(*v2),true);
-                     delete v2; break; }
-      case FLOAT:  { auto dvec = merge_and_set_dvector<float>(proxies, sizes, verify_size);
-                     auto v3 = reinterpret_cast<dvector<float>*>(dvec);
-                     dftblp->append_column(cols[i],std::move(*v3),true);
-                     delete v3; break; }
-      case DOUBLE: { auto dvec = merge_and_set_dvector<double>(proxies, sizes, verify_size);
-                     auto v4 = reinterpret_cast<dvector<double>*>(dvec);
-                     dftblp->append_column(cols[i],std::move(*v4),true);
-                     delete v4; break; }
-      case STRING: { auto dvec = merge_and_set_dvector<std::string>(proxies, sizes, verify_size);
-                     auto v5 = reinterpret_cast<dvector<std::string>*>(dvec);
-                     dftblp->append_column(cols[i],std::move(*v5),true);
-                     delete v5; break; }
-      default:     auto msg = "Unsupported datatype in dataframe creation: " + std::to_string(types[i]);
-                   REPORT_ERROR(USER_ERROR,msg);
+    auto row_offset = i + words_count;
+    words_count += (types[i] == wid);
+    //std::cout << "merging partitions for " << i << "th column with offset: " << row_offset << std::endl;
+
+    if (types[i] == wid) { // special handling
+      auto vp1 = local_vec_proxies.data() + row_offset * nproc;       // proxy of char-data-vectors
+      auto vp2 = local_vec_proxies.data() + (row_offset + 1) * nproc; // proxy of int-size-vectors
+      for (size_t j = 0; j < nproc; ++j) { 
+        pp[j] = vp1[j];
+        sp[j] = vp2[j];
+      }
+      auto words_proxy = make_node_local_words(proxies, word_sizep); 
+      auto v7 = reinterpret_cast<node_local<words>*>(words_proxy);
+      dftblp->append_dic_string_column(cols[i], (*v7), true);
+      delete v7;
+    } else {
+      auto vp = local_vec_proxies.data() + row_offset * nproc;
+      for (size_t j = 0; j < nproc; ++j) pp[j] = vp[j];
+      switch(types[i]) {
+        case BOOL:
+        case INT:    { auto dvec = merge_and_set_dvector<int>(proxies, sizes, verify_size);
+                       auto v1 = reinterpret_cast<dvector<int>*>(dvec);
+                       dftblp->append_column(cols[i],std::move(*v1),true);
+                       delete v1; break; }
+        case LONG:   { auto dvec = merge_and_set_dvector<long>(proxies, sizes, verify_size);
+                       auto v2 = reinterpret_cast<dvector<long>*>(dvec);
+                       dftblp->append_column(cols[i],std::move(*v2),true);
+                       delete v2; break; }
+        case FLOAT:  { auto dvec = merge_and_set_dvector<float>(proxies, sizes, verify_size);
+                       auto v3 = reinterpret_cast<dvector<float>*>(dvec);
+                       dftblp->append_column(cols[i],std::move(*v3),true);
+                       delete v3; break; }
+        case DOUBLE: { auto dvec = merge_and_set_dvector<double>(proxies, sizes, verify_size);
+                       auto v4 = reinterpret_cast<dvector<double>*>(dvec);
+                       dftblp->append_column(cols[i],std::move(*v4),true);
+                       delete v4; break; }
+        case STRING: { auto dvec = merge_and_set_dvector<std::string>(proxies, sizes, verify_size);
+                       auto v5 = reinterpret_cast<dvector<std::string>*>(dvec);
+                       dftblp->append_column(cols[i],std::move(*v5),true);
+                       delete v5; break; }
+        default:     auto msg = "Unsupported datatype in dataframe creation: " + std::to_string(types[i]);
+                     REPORT_ERROR(USER_ERROR,msg);
+      }
     }
   }
   return reinterpret_cast<exrpc_ptr_t>(dftblp);
@@ -1249,12 +1271,447 @@ dftable calc_non_na_vals(dftable_base& df,
                          std::vector<std::string>& cols, 
                          int& axis, bool& with_index, 
                          size_t& ncol, std::string col_name = "count_non_na") {
-  auto countna_df = df.select(cols).count_nulls(axis, with_index);
+  dftable countna_df;
+  auto sz = cols.size();
+  if (with_index) {
+    std::vector<std::string> cols2(sz + 1);
+    cols2[0] = df.columns()[0];
+    for (size_t i = 1; i <= sz; ++i) cols2[i] = cols[i - 1];
+    //for (size_t i = 0; i <= sz; ++i) std::cout << cols2[i] << " ";
+    //std::cout << std::endl;
+    countna_df = df.select(cols2).count_nulls(axis, with_index);
+  }
+  else countna_df = df.select(cols).count_nulls(axis, with_index);
   auto subt_fn = frovedis::sub_im(ncol, "count");
   use_dfcolumn use_sub(subt_fn->columns_to_use(countna_df));
   // count_non_na = ncol - count
   countna_df.append_column(col_name, subt_fn->execute(countna_df));
   return countna_df;
+}
+
+template<class T, class I>
+void sum_helper(std::vector<double>& sum_v, std::vector<size_t>& non_na_v, 
+                int min_count) {
+  size_t sz = sum_v.size();
+  double dmax = std::numeric_limits<double>::max();
+  double* sum_v_p = sum_v.data();
+  size_t* non_na_v_p = non_na_v.data();
+  for (size_t i = 0; i < sz; ++i) {
+    if (non_na_v_p[i] < min_count) sum_v_p[i] = dmax;
+  }
+}
+
+void min_row_wise_helper(std::vector<double>& cur_min_v, 
+                         std::vector<double>& cur_v) {
+  size_t sz = cur_min_v.size();
+  double* cur_min_p = cur_min_v.data();
+  double* cur_p = cur_v.data();
+  for (size_t i = 0; i < sz; ++i) {
+    if (cur_min_p[i] > cur_p[i]) cur_min_p[i] = cur_p[i];
+  }
+}
+
+void min_row_wise_nan_helper(std::vector<double>& cur_min_v, 
+                             std::vector<size_t>& count_nan_v) {
+  size_t sz = cur_min_v.size();
+  double dmax = std::numeric_limits<double>::max();
+  double* cur_min_p = cur_min_v.data();
+  size_t* count_nan_p = count_nan_v.data();
+  for (size_t i = 0; i < sz; ++i) {
+    if (count_nan_p[i]) cur_min_p[i] = dmax;
+  }
+}
+
+
+void max_row_wise_helper(std::vector<double>& cur_max_v, 
+                          std::vector<double>& cur_v) {
+  size_t sz = cur_max_v.size();
+  double* cur_max_p = cur_max_v.data();
+  double* cur_p = cur_v.data();
+  for (size_t i = 0; i < sz; ++i) {
+    if (cur_max_p[i] < cur_p[i]) cur_max_p[i] = cur_p[i];
+  }
+}
+
+
+void max_row_wise_nan_helper(std::vector<double>& cur_max_v, 
+                             std::vector<size_t>& count_nan_v) {
+  size_t sz = cur_max_v.size();
+  double dmax = std::numeric_limits<double>::max();
+  double* cur_max_p = cur_max_v.data();
+  size_t* count_nan_p = count_nan_v.data();
+  for (size_t i = 0; i < sz; ++i) {
+    if (count_nan_p[i]) cur_max_p[i] = dmax;
+  }
+}
+
+void fillna_column_0_typed_helper(
+                         std::shared_ptr<frovedis::dfcolumn>& col, 
+                         short type) {
+  switch(type) {
+    case BOOL:
+    case INT:    col = fillna_column<int>(col, 0);break;
+    case LONG:   col = fillna_column<long>(col, 0);break;
+    case FLOAT:  col = fillna_column<float>(col, 0);break;
+    case DOUBLE: col = fillna_column<double>(col, 0);break;
+    case ULONG:  col = fillna_column<unsigned long>(col, 0);break;
+    default:     REPORT_ERROR(USER_ERROR, 
+                              "Not supported for non-numeric columns!\n");
+  }
+}
+
+void fillna_column_max_typed_helper(
+                         std::shared_ptr<frovedis::dfcolumn>& col, 
+                         short type) {
+  switch(type) {
+    case BOOL:
+    case INT:    col = fillna_column<int>(col, 
+                              std::numeric_limits<int>::max());break;
+    case LONG:   col = fillna_column<long>(col,
+                              std::numeric_limits<long>::max());break;
+    case FLOAT:  col = fillna_column<float>(col,
+                              std::numeric_limits<float>::max());break;
+    case DOUBLE: col = fillna_column<double>(col,
+                              std::numeric_limits<double>::max());break;
+    case ULONG:  col = fillna_column<unsigned long>(col,
+                              std::numeric_limits<unsigned long>::max());break;
+    default:     REPORT_ERROR(USER_ERROR, 
+                              "Not supported for non-numeric columns!\n");
+  }
+}
+
+void max_typed_helper(dftable_base& df, short type, std::string& col, 
+                      double& res) {
+  switch(type) {
+    case BOOL:
+    case INT:    res = df.max<int>(col);break;
+    case LONG:   res = df.max<long>(col);break;
+    case FLOAT:  res = df.max<float>(col);break;
+    case DOUBLE: res = df.max<double>(col);break;
+    case ULONG:  res = df.max<unsigned long>(col);break;
+    default:     REPORT_ERROR(USER_ERROR, "max on non-numeric column!\n");
+  }
+}
+
+void min_typed_helper(dftable_base& df, short type, std::string& col, 
+                      double& res) {
+  switch(type) {
+    case BOOL:
+    case INT:    res = df.min<int>(col);break;
+    case LONG:   res = df.min<long>(col);break;
+    case FLOAT:  res = df.min<float>(col);break;
+    case DOUBLE: res = df.min<double>(col);break;
+    case ULONG:  res = df.min<unsigned long>(col);break;
+    default:     REPORT_ERROR(USER_ERROR, "min on non-numeric column!\n");
+  }
+}
+
+void numeric_limits_max_typed_helper(short type, double& res) {
+  switch(type) {
+    case BOOL:
+    case INT:    res = std::numeric_limits<int>::max();break;
+    case LONG:   res = std::numeric_limits<long>::max();break;
+    case FLOAT:  res = std::numeric_limits<float>::max();break;
+    case DOUBLE: res = std::numeric_limits<double>::max();break;
+    case ULONG:  res = std::numeric_limits<unsigned long>::max();break;
+    default:     REPORT_ERROR(USER_ERROR, "min on non-numeric column!\n");
+  }
+}
+
+dftable frov_df_max_impl(exrpc_ptr_t& df_proxy, 
+                          std::vector<std::string>& cols,
+                          std::vector<short>& types,
+                          int& axis, bool& skip_na,
+                          bool& with_index) {
+  auto& df = *reinterpret_cast<dftable_base*>(df_proxy);
+  std::string index_nm = "index";
+  if (with_index) index_nm = df.columns()[0];
+
+  dftable ret;
+  auto ncol = cols.size();
+  if (axis == 0) {
+    std::vector<double> max_res(ncol);
+    if (skip_na) {
+      for (size_t i = 0; i < ncol; ++i)
+        max_typed_helper(df, types[i], cols[i], max_res[i]);
+    }
+    else {
+      for (size_t i = 0; i < ncol; ++i) {
+        use_dfcolumn use(df.raw_column(cols[i]));
+        if (df.column(cols[i])->if_contain_nulls())
+          numeric_limits_max_typed_helper(types[i], max_res[i]);
+        else max_typed_helper(df, types[i], cols[i], max_res[i]);
+      }
+    }
+    ret.append_column("index", make_dvector_scatter(cols)); 
+    ret.append_column("max", 
+                      make_dvector_scatter(max_res), true);
+  } 
+  else if (axis == 1) {
+    dvector<double> cur_max_dv;
+    std::string cur_max = "cur_max";
+    if (ncol == 0 ) append_null<double>(ret, "max", df.num_row());
+    else {
+      // --- calculate max(axis = 1) ---
+      use_dfcolumn use(df.raw_column(cols[0]));
+      auto cur_max_col = df.column(cols[0]);
+      if (skip_na) fillna_column_0_typed_helper(cur_max_col, types[0]);
+      for (size_t i = 1; i < ncol; ++i) {
+        use_dfcolumn use_col(df.raw_column(cols[i]));
+        auto dfcol = df.column(cols[i]);
+        if (skip_na) fillna_column_0_typed_helper(dfcol, types[i]);
+        cur_max_dv = cur_max_col->as_dvector_double();
+        auto cur_col_dv = dfcol->as_dvector_double();
+        cur_max_dv.mapv_partitions(max_row_wise_helper, 
+                                   cur_col_dv.viewas_node_local());
+      }
+      if (!skip_na) {
+        // --- finalize max ---
+        dftable count_nan_df;
+        auto sz = cols.size();
+        if (with_index) {
+          std::vector<std::string> cols2(sz + 1);
+          cols2[0] = df.columns()[0];
+          for (size_t i = 1; i <= sz; ++i) cols2[i] = cols[i - 1];
+          count_nan_df = df.select(cols2).count_nulls(axis, with_index);
+        }
+        else count_nan_df = df.select(cols).count_nulls(axis, with_index);
+        auto count_nan_dv = count_nan_df.as_dvector<size_t>("count");
+        cur_max_dv.mapv_partitions(max_row_wise_nan_helper, 
+                                   count_nan_dv.viewas_node_local());
+      }
+      ret.append_column("max", cur_max_dv, true); 
+    } 
+    // use index as it is in input dataframe, if any. otherwise add index.
+    if (with_index) {
+      use_dfcolumn use(df.raw_column(index_nm));
+      ret.append_column(index_nm, df.column(index_nm))
+         .change_col_position(index_nm, 0);
+    } else {
+      ret.prepend_rowid<long>(index_nm);
+    }
+  } 
+  else REPORT_ERROR(USER_ERROR, "max: supported axis: 0 and 1 only!\n");
+  return ret;
+}
+
+dummy_dftable frov_df_max(exrpc_ptr_t& df_proxy, 
+                           std::vector<std::string>& cols,
+                           std::vector<short>& types,
+                           int& axis, bool& skip_na,
+                           bool& with_index) {
+  auto ret = frov_df_max_impl(df_proxy, cols, types, axis, skip_na,
+                               with_index);
+  auto retp = new dftable(std::move(ret));
+  return to_dummy_dftable(retp);
+}
+
+dftable frov_df_min_impl(exrpc_ptr_t& df_proxy, 
+                          std::vector<std::string>& cols,
+                          std::vector<short>& types,
+                          int& axis, bool& skip_na,
+                          bool& with_index) {
+  auto& df = *reinterpret_cast<dftable_base*>(df_proxy);
+  std::string index_nm = "index";
+  if (with_index) index_nm = df.columns()[0];
+
+  dftable ret;
+  auto ncol = cols.size();
+  if (axis == 0) {
+    std::vector<double> min_res(ncol);
+    if (skip_na) {
+      for (size_t i = 0; i < ncol; ++i)
+        min_typed_helper(df, types[i], cols[i], min_res[i]);
+    }
+    else {
+      for (size_t i = 0; i < ncol; ++i) {
+        use_dfcolumn use(df.raw_column(cols[i]));
+        if (df.column(cols[i])->if_contain_nulls())
+          numeric_limits_max_typed_helper(types[i], min_res[i]);
+        else min_typed_helper(df, types[i], cols[i], min_res[i]);
+      }
+    }
+    ret.append_column("index", make_dvector_scatter(cols)); 
+    ret.append_column("min", 
+                      make_dvector_scatter(min_res), true);
+  } 
+  else if (axis == 1) {
+    dftable tmp;
+    std::string cur_min = "cur_min";
+    if (ncol == 0 ) append_null<double>(ret, "min", df.num_row());
+    else {
+      // --- calculate min(axis = 1) ---
+      dvector<double> cur_min_dv;
+      use_dfcolumn use(df.raw_column(cols[0]));
+      auto cur_min_col = df.column(cols[0]);
+      if (skip_na) fillna_column_max_typed_helper(cur_min_col, types[0]);
+      for (size_t i = 1; i < ncol; ++i) {
+        use_dfcolumn use_col(df.raw_column(cols[i]));
+        auto dfcol = df.column(cols[i]);
+        if (skip_na) fillna_column_max_typed_helper(dfcol, types[i]);
+        cur_min_dv = cur_min_col->as_dvector_double();
+        auto cur_col_dv = dfcol->as_dvector_double();
+        cur_min_dv.mapv_partitions(min_row_wise_helper, cur_col_dv.viewas_node_local());
+      }
+      if (!skip_na) {
+        // --- finalize min ---
+        dftable count_nan_df;
+        auto sz = cols.size();
+        if (with_index) {
+          std::vector<std::string> cols2(sz + 1);
+          cols2[0] = df.columns()[0];
+          for (size_t i = 1; i <= sz; ++i) cols2[i] = cols[i - 1];
+          count_nan_df = df.select(cols2).count_nulls(axis, with_index);
+        }
+        else count_nan_df = df.select(cols).count_nulls(axis, with_index);
+        auto count_nan_dv = count_nan_df.as_dvector<size_t>("count");
+        cur_min_dv.mapv_partitions(min_row_wise_nan_helper, count_nan_dv.viewas_node_local());
+      }
+      ret.append_column("min", cur_min_dv, true); 
+    } 
+    // use index as it is in input dataframe, if any. otherwise add index.
+    if (with_index) {
+      use_dfcolumn use(df.raw_column(index_nm));
+      ret.append_column(index_nm, df.column(index_nm))
+         .change_col_position(index_nm, 0);
+    } else {
+      ret.prepend_rowid<long>(index_nm);
+    }
+  } 
+  else REPORT_ERROR(USER_ERROR, "min: supported axis: 0 and 1 only!\n");
+  return ret;
+}
+
+dummy_dftable frov_df_min(exrpc_ptr_t& df_proxy, 
+                           std::vector<std::string>& cols,
+                           std::vector<short>& types,
+                           int& axis, bool& skip_na,
+                           bool& with_index) {
+  auto ret = frov_df_min_impl(df_proxy, cols, types, axis, skip_na,
+                               with_index);
+  auto retp = new dftable(std::move(ret));
+  return to_dummy_dftable(retp);
+}
+
+dftable frov_df_sum_impl(exrpc_ptr_t& df_proxy, 
+                          std::vector<std::string>& cols,
+                          std::vector<short>& types,
+                          int& axis, bool& skip_na, int& min_count,
+                          bool& with_index) {
+  auto& df = *reinterpret_cast<dftable_base*>(df_proxy);
+  std::string index_nm = "index";
+  if (with_index) index_nm = df.columns()[0];
+
+  dftable ret;
+  auto ncol = cols.size();
+  double dmax = std::numeric_limits<double>::max();
+  if (axis == 0) {
+    std::vector<double> sum_res(ncol);
+    if (skip_na) {
+      for (size_t i = 0; i < ncol; ++i) {
+        use_dfcolumn use(df.raw_column(cols[i]));
+        auto cnt = df.column(cols[i])->count();
+        if (cnt < min_count) sum_res[i] = dmax;
+        else {
+          switch(types[i]) {
+            case BOOL:
+            case INT:    sum_res[i] = df.sum<int>(cols[i]);break;
+            case LONG:   sum_res[i] = df.sum<long>(cols[i]);break;
+            case FLOAT:  sum_res[i] = df.sum<float>(cols[i]);break;
+            case DOUBLE: sum_res[i] = df.sum<double>(cols[i]);break;
+            case ULONG:  sum_res[i] = df.sum<unsigned long>(cols[i]);break;
+            default:     REPORT_ERROR(USER_ERROR, "sum on non-numeric column!\n");
+          }
+        }
+      }
+    } 
+    else {
+      for (size_t i = 0; i < ncol; ++i) {
+        use_dfcolumn use(df.raw_column(cols[i]));
+        auto sz = df.column(cols[i])->size();
+        if ((sz < min_count) || (df.column(cols[i])->if_contain_nulls())) 
+          sum_res[i] = dmax;
+        else {
+          switch(types[i]) {
+            case BOOL:
+            case INT:    sum_res[i] = df.sum<int>(cols[i]);break;
+            case LONG:   sum_res[i] = df.sum<long>(cols[i]);break;
+            case FLOAT:  sum_res[i] = df.sum<float>(cols[i]);break;
+            case DOUBLE: sum_res[i] = df.sum<double>(cols[i]);break;
+            case ULONG:  sum_res[i] = df.sum<unsigned long>(cols[i]);break;
+            default:     REPORT_ERROR(USER_ERROR, "sum on non-numeric column!\n");
+          }
+        }
+      }
+    }
+    ret.append_column("index", make_dvector_scatter(cols)); 
+    ret.append_column("sum", 
+                      make_dvector_scatter(sum_res), true);
+  } 
+  else if (axis == 1) {
+    dftable tmp;
+    std::string sum = "sum";
+    if ((ncol == 0 ) || (ncol < min_count)) 
+      append_null<double>(ret, "sum", df.num_row());
+    else {
+      double fillv = 0;
+      // --- calculate sum(axis = 1) ---
+      use_dfcolumn use(df.raw_column(cols[0]));
+      auto dfcol = df.column(cols[0]);
+      if (skip_na) fillna_helper(tmp, sum, dfcol, fillv);
+      else tmp.append_column(sum, dfcol);
+      for (size_t i = 1; i < ncol; ++i) {
+        use_dfcolumn use_col(df.raw_column(cols[i]));
+        dfcol = df.column(cols[i]);
+        if (skip_na) fillna_helper(tmp, cols[i], dfcol, fillv);
+        else tmp.append_column(cols[i], dfcol);
+        auto func = frovedis::add_col(sum, cols[i]);
+        use_dfcolumn use_func(func->columns_to_use(tmp)); 
+        auto rescol = func->execute(tmp);
+        tmp.drop(cols[i]);
+        tmp.drop(sum);
+        tmp.append_column(sum, rescol);
+      }
+      if (min_count) {
+        // --- calculate row-wise non-na values ---
+        auto countna_df = calc_non_na_vals(df, cols, axis, with_index, 
+                                           ncol, "count_non_na");
+        // --- finalize sum --- 
+        auto non_na_dv = countna_df.as_dvector<size_t>("count_non_na");
+        use_dfcolumn use_col(tmp.raw_column(sum));
+        auto tmp_col = tmp.column(sum);
+        auto sum_dv = tmp_col->as_dvector_double();
+        sum_dv.mapv_partitions(sum_helper<double, size_t>, non_na_dv.viewas_node_local(), broadcast(min_count));
+        ret.append_column("sum", sum_dv, true);
+      } else {
+        // --- finalize sum ---
+        use_dfcolumn use_col(tmp.raw_column(sum));
+        auto tmp_col = tmp.column(sum);
+        ret.append_column("sum", tmp_col->as_dvector_double(), true);
+      }
+    }
+    // use index as it is in input dataframe, if any. otherwise add index.
+    if (with_index) {
+      use_dfcolumn use(df.raw_column(index_nm));
+      ret.append_column(index_nm, df.column(index_nm))
+         .change_col_position(index_nm, 0);
+    } else {
+      ret.prepend_rowid<long>(index_nm);
+    }
+  } 
+  else REPORT_ERROR(USER_ERROR, "sum: supported axis: 0 and 1 only!\n");
+  return ret;
+}
+
+dummy_dftable frov_df_sum(exrpc_ptr_t& df_proxy, 
+                           std::vector<std::string>& cols,
+                           std::vector<short>& types,
+                           int& axis, bool& skip_na, int& min_count,
+                           bool& with_index) {
+  auto ret = frov_df_sum_impl(df_proxy, cols, types, axis, skip_na, min_count, 
+                               with_index);
+  auto retp = new dftable(std::move(ret));
+  return to_dummy_dftable(retp);
 }
 
 // TODO: move the implementation in dataframe library

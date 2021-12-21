@@ -58,8 +58,9 @@ extern "C" {
 
   // dataframe etc.
   std::vector<float> to_float_vector(JNIEnv *, jfloatArray&, size_t);
-  std::vector<double> to_double_vector(JNIEnv *, jdoubleArray&, size_t );
-  std::vector<int> to_int_vector(JNIEnv *, jintArray&, size_t );
+  std::vector<double> to_double_vector(JNIEnv *, jdoubleArray&, size_t);
+  std::vector<int> to_int_vector(JNIEnv *, jintArray&, size_t);
+  std::vector<char> to_char_vector(JNIEnv *, jcharArray&, size_t);
   std::vector<int> to_bool_vector(JNIEnv *, jbooleanArray&, size_t);
   std::vector<short> to_short_vector(JNIEnv *, jshortArray&, size_t);
   std::vector<long> to_long_vector(JNIEnv *, jlongArray&, size_t );

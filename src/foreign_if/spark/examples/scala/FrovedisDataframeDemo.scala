@@ -139,7 +139,7 @@ object FrovedisDataframeDemo {
             stddev("Age")).show()
 
     val dataWithNull = Seq(
-      ("James",null,"M"),
+      ("Smith","NY","M"),
       ("James","NY","F"),
       ("Julia",null,null)
     )
@@ -149,7 +149,7 @@ object FrovedisDataframeDemo {
     frov_dfWithNull.show()
     frov_dfWithNull.filter($$"state".isNotNull).show()
     frov_dfWithNull.filter($$"state".isNull).show()
-    frov_dfWithNull.groupBy("name").agg(count("state"), count("*")).show()
+    frov_dfWithNull.groupBy("state").agg(count("state"), count("*")).show()
     frov_dfWithNull.release()
 
     val sampleDF = sc.textFile("./input/sample.txt")

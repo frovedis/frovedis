@@ -41,7 +41,7 @@ JNIEXPORT jlongArray JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_allocateLoc
   auto fm_node = java_node_to_frovedis_node(env, master_node);
   auto blocksz = to_sizet_vector(env, block_sizes, nproc);
   auto dt = to_short_vector(env, dtypes, ncol);
-  std::vector<exrpc_ptr_t> proxies;
+  std::vector<exrpc_ptr_t> proxies; // (ncol + no-of-words) x nproc
   try {
     proxies = exrpc_async(fm_node, allocate_local_vectors, blocksz, dt).get();
   }
@@ -49,14 +49,14 @@ JNIEXPORT jlongArray JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_allocateLoc
   return to_jlongArray(env, proxies);
 }
 
-JNIEXPORT jobjectArray JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_allocateLocalVectorPair // (int, int)
+JNIEXPORT jobjectArray JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_allocateLocalVectorPair // (char, int)
   (JNIEnv *env, jclass thisCls, jobject master_node,
    jlongArray block_sizes, jint nproc) {
   auto fm_node = java_node_to_frovedis_node(env, master_node);
   auto blocksz = to_sizet_vector(env, block_sizes, nproc);
   std::vector<frovedis_mem_pair> proxies;
   try {
-    proxies = exrpc_async(fm_node, (allocate_local_vector_pair<std::vector<int>, std::vector<int>>),
+    proxies = exrpc_async(fm_node, (allocate_local_vector_pair<std::vector<char>, std::vector<int>>),
                           blocksz).get(); 
   }
   catch(std::exception& e) { set_status(true,e.what()); }
@@ -183,13 +183,13 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_loadFrovedisWorke
    jlong flat_size, jlong actual_size) {
 
   auto fw_node = java_node_to_frovedis_node(env, worker_node);
-  auto p_dvec = flat_charArray_to_int_vector(env, data, flat_size);
+  auto p_dvec = to_char_vector(env, data, flat_size);
   auto p_svec = to_int_vector(env, sizes, actual_size);
   auto dp = (exrpc_ptr_t) dptr;
   auto sp = (exrpc_ptr_t) sptr;
   size_t idx = index;
   try{
-    exrpc_oneway(fw_node, (load_local_vector_pair<std::vector<int>, std::vector<int>>), 
+    exrpc_oneway(fw_node, (load_local_vector_pair<std::vector<char>, std::vector<int>>), 
                  idx, dp, p_dvec, sp, p_svec); // dp[idx] = p_dvec; sp[idx] = p_svec;
   }
   catch(std::exception& e) { set_status(true,e.what()); }

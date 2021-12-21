@@ -9,21 +9,42 @@ allocate_local_vectors(std::vector<size_t>& sizes,
                        std::vector<short>& dtypes) {
   auto ncol = dtypes.size();
   auto nproc = sizes.size();
-  std::vector<exrpc_ptr_t> ret(ncol * nproc);
+  short wid = WORDS;
+  size_t word_count = 0;
+  std::vector<int> offset(ncol);
+  for(size_t i = 0; i < ncol; ++i) {
+    offset[i] = i + word_count;
+    word_count += (dtypes[i] == wid);
+  }
+  auto mat_nrow = ncol + word_count; // words is pair of <char, int>
+  std::vector<exrpc_ptr_t> ret(mat_nrow * nproc);
   for (size_t i = 0; i < ncol; ++i) {
-    std::vector<exrpc_ptr_t> tmp;
-    switch(dtypes[i]) {
-      case BOOL:
-      case INT:    tmp = allocate_local_vector<std::vector<int>>(sizes); break;
-      case LONG:   tmp = allocate_local_vector<std::vector<long>>(sizes); break;
-      case FLOAT:  tmp = allocate_local_vector<std::vector<float>>(sizes); break;
-      case DOUBLE: tmp = allocate_local_vector<std::vector<double>>(sizes); break;
-      case STRING: tmp = allocate_local_vector<std::vector<std::string>>(sizes); break;
-      default: REPORT_ERROR(USER_ERROR, "Unsupported dtype is encountered!\n");
+    auto row_offset = offset[i];
+    //std::cout << "allocating for " << i << "th column with offset: " << row_offset << std::endl;
+    if (dtypes[i] == wid) {
+      auto pair_proxy = allocate_local_vector_pair<std::vector<char>, std::vector<int>>(sizes);
+      auto retp1 = ret.data() + row_offset * nproc;       // for char data
+      auto retp2 = ret.data() + (row_offset + 1) * nproc; // for int size
+      for(size_t j = 0; j < nproc; ++j) {
+        retp1[j] = pair_proxy[j].first();  // proxy for char-data-vectors
+        retp2[j] = pair_proxy[j].second(); // proxy for int-size-vectors
+      }
     }
-    auto tmpp = tmp.data();
-    auto retp = ret.data() + i * nproc;
-    for(size_t j = 0; j < nproc; ++j) retp[j] = tmpp[j];
+    else {
+      std::vector<exrpc_ptr_t> tmp;
+      switch(dtypes[i]) {
+        case BOOL:
+        case INT:    tmp = allocate_local_vector<std::vector<int>>(sizes); break;
+        case LONG:   tmp = allocate_local_vector<std::vector<long>>(sizes); break;
+        case FLOAT:  tmp = allocate_local_vector<std::vector<float>>(sizes); break;
+        case DOUBLE: tmp = allocate_local_vector<std::vector<double>>(sizes); break;
+        case STRING: tmp = allocate_local_vector<std::vector<std::string>>(sizes); break;
+        default: REPORT_ERROR(USER_ERROR, "Unsupported dtype is encountered!\n");
+      }
+      auto tmpp = tmp.data();
+      auto retp = ret.data() + row_offset * nproc;
+      for(size_t j = 0; j < nproc; ++j) retp[j] = tmpp[j];
+    }
   }
   return ret;
 }
@@ -37,9 +58,9 @@ exrpc_ptr_t make_node_local_words(std::vector<exrpc_ptr_t>& data_ptrs,
   sizesp->set_sizes(sizes_ss);
   sizesp->align_block(); 
 
-  auto datap = new dvector<int>(make_dvector_allocate<int>());
+  auto datap = new dvector<char>(make_dvector_allocate<char>());
   auto each_data_eps =  make_node_local_scatter(data_ptrs);
-  auto data_ss = datap->map_partitions(merge_and_set_dvector_impl<int>, 
+  auto data_ss = datap->map_partitions(merge_and_set_dvector_impl<char>, 
                                        each_data_eps).gather();
   datap->set_sizes(data_ss);
   auto dist = sizesp->viewas_node_local()
@@ -50,13 +71,13 @@ exrpc_ptr_t make_node_local_words(std::vector<exrpc_ptr_t>& data_ptrs,
 
   auto retp = new node_local<words>(make_node_local_allocate<words>());
   datap->viewas_node_local().mapv(
-       +[](std::vector<int>& data, std::vector<int>& sizes, words& w) {
+       +[](std::vector<char>& data, std::vector<int>& sizes, words& w) {
            auto size = sizes.size();
            if (size == 0) return;
            std::vector<size_t> starts(size); starts[0] = 0;
            auto length = vector_astype<size_t>(sizes);
            prefix_sum(length.data(), starts.data() + 1, size - 1);
-           w.chars.swap(data);
+           w.chars = vchar_to_int(data);
            w.lens.swap(length);
            w.starts.swap(starts);
        }, sizesp->viewas_node_local(), *retp);
@@ -122,8 +143,8 @@ void expose_frovedis_dvector_functions() {
   expose(merge_and_set_dvector<std::string>);
   expose(allocate_local_vectors);
   // for handling strings as words (chars, sizes pair)
-  expose((allocate_local_vector_pair<std::vector<int>, std::vector<int>>));
-  expose((load_local_vector_pair<std::vector<int>, std::vector<int>>));
+  expose((allocate_local_vector_pair<std::vector<char>, std::vector<int>>));
+  expose((load_local_vector_pair<std::vector<char>, std::vector<int>>));
   expose(make_node_local_words);
   expose(get_node_local_word_pointers);
   expose(get_string_vector_from_words);
