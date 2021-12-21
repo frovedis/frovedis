@@ -15,6 +15,12 @@
 #include "dfutil.hpp"
 
 #define GROUPBY_VLEN 256
+// count distinct uses same implementation for both VE and x86
+#ifdef __ve__
+#define GROUPBY_COUNT_DISTINCT_VLEN 256
+#else
+#define GROUPBY_COUNT_DISTINCT_VLEN 4
+#endif
 #define DONOT_ALLOW_MAX_AS_VALUE // for better performance
 
 namespace frovedis {
@@ -3246,6 +3252,231 @@ typed_dfcolumn<T>::min
     ret->contain_nulls_check();
   }
   return ret;
+}
+
+std::vector<size_t>
+fill_sized_idx(const size_t* idxp, const size_t* idx_lenp, size_t size);
+
+template <class T>
+std::vector<std::vector<T>>
+count_distinct_helper(std::vector<T>& org_val,
+                      std::vector<size_t>& grouped_idx,
+                      std::vector<size_t>& idx_split,
+                      std::vector<std::vector<size_t>>& hash_divide,
+                      std::vector<std::vector<size_t>>& hashed_distinct_size) {
+  T* org_valp = org_val.data();
+  size_t valsize = grouped_idx.size();
+  std::vector<T> val(valsize);
+  auto valp = val.data();
+  auto grouped_idxp = grouped_idx.data();
+#pragma cdir nodep
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+  for(size_t i = 0; i < valsize; i++) {
+    valp[i] = org_valp[grouped_idxp[i]];
+  }
+  size_t splitsize = idx_split.size();
+  size_t groupsize = splitsize - 1;
+  std::vector<size_t> tmp_group(groupsize);
+  std::vector<size_t> each_split(groupsize);
+  auto each_splitp = each_split.data();
+  auto idx_splitp = idx_split.data();
+  for(size_t i = 0; i < groupsize; i++) {
+    each_splitp[i] = idx_splitp[i+1] - idx_splitp[i];
+  }
+  auto tmp_groupp = tmp_group.data();
+  for(size_t i = 0; i < groupsize; i++) tmp_groupp[i] = i;
+  auto sized_idx = fill_sized_idx(tmp_groupp, each_splitp, groupsize);
+  radix_sort(val, sized_idx);
+  radix_sort(sized_idx, val);
+  auto val_split = set_separate(val);
+  auto merged_split = set_union(idx_split, val_split);
+  auto merged_split_size = merged_split.size();
+  std::vector<T> distinct_val(merged_split_size-1);
+  auto distinct_valp = distinct_val.data();
+  auto merged_splitp = merged_split.data();
+#pragma _NEC vob
+#pragma _NEC vovertake
+#pragma _NEC ivdep
+  for(size_t i = 0; i < merged_split_size - 1; i++) {
+    distinct_valp[i] = valp[merged_splitp[i]];
+  }
+  auto group_split_pos = lower_bound(merged_split, idx_split);
+  std::vector<size_t> distinct_size(groupsize);
+  auto distinct_sizep = distinct_size.data();
+  auto group_split_posp = group_split_pos.data();
+  for(size_t i = 0; i < groupsize; i++) {
+    distinct_sizep[i] = group_split_posp[i+1] - group_split_posp[i];
+  }
+  auto nodesize = hash_divide.size();
+  hashed_distinct_size.resize(nodesize);
+  for(size_t i = 0; i < nodesize; i++) {
+    auto each_size = hash_divide[i].size();
+    hashed_distinct_size[i].resize(each_size);
+    auto hash_dividep = hash_divide[i].data();
+    auto hashed_distinct_sizep = hashed_distinct_size[i].data();
+#pragma _NEC vob
+#pragma _NEC vovertake
+#pragma _NEC ivdep
+    for(size_t j = 0; j < each_size; j++) {
+      hashed_distinct_sizep[j] = distinct_sizep[hash_dividep[j]];
+    }
+  }
+  std::vector<std::vector<size_t>> px_hashed_distinct_size(nodesize);
+  for(size_t i = 0; i < nodesize; i++) {
+    auto tmp_size = hashed_distinct_size[i].size();
+    px_hashed_distinct_size[i].resize(tmp_size + 1);
+    prefix_sum(hashed_distinct_size[i].data(),
+               px_hashed_distinct_size[i].data() + 1,
+               tmp_size);
+  }
+  std::vector<std::vector<T>> ret(nodesize);
+  for(size_t i = 0; i < nodesize; i++) {
+    auto size = px_hashed_distinct_size[i].size();
+    ret[i].resize(px_hashed_distinct_size[i][size-1]);
+  }
+  for(size_t i = 0; i < nodesize; i++) {
+    auto size = hash_divide[i].size();
+    if(size == 0) continue;
+    auto hash_dividep = hash_divide[i].data();
+    auto ret_size = ret[i].size();
+    auto retp = ret[i].data();
+    auto px_hashed_distinct_sizep = px_hashed_distinct_size[i].data();
+    auto hashed_distinct_sizep = hashed_distinct_size[i].data();
+    if(ret_size / size > GROUPBY_COUNT_DISTINCT_VLEN * 2) {
+      for(size_t j = 0; j < size; j++) {
+        auto crnt_retp = retp + px_hashed_distinct_sizep[j];
+        auto crnt_valp = distinct_valp + group_split_posp[hash_dividep[j]];
+        auto crnt_distinct_size = hashed_distinct_sizep[j];
+        for(size_t k = 0; k < crnt_distinct_size; k++) {
+          crnt_retp[k] = crnt_valp[k];
+        }
+      }
+    } else {
+      auto num_block = size / GROUPBY_COUNT_DISTINCT_VLEN;
+      auto rest = size - num_block * GROUPBY_COUNT_DISTINCT_VLEN;
+      for(size_t b = 0; b < num_block; b++) {
+        size_t offset = b * GROUPBY_COUNT_DISTINCT_VLEN;
+        auto offset_px_hashed_distinct_sizep =
+          px_hashed_distinct_sizep + offset;
+        auto offset_hash_dividep = hash_dividep + offset;
+        auto offset_hashed_distinct_sizep = hashed_distinct_sizep + offset;
+        size_t max = 0;
+        for(size_t j = 0; j < GROUPBY_COUNT_DISTINCT_VLEN; j++) {
+          if(max < offset_hashed_distinct_sizep[j])
+            max = offset_hashed_distinct_sizep[j];
+        }
+        for(size_t j = 0; j < max; j++) {
+#pragma _NEC vob
+#pragma _NEC vovertake
+#pragma _NEC ivdep
+          for(size_t k = 0; k < GROUPBY_COUNT_DISTINCT_VLEN; k++) {
+            if(j < offset_hashed_distinct_sizep[k]) {
+              retp[offset_px_hashed_distinct_sizep[k] + j] =
+                distinct_valp[group_split_posp[offset_hash_dividep[k]] + j];
+            }
+          }
+        }
+      }
+      size_t offset = num_block * GROUPBY_COUNT_DISTINCT_VLEN;
+      auto offset_px_hashed_distinct_sizep =
+        px_hashed_distinct_sizep + offset;
+      auto offset_hash_dividep = hash_dividep + offset;
+      auto offset_hashed_distinct_sizep = hashed_distinct_sizep + offset;
+      size_t max = 0;
+      for(size_t j = 0; j < rest; j++) {
+        if(max < offset_hashed_distinct_sizep[j])
+          max = offset_hashed_distinct_sizep[j];
+      }
+      for(size_t j = 0; j < max; j++) {
+#pragma _NEC vob
+#pragma _NEC vovertake
+#pragma _NEC ivdep
+        for(size_t k = 0; k < rest; k++) {
+          if(j < offset_hashed_distinct_sizep[k]) {
+            retp[offset_px_hashed_distinct_sizep[k] + j] =
+              distinct_valp[group_split_posp[offset_hash_dividep[k]] + j];
+          }
+        }
+      }
+    }
+  }
+  return ret;
+}
+
+template <class T>
+std::shared_ptr<dfcolumn>
+count_distinct_impl
+(node_local<std::vector<T>>& val,
+ node_local<std::vector<size_t>>& local_grouped_idx,
+ node_local<std::vector<size_t>>& local_idx_split,
+ node_local<std::vector<std::vector<size_t>>>& hash_divide,
+ node_local<std::vector<std::vector<size_t>>>& merge_map,
+ node_local<size_t>& row_sizes) {
+#ifndef DONOT_ALLOW_MAX_AS_VALUE
+  throw std::runtime_error
+    ("define DONOT_ALLOW_MAX_AS_VALUE to use count_distinct");
+#endif
+  auto ret = std::make_shared<typed_dfcolumn<T>>();
+  ret->nulls = make_node_local_allocate<std::vector<size_t>>();
+  auto local_distinct_size =
+    make_node_local_allocate<std::vector<std::vector<size_t>>>();
+  auto local_agg = val.map(count_distinct_helper<T>, local_grouped_idx,
+                           local_idx_split, hash_divide, local_distinct_size);
+  auto exchanged = alltoall_exchange(local_agg);
+  auto exchanged_distinct_size = alltoall_exchange(local_distinct_size);
+  auto newval = exchanged.map
+    (+[](std::vector<std::vector<T>>& exchanged,
+         std::vector<std::vector<size_t>>& merge_map,
+         std::vector<std::vector<size_t>>& exchanged_distinct_size,
+         size_t row_size) {
+      std::vector<T> newval(row_size);
+      auto newvalp = newval.data();
+      auto flatten_val = flatten(exchanged);
+      auto nodesize = merge_map.size();
+      std::vector<std::vector<size_t>> sized_idx(nodesize);
+      for(size_t i = 0; i < nodesize; i++) {
+        sized_idx[i] = fill_sized_idx(merge_map[i].data(),
+                                      exchanged_distinct_size[i].data(),
+                                      merge_map[i].size());
+      }
+      auto flatten_sized_idx = flatten(sized_idx);
+      radix_sort(flatten_val, flatten_sized_idx);
+      radix_sort(flatten_sized_idx, flatten_val);
+      auto val_separate = set_separate(flatten_val);
+      auto idx_separate = set_separate(flatten_sized_idx);
+      auto merged_separate = set_union(val_separate, idx_separate);
+      auto group_pos = lower_bound(merged_separate, idx_separate);
+      auto group_posp = group_pos.data();
+      auto group_pos_size = group_pos.size();
+      auto flatten_sized_idxp = flatten_sized_idx.data();
+      auto flatten_valp = flatten_val.data();
+      auto merged_separatep = merged_separate.data();
+      auto max = std::numeric_limits<T>::max();
+      for(size_t i = 0; i < group_pos_size-1; i++) {
+        auto pos = flatten_sized_idxp[merged_separatep[group_posp[i]]];
+        auto lastdata = flatten_valp[merged_separatep[group_posp[i+1]]-1];
+        auto tostore = group_posp[i+1] - group_posp[i];
+        if(lastdata == max) tostore--;
+        newvalp[pos] = tostore;
+      }
+      return newval;
+    }, merge_map, exchanged_distinct_size, row_sizes);
+  ret->val = std::move(newval);
+  return ret;
+}
+
+template <class T>
+std::shared_ptr<dfcolumn>
+typed_dfcolumn<T>::count_distinct
+(node_local<std::vector<size_t>>& local_grouped_idx,
+ node_local<std::vector<size_t>>& local_idx_split,
+ node_local<std::vector<std::vector<size_t>>>& hash_divide,
+ node_local<std::vector<std::vector<size_t>>>& merge_map,
+ node_local<size_t>& row_sizes) {
+  return count_distinct_impl(val, local_grouped_idx, local_idx_split,
+                             hash_divide, merge_map, row_sizes);
 }
 
 template <class T>

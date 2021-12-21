@@ -145,6 +145,20 @@ aggregate(dftable_base& table,
 }
 
 std::shared_ptr<dfcolumn> 
+dfaggregator_count_distinct::
+aggregate(dftable_base& table,
+          node_local<std::vector<size_t>>& local_grouped_idx,
+          node_local<std::vector<size_t>>& local_idx_split,
+          node_local<std::vector<std::vector<size_t>>>& hash_divide,
+          node_local<std::vector<std::vector<size_t>>>& merge_map,
+          node_local<size_t>& row_sizes) {
+  dftable_base sliced_table = table;
+  auto colp = col->execute(sliced_table);
+  return colp->count_distinct(local_grouped_idx, local_idx_split, hash_divide,
+                              merge_map, row_sizes);
+}
+
+std::shared_ptr<dfcolumn> 
 dfaggregator_sum::
 whole_column_aggregate(dftable_base& table) {
   auto colp = col->execute(table);
@@ -538,6 +552,26 @@ std::shared_ptr<dfaggregator> min_as(const std::string& col,
 std::shared_ptr<dfaggregator> min_as(const std::shared_ptr<dffunction>& col,
                                      const std::string& as) {
   return std::make_shared<dfaggregator_min>(col,as);
+}
+
+std::shared_ptr<dfaggregator> count_distinct(const std::string& col) {
+  return std::make_shared<dfaggregator_count_distinct>(id_col(col));
+}
+
+std::shared_ptr<dfaggregator>
+count_distinct(const std::shared_ptr<dffunction>& col) {
+  return std::make_shared<dfaggregator_count_distinct>(col);
+}
+
+std::shared_ptr<dfaggregator> count_distinct_as(const std::string& col,
+                                                const std::string& as) {
+  return std::make_shared<dfaggregator_count_distinct>(id_col(col),as);
+}
+
+std::shared_ptr<dfaggregator>
+count_distinct_as(const std::shared_ptr<dffunction>& col,
+                  const std::string& as) {
+  return std::make_shared<dfaggregator_count_distinct>(col,as);
 }
 
 }

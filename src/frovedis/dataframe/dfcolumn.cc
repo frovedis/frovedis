@@ -16,6 +16,12 @@
 
 #define CREATE_MERGE_MAP_VLEN 256
 
+#ifdef __ve__
+#define FILL_SIZED_IDX_VLEN 256
+#else
+#define FILL_SIZED_IDX_VLEN 4
+#endif
+
 namespace frovedis {
 
 using namespace std;
@@ -548,6 +554,72 @@ void create_merge_map(std::vector<size_t>& nodeid,
   }
 }
 #endif
+
+std::vector<size_t>
+fill_sized_idx(const size_t* idxp, const size_t* idx_lenp, size_t size) {
+  if(size == 0) return std::vector<size_t>();
+  size_t total = 0;
+  for(size_t i = 0; i < size; i++) {
+    total += idx_lenp[i];
+  }
+  std::vector<size_t> ret(total);
+  auto retp = ret.data();
+  if(total / size > FILL_SIZED_IDX_VLEN * 2) {
+    size_t crnt = 0;
+    for(size_t i = 0; i < size; i++) {
+      for(size_t j = 0; j < idx_lenp[i]; j++) {
+        retp[crnt + j] = idxp[i];
+      }
+      crnt += idx_lenp[i];
+    }
+    return ret;
+  } else {
+    std::vector<size_t> px_idx_len(size+1);
+    auto px_idx_lenp = px_idx_len.data();
+    prefix_sum(idx_lenp, px_idx_lenp+1, size);
+    auto num_block = size / FILL_SIZED_IDX_VLEN;
+    auto rest = size - num_block * FILL_SIZED_IDX_VLEN;
+    for(size_t b = 0; b < num_block; b++) {
+      size_t offset = b * FILL_SIZED_IDX_VLEN;
+      auto offset_idx_lenp = idx_lenp + offset;
+      auto offset_px_idx_lenp = px_idx_lenp + offset;
+      auto offset_idxp = idxp + offset;
+      size_t max = 0;
+      for(size_t i = 0; i < FILL_SIZED_IDX_VLEN; i++) {
+        if(max < offset_idx_lenp[i]) max = offset_idx_lenp[i];
+      }
+      for(size_t i = 0; i < max; i++) {
+#pragma _NEC vob
+#pragma _NEC vovertake
+#pragma _NEC ivdep
+        for(size_t j = 0; j < FILL_SIZED_IDX_VLEN; j++) {
+           if(i < offset_idx_lenp[j]) {
+            retp[offset_px_idx_lenp[j]+i] = offset_idxp[j];
+          }
+        }
+      }
+    }
+    size_t offset = num_block * FILL_SIZED_IDX_VLEN;
+    auto offset_idx_lenp = idx_lenp + offset;
+    auto offset_px_idx_lenp = px_idx_lenp + offset;
+    auto offset_idxp = idxp + offset;
+    size_t max = 0;
+    for(size_t i = 0; i < rest; i++) {
+      if(max < offset_idx_lenp[i]) max = offset_idx_lenp[i];
+    }
+    for(size_t i = 0; i < max; i++) {
+#pragma _NEC vob
+#pragma _NEC vovertake
+#pragma _NEC ivdep
+      for(size_t j = 0; j < rest; j++) {
+        if(i < offset_idx_lenp[j]) {
+          retp[offset_px_idx_lenp[j]+i] = offset_idxp[j];
+        }
+      }
+    }
+    return ret;
+  }
+}
 
 std::vector<std::string> 
 words_to_string_vector(words& ws, 

@@ -997,6 +997,17 @@ typed_dfcolumn<string>::size
                     hash_divide, merge_map, row_sizes, true);
 }
 
+std::shared_ptr<dfcolumn>
+typed_dfcolumn<string>::count_distinct
+(node_local<std::vector<size_t>>& local_grouped_idx,
+ node_local<std::vector<size_t>>& local_idx_split,
+ node_local<std::vector<std::vector<size_t>>>& hash_divide,
+ node_local<std::vector<std::vector<size_t>>>& merge_map,
+ node_local<size_t>& row_sizes) {
+  return count_distinct_impl(val, local_grouped_idx, local_idx_split,
+                             hash_divide, merge_map, row_sizes);
+}
+
 size_t typed_dfcolumn<string>::count() {
   size_t size = val.viewas_dvector<size_t>().size();
   if(contain_nulls) {

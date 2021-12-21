@@ -255,6 +255,12 @@ public:
       node_local<std::vector<std::vector<size_t>>>& hash_divide,
       node_local<std::vector<std::vector<size_t>>>& merge_map,
       node_local<size_t>& row_sizes) = 0;
+  virtual std::shared_ptr<dfcolumn>
+  count_distinct(node_local<std::vector<size_t>>& local_grouped_idx,
+                 node_local<std::vector<size_t>>& local_idx_split,
+                 node_local<std::vector<std::vector<size_t>>>& hash_divide,
+                 node_local<std::vector<std::vector<size_t>>>& merge_map,
+                 node_local<size_t>& row_sizes) = 0;
   // for whole column
   virtual size_t count() = 0; // exclude null
   template <class T> T sum();
@@ -738,6 +744,12 @@ public:
       node_local<std::vector<std::vector<size_t>>>& hash_divide,
       node_local<std::vector<std::vector<size_t>>>& merge_map,
       node_local<size_t>& row_sizes);
+  virtual std::shared_ptr<dfcolumn>
+  count_distinct(node_local<std::vector<size_t>>& local_grouped_idx,
+                 node_local<std::vector<size_t>>& local_idx_split,
+                 node_local<std::vector<std::vector<size_t>>>& hash_divide,
+                 node_local<std::vector<std::vector<size_t>>>& merge_map,
+                 node_local<size_t>& row_sizes);
   virtual size_t count();
   T sum();
   virtual double avg();
@@ -1226,6 +1238,12 @@ public:
       node_local<size_t>& row_sizes) {
     throw std::runtime_error("mad of string is not defined");
   }
+  virtual std::shared_ptr<dfcolumn>
+  count_distinct(node_local<std::vector<size_t>>& local_grouped_idx,
+                 node_local<std::vector<size_t>>& local_idx_split,
+                 node_local<std::vector<std::vector<size_t>>>& hash_divide,
+                 node_local<std::vector<std::vector<size_t>>>& merge_map,
+                 node_local<size_t>& row_sizes);
   virtual size_t count();
   std::string sum() {
     throw std::runtime_error("sum of string is not defined");
@@ -1573,6 +1591,12 @@ public:
       node_local<size_t>& row_sizes) {
     throw std::runtime_error("mad of dic_string is not defined");
   }
+  virtual std::shared_ptr<dfcolumn>
+  count_distinct(node_local<std::vector<size_t>>& local_grouped_idx,
+                 node_local<std::vector<size_t>>& local_idx_split,
+                 node_local<std::vector<std::vector<size_t>>>& hash_divide,
+                 node_local<std::vector<std::vector<size_t>>>& merge_map,
+                 node_local<size_t>& row_sizes);
   virtual size_t count();
   dic_string sum() {
     throw std::runtime_error("sum of dic_string is not defined");
@@ -1936,6 +1960,14 @@ public:
       node_local<std::vector<std::vector<size_t>>>& merge_map,
       node_local<size_t>& row_sizes) {
     throw std::runtime_error("mad of raw_string is not defined");
+  }
+  virtual std::shared_ptr<dfcolumn>
+  count_distinct(node_local<std::vector<size_t>>& local_grouped_idx,
+                 node_local<std::vector<size_t>>& local_idx_split,
+                 node_local<std::vector<std::vector<size_t>>>& hash_divide,
+                 node_local<std::vector<std::vector<size_t>>>& merge_map,
+                 node_local<size_t>& row_sizes) {
+    throw std::runtime_error("count_distinct of raw_string is not defined");
   }
   virtual size_t count();
   raw_string sum() {
